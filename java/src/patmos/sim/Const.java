@@ -17,42 +17,15 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-package patmos;
-
-import java.util.ArrayList;
+package patmos.sim;
 
 /**
- * Simulator for RTL simulation
- * 
+ * Define some constants
  * @author martin
  *
  */
-public class Simulator {
+public class Const {
 	
-	private static Simulator single = new Simulator();
-	ArrayList<Module> modules = new ArrayList<Module>();
-	
-	public static Simulator getInstance() {
-		return single;
-	}
-
-	public void register(Module m) {
-		modules.add(m);
-	}
-	
-	public void simulate(int cnt) {
-		for (int i=0; i<cnt; ++i) {
-			for (Module ie : modules) {
-				ie.calculate();
-			}
-			for (Module ie : modules) {
-				ie.update();
-			}
-			for (Module ie : modules) {
-				System.out.print(ie.toString());
-			}
-			System.out.println();
-		}
-	}
+	final static int REG_SHIFT = 7;
 
 }

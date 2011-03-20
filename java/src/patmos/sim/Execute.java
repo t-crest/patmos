@@ -17,29 +17,43 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-package patmos;
+package patmos.sim;
 
 /**
  * @author martin
  *
  */
-public class PatSim {
+public class Execute extends Module {
 
-	/**
-	 * @param args
+	class State extends Module.State {
+		int xyz;		
+		int aaa;
+		
+		public String toString() {
+			return "xyz: "+xyz+" ";
+		}
+
+	}
+	
+	Decode deRef;
+
+	public Execute() {
+		current = new State();
+		register = new State();
+	}
+	
+	public void setDecodeRef(Decode de) {
+		deRef = de;
+	}
+
+	/* (non-Javadoc)
+	 * @see patmos.Module#calculate()
 	 */
-	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-		System.out.println("PatSim");
-		
-		Fetch fe = new Fetch();
-		Decode de = new Decode();
-		Execute ex = new Execute();
-		
-		de.setFetchRef(fe);
-		ex.setDecodeRef(de);
-		
-		Simulator.getInstance().simulate(10);
+	@Override
+	void calculate() {
+		State s = (State) current;
+		Decode.State ds = (Decode.State) deRef.getValue();
+		s.xyz = ds.abc+300;
 	}
 
 }
