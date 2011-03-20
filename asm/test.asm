@@ -1,3 +1,7 @@
+label:
+	add r1
+
+
 // That's not Patmos, but Leros assembler....
 // Register definitions
 
