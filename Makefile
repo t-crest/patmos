@@ -37,29 +37,27 @@ directories:
 assembler:
 	-mkdir java/generated
 	-mkdir java/classes
-	java -classpath lib/antlr-3.3-complete.jar org.antlr.Tool \
-		-fo java/generated java/src/grammar/PatGram.g
-	javac -classpath lib/antlr-3.3-complete.jar -d java/classes \
-		java/src/Test.java java/generated/PatGramLexer.java \
-		java/generated/PatGramParser.java
 	make run
-
-run:
-	java -cp java/classes:$(S)lib/antlr-3.3-complete.jar Test < asm/test.asm
-
 
 tools:
 	-rm -rf java/classes
 	-rm -rf java/lib
+	-rm -rf java/src/patmos/asm/generated
 	mkdir java/classes
 	mkdir java/lib
-	javac -d java/classes -sourcepath java/src java/src/patmos/asm/*.java
+	mkdir java/src/patmos/asm/generated
+	java -classpath lib/antlr-3.3-complete.jar org.antlr.Tool \
+		-fo java/src/patmos/asm/generated java/src/grammar/PatGram.g
+	javac -classpath lib/antlr-3.3-complete.jar \
+		-d java/classes java/src/patmos/asm/generated/*.java \
+		java/src/patmos/asm/*.java
 	cd java/classes && jar cf ../lib/patmos-tools.jar *
 
 rom:
 	-rm -rf vhdl/generated
 	mkdir vhdl/generated
-	java -cp java/lib/patmos-tools.jar patmos.asm.PatAsm -s asm -d vhdl/generated $(APP).asm
+	java -cp java/lib/patmos-tools.jar$(S)lib/antlr-3.3-complete.jar \
+		patmos.asm.PatAsm -s asm -d vhdl/generated $(APP).asm
 
 # configure the FPGA
 config:

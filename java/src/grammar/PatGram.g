@@ -2,10 +2,15 @@
 grammar PatGram;
 
 @header {
+package patmos.asm.generated;
+
 import java.util.HashMap;
 import java.util.List;
 
 }
+
+@lexer::header {package patmos.asm.generated;}
+
 
 @members {
 /** Map symbol to Integer object holding the value or address */
@@ -43,15 +48,17 @@ pass2 returns [List mem]
 	}
 	}; 
 
-statement: (label)? (directive | instruction)? (COMMENT)? NEWLINE;
+statement: (label)? (directive | bundle)? (COMMENT)? NEWLINE;
 
 label:  ID ':' {symbols.put($ID.text, new Integer(pc));};
 
+// just a dummy example
 directive: '.start';
 
-instruction: alu_imm | alu ;
+// later extend to inst || instr
+bundle: instruction;
 
-//	if ($pred!=null) { $opc += $pred.value<<22; }
+instruction: alu_imm | alu ;
 
 alu_imm returns [int opc]
 	: (pred)? op_imm rs1 ',' imm_val TO rd
@@ -61,7 +68,6 @@ alu_imm returns [int opc]
 			$imm_val.value;
 		System.out.println(pc+" "+niceHex($opc)+
 			" p"+$pred.value+" "+$op_imm.text);
-// System.out.println(pc+" "+$op_imm.text + $op_imm.opc + $rs1.text + $rd.text);
 		if (pass2) { code[pc] = $opc; }
 		++pc;
 	};
@@ -116,7 +122,6 @@ op_alu returns [int func]:
 INT :   '0'..'9'+ ;
 REG: 'r' INT;
 PRD: 'p' INT;
-// fragment REG_NUM: ('0'..'9') | ('1'..'2' '0..9') | ('3' '0'..'1');
 TO: '->';
 
 ID: ('a'..'z'|'A'..'Z'|'_') ('a'..'z'|'A'..'Z'|'_' | '0'..'9')*;
