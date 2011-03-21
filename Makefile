@@ -53,7 +53,7 @@ tools:
 		java/src/patmos/asm/*.java
 	cd java/classes && jar cf ../lib/patmos-tools.jar *
 
-rom:
+rom: tools
 	-rm -rf vhdl/generated
 	mkdir vhdl/generated
 	java -cp java/lib/patmos-tools.jar$(S)lib/antlr-3.3-complete.jar \

@@ -58,7 +58,7 @@ directive: '.start';
 // later extend to inst || instr
 bundle: instruction;
 
-instruction: alu_imm | alu ;
+instruction: alu_imm | alu | compare | branch;
 
 alu_imm returns [int opc]
 	: (pred)? op_imm rs1 ',' imm_val TO rd
@@ -84,6 +84,40 @@ alu returns [int opc]
 		++pc;
 	};
 
+compare returns [int opc]
+	: (pred)? 'cmp' rs1 op_cmp rs2 TO pdest
+	{
+		$opc = (0x07<<26) + ($pred.value<<22) +
+			($rs1.value<<12) + ($rs2.value<<7) + ($pdest.value<<17) +
+			$op_cmp.func;
+		System.out.println(pc+" "+niceHex($opc)+
+			" p"+$pred.value+" cmp "+$op_cmp.text+" pd"+$pdest.value);
+		if (pass2) { code[pc] = $opc; }
+		++pc;
+	};
+
+branch returns [int opc]
+	: (pred)? 'br' ID
+	{
+		int off = 0;
+		if (pass2) {
+			Integer v = (Integer) symbols.get($ID.text);
+        		if ( v!=null ) {
+				off = v.intValue();
+		        } else {
+				throw new Error("Undefined label "+$ID.text);
+			}
+			off = off - pc;
+			// TODO test maximum offset
+			// at the moment 22 bits offset
+			off &= 0x3fffff;
+		}
+		$opc = (0x06<<26) + ($pred.value<<22) + off;
+		System.out.println(pc+" "+niceHex($opc)+
+			" p"+$pred.value+" br "+((off<<10)>>10));
+		if (pass2) { code[pc] = $opc; }
+		++pc;
+	};
 
 rs1 returns [int value]: register {$value = $register.value;};
 rs2 returns [int value]: register {$value = $register.value;};
@@ -95,6 +129,10 @@ register returns [int value]
 		if ($value<0 || $value>31) throw new Error("Wrong register name");};
 
 pred returns [int value]
+	: PRD {$value = Integer.parseInt($PRD.text.substring(1));
+		if ($value<0 || $value>15) throw new Error("Wrong predicate name");};
+
+pdest returns [int value]
 	: PRD {$value = Integer.parseInt($PRD.text.substring(1));
 		if ($value<0 || $value>15) throw new Error("Wrong predicate name");};
 
@@ -115,6 +153,15 @@ op_alu returns [int func]:
 	'or' {$func = 2;} |
 	'and' {$func = 3;} |
 	'xor' {$func = 4;}
+	;
+
+op_cmp returns [int func]:
+	'==' {$func = 0;} |
+	'!=' {$func = 1;} |
+	'>=' {$func = 2;} |
+	'<=' {$func = 3;} |
+	'>' {$func = 4;} |
+	'<' {$func = 5;}
 	;
 
 /* Lexer rules (start with upper case) */
