@@ -1,4 +1,6 @@
 
+import java.util.List;
+
 import org.antlr.runtime.*;
 
 public class Test {
@@ -7,7 +9,11 @@ public class Test {
         PatGramLexer lexer = new PatGramLexer(input);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         PatGramParser parser = new PatGramParser(tokens);
-        parser.prog();
+        parser.pass1();
+//        parser.dump();
+        parser.reset();
+        List code = parser.pass2();
+        System.out.println(code);
     }
 }
 
