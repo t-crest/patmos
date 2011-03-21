@@ -1,15 +1,8 @@
 label:
-	add r1
-
+	add r1, 10 -> r13 // hhj
+	sub r2, r3 -> r2
 
 // That's not Patmos, but Leros assembler....
 // Register definitions
 
-R0 = ?
 
-// first instruction is not executed
-	nop
-start:
-	load 0
-	loadh 2
-	store r0

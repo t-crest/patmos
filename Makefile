@@ -35,12 +35,17 @@ directories:
 	-mkdir rbf
 
 assembler:
-	java -cp lib/antlr-3.3-complete.jar org.antlr.Tool -fo . java/src/grammar/PatGram.g
-	javac -cp lib/antlr-3.3-complete.jar -d . java/src/Test.java PatGramLexer.java PatGramParser.java
+	-mkdir java/generated
+	-mkdir java/classes
+	java -classpath lib/antlr-3.3-complete.jar org.antlr.Tool \
+		-fo java/generated java/src/grammar/PatGram.g
+	javac -classpath lib/antlr-3.3-complete.jar -d java/classes \
+		java/src/Test.java java/generated/PatGramLexer.java \
+		java/generated/PatGramParser.java
 	make run
 
 run:
-	java -cp .:lib/antlr-3.3-complete.jar Test < asm/test.asm
+	java -cp java/classes:$(S)lib/antlr-3.3-complete.jar Test < asm/test.asm
 
 
 tools:
