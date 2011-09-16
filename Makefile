@@ -51,6 +51,8 @@ tools:
 	javac -classpath lib/antlr-3.3-complete.jar \
 		-d java/classes java/src/patmos/asm/generated/*.java \
 		java/src/patmos/asm/*.java
+	javac java/src/simulator/*.java \
+		-d java/classes
 	cd java/classes && jar cf ../lib/patmos-tools.jar *
 
 rom: tools
@@ -58,6 +60,10 @@ rom: tools
 	mkdir vhdl/generated
 	java -cp java/lib/patmos-tools.jar$(S)lib/antlr-3.3-complete.jar \
 		patmos.asm.PatAsm -s asm -d vhdl/generated $(APP).asm
+
+sim:
+	java -cp java/lib/patmos-tools.jar \
+		simulator.SimPat
 
 # configure the FPGA
 config:

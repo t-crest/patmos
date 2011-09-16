@@ -1,4 +1,4 @@
-package simulator;
+package rtlsim.example;
 
 import rtlsim.*;
 
