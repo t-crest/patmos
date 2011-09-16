@@ -2,7 +2,7 @@ package simulator;
 
 import rtlsim.*;
 
-public class PatSim {
+public class PatSimWithRtlSim {
 
 	/**
 	 * @param args
@@ -10,7 +10,7 @@ public class PatSim {
 	public static void main(String[] args) {
 
 		PCWire nextPC = new PCWire();
-		Register pc = new Register(nextPC);
+		rtlsim.Register pc = new rtlsim.Register(nextPC);
 		Fetch fe = new Fetch(pc, nextPC, new Instruction());
 
 		Simulator.getInstance().simulate(10);
@@ -28,7 +28,7 @@ class Instruction extends Wire {
 
 class Fetch extends Logic {
 
-	Register pcReg;
+	rtlsim.Register pcReg;
 	PCWire nextPC;
 	Instruction instr;
 	
@@ -37,7 +37,7 @@ class Fetch extends Logic {
 			0x0000022, 0x00000033,
 	};
 	
-	public Fetch(Register pc, PCWire nextPC, Instruction instr) {
+	public Fetch(rtlsim.Register pc, PCWire nextPC, Instruction instr) {
 		this.pcReg = pc;
 		this.nextPC = nextPC;
 		this.instr = instr;
