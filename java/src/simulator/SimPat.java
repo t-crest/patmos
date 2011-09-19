@@ -2,7 +2,7 @@ package simulator;
 
 public class SimPat {
 	
-	final static int REG_SHIFT = 0; // 7;
+	final static int REG_SHIFT = 7;
 
 	Register reg = new Register();
 	
