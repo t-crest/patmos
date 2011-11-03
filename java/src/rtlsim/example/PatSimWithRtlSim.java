@@ -27,11 +27,12 @@ class PcPort extends Port {
 }
 
 class FeDePort extends Port {
-	int ia, ib;
+	int instr[] = new int[2];
 	boolean valid[] = new boolean[2];
 	int pc;
 	public FeDePort clone() {
 		FeDePort v = (FeDePort) super.clone();
+		v.instr = v.instr.clone();
 		v.valid = v.valid.clone();
 		return v;
 
@@ -40,6 +41,15 @@ class FeDePort extends Port {
 
 class DeExPort extends Port {
 	
+	static class DecOut {
+		int regA, regB;	
+	}
+	DecOut decout[] = {new DecOut(), new DecOut()};
+	public DeExPort clone() {
+		DeExPort v = (DeExPort) super.clone();
+		v.decout = v.decout.clone();
+		return v;
+	}
 }
 
 class Fetch extends Logic {
@@ -67,11 +77,11 @@ class Fetch extends Logic {
 		PcPort pcIn = (PcPort) pc.getInPort();
 		FeDePort instrIn = (FeDePort) fedec.getInPort();
 
-		instrIn.ia = mem[pcOut.val];
-		instrIn.ib = mem[pcOut.val+1];
+		instrIn.instr[0] = mem[pcOut.val];
+		instrIn.instr[1] = mem[pcOut.val+1];
 		instrIn.pc = pcOut.val;
 		instrIn.valid[0] = true;
-		if ((instrIn.ia & 0x80000000) != 0) {
+		if ((instrIn.instr[0] & 0x80000000) != 0) {
 			instrIn.valid[1] = true;
 			pcIn.val = pcOut.val+2;
 		} else {
@@ -80,7 +90,7 @@ class Fetch extends Logic {
 		}
 		
 		
-		System.out.println("fetch: "+instrIn.valid[1] + " " + instrIn.ia);
+		System.out.println("fetch: "+instrIn.valid[1] + " " + instrIn.instr[0]);
 	}
 	
 }
@@ -100,7 +110,15 @@ class Decode extends Logic {
 		FeDePort decIn = (FeDePort) fedec.getOutPort();
 		DeExPort decOut = (DeExPort) deex.getInPort();
 		
-		System.out.println("decode: " + decIn.valid[1]);
+		for (int i=0; i<2; ++i) {
+			int instr = decIn.instr[i];
+			// read register addresses
+			decOut.decout[i].regA = (instr>>(PatSimWithRtlSim.REG_SHIFT+5)) & 0x1f;
+			decOut.decout[i].regB = (instr>>(PatSimWithRtlSim.REG_SHIFT)) & 0x1f;
+			
+		}
+
+		System.out.println("decode: " + decIn.valid[1] + " "+decOut.decout[0].regA);
 		
 	}
 	
