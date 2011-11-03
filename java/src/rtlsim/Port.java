@@ -1,11 +1,11 @@
 package rtlsim;
 
-public class Wire implements Cloneable {
+public class Port implements Cloneable {
 
-	protected Wire clone() {
-		Wire w = null;
+	protected Port clone() {
+		Port w = null;
 		try {
-			w = (Wire) super.clone();
+			w = (Port) super.clone();
 		} catch (CloneNotSupportedException e) {
 			e.printStackTrace();
 		}

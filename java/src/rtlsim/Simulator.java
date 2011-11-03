@@ -59,9 +59,6 @@ public class Simulator {
 	
 	public void simulate(int cnt) {
 		for (int i=0; i<cnt; ++i) {
-			// TODO: we need to find the right order of logic functions
-			// to calculate. Now just depend on a 'correct' creation of
-			// logic modules.
 			for (Logic ie : logics) {
 				ie.calculate();
 			}

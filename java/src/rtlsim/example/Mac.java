@@ -22,7 +22,7 @@ public class Mac {
 
 }
 
-class IntWire extends Wire {
+class IntWire extends Port {
 	int val;
 }
 
@@ -38,7 +38,7 @@ class Adder extends Logic {
 	}
 	
 	protected void calculate() {
-		c.val = ((IntWire) a.getVal()).val + b.val;
+		c.val = ((IntWire) a.getOutPort()).val + b.val;
 		System.out.println(c.val);
 	}
 }

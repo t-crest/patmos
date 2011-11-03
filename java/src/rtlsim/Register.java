@@ -4,19 +4,22 @@ import java.lang.reflect.Field;
 
 public class Register implements Cloneable {
 
-	Wire d, q;
+	Port d, q;
 
-	public Register(Wire o) {
+	public Register(Port o) {
 		Simulator.getInstance().register(this);
 		d = o;
-		q = o;
+		q = o.clone();
 	}
 
 	void tick() {
 		q = d.clone();
 	}
 
-	public Wire getVal() {
+	public Port getInPort() {
+		return d;
+	}
+	public Port getOutPort() {
 		return q;
 	}
 
