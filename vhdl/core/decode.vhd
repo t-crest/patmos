@@ -7,9 +7,10 @@ entity decode is
         clk, rst                        : in std_logic;
         operation1                      : in std_logic_vector (31 downto 0);
         operation2                      : in std_logic_vector (31 downto 0);
-        --rs
-        --rt
-        --rd
+        rs                              : out std_logic_vector (4 downto 0);
+        rt                              : out std_logic_vector (4 downto 0);
+        rd                              : out std_logic_vector (4 downto 0);
+        func                            : out std_logic_vector (2 downto 0)
     );
 end entity decode;
 
@@ -23,7 +24,7 @@ begin
       operation1_out <= operation1;
       operation2_out <= operation2;
       rs <= operation1_out(4 downto 0);
-      rs <= operation1_out(9 downto 5);
+      rt <= operation1_out(9 downto 5);
       rd <= operation1_out(14 downto 10);
       func <= operation1_out(17 downto 15);
     end if;

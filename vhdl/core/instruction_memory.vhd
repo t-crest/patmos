@@ -1,3 +1,5 @@
+--instructions should be divided to four memory banks as in mips... the memory implementation should
+--be changed...
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;

@@ -11,7 +11,7 @@ entity execute is
     rs                : in std_logic_vector(31 downto 0);
     rt                : in std_logic_vector(31 downto 0);
     rd                : out std_logic_vector(31 downto 0);
-    ctrl              : in std_logic_vector(2 downto 0)
+    ctrl              : in std_logic_vector(2 downto 0)-- which function of alu?
   );
   
 end entity execute;
