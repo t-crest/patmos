@@ -11,7 +11,7 @@ entity execute is
     rs                : in std_logic_vector(31 downto 0);
     rt                : in std_logic_vector(31 downto 0);
     rd                : out std_logic_vector(31 downto 0);
-    ctrl              : in std_logic_vector(2 downto 0)-- which function of alu?
+    func              : in std_logic_vector(2 downto 0)-- which function of alu?
   );
   
 end entity execute;
@@ -20,7 +20,8 @@ architecture arch of execute is
 begin
   alu: process(clk)
   begin
-    case ctrl is
+    if rising_edge(clk) then
+    case func is
       when "000" => rd <= rs + rt;
       when "001" => rd <= rs - rt;
       when "010" => rd <= rt - rs;
@@ -31,6 +32,7 @@ begin
    --   when "111" =>;
       when others => rd <= rs + rt;
     end case;
+  end if;
   end process alu;
 end arch;
 
