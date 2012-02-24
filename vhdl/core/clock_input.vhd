@@ -11,8 +11,9 @@ entity clock_input is
   port
   (
     clk : in std_logic;
-    input : in std_logic_vector(input_length downto 0);
-    output : out std_logic_vector(input_length downto 0)
+ --   rst : in std_logic;
+    input : in std_logic_vector(input_length - 1 downto 0);
+    output : out std_logic_vector(input_length - 1 downto 0)
   );
 end entity clock_input;
 

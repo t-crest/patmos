@@ -32,11 +32,11 @@ begin
 	uut2: entity work.decode(arch)
 	port map(clk, rst, operation1, operation2, rs, rt, rd, func);
 
-	--uut3: entity work.clock_input(arch)
-	--port map(clk,  , );
+	uut3: entity work.clock_input(arch)
+	port map(clk,  , write_enable);
 
 	uut4: entity work.register_file(arch)
-	port map(clk, rs, rt, rd, read_data1, read_data2, write_data, write_enable);
+	port map(clk, rst, rs, rt, rd, read_data1, read_data2, write_data, write_enable);
 
   uut5: entity work.execute(arch)
 	port map(clk, read_data1, read_data2, write_data, func);

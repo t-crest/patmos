@@ -1,3 +1,6 @@
+--TO DO: 
+-- add forwading values to input multiplexers of ALU
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
@@ -11,7 +14,7 @@ entity execute is
     rs                : in std_logic_vector(31 downto 0);
     rt                : in std_logic_vector(31 downto 0);
     rd                : out std_logic_vector(31 downto 0);
-    func              : in std_logic_vector(2 downto 0);-- which function of alu?
+    func              : in std_logic_vector(3 downto 0);-- which function of ALUr?
     write_enable      : out std_logic
     -- for vliw this should be extended to 5 bits and the three lower bits are used in ALUi instructions
   );
@@ -158,22 +161,114 @@ begin
   alu: process(clk)
   begin
     if rising_edge(clk) then
---if ALUi
+--if ALUr
     write_enable <= '1';
     case func is
-      when "000" => rd <= rs + rt;
-      when "001" => rd <= rs - rt;
-      when "010" => rd <= rt - rs;
-      when "011" => rd <= shift_left_logical(rs, rt);
-      when "100" => rd <= shift_right_logical(rs, rt);
-   --   when "101" =>;
-      when "110" => rd <= rs or rt ;
-      when "111" => rd <= rs and rt ;
+      when "0000" => rd <= rs + rt;
+      when "0001" => rd <= rs - rt;
+      when "0010" => rd <= rt - rs;
+      when "0011" => rd <= shift_left_logical(rs, rt);
+      when "0100" => rd <= shift_right_logical(rs, rt);
+      when "0101" => rd <= shift_right_arith(rs, rt);
+      when "0110" => rd <= rs or rt ;
+      when "0111" => rd <= rs and rt ;
+      when "1000" => rd <= rs + rt;
+      when "1001" => rd <= rs - rt;
+      when "1010" => rd <= rt xor rs;
+      when "1011" => rd <= rs nor rt;
+      when "1100" => rd <= shift_right_logical(rs, rt);
+      when "1101" => rd <= shift_right_arith(rs, rt);
+      when "1110" => rd <= rs or rt ;
+      when "1111" => rd <= shift_left_logical(rs, "00000000000000000000000000000001" ) + rt ;  
       when others => rd <= rs + rt;
     end case;
   end if;
---end if ALUi
+--end if ALUr
   end process alu;
 end arch;
 
+ -------------------------------
+ -- ALU multiplexer: rt
+ -------------------------------
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.std_logic_unsigned.all;
+use ieee.numeric_std.all;
+use work.type_package.all;
  
+ entity multiplexer_b is -- ctrl: 1 for register and 0 for extension
+ 
+  port
+  (
+    rt                         : in std_logic_vector(31 downto 0);
+    fw_alu                     : in std_logic_vector(31 downto 0);
+    fw_mem                     : in std_logic_vector(31 downto 0);
+    sign_extended_immediate    : in std_logic_vector(31 downto 0);
+    fw_ctrl                    : in forwarding_type; 
+    mux_b_ctrl                 : in std_logic;
+    mux_b_out                  : out std_logic_vector(31 downto 0)
+  );
+ end entity multiplexer_b;
+ 
+ architecture arch of multiplexer_b is
+ begin
+   process (rt, fw_alu, fw_mem, sign_extended_immediate, fw_ctrl, mux_b_ctrl)
+     begin
+       case mux_b_ctrl is
+         when '1' => 
+           if fw_ctrl = FWALU then 
+             mux_b_out <= fw_alu;
+           elsif fw_ctrl = FWMEM then 
+             mux_b_out <= fw_alu;
+           else  
+             mux_b_out <= rt;
+           end if;
+         when '0' =>
+           mux_b_out <= sign_extended_immediate;
+         when others => mux_b_out <= rt;
+       end case;
+     end process;
+ end arch;
+ 
+  -------------------------------
+ -- ALU multiplexer: rs
+ -------------------------------
+ library ieee;
+use ieee.std_logic_1164.all;
+use ieee.std_logic_unsigned.all;
+use ieee.numeric_std.all;
+use work.type_package.all;
+ 
+ entity multiplexer_a is -- ctrl: 1 for register and 0 for extension
+ 
+  port
+  (
+    rs                         : in std_logic_vector(31 downto 0);
+    fw_alu                     : in std_logic_vector(31 downto 0);
+    fw_mem                     : in std_logic_vector(31 downto 0);
+--    sign_extended_immediate    : in std_logic_vector(31 downto 0);
+    fw_ctrl                    : in forwarding_type; 
+    mux_a_ctrl                 : in std_logic;
+    mux_a_out                  : out std_logic_vector(31 downto 0)
+  );
+ end entity multiplexer_a;
+ 
+ architecture arch of multiplexer_a is
+ begin
+   process (rs, fw_alu, fw_mem, fw_ctrl, mux_a_ctrl)
+     begin
+       case mux_a_ctrl is
+         when '1' => 
+           if fw_ctrl = FWALU then 
+             mux_a_out <= fw_alu;
+           elsif fw_ctrl = FWMEM then 
+             mux_a_out <= fw_alu;
+           else  
+             mux_a_out <= rs;
+           end if;
+        -- when '0' =>
+          -- mux_a_out <= sign_extended_immediate;
+         when others => mux_a_out <= rs;
+       end case;
+     end process;
+ end arch;
