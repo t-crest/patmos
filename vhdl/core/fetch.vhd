@@ -1,11 +1,10 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.std_logic_unsigned.all;
 use ieee.numeric_std.all;
 use work.type_package.all;
 
-entity fetch is
+entity patmos_fetch is
     generic
     (
         pc_length                   : integer := 32;
@@ -16,17 +15,17 @@ entity fetch is
     (
         clk                         : in std_logic;
         rst                         : in std_logic;
-        instruction_word            : in std_logic_vector(instruction_word_length - 1 downto 0);  
-        pc                          : out std_logic_vector(pc_length - 1 downto 0);
+        instruction_word            : in unsigned(instruction_word_length - 1 downto 0);  
+        pc                          : out unsigned(pc_length - 1 downto 0);
         pc_ctrl                     : in pc_type;
-        operation1                  : out std_logic_vector(31 downto 0);
+        operation1                  : out unsigned(31 downto 0);
         predicate                   : in std_logic;
-        immediate                   : in std_logic_vector(21 downto 0)
+        immediate                   : in unsigned(21 downto 0)
   --      operation2                  : out std_logic_vector(31 downto 0) 
     );
-end entity fetch;
+end entity patmos_fetch;
 
-architecture arch of fetch is
+architecture arch of patmos_fetch is
 --  signal pc_next                    : std_logic_vector(pc_length - 1 downto 0) := (others => '0');
 
 begin

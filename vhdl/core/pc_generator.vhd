@@ -1,9 +1,32 @@
+-------------------------------------
+-- sign extension for branch
+-------------------------------------
+
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+entity sign_extension is
+  port 
+  (
+    immediate                       : in unsigned(21 downto 0);
+    sign_extended_immediate         : out unsigned(31 downto 0)
+  );
+end entity sign_extension;
+
+architecture arch of sign_extension is
+signal sign_bit : std_logic;
+begin
+  sign_bit <= immediate(21);
+  sign_extended_immediate <=  (sign_bit & sign_bit & sign_bit & sign_bit & sign_bit & sign_bit & sign_bit & sign_bit &immediate) & "00";
+end arch;
+
 ---------------------------------
 -- pc generation
 ---------------------------------
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.std_logic_unsigned.all;
+use ieee.numeric_std.all;
 use work.type_package.all;
 
 entity pc_generator is 
@@ -18,18 +41,18 @@ entity pc_generator is
     (
          clk                        : in std_logic;
          rst                        : in std_logic;
-         pc                         : out std_logic_vector(pc_length - 1 downto 0);-- (others => '0');
+         pc                         : out unsigned(pc_length - 1 downto 0);-- (others => '0');
      --    pc_next                    : out std_logic_vector(pc_length - 1 downto 0);
          pc_ctrl                    : in pc_type; -- pc states
-         immediate                  : in std_logic_vector(21 downto 0);-- branch
+         immediate                  : in unsigned(21 downto 0);-- branch
          predicate                  : in std_logic 
     );
 end entity pc_generator;
 
 architecture arch of pc_generator is
-  signal ctrl                                : std_logic_vector(2 downto 0) := "111";
-  signal sign_extended_immediate             : std_logic_vector(31 downto 0);
-  signal pc_next                             : std_logic_vector(pc_length - 1 downto 0) := (others => '0');
+  signal ctrl                                : unsigned(2 downto 0) := "111";
+  signal sign_extended_immediate             : unsigned(31 downto 0);
+  signal pc_next                             : unsigned(pc_length - 1 downto 0) := (others => '0');
 begin
     uut1: entity work.sign_extension(arch)
 	  port map(immediate, sign_extended_immediate);
@@ -58,26 +81,4 @@ begin
 
 end arch;
 
--------------------------------------
--- sign extension for branch
--------------------------------------
-
-library ieee;
-use ieee.std_logic_1164.all;
-use ieee.std_logic_unsigned.all;
-
-entity sign_extension is
-  port 
-  (
-    immediate                       : in std_logic_vector(21 downto 0);
-    sign_extended_immediate         : out std_logic_vector(31 downto 0)
-  );
-end entity sign_extension;
-
-architecture arch of sign_extension is
-signal sign_bit : std_logic;
-begin
-  sign_bit <= immediate(21);
-  sign_extended_immediate <=  (sign_bit & sign_bit & sign_bit & sign_bit & sign_bit & sign_bit & sign_bit & sign_bit &immediate) & "00";
-end arch;
 

@@ -4,36 +4,36 @@
 -- add memory control
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.std_logic_unsigned.all;
 use work.type_package.all;
 use ieee.numeric_std.all;
 
-entity decode is 
+entity patmos_decode is 
     port (
         clk, rst                        : in std_logic;
         predicate_bit                   : out std_logic;
         inst_type                       : out instruction_type;
-        ALUi_function_type              : out std_logic_vector(2 downto 0);
-        ALU_function_type               : out std_logic_vector(3 downto 0);
+      --  ALUi_function_type              : out unsigned(2 downto 0);
+        ALU_function_type               : out unsigned(3 downto 0);
         ALU_instruction_type            : out ALU_inst_type;
-        ALUi_immediate                  : out std_logic_vector(11 downto 0);
+        ALUi_immediate                  : out unsigned(11 downto 0);
         pc_ctrl_gen                     : out pc_type;
         multiplexer_a_ctrl              : out std_logic;
         multiplexer_b_ctrl              : out std_logic;
         alu_we                          : out std_logic;
         wb_we                           : out std_logic;
-        operation1                      : in std_logic_vector (31 downto 0);
+        operation1                      : in unsigned (31 downto 0);
        -- operation2                      : in std_logic_vector (31 downto 0);
-        rs1                             : out std_logic_vector (4 downto 0);
-        rs2                             : out std_logic_vector (4 downto 0);
-        rt                              : out std_logic_vector (4 downto 0);
-        rd                              : out std_logic_vector (4 downto 0);
-        func                            : out std_logic_vector (2 downto 0) --func and instruction are different 
+        rs1                             : out unsigned (4 downto 0);
+        rs2                             : out unsigned (4 downto 0);
+       -- rt                              : out unsigned (4 downto 0);
+        rd                              : out unsigned (4 downto 0);
+        pd                              : out unsigned (2 downto 0)
+     --   func                            : out unsigned (2 downto 0) --func and instruction are different 
         -- two different vectors for instructions and functions should be implemented
     );
-end entity decode;
+end entity patmos_decode;
 
-architecture arch of decode is 
+architecture arch of patmos_decode is 
 --signal operation1_out : std_logic_vector (31 downto 0);
 --signal operation2_out : std_logic_vector (31 downto 0);
 --signal predicate_registers is std_logic_vector(7 downto 0);
@@ -56,17 +56,18 @@ begin
         
         if operation1(26 downto 25) = "00" then -- ALUi instruction
             inst_type <= ALUi;  
-            ALUi_function_type <= operation1(24 downto 22);
+            ALU_function_type <= '0' & operation1(24 downto 22);
             rd <= operation1(21 downto 17); -- move this to datapath
             rs1 <= operation1(16 downto 12); -- move this to datapath
             ALUi_immediate <= operation1(11 downto 0); --should be zero extended
             pc_ctrl_gen <= PCNext;
-            
+            wb_we <= '1';
        -- elsif operation1(26 downto 22) = "11111" then -- long immediate!
             
          elsif operation1(26 downto 22) = "01000" then -- ALU instructions
             inst_type <= ALU;  
             ALU_function_type <= operation1(3 downto 0);
+            wb_we <= '1';
             case operation1(6 downto 4) is
               when "000" => -- Register
                 pc_ctrl_gen <= PCNext;
@@ -88,9 +89,9 @@ begin
                 rs2 <= operation1(11 downto 7); -- move this to datapath
               when "100" =>
                 pc_ctrl_gen <= PCNext; -- predicate
-                rd <= operation1(19 downto 17); -- move this to datapath
-                rs1 <= operation1(15 downto 12); -- move this to datapath
-                rs2 <= operation1(10 downto 7); -- move this to datapath
+                rd <= operation1(21 downto 17); -- move this to datapath-- we dont need the MSB on this
+                rs1 <= operation1(16 downto 12); -- move this to datapath-- we dont need the MSB on this
+                rs2 <= operation1(11 downto 7); -- move this to datapath-- we dont need the MSB on this
               when others => NULL;
             end case;
       --  elsif operation1(26 downto 22) = "01001" then   

@@ -2,33 +2,36 @@
 -- add forwading values to input multiplexers of ALU
 
 library ieee;
-use ieee.std_logic_1164.all;
-use ieee.std_logic_unsigned.all;
 use ieee.numeric_std.all;
+use ieee.std_logic_1164.all;
+use work.type_package.all;
 
 
-entity execute is
+entity patmos_execute is
   port
   (
-    clk               : in std_logic;
-    rs                : in std_logic_vector(31 downto 0);
-    rt                : in std_logic_vector(31 downto 0);
-    rd                : out std_logic_vector(31 downto 0);
-    func              : in std_logic_vector(3 downto 0);-- which function of ALUr?
-    write_enable      : out std_logic
-    -- for vliw this should be extended to 5 bits and the three lower bits are used in ALUi instructions
-  );
+    clk                             : in std_logic;
+    inst_type                       : in instruction_type;
+    ALU_function_type               : in unsigned(3 downto 0);
+    ALU_instruction_type            : in ALU_inst_type;
+    ALUi_immediate                  : in unsigned(11 downto 0);
+    rs                              : in unsigned(31 downto 0);
+    rt                              : in unsigned(31 downto 0);
+    rd                              : out unsigned(31 downto 0)
+   -- func                            : in unsigned(3 downto 0)-- which function of ALUr?
+ --   write_enable      : out std_logic
+     );
   
-end entity execute;
+end entity patmos_execute;
 
-architecture arch of execute is
+architecture arch of patmos_execute is
 signal test : unsigned(31 downto 0);
 
 --shift left logical
-function shift_left_logical (rs, rt : std_logic_vector(31 downto 0))
-                 return std_logic_vector is
-  variable shift_out  : std_logic_vector(31 downto 0):= (others => '0');
-  variable shift_value  : std_logic_vector(4 downto 0):= (others => '0');
+function shift_left_logical (rs, rt : unsigned(31 downto 0))
+                 return unsigned is
+  variable shift_out  : unsigned(31 downto 0):= (others => '0');
+  variable shift_value  : unsigned(4 downto 0):= (others => '0');
 begin
   shift_value(4 downto 0 ) := rt(4 downto 0);
   case (shift_value) is
@@ -69,10 +72,10 @@ begin
   return shift_out ;
 end shift_left_logical;
 
-function shift_right_logical (rs, rt : std_logic_vector(31 downto 0))
-                 return std_logic_vector is
-  variable shift_out  : std_logic_vector(31 downto 0):= (others => '0');
-  variable shift_value  : std_logic_vector(4 downto 0):= (others => '0');
+function shift_right_logical (rs, rt : unsigned(31 downto 0))
+                 return unsigned is
+  variable shift_out  : unsigned(31 downto 0):= (others => '0');
+  variable shift_value  : unsigned(4 downto 0):= (others => '0');
 begin
   shift_value(4 downto 0 ) := rt(4 downto 0);
   case (shift_value) is
@@ -113,10 +116,10 @@ begin
   return shift_out ;
 end shift_right_logical;
 
-function shift_right_arith (rs, rt : std_logic_vector(31 downto 0))
-                 return std_logic_vector is
-  variable shift_out  : std_logic_vector(31 downto 0):= (others => '0');
-  variable shift_value  : std_logic_vector(4 downto 0):= (others => '0');
+function shift_right_arith (rs, rt : unsigned(31 downto 0))
+                 return unsigned is
+  variable shift_out  : unsigned(31 downto 0):= (others => '0');
+  variable shift_value  : unsigned(4 downto 0):= (others => '0');
 begin
   shift_value(4 downto 0 ) := rt(4 downto 0);
   case (shift_value) is
@@ -158,33 +161,52 @@ begin
 end shift_right_arith;
 
 begin
-  alu: process(clk)
+  alu_op: process(clk)
   begin
     if rising_edge(clk) then
---if ALUr
-    write_enable <= '1';
-    case func is
-      when "0000" => rd <= rs + rt;
-      when "0001" => rd <= rs - rt;
-      when "0010" => rd <= rt - rs;
-      when "0011" => rd <= shift_left_logical(rs, rt);
-      when "0100" => rd <= shift_right_logical(rs, rt);
-      when "0101" => rd <= shift_right_arith(rs, rt);
-      when "0110" => rd <= rs or rt ;
-      when "0111" => rd <= rs and rt ;
-      when "1000" => rd <= rs + rt;
-      when "1001" => rd <= rs - rt;
-      when "1010" => rd <= rt xor rs;
-      when "1011" => rd <= rs nor rt;
-      when "1100" => rd <= shift_right_logical(rs, rt);
-      when "1101" => rd <= shift_right_arith(rs, rt);
-      when "1110" => rd <= rs or rt ;
-      when "1111" => rd <= shift_left_logical(rs, "00000000000000000000000000000001" ) + rt ;  
-      when others => rd <= rs + rt;
+
+  --if (inst_type = ALU)--if ALU
+  case inst_type is
+    when ALU => 
+     case ALU_instruction_type is 
+        when ALUr => 
+         case ALU_function_type is
+          when "0000" => rd <= rs + rt;
+          when "0001" => rd <= rs - rt;
+          when "0010" => rd <= rt - rs;
+          when "0011" => rd <= shift_left_logical(rs, rt);
+          when "0100" => rd <= shift_right_logical(rs, rt);
+          when "0101" => rd <= shift_right_arith(rs, rt);
+          when "0110" => rd <= rs or rt ;
+          when "0111" => rd <= rs and rt ;
+          when "1000" => rd <= rs + rt; --??
+          when "1001" => rd <= rs - rt; --??
+          when "1010" => rd <= rt xor rs; --??
+          when "1011" => rd <= rs nor rt; --??
+          when "1100" => rd <= shift_right_logical(rs, rt); --??
+          when "1101" => rd <= shift_right_arith(rs, rt); --??
+          when "1110" => rd <= rs or rt ; --??
+          when "1111" => rd <= shift_left_logical(rs, "00000000000000000000000000000001" ) + rt ;  
+          when others => rd <= rs + rt; --??
+        end case;
+    when others => NULL;
     end case;
-  end if;
---end if ALUr
-  end process alu;
+    when ALUi =>
+        case ALU_function_type is
+          when "0000" => rd <= rs + ("00000000000000000000" & ALUi_immediate);
+          when "0001" => rd <= rs - ("00000000000000000000" & ALUi_immediate);
+          when "0010" => rd <= ("00000000000000000000" & ALUi_immediate) - rs;
+          when "0011" => rd <= shift_left_logical(rs, ("00000000000000000000" & ALUi_immediate));
+          when "0100" => rd <= shift_right_logical(rs, ("00000000000000000000" & ALUi_immediate));
+          when "0101" => rd <= shift_right_arith(rs, ("00000000000000000000" & ALUi_immediate));
+          when "0110" => rd <= rs or ("00000000000000000000" & ALUi_immediate);
+          when "0111" => rd <= rs and ("00000000000000000000" & ALUi_immediate);
+          when others => rd <= rs + ("00000000000000000000" & ALUi_immediate);
+        end case;
+  when others => NULL;
+  end case;
+end if;
+  end process alu_op;
 end arch;
 
  -------------------------------
