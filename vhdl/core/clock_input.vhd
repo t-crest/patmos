@@ -113,3 +113,30 @@ begin
   end process clock;
 end arch;
 
+----------------------------------------------
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+use work.type_package.all;
+
+entity clock_we is
+ 
+  port
+  (
+    clk : in std_logic;
+    input : in std_logic;
+    output : out std_logic
+  );
+end entity clock_we;
+
+
+architecture arch of clock_we is
+
+begin 
+  clock: process (clk)
+  begin
+    if rising_edge(clk) then
+      output <= input;
+    end if;
+  end process clock;
+end arch;

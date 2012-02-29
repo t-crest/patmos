@@ -27,7 +27,7 @@ signal ALUi_function_type              : unsigned(2 downto 0);
 signal ALU_function_type               : unsigned(3 downto 0);
 signal ALU_instruction_type            : ALU_inst_type;
 signal ALUi_immediate                  : unsigned(11 downto 0);
-signal inst_type_reg                       : instruction_type;
+signal inst_type_reg                   : instruction_type;
 signal ALUi_function_type_reg          : unsigned(2 downto 0);
 signal ALU_function_type_reg           : unsigned(3 downto 0);
 signal ALU_instruction_type_reg        : ALU_inst_type;
@@ -40,7 +40,11 @@ signal wb_we                           : std_logic;
 signal rs1                             : unsigned (4 downto 0);
 signal rs2                             : unsigned (4 downto 0);
 signal predicate_bit                   : std_logic;
-signal pd                              :unsigned (2 downto 0);
+signal pd                              : unsigned (2 downto 0);
+signal wb_we_out_exec                  : std_logic;
+signal wa1                             : unsigned (4 downto 0);
+signal wa2                             : unsigned (4 downto 0);
+signal write_address_reg_file          : unsigned (4 downto 0);
 --------------------------------------------
 begin
 
@@ -68,23 +72,35 @@ begin
   generic map(12)
 	port map(clk, ALUi_immediate, ALUi_immediate_reg);
 	
+	uut_we: entity work.clock_we(arch)
+	port map(clk, wb_we_out_exec, write_enable);
+	
+	-- write address
+	uut_wa1: entity work.clock_in(arch)
+	generic map(5)
+	port map(clk, rd, wa1);
+	
+	
+	uut_wa3: entity work.clock_in(arch)
+	generic map(5)
+	port map(clk, wa1, write_address_reg_file);
 ----------------------------------------------------
 
 	reg_file: entity work.patmos_register_file(arch)
-	port map(clk, rst, rs1, rs2, rd, read_data1, read_data2, write_data, write_enable);
+	port map(clk, rst, rs1, rs2, write_address_reg_file, read_data1, read_data2, write_data, write_enable);
 	
 
   exec: entity work.patmos_execute(arch)
-	port map(clk, inst_type_reg, ALU_function_type_reg, ALU_instruction_type_reg, ALUi_immediate_reg, read_data1, read_data2, write_data);
+	port map(clk, inst_type_reg, ALU_function_type_reg, ALU_instruction_type_reg, ALUi_immediate_reg, read_data1, read_data2, write_data, wb_we, wb_we_out_exec);
 	
 	
 	
 
 clk <= not clk after 5 ns;
-                
-instruction_word <= "00000000000000100000000000000001" after 5 ns;--,-- r1 <= r0 + 1 add immediate
-                  --  "00000000010001000000000000000010" after 15 ns,-- r2 <= r0 + 2 add immediate
-                   -- "00000010000001100010000010000000" after 25 ns; -- r3 <= r1 + r2 add register
+              --    "xpred00fff4321043210109876543210"
+instruction_word <= "00000000000000100000000000000001" after 5 ns,-- r1 <= r0 + 1 add immediate
+                    "00000000000001000000000000000010" after 15 ns,-- r2 <= r0 + 2 add immediate
+                    "00000010000001100010000010000000" after 55 ns; -- r3 <= r1 + r2 add register
                     
 -- pc <= (others => '0');
 rst <= '0' after 4 ns;

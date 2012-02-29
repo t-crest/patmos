@@ -17,7 +17,9 @@ entity patmos_execute is
     ALUi_immediate                  : in unsigned(11 downto 0);
     rs                              : in unsigned(31 downto 0);
     rt                              : in unsigned(31 downto 0);
-    rd                              : out unsigned(31 downto 0)
+    rd                              : out unsigned(31 downto 0);
+    wb_we                           : in std_logic;
+    wb_we_out_exec                  : out std_logic
    -- func                            : in unsigned(3 downto 0)-- which function of ALUr?
  --   write_enable      : out std_logic
      );
@@ -25,7 +27,7 @@ entity patmos_execute is
 end entity patmos_execute;
 
 architecture arch of patmos_execute is
-signal test : unsigned(31 downto 0);
+
 
 --shift left logical
 function shift_left_logical (rs, rt : unsigned(31 downto 0))
@@ -168,6 +170,7 @@ begin
   --if (inst_type = ALU)--if ALU
   case inst_type is
     when ALU => 
+      wb_we_out_exec <= wb_we;
      case ALU_instruction_type is 
         when ALUr => 
          case ALU_function_type is
@@ -192,6 +195,7 @@ begin
     when others => NULL;
     end case;
     when ALUi =>
+      wb_we_out_exec <= wb_we;
         case ALU_function_type is
           when "0000" => rd <= rs + ("00000000000000000000" & ALUi_immediate);
           when "0001" => rd <= rs - ("00000000000000000000" & ALUi_immediate);
