@@ -18,8 +18,15 @@ project(patmos)
 
 cmake_minimum_required(VERSION 2.8)
 
+# Find boost library
+include(FindBoost)
 find_package( Boost 1.40.0 REQUIRED)
-
 include_directories(include ${Boost_INCLUDE_DIRS})
 
+# enable testing using ctest
+enable_testing()
+
+# add sub-directories
 add_subdirectory(src)
+add_subdirectory(tests)
+

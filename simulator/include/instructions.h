@@ -1,15 +1,15 @@
-// 
+//
 //  This file is part of the Patmos Simulator.
 //  The Patmos Simulator is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-// 
+//
 //  The Patmos Simulator is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-// 
+//
 //  You should have received a copy of the GNU General Public License
 //  along with the Patmos Simulator. If not, see <http://www.gnu.org/licenses/>.
 //
@@ -20,9 +20,11 @@
 #ifndef PATMOS_INSTRUCTIONS_H
 #define PATMOS_INSTRUCTIONS_H
 
+#include "endian-conversion.h"
 #include "instruction.h"
 #include "memory.h"
 #include "method-cache.h"
+#include "simulation-core.h"
 #include "stack-cache.h"
 
 #include <ostream>
@@ -50,83 +52,67 @@ namespace patmos
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
-    /// the fetch pipeline stage.
+    /// the IF pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void fetch(simulator_t &s, instruction_data_t &ops) const
+    virtual void IF(simulator_t &s, instruction_data_t &ops) const
     {
-      s.PC = s.PC + 4;
+      s.PC = s.nPC;
     }
 
     /// Commit function to commit the shadow state of the instruction in
-    /// the fetch pipeline stage to the global state.
+    /// the IF pipeline stage to the global state.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void fetch_commit(simulator_t &s, instruction_data_t &ops) const
+    virtual void IF_commit(simulator_t &s, instruction_data_t &ops) const
     {
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
-    /// the decode pipeline stage.
+    /// the DR pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void decode(simulator_t &s, instruction_data_t &ops) const
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
     }
 
     /// Commit function to commit the shadow state of the instruction in
-    /// the decode pipeline stage to the global state.
+    /// the DR pipeline stage to the global state.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void decode_commit(simulator_t &s, instruction_data_t &ops) const
+    virtual void DR_commit(simulator_t &s, instruction_data_t &ops) const
     {
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
-    /// the execute pipeline stage.
+    /// the EX pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void execute(simulator_t &s, instruction_data_t &ops) const
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
     }
 
     /// Commit function to commit the shadow state of the instruction in
-    /// the execute pipeline stage to the global state.
+    /// the EX pipeline stage to the global state.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void execute_commit(simulator_t &s, instruction_data_t &ops) const
+    virtual void EX_commit(simulator_t &s, instruction_data_t &ops) const
     {
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
-    /// the memory pipeline stage.
+    /// the MW pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void memory(simulator_t &s, instruction_data_t &ops) const
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
     }
 
     /// Commit function to commit the shadow state of the instruction in
-    /// the memory pipeline stage to the global state.
+    /// the MW pipeline stage to the global state.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void memory_commit(simulator_t &s, instruction_data_t &ops) const
-    {
-    }
-
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the writeback pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void writeback(simulator_t &s, instruction_data_t &ops) const
-    {
-    }
-
-    /// Commit function to commit the shadow state of the instruction in
-    /// the writeback pipeline stage to the global state.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void writeback_commit(simulator_t &s, instruction_data_t &ops) const
+    virtual void MW_commit(simulator_t &s, instruction_data_t &ops) const
     {
     }
   };
@@ -145,9 +131,10 @@ namespace patmos
       os << "halt";
     }
 
+    /// Signal to the simulator that a halt instruction has been executed.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void writeback_commit(simulator_t &s, instruction_data_t &ops) const
+    virtual void MW_commit(simulator_t &s, instruction_data_t &ops) const
     {
       throw HALT;
     }
@@ -164,40 +151,23 @@ namespace patmos
       os << "imm";
     }
   };
-  
-  /// Abstract base class of predicated instructions, i.e., all instructions 
+
+  /// Abstract base class of predicated instructions, i.e., all instructions
   /// that actually do something.
   class i_pred_t : public i_nop_t
   {
   protected:
-    /// Read a GPR register at the execute stage.
+    /// Read a GPR register at the EX stage.
     /// @param op The register operand.
-    /// @return The register value, considering by-passing from the EX, MEM, and
-    /// WB stages.
+    /// @return The register value, considering by-passing from the EX, and MW
+    /// stages.
     static inline word_t read_GPR_EX(simulator_t &s, GPR_op_t op)
     {
-      return s.Pipeline[EX][0].GPR_EX_Rd.get(
-             s.Pipeline[EX][1].GPR_EX_Rd.get(
-              s.Pipeline[MEM][0].GPR_MEM_Rd.get(
-              s.Pipeline[MEM][1].GPR_MEM_Rd.get(
-                s.Pipeline[WB][0].GPR_WB_Rd.get(
-                s.Pipeline[WB][1].GPR_WB_Rd.get(
-                  op)))))).get();
-    }
-
-    /// Read a PRR register at the execute stage.
-    /// @param op The predicate operand.
-    /// @return The predicate value, considering by-passing from the EX, MEM, and
-    /// WB stages.
-    static inline bit_t read_PRR_EX(simulator_t &s, PRR_op_t op)
-    {
-      return s.Pipeline[EX][0].PRR_EX_Pd.get(
-             s.Pipeline[EX][1].PRR_EX_Pd.get(
-              s.Pipeline[MEM][0].PRR_MEM_Pd.get(
-              s.Pipeline[MEM][1].PRR_MEM_Pd.get(
-                s.Pipeline[WB][0].PRR_WB_Pd.get(
-                s.Pipeline[WB][1].PRR_WB_Pd.get(
-                  op)))))).get();
+      return s.Pipeline[SEX][0].GPR_EX_Rd.get(
+             s.Pipeline[SEX][1].GPR_EX_Rd.get(
+              s.Pipeline[SMW][0].GPR_MW_Rd.get(
+              s.Pipeline[SMW][1].GPR_MW_Rd.get(
+               op)))).get();
     }
 
   public:
@@ -210,302 +180,420 @@ namespace patmos
     }
   };
 
-  /// Base class for two-register-operand ALU instructions.
-  class i_alu_rr_t : public i_pred_t
+  /// Base class for ALUi or ALUl instructions.
+  class i_aluil_t : public i_pred_t
   {
   public:
-    /// Compute the result of an ALU instruction.
+    /// Compute the result of an ALUi or ALUl instruction.
     /// @param value1 The value of the first operand.
     /// @param value2 The value of the second operand.
     virtual word_t compute(word_t value1, word_t value2) const = 0;
 
-    // FETCH inherited from NOP
+    // IF inherited from NOP
 
     /// Pipeline function to simulate the behavior of the instruction in
-    /// the decode pipeline stage.
+    /// the DR pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void decode(simulator_t &s, instruction_data_t &ops) const
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.DE_Pred = s.PRR.get(ops.Pred);
-      ops.DE_Rs1 = s.GPR.get(ops.OPS.RRR.Rs1);
-      ops.DE_Rs2 = s.GPR.get(ops.OPS.RRR.Rs2);
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.DR_Rs1 = s.GPR.get(ops.OPS.ALUil.Rs1);
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
-    /// the execute pipeline stage.
+    /// the EX pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void execute(simulator_t &s, instruction_data_t &ops) const
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
-      // read predicate
-      ops.EX_Pred = read_PRR_EX(s, ops.DE_Pred);
-
-      if (ops.EX_Pred)
-      {
-        // compute the result of the ALU instruction
-        word_t result = compute(read_GPR_EX(s, ops.DE_Rs1),
-                                read_GPR_EX(s, ops.DE_Rs2));
-
-        // store the result by writing it into a by-pass.
-        ops.GPR_EX_Rd.set(ops.OPS.RRR.Rd, result);
-      }
-    }
-
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the memory pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void memory(simulator_t &s, instruction_data_t &ops) const
-    {
-      if (ops.EX_Pred)
-      {
-        ops.GPR_MEM_Rd.set(ops.GPR_EX_Rd.get());
-        ops.GPR_EX_Rd.reset();
-      }
-    }
-
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the writeback pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void writeback(simulator_t &s, instruction_data_t &ops) const
-    {
-      if (ops.EX_Pred)
-      {
-        s.GPR.set(ops.GPR_MEM_Rd.get());
-        ops.GPR_WB_Rd.set(ops.GPR_MEM_Rd.get());
-        ops.GPR_MEM_Rd.reset();
-      }
+      // compute the result of the ALU instruction
+      ops.EX_result = compute(read_GPR_EX(s, ops.DR_Rs1), ops.OPS.ALUil.Imm2);
     }
 
     /// Commit function to commit the shadow state of the instruction in
-    /// the writeback pipeline stage to the global state.
+    /// the EX pipeline stage to the global state.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void writeback_commit(simulator_t &s, instruction_data_t &ops) const
+    virtual void EX_commit(simulator_t &s, instruction_data_t &ops) const
     {
-      if (ops.EX_Pred)
+      if (ops.DR_Pred)
       {
-        ops.GPR_WB_Rd.reset();
-      }
-    }
-  };
-
-#define ALU_RR_INSTR(name, operator) \
-  class i_ ## name ## _t : public i_alu_rr_t \
-  { \
-  public:\
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const \
-    { \
-      os << boost::format("%1%.p%2% r%3% = r%4%, r%5%") % #name \
-          % ops.Pred % ops.OPS.RRR.Rd % ops.OPS.RRR.Rs1 % ops.OPS.RRR.Rs2; \
-    } \
-    virtual word_t compute(word_t value1, word_t value2) const \
-    { \
-      return value1 operator value2; \
-    } \
-  };
-
-  ALU_RR_INSTR(add, +)
-  ALU_RR_INSTR(sub, -)
-  ALU_RR_INSTR(or,|)
-  ALU_RR_INSTR(and, &)
-  ALU_RR_INSTR(xor, ^)
-  ALU_RR_INSTR(mul, *)
-
-  /// Base class for immediate-operand ALU instructions.
-  class i_alu_ri_t : public i_pred_t
-  {
-  public:
-    /// Compute the result of an ALU instruction.
-    /// @param value1 The value of the first operand.
-    /// @param value2 The value of the second operand.
-    virtual word_t compute(word_t value1, word_t value2) const = 0;
-
-    // FETCH inherited from NOP
-
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the decode pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void decode(simulator_t &s, instruction_data_t &ops) const
-    {
-      ops.DE_Pred = s.PRR.get(ops.Pred);
-      ops.DE_Rs1 = s.GPR.get(ops.OPS.RRI.Rs1);
-    }
-
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the execute pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void execute(simulator_t &s, instruction_data_t &ops) const
-    {
-      // read predicate
-      ops.EX_Pred = read_PRR_EX(s, ops.DE_Pred);
-
-      if (ops.EX_Pred)
-      {
-        // compute the result of the ALU instruction
-        word_t result = compute(read_GPR_EX(s, ops.DE_Rs1), ops.OPS.RRI.Imm2);
-
         // store the result by writing it into a by-pass
-        ops.GPR_EX_Rd.set(ops.OPS.RRI.Rd, result);
+        ops.GPR_EX_Rd.set(ops.OPS.ALUil.Rd, ops.EX_result);
       }
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
-    /// the memory pipeline stage.
+    /// the MW pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void memory(simulator_t &s, instruction_data_t &ops) const
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
-      if (ops.EX_Pred)
+      if (ops.DR_Pred)
       {
-        ops.GPR_MEM_Rd.set(ops.GPR_EX_Rd.get());
+        s.GPR.set(ops.GPR_EX_Rd.get());
+        ops.GPR_MW_Rd.set(ops.GPR_EX_Rd.get());
         ops.GPR_EX_Rd.reset();
       }
     }
 
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the writeback pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void writeback(simulator_t &s, instruction_data_t &ops) const
-    {
-      if (ops.EX_Pred)
-      {
-        s.GPR.set(ops.GPR_MEM_Rd.get());
-        ops.GPR_WB_Rd.set(ops.GPR_MEM_Rd.get());
-        ops.GPR_MEM_Rd.reset();
-      }
-    }
-
     /// Commit function to commit the shadow state of the instruction in
-    /// the writeback pipeline stage to the global state.
+    /// the MW pipeline stage to the global state.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void writeback_commit(simulator_t &s, instruction_data_t &ops) const
+    virtual void MW_commit(simulator_t &s, instruction_data_t &ops) const
     {
-      if (ops.EX_Pred)
+      if (ops.DR_Pred)
       {
-        ops.GPR_WB_Rd.reset();
+        ops.GPR_MW_Rd.reset();
       }
     }
   };
 
-#define ALU_RI_INSTR(name, operator) \
-  class i_ ## name ## _t : public i_alu_ri_t \
+#define ALUil_INSTR(name, expr) \
+  class i_ ## name ## _t : public i_aluil_t \
   { \
   public:\
     virtual void print(std::ostream &os, const instruction_data_t &ops) const \
     { \
-      os << boost::format("%1%.p%2% r%3% = r%4%, %5%") % #name \
-          % ops.Pred % ops.OPS.RRI.Rd % ops.OPS.RRI.Rs1 % ops.OPS.RRI.Imm2; \
+      os << boost::format("(p%2%) %1% r%3% = r%4%, %5%") % #name \
+          % ops.Pred % ops.OPS.ALUil.Rd % ops.OPS.ALUil.Rs1 \
+          % ops.OPS.ALUil.Imm2; \
     } \
     virtual word_t compute(word_t value1, word_t value2) const \
     { \
-      return value1 operator value2; \
+      return expr; \
     } \
   };
 
-  ALU_RI_INSTR(addi, +)
-  ALU_RI_INSTR(subi, -)
-  ALU_RI_INSTR(ori,|)
-  ALU_RI_INSTR(andi, &)
-  ALU_RI_INSTR(xori, ^)
+  ALUil_INSTR(addil , value1          +  value2                  )
+  ALUil_INSTR(subil , value1          -  value2                  )
+  ALUil_INSTR(rsubil, value2          -  value1                  )
+  ALUil_INSTR(slil  , value1          << (value2 & 0xF)          )
+  ALUil_INSTR(sril  , (uword_t)value1 >> (uword_t)(value2 & 0xF) )
+  ALUil_INSTR(srail , value1          >> (value2 & 0xF)          )
+  ALUil_INSTR(oril  , value1          |  value2                  )
+  ALUil_INSTR(andil , value1          &  value2                  )
 
+  ALUil_INSTR(rll    , value1 << (value2 & 0xF)        | ((uword_t)value1 >> (32 - (value2 & 0xF))) )
+  ALUil_INSTR(rrl    , value1 << (32 - (value2 & 0xF)) | ((uword_t)value1 >> (value2 & 0xF))        )
+  ALUil_INSTR(xorl   , value1          ^  value2                  )
+  ALUil_INSTR(norl   , value1          |  value2                  )
+  ALUil_INSTR(shaddl , (value1 << 1)   +  value2                  )
+  ALUil_INSTR(shadd2l, (value1 << 2)   +  value2                  )
 
-  /// Base class for comparison instructions.
-  class i_cmp_t : public i_pred_t
+  /// Base class for ALUr instructions.
+  class i_alur_t : public i_pred_t
   {
   public:
-    /// Compute the result of a comparison instruction.
+    /// Compute the result of an ALUr instruction.
+    /// @param value1 The value of the first operand.
+    /// @param value2 The value of the second operand.
+    virtual word_t compute(word_t value1, word_t value2) const = 0;
+
+    // IF inherited from NOP
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the DR pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.DR_Rs1 = s.GPR.get(ops.OPS.ALUr.Rs1);
+      ops.DR_Rs2 = s.GPR.get(ops.OPS.ALUr.Rs2);
+    }
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the EX pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      // compute the result of the ALU instruction
+      ops.EX_result = compute(read_GPR_EX(s, ops.DR_Rs1),
+                              read_GPR_EX(s, ops.DR_Rs2));
+    }
+
+    /// Commit function to commit the shadow state of the instruction in
+    /// the EX pipeline stage to the global state.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void EX_commit(simulator_t &s, instruction_data_t &ops) const
+    {
+      if (ops.DR_Pred)
+      {
+        // store the result by writing it into a by-pass.
+        ops.GPR_EX_Rd.set(ops.OPS.ALUr.Rd, ops.EX_result);
+      }
+    }
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the MW pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
+    {
+      if (ops.DR_Pred)
+      {
+        s.GPR.set(ops.GPR_EX_Rd.get());
+        ops.GPR_MW_Rd.set(ops.GPR_EX_Rd.get());
+        ops.GPR_EX_Rd.reset();
+      }
+    }
+
+    /// Commit function to commit the shadow state of the instruction in
+    /// the MW pipeline stage to the global state.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void MW_commit(simulator_t &s, instruction_data_t &ops) const
+    {
+      if (ops.DR_Pred)
+      {
+        ops.GPR_MW_Rd.reset();
+      }
+    }
+  };
+
+#define ALUr_INSTR(name, expr) \
+  class i_ ## name ## _t : public i_alur_t \
+  { \
+  public:\
+    virtual void print(std::ostream &os, const instruction_data_t &ops) const \
+    { \
+      os << boost::format("(p%2%) %1% r%3% = r%4%, r%5%") % #name \
+          % ops.Pred % ops.OPS.ALUr.Rd % ops.OPS.ALUr.Rs1 % ops.OPS.ALUr.Rs2; \
+    } \
+    virtual word_t compute(word_t value1, word_t value2) const \
+    { \
+      return expr; \
+    } \
+  };
+
+  ALUr_INSTR(add   , value1          +  value2                  )
+  ALUr_INSTR(sub   , value1          -  value2                  )
+  ALUr_INSTR(rsub  , value2          -  value1                  )
+  ALUr_INSTR(sl    , value1          << (value2 & 0xF)          )
+  ALUr_INSTR(sr    , (uword_t)value1 >> (uword_t)(value2 & 0xF) )
+  ALUr_INSTR(sra   , value1          >> (value2 & 0xF)          )
+  ALUr_INSTR(or    , value1          |  value2                  )
+  ALUr_INSTR(and   , value1          &  value2                  )
+
+  ALUr_INSTR(rl    , value1 << (value2 & 0xF)        | ((uword_t)value1 >> (32 - (value2 & 0xF))) )
+  ALUr_INSTR(rr    , value1 << (32 - (value2 & 0xF)) | ((uword_t)value1 >> (value2 & 0xF))        )
+  ALUr_INSTR(xor   , value1          ^  value2                  )
+  ALUr_INSTR(nor   , value1          |  value2                  )
+  ALUr_INSTR(shadd , (value1 << 1)   +  value2                  )
+  ALUr_INSTR(shadd2, (value1 << 2)   +  value2                  )
+
+  /// Base class for ALUu instructions.
+  class i_aluu_t : public i_pred_t
+  {
+  public:
+    /// Compute the result of an ALUu instruction.
+    /// @param value The value of the operand.
+    virtual word_t compute(word_t value) const = 0;
+
+    // IF inherited from NOP
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the DR pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.DR_Rs1 = s.GPR.get(ops.OPS.ALUu.Rs1);
+    }
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the EX pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.EX_result = compute(read_GPR_EX(s, ops.DR_Rs1));
+    }
+
+    /// Commit function to commit the shadow state of the instruction in
+    /// the EX pipeline stage to the global state.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void EX_commit(simulator_t &s, instruction_data_t &ops) const
+    {
+      if (ops.DR_Pred)
+      {
+        // store the result by writing it into a by-pass.
+        ops.GPR_EX_Rd.set(ops.OPS.ALUu.Rd, ops.EX_result);
+      }
+    }
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the MW pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
+    {
+      if (ops.DR_Pred)
+      {
+        s.GPR.set(ops.GPR_EX_Rd.get());
+        ops.GPR_MW_Rd.set(ops.GPR_EX_Rd.get());
+        ops.GPR_EX_Rd.reset();
+      }
+    }
+
+    /// Commit function to commit the shadow state of the instruction in
+    /// the MW pipeline stage to the global state.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void MW_commit(simulator_t &s, instruction_data_t &ops) const
+    {
+      if (ops.DR_Pred)
+      {
+        ops.GPR_MW_Rd.reset();
+      }
+    }
+  };
+
+#define ALUu_INSTR(name, operator) \
+  class i_ ## name ## _t : public i_aluu_t \
+  { \
+  public:\
+    virtual void print(std::ostream &os, const instruction_data_t &ops) const \
+    { \
+      os << boost::format("(p%2%) %1% r%3% = r%4%") % #name \
+          % ops.Pred % ops.OPS.ALUu.Rd % ops.OPS.ALUu.Rs1; \
+    } \
+    virtual word_t compute(word_t value1) const \
+    { \
+      return operator(value1); \
+    } \
+  };
+
+  ALUu_INSTR(sext8 , (word_t)(int8_t))
+  ALUu_INSTR(sext16, (word_t)(int16_t))
+  ALUu_INSTR(zext16, (word_t)(uint16_t))
+  ALUu_INSTR(abs   , std::abs)
+
+  /// Base class for ALUr instructions.
+  class i_alum_t : public i_pred_t
+  {
+  public:
+    /// Compute the result of an ALUr instruction.
+    /// @param value1 The value of the first operand.
+    /// @param value2 The value of the second operand.
+    virtual dword_t compute(word_t value1, word_t value2) const = 0;
+
+    // IF inherited from NOP
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the DR pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.DR_Rs1 = s.GPR.get(ops.OPS.ALUm.Rs1);
+      ops.DR_Rs2 = s.GPR.get(ops.OPS.ALUm.Rs2);
+    }
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the EX pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      // compute the result of the ALU instruction
+      dword_t result = compute(read_GPR_EX(s, ops.DR_Rs1),
+                               read_GPR_EX(s, ops.DR_Rs2));
+
+      ops.EX_mull = result;
+      ops.EX_mulh = result >> sizeof(word_t)*8;
+    }
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the MW pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
+    {
+      if (ops.DR_Pred)
+      {
+        s.SPR.set(sl, ops.EX_mull);
+        s.SPR.set(sh, ops.EX_mulh);
+      }
+    }
+  };
+
+#define ALUm_INSTR(name, type) \
+  class i_ ## name ## _t : public i_alum_t \
+  { \
+  public:\
+    virtual void print(std::ostream &os, const instruction_data_t &ops) const \
+    { \
+      os << boost::format("(p%2%) %1% r%3%, r%4%") % #name \
+          % ops.Pred % ops.OPS.ALUm.Rs1 % ops.OPS.ALUm.Rs2; \
+    } \
+    virtual dword_t compute(word_t value1, word_t value2) const \
+    { \
+      return ((type)value1) * ((type)value2); \
+    } \
+  };
+
+  ALUm_INSTR(mul , dword_t)
+  ALUm_INSTR(mulu, udword_t)
+
+  /// Base class for ALUc instructions.
+  class i_aluc_t : public i_pred_t
+  {
+  public:
+    /// Compute the result of an ALUc instruction.
     /// @param value1 The value of the first operand.
     /// @param value2 The value of the second operand.
     virtual bit_t compute(word_t value1, word_t value2) const = 0;
 
-    // FETCH inherited from NOP
+    // IF inherited from NOP
 
     /// Pipeline function to simulate the behavior of the instruction in
-    /// the decode pipeline stage.
+    /// the DR pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void decode(simulator_t &s, instruction_data_t &ops) const
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.DE_Pred = s.PRR.get(ops.Pred);
-      ops.DE_Rs1 = s.GPR.get(ops.OPS.CMP.Rs1);
-      ops.DE_Rs2 = s.GPR.get(ops.OPS.CMP.Rs2);
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.DR_Rs1 = s.GPR.get(ops.OPS.ALUc.Rs1);
+      ops.DR_Rs2 = s.GPR.get(ops.OPS.ALUc.Rs2);
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
-    /// the execute pipeline stage.
+    /// the EX pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void execute(simulator_t &s, instruction_data_t &ops) const
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
-      // read predicate
-      ops.EX_Pred = read_PRR_EX(s, ops.DE_Pred);
-
-      if (ops.EX_Pred)
+      if (ops.DR_Pred)
       {
         // compute the result of the comparison instruction
-        bit_t result = compute(read_GPR_EX(s, ops.DE_Rs1),
-                               read_GPR_EX(s, ops.DE_Rs2));
+        bit_t result = compute(read_GPR_EX(s, ops.DR_Rs1),
+                               read_GPR_EX(s, ops.DR_Rs2));
 
-        // store the result by writing it into a by-pass.
-        ops.PRR_EX_Pd.set(ops.OPS.CMP.Pd, result);
+        // store the result by writing it into the register file.
+        s.PRR.set(ops.OPS.ALUc.Pd, result);
       }
     }
 
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the memory pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void memory(simulator_t &s, instruction_data_t &ops) const
-    {
-      if (ops.EX_Pred)
-      {
-        ops.PRR_MEM_Pd.set(ops.PRR_EX_Pd.get());
-        ops.PRR_EX_Pd.reset();
-      }
-    }
-
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the writeback pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void writeback(simulator_t &s, instruction_data_t &ops) const
-    {
-      if (ops.EX_Pred)
-      {
-        s.PRR.set(ops.PRR_MEM_Pd.get());
-        ops.PRR_WB_Pd.set(ops.PRR_MEM_Pd.get());
-        ops.PRR_MEM_Pd.reset();
-      }
-    }
-
-    /// Commit function to commit the shadow state of the instruction in
-    /// the writeback pipeline stage to the global state.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void writeback_commit(simulator_t &s, instruction_data_t &ops) const
-    {
-      if (ops.EX_Pred)
-      {
-        ops.PRR_WB_Pd.reset();
-      }
-    }
+    // MW inherited from NOP
   };
-  
-#define CMP_INSTR(name, operator) \
-  class i_ ## name ## _t : public i_cmp_t \
+
+#define ALUc_INSTR(name, operator) \
+  class i_ ## name ## _t : public i_aluc_t \
   { \
   public:\
     virtual void print(std::ostream &os, const instruction_data_t &ops) const \
     { \
-      os << boost::format("%1%.p%2% p%3% = r%4%, %5%") % #name \
-          % ops.Pred % ops.OPS.CMP.Pd % ops.OPS.CMP.Rs1 % ops.OPS.CMP.Rs2; \
+      os << boost::format("(p%2%) %1% p%3% = r%4%, %5%") % #name \
+          % ops.Pred % ops.OPS.ALUc.Pd % ops.OPS.ALUc.Rs1 % ops.OPS.ALUc.Rs2; \
     } \
     virtual bit_t compute(word_t value1, word_t value2) const \
     { \
@@ -513,21 +601,19 @@ namespace patmos
     } \
   };
 
-  CMP_INSTR(eq, ==)
-  CMP_INSTR(neq, !=)
-  CMP_INSTR(gt, >)
-  CMP_INSTR(lt, <)
-  CMP_INSTR(leq, <=)
-  CMP_INSTR(geq, >=)
+  ALUc_INSTR(cmpeq , ==)
+  ALUc_INSTR(cmpneq, !=)
+  ALUc_INSTR(cmplt , <)
+  ALUc_INSTR(cmple , <=)
 
-  #define CMPU_INSTR(name, operator) \
-  class i_ ## name ## _t : public i_cmp_t \
+  #define ALUcu_INSTR(name, operator) \
+  class i_ ## name ## _t : public i_aluc_t \
   { \
   public:\
     virtual void print(std::ostream &os, const instruction_data_t &ops) const \
     { \
-      os << boost::format("%1%.p%2% p%3% = r%4%, %5%") % #name \
-          % ops.Pred % ops.OPS.CMP.Pd % ops.OPS.CMP.Rs1 % ops.OPS.CMP.Rs2; \
+      os << boost::format("(p%2%) %1% p%3% = r%4%, %5%") % #name \
+          % ops.Pred % ops.OPS.ALUc.Pd % ops.OPS.ALUc.Rs1 % ops.OPS.ALUc.Rs2; \
     } \
     virtual bit_t compute(word_t value1, word_t value2) const \
     { \
@@ -535,13 +621,72 @@ namespace patmos
     } \
   };
 
-  CMPU_INSTR(gtu, >)
-  CMPU_INSTR(ltu, <)
-  CMPU_INSTR(lequ, <=)
-  CMPU_INSTR(gequ, >=)
+  ALUcu_INSTR(cmpult, <)
+  ALUcu_INSTR(cmpule, <=)
 
-  /// A function-local branch instruction.
-  class i_br_t : public i_pred_t
+  /// Base class for ALUp instructions.
+  class i_alup_t : public i_pred_t
+  {
+  public:
+    /// Compute the result of an ALUp instruction.
+    /// @param value1 The value of the first operand.
+    /// @param value2 The value of the second operand.
+    virtual word_t compute(word_t value1, word_t value2) const = 0;
+
+    // IF inherited from NOP
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the DR pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.DR_Ps1 = s.PRR.get(ops.OPS.ALUp.Ps1).get();
+      ops.DR_Ps2 = s.PRR.get(ops.OPS.ALUp.Ps2).get();
+    }
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the EX pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      if (ops.DR_Pred)
+      {
+        // compute the result of the ALU instruction
+        bit_t result = compute(ops.DR_Ps1, ops.DR_Ps2);
+
+        // store the result by writing it into the register file.
+        s.PRR.set(ops.OPS.ALUp.Pd, result);
+      }
+    }
+
+    // MW inherited from NOP.
+  };
+
+#define ALUp_INSTR(name, lval, operator) \
+  class i_ ## name ## _t : public i_alup_t \
+  { \
+  public:\
+    virtual void print(std::ostream &os, const instruction_data_t &ops) const \
+    { \
+      os << boost::format("(p%2%) %1% p%3% = p%4%, p%5%") % #name \
+          % ops.Pred % ops.OPS.ALUp.Pd % ops.OPS.ALUp.Ps1 % ops.OPS.ALUp.Ps2; \
+    } \
+    virtual word_t compute(word_t value1, word_t value2) const \
+    { \
+      return lval == ((value1 operator value2) & 0x1); \
+    } \
+  };
+
+  ALUp_INSTR(por , 1, |)
+  ALUp_INSTR(pand, 1, &)
+  ALUp_INSTR(pxor, 1, ^)
+  ALUp_INSTR(pnor, 0, |)
+
+  /// A multi-cycle NOP operation.
+  class i_spcn_t : public i_pred_t
   {
   public:
     /// Print the instruction to an output stream.
@@ -549,263 +694,235 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void print(std::ostream &os, const instruction_data_t &ops) const
     {
-      os << boost::format("br.p%1% %2%") % ops.Pred % ops.OPS.I.Imm;
+      os << boost::format("(p%1%) nop %2%") % ops.Pred % ops.OPS.SPCn.Imm;
     }
 
-    // FETCH inherited from NOP
-
     /// Pipeline function to simulate the behavior of the instruction in
-    /// the decode pipeline stage.
+    /// the IF pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void decode(simulator_t &s, instruction_data_t &ops) const
+    virtual void IF(simulator_t &s, instruction_data_t &ops) const
+    {
+      i_pred_t::IF(s, ops);
+      ops.DR_Imm = 0;
+    }
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the DR pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
       bit_t Pred = s.PRR.get(ops.Pred).get();
 
       if (Pred)
       {
-        // flush the pipeline
-        s.pipeline_flush(FE);
-        s.PC = s.PC + ops.OPS.I.Imm;
-      }
-    }
-  };  
-
-  /// Base class for function call/return instructions
-  class i_dispatch_t : public i_pred_t
-  {
-  protected:
-    /// Perform a function call/return.
-    /// Fetch the function into the method cache, stall and flush the pipeline,
-    /// and set the program counter.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param pred The predicate under which the instruction is executed.
-    /// @param method The base address of the target method.
-    /// @param address The target address.
-    void dispatch(simulator_t &s, bit_t pred, word_t method,
-                  word_t address) const
-    {
-      if (pred)
-      {
-        // check if the target method is in the cache, otherwise stall until
-        // it is loaded.
-        if (!s.Method_cache.is_available(method))
+        if (ops.DR_Imm != ops.OPS.SPCn.Imm)
         {
-          // flush and stall the pipeline
-          s.pipeline_flush(FE);
-          s.pipeline_stall(DE);
-        }
-        else
-        {
-          // flush the pipeline
-          s.pipeline_flush(FE);
+          // increment NOP cycle counter
+          ops.DR_Imm++;
 
-          // set the program counter
-          s.PC = address;
+          // stall the pipeline
+          s.pipeline_stall(SDR);
         }
       }
     }
-  public:
+
+    // EX inherited from NOP
+
+    // MW inherited from NOP
   };
-  
-  /// An instructions for function calls.
-  class i_jsr__t : public i_dispatch_t
+
+  /// Wait for memory operations to complete.
+  class i_spcw_t : public i_pred_t
   {
   public:
-    // FETCH inherited from NOP
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    virtual void print(std::ostream &os, const instruction_data_t &ops) const
+    {
+      os << boost::format("(p%1%) waitm") % ops.Pred;
+    }
 
-    // DECODE implemented below
-    
+    // IF inherited from NOP
+
     /// Pipeline function to simulate the behavior of the instruction in
-    /// the execute pipeline stage.
+    /// the DR pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void execute(simulator_t &s, instruction_data_t &ops) const
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
-      // keep the potentially outdated predicate from the decode stage
-      if (ops.DE_Pred.get())
+      bit_t Pred = s.PRR.get(ops.Pred).get();
+
+      if (Pred)
       {
-        // store the return address by writing it into a by-pass.
-        ops.GPR_EX_Rd.set(rA, ops.DE_PC);
+        // TODO: verify timing here
+        if (!s.Memory.is_ready())
+        {
+          // stall the pipeline
+          s.pipeline_stall(SDR);
+        }
+      }
+    }
+
+    // EX inherited from NOP
+
+    // MW inherited from NOP
+  };
+
+  /// Move a value from a general purpose register to a special purpose
+  /// register.
+  class i_spct_t : public i_pred_t
+  {
+  public:
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    virtual void print(std::ostream &os, const instruction_data_t &ops) const
+    {
+      os << boost::format("(p%1%) mts s%2% = r%3%")
+         % ops.Pred % ops.OPS.SPCt.Sd % ops.OPS.SPCt.Rs1;
+    }
+
+    // IF inherited from NOP
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the DR pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.DR_Rs1 = s.GPR.get(ops.OPS.SPCt.Rs1);
+    }
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the EX pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      if (ops.DR_Pred)
+      {
+        word_t result = read_GPR_EX(s, ops.DR_Rs1);
+
+        // store the result by writing it into the special purpose register file
+        s.SPR.set(ops.OPS.SPCt.Sd, result);
+      }
+    }
+
+    // MW inherited from NOP
+  };
+
+  /// Move a value from a special purpose register to a general purpose
+  /// register.
+  class i_spcf_t : public i_pred_t
+  {
+  public:
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    virtual void print(std::ostream &os, const instruction_data_t &ops) const
+    {
+      os << boost::format("(p%1%) mfs r%2% = s%3%")
+         % ops.Pred % ops.OPS.SPCf.Rd % ops.OPS.SPCf.Ss;
+    }
+
+    // IF inherited from NOP
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the DR pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.DR_Ss = s.SPR.get(ops.OPS.SPCf.Ss).get();
+    }
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the EX pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      // read the special purpose register, without forwarding
+      ops.EX_result = ops.DR_Ss;
+    }
+
+    /// Commit function to commit the shadow state of the instruction in
+    /// the EX pipeline stage to the global state.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void EX_commit(simulator_t &s, instruction_data_t &ops) const
+    {
+      if (ops.DR_Pred)
+      {
+        // store the result by writing it into a by-pass.
+        ops.GPR_EX_Rd.set(ops.OPS.SPCf.Rd, ops.EX_result);
       }
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
-    /// the memory pipeline stage.
+    /// the MW pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void memory(simulator_t &s, instruction_data_t &ops) const
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
-      // keep the potentially outdated predicate from the decode stage
-      if (ops.DE_Pred.get())
+      if (ops.DR_Pred)
       {
-        ops.GPR_MEM_Rd.set(ops.GPR_EX_Rd.get());
+        s.GPR.set(ops.GPR_EX_Rd.get());
+        ops.GPR_MW_Rd.set(ops.GPR_EX_Rd.get());
         ops.GPR_EX_Rd.reset();
       }
     }
 
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the writeback pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void writeback(simulator_t &s, instruction_data_t &ops) const
-    {
-      // keep the potentially outdated predicate from the decode stage
-      if (ops.DE_Pred.get())
-      {
-        s.GPR.set(ops.GPR_MEM_Rd.get());
-        ops.GPR_WB_Rd.set(ops.GPR_MEM_Rd.get());
-        ops.GPR_MEM_Rd.reset();
-      }
-    }
-
     /// Commit function to commit the shadow state of the instruction in
-    /// the writeback pipeline stage to the global state.
+    /// the MW pipeline stage to the global state.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void writeback_commit(simulator_t &s, instruction_data_t &ops) const
+    virtual void MW_commit(simulator_t &s, instruction_data_t &ops) const
     {
-      // keep the potentially outdated predicate from the decode stage
-      if (ops.DE_Pred.get())
+      if (ops.DR_Pred)
       {
-        ops.GPR_WB_Rd.reset();
+        ops.GPR_MW_Rd.reset();
       }
     }
   };
-
-  /// An instructions for absolute function calls.
-  class i_jsri_t : public i_jsr__t
-  {
-  public:
-    /// Print the instruction to an output stream.
-    /// @param os The output stream to print to.
-    /// @param ops The operands of the instruction.
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const
-    {
-      os << boost::format("jsri.p%1% %2%") % ops.Pred % ops.OPS.I.Imm;
-    }
-    
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the decode pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void decode(simulator_t &s, instruction_data_t &ops) const
-    {
-      // get the predicate
-      ops.DE_Pred = s.PRR.get(ops.Pred);
-      
-      // store the return address.
-      ops.DE_PC = s.PC;
-
-      // perform the dispatch
-      dispatch(s, ops.DE_Pred.get(), ops.OPS.I.Imm, ops.OPS.I.Imm);
-    }
-  };
-  
-  /// An instruction for indirect function calls.
-  class i_jsr_t : public i_jsr__t
-  {
-  public:
-    /// Print the instruction to an output stream.
-    /// @param os The output stream to print to.
-    /// @param ops The operands of the instruction.
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const
-    {
-      os << boost::format("jsr.p%1% r%2%") % ops.Pred % ops.OPS.JSR.Ra;
-    }
-
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the decode pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void decode(simulator_t &s, instruction_data_t &ops) const
-    {
-      // get the predicate
-      ops.DE_Pred = s.PRR.get(ops.Pred);
-
-      // store the return address.
-      ops.DE_PC = s.PC;
-
-      // perform the dispatch
-      dispatch(s, ops.DE_Pred.get(), s.GPR.get(ops.OPS.JSR.Ra).get(),
-               s.GPR.get(ops.OPS.JSR.Ra).get());
-    }
-  };
-
-  /// An instruction for returning from function calls.
-  class i_ret_t : public i_dispatch_t
-  {
-  public:
-    /// Print the instruction to an output stream.
-    /// @param os The output stream to print to.
-    /// @param ops The operands of the instruction.
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const
-    {
-      os << boost::format("ret.p%1%") % ops.Pred;
-    }
-
-    // FETCH inherited from NOP
-
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the decode pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void decode(simulator_t &s, instruction_data_t &ops) const
-    {
-      // note that we use rM and rA here!
-      dispatch(s, s.PRR.get(ops.Pred).get(), s.GPR.get(rM).get(),
-               s.GPR.get(rA).get());
-    }
-  };  
 
   /// Base class for memory load instructions.
-  class i_load_t : public i_pred_t
+  class i_LDT_t : public i_pred_t
   {
   public:
     /// load the value from memory.
     /// @param s The Patmos simulator executing the instruction.
     /// @param address The address of the memory access.
-    /// @param value If the function returns true, the loaded value is returned 
+    /// @param value If the function returns true, the loaded value is returned
     /// here.
     /// @return True if the value was loaded, false if the value is not yet
     /// available and stalling is needed.
     virtual bool load(simulator_t &s, word_t address, word_t &value) const = 0;
 
-    // FETCH inherited from NOP
+    // IF inherited from NOP
 
     /// Pipeline function to simulate the behavior of the instruction in
-    /// the decode pipeline stage.
+    /// the DR pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void decode(simulator_t &s, instruction_data_t &ops) const
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.DE_Pred = s.PRR.get(ops.Pred);
-      ops.DE_Rs1 = s.GPR.get(ops.OPS.LD.Ra);
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.DR_Rs1 = s.GPR.get(ops.OPS.LDT.Ra);
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
-    /// the execute pipeline stage.
+    /// the MW pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void execute(simulator_t &s, instruction_data_t &ops) const
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
-      // read predicate
-      ops.EX_Pred = read_PRR_EX(s, ops.DE_Pred);
-
-      if (ops.EX_Pred)
-      {
-        // compute the address of the load instruction
-        ops.EX_Address = read_GPR_EX(s, ops.DE_Rs1) + ops.OPS.LD.Imm;
-      }
-    }
-
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the memory pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void memory(simulator_t &s, instruction_data_t &ops) const
-    {
-      if (ops.EX_Pred)
+      if (ops.DR_Pred)
       {
         // load from memory
         word_t result;
@@ -815,85 +932,84 @@ namespace patmos
         if (is_available)
         {
           // store the loaded value by writing it into a by-pass
-          ops.GPR_MEM_Rd.set(ops.OPS.LD.Rd, result);
+          s.GPR.set(ops.OPS.LDT.Rd, result);
+          ops.GPR_MW_Rd.set(ops.OPS.LDT.Rd, result);
         }
         else
         {
           // stall and wait for the memory/cache
-          s.pipeline_stall(MEM);
+          s.pipeline_stall(SMW);
         }
       }
     }
 
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the writeback pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void writeback(simulator_t &s, instruction_data_t &ops) const
-    {
-      if (ops.EX_Pred)
-      {
-        s.GPR.set(ops.GPR_MEM_Rd.get());
-        ops.GPR_WB_Rd.set(ops.GPR_MEM_Rd.get());
-        ops.GPR_MEM_Rd.reset();
-      }
-    }
-
     /// Commit function to commit the shadow state of the instruction in
-    /// the writeback pipeline stage to the global state.
+    /// the MW pipeline stage to the global state.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void writeback_commit(simulator_t &s, instruction_data_t &ops) const
+    virtual void MW_commit(simulator_t &s, instruction_data_t &ops) const
     {
-      if (ops.EX_Pred)
+      if (ops.DR_Pred)
       {
-        ops.GPR_WB_Rd.reset();
+        ops.GPR_MW_Rd.reset();
       }
     }
   };
-  
+
 #define LD_INSTR(name, base, atype, ctype) \
-  class i_ ## name ## _t : public i_load_t \
+  class i_ ## name ## _t : public i_LDT_t \
   { \
   public:\
     virtual void print(std::ostream &os, const instruction_data_t &ops) const \
     { \
-      os << boost::format("%1%.p%2% r%3% = [r%4% + %5%]") % #name \
-          % ops.Pred % ops.OPS.LD.Rd % ops.OPS.LD.Ra % ops.OPS.LD.Imm; \
+      os << boost::format("(p%2%) %1% r%3% = [r%4% + %5%]") % #name \
+          % ops.Pred % ops.OPS.LDT.Rd % ops.OPS.LDT.Ra % ops.OPS.LDT.Imm; \
+    } \
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const \
+    { \
+      ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1) + ops.OPS.LDT.Imm*sizeof(atype); \
     } \
     virtual bool load(simulator_t &s, word_t address, word_t &value) const \
     { \
       atype tmp; \
-      bool is_available = base.read_fixed(address * sizeof(atype), tmp); \
-      value = (ctype)tmp; \
+      bool is_available = base.read_fixed(address, tmp); \
+      value = (ctype)from_big_endian<big_ ## atype>(tmp); \
       return is_available; \
     } \
   };
 
-  LD_INSTR(lws, s.Stack_cache, word_t, word_t)
-  LD_INSTR(lhs, s.Stack_cache, hword_t, word_t)
-  LD_INSTR(lbs, s.Stack_cache, byte_t, word_t)
-  LD_INSTR(ulws, s.Stack_cache, uword_t, uword_t)
-  LD_INSTR(ulhs, s.Stack_cache, uhword_t, uword_t)
-  LD_INSTR(ulbs, s.Stack_cache, ubyte_t, uword_t)
+  LD_INSTR(lws , s.Stack_cache, word_t, word_t)
+  LD_INSTR(lhs , s.Stack_cache, hword_t, word_t)
+  LD_INSTR(lbs , s.Stack_cache, byte_t, word_t)
+  LD_INSTR(lwus, s.Stack_cache, uword_t, uword_t)
+  LD_INSTR(lhus, s.Stack_cache, uhword_t, uword_t)
+  LD_INSTR(lbus, s.Stack_cache, ubyte_t, uword_t)
 
-//   TODO: implement local memories
-//   LD_INSTR(lwl, s.Local_memory, word_t, word_t)
-//   LD_INSTR(lhl, s.Local_memory, hword_t, word_t)
-//   LD_INSTR(lbl, s.Local_memory, byte_t, word_t)
-//   LD_INSTR(ulwl, s.Local_memory, uword_t, uword_t)
-//   LD_INSTR(ulhl, s.Local_memory, uhword_t, uword_t)
-//   LD_INSTR(ulbl, s.Local_memory, ubyte_t, uword_t)
+  LD_INSTR(lwl , s.Local_memory, word_t, word_t)
+  LD_INSTR(lhl , s.Local_memory, hword_t, word_t)
+  LD_INSTR(lbl , s.Local_memory, byte_t, word_t)
+  LD_INSTR(lwul, s.Local_memory, uword_t, uword_t)
+  LD_INSTR(lhul, s.Local_memory, uhword_t, uword_t)
+  LD_INSTR(lbul, s.Local_memory, ubyte_t, uword_t)
 
-  LD_INSTR(lwg, s.Memory, word_t, word_t)
-  LD_INSTR(lhg, s.Memory, hword_t, word_t)
-  LD_INSTR(lbg, s.Memory, byte_t, word_t)
-  LD_INSTR(ulwg, s.Memory, uword_t, uword_t)
-  LD_INSTR(ulhg, s.Memory, uhword_t, uword_t)
-  LD_INSTR(ulbg, s.Memory, ubyte_t, uword_t)
+  LD_INSTR(lwc , s.Memory, word_t, word_t)
+  LD_INSTR(lhc , s.Memory, hword_t, word_t)
+  LD_INSTR(lbc , s.Memory, byte_t, word_t)
+  LD_INSTR(lwuc, s.Memory, uword_t, uword_t)
+  LD_INSTR(lhuc, s.Memory, uhword_t, uword_t)
+  LD_INSTR(lbuc, s.Memory, ubyte_t, uword_t)
+
+  LD_INSTR(lwm , s.Memory, word_t, word_t)
+  LD_INSTR(lhm , s.Memory, hword_t, word_t)
+  LD_INSTR(lbm , s.Memory, byte_t, word_t)
+  LD_INSTR(lwum, s.Memory, uword_t, uword_t)
+  LD_INSTR(lhum, s.Memory, uhword_t, uword_t)
+  LD_INSTR(lbum, s.Memory, ubyte_t, uword_t)
+
+  // TODO: implement decoupled loads
 
   /// Base class for memory store instructions.
-  class i_store_t : public i_pred_t
+  class i_STT_t : public i_pred_t
   {
   public:
     /// Store the value to memory.
@@ -904,105 +1020,302 @@ namespace patmos
     /// if the instruction has to stall.
     virtual bool store(simulator_t &s, word_t address, word_t value) const = 0;
 
-    // FETCH inherited from NOP
+    // IF inherited from NOP
 
     /// Pipeline function to simulate the behavior of the instruction in
-    /// the decode pipeline stage.
+    /// the DR pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void decode(simulator_t &s, instruction_data_t &ops) const
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.DE_Pred = s.PRR.get(ops.Pred);
-      ops.DE_Rs1 = s.GPR.get(ops.OPS.ST.Ra);
-      ops.DE_Rs2 = s.GPR.get(ops.OPS.ST.Rs);
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.DR_Rs1 = s.GPR.get(ops.OPS.STT.Ra);
+      ops.DR_Rs2 = s.GPR.get(ops.OPS.STT.Rs1);
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
-    /// the execute pipeline stage.
+    /// the MW pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void execute(simulator_t &s, instruction_data_t &ops) const
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
-      // read predicate
-      ops.EX_Pred = read_PRR_EX(s, ops.DE_Pred);
-
-      if (ops.EX_Pred)
-      {
-        // compute the address of the store instruction
-        ops.EX_Address = read_GPR_EX(s, ops.DE_Rs1) + ops.OPS.ST.Imm;
-        ops.EX_Rs = read_GPR_EX(s, ops.DE_Rs2);
-      }
-    }
-
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the memory pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void memory(simulator_t &s, instruction_data_t &ops) const
-    {
-      if (ops.EX_Pred)
+      if (ops.DR_Pred)
       {
         // store to memory
         if (!store(s, ops.EX_Address, ops.EX_Rs))
         {
-          // we need to stall in order to ensure that the value was actually 
+          // we need to stall in order to ensure that the value was actually
           // propagated down to the memory
-          s.pipeline_stall(MEM);
+          s.pipeline_stall(SMW);
         }
       }
     }
   };
 
 #define ST_INSTR(name, base, type) \
-  class i_ ## name ## _t : public i_store_t \
+  class i_ ## name ## _t : public i_STT_t \
   { \
   public:\
     virtual void print(std::ostream &os, const instruction_data_t &ops) const \
     { \
-      os << boost::format("%1%.p%2% [r%3% + %4%] = r%5%") % #name \
-          % ops.Pred % ops.OPS.ST.Ra % ops.OPS.ST.Imm % ops.OPS.ST.Rs; \
+      os << boost::format("(p%2%) %1% [r%3% + %4%] = r%5%") % #name \
+          % ops.Pred % ops.OPS.STT.Ra % ops.OPS.STT.Imm2 % ops.OPS.STT.Rs1; \
+    } \
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const \
+    { \
+      ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1) + ops.OPS.STT.Imm2*sizeof(type); \
+      ops.EX_Rs = read_GPR_EX(s, ops.DR_Rs2); \
     } \
     virtual bool store(simulator_t &s, word_t address, word_t value) const \
     { \
-      return base.write_fixed(address * sizeof(type), value); \
+      type big_value = to_big_endian<big_ ## type>((type)value); \
+      return base.write_fixed(address, big_value); \
     } \
   };
 
-//   TODO: implement stores to stack-cache
-//   ST_INSTR(sws, s.Stack_cache, word_t)
-//   ST_INSTR(shs, s.Stack_cache, hword_t)
-//   ST_INSTR(sbs, s.Stack_cache, byte_t)
-//
-//   TODO: implement local memories
-//   ST_INSTR(swl, s.Local_memory, word_t)
-//   ST_INSTR(shl, s.Local_memory, hword_t)
-//   ST_INSTR(sbl, s.Local_memory, byte_t)
+  ST_INSTR(sws, s.Stack_cache, word_t)
+  ST_INSTR(shs, s.Stack_cache, hword_t)
+  ST_INSTR(sbs, s.Stack_cache, byte_t)
 
-  ST_INSTR(swg, s.Memory, word_t)
-  ST_INSTR(shg, s.Memory, hword_t)
-  ST_INSTR(sbg, s.Memory, byte_t)
+  ST_INSTR(swl, s.Local_memory, word_t)
+  ST_INSTR(shl, s.Local_memory, hword_t)
+  ST_INSTR(sbl, s.Local_memory, byte_t)
 
-#define STACK_INSTR(name) \
+  ST_INSTR(swc, s.Memory, word_t)
+  ST_INSTR(shc, s.Memory, hword_t)
+  ST_INSTR(sbc, s.Memory, byte_t)
+
+  ST_INSTR(swm, s.Memory, word_t)
+  ST_INSTR(shm, s.Memory, hword_t)
+  ST_INSTR(sbm, s.Memory, byte_t)
+
+
+#define STC_INSTR(name, function) \
   class i_ ## name ## _t : public i_pred_t \
   { \
   public:\
     virtual void print(std::ostream &os, const instruction_data_t &ops) const \
     { \
-      os << boost::format("%1%.p%2% %3%") % #name % ops.Pred % ops.OPS.I.Imm; \
+      os << boost::format("(p%2%) %1% %3%") % #name % ops.Pred % ops.OPS.STC.Imm; \
     } \
-    virtual void memory(simulator_t &s, instruction_data_t &ops) const \
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const \
     { \
-      if(ops.EX_Pred && !s.Stack_cache.name(ops.OPS.I.Imm)) \
+      ops.DR_Pred = s.PRR.get(ops.Pred).get(); \
+    } \
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const \
+    { \
+      if(ops.DR_Pred && !s.Stack_cache.function(ops.OPS.STC.Imm)) \
       { \
-        s.pipeline_stall(MEM); \
+        s.pipeline_stall(SMW); \
       } \
     } \
   };
 
-  STACK_INSTR(reserve)
-  STACK_INSTR(free)
-  STACK_INSTR(ensure)
+  STC_INSTR(sres, reserve)
+  STC_INSTR(sens, ensure)
+  STC_INSTR(sfree, free)
+
+  /// Base class for branch, call, and return instructions.
+  class i_pfl_t : public i_pred_t
+  {
+  protected:
+    /// Store the method base address and offset to the respective special
+    /// purpose registers.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param pred The predicate under which the instruction is executed.
+    /// @param base The base address of the current method.
+    /// @param pc The current program counter.
+    void no_store_return_address(simulator_t &s, bit_t pred, uword_t base,
+                                 uword_t pc) const
+    {
+      assert(base <= pc);
+    }
+
+    /// Store the method base address and offset to the respective special
+    /// purpose registers.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param pred The predicate under which the instruction is executed.
+    /// @param base The base address of the current method.
+    /// @param pc The current program counter.
+    void store_return_address(simulator_t &s, bit_t pred, uword_t base,
+                              uword_t pc) const
+    {
+      if (pred)
+      {
+        assert(base <= pc);
+
+        // store the return address and method base address by writing them into
+        // special purpose registers
+        s.SPR.set(sb, base);
+        s.SPR.set(so, pc - base);
+      }
+    }
+
+    /// Perform a function branch/call/return.
+    /// Fetch the function into the method cache, stall the pipeline, and set
+    /// the program counter.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param pred The predicate under which the instruction is executed.
+    /// @param base The base address of the target method.
+    /// @param address The target address.
+    void fetch_and_dispatch(simulator_t &s, bit_t pred, word_t base,
+                            word_t address) const
+    {
+      if (pred)
+      {
+        // check if the target method is in the cache, otherwise stall until
+        // it is loaded.
+        if (!s.Method_cache.is_available(base))
+        {
+          // stall the pipeline
+          s.pipeline_stall(SDR);
+        }
+        else
+        {
+          // set the program counter and base
+          s.BASE = base;
+          s.PC = s.nPC = address;
+        }
+      }
+    }
+
+    /// Perform a function branch or call.
+    /// The function is assumed to be in the method cache, thus simply set the
+    /// program counter.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param pred The predicate under which the instruction is executed.
+    /// @param base The base address of the target method.
+    /// @param address The target address.
+    void dispatch(simulator_t &s, bit_t pred, word_t base, word_t address) const
+    {
+      if (pred)
+      {
+        // assure that the target method is in the cache.
+        assert(s.Method_cache.is_available(base));
+
+        // set the program counter and base
+        s.BASE = base;
+        s.PC = s.nPC = address;
+      }
+    }
+  public:
+    // IF inherited from NOP
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the DR pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+    }
+
+    // EX implemented by sub-classes
+
+    // MW inherited from NOP
+  };
+
+#define PFLB_INSTR(name, store, dispatch, new_base, target) \
+  class i_ ## name ## _t : public i_pfl_t \
+  { \
+  public:\
+    virtual void print(std::ostream &os, const instruction_data_t &ops) const \
+    { \
+      os << boost::format("(p%2%) %1% %3%") % #name % ops.Pred % ops.OPS.PFLb.Imm; \
+    } \
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const \
+    { \
+      store(s, ops.DR_Pred, s.BASE, s.nPC); \
+      dispatch(s, ops.DR_Pred, new_base, target); \
+    } \
+  };
+
+  PFLB_INSTR(bs, store_return_address, fetch_and_dispatch,
+             ops.OPS.PFLb.Imm*sizeof(word_t), ops.OPS.PFLb.Imm*sizeof(word_t))
+  PFLB_INSTR(bc, no_store_return_address, dispatch, s.BASE,
+             s.BASE + ops.OPS.PFLb.Imm*sizeof(word_t))
+  PFLB_INSTR(b, no_store_return_address, fetch_and_dispatch,
+             s.BASE + ops.OPS.PFLb.Imm*sizeof(word_t),
+             s.BASE + ops.OPS.PFLb.Imm*sizeof(word_t))
+
+  /// Branch and call instructions with a register operand.
+  class i_pfli_t : public i_pfl_t
+  {
+  public:
+    // IF inherited from NOP
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the DR pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.DR_Rs1 = s.GPR.get(ops.OPS.PFLi.Rs);
+    }
+
+    // EX implemented by sub-classes
+
+    // MW inherited from NOP
+  };
+
+#define PFLI_INSTR(name, store, dispatch, new_base) \
+  class i_ ## name ## _t : public i_pfli_t \
+  { \
+  public:\
+    virtual void print(std::ostream &os, const instruction_data_t &ops) const \
+    { \
+      os << boost::format("(p%2%) %1% r%3%") % #name % ops.Pred % ops.OPS.PFLi.Rs; \
+    } \
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const \
+    { \
+      word_t target = read_GPR_EX(s, ops.DR_Rs1); \
+      store(s, ops.DR_Pred, s.BASE, s.PC); \
+      dispatch(s, ops.DR_Pred, new_base, target); \
+    } \
+  };
+
+  PFLI_INSTR(bsr, store_return_address, fetch_and_dispatch, target)
+  PFLI_INSTR(bcr, no_store_return_address, dispatch, s.BASE)
+  PFLI_INSTR(br, no_store_return_address, fetch_and_dispatch, s.BASE)
+
+  /// An instruction for returning from function calls.
+  class i_ret_t : public i_pfl_t
+  {
+  public:
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    virtual void print(std::ostream &os, const instruction_data_t &ops) const
+    {
+      os << boost::format("(p%1%) ret") % ops.Pred;
+    }
+
+    // IF inherited from NOP
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the DR pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.DR_Base = s.SPR.get(sb).get();
+      ops.DR_Offset = s.SPR.get(so).get();
+    }
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the EX pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      fetch_and_dispatch(s, ops.DR_Pred, ops.DR_Base,
+                         ops.DR_Base + ops.DR_Offset);
+    }
+  };
 }
 
 #endif // PATMOS_INSTRUCTIONS_H
+
 

@@ -1,20 +1,20 @@
-// 
+//
 //  This file is part of the Patmos Simulator.
 //  The Patmos Simulator is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-// 
+//
 //  The Patmos Simulator is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-// 
+//
 //  You should have received a copy of the GNU General Public License
 //  along with the Patmos Simulator. If not, see <http://www.gnu.org/licenses/>.
 //
 //
-// Basic definitions of interfaces to simulation functions for Patmos 
+// Basic definitions of interfaces to simulation functions for Patmos
 // instructions.
 //
 
@@ -30,21 +30,19 @@ namespace patmos
 {
   // forward declaration
   class simulator_t;
+  class instruction_t;
   struct instruction_data_t;
 
-  /// Representation of a program.
-  typedef std::vector<instruction_data_t> program_t;
-  
   /// Base class for all Patmos instructions.
   /// Every instruction consists of several "pipeline" functions, that operate
-  /// on a shadow state of the processor, once all pipeline stages have 
-  /// completed the simulation of a cycle a series of "commit"  functions are 
-  /// invoked in order to commit the shadow state to the global processor state.  
+  /// on a shadow state of the processor, once all pipeline stages have
+  /// completed the simulation of a cycle a series of "commit"  functions are
+  /// invoked in order to commit the shadow state to the global processor state.
   class instruction_t
   {
-  public:   
+  public:
     // -------------------------- UTILITY --------------------------------------
-    
+
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
@@ -52,75 +50,56 @@ namespace patmos
                        const instruction_data_t &ops) const = 0;
 
     // -------------------------- SIMULATION -----------------------------------
-    
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the fetch pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void fetch(simulator_t &s, instruction_data_t &ops) const = 0;
-    
-    /// Commit function to commit the shadow state of the instruction in
-    /// the fetch pipeline stage to the global state.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-
-    virtual void fetch_commit(simulator_t &s, instruction_data_t &ops) const = 0;
 
     /// Pipeline function to simulate the behavior of the instruction in
-    /// the decode pipeline stage.
+    /// the IF pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-
-    virtual void decode(simulator_t &s, instruction_data_t &ops) const = 0;
+    virtual void IF(simulator_t &s, instruction_data_t &ops) const = 0;
 
     /// Commit function to commit the shadow state of the instruction in
-    /// the decode pipeline stage to the global state.
+    /// the IF pipeline stage to the global state.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
 
-    virtual void decode_commit(simulator_t &s, instruction_data_t &ops) const = 0;
+    virtual void IF_commit(simulator_t &s, instruction_data_t &ops) const = 0;
 
     /// Pipeline function to simulate the behavior of the instruction in
-    /// the execute pipeline stage.
+    /// the DR pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-
-    virtual void execute(simulator_t &s, instruction_data_t &ops) const = 0;
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const = 0;
 
     /// Commit function to commit the shadow state of the instruction in
-    /// the execute pipeline stage to the global state.
+    /// the DR pipeline stage to the global state.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
 
-    virtual void execute_commit(simulator_t &s, instruction_data_t &ops) const = 0;
+    virtual void DR_commit(simulator_t &s, instruction_data_t &ops) const = 0;
 
     /// Pipeline function to simulate the behavior of the instruction in
-    /// the memory pipeline stage.
+    /// the EX pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-
-    virtual void memory(simulator_t &s, instruction_data_t &ops) const = 0;
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const = 0;
 
     /// Commit function to commit the shadow state of the instruction in
-    /// the memory pipeline stage to the global state.
+    /// the EX pipeline stage to the global state.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-
-    virtual void memory_commit(simulator_t &s, instruction_data_t &ops) const = 0;
+    virtual void EX_commit(simulator_t &s, instruction_data_t &ops) const = 0;
 
     /// Pipeline function to simulate the behavior of the instruction in
-    /// the writeback pipeline stage.
+    /// the MW pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const = 0;
 
-    virtual void writeback(simulator_t &s, instruction_data_t &ops) const = 0;
-    
     /// Commit function to commit the shadow state of the instruction in
-    /// the writeback pipeline stage to the global state.
+    /// the MW pipeline stage to the global state.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-
-    virtual void writeback_commit(simulator_t &s, instruction_data_t &ops) const = 0;
+    virtual void MW_commit(simulator_t &s, instruction_data_t &ops) const = 0;
   };
 
   /// Data structure to keep data of instructions while executing.
@@ -130,198 +109,304 @@ namespace patmos
     /// The instruction class that implements the behavior.
     const instruction_t *I;
 
-    /// Flag indicating whether the bundle ends with this instruction.
-    bool Bundle_end;
-    
     PRR_e Pred;
-    
+
     /// Union to keep operand information depending on instruction classes.
     union
     {
-      /// Operands of compare instructions.
-      struct {
-        PRR_e Pd;
-        GPR_e Rs1;
-        GPR_e Rs2;
-      } CMP;
-      /// Operands of instructions having two register operands and a register
-      /// destination.
-      struct {
-        GPR_e Rd;
-        GPR_e Rs1;
-        GPR_e Rs2;
-      } RRR;
-      /// Operands of instructions having on register operand, one immediate
-      /// operand, and a register destination.
+      /// Operands for an ALUi or ALUl instruction.
       struct
       {
         GPR_e Rd;
         GPR_e Rs1;
         word_t Imm2;
-      } RRI;
-      /// Operands of load high/low instructions.
+      } ALUil;
+      /// Operands for an ALUr instruction.
       struct
       {
         GPR_e Rd;
+        GPR_e Rs1;
+        GPR_e Rs2;
+      } ALUr;
+      /// Operands for an ALUu instruction.
+      struct
+      {
+        GPR_e Rd;
+        GPR_e Rs1;
+      } ALUu;
+      /// Operands for an ALUm instruction.
+      struct
+      {
+        GPR_e Rs1;
+        GPR_e Rs2;
+      } ALUm;
+      /// Operands for an ALUc instruction.
+      struct
+      {
+        PRR_e Pd;
+        GPR_e Rs1;
+        GPR_e Rs2;
+      } ALUc;
+      /// Operands for an ALUp instruction.
+      struct
+      {
+        PRR_e Pd;
+        PRR_e Ps1;
+        PRR_e Ps2;
+      } ALUp;
+      /// Operands for an SPCn instruction.
+      struct
+      {
         word_t Imm;
-      } LDI;
-      /// Operands of memory load instructions.
+      } SPCn;
+      /// Operands for an SPCt instruction.
+      struct
+      {
+        SPR_e Sd;
+        GPR_e Rs1;
+      } SPCt;
+      /// Operands for an SPCf instruction.
+      struct
+      {
+        GPR_e Rd;
+        SPR_e Ss;
+      } SPCf;
+      /// Operands for an LDT instruction.
       struct
       {
         GPR_e Rd;
         GPR_e Ra;
         word_t Imm;
-      } LD;
-      /// Operands of memory store instructions.
+      } LDT;
+      /// Operands for an STT instruction.
       struct
       {
         GPR_e Ra;
+        GPR_e Rs1;
+        word_t Imm2;
+      } STT;
+      /// Operands for an STC instruction.
+      struct
+      {
+        word_t Imm;
+      } STC;
+      /// Operands for an PFLb instruction.
+      struct
+      {
+        word_t Imm;
+      } PFLb;
+      /// Operands for an PFLi instruction.
+      struct
+      {
         GPR_e Rs;
-        word_t Imm;
-      } ST;
-      /// Operand of instructions with a single immediate operand.
-      struct
-      {
-        word_t Imm;
-      } I;
-      /// Operand of call instructions.
-      struct
-      {
-        GPR_e Ra;
-      } JSR;
+      } PFLi;
     } OPS;
 
-    // ------------------------ DECODE -----------------------------------------
-    GPR_op_t DE_Rs1;
-    GPR_op_t DE_Rs2;
-    PRR_op_t DE_Pred;
-    word_t DE_PC;
+    // -------------------------- DR -------------------------------------------
+    word_t DR_Imm;
+    word_t DR_Ss;
+    GPR_op_t DR_Rs1;
+    GPR_op_t DR_Rs2;
+    bit_t DR_Ps1;
+    bit_t DR_Ps2;
+    bit_t DR_Pred;
+    word_t DR_Base;
+    word_t DR_Offset;
 
-    // ------------------------ EXECUTE ----------------------------------------
-    /// Result register operand from execute stage.
+    // -------------------------- EX -------------------------------------------
+    /// Result from EX stage.
+    word_t EX_result;
+
+    /// Result of a multiplication
+    word_t EX_mull, EX_mulh;
+
+    /// Result register operand from EX stage.
     GPR_by_pass_t GPR_EX_Rd;
 
-    /// Result predicate operand from execute stage.
+    /// Result predicate operand from EX stage.
     PRR_by_pass_t PRR_EX_Pd;
-
-    /// Final value of the predicate to be used.
-    bit_t EX_Pred;
 
     /// Value for memory stores.
     word_t EX_Rs;
-    
+
     /// Address for memory accesses.
     word_t EX_Address;
 
-    // ------------------------ MEMORY -----------------------------------------
-    /// Result register operand from memory stage.
-    GPR_by_pass_t GPR_MEM_Rd;
-
-    /// Result predicate operand from memory stage.
-    PRR_by_pass_t PRR_MEM_Pd;
-
-    // ------------------------ WRITEBACK --------------------------------------
-    /// Result register operand from writeback stage.
-    GPR_by_pass_t GPR_WB_Rd;
-
-    /// Result predicate operand from writeback stage.
-    PRR_by_pass_t PRR_WB_Pd;
+    // -------------------------- MW -------------------------------------------
+    /// Result register operand from MW stage.
+    GPR_by_pass_t GPR_MW_Rd;
 
     // ------------------------ CONSTRUCTOR  -----------------------------------
-    /// Construct a bubble "instruction", i.e., this will not even increments 
-    /// the PC.
+
+    /// Create a bubble..
     instruction_data_t();
 
-    /// Create an ALU instruction with two register operands and a register
-    /// destination.
+    /// Create an instruction with a predicate.
     /// @param i The instruction.
-    /// @param bundle_end Indicate whether the instruction is the last of a
-    /// bundle.
-    instruction_data_t(const instruction_t &i, bool bundle_end = true);
-
-    /// Create an ALU instruction with two register operands and a register 
-    /// destination.
-    /// @param i The instruction.
-    /// @param pred The predicate register under which the instruction is 
+    /// @param pred The predicate register under which the instruction is
     /// executed.
-    /// @param rd The destination register.
-    /// @param rs1 The first operand register.
-    /// @param rs2 The first operand register.
-    /// @param bundle_end Indicate whether the instruction is the last of a 
-    /// bundle.
-    instruction_data_t(const instruction_t &i, PRR_e pred, GPR_e rd,
-                       GPR_e rs1, GPR_e rs2, bool bundle_end = true);
-    
-    /// Create an ALU instruction with a register operands, an immediate, and a
-    /// register destination.
+    instruction_data_t(const instruction_t &i, PRR_e pred);
+
+    // -------------------- CONSTRUCTOR FUNCTIONS ------------------------------
+
+    /// Create an ALUi or ALUl instruction with a register operands, an
+    /// immediate, and a register destination.
     /// @param i The instruction.
     /// @param pred The predicate register under which the instruction is
     /// executed.
     /// @param rd The destination register.
     /// @param rs1 The first operand register.
     /// @param imm2 The second immediate operand.
-    /// @param bundle_end Indicate whether the instruction is the last of a
-    /// bundle.
-    instruction_data_t(const instruction_t &i, PRR_e pred, GPR_e rd, GPR_e rs1,
-                       word_t imm2, bool bundle_end = true);
+    static instruction_data_t mk_ALUil(const instruction_t &i, PRR_e pred,
+                                       GPR_e rd, GPR_e rs1, word_t imm2);
 
-    /// Create a comparison instruction with two register operands and a 
-    /// predicate destination.
+    /// Create an ALUr instruction with two register operands and a register
+    /// destination.
     /// @param i The instruction.
     /// @param pred The predicate register under which the instruction is
     /// executed.
-    /// @param pd The destination predicate.
+    /// @param rd The destination register.
     /// @param rs1 The first operand register.
-    /// @param rs2 The first operand register.
-    /// @param bundle_end Indicate whether the instruction is the last of a
-    /// bundle.
-    instruction_data_t(const instruction_t &i, PRR_e pred, PRR_e pd,
-                       GPR_e rs1, GPR_e rs2, bool bundle_end = true);
+    /// @param rs2 The second operand register.
+    static instruction_data_t mk_ALUr(const instruction_t &i, PRR_e pred,
+                                      GPR_e rd, GPR_e rs1, GPR_e rs2);
 
-    /// Create a branch or call instruction with an immediate operand.
-    /// @param i The instruction.
-    /// @param pred The predicate register under which the branch is executed.
-    /// @param imm The immediate operand.
-    /// @param bundle_end Indicate whether the instruction is the last of a
-    /// bundle.
-    instruction_data_t(const instruction_t &i, PRR_e pred, word_t imm,
-                       bool bundle_end = true);
-
-    /// Create a call instruction with a register operand.
-    /// @param i The instruction.
-    /// @param pred The predicate register under which the branch is executed.
-    /// @param ra The operand register.
-    /// @param bundle_end Indicate whether the instruction is the last of a
-    /// bundle.
-    instruction_data_t(const instruction_t &i, PRR_e pred, GPR_e ra,
-                       bool bundle_end = true);
-
-    /// Create a call instruction without any operand.
-    /// @param i The instruction.
-    /// @param pred The predicate register under which the branch is executed.
-    /// @param bundle_end Indicate whether the instruction is the last of a
-    /// bundle.
-    instruction_data_t(const instruction_t &i, PRR_e pred,
-                       bool bundle_end = true);
-
-    /// Create an ALU instruction with two register operands and an immediate
-    /// (stores).
+    /// Create an ALUu instruction with a register operand and a register
+    /// destination.
     /// @param i The instruction.
     /// @param pred The predicate register under which the instruction is
     /// executed.
+    /// @param rd The destination register.
+    /// @param rs1 The first operand register.
+    static instruction_data_t mk_ALUu(const instruction_t &i, PRR_e pred,
+                                      GPR_e rd, GPR_e rs1);
+
+    /// Create an ALUm instruction with two register operands.
+    /// @param i The instruction.
+    /// @param pred The predicate register under which the instruction is
+    /// executed.
+    /// @param rs1 The first operand register.
+    /// @param rs2 The second operand register.
+    static instruction_data_t mk_ALUm(const instruction_t &i, PRR_e pred,
+                                      GPR_e rs1, GPR_e rs2);
+
+    /// Create an ALUc instruction with two register operands and a predicate
+    /// register destination.
+    /// @param i The instruction.
+    /// @param pred The predicate register under which the instruction is
+    /// executed.
+    /// @param pd The predicate destination register.
+    /// @param rs1 The first operand register.
+    /// @param rs2 The second operand register.
+    static instruction_data_t mk_ALUc(const instruction_t &i, PRR_e pred,
+                                      PRR_e pd, GPR_e rs1, GPR_e rs2);
+
+    /// Create an ALUp instruction with two predicate register operands and a
+    /// predicate register destination.
+    /// @param i The instruction.
+    /// @param pred The predicate register under which the instruction is
+    /// executed.
+    /// @param pd The predicate destination register.
+    /// @param ps1 The first operand predicate register.
+    /// @param ps2 The second operand predicate register.
+    static instruction_data_t mk_ALUp(const instruction_t &i, PRR_e pred,
+                                      PRR_e pd, PRR_e ps1, PRR_e ps2);
+
+    /// Create an SPCn instruction with an immediate operand.
+    /// @param i The instruction.
+    /// @param pred The predicate register under which the instruction is
+    /// executed.
+    /// @param imm The immediate operand.
+    static instruction_data_t mk_SPCn(const instruction_t &i, PRR_e pred,
+                                      word_t imm);
+
+    /// Create an SPCw instruction without operands.
+    /// @param i The instruction.
+    /// @param pred The predicate register under which the instruction is
+    /// executed.
+    static instruction_data_t mk_SPCw(const instruction_t &i, PRR_e pred);
+
+    /// Create an SPCt instruction with a register operand and a special
+    /// register destination.
+    /// @param i The instruction.
+    /// @param pred The predicate register under which the instruction is
+    /// executed.
+    /// @param sd The special destination register.
+    /// @param rs1 The register operand.
+    static instruction_data_t mk_SPCt(const instruction_t &i, PRR_e pred,
+                                      SPR_e sd, GPR_e rs1);
+
+    /// Create an SPCf instruction with a special register operand and a
+    /// register destination.
+    /// @param i The instruction.
+    /// @param pred The predicate register under which the instruction is
+    /// executed.
+    /// @param rd The destination register.
+    /// @param ss The special register operand.
+    static instruction_data_t mk_SPCf(const instruction_t &i, PRR_e pred,
+                                      GPR_e rd, SPR_e ss);
+
+    /// Create an LDT instruction with a register operand, an immediate operand,
+    /// and a register destination.
+    /// @param i The instruction.
+    /// @param pred The predicate register under which the instruction is
+    /// executed.
+    /// @param rd The destination register.
     /// @param ra The first operand register.
-    /// @param imm The second immediate operand.
-    /// @param rs The destination register.
-    /// @param bundle_end Indicate whether the instruction is the last of a
-    /// bundle.
-    instruction_data_t(const instruction_t &i, PRR_e pred, GPR_e ra,
-                       word_t imm, GPR_e rs, bool bundle_end = true);
+    /// @param imm The second operand immediate.
+    static instruction_data_t mk_LDT(const instruction_t &i, PRR_e pred,
+                                     GPR_e rd, GPR_e ra, word_t imm);
+
+    /// Create an STT instruction with two register operands and an immediate
+    /// operand.
+    /// @param i The instruction.
+    /// @param pred The predicate register under which the instruction is
+    /// executed.
+    /// @param ra The address operand register.
+    /// @param rs1 The first operand register.
+    /// @param imm2 The second operand immediate.
+    static instruction_data_t mk_STT(const instruction_t &i, PRR_e pred,
+                                     GPR_e ra, GPR_e rs1, word_t imm2);
+
+    /// Create an STC instruction with an immediate operand.
+    /// @param i The instruction.
+    /// @param pred The predicate register under which the instruction is
+    /// executed.
+    /// @param imm The operand immediate.
+    static instruction_data_t mk_STC(const instruction_t &i, PRR_e pred,
+                                     word_t imm);
+
+    /// Create an PFLb instruction with an immediate operand.
+    /// @param i The instruction.
+    /// @param pred The predicate register under which the instruction is
+    /// executed.
+    /// @param imm The operand immediate.
+    static instruction_data_t mk_PFLb(const instruction_t &i, PRR_e pred,
+                                      word_t imm);
+
+    /// Create an PFLi instruction with an register operand.
+    /// @param i The instruction.
+    /// @param pred The predicate register under which the instruction is
+    /// executed.
+    /// @param rs The operand register.
+    static instruction_data_t mk_PFLi(const instruction_t &i, PRR_e pred,
+                                      GPR_e rs);
+
+    /// Create an PFLr instruction without operands.
+    /// @param i The instruction.
+    /// @param pred The predicate register under which the instruction is
+    /// executed.
+    static instruction_data_t mk_PFLr(const instruction_t &i, PRR_e pred);
+
+    /// Create an HLT instruction without operands.
+    /// @param i The instruction.
+    static instruction_data_t mk_HLT(const instruction_t &i);
 
     // ------------------------ UTILITY ----------------------------------------
 
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
-    virtual void print(std::ostream &os) const
+    void print(std::ostream &os) const
     {
       if (I)
         I->print(os, *this);
@@ -331,84 +416,68 @@ namespace patmos
 
     // ------------------------ SIMULATION -------------------------------------
 
-    /// Invoke the fetch simulation function.
+    /// Invoke the IF simulation function.
     /// @param s The Patmos simulator executing the instruction.
-    void fetch(simulator_t &s)
+    void IF(simulator_t &s)
     {
       if (I)
-        I->fetch(s, *this);
+        I->IF(s, *this);
     }
 
-    /// Invoke the fetch commit function.
+    /// Invoke the IF commit function.
     /// @param s The Patmos simulator executing the instruction.
-    void fetch_commit(simulator_t &s)
+    void IF_commit(simulator_t &s)
     {
       if (I)
-        I->fetch_commit(s, *this);
+        I->IF_commit(s, *this);
     }
 
-    /// Invoke the decode simulation function.
+    /// Invoke the DR simulation function.
     /// @param s The Patmos simulator executing the instruction.
-    void decode(simulator_t &s)
+    void DR(simulator_t &s)
     {
       if (I)
-        I->decode(s, *this);
+        I->DR(s, *this);
     }
 
-    /// Invoke the decode commit function.
+    /// Invoke the DR commit function.
     /// @param s The Patmos simulator executing the instruction.
-    void decode_commit(simulator_t &s)
+    void DR_commit(simulator_t &s)
     {
       if (I)
-        I->decode_commit(s, *this);
+        I->DR_commit(s, *this);
     }
 
-    /// Invoke the execute simulation function.
+    /// Invoke the EX simulation function.
     /// @param s The Patmos simulator executing the instruction.
-    void execute(simulator_t &s)
+    void EX(simulator_t &s)
     {
       if (I)
-        I->execute(s, *this);
+        I->EX(s, *this);
     }
 
-    /// Invoke the execute commit function.
+    /// Invoke the EX commit function.
     /// @param s The Patmos simulator executing the instruction.
-    void execute_commit(simulator_t &s)
+    void EX_commit(simulator_t &s)
     {
       if (I)
-        I->execute_commit(s, *this);
+        I->EX_commit(s, *this);
     }
 
-    /// Invoke the memory simulation function.
+    /// Invoke the MW simulation function.
     /// @param s The Patmos simulator executing the instruction.
-    void memory(simulator_t &s)
+    void MW(simulator_t &s)
     {
       if (I)
-        I->memory(s, *this);
+        I->MW(s, *this);
     }
 
-    /// Invoke the memory commit function.
+    /// Invoke the MW commit function.
     /// @param s The Patmos simulator executing the instruction.
-    void memory_commit(simulator_t &s)
+    void MW_commit(simulator_t &s)
     {
       if (I)
-        I->memory_commit(s, *this);
-    }
-
-    /// Invoke the writeback simulation function.
-    /// @param s The Patmos simulator executing the instruction.
-    void writeback(simulator_t &s)
-    {
-      if (I)
-        I->writeback(s, *this);
-    }
-
-    /// Invoke the writeback commit function.
-    /// @param s The Patmos simulator executing the instruction.
-    void writeback_commit(simulator_t &s)
-    {
-      if (I)
-        I->writeback_commit(s, *this);
+        I->MW_commit(s, *this);
     }
   };
 }

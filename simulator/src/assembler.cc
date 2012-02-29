@@ -1,668 +1,529 @@
-// 
+//
 //  This file is part of the Patmos Simulator.
 //  The Patmos Simulator is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-// 
+//
 //  The Patmos Simulator is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-// 
+//
 //  You should have received a copy of the GNU General Public License
 //  along with the Patmos Simulator. If not, see <http://www.gnu.org/licenses/>.
 //
 //
-// This is a tiny assembler embedded into C++ using operator overloading that 
+// This is a tiny assembler embedded into C++ using operator overloading that
 // allows to write small test programs.
 //
 
-#include "simulation-core.h"
-#include "instruction.h"
-#include "instructions.h"
+// #define BOOST_SPIRIT_DEBUG 1
+
+#include "assembler.h"
+#include "binary-formats.h"
+#include "util.h"
+
+#include <boost/spirit/include/phoenix_bind.hpp>
+#include <boost/spirit/include/phoenix_operator.hpp>
+#include <boost/spirit/include/qi.hpp>
 
 #include <iostream>
 
 namespace patmos
 {
-  /// Opcode symbols for instructions accepting two general purpose registers as
-  /// operands
-  enum OPCrr
+  // base class for parsing assembly code lines.
+  class assembly_line_grammar_t : public boost::spirit::qi::grammar<
+                                               std::string::const_iterator,
+                                               dword_t(),
+                                               boost::spirit::ascii::space_type>
   {
-    add, sub, mul
-  };
+    private:
+      typedef boost::spirit::qi::rule<std::string::const_iterator, word_t(),
+                                      boost::spirit::ascii::space_type> rule_t;
 
-  /// Opcode symbols for instructions accepting a general purpose register and
-  /// an immediate (we do not differentiate the short and long variants at this
-  /// point)
-  enum OPCri
-  {
-    addi, subi
-  };
+      typedef boost::spirit::qi::rule<std::string::const_iterator, dword_t(),
+                                      boost::spirit::ascii::space_type> drule_t;
 
-  /// Opcode symbols for compare instructions accepting two general purpose 
-  /// registers.
-  enum OPCc
-  {
-    ceq, cneq
-  };
+      /// Main rule.
+      drule_t Line;
 
-  /// Opcode symbols for instructions with one immediate operand.
-  enum OPCi
-  {
-    br, jsri, reserve, free, ensure
-  };
+      /// Parse a bundle.
+      drule_t Bundle;
 
-  /// Opcode symbols for instructions with one register operand.
-  enum OPCr
-  {
-    jsr
-  };
+      /// Parse any 32-bit instruction for either slot 1 and 2.
+      rule_t Instruction1, Instruction2;
 
-  /// Opcode symbols for instructions without any operands.
-  enum OPCp
-  {
-    ret
-  };
+      /// Parse general purpose registers.
+      rule_t GPR;
 
-  /// Opcode symbols for load instructions with a register and an immediate 
-  /// operand.
-  enum OPCl
-  {
-    // load from stack cache
-    lws, lhs, lbs, ulws, ulhs, ulbs,
-    // load from local memory
-    lwl, lhl, lbl, ulwl, ulhl, ulbl,
-    // load from global memory
-    lwg, lhg, lbg, ulwg, ulhg, ulbg
-  };
+      /// Parse general purpose registers.
+      rule_t SPR;
 
-  /// Opcode symbols for store instructions with a register and an immediate
-  /// operand.
-  enum OPCs
-  {
-    // store to stack cache
-    sws, shs, sbs,
-    // store to local memory
-    swl, shl, sbl,
-    // store to global memory
-    swg, shg, sbg
-  };
+      /// Parse predicate registers.
+      rule_t PRR;
 
-  /// Opcode symbols for unpredicated instructions without any operands.
-  enum OPCn
-  {
-    nop, halt
-  };
+      /// Parse predicate registers with negate.
+      rule_t NegPRR;
 
-  /// Intermediate representation of two general purpose registers operands.
-  struct rr_t
-  {
-    GPR_e a;
-    GPR_e b;
-  };
+      /// Parse immediate.
+      rule_t Imm, Imm4u, Imm12u, Imm22u, Imm7s;
 
-  /// Intermediate representation of a general purpose register operand and an
-  /// immediate operand.
-  struct ri_t
-  {
-    GPR_e a;
-    word_t b;
-  };
+      /// Parse an instruction predicate.
+      rule_t Pred;
 
+      /// Parse ALU opcodes.
+      rule_t ALUiopc, ALUlropc, ALUuopc, ALUmopc, ALUcopc, ALUpopc;
 
-  /// Intermediate representation of two general purpose register operands and
-  /// a destination register operand.
-  struct rrr_t
-  {
-    GPR_e d;
-    GPR_e a;
-    GPR_e b;
-  };
+      /// Parse long ALU instructions.
+      drule_t ALUl;
 
-  /// Intermediate representation of a general purpose register operand, an
-  /// immediate operand, and a destination register operand.
-  struct rri_t
-  {
-    GPR_e d;
-    GPR_e a;
-    word_t b;
-  };
+      /// Parse ALU instructions.
+      rule_t ALUi, ALUr, ALUu, ALUm, ALUc, ALUp;
 
-  /// Intermediate representation of two general purpose register operand and an
-  /// immediate operand for store instructions.
-  struct rir_t
-  {
-    GPR_e s;
-    GPR_e a;
-    word_t b;
-  };
+      /// Parse SPC opcodes.
+      rule_t SPCwopc;
 
-  /// Intermediate representation of two general purpose register operands and a
-  /// destination predicate operand.
-  struct prr_t
-  {
-    PRR_e d;
-    GPR_e a;
-    GPR_e b;
-  };
+      /// Parse SPC instructions.
+      rule_t SPCn, SPCw, SPCt, SPCf;
 
+      /// Parse LDT opcodes.
+      rule_t LDTopc, LDTsopc, dLDTopc;
 
-  /// Parse the arguments of instructions having two general purpose register
-  /// operands.
-  rr_t operator,(GPR_e a, GPR_e b)
-  {
-    rr_t t = {a:a, b:b};
-    return t;
-  }
+      /// Parse LDT instructions.
+      rule_t LDT, LDTs, dLDT;
 
-  /// Parse the arguments of instructions having a general purpose register and
-  /// an immediate operand.
-  ri_t operator,(GPR_e a, word_t b)
-  {
-    ri_t t = {a:a, b:b};
-    return t;
-  }
+      /// Parse STT opcodes.
+      rule_t STTopc, STTsopc;
 
-  /// Parse the arguments of instructions having two general purpose register
-  /// operands and a destination register.
-  rrr_t operator == (GPR_e d, const rr_t &rr)
-  {
-    rrr_t t = {d:d, a:rr.a, b:rr.b};
-    return t;
-  }
+      /// Parse STT instructions.
+      rule_t STT, STTs;
 
-  /// Parse the arguments of instructions having a general purpose register, an
-  /// immediate operand, and a destination register.
-  rri_t operator == (GPR_e d, const ri_t &ri)
-  {
-    rri_t t = {d:d, a:ri.a, b:ri.b};
-    return t;
-  }
+      /// Parse STC opcodes.
+      rule_t STCopc;
 
-  /// Parse the arguments of instructions having two general purpose registers 
-  /// and an immediate operand (stores).
-  rir_t operator == (const ri_t &ri, GPR_e s)
-  {
-    rir_t t = {s:s, a:ri.a, b:ri.b};
-    return t;
-  }
+      /// Parse STC instructions.
+      rule_t STC;
 
-  /// Parse the arguments of comparison instructions having two general purpose
-  /// register operands and a destination predicate.
-  prr_t operator == (PRR_e d, const rr_t &rr)
-  {
-    prr_t t = {d:d, a:rr.a, b:rr.b};
-    return t;
-  }
+      /// Parse PFL opcodes.
+      rule_t PFLbopc, PFLiopc, PFLropc;
 
+      /// Parse PFL instructions.
+      rule_t PFLb, PFLi, PFLr;
 
-  template<typename T>
-  struct OPC_Pred
-  {
-    T opc;
-    PRR_e pred;
-  };
+      /// Parse HLT instructions.
+      rule_t HLT;
 
-  template<typename T>
-  OPC_Pred<T> operator,(T o, PRR_e p)
-  {
-    OPC_Pred<T> t = {o, p};
-    return t;
-  }
-  
-  program_t operator,(OPC_Pred<OPCrr> opc, rrr_t ops)
-  {
-    program_t p;
-
-    switch (opc.opc)
-    {
-      case add:
-        p.push_back(instruction_data_t(i_mk<i_add_t>(), opc.pred, ops.d, ops.a,
-                                       ops.b));
-        break;
-      case sub:
-        p.push_back(instruction_data_t(i_mk<i_sub_t>(), opc.pred, ops.d, ops.a,
-                                       ops.b));
-        break;
-      case mul:
-        p.push_back(instruction_data_t(i_mk<i_mul_t>(), opc.pred, ops.d, ops.a,
-                                       ops.b));
-        break;
-      default:
-        assert(false);
-    }
-
-    return p;
-  }
-
-  program_t operator,(OPC_Pred<OPCri> opc, rri_t ops)
-  {
-    program_t p;
-
-    bool is_long = (ops.b & 0xffffff000) != 0;
-    switch (opc.opc)
-    {
-      case addi:
-        p.push_back(instruction_data_t(i_mk<i_addi_t>(), opc.pred, ops.d, ops.a,
-                                       ops.b, !is_long));
-        break;
-      case subi:
-        p.push_back(instruction_data_t(i_mk<i_subi_t>(), opc.pred, ops.d, ops.a,
-                                       ops.b, !is_long));
-        break;
-      default:
-        assert(false);
-    }
-
-    // emit the instruction(s) to a program
-    if (is_long)
-    {
-      p.push_back(instruction_data_t(i_mk<i_imm_t>()));
-    }
-
-    return p;
-  }
-
-  program_t operator,(OPC_Pred<OPCc> opc, prr_t ops)
-  {
-    program_t p;
-    
-    switch (opc.opc)
-    {
-      case ceq:
-        p.push_back(instruction_data_t(i_mk<i_eq_t>(), opc.pred, ops.d, ops.a,
-                                       ops.b));
-        break;
-      case cneq:
-        p.push_back(instruction_data_t(i_mk<i_neq_t>(), opc.pred, ops.d, ops.a,
-                                       ops.b));
-        break;
-      default:
-        assert(false);
-    }
-    
-    return p;
-  }
-
-  program_t operator,(OPC_Pred<OPCi> opc, word_t imm)
-  {
-    program_t p;
-
-    switch (opc.opc)
-    {
-      case br:
-        p.push_back(instruction_data_t(i_mk<i_br_t>(), opc.pred, imm));
-        break;
-      case jsri:
-        p.push_back(instruction_data_t(i_mk<i_jsri_t>(), opc.pred, imm));
-        break;
-      case reserve:
-        p.push_back(instruction_data_t(i_mk<i_reserve_t>(), opc.pred, imm));
-        break;
-      case free:
-        p.push_back(instruction_data_t(i_mk<i_free_t>(), opc.pred, imm));
-        break;
-      case ensure:
-        p.push_back(instruction_data_t(i_mk<i_ensure_t>(), opc.pred, imm));
-        break;
-      default:
-        assert(false);
-    }
-
-    return p;
-  }
-
-  program_t operator,(OPC_Pred<OPCr> opc, GPR_e ra)
-  {
-    program_t p;
-
-    switch (opc.opc)
-    {
-      case jsr:
-        p.push_back(instruction_data_t(i_mk<i_jsr_t>(), opc.pred, ra));
-        break;
-      default:
-        assert(false);
-    }
-
-    return p;
-  }
-  
-  program_t operator,(OPCp opc, PRR_e pred)
-  {
-    program_t p;
-
-    switch (opc)
-    {
-      case ret:
-        p.push_back(instruction_data_t(i_mk<i_ret_t>(), pred));
-        break;
-      default:
-        assert(false);
-    }
-
-    return p;
-  }
-
-  program_t operator,(OPC_Pred<OPCl> opc, rri_t ops)
-  {
-#define MATCH_LD(name) \
-      case name: \
-        p.push_back(instruction_data_t(i_mk<i_## name ##_t>(), opc.pred, \
-                                       ops.d, ops.a, ops.b)); \
-        break;
-        
-    program_t p;
-
-    switch (opc.opc)
-    {
-      MATCH_LD(lws)
-      MATCH_LD(lhs)
-      MATCH_LD(lbs)
-      MATCH_LD(ulws)
-      MATCH_LD(ulhs)
-      MATCH_LD(ulbs)
-/*      MATCH_LD(lwl)
-      MATCH_LD(lhl)
-      MATCH_LD(lbl)
-      MATCH_LD(ulwl)
-      MATCH_LD(ulhl)
-      MATCH_LD(ulbl)*/
-      MATCH_LD(lwg)
-      MATCH_LD(lhg)
-      MATCH_LD(lbg)
-      MATCH_LD(ulwg)
-      MATCH_LD(ulhg)
-      MATCH_LD(ulbg)
-      default:
-        assert(false);
-    }
-
-    return p;
-  }
-
-  program_t operator,(OPC_Pred<OPCs> opc, rir_t ops)
-  {
-#define MATCH_ST(name) \
-      case name: \
-        p.push_back(instruction_data_t(i_mk<i_## name ##_t>(), opc.pred, \
-                                       ops.a, ops.b, ops.s)); \
-        break;
-
-    program_t p;
-
-    switch (opc.opc)
-    {
-/*      MATCH_ST(sws)
-      MATCH_ST(shs)
-      MATCH_ST(sbs)
-      MATCH_ST(swl)
-      MATCH_ST(shl)
-      MATCH_ST(sbl) */
-      MATCH_ST(swg)
-      MATCH_ST(shg)
-      MATCH_ST(sbg)
-      default:
-        assert(false);
-    }
-
-    return p;
-  }
-
-  program_t operator!(OPCn opc)
-  {
-    program_t p;
-
-    switch (opc)
-    {
-      case nop:
-        p.push_back(instruction_data_t(i_mk<i_nop_t>()));
-        break;
-      case halt:
-        p.push_back(instruction_data_t(i_mk<i_halt_t>()));
-        break;
-      default:
-        assert(false);
-    }
-
-    return p;
-  }
-
-  program_t operator|(program_t a, program_t b)
-  {
-    program_t p;
-
-    assert(a.size() == 1 && b.size() == 1);
-
-    p.push_back(a.front());
-    p.push_back(b.front());
-
-    p.front().Bundle_end = false;
-
-    return p;
-  }
-
-  program_t operator&&(program_t a, program_t b)
-  {
-    program_t p(a);
-
-    p.insert(p.end(), b.begin(), b.end());
-
-    return p;
-  }
-
-  std::ostream &operator <<(std::ostream &o, const program_t &p)
-  {
-    unsigned int pc = 0;
-    bool print_pc = true;
-    for(program_t::const_iterator i(p.begin()), ie(p.end()); i != ie; i++)
-    {
-      if (print_pc)
+      /// Encode two instructions as a single bundle.
+      /// @param iw1 The first instruction word.
+      /// @param iw2 The second instruction word.
+      /// @return A combined instruction word of the bundle containing both
+      /// instructions.
+      static inline dword_t bundle(word_t iw1, word_t iw2)
       {
-        o << boost::format("\t%1$08x: ") % pc;
-        print_pc = false;
+        dword_t diw1 = iw1 | (1ul << (sizeof(word_t)*8 - 1));
+        return (diw1 << ((dword_t)sizeof(word_t)*8)) | (dword_t)iw2;
       }
-
-      i->print(o);
-
-      if (i->Bundle_end)
+    public:
+      /// Construct a parser for instruction path patterns.
+      /// @param environment The current environment.
+      explicit assembly_line_grammar_t() :
+          assembly_line_grammar_t::base_type(Line)
       {
-        o << "\n";
-        print_pc = true;
+        Line = (Bundle >> ';')
+               [boost::spirit::qi::_val = boost::spirit::qi::_1];
+
+        // parse a bundle, i.e., 1 or 2 instructions -- special care is taken
+        // for ALUl instructions and the special HLT instruction of the 
+        // simulator.
+        Bundle = ALUl
+                 [boost::spirit::qi::_val = boost::spirit::qi::_1] |
+                 HLT
+                 [boost::spirit::qi::_val = boost::phoenix::bind(bundle,
+                                                       boost::spirit::qi::_1,
+                                                       boost::spirit::qi::_1)] |
+                 (Instruction1 >> "||" >> Instruction2)
+                 [boost::spirit::qi::_val = boost::phoenix::bind(bundle,
+                                                       boost::spirit::qi::_1,
+                                                       boost::spirit::qi::_2)] |
+                 Instruction1
+                 [boost::spirit::qi::_val = boost::spirit::qi::_1];
+
+        // All instructions except ALUl
+        Instruction1 %= (ALUi | ALUr | ALUu | ALUm | ALUc | ALUp |
+                          SPCn | SPCw | SPCt | SPCf |
+                          LDT  | dLDT |
+                          STT  |
+                          STC  |
+                          PFLi | PFLb | PFLr);
+
+        // All instructions except SPCn, SPNw, PFL, LDT, STT, and STC.
+        Instruction2 %= (ALUi | ALUr | ALUu | ALUm | ALUc | ALUp |
+                         SPCt | SPCf |
+                         LDTs | STTs);
+
+        // Parse general purpose registers.
+        GPR = 'r' >> boost::spirit::uint_
+              [boost::spirit::qi::_pass = boost::phoenix::bind(isGPR,
+                                                         boost::spirit::qi::_1)]
+              [boost::spirit::qi::_val = boost::spirit::qi::_1];
+
+        // Parse general purpose registers.
+        SPR = 's' >> boost::spirit::uint_
+              [boost::spirit::qi::_pass = boost::phoenix::bind(isSPR,
+                                                         boost::spirit::qi::_1)]
+              [boost::spirit::qi::_val = boost::spirit::qi::_1];
+
+        // Parse predicate registers.
+        PRR = 'p' >> boost::spirit::uint_
+              [boost::spirit::qi::_pass = boost::phoenix::bind(isPRR,
+                                                         boost::spirit::qi::_1)]
+              [boost::spirit::qi::_val = boost::spirit::qi::_1];
+
+        // Parse predicate registers with negate.
+        NegPRR = (boost::spirit::lit('!') >> PRR [
+                    boost::spirit::qi::_val = boost::spirit::qi::_1 + (unsigned int)NUM_PRR]) |
+                 PRR[boost::spirit::qi::_val = boost::spirit::qi::_1];
+
+
+        // Parse immediate.
+        Imm %= ("0x" >> boost::spirit::hex) |
+               ("0b" >> boost::spirit::bin) |
+               ('0' >> boost::spirit::oct)  |
+               (boost::spirit::int_)        ;
+
+        Imm4u = Imm[boost::spirit::_pass = boost::phoenix::bind(fitu,
+                                                              boost::spirit::_1,
+                                                              4)]
+                   [boost::spirit::_val = boost::spirit::_1];
+
+        Imm12u = Imm[boost::spirit::_pass = boost::phoenix::bind(fitu,
+                                                              boost::spirit::_1,
+                                                              12)]
+                   [boost::spirit::_val = boost::spirit::_1];
+
+        Imm22u = Imm[boost::spirit::_pass = boost::phoenix::bind(fitu,
+                                                              boost::spirit::_1,
+                                                              22)]
+                   [boost::spirit::_val = boost::spirit::_1];
+
+        Imm7s = Imm[boost::spirit::_pass = boost::phoenix::bind(fits,
+                                                              boost::spirit::_1,
+                                                              7)]
+                   [boost::spirit::_val = boost::spirit::_1];
+
+        // parse an (optional) instruction predicate.
+        Pred = ('(' >> NegPRR >> ')')
+               [boost::spirit::qi::_val = boost::spirit::qi::_1] |
+               boost::spirit::eps
+               [boost::spirit::qi::_val = (unsigned int) p0];
+
+        // Parse ALUi instructions
+        ALUiopc = boost::spirit::lit("addi")  [boost::spirit::qi::_val = 0] |
+                  boost::spirit::lit("subi")  [boost::spirit::qi::_val = 1] |
+                  boost::spirit::lit("rsubi") [boost::spirit::qi::_val = 2] |
+                  boost::spirit::lit("sli")   [boost::spirit::qi::_val = 3] |
+                  boost::spirit::lit("sri")   [boost::spirit::qi::_val = 4] |
+                  boost::spirit::lit("srai")  [boost::spirit::qi::_val = 5] |
+                  boost::spirit::lit("ori")   [boost::spirit::qi::_val = 6] |
+                  boost::spirit::lit("andi")  [boost::spirit::qi::_val = 7] ;
+
+        ALUi = (Pred >> ALUiopc >> GPR >> '=' >> GPR >> ',' >> Imm12u)
+               [boost::spirit::qi::_val = boost::phoenix::bind(
+                                 alui_format_t::encode, boost::spirit::qi::_1,
+                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
+                                 boost::spirit::qi::_4, boost::spirit::qi::_5)];
+
+        // Parse ALUl and ALUr opcodes
+        ALUlropc = boost::spirit::lit("add")    [boost::spirit::qi::_val =  0] |
+                   boost::spirit::lit("sub")    [boost::spirit::qi::_val =  1] |
+                   boost::spirit::lit("rsub")   [boost::spirit::qi::_val =  2] |
+                   boost::spirit::lit("sl")     [boost::spirit::qi::_val =  3] |
+                   boost::spirit::lit("sra")    [boost::spirit::qi::_val =  5] |
+                   boost::spirit::lit("sr")     [boost::spirit::qi::_val =  4] |
+                   boost::spirit::lit("or")     [boost::spirit::qi::_val =  6] |
+                   boost::spirit::lit("and")    [boost::spirit::qi::_val =  7] |
+                   boost::spirit::lit("rl")     [boost::spirit::qi::_val =  8] |
+                   boost::spirit::lit("rr")     [boost::spirit::qi::_val =  9] |
+                   boost::spirit::lit("xor")    [boost::spirit::qi::_val = 10] |
+                   boost::spirit::lit("nor")    [boost::spirit::qi::_val = 11] |
+                   boost::spirit::lit("shadd2") [boost::spirit::qi::_val = 13] |
+                   boost::spirit::lit("shadd")  [boost::spirit::qi::_val = 12] ;
+
+        // Parse ALUl instructions
+        ALUl = (Pred >> ALUlropc >> GPR >> '=' >> GPR >> ',' >> Imm)
+               [boost::spirit::qi::_val = boost::phoenix::bind(
+                                 alul_format_t::encode, boost::spirit::qi::_1,
+                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
+                                 boost::spirit::qi::_4, boost::spirit::qi::_5)];
+
+        // Parse ALUr instructions
+        ALUr = (Pred >> ALUlropc >> GPR >> '=' >> GPR >> ',' >> GPR)
+               [boost::spirit::qi::_val = boost::phoenix::bind(
+                                 alur_format_t::encode, boost::spirit::qi::_1,
+                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
+                                 boost::spirit::qi::_4, boost::spirit::qi::_5)];
+
+        // Parse ALUu instructions
+        ALUuopc = boost::spirit::lit("sext8")  [boost::spirit::qi::_val = 0] |
+                  boost::spirit::lit("sext16") [boost::spirit::qi::_val = 1] |
+                  boost::spirit::lit("zext16") [boost::spirit::qi::_val = 2] |
+                  boost::spirit::lit("abs")    [boost::spirit::qi::_val = 3] ;
+
+        ALUu = (Pred >> ALUuopc >> GPR >> '=' >> GPR)
+               [boost::spirit::qi::_val = boost::phoenix::bind(
+                                   aluu_format_t::encode, boost::spirit::qi::_1,
+                                   boost::spirit::qi::_2, boost::spirit::qi::_3,
+                                   boost::spirit::qi::_4)];
+
+        // Parse ALUm instructions
+        ALUmopc = boost::spirit::lit("mulu")  [boost::spirit::qi::_val = 1] |
+                  boost::spirit::lit("mul")   [boost::spirit::qi::_val = 0] ;
+
+        ALUm = (Pred >> ALUmopc >> GPR >> ',' >> GPR)
+               [boost::spirit::qi::_val = boost::phoenix::bind(
+                                   alum_format_t::encode, boost::spirit::qi::_1,
+                                   boost::spirit::qi::_2, boost::spirit::qi::_3,
+                                   boost::spirit::qi::_4)];
+
+        // Parse ALUc instructions
+        ALUcopc = boost::spirit::lit("cmpeq")  [boost::spirit::qi::_val = 0] |
+                  boost::spirit::lit("cmpneq") [boost::spirit::qi::_val = 1] |
+                  boost::spirit::lit("cmplt")  [boost::spirit::qi::_val = 2] |
+                  boost::spirit::lit("cmple")  [boost::spirit::qi::_val = 3] |
+                  boost::spirit::lit("cmpult") [boost::spirit::qi::_val = 4] |
+                  boost::spirit::lit("cmpule") [boost::spirit::qi::_val = 5] |
+                  boost::spirit::lit("btest")  [boost::spirit::qi::_val = 6] ;
+
+        ALUc = (Pred >> ALUcopc >> PRR >> '=' >> GPR >> ',' >> GPR)
+               [boost::spirit::qi::_val = boost::phoenix::bind(
+                                 aluc_format_t::encode, boost::spirit::qi::_1,
+                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
+                                 boost::spirit::qi::_4, boost::spirit::qi::_5)];
+
+        // Parse ALUp instructions
+        ALUpopc = boost::spirit::lit("por")   [boost::spirit::qi::_val =  6] |
+                  boost::spirit::lit("pand")  [boost::spirit::qi::_val =  7] |
+                  boost::spirit::lit("pxor")  [boost::spirit::qi::_val = 10] |
+                  boost::spirit::lit("pnor")  [boost::spirit::qi::_val = 11] ;
+
+        ALUp = (Pred >> ALUpopc >> PRR >> '=' >> NegPRR >> ',' >> NegPRR)
+               [boost::spirit::qi::_val = boost::phoenix::bind(
+                                 alup_format_t::encode, boost::spirit::qi::_1,
+                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
+                                 boost::spirit::qi::_4, boost::spirit::qi::_5)];
+
+        // Parse SPCn instructions
+        SPCn = (Pred >> "nop" >> Imm4u)
+               [boost::spirit::qi::_val = boost::phoenix::bind(
+                                   spcn_format_t::encode, boost::spirit::qi::_1,
+                                   boost::spirit::qi::_2)];
+
+        // Parse SPCw instructions
+        SPCwopc = boost::spirit::lit("waitm")  [boost::spirit::qi::_val = 0];
+
+        SPCw = (Pred >> SPCwopc)
+               [boost::spirit::qi::_val = boost::phoenix::bind(
+                                   spcw_format_t::encode, boost::spirit::qi::_1,
+                                   boost::spirit::qi::_2)];
+
+        // Parse SPCt instructions
+        SPCt = (Pred >> "mts" >> SPR >> '=' >> GPR)
+               [boost::spirit::qi::_val = boost::phoenix::bind(
+                                 spct_format_t::encode, boost::spirit::qi::_1,
+                                 boost::spirit::qi::_2, boost::spirit::qi::_3)];
+
+        // Parse SPCf instructions
+        SPCf = (Pred >> "mfs" >> GPR >> '=' >> SPR)
+               [boost::spirit::qi::_val = boost::phoenix::bind(
+                                 spcf_format_t::encode, boost::spirit::qi::_1,
+                                 boost::spirit::qi::_2, boost::spirit::qi::_3)];
+
+        // Parse LDT instructions
+        LDTopc = boost::spirit::lit("lws")    [boost::spirit::qi::_val =  0] |
+                 boost::spirit::lit("lwl")    [boost::spirit::qi::_val =  1] |
+                 boost::spirit::lit("lwc")    [boost::spirit::qi::_val =  2] |
+                 boost::spirit::lit("lwm")    [boost::spirit::qi::_val =  3] |
+                 boost::spirit::lit("lhs")    [boost::spirit::qi::_val =  4] |
+                 boost::spirit::lit("lhl")    [boost::spirit::qi::_val =  5] |
+                 boost::spirit::lit("lhc")    [boost::spirit::qi::_val =  6] |
+                 boost::spirit::lit("lhm")    [boost::spirit::qi::_val =  7] |
+                 boost::spirit::lit("lbs")    [boost::spirit::qi::_val =  8] |
+                 boost::spirit::lit("lbl")    [boost::spirit::qi::_val =  9] |
+                 boost::spirit::lit("lbc")    [boost::spirit::qi::_val = 10] |
+                 boost::spirit::lit("lbm")    [boost::spirit::qi::_val = 11] |
+                 boost::spirit::lit("lhus")   [boost::spirit::qi::_val = 12] |
+                 boost::spirit::lit("lhul")   [boost::spirit::qi::_val = 13] |
+                 boost::spirit::lit("lhuc")   [boost::spirit::qi::_val = 14] |
+                 boost::spirit::lit("lhum")   [boost::spirit::qi::_val = 15] |
+                 boost::spirit::lit("lbus")   [boost::spirit::qi::_val = 16] |
+                 boost::spirit::lit("lbul")   [boost::spirit::qi::_val = 17] |
+                 boost::spirit::lit("lbuc")   [boost::spirit::qi::_val = 18] |
+                 boost::spirit::lit("lbum")   [boost::spirit::qi::_val = 19] ;
+
+        // Parse LDTs instructions
+        LDTsopc = boost::spirit::lit("lws")    [boost::spirit::qi::_val =  0] |
+                  boost::spirit::lit("lhs")    [boost::spirit::qi::_val =  4] |
+                  boost::spirit::lit("lbs")    [boost::spirit::qi::_val =  8] |
+                  boost::spirit::lit("lhus")   [boost::spirit::qi::_val = 12] |
+                  boost::spirit::lit("lbus")   [boost::spirit::qi::_val = 16] ;
+
+        dLDTopc = boost::spirit::lit("dlwc")  [boost::spirit::qi::_val = 20] |
+                  boost::spirit::lit("dlwm")  [boost::spirit::qi::_val = 21] |
+                  boost::spirit::lit("dlhc")  [boost::spirit::qi::_val = 22] |
+                  boost::spirit::lit("dlhm")  [boost::spirit::qi::_val = 23] |
+                  boost::spirit::lit("dlbc")  [boost::spirit::qi::_val = 24] |
+                  boost::spirit::lit("dlbm")  [boost::spirit::qi::_val = 25] |
+                  boost::spirit::lit("dlhuc") [boost::spirit::qi::_val = 26] |
+                  boost::spirit::lit("dlhum") [boost::spirit::qi::_val = 27] |
+                  boost::spirit::lit("dlbuc") [boost::spirit::qi::_val = 28] |
+                  boost::spirit::lit("dlbum") [boost::spirit::qi::_val = 29] ;
+
+        LDT = (Pred >> LDTopc >> GPR >> '='
+                >> '[' >> GPR >> '+' >> Imm7s >> ']')
+              [boost::spirit::qi::_val = boost::phoenix::bind(
+                                 ldt_format_t::encode, boost::spirit::qi::_1,
+                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
+                                 boost::spirit::qi::_4, boost::spirit::qi::_5)];
+
+        LDTs = (Pred >> LDTsopc >> GPR >> '='
+                >> '[' >> GPR >> '+' >> Imm7s >> ']')
+              [boost::spirit::qi::_val = boost::phoenix::bind(
+                                 ldt_format_t::encode, boost::spirit::qi::_1,
+                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
+                                 boost::spirit::qi::_4, boost::spirit::qi::_5)];
+
+        dLDT = (Pred >> dLDTopc >> "sm" >> '='
+                >> '[' >> GPR >> '+' >> Imm7s >> ']')
+              [boost::spirit::qi::_val = boost::phoenix::bind(
+                                 ldt_format_t::encode, boost::spirit::qi::_1,
+                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
+                                 boost::spirit::qi::_4)];
+
+        // Parse STT instructions
+        STTopc = boost::spirit::lit("sws")   [boost::spirit::qi::_val =  0] |
+                 boost::spirit::lit("swl")   [boost::spirit::qi::_val =  1] |
+                 boost::spirit::lit("swc")   [boost::spirit::qi::_val =  2] |
+                 boost::spirit::lit("swm")   [boost::spirit::qi::_val =  3] |
+                 boost::spirit::lit("shs")   [boost::spirit::qi::_val =  4] |
+                 boost::spirit::lit("shl")   [boost::spirit::qi::_val =  5] |
+                 boost::spirit::lit("shc")   [boost::spirit::qi::_val =  6] |
+                 boost::spirit::lit("shm")   [boost::spirit::qi::_val =  7] |
+                 boost::spirit::lit("sbs")   [boost::spirit::qi::_val =  8] |
+                 boost::spirit::lit("sbl")   [boost::spirit::qi::_val =  9] |
+                 boost::spirit::lit("sbc")   [boost::spirit::qi::_val = 10] |
+                 boost::spirit::lit("sbm")   [boost::spirit::qi::_val = 11] ;
+
+        STTsopc = boost::spirit::lit("sws")   [boost::spirit::qi::_val =  0] |
+                  boost::spirit::lit("shs")   [boost::spirit::qi::_val =  4] |
+                  boost::spirit::lit("sbs")   [boost::spirit::qi::_val =  8] ;
+
+        STT = (Pred >> STTopc >> '[' >> GPR >> '+' >> Imm7s >> ']'
+                >> '=' >> GPR)
+              [boost::spirit::qi::_val = boost::phoenix::bind(
+                                 stt_format_t::encode, boost::spirit::qi::_1,
+                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
+                                 boost::spirit::qi::_4, boost::spirit::qi::_5)];
+
+        STTs = (Pred >> STTsopc >> '[' >> GPR >> '+' >> Imm7s >> ']'
+                >> '=' >> GPR)
+              [boost::spirit::qi::_val = boost::phoenix::bind(
+                                 stt_format_t::encode, boost::spirit::qi::_1,
+                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
+                                 boost::spirit::qi::_4, boost::spirit::qi::_5)];
+
+        // Parse STCt instructions
+        STCopc = boost::spirit::lit("sres")    [boost::spirit::qi::_val = 0] |
+                 boost::spirit::lit("sens")    [boost::spirit::qi::_val = 1] |
+                 boost::spirit::lit("sfree")   [boost::spirit::qi::_val = 2] ;
+
+        STC = (Pred >> STCopc >> Imm22u)
+              [boost::spirit::qi::_val = boost::phoenix::bind(
+                                 stc_format_t::encode, boost::spirit::qi::_1,
+                                 boost::spirit::qi::_2, boost::spirit::qi::_3)];
+
+        // Parse PFLb instructions
+        PFLbopc = boost::spirit::lit("bs")    [boost::spirit::qi::_val = 0] |
+                  boost::spirit::lit("bc")    [boost::spirit::qi::_val = 1] |
+                  boost::spirit::lit("b")     [boost::spirit::qi::_val = 2] ;
+
+        PFLb = (Pred >> PFLbopc >> Imm22u)
+              [boost::spirit::qi::_val = boost::phoenix::bind(
+                                 pflb_format_t::encode, boost::spirit::qi::_1,
+                                 boost::spirit::qi::_2, boost::spirit::qi::_3)];
+
+        // Parse PFLi instructions
+        PFLiopc = boost::spirit::lit("bsr")    [boost::spirit::qi::_val = 0] |
+                  boost::spirit::lit("bcr")    [boost::spirit::qi::_val = 1] |
+                  boost::spirit::lit("br")     [boost::spirit::qi::_val = 2] ;
+
+        PFLi = (Pred >> PFLiopc >> GPR)
+              [boost::spirit::qi::_val = boost::phoenix::bind(
+                                 pfli_format_t::encode, boost::spirit::qi::_1,
+                                 boost::spirit::qi::_2, boost::spirit::qi::_3)];
+
+        // Parse PFLr instructions
+        PFLropc = boost::spirit::lit("ret")[boost::spirit::qi::_val = 0];
+        PFLr = (Pred >> PFLropc)
+              [boost::spirit::qi::_val = boost::phoenix::bind(
+                                   pflr_format_t::encode, boost::spirit::qi::_1,
+                                   boost::spirit::qi::_2)];
+
+        // Parse the simulator's halt instruction
+        HLT = boost::spirit::lit("halt")
+              [boost::spirit::qi::_val = 
+                                    boost::phoenix::bind(hlt_format_t::encode)];
+
+        // enable debugging of rules -- if BOOST_SPIRIT_DEBUG is defined
+        BOOST_SPIRIT_DEBUG_NODE(Line);
+        BOOST_SPIRIT_DEBUG_NODE(Bundle);
+        BOOST_SPIRIT_DEBUG_NODE(Instruction1);
+        BOOST_SPIRIT_DEBUG_NODE(Instruction2);
+        BOOST_SPIRIT_DEBUG_NODE(GPR);         BOOST_SPIRIT_DEBUG_NODE(SPR);
+        BOOST_SPIRIT_DEBUG_NODE(PRR);         BOOST_SPIRIT_DEBUG_NODE(NegPRR);
+        BOOST_SPIRIT_DEBUG_NODE(Imm);
+        BOOST_SPIRIT_DEBUG_NODE(Imm4u);       BOOST_SPIRIT_DEBUG_NODE(Imm12u);
+        BOOST_SPIRIT_DEBUG_NODE(Imm22u);      BOOST_SPIRIT_DEBUG_NODE(Imm7s);
+        BOOST_SPIRIT_DEBUG_NODE(Pred);
+        BOOST_SPIRIT_DEBUG_NODE(ALUiopc);     BOOST_SPIRIT_DEBUG_NODE(ALUlropc);
+        BOOST_SPIRIT_DEBUG_NODE(ALUuopc);     BOOST_SPIRIT_DEBUG_NODE(ALUmopc);
+        BOOST_SPIRIT_DEBUG_NODE(ALUcopc);     BOOST_SPIRIT_DEBUG_NODE(ALUpopc);
+        BOOST_SPIRIT_DEBUG_NODE(SPCwopc);
+        BOOST_SPIRIT_DEBUG_NODE(LDTopc);      BOOST_SPIRIT_DEBUG_NODE(dLDTopc);
+        BOOST_SPIRIT_DEBUG_NODE(STTopc);
+        BOOST_SPIRIT_DEBUG_NODE(STCopc);
+        BOOST_SPIRIT_DEBUG_NODE(PFLbopc);     BOOST_SPIRIT_DEBUG_NODE(PFLiopc);
+        BOOST_SPIRIT_DEBUG_NODE(PFLropc);
+        BOOST_SPIRIT_DEBUG_NODE(ALUi);        BOOST_SPIRIT_DEBUG_NODE(ALUl);
+        BOOST_SPIRIT_DEBUG_NODE(ALUr);        BOOST_SPIRIT_DEBUG_NODE(ALUu);
+        BOOST_SPIRIT_DEBUG_NODE(ALUm);        BOOST_SPIRIT_DEBUG_NODE(ALUc);
+        BOOST_SPIRIT_DEBUG_NODE(ALUp);
+        BOOST_SPIRIT_DEBUG_NODE(SPCn);        BOOST_SPIRIT_DEBUG_NODE(SPCw);
+        BOOST_SPIRIT_DEBUG_NODE(SPCt);        BOOST_SPIRIT_DEBUG_NODE(SPCf);
+        BOOST_SPIRIT_DEBUG_NODE(LDT);         BOOST_SPIRIT_DEBUG_NODE(dLDT);
+        BOOST_SPIRIT_DEBUG_NODE(STT);
+        BOOST_SPIRIT_DEBUG_NODE(STC);
+        BOOST_SPIRIT_DEBUG_NODE(PFLb);        BOOST_SPIRIT_DEBUG_NODE(PFLi);
+        BOOST_SPIRIT_DEBUG_NODE(PFLr);
+        BOOST_SPIRIT_DEBUG_NODE(HLT);
       }
-      else
-      {
-        o << " | ";
-      }
-      
-      pc += 4;
-    }
-    
-    return o;
-  }
-  
-  /// Simple test program.
-  void test1(bool debug)
+  };
+
+
+  line_assembler_t::line_assembler_t() :
+      Line_parser(* new assembly_line_grammar_t())
   {
-    ideal_method_cache_t imc;
-    ideal_stack_cache_t isc;
-    ideal_memory_t imm(NUM_MEMORY_BYTES);
-
-    // the program to be "loaded"
-    program_t p = (addi,p0, r1 == (r1, 2000)) | (addi,p0, r2 == (r2, 1111)) &&
-                  (add ,p0, r3 == (r1, r2  )) | (sub, p0, r0 == (r1, r2  )) &&
-                  !halt;
-
-    simulator_t s(p, imm, imc, isc);
-    s.run(1000, debug);
-
-    // check that it was executed correctly
-    assert(s.GPR.get(r0).get() == 889 &&
-           s.GPR.get(r1).get() == 2000 &&
-           s.GPR.get(r2).get() == 1111 &&
-           s.GPR.get(r3).get() == 3111);
   }
 
-  void test2(bool debug)
+  line_assembler_t::~line_assembler_t()
   {
-    ideal_method_cache_t imc;
-    ideal_stack_cache_t isc;
-    ideal_memory_t imm(NUM_MEMORY_BYTES);
-
-    // the program to be "loaded"
-    program_t p = (addi,p0, r1 == (r1, 20000)) &&
-                  (addi,p0, r2 == (r2, 1111 )) &&
-                  (add ,p0, r3 == (r1, r2))    |   (sub ,p0, r0 == (r1, r2)) &&
-                  !halt;
-
-    simulator_t s(p, imm, imc, isc);
-    s.run(10);
-
-    // check that it was executed correctly
-    assert(s.GPR.get(r0).get() == 18889 &&
-           s.GPR.get(r1).get() == 20000 &&
-           s.GPR.get(r2).get() == 1111 &&
-           s.GPR.get(r3).get() == 21111);
+    delete &Line_parser;
   }
 
-  void test3(bool debug)
+  bool line_assembler_t::parse_line(const std::string &line, dword_t &iw) const
   {
-    ideal_method_cache_t imc;
-    ideal_stack_cache_t isc;
-    ideal_memory_t imm(NUM_MEMORY_BYTES);
-
-    // the program to be "loaded"
-    program_t p = (cneq,p0, p0 == (r1, r2)) | (br,p0, -8) &&
-                  !halt;
-
-    simulator_t s(p, imm, imc, isc);
-    s.run(10, debug);
-
-    // check that it was executed correctly
-    assert(s.PRR.get(p0).get() == false);
-  }
-
-  void test4(bool debug)
-  {
-    lru_method_cache_t<64, 32, 20> lmc;
-    ideal_stack_cache_t isc;
-    ideal_memory_t imm(NUM_MEMORY_BYTES);
-
-    // the program to be "loaded"
-    program_t p = (jsri,p0, 24)              | (addi,p0, r2 == (r1, 40)) &&
-                  (addi,p0, r1 == (r1,  8)) &&
-                  (addi,p0, r1 == (r1, 12)) &&
-                  (addi,p0, r1 == (r1, 16)) &&
-                  (addi,p0, r1 == (r1, 20)) &&
-                  (addi,p0, r1 == (r1, 24)) &&
-                  (jsr ,p0, r2)             &&
-                  !halt                     && 
-                  (addi,p0, r1 == (r1, 36)) &&
-                  (addi,p0, r1 == (r1, 40)) &&
-                  !nop                      &&
-                  !nop                      &&
-                  !nop                      &&
-                  (ret,p0)                  &&
-                  !nop                      &&
-                  !nop                      &&
-                  !nop                      &&
-                  !nop;
-
-    simulator_t s(p, imm, lmc, isc);
-    s.run(200, debug);
-
-    // check that it was executed correctly
-    assert(s.GPR.get(r1).get() == 64);
-  }
-
-  void test5(bool debug)
-  {
-    word_t tmp = 64;
-    ideal_method_cache_t imc;
-    ideal_stack_cache_t isc;
-    ideal_memory_t imm(NUM_MEMORY_BYTES);
-
-    // the program to be "loaded"
-    program_t p = (addi,p0, r1 == (r1, 40)) | (addi,p0, r2 == (r2, 37))&&
-                  (lwg,p0, r2 == (r1,  8))  | (swg,p0,  (r2,  8) == r1) &&
-                  !halt;                     
-
-    simulator_t s(p, imm, imc, isc);
-    imm.write_fixed(48*4, tmp);
-    s.run(20, debug);
-
-    // check that it was executed correctly
-    imm.read_fixed(45*4, tmp);
-    assert(s.GPR.get(r2).get() == 64 && tmp == 40);
-  }
-
-  void test6(bool debug)
-  {
-    lru_method_cache_t<64, 32, 20> lmc;
-    ideal_stack_cache_t isc;
-    ideal_memory_t imm(NUM_MEMORY_BYTES);
-
-    // the program to be "loaded" -- factorial
-    // call conventions: r0 ... result        r1 ... argument
-    program_t p = (addi,p0, rS == (rS, 1000)) && // setup SP
-                  (addi,p0, r1 == (r1, 8))    && // setup argument
-                  (jsri,p0, 16)               && // call -- RM is correct here
-                  !halt                       && // done
-                  (subi,p0, rS == (rS, 12))   && // allocate frame
-                  (swg,p0, (rS, 8) == rM)     && // store RM
-                  (sub,p0, r0 == (r0, r0))    && // clear register
-                  (addi,p0, rM == (r0, 16))   && // setup RM for call
-                  (addi,p0, r0 == (r0, 1))    && // initialize result
-                  (cneq,p0, p1 == (r1, r0))   && // need recursion?
-                  (swg,p0, (rS, 4) == rA)     && // store RA
-                  (swg,p0, (rS, 12) == r1)    && // store argument
-                  (subi,p1, r1 == (r1, 1))    && // subtract only if we recurs
-                  (jsri,p1, 16)               && // recursive call
-                  (lwg,p0, rA == (rS, 4))     && // reload RA
-                  (lwg,p0, rM == (rS, 8))     && // reload RA
-                  (lwg,p0, r1 == (rS, 12))    && // reload argument
-                  (addi,p0, rS == (rS, 12))   && // free frame
-                  (mul,p0, r0 == (r0, r1))    && // compute return value
-                  (ret,p0)                    && // return -- using RA and RM
-                  !nop                        && // some nops after return
-                  !nop                        && 
-                  !nop                        && 
-                  !nop                        && 
-                  !nop;
-
-    simulator_t s(p, imm, lmc, isc);
-    s.run(2000000, debug);
-
-    // check that it was executed correctly
-    assert(s.GPR.get(r0).get() == 40320);
-  }
-
-  void test7(bool debug)
-  {
-    patmos::byte_t bsc_mem[40];
-    ideal_memory_t imm(NUM_MEMORY_BYTES);
-    lru_method_cache_t<64, 32, 20> lmc;
-    block_stack_cache_t<4, 4, 10, 1, true> bsc(&bsc_mem[40]);
-
-    // the program to be "loaded" -- factorial
-    // call conventions: r0 ... result        r1 ... argument
-    program_t p = (reserve,p0, 10) &&
-                  (lbs,p0, r0 == (r2, 5)) &&
-                  (reserve,p0, 10) &&
-                  (lbs,p0, r1 == (r2, 3)) &&
-                  (free,p0, 10) &&
-                  (lbs,p0, r2 == (r2, 3)) &&
-                  (ensure,p0, 10) &&
-                  (lbs,p0, r1 == (r2, 3)) &&
-                  !halt;
-
-    simulator_t s(p, imm, lmc, bsc);
-    s.run(2000000, debug);
-
-    // check that it was executed correctly
-    assert(s.GPR.get(r0).get() == 8);
+    return boost::spirit::qi::phrase_parse(line.begin(), line.end(),
+                                  Line_parser, boost::spirit::ascii::space, iw);
   }
 }
 

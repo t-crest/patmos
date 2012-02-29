@@ -1,35 +1,38 @@
-// 
+//
 //  This file is part of the Patmos Simulator.
 //  The Patmos Simulator is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-// 
+//
 //  The Patmos Simulator is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-// 
+//
 //  You should have received a copy of the GNU General Public License
 //  along with the Patmos Simulator. If not, see <http://www.gnu.org/licenses/>.
 //
 //
 // Core simulation loop of the Patmos Simulator.
-// 
+//
 
 #include "simulation-core.h"
 #include "instruction.h"
-#include "instructions.h"
+#include "memory.h"
+#include "method-cache.h"
+#include "stack-cache.h"
 
 #include <iostream>
 
 namespace patmos
 {
-  simulator_t::simulator_t(const program_t &program, memory_t &memory,
+  simulator_t::simulator_t(memory_t &memory, memory_t &local_memory,
                            method_cache_t &method_cache,
                            stack_cache_t &stack_cache) :
-      Program(program), Memory(memory), Method_cache(method_cache),
-      Stack_cache(stack_cache), Decoder(*this), PC(0), Stall(FE)
+      Cycle(0), Memory(memory), Local_memory(local_memory),
+      Method_cache(method_cache), Stack_cache(stack_cache),
+      BASE(0), PC(0), nPC(0), Stall(SIF)
   {
     // initialize one predicate register to be true, otherwise no instruction
     // will ever execute
@@ -51,9 +54,10 @@ namespace patmos
   {
     if (debug)
     {
-      std::cerr << pst << ": ";
+      std::cerr << boost::format("%1%: ") % pst;
     }
-    
+
+    // invoke simulation functions
     for(unsigned int i = 0; i < NUM_SLOTS; i++)
     {
       // debug output
@@ -61,16 +65,16 @@ namespace patmos
       {
         if (i != 0)
         {
-          std::cerr << " | ";
+          std::cerr << " || ";
         }
         Pipeline[pst][i].print(std::cerr);
         std::cerr.flush();
       }
-      
-      // simulate the espective pipeline stage of the instruction
+
+      // simulate the respective pipeline stage of the instruction
       (Pipeline[pst][i].*f)(*this);
     }
-    
+
     if (debug)
     {
       std::cerr << "\n";
@@ -79,7 +83,7 @@ namespace patmos
 
   void simulator_t::pipeline_flush(Pipeline_t pst)
   {
-    for(unsigned int i = FE; i <= pst; i++)
+    for(unsigned int i = SIF; i <= pst; i++)
     {
       for(unsigned int j = 0; j < NUM_SLOTS; j++)
       {
@@ -87,34 +91,32 @@ namespace patmos
       }
     }
   }
-  
+
   void simulator_t::pipeline_stall(Pipeline_t pst)
   {
     Stall = std::max(Stall, pst);
   }
-  
+
   void simulator_t::run(uint64_t max_cycles, bool debug)
   {
     try
     {
-      for(uint64_t cycle = 0; cycle < max_cycles; cycle++)
+      for(uint64_t cycle = 0; cycle < max_cycles; cycle++, Cycle++)
       {
         // invoke simulation functions
-        pipeline_invoke(WB, &instruction_data_t::writeback, debug);
-        pipeline_invoke(MEM, &instruction_data_t::memory, debug);
-        pipeline_invoke(EX, &instruction_data_t::execute, debug);
-        pipeline_invoke(DE, &instruction_data_t::decode, debug);
-        pipeline_invoke(FE, &instruction_data_t::fetch, debug);
+        pipeline_invoke(SMW, &instruction_data_t::MW, debug);
+        pipeline_invoke(SEX, &instruction_data_t::EX, debug);
+        pipeline_invoke(SDR, &instruction_data_t::DR, debug);
+        pipeline_invoke(SIF, &instruction_data_t::IF, debug);
 
         // commit results
-        pipeline_invoke(WB, &instruction_data_t::writeback_commit);
-        pipeline_invoke(MEM, &instruction_data_t::memory_commit);
-        pipeline_invoke(EX, &instruction_data_t::execute_commit);
-        pipeline_invoke(DE, &instruction_data_t::decode_commit);
-        pipeline_invoke(FE, &instruction_data_t::fetch_commit);
+        pipeline_invoke(SMW, &instruction_data_t::MW_commit);
+        pipeline_invoke(SEX, &instruction_data_t::EX_commit);
+        pipeline_invoke(SDR, &instruction_data_t::DR_commit);
+        pipeline_invoke(SIF, &instruction_data_t::IF_commit);
 
         // move pipeline stages
-        for (int i = MEM; i >= Stall; i--)
+        for (int i = SEX; i >= Stall; i--)
         {
           for (unsigned int j = 0; j < NUM_SLOTS; j++)
           {
@@ -123,9 +125,27 @@ namespace patmos
         }
 
         // decode the next instruction, only if we are not stalling.
-        if (Stall == FE)
+        if (Stall == SIF)
         {
-          Decoder.decode(Pipeline[0]);
+          unsigned int iw_size;
+
+          // fetch the instruction word from the memory -- NO SIMULATION HERE,
+          // just simple memory transfer.
+          word_t iw[2];
+          Memory.read_peek(PC, reinterpret_cast<byte_t*>(&iw), sizeof(iw));
+
+          // decode the instruction word.
+          iw_size = Decoder.decode(iw,  Pipeline[0]);
+
+          // provide next program counter value
+          nPC = PC + iw_size*4;
+
+          // unknown instruction
+          if (iw_size == 0)
+          {
+            Exception_status = iw[0];
+            throw ILLEGAL;
+          }
         }
         else if (Stall != NUM_STAGES- 1)
         {
@@ -136,7 +156,7 @@ namespace patmos
         }
 
         // reset the stall counter.
-        Stall = FE;
+        Stall = SIF;
 
         // advance the time for the method cache, stack cache, and memory
         Memory.tick();
@@ -145,37 +165,7 @@ namespace patmos
 
         if (debug)
         {
-          std::cerr << boost::format("\nPC : %1$08x   Cyc: %2$08d   PRR: ") % PC
-                    % cycle;
-
-          for(int p = NUM_PRR - 1; p >= 0; p--)
-          {
-            std::cerr << PRR.get((PRR_e)p).get();
-          }
-          std::cerr << "\n";
-
-          for(unsigned int r = r0; r < NUM_GPR; r++)
-          {
-            std::cerr << boost::format("r%1$-2d: %2$08x") % r
-                      % GPR.get((GPR_e)r).get();
-
-            if ((r & 0x7) == 7)
-            {
-              std::cerr << "\n";
-            }
-            else
-            {
-              std::cerr << "   ";
-            }
-          }
-          std::cerr << "\n";
-
-          // print state of method cache
-          Method_cache.print(std::cerr);
-          Stack_cache.print(std::cerr);
-          Memory.print(std::cerr);
-
-          std::cerr << "\n";
+          print(std::cerr);
         }
       }
     }
@@ -183,10 +173,67 @@ namespace patmos
     {
       switch (e)
       {
+        case ILLEGAL:
+          // pass on to caller
+          throw e;
         case HALT:
           // simply return
           return;
       }
     }
+  }
+
+  /// Print the internal state of the simulator to an output stream.
+  /// @param os An output stream.
+  void simulator_t::print(std::ostream &os) const
+  {
+    os << boost::format("\nBASE: %1$08x   PC : %2$08x   Cyc: %3$08d   PRR: ")
+       % BASE % PC % Cycle;
+
+    // print values of predicate registers
+    for(int p = NUM_PRR - 1; p >= 0; p--)
+    {
+      os << PRR.get((PRR_e)p).get();
+    }
+    os << "\n ";
+
+    // print values of general purpose registers
+    for(unsigned int r = r0; r < NUM_GPR; r++)
+    {
+      os << boost::format("r%1$-2d: %2$08x") % r % GPR.get((GPR_e)r).get();
+
+      if ((r & 0x7) == 7)
+      {
+        os << "\n ";
+      }
+      else
+      {
+        os << "   ";
+      }
+    }
+    os << "\n ";
+
+    // print values of special purpose registers
+    for(unsigned int s = s0; s < NUM_SPR; s++)
+    {
+      os << boost::format("s%1$-2d: %2$08x") % s % SPR.get((SPR_e)s).get();
+
+      if ((s & 0x7) == 7)
+      {
+        os << "\n ";
+      }
+      else
+      {
+        os << "   ";
+      }
+    }
+    os << "\n";
+
+    // print state of method cache
+    Method_cache.print(os);
+    Stack_cache.print(os);
+    Memory.print(os);
+
+    os << "\n";
   }
 }

@@ -1,15 +1,15 @@
-// 
+//
 //  This file is part of the Patmos Simulator.
 //  The Patmos Simulator is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-// 
+//
 //  The Patmos Simulator is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-// 
+//
 //  You should have received a copy of the GNU General Public License
 //  along with the Patmos Simulator. If not, see <http://www.gnu.org/licenses/>.
 //
@@ -64,7 +64,7 @@ namespace patmos
   };
 
   /// The content of a register file.
-  /// The template argument D represents the data type to represent the register 
+  /// The template argument D represents the data type to represent the register
   /// files content, while I represents the data type to index into the register
   /// file. S finally represents the size of the register file.
   template<typename I, typename D, unsigned int S>
@@ -162,7 +162,7 @@ namespace patmos
       Active = true;
       Operand = operand;
     }
-    
+
     /// Assign a register operand to the by-pass and mark the by-pass as active.
     /// @param index The index of the register to be written.
     /// @param value The new value to be written.
@@ -196,20 +196,39 @@ namespace patmos
   enum PRR_e
   {
     p0, p1, p2, p3, p4, p5, p6, p7,
-    NUM_PRR
+    pn0, pn1, pn2, pn3, pn4, pn5, pn6, pn7,
+    NUM_PRRn,
+    NUM_PRR = pn0
+  };
+
+  /// Symbols representing the special purpose registers.
+  enum SPR_e
+  {
+    s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15,
+    NUM_SPR,
+    sP = s0,
+    sM = s1,
+    sl = s2,
+    sh = s3,
+    sb = s4,
+    so = s5,
+    st = s6
   };
 
   /// A register file for the general purpose registers.
   typedef register_file_t<GPR_e, word_t, NUM_GPR> GPR_t;
 
   /// A register file for the predicate registers.
-  typedef register_file_t<PRR_e, bit_t, NUM_PRR> PRR_t;
+  typedef register_file_t<PRR_e, bit_t, NUM_PRRn> PRR_t;
+
+  /// A register file for the special purpose registers.
+  typedef register_file_t<SPR_e, word_t, NUM_SPR> SPR_t;
 
 
   /// A register by-pass for general purpose registers
   typedef by_pass_t<GPR_e, word_t> GPR_by_pass_t;
 
-  /// A register by-pass for predicate purpose registers
+  /// A register by-pass for predicate registers
   typedef by_pass_t<PRR_e, bit_t> PRR_by_pass_t;
 
 
@@ -218,6 +237,9 @@ namespace patmos
 
   /// A predicate register operand.
   typedef register_operand_t<PRR_e, bit_t> PRR_op_t;
+
+  /// A special purpose register operand.
+  typedef register_operand_t<SPR_e, word_t> SPR_op_t;
 }
 
 #endif // PATMOS_REGISTERS_H

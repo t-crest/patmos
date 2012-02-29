@@ -1,15 +1,15 @@
-// 
+//
 //  This file is part of the Patmos Simulator.
 //  The Patmos Simulator is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-// 
+//
 //  The Patmos Simulator is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-// 
+//
 //  You should have received a copy of the GNU General Public License
 //  along with the Patmos Simulator. If not, see <http://www.gnu.org/licenses/>.
 //
@@ -32,11 +32,35 @@ namespace patmos
   /// Base class for all stack cache implementations.
   class stack_cache_t : public memory_t
   {
+  private:
+    /// Read some values from the memory -- DO NOT SIMULATE TIMING.
+    /// @param address The memory address to read from.
+    /// @param value A pointer to a destination to store the value read from
+    /// the memory.
+    /// @param size The number of bytes to read.
+    virtual void read_peek(uword_t address, byte_t *value, uword_t size)
+    {
+      // this is not supported by stack caches.
+      assert(false);
+      abort();
+    }
+
+    /// Write some values into the memory -- DO NOT SIMULATE TIMING, just write.
+    /// @param address The memory address to write to.
+    /// @param value The value to be written to the memory.
+    /// @param size The number of bytes to write.
+    virtual void write_peek(uword_t address, byte_t *value, uword_t size)
+    {
+      // this is not supported by stack caches.
+      assert(false);
+      abort();
+    }
+
   public:
-    /// Reserve a given number of bytes to main memory, potentially spilling 
+    /// Reserve a given number of bytes to main memory, potentially spilling
     /// stack data to main memory.
     /// @param size The number of bytes to be reserved to main memory.
-    /// @return True when the stack space is actually reserved on the cache, 
+    /// @return True when the stack space is actually reserved on the cache,
     /// false otherwise.
     virtual bool reserve(uword_t size) = 0;
 
@@ -48,7 +72,7 @@ namespace patmos
 
     /// Ensure that a given number of bytes are actually on the stack.
     /// @param size The number of bytes that have to be available.
-    /// @return True when the requested data is actually in the cache, false 
+    /// @return True when the requested data is actually in the cache, false
     /// otherwise.
     virtual bool ensure(uword_t size) = 0;
   };
@@ -90,7 +114,7 @@ namespace patmos
     {
       return true;
     }
-    
+
     /// A simulated access to a read port.
     /// @param address The memory address to read from.
     /// @param value A pointer to a destination to store the value read from
@@ -101,13 +125,13 @@ namespace patmos
     {
       assert(Content.size() - address > 0 &&
             Content.size() - address + size < Content.size());
-      
+
       // read the value
       for(unsigned int i = 0; i < size; i++)
       {
         *value++ = Content[Content.size() - address + i];
       }
-      
+
       return true;
     }
 
@@ -128,6 +152,14 @@ namespace patmos
         Content[Content.size() - address + i] = *value++;
       }
 
+      return true;
+    }
+
+    /// Check if the memory is busy handling some request.
+    /// @return False in case the memory is currently handling some request,
+    /// otherwise true.
+    virtual bool is_ready()
+    {
       return true;
     }
 
@@ -158,12 +190,12 @@ namespace patmos
 
   /// A stack cache organized in blocks.
   /// The cache is organized in blocks (NUM_BLOCKS) each a fixed size in bytes
-  /// (BLOCK_SIZE). Spills and fills are performed automatically during the 
+  /// (BLOCK_SIZE). Spills and fills are performed automatically during the
   /// reserve and ensure operations operating on main memory (MAIN_BASE) up to
   /// a limit (NUM_BYTES).
   /// The DEBUG_INIT template argument can be used to test the stack cache, it
-  /// causes all new stack entries to be initialized to the current stack depth 
-  /// in bytes. It this allows to see if the stack content was updated 
+  /// causes all new stack entries to be initialized to the current stack depth
+  /// in bytes. It this allows to see if the stack content was updated
   /// correctly during spill/fill.
   template<unsigned int BLOCK_SIZE, unsigned int NUM_BLOCKS,
            unsigned int NUM_MAIN_BLOCKS, int TRANSFER_TIME,
@@ -176,19 +208,19 @@ namespace patmos
 
     /// The current stack point in main memory.
     byte_t *Main_base;
-    
+
     /// The number of blocks currently spilled to main memory.
     unsigned int Spilled_blocks;
 
     /// The current top of the stack within the stack-cache in blocks.
     unsigned int Top_block;
-    
+
     /// The number of blocks currently reserved.
     unsigned int Reserved_blocks;
 
     /// Store currently ongoing transfer.
     Stack_cache_transfer_e Transfer;
-    
+
     /// Number of cycles left for the current transfer to be finished.
     unsigned int Transfer_Cycles;
   public:
@@ -196,8 +228,8 @@ namespace patmos
         Main_base(main_base), Spilled_blocks(0), Top_block(0),
         Reserved_blocks(0), Transfer(IDLE), Transfer_Cycles(0)
     {
-    }     
-    
+    }
+
     /// Reserve a given number of bytes to main memory, potentially spilling
     /// stack data to main memory.
     /// @param size The number of bytes to be reserved to main memory.
@@ -211,7 +243,7 @@ namespace patmos
         assert(Transfer == SPILL);
         return false;
       }
-      
+
       assert(Transfer == IDLE);
 
       // get the number of blocks
@@ -228,7 +260,7 @@ namespace patmos
         unsigned int transfer_blocks = Reserved_blocks + size_blocks -
                                          NUM_BLOCKS;
 
-        // copy the data to main memory        
+        // copy the data to main memory
         for(unsigned int i = 0; i < transfer_blocks * BLOCK_SIZE; i++)
         {
           byte_t value = Content[(((Top_block + NUM_BLOCKS - Reserved_blocks) *
@@ -238,10 +270,10 @@ namespace patmos
 
         // track the new blocks in main memory
         Spilled_blocks += transfer_blocks;
-        
+
         // free the blocks in the stack cache
         Reserved_blocks -= transfer_blocks;
-        
+
         // setup a spill transfer
         Transfer = SPILL;
         Transfer_Cycles = TRANSFER_TIME * transfer_blocks;
@@ -266,7 +298,7 @@ namespace patmos
                     % (BLOCK_SIZE * NUM_BLOCKS)] = init_value--;
         }
       }
-      
+
       return true;
     }
 
@@ -278,7 +310,7 @@ namespace patmos
     {
       // we do not expect any transfers at this point
       assert(Transfer == IDLE && Transfer_Cycles == 0);
-      
+
       // get the number of blocks
       unsigned int size_blocks = std::ceil((float)size/(float)BLOCK_SIZE);
       assert(size_blocks <= NUM_BLOCKS);
@@ -288,7 +320,7 @@ namespace patmos
         // also free some blocks spilled to memory
         unsigned int main_blocks = (size_blocks - Reserved_blocks);
         assert(main_blocks <= Spilled_blocks);
-        
+
         Spilled_blocks -= main_blocks;
         Main_base += (main_blocks * BLOCK_SIZE);
 
@@ -303,7 +335,7 @@ namespace patmos
         // pop top-of-stack
         Top_block = (Top_block + NUM_BLOCKS - size_blocks) % NUM_BLOCKS;
       }
-      
+
       return true;
     }
 
@@ -333,7 +365,7 @@ namespace patmos
         unsigned int transfer_blocks = size_blocks - Reserved_blocks;
 
         assert(transfer_blocks <= Spilled_blocks);
-        
+
         // copy the data from main memory
         for(unsigned int i = 0; i < transfer_blocks * BLOCK_SIZE; i++)
         {
@@ -346,14 +378,14 @@ namespace patmos
 
         // track the newly loaded blocks in the stack cache
         Reserved_blocks = size_blocks;
-        
+
         // setup a fill transfer
         Transfer = FILL;
         Transfer_Cycles = TRANSFER_TIME * transfer_blocks;
 
         return false;
       }
-      
+
       return true;
     }
 
@@ -442,7 +474,7 @@ namespace patmos
         }
       }
     }
-  };  
+  };
 
   /// Operator to print the transfer state of a stack cache to a stream
   /// @param os The output stream to print to.

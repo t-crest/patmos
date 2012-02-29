@@ -1,15 +1,15 @@
-// 
+//
 //  This file is part of the Patmos Simulator.
 //  The Patmos Simulator is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
-// 
+//
 //  The Patmos Simulator is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
-// 
+//
 //  You should have received a copy of the GNU General Public License
 //  along with the Patmos Simulator. If not, see <http://www.gnu.org/licenses/>.
 //
@@ -28,7 +28,7 @@ namespace patmos
   public:
     /// A simulated access to a read port.
     /// @param address The memory address to read from.
-    /// @param value A pointer to a destination to store the value read from 
+    /// @param value A pointer to a destination to store the value read from
     /// the memory.
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
@@ -38,7 +38,7 @@ namespace patmos
     /// @param address The memory address to write to.
     /// @param value The value to be written to the memory.
     /// @param size The number of bytes to write.
-    /// @return True when the data is written finally to the memory, false 
+    /// @return True when the data is written finally to the memory, false
     /// otherwise.
     virtual bool write(uword_t address, byte_t *value, uword_t size) = 0;
 
@@ -63,7 +63,25 @@ namespace patmos
     {
       return write(address, (byte_t*)&value, sizeof(T));
     }
-    
+
+    /// Read some values from the memory -- DO NOT SIMULATE TIMING, just read.
+    /// @param address The memory address to read from.
+    /// @param value A pointer to a destination to store the value read from
+    /// the memory.
+    /// @param size The number of bytes to read.
+    virtual void read_peek(uword_t address, byte_t *value, uword_t size) = 0;
+
+    /// Write some values into the memory -- DO NOT SIMULATE TIMING, just write.
+    /// @param address The memory address to write to.
+    /// @param value The value to be written to the memory.
+    /// @param size The number of bytes to write.
+    virtual void write_peek(uword_t address, byte_t *value, uword_t size) = 0;
+
+    /// Check if the memory is busy handling some request.
+    /// @return False in case the memory is currently handling some request,
+    /// otherwise true.
+    virtual bool is_ready() = 0;
+
     /// Notify the memory that a cycle has passed.
     virtual void tick() = 0;
 
@@ -78,7 +96,7 @@ namespace patmos
   private:
     /// The content of the memory.
     byte_t *Content;
-    
+
   public:
     /// Construct a new memory instance.
     /// @param The size of the memory in bytes.
@@ -86,7 +104,7 @@ namespace patmos
     {
       Content = new byte_t[size];
     }
-    
+
     /// A simulated access to a read port.
     /// @param address The memory address to read from.
     /// @param value A pointer to a destination to store the value read from
@@ -100,7 +118,7 @@ namespace patmos
       {
         *value++ = Content[address++];
       }
-      
+
       return true;
     }
 
@@ -118,6 +136,36 @@ namespace patmos
         Content[address++] = *value++;
       }
 
+      return true;
+    }
+
+    /// Read some values from the memory -- DO NOT SIMULATE TIMING.
+    /// @param address The memory address to read from.
+    /// @param value A pointer to a destination to store the value read from
+    /// the memory.
+    /// @param size The number of bytes to read.
+    virtual void read_peek(uword_t address, byte_t *value, uword_t size)
+    {
+      bool result = read(address, value, size);
+      assert(result);
+    }
+
+    /// Write some values into the memory -- DO NOT SIMULATE TIMING, just write.
+    /// @param address The memory address to write to.
+    /// @param value The value to be written to the memory.
+    /// @param size The number of bytes to write.
+    virtual void write_peek(uword_t address, byte_t *value, uword_t size)
+    {
+      bool result = write(address, value, size);
+      assert(result);
+    }
+
+    /// Check if the memory is busy handling some request.
+    /// @return False in case the memory is currently handling some request,
+    /// otherwise true.
+    virtual bool is_ready()
+    {
+      // always ready
       return true;
     }
 
