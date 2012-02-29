@@ -61,7 +61,11 @@ rom: tools
 	java -cp java/lib/patmos-tools.jar$(S)lib/antlr-3.3-complete.jar \
 		patmos.asm.PatAsm -s asm -d vhdl/generated $(APP).asm
 
+# ModelSim
 sim:
+	cd modelsim; make
+
+old_sim:
 	java -cp java/lib/patmos-tools.jar \
 		simulator.SimPat
 
