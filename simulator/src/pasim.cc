@@ -18,6 +18,7 @@
 //
 
 #include "assembler.h"
+#include "data-cache.h"
 #include "instruction.h"
 #include "method-cache.h"
 #include "simulation-core.h"
@@ -33,9 +34,10 @@ int main(int argc, char **argv)
   patmos::ideal_stack_cache_t isc;
   patmos::ideal_method_cache_t imc;
   patmos::ideal_memory_t imm(patmos::NUM_MEMORY_BYTES);
+  patmos::ideal_data_cache_t idc(imm);
   patmos::ideal_memory_t ilm(patmos::NUM_LOCAL_MEMORY_BYTES);
 
-  patmos::simulator_t s(imm, ilm, imc, isc);
+  patmos::simulator_t s(imm, ilm, idc, imc, isc);
 
 
   // check arguments

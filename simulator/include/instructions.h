@@ -21,6 +21,7 @@
 #define PATMOS_INSTRUCTIONS_H
 
 #include "endian-conversion.h"
+#include "data-cache.h"
 #include "instruction.h"
 #include "memory.h"
 #include "method-cache.h"
@@ -137,18 +138,6 @@ namespace patmos
     virtual void MW_commit(simulator_t &s, instruction_data_t &ops) const
     {
       throw HALT;
-    }
-  };
-
-  class i_imm_t : public i_nop_t
-  {
-  public:
-    /// Print the instruction to an output stream.
-    /// @param os The output stream to print to.
-    /// @param ops The operands of the instruction.
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const
-    {
-      os << "imm";
     }
   };
 
@@ -892,7 +881,7 @@ namespace patmos
   };
 
   /// Base class for memory load instructions.
-  class i_LDT_t : public i_pred_t
+  class i_ldt_t : public i_pred_t
   {
   public:
     /// load the value from memory.
@@ -957,7 +946,7 @@ namespace patmos
   };
 
 #define LD_INSTR(name, base, atype, ctype) \
-  class i_ ## name ## _t : public i_LDT_t \
+  class i_ ## name ## _t : public i_ldt_t \
   { \
   public:\
     virtual void print(std::ostream &os, const instruction_data_t &ops) const \
@@ -992,12 +981,12 @@ namespace patmos
   LD_INSTR(lhul, s.Local_memory, uhword_t, uword_t)
   LD_INSTR(lbul, s.Local_memory, ubyte_t, uword_t)
 
-  LD_INSTR(lwc , s.Memory, word_t, word_t)
-  LD_INSTR(lhc , s.Memory, hword_t, word_t)
-  LD_INSTR(lbc , s.Memory, byte_t, word_t)
-  LD_INSTR(lwuc, s.Memory, uword_t, uword_t)
-  LD_INSTR(lhuc, s.Memory, uhword_t, uword_t)
-  LD_INSTR(lbuc, s.Memory, ubyte_t, uword_t)
+  LD_INSTR(lwc , s.Data_cache, word_t, word_t)
+  LD_INSTR(lhc , s.Data_cache, hword_t, word_t)
+  LD_INSTR(lbc , s.Data_cache, byte_t, word_t)
+  LD_INSTR(lwuc, s.Data_cache, uword_t, uword_t)
+  LD_INSTR(lhuc, s.Data_cache, uhword_t, uword_t)
+  LD_INSTR(lbuc, s.Data_cache, ubyte_t, uword_t)
 
   LD_INSTR(lwm , s.Memory, word_t, word_t)
   LD_INSTR(lhm , s.Memory, hword_t, word_t)
@@ -1009,7 +998,7 @@ namespace patmos
   // TODO: implement decoupled loads
 
   /// Base class for memory store instructions.
-  class i_STT_t : public i_pred_t
+  class i_stt_t : public i_pred_t
   {
   public:
     /// Store the value to memory.
@@ -1053,7 +1042,7 @@ namespace patmos
   };
 
 #define ST_INSTR(name, base, type) \
-  class i_ ## name ## _t : public i_STT_t \
+  class i_ ## name ## _t : public i_stt_t \
   { \
   public:\
     virtual void print(std::ostream &os, const instruction_data_t &ops) const \

@@ -40,7 +40,7 @@ padasm  A tiny disassembler (accepts a binary stream and prints the decoded
         padasm <binary stream> <output assembly>
 
 pasim   The Patmos simulator (accepts a binary stream, loads the entire stream
-        into the simulator's main memory and beginns execution at address zero).
+        into the simulator's main memory and begins execution at address zero).
 
         usage:
         pasim <binary stream> <trace output>

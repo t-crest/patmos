@@ -18,6 +18,7 @@
 //
 
 #include "simulation-core.h"
+#include "data-cache.h"
 #include "instruction.h"
 #include "memory.h"
 #include "method-cache.h"
@@ -28,11 +29,12 @@
 namespace patmos
 {
   simulator_t::simulator_t(memory_t &memory, memory_t &local_memory,
+                           data_cache_t &data_cache,
                            method_cache_t &method_cache,
                            stack_cache_t &stack_cache) :
       Cycle(0), Memory(memory), Local_memory(local_memory),
-      Method_cache(method_cache), Stack_cache(stack_cache),
-      BASE(0), PC(0), nPC(0), Stall(SIF)
+      Data_cache(data_cache), Method_cache(method_cache),
+      Stack_cache(stack_cache), BASE(0), PC(0), nPC(0), Stall(SIF)
   {
     // initialize one predicate register to be true, otherwise no instruction
     // will ever execute

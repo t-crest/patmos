@@ -29,6 +29,7 @@ namespace patmos
 {
   // forward definitions
   class memory_t;
+  class data_cache_t;
   class stack_cache_t;
   class method_cache_t;
   class binary_format_t;
@@ -81,6 +82,9 @@ namespace patmos
 
     /// The local memory used during the simulation.
     memory_t &Local_memory;
+
+    /// The data cache used during the simulation.
+    data_cache_t &Data_cache;
 
     /// The method cache used during the simulation.
     method_cache_t &Method_cache;
@@ -142,10 +146,12 @@ namespace patmos
     /// constructor, i.e., it does not clone them, proclaim ownership, etc.
     /// @param memory The main memory to use during the simulation.
     /// @param local_memory The local memory to use during the simulation.
+    /// @param data_cache The data cache to use during the simulation.
     /// @param method_cache The method cache to use during the simulation.
     /// @param stack_cache The stack cache to use during the simulation.
     simulator_t(memory_t &memory, memory_t &local_memory,
-                method_cache_t &method_cache, stack_cache_t &stack_cache);
+                data_cache_t &data_cache, method_cache_t &method_cache,
+                stack_cache_t &stack_cache);
 
     /// Run the simulator.
     /// @param max_cycles The maximum number of cycles to run the simulation.

@@ -20,9 +20,11 @@
 #ifndef PATMOS_MEMORY_H
 #define PATMOS_MEMORY_H
 
+#include <cassert>
+
 namespace patmos
 {
-  /// Basic interface to access main memory during simulation
+  /// Basic interface to access main memory during simulation.
   class memory_t
   {
   public:
@@ -99,7 +101,7 @@ namespace patmos
 
   public:
     /// Construct a new memory instance.
-    /// @param The size of the memory in bytes.
+    /// @param size The size of the memory in bytes.
     ideal_memory_t(unsigned int size)
     {
       Content = new byte_t[size];
