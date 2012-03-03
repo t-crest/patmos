@@ -52,7 +52,7 @@ int main(int argc, char **argv)
   std::ostream &out = patmos::get_stream<std::ofstream>(argv[2], std::cout);
 
   // load input program
-  unsigned int offset = 0;
+  std::streamsize offset = 0;
   while (!in.eof())
   {
     patmos::byte_t buf[128];

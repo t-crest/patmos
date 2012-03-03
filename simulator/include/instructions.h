@@ -497,7 +497,7 @@ namespace patmos
       dword_t result = compute(read_GPR_EX(s, ops.DR_Rs1),
                                read_GPR_EX(s, ops.DR_Rs2));
 
-      ops.EX_mull = result;
+      ops.EX_mull = (word_t)result;
       ops.EX_mulh = result >> sizeof(word_t)*8;
     }
 
@@ -620,7 +620,7 @@ namespace patmos
     /// Compute the result of an ALUp instruction.
     /// @param value1 The value of the first operand.
     /// @param value2 The value of the second operand.
-    virtual word_t compute(word_t value1, word_t value2) const = 0;
+    virtual bit_t compute(word_t value1, word_t value2) const = 0;
 
     // IF inherited from NOP
 
@@ -663,7 +663,7 @@ namespace patmos
       os << boost::format("(p%2%) %1% p%3% = p%4%, p%5%") % #name \
           % ops.Pred % ops.OPS.ALUp.Pd % ops.OPS.ALUp.Ps1 % ops.OPS.ALUp.Ps2; \
     } \
-    virtual word_t compute(word_t value1, word_t value2) const \
+    virtual bit_t compute(word_t value1, word_t value2) const \
     { \
       return lval == ((value1 operator value2) & 0x1); \
     } \

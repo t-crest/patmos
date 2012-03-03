@@ -105,6 +105,12 @@ namespace patmos
     ideal_memory_t(unsigned int size)
     {
       Content = new byte_t[size];
+
+      // initialize memory content
+      for(unsigned int i = 0; i < size; i++)
+      {
+        Content[i] = 0;
+      }
     }
 
     /// A simulated access to a read port.
