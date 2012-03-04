@@ -122,8 +122,6 @@ namespace patmos
   class i_halt_t : public i_nop_t
   {
   public:
-    static const i_halt_t i_halt;
-
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
@@ -137,7 +135,7 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void MW_commit(simulator_t &s, instruction_data_t &ops) const
     {
-      throw HALT;
+      simulation_exception_t::halt();
     }
   };
 
@@ -147,6 +145,7 @@ namespace patmos
   {
   protected:
     /// Read a GPR register at the EX stage.
+    /// @param s The parent simulator.
     /// @param op The register operand.
     /// @return The register value, considering by-passing from the EX, and MW
     /// stages.

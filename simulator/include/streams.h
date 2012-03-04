@@ -25,8 +25,8 @@ namespace patmos
   /// Open a file stream, or use the given default.
   /// @param str File name or "-".
   /// @param default_stream A default stream.
-  /// @return A reference to a newly created file stream, or, if str equals "-", a
-  /// reference to the default stream.
+  /// @return A reference to a newly created file stream, or, if str equals "-",
+  /// a reference to the default stream.
   template<typename T, typename D>
   D &get_stream(char *str, D &default_stream)
   {
@@ -36,7 +36,7 @@ namespace patmos
       return *new T(str);
   }
 
-  /// Free a stream, e.g., previously opened using get_stream, unless it refers 
+  /// Free a stream, e.g., previously opened using get_stream, unless it refers
   /// to the default stream.
   /// \see get_stream
   /// \param stream The stream to close.

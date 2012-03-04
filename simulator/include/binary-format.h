@@ -62,7 +62,9 @@ namespace patmos
     /// @param instruction The simulation interface of the instruction.
     /// @param mask The bit mask of the instruction.
     /// @param pattern The bit pattern of the instruction.
-    /// @param slot The set of legal slots of the instruction.
+    /// @param slots The set of legal slots of the instruction.
+    /// @param is_long A flag indicating whether the format represents an ALUl
+    /// instruction.
     binary_format_t(const instruction_t &instruction, word_t mask,
                     word_t pattern, unsigned int slots, bool is_long = false) :
         Instruction(instruction), Bit_mask(mask), Bit_pattern(pattern),

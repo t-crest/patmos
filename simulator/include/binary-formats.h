@@ -288,7 +288,7 @@ namespace patmos
     /// @param sd The destination special register.
     /// @param rs1 The source register operand.
     /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t sd, word_t ps1);
+    static word_t encode(word_t pred, word_t sd, word_t rs1);
   };
 
   /// The SPCf instruction format (see Patmos TR).
@@ -497,8 +497,6 @@ namespace patmos
     virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
 
     /// Encode an instruction.
-    /// @param pred The instruction's predicate.
-    /// @param opcode The instruction opcode.
     /// @return An encoded instruction word.
     static word_t encode();
   };

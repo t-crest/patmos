@@ -32,7 +32,7 @@
 
 namespace patmos
 {
-  // base class for parsing assembly code lines.
+  /// Base class for parsing assembly code lines.
   class assembly_line_grammar_t : public boost::spirit::qi::grammar<
                                                std::string::const_iterator,
                                                dword_t(),
@@ -71,6 +71,9 @@ namespace patmos
 
       /// Parse an instruction predicate.
       rule_t Pred;
+
+      /// Parse an addressing mode.
+      rule_t Addresse;
 
       /// Parse ALU opcodes.
       rule_t ALUiopc, ALUlropc, ALUuopc, ALUmopc, ALUcopc, ALUpopc;
@@ -126,7 +129,6 @@ namespace patmos
       }
     public:
       /// Construct a parser for instruction path patterns.
-      /// @param environment The current environment.
       explicit assembly_line_grammar_t() :
           assembly_line_grammar_t::base_type(Line)
       {
@@ -134,7 +136,7 @@ namespace patmos
                [boost::spirit::qi::_val = boost::spirit::qi::_1];
 
         // parse a bundle, i.e., 1 or 2 instructions -- special care is taken
-        // for ALUl instructions and the special HLT instruction of the 
+        // for ALUl instructions and the special HLT instruction of the
         // simulator.
         Bundle = ALUl
                  [boost::spirit::qi::_val = boost::spirit::qi::_1] |
@@ -212,11 +214,17 @@ namespace patmos
                                                               7)]
                    [boost::spirit::_val = boost::spirit::_1];
 
-        // parse an (optional) instruction predicate.
+        // Parse an (optional) instruction predicate.
         Pred = ('(' >> NegPRR >> ')')
                [boost::spirit::qi::_val = boost::spirit::qi::_1] |
                boost::spirit::eps
                [boost::spirit::qi::_val = (unsigned int) p0];
+
+        // Parse an addressing mode.
+        Addresse = ('+' >> Imm7s)
+                   [boost::spirit::qi::_val = boost::spirit::qi::_1] |
+                   ('-' >> Imm7s)
+                   [boost::spirit::qi::_val = -boost::spirit::qi::_1];
 
         // Parse ALUi instructions
         ALUiopc = boost::spirit::lit("addi")  [boost::spirit::qi::_val = 0] |
@@ -380,21 +388,21 @@ namespace patmos
                   boost::spirit::lit("dlbum") [boost::spirit::qi::_val = 29] ;
 
         LDT = (Pred >> LDTopc >> GPR >> '='
-                >> '[' >> GPR >> '+' >> Imm7s >> ']')
+                >> '[' >> GPR >> Addresse >> ']')
               [boost::spirit::qi::_val = boost::phoenix::bind(
                                  ldt_format_t::encode, boost::spirit::qi::_1,
                                  boost::spirit::qi::_2, boost::spirit::qi::_3,
                                  boost::spirit::qi::_4, boost::spirit::qi::_5)];
 
         LDTs = (Pred >> LDTsopc >> GPR >> '='
-                >> '[' >> GPR >> '+' >> Imm7s >> ']')
+                >> '[' >> GPR >> Addresse >> ']')
               [boost::spirit::qi::_val = boost::phoenix::bind(
                                  ldt_format_t::encode, boost::spirit::qi::_1,
                                  boost::spirit::qi::_2, boost::spirit::qi::_3,
                                  boost::spirit::qi::_4, boost::spirit::qi::_5)];
 
         dLDT = (Pred >> dLDTopc >> "sm" >> '='
-                >> '[' >> GPR >> '+' >> Imm7s >> ']')
+                >> '[' >> GPR >> Addresse >> ']')
               [boost::spirit::qi::_val = boost::phoenix::bind(
                                  ldt_format_t::encode, boost::spirit::qi::_1,
                                  boost::spirit::qi::_2, boost::spirit::qi::_3,
@@ -418,14 +426,14 @@ namespace patmos
                   boost::spirit::lit("shs")   [boost::spirit::qi::_val =  4] |
                   boost::spirit::lit("sbs")   [boost::spirit::qi::_val =  8] ;
 
-        STT = (Pred >> STTopc >> '[' >> GPR >> '+' >> Imm7s >> ']'
+        STT = (Pred >> STTopc >> '[' >> GPR >> Addresse >> ']'
                 >> '=' >> GPR)
               [boost::spirit::qi::_val = boost::phoenix::bind(
                                  stt_format_t::encode, boost::spirit::qi::_1,
                                  boost::spirit::qi::_2, boost::spirit::qi::_3,
                                  boost::spirit::qi::_4, boost::spirit::qi::_5)];
 
-        STTs = (Pred >> STTsopc >> '[' >> GPR >> '+' >> Imm7s >> ']'
+        STTs = (Pred >> STTsopc >> '[' >> GPR >> Addresse >> ']'
                 >> '=' >> GPR)
               [boost::spirit::qi::_val = boost::phoenix::bind(
                                  stt_format_t::encode, boost::spirit::qi::_1,
@@ -471,7 +479,7 @@ namespace patmos
 
         // Parse the simulator's halt instruction
         HLT = boost::spirit::lit("halt")
-              [boost::spirit::qi::_val = 
+              [boost::spirit::qi::_val =
                                     boost::phoenix::bind(hlt_format_t::encode)];
 
         // enable debugging of rules -- if BOOST_SPIRIT_DEBUG is defined

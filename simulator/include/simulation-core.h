@@ -22,6 +22,7 @@
 
 #include "decoder.h"
 #include "instruction.h"
+#include "exception.h"
 
 #include <limits>
 
@@ -58,16 +59,6 @@ namespace patmos
 
     /// Index of last pipeline stage -- used to instantiate arrays etc.
     NUM_STAGES
-  };
-
-  /// Signal exceptions during simulation
-  enum simulation_exception_t
-  {
-    /// A halt instruction was encountered.
-    HALT,
-
-    /// Illegal instruction.
-    ILLEGAL
   };
 
   /// Main class representing the simulation of a single Patmos core.
@@ -116,9 +107,6 @@ namespace patmos
     /// Counter up to which pipeline stage the processor stalls.
     Pipeline_t Stall;
 
-    /// Store information about the most recent exception.
-    word_t Exception_status;
-
     /// Active instructions in the pipeline stage.
     instruction_data_t Pipeline[NUM_STAGES][NUM_SLOTS];
 
@@ -154,15 +142,22 @@ namespace patmos
                 stack_cache_t &stack_cache);
 
     /// Run the simulator.
-    /// @param max_cycles The maximum number of cycles to run the simulation.
     /// @param debug Flag indicating whether debug output should be printed.
-    void run(uint64_t max_cycles = std::numeric_limits<uint64_t>::max(),
-             bool debug = false);
+    /// @param max_cycles The maximum number of cycles to run the simulation.
+    void run(bool debug = false,
+             uint64_t max_cycles = std::numeric_limits<uint64_t>::max());
 
     /// Print the internal state of the simulator to an output stream.
     /// @param os An output stream.
     void print(std::ostream &os) const;
   };
+
+
+  /// Print the name of the pipeline stage to the output stream.
+  /// @param os The output stream.
+  /// @param p The pipeline stage.
+  /// @return The output stream.
+  std::ostream &operator<<(std::ostream &os, Pipeline_t p);
 }
 
 #endif // PATMOS_SIMULATOR_CORE_H

@@ -99,7 +99,7 @@ namespace patmos
     Stall = std::max(Stall, pst);
   }
 
-  void simulator_t::run(uint64_t max_cycles, bool debug)
+  void simulator_t::run(bool debug, uint64_t max_cycles)
   {
     try
     {
@@ -145,8 +145,7 @@ namespace patmos
           // unknown instruction
           if (iw_size == 0)
           {
-            Exception_status = iw[0];
-            throw ILLEGAL;
+            simulation_exception_t::illegal(iw[0]);
           }
         }
         else if (Stall != NUM_STAGES- 1)
@@ -173,12 +172,14 @@ namespace patmos
     }
     catch (simulation_exception_t e)
     {
-      switch (e)
+      switch (e.get_kind())
       {
-        case ILLEGAL:
+        case simulation_exception_t::ILLEGAL:
+        case simulation_exception_t::UNMAPPED:
+        case simulation_exception_t::STACKEXCEEDED:
           // pass on to caller
           throw e;
-        case HALT:
+        case simulation_exception_t::HALT:
           // simply return
           return;
       }
@@ -232,10 +233,31 @@ namespace patmos
     os << "\n";
 
     // print state of method cache
+    os << "Method Cache:\n";
     Method_cache.print(os);
+
+    // print state of data cache
+    os << "Data Cache:\n";
+    Data_cache.print(os);
+
+    // print state of stack cache
+    os << "Stack Cache:\n";
     Stack_cache.print(os);
+
+    // print state of main memory
+    os << "Memory:\n";
     Memory.print(os);
 
     os << "\n";
+  }
+
+  std::ostream &operator<<(std::ostream &os, Pipeline_t p)
+  {
+    const static char* names[NUM_STAGES] = {"IF", "DR", "EX", "MW"};
+    assert(names[p] != NULL);
+
+    os << names[p];
+
+    return os;
   }
 }

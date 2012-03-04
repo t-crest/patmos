@@ -20,6 +20,8 @@
 #ifndef PATMOS_MEMORY_H
 #define PATMOS_MEMORY_H
 
+#include "exception.h"
+
 #include <cassert>
 
 namespace patmos
@@ -96,18 +98,21 @@ namespace patmos
   class ideal_memory_t : public memory_t
   {
   private:
+    /// The size of the memory in bytes.
+    unsigned int Memory_size;
+
     /// The content of the memory.
     byte_t *Content;
 
   public:
     /// Construct a new memory instance.
-    /// @param size The size of the memory in bytes.
-    ideal_memory_t(unsigned int size)
+    /// @param memory_size The size of the memory in bytes.
+    ideal_memory_t(unsigned int memory_size) : Memory_size(memory_size)
     {
-      Content = new byte_t[size];
+      Content = new byte_t[memory_size];
 
       // initialize memory content
-      for(unsigned int i = 0; i < size; i++)
+      for(unsigned int i = 0; i < memory_size; i++)
       {
         Content[i] = 0;
       }
@@ -121,6 +126,12 @@ namespace patmos
     /// @return True when the data is available from the read port.
     virtual bool read(uword_t address, byte_t *value, uword_t size)
     {
+      // check if the access exceeds the memory size
+      if((address > Memory_size) || (size > Memory_size - address))
+      {
+        simulation_exception_t::unmapped(address);
+      }
+
       // read the data from the memory
       for(unsigned int i = 0; i < size; i++)
       {
@@ -138,6 +149,12 @@ namespace patmos
     /// otherwise.
     virtual bool write(uword_t address, byte_t *value, uword_t size)
     {
+      // check if the access exceeds the memory size
+      if((address > Memory_size) || (size > Memory_size - address))
+      {
+        simulation_exception_t::unmapped(address);
+      }
+
       // write the data to the memory
       for(unsigned int i = 0; i < size; i++)
       {
