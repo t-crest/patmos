@@ -31,7 +31,7 @@ namespace patmos
   // forward declaration
   class simulator_t;
   class instruction_t;
-  struct instruction_data_t;
+  class instruction_data_t;
 
   /// Base class for all Patmos instructions.
   /// Every instruction consists of several "pipeline" functions, that operate
@@ -103,7 +103,7 @@ namespace patmos
   };
 
   /// Data structure to keep data of instructions while executing.
-  struct instruction_data_t
+  class instruction_data_t
   {
   public:
     /// The instruction class that implements the behavior.

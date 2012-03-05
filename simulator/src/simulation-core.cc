@@ -85,7 +85,7 @@ namespace patmos
 
   void simulator_t::pipeline_flush(Pipeline_t pst)
   {
-    for(unsigned int i = SIF; i <= pst; i++)
+    for(unsigned int i = SIF; i <= (unsigned int)pst; i++)
     {
       for(unsigned int j = 0; j < NUM_SLOTS; j++)
       {

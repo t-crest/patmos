@@ -50,7 +50,7 @@ namespace patmos
 
     /// Get the register operand's value.
     /// @return The register operand's value.
-    word_t get() const
+    D get() const
     {
       return Value;
     }
