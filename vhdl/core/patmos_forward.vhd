@@ -1,25 +1,3 @@
-library ieee;
-use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
-
-entity patmos_forward is
-  port
-  (
-    rs                     : in unsigned(4 downto 0); -- register exec reads
-    rt                     : in unsigned(4 downto 0); -- register exec reads
-  );
-end entity patmos_forward;
-
-architecture arch of patmos_forward is
-begin
-  uut_rs: entity work.forward_type_select(arch)
-	port map(alu_we, alu_wr_rn, mem_we, mem_wr_rn, mux_fw, rs);
-	
-	uut_rt: entity work.forward_type_select(arch)
-	port map(alu_we, alu_wr_rn, mem_we, mem_wr_rn, mux_fw, rt);
-	  
-end arch;
-
 
 --------------------------------------
 -- determine the forwarding type
@@ -80,4 +58,33 @@ begin
       fw_out <= fw_in;
     end if;
   end process;
+end arch;
+
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+use work.patmos_type_package.all;
+
+entity patmos_forward is
+  port
+  (
+    rs                     : in unsigned(4 downto 0); -- register exec reads
+    rt                     : in unsigned(4 downto 0); -- register exec reads
+    alu_we                 : in std_logic;
+    mem_we                 : in std_logic;
+    alu_wr_rn              : in unsigned(4 downto 0);
+    mem_wr_rn              : in unsigned(4 downto 0);
+    mux_fw_rs              : out forwarding_type;
+    mux_fw_rt              : out forwarding_type
+  );
+end entity patmos_forward;
+
+architecture arch of patmos_forward is
+begin
+  uut_rs: entity work.forward_type_select(arch)
+	port map(rs, alu_wr_rn, mem_wr_rn, alu_we, mem_we, mux_fw_rs);
+	
+	uut_rt: entity work.forward_type_select(arch)
+	port map(rt, alu_wr_rn, mem_wr_rn, alu_we, mem_we, mux_fw_rt);
+	  
 end arch;

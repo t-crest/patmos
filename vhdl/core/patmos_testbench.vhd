@@ -19,6 +19,7 @@ signal func                            : unsigned (2 downto 0);
 signal read_data1                      : unsigned(31 downto 0);
 signal read_data2                      : unsigned(31 downto 0);
 signal write_data                      : unsigned(31 downto 0);
+signal write_data_exec_out             : unsigned(31 downto 0);
 signal operation1                      : unsigned(31 downto 0);
 signal operation2                      : unsigned(31 downto 0);
 signal write_enable                    : std_logic := '0';
@@ -46,6 +47,11 @@ signal wa1                             : unsigned (4 downto 0);
 signal wa2                             : unsigned (4 downto 0);
 signal write_address_reg_file          : unsigned (4 downto 0);
 signal predicate                       : unsigned(2 downto 0);
+signal mem_we                          : std_logic;
+signal mem_wr_rn                       : unsigned(4 downto 0); 
+signal mux_fw_rs                       : forwarding_type;
+signal mux_fw_rt                       : forwarding_type;
+signal write_enable_mem_stage          : std_logic;
 --------------------------------------------
 begin
 
@@ -73,10 +79,13 @@ begin
   generic map(12)
 	port map(clk, ALUi_immediate, ALUi_immediate_reg);
 	
-	uut_we: entity work.clock_we(arch)
-	port map(clk, wb_we_out_exec, write_enable);
+	uut_we1: entity work.clock_we(arch)
+	port map(clk, wb_we_out_exec, write_enable_mem_stage);
 	
-	-- write address
+	uut_we2: entity work.clock_we(arch)
+	port map(clk, write_enable_mem_stage, write_enable);
+	
+	-- write register address
 	uut_wa1: entity work.patmos_clock_input(arch)
 	generic map(5)
 	port map(clk, rd, wa1);
@@ -89,6 +98,14 @@ begin
   uut_wa3: entity work.patmos_clock_input(arch)
 	generic map(5)
 	port map(clk, wa2, write_address_reg_file);
+	
+	-- clock write data through mem stage!
+	uut_clock_write_data_to_wb: entity work.patmos_clock_input(arch)
+	generic map(32)
+	port map(clk, write_data_exec_out, write_data);
+	
+
+	
 ----------------------------------------------------
 
 	reg_file: entity work.patmos_register_file(arch)
@@ -96,16 +113,29 @@ begin
 	
 
   exec: entity work.patmos_execute(arch)
-	port map(clk, inst_type_reg, ALU_function_type_reg, ALU_instruction_type_reg, ALUi_immediate_reg, read_data1, read_data2, predicate, write_data, wb_we, wb_we_out_exec);
+	port map(clk, inst_type_reg, ALU_function_type_reg, ALU_instruction_type_reg, ALUi_immediate_reg, read_data1, read_data2, predicate, write_data_exec_out, wb_we, wb_we_out_exec);
 	
+--	forward: entity work.patmos_forward(arch)
+--	port map(rs1, rs2,  , mem-we, mem_wr_rn, mux_fw_rs, mux_fw_rt);
 	
-	
+--	entity patmos_forward is
+--  port
+ -- (
+ --   rs                     : in unsigned(4 downto 0); -- register exec reads
+--    rt                     : in unsigned(4 downto 0); -- register exec reads
+--    alu_we                 : in std_logic;
+--    mem_we                 : in std_logic;
+--    alu_wr_rn              : in unsigned(4 downto 0);
+--    mem_wr_rn              : in unsigned(4 downto 0);
+--    mux_fw_rs              : out forwarding_type;
+--    mux_fw_rt              : out forwarding_type
+-- );
 
 clk <= not clk after 5 ns;
               --    "xpred00fff4321043210109876543210"
 instruction_word <= "00000000000000100000000000000001" after 5 ns,  -- r1 <= r0 + 1 add immediate
-                    "00000000000001000000000000000010" after 15 ns;--, -- r2 <= r0 + 2 add immediate
-                  --  "00000010000001100010000010000000" after 25 ns, -- r3 <= r1 + r2 add register -- read after write
+                    "00000000000001000000000000000010" after 15 ns; -- , -- r2 <= r0 + 2 add immediate
+                 --   "00000010000001100010000010000000" after 25 ns;--, -- r3 <= r1 + r2 add register -- read after write
                  --   "00000000001000000000000010000001" after 35 ns, -- r16 <= r1 + 128 add immediate 
                  --   "00000010000010010000000000010000" after 45 ns; -- r4 < int8_t(r16) unary 
                     
