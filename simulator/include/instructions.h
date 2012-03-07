@@ -116,6 +116,14 @@ namespace patmos
     virtual void MW_commit(simulator_t &s, instruction_data_t &ops) const
     {
     }
+
+    /// Pipeline function to simulate the behavior of a decoupled load
+    /// instruction running in parallel to the pipeline.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void dMW(simulator_t &s, instruction_data_t &ops) const
+    {
+    }
   };
 
   /// Halt the simulation
@@ -904,6 +912,8 @@ namespace patmos
       ops.DR_Rs1 = s.GPR.get(ops.OPS.LDT.Ra);
     }
 
+    // EX implemented by base class
+
     /// Pipeline function to simulate the behavior of the instruction in
     /// the MW pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
@@ -994,7 +1004,95 @@ namespace patmos
   LD_INSTR(lhum, s.Memory, uhword_t, uword_t)
   LD_INSTR(lbum, s.Memory, ubyte_t, uword_t)
 
-  // TODO: implement decoupled loads
+
+  /// Base class for memory load instructions.
+  class i_dldt_t : public i_pred_t
+  {
+  public:
+    /// load the value from memory.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param address The address of the memory access.
+    /// @param value If the function returns true, the loaded value is returned
+    /// here.
+    /// @return True if the value was loaded, false if the value is not yet
+    /// available and stalling is needed.
+    virtual bool load(simulator_t &s, word_t address, word_t &value) const = 0;
+
+    // IF inherited from NOP
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the DR pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.DR_Rs1 = s.GPR.get(ops.OPS.LDT.Ra);
+    }
+
+    // EX implemented by base class
+
+    // MW inherited from NOP
+
+    /// Pipeline function to simulate the behavior of a decoupled load
+    /// instruction running in parallel to the pipeline.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void dMW(simulator_t &s, instruction_data_t &ops) const
+    {
+      // load from memory
+      word_t result;
+      bool is_available = load(s, ops.EX_Address, result);
+
+      // the value is already available?
+      if (is_available)
+      {
+        // store the loaded value by writing it into a by-pass
+        s.SPR.set(sM, result);
+        s.Decoupled_load = instruction_data_t();
+      }
+    }
+  };
+
+#define DLD_INSTR(name, base, atype, ctype) \
+  class i_ ## name ## _t : public i_dldt_t \
+  { \
+  public:\
+    virtual void print(std::ostream &os, const instruction_data_t &ops) const \
+    { \
+      os << boost::format("(p%2%) %1% sm = [r%3% + %4%]") % #name \
+          % ops.Pred % ops.OPS.LDT.Ra % ops.OPS.LDT.Imm; \
+    } \
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const \
+    { \
+      ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1) + ops.OPS.LDT.Imm*sizeof(atype); \
+      if (ops.DR_Pred) \
+      { \
+        s.Decoupled_load = ops; \
+      } \
+    } \
+    virtual bool load(simulator_t &s, word_t address, word_t &value) const \
+    { \
+      atype tmp; \
+      bool is_available = base.read_fixed(address, tmp); \
+      value = (ctype)from_big_endian<big_ ## atype>(tmp); \
+      return is_available; \
+    } \
+  };
+
+  DLD_INSTR(dlwc , s.Data_cache, word_t, word_t)
+  DLD_INSTR(dlhc , s.Data_cache, hword_t, word_t)
+  DLD_INSTR(dlbc , s.Data_cache, byte_t, word_t)
+  DLD_INSTR(dlwuc, s.Data_cache, uword_t, uword_t)
+  DLD_INSTR(dlhuc, s.Data_cache, uhword_t, uword_t)
+  DLD_INSTR(dlbuc, s.Data_cache, ubyte_t, uword_t)
+
+  DLD_INSTR(dlwm , s.Memory, word_t, word_t)
+  DLD_INSTR(dlhm , s.Memory, hword_t, word_t)
+  DLD_INSTR(dlbm , s.Memory, byte_t, word_t)
+  DLD_INSTR(dlwum, s.Memory, uword_t, uword_t)
+  DLD_INSTR(dlhum, s.Memory, uhword_t, uword_t)
+  DLD_INSTR(dlbum, s.Memory, ubyte_t, uword_t)
 
   /// Base class for memory store instructions.
   class i_stt_t : public i_pred_t

@@ -100,6 +100,12 @@ namespace patmos
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
     virtual void MW_commit(simulator_t &s, instruction_data_t &ops) const = 0;
+
+    /// Pipeline function to simulate the behavior of a decoupled load
+    /// instruction running in parallel to the pipeline.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void dMW(simulator_t &s, instruction_data_t &ops) const = 0;
   };
 
   /// Data structure to keep data of instructions while executing.
@@ -500,6 +506,14 @@ namespace patmos
     {
       if (I)
         I->MW_commit(s, *this);
+    }
+
+    /// Invoke the dMW simulation function.
+    /// @param s The Patmos simulator executing the instruction.
+    void dMW(simulator_t &s)
+    {
+      if (I)
+        I->dMW(s, *this);
     }
   };
 }

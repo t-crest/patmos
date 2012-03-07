@@ -8,9 +8,7 @@
                 shs     [r0 + 3] = r1;
                 sbs     [r0 + 7] = r1;
                 lws     r2  = [r0 + 1];
-                lhm     r3  = [r0 + 1];
-                lbm     r4  = [r0 + 2];
-                lhum    r5  = [r0 + 1];
-                lbum    r6  = [r0 + 2];
+                lhs     r3  = [r0 + 1]  ||     lbs     r4  = [r0 + 2];
+                lhus    r5  = [r0 + 1]  ||     lbus    r6  = [r0 + 2];
                 sfree   6;
                 halt;

@@ -323,7 +323,10 @@ namespace patmos
     /// Construct a new binary format for the instruction using a given opcode.
     /// @param instruction The instruction.
     /// @param opcode The instruction's opcode.
-    ldt_format_t(const instruction_t &instruction, word_t opcode);
+    /// @param is_stack Flag indicating whether the instruction accesses the 
+    /// stack.
+    ldt_format_t(const instruction_t &instruction, word_t opcode,
+                 bool is_stack = false);
 
     /// Decode the operands of the instruction and return a corresponding
     /// instruction data instance.
@@ -359,7 +362,10 @@ namespace patmos
     /// Construct a new binary format for the instruction using a given opcode.
     /// @param instruction The instruction.
     /// @param opcode The instruction's opcode.
-    stt_format_t(const instruction_t &instruction, word_t opcode);
+    /// @param is_stack Flag indicating whether the instruction accesses the
+    /// stack.
+    stt_format_t(const instruction_t &instruction, word_t opcode,
+                 bool is_stack = false);
 
     /// Decode the operands of the instruction and return a corresponding
     /// instruction data instance.

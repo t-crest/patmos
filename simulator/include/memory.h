@@ -101,21 +101,37 @@ namespace patmos
     /// The size of the memory in bytes.
     unsigned int Memory_size;
 
+    /// Offset up to which the memory has been initialized.
+    unsigned int Initialized_offset;
+
     /// The content of the memory.
     byte_t *Content;
 
+    /// Ensure that the content is initialize up to the given address.
+    /// @param address The address that should be accessed.
+    /// @param size The access size.
+    void check_initialize_content(uword_t address, uword_t size)
+    {
+      // check if the access exceeds the memory size
+      if((address > Memory_size) || (size > Memory_size - address))
+      {
+        simulation_exception_t::unmapped(address);
+      }
+
+      // initialize memory content
+      for(; Initialized_offset < std::min(address + 1024, Memory_size);
+          Initialized_offset++)
+      {
+        Content[Initialized_offset] = 0;
+      }
+    }
   public:
     /// Construct a new memory instance.
     /// @param memory_size The size of the memory in bytes.
-    ideal_memory_t(unsigned int memory_size) : Memory_size(memory_size)
+    ideal_memory_t(unsigned int memory_size) :
+        Memory_size(memory_size), Initialized_offset(0)
     {
       Content = new byte_t[memory_size];
-
-      // initialize memory content
-      for(unsigned int i = 0; i < memory_size; i++)
-      {
-        Content[i] = 0;
-      }
     }
 
     /// A simulated access to a read port.
@@ -126,11 +142,9 @@ namespace patmos
     /// @return True when the data is available from the read port.
     virtual bool read(uword_t address, byte_t *value, uword_t size)
     {
-      // check if the access exceeds the memory size
-      if((address > Memory_size) || (size > Memory_size - address))
-      {
-        simulation_exception_t::unmapped(address);
-      }
+      // check if the access exceeds the memory size and lazily initialize
+      // memory content
+      check_initialize_content(address, size);
 
       // read the data from the memory
       for(unsigned int i = 0; i < size; i++)
@@ -149,11 +163,9 @@ namespace patmos
     /// otherwise.
     virtual bool write(uword_t address, byte_t *value, uword_t size)
     {
-      // check if the access exceeds the memory size
-      if((address > Memory_size) || (size > Memory_size - address))
-      {
-        simulation_exception_t::unmapped(address);
-      }
+      // check if the access exceeds the memory size and lazily initialize
+      // memory content
+      check_initialize_content(address, size);
 
       // write the data to the memory
       for(unsigned int i = 0; i < size; i++)

@@ -56,7 +56,7 @@ namespace patmos
   {
     if (debug)
     {
-      std::cerr << boost::format("%1%: ") % pst;
+      std::cerr << boost::format("%1% : ") % pst;
     }
 
     // invoke simulation functions
@@ -105,6 +105,16 @@ namespace patmos
     {
       for(uint64_t cycle = 0; cycle < max_cycles; cycle++, Cycle++)
       {
+        // simulate decoupled load
+        Decoupled_load.dMW(*this);
+
+        if (debug)
+        {
+          std::cerr << "dMW: ";
+          Decoupled_load.print(std::cerr);
+          std::cerr << "\n";
+        }
+
         // invoke simulation functions
         pipeline_invoke(SMW, &instruction_data_t::MW, debug);
         pipeline_invoke(SEX, &instruction_data_t::EX, debug);

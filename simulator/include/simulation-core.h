@@ -110,6 +110,9 @@ namespace patmos
     /// Active instructions in the pipeline stage.
     instruction_data_t Pipeline[NUM_STAGES][NUM_SLOTS];
 
+    /// Active decoupled load running in parallel to the pipeline.
+    instruction_data_t Decoupled_load;
+
 
     /// Perform a step of the simulation for a given pipeline.
     /// @param pst The pipeline stage.
