@@ -1,4 +1,5 @@
---TO DO: 
+--TO DO: Check $zero as destination
+
 
 ------------------------------------------
 --general purpose registers

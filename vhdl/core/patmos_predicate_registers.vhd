@@ -5,7 +5,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
-use work.type_package.all;
+use work.patmos_type_package.all;
 
 entity patmos_predicate_registers is --general purpose registers
   port

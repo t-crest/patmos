@@ -27,7 +27,7 @@ end arch;
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
-use work.type_package.all;
+use work.patmos_type_package.all;
 
 entity patmos_pc_generator is 
     generic

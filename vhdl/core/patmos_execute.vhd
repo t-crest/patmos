@@ -1,10 +1,11 @@
 --TO DO: 
 -- add forwading values to input multiplexers of ALU
+-- replcae pd with predicate_reg(pd) (number of predicate register that should be written with 0 or 1)
 
 library ieee;
 use ieee.numeric_std.all;
 use ieee.std_logic_1164.all;
-use work.type_package.all;
+use work.patmos_type_package.all;
 
 
 entity patmos_execute is
@@ -17,6 +18,7 @@ entity patmos_execute is
     ALUi_immediate                  : in unsigned(11 downto 0);
     rs                              : in unsigned(31 downto 0);
     rt                              : in unsigned(31 downto 0);
+    pd                              : out unsigned(2 downto 0);  -- this is the index of predicate bit, ALUp instructions write in predicate bits and others use them!
     rd                              : out unsigned(31 downto 0);
     wb_we                           : in std_logic;
     wb_we_out_exec                  : out std_logic
@@ -171,7 +173,7 @@ begin
   case inst_type is
     when ALU => 
       wb_we_out_exec <= wb_we;
-     case ALU_instruction_type is 
+      case ALU_instruction_type is 
         when ALUr => 
          case ALU_function_type is
           when "0000" => rd <= rs + rt;
@@ -182,18 +184,101 @@ begin
           when "0101" => rd <= shift_right_arith(rs, rt);
           when "0110" => rd <= rs or rt ;
           when "0111" => rd <= rs and rt ;
-          when "1000" => rd <= rs + rt; --??
+        --??  when "1000" => rd <= shift_left_logical(rs, rt) or ; --??
           when "1001" => rd <= rs - rt; --??
-          when "1010" => rd <= rt xor rs; --??
-          when "1011" => rd <= rs nor rt; --??
-          when "1100" => rd <= shift_right_logical(rs, rt); --??
-          when "1101" => rd <= shift_right_arith(rs, rt); --??
-          when "1110" => rd <= rs or rt ; --??
-          when "1111" => rd <= shift_left_logical(rs, "00000000000000000000000000000001" ) + rt ;  
-          when others => rd <= rs + rt; --??
-        end case;
-    when others => NULL;
-    end case;
+          when "1010" => rd <= rt xor rs; 
+          when "1011" => rd <= rs nor rt; 
+       --   when "1100" => rd <= shift_right_logical(rs, rt); --??
+       --   when "1101" => rd <= shift_right_arith(rs, rt); --??
+          when "1110" => rd <= shift_left_logical(rs, "00000000000000000000000000000001" ) + rt;
+          when "1111" => rd <= shift_left_logical(rs, "00000000000000000000000000000010" ) + rt ;  
+          when others => NULL;
+       end case;
+       
+      when ALUu =>    
+        wb_we_out_exec <= wb_we;
+        case ALU_function_type is
+          when "0000" => rd <= rs(7)& rs(7) &rs(7)& rs(7)& rs(7)& rs(7)& rs(7)& rs(7)& 
+                               rs(7)& rs(7) &rs(7)& rs(7)& rs(7)& rs(7)& rs(7)& rs(7)&
+                               rs(7)& rs(7) &rs(7)& rs(7)& rs(7)& rs(7)& rs(7)& rs(7)& 
+                               rs(7 downto 0);
+          when "0001" => rd <= rs(7)& rs(7) &rs(7)& rs(7)& rs(7)& rs(7)& rs(7)& rs(7)&
+                               rs(7)& rs(7) &rs(7)& rs(7)& rs(7)& rs(7)& rs(7)& rs(7)& 
+                               rs(15 downto 0);
+          when "0010" => rd <= "0000000000000000" & rs(15 downto 0);
+          when "0101" => rd <= "0" & rs(30 downto 0);
+          when others => NULL;
+        end case;   
+      
+      --
+      --when ALUm =>
+    --  case ALU_function_type is
+      --    when "0000" => rd <= mul rs rt;
+        --  when "0001" => rd <= ;
+        --  when others => NULL;
+      --end case;
+      when ALUc =>    
+        wb_we_out_exec <= wb_we;
+        case ALU_function_type is
+          when "0000" => 
+            if (rs = "00000000000000000000000000000000") then
+              pd <= "001"; -- predicate_reg(pd)
+            else
+              pd <= "000";
+            end if;
+          when "0001" => 
+            if (rs /=  "00000000000000000000000000000000")then
+              pd <= "001";
+            else
+              pd <= "000";
+            end if;
+          when "0010" => 
+            if (rs = rt)then
+              pd <= "001";
+            else
+              pd <= "000";
+            end if;
+          when "0011" =>
+            if (rs /= rt)then
+              pd <= "001";
+            else
+              pd <= "000";
+            end if;
+          when "0100" =>
+            if (rs < rt)then
+              pd <= "001";
+            else
+              pd <= "000";
+            end if;
+          when "0101" => 
+            if (rs <= rt)then
+              pd <= "001";
+            else
+              pd <= "000";
+            end if;
+          when "0110" => 
+            if (unsigned(rs) < unsigned(rt))then
+              pd <= "001";
+            else
+              pd <= "000";
+            end if;
+          when "0111" =>
+            if (unsigned(rs) <= unsigned(rt))then
+              pd <= "001";
+            else
+              pd <= "000";
+            end if;
+          when "1000" =>
+            if ((rs and shift_left_logical("00000000000000000000000000000001", rt)) = "11111111111111111111111111111111") then
+              pd <= "001";
+            else
+              pd <= "000";
+            end if;
+          when others => NULL;
+        end case; 
+      --  
+    when others => NULL; -- case ALU_inst_type (ALUr, ALUc, ...)
+    end case; 
     when ALUi =>
       wb_we_out_exec <= wb_we;
         case ALU_function_type is
@@ -207,7 +292,8 @@ begin
           when "0111" => rd <= rs and ("00000000000000000000" & ALUi_immediate);
           when others => rd <= rs + ("00000000000000000000" & ALUi_immediate);
         end case;
-  when others => NULL;
+   
+  when others => NULL; -- inst_type
   end case;
 end if;
   end process alu_op;
@@ -220,7 +306,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
 use ieee.numeric_std.all;
-use work.type_package.all;
+use work.patmos_type_package.all;
  
  entity multiplexer_b is -- ctrl: 1 for register and 0 for extension
  
@@ -263,7 +349,7 @@ use work.type_package.all;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
 use ieee.numeric_std.all;
-use work.type_package.all;
+use work.patmos_type_package.all;
  
  entity multiplexer_a is -- ctrl: 1 for register and 0 for extension
  
@@ -298,3 +384,8 @@ use work.type_package.all;
        end case;
      end process;
  end arch;
+ 
+ -------------------------------------
+ -- multiply
+ -------------------------------------
+

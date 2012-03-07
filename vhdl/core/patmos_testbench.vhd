@@ -1,7 +1,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
-use work.type_package.all;
+use work.patmos_type_package.all;
 
 entity patmos_testbench is 
 end entity patmos_testbench;
@@ -45,6 +45,7 @@ signal wb_we_out_exec                  : std_logic;
 signal wa1                             : unsigned (4 downto 0);
 signal wa2                             : unsigned (4 downto 0);
 signal write_address_reg_file          : unsigned (4 downto 0);
+signal predicate                       : unsigned(2 downto 0);
 --------------------------------------------
 begin
 
@@ -81,9 +82,13 @@ begin
 	port map(clk, rd, wa1);
 	
 	
-	uut_wa3: entity work.patmos_clock_input(arch)
+	uut_wa2: entity work.patmos_clock_input(arch)
 	generic map(5)
-	port map(clk, wa1, write_address_reg_file);
+	port map(clk, wa1, wa2);
+	
+  uut_wa3: entity work.patmos_clock_input(arch)
+	generic map(5)
+	port map(clk, wa2, write_address_reg_file);
 ----------------------------------------------------
 
 	reg_file: entity work.patmos_register_file(arch)
@@ -91,16 +96,18 @@ begin
 	
 
   exec: entity work.patmos_execute(arch)
-	port map(clk, inst_type_reg, ALU_function_type_reg, ALU_instruction_type_reg, ALUi_immediate_reg, read_data1, read_data2, write_data, wb_we, wb_we_out_exec);
+	port map(clk, inst_type_reg, ALU_function_type_reg, ALU_instruction_type_reg, ALUi_immediate_reg, read_data1, read_data2, predicate, write_data, wb_we, wb_we_out_exec);
 	
 	
 	
 
 clk <= not clk after 5 ns;
               --    "xpred00fff4321043210109876543210"
-instruction_word <= "00000000000000100000000000000001" after 5 ns,-- r1 <= r0 + 1 add immediate
-                    "00000000000001000000000000000010" after 15 ns,-- r2 <= r0 + 2 add immediate
-                    "00000010000001100010000010000000" after 55 ns; -- r3 <= r1 + r2 add register
+instruction_word <= "00000000000000100000000000000001" after 5 ns,  -- r1 <= r0 + 1 add immediate
+                    "00000000000001000000000000000010" after 15 ns;--, -- r2 <= r0 + 2 add immediate
+                  --  "00000010000001100010000010000000" after 25 ns, -- r3 <= r1 + r2 add register -- read after write
+                 --   "00000000001000000000000010000001" after 35 ns, -- r16 <= r1 + 128 add immediate 
+                 --   "00000010000010010000000000010000" after 45 ns; -- r4 < int8_t(r16) unary 
                     
 -- pc <= (others => '0');
 rst <= '0' after 4 ns;
