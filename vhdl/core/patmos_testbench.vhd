@@ -52,6 +52,7 @@ signal mem_wr_rn                       : unsigned(4 downto 0);
 signal mux_fw_rs                       : forwarding_type;
 signal mux_fw_rt                       : forwarding_type;
 signal write_enable_mem_stage          : std_logic;
+signal fw_mem                          : unsigned(31 downto 0);
 --------------------------------------------
 begin
 
@@ -113,10 +114,16 @@ begin
 	
 
   exec: entity work.patmos_execute(arch)
-	port map(clk, inst_type_reg, ALU_function_type_reg, ALU_instruction_type_reg, ALUi_immediate_reg, read_data1, read_data2, predicate, write_data_exec_out, wb_we, wb_we_out_exec);
+	port map(clk, inst_type_reg, ALU_function_type_reg, 
+	         ALU_instruction_type_reg, ALUi_immediate_reg, 
+	         read_data1, read_data2, predicate, write_data_exec_out,
+	         wb_we, wb_we_out_exec, write_data_exec_out, fw_mem, mux_fw_rs, mux_fw_rt);
+	         
+       
 	
---	forward: entity work.patmos_forward(arch)
---	port map(rs1, rs2,  , mem-we, mem_wr_rn, mux_fw_rs, mux_fw_rt);
+  forward: entity work.patmos_forward(arch)
+ 	port map(rs1, rs2, wb_we, mem_we, rd, mem_wr_rn, mux_fw_rs, mux_fw_rt);
+
 	
 --	entity patmos_forward is
 --  port
@@ -134,8 +141,8 @@ begin
 clk <= not clk after 5 ns;
               --    "xpred00fff4321043210109876543210"
 instruction_word <= "00000000000000100000000000000001" after 5 ns,  -- r1 <= r0 + 1 add immediate
-                    "00000000000001000000000000000010" after 15 ns; -- , -- r2 <= r0 + 2 add immediate
-                 --   "00000010000001100010000010000000" after 25 ns;--, -- r3 <= r1 + r2 add register -- read after write
+                    "00000000000001000000000000000010" after 15 ns, -- r2 <= r0 + 2 add immediate
+                    "00000010000001100010000010000000" after 25 ns;--, -- r3 <= r1 + r2 add register -- read after write
                  --   "00000000001000000000000010000001" after 35 ns, -- r16 <= r1 + 128 add immediate 
                  --   "00000010000010010000000000010000" after 45 ns; -- r4 < int8_t(r16) unary 
                     

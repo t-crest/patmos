@@ -2,6 +2,94 @@
 -- add forwading values to input multiplexers of ALU
 -- replcae pd with predicate_reg(pd) (number of predicate register that should be written with 0 or 1)
 
+ -------------------------------
+ -- ALU multiplexer: rt
+ -------------------------------
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+use work.patmos_type_package.all;
+ 
+ entity multiplexer_b is -- ctrl: 1 for register and 0 for extension
+ 
+  port
+  (
+    rt                         : in unsigned(31 downto 0);
+    fw_alu                     : in unsigned(31 downto 0);
+    fw_mem                     : in unsigned(31 downto 0);
+    sign_extended_immediate    : in unsigned(31 downto 0);
+    fw_ctrl                    : in forwarding_type; 
+    mux_b_ctrl                 : in std_logic;
+    mux_b_out                  : out unsigned(31 downto 0)
+  );
+ end entity multiplexer_b;
+ 
+ architecture arch of multiplexer_b is
+ begin
+   process (rt, fw_alu, fw_mem, sign_extended_immediate, fw_ctrl, mux_b_ctrl)
+     begin
+       case mux_b_ctrl is
+         when '1' => 
+           if fw_ctrl = FWALU then 
+             mux_b_out <= fw_alu;
+           elsif fw_ctrl = FWMEM then 
+             mux_b_out <= fw_alu;
+           else  
+             mux_b_out <= rt;
+           end if;
+         when '0' =>
+           mux_b_out <= sign_extended_immediate;
+         when others => mux_b_out <= rt;
+       end case;
+     end process;
+ end arch;
+ 
+  -------------------------------
+ -- ALU multiplexer: rs
+ -------------------------------
+ library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+use work.patmos_type_package.all;
+ 
+ entity multiplexer_a is -- ctrl: 1 for register and 0 for extension
+ 
+  port
+  (
+    rs                         : in unsigned(31 downto 0);
+    fw_alu                     : in unsigned(31 downto 0);
+    fw_mem                     : in unsigned(31 downto 0);
+--    sign_extended_immediate    : in std_logic_vector(31 downto 0);
+    fw_ctrl                    : in forwarding_type; 
+--    mux_a_ctrl                 : in std_logic;
+    mux_a_out                  : out unsigned(31 downto 0)
+  );
+ end entity multiplexer_a;
+ 
+ architecture arch of multiplexer_a is
+ begin
+   process (rs, fw_alu, fw_mem, fw_ctrl)
+     begin
+       --case mux_a_ctrl is
+       --  when '1' => 
+           if fw_ctrl = FWALU then 
+             mux_a_out <= fw_alu;
+           elsif fw_ctrl = FWMEM then 
+             mux_a_out <= fw_alu;
+           else  
+             mux_a_out <= rs;
+           end if;
+        -- when '0' =>
+          -- mux_a_out <= sign_extended_immediate;
+       --  when others => mux_a_out <= rs;
+       --end case;
+     end process;
+ end arch;
+ 
+ -----------------------------------
+ -- execution
+ -----------------------------------
+
 library ieee;
 use ieee.numeric_std.all;
 use ieee.std_logic_1164.all;
@@ -21,11 +109,13 @@ entity patmos_execute is
     pd                              : out unsigned(2 downto 0);  -- this is the index of predicate bit, ALUp instructions write in predicate bits and others use them!
     rd                              : out unsigned(31 downto 0);
     wb_we                           : in std_logic;
-    wb_we_out_exec                  : out std_logic
-   -- func                            : in unsigned(3 downto 0)-- which function of ALUr?
- --   write_enable      : out std_logic
-     );
-  
+    wb_we_out_exec                  : out std_logic;
+    fw_alu                          : in unsigned(31 downto 0);
+    fw_mem                          : in unsigned(31 downto 0);
+    fw_ctrl_rs                      : in forwarding_type;
+    fw_ctrl_rt                      : in forwarding_type
+  );
+
 end entity patmos_execute;
 
 architecture arch of patmos_execute is
@@ -164,7 +254,17 @@ begin
   return shift_out ;
 end shift_right_arith;
 
+signal fw_out_rs            : unsigned(31 downto 0);
+signal fw_out_rt            : unsigned(31 downto 0);   
+
 begin
+
+  fw_a: entity work.forward_value_select(arch)
+	port map(fw_alu, fw_mem, rs, fw_out_rs, fw_ctrl_rs);
+  
+  fw_b: entity work.forward_value_select(arch)
+	port map(fw_alu, fw_mem, rt, fw_out_rt, fw_ctrl_rt);
+  
   alu_op: process(clk)
   begin
     if rising_edge(clk) then
@@ -176,7 +276,7 @@ begin
       case ALU_instruction_type is 
         when ALUr => 
          case ALU_function_type is
-          when "0000" => rd <= rs + rt;
+          when "0000" => rd <= fw_out_rs + fw_out_rt;
           when "0001" => rd <= rs - rt;
           when "0010" => rd <= rt - rs;
           when "0011" => rd <= shift_left_logical(rs, rt);
@@ -299,91 +399,7 @@ end if;
   end process alu_op;
 end arch;
 
- -------------------------------
- -- ALU multiplexer: rt
- -------------------------------
-library ieee;
-use ieee.std_logic_1164.all;
-use ieee.std_logic_unsigned.all;
-use ieee.numeric_std.all;
-use work.patmos_type_package.all;
- 
- entity multiplexer_b is -- ctrl: 1 for register and 0 for extension
- 
-  port
-  (
-    rt                         : in std_logic_vector(31 downto 0);
-    fw_alu                     : in std_logic_vector(31 downto 0);
-    fw_mem                     : in std_logic_vector(31 downto 0);
-    sign_extended_immediate    : in std_logic_vector(31 downto 0);
-    fw_ctrl                    : in forwarding_type; 
-    mux_b_ctrl                 : in std_logic;
-    mux_b_out                  : out std_logic_vector(31 downto 0)
-  );
- end entity multiplexer_b;
- 
- architecture arch of multiplexer_b is
- begin
-   process (rt, fw_alu, fw_mem, sign_extended_immediate, fw_ctrl, mux_b_ctrl)
-     begin
-       case mux_b_ctrl is
-         when '1' => 
-           if fw_ctrl = FWALU then 
-             mux_b_out <= fw_alu;
-           elsif fw_ctrl = FWMEM then 
-             mux_b_out <= fw_alu;
-           else  
-             mux_b_out <= rt;
-           end if;
-         when '0' =>
-           mux_b_out <= sign_extended_immediate;
-         when others => mux_b_out <= rt;
-       end case;
-     end process;
- end arch;
- 
-  -------------------------------
- -- ALU multiplexer: rs
- -------------------------------
- library ieee;
-use ieee.std_logic_1164.all;
-use ieee.std_logic_unsigned.all;
-use ieee.numeric_std.all;
-use work.patmos_type_package.all;
- 
- entity multiplexer_a is -- ctrl: 1 for register and 0 for extension
- 
-  port
-  (
-    rs                         : in std_logic_vector(31 downto 0);
-    fw_alu                     : in std_logic_vector(31 downto 0);
-    fw_mem                     : in std_logic_vector(31 downto 0);
---    sign_extended_immediate    : in std_logic_vector(31 downto 0);
-    fw_ctrl                    : in forwarding_type; 
-    mux_a_ctrl                 : in std_logic;
-    mux_a_out                  : out std_logic_vector(31 downto 0)
-  );
- end entity multiplexer_a;
- 
- architecture arch of multiplexer_a is
- begin
-   process (rs, fw_alu, fw_mem, fw_ctrl, mux_a_ctrl)
-     begin
-       case mux_a_ctrl is
-         when '1' => 
-           if fw_ctrl = FWALU then 
-             mux_a_out <= fw_alu;
-           elsif fw_ctrl = FWMEM then 
-             mux_a_out <= fw_alu;
-           else  
-             mux_a_out <= rs;
-           end if;
-        -- when '0' =>
-          -- mux_a_out <= sign_extended_immediate;
-         when others => mux_a_out <= rs;
-       end case;
-     end process;
- end arch;
+
  
  -------------------------------------
  -- multiply

@@ -38,7 +38,6 @@ begin
     if(rst = '1') then
         for i in 0 to 31 loop -- initialize register file
           reg_bank(i)<= (others => '0');
-          
         end loop;
     elsif rising_edge(clk) then
    --   if (read_enable) then
