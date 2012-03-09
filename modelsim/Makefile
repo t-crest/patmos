@@ -17,7 +17,7 @@ endif
 
 all: clean base
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_testbench.vhd
-	$(WINE) vsim -do sim.do pc_tester
+	$(WINE) vsim -do sim.do patmos_testbench
 
 base:
 	$(WINE) vlib work
@@ -29,5 +29,7 @@ base:
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_decode.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_execute.vhd
 clean:
+	-rm transcript
 	-rm *.wlf
+	-rm -r work
 

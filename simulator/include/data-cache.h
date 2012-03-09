@@ -38,7 +38,7 @@ namespace patmos
 
   public:
     /// Construct a new ideal data cache instance.
-    /// @param Memory The memory that is accessed through the cache.
+    /// @param memory The memory that is accessed through the cache.
     ideal_data_cache_t(memory_t &memory) : Memory(memory)
     {
     }

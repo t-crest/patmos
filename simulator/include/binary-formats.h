@@ -288,7 +288,7 @@ namespace patmos
     /// @param sd The destination special register.
     /// @param rs1 The source register operand.
     /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t sd, word_t ps1);
+    static word_t encode(word_t pred, word_t sd, word_t rs1);
   };
 
   /// The SPCf instruction format (see Patmos TR).
@@ -323,7 +323,10 @@ namespace patmos
     /// Construct a new binary format for the instruction using a given opcode.
     /// @param instruction The instruction.
     /// @param opcode The instruction's opcode.
-    ldt_format_t(const instruction_t &instruction, word_t opcode);
+    /// @param is_stack Flag indicating whether the instruction accesses the 
+    /// stack.
+    ldt_format_t(const instruction_t &instruction, word_t opcode,
+                 bool is_stack = false);
 
     /// Decode the operands of the instruction and return a corresponding
     /// instruction data instance.
@@ -359,7 +362,10 @@ namespace patmos
     /// Construct a new binary format for the instruction using a given opcode.
     /// @param instruction The instruction.
     /// @param opcode The instruction's opcode.
-    stt_format_t(const instruction_t &instruction, word_t opcode);
+    /// @param is_stack Flag indicating whether the instruction accesses the
+    /// stack.
+    stt_format_t(const instruction_t &instruction, word_t opcode,
+                 bool is_stack = false);
 
     /// Decode the operands of the instruction and return a corresponding
     /// instruction data instance.
@@ -497,8 +503,6 @@ namespace patmos
     virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
 
     /// Encode an instruction.
-    /// @param pred The instruction's predicate.
-    /// @param opcode The instruction opcode.
     /// @return An encoded instruction word.
     static word_t encode();
   };

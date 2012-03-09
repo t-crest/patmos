@@ -123,6 +123,13 @@ namespace patmos
     Instructions.push_back(boost::make_tuple(itmp, ftmp));                     \
   }
 
+#define MK_SINSTR(name, format, opcode)                                         \
+  {                                                                            \
+    instruction_t *itmp = new i_ ## name ## _t();                              \
+    binary_format_t *ftmp = new format ## _format_t(*itmp, opcode, true);      \
+    Instructions.push_back(boost::make_tuple(itmp, ftmp));                     \
+  }
+
     // ALUi:
     MK_INSTR(addil , alui, 0)
     MK_INSTR(subil , alui, 1)
@@ -196,52 +203,51 @@ namespace patmos
     MK_INSTR(spcf, spcf, 0)
 
     // LDT
-    MK_INSTR(lws  , ldt,  0)
+    MK_SINSTR(lws , ldt,  0)
     MK_INSTR(lwl  , ldt,  1)
     MK_INSTR(lwc  , ldt,  2)
     MK_INSTR(lwm  , ldt,  3)
-    MK_INSTR(lhs  , ldt,  4)
+    MK_SINSTR(lhs , ldt,  4)
     MK_INSTR(lhl  , ldt,  5)
     MK_INSTR(lhc  , ldt,  6)
     MK_INSTR(lhm  , ldt,  7)
-    MK_INSTR(lbs  , ldt,  8)
+    MK_SINSTR(lbs , ldt,  8)
     MK_INSTR(lbl  , ldt,  9)
     MK_INSTR(lbc  , ldt, 10)
     MK_INSTR(lbm  , ldt, 11)
-    MK_INSTR(lhus , ldt, 12)
+    MK_SINSTR(lhus, ldt, 12)
     MK_INSTR(lhul , ldt, 13)
     MK_INSTR(lhuc , ldt, 14)
     MK_INSTR(lhum , ldt, 15)
-    MK_INSTR(lbus , ldt, 16)
+    MK_SINSTR(lbus, ldt, 16)
     MK_INSTR(lbul , ldt, 17)
     MK_INSTR(lbuc , ldt, 18)
     MK_INSTR(lbum , ldt, 19)
 
-    // TODO: implement
-//     MK_INSTR(dlwc , ldt, 20)
-//     MK_INSTR(dlwm , ldt, 21)
-//     MK_INSTR(dlhc , ldt, 22)
-//     MK_INSTR(dlhm , ldt, 23)
-//     MK_INSTR(dlbc , ldt, 24)
-//     MK_INSTR(dlbm , ldt, 25)
-//     MK_INSTR(dlhuc, ldt, 26)
-//     MK_INSTR(dlhum, ldt, 27)
-//     MK_INSTR(dlbuc, ldt, 28)
-//     MK_INSTR(dlbum, ldt, 29)
+    MK_INSTR(dlwc , ldt, 20)
+    MK_INSTR(dlwm , ldt, 21)
+    MK_INSTR(dlhc , ldt, 22)
+    MK_INSTR(dlhm , ldt, 23)
+    MK_INSTR(dlbc , ldt, 24)
+    MK_INSTR(dlbm , ldt, 25)
+    MK_INSTR(dlhuc, ldt, 26)
+    MK_INSTR(dlhum, ldt, 27)
+    MK_INSTR(dlbuc, ldt, 28)
+    MK_INSTR(dlbum, ldt, 29)
 
     // STT
-    MK_INSTR(sws, stt,  0)
-    MK_INSTR(swl, stt,  1)
-    MK_INSTR(swc, stt,  2)
-    MK_INSTR(swm, stt,  3)
-    MK_INSTR(shs, stt,  4)
-    MK_INSTR(shl, stt,  5)
-    MK_INSTR(shc, stt,  6)
-    MK_INSTR(shm, stt,  7)
-    MK_INSTR(sbs, stt,  8)
-    MK_INSTR(sbl, stt,  9)
-    MK_INSTR(sbc, stt, 10)
-    MK_INSTR(sbm, stt, 11)
+    MK_SINSTR(sws, stt,  0)
+    MK_INSTR(swl , stt,  1)
+    MK_INSTR(swc , stt,  2)
+    MK_INSTR(swm , stt,  3)
+    MK_SINSTR(shs, stt,  4)
+    MK_INSTR(shl , stt,  5)
+    MK_INSTR(shc , stt,  6)
+    MK_INSTR(shm , stt,  7)
+    MK_SINSTR(sbs, stt,  8)
+    MK_INSTR(sbl , stt,  9)
+    MK_INSTR(sbc , stt, 10)
+    MK_INSTR(sbm , stt, 11)
 
     // STC
     MK_INSTR(sres , stc, 0)

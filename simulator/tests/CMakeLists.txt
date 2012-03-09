@@ -44,6 +44,27 @@ Errors : 0")
 test_asm(13 "Emitted: 60 words
 Errors : 0")
 
+test_asm(14 "Emitted: 52 words
+Errors : 0")
+
+test_asm(15 "Emitted: 12 words
+Errors : 0")
+
+test_asm(16 "Emitted: 16 words
+Errors : 0")
+
+test_asm(17 "Emitted: 16 words
+Errors : 0")
+
+test_asm(18 "Emitted: 16 words
+Errors : 0")
+
+test_asm(19 "Emitted: 16 words
+Errors : 0")
+
+test_asm(20 "Emitted: 16 words
+Errors : 0")
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # SIMULATOR TESTS
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -81,3 +102,22 @@ test_sim(11 "BASE: 00000000   PC : 00000044.*
 test_sim(13 "BASE: 00000000   PC : 00000028.*
  r0 : 0000002d   r1 : 00000000   r2 : 0000000c")
 
+test_sim(14 "r0 : 00000000   r1 : 0283f180   r2 : 0283f180   r3 : fffff180   r4 : fffffff1   r5 : 0000f180   r6 : 000000f1.*
+ 00000006:  00
+ 00000005:  00
+ 00000004:  00
+ 00000003:  00
+ 00000002:  00
+ 00000001:  80")
+
+test_sim(15 "Unmapped memory access: 00000010: fffffffc")
+
+test_sim(16 "Stack size exceeded: 00000014")
+
+test_sim(17 "Stack size exceeded: 00000014")
+
+test_sim(18 "Stack size exceeded: 00000014")
+
+test_sim(19 "r0 : 00000007")
+
+test_sim(20 "s1 : 0281fa80")

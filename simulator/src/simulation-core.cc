@@ -56,7 +56,7 @@ namespace patmos
   {
     if (debug)
     {
-      std::cerr << boost::format("%1%: ") % pst;
+      std::cerr << boost::format("%1% : ") % pst;
     }
 
     // invoke simulation functions
@@ -99,12 +99,22 @@ namespace patmos
     Stall = std::max(Stall, pst);
   }
 
-  void simulator_t::run(uint64_t max_cycles, bool debug)
+  void simulator_t::run(bool debug, uint64_t max_cycles)
   {
     try
     {
       for(uint64_t cycle = 0; cycle < max_cycles; cycle++, Cycle++)
       {
+        // simulate decoupled load
+        Decoupled_load.dMW(*this);
+
+        if (debug)
+        {
+          std::cerr << "dMW: ";
+          Decoupled_load.print(std::cerr);
+          std::cerr << "\n";
+        }
+
         // invoke simulation functions
         pipeline_invoke(SMW, &instruction_data_t::MW, debug);
         pipeline_invoke(SEX, &instruction_data_t::EX, debug);
@@ -145,8 +155,7 @@ namespace patmos
           // unknown instruction
           if (iw_size == 0)
           {
-            Exception_status = iw[0];
-            throw ILLEGAL;
+            simulation_exception_t::illegal(iw[0]);
           }
         }
         else if (Stall != NUM_STAGES- 1)
@@ -173,12 +182,14 @@ namespace patmos
     }
     catch (simulation_exception_t e)
     {
-      switch (e)
+      switch (e.get_kind())
       {
-        case ILLEGAL:
+        case simulation_exception_t::ILLEGAL:
+        case simulation_exception_t::UNMAPPED:
+        case simulation_exception_t::STACKEXCEEDED:
           // pass on to caller
           throw e;
-        case HALT:
+        case simulation_exception_t::HALT:
           // simply return
           return;
       }
@@ -232,10 +243,31 @@ namespace patmos
     os << "\n";
 
     // print state of method cache
+    os << "Method Cache:\n";
     Method_cache.print(os);
+
+    // print state of data cache
+    os << "Data Cache:\n";
+    Data_cache.print(os);
+
+    // print state of stack cache
+    os << "Stack Cache:\n";
     Stack_cache.print(os);
+
+    // print state of main memory
+    os << "Memory:\n";
     Memory.print(os);
 
     os << "\n";
+  }
+
+  std::ostream &operator<<(std::ostream &os, Pipeline_t p)
+  {
+    const static char* names[NUM_STAGES] = {"IF", "DR", "EX", "MW"};
+    assert(names[p] != NULL);
+
+    os << names[p];
+
+    return os;
   }
 }

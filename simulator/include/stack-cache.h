@@ -21,6 +21,7 @@
 #define PATMOS_STACK_CACHE_H
 
 #include "memory.h"
+#include "exception.h"
 
 #include <cmath>
 #include <ostream>
@@ -82,7 +83,7 @@ namespace patmos
   {
   public:
     /// The content of the cache.
-    std::vector<byte_t> Content;
+    std::vector<ubyte_t> Content;
 
   public:
     /// Reserve a given number of bytes to main memory, potentially spilling
@@ -102,6 +103,12 @@ namespace patmos
     /// otherwise.
     virtual bool free(uword_t size)
     {
+      // check if stack size is exceeded
+      if (Content.size() < size)
+      {
+        simulation_exception_t::stackexceeded();
+      }
+
       Content.resize(Content.size() - size);
       return true;
     }
@@ -123,8 +130,11 @@ namespace patmos
     /// @return True when the data is available from the read port.
     virtual bool read(uword_t address, byte_t *value, uword_t size)
     {
-      assert(Content.size() - address > 0 &&
-            Content.size() - address + size < Content.size());
+      // if access exceeds the stack size
+      if (Content.size() < address || address < size)
+      {
+        simulation_exception_t::stackexceeded();
+      }
 
       // read the value
       for(unsigned int i = 0; i < size; i++)
@@ -143,8 +153,11 @@ namespace patmos
     /// otherwise.
     virtual bool write(uword_t address, byte_t *value, uword_t size)
     {
-      assert(Content.size() - address > 0 &&
-             Content.size() - address + size < Content.size());
+      // if access exceeds the stack size
+      if (Content.size() < address || address < size)
+      {
+        simulation_exception_t::stackexceeded();
+      }
 
       // store the value
       for(unsigned int i = 0; i < size; i++)
@@ -173,7 +186,15 @@ namespace patmos
     /// @param os The output stream to print to.
     virtual void print(std::ostream &os) const
     {
-      // do nothing here
+      unsigned int idx = Content.size();
+
+      for(std::vector<ubyte_t>::const_iterator i(Content.begin()),
+          ie(Content.end()); i != ie; i++, idx--)
+      {
+        os << boost::format(" %1$08x:  %2$02x\n") % idx % (uword_t)*i;
+      }
+
+      os << "\n";
     }
   };
 
@@ -204,10 +225,10 @@ namespace patmos
   {
   private:
     /// The content of the stack cache.
-    byte_t Content[BLOCK_SIZE * NUM_BLOCKS];
+    ubyte_t Content[BLOCK_SIZE * NUM_BLOCKS];
 
     /// The current stack point in main memory.
-    byte_t *Main_base;
+    ubyte_t *Main_base;
 
     /// The number of blocks currently spilled to main memory.
     unsigned int Spilled_blocks;
@@ -224,6 +245,8 @@ namespace patmos
     /// Number of cycles left for the current transfer to be finished.
     unsigned int Transfer_Cycles;
   public:
+    /// Construct a black-based stack cache.
+    /// @param main_base pointer into the main memory to perform fills/spills.
     block_stack_cache_t(byte_t *main_base) :
         Main_base(main_base), Spilled_blocks(0), Top_block(0),
         Reserved_blocks(0), Transfer(IDLE), Transfer_Cycles(0)
@@ -248,13 +271,21 @@ namespace patmos
 
       // get the number of blocks
       unsigned int size_blocks = std::ceil((float)size/(float)BLOCK_SIZE);
-      assert(size_blocks <= NUM_BLOCKS);
+
+      // unsure that the stack cache size is not exceeded
+      if (size_blocks > NUM_BLOCKS)
+      {
+        simulation_exception_t::stackexceeded();
+      }
 
       // spill some blocks
       if (Reserved_blocks + size_blocks > NUM_BLOCKS)
       {
         // ensure that we do not exceed the stack size limit
-        assert(Spilled_blocks + size_blocks <= NUM_MAIN_BLOCKS);
+        if(Spilled_blocks + size_blocks > NUM_MAIN_BLOCKS)
+        {
+          simulation_exception_t::stackexceeded();
+        }
 
         // get the number of blocks to transfer
         unsigned int transfer_blocks = Reserved_blocks + size_blocks -
@@ -263,7 +294,7 @@ namespace patmos
         // copy the data to main memory
         for(unsigned int i = 0; i < transfer_blocks * BLOCK_SIZE; i++)
         {
-          byte_t value = Content[(((Top_block + NUM_BLOCKS - Reserved_blocks) *
+          ubyte_t value = Content[(((Top_block + NUM_BLOCKS - Reserved_blocks) *
                                   BLOCK_SIZE) + i) % (BLOCK_SIZE * NUM_BLOCKS)];
           *(--Main_base) = value;
         }
@@ -313,13 +344,23 @@ namespace patmos
 
       // get the number of blocks
       unsigned int size_blocks = std::ceil((float)size/(float)BLOCK_SIZE);
-      assert(size_blocks <= NUM_BLOCKS);
+
+      // ensure that the stack cache size is not exceeded
+      if(size_blocks > NUM_BLOCKS)
+      {
+        simulation_exception_t::stackexceeded();
+      }
 
       if (size_blocks > Reserved_blocks)
       {
         // also free some blocks spilled to memory
         unsigned int main_blocks = (size_blocks - Reserved_blocks);
-        assert(main_blocks <= Spilled_blocks);
+
+        // ensure that stack cache size is not exceeded
+        if(main_blocks > Spilled_blocks)
+        {
+          simulation_exception_t::stackexceeded();
+        }
 
         Spilled_blocks -= main_blocks;
         Main_base += (main_blocks * BLOCK_SIZE);
@@ -356,7 +397,12 @@ namespace patmos
 
       // get the number of blocks
       unsigned int size_blocks = std::ceil((float)size/(float)BLOCK_SIZE);
-      assert(size_blocks <= NUM_BLOCKS);
+
+      // unsure that the stack cache size is not exceeded
+      if (size_blocks > NUM_BLOCKS)
+      {
+        simulation_exception_t::stackexceeded();
+      }
 
       // need to transfer blocks from main memory?
       if (Reserved_blocks < size_blocks)
@@ -364,7 +410,11 @@ namespace patmos
         // get the number of blocks that have to be transferred
         unsigned int transfer_blocks = size_blocks - Reserved_blocks;
 
-        assert(transfer_blocks <= Spilled_blocks);
+        // unsure that the stack cache size is not exceeded
+        if(transfer_blocks > Spilled_blocks)
+        {
+          simulation_exception_t::stackexceeded();
+        }
 
         // copy the data from main memory
         for(unsigned int i = 0; i < transfer_blocks * BLOCK_SIZE; i++)
@@ -399,7 +449,12 @@ namespace patmos
     virtual bool read(uword_t address, byte_t *value, uword_t size)
     {
       unsigned int size_blocks = std::ceil((float)address/(float)BLOCK_SIZE);
-      assert(size_blocks <= Reserved_blocks && address >= size);
+
+      // unsure that the stack cache size and level are not exceeded
+      if(size_blocks > Reserved_blocks || address < size)
+      {
+        simulation_exception_t::stackexceeded();
+      }
 
       // read the value
       for(unsigned int i = 0; i < size; i++)
@@ -420,7 +475,12 @@ namespace patmos
     virtual bool write(uword_t address, byte_t *value, uword_t size)
     {
       unsigned int size_blocks = std::ceil((float)address/(float)BLOCK_SIZE);
-      assert(size_blocks <= Reserved_blocks && address >= size);
+
+      // unsure that the stack cache size and level are not exceeded
+      if(size_blocks > Reserved_blocks || address < size)
+      {
+        simulation_exception_t::stackexceeded();
+      }
 
       // store the value
       for(unsigned int i = 0; i < size; i++)
@@ -457,7 +517,7 @@ namespace patmos
         os << "  Content:\n";
 
         // print stack content in main memory
-        byte_t *content_main = Main_base + Spilled_blocks * BLOCK_SIZE;
+        ubyte_t *content_main = Main_base + Spilled_blocks * BLOCK_SIZE;
         for(unsigned int i = 0; i < Spilled_blocks * BLOCK_SIZE; i++)
         {
           os << boost::format("    %1$3d\n") % (int)*--content_main;

@@ -35,6 +35,9 @@ begin
   ------ latch read address
   latch_read_address:  process (clk, rst)
   begin
+  -- MS: we will not have the luxury to reset the
+  -- register file on a reset. It will simply be undefined.
+  -- However, that is fair enough.
     if(rst = '1') then
         for i in 0 to 31 loop -- initialize register file
           reg_bank(i)<= (others => '0');

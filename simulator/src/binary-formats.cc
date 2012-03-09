@@ -29,13 +29,25 @@ namespace patmos
 {
   typedef std::vector<const binary_format_t *> formats_t;
 
-  /// Extract a given number of bits form a given start position in a data word.
+  /// Extract a given number of bits form a given start position in a data
+  /// word -- unsigned.
   /// @param from The data word.
   /// @param start The start offset.
   /// @param width The number of bits to extract.
   static uword_t extract(uword_t from, unsigned int start, unsigned int width)
   {
     return (from >> start) & ((1 << width) - 1);
+  }
+
+  /// Extract a given number of bits form a given start position in a data
+  /// word -- signed.
+  /// @param from The data word.
+  /// @param start The start offset.
+  /// @param width The number of bits to extract.
+  static word_t extractS(word_t from, unsigned int start, unsigned int width)
+  {
+    word_t shift = sizeof(word_t)*8 - width;
+    return ((from >> start) << shift) >> shift;
   }
 
   static GPR_e extractG(uword_t from, unsigned int start)
@@ -70,6 +82,13 @@ namespace patmos
   {
     assert(fitu(pattern, width));
     iw = iw | (pattern << start);
+  }
+
+  static void insertVs(word_t &iw, unsigned int start, unsigned int width,
+                       word_t pattern)
+  {
+    assert(fits(pattern, width));
+    iw = iw | ( (pattern & ((1 << width) - 1)) << start);
   }
 
   static void insertG(word_t &iw, unsigned int start, word_t pattern)
@@ -442,17 +461,17 @@ namespace patmos
     return iw;
   }
 
-  // TODO: allow stack accesses in both slots
-  ldt_format_t::ldt_format_t(const instruction_t &instruction, word_t opcode) :
+  ldt_format_t::ldt_format_t(const instruction_t &instruction, word_t opcode,
+                             bool is_stack) :
       binary_format_t(instruction, 0x7C00F80, insert(0x2800000, 7, 5, opcode),
-                      1)
+                      is_stack ? 3 : 1)
   {
   }
 
   instruction_data_t ldt_format_t::decode_operands(word_t iw,
                                                    word_t longimm) const
   {
-    word_t imm = extract(iw, 0, 7);
+    word_t imm = extractS(iw, 0, 7);
     GPR_e ra = extractG(iw, 12);
     GPR_e rd = extractG(iw, 17);
     PRR_e pred = extractPN(iw, 27);
@@ -466,7 +485,7 @@ namespace patmos
 
     assert(fitu(opcode, 5) && isGPR(rd) && isGPR(ra) && fits(imm, 7));
 
-    insertV(iw, 0, 7, imm);
+    insertVs(iw, 0, 7, imm);
     insertV(iw, 7, 5, opcode);
     insertG(iw, 12, ra);
     insertG(iw, 17, rd);
@@ -481,17 +500,17 @@ namespace patmos
     return encode(pred, opcode, 0, ra, imm);
   }
 
-  // TODO: allow stack accesses in both slots
-  stt_format_t::stt_format_t(const instruction_t &instruction, word_t opcode) :
+  stt_format_t::stt_format_t(const instruction_t &instruction, word_t opcode,
+                             bool is_stack) :
       binary_format_t(instruction, 0x7FE0000, insert(0x2C00000, 17, 5, opcode),
-                      1)
+                      is_stack ? 3 : 1)
   {
   }
 
   instruction_data_t stt_format_t::decode_operands(word_t iw,
                                                    word_t longimm) const
   {
-    word_t imm = extract(iw, 0, 7);
+    word_t imm = extractS(iw, 0, 7);
     GPR_e rs = extractG(iw, 7);
     GPR_e ra = extractG(iw, 12);
     PRR_e pred = extractPN(iw, 27);
@@ -505,7 +524,7 @@ namespace patmos
 
     assert(fitu(opcode, 5) && isGPR(ra) && fits(imm, 7) && isGPR(rs));
 
-    insertV(iw, 0, 7, imm);
+    insertVs(iw, 0, 7, imm);
     insertG(iw, 7, rs);
     insertG(iw, 12, ra);
     insertV(iw, 17, 5, opcode);

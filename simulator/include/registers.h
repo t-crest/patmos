@@ -135,6 +135,11 @@ namespace patmos
     {
     }
 
+    /// Get the value stored at an active by-pass and return its value, in case
+    /// the by-pass is inactive, the supplied initial value is returned.
+    /// @param initial The value
+    /// @return The value stored at an active by-pass and return its value, in
+    /// case the by-pass is inactive, the supplied initial value is returned.
     register_operand_t<I, D> get(register_operand_t<I, D> initial)
     {
       if (Active && initial.get_index() == Operand.get_index())
@@ -148,6 +153,8 @@ namespace patmos
     }
 
     /// Read the value from the register by-pass.
+    /// @return Get the value from the by-bypass -- assert that the by-pass is
+    /// active.
     register_operand_t<I, D> get() const
     {
       assert(Active);

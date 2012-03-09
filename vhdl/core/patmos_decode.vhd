@@ -56,6 +56,11 @@ begin
               predicate_bit <= not predicate_register_bank(to_integer(unsigned(operation1(29 downto 27))));
         end if;   
         
+        -- MS: rs and rd should not be in the decode process.
+        -- The idea of the MIPS/RISC instruction format is that
+        -- no decoding is needed to use the source register addresses.
+        -- Just plainly forward that to the address inputs of the
+        -- register file
         if operation1(26 downto 25) = "00" then -- ALUi instruction
             inst_type <= ALUi;  
             ALU_function_type <= '0' & operation1(24 downto 22);

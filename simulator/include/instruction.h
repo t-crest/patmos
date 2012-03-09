@@ -100,6 +100,12 @@ namespace patmos
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
     virtual void MW_commit(simulator_t &s, instruction_data_t &ops) const = 0;
+
+    /// Pipeline function to simulate the behavior of a decoupled load
+    /// instruction running in parallel to the pipeline.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void dMW(simulator_t &s, instruction_data_t &ops) const = 0;
   };
 
   /// Data structure to keep data of instructions while executing.
@@ -109,6 +115,7 @@ namespace patmos
     /// The instruction class that implements the behavior.
     const instruction_t *I;
 
+    /// The predicate under which the instruction is executed.
     PRR_e Pred;
 
     /// Union to keep operand information depending on instruction classes.
@@ -203,14 +210,32 @@ namespace patmos
     } OPS;
 
     // -------------------------- DR -------------------------------------------
+
+    /// Decoded immediate from DR stage.
     word_t DR_Imm;
+
+    /// Read value from special register at the DR stage.
     word_t DR_Ss;
+
+    /// Read value from first general register operand at the DR stage.
     GPR_op_t DR_Rs1;
+
+    /// Read value from second general register operand at the DR stage.
     GPR_op_t DR_Rs2;
+
+    /// Read value from first predicate register operand at the DR stage.
     bit_t DR_Ps1;
+
+    /// Read value from second predicate register operand at the DR stage.
     bit_t DR_Ps2;
+
+    /// Value of the instruction's predicate as read at the DR stage.
     bit_t DR_Pred;
+
+    /// Current base address of the method cache, as read at the DR stage.
     word_t DR_Base;
+
+    /// Current method offset of the method cache, as read at the DR stage.
     word_t DR_Offset;
 
     // -------------------------- EX -------------------------------------------
@@ -218,7 +243,10 @@ namespace patmos
     word_t EX_result;
 
     /// Result of a multiplication
-    word_t EX_mull, EX_mulh;
+    word_t EX_mull;
+
+    /// Result of a multiplication
+    word_t EX_mulh;
 
     /// Result register operand from EX stage.
     GPR_by_pass_t GPR_EX_Rd;
@@ -478,6 +506,14 @@ namespace patmos
     {
       if (I)
         I->MW_commit(s, *this);
+    }
+
+    /// Invoke the dMW simulation function.
+    /// @param s The Patmos simulator executing the instruction.
+    void dMW(simulator_t &s)
+    {
+      if (I)
+        I->dMW(s, *this);
     }
   };
 }

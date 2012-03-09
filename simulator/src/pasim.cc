@@ -80,13 +80,20 @@ int main(int argc, char **argv)
   }
   catch (patmos::simulation_exception_t e)
   {
-    switch(e)
+    switch(e.get_kind())
     {
-      case patmos::ILLEGAL:
-        std::cerr << boost::format("Illegal instruction: %1%: %2%\n")
-                  % s.PC % s.Exception_status;
+      case patmos::simulation_exception_t::STACKEXCEEDED:
+        std::cerr << boost::format("Stack size exceeded: %1$08x\n") % s.PC;
         break;
-      case patmos::HALT:
+      case patmos::simulation_exception_t::UNMAPPED:
+        std::cerr << boost::format("Unmapped memory access: %1$08x: %2$08x\n")
+                  % s.PC % e.get_info();
+        break;
+      case patmos::simulation_exception_t::ILLEGAL:
+        std::cerr << boost::format("Illegal instruction: %1$08x: %2$08x\n")
+                  % s.PC % e.get_info();
+        break;
+      case patmos::simulation_exception_t::HALT:
         break;
       default:
         std::cerr << "Unknown simulation error.\n";
