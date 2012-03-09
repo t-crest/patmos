@@ -38,6 +38,10 @@ function shift_left_logical (rs, rt : unsigned(31 downto 0))
   variable shift_value  : unsigned(4 downto 0):= (others => '0');
 begin
   shift_value(4 downto 0 ) := rt(4 downto 0);
+  -- isn't there a shift operation in VHDL?
+  -- If the VHDL shift operation gives no good results,
+  -- we can (and should) steal form other designs that have the
+  -- shift as explicite MUX coding
   case (shift_value) is
       when "00000" => shift_out := rs;
       when "00001" => shift_out := rs(31 downto 1) & '0'; 
