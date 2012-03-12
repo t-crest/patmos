@@ -2,89 +2,7 @@
 -- add forwading values to input multiplexers of ALU
 -- replcae pd with predicate_reg(pd) (number of predicate register that should be written with 0 or 1)
 
- -------------------------------
- -- ALU multiplexer: rt
- -------------------------------
-library ieee;
-use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
-use work.patmos_type_package.all;
- 
- entity multiplexer_b is -- ctrl: 1 for register and 0 for extension
- 
-  port
-  (
-    rt                         : in unsigned(31 downto 0);
-    fw_alu                     : in unsigned(31 downto 0);
-    fw_mem                     : in unsigned(31 downto 0);
-    sign_extended_immediate    : in unsigned(31 downto 0);
-    fw_ctrl                    : in forwarding_type; 
-    mux_b_ctrl                 : in std_logic;
-    mux_b_out                  : out unsigned(31 downto 0)
-  );
- end entity multiplexer_b;
- 
- architecture arch of multiplexer_b is
- begin
-   process (rt, fw_alu, fw_mem, sign_extended_immediate, fw_ctrl, mux_b_ctrl)
-     begin
-       case mux_b_ctrl is
-         when '1' => 
-           if fw_ctrl = FWALU then 
-             mux_b_out <= fw_alu;
-           elsif fw_ctrl = FWMEM then 
-             mux_b_out <= fw_alu;
-           else  
-             mux_b_out <= rt;
-           end if;
-         when '0' =>
-           mux_b_out <= sign_extended_immediate;
-         when others => mux_b_out <= rt;
-       end case;
-     end process;
- end arch;
- 
-  -------------------------------
- -- ALU multiplexer: rs
- -------------------------------
- library ieee;
-use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
-use work.patmos_type_package.all;
- 
- entity multiplexer_a is -- ctrl: 1 for register and 0 for extension
- 
-  port
-  (
-    rs                         : in unsigned(31 downto 0);
-    fw_alu                     : in unsigned(31 downto 0);
-    fw_mem                     : in unsigned(31 downto 0);
---    sign_extended_immediate    : in std_logic_vector(31 downto 0);
-    fw_ctrl                    : in forwarding_type; 
---    mux_a_ctrl                 : in std_logic;
-    mux_a_out                  : out unsigned(31 downto 0)
-  );
- end entity multiplexer_a;
- 
- architecture arch of multiplexer_a is
- begin
-   process (rs, fw_alu, fw_mem, fw_ctrl)
-     begin
-       --case mux_a_ctrl is
-       --  when '1' => 
-           if fw_ctrl = FWALU then 
-             mux_a_out <= fw_alu;
-           elsif fw_ctrl = FWMEM then 
-             mux_a_out <= fw_alu;
-           else  
-             mux_a_out <= rs;
-           end if;
-        -- when '0' =>
-          -- mux_a_out <= sign_extended_immediate;
-       --  when others => mux_a_out <= rs;
-       --end case;
-     end process;
- end arch;
+
  
  -----------------------------------
  -- execution
@@ -109,7 +27,7 @@ entity patmos_execute is
     pd                              : out unsigned(2 downto 0);  -- this is the index of predicate bit, ALUp instructions write in predicate bits and others use them!
     rd                              : out unsigned(31 downto 0);
     wb_we                           : in std_logic;
-    wb_we_out_exec                  : out std_logic;
+    wb_we_exec                      : out std_logic;
     fw_alu                          : in unsigned(31 downto 0);
     fw_mem                          : in unsigned(31 downto 0);
     fw_ctrl_rs                      : in forwarding_type;
@@ -128,10 +46,6 @@ function shift_left_logical (rs, rt : unsigned(31 downto 0))
   variable shift_value  : unsigned(4 downto 0):= (others => '0');
 begin
   shift_value(4 downto 0 ) := rt(4 downto 0);
-  -- isn't there a shift operation in VHDL?
-  -- If the VHDL shift operation gives no good results,
-  -- we can (and should) steal form other designs that have the
-  -- shift as explicite MUX coding
   case (shift_value) is
       when "00000" => shift_out := rs;
       when "00001" => shift_out := rs(31 downto 1) & '0'; 
@@ -276,7 +190,7 @@ begin
   --if (inst_type = ALU)--if ALU
   case inst_type is
     when ALU => 
-      wb_we_out_exec <= wb_we;
+      wb_we_exec <= wb_we;
       case ALU_instruction_type is 
         when ALUr => 
          case ALU_function_type is
@@ -300,7 +214,7 @@ begin
        end case;
        
       when ALUu =>    
-        wb_we_out_exec <= wb_we;
+        wb_we_exec <= wb_we;
         case ALU_function_type is
           when "0000" => rd <= rs(7)& rs(7) &rs(7)& rs(7)& rs(7)& rs(7)& rs(7)& rs(7)& 
                                rs(7)& rs(7) &rs(7)& rs(7)& rs(7)& rs(7)& rs(7)& rs(7)&
@@ -322,7 +236,7 @@ begin
         --  when others => NULL;
       --end case;
       when ALUc =>    
-        wb_we_out_exec <= wb_we;
+        wb_we_exec <= wb_we;
         case ALU_function_type is
           when "0000" => 
             if (rs = "00000000000000000000000000000000") then
@@ -384,9 +298,9 @@ begin
     when others => NULL; -- case ALU_inst_type (ALUr, ALUc, ...)
     end case; 
     when ALUi =>
-      wb_we_out_exec <= wb_we;
+      wb_we_exec <= wb_we;
         case ALU_function_type is
-          when "0000" => rd <= rs + ("00000000000000000000" & ALUi_immediate);
+          when "0000" => rd <= fw_out_rs + ("00000000000000000000" & ALUi_immediate);
           when "0001" => rd <= rs - ("00000000000000000000" & ALUi_immediate);
           when "0010" => rd <= ("00000000000000000000" & ALUi_immediate) - rs;
           when "0011" => rd <= shift_left_logical(rs, ("00000000000000000000" & ALUi_immediate));

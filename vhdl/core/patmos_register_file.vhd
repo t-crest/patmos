@@ -35,9 +35,6 @@ begin
   ------ latch read address
   latch_read_address:  process (clk, rst)
   begin
-  -- MS: we will not have the luxury to reset the
-  -- register file on a reset. It will simply be undefined.
-  -- However, that is fair enough.
     if(rst = '1') then
         for i in 0 to 31 loop -- initialize register file
           reg_bank(i)<= (others => '0');
@@ -56,26 +53,26 @@ begin
  ------ read process (or should be async?)
   read:  process (reg_read_address1, reg_read_address2)
   begin
-    if (reg_read_address1 = write_address) and write_enable = '1' then
-      read_data1 <= write_data;
-    else 
+  --  if (reg_read_address1 = write_address) and write_enable = '1' then
+  --    read_data1 <= write_data;
+  --  else 
       read_data1 <= reg_bank(to_integer(unsigned(reg_read_address1)));
-    end if;
+  --  end if;
     
-    if (reg_read_address2 = write_address) and write_enable = '1' then
-      read_data2 <= write_data;
-    else   
+ --   if (reg_read_address2 = write_address) and write_enable = '1' then
+ --     read_data2 <= write_data;
+ --   else   
       read_data2 <= reg_bank(to_integer(unsigned(reg_read_address2)));
-    end if;
+ --   end if;
   end process read;
   
  ------ clock write_enable 
- write_en: process(clk)
- begin
-    if rising_edge (clk) then
-        reg_write_enable <= write_enable;
-    end if;
- end process write_en;
+ --write_en: process(clk)
+ --begin
+--    if rising_edge (clk) then
+  --      reg_write_enable <= write_enable;
+ --   end if;
+-- end process write_en;
   
  ------ write process
   --write:  process (clk)

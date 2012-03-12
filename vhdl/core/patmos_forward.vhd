@@ -48,16 +48,10 @@ end entity forward_value_select;
 
 architecture arch of forward_value_select is
 begin
-  fw_pro: process (fw_alu, fw_mem, fw_in, fw_ctrl)
-  begin
-    if fw_ctrl = FWALU  then
-      fw_out <= fw_alu;
-    elsif fw_ctrl = FWMEM then
-      fw_out <= fw_mem;
-    elsif fw_ctrl = FWNOP then
-      fw_out <= fw_in;
-    end if;
-  end process;
+  
+    fw_out <= fw_alu when fw_ctrl = FWALU  else
+              fw_mem when fw_ctrl = FWMEM else
+              fw_in  when fw_ctrl = FWNOP;
 end arch;
 
 library ieee;
