@@ -8,7 +8,7 @@ package patmos_type_package is
   type ALU_inst_type is (ALUr, ALUu, ALUm, ALUc, ALUp);
   type SPC_type is (SPCn, SPCw, SPCt, SPCf);
   signal predicate_register_bank : unsigned(7 downto 0);
-  type forwarding_type is (FWMEM, FWALU, FWNOP);
+  type forwarding_type is (FWNOP, FWMEM, FWALU);
 end patmos_type_package;
 
 

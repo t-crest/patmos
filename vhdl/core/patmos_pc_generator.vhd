@@ -62,7 +62,7 @@ begin
       if (rst = '1') then
            pc_next <= (others => '0');  
            pc <= (others => '0');  
-      elsif (clk = '1') then
+      elsif (rising_edge(clk)) then
          if predicate = '1' then -- investigate predicate register
             case pc_ctrl is
                when PCNext => pc <= pc_next + 4; -- next instruction

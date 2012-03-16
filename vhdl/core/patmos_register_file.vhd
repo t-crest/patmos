@@ -53,17 +53,17 @@ begin
  ------ read process (or should be async?)
   read:  process (reg_read_address1, reg_read_address2)
   begin
-  --  if (reg_read_address1 = write_address) and write_enable = '1' then
-  --    read_data1 <= write_data;
-  --  else 
+    if (reg_read_address1 = write_address) and write_enable = '1' then
+      read_data1 <= write_data;
+    else 
       read_data1 <= reg_bank(to_integer(unsigned(reg_read_address1)));
-  --  end if;
+    end if;
     
- --   if (reg_read_address2 = write_address) and write_enable = '1' then
- --     read_data2 <= write_data;
- --   else   
+    if (reg_read_address2 = write_address) and write_enable = '1' then
+      read_data2 <= write_data;
+    else   
       read_data2 <= reg_bank(to_integer(unsigned(reg_read_address2)));
- --   end if;
+    end if;
   end process read;
   
  ------ clock write_enable 
