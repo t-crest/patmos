@@ -1,5 +1,4 @@
 --TO DO: 
--- add forwading values to input multiplexers of ALU
 -- replcae pd with predicate_reg(pd) (number of predicate register that should be written with 0 or 1)
 
 
@@ -31,7 +30,11 @@ entity patmos_execute is
     fw_alu                          : in unsigned(31 downto 0);
     fw_mem                          : in unsigned(31 downto 0);
     fw_ctrl_rs                      : in forwarding_type;
-    fw_ctrl_rt                      : in forwarding_type
+    fw_ctrl_rt                      : in forwarding_type;
+    ld_type                         : in load_type;
+    load_immediate                  : in unsigned(6 downto 0);
+    ld_function_type                : in unsigned(1 downto 0);
+    load_address                    : out unsigned(31 downto 0) 
   );
 
 end entity patmos_execute;
@@ -301,16 +304,30 @@ begin
       wb_we_exec <= wb_we;
         case ALU_function_type is
           when "0000" => rd <= fw_out_rs + ("00000000000000000000" & ALUi_immediate);
-          when "0001" => rd <= rs - ("00000000000000000000" & ALUi_immediate);
-          when "0010" => rd <= ("00000000000000000000" & ALUi_immediate) - rs;
-          when "0011" => rd <= shift_left_logical(rs, ("00000000000000000000" & ALUi_immediate));
-          when "0100" => rd <= shift_right_logical(rs, ("00000000000000000000" & ALUi_immediate));
-          when "0101" => rd <= shift_right_arith(rs, ("00000000000000000000" & ALUi_immediate));
-          when "0110" => rd <= rs or ("00000000000000000000" & ALUi_immediate);
-          when "0111" => rd <= rs and ("00000000000000000000" & ALUi_immediate);
-          when others => rd <= rs + ("00000000000000000000" & ALUi_immediate);
+          when "0001" => rd <= fw_out_rs - ("00000000000000000000" & ALUi_immediate);
+          when "0010" => rd <= ("00000000000000000000" & ALUi_immediate) - fw_out_rs;
+          when "0011" => rd <= shift_left_logical(fw_out_rs, ("00000000000000000000" & ALUi_immediate));
+          when "0100" => rd <= shift_right_logical(fw_out_rs, ("00000000000000000000" & ALUi_immediate));
+          when "0101" => rd <= shift_right_arith(fw_out_rs, ("00000000000000000000" & ALUi_immediate));
+          when "0110" => rd <= fw_out_rs or ("00000000000000000000" & ALUi_immediate);
+          when "0111" => rd <= fw_out_rs and ("00000000000000000000" & ALUi_immediate);
+          when others => rd <= fw_out_rs + ("00000000000000000000" & ALUi_immediate);
         end case;
-   
+  when LDT => 
+        wb_we_exec <= wb_we; 
+        case ld_type is 
+          when lw => 
+            load_address <= fw_out_rs + ("0000000000000000000000000" & load_immediate(4 downto 0));
+       --   when lh =>
+       --   when lb =>
+       --   when lhu =>
+       --   when lbu =>
+       --   when dlwh =>
+       --   when dlbh =>
+       --   when dlbu =>
+          when others => null;  
+        end case;
+      
   when others => NULL; -- inst_type
   end case;
 end if;
