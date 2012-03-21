@@ -28,6 +28,7 @@ base:
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_fetch.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_decode.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_execute.vhd
+	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_core.vhd
 clean:
 	-rm transcript
 	-rm *.wlf
