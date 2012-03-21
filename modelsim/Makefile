@@ -27,7 +27,9 @@ base:
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_clock_input.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_fetch.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_decode.vhd
+	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_forward.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_execute.vhd
+	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_clock_input.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_core.vhd
 clean:
 	-rm transcript
