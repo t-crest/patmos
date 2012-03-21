@@ -131,10 +131,10 @@ begin
 	port map(clk, decode_dout.ALUi_immediate, ALUi_immediate_reg);
 	
 	------------------------------
-	uut_write_address_exec1: entity work.clock_input(arch)
+	uut_write_address_exec1: entity work.patmos_clock_input(arch)
 	generic map(5)
 	port map(clk, decode_dout.rd, rd_ex_in);
-	uut_write_address_exec2: entity work.clock_input(arch)
+	uut_write_address_exec2: entity work.patmos_clock_input(arch)
 	generic map(5)
 	port map(clk, rd_ex_in, rd_ex);
 	
