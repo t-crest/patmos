@@ -113,6 +113,8 @@ namespace patmos
     /// Active decoupled load running in parallel to the pipeline.
     instruction_data_t Decoupled_load;
 
+    /// Flag indicating whether a decoupled load is active.
+    bool Is_decoupled_load_active;
 
     /// Perform a step of the simulation for a given pipeline.
     /// @param pst The pipeline stage.

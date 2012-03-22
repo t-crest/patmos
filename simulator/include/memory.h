@@ -22,7 +22,10 @@
 
 #include "exception.h"
 
+#include <boost/format.hpp>
+
 #include <cassert>
+#include <cmath>
 
 namespace patmos
 {
@@ -97,7 +100,7 @@ namespace patmos
   /// An ideal memory.
   class ideal_memory_t : public memory_t
   {
-  private:
+  protected:
     /// The size of the memory in bytes.
     unsigned int Memory_size;
 
@@ -220,9 +223,180 @@ namespace patmos
     }
 
     /// Destroy the memory instance and free its memory.
-    ~ideal_memory_t()
+    virtual ~ideal_memory_t()
     {
       delete[] Content;
+    }
+  };
+
+  /// A memory with fixed access times to transfer fixed-sized blocks.
+  /// Memory accesses are performed in blocks (NUM_BLOCK_BYTES) with a fixed 
+  /// access delay (NUM_TICKS_PER_BLOCK).
+  template<int NUM_BLOCK_BYTES, int NUM_TICKS_PER_BLOCK>
+  class fixed_delay_memory_t : public ideal_memory_t
+  {
+  private:
+    /// Number of ticks until the currently pending request is completed.
+    uword_t Pending_ticks;
+
+#ifndef NDEBUG
+    /// Flag indicating whether the pending memory access is a load or a store.
+    bool Pending_is_load;
+
+    /// Address of pending memory access, if any.
+    uword_t Pending_address;
+
+    /// Number of bytes requested by pending memory access, if any.
+    uword_t Pending_size;
+#endif // NDEBUG
+  public:
+    /// Construct a new memory instance.
+    /// @param memory_size The size of the memory in bytes.
+    fixed_delay_memory_t(unsigned int memory_size) :
+        ideal_memory_t(memory_size), Pending_ticks(0)
+    {
+    }
+
+    /// A simulated access to a read port.
+    /// @param address The memory address to read from.
+    /// @param value A pointer to a destination to store the value read from
+    /// the memory.
+    /// @param size The number of bytes to read.
+    /// @return True when the data is available from the read port.
+    virtual bool read(uword_t address, byte_t *value, uword_t size)
+    {
+      if(Pending_ticks == 0)
+      {
+        // check if the access exceeds the memory size and lazily initialize
+        // memory content
+        check_initialize_content(address, size);
+
+        // set up memory transfer
+        Pending_ticks = NUM_TICKS_PER_BLOCK * std::ceil((float)size /
+                                                          NUM_BLOCK_BYTES);
+
+#ifndef NDEBUG
+        Pending_is_load = true;
+        Pending_address = address;
+        Pending_size = size;
+#endif // NDEBUG
+        return false;
+      }
+
+#ifndef NDEBUG
+      assert(Pending_is_load &&
+             Pending_address == address && Pending_size == size);
+#endif // NDEBUG
+
+      if(Pending_ticks == 1)
+      {
+        Pending_ticks = 0;
+        return ideal_memory_t::read(address, value, size);
+      }
+      else
+      {
+        return false;
+      }
+    }
+
+    /// A simulated access to a write port.
+    /// @param address The memory address to write to.
+    /// @param value The value to be written to the memory.
+    /// @param size The number of bytes to write.
+    /// @return True when the data is written finally to the memory, false
+    /// otherwise.
+    virtual bool write(uword_t address, byte_t *value, uword_t size)
+    {
+      if(Pending_ticks == 0)
+      {
+        // check if the access exceeds the memory size and lazily initialize
+        // memory content
+        check_initialize_content(address, size);
+
+        // set up memory transfer
+        Pending_ticks = NUM_TICKS_PER_BLOCK * std::ceil((float)size /
+                                                          NUM_BLOCK_BYTES);
+
+#ifndef NDEBUG
+        Pending_is_load = false;
+        Pending_address = address;
+        Pending_size = size;
+#endif // NDEBUG
+      }
+
+#ifndef NDEBUG
+      assert(!Pending_is_load &&
+             Pending_address == address && Pending_size == size);
+#endif // NDEBUG
+
+      if(Pending_ticks == 1)
+      {
+        Pending_ticks = 0;
+        return ideal_memory_t::write(address, value, size);
+      }
+      else
+      {
+        return false;
+      }
+    }
+
+    /// Read some values from the memory -- DO NOT SIMULATE TIMING.
+    /// @param address The memory address to read from.
+    /// @param value A pointer to a destination to store the value read from
+    /// the memory.
+    /// @param size The number of bytes to read.
+    virtual void read_peek(uword_t address, byte_t *value, uword_t size)
+    {
+      bool result = ideal_memory_t::read(address, value, size);
+      assert(result);
+    }
+
+    /// Write some values into the memory -- DO NOT SIMULATE TIMING, just write.
+    /// @param address The memory address to write to.
+    /// @param value The value to be written to the memory.
+    /// @param size The number of bytes to write.
+    virtual void write_peek(uword_t address, byte_t *value, uword_t size)
+    {
+      bool result = ideal_memory_t::write(address, value, size);
+      assert(result);
+    }
+
+    /// Check if the memory is busy handling some request.
+    /// @return False in case the memory is currently handling some request,
+    /// otherwise true.
+    virtual bool is_ready()
+    {
+      // always ready
+      return Pending_ticks == 0;
+    }
+
+    /// Notify the memory that a cycle has passed.
+    virtual void tick()
+    {
+      if (Pending_ticks > 1)
+      {
+        Pending_ticks--;
+      }
+    }
+
+    /// Print the internal state of the memory to an output stream.
+    /// @param os The output stream to print to.
+    virtual void print(std::ostream &os) const
+    {
+      if (Pending_ticks == 0)
+      {
+        os << " IDLE\n";
+      }
+      else
+      {
+#ifdef NDEBUG
+        os << boost::format(" Transfer: %1\n") % Pending_ticks;
+#else  // NDEBUG
+        os << boost::format(" %1%: %2% (%3$0x8 %4%)\n")
+           % (Pending_is_load ? "LOAD" : "STORE") % Pending_ticks
+           % Pending_address % Pending_size;
+#endif // NDEBUG
+      }
     }
   };
 }

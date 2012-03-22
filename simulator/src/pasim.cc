@@ -17,7 +17,6 @@
 // Main file of the Patmos Simulator.
 //
 
-#include "assembler.h"
 #include "data-cache.h"
 #include "instruction.h"
 #include "method-cache.h"
@@ -32,8 +31,8 @@ int main(int argc, char **argv)
 {
   // setup simulation framework
   patmos::ideal_stack_cache_t isc;
-  patmos::ideal_method_cache_t imc;
   patmos::ideal_memory_t imm(patmos::NUM_MEMORY_BYTES);
+  patmos::ideal_method_cache_t imc(imm);
   patmos::ideal_data_cache_t idc(imm);
   patmos::ideal_memory_t ilm(patmos::NUM_LOCAL_MEMORY_BYTES);
 
@@ -82,7 +81,11 @@ int main(int argc, char **argv)
   {
     switch(e.get_kind())
     {
-      case patmos::simulation_exception_t::STACKEXCEEDED:
+      case patmos::simulation_exception_t::CODE_EXCEEDED:
+        std::cerr << boost::format("Method cache size exceeded: %1$08x\n")
+                  % e.get_info();
+        break;
+      case patmos::simulation_exception_t::STACK_EXCEEDED:
         std::cerr << boost::format("Stack size exceeded: %1$08x\n") % s.PC;
         break;
       case patmos::simulation_exception_t::UNMAPPED:

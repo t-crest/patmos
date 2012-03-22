@@ -34,7 +34,8 @@ namespace patmos
                            stack_cache_t &stack_cache) :
       Cycle(0), Memory(memory), Local_memory(local_memory),
       Data_cache(data_cache), Method_cache(method_cache),
-      Stack_cache(stack_cache), BASE(0), PC(0), nPC(0), Stall(SIF)
+      Stack_cache(stack_cache), BASE(0), PC(0), nPC(0), Stall(SIF),
+      Is_decoupled_load_active(false)
   {
     // initialize one predicate register to be true, otherwise no instruction
     // will ever execute
@@ -101,6 +102,12 @@ namespace patmos
 
   void simulator_t::run(bool debug, uint64_t max_cycles)
   {
+    // do some initializations before executing the first instruction.
+    if (Cycle == 0)
+    {
+      Method_cache.initialize();
+    }
+
     try
     {
       for(uint64_t cycle = 0; cycle < max_cycles; cycle++, Cycle++)
@@ -141,10 +148,9 @@ namespace patmos
         {
           unsigned int iw_size;
 
-          // fetch the instruction word from the memory -- NO SIMULATION HERE,
-          // just simple memory transfer.
+          // fetch the instruction word from the method cache.
           word_t iw[2];
-          Memory.read_peek(PC, reinterpret_cast<byte_t*>(&iw), sizeof(iw));
+          Method_cache.fetch(PC, iw);
 
           // decode the instruction word.
           iw_size = Decoder.decode(iw,  Pipeline[0]);
@@ -186,7 +192,8 @@ namespace patmos
       {
         case simulation_exception_t::ILLEGAL:
         case simulation_exception_t::UNMAPPED:
-        case simulation_exception_t::STACKEXCEEDED:
+        case simulation_exception_t::STACK_EXCEEDED:
+        case simulation_exception_t::CODE_EXCEEDED:
           // pass on to caller
           throw e;
         case simulation_exception_t::HALT:

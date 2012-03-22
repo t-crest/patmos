@@ -57,41 +57,58 @@ namespace patmos
       abort();
     }
 
+    /// Check if the memory is busy handling some request.
+    /// @return False in case the memory is currently handling some request,
+    /// otherwise true.
+    virtual bool is_ready()
+    {
+      // this is not supported by stack caches.
+      assert(false);
+      abort();
+    }
   public:
-    /// Reserve a given number of bytes to main memory, potentially spilling
-    /// stack data to main memory.
-    /// @param size The number of bytes to be reserved to main memory.
+    /// Reserve a given number of bytes, potentially spilling stack data to some
+    /// memory.
+    /// @param size The number of bytes to be reserved.
+    /// @param stack_top Reference to the current value of the stack top
+    /// pointer (might be updated).
     /// @return True when the stack space is actually reserved on the cache,
     /// false otherwise.
-    virtual bool reserve(uword_t size) = 0;
+    virtual bool reserve(uword_t size, uword_t &stack_top) = 0;
 
     /// Free a given number of bytes on the stack.
     /// @param size The number of bytes to be freed.
+    /// @param stack_top Reference to the current value of the stack top
+    /// pointer (might be updated).
     /// @return True when the stack space is actually freed in the cache, false
     /// otherwise.
-    virtual bool free(uword_t size) = 0;
+    virtual bool free(uword_t size, uword_t &stack_top) = 0;
 
     /// Ensure that a given number of bytes are actually on the stack.
     /// @param size The number of bytes that have to be available.
+    /// @param stack_top Reference to the current value of the stack top
+    /// pointer (might be updated).
     /// @return True when the requested data is actually in the cache, false
     /// otherwise.
-    virtual bool ensure(uword_t size) = 0;
+    virtual bool ensure(uword_t size, uword_t &stack_top) = 0;
   };
 
   /// An ideal stack cache with "infinite" space.
   class ideal_stack_cache_t : public stack_cache_t
   {
-  public:
+  protected:
     /// The content of the cache.
-    std::vector<ubyte_t> Content;
+    std::vector<byte_t> Content;
 
   public:
-    /// Reserve a given number of bytes to main memory, potentially spilling
-    /// stack data to main memory.
-    /// @param size The number of bytes to be reserved to main memory.
+    /// Reserve a given number of bytes, potentially spilling stack data to some 
+    /// memory.
+    /// @param size The number of bytes to be reserved.
+    /// @param stack_top Reference to the current value of the stack top
+    /// pointer (might be updated).
     /// @return True when the stack space is actually reserved on the cache,
     /// false otherwise.
-    virtual bool reserve(uword_t size)
+    virtual bool reserve(uword_t size, uword_t &stack_top)
     {
       Content.resize(Content.size() + size);
       return true;
@@ -99,14 +116,16 @@ namespace patmos
 
     /// Free a given number of bytes on the stack.
     /// @param size The number of bytes to be freed.
+    /// @param stack_top Reference to the current value of the stack top
+    /// pointer (might be updated).
     /// @return True when the stack space is actually freed in the cache, false
     /// otherwise.
-    virtual bool free(uword_t size)
+    virtual bool free(uword_t size, uword_t &stack_top)
     {
       // check if stack size is exceeded
       if (Content.size() < size)
       {
-        simulation_exception_t::stackexceeded();
+        simulation_exception_t::stack_exceeded();
       }
 
       Content.resize(Content.size() - size);
@@ -115,9 +134,11 @@ namespace patmos
 
     /// Ensure that a given number of bytes are actually on the stack.
     /// @param size The number of bytes that have to be available.
+    /// @param stack_top Reference to the current value of the stack top
+    /// pointer (might be updated).
     /// @return True when the requested data is actually in the cache, false
     /// otherwise.
-    virtual bool ensure(uword_t size)
+    virtual bool ensure(uword_t size, uword_t &stack_top)
     {
       return true;
     }
@@ -133,7 +154,7 @@ namespace patmos
       // if access exceeds the stack size
       if (Content.size() < address || address < size)
       {
-        simulation_exception_t::stackexceeded();
+        simulation_exception_t::stack_exceeded();
       }
 
       // read the value
@@ -156,7 +177,7 @@ namespace patmos
       // if access exceeds the stack size
       if (Content.size() < address || address < size)
       {
-        simulation_exception_t::stackexceeded();
+        simulation_exception_t::stack_exceeded();
       }
 
       // store the value
@@ -165,14 +186,6 @@ namespace patmos
         Content[Content.size() - address + i] = *value++;
       }
 
-      return true;
-    }
-
-    /// Check if the memory is busy handling some request.
-    /// @return False in case the memory is currently handling some request,
-    /// otherwise true.
-    virtual bool is_ready()
-    {
       return true;
     }
 
@@ -188,193 +201,210 @@ namespace patmos
     {
       unsigned int idx = Content.size();
 
-      for(std::vector<ubyte_t>::const_iterator i(Content.begin()),
+      for(std::vector<byte_t>::const_iterator i(Content.begin()),
           ie(Content.end()); i != ie; i++, idx--)
       {
-        os << boost::format(" %1$08x:  %2$02x\n") % idx % (uword_t)*i;
+        os << boost::format(" %1$08x:  %2$02x\n") % idx % (uword_t)(ubyte_t)*i;
       }
 
       os << "\n";
     }
   };
 
-  /// Possible transfers to/from the stack cache.
-  enum Stack_cache_transfer_e
-  {
-    /// No transfer ongoing.
-    IDLE,
-    /// Data is transferred from the stack cache to the main memory.
-    SPILL,
-    /// Data is transferred from the main memory to the stack cache.
-    FILL
-  };
-
   /// A stack cache organized in blocks.
   /// The cache is organized in blocks (NUM_BLOCKS) each a fixed size in bytes
-  /// (BLOCK_SIZE). Spills and fills are performed automatically during the
-  /// reserve and ensure operations operating on main memory (MAIN_BASE) up to
-  /// a limit (NUM_BYTES).
-  /// The DEBUG_INIT template argument can be used to test the stack cache, it
-  /// causes all new stack entries to be initialized to the current stack depth
-  /// in bytes. It this allows to see if the stack content was updated
-  /// correctly during spill/fill.
-  template<unsigned int BLOCK_SIZE, unsigned int NUM_BLOCKS,
-           unsigned int NUM_MAIN_BLOCKS, int TRANSFER_TIME,
-           bool DEBUG_INIT = false>
-  class block_stack_cache_t : public stack_cache_t
+  /// (NUM_BLOCK_BYTES). Spills and fills are performed automatically during the
+  /// reserve and ensure instructions, which operate on a bounded number of
+  /// blocks in memory (NUM_BLOCKS_TOTAL).
+  template<unsigned int NUM_BLOCK_BYTES, unsigned int NUM_BLOCKS,
+           unsigned int NUM_BLOCKS_TOTAL>
+  class block_stack_cache_t : public ideal_stack_cache_t
   {
   private:
-    /// The content of the stack cache.
-    ubyte_t Content[BLOCK_SIZE * NUM_BLOCKS];
-
-    /// The current stack point in main memory.
-    ubyte_t *Main_base;
-
-    /// The number of blocks currently spilled to main memory.
-    unsigned int Spilled_blocks;
-
-    /// The current top of the stack within the stack-cache in blocks.
-    unsigned int Top_block;
-
-    /// The number of blocks currently reserved.
-    unsigned int Reserved_blocks;
+    /// Possible transfers to/from the stack cache.
+    enum phase_e
+    {
+      /// No transfer ongoing.
+      IDLE,
+      /// Data is transferred from the stack cache to the memory.
+      SPILL,
+      /// Data is transferred from the memory to the stack cache.
+      FILL
+    };
 
     /// Store currently ongoing transfer.
-    Stack_cache_transfer_e Transfer;
+    phase_e Phase;
 
-    /// Number of cycles left for the current transfer to be finished.
-    unsigned int Transfer_Cycles;
+    /// The memory to spill/fill.
+    memory_t &Memory;
+
+    /// Temporary buffer used during spill/fill.
+    byte_t Buffer[NUM_BLOCKS * NUM_BLOCK_BYTES];
+
+    /// Number of blocks to transfer to/from memory during a pending spill/fill.
+    unsigned int Num_transfer_blocks;
+
+    /// The number of blocks currently on the stack.
+    unsigned int Num_reserved_blocks;
+
+    /// The number of blocks currently spilled to memory.
+    unsigned int Num_spilled_blocks;
   public:
     /// Construct a black-based stack cache.
-    /// @param main_base pointer into the main memory to perform fills/spills.
-    block_stack_cache_t(byte_t *main_base) :
-        Main_base(main_base), Spilled_blocks(0), Top_block(0),
-        Reserved_blocks(0), Transfer(IDLE), Transfer_Cycles(0)
+    /// @param memory The memory to spill/fill.
+    block_stack_cache_t(memory_t &memory) :
+        ideal_stack_cache_t(), Phase(IDLE), Memory(memory), 
+        Num_transfer_blocks(0), Num_reserved_blocks(0), Num_spilled_blocks(0)
     {
     }
 
-    /// Reserve a given number of bytes to main memory, potentially spilling
-    /// stack data to main memory.
-    /// @param size The number of bytes to be reserved to main memory.
+    /// Reserve a given number of bytes, potentially spilling stack data to some 
+    /// memory.
+    /// @param size The number of bytes to be reserved.
+    /// @param stack_top Reference to the current value of the stack top
+    /// pointer (might be updated).
     /// @return True when the stack space is actually reserved on the cache,
     /// false otherwise.
-    virtual bool reserve(uword_t size)
+    virtual bool reserve(uword_t size, uword_t &stack_top)
     {
-      // simulate ongoing transfers
-      if (Transfer_Cycles != 0)
+      // convert byte-level size to block size.
+      unsigned int size_blocks = std::ceil((float)size/(float)NUM_BLOCK_BYTES);
+
+      switch (Phase)
       {
-        assert(Transfer == SPILL);
-        return false;
-      }
-
-      assert(Transfer == IDLE);
-
-      // get the number of blocks
-      unsigned int size_blocks = std::ceil((float)size/(float)BLOCK_SIZE);
-
-      // unsure that the stack cache size is not exceeded
-      if (size_blocks > NUM_BLOCKS)
-      {
-        simulation_exception_t::stackexceeded();
-      }
-
-      // spill some blocks
-      if (Reserved_blocks + size_blocks > NUM_BLOCKS)
-      {
-        // ensure that we do not exceed the stack size limit
-        if(Spilled_blocks + size_blocks > NUM_MAIN_BLOCKS)
+        case IDLE:
         {
-          simulation_exception_t::stackexceeded();
+          assert(Num_transfer_blocks == 0);
+
+          // unsure that the stack cache size is not exceeded
+          if (size_blocks > NUM_BLOCKS)
+          {
+            simulation_exception_t::stack_exceeded();
+          }
+
+          // reserve stack space
+          Num_reserved_blocks += size_blocks;
+          bool result = ideal_stack_cache_t::reserve(
+                                      size_blocks * NUM_BLOCK_BYTES, stack_top);
+          assert(result);
+
+          // need to spill some blocks?
+          if(Num_reserved_blocks <= NUM_BLOCKS)
+          {
+            // done.
+            return true;
+          }
+          else
+          {
+            // yes? spill some blocks ...
+            Num_transfer_blocks = Num_reserved_blocks - NUM_BLOCKS;
+
+            // ensure that we do not exceed the total stack size limit
+            if(Num_transfer_blocks + Num_spilled_blocks > NUM_BLOCKS_TOTAL)
+            {
+              simulation_exception_t::stack_exceeded();
+            }
+
+            // copy data to a buffer to allow contiguous transfer to the memory.
+            unsigned int idx = Content.size() -
+                               Num_reserved_blocks * NUM_BLOCK_BYTES;
+            for(unsigned int i = 0; i < Num_transfer_blocks * NUM_BLOCK_BYTES;
+                i++, idx++)
+            {
+              Buffer[i] = Content[idx];
+            }
+
+            // proceed to spill phase ...
+            // NOTE: the spill commences immediately
+            Phase = SPILL;
+          }
         }
-
-        // get the number of blocks to transfer
-        unsigned int transfer_blocks = Reserved_blocks + size_blocks -
-                                         NUM_BLOCKS;
-
-        // copy the data to main memory
-        for(unsigned int i = 0; i < transfer_blocks * BLOCK_SIZE; i++)
+        case SPILL:
         {
-          ubyte_t value = Content[(((Top_block + NUM_BLOCKS - Reserved_blocks) *
-                                  BLOCK_SIZE) + i) % (BLOCK_SIZE * NUM_BLOCKS)];
-          *(--Main_base) = value;
+          assert(Num_transfer_blocks != 0);
+
+          // spill the content of the stack buffer to the memory.
+          if (Memory.write(stack_top, &Buffer[0],
+                           Num_transfer_blocks * NUM_BLOCK_BYTES))
+          {
+            // update the internal stack cache state.
+            Num_reserved_blocks -= Num_transfer_blocks;
+            Num_spilled_blocks += Num_transfer_blocks;
+
+            // update the stack top pointer of the processor 
+            stack_top -= Num_transfer_blocks * NUM_BLOCK_BYTES;
+
+            // the transfer is done, go back to IDLE phase
+            Num_transfer_blocks = 0;
+            Phase = IDLE;
+            return true;
+          }
+          else
+          {
+            // keep waiting until the transfer is completed.
+            return false;
+          }
+
+          // should never be reached
+          break;
         }
+        case FILL:
+          // should never be reached
+          break;
+      };
 
-        // track the new blocks in main memory
-        Spilled_blocks += transfer_blocks;
-
-        // free the blocks in the stack cache
-        Reserved_blocks -= transfer_blocks;
-
-        // setup a spill transfer
-        Transfer = SPILL;
-        Transfer_Cycles = TRANSFER_TIME * transfer_blocks;
-
-        return false;
-      }
-
-      // allocate space on the stack cache
-      Reserved_blocks += size_blocks;
-
-      // push top-of-stack
-      Top_block = (Top_block + size_blocks) % NUM_BLOCKS;
-
-      // for testing purposes initialize the content of the cache.
-      if (DEBUG_INIT)
-      {
-        unsigned int init_value = (Reserved_blocks + Spilled_blocks) *
-                                  BLOCK_SIZE;
-        for(unsigned int i = 0; i < size_blocks * BLOCK_SIZE; i++)
-        {
-          Content[((Top_block + NUM_BLOCKS) * BLOCK_SIZE - i - 1)
-                    % (BLOCK_SIZE * NUM_BLOCKS)] = init_value--;
-        }
-      }
-
-      return true;
+      // we should not get here.
+      assert(false);
+      abort();
     }
 
     /// Free a given number of bytes on the stack.
     /// @param size The number of bytes to be freed.
+    /// @param stack_top Reference to the current value of the stack top
+    /// pointer (might be updated).
     /// @return True when the stack space is actually freed in the cache, false
     /// otherwise.
-    virtual bool free(uword_t size)
+    virtual bool free(uword_t size, uword_t &stack_top)
     {
       // we do not expect any transfers at this point
-      assert(Transfer == IDLE && Transfer_Cycles == 0);
+      assert(Phase == IDLE && Num_transfer_blocks == 0);
 
-      // get the number of blocks
-      unsigned int size_blocks = std::ceil((float)size/(float)BLOCK_SIZE);
+      // convert byte-level size to block size.
+      unsigned int size_blocks = std::ceil((float)size/(float)NUM_BLOCK_BYTES);
 
       // ensure that the stack cache size is not exceeded
       if(size_blocks > NUM_BLOCKS)
       {
-        simulation_exception_t::stackexceeded();
+        simulation_exception_t::stack_exceeded();
+      }
+      // ensure that the total stack cache size is not exceeded
+      else if(size_blocks > Num_spilled_blocks + Num_reserved_blocks)
+      {
+        simulation_exception_t::stack_exceeded();
       }
 
-      if (size_blocks > Reserved_blocks)
+      // free space on the stack
+      bool result = ideal_stack_cache_t::free(size_blocks * NUM_BLOCK_BYTES,
+                                              stack_top);
+      assert(result);
+
+      // also free space in memory?
+      if (size_blocks <= Num_reserved_blocks)
       {
-        // also free some blocks spilled to memory
-        unsigned int main_blocks = (size_blocks - Reserved_blocks);
-
-        // ensure that stack cache size is not exceeded
-        if(main_blocks > Spilled_blocks)
-        {
-          simulation_exception_t::stackexceeded();
-        }
-
-        Spilled_blocks -= main_blocks;
-        Main_base += (main_blocks * BLOCK_SIZE);
-
-        // empty the stack cache
-        Reserved_blocks = 0;
+        // no? -- update internal state of the stack cache
+        Num_reserved_blocks -= size_blocks;
       }
       else
       {
-        // free the blocks in the stack cache
-        Reserved_blocks -= size_blocks;
+        // yes? -- also free some blocks in main memory
+        unsigned int freed_spilled_blocks = size_blocks - Num_reserved_blocks;
 
-        // pop top-of-stack
-        Top_block = (Top_block + NUM_BLOCKS - size_blocks) % NUM_BLOCKS;
+        // update internal state of the stack cache
+        Num_spilled_blocks -= freed_spilled_blocks;
+        Num_reserved_blocks = 0;
+
+        // update the stack top pointer of the processor
+        stack_top += freed_spilled_blocks * NUM_BLOCK_BYTES;
       }
 
       return true;
@@ -382,175 +412,120 @@ namespace patmos
 
     /// Ensure that a given number of bytes are actually on the stack.
     /// @param size The number of bytes that have to be available.
+    /// @param stack_top Reference to the current value of the stack top
+    /// pointer (might be updated).
     /// @return True when the requested data is actually in the cache, false
     /// otherwise.
-    virtual bool ensure(uword_t size)
+    virtual bool ensure(uword_t size, uword_t &stack_top)
     {
-      // simulate ongoing transfers
-      if (Transfer_Cycles != 0)
+      // convert byte-level size to block size.
+      unsigned int size_blocks = std::ceil((float)size/(float)NUM_BLOCK_BYTES);
+
+      switch(Phase)
       {
-        assert(Transfer == FILL);
-        return false;
-      }
-
-      assert(Transfer == IDLE);
-
-      // get the number of blocks
-      unsigned int size_blocks = std::ceil((float)size/(float)BLOCK_SIZE);
-
-      // unsure that the stack cache size is not exceeded
-      if (size_blocks > NUM_BLOCKS)
-      {
-        simulation_exception_t::stackexceeded();
-      }
-
-      // need to transfer blocks from main memory?
-      if (Reserved_blocks < size_blocks)
-      {
-        // get the number of blocks that have to be transferred
-        unsigned int transfer_blocks = size_blocks - Reserved_blocks;
-
-        // unsure that the stack cache size is not exceeded
-        if(transfer_blocks > Spilled_blocks)
+        case IDLE:
         {
-          simulation_exception_t::stackexceeded();
-        }
+          assert(Num_transfer_blocks == 0);
 
-        // copy the data from main memory
-        for(unsigned int i = 0; i < transfer_blocks * BLOCK_SIZE; i++)
+          // unsure that the stack cache size is not exceeded
+          if (size_blocks > NUM_BLOCKS)
+          {
+            simulation_exception_t::stack_exceeded();
+          }
+          // ensure that the total stack cache size is not exceeded
+          else if(size_blocks > Num_reserved_blocks + Num_spilled_blocks)
+          {
+            simulation_exception_t::stack_exceeded();
+          }
+
+          // need to transfer blocks from memory?
+          if (Num_reserved_blocks >= size_blocks)
+          {
+            // no? -- done
+            return true;
+          }
+          else
+          {
+            // yes? -- fill from memory
+            Num_transfer_blocks = size_blocks - Num_reserved_blocks;
+
+            assert(Num_transfer_blocks <= Num_spilled_blocks);
+
+            // proceed to next phase -- fill from memory
+            // NOTE: the fill commences immediately
+            Phase = FILL;
+          }
+        }
+        case FILL:
         {
-          Content[(((Top_block + NUM_BLOCKS - Reserved_blocks) * BLOCK_SIZE) -
-                    i - 1) % (BLOCK_SIZE * NUM_BLOCKS)] = *(Main_base++);
+          assert(Num_transfer_blocks != 0);
+
+          // copy the data from memory into a temporary buffer
+          if (Memory.read(stack_top - Num_transfer_blocks * NUM_BLOCK_BYTES,
+                          Buffer, Num_transfer_blocks * NUM_BLOCK_BYTES))
+          {
+            // no need to copy from the temporary buffer into the stack cache,
+            // since the data has never been erased there during the spill.
+
+            // update the internal state of the stack cache
+            Num_spilled_blocks -= Num_transfer_blocks;
+            Num_reserved_blocks += Num_transfer_blocks;
+
+            // terminate transfer -- goto IDLE state
+            Phase = IDLE;
+            Num_transfer_blocks = 0;
+          }
+          else
+          {
+            // wait until the transfer from the memory is completed.
+            return false;
+          }
+
+          // should never be reached
+          break;
         }
-
-        // remove the blocks from main memory
-        Spilled_blocks -= transfer_blocks;
-
-        // track the newly loaded blocks in the stack cache
-        Reserved_blocks = size_blocks;
-
-        // setup a fill transfer
-        Transfer = FILL;
-        Transfer_Cycles = TRANSFER_TIME * transfer_blocks;
-
-        return false;
+        case SPILL:
+          // should never be reached
+          break;
       }
 
-      return true;
+      // we should not get here.
+      assert(false);
+      abort();
     }
 
-
-    /// A simulated access to a read port.
-    /// @param address The memory address to read from.
-    /// @param value A pointer to a destination to store the value read from
-    /// the cache.
-    /// @param size The number of bytes to read.
-    /// @return True when the data is available from the read port.
-    virtual bool read(uword_t address, byte_t *value, uword_t size)
-    {
-      unsigned int size_blocks = std::ceil((float)address/(float)BLOCK_SIZE);
-
-      // unsure that the stack cache size and level are not exceeded
-      if(size_blocks > Reserved_blocks || address < size)
-      {
-        simulation_exception_t::stackexceeded();
-      }
-
-      // read the value
-      for(unsigned int i = 0; i < size; i++)
-      {
-        *value++ = Content[(((Top_block + NUM_BLOCKS) * BLOCK_SIZE) -
-                              address + i) % (BLOCK_SIZE * NUM_BLOCKS)];
-      }
-
-      return true;
-    }
-
-    /// A simulated access to a write port.
-    /// @param address The memory address to write to.
-    /// @param value The value to be written to the cache.
-    /// @param size The number of bytes to write.
-    /// @return True when the data is written finally to the cache, false
-    /// otherwise.
-    virtual bool write(uword_t address, byte_t *value, uword_t size)
-    {
-      unsigned int size_blocks = std::ceil((float)address/(float)BLOCK_SIZE);
-
-      // unsure that the stack cache size and level are not exceeded
-      if(size_blocks > Reserved_blocks || address < size)
-      {
-        simulation_exception_t::stackexceeded();
-      }
-
-      // store the value
-      for(unsigned int i = 0; i < size; i++)
-      {
-        Content[(((Top_block + NUM_BLOCKS) * BLOCK_SIZE) - address + i) %
-                  (BLOCK_SIZE * NUM_BLOCKS)] = *value++;
-      }
-
-      return true;
-    }
-
-    /// Notify the stack cache that a cycle has passed.
-    virtual void tick()
-    {
-      if (Transfer_Cycles != 0)
-      {
-        assert(Transfer != IDLE);
-        Transfer_Cycles--;
-        Transfer = (Transfer_Cycles == 0) ? IDLE : Transfer;
-      }
-    }
 
     /// Print the internal state of the stack cache to an output stream.
     /// @param os The output stream to print to.
     virtual void print(std::ostream &os) const
     {
-      os << boost::format("  T: %1$3d #B: %2$3d (%3%) #S: %4$3d (%5%) %6%(%7%)"
-                          "\n")
-         % Top_block % Reserved_blocks % NUM_BLOCKS % Spilled_blocks
-         % NUM_MAIN_BLOCKS % Transfer % Transfer_Cycles;
+      os << boost::format("  %1$5s: Reserved: %2$4d (%3%) "
+                                    "Spilled: %4$4d (%5%)\n")
+         % Phase % Num_reserved_blocks % NUM_BLOCKS % Num_spilled_blocks
+         % NUM_BLOCKS_TOTAL;
 
-      if (DEBUG_INIT)
-      {
-        os << "  Content:\n";
-
-        // print stack content in main memory
-        ubyte_t *content_main = Main_base + Spilled_blocks * BLOCK_SIZE;
-        for(unsigned int i = 0; i < Spilled_blocks * BLOCK_SIZE; i++)
-        {
-          os << boost::format("    %1$3d\n") % (int)*--content_main;
-        }
-
-        os << "  ---------------------\n";
-
-        // print stack cache content
-        for(unsigned int i = 0; i < Reserved_blocks * BLOCK_SIZE; i++)
-        {
-          os << boost::format("    %1$2x\n")
-             % (int)Content[(((Top_block + NUM_BLOCKS - Reserved_blocks) *
-                              BLOCK_SIZE) + i) % (BLOCK_SIZE * NUM_BLOCKS)];
-        }
-      }
+      // print stack cache content
+      ideal_stack_cache_t::print(os);
     }
   };
 
-  /// Operator to print the transfer state of a stack cache to a stream
+
+  /// Operator to print the state of a stack cache to a stream
   /// @param os The output stream to print to.
-  /// @param transfer The transfer state of the stack cache.
+  /// @param phase The state of the stack cache.
+  template<typename T>
   inline std::ostream &operator <<(std::ostream &os,
-                                   Stack_cache_transfer_e transfer)
+                                   typename T::phase_e phase)
   {
-    switch (transfer)
+    switch (phase)
     {
-      case IDLE:
+      case T::IDLE:
         os << "idle";
         break;
-      case SPILL:
+      case T::SPILL:
         os << "spill";
         break;
-      case FILL:
+      case T::FILL:
         os << "fill";
         break;
     }

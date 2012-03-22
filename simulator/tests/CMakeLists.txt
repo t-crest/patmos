@@ -41,7 +41,7 @@ Errors : 0")
 test_asm(12 "Emitted: 56 words
 Errors : 0")
 
-test_asm(13 "Emitted: 60 words
+test_asm(13 "Emitted: 64 words
 Errors : 0")
 
 test_asm(14 "Emitted: 52 words
@@ -62,7 +62,7 @@ Errors : 0")
 test_asm(19 "Emitted: 16 words
 Errors : 0")
 
-test_asm(20 "Emitted: 16 words
+test_asm(20 "Emitted: 28 words
 Errors : 0")
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -120,4 +120,4 @@ test_sim(18 "Stack size exceeded: 00000014")
 
 test_sim(19 "r0 : 00000007")
 
-test_sim(20 "s1 : 0281fa80")
+test_sim(20 "r1 : 0281fa80   r2 : 8281fa81")

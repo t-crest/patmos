@@ -753,8 +753,7 @@ namespace patmos
 
       if (Pred)
       {
-        // TODO: verify timing here
-        if (!s.Memory.is_ready())
+        if (s.Is_decoupled_load_active)
         {
           // stall the pipeline
           s.pipeline_stall(SDR);
@@ -1028,6 +1027,12 @@ namespace patmos
     {
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
       ops.DR_Rs1 = s.GPR.get(ops.OPS.LDT.Ra);
+
+      if (ops.DR_Pred && s.Is_decoupled_load_active)
+      {
+        // stall the pipeline
+        s.pipeline_stall(SDR);
+      }
     }
 
     // EX implemented by base class
@@ -1040,6 +1045,8 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void dMW(simulator_t &s, instruction_data_t &ops) const
     {
+      assert(s.Is_decoupled_load_active);
+
       // load from memory
       word_t result;
       bool is_available = load(s, ops.EX_Address, result);
@@ -1048,8 +1055,9 @@ namespace patmos
       if (is_available)
       {
         // store the loaded value by writing it into a by-pass
-        s.SPR.set(sM, result);
+        s.SPR.set(sm, result);
         s.Decoupled_load = instruction_data_t();
+        s.Is_decoupled_load_active = false;
       }
     }
   };
@@ -1068,7 +1076,9 @@ namespace patmos
       ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1) + ops.OPS.LDT.Imm*sizeof(atype); \
       if (ops.DR_Pred) \
       { \
+        assert(!s.Is_decoupled_load_active); \
         s.Decoupled_load = ops; \
+        s.Is_decoupled_load_active = true; \
       } \
     } \
     virtual bool load(simulator_t &s, word_t address, word_t &value) const \
@@ -1187,13 +1197,16 @@ namespace patmos
     virtual void DR(simulator_t &s, instruction_data_t &ops) const \
     { \
       ops.DR_Pred = s.PRR.get(ops.Pred).get(); \
+      ops.DR_Ss = s.SPR.get(st).get(); \
     } \
     virtual void MW(simulator_t &s, instruction_data_t &ops) const \
     { \
-      if(ops.DR_Pred && !s.Stack_cache.function(ops.OPS.STC.Imm)) \
+      uword_t stack_top = ops.DR_Ss; \
+      if(ops.DR_Pred && !s.Stack_cache.function(ops.OPS.STC.Imm, stack_top)) \
       { \
         s.pipeline_stall(SMW); \
       } \
+      s.SPR.set(st, stack_top); \
     } \
   };
 
@@ -1254,7 +1267,7 @@ namespace patmos
         if (!s.Method_cache.is_available(base))
         {
           // stall the pipeline
-          s.pipeline_stall(SDR);
+          s.pipeline_stall(SMW);
         }
         else
         {

@@ -44,7 +44,10 @@ namespace patmos
       UNMAPPED,
 
       /// A stack operation exceeded the stack size.
-      STACKEXCEEDED
+      STACK_EXCEEDED,
+
+      /// A method exceeds the size of the method cache.
+      CODE_EXCEEDED
     };
 
   private:
@@ -53,7 +56,7 @@ namespace patmos
 
     /// Additional information on the exception, e.g., the address of an
     /// unmapped memory access, et cetera.
-    word_t Info;
+    uword_t Info;
 
     /// Construction a simulation exception.
     /// @param kind The kind of the simulation exception.
@@ -73,9 +76,9 @@ namespace patmos
 
     /// Return additional information on the simulation exception.
     /// @return The kind additional information on the simulation exception.
-    word_t get_info() const
+    uword_t get_info() const
     {
-      assert(Kind != HALT && Kind != STACKEXCEEDED);
+      assert(Kind != HALT && Kind != STACK_EXCEEDED);
       return Info;
     }
 
@@ -87,22 +90,28 @@ namespace patmos
 
     /// Throw an illegal instruction simulation exception.
     /// @param iw The illegal instruction word.
-    static void illegal(word_t iw)
+    static void illegal(uword_t iw)
     {
       throw simulation_exception_t(ILLEGAL, iw);
     }
 
     /// Throw an unmapped address simulation exception.
     /// @param address The unmapped address.
-    static void unmapped(word_t address)
+    static void unmapped(uword_t address)
     {
       throw simulation_exception_t(UNMAPPED, address);
     }
 
     /// Throw a stack-cache-size-exceeded simulation exception.
-    static void stackexceeded()
+    static void stack_exceeded()
     {
-      throw simulation_exception_t(STACKEXCEEDED);
+      throw simulation_exception_t(STACK_EXCEEDED);
+    }
+
+    /// Throw a method-cache-size-exceeded simulation exception.
+    static void code_exceeded(uword_t address)
+    {
+      throw simulation_exception_t(CODE_EXCEEDED, address);
     }
   };
 }

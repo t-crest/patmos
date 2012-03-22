@@ -323,7 +323,7 @@ namespace patmos
     /// Construct a new binary format for the instruction using a given opcode.
     /// @param instruction The instruction.
     /// @param opcode The instruction's opcode.
-    /// @param is_stack Flag indicating whether the instruction accesses the 
+    /// @param is_stack Flag indicating whether the instruction accesses the
     /// stack.
     ldt_format_t(const instruction_t &instruction, word_t opcode,
                  bool is_stack = false);

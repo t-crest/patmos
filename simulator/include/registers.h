@@ -194,9 +194,9 @@ namespace patmos
     r31,
     NUM_GPR,
 
-    rS = r29, // Stack Pointer
-    rM = r30, // Return Method
-    rA = r31  // Return Offset
+    rs = r29, // Stack Pointer
+    rm = r30, // Return Method
+    ra = r31  // Return Offset
   };
 
   /// Symbols representing the predicate registers.
@@ -213,8 +213,8 @@ namespace patmos
   {
     s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15,
     NUM_SPR,
-    sP = s0,
-    sM = s1,
+    sp = s0,
+    sm = s1,
     sl = s2,
     sh = s3,
     sb = s4,

@@ -69,6 +69,9 @@ namespace patmos
       /// Parse immediate.
       rule_t Imm, Imm4u, Imm12u, Imm22u, Imm7s;
 
+      /// Parse an arbitrary data word.
+      rule_t Data_Word;
+
       /// Parse an instruction predicate.
       rule_t Pred;
 
@@ -149,7 +152,9 @@ namespace patmos
                                                        boost::spirit::qi::_1,
                                                        boost::spirit::qi::_2)] |
                  Instruction1
-                 [boost::spirit::qi::_val = boost::spirit::qi::_1];
+                 [boost::spirit::qi::_val = boost::spirit::qi::_1]             |
+                 Data_Word
+                 [boost::spirit::qi::_val = boost::spirit::qi::_1]             ;
 
         // All instructions except ALUl
         Instruction1 %= (ALUi | ALUr | ALUu | ALUm | ALUc | ALUp |
@@ -213,6 +218,13 @@ namespace patmos
                                                               boost::spirit::_1,
                                                               7)]
                    [boost::spirit::_val = boost::spirit::_1];
+
+        // parse some arbitrary word-sized data
+        Data_Word = (".word" >> Imm)
+                    [boost::spirit::_pass = boost::phoenix::bind(fits,
+                                                              boost::spirit::_1,
+                                                              32)]
+                    [boost::spirit::_val = boost::spirit::_1];
 
         // Parse an (optional) instruction predicate.
         Pred = ('(' >> NegPRR >> ')')
