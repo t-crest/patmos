@@ -17,9 +17,7 @@ entity patmos_decode is
 end entity patmos_decode;
 
 architecture arch of patmos_decode is 
---signal operation1_out : std_logic_vector (31 downto 0);
---signal operation2_out : std_logic_vector (31 downto 0);
---signal predicate_registers is std_logic_vector(7 downto 0);
+
 signal predicate_reg : integer;
 
 begin
@@ -36,15 +34,29 @@ begin
             elsif din.operation1(30) = '0' then -- ~predicate bits assignment
               dout.predicate_bit <= not predicate_register_bank(to_integer(unsigned(din.operation1(29 downto 27))));
         end if;   
-        
+    inst_type_out                       : instruction_type;
+    ALU_function_type_out               : unsigned(3 downto 0);
+    ALU_instruction_type_out            : ALU_inst_type;
+    ALUi_immediate_out                  : unsigned(11 downto 0);
+    pc_ctrl_gen_out                     : pc_type;
+    wb_we_out                           : std_logic;
+    rs1_out                             : unsigned (4 downto 0);
+    rs2_out                             : unsigned (4 downto 0);
+    rd_out                              : unsigned (4 downto 0);
+    pd_out                              : unsigned (2 downto 0);
+    sd_out                              : unsigned (3 downto 0);
+    ss_out                              : unsigned (3 downto 0);
+    ld_type_out                         : load_type;
+    load_immediate_out                  : unsigned(6 downto 0);
+    ld_function_type_out                : unsigned(1 downto 0);
         if din.operation1(26 downto 25) = "00" then -- ALUi instruction
-            dout.inst_type <= ALUi;  
-            dout.ALU_function_type <= '0' & din.operation1(24 downto 22);
-            dout.rd <= din.operation1(21 downto 17); -- move this to datapath
-            dout.rs1 <= din.operation1(16 downto 12); -- move this to datapath
-            dout.ALUi_immediate <= din.operation1(11 downto 0); --should be zero extended
-            dout.pc_ctrl_gen <= PCNext;
-            dout.wb_we <= '1';
+            dout.inst_type_out <= din.inst_type_in;  
+            dout.ALU_function_type_out <= din.ALU_funtion_type_in;--'0' & din.operation1(24 downto 22);
+            dout.rd_out <= din.rd_in; --din.operation1(21 downto 17); 
+            dout.rs1_out <= din.rs1_in; -- din.operation1(16 downto 12);
+            dout.ALUi_immediate_out <= din.ALUi_immediate_in; -- din.operation1(11 downto 0); --should be zero extended
+            dout.pc_ctrl_gen_out <= PCNext;
+            dout.wb_we <= din.wb_we; -- '1';
        -- elsif din.operation1(26 downto 22) = "11111" then -- long immediate!
             
          elsif din.operation1(26 downto 22) = "01000" then -- ALU instructions

@@ -6,8 +6,8 @@ entity patmos_data_memory is
   port(
         clk       	           : in std_logic;
         address               : in unsigned(31 downto 0);
-        data_in               : in unsigned(31 downto 0);
-        data_out              : out unsigned(31 downto 0);
+        data_in               : in unsigned(31 downto 0); -- store
+        data_out              : out unsigned(31 downto 0); -- load
         read_enable           : in std_logic;
         write_enable          : in std_logic
       );

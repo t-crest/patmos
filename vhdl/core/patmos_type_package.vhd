@@ -19,47 +19,67 @@ package patmos_type_package is
 constant        pc_length                   : integer := 32;
 constant        instruction_word_length     : integer := 32;
 -------------------------------------------
--- fetch
+-- fetch/decode
 -------------------------------------------
 type fetch_in_type is record
-    instruction_word            :  unsigned(instruction_word_length - 1 downto 0); 
-    pc_ctrl                     :  pc_type;
-    predicate                   :  std_logic;
-    immediate                   :  unsigned(21 downto 0);
+    instruction                   :  unsigned(instruction_word_length - 1 downto 0); 
+    pc                            :  unsigned(pc_length - 1 downto 0);
 end record;
 type fetch_out_type is record
-		pc                          :  unsigned(pc_length - 1 downto 0);
-		operation1                  :  unsigned(31 downto 0);
+		pc                            :  unsigned(pc_length - 1 downto 0);
+		instruction                   :  unsigned(31 downto 0);
 end record;
 
 --------------------------------------------
--- decode
+-- decode/exec
 --------------------------------------------
 type decode_in_type is record
-    operation1                      : unsigned (31 downto 0);
+    --operation1                         : unsigned (31 downto 0);
+  		predicate_bit_in                   : std_logic;
+    inst_type_in                       : instruction_type;
+    ALU_function_type_in               : unsigned(3 downto 0);
+    ALU_instruction_type_in            : ALU_inst_type;
+    ALUi_immediate_in                  : unsigned(11 downto 0);
+    pc_ctrl_gen_in                     : pc_type;
+    wb_we_in                           : std_logic;
+    rs1_in                             : unsigned (4 downto 0);
+    rs2_in                             : unsigned (4 downto 0);
+    rd_in                              : unsigned (4 downto 0);
+    pd_in                              : unsigned (2 downto 0);
+    sd_in                              : unsigned (3 downto 0);
+    ss_in                              : unsigned (3 downto 0);
+    ld_type_in                         : load_type;
+    load_immediate_in                  : unsigned(6 downto 0);
+    ld_function_type_in                : unsigned(1 downto 0);
 end record;
 type decode_out_type is record
-		predicate_bit                   : std_logic;
-    inst_type                       : instruction_type;
-    ALU_function_type               : unsigned(3 downto 0);
-    ALU_instruction_type            : ALU_inst_type;
-    ALUi_immediate                  : unsigned(11 downto 0);
-    pc_ctrl_gen                     : pc_type;
-    multiplexer_a_ctrl              : std_logic;
-    multiplexer_b_ctrl              : std_logic;
-    alu_we                          : std_logic;
-    wb_we                           : std_logic;
-    rs1                             : unsigned (4 downto 0);
-    rs2                             : unsigned (4 downto 0);
-    rd                              : unsigned (4 downto 0);
-    pd                              : unsigned (2 downto 0);
-    sd                              : unsigned (3 downto 0);
-    ss                              : unsigned (3 downto 0);
-    ld_type                         : load_type;
-    load_immediate                  : unsigned(6 downto 0);
-    ld_function_type                : unsigned(1 downto 0);
+		predicate_bit_out                   : std_logic;
+    inst_type_out                       : instruction_type;
+    ALU_function_type_out               : unsigned(3 downto 0);
+    ALU_instruction_type_out            : ALU_inst_type;
+    ALUi_immediate_out                  : unsigned(11 downto 0);
+    pc_ctrl_gen_out                     : pc_type;
+    wb_we_out                           : std_logic;
+    rs1_out                             : unsigned (4 downto 0);
+    rs2_out                             : unsigned (4 downto 0);
+    rd_out                              : unsigned (4 downto 0);
+    pd_out                              : unsigned (2 downto 0);
+    sd_out                              : unsigned (3 downto 0);
+    ss_out                              : unsigned (3 downto 0);
+    ld_type_out                         : load_type;
+    load_immediate_out                  : unsigned(6 downto 0);
+    ld_function_type_out                : unsigned(1 downto 0);
 end record;
        
+-------------------------------------------
+-- execution
+-------------------------------------------
+--type execution_in_type is record
+    
+--end record;
+
+--type execution_out_type is record
+--end record;
 
 
 

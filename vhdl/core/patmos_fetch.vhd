@@ -15,17 +15,17 @@ entity patmos_fetch is
 end entity patmos_fetch;
 
 architecture arch of patmos_fetch is
---  signal pc_next                    : std_logic_vector(pc_length - 1 downto 0) := (others => '0');
 
 begin
-    uut1: entity work.patmos_pc_generator(arch)
-	  port map(clk, rst, dout.pc, din.pc_ctrl, din.immediate, din.predicate);
 
     fetch: process(clk)
     begin
-        if (rising_edge(clk) and rst = '0') then
-            dout.operation1 <= din.instruction_word(31 downto 0);
-         --   operation2 <= instruction_word(63 downto 32);
+        if (rst = '1') then
+          dout.pc <= (others => '0');
+        elsif (rising_edge(clk) and rst = '0') then
+            dout.instruction <= din.instruction;
+            dout.pc <= din.pc;
         end if;
     end process fetch;
 end arch;
+
