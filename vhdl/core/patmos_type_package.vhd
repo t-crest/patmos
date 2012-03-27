@@ -61,17 +61,18 @@ type decode_out_type is record
     ld_function_type_out                : unsigned(1 downto 0);
     reg_write_out                       : std_logic;
     alu_src_out                         : std_logic; -- 0 for ALUi/ 1 for ALU
+    mem_to_reg_out                      : std_logic; -- data to register file comes from alu or mem? 0 for alu and 1 for mem
 end record;
        
 -------------------------------------------
 -- execution
 -------------------------------------------
---type execution_in_type is record
+type execution_in_type is record
     
---end record;
+end record;
 
---type execution_out_type is record
---end record;
+type execution_out_type is record
+end record;
 
 ------------------------------------------
 -- control
@@ -81,6 +82,7 @@ type alu_in_type is record
    rs2                         : unsigned(31 downto 0);
    inst_type                   : instruction_type; 
    ALU_function_type           : unsigned(3 downto 0);
+   ALU_instruction_type        : ALU_inst_type;
 end record;
 
 type alu_out_type is record

@@ -42,10 +42,11 @@ begin
             dout.ALUi_immediate_out <= "00000000000000000000" & din.operation(11 downto 0);
             dout.rs1_data_out <= din.rs1_data_in;
             dout.reg_write_out <= din.reg_write_in;
-            dout.alu_src_out <= '0';
+            dout.alu_src_out <= '1'; -- choose the second source, i.e. immediate!
             dout.reg_write_out <= '1'; -- reg_write_out is reg_write_ex
-           -- dout.pc_ctrl_gen_out <= PCNext;
-          --  dout.wb_we <= din.wb_we; -- '1';
+            dout.mem_to_reg_out <= '0' -- data comes from alu or mem ? 0 from alu and 1 from mem
+            dout.mem_read_out <= '0';
+            dout.mem_write_out <= '0';
        -- elsif din.operation1(26 downto 22) = "11111" then -- long immediate!
             
         

@@ -29,7 +29,7 @@ type register_bank is array (0 to 31) of unsigned(31 downto 0);
 signal reg_bank : register_bank;
 --signal reg_read_address1, reg_read_address2 : unsigned(4 downto 0);
 signal reg_write_enable : std_logic;
-signal test : integer := 0;
+
 begin
   --                                  
   ------ latch read address
