@@ -95,11 +95,7 @@ signal fw_out_rt            : unsigned(31 downto 0);
 
 begin
 
-  fw_a: entity work.forward_value_select(arch)
-	port map(fw_alu, fw_mem, rs, fw_out_rs, fw_ctrl_rs);
-  
-  fw_b: entity work.forward_value_select(arch)
-	port map(fw_alu, fw_mem, rt, fw_out_rt, fw_ctrl_rt);
+ 
   
   alu_op: process(clk)
   begin

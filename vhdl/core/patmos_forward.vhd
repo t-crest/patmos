@@ -21,9 +21,16 @@ end entity forward_type_select;
 
 architecture arch of forward_type_select is
 begin
-  fw_type <= FWALU when (alu_write_register = read_register and alu_write_enable = '1' and alu_write_register /= "00000")
-        else FWMEM when (mem_write_register = read_register and mem_write_enable = '1' and mem_write_register /= "00000")
-        else FWNOP;
+  process (read_register, alu_write_register, mem_write_register, alu_write_enable, mem_write_enable)
+  begin
+   if(alu_write_register = read_register and alu_write_enable = '1' and alu_write_register /= "00000") then
+      fw_type <= FWALU;
+    elsif (mem_write_register = read_register and mem_write_enable = '1' and mem_write_register /= "00000") then
+      fw_type <= FWMEM;
+    else 
+      fw_type <= FWNOP;
+    end if;
+  end process;
 end arch;
 
 ---------------------------------
@@ -35,7 +42,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.patmos_type_package.all;
 
-entity forward_value_select is
+entity patmos_forward_value is
   port
   (
     fw_alu              : in unsigned(31 downto 0); --rs forwarded from previous alu
@@ -44,9 +51,9 @@ entity forward_value_select is
     fw_out              : out unsigned(31 downto 0);
     fw_ctrl             : in forwarding_type
   );
-end entity forward_value_select;
+end entity patmos_forward_value;
 
-architecture arch of forward_value_select is
+architecture arch of patmos_forward_value is
 begin
   
     fw_out <= fw_alu when fw_ctrl = FWALU  else

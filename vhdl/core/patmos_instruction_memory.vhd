@@ -16,6 +16,7 @@ architecture arch of patmos_rom is
 begin
   rom_unit(0) <= "00000000000001000000000000000011";
   rom_unit(4) <= "00000000000001100010000000000010";
+  rom_unit(8) <= "00000000000000000000000010000001";
   rom_out <= rom_unit(to_integer(addr));
 end arch;
 

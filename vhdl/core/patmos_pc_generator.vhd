@@ -1,26 +1,3 @@
--------------------------------------
--- sign extension for branch
--------------------------------------
-
-library ieee;
-use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
-
-entity sign_extension is
-  port 
-  (
-    immediate                       : in unsigned(21 downto 0);
-    sign_extended_immediate         : out unsigned(31 downto 0)
-  );
-end entity sign_extension;
-
-architecture arch of sign_extension is
-signal sign_bit : std_logic;
-begin
-  sign_bit <= immediate(21);
-  sign_extended_immediate <=  (sign_bit & sign_bit & sign_bit & sign_bit & sign_bit & sign_bit & sign_bit & sign_bit &immediate) & "00";
-end arch;
-
 ---------------------------------
 -- pc generation
 ---------------------------------
@@ -60,4 +37,28 @@ begin
     end process pc_gen ;        
 
 end arch;
+-------------------------------------
+-- sign extension for branch
+-------------------------------------
+
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+entity sign_extension is
+  port 
+  (
+    immediate                       : in unsigned(21 downto 0);
+    sign_extended_immediate         : out unsigned(31 downto 0)
+  );
+end entity sign_extension;
+
+architecture arch of sign_extension is
+signal sign_bit : std_logic;
+begin
+  sign_bit <= immediate(21);
+  sign_extended_immediate <=  (sign_bit & sign_bit & sign_bit & sign_bit & sign_bit & sign_bit & sign_bit & sign_bit &immediate) & "00";
+end arch;
+
+
 

@@ -34,41 +34,33 @@ end record;
 -- decode/exec
 --------------------------------------------
 type decode_in_type is record
-    --operation1                         : unsigned (31 downto 0);
-  		predicate_bit_in                   : std_logic;
-    inst_type_in                       : instruction_type;
-    ALU_function_type_in               : unsigned(3 downto 0);
-    ALU_instruction_type_in            : ALU_inst_type;
-    ALUi_immediate_in                  : unsigned(11 downto 0);
-    pc_ctrl_gen_in                     : pc_type;
-    wb_we_in                           : std_logic;
-    rs1_in                             : unsigned (4 downto 0);
-    rs2_in                             : unsigned (4 downto 0);
-    rd_in                              : unsigned (4 downto 0);
-    pd_in                              : unsigned (2 downto 0);
-    sd_in                              : unsigned (3 downto 0);
-    ss_in                              : unsigned (3 downto 0);
-    ld_type_in                         : load_type;
-    load_immediate_in                  : unsigned(6 downto 0);
-    ld_function_type_in                : unsigned(1 downto 0);
+    operation                          : unsigned (31 downto 0);
+		rs1_data_in                        : unsigned (31 downto 0);
+    rs2_data_in                        : unsigned (31 downto 0);
+    reg_write_in                       : std_logic;
+    alu_src_in                         : std_logic;
 end record;
 type decode_out_type is record
 		predicate_bit_out                   : std_logic;
     inst_type_out                       : instruction_type;
     ALU_function_type_out               : unsigned(3 downto 0);
     ALU_instruction_type_out            : ALU_inst_type;
-    ALUi_immediate_out                  : unsigned(11 downto 0);
+    ALUi_immediate_out                  : unsigned(31 downto 0);
     pc_ctrl_gen_out                     : pc_type;
     wb_we_out                           : std_logic;
     rs1_out                             : unsigned (4 downto 0);
     rs2_out                             : unsigned (4 downto 0);
     rd_out                              : unsigned (4 downto 0);
+    rs1_data_out                        : unsigned (31 downto 0);
+    rs2_data_out                        : unsigned (31 downto 0);
     pd_out                              : unsigned (2 downto 0);
     sd_out                              : unsigned (3 downto 0);
     ss_out                              : unsigned (3 downto 0);
     ld_type_out                         : load_type;
     load_immediate_out                  : unsigned(6 downto 0);
     ld_function_type_out                : unsigned(1 downto 0);
+    reg_write_out                       : std_logic;
+    alu_src_out                         : std_logic; -- 0 for ALUi/ 1 for ALU
 end record;
        
 -------------------------------------------
@@ -81,7 +73,19 @@ end record;
 --type execution_out_type is record
 --end record;
 
+------------------------------------------
+-- control
+------------------------------------------
+type alu_in_type is record
+   rs1                         : unsigned(31 downto 0);
+   rs2                         : unsigned(31 downto 0);
+   inst_type                   : instruction_type; 
+   ALU_function_type           : unsigned(3 downto 0);
+end record;
 
+type alu_out_type is record
+  rd                          : unsigned(31 downto 0);
+end record;
 
 end patmos_type_package;
      
