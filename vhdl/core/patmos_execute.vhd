@@ -31,26 +31,13 @@ begin
   begin
     if rising_edge(clk) then
       dout.reg_write_out <= din.reg_write_in;
+      dout.mem_read_out <= din.mem_read_in;
+      dout.mem_write_out <= din.mem_write_in;
+      dout.mem_to_reg_out <= din.mem_to_reg_in;
+      dout.alu_result_out <= din.alu_result_in;
+      dout.mem_write_data_out <= din.mem_write_data_in;
+      dout.write_back_reg_out <= din.write_back_reg_in;
     end if; 
   end process;
 end arch;
 
-
-EX_MEM EX_MEM(
-	.clk				(clk),
-	.rst				(rst_n),
-	.RegWrite_in		(RegWrite_EX),	// WB
-	.MemtoReg_in		(MemtoReg_EX),	// WB
-	.MemRead_in			(MemRead_EX),		// M
-	.MemWrite_in		(MemWrite_EX),	// M
-	.ALUData_in			(ALUResult_EX),
-	.MemWriteData_in	(muxB_ALUsrc),
-	.WBregister_in		(mux_RegDST_EX),
-	.RegWrite_out		(RegWrite_MEM),	// WB
-	.MemtoReg_out		(MemtoReg_MEM),	// WB
-	.MemRead_out		(MemRead_MEM),	// M
-	.MemWrite_out		(MemWrite_MEM),
-	.ALUData_out		(ALUResult_MEM),
-	.MemWriteData_out	(Rt_Data_MEM),
-	.WBregister_out		(mux_RegDST_MEM)
-);

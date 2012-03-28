@@ -44,12 +44,35 @@ begin
             dout.reg_write_out <= din.reg_write_in;
             dout.alu_src_out <= '1'; -- choose the second source, i.e. immediate!
             dout.reg_write_out <= '1'; -- reg_write_out is reg_write_ex
-            dout.mem_to_reg_out <= '0' -- data comes from alu or mem ? 0 from alu and 1 from mem
+            dout.mem_to_reg_out <= '0'; -- data comes from alu or mem ? 0 from alu and 1 from mem
             dout.mem_read_out <= '0';
             dout.mem_write_out <= '0';
        -- elsif din.operation1(26 downto 22) = "11111" then -- long immediate!
             
-        
+        elsif din.operation(4 downto 0) = "01000" then -- ALU instructions
+            dout.inst_type_out <= ALU;  
+            dout.ALU_function_type_out <= din.operation(3 downto 0);
+            dout.rs1_data_out <= din.rs1_data_in;
+            dout.rs2_data_out <= din.rs2_data_in;
+            dout.reg_write_out <= din.reg_write_in;
+            dout.alu_src_out <= '1'; -- choose the second source, i.e. immediate!
+            dout.reg_write_out <= '1'; -- reg_write_out is reg_write_ex
+            dout.mem_to_reg_out <= '0'; -- data comes from alu or mem ? 0 from alu and 1 from mem
+            dout.mem_read_out <= '0';
+            dout.mem_write_out <= '0';
+            case din.operation(6 downto 4) is
+              when "000" => -- Register
+                dout.ALU_instruction_type_out <= ALUr;
+              when "001" => -- Unary
+                dout.ALU_instruction_type_out <= ALUu;
+              when "010" => -- Multuply
+                dout.ALU_instruction_type_out <= ALUm;
+              when "011" => -- Compare
+                dout.ALU_instruction_type_out <= ALUc;
+              when "100" => -- predicate
+                dout.ALU_instruction_type_out <= ALUp;
+              when others => NULL;
+            end case; 
        -- elsif din.operation1(26 downto 22) = "01011" then  
      end if;
    end if;

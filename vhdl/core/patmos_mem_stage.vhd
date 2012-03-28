@@ -1,18 +1,16 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use work.patmos_type_package.all;
 
 
 entity patmos_mem_stage is 
   port
   (
     clk                          : in std_logic;
-    write_register_in            : in unsigned(4 downto 0);
-    write_data_in                : in unsigned(31 downto 0);
-    write_enable_in              : in std_logic;
-    write_register_out           : out unsigned(4 downto 0);
-    write_data_out               : out unsigned(31 downto 0);
-    write_enable_out             : out std_logic
+    rst       	 	                : in std_logic;
+    din             	            : in mem_in_type;
+    dout                         : out mem_out_type 
   );
 end entity patmos_mem_stage;
 
@@ -24,9 +22,11 @@ begin
   mem_wb: process(clk)
   begin
     if (rising_edge(clk)) then
-      write_data_out <= write_data_in;
-      write_register_out <= write_register_in;
-      write_enable_out <= write_enable_in;
+      dout.reg_write_out <= din.reg_write_in;
+      dout.mem_to_reg_out <= din.mem_to_reg_in;
+      dout.mem_data_out <= din.mem_data_in;
+      dout.alu_result_out <= din.alu_result_in;
+      dout.write_back_reg_out <= din.write_back_reg_in;
     end if;
   end process mem_wb;
 
