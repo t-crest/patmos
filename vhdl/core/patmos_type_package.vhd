@@ -37,7 +37,7 @@ type decode_in_type is record
     operation                          : unsigned (31 downto 0);
 		rs1_data_in                        : unsigned (31 downto 0);
     rs2_data_in                        : unsigned (31 downto 0);
-    reg_write_in                       : std_logic;
+ --   reg_write_in                       : std_logic;
     alu_src_in                         : std_logic;               
 end record;
 type decode_out_type is record
@@ -112,7 +112,8 @@ type mem_in_type is record
     mem_to_reg_in                : std_logic;
     mem_data_in                  : unsigned(31 downto 0); 
     alu_result_in                : unsigned(31 downto 0);
-    write_back_reg_in       : unsigned(4 downto 0); 
+    write_back_reg_in            : unsigned(4 downto 0); 
+    mem_write_data_in            : unsigned(31 downto 0);
 end record;
 
 type mem_out_type is record
@@ -120,7 +121,8 @@ type mem_out_type is record
     mem_to_reg_out                : std_logic;
     mem_data_out                  : unsigned(31 downto 0); 
     alu_result_out                : unsigned(31 downto 0);
-    write_back_reg_out       : unsigned(4 downto 0); 
+    write_back_reg_out            : unsigned(4 downto 0); 
+    mem_write_data_out            : unsigned(31 downto 0);
 end record;
      
 

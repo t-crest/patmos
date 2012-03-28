@@ -15,8 +15,11 @@ architecture arch of patmos_rom is
   signal rom_unit :rom;
 begin
   rom_unit(0) <= "00000000000001000000000000000011";
-  rom_unit(4) <= "00000000000001100010000000000010";
-  rom_unit(8) <= "00000000000000000010000010000001";
+  rom_unit(4) <= "00000000000001100010000000000010"; --check fw_alu
+  rom_unit(8) <= "00000000000000000010000010000001";  --check fw_me
+  rom_unit(12) <= "00000000000011000000000000000001"; -- a random instruction!
+  rom_unit(16) <= "00000010110000000000000100000111"; 
+  
   rom_out <= rom_unit(to_integer(addr));
 end arch;
 
