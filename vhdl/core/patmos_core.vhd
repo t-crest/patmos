@@ -35,9 +35,21 @@ signal alu_src1                        : unsigned(31 downto 0);
 signal alu_src2                        : unsigned(31 downto 0);
 signal fw_ctrl_rs1                     : forwarding_type;
 signal fw_ctrl_rs2                     : forwarding_type;
+signal br_src1                         : unsigned(31 downto 0);
+signal br_src2                         : unsigned(31 downto 0);
+signal fw_ctrl_br1                     : forwarding_type;
+signal fw_ctrl_br2                     : forwarding_type;
 signal mem_data_out           	        : unsigned(31 downto 0); 
+signal branch_taken                    : std_logic; 
+signal is_beq                          : std_logic; 
+signal beq_imm                         : unsigned(31 downto 0);  
 ------------------------------------------------------- fetch
 begin
+  is_beq <= '1' when fetch_dout.instruction(26 downto 22) = "11111" else '0';
+  branch <= branch_taken and is_beq;
+  beq_imm <= "0000000000000000000000000" & fetch_dout.instruction(6 downto 0);
+  
+  
   fetch_din.pc <= pc_next;
   
   fet: entity work.patmos_fetch(arch)
@@ -55,8 +67,8 @@ begin
   inst_mem: entity work.patmos_rom(arch)
   port map(pc, fetch_din.instruction);
 -------------------------------------------------------- decode
---  pc_offset_adder: entity work.patmos_adder(arch) -- for branch instruction
---  port map(fetch_dout.pc, decode_dout.immediate, pc_offset);
+  pc_offset_adder: entity work.patmos_adder(arch) -- for branch instruction
+  port map(fetch_dout.pc, beq_imm, pc_offset);
 
   reg_file: entity work.patmos_register_file(arch)
 	port map(clk, rst, fetch_dout.instruction(16 downto 12), fetch_dout.instruction(11 downto 7),
@@ -67,6 +79,18 @@ begin
 	dec: entity work.patmos_decode(arch)
 	port map(clk, rst, decode_din, decode_dout);
 
+  mux_br1: entity work.patmos_forward_value(arch)
+  port map(execute_dout.alu_result_out, mux_mem_reg, decode_din.rs1_data_in, br_src1, fw_ctrl_br1);
+                                                         
+  mux_br2: entity work.patmos_forward_value(arch)
+  port map(execute_dout.alu_result_out, mux_mem_reg, decode_din.rs2_data_in, br_src2, fw_ctrl_br2);
+  
+  forward_br: entity work.patmos_forward(arch)
+  port map(fetch_dout.instruction(16 downto 12), fetch_dout.instruction(11 downto 7), execute_dout.reg_write_out, mem_dout.reg_write_out, 
+           execute_dout.write_back_reg_out, mem_dout.write_back_reg_out, fw_ctrl_br1, fw_ctrl_br2);
+  
+  equal_check: entity work.patmos_equal_check(arch)
+  port map(br_src1, br_src2, branch_taken);
 
   ------------------------------------------------------ execute
   mux_imm: entity work.patmos_mux_32(arch) -- immediate or rt

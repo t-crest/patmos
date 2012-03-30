@@ -5,7 +5,7 @@ use ieee.numeric_std.all;
 package patmos_type_package is
   
   
-  type instruction_type is (ALUi, ALU, NOP, SPC, LDT, STT);
+  type instruction_type is (ALUi, ALU, NOP, SPC, LDT, STT, BEQ);
   type pc_type is (PCNext, PCBranch);
   type ALU_inst_type is (ALUr, ALUu, ALUm, ALUc, ALUp);
   type SPC_type is (SPCn, SPCw, SPCt, SPCf);
@@ -37,6 +37,8 @@ type decode_in_type is record
     operation                          : unsigned (31 downto 0);
 		rs1_data_in                        : unsigned (31 downto 0);
     rs2_data_in                        : unsigned (31 downto 0);
+    rs1_in                             : unsigned (4 downto 0);
+    rs2_in                             : unsigned (4 downto 0);
  --   reg_write_in                       : std_logic;
     alu_src_in                         : std_logic;               
 end record;

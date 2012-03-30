@@ -18,7 +18,7 @@ end entity patmos_mem_stage;
 architecture arch of patmos_mem_stage is
 
 begin
-  --mem/wb register
+  
   mem_wb: process(clk)
   begin
     if (rising_edge(clk)) then

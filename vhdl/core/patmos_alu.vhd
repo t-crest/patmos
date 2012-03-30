@@ -73,6 +73,8 @@ begin
             dout.rd <= din.rs1 + din.rs2;
         when STT =>
             dout.rd <= din.rs1 + din.rs2;
+        when BEQ =>
+            dout.rd <= din.rs1 + din.rs2;
        when others => null; -- inst type
       end case; --inst type
     end process patmos_alu;
