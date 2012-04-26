@@ -14,7 +14,15 @@ entity patmos_mux_32 is
 end entity patmos_mux_32;
 architecture arch of patmos_mux_32 is
 begin
-    data_out <= data_in1 when (sel = '0') else data_in2;
+   process(data_in1, data_in2, sel)
+	begin
+		if(sel = '0') then
+			data_out <= data_in1;
+		elsif(sel = '1') then
+			data_out <= data_in2;
+			else data_out <= data_in1;
+			end if;
+	end process;
 end arch;
 
 

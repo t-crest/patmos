@@ -18,7 +18,7 @@ architecture arch of patmos_fetch is
 
 begin
 
-    fetch: process(clk)
+    fetch: process(clk, rst)
     begin
         if (rst = '1') then
           dout.pc <= (others => '0');

@@ -52,7 +52,7 @@ begin
               --   when "1101" => rd <= shift_right_arith(rs, rt); --??
               when "1110" => dout.rd <= SHIFT_LEFT(din.rs1, 1)+ din.rs2;
               when "1111" => dout.rd <= SHIFT_LEFT(din.rs1, 2) + din.rs2 ;  
-              when others => null;
+              when others => dout.rd <= din.rs1 + din.rs2;
             end case;
           when ALUu =>
             case din.ALU_function_type is
@@ -65,9 +65,9 @@ begin
                                din.rs1(15 downto 0);
               when "0010" => dout.rd <= "0000000000000000" & din.rs1(15 downto 0);
               when "0101" => dout.rd <= "0" & din.rs1(30 downto 0);
-              when others => null;
+              when others => dout.rd <= din.rs1 + din.rs2;
             end case;
-          when others => null;
+          when others => dout.rd <= din.rs1 + din.rs2;
         end case;
         when LDT =>
             dout.rd <= din.rs1 + din.rs2;
@@ -75,7 +75,7 @@ begin
             dout.rd <= din.rs1 + din.rs2;
         when BEQ =>
             dout.rd <= din.rs1 + din.rs2;
-       when others => null; -- inst type
+       when others => dout.rd <= din.rs1 + din.rs2;
       end case; --inst type
     end process patmos_alu;
 end arch;

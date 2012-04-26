@@ -56,9 +56,17 @@ end entity patmos_forward_value;
 architecture arch of patmos_forward_value is
 begin
   
-    fw_out <= fw_alu when fw_ctrl = FWALU  else
-              fw_mem when fw_ctrl = FWMEM else
-              fw_in  when fw_ctrl = FWNOP;
+    process(fw_ctrl, fw_in, fw_alu, fw_mem)
+	 begin
+	   if(fw_ctrl = FWALU)  then
+	 			fw_out <= fw_alu;
+   	elsif (fw_ctrl = FWMEM) then
+             fw_out <= fw_mem; 
+		elsif (fw_ctrl = FWNOP) then
+             fw_out <= fw_in;
+				 else fw_out <= fw_in;
+		end if;
+	 end process;
 end arch;
 
 library ieee;

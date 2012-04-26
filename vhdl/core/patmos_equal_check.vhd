@@ -16,5 +16,13 @@ end entity patmos_equal_check;
 architecture arch of patmos_equal_check is
 
 begin
-  dout <= '1' when (din1 = din2) else '0';
+	process (din1, din2)
+	begin
+		if (din1 = din2) then
+			dout <= '1';
+		else
+			dout <= '0';
+		end if;
+	end process;
+  
 end arch;

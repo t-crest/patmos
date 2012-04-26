@@ -24,13 +24,14 @@ begin
  --              data_mem(to_integer(unsigned(address)) + 1) &
  --              data_mem(to_integer(unsigned(address)))) when read_enable = '1';
   data_out <= data_mem(to_integer(unsigned(address)));
-  mem : process(clk)
+  mem : process(clk, rst)
   begin
-    if(rst = '1') then
-        for i in 0 to 255 loop -- initialize register file
-          data_mem(i)<= (others => '0');
-        end loop;
-    elsif (rising_edge(clk)) then
+   -- if(rst = '1') then
+    --    for i in 0 to 255 loop -- initialize register file
+      --    data_mem(i)<= (others => '0');
+       -- end loop;
+    --els
+  if (rising_edge(clk)) then
       if(write_enable = '1') then
        -- data_mem(to_integer(unsigned(address)) + 3) <= data_in(31 downto 24);
        -- data_mem(to_integer(unsigned(address)) + 2) <= data_in(23 downto 16);
