@@ -35,11 +35,12 @@ begin
   ------ latch read address
   latch_read_address:  process (clk, rst)
   begin
-    if(rst = '1') then
-        for i in 0 to 31 loop -- initialize register file
-          reg_bank(i)<= (others => '0');
-        end loop;
-    elsif rising_edge(clk) then
+   -- if(rst = '1') then
+     --   for i in 0 to 31 loop -- initialize register file
+     --     reg_bank(i)<= (others => '0');
+     --   end loop;
+    --els
+   if rising_edge(clk) then
    --   if (read_enable) then
       --    reg_read_address1 <= read_address1;
       --    reg_read_address2 <= read_address2;
@@ -51,20 +52,20 @@ begin
    end process latch_read_address;
    
  ------ read process (or should be async?)
-  --read:  process (reg_read_address1, reg_read_address2)
---  begin
---    if (reg_read_address1 = write_address) and write_enable = '1' then
-  --    read_data1 <= write_data;
- --   else 
+  read:  process (read_address1, read_address2)
+  begin
+   -- if ((read_address1 = write_address) and write_enable = '1' )then
+  --   read_data1 <= write_data;
+  -- else 
       read_data1 <= reg_bank(to_integer(unsigned(read_address1)));
  --   end if;
     
- --   if (reg_read_address2 = write_address) and write_enable = '1' then
- --     read_data2 <= write_data;
- --   else   
+  -- if (read_address2 = write_address) and write_enable = '1' then
+    --  read_data2 <= write_data;
+  -- else   
       read_data2 <= reg_bank(to_integer(unsigned(read_address2)));
- --   end if;
- -- end process read;
+  --  end if;
+  end process read;
   
 end arch;
 

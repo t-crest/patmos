@@ -8,8 +8,8 @@ entity patmos_core is
   (
     clk                   : in std_logic;
     rst                   : in std_logic;
-    led         		  : out std_logic;
-    txd  			      : out std_logic
+    led         		  : out std_logic
+   -- txd  			      : out std_logic
   --    rxd     : in  std_logic;
   );
 end entity patmos_core;
@@ -48,27 +48,27 @@ signal beq_imm                         : unsigned(31 downto 0);
 
 ------------------------------------------------------- uart signals
 
-    component sc_uart                     --  Declaration of uart driver
-    generic (addr_bits : integer := 2;
-             clk_freq  : integer := 50000000;
-             baud_rate : integer := 115200;
-             txf_depth : integer := 16; txf_thres : integer := 8;
-             rxf_depth : integer := 16; rxf_thres : integer := 8);
-    port(
-      clk   : in std_logic;
-      reset : in std_logic;
-
-      address : in  std_logic_vector(1 downto 0);
-      wr_data : in  std_logic_vector(31 downto 0);
-      rd, wr  : in  std_logic;
-      rd_data : out std_logic_vector(31 downto 0);
-      rdy_cnt : out unsigned(1 downto 0);
-      txd     : out std_logic;
-      rxd     : in  std_logic;
-      ncts    : in  std_logic;
-      nrts    : out std_logic
-      );
-  end component;
+--    component sc_uart                     --  Declaration of uart driver
+--    generic (addr_bits : integer := 2;
+--             clk_freq  : integer := 50000000;
+--             baud_rate : integer := 115200;
+--             txf_depth : integer := 16; txf_thres : integer := 8;
+--             rxf_depth : integer := 16; rxf_thres : integer := 8);
+--    port(
+--      clk   : in std_logic;
+--      reset : in std_logic;
+--
+--      address : in  std_logic_vector(1 downto 0);
+--      wr_data : in  std_logic_vector(31 downto 0);
+--      rd, wr  : in  std_logic;
+--      rd_data : out std_logic_vector(31 downto 0);
+--      rdy_cnt : out unsigned(1 downto 0);
+--      txd     : out std_logic;
+--      rxd     : in  std_logic;
+--      ncts    : in  std_logic;
+--      nrts    : out std_logic
+--      );
+--  end component;
   signal address : std_logic_vector(1 downto 0)  := (others => '0');
   signal wr_data : std_logic_vector(31 downto 0) := (others => '0');
   signal rd, wr  : std_logic                     := '0';
@@ -96,7 +96,7 @@ begin -- architecture begin
   branch <= branch_taken and is_beq;
   beq_imm <= "0000000000000000000000000" & fetch_dout.instruction(6 downto 0);
   
-  
+  led <= mem_dout.write_back_reg_out(0);
   fetch_din.pc <= pc_next;
   
   fet: entity work.patmos_fetch(arch)
@@ -218,52 +218,52 @@ begin -- architecture begin
   ------------------------------------------------------ uart
   
   
-    sc_uart_inst : sc_uart port map       -- Maps internal signals to ports
-    (
-      address => address,
-      wr_data => wr_data,
-      rd      => rd,
-      wr      => wr,
-      rd_data => rd_data,
-      rdy_cnt => rdy_cnt,
-      clk     => clk,
-      reset   => rst,
-      txd     => txd,
-      rxd     => rxd,
-      ncts    => '0',
-      nrts    => open
-      );
-  
-
-  process(clk, rst)                        -- blink the led
-    begin
-    
-    if rst = '1' then
-      cnt <= (others => '0');
-      wr  <= '0'; 
-    elsif rising_edge(clk) then
-                    if cnt = 5 then
-                      cnt   <= (others => '0');
-                      blink <= not blink;
-                      wr    <= '1'; 
-                    else
-                      cnt <= cnt + 1; 
-                       wr <= '0';
-                    end if;
-  end if;
-  end process;
-
-led <= blink;
-address(0) <= '1';
-
-process(blink)                          -- write to uart
-begin
-     if blink = '1' then
-       wr_data <= std_logic_vector(to_unsigned(50, 32));
-     else
-       wr_data <= std_logic_vector(decode_din.rs1_data_in);
-     end if;
-end process;
+--    sc_uart_inst : sc_uart port map       -- Maps internal signals to ports
+--    (
+--      address => address,
+--      wr_data => wr_data,
+--      rd      => rd,
+--      wr      => wr,
+--      rd_data => rd_data,
+--      rdy_cnt => rdy_cnt,
+--      clk     => clk,
+--      reset   => rst,
+--      txd     => txd,
+--      rxd     => rxd,
+--      ncts    => '0',
+--      nrts    => open
+--      );
+--  
+--
+--  process(clk, rst)                        -- blink the led
+--    begin
+--    
+--    if rst = '1' then
+--      cnt <= (others => '0');
+--      wr  <= '0'; 
+--    elsif rising_edge(clk) then
+--                    if cnt = 5 then
+--                      cnt   <= (others => '0');
+--                      blink <= not blink;
+--                      wr    <= '1'; 
+--                    else
+--                      cnt <= cnt + 1; 
+--                       wr <= '0';
+--                    end if;
+--  end if;
+--  end process;
+--
+--led <= blink;
+--address(0) <= '1';
+--
+--process(blink)                          -- write to uart
+--begin
+--     if blink = '1' then
+--       wr_data <= std_logic_vector(to_unsigned(50, 32));
+--     else
+--       wr_data <= std_logic_vector(decode_din.rs1_data_in);
+--     end if;
+--end process;
 
 end architecture arch;
 
