@@ -1,0 +1,24 @@
+
+State Machine - |patmos_core|sc_uart:sc_uart_inst|uart_rx_state
+Name uart_rx_state.s2 uart_rx_state.s1 uart_rx_state.s0 
+uart_rx_state.s0 0 0 0 
+uart_rx_state.s1 0 1 1 
+uart_rx_state.s2 1 0 1 
+
+State Machine - |patmos_core|patmos_decode:dec|dout.ALU_instruction_type_out
+Name dout.ALU_instruction_type_out.ALUp~reg0 dout.ALU_instruction_type_out.ALUc~reg0 dout.ALU_instruction_type_out.ALUm~reg0 dout.ALU_instruction_type_out.ALUu~reg0 dout.ALU_instruction_type_out.ALUr~reg0 
+dout.ALU_instruction_type_out.ALUr~reg0 0 0 0 0 0 
+dout.ALU_instruction_type_out.ALUu~reg0 0 0 0 1 1 
+dout.ALU_instruction_type_out.ALUm~reg0 0 0 1 0 1 
+dout.ALU_instruction_type_out.ALUc~reg0 0 1 0 0 1 
+dout.ALU_instruction_type_out.ALUp~reg0 1 0 0 0 1 
+
+State Machine - |patmos_core|patmos_decode:dec|dout.inst_type_out
+Name dout.inst_type_out.BEQ~reg0 dout.inst_type_out.STT~reg0 dout.inst_type_out.LDT~reg0 dout.inst_type_out.SPC~reg0 dout.inst_type_out.NOP~reg0 dout.inst_type_out.ALU~reg0 dout.inst_type_out.ALUi~reg0 
+dout.inst_type_out.ALUi~reg0 0 0 0 0 0 0 0 
+dout.inst_type_out.ALU~reg0 0 0 0 0 0 1 1 
+dout.inst_type_out.NOP~reg0 0 0 0 0 1 0 1 
+dout.inst_type_out.SPC~reg0 0 0 0 1 0 0 1 
+dout.inst_type_out.LDT~reg0 0 0 1 0 0 0 1 
+dout.inst_type_out.STT~reg0 0 1 0 0 0 0 1 
+dout.inst_type_out.BEQ~reg0 1 0 0 0 0 0 1 

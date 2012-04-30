@@ -52,7 +52,6 @@ set_global_assignment -name LL_MEMBER_STATE LOCKED -entity patmos -section_id "R
 set_global_assignment -name VHDL_FILE ../vhdl/core/uart_blink.vhd
 set_global_assignment -name VHDL_FILE ../vhdl/core/fifo.vhd
 set_global_assignment -name VHDL_FILE ../vhdl/core/sc_uart.vhd
-set_global_assignment -name VHDL_FILE ../vhdl/core/megaddsub.vhd
 set_global_assignment -name VHDL_FILE ../vhdl/core/patmos_adder.vhd
 set_global_assignment -name VHDL_FILE ../vhdl/core/patmos_alu.vhd
 set_global_assignment -name VHDL_FILE ../vhdl/core/patmos_core.vhd
