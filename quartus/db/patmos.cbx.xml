@@ -1,7 +1,0 @@
-<?xml version="1.0" ?>
-<LOG_ROOT>
-	<PROJECT NAME="patmos">
-		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_core|patmos_data_memory:memory|altsyncram:data_mem_rtl_0" CBX_FILE_NAME="altsyncram_irg1.tdf"/>
-		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_core|patmos_rom:inst_mem|altsyncram:Mux31_rtl_0" CBX_FILE_NAME="altsyncram_gk01.tdf"/>
-	</PROJECT>
-</LOG_ROOT>
