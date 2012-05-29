@@ -1,7 +1,4 @@
--- TO DO:
--- move register manipulation to datapath
--- add write back control 
--- add memory control
+
 library ieee;
 use ieee.std_logic_1164.all;
 use work.patmos_type_package.all;
@@ -114,8 +111,25 @@ begin
             dout.mem_to_reg_out <= '1'; -- data comes from alu or mem ? 0 from alu and 1 from mem
             dout.mem_read_out <= '0';
             dout.mem_write_out <= '0';
-            
-     end if;
+        elsif din.operation(26 downto 24) = "011" then    -- STC
+        	dout.inst_type_out <= STC;
+        	case din.operation(23 downto 22) is
+        		when "00" => -- reserve
+              	  	dout.STC_instruction_type_out <= SRES;
+        			dout.head_out <= din.head_in;
+        			dout.tail_out <= din.tail_in;
+        			dout.st_out <= "0111"; -- s6 is st (7th register in special reg file)
+        			dout.stc_immediate_out <= din.operation(4 downto 0);--"0000000000" & din.operation(21 downto 0); 
+        			--dout.
+        			--dout.mem_write_out <= '1';
+        			--dout.STC_immediate_out <= "00000" & din.operation(21 downto 0);
+        		when "01" => -- ensure
+        			dout.STC_instruction_type_out <= SENS;
+        		when "10" =>	
+        			dout.STC_instruction_type_out <= SFREE;
+        		when others => 	NULL;
+        	end case;       	
+     	end if;
    end if;
    end process decode;
 end arch;

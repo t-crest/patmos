@@ -28,7 +28,7 @@ begin
 	   
     pc_gen: process (clk, rst)
     begin
-      if (rst = '0') then
+     if ((rst = '1')) then
            pc_out <= (others => '0');  
       elsif (rising_edge(clk)) then
            pc_out <= pc;

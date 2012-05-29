@@ -46,47 +46,12 @@ signal branch_taken                    : std_logic;
 signal is_beq                          : std_logic; 
 signal beq_imm                         : unsigned(31 downto 0);  
 
+
+signal head_in						   : unsigned(4 downto 0);
+signal tail_in						   : unsigned(4 downto 0);
+signal spill, fill					   : std_logic; 
 ------------------------------------------------------- uart signals
 
---    component sc_uart                     --  Declaration of uart driver
---    generic (addr_bits : integer := 2;
---             clk_freq  : integer := 50000000;
---             baud_rate : integer := 115200;
---             txf_depth : integer := 16; txf_thres : integer := 8;
---             rxf_depth : integer := 16; rxf_thres : integer := 8);
---    port(
---      clk   : in std_logic;
---      reset : in std_logic;
---
---      address : in  std_logic_vector(1 downto 0);
---      wr_data : in  std_logic_vector(31 downto 0);
---      rd, wr  : in  std_logic;
---      rd_data : out std_logic_vector(31 downto 0);
---      rdy_cnt : out unsigned(1 downto 0);
---      txd     : out std_logic;
---      rxd     : in  std_logic;
---      ncts    : in  std_logic;
---      nrts    : out std_logic
---      );
---  end component;
-  signal address : std_logic_vector(1 downto 0)  := (others => '0');
-  signal wr_data : std_logic_vector(31 downto 0) := (others => '0');
-  signal rd, wr  : std_logic                     := '0';
-  signal rd_data : std_logic_vector(31 downto 0);
-  signal rdy_cnt : unsigned(1 downto 0);
-
- -- signal led : std_logic;
-  signal toggle : std_logic := '0';
-                               
-  signal cnt : unsigned(31 downto 0) := (others => '0'); 
-                                     
-                                     constant CLK_FREQ : integer := 200000000;
-  constant BLINK_FREQ : integer := 1;
-  constant CNT_MAX    : integer := CLK_FREQ/BLINK_FREQ/2-1;
-
-  signal blink : std_logic := '0';
-  --signal txd     : std_logic;
-  signal rxd     : std_logic;
 
 
 begin -- architecture begin
@@ -116,7 +81,7 @@ begin -- architecture begin
 -------------------------------------------------------- decode
   pc_offset_adder: entity work.patmos_adder(arch) -- for branch instruction
   port map(fetch_dout.pc, beq_imm, pc_offset);
-
+  
   reg_file: entity work.patmos_register_file(arch)
 	port map(clk, rst, fetch_dout.instruction(16 downto 12), fetch_dout.instruction(11 downto 7),
 	         mem_dout.write_back_reg_out, decode_din.rs1_data_in, decode_din.rs2_data_in,
@@ -138,6 +103,34 @@ begin -- architecture begin
   
   equal_check: entity work.patmos_equal_check(arch)
   port map(br_src1, br_src2, branch_taken);
+  
+  ------------------------------------------------------
+    special_reg_file: entity work.patmos_special_register_file(arch)
+	port map(clk, rst, decode_dout.st_out, fetch_dout.instruction(10 downto 7),
+	         mem_dout.write_back_reg_out(3 downto 0), decode_din.rs1_data_in_special, decode_din.rs2_data_in_special,
+	          mux_mem_reg, mem_dout.reg_write_out);
+  
+   
+  stack_cache: entity work.patmos_stack_cache(arch)
+   port map(clk, head_in, tail_in, decode_din.head_in, decode_din.tail_in, execute_dout.alu_result_out, execute_dout.alu_result_out,
+   	decode_din.stack_data_in, decode_dout.stack_data_out, spill, fill, decode_dout.st_out);
+ -- entity patmos_stack_cache is
+ -- port
+ -- (
+ --   	clk       	         		: in std_logic;
+ --       head_in				 		: in unsigned(5 downto 0); -- from  
+ --       tail_in				 		: in unsigned(5 downto 0);	-- 
+ --      head_out				 	: out unsigned(5 downto 0); -- from  
+ --      tail_out				 	: out unsigned(5 downto 0);	-- 
+ --     	number_of_bytes_to_spill 	: in unsigned(21 downto 0);
+ --       number_of_bytes_to_fill  	: in unsigned(21 downto 0);
+ --       dout_to_mem					: out unsigned(31 downto 0);
+ --       din_from_mem				: in unsigned(31 downto 0);
+ --       spill		        	    : in std_logic;
+ --       fill		        	    : in std_logic;
+ --       st							: in unsigned(5 downto 0) -- stack pointer
+ -- );  
+  
 
   ------------------------------------------------------ execute
   mux_imm: entity work.patmos_mux_32(arch) -- immediate or rt
@@ -197,6 +190,7 @@ begin -- architecture begin
   memory_stage: entity work.patmos_mem_stage(arch)
   port map(clk, rst, mem_din, mem_dout);
 
+  
   ------------------------------------------------------- write back
   
 --  write_back: entity work.patmos_mux_32(arch)
@@ -214,56 +208,6 @@ begin -- architecture begin
 			end if;
 	end process;
 
-  
-  ------------------------------------------------------ uart
-  
-  
---    sc_uart_inst : sc_uart port map       -- Maps internal signals to ports
---    (
---      address => address,
---      wr_data => wr_data,
---      rd      => rd,
---      wr      => wr,
---      rd_data => rd_data,
---      rdy_cnt => rdy_cnt,
---      clk     => clk,
---      reset   => rst,
---      txd     => txd,
---      rxd     => rxd,
---      ncts    => '0',
---      nrts    => open
---      );
---  
---
---  process(clk, rst)                        -- blink the led
---    begin
---    
---    if rst = '1' then
---      cnt <= (others => '0');
---      wr  <= '0'; 
---    elsif rising_edge(clk) then
---                    if cnt = 5 then
---                      cnt   <= (others => '0');
---                      blink <= not blink;
---                      wr    <= '1'; 
---                    else
---                      cnt <= cnt + 1; 
---                       wr <= '0';
---                    end if;
---  end if;
---  end process;
---
---led <= blink;
---address(0) <= '1';
---
---process(blink)                          -- write to uart
---begin
---     if blink = '1' then
---       wr_data <= std_logic_vector(to_unsigned(50, 32));
---     else
---       wr_data <= std_logic_vector(decode_din.rs1_data_in);
---     end if;
---end process;
 
 end architecture arch;
 
