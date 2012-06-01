@@ -8,9 +8,9 @@ entity patmos_core is
   (
     clk                   : in std_logic;
     rst                   : in std_logic;
-    led         		  : out std_logic
-   -- txd  			      : out std_logic
-  --    rxd     : in  std_logic;
+    led         	  : out std_logic
+    txd      	          : out std_logic;
+    rxd     : in  std_logic
   );
 end entity patmos_core;
 
@@ -51,7 +51,35 @@ signal head_in						   : unsigned(4 downto 0);
 signal tail_in						   : unsigned(4 downto 0);
 signal spill, fill					   : std_logic; 
 ------------------------------------------------------- uart signals
+signal mem_write					   : std_logic;
+signal io_write						   : std_logic;	
+signal mem_read						   : std_logic;
+signal io_read						   : std_logic;	
+  signal rdy_cnt : unsigned(1 downto 0);
+  signal address : std_logic_vector(31 downto 0)  := (others => '0');
+  constant BLINK_FREQ : integer := 1;
 
+   component sc_uart                     --  Declaration of uart driver
+    generic (addr_bits : integer := 32;
+             clk_freq  : integer := 50000000;
+             baud_rate : integer := 115200;
+             txf_depth : integer := 16; txf_thres : integer := 8;
+             rxf_depth : integer := 16; rxf_thres : integer := 8);
+    port(
+      clk   : in std_logic;
+      reset : in std_logic;
+
+      address : in  std_logic_vector(31 downto 0);
+      wr_data : in  std_logic_vector(31 downto 0);
+      rd, wr  : in  std_logic;
+      rd_data : out std_logic_vector(31 downto 0);
+      rdy_cnt : out unsigned(1 downto 0);
+      txd     : out std_logic;
+      rxd     : in  std_logic;
+      ncts    : in  std_logic;
+      nrts    : out std_logic
+      );
+  end component;
 
 
 begin -- architecture begin
@@ -172,16 +200,53 @@ begin -- architecture begin
   
 
   ------------------------------------------------------- memory
+  -- mem/io decoder
+   io_decode: process(execute_dout.alu_result_out)
+	begin
+		if(to_integer(execute_dout.alu_result_out) < 126) then
+			mem_write <= execute_dout.mem_write_out;
+			mem_read <= execute_dout.mem_read_out;
+		    io_write <= '0';	
+		    io_read <= '0';
+		    address <= "00000000000000000000000000000001";
+		end if;
+		if (to_integer(execute_dout.alu_result_out) >= 126) then
+			mem_write <= '0';
+			mem_read <= '0';
+			io_write <= execute_dout.mem_write_out;
+			io_read <= execute_dout.mem_read_out;
+			address <= std_logic_vector(execute_dout.alu_result_out);
+		end if;
+	end process;
+  
+  sc_uart_inst : sc_uart port map       -- Maps internal signals to ports
+    (
+      address => address,
+      wr_data => std_logic_vector(execute_dout.mem_write_data_out),
+      rd      => io_read,
+      wr      => io_write,
+      unsigned(rd_data) => mem_data_out,
+      rdy_cnt => rdy_cnt,
+      clk     => clk,
+      reset   => rst,
+      txd     => txd,
+      rxd     => rxd,
+     ncts    => '0',
+      nrts    => open
+     );
+
+  
+
   -- memory access
   memory: entity work.patmos_data_memory(arch)
   port map(clk, rst, execute_dout.alu_result_out, 
             execute_dout.mem_write_data_out,
             mem_data_out, 
-            execute_dout.mem_read_out, execute_dout.mem_write_out);
+            mem_read, mem_write);
   --clk, rst, add, data_in(store), data_out(load), read_en, write_en
 
   --------------------------
-  mem_din.reg_write_in <= execute_dout.reg_write_out;
+  mem_din.reg_write_in <= mem_write;
   mem_din.mem_to_reg_in <= execute_dout.mem_to_reg_out;
   mem_din.alu_result_in <= execute_dout.alu_result_out;
   mem_din.write_back_reg_in <= execute_dout.write_back_reg_out;
