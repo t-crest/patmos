@@ -37,7 +37,8 @@ begin
       dout.alu_result_out <= din.alu_result_in;
       dout.mem_write_data_out <= din.mem_write_data_in;
       dout.write_back_reg_out <= din.write_back_reg_in;
-      
+      dout.head_out <= din.head_in;
+      dout.tail_out <= din.tail_in;
     end if; 
   end process;
 end arch;

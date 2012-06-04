@@ -92,14 +92,33 @@ begin
         when STC => 
         	case din.STC_instruction_type is
         		when SRES => --reserve
-        			dout.rd <= din.stack_data_in;
-        			if( (din.head_in - din.tail_in ) < din.stc_immediate_in) then
-        				dout.spill_out <= '1';
-        				dout.rd <=  "000000000000000000000000000" & din.stc_immediate_in - din.head_in - din.tail_in; 
-        			else 
-        				dout.spill_out <= '0';
+        			--dout.rd <= din.stack_data_in;
+        				
+        			--elsif (din.head_in = din.tail_in) then
+        			--els
+        			if (din.head_in >= din.tail_in) then 
+        				if( ( 32 - (din.head_in - din.tail_in)) < din.stc_immediate_in) then
+        					dout.spill_out <= '1'; -- how much to spill?
+        					dout.rd <=  "000000000000000000000000000" & din.stc_immediate_in - (32 - (din.head_in - din.tail_in)); 
+        					dout.tail_out <= din.head_in + din.stc_immediate_in - (32 - (din.head_in - din.tail_in)); -- mod . . .
+        					dout.head_out <= din.head_in + din.stc_immediate_in;
+        				else 
+        					dout.spill_out <= '0';
+        					dout.tail_out <= din.tail_in;
+        				end if;	
+        			elsif (din.head_in < din.tail_in) then
+        				if( ( 32 - (din.tail_in - din.head_in )) < din.stc_immediate_in) then
+        					dout.spill_out <= '1'; -- how much to spill?
+        					dout.rd <=  "000000000000000000000000000" & din.stc_immediate_in - (32 - (din.tail_in - din.head_in )); 
+        					dout.tail_out <= din.head_in + din.stc_immediate_in - (32 - (din.tail_in - din.head_in)); -- mod . . .
+        					dout.head_out <= (din.head_in + din.stc_immediate_in) mod 32;
+        				else 
+        					dout.spill_out <= '0';
+        					dout.tail_out <= din.tail_in;
+        				end if;	
         			end if;	
-        			dout.head_out <= din.head_in + din.stc_immediate_in; 
+        				
+        			--dout.head_out <= din.head_in + din.stc_immediate_in; 
         		--when "01" => --ensure
         		--when "10" => --free
         		when others => NULL;

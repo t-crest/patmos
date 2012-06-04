@@ -8,7 +8,7 @@ entity patmos_core is
   (
     clk                   : in std_logic;
     rst                   : in std_logic;
-    led         	  : out std_logic
+    led         	  : out std_logic;
     txd      	          : out std_logic;
     rxd     : in  std_logic
   );
@@ -140,24 +140,25 @@ begin -- architecture begin
   
    
   stack_cache: entity work.patmos_stack_cache(arch)
-   port map(clk, head_in, tail_in, decode_din.head_in, decode_din.tail_in, execute_dout.alu_result_out, execute_dout.alu_result_out,
-   	decode_din.stack_data_in, decode_dout.stack_data_out, spill, fill, decode_dout.st_out);
+   port map(clk, rst, execute_dout.head_out, execute_dout.tail_out, decode_din.head_in, decode_din.tail_in, execute_dout.alu_result_out,
+   	 execute_dout.alu_result_out, decode_din.stack_data_in, decode_dout.stack_data_out, spill, fill, decode_dout.st_out);
  -- entity patmos_stack_cache is
  -- port
  -- (
  --   	clk       	         		: in std_logic;
- --       head_in				 		: in unsigned(5 downto 0); -- from  
- --       tail_in				 		: in unsigned(5 downto 0);	-- 
- --      head_out				 	: out unsigned(5 downto 0); -- from  
- --      tail_out				 	: out unsigned(5 downto 0);	-- 
- --     	number_of_bytes_to_spill 	: in unsigned(21 downto 0);
- --       number_of_bytes_to_fill  	: in unsigned(21 downto 0);
+ --   	rst							: in std_logic;
+  --      head_in				 		: in unsigned(4 downto 0); -- from  
+ --       tail_in				 		: in unsigned(4 downto 0);	-- 
+ --       head_out				 	: out unsigned(4 downto 0); -- from  
+ --       tail_out				 	: out unsigned(4 downto 0);	-- 
+ --     	number_of_bytes_to_spill 	: in unsigned(31 downto 0);
+ --       number_of_bytes_to_fill  	: in unsigned(31 downto 0);
  --       dout_to_mem					: out unsigned(31 downto 0);
  --       din_from_mem				: in unsigned(31 downto 0);
- --       spill		        	    : in std_logic;
+  --      spill		        	    : in std_logic;
  --       fill		        	    : in std_logic;
- --       st							: in unsigned(5 downto 0) -- stack pointer
- -- );  
+ --       st							: in unsigned(3 downto 0) -- stack pointer
+ -- );   
   
 
   ------------------------------------------------------ execute
@@ -195,6 +196,8 @@ begin -- architecture begin
   execute_din.alu_result_in <= alu_dout.rd;
   execute_din.write_back_reg_in <= decode_dout.rd_out;
   execute_din.mem_write_data_in <= alu_src2;
+  execute_din.tail_in <= alu_dout.tail_out;
+  execute_din.head_in <= alu_dout.head_out;
   execute: entity work.patmos_execute(arch)
   port map(clk, rst, execute_din, execute_dout);
   

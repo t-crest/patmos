@@ -125,8 +125,13 @@ begin
         			--dout.STC_immediate_out <= "00000" & din.operation(21 downto 0);
         		when "01" => -- ensure
         			dout.STC_instruction_type_out <= SENS;
+        			dout.head_out <= din.head_in;
+        			dout.tail_out <= din.tail_in;
+        			dout.st_out <= "0111";
+        			dout.stc_immediate_out <= din.operation(4 downto 0);
         		when "10" =>	
         			dout.STC_instruction_type_out <= SFREE;
+        			dout.head_out <= din.head_in;
         		when others => 	NULL;
         	end case;       	
      	end if;
