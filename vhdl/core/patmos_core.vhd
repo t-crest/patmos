@@ -141,26 +141,49 @@ begin -- architecture begin
    
   stack_cache: entity work.patmos_stack_cache(arch)
    port map(clk, rst, execute_dout.head_out, execute_dout.tail_out, decode_din.head_in, decode_din.tail_in, execute_dout.alu_result_out,
-   	 execute_dout.alu_result_out, decode_din.stack_data_in, decode_dout.stack_data_out, spill, fill, decode_dout.st_out);
+   	 execute_dout.alu_result_out, decode_din.stack_data_in, decode_dout.stack_data_out, execute_dout.mem_write_data_out, mem_data_out,
+   	 spill, fill, mem_read, mem_write, execute_dout.alu_result_out, decode_dout.rs1_data_out_special);
  -- entity patmos_stack_cache is
  -- port
  -- (
- --   	clk       	         		: in std_logic;
- --   	rst							: in std_logic;
-  --      head_in				 		: in unsigned(4 downto 0); -- from  
- --       tail_in				 		: in unsigned(4 downto 0);	-- 
- --       head_out				 	: out unsigned(4 downto 0); -- from  
- --       tail_out				 	: out unsigned(4 downto 0);	-- 
- --     	number_of_bytes_to_spill 	: in unsigned(31 downto 0);
- --       number_of_bytes_to_fill  	: in unsigned(31 downto 0);
- --       dout_to_mem					: out unsigned(31 downto 0);
- --       din_from_mem				: in unsigned(31 downto 0);
+   -- 	clk       	         		: in std_logic;
+   -- 	rst							: in std_logic;
+   --     head_in				 		: in unsigned(4 downto 0); -- from  
+   --     tail_in				 		: in unsigned(4 downto 0);	-- 
+   --     head_out				 	: out unsigned(4 downto 0); -- from  
+   --     tail_out				 	: out unsigned(4 downto 0);	-- 
+   --   	number_of_bytes_to_spill 	: in unsigned(31 downto 0);
+    --    number_of_bytes_to_fill  	: in unsigned(31 downto 0);
+   --     dout_to_mem					: out unsigned(31 downto 0); -- mem interface
+  --      din_from_mem				: in unsigned(31 downto 0); -- mem interface
+  --      din_from_cpu				: in unsigned(31 downto 0);
+  --      dout_to_cpu					: out unsigned(31 downto 0);
   --      spill		        	    : in std_logic;
- --       fill		        	    : in std_logic;
- --       st							: in unsigned(3 downto 0) -- stack pointer
- -- );   
+  --      fill		        	    : in std_logic;
+  --      read_enable          	    : in std_logic;
+  --      write_enable          	    : in std_logic;
+  --      address						: in unsigned(4 downto 0);
+  --      st							: in unsigned(3 downto 0) -- stack pointer
+ -- );  
   
+	scm: entity work.sc_mem_if
+		generic map (
+			ram_ws => ram_cnt-1,
+			addr_bits => 19			-- edit
+		)
+		port map (clk_int, int_res,
+			sc_mem_out, sc_mem_in,
 
+			ram_addr => ram_addr,
+			ram_dout => ram_dout,
+			ram_din => ram_din,
+			ram_dout_en	=> ram_dout_en,
+			ram_clk => ram_clk,
+			ram_nsc => ram_nsc,
+			ram_ncs => ram_ncs,
+			ram_noe => ram_noe,
+			ram_nwe => ram_nwe
+		);
   ------------------------------------------------------ execute
   mux_imm: entity work.patmos_mux_32(arch) -- immediate or rt
   port map(decode_dout.rs2_data_out, decode_dout.ALUi_immediate_out, 
@@ -278,6 +301,7 @@ begin -- architecture begin
 
 
 end architecture arch;
+
 
 
 

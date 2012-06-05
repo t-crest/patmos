@@ -31,12 +31,11 @@ begin
   ------ latch read address
   latch_read_address:  process (clk, rst)
   begin
-   -- if(rst = '1') then
-     --   for i in 0 to 31 loop -- initialize register file
-     --     reg_bank(i)<= (others => '0');
-     --   end loop;
-    --els
-   if rising_edge(clk) then
+    if(rst = '1') then
+       -- for i in 0 to 15 loop -- initialize register file
+          special_reg_bank(7)<= "00000000000000000000000011001000";
+       -- end loop;
+    elsif rising_edge(clk) then
    --   if (read_enable) then
       --    reg_read_address1 <= read_address1;
       --    reg_read_address2 <= read_address2;
@@ -64,4 +63,5 @@ begin
   end process read;
   
 end arch;
+
 

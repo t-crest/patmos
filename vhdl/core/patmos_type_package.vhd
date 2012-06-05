@@ -78,6 +78,8 @@ type decode_out_type is record
     head_out							 : unsigned(4 downto 0);  
     tail_out							 : unsigned(4 downto 0);  
     stc_immediate_out					: unsigned (4 downto 0);
+    rs1_data_out_special				: unsigned (31 downto 0);
+    rs2_data_out_special			   : unsigned(31 downto 0);  
 end record;
        
 -------------------------------------------
@@ -121,6 +123,7 @@ type alu_in_type is record
    STC_instruction_type			:STC_instruction_type;
    tail_in						: unsigned(4 downto 0);
    stc_immediate_in				: unsigned (4 downto 0);
+   st_in						: unsigned (31 downto 0);
 end record;
 
 type alu_out_type is record
@@ -129,6 +132,7 @@ type alu_out_type is record
   tail_out					 : unsigned(4 downto 0);
   spill_out					: std_logic;
   --fill_out					 : std_logic;
+  st_out						: unsigned (31 downto 0);
 end record;
 
 ------------------------------------------

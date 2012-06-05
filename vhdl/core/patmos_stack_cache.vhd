@@ -14,10 +14,15 @@ entity patmos_stack_cache is
         tail_out				 	: out unsigned(4 downto 0);	-- 
       	number_of_bytes_to_spill 	: in unsigned(31 downto 0);
         number_of_bytes_to_fill  	: in unsigned(31 downto 0);
-        dout_to_mem					: out unsigned(31 downto 0);
-        din_from_mem				: in unsigned(31 downto 0);
+        dout_to_mem					: out unsigned(31 downto 0); -- mem interface
+        din_from_mem				: in unsigned(31 downto 0); -- mem interface
+        din_from_cpu				: in unsigned(31 downto 0);
+        dout_to_cpu					: out unsigned(31 downto 0);
         spill		        	    : in std_logic;
         fill		        	    : in std_logic;
+        read_enable          	    : in std_logic;
+        write_enable          	    : in std_logic;
+        address						: in unsigned(4 downto 0);
         st							: in unsigned(3 downto 0) -- stack pointer
   );    
 end entity patmos_stack_cache;
@@ -36,7 +41,7 @@ signal tail_new, head_new : unsigned(4 downto 0);
 
 begin
 
---	data_out <= data_mem(to_integer(unsigned(st)));
+  dout_to_cpu <= stack_cache(to_integer(unsigned(address)));
   st_cache : process(clk, rst)
   begin
     if(rst = '1') then
@@ -46,9 +51,13 @@ begin
        head_out <= (others => '0');
        tail_out <= (others => '0');
    elsif (rising_edge(clk)) then     
-  	number_of_bytes_to_spill_reg <= number_of_bytes_to_spill;
-  	tail_reg <= tail_new;
-  	head_reg <= head_new;
+   		if(write_enable = '1') then
+     		stack_cache(to_integer(unsigned(address))) <= din_from_cpu;
+  		 end if;
+   
+  		number_of_bytes_to_spill_reg <= number_of_bytes_to_spill;
+  		tail_reg <= tail_new;
+  		head_reg <= head_new;
   ------------------------------------- spill
       if(spill = '1') then  
       	
@@ -92,3 +101,4 @@ begin
   
      
 end arch;
+

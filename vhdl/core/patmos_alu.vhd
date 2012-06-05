@@ -24,6 +24,7 @@ architecture arch of patmos_alu is
 	
 	--signal intermediate_add : STD_LOGIC_VECTOR(31 DOWNTO 0);
 	--signal intermediate_sub : STD_LOGIC_VECTOR(31 DOWNTO 0);
+	signal number_of_bytes_in_stack_cache			: unsigned(4 downto 0) := (others => '0');
 	
 begin
 	--add: megaddsub
@@ -94,29 +95,41 @@ begin
         		when SRES => --reserve
         			--dout.rd <= din.stack_data_in;
         				
-        			--elsif (din.head_in = din.tail_in) then
-        			--els
-        			if (din.head_in >= din.tail_in) then 
-        				if( ( 32 - (din.head_in - din.tail_in)) < din.stc_immediate_in) then
-        					dout.spill_out <= '1'; -- how much to spill?
-        					dout.rd <=  "000000000000000000000000000" & din.stc_immediate_in - (32 - (din.head_in - din.tail_in)); 
-        					dout.tail_out <= din.head_in + din.stc_immediate_in - (32 - (din.head_in - din.tail_in)); -- mod . . .
-        					dout.head_out <= din.head_in + din.stc_immediate_in;
-        				else 
-        					dout.spill_out <= '0';
+        			if (number_of_bytes_in_stack_cache = 0 and din.head_in = din.tail_in) then--stack empty
+        				    dout.spill_out <= '0';
         					dout.tail_out <= din.tail_in;
-        				end if;	
-        			elsif (din.head_in < din.tail_in) then
-        				if( ( 32 - (din.tail_in - din.head_in )) < din.stc_immediate_in) then
-        					dout.spill_out <= '1'; -- how much to spill?
-        					dout.rd <=  "000000000000000000000000000" & din.stc_immediate_in - (32 - (din.tail_in - din.head_in )); 
-        					dout.tail_out <= din.head_in + din.stc_immediate_in - (32 - (din.tail_in - din.head_in)); -- mod . . .
         					dout.head_out <= (din.head_in + din.stc_immediate_in) mod 32;
+        					--if ((number_of_bytes_in_stack_cache + din.stc_immediate_in) > 32) then
+        					--	number_of_bytes_in_stack_cache <= 32;
+        					--else
+        						number_of_bytes_in_stack_cache <= number_of_bytes_in_stack_cache + din.stc_immediate_in;
+        		--	elsif (din.head_in = din.tail_in) then	-- stack full (covered under the next if)
+        		--			dout.spill_out <= '1';
+        						
+        			elsif ((32 - number_of_bytes_in_stack_cache) <  din.stc_immediate_in) then -- needs to spill
+        				--if( ( 32 - (din.head_in - din.tail_in)) < din.stc_immediate_in) then
+        					number_of_bytes_in_stack_cache <= 32;
+        					dout.spill_out <= '1'; -- how much to spill? next line
+        					dout.rd <=  "000000000000000000000000000" & din.stc_immediate_in - (32 - number_of_bytes_in_stack_cache); 
+        					dout.tail_out <= (din.tail_in + din.stc_immediate_in - (32 - number_of_bytes_in_stack_cache)) mod 32;
+        					dout.head_out <= (din.head_in + din.stc_immediate_in) mod 32;
+        					dout.st_out <= din.st_in + ("000000000000000000000000000" & din.stc_immediate_in);
         				else 
+        					number_of_bytes_in_stack_cache <= number_of_bytes_in_stack_cache + din.stc_immediate_in;
         					dout.spill_out <= '0';
         					dout.tail_out <= din.tail_in;
         				end if;	
-        			end if;	
+        			--elsif (din.head_in < din.tail_in) then
+        			--	if( ( 32 - (din.tail_in - din.head_in )) < din.stc_immediate_in) then
+        			--		dout.spill_out <= '1'; -- how much to spill?
+        			--		dout.rd <=  "000000000000000000000000000" & din.stc_immediate_in - (32 - (din.tail_in - din.head_in )); 
+        			--		dout.tail_out <= din.head_in + din.stc_immediate_in - (32 - (din.tail_in - din.head_in)); -- mod . . .
+        			--		dout.head_out <= (din.head_in + din.stc_immediate_in) mod 32;
+        			--	else 
+        			--		dout.spill_out <= '0';
+        			--		dout.tail_out <= din.tail_in;
+        			--	end if;	
+        			--end if;	
         				
         			--dout.head_out <= din.head_in + din.stc_immediate_in; 
         		--when "01" => --ensure
@@ -128,4 +141,5 @@ begin
     	end case;
     end process patmos_alu;
 end arch;
+
 
