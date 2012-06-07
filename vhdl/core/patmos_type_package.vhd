@@ -95,6 +95,7 @@ type execution_in_type is record
     write_back_reg_in                   : unsigned(4 downto 0);
     tail_in								: unsigned(4 downto 0);
     head_in								: unsigned(4 downto 0);
+    st_in								: unsigned(31 downto 0);
 end record;
 
 type execution_out_type is record
@@ -107,6 +108,7 @@ type execution_out_type is record
     write_back_reg_out                  : unsigned(4 downto 0);
     tail_out							: unsigned(4 downto 0);
     head_out							: unsigned(4 downto 0);
+    st_out								: unsigned(31 downto 0);
 end record;
 
 ------------------------------------------
@@ -131,7 +133,7 @@ type alu_out_type is record
   head_out 		     			: unsigned(4 downto 0);
   tail_out					 : unsigned(4 downto 0);
   spill_out					: std_logic;
-  --fill_out					 : std_logic;
+  fill_out					 : std_logic;
   st_out						: unsigned (31 downto 0);
 end record;
 

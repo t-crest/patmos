@@ -108,7 +108,7 @@ begin
         						
         			elsif ((32 - number_of_bytes_in_stack_cache) <  din.stc_immediate_in) then -- needs to spill
         				--if( ( 32 - (din.head_in - din.tail_in)) < din.stc_immediate_in) then
-        					number_of_bytes_in_stack_cache <= 32;
+        					number_of_bytes_in_stack_cache <= to_unsigned(32,5);
         					dout.spill_out <= '1'; -- how much to spill? next line
         					dout.rd <=  "000000000000000000000000000" & din.stc_immediate_in - (32 - number_of_bytes_in_stack_cache); 
         					dout.tail_out <= (din.tail_in + din.stc_immediate_in - (32 - number_of_bytes_in_stack_cache)) mod 32;
@@ -132,8 +132,21 @@ begin
         			--end if;	
         				
         			--dout.head_out <= din.head_in + din.stc_immediate_in; 
-        		--when "01" => --ensure
-        		--when "10" => --free
+        		when SENS => --ensure
+        			if (number_of_bytes_in_stack_cache = din.stc_immediate_in) then
+        				dout.fill_out <= '0';
+        			else
+        				dout.fill_out <= '1';
+        				if (din.tail_in > din.head_in) then -- not sure if this condition is correct?
+        					dout.tail_out <= din.tail_in - din.stc_immediate_in;
+        				end if;
+        				dout.st_out <= din.st_in - ("000000000000000000000000000" & din.stc_immediate_in);
+        			end if;	
+        		when SFREE => --free
+        			dout.head_out <= din.head_in - din.stc_immediate_in; -- not sure if this is correct?
+        			dout.st_out <= din.st_in - ("000000000000000000000000000" & din.stc_immediate_in);
+        			number_of_bytes_in_stack_cache <= number_of_bytes_in_stack_cache - din.stc_immediate_in;
+        			dout.tail_out <= din.tail_in;
         		when others => NULL;
         	
     	  end case; --inst type

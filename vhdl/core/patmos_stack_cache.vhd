@@ -22,8 +22,8 @@ entity patmos_stack_cache is
         fill		        	    : in std_logic;
         read_enable          	    : in std_logic;
         write_enable          	    : in std_logic;
-        address						: in unsigned(4 downto 0);
-        st							: in unsigned(3 downto 0) -- stack pointer
+        address						: in unsigned(4 downto 0)
+       -- st							: in unsigned(31 downto 0) -- stack pointer
   );    
 end entity patmos_stack_cache;
 architecture arch of patmos_stack_cache is
@@ -38,7 +38,7 @@ signal number_of_bytes_to_fill_reg :unsigned(31 downto 0);
 signal tail_reg : unsigned(4 downto 0);
 signal head_reg : unsigned(4 downto 0);
 signal tail_new, head_new : unsigned(4 downto 0);
-
+signal spill_reg, fill_reg : std_logic;
 begin
 
   dout_to_cpu <= stack_cache(to_integer(unsigned(address)));
@@ -56,10 +56,13 @@ begin
   		 end if;
    
   		number_of_bytes_to_spill_reg <= number_of_bytes_to_spill;
+  		number_of_bytes_to_fill_reg <= number_of_bytes_to_fill;
   		tail_reg <= tail_new;
   		head_reg <= head_new;
+  		spill_reg <= spill;
+  		fill_reg <= fill;
   ------------------------------------- spill
-      if(spill = '1') then  
+      if(spill_reg = '1') then  
       	
       	case stack_state is
    		  when s0 =>  
@@ -71,6 +74,7 @@ begin
       		if (number_of_bytes_to_spill_reg > 0) then
       			stack_state <= s0;
       		else
+      			spill_reg <= '0';
       			tail_new <= tail_in;
       			tail_out <= tail_in;
       			head_new <= head_in;
@@ -80,19 +84,25 @@ begin
         end case;	         
       end if;
   ------------------------------------- fill      
- --      if(fill = '1') then  
- --     	case stack_state is
-  -- 		  when s0 =>  
- --  		  	stack_cache(to_integer(unsigned(st))) <= din_from_mem;
- --  		  	number_of_bytes_to_fill_reg = number_of_bytes_to_fill_reg - 1;
- --  		  	stack_state <= s1;
- --  		  when s1 =>
- --     		if (number_of_bytes_to_spill > 0) then
- --     			stack_state <= s0;
- --     		end if;	
- --     	 when others => NULL;
- --       end case;	         
- --     end if;
+       if(fill_reg = '1') then  
+      	case stack_state is
+   		  when s0 =>  
+   		  	stack_cache(to_integer(unsigned(tail_reg))) <= din_from_mem;
+   		  	number_of_bytes_to_fill_reg <= number_of_bytes_to_fill_reg - 1;
+   		  	stack_state <= s1;
+   		  when s1 =>
+      		if (number_of_bytes_to_spill > 0) then
+      			stack_state <= s0;
+      		else
+      			fill_reg <= '0';
+      			tail_new <= tail_in;
+      			tail_out <= tail_in;
+      			head_new <= head_in;
+      			head_out <= head_in;
+      		end if;	
+      	 when others => NULL;
+        end case;	         
+      end if;
       
     end if;
   end process st_cache;

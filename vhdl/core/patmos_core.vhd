@@ -2,6 +2,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.patmos_type_package.all;
+use work.sc_pack.all;
+
 
 entity patmos_core is 
   port
@@ -10,7 +12,20 @@ entity patmos_core is
     rst                   : in std_logic;
     led         	  : out std_logic;
     txd      	          : out std_logic;
-    rxd     : in  std_logic
+    rxd     		: in  std_logic;
+    oSRAM_A		 : out std_logic_vector(18 downto 0);		-- edit
+	SRAM_DQ		 : inout std_logic_vector(31 downto 0);		-- edit
+	oSRAM_CE1_N	 : out std_logic;
+	oSRAM_OE_N	 : out std_logic;
+	oSRAM_BE_N	 : out std_logic_vector(3 downto 0);
+	oSRAM_WE_N	 : out std_logic;
+	oSRAM_GW_N   : out std_logic;
+	oSRAM_CLK	 : out std_logic;
+	oSRAM_ADSC_N : out std_logic;
+	oSRAM_ADSP_N : out std_logic;
+	oSRAM_ADV_N	 : out std_logic;
+	oSRAM_CE2	 : out std_logic;
+	oSRAM_CE3_N  : out std_logic
   );
 end entity patmos_core;
 
@@ -50,14 +65,31 @@ signal beq_imm                         : unsigned(31 downto 0);
 signal head_in						   : unsigned(4 downto 0);
 signal tail_in						   : unsigned(4 downto 0);
 signal spill, fill					   : std_logic; 
+
+signal clk2 		: std_logic;
+signal sc_mem_out_wr_data	: unsigned(31 downto 0);
+signal ram_cnt			: integer := 3;
+signal clk_int			: std_logic;
+signal int_res			: std_logic;
+signal ram_addr			: std_logic_vector(18 downto 0);	-- edit
+signal ram_dout			: std_logic_vector(31 downto 0);	-- edit
+signal ram_din			: std_logic_vector(31 downto 0);	-- edit
+signal ram_dout_en		: std_logic;
+signal ram_clk			: std_logic;
+signal ram_nsc			: std_logic;
+signal ram_ncs			: std_logic;
+signal ram_noe			: std_logic;
+signal ram_nwe			: std_logic;
+signal sc_mem_out		: sc_out_type;
+signal sc_mem_in		: sc_in_type;
 ------------------------------------------------------- uart signals
 signal mem_write					   : std_logic;
 signal io_write						   : std_logic;	
 signal mem_read						   : std_logic;
 signal io_read						   : std_logic;	
-  signal rdy_cnt : unsigned(1 downto 0);
-  signal address : std_logic_vector(31 downto 0)  := (others => '0');
-  constant BLINK_FREQ : integer := 1;
+signal rdy_cnt : unsigned(1 downto 0);
+signal address : std_logic_vector(31 downto 0)  := (others => '0');
+constant BLINK_FREQ : integer := 1;
 
    component sc_uart                     --  Declaration of uart driver
     generic (addr_bits : integer := 32;
@@ -80,7 +112,35 @@ signal io_read						   : std_logic;
       nrts    : out std_logic
       );
   end component;
+	
+	component sc_mem_if
+		generic (ram_ws : integer; addr_bits : integer);
 
+port (
+
+	clk, reset	: in std_logic;
+	clk2		: in std_logic;	-- an inverted clock
+
+--
+--	SimpCon memory interface
+--
+	sc_mem_out		: in sc_out_type;
+	sc_mem_in		: out sc_in_type;
+
+-- memory interface
+
+	ram_addr	: out std_logic_vector(addr_bits-1 downto 0);
+	ram_dout	: out std_logic_vector(31 downto 0);
+	ram_din		: in std_logic_vector(31 downto 0);
+	ram_dout_en	: out std_logic;
+	ram_clk		: out std_logic;
+	ram_nsc		: out std_logic;
+	ram_ncs		: out std_logic;
+	ram_noe		: out std_logic;
+	ram_nwe		: out std_logic
+
+);
+	end component;
 
 begin -- architecture begin
 ------------------------------------------------------- fetch	
@@ -141,23 +201,23 @@ begin -- architecture begin
    
   stack_cache: entity work.patmos_stack_cache(arch)
    port map(clk, rst, execute_dout.head_out, execute_dout.tail_out, decode_din.head_in, decode_din.tail_in, execute_dout.alu_result_out,
-   	 execute_dout.alu_result_out, decode_din.stack_data_in, decode_dout.stack_data_out, execute_dout.mem_write_data_out, mem_data_out,
-   	 spill, fill, mem_read, mem_write, execute_dout.alu_result_out, decode_dout.rs1_data_out_special);
+   	 execute_dout.alu_result_out, sc_mem_out_wr_data, unsigned(sc_mem_in.rd_data), execute_dout.mem_write_data_out, mem_data_out,
+   	 spill, fill, mem_read, mem_write, execute_dout.alu_result_out(4 downto 0));
  -- entity patmos_stack_cache is
  -- port
  -- (
-   -- 	clk       	         		: in std_logic;
-   -- 	rst							: in std_logic;
-   --     head_in				 		: in unsigned(4 downto 0); -- from  
-   --     tail_in				 		: in unsigned(4 downto 0);	-- 
-   --     head_out				 	: out unsigned(4 downto 0); -- from  
-   --     tail_out				 	: out unsigned(4 downto 0);	-- 
-   --   	number_of_bytes_to_spill 	: in unsigned(31 downto 0);
-    --    number_of_bytes_to_fill  	: in unsigned(31 downto 0);
-   --     dout_to_mem					: out unsigned(31 downto 0); -- mem interface
-  --      din_from_mem				: in unsigned(31 downto 0); -- mem interface
-  --      din_from_cpu				: in unsigned(31 downto 0);
-  --      dout_to_cpu					: out unsigned(31 downto 0);
+   -- 1	clk       	         		: in std_logic;
+   -- 2	rst							: in std_logic;
+   -- 3    head_in				 		: in unsigned(4 downto 0); -- from  
+   -- 4    tail_in				 		: in unsigned(4 downto 0);	-- 
+   -- 5   head_out				 	: out unsigned(4 downto 0); -- from  
+   -- 6    tail_out				 	: out unsigned(4 downto 0);	-- 
+   -- 7  	number_of_bytes_to_spill 	: in unsigned(31 downto 0);
+    --8    number_of_bytes_to_fill  	: in unsigned(31 downto 0);
+   -- 9    dout_to_mem					: out unsigned(31 downto 0); -- mem interface
+  --  10    din_from_mem				: in unsigned(31 downto 0); -- mem interface
+  --  11    din_from_cpu				: in unsigned(31 downto 0);
+  --  12   dout_to_cpu					: out unsigned(31 downto 0);
   --      spill		        	    : in std_logic;
   --      fill		        	    : in std_logic;
   --      read_enable          	    : in std_logic;
@@ -165,26 +225,9 @@ begin -- architecture begin
   --      address						: in unsigned(4 downto 0);
   --      st							: in unsigned(3 downto 0) -- stack pointer
  -- );  
-  
-	scm: entity work.sc_mem_if
-		generic map (
-			ram_ws => ram_cnt-1,
-			addr_bits => 19			-- edit
-		)
-		port map (clk_int, int_res,
-			sc_mem_out, sc_mem_in,
 
-			ram_addr => ram_addr,
-			ram_dout => ram_dout,
-			ram_din => ram_din,
-			ram_dout_en	=> ram_dout_en,
-			ram_clk => ram_clk,
-			ram_nsc => ram_nsc,
-			ram_ncs => ram_ncs,
-			ram_noe => ram_noe,
-			ram_nwe => ram_nwe
-		);
-  ------------------------------------------------------ execute
+  ---------------------------------------------------- execute
+	
   mux_imm: entity work.patmos_mux_32(arch) -- immediate or rt
   port map(decode_dout.rs2_data_out, decode_dout.ALUi_immediate_out, 
            decode_dout.alu_src_out, mux_alu_src);
@@ -221,6 +264,7 @@ begin -- architecture begin
   execute_din.mem_write_data_in <= alu_src2;
   execute_din.tail_in <= alu_dout.tail_out;
   execute_din.head_in <= alu_dout.head_out;
+  execute_din.st_in <= alu_dout.st_out;
   execute: entity work.patmos_execute(arch)
   port map(clk, rst, execute_din, execute_dout);
   
@@ -298,6 +342,44 @@ begin -- architecture begin
 		else mux_mem_reg <= mem_dout.alu_result_out;
 			end if;
 	end process;
+	
+	
+	
+	
+	------------------------------------------------------ SRAM Interface
+	sc_mem_out.wr_data <= std_logic_vector(sc_mem_out_wr_data);
+	scm: sc_mem_if
+	generic map (
+			ram_ws => ram_cnt-1,
+			addr_bits => 19			-- edit
+		)
+	port map (clk_int, int_res, clk2,
+			sc_mem_out, sc_mem_in,
+
+			ram_addr => ram_addr,
+			ram_dout => ram_dout,
+			ram_din => ram_din,
+			ram_dout_en	=> ram_dout_en,
+			ram_clk => ram_clk,
+			ram_nsc => ram_nsc,
+			ram_ncs => ram_ncs,
+			ram_noe => ram_noe,
+			ram_nwe => ram_nwe
+		);-- execute
+	oSRAM_A <= ram_addr;
+	oSRAM_CE1_N <= ram_ncs;
+	oSRAM_OE_N <= ram_noe;
+	oSRAM_WE_N <= ram_nwe;
+	oSRAM_BE_N <= (others => '0');
+	oSRAM_GW_N <= '1';
+	oSRAM_CLK <= ram_clk;
+	
+	oSRAM_ADSC_N <= ram_ncs;
+	oSRAM_ADSP_N <= '1';
+	oSRAM_ADV_N	<= '1';
+	
+	oSRAM_CE2 <= not ram_ncs;
+    oSRAM_CE3_N <= ram_ncs;
 
 
 end architecture arch;
