@@ -167,7 +167,7 @@ begin -- architecture begin
   inst_mem: entity work.patmos_rom(arch)
   port map(pc, fetch_din.instruction);
 -------------------------------------------------------- decode
-  pc_offset_adder: entity work.patmos_adder(arch) -- for branch instruction
+  pc_offset_adder: entity work.patmos_adder2(arch) -- for branch instruction
   port map(fetch_dout.pc, beq_imm, pc_offset);
   
   reg_file: entity work.patmos_register_file(arch)
