@@ -61,6 +61,8 @@ signal branch_taken                    : std_logic;
 signal is_beq                          : std_logic; 
 signal beq_imm                         : unsigned(31 downto 0);  
 
+signal mem_data_out2					: unsigned(31 downto 0); 
+signal mem_data_out3					: unsigned(31 downto 0);
 
 signal head_in						   : unsigned(4 downto 0);
 signal tail_in						   : unsigned(4 downto 0);
@@ -201,7 +203,7 @@ begin -- architecture begin
    
   stack_cache: entity work.patmos_stack_cache(arch)
    port map(clk, rst, execute_dout.head_out, execute_dout.tail_out, decode_din.head_in, decode_din.tail_in, execute_dout.alu_result_out,
-   	 execute_dout.alu_result_out, sc_mem_out_wr_data, unsigned(sc_mem_in.rd_data), execute_dout.mem_write_data_out, mem_data_out,
+   	 execute_dout.alu_result_out, sc_mem_out_wr_data, unsigned(sc_mem_in.rd_data), execute_dout.mem_write_data_out, mem_data_out3,
    	 spill, fill, mem_read, mem_write, execute_dout.alu_result_out(4 downto 0));
  -- entity patmos_stack_cache is
  -- port
@@ -295,7 +297,7 @@ begin -- architecture begin
       wr_data => std_logic_vector(execute_dout.mem_write_data_out),
       rd      => io_read,
       wr      => io_write,
-      unsigned(rd_data) => mem_data_out,
+      unsigned(rd_data) => mem_data_out2,
       rdy_cnt => rdy_cnt,
       clk     => clk,
       reset   => rst,
