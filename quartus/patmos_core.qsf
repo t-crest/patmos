@@ -45,9 +45,7 @@ set_global_assignment -name LAST_QUARTUS_VERSION "11.0 SP1"
 set_global_assignment -name VHDL_FILE sc_uart.vhd
 set_global_assignment -name VHDL_FILE sc_ssram32.vhd
 set_global_assignment -name VHDL_FILE sc_pack.vhd
-set_global_assignment -name VHDL_FILE patmos_types.vhd
 set_global_assignment -name VHDL_FILE patmos_type_package.vhd
-set_global_assignment -name VHDL_FILE patmos_testbench.vhd
 set_global_assignment -name VHDL_FILE patmos_stack_cache.vhd
 set_global_assignment -name VHDL_FILE patmos_special_register_file.vhd
 set_global_assignment -name VHDL_FILE patmos_register_file.vhd
@@ -66,7 +64,6 @@ set_global_assignment -name VHDL_FILE patmos_data_memory.vhd
 set_global_assignment -name VHDL_FILE patmos_core.vhd
 set_global_assignment -name VHDL_FILE patmos_alu.vhd
 set_global_assignment -name VHDL_FILE patmos_adder.vhd
-set_global_assignment -name VHDL_FILE instruction_memory.vhd
 set_global_assignment -name VHDL_FILE fifo.vhd
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
 set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
