@@ -1,114 +1,63 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
-
+use work.patmos_type_package.all;
 
 entity patmos_stack_cache is
   port
   (
     	clk       	         		: in std_logic;
     	rst							: in std_logic;
-        head_in				 		: in unsigned(4 downto 0); -- from  
-        tail_in				 		: in unsigned(4 downto 0);	-- 
-        head_out				 	: out unsigned(4 downto 0); -- from  
-        tail_out				 	: out unsigned(4 downto 0);	-- 
-      	number_of_bytes_to_spill 	: in unsigned(31 downto 0);
-        number_of_bytes_to_fill  	: in unsigned(31 downto 0);
-        dout_to_mem					: out unsigned(31 downto 0); -- mem interface
-        din_from_mem				: in unsigned(31 downto 0); -- mem interface
-        din_from_cpu				: in unsigned(31 downto 0);
-        dout_to_cpu					: out unsigned(31 downto 0);
-        spill		        	    : in std_logic;
-        fill		        	    : in std_logic;
-        read_enable          	    : in std_logic;
-        write_enable          	    : in std_logic;
-        address						: in unsigned(4 downto 0)
-       -- st							: in unsigned(31 downto 0) -- stack pointer
+       	din							: in patmos_stack_cache_in;
+       	dout						: out patmos_stack_cache_out
   );    
 end entity patmos_stack_cache;
 architecture arch of patmos_stack_cache is
 
-type stack_cache_type is array (0 to 31) of unsigned(31 downto 0);
-signal stack_cache					 : stack_cache_type;
---signal head_pt, tail_pt        		 : unsigned(5 downto 0);
-type state_type is (s0,s1); 
-signal stack_state: state_type := s0;
-signal number_of_bytes_to_spill_reg :unsigned(31 downto 0);
-signal number_of_bytes_to_fill_reg :unsigned(31 downto 0);
-signal tail_reg : unsigned(4 downto 0);
-signal head_reg : unsigned(4 downto 0);
-signal tail_new, head_new : unsigned(4 downto 0);
-signal spill_reg, fill_reg : std_logic;
+component patmos_dual_port_ram is
+generic (
+    DATA    : integer := 32;
+    ADDR    : integer := 5
+);
+port (
+    -- Port A
+    a_clk   : in  std_logic;
+    a_wr    : in  std_logic;
+    a_addr  : in  unsigned(ADDR-1 downto 0);
+    a_din   : in  unsigned(DATA-1 downto 0);
+    a_dout  : out unsigned(DATA-1 downto 0);
+    
+    -- Port B
+    b_clk   : in  std_logic;
+    b_wr    : in  std_logic;
+    b_addr  : in  unsigned(ADDR-1 downto 0);
+    b_din   : in  unsigned(DATA-1 downto 0);
+    b_dout  : out unsigned(DATA-1 downto 0)
+);
+
+  end component;
+  
 begin
 
-  dout_to_cpu <= stack_cache(to_integer(unsigned(address)));
-  st_cache : process(clk, rst)
-  begin
-    if(rst = '1') then
-        for i in 0 to 31 loop -- initialize register file
-          stack_cache(i)<= (others => '0');
-        end loop;
-       head_out <= (others => '0');
-       tail_out <= (others => '0');
-   elsif (rising_edge(clk)) then     
-   		if(write_enable = '1') then
-     		stack_cache(to_integer(unsigned(address))) <= din_from_cpu;
-  		 end if;
-   
-  		number_of_bytes_to_spill_reg <= number_of_bytes_to_spill;
-  		number_of_bytes_to_fill_reg <= number_of_bytes_to_fill;
-  		tail_reg <= tail_new;
-  		head_reg <= head_new;
-  		spill_reg <= spill;
-  		fill_reg <= fill;
-  ------------------------------------- spill
-      if(spill_reg = '1') then  
-      	
-      	case stack_state is
-   		  when s0 =>  
-   		  	dout_to_mem <= stack_cache(to_integer(unsigned(tail_reg)));
-   		  	number_of_bytes_to_spill_reg <= number_of_bytes_to_spill_reg - 1;
-   		  	stack_state <= s1;
-   		  	tail_reg <= tail_reg + 1; --move the stack pointer
-   		  when s1 =>
-      		if (number_of_bytes_to_spill_reg > 0) then
-      			stack_state <= s0;
-      		else
-      			spill_reg <= '0';
-      			tail_new <= tail_in;
-      			tail_out <= tail_in;
-      			head_new <= head_in;
-      			head_out <= head_in;
-      		end if;	
-      	 when others => NULL;
-        end case;	         
-      end if;
-  ------------------------------------- fill      
-       if(fill_reg = '1') then  
-      	case stack_state is
-   		  when s0 =>  
-   		  	stack_cache(to_integer(unsigned(tail_reg))) <= din_from_mem;
-   		  	number_of_bytes_to_fill_reg <= number_of_bytes_to_fill_reg - 1;
-   		  	stack_state <= s1;
-   		  when s1 =>
-      		if (number_of_bytes_to_spill > 0) then
-      			stack_state <= s0;
-      		else
-      			fill_reg <= '0';
-      			tail_new <= tail_in;
-      			tail_out <= tail_in;
-      			head_new <= head_in;
-      			head_out <= head_in;
-      		end if;	
-      	 when others => NULL;
-        end case;	         
-      end if;
-      
-    end if;
-  end process st_cache;
-  
-  --tail_out <= tail_reg;
+	stack_cache_ram : patmos_dual_port_ram port map    
+	(
+	-- Port A, mem
+		    a_clk  => clk,
+    		a_wr   => din.spill_fill,
+   			a_addr => din.head_tail,
+   			a_din  => din.din_from_mem,
+   			a_dout => dout.dout_to_mem,
+    
+    -- Port B, CPU
+    		b_clk  => clk,
+    		b_wr   => din.write_enable,
+    		b_addr => din.address,
+    		b_din  => din.din_from_cpu,
+    		b_dout => dout.dout_to_cpu
+	);
+	
   
      
 end arch;
+
 

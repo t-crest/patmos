@@ -90,69 +90,10 @@ begin
             dout.rd <= din.rs1 + din.rs2; -- unsigned(intermediate_add);--
         when BEQ =>
             dout.rd <= din.rs1 + din.rs2; -- unsigned(intermediate_add);--
-        when STC => 
-        	case din.STC_instruction_type is
-        		when SRES => --reserve
-        			--dout.rd <= din.stack_data_in;
-        				
-        			if (number_of_bytes_in_stack_cache = 0 and din.head_in = din.tail_in) then--stack empty
-        				    dout.spill_out <= '0';
-        					dout.tail_out <= din.tail_in;
-        					dout.head_out <= (din.head_in + din.stc_immediate_in) mod 32;
-        					--if ((number_of_bytes_in_stack_cache + din.stc_immediate_in) > 32) then
-        					--	number_of_bytes_in_stack_cache <= 32;
-        					--else
-        						number_of_bytes_in_stack_cache <= number_of_bytes_in_stack_cache + din.stc_immediate_in;
-        		--	elsif (din.head_in = din.tail_in) then	-- stack full (covered under the next if)
-        		--			dout.spill_out <= '1';
-        						
-        			elsif ((32 - number_of_bytes_in_stack_cache) <  din.stc_immediate_in) then -- needs to spill
-        				--if( ( 32 - (din.head_in - din.tail_in)) < din.stc_immediate_in) then
-        					number_of_bytes_in_stack_cache <= to_unsigned(32,5);
-        					dout.spill_out <= '1'; -- how much to spill? next line
-        					dout.rd <=  "000000000000000000000000000" & din.stc_immediate_in - (32 - number_of_bytes_in_stack_cache); 
-        					dout.tail_out <= (din.tail_in + din.stc_immediate_in - (32 - number_of_bytes_in_stack_cache)) mod 32;
-        					dout.head_out <= (din.head_in + din.stc_immediate_in) mod 32;
-        					dout.st_out <= din.st_in + ("000000000000000000000000000" & din.stc_immediate_in);
-        				else 
-        					number_of_bytes_in_stack_cache <= number_of_bytes_in_stack_cache + din.stc_immediate_in;
-        					dout.spill_out <= '0';
-        					dout.tail_out <= din.tail_in;
-        				end if;	
-        			--elsif (din.head_in < din.tail_in) then
-        			--	if( ( 32 - (din.tail_in - din.head_in )) < din.stc_immediate_in) then
-        			--		dout.spill_out <= '1'; -- how much to spill?
-        			--		dout.rd <=  "000000000000000000000000000" & din.stc_immediate_in - (32 - (din.tail_in - din.head_in )); 
-        			--		dout.tail_out <= din.head_in + din.stc_immediate_in - (32 - (din.tail_in - din.head_in)); -- mod . . .
-        			--		dout.head_out <= (din.head_in + din.stc_immediate_in) mod 32;
-        			--	else 
-        			--		dout.spill_out <= '0';
-        			--		dout.tail_out <= din.tail_in;
-        			--	end if;	
-        			--end if;	
-        				
-        			--dout.head_out <= din.head_in + din.stc_immediate_in; 
-        		when SENS => --ensure
-        			if (number_of_bytes_in_stack_cache = din.stc_immediate_in) then
-        				dout.fill_out <= '0';
-        			else
-        				dout.fill_out <= '1';
-        				if (din.tail_in > din.head_in) then -- not sure if this condition is correct?
-        					dout.tail_out <= din.tail_in - din.stc_immediate_in;
-        				end if;
-        				dout.st_out <= din.st_in - ("000000000000000000000000000" & din.stc_immediate_in);
-        			end if;	
-        		when SFREE => --free
-        			dout.head_out <= din.head_in - din.stc_immediate_in; -- not sure if this is correct?
-        			dout.st_out <= din.st_in - ("000000000000000000000000000" & din.stc_immediate_in);
-        			number_of_bytes_in_stack_cache <= number_of_bytes_in_stack_cache - din.stc_immediate_in;
-        			dout.tail_out <= din.tail_in;
-        		when others => NULL;
-        	
-    	  end case; --inst type
     	when others => dout.rd <= din.rs1 + din.rs2; -- unsigned(intermediate_add);--
     	end case;
     end process patmos_alu;
 end arch;
+
 
 

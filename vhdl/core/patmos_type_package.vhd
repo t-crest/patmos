@@ -158,9 +158,34 @@ type mem_out_type is record
     mem_write_data_out            : unsigned(31 downto 0);
 end record;
      
+type patmos_stack_cache_ctrl_in is record
+		stc_immediate_in	: unsigned(4 downto 0);
+		instruction			: STC_instruction_type; -- from decode
+end record;
+
+type patmos_stack_cache_ctrl_out is record
+		stall				: std_logic;
+		head_tail			: unsigned(4 downto 0); -- connect to stack cache
+		spill_fill     	 	: std_logic;
+end record;
+
+type patmos_stack_cache_in is record
+	head_tail					: unsigned(4 downto 0);
+	din_from_mem				: unsigned(31 downto 0); -- mem interface
+	din_from_cpu				: unsigned(31 downto 0);
+	spill_fill	        	    : std_logic;
+    write_enable          	    : std_logic;
+    address			 			: unsigned(4 downto 0);
+end record;
+
+type patmos_stack_cache_out is record
+	dout_to_mem					: unsigned(31 downto 0); -- mem interface
+	dout_to_cpu					: unsigned(31 downto 0);
+end record;
 
 
 end patmos_type_package;
+
 
 
 

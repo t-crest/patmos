@@ -44,6 +44,10 @@ signal alu_din                         : alu_in_type;
 signal alu_dout                        : alu_out_type;
 signal execute_din                     : execution_in_type;
 signal execute_dout                    : execution_out_type;
+signal stack_cache_din				   : patmos_stack_cache_in;
+signal stack_cache_dout		 		   : patmos_stack_cache_out;
+signal stack_cache_ctrl_din	  		   : patmos_stack_cache_ctrl_in;
+signal stack_cache_ctrl_dout		   : patmos_stack_cache_ctrl_out;
 signal mem_din                         : mem_in_type;
 signal mem_dout                        : mem_out_type;
 signal mux_mem_reg                  	  : unsigned(31 downto 0); 
@@ -201,10 +205,10 @@ begin -- architecture begin
 	          mux_mem_reg, mem_dout.reg_write_out);
   
    
-  stack_cache: entity work.patmos_stack_cache(arch)
-   port map(clk, rst, execute_dout.head_out, execute_dout.tail_out, decode_din.head_in, decode_din.tail_in, execute_dout.alu_result_out,
-   	 execute_dout.alu_result_out, sc_mem_out_wr_data, unsigned(sc_mem_in.rd_data), execute_dout.mem_write_data_out, mem_data_out3,
-   	 spill, fill, mem_read, mem_write, execute_dout.alu_result_out(4 downto 0));
+ -- stack_cache: entity work.patmos_stack_cache(arch)
+ --  port map(clk, rst, execute_dout.head_out, execute_dout.tail_out, decode_din.head_in, decode_din.tail_in, execute_dout.alu_result_out,
+ --  	 execute_dout.alu_result_out, sc_mem_out_wr_data, unsigned(sc_mem_in.rd_data), execute_dout.mem_write_data_out, mem_data_out3,
+ --  	 spill, fill, mem_read, mem_write, execute_dout.alu_result_out(4 downto 0));
  -- entity patmos_stack_cache is
  -- port
  -- (
@@ -227,6 +231,19 @@ begin -- architecture begin
   --      address						: in unsigned(4 downto 0);
   --      st							: in unsigned(3 downto 0) -- stack pointer
  -- );  
+ 
+ 	stack_cache_ctrl: entity work.patmos_stack_cache_ctrl(arch)
+ 	port map(clk, stack_cache_ctrl_din, stack_cache_ctrl_dout);
+ 
+ 	stack_cache_din.din_from_cpu <= execute_dout.mem_write_data_out;
+ 	stack_cache_din.spill_fill <= stack_cache_ctrl_dout.spill_fill;
+ 	mem_data_out <= stack_cache_dout.dout_to_cpu;
+ 	stack_cache_din.write_enable <= mem_write;
+ 	stack_cache_din.address <= execute_dout.alu_result_out(4 downto 0);
+ 	stack_cache_din.head_tail <= stack_cache_ctrl_dout.head_tail;
+ 	
+ 	stack_cache: entity work.patmos_stack_cache(arch)
+ 	port map(clk, rst, stack_cache_din, stack_cache_dout);
 
   ---------------------------------------------------- execute
 	
@@ -310,11 +327,11 @@ begin -- architecture begin
   
 
   -- memory access
-  memory: entity work.patmos_data_memory(arch)
-  port map(clk, rst, execute_dout.alu_result_out, 
-            execute_dout.mem_write_data_out,
-            mem_data_out, 
-            mem_read, mem_write);
+ -- memory: entity work.patmos_data_memory(arch)
+ -- port map(clk, rst, execute_dout.alu_result_out, 
+   --         execute_dout.mem_write_data_out,
+     --       mem_data_out, 
+     --       mem_read, mem_write);
   --clk, rst, add, data_in(store), data_out(load), read_en, write_en
 
   --------------------------
@@ -385,6 +402,7 @@ begin -- architecture begin
 
 
 end architecture arch;
+
 
 
 
