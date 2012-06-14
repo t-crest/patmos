@@ -103,7 +103,6 @@ type execution_in_type is record
     head_in								: unsigned(4 downto 0);
     st_in								: unsigned(31 downto 0);
     STT_instruction_type_in				: STT_inst_type;
-    LDT_instruction_type_in				: LDT_inst_type;
 end record;
 
 type execution_out_type is record
@@ -118,7 +117,6 @@ type execution_out_type is record
     head_out							: unsigned(4 downto 0);
     st_out								: unsigned(31 downto 0);
     STT_instruction_type_out			: STT_inst_type;
-    LDT_instruction_type_out			: LDT_inst_type;
 end record;
 
 ------------------------------------------

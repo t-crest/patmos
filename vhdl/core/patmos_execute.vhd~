@@ -39,10 +39,7 @@ begin
       dout.write_back_reg_out <= din.write_back_reg_in;
       dout.head_out <= din.head_in;
       dout.tail_out <= din.tail_in;
-      dout.STT_instruction_type_out <= din.STT_instruction_type_in;
-      dout.LDT_instruction_type_out <= din.LDT_instruction_type_in;
     end if; 
   end process;
 end arch;
-
 

@@ -198,13 +198,52 @@ begin -- architecture begin
   equal_check: entity work.patmos_equal_check(arch)
   port map(br_src1, br_src2, branch_taken);
   
-  ------------------------------------------------------ special register file
-  
+  ------------------------------------------------------
     special_reg_file: entity work.patmos_special_register_file(arch)
 	port map(clk, rst, decode_dout.st_out, fetch_dout.instruction(10 downto 7),
 	         mem_dout.write_back_reg_out(3 downto 0), decode_din.rs1_data_in_special, decode_din.rs2_data_in_special,
 	          mux_mem_reg, mem_dout.reg_write_out);
   
+   
+ -- stack_cache: entity work.patmos_stack_cache(arch)
+ --  port map(clk, rst, execute_dout.head_out, execute_dout.tail_out, decode_din.head_in, decode_din.tail_in, execute_dout.alu_result_out,
+ --  	 execute_dout.alu_result_out, sc_mem_out_wr_data, unsigned(sc_mem_in.rd_data), execute_dout.mem_write_data_out, mem_data_out3,
+ --  	 spill, fill, mem_read, mem_write, execute_dout.alu_result_out(4 downto 0));
+ -- entity patmos_stack_cache is
+ -- port
+ -- (
+   -- 1	clk       	         		: in std_logic;
+   -- 2	rst							: in std_logic;
+   -- 3    head_in				 		: in unsigned(4 downto 0); -- from  
+   -- 4    tail_in				 		: in unsigned(4 downto 0);	-- 
+   -- 5   head_out				 	: out unsigned(4 downto 0); -- from  
+   -- 6    tail_out				 	: out unsigned(4 downto 0);	-- 
+   -- 7  	number_of_bytes_to_spill 	: in unsigned(31 downto 0);
+    --8    number_of_bytes_to_fill  	: in unsigned(31 downto 0);
+   -- 9    dout_to_mem					: out unsigned(31 downto 0); -- mem interface
+  --  10    din_from_mem				: in unsigned(31 downto 0); -- mem interface
+  --  11    din_from_cpu				: in unsigned(31 downto 0);
+  --  12   dout_to_cpu					: out unsigned(31 downto 0);
+  --      spill		        	    : in std_logic;
+  --      fill		        	    : in std_logic;
+  --      read_enable          	    : in std_logic;
+  --      write_enable          	    : in std_logic;
+  --      address						: in unsigned(4 downto 0);
+  --      st							: in unsigned(3 downto 0) -- stack pointer
+ -- );  
+ 
+ 	stack_cache_ctrl: entity work.patmos_stack_cache_ctrl(arch)
+ 	port map(clk, stack_cache_ctrl_din, stack_cache_ctrl_dout);
+ 
+ 	stack_cache_din.din_from_cpu <= execute_dout.mem_write_data_out;
+ 	stack_cache_din.spill_fill <= stack_cache_ctrl_dout.spill_fill;
+ 	mem_data_out <= stack_cache_dout.dout_to_cpu;
+ 	stack_cache_din.write_enable <= mem_write;
+ 	stack_cache_din.address <= execute_dout.alu_result_out(4 downto 0);
+ 	stack_cache_din.head_tail <= stack_cache_ctrl_dout.head_tail;
+ 	
+ 	stack_cache: entity work.patmos_stack_cache(arch)
+ 	port map(clk, rst, stack_cache_din, stack_cache_dout);
 
   ---------------------------------------------------- execute
 	
@@ -229,8 +268,7 @@ begin -- architecture begin
   alu_din.rs2 <= mux_alu_src;
   alu_din.inst_type <= decode_dout.inst_type_out;
   alu_din.ALU_function_type <= decode_dout.ALU_function_type_out;
-  alu_din.STT_instruction_type <= decode_dout.STT_instruction_type_out;
-  alu_din.LDT_instruction_type <= decode_dout.LDT_instruction_type_out;
+  
   
   alu: entity work.patmos_alu(arch)
   port map(clk, rst, alu_din, alu_dout);
@@ -243,45 +281,12 @@ begin -- architecture begin
   execute_din.alu_result_in <= alu_dout.rd;
   execute_din.write_back_reg_in <= decode_dout.rd_out;
   execute_din.mem_write_data_in <= alu_src2;
-  execute_din.STT_instruction_type_in <= decode_dout.STT_instruction_type_out;
- -- execute_din.tail_in <= alu_dout.tail_out;
- -- execute_din.head_in <= alu_dout.head_out;
+  execute_din.tail_in <= alu_dout.tail_out;
+  execute_din.head_in <= alu_dout.head_out;
   execute_din.st_in <= alu_dout.st_out;
   execute: entity work.patmos_execute(arch)
   port map(clk, rst, execute_din, execute_dout);
   
-   -----------------------------------------------cache - memory------------------------------------------------------------
-   ---------------------------------------------------- stack cache controller
-   
- 	stack_cache_ctrl_din.stc_immediate_in <= decode_dout.ALUi_immediate_out(4 downto 0);
- 	stack_cache_ctrl_din.instruction <= decode_dout.STC_instruction_type_out;
- 	stack_cache_ctrl: entity work.patmos_stack_cache_ctrl(arch)
- 	port map(clk, rst, stack_cache_ctrl_din, stack_cache_ctrl_dout);
- 
- 
-   ---------------------------------------------------- stack cache
-   
- 	stack_cache_in: process(execute_dout.mem_write_data_out) -- which type of transfer for stack cache?
- 	begin
- 		if (execute_dout.STT_instruction_type_out = SWS) then
- 			stack_cache_din.din_from_cpu <= execute_dout.mem_write_data_out;
- 		elsif (execute_dout.STT_instruction_type_out = SBS) then
- 			stack_cache_din.din_from_cpu(16 downto 0) <= execute_dout.mem_write_data_out(16 downto 0);
- 		elsif (execute_dout.STT_instruction_type_out = SHS) then
- 			stack_cache_din.din_from_cpu(8 downto 0) <= execute_dout.mem_write_data_out(8 downto 0);
- 		end if;
- 		
- 	end process;
- --	stack_cache_din.din_from_cpu <= execute_dout.mem_write_data_out; -- transfer to stack cache no matter what, should change based on controlling signals
- 	stack_cache_din.spill_fill <= '0';--stack_cache_ctrl_dout.spill_fill;
- 	mem_data_out <= stack_cache_dout.dout_to_cpu;
- 	stack_cache_din.write_enable <= mem_write;
- 	stack_cache_din.address <= execute_dout.alu_result_out(4 downto 0);
- 	stack_cache_din.head_tail <= stack_cache_ctrl_dout.head_tail;
- 	
- 	
- 	stack_cache: entity work.patmos_stack_cache(arch)
- 	port map(clk, rst, stack_cache_din, stack_cache_dout);
 
   ------------------------------------------------------- memory
   -- mem/io decoder
@@ -361,25 +366,25 @@ begin -- architecture begin
 	
 	
 	------------------------------------------------------ SRAM Interface
---	sc_mem_out.wr_data <= std_logic_vector(sc_mem_out_wr_data);
---	scm: sc_mem_if
---	generic map (
---			ram_ws => ram_cnt-1,
---			addr_bits => 19			-- edit
---		)
---	port map (clk_int, int_res, clk2,
---			sc_mem_out, sc_mem_in,
+	sc_mem_out.wr_data <= std_logic_vector(sc_mem_out_wr_data);
+	scm: sc_mem_if
+	generic map (
+			ram_ws => ram_cnt-1,
+			addr_bits => 19			-- edit
+		)
+	port map (clk_int, int_res, clk2,
+			sc_mem_out, sc_mem_in,
 
---			ram_addr => ram_addr,
---			ram_dout => ram_dout,
---			ram_din => ram_din,
---			ram_dout_en	=> ram_dout_en,
---			ram_clk => ram_clk,
---			ram_nsc => ram_nsc,
---			ram_ncs => ram_ncs,
---			ram_noe => ram_noe,
---			ram_nwe => ram_nwe
---		);-- execute
+			ram_addr => ram_addr,
+			ram_dout => ram_dout,
+			ram_din => ram_din,
+			ram_dout_en	=> ram_dout_en,
+			ram_clk => ram_clk,
+			ram_nsc => ram_nsc,
+			ram_ncs => ram_ncs,
+			ram_noe => ram_noe,
+			ram_nwe => ram_nwe
+		);-- execute
 	oSRAM_A <= ram_addr;
 	oSRAM_CE1_N <= ram_ncs;
 	oSRAM_OE_N <= ram_noe;

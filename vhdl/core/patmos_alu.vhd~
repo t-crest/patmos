@@ -85,31 +85,9 @@ begin
           when others => dout.rd <= din.rs1 + din.rs2;
         end case;
         when LDT =>
-        	case din.LDT_instruction_type is
-        		when LWS =>
-        			dout.rd <= unsigned(SHIFT_LEFT(signed(din.rs1 + din.rs2), 2)); -- igned, unsigned
-        		when LHS =>
-        			dout.rd <= unsigned(SHIFT_LEFT(signed(din.rs1 + din.rs2), 1));
-        		when LBS =>
-        			dout.rd <= din.rs1 + din.rs2;
-        		when LHUS =>
-        			dout.rd <= din.rs1 + din.rs2;
-        		when LBUS =>
-        			dout.rd <= din.rs1 + din.rs2;	
-        		when others => null;
-        	end case;	
-           --dout.rd <= din.rs1 + din.rs2; --unsigned(intermediate_add);--
+            dout.rd <= din.rs1 + din.rs2; --unsigned(intermediate_add);--
         when STT =>
-        	case din.STT_instruction_type is
-        		when SWS =>
-        			dout.rd <= unsigned(SHIFT_LEFT(signed(din.rs1 + din.rs2), 2));
-        		when SHS =>
-        			dout.rd <= unsigned(SHIFT_LEFT(signed(din.rs1 + din.rs2), 1));
-        		when SBS =>
-        			dout.rd <= din.rs1 + din.rs2;
-        		when others => null;
-        	end case;
-         --   dout.rd <= din.rs1 + din.rs2; -- unsigned(intermediate_add);--
+            dout.rd <= din.rs1 + din.rs2; -- unsigned(intermediate_add);--
         when BEQ =>
             dout.rd <= din.rs1 + din.rs2; -- unsigned(intermediate_add);--
     	when others => dout.rd <= din.rs1 + din.rs2; -- unsigned(intermediate_add);--
@@ -117,10 +95,5 @@ begin
     end process patmos_alu;
 end arch;
 
---function SHIFT_RIGHT (ARG: SIGNED; COUNT: NATURAL) return SIGNED;
-  -- Result subtype: SIGNED(ARG'LENGTH-1 downto 0)
-  -- Result: Performs a shift-right on a SIGNED vector COUNT times.
-  --         The vacated positions are filled with the leftmost
-  --         element, ARG'LEFT. The COUNT rightmost elements are lost.
 
 
