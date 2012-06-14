@@ -8,7 +8,7 @@ use work.patmos_type_package.all;
 entity patmos_stack_cache_ctrl is
 	port
 	(
-		clk,rst					: in std_logic;
+		clk					: in std_logic;
 		din					: in patmos_stack_cache_ctrl_in;
 		dout 				: out patmos_stack_cache_ctrl_out
 	);
@@ -17,20 +17,16 @@ end entity patmos_stack_cache_ctrl;
 architecture arch of patmos_stack_cache_ctrl is
 
 signal number_of_bytes_in_stack_cache			: unsigned(4 downto 0) := (others => '0');
-signal head										: unsigned(4 downto 0);
-signal tail										: unsigned(4 downto 0);
+signal head										: unsigned(4 downto 0) := (others => '0');
+signal tail										: unsigned(4 downto 0) := (others => '0');
 type state_type is (s0,s1); 
 signal stack_state: state_type := s0;
 signal spill_counter 							: unsigned(4 downto 0):= (others => '0'); 
 signal fill_counter 							: unsigned(4 downto 0):= (others => '0');
 begin
 
-process(din.instruction, rst)
+process(din.instruction)
 begin
-	if(rst = '1') then
-		head <= (others => '0');
-		tail <= (others => '0');
-	else
 	case din.instruction is -- unbounded cache
         when SRES =>
         	head <= head + din.stc_immediate_in;
@@ -68,7 +64,6 @@ begin
         	head <= head - din.stc_immediate_in;
         when others => null;
     end case;
-    end if;
 end process;
 
 end arch;
