@@ -173,12 +173,15 @@ end record;
 type patmos_stack_cache_ctrl_in is record
 		stc_immediate_in	: unsigned(4 downto 0);
 		instruction			: STC_instruction_type; -- from decode
+		st_in				: unsigned(31 downto 0);
 end record;
 
 type patmos_stack_cache_ctrl_out is record
 		stall				: std_logic;
 		head_tail			: unsigned(4 downto 0); -- connect to stack cache
 		spill_fill     	 	: std_logic;
+		st_out				: unsigned(31 downto 0);
+		reg_write_out		: std_logic;
 end record;
 
 type patmos_stack_cache_in is record
