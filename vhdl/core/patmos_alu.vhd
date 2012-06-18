@@ -107,7 +107,7 @@ begin
         			dout.rd <= unsigned(SHIFT_LEFT(signed(din.rs1 + din.rs2), 1));
         		when SBS =>
         			dout.rd <= din.rs1 + din.rs2;
-        		when others => null;
+        		when others => dout.rd <= din.rs1 + din.rs2;
         	end case;
          --   dout.rd <= din.rs1 + din.rs2; -- unsigned(intermediate_add);--
         when BEQ =>

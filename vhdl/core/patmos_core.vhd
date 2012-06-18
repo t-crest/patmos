@@ -65,7 +65,9 @@ signal branch_taken                    : std_logic;
 signal is_beq                          : std_logic; 
 signal beq_imm                         : unsigned(31 downto 0);  
 
-signal mem_data_out2					: unsigned(31 downto 0); 
+signal address_uart : std_logic_vector(31 downto 0)  := (others => '0');
+signal mem_data_out_uart				: std_logic_vector(31 downto 0); 
+signal mem_data_out_muxed				: unsigned(31 downto 0); 
 signal mem_data_out3					: unsigned(31 downto 0);
 
 signal head_in						   : unsigned(4 downto 0);
@@ -149,13 +151,15 @@ port (
 	end component;
 
 begin -- architecture begin
+
+ led <= mem_dout.write_back_reg_out(0);
 ------------------------------------------------------- fetch	
 		  
   is_beq <= '1' when fetch_dout.instruction(26 downto 22) = "11111" else '0';
   branch <= branch_taken and is_beq;
   beq_imm <= "0000000000000000000000000" & fetch_dout.instruction(6 downto 0);
   
-  led <= mem_dout.write_back_reg_out(0);
+ 
   fetch_din.pc <= pc_next;
   
   fet: entity work.patmos_fetch(arch)
@@ -209,7 +213,7 @@ begin -- architecture begin
   ---------------------------------------------------- execute
 	
   mux_imm: entity work.patmos_mux_32(arch) -- immediate or rt
-  port map(decode_dout.rs2_data_out, decode_dout.ALUi_immediate_out, 
+  port map(alu_src2, decode_dout.ALUi_immediate_out, 
            decode_dout.alu_src_out, mux_alu_src);
 
   mux_rs1: entity work.patmos_forward_value(arch)
@@ -228,6 +232,7 @@ begin -- architecture begin
   alu_din.rs1 <= alu_src1;
   alu_din.rs2 <= mux_alu_src;
   alu_din.inst_type <= decode_dout.inst_type_out;
+  alu_din.ALU_instruction_type <= decode_dout.ALU_instruction_type_out;
   alu_din.ALU_function_type <= decode_dout.ALU_function_type_out;
   alu_din.STT_instruction_type <= decode_dout.STT_instruction_type_out;
   alu_din.LDT_instruction_type <= decode_dout.LDT_instruction_type_out;
@@ -301,29 +306,38 @@ begin -- architecture begin
   -- mem/io decoder
    io_decode: process(execute_dout.alu_result_out)
 	begin
-		if(to_integer(execute_dout.alu_result_out) < 126) then
+		if(to_integer(execute_dout.alu_result_out) < 127) then
 			mem_write <= execute_dout.mem_write_out;
 			mem_read <= execute_dout.mem_read_out;
 		    io_write <= '0';	
 		    io_read <= '0';
-		    address <= "00000000000000000000000000000001";
+		   -- address <= "00000000000000000000000000000001";
 		end if;
-		if (to_integer(execute_dout.alu_result_out) >= 126) then
+		if (to_integer(execute_dout.alu_result_out) <= 127) then
 			mem_write <= '0';
 			mem_read <= '0';
 			io_write <= execute_dout.mem_write_out;
 			io_read <= execute_dout.mem_read_out;
-			address <= std_logic_vector(execute_dout.alu_result_out);
+			address_uart <= std_logic_vector(execute_dout.alu_result_out);
+		end if;
+	end process;
+	
+	   io_mem_read_mux: process(mem_data_out_uart, mem_data_out)
+	begin
+		if(to_integer(execute_dout.alu_result_out) <= 127) then
+			mem_data_out_muxed <= unsigned(mem_data_out_uart);
+		elsif (to_integer(execute_dout.alu_result_out) > 127) then
+			mem_data_out_muxed <= mem_data_out;
 		end if;
 	end process;
   
   sc_uart_inst : sc_uart port map       -- Maps internal signals to ports
     (
-      address => address,
+      address => address_uart,
       wr_data => std_logic_vector(execute_dout.mem_write_data_out),
       rd      => io_read,
       wr      => io_write,
-      unsigned(rd_data) => mem_data_out2,
+      rd_data => mem_data_out_uart,
       rdy_cnt => rdy_cnt,
       clk     => clk,
       reset   => rst,
@@ -336,19 +350,19 @@ begin -- architecture begin
   
 
   -- memory access
- -- memory: entity work.patmos_data_memory(arch)
- -- port map(clk, rst, execute_dout.alu_result_out, 
-   --         execute_dout.mem_write_data_out,
-     --       mem_data_out, 
-     --       mem_read, mem_write);
+  memory: entity work.patmos_data_memory(arch)
+  port map(clk, rst, execute_dout.alu_result_out, 
+            execute_dout.mem_write_data_out,
+            mem_data_out, 
+            mem_read, mem_write);
   --clk, rst, add, data_in(store), data_out(load), read_en, write_en
 
   --------------------------
-  mem_din.reg_write_in <= mem_write;
+  mem_din.reg_write_in <= execute_dout.reg_write_out;
   mem_din.mem_to_reg_in <= execute_dout.mem_to_reg_out;
   mem_din.alu_result_in <= execute_dout.alu_result_out;
   mem_din.write_back_reg_in <= execute_dout.write_back_reg_out;
-  mem_din.mem_data_in <= mem_data_out;
+  mem_din.mem_data_in <= mem_data_out_muxed;
   mem_din.mem_write_data_in <= execute_dout.mem_write_data_out;
   memory_stage: entity work.patmos_mem_stage(arch)
   port map(clk, rst, mem_din, mem_dout);
@@ -375,24 +389,24 @@ begin -- architecture begin
 	sc_mem_out.wr_data <= std_logic_vector(stack_cache_dout.dout_to_mem);
 	sc_mem_out.address <= std_logic_vector(stack_cache_ctrl_dout.st_out(22 downto 0));
 	
---	scm: sc_mem_if
---	generic map (
---			ram_ws => ram_cnt-1,
----			addr_bits => 19			-- edit
---		)
---	port map (clk, int_res, clk2,
---			sc_mem_out, sc_mem_in,
+	scm: sc_mem_if
+	generic map (
+			ram_ws => ram_cnt-1,
+			addr_bits => 19			-- edit
+		)
+	port map (clk, int_res, clk2,
+			sc_mem_out, sc_mem_in,
 
---			ram_addr => ram_addr,
---			ram_dout => ram_dout,
---			ram_din => ram_din,
---			ram_dout_en	=> ram_dout_en,
---			ram_clk => ram_clk,
---			ram_nsc => ram_nsc,
---			ram_ncs => ram_ncs,
---			ram_noe => ram_noe,
---			ram_nwe => ram_nwe
---		);
+			ram_addr => ram_addr,
+			ram_dout => ram_dout,
+			ram_din => ram_din,
+			ram_dout_en	=> ram_dout_en,
+			ram_clk => ram_clk,
+			ram_nsc => ram_nsc,
+			ram_ncs => ram_ncs,
+			ram_noe => ram_noe,
+			ram_nwe => ram_nwe
+		);
 	oSRAM_A <= ram_addr;
 	oSRAM_CE1_N <= ram_ncs;
 	oSRAM_OE_N <= ram_noe;

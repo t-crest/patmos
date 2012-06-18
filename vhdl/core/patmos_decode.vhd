@@ -131,6 +131,7 @@ begin
             dout.rs1_out <= din.operation(16 downto 12);
             dout.ALUi_immediate_out <= "0000000000000000000000000" & din.operation(6 downto 0);
             dout.rs1_data_out <= din.rs1_data_in;
+            dout.rs2_data_out <= din.rs2_data_in;
 --            dout.reg_write_out <= din.reg_write_in;
             dout.alu_src_out <= '1'; -- choose the second source, i.e. immediate!
             dout.reg_write_out <= '1'; -- reg_write_out is reg_write_ex

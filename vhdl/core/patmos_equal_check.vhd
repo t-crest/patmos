@@ -19,10 +19,11 @@ begin
 	process (din1, din2)
 	begin
 		if (din1 = din2) then
-			dout <= '1';
-		else
 			dout <= '0';
+		else
+			dout <= '1';
 		end if;
 	end process;
   
 end arch;
+
