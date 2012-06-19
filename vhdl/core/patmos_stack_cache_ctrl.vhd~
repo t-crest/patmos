@@ -32,17 +32,17 @@ process(din.instruction, rst)
 begin
 	if(rst = '1') then
 		head <= (others => '0');
-	--	tail <= (others => '0');
-	--	dout.reg_write_out <= '0';
+		tail <= (others => '0');
+		dout.reg_write_out <= '0';
 		number_of_bytes_in_stack_cache <= (others => '0');
 	else
-	--st <= din.st_in;
+	st <= din.st_in;
 	case din.instruction is -- unbounded cache
         when SRES =>
         	head <= (head + din.stc_immediate_in) mod 32;
     		if ((32 - number_of_bytes_in_stack_cache) <  din.stc_immediate_in) then
     			spill <= '1';
-    	--		spill_counter <=  din.stc_immediate_in - (32 - number_of_bytes_in_stack_cache);
+    			spill_counter <=  din.stc_immediate_in - (32 - number_of_bytes_in_stack_cache);
     		end if;
         when SENS =>
         	

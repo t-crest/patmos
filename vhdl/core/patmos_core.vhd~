@@ -9,7 +9,7 @@ entity patmos_core is
   port
   (
     clk                   : in std_logic;
-    out_rst                   : in std_logic;
+    rst                   : in std_logic;
     led         	  : out std_logic;
     txd      	          : out std_logic;
     rxd     		: in  std_logic;
@@ -91,7 +91,6 @@ signal ram_nwe			: std_logic;
 signal sc_mem_out		: sc_out_type;
 signal sc_mem_in		: sc_in_type;
 ------------------------------------------------------- uart signals
-signal rst				:std_logic;--out_rst
 signal mem_write					   : std_logic;
 signal io_write						   : std_logic;	
 signal mem_read						   : std_logic;
@@ -152,8 +151,8 @@ port (
 	end component;
 
 begin -- architecture begin
- rst <= not out_rst;
- led <= '1';
+
+ led <= mem_dout.write_back_reg_out(0);
 ------------------------------------------------------- fetch	
 		  
   is_beq <= '1' when fetch_dout.instruction(26 downto 22) = "11111" else '0';
@@ -323,13 +322,11 @@ begin -- architecture begin
 		end if;
 	end process;
 	
-	   io_mem_read_mux: process(mem_data_out_uart, mem_data_out, execute_dout.alu_result_out)
+	   io_mem_read_mux: process(mem_data_out_uart, mem_data_out)
 	begin
 		if(to_integer(execute_dout.alu_result_out) <= 127) then
 			mem_data_out_muxed <= unsigned(mem_data_out_uart);
 		elsif (to_integer(execute_dout.alu_result_out) > 127) then
-			mem_data_out_muxed <= mem_data_out;
-		else 
 			mem_data_out_muxed <= mem_data_out;
 		end if;
 	end process;
@@ -353,11 +350,11 @@ begin -- architecture begin
   
 
   -- memory access
--- memory: entity work.patmos_data_memory(arch)
---  port map(clk, rst, execute_dout.alu_result_out, 
---            execute_dout.mem_write_data_out,
---            mem_data_out, 
---            mem_read, mem_write);
+  memory: entity work.patmos_data_memory(arch)
+  port map(clk, rst, execute_dout.alu_result_out, 
+            execute_dout.mem_write_data_out,
+            mem_data_out, 
+            mem_read, mem_write);
   --clk, rst, add, data_in(store), data_out(load), read_en, write_en
 
   --------------------------
