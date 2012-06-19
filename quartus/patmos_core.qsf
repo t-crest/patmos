@@ -18,7 +18,7 @@
 #
 # Quartus II
 # Version 11.0 Build 208 07/03/2011 Service Pack 1 SJ Web Edition
-# Date created = 11:34:00  June 11, 2012
+# Date created = 11:11:57  June 19, 2012
 #
 # -------------------------------------------------------------------------- #
 #
@@ -40,31 +40,36 @@ set_global_assignment -name FAMILY "Cyclone II"
 set_global_assignment -name DEVICE EP2C70F896C6
 set_global_assignment -name TOP_LEVEL_ENTITY patmos_core
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION "11.0 SP1"
-set_global_assignment -name PROJECT_CREATION_TIME_DATE "11:34:00  JUNE 11, 2012"
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "11:11:57  JUNE 19, 2012"
 set_global_assignment -name LAST_QUARTUS_VERSION "11.0 SP1"
-set_global_assignment -name VHDL_FILE ../vhdl/core/sc_uart.vhd
-set_global_assignment -name VHDL_FILE ../vhdl/core/sc_ssram32.vhd
-set_global_assignment -name VHDL_FILE ../vhdl/core/sc_pack.vhd
-set_global_assignment -name VHDL_FILE ../vhdl/core/patmos_type_package.vhd
-set_global_assignment -name VHDL_FILE ../vhdl/core/patmos_stack_cache.vhd
-set_global_assignment -name VHDL_FILE ../vhdl/core/patmos_special_register_file.vhd
-set_global_assignment -name VHDL_FILE ../vhdl/core/patmos_register_file.vhd
-set_global_assignment -name VHDL_FILE ../vhdl/core/patmos_predicate_registers.vhd
-set_global_assignment -name VHDL_FILE ../vhdl/core/patmos_pc_generator.vhd
-set_global_assignment -name VHDL_FILE ../vhdl/core/patmos_mux_32.vhd
-set_global_assignment -name VHDL_FILE ../vhdl/core/patmos_mux_3x32.vhd
-set_global_assignment -name VHDL_FILE ../vhdl/core/patmos_mem_stage.vhd
-set_global_assignment -name VHDL_FILE ../vhdl/core/patmos_instruction_memory.vhd
-set_global_assignment -name VHDL_FILE ../vhdl/core/patmos_forward.vhd
-set_global_assignment -name VHDL_FILE ../vhdl/core/patmos_fetch.vhd
-set_global_assignment -name VHDL_FILE ../vhdl/core/patmos_execute.vhd
-set_global_assignment -name VHDL_FILE ../vhdl/core/patmos_equal_check.vhd
-set_global_assignment -name VHDL_FILE ../vhdl/core/patmos_decode.vhd
-set_global_assignment -name VHDL_FILE ../vhdl/core/patmos_data_memory.vhd
-set_global_assignment -name VHDL_FILE ../vhdl/core/patmos_core.vhd
-set_global_assignment -name VHDL_FILE ../vhdl/core/patmos_alu.vhd
-set_global_assignment -name VHDL_FILE ../vhdl/core/patmos_adder.vhd
-set_global_assignment -name VHDL_FILE ../vhdl/core/fifo.vhd
+set_global_assignment -name VHDL_FILE uart_blink.vhd
+set_global_assignment -name VHDL_FILE sc_uart.vhd
+set_global_assignment -name VHDL_FILE sc_ssram32.vhd
+set_global_assignment -name VHDL_FILE sc_pack.vhd
+set_global_assignment -name VHDL_FILE patmos_types.vhd
+set_global_assignment -name VHDL_FILE patmos_type_package.vhd
+set_global_assignment -name VHDL_FILE patmos_stack_cache_ctrl.vhd
+set_global_assignment -name VHDL_FILE patmos_stack_cache.vhd
+set_global_assignment -name VHDL_FILE patmos_special_register_file.vhd
+set_global_assignment -name VHDL_FILE patmos_register_file.vhd
+set_global_assignment -name VHDL_FILE patmos_predicate_registers.vhd
+set_global_assignment -name VHDL_FILE patmos_pc_generator.vhd
+set_global_assignment -name VHDL_FILE patmos_mux_32.vhd
+set_global_assignment -name VHDL_FILE patmos_mux_3x32.vhd
+set_global_assignment -name VHDL_FILE patmos_mem_stage.vhd
+set_global_assignment -name VHDL_FILE patmos_instruction_memory.vhd
+set_global_assignment -name VHDL_FILE patmos_forward.vhd
+set_global_assignment -name VHDL_FILE patmos_fetch.vhd
+set_global_assignment -name VHDL_FILE patmos_execute.vhd
+set_global_assignment -name VHDL_FILE patmos_equal_check.vhd
+set_global_assignment -name VHDL_FILE patmos_dual_port_ram.vhd
+set_global_assignment -name VHDL_FILE patmos_decode.vhd
+set_global_assignment -name VHDL_FILE patmos_data_memory.vhd
+set_global_assignment -name VHDL_FILE patmos_core.vhd
+set_global_assignment -name VHDL_FILE patmos_clock_input.vhd
+set_global_assignment -name VHDL_FILE patmos_alu.vhd
+set_global_assignment -name VHDL_FILE patmos_adder.vhd
+set_global_assignment -name VHDL_FILE fifo.vhd
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
 set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
 set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 1
@@ -75,8 +80,8 @@ set_global_assignment -name USE_CONFIGURATION_DEVICE ON
 set_global_assignment -name RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED"
 set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVCMOS"
 set_location_assignment PIN_AD15 -to clk
-set_location_assignment PIN_AA24 -to led
-set_location_assignment PIN_T29 -to rst
-set_location_assignment PIN_E21 -to txd
+set_location_assignment PIN_T29 -to out_rst
 set_location_assignment PIN_D21 -to rxd
+set_location_assignment PIN_E21 -to txd
+set_location_assignment PIN_AA24 -to led
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

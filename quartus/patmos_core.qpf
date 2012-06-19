@@ -18,12 +18,12 @@
 #
 # Quartus II
 # Version 11.0 Build 208 07/03/2011 Service Pack 1 SJ Web Edition
-# Date created = 11:34:00  June 11, 2012
+# Date created = 11:11:57  June 19, 2012
 #
 # -------------------------------------------------------------------------- #
 
 QUARTUS_VERSION = "11.0"
-DATE = "11:34:00  June 11, 2012"
+DATE = "11:11:57  June 19, 2012"
 
 # Revisions
 
