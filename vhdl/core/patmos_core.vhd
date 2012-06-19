@@ -78,7 +78,14 @@ signal clk2 		: std_logic;
 signal sc_mem_out_wr_data	: unsigned(31 downto 0);
 signal ram_cnt			: integer := 3;
 signal clk_int			: std_logic;
-signal int_res			: std_logic;
+-- MS: maybe some signal sorting would be nice
+	-- for generation of internal reset
+	signal int_res			: std_logic;
+	signal res_cnt			: unsigned(2 downto 0) := "000";	-- for the simulation
+
+	attribute altera_attribute : string;
+	attribute altera_attribute of res_cnt : signal is "POWER_UP_LEVEL=LOW";
+
 signal ram_addr			: std_logic_vector(18 downto 0);	-- edit
 signal ram_dout			: std_logic_vector(31 downto 0);	-- edit
 signal ram_din			: std_logic_vector(31 downto 0);	-- edit
@@ -152,7 +159,24 @@ port (
 	end component;
 
 begin -- architecture begin
- rst <= not out_rst;
+
+
+--
+--	internal reset generation
+--	should include the PLL lock signal
+--
+process(clk_int)
+begin
+	if rising_edge(clk_int) then
+		if (res_cnt/="111") then
+			res_cnt <= res_cnt+1;
+		end if;
+		int_res <= not res_cnt(0) or not res_cnt(1) or not res_cnt(2);
+	end if;
+end process;
+
+-- rst <= not out_rst;
+rst <= int_res;
  led <= '1';
 ------------------------------------------------------- fetch	
 		  
