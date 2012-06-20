@@ -3,8 +3,8 @@ JedecChain;
 	FileRevision(JESD32A);
 	DefaultMfr(6E);
 
-	P ActionCode(Ign)
-		Device PartName(EP2C70F896) MfrSpec(OpMask(0) FullPath("patmos_core.sof"));
+	P ActionCode(Cfg)
+		Device PartName(EP2C70F896) MfrSpec(OpMask(1) FullPath("patmos.sof"));
 
 ChainEnd;
 

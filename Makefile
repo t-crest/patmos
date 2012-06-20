@@ -28,7 +28,7 @@ QPROJ=dspio
 QPROJ=altde2-70
 
 all: directories tools rom
-	make rbf
+	make synth
 	make config
 
 directories:
@@ -81,11 +81,11 @@ else
 endif
 endif
 
-rbf:
+synth:
 	@echo $(QPROJ)
 	for target in $(QPROJ); do \
 		make qsyn -e QBT=$$target || exit; \
-		cd quartus/$$target && quartus_cpf -c patmos.sof ../../rbf/$$target.rbf; \
+#		cd quartus/$$target && quartus_cpf -c patmos.sof ../../rbf/$$target.rbf; \
 	done
 
 #
