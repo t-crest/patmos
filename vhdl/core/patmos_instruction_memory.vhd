@@ -55,65 +55,99 @@ begin
 --    rom_unit(24) <= "00000011100000000000000000000100";
   
   --------------------------------------------
-  	rom_unit(0) <= "00000000000000100000000000000001";
-  	rom_unit(4) <= "00000000000001000000000001010000";
-  	rom_unit(8) <= "00000010100101000000000000000000"; -- load uart status
-  	rom_unit(12) <= "00000000001111000000000000000001";-- nop (we dont have nop yet so we just use an add instead)
-    rom_unit(16) <= "00000010000101100001010100000111"; -- and
-    rom_unit(20) <= "00000111110000001011000010010000"; -- benq 
-  	rom_unit(24) <= "00000000000000000000000000000001"; --instruction after branch -- this should be nop too 
-  	rom_unit(28) <= "00000010111111101110000100000001"; -- write in uart
-	--rom_unit(32) <= "00000000000000000000000000000001"; -- random instruction  
+ -- 	rom_unit(0) <= "00000000000000100000000000000001";
+--  	rom_unit(4) <= "00000000000001000000000001010000";
+ -- 	rom_unit(8) <= "00000010100101000000000000000000"; -- load uart status
+ -- 	rom_unit(12) <= "00000000001111000000000000000001";-- nop (we dont have nop yet so we just use an add instead)
+ --   rom_unit(16) <= "00000010000101100001010100000111"; -- and
+ --   rom_unit(20) <= "00000111110000001011000010010000"; -- benq 
+ -- 	rom_unit(24) <= "00000000000000000000000000000001"; --instruction after branch -- this should be nop too 
+  --	rom_unit(28) <= "00000010111111101110000100000001"; -- write in uart
+
   
  
-   rom_unit(32) <= "00000000000110000101000001000001";
-   rom_unit(36) <= "00000010100101000000000000000000"; -- load uart status
-  	rom_unit(40) <= "00000000001111000000000000000001"; -- nop (we dont have nop yet so we just use an add instead)
-   rom_unit(44) <= "00000010000101100001010100000111"; -- and
-   rom_unit(48) <= "00000111110000001011000010010000"; -- benq 
-  	rom_unit(52) <= "00000000000000000000000000000001"; --instruction after branch -- this should be nop too 
-  	rom_unit(56) <= "00000010111111101110011000000001"; -- write in uart
+ --  rom_unit(32) <= "00000000000110000101000001000001";
+--   rom_unit(36) <= "00000010100101000000000000000000"; -- load uart status
+  --	rom_unit(40) <= "00000000001111000000000000000001"; -- nop (we dont have nop yet so we just use an add instead)
+  -- rom_unit(44) <= "00000010000101100001010100000111"; -- and
+  -- rom_unit(48) <= "00000111110000001011000010010000"; -- benq 
+ -- 	rom_unit(52) <= "00000000000000000000000000000001"; --instruction after branch -- this should be nop too 
+  --	rom_unit(56) <= "00000010111111101110011000000001"; -- write in uart
 	
 	
-	rom_unit(60) <= "00000000000110000101000001010100";
-   rom_unit(64) <= "00000010100101000000000000000000"; -- load uart status
-  	rom_unit(68) <= "00000000001111000000000000000001"; -- nop (we dont have nop yet so we just use an add instead)
-   rom_unit(72) <= "00000010000101100001010100000111"; -- and
-   rom_unit(76) <= "00000111110000001011000010010000"; -- benq 
-  	rom_unit(80) <= "00000000000000000000000000000001"; --instruction after branch -- this should be nop too 
-  	rom_unit(84) <= "00000010111111101110011000000001"; -- write in uart
+--	rom_unit(60) <= "00000000000110000101000001010100";
+ --  rom_unit(64) <= "00000010100101000000000000000000"; -- load uart status
+  --	rom_unit(68) <= "00000000001111000000000000000001"; -- nop (we dont have nop yet so we just use an add instead)
+ --  rom_unit(72) <= "00000010000101100001010100000111"; -- and
+ --  rom_unit(76) <= "00000111110000001011000010010000"; -- benq 
+ -- 	rom_unit(80) <= "00000000000000000000000000000001"; --instruction after branch -- this should be nop too 
+  --	rom_unit(84) <= "00000010111111101110011000000001"; -- write in uart
 	
-	rom_unit(88) <= "00000000000110000101000001001101";
-   rom_unit(92) <= "00000010100101000000000000000000"; -- load uart status
-  	rom_unit(96) <= "00000000001111000000000000000001"; -- nop (we dont have nop yet so we just use an add instead)
-   rom_unit(100) <= "00000010000101100001010100000111"; -- and
-   rom_unit(104) <= "00000111110000001011000010010000"; -- benq 
-  	rom_unit(108) <= "00000000000000000000000000000001"; --instruction after branch -- this should be nop too 
-  	rom_unit(112) <= "00000010111111101110011000000001"; -- write in uart
-	
-	
-	rom_unit(116) <= "00000000000110000101000001001111";
-   rom_unit(120) <= "00000010100101000000000000000000"; -- load uart status
-  	rom_unit(124) <= "00000000001111000000000000000001"; -- nop (we dont have nop yet so we just use an add instead)
-   rom_unit(128) <= "00000010000101100001010100000111"; -- and
-   rom_unit(132) <= "00000111110000001011000010010000"; -- benq 
-  	rom_unit(136) <= "00000000000000000000000000000001"; --instruction after branch -- this should be nop too 
-  	rom_unit(140) <= "00000010111111101110011000000001"; -- write in uart
+--	rom_unit(88) <= "00000000000110000101000001001101";
+--   rom_unit(92) <= "00000010100101000000000000000000"; -- load uart status
+--  	rom_unit(96) <= "00000000001111000000000000000001"; -- nop (we dont have nop yet so we just use an add instead)
+--   rom_unit(100) <= "00000010000101100001010100000111"; -- and
+ --  rom_unit(104) <= "00000111110000001011000010010000"; -- benq 
+  --	rom_unit(108) <= "00000000000000000000000000000001"; --instruction after branch -- this should be nop too 
+  --	rom_unit(112) <= "00000010111111101110011000000001"; -- write in uart
 	
 	
-	rom_unit(144) <= "00000000000110000101000001010011";
-   rom_unit(148) <= "00000010100101000000000000000000"; -- load uart status
-  	rom_unit(152) <= "00000000001111000000000000000001"; -- nop (we dont have nop yet so we just use an add instead)
-   rom_unit(156) <= "00000010000101100001010100000111"; -- and
-   rom_unit(160) <= "00000111110000001011000010010000"; -- benq 
-  	rom_unit(164) <= "00000000000000000000000000000001"; --instruction after branch -- this should be nop too 
-  	rom_unit(168) <= "00000010111111101110011000000001"; -- write in uart
+--	rom_unit(116) <= "00000000000110000101000001001111";
+ --  rom_unit(120) <= "00000010100101000000000000000000"; -- load uart status
+  --	rom_unit(124) <= "00000000001111000000000000000001"; -- nop (we dont have nop yet so we just use an add instead)
+  -- rom_unit(128) <= "00000010000101100001010100000111"; -- and
+ --  rom_unit(132) <= "00000111110000001011000010010000"; -- benq 
+  --	rom_unit(136) <= "00000000000000000000000000000001"; --instruction after branch -- this should be nop too 
+  --	-rom_unit(140) <= "00000010111111101110011000000001"; -- write in uart
+	
+	
+--	rom_unit(144) <= "00000000000110000101000001010011";
+ --  rom_unit(148) <= "00000010100101000000000000000000"; -- load uart status
+  --	rom_unit(152) <= "00000000001111000000000000000001"; -- nop (we dont have nop yet so we just use an add instead)
+  -- rom_unit(156) <= "00000010000101100001010100000111"; -- and
+ --  rom_unit(160) <= "00000111110000001011000010010000"; -- benq 
+  --	rom_unit(164) <= "00000000000000000000000000000001"; --instruction after branch -- this should be nop too 
+  --	rom_unit(168) <= "00000010111111101110011000000001"; -- write in uart
 	
   
- 	rom_unit(172) <= "00000000000000000000000000000001";
-  	rom_unit(176) <= "00000000000001100000000000000010";
-  	rom_unit(180) <= "00000111110000000000001100001000"; --
+ --	rom_unit(172) <= "00000000000000000000000000000001";
+  --	rom_unit(176) <= "00000000000001100000000000000010";
+  --	rom_unit(180) <= "00000111110000000000001100001000"; --
  
+-------------------------------------------------- read from uart and echo
+
+	rom_unit(0) <= "00000000000000100000000000000010"; -- add  r1,  ".00010"
+	rom_unit(4) <= "00000010100101000101111110000000"; -- load
+    rom_unit(8) <= "00000000000000000000000000000001";  --nop
+    rom_unit(12) <= "00000010000101101010000010000111"; -- and
+    rom_unit(16) <= "00000111110000001011000010010000"; --benq
+    rom_unit(20) <= "00000000000000000000000000000001"; -- nop after branch
+ --   rom_unit(24) <= "00000000000000000000000000000001"; --just to wait after uart
+ --   rom_unit(28) <= "00000000000000000000000000000001";
+    rom_unit(24) <= "00000010100111100101111110000001"; -- load data from uart to r15
+    rom_unit(28) <= "00000010100111100101111110000001"; -- load data from uart to r15
+    
+    --echo
+    	rom_unit(32) <= "00000000000001110011000000000001"; -- add r3 <= r19, ".00001"
+  	rom_unit(36) <= "00000000000001000000000001010000"; -- store whatever
+  	rom_unit(40) <= "00000010100101000101111110000000"; -- load uart status
+  	rom_unit(44) <= "00000000000000000000000000000001";-- nop (we dont have nop yet so we just use an add instead)
+  	  rom_unit(48) <= "00000010000101101010000110000111"; -- and r11 <=r3, r10
+  	  rom_unit(52) <= "00000111110000001011000110010000"; -- benq 
+  	rom_unit(56) <= "00000000000000000000000000000001"; --instruction after branch -- this should be nop too 
+  	rom_unit(60) <= "00000010111111101110011110000001"; -- write r15 in uart 
+    
+   
+  	
+ 
+  
+ 	rom_unit(64) <= "00000000000000000000000000000001";
+  	rom_unit(68) <= "00000000000001100000000000000010";
+  	rom_unit(72) <= "00000111110000000000001100001000"; --
+  	rom_unit(76) <= "00000000000000000000000000000001";-- instruction after branch . . .
+
+
+
   
   rom_out <= rom_unit(to_integer(addr));
 end arch;
