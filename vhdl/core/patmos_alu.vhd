@@ -96,7 +96,7 @@ begin
         			dout.rd <= din.rs1 + din.rs2;
         		when LBUS =>
         			dout.rd <= din.rs1 + din.rs2;	
-        		when others => null;
+        		when others => dout.rd <= din.rs1 + din.rs2;
         	end case;	
            --dout.rd <= din.rs1 + din.rs2; --unsigned(intermediate_add);--
         when STT =>
