@@ -34,10 +34,12 @@ all: directories tools rom
 directories:
 	-mkdir rbf
 
-assembler:
-	-mkdir java/generated
-	-mkdir java/classes
-	make run
+patsim:
+	-mkdir simulator/build
+	cd simulator/build && cmake ..
+	cd simulator/build && make
+	-mkdir bin
+	cp simulator/build/src/pa* bin
 
 tools:
 	-rm -rf java/classes
