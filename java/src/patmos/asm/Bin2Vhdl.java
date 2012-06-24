@@ -190,10 +190,10 @@ public class Bin2Vhdl {
 		// I would argue for network order, which is not the x86 order
 		while (istr.available()>=4) {
 			istr.read(data);
-			int val = ((((int) data[3]) & 0xff) << 24) +
-					((((int) data[2]) & 0xff) << 16) +
-					((((int) data[1]) & 0xff) << 8) +
-					((((int) data[0]) & 0xff) << 0);
+			int val = ((((int) data[0]) & 0xff) << 24) +
+					((((int) data[1]) & 0xff) << 16) +
+					((((int) data[2]) & 0xff) << 8) +
+					((((int) data[3]) & 0xff) << 0);
 			code.add(new Integer(val));
 			System.out.println(Integer.toHexString(val));
 		}

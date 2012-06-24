@@ -9,7 +9,7 @@ EXTENSIONS=class rbf rpt sof pin summary ttf qdf dat wlf done qws
 USB=false
 
 
-# Assembler fils
+# Assembler files
 APP=test
 # Altera FPGA configuration cable
 #BLASTER_TYPE=ByteBlasterMV
@@ -58,6 +58,14 @@ tools:
 	cd java/classes && jar cf ../lib/patmos-tools.jar *
 
 rom: tools
+	-rm -rf vhdl/generated
+	mkdir vhdl/generated
+	-mkdir tmp
+	bin/paasm asm/$(APP).asm tmp/$(APP).bin
+	java -cp java/lib/patmos-tools.jar \
+		patmos.asm.Bin2Vhdl -s tmp -d vhdl/generated $(APP).bin
+
+old_rom: tools
 	-rm -rf vhdl/generated
 	mkdir vhdl/generated
 	java -cp java/lib/patmos-tools.jar$(S)lib/antlr-3.3-complete.jar \
