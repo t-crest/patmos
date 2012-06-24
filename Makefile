@@ -42,6 +42,7 @@ patsim:
 	cp simulator/build/src/pa* bin
 
 tools:
+	make patsim
 	-rm -rf java/classes
 	-rm -rf java/lib
 	-rm -rf java/src/patmos/asm/generated
