@@ -180,6 +180,17 @@ namespace patmos
     return instruction_data_t(i, pred);
   }
 
+  instruction_data_t instruction_data_t::mk_BNE(const instruction_t &i,
+                                                GPR_e rs1, GPR_e rs2,
+                                                word_t imm)
+  {
+    instruction_data_t result(i, p0);
+    result.OPS.BNE.Rs1 = rs1;
+    result.OPS.BNE.Rs2 = rs2;
+    result.OPS.BNE.Imm = imm;
+    return result;
+  }
+
   instruction_data_t instruction_data_t::mk_HLT(const instruction_t &i)
   {
     return instruction_data_t(i, p0);

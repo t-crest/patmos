@@ -207,6 +207,13 @@ namespace patmos
       {
         GPR_e Rs;
       } PFLi;
+      /// Operands for an BNEinstruction.
+      struct
+      {
+        GPR_e Rs1;
+        GPR_e Rs2;
+        word_t Imm;
+      } BNE;
     } OPS;
 
     // -------------------------- DR -------------------------------------------
@@ -425,6 +432,11 @@ namespace patmos
     /// @param pred The predicate register under which the instruction is
     /// executed.
     static instruction_data_t mk_PFLr(const instruction_t &i, PRR_e pred);
+
+    /// Create an BNE instruction with two register operands and an immediate.
+    /// @param i The instruction.
+    static instruction_data_t mk_BNE(const instruction_t &i, GPR_e rs1,
+                                     GPR_e rs2, word_t imm);
 
     /// Create an HLT instruction without operands.
     /// @param i The instruction.

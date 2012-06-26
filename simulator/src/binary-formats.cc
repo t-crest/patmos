@@ -647,6 +647,34 @@ namespace patmos
     return iw;
   }
 
+  bne_format_t::bne_format_t(const instruction_t &instruction, word_t opcode) :
+      binary_format_t(instruction, 0x87C00000, 0x7C00000, 1)
+  {
+  }
+
+  instruction_data_t bne_format_t::decode_operands(word_t iw,
+                                                   word_t longimm) const
+  {
+    word_t imm = extract(iw, 0, 7);
+    GPR_e rs2 = extractG(iw, 7);
+    GPR_e rs1 = extractG(iw, 12);
+    return instruction_data_t::mk_BNE(Instruction, rs1, rs2, imm);
+ }
+
+  word_t bne_format_t::encode(word_t rs1, word_t rs2, word_t imm)
+  {
+    word_t iw = 0;
+
+    assert(isGPR(rs1) && isGPR(rs2) && fitu(imm, 7));
+
+    insertV(iw, 0, 7, imm);
+    insertG(iw, 7, rs2);
+    insertG(iw, 12, rs1);
+    insertV(iw, 22, 5, BOOST_BINARY(11111));
+
+    return iw;
+  }
+
   hlt_format_t::hlt_format_t(const instruction_t &instruction, word_t opcode) :
       binary_format_t(instruction, 0xffffffff, 0xffffffff, 1, true)
   {

@@ -1413,6 +1413,43 @@ namespace patmos
                          ops.DR_Base + ops.DR_Offset);
     }
   };
+
+  /// A (temporary) instruction for pc-relative, conditional branches.
+  /// Used only for hardware development.
+  class i_bne_t : public i_pfl_t
+  {
+  public:
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    virtual void print(std::ostream &os, const instruction_data_t &ops) const
+    {
+      os << boost::format("bne %1% != %2%, %3%") % ops.OPS.BNE.Rs1
+         % ops.OPS.BNE.Rs2 % ops.OPS.BNE.Imm;
+    }
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the DR pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.DR_Pred = 1;
+      ops.DR_Rs1 = s.GPR.get(ops.OPS.BNE.Rs1);
+      ops.DR_Rs2 = s.GPR.get(ops.OPS.BNE.Rs2);
+    }
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the EX pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      // compute the result of the ALU instruction
+      bit_t pred = read_GPR_EX(s, ops.DR_Rs1) != read_GPR_EX(s, ops.DR_Rs2);
+      dispatch(s, pred, s.BASE, s.PC + ops.OPS.BNE.Imm*sizeof(word_t));
+    }
+  };
 }
 
 #endif // PATMOS_INSTRUCTIONS_H

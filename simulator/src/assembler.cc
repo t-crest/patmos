@@ -117,6 +117,9 @@ namespace patmos
       /// Parse PFL instructions.
       rule_t PFLb, PFLi, PFLr;
 
+      /// Parse BNE instructions.
+      rule_t BNE;
+
       /// Parse HLT instructions.
       rule_t HLT;
 
@@ -162,7 +165,8 @@ namespace patmos
                           LDT  | dLDT |
                           STT  |
                           STC  |
-                          PFLi | PFLb | PFLr);
+                          PFLi | PFLb | PFLr |
+                          BNE);
 
         // All instructions except SPCn, SPNw, PFL, LDT, STT, and STC.
         Instruction2 %= (ALUi | ALUr | ALUu | ALUm | ALUc | ALUp |
@@ -489,6 +493,12 @@ namespace patmos
                                    pflr_format_t::encode, boost::spirit::qi::_1,
                                    boost::spirit::qi::_2)];
 
+        // Parse BNE instructions
+        BNE = ("bne" >> GPR >> "!=" >> GPR >> ',' >> Imm7s)
+               [boost::spirit::qi::_val = boost::phoenix::bind(
+                                 bne_format_t::encode, boost::spirit::qi::_1,
+                                 boost::spirit::qi::_2, boost::spirit::qi::_3)];
+
         // Parse the simulator's halt instruction
         HLT = boost::spirit::lit("halt")
               [boost::spirit::qi::_val =
@@ -525,6 +535,7 @@ namespace patmos
         BOOST_SPIRIT_DEBUG_NODE(STC);
         BOOST_SPIRIT_DEBUG_NODE(PFLb);        BOOST_SPIRIT_DEBUG_NODE(PFLi);
         BOOST_SPIRIT_DEBUG_NODE(PFLr);
+        BOOST_SPIRIT_DEBUG_NODE(BNE);
         BOOST_SPIRIT_DEBUG_NODE(HLT);
       }
   };

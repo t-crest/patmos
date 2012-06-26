@@ -65,6 +65,9 @@ Errors : 0")
 test_asm(20 "Emitted: 28 words
 Errors : 0")
 
+test_asm(21 "Emitted: 68 words
+Errors : 0")
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # SIMULATOR TESTS
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -121,3 +124,6 @@ test_sim(18 "Stack size exceeded: 00000014")
 test_sim(19 "r0 : 00000007")
 
 test_sim(20 "r1 : 0281fa80   r2 : 8281fa81")
+
+test_sim(21 "BASE: 00000000   PC : 00000050.*
+ r0 : 0000003c")

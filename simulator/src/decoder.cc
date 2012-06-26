@@ -267,6 +267,9 @@ namespace patmos
     // PFLr
     MK_INSTR(ret, pflr, 0)
 
+    // BNE
+    MK_INSTR(bne, bne, 0)
+
     // HLT
     MK_INSTR(halt, hlt, 0)
   }
