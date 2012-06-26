@@ -655,7 +655,7 @@ namespace patmos
   instruction_data_t bne_format_t::decode_operands(word_t iw,
                                                    word_t longimm) const
   {
-    word_t imm = extract(iw, 0, 7);
+    word_t imm = extractS(iw, 0, 7);
     GPR_e rs2 = extractG(iw, 7);
     GPR_e rs1 = extractG(iw, 12);
     return instruction_data_t::mk_BNE(Instruction, rs1, rs2, imm);
@@ -665,9 +665,9 @@ namespace patmos
   {
     word_t iw = 0;
 
-    assert(isGPR(rs1) && isGPR(rs2) && fitu(imm, 7));
+    assert(isGPR(rs1) && isGPR(rs2) && fits(imm, 7));
 
-    insertV(iw, 0, 7, imm);
+    insertVs(iw, 0, 7, imm);
     insertG(iw, 7, rs2);
     insertG(iw, 12, rs1);
     insertV(iw, 22, 5, BOOST_BINARY(11111));
