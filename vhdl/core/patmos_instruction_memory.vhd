@@ -2,15 +2,15 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity patmos_rom is
+entity patmos_ram is
   port
   (
     addr                      : in unsigned(31 downto 0);
     rom_out                   : out unsigned(31 downto 0)
   );
-end entity patmos_rom;
+end entity patmos_ram;
 
-architecture arch of patmos_rom is
+architecture arch of patmos_ram is
   type rom is array (0 to 255) of unsigned(31 downto 0);
   signal rom_unit :rom;
 begin
@@ -116,35 +116,33 @@ begin
  
 -------------------------------------------------- read from uart and echo
 
-	rom_unit(0) <= "00000000000000100000000000000010"; -- add  r1,  ".00010"
-	rom_unit(4) <= "00000010100101000101111110000000"; -- load
-    rom_unit(8) <= "00000000000000000000000000000001";  --nop
-    rom_unit(12) <= "00000010000101101010000010000111"; -- and
-    rom_unit(16) <= "00000111110000001011000010010000"; --benq
-    rom_unit(20) <= "00000000000000000000000000000001"; -- nop after branch
- --   rom_unit(24) <= "00000000000000000000000000000001"; --just to wait after uart
- --   rom_unit(28) <= "00000000000000000000000000000001";
-    rom_unit(24) <= "00000010100111100101111110000001"; -- load data from uart to r15
-    rom_unit(28) <= "00000010100111100101111110000001"; -- load data from uart to r15
+	rom_unit(0) <= "00000000000000100000000000000010"; -- add r1, ".00010"
+	rom_unit(1) <= "00000010100101000101111110000000"; -- load
+    rom_unit(2) <= "00000000000000000000000000000001"; --nop
+    rom_unit(3) <= "00000010000101101010000010000111"; -- and
+    rom_unit(4) <= "00000111110000001011000010000100"; --benq
+    rom_unit(5) <= "00000000000000000000000000000001"; -- nop after branch
+    rom_unit(6) <= "00000010100111100101111110000001"; -- load data from uart to r15
+    rom_unit(7) <= "00000010100111100101111110000001"; -- load data from uart to r15
     
     --echo
-    	rom_unit(32) <= "00000000000001110011000000000001"; -- add r3 <= r19, ".00001"
-  	rom_unit(36) <= "00000000000001000000000001010000"; -- store whatever
-  	rom_unit(40) <= "00000010100101000101111110000000"; -- load uart status
-  	rom_unit(44) <= "00000000000000000000000000000001";-- nop (we dont have nop yet so we just use an add instead)
-  	  rom_unit(48) <= "00000010000101101010000110000111"; -- and r11 <=r3, r10
-  	  rom_unit(52) <= "00000111110000001011000110010000"; -- benq 
-  	rom_unit(56) <= "00000000000000000000000000000001"; --instruction after branch -- this should be nop too 
-  	rom_unit(60) <= "00000010111111101110011110000001"; -- write r15 in uart 
+     rom_unit(8) <= "00000000000001110011000000000001"; -- add r3 <= r19, ".00001"
+   rom_unit(9) <= "00000000000001000000000001010000"; -- store whatever
+   rom_unit(10) <= "00000010100101000101111110000000"; -- load uart status
+   rom_unit(11) <= "00000000000000000000000000000001";-- nop (we dont have nop yet so we just use an add instead)
+   rom_unit(12) <= "00000010000101101010000110000111"; -- and r11 <=r3, r10
+   rom_unit(13) <= "00000111110000001011000110000100"; -- benq
+   rom_unit(14) <= "00000000000000000000000000000001"; --instruction after branch -- this should be nop too
+   rom_unit(15) <= "00000010111111101110011110000001"; -- write r15 in uart
     
    
-  	
+  
  
   
- 	rom_unit(64) <= "00000000000000000000000000000001";
-  	rom_unit(68) <= "00000000000001100000000000000010";
-  	rom_unit(72) <= "00000111110000000000001100001000"; --
-  	rom_unit(76) <= "00000000000000000000000000000001";-- instruction after branch . . .
+  rom_unit(16) <= "00000000000000000000000000000001";
+   rom_unit(17) <= "00000000000001100000000000000010";
+   rom_unit(18) <= "00000111110000000000001100000010"; --
+   rom_unit(19) <= "00000000000000000000000000000001";-- instruction after branch . . .
 
 
 
@@ -183,5 +181,6 @@ end arch;
 --  rom4: entity work.patmos_rom(arch) 
 --  port map(pc3 , inst3(7 downto 0));
 --end arch;
+
 
 

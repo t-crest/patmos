@@ -199,8 +199,8 @@ rst <= int_res;
   pc_gen: entity work.patmos_pc_generator(arch)
   port map(clk, rst, mux_branch, pc);
 
-  inst_mem: entity work.patmos_rom(arch)
-  port map(pc, fetch_din.instruction);
+  inst_mem: entity work.patmos_rom(rtl)
+  port map(pc(7 downto 0), fetch_din.instruction);
 -------------------------------------------------------- decode
   pc_offset_adder: entity work.patmos_adder2(arch) -- for branch instruction
   port map(fetch_dout.pc, beq_imm, pc_offset);
