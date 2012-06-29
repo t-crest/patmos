@@ -38,6 +38,8 @@ signal mux_branch                      : unsigned(32 - 1 downto 0);
 signal branch                          : std_logic := '0';
 signal fetch_din                       : fetch_in_type;
 signal fetch_dout                      : fetch_out_type;
+signal instruction_mem_din			   : instruction_memory_in_type;
+signal instruction_mem_dout			   : instruction_memory_out_type;
 signal decode_din                      : decode_in_type;
 signal decode_dout                     : decode_out_type;
 signal alu_din                         : alu_in_type;
@@ -64,18 +66,15 @@ signal mem_data_out           	        : unsigned(31 downto 0);
 signal branch_taken                    : std_logic; 
 signal is_beq                          : std_logic; 
 signal beq_imm                         : unsigned(31 downto 0);  
+signal instruction_rom_out			   : unsigned(31 downto 0);
 
+signal out_rxd							: std_logic := '0';
 signal address_uart : std_logic_vector(31 downto 0)  := (others => '0');
 signal mem_data_out_uart				: std_logic_vector(31 downto 0); 
 signal mem_data_out_muxed				: unsigned(31 downto 0); 
-signal mem_data_out3					: unsigned(31 downto 0);
 
-signal head_in						   : unsigned(4 downto 0);
-signal tail_in						   : unsigned(4 downto 0);
-signal spill, fill					   : std_logic; 
 
 signal clk2 		: std_logic;
-signal sc_mem_out_wr_data	: unsigned(31 downto 0);
 signal ram_cnt			: integer := 3;
 signal clk_int			: std_logic;
 -- MS: maybe some signal sorting would be nice
@@ -175,8 +174,8 @@ begin
 	end if;
 end process;
 
--- rst <= not out_rst;
-rst <= int_res;
+ rst <= not out_rst;
+--rst <= int_res;
  led <= '1';
 ------------------------------------------------------- fetch	
 		  
@@ -191,7 +190,7 @@ rst <= int_res;
 	port map(clk, rst, fetch_din, fetch_dout);
 
   pc_adder: entity work.patmos_adder(arch)
-  port map(pc, "00000000000000000000000000000100", pc_next);
+  port map(pc, "00000000000000000000000000000001", pc_next);
   
   mux_pc: entity work.patmos_mux_32(arch)
   port map(pc_next, pc_offset, branch, mux_branch);
@@ -199,8 +198,26 @@ rst <= int_res;
   pc_gen: entity work.patmos_pc_generator(arch)
   port map(clk, rst, mux_branch, pc);
 
-  inst_mem: entity work.patmos_rom(rtl)
-  port map(pc(7 downto 0), fetch_din.instruction);
+  inst_rom: entity work.patmos_rom(rtl)
+  port map(pc(7 downto 0), instruction_rom_out);
+  
+   instruction_mem_address: process(execute_dout.alu_result_out, pc, instruction_rom_out) --read/write enable here
+  begin
+  	if(pc < 55) then --  this address is not power of 2,  what to do with comparison? / not sure if do the address assignment here or in the mem/io mux?
+  		instruction_mem_din.address <= execute_dout.alu_result_out - 512;
+  		fetch_din.instruction <= instruction_rom_out;
+  	elsif (pc >= 55) then
+  		instruction_mem_din.address <= pc - 55;
+  		fetch_din.instruction <= instruction_mem_dout.inst_out;
+  		instruction_mem_din.read_enable <= '1';
+  	end if;
+  end process;
+
+  instruction_mem : entity work.patmos_instruction_memory(arch)
+  port map(clk, rst, instruction_mem_din.address, 
+            execute_dout.mem_write_data_out,
+            instruction_mem_dout.inst_out, 
+	        instruction_mem_din.read_enable, instruction_mem_din.write_enable);
 -------------------------------------------------------- decode
   pc_offset_adder: entity work.patmos_adder2(arch) -- for branch instruction
   port map(fetch_dout.pc, beq_imm, pc_offset);
@@ -331,27 +348,46 @@ rst <= int_res;
   -- mem/io decoder
    io_decode: process(execute_dout.alu_result_out)
 	begin
-		if(to_integer(execute_dout.alu_result_out) < 127) then
+		if(execute_dout.alu_result_out(8) = '1') then --data mem
 			mem_write <= execute_dout.mem_write_out;
 			mem_read <= execute_dout.mem_read_out;
 		    io_write <= '0';	
 		    io_read <= '0';
 		   -- address <= "00000000000000000000000000000001";
 		end if;
-		if (to_integer(execute_dout.alu_result_out) <= 127) then
+		if (execute_dout.alu_result_out(8) = '0') then -- uart
 			mem_write <= '0';
 			mem_read <= '0';
 			io_write <= execute_dout.mem_write_out;
 			io_read <= execute_dout.mem_read_out;
 			address_uart <= std_logic_vector(execute_dout.alu_result_out);
 		end if;
+		if (execute_dout.alu_result_out(9) = '1') then -- instruction mem
+			mem_write <= '0';
+			mem_read <= '0';
+			io_write <= '0';
+			io_read <= '0';
+		--	instruction_mem_din.read_enable <= execute_dout.mem_read_out;
+			instruction_mem_din.write_enable <= execute_dout.mem_write_out;
+	--		test <= execute_dout.mem_write_out;
+			--address_uart <= std_logic_vector(execute_dout.alu_result_out);
+		end if;
+	--	if (execute_dout.alu_result_out(9) = '1') then -- instruction mem
+		--	mem_write <= '0';
+			--mem_read <= '0';
+			--io_write <= '0';
+			--io_read <= '0';
+			--instruction_mem_din.read_enable <= execute_dout.mem_read_out;
+			--instruction_mem_din.write_enable <= execute_dout.mem_write_out;
+		--	address_uart <= std_logic_vector(execute_dout.alu_result_out);
+	--	end if;
 	end process;
 	
 	   io_mem_read_mux: process(mem_data_out_uart, mem_data_out, execute_dout.alu_result_out)
 	begin
-		if(to_integer(execute_dout.alu_result_out) <= 127) then
+		if(execute_dout.alu_result_out(8) = '0') then
 			mem_data_out_muxed <= unsigned(mem_data_out_uart);
-		elsif (to_integer(execute_dout.alu_result_out) > 127) then
+		elsif (execute_dout.alu_result_out(8) = '1') then
 			mem_data_out_muxed <= mem_data_out;
 		else 
 			mem_data_out_muxed <= mem_data_out;
@@ -369,12 +405,12 @@ rst <= int_res;
       clk     => clk,
       reset   => rst,
       txd     => txd,
-      rxd     => rxd,
+      rxd     => out_rxd,
      ncts    => '0',
       nrts    => open
      );
 
-  
+  out_rxd <= not out_rxd after 100 ns;
 
   -- memory access
 -- memory: entity work.patmos_data_memory(arch)
@@ -382,6 +418,13 @@ rst <= int_res;
 --            execute_dout.mem_write_data_out,
 --            mem_data_out, 
 --            mem_read, mem_write);
+  --clk, rst, add, data_in(store), data_out(load), read_en, write_en
+  
+ -- instruction_mem : entity work.patmos_instruction_meory(arch)
+ -- 	port map(clk, rst, execute_dout.alu_result_out, 
+ --           execute_dout.mem_write_data_out,
+ --           mem_data_out, 
+--	            inst_mem_read, inst_mem_write);
   --clk, rst, add, data_in(store), data_out(load), read_en, write_en
 
   --------------------------

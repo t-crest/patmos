@@ -89,9 +89,14 @@ begin
             		dout.STT_instruction_type_out <= SBS;
             		dout.sc_write_out <= '1';
             		dout.sc_read_out <= '0';
+            	when "00011" =>
+            		dout.STT_instruction_type_out <= SWM;
+            		dout.sc_write_out <= '0';
+            		dout.sc_read_out <= '0';
             	when others => null;
             end case;
             dout.rs1_out <= din.operation(16 downto 12);
+            dout.rs2_out <= din.operation(11 downto 7);
             dout.ALUi_immediate_out <= "0000000000000000000000000" & din.operation(6 downto 0);
             dout.rs1_data_out <= din.rs1_data_in;
             dout.rs2_data_out <= din.rs2_data_in; --value of rs2 is needed
@@ -125,6 +130,10 @@ begin
             	    dout.LDT_instruction_type_out <= LBUS;
             		dout.sc_write_out <= '0';
             		dout.sc_read_out <= '1';
+            	when "00011" =>
+            	    dout.LDT_instruction_type_out <= LWM;
+            		dout.sc_write_out <= '0';
+            		dout.sc_read_out <= '0';
             	when others => null;
             end case;
             dout.rd_out <= din.operation(21 downto 17);
