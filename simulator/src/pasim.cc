@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 
   try
   {
-    s.run();
+    s.run(true);
     s.print(out);
   }
   catch (patmos::simulation_exception_t e)
