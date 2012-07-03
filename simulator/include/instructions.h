@@ -1202,7 +1202,9 @@ namespace patmos
     virtual void MW(simulator_t &s, instruction_data_t &ops) const \
     { \
       uword_t stack_top = ops.DR_Ss; \
-      if(ops.DR_Pred && !s.Stack_cache.function(ops.OPS.STC.Imm, stack_top)) \
+      if(ops.DR_Pred && !s.Stack_cache.function(ops.OPS.STC.Imm * \
+                                                NUM_STACK_CACHE_BLOCK_BYTES, \
+                                                stack_top)) \
       { \
         s.pipeline_stall(SMW); \
       } \

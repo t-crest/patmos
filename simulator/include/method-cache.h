@@ -22,6 +22,7 @@
 
 #include "basic-types.h"
 #include "endian-conversion.h"
+#include "simulation-core.h"
 
 #include <cassert>
 #include <cmath>
@@ -38,7 +39,8 @@ namespace patmos
   private:
   public:
     /// Initialize the cache before executing the first instruction.
-    virtual void initialize() = 0;
+    /// @param address Address to fetch initial instructions.
+    virtual void initialize(uword_t address) = 0;
 
     /// A simulated instruction fetch from the method cache.
     /// @param address The memory address to fetch from.
@@ -75,7 +77,8 @@ namespace patmos
     }
 
     /// Initialize the cache before executing the first instruction.
-    virtual void initialize()
+    /// @param address Address to fetch initial instructions.
+    virtual void initialize(uword_t address)
     {
       // nothing to be done here
     }
@@ -86,7 +89,8 @@ namespace patmos
     /// @return True when the instruction word is available from the read port.
     virtual bool fetch(uword_t address, word_t iw[2])
     {
-      Memory.read_peek(address, reinterpret_cast<byte_t*>(&iw[0]), sizeof(iw));
+      Memory.read_peek(address, reinterpret_cast<byte_t*>(&iw[0]),
+                       sizeof(word_t)*2);
       return true;
     }
 
@@ -114,10 +118,11 @@ namespace patmos
   };
 
   /// A direct-mapped method cache using LRU replacement on methods.
-  /// The cache is organized in blocks (NUM_BLOCKS) each of a fixed size
+  /// The cache is organized in blocks (Num_blocks) each of a fixed size
   /// (NUM_BLOCK_BYTES) in bytes. On start-up the cache fetches a given number
   /// of blocks from address 0 of its memory (NUM_INIT_BLOCKS).
-  template<int NUM_BLOCK_BYTES, int NUM_BLOCKS, int NUM_INIT_BLOCKS = 4>
+  template<unsigned int NUM_BLOCK_BYTES = NUM_METHOD_CACHE_BLOCK_BYTES,
+           unsigned int NUM_INIT_BLOCKS = 4>
   class lru_method_cache_t : public method_cache_t
   {
   private:
@@ -135,11 +140,17 @@ namespace patmos
 
     /// The backing memory to fetch instructions from.
     memory_t &Memory;
+
+    /// Number of blocks in the method cache.
+    unsigned int Num_blocks;
   private:
     /// Bookkeeping information on methods in the cache.
     class method_info_t
     {
     public:
+      /// Pointer to the instructions of the method.
+      byte_t *Instructions;
+
       /// The address of the method.
       uword_t Address;
 
@@ -149,25 +160,25 @@ namespace patmos
       /// The size of the method in bytes.
       uword_t Num_bytes;
 
-      /// The instructions of the method.
-      /// TODO: use a pointer here to avoid useless copying.
-      byte_t Instructions[NUM_BLOCK_BYTES * NUM_BLOCKS];
-
       /// Construct a method lru info object. All data is initialized to zero.
-      method_info_t() : Address(0), Num_blocks(0), Num_bytes(0)
+      /// @param instructions Pointer to the method's instructions.
+      method_info_t(byte_t *instructions = NULL): Instructions(instructions),
+          Address(0), Num_blocks(0), Num_bytes(0)
       {
       }
 
       /// Update the internal data of the method lru info entry.
+      /// @param instructions Pointer to the method's instructions.
       /// @param address The new address of the entry.
       /// @param num_blocks The number of blocks occupied in the method cache.
       /// @param num_bytes The number of valid instruction bytes of the method.
-      void update(uword_t address, uword_t num_blocks, uword_t num_bytes)
+      void update(byte_t *instructions, uword_t address, uword_t num_blocks,
+                  uword_t num_bytes)
       {
+        Instructions = instructions;
         Address = address;
         Num_blocks = num_blocks;
         Num_bytes = num_bytes;
-        // do not touch instructions here
       }
     };
 
@@ -181,7 +192,10 @@ namespace patmos
     uword_t Num_transfer_bytes;
 
     /// The methods in the cache sorted by age.
-    method_info_t Methods[NUM_BLOCKS];
+    method_info_t *Methods;
+
+    /// The methods's instructions sorted by ID.
+    byte_t *Instructions;
 
     /// The number of methods currently in the cache.
     unsigned int Num_active_methods;
@@ -195,7 +209,7 @@ namespace patmos
     bool lookup(uword_t address)
     {
       // check if the address is in the cache
-      for(unsigned int i = NUM_BLOCKS - 1; i >= NUM_BLOCKS - Num_active_methods;
+      for(unsigned int i = Num_blocks - 1; i >= Num_blocks - Num_active_methods;
           i--)
       {
         if (Methods[i].Address == address)
@@ -207,13 +221,13 @@ namespace patmos
 
           // shift all methods between the location of the currently accessed
           // entry and the previously most recently used entry.
-          for(unsigned int j = i; j < NUM_BLOCKS - 1; j++)
+          for(unsigned int j = i; j < Num_blocks - 1; j++)
           {
             Methods[j] = Methods[j + 1];
           }
 
           // reinsert the current entry at the head of the table
-          Methods[NUM_BLOCKS - 1] = tmp;
+          Methods[Num_blocks - 1] = tmp;
 
           return true;
         }
@@ -223,25 +237,33 @@ namespace patmos
       return false;
     }
   public:
-    lru_method_cache_t(memory_t &memory) :
-        Memory(memory), Phase(IDLE), Num_transfer_blocks(0),
-        Num_transfer_bytes(0), Num_active_methods(0), Num_active_blocks(0)
+    /// Construct an LRU-based method cache.
+    /// @param memory The memory to fetch instructions from on a cache miss.
+    /// @param num_blocks The size of the cache in blocks.
+    lru_method_cache_t(memory_t &memory, unsigned int num_blocks) :
+        Memory(memory), Num_blocks(num_blocks), Phase(IDLE),
+        Num_transfer_blocks(0), Num_transfer_bytes(0), Num_active_methods(0),
+        Num_active_blocks(0)
     {
+      Methods = new method_info_t[Num_blocks];
+      for(unsigned int i = 0; i < Num_blocks; i++)
+        Methods[i] = method_info_t(new byte_t[NUM_BLOCK_BYTES * Num_blocks]);
     }
 
     /// Initialize the cache before executing the first instruction.
-    virtual void initialize()
+    /// @param address Address to fetch initial instructions.
+    virtual void initialize(uword_t address)
     {
       assert(Num_active_blocks == 0 && Num_active_methods == 0);
 
       // get 'most-recent' method of the cache
-      method_info_t &current_method = Methods[NUM_BLOCKS - 1];
+      method_info_t &current_method = Methods[Num_blocks - 1];
 
       // initialize the method cache with some dummy method entry.
-      Memory.read_peek(0, current_method.Instructions, NUM_INIT_BLOCKS *
-                                                       NUM_BLOCK_BYTES);
-      current_method.update(0, NUM_INIT_BLOCKS, NUM_INIT_BLOCKS *
-                                                NUM_BLOCK_BYTES);
+      Memory.read_peek(address, current_method.Instructions, NUM_INIT_BLOCKS *
+                                                             NUM_BLOCK_BYTES);
+      current_method.update(current_method.Instructions, address,
+                            NUM_INIT_BLOCKS, NUM_INIT_BLOCKS * NUM_BLOCK_BYTES);
       Num_active_blocks = NUM_INIT_BLOCKS;
       Num_active_methods = 1;
     }
@@ -253,7 +275,7 @@ namespace patmos
     virtual bool fetch(uword_t address, word_t iw[2])
     {
       // get 'most-recent' method of the cache
-      method_info_t &current_method = Methods[NUM_BLOCKS - 1];
+      method_info_t &current_method = Methods[Num_blocks - 1];
 
       if(address < current_method.Address ||
          current_method.Address + current_method.Num_bytes <= address)
@@ -263,7 +285,7 @@ namespace patmos
 
       // get instruction word from the method's instructions
       byte_t *iwp = reinterpret_cast<byte_t*>(&iw[0]);
-      for(unsigned int i = 0; i != sizeof(iw); i++, iwp++)
+      for(unsigned int i = 0; i != sizeof(word_t)*2; i++, iwp++)
       {
         *iwp = current_method.Instructions[address + i -
                                            current_method.Address];
@@ -318,7 +340,7 @@ namespace patmos
                                              NUM_BLOCK_BYTES);
 
             // check method size against cache size.
-            if (Num_transfer_blocks == 0 || Num_transfer_blocks > NUM_BLOCKS)
+            if (Num_transfer_blocks == 0 || Num_transfer_blocks > Num_blocks)
             {
               simulation_exception_t::code_exceeded(address);
             }
@@ -328,23 +350,26 @@ namespace patmos
             Num_active_blocks += Num_transfer_blocks;
 
             // throw other entries out of the cache if needed
-            while (Num_active_blocks + Num_transfer_blocks > NUM_BLOCKS)
+            while (Num_active_blocks + Num_transfer_blocks > Num_blocks)
             {
               assert(Num_active_methods > 0);
               Num_active_methods--;
               Num_active_blocks -=
-                            Methods[NUM_BLOCKS - Num_active_methods].Num_blocks;
+                            Methods[Num_blocks - Num_active_methods].Num_blocks;
             }
 
             // shift the remaining blocks
-            for(unsigned int j = NUM_BLOCKS - Num_active_methods;
-                j < NUM_BLOCKS - 1; j++)
+            byte_t *saved_instructions = Methods[Num_blocks - 1].Instructions;
+            for(unsigned int j = Num_blocks - Num_active_methods;
+                j < Num_blocks - 1; j++)
             {
+              saved_instructions = Methods[j + 1].Instructions;
               Methods[j] = Methods[j + 1];
             }
 
             // insert the new entry at the head of the table
-            Methods[NUM_BLOCKS - 1].update(address, Num_transfer_blocks,
+            Methods[Num_blocks - 1].update(saved_instructions, address,
+                                           Num_transfer_blocks,
                                            Num_transfer_bytes);
 
             // proceed to next phase ... the size of the method has been fetched
@@ -364,7 +389,7 @@ namespace patmos
         {
           assert(Num_transfer_blocks != 0 && Num_transfer_bytes != 0);
 
-          if (Memory.read(address, Methods[NUM_BLOCKS - 1].Instructions,
+          if (Memory.read(address, Methods[Num_blocks - 1].Instructions,
                           Num_transfer_blocks * NUM_BLOCK_BYTES))
           {
             // the transfer is done, go back to IDLE phase
@@ -398,15 +423,24 @@ namespace patmos
       os << boost::format(" #M: %1$02d #B: %2$02d\n")
          % Num_active_methods % Num_active_blocks;
 
-      for(unsigned int i = NUM_BLOCKS - 1; i >= NUM_BLOCKS - Num_active_methods;
+      for(unsigned int i = Num_blocks - 1; i >= Num_blocks - Num_active_methods;
           i--)
       {
         os << boost::format("   M%1$02d: 0x%2$08x (0x%3$08x 0x%4$08x)\n")
-           % (NUM_BLOCKS - i) % Methods[i].Address % Methods[i].Num_blocks
+           % (Num_blocks - i) % Methods[i].Address % Methods[i].Num_blocks
            % Methods[i].Num_bytes;
       }
 
       os << '\n';
+    }
+
+    /// free dynamically allocated cache memory.
+    virtual ~lru_method_cache_t()
+    {
+      for(unsigned int i = 0; i < Num_blocks; i++)
+        delete[] Methods[i].Instructions;
+
+      delete [] Methods;
     }
   };
 }

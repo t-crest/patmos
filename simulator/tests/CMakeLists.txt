@@ -73,7 +73,7 @@ Errors : 0")
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 macro (test_sim num expr)
-  ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim ${CMAKE_CURRENT_BINARY_DIR}/test${num}.bin -)
+  ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim --maxc 20000 ${CMAKE_CURRENT_BINARY_DIR}/test${num}.bin)
   SET_TESTS_PROPERTIES(sim-test-${num} PROPERTIES PASS_REGULAR_EXPRESSION ${expr} DEPENDS asm-test-${num})
 endmacro (test_sim)
 
@@ -106,11 +106,17 @@ test_sim(13 "BASE: 00000000   PC : 00000028.*
  r0 : 0000002d   r1 : 00000000   r2 : 0000000c")
 
 test_sim(14 "r0 : 00000000   r1 : 0283f180   r2 : 0283f180   r3 : fffff180   r4 : fffffff1   r5 : 0000f180   r6 : 000000f1.*
+ 0000000c:  00
+ 0000000b:  00
+ 0000000a:  00
+ 00000009:  00
+ 00000008:  00
+ 00000007:  00
  00000006:  00
  00000005:  00
  00000004:  00
- 00000003:  00
- 00000002:  00
+ 00000003:  80
+ 00000002:  f1
  00000001:  80")
 
 test_sim(15 "Unmapped memory access: 00000010: fffffffc")

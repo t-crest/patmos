@@ -21,6 +21,7 @@
 #define PATMOS_MEMORY_H
 
 #include "exception.h"
+#include "simulation-core.h"
 
 #include <boost/format.hpp>
 
@@ -231,11 +232,14 @@ namespace patmos
 
   /// A memory with fixed access times to transfer fixed-sized blocks.
   /// Memory accesses are performed in blocks (NUM_BLOCK_BYTES) with a fixed 
-  /// access delay (NUM_TICKS_PER_BLOCK).
-  template<int NUM_BLOCK_BYTES, int NUM_TICKS_PER_BLOCK>
+  /// access delay (Num_ticks_per_block).
+  template<int NUM_BLOCK_BYTES=NUM_MEMORY_BLOCK_BYTES>
   class fixed_delay_memory_t : public ideal_memory_t
   {
   private:
+    /// Memory access time per block in cycles.
+    unsigned int Num_ticks_per_block;
+
     /// Number of ticks until the currently pending request is completed.
     uword_t Pending_ticks;
 
@@ -252,8 +256,11 @@ namespace patmos
   public:
     /// Construct a new memory instance.
     /// @param memory_size The size of the memory in bytes.
-    fixed_delay_memory_t(unsigned int memory_size) :
-        ideal_memory_t(memory_size), Pending_ticks(0)
+    /// @param num_ticks_per_block Memory access time per block in cycles.
+    fixed_delay_memory_t(unsigned int memory_size,
+                         unsigned int num_ticks_per_block) :
+        ideal_memory_t(memory_size), Num_ticks_per_block(num_ticks_per_block),
+        Pending_ticks(0)
     {
     }
 
@@ -272,7 +279,7 @@ namespace patmos
         check_initialize_content(address, size);
 
         // set up memory transfer
-        Pending_ticks = NUM_TICKS_PER_BLOCK * std::ceil((float)size /
+        Pending_ticks = Num_ticks_per_block * std::ceil((float)size /
                                                           NUM_BLOCK_BYTES);
 
 #ifndef NDEBUG
@@ -314,7 +321,7 @@ namespace patmos
         check_initialize_content(address, size);
 
         // set up memory transfer
-        Pending_ticks = NUM_TICKS_PER_BLOCK * std::ceil((float)size /
+        Pending_ticks = Num_ticks_per_block * std::ceil((float)size /
                                                           NUM_BLOCK_BYTES);
 
 #ifndef NDEBUG

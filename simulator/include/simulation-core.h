@@ -41,8 +41,31 @@ namespace patmos
   /// Define the number of bytes used for the global main memory.
   static const unsigned int NUM_MEMORY_BYTES = 0x4000000;
 
+  /// Define the number of bytes in a block transferred on an access to the 
+  /// global main memory.
+  static const unsigned int NUM_MEMORY_BLOCK_BYTES = 8;
+
   /// Define the number of bytes used for the local memory.
   static const unsigned int NUM_LOCAL_MEMORY_BYTES = 0x800;
+
+  /// Define the number of bytes used for the data cache.
+  static const unsigned int NUM_DATA_CACHE_BYTES = 0x800;
+
+  /// Define the number of bytes used for the stack cache.
+  static const unsigned int NUM_STACK_CACHE_BYTES = 0x800;
+
+  /// Define the number of bytes in a block of the stack cache.
+  static const unsigned int NUM_STACK_CACHE_BLOCK_BYTES = 4;
+
+  /// Define the maximum total number of stack data, including spilled data.
+  static const unsigned int NUM_STACK_CACHE_TOTAL_BLOCKS =
+                                       std::numeric_limits<unsigned int>::max();
+
+  /// Define the number of bytes used for the method cache.
+  static const unsigned int NUM_METHOD_CACHE_BYTES = 0x800;
+
+  /// Define the number of bytes in a block of the method cache.
+  static const unsigned int NUM_METHOD_CACHE_BLOCK_BYTES = 32;
 
   /// Definition of Pipeline stages.
   enum Pipeline_t
@@ -147,9 +170,11 @@ namespace patmos
                 stack_cache_t &stack_cache);
 
     /// Run the simulator.
+    /// @param entry Initialize the method cache, PC, etc. to start execution
+    /// from this entry address.
     /// @param debug Flag indicating whether debug output should be printed.
     /// @param max_cycles The maximum number of cycles to run the simulation.
-    void run(bool debug = false,
+    void run(word_t entry = 0, bool debug = false,
              uint64_t max_cycles = std::numeric_limits<uint64_t>::max());
 
     /// Print the internal state of the simulator to an output stream.

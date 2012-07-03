@@ -22,6 +22,7 @@
 
 #include "memory.h"
 #include "exception.h"
+#include "simulation-core.h"
 
 #include <cmath>
 #include <ostream>
@@ -152,7 +153,7 @@ namespace patmos
     virtual bool read(uword_t address, byte_t *value, uword_t size)
     {
       // if access exceeds the stack size
-      if (Content.size() < address || address < size)
+      if (Content.size() < address + size)
       {
         simulation_exception_t::stack_exceeded();
       }
@@ -160,7 +161,7 @@ namespace patmos
       // read the value
       for(unsigned int i = 0; i < size; i++)
       {
-        *value++ = Content[Content.size() - address + i];
+        *value++ = Content[Content.size() - address - size + i];
       }
 
       return true;
@@ -175,7 +176,7 @@ namespace patmos
     virtual bool write(uword_t address, byte_t *value, uword_t size)
     {
       // if access exceeds the stack size
-      if (Content.size() < address || address < size)
+      if (Content.size() < address + size)
       {
         simulation_exception_t::stack_exceeded();
       }
@@ -183,7 +184,7 @@ namespace patmos
       // store the value
       for(unsigned int i = 0; i < size; i++)
       {
-        Content[Content.size() - address + i] = *value++;
+        Content[Content.size() - address - size + i] = *value++;
       }
 
       return true;
@@ -212,12 +213,11 @@ namespace patmos
   };
 
   /// A stack cache organized in blocks.
-  /// The cache is organized in blocks (NUM_BLOCKS) each a fixed size in bytes
+  /// The cache is organized in blocks (Num_blocks) each a fixed size in bytes
   /// (NUM_BLOCK_BYTES). Spills and fills are performed automatically during the
   /// reserve and ensure instructions, which operate on a bounded number of
-  /// blocks in memory (NUM_BLOCKS_TOTAL).
-  template<unsigned int NUM_BLOCK_BYTES, unsigned int NUM_BLOCKS,
-           unsigned int NUM_BLOCKS_TOTAL>
+  /// blocks in memory (Num_blocks_total).
+  template<unsigned int NUM_BLOCK_BYTES = NUM_STACK_CACHE_BLOCK_BYTES>
   class block_stack_cache_t : public ideal_stack_cache_t
   {
   private:
@@ -232,6 +232,12 @@ namespace patmos
       FILL
     };
 
+    /// Size of the stack cache in blocks.
+    unsigned int Num_blocks;
+
+    /// Total size of stack data allowed, including spilled data in main memory.
+    unsigned int Num_blocks_total;
+
     /// Store currently ongoing transfer.
     phase_e Phase;
 
@@ -239,7 +245,7 @@ namespace patmos
     memory_t &Memory;
 
     /// Temporary buffer used during spill/fill.
-    byte_t Buffer[NUM_BLOCKS * NUM_BLOCK_BYTES];
+    byte_t *Buffer;
 
     /// Number of blocks to transfer to/from memory during a pending spill/fill.
     unsigned int Num_transfer_blocks;
@@ -252,10 +258,16 @@ namespace patmos
   public:
     /// Construct a black-based stack cache.
     /// @param memory The memory to spill/fill.
-    block_stack_cache_t(memory_t &memory) :
-        ideal_stack_cache_t(), Phase(IDLE), Memory(memory), 
+    /// @param num_blocks Size of the stack cache in blocks.
+    /// @param num_blocks_total Total size of stack data allowed, incl. spilled
+    /// data.
+    block_stack_cache_t(memory_t &memory, unsigned int num_blocks,
+                        unsigned int num_blocks_total) :
+        ideal_stack_cache_t(), Num_blocks(num_blocks),
+        Num_blocks_total(num_blocks_total), Phase(IDLE), Memory(memory),
         Num_transfer_blocks(0), Num_reserved_blocks(0), Num_spilled_blocks(0)
     {
+      Buffer = new byte_t[num_blocks * NUM_BLOCK_BYTES];
     }
 
     /// Reserve a given number of bytes, potentially spilling stack data to some 
@@ -277,7 +289,7 @@ namespace patmos
           assert(Num_transfer_blocks == 0);
 
           // unsure that the stack cache size is not exceeded
-          if (size_blocks > NUM_BLOCKS)
+          if (size_blocks > Num_blocks)
           {
             simulation_exception_t::stack_exceeded();
           }
@@ -289,7 +301,7 @@ namespace patmos
           assert(result);
 
           // need to spill some blocks?
-          if(Num_reserved_blocks <= NUM_BLOCKS)
+          if(Num_reserved_blocks <= Num_blocks)
           {
             // done.
             return true;
@@ -297,10 +309,10 @@ namespace patmos
           else
           {
             // yes? spill some blocks ...
-            Num_transfer_blocks = Num_reserved_blocks - NUM_BLOCKS;
+            Num_transfer_blocks = Num_reserved_blocks - Num_blocks;
 
             // ensure that we do not exceed the total stack size limit
-            if(Num_transfer_blocks + Num_spilled_blocks > NUM_BLOCKS_TOTAL)
+            if(Num_transfer_blocks + Num_spilled_blocks > Num_blocks_total)
             {
               simulation_exception_t::stack_exceeded();
             }
@@ -373,7 +385,7 @@ namespace patmos
       unsigned int size_blocks = std::ceil((float)size/(float)NUM_BLOCK_BYTES);
 
       // ensure that the stack cache size is not exceeded
-      if(size_blocks > NUM_BLOCKS)
+      if(size_blocks > Num_blocks)
       {
         simulation_exception_t::stack_exceeded();
       }
@@ -428,7 +440,7 @@ namespace patmos
           assert(Num_transfer_blocks == 0);
 
           // unsure that the stack cache size is not exceeded
-          if (size_blocks > NUM_BLOCKS)
+          if (size_blocks > Num_blocks)
           {
             simulation_exception_t::stack_exceeded();
           }
@@ -501,11 +513,17 @@ namespace patmos
     {
       os << boost::format("  %1$5s: Reserved: %2$4d (%3%) "
                                     "Spilled: %4$4d (%5%)\n")
-         % Phase % Num_reserved_blocks % NUM_BLOCKS % Num_spilled_blocks
-         % NUM_BLOCKS_TOTAL;
+         % Phase % Num_reserved_blocks % Num_blocks % Num_spilled_blocks
+         % Num_blocks_total;
 
       // print stack cache content
       ideal_stack_cache_t::print(os);
+    }
+
+    /// free buffer memory.
+    virtual ~block_stack_cache_t()
+    {
+      delete[] Buffer;
     }
   };
 

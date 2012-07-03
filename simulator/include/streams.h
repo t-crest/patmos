@@ -28,12 +28,12 @@ namespace patmos
   /// @return A reference to a newly created file stream, or, if str equals "-",
   /// a reference to the default stream.
   template<typename T, typename D>
-  D &get_stream(char *str, D &default_stream)
+  D &get_stream(const std::string &str, D &default_stream)
   {
-    if (std::string(str) == "-")
+    if (str == "-")
       return default_stream;
     else
-      return *new T(str);
+      return *new T(str.c_str());
   }
 
   /// Free a stream, e.g., previously opened using get_stream, unless it refers

@@ -100,12 +100,13 @@ namespace patmos
     Stall = std::max(Stall, pst);
   }
 
-  void simulator_t::run(bool debug, uint64_t max_cycles)
+  void simulator_t::run(word_t entry, bool debug, uint64_t max_cycles)
   {
     // do some initializations before executing the first instruction.
     if (Cycle == 0)
     {
-      Method_cache.initialize();
+      PC = entry;
+      Method_cache.initialize(entry);
     }
 
     try

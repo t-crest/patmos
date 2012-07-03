@@ -15,11 +15,11 @@
 #
 
 add_library(patmos-simulator assembler.cc simulation-core.cc instruction.cc
-                             binary-formats.cc decoder.cc)
+                             binary-formats.cc decoder.cc command-line.cc)
 
 add_executable(pasim pasim.cc)
 
-target_link_libraries(pasim patmos-simulator ${Boost_LIBRARIES})
+target_link_libraries(pasim patmos-simulator ${Boost_LIBRARIES} ${ELF})
 
 add_executable(paasm paasm.cc)
 
