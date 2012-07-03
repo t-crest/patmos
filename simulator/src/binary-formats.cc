@@ -173,7 +173,7 @@ namespace patmos
     insertPN(iw, 27, pred);
     insertV(iw, 31, 1, 1);
 
-    return ((dword_t)iw) << 32 | imm;
+    return ((dword_t)iw) << 32 | (uword_t)imm;
   }
 
   alur_format_t::alur_format_t(const instruction_t &instruction,
