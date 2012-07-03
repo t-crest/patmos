@@ -24,6 +24,7 @@
 #include "simulation-core.h"
 #include "stack-cache.h"
 #include "streams.h"
+#include "uart.h"
 
 #include <gelf.h>
 #include <libelf.h>
@@ -246,6 +247,11 @@ static patmos::stack_cache_t &create_stack_cache(patmos::stack_cache_e sck,
 
 int main(int argc, char **argv)
 {
+  // the UART simulation may invoke cin.rdbuf()->in_avail(), which does not work
+  // properly when cin is synced with stdio. we thus disable it here, since we
+  // are not using stdio anyway.
+  std::cin.sync_with_stdio(false);
+
   // define command-line options
   boost::program_options::options_description generic_options(
     "Generic options:\n for memory/cache sizes the following units are allowed:"
@@ -273,11 +279,19 @@ int main(int argc, char **argv)
     ("mcsize,m", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_METHOD_CACHE_BYTES), "method cache size in bytes")
     ("mckind,M", boost::program_options::value<patmos::method_cache_e>()->default_value(patmos::MC_IDEAL), "kind of method cache (ideal, lru)");
 
+  boost::program_options::options_description uart_options("UART options");
+  uart_options.add_options()
+    ("in,I", boost::program_options::value<std::string>()->default_value("-"), "input file for UART simulation (stdin: -)")
+    ("out,O", boost::program_options::value<std::string>()->default_value("-"), "output file for UART simulation (stdout: -)")
+    ("ustatus", boost::program_options::value<unsigned int>()->default_value(patmos::UART_STATUS_ADDRESS), "address where the UART's status register is mapped")
+    ("udata", boost::program_options::value<unsigned int>()->default_value(patmos::UART_DATA_ADDRESS), "address where the UART's data register is mapped");
+
   boost::program_options::positional_options_description pos;
   pos.add("binary", 1);
 
   boost::program_options::options_description cmdline_options;
-  cmdline_options.add(generic_options).add(memory_options).add(cache_options);
+  cmdline_options.add(generic_options).add(memory_options).add(cache_options)
+                 .add(uart_options);
 
   // process command-line options
   boost::program_options::variables_map vm;
@@ -304,6 +318,12 @@ int main(int argc, char **argv)
   std::string binary(vm["binary"].as<std::string>());
   std::string output(vm["output"].as<std::string>());
 
+  std::string uart_in(vm["in"].as<std::string>());
+  std::string uart_out(vm["out"].as<std::string>());
+
+  unsigned int ustatus = vm["ustatus"].as<unsigned int>();
+  unsigned int udata = vm["udata"].as<unsigned int>();
+
   unsigned int gsize = vm["gsize"].as<patmos::byte_size_t>().value();
   unsigned int lsize = vm["lsize"].as<patmos::byte_size_t>().value();
   unsigned int dcsize = vm["dcsize"].as<patmos::byte_size_t>().value();
@@ -318,18 +338,22 @@ int main(int argc, char **argv)
   bool debug_enabled = vm.count("debug");
   unsigned int max_cycle = vm["maxc"].as<unsigned int>();
 
+  // open streams
+  std::istream &in = patmos::get_stream<std::ifstream>(binary, std::cin);
+  std::ostream &out = patmos::get_stream<std::ofstream>(output, std::cout);
+
+  std::istream &uin = patmos::get_stream<std::ifstream>(uart_in, std::cin);
+  std::ostream &uout = patmos::get_stream<std::ofstream>(uart_out, std::cout);
+
   // setup simulation framework
   patmos::memory_t &gm = create_global_memory(gtime, gsize);
   patmos::stack_cache_t &sc = create_stack_cache(sck, scsize, gm);
   patmos::method_cache_t &mc = create_method_cache(mck, mcsize, gm);
   patmos::data_cache_t &dc = create_data_cache(dcsize, gm);
   patmos::ideal_memory_t lm(lsize);
+  patmos::uart_t uart(lm, ustatus, udata, uin, uout);
 
-  patmos::simulator_t s(gm, lm, dc, mc, sc);
-
-  // open streams
-  std::istream &in = patmos::get_stream<std::ifstream>(binary, std::cin);
-  std::ostream &out = patmos::get_stream<std::ofstream>(output, std::cout);
+  patmos::simulator_t s(gm, uart, dc, mc, sc);
 
   // load input program
   patmos::uword_t entry = 0;
@@ -380,6 +404,9 @@ int main(int argc, char **argv)
   // free streams
   patmos::free_stream(in, std::cin);
   patmos::free_stream(out, std::cout);
+
+  patmos::free_stream(uin, std::cin);
+  patmos::free_stream(uout, std::cout);
 
   return 0;
 }

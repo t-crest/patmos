@@ -68,6 +68,12 @@ Errors : 0")
 test_asm(21 "Emitted: 68 words
 Errors : 0")
 
+test_asm(22 "Emitted: 44 words
+Errors : 0")
+
+test_asm(23 "Emitted: 48 words
+Errors : 0")
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # SIMULATOR TESTS
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -76,6 +82,11 @@ macro (test_sim num expr)
   ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim --maxc 20000 ${CMAKE_CURRENT_BINARY_DIR}/test${num}.bin)
   SET_TESTS_PROPERTIES(sim-test-${num} PROPERTIES PASS_REGULAR_EXPRESSION ${expr} DEPENDS asm-test-${num})
 endmacro (test_sim)
+
+macro (test_io_sim num expr)
+  ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim --maxc 20000 --in ${PROJECT_SOURCE_DIR}/tests/test${num}.in ${CMAKE_CURRENT_BINARY_DIR}/test${num}.bin)
+  SET_TESTS_PROPERTIES(sim-test-${num} PROPERTIES PASS_REGULAR_EXPRESSION ${expr} DEPENDS asm-test-${num})
+endmacro (test_io_sim)
 
 test_sim(01 "r0 : 00000005   r1 : 0000000a")
 
@@ -133,3 +144,9 @@ test_sim(20 "r1 : 0281fa80   r2 : 8281fa81")
 
 test_sim(21 "BASE: 00000000   PC : 00000050.*
  r0 : 0000003c")
+
+test_io_sim(22 "r1 : 000000fb")
+
+test_sim(23 "!
+.*
+.*r2 : 00000021")
