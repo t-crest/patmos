@@ -29,6 +29,9 @@
 #include <gelf.h>
 #include <libelf.h>
 
+#include <unistd.h>
+#include <termios.h>
+
 #include <fstream>
 #include <iostream>
 
@@ -245,11 +248,31 @@ static patmos::stack_cache_t &create_stack_cache(patmos::stack_cache_e sck,
   abort();
 }
 
+/// Disable the line buffering 
+void disable_line_buffering()
+{
+  // is it a regular stream anyways?
+  if (isatty(STDIN_FILENO))
+  {
+    struct termios tio;
+
+    // get the termios flags for stdin
+    tcgetattr(STDIN_FILENO, &tio);
+
+    // disable buffering
+    tio.c_lflag &=(~ICANON);
+
+    // reset the termios flags
+    tcsetattr(STDIN_FILENO, TCSANOW, &tio);
+  }
+}
+
 int main(int argc, char **argv)
 {
   // the UART simulation may invoke cin.rdbuf()->in_avail(), which does not work
   // properly when cin is synced with stdio. we thus disable it here, since we
   // are not using stdio anyway.
+  disable_line_buffering();
   std::cin.sync_with_stdio(false);
 
   // define command-line options

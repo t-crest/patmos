@@ -126,27 +126,6 @@ namespace patmos
     }
   };
 
-  /// Halt the simulation
-  class i_halt_t : public i_nop_t
-  {
-  public:
-    /// Print the instruction to an output stream.
-    /// @param os The output stream to print to.
-    /// @param ops The operands of the instruction.
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const
-    {
-      os << "halt";
-    }
-
-    /// Signal to the simulator that a halt instruction has been executed.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void MW_commit(simulator_t &s, instruction_data_t &ops) const
-    {
-      simulation_exception_t::halt();
-    }
-  };
-
   /// Abstract base class of predicated instructions, i.e., all instructions
   /// that actually do something.
   class i_pred_t : public i_nop_t
@@ -619,6 +598,21 @@ namespace patmos
 
   ALUcu_INSTR(cmpult, <)
   ALUcu_INSTR(cmpule, <=)
+
+  class i_btest_t : public i_aluc_t
+  {
+  public:
+    virtual void print(std::ostream &os, const instruction_data_t &ops) const
+    {
+      os << boost::format("(p%1%) btest p%2% = r%3%, %4%")
+          % ops.Pred % ops.OPS.ALUc.Pd % ops.OPS.ALUc.Rs1 % ops.OPS.ALUc.Rs2;
+    }
+
+    virtual bit_t compute(word_t value1, word_t value2) const
+    {
+      return (((uword_t)value1) & (1 << ((uword_t)value2))) != 0;
+    }
+  };
 
   /// Base class for ALUp instructions.
   class i_alup_t : public i_pred_t
@@ -1411,8 +1405,25 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
-      fetch_and_dispatch(s, ops.DR_Pred, ops.DR_Base,
-                         ops.DR_Base + ops.DR_Offset);
+      // returning to address 0? interpret this as a halt.
+      if (ops.DR_Pred && ops.DR_Base == 0)
+      {
+        // stall the first stage of the pipeline
+        s.pipeline_stall(SDR);
+      }
+      else
+        fetch_and_dispatch(s, ops.DR_Pred, ops.DR_Base,
+                          ops.DR_Base + ops.DR_Offset);
+    }
+
+    /// Signal to the simulator that a "halt" instruction has been executed.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void MW_commit(simulator_t &s, instruction_data_t &ops) const
+    {
+      // returning to address 0? interpret this as a halt.
+      if (ops.DR_Pred && ops.DR_Base == 0)
+        simulation_exception_t::halt();
     }
   };
 

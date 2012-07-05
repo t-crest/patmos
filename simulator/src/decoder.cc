@@ -189,6 +189,7 @@ namespace patmos
     MK_INSTR(cmple  , aluc, 3)
     MK_INSTR(cmpult , aluc, 4)
     MK_INSTR(cmpule , aluc, 5)
+    MK_INSTR(btest  , aluc, 6)
 
     // ALUp
     MK_INSTR(por , alup,  6)
@@ -269,9 +270,6 @@ namespace patmos
 
     // BNE
     MK_INSTR(bne, bne, 0)
-
-    // HLT
-    MK_INSTR(halt, hlt, 0)
   }
 }
 

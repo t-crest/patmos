@@ -77,9 +77,8 @@ namespace patmos
     /// @return True when the data is available from the UART.
     virtual bool read_data(byte_t *value)
     {
-      std::streamsize tmp = In_stream.readsome(reinterpret_cast<char*>(value),
-                                               sizeof(byte_t));
-      assert(tmp == sizeof(byte_t));
+      In_stream.read(reinterpret_cast<char*>(value), sizeof(byte_t));
+      assert(In_stream.gcount() == sizeof(byte_t));
       return true;
     }
 

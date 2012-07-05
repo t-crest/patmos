@@ -120,9 +120,6 @@ namespace patmos
       /// Parse BNE instructions.
       rule_t BNE;
 
-      /// Parse HLT instructions.
-      rule_t HLT;
-
       /// Encode two instructions as a single bundle.
       /// @param iw1 The first instruction word.
       /// @param iw2 The second instruction word.
@@ -132,6 +129,13 @@ namespace patmos
       {
         dword_t diw1 = iw1 | (1ul << (sizeof(word_t)*8 - 1));
         return (diw1 << ((dword_t)sizeof(word_t)*8)) | (dword_t)iw2;
+      }
+
+      /// Encode a halt instruction, consisting of a mts and a ret instruction.
+      /// @return Two encoded instructions.
+      static inline dword_t halt()
+      {
+        return 0x0780000002400024;
       }
     public:
       /// Construct a parser for instruction path patterns.
@@ -146,10 +150,8 @@ namespace patmos
         // simulator.
         Bundle = ALUl
                  [boost::spirit::qi::_val = boost::spirit::qi::_1] |
-                 HLT
-                 [boost::spirit::qi::_val = boost::phoenix::bind(bundle,
-                                                       boost::spirit::qi::_1,
-                                                       boost::spirit::qi::_1)] |
+                 boost::spirit::lit("halt")
+                 [boost::spirit::qi::_val = boost::phoenix::bind(halt)] |
                  (Instruction1 >> "||" >> Instruction2)
                  [boost::spirit::qi::_val = boost::phoenix::bind(bundle,
                                                        boost::spirit::qi::_1,
@@ -499,11 +501,6 @@ namespace patmos
                                  bne_format_t::encode, boost::spirit::qi::_1,
                                  boost::spirit::qi::_2, boost::spirit::qi::_3)];
 
-        // Parse the simulator's halt instruction
-        HLT = boost::spirit::lit("halt")
-              [boost::spirit::qi::_val =
-                                    boost::phoenix::bind(hlt_format_t::encode)];
-
         // enable debugging of rules -- if BOOST_SPIRIT_DEBUG is defined
         BOOST_SPIRIT_DEBUG_NODE(Line);
         BOOST_SPIRIT_DEBUG_NODE(Bundle);
@@ -536,7 +533,6 @@ namespace patmos
         BOOST_SPIRIT_DEBUG_NODE(PFLb);        BOOST_SPIRIT_DEBUG_NODE(PFLi);
         BOOST_SPIRIT_DEBUG_NODE(PFLr);
         BOOST_SPIRIT_DEBUG_NODE(BNE);
-        BOOST_SPIRIT_DEBUG_NODE(HLT);
       }
   };
 

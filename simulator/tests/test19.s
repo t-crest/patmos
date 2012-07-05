@@ -1,6 +1,6 @@
 #
-# Expected Result: r0 = 7
+# Expected Result: r1 = 7
 #
 
-        (p0)    addi    r0  = r0 , 5    ||        (p0)    addi    r0  = r0 , 7;
+        (p0)    addi    r1  = r0 , 5    ||        (p0)    addi    r1  = r0 , 7;
                 halt;

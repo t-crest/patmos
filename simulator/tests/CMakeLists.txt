@@ -88,33 +88,38 @@ macro (test_io_sim num expr)
   SET_TESTS_PROPERTIES(sim-test-${num} PROPERTIES PASS_REGULAR_EXPRESSION ${expr} DEPENDS asm-test-${num})
 endmacro (test_io_sim)
 
-test_sim(01 "r0 : 00000005   r1 : 0000000a")
+macro (test_elf_io_sim num expr)
+  ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim --maxc 20000 --in ${PROJECT_SOURCE_DIR}/tests/test${num}.in ${PROJECT_SOURCE_DIR}/tests/test${num}.elf)
+  SET_TESTS_PROPERTIES(sim-test-${num} PROPERTIES PASS_REGULAR_EXPRESSION ${expr})
+endmacro (test_elf_io_sim)
 
-test_sim(02 "r0 : 00000005   r1 : 00000005")
+test_sim(01 "r1 : 00000005   r2 : 0000000a")
 
-test_sim(03 "r0 : 00a00000   r1 : 00000000")
+test_sim(02 "r1 : 00000005   r2 : 00000005")
 
-test_sim(04 "r0 : 00000000   r1 : 00000005")
+test_sim(03 "r1 : 00a00000   r2 : 00000000")
+
+test_sim(04 "r1 : 00000000   r2 : 00000005")
 
 test_sim(05 "PRR: 00000011
- r0 : 00000005   r1 : 00000007   r2 : 0000000c   r3 : 00000000")
+.*r1 : 00000005   r2 : 00000007   r3 : 0000000c   r4 : 00000000")
 
 test_sim(06 "PRR: 00010011
- r0 : 00000005   r1 : 00000007   r2 : 0000000c")
+.*r1 : 00000005   r2 : 00000007   r3 : 0000000c")
 
 test_sim(07 "s2 : 00000023   s3 : 00000000")
 
-test_sim(08 "r0 : 00000005   r1 : 00000007   r2 : 00000000   r3 : 00000023   r4 : 00000023")
+test_sim(08 "r1 : 00000005   r2 : 00000007   r3 : 00000000   r4 : 00000023   r5 : 00000023")
 
 test_sim(09 "r0 : 00000000   r1 : 0283f180   r2 : fffff180   r3 : fffffff1   r4 : 0000f180   r5 : 000000f1")
 
 test_sim(10 "r0 : 00000000   r1 : 0283f180   r2 : 000000f1   r3 : 0283f180   r4 : f1800000   r5 : 80000000")
 
-test_sim(11 "BASE: 00000000   PC : 00000044.*
- r0 : 00000026")
+test_sim(11 "BASE: 00000000   PC : 0000003c.*
+.*r1 : 00000026")
 
-test_sim(13 "BASE: 00000000   PC : 00000028.*
- r0 : 0000002d   r1 : 00000000   r2 : 0000000c")
+test_sim(13 "BASE: 00000020   PC : 00000048.*
+.*r1 : 00000026   r2 : 00000000   r3 : 0000000c")
 
 test_sim(14 "r0 : 00000000   r1 : 0283f180   r2 : 0283f180   r3 : fffff180   r4 : fffffff1   r5 : 0000f180   r6 : 000000f1.*
  0000000c:  00
@@ -130,23 +135,25 @@ test_sim(14 "r0 : 00000000   r1 : 0283f180   r2 : 0283f180   r3 : fffff180   r4 
  00000002:  f1
  00000001:  80")
 
-test_sim(15 "Unmapped memory access: 00000010: fffffffc")
+test_sim(15 "Unmapped memory access: 0000000c: fffffffc")
 
-test_sim(16 "Stack size exceeded: 00000014")
+test_sim(16 "Stack size exceeded: 00000010")
 
-test_sim(17 "Stack size exceeded: 00000014")
+test_sim(17 "Stack size exceeded: 00000010")
 
-test_sim(18 "Stack size exceeded: 00000014")
+test_sim(18 "Stack size exceeded: 00000010")
 
-test_sim(19 "r0 : 00000007")
+test_sim(19 "r1 : 00000007")
 
 test_sim(20 "r1 : 0281fa80   r2 : 8281fa81")
 
-test_sim(21 "BASE: 00000000   PC : 00000050.*
- r0 : 0000003c")
+test_sim(21 "BASE: 00000000   PC : 00000048.*
+.*r1 : 0000003c")
 
 test_io_sim(22 "r1 : 000000fb")
 
 test_sim(23 "!
 .*
 .*r2 : 00000021")
+
+test_elf_io_sim(24 "1234567890")

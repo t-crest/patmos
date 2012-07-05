@@ -73,7 +73,7 @@ int main(int argc, char **argv)
     else
     {
       // emit binary code
-      if (iw >= 0)
+      if ((iw & 0xffffffff00000000) == 0)
       {
         boost::spirit::karma::generate(cout_iterator,
                                   boost::spirit::big_dword((patmos::word_t)iw));

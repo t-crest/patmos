@@ -674,20 +674,4 @@ namespace patmos
 
     return iw;
   }
-
-  hlt_format_t::hlt_format_t(const instruction_t &instruction, word_t opcode) :
-      binary_format_t(instruction, 0xffffffff, 0xffffffff, 1, true)
-  {
-  }
-
-  instruction_data_t hlt_format_t::decode_operands(word_t iw,
-                                                   word_t longimm) const
-  {
-    return instruction_data_t::mk_HLT(Instruction);
-  }
-
-  word_t hlt_format_t::encode()
-  {
-    return 0xffffffff;
-  }
 }

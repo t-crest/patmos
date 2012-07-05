@@ -105,7 +105,7 @@ namespace patmos
     // do some initializations before executing the first instruction.
     if (Cycle == 0)
     {
-      PC = entry;
+      BASE = PC = entry;
       Method_cache.initialize(entry);
     }
 
@@ -162,7 +162,7 @@ namespace patmos
           // unknown instruction
           if (iw_size == 0)
           {
-            simulation_exception_t::illegal(iw[0]);
+            simulation_exception_t::illegal(from_big_endian<big_word_t>(iw[0]));
           }
         }
         else if (Stall != NUM_STAGES- 1)
