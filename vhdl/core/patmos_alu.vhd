@@ -82,6 +82,15 @@ begin
               when "0101" => dout.rd <= "0" & din.rs1(30 downto 0);
               when others => dout.rd <= din.rs1 + din.rs2;
             end case;
+          when ALUp =>
+          	case din.ALU_function_type is
+          	  when "0110" => dout.pd <= (din.ps1_negate xor din.ps1) or (din.ps1_negate xor din.ps2);
+              when "0111" => dout.pd <= (din.ps1_negate xor din.ps1) and (din.ps1_negate xor din.ps2);
+              when "1010" => dout.pd <= (din.ps1_negate xor din.ps1) xor (din.ps1_negate xor din.ps2);
+              when "1011" => dout.pd <= not ((din.ps1_negate xnor din.ps1) or (din.ps1_negate xor din.ps2)); --nor
+              when others => dout.pd <= (din.ps1_negate xor din.ps1) or (din.ps1_negate xor din.ps2);
+          	end case;
+          	
           when others => dout.rd <= din.rs1 + din.rs2;
         end case;
         when LDT =>
@@ -122,5 +131,6 @@ end arch;
   -- Result: Performs a shift-right on a SIGNED vector COUNT times.
   --         The vacated positions are filled with the leftmost
   --         element, ARG'LEFT. The COUNT rightmost elements are lost.
+
 
 

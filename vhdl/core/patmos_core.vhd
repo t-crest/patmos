@@ -67,7 +67,13 @@ signal branch_taken                    : std_logic;
 signal is_beq                          : std_logic; 
 signal beq_imm                         : unsigned(31 downto 0);  
 signal instruction_rom_out			   : unsigned(31 downto 0);
-
+--signal predicate_data_out			   : unsigned (7 downto 0);
+signal alu_src1_ps					   : std_logic;
+signal alu_src2_ps					   : std_logic;
+signal fw_ctrl_ps1					   : forwarding_type;
+signal fw_ctrl_ps2					   : forwarding_type;
+signal fw_in1_predicate					: std_logic;
+signal fw_in2_predicate					: std_logic;
 signal out_rxd							: std_logic := '0';
 signal address_uart : std_logic_vector(31 downto 0)  := (others => '0');
 signal mem_data_out_uart				: std_logic_vector(31 downto 0); 
@@ -199,20 +205,25 @@ end process;
   port map(clk, rst, mux_branch, pc);
 
   inst_rom: entity work.patmos_rom(rtl)
-  port map(pc(7 downto 0), instruction_rom_out);
+  port map(pc(7 downto 0), fetch_din.instruction--instruction_rom_out
+  );
   
-   instruction_mem_address: process(execute_dout.alu_result_out, pc, instruction_rom_out) --read/write enable here
+   instruction_mem_address: process(execute_dout.alu_result_out, pc, instruction_rom_out, instruction_mem_dout.inst_out) --read/write enable here
   begin
-  	if(pc < 55) then --  this address is not power of 2,  what to do with comparison? / not sure if do the address assignment here or in the mem/io mux?
-  		instruction_mem_din.address <= execute_dout.alu_result_out - 512;
-  		fetch_din.instruction <= instruction_rom_out;
-  	elsif (pc >= 55) then
-  		instruction_mem_din.address <= pc - 55;
-  		fetch_din.instruction <= instruction_mem_dout.inst_out;
+  	if(pc <= 70 ) then --  this address is not power of 2,  what to do with comparison? / not sure if do the address assignment here or in the mem/io mux?
+  		if (execute_dout.mem_write_out = '1') then
+  			instruction_mem_din.address <= execute_dout.alu_result_out - 512;
+  		end if;
+  		--fetch_din.instruction <= instruction_rom_out;
+  	end if;
+  	if (pc >= 70) then
+  		instruction_mem_din.address <= pc - 70 + 7;
+  		--fetch_din.instruction <= instruction_mem_dout.inst_out;
   		instruction_mem_din.read_enable <= '1';
   	end if;
   end process;
-
+	
+  	
   instruction_mem : entity work.patmos_instruction_memory(arch)
   port map(clk, rst, instruction_mem_din.address, 
             execute_dout.mem_write_data_out,
@@ -232,26 +243,39 @@ end process;
 	port map(clk, rst, decode_din, decode_dout);
 
   mux_br1: entity work.patmos_forward_value(arch)
+ -- generic map (32)
   port map(execute_dout.alu_result_out, mux_mem_reg, decode_din.rs1_data_in, br_src1, fw_ctrl_br1);
                                                          
   mux_br2: entity work.patmos_forward_value(arch)
+  --generic map (32)
   port map(execute_dout.alu_result_out, mux_mem_reg, decode_din.rs2_data_in, br_src2, fw_ctrl_br2);
   
   forward_br: entity work.patmos_forward(arch)
+  generic map (5)
   port map(fetch_dout.instruction(16 downto 12), fetch_dout.instruction(11 downto 7), execute_dout.reg_write_out, mem_dout.reg_write_out, 
            execute_dout.write_back_reg_out, mem_dout.write_back_reg_out, fw_ctrl_br1, fw_ctrl_br2);
   
   equal_check: entity work.patmos_equal_check(arch)
   port map(br_src1, br_src2, branch_taken);
   
+     
+  ------------------------------- predicate registers
+  predicate_reg_file: entity work.patmos_predicate_register_file(arch)
+	port map(clk, rst,  
+	        mem_dout.write_back_reg_out(2 downto 0), -- write_address
+	        decode_din.predicate_data_in,-- read data decode din
+	        mem_dout.alu_result_predicate_out, -- write data
+	        mem_dout.ps_reg_write_out); --write_enable
+	        
+
   --------------- special register file
   -- there is a problem here, st_out should be dynamic, it is not dedicated to stack cache
     special_reg_file: entity work.patmos_special_register_file(arch) -- the first operand may not be st_out, this should change, 
 	port map(clk, rst, decode_dout.st_out, fetch_dout.instruction(10 downto 7),
 	         decode_dout.st_out, decode_din.rs1_data_in_special, decode_din.rs2_data_in_special,
 	          stack_cache_ctrl_dout.st_out, stack_cache_ctrl_dout.reg_write_out);
-  
-
+	              	        
+	        
   ---------------------------------------------------- execute
 	
   mux_imm: entity work.patmos_mux_32(arch) -- immediate or rt
@@ -259,18 +283,18 @@ end process;
            decode_dout.alu_src_out, mux_alu_src);
 
   mux_rs1: entity work.patmos_forward_value(arch)
+ -- generic map (32)
   port map(execute_dout.alu_result_out, mux_mem_reg, decode_dout.rs1_data_out, alu_src1, fw_ctrl_rs1);
                                                          
   mux_rs2: entity work.patmos_forward_value(arch)
+--  generic map (32)
   port map(execute_dout.alu_result_out, mux_mem_reg, decode_dout.rs2_data_out, alu_src2, fw_ctrl_rs2);
   
   forward: entity work.patmos_forward(arch)
+ -- generic map (5)
   port map(decode_dout.rs1_out, decode_dout.rs2_out, execute_dout.reg_write_out, mem_dout.reg_write_out, 
            execute_dout.write_back_reg_out, mem_dout.write_back_reg_out, fw_ctrl_rs1, fw_ctrl_rs2);
-  
-  
-  
-  
+
   alu_din.rs1 <= alu_src1;
   alu_din.rs2 <= mux_alu_src;
   alu_din.inst_type <= decode_dout.inst_type_out;
@@ -279,10 +303,43 @@ end process;
   alu_din.STT_instruction_type <= decode_dout.STT_instruction_type_out;
   alu_din.LDT_instruction_type <= decode_dout.LDT_instruction_type_out;
   
+  ----- predicate instructions
+  fw_in1_predicate <= decode_dout.predicate_data_out(to_integer(decode_dout.ps1_out(2 downto 0)));
+  fw_in2_predicate <= decode_dout.predicate_data_out(to_integer(decode_dout.ps2_out(2 downto 0)));
+  
+  
+  mux_ps1: entity work.patmos_forward_value_predicate(arch)
+ -- generic map (1)
+  port map(execute_dout.alu_result_predicate_out, mem_dout.alu_result_predicate_out, fw_in1_predicate, alu_src1_ps, fw_ctrl_ps1);
+                                                         
+  mux_ps2: entity work.patmos_forward_value_predicate(arch)
+ -- generic map (1)
+  port map(execute_dout.alu_result_predicate_out, mem_dout.alu_result_predicate_out, fw_in2_predicate, alu_src2_ps, fw_ctrl_ps2);
+  
+  forward_ps: entity work.patmos_forward(arch)
+  generic map (3)
+  port map(decode_dout.ps1_out(2 downto 0), decode_dout.ps2_out(2 downto 0), execute_dout.ps_reg_write_out, mem_dout.ps_reg_write_out, 
+           execute_dout.ps_write_back_reg_out(2 downto 0), mem_dout.ps_write_back_reg_out(2 downto 0), fw_ctrl_ps1, fw_ctrl_ps2);
+  
+  alu_din.ps1 <= alu_src1_ps;
+  alu_din.ps2 <= alu_src2_ps;
+  alu_din.ps1_negate <= decode_dout.ps1_out(3);
+  alu_din.ps2_negate <= decode_dout.ps1_out(3);
+  ---------------------------------------alu
   alu: entity work.patmos_alu(arch)
   port map(clk, rst, alu_din, alu_dout);
   
   -----------------------
+  execute_din.predicate_bit_in <= decode_dout.predicate_bit_out;
+  execute_din.predicate_data_in <= decode_dout.predicate_data_out;
+  execute_din.ps_reg_write_in <= decode_dout.ps_reg_write_out;
+  execute_din.predicate_condition <= decode_dout.predicate_condition; 
+  execute_din.alu_result_predicate_in <= alu_dout.pd;
+  execute_din.ps_write_back_reg_in <= decode_dout.pd_out(2 downto 0);
+ -- execute_din.ps_reg_write_in
+  --execute_din.ps
+   
+  
   execute_din.reg_write_in <= decode_dout.reg_write_out;
   execute_din.mem_read_in <= decode_dout.mem_read_out;
   execute_din.mem_write_in <= decode_dout.mem_write_out;
@@ -353,6 +410,7 @@ end process;
 			mem_read <= execute_dout.mem_read_out;
 		    io_write <= '0';	
 		    io_read <= '0';
+		    instruction_mem_din.write_enable <= '0';
 		   -- address <= "00000000000000000000000000000001";
 		end if;
 		if (execute_dout.alu_result_out(8) = '0') then -- uart
@@ -361,6 +419,7 @@ end process;
 			io_write <= execute_dout.mem_write_out;
 			io_read <= execute_dout.mem_read_out;
 			address_uart <= std_logic_vector(execute_dout.alu_result_out);
+			instruction_mem_din.write_enable <= '0';
 		end if;
 		if (execute_dout.alu_result_out(9) = '1') then -- instruction mem
 			mem_write <= '0';
@@ -420,12 +479,6 @@ end process;
 --            mem_read, mem_write);
   --clk, rst, add, data_in(store), data_out(load), read_en, write_en
   
- -- instruction_mem : entity work.patmos_instruction_meory(arch)
- -- 	port map(clk, rst, execute_dout.alu_result_out, 
- --           execute_dout.mem_write_data_out,
- --           mem_data_out, 
---	            inst_mem_read, inst_mem_write);
-  --clk, rst, add, data_in(store), data_out(load), read_en, write_en
 
   --------------------------
   mem_din.reg_write_in <= execute_dout.reg_write_out;
@@ -434,6 +487,8 @@ end process;
   mem_din.write_back_reg_in <= execute_dout.write_back_reg_out;
   mem_din.mem_data_in <= mem_data_out_muxed;
   mem_din.mem_write_data_in <= execute_dout.mem_write_data_out;
+  mem_din.alu_result_predicate_in <= execute_dout.alu_result_predicate_out;
+  mem_din.ps_reg_write_in <= execute_dout.ps_reg_write_out;
   memory_stage: entity work.patmos_mem_stage(arch)
   port map(clk, rst, mem_din, mem_dout);
 
@@ -497,6 +552,7 @@ end process;
 
 
 end architecture arch;
+
 
 
 
