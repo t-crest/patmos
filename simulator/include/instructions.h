@@ -604,7 +604,7 @@ namespace patmos
   public:
     virtual void print(std::ostream &os, const instruction_data_t &ops) const
     {
-      os << boost::format("(p%1%) btest p%2% = r%3%, %4%")
+      os << boost::format("(p%1%) btest p%2% = r%3%, r%4%")
           % ops.Pred % ops.OPS.ALUc.Pd % ops.OPS.ALUc.Rs1 % ops.OPS.ALUc.Rs2;
     }
 
