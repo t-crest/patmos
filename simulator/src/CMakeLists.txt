@@ -29,3 +29,4 @@ add_executable(padasm padasm.cc)
 
 target_link_libraries(padasm patmos-simulator ${Boost_LIBRARIES})
 
+install(TARGETS pasim RUNTIME DESTINATION bin)
