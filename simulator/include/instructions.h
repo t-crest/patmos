@@ -501,7 +501,7 @@ namespace patmos
     }
   };
 
-#define ALUm_INSTR(name, type) \
+#define ALUm_INSTR(name, type, stype) \
   class i_ ## name ## _t : public i_alum_t \
   { \
   public:\
@@ -512,12 +512,12 @@ namespace patmos
     } \
     virtual dword_t compute(word_t value1, word_t value2) const \
     { \
-      return ((type)value1) * ((type)value2); \
+      return ((type)(stype)value1) * ((type)(stype)value2); \
     } \
   };
 
-  ALUm_INSTR(mul , dword_t)
-  ALUm_INSTR(mulu, udword_t)
+  ALUm_INSTR(mul , dword_t, word_t)
+  ALUm_INSTR(mulu, udword_t, uword_t)
 
   /// Base class for ALUc instructions.
   class i_aluc_t : public i_pred_t
