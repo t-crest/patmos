@@ -32,7 +32,7 @@ Errors : 0")
 test_asm(09 "Emitted: 28 words
 Errors : 0")
 
-test_asm(10 "Emitted: 40 words
+test_asm(10 "Emitted: 44 words
 Errors : 0")
 
 test_asm(11 "Emitted: 56 words
@@ -74,6 +74,18 @@ Errors : 0")
 test_asm(23 "Emitted: 48 words
 Errors : 0")
 
+test_asm(25 "Emitted: 24 words
+Errors : 0")
+
+test_asm(26 "Emitted: 8 words
+Errors : 0")
+
+test_asm(27 "Emitted: 8 words
+Errors : 0")
+
+test_asm(28 "Emitted: 60 words
+Errors : 0")
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # SIMULATOR TESTS
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -113,7 +125,7 @@ test_sim(08 "r1 : 00000005   r2 : 00000007   r3 : 00000000   r4 : 00000023   r5 
 
 test_sim(09 "r0 : 00000000   r1 : 0283f180   r2 : fffff180   r3 : fffffff1   r4 : 0000f180   r5 : 000000f1")
 
-test_sim(10 "r0 : 00000000   r1 : 0283f180   r2 : 000000f1   r3 : 0283f180   r4 : f1800000   r5 : 80000000")
+test_sim(10 "r0 : 00000000   r1 : 0283f180   r2 : 000000f0   r3 : 0283f180   r4 : f1800000   r5 : 80000000")
 
 test_sim(11 "BASE: 00000000   PC : 0000003c.*
 .*r1 : 00000026")
@@ -157,3 +169,13 @@ test_sim(23 "!
 .*r2 : 00000021")
 
 test_elf_io_sim(24 "1234567890")
+
+test_sim(25 "s2 : 00000d00   s3 : 00000034")
+
+test_sim(26 "Unaligned")
+
+test_sim(27 "Unaligned")
+
+test_sim(28 "BASE: 00000000   PC : 00000040.*
+.*r1 : 00000026")
+
