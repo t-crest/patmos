@@ -47,7 +47,10 @@ namespace patmos
       STACK_EXCEEDED,
 
       /// A method exceeds the size of the method cache.
-      CODE_EXCEEDED
+      CODE_EXCEEDED,
+
+      /// An unaligned memory access has been encountered.
+      UNALIGNED
     };
 
   private:
@@ -112,6 +115,12 @@ namespace patmos
     static void code_exceeded(uword_t address)
     {
       throw simulation_exception_t(CODE_EXCEEDED, address);
+    }
+
+    /// Throw a unaligned simulation exception.
+    static void unaligned(uword_t address)
+    {
+      throw simulation_exception_t(UNALIGNED, address);
     }
   };
 }

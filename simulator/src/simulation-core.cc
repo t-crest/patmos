@@ -195,6 +195,7 @@ namespace patmos
         case simulation_exception_t::UNMAPPED:
         case simulation_exception_t::STACK_EXCEEDED:
         case simulation_exception_t::CODE_EXCEEDED:
+        case simulation_exception_t::UNALIGNED:
           // pass on to caller
           throw e;
         case simulation_exception_t::HALT:

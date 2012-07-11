@@ -1078,6 +1078,8 @@ namespace patmos
     virtual bool load(simulator_t &s, word_t address, word_t &value) const \
     { \
       atype tmp; \
+      if ((address & (sizeof(atype) - 1)) != 0) \
+        simulation_exception_t::unaligned(address); \
       bool is_available = base.read_fixed(address, tmp); \
       value = (ctype)from_big_endian<big_ ## atype>(tmp); \
       return is_available; \
@@ -1159,6 +1161,8 @@ namespace patmos
     virtual bool store(simulator_t &s, word_t address, word_t value) const \
     { \
       type big_value = to_big_endian<big_ ## type>((type)value); \
+      if ((address & (sizeof(type) - 1)) != 0) \
+        simulation_exception_t::unaligned(address); \
       return base.write_fixed(address, big_value); \
     } \
   };

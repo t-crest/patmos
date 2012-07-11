@@ -410,6 +410,10 @@ int main(int argc, char **argv)
         std::cerr << boost::format("Illegal instruction: %1$08x: %2$08x\n")
                   % s.PC % e.get_info();
         break;
+      case patmos::simulation_exception_t::UNALIGNED:
+        std::cerr << boost::format("Unaligned memory access: %1$08x: %2$08x\n")
+                  % s.PC % e.get_info();
+        break;
       case patmos::simulation_exception_t::HALT:
         break;
       default:
