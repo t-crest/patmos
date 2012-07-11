@@ -567,7 +567,7 @@ namespace patmos
   public:\
     virtual void print(std::ostream &os, const instruction_data_t &ops) const \
     { \
-      os << boost::format("(p%2%) %1% p%3% = r%4%, %5%") % #name \
+      os << boost::format("(p%2%) %1% p%3% = r%4%, r%5%") % #name \
           % ops.Pred % ops.OPS.ALUc.Pd % ops.OPS.ALUc.Rs1 % ops.OPS.ALUc.Rs2; \
     } \
     virtual bit_t compute(word_t value1, word_t value2) const \
@@ -587,7 +587,7 @@ namespace patmos
   public:\
     virtual void print(std::ostream &os, const instruction_data_t &ops) const \
     { \
-      os << boost::format("(p%2%) %1% p%3% = r%4%, %5%") % #name \
+      os << boost::format("(p%2%) %1% p%3% = r%4%, r%5%") % #name \
           % ops.Pred % ops.OPS.ALUc.Pd % ops.OPS.ALUc.Rs1 % ops.OPS.ALUc.Rs2; \
     } \
     virtual bit_t compute(word_t value1, word_t value2) const \
