@@ -1358,7 +1358,7 @@ namespace patmos
     // MW inherited from NOP
   };
 
-#define PFLI_INSTR(name, store, dispatch, new_base) \
+#define PFLI_INSTR(name, store, dispatch, new_base, target) \
   class i_ ## name ## _t : public i_pfli_t \
   { \
   public:\
@@ -1368,15 +1368,18 @@ namespace patmos
     } \
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
     { \
-      word_t target = read_GPR_EX(s, ops.DR_Rs1); \
       store(s, ops.DR_Pred, s.BASE, s.PC); \
       dispatch(s, ops.DR_Pred, new_base, target); \
     } \
   };
 
-  PFLI_INSTR(bsr, store_return_address, fetch_and_dispatch, target)
-  PFLI_INSTR(bcr, no_store_return_address, dispatch, s.BASE)
-  PFLI_INSTR(br, no_store_return_address, fetch_and_dispatch, s.BASE)
+  PFLI_INSTR(bsr, store_return_address, fetch_and_dispatch,
+             read_GPR_EX(s, ops.DR_Rs1), read_GPR_EX(s, ops.DR_Rs1))
+  PFLI_INSTR(bcr, no_store_return_address, dispatch, s.BASE,
+             s.BASE + read_GPR_EX(s, ops.DR_Rs1))
+  PFLI_INSTR(br, no_store_return_address, fetch_and_dispatch,
+             s.BASE + read_GPR_EX(s, ops.DR_Rs1),
+             s.BASE + read_GPR_EX(s, ops.DR_Rs1))
 
   /// An instruction for returning from function calls.
   class i_ret_t : public i_pfl_t
