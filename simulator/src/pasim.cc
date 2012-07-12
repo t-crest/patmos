@@ -24,6 +24,7 @@
 #include "simulation-core.h"
 #include "stack-cache.h"
 #include "streams.h"
+#include "symbol.h"
 #include "uart.h"
 
 #include <gelf.h>
@@ -65,9 +66,11 @@ static bool is_elf(std::istream &is)
 /// @param is The input stream to read from.
 /// @param m The main memory to load to.
 /// @param msize Maximal number of bytes to load.
+/// @param symbols Map to store symbol information, if available.
 /// @return The entry point of the elf executable.
 static patmos::uword_t readelf(std::istream &is, patmos::memory_t &m,
-                               unsigned int msize)
+                               unsigned int msize,
+                               patmos::symbol_map_t &symbols)
 {
   std::vector<char> elfbuf;
   elfbuf.reserve(1 << 20);
@@ -133,6 +136,48 @@ static patmos::uword_t readelf(std::istream &is, patmos::memory_t &m,
                    phdr.p_filesz);
     }
   }
+
+  // get sections
+  ntmp = elf_getshdrnum(elf, &n);
+  assert(ntmp == 0);
+
+  // read symbol information
+  for(size_t i = 0; i < n; i++)
+  {
+    Elf_Scn *sec =  elf_getscn (elf, i);
+    assert(sec);
+
+    // get section header
+    GElf_Shdr shdr;
+    gelf_getshdr(sec, &shdr);
+    GElf_Shdr *shdrtmp = gelf_getshdr(sec, &shdr);
+    assert(shdrtmp);
+
+    if (shdr.sh_type == SHT_SYMTAB)
+    {
+      int num_entries = shdr.sh_size/shdr.sh_entsize;
+      Elf_Data *data = elf_getdata(sec, NULL);
+      assert(data);
+
+      for(int j = 0; j != num_entries; j++)
+      {
+        GElf_Sym sym;
+        GElf_Sym *tmpsym = gelf_getsym(data, j, &sym);
+        assert(tmpsym);
+        char *name = elf_strptr(elf, shdr.sh_link, sym.st_name);
+        assert(name);
+
+        // construct a symbol and store it for later use, i.e., the symbol map
+        // is queried during simulation to find symbol names associated with
+        // addresses.
+        patmos::symbol_info_t sym_info(sym.st_value, sym.st_size, name);
+        symbols.add(sym_info);
+      }
+    }
+  }
+
+  // ensure that the symbol map is sorted.
+  symbols.sort();
 
   // get entry point
   patmos::uword_t entry = hdr.e_entry;
@@ -375,13 +420,14 @@ int main(int argc, char **argv)
   patmos::data_cache_t &dc = create_data_cache(dcsize, gm);
   patmos::ideal_memory_t lm(lsize);
   patmos::uart_t uart(lm, ustatus, udata, uin, uout);
+  patmos::symbol_map_t sym;
 
-  patmos::simulator_t s(gm, uart, dc, mc, sc);
+  patmos::simulator_t s(gm, uart, dc, mc, sc, sym);
 
   // load input program
   patmos::uword_t entry = 0;
   if (is_elf(in))
-    entry = readelf(in, gm, gsize);
+    entry = readelf(in, gm, gsize, sym);
   else
     readbin(in, gm, gsize);
 

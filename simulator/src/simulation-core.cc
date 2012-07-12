@@ -23,6 +23,7 @@
 #include "memory.h"
 #include "method-cache.h"
 #include "stack-cache.h"
+#include "symbol.h"
 
 #include <iostream>
 
@@ -31,11 +32,11 @@ namespace patmos
   simulator_t::simulator_t(memory_t &memory, memory_t &local_memory,
                            data_cache_t &data_cache,
                            method_cache_t &method_cache,
-                           stack_cache_t &stack_cache) :
+                           stack_cache_t &stack_cache, symbol_map_t &symbols) :
       Cycle(0), Memory(memory), Local_memory(local_memory),
       Data_cache(data_cache), Method_cache(method_cache),
-      Stack_cache(stack_cache), BASE(0), PC(0), nPC(0), Stall(SIF),
-      Is_decoupled_load_active(false)
+      Stack_cache(stack_cache), Symbols(symbols), BASE(0), PC(0), nPC(0),
+      Stall(SIF), Is_decoupled_load_active(false)
   {
     // initialize one predicate register to be true, otherwise no instruction
     // will ever execute
@@ -70,7 +71,7 @@ namespace patmos
         {
           std::cerr << " || ";
         }
-        Pipeline[pst][i].print(std::cerr);
+        Pipeline[pst][i].print(std::cerr, Symbols);
         std::cerr.flush();
       }
 
@@ -119,7 +120,7 @@ namespace patmos
         if (debug)
         {
           std::cerr << "dMW: ";
-          Decoupled_load.print(std::cerr);
+          Decoupled_load.print(std::cerr, Symbols);
           std::cerr << "\n";
         }
 
@@ -209,15 +210,18 @@ namespace patmos
   /// @param os An output stream.
   void simulator_t::print(std::ostream &os) const
   {
-    os << boost::format("\nBASE: %1$08x   PC : %2$08x   Cyc: %3$08d   PRR: ")
-       % BASE % PC % Cycle;
+    os << boost::format("\nCyc : %1$08d   PRR: ")
+       % Cycle;
 
     // print values of predicate registers
     for(int p = NUM_PRR - 1; p >= 0; p--)
     {
       os << PRR.get((PRR_e)p).get();
     }
-    os << "\n ";
+
+    std::string function(Symbols.find(PC));
+    os << boost::format("  BASE: %1$08x   PC : %2$08x %3%\n ")
+       % BASE % PC % function;
 
     // print values of general purpose registers
     for(unsigned int r = r0; r < NUM_GPR; r++)

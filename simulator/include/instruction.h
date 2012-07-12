@@ -30,6 +30,7 @@ namespace patmos
 {
   // forward declaration
   class simulator_t;
+  class symbol_map_t;
   class instruction_t;
   class instruction_data_t;
 
@@ -46,8 +47,10 @@ namespace patmos
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
     virtual void print(std::ostream &os,
-                       const instruction_data_t &ops) const = 0;
+                       const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const = 0;
 
     // -------------------------- SIMULATION -----------------------------------
 
@@ -446,10 +449,11 @@ namespace patmos
 
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
-    void print(std::ostream &os) const
+    /// @param symbols A mapping of addresses to symbols.
+    void print(std::ostream &os, const symbol_map_t &symbols) const
     {
       if (I)
-        I->print(os, *this);
+        I->print(os, *this, symbols);
       else
         os << "bubble";
     }
