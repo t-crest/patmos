@@ -27,6 +27,7 @@
 #include "method-cache.h"
 #include "simulation-core.h"
 #include "stack-cache.h"
+#include "symbol.h"
 
 #include <ostream>
 #include <boost/format.hpp>
@@ -240,6 +241,7 @@ namespace patmos
       os << boost::format("(p%2%) %1% r%3% = r%4%, %5%") % #name \
           % ops.Pred % ops.OPS.ALUil.Rd % ops.OPS.ALUil.Rs1 \
           % ops.OPS.ALUil.Imm2; \
+      symbols.print(os, ops.OPS.ALUil.Imm2); \
     } \
     virtual word_t compute(word_t value1, word_t value2) const \
     { \
@@ -980,6 +982,7 @@ namespace patmos
     { \
       os << boost::format("(p%2%) %1% r%3% = [r%4% + %5%]") % #name \
           % ops.Pred % ops.OPS.LDT.Rd % ops.OPS.LDT.Ra % ops.OPS.LDT.Imm; \
+      symbols.print(os, ops.EX_Address); \
     } \
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
     { \
@@ -1181,6 +1184,7 @@ namespace patmos
     { \
       os << boost::format("(p%2%) %1% [r%3% + %4%] = r%5%") % #name \
           % ops.Pred % ops.OPS.STT.Ra % ops.OPS.STT.Imm2 % ops.OPS.STT.Rs1; \
+      symbols.print(os, ops.EX_Address); \
     } \
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
     { \
@@ -1221,6 +1225,7 @@ namespace patmos
                        const symbol_map_t &symbols) const \
     { \
       os << boost::format("(p%2%) %1% %3%") % #name % ops.Pred % ops.OPS.STC.Imm; \
+      symbols.print(os, ops.EX_Address); \
     } \
     virtual void DR(simulator_t &s, instruction_data_t &ops) const \
     { \
@@ -1352,9 +1357,11 @@ namespace patmos
                        const symbol_map_t &symbols) const \
     { \
       os << boost::format("(p%2%) %1% %3%") % #name % ops.Pred % ops.OPS.PFLb.Imm; \
+      symbols.print(os, ops.EX_Address); \
     } \
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
     { \
+      ops.EX_Address = target; \
       store(s, ops.DR_Pred, s.BASE, s.nPC); \
       dispatch(s, ops.DR_Pred, new_base, target); \
     } \
@@ -1397,9 +1404,11 @@ namespace patmos
                        const symbol_map_t &symbols) const \
     { \
       os << boost::format("(p%2%) %1% r%3%") % #name % ops.Pred % ops.OPS.PFLi.Rs; \
+      symbols.print(os, ops.EX_Address); \
     } \
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
     { \
+      ops.EX_Address = target; \
       store(s, ops.DR_Pred, s.BASE, s.PC); \
       dispatch(s, ops.DR_Pred, new_base, target); \
     } \

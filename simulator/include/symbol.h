@@ -77,15 +77,23 @@ namespace patmos
     void add(const symbol_info_t &symbol);
 
     /// Find a symbol given a specific address.
-    /// The symbol table is searched for the symbol covering the address and the 
-    /// name of the symbol is returned. In case labels of basic blocks within 
-    /// functions are available the name of the enclosing function and the name
-    /// of the basic block are concatenated, e.f., for basic block 'bar' in  
-    /// function 'foo' 'foo:bar' is returned.
-    /// @param address The address for which symbol information should be 
+    /// \see print
+    /// @param address The address for which symbol information should be
     /// retrieved.
     /// @return A string representing symbol information.
     std::string find(word_t address) const;
+
+    /// Print symbol information given a specific address to a stream.
+    /// The symbol table is searched for the symbol covering the address and the
+    /// name of the symbol is returned. In case labels of basic blocks within
+    /// functions are available the name of the enclosing function and the name
+    /// of the basic block are concatenated, e.f., for basic block 'bar' in
+    /// function 'foo' 'foo:bar' is returned.
+    /// @param os An output stream.
+    /// @param address The address for which symbol information should be
+    /// retrieved.
+    /// @return A string representing symbol information.
+    std::ostream &print(std::ostream &os, word_t address) const;
   };
 }
 

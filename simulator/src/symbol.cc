@@ -45,7 +45,18 @@ namespace patmos
 
   std::string symbol_map_t::find(word_t address) const
   {
+    std::stringstream ss;
+    print(ss, address);
+    return ss.str();
+  }
+
+  std::ostream &symbol_map_t::print(std::ostream &os, word_t address) const
+  {
     assert(Is_sorted);
+
+    // ok, ignore this one.
+    if (address == 0)
+      return os;
 
     // find enclosing symbol
     // TODO; use binary search here
@@ -54,7 +65,7 @@ namespace patmos
     for(symbols_t::const_iterator i(Symbols.begin()), ie(Symbols.end());
         i != ie; i++)
     {
-      if (i->Address <= address && address <= i->Address + i->Size &&
+      if (i->Address <= address && address < i->Address + i->Size &&
           i->Size != 0)
       {
         assert(!enclosing);
@@ -64,23 +75,27 @@ namespace patmos
       {
         bb = &*i;
       }
+      else if (i->Address == address)
+      {
+        assert(!enclosing);
+        enclosing = &*i;
+      }
       else if (address < i->Address)
         break;
     }
 
-    // return a symbol name
-    std::stringstream ss;
+    // print the symbol information
     word_t offset = 0;
     if (enclosing)
     {
-      ss << '<' << enclosing->Name;
+      os << '<' << enclosing->Name;
       offset = address - enclosing->Address;
     }
 
     if (bb)
     {
       assert(enclosing);
-      ss << ':' << bb->Name;
+      os << ':' << bb->Name;
       offset = address - bb->Address;
     }
 
@@ -88,11 +103,11 @@ namespace patmos
     {
       if (offset)
       {
-        ss << " + 0x" << std::hex << offset;
+        os << " + 0x" << std::hex << offset;
       }
-      ss << '>';
+      os << '>';
     }
 
-    return ss.str();
+    return os;
   }
 }

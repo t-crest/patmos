@@ -219,9 +219,13 @@ namespace patmos
       os << PRR.get((PRR_e)p).get();
     }
 
-    std::string function(Symbols.find(PC));
-    os << boost::format("  BASE: %1$08x   PC : %2$08x %3%\n ")
-       % BASE % PC % function;
+    std::string function();
+    os << boost::format("  BASE: %1$08x   PC : %2$08x   ")
+       % BASE % PC;
+
+    Symbols.print(os, PC);
+
+    os << "\n ";
 
     // print values of general purpose registers
     for(unsigned int r = r0; r < NUM_GPR; r++)
