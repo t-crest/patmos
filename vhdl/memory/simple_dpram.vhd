@@ -31,17 +31,18 @@
 --
 --	dpram.vhd
 --
---	Dual port ram with read and write port
+--	Simple dual port ram with read and write port
 --	Read and write address, write data is registered. Output is not
 --	registered.
 --
 --	Read during write at the same address is old value according to VHDL
 --  code. Might be undefined on some FPGAs.
---  Quartus 10 adds forwarding.
---
---  TODO: make this explicite, test with Xilinx, maybe assign 'X' when
---  no forwarding is needed to avoid it (useful in JOP stack)
+--  When forwarding is set to true it is implemented in LC on a Cyclone-II.
 -- 
+-- The 0 initialization only works at simulation.
+-- Xilinx and Altera FPGAs zero the memory by default,
+-- Actel FPGAs and ASICs not.
+--
 --
 --	Author: Martin Schoeberl (martin@jopdesign.com)
 --
@@ -58,51 +59,46 @@ use ieee.numeric_std.all;
 entity dpram is
 generic (width : integer := 32; addr_width : integer := 7; forwarding : boolean := false);
 port (
-	clk : in std_logic;
+	clk			: in std_logic;
 	
-	wr_addr : in std_logic_vector(addr_width-1 downto 0);
-	wr_data : in std_logic_vector(width-1 downto 0);
-	wr_en : in std_logic;
+	wraddress	: in std_logic_vector(addr_width-1 downto 0);
+	din		: in std_logic_vector(width-1 downto 0);
+	wren		: in std_logic;
 
-	rd_addr : in std_logic_vector(addr_width-1 downto 0);
-	rd_data : out std_logic_vector(width-1 downto 0)
+	rdaddress	: in std_logic_vector(addr_width-1 downto 0);
+	dout		: out std_logic_vector(width-1 downto 0)
 );
 end dpram ;
 
 architecture rtl of dpram is
 
-	type ram_type is array(0 to 2 ** addr_width-1) of
-		std_logic_vector(width-1 downto 0);
+	subtype word is std_logic_vector(width-1 downto 0);
+	constant nwords : integer := 2 ** addr_width;
+	type ram_type is array(0 to nwords-1) of word;
 
 -- The 0 initialization works only in simulation and some FPGAs
 --	signal ram : ram_type := (others => (others => '0'));
 	signal ram : ram_type;
-	
-	signal wr_addr_reg : std_logic_vector(addr_width-1 downto 0);
-	signal wr_data_reg : std_logic_vector(width-1 downto 0);
-	signal wr_en_reg : std_logic;
-	signal rd_addr_reg : std_logic_vector(addr_width-1 downto 0);
-	
 
 begin
-
 
 process (clk)
 begin
 	if rising_edge(clk) then
-		wr_addr_reg <= wr_addr;
-		wr_data_reg <= wr_data;
-		wr_en_reg <= wr_en;
-		rd_addr_reg <= rd_addr;
-	end if;
-end process;
-
-process (ram, wr_addr_reg, wr_data_reg, wr_en_reg, rd_addr_reg)
-begin
-		if wr_en_reg='1' then
-			ram(to_integer(unsigned(wr_addr_reg))) <= wr_data_reg;
+		if wren='1' then
+			ram(to_integer(unsigned(wraddress))) <= din;
 		end if;
-		rd_data <= ram(to_integer(unsigned(rd_addr_reg)));
+		-- does not really work on an FPGA
+		if forwarding=true then
+			if rdaddress = wraddress then
+				dout <= din;
+			else
+				dout <= ram(to_integer(unsigned(rdaddress)));
+			end if;
+		else
+			dout <= ram(to_integer(unsigned(rdaddress)));
+		end if;
+	end if;
 end process;
 
 end rtl;

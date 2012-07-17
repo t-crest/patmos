@@ -1,5 +1,5 @@
 -- 
--- Copyright 2010 Martin Schoeberl, martin@jopdesign.com. All rights reserved.
+-- Copyright Technical University of Denmark. All rights reserved.
 -- This file is part of the time-predictable VLIW Patmos.
 -- 
 -- Redistribution and use in source and binary forms, with or without
@@ -27,19 +27,13 @@
 -- those of the authors and should not be interpreted as representing official
 -- policies, either expressed or implied, of the copyright holder.
 -- 
+
+
 --------------------------------------------------------------------------------
 -- Entity: alu
+-- Author: Martin Schoeberl (martin@jopdesign.com)
 --------------------------------------------------------------------------------
--- Copyright ... 2010
--- Filename          : alu.vhd
--- Creation date     : 2010-08-10
--- Author(s)         : martin
--- Version           : 1.00
--- Description       : <short description>
---------------------------------------------------------------------------------
--- File History:
--- Date         Version  Author   Comment
--- 2010-08-10   1.00     martin     Creation of File
+-- Test ALU
 --------------------------------------------------------------------------------
 library ieee;
 use ieee.std_logic_1164.all;
