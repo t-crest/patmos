@@ -15,7 +15,8 @@
 #
 
 add_library(patmos-simulator assembler.cc simulation-core.cc instruction.cc
-                             binary-formats.cc decoder.cc command-line.cc)
+                             binary-formats.cc decoder.cc command-line.cc
+                             symbol.cc)
 
 add_executable(pasim pasim.cc)
 
@@ -29,3 +30,4 @@ add_executable(padasm padasm.cc)
 
 target_link_libraries(padasm patmos-simulator ${Boost_LIBRARIES})
 
+install(TARGETS pasim RUNTIME DESTINATION bin)

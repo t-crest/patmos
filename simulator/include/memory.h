@@ -123,7 +123,8 @@ namespace patmos
       }
 
       // initialize memory content
-      for(; Initialized_offset < std::min(address + 1024, Memory_size);
+      size = std::max(1024u, size);
+      for(; Initialized_offset < std::min(address + size, Memory_size);
           Initialized_offset++)
       {
         Content[Initialized_offset] = 0;

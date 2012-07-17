@@ -31,6 +31,7 @@ namespace patmos
   // forward definitions
   class memory_t;
   class data_cache_t;
+  class symbol_map_t;
   class stack_cache_t;
   class method_cache_t;
   class binary_format_t;
@@ -106,6 +107,9 @@ namespace patmos
     /// The stack cache used during the simulation.
     stack_cache_t &Stack_cache;
 
+    /// A map to retrieve symbol information from addresses.
+    symbol_map_t &Symbols;
+
     /// The decoder of the simulator.
     decoder_t Decoder;
 
@@ -165,9 +169,10 @@ namespace patmos
     /// @param data_cache The data cache to use during the simulation.
     /// @param method_cache The method cache to use during the simulation.
     /// @param stack_cache The stack cache to use during the simulation.
+    /// @param symbols A mapping from addresses to symbols.
     simulator_t(memory_t &memory, memory_t &local_memory,
                 data_cache_t &data_cache, method_cache_t &method_cache,
-                stack_cache_t &stack_cache);
+                stack_cache_t &stack_cache, symbol_map_t &symbols);
 
     /// Run the simulator.
     /// @param entry Initialize the method cache, PC, etc. to start execution

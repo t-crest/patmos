@@ -27,6 +27,7 @@
 #include "method-cache.h"
 #include "simulation-core.h"
 #include "stack-cache.h"
+#include "symbol.h"
 
 #include <ostream>
 #include <boost/format.hpp>
@@ -47,7 +48,9 @@ namespace patmos
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
     {
       os << "nop";
     }
@@ -149,7 +152,9 @@ namespace patmos
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
     {
       assert(false);
     }
@@ -230,11 +235,13 @@ namespace patmos
   class i_ ## name ## _t : public i_aluil_t \
   { \
   public:\
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const \
+    virtual void print(std::ostream &os, const instruction_data_t &ops, \
+                       const symbol_map_t &symbols) const \
     { \
       os << boost::format("(p%2%) %1% r%3% = r%4%, %5%") % #name \
           % ops.Pred % ops.OPS.ALUil.Rd % ops.OPS.ALUil.Rs1 \
           % ops.OPS.ALUil.Imm2; \
+      symbols.print(os, ops.OPS.ALUil.Imm2); \
     } \
     virtual word_t compute(word_t value1, word_t value2) const \
     { \
@@ -335,7 +342,8 @@ namespace patmos
   class i_ ## name ## _t : public i_alur_t \
   { \
   public:\
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const \
+    virtual void print(std::ostream &os, const instruction_data_t &ops, \
+                       const symbol_map_t &symbols) const \
     { \
       os << boost::format("(p%2%) %1% r%3% = r%4%, r%5%") % #name \
           % ops.Pred % ops.OPS.ALUr.Rd % ops.OPS.ALUr.Rs1 % ops.OPS.ALUr.Rs2; \
@@ -435,7 +443,8 @@ namespace patmos
   class i_ ## name ## _t : public i_aluu_t \
   { \
   public:\
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const \
+    virtual void print(std::ostream &os, const instruction_data_t &ops, \
+                       const symbol_map_t &symbols) const \
     { \
       os << boost::format("(p%2%) %1% r%3% = r%4%") % #name \
           % ops.Pred % ops.OPS.ALUu.Rd % ops.OPS.ALUu.Rs1; \
@@ -501,23 +510,24 @@ namespace patmos
     }
   };
 
-#define ALUm_INSTR(name, type) \
+#define ALUm_INSTR(name, type, stype) \
   class i_ ## name ## _t : public i_alum_t \
   { \
   public:\
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const \
+    virtual void print(std::ostream &os, const instruction_data_t &ops, \
+                       const symbol_map_t &symbols) const \
     { \
       os << boost::format("(p%2%) %1% r%3%, r%4%") % #name \
           % ops.Pred % ops.OPS.ALUm.Rs1 % ops.OPS.ALUm.Rs2; \
     } \
     virtual dword_t compute(word_t value1, word_t value2) const \
     { \
-      return ((type)value1) * ((type)value2); \
+      return ((type)(stype)value1) * ((type)(stype)value2); \
     } \
   };
 
-  ALUm_INSTR(mul , dword_t)
-  ALUm_INSTR(mulu, udword_t)
+  ALUm_INSTR(mul , dword_t, word_t)
+  ALUm_INSTR(mulu, udword_t, uword_t)
 
   /// Base class for ALUc instructions.
   class i_aluc_t : public i_pred_t
@@ -565,9 +575,10 @@ namespace patmos
   class i_ ## name ## _t : public i_aluc_t \
   { \
   public:\
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const \
+    virtual void print(std::ostream &os, const instruction_data_t &ops, \
+                       const symbol_map_t &symbols) const \
     { \
-      os << boost::format("(p%2%) %1% p%3% = r%4%, %5%") % #name \
+      os << boost::format("(p%2%) %1% p%3% = r%4%, r%5%") % #name \
           % ops.Pred % ops.OPS.ALUc.Pd % ops.OPS.ALUc.Rs1 % ops.OPS.ALUc.Rs2; \
     } \
     virtual bit_t compute(word_t value1, word_t value2) const \
@@ -585,9 +596,10 @@ namespace patmos
   class i_ ## name ## _t : public i_aluc_t \
   { \
   public:\
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const \
+    virtual void print(std::ostream &os, const instruction_data_t &ops, \
+                       const symbol_map_t &symbols) const \
     { \
-      os << boost::format("(p%2%) %1% p%3% = r%4%, %5%") % #name \
+      os << boost::format("(p%2%) %1% p%3% = r%4%, r%5%") % #name \
           % ops.Pred % ops.OPS.ALUc.Pd % ops.OPS.ALUc.Rs1 % ops.OPS.ALUc.Rs2; \
     } \
     virtual bit_t compute(word_t value1, word_t value2) const \
@@ -602,9 +614,14 @@ namespace patmos
   class i_btest_t : public i_aluc_t
   {
   public:
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
     {
-      os << boost::format("(p%1%) btest p%2% = r%3%, %4%")
+      os << boost::format("(p%1%) btest p%2% = r%3%, r%4%")
           % ops.Pred % ops.OPS.ALUc.Pd % ops.OPS.ALUc.Rs1 % ops.OPS.ALUc.Rs2;
     }
 
@@ -659,7 +676,8 @@ namespace patmos
   class i_ ## name ## _t : public i_alup_t \
   { \
   public:\
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const \
+    virtual void print(std::ostream &os, const instruction_data_t &ops, \
+                       const symbol_map_t &symbols) const \
     { \
       os << boost::format("(p%2%) %1% p%3% = p%4%, p%5%") % #name \
           % ops.Pred % ops.OPS.ALUp.Pd % ops.OPS.ALUp.Ps1 % ops.OPS.ALUp.Ps2; \
@@ -682,7 +700,9 @@ namespace patmos
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
     {
       os << boost::format("(p%1%) nop %2%") % ops.Pred % ops.OPS.SPCn.Imm;
     }
@@ -730,7 +750,9 @@ namespace patmos
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
     {
       os << boost::format("(p%1%) waitm") % ops.Pred;
     }
@@ -768,7 +790,9 @@ namespace patmos
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
     {
       os << boost::format("(p%1%) mts s%2% = r%3%")
          % ops.Pred % ops.OPS.SPCt.Sd % ops.OPS.SPCt.Rs1;
@@ -812,7 +836,9 @@ namespace patmos
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
     {
       os << boost::format("(p%1%) mfs r%2% = s%3%")
          % ops.Pred % ops.OPS.SPCf.Rd % ops.OPS.SPCf.Ss;
@@ -951,10 +977,12 @@ namespace patmos
   class i_ ## name ## _t : public i_ldt_t \
   { \
   public:\
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const \
+    virtual void print(std::ostream &os, const instruction_data_t &ops, \
+                       const symbol_map_t &symbols) const \
     { \
       os << boost::format("(p%2%) %1% r%3% = [r%4% + %5%]") % #name \
           % ops.Pred % ops.OPS.LDT.Rd % ops.OPS.LDT.Ra % ops.OPS.LDT.Imm; \
+      symbols.print(os, ops.EX_Address); \
     } \
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
     { \
@@ -963,6 +991,8 @@ namespace patmos
     virtual bool load(simulator_t &s, word_t address, word_t &value) const \
     { \
       atype tmp; \
+      if ((address & (sizeof(atype) - 1)) != 0) \
+        simulation_exception_t::unaligned(address); \
       bool is_available = base.read_fixed(address, tmp); \
       value = (ctype)from_big_endian<big_ ## atype>(tmp); \
       return is_available; \
@@ -1060,7 +1090,8 @@ namespace patmos
   class i_ ## name ## _t : public i_dldt_t \
   { \
   public:\
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const \
+    virtual void print(std::ostream &os, const instruction_data_t &ops, \
+                       const symbol_map_t &symbols) const \
     { \
       os << boost::format("(p%2%) %1% sm = [r%3% + %4%]") % #name \
           % ops.Pred % ops.OPS.LDT.Ra % ops.OPS.LDT.Imm; \
@@ -1078,6 +1109,8 @@ namespace patmos
     virtual bool load(simulator_t &s, word_t address, word_t &value) const \
     { \
       atype tmp; \
+      if ((address & (sizeof(atype) - 1)) != 0) \
+        simulation_exception_t::unaligned(address); \
       bool is_available = base.read_fixed(address, tmp); \
       value = (ctype)from_big_endian<big_ ## atype>(tmp); \
       return is_available; \
@@ -1146,10 +1179,12 @@ namespace patmos
   class i_ ## name ## _t : public i_stt_t \
   { \
   public:\
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const \
+    virtual void print(std::ostream &os, const instruction_data_t &ops, \
+                       const symbol_map_t &symbols) const \
     { \
       os << boost::format("(p%2%) %1% [r%3% + %4%] = r%5%") % #name \
           % ops.Pred % ops.OPS.STT.Ra % ops.OPS.STT.Imm2 % ops.OPS.STT.Rs1; \
+      symbols.print(os, ops.EX_Address); \
     } \
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
     { \
@@ -1159,6 +1194,8 @@ namespace patmos
     virtual bool store(simulator_t &s, word_t address, word_t value) const \
     { \
       type big_value = to_big_endian<big_ ## type>((type)value); \
+      if ((address & (sizeof(type) - 1)) != 0) \
+        simulation_exception_t::unaligned(address); \
       return base.write_fixed(address, big_value); \
     } \
   };
@@ -1184,9 +1221,11 @@ namespace patmos
   class i_ ## name ## _t : public i_pred_t \
   { \
   public:\
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const \
+    virtual void print(std::ostream &os, const instruction_data_t &ops, \
+                       const symbol_map_t &symbols) const \
     { \
       os << boost::format("(p%2%) %1% %3%") % #name % ops.Pred % ops.OPS.STC.Imm; \
+      symbols.print(os, ops.EX_Address); \
     } \
     virtual void DR(simulator_t &s, instruction_data_t &ops) const \
     { \
@@ -1314,12 +1353,15 @@ namespace patmos
   class i_ ## name ## _t : public i_pfl_t \
   { \
   public:\
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const \
+    virtual void print(std::ostream &os, const instruction_data_t &ops, \
+                       const symbol_map_t &symbols) const \
     { \
       os << boost::format("(p%2%) %1% %3%") % #name % ops.Pred % ops.OPS.PFLb.Imm; \
+      symbols.print(os, ops.EX_Address); \
     } \
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
     { \
+      ops.EX_Address = target; \
       store(s, ops.DR_Pred, s.BASE, s.nPC); \
       dispatch(s, ops.DR_Pred, new_base, target); \
     } \
@@ -1354,25 +1396,31 @@ namespace patmos
     // MW inherited from NOP
   };
 
-#define PFLI_INSTR(name, store, dispatch, new_base) \
+#define PFLI_INSTR(name, store, dispatch, new_base, target) \
   class i_ ## name ## _t : public i_pfli_t \
   { \
   public:\
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const \
+    virtual void print(std::ostream &os, const instruction_data_t &ops, \
+                       const symbol_map_t &symbols) const \
     { \
       os << boost::format("(p%2%) %1% r%3%") % #name % ops.Pred % ops.OPS.PFLi.Rs; \
+      symbols.print(os, ops.EX_Address); \
     } \
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
     { \
-      word_t target = read_GPR_EX(s, ops.DR_Rs1); \
+      ops.EX_Address = target; \
       store(s, ops.DR_Pred, s.BASE, s.PC); \
       dispatch(s, ops.DR_Pred, new_base, target); \
     } \
   };
 
-  PFLI_INSTR(bsr, store_return_address, fetch_and_dispatch, target)
-  PFLI_INSTR(bcr, no_store_return_address, dispatch, s.BASE)
-  PFLI_INSTR(br, no_store_return_address, fetch_and_dispatch, s.BASE)
+  PFLI_INSTR(bsr, store_return_address, fetch_and_dispatch,
+             read_GPR_EX(s, ops.DR_Rs1), read_GPR_EX(s, ops.DR_Rs1))
+  PFLI_INSTR(bcr, no_store_return_address, dispatch, s.BASE,
+             s.BASE + read_GPR_EX(s, ops.DR_Rs1))
+  PFLI_INSTR(br, no_store_return_address, fetch_and_dispatch,
+             s.BASE + read_GPR_EX(s, ops.DR_Rs1),
+             s.BASE + read_GPR_EX(s, ops.DR_Rs1))
 
   /// An instruction for returning from function calls.
   class i_ret_t : public i_pfl_t
@@ -1381,7 +1429,9 @@ namespace patmos
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
     {
       os << boost::format("(p%1%) ret") % ops.Pred;
     }
@@ -1435,7 +1485,9 @@ namespace patmos
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
-    virtual void print(std::ostream &os, const instruction_data_t &ops) const
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
     {
       os << boost::format("bne %1% != %2%, %3%") % ops.OPS.BNE.Rs1
          % ops.OPS.BNE.Rs2 % ops.OPS.BNE.Imm;

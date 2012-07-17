@@ -21,6 +21,7 @@
 #include "decoder.h"
 #include "instruction.h"
 #include "streams.h"
+#include "symbol.h"
 
 #include <boost/format.hpp>
 
@@ -42,6 +43,7 @@ int main(int argc, char **argv)
   unsigned int num_errors = 0;
 
   patmos::decoder_t padasm;
+  patmos::symbol_map_t symbols;
   patmos::word_t bundle[2];
   patmos::instruction_data_t id[2];
 
@@ -91,16 +93,16 @@ int main(int argc, char **argv)
         fetch_full = false;
         break;
       case 1:
-        id[0].print(out);
+        id[0].print(out, symbols);
         out << ";\n";
 
         offset++;
         fetch_full = false;
         break;
       case 2:
-        id[0].print(out);
+        id[0].print(out, symbols);
         out << " || ";
-        id[1].print(out);
+        id[1].print(out, symbols);
         out << ";\n";
 
         offset += 2;
