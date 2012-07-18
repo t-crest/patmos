@@ -22,7 +22,7 @@
 
 #include <istream>
 #include <ostream>
-#include <iostream>
+#include <cstdio>
 
 namespace patmos
 {
@@ -51,6 +51,9 @@ namespace patmos
     /// Stream to store data that is written to the UART.
     std::ostream &Out_stream;
 
+    /// bit position of the parity-error bit (PAE).
+    static const uword_t PAE = 2;
+
     /// bit position of the data-available bit (DAV).
     static const uword_t DAV = 1;
 
@@ -65,8 +68,13 @@ namespace patmos
     {
       // always accept data for transmission (TRE = 1), but data is only 
       // available when there is something in the stream (DAV=0 or 1).
-      *value = (1 << TRE) |
-               (In_stream.rdbuf()->in_avail() ? (1 << DAV) : 0);
+      // when the input stream reaches the end-of-file (EOF), signal a parity
+      // error, i.e., PAE = 1.
+      *value = (1 << TRE);
+      if (In_stream.rdbuf()->in_avail())
+         *value |= (1 << DAV);
+      else if (In_stream.eof() || (In_stream.peek() == EOF))
+         *value |= (1 << PAE);
 
       return true;
     }
