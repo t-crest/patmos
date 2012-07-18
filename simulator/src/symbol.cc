@@ -28,7 +28,10 @@ namespace patmos
 {
   static bool operator <(const symbol_info_t &a, const symbol_info_t &b)
   {
-    return a.Address < b.Address;
+    if (a.Address == b.Address)
+      return a.Size < b.Size;
+    else
+      return a.Address < b.Address;
   }
 
   void symbol_map_t::sort()
@@ -68,7 +71,7 @@ namespace patmos
       if (i->Address <= address && address < i->Address + i->Size &&
           i->Size != 0)
       {
-        assert(!enclosing);
+        assert(!enclosing || enclosing->Size == 0);
         enclosing = &*i;
       }
       else if (enclosing && i->Address <= address && i->Size == 0)
