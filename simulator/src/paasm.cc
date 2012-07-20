@@ -44,57 +44,65 @@ int main(int argc, char **argv)
   }
 
   // open streams
-  std::istream &in = patmos::get_stream<std::ifstream>(argv[1], std::cin);
-  std::ostream &out = patmos::get_stream<std::ofstream>(argv[2], std::cout);
-
-  std::ostream_iterator<char> cout_iterator (out);
-
-  while (!in.eof())
+  try
   {
-    patmos::dword_t iw;
+    std::istream &in = *patmos::get_stream<std::ifstream>(argv[1], std::cin);
+    std::ostream &out = *patmos::get_stream<std::ofstream>(argv[2], std::cout);
 
-    std::getline(in, line);
-    num_lines++;
+    std::ostream_iterator<char> cout_iterator (out);
 
-    // skip comments and empty lines
-    if (line.empty() || *line.begin() == '#')
+    while (!in.eof())
     {
-      continue;
-    }
+      patmos::dword_t iw;
 
-    // parse the assembly line
-    if (!paasm.parse_line(line, iw))
-    {
-      std::cerr << boost::format("Invalid Patmos assembly line:\n%1%: '%2%'\n")
-                % num_lines % line;
+      std::getline(in, line);
+      num_lines++;
 
-      num_errors++;
-    }
-    else
-    {
-      // emit binary code
-      if ((iw & 0xffffffff00000000) == 0)
+      // skip comments and empty lines
+      if (line.empty() || *line.begin() == '#')
       {
-        boost::spirit::karma::generate(cout_iterator,
-                                  boost::spirit::big_dword((patmos::word_t)iw));
-        code_size += sizeof(patmos::word_t);
+        continue;
+      }
+
+      // parse the assembly line
+      if (!paasm.parse_line(line, iw))
+      {
+        std::cerr << boost::format("Invalid Patmos assembly line:\n%1%: '%2%'\n")
+                  % num_lines % line;
+
+        num_errors++;
       }
       else
       {
-        boost::spirit::karma::generate(cout_iterator,
-                                       boost::spirit::big_qword(iw));
-        code_size += sizeof(patmos::dword_t);
+        // emit binary code
+        if ((iw & 0xffffffff00000000) == 0)
+        {
+          boost::spirit::karma::generate(cout_iterator,
+                                    boost::spirit::big_dword((patmos::word_t)iw));
+          code_size += sizeof(patmos::word_t);
+        }
+        else
+        {
+          boost::spirit::karma::generate(cout_iterator,
+                                        boost::spirit::big_qword(iw));
+          code_size += sizeof(patmos::dword_t);
+        }
       }
     }
+
+    // some status messages
+    std::cerr << boost::format("Emitted: %1% words\nErrors : %2%\n")
+              % code_size % num_errors;
+
+    // free streams
+    patmos::free_stream(&in, std::cin);
+    patmos::free_stream(&out, std::cout);
   }
-
-  // some status messages
-  std::cerr << boost::format("Emitted: %1% words\nErrors : %2%\n")
-            % code_size % num_errors;
-
-  // free streams
-  patmos::free_stream(in, std::cin);
-  patmos::free_stream(out, std::cout);
+  catch(std::ios_base::failure f)
+  {
+    std::cerr << f.what() << "\n";
+    return -1;
+  }
 
   return 0;
 }

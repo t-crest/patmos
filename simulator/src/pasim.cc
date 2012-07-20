@@ -74,7 +74,7 @@ static patmos::uword_t readelf(std::istream &is, patmos::memory_t &m,
 {
   std::vector<char> elfbuf;
   elfbuf.reserve(1 << 20);
-// read the whole stream.
+  // read the whole stream.
   while (!is.eof())
   {
     char buf[128];
@@ -406,65 +406,94 @@ int main(int argc, char **argv)
   bool debug_enabled = vm.count("debug");
   unsigned int max_cycle = vm["maxc"].as<unsigned int>();
 
-  // open streams
-  std::istream &in = patmos::get_stream<std::ifstream>(binary, std::cin);
-  std::ostream &out = patmos::get_stream<std::ofstream>(output, std::cout);
+  // the exit code, initialized by default to signal an error.
+  int exit_code = -1;
 
-  std::istream &uin = patmos::get_stream<std::ifstream>(uart_in, std::cin);
-  std::ostream &uout = patmos::get_stream<std::ofstream>(uart_out, std::cout);
+  // input/output streams
+  std::istream *in = NULL;
+  std::istream *uin = NULL;
+
+  std::ostream *out = NULL;
+  std::ostream *uout = NULL;
 
   // setup simulation framework
   patmos::memory_t &gm = create_global_memory(gtime, gsize);
   patmos::stack_cache_t &sc = create_stack_cache(sck, scsize, gm);
   patmos::method_cache_t &mc = create_method_cache(mck, mcsize, gm);
   patmos::data_cache_t &dc = create_data_cache(dcsize, gm);
-  patmos::ideal_memory_t lm(lsize);
-  patmos::uart_t uart(lm, ustatus, udata, uin, uout);
-  patmos::symbol_map_t sym;
 
-  patmos::simulator_t s(gm, uart, dc, mc, sc, sym);
-
-  // load input program
-  patmos::uword_t entry = 0;
-  if (is_elf(in))
-    entry = readelf(in, gm, gsize, sym);
-  else
-    readbin(in, gm, gsize);
-
-  // start execution
   try
   {
-    s.run(entry, debug_enabled, max_cycle);
-    s.print(out);
-  }
-  catch (patmos::simulation_exception_t e)
-  {
-    switch(e.get_kind())
+    // open streams
+    in = patmos::get_stream<std::ifstream>(binary, std::cin);
+    out = patmos::get_stream<std::ofstream>(output, std::cout);
+
+    uin = patmos::get_stream<std::ifstream>(uart_in, std::cin);
+    uout = patmos::get_stream<std::ofstream>(uart_out, std::cout);
+
+    // check if the uart input stream is a tty.
+    bool uin_istty = (uin == &std::cin) && isatty(STDIN_FILENO);
+
+    assert(in && out && uin && uout);
+
+    // finalize simulation framework
+    patmos::ideal_memory_t lm(lsize);
+    patmos::uart_t uart(lm, ustatus, udata, *uin, uin_istty, *uout);
+    patmos::symbol_map_t sym;
+
+    patmos::simulator_t s(gm, uart, dc, mc, sc, sym);
+
+    // load input program
+    patmos::uword_t entry = 0;
+    if (is_elf(*in))
+      entry = readelf(*in, gm, gsize, sym);
+    else
+      readbin(*in, gm, gsize);
+
+    // start execution
+    try
     {
-      case patmos::simulation_exception_t::CODE_EXCEEDED:
-        std::cerr << boost::format("Method cache size exceeded: %1$08x\n")
-                  % e.get_info();
-        break;
-      case patmos::simulation_exception_t::STACK_EXCEEDED:
-        std::cerr << boost::format("Stack size exceeded: %1$08x\n") % s.PC;
-        break;
-      case patmos::simulation_exception_t::UNMAPPED:
-        std::cerr << boost::format("Unmapped memory access: %1$08x: %2$08x\n")
-                  % s.PC % e.get_info();
-        break;
-      case patmos::simulation_exception_t::ILLEGAL:
-        std::cerr << boost::format("Illegal instruction: %1$08x: %2$08x\n")
-                  % s.PC % e.get_info();
-        break;
-      case patmos::simulation_exception_t::UNALIGNED:
-        std::cerr << boost::format("Unaligned memory access: %1$08x: %2$08x\n")
-                  % s.PC % e.get_info();
-        break;
-      case patmos::simulation_exception_t::HALT:
-        break;
-      default:
-        std::cerr << "Unknown simulation error.\n";
+      s.run(entry, debug_enabled, max_cycle);
+      s.print(*out);
     }
+    catch (patmos::simulation_exception_t e)
+    {
+      switch(e.get_kind())
+      {
+        case patmos::simulation_exception_t::CODE_EXCEEDED:
+          std::cerr << boost::format("Method cache size exceeded: %1$08x: "
+                                    "%2$08x\n")
+                    % e.get_pc() % e.get_info();
+          break;
+        case patmos::simulation_exception_t::STACK_EXCEEDED:
+          std::cerr << boost::format("Stack size exceeded: %1$08x\n")
+                    % e.get_pc();
+          break;
+        case patmos::simulation_exception_t::UNMAPPED:
+          std::cerr << boost::format("Unmapped memory access: %1$08x: %2$08x\n")
+                    % e.get_pc() % e.get_info();
+          break;
+        case patmos::simulation_exception_t::ILLEGAL:
+          std::cerr << boost::format("Illegal instruction: %1$08x: %2$08x\n")
+                    % e.get_pc() % e.get_info();
+          break;
+        case patmos::simulation_exception_t::UNALIGNED:
+          std::cerr << boost::format("Unaligned memory access: %1$08x: %2$08x\n")
+                    % e.get_pc() % e.get_info();
+          break;
+        case patmos::simulation_exception_t::HALT:
+          // get the exit code
+          exit_code = e.get_info();
+          s.print(*out);
+          break;
+        default:
+          std::cerr << "Unknown simulation error.\n";
+      }
+    }
+  }
+  catch(std::ios_base::failure f)
+  {
+    std::cerr << f.what() << "\n";
   }
 
   // free memory/cache instances
@@ -481,5 +510,5 @@ int main(int argc, char **argv)
   patmos::free_stream(uin, std::cin);
   patmos::free_stream(uout, std::cout);
 
-  return 0;
+  return exit_code;
 }

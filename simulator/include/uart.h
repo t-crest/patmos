@@ -48,6 +48,11 @@ namespace patmos
     /// Stream providing the data read from the UART.
     std::istream &In_stream;
 
+    /// Flag indicating whether the input stream is a tty.
+    /// When true, this disables the signaling of EOF when the stream's buffer 
+    /// becomes empty.
+    bool IsTTY;
+
     /// Stream to store data that is written to the UART.
     std::ostream &Out_stream;
 
@@ -72,9 +77,9 @@ namespace patmos
       // error, i.e., PAE = 1.
       *value = (1 << TRE);
       if (In_stream.rdbuf()->in_avail())
-         *value |= (1 << DAV);
-      else if (In_stream.eof() || (In_stream.peek() == EOF))
-         *value |= (1 << PAE);
+        *value |= (1 << DAV);
+      else if (In_stream.eof() || !IsTTY)
+        *value |= (1 << PAE);
 
       return true;
     }
@@ -108,11 +113,13 @@ namespace patmos
     /// @param data_address The address through which data can be exchanged with
     /// the UART.
     /// @param in_stream Stream providing data read from the UART.
+    /// @param istty Flag indicating whether the input stream is a TTY.
     /// @param out_stream Stream storing data written to the UART.
     uart_t(memory_t &memory, uword_t status_address, uword_t data_address,
-           std::istream &in_stream, std::ostream &out_stream) :
+           std::istream &in_stream, bool istty, std::ostream &out_stream) :
         Memory(memory), Status_address(status_address),
-        Data_address(data_address), In_stream(in_stream), Out_stream(out_stream)
+        Data_address(data_address), In_stream(in_stream), IsTTY(istty),
+        Out_stream(out_stream)
     {
       // Ensure that we can check the rd buffer of the streams
       assert(In_stream.rdbuf() && Out_stream.rdbuf() &&

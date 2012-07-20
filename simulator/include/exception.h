@@ -26,10 +26,14 @@
 
 namespace patmos
 {
+  // forward declarations
+  class simulator_t;
+
   /// Signal exceptions during simulation, i.e., an illegal instruction, et
   /// cetera. An exception usually causes the simulation to abort.
   class simulation_exception_t
   {
+    friend class simulator_t;
   public:
     /// Kinds of simulation exceptions.
     enum kind_t
@@ -61,12 +65,15 @@ namespace patmos
     /// unmapped memory access, et cetera.
     uword_t Info;
 
+    /// The value of the program counter when the exception was raised.
+    uword_t PC;
+
     /// Construction a simulation exception.
     /// @param kind The kind of the simulation exception.
     /// @param info Additional information on the simulation exception, e.g.,
     /// the address of an unmapped memory access, et cetera.
-    simulation_exception_t(kind_t kind, word_t info = 0) :
-        Kind(kind), Info(info)
+    simulation_exception_t(kind_t kind, uword_t info = 0, uword_t pc = 0) :
+        Kind(kind), Info(info), PC(pc)
     {
     }
   public:
@@ -81,14 +88,23 @@ namespace patmos
     /// @return The kind additional information on the simulation exception.
     uword_t get_info() const
     {
-      assert(Kind != HALT && Kind != STACK_EXCEEDED);
       return Info;
     }
 
-    /// Throw a halt simulation exception.
-    static void halt()
+    /// Return the value of the program counter when the exception was raised.
+    /// @return The value of the program counter (PC) when the exception was 
+    /// raised.
+    uword_t get_pc() const
     {
-      throw simulation_exception_t(HALT);
+      return PC;
+    }
+
+    /// Throw a halt simulation exception.
+    /// @param exit_code The exit code signaled by the simulated program, i.e.,
+    /// the value of register r1 before terminating.
+    static void halt(int exit_code)
+    {
+      throw simulation_exception_t(HALT, exit_code);
     }
 
     /// Throw an illegal instruction simulation exception.

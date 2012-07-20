@@ -55,74 +55,82 @@ int main(int argc, char **argv)
   }
 
   // open streams
-  std::istream &in = patmos::get_stream<std::ifstream>(argv[1], std::cin);
-  std::ostream &out = patmos::get_stream<std::ofstream>(argv[2], std::cout);
-
-  while (!in.eof())
+  try
   {
-    // read next bundle
-    if(fetch_full)
+    std::istream &in = *patmos::get_stream<std::ifstream>(argv[1], std::cin);
+    std::ostream &out = *patmos::get_stream<std::ofstream>(argv[2], std::cout);
+
+    while (!in.eof())
     {
-      get_word(in, bundle[0]);
-      if (in.eof())
+      // read next bundle
+      if(fetch_full)
       {
-        bundle[1] = 0;
+        get_word(in, bundle[0]);
+        if (in.eof())
+        {
+          bundle[1] = 0;
+        }
+        else
+        {
+          get_word(in, bundle[1]);
+        }
       }
       else
       {
+        bundle[0] = bundle[1];
         get_word(in, bundle[1]);
       }
+
+      // decode bundle
+      switch (padasm.decode(bundle, id))
+      {
+        case 0:
+          std::cerr << boost::format("Unknown instruction in bundle: "
+                                    "0x%1$08x: 0x%2$08x\n")
+                    % (offset * 4) % bundle[0];
+
+          num_errors++;
+
+          offset++;
+          fetch_full = false;
+          break;
+        case 1:
+          id[0].print(out, symbols);
+          out << ";\n";
+
+          offset++;
+          fetch_full = false;
+          break;
+        case 2:
+          id[0].print(out, symbols);
+          out << " || ";
+          id[1].print(out, symbols);
+          out << ";\n";
+
+          offset += 2;
+          fetch_full = true;
+          break;
+
+        default:
+          // we should never get here
+          assert(false);
+          abort();
+      }
     }
-    else
-    {
-      bundle[0] = bundle[1];
-      get_word(in, bundle[1]);
-    }
 
-    // decode bundle
-    switch (padasm.decode(bundle, id))
-    {
-      case 0:
-        std::cerr << boost::format("Unknown instruction in bundle: "
-                                   "0x%1$08x: 0x%2$08x\n")
-                  % (offset * 4) % bundle[0];
+    // some status messages
+    std::cerr << boost::format("Disassembled: %1% words\nErrors : %2%\n")
+              % offset % num_errors;
 
-        num_errors++;
-
-        offset++;
-        fetch_full = false;
-        break;
-      case 1:
-        id[0].print(out, symbols);
-        out << ";\n";
-
-        offset++;
-        fetch_full = false;
-        break;
-      case 2:
-        id[0].print(out, symbols);
-        out << " || ";
-        id[1].print(out, symbols);
-        out << ";\n";
-
-        offset += 2;
-        fetch_full = true;
-        break;
-
-      default:
-        // we should never get here
-        assert(false);
-        abort();
-    }
+    // free streams
+    patmos::free_stream(&in, std::cin);
+    patmos::free_stream(&out, std::cout);
   }
-
-  // some status messages
-  std::cerr << boost::format("Disassembled: %1% words\nErrors : %2%\n")
-            % offset % num_errors;
-
-  // free streams
-  patmos::free_stream(in, std::cin);
-  patmos::free_stream(out, std::cout);
+  catch(std::ios_base::failure f)
+  {
+    std::cerr << f.what() << "\n";
+    return -1;
+  }
 
   return 0;
 }

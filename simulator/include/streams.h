@@ -20,6 +20,8 @@
 #ifndef PATMOS_STREAMS_H
 #define PATMOS_STREAMS_H
 
+#include <ios>
+
 namespace patmos
 {
   /// Open a file stream, or use the given default.
@@ -28,12 +30,22 @@ namespace patmos
   /// @return A reference to a newly created file stream, or, if str equals "-",
   /// a reference to the default stream.
   template<typename T, typename D>
-  D &get_stream(const std::string &str, D &default_stream)
+  D *get_stream(const std::string &str, D &default_stream)
   {
     if (str == "-")
-      return default_stream;
+      return &default_stream;
     else
-      return *new T(str.c_str());
+    {
+      T *result = new T(str.c_str());
+
+      if (!result->good())
+      {
+        delete result;
+        throw std::ios_base::failure("Failed to open file: " + str);
+      }
+
+      return result;
+    }
   }
 
   /// Free a stream, e.g., previously opened using get_stream, unless it refers
@@ -42,10 +54,10 @@ namespace patmos
   /// \param stream The stream to close.
   /// \param default_stream The default stream.
   template<typename T, typename D>
-  void free_stream(T &stream, D &default_stream)
+  void free_stream(T *stream, D &default_stream)
   {
-    if (&stream != &default_stream)
-      delete &stream;
+    if (stream && stream != &default_stream)
+      delete stream;
   }
 }
 

@@ -190,19 +190,8 @@ namespace patmos
     }
     catch (simulation_exception_t e)
     {
-      switch (e.get_kind())
-      {
-        case simulation_exception_t::ILLEGAL:
-        case simulation_exception_t::UNMAPPED:
-        case simulation_exception_t::STACK_EXCEEDED:
-        case simulation_exception_t::CODE_EXCEEDED:
-        case simulation_exception_t::UNALIGNED:
-          // pass on to caller
-          throw e;
-        case simulation_exception_t::HALT:
-          // simply return
-          return;
-      }
+      // pass on to caller
+      throw simulation_exception_t(e.get_kind(), e.get_info(), PC);
     }
   }
 
