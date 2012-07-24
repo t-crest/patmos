@@ -10,7 +10,7 @@ package patmos_type_package is
   type pc_type is (PCNext, PCBranch);
   type ALU_inst_type is (NONE, ALUr, ALUu, ALUm, ALUc, ALUp);
   type STT_inst_type is (NONE, SWS, SWL, SWC, SWM, SHS, SHL, SHC, SHM, SBS, SBL, SBC, SBM); -- all stores
-  type LDT_inst_type is (NONE, LWS, LHS, LBS, LHUS, LBUS); -- these are just stack cache loads
+  type LDT_inst_type is (NONE, LWM, LWS, LHS, LBS, LHUS, LBUS); -- these are just stack cache loads
   type SPC_type is (NONE, SPCn, SPCw, SPCt, SPCf);
   signal predicate_register_bank : unsigned(7 downto 0);
   type forwarding_type is (FWNOP, FWMEM, FWALU);
@@ -38,38 +38,47 @@ end record;
 --------------------------------------------
 type decode_in_type is record
     operation                          : unsigned (31 downto 0);
-		rs1_data_in                        : unsigned (31 downto 0);
+	rs1_data_in                        : unsigned (31 downto 0);
     rs2_data_in                        : unsigned (31 downto 0);
     rs1_in                             : unsigned (4 downto 0);
     rs2_in                             : unsigned (4 downto 0);
  --   reg_write_in                       : std_logic;
     alu_src_in                         : std_logic;  
     rs1_data_in_special				   : unsigned(31 downto 0);   
-    rs2_data_in_special				   : unsigned(31 downto 0);  
+    rs2_data_in_special				   : unsigned(31 downto 0);
+    predicate_bit_in					: std_logic;
+  	predicate_data_in					: unsigned (7 downto 0);  
     head_in							   : unsigned(4 downto 0);
     tail_in							   : unsigned(4 downto 0);     
     stack_data_in   					: unsigned (31 downto 0);
 end record;
 type decode_out_type is record
-		predicate_bit_out                   : std_logic;
+	predicate_bit_out                   : std_logic;
+	predicate_data_out					: unsigned (7 downto 0);  
+	predicate_condition					: unsigned(2 downto 0);
+	ps1_out 							:unsigned(3 downto 0);
+    ps2_out 							:unsigned(3 downto 0);
+ --   pd_out 								:unsigned(3 downto 0);
     inst_type_out                       : instruction_type;
     ALU_function_type_out               : unsigned(3 downto 0);
     ALU_instruction_type_out            : ALU_inst_type;
     ALUi_immediate_out                  : unsigned(31 downto 0);
     pc_ctrl_gen_out                     : pc_type;
-    wb_we_out                           : std_logic;
+  --  wb_we_out                           : std_logic;
     rs1_out                             : unsigned (4 downto 0);
     rs2_out                             : unsigned (4 downto 0);
     rd_out                              : unsigned (4 downto 0);
     rs1_data_out                        : unsigned (31 downto 0);
     rs2_data_out                        : unsigned (31 downto 0);
-    pd_out                              : unsigned (2 downto 0);
+    pd_out                              : unsigned (3 downto 0);
     sd_out                              : unsigned (3 downto 0);
     ss_out                              : unsigned (3 downto 0);
     ld_type_out                         : load_type;
  --   load_immediate_out                  : unsigned(6 downto 0);
     ld_function_type_out                : unsigned(1 downto 0);
+    ps_reg_write_out					: std_logic;
     reg_write_out                       : std_logic;
+    predicate_reg_write_out				: std_logic;
     alu_src_out                         : std_logic; -- 0 for ALUi/ 1 for ALU
     mem_to_reg_out                      : std_logic; -- data to register file comes from alu or mem? 0 for alu and 1 for mem
     mem_read_out                        : std_logic;
@@ -93,32 +102,45 @@ end record;
 -------------------------------------------
 type execution_in_type is record
     reg_write_in                        : std_logic;
+    ps_reg_write_in                     : std_logic;
+    predicate_reg_write_in              : std_logic;
+    predicate_condition				    : unsigned(2 downto 0);
     mem_read_in                         : std_logic;
     mem_write_in                        : std_logic;
     mem_to_reg_in                       : std_logic;
     alu_result_in                       : unsigned(31 downto 0);
+    alu_result_predicate_in				: std_logic;
     mem_write_data_in       	 	    : unsigned(31 downto 0);
     write_back_reg_in                   : unsigned(4 downto 0);
+    ps_write_back_reg_in		        : unsigned(2 downto 0);
     tail_in								: unsigned(4 downto 0);
     head_in								: unsigned(4 downto 0);
     st_in								: unsigned(31 downto 0);
     STT_instruction_type_in				: STT_inst_type;
     LDT_instruction_type_in				: LDT_inst_type;
+    predicate_bit_in                    : std_logic;
+	predicate_data_in					: unsigned(7 downto 0); 
 end record;
 
 type execution_out_type is record
     reg_write_out                     	 : std_logic;
+    ps_reg_write_out                     : std_logic;
+    predicate_reg_write_out              : std_logic;
     mem_read_out                        : std_logic;
     mem_write_out                       : std_logic;
     mem_to_reg_out                      : std_logic;
     alu_result_out                      : unsigned(31 downto 0);
+    alu_result_predicate_out			: std_logic;
     mem_write_data_out          	    : unsigned(31 downto 0);
     write_back_reg_out                  : unsigned(4 downto 0);
+    ps_write_back_reg_out		        : unsigned(2 downto 0);
     tail_out							: unsigned(4 downto 0);
     head_out							: unsigned(4 downto 0);
     st_out								: unsigned(31 downto 0);
     STT_instruction_type_out			: STT_inst_type;
     LDT_instruction_type_out			: LDT_inst_type;
+    predicate_bit_out                   : std_logic;
+	predicate_data_out					: unsigned(7 downto 0);
 end record;
 
 ------------------------------------------
@@ -127,6 +149,10 @@ end record;
 type alu_in_type is record
    rs1                         : unsigned(31 downto 0);
    rs2                         : unsigned(31 downto 0);
+   ps1						   : std_logic;
+   ps2						   : std_logic;
+   ps1_negate					: std_logic;
+   ps2_negate				   : std_logic;
    inst_type                   : instruction_type; 
    ALU_function_type           : unsigned(3 downto 0);
    ALU_instruction_type        : ALU_inst_type;
@@ -142,6 +168,7 @@ end record;
 
 type alu_out_type is record
   rd                          : unsigned(31 downto 0);
+  pd						  : std_logic;
  -- head_out 		     			: unsigned(4 downto 0);
  -- tail_out					 : unsigned(4 downto 0);
   spill_out					: std_logic;
@@ -154,19 +181,27 @@ end record;
 ------------------------------------------
 type mem_in_type is record
     reg_write_in                 : std_logic;
+    ps_reg_write_in             : std_logic;
+    predicate_reg_write_in       : std_logic;
     mem_to_reg_in                : std_logic;
     mem_data_in                  : unsigned(31 downto 0); 
     alu_result_in                : unsigned(31 downto 0);
+    alu_result_predicate_in		 : std_logic;
     write_back_reg_in            : unsigned(4 downto 0); 
+    ps_write_back_reg_in		  : unsigned(2 downto 0);
     mem_write_data_in            : unsigned(31 downto 0);
 end record;
 
 type mem_out_type is record
     reg_write_out                 : std_logic;
+    ps_reg_write_out                 : std_logic;
+    predicate_reg_write_out       : std_logic;
     mem_to_reg_out                : std_logic;
     mem_data_out                  : unsigned(31 downto 0); 
     alu_result_out                : unsigned(31 downto 0);
+    alu_result_predicate_out	  : std_logic;
     write_back_reg_out            : unsigned(4 downto 0); 
+    ps_write_back_reg_out		  : unsigned(2 downto 0);
     mem_write_data_out            : unsigned(31 downto 0);
 end record;
      
@@ -198,9 +233,25 @@ type patmos_stack_cache_out is record
 	dout_to_cpu					: unsigned(31 downto 0);
 end record;
 
+type instruction_memory_in_type is record
+    address               : unsigned(31 downto 0);
+    inst_in               : unsigned(31 downto 0); -- from boot loader
+    read_enable           : std_logic;
+    write_enable          : std_logic;
+end record;
+
+type instruction_memory_out_type is record
+	inst_out              : unsigned(31 downto 0); -- to fetch
+end record;
+
+type instruction_rom_in_type is record
+	address 			  :  unsigned(7 downto 0);
+end record;
+
+type instruction_rom_out_type is record
+	q 					  :  unsigned(31 downto 0);
+end record;
 
 end patmos_type_package;
-
-
 
 
