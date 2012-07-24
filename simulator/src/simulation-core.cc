@@ -101,7 +101,7 @@ namespace patmos
     Stall = std::max(Stall, pst);
   }
 
-  void simulator_t::run(word_t entry, bool debug, uint64_t max_cycles)
+  void simulator_t::run(word_t entry, uint64_t debug_cycle, uint64_t max_cycles)
   {
     // do some initializations before executing the first instruction.
     if (Cycle == 0)
@@ -114,6 +114,8 @@ namespace patmos
     {
       for(uint64_t cycle = 0; cycle < max_cycles; cycle++, Cycle++)
       {
+        bool debug = (Cycle >= debug_cycle);
+
         // simulate decoupled load
         Decoupled_load.dMW(*this);
 

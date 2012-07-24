@@ -180,9 +180,10 @@ namespace patmos
     /// Run the simulator.
     /// @param entry Initialize the method cache, PC, etc. to start execution
     /// from this entry address.
-    /// @param debug Flag indicating whether debug output should be printed.
+    /// @param debug_cycle Print debug trace starting at the given cycle.
     /// @param max_cycles The maximum number of cycles to run the simulation.
-    void run(word_t entry = 0, bool debug = false,
+    void run(word_t entry = 0,
+             uint64_t debug_cycle = std::numeric_limits<uint64_t>::max(),
              uint64_t max_cycles = std::numeric_limits<uint64_t>::max());
 
     /// Print the internal state of the simulator to an output stream.
