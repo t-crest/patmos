@@ -46,13 +46,13 @@ set_global_assignment -name VHDL_FILE ../../vhdl/core/uart_blink.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/sc_uart.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/sc_ssram32.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/sc_pack.vhd
+set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_rom.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_types.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_type_package.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_stack_cache_ctrl.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_stack_cache.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_special_register_file.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_register_file.vhd
-set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_predicate_registers.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_pc_generator.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_mux_32.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_mux_3x32.vhd
@@ -66,7 +66,6 @@ set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_dual_port_ram.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_decode.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_data_memory.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_core.vhd
-set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_clock_input.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_alu.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_adder.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/fifo.vhd
