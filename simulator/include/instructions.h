@@ -818,10 +818,18 @@ namespace patmos
     {
       if (ops.DR_Pred)
       {
-        word_t result = read_GPR_EX(s, ops.DR_Rs1);
+        uword_t result = read_GPR_EX(s, ops.DR_Rs1);
 
         // store the result by writing it into the special purpose register file
-        s.SPR.set(ops.OPS.SPCt.Sd, result);
+        // or resetting the predicate registers
+        if (ops.OPS.SPCt.Sd == 0)
+        {
+          // p0 is always 1, so skip it
+          for(unsigned int i = 1; i < NUM_PRR; i++)
+            s.PRR.set((PRR_e)i, ((result >> i) & 1) == 1);
+        }
+        else
+          s.SPR.set(ops.OPS.SPCt.Sd, result);
       }
     }
 
@@ -853,7 +861,15 @@ namespace patmos
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
-      ops.DR_Ss = s.SPR.get(ops.OPS.SPCf.Ss).get();
+      // read a value from the special register file or all predicate registers
+      if (ops.OPS.SPCf.Ss == 0)
+      {
+        ops.DR_Ss = 0;
+        for(unsigned int i = 0; i < NUM_PRR; i++)
+          ops.DR_Ss |= (s.PRR.get((PRR_e)i).get() << i);
+      }
+      else
+        ops.DR_Ss = s.SPR.get(ops.OPS.SPCf.Ss).get();
     }
 
     /// Pipeline function to simulate the behavior of the instruction in

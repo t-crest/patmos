@@ -86,6 +86,9 @@ Errors : 0")
 test_asm(28 "Emitted: 60 words
 Errors : 0")
 
+test_asm(29 "Emitted: 20 words
+Errors : 0")
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # SIMULATOR TESTS
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -178,4 +181,7 @@ test_sim(27 "Unaligned")
 
 test_sim(28 "BASE: 00000000   PC : 00000040.*
 .*r1 : 00000026")
+
+test_sim(29 "PRR: 00000001.*
+.*r1 : 00000009")
 
