@@ -93,7 +93,7 @@ signal clk_int			: std_logic;
 -- MS: maybe some signal sorting would be nice
 	-- for generation of internal reset
 	signal int_res			: std_logic;
-	signal res_cnt			: unsigned(2 downto 0) := "000";	-- for the simulation
+	signal res_cnt			: unsigned(1 downto 0) := "00";	-- for the simulation
 
 	attribute altera_attribute : string;
 	attribute altera_attribute of res_cnt : signal is "POWER_UP_LEVEL=LOW";
@@ -177,18 +177,22 @@ begin -- architecture begin
 --	internal reset generation
 --	should include the PLL lock signal
 --
-process(clk_int)
+-- clk_int shall be generated from a PLL
+--
+process(clk)
 begin
-	if rising_edge(clk_int) then
-		if (res_cnt/="111") then
+	if rising_edge(clk) then
+		if (res_cnt/="11") then
 			res_cnt <= res_cnt+1;
 		end if;
-		int_res <= not res_cnt(0) or not res_cnt(1) or not res_cnt(2);
+		int_res <= not res_cnt(0) or not res_cnt(1);
 	end if;
 end process;
 
- rst <= not out_rst;
---rst <= int_res;
+-- MS: do we want en external reset?
+-- If yes, it has to be synchronized
+-- rst <= not out_rst;
+ rst <= int_res;
  led <= '1';
 ------------------------------------------------------- fetch	
 		  
