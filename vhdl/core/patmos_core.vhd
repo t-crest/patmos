@@ -75,7 +75,6 @@ signal mem_data_out3					: unsigned(31 downto 0);
 signal head_in						   : unsigned(4 downto 0);
 signal tail_in						   : unsigned(4 downto 0);
 signal spill, fill					   : std_logic; 
-signal instruction_rom : std_logic_vector(31 downto 0);
 signal instruction_mem_din			   : instruction_memory_in_type;
 signal instruction_mem_dout			   : instruction_memory_out_type;
 signal instruction_rom_out			   : unsigned(31 downto 0);
@@ -215,10 +214,6 @@ end process;
   pc_gen: entity work.patmos_pc_generator(arch)
   port map(clk, rst, mux_branch, pc);
 
-  --fetch_din.instruction <= unsigned(instruction_rom);
-  inst_rom: entity work.patmos_rom(rtl)
-  port map(std_logic_vector(pc(7 downto 0)), instruction_rom
-  );
   
    instruction_mem_address: process(execute_dout.alu_result_out, pc, instruction_rom_out, instruction_mem_dout.inst_out) --read/write enable here
   begin
@@ -226,7 +221,6 @@ end process;
   		if (execute_dout.mem_write_out = '1') then
   			instruction_mem_din.address <= execute_dout.alu_result_out - 512;
   		end if;
-  		fetch_din.instruction <= unsigned(instruction_rom);
   	end if;
   	if (pc >= 70) then
   		--instruction_mem_din.address <= pc - 70 + 7;

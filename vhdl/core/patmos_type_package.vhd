@@ -25,11 +25,11 @@ constant        instruction_word_length     : integer := 32;
 -- fetch/decode
 -------------------------------------------
 type fetch_in_type is record
-    instruction                   :  unsigned(instruction_word_length - 1 downto 0); 
     pc                            :  unsigned(pc_length - 1 downto 0);
 end record;
 type fetch_out_type is record
 		pc                            :  unsigned(pc_length - 1 downto 0);
+		-- TODO: why is this unsigned?
 		instruction                   :  unsigned(31 downto 0);
 end record;
 
@@ -123,14 +123,14 @@ type execution_in_type is record
 end record;
 
 type execution_out_type is record
+    alu_result_out                      : unsigned(31 downto 0);
+    alu_result_predicate_out			: std_logic;
     reg_write_out                     	 : std_logic;
     ps_reg_write_out                     : std_logic;
     predicate_reg_write_out              : std_logic;
     mem_read_out                        : std_logic;
     mem_write_out                       : std_logic;
     mem_to_reg_out                      : std_logic;
-    alu_result_out                      : unsigned(31 downto 0);
-    alu_result_predicate_out			: std_logic;
     mem_write_data_out          	    : unsigned(31 downto 0);
     write_back_reg_out                  : unsigned(4 downto 0);
     ps_write_back_reg_out		        : unsigned(2 downto 0);
