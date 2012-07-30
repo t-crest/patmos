@@ -28,8 +28,7 @@ QPROJ=dspio
 QPROJ=altde2-70
 
 all: directories tools rom
-	make synth
-	make config
+	make patmos
 
 directories:
 	-mkdir rbf
@@ -79,6 +78,11 @@ sim:
 old_sim:
 	java -cp java/lib/patmos-tools.jar \
 		simulator.SimPat
+
+# Compile Patmos and download
+patmos:
+	make synth
+	make config
 
 # configure the FPGA
 config:

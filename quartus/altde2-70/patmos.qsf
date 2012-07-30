@@ -46,7 +46,7 @@ set_global_assignment -name VHDL_FILE ../../vhdl/core/uart_blink.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/sc_uart.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/sc_ssram32.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/sc_pack.vhd
-set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_rom.vhd
+set_global_assignment -name VHDL_FILE ../../vhdl/generated/patmos_rom.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_types.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_type_package.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_stack_cache_ctrl.vhd
