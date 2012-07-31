@@ -205,9 +205,12 @@ namespace patmos
        % Cycle;
 
     // print values of predicate registers
+    unsigned int sz_value = 0;
     for(int p = NUM_PRR - 1; p >= 0; p--)
     {
-      os << PRR.get((PRR_e)p).get();
+      bit_t pred_value = PRR.get((PRR_e)p).get();
+      sz_value |= pred_value << p;
+      os << pred_value;
     }
 
     std::string function();
@@ -234,8 +237,9 @@ namespace patmos
     }
     os << "\n ";
 
-    // print values of special purpose registers
-    for(unsigned int s = s0; s < NUM_SPR; s++)
+    // print values of special purpose registers -- special handling of SZ.
+    os << boost::format("s0 : %1$08x   ") % sz_value;
+    for(unsigned int s = s1; s < NUM_SPR; s++)
     {
       os << boost::format("s%1$-2d: %2$08x") % s % SPR.get((SPR_e)s).get();
 
