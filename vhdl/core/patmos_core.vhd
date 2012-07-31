@@ -101,12 +101,6 @@ signal spill, fill					   : std_logic;
 signal instruction_mem_din			   : instruction_memory_in_type;
 signal instruction_mem_dout			   : instruction_memory_out_type;
 signal instruction_rom_out			   : unsigned(31 downto 0);
-signal alu_src1_ps					   : std_logic;
-signal alu_src2_ps					   : std_logic;
-signal fw_ctrl_ps1					   : forwarding_type;
-signal fw_ctrl_ps2					   : forwarding_type;
-signal fw_in1_predicate					: std_logic;
-signal fw_in2_predicate					: std_logic;
 
 signal clk2 		: std_logic;
 signal sc_mem_out_wr_data	: unsigned(31 downto 0);
@@ -253,15 +247,7 @@ end process;
 	dec: entity work.patmos_decode(arch)
 	port map(clk, rst, decode_din, decode_dout);
   
-     
-  ------------------------------- predicate registers
-  predicate_reg_file: entity work.patmos_predicate_register_file(arch)
-	port map(clk, rst,  
-	        execute_dout.write_back_reg_out(2 downto 0), -- write_address
-	        decode_din.predicate_data_in,-- read data decode din
-	        execute_dout.alu_result_predicate_out, -- write data
-	        execute_dout.ps_reg_write_out); --write_enable
-	        
+   	        
 
   --------------- special register file
   -- there is a problem here, st_out should be dynamic, it is not dedicated to stack cache
@@ -300,28 +286,6 @@ end process;
   alu_din.STT_instruction_type <= decode_dout.STT_instruction_type_out;
   alu_din.LDT_instruction_type <= decode_dout.LDT_instruction_type_out;
   
-  ----- predicate instructions
-  fw_in1_predicate <= decode_dout.predicate_data_out(to_integer(decode_dout.ps1_out(2 downto 0)));
-  fw_in2_predicate <= decode_dout.predicate_data_out(to_integer(decode_dout.ps2_out(2 downto 0)));
-  
-  
-  mux_ps1: entity work.patmos_forward_value_predicate(arch)
- -- generic map (1)
-  port map(execute_dout.alu_result_predicate_out, mem_dout.alu_result_predicate_out, fw_in1_predicate, alu_src1_ps, fw_ctrl_ps1);
-                                                         
-  mux_ps2: entity work.patmos_forward_value_predicate(arch)
- -- generic map (1)
-  port map(execute_dout.alu_result_predicate_out, mem_dout.alu_result_predicate_out, fw_in2_predicate, alu_src2_ps, fw_ctrl_ps2);
-  
-  forward_ps: entity work.patmos_forward(arch)
-  generic map (3)
-  port map(decode_dout.ps1_out(2 downto 0), decode_dout.ps2_out(2 downto 0), execute_dout.ps_reg_write_out, mem_dout.ps_reg_write_out, 
-           execute_dout.ps_write_back_reg_out(2 downto 0), mem_dout.ps_write_back_reg_out(2 downto 0), fw_ctrl_ps1, fw_ctrl_ps2);
-  
-  alu_din.ps1 <= alu_src1_ps;
-  alu_din.ps2 <= alu_src2_ps;
-  alu_din.ps1_negate <= decode_dout.ps1_out(3);
-  alu_din.ps2_negate <= decode_dout.ps1_out(3);
   alu_din.mem_write_data_in <= alu_src2;
   ---------------------------------------alu
   alu: entity work.patmos_alu(arch)

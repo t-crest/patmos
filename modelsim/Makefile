@@ -24,7 +24,6 @@ base:
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_type_package.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/sc_pack.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/generated/patmos_rom.vhd
-	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_predicate_register_file.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_register_file.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_alu.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_data_memory.vhd

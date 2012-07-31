@@ -109,39 +109,41 @@ begin
 	 end process;
 end arch;
 
-library ieee;
-use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
-use work.patmos_type_package.all;
+-- MS: predictaes nee no forward, this shall be deleted some time
 
-entity patmos_forward_value_predicate is
---generic ( width : integer := 32 );
-  port
-  (
-    fw_alu              : in std_logic; --rs forwarded from previous alu
-    fw_mem              : in std_logic; --rs forwarded from data memory
-    fw_in               : in std_logic; --rs from register file
-    fw_out              : out std_logic;
-    fw_ctrl             : in forwarding_type
-  );
-end entity patmos_forward_value_predicate;
-
-architecture arch of patmos_forward_value_predicate is
-begin
-  
-    process(fw_ctrl, fw_in, fw_alu, fw_mem)
-	 begin
-	   if(fw_ctrl = FWALU)  then
-	 			fw_out <= fw_alu;
-   	elsif (fw_ctrl = FWMEM) then
-             fw_out <= fw_mem; 
-		elsif (fw_ctrl = FWNOP) then
-             fw_out <= fw_in;
-				 else fw_out <= fw_in;
-		end if;
-	 end process;
-end arch;
-
+--library ieee;
+--use ieee.std_logic_1164.all;
+--use ieee.numeric_std.all;
+--use work.patmos_type_package.all;
+--
+--entity patmos_forward_value_predicate is
+----generic ( width : integer := 32 );
+--  port
+--  (
+--    fw_alu              : in std_logic; --rs forwarded from previous alu
+--    fw_mem              : in std_logic; --rs forwarded from data memory
+--    fw_in               : in std_logic; --rs from register file
+--    fw_out              : out std_logic;
+--    fw_ctrl             : in forwarding_type
+--  );
+--end entity patmos_forward_value_predicate;
+--
+--architecture arch of patmos_forward_value_predicate is
+--begin
+--  
+--    process(fw_ctrl, fw_in, fw_alu, fw_mem)
+--	 begin
+--	   if(fw_ctrl = FWALU)  then
+--	 			fw_out <= fw_alu;
+--   	elsif (fw_ctrl = FWMEM) then
+--             fw_out <= fw_mem; 
+--		elsif (fw_ctrl = FWNOP) then
+--             fw_out <= fw_in;
+--				 else fw_out <= fw_in;
+--		end if;
+--	 end process;
+--end arch;
+--
 
 library ieee;
 use ieee.std_logic_1164.all;

@@ -164,10 +164,6 @@ end record;
 type alu_in_type is record
    rs1                         : unsigned(31 downto 0);
    rs2                         : unsigned(31 downto 0);
-   ps1						   : std_logic;
-   ps2						   : std_logic;
-   ps1_negate					: std_logic;
-   ps2_negate				   : std_logic;
    inst_type                   : instruction_type; 
    ALU_function_type           : unsigned(3 downto 0);
    ALU_instruction_type        : ALU_inst_type;

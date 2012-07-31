@@ -124,16 +124,16 @@ begin
 							when "0101" => rd <= "0" & din.rs1(30 downto 0);
 							when others => rd <= din.rs1 + din.rs2;
 						end case;
-					when ALUp =>
-						case din.ALU_function_type is
-						-- TODO: the predicate register is now right here in this stage
-						-- rewrite the following
-							when "0110" => pd <= (din.ps1_negate xor din.ps1) or (din.ps1_negate xor din.ps2);
-							when "0111" => pd <= (din.ps1_negate xor din.ps1) and (din.ps1_negate xor din.ps2);
-							when "1010" => pd <= (din.ps1_negate xor din.ps1) xor (din.ps1_negate xor din.ps2);
-							when "1011" => pd <= not ((din.ps1_negate xnor din.ps1) or (din.ps1_negate xor din.ps2)); --nor
-							when others => pd <= (din.ps1_negate xor din.ps1) or (din.ps1_negate xor din.ps2);
-						end case;
+--					when ALUp =>
+--						case din.ALU_function_type is
+--						-- TODO: the predicate register is now right here in this stage
+--						-- rewrite the following
+--							when "0110" => pd <= (din.ps1_negate xor din.ps1) or (din.ps1_negate xor din.ps2);
+--							when "0111" => pd <= (din.ps1_negate xor din.ps1) and (din.ps1_negate xor din.ps2);
+--							when "1010" => pd <= (din.ps1_negate xor din.ps1) xor (din.ps1_negate xor din.ps2);
+--							when "1011" => pd <= not ((din.ps1_negate xnor din.ps1) or (din.ps1_negate xor din.ps2)); --nor
+--							when others => pd <= (din.ps1_negate xor din.ps1) or (din.ps1_negate xor din.ps2);
+--						end case;
 
 					when others => rd <= din.rs1 + din.rs2;
 				end case;
