@@ -7,8 +7,7 @@ entity patmos_fetch is
 	port(
 		clk   : in  std_logic;
 		rst   : in  std_logic;
-		din   : in  fetch_in_type;
-		decin : in  decode_out_type;    -- decin shall be renamed
+		decout : in  decode_out_type;    -- decin shall be renamed
 		dout  : out fetch_out_type
 	);
 end entity patmos_fetch;
@@ -20,11 +19,13 @@ architecture arch of patmos_fetch is
 	signal tmp         : std_logic_vector(31 downto 0);
 
 begin
-	process(pc, decin)
+	process(pc, decout)
 	begin
-		if decin.inst_type_out = BC then
+		-- this is effective branch in the EX stage with
+		-- two branch delay slots
+		if decout.inst_type_out = BC then
 			-- no addition? no relative branch???
-			pc_next <= unsigned(decin.imm);
+			pc_next <= unsigned(decout.imm);
 		else
 			pc_next <= pc + 1;
 		end if;
@@ -36,12 +37,14 @@ begin
 			-- instruction shall not be unsigned
 			q       => tmp
 		);
+		
 	feout.instruction <= unsigned(tmp);
 	process(clk, rst)
 	begin
 		if (rst = '1') then
 			pc      <= (others => '0');
 			dout.pc <= (others => '0');
+			dout.instruction <= (others => '0');
 		elsif (rising_edge(clk) and rst = '0') then
 			pc               <= pc_next;
 			addr             <= std_logic_vector(pc_next);

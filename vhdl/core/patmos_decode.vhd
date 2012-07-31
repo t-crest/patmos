@@ -204,22 +204,6 @@ begin
             dout.mem_read_out <= '0';
             dout.mem_write_out <= '0';
             
-        elsif din.operation(26 downto 22) = "11111" then  -- branch (beq non Patmos)  
-            dout.inst_type_out <= BEQ; 
-            dout.predicate_bit_out <= din.operation(30); -- 
-            dout.predicate_condition <= din.operation(29 downto 27);
-            dout.predicate_data_out <= din.predicate_data_in;
-            dout.rs1_out <= din.operation(16 downto 12);
-         --   dout.rs2_out <= din.operation(16 downto 12);
-            dout.ALUi_immediate_out <= "0000000000000000000000000" & din.operation(6 downto 0);
-            dout.rs1_data_out <= din.rs1_data_in;
-            dout.rs2_data_out <= din.rs2_data_in; --value of rs2 is needed
-            dout.alu_src_out <= '0'; -- choose the second source, i.e. immediate!
-            dout.reg_write_out <= '0'; -- reg_write_out is reg_write_ex
-            dout.ps_reg_write_out <= '0';
-            dout.mem_to_reg_out <= '1'; -- data comes from alu or mem ? 0 from alu and 1 from mem
-            dout.mem_read_out <= '0';
-            dout.mem_write_out <= '0';
         elsif din.operation(26 downto 24) = "011" then    -- STC
         	dout.inst_type_out <= STC;
         	dout.predicate_bit_out <= din.operation(30); -- 

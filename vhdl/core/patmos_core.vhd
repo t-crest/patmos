@@ -1,3 +1,42 @@
+-- 
+-- Copyright Technical University of Denmark. All rights reserved.
+-- This file is part of the time-predictable VLIW Patmos.
+-- 
+-- Redistribution and use in source and binary forms, with or without
+-- modification, are permitted provided that the following conditions are met:
+-- 
+--    1. Redistributions of source code must retain the above copyright notice,
+--       this list of conditions and the following disclaimer.
+-- 
+--    2. Redistributions in binary form must reproduce the above copyright
+--       notice, this list of conditions and the following disclaimer in the
+--       documentation and/or other materials provided with the distribution.
+-- 
+-- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
+-- OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+-- OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+-- NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
+-- DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+-- (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+-- LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+-- ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+-- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+-- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-- 
+-- The views and conclusions contained in the software and documentation are
+-- those of the authors and should not be interpreted as representing official
+-- policies, either expressed or implied, of the copyright holder.
+-- 
+
+
+--------------------------------------------------------------------------------
+-- Short descripton.
+--
+-- Author: Sahar Abbaspour
+-- Author: Martin Schoeberl (martin@jopdesign.com)
+--------------------------------------------------------------------------------
+
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -194,39 +233,24 @@ end process;
  led <= '1';
 ------------------------------------------------------- fetch	
 		  
-  is_beq <= '1' when fetch_dout.instruction(26 downto 22) = "11111" else '0';
-  branch <= branch_taken and is_beq;
-  beq_imm <= "0000000000000000000000000" & fetch_dout.instruction(6 downto 0);
-  
- 
-  fetch_din.pc <= pc_next;
-  
   fet: entity work.patmos_fetch
-	port map(clk, rst, fetch_din, decode_dout, fetch_dout);
+	port map(clk, rst, decode_dout, fetch_dout);
 
-  pc_adder: entity work.patmos_adder(arch)
-  port map(pc, "00000000000000000000000000000001", pc_next);
+-- MS: this shall go into the fetch stage
   
-  mux_pc: entity work.patmos_mux_32(arch)
-  port map(pc_next, pc_offset, branch, mux_branch);
-  
-  pc_gen: entity work.patmos_pc_generator(arch)
-  port map(clk, rst, mux_branch, pc);
-
-  
-   instruction_mem_address: process(execute_dout.alu_result_out, pc, instruction_rom_out, instruction_mem_dout.inst_out) --read/write enable here
-  begin
-  	if(pc <= 70 ) then --  change this after the final version of boot loader
-  		if (execute_dout.mem_write_out = '1') then
-  			instruction_mem_din.address <= execute_dout.alu_result_out - 512;
-  		end if;
-  	end if;
-  	if (pc >= 70) then
-  		--instruction_mem_din.address <= pc - 70 + 7;
-  		
-  		--instruction_mem_din.read_enable <= '1';
-  	end if;
-  end process;
+--   instruction_mem_address: process(execute_dout.alu_result_out, pc, instruction_rom_out, instruction_mem_dout.inst_out) --read/write enable here
+--  begin
+--  	if(pc <= 70 ) then --  change this after the final version of boot loader
+--  		if (execute_dout.mem_write_out = '1') then
+--  			instruction_mem_din.address <= execute_dout.alu_result_out - 512;
+--  		end if;
+--  	end if;
+--  	if (pc >= 70) then
+--  		--instruction_mem_din.address <= pc - 70 + 7;
+--  		
+--  		--instruction_mem_din.read_enable <= '1';
+--  	end if;
+--  end process;
 	
   	
 --  instruction_mem : entity work.patmos_instruction_memory(arch)
@@ -235,8 +259,6 @@ end process;
  --           instruction_mem_dout.inst_out, 
 --	        instruction_mem_din.read_enable, instruction_mem_din.write_enable);
 -------------------------------------------------------- decode
-    pc_offset_adder: entity work.patmos_adder2(arch) -- for branch instruction
-  port map(fetch_dout.pc, beq_imm, pc_offset);
   
   reg_file: entity work.patmos_register_file(arch)
 	port map(clk, rst, fetch_dout.instruction(16 downto 12), fetch_dout.instruction(11 downto 7),

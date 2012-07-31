@@ -5,14 +5,13 @@ use ieee.numeric_std.all;
 package patmos_type_package is
   
   
-  type instruction_type is (NONE, ALUi, ALU, NOP, SPC, LDT, STT, BEQ, STC, BC);
+  type instruction_type is (NONE, ALUi, ALU, NOP, SPC, LDT, STT, STC, BC);
   type STC_instruction_type is (NONE, SRES, SENS, SFREE);
   type pc_type is (PCNext, PCBranch);
   type ALU_inst_type is (NONE, ALUr, ALUu, ALUm, ALUc, ALUp);
   type STT_inst_type is (NONE, SWS, SWL, SWC, SWM, SHS, SHL, SHC, SHM, SBS, SBL, SBC, SBM); -- all stores
   type LDT_inst_type is (NONE, LWM, LWS, LHS, LBS, LHUS, LBUS); -- these are just stack cache loads
   type SPC_type is (NONE, SPCn, SPCw, SPCt, SPCf);
-  signal predicate_register_bank : unsigned(7 downto 0);
   type forwarding_type is (FWNOP, FWMEM, FWALU);
   type load_type is (NONE, lw, lh, lb, lhu, lbu, dlwh, dlbh, dlbu);
 

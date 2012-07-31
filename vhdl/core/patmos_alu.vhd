@@ -119,8 +119,6 @@ begin
         		when others => dout.rd <= din.rs1 + din.rs2;
         	end case;
          --   dout.rd <= din.rs1 + din.rs2; -- unsigned(intermediate_add);--
-        when BEQ =>
-            dout.rd <= din.rs1 + din.rs2; -- unsigned(intermediate_add);--
     	when others => dout.rd <= din.rs1 + din.rs2; -- unsigned(intermediate_add);--
     	end case;
     end process patmos_alu;
