@@ -1,5 +1,5 @@
 #
-# This is a simple ouput of a single character on the UART
+# This is a simple output of a single character on the UART
 #
 # TODO: maybe this should just switch a LED to see the result.
 #

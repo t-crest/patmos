@@ -141,25 +141,17 @@ end record;
 -- execution
 -------------------------------------------
 type execution_in_type is record
-    reg_write_in                        : std_logic;
-    ps_reg_write_in                     : std_logic;
     predicate_reg_write_in              : std_logic;
-    predicate_condition				    : unsigned(2 downto 0);
     mem_read_in                         : std_logic;
     mem_write_in                        : std_logic;
     mem_to_reg_in                       : std_logic;
-    alu_result_in                       : unsigned(31 downto 0);
-    alu_result_predicate_in				: std_logic;
     mem_write_data_in       	 	    : unsigned(31 downto 0);
     write_back_reg_in                   : unsigned(4 downto 0);
-    ps_write_back_reg_in		        : unsigned(2 downto 0);
     tail_in								: unsigned(4 downto 0);
     head_in								: unsigned(4 downto 0);
     st_in								: unsigned(31 downto 0);
     STT_instruction_type_in				: STT_inst_type;
     LDT_instruction_type_in				: LDT_inst_type;
-    predicate_bit_in                    : std_logic;
-	predicate_data_in					: unsigned(7 downto 0); 
 end record;
 
 type execution_out_type is record
@@ -207,8 +199,8 @@ type alu_in_type is record
 end record;
 
 type alu_out_type is record
-  rd                          : unsigned(31 downto 0);
-  pd						  : std_logic;
+--  rd                          : unsigned(31 downto 0);
+--  pd						  : std_logic;
  -- head_out 		     			: unsigned(4 downto 0);
  -- tail_out					 : unsigned(4 downto 0);
   spill_out					: std_logic;

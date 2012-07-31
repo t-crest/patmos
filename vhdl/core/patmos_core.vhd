@@ -70,11 +70,6 @@ end entity patmos_core;
 
 architecture arch of patmos_core is 
 
-signal pc                              : unsigned(32 - 1 downto 0);
-signal pc_next                         : unsigned(32 - 1 downto 0);
-signal pc_offset                       : unsigned(32 - 1 downto 0);
-signal mux_branch                      : unsigned(32 - 1 downto 0);
-signal branch                          : std_logic := '0';
 signal fetch_din                       : fetch_in_type;
 signal fetch_dout                      : fetch_out_type;
 signal decode_din                      : decode_in_type;
@@ -95,8 +90,6 @@ signal alu_src1                        : unsigned(31 downto 0);
 signal alu_src2                        : unsigned(31 downto 0);
 signal fw_ctrl_rs1                     : forwarding_type;
 signal fw_ctrl_rs2                     : forwarding_type;
-signal br_src1                         : unsigned(31 downto 0);
-signal br_src2                         : unsigned(31 downto 0);
 signal mem_data_out           	        : unsigned(31 downto 0); 
 signal test1, test2, test3, test4      : std_logic; 
 
@@ -335,24 +328,16 @@ end process;
   alu_din.ps2_negate <= decode_dout.ps1_out(3);
   ---------------------------------------alu
   alu: entity work.patmos_alu(arch)
-  port map(clk, rst, execute_din, execute_dout, alu_din, alu_dout);
+  port map(clk, rst, decode_dout, execute_din, execute_dout, alu_din, alu_dout);
   
   -----------------------
-  execute_din.predicate_bit_in <= decode_dout.predicate_bit_out;
-  execute_din.predicate_data_in <= decode_dout.predicate_data_out;
-  execute_din.ps_reg_write_in <= decode_dout.ps_reg_write_out;
-  execute_din.predicate_condition <= decode_dout.predicate_condition; 
-  execute_din.alu_result_predicate_in <= alu_dout.pd;
-  execute_din.ps_write_back_reg_in <= decode_dout.pd_out(2 downto 0);
  -- execute_din.ps_reg_write_in
   --execute_din.ps
    
   
-  execute_din.reg_write_in <= decode_dout.reg_write_out;
   execute_din.mem_read_in <= decode_dout.mem_read_out;
   execute_din.mem_write_in <= decode_dout.mem_write_out;
   execute_din.mem_to_reg_in <= decode_dout.mem_to_reg_out;
-  execute_din.alu_result_in <= alu_dout.rd;
   execute_din.write_back_reg_in <= decode_dout.rd_out;
   execute_din.mem_write_data_in <= alu_src2;
   execute_din.STT_instruction_type_in <= decode_dout.STT_instruction_type_out;
@@ -500,6 +485,8 @@ end process;
 --            mem_read, mem_write);
   --clk, rst, add, data_in(store), data_out(load), read_en, write_en
 
+
+-- TODO: the memory code belongs into the memory stage component
 
   --------------------------
   mem_din.reg_write_in <= execute_dout.reg_write_out;
