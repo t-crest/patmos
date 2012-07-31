@@ -44,10 +44,11 @@ use work.patmos_type_package.all;
 
 entity patmos_fetch is
 	port(
-		clk   : in  std_logic;
-		rst   : in  std_logic;
-		decout : in  decode_out_type;    -- decin shall be renamed
-		dout  : out fetch_out_type
+		clk    : in  std_logic;
+		rst    : in  std_logic;
+		decout : in  decode_out_type;
+		exout  : in  execution_out_type;
+		dout   : out fetch_out_type
 	);
 end entity patmos_fetch;
 
@@ -58,11 +59,11 @@ architecture arch of patmos_fetch is
 	signal tmp         : std_logic_vector(31 downto 0);
 
 begin
-	process(pc, decout)
+	process(pc, decout, exout)
 	begin
 		-- this is effective branch in the EX stage with
 		-- two branch delay slots
-		if decout.inst_type_out = BC then
+		if decout.inst_type_out = BC and exout.predicate(to_integer(decout.predicate_condition)) = '1' then -- decout.predicate_bit_out then
 			-- no addition? no relative branch???
 			pc_next <= unsigned(decout.imm);
 		else
@@ -76,13 +77,13 @@ begin
 			-- instruction shall not be unsigned
 			q       => tmp
 		);
-		
+
 	feout.instruction <= unsigned(tmp);
 	process(clk, rst)
 	begin
 		if (rst = '1') then
-			pc      <= (others => '0');
-			dout.pc <= (others => '0');
+			pc               <= (others => '0');
+			dout.pc          <= (others => '0');
 			dout.instruction <= (others => '0');
 		elsif (rising_edge(clk) and rst = '0') then
 			pc               <= pc_next;

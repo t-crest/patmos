@@ -75,7 +75,11 @@ begin
 	begin
 		if rising_edge(clk) then
 			dout.imm <= std_logic_vector(resize(signed(din.operation(11 downto 0)), 32));
-
+			-- MS: that's the way I would like decoding:
+			-- a single bit for a condition in the ALU
+			dout.instr_cmp <= '0';
+			
+			
 			-- MS: time for some defaults to get a clearer view:
 			dout.inst_type_out         <= ALUi;
 			dout.ALU_function_type_out <= '0' & din.operation(24 downto 22);
@@ -131,6 +135,8 @@ begin
 						dout.ALU_instruction_type_out <= ALUm;
 					when "011" =>       -- Compare
 						dout.ALU_instruction_type_out <= ALUc;
+						dout.instr_cmp <= '1';
+						
 					when "100" =>       -- predicate
 						dout.ALU_instruction_type_out <= ALUp;
 					when others => NULL;

@@ -33,6 +33,7 @@
 -- Short descripton.
 --
 -- Author: Sahar Abbaspour
+-- Author: Martin Schoeberl (martin@jopdesign.com)
 --------------------------------------------------------------------------------
 
 library ieee;
@@ -64,8 +65,8 @@ architecture arch of patmos_alu is
 	signal number_of_bytes_in_stack_cache : unsigned(4 downto 0) := (others => '0');
 	signal rd                             : unsigned(31 downto 0);
 	signal pd                             : std_logic;
-	 signal st_out						: unsigned (31 downto 0);
-	
+	signal cmp_equal, cmp_result          : std_logic;
+	signal predicate, predicate_reg       : std_logic_vector(7 downto 0);
 
 begin
 	--add: megaddsub
@@ -75,6 +76,8 @@ begin
 
 	-- MS: TODO: This ALU needs to be restructured to share functional units
 	-- also means more decoding in decode and not in execute
+
+	-- we should assign default values;
 	patmos_alu : process(din)
 	begin
 		case din.inst_type is
@@ -123,6 +126,8 @@ begin
 						end case;
 					when ALUp =>
 						case din.ALU_function_type is
+						-- TODO: the predicate register is now right here in this stage
+						-- rewrite the following
 							when "0110" => pd <= (din.ps1_negate xor din.ps1) or (din.ps1_negate xor din.ps2);
 							when "0111" => pd <= (din.ps1_negate xor din.ps1) and (din.ps1_negate xor din.ps2);
 							when "1010" => pd <= (din.ps1_negate xor din.ps1) xor (din.ps1_negate xor din.ps2);
@@ -160,15 +165,36 @@ begin
 			--   dout.rd <= din.rs1 + din.rs2; -- unsigned(intermediate_add);--
 			when others => rd <= din.rs1 + din.rs2; -- unsigned(intermediate_add);--
 		end case;
-	end process patmos_alu;
 
---  execute_din.st_in <= alu_dout.st_out;
+		-- comparison
+		cmp_equal <= '0';
+		if din.rs1 = din.rs2 then
+			cmp_equal <= '1';
+		end if;
+
+		predicate  <= predicate_reg;
+		cmp_result <= '0';
+		if decdout.instr_cmp='1' then
+			case decdout.ALU_function_type_out(2 downto 0) is
+				when "000" => cmp_result <= cmp_equal;
+				when "001" => cmp_result <= not cmp_equal;
+				when others => null;
+			end case;
+			predicate(to_integer(decdout.pd_out(2 downto 0))) <= cmp_result;
+		end if;
+		-- the ever true predicate
+		predicate(0) <= '1';
+
+	end process patmos_alu;
 
 	-- TODO: remove all predicate related stuff from EX out  
 	process(clk)
 	begin
-		if rising_edge(clk) then
-			if (decdout.predicate_data_out(to_integer(decdout.predicate_condition)) /= decdout.predicate_bit_out) then
+		if rst = '1' then
+			predicate_reg <= "00000001";
+			doutex.predicate <= "00000001";
+		elsif rising_edge(clk) then
+			if predicate_reg(to_integer(decdout.predicate_condition)) /= decdout.predicate_bit_out then
 				doutex.mem_read_out  <= decdout.mem_read_out;
 				doutex.mem_write_out <= decdout.mem_write_out;
 				doutex.reg_write_out <= decdout.reg_write_out;
@@ -189,6 +215,9 @@ begin
 			doutex.STT_instruction_type_out <= decdout.STT_instruction_type_out;
 			doutex.LDT_instruction_type_out <= decdout.LDT_instruction_type_out;
 			doutex.alu_result_predicate_out <= pd;
+			-- this should be under predicate condition as well
+			doutex.predicate                <= predicate;
+			predicate_reg                   <= predicate;
 		end if;
 	end process;
 

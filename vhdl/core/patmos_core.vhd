@@ -218,7 +218,7 @@ end process;
 ------------------------------------------------------- fetch	
 		  
   fet: entity work.patmos_fetch
-	port map(clk, rst, decode_dout, fetch_dout);
+	port map(clk, rst, decode_dout, execute_dout, fetch_dout);
 
 -- MS: this shall go into the fetch stage
   

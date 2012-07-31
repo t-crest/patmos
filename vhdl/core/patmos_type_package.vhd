@@ -33,6 +33,7 @@
 -- Short descripton.
 --
 -- Author: Sahar Abbaspour
+-- Author: Martin Schoeberl (martin@jopdesign.com)
 --------------------------------------------------------------------------------
 
 
@@ -90,6 +91,7 @@ end record;
 type decode_out_type is record
 
 	imm : std_logic_vector(31 downto 0);
+	instr_cmp : std_logic;
 	
 	predicate_bit_out                   : std_logic;
 	predicate_data_out					: unsigned (7 downto 0);  
@@ -138,6 +140,7 @@ end record;
 -------------------------------------------
 
 type execution_out_type is record
+	predicate : std_logic_vector(7 downto 0);
     alu_result_out                      : unsigned(31 downto 0);
     alu_result_predicate_out			: std_logic;
     reg_write_out                     	 : std_logic;
