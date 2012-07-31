@@ -206,8 +206,6 @@ begin
 				case din.operation(23 downto 22) is
 					when "00" =>        -- reserve
 						dout.STC_instruction_type_out <= SRES;
-						dout.head_out                 <= din.head_in;
-						dout.tail_out                 <= din.tail_in;
 						dout.st_out                   <= "0111"; -- s6 is st (7th register in special reg file)
 						--	dout.stc_immediate_out <= din.operation(4 downto 0);--"0000000000" & din.operation(21 downto 0); 
 						dout.ALUi_immediate_out <= "000000000000000000000000000" & din.operation(4 downto 0);
@@ -217,14 +215,11 @@ begin
 
 					when "01" =>        -- ensure
 						dout.STC_instruction_type_out <= SENS;
-						dout.head_out                 <= din.head_in;
-						dout.tail_out                 <= din.tail_in;
 						dout.st_out                   <= "0111";
 						dout.stc_immediate_out        <= din.operation(4 downto 0);
 					--	dout.ALUi_immediate_out <= 
 					when "10" =>
 						dout.STC_instruction_type_out <= SFREE;
-						dout.head_out                 <= din.head_in;
 						dout.ALUi_immediate_out       <= "000000000000000000000000000" & din.operation(4 downto 0);
 						dout.alu_src_out              <= '0'; -- choose the first source, i.e. reg!
 						dout.reg_write_out            <= '0'; -- reg_write_out is reg_write_ex

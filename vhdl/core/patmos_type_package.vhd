@@ -85,8 +85,6 @@ type decode_in_type is record
     rs2_data_in_special				   : unsigned(31 downto 0);
 --    predicate_bit_in					: std_logic;
   	predicate_data_in					: unsigned (7 downto 0);  
-    head_in							   : unsigned(4 downto 0);
-    tail_in							   : unsigned(4 downto 0);     
 --    stack_data_in   					: unsigned (31 downto 0);
 end record;
 type decode_out_type is record
@@ -126,8 +124,6 @@ type decode_out_type is record
     st_out							    : unsigned(3 downto 0);
     stack_data_out   					: unsigned (31 downto 0);
     STC_instruction_type_out			: STC_instruction_type;
-    head_out							 : unsigned(4 downto 0);  
-    tail_out							 : unsigned(4 downto 0);  
     stc_immediate_out					: unsigned (4 downto 0);
     rs1_data_out_special				: unsigned (31 downto 0);
     rs2_data_out_special			   : unsigned(31 downto 0);  
@@ -140,19 +136,6 @@ end record;
 -------------------------------------------
 -- execution
 -------------------------------------------
-type execution_in_type is record
-    predicate_reg_write_in              : std_logic;
-    mem_read_in                         : std_logic;
-    mem_write_in                        : std_logic;
-    mem_to_reg_in                       : std_logic;
-    mem_write_data_in       	 	    : unsigned(31 downto 0);
-    write_back_reg_in                   : unsigned(4 downto 0);
-    tail_in								: unsigned(4 downto 0);
-    head_in								: unsigned(4 downto 0);
-    st_in								: unsigned(31 downto 0);
-    STT_instruction_type_in				: STT_inst_type;
-    LDT_instruction_type_in				: LDT_inst_type;
-end record;
 
 type execution_out_type is record
     alu_result_out                      : unsigned(31 downto 0);
@@ -166,9 +149,6 @@ type execution_out_type is record
     mem_write_data_out          	    : unsigned(31 downto 0);
     write_back_reg_out                  : unsigned(4 downto 0);
     ps_write_back_reg_out		        : unsigned(2 downto 0);
-    tail_out							: unsigned(4 downto 0);
-    head_out							: unsigned(4 downto 0);
-    st_out								: unsigned(31 downto 0);
     STT_instruction_type_out			: STT_inst_type;
     LDT_instruction_type_out			: LDT_inst_type;
     predicate_bit_out                   : std_logic;
@@ -189,24 +169,15 @@ type alu_in_type is record
    ALU_function_type           : unsigned(3 downto 0);
    ALU_instruction_type        : ALU_inst_type;
    stack_data_in			   : unsigned(31 downto 0);
- --  head_in						: unsigned(4 downto 0);
    STC_instruction_type			:STC_instruction_type;
-  -- tail_in						: unsigned(4 downto 0);
    stc_immediate_in				: unsigned (4 downto 0);
    st_in						: unsigned (31 downto 0);
    STT_instruction_type			: STT_inst_type;
-   LDT_instruction_type			: LDT_inst_type;				
+   LDT_instruction_type			: LDT_inst_type;
+   mem_write_data_in       	 	    : unsigned(31 downto 0);
+   			
 end record;
 
-type alu_out_type is record
---  rd                          : unsigned(31 downto 0);
---  pd						  : std_logic;
- -- head_out 		     			: unsigned(4 downto 0);
- -- tail_out					 : unsigned(4 downto 0);
-  spill_out					: std_logic;
-  fill_out					 : std_logic;
-  st_out						: unsigned (31 downto 0);
-end record;
 
 ------------------------------------------
 -- mem

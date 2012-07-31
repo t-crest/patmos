@@ -75,8 +75,6 @@ signal fetch_dout                      : fetch_out_type;
 signal decode_din                      : decode_in_type;
 signal decode_dout                     : decode_out_type;
 signal alu_din                         : alu_in_type;
-signal alu_dout                        : alu_out_type;
-signal execute_din                     : execution_in_type;
 signal execute_dout                    : execution_out_type;
 signal stack_cache_din				   : patmos_stack_cache_in;
 signal stack_cache_dout		 		   : patmos_stack_cache_out;
@@ -99,8 +97,6 @@ signal mem_data_out_uart				: std_logic_vector(31 downto 0);
 signal mem_data_out_muxed				: unsigned(31 downto 0); 
 signal mem_data_out3					: unsigned(31 downto 0);
 
-signal head_in						   : unsigned(4 downto 0);
-signal tail_in						   : unsigned(4 downto 0);
 signal spill, fill					   : std_logic; 
 signal instruction_mem_din			   : instruction_memory_in_type;
 signal instruction_mem_dout			   : instruction_memory_out_type;
@@ -326,28 +322,13 @@ end process;
   alu_din.ps2 <= alu_src2_ps;
   alu_din.ps1_negate <= decode_dout.ps1_out(3);
   alu_din.ps2_negate <= decode_dout.ps1_out(3);
+  alu_din.mem_write_data_in <= alu_src2;
   ---------------------------------------alu
   alu: entity work.patmos_alu(arch)
-  port map(clk, rst, decode_dout, execute_din, execute_dout, alu_din, alu_dout);
+  port map(clk, rst, decode_dout, alu_din, execute_dout);
   
-  -----------------------
- -- execute_din.ps_reg_write_in
-  --execute_din.ps
    
   
-  execute_din.mem_read_in <= decode_dout.mem_read_out;
-  execute_din.mem_write_in <= decode_dout.mem_write_out;
-  execute_din.mem_to_reg_in <= decode_dout.mem_to_reg_out;
-  execute_din.write_back_reg_in <= decode_dout.rd_out;
-  execute_din.mem_write_data_in <= alu_src2;
-  execute_din.STT_instruction_type_in <= decode_dout.STT_instruction_type_out;
-  execute_din.LDT_instruction_type_in <= decode_dout.LDT_instruction_type_out;
- -- execute_din.tail_in <= alu_dout.tail_out;
- -- execute_din.head_in <= alu_dout.head_out;
-  execute_din.st_in <= alu_dout.st_out;
---  execute: entity work.patmos_execute(arch)
---  port map(clk, rst, execute_din, execute_dout);
---  
    -----------------------------------------------cache - memory------------------------------------------------------------
    ---------------------------------------------------- stack cache controller
    

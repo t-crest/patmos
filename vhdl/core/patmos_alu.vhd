@@ -45,10 +45,8 @@ entity patmos_alu is
 		clk     : in  std_logic;
 		rst     : in  std_logic;
 		decdout : in  decode_out_type;
-		dinex   : in  execution_in_type;
-		doutex  : out execution_out_type;
 		din     : in  alu_in_type;
-		dout    : out alu_out_type
+		doutex  : out execution_out_type
 	);
 end entity patmos_alu;
 
@@ -66,6 +64,8 @@ architecture arch of patmos_alu is
 	signal number_of_bytes_in_stack_cache : unsigned(4 downto 0) := (others => '0');
 	signal rd                             : unsigned(31 downto 0);
 	signal pd                             : std_logic;
+	 signal st_out						: unsigned (31 downto 0);
+	
 
 begin
 	--add: megaddsub
@@ -162,13 +162,15 @@ begin
 		end case;
 	end process patmos_alu;
 
+--  execute_din.st_in <= alu_dout.st_out;
+
 	-- TODO: remove all predicate related stuff from EX out  
 	process(clk)
 	begin
 		if rising_edge(clk) then
 			if (decdout.predicate_data_out(to_integer(decdout.predicate_condition)) /= decdout.predicate_bit_out) then
-				doutex.mem_read_out  <= dinex.mem_read_in;
-				doutex.mem_write_out <= dinex.mem_write_in;
+				doutex.mem_read_out  <= decdout.mem_read_out;
+				doutex.mem_write_out <= decdout.mem_write_out;
 				doutex.reg_write_out <= decdout.reg_write_out;
 			--      	doutex.ps_reg_write_out <= decdout.ps_reg_write_out;
 			--	test <= '1';
@@ -179,15 +181,13 @@ begin
 				doutex.ps_reg_write_out <= '0';
 			end if;
 
-			doutex.mem_to_reg_out           <= dinex.mem_to_reg_in;
+			doutex.mem_to_reg_out           <= decdout.mem_to_reg_out;
 			doutex.alu_result_out           <= rd;
-			doutex.mem_write_data_out       <= dinex.mem_write_data_in;
-			doutex.write_back_reg_out       <= dinex.write_back_reg_in;
+			doutex.mem_write_data_out       <= din.mem_write_data_in;
+			doutex.write_back_reg_out       <= decdout.rd_out;
 			doutex.ps_write_back_reg_out    <= decdout.pd_out(2 downto 0);
-			doutex.head_out                 <= dinex.head_in;
-			doutex.tail_out                 <= dinex.tail_in;
-			doutex.STT_instruction_type_out <= dinex.STT_instruction_type_in;
-			doutex.LDT_instruction_type_out <= dinex.LDT_instruction_type_in;
+			doutex.STT_instruction_type_out <= decdout.STT_instruction_type_out;
+			doutex.LDT_instruction_type_out <= decdout.LDT_instruction_type_out;
 			doutex.alu_result_predicate_out <= pd;
 		end if;
 	end process;
