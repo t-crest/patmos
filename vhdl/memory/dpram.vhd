@@ -28,6 +28,12 @@
 -- policies, either expressed or implied, of the copyright holder.
 -- 
 
+--------------------------------------------------------------------------------
+-- Dual port ram with read and write port.
+--
+-- Author: Martin Schoeberl (martin@jopdesign.com)
+--------------------------------------------------------------------------------
+
 --
 --	dpram.vhd
 --
