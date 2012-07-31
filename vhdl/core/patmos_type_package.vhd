@@ -77,17 +77,17 @@ type decode_in_type is record
     operation                          : unsigned (31 downto 0);
 	rs1_data_in                        : unsigned (31 downto 0);
     rs2_data_in                        : unsigned (31 downto 0);
-    rs1_in                             : unsigned (4 downto 0);
-    rs2_in                             : unsigned (4 downto 0);
- --   reg_write_in                       : std_logic;
-    alu_src_in                         : std_logic;  
+--    rs1_in                             : unsigned (4 downto 0);
+--    rs2_in                             : unsigned (4 downto 0);
+-- --   reg_write_in                       : std_logic;
+--    alu_src_in                         : std_logic;  
     rs1_data_in_special				   : unsigned(31 downto 0);   
     rs2_data_in_special				   : unsigned(31 downto 0);
-    predicate_bit_in					: std_logic;
+--    predicate_bit_in					: std_logic;
   	predicate_data_in					: unsigned (7 downto 0);  
     head_in							   : unsigned(4 downto 0);
     tail_in							   : unsigned(4 downto 0);     
-    stack_data_in   					: unsigned (31 downto 0);
+--    stack_data_in   					: unsigned (31 downto 0);
 end record;
 type decode_out_type is record
 

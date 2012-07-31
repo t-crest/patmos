@@ -306,6 +306,7 @@ end process;
   ---------------------------------------------------- execute
 	
   	
+  -- MS: this shall go into the ALU with a normal selection
   mux_imm: entity work.patmos_mux_32(arch) -- immediate or rt
   port map(alu_src2, decode_dout.ALUi_immediate_out, 
            decode_dout.alu_src_out, mux_alu_src);
