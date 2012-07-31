@@ -5,10 +5,11 @@ use work.patmos_type_package.all;
 
 entity patmos_fetch is
 	port(
-		clk  : in  std_logic;
-		rst  : in  std_logic;
-		din  : in  fetch_in_type;
-		dout : out fetch_out_type
+		clk   : in  std_logic;
+		rst   : in  std_logic;
+		din   : in  fetch_in_type;
+		decin : in  decode_out_type;    -- decin shall be renamed
+		dout  : out fetch_out_type
 	);
 end entity patmos_fetch;
 
@@ -19,9 +20,14 @@ architecture arch of patmos_fetch is
 	signal tmp         : std_logic_vector(31 downto 0);
 
 begin
-	process(pc)
+	process(pc, decin)
 	begin
-		pc_next <= pc + 1;
+		if decin.inst_type_out = BC then
+			-- no addition? no relative branch???
+			pc_next <= unsigned(decin.imm);
+		else
+			pc_next <= pc + 1;
+		end if;
 	end process;
 
 	rom : entity work.patmos_rom

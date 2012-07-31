@@ -116,7 +116,6 @@ signal mem_read						   : std_logic;
 signal io_read						   : std_logic;	
 signal rdy_cnt : unsigned(1 downto 0);
 signal address : std_logic_vector(31 downto 0)  := (others => '0');
-constant BLINK_FREQ : integer := 1;
 
    component sc_uart                     --  Declaration of uart driver
     generic (addr_bits : integer := 32;
@@ -202,8 +201,8 @@ end process;
  
   fetch_din.pc <= pc_next;
   
-  fet: entity work.patmos_fetch(arch)
-	port map(clk, rst, fetch_din, fetch_dout);
+  fet: entity work.patmos_fetch
+	port map(clk, rst, fetch_din, decode_dout, fetch_dout);
 
   pc_adder: entity work.patmos_adder(arch)
   port map(pc, "00000000000000000000000000000001", pc_next);

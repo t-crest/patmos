@@ -34,6 +34,9 @@ begin
   decode: process(clk)
   begin
      if rising_edge(clk) then
+     
+     	dout.imm <= std_logic_vector(resize(signed(din.operation(11 downto 0)), 32));
+     
      --   if din.operation1(30) = '1' then -- predicate bits assignment
      --         dout.predicate_bit <= predicate_register_bank(to_integer(unsigned(din.operation1(29 downto 27))));
      --       elsif din.operation1(30) = '0' then -- ~predicate bits assignment
@@ -185,7 +188,7 @@ begin
             dout.mem_write_out <= '0';
             
         elsif din.operation(26 downto 22) = "11001" then  -- branch, cache relative
-            dout.inst_type_out <= BEQ; 
+            dout.inst_type_out <= BC; 
             dout.predicate_bit_out <= din.operation(30); -- 
             dout.predicate_condition <= din.operation(29 downto 27);
             dout.predicate_data_out <= din.predicate_data_in;
