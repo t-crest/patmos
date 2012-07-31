@@ -723,7 +723,7 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
-      bit_t Pred = s.PRR.get(ops.Pred).get();
+      bit_t Pred = ops.DR_Pred = s.PRR.get(ops.Pred).get();
 
       if (Pred)
       {

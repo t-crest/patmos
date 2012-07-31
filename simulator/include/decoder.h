@@ -39,7 +39,8 @@ namespace patmos
   private:
     /// A vector of Patmos instructions and binary formats available to the
     /// simulator.
-    typedef std::vector<boost::tuples::tuple<instruction_t*, binary_format_t*> >
+    typedef std::vector<boost::tuples::tuple<const instruction_t*,
+                                             const binary_format_t*> >
                                                                  instructions_t;
 
     /// A vector of Patmos instructions and binary formats available to the
@@ -72,6 +73,17 @@ namespace patmos
     /// 1 or 2 if the instructions were decoded successfully, 0 in case of an
     /// error.
     unsigned int decode(word_t *iwp, instruction_data_t *result);
+
+    /// Return the number of instructions known to the decoder.
+    /// @return The number of instructions known to the decoder
+    static unsigned int get_num_instructions()
+    {
+      return Instructions.size();
+    }
+
+    /// Return instruction by ID.
+    /// @return The instruction having the given ID.
+    static const instruction_t &get_instruction(unsigned int ID);
   };
 }
 

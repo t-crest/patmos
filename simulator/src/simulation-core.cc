@@ -36,7 +36,7 @@ namespace patmos
       Cycle(0), Memory(memory), Local_memory(local_memory),
       Data_cache(data_cache), Method_cache(method_cache),
       Stack_cache(stack_cache), Symbols(symbols), BASE(0), PC(0), nPC(0),
-      Stall(SIF), Is_decoupled_load_active(false)
+      Stall(SIF), Is_decoupled_load_active(false), Num_bubbles_retired(0)
   {
     // initialize one predicate register to be true, otherwise no instruction
     // will ever execute
@@ -45,11 +45,15 @@ namespace patmos
     // initialize the pipeline
     for(unsigned int i = 0; i < NUM_STAGES; i++)
     {
+      Num_stall_cycles[i] = 0;
       for(unsigned int j = 0; j < NUM_SLOTS; j++)
       {
         Pipeline[i][j] = instruction_data_t();
       }
     }
+
+    // Initialize instruction statistics
+    Instruction_stats.resize(Decoder.get_num_instructions());
   }
 
   void simulator_t::pipeline_invoke(Pipeline_t pst,
@@ -138,6 +142,31 @@ namespace patmos
         pipeline_invoke(SDR, &instruction_data_t::DR_commit);
         pipeline_invoke(SIF, &instruction_data_t::IF_commit);
 
+        // track instructions retired
+        if (Stall != NUM_STAGES-1)
+        {
+          for(unsigned int j = 0; j < NUM_SLOTS; j++)
+          {
+              if (Pipeline[NUM_STAGES-1][j].I)
+              {
+                // get instruction statistics
+                instruction_stat_t &stat(
+                            Instruction_stats[Pipeline[NUM_STAGES-1][j].I->ID]);
+
+                // update instruction statistics
+                if (Pipeline[NUM_STAGES-1][j].DR_Pred)
+                  stat.Num_retired++;
+                else
+                  stat.Num_discarded++;
+              }
+              else
+                Num_bubbles_retired++;
+          }
+        }
+
+        // track pipeline stalls
+        Num_stall_cycles[Stall]++;
+
         // move pipeline stages
         for (int i = SEX; i >= Stall; i--)
         {
@@ -167,6 +196,15 @@ namespace patmos
           {
             simulation_exception_t::illegal(from_big_endian<big_word_t>(iw[0]));
           }
+          else
+          {
+            // track instructions fetched
+            for(unsigned int j = 0; j < NUM_SLOTS; j++)
+            {
+              if (Pipeline[0][j].I)
+                Instruction_stats[Pipeline[0][j].I->ID].Num_fetched++;
+            }
+         }
         }
         else if (Stall != NUM_STAGES- 1)
         {
@@ -197,8 +235,6 @@ namespace patmos
     }
   }
 
-  /// Print the internal state of the simulator to an output stream.
-  /// @param os An output stream.
   void simulator_t::print(std::ostream &os) const
   {
     os << boost::format("\nCyc : %1$08d   PRR: ")
@@ -271,6 +307,51 @@ namespace patmos
     Memory.print(os);
 
     os << "\n";
+  }
+
+  void simulator_t::print_stats(std::ostream &os) const
+  {
+    // print processor state
+    print(os);
+
+    // instruction statistics
+    os << boost::format("\n\nInstruction Statistics:\n"
+                        "   %1$15s: %2$10s %3$10s %4$10s\n")
+       % "instruction" % "#fetched" % "#retired" % "#discarded";
+
+    unsigned int num_total_fetched = 0;
+    unsigned int num_total_retired = 0;
+    unsigned int num_total_discarded = 0;
+    for(unsigned int i = 0; i < Instruction_stats.size(); i++)
+    {
+      // get instruction and statistics on it
+      const instruction_t &I(Decoder.get_instruction(i));
+      const instruction_stat_t &S(Instruction_stats[i]);
+
+      os << boost::format("   %1$15s: %2$10d %3$10d %4$10d\n")
+         % I.Name % S.Num_fetched % S.Num_retired % S.Num_discarded;
+
+      // collect summary
+      num_total_fetched += S.Num_fetched;
+      num_total_retired += S.Num_retired;
+      num_total_discarded += S.Num_discarded;
+
+      assert(S.Num_fetched >= (S.Num_retired + S.Num_discarded));
+    }
+
+    // summary over all instructions
+    os << boost::format("   %1$15s: %2$10d %3$10d %4$10d\n"
+                        "   %5$15s: %6$10s %7$10d %8$10s\n")
+        % "all"     % num_total_fetched % num_total_retired % num_total_discarded
+        % "bubbles" % "-" % Num_bubbles_retired % "-";
+
+    // Cycle statistics
+    os << "\nStall Cycles:\n";
+    for (int i = SDR; i < NUM_STAGES; i++)
+    {
+      os << boost::format("   %1%: %2%\n")
+         % (Pipeline_t)i % Num_stall_cycles[i];
+    }
   }
 
   std::ostream &operator<<(std::ostream &os, Pipeline_t p)

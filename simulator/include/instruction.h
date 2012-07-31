@@ -42,6 +42,12 @@ namespace patmos
   class instruction_t
   {
   public:
+    /// ID of the instruction.
+    unsigned int ID;
+
+    /// Instruction name.
+    const char *Name;
+
     // -------------------------- UTILITY --------------------------------------
 
     /// Print the instruction to an output stream.

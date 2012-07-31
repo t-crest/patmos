@@ -91,6 +91,24 @@ namespace patmos
   /// Main class representing the simulation of a single Patmos core.
   class simulator_t
   {
+  private:
+    /// Runtime statistics for an instruction class.
+    struct instruction_stat_t
+    {
+      /// Number of times an instruction of the instruction class was fetched.
+      unsigned int Num_fetched;
+
+      /// Number of times an instruction of the instruction class was retired
+      /// (s.t. the predicate evaluated to true)
+      unsigned int Num_retired;
+
+      /// Number of times an instruction of the instruction class was retired
+      /// (s.t. the predicate evaluated to false)
+      unsigned int Num_discarded;
+    };
+
+    /// A vector containing instruction statistics.
+    typedef std::vector<instruction_stat_t> instruction_stats_t;
   public:
     /// Cycle counter
     unsigned int Cycle;
@@ -146,6 +164,15 @@ namespace patmos
     /// Flag indicating whether a decoupled load is active.
     bool Is_decoupled_load_active;
 
+    /// Runtime statistics on all instructions.
+    instruction_stats_t Instruction_stats;
+
+    /// Count number of pipeline bubbles retired.
+    unsigned int Num_bubbles_retired;
+
+    /// Number of stall cycles per pipeline stage
+    unsigned int Num_stall_cycles[NUM_STAGES];
+
     /// Perform a step of the simulation for a given pipeline.
     /// @param pst The pipeline stage.
     /// @param f The simulation/commit function to invoke.
@@ -189,6 +216,11 @@ namespace patmos
     /// Print the internal state of the simulator to an output stream.
     /// @param os An output stream.
     void print(std::ostream &os) const;
+
+    /// Print runtime statistics of the current simulation run to an output 
+    /// stream.
+    /// @param os An output stream.
+    void print_stats(std::ostream &os) const;
   };
 
 

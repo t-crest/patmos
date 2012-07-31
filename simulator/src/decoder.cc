@@ -42,7 +42,7 @@ namespace patmos
     for(instructions_t::const_iterator i(Instructions.begin()),
         ie(Instructions.end()); i != ie; i++)
     {
-      binary_format_t &fmt = *i->get<1>();
+      const binary_format_t &fmt = *i->get<1>();
       if (fmt.matches(iw, slot))
       {
         // ensure that only one instruction type matches.
@@ -119,42 +119,55 @@ namespace patmos
 #define MK_INSTR(name, format, opcode)                                         \
   {                                                                            \
     instruction_t *itmp = new i_ ## name ## _t();                              \
+    itmp->ID = Instructions.size();                                            \
+    itmp->Name = #name;                                                        \
     binary_format_t *ftmp = new format ## _format_t(*itmp, opcode);            \
     Instructions.push_back(boost::make_tuple(itmp, ftmp));                     \
   }
 
-#define MK_SINSTR(name, format, opcode)                                         \
+#define MK_NINSTR(classname, name, format, opcode)                             \
+  {                                                                            \
+    instruction_t *itmp = new i_ ## classname ## _t();                         \
+    itmp->ID = Instructions.size();                                            \
+    itmp->Name = #name;                                                        \
+    binary_format_t *ftmp = new format ## _format_t(*itmp, opcode);            \
+    Instructions.push_back(boost::make_tuple(itmp, ftmp));                     \
+  }
+
+#define MK_SINSTR(name, format, opcode)                                        \
   {                                                                            \
     instruction_t *itmp = new i_ ## name ## _t();                              \
+    itmp->ID = Instructions.size();                                            \
+    itmp->Name = #name;                                                        \
     binary_format_t *ftmp = new format ## _format_t(*itmp, opcode, true);      \
     Instructions.push_back(boost::make_tuple(itmp, ftmp));                     \
   }
 
     // ALUi:
-    MK_INSTR(addil , alui, 0)
-    MK_INSTR(subil , alui, 1)
-    MK_INSTR(rsubil, alui, 2)
-    MK_INSTR(slil  , alui, 3)
-    MK_INSTR(sril  , alui, 4)
-    MK_INSTR(srail , alui, 5)
-    MK_INSTR(oril  , alui, 6)
-    MK_INSTR(andil , alui, 7)
+    MK_NINSTR(addil , addi , alui, 0)
+    MK_NINSTR(subil , subi , alui, 1)
+    MK_NINSTR(rsubil, rsubi, alui, 2)
+    MK_NINSTR(slil  , sli  , alui, 3)
+    MK_NINSTR(sril  , sri  , alui, 4)
+    MK_NINSTR(srail , srai , alui, 5)
+    MK_NINSTR(oril  , ori  , alui, 6)
+    MK_NINSTR(andil , andi , alui, 7)
 
     // ALUl:
-    MK_INSTR(addil  , alul,  0)
-    MK_INSTR(subil  , alul,  1)
-    MK_INSTR(rsubil , alul,  2)
-    MK_INSTR(slil   , alul,  3)
-    MK_INSTR(sril   , alul,  4)
-    MK_INSTR(srail  , alul,  5)
-    MK_INSTR(oril   , alul,  6)
-    MK_INSTR(andil  , alul,  7)
-    MK_INSTR(rll    , alul,  8)
-    MK_INSTR(rrl    , alul,  9)
-    MK_INSTR(xorl   , alul, 10)
-    MK_INSTR(norl   , alul, 11)
-    MK_INSTR(shaddl , alul, 12)
-    MK_INSTR(shadd2l, alul, 13)
+    MK_NINSTR(addil  , addl  , alul,  0)
+    MK_NINSTR(subil  , subl  , alul,  1)
+    MK_NINSTR(rsubil , rsubl , alul,  2)
+    MK_NINSTR(slil   , sll   , alul,  3)
+    MK_NINSTR(sril   , srl   , alul,  4)
+    MK_NINSTR(srail  , sral  , alul,  5)
+    MK_NINSTR(oril   , orl   , alul,  6)
+    MK_NINSTR(andil  , andl  , alul,  7)
+    MK_INSTR (rll            , alul,  8)
+    MK_INSTR (rrl            , alul,  9)
+    MK_INSTR (xorl           , alul, 10)
+    MK_INSTR (norl           , alul, 11)
+    MK_INSTR (shaddl         , alul, 12)
+    MK_INSTR (shadd2l        , alul, 13)
 
     // ALUr:
     MK_INSTR(add   , alur,  0)
@@ -198,10 +211,10 @@ namespace patmos
     MK_INSTR(pnor, alup, 11)
 
     // SPC
-    MK_INSTR(spcn, spcn, 0)
-    MK_INSTR(spcw, spcw, 0)
-    MK_INSTR(spct, spct, 0)
-    MK_INSTR(spcf, spcf, 0)
+    MK_NINSTR(spcn, nop , spcn, 0)
+    MK_NINSTR(spcw, wait, spcw, 0)
+    MK_NINSTR(spct, mts , spct, 0)
+    MK_NINSTR(spcf, mfs , spcf, 0)
 
     // LDT
     MK_SINSTR(lws , ldt,  0)
@@ -270,6 +283,13 @@ namespace patmos
 
     // BNE
     MK_INSTR(bne, bne, 0)
+  }
+
+  const instruction_t &decoder_t::get_instruction(unsigned int ID)
+  {
+    const instruction_t *result = Instructions[ID].get<0>();
+    assert(result && result->ID == ID);
+    return *result;
   }
 }
 

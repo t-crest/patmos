@@ -456,7 +456,7 @@ int main(int argc, char **argv)
     try
     {
       s.run(entry, debug_cycle, max_cycle);
-      s.print(*out);
+      s.print_stats(*out);
     }
     catch (patmos::simulation_exception_t e)
     {
@@ -486,7 +486,7 @@ int main(int argc, char **argv)
         case patmos::simulation_exception_t::HALT:
           // get the exit code
           exit_code = e.get_info();
-          s.print(*out);
+          s.print_stats(*out);
           break;
         default:
           std::cerr << "Unknown simulation error.\n";
