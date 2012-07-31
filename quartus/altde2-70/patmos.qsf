@@ -60,8 +60,6 @@ set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_mem_stage.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_instruction_memory.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_forward.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_fetch.vhd
-set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_execute.vhd
-set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_equal_check.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_dual_port_ram.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_decode.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_data_memory.vhd

@@ -45,6 +45,8 @@ entity patmos_alu is
     (
         clk                         : in std_logic;
         rst                         : in std_logic;
+    dinex                       	     : in execution_in_type;
+    doutex                            : out execution_out_type;
         din                         : in alu_in_type;
         dout                        : out alu_out_type
     );
@@ -159,6 +161,36 @@ begin
     	when others => dout.rd <= din.rs1 + din.rs2; -- unsigned(intermediate_add);--
     	end case;
     end process patmos_alu;
+    
+      process(clk)
+  begin
+    if rising_edge(clk) then
+      if (dinex.predicate_data_in(to_integer(dinex.predicate_condition)) /= dinex.predicate_bit_in ) then
+      	doutex.mem_read_out <= dinex.mem_read_in;
+      	doutex.mem_write_out <= dinex.mem_write_in;
+      	doutex.reg_write_out <= dinex.reg_write_in;
+      	doutex.ps_reg_write_out <= dinex.ps_reg_write_in;
+      --	test <= '1';
+      else
+      	doutex.mem_read_out <= '0';
+      	doutex.mem_write_out <= '0';
+     	doutex.reg_write_out <= '0';
+     	doutex.ps_reg_write_out <= '0';
+      end if;
+      
+      doutex.mem_to_reg_out <= dinex.mem_to_reg_in;
+      doutex.alu_result_out <= dinex.alu_result_in;
+      doutex.mem_write_data_out <= dinex.mem_write_data_in;
+      doutex.write_back_reg_out <= dinex.write_back_reg_in;
+      doutex.ps_write_back_reg_out <= dinex.ps_write_back_reg_in;
+      doutex.head_out <= dinex.head_in;
+      doutex.tail_out <= dinex.tail_in;
+      doutex.STT_instruction_type_out <= dinex.STT_instruction_type_in;
+      doutex.LDT_instruction_type_out <= dinex.LDT_instruction_type_in;
+      doutex.alu_result_predicate_out <= dinex.alu_result_predicate_in;
+    end if; 
+  end process;
+    
 end arch;
 
 --function SHIFT_RIGHT (ARG: SIGNED; COUNT: NATURAL) return SIGNED;

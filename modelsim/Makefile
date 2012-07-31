@@ -30,7 +30,6 @@ base:
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_data_memory.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_stack_cache.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_stack_cache_ctrl.vhd
-	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_equal_check.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_adder.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/fifo.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/sc_uart.vhd
@@ -38,7 +37,6 @@ base:
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_decode.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_instruction_memory.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_forward.vhd
-	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_execute.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_mux_32.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_mux_3x32.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_mem_stage.vhd

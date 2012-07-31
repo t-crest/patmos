@@ -97,12 +97,7 @@ signal fw_ctrl_rs1                     : forwarding_type;
 signal fw_ctrl_rs2                     : forwarding_type;
 signal br_src1                         : unsigned(31 downto 0);
 signal br_src2                         : unsigned(31 downto 0);
-signal fw_ctrl_br1                     : forwarding_type;
-signal fw_ctrl_br2                     : forwarding_type;
 signal mem_data_out           	        : unsigned(31 downto 0); 
-signal branch_taken                    : std_logic; 
-signal is_beq                          : std_logic; 
-signal beq_imm                         : unsigned(31 downto 0);  
 signal test1, test2, test3, test4      : std_logic; 
 
 signal out_rxd							: std_logic := '0';
@@ -268,22 +263,6 @@ end process;
   decode_din.operation <= fetch_dout.instruction;
 	dec: entity work.patmos_decode(arch)
 	port map(clk, rst, decode_din, decode_dout);
-
-  mux_br1: entity work.patmos_forward_value(arch)
- -- generic map (32)
-  port map(execute_dout.alu_result_out, mux_mem_reg, decode_din.rs1_data_in, br_src1, fw_ctrl_br1);
-                                                         
-  mux_br2: entity work.patmos_forward_value(arch)
-  --generic map (32)
-  port map(execute_dout.alu_result_out, mux_mem_reg, decode_din.rs2_data_in, br_src2, fw_ctrl_br2);
-  
-  forward_br: entity work.patmos_forward(arch)
-  generic map (5)
-  port map(fetch_dout.instruction(16 downto 12), fetch_dout.instruction(11 downto 7), execute_dout.reg_write_out, mem_dout.reg_write_out, 
-           execute_dout.write_back_reg_out, mem_dout.write_back_reg_out, fw_ctrl_br1, fw_ctrl_br2);
-  
-  equal_check: entity work.patmos_equal_check(arch)
-  port map(br_src1, br_src2, branch_taken);
   
      
   ------------------------------- predicate registers
@@ -306,7 +285,7 @@ end process;
   ---------------------------------------------------- execute
 	
   	
-  -- MS: this shall go into the ALU with a normal selection
+  -- MS: this shall go into the ALU with a normal selection (or into decode)
   mux_imm: entity work.patmos_mux_32(arch) -- immediate or rt
   port map(alu_src2, decode_dout.ALUi_immediate_out, 
            decode_dout.alu_src_out, mux_alu_src);
@@ -356,7 +335,7 @@ end process;
   alu_din.ps2_negate <= decode_dout.ps1_out(3);
   ---------------------------------------alu
   alu: entity work.patmos_alu(arch)
-  port map(clk, rst, alu_din, alu_dout);
+  port map(clk, rst, execute_din, execute_dout, alu_din, alu_dout);
   
   -----------------------
   execute_din.predicate_bit_in <= decode_dout.predicate_bit_out;
@@ -381,9 +360,9 @@ end process;
  -- execute_din.tail_in <= alu_dout.tail_out;
  -- execute_din.head_in <= alu_dout.head_out;
   execute_din.st_in <= alu_dout.st_out;
-  execute: entity work.patmos_execute(arch)
-  port map(clk, rst, execute_din, execute_dout);
-  
+--  execute: entity work.patmos_execute(arch)
+--  port map(clk, rst, execute_din, execute_dout);
+--  
    -----------------------------------------------cache - memory------------------------------------------------------------
    ---------------------------------------------------- stack cache controller
    
