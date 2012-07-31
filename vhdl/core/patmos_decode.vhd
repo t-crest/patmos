@@ -1,3 +1,41 @@
+-- 
+-- Copyright Technical University of Denmark. All rights reserved.
+-- This file is part of the time-predictable VLIW Patmos.
+-- 
+-- Redistribution and use in source and binary forms, with or without
+-- modification, are permitted provided that the following conditions are met:
+-- 
+--    1. Redistributions of source code must retain the above copyright notice,
+--       this list of conditions and the following disclaimer.
+-- 
+--    2. Redistributions in binary form must reproduce the above copyright
+--       notice, this list of conditions and the following disclaimer in the
+--       documentation and/or other materials provided with the distribution.
+-- 
+-- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
+-- OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+-- OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+-- NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
+-- DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+-- (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+-- LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+-- ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+-- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+-- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-- 
+-- The views and conclusions contained in the software and documentation are
+-- those of the authors and should not be interpreted as representing official
+-- policies, either expressed or implied, of the copyright holder.
+-- 
+
+
+--------------------------------------------------------------------------------
+-- Short descripton.
+--
+-- Author: Sahar Abbaspour
+-- Author: Martin Schoeberl (martin@jopdesign.com)
+--------------------------------------------------------------------------------
+
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -204,22 +242,6 @@ begin
             dout.mem_read_out <= '0';
             dout.mem_write_out <= '0';
             
-        elsif din.operation(26 downto 22) = "11111" then  -- branch (beq non Patmos)  
-            dout.inst_type_out <= BEQ; 
-            dout.predicate_bit_out <= din.operation(30); -- 
-            dout.predicate_condition <= din.operation(29 downto 27);
-            dout.predicate_data_out <= din.predicate_data_in;
-            dout.rs1_out <= din.operation(16 downto 12);
-         --   dout.rs2_out <= din.operation(16 downto 12);
-            dout.ALUi_immediate_out <= "0000000000000000000000000" & din.operation(6 downto 0);
-            dout.rs1_data_out <= din.rs1_data_in;
-            dout.rs2_data_out <= din.rs2_data_in; --value of rs2 is needed
-            dout.alu_src_out <= '0'; -- choose the second source, i.e. immediate!
-            dout.reg_write_out <= '0'; -- reg_write_out is reg_write_ex
-            dout.ps_reg_write_out <= '0';
-            dout.mem_to_reg_out <= '1'; -- data comes from alu or mem ? 0 from alu and 1 from mem
-            dout.mem_read_out <= '0';
-            dout.mem_write_out <= '0';
         elsif din.operation(26 downto 24) = "011" then    -- STC
         	dout.inst_type_out <= STC;
         	dout.predicate_bit_out <= din.operation(30); -- 

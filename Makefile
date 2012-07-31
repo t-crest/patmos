@@ -57,7 +57,7 @@ tools:
 		-d java/classes
 	cd java/classes && jar cf ../lib/patmos-tools.jar *
 
-rom: tools
+rom:
 	-rm -rf vhdl/generated
 	mkdir vhdl/generated
 	-mkdir tmp
