@@ -4,6 +4,8 @@
 # Expected Result: echo entered characters
 #
 
+	addi	r0 = r0, 0;  # first instruction not executed
+
 		addi    r16  = r16 , 64;
 		addi	r1   = r0 , 2;
 		lwm     r10  = [r5 + 0];

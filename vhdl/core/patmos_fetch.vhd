@@ -14,6 +14,7 @@ end entity patmos_fetch;
 
 architecture arch of patmos_fetch is
 	signal pc, pc_next : unsigned(pc_length - 1 downto 0);
+	signal addr        : std_logic_vector(pc_length - 1 downto 0);
 	signal feout       : fetch_out_type;
 	signal tmp         : std_logic_vector(31 downto 0);
 
@@ -25,7 +26,7 @@ begin
 
 	rom : entity work.patmos_rom
 		port map(
-			address => std_logic_vector(pc(7 downto 0)),
+			address => addr(7 downto 0),
 			-- instruction shall not be unsigned
 			q       => tmp
 		);
@@ -37,11 +38,11 @@ begin
 			dout.pc <= (others => '0');
 		elsif (rising_edge(clk) and rst = '0') then
 			pc               <= pc_next;
+			addr             <= std_logic_vector(pc_next);
 			dout.instruction <= feout.instruction;
 			-- MS: the next pc? PC calculation is REALLY an independent pipe stage!
 			dout.pc <= pc;
 		end if;
 	end process;
-
 
 end arch;
