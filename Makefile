@@ -40,8 +40,16 @@ patsim:
 	-mkdir bin
 	cp simulator/build/src/pa* bin
 
+elf2vhdl:
+	-mkdir ctools/build
+	cd ctools/build && cmake ..
+	cd ctools/build && make
+	-mkdir bin
+	cp ctools/build/src/elf2vhdl bin
+
 tools:
 	make patsim
+	make elf2vhdl
 	-rm -rf java/classes
 	-rm -rf java/lib
 	-rm -rf java/src/patmos/asm/generated
