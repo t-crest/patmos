@@ -67,6 +67,9 @@ entity patmos_core is
 end entity patmos_core;
 
 architecture arch of patmos_core is
+	signal sig1					: unsigned(4 downto 0);
+	signal sig2					: unsigned(4 downto 0);
+	signal intermediate_alu_src2 : unsigned(31 downto 0);
 	signal fetch_din             : fetch_in_type;
 	signal fetch_dout            : fetch_out_type;
 	signal decode_din            : decode_in_type;
@@ -246,6 +249,8 @@ begin                                   -- architecture begin
 			     decode_din.rs2_data_in,
 			     mux_mem_reg,
 			     mem_dout.reg_write_out);
+			     
+			     
 
 	decode_din.operation <= fetch_dout.instruction;
 	dec : entity work.patmos_decode(arch)
@@ -256,7 +261,7 @@ begin                                   -- architecture begin
 
 	-- MS: this shall go into the ALU with a normal selection (or into decode)
 	mux_imm : entity work.patmos_mux_32(arch) -- immediate or rt
-		port map(alu_src2,
+		port map(intermediate_alu_src2,
 			     decode_dout.ALUi_immediate_out,
 			     decode_dout.alu_src_out,
 			     mux_alu_src);
@@ -279,8 +284,33 @@ begin                                   -- architecture begin
 			     mem_dout.write_back_reg_out,
 			     fw_ctrl_rs1,
 			     fw_ctrl_rs2);
+	
+	process(clk)
+		begin
+		if rising_edge(clk) then
+			sig1 <= mem_dout.write_back_reg_out;
+		end if;
+	end process;
+		     
+	reg_file_fw1 : process(fetch_dout.instruction(16 downto 12), alu_src1)
+	begin
+		if (fetch_dout.instruction(16 downto 12) = sig1) then
+			alu_din.rs1 <= decode_din.rs1_data_in;
+		else
+			alu_din.rs1 <= alu_src1;
+		end if;
+	end process;	
+	reg_file_fw2 : process(fetch_dout.instruction(11 downto 7), alu_src2)
+	begin
+		if (fetch_dout.instruction(11 downto 7) = sig1) then
+			intermediate_alu_src2 <= decode_din.rs2_data_in;
+		else
+			intermediate_alu_src2 <= alu_src2;
+		end if;
+	end process;	     
+			     
 
-	alu_din.rs1                  <= alu_src1;
+--	alu_din.rs1                  <= alu_src1;
 	alu_din.rs2                  <= mux_alu_src;
 	alu_din.inst_type            <= decode_dout.inst_type_out;
 	alu_din.ALU_instruction_type <= decode_dout.ALU_instruction_type_out;

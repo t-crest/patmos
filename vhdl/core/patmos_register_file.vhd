@@ -67,6 +67,7 @@ type register_bank is array (0 to 31) of unsigned(31 downto 0);
 signal reg_bank : register_bank;
 --signal reg_read_address1, reg_read_address2 : unsigned(4 downto 0);
 signal reg_write_enable : std_logic;
+signal reg_write : unsigned(4 downto 0);
 
 begin
   --                                  
@@ -78,6 +79,7 @@ begin
           reg_bank(i)<= (others => '0');
         end loop;
     elsif rising_edge(clk) then
+    	reg_write <= write_address;
    --   if (read_enable) then
       --    reg_read_address1 <= read_address1;
       --    reg_read_address2 <= read_address2;
@@ -91,17 +93,17 @@ begin
  ------ read process (or should be async?)
   read:  process (read_address1, read_address2, reg_bank)
   begin
-   -- if ((read_address1 = write_address) and write_enable = '1' )then
-  --   read_data1 <= write_data;
-  -- else 
+    if (read_address1 = reg_write)then-- and write_enable = '1' )then
+     read_data1 <= write_data;
+   else 
       read_data1 <= reg_bank(to_integer(unsigned(read_address1)));
- --   end if;
+    end if;
     
-  -- if (read_address2 = write_address) and write_enable = '1' then
-    --  read_data2 <= write_data;
-  -- else   
+   if (read_address2 = reg_write) then --and write_enable = '1' then
+      read_data2 <= write_data;
+  else   
       read_data2 <= reg_bank(to_integer(unsigned(read_address2)));
-  --  end if;
+   end if;
   end process read;
   
 end arch;
