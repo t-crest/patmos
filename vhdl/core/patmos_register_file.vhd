@@ -37,9 +37,6 @@
 --------------------------------------------------------------------------------
 
 
---TO DO: Check $zero as destination
-
-
 ------------------------------------------
 --general purpose registers
 ------------------------------------------
@@ -64,13 +61,13 @@ end entity patmos_register_file;
 architecture arch of patmos_register_file is
 	type ram_type is array (0 to 31) of std_logic_vector(31 downto 0);
 	signal ram              : ram_type;
-	signal reg_write_enable : std_logic;
 
 	signal wr_addr_reg  : std_logic_vector(4 downto 0);
 	signal wr_data_reg  : std_logic_vector(31 downto 0);
 	signal wr_en_reg    : std_logic;
 	signal rd_addr_reg1 : std_logic_vector(4 downto 0);
 	signal rd_addr_reg2 : std_logic_vector(4 downto 0);
+	signal fwd1, fwd2 : std_logic;
 
 begin
 	process(clk)
@@ -81,26 +78,36 @@ begin
 			wr_en_reg    <= write_enable;
 			rd_addr_reg1 <= read_address1;
 			rd_addr_reg2 <= read_address2;
+			if read_address1=write_address and write_enable='1' then
+				fwd1 <= '1';
+			else
+				fwd1 <= '0';
+			end if;
+			if read_address2=write_address and write_enable='1' then
+				fwd2 <= '1';
+			else
+				fwd2 <= '0';
+			end if;
 		end if;
 	end process;
 
-	process(ram, wr_addr_reg, wr_data_reg, wr_en_reg, rd_addr_reg1, rd_addr_reg2, write_enable, write_address, write_data)
+	process(ram, wr_addr_reg, wr_data_reg, wr_en_reg, rd_addr_reg1, rd_addr_reg2, fwd1, fwd2)
 	begin
 		if wr_en_reg = '1' then
 			ram(to_integer(unsigned(wr_addr_reg))) <= wr_data_reg;
 		end if;
 
--- this is latches
---		if write_enable = '1' then
---			ram(to_integer(unsigned(write_address))) <= write_data;
---		end if;
 		if rd_addr_reg1 = "00000" then
 			read_data1 <= (others => '0');
+		elsif fwd1='1' then
+			read_data1 <= wr_data_reg;		
 		else
 			read_data1 <= ram(to_integer(unsigned(rd_addr_reg1)));
 		end if;
 		if rd_addr_reg2 = "00000" then
 			read_data2 <= (others => '0');
+		elsif fwd2='1' then
+			read_data2 <= wr_data_reg;		
 		else
 			read_data2 <= ram(to_integer(unsigned(rd_addr_reg2)));
 		end if;
