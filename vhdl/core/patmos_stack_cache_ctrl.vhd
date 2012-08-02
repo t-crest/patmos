@@ -66,56 +66,59 @@ signal spill									: std_logic;
 signal st										: unsigned (31 downto 0);
 begin
 
-process(din.instruction, rst)
-begin
-	-- NO, NO reset in asynchronous process!
-	if(rst = '1') then
-		head <= (others => '0');
-	--	tail <= (others => '0');
-	--	dout.reg_write_out <= '0';
-		number_of_bytes_in_stack_cache <= (others => '0');
-	else
-	--st <= din.st_in;
-	case din.instruction is -- unbounded cache
-        when SRES =>
-        	head <= (head + din.stc_immediate_in) mod 32;
-    		if ((32 - number_of_bytes_in_stack_cache) <  din.stc_immediate_in) then
-    			spill <= '1';
-    	--		spill_counter <=  din.stc_immediate_in - (32 - number_of_bytes_in_stack_cache);
-    		end if;
-        when SENS =>
-        	
-        when SFREE =>
-        	head <= head - din.stc_immediate_in;
-        when others => null;
-    end case;
-    end if;
-end process;
+-- MS: the following code gives just too many latch warnings and it is very much
+-- work in progress. So it is disabled now
 
-process(clk)
-begin
-	if (spill = '1') then
-		case stack_state is
-        	when s0 =>
-        		dout.spill_fill <= '1';
-        		dout.stall <= '1';
-        		st <= st + 1;
-        		tail <= tail + 1;
-        		stack_state <= s1;
-        		dout.head_tail <= tail + 1;
-        		dout.st_out <= st + 1;
-        		spill_counter <= spill_counter - 1;
-        	when s1 =>
-        		if (spill_counter > 0) then
-        			stack_state <= s1;
-        		else
-        			dout.spill_fill <= '0';
-        			dout.stall <= '0';
-        			dout.reg_write_out <= '1';
-        		end if;
-        end case;
-	end if;
-end process;
+--process(din.instruction, rst)
+--begin
+--	-- NO, NO reset in asynchronous process!
+--	if(rst = '1') then
+--		head <= (others => '0');
+--	--	tail <= (others => '0');
+--	--	dout.reg_write_out <= '0';
+--		number_of_bytes_in_stack_cache <= (others => '0');
+--	else
+--	--st <= din.st_in;
+--	case din.instruction is -- unbounded cache
+--        when SRES =>
+--        	head <= (head + din.stc_immediate_in) mod 32;
+--    		if ((32 - number_of_bytes_in_stack_cache) <  din.stc_immediate_in) then
+--    			spill <= '1';
+--    	--		spill_counter <=  din.stc_immediate_in - (32 - number_of_bytes_in_stack_cache);
+--    		end if;
+--        when SENS =>
+--        	
+--        when SFREE =>
+--        	head <= head - din.stc_immediate_in;
+--        when others => null;
+--    end case;
+--    end if;
+--end process;
+--
+--process(clk)
+--begin
+--	if (spill = '1') then
+--		case stack_state is
+--        	when s0 =>
+--        		dout.spill_fill <= '1';
+--        		dout.stall <= '1';
+--        		st <= st + 1;
+--        		tail <= tail + 1;
+--        		stack_state <= s1;
+--        		dout.head_tail <= tail + 1;
+--        		dout.st_out <= st + 1;
+--        		spill_counter <= spill_counter - 1;
+--        	when s1 =>
+--        		if (spill_counter > 0) then
+--        			stack_state <= s1;
+--        		else
+--        			dout.spill_fill <= '0';
+--        			dout.stall <= '0';
+--        			dout.reg_write_out <= '1';
+--        		end if;
+--        end case;
+--	end if;
+--end process;
 
 end arch;
 
