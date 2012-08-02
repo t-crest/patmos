@@ -68,12 +68,16 @@ namespace patmos
     /// The value of the program counter when the exception was raised.
     uword_t PC;
 
+    /// The value of the cycle counter when the exception was raised.
+    unsigned int Cycle;
+
     /// Construction a simulation exception.
     /// @param kind The kind of the simulation exception.
     /// @param info Additional information on the simulation exception, e.g.,
     /// the address of an unmapped memory access, et cetera.
-    simulation_exception_t(kind_t kind, uword_t info = 0, uword_t pc = 0) :
-        Kind(kind), Info(info), PC(pc)
+    simulation_exception_t(kind_t kind, uword_t info = 0, uword_t pc = 0,
+                           unsigned int cycle = 0) :
+        Kind(kind), Info(info), PC(pc), Cycle(cycle)
     {
     }
   public:
@@ -92,11 +96,18 @@ namespace patmos
     }
 
     /// Return the value of the program counter when the exception was raised.
-    /// @return The value of the program counter (PC) when the exception was 
+    /// @return The value of the program counter (PC) when the exception was
     /// raised.
     uword_t get_pc() const
     {
       return PC;
+    }
+
+    /// Return the value of the cycle counter when the exception was raised.
+    /// @return The value of the cycle counter when the exception was raised.
+    unsigned int get_cycle() const
+    {
+      return Cycle;
     }
 
     /// Throw a halt simulation exception.
