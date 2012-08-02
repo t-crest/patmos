@@ -61,12 +61,10 @@ begin
   begin
     if (rising_edge(clk)) then
       dout.reg_write_out <= din.reg_write_in;
-      dout.ps_reg_write_out <= din.ps_reg_write_in;
       dout.mem_to_reg_out <= din.mem_to_reg_in;
       dout.mem_data_out <= din.mem_data_in;
       dout.alu_result_out <= din.alu_result_in;
       dout.write_back_reg_out <= din.write_back_reg_in;
-      dout.alu_result_predicate_out <= din.alu_result_predicate_in;
     end if;
   end process mem_wb;
 
