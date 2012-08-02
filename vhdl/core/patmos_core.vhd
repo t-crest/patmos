@@ -72,6 +72,7 @@ architecture arch of patmos_core is
 	signal intermediate_alu_src2 : unsigned(31 downto 0);
 	signal fetch_din             : fetch_in_type;
 	signal fetch_dout            : fetch_out_type;
+	signal fetch_reg1, fetch_reg2 : std_logic_vector(4 downto 0);
 	signal decode_din            : decode_in_type;
 	signal decode_dout           : decode_out_type;
 	signal alu_din               : alu_in_type;
@@ -82,7 +83,7 @@ architecture arch of patmos_core is
 	signal stack_cache_ctrl_dout : patmos_stack_cache_ctrl_out;
 	signal mem_din               : mem_in_type;
 	signal mem_dout              : mem_out_type;
-	signal mux_mem_reg           : unsigned(31 downto 0);
+	signal mux_mem_reg           : std_logic_vector(31 downto 0);
 	signal mux_alu_src           : unsigned(31 downto 0);
 	signal alu_src1              : unsigned(31 downto 0);
 	signal alu_src2              : unsigned(31 downto 0);
@@ -213,7 +214,7 @@ begin                                   -- architecture begin
 	------------------------------------------------------- fetch	
 
 	fet : entity work.patmos_fetch
-		port map(clk, rst, decode_dout, execute_dout, fetch_dout);
+		port map(clk, rst, decode_dout, execute_dout, fetch_reg1, fetch_reg2, fetch_dout);
 
 	-- MS: this shall go into the fetch stage
 
@@ -242,8 +243,10 @@ begin                                   -- architecture begin
 	reg_file : entity work.patmos_register_file(arch)
 		port map(clk,
 			     rst,
-			     fetch_dout.instruction(16 downto 12),
-			     fetch_dout.instruction(11 downto 7),
+			     fetch_reg1,
+			     fetch_reg2,
+--			     fetch_dout.instruction(16 downto 12),
+--			     fetch_dout.instruction(11 downto 7),
 			     mem_dout.write_back_reg_out,
 			     decode_din.rs1_data_in,
 			     decode_din.rs2_data_in,
@@ -261,18 +264,18 @@ begin                                   -- architecture begin
 
 	-- MS: this shall go into the ALU with a normal selection (or into decode)
 	mux_imm : entity work.patmos_mux_32(arch) -- immediate or rt
-		port map(intermediate_alu_src2,
+		port map(alu_src2, -- was in Sahar's change: intermediate_alu_src2,
 			     decode_dout.ALUi_immediate_out,
 			     decode_dout.alu_src_out,
 			     mux_alu_src);
 
 	mux_rs1 : entity work.patmos_forward_value(arch)
 		-- generic map (32)
-		port map(execute_dout.alu_result_out, mux_mem_reg, decode_dout.rs1_data_out, alu_src1, fw_ctrl_rs1);
+		port map(execute_dout.alu_result_out, unsigned(mux_mem_reg), decode_dout.rs1_data_out, alu_src1, fw_ctrl_rs1);
 
 	mux_rs2 : entity work.patmos_forward_value(arch)
 		--  generic map (32)
-		port map(execute_dout.alu_result_out, mux_mem_reg, decode_dout.rs2_data_out, alu_src2, fw_ctrl_rs2);
+		port map(execute_dout.alu_result_out, unsigned(mux_mem_reg), decode_dout.rs2_data_out, alu_src2, fw_ctrl_rs2);
 
 	forward : entity work.patmos_forward(arch)
 		-- generic map (5)
@@ -281,33 +284,34 @@ begin                                   -- architecture begin
 			     execute_dout.reg_write_out,
 			     mem_dout.reg_write_out,
 			     execute_dout.write_back_reg_out,
-			     mem_dout.write_back_reg_out,
+			     unsigned(mem_dout.write_back_reg_out),
 			     fw_ctrl_rs1,
 			     fw_ctrl_rs2);
-	
-	process(clk)
-		begin
-		if rising_edge(clk) then
-			sig1 <= mem_dout.write_back_reg_out;
-		end if;
-	end process;
-		     
-	reg_file_fw1 : process(fetch_dout.instruction(16 downto 12), alu_src1)
-	begin
-		if (fetch_dout.instruction(16 downto 12) = sig1) then
-			alu_din.rs1 <= decode_din.rs1_data_in;
-		else
-			alu_din.rs1 <= alu_src1;
-		end if;
-	end process;	
-	reg_file_fw2 : process(fetch_dout.instruction(11 downto 7), alu_src2)
-	begin
-		if (fetch_dout.instruction(11 downto 7) = sig1) then
-			intermediate_alu_src2 <= decode_din.rs2_data_in;
-		else
-			intermediate_alu_src2 <= alu_src2;
-		end if;
-	end process;	     
+
+-- MS: this was conflicting with my changes. Don't know at the moment which is better :-(	
+--	process(clk)
+--		begin
+--		if rising_edge(clk) then
+--			sig1 <= mem_dout.write_back_reg_out;
+--		end if;
+--	end process;
+--		     
+--	reg_file_fw1 : process(fetch_dout.instruction(16 downto 12), alu_src1)
+--	begin
+--		if (fetch_dout.instruction(16 downto 12) = sig1) then
+--			alu_din.rs1 <= decode_din.rs1_data_in;
+--		else
+--			alu_din.rs1 <= alu_src1;
+--		end if;
+--	end process;	
+--	reg_file_fw2 : process(fetch_dout.instruction(11 downto 7), alu_src2)
+--	begin
+--		if (fetch_dout.instruction(11 downto 7) = sig1) then
+--			intermediate_alu_src2 <= decode_din.rs2_data_in;
+--		else
+--			intermediate_alu_src2 <= alu_src2;
+--		end if;
+--	end process;	     
 			     
 
 --	alu_din.rs1                  <= alu_src1;
@@ -483,11 +487,11 @@ begin                                   -- architecture begin
 	write_back : process(mem_dout)
 	begin
 		if (mem_dout.mem_to_reg_out = '0') then
-			mux_mem_reg <= mem_dout.alu_result_out;
+			mux_mem_reg <= std_logic_vector(mem_dout.alu_result_out);
 		elsif (mem_dout.mem_to_reg_out = '1') then
-			mux_mem_reg <= mem_dout.mem_data_out;
+			mux_mem_reg <= std_logic_vector(mem_dout.mem_data_out);
 		else
-			mux_mem_reg <= mem_dout.alu_result_out;
+			mux_mem_reg <= std_logic_vector(mem_dout.alu_result_out);
 		end if;
 	end process;
 

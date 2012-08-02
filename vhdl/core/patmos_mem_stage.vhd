@@ -64,7 +64,7 @@ begin
       dout.mem_to_reg_out <= din.mem_to_reg_in;
       dout.mem_data_out <= din.mem_data_in;
       dout.alu_result_out <= din.alu_result_in;
-      dout.write_back_reg_out <= din.write_back_reg_in;
+      dout.write_back_reg_out <= std_logic_vector(din.write_back_reg_in);
     end if;
   end process mem_wb;
 

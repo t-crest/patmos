@@ -44,11 +44,12 @@ use work.patmos_type_package.all;
 
 entity patmos_fetch is
 	port(
-		clk    : in  std_logic;
-		rst    : in  std_logic;
-		decout : in  decode_out_type;
-		exout  : in  execution_out_type;
-		dout   : out fetch_out_type
+		clk        : in  std_logic;
+		rst        : in  std_logic;
+		decout     : in  decode_out_type;
+		exout      : in  execution_out_type;
+		reg1, reg2 : out std_logic_vector(4 downto 0);
+		dout       : out fetch_out_type
 	);
 end entity patmos_fetch;
 
@@ -79,6 +80,9 @@ begin
 		);
 
 	feout.instruction <= unsigned(tmp);
+	-- register addresses unregistered to make the register file code easier
+	reg1 <= tmp(16 downto 12);
+	reg2 <= tmp(11 downto 7);
 	process(clk, rst)
 	begin
 		if (rst = '1') then

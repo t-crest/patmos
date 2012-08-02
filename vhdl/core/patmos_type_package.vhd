@@ -76,8 +76,8 @@ end record;
 --------------------------------------------
 type decode_in_type is record
     operation                          : unsigned (31 downto 0);
-	rs1_data_in                        : unsigned (31 downto 0);
-    rs2_data_in                        : unsigned (31 downto 0);
+	rs1_data_in                        : std_logic_vector (31 downto 0);
+    rs2_data_in                        : std_logic_vector (31 downto 0);
 end record;
 type decode_out_type is record
 
@@ -96,8 +96,8 @@ type decode_out_type is record
     rs1_out                             : unsigned (4 downto 0);
     rs2_out                             : unsigned (4 downto 0);
     rd_out                              : unsigned (4 downto 0);
-    rs1_data_out                        : unsigned (31 downto 0);
-    rs2_data_out                        : unsigned (31 downto 0);
+    rs1_data_out                        : unsigned(31 downto 0);
+    rs2_data_out                        : unsigned(31 downto 0);
     pd_out                              : unsigned (3 downto 0);
     ld_type_out                         : load_type;
     reg_write_out                       : std_logic;
@@ -169,8 +169,8 @@ type mem_out_type is record
     mem_to_reg_out                : std_logic;
     mem_data_out                  : unsigned(31 downto 0); 
     alu_result_out                : unsigned(31 downto 0);
-    write_back_reg_out            : unsigned(4 downto 0); 
-    mem_write_data_out            : unsigned(31 downto 0);
+    write_back_reg_out            : std_logic_vector(4 downto 0); 
+    mem_write_data_out            : std_logic_vector(31 downto 0);
 end record;
      
 type patmos_stack_cache_ctrl_in is record
