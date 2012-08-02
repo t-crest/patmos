@@ -100,7 +100,6 @@ type decode_out_type is record
     rs2_data_out                        : unsigned (31 downto 0);
     pd_out                              : unsigned (3 downto 0);
     ld_type_out                         : load_type;
-    ps_reg_write_out					: std_logic;
     reg_write_out                       : std_logic;
     alu_src_out                         : std_logic; -- 0 for ALUi/ 1 for ALU
     mem_to_reg_out                      : std_logic; -- data to register file comes from alu or mem? 0 for alu and 1 for mem
@@ -177,7 +176,7 @@ end record;
 type patmos_stack_cache_ctrl_in is record
 		stc_immediate_in	: unsigned(4 downto 0);
 		instruction			: STC_instruction_type; -- from decode
-		st_in				: unsigned(31 downto 0);
+--		st_in				: unsigned(31 downto 0);
 end record;
 
 type patmos_stack_cache_ctrl_out is record

@@ -101,7 +101,6 @@ begin
 			-- dout.reg_write_out <= din.reg_write_in;
 			dout.alu_src_out      <= '1'; -- choose the second source, i.e. immediate!
 			dout.reg_write_out    <= '1'; -- reg_write_out is reg_write_ex
-			dout.ps_reg_write_out <= '0';
 			dout.mem_to_reg_out   <= '0'; -- data comes from alu or mem ? 0 from alu and 1 from mem
 			dout.mem_read_out     <= '0';
 			dout.mem_write_out    <= '0';
@@ -124,7 +123,6 @@ begin
 				dout.alu_src_out <= '0'; -- choose the first source, i.e. reg!
 
 				dout.reg_write_out    <= '1'; -- reg_write_out is reg_write_ex
-				dout.ps_reg_write_out <= '0';
 				case din.operation(6 downto 4) is
 					when "000" =>       -- Register
 						dout.ALU_instruction_type_out <= ALUr;
@@ -164,7 +162,6 @@ begin
 				dout.ALUi_immediate_out <= "0000000000000000000000000" & din.operation(6 downto 0);
 				dout.alu_src_out        <= '1'; -- choose the second source, i.e. immediate!
 				dout.reg_write_out      <= '0'; -- we dont write in registers in store!
-				dout.ps_reg_write_out   <= '0';
 				dout.mem_write_out      <= '1';
 
 			elsif din.operation(26 downto 22) = "01010" then -- load
@@ -195,7 +192,6 @@ begin
 				--            dout.reg_write_out <= din.reg_write_in;
 				dout.alu_src_out      <= '1'; -- choose the second source, i.e. immediate!
 				dout.reg_write_out    <= '1'; -- reg_write_out is reg_write_ex
-				dout.ps_reg_write_out <= '0';
 				dout.mem_to_reg_out   <= '1'; -- data comes from alu or mem ? 0 from alu and 1 from mem
 				dout.mem_read_out     <= '1';
 
@@ -203,7 +199,6 @@ begin
 				dout.inst_type_out <= BC;
 				dout.alu_src_out        <= '0'; -- choose the second source, i.e. immediate!
 				dout.reg_write_out      <= '0'; -- reg_write_out is reg_write_ex
-				dout.ps_reg_write_out   <= '0';
 				dout.mem_to_reg_out     <= '1'; -- data comes from alu or mem ? 0 from alu and 1 from mem
 
 			elsif din.operation(26 downto 24) = "011" then -- STC
@@ -216,7 +211,6 @@ begin
 						dout.ALUi_immediate_out <= "000000000000000000000000000" & din.operation(4 downto 0);
 						dout.alu_src_out      <= '0'; -- choose the first source, i.e. reg!
 						dout.reg_write_out    <= '0'; -- reg_write_out is reg_write_ex
-						dout.ps_reg_write_out <= '0';
 
 					when "01" =>        -- ensure
 						dout.STC_instruction_type_out <= SENS;
@@ -228,7 +222,6 @@ begin
 						dout.ALUi_immediate_out       <= "000000000000000000000000000" & din.operation(4 downto 0);
 						dout.alu_src_out              <= '0'; -- choose the first source, i.e. reg!
 						dout.reg_write_out            <= '0'; -- reg_write_out is reg_write_ex
-						dout.ps_reg_write_out         <= '0';
 					when others => NULL;
 				end case;
 			elsif din.operation(26 downto 22) = "01001" then -- nop   
@@ -236,7 +229,6 @@ begin
 				dout.ALUi_immediate_out <= "0000000000000000000000000000" & din.operation(3 downto 0);
 				dout.alu_src_out      <= '0'; -- choose the second source, i.e. immediate!
 				dout.reg_write_out    <= '0'; -- reg_write_out is reg_write_ex
-				dout.ps_reg_write_out <= '0';
 
 			end if;
 		end if;
