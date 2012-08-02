@@ -68,6 +68,7 @@ begin
 
 process(din.instruction, rst)
 begin
+	-- NO, NO reset in asynchronous process!
 	if(rst = '1') then
 		head <= (others => '0');
 	--	tail <= (others => '0');

@@ -64,7 +64,6 @@ architecture arch of patmos_alu is
 	--signal intermediate_sub : STD_LOGIC_VECTOR(31 DOWNTO 0);
 	signal number_of_bytes_in_stack_cache : unsigned(4 downto 0) := (others => '0');
 	signal rd                             : unsigned(31 downto 0);
-	signal pd                             : std_logic;
 	signal cmp_equal, cmp_result          : std_logic;
 	signal predicate, predicate_reg       : std_logic_vector(7 downto 0);
 
@@ -78,7 +77,7 @@ begin
 	-- also means more decoding in decode and not in execute
 
 	-- we should assign default values;
-	patmos_alu : process(din, predicate, predicate_reg, cmp_equal, cmp_result)
+	patmos_alu : process(din, decdout, predicate, predicate_reg, cmp_equal, cmp_result)
 	begin
 		case din.inst_type is
 			when ALUi =>
@@ -189,7 +188,7 @@ begin
 	end process patmos_alu;
 
 	-- TODO: remove all predicate related stuff from EX out  
-	process(clk)
+	process(rst, clk)
 	begin
 		if rst = '1' then
 			predicate_reg <= "00000001";
@@ -205,17 +204,14 @@ begin
 				doutex.mem_read_out     <= '0';
 				doutex.mem_write_out    <= '0';
 				doutex.reg_write_out    <= '0';
-				doutex.ps_reg_write_out <= '0';
 			end if;
 
 			doutex.mem_to_reg_out           <= decdout.mem_to_reg_out;
 			doutex.alu_result_out           <= rd;
 			doutex.mem_write_data_out       <= din.mem_write_data_in;
 			doutex.write_back_reg_out       <= decdout.rd_out;
-			doutex.ps_write_back_reg_out    <= decdout.pd_out(2 downto 0);
 			doutex.STT_instruction_type_out <= decdout.STT_instruction_type_out;
 			doutex.LDT_instruction_type_out <= decdout.LDT_instruction_type_out;
-			doutex.alu_result_predicate_out <= pd;
 			-- this should be under predicate condition as well
 			doutex.predicate                <= predicate;
 			predicate_reg                   <= predicate;

@@ -85,7 +85,7 @@ begin
    end process latch_read_address;
    
  ------ read process (or should be async?)
-  read:  process (read_address1, read_address2)
+  read:  process (read_address1, read_address2, special_reg_bank)
   begin
    -- if ((read_address1 = write_address) and write_enable = '1' )then
   --   read_data1 <= write_data;

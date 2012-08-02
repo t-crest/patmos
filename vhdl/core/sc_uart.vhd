@@ -183,6 +183,7 @@ begin
 
 	rdy_cnt <= "00";	-- no wait states
 	rd_data(31 downto 8) <= std_logic_vector(to_unsigned(0, 24));
+	pa_error <= '0';
 --
 --	The registered MUX is all we need for a SimpCon read.
 --	The read data is stored in registered rd_data.

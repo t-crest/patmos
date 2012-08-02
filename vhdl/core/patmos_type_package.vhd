@@ -78,15 +78,9 @@ type decode_in_type is record
     operation                          : unsigned (31 downto 0);
 	rs1_data_in                        : unsigned (31 downto 0);
     rs2_data_in                        : unsigned (31 downto 0);
---    rs1_in                             : unsigned (4 downto 0);
---    rs2_in                             : unsigned (4 downto 0);
--- --   reg_write_in                       : std_logic;
---    alu_src_in                         : std_logic;  
     rs1_data_in_special				   : unsigned(31 downto 0);   
     rs2_data_in_special				   : unsigned(31 downto 0);
---    predicate_bit_in					: std_logic;
   	predicate_data_in					: unsigned (7 downto 0);  
---    stack_data_in   					: unsigned (31 downto 0);
 end record;
 type decode_out_type is record
 
@@ -142,10 +136,7 @@ end record;
 type execution_out_type is record
 	predicate : std_logic_vector(7 downto 0);
     alu_result_out                      : unsigned(31 downto 0);
-    alu_result_predicate_out			: std_logic;
     reg_write_out                     	 : std_logic;
-    ps_reg_write_out                     : std_logic;
-    predicate_reg_write_out              : std_logic;
     mem_read_out                        : std_logic;
     mem_write_out                       : std_logic;
     mem_to_reg_out                      : std_logic;
@@ -154,8 +145,6 @@ type execution_out_type is record
     ps_write_back_reg_out		        : unsigned(2 downto 0);
     STT_instruction_type_out			: STT_inst_type;
     LDT_instruction_type_out			: LDT_inst_type;
-    predicate_bit_out                   : std_logic;
-	predicate_data_out					: unsigned(7 downto 0);
 end record;
 
 ------------------------------------------
@@ -183,27 +172,19 @@ end record;
 ------------------------------------------
 type mem_in_type is record
     reg_write_in                 : std_logic;
-    ps_reg_write_in             : std_logic;
-    predicate_reg_write_in       : std_logic;
     mem_to_reg_in                : std_logic;
     mem_data_in                  : unsigned(31 downto 0); 
     alu_result_in                : unsigned(31 downto 0);
-    alu_result_predicate_in		 : std_logic;
     write_back_reg_in            : unsigned(4 downto 0); 
-    ps_write_back_reg_in		  : unsigned(2 downto 0);
     mem_write_data_in            : unsigned(31 downto 0);
 end record;
 
 type mem_out_type is record
     reg_write_out                 : std_logic;
-    ps_reg_write_out                 : std_logic;
-    predicate_reg_write_out       : std_logic;
     mem_to_reg_out                : std_logic;
     mem_data_out                  : unsigned(31 downto 0); 
     alu_result_out                : unsigned(31 downto 0);
-    alu_result_predicate_out	  : std_logic;
     write_back_reg_out            : unsigned(4 downto 0); 
-    ps_write_back_reg_out		  : unsigned(2 downto 0);
     mem_write_data_out            : unsigned(31 downto 0);
 end record;
      

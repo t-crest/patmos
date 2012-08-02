@@ -151,4 +151,5 @@ set_location_assignment PIN_AD18 -to oSRAM_OE_N
 set_location_assignment PIN_AF18 -to oSRAM_WE_N
 
 set_global_assignment -name RESERVE_ALL_UNUSED_PINS_NO_OUTPUT_GND "AS INPUT TRI-STATED"
+
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
