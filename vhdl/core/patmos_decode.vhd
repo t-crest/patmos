@@ -96,8 +96,8 @@ begin
 			dout.rd_out              <= din.operation(21 downto 17);
 			dout.rs1_out             <= din.operation(16 downto 12);
 			dout.rs2_out             <= din.operation(11 downto 7);
-			dout.rs1_data_out        <= din.rs1_data_in;
-			dout.rs2_data_out        <= din.rs2_data_in;
+			dout.rs1_data_out        <= unsigned(din.rs1_data_in);
+			dout.rs2_data_out        <= unsigned(din.rs2_data_in);
 			-- dout.reg_write_out <= din.reg_write_in;
 			dout.alu_src_out      <= '1'; -- choose the second source, i.e. immediate!
 			dout.reg_write_out    <= '1'; -- reg_write_out is reg_write_ex

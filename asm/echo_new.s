@@ -9,7 +9,6 @@
 		addi	r1   = r0 , 2;
 		lwm     r10  = [r5 + 0];
 		lwm     r10  = [r5 + 0];
-                addi    r0  = r0 , 0; # there is a serious forwarding issue from a ddi r1
                 and     r11  = r10 , r1;
 		cmpneq  p1 = r1, r11;
 	(p1)	bc	0;
@@ -22,7 +21,6 @@
 		lwm     r10  = [r5 + 0];
 		lwm     r10  = [r5 + 0];
 		and     r11 = r3 , r10;
-                addi    r0  = r0 , 0; # there is a serious forwarding issue from a ddi r1
 		cmpneq  p1 = r1, r11;
 	(p1)	bc	12;
                 addi    r0  = r0 , 0;
