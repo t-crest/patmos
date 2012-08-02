@@ -50,7 +50,6 @@ set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_types.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_type_package.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_stack_cache_ctrl.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_stack_cache.vhd
-set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_special_register_file.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_register_file.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_mux_32.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_mux_3x32.vhd

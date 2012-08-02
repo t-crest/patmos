@@ -251,19 +251,6 @@ begin                                   -- architecture begin
 	dec : entity work.patmos_decode(arch)
 		port map(clk, rst, decode_din, decode_dout);
 
-	--------------- special register file
-	-- there is a problem here, st_out should be dynamic, it is not dedicated to stack cache
---	special_reg_file : entity work.patmos_special_register_file(arch) -- the first operand may not be st_out, this should change, 
---		port map(clk,
---			     rst,
---			     decode_dout.st_out,
---			     fetch_dout.instruction(10 downto 7),
---			     decode_dout.st_out,
---			     decode_din.rs1_data_in_special,
---			     decode_din.rs2_data_in_special,
---			     stack_cache_ctrl_dout.st_out,
---			     stack_cache_ctrl_dout.reg_write_out);
-
 	---------------------------------------------------- execute
 
 

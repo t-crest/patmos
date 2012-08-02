@@ -69,10 +69,11 @@ begin
 
 	
   core: entity work.patmos_core(arch)
-  port map(clk, internal_rst, led, txd, rxd, oSRAM_A, SRAM_DQ, oSRAM_CE1_N
-  	, oSRAM_OE_N, oSRAM_BE_N, oSRAM_WE_N, oSRAM_GW_N, oSRAM_CLK,
-  	oSRAM_ADSC_N, oSRAM_ADSP_N, oSRAM_ADV_N, oSRAM_CE2, oSRAM_CE3_N
-  );  
+  port map(clk, internal_rst, led, txd, rxd);
+--  , oSRAM_A, SRAM_DQ, oSRAM_CE1_N
+--  	, oSRAM_OE_N, oSRAM_BE_N, oSRAM_WE_N, oSRAM_GW_N, oSRAM_CLK,
+--  	oSRAM_ADSC_N, oSRAM_ADSP_N, oSRAM_ADV_N, oSRAM_CE2, oSRAM_CE3_N
+--  );  
 	
 	
   clk <= not clk after 5 ns;

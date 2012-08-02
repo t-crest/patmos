@@ -40,7 +40,6 @@ base:
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_mux_3x32.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_mem_stage.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_stack_cache.vhd
-	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_special_register_file.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_core.vhd
 	
 
