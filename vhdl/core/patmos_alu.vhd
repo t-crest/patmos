@@ -78,7 +78,7 @@ begin
 	-- also means more decoding in decode and not in execute
 
 	-- we should assign default values;
-	patmos_alu : process(din)
+	patmos_alu : process(din, predicate, predicate_reg, cmp_equal, cmp_result)
 	begin
 		case din.inst_type is
 			when ALUi =>
@@ -166,20 +166,21 @@ begin
 			when others => rd <= din.rs1 + din.rs2; -- unsigned(intermediate_add);--
 		end case;
 
-		-- comparison
+		-- compare instructions
 		cmp_equal <= '0';
+		cmp_result <= '0';
+		predicate  <= predicate_reg;
+		
 		if din.rs1 = din.rs2 then
 			cmp_equal <= '1';
 		end if;
 
-		predicate  <= predicate_reg;
-		cmp_result <= '0';
+		case decdout.ALU_function_type_out(2 downto 0) is
+			when "000" => cmp_result <= cmp_equal;
+			when "001" => cmp_result <= not cmp_equal;
+			when others => null;
+		end case;
 		if decdout.instr_cmp='1' then
-			case decdout.ALU_function_type_out(2 downto 0) is
-				when "000" => cmp_result <= cmp_equal;
-				when "001" => cmp_result <= not cmp_equal;
-				when others => null;
-			end case;
 			predicate(to_integer(decdout.pd_out(2 downto 0))) <= cmp_result;
 		end if;
 		-- the ever true predicate
