@@ -37,6 +37,9 @@
 --------------------------------------------------------------------------------
 
 
+--TO DO: Check $zero as destination
+
+
 ------------------------------------------
 --general purpose registers
 ------------------------------------------
@@ -59,7 +62,6 @@ entity patmos_register_file is          --general purpose registers
 end entity patmos_register_file;
 
 architecture arch of patmos_register_file is
-
 	type ram_type is array (0 to 31) of std_logic_vector(31 downto 0);
 	signal ram              : ram_type;
 	signal reg_write_enable : std_logic;
@@ -88,6 +90,10 @@ begin
 			ram(to_integer(unsigned(wr_addr_reg))) <= wr_data_reg;
 		end if;
 
+-- this is latches
+--		if write_enable = '1' then
+--			ram(to_integer(unsigned(write_address))) <= write_data;
+--		end if;
 		if rd_addr_reg1 = "00000" then
 			read_data1 <= (others => '0');
 		else
