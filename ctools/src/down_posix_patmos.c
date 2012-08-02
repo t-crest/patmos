@@ -105,7 +105,7 @@ int getFileSize(FILE *file)
 }
 
 
-int main(/*int argc, char *argv[]*/)
+int main(int argc, char *argv[])
 {
 	unsigned char c;
 	int i, j;
@@ -128,7 +128,22 @@ int main(/*int argc, char *argv[]*/)
 	unsigned char read_buf[4];
 	//read_buf = (unsigned char*) malloc (4);
 	FILE *file = NULL;		// File pointer
-	fdSerial = serial_open("/dev/ttyUSB0");
+	if (argc<2) {
+		fprintf(stderr, "usage: file port\n");
+		exit(-1);
+		}
+	/*for (i=1; i<argc-2; i++) {
+		if (strcmp(argv[i], "-e") == 0)
+			echo = 1;
+		else if (strcmp(argv[i], "-usb") == 0)
+			usb = 1;
+		else if (strcmp(argv[i], "-c") == 0)
+			cont = 1;
+		}*/
+
+
+	filePath = argv[argc-2];
+	fdSerial = serial_open(argv[argc-1]);
 	if ((file = fopen(filePath, "rb")) == NULL)
 		printf("Could not open specified file");
 	else
