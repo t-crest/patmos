@@ -69,7 +69,7 @@ rom:
 	-rm -rf vhdl/generated
 	mkdir vhdl/generated
 	-mkdir tmp
-	bin/paasm asm/$(APP).asm tmp/$(APP).bin
+	bin/paasm asm/$(APP).s tmp/$(APP).bin
 	java -cp java/lib/patmos-tools.jar \
 		patmos.asm.Bin2Vhdl -s tmp -d vhdl/generated $(APP).bin
 
@@ -77,7 +77,7 @@ old_rom: tools
 	-rm -rf vhdl/generated
 	mkdir vhdl/generated
 	java -cp java/lib/patmos-tools.jar$(S)lib/antlr-3.3-complete.jar \
-		patmos.asm.PatAsm -s asm -d vhdl/generated $(APP).asm
+		patmos.asm.PatAsm -s asm -d vhdl/generated $(APP).s
 
 # ModelSim
 sim:
