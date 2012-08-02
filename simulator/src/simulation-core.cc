@@ -231,7 +231,7 @@ namespace patmos
     catch (simulation_exception_t e)
     {
       // pass on to caller
-      throw simulation_exception_t(e.get_kind(), e.get_info(), PC);
+      throw simulation_exception_t(e.get_kind(), e.get_info(), PC, Cycle);
     }
   }
 

@@ -463,25 +463,33 @@ int main(int argc, char **argv)
       switch(e.get_kind())
       {
         case patmos::simulation_exception_t::CODE_EXCEEDED:
-          std::cerr << boost::format("Method cache size exceeded: %1$08x: "
-                                    "%2$08x\n")
-                    % e.get_pc() % e.get_info();
+          std::cerr << boost::format("Cycle %1%: Method cache size exceeded: "
+                                    "%2$08x%3%: %4$08x\n")
+                    % e.get_cycle() % e.get_pc() % sym.find(e.get_pc())
+                    % e.get_info();
           break;
         case patmos::simulation_exception_t::STACK_EXCEEDED:
-          std::cerr << boost::format("Stack size exceeded: %1$08x\n")
-                    % e.get_pc();
+          std::cerr << boost::format("Cycle %1%: Stack size exceeded: "
+                                     "%2$08x%3%\n")
+                    % e.get_cycle() % e.get_pc() % sym.find(e.get_pc());
           break;
         case patmos::simulation_exception_t::UNMAPPED:
-          std::cerr << boost::format("Unmapped memory access: %1$08x: %2$08x\n")
-                    % e.get_pc() % e.get_info();
+          std::cerr << boost::format("Cycle %1%: Unmapped memory access: "
+                                     "%2$08x%3%: %4$08x\n")
+                    % e.get_cycle() % e.get_pc() % sym.find(e.get_pc())
+                    % e.get_info();
           break;
         case patmos::simulation_exception_t::ILLEGAL:
-          std::cerr << boost::format("Illegal instruction: %1$08x: %2$08x\n")
-                    % e.get_pc() % e.get_info();
+          std::cerr << boost::format("Cycle %1%: Illegal instruction: "
+                                     "%2$08x%3%: %4$08x\n")
+                    % e.get_cycle() % e.get_pc() % sym.find(e.get_pc())
+                    % e.get_info();
           break;
         case patmos::simulation_exception_t::UNALIGNED:
-          std::cerr << boost::format("Unaligned memory access: %1$08x: %2$08x\n")
-                    % e.get_pc() % e.get_info();
+          std::cerr << boost::format("Cycle %1%: Unaligned memory access: "
+                                     "%2$08x%3%: %4$08x\n")
+                    % e.get_cycle() % e.get_pc() % sym.find(e.get_pc())
+                    % e.get_info();
           break;
         case patmos::simulation_exception_t::HALT:
           // get the exit code
