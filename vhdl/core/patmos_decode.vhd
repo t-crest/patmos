@@ -86,7 +86,6 @@ begin
 
 			dout.predicate_bit_out   <= din.operation(30); -- 
 			dout.predicate_condition <= din.operation(29 downto 27);
-			dout.predicate_data_out  <= din.predicate_data_in;
 			dout.rd_out              <= din.operation(21 downto 17);
 			dout.rs1_out             <= din.operation(16 downto 12);
 			-- MS: I think this should be sign extended, like above dout.imm

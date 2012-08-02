@@ -143,7 +143,6 @@ architecture rtl of sc_uart is
 	signal tf_rd		: std_logic;
 	signal tf_empty		: std_logic;
 	signal tf_full		: std_logic;
-	signal tf_half		: std_logic;
 
 	signal ncts_buf		: std_logic_vector(2 downto 0);	-- sync in
 
@@ -288,7 +287,7 @@ begin
 --	transmit fifo
 --
 	tf: fifo generic map (8, txf_depth, txf_thres)
-		port map (clk, reset, wr_data(7 downto 0), tf_dout, tf_rd, ua_wr, tf_empty, tf_full, tf_half);
+		port map (clk, reset, wr_data(7 downto 0), tf_dout, tf_rd, ua_wr, tf_empty, tf_full, open);
 
 --
 --	state machine for actual shift out

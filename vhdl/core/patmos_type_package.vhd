@@ -78,7 +78,6 @@ type decode_in_type is record
     operation                          : unsigned (31 downto 0);
 	rs1_data_in                        : unsigned (31 downto 0);
     rs2_data_in                        : unsigned (31 downto 0);
-  	predicate_data_in					: unsigned (7 downto 0);  
 end record;
 type decode_out_type is record
 
@@ -86,7 +85,6 @@ type decode_out_type is record
 	instr_cmp : std_logic;
 	
 	predicate_bit_out                   : std_logic;
-	predicate_data_out					: unsigned (7 downto 0);  
 	predicate_condition					: unsigned(2 downto 0);
 	ps1_out 							:unsigned(3 downto 0);
     ps2_out 							:unsigned(3 downto 0);
@@ -144,10 +142,10 @@ type alu_in_type is record
    inst_type                   : instruction_type; 
    ALU_function_type           : unsigned(3 downto 0);
    ALU_instruction_type        : ALU_inst_type;
-   stack_data_in			   : unsigned(31 downto 0);
+--   stack_data_in			   : unsigned(31 downto 0);
    STC_instruction_type			:STC_instruction_type;
-   stc_immediate_in				: unsigned (4 downto 0);
-   st_in						: unsigned (31 downto 0);
+--   stc_immediate_in				: unsigned (4 downto 0);
+--   st_in						: unsigned (31 downto 0);
    STT_instruction_type			: STT_inst_type;
    LDT_instruction_type			: LDT_inst_type;
    mem_write_data_in       	 	    : unsigned(31 downto 0);
