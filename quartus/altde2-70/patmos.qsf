@@ -42,7 +42,6 @@ set_global_assignment -name TOP_LEVEL_ENTITY patmos_core
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION "11.0 SP1"
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "11:11:57  JUNE 19, 2012"
 set_global_assignment -name LAST_QUARTUS_VERSION 10.1
-set_global_assignment -name VHDL_FILE ../../vhdl/core/uart_blink.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/sc_uart.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/sc_ssram32.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/sc_pack.vhd

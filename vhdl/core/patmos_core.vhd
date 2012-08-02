@@ -89,7 +89,6 @@ signal alu_src2                        : unsigned(31 downto 0);
 signal fw_ctrl_rs1                     : forwarding_type;
 signal fw_ctrl_rs2                     : forwarding_type;
 signal mem_data_out           	        : unsigned(31 downto 0); 
-signal test1, test2, test3, test4      : std_logic; 
 
 signal out_rxd							: std_logic := '0';
 signal address_uart : std_logic_vector(31 downto 0)  := (others => '0');
