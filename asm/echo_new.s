@@ -18,11 +18,12 @@
                 lwm     r15  = [r5 + 1];
                 lwm     r15  = [r5 + 1];
 
+		addi	r3 = r0, 1;
 		lwm     r10  = [r5 + 0];
 		lwm     r10  = [r5 + 0];
 		and     r11 = r3 , r10;
-		cmpneq  p1 = r1, r11;
-	(p1)	bc	12;
+		cmpneq  p1 = r3, r11;
+	(p1)	bc	11;
                 addi    r0  = r0 , 0;
                 addi    r0  = r0 , 0;
 
