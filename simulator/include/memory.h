@@ -96,6 +96,10 @@ namespace patmos
     /// Print the internal state of the memory to an output stream.
     /// @param os The output stream to print to.
     virtual void print(std::ostream &os) const = 0;
+
+    /// Print statistics to an output stream.
+    /// @param os The output stream to print to.
+    virtual void print_stats(std::ostream &os) = 0;
   };
 
   /// An ideal memory.
@@ -220,6 +224,13 @@ namespace patmos
     /// Print the internal state of the memory to an output stream.
     /// @param os The output stream to print to.
     virtual void print(std::ostream &os) const
+    {
+      // nothing to be done here
+    }
+
+    /// Print statistics to an output stream.
+    /// @param os The output stream to print to.
+    virtual void print_stats(std::ostream &os)
     {
       // nothing to be done here
     }
@@ -405,6 +416,13 @@ namespace patmos
            % Pending_address % Pending_size;
 #endif // NDEBUG
       }
+    }
+
+    /// Print statistics to an output stream.
+    /// @param os The output stream to print to.
+    virtual void print_stats(std::ostream &os)
+    {
+      // TODO:
     }
   };
 }
