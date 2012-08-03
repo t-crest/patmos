@@ -265,7 +265,7 @@ begin                                   -- architecture begin
 	-- MS: this shall go into the ALU with a normal selection (or into decode)
 	mux_imm : entity work.patmos_mux_32(arch) -- immediate or rt
 		-- Register forwarding change by Sahar
-		port map(alu_src2, --intermediate_alu_src2, -- alu_src2,
+		port map(intermediate_alu_src2, -- alu_src2,
 			     decode_dout.ALUi_immediate_out,
 			     decode_dout.alu_src_out,
 			     mux_alu_src);
@@ -293,7 +293,7 @@ begin                                   -- architecture begin
 	process(clk)
 		begin
 		if rising_edge(clk) then
-			sig1 <= std_logic_vector(mem_dout.write_back_reg_out);
+			sig1 <= std_logic_vector(mem_din.write_back_reg_in);
 		end if;
 	end process;
 		     
@@ -314,7 +314,7 @@ begin                                   -- architecture begin
 		end if;
 	end process;
 	
-	alu_din.rs1                  <= alu_src1;
+--	alu_din.rs1                  <= alu_src1;
 	alu_din.rs2                  <= mux_alu_src;
 	alu_din.inst_type            <= decode_dout.inst_type_out;
 	alu_din.ALU_instruction_type <= decode_dout.ALU_instruction_type_out;
