@@ -210,6 +210,13 @@ namespace patmos
 
       os << "\n";
     }
+
+    /// Print statistics to an output stream.
+    /// @param os The output stream to print to.
+    virtual void print_stats(std::ostream &os)
+    {
+      // nothing to be done here
+    }
   };
 
   /// A stack cache organized in blocks.
@@ -518,6 +525,13 @@ namespace patmos
 
       // print stack cache content
       ideal_stack_cache_t::print(os);
+    }
+
+    /// Print statistics to an output stream.
+    /// @param os The output stream to print to.
+    virtual void print_stats(std::ostream &os)
+    {
+      // TODO: implement
     }
 
     /// free buffer memory.

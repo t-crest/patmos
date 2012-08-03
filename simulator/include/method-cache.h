@@ -23,9 +23,11 @@
 #include "basic-types.h"
 #include "endian-conversion.h"
 #include "simulation-core.h"
+#include "symbol.h"
 
 #include <cassert>
 #include <cmath>
+#include <map>
 #include <ostream>
 
 #include <boost/format.hpp>
@@ -48,11 +50,17 @@ namespace patmos
     /// @return True when the instruction word is available from the read port.
     virtual bool fetch(uword_t address, word_t iw[2]) = 0;
 
+
     /// Check whether a method is in the method cache, if it is not available
     /// yet initiate a transfer, evicting other methods if needed.
     /// @param address The base address of the method.
     /// @return True when the method is available in the cache, false otherwise.
     virtual bool is_available(word_t address) = 0;
+
+    /// Assert that the method is in the method cache.
+    /// @param address The base address of the method.
+    /// @return True when the method is available in the cache, false otherwise.
+    virtual bool assert_availability(word_t address) = 0;
 
     /// Notify the cache that a cycle passed.
     virtual void tick() = 0;
@@ -60,6 +68,11 @@ namespace patmos
     /// Print debug information to an output stream.
     /// @param os The output stream to print to.
     virtual void print(std::ostream &os) = 0;
+
+    /// Print statistics to an output stream.
+    /// @param os The output stream to print to.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void print_stats(std::ostream &os, const symbol_map_t &symbols) = 0;
   };
 
   /// An ideal method cache, i.e., all methods are always in the cache --
@@ -103,6 +116,14 @@ namespace patmos
       return true;
     }
 
+    /// Assert that the method is in the method cache.
+    /// @param address The base address of the method.
+    /// @return True when the method is available in the cache, false otherwise.
+    virtual bool assert_availability(word_t address)
+    {
+      return true;
+    }
+
     /// Notify the cache that a cycle passed.
     virtual void tick()
     {
@@ -114,6 +135,30 @@ namespace patmos
     virtual void print(std::ostream &os)
     {
       // nothing to do here either, since the cache has no internal state.
+    }
+
+    /// Print statistics to an output stream.
+    /// @param os The output stream to print to.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void print_stats(std::ostream &os, const symbol_map_t &symbols)
+    {
+      // nothing to do here either, since the cache has no internal state.
+    }
+  };
+
+  /// Cache statistics of a particular method.
+  class method_stats_info_t
+  {
+  public:
+    /// Number of cache hits for the method.
+    unsigned int Num_hits;
+
+    /// Number of cache misses for the method.
+    unsigned int Num_misses;
+
+    /// Initialize the method statistics.
+    method_stats_info_t() : Num_hits(0), Num_misses(0)
+    {
     }
   };
 
@@ -138,12 +183,6 @@ namespace patmos
       TRANSFER
     };
 
-    /// The backing memory to fetch instructions from.
-    memory_t &Memory;
-
-    /// Number of blocks in the method cache.
-    unsigned int Num_blocks;
-  private:
     /// Bookkeeping information on methods in the cache.
     class method_info_t
     {
@@ -182,6 +221,15 @@ namespace patmos
       }
     };
 
+    /// Map addresses to cache statistics of individual methods.
+    typedef std::map<word_t, method_stats_info_t> method_stats_t;
+
+    /// The backing memory to fetch instructions from.
+    memory_t &Memory;
+
+    /// Number of blocks in the method cache.
+    unsigned int Num_blocks;
+
     /// Currently active phase to fetch a method from memory.
     phase_e Phase;
 
@@ -202,6 +250,32 @@ namespace patmos
 
     /// The sum of sizes of all method entries currently active in the cache.
     unsigned int Num_active_blocks;
+
+    /// Number of blocks transferred from the main memory.
+    unsigned int Num_blocks_transferred;
+
+    /// Largest number of blocks transferred from the main memory for a single
+    /// method.
+    unsigned int Num_max_blocks_transferred;
+
+    /// Number of bytes transferred from the main memory.
+    unsigned int Num_bytes_transferred;
+
+    /// Largest number of bytes transferred from the main memory for a single
+    /// method.
+    unsigned int Num_max_bytes_transferred;
+
+    /// Number of cache hits.
+    unsigned int Num_hits;
+
+    /// Number of cache misses.
+    unsigned int Num_misses;
+
+    /// Number of stall cycles caused by method cache misses.
+    unsigned int Num_stall_cycles;
+
+    /// Cache statistics of individual method.
+    method_stats_t Method_stats;
 
     /// Check whether the method at the given address is in the method cache.
     /// @param address The method address.
@@ -243,7 +317,10 @@ namespace patmos
     lru_method_cache_t(memory_t &memory, unsigned int num_blocks) :
         Memory(memory), Num_blocks(num_blocks), Phase(IDLE),
         Num_transfer_blocks(0), Num_transfer_bytes(0), Num_active_methods(0),
-        Num_active_blocks(0)
+        Num_active_blocks(0), Num_blocks_transferred(0),
+        Num_max_blocks_transferred(0), Num_bytes_transferred(0),
+        Num_max_bytes_transferred(0), Num_hits(0), Num_misses(0),
+        Num_stall_cycles(0)
     {
       Methods = new method_info_t[Num_blocks];
       for(unsigned int i = 0; i < Num_blocks; i++)
@@ -311,6 +388,8 @@ namespace patmos
           if (lookup(address))
           {
             // method is in the cache ... done!
+            Num_hits++;
+            Method_stats[address].Num_hits++;
             return true;
           }
           else
@@ -318,6 +397,8 @@ namespace patmos
             // proceed to next phase ... fetch the size from memory.
             // NOTE: the next phase starts immediately.
             Phase = SIZE;
+            Num_misses++;
+            Method_stats[address].Num_misses++;
           }
         }
 
@@ -335,7 +416,7 @@ namespace patmos
             // convert method size to native endianess and compute size in
             // blocks
             Num_transfer_bytes = from_big_endian<big_uword_t>(
-                                        num_words_big_endian) * sizeof(uword_t);
+                                                          num_words_big_endian);
             Num_transfer_blocks = std::ceil(((float)Num_transfer_bytes) /
                                              NUM_BLOCK_BYTES);
 
@@ -344,10 +425,6 @@ namespace patmos
             {
               simulation_exception_t::code_exceeded(address);
             }
-
-            // update counters
-            Num_active_methods++;
-            Num_active_blocks += Num_transfer_blocks;
 
             // throw other entries out of the cache if needed
             while (Num_active_blocks + Num_transfer_blocks > Num_blocks)
@@ -358,12 +435,22 @@ namespace patmos
                             Methods[Num_blocks - Num_active_methods].Num_blocks;
             }
 
+            // update counters
+            Num_active_methods++;
+            Num_active_blocks += Num_transfer_blocks;
+            Num_blocks_transferred += Num_transfer_blocks;
+            Num_max_blocks_transferred = std::max(Num_max_blocks_transferred,
+                                                  Num_transfer_blocks);
+            Num_bytes_transferred += Num_transfer_bytes;
+            Num_max_bytes_transferred = std::max(Num_max_bytes_transferred,
+                                                  Num_transfer_bytes);
+
             // shift the remaining blocks
-            byte_t *saved_instructions = Methods[Num_blocks - 1].Instructions;
+            byte_t *saved_instructions =
+                          Methods[Num_blocks - Num_active_methods].Instructions;
             for(unsigned int j = Num_blocks - Num_active_methods;
                 j < Num_blocks - 1; j++)
             {
-              saved_instructions = Methods[j + 1].Instructions;
               Methods[j] = Methods[j + 1];
             }
 
@@ -409,11 +496,21 @@ namespace patmos
       abort();
     }
 
+    /// Assert that the method is in the method cache.
+    /// @param address The base address of the method.
+    /// @return True when the method is available in the cache, false otherwise.
+    virtual bool assert_availability(word_t address)
+    {
+      return lookup(address);
+    }
+
     /// Notify the cache that a cycle passed -- i.e., if there is an ongoing
     /// transfer of a method to the cache, advance this transfer by one cycle.
     virtual void tick()
     {
-      // do nothing here
+      // update statistics
+      if (Phase != IDLE)
+        Num_stall_cycles++;
     }
 
     /// Print debug information to an output stream.
@@ -426,12 +523,40 @@ namespace patmos
       for(unsigned int i = Num_blocks - 1; i >= Num_blocks - Num_active_methods;
           i--)
       {
-        os << boost::format("   M%1$02d: 0x%2$08x (0x%3$08x 0x%4$08x)\n")
+        os << boost::format("   M%1$02d: 0x%2$08x (0x%3$08d Blk 0x%4$08d b)\n")
            % (Num_blocks - i) % Methods[i].Address % Methods[i].Num_blocks
            % Methods[i].Num_bytes;
       }
 
       os << '\n';
+    }
+
+    /// Print statistics to an output stream.
+    /// @param os The output stream to print to.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void print_stats(std::ostream &os, const symbol_map_t &symbols)
+    {
+      // instruction statistics
+      os << boost::format("\n\nMethod Cache Statistics:\n"
+                          "                            total        max.\n"
+                          "   Blocks Transferred: %1$10d  %2$10d\n"
+                          "   Bytes Transferred : %3$10d  %4$10d\n"
+                          "   Cache Hits        : %5$10d\n"
+                          "   Cache Misses      : %6$10d\n"
+                          "   Miss Stall Cycles : %7$10d\n\n")
+        % Num_blocks_transferred % Num_max_blocks_transferred 
+        % Num_bytes_transferred % Num_max_bytes_transferred
+        % Num_hits % Num_misses % Num_stall_cycles;
+
+      // print stats per method
+      os << "       Method:      #hits     #misses\n";
+      for(method_stats_t::iterator i(Method_stats.begin()),
+          ie(Method_stats.end()); i != ie; i++)
+      {
+        os << boost::format("   0x%1$08x: %2$10d  %3$10d    %4%\n")
+           % i->first % i->second.Num_hits % i->second.Num_misses
+           % symbols.find(i->first);
+      }
     }
 
     /// free dynamically allocated cache memory.

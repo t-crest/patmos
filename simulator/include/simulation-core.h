@@ -173,6 +173,11 @@ namespace patmos
     /// Number of stall cycles per pipeline stage
     unsigned int Num_stall_cycles[NUM_STAGES];
 
+    /// Print the internal register state of the simulator to an output stream 
+    /// (excluding memories and caches)
+    /// @param os An output stream.
+    void print_registers(std::ostream &os) const;
+
     /// Perform a step of the simulation for a given pipeline.
     /// @param pst The pipeline stage.
     /// @param f The simulation/commit function to invoke.

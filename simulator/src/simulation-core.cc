@@ -235,7 +235,7 @@ namespace patmos
     }
   }
 
-  void simulator_t::print(std::ostream &os) const
+  void simulator_t::print_registers(std::ostream &os) const
   {
     os << boost::format("\nCyc : %1$08d   PRR: ")
        % Cycle;
@@ -289,6 +289,12 @@ namespace patmos
       }
     }
     os << "\n";
+  }
+
+  void simulator_t::print(std::ostream &os) const
+  {
+    // print register values
+    print_registers(os);
 
     // print state of method cache
     os << "Method Cache:\n";
@@ -311,8 +317,8 @@ namespace patmos
 
   void simulator_t::print_stats(std::ostream &os) const
   {
-    // print processor state
-    print(os);
+    // print register values
+    print_registers(os);
 
     // instruction statistics
     os << boost::format("\n\nInstruction Statistics:\n"
@@ -352,6 +358,19 @@ namespace patmos
       os << boost::format("   %1%: %2%\n")
          % (Pipeline_t)i % Num_stall_cycles[i];
     }
+    // print statistics of method cache
+    Method_cache.print_stats(os, Symbols);
+
+    // print statistics of data cache
+    Data_cache.print_stats(os);
+
+    // print statistics of stack cache
+    Stack_cache.print_stats(os);
+
+    // print statistics of main memory
+    Memory.print_stats(os);
+
+    os << "\n";
   }
 
   std::ostream &operator<<(std::ostream &os, Pipeline_t p)

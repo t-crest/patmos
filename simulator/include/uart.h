@@ -195,6 +195,13 @@ namespace patmos
     {
       Memory.print(os);
     }
+
+    /// Print statistics to an output stream.
+    /// @param os The output stream to print to.
+    virtual void print_stats(std::ostream &os)
+    {
+      Memory.print_stats(os);
+    }
   };
 }
 
