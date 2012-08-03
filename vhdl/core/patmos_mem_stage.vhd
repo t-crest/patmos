@@ -58,15 +58,15 @@ architecture arch of patmos_mem_stage is
 begin
 
 -- MS: this should be clearified and fixed
+  
+  mem_wb: process(clk)
+  begin
+    if (rising_edge(clk)) then
       dout.mem_data_out <= din.mem_data_in;
       dout.alu_result_out <= din.alu_result_in;
       dout.reg_write_out <= din.reg_write_in;
       dout.mem_to_reg_out <= din.mem_to_reg_in;
       dout.write_back_reg_out <= std_logic_vector(din.write_back_reg_in);
-  
-  mem_wb: process(clk)
-  begin
-    if (rising_edge(clk)) then
     end if;
   end process mem_wb;
 

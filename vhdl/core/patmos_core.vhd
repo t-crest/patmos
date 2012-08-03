@@ -314,7 +314,8 @@ begin                                   -- architecture begin
 		end if;
 	end process;
 	
-	-- *********** why does it work now when this is commented? ****
+	-- *** why is there a difference between rs1 and rs2? ****
+	-- **** also look into memstage about clocked and not. Why does it not matter?
 --	alu_din.rs1                  <= alu_src1;
 	alu_din.rs2                  <= mux_alu_src;
 	alu_din.inst_type            <= decode_dout.inst_type_out;
