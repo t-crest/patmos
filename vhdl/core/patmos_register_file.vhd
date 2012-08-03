@@ -50,9 +50,9 @@ entity patmos_register_file is          --general purpose registers
 		rst           : in  std_logic;
 		read_address1 : in  std_logic_vector(4 downto 0);
 		read_address2 : in  std_logic_vector(4 downto 0);
-		write_address : in  std_logic_vector(4 downto 0);
 		read_data1    : out std_logic_vector(31 downto 0);
 		read_data2    : out std_logic_vector(31 downto 0);
+		write_address : in  std_logic_vector(4 downto 0);
 		write_data    : in  std_logic_vector(31 downto 0);
 		write_enable  : in  std_logic
 	);

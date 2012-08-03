@@ -249,11 +249,11 @@ begin                                   -- architecture begin
 			     fetch_reg2,
 --			     fetch_dout.instruction(16 downto 12),
 --			     fetch_dout.instruction(11 downto 7),
-			     mem_dout.write_back_reg_out,
 			     decode_din.rs1_data_in,
 			     decode_din.rs2_data_in,
+			     std_logic_vector(execute_dout.write_back_reg_out),
 			     mux_mem_reg,
-			     mem_dout.reg_write_out);
+			     execute_dout.reg_write_out);
 
 	decode_din.operation <= fetch_dout.instruction;
 	dec : entity work.patmos_decode(arch)
@@ -265,18 +265,18 @@ begin                                   -- architecture begin
 	-- MS: this shall go into the ALU with a normal selection (or into decode)
 	mux_imm : entity work.patmos_mux_32(arch) -- immediate or rt
 		-- Register forwarding change by Sahar
-		port map(intermediate_alu_src2, -- alu_src2,
+		port map(alu_src2, --intermediate_alu_src2, -- alu_src2,
 			     decode_dout.ALUi_immediate_out,
 			     decode_dout.alu_src_out,
 			     mux_alu_src);
 
 	mux_rs1 : entity work.patmos_forward_value(arch)
 		-- generic map (32)
-		port map(execute_dout.alu_result_out, unsigned(mux_mem_reg), decode_dout.rs1_data_out, alu_src1, fw_ctrl_rs1);
+		port map(execute_dout.alu_result_out, unsigned(mem_dout.data_out), decode_dout.rs1_data_out, alu_src1, fw_ctrl_rs1);
 
 	mux_rs2 : entity work.patmos_forward_value(arch)
 		--  generic map (32)
-		port map(execute_dout.alu_result_out, unsigned(mux_mem_reg), decode_dout.rs2_data_out, alu_src2, fw_ctrl_rs2);
+		port map(execute_dout.alu_result_out, unsigned(mem_dout.data_out), decode_dout.rs2_data_out, alu_src2, fw_ctrl_rs2);
 
 	forward : entity work.patmos_forward(arch)
 		-- generic map (5)
@@ -293,11 +293,11 @@ begin                                   -- architecture begin
 	process(clk)
 		begin
 		if rising_edge(clk) then
-			sig1 <= mem_dout.write_back_reg_out;
+			sig1 <= std_logic_vector(mem_dout.write_back_reg_out);
 		end if;
 	end process;
 		     
-	reg_file_fw1 : process(fetch_dout.instruction(16 downto 12), alu_src1)
+	reg_file_fw1 : process(fetch_dout, sig1, decode_din, alu_src1)
 	begin
 		if (fetch_dout.instruction(16 downto 12) = unsigned(sig1)) then
 			alu_din.rs1 <= unsigned(decode_din.rs1_data_in);
@@ -305,7 +305,7 @@ begin                                   -- architecture begin
 			alu_din.rs1 <= alu_src1;
 		end if;
 	end process;	
-	reg_file_fw2 : process(fetch_dout.instruction(11 downto 7), alu_src2)
+	reg_file_fw2 : process(fetch_dout, sig1, decode_din, alu_src2)
 	begin
 		if (fetch_dout.instruction(11 downto 7) = unsigned(sig1)) then
 			intermediate_alu_src2 <= unsigned(decode_din.rs2_data_in);
@@ -314,9 +314,7 @@ begin                                   -- architecture begin
 		end if;
 	end process;
 	
-	-- *** why is there a difference between rs1 and rs2? ****
-	-- **** also look into memstage about clocked and not. Why does it not matter?
---	alu_din.rs1                  <= alu_src1;
+	alu_din.rs1                  <= alu_src1;
 	alu_din.rs2                  <= mux_alu_src;
 	alu_din.inst_type            <= decode_dout.inst_type_out;
 	alu_din.ALU_instruction_type <= decode_dout.ALU_instruction_type_out;
@@ -434,12 +432,20 @@ begin                                   -- architecture begin
 	begin
 		if (execute_dout.alu_result_out(8) = '0') then
 			mem_data_out_muxed <= unsigned(mem_data_out_uart);
-		elsif (execute_dout.alu_result_out(8) = '1') then
-			mem_data_out_muxed <= mem_data_out;
 		else
 			mem_data_out_muxed <= mem_data_out;
 		end if;
 	end process;
+	
+		write_back : process(execute_dout, mem_data_out_muxed)
+	begin
+		if (execute_dout.mem_to_reg_out = '1') then
+			mux_mem_reg <= std_logic_vector(mem_data_out_muxed);
+		else
+			mux_mem_reg <= std_logic_vector(execute_dout.alu_result_out);
+		end if;
+	end process;
+	
 
 	sc_uart_inst : sc_uart port map     -- Maps internal signals to ports
 (
@@ -470,15 +476,16 @@ begin                                   -- architecture begin
 
 	-- TODO: the memory code belongs into the memory stage component
 
+
 	--------------------------
-	mem_din.reg_write_in            <= execute_dout.reg_write_out;
-	mem_din.mem_to_reg_in           <= execute_dout.mem_to_reg_out;
-	mem_din.alu_result_in           <= execute_dout.alu_result_out;
-	mem_din.write_back_reg_in       <= execute_dout.write_back_reg_out;
-	mem_din.mem_data_in             <= mem_data_out_muxed;
+	mem_din.data_in             <= mux_mem_reg;
+	-- forward
+	mem_din.reg_write_in           <= execute_dout.mem_to_reg_out or execute_dout.mem_write_out;
+	mem_din.write_back_reg_in <= execute_dout.write_back_reg_out;	
 	mem_din.mem_write_data_in       <= execute_dout.mem_write_data_out;
 	memory_stage : entity work.patmos_mem_stage(arch)
 		port map(clk, rst, mem_din, mem_dout);
+
 
 	------------------------------------------------------- write back
 
@@ -486,16 +493,6 @@ begin                                   -- architecture begin
 	--  port map(mem_dout.alu_result_out, mem_dout.mem_data_out, mem_dout.mem_to_reg_out, mux_mem_reg);
 
 
-	write_back : process(mem_dout)
-	begin
-		if (mem_dout.mem_to_reg_out = '0') then
-			mux_mem_reg <= std_logic_vector(mem_dout.alu_result_out);
-		elsif (mem_dout.mem_to_reg_out = '1') then
-			mux_mem_reg <= std_logic_vector(mem_dout.mem_data_out);
-		else
-			mux_mem_reg <= std_logic_vector(mem_dout.alu_result_out);
-		end if;
-	end process;
 
 ------------------------------------------------------ SRAM Interface
 --	sc_mem_out.wr_data <= std_logic_vector(stack_cache_dout.dout_to_mem);

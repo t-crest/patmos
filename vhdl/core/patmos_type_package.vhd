@@ -123,6 +123,7 @@ type execution_out_type is record
     alu_result_out                      : unsigned(31 downto 0);
     reg_write_out                     	 : std_logic;
     mem_read_out                        : std_logic;
+    -- two write back enable signals - shall be merged
     mem_write_out                       : std_logic;
     mem_to_reg_out                      : std_logic;
     mem_write_data_out          	    : unsigned(31 downto 0);
@@ -156,20 +157,18 @@ end record;
 -- mem
 ------------------------------------------
 type mem_in_type is record
-    reg_write_in                 : std_logic;
-    mem_to_reg_in                : std_logic;
-    mem_data_in                  : unsigned(31 downto 0); 
-    alu_result_in                : unsigned(31 downto 0);
-    write_back_reg_in            : unsigned(4 downto 0); 
+    data_in                  : std_logic_vector(31 downto 0); 
+    -- following is forwarding 
+    reg_write_in                : std_logic;
+    write_back_reg_in                  : unsigned(4 downto 0);
     mem_write_data_in            : unsigned(31 downto 0);
 end record;
 
 type mem_out_type is record
-    reg_write_out                 : std_logic;
-    mem_to_reg_out                : std_logic;
-    mem_data_out                  : unsigned(31 downto 0); 
-    alu_result_out                : unsigned(31 downto 0);
-    write_back_reg_out            : std_logic_vector(4 downto 0); 
+    data_out                  : std_logic_vector(31 downto 0);
+    -- following is forwarding 
+    reg_write_out                : std_logic;
+    write_back_reg_out                  : unsigned(4 downto 0);
     mem_write_data_out            : std_logic_vector(31 downto 0);
 end record;
      
