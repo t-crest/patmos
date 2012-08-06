@@ -59,7 +59,7 @@ namespace patmos
   /// @param os An output stream.
   /// @param sck The stack cache kind.
   std::ostream &operator <<(std::ostream &os, stack_cache_e sck);
-  
+
   /// Parsing memory/cache sizes as command-line options.
   class byte_size_t
   {

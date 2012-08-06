@@ -262,6 +262,47 @@ namespace patmos
 
     /// The number of blocks currently spilled to memory.
     unsigned int Num_spilled_blocks;
+
+
+    // *************************************************************************
+    // statistics
+
+    /// Total number of blocks reserved.
+    unsigned int Num_blocks_reserved_total;
+
+    /// Maximal stack depth in blocks.
+    unsigned int Max_blocks_allocated;
+
+    /// Maximal number of blocks reserved at once.
+    unsigned int Max_blocks_reserved;
+
+    /// Total number of blocks transferred to main (spill) memory.
+    unsigned int Num_blocks_spilled;
+
+    /// Maximal number of blocks transferred to main at once (spill) memory.
+    unsigned int Max_blocks_spilled;
+
+    /// Total number of blocks transferred from main (fill) memory.
+    unsigned int Num_blocks_filled;
+
+    /// Maximal number of blocks transferred from main at once (fill) memory.
+    unsigned int Max_blocks_filled;
+
+    /// Number of executed free instructions resulting in an entirely empty
+    /// stack cache.
+    unsigned int Num_free_empty;
+
+    /// Number of read accesses to the stack cache.
+    unsigned int Num_read_accesses;
+
+    /// Number of bytes read from the stack cache.
+    unsigned int Num_bytes_read;
+
+    /// Number of write accesses to the stack cache.
+    unsigned int Num_write_accesses;
+
+    /// Number of bytes written to the stack cache.
+    unsigned int Num_bytes_written;
   public:
     /// Construct a black-based stack cache.
     /// @param memory The memory to spill/fill.
@@ -272,7 +313,12 @@ namespace patmos
                         unsigned int num_blocks_total) :
         ideal_stack_cache_t(), Num_blocks(num_blocks),
         Num_blocks_total(num_blocks_total), Phase(IDLE), Memory(memory),
-        Num_transfer_blocks(0), Num_reserved_blocks(0), Num_spilled_blocks(0)
+        Num_transfer_blocks(0), Num_reserved_blocks(0), Num_spilled_blocks(0),
+        Num_blocks_reserved_total(0), Max_blocks_allocated(0),
+        Max_blocks_reserved(0), Num_blocks_spilled(0), Max_blocks_spilled(0),
+        Num_blocks_filled(0), Max_blocks_filled(0), Num_free_empty(0),
+        Num_read_accesses(0), Num_bytes_read(0), Num_write_accesses(0),
+        Num_bytes_written(0)
     {
       Buffer = new byte_t[num_blocks * NUM_BLOCK_BYTES];
     }
@@ -306,6 +352,13 @@ namespace patmos
           bool result = ideal_stack_cache_t::reserve(
                                       size_blocks * NUM_BLOCK_BYTES, stack_top);
           assert(result);
+
+          // update statistics
+          Num_blocks_reserved_total += size_blocks;
+          Max_blocks_reserved = std::max(Max_blocks_reserved, size_blocks);
+          Max_blocks_allocated = std::max(Max_blocks_allocated,
+                                          (unsigned int)(
+                                             Content.size() / NUM_BLOCK_BYTES));
 
           // need to spill some blocks?
           if(Num_reserved_blocks <= Num_blocks)
@@ -349,6 +402,11 @@ namespace patmos
             // update the internal stack cache state.
             Num_reserved_blocks -= Num_transfer_blocks;
             Num_spilled_blocks += Num_transfer_blocks;
+
+            // update statistics
+            Num_blocks_spilled += Num_transfer_blocks;
+            Max_blocks_spilled = std::max(Max_blocks_spilled,
+                                          Num_transfer_blocks);
 
             // update the stack top pointer of the processor 
             stack_top -= Num_transfer_blocks * NUM_BLOCK_BYTES;
@@ -424,6 +482,9 @@ namespace patmos
 
         // update the stack top pointer of the processor
         stack_top += freed_spilled_blocks * NUM_BLOCK_BYTES;
+
+        // update statistics
+        Num_free_empty++;
       }
 
       return true;
@@ -490,9 +551,15 @@ namespace patmos
             Num_spilled_blocks -= Num_transfer_blocks;
             Num_reserved_blocks += Num_transfer_blocks;
 
+            // update statistics
+            Num_blocks_filled += Num_transfer_blocks;
+            Max_blocks_filled = std::max(Max_blocks_filled,
+                                         Num_transfer_blocks);
+
             // terminate transfer -- goto IDLE state
             Phase = IDLE;
             Num_transfer_blocks = 0;
+            return true;
           }
           else
           {
@@ -513,6 +580,43 @@ namespace patmos
       abort();
     }
 
+    /// A simulated access to a read port.
+    /// @param address The memory address to read from.
+    /// @param value A pointer to a destination to store the value read from
+    /// the cache.
+    /// @param size The number of bytes to read.
+    /// @return True when the data is available from the read port.
+    virtual bool read(uword_t address, byte_t *value, uword_t size)
+    {
+      // read data
+      bool result = ideal_stack_cache_t::read(address, value, size);
+      assert(result);
+
+      // update statistics
+      Num_read_accesses++;
+      Num_bytes_read += size;
+
+      return true;
+    }
+
+    /// A simulated access to a write port.
+    /// @param address The memory address to write to.
+    /// @param value The value to be written to the cache.
+    /// @param size The number of bytes to write.
+    /// @return True when the data is written finally to the cache, false
+    /// otherwise.
+    virtual bool write(uword_t address, byte_t *value, uword_t size)
+    {
+      // read data
+      bool result = ideal_stack_cache_t::write(address, value, size);
+      assert(result);
+
+      // update statistics
+      Num_write_accesses++;
+      Num_bytes_written += size;
+
+      return true;
+    }
 
     /// Print the internal state of the stack cache to an output stream.
     /// @param os The output stream to print to.
@@ -531,7 +635,24 @@ namespace patmos
     /// @param os The output stream to print to.
     virtual void print_stats(std::ostream &os)
     {
-      // TODO: implement
+      // instruction statistics
+      os << boost::format("\n\nStack Cache Statistics:\n"
+                          "                           total        max.\n"
+                          "   Blocks Spilled   : %1$10d  %2$10d\n"
+                          "   Blocks Filled    : %3$10d  %4$10d\n"
+                          "   Blocks Allocated : %5$10d  %6$10d\n"
+                          "   Blocks Reserved  :          -  %7$10d\n"
+                          "   Reads            : %8$10d\n"
+                          "   Bytes Read       : %9$10d\n"
+                          "   Writes           : %10$10d\n"
+                          "   Bytes Written    : %11$10d\n"
+                          "   Emptying Frees   : %12$10d\n\n")
+        % Num_blocks_spilled % Max_blocks_spilled
+        % Num_blocks_filled  % Max_blocks_filled
+        % Num_blocks_reserved_total % Max_blocks_allocated % Max_blocks_reserved
+        % Num_read_accesses % Num_bytes_read
+        % Num_write_accesses % Num_bytes_written
+        % Num_free_empty;
     }
 
     /// free buffer memory.
