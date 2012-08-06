@@ -97,10 +97,13 @@ namespace patmos
     in >> v;
 
     std::string tmp, unit;
-    in >> tmp;
+    if (!in.eof())
+    {
+      in >> tmp;
 
-    unit.resize(tmp.size());
-    std::transform(tmp.begin(), tmp.end(), unit.begin(), ::tolower);
+      unit.resize(tmp.size());
+      std::transform(tmp.begin(), tmp.end(), unit.begin(), ::tolower);
+    }
 
     if (unit.empty())
       bs = v;
@@ -113,6 +116,7 @@ namespace patmos
     else throw boost::program_options::validation_error(
                   boost::program_options::validation_error::invalid_option_value,
                   "Unknown unit: " + tmp);
+
     return in;
   }
 
@@ -126,6 +130,8 @@ namespace patmos
       os << (v >> 20) << "m";
     else if ((v & 0x3ff) == 0)
       os << (v >> 10) << "k";
+    else
+      os << v;
 
     return os;
   }
