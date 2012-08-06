@@ -219,6 +219,12 @@ type instruction_rom_out_type is record
 	q 					  :  unsigned(31 downto 0);
 end record;
 
+type write_back_in_out_type is record
+	write_reg 			  : unsigned(4 downto 0);
+	write_enable		  : std_logic;
+	write_value			  : unsigned(31 downto 0);	
+end record;
+
 end patmos_type_package;
 
 

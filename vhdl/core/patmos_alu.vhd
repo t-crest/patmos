@@ -66,7 +66,6 @@ architecture arch of patmos_alu is
 	signal rd                             : unsigned(31 downto 0);
 	signal cmp_equal, cmp_result          : std_logic;
 	signal predicate, predicate_reg       : std_logic_vector(7 downto 0);
-
 begin
 	--add: megaddsub
 	--PORT MAP ('1', STD_LOGIC_VECTOR(din.rs1), STD_LOGIC_VECTOR(din.rs2), intermediate_add ) ;
@@ -85,9 +84,9 @@ begin
 					when "0000" => rd <= din.rs1 + din.rs2; -- unsigned(intermediate_add);
 					when "0001" => rd <= din.rs1 - din.rs2; --unsigned(intermediate_sub);--
 					when "0010" => rd <= din.rs2 - din.rs1;
-					when "0011" => rd <= SHIFT_LEFT(din.rs1, to_integer(din.rs2));
-					when "0100" => rd <= SHIFT_RIGHT(din.rs1, to_integer(din.rs2));
-					--  when "0101" => dout.rd <= shift_right_arith(din.rs, ("00000000000000000000" & din.ALUi_immediate));
+					when "0011" => rd <= SHIFT_LEFT(din.rs1, to_integer(din.rs2(4 downto 0)));
+					when "0100" => rd <= SHIFT_RIGHT(din.rs1, to_integer(din.rs2(4 downto 0)));
+				    when "0101" => rd <= unsigned(std_logic_vector(resize(signed(din.rs1(31 downto to_integer(din.rs2(4 downto 0)))), 32)));
 					when "0110" => rd <= din.rs1 or din.rs2;
 					when "0111" => rd <= din.rs1 and din.rs2;
 					when others => rd <= din.rs1 + din.rs2; --unsigned(intermediate_add); 
@@ -101,18 +100,18 @@ begin
 							when "0010" => rd <= din.rs2 - din.rs1; --unsigned(intermediate_sub);--
 							when "0011" => rd <= SHIFT_LEFT(din.rs1, to_integer(din.rs2));
 							when "0100" => rd <= SHIFT_RIGHT(din.rs1, to_integer(din.rs2));
-							------------------?????when "0101" => rd <= SHIFT_RIGHT(signed(rs), to_integer(rt));
+							when "0101" => rd <= unsigned(std_logic_vector(resize(signed(din.rs1(31 downto to_integer(din.rs2(4 downto 0)))), 32)));
 							when "0110" => rd <= din.rs1 or din.rs2;
 							when "0111" => rd <= din.rs1 and din.rs2;
-							--??  when "1000" => rd <= shift_left_logical(rs, rt) or ; --??
-							when "1001" => rd <= din.rs1 - din.rs2; --unsigned(intermediate_sub);-- --??
+							when "1000" => rd <= --SHIFT_LEFT(din.rs1, to_integer(din.rs2(4 downto 0))) or 
+										 unsigned(std_logic_vector(resize(signed(din.rs1(31 downto 32 - to_integer(din.rs2(4 downto 0)))), 32)));
+							when "1001" => rd <= SHIFT_LEFT(din.rs1, 32 - to_integer(din.rs2(4 downto 0))) or 
+										 unsigned(std_logic_vector(resize(signed(din.rs1(31 downto to_integer(din.rs2(4 downto 0)))), 32)));
 							when "1010" => rd <= din.rs2 xor din.rs1;
 							when "1011" => rd <= din.rs1 nor din.rs2;
-							--   when "1100" => rd <= shift_right_logical(rs, rt); --??
-							--   when "1101" => rd <= shift_right_arith(rs, rt); --??
-							when "1110" => rd <= SHIFT_LEFT(din.rs1, 1) + din.rs2;
-							when "1111" => rd <= SHIFT_LEFT(din.rs1, 2) + din.rs2;
-							when others => rd <= din.rs1 + din.rs2; --unsigned(intermediate_add); --
+							when "1100" => rd <= SHIFT_LEFT(din.rs1, 1) + din.rs2;
+							when "1101" => rd <= SHIFT_LEFT(din.rs1, 2) + din.rs2;
+							when others => rd <= din.rs1 + din.rs2; 
 						end case;
 					when ALUu =>
 						case din.ALU_function_type is

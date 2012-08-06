@@ -1,10 +1,15 @@
 #
-# Just a few basic instructions to watch the pipeline going in ModelSim
+# Basic instructions test
 #
 
 	addi	r1 = r0, 255;  # first instruction not executed
-	addi	r1 = r0, 15;
-	subi	r1 = r1, 5;
-	rsubi	r1 = r1, 25;
-	sl	r1 = r1, 7;
+	addi	r1 = r0, 15; # r1 = 15
+	subi	r1 = r1, 5; # r1 = 10
+	rsubi	r1 = r1, 25; # r1 = 15
+	sli	r1 = r1, 1;# r1 = 30
+	sri	r1 = r1, 1;# r1 =15
+	srai	r1 = r1, 2; # r1 = 3
+	ori 	r1 = r1, 512; # r1 = 515
+	andi	r1 = r1, 3; # r1 = 3
+	addi    r2 = r0, 24;# init r2
 	halt; 
