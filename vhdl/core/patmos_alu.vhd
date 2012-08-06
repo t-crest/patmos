@@ -84,7 +84,7 @@ begin
 				case din.ALU_function_type is
 					when "0000" => rd <= din.rs1 + din.rs2; -- unsigned(intermediate_add);
 					when "0001" => rd <= din.rs1 - din.rs2; --unsigned(intermediate_sub);--
-					--          when "0010" => dout.rd <= din.rs2 - din.rs1;
+					when "0010" => rd <= din.rs2 - din.rs1;
 					when "0011" => rd <= SHIFT_LEFT(din.rs1, to_integer(din.rs2));
 					when "0100" => rd <= SHIFT_RIGHT(din.rs1, to_integer(din.rs2));
 					--  when "0101" => dout.rd <= shift_right_arith(din.rs, ("00000000000000000000" & din.ALUi_immediate));

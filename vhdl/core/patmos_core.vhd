@@ -71,6 +71,7 @@ architecture arch of patmos_core is
 	signal sig1					: std_logic_vector(4 downto 0);
 	signal sig2					: std_logic_vector(4 downto 0);
 	signal intermediate_alu_src2 : unsigned(31 downto 0);
+	signal write_enable 			: std_logic;
 
 	signal fetch_din             : fetch_in_type;
 	signal fetch_dout            : fetch_out_type;
@@ -247,11 +248,12 @@ begin                                   -- architecture begin
 			     rst,
 			     fetch_reg1,
 			     fetch_reg2,
+			      std_logic_vector(execute_dout.write_back_reg_out),
 --			     fetch_dout.instruction(16 downto 12),
 --			     fetch_dout.instruction(11 downto 7),
 			     decode_din.rs1_data_in,
 			     decode_din.rs2_data_in,
-			     std_logic_vector(execute_dout.write_back_reg_out),
+			    
 			     mux_mem_reg,
 			     execute_dout.reg_write_out);
 
@@ -294,12 +296,13 @@ begin                                   -- architecture begin
 		begin
 		if rising_edge(clk) then
 			sig1 <= std_logic_vector(mem_din.write_back_reg_in);
+			write_enable <=  mem_din.reg_write_in;
 		end if;
 	end process;
 		     
 	reg_file_fw1 : process(fetch_dout, sig1, decode_din, alu_src1)
 	begin
-		if (fetch_dout.instruction(16 downto 12) = unsigned(sig1)) then
+		if (fetch_dout.instruction(16 downto 12) = unsigned(sig1) and write_enable = '1') then
 			alu_din.rs1 <= unsigned(decode_din.rs1_data_in);
 		else
 			alu_din.rs1 <= alu_src1;
@@ -307,7 +310,7 @@ begin                                   -- architecture begin
 	end process;	
 	reg_file_fw2 : process(fetch_dout, sig1, decode_din, alu_src2)
 	begin
-		if (fetch_dout.instruction(11 downto 7) = unsigned(sig1)) then
+		if (fetch_dout.instruction(11 downto 7) = unsigned(sig1) and write_enable = '1') then
 			intermediate_alu_src2 <= unsigned(decode_din.rs2_data_in);
 		else
 			intermediate_alu_src2 <= alu_src2;
