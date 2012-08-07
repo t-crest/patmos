@@ -116,6 +116,7 @@ architecture arch of patmos_core is
 	"POWER_UP_LEVEL=LOW";
 	signal rst     : std_logic;         --out_rst
 
+	signal led_reg, led_wr : std_logic;
 
 	-- for the SSRAM interface - not used shall go into a top level
 	--	signal clk2               : std_logic;
@@ -190,7 +191,7 @@ begin                                   -- architecture begin
 	-- If yes, it has to be synchronized
 	-- rst <= not out_rst;
 	rst <= int_res;
-	led <= '1';
+	led <= led_reg;
 	------------------------------------------------------- fetch	
 
 	fet : entity work.patmos_fetch
@@ -348,6 +349,10 @@ begin                                   -- architecture begin
 
 	------------------------------------------------------- memory
 	-- mem/io decoder
+	
+	-- MS: IO shall go into it's own 'top level' component
+	-- We need to find a reasonable address mapping, not starting IO at
+	-- address 0
 	io_decode : process(execute_dout)
 	begin
 		-- default values
@@ -358,6 +363,8 @@ begin                                   -- architecture begin
 		address_uart                     <= std_logic_vector(execute_dout.alu_result_out);
 		instruction_mem_din.write_enable <= '0';
 		stack_cache_din.write_enable     <= '0';
+		-- MS: This decoding will also trigger the IO devices as it goes form
+		-- different address bits.
 		if (execute_dout.alu_result_out(10) = '1') then -- stack cache
 			mem_write <= '0';
 			mem_read  <= '0';
@@ -369,12 +376,15 @@ begin                                   -- architecture begin
 		--stack_cache_din.read_enable <= execute_dout.mem_read_out;
 
 		end if;
-		if (execute_dout.alu_result_out(8) = '0') then -- uart
+		if (execute_dout.alu_result_out(8 downto 4) = "0000") then -- uart
 			mem_write                        <= '0';
 			mem_read                         <= '0';
 			io_write                         <= execute_dout.mem_write_out;
 			io_read                          <= execute_dout.mem_read_out;
 			instruction_mem_din.write_enable <= '0';
+		end if;
+		if (execute_dout.alu_result_out(8 downto 4) = "0001") then -- the LED
+			led_wr <= execute_dout.mem_write_out;
 		end if;
 		if (execute_dout.alu_result_out(8) = '1') then --data mem
 			mem_write                        <= execute_dout.mem_write_out;
@@ -412,6 +422,18 @@ begin                                   -- architecture begin
 			mux_mem_reg <= std_logic_vector(mem_data_out_muxed);
 		else
 			mux_mem_reg <= std_logic_vector(execute_dout.alu_result_out);
+		end if;
+	end process;
+	
+	process(clk, rst)
+	begin
+	
+		if rst='1' then
+			led_reg <= '0';
+		elsif rising_edge(clk) then
+			if led_wr='1' then
+				led_reg <= std_logic(execute_dout.mem_write_data_out(0));
+			end if;
 		end if;
 	end process;
 
