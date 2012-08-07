@@ -139,30 +139,6 @@ architecture arch of patmos_core is
 	-- signal rdy_cnt   : unsigned(1 downto 0); 
 	signal address   : std_logic_vector(31 downto 0) := (others => '0');
 
-	component sc_uart                   --  Declaration of uart driver
-		generic(addr_bits : integer := 32;
-			    clk_freq  : integer := 50000000;
-			    baud_rate : integer := 115200;
-			    txf_depth : integer := 16;
-			    txf_thres : integer := 8;
-			    rxf_depth : integer := 16;
-			    rxf_thres : integer := 8);
-		port(
-			clk     : in  std_logic;
-			reset   : in  std_logic;
-
-			address : in  std_logic_vector(31 downto 0);
-			wr_data : in  std_logic_vector(31 downto 0);
-			rd, wr  : in  std_logic;
-			rd_data : out std_logic_vector(31 downto 0);
-			rdy_cnt : out unsigned(1 downto 0);
-			txd     : out std_logic;
-			rxd     : in  std_logic;
-			ncts    : in  std_logic;
-			nrts    : out std_logic
-		);
-	end component;
-
 	component sc_mem_if
 		generic(ram_ws    : integer;
 			    addr_bits : integer);
@@ -438,23 +414,26 @@ begin                                   -- architecture begin
 			mux_mem_reg <= std_logic_vector(execute_dout.alu_result_out);
 		end if;
 	end process;
-	
 
-	sc_uart_inst : sc_uart port map     -- Maps internal signals to ports
-(
-			address => address_uart,
-			wr_data => std_logic_vector(execute_dout.mem_write_data_out),
-			rd      => io_read,
-			wr      => io_write,
-			rd_data => mem_data_out_uart,
-			rdy_cnt => open,
-			clk     => clk,
-			reset   => rst,
-			txd     => txd,
-			rxd     => rxd,
-			ncts    => '0',
-			nrts    => open
-		);
+	ua: entity work.uart generic map (
+		clk_freq => 50000000,
+		baud_rate => 115200,
+		txf_depth => 1,
+		rxf_depth => 1
+	)
+	port map(
+		clk => clk,
+		reset => rst,
+
+		address => address_uart(0),
+		wr_data => std_logic_vector(execute_dout.mem_write_data_out),
+		rd => io_read,
+		wr => io_write,
+		rd_data => mem_data_out_uart,
+
+		txd	 => txd,
+		rxd	 => rxd
+	);
 
 	-- out_rxd <= not out_rxd after 100 ns;
 
