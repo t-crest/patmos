@@ -114,12 +114,20 @@ type decode_out_type is record
     LDT_instruction_type_out			: LDT_inst_type;
 end record;
        
+       
+type result_type is record
+	value   : std_logic_vector(31 downto 0);
+	reg_nr  : std_logic_vector(4 downto 0);
+	valid   : std_logic; 
+end record;
+
 -------------------------------------------
 -- execution
 -------------------------------------------
 
 type execution_out_type is record
 	predicate : std_logic_vector(7 downto 0);
+	result  : result_type;
     alu_result_out                      : unsigned(31 downto 0);
     reg_write_out                     	 : std_logic;
     mem_read_out                        : std_logic;
