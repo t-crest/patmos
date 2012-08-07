@@ -173,6 +173,7 @@ type mem_in_type is record
 end record;
 
 type mem_out_type is record
+	result  : result_type;
     data_out                  : std_logic_vector(31 downto 0);
     -- following is forwarding 
     reg_write_out                : std_logic;
