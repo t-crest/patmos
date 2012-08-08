@@ -45,57 +45,56 @@ use work.sc_pack.all;
 
 entity patmos_core is
 	port(
-		clk          : in    std_logic;
-		out_rst      : in    std_logic;
-		led          : out   std_logic;
-		txd          : out   std_logic;
-		rxd          : in    std_logic
---		oSRAM_A      : out   std_logic_vector(18 downto 0); -- edit
---		SRAM_DQ      : inout std_logic_vector(31 downto 0); -- edit
---		oSRAM_CE1_N  : out   std_logic;
---		oSRAM_OE_N   : out   std_logic;
---		oSRAM_BE_N   : out   std_logic_vector(3 downto 0);
---		oSRAM_WE_N   : out   std_logic;
---		oSRAM_GW_N   : out   std_logic;
---		oSRAM_CLK    : out   std_logic;
---		oSRAM_ADSC_N : out   std_logic;
---		oSRAM_ADSP_N : out   std_logic;
---		oSRAM_ADV_N  : out   std_logic;
---		oSRAM_CE2    : out   std_logic;
---		oSRAM_CE3_N  : out   std_logic
+		clk     : in  std_logic;
+		out_rst : in  std_logic;
+		led     : out std_logic;
+		txd     : out std_logic;
+		rxd     : in  std_logic
+	--		oSRAM_A      : out   std_logic_vector(18 downto 0); -- edit
+	--		SRAM_DQ      : inout std_logic_vector(31 downto 0); -- edit
+	--		oSRAM_CE1_N  : out   std_logic;
+	--		oSRAM_OE_N   : out   std_logic;
+	--		oSRAM_BE_N   : out   std_logic_vector(3 downto 0);
+	--		oSRAM_WE_N   : out   std_logic;
+	--		oSRAM_GW_N   : out   std_logic;
+	--		oSRAM_CLK    : out   std_logic;
+	--		oSRAM_ADSC_N : out   std_logic;
+	--		oSRAM_ADSP_N : out   std_logic;
+	--		oSRAM_ADV_N  : out   std_logic;
+	--		oSRAM_CE2    : out   std_logic;
+	--		oSRAM_CE3_N  : out   std_logic
 	);
 end entity patmos_core;
 
 architecture arch of patmos_core is
-
-	signal sig1					: std_logic_vector(4 downto 0);
-	signal sig2					: std_logic_vector(4 downto 0);
+	signal sig1                  : std_logic_vector(4 downto 0);
+	signal sig2                  : std_logic_vector(4 downto 0);
 	signal intermediate_alu_src2 : std_logic_vector(31 downto 0);
-	signal write_enable 			: std_logic;
-	signal test: std_logic;
+	signal write_enable          : std_logic;
+	signal test                  : std_logic;
 
-	signal data_mem_data_out       : std_logic_vector(31 downto 0);
-	signal fetch_din             : fetch_in_type;
-	signal fetch_dout            : fetch_out_type;
+	signal data_mem_data_out      : std_logic_vector(31 downto 0);
+	signal fetch_din              : fetch_in_type;
+	signal fetch_dout             : fetch_out_type;
 	signal fetch_reg1, fetch_reg2 : std_logic_vector(4 downto 0);
-	signal decode_din            : decode_in_type;
-	signal decode_dout           : decode_out_type;
-	signal alu_din               : alu_in_type;
-	signal execute_dout          : execution_out_type;
-	signal write_back			 : write_back_in_out_type;
-	signal stack_cache_din       : patmos_stack_cache_in;
-	signal stack_cache_dout      : patmos_stack_cache_out;
-	signal stack_cache_ctrl_din  : patmos_stack_cache_ctrl_in;
-	signal stack_cache_ctrl_dout : patmos_stack_cache_ctrl_out;
-	signal mem_din               : mem_in_type;
-	signal mem_dout              : mem_out_type;
-	signal mux_mem_reg           : std_logic_vector(31 downto 0);
-	signal mux_alu_src           : std_logic_vector(31 downto 0);
-	signal alu_src1              : std_logic_vector(31 downto 0);
-	signal alu_src2              : std_logic_vector(31 downto 0);
-	signal fw_ctrl_rs1           : forwarding_type;
-	signal fw_ctrl_rs2           : forwarding_type;
-	signal mem_data_out          : std_logic_vector(31 downto 0);
+	signal decode_din             : decode_in_type;
+	signal decode_dout            : decode_out_type;
+	signal alu_din                : alu_in_type;
+	signal execute_dout           : execution_out_type;
+	signal write_back             : write_back_in_out_type;
+	signal stack_cache_din        : patmos_stack_cache_in;
+	signal stack_cache_dout       : patmos_stack_cache_out;
+	signal stack_cache_ctrl_din   : patmos_stack_cache_ctrl_in;
+	signal stack_cache_ctrl_dout  : patmos_stack_cache_ctrl_out;
+	signal mem_din                : mem_in_type;
+	signal mem_dout               : mem_out_type;
+	signal mux_mem_reg            : std_logic_vector(31 downto 0);
+	signal mux_alu_src            : std_logic_vector(31 downto 0);
+	signal alu_src1               : std_logic_vector(31 downto 0);
+	signal alu_src2               : std_logic_vector(31 downto 0);
+	signal fw_ctrl_rs1            : forwarding_type;
+	signal fw_ctrl_rs2            : forwarding_type;
+	signal mem_data_out           : std_logic_vector(31 downto 0);
 
 	signal out_rxd            : std_logic                     := '0';
 	signal address_uart       : std_logic_vector(31 downto 0) := (others => '0');
@@ -116,7 +115,7 @@ architecture arch of patmos_core is
 	attribute altera_attribute : string;
 	attribute altera_attribute of res_cnt : signal is
 	"POWER_UP_LEVEL=LOW";
-	signal rst     : std_logic;         --out_rst
+	signal rst : std_logic;             --out_rst
 
 	signal led_reg, led_wr : std_logic;
 
@@ -140,7 +139,7 @@ architecture arch of patmos_core is
 	signal mem_read  : std_logic;
 	signal io_read   : std_logic;
 	-- signal rdy_cnt   : unsigned(1 downto 0); 
-	signal address   : std_logic_vector(31 downto 0) := (others => '0');
+	signal address : std_logic_vector(31 downto 0) := (others => '0');
 
 	component sc_mem_if
 		generic(ram_ws    : integer;
@@ -228,12 +227,11 @@ begin                                   -- architecture begin
 			     rst,
 			     fetch_reg1,
 			     fetch_reg2,
-			      std_logic_vector(execute_dout.write_back_reg_out),
---			     fetch_dout.instruction(16 downto 12),
---			     fetch_dout.instruction(11 downto 7),
+			     std_logic_vector(execute_dout.write_back_reg_out),
+			     --			     fetch_dout.instruction(16 downto 12),
+			     --			     fetch_dout.instruction(11 downto 7),
 			     decode_din.rs1_data_in,
 			     decode_din.rs2_data_in,
-			    
 			     mux_mem_reg,
 			     execute_dout.reg_write_out);
 
@@ -242,50 +240,59 @@ begin                                   -- architecture begin
 		port map(clk, rst, decode_din, decode_dout);
 
 	---------------------------------------------------- execute
-	wb: process(clk)
+	wb : process(clk)
 	begin
-	if rising_edge(clk) then
-		write_back.write_value <= mem_dout.data_out;
-		write_back.write_reg <= mem_dout.write_back_reg_out;
-		write_back.write_enable <= mem_dout.reg_write_out;   
-	end if;
+		if rising_edge(clk) then
+			write_back.write_value  <= mem_dout.data_out;
+			write_back.write_reg    <= mem_dout.write_back_reg_out;
+			write_back.write_enable <= mem_dout.reg_write_out;
+		end if;
 	end process wb;
-	forwarding_rs1: process(execute_dout, decode_dout, write_back )
+	forwarding_rs1 : process(execute_dout, decode_dout, write_back)
 	begin
-		if(decode_dout.rs1_out = execute_dout.write_back_reg_out and execute_dout.reg_write_out = '1') then	
+		if (decode_dout.rs1_out = execute_dout.write_back_reg_out and execute_dout.reg_write_out = '1') then
 			alu_src1 <= execute_dout.alu_result_out;
 		elsif (decode_dout.rs1_out = mem_dout.write_back_reg_out and mem_dout.reg_write_out = '1') then
 			alu_src1 <= mem_dout.data_out;
-		elsif (decode_dout.rs1_out = write_back.write_reg and write_back.write_enable = '1') then
-			alu_src1 <=write_back.write_value;
+--		elsif (decode_dout.rs1_out = write_back.write_reg and write_back.write_enable = '1') then
+--			alu_src1 <= write_back.write_value;
 		else
 			alu_src1 <= decode_dout.rs1_data_out;
 		end if;
 	end process forwarding_rs1;
-	
-	forwarding_rs2: process(execute_dout, decode_dout, write_back )
+
+	forwarding_rs2 : process(execute_dout, decode_dout, write_back)
 	begin
-		if(decode_dout.rs2_out = execute_dout.write_back_reg_out and execute_dout.reg_write_out = '1') then	
+		if (decode_dout.rs2_out = execute_dout.write_back_reg_out and execute_dout.reg_write_out = '1') then
 			alu_src2 <= execute_dout.alu_result_out;
 		elsif (decode_dout.rs2_out = mem_dout.write_back_reg_out and mem_dout.reg_write_out = '1') then
 			alu_src2 <= mem_dout.data_out;
-		elsif (decode_dout.rs2_out = write_back.write_reg and write_back.write_enable = '1') then
-			alu_src2 <=write_back.write_value;
+--		elsif (decode_dout.rs2_out = write_back.write_reg and write_back.write_enable = '1') then
+--			alu_src2 <= write_back.write_value;
 		else
 			alu_src2 <= decode_dout.rs2_data_out;
 		end if;
 	end process forwarding_rs2;
 
+
 	-- MS: this shall go into the ALU with a normal selection (or into decode)
-	mux_imm : entity work.patmos_mux_32(arch) -- immediate or rt
-		-- Register forwarding change by Sahar
-		port map(alu_src2,
-			     decode_dout.ALUi_immediate_out,
-			     decode_dout.alu_src_out,
-			     mux_alu_src);
+--	mux_imm : entity work.patmos_mux_32(arch) -- immediate or rt
+--		-- Register forwarding change by Sahar
+--		port map(alu_src2,
+--			     decode_dout.ALUi_immediate_out,
+--			     decode_dout.alu_src_out,
+--			     mux_alu_src);
 
+-- TODO: remove mux_*!
+	process(alu_src2, decode_dout.ALUi_immediate_out, decode_dout.alu_src_out)
+	begin
+		if (decode_dout.alu_src_out = '0') then
+			mux_alu_src <= alu_src2;
+		else
+			mux_alu_src <= decode_dout.ALUi_immediate_out;
+		end if;
+	end process;
 
-	
 	alu_din.rs1                  <= alu_src1;
 	alu_din.rs2                  <= mux_alu_src;
 	alu_din.inst_type            <= decode_dout.inst_type_out;
@@ -305,7 +312,7 @@ begin                                   -- architecture begin
 
 	stack_cache_ctrl_din.stc_immediate_in <= decode_dout.ALUi_immediate_out(4 downto 0);
 	stack_cache_ctrl_din.instruction      <= decode_dout.STC_instruction_type_out;
---	stack_cache_ctrl_din.st_in 
+	--	stack_cache_ctrl_din.st_in 
 	stack_cache_ctrl : entity work.patmos_stack_cache_ctrl(arch)
 		port map(clk, rst, stack_cache_ctrl_din, stack_cache_ctrl_dout);
 
@@ -326,17 +333,17 @@ begin                                   -- architecture begin
 		end if;
 	end process;
 
---	stack_cache_out : process(execute_dout, stack_cache_dout.dout_to_cpu) -- which type of transfer from stack cache?
---	begin
---		mem_data_out <= stack_cache_dout.dout_to_cpu;
---		if (execute_dout.LDT_instruction_type_out = LWS) then
---			mem_data_out <= stack_cache_dout.dout_to_cpu;
---		elsif (execute_dout.LDT_instruction_type_out = LBS) then
---			mem_data_out(16 downto 0) <= stack_cache_dout.dout_to_cpu(16 downto 0);
---		elsif (execute_dout.LDT_instruction_type_out = LHS) then
---			mem_data_out(8 downto 0) <= stack_cache_dout.dout_to_cpu(8 downto 0);
---		end if;
---	end process;
+	--	stack_cache_out : process(execute_dout, stack_cache_dout.dout_to_cpu) -- which type of transfer from stack cache?
+	--	begin
+	--		mem_data_out <= stack_cache_dout.dout_to_cpu;
+	--		if (execute_dout.LDT_instruction_type_out = LWS) then
+	--			mem_data_out <= stack_cache_dout.dout_to_cpu;
+	--		elsif (execute_dout.LDT_instruction_type_out = LBS) then
+	--			mem_data_out(16 downto 0) <= stack_cache_dout.dout_to_cpu(16 downto 0);
+	--		elsif (execute_dout.LDT_instruction_type_out = LHS) then
+	--			mem_data_out(8 downto 0) <= stack_cache_dout.dout_to_cpu(8 downto 0);
+	--		end if;
+	--	end process;
 
 	--	stack_cache_din.din_from_cpu <= execute_dout.mem_write_data_out; -- transfer to stack cache no matter what, should change based on controlling signals
 
@@ -351,7 +358,7 @@ begin                                   -- architecture begin
 
 	------------------------------------------------------- memory
 	-- mem/io decoder
-	
+
 	-- MS: IO shall go into it's own 'top level' component
 	-- We need to find a reasonable address mapping, not starting IO at
 	-- address 0
@@ -362,20 +369,25 @@ begin                                   -- architecture begin
 		mem_read                         <= '0';
 		io_write                         <= '0';
 		io_read                          <= '0';
-		led_wr <= '0';
+		led_wr                           <= '0';
 		address_uart                     <= std_logic_vector(execute_dout.alu_result_out);
 		instruction_mem_din.write_enable <= '0';
 		stack_cache_din.write_enable     <= '0';
 		-- MS: This decoding will also trigger the IO devices as it goes form
 		-- different address bits.
-		if (execute_dout.alu_result(8) = '1') then --data mem
-			test <= '1';
+		-- MS: decoding from two different pipeline stages (alu_result for
+		-- the SPM and alu_result_out for others) does NOT work!!!!!
+
+		-- we need a clear solution for this in the right pipeline stage
+		--		if (execute_dout.alu_result(8) = '1') then --data mem
+		if (execute_dout.alu_result_out(8) = '1') then --data mem
+			test                             <= '1';
 			mem_write                        <= decode_dout.mem_write_out;
 			mem_read                         <= decode_dout.mem_read_out;
 			io_write                         <= '0';
 			io_read                          <= '0';
 			instruction_mem_din.write_enable <= '0';
-		
+
 		elsif (execute_dout.alu_result_out(10) = '1') then -- stack cache
 			mem_write <= '0';
 			mem_read  <= '0';
@@ -392,11 +404,11 @@ begin                                   -- architecture begin
 			io_write                         <= execute_dout.mem_write_out;
 			io_read                          <= execute_dout.mem_read_out;
 			instruction_mem_din.write_enable <= '0';
-	--	end if;
+		--	end if;
 		elsif (execute_dout.alu_result_out(7 downto 4) = "0001") then -- the LED
 			led_wr <= execute_dout.mem_write_out;
-	--	end if;
-		
+		--	end if;
+
 		elsif (execute_dout.alu_result_out(9) = '1' and execute_dout.alu_result_out(8) /= '0') then -- instruction mem
 			mem_write <= '0';
 			mem_read  <= '0';
@@ -418,8 +430,8 @@ begin                                   -- architecture begin
 			mem_data_out_muxed <= data_mem_data_out;
 		end if;
 	end process;
-	
-		write_back_proc : process(execute_dout, mem_data_out_muxed)
+
+	write_back_proc : process(execute_dout, mem_data_out_muxed)
 	begin
 		if (execute_dout.mem_to_reg_out = '1') then
 			mux_mem_reg <= mem_data_out_muxed;
@@ -427,38 +439,35 @@ begin                                   -- architecture begin
 			mux_mem_reg <= execute_dout.alu_result_out;
 		end if;
 	end process;
-	
+
 	process(clk, rst)
 	begin
-	
-		if rst='1' then
+		if rst = '1' then
 			led_reg <= '0';
 		elsif rising_edge(clk) then
-			if led_wr='1' then
+			if led_wr = '1' then
 				led_reg <= std_logic(execute_dout.mem_write_data_out(0));
 			end if;
 		end if;
 	end process;
 
-	ua: entity work.uart generic map (
-		clk_freq => 50000000,
-		baud_rate => 115200,
-		txf_depth => 1,
-		rxf_depth => 1
-	)
-	port map(
-		clk => clk,
-		reset => rst,
-
-		address => address_uart(0),
-		wr_data => std_logic_vector(execute_dout.mem_write_data_out),
-		rd => io_read,
-		wr => io_write,
-		rd_data => mem_data_out_uart,
-
-		txd	 => txd,
-		rxd	 => rxd
-	);
+	ua : entity work.uart generic map(
+			clk_freq  => 50000000,
+			baud_rate => 115200,
+			txf_depth => 1,
+			rxf_depth => 1
+		)
+		port map(
+			clk     => clk,
+			reset   => rst,
+			address => address_uart(0),
+			wr_data => std_logic_vector(execute_dout.mem_write_data_out),
+			rd      => io_read,
+			wr      => io_write,
+			rd_data => mem_data_out_uart,
+			txd     => txd,
+			rxd     => rxd
+		);
 
 	-- out_rxd <= not out_rxd after 100 ns;
 
@@ -475,24 +484,22 @@ begin                                   -- architecture begin
 
 
 	mem_din.alu_result <= execute_dout.alu_result;
-	mem_din.mem_write <= mem_write;
-	mem_din.alu_src2 <= alu_src2;
-	data_mem_data_out <= mem_dout.data_mem_data_out;
+	mem_din.mem_write  <= mem_write;
+	mem_din.alu_src2   <= alu_src2;
+	data_mem_data_out  <= mem_dout.data_mem_data_out;
 	--------------------------
-	mem_din.data_in             <= mux_mem_reg;
+	mem_din.data_in <= mux_mem_reg;
 	-- forward
-	mem_din.reg_write_in           <= execute_dout.reg_write_out or execute_dout.mem_to_reg_out; --execute_dout.mem_to_reg_out or execute_dout.mem_write_out;
-	mem_din.write_back_reg_in <= execute_dout.write_back_reg_out;	
-	mem_din.mem_write_data_in       <= execute_dout.mem_write_data_out;
+	mem_din.reg_write_in      <= execute_dout.reg_write_out or execute_dout.mem_to_reg_out; --execute_dout.mem_to_reg_out or execute_dout.mem_write_out;
+	mem_din.write_back_reg_in <= execute_dout.write_back_reg_out;
+	mem_din.mem_write_data_in <= execute_dout.mem_write_data_out;
 	memory_stage : entity work.patmos_mem_stage(arch)
 		port map(clk, rst, mem_din, mem_dout);
 
+------------------------------------------------------- write back
 
-	------------------------------------------------------- write back
-
-	--  write_back: entity work.patmos_mux_32(arch)
-	--  port map(mem_dout.alu_result_out, mem_dout.mem_data_out, mem_dout.mem_to_reg_out, mux_mem_reg);
-
+--  write_back: entity work.patmos_mux_32(arch)
+--  port map(mem_dout.alu_result_out, mem_dout.mem_data_out, mem_dout.mem_to_reg_out, mux_mem_reg);
 
 
 ------------------------------------------------------ SRAM Interface

@@ -99,15 +99,15 @@ begin
 
 		if rd_addr_reg1 = "00000" then
 			read_data1 <= (others => '0');
-	--	elsif fwd1='1' then
-	--		read_data1 <= wr_data_reg;		
+		elsif fwd1='1' then
+			read_data1 <= wr_data_reg;		
 		else
 			read_data1 <= ram(to_integer(unsigned(rd_addr_reg1)));
 		end if;
 		if rd_addr_reg2 = "00000" then
 			read_data2 <= (others => '0');
-	--	elsif fwd2='1' then
-	--		read_data2 <= wr_data_reg;		
+		elsif fwd2='1' then
+			read_data2 <= wr_data_reg;		
 		else
 			read_data2 <= ram(to_integer(unsigned(rd_addr_reg2)));
 		end if;
