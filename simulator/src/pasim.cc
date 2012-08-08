@@ -100,16 +100,27 @@ static patmos::uword_t readelf(std::istream &is, patmos::memory_t &m,
 
   // check file kind
   Elf_Kind ek = elf_kind(elf);
-  assert(ek == ELF_K_ELF);
-
-  // check class
-  int ec = gelf_getclass(elf);
-  assert(ec == ELFCLASS32);
+  if (ek != ELF_K_ELF) {
+    std::cout << "readelf: ELF file must be of kind ELF.\n";
+    exit(1);
+  }
 
   // get elf header
   GElf_Ehdr hdr;
   GElf_Ehdr *tmphdr = gelf_getehdr(elf, &hdr);
   assert(tmphdr);
+
+  if (hdr.e_machine != 0xBEEB) {
+    std::cout << "readelf: unsupported architecture: ELF file is not a Patmos ELF file.\n";
+    exit(1);
+  }
+  
+  // check class
+  int ec = gelf_getclass(elf);
+  if (ec != ELFCLASS32) {
+    std::cout << "readelf: unsupported architecture: ELF file is not a 32bit Patmos ELF file.\n";
+    exit(1);
+  }
 
   // get program headers
   size_t n;
