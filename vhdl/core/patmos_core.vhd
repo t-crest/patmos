@@ -362,6 +362,7 @@ begin                                   -- architecture begin
 		mem_read                         <= '0';
 		io_write                         <= '0';
 		io_read                          <= '0';
+		led_wr <= '0';
 		address_uart                     <= std_logic_vector(execute_dout.alu_result_out);
 		instruction_mem_din.write_enable <= '0';
 		stack_cache_din.write_enable     <= '0';

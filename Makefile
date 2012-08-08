@@ -77,7 +77,7 @@ crom:
 	-rm -rf vhdl/generated
 	mkdir vhdl/generated
 	-mkdir tmp
-	bin/elf2vhdl $(APP) > tmp/$(APP).bin
+	bin/elf2vhdl $(APP) tmp/$(APP).bin
 	java -cp java/lib/patmos-tools.jar \
 		patmos.asm.Bin2Vhdl -s tmp -d vhdl/generated $(APP).bin
 
