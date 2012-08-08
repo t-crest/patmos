@@ -86,9 +86,7 @@ begin
 					when "0010" => rd <= din.rs2 - din.rs1;
 					when "0011" => rd <= SHIFT_LEFT(din.rs1, to_integer(din.rs2(4 downto 0)));
 					when "0100" => rd <= SHIFT_RIGHT(din.rs1, to_integer(din.rs2(4 downto 0)));
-					-- MS: this does not compile with Quartus, vector bounds need to be static
-					-- same goes for code further down
-				    -- when "0101" => rd <= unsigned(std_logic_vector(resize(signed(din.rs1(31 downto to_integer(din.rs2(4 downto 0)))), 32)));
+				    when "0101" => rd <= unsigned(std_logic_vector(resize(signed(din.rs1(31 downto to_integer(din.rs2(4 downto 0)))), 32)));
 					when "0110" => rd <= din.rs1 or din.rs2;
 					when "0111" => rd <= din.rs1 and din.rs2;
 					when others => rd <= din.rs1 + din.rs2; --unsigned(intermediate_add); 
@@ -102,13 +100,13 @@ begin
 							when "0010" => rd <= din.rs2 - din.rs1; --unsigned(intermediate_sub);--
 							when "0011" => rd <= SHIFT_LEFT(din.rs1, to_integer(din.rs2));
 							when "0100" => rd <= SHIFT_RIGHT(din.rs1, to_integer(din.rs2));
-							-- when "0101" => rd <= unsigned(std_logic_vector(resize(signed(din.rs1(31 downto to_integer(din.rs2(4 downto 0)))), 32)));
+							when "0101" => rd <= unsigned(std_logic_vector(resize(signed(din.rs1(31 downto to_integer(din.rs2(4 downto 0)))), 32)));
 							when "0110" => rd <= din.rs1 or din.rs2;
 							when "0111" => rd <= din.rs1 and din.rs2;
-							-- when "1000" => rd <= --SHIFT_LEFT(din.rs1, to_integer(din.rs2(4 downto 0))) or 
-							--			 unsigned(std_logic_vector(resize(signed(din.rs1(31 downto 32 - to_integer(din.rs2(4 downto 0)))), 32)));
-							-- when "1001" => rd <= SHIFT_LEFT(din.rs1, 32 - to_integer(din.rs2(4 downto 0))) or 
-							--			 unsigned(std_logic_vector(resize(signed(din.rs1(31 downto to_integer(din.rs2(4 downto 0)))), 32)));
+							when "1000" => rd <= SHIFT_LEFT(din.rs1, to_integer(din.rs2(4 downto 0))) or 
+										 unsigned(std_logic_vector(resize(signed(din.rs1(31 downto 32 - to_integer(din.rs2(4 downto 0)))), 32)));
+							when "1001" => rd <= SHIFT_LEFT(din.rs1, 32 - to_integer(din.rs2(4 downto 0))) or 
+										 unsigned(std_logic_vector(resize(signed(din.rs1(31 downto to_integer(din.rs2(4 downto 0)))), 32)));
 							when "1010" => rd <= din.rs2 xor din.rs1;
 							when "1011" => rd <= din.rs1 nor din.rs2;
 							when "1100" => rd <= SHIFT_LEFT(din.rs1, 1) + din.rs2;
@@ -139,6 +137,18 @@ begin
 				end case;
 			when LDT =>
 				case din.LDT_instruction_type is
+					----- scratchpad memory
+					when LWL =>
+						 rd <= din.rs1 + din.rs2;--unsigned(SHIFT_LEFT(signed(din.rs1 + din.rs2), 2));
+					when LHL =>
+						 rd <= din.rs1 + din.rs2;--unsigned(SHIFT_LEFT(signed(din.rs1 + din.rs2), 1));
+					when LBL =>
+						 rd <= din.rs1 + din.rs2;	
+					when LHUL =>
+						 rd <= din.rs1 + din.rs2;
+					when LBUL =>
+						 rd <= din.rs1 + din.rs2;
+					----------------------------------------
 					when LWS =>
 						rd <= unsigned(SHIFT_LEFT(signed(din.rs1 + din.rs2), 2)); -- igned, unsigned
 					when LHS =>
@@ -154,6 +164,14 @@ begin
 			--dout.rd <= din.rs1 + din.rs2; --unsigned(intermediate_add);--
 			when STT =>
 				case din.STT_instruction_type is
+					----- scratchpad memory
+					when SWL =>
+						rd <= din.rs1 + din.rs2;
+					when SHL =>
+						rd <= din.rs1 + din.rs2;
+					when SBL =>
+						rd <= din.rs1 + din.rs2;	
+					----------------------------------------
 					when SWS =>
 						rd <= unsigned(SHIFT_LEFT(signed(din.rs1 + din.rs2), 2));
 					when SHS =>
@@ -178,6 +196,12 @@ begin
 		case decdout.ALU_function_type_out(2 downto 0) is
 			when "000" => cmp_result <= cmp_equal;
 			when "001" => cmp_result <= not cmp_equal;
+			when "010" =>  if (din.rs1 < din.rs2 ) then cmp_result <= '1'; else cmp_result <= '0' ; end if;
+			when "011" =>  if (din.rs1 <= din.rs2 ) then cmp_result <= '1'; else cmp_result <= '0' ; end if;
+			when "100" =>  if (din.rs1 < din.rs2 ) then cmp_result <= '1'; else cmp_result <= '0' ; end if;
+			when "101" =>  if (din.rs1 <= din.rs2 ) then cmp_result <= '1'; else cmp_result <= '0' ; end if;
+			--when "110" =>  rd <= SHIFT_LEFT( ?, to_integer(din.rs2));
+						--	if (rd and din.rs1) then cmp_result <= '1'; else cmp_result <= '0' ; end if;
 			when others => null;
 		end case;
 		if decdout.instr_cmp='1' then
@@ -185,9 +209,12 @@ begin
 		end if;
 		-- the ever true predicate
 		predicate(0) <= '1';
-
+		
 	end process patmos_alu;
-
+	process(rd)
+	begin
+		doutex.alu_result <= rd;
+	end process;
 	-- TODO: remove all predicate related stuff from EX out  
 	process(rst, clk)
 	begin
