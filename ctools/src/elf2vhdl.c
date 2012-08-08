@@ -16,6 +16,7 @@
 static int *progr = NULL;
 static int start;
 static int words;
+static int entry;
 
 static void readelf(const char *name)
 {
@@ -90,9 +91,8 @@ printf("X section, %d\n", start);
     }
   }
 
-  // TODO: emit code to branch to entry here
-  unsigned int this_is_the_entry = hdr.e_entry;
-  printf("Entry: %d\n", this_is_the_entry);
+  entry = hdr.e_entry/4;
+  printf("Entry: %d\n", entry);
 
   elf_end(elf);
 }
@@ -114,22 +114,21 @@ int main(int argc, char* argv[]) {
 
 	int val = 0;
 	int i;
-	int entry = 0x180/4;
-	for (i=0; i<start; ++i) {
-		printf("%08x\n", 0);
-		// Branch at offset 1 to the program start
-		// but we also could execute the NOPs
-		if (i==1) {
-			// val = 0x06400000 + start;
-			// Why do we have tools and then fight with byte order..
-			val = htonl(0x06400000 + start); 
-			val = htonl(0x06400000 + entry); 
-		} else {
-			val = 0;
-		}
-		write(fd, &val, 4);
-	}
-	for (i=0; i<words; ++i) {
+//	for (i=0; i<start; ++i) {
+//		printf("%08x\n", 0);
+//		// Branch at offset 1 to the program start
+//		// but we also could execute the NOPs
+//		if (i==1) {
+//			// val = 0x06400000 + start;
+//			// Why do we have tools and then fight with byte order..
+//			val = htonl(0x06400000 + start); 
+//			val = htonl(0x06400000 + entry); 
+//		} else {
+//			val = 0;
+//		}
+//		write(fd, &val, 4);
+//	}
+	for (i=entry-start; i<words; ++i) {
 		printf("%08x %08x\n", progr[i], htonl(progr[i]));
 		// val = htonl(progr[i]);
 		// The Java tool does the byte order....
