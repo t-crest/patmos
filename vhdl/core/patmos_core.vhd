@@ -70,11 +70,11 @@ architecture arch of patmos_core is
 
 	signal sig1					: std_logic_vector(4 downto 0);
 	signal sig2					: std_logic_vector(4 downto 0);
-	signal intermediate_alu_src2 : unsigned(31 downto 0);
+	signal intermediate_alu_src2 : std_logic_vector(31 downto 0);
 	signal write_enable 			: std_logic;
 	signal test: std_logic;
 
-	signal data_mem_data_out       : unsigned(31 downto 0);
+	signal data_mem_data_out       : std_logic_vector(31 downto 0);
 	signal fetch_din             : fetch_in_type;
 	signal fetch_dout            : fetch_out_type;
 	signal fetch_reg1, fetch_reg2 : std_logic_vector(4 downto 0);
@@ -90,29 +90,29 @@ architecture arch of patmos_core is
 	signal mem_din               : mem_in_type;
 	signal mem_dout              : mem_out_type;
 	signal mux_mem_reg           : std_logic_vector(31 downto 0);
-	signal mux_alu_src           : unsigned(31 downto 0);
-	signal alu_src1              : unsigned(31 downto 0);
-	signal alu_src2              : unsigned(31 downto 0);
+	signal mux_alu_src           : std_logic_vector(31 downto 0);
+	signal alu_src1              : std_logic_vector(31 downto 0);
+	signal alu_src2              : std_logic_vector(31 downto 0);
 	signal fw_ctrl_rs1           : forwarding_type;
 	signal fw_ctrl_rs2           : forwarding_type;
-	signal mem_data_out          : unsigned(31 downto 0);
+	signal mem_data_out          : std_logic_vector(31 downto 0);
 
 	signal out_rxd            : std_logic                     := '0';
 	signal address_uart       : std_logic_vector(31 downto 0) := (others => '0');
 	signal mem_data_out_uart  : std_logic_vector(31 downto 0);
-	signal mem_data_out_muxed : unsigned(31 downto 0);
-	signal mem_data_out3      : unsigned(31 downto 0);
+	signal mem_data_out_muxed : std_logic_vector(31 downto 0);
+	signal mem_data_out3      : std_logic_vector(31 downto 0);
 
 	signal spill, fill          : std_logic;
 	signal instruction_mem_din  : instruction_memory_in_type;
 	signal instruction_mem_dout : instruction_memory_out_type;
-	signal instruction_rom_out  : unsigned(31 downto 0);
+	signal instruction_rom_out  : std_logic_vector(31 downto 0);
 
 	signal clk_int : std_logic;
 	-- MS: maybe some signal sorting would be nice
 	-- for generation of internal reset
 	signal int_res : std_logic;
-	signal res_cnt : unsigned(1 downto 0) := "00"; -- for the simulation
+	signal res_cnt : std_logic_vector(1 downto 0) := "00"; -- for the simulation
 	attribute altera_attribute : string;
 	attribute altera_attribute of res_cnt : signal is
 	"POWER_UP_LEVEL=LOW";
@@ -183,7 +183,7 @@ begin                                   -- architecture begin
 	begin
 		if rising_edge(clk) then
 			if (res_cnt /= "11") then
-				res_cnt <= res_cnt + 1;
+				res_cnt <= std_logic_vector(unsigned(res_cnt) + 1);
 			end if;
 			int_res <= not res_cnt(0) or not res_cnt(1);
 		end if;
@@ -245,7 +245,7 @@ begin                                   -- architecture begin
 	wb: process(clk)
 	begin
 	if rising_edge(clk) then
-		write_back.write_value <= unsigned(mem_dout.data_out);
+		write_back.write_value <= mem_dout.data_out;
 		write_back.write_reg <= mem_dout.write_back_reg_out;
 		write_back.write_enable <= mem_dout.reg_write_out;   
 	end if;
@@ -254,8 +254,8 @@ begin                                   -- architecture begin
 	begin
 		if(decode_dout.rs1_out = execute_dout.write_back_reg_out and execute_dout.reg_write_out = '1') then	
 			alu_src1 <= execute_dout.alu_result_out;
-		elsif (decode_dout.rs1_out = unsigned(mem_dout.write_back_reg_out) and mem_dout.reg_write_out = '1') then
-			alu_src1 <= unsigned(mem_dout.data_out);
+		elsif (decode_dout.rs1_out = mem_dout.write_back_reg_out and mem_dout.reg_write_out = '1') then
+			alu_src1 <= mem_dout.data_out;
 		elsif (decode_dout.rs1_out = write_back.write_reg and write_back.write_enable = '1') then
 			alu_src1 <=write_back.write_value;
 		else
@@ -267,8 +267,8 @@ begin                                   -- architecture begin
 	begin
 		if(decode_dout.rs2_out = execute_dout.write_back_reg_out and execute_dout.reg_write_out = '1') then	
 			alu_src2 <= execute_dout.alu_result_out;
-		elsif (decode_dout.rs2_out = unsigned(mem_dout.write_back_reg_out) and mem_dout.reg_write_out = '1') then
-			alu_src2 <= unsigned(mem_dout.data_out);
+		elsif (decode_dout.rs2_out = mem_dout.write_back_reg_out and mem_dout.reg_write_out = '1') then
+			alu_src2 <= mem_dout.data_out;
 		elsif (decode_dout.rs2_out = write_back.write_reg and write_back.write_enable = '1') then
 			alu_src2 <=write_back.write_value;
 		else
@@ -386,14 +386,14 @@ begin                                   -- architecture begin
 			stack_cache_din.write_enable     <= execute_dout.mem_write_out;
 		--stack_cache_din.read_enable <= execute_dout.mem_read_out;
 
-		elsif (execute_dout.alu_result_out(8 downto 4) = "0000") then -- uart
+		elsif (execute_dout.alu_result_out(7 downto 4) = "0000") then -- uart
 			mem_write                        <= '0';
 			mem_read                         <= '0';
 			io_write                         <= execute_dout.mem_write_out;
 			io_read                          <= execute_dout.mem_read_out;
 			instruction_mem_din.write_enable <= '0';
 	--	end if;
-		elsif (execute_dout.alu_result_out(8 downto 4) = "0001") then -- the LED
+		elsif (execute_dout.alu_result_out(7 downto 4) = "0001") then -- the LED
 			led_wr <= execute_dout.mem_write_out;
 	--	end if;
 		
@@ -413,7 +413,7 @@ begin                                   -- architecture begin
 	io_mem_read_mux : process(mem_data_out_uart, data_mem_data_out, execute_dout)
 	begin
 		if (execute_dout.alu_result_out(8) = '0') then
-			mem_data_out_muxed <= unsigned(mem_data_out_uart);
+			mem_data_out_muxed <= mem_data_out_uart;
 		else
 			mem_data_out_muxed <= data_mem_data_out;
 		end if;
@@ -422,9 +422,9 @@ begin                                   -- architecture begin
 		write_back_proc : process(execute_dout, mem_data_out_muxed)
 	begin
 		if (execute_dout.mem_to_reg_out = '1') then
-			mux_mem_reg <= std_logic_vector(mem_data_out_muxed);
+			mux_mem_reg <= mem_data_out_muxed;
 		else
-			mux_mem_reg <= std_logic_vector(execute_dout.alu_result_out);
+			mux_mem_reg <= execute_dout.alu_result_out;
 		end if;
 	end process;
 	

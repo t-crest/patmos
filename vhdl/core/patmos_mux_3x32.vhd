@@ -44,11 +44,11 @@ use ieee.numeric_std.all;
 entity patmos_mux_3x32 is
   port
   (
-    data_in1                : in unsigned(31 downto 0);
-    data_in2                : in unsigned(31 downto 0);
-    data_in3                : in unsigned(31 downto 0);
-    sel                     : in unsigned(1 downto 0);
-    data_out                : out unsigned(31 downto 0)
+    data_in1                : in std_logic_vector(31 downto 0);
+    data_in2                : in std_logic_vector(31 downto 0);
+    data_in3                : in std_logic_vector(31 downto 0);
+    sel                     : in std_logic_vector(1 downto 0);
+    data_out                : out std_logic_vector(31 downto 0)
   );    
 end entity patmos_mux_3x32;
 

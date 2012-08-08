@@ -63,19 +63,19 @@ constant        instruction_word_length     : integer := 32;
 -- fetch/decode
 -------------------------------------------
 type fetch_in_type is record
-    pc                            :  unsigned(pc_length - 1 downto 0);
+    pc                            :  std_logic_vector(pc_length - 1 downto 0);
 end record;
 type fetch_out_type is record
-		pc                            :  unsigned(pc_length - 1 downto 0);
+		pc                            :  std_logic_vector(pc_length - 1 downto 0);
 		-- TODO: why is this unsigned?
-		instruction                   :  unsigned(31 downto 0);
+		instruction                   :  std_logic_vector(31 downto 0);
 end record;
 
 --------------------------------------------
 -- decode/exec
 --------------------------------------------
 type decode_in_type is record
-    operation                          : unsigned (31 downto 0);
+    operation                          : std_logic_vector (31 downto 0);
 	rs1_data_in                        : std_logic_vector (31 downto 0);
     rs2_data_in                        : std_logic_vector (31 downto 0);
 end record;
@@ -85,29 +85,29 @@ type decode_out_type is record
 	instr_cmp : std_logic;
 	
 	predicate_bit_out                   : std_logic;
-	predicate_condition					: unsigned(2 downto 0);
-	ps1_out 							:unsigned(3 downto 0);
-    ps2_out 							:unsigned(3 downto 0);
+	predicate_condition					: std_logic_vector(2 downto 0);
+	ps1_out 							:std_logic_vector(3 downto 0);
+    ps2_out 							:std_logic_vector(3 downto 0);
     inst_type_out                       : instruction_type;
-    ALU_function_type_out               : unsigned(3 downto 0);
+    ALU_function_type_out               : std_logic_vector(3 downto 0);
     ALU_instruction_type_out            : ALU_inst_type;
-    ALUi_immediate_out                  : unsigned(31 downto 0);
+    ALUi_immediate_out                  : std_logic_vector(31 downto 0);
     pc_ctrl_gen_out                     : pc_type;
-    rs1_out                             : unsigned (4 downto 0);
-    rs2_out                             : unsigned (4 downto 0);
-    rd_out                              : unsigned (4 downto 0);
-    rs1_data_out                        : unsigned(31 downto 0);
-    rs2_data_out                        : unsigned(31 downto 0);
-    pd_out                              : unsigned (3 downto 0);
+    rs1_out                             : std_logic_vector (4 downto 0);
+    rs2_out                             : std_logic_vector (4 downto 0);
+    rd_out                              : std_logic_vector (4 downto 0);
+    rs1_data_out                        : std_logic_vector(31 downto 0);
+    rs2_data_out                        : std_logic_vector(31 downto 0);
+    pd_out                              : std_logic_vector (3 downto 0);
     ld_type_out                         : load_type;
     reg_write_out                       : std_logic;
     alu_src_out                         : std_logic; -- 0 for ALUi/ 1 for ALU
     mem_to_reg_out                      : std_logic; -- data to register file comes from alu or mem? 0 for alu and 1 for mem
     mem_read_out                        : std_logic;
     mem_write_out                       : std_logic;
-    st_out							    : unsigned(3 downto 0);
+    st_out							    : std_logic_vector(3 downto 0);
     STC_instruction_type_out			: STC_instruction_type;
-    stc_immediate_out					: unsigned (4 downto 0);
+    stc_immediate_out					: std_logic_vector (4 downto 0);
     sc_write_out						: std_logic;
     sc_read_out 						: std_logic;
     STT_instruction_type_out			: STT_inst_type;
@@ -126,19 +126,19 @@ end record;
 -------------------------------------------
 
 type execution_out_type is record
-	alusrc2								: unsigned(31 downto 0);
-	 alu_result							: unsigned(31 downto 0);
+	alusrc2								: std_logic_vector(31 downto 0);
+	 alu_result							: std_logic_vector(31 downto 0);
 	predicate : std_logic_vector(7 downto 0);
 	result  : result_type;
-    alu_result_out                      : unsigned(31 downto 0);
+    alu_result_out                      : std_logic_vector(31 downto 0);
     reg_write_out                     	 : std_logic;
     mem_read_out                        : std_logic;
     -- two write back enable signals - shall be merged
     mem_write_out                       : std_logic;
     mem_to_reg_out                      : std_logic;
-    mem_write_data_out          	    : unsigned(31 downto 0);
-    write_back_reg_out                  : unsigned(4 downto 0);
-    ps_write_back_reg_out		        : unsigned(2 downto 0);
+    mem_write_data_out          	    : std_logic_vector(31 downto 0);
+    write_back_reg_out                  : std_logic_vector(4 downto 0);
+    ps_write_back_reg_out		        : std_logic_vector(2 downto 0);
     STT_instruction_type_out			: STT_inst_type;
     LDT_instruction_type_out			: LDT_inst_type;
 end record;
@@ -147,18 +147,18 @@ end record;
 -- control
 ------------------------------------------
 type alu_in_type is record
-   rs1                         : unsigned(31 downto 0);
-   rs2                         : unsigned(31 downto 0);
+   rs1                         : std_logic_vector(31 downto 0);
+   rs2                         : std_logic_vector(31 downto 0);
    inst_type                   : instruction_type; 
-   ALU_function_type           : unsigned(3 downto 0);
+   ALU_function_type           : std_logic_vector(3 downto 0);
    ALU_instruction_type        : ALU_inst_type;
---   stack_data_in			   : unsigned(31 downto 0);
+--   stack_data_in			   : std_logic_vector(31 downto 0);
    STC_instruction_type			:STC_instruction_type;
 --   stc_immediate_in				: unsigned (4 downto 0);
 --   st_in						: unsigned (31 downto 0);
    STT_instruction_type			: STT_inst_type;
    LDT_instruction_type			: LDT_inst_type;
-   mem_write_data_in       	 	    : unsigned(31 downto 0);
+   mem_write_data_in       	 	    : std_logic_vector(31 downto 0);
    			
 end record;
 
@@ -170,12 +170,12 @@ type mem_in_type is record
     data_in                  : std_logic_vector(31 downto 0); 
     -- following is forwarding 
     reg_write_in                : std_logic;
-    write_back_reg_in                  : unsigned(4 downto 0);
-    mem_write_data_in            : unsigned(31 downto 0);
+    write_back_reg_in                  : std_logic_vector(4 downto 0);
+    mem_write_data_in            : std_logic_vector(31 downto 0);
     
-   alu_result : unsigned(31 downto 0);
+   alu_result : std_logic_vector(31 downto 0);
    mem_write : std_logic;
-   alu_src2 : unsigned(31 downto 0);
+   alu_src2 : std_logic_vector(31 downto 0);
 end record;
 
 type mem_out_type is record
@@ -183,62 +183,62 @@ type mem_out_type is record
     data_out                  : std_logic_vector(31 downto 0);
     -- following is forwarding 
     reg_write_out                : std_logic;
-    write_back_reg_out                  : unsigned(4 downto 0);
+    write_back_reg_out                  : std_logic_vector(4 downto 0);
     mem_write_data_out            : std_logic_vector(31 downto 0);
-     data_mem_data_out			 : unsigned(31 downto 0);
+     data_mem_data_out			 : std_logic_vector(31 downto 0);
 end record;
      
 type patmos_stack_cache_ctrl_in is record
-		stc_immediate_in	: unsigned(4 downto 0);
+		stc_immediate_in	: std_logic_vector(4 downto 0);
 		instruction			: STC_instruction_type; -- from decode
---		st_in				: unsigned(31 downto 0);
+--		st_in				: std_logic_vector(31 downto 0);
 end record;
 
 type patmos_stack_cache_ctrl_out is record
 		stall				: std_logic;
-		head_tail			: unsigned(4 downto 0); -- connect to stack cache
+		head_tail			: std_logic_vector(4 downto 0); -- connect to stack cache
 		spill_fill     	 	: std_logic;
-		st_out				: unsigned(31 downto 0);
+		st_out				: std_logic_vector(31 downto 0);
 		reg_write_out		: std_logic;
 end record;
 
 type patmos_stack_cache_in is record
-	head_tail					: unsigned(4 downto 0);
-	din_from_mem				: unsigned(31 downto 0); -- mem interface
-	din_from_cpu				: unsigned(31 downto 0);
+	head_tail					: std_logic_vector(4 downto 0);
+	din_from_mem				: std_logic_vector(31 downto 0); -- mem interface
+	din_from_cpu				: std_logic_vector(31 downto 0);
 	spill_fill	        	    : std_logic;
     write_enable          	    : std_logic;
-    address			 			: unsigned(4 downto 0);
+    address			 			: std_logic_vector(4 downto 0);
 end record;
 
 type patmos_stack_cache_out is record
-	dout_to_mem					: unsigned(31 downto 0); -- mem interface
-	dout_to_cpu					: unsigned(31 downto 0);
+	dout_to_mem					: std_logic_vector(31 downto 0); -- mem interface
+	dout_to_cpu					: std_logic_vector(31 downto 0);
 end record;
 
 type instruction_memory_in_type is record
-    address               : unsigned(31 downto 0);
-    inst_in               : unsigned(31 downto 0); -- from boot loader
+    address               : std_logic_vector(31 downto 0);
+    inst_in               : std_logic_vector(31 downto 0); -- from boot loader
     read_enable           : std_logic;
     write_enable          : std_logic;
 end record;
 
 type instruction_memory_out_type is record
-	inst_out              : unsigned(31 downto 0); -- to fetch
+	inst_out              : std_logic_vector(31 downto 0); -- to fetch
 end record;
 
 type instruction_rom_in_type is record
-	address 			  :  unsigned(7 downto 0);
+	address 			  :  std_logic_vector(7 downto 0);
 end record;
 
 type instruction_rom_out_type is record
-	q 					  :  unsigned(31 downto 0);
+	q 					  :  std_logic_vector(31 downto 0);
 end record;
 
 type write_back_in_out_type is record
-	write_reg 			  : unsigned(4 downto 0);
+	write_reg 			  : std_logic_vector(4 downto 0);
 	write_enable		  : std_logic;
-	write_value			  : unsigned(31 downto 0);	
+	write_value			  : std_logic_vector(31 downto 0);	
 end record;
 
 end patmos_type_package;
