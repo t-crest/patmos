@@ -66,7 +66,7 @@ begin
       -- forwarding
       dout.reg_write_out <= din.reg_write_in;
       dout.write_back_reg_out <= din.write_back_reg_in;
-      dout.mem_write_data_out <= std_logic_vector(din.mem_write_data_in);
+      dout.mem_write_data_out <= din.mem_write_data_in;
     end if;
   end process mem_wb;
 

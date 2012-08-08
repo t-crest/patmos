@@ -42,16 +42,16 @@ use ieee.numeric_std.all;
 entity patmos_data_memory is
   port(
         clk       	             : in std_logic;
-        wr_address               : in unsigned(31 downto 0);
-        data_in                  : in unsigned(31 downto 0); -- store
+        wr_address               : in std_logic_vector(31 downto 0);
+        data_in                  : in std_logic_vector(31 downto 0); -- store
         write_enable             : in std_logic;
-        rd_address               : in unsigned(31 downto 0);
-        data_out                 : out unsigned(31 downto 0) -- load
+        rd_address               : in std_logic_vector(31 downto 0);
+        data_out                 : out std_logic_vector(31 downto 0) -- load
       );
 end entity patmos_data_memory;
 
 architecture arch of patmos_data_memory is
-  type data_memory is array (0 to 1024) of unsigned(31 downto 0);
+  type data_memory is array (0 to 1024) of std_logic_vector(31 downto 0);
   signal data_mem : data_memory;
 
 begin

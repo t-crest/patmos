@@ -54,7 +54,7 @@ entity patmos_fetch is
 end entity patmos_fetch;
 
 architecture arch of patmos_fetch is
-	signal pc, pc_next : unsigned(pc_length - 1 downto 0);
+	signal pc, pc_next : std_logic_vector(pc_length - 1 downto 0);
 	signal addr        : std_logic_vector(pc_length - 1 downto 0);
 	signal feout       : fetch_out_type;
 	signal tmp         : std_logic_vector(31 downto 0);
@@ -64,11 +64,11 @@ begin
 	begin
 		-- this is effective branch in the EX stage with
 		-- two branch delay slots
-		if decout.inst_type_out = BC and exout.predicate(to_integer(decout.predicate_condition)) = '1' then -- decout.predicate_bit_out then
+		if decout.inst_type_out = BC and exout.predicate(to_integer(unsigned(decout.predicate_condition))) = '1' then -- decout.predicate_bit_out then
 			-- no addition? no relative branch???
-			pc_next <= unsigned(decout.imm);
+			pc_next <= decout.imm;
 		else
-			pc_next <= pc + 1;
+			pc_next <= std_logic_vector(unsigned(pc) + 1);
 		end if;
 	end process;
 
@@ -79,7 +79,7 @@ begin
 			q       => tmp
 		);
 
-	feout.instruction <= unsigned(tmp);
+	feout.instruction <= tmp;
 	-- register addresses unregistered to make the register file code easier
 	reg1 <= tmp(16 downto 12);
 	reg2 <= tmp(11 downto 7);
@@ -91,7 +91,7 @@ begin
 			dout.instruction <= (others => '0');
 		elsif (rising_edge(clk) and rst = '0') then
 			pc               <= pc_next;
-			addr             <= std_logic_vector(pc_next);
+			addr             <= pc_next;
 			dout.instruction <= feout.instruction;
 			-- MS: the next pc? PC calculation is REALLY an independent pipe stage!
 			dout.pc <= pc;
