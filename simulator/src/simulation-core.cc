@@ -89,17 +89,6 @@ namespace patmos
     }
   }
 
-  void simulator_t::pipeline_flush(Pipeline_t pst)
-  {
-    for(unsigned int i = SIF; i <= (unsigned int)pst; i++)
-    {
-      for(unsigned int j = 0; j < NUM_SLOTS; j++)
-      {
-        Pipeline[i][j] = instruction_data_t();
-      }
-    }
-  }
-
   void simulator_t::pipeline_stall(Pipeline_t pst)
   {
     Stall = std::max(Stall, pst);
