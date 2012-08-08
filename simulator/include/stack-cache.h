@@ -622,7 +622,7 @@ namespace patmos
     /// @param os The output stream to print to.
     virtual void print(std::ostream &os) const
     {
-      os << boost::format("  %1$5s: Reserved: %2$4d (%3%) "
+      os << boost::format("  %|1$5|: Reserved: %2$4d (%3%) "
                                     "Spilled: %4$4d (%5%)\n")
          % Phase % Num_reserved_blocks % Num_blocks % Num_spilled_blocks
          % Num_blocks_total;

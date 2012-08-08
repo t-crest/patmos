@@ -523,7 +523,7 @@ namespace patmos
       for(unsigned int i = Num_blocks - 1; i >= Num_blocks - Num_active_methods;
           i--)
       {
-        os << boost::format("   M%1$02d: 0x%2$08x (0x%3$08d Blk 0x%4$08d b)\n")
+        os << boost::format("   M%1$02d: 0x%2$08x (%3$8d Blk %4$8d b)\n")
            % (Num_blocks - i) % Methods[i].Address % Methods[i].Num_blocks
            % Methods[i].Num_bytes;
       }
