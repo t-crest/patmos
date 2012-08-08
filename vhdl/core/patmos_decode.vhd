@@ -133,6 +133,7 @@ begin
 					when "011" =>       -- Compare
 						dout.ALU_instruction_type_out <= ALUc;
 						dout.instr_cmp <= '1';
+						dout .reg_write_out <= '0';
 						
 					when "100" =>       -- predicate
 						dout.ALU_instruction_type_out <= ALUp;
