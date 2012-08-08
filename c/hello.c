@@ -12,12 +12,12 @@ int main() {
 	int i, j;
 
 	for (;;) {
-		for (i=0; i<1024; ++i)
-			for (j=0; j<2048; ++j)
+		for (i=2000; i!=0; --i)
+			for (j=2000; j!=0; --j)
 				*led_ptr = 1;
 
-		for (i=0; i<1024; ++i)
-			for (j=0; j<2048; ++j)
+		for (i=2000; i!=0; --i)
+			for (j=2000; j!=0; --j)
 				*led_ptr = 0;
 	}
 }
