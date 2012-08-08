@@ -70,4 +70,8 @@ begin
     end if;
   end process mem_wb;
 
+	memory: entity work.patmos_data_memory(arch)
+	port map(clk, din.alu_result,
+	din.alu_src2, din.mem_write, din.alu_result, dout.data_mem_data_out);
+
 end arch;

@@ -144,6 +144,14 @@ begin
 						dout.sc_write_out             <= '1';
 						dout.sc_read_out              <= '0';
 				case din.operation(21 downto 17) is
+					----- scratchpad memory
+					when "00001" =>
+						dout.STT_instruction_type_out <= SWL;
+					when "00101" =>
+						dout.STT_instruction_type_out <= SHL;
+					when "01001" =>	
+						dout.STT_instruction_type_out <= SBL;
+					----------------------------------------	
 					when "00000" =>
 						dout.STT_instruction_type_out <= SWS;
 					when "00100" =>
@@ -169,6 +177,18 @@ begin
 						dout.sc_write_out             <= '0';
 						dout.sc_read_out              <= '1';
 				case din.operation(11 downto 7) is
+					----- scratchpad memory
+					when "00001" =>
+						dout.LDT_instruction_type_out <= LWL;
+					when "00101" =>
+						dout.LDT_instruction_type_out <= LHL;
+					when "01001" =>
+						dout.LDT_instruction_type_out <= LBL;	
+					when "01101" =>
+						dout.LDT_instruction_type_out <= LHUL;
+					when "10001" =>
+						dout.LDT_instruction_type_out <= LBUL;			
+					----------------------------------------
 					when "00000" =>
 						dout.LDT_instruction_type_out <= LWS;
 					when "00100" =>

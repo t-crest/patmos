@@ -49,7 +49,7 @@ package patmos_type_package is
   type pc_type is (PCNext, PCBranch);
   type ALU_inst_type is (NONE, ALUr, ALUu, ALUm, ALUc, ALUp);
   type STT_inst_type is (NONE, SWS, SWL, SWC, SWM, SHS, SHL, SHC, SHM, SBS, SBL, SBC, SBM); -- all stores
-  type LDT_inst_type is (NONE, LWM, LWS, LHS, LBS, LHUS, LBUS); -- these are just stack cache loads
+  type LDT_inst_type is (NONE, LWM, LWS, LHS, LBS, LHUS, LBUS, LWL, LHL, LBL, LHUL, LBUL);
   type SPC_type is (NONE, SPCn, SPCw, SPCt, SPCf);
   type forwarding_type is (FWNOP, FWMEM, FWALU);
   type load_type is (NONE, lw, lh, lb, lhu, lbu, dlwh, dlbh, dlbu);
@@ -126,6 +126,8 @@ end record;
 -------------------------------------------
 
 type execution_out_type is record
+	alusrc2								: unsigned(31 downto 0);
+	 alu_result							: unsigned(31 downto 0);
 	predicate : std_logic_vector(7 downto 0);
 	result  : result_type;
     alu_result_out                      : unsigned(31 downto 0);
@@ -170,6 +172,10 @@ type mem_in_type is record
     reg_write_in                : std_logic;
     write_back_reg_in                  : unsigned(4 downto 0);
     mem_write_data_in            : unsigned(31 downto 0);
+    
+   alu_result : unsigned(31 downto 0);
+   mem_write : std_logic;
+   alu_src2 : unsigned(31 downto 0);
 end record;
 
 type mem_out_type is record
@@ -179,6 +185,7 @@ type mem_out_type is record
     reg_write_out                : std_logic;
     write_back_reg_out                  : unsigned(4 downto 0);
     mem_write_data_out            : std_logic_vector(31 downto 0);
+     data_mem_data_out			 : unsigned(31 downto 0);
 end record;
      
 type patmos_stack_cache_ctrl_in is record

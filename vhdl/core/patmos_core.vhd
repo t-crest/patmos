@@ -72,7 +72,9 @@ architecture arch of patmos_core is
 	signal sig2					: std_logic_vector(4 downto 0);
 	signal intermediate_alu_src2 : unsigned(31 downto 0);
 	signal write_enable 			: std_logic;
+	signal test: std_logic;
 
+	signal data_mem_data_out       : unsigned(31 downto 0);
 	signal fetch_din             : fetch_in_type;
 	signal fetch_dout            : fetch_out_type;
 	signal fetch_reg1, fetch_reg2 : std_logic_vector(4 downto 0);
@@ -324,17 +326,17 @@ begin                                   -- architecture begin
 		end if;
 	end process;
 
-	stack_cache_out : process(execute_dout, stack_cache_dout.dout_to_cpu) -- which type of transfer from stack cache?
-	begin
-		mem_data_out <= stack_cache_dout.dout_to_cpu;
-		if (execute_dout.LDT_instruction_type_out = LWS) then
-			mem_data_out <= stack_cache_dout.dout_to_cpu;
-		elsif (execute_dout.LDT_instruction_type_out = LBS) then
-			mem_data_out(16 downto 0) <= stack_cache_dout.dout_to_cpu(16 downto 0);
-		elsif (execute_dout.LDT_instruction_type_out = LHS) then
-			mem_data_out(8 downto 0) <= stack_cache_dout.dout_to_cpu(8 downto 0);
-		end if;
-	end process;
+--	stack_cache_out : process(execute_dout, stack_cache_dout.dout_to_cpu) -- which type of transfer from stack cache?
+--	begin
+--		mem_data_out <= stack_cache_dout.dout_to_cpu;
+--		if (execute_dout.LDT_instruction_type_out = LWS) then
+--			mem_data_out <= stack_cache_dout.dout_to_cpu;
+--		elsif (execute_dout.LDT_instruction_type_out = LBS) then
+--			mem_data_out(16 downto 0) <= stack_cache_dout.dout_to_cpu(16 downto 0);
+--		elsif (execute_dout.LDT_instruction_type_out = LHS) then
+--			mem_data_out(8 downto 0) <= stack_cache_dout.dout_to_cpu(8 downto 0);
+--		end if;
+--	end process;
 
 	--	stack_cache_din.din_from_cpu <= execute_dout.mem_write_data_out; -- transfer to stack cache no matter what, should change based on controlling signals
 
@@ -353,7 +355,7 @@ begin                                   -- architecture begin
 	-- MS: IO shall go into it's own 'top level' component
 	-- We need to find a reasonable address mapping, not starting IO at
 	-- address 0
-	io_decode : process(execute_dout)
+	io_decode : process(execute_dout, decode_dout)
 	begin
 		-- default values
 		mem_write                        <= '0';
@@ -365,7 +367,15 @@ begin                                   -- architecture begin
 		stack_cache_din.write_enable     <= '0';
 		-- MS: This decoding will also trigger the IO devices as it goes form
 		-- different address bits.
-		if (execute_dout.alu_result_out(10) = '1') then -- stack cache
+		if (execute_dout.alu_result(8) = '1') then --data mem
+			test <= '1';
+			mem_write                        <= decode_dout.mem_write_out;
+			mem_read                         <= decode_dout.mem_read_out;
+			io_write                         <= '0';
+			io_read                          <= '0';
+			instruction_mem_din.write_enable <= '0';
+		
+		elsif (execute_dout.alu_result_out(10) = '1') then -- stack cache
 			mem_write <= '0';
 			mem_read  <= '0';
 			io_write  <= '0';
@@ -375,26 +385,18 @@ begin                                   -- architecture begin
 			stack_cache_din.write_enable     <= execute_dout.mem_write_out;
 		--stack_cache_din.read_enable <= execute_dout.mem_read_out;
 
-		end if;
-		if (execute_dout.alu_result_out(8 downto 4) = "0000") then -- uart
+		elsif (execute_dout.alu_result_out(8 downto 4) = "0000") then -- uart
 			mem_write                        <= '0';
 			mem_read                         <= '0';
 			io_write                         <= execute_dout.mem_write_out;
 			io_read                          <= execute_dout.mem_read_out;
 			instruction_mem_din.write_enable <= '0';
-		end if;
-		if (execute_dout.alu_result_out(8 downto 4) = "0001") then -- the LED
+	--	end if;
+		elsif (execute_dout.alu_result_out(8 downto 4) = "0001") then -- the LED
 			led_wr <= execute_dout.mem_write_out;
-		end if;
-		if (execute_dout.alu_result_out(8) = '1') then --data mem
-			mem_write                        <= execute_dout.mem_write_out;
-			mem_read                         <= execute_dout.mem_read_out;
-			io_write                         <= '0';
-			io_read                          <= '0';
-			instruction_mem_din.write_enable <= '0';
-		-- address <= "00000000000000000000000000000001";
-		end if;
-		if (execute_dout.alu_result_out(9) = '1' and execute_dout.alu_result_out(8) /= '0') then -- instruction mem
+	--	end if;
+		
+		elsif (execute_dout.alu_result_out(9) = '1' and execute_dout.alu_result_out(8) /= '0') then -- instruction mem
 			mem_write <= '0';
 			mem_read  <= '0';
 			io_write  <= '0';
@@ -407,12 +409,12 @@ begin                                   -- architecture begin
 
 	end process;
 
-	io_mem_read_mux : process(mem_data_out_uart, mem_data_out, execute_dout.alu_result_out)
+	io_mem_read_mux : process(mem_data_out_uart, data_mem_data_out, execute_dout)
 	begin
 		if (execute_dout.alu_result_out(8) = '0') then
 			mem_data_out_muxed <= unsigned(mem_data_out_uart);
 		else
-			mem_data_out_muxed <= mem_data_out;
+			mem_data_out_muxed <= data_mem_data_out;
 		end if;
 	end process;
 	
@@ -471,6 +473,10 @@ begin                                   -- architecture begin
 	-- TODO: the memory code belongs into the memory stage component
 
 
+	mem_din.alu_result <= execute_dout.alu_result;
+	mem_din.mem_write <= mem_write;
+	mem_din.alu_src2 <= alu_src2;
+	data_mem_data_out <= mem_dout.data_mem_data_out;
 	--------------------------
 	mem_din.data_in             <= mux_mem_reg;
 	-- forward
