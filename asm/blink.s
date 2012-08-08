@@ -7,12 +7,12 @@
 
 		addi	r0 = r0, 0;  # first instruction not executed
 
-		addi	r10 = r0, 16;
+		addi	r7 = r0, 16;
 		addi	r9 = r0, 0;
 		addi	r8 = r0, 1;
 
 		xor	r9 = r9, r8;
-		swm	[r10+0] = r9;  # set the LED on
+		swm	[r7+0] = r9;  # set the LED on
 
 		addi	r1 = r0, 2048;		
 		addi	r5 = r0, 0;
@@ -22,7 +22,7 @@
 		addi	r0 = r0, 0;
                 and     r11  = r10 , r1;
 		cmpneq  p1 = r1, r11;
-	(p1)	bc	7;
+	(p1)	bc	8;
                 addi    r0  = r0 , 0;
                 addi    r0  = r0 , 0;
 
@@ -38,7 +38,7 @@
                 addi    r0  = r0 , 0;
 
 		swm	[r5 + 1] = r15;
-		bc	0;
+		bc	4;
                 addi    r0  = r0 , 0;
                 addi    r0  = r0 , 0;
 		halt;
