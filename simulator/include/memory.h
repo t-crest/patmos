@@ -242,6 +242,22 @@ namespace patmos
     }
   };
 
+  /// Information about an outstanding memory request.
+  struct request_info_t
+  {
+    /// The address of the request.
+    uword_t Address;
+
+    /// The size of the request.
+    uword_t Size;
+
+    /// Flag indicating whether the request is a load or store.
+    bool Is_load;
+
+    /// Number of ticks remaining until the request completes.
+    unsigned int Num_ticks_remaining;
+  };
+
   /// A memory with fixed access times to transfer fixed-sized blocks.
   /// Memory accesses are performed in blocks (NUM_BLOCK_BYTES) with a fixed 
   /// access delay (Num_ticks_per_block).
@@ -249,30 +265,53 @@ namespace patmos
   class fixed_delay_memory_t : public ideal_memory_t
   {
   private:
+    /// Set of pending requests processed by the memory.
+    typedef std::vector<request_info_t> requests_t;
+
     /// Memory access time per block in cycles.
     unsigned int Num_ticks_per_block;
 
-    /// Number of ticks until the currently pending request is completed.
-    uword_t Pending_ticks;
+    /// Outstanding requests to the memory.
+    requests_t Requests;
 
-#ifndef NDEBUG
-    /// Flag indicating whether the pending memory access is a load or a store.
-    bool Pending_is_load;
+    /// Find or create a request given an address, size, and load/store flag.
+    /// @param address The address of the request.
+    /// @param size The number of bytes request by the access.
+    /// @param is_load A flag indicating whether the access is a load or store.
+    /// @return An existing or newly created request info object.
+    /// \see request_info_t
+    const request_info_t &find_or_create_request(uword_t address, uword_t size,
+                                                 bool is_load)
+    {
+      // check if the access exceeds the memory size and lazily initialize
+      // memory content
+      check_initialize_content(address, size);
 
-    /// Address of pending memory access, if any.
-    uword_t Pending_address;
+      // see if the request already exists
+      for(requests_t::const_iterator i(Requests.begin()), ie(Requests.end());
+          i != ie; i++)
+      {
+        // found matching request?
+        if (i->Address == address && i->Size == size && i->Is_load == is_load)
+          return *i;
+      }
 
-    /// Number of bytes requested by pending memory access, if any.
-    uword_t Pending_size;
-#endif // NDEBUG
+      // no matching request found, create a new one
+      unsigned int num_ticks = Num_ticks_per_block * std::ceil((float)size /
+                                                               NUM_BLOCK_BYTES);
+      request_info_t tmp = {address, size, is_load, num_ticks};
+      Requests.push_back(tmp);
+
+      // return the newly created request
+      return Requests.back();
+    }
   public:
     /// Construct a new memory instance.
     /// @param memory_size The size of the memory in bytes.
     /// @param num_ticks_per_block Memory access time per block in cycles.
     fixed_delay_memory_t(unsigned int memory_size,
                          unsigned int num_ticks_per_block) :
-        ideal_memory_t(memory_size), Num_ticks_per_block(num_ticks_per_block),
-        Pending_ticks(0)
+        ideal_memory_t(memory_size), Num_ticks_per_block(num_ticks_per_block)
     {
     }
 
@@ -284,36 +323,28 @@ namespace patmos
     /// @return True when the data is available from the read port.
     virtual bool read(uword_t address, byte_t *value, uword_t size)
     {
-      if(Pending_ticks == 0)
+      // get the request info
+      const request_info_t &req(find_or_create_request(address, size, true));
+
+      // check if the request has finished
+      if(req.Num_ticks_remaining == 0)
       {
-        // check if the access exceeds the memory size and lazily initialize
-        // memory content
-        check_initialize_content(address, size);
-
-        // set up memory transfer
-        Pending_ticks = Num_ticks_per_block * std::ceil((float)size /
-                                                          NUM_BLOCK_BYTES);
-
 #ifndef NDEBUG
-        Pending_is_load = true;
-        Pending_address = address;
-        Pending_size = size;
-#endif // NDEBUG
-        return false;
-      }
+        // check request
+        request_info_t &tmp(Requests.front());
+        assert(tmp.Address == req.Address && tmp.Size == req.Size &&
+               tmp.Is_load == req.Is_load);
+#endif
 
-#ifndef NDEBUG
-      assert(Pending_is_load &&
-             Pending_address == address && Pending_size == size);
-#endif // NDEBUG
+        // clean-up the request
+        Requests.erase(Requests.begin());
 
-      if(Pending_ticks == 1)
-      {
-        Pending_ticks = 0;
+        // read the data
         return ideal_memory_t::read(address, value, size);
       }
       else
       {
+        // not yet finished
         return false;
       }
     }
@@ -326,35 +357,28 @@ namespace patmos
     /// otherwise.
     virtual bool write(uword_t address, byte_t *value, uword_t size)
     {
-      if(Pending_ticks == 0)
+      // get the request info
+      const request_info_t &req(find_or_create_request(address, size, false));
+
+      // check if the request has finished
+      if(req.Num_ticks_remaining == 0)
       {
-        // check if the access exceeds the memory size and lazily initialize
-        // memory content
-        check_initialize_content(address, size);
-
-        // set up memory transfer
-        Pending_ticks = Num_ticks_per_block * std::ceil((float)size /
-                                                          NUM_BLOCK_BYTES);
-
 #ifndef NDEBUG
-        Pending_is_load = false;
-        Pending_address = address;
-        Pending_size = size;
-#endif // NDEBUG
-      }
+        // check request
+        request_info_t &tmp(Requests.front());
+        assert(tmp.Address == req.Address && tmp.Size == req.Size &&
+               tmp.Is_load == req.Is_load);
+#endif
 
-#ifndef NDEBUG
-      assert(!Pending_is_load &&
-             Pending_address == address && Pending_size == size);
-#endif // NDEBUG
+        // clean-up the request
+        Requests.erase(Requests.begin());
 
-      if(Pending_ticks == 1)
-      {
-        Pending_ticks = 0;
+        // write the data
         return ideal_memory_t::write(address, value, size);
       }
       else
       {
+        // not yet finished
         return false;
       }
     }
@@ -386,15 +410,15 @@ namespace patmos
     virtual bool is_ready()
     {
       // always ready
-      return Pending_ticks == 0;
+      return Requests.empty();
     }
 
     /// Notify the memory that a cycle has passed.
     virtual void tick()
     {
-      if (Pending_ticks > 1)
+      if (!Requests.empty() && Requests.front().Num_ticks_remaining)
       {
-        Pending_ticks--;
+        Requests.front().Num_ticks_remaining--;
       }
     }
 
@@ -402,19 +426,19 @@ namespace patmos
     /// @param os The output stream to print to.
     virtual void print(std::ostream &os) const
     {
-      if (Pending_ticks == 0)
+      if (Requests.empty())
       {
         os << " IDLE\n";
       }
       else
       {
-#ifdef NDEBUG
-        os << boost::format(" Transfer: %1\n") % Pending_ticks;
-#else  // NDEBUG
-        os << boost::format(" %1%: %2% (%3$0x8 %4%)\n")
-           % (Pending_is_load ? "LOAD" : "STORE") % Pending_ticks
-           % Pending_address % Pending_size;
-#endif // NDEBUG
+        for(requests_t::const_iterator i(Requests.begin()), ie(Requests.end());
+            i != ie; i++)
+        {
+          os << boost::format(" %1%: %2% (0x%3$0x8 %4%)\n")
+            % (i->Is_load ? "LOAD " : "STORE") % i->Num_ticks_remaining
+            % i->Address % i->Size;
+        }
       }
     }
 

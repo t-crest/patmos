@@ -276,6 +276,9 @@ namespace patmos
     /// Address for memory accesses.
     word_t EX_Address;
 
+    /// Discard PFL instructions in EX stage (stalling).
+    word_t EX_PFL_Discard;
+
     // -------------------------- MW -------------------------------------------
     /// Result register operand from MW stage.
     GPR_by_pass_t GPR_MW_Rd;

@@ -165,6 +165,15 @@ namespace patmos
           }
         }
 
+        // prevent forwarding
+        if (Stall > SEX)
+        {
+          for(unsigned int i = 0; i < NUM_SLOTS; i++)
+          {
+            Pipeline[SEX][i].GPR_EX_Rd.reset();
+          }
+        }
+
         // decode the next instruction, only if we are not stalling.
         if (Stall == SIF)
         {

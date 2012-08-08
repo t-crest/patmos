@@ -1275,8 +1275,8 @@ namespace patmos
     /// @param pred The predicate under which the instruction is executed.
     /// @param base The base address of the current method.
     /// @param pc The current program counter.
-    void no_store_return_address(simulator_t &s, bit_t pred, uword_t base,
-                                 uword_t pc) const
+    void no_store_return_address(simulator_t &s, instruction_data_t &ops,
+                                 bit_t pred, uword_t base, uword_t pc) const
     {
       assert(base <= pc);
     }
@@ -1287,10 +1287,10 @@ namespace patmos
     /// @param pred The predicate under which the instruction is executed.
     /// @param base The base address of the current method.
     /// @param pc The current program counter.
-    void store_return_address(simulator_t &s, bit_t pred, uword_t base,
-                              uword_t pc) const
+    void store_return_address(simulator_t &s, instruction_data_t &ops,
+                              bit_t pred, uword_t base, uword_t pc) const
     {
-      if (pred)
+      if (pred && !ops.EX_PFL_Discard)
       {
         assert(base <= pc);
 
@@ -1308,23 +1308,24 @@ namespace patmos
     /// @param pred The predicate under which the instruction is executed.
     /// @param base The base address of the target method.
     /// @param address The target address.
-    void fetch_and_dispatch(simulator_t &s, bit_t pred, word_t base,
-                            word_t address) const
+    void fetch_and_dispatch(simulator_t &s, instruction_data_t &ops,
+                            bit_t pred, word_t base, word_t address) const
     {
-      if (pred)
+      if (pred && !ops.EX_PFL_Discard)
       {
         // check if the target method is in the cache, otherwise stall until
         // it is loaded.
         if (!s.Method_cache.is_available(base))
         {
           // stall the pipeline
-          s.pipeline_stall(SMW);
+          s.pipeline_stall(SEX);
         }
         else
         {
           // set the program counter and base
           s.BASE = base;
           s.PC = s.nPC = address;
+          ops.EX_PFL_Discard = 1;
         }
       }
     }
@@ -1336,9 +1337,10 @@ namespace patmos
     /// @param pred The predicate under which the instruction is executed.
     /// @param base The base address of the target method.
     /// @param address The target address.
-    void dispatch(simulator_t &s, bit_t pred, word_t base, word_t address) const
+    void dispatch(simulator_t &s, instruction_data_t &ops, bit_t pred,
+                  word_t base, word_t address) const
     {
-      if (pred)
+      if (pred && !ops.EX_PFL_Discard)
       {
         // assure that the target method is in the cache.
         assert(s.Method_cache.assert_availability(base));
@@ -1346,6 +1348,7 @@ namespace patmos
         // set the program counter and base
         s.BASE = base;
         s.PC = s.nPC = address;
+        ops.EX_PFL_Discard = 1;
       }
     }
   public:
@@ -1358,6 +1361,7 @@ namespace patmos
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.EX_PFL_Discard = 0;
     }
 
     // EX implemented by sub-classes
@@ -1378,8 +1382,8 @@ namespace patmos
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
     { \
       ops.EX_Address = target; \
-      store(s, ops.DR_Pred, s.BASE, s.nPC); \
-      dispatch(s, ops.DR_Pred, new_base, target); \
+      store(s, ops, ops.DR_Pred, s.BASE, s.nPC); \
+      dispatch(s, ops, ops.DR_Pred, new_base, target); \
     } \
   };
 
@@ -1405,6 +1409,7 @@ namespace patmos
     {
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
       ops.DR_Rs1 = s.GPR.get(ops.OPS.PFLi.Rs);
+      ops.EX_PFL_Discard = 0;
     }
 
     // EX implemented by sub-classes
@@ -1425,8 +1430,8 @@ namespace patmos
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
     { \
       ops.EX_Address = target; \
-      store(s, ops.DR_Pred, s.BASE, s.PC); \
-      dispatch(s, ops.DR_Pred, new_base, target); \
+      store(s, ops, ops.DR_Pred, s.BASE, s.nPC); \
+      dispatch(s, ops, ops.DR_Pred, new_base, target); \
     } \
   };
 
@@ -1463,6 +1468,7 @@ namespace patmos
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
       ops.DR_Base = s.SPR.get(sb).get();
       ops.DR_Offset = s.SPR.get(so).get();
+      ops.EX_PFL_Discard = 0;
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
@@ -1478,8 +1484,8 @@ namespace patmos
         s.pipeline_stall(SDR);
       }
       else
-        fetch_and_dispatch(s, ops.DR_Pred, ops.DR_Base,
-                          ops.DR_Base + ops.DR_Offset);
+        fetch_and_dispatch(s, ops, ops.DR_Pred, ops.DR_Base,
+                           ops.DR_Base + ops.DR_Offset);
     }
 
     /// Signal to the simulator that a "halt" instruction has been executed.
@@ -1518,6 +1524,7 @@ namespace patmos
       ops.DR_Pred = 1;
       ops.DR_Rs1 = s.GPR.get(ops.OPS.BNE.Rs1);
       ops.DR_Rs2 = s.GPR.get(ops.OPS.BNE.Rs2);
+      ops.EX_PFL_Discard = 0;
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
@@ -1528,7 +1535,7 @@ namespace patmos
     {
       // compute the result of the ALU instruction
       bit_t pred = read_GPR_EX(s, ops.DR_Rs1) != read_GPR_EX(s, ops.DR_Rs2);
-      dispatch(s, pred, s.BASE, s.PC + ops.OPS.BNE.Imm*sizeof(word_t));
+      dispatch(s, ops, pred, s.BASE, s.PC + ops.OPS.BNE.Imm*sizeof(word_t));
     }
   };
 }
