@@ -40,6 +40,10 @@
 ------------------------------------------
 --general purpose registers
 ------------------------------------------
+
+library std;
+use std.textio.all;
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -60,17 +64,19 @@ end entity patmos_register_file;
 
 architecture arch of patmos_register_file is
 	type ram_type is array (0 to 31) of std_logic_vector(31 downto 0);
-	signal ram              : ram_type;
+	signal ram : ram_type;
 
 	signal wr_addr_reg  : std_logic_vector(4 downto 0);
 	signal wr_data_reg  : std_logic_vector(31 downto 0);
 	signal wr_en_reg    : std_logic;
 	signal rd_addr_reg1 : std_logic_vector(4 downto 0);
 	signal rd_addr_reg2 : std_logic_vector(4 downto 0);
-	signal fwd1, fwd2 : std_logic;
+	signal fwd1, fwd2   : std_logic;
 
 begin
 	process(clk)
+		variable l : line;
+
 	begin
 		if rising_edge(clk) then
 			wr_addr_reg  <= write_address;
@@ -78,16 +84,23 @@ begin
 			wr_en_reg    <= write_enable;
 			rd_addr_reg1 <= read_address1;
 			rd_addr_reg2 <= read_address2;
-			if read_address1=write_address and write_enable='1' then
+			if read_address1 = write_address and write_enable = '1' then
 				fwd1 <= '1';
 			else
 				fwd1 <= '0';
 			end if;
-			if read_address2=write_address and write_enable='1' then
+			if read_address2 = write_address and write_enable = '1' then
 				fwd2 <= '1';
 			else
 				fwd2 <= '0';
 			end if;
+			--pragma synthesis_off
+			for i in 0 to 31 loop
+				write(l, integer'image(to_integer(signed(ram(i)))));
+				write(l, ' ');
+			end loop;
+			writeline(output, l);
+		--pragma synthesis_on
 		end if;
 	end process;
 
@@ -99,20 +112,19 @@ begin
 
 		if rd_addr_reg1 = "00000" then
 			read_data1 <= (others => '0');
-		elsif fwd1='1' then
-			read_data1 <= wr_data_reg;		
+		elsif fwd1 = '1' then
+			read_data1 <= wr_data_reg;
 		else
 			read_data1 <= ram(to_integer(unsigned(rd_addr_reg1)));
 		end if;
 		if rd_addr_reg2 = "00000" then
 			read_data2 <= (others => '0');
-		elsif fwd2='1' then
-			read_data2 <= wr_data_reg;		
+		elsif fwd2 = '1' then
+			read_data2 <= wr_data_reg;
 		else
 			read_data2 <= ram(to_integer(unsigned(rd_addr_reg2)));
 		end if;
 	end process;
-
 
 --	process(clk)
 --	begin

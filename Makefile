@@ -91,6 +91,9 @@ old_rom: tools
 sim:
 	cd modelsim; make
 
+bsim:
+	cd modelsim; make batch
+
 old_sim:
 	java -cp java/lib/patmos-tools.jar \
 		simulator.SimPat
