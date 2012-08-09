@@ -94,7 +94,8 @@ namespace patmos
     Stall = std::max(Stall, pst);
   }
 
-  void simulator_t::run(word_t entry, uint64_t debug_cycle, uint64_t max_cycles)
+  void simulator_t::run(word_t entry, uint64_t debug_cycle,
+                        debug_format_e debug_fmt, uint64_t max_cycles)
   {
     // do some initializations before executing the first instruction.
     if (Cycle == 0)
@@ -108,11 +109,12 @@ namespace patmos
       for(uint64_t cycle = 0; cycle < max_cycles; cycle++, Cycle++)
       {
         bool debug = (Cycle >= debug_cycle);
+        bool debug_pipline = debug && (debug_fmt == DF_LONG);
 
         // simulate decoupled load
         Decoupled_load.dMW(*this);
 
-        if (debug)
+        if (debug_pipline)
         {
           std::cerr << "dMW: ";
           Decoupled_load.print(std::cerr, Symbols);
@@ -120,10 +122,10 @@ namespace patmos
         }
 
         // invoke simulation functions
-        pipeline_invoke(SMW, &instruction_data_t::MW, debug);
-        pipeline_invoke(SEX, &instruction_data_t::EX, debug);
-        pipeline_invoke(SDR, &instruction_data_t::DR, debug);
-        pipeline_invoke(SIF, &instruction_data_t::IF, debug);
+        pipeline_invoke(SMW, &instruction_data_t::MW, debug_pipline);
+        pipeline_invoke(SEX, &instruction_data_t::EX, debug_pipline);
+        pipeline_invoke(SDR, &instruction_data_t::DR, debug_pipline);
+        pipeline_invoke(SIF, &instruction_data_t::IF, debug_pipline);
 
         // commit results
         pipeline_invoke(SMW, &instruction_data_t::MW_commit);
@@ -222,7 +224,7 @@ namespace patmos
 
         if (debug)
         {
-          print(std::cerr);
+          print(std::cerr, debug_fmt);
         }
       }
     }
@@ -233,90 +235,105 @@ namespace patmos
     }
   }
 
-  void simulator_t::print_registers(std::ostream &os) const
+  void simulator_t::print_registers(std::ostream &os,
+                                    debug_format_e debug_fmt) const
   {
-    os << boost::format("\nCyc : %1$08d   PRR: ")
-       % Cycle;
-
-    // print values of predicate registers
-    unsigned int sz_value = 0;
-    for(int p = NUM_PRR - 1; p >= 0; p--)
+    if (debug_fmt == DF_SHORT)
     {
-      bit_t pred_value = PRR.get((PRR_e)p).get();
-      sz_value |= pred_value << p;
-      os << pred_value;
+      for(unsigned int r = r0; r < NUM_GPR; r++)
+      {
+        os << boost::format(" r%1$-2d: %2$08x") % r % GPR.get((GPR_e)r).get();
+      }
+      os << "\n";
     }
-
-    std::string function();
-    os << boost::format("  BASE: %1$08x   PC : %2$08x   ")
-       % BASE % PC;
-
-    Symbols.print(os, PC);
-
-    os << "\n ";
-
-    // print values of general purpose registers
-    for(unsigned int r = r0; r < NUM_GPR; r++)
+    else
     {
-      os << boost::format("r%1$-2d: %2$08x") % r % GPR.get((GPR_e)r).get();
+      os << boost::format("\nCyc : %1$08d   PRR: ")
+        % Cycle;
 
-      if ((r & 0x7) == 7)
+      // print values of predicate registers
+      unsigned int sz_value = 0;
+      for(int p = NUM_PRR - 1; p >= 0; p--)
       {
-        os << "\n ";
+        bit_t pred_value = PRR.get((PRR_e)p).get();
+        sz_value |= pred_value << p;
+        os << pred_value;
       }
-      else
+
+      std::string function();
+      os << boost::format("  BASE: %1$08x   PC : %2$08x   ")
+        % BASE % PC;
+
+      Symbols.print(os, PC);
+
+      os << "\n ";
+
+      // print values of general purpose registers
+      for(unsigned int r = r0; r < NUM_GPR; r++)
       {
-        os << "   ";
+        os << boost::format("r%1$-2d: %2$08x") % r % GPR.get((GPR_e)r).get();
+
+        if ((r & 0x7) == 7)
+        {
+          os << "\n ";
+        }
+        else
+        {
+          os << "   ";
+        }
       }
+      os << "\n ";
+
+      // print values of special purpose registers -- special handling of SZ.
+      os << boost::format("s0 : %1$08x   ") % sz_value;
+      for(unsigned int s = s1; s < NUM_SPR; s++)
+      {
+        os << boost::format("s%1$-2d: %2$08x") % s % SPR.get((SPR_e)s).get();
+
+        if ((s & 0x7) == 7)
+        {
+          os << "\n ";
+        }
+        else
+        {
+          os << "   ";
+        }
+      }
+      os << "\n";
     }
-    os << "\n ";
-
-    // print values of special purpose registers -- special handling of SZ.
-    os << boost::format("s0 : %1$08x   ") % sz_value;
-    for(unsigned int s = s1; s < NUM_SPR; s++)
-    {
-      os << boost::format("s%1$-2d: %2$08x") % s % SPR.get((SPR_e)s).get();
-
-      if ((s & 0x7) == 7)
-      {
-        os << "\n ";
-      }
-      else
-      {
-        os << "   ";
-      }
-    }
-    os << "\n";
   }
 
-  void simulator_t::print(std::ostream &os) const
+  void simulator_t::print(std::ostream &os, debug_format_e debug_fmt) const
   {
     // print register values
-    print_registers(os);
+    print_registers(os, debug_fmt);
 
-    // print state of method cache
-    os << "Method Cache:\n";
-    Method_cache.print(os);
+    if (debug_fmt == DF_ALL)
+    {
+      // print state of method cache
+      os << "Method Cache:\n";
+      Method_cache.print(os);
 
-    // print state of data cache
-    os << "Data Cache:\n";
-    Data_cache.print(os);
+      // print state of data cache
+      os << "Data Cache:\n";
+      Data_cache.print(os);
 
-    // print state of stack cache
-    os << "Stack Cache:\n";
-    Stack_cache.print(os);
+      // print state of stack cache
+      os << "Stack Cache:\n";
+      Stack_cache.print(os);
 
-    // print state of main memory
-    os << "Memory:\n";
-    Memory.print(os);
+      // print state of main memory
+      os << "Memory:\n";
+      Memory.print(os);
 
-    os << "\n";
+      os << "\n";
+    }
   }
 
   void simulator_t::print_stats(std::ostream &os) const
   {
     // print register values
-    print_registers(os);
+    print_registers(os, DF_DEFAULT);
 
     // instruction statistics
     os << boost::format("\n\nInstruction Statistics:\n"

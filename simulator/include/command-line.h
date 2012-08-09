@@ -26,6 +26,25 @@
 
 namespace patmos
 {
+  /// Parsing debug output format options from the command-line.
+  enum debug_format_e
+  {
+    DF_SHORT,
+    DF_DEFAULT,
+    DF_LONG,
+    DF_ALL
+  };
+
+  /// Parse a debug output format from a string in a stream
+  /// @param in An input stream to read from.
+  /// @param df The debug format.
+  std::istream &operator >>(std::istream &in, debug_format_e &df);
+
+  /// Write a debug format option as a string to an output stream.
+  /// @param os An output stream.
+  /// @param df The debug format.
+  std::ostream &operator <<(std::ostream &os, debug_format_e df);
+
   /// Parsing method cache kinds as command-line options.
   enum method_cache_e
   {

@@ -27,6 +27,46 @@
 
 namespace patmos
 {
+  std::istream &operator >>(std::istream &in, debug_format_e &df)
+  {
+    std::string tmp, kind;
+    in >> tmp;
+
+    kind.resize(tmp.size());
+    std::transform(tmp.begin(), tmp.end(), kind.begin(), ::tolower);
+
+    if(kind == "short")
+      df = DF_SHORT;
+    else if(kind == "default")
+      df = DF_DEFAULT;
+    else if(kind == "long")
+      df = DF_LONG;
+    else if(kind == "all")
+      df = DF_ALL;
+    else throw boost::program_options::validation_error(
+                  boost::program_options::validation_error::invalid_option_value,
+                  "Unknown debug output option: " + tmp);
+
+    return in;
+  }
+
+  std::ostream &operator <<(std::ostream &os, debug_format_e df)
+  {
+    switch(df)
+    {
+      case DF_SHORT:
+        os << "short"; break;
+      case DF_DEFAULT:
+        os << "default"; break;
+      case DF_LONG:
+        os << "long"; break;
+      case DF_ALL:
+        os << "all"; break;
+    }
+
+    return os;
+  }
+
   std::istream &operator >>(std::istream &in, method_cache_e &mck)
   {
     std::string tmp, kind;

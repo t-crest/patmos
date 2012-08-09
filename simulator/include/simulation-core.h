@@ -20,6 +20,7 @@
 #ifndef PATMOS_SIMULATOR_CORE_H
 #define PATMOS_SIMULATOR_CORE_H
 
+#include "command-line.h"
 #include "decoder.h"
 #include "instruction.h"
 #include "exception.h"
@@ -176,7 +177,8 @@ namespace patmos
     /// Print the internal register state of the simulator to an output stream 
     /// (excluding memories and caches)
     /// @param os An output stream.
-    void print_registers(std::ostream &os) const;
+    /// @param debug_fmt The selected output format.
+    void print_registers(std::ostream &os, debug_format_e debug_fmt) const;
 
     /// Perform a step of the simulation for a given pipeline.
     /// @param pst The pipeline stage.
@@ -208,14 +210,17 @@ namespace patmos
     /// @param entry Initialize the method cache, PC, etc. to start execution
     /// from this entry address.
     /// @param debug_cycle Print debug trace starting at the given cycle.
+    /// @param debug_fmt Format of the debug trace.
     /// @param max_cycles The maximum number of cycles to run the simulation.
     void run(word_t entry = 0,
              uint64_t debug_cycle = std::numeric_limits<uint64_t>::max(),
+             debug_format_e debug_fmt = DF_DEFAULT,
              uint64_t max_cycles = std::numeric_limits<uint64_t>::max());
 
     /// Print the internal state of the simulator to an output stream.
     /// @param os An output stream.
-    void print(std::ostream &os) const;
+    /// @param debug_fmt The selected output format.
+    void print(std::ostream &os, debug_format_e debug_fmt) const;
 
     /// Print runtime statistics of the current simulation run to an output 
     /// stream.
