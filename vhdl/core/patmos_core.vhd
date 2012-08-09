@@ -380,7 +380,7 @@ begin                                   -- architecture begin
 
 		-- we need a clear solution for this in the right pipeline stage
 		--		if (execute_dout.alu_result(8) = '1') then --data mem
-		if (execute_dout.alu_result_out(8) = '1') then --data mem
+		if (execute_dout.alu_result(8) = '1') then --data mem
 			test                             <= '1';
 			mem_write                        <= decode_dout.mem_write_out;
 			mem_read                         <= decode_dout.mem_read_out;

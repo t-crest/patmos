@@ -57,6 +57,7 @@ architecture arch of patmos_alu is
 	signal cmp_equal, cmp_result          : std_logic;
 	signal predicate, predicate_reg       : std_logic_vector(7 downto 0);
 	signal rs1, rs2							: unsigned(31 downto 0);
+	signal rd_tmp							: std_logic_vector(31 downto 0);
 begin
 
 	-- MS: TODO: This ALU needs to be restructured to share functional units
@@ -117,16 +118,29 @@ begin
 							when "0101" => rd <= std_logic_vector("0" & rs1(30 downto 0));
 							when others => rd <= std_logic_vector(rs1 + rs2);
 						end case;
---					when ALUp =>
---						case din.ALU_function_type is
---						-- TODO: the predicate register is now right here in this stage
---						-- rewrite the following
---							when "0110" => pd <= (din.ps1_negate xor din.ps1) or (din.ps1_negate xor din.ps2);
---							when "0111" => pd <= (din.ps1_negate xor din.ps1) and (din.ps1_negate xor din.ps2);
---							when "1010" => pd <= (din.ps1_negate xor din.ps1) xor (din.ps1_negate xor din.ps2);
---							when "1011" => pd <= not ((din.ps1_negate xnor din.ps1) or (din.ps1_negate xor din.ps2)); --nor
---							when others => pd <= (din.ps1_negate xor din.ps1) or (din.ps1_negate xor din.ps2);
---						end case;
+					when ALUp =>
+						case din.ALU_function_type is
+						
+							when "0110" => predicate_reg(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <= 					
+												(decdout.ps1_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps1_out(2 downto 0)))) ) or 
+												(decdout.ps2_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps2_out(2 downto 0)))));
+						
+							when "0111" =>  predicate_reg(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <= 
+											(decdout.ps1_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps1_out(2 downto 0)))) ) and 
+											(decdout.ps2_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps2_out(2 downto 0)))));
+						
+							when "1010" =>  predicate_reg(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <= 
+											(decdout.ps1_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps1_out(2 downto 0)))) ) xor 
+											(decdout.ps2_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps2_out(2 downto 0)))));
+						
+							when "1011" =>  predicate_reg(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <=
+											not 
+											((decdout.ps1_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps1_out(2 downto 0)))) ) or 
+											(decdout.ps2_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps2_out(2 downto 0)))))
+											); --nor
+						
+							when others =>  predicate_reg(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <= '0';
+						end case;
 
 					when others => rd <= std_logic_vector(rs1 + rs2);
 				end case;
@@ -134,18 +148,22 @@ begin
 				case din.LDT_instruction_type is
 					----- scratchpad memory
 					when LWL =>
-						 rd <= std_logic_vector(rs1 + rs2);--unsigned(SHIFT_LEFT(signed(rs1 + rs2), 2));
+						 rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
 					when LHL =>
-						 rd <= std_logic_vector(rs1 + rs2);--unsigned(SHIFT_LEFT(signed(rs1 + rs2), 1));
+						 rd_tmp <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+						 rd <= std_logic_vector(resize(signed(rd_tmp(15 downto 0)), 32));
 					when LBL =>
-						 rd <= std_logic_vector(rs1 + rs2);	
+						 rd_tmp <= std_logic_vector(rs1 + rs2);
+						 rd <= std_logic_vector(resize(signed(rd_tmp(7 downto 0)), 32));	
 					when LHUL =>
-						 rd <= std_logic_vector(rs1 + rs2);
+						 rd_tmp <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+						 rd <= std_logic_vector(resize(unsigned(rd_tmp(15 downto 0)), 32));	
 					when LBUL =>
-						 rd <= std_logic_vector(rs1 + rs2);
+						 rd_tmp <= std_logic_vector(rs1 + rs2);
+						 rd <= std_logic_vector(resize(unsigned(rd_tmp(7 downto 0)), 32));
 					----------------------------------------
 					when LWS =>
-						rd <= std_logic_vector(SHIFT_LEFT(signed(rs1 + rs2), 2)); -- igned, unsigned
+						rd <= std_logic_vector(SHIFT_LEFT(signed(rs1 + rs2), 2)); 
 					when LHS =>
 						rd <= std_logic_vector(SHIFT_LEFT(signed(rs1 + rs2), 1));
 					when LBS =>
@@ -156,16 +174,18 @@ begin
 						rd    <= std_logic_vector(rs1 + rs2);
 					when others => rd <= std_logic_vector(rs1 + rs2);
 				end case;
-			--dout.rd <= din.rs1 + din.rs2; --unsigned(intermediate_add);--
+
 			when STT =>
 				case din.STT_instruction_type is
 					----- scratchpad memory
 					when SWL =>
-						rd <= std_logic_vector(rs1 + rs2);
+						rd <=  std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
 					when SHL =>
-						rd <= std_logic_vector(rs1 + rs2);
+						rd_tmp <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+						rd <= std_logic_vector(resize(signed(rd_tmp(15 downto 0)), 32));
 					when SBL =>
-						rd <= std_logic_vector(rs1 + rs2);	
+						rd_tmp <= std_logic_vector(rs1 + rs2);
+						rd <= std_logic_vector(resize(unsigned(rd_tmp(7 downto 0)), 32));	
 					----------------------------------------
 					when SWS =>
 						rd <= std_logic_vector(SHIFT_LEFT(signed(rs1 + rs2), 2));
@@ -184,19 +204,18 @@ begin
 		cmp_result <= '0';
 		predicate  <= predicate_reg;
 		
-		if din.rs1 = din.rs2 then
+		if signed(rs1) = signed(rs2) then
 			cmp_equal <= '1';
 		end if;
 
 		case decdout.ALU_function_type_out(2 downto 0) is
 			when "000" => cmp_result <= cmp_equal;
 			when "001" => cmp_result <= not cmp_equal;
-			when "010" =>  if (din.rs1 < din.rs2 ) then cmp_result <= '1'; else cmp_result <= '0' ; end if;
-			when "011" =>  if (din.rs1 <= din.rs2 ) then cmp_result <= '1'; else cmp_result <= '0' ; end if;
-			when "100" =>  if (din.rs1 < din.rs2 ) then cmp_result <= '1'; else cmp_result <= '0' ; end if;
-			when "101" =>  if (din.rs1 <= din.rs2 ) then cmp_result <= '1'; else cmp_result <= '0' ; end if;
-			--when "110" =>  rd <= SHIFT_LEFT( ?, to_integer(din.rs2));
-						--	if (rd and din.rs1) then cmp_result <= '1'; else cmp_result <= '0' ; end if;
+			when "010" =>  if (signed(rs1) < signed(rs2) ) then cmp_result <= '1'; else cmp_result <= '0' ; end if;
+			when "011" =>  if (signed(rs1) <= signed(rs2) ) then cmp_result <= '1'; else cmp_result <= '0' ; end if;
+			when "100" =>  if (rs1 < rs2 ) then cmp_result <= '1'; else cmp_result <= '0' ; end if;
+			when "101" =>  if (rs1 <= rs2 ) then cmp_result <= '1'; else cmp_result <= '0' ; end if;
+			when "110" =>  if (rs1(to_integer(rs2)) = '1') then cmp_result <= '1'; else cmp_result <= '0' ; end if;
 			when others => null;
 		end case;
 		if decdout.instr_cmp='1' then
