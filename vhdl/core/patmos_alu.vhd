@@ -150,17 +150,17 @@ begin
 					when LWL =>
 						 rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
 					when LHL =>
-						 rd_tmp <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-						 rd <= std_logic_vector(resize(signed(rd_tmp(15 downto 0)), 32));
+						 rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+						 
 					when LBL =>
-						 rd_tmp <= std_logic_vector(rs1 + rs2);
-						 rd <= std_logic_vector(resize(signed(rd_tmp(7 downto 0)), 32));	
+						 rd <= std_logic_vector(rs1 + rs2);
+						 	
 					when LHUL =>
-						 rd_tmp <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-						 rd <= std_logic_vector(resize(unsigned(rd_tmp(15 downto 0)), 32));	
+						 rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+						 	
 					when LBUL =>
-						 rd_tmp <= std_logic_vector(rs1 + rs2);
-						 rd <= std_logic_vector(resize(unsigned(rd_tmp(7 downto 0)), 32));
+						 rd <= std_logic_vector(rs1 + rs2);
+						 
 					----------------------------------------
 					when LWS =>
 						rd <= std_logic_vector(SHIFT_LEFT(signed(rs1 + rs2), 2)); 
@@ -181,11 +181,11 @@ begin
 					when SWL =>
 						rd <=  std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
 					when SHL =>
-						rd_tmp <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-						rd <= std_logic_vector(resize(signed(rd_tmp(15 downto 0)), 32));
+						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+						
 					when SBL =>
-						rd_tmp <= std_logic_vector(rs1 + rs2);
-						rd <= std_logic_vector(resize(unsigned(rd_tmp(7 downto 0)), 32));	
+						rd <= std_logic_vector(rs1 + rs2);
+							
 					----------------------------------------
 					when SWS =>
 						rd <= std_logic_vector(SHIFT_LEFT(signed(rs1 + rs2), 2));
