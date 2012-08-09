@@ -340,7 +340,8 @@ int main(int argc, char **argv)
     ("maxc,c", boost::program_options::value<unsigned int>()->default_value(std::numeric_limits<unsigned int>::max(), "inf."), "stop simulation after the given number of cycles")
     ("binary,b", boost::program_options::value<std::string>()->default_value("-"), "binary or elf-executable file (stdin: -)")
     ("output,o", boost::program_options::value<std::string>()->default_value("-"), "output execution trace in file (stdout: -)")
-    ("debug", boost::program_options::value<unsigned int>()->implicit_value(0), "enable step-by-step debug tracing after cycle");
+    ("debug", boost::program_options::value<unsigned int>()->implicit_value(0), "enable step-by-step debug tracing after cycle")
+    ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), "format of the debug trace (short, default, long, all)");
 
   boost::program_options::options_description memory_options("Memory options");
   memory_options.add_options()
@@ -414,6 +415,7 @@ int main(int argc, char **argv)
   patmos::stack_cache_e sck = vm["sckind"].as<patmos::stack_cache_e>();
   patmos::method_cache_e mck = vm["mckind"].as<patmos::method_cache_e>();
 
+  patmos::debug_format_e debug_fmt= vm["debug-fmt"].as<patmos::debug_format_e>();
   unsigned int debug_cycle = vm.count("debug") ?
                                        vm["debug"].as<unsigned int>() :
                                        std::numeric_limits<unsigned int>::max();
@@ -466,7 +468,7 @@ int main(int argc, char **argv)
     // start execution
     try
     {
-      s.run(entry, debug_cycle, max_cycle);
+      s.run(entry, debug_cycle, debug_fmt, max_cycle);
       s.print_stats(*out);
     }
     catch (patmos::simulation_exception_t e)
