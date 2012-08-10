@@ -17,7 +17,7 @@ endif
 
 all: clean base
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_testbench.vhd
-	$(WINE) vsim -c -do sim.do patmos_testbench
+	$(WINE) vsim -do sim.do patmos_testbench
 
 batch: clean base
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_testbench.vhd
