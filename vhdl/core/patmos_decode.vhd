@@ -100,7 +100,7 @@ begin
 			dout.rs2_data_out        <= din.rs2_data_in;
 			-- dout.reg_write_out <= din.reg_write_in;
 			dout.alu_src_out      <= '1'; -- choose the second source, i.e. immediate!
-			dout.reg_write_out    <= '1'; -- reg_write_out is reg_write_ex
+		--	dout.reg_write_out    <= '1'; -- reg_write_out is reg_write_ex
 			dout.mem_to_reg_out   <= '0'; -- data comes from alu or mem ? 0 from alu and 1 from mem
 			dout.mem_read_out     <= '0';
 			dout.mem_write_out    <= '0';
@@ -112,6 +112,7 @@ begin
 			--         dout.predicate_bit <= not predicate_register_bank(to_integer(unsigned(din.operation1(29 downto 27))));
 			--   end if;   
 			if din.operation(26 downto 25) = "00" then -- ALUi instruction
+				dout.reg_write_out    <= '1';
 				dout.inst_type_out         <= ALUi;
 				dout.ALU_function_type_out <= '0' & din.operation(24 downto 22);
 			-- elsif din.operation1(26 downto 22) = "11111" then -- long immediate!
@@ -122,18 +123,21 @@ begin
 				--  dout.reg_write_out <= din.reg_write_in;
 				dout.alu_src_out <= '0'; -- choose the first source, i.e. reg!
 
-				dout.reg_write_out    <= '1'; -- reg_write_out is reg_write_ex
+			--	dout.reg_write_out    <= '1'; -- reg_write_out is reg_write_ex
 				case din.operation(6 downto 4) is
 					when "000" =>       -- Register
 						dout.ALU_instruction_type_out <= ALUr;
+						dout.reg_write_out    <= '1';
 					when "001" =>       -- Unary
 						dout.ALU_instruction_type_out <= ALUu;
+						dout.reg_write_out    <= '1';
 					when "010" =>       -- Multuply
 						dout.ALU_instruction_type_out <= ALUm;
+						dout.reg_write_out    <= '1';
 					when "011" =>       -- Compare
 						dout.ALU_instruction_type_out <= ALUc;
 						dout.instr_cmp <= '1';
-						dout .reg_write_out <= '0';
+						dout.reg_write_out <= '0';
 						
 					when "100" =>       -- predicate
 						dout.ALU_instruction_type_out <= ALUp;
