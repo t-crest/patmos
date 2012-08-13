@@ -67,6 +67,50 @@ namespace patmos
     return os;
   }
 
+  std::istream &operator >>(std::istream &in, data_cache_e &dck)
+  {
+    std::string tmp, kind;
+    in >> tmp;
+
+    kind.resize(tmp.size());
+    std::transform(tmp.begin(), tmp.end(), kind.begin(), ::tolower);
+
+    if(kind == "ideal")
+      dck = DC_IDEAL;
+    else if(kind == "no")
+      dck = DC_NO;
+    else if(kind == "lru2")
+      dck = DC_LRU2;
+    else if(kind == "lru4")
+      dck = DC_LRU4;
+    else if(kind == "lru8")
+      dck = DC_LRU8;
+    else throw boost::program_options::validation_error(
+                 boost::program_options::validation_error::invalid_option_value,
+                 "Unknown data cache kind: " + tmp);
+
+    return in;
+  }
+
+  std::ostream &operator <<(std::ostream &os, data_cache_e dck)
+  {
+    switch(dck)
+    {
+      case DC_IDEAL:
+        os << "ideal"; break;
+      case DC_NO:
+        os << "no"; break;
+      case DC_LRU2:
+        os << "lru2"; break;
+      case DC_LRU4:
+        os << "lru4"; break;
+      case DC_LRU8:
+        os << "lru8"; break;
+    }
+
+    return os;
+  }
+
   std::istream &operator >>(std::istream &in, method_cache_e &mck)
   {
     std::string tmp, kind;
@@ -80,8 +124,8 @@ namespace patmos
     else if(kind == "lru")
       mck = MC_LRU;
     else throw boost::program_options::validation_error(
-                  boost::program_options::validation_error::invalid_option_value,
-                  "Unknown method cache kind: " + tmp);
+                 boost::program_options::validation_error::invalid_option_value,
+                 "Unknown method cache kind: " + tmp);
 
     return in;
   }
@@ -112,8 +156,8 @@ namespace patmos
     else if(kind == "block")
       sck = SC_BLOCK;
     else throw boost::program_options::validation_error(
-                  boost::program_options::validation_error::invalid_option_value,
-                  "Unknown stack cache kind: " + tmp);
+                 boost::program_options::validation_error::invalid_option_value,
+                 "Unknown stack cache kind: " + tmp);
 
     return in;
   }

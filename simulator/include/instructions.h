@@ -1224,9 +1224,9 @@ namespace patmos
   ST_INSTR(shl, s.Local_memory, hword_t)
   ST_INSTR(sbl, s.Local_memory, byte_t)
 
-  ST_INSTR(swc, s.Memory, word_t)
-  ST_INSTR(shc, s.Memory, hword_t)
-  ST_INSTR(sbc, s.Memory, byte_t)
+  ST_INSTR(swc, s.Data_cache, word_t)
+  ST_INSTR(shc, s.Data_cache, hword_t)
+  ST_INSTR(sbc, s.Data_cache, byte_t)
 
   ST_INSTR(swm, s.Memory, word_t)
   ST_INSTR(shm, s.Memory, hword_t)

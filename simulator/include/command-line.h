@@ -45,6 +45,26 @@ namespace patmos
   /// @param df The debug format.
   std::ostream &operator <<(std::ostream &os, debug_format_e df);
 
+  /// Parsing data cache kinds as command-line options.
+  enum data_cache_e
+  {
+    DC_IDEAL,
+    DC_NO,
+    DC_LRU2,
+    DC_LRU4,
+    DC_LRU8
+  };
+
+  /// Parse a data cache kind from a string in a stream
+  /// @param in An input stream to read from.
+  /// @param dck The data cache kind.
+  std::istream &operator >>(std::istream &in, data_cache_e &dck);
+
+  /// Write a data cache kind as a string to an output stream.
+  /// @param os An output stream.
+  /// @param mck The data cache kind.
+  std::ostream &operator <<(std::ostream &os, data_cache_e dck);
+
   /// Parsing method cache kinds as command-line options.
   enum method_cache_e
   {

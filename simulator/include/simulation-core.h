@@ -53,6 +53,9 @@ namespace patmos
   /// Define the number of bytes used for the data cache.
   static const unsigned int NUM_DATA_CACHE_BYTES = 0x800;
 
+  /// Define the number of bytes in a block of the data cache.
+  static const unsigned int NUM_DATA_CACHE_BLOCK_BYTES = 32;
+
   /// Define the number of bytes used for the stack cache.
   static const unsigned int NUM_STACK_CACHE_BYTES = 0x800;
 
