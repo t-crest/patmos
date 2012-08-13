@@ -54,7 +54,8 @@ end entity patmos_mem_stage;
 
 
 architecture arch of patmos_mem_stage is
-
+	signal memory_din		: std_logic_vector(31 downto 0);
+	signal memory_dout		: std_logic_vector(31 downto 0);
 begin
 
 -- MS: this should be merged with memory stage
@@ -73,5 +74,10 @@ begin
 	memory: entity work.patmos_data_memory(arch)
 	port map(clk, din.alu_result,
 	din.alu_src2, din.mem_write, din.alu_result, dout.data_mem_data_out);
+	
+	ld_st_type: process(din)
+	begin
+		
+	end process ld_st_type;
 
 end arch;

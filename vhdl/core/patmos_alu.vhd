@@ -57,7 +57,8 @@ architecture arch of patmos_alu is
 	signal cmp_equal, cmp_result          : std_logic;
 	signal predicate, predicate_reg       : std_logic_vector(7 downto 0);
 	signal rs1, rs2							: unsigned(31 downto 0);
-	signal rd_tmp							: std_logic_vector(31 downto 0);
+	signal tst				: std_logic;
+	signal tst2			: integer;
 begin
 
 	-- MS: TODO: This ALU needs to be restructured to share functional units
@@ -71,12 +72,11 @@ begin
 	end process;
 	patmos_alu : process(din, decdout, predicate, predicate_reg, cmp_equal, cmp_result, rs1, rs2)
 	begin
---		rs1 <= unsigned(din.rs1);
---		rs2 <= unsigned(din.rs2);
+		predicate  <= predicate_reg;
 		case din.inst_type is
 			when ALUi =>
 				case din.ALU_function_type is
-					when "0000" => rd <= std_logic_vector(rs1 + rs2); --add
+					when "0000" => rd <= std_logic_vector(rs1 + rs2); tst <= '0';--add 
 					when "0001" => rd <= std_logic_vector(rs1 - rs2); --sub
 					when "0010" => rd <= std_logic_vector(rs2 - rs1); -- sub invert
 					when "0011" => rd <= std_logic_vector(SHIFT_LEFT(rs1, to_integer(rs2(4 downto 0)))); --sl
@@ -99,7 +99,8 @@ begin
 							when "0110" => rd <= std_logic_vector(rs1 or rs2); -- or
 							when "0111" => rd <= std_logic_vector(rs1 and rs2); -- and
 							-----
-							when "1000" => rd <= std_logic_vector(SHIFT_LEFT(rs1, to_integer(rs2(4 downto 0))) or 
+							when "1000" => rd <= 
+													std_logic_vector(SHIFT_LEFT(rs1, to_integer(rs2(4 downto 0))) or 
 										 						  SHIFT_RIGHT(rs1, 32 - to_integer(rs2(4 downto 0))	)); -- rl
 							when "1001" => rd <= std_logic_vector(SHIFT_LEFT(rs1, 32 - to_integer(rs2(4 downto 0))) or 
 															      SHIFT_RIGHT(rs2, to_integer(rs2(4 downto 0))));
@@ -121,25 +122,29 @@ begin
 					when ALUp =>
 						case din.ALU_function_type is
 						
-							when "0110" => predicate_reg(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <= 					
+							when "0110" => predicate(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <= 					
 												(decdout.ps1_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps1_out(2 downto 0)))) ) or 
 												(decdout.ps2_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps2_out(2 downto 0)))));
 						
-							when "0111" =>  predicate_reg(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <= 
+							when "0111" => tst2 <=to_integer(unsigned(decdout.pd_out(2 downto 0)));  
+										tst <= (decdout.ps1_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps1_out(2 downto 0)))) ) and 
+											(decdout.ps2_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps2_out(2 downto 0)))));
+							predicate(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <=
+											  
 											(decdout.ps1_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps1_out(2 downto 0)))) ) and 
 											(decdout.ps2_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps2_out(2 downto 0)))));
 						
-							when "1010" =>  predicate_reg(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <= 
+							when "1010" =>  predicate(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <= 
 											(decdout.ps1_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps1_out(2 downto 0)))) ) xor 
 											(decdout.ps2_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps2_out(2 downto 0)))));
 						
-							when "1011" =>  predicate_reg(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <=
+							when "1011" =>  predicate(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <=
 											not 
 											((decdout.ps1_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps1_out(2 downto 0)))) ) or 
 											(decdout.ps2_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps2_out(2 downto 0)))))
 											); --nor
 						
-							when others =>  predicate_reg(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <= '0';
+							when others =>  predicate(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <= '0';
 						end case;
 
 					when others => rd <= std_logic_vector(rs1 + rs2);
@@ -202,7 +207,7 @@ begin
 		-- compare instructions
 		cmp_equal <= '0';
 		cmp_result <= '0';
-		predicate  <= predicate_reg;
+		
 		
 		if signed(rs1) = signed(rs2) then
 			cmp_equal <= '1';
@@ -219,6 +224,7 @@ begin
 			when others => null;
 		end case;
 		if decdout.instr_cmp='1' then
+--			test
 			predicate(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <= cmp_result;
 		end if;
 		-- the ever true predicate
