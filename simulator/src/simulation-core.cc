@@ -109,7 +109,7 @@ namespace patmos
       for(uint64_t cycle = 0; cycle < max_cycles; cycle++, Cycle++)
       {
         bool debug = (Cycle >= debug_cycle);
-        bool debug_pipline = debug && (debug_fmt == DF_LONG);
+        bool debug_pipline = debug && (debug_fmt >= DF_LONG);
 
         // simulate decoupled load
         Decoupled_load.dMW(*this);
