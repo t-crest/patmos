@@ -435,7 +435,7 @@ namespace patmos
         for(requests_t::const_iterator i(Requests.begin()), ie(Requests.end());
             i != ie; i++)
         {
-          os << boost::format(" %1%: %2% (0x%3$0x8 %4%)\n")
+          os << boost::format(" %1%: %2% (0x%3$08x %4%)\n")
             % (i->Is_load ? "LOAD " : "STORE") % i->Num_ticks_remaining
             % i->Address % i->Size;
         }

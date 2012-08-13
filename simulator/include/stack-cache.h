@@ -635,7 +635,7 @@ namespace patmos
     /// @param os The output stream to print to.
     virtual void print_stats(std::ostream &os)
     {
-      // instruction statistics
+      // stack cache statistics
       os << boost::format("\n\nStack Cache Statistics:\n"
                           "                           total        max.\n"
                           "   Blocks Spilled   : %1$10d  %2$10d\n"
