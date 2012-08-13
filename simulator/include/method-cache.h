@@ -501,7 +501,17 @@ namespace patmos
     /// @return True when the method is available in the cache, false otherwise.
     virtual bool assert_availability(word_t address)
     {
-      return lookup(address);
+      // check if the address is in the cache
+      for(unsigned int i = Num_blocks - 1; i >= Num_blocks - Num_active_methods;
+          i--)
+      {
+        if (Methods[i].Address == address)
+        {
+          return true;
+        }
+      }
+
+      return false;
     }
 
     /// Notify the cache that a cycle passed -- i.e., if there is an ongoing
