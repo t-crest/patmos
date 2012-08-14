@@ -170,7 +170,7 @@ namespace patmos
            unsigned int NUM_INIT_BLOCKS = 4>
   class lru_method_cache_t : public method_cache_t
   {
-  private:
+  protected:
     /// Phases of fetching a method from memory.
     enum phase_e
     {
@@ -242,7 +242,7 @@ namespace patmos
     /// The methods in the cache sorted by age.
     method_info_t *Methods;
 
-    /// The methods's instructions sorted by ID.
+    /// The methods' instructions sorted by ID.
     byte_t *Instructions;
 
     /// The number of methods currently in the cache.
@@ -277,10 +277,33 @@ namespace patmos
     /// Cache statistics of individual method.
     method_stats_t Method_stats;
 
+    /// A simulated instruction fetch from the method cache.
+    /// @param current_method The currently active method.
+    /// @param address The memory address to fetch from.
+    /// @param iw A pointer to store the fetched instruction word.
+    /// @return True when the instruction word is available from the read port.
+    bool do_fetch(const method_info_t &current_method, uword_t address,
+                  word_t iw[2])
+    {
+      if(address < current_method.Address ||
+         current_method.Address + current_method.Num_bytes <= address)
+      {
+        simulation_exception_t::code_exceeded(current_method.Address);
+      }
+
+      // get instruction word from the method's instructions
+      byte_t *iwp = reinterpret_cast<byte_t*>(&iw[0]);
+      for(unsigned int i = 0; i != sizeof(word_t)*2; i++, iwp++)
+      {
+        *iwp = current_method.Instructions[address + i -
+                                           current_method.Address];
+      }
+    }
+
     /// Check whether the method at the given address is in the method cache.
     /// @param address The method address.
     /// @return True in case the method is in the cache, false otherwise.
-    bool lookup(uword_t address)
+    virtual bool lookup(uword_t address)
     {
       // check if the address is in the cache
       for(unsigned int i = Num_blocks - 1; i >= Num_blocks - Num_active_methods;
@@ -351,24 +374,8 @@ namespace patmos
     /// @return True when the instruction word is available from the read port.
     virtual bool fetch(uword_t address, word_t iw[2])
     {
-      // get 'most-recent' method of the cache
-      method_info_t &current_method = Methods[Num_blocks - 1];
-
-      if(address < current_method.Address ||
-         current_method.Address + current_method.Num_bytes <= address)
-      {
-        simulation_exception_t::code_exceeded(current_method.Address);
-      }
-
-      // get instruction word from the method's instructions
-      byte_t *iwp = reinterpret_cast<byte_t*>(&iw[0]);
-      for(unsigned int i = 0; i != sizeof(word_t)*2; i++, iwp++)
-      {
-        *iwp = current_method.Instructions[address + i -
-                                           current_method.Address];
-      }
-
-      return true;
+      // fetch from 'most-recent' method of the cache
+      return do_fetch(Methods[Num_blocks - 1], address, iw);
     }
 
     /// Check whether a method is in the method cache, if it is not available
@@ -578,7 +585,55 @@ namespace patmos
       delete [] Methods;
     }
   };
+
+  /// A direct-mapped method cache using FIFO replacement on methods.
+  /// \see lru_method_cache_t
+  template<unsigned int NUM_BLOCK_BYTES = NUM_METHOD_CACHE_BLOCK_BYTES,
+           unsigned int NUM_INIT_BLOCKS = 4>
+  class fifo_method_cache_t : public lru_method_cache_t<NUM_BLOCK_BYTES,
+                                                        NUM_INIT_BLOCKS>
+  {
+  private:
+    typedef lru_method_cache_t<NUM_BLOCK_BYTES, NUM_INIT_BLOCKS> base_t;
+
+    /// Check whether the method at the given address is in the method cache.
+    /// @param address The method address.
+    /// @return True in case the method is in the cache, false otherwise.
+    virtual bool lookup(uword_t address)
+    {
+      return base_t::assert_availability(address);
+    }
+  public:
+    /// Construct an FIFO-based method cache.
+    /// @param memory The memory to fetch instructions from on a cache miss.
+    /// @param num_blocks The size of the cache in blocks.
+    fifo_method_cache_t(memory_t &memory, unsigned int num_blocks) :
+        lru_method_cache_t<NUM_BLOCK_BYTES, NUM_INIT_BLOCKS>(memory, num_blocks)
+    {
+    }
+
+    /// A simulated instruction fetch from the method cache.
+    /// @param address The memory address to fetch from.
+    /// @param iw A pointer to store the fetched instruction word.
+    /// @return True when the instruction word is available from the read port.
+    virtual bool fetch(uword_t address, word_t iw[2])
+    {
+      // check if the address is in the cache
+      for(unsigned int i = base_t::Num_blocks - 1; i >=
+          base_t::Num_blocks - base_t::Num_active_methods; i--)
+      {
+        if (base_t::Methods[i].Address <= address &&
+            address < base_t::Methods[i].Address + base_t::Methods[i].Num_bytes)
+        {
+          // fetch from the currently active method
+          return base_t::do_fetch(base_t::Methods[i], address, iw);
+        }
+      }
+
+      assert(false);
+      abort();
+    }
+  };
 }
 
 #endif // PATMOS_METHOD_CACHE_H
-

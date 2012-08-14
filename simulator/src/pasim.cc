@@ -287,6 +287,14 @@ static patmos::method_cache_t &create_method_cache(patmos::method_cache_e mck,
 
       return *new patmos::lru_method_cache_t<>(gm, num_blocks);
     }
+    case patmos::MC_FIFO:
+    {
+      // convert size to number of blocks
+      unsigned int num_blocks = std::ceil((float)size/
+                                   (float)patmos::NUM_METHOD_CACHE_BLOCK_BYTES);
+
+      return *new patmos::fifo_method_cache_t<>(gm, num_blocks);
+    }
   }
 
   assert(false);

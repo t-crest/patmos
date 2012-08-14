@@ -123,6 +123,8 @@ namespace patmos
       mck = MC_IDEAL;
     else if(kind == "lru")
       mck = MC_LRU;
+    else if(kind == "fifo")
+      mck = MC_FIFO;
     else throw boost::program_options::validation_error(
                  boost::program_options::validation_error::invalid_option_value,
                  "Unknown method cache kind: " + tmp);
@@ -138,6 +140,8 @@ namespace patmos
         os << "ideal"; break;
       case MC_LRU:
         os << "lru"; break;
+      case MC_FIFO:
+        os << "fifo"; break;
     }
 
     return os;

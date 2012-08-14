@@ -69,7 +69,8 @@ namespace patmos
   enum method_cache_e
   {
     MC_IDEAL,
-    MC_LRU
+    MC_LRU,
+    MC_FIFO
   };
 
   /// Parse a method cache kind from a string in a stream
