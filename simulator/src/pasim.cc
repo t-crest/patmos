@@ -258,14 +258,11 @@ static patmos::data_cache_t &create_data_cache(patmos::data_cache_e dck,
     case patmos::DC_NO:
       return *new patmos::no_data_cache_t(gm);
     case patmos::DC_LRU2:
-      return *new patmos::lru_data_cache_t<2,
-                            patmos::NUM_DATA_CACHE_BLOCK_BYTES>(gm, num_blocks);
+      return *new patmos::lru_data_cache_t<2>(gm, num_blocks);
     case patmos::DC_LRU4:
-      return *new patmos::lru_data_cache_t<4,
-                            patmos::NUM_DATA_CACHE_BLOCK_BYTES>(gm, num_blocks);
+      return *new patmos::lru_data_cache_t<4>(gm, num_blocks);
     case patmos::DC_LRU8:
-      return *new patmos::lru_data_cache_t<8,
-                            patmos::NUM_DATA_CACHE_BLOCK_BYTES>(gm, num_blocks);
+      return *new patmos::lru_data_cache_t<8>(gm, num_blocks);
   };
 }
 

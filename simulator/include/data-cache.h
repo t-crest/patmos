@@ -159,8 +159,9 @@ namespace patmos
 
 
   /// An associative, block-based data cache using an LRU replacement policy and
-  /// a write-through strategy.
-  template<unsigned int ASSOCIATIVITY, unsigned int NUM_BLOCK_BYTES>
+  /// a write-through strategy with no write allocation.
+  template<unsigned int ASSOCIATIVITY,
+           unsigned int NUM_BLOCK_BYTES = NUM_DATA_CACHE_BLOCK_BYTES>
   class lru_data_cache_t : public ideal_data_cache_t
   {
   private:
@@ -430,23 +431,31 @@ namespace patmos
       unsigned int total_reads = Num_read_hits + Num_read_misses;
       unsigned int read_miss_rate = total_reads == 0 ? 0 :
                                           (Num_read_misses * 100) / total_reads;
+      unsigned int read_transfer_bytes = Num_read_misses * NUM_BLOCK_BYTES;
+      unsigned int total_read_bytes = Num_read_hit_bytes + Num_read_miss_bytes;
+      float        read_reuse = (float)total_read_bytes /
+                                (float)read_transfer_bytes;
 
       unsigned int total_writes = Num_write_hits + Num_write_misses;
       unsigned int write_miss_rate = total_writes == 0 ? 0 :
                                         (Num_write_misses * 100) / total_writes;
+      unsigned int write_transfer_bytes = total_writes * NUM_BLOCK_BYTES;
+      unsigned int total_write_bytes = Num_write_hit_bytes + Num_write_miss_bytes;
+      float        write_reuse = (float)total_write_bytes /
+                                 (float)write_transfer_bytes;
 
       os << boost::format("\n\nData Cache Statistics:\n"
-                          "                           total        hit      miss    miss-rate\n"
+                          "                           total        hit      miss    miss-rate     reuse\n"
                           "   Reads            : %1$10d %2$10d %3$10d %4$10d%%\n"
-                          "   Bytes Read       : %5$10d %6$10d %7$10d          -\n"
-                          "   Writes           : %8$10d %9$10d %10$10d %11$10d%%\n"
-                          "   Bytes Written    : %12$10d %13$10d %14$10d          -\n\n")
+                          "   Bytes Read       : %5$10d %6$10d %7$10d          - %8$10.2f\n"
+                          "   Writes           : %9$10d %10$10d %11$10d %12$10d%%\n"
+                          "   Bytes Written    : %13$10d %14$10d %15$10d          - %16$10.2f\n")
         % total_reads % Num_read_hits % Num_read_misses % read_miss_rate
-        % (Num_read_hit_bytes + Num_read_miss_bytes)
-        % Num_read_hit_bytes % Num_read_miss_bytes
+        % total_read_bytes % Num_read_hit_bytes % Num_read_miss_bytes
+        % read_reuse
         % total_writes % Num_write_hits % Num_write_misses % write_miss_rate
-        % (Num_write_hit_bytes + Num_write_miss_bytes)
-        % Num_write_hit_bytes % Num_write_miss_bytes;
+        % total_write_bytes % Num_write_hit_bytes % Num_write_miss_bytes
+        % write_reuse;
     }
 
     /// free tag information.
