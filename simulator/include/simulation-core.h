@@ -115,7 +115,7 @@ namespace patmos
     typedef std::vector<instruction_stat_t> instruction_stats_t;
   public:
     /// Cycle counter
-    unsigned int Cycle;
+    uint64_t Cycle;
 
     /// The main memory used during the simulation.
     memory_t &Memory;

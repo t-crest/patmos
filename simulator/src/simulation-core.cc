@@ -133,6 +133,10 @@ namespace patmos
         pipeline_invoke(SDR, &instruction_data_t::DR_commit);
         pipeline_invoke(SIF, &instruction_data_t::IF_commit);
 
+        // write cycle counter-value into special registers
+        SPR.set(scl, Cycle & 0xffffffff);
+        SPR.set(sch, Cycle >> 32);
+
         // track instructions retired
         if (Stall != NUM_STAGES-1)
         {
@@ -248,8 +252,7 @@ namespace patmos
     }
     else
     {
-      os << boost::format("\nCyc : %1$08d   PRR: ")
-        % Cycle;
+      os << boost::format("\nCyc : %1%\n PRR: ") % Cycle;
 
       // print values of predicate registers
       unsigned int sz_value = 0;
