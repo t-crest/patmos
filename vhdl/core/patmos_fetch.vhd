@@ -33,7 +33,6 @@
 -- Instruction fetch and PC manipulation.
 --
 -- Author: Martin Schoeberl (martin@jopdesign.com)
--- Author: Sahar Abbaspour
 --------------------------------------------------------------------------------
 
 
@@ -54,47 +53,90 @@ entity patmos_fetch is
 end entity patmos_fetch;
 
 architecture arch of patmos_fetch is
-	signal pc, pc_next : std_logic_vector(pc_length - 1 downto 0);
-	signal addr        : std_logic_vector(pc_length - 1 downto 0);
-	signal feout       : fetch_out_type;
-	signal tmp         : std_logic_vector(31 downto 0);
+	-- we should have global constants for memory sizes
+	signal pc, pc_next                               : std_logic_vector(pc_length - 1 downto 0);
+	signal pc_add	: unsigned(1 downto 0);
+	signal evn_next, addr_evn, addr_odd              : std_logic_vector(7 downto 0);
+	signal feout                                     : fetch_out_type;
+	signal data_evn, data_odd, instr_a, instr_b, tmp : std_logic_vector(31 downto 0);
 
 begin
-	process(pc, decout, exout)
+	process(pc, instr_a, pc_add, decout, exout)
 	begin
+		if instr_a(31) = '1' then
+			pc_add <= "10";
+		else
+			pc_add <= "01";
+		end if;
+		pc_next <= std_logic_vector(unsigned(pc) + pc_add);
+		
+		feout.b_valid <= instr_a(31);
+		
 		-- this is effective branch in the EX stage with
 		-- two branch delay slots
 		if decout.inst_type_out = BC and exout.predicate(to_integer(unsigned(decout.predicate_condition))) = '1' then -- decout.predicate_bit_out then
 			-- no addition? no relative branch???
 			pc_next <= decout.imm;
-		else
-			pc_next <= std_logic_vector(unsigned(pc) + 1);
 		end if;
 	end process;
 
-	rom : entity work.patmos_rom
+	-- Even RAM address needs an increment when PC is odd
+	process(pc_next)
+	begin
+		evn_next <= pc_next(7 downto 1) & "0";
+		if pc_next(0) = '1' then
+			evn_next <= std_logic_vector(unsigned(pc_next(7 downto 1)) + 1) & "0";
+		end if;
+	end process;
+
+	-- Reusing a single ROM with constant '0' and '1' at address(0)
+	-- Assuming that synthsize will optimize it
+	rom_evn : entity work.patmos_rom
 		port map(
-			address => addr(7 downto 0),
+			address => addr_evn,
 			-- instruction shall not be unsigned
-			q       => tmp
+			q       => data_evn
 		);
 
-	feout.instruction <= tmp;
+	rom_odd : entity work.patmos_rom
+		port map(
+			address => addr_odd,
+			-- instruction shall not be unsigned
+			q       => data_odd
+		);
+
+	-- MUX the two outputs data
+	process(pc, data_evn, data_odd)
+	begin
+		if (pc(0) = '0') then
+			instr_a <= data_evn;
+			instr_b <= data_odd;
+		else
+			instr_a <= data_odd;
+			instr_b <= data_evn;
+		end if;
+	end process;
+
+	feout.instruction <= instr_a;
+	feout.instr_b     <= instr_b;
+	feout.pc          <= pc;
 	-- register addresses unregistered to make the register file code easier
-	reg1 <= tmp(16 downto 12);
-	reg2 <= tmp(11 downto 7);
+	-- shall be a type of unregistered (or combinational) output
+	reg1 <= instr_a(16 downto 12);
+	reg2 <= instr_a(11 downto 7);
 	process(clk, rst)
 	begin
 		if (rst = '1') then
-			pc               <= (others => '0');
+			-- Let's start with -1, so the first instruction at 0 gets executed
+			pc               <= (others => '1');
 			dout.pc          <= (others => '0');
 			dout.instruction <= (others => '0');
 		elsif (rising_edge(clk) and rst = '0') then
-			pc               <= pc_next;
-			addr             <= pc_next;
-			dout.instruction <= feout.instruction;
+			pc       <= pc_next;
+			addr_evn <= evn_next;
+			addr_odd <= pc_next(7 downto 1) & "1";
 			-- MS: the next pc? PC calculation is REALLY an independent pipe stage!
-			dout.pc <= pc;
+			dout <= feout;
 		end if;
 	end process;
 

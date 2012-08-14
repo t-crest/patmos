@@ -220,7 +220,7 @@ begin
 			when "011" =>  if (signed(rs1) <= signed(rs2) ) then cmp_result <= '1'; else cmp_result <= '0' ; end if;
 			when "100" =>  if (rs1 < rs2 ) then cmp_result <= '1'; else cmp_result <= '0' ; end if;
 			when "101" =>  if (rs1 <= rs2 ) then cmp_result <= '1'; else cmp_result <= '0' ; end if;
-			when "110" =>  if (rs1(to_integer(rs2)) = '1') then cmp_result <= '1'; else cmp_result <= '0' ; end if;
+			when "110" =>  if (rs1(to_integer(rs2(4 downto 0))) = '1') then cmp_result <= '1'; else cmp_result <= '0' ; end if;
 			when others => null;
 		end case;
 		if decdout.instr_cmp='1' then
