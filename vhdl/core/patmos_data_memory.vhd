@@ -40,6 +40,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity patmos_data_memory is
+  generic (width : integer := 32; addr_width : integer := 10);
   port(
         clk       	             : in std_logic;
         wr_address               : in std_logic_vector(31 downto 0);
@@ -52,16 +53,17 @@ end entity patmos_data_memory;
 
 architecture arch of patmos_data_memory is
   -- TODO: define size and address range as a constant
-  type data_memory is array (0 to 1024) of std_logic_vector(31 downto 0);
+  
+  type data_memory is array (0 to 2**addr_width - 1) of std_logic_vector(width - 1 downto 0);
   signal data_mem : data_memory;
 
 begin
   mem : process(clk)
   begin
   if (rising_edge(clk)) then
-  	  data_out <= data_mem(to_integer(unsigned(rd_address(9 downto 0))));	
+  	  data_out <= data_mem(to_integer(unsigned(rd_address(addr_width - 1 downto 0))));	
       if(write_enable = '1') then
-        data_mem(to_integer(unsigned(wr_address(9 downto 0)))) <= data_in;
+        data_mem(to_integer(unsigned(wr_address(addr_width - 1 downto 0)))) <= data_in;
       end if;
     end if;
   end process mem;

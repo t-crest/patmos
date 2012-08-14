@@ -73,11 +73,18 @@ begin
 
 	memory: entity work.patmos_data_memory(arch)
 	port map(clk, din.alu_result,
-	din.alu_src2, din.mem_write, din.alu_result, dout.data_mem_data_out);
+	din.data_in, din.mem_write, din.alu_result, dout.data_mem_data_out);
 	
-	ld_st_type: process(din)
-	begin
-		
-	end process ld_st_type;
+--	st_type: process(din)
+--	begin
+--		case din.STT_instruction_type_out is 
+--			when SWL =>
+--				memory_din <= din.data_in;
+--			when SHL =>
+--				memory_din <= din.data_in;--(16 downto 0);
+--		    when SBL =>
+--		    	memory_din <= din.data_in;--(16 downto 0);
+--		end case;
+--	end process st_type;
 
 end arch;

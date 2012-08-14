@@ -111,6 +111,12 @@ begin
 			--       elsif din.operation1(30) = '0' then -- ~predicate bits assignment
 			--         dout.predicate_bit <= not predicate_register_bank(to_integer(unsigned(din.operation1(29 downto 27))));
 			--   end if;   
+			
+			dout.sc_write_out             <= '0';
+			dout.sc_read_out              <= '0';
+			dout.lm_write_out			  <= '0';
+			dout.lm_read_out			  <= '0';
+			
 			if din.operation(26 downto 25) = "00" then -- ALUi instruction
 				dout.reg_write_out    <= '1';
 				dout.inst_type_out         <= ALUi;
@@ -146,23 +152,32 @@ begin
 
 			elsif din.operation(26 downto 22) = "01011" then -- store
 				dout.inst_type_out <= STT;
-						dout.sc_write_out             <= '1';
-						dout.sc_read_out              <= '0';
+--				dout.sc_write_out             <= '0';
+--				dout.sc_read_out              <= '0';
+--				dout.lm_write_out			  <= '0';
+--				dout.lm_read_out			  <= '0';
 				case din.operation(21 downto 17) is
-					----- scratchpad memory
+					---------------------------------------- scratchpad memory
 					when "00001" =>
 						dout.STT_instruction_type_out <= SWL;
+						dout.lm_write_out			  <= '1';
 					when "00101" =>
 						dout.STT_instruction_type_out <= SHL;
+						dout.lm_write_out			  <= '1';
 					when "01001" =>	
 						dout.STT_instruction_type_out <= SBL;
-					----------------------------------------	
+						dout.lm_write_out			  <= '1';
+					---------------------------------------- stack cache	
 					when "00000" =>
 						dout.STT_instruction_type_out <= SWS;
+						dout.sc_write_out             <= '1';
 					when "00100" =>
 						dout.STT_instruction_type_out <= SHS;
+						dout.sc_write_out             <= '1';
 					when "01000" =>
 						dout.STT_instruction_type_out <= SBS;
+						dout.sc_write_out             <= '1';
+					----------------------------------------- global memory	
 					when "00011" =>
 						dout.STT_instruction_type_out <= SWM;
 						-- MS: why is sc_write_out here '0'?
@@ -179,21 +194,28 @@ begin
 
 			elsif din.operation(26 downto 22) = "01010" then -- load
 				dout.inst_type_out <= LDT;
-						dout.sc_write_out             <= '0';
-						dout.sc_read_out              <= '1';
+--				dout.sc_write_out             <= '0';
+--				dout.sc_read_out              <= '0';
+--				dout.lm_write_out			  <= '0';
+--				dout.lm_read_out			  <= '0';
 				case din.operation(11 downto 7) is
-					----- scratchpad memory
+					---------------------------------------- scratchpad memory
 					when "00001" =>
 						dout.LDT_instruction_type_out <= LWL;
+						dout.lm_read_out			  <= '1';
 					when "00101" =>
 						dout.LDT_instruction_type_out <= LHL;
+						dout.lm_read_out			  <= '1';
 					when "01001" =>
 						dout.LDT_instruction_type_out <= LBL;	
+						dout.lm_read_out			  <= '1';
 					when "01101" =>
 						dout.LDT_instruction_type_out <= LHUL;
+						dout.lm_read_out			  <= '1';
 					when "10001" =>
-						dout.LDT_instruction_type_out <= LBUL;			
-					----------------------------------------
+						dout.LDT_instruction_type_out <= LBUL;
+						dout.lm_read_out			  <= '1';			
+					---------------------------------------- stack cache
 					when "00000" =>
 						dout.LDT_instruction_type_out <= LWS;
 					when "00100" =>
@@ -204,6 +226,7 @@ begin
 						dout.LDT_instruction_type_out <= LHUS;
 					when "10000" =>
 						dout.LDT_instruction_type_out <= LBUS;
+					----------------------------------------- global memory	
 					when "00011" =>
 						dout.LDT_instruction_type_out <= LWM;
 						-- again no read, no write?
