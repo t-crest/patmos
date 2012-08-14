@@ -67,21 +67,17 @@ entity patmos_core is
 end entity patmos_core;
 
 architecture arch of patmos_core is
-	signal sig1                  : std_logic_vector(4 downto 0);
-	signal sig2                  : std_logic_vector(4 downto 0);
-	signal intermediate_alu_src2 : std_logic_vector(31 downto 0);
+
 	signal write_enable          : std_logic;
 	signal test                  : std_logic;
 
 	signal data_mem_data_out      : std_logic_vector(31 downto 0);
-	signal fetch_din              : fetch_in_type;
 	signal fetch_dout             : fetch_out_type;
 	signal fetch_reg1, fetch_reg2 : std_logic_vector(4 downto 0);
 	signal decode_din             : decode_in_type;
 	signal decode_dout            : decode_out_type;
 	signal alu_din                : alu_in_type;
 	signal execute_dout           : execution_out_type;
-	signal write_back             : write_back_in_out_type;
 	signal stack_cache_din        : patmos_stack_cache_in;
 	signal stack_cache_dout       : patmos_stack_cache_out;
 	signal stack_cache_ctrl_din   : patmos_stack_cache_ctrl_in;
@@ -89,18 +85,11 @@ architecture arch of patmos_core is
 	signal mem_din                : mem_in_type;
 	signal mem_dout               : mem_out_type;
 	signal mux_mem_reg            : std_logic_vector(31 downto 0);
-	signal mux_alu_src            : std_logic_vector(31 downto 0);
-	signal alu_src1               : std_logic_vector(31 downto 0);
-	signal alu_src2               : std_logic_vector(31 downto 0);
-	signal fw_ctrl_rs1            : forwarding_type;
-	signal fw_ctrl_rs2            : forwarding_type;
-	signal mem_data_out           : std_logic_vector(31 downto 0);
 
 	signal out_rxd            : std_logic                     := '0';
 	signal address_uart       : std_logic_vector(31 downto 0) := (others => '0');
 	signal mem_data_out_uart  : std_logic_vector(31 downto 0);
 	signal mem_data_out_muxed : std_logic_vector(31 downto 0);
-	signal mem_data_out3      : std_logic_vector(31 downto 0);
 
 	signal spill, fill          : std_logic;
 	signal instruction_mem_din  : instruction_memory_in_type;
@@ -240,71 +229,17 @@ begin                                   -- architecture begin
 		port map(clk, rst, decode_din, decode_dout);
 
 	---------------------------------------------------- execute
-	wb : process(clk)
-	begin
-		if rising_edge(clk) then
-			write_back.write_value  <= mem_dout.data_out;
-			write_back.write_reg    <= mem_dout.write_back_reg_out;
-			write_back.write_enable <= mem_dout.reg_write_out;
-		end if;
-	end process wb;
-	forwarding_rs1 : process(execute_dout, decode_dout, write_back)
-	begin
-		if (decode_dout.rs1_out = execute_dout.write_back_reg_out and execute_dout.reg_write_out = '1') then
-			alu_src1 <= execute_dout.alu_result_out;
-		elsif (decode_dout.rs1_out = mem_dout.write_back_reg_out and mem_dout.reg_write_out = '1') then
-			alu_src1 <= mem_dout.data_out;
---		elsif (decode_dout.rs1_out = write_back.write_reg and write_back.write_enable = '1') then
---			alu_src1 <= write_back.write_value;
-		else
-			alu_src1 <= decode_dout.rs1_data_out;
-		end if;
-	end process forwarding_rs1;
 
-	forwarding_rs2 : process(execute_dout, decode_dout, write_back)
-	begin
-		if (decode_dout.rs2_out = execute_dout.write_back_reg_out and execute_dout.reg_write_out = '1') then
-			alu_src2 <= execute_dout.alu_result_out;
-		elsif (decode_dout.rs2_out = mem_dout.write_back_reg_out and mem_dout.reg_write_out = '1') then
-			alu_src2 <= mem_dout.data_out;
---		elsif (decode_dout.rs2_out = write_back.write_reg and write_back.write_enable = '1') then
---			alu_src2 <= write_back.write_value;
-		else
-			alu_src2 <= decode_dout.rs2_data_out;
-		end if;
-	end process forwarding_rs2;
-
-
-	-- MS: this shall go into the ALU with a normal selection (or into decode)
---	mux_imm : entity work.patmos_mux_32(arch) -- immediate or rt
---		-- Register forwarding change by Sahar
---		port map(alu_src2,
---			     decode_dout.ALUi_immediate_out,
---			     decode_dout.alu_src_out,
---			     mux_alu_src);
-
--- TODO: remove mux_*!
-	process(alu_src2, decode_dout.ALUi_immediate_out, decode_dout.alu_src_out)
-	begin
-		if (decode_dout.alu_src_out = '0') then
-			mux_alu_src <= alu_src2;
-		else
-			mux_alu_src <= decode_dout.ALUi_immediate_out;
-		end if;
-	end process;
-
-	alu_din.rs1                  <= alu_src1;
-	alu_din.rs2                  <= mux_alu_src;
 	alu_din.inst_type            <= decode_dout.inst_type_out;
 	alu_din.ALU_instruction_type <= decode_dout.ALU_instruction_type_out;
 	alu_din.ALU_function_type    <= decode_dout.ALU_function_type_out;
 	alu_din.STT_instruction_type <= decode_dout.STT_instruction_type_out;
 	alu_din.LDT_instruction_type <= decode_dout.LDT_instruction_type_out;
 
-	alu_din.mem_write_data_in <= alu_src2;
+--	alu_din.mem_write_data_in <= alu_src2;
 	---------------------------------------alu
 	alu : entity work.patmos_alu(arch)
-		port map(clk, rst, decode_dout, alu_din, execute_dout);
+		port map(clk, rst, decode_dout, alu_din, execute_dout, mem_dout);
 
 	-----------------------------------------------cache - memory------------------------------------------------------------
 	---------------------------------------------------- stack cache controller
@@ -380,7 +315,7 @@ begin                                   -- architecture begin
 
 		-- we need a clear solution for this in the right pipeline stage
 		--		if (execute_dout.alu_result(8) = '1') then --data mem
-		if (execute_dout.alu_result(8) = '1') then --data mem
+		if (execute_dout.alu_result(8) = '1') then --scratchpad mem
 			test                             <= '1';
 			mem_write                        <= decode_dout.mem_write_out;
 			mem_read                         <= decode_dout.mem_read_out;
@@ -388,7 +323,7 @@ begin                                   -- architecture begin
 			io_read                          <= '0';
 			instruction_mem_din.write_enable <= '0';
 
-		elsif (execute_dout.alu_result_out(10) = '1') then -- stack cache
+		elsif (execute_dout.alu_result(10) = '1') then -- stack cache
 			mem_write <= '0';
 			mem_read  <= '0';
 			io_write  <= '0';
@@ -398,7 +333,7 @@ begin                                   -- architecture begin
 			stack_cache_din.write_enable     <= execute_dout.mem_write_out;
 		--stack_cache_din.read_enable <= execute_dout.mem_read_out;
 
-		elsif (execute_dout.alu_result_out(7 downto 4) = "0000") then -- uart
+		elsif (execute_dout.alu_result(7 downto 4) = "0000") then -- uart
 			mem_write                        <= '0';
 			mem_read                         <= '0';
 			io_write                         <= execute_dout.mem_write_out;
@@ -409,7 +344,7 @@ begin                                   -- architecture begin
 			led_wr <= execute_dout.mem_write_out;
 		--	end if;
 
-		elsif (execute_dout.alu_result_out(9) = '1' and execute_dout.alu_result_out(8) /= '0') then -- instruction mem
+		elsif (execute_dout.alu_result(9) = '1' and execute_dout.alu_result(8) /= '0') then -- instruction mem
 			mem_write <= '0';
 			mem_read  <= '0';
 			io_write  <= '0';
@@ -471,21 +406,11 @@ begin                                   -- architecture begin
 
 	-- out_rxd <= not out_rxd after 100 ns;
 
-	-- memory access
-	-- memory: entity work.patmos_data_memory(arch)
-	--  port map(clk, rst, execute_dout.alu_result_out, 
-	--            execute_dout.mem_write_data_out,
-	--            mem_data_out, 
-	--            mem_read, mem_write);
-	--clk, rst, add, data_in(store), data_out(load), read_en, write_en
-
-
-	-- TODO: the memory code belongs into the memory stage component
 
 
 	mem_din.alu_result <= execute_dout.alu_result;
 	mem_din.mem_write  <= mem_write;
-	mem_din.alu_src2   <= alu_src2;
+--	mem_din.alu_src2   <= alu_src2;
 	data_mem_data_out  <= mem_dout.data_mem_data_out;
 	--------------------------
 	mem_din.data_in <= mux_mem_reg;
@@ -496,10 +421,6 @@ begin                                   -- architecture begin
 	memory_stage : entity work.patmos_mem_stage(arch)
 		port map(clk, rst, mem_din, mem_dout);
 
-------------------------------------------------------- write back
-
---  write_back: entity work.patmos_mux_32(arch)
---  port map(mem_dout.alu_result_out, mem_dout.mem_data_out, mem_dout.mem_to_reg_out, mux_mem_reg);
 
 
 ------------------------------------------------------ SRAM Interface

@@ -47,32 +47,37 @@ entity patmos_alu is
 		rst     : in  std_logic;
 		decdout : in  decode_out_type;
 		din     : in  alu_in_type;
-		doutex  : out execution_out_type
+		doutex  : out execution_out_type;
+		memdout : in mem_out_type
 	);
 end entity patmos_alu;
 
 architecture arch of patmos_alu is
-	signal number_of_bytes_in_stack_cache : std_logic_vector(4 downto 0) := (others => '0');
 	signal rd                              : std_logic_vector(31 downto 0);
 	signal cmp_equal, cmp_result          : std_logic;
 	signal predicate, predicate_reg       : std_logic_vector(7 downto 0);
 	signal rs1, rs2							: unsigned(31 downto 0);
 	signal tst				: std_logic;
 	signal tst2			: integer;
+	signal doutex_alu_result_out  		: std_logic_vector(31 downto 0);
+	signal doutex_write_back_reg_out   : std_logic_vector(4 downto 0);
+	signal doutex_reg_write_out 		: std_logic;
+	signal din_rs1, din_rs2, alu_src2  					: std_logic_vector(31 downto 0);
 begin
 
 	-- MS: TODO: This ALU needs to be restructured to share functional units
 	-- also means more decoding in decode and not in execute
 
 	-- we should assign default values;
-	process(din.rs1, din.rs2)
+	process(din_rs1, din_rs2)
 	begin
-		rs1 <= unsigned(din.rs1);
-		rs2 <= unsigned(din.rs2);
+		rs1 <= unsigned(din_rs1);
+		rs2 <= unsigned(din_rs2);
 	end process;
 	patmos_alu : process(din, decdout, predicate, predicate_reg, cmp_equal, cmp_result, rs1, rs2)
 	begin
 		predicate  <= predicate_reg;
+		rd <= "00000000000000000000000000000000";
 		case din.inst_type is
 			when ALUi =>
 				case din.ALU_function_type is
@@ -99,11 +104,12 @@ begin
 							when "0110" => rd <= std_logic_vector(rs1 or rs2); -- or
 							when "0111" => rd <= std_logic_vector(rs1 and rs2); -- and
 							-----
-							when "1000" => rd <= 
-													std_logic_vector(SHIFT_LEFT(rs1, to_integer(rs2(4 downto 0))) or 
-										 						  SHIFT_RIGHT(rs1, 32 - to_integer(rs2(4 downto 0))	)); -- rl
-							when "1001" => rd <= std_logic_vector(SHIFT_LEFT(rs1, 32 - to_integer(rs2(4 downto 0))) or 
-															      SHIFT_RIGHT(rs2, to_integer(rs2(4 downto 0))));
+							when "1000" => rd <= std_logic_vector(ROTATE_LEFT(rs1, to_integer(rs2(4 downto 0))));
+													--std_logic_vector(SHIFT_LEFT(rs1, to_integer(rs2(4 downto 0))) or 
+										 			--			  SHIFT_RIGHT(rs1, 32 - to_integer(rs2(4 downto 0))	)); -- rl
+							when "1001" => rd <= std_logic_vector(ROTATE_RIGHT(rs1, to_integer(rs2(4 downto 0))));
+													--std_logic_vector(SHIFT_LEFT(rs1, 32 - to_integer(rs2(4 downto 0))) or 
+													--    SHIFT_RIGHT(rs2, to_integer(rs2(4 downto 0))));
 							when "1010" => rd <= std_logic_vector(din.rs2 xor din.rs1);
 							when "1011" => rd <= std_logic_vector(din.rs1 nor din.rs2);
 							when "1100" => rd <= std_logic_vector(SHIFT_LEFT(rs1, 1) + rs2);
@@ -246,12 +252,14 @@ begin
 				doutex.mem_read_out  <= decdout.mem_read_out;
 				doutex.mem_write_out <= decdout.mem_write_out;
 				doutex.reg_write_out <= decdout.reg_write_out;
+				doutex_reg_write_out <= decdout.reg_write_out;
 			--      	doutex.ps_reg_write_out <= decdout.ps_reg_write_out;
 			--	test <= '1';
 			else
 				doutex.mem_read_out     <= '0';
 				doutex.mem_write_out    <= '0';
 				doutex.reg_write_out    <= '0';
+				doutex_reg_write_out <= '0';
 			end if;
 
 			doutex.mem_to_reg_out           <= decdout.mem_to_reg_out;
@@ -263,16 +271,52 @@ begin
 			-- this should be under predicate condition as well
 			doutex.predicate                <= predicate;
 			predicate_reg                   <= predicate;
+			
+			---------------------------------------- ld/st read/write
+			doutex.lm_read_out              <= decdout.lm_read_out;
+			doutex.lm_write_out              <= decdout.lm_write_out;
+			doutex.sc_read_out              <= decdout.sc_read_out;
+			doutex.sc_write_out              <= decdout.sc_write_out;
+			doutex_alu_result_out           <= rd;
+			doutex_write_back_reg_out       <= decdout.rd_out;
+			
+			
 		end if;
 	end process;
+	
+	forwarding_rs1 : process(doutex_alu_result_out, doutex_write_back_reg_out, doutex_reg_write_out , decdout)
+	begin
+		if (decdout.rs1_out = doutex_write_back_reg_out and doutex_reg_write_out = '1') then
+			din_rs1 <= doutex_alu_result_out;
+		elsif (decdout.rs1_out = memdout.write_back_reg_out and memdout.reg_write_out = '1') then
+			din_rs1 <= memdout.data_out;
+		else
+			din_rs1 <= decdout.rs1_data_out;
+		end if;
+	end process forwarding_rs1;
+	
+	forwarding_rs2 : process(doutex_alu_result_out, doutex_write_back_reg_out, doutex_reg_write_out , decdout)
+	begin
+		if (decdout.rs2_out = doutex_write_back_reg_out and doutex_reg_write_out = '1') then
+			alu_src2 <= doutex_alu_result_out;
+		elsif (decdout.rs2_out = memdout.write_back_reg_out and memdout.reg_write_out = '1') then
+			alu_src2 <= memdout.data_out;
+		else
+			alu_src2 <= decdout.rs2_data_out;
+		end if;
+	end process forwarding_rs2;
 
+		process(alu_src2, decdout.ALUi_immediate_out, decdout.alu_src_out)
+	begin
+		if (decdout.alu_src_out = '0') then
+			din_rs2 <= alu_src2;
+		else
+			din_rs2 <= decdout.ALUi_immediate_out;
+		end if;
+	end process;
+	
 end arch;
 
---function SHIFT_RIGHT (ARG: SIGNED; COUNT: NATURAL) return SIGNED;
--- Result subtype: SIGNED(ARG'LENGTH-1 downto 0)
--- Result: Performs a shift-right on a SIGNED vector COUNT times.
---         The vacated positions are filled with the leftmost
---         element, ARG'LEFT. The COUNT rightmost elements are lost.
 
 
 
