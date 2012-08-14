@@ -67,8 +67,9 @@ type fetch_in_type is record
 end record;
 type fetch_out_type is record
 		pc                            :  std_logic_vector(pc_length - 1 downto 0);
-		-- TODO: why is this unsigned?
 		instruction                   :  std_logic_vector(31 downto 0);
+		instr_b                  :  std_logic_vector(31 downto 0);
+		b_valid : std_logic;
 end record;
 
 --------------------------------------------
