@@ -67,7 +67,8 @@ entity patmos_core is
 end entity patmos_core;
 
 architecture arch of patmos_core is
-
+	signal memdin : std_logic_vector(31 downto 0);
+	
 	signal write_enable          : std_logic;
 	signal test                  : std_logic;
 
@@ -239,7 +240,7 @@ begin                                   -- architecture begin
 --	alu_din.mem_write_data_in <= alu_src2;
 	---------------------------------------alu
 	alu : entity work.patmos_alu(arch)
-		port map(clk, rst, decode_dout, alu_din, execute_dout, mem_dout);
+		port map(clk, rst, decode_dout, alu_din, execute_dout, mem_dout, memdin);
 
 	-----------------------------------------------cache - memory------------------------------------------------------------
 	---------------------------------------------------- stack cache controller
@@ -357,19 +358,19 @@ begin                                   -- architecture begin
 
 	end process;
 
-	io_mem_read_mux : process(mem_data_out_uart, data_mem_data_out, execute_dout)
-	begin
-		if (execute_dout.alu_result_out(8) = '0') then
-			mem_data_out_muxed <= mem_data_out_uart;
-		else
-			mem_data_out_muxed <= data_mem_data_out;
-		end if;
-	end process;
+--	io_mem_read_mux : process(mem_data_out_uart, data_mem_data_out, execute_dout)
+--	begin
+--		if (execute_dout.alu_result(8) = '0') then
+--			mem_data_out_muxed <= mem_data_out_uart;
+--		else
+--			mem_data_out_muxed <= data_mem_data_out;
+--		end if;
+--	end process;
 
-	write_back_proc : process(execute_dout, mem_data_out_muxed)
+	write_back_proc : process(execute_dout, data_mem_data_out)
 	begin
 		if (execute_dout.mem_to_reg_out = '1') then
-			mux_mem_reg <= mem_data_out_muxed;
+			mux_mem_reg <= data_mem_data_out;
 		else
 			mux_mem_reg <= execute_dout.alu_result_out;
 		end if;
@@ -407,7 +408,7 @@ begin                                   -- architecture begin
 	-- out_rxd <= not out_rxd after 100 ns;
 
 
-
+	mem_din.STT_instruction_type_out <= decode_dout.STT_instruction_type_out;
 	mem_din.alu_result <= execute_dout.alu_result;
 	mem_din.mem_write  <= mem_write;
 --	mem_din.alu_src2   <= alu_src2;
@@ -417,7 +418,7 @@ begin                                   -- architecture begin
 	-- forward
 	mem_din.reg_write_in      <= execute_dout.reg_write_out or execute_dout.mem_to_reg_out; --execute_dout.mem_to_reg_out or execute_dout.mem_write_out;
 	mem_din.write_back_reg_in <= execute_dout.write_back_reg_out;
-	mem_din.mem_write_data_in <= execute_dout.mem_write_data_out;
+	mem_din.mem_write_data_in <= memdin;--execute_dout.mem_write_data_out;
 	memory_stage : entity work.patmos_mem_stage(arch)
 		port map(clk, rst, mem_din, mem_dout);
 

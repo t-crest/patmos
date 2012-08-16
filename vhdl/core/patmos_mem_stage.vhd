@@ -54,8 +54,9 @@ end entity patmos_mem_stage;
 
 
 architecture arch of patmos_mem_stage is
-	signal memory_din		: std_logic_vector(31 downto 0);
-	signal memory_dout		: std_logic_vector(31 downto 0);
+		
+	signal en0, en1, en2, en3	: std_logic;
+	signal dout0, dout1, dout2, dout3 : std_logic_vector(7 downto 0);
 begin
 
 -- MS: this should be merged with memory stage
@@ -71,20 +72,76 @@ begin
     end if;
   end process mem_wb;
 
-	memory: entity work.patmos_data_memory(arch)
-	port map(clk, din.alu_result,
-	din.data_in, din.mem_write, din.alu_result, dout.data_mem_data_out);
+--	memory: entity work.patmos_data_memory(arch)
+--	port map(clk, din.alu_result,
+--	din.mem_write_data_in, din.mem_write, din.alu_result, dout.data_mem_data_out);
 	
---	st_type: process(din)
+		memory0: entity work.patmos_data_memory(arch)
+	generic map(8, 10)
+	port map(clk, din.alu_result(9 downto 0),
+	din.mem_write_data_in(7 downto 0), en0, din.alu_result(9 downto 0), dout0);
+	
+	memory1: entity work.patmos_data_memory(arch)
+	generic map(8, 10)
+	port map(clk, din.alu_result(9 downto 0),
+	din.mem_write_data_in(15 downto 8), en1, din.alu_result(9 downto 0), dout1);
+	
+	memory2: entity work.patmos_data_memory(arch)
+	generic map(8, 10)
+	port map(clk, din.alu_result(9 downto 0),
+	din.mem_write_data_in(23 downto 16), en2, din.alu_result(9 downto 0), dout2);
+	
+	memory3: entity work.patmos_data_memory(arch)
+	generic map(8, 10)
+	port map(clk, din.alu_result(9 downto 0),
+	din.mem_write_data_in(31 downto 24), en3, din.alu_result(9 downto 0), dout3);
+	
+--	ld_type: process(dout.data_mem_data_out)
 --	begin
---		case din.STT_instruction_type_out is 
---			when SWL =>
---				memory_din <= din.data_in;
---			when SHL =>
---				memory_din <= din.data_in;--(16 downto 0);
---		    when SBL =>
---		    	memory_din <= din.data_in;--(16 downto 0);
+--		case din.LDT_instruction_type_out
+--			when LWL=> 
+--				dout.data_mem_data_out <= 
+--			when LHL=>
+--			when LBL=>
+--			when LHUL=>
+--			when LBUL=>
 --		end case;
---	end process st_type;
+--	end process;
+	
+	process(dout0, dout1, dout2, dout3)
+	begin
+		dout.data_mem_data_out <= dout3 & dout2 & dout1 & dout0;
+	end process;
+	
+	st_type: process(din)
+	begin
+		case din.STT_instruction_type_out is 
+			when SWL =>
+				en0 <= din.mem_write; 
+				en1 <= din.mem_write;
+				en2 <= din.mem_write;
+				en3 <= din.mem_write;
+			when SHL =>
+				en0 <= din.mem_write; 
+				en1 <= din.mem_write;
+				en2 <= '0';
+				en3 <= '0';
+		    when SBL =>
+		    	en0 <= din.mem_write;
+		    	en1 <= '0';
+		    	en2 <= '0';
+				en3 <= '0';
+		    when others => 
+		    	en0 <= din.mem_write; 
+				en1 <= din.mem_write;
+				en2 <= din.mem_write;
+				en3 <= din.mem_write;
+		end case;
+	end process st_type;
+	
+	
+	
+
+
 
 end arch;

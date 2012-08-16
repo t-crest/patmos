@@ -82,6 +82,10 @@ type decode_in_type is record
 end record;
 type decode_out_type is record
 
+	
+	lm_write_out						: std_logic;
+	lm_read_out							: std_logic;
+	
 	imm : std_logic_vector(31 downto 0);
 	instr_cmp : std_logic;
 	
@@ -142,6 +146,11 @@ type execution_out_type is record
     ps_write_back_reg_out		        : std_logic_vector(2 downto 0);
     STT_instruction_type_out			: STT_inst_type;
     LDT_instruction_type_out			: LDT_inst_type;
+    
+    lm_read_out              			: std_logic;
+    lm_write_out              			: std_logic;
+    sc_read_out              			: std_logic;
+    sc_write_out              			: std_logic;
 end record;
 
 ------------------------------------------
@@ -176,7 +185,7 @@ type mem_in_type is record
     
    alu_result : std_logic_vector(31 downto 0);
    mem_write : std_logic;
-   alu_src2 : std_logic_vector(31 downto 0);
+   STT_instruction_type_out		: STT_inst_type;
 end record;
 
 type mem_out_type is record

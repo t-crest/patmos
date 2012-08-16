@@ -43,11 +43,11 @@ entity patmos_data_memory is
   generic (width : integer := 32; addr_width : integer := 10);
   port(
         clk       	             : in std_logic;
-        wr_address               : in std_logic_vector(31 downto 0);
-        data_in                  : in std_logic_vector(31 downto 0); -- store
+        wr_address               : in std_logic_vector(addr_width -1 downto 0);
+        data_in                  : in std_logic_vector(width -1 downto 0); -- store
         write_enable             : in std_logic;
-        rd_address               : in std_logic_vector(31 downto 0);
-        data_out                 : out std_logic_vector(31 downto 0) -- load
+        rd_address               : in std_logic_vector(addr_width - 1 downto 0);
+        data_out                 : out std_logic_vector(width -1 downto 0) -- load
       );
 end entity patmos_data_memory;
 
@@ -61,9 +61,9 @@ begin
   mem : process(clk)
   begin
   if (rising_edge(clk)) then
-  	  data_out <= data_mem(to_integer(unsigned(rd_address(addr_width - 1 downto 0))));	
+  	  data_out <= data_mem(to_integer(unsigned(rd_address)));	
       if(write_enable = '1') then
-        data_mem(to_integer(unsigned(wr_address(addr_width - 1 downto 0)))) <= data_in;
+        data_mem(to_integer(unsigned(wr_address))) <= data_in;
       end if;
     end if;
   end process mem;

@@ -48,7 +48,8 @@ entity patmos_alu is
 		decdout : in  decode_out_type;
 		din     : in  alu_in_type;
 		doutex  : out execution_out_type;
-		memdout : in mem_out_type
+		memdout : in mem_out_type;
+		memdin   : out std_logic_vector(31 downto 0)
 	);
 end entity patmos_alu;
 
@@ -313,6 +314,11 @@ begin
 		else
 			din_rs2 <= decdout.ALUi_immediate_out;
 		end if;
+	end process;
+	
+	process(alu_src2)
+	begin
+		memdin <= alu_src2;
 	end process;
 	
 end arch;
