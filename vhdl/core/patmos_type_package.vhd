@@ -186,6 +186,8 @@ type mem_in_type is record
    alu_result : std_logic_vector(31 downto 0);
    mem_write : std_logic;
    STT_instruction_type_out		: STT_inst_type;
+   LDT_instruction_type_out		: LDT_inst_type;
+   alu_src2 : std_logic_vector(31 downto 0);
 end record;
 
 type mem_out_type is record

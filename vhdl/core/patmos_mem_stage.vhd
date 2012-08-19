@@ -96,22 +96,24 @@ begin
 	port map(clk, din.alu_result(9 downto 0),
 	din.mem_write_data_in(31 downto 24), en3, din.alu_result(9 downto 0), dout3);
 	
---	ld_type: process(dout.data_mem_data_out)
---	begin
---		case din.LDT_instruction_type_out
---			when LWL=> 
---				dout.data_mem_data_out <= 
---			when LHL=>
---			when LBL=>
---			when LHUL=>
---			when LBUL=>
---		end case;
---	end process;
-	
-	process(dout0, dout1, dout2, dout3)
+	ld_type: process(dout0, dout1, dout2, dout3)
 	begin
-		dout.data_mem_data_out <= dout3 & dout2 & dout1 & dout0;
+		case din.LDT_instruction_type_out is
+			when LWL=> 
+				dout.data_mem_data_out <= dout3 & dout2 & dout1 & dout0;
+			when LHL=>
+				dout.data_mem_data_out <= std_logic_vector(resize(signed( dout1 & dout0), 32));
+			when LBL=>
+				dout.data_mem_data_out <= std_logic_vector(resize(signed(dout0), 32));
+			when LHUL=>
+				dout.data_mem_data_out <= std_logic_vector(resize(unsigned( dout1 & dout0), 32));
+			when LBUL=>
+				dout.data_mem_data_out <= std_logic_vector(resize(unsigned(dout0), 32));
+			 when others => 
+			 	dout.data_mem_data_out <= dout3 & dout2 & dout1 & dout0;
+		end case;
 	end process;
+	
 	
 	st_type: process(din)
 	begin

@@ -50,10 +50,12 @@ entity patmos_alu is
 		doutex  : out execution_out_type;
 		memdout : in mem_out_type;
 		memdin   : out std_logic_vector(31 downto 0)
+		
 	);
 end entity patmos_alu;
 
 architecture arch of patmos_alu is
+	signal number_of_bytes_in_stack_cache : std_logic_vector(4 downto 0) := (others => '0');
 	signal rd                              : std_logic_vector(31 downto 0);
 	signal cmp_equal, cmp_result          : std_logic;
 	signal predicate, predicate_reg       : std_logic_vector(7 downto 0);
@@ -252,13 +254,18 @@ begin
 			if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit_out then
 				doutex.mem_read_out  <= decdout.mem_read_out;
 				doutex.mem_write_out <= decdout.mem_write_out;
+				doutex.lm_read_out              <= decdout.lm_read_out;
+				doutex.lm_write_out              <= decdout.lm_write_out;
 				doutex.reg_write_out <= decdout.reg_write_out;
+				
 				doutex_reg_write_out <= decdout.reg_write_out;
 			--      	doutex.ps_reg_write_out <= decdout.ps_reg_write_out;
 			--	test <= '1';
 			else
 				doutex.mem_read_out     <= '0';
 				doutex.mem_write_out    <= '0';
+				doutex.lm_read_out              <= '0';
+				doutex.lm_write_out              <= '0';
 				doutex.reg_write_out    <= '0';
 				doutex_reg_write_out <= '0';
 			end if;
@@ -273,11 +280,7 @@ begin
 			doutex.predicate                <= predicate;
 			predicate_reg                   <= predicate;
 			
-			---------------------------------------- ld/st read/write
-			doutex.lm_read_out              <= decdout.lm_read_out;
-			doutex.lm_write_out              <= decdout.lm_write_out;
-			doutex.sc_read_out              <= decdout.sc_read_out;
-			doutex.sc_write_out              <= decdout.sc_write_out;
+
 			doutex_alu_result_out           <= rd;
 			doutex_write_back_reg_out       <= decdout.rd_out;
 			
@@ -307,7 +310,7 @@ begin
 		end if;
 	end process forwarding_rs2;
 
-		process(alu_src2, decdout.ALUi_immediate_out, decdout.alu_src_out)
+	process(alu_src2, decdout.ALUi_immediate_out, decdout.alu_src_out)
 	begin
 		if (decdout.alu_src_out = '0') then
 			din_rs2 <= alu_src2;
@@ -320,7 +323,7 @@ begin
 	begin
 		memdin <= alu_src2;
 	end process;
-	
+
 end arch;
 
 
