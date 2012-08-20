@@ -44,7 +44,7 @@ use ieee.numeric_std.all;
 package patmos_type_package is
   
   
-  type instruction_type is (NONE, ALUi, ALU, NOP, SPC, LDT, STT, STC, BC);
+  type instruction_type is (NONE, ALUi, ALU, NOP, SPC, LDT, STT, STC, BC, ALU_I);
   type STC_instruction_type is (NONE, SRES, SENS, SFREE);
   type pc_type is (PCNext, PCBranch);
   type ALU_inst_type is (NONE, ALUr, ALUu, ALUm, ALUc, ALUp);
@@ -77,6 +77,7 @@ end record;
 --------------------------------------------
 type decode_in_type is record
     operation                          : std_logic_vector (31 downto 0);
+    instr_b                  :  std_logic_vector(31 downto 0);
 	rs1_data_in                        : std_logic_vector (31 downto 0);
     rs2_data_in                        : std_logic_vector (31 downto 0);
 end record;

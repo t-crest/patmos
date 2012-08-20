@@ -82,6 +82,29 @@ begin
 		predicate  <= predicate_reg;
 		rd <= "00000000000000000000000000000000";
 		case din.inst_type is
+			when ALU_I =>
+				case din.ALU_function_type is
+							when "0000" => rd <= std_logic_vector(rs1 + rs2); --add
+							when "0001" => rd <= std_logic_vector(rs1 - rs2); --sub
+							when "0010" => rd <= std_logic_vector(rs2 - rs1); -- sub invert
+							when "0011" => rd <= std_logic_vector(SHIFT_LEFT(rs1, to_integer(rs2(4 downto 0)))); --sl
+							when "0100" => rd <= std_logic_vector(SHIFT_RIGHT(rs1, to_integer(rs2(4 downto 0)))); -- sr
+							when "0101" => rd <= std_logic_vector(SHIFT_RIGHT(signed(rs1), to_integer(rs2(4 downto 0)))); -- sra
+							when "0110" => rd <= std_logic_vector(rs1 or rs2); -- or
+							when "0111" => rd <= std_logic_vector(rs1 and rs2); -- and
+							-----
+							when "1000" => rd <= std_logic_vector(ROTATE_LEFT(rs1, to_integer(rs2(4 downto 0))));
+													--std_logic_vector(SHIFT_LEFT(rs1, to_integer(rs2(4 downto 0))) or 
+										 			--			  SHIFT_RIGHT(rs1, 32 - to_integer(rs2(4 downto 0))	)); -- rl
+							when "1001" => rd <= std_logic_vector(ROTATE_RIGHT(rs1, to_integer(rs2(4 downto 0))));
+													--std_logic_vector(SHIFT_LEFT(rs1, 32 - to_integer(rs2(4 downto 0))) or 
+													--    SHIFT_RIGHT(rs2, to_integer(rs2(4 downto 0))));
+							when "1010" => rd <= std_logic_vector(din.rs2 xor din.rs1);
+							when "1011" => rd <= std_logic_vector(din.rs1 nor din.rs2);
+							when "1100" => rd <= std_logic_vector(SHIFT_LEFT(rs1, 1) + rs2);
+							when "1101" => rd <= std_logic_vector(SHIFT_LEFT(rs1, 2) + rs2);
+							when others => rd <= std_logic_vector(rs1 + rs2); -- default add! 
+						end case;
 			when ALUi =>
 				case din.ALU_function_type is
 					when "0000" => rd <= std_logic_vector(rs1 + rs2); tst <= '0';--add 

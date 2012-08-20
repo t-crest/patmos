@@ -116,13 +116,18 @@ begin
 			--       elsif din.operation1(30) = '0' then -- ~predicate bits assignment
 			--         dout.predicate_bit <= not predicate_register_bank(to_integer(unsigned(din.operation1(29 downto 27))));
 			--   end if;   
-
+			
 			
 			if din.operation(26 downto 25) = "00" then -- ALUi instruction
 				dout.reg_write_out    <= '1';
 				dout.inst_type_out         <= ALUi;
 				dout.ALU_function_type_out <= '0' & din.operation(24 downto 22);
-			-- elsif din.operation1(26 downto 22) = "11111" then -- long immediate!
+			elsif din.operation(26 downto 22) = "11111" then -- long immediate!
+				dout.ALU_function_type_out <= din.operation(3 downto 0);
+				dout.reg_write_out    <= '1';
+				dout.ALUi_immediate_out  <= din.instr_b;
+				dout.inst_type_out         <= ALU_I;
+			
 			elsif din.operation(26 downto 22) = "01000" then -- ALU instructions
 				dout.inst_type_out         <= ALU;
 				dout.ALU_function_type_out <= din.operation(3 downto 0);

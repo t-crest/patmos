@@ -241,6 +241,7 @@ begin                                   -- architecture begin
 			     execute_dout.reg_write_out);
 
 	decode_din.operation <= fetch_dout.instruction;
+	decode_din.instr_b <= fetch_dout.instr_b;
 	dec : entity work.patmos_decode(arch)
 		port map(clk, rst, decode_din, decode_dout);
 
