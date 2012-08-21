@@ -8,12 +8,20 @@ PATMOSDIR=../vhdl
 OPTIONS=-93 -quiet
 
 ifeq ($(WINDIR),)
-	WINE=wine
 	S=:
 else
-	WINE=
 	S=\;
 endif
+
+# Use Wine on OSX
+# I would like to use a better way, but some shell variables
+# are not set within make.... Don't know why...
+ifeq ($(TERM_PROGRAM),Apple_Terminal)
+	WINE=wine
+else
+	WINE=
+endif
+
 
 all: clean base
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_testbench.vhd
