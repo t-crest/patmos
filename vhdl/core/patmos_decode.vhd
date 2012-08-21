@@ -126,7 +126,7 @@ begin
 				dout.ALU_function_type_out <= din.operation(3 downto 0);
 				dout.reg_write_out    <= '1';
 				dout.ALUi_immediate_out  <= din.instr_b;
-				dout.inst_type_out         <= ALU_I;
+				dout.inst_type_out         <= ALUl;
 			
 			elsif din.operation(26 downto 22) = "01000" then -- ALU instructions
 				dout.inst_type_out         <= ALU;
