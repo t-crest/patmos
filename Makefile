@@ -63,6 +63,8 @@ tools:
 		java/src/patmos/asm/*.java
 	javac java/src/simulator/*.java \
 		-d java/classes
+	javac java/src/util/*.java \
+		-d java/classes
 	cd java/classes && jar cf ../lib/patmos-tools.jar *
 
 rom:
@@ -97,6 +99,10 @@ bsim:
 old_sim:
 	java -cp java/lib/patmos-tools.jar \
 		simulator.SimPat
+
+# High-level simulation
+hsim:
+	bin/pasim --debug --debug-fmt=short tmp/$(APP).bin
 
 # Compile Patmos and download
 patmos:

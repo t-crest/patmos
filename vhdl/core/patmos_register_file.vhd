@@ -100,7 +100,7 @@ begin
 				write(l, ' ');
 			end loop;
 			writeline(output, l);
-		--pragma synthesis_on
+			--pragma synthesis_on
 		end if;
 	end process;
 
@@ -125,48 +125,6 @@ begin
 			read_data2 <= ram(to_integer(unsigned(rd_addr_reg2)));
 		end if;
 	end process;
-
---	process(clk)
---	begin
---		if rising_edge(clk) then	
---			if (write_enable = '1') then
---				ram(to_integer(unsigned(write_address))) <= write_data;
---			end if;
---			
---			if (read_address1 = write_address) and write_enable = '1' then
---				read_data1 <= write_data;
---			elsif read_address1 = "00000" then
---				read_data1 <= (others => '0');
---			else
---				read_data1 <= ram(to_integer(unsigned(read_address1)));
---			end if;
---			
---			if (read_address2 = write_address) and write_enable = '1' then
---				read_data2 <= write_data;
---			elsif read_address2 = "00000" then
---				read_data2 <= (others => '0');
---			else
---				read_data2 <= ram(to_integer(unsigned(read_address2)));
---			end if;
---		end if;
---end process;
-
-
--- ------ read process (or should be async?)
---  read:  process (read_address1, read_address2, reg_bank)
---  begin
---   -- if ((read_address1 = write_address) and write_enable = '1' )then
---  --   read_data1 <= write_data;
---  -- else 
---      read_data1 <= reg_bank(to_integer(unsigned(read_address1)));
--- --   end if;
---    
---  -- if (read_address2 = write_address) and write_enable = '1' then
---    --  read_data2 <= write_data;
---  -- else   
---      read_data2 <= reg_bank(to_integer(unsigned(read_address2)));
---  --  end if;
---  end process read;
 
 end arch;
 

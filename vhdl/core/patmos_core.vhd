@@ -46,7 +46,6 @@ use work.sc_pack.all;
 entity patmos_core is
 	port(
 		clk     : in  std_logic;
-		out_rst : in  std_logic;
 		led     : out std_logic;
 		txd     : out std_logic;
 		rxd     : in  std_logic
@@ -193,7 +192,7 @@ begin                                   -- architecture begin
 		end if;
 	end process;
 
-	-- MS: do we want en external reset?
+	-- MS: do we want an external reset?
 	-- If yes, it has to be synchronized
 	-- rst <= not out_rst;
 	rst <= int_res;
