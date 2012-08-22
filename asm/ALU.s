@@ -32,6 +32,6 @@
 	addi    r2 = r2, 1;
 	addi    r3 = r0, 1;
 	rr	r2 = r2, r3;
-#	halt; 
+	halt; 
 
 

@@ -1,5 +1,6 @@
 #!/bin/bash
-make rom bsim APP=basic > ms.txt 2> tmp.txt
-make hsim APP=basic 2> hs.txt > tmp.txt
-echo basic
-java -cp java/lib/patmos-tools.jar util.CompTest hs.txt ms.txt
+tests="basic test ALU ALUi compare"
+not_working="branch dual_forwarding dual_even_odd_address"
+for f in  ${tests}; do
+    testsuit/single.sh ${f}
+done
