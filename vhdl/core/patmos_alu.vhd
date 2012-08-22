@@ -82,7 +82,7 @@ begin
 		predicate  <= predicate_reg;
 		rd <= "00000000000000000000000000000000";
 		case din.inst_type is
-			when ALU_I =>
+			when ALUl =>
 				case din.ALU_function_type is
 							when "0000" => rd <= std_logic_vector(rs1 + rs2); --add
 							when "0001" => rd <= std_logic_vector(rs1 - rs2); --sub
@@ -148,7 +148,7 @@ begin
 									rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7 downto 0));
 							when "0001" => rd <= std_logic_vector(rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(15 downto 0));
 							when "0010" => rd <= std_logic_vector("0000000000000000" & rs1(15 downto 0));
-							when "0101" => rd <= std_logic_vector("0" & rs1(30 downto 0));
+							when "0101" => rd <= std_logic_vector(abs(signed(rs1(31 downto 0))));
 							when others => rd <= std_logic_vector(rs1 + rs2);
 						end case;
 					when ALUp =>

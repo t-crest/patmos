@@ -44,7 +44,7 @@ use ieee.numeric_std.all;
 package patmos_type_package is
   
   
-  type instruction_type is (NONE, ALUi, ALU, NOP, SPC, LDT, STT, STC, BC, ALU_I);
+  type instruction_type is (NONE, ALUi, ALU, NOP, SPC, LDT, STT, STC, BC, ALUl);
   type STC_instruction_type is (NONE, SRES, SENS, SFREE);
   type pc_type is (PCNext, PCBranch);
   type ALU_inst_type is (NONE, ALUr, ALUu, ALUm, ALUc, ALUp);
