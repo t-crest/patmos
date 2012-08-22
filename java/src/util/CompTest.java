@@ -80,12 +80,33 @@ public class CompTest {
 			hs.nextLine();
 		}
 
+		int cnt = 1;
 		// Now we should be synchronous
 		while (hs.hasNextLine()) {
-			System.out.println(hs.nextLine());
-			System.out.println(ms.nextLine());
+			// workaround for exist with error code
+			if (hs.hasNext("make:")) {
+				break;
+			}
+			ms.next();
+			for (int i=0; i<32; ++i) {
+				int msVal = ms.nextInt();
+				while (!hs.hasNextInt(16)) {
+					hs.next();
+				}
+				int hsVal = hs.nextInt(16);
+//				System.out.print(msVal+" - "+hsVal+";");
+				if (msVal != hsVal) {
+					System.out.println("Difference in instruction: "+cnt);
+					System.exit(0);
+				}
+			}
+//			System.out.println();
+			
+			hs.nextLine();
+			ms.nextLine();
+			++cnt;
 		}
-
+		System.out.println(" ok");
 	}
 
 }
