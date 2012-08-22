@@ -99,8 +99,8 @@ begin
 							when "1001" => rd <= std_logic_vector(ROTATE_RIGHT(rs1, to_integer(rs2(4 downto 0))));
 													--std_logic_vector(SHIFT_LEFT(rs1, 32 - to_integer(rs2(4 downto 0))) or 
 													--    SHIFT_RIGHT(rs2, to_integer(rs2(4 downto 0))));
-							when "1010" => rd <= std_logic_vector(din.rs2 xor din.rs1);
-							when "1011" => rd <= std_logic_vector(din.rs1 nor din.rs2);
+							when "1010" => rd <= std_logic_vector(rs2 xor rs1);
+							when "1011" => rd <= std_logic_vector(rs1 nor rs2);
 							when "1100" => rd <= std_logic_vector(SHIFT_LEFT(rs1, 1) + rs2);
 							when "1101" => rd <= std_logic_vector(SHIFT_LEFT(rs1, 2) + rs2);
 							when others => rd <= std_logic_vector(rs1 + rs2); -- default add! 
@@ -136,8 +136,8 @@ begin
 							when "1001" => rd <= std_logic_vector(ROTATE_RIGHT(rs1, to_integer(rs2(4 downto 0))));
 													--std_logic_vector(SHIFT_LEFT(rs1, 32 - to_integer(rs2(4 downto 0))) or 
 													--    SHIFT_RIGHT(rs2, to_integer(rs2(4 downto 0))));
-							when "1010" => rd <= std_logic_vector(din.rs2 xor din.rs1);
-							when "1011" => rd <= std_logic_vector(din.rs1 nor din.rs2);
+							when "1010" => rd <= std_logic_vector(rs2 xor rs1);
+							when "1011" => rd <= std_logic_vector(rs1 nor rs2);
 							when "1100" => rd <= std_logic_vector(SHIFT_LEFT(rs1, 1) + rs2);
 							when "1101" => rd <= std_logic_vector(SHIFT_LEFT(rs1, 2) + rs2);
 							when others => rd <= std_logic_vector(rs1 + rs2); -- default add! 
@@ -146,9 +146,9 @@ begin
 						case din.ALU_function_type is
 							when "0000" => rd <= std_logic_vector(rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) &
 									rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7 downto 0));
-							when "0001" => rd <= std_logic_vector(rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(15 downto 0));
+							when "0001" => rd <= std_logic_vector(rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15 downto 0));
 							when "0010" => rd <= std_logic_vector("0000000000000000" & rs1(15 downto 0));
-							when "0101" => rd <= std_logic_vector(abs(signed(rs1(31 downto 0))));
+							when "0011" => rd <= std_logic_vector("0" & rs1(30 downto 0)); -- std_logic_vector(abs(signed(rs1)))
 							when others => rd <= std_logic_vector(rs1 + rs2);
 						end case;
 					when ALUp =>
