@@ -31,20 +31,20 @@ all: directories tools rom
 	make patmos
 
 directories:
-	-mkdir rbf
+	-mkdir -p rbf
 
 patsim:
-	-mkdir simulator/build
+	-mkdir -p simulator/build
 	cd simulator/build && cmake ..
 	cd simulator/build && make
-	-mkdir bin
+	-mkdir -p bin
 	cp simulator/build/src/pa* bin
 
 elf2vhdl:
-	-mkdir ctools/build
+	-mkdir -p ctools/build
 	cd ctools/build && cmake ..
 	cd ctools/build && make
-	-mkdir bin
+	-mkdir -p bin
 	cp ctools/build/src/elf2vhdl bin
 
 tools:
@@ -70,7 +70,7 @@ tools:
 rom:
 	-rm -rf vhdl/generated
 	mkdir vhdl/generated
-	-mkdir tmp
+	-mkdir -p tmp
 	bin/paasm asm/$(APP).s tmp/$(APP).bin
 	java -cp java/lib/patmos-tools.jar \
 		patmos.asm.Bin2Vhdl -s tmp -d vhdl/generated $(APP).bin
@@ -78,7 +78,7 @@ rom:
 crom:
 	-rm -rf vhdl/generated
 	mkdir vhdl/generated
-	-mkdir tmp
+	-mkdir -p tmp
 	bin/elf2vhdl $(APP) tmp/$(APP).bin
 	java -cp java/lib/patmos-tools.jar \
 		patmos.asm.Bin2Vhdl -s tmp -d vhdl/generated $(APP).bin
@@ -103,6 +103,11 @@ old_sim:
 # High-level simulation
 hsim:
 	bin/pasim --debug --debug-fmt=short tmp/$(APP).bin
+
+# Testing
+test:
+	testsuite/run.sh
+.PHONY: test
 
 # Compile Patmos and download
 patmos:

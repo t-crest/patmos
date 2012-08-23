@@ -52,10 +52,10 @@ base:
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_mem_stage.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_stack_cache.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_core.vhd
-	
+
 
 clean:
-	-rm transcript
-	-rm *.wlf
-	-rm -r work
+	-rm -f transcript
+	-rm -f *.wlf
+	-rm -rf work
 

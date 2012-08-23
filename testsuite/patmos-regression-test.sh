@@ -2,13 +2,19 @@
 #
 # git clone and run Patmos regression test
 #
+
 LOG_DIR=`pwd`/logs
+LOG_FILE="${LOG_DIR}/report.txt"
+MAIL_RESULTS=0
+
+# prepare logdir
+mkdir -p "${LOG_DIR}"
 
 PATH=.:$PATH:/opt/modelsim_ase/bin
 export PATH 
 # get the Patmos source tree
 rm -rf patmos
-git clone git://github.com/schoeberl/patmos.git
+git clone .. patmos
 cd patmos
 
 # Make sure working tree is clean
@@ -25,14 +31,14 @@ cd patmos
 #mkdir ${LOG_DIR}/current
 #testsuite/run.sh ${LOG_DIR}/current
 
-./testsuite/run.sh > report.txt 2> report.txt
-
 # Clean the working tree
 # git -d clean
 
+bash testsuite/run.sh > "${LOG_FILE}" 2>&1
+
 # Mail results
-#LOG_FILE=${LOG_DIR}/current/report.txt
-LOG_FILE=report.txt
-RECIPIENTS=`cat testsuite/recipients.txt`
-dos2unix ${LOG_FILE}
-mail -s "[Patmos Nightly] Build report `date`" ${RECIPIENTS} < ${LOG_FILE}
+if [ "${MAIL_RESULTS}" -eq 1 ] ; then
+    RECIPIENTS=`cat testsuite/recipients.txt`
+    dos2unix ${LOG_FILE}
+    mail -s "[Patmos Nightly] Build report `date`" ${RECIPIENTS} < ${LOG_FILE}
+fi

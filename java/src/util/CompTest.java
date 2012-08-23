@@ -39,7 +39,7 @@ import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
-
+import java.util.regex.Pattern;
 /**
  * Small tool to compare high-level and VHDL simulation results. Read in the
  * register dumps and compare.
@@ -63,7 +63,7 @@ public class CompTest {
 		Scanner hs = new Scanner(new FileInputStream(args[0]));
 		Scanner ms = new Scanner(new FileInputStream(args[1]));
 
-		// Read till ModelSim useful output
+                // Read till ModelSim useful output
 		while (ms.hasNextLine()) {
 			String s = ms.nextLine();
 			if (s.startsWith("# Patmos start")) {
@@ -71,21 +71,36 @@ public class CompTest {
 			}
 		}
 		// Drop 9 clock cycles for reset...
-		for (int i = 0; i < 9; ++i) {
+		for (int i = 0; i < 9 && ms.hasNextLine(); ++i) {
 			ms.nextLine();
 		}
 
 		// Drop first 5 cycles form high level simulation
-		for (int i = 0; i < 5; ++i) {
+		for (int i = 0; i < 5 && hs.hasNextLine(); ++i) {
 			hs.nextLine();
+		}
+
+		if (!hs.hasNextLine()) {
+			System.out.println("No suitable output from high-level simulator");
+			System.exit(1);
+		}
+
+		if (!ms.hasNextLine()) {
+			System.out.println("No suitable output from high-level simulator");
+			System.exit(1);
 		}
 
 		int cnt = 1;
 		// Now we should be synchronous
+		Pattern makeExitPattern = Pattern.compile("make\\S*:");
 		while (hs.hasNextLine()) {
 			// workaround for exist with error code
-			if (hs.hasNext("make:")) {
+			if (hs.hasNext(makeExitPattern)) {
 				break;
+			}
+			if (ms.hasNext(makeExitPattern)) {
+				System.out.println("Modelsim trace incomplete: "+cnt);
+				System.exit(1);
 			}
 			ms.next();
 			for (int i=0; i<32; ++i) {
@@ -97,16 +112,17 @@ public class CompTest {
 //				System.out.print(msVal+" - "+hsVal+";");
 				if (msVal != hsVal) {
 					System.out.println("Difference in instruction: "+cnt);
-					System.exit(0);
+					System.exit(1);
 				}
 			}
 //			System.out.println();
-			
+
 			hs.nextLine();
 			ms.nextLine();
 			++cnt;
 		}
 		System.out.println(" ok");
+		System.exit(0);
 	}
 
 }
