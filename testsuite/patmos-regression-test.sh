@@ -23,7 +23,7 @@ cd patmos
 #mkdir ${LOG_DIR}/current
 #testsuite/run.sh ${LOG_DIR}/current
 
-./testsuite/run.sh > report.txt
+./testsuite/run.sh > report.txt 2> report.txt
 
 # Clean the working tree
 # git -d clean
