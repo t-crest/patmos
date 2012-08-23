@@ -17,11 +17,13 @@
 		add     r15 = r15, r8; # r15 = 50002
 		add	r12 = r0, 346851;
 		add	r12 = r12, r15; #r12 = 846853	
-		add	r1 = r0, 256474; #1 r1 = 2
-		add	r2 = r0, 256477; #2 r2 = 4
+
+		add	r1 = r0, 256473; #1 
+		add	r2 = r0, 256477; #
+		add	r1 = r1, 1; #
 		cmplt   p1  = r1, r2; #
-		(p1) 	bc	25; #4
-		add	r1 = r1, 1; #5 r1 = 1 
+		(p1) 	bc	24; #4
+		nop	0;
 		nop	0; #5 branch delay
 		addi	r3 = r0, 3; #7 r3 = 3
                 halt;
