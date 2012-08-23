@@ -4,9 +4,9 @@
 #
 LOG_DIR=`pwd`/logs
 
-# get the JOP source tree
+# get the Patmos source tree
 rm -rf patmos
-git clonc git://github.com/schoeberl/patmos.git
+git clone git://github.com/schoeberl/patmos.git
 cd patmos
 
 # Make sure working tree is clean
@@ -23,7 +23,7 @@ cd patmos
 #mkdir ${LOG_DIR}/current
 #testsuite/run.sh ${LOG_DIR}/current
 
-testsuite/run.sh > report.txt
+./testsuite/run.sh > report.txt
 
 # Clean the working tree
 # git -d clean
