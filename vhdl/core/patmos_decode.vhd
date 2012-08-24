@@ -184,7 +184,28 @@ begin
 					----------------------------------------- global memory	
 					when "00011" =>
 						dout.STT_instruction_type_out <= SWM;
-						dout.mem_write_out      <= '1';
+						dout.lm_write_out			  <= '1';
+					--	dout.mem_write_out      <= '1';
+					when "00111" =>
+						dout.STT_instruction_type_out <= SHM;
+						dout.lm_write_out			  <= '1';
+					when "01011" =>
+						dout.STT_instruction_type_out <= SBM;
+						dout.lm_write_out			  <= '1';
+						
+					---------------------------------------- data cache
+					when "00010" =>
+						dout.STT_instruction_type_out <= SWC;
+						dout.lm_write_out			  <= '1';
+					--	dout.mem_write_out      <= '1';
+					when "00110" =>
+						dout.STT_instruction_type_out <= SHC;
+						dout.lm_write_out			  <= '1';
+					when "01010" =>
+						dout.STT_instruction_type_out <= SBC;
+						dout.lm_write_out			  <= '1';
+						
+					
 						-- MS: why is sc_write_out here '0'?
 						--dout.sc_write_out             <= '0';
 						--dout.sc_read_out              <= '0';
@@ -232,7 +253,38 @@ begin
 					----------------------------------------- global memory	
 					when "00011" =>
 						dout.LDT_instruction_type_out <= LWM;
-						dout.mem_read_out     <= '1';
+						dout.lm_read_out			  <= '1';
+					--	dout.mem_read_out     <= '1';
+					when "00111" =>
+						dout.LDT_instruction_type_out <= LHM;
+						dout.lm_read_out			  <= '1';
+					when "01011" =>
+						dout.LDT_instruction_type_out <= LBM;
+						dout.lm_read_out			  <= '1';
+					when "01111" =>
+						dout.LDT_instruction_type_out <= LHUM;
+						dout.lm_read_out			  <= '1';
+					when "10011" =>
+						dout.LDT_instruction_type_out <= LBUM;
+						dout.lm_read_out			  <= '1';
+					
+					---------------------------------------- data cache
+					when "00010" =>
+						dout.LDT_instruction_type_out <= LWC;
+						dout.lm_read_out			  <= '1';
+					--	dout.mem_read_out     <= '1';
+					when "00110" =>
+						dout.LDT_instruction_type_out <= LHC;
+						dout.lm_read_out			  <= '1';
+					when "01010" =>
+						dout.LDT_instruction_type_out <= LBC;
+						dout.lm_read_out			  <= '1';
+					when "01110" =>
+						dout.LDT_instruction_type_out <= LHUC;
+						dout.lm_read_out			  <= '1';
+					when "10010" =>
+						dout.LDT_instruction_type_out <= LBUC;
+						dout.lm_read_out			  <= '1';		
 						-- again no read, no write?
 --						dout.sc_write_out             <= '0';
 --						dout.sc_read_out              <= '0';
