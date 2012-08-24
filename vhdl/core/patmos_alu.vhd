@@ -198,17 +198,40 @@ begin
 					when LBUL =>
 						 rd <= std_logic_vector(rs1 + rs2);
 						 
-					----------------------------------------
+					---------------------------------------- stack cache
 					when LWS =>
-						rd <= std_logic_vector(SHIFT_LEFT(signed(rs1 + rs2), 2)); 
+						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
 					when LHS =>
-						rd <= std_logic_vector(SHIFT_LEFT(signed(rs1 + rs2), 1));
+						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
 					when LBS =>
 						rd <= std_logic_vector(rs1 + rs2);
 					when LHUS =>
-						rd <= std_logic_vector(rs1 + rs2);
+						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
 					when LBUS =>
 						rd    <= std_logic_vector(rs1 + rs2);
+					----------------------------------------- global memory	
+					when LWM =>
+						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
+					when LHM =>
+						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+					when LBM =>
+						rd <= std_logic_vector(rs1 + rs2);
+					when LHUM =>
+						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+					when LBUM =>
+						rd    <= std_logic_vector(rs1 + rs2);
+					---------------------------------------- data cache
+					when LWC =>
+						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
+					when LHC =>
+						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+					when LBC =>
+						rd <= std_logic_vector(rs1 + rs2);
+					when LHUC =>
+						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+					when LBUC =>
+						rd    <= std_logic_vector(rs1 + rs2);		
+
 					when others => rd <= std_logic_vector(rs1 + rs2);
 				end case;
 
@@ -223,14 +246,33 @@ begin
 					when SBL =>
 						rd <= std_logic_vector(rs1 + rs2);
 							
-					----------------------------------------
+					---------------------------------------- stack cache
 					when SWS =>
-						rd <= std_logic_vector(SHIFT_LEFT(signed(rs1 + rs2), 2));
+						rd <=  std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
 					when SHS =>
-						rd <= std_logic_vector(SHIFT_LEFT(signed(rs1 + rs2), 1));
+						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
 					when SBS =>
 						rd <= std_logic_vector(rs1 + rs2);
-					when others => rd <= std_logic_vector(rs1 + rs2);
+					
+					
+					----------------------------------------- global memory	
+					when SWM =>
+						rd <=  std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
+					when SHM =>
+						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+					when SBM =>
+						rd <= std_logic_vector(rs1 + rs2);
+						
+					---------------------------------------- data cache
+					when SWC =>
+						rd <=  std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
+					when SHC =>
+						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+					when SBC =>
+						rd <= std_logic_vector(rs1 + rs2);
+						
+					when others => rd <= std_logic_vector(rs1 + rs2);	
+					---------------------------------------
 				end case;
 			--   dout.rd <= rs1 + rs2; -- unsigned(intermediate_add);--
 			when others => rd <= std_logic_vector(rs1 + rs2); -- unsigned(intermediate_add);--

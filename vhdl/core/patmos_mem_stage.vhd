@@ -59,7 +59,7 @@ architecture arch of patmos_mem_stage is
 	signal dout0, dout1, dout2, dout3 : std_logic_vector(7 downto 0);
 begin
 
--- MS: this should be merged with memory stage
+
   
   mem_wb: process(clk)
   begin
@@ -101,15 +101,40 @@ begin
 		case din.LDT_instruction_type_out is
 			when LWL=> 
 				dout.data_mem_data_out <= dout3 & dout2 & dout1 & dout0;
+			when LWC =>
+				dout.data_mem_data_out <= dout3 & dout2 & dout1 & dout0;
+			when LWM => 	
+				dout.data_mem_data_out <= dout3 & dout2 & dout1 & dout0;
+				
 			when LHL=>
 				dout.data_mem_data_out <= std_logic_vector(resize(signed( dout1 & dout0), 32));
+			when LHC=>
+				dout.data_mem_data_out <= std_logic_vector(resize(signed( dout1 & dout0), 32));
+			when LHM=>
+				dout.data_mem_data_out <= std_logic_vector(resize(signed( dout1 & dout0), 32));
+				
 			when LBL=>
 				dout.data_mem_data_out <= std_logic_vector(resize(signed(dout0), 32));
+			when LBM=>
+				dout.data_mem_data_out <= std_logic_vector(resize(signed(dout0), 32));
+			when LBC=>
+				dout.data_mem_data_out <= std_logic_vector(resize(signed(dout0), 32));	
+				
 			when LHUL=>
 				dout.data_mem_data_out <= std_logic_vector(resize(unsigned( dout1 & dout0), 32));
+			when LHUC=>
+				dout.data_mem_data_out <= std_logic_vector(resize(unsigned( dout1 & dout0), 32));
+			when LHUM=>
+				dout.data_mem_data_out <= std_logic_vector(resize(unsigned( dout1 & dout0), 32));
+					
 			when LBUL=>
 				dout.data_mem_data_out <= std_logic_vector(resize(unsigned(dout0), 32));
-			 when others => 
+			when LBUC=>
+				dout.data_mem_data_out <= std_logic_vector(resize(unsigned(dout0), 32));
+			when LBUM=>
+				dout.data_mem_data_out <= std_logic_vector(resize(unsigned(dout0), 32));
+				
+			when others => 
 			 	dout.data_mem_data_out <= dout3 & dout2 & dout1 & dout0;
 		end case;
 	end process;
@@ -133,6 +158,39 @@ begin
 		    	en1 <= '0';
 		    	en2 <= '0';
 				en3 <= '0';
+			
+			when SWM =>
+				en0 <= din.mem_write; 
+				en1 <= din.mem_write;
+				en2 <= din.mem_write;
+				en3 <= din.mem_write;
+			when SHM =>
+				en0 <= din.mem_write; 
+				en1 <= din.mem_write;
+				en2 <= '0';
+				en3 <= '0';
+		    when SBM =>
+		    	en0 <= din.mem_write;
+		    	en1 <= '0';
+		    	en2 <= '0';
+				en3 <= '0';
+				
+			when SWC =>
+				en0 <= din.mem_write; 
+				en1 <= din.mem_write;
+				en2 <= din.mem_write;
+				en3 <= din.mem_write;
+			when SHC =>
+				en0 <= din.mem_write; 
+				en1 <= din.mem_write;
+				en2 <= '0';
+				en3 <= '0';
+		    when SBC =>
+		    	en0 <= din.mem_write;
+		    	en1 <= '0';
+		    	en2 <= '0';
+				en3 <= '0';
+			
 		    when others => 
 		    	en0 <= din.mem_write; 
 				en1 <= din.mem_write;
