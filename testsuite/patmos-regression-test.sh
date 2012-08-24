@@ -4,6 +4,8 @@
 #
 LOG_DIR=`pwd`/logs
 
+PATH=.:$PATH:/opt/modelsim_ase/bin
+export PATH 
 # get the Patmos source tree
 rm -rf patmos
 git clone git://github.com/schoeberl/patmos.git
