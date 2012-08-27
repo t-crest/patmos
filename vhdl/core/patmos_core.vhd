@@ -340,11 +340,11 @@ begin                                   -- architecture begin
 		-- we need a clear solution for this in the right pipeline stage
 		--		if (execute_dout.alu_result(8) = '1') then --data mem
 		
-		if (execute_dout.alu_result(8) = '0') then -- uart
+		if (execute_dout.alu_result(31 downto 28) = "1000") then -- uart
 			mem_write                        <= '0';
 			mem_read                         <= '0';
-			io_write                         <= decode_dout.mem_write_out;
-			io_read                          <= decode_dout.mem_read_out;
+			io_write                         <= decode_dout.lm_write_out;
+			io_read                          <= decode_dout.lm_read_out;
 			instruction_mem_din.write_enable <= '0';
 		else--if (execute_dout.alu_result(8) = '1') then --data mem
 			test                             <= '1';
@@ -373,7 +373,7 @@ begin                                   -- architecture begin
 
 	io_mem_read_mux : process(mem_data_out_uart, data_mem_data_out, execute_dout)
 	begin
-		if (execute_dout.alu_result_out(8) = '0') then
+		if (execute_dout.alu_result_out(31 downto 28) = "1000") then
 			mem_data_out_muxed <= mem_data_out_uart;
 		else
 			mem_data_out_muxed <= data_mem_data_out;
@@ -417,7 +417,7 @@ begin                                   -- architecture begin
 			txd     => txd,
 			rxd     => rxd
 		);
-		uart_clk: process(clk,io_write, io_read)
+	uart_clk: process(clk,io_write, io_read)
 	begin
 		if rst = '1' then
 				io_write_clked                         <= '0';
