@@ -5,7 +5,7 @@
 
 LOG_DIR=`pwd`/logs
 LOG_FILE="${LOG_DIR}/report.txt"
-MAIL_RESULTS=0
+MAIL_RESULTS=1
 
 # prepare logdir
 mkdir -p "${LOG_DIR}"
@@ -14,7 +14,7 @@ PATH=.:$PATH:/opt/modelsim_ase/bin
 export PATH 
 # get the Patmos source tree
 rm -rf patmos
-git clone .. patmos
+git clone git://github.com/schoeberl/patmos.git
 cd patmos
 
 # Make sure working tree is clean
