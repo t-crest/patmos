@@ -48,8 +48,8 @@ package patmos_type_package is
   type STC_instruction_type is (NONE, SRES, SENS, SFREE);
   type pc_type is (PCNext, PCBranch);
   type ALU_inst_type is (NONE, ALUr, ALUu, ALUm, ALUc, ALUp);
-  type STT_inst_type is (NONE, SWS, SWL, SWC, SWM, SHS, SHL, SHC, SHM, SBS, SBL, SBC, SBM); -- all stores
-  type LDT_inst_type is (NONE, LWM, LWS, LHS, LBS, LHUS, LBUS, LWL, LHL, LBL, LHUL, LBUL);
+  type STT_inst_type is (NONE, SWS, SWL, SWC, SWM, SHM, SBM, SHS, SHL, SHC, SBS, SBL, SBC); -- all stores
+  type LDT_inst_type is (NONE, LWM, LHM, LBM, LHUM, LBUM, LWS, LHS, LBS, LHUS, LBUS, LWL, LHL, LBL, LHUL, LBUL, LWC, LHC, LBC, LHUC, LBUC);
   type SPC_type is (NONE, SPCn, SPCw, SPCt, SPCf);
   type forwarding_type is (FWNOP, FWMEM, FWALU);
   type load_type is (NONE, lw, lh, lb, lhu, lbu, dlwh, dlbh, dlbu);
