@@ -29,3 +29,5 @@
 		add	r15 = r10, r11;
 		add	r16 = r10, r11;
 		add	r17 = r10, r11;
+
+		halt;

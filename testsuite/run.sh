@@ -1,7 +1,7 @@
 #!/bin/bash
 
-tests="basic test ALU ALUi compare"
-not_working="branch dual_forwarding dual_even_odd_address"
+tests="basic test ALU ALUi ALUl compare dual_forwarding dual_even_odd_address forward_issue"
+not_working="fetch_double branch"
 expect_fail=2
 
 # How to implement timeout?
