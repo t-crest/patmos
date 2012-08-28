@@ -1,6 +1,6 @@
 #!/bin/bash
 
-tests="basic test ALU ALUi ALUl compare dual_forwarding dual_even_odd_address forward_issue"
+tests="basic test ALU ALUi ALUl compare dual_forwarding dual_even_odd_address forward_issue unary load_store_data_cache load_store_scratchpad predication echo_final echo_scratchpad1"
 not_working="fetch_double branch"
 expect_fail=2
 
