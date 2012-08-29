@@ -153,6 +153,7 @@ begin
 						
 					when "100" =>       -- predicate
 						dout.ALU_instruction_type_out <= ALUp;
+						dout.reg_write_out <= '0';
 					when others => NULL;
 				end case;
 
