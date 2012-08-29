@@ -148,7 +148,7 @@ begin
 									rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7 downto 0));
 							when "0001" => rd <= std_logic_vector(rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15 downto 0));
 							when "0010" => rd <= std_logic_vector("0000000000000000" & rs1(15 downto 0));
-							when "0011" => rd <= std_logic_vector("0" & rs1(30 downto 0)); -- std_logic_vector(abs(signed(rs1)))
+							when "0011" => rd <=  std_logic_vector(abs(signed(rs1)));
 							when others => rd <= std_logic_vector(rs1 + rs2);
 						end case;
 					when ALUp =>
@@ -258,6 +258,7 @@ begin
 					----------------------------------------- global memory	
 					when SWM =>
 						rd <=  std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
+						
 					when SHM =>
 						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
 					when SBM =>
@@ -388,6 +389,39 @@ begin
 	begin
 		memdin <= alu_src2;
 	end process;
+	
+--	io_mem_decode_write : process(rd, decdout)
+--	begin
+--		-- default values
+--		doutex.lm_write_out                       <= '0';
+--		doutex.lm_read_out                        <= '0';
+--		doutex.io_write_out                       <= '0';
+--		doutex.io_read_out                        <= '0';
+--	--	led_wr                           <= '0';
+--		address_uart                     <= rd;
+--	--	instruction_mem_din.write_enable <= '0';
+--	--	stack_cache_din.write_enable     <= '0';
+--
+--		
+--		if (rd(31 downto 28) = "1000") then -- uart
+--			doutex.lm_write_out                        <= '0';
+--			doutex.lm_read_out                        <= '0';
+--			doutex.io_write_out                         <= decdout.lm_write_out;
+--			doutex.io_read_out                          <= decdout.lm_read_out;
+--		--	instruction_mem_din.write_enable <= '0';
+--		else--if (execute_dout.alu_result(8) = '1') then --data mem
+--		
+--			doutex.lm_write_out                        <= decdout.lm_write_out;
+--			doutex.lm_read_out                         <= decdout.lm_read_out;
+--			doutex.io_write_out                         <= '0';
+--			doutex.io_write_out                         <= '0';
+--		--	instruction_mem_din.write_enable <= '0';
+--		--elsif (execute_dout.alu_result_out(7 downto 4) = "0001") then -- the LED
+--		--	led_wr <= execute_dout.mem_write_out;
+--		--	end if;
+--
+--		end if;
+--	end process;
 
 end arch;
 
