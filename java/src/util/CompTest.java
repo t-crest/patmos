@@ -105,13 +105,14 @@ public class CompTest {
 			ms.next();
 			for (int i=0; i<32; ++i) {
 				int msVal = ms.nextInt();
-				while (!hs.hasNextInt(16)) {
+				while (!hs.hasNextLong(16)) {
 					hs.next();
 				}
-				int hsVal = hs.nextInt(16);
+				int hsVal = (int) hs.nextLong(16);
 //				System.out.print(msVal+" - "+hsVal+";");
 				if (msVal != hsVal) {
 					System.out.println("Difference in instruction: "+cnt);
+					System.out.println("Register "+i+ " VHDL: "+msVal+" patsim: "+hsVal);
 					System.exit(1);
 				}
 			}
