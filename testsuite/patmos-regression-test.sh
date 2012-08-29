@@ -14,7 +14,7 @@ PATH=.:$PATH:/opt/modelsim_ase/bin
 export PATH 
 # get the Patmos source tree
 rm -rf patmos
-git clone git://github.com/schoeberl/patmos.git
+git clone git://github.com/t-crest/patmos.git
 cd patmos
 
 # Make sure working tree is clean
