@@ -572,7 +572,7 @@ namespace patmos
   instruction_data_t pflb_format_t::decode_operands(word_t iw,
                                                     word_t longimm) const
   {
-    word_t imm = extract(iw, 0, 22);
+    word_t imm = extractS(iw, 0, 22);
     PRR_e pred = extractPN(iw, 27);
     return instruction_data_t::mk_PFLb(Instruction, pred, imm);
   }
@@ -581,9 +581,9 @@ namespace patmos
   {
     word_t iw = 0;
 
-    assert(fitu(opcode, 2) && fitu(imm, 22));
+    assert(fitu(opcode, 2) && fits(imm, 22));
 
-    insertV(iw, 0, 22, imm);
+    insertVs(iw, 0, 22, imm);
     insertV(iw, 22, 2, opcode);
     insertV(iw, 24, 3, BOOST_BINARY(110));
     insertPN(iw, 27, pred);
