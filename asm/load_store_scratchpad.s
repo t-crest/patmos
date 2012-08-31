@@ -6,12 +6,12 @@
 	addi	r1 = r0, 256; # r1 = 255
 	addi	r2 = r0, 5;
 	addi    r4 = r0, 4;
-	swl	[r1 + 1] = r2; # memory address 259 (255 + (1 sl 2)) = 5 (all memory banks are updated)
+	swl	[r1 + 1] = r2; # memory address 260 (256 + (1 sl 2)) = 5 (all memory banks are updated)
 	lwl	r10  = [r1 + 1]; # register(10) = 5
 	nop 	0;
-	add	r2 = r2, r10; # r2 = 15
+	add	r2 = r2, r10; # r2 = 10
 
-	shl	[r1 + 3] = r2; # memory address 261 = 10 (two memory banks are updated)
+	shl	[r1 + 3] = r2; # memory address 262 = 10 (two memory banks are updated)
 	lhl	r11  = [r1 + 3]; # register(11) = 10
 	nop	0;
 
