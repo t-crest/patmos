@@ -329,7 +329,7 @@ begin                                   -- architecture begin
 		io_write                         <= '0';
 		io_read                          <= '0';
 		led_wr                           <= '0';
-		address_uart                     <= execute_dout.alu_result;
+		address_uart                     <= execute_dout.alu_result; -- 
 		instruction_mem_din.write_enable <= '0';
 		stack_cache_din.write_enable     <= '0';
 		-- MS: This decoding will also trigger the IO devices as it goes form
@@ -340,12 +340,21 @@ begin                                   -- architecture begin
 		-- we need a clear solution for this in the right pipeline stage
 		--		if (execute_dout.alu_result(8) = '1') then --data mem
 		
-		if (execute_dout.alu_result(31 downto 28) = "1000") then -- uart
-			mem_write                        <= '0';
-			mem_read                         <= '0';
-			io_write                         <= decode_dout.lm_write_out;
-			io_read                          <= decode_dout.lm_read_out;
-			instruction_mem_din.write_enable <= '0';
+		if (execute_dout.alu_result(31 downto 28) = "1000") then -- UART, counters, LED
+			case execute_dout.alu_result(11 downto 8)	is 
+				when "0000" => -- UART
+					mem_write                        <= '0';
+					mem_read                         <= '0';
+					io_write                         <= decode_dout.lm_write_out;
+					io_read                          <= decode_dout.lm_read_out;
+					instruction_mem_din.write_enable <= '0';
+				when "0010" =>	-- LED
+					led_wr <= execute_dout.mem_write_out;
+				when others => null;
+			end case;
+			
+		--elsif (execute_dout.alu_result(31 downto 28) = "0001") then -- the LED
+		--	led_wr <= execute_dout.mem_write_out;
 		else--if (execute_dout.alu_result(8) = '1') then --data mem
 			test                             <= '1';
 			mem_write                        <= decode_dout.lm_write_out;
@@ -353,9 +362,7 @@ begin                                   -- architecture begin
 			io_write                         <= '0';
 			io_read                          <= '0';
 			instruction_mem_din.write_enable <= '0';
-		--elsif (execute_dout.alu_result_out(7 downto 4) = "0001") then -- the LED
-		--	led_wr <= execute_dout.mem_write_out;
-		--	end if;
+
 
 		end if;
 
@@ -425,7 +432,7 @@ begin                                   -- architecture begin
 		elsif rising_edge(clk) then
 			io_write_clked                         <= io_write;--mem_write_out;
 			io_read_clked                          <= io_read;--mem_read_out;
-			address_uart_clked 					 <= address_uart(0);
+			address_uart_clked 					 <= address_uart(2);
 			uart_din							<= memdin;
 		end if;
 	end process;
