@@ -366,7 +366,8 @@ int main(int argc, char **argv)
     ("binary,b", boost::program_options::value<std::string>()->default_value("-"), "binary or elf-executable file (stdin: -)")
     ("output,o", boost::program_options::value<std::string>()->default_value("-"), "output execution trace in file (stdout: -)")
     ("debug", boost::program_options::value<unsigned int>()->implicit_value(0), "enable step-by-step debug tracing after cycle")
-    ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), "format of the debug trace (short, default, long, all)");
+    ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), "format of the debug trace (short, default, long, all)")
+    ("quiet,q", "disable statistics output");
 
   boost::program_options::options_description memory_options("Memory options");
   memory_options.add_options()
@@ -383,7 +384,7 @@ int main(int argc, char **argv)
     ("sckind,S", boost::program_options::value<patmos::stack_cache_e>()->default_value(patmos::SC_IDEAL), "kind of stack cache (ideal, block)")
 
     ("mcsize,m", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_METHOD_CACHE_BYTES), "method cache size in bytes")
-    ("mckind,M", boost::program_options::value<patmos::method_cache_e>()->default_value(patmos::MC_IDEAL), "kind of method cache (ideal, lru)");
+    ("mckind,M", boost::program_options::value<patmos::method_cache_e>()->default_value(patmos::MC_IDEAL), "kind of method cache (ideal, lru, fifo)");
 
   boost::program_options::options_description uart_options("UART options");
   uart_options.add_options()
@@ -534,7 +535,10 @@ int main(int argc, char **argv)
         case patmos::simulation_exception_t::HALT:
           // get the exit code
           exit_code = e.get_info();
-          s.print_stats(*out);
+	  
+	  if (!vm.count("quiet")) {
+            s.print_stats(*out);
+	  }
           break;
         default:
           std::cerr << "Unknown simulation error.\n";
