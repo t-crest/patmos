@@ -8,7 +8,7 @@
 
 int main() {
 
-	volatile int *led_ptr = (int *) 0x10;
+	volatile int *led_ptr = (int *) 0xF0000200;
 	int i, j;
 
 	for (;;) {

@@ -340,7 +340,7 @@ begin                                   -- architecture begin
 		-- we need a clear solution for this in the right pipeline stage
 		--		if (execute_dout.alu_result(8) = '1') then --data mem
 		
-		if (execute_dout.alu_result(31 downto 28) = "1000") then -- UART, counters, LED
+		if (execute_dout.alu_result(31 downto 28) = "1111") then -- UART, counters, LED
 			case execute_dout.alu_result(11 downto 8)	is 
 				when "0000" => -- UART
 					mem_write                        <= '0';
@@ -349,7 +349,7 @@ begin                                   -- architecture begin
 					io_read                          <= decode_dout.lm_read_out;
 					instruction_mem_din.write_enable <= '0';
 				when "0010" =>	-- LED
-					led_wr <= execute_dout.mem_write_out;
+					led_wr <= decode_dout.lm_write_out;
 				when others => null;
 			end case;
 			
@@ -402,7 +402,7 @@ begin                                   -- architecture begin
 			led_reg <= '0';
 		elsif rising_edge(clk) then
 			if led_wr = '1' then
-				led_reg <= std_logic(execute_dout.mem_write_data_out(0));
+				led_reg <= memdin(0);
 			end if;
 		end if;
 	end process;
@@ -422,7 +422,7 @@ begin                                   -- architecture begin
 			wr      => io_write_clked,
 			rd_data => mem_data_out_uart,
 			txd     => txd,
-			rxd     => rxd
+			rxd     => out_rxd
 		);
 	uart_clk: process(clk,io_write, io_read)
 	begin
@@ -437,7 +437,7 @@ begin                                   -- architecture begin
 		end if;
 	end process;
 
---	out_rxd <= not out_rxd after 100 ns;
+	out_rxd <= not out_rxd after 100 ns;
 
 	-- TODO: the memory code belongs into the memory stage component
 
