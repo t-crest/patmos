@@ -31,6 +31,7 @@ all: directories tools rom
 	make patmos
 
 directories:
+	-mkdir -p tmp
 	-mkdir -p rbf
 
 patsim:
@@ -67,6 +68,7 @@ tools:
 		-d java/classes
 	cd java/classes && jar cf ../lib/patmos-tools.jar *
 
+# Assemble a program and generate the instruction memory VHDL table
 rom:
 	-rm -rf vhdl/generated
 	mkdir vhdl/generated
@@ -75,11 +77,19 @@ rom:
 	java -cp java/lib/patmos-tools.jar \
 		patmos.asm.Bin2Vhdl -s tmp -d vhdl/generated $(APP).bin
 
+# Compile a C program, the Patmos compiler must be in the path
+comp:
+	-mkdir -p tmp
+	cd c; make $(APP)
+	mv c/$(APP) tmp/$(APP)
+	make crom
+
+# Generate the instruction memory VHDL table from an ELF file	
 crom:
 	-rm -rf vhdl/generated
 	mkdir vhdl/generated
 	-mkdir -p tmp
-	bin/elf2vhdl $(APP) tmp/$(APP).bin
+	bin/elf2vhdl tmp/$(APP) tmp/$(APP).bin
 	java -cp java/lib/patmos-tools.jar \
 		patmos.asm.Bin2Vhdl -s tmp -d vhdl/generated $(APP).bin
 
