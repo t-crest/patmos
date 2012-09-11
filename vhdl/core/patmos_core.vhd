@@ -122,6 +122,7 @@ architecture arch of patmos_core is
 	signal rst : std_logic;             --out_rst
 
 	signal led_reg, led_wr : std_logic;
+	signal counter : unsigned(31 downto 0);
 
 	-- for the SSRAM interface - not used shall go into a top level
 	--	signal clk2               : std_logic;
@@ -378,10 +379,20 @@ begin                                   -- architecture begin
 --		end if;
 --	end process;
 
+-- MS: what is the difference between alu_result and alu_result_out?
+-- Maybe _out is the registered value. I don't like that read decode and
+-- read mux selection is done from two different signals.
+-- Would also be clearer is address calculation has it's own signals.
+-- Maybe it shall be in it's own component (together with some address
+-- decoding).
 	io_mem_read_mux : process(mem_data_out_uart, data_mem_data_out, execute_dout)
 	begin
-		if (execute_dout.alu_result_out(31 downto 28) = "1000") then
-			mem_data_out_muxed <= mem_data_out_uart;
+		if execute_dout.alu_result_out(31 downto 28) = "1000" then
+			if execute_dout.alu_result_out(11 downto 8) = "0000" then
+				mem_data_out_muxed <= mem_data_out_uart;
+			else
+				mem_data_out_muxed <= std_logic_vector(counter);
+			end if;
 		else
 			mem_data_out_muxed <= data_mem_data_out;
 		end if;
@@ -389,7 +400,7 @@ begin                                   -- architecture begin
 
 	write_back_proc : process(execute_dout, mem_data_out_muxed)
 	begin
-		if (execute_dout.mem_to_reg_out = '1') then
+		if execute_dout.mem_to_reg_out = '1' then
 			mux_mem_reg <= mem_data_out_muxed;
 		else
 			mux_mem_reg <= execute_dout.alu_result_out;
@@ -400,10 +411,12 @@ begin                                   -- architecture begin
 	begin
 		if rst = '1' then
 			led_reg <= '0';
+			counter <= (others => '0');
 		elsif rising_edge(clk) then
 			if led_wr = '1' then
 				led_reg <= memdin(0);
 			end if;
+			counter <= counter + 1;
 		end if;
 	end process;
 
@@ -424,6 +437,7 @@ begin                                   -- architecture begin
 			txd     => txd,
 			rxd     => out_rxd
 		);
+	-- MS: we use _reg at different places and not _clked
 	uart_clk: process(clk,io_write, io_read)
 	begin
 		if rst = '1' then
@@ -437,7 +451,8 @@ begin                                   -- architecture begin
 		end if;
 	end process;
 
-	out_rxd <= not out_rxd after 100 ns;
+-- MS: what is this?
+--	out_rxd <= not out_rxd after 100 ns;
 
 	-- TODO: the memory code belongs into the memory stage component
 

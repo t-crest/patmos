@@ -143,7 +143,12 @@ begin
 		end case;
 	end process;
 	
-	
+	-- MS: why is enable always the same for all four bytes?
+	-- Doesn't this depend on the store size and the address?
+	-- Probably better to have one multiplexer independent of
+	-- store typs, just dependent on store size and address?
+	-- Should this be part of the address calculation, in it's
+	-- own component?
 	st_type: process(din)
 	begin
 		case din.STT_instruction_type_out is 
@@ -170,6 +175,7 @@ begin
 				en1 <= din.mem_write;
 				en2 <= din.mem_write;
 				en3 <= din.mem_write;
+				-- this produces latches
 				mem_write_data0 <= din.mem_write_data_in(7 downto 0);
 			when SWM =>
 				en0 <= din.mem_write; 
