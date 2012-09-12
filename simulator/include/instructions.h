@@ -1006,7 +1006,7 @@ namespace patmos
     } \
     virtual bool load(simulator_t &s, word_t address, word_t &value) const \
     { \
-      atype tmp; \
+      atype tmp=0; \
       if ((address & (sizeof(atype) - 1)) != 0) \
         simulation_exception_t::unaligned(address); \
       bool is_available = base.read_fixed(address, tmp); \

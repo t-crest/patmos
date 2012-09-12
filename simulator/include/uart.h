@@ -134,10 +134,10 @@ namespace patmos
     /// @return True when the data is available from the read port.
     virtual bool read(uword_t address, byte_t *value, uword_t size)
     {
-      if (address == Status_address && size == 1)
-        return read_status(value);
-      else if (address == Data_address && size == 1)
-        return read_data(value);
+      if (address == Status_address && size == 4)
+        return read_status(value+3);
+      else if (address == Data_address && size == 4)
+        return read_data(value+3);
       else
         return Memory.read(address, value, size);
     }
@@ -150,8 +150,8 @@ namespace patmos
     /// otherwise.
     virtual bool write(uword_t address, byte_t *value, uword_t size)
     {
-      if (address == Data_address && size == 1)
-        return write_data(value);
+      if (address == Data_address && size == 4)
+        return write_data(value+3);
       else
         return Memory.write(address, value, size);
     }
