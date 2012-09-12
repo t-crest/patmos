@@ -30,7 +30,7 @@ namespace patmos
   static const uword_t UART_STATUS_ADDRESS = 0xF0000000;
 
   /// Default address of the UART data register.
-  static const uword_t UART_DATA_ADDRESS = 0xF0000001;
+  static const uword_t UART_DATA_ADDRESS = 0xF0000004;
 
   /// A simple UART implementation allowing memory-mapped I/O.
   class uart_t : public memory_t
