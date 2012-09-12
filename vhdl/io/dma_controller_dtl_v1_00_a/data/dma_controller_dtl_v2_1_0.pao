@@ -1,0 +1,9 @@
+##############################################################################
+## Description:       Peripheral Analysis Order
+## Date:              Mon Sep 10 14:40:58 2012 (by Create and Import Peripheral Wizard)
+##############################################################################
+
+lib rdt_util_misclib rdt_util_misc_pkg.p.vhdl vhdl
+lib dma_controller_dtl_v1_00_a dma_controller_dtl.a.vhd vhdl
+lib dma_controller_dtl_v1_00_a dma_controller_dtl.e.vhd vhdl
+lib dma_controller_dtl_v1_00_a dma_controller_dtl.p.vhd vhdl
