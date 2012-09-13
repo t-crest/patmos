@@ -362,19 +362,17 @@ begin                                   -- architecture begin
 				when "0000" =>          -- UART
 					io_next.uart_en <= '1';
 					io_next.device  <= io_uart;
-				when "0001" =>          -- sdram I/O device
-					io_next.sdram_en <= '1';
-					io_next.device   <= io_sdram;
+				when "0001" =>          -- counter
+					io_next.counter_en <= '1';
+					io_next.device     <= io_counter;
 				when "0010" =>          -- LED
 					io_next.led_en <= '1';
 					io_next.device <= io_leds;
-				-- Edgar: maybe counter should also get an fixed address. Leaving the original behaviour for now.
-				-- MS: yes it shall be a fixed and well known address, but you changed it!	
 				when others =>
-					io_next.counter_en <= '1';
-					io_next.device     <= io_counter;
+					io_next.sdram_en <= '1';
+					io_next.device   <= io_sdram;
 			end case;
-		else                            --if (execute_dout.alu_result(8) = '1') then --data mem
+		else
 			io_next.mem_en             <= '1';
 			io_next.device             <= io_memmory;
 			-- Edgar: didn't want to remove those, maybe somebody is using them.

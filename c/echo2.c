@@ -1,8 +1,7 @@
 /*
-	This is the first C based program executed on the FPGA version
-	of Patmos. A carefully written embedded hello world program.
+	There shall be a comment, explaining what the program does.
 
-	Author: Martin Schoeberl
+	Author: Sahar
 	Copyright: DTU, BSD License
 */
 
