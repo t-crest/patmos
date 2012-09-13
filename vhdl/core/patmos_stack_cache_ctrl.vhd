@@ -68,6 +68,9 @@ begin
 
 -- MS: the following code gives just too many latch warnings and it is very much
 -- work in progress. So it is disabled now
+-- Edgar: Xilinx can't handle empty architecture. It optimizes it out and thinks that his is black box. Which of course can't be found.
+-- Adding some dummy statment here:
+dout.spill_fill <= '0';
 
 --process(din.instruction, rst)
 --begin

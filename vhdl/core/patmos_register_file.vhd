@@ -79,6 +79,21 @@ begin
 
 	begin
 		if rising_edge(clk) then
+			-- Edgar: Moved write logic here to get rid of Xilinx inferred latches
+			if (write_enable = '1') then
+				ram(to_integer(unsigned(write_address))) <= write_data;
+-- Edgar: Might also try this cleaner version (should work in Xilinx, need to check altera)
+-- The writes to R0 could be disabled, this way we could get rid of mux to drive 0 on read of R0.
+--				if write_address = read_address1 then
+--					read_data1 <= write_data;
+--				end if;
+--				if write_address = read_address2 then
+--					read_data2 <= write_data;
+--				end if;
+--			else
+--				read_data1 <= ram(to_integer(unsigned(read_address1)));
+--				read_data2 <= ram(to_integer(unsigned(read_address2)));
+			end if;
 			wr_addr_reg  <= write_address;
 			wr_data_reg  <= write_data;
 			wr_en_reg    <= write_enable;
@@ -100,15 +115,16 @@ begin
 				write(l, ' ');
 			end loop;
 			writeline(output, l);
-			--pragma synthesis_on
+		--pragma synthesis_on
 		end if;
 	end process;
 
 	process(ram, wr_addr_reg, wr_data_reg, wr_en_reg, rd_addr_reg1, rd_addr_reg2, fwd1, fwd2)
 	begin
-		if wr_en_reg = '1' then
-			ram(to_integer(unsigned(wr_addr_reg))) <= wr_data_reg;
-		end if;
+-- Edgar: Xilinx inferred latches, so the write logic moved to synchronous process
+--		if wr_en_reg = '1' then
+--			ram(to_integer(unsigned(wr_addr_reg))) <= wr_data_reg;
+--		end if;
 
 		if rd_addr_reg1 = "00000" then
 			read_data1 <= (others => '0');

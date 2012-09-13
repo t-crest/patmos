@@ -421,8 +421,10 @@ begin                                   -- architecture begin
 	end process;
 
 	ua : entity work.uart generic map(
-			clk_freq  => 50000000,
+			clk_freq  => 50*1000*1000,  -- altera DE2-70
 			baud_rate => 115200,
+--			clk_freq  => 200*1000*1000, -- xilinx ML605
+--			baud_rate => 9600,	-- with 50MHz clk: 9600@50MHz on altera and 38400@200MHz on xilinx
 			txf_depth => 1,
 			rxf_depth => 1
 		)

@@ -177,6 +177,11 @@ begin
 				en3 <= din.mem_write;
 				-- this produces latches
 				mem_write_data0 <= din.mem_write_data_in(7 downto 0);
+				-- Edgar: FIXME: Added these lines to get rid of latches.
+				-- Don't have the ISA documentation.
+				mem_write_data1 <= (others => '0');
+				mem_write_data2 <= (others => '0');
+				mem_write_data3 <= (others => '0');						
 			when SWM =>
 				en0 <= din.mem_write; 
 				en1 <= din.mem_write;
