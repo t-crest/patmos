@@ -45,10 +45,19 @@ use work.sc_pack.all;
 
 entity patmos_core is
 	port(
-		clk     : in  std_logic;
-		led     : out std_logic;
-		txd     : out std_logic;
-		rxd     : in  std_logic
+		clk                : in  std_logic;
+		led                : out std_logic;
+		txd                : out std_logic;
+		rxd                : in  std_logic
+--		;
+--		dma controll interface
+--		dma_addr_special_i : out std_logic;
+--		dma_addr_i         : out std_logic_vector(4 downto 0);
+--		dma_rd_i           : out std_logic;
+--		dma_rd_data_i      : in  std_logic_vector(31 downto 0);
+--		dma_wr_i           : out std_logic;
+--		dma_wr_data_i      : out std_logic_vector(31 downto 0)
+
 	--		oSRAM_A      : out   std_logic_vector(18 downto 0); -- edit
 	--		SRAM_DQ      : inout std_logic_vector(31 downto 0); -- edit
 	--		oSRAM_CE1_N  : out   std_logic;
@@ -66,18 +75,24 @@ entity patmos_core is
 end entity patmos_core;
 
 architecture arch of patmos_core is
+	signal write_enable : std_logic;
+	signal test         : std_logic;
 
-	signal write_enable          : std_logic;
-	signal test                  : std_logic;
-	
-	
-	signal io_read_clked, io_write_clked	: std_logic;
-	signal address_uart_clked 				:std_logic;
-	signal uart_din		: std_logic_vector(31 downto 0);	
-	signal memdin 					: std_logic_vector(31 downto 0);
+	signal memdin                        : std_logic_vector(31 downto 0);
+	-- Edgar: Trying to reverse engineer the memdin/mem_write_data_in/mem_write_data_out:
+	--	  memdin - seames to be alu_src2 (after forwarding)	[in patmos_alu()]
+	--	  alu_din.mem_write_data_in <= memdin 
+	--	  mem_din.mem_write_data_in <= memdin 
+	--	  execute_dout.mem_write_data_out <=clk'<= alu_din.mem_write_data_in; [in patmos_alu()]
+	--	  mem_dout.mem_write_data_out <=clk'<= mem_din.mem_write_data_in; [in patmos_mem_stage()]
+	-- Seams that those are just copies of the same signals (registered and non registered memdin)
+	-- Instead of beeing delayed version
+	-- Don't know the pipeline though, so don't one to interfere with work in progress.
+	-- Adding new signal which is easy to spot and rename. 
+
+	signal memdin_reg : std_logic_vector(31 downto 0);
 
 	signal data_mem_data_out      : std_logic_vector(31 downto 0);
-	signal fetch_din              : fetch_in_type;
 	signal fetch_dout             : fetch_out_type;
 	signal fetch_reg1, fetch_reg2 : std_logic_vector(4 downto 0);
 	signal decode_din             : decode_in_type;
@@ -92,24 +107,21 @@ architecture arch of patmos_core is
 	signal mem_din                : mem_in_type;
 	signal mem_dout               : mem_out_type;
 	signal mux_mem_reg            : std_logic_vector(31 downto 0);
-	signal mux_alu_src            : std_logic_vector(31 downto 0);
-	signal alu_src1               : std_logic_vector(31 downto 0);
-	signal alu_src2               : std_logic_vector(31 downto 0);
 	signal fw_ctrl_rs1            : forwarding_type;
 	signal fw_ctrl_rs2            : forwarding_type;
 	signal mem_data_out           : std_logic_vector(31 downto 0);
 
 	signal out_rxd            : std_logic                     := '0';
-	signal address_uart       : std_logic_vector(31 downto 0) := (others => '0');
 	signal mem_data_out_uart  : std_logic_vector(31 downto 0);
 	signal mem_data_out_muxed : std_logic_vector(31 downto 0);
 	signal mem_data_out3      : std_logic_vector(31 downto 0);
+
+	signal mem_data_out_sdram : std_logic_vector(31 downto 0);
 
 	signal spill, fill          : std_logic;
 	signal instruction_mem_din  : instruction_memory_in_type;
 	signal instruction_mem_dout : instruction_memory_out_type;
 	signal instruction_rom_out  : std_logic_vector(31 downto 0);
-
 
 	signal clk_int : std_logic;
 	-- MS: maybe some signal sorting would be nice
@@ -121,8 +133,12 @@ architecture arch of patmos_core is
 	"POWER_UP_LEVEL=LOW";
 	signal rst : std_logic;             --out_rst
 
-	signal led_reg, led_wr : std_logic;
-	signal counter : unsigned(31 downto 0);
+	-- I/O: Led
+	signal led_reg : std_logic;
+	signal counter            : unsigned(31 downto 0);
+
+	-- Edgar: should probably use stage name instead of _next/_reg. Or include it in appropriate stage register signals
+	signal io_next, io_reg : io_info_type;
 
 	-- for the SSRAM interface - not used shall go into a top level
 	--	signal clk2               : std_logic;
@@ -139,12 +155,9 @@ architecture arch of patmos_core is
 	--	signal sc_mem_out  : sc_out_type;
 	--	signal sc_mem_in   : sc_in_type;
 	------------------------------------------------------- uart signals
-	signal mem_write : std_logic;
-	signal io_write  : std_logic;
-	signal mem_read  : std_logic;
-	signal io_read   : std_logic;
+	signal uart_rd, uart_wr : std_logic;
 	-- signal rdy_cnt   : unsigned(1 downto 0); 
-	signal address : std_logic_vector(31 downto 0) := (others => '0');
+	-- signal address          : std_logic_vector(31 downto 0) := (others => '0');
 
 	component sc_mem_if
 		generic(ram_ws    : integer;
@@ -241,7 +254,7 @@ begin                                   -- architecture begin
 			     execute_dout.reg_write_out);
 
 	decode_din.operation <= fetch_dout.instruction;
-	decode_din.instr_b <= fetch_dout.instr_b;
+	decode_din.instr_b   <= fetch_dout.instr_b;
 	dec : entity work.patmos_decode(arch)
 		port map(clk, rst, decode_din, decode_dout);
 
@@ -310,6 +323,7 @@ begin                                   -- architecture begin
 	--	mem_data_out <= stack_cache_dout.dout_to_cpu;
 	stack_cache_din.spill_fill <= stack_cache_ctrl_dout.spill_fill;
 
+	-- Edgar: is the double register on address intended? (the input is registered in block ram allready)
 	stack_cache_din.address   <= execute_dout.alu_result_out(4 downto 0);
 	stack_cache_din.head_tail <= stack_cache_ctrl_dout.head_tail;
 
@@ -322,17 +336,16 @@ begin                                   -- architecture begin
 	-- MS: IO shall go into it's own 'top level' component
 	-- We need to find a reasonable address mapping, not starting IO at
 	-- address 0
-	io_decode : process(execute_dout, decode_dout)
+	io_decode : process(execute_dout, decode_dout, io_next)
+		variable addr : std_logic_vector(31 downto 0);
+
 	begin
-		-- default values
-		mem_write                        <= '0';
-		mem_read                         <= '0';
-		io_write                         <= '0';
-		io_read                          <= '0';
-		led_wr                           <= '0';
-		address_uart                     <= execute_dout.alu_result; -- 
-		instruction_mem_din.write_enable <= '0';
-		stack_cache_din.write_enable     <= '0';
+		-- Everything disabled by default: device enabled in particular branch
+		addr       := execute_dout.alu_result;
+		io_next    <= (address => addr, device => io_none, others => '0');
+		io_next.rd <= decode_dout.lm_read_out;
+		io_next.wr <= decode_dout.lm_write_out;
+
 		-- MS: This decoding will also trigger the IO devices as it goes form
 		-- different address bits.
 		-- MS: decoding from two different pipeline stages (alu_result for
@@ -340,59 +353,64 @@ begin                                   -- architecture begin
 
 		-- we need a clear solution for this in the right pipeline stage
 		--		if (execute_dout.alu_result(8) = '1') then --data mem
-		
-		if (execute_dout.alu_result(31 downto 28) = "1111") then -- UART, counters, LED
-			case execute_dout.alu_result(11 downto 8)	is 
-				when "0000" => -- UART
-					mem_write                        <= '0';
-					mem_read                         <= '0';
-					io_write                         <= decode_dout.lm_write_out;
-					io_read                          <= decode_dout.lm_read_out;
-					instruction_mem_din.write_enable <= '0';
-				when "0010" =>	-- LED
-					led_wr <= decode_dout.lm_write_out;
-				when others => null;
+
+		-- Edgar: maybe can also use constants for different devices instead of one hot enables	
+		if (addr(31 downto 28) = "1111") then -- UART, counters, LED
+			case addr(11 downto 8) is
+				when "0000" =>          -- UART
+					io_next.uart_en <= '1';
+					io_next.device  <= io_uart;
+				when "0001" =>          -- sdram I/O device
+					io_next.sdram_en <= '1';
+					io_next.device   <= io_sdram;
+				when "0010" =>          -- LED
+					io_next.led_en <= '1';
+					io_next.device <= io_leds;
+				-- Edgar: maybe counter should also get an fixed address. Leaving the original behaviour for now.	
+				when others =>
+					io_next.counter_en <= '1';
+					io_next.device     <= io_counter;
 			end case;
-			
-		--elsif (execute_dout.alu_result(31 downto 28) = "0001") then -- the LED
-		--	led_wr <= execute_dout.mem_write_out;
-		else--if (execute_dout.alu_result(8) = '1') then --data mem
-			test                             <= '1';
-			mem_write                        <= decode_dout.lm_write_out;
-			mem_read                         <= decode_dout.lm_read_out;
-			io_write                         <= '0';
-			io_read                          <= '0';
-			instruction_mem_din.write_enable <= '0';
-
-
+		else                            --if (execute_dout.alu_result(8) = '1') then --data mem
+			io_next.mem_en             <= '1';
+			io_next.device             <= io_memmory;
+			-- Edgar: didn't want to remove those, maybe somebody is using them.
+			test                       <= '1';
+			io_next.instruction_mem_wr <= '0'; -- instruction_mem_din.write_enable <= '0';
 		end if;
 
 	end process;
-	
 
---	io_mem_read_mux : process(mem_data_out_uart, data_mem_data_out, execute_dout)
---	begin
---		if (execute_dout.alu_result(8) = '0') then
---			mem_data_out_muxed <= mem_data_out_uart;
---		else
---			mem_data_out_muxed <= data_mem_data_out;
---		end if;
---	end process;
+	-- Copy decoded value to pipeline records. (maybe can use only one version later)
+	instruction_mem_din.write_enable <= io_next.instruction_mem_wr;
+	stack_cache_din.write_enable     <= io_next.stack_cache_wr;
 
--- MS: what is the difference between alu_result and alu_result_out?
--- Maybe _out is the registered value. I don't like that read decode and
--- read mux selection is done from two different signals.
--- Would also be clearer is address calculation has it's own signals.
--- Maybe it shall be in it's own component (together with some address
--- decoding).
-	io_mem_read_mux : process(mem_data_out_uart, data_mem_data_out, execute_dout)
+	--	io_mem_read_mux : process(mem_data_out_uart, data_mem_data_out, execute_dout)
+	--	begin
+	--		if (execute_dout.alu_result(8) = '0') then
+	--			mem_data_out_muxed <= mem_data_out_uart;
+	--		else
+	--			mem_data_out_muxed <= data_mem_data_out;
+	--		end if;
+	--	end process;
+
+	-- MS: what is the difference between alu_result and alu_result_out?
+	-- Maybe _out is the registered value. I don't like that read decode and
+	-- read mux selection is done from two different signals.
+	-- Would also be clearer is address calculation has it's own signals.
+	-- Maybe it shall be in it's own component (together with some address
+	-- decoding).
+	io_mem_read_mux : process(mem_data_out_uart, data_mem_data_out, execute_dout, io_reg)
 	begin
-		if execute_dout.alu_result_out(31 downto 28) = "1000" then
-			if execute_dout.alu_result_out(11 downto 8) = "0000" then
-				mem_data_out_muxed <= mem_data_out_uart;
-			else
-				mem_data_out_muxed <= std_logic_vector(counter);
-			end if;
+		if io_reg.mem_en = '0' then
+			case io_reg.device is
+				when io_uart =>
+					mem_data_out_muxed <= mem_data_out_uart;
+				when io_sdram =>
+					mem_data_out_muxed <= mem_data_out_sdram;
+				when others =>
+					mem_data_out_muxed <= std_logic_vector(counter);
+			end case;
 		else
 			mem_data_out_muxed <= data_mem_data_out;
 		end if;
@@ -413,69 +431,61 @@ begin                                   -- architecture begin
 			led_reg <= '0';
 			counter <= (others => '0');
 		elsif rising_edge(clk) then
-			if led_wr = '1' then
+			-- register the value decoded in ALU stage, to use it in mem stage
+			io_reg     <= io_next;
+			memdin_reg <= memdin;       -- Edgar: there are multiple copies of registered memdin signal (see comments in the declaration), but maybe some of them are work in progress and will change, so don't want to use the wrong one
+			-- state for some I/O devices
+			if io_reg.wr = '1' and io_reg.led_en = '1' then -- Edgar: was using unregistered value, so suppose it was a bug
 				led_reg <= memdin(0);
 			end if;
 			counter <= counter + 1;
 		end if;
 	end process;
 
+	uart_rd <= io_reg.rd and io_reg.uart_en;
+	uart_wr <= io_reg.wr and io_reg.uart_en;
 	ua : entity work.uart generic map(
-			clk_freq  => 50*1000*1000,  -- altera DE2-70
+			clk_freq  => 50 * 1000 * 1000, -- altera DE2-70
 			baud_rate => 115200,
---			clk_freq  => 200*1000*1000, -- xilinx ML605
---			baud_rate => 9600,	-- with 50MHz clk: 9600@50MHz on altera and 38400@200MHz on xilinx
+			--			clk_freq  => 200*1000*1000, -- xilinx ML605
+			--			baud_rate => 9600,	-- with 50MHz clk: 9600@50MHz on altera and 38400@200MHz on xilinx
 			txf_depth => 1,
 			rxf_depth => 1
 		)
 		port map(
 			clk     => clk,
 			reset   => rst,
-			address => address_uart_clked,--(0),
-			wr_data => uart_din,--memdin,--execute_dout.mem_write_data_out,
-			rd      => io_read_clked,
-			wr      => io_write_clked,
+			address => io_reg.address(2), -- Edgar: Why (2) not (0)?
+			wr_data => memdin_reg,      --memdin,--execute_dout.mem_write_data_out,
+			-- Edgar: Can we use VHDL 2008? 
+			-- rd => io_reg.rd and io_reg.uart_en,
+			-- wr => io_reg.wd and io_reg.uart_en,
+			rd      => uart_rd,
+			wr      => uart_wr,
 			rd_data => mem_data_out_uart,
 			txd     => txd,
 			rxd     => out_rxd
 		);
-	-- MS: we use _reg at different places and not _clked
-	uart_clk: process(clk,io_write, io_read)
-	begin
-		if rst = '1' then
-				io_write_clked                         <= '0';
-				io_read_clked                          <= '0';
-		elsif rising_edge(clk) then
-			io_write_clked                         <= io_write;--mem_write_out;
-			io_read_clked                          <= io_read;--mem_read_out;
-			address_uart_clked 					 <= address_uart(2);
-			uart_din							<= memdin;
-		end if;
-	end process;
 
--- MS: what is this?
---	out_rxd <= not out_rxd after 100 ns;
+	-- MS: what is this?
+	--	out_rxd <= not out_rxd after 100 ns;
 
 	-- TODO: the memory code belongs into the memory stage component
 
 	mem_din.STT_instruction_type_out <= decode_dout.STT_instruction_type_out;
 	mem_din.LDT_instruction_type_out <= decode_dout.LDT_instruction_type_out;
-	mem_din.alu_result <= execute_dout.alu_result;
-	mem_din.mem_write  <= mem_write;
---	mem_din.alu_src2   <= memdin;
-	data_mem_data_out  <= mem_dout.data_mem_data_out;
+	mem_din.alu_result               <= execute_dout.alu_result;
+	mem_din.mem_write                <= io_next.wr and io_next.mem_en;
+	--	mem_din.alu_src2   <= memdin;
+	data_mem_data_out                <= mem_dout.data_mem_data_out;
 	--------------------------
-	mem_din.data_in <= mux_mem_reg;
+	mem_din.data_in                  <= mux_mem_reg;
 	-- forward
-	mem_din.reg_write_in      <= execute_dout.reg_write_out or execute_dout.mem_to_reg_out; --execute_dout.mem_to_reg_out or execute_dout.mem_write_out;
-	mem_din.write_back_reg_in <= execute_dout.write_back_reg_out;
-	mem_din.mem_write_data_in <= memdin;--execute_dout.mem_write_data_out;
+	mem_din.reg_write_in             <= execute_dout.reg_write_out or execute_dout.mem_to_reg_out; --execute_dout.mem_to_reg_out or execute_dout.mem_write_out;
+	mem_din.write_back_reg_in        <= execute_dout.write_back_reg_out;
+	mem_din.mem_write_data_in        <= memdin; --execute_dout.mem_write_data_out;
 	memory_stage : entity work.patmos_mem_stage(arch)
 		port map(clk, rst, mem_din, mem_dout);
-
-
-
-
 
 ------------------------------------------------------ SRAM Interface
 --	sc_mem_out.wr_data <= std_logic_vector(stack_cache_dout.dout_to_mem);

@@ -231,7 +231,6 @@ begin
 			waitReady;
 		end procedure memoryLineOp;
 
-		variable isReady : boolean;
 		variable value   : natural;
 
 	begin
