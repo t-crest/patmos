@@ -135,9 +135,11 @@ architecture arch of patmos_core is
 
 	-- I/O: Led
 	signal led_reg : std_logic;
-	signal counter : unsigned(31 downto 0);
+	signal counter, cntus : unsigned(31 downto 0);
+	signal cnt_div : unsigned(7 downto 0);
 
 	-- Edgar: should probably use stage name instead of _next/_reg. Or include it in appropriate stage register signals
+	-- MS: I'm not sure if I like this IO type thing. IO devices are at addresses in my world
 	signal io_next, io_reg : io_info_type;
 
 	-- for the SSRAM interface - not used shall go into a top level
@@ -366,7 +368,8 @@ begin                                   -- architecture begin
 				when "0010" =>          -- LED
 					io_next.led_en <= '1';
 					io_next.device <= io_leds;
-				-- Edgar: maybe counter should also get an fixed address. Leaving the original behaviour for now.	
+				-- Edgar: maybe counter should also get an fixed address. Leaving the original behaviour for now.
+				-- MS: yes it shall be a fixed and well known address, but you changed it!	
 				when others =>
 					io_next.counter_en <= '1';
 					io_next.device     <= io_counter;
@@ -430,6 +433,8 @@ begin                                   -- architecture begin
 		if rst = '1' then
 			led_reg <= '0';
 			counter <= (others => '0');
+			cnt_div <= (others => '0');
+			cntus <= (others => '0');
 		elsif rising_edge(clk) then
 			-- register the value decoded in ALU stage, to use it in mem stage
 			io_reg     <= io_next;
@@ -439,6 +444,14 @@ begin                                   -- architecture begin
 				led_reg <= memdin(0);
 			end if;
 			counter <= counter + 1;
+			-- This shall come from a constant
+			-- Maybe counting down and testing against 0 consumes a little less resources. Do we care?
+			if cnt_div=50-1 then
+				cntus <= cntus + 1;
+				cnt_div <= (others => '0');
+			else
+				cnt_div <= cnt_div + 1;
+			end if;
 		end if;
 	end process;
 
@@ -446,6 +459,7 @@ begin                                   -- architecture begin
 	uart_rd <= io_reg.rd and io_reg.uart_en;
 	uart_wr <= io_reg.wr and io_reg.uart_en;
 	ua : entity work.uart generic map(
+			-- MS: there shall be constants and configuration files
 			clk_freq  => 50 * 1000 * 1000, -- altera DE2-70
 			baud_rate => 115200,
 			-- clk_freq  => 200 * 1000 * 1000, -- xilinx ML605
@@ -457,7 +471,7 @@ begin                                   -- architecture begin
 		port map(
 			clk     => clk,
 			reset   => rst,
-			address => io_reg.address(2), -- Edgar: Why (2) not (0)?
+			address => io_reg.address(2), -- Edgar: Why (2) not (0)? MS: because we do only word access for IO
 			wr_data => memdin_reg,      --memdin,--execute_dout.mem_write_data_out,
 			-- Edgar: Can we use VHDL 2008? 
 			-- rd => io_reg.rd and io_reg.uart_en,
@@ -475,9 +489,6 @@ begin                                   -- architecture begin
 --	dma_wr_i  <= io_reg.wr and io_reg.sdram_en;
 --	dma_wr_data_i  <= memdin_reg;
 
-
-	-- MS: what is this?
-	--	out_rxd <= not out_rxd after 100 ns;
 
 	-- TODO: the memory code belongs into the memory stage component
 
