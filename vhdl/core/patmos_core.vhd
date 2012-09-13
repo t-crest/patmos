@@ -50,7 +50,7 @@ entity patmos_core is
 		txd                : out std_logic;
 		rxd                : in  std_logic
 --		;
---		dma controll interface
+--		-- dma controll interface
 --		dma_addr_special_i : out std_logic;
 --		dma_addr_i         : out std_logic_vector(4 downto 0);
 --		dma_rd_i           : out std_logic;
@@ -78,7 +78,7 @@ architecture arch of patmos_core is
 	signal write_enable : std_logic;
 	signal test         : std_logic;
 
-	signal memdin                        : std_logic_vector(31 downto 0);
+	signal memdin : std_logic_vector(31 downto 0);
 	-- Edgar: Trying to reverse engineer the memdin/mem_write_data_in/mem_write_data_out:
 	--	  memdin - seames to be alu_src2 (after forwarding)	[in patmos_alu()]
 	--	  alu_din.mem_write_data_in <= memdin 
@@ -111,7 +111,7 @@ architecture arch of patmos_core is
 	signal fw_ctrl_rs2            : forwarding_type;
 	signal mem_data_out           : std_logic_vector(31 downto 0);
 
-	signal out_rxd            : std_logic                     := '0';
+	signal out_rxd            : std_logic := '0';
 	signal mem_data_out_uart  : std_logic_vector(31 downto 0);
 	signal mem_data_out_muxed : std_logic_vector(31 downto 0);
 	signal mem_data_out3      : std_logic_vector(31 downto 0);
@@ -135,7 +135,7 @@ architecture arch of patmos_core is
 
 	-- I/O: Led
 	signal led_reg : std_logic;
-	signal counter            : unsigned(31 downto 0);
+	signal counter : unsigned(31 downto 0);
 
 	-- Edgar: should probably use stage name instead of _next/_reg. Or include it in appropriate stage register signals
 	signal io_next, io_reg : io_info_type;
@@ -407,7 +407,7 @@ begin                                   -- architecture begin
 				when io_uart =>
 					mem_data_out_muxed <= mem_data_out_uart;
 				when io_sdram =>
-					mem_data_out_muxed <= mem_data_out_sdram;
+--					mem_data_out_muxed <= dma_rd_data_i;
 				when others =>
 					mem_data_out_muxed <= std_logic_vector(counter);
 			end case;
@@ -442,13 +442,15 @@ begin                                   -- architecture begin
 		end if;
 	end process;
 
+	-- UART
 	uart_rd <= io_reg.rd and io_reg.uart_en;
 	uart_wr <= io_reg.wr and io_reg.uart_en;
 	ua : entity work.uart generic map(
 			clk_freq  => 50 * 1000 * 1000, -- altera DE2-70
 			baud_rate => 115200,
-			--			clk_freq  => 200*1000*1000, -- xilinx ML605
+			-- clk_freq  => 200 * 1000 * 1000, -- xilinx ML605
 			--			baud_rate => 9600,	-- with 50MHz clk: 9600@50MHz on altera and 38400@200MHz on xilinx
+
 			txf_depth => 1,
 			rxf_depth => 1
 		)
@@ -466,6 +468,13 @@ begin                                   -- architecture begin
 			txd     => txd,
 			rxd     => out_rxd
 		);
+--	-- SDRAM: the I/O device uses word addressess, so we shift io_reg.address by 2 (x4)
+--	dma_addr_special_i  <= io_reg.address(dma_addr_i'high+3);
+--	dma_addr_i  <= io_reg.address(dma_addr_i'high+2 downto dma_addr_i'low+2);
+--	dma_rd_i  <= io_reg.rd and io_reg.sdram_en;
+--	dma_wr_i  <= io_reg.wr and io_reg.sdram_en;
+--	dma_wr_data_i  <= memdin_reg;
+
 
 	-- MS: what is this?
 	--	out_rxd <= not out_rxd after 100 ns;
