@@ -439,7 +439,7 @@ begin                                   -- architecture begin
 			memdin_reg <= memdin;       -- Edgar: there are multiple copies of registered memdin signal (see comments in the declaration), but maybe some of them are work in progress and will change, so don't want to use the wrong one
 			-- state for some I/O devices
 			if io_reg.wr = '1' and io_reg.led_en = '1' then -- Edgar: was using unregistered value, so suppose it was a bug
-				led_reg <= memdin(0);
+				led_reg <= memdin_reg(0);
 			end if;
 			counter <= counter + 1;
 			-- This shall come from a constant
