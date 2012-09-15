@@ -111,7 +111,6 @@ architecture arch of patmos_core is
 	signal fw_ctrl_rs2            : forwarding_type;
 	signal mem_data_out           : std_logic_vector(31 downto 0);
 
-	signal out_rxd            : std_logic := '0';
 	signal mem_data_out_uart  : std_logic_vector(31 downto 0);
 	signal mem_data_out_muxed : std_logic_vector(31 downto 0);
 	signal mem_data_out3      : std_logic_vector(31 downto 0);
@@ -478,7 +477,7 @@ begin                                   -- architecture begin
 			wr      => uart_wr,
 			rd_data => mem_data_out_uart,
 			txd     => txd,
-			rxd     => out_rxd
+			rxd     => rxd
 		);
 --	-- SDRAM: the I/O device uses word addressess, so we shift io_reg.address by 2 (x4)
 --	dma_addr_special_i  <= io_reg.address(dma_addr_i'high+3);
