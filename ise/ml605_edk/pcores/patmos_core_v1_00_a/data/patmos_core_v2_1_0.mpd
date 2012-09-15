@@ -1,0 +1,32 @@
+###################################################################
+##
+## Name     : dma_controller_dtl
+## Desc     : MMIO device for DTL interface SDRAM controller
+## Author   : Edgar Lakis
+##
+###################################################################
+
+BEGIN patmos_core
+
+## Peripheral Options
+OPTION IPTYPE = PERIPHERAL
+OPTION IMP_NETLIST = TRUE
+OPTION HDL = VHDL
+OPTION ARCH_SUPPORT_MAP = (OTHERS=DEVELOPMENT)
+OPTION DESC = Simple MMIO device to DTL interface memory
+OPTION IP_GROUP = USER
+
+## PORTs
+PORT clk              = "", DIR = I, SIGIS = CLK
+PORT led   = "",  DIR = O
+PORT txd   = "",  DIR = O
+PORT rxd   = "",  DIR = I
+
+PORT dma_addr_special_i   = "",  DIR = O
+PORT dma_addr_i           = "",  DIR = O, VEC = [4 : 0]
+PORT dma_rd_i             = "",  DIR = O
+PORT dma_rd_data_i        = "",  DIR = I, VEC = [31 : 0]
+PORT dma_wr_i             = "",  DIR = O
+PORT dma_wr_data_i        = "",  DIR = O, VEC = [31 : 0]
+
+END

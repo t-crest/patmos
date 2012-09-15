@@ -1,0 +1,186 @@
+
+# ##############################################################################
+# Created by Base System Builder Wizard for Xilinx EDK 12.3 Build EDK_MS3.70d
+# Thu Mar 22 10:59:54 2012
+# Target Board:  Xilinx Virtex 6 ML605 Evaluation Platform Rev D
+# Family:    virtex6
+# Device:    xc6vlx240t
+# Package:   ff1156
+# Speed Grade:  -1
+# System clock frequency: 100.0
+# ##############################################################################
+ PARAMETER VERSION = 2.1.0
+
+
+ PORT fpga_0_clk_1_sys_clk_p_pin = dcm_clk_s, DIR = I, SIGIS = CLK, DIFFERENTIAL_POLARITY = P, CLK_FREQ = 200000000
+ PORT fpga_0_clk_1_sys_clk_n_pin = dcm_clk_s, DIR = I, SIGIS = CLK, DIFFERENTIAL_POLARITY = N, CLK_FREQ = 200000000
+ PORT fpga_0_rst_1_sys_rst_pin = sys_rst_s, DIR = I, SIGIS = RST, RST_POLARITY = 1
+ PORT raptor_0_DDR3_Clk = raptor_0_DDR3_Clk, DIR = O, VEC = [0:0]
+ PORT raptor_0_DDR3_cas = raptor_0_DDR3_cas, DIR = O
+ PORT raptor_0_DDR3_CE = raptor_0_DDR3_CE, DIR = O, VEC = [0:0]
+ PORT raptor_0_DDR3_CS_n = raptor_0_DDR3_CS_n, DIR = O, VEC = [0:0]
+ PORT raptor_0_DDR3_ODT = raptor_0_DDR3_ODT, DIR = O, VEC = [0:0]
+ PORT raptor_0_DDR3_ras = raptor_0_DDR3_ras, DIR = O
+ PORT raptor_0_DDR3_Addr = raptor_0_DDR3_Addr, DIR = O, VEC = [12:0]
+ PORT raptor_0_DDR3_we = raptor_0_DDR3_we, DIR = O
+ PORT raptor_0_DDR3_BankAddr = raptor_0_DDR3_BankAddr, DIR = O, VEC = [2:0]
+ PORT raptor_0_DDR3_DQS = raptor_0_DDR3_DQS, DIR = IO, VEC = [3:0], THREE_STATE = FALSE, IOB_STATE = BUF
+ PORT raptor_0_DDR3_DQS_n = raptor_0_DDR3_DQS_n, DIR = IO, VEC = [3:0], THREE_STATE = FALSE, IOB_STATE = BUF
+ PORT raptor_0_DDR3_DQ = raptor_0_DDR3_DQ, DIR = IO, VEC = [31:0], THREE_STATE = FALSE, IOB_STATE = BUF
+ PORT raptor_0_DDR3_DM = raptor_0_DDR3_DM, DIR = O, VEC = [3:0]
+ PORT raptor_0_DDR3_Reset_n = raptor_0_DDR3_Reset_n, DIR = O
+ PORT raptor_0_DDR3_Clk_n = raptor_0_DDR3_Clk_n, DIR = O, VEC = [0:0]
+ PORT raptor_0_ctrl_init_complete_pin = raptor_0_ctrl_init_complete, DIR = O
+ PORT raptor_0_mem_check_ok_pin = raptor_0_mem_check_ok, DIR = O
+ PORT txd = txd, DIR = O
+ PORT rxd = rxd, DIR = I
+
+
+BEGIN util_vector_logic
+ PARAMETER INSTANCE = nRst
+ PARAMETER HW_VER = 1.00.a
+ PARAMETER C_OPERATION = not
+ PARAMETER C_SIZE = 1
+ PORT Op1 = mb_reset
+ PORT Res = nRst_Res
+END
+
+BEGIN clock_generator
+ PARAMETER INSTANCE = clock_generator_0
+ PARAMETER C_CLKIN_FREQ = 200000000
+ PARAMETER C_CLKOUT0_FREQ = 100000000
+ PARAMETER C_CLKOUT0_PHASE = 0
+ PARAMETER C_CLKOUT0_GROUP = MMCM0
+ PARAMETER C_CLKOUT0_BUF = TRUE
+ PARAMETER C_CLKOUT1_FREQ = 200000000
+ PARAMETER C_CLKOUT1_PHASE = 0
+ PARAMETER C_CLKOUT1_GROUP = MMCM0
+ PARAMETER C_CLKOUT1_BUF = TRUE
+ PARAMETER C_CLKOUT2_FREQ = 400000000
+ PARAMETER C_CLKOUT2_PHASE = 0
+ PARAMETER C_CLKOUT2_GROUP = MMCM0
+ PARAMETER C_CLKOUT2_BUF = TRUE
+ PARAMETER C_CLKOUT3_FREQ = 400000000
+ PARAMETER C_CLKOUT3_PHASE = 0
+ PARAMETER C_CLKOUT3_GROUP = MMCM0
+ PARAMETER C_CLKOUT3_BUF = FALSE
+ PARAMETER C_CLKOUT3_VARIABLE_PHASE = TRUE
+ PARAMETER C_PSDONE_GROUP = MMCM0
+ PARAMETER C_EXT_RESET_HIGH = 1
+ PARAMETER HW_VER = 4.03.a
+ PORT CLKIN = dcm_clk_s
+ PORT CLKOUT0 = clk_100_0000MHzMMCM0
+ PORT CLKOUT1 = clk_200_0000MHzMMCM0
+ PORT PSCLK = clk_200_0000MHzMMCM0
+ PORT RST = sys_rst_s
+ PORT LOCKED = Dcm_all_locked
+ PORT CLKOUT2 = clk_400_0000MHzMMCM0
+ PORT CLKOUT3 = clk_400_0000MHz_Rd_BaseMMCM0
+ PORT PSEN = raptor_0_MPMC_DCM_PSEN
+ PORT PSINCDEC = raptor_0_MPMC_DCM_PSINCDEC
+ PORT PSDONE = clock_generator_0_PSDONE
+END
+
+BEGIN proc_sys_reset
+ PARAMETER INSTANCE = proc_sys_reset_0
+ PARAMETER C_EXT_RESET_HIGH = 1
+ PARAMETER HW_VER = 3.00.a
+ PORT Slowest_sync_clk = clk_100_0000MHzMMCM0
+ PORT Ext_Reset_In = sys_rst_s
+ PORT Dcm_locked = Dcm_all_locked
+ PORT MB_Reset = mb_reset
+ PORT Bus_Struct_Reset = sys_bus_reset
+ PORT MB_Debug_Sys_Rst = net_gnd
+END
+
+BEGIN raptor_top_dtl
+ PARAMETER INSTANCE = raptor_0
+ PARAMETER HW_VER = 0.00.a
+ PARAMETER C_MEM_DATA_WIDTH = 32
+ PARAMETER C_MEM_DM_WIDTH = 4
+ PARAMETER C_MEM_DQS_WIDTH = 4
+ PARAMETER C_MEM_DQS_CNT_WIDTH = 2
+ PARAMETER MTL_MASK_WIDTH = 16
+ PARAMETER ENABLE_MEMCTRL_DEBUG = 0
+# BUS_INTERFACE FSL_WR = microblaze_0_DWFSL0
+# BUS_INTERFACE FSL_RD = raptor_0_FSL_RD
+ BUS_INTERFACE DTL_IN = front_end_out
+ PORT Rst = mb_reset
+ PORT DDR3_Clk = raptor_0_DDR3_Clk
+ PORT DDR3_DQS_n = raptor_0_DDR3_DQS_n
+ PORT DDR3_cas = raptor_0_DDR3_cas
+ PORT DDR3_CE = raptor_0_DDR3_CE
+ PORT DDR3_CS_n = raptor_0_DDR3_CS_n
+ PORT DDR3_ODT = raptor_0_DDR3_ODT
+ PORT DDR3_ras = raptor_0_DDR3_ras
+ PORT DDR3_Addr = raptor_0_DDR3_Addr
+ PORT DDR3_we = raptor_0_DDR3_we
+ PORT DDR3_BankAddr = raptor_0_DDR3_BankAddr
+ PORT DDR3_DQS = raptor_0_DDR3_DQS
+ PORT DDR3_DQ = raptor_0_DDR3_DQ
+ PORT DDR3_DM = raptor_0_DDR3_DM
+ PORT DDR3_Reset_n = raptor_0_DDR3_Reset_n
+ PORT DDR3_Clk_n = raptor_0_DDR3_Clk_n
+ PORT Clk_200MHz = clk_200_0000MHzMMCM0
+ PORT Clk_Mem = clk_400_0000MHzMMCM0
+ PORT Clk_Rd_Base = clk_400_0000MHz_Rd_BaseMMCM0
+ PORT DCM_PSEN = raptor_0_MPMC_DCM_PSEN
+ PORT DCM_PSINCDEC = raptor_0_MPMC_DCM_PSINCDEC
+ PORT DCM_PSDONE = clock_generator_0_PSDONE
+ PORT IODelay_ref_clk = clk_200_0000MHzMMCM0
+ PORT pll_lock = Dcm_all_locked
+ PORT ctrl_init_complete = raptor_0_ctrl_init_complete
+# PORT mem_check_ok = raptor_0_mem_check_ok
+ PORT Clk_200MHz_bufg_o = raptor_0_Clk_200MHz_bufg_o
+ PORT FSL_WR_Clk = clk_100_0000MHzMMCM0
+END
+
+BEGIN front_end_dtl
+ PARAMETER INSTANCE = front_end_dtl_0
+ PARAMETER HW_VER = 0.00.a
+ BUS_INTERFACE DTL_OUT = front_end_out
+ BUS_INTERFACE DTL_IN0 = dma_controller_dtl_0_DTL_OUT
+# BUS_INTERFACE DTL_IN1 =
+# BUS_INTERFACE DTL_IN2 =
+# BUS_INTERFACE DTL_IN3 =
+ PORT Mem_clock_clk = raptor_0_Clk_200MHz_bufg_o
+ PORT Mem_clock_rst_n = nRst_Res
+END
+
+BEGIN patmos_core
+# BEGIN leros_core
+ PARAMETER INSTANCE = patmos_top_0
+ PARAMETER HW_VER = 1.00.a
+ PORT clk = raptor_0_Clk_200MHz_bufg_o
+ PORT led = raptor_0_mem_check_ok_pin
+ PORT txd = txd
+ PORT rxd = rxd
+ PORT dma_addr_special_i = dma_addr_special_i
+ PORT dma_wr_data_i = dma_wr_data_i
+ PORT dma_addr_i = dma_addr_i
+ PORT dma_rd_i = dma_rd_i
+ PORT dma_wr_i = dma_wr_i
+ PORT dma_rd_data_i = dma_rd_data_i
+END
+
+BEGIN dma_controller_dtl
+ PARAMETER INSTANCE = dma_controller_dtl_0
+ PARAMETER HW_VER = 1.00.a
+ PARAMETER DQ_WIDTH = 8
+ PARAMETER MTL_MASK_WIDTH = 4
+ PARAMETER MTL_SIZE_WIDTH = 5
+ PARAMETER MTL_ADDR_WIDTH = 32
+ PARAMETER GEN_REQUEST_SIZE = 64
+ PARAMETER DMA_ADDR_WIDTH = 5
+ PARAMETER DMA_DATA_WIDTH = 32
+ BUS_INTERFACE DTL_OUT = dma_controller_dtl_0_DTL_OUT
+ PORT mtl_clk = raptor_0_Clk_200MHz_bufg_o
+ PORT mtl_rst_n = nRst_Res
+ PORT dma_addr_special_i = dma_addr_special_i
+ PORT dma_wr_data_i = dma_wr_data_i
+ PORT dma_addr_i = dma_addr_i
+ PORT dma_rd_i = dma_rd_i
+ PORT dma_wr_i = dma_wr_i
+ PORT dma_rd_data_i = dma_rd_data_i
+END
+
