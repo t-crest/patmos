@@ -53,10 +53,12 @@ entity patmos_fetch is
 end entity patmos_fetch;
 
 architecture arch of patmos_fetch is
+	constant rom_addr_size : integer := 8;
+	
 	-- we should have global constants for memory sizes
 	signal pc, pc_next                               : std_logic_vector(pc_length - 1 downto 0);
 	signal pc_add	: unsigned(1 downto 0);
-	signal evn_next, addr_evn, addr_odd              : std_logic_vector(7 downto 0);
+	signal evn_next, addr_evn, addr_odd              : std_logic_vector(rom_addr_size - 1 downto 0);
 	signal feout                                     : fetch_out_type;
 	signal data_evn, data_odd, instr_a, instr_b, tmp : std_logic_vector(31 downto 0);
 
@@ -83,9 +85,9 @@ begin
 	-- Even RAM address needs an increment when PC is odd
 	process(pc_next)
 	begin
-		evn_next <= pc_next(7 downto 1) & "0";
+		evn_next <= pc_next(rom_addr_size - 1 downto 1) & "0";
 		if pc_next(0) = '1' then
-			evn_next <= std_logic_vector(unsigned(pc_next(7 downto 1)) + 1) & "0";
+			evn_next <= std_logic_vector(unsigned(pc_next(rom_addr_size - 1 downto 1)) + 1) & "0";
 		end if;
 	end process;
 
@@ -134,7 +136,7 @@ begin
 		elsif (rising_edge(clk) and rst = '0') then
 			pc       <= pc_next;
 			addr_evn <= evn_next;
-			addr_odd <= pc_next(7 downto 1) & "1";
+			addr_odd <= pc_next(rom_addr_size -1 downto 1) & "1";
 			-- MS: the next pc? PC calculation is REALLY an independent pipe stage!
 			dout <= feout;
 		end if;
