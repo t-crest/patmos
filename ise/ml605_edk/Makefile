@@ -16,3 +16,5 @@ pcores_proprietary:
 	echo Downloading SDRAM controller EDK cores...
 	scp -r tipca.imm.dtu.dk:/home/edgarlakis/TUE_memctrl/pcores $@
 
+program: bits
+	program_ML605 implementation/system.bit

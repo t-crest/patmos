@@ -18,21 +18,21 @@
 	addi	r6 = r5, 768;# r6==sdram base                         	#4
 	addi	r0 = r0, 0;  # Nop: (don't want to change all the branches again)	#5
 
-# wait_start:   # Output 'S' and wait for any key press
-	addi	r1 = r0, 83; # 'S'                                    	#6
+# wait_start:   # Output '?' and wait for any key press
+	addi	r1 = r0, 63; # '?'                                    	#6
 	swm     [r5 + 1] = r1;                                     	#7
 
 	lwm     r1 = [r5 + 0];                                     	#8
 	addi	r2 = r0, 2;                                           	#9
 	and     r1 = r2, r1;                                       	#10
 	cmpneq  p1 = r1, r2;                                       	#11
-	(p1)	bc	6;                                                 	#12
+	(p1)	bc	8;                                                 	#12
                 addi    r0  = r0 , 0;                       	#13
                 addi    r0  = r0 , 0;                       	#14
 
 
 # SDRAM I/O address space
-#    addr(5) selects between special registers/word access, so the offset has to be added to 16
+#    addr(5) selects between special registers/word access, so the offset has to be added to 32
 #	constant DMA_OFFSET_ADDR_REG : integer := 0;
 #	constant DMA_OFFSET_CMD_STAT : integer := 1;
 #
@@ -47,9 +47,9 @@
 #   2. We read and check the values back
 #test_init:   
 	addi	r10 = r0, 0;	# r10 == addr_cnt                        	#15
-	addi	r11 = r0, 1;	# r11 == test_limit (2^10 blocks)        	#16
-	sli	r11 = r11, 10;                                         	#17
-	addi	r1= r0, 46; '.'                                       	#18
+	addi	r11 = r0, 1;	# r11 == test_limit                      	#16
+	sli	r11 = r11, 16;                                         	#17
+	addi	r1= r0, 87; 'W'                                       	#18
 	swm     [r5 + 1] = r1;                                     	#19
 
 #write:
@@ -58,12 +58,12 @@
 	swm	[r6 + 0] = r10;	# sram.word[0] <= value                	#21
 
 #	Ask sdram I/O to store the line into memory
-	swm     [r6 + 16] = r10; # sram.addr<=addr_cnt             	#22
+	swm     [r6 + 32] = r10; # sram.addr<=addr_cnt             	#22
 	addi    r1  = r0 , 1;                                      	#23
-	swm     [r6 + 17] = r1; # sram.cmd<=cmd_store_line         	#24
+	swm     [r6 + 33] = r1; # sram.cmd<=cmd_store_line         	#24
 
 #	wait untill I/O ready	
-	lwm     r1  = [r6 + 17]; # sdram.status                    	#25
+	lwm     r1  = [r6 + 33]; # sdram.status                    	#25
 	addi	r0 = r0, 0;                                           	#26
 	cmpneq  p1 = r1, r0;     # ?busy                           	#27
 	(p1)	bc	25;                                                	#28
@@ -79,18 +79,18 @@
                 addi    r0  = r0 , 0;                       	#35
 
 #read_init:
-	addi	r1= r0, 47; '/'                                       	#36
+	addi	r1= r0, 82; 'R'                                       	#36
 	swm     [r5 + 1] = r1;                                     	#37
 	addi	r10 = r0, 0;	# addr_cnt <= 0                          	#38
 #	 r10 should have the value from before
 
 #read:
 #	 Ask sdram I/O to load the line into memory
-	swm     [r6 + 16] = r10; # sram.addr<=addr_cnt             	#39
-	swm     [r6 + 17] = r0; # sram.cmd<=cmd_load_line          	#40
+	swm     [r6 + 32] = r10; # sram.addr<=addr_cnt             	#39
+	swm     [r6 + 33] = r0; # sram.cmd<=cmd_load_line          	#40
 
 #	 wait untill I/O ready	
-	lwm     r1  = [r6 + 17]; # sdram.status                    	#41
+	lwm     r1  = [r6 + 33]; # sdram.status                    	#41
 	addi	r0 = r0, 0;                                           	#42
 	cmpneq  p1 = r1, r0;     # ?busy                           	#43
 	(p1)	bc	41;                                                	#44
@@ -102,7 +102,7 @@
 	addi    r1  = r10 , 1;  # val = addr+1 (use the same mod as during write)	#48
 	cmpneq  p1 = r1, r2; # should be the same                  	#49
                 addi    r0  = r0 , 0;                       	#50
-                addi    r1  = r0 , 33;  '!'                 	#51
+                addi    r1  = r0 , 69;  'E'                 	#51
 	(p1)	addi    r12 = r12, 1; #error_cnt++                    	#52
 	(p1)	swm     [r5 + 1] = r1; # we write to UART without pooling for ready here,	#53
 
@@ -143,7 +143,8 @@
 	(p2)	addi	r1 = r0, 35;                                     	#76
 	swm     [r5 + 1] = r1;                                     	#77
 
-	b	1;                                                       	#78
-	addi    r0 = r0, 0;                                        	#79
-	addi    r0 = r0, 0;                                        	#80
-halt;                                                       	#81
+	lwm     r0 = [r5 + 1];  # purge input                      	#78
+	bc	1;                                                      	#79
+		addi    r0 = r0, 0;                                       	#80
+		addi    r0 = r0, 0;                                       	#81
+halt;                                                       	#82

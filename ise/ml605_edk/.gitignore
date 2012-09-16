@@ -3,3 +3,14 @@ hdl
 revup
 implementation
 synthesis
+__xps/
+_xmsgs/
+clock_generator_0.log
+etc/
+platgen.log
+platgen.opt
+system.log
+system.make
+system.mhs_backup
+system.xmp2
+system_incl.make
