@@ -164,17 +164,17 @@ begin
 			when SHL =>
 				en0 <= din.mem_write; 
 				en1 <= din.mem_write;
-				en2 <= din.mem_write;
-				en3 <= din.mem_write;
+				en2 <= '0';
+				en3 <= '0';
 				mem_write_data0 <= din.mem_write_data_in(15 downto 8);
 				mem_write_data1 <= din.mem_write_data_in(7 downto 0);
 				mem_write_data2 <= (others => '0');
 				mem_write_data3 <= (others => '0');
 		    when SBL =>
 		    	en0 <= din.mem_write; 
-				en1 <= din.mem_write;
-				en2 <= din.mem_write;
-				en3 <= din.mem_write;
+				en1 <= '0';
+				en2 <= '0';
+				en3 <= '0';
 				-- this produces latches
 				mem_write_data0 <= din.mem_write_data_in(7 downto 0);
 				-- Edgar: FIXME: Added these lines to get rid of latches.
@@ -194,17 +194,17 @@ begin
 			when SHM =>
 				en0 <= din.mem_write; 
 				en1 <= din.mem_write;
-				en2 <= din.mem_write;
-				en3 <= din.mem_write;
+				en2 <= '0';
+				en3 <= '0';
 				mem_write_data0 <= din.mem_write_data_in(15 downto 8);
 				mem_write_data1 <= din.mem_write_data_in(7 downto 0);
 				mem_write_data2 <= (others => '0');
 				mem_write_data3 <= (others => '0');
 		    when SBM =>
 		    	en0 <= din.mem_write; 
-				en1 <= din.mem_write;
-				en2 <= din.mem_write;
-				en3 <= din.mem_write;
+				en1 <= '0';
+				en2 <= '0';
+				en3 <= '0';
 				mem_write_data0 <= din.mem_write_data_in(7 downto 0);
 				mem_write_data1 <= (others => '0');
 				mem_write_data2 <= (others => '0');
@@ -221,17 +221,17 @@ begin
 			when SHC =>
 				en0 <= din.mem_write; 
 				en1 <= din.mem_write;
-				en2 <= din.mem_write;
-				en3 <= din.mem_write;
+				en2 <= '0';
+				en3 <= '0';
 				mem_write_data0 <= din.mem_write_data_in(15 downto 8);
 				mem_write_data1 <= din.mem_write_data_in(7 downto 0);
 				mem_write_data2 <= (others => '0');
 				mem_write_data3 <= (others => '0');
 		    when SBC =>
 		    	en0 <= din.mem_write; 
-				en1 <= din.mem_write;
-				en2 <= din.mem_write;
-				en3 <= din.mem_write;
+				en1 <= '0';
+				en2 <= '0';
+				en3 <= '0';
 				mem_write_data0 <= din.mem_write_data_in(7 downto 0);
 				mem_write_data1 <= (others => '0');
 				mem_write_data2 <= (others => '0');
