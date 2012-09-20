@@ -2,6 +2,7 @@
 # This is a simple echo program on the UART
 #
 # Expected Result: echo entered characters
+# SA: this test predicated ld/st which was a bug
 #
 
 		addi	r0 = r0, 0;  # first instruction not executed

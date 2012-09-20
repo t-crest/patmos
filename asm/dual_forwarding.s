@@ -1,5 +1,6 @@
 #
 # MS: what does this test case test?
+# SA: it tests forwarding along with dual issue (as the name suggests)
 #
 # Expected Result: 
 #

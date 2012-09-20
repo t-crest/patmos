@@ -1,7 +1,7 @@
 #
 # FIXME: add comment
 #
-# Expected Result: ...
+# Expected Result: just checking if echo works along with other instructions... UART addresses are not valid anymore
 #
 
 		addi	r0 = r0, 0;  # first instruction not executed

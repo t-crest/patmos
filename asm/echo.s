@@ -2,7 +2,7 @@
 # This is a simple echo program on the UART
 #
 # Expected Result: echo entered characters
-#
+# SA: this is the working version of echo.
 
 		addi	r0 = r0, 0;  # first instruction not executed
 		addi	r5 = r0, 15;

@@ -3,7 +3,8 @@
 #
 # Expected Result: echo entered characters
 #
-# MS: is this roughly the same as echo.s?
+# MS: is this roughly the same as echo.s? 
+# SA: This is a deprecated version of echo, it is no longer valid.
 
 		addi	r0 = r0, 0;  # first instruction not executed
 		addi	r5 = r0, 15;
