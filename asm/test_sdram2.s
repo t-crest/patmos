@@ -22,10 +22,10 @@
 
 # wait_start:   # Output '?' and wait for any key press
 	addi	r1 = r0, 63; # '?'                                    	#4
-	swm     [r5 + 1] = r1;                                     	#5
+	swl     [r5 + 1] = r1;                                     	#5
 
 #poll_stdin:
-	lwm     r1 = [r5 + 0];                                     	#6
+	lwl     r1 = [r5 + 0];                                     	#6
 	addi	r2 = r0, 2;                                           	#7
 	and     r1 = r2, r1;                                       	#8
 	cmpneq  p1 = r1, r2;                                       	#9
@@ -54,21 +54,21 @@
 	sli	r11 = r11, 20;                                         	#15
 	addi	r12 = r0, 0; # r12==error count                       	#16
 	addi	r1= r0, 87; 'W'                                       	#17
-	swm     [r5 + 1] = r1;                                     	#18
+	swl     [r5 + 1] = r1;                                     	#18
 
 #write:
 #	Set the value in the cache line (we don't care if it is loaded as we just use one word)
 	addi    r1  = r10, 1;   # val = addr+1 (+1 just for fun, to have slightly different value)	#19
-	swm	[r6 + 0] = r1;	# sram.word[0] <= value                 	#20
+	swl	[r6 + 0] = r1;	# sram.word[0] <= value                 	#20
 
 #	Ask sdram I/O to store the line into memory
 	sli	r1 = r10, 6; # sdram controller uses 64 byte aligned addressess	#21
-	swm     [r6 + 32] = r1; # sram.addr<=addr_cnt              	#22
+	swl     [r6 + 32] = r1; # sram.addr<=addr_cnt              	#22
 	addi    r1  = r0 , 1;                                      	#23
-	swm     [r6 + 33] = r1; # sram.cmd<=cmd_store_line         	#24
+	swl     [r6 + 33] = r1; # sram.cmd<=cmd_store_line         	#24
 
 #poll_sdram_ready:
-	lwm     r1  = [r6 + 33]; # sdram.status                    	#25
+	lwl     r1  = [r6 + 33]; # sdram.status                    	#25
 	addi	r0 = r0, 0;                                           	#26
 	cmpneq  p1 = r1, r0;     # ?busy                           	#27
 	(p1)	bc	25; #l:poll_sdram_ready                            	#28
@@ -85,18 +85,18 @@
 
 #read_init:
 	addi	r1= r0, 82; 'R'                                       	#36
-	swm     [r5 + 1] = r1;                                     	#37
+	swl     [r5 + 1] = r1;                                     	#37
 	addi	r10 = r0, 0;	# addr_cnt <= 0                          	#38
 #	 r10 should have the value from before
 
 #read:
 #	 Ask sdram I/O to load the line into memory
 	sli	r1 = r10, 6; # sdram controller uses 64 byte aligned addressess	#39
-	swm     [r6 + 32] = r1; # sram.addr<=addr_cnt              	#40
-	swm     [r6 + 33] = r0; # sram.cmd<=cmd_load_line          	#41
+	swl     [r6 + 32] = r1; # sram.addr<=addr_cnt              	#40
+	swl     [r6 + 33] = r0; # sram.cmd<=cmd_load_line          	#41
 
 #poll_sdram_ready:
-	lwm     r1  = [r6 + 33]; # sdram.status                    	#42
+	lwl     r1  = [r6 + 33]; # sdram.status                    	#42
 	addi	r0 = r0, 0;                                           	#43
 	cmpneq  p1 = r1, r0;     # ?busy                           	#44
 	(p1)	bc	42; #l:poll_sdram_ready                            	#45
@@ -104,13 +104,13 @@
                 addi    r0  = r0 , 0;                       	#47
 
 #	 Check the value in the cache line (we only used first word)
-	lwm	r2 = [r6 + 0];	# sram.word[0] => value                 	#48
+	lwl	r2 = [r6 + 0];	# sram.word[0] => value                 	#48
 	addi    r1  = r10 , 1;  # val = addr+1 (use the same mod as during write)	#49
 	cmpeq  p1 = r1, r2; # should be the same                   	#50
 	(p1)	bc  55; #l:+3                                         	#51
         (!p1)   addi    r1  = r0 , 69;  'E'                 	#52
 	(!p1)	addi    r12 = r12, 1; #error_cnt++                   	#53
-		swm     [r5 + 1] = r1; # we write to UART without pooling for ready here,	#54
+		swl     [r5 + 1] = r1; # we write to UART without pooling for ready here,	#54
 
 
 #	 check the memory range if we are done
@@ -123,7 +123,7 @@
 # read test done, output result and go back to start
 # output 'OK' or '##' if err	
 #poll_stdout:
-	lwm     r1 = [r5 + 0];                                     	#60
+	lwl     r1 = [r5 + 0];                                     	#60
 	addi	r2 = r0, 1;                                           	#61
 	and     r1 = r2, r1;                                       	#62
 	cmpneq  p1 = r1, r2;                                       	#63
@@ -136,10 +136,10 @@
 #	 79 '0', 35 '#'
 		addi	r1 = r0, 79;                                         	#68
 	(p2)	addi	r1 = r0, 35;                                     	#69
-	swm     [r5 + 1] = r1;                                     	#70
+	swl     [r5 + 1] = r1;                                     	#70
 
 #poll_stdout:
-	lwm     r1 = [r5 + 0];                                     	#71
+	lwl     r1 = [r5 + 0];                                     	#71
 	addi	r2 = r0, 1;                                           	#72
 	and     r1 = r2, r1;                                       	#73
 	cmpneq  p1 = r1, r2;                                       	#74
@@ -150,9 +150,9 @@
 #	 75 'K', 35 '#'
 		addi	r1 = r0, 75;                                         	#78
 	(p2)	addi	r1 = r0, 35;                                     	#79
-	swm     [r5 + 1] = r1;                                     	#80
+	swl     [r5 + 1] = r1;                                     	#80
 
-	lwm     r0 = [r5 + 1];  # purge input                      	#90
+	lwl     r0 = [r5 + 1];  # purge input                      	#90
 	bc	1;                                                      	#91
 		addi    r0 = r0, 0;                                       	#92
 		addi    r0 = r0, 0;                                       	#93

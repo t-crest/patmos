@@ -1,6 +1,7 @@
 #
 # Expected Result: ...
 # this echos wrong characters
+# MS: what does this program? Looks very out of date: UART at wrong address, bne,...
 		addi    r16  = r16 , 64;
 		addi    r7 = r7 , 511;
 		addi	r1   = r0 , 2;
