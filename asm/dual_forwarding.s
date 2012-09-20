@@ -1,7 +1,7 @@
 #
-# This is a simple echo program on the UART
+# MS: what does this test case test?
 #
-# Expected Result: echo entered characters
+# Expected Result: 
 #
 		addi	r0 = r0, 0;  # first instruction not executed
 		addi	r1 = r0, 1;

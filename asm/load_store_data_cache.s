@@ -1,6 +1,7 @@
 #
 # Basic instructions test
 # different ld/st from/to scratchpad memory
+# MS: is SPM accessed with lxc/sxc? I thought it is via lxl/sxl.
 
 	addi	r1 = r0, 255;  # first instruction not executed
 	addi	r1 = r0, 256; # r1 = 255
