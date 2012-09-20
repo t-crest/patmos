@@ -4,10 +4,10 @@
 notice:
 	@echo
 	@echo 'To use this SDRAM test some changes are needed in patmos source:'
-	@echo '  * uncomment the lines containing the dma_ in patmos_core.vhd'
-	@echo '  * increase the size of instruction memory in patmos_fetch.vhd'
+	@echo '  * patmos_core.vhd: uncomment the lines containing the dma_; change uart clock freq to 100MHz; increase the uart fifo depth to 5'
+	@echo '  * patmos_fetch.vhd: increase the size of instruction memory'
 	@echo '  * match the size of generated rom in java/src/patmos/asm/Bin2Vhdl.java and recompile it'
-	@echo '  * generate the rom in patmos base_dir: make rom APP=test_bram'
+	@echo '  * generate the rom in patmos base_dir: make rom APP=test_sdram'
 	@echo 'When done one can build this project: make bits'
 	@echo
 
