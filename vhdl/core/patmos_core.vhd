@@ -325,6 +325,7 @@ begin                                   -- architecture begin
 	stack_cache_din.spill_fill <= stack_cache_ctrl_dout.spill_fill;
 
 	-- Edgar: is the double register on address intended? (the input is registered in block ram allready)
+	
 	stack_cache_din.address   <= execute_dout.alu_result_out(4 downto 0);
 	stack_cache_din.head_tail <= stack_cache_ctrl_dout.head_tail;
 
@@ -344,8 +345,8 @@ begin                                   -- architecture begin
 		-- Everything disabled by default: device enabled in particular branch
 		addr       := execute_dout.alu_result;
 		io_next    <= (address => addr, device => io_none, others => '0');
-		io_next.rd <= decode_dout.lm_read_out;
-		io_next.wr <= decode_dout.lm_write_out;
+		io_next.rd <= execute_dout.lm_read_out_not_reg;
+		io_next.wr <= execute_dout.lm_write_out_not_reg;
 
 		-- MS: This decoding will also trigger the IO devices as it goes form
 		-- different address bits.

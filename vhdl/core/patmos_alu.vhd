@@ -354,6 +354,17 @@ begin
 		end if;
 	end process;
 	
+	not_registered_out: process(decdout)
+	begin
+		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit_out then
+				doutex.lm_read_out_not_reg              <= decdout.lm_read_out;
+				doutex.lm_write_out_not_reg              <= decdout.lm_write_out;
+		else
+				doutex.lm_read_out_not_reg              <= '0';
+				doutex.lm_write_out_not_reg              <= '0';
+		end if;
+	end process not_registered_out;
+	
 	forwarding_rs1 : process(doutex_alu_result_out, doutex_write_back_reg_out, doutex_reg_write_out , decdout)
 	begin
 		if (decdout.rs1_out = doutex_write_back_reg_out and doutex_reg_write_out = '1') then
