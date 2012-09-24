@@ -481,8 +481,10 @@ namespace patmos
     /// Encode an instruction.
     /// @param pred The instruction's predicate.
     /// @param opcode The instruction opcode.
+    /// @param rb The function base register operand.
+    /// @param ro The offset register operand.
     /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t opcode);
+    static word_t encode(word_t pred, word_t opcode, word_t rb, word_t ro);
   };
 
   /// The BNE instruction format (temporary, used for hardware model only).

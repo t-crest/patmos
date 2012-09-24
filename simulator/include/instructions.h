@@ -1295,9 +1295,9 @@ namespace patmos
         assert(base <= pc);
 
         // store the return address and method base address by writing them into
-        // special purpose registers
-        s.SPR.set(sb, base);
-        s.SPR.set(so, pc - base);
+        // general purpose registers
+        s.GPR.set(rfb, base);
+        s.GPR.set(rpc, pc - base);
       }
     }
 
@@ -1387,13 +1387,12 @@ namespace patmos
     } \
   };
 
-  PFLB_INSTR(bs, store_return_address, fetch_and_dispatch,
-             ops.OPS.PFLb.Imm*sizeof(word_t), ops.OPS.PFLb.Imm*sizeof(word_t))
-  PFLB_INSTR(bc, no_store_return_address, dispatch, s.BASE,
-             s.BASE + ops.OPS.PFLb.Imm*sizeof(word_t))
-  PFLB_INSTR(b, no_store_return_address, fetch_and_dispatch,
-             s.BASE + ops.OPS.PFLb.Imm*sizeof(word_t),
-             s.BASE + ops.OPS.PFLb.Imm*sizeof(word_t))
+  PFLB_INSTR(call, store_return_address, fetch_and_dispatch,
+             ops.OPS.PFLb.Imm*sizeof(word_t),
+             ops.OPS.PFLb.Imm*sizeof(word_t))
+  PFLB_INSTR(b, no_store_return_address, dispatch,
+             s.BASE,
+             s.PC + ops.OPS.PFLb.Imm*sizeof(word_t))
 
   /// Branch and call instructions with a register operand.
   class i_pfli_t : public i_pfl_t
@@ -1435,13 +1434,12 @@ namespace patmos
     } \
   };
 
-  PFLI_INSTR(bsr, store_return_address, fetch_and_dispatch,
-             read_GPR_EX(s, ops.DR_Rs1), read_GPR_EX(s, ops.DR_Rs1))
-  PFLI_INSTR(bcr, no_store_return_address, dispatch, s.BASE,
-             s.BASE + read_GPR_EX(s, ops.DR_Rs1))
-  PFLI_INSTR(br, no_store_return_address, fetch_and_dispatch,
-             s.BASE + read_GPR_EX(s, ops.DR_Rs1),
-             s.BASE + read_GPR_EX(s, ops.DR_Rs1))
+  PFLI_INSTR(callr, store_return_address, fetch_and_dispatch,
+             read_GPR_EX(s, ops.DR_Rs1),
+             read_GPR_EX(s, ops.DR_Rs1))
+  PFLI_INSTR(br, no_store_return_address, dispatch,
+             s.BASE,
+             s.PC + read_GPR_EX(s, ops.DR_Rs1))
 
   /// An instruction for returning from function calls.
   class i_ret_t : public i_pfl_t
@@ -1454,7 +1452,8 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
-      os << boost::format("(p%1%) ret") % ops.Pred;
+      os << boost::format("(p%1%) ret %2%, %3%") % ops.Pred
+         % ops.OPS.PFLr.Rb % ops.OPS.PFLr.Ro;
     }
 
     // IF inherited from NOP
@@ -1466,8 +1465,8 @@ namespace patmos
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
-      ops.DR_Base = s.SPR.get(sb).get();
-      ops.DR_Offset = s.SPR.get(so).get();
+      ops.DR_Base   = s.GPR.get(ops.OPS.PFLr.Rb).get();
+      ops.DR_Offset = s.GPR.get(ops.OPS.PFLr.Ro).get();
       ops.EX_PFL_Discard = 0;
     }
 

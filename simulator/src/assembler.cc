@@ -469,9 +469,8 @@ namespace patmos
                                  boost::spirit::qi::_2, boost::spirit::qi::_3)];
 
         // Parse PFLb instructions
-        PFLbopc = boost::spirit::lit("bs")    [boost::spirit::qi::_val = 0] |
-                  boost::spirit::lit("bc")    [boost::spirit::qi::_val = 1] |
-                  boost::spirit::lit("b")     [boost::spirit::qi::_val = 2] ;
+        PFLbopc = boost::spirit::lit("call") [boost::spirit::qi::_val = 0] |
+                  boost::spirit::lit("b")    [boost::spirit::qi::_val = 1] ;
 
         PFLb = (Pred >> PFLbopc >> Imm22u)
               [boost::spirit::qi::_val = boost::phoenix::bind(
@@ -479,9 +478,8 @@ namespace patmos
                                  boost::spirit::qi::_2, boost::spirit::qi::_3)];
 
         // Parse PFLi instructions
-        PFLiopc = boost::spirit::lit("bsr")    [boost::spirit::qi::_val = 0] |
-                  boost::spirit::lit("bcr")    [boost::spirit::qi::_val = 1] |
-                  boost::spirit::lit("br")     [boost::spirit::qi::_val = 2] ;
+        PFLiopc = boost::spirit::lit("callr") [boost::spirit::qi::_val = 0] |
+                  boost::spirit::lit("br")    [boost::spirit::qi::_val = 1] ;
 
         PFLi = (Pred >> PFLiopc >> GPR)
               [boost::spirit::qi::_val = boost::phoenix::bind(
@@ -490,10 +488,11 @@ namespace patmos
 
         // Parse PFLr instructions
         PFLropc = boost::spirit::lit("ret")[boost::spirit::qi::_val = 0];
-        PFLr = (Pred >> PFLropc)
+        PFLr = (Pred >> PFLropc >> GPR >> ',' >> GPR)
               [boost::spirit::qi::_val = boost::phoenix::bind(
-                                   pflr_format_t::encode, boost::spirit::qi::_1,
-                                   boost::spirit::qi::_2)];
+                                 pflr_format_t::encode, boost::spirit::qi::_1,
+                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
+                                 boost::spirit::qi::_4)];
 
         // Parse BNE instructions
         BNE = ("bne" >> GPR >> "!=" >> GPR >> ',' >> Imm7s)

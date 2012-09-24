@@ -630,17 +630,21 @@ namespace patmos
   instruction_data_t pflr_format_t::decode_operands(word_t iw,
                                                     word_t longimm) const
   {
+    GPR_e ro = extractG(iw,  7);
+    GPR_e rb = extractG(iw, 12);
     PRR_e pred = extractPN(iw, 27);
-    return instruction_data_t::mk_PFLr(Instruction, pred);
+    return instruction_data_t::mk_PFLr(Instruction, pred, rb, ro);
   }
 
-  word_t pflr_format_t::encode(word_t pred, word_t opcode)
+  word_t pflr_format_t::encode(word_t pred, word_t opcode, word_t rb, word_t ro)
   {
     word_t iw = 0;
 
     assert(fitu(opcode, 4));
 
     insertV(iw, 0, 4, opcode);
+    insertG(iw,  7, ro);
+    insertG(iw, 12, rb);
     insertV(iw, 22, 5, BOOST_BINARY(11110));
     insertPN(iw, 27, pred);
 

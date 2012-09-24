@@ -193,10 +193,11 @@ namespace patmos
     r16, r17, r18, r19, r20, r21, r22, r23, r24, r25, r26, r27, r28, r29, r30,
     r31,
     NUM_GPR,
-
-    rs = r29, // Stack Pointer
-    rm = r30, // Return Method
-    ra = r31  // Return Offset
+    rtr = r27, // Temporary register
+    rfp = r28, // Frame pointer
+    rsp = r29, // Stack Pointer
+    rfb = r30, // Return info: Function base
+    rpc = r31  // Return info: Program counter
   };
 
   /// Symbols representing the predicate registers.
@@ -217,8 +218,6 @@ namespace patmos
     sm = s1,
     sl = s2,
     sh = s3,
-    sb = s4,
-    so = s5,
     st = s6,
     scl = s7,
     sch = s8

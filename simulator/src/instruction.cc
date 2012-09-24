@@ -175,9 +175,12 @@ namespace patmos
   }
 
   instruction_data_t instruction_data_t::mk_PFLr(const instruction_t &i,
-                                                 PRR_e pred)
+                                                 PRR_e pred, GPR_e rb, GPR_e ro)
   {
-    return instruction_data_t(i, pred);
+    instruction_data_t result(i, pred);
+    result.OPS.PFLr.Rb = rb;
+    result.OPS.PFLr.Ro = ro;
+    return result;
   }
 
   instruction_data_t instruction_data_t::mk_BNE(const instruction_t &i,

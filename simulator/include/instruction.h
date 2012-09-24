@@ -216,6 +216,12 @@ namespace patmos
       {
         GPR_e Rs;
       } PFLi;
+      /// Operands for an PFLr instruction.
+      struct
+      {
+        GPR_e Rb;
+        GPR_e Ro;
+      } PFLr;
       /// Operands for an BNEinstruction.
       struct
       {
@@ -442,8 +448,11 @@ namespace patmos
     /// Create an PFLr instruction without operands.
     /// @param i The instruction.
     /// @param pred The predicate register under which the instruction is
+    /// @param rb The register containing the return function base.
+    /// @param ro The register containing the return offset.
     /// executed.
-    static instruction_data_t mk_PFLr(const instruction_t &i, PRR_e pred);
+    static instruction_data_t mk_PFLr(const instruction_t &i, PRR_e pred,
+                                      GPR_e rb, GPR_e ro);
 
     /// Create an BNE instruction with two register operands and an immediate.
     /// @param i The instruction.
