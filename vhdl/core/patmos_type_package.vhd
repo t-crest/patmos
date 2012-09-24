@@ -148,11 +148,15 @@ package patmos_type_package is
 		sc_read_out  : std_logic;
 		sc_write_out : std_logic;
 		
+		--registered outputs
+		address_reg			: std_logic_vector(31 downto 0);
+		
 		--unregistered outputs
 		lm_read_out_not_reg	: std_logic;
 		lm_write_out_not_reg : std_logic;
 		sc_read_out_not_reg  : std_logic;
 		sc_write_out_not_reg : std_logic;
+		address_not_reg		: std_logic_vector(31 downto 0);
 	end record;
 
 	------------------------------------------
