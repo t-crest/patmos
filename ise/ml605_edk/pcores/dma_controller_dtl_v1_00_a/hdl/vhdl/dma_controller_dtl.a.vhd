@@ -11,7 +11,7 @@ use work.dma_controller_dtl_cmp_pkg.all;
 architecture arch of dma_controller_dtl is
 	constant DATA_WIDTH_BITS : integer := 4 * DQ_WIDTH;
 	constant NWORDS_PER_CMD  : integer := GEN_REQUEST_SIZE * 8 / DATA_WIDTH_BITS;
-	type state_t is (ready, read_req, read_data, write_req, write_data);
+	type state_t is (ready, read_cmd, read_data, write_cmd, write_data);
 	signal state_r, state_nxt : state_t;
 
 	type mem_line_t is array (0 to DMA_ADDR_WIDTH ** 2 - 1) of std_logic_vector(DMA_DATA_WIDTH - 1 downto 0);
@@ -127,15 +127,15 @@ begin
 			when ready =>
 				if dma_cmd_received = '1' then
 					if dma_wr_data_i = const2slv(DMA_CMD_LOAD_LINE, dma_wr_data_i) then
-						state_nxt <= read_req;
+						state_nxt <= read_cmd;
 					else
-						state_nxt <= write_req;
+						state_nxt <= write_cmd;
 					end if;
 				end if;
 				-- reset the counter used during transfer
 				words_transferred_nxt <= (others => '0');
 			-- Request the line read from memory
-			when read_req =>
+			when read_cmd =>
 				mtl_cmd_valid_i <= '1';
 				mtl_cmd_read_i  <= '1';
 				if mtl_cmd_accept_i = '1' then
@@ -152,7 +152,7 @@ begin
 					end if;
 				end if;
 			-- Request the line write to memory
-			when write_req =>
+			when write_cmd =>
 				mtl_cmd_valid_i <= '1';
 				mtl_cmd_read_i  <= '0';
 				if mtl_cmd_accept_i = '1' then
