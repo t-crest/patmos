@@ -8,16 +8,14 @@ end entity dma_controller_tb;
 use work.dma_controller_dtl_cmp_pkg.all;
 
 architecture RTL of dma_controller_tb is
-	constant CLOCK_PERIOD                      : time    := 10 ns;
-	constant MEM_SIZE                          : integer := 2 ** 8;
-	constant DEBUG_SHOW_MEMORY_TRANSACTIONS    : boolean := true;
-	constant DEBUG_SHOW_CACHELINE_TRANSACTIONS : boolean := true;
-
 	constant DQ_WIDTH         : integer := 8;
 	constant MTL_MASK_WIDTH   : integer := 4;
+--	constant MTL_SIZE_WIDTH   : integer := 5;
 	constant MTL_SIZE_WIDTH   : integer := 5;
+	constant MAX_ADDR_BITS   : integer := 6;
 	constant MTL_ADDR_WIDTH   : integer := 32;
 	-- Request size in bytes
+--	constant GEN_REQUEST_SIZE : integer := 64;
 	constant GEN_REQUEST_SIZE : integer := 64;
 	-- DMA control interface
 	constant DMA_ADDR_WIDTH   : integer := 5;
@@ -25,6 +23,16 @@ architecture RTL of dma_controller_tb is
 
 	constant DATA_WIDTH_BITS : integer := 4 * DQ_WIDTH;
 	constant NWORDS_PER_CMD  : integer := GEN_REQUEST_SIZE * 8 / DATA_WIDTH_BITS;
+
+
+
+	constant CLOCK_PERIOD                      : time    := 10 ns;
+	constant MEM_SIZE                          : integer := 2 ** 8;
+	constant DEBUG_SHOW_MEMORY_TRANSACTIONS    : boolean := true;
+	constant DEBUG_SHOW_CACHELINE_TRANSACTIONS : boolean := true;
+
+
+
 
 	subtype dma_word_t is std_logic_vector(DMA_DATA_WIDTH - 1 downto 0);
 
@@ -56,7 +64,13 @@ architecture RTL of dma_controller_tb is
 	type mem_t is array (0 to MEM_SIZE - 1) of dma_word_t;
 	signal mem : mem_t := (others => (others => '0'));
 	signal end_of_sim : std_logic := '0';
+	signal mem_check_ok : std_logic;
+	
+	constant Use_traffic_generator : std_logic := '1';
+	
 begin
+
+ll_f:if Use_traffic_generator = '0' generate
 	dut : work.dma_controller_dtl_cmp_pkg.dma_controller_dtl
 		generic map(DQ_WIDTH         => DQ_WIDTH,
 			        MTL_MASK_WIDTH   => MTL_MASK_WIDTH,
@@ -88,17 +102,52 @@ begin
 			     dma_rd_data_i        => dma_rd_data_i,
 			     dma_wr_i             => dma_wr_i,
 			     dma_wr_data_i        => dma_wr_data_i);
+end generate ll_f;
+
+ll:if Use_traffic_generator = '1' generate
+
+	dma_rd_data_i  <= X"00000001"; -- Not ready
+	
+	traffic_generator_dtl_inst : entity work.traffic_generator_dtl
+		generic map(DQ_WIDTH            => DQ_WIDTH,
+			        MTL_MASK_WIDTH      => MTL_MASK_WIDTH,
+			        MTL_SIZE_WIDTH      => MTL_SIZE_WIDTH,
+			        MTL_ADDR_WIDTH      => MTL_ADDR_WIDTH,
+			        GEN_REQUEST_SIZE    => GEN_REQUEST_SIZE,
+			        DELAY_CNT_WIDTH     => 32,
+			        DELAY_TRIGGER_VALUE => 1,
+			        MAX_ADDR_BITS       => MAX_ADDR_BITS)
+		port map(mtl_clk              => mtl_clk,
+			     mtl_rst_n            => mtl_rst_n,
+			     mtl_cmd_valid_i      => mtl_cmd_valid_i,
+			     mtl_cmd_accept_i     => mtl_cmd_accept_i,
+			     mtl_cmd_addr_i       => mtl_cmd_addr_i,
+			     mtl_cmd_read_i       => mtl_cmd_read_i,
+			     mtl_cmd_block_size_i => mtl_cmd_block_size_i,
+			     mtl_wr_last_i        => mtl_wr_last_i,
+			     mtl_wr_valid_i       => mtl_wr_valid_i,
+			     mtl_flush_i          => mtl_flush_i,
+			     mtl_wr_accept_i      => mtl_wr_accept_i,
+			     mtl_wr_data_i        => mtl_wr_data_i,
+			     mtl_wr_mask_i        => mtl_wr_mask_i,
+			     mtl_rd_last_i        => mtl_rd_last_i,
+			     mtl_rd_valid_i       => mtl_rd_valid_i,
+			     mtl_rd_accept_i      => mtl_rd_accept_i,
+			     mtl_rd_data_i        => mtl_rd_data_i,
+			     mem_check_ok         => mem_check_ok);
+end generate ll;
 
 	clock_driver : process
 	begin
-		mtl_clk <= '0';
-		wait for CLOCK_PERIOD / 2;
-		mtl_clk <= '1';
-		wait for CLOCK_PERIOD / 2;
+--		if end_of_sim = '0' then
+			mtl_clk <= '0';
+			wait for CLOCK_PERIOD / 2;
+			mtl_clk <= '1';
+			wait for CLOCK_PERIOD / 2;
+--		end if;
 	end process clock_driver;
 	mtl_rst_n <= '0', '1' after CLOCK_PERIOD * 2;
 
-	mtl_cmd_accept_i <= '1';
 	memory_emulation : process is
 		variable addr  : natural;
 		variable count : integer;
@@ -107,9 +156,11 @@ begin
 		mtl_rd_last_i   <= '0';
 		mtl_rd_valid_i  <= '0';
 		mtl_wr_accept_i <= '0';
+		mtl_cmd_accept_i <= '1';
 
 		wait until rising_edge(mtl_clk);
 		if mtl_cmd_valid_i = '1' then   -- NOTE: cmd_accept always high
+			mtl_cmd_accept_i <= '0';
 			addr  := to_integer(unsigned(mtl_cmd_addr_i)) / 4; -- the mtl_cmd_addr_i is byte addressable
 			count := to_integer(unsigned(mtl_cmd_block_size_i));
 			if mtl_cmd_read_i = '1' then
@@ -130,12 +181,16 @@ begin
 				mtl_wr_accept_i <= '1';
 				for i in 0 to count loop
 					loop
-						exit when mtl_wr_valid_i = '1';
+						exit when mtl_wr_valid_i = '1' and mtl_wr_accept_i = '1';
 						wait until rising_edge(mtl_clk);
 					end loop;
+					
 					mem(addr) <= mtl_wr_data_i;
 					addr      := addr + 1;
 					assert (mtl_wr_last_i = '1' or i /= count) report "mtl_wd_last_i signal error: i=" & integer'image(i) & " (of " & integer'image(count) & ") last=" & std_logic'image(mtl_wr_last_i);
+					if (mtl_wr_last_i = '1') then 
+						mtl_wr_accept_i <= '0'; -- next cycle
+					end if;
 					wait until rising_edge(mtl_clk);
 				end loop;
 			end if;
@@ -147,10 +202,10 @@ begin
 		begin
 			wait until rising_edge(mtl_clk);
 			if dma_rd_i = '1' and dma_addr_special_i = '0' then
-				report "CL RD " & integer'image(to_integer(unsigned(dma_rd_data_i))) & " at " & integer'image(to_integer(unsigned(dma_addr_i)));
+				report "CL RD " & integer'image(to_integer(signed(dma_rd_data_i))) & " at " & integer'image(to_integer(unsigned(dma_addr_i)));
 			end if;
 			if dma_wr_i = '1' and dma_addr_special_i = '0' then
-				report "CL WR " & integer'image(to_integer(unsigned(dma_wr_data_i))) & " at " & integer'image(to_integer(unsigned(dma_addr_i)));
+				report "CL WR " & integer'image(to_integer(signed(dma_wr_data_i))) & " at " & integer'image(to_integer(unsigned(dma_addr_i)));
 			end if;
 		end process cl_monitor;
 	end generate show_cache_line_transactions;
@@ -165,11 +220,11 @@ begin
 			end if;
 
 			if mtl_rd_accept_i = '1' and mtl_rd_valid_i = '1' then
-				report "MEM RD " & integer'image(to_integer(unsigned(mtl_rd_data_i))) & " at " & integer'image(addr) & " last=" & std_logic'image(mtl_rd_last_i);
+				report "MEM RD " & integer'image(to_integer(signed(mtl_rd_data_i))) & " at " & integer'image(addr) & " last=" & std_logic'image(mtl_rd_last_i);
 				addr := addr + 1;
 			end if;
 			if mtl_wr_accept_i = '1' and mtl_wr_valid_i = '1' then
-				report "MEM WR " & integer'image(to_integer(unsigned(mtl_wr_data_i))) & " at " & integer'image(addr) & " last=" & std_logic'image(mtl_wr_last_i);
+				report "MEM WR " & integer'image(to_integer(signed(mtl_wr_data_i))) & " at " & integer'image(addr) & " last=" & std_logic'image(mtl_wr_last_i);
 				addr := addr + 1;
 			end if;
 		end process memory_monitor;
@@ -232,40 +287,44 @@ begin
 		end procedure memoryLineOp;
 
 		variable value   : natural;
+		
+		constant A2 : natural := NWORDS_PER_CMD/2-1;
+		constant A3 : natural := NWORDS_PER_CMD-1;
 
 	begin
 		wait until mtl_rst_n = '1';
 		waitReady;
 
 		controllerWrite('0', 0, 1);
-		controllerWrite('0', 5, 6);
-		controllerWrite('0', 15, 16);
+		controllerWrite('0', A2, 6);
+		controllerWrite('0', A3, 16);
 		controllerRead('0', 0, value);
 		assert value = 1 report "T1 cache word write/read error at 0";
-		controllerRead('0', 5, value);
+		controllerRead('0', A2, value);
 		assert value = 6 report "T1 cache word write/read error at 5";
-		controllerRead('0', 15, value);
+		controllerRead('0', A3, value);
 		assert value = 16 report "T1 cache word write/read error at 5";
 
 		memoryLineOp(0, loStoreLine);
 		memoryLineOp(1, loLoadLine);
 		controllerRead('0', 0, value);
 		assert value = 0 report "T2 cache word write/read error at 0";
-		controllerRead('0', 5, value);
+		controllerRead('0', A2, value);
 		assert value = 0 report "T2 cache word write/read error at 5";
-		controllerRead('0', 15, value);
+		controllerRead('0', A3, value);
 		assert value = 0 report "T2 cache word write/read error at 5";
 
 		memoryLineOp(0, loLoadLine);
 		controllerRead('0', 0, value);
 		assert value = 1 report "T3 cache word write/read error at 0";
-		controllerRead('0', 5, value);
+		controllerRead('0', A2, value);
 		assert value = 6 report "T3 cache word write/read error at 5";
-		controllerRead('0', 15, value);
+		controllerRead('0', A3, value);
 		assert value = 16 report "T3 cache word write/read error at 5";
 
+		report "OK.  Test Finished!";
 		end_of_sim <= '1';
-		-- report "OK.  Test Finished!" severity failure;
+		report "OK.  Test Finished!" severity failure;
 	end process control_test;
 
 end architecture RTL;
