@@ -1,11 +1,9 @@
 ###################################################################
 ##
-## Name     : traffic_generator_dtl
-## Desc     : MMIO device for DTL interface SDRAM controller
-## Author   : Edgar Lakis
+## Name     : Patmos
+## Desc     : Patmos core
 ##
 ###################################################################
-#lib patmos_core_v1_00_a  patmos_ram.vhd  vhdl
 lib patmos_core_v1_00_a  patmos/vhdl/generated/patmos_rom.vhd  vhdl
 lib patmos_core_v1_00_a  patmos/vhdl/io/uart.vhd  vhdl
 lib patmos_core_v1_00_a  patmos/vhdl/core/sc_pack.vhd  vhdl
