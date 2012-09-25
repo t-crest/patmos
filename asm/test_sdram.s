@@ -22,10 +22,10 @@
 
 # wait_start:   # Output '?' and wait for any key press
 	addi	r1 = r0, 63; # '?'                                    	#5
-	swm     [r5 + 1] = r1;                                     	#6
+	swl     [r5 + 1] = r1;                                     	#6
 
 #poll_stdin:
-	lwm     r1 = [r5 + 0];                                     	#7
+	lwl     r1 = [r5 + 0];                                     	#7
 	addi	r2 = r0, 2;                                           	#8
 	and     r1 = r2, r1;                                       	#9
 	cmpneq  p1 = r1, r2;                                       	#10
@@ -33,13 +33,13 @@
                 addi    r0  = r0 , 0;                       	#12
                 addi    r0  = r0 , 0;                       	#13
 
-	lwm     r1 = [r5 + 1];                                     	#14
+	lwl     r1 = [r5 + 1];                                     	#14
 
 	addi    r21 = r0, 65; 'A'                                  	#15
 	addi    r22 = r6, 0;                                       	#16
 	addi	r24 = r0, 80; 16 chars from 'A'                       	#17
 #write_word:
-	swm	[r22 + 0] = r21;                                       	#18
+	swl	[r22 + 0] = r21;                                       	#18
 	cmpneq	p1 = r21, r24;                                      	#19
 	(p1)	bc	18 ; #l:write_word                                 	#20
 		addi	r21 = r21, 1;                                        	#21
@@ -50,17 +50,17 @@
 	addi	r23 = r0, 0;                                          	#24
 	addi	r24 = r0, 15;                                         	#25
 #read_word:
-	lwm	r21 = [r22 + 0];                                       	#26
+	lwl	r21 = [r22 + 0];                                       	#26
 
 #poll_stdout:
-	lwm     r1 = [r5 + 0];                                     	#27
+	lwl     r1 = [r5 + 0];                                     	#27
 	addi	r2 = r0, 1;                                           	#28
 	and     r1 = r2, r1;                                       	#29
 	cmpneq  p1 = r1, r2;                                       	#30
 	(p1)	bc	27;   #l:poll_stdout                               	#31
                 addi    r0  = r0 , 0;                       	#32
                 addi    r0  = r0 , 0;                       	#33
-	swm     [r5 + 1] = r21;                                    	#34
+	swl     [r5 + 1] = r21;                                    	#34
 
 	cmpneq	p1 = r23, r24;                                      	#35
 	(p1)	bc	26 ; #l:read_word                                  	#36

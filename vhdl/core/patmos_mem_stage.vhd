@@ -45,19 +45,24 @@ use work.patmos_type_package.all;
 entity patmos_mem_stage is 
   port
   (
-    clk                          : in std_logic;
-    rst       	 	                : in std_logic;
-    din             	            : in mem_in_type;
-    dout                         : out mem_out_type 
+    clk															: in std_logic;
+    rst															: in std_logic;
+    din															: in mem_in_type;
+    dout														: out mem_out_type 
   );
 end entity patmos_mem_stage;
 
 
 architecture arch of patmos_mem_stage is
 		
-	signal en0, en1, en2, en3	: std_logic;
-	signal dout0, dout1, dout2, dout3 : std_logic_vector(7 downto 0);
-	signal mem_write_data0, mem_write_data1, mem_write_data2, mem_write_data3 :std_logic_vector(7 downto 0);
+	signal en0, en1, en2, en3									: std_logic;
+	signal dout0, dout1, dout2, dout3							: std_logic_vector(7 downto 0);
+	signal mem_write_data0, mem_write_data1						: std_logic_vector(7 downto 0);
+	signal mem_write_data2, mem_write_data3						: std_logic_vector(7 downto 0);
+	signal byte_enable0, byte_enable1							: std_logic;
+	signal byte_enable2, byte_enable3							: std_logic;
+	signal word_enable0, word_enable1							: std_logic;
+	--signal test : std_logic;
 begin
 
 
@@ -102,155 +107,118 @@ begin
 	
 	ld_type: process(dout0, dout1, dout2, dout3)
 	begin
-		case din.LDT_instruction_type_out is
-			when LWL=> 
-				dout.data_mem_data_out <= dout0 & dout1 & dout2 & dout3;
-			when LWC =>
-				dout.data_mem_data_out <= dout0 & dout1 & dout2 & dout3;
-			when LWM => 	
-				dout.data_mem_data_out <= dout0 & dout1 & dout2 & dout3;
+		if(din.LDT_instruction_type_out = LWL or din.LDT_instruction_type_out = LWC or din.LDT_instruction_type_out = LWM) then
+			dout.data_mem_data_out <= dout0 & dout1 & dout2 & dout3;
+			
+		elsif (din.LDT_instruction_type_out = LHL or din.LDT_instruction_type_out = LHC or din.LDT_instruction_type_out = LHM or din.LDT_instruction_type_out = LHUL ) then
+				case din.alu_result(0) is
+					when '0' =>
+						dout.data_mem_data_out <= std_logic_vector(resize(signed( dout0 & dout1), 32));
+					when '1' =>
+						dout.data_mem_data_out <= std_logic_vector(resize(signed( dout2 & dout3), 32));
+					when others => null;
+				end case;
 				
-			when LHL=>
-				dout.data_mem_data_out <= std_logic_vector(resize(signed( dout0 & dout1), 32));
-			when LHC=>
-				dout.data_mem_data_out <= std_logic_vector(resize(signed( dout0 & dout1), 32));
-			when LHM=>
-				dout.data_mem_data_out <= std_logic_vector(resize(signed( dout0 & dout1), 32));
-				
-			when LBL=>
-				dout.data_mem_data_out <= std_logic_vector(resize(signed(dout0), 32));
-			when LBM=>
-				dout.data_mem_data_out <= std_logic_vector(resize(signed(dout0), 32));
-			when LBC=>
-				dout.data_mem_data_out <= std_logic_vector(resize(signed(dout0), 32));	
-				
-			when LHUL=>
-				dout.data_mem_data_out <= std_logic_vector(resize(unsigned( dout0 & dout1), 32));
-			when LHUC=>
-				dout.data_mem_data_out <= std_logic_vector(resize(unsigned( dout0 & dout1), 32));
-			when LHUM=>
-				dout.data_mem_data_out <= std_logic_vector(resize(unsigned( dout0 & dout1), 32));
+		elsif(din.LDT_instruction_type_out = LBL or din.LDT_instruction_type_out = LBC or din.LDT_instruction_type_out = LBM) then
+				case din.alu_result(1 downto 0) is
+					when "00" =>
+						dout.data_mem_data_out <= std_logic_vector(resize(signed(dout0), 32));
+					when "01" =>
+						dout.data_mem_data_out <= std_logic_vector(resize(signed(dout1), 32));
+					when "10" =>
+						dout.data_mem_data_out <= std_logic_vector(resize(signed(dout2), 32));
+					when "11" =>
+						dout.data_mem_data_out <= std_logic_vector(resize(signed(dout3), 32));
+					when others => null;
+				end case;
+		elsif (din.LDT_instruction_type_out = LHUL or din.LDT_instruction_type_out = LHUC or din.LDT_instruction_type_out = LHUM) then
+			--	dout.data_mem_data_out <= std_logic_vector(resize(unsigned( dout0 & dout1), 32));
+				case din.alu_result(0) is
+					when '0' =>
+						dout.data_mem_data_out <= std_logic_vector(resize(unsigned( dout0 & dout1), 32));
+					when '1' =>
+						dout.data_mem_data_out <= std_logic_vector(resize(unsigned( dout2 & dout3), 32));
+					when others => null;
+				end case;
+		elsif (din.LDT_instruction_type_out = LBUL or din.LDT_instruction_type_out = LBUC or din.LDT_instruction_type_out = LBUM) then
+				case din.alu_result(1 downto 0) is
+					when "00" =>
+						dout.data_mem_data_out <= std_logic_vector(resize(unsigned(dout0), 32));
+					when "01" =>
+						dout.data_mem_data_out <= std_logic_vector(resize(unsigned(dout1), 32));
+					when "10" =>
+						dout.data_mem_data_out <= std_logic_vector(resize(unsigned(dout2), 32));
+					when "11" =>
+						dout.data_mem_data_out <= std_logic_vector(resize(unsigned(dout3), 32));
+					when others => null;
+				end case;
 					
-			when LBUL=>
-				dout.data_mem_data_out <= std_logic_vector(resize(unsigned(dout0), 32));
-			when LBUC=>
-				dout.data_mem_data_out <= std_logic_vector(resize(unsigned(dout0), 32));
-			when LBUM=>
-				dout.data_mem_data_out <= std_logic_vector(resize(unsigned(dout0), 32));
-				
-			when others => 
-			 	dout.data_mem_data_out <= dout0 & dout1 & dout2 & dout3;
-		end case;
+		end if;
 	end process;
 	
 	-- MS: why is enable always the same for all four bytes?
 	-- Doesn't this depend on the store size and the address?
 	-- Probably better to have one multiplexer independent of
-	-- store typs, just dependent on store size and address?
+	--  typs, just dependent on store size and address?
 	-- Should this be part of the address calculation, in it's
 	-- own component?
-	st_type: process(din)
+	byte_address_decode: process(din)
 	begin
-		case din.STT_instruction_type_out is 
-			when SWL =>
-				en0 <= din.mem_write; 
-				en1 <= din.mem_write;
-				en2 <= din.mem_write;
-				en3 <= din.mem_write;
-				mem_write_data0 <= din.mem_write_data_in(31 downto 24);
-				mem_write_data1 <= din.mem_write_data_in(23 downto 16);
-				mem_write_data2 <= din.mem_write_data_in(15 downto 8);
-				mem_write_data3 <= din.mem_write_data_in(7 downto 0);
-			when SHL =>
-				en0 <= din.mem_write; 
-				en1 <= din.mem_write;
-				en2 <= din.mem_write;
-				en3 <= din.mem_write;
-				mem_write_data0 <= din.mem_write_data_in(15 downto 8);
-				mem_write_data1 <= din.mem_write_data_in(7 downto 0);
-				mem_write_data2 <= (others => '0');
-				mem_write_data3 <= (others => '0');
-		    when SBL =>
-		    	en0 <= din.mem_write; 
-				en1 <= din.mem_write;
-				en2 <= din.mem_write;
-				en3 <= din.mem_write;
-				-- this produces latches
-				mem_write_data0 <= din.mem_write_data_in(7 downto 0);
-				-- Edgar: FIXME: Added these lines to get rid of latches.
-				-- Don't have the ISA documentation.
-				mem_write_data1 <= (others => '0');
-				mem_write_data2 <= (others => '0');
-				mem_write_data3 <= (others => '0');						
-			when SWM =>
-				en0 <= din.mem_write; 
-				en1 <= din.mem_write;
-				en2 <= din.mem_write;
-				en3 <= din.mem_write;
-				mem_write_data0 <= din.mem_write_data_in(31 downto 24);
-				mem_write_data1 <= din.mem_write_data_in(23 downto 16);
-				mem_write_data2 <= din.mem_write_data_in(15 downto 8);
-				mem_write_data3 <= din.mem_write_data_in(7 downto 0);
-			when SHM =>
-				en0 <= din.mem_write; 
-				en1 <= din.mem_write;
-				en2 <= din.mem_write;
-				en3 <= din.mem_write;
-				mem_write_data0 <= din.mem_write_data_in(15 downto 8);
-				mem_write_data1 <= din.mem_write_data_in(7 downto 0);
-				mem_write_data2 <= (others => '0');
-				mem_write_data3 <= (others => '0');
-		    when SBM =>
-		    	en0 <= din.mem_write; 
-				en1 <= din.mem_write;
-				en2 <= din.mem_write;
-				en3 <= din.mem_write;
-				mem_write_data0 <= din.mem_write_data_in(7 downto 0);
-				mem_write_data1 <= (others => '0');
-				mem_write_data2 <= (others => '0');
-				mem_write_data3 <= (others => '0');						
-			when SWC =>
-				en0 <= din.mem_write; 
-				en1 <= din.mem_write;
-				en2 <= din.mem_write;
-				en3 <= din.mem_write;
-				mem_write_data0 <= din.mem_write_data_in(31 downto 24);
-				mem_write_data1 <= din.mem_write_data_in(23 downto 16);
-				mem_write_data2 <= din.mem_write_data_in(15 downto 8);
-				mem_write_data3 <= din.mem_write_data_in(7 downto 0);
-			when SHC =>
-				en0 <= din.mem_write; 
-				en1 <= din.mem_write;
-				en2 <= din.mem_write;
-				en3 <= din.mem_write;
-				mem_write_data0 <= din.mem_write_data_in(15 downto 8);
-				mem_write_data1 <= din.mem_write_data_in(7 downto 0);
-				mem_write_data2 <= (others => '0');
-				mem_write_data3 <= (others => '0');
-		    when SBC =>
-		    	en0 <= din.mem_write; 
-				en1 <= din.mem_write;
-				en2 <= din.mem_write;
-				en3 <= din.mem_write;
-				mem_write_data0 <= din.mem_write_data_in(7 downto 0);
-				mem_write_data1 <= (others => '0');
-				mem_write_data2 <= (others => '0');
-				mem_write_data3 <= (others => '0');			
-		    when others => 
-				en0 <= din.mem_write; 
-				en1 <= din.mem_write;
-				en2 <= din.mem_write;
-				en3 <= din.mem_write;
-				mem_write_data0 <= din.mem_write_data_in(31 downto 24);
-				mem_write_data1 <= din.mem_write_data_in(23 downto 16);
-				mem_write_data2 <= din.mem_write_data_in(15 downto 8);
-				mem_write_data3 <= din.mem_write_data_in(7 downto 0);
+		byte_enable0 <= '0';
+		byte_enable1 <= '0';
+		byte_enable2 <= '0';
+		byte_enable3 <= '0';	
+		case din.alu_result(1 downto 0) is
+			when "00" => byte_enable0 <= din.mem_write;
+			when "01" => byte_enable1 <= din.mem_write;
+			when "10" => byte_enable2 <= din.mem_write;
+			when "11" => byte_enable3 <= din.mem_write;
+			when others => null;
 		end case;
-	end process st_type;
+	end process byte_address_decode;
 	
+	word_address_decode: process(din)
+	begin
+		word_enable0 <= '0'; 
+		word_enable1 <= '0';
+		case din.alu_result(0) is
+			when '0' => word_enable0 <= din.mem_write; 
+			when '1' => word_enable1 <= din.mem_write;
+			when others => null;
+		end case;
+	end process word_address_decode;
 	
-	
-
-
+	st_store: process(din, din.mem_write, word_enable0, word_enable1, byte_enable0, byte_enable1, byte_enable2, byte_enable3)
+	begin
+		if(din.STT_instruction_type_out = SWL or din.STT_instruction_type_out = SWM or din.STT_instruction_type_out = SWC) then			
+				en0 <= din.mem_write; 
+				en1 <= din.mem_write;
+				en2 <= din.mem_write;
+				en3 <= din.mem_write;
+				mem_write_data0 <= din.mem_write_data_in(31 downto 24);
+				mem_write_data1 <= din.mem_write_data_in(23 downto 16);
+				mem_write_data2 <= din.mem_write_data_in(15 downto 8);
+				mem_write_data3 <= din.mem_write_data_in(7 downto 0);
+		elsif(din.STT_instruction_type_out = SHL or din.STT_instruction_type_out = SHM or din.STT_instruction_type_out = SHC) then
+				en0 <= word_enable0; 
+				en1 <= word_enable0;
+				en2 <= word_enable1;
+				en3 <= word_enable1;
+				mem_write_data0 <= din.mem_write_data_in(15 downto 8);
+				mem_write_data1 <= din.mem_write_data_in(7 downto 0);
+				mem_write_data2 <= din.mem_write_data_in(15 downto 8);
+				mem_write_data3 <= din.mem_write_data_in(7 downto 0);
+		elsif(din.STT_instruction_type_out = SBL or din.STT_instruction_type_out = SBM or din.STT_instruction_type_out = SBC) then
+				en0 <= byte_enable0;
+				en1 <= byte_enable1;
+				en2 <= byte_enable2;
+				en3 <= byte_enable3;
+				
+				mem_write_data0 <= din.mem_write_data_in(7 downto 0);
+				mem_write_data1 <= din.mem_write_data_in(7 downto 0);
+				mem_write_data2 <= din.mem_write_data_in(7 downto 0);
+				mem_write_data3 <= din.mem_write_data_in(7 downto 0);	
+		end if;		
+	end process;
 
 end arch;

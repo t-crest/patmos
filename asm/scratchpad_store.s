@@ -1,6 +1,7 @@
 #
 # Basic instructions test
 # different ld/st from/to scratchpad memory
+# this is a deprecated version there are other tests on scratchpad
 
 	addi	r1 = r0, 255;  # first instruction not executed
 	addi	r1 = r0, 255; # r1 = 255

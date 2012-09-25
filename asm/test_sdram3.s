@@ -25,10 +25,10 @@
 
 # wait_start:   # Output '?' and wait for any key press
 	addi	r1 = r0, 63; # '?'                                    	#4
-	swm     [r5 + 1] = r1;                                     	#5
+	swl     [r5 + 1] = r1;                                     	#5
 
 #poll_stdin:
-	lwm     r1 = [r5 + 0];                                     	#6
+	lwl     r1 = [r5 + 0];                                     	#6
 	addi	r2 = r0, 2;                                           	#7
 	and     r1 = r2, r1;                                       	#8
 	cmpneq  p1 = r1, r2;                                       	#9
@@ -57,7 +57,7 @@
 	sli	r11 = r11, 26;                                          	#15
 	addi	r12 = r0, 0; # r12==error count                       	#16
 	addi	r1= r0, 87; 'W'                                       	#17
-	swm     [r5 + 1] = r1;                                     	#18
+	swl     [r5 + 1] = r1;                                     	#18
 	subi	r9 = r0, 64;	# r9 == mask (not 63)                    	#19
 
 #write_word:
@@ -65,7 +65,7 @@
 	addi    r1  = r10, 1;   # val = addr+1 (+1 just for fun, to have slightly different value)	#20
 	andi	r2  = r10, 63;  # offset                              	#21
 	add	r2  = r6, r2;                                          	#22
-	swm	[r2 + 0] = r1;	# sram.word[offset] <= value            	#23
+	swl	[r2 + 0] = r1;	# sram.word[offset] <= value            	#23
 
 # check if next word starts the block. Write the block in such case
 	addi	r1 = r10, 4;                                          	#24
@@ -78,12 +78,12 @@
 
 #	Ask sdram I/O to store the line into memory
 	and	r1 = r10, r9; # sdram controller uses 64 byte aligned addressess	#30
-	swm     [r6 + 32] = r1; # sram.addr<=block_addr            	#31
+	swl     [r6 + 32] = r1; # sram.addr<=block_addr            	#31
 	addi    r1  = r0 , 1;                                      	#32
-	swm     [r6 + 33] = r1; # sram.cmd<=cmd_store_line         	#33
+	swl     [r6 + 33] = r1; # sram.cmd<=cmd_store_line         	#33
 
 #poll_sdram_ready:
-	lwm     r1  = [r6 + 33]; # sdram.status                    	#34
+	lwl     r1  = [r6 + 33]; # sdram.status                    	#34
 	addi	r0 = r0, 0;                                           	#35
 	cmpneq  p1 = r1, r0;     # ?busy                           	#36
 	(p1)	bc	34; #l:poll_sdram_ready                            	#37
@@ -101,7 +101,7 @@
 
 #read_init:
 	addi	r1= r0, 82; 'R'                                       	#45
-	swm     [r5 + 1] = r1;                                     	#46
+	swl     [r5 + 1] = r1;                                     	#46
 	addi	r10 = r0, 0;	# addr_cnt <= 0                          	#47
 
 #read_word:
@@ -115,11 +115,11 @@
 
 #	 Ask sdram I/O to load the block into the cache line
 # r10 is aligned at block start already
-	swm     [r6 + 32] = r10; # sram.addr<=block_addr           	#53
-	swm     [r6 + 33] = r0; # sram.cmd<=cmd_load_line          	#54
+	swl     [r6 + 32] = r10; # sram.addr<=block_addr           	#53
+	swl     [r6 + 33] = r0; # sram.cmd<=cmd_load_line          	#54
 
 #poll_sdram_ready:
-	lwm     r1  = [r6 + 33]; # sdram.status                    	#55
+	lwl     r1  = [r6 + 33]; # sdram.status                    	#55
 	addi	r0 = r0, 0;                                           	#56
 	cmpneq  p1 = r1, r0;     # ?busy                           	#57
 	(p1)	bc	55; #l:poll_sdram_ready                            	#58
@@ -130,14 +130,14 @@
 #	 Check the value in the cache line
 	andi	r2  = r10, 63;  # offset                              	#61
 	add	r2  = r6, r2;                                          	#62
-	lwm	r2 = [r2 + 0];	# sram.word[offset] => value            	#63
+	lwl	r2 = [r2 + 0];	# sram.word[offset] => value            	#63
 	addi    r1  = r10 , 1;  # val = addr+1 (use the same mod as during write)	#64
 
 	cmpeq	p1 = r1, r2; # should be the same                    	#65
 	(p1)	bc  70; #l:+3                                         	#66
         (!p1)   addi    r1  = r0 , 69;  'E'                 	#67
 	(!p1)	addi    r12 = r12, 1; #error_cnt++                   	#68
-	swm     [r5 + 1] = r1; # we write to UART without pooling for ready here,	#69
+	swl     [r5 + 1] = r1; # we write to UART without pooling for ready here,	#69
 
 
 #	check the memory range for the test and advance to next word
@@ -150,7 +150,7 @@
 # read test done, output result and go back to start
 # output 'OK' or '##' if err	
 #poll_stdout:
-	lwm     r1 = [r5 + 0];                                     	#75
+	lwl     r1 = [r5 + 0];                                     	#75
 	addi	r2 = r0, 1;                                           	#76
 	and     r1 = r2, r1;                                       	#77
 	cmpneq  p1 = r1, r2;                                       	#78
@@ -163,10 +163,10 @@
 #	 79 '0', 35 '#'
 		addi	r1 = r0, 79;                                         	#83
 	(p2)	addi	r1 = r0, 35;                                     	#84
-	swm     [r5 + 1] = r1;                                     	#85
+	swl     [r5 + 1] = r1;                                     	#85
 
 #poll_stdout:
-	lwm     r1 = [r5 + 0];                                     	#86
+	lwl     r1 = [r5 + 0];                                     	#86
 	addi	r2 = r0, 1;                                           	#87
 	and     r1 = r2, r1;                                       	#88
 	cmpneq  p1 = r1, r2;                                       	#89
@@ -177,9 +177,9 @@
 #	 75 'K', 35 '#'
 		addi	r1 = r0, 75;                                         	#93
 	(p2)	addi	r1 = r0, 35;                                     	#94
-	swm     [r5 + 1] = r1;                                     	#95
+	swl     [r5 + 1] = r1;                                     	#95
 
-	lwm     r0 = [r5 + 1];  # purge input                      	#96
+	lwl     r0 = [r5 + 1];  # purge input                      	#96
 	bc	1;                                                      	#97
 		addi    r0 = r0, 0;                                       	#98
 		addi    r0 = r0, 0;                                       	#99

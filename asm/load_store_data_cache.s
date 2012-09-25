@@ -1,6 +1,8 @@
 #
 # Basic instructions test
 # different ld/st from/to scratchpad memory
+# MS: is SPM accessed with lxc/sxc? I thought it is via lxl/sxl.
+# SA: this test case is for data cache with lxc/sxc which is mapped to scratchpad at the moment
 
 	addi	r1 = r0, 255;  # first instruction not executed
 	addi	r1 = r0, 256; # r1 = 255
@@ -34,6 +36,7 @@ addi    r1 = r0 , 256;
 	sli     r5 = r5, 7; # r5(8,7) = 11
 	shc	[r1 + 4] = r5; # memory address 263 #25
 	nop	0;
+	swc     [r1 + 2] = r0;
 	lwc	r21 = [r1 + 2];	# 16 upper bits of r21 are invalid since 16 bits are loaded from memory
 	addi    r16 = r0, 15;
 	addi    r30 = r0, 31;

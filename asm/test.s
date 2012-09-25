@@ -10,6 +10,6 @@
 	addi	r1 = r0, 15;
 	sli	r1 = r1, 28;
 	addi	r2 = r0, 42; # '*'
-	swm	[r1 + 1] = r2;
+	swl	[r1 + 1] = r2;
 	bc	4;
 	halt;

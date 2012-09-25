@@ -1,5 +1,5 @@
 #
-# This small test bench shows the forwarding issue within the register file
+# This small test bench showed a former forwarding issue. Is fixed quite some time.
 #
 
 		addi	r0 = r0, 0;  # first instruction not executed

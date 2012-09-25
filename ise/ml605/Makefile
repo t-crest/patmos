@@ -14,18 +14,13 @@ SRCS_SYNTH = \
   ../../vhdl/core/patmos_stack_cache_ctrl.vhd \
   ../../vhdl/core/patmos_stack_cache.vhd \
   ../../vhdl/core/patmos_register_file.vhd \
-  ../../vhdl/core/patmos_mux_32.vhd \
-  ../../vhdl/core/patmos_mux_3x32.vhd \
   ../../vhdl/core/patmos_mem_stage.vhd \
-  ../../vhdl/core/patmos_instruction_memory.vhd \
-  ../../vhdl/core/patmos_forward.vhd \
   ../../vhdl/core/patmos_fetch.vhd \
   ../../vhdl/core/patmos_dual_port_ram.vhd \
   ../../vhdl/core/patmos_decode.vhd \
   ../../vhdl/core/patmos_data_memory.vhd \
   ../../vhdl/core/patmos_core.vhd \
-  ../../vhdl/core/patmos_alu.vhd \
-  ../../vhdl/core/patmos_adder.vhd 
+  ../../vhdl/core/patmos_alu.vhd
 
 PART=xc6vlx240t-1-ff1156
 
