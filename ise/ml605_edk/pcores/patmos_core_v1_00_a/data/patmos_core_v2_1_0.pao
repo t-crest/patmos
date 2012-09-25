@@ -1,11 +1,9 @@
 ###################################################################
 ##
-## Name     : traffic_generator_dtl
-## Desc     : MMIO device for DTL interface SDRAM controller
-## Author   : Edgar Lakis
+## Name     : Patmos
+## Desc     : Patmos core
 ##
 ###################################################################
-#lib patmos_core_v1_00_a  patmos_ram.vhd  vhdl
 lib patmos_core_v1_00_a  patmos/vhdl/generated/patmos_rom.vhd  vhdl
 lib patmos_core_v1_00_a  patmos/vhdl/io/uart.vhd  vhdl
 lib patmos_core_v1_00_a  patmos/vhdl/core/sc_pack.vhd  vhdl
@@ -15,15 +13,10 @@ lib patmos_core_v1_00_a  patmos/vhdl/core/patmos_type_package.vhd  vhdl
 lib patmos_core_v1_00_a  patmos/vhdl/core/patmos_stack_cache_ctrl.vhd  vhdl
 lib patmos_core_v1_00_a  patmos/vhdl/core/patmos_stack_cache.vhd  vhdl
 lib patmos_core_v1_00_a  patmos/vhdl/core/patmos_register_file.vhd  vhdl
-lib patmos_core_v1_00_a  patmos/vhdl/core/patmos_mux_32.vhd  vhdl
-lib patmos_core_v1_00_a  patmos/vhdl/core/patmos_mux_3x32.vhd  vhdl
 lib patmos_core_v1_00_a  patmos/vhdl/core/patmos_mem_stage.vhd  vhdl
-lib patmos_core_v1_00_a  patmos/vhdl/core/patmos_instruction_memory.vhd  vhdl
-lib patmos_core_v1_00_a  patmos/vhdl/core/patmos_forward.vhd  vhdl
 lib patmos_core_v1_00_a  patmos/vhdl/core/patmos_fetch.vhd  vhdl
 lib patmos_core_v1_00_a  patmos/vhdl/core/patmos_dual_port_ram.vhd  vhdl
 lib patmos_core_v1_00_a  patmos/vhdl/core/patmos_decode.vhd  vhdl
 lib patmos_core_v1_00_a  patmos/vhdl/core/patmos_data_memory.vhd  vhdl
 lib patmos_core_v1_00_a  patmos/vhdl/core/patmos_core.vhd  vhdl
 lib patmos_core_v1_00_a  patmos/vhdl/core/patmos_alu.vhd  vhdl
-lib patmos_core_v1_00_a  patmos/vhdl/core/patmos_adder.vhd  vhdl

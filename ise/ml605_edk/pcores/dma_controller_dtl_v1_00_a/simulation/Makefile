@@ -25,11 +25,11 @@ endif
 
 all: simulate
 
-batch: VSIM_OPT:=-c -do batch.do
+batch: VSIM_OPT:=-c -t 1ns -do batch.do
 batch: vsim
 
 
-simulate: VSIM_OPT:=-do sim.do 
+simulate: VSIM_OPT:=-t 1ns -do sim.do 
 simulate: vsim
 
 vsim: clean base
@@ -38,6 +38,8 @@ vsim: clean base
 
 base:
 	$(WINE) vlib work
+	$(WINE) vcom $(OPTIONS) ../../traffic_generator_dtl_v0_00_a/hdl/vhdl/traffic_generator_dtl.e.vhd
+	$(WINE) vcom $(OPTIONS) ../../traffic_generator_dtl_v0_00_a/hdl/vhdl/traffic_generator_dtl.a.vhd
 	$(WINE) vcom $(OPTIONS) $(SRCDIR)/dma_controller_dtl.e.vhd
 	$(WINE) vcom $(OPTIONS) $(SRCDIR)/dma_controller_dtl.p.vhd
 	$(WINE) vcom $(OPTIONS) $(SRCDIR)/dma_controller_dtl.a.vhd

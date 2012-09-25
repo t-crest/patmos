@@ -10,7 +10,7 @@ entity dma_controller_dtl is
 		-- Request size in bytes
 		GEN_REQUEST_SIZE    : integer := 64;
 		-- DMA control interface
-		DMA_ADDR_WIDTH      : integer := 5;
+		DMA_ADDR_WIDTH      : integer := 4;
 		DMA_DATA_WIDTH      : integer := 32
 	);
 	port(

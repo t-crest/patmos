@@ -49,10 +49,9 @@ entity patmos_core is
 		led                : out std_logic;
 		txd                : out std_logic;
 		rxd                : in  std_logic
---		;
---		-- dma controll interface
+--		;-- dma controll interface
 --		dma_addr_special_i : out std_logic;
---		dma_addr_i         : out std_logic_vector(4 downto 0);
+--		dma_addr_i         : out std_logic_vector(3 downto 0);
 --		dma_rd_i           : out std_logic;
 --		dma_rd_data_i      : in  std_logic_vector(31 downto 0);
 --		dma_wr_i           : out std_logic;
