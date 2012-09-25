@@ -130,13 +130,24 @@ namespace patmos
         dword_t diw1 = iw1 | (1ul << (sizeof(word_t)*8 - 1));
         return (diw1 << ((dword_t)sizeof(word_t)*8)) | (dword_t)iw2;
       }
-
+#if 0
       /// Encode a halt instruction, consisting of a mts and a ret instruction.
       /// @return Two encoded instructions.
       static inline dword_t halt()
       {
         return 0x0780000002400024;
       }
+#endif
+      //FIXME this has to be revised, once the semantics of call/ret are clear.
+      //      We leave it as two instructions for now, as a mts might be involved later on,
+      //      changing it to one instruction would require the tests to be changed twice.
+      /// Encode a halt instruction, consisting of a nop and a ret 0 instruction.
+      /// @return Two encoded instructions.
+      static inline dword_t halt()
+      {
+        return 0x0780000002400000;
+      }
+
     public:
       /// Construct a parser for instruction path patterns.
       explicit assembly_line_grammar_t() :

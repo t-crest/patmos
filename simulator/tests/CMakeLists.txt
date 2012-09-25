@@ -35,7 +35,10 @@ Errors : 0")
 test_asm(10 "Emitted: 44 words
 Errors : 0")
 
-test_asm(11 "Emitted: 56 words
+test_asm(11a "Emitted: 56 words
+Errors : 0")
+
+test_asm(11b "Emitted: 60 words
 Errors : 0")
 
 test_asm(12 "Emitted: 56 words
@@ -147,8 +150,11 @@ test_sim(09 "r0 : 00000000   r1 : 0283f180   r2 : fffff180   r3 : fffffff1   r4 
 
 test_sim(10 "r0 : 00000000   r1 : 0283f180   r2 : 000000f0   r3 : 0283f180   r4 : f1800000   r5 : 80000000")
 
-test_sim(11 "BASE: 00000000   PC : 0000003c.*
+test_sim(11a "BASE: 00000000   PC : 0000003c.*
 .*r1 : 00000026")
+
+test_sim(11b "BASE: 00000000   PC : 00000040.*
+.*r1 : 00000026   r2 : 000000ff")
 
 test_sim(13 "BASE: 00000020   PC : 00000048.*
 .*r1 : 00000026   r2 : 00000000   r3 : 0000000c")

@@ -1392,7 +1392,7 @@ namespace patmos
              ops.OPS.PFLb.Imm*sizeof(word_t))
   PFLB_INSTR(b, no_store_return_address, dispatch,
              s.BASE,
-             s.PC + ops.OPS.PFLb.Imm*sizeof(word_t))
+             s.nPC + ops.OPS.PFLb.Imm*sizeof(word_t))
 
   /// Branch and call instructions with a register operand.
   class i_pfli_t : public i_pfl_t
@@ -1439,7 +1439,7 @@ namespace patmos
              read_GPR_EX(s, ops.DR_Rs1))
   PFLI_INSTR(br, no_store_return_address, dispatch,
              s.BASE,
-             s.PC + read_GPR_EX(s, ops.DR_Rs1))
+             s.nPC + read_GPR_EX(s, ops.DR_Rs1))
 
   /// An instruction for returning from function calls.
   class i_ret_t : public i_pfl_t

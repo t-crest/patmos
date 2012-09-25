@@ -5,13 +5,13 @@
                 lwc     r1 = [r0 + 10];
                 nop     0;
                 nop     0;
-                bcr     r1;
+                br      r1;
                 nop     0;
                 nop     0;
                 halt;
                 nop     0;
                 nop     0;
-                .word   44;
+                .word   20;
                 add     r2 = r0, 1;
                 halt;
                 nop     0;
