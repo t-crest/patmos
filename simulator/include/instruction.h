@@ -231,6 +231,11 @@ namespace patmos
       } BNE;
     } OPS;
 
+    // -------------------------- IF -------------------------------------------
+
+    /// Stored PC for PC-relative branches
+    uword_t IF_PC;
+
     // -------------------------- DR -------------------------------------------
 
     /// Decoded immediate from DR stage.

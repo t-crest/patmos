@@ -1352,7 +1352,22 @@ namespace patmos
       }
     }
   public:
-    // IF inherited from NOP
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the IF pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void IF(simulator_t &s, instruction_data_t &ops) const
+    {
+      // store the PC for PC-relative addressing in EX stage, if we are not stalling
+      // NB: s.Stall is already set the first time s.PC is updated.
+      //     If we checked (s.Stall==SIF), we would have to include i_pred_t::IF,
+      //     which is rather ugly.
+      if (s.PC != s.nPC) {
+        ops.IF_PC = s.PC;
+      }
+      // call the inherited function (advance PC)
+      i_pred_t::IF(s, ops);
+    }
 
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
@@ -1392,13 +1407,13 @@ namespace patmos
              ops.OPS.PFLb.Imm*sizeof(word_t))
   PFLB_INSTR(b, no_store_return_address, dispatch,
              s.BASE,
-             s.nPC + ops.OPS.PFLb.Imm*sizeof(word_t))
+             ops.IF_PC + ops.OPS.PFLb.Imm*sizeof(word_t))
 
   /// Branch and call instructions with a register operand.
   class i_pfli_t : public i_pfl_t
   {
   public:
-    // IF inherited from NOP
+    // IF inherited from i_pfl_t
 
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
@@ -1439,7 +1454,7 @@ namespace patmos
              read_GPR_EX(s, ops.DR_Rs1))
   PFLI_INSTR(br, no_store_return_address, dispatch,
              s.BASE,
-             s.nPC + read_GPR_EX(s, ops.DR_Rs1))
+             ops.IF_PC + read_GPR_EX(s, ops.DR_Rs1))
 
   /// An instruction for returning from function calls.
   class i_ret_t : public i_pfl_t
