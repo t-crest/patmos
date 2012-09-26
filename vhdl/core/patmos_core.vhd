@@ -401,8 +401,9 @@ begin                                   -- architecture begin
 	-- Would also be clearer is address calculation has it's own signals.
 	-- Maybe it shall be in it's own component (together with some address
 	-- decoding).
-	io_mem_read_mux : process(mem_data_out_uart, data_mem_data_out, execute_dout, io_reg)
+	io_mem_read_mux : process(mem_data_out_uart, data_mem_data_out, execute_dout, io_reg, counter)
 	begin
+		mem_data_out_muxed <= mem_data_out_uart;
 		if io_reg.mem_en = '0' then
 			case io_reg.device is
 				when io_uart =>
