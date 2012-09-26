@@ -1297,7 +1297,7 @@ namespace patmos
         // store the return address and method base address by writing them into
         // general purpose registers
         s.GPR.set(rfb, base);
-        s.GPR.set(rpc, pc - base);
+        s.GPR.set(rfo, pc - base);
       }
     }
 

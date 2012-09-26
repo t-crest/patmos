@@ -197,7 +197,7 @@ namespace patmos
     rfp = r28, // Frame pointer
     rsp = r29, // Stack Pointer
     rfb = r30, // Return info: Function base
-    rpc = r31  // Return info: Program counter
+    rfo = r31  // Return info: Funcion offset
   };
 
   /// Symbols representing the predicate registers.
