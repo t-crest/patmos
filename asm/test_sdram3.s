@@ -38,7 +38,7 @@
 
 
 # SDRAM I/O address space
-#    addr(5) selects between special registers/word access, so the offset has to be added to 32
+#    addr(4) selects between special registers/word access, so the offset has to be added to 16
 #	constant DMA_OFFSET_ADDR_REG : integer := 0;
 #	constant DMA_OFFSET_CMD_STAT : integer := 1;
 #
@@ -78,12 +78,12 @@
 
 #	Ask sdram I/O to store the line into memory
 	and	r1 = r10, r9; # sdram controller uses 64 byte aligned addressess	#30
-	swl     [r6 + 32] = r1; # sram.addr<=block_addr            	#31
+	swl     [r6 + 16] = r1; # sram.addr<=block_addr            	#31
 	addi    r1  = r0 , 1;                                      	#32
-	swl     [r6 + 33] = r1; # sram.cmd<=cmd_store_line         	#33
+	swl     [r6 + 17] = r1; # sram.cmd<=cmd_store_line         	#33
 
 #poll_sdram_ready:
-	lwl     r1  = [r6 + 33]; # sdram.status                    	#34
+	lwl     r1  = [r6 + 17]; # sdram.status                    	#34
 	addi	r0 = r0, 0;                                           	#35
 	cmpneq  p1 = r1, r0;     # ?busy                           	#36
 	(p1)	bc	34; #l:poll_sdram_ready                            	#37
@@ -115,11 +115,11 @@
 
 #	 Ask sdram I/O to load the block into the cache line
 # r10 is aligned at block start already
-	swl     [r6 + 32] = r10; # sram.addr<=block_addr           	#53
-	swl     [r6 + 33] = r0; # sram.cmd<=cmd_load_line          	#54
+	swl     [r6 + 16] = r10; # sram.addr<=block_addr           	#53
+	swl     [r6 + 17] = r0; # sram.cmd<=cmd_load_line          	#54
 
 #poll_sdram_ready:
-	lwl     r1  = [r6 + 33]; # sdram.status                    	#55
+	lwl     r1  = [r6 + 17]; # sdram.status                    	#55
 	addi	r0 = r0, 0;                                           	#56
 	cmpneq  p1 = r1, r0;     # ?busy                           	#57
 	(p1)	bc	55; #l:poll_sdram_ready                            	#58

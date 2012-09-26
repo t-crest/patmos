@@ -16,10 +16,6 @@
 	lhl	r11  = [r1 + 2]; # register(11) = 10
 
 	addi	r1 = r0, 255;
-#	sbl	[r1 + 4] = r0;
-#	sbl	[r1 + 2] = r0;
-#	sbl	[r1 + 1] = r0;
-	sbl	[r1 + 3] = r4; # memory address 258 (255 +3 ) = 4 (one memory bank updated)
 	lbl	r12 = [r1 + 3]; # r12 = 4;
 
 	addi    r1 = r0, 256;
@@ -37,6 +33,18 @@
 	swl     [r1 + 3] = r5; # memory address 267 =
 	lbl	r19 = [r1 + 12];
 	nop	0;
+	addi    r5 = r0, 5;
+	addi	r6 = r0, 6;
+	addi	r7 = r0, 7;
+	addi    r8 = r0, 8;
+	addi    r10 = r0, 10;
+	addi    r2 = r0, 64;
+	add     r1 = r1, r2;
+	sbl     [r1 + 0] = r5;
+	sbl     [r1 + 1] = r6;
+	sbl     [r1 + 2] = r7;
+	sbl	[r1 + 3] = r8;
+	lwl     r22 = [r1 + 1];
 
 	addi    r5 = r0, 3;
 	sli     r5 = r5, 7;

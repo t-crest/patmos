@@ -17,7 +17,7 @@ architecture arch of dma_controller_dtl is
 	type mem_line_t is array (0 to DMA_ADDR_WIDTH ** 2 - 1) of std_logic_vector(DMA_DATA_WIDTH - 1 downto 0);
 	signal mem_line : mem_line_t := (others => (others  => '0'));
 
-	signal words_transferred_r, words_transferred_nxt : std_logic_vector(MTL_SIZE_WIDTH - 1 downto 0);
+	signal words_transferred_r, words_transferred_nxt : std_logic_vector(DMA_ADDR_WIDTH - 1 downto 0);
 
 	signal addr_r, addr_nxt       : std_logic_vector(DMA_DATA_WIDTH - 1 downto 0);
 	signal cl_addr                : std_logic_vector(DMA_ADDR_WIDTH - 1 downto 0);
