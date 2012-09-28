@@ -111,11 +111,11 @@ namespace patmos
       /// Parse STC instructions.
       rule_t STC;
 
-      /// Parse PFL opcodes.
-      rule_t PFLbopc, PFLiopc, PFLropc;
+      /// Parse CFL opcodes.
+      rule_t CFLbopc, CFLiopc, CFLropc;
 
-      /// Parse PFL instructions.
-      rule_t PFLb, PFLi, PFLr;
+      /// Parse CFL instructions.
+      rule_t CFLb, CFLi, CFLr;
 
       /// Parse BNE instructions.
       rule_t BNE;
@@ -178,10 +178,10 @@ namespace patmos
                           LDT  | dLDT |
                           STT  |
                           STC  |
-                          PFLi | PFLb | PFLr |
+                          CFLi | CFLb | CFLr |
                           BNE);
 
-        // All instructions except SPCn, SPNw, PFL, LDT, STT, and STC.
+        // All instructions except SPCn, SPNw, CFL, LDT, STT, and STC.
         Instruction2 %= (ALUi | ALUr | ALUu | ALUm | ALUc | ALUp |
                          SPCt | SPCf |
                          LDTs | STTs);
@@ -479,31 +479,31 @@ namespace patmos
                                  stc_format_t::encode, boost::spirit::qi::_1,
                                  boost::spirit::qi::_2, boost::spirit::qi::_3)];
 
-        // Parse PFLb instructions
-        PFLbopc = boost::spirit::lit("call") [boost::spirit::qi::_val = 0] |
+        // Parse CFLb instructions
+        CFLbopc = boost::spirit::lit("call") [boost::spirit::qi::_val = 0] |
                   boost::spirit::lit("brcf") [boost::spirit::qi::_val = 2] |
                   boost::spirit::lit("br")   [boost::spirit::qi::_val = 1] ;
 
-        PFLb = (Pred >> PFLbopc >> Imm22u)
+        CFLb = (Pred >> CFLbopc >> Imm22u)
               [boost::spirit::qi::_val = boost::phoenix::bind(
-                                 pflb_format_t::encode, boost::spirit::qi::_1,
+                                 cflb_format_t::encode, boost::spirit::qi::_1,
                                  boost::spirit::qi::_2, boost::spirit::qi::_3)];
 
-        // Parse PFLi instructions
-        PFLiopc = boost::spirit::lit("callr") [boost::spirit::qi::_val = 0] |
+        // Parse CFLi instructions
+        CFLiopc = boost::spirit::lit("callr") [boost::spirit::qi::_val = 0] |
                   boost::spirit::lit("brcfr") [boost::spirit::qi::_val = 2] |
                   boost::spirit::lit("brr")   [boost::spirit::qi::_val = 1] ;
 
-        PFLi = (Pred >> PFLiopc >> GPR)
+        CFLi = (Pred >> CFLiopc >> GPR)
               [boost::spirit::qi::_val = boost::phoenix::bind(
-                                 pfli_format_t::encode, boost::spirit::qi::_1,
+                                 cfli_format_t::encode, boost::spirit::qi::_1,
                                  boost::spirit::qi::_2, boost::spirit::qi::_3)];
 
-        // Parse PFLr instructions
-        PFLropc = boost::spirit::lit("ret")[boost::spirit::qi::_val = 0];
-        PFLr = (Pred >> PFLropc >> GPR >> ',' >> GPR)
+        // Parse CFLr instructions
+        CFLropc = boost::spirit::lit("ret")[boost::spirit::qi::_val = 0];
+        CFLr = (Pred >> CFLropc >> GPR >> ',' >> GPR)
               [boost::spirit::qi::_val = boost::phoenix::bind(
-                                 pflr_format_t::encode, boost::spirit::qi::_1,
+                                 cflr_format_t::encode, boost::spirit::qi::_1,
                                  boost::spirit::qi::_2, boost::spirit::qi::_3,
                                  boost::spirit::qi::_4)];
 
@@ -531,8 +531,8 @@ namespace patmos
         BOOST_SPIRIT_DEBUG_NODE(LDTopc);      BOOST_SPIRIT_DEBUG_NODE(dLDTopc);
         BOOST_SPIRIT_DEBUG_NODE(STTopc);
         BOOST_SPIRIT_DEBUG_NODE(STCopc);
-        BOOST_SPIRIT_DEBUG_NODE(PFLbopc);     BOOST_SPIRIT_DEBUG_NODE(PFLiopc);
-        BOOST_SPIRIT_DEBUG_NODE(PFLropc);
+        BOOST_SPIRIT_DEBUG_NODE(CFLbopc);     BOOST_SPIRIT_DEBUG_NODE(CFLiopc);
+        BOOST_SPIRIT_DEBUG_NODE(CFLropc);
         BOOST_SPIRIT_DEBUG_NODE(ALUi);        BOOST_SPIRIT_DEBUG_NODE(ALUl);
         BOOST_SPIRIT_DEBUG_NODE(ALUr);        BOOST_SPIRIT_DEBUG_NODE(ALUu);
         BOOST_SPIRIT_DEBUG_NODE(ALUm);        BOOST_SPIRIT_DEBUG_NODE(ALUc);
@@ -542,8 +542,8 @@ namespace patmos
         BOOST_SPIRIT_DEBUG_NODE(LDT);         BOOST_SPIRIT_DEBUG_NODE(dLDT);
         BOOST_SPIRIT_DEBUG_NODE(STT);
         BOOST_SPIRIT_DEBUG_NODE(STC);
-        BOOST_SPIRIT_DEBUG_NODE(PFLb);        BOOST_SPIRIT_DEBUG_NODE(PFLi);
-        BOOST_SPIRIT_DEBUG_NODE(PFLr);
+        BOOST_SPIRIT_DEBUG_NODE(CFLb);        BOOST_SPIRIT_DEBUG_NODE(CFLi);
+        BOOST_SPIRIT_DEBUG_NODE(CFLr);
         BOOST_SPIRIT_DEBUG_NODE(BNE);
       }
   };

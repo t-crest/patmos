@@ -206,22 +206,22 @@ namespace patmos
       {
         word_t Imm;
       } STC;
-      /// Operands for an PFLb instruction.
+      /// Operands for an CFLb instruction.
       struct
       {
         word_t Imm;
-      } PFLb;
-      /// Operands for an PFLi instruction.
+      } CFLb;
+      /// Operands for an CFLi instruction.
       struct
       {
         GPR_e Rs;
-      } PFLi;
-      /// Operands for an PFLr instruction.
+      } CFLi;
+      /// Operands for an CFLr instruction.
       struct
       {
         GPR_e Rb;
         GPR_e Ro;
-      } PFLr;
+      } CFLr;
       /// Operands for an BNEinstruction.
       struct
       {
@@ -287,8 +287,8 @@ namespace patmos
     /// Address for memory accesses.
     word_t EX_Address;
 
-    /// Discard PFL instructions in EX stage (stalling).
-    word_t EX_PFL_Discard;
+    /// Discard CFL instructions in EX stage (stalling).
+    word_t EX_CFL_Discard;
 
     // -------------------------- MW -------------------------------------------
     /// Result register operand from MW stage.
@@ -434,29 +434,29 @@ namespace patmos
     static instruction_data_t mk_STC(const instruction_t &i, PRR_e pred,
                                      word_t imm);
 
-    /// Create an PFLb instruction with an immediate operand.
+    /// Create an CFLb instruction with an immediate operand.
     /// @param i The instruction.
     /// @param pred The predicate register under which the instruction is
     /// executed.
     /// @param imm The operand immediate.
-    static instruction_data_t mk_PFLb(const instruction_t &i, PRR_e pred,
+    static instruction_data_t mk_CFLb(const instruction_t &i, PRR_e pred,
                                       word_t imm);
 
-    /// Create an PFLi instruction with an register operand.
+    /// Create an CFLi instruction with an register operand.
     /// @param i The instruction.
     /// @param pred The predicate register under which the instruction is
     /// executed.
     /// @param rs The operand register.
-    static instruction_data_t mk_PFLi(const instruction_t &i, PRR_e pred,
+    static instruction_data_t mk_CFLi(const instruction_t &i, PRR_e pred,
                                       GPR_e rs);
 
-    /// Create an PFLr instruction without operands.
+    /// Create an CFLr instruction without operands.
     /// @param i The instruction.
     /// @param pred The predicate register under which the instruction is
     /// @param rb The register containing the return function base.
     /// @param ro The register containing the return offset.
     /// executed.
-    static instruction_data_t mk_PFLr(const instruction_t &i, PRR_e pred,
+    static instruction_data_t mk_CFLr(const instruction_t &i, PRR_e pred,
                                       GPR_e rb, GPR_e ro);
 
     /// Create an BNE instruction with two register operands and an immediate.

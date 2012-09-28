@@ -158,28 +158,28 @@ namespace patmos
     return result;
   }
 
-  instruction_data_t instruction_data_t::mk_PFLb(const instruction_t &i,
+  instruction_data_t instruction_data_t::mk_CFLb(const instruction_t &i,
                                                  PRR_e pred, word_t imm)
   {
     instruction_data_t result(i, pred);
-    result.OPS.PFLb.Imm = imm;
+    result.OPS.CFLb.Imm = imm;
     return result;
   }
 
-  instruction_data_t instruction_data_t::mk_PFLi(const instruction_t &i,
+  instruction_data_t instruction_data_t::mk_CFLi(const instruction_t &i,
                                                  PRR_e pred, GPR_e rs)
   {
     instruction_data_t result(i, pred);
-    result.OPS.PFLi.Rs = rs;
+    result.OPS.CFLi.Rs = rs;
     return result;
   }
 
-  instruction_data_t instruction_data_t::mk_PFLr(const instruction_t &i,
+  instruction_data_t instruction_data_t::mk_CFLr(const instruction_t &i,
                                                  PRR_e pred, GPR_e rb, GPR_e ro)
   {
     instruction_data_t result(i, pred);
-    result.OPS.PFLr.Rb = rb;
-    result.OPS.PFLr.Ro = ro;
+    result.OPS.CFLr.Rb = rb;
+    result.OPS.CFLr.Ro = ro;
     return result;
   }
 
