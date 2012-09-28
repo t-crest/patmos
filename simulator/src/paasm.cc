@@ -21,12 +21,9 @@
 #include "streams.h"
 
 #include <boost/format.hpp>
-#include <boost/spirit/include/karma_generate.hpp>
-#include <boost/spirit/include/karma_binary.hpp>
 
 #include <fstream>
 #include <iostream>
-#include <iterator>
 
 int main(int argc, char **argv)
 {
@@ -49,8 +46,6 @@ int main(int argc, char **argv)
     std::istream &in = *patmos::get_stream<std::ifstream>(argv[1], std::cin);
     std::ostream &out = *patmos::get_stream<std::ofstream>(argv[2], std::cout);
 
-    std::ostream_iterator<char> cout_iterator (out);
-
     while (!in.eof())
     {
       patmos::dword_t iw;
@@ -72,27 +67,17 @@ int main(int argc, char **argv)
 
         num_errors++;
       }
-      else
-      {
-        // emit binary code
-        if ((iw & 0xffffffff00000000) == 0)
-        {
-          boost::spirit::karma::generate(cout_iterator,
-                                    boost::spirit::big_dword((patmos::word_t)iw));
-          code_size += sizeof(patmos::word_t);
-        }
-        else
-        {
-          boost::spirit::karma::generate(cout_iterator,
-                                        boost::spirit::big_qword(iw));
-          code_size += sizeof(patmos::dword_t);
-        }
-      }
+    }
+
+    // emit program
+    if (!paasm.write_program(out, code_size))
+    {
+      num_errors++;
     }
 
     // some status messages
-    std::cerr << boost::format("Emitted: %1% words\nErrors : %2%\n")
-              % code_size % num_errors;
+    std::cerr << boost::format("Emitted: %1% bytes\nErrors : %2%\n")
+              % (code_size * 4) % num_errors;
 
     // free streams
     patmos::free_stream(&in, std::cin);
@@ -104,5 +89,5 @@ int main(int argc, char **argv)
     return -1;
   }
 
-  return 0;
+  return num_errors;
 }
