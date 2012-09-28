@@ -481,7 +481,8 @@ namespace patmos
 
         // Parse PFLb instructions
         PFLbopc = boost::spirit::lit("call") [boost::spirit::qi::_val = 0] |
-                  boost::spirit::lit("b")    [boost::spirit::qi::_val = 1] ;
+                  boost::spirit::lit("brcf") [boost::spirit::qi::_val = 2] |
+                  boost::spirit::lit("br")   [boost::spirit::qi::_val = 1] ;
 
         PFLb = (Pred >> PFLbopc >> Imm22u)
               [boost::spirit::qi::_val = boost::phoenix::bind(
@@ -490,7 +491,8 @@ namespace patmos
 
         // Parse PFLi instructions
         PFLiopc = boost::spirit::lit("callr") [boost::spirit::qi::_val = 0] |
-                  boost::spirit::lit("br")    [boost::spirit::qi::_val = 1] ;
+                  boost::spirit::lit("brcfr") [boost::spirit::qi::_val = 2] |
+                  boost::spirit::lit("brr")   [boost::spirit::qi::_val = 1] ;
 
         PFLi = (Pred >> PFLiopc >> GPR)
               [boost::spirit::qi::_val = boost::phoenix::bind(

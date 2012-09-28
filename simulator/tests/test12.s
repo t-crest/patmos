@@ -1,7 +1,7 @@
 #
 # Expected Result: base = 0x0000001c & pc = 0x00000044 & r0 = 38
 #
-                call     7;
+                brcf     7;
                 addi     r1  = r0, 1;
                 addi     r1  = r1, 2;
                 addi     r1  = r1, 3;

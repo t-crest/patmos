@@ -1294,10 +1294,11 @@ namespace patmos
       {
         assert(base <= pc);
 
-        // store the return address and method base address by writing them into
-        // general purpose registers
-        s.GPR.set(rfb, base);
+        // store the return function offset (return PC) into
+        // a general purpose register
         s.GPR.set(rfo, pc - base);
+        // function base is compiler/programmer managed,
+        // i.e., not stored implicitly
       }
     }
 
@@ -1405,7 +1406,10 @@ namespace patmos
   PFLB_INSTR(call, store_return_address, fetch_and_dispatch,
              ops.OPS.PFLb.Imm*sizeof(word_t),
              ops.OPS.PFLb.Imm*sizeof(word_t))
-  PFLB_INSTR(b, no_store_return_address, dispatch,
+  PFLB_INSTR(br, no_store_return_address, dispatch,
+             s.BASE,
+             ops.IF_PC + ops.OPS.PFLb.Imm*sizeof(word_t))
+  PFLB_INSTR(brcf, no_store_return_address, fetch_and_dispatch,
              s.BASE,
              ops.IF_PC + ops.OPS.PFLb.Imm*sizeof(word_t))
 
@@ -1450,11 +1454,14 @@ namespace patmos
   };
 
   PFLI_INSTR(callr, store_return_address, fetch_and_dispatch,
-             read_GPR_EX(s, ops.DR_Rs1),
-             read_GPR_EX(s, ops.DR_Rs1))
-  PFLI_INSTR(br, no_store_return_address, dispatch,
+             4*read_GPR_EX(s, ops.DR_Rs1),
+             4*read_GPR_EX(s, ops.DR_Rs1))
+  PFLI_INSTR(brr, no_store_return_address, dispatch,
              s.BASE,
-             ops.IF_PC + read_GPR_EX(s, ops.DR_Rs1))
+             ops.IF_PC + 4*read_GPR_EX(s, ops.DR_Rs1))
+  PFLI_INSTR(brcfr, no_store_return_address, fetch_and_dispatch,
+             s.BASE,
+             ops.IF_PC + 4*read_GPR_EX(s, ops.DR_Rs1))
 
   /// An instruction for returning from function calls.
   class i_ret_t : public i_pfl_t

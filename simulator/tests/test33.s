@@ -2,14 +2,14 @@
 # Expected Result: r2 = 1
 #
 
-                addi    r1 = r0, 64;
+                addi    r1 = r0, 16;
                 call    5;
                 nop     0;
                 nop     0;
-                .word   48;
+                .word   12;
                 nop     0;
                 nop     0;
-                nop     0;
+                addi    r30 = r0, 20;
                 callr   r1;
                 nop     0;
                 addi    r2 = r0, 7;
