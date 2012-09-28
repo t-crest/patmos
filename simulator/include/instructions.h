@@ -1454,14 +1454,14 @@ namespace patmos
   };
 
   CFLI_INSTR(callr, store_return_address, fetch_and_dispatch,
-             4*read_GPR_EX(s, ops.DR_Rs1),
-             4*read_GPR_EX(s, ops.DR_Rs1))
+             read_GPR_EX(s, ops.DR_Rs1),
+             read_GPR_EX(s, ops.DR_Rs1))
   CFLI_INSTR(brr, no_store_return_address, dispatch,
              s.BASE,
-             ops.IF_PC + 4*read_GPR_EX(s, ops.DR_Rs1))
+             ops.IF_PC + read_GPR_EX(s, ops.DR_Rs1))
   CFLI_INSTR(brcfr, no_store_return_address, fetch_and_dispatch,
              s.BASE,
-             ops.IF_PC + 4*read_GPR_EX(s, ops.DR_Rs1))
+             ops.IF_PC + read_GPR_EX(s, ops.DR_Rs1))
 
   /// An instruction for returning from function calls.
   class i_ret_t : public i_cfl_t

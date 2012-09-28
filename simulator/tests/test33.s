@@ -2,7 +2,7 @@
 # Expected Result: r2 = 1
 #
 
-                addi    r1 = r0, 16;
+                addi    r1 = r0, 64;
                 call    5;
                 nop     0;
                 nop     0;
