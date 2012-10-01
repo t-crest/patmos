@@ -58,6 +58,7 @@ architecture arch of patmos_mem_stage is
 	signal byte_enable0, byte_enable1       : std_logic;
 	signal byte_enable2, byte_enable3       : std_logic;
 	signal word_enable0, word_enable1       : std_logic;
+	signal read_address						: std_logic_vector(31 downto 0);
 --signal test : std_logic;
 begin
 	mem_wb : process(clk)
@@ -68,6 +69,7 @@ begin
 			dout.reg_write_out      <= din.reg_write_in;
 			dout.write_back_reg_out <= din.write_back_reg_in;
 			dout.mem_write_data_out <= din.mem_write_data_in;
+			read_address <= din.alu_result;
 		end if;
 	end process mem_wb;
 
@@ -118,7 +120,8 @@ begin
 			dout.data_mem_data_out <= dout0 & dout1 & dout2 & dout3;
 
 		elsif (din.LDT_instruction_type_out = LHL or din.LDT_instruction_type_out = LHC or din.LDT_instruction_type_out = LHM or din.LDT_instruction_type_out = LHUL) then
-			case din.alu_result(0) is
+			--case din.alu_result(0) is
+			case read_address(0) is
 				when '0' =>
 					dout.data_mem_data_out <= std_logic_vector(resize(signed(dout0 & dout1), 32));
 				when '1' =>
@@ -127,7 +130,7 @@ begin
 			end case;
 
 		elsif (din.LDT_instruction_type_out = LBL or din.LDT_instruction_type_out = LBC or din.LDT_instruction_type_out = LBM) then
-			case din.alu_result(1 downto 0) is
+			case read_address(1 downto 0) is
 				when "00" =>
 					dout.data_mem_data_out <= std_logic_vector(resize(signed(dout0), 32));
 				when "01" =>
@@ -148,7 +151,7 @@ begin
 				when others => null;
 			end case;
 		elsif (din.LDT_instruction_type_out = LBUL or din.LDT_instruction_type_out = LBUC or din.LDT_instruction_type_out = LBUM) then
-			case din.alu_result(1 downto 0) is
+			case read_address(1 downto 0) is
 				when "00" =>
 					dout.data_mem_data_out <= std_logic_vector(resize(unsigned(dout0), 32));
 				when "01" =>
