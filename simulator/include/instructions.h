@@ -1410,7 +1410,7 @@ namespace patmos
              s.BASE,
              ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t))
   CFLB_INSTR(brcf, no_store_return_address, fetch_and_dispatch,
-             s.BASE,
+             ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t),
              ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t))
 
   /// Branch and call instructions with a register operand.
@@ -1458,10 +1458,10 @@ namespace patmos
              read_GPR_EX(s, ops.DR_Rs1))
   CFLI_INSTR(brr, no_store_return_address, dispatch,
              s.BASE,
-             ops.IF_PC + read_GPR_EX(s, ops.DR_Rs1))
+             s.BASE + read_GPR_EX(s, ops.DR_Rs1))
   CFLI_INSTR(brcfr, no_store_return_address, fetch_and_dispatch,
-             s.BASE,
-             ops.IF_PC + read_GPR_EX(s, ops.DR_Rs1))
+             s.BASE + read_GPR_EX(s, ops.DR_Rs1),
+             s.BASE + read_GPR_EX(s, ops.DR_Rs1))
 
   /// An instruction for returning from function calls.
   class i_ret_t : public i_cfl_t
