@@ -2,12 +2,12 @@
 # Expected Result: r2 = 1
 #
 
-                addi    r1 = r0, 64;
-                call    5;
+                addi    r1 = r0, y;
+                call    x;
                 nop     0;
                 nop     0;
-                .word   12;
-                nop     0;
+                .word   48;
+x:              nop     0;
                 nop     0;
                 addi    r30 = r0, 20;
                 callr   r1;
@@ -17,7 +17,7 @@
                 nop     0;
                 nop     0;
                 .word   20;
-                add     r2 = r0, 1;
+y:              add     r2 = r0, 1;
                 ret     r30, r31;
                 nop     0;
                 nop     0;

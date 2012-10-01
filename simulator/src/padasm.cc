@@ -82,6 +82,7 @@ int main(int argc, char **argv)
       }
 
       // decode bundle
+      out << boost::format("  0x%1$08x:  ") % (offset * 4);
       switch (padasm.decode(bundle, id))
       {
         case 0:

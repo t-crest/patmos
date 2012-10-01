@@ -5,104 +5,106 @@ macro (test_asm num expr)
   SET_PROPERTY(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES test${num}.bin)
 endmacro (test_asm)
 
-test_asm(01 "Emitted: 16 words
+test_asm(01 "Emitted: 16 bytes
 Errors : 0")
 
-test_asm(02 "Emitted: 16 words
+test_asm(02 "Emitted: 16 bytes
 Errors : 0")
 
-test_asm(03 "Emitted: 24 words
+test_asm(03 "Emitted: 24 bytes
 Errors : 0")
 
-test_asm(04 "Emitted: 16 words
+test_asm(04 "Emitted: 16 bytes
 Errors : 0")
 
-test_asm(05 "Emitted: 32 words
+test_asm(05 "Emitted: 32 bytes
 Errors : 0")
 
-test_asm(06 "Emitted: 36 words
+test_asm(06 "Emitted: 36 bytes
 Errors : 0")
 
-test_asm(07 "Emitted: 20 words
+test_asm(07 "Emitted: 20 bytes
 Errors : 0")
 
-test_asm(08 "Emitted: 32 words
+test_asm(08 "Emitted: 32 bytes
 Errors : 0")
 
-test_asm(09 "Emitted: 28 words
+test_asm(09 "Emitted: 28 bytes
 Errors : 0")
 
-test_asm(10 "Emitted: 44 words
+test_asm(10 "Emitted: 44 bytes
 Errors : 0")
 
-test_asm(11a "Emitted: 56 words
+test_asm(11a "Emitted: 56 bytes
 Errors : 0")
 
-test_asm(11b "Emitted: 60 words
+test_asm(11b "Emitted: 60 bytes
 Errors : 0")
 
-test_asm(12 "Emitted: 56 words
+test_asm(12 "Emitted: 56 bytes
 Errors : 0")
 
-test_asm(13 "Emitted: 68 words
+test_asm(13 "Emitted: 68 bytes
 Errors : 0")
 
-test_asm(14 "Emitted: 52 words
+test_asm(14 "Emitted: 52 bytes
 Errors : 0")
 
-test_asm(15 "Emitted: 12 words
+test_asm(15 "Emitted: 12 bytes
 Errors : 0")
 
-test_asm(16 "Emitted: 16 words
+test_asm(16 "Emitted: 16 bytes
 Errors : 0")
 
-test_asm(17 "Emitted: 16 words
+test_asm(17 "Emitted: 16 bytes
 Errors : 0")
 
-test_asm(18 "Emitted: 16 words
+test_asm(18 "Emitted: 16 bytes
 Errors : 0")
 
-test_asm(19 "Emitted: 16 words
+test_asm(19 "Emitted: 16 bytes
 Errors : 0")
 
-test_asm(20 "Emitted: 28 words
+test_asm(20 "Emitted: 28 bytes
 Errors : 0")
 
-test_asm(21 "Emitted: 68 words
+test_asm(21 "Emitted: 68 bytes
 Errors : 0")
 
-test_asm(22 "Emitted: 44 words
+test_asm(22 "Emitted: 44 bytes
 Errors : 0")
 
-test_asm(23 "Emitted: 48 words
+test_asm(23 "Emitted: 48 bytes
 Errors : 0")
 
-test_asm(25 "Emitted: 24 words
+test_asm(25 "Emitted: 24 bytes
 Errors : 0")
 
-test_asm(26 "Emitted: 8 words
+test_asm(26 "Emitted: 8 bytes
 Errors : 0")
 
-test_asm(27 "Emitted: 8 words
+test_asm(27 "Emitted: 8 bytes
 Errors : 0")
 
-test_asm(28 "Emitted: 60 words
+test_asm(28 "Emitted: 60 bytes
 Errors : 0")
 
-test_asm(29 "Emitted: 20 words
+test_asm(29 "Emitted: 20 bytes
 Errors : 0")
 
-test_asm(30 "Emitted: 24 words
+test_asm(30 "Emitted: 24 bytes
 Errors : 0")
 
-test_asm(31 "Emitted: 68 words
+test_asm(31 "Emitted: 68 bytes
 Errors : 0")
 
-test_asm(32 "Emitted: 68 words
+test_asm(32 "Emitted: 68 bytes
 Errors : 0")
 
-test_asm(33 "Emitted: 84 words
+test_asm(33 "Emitted: 84 bytes
 Errors : 0")
+
+test_asm(34 "Undefined Label: x")
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # SIMULATOR TESTS
