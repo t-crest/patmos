@@ -11,7 +11,7 @@
                 halt;
                 nop     0;
                 nop     0;
-                .word   32;
+                .word   44;
                 add     r2 = r0, 1;
                 halt;
                 nop     0;

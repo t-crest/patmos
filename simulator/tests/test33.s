@@ -9,7 +9,7 @@
                 .word   48;
 x:              nop     0;
                 nop     0;
-                addi    r30 = r0, 20;
+                addi    r30 = r0, y;
                 callr   r1;
                 nop     0;
                 addi    r2 = r0, 7;
