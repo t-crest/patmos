@@ -25,6 +25,7 @@
 #include "basic-types.h"
 
 #include <string>
+#include <ostream>
 
 namespace patmos
 {
@@ -49,6 +50,12 @@ namespace patmos
     /// @return True, in case the assembly line was parsed successfully; false
     /// otherwise.
     bool parse_line(const std::string &line, dword_t &iw) const;
+
+    /// Write the parsed program to the given output stream.
+    /// \param out The output stream.
+    /// \param size Return the number of words emitted.
+    /// \return False in case of an error.
+    bool write_program(std::ostream &out, unsigned int &size) const;
 
     /// Free memory.
     ~line_assembler_t();
