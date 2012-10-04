@@ -188,7 +188,8 @@ package patmos_type_package is
 		write_back_reg_in : std_logic_vector(4 downto 0);
 		mem_write_data_in : std_logic_vector(31 downto 0);
 
-		alu_result               : std_logic_vector(31 downto 0);
+		alu_result_out               : std_logic_vector(31 downto 0);
+		alu_result		               : std_logic_vector(31 downto 0);
 		mem_write                : std_logic;
 		STT_instruction_type_out : STT_inst_type;
 		LDT_instruction_type_out : LDT_inst_type;

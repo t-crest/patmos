@@ -11,7 +11,7 @@
 	addi    r10 = r0, 10;
 	shl     [r1 + 1] = r10;
 	shl	[r1 + 0] = r10;
-	lwl	r11 = [r1 + 1]
+	lwl	r11 = [r1 + 1];
 
 	addi    r5 = r0, 3;
 	sli     r5 = r5, 7;

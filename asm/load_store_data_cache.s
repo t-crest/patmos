@@ -5,21 +5,26 @@
 # SA: this test case is for data cache with lxc/sxc which is mapped to scratchpad at the moment
 
 	addi	r1 = r0, 255;  # first instruction not executed
-	addi	r1 = r0, 256; # r1 = 255
+	addi	r1 = r0, 256; # r1 = 256
 	addi	r2 = r0, 5;
 	addi    r4 = r0, 4;
+	addi	r13 = r0, 256;
+	addi    r15 = r0, 257;
 	swc	[r1 + 1] = r2; # memory address 260 (256 + (1 sl 2)) = 5 (all memory banks are updated)
 	lwc	r10  = [r1 + 1]; # register(10) = 5
 	nop 	0;
 	add	r2 = r2, r10; # r2 = 5 + 5 = 10 
 
+	shc     [r1 + 2] = r0;
 	shc	[r1 + 3] = r2; # memory address 262 = 10 (two memory banks are updated)
 	lhc	r11  = [r1 + 3]; # register(11) = 10
 	nop	0;
 
-	sbc	[r1 + 3] = r4; # memory address 258 (255 +3 ) = 4 (one memory bank updated)
-	lbc	r12 = [r1 + 3]; # r12 = 4;
+	swc	[r1 + 0] = r0;	
+	sbc	[r1 + 0] = r4; # memory address 258 (255 +3 ) = 4 (one memory bank updated)
+	lbc	r12 = [r1 + 0]; # r12 = 4;
 
+	shc	[r1 + 2] = r0;
 	lhuc    r13 = [r1 + 3]; # r13 = memory address (255 + (3 sl 1)) = 261 (10);
 	lbuc	r14 = [r1 + 3]; # r14 = 4; #memory address (255 + 3) = 258 (4) 
 addi    r1 = r0 , 256;

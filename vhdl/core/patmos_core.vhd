@@ -492,7 +492,8 @@ begin                                   -- architecture begin
 
 	mem_din.STT_instruction_type_out <= decode_dout.STT_instruction_type_out;
 	mem_din.LDT_instruction_type_out <= decode_dout.LDT_instruction_type_out;
-	mem_din.alu_result               <= execute_dout.alu_result;
+	mem_din.alu_result_out               <= execute_dout.alu_result_out;
+	mem_din.alu_result                  <= execute_dout.alu_result;
 	mem_din.mem_write                <= io_next.wr and io_next.mem_en;
 	--	mem_din.alu_src2   <= memdin;
 	data_mem_data_out                <= mem_dout.data_mem_data_out;
