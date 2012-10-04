@@ -6,10 +6,10 @@
 #
 
 		addi	r0 = r0, 0;  # first instruction not executed
-		addi	r21 = r0, 0;
+		addi	r22 = r0, 0;
 		addi    r8 = r0, 0;
-x0:		addi	r5 = r0, 15;
 		addi    r7 = r0, 25;
+x0:		addi	r5 = r0, 15;
 		sli	r5 = r5, 28;
 		addi	r20 = r0, 1;
 		addi	r21 = r0, 2;
@@ -36,14 +36,15 @@ x2:		lwl     r10  = [r5 + 0];
                 addi    r0  = r0 , 0;
 
 		swl	[r5 + 1] = r15;
-		swm     [r21 + 0] = r15;
-		addi	r21 = r21 , 1;
+		swl     [r8 + 0] = r15;
+		addi	r22 = r22 , 1;
 		addi    r8 = r8, 1;
 		cmpneq  p3 = r7, r8;
 	(p3)	bc      x0;
 		nop	0;
 		nop	0;
 
+		subi    r8 = r8, 1;
 x5:		lwl     r10  = [r5 + 0];
 		addi	r0 = r0, 0;
 		and     r11 = r3 , r10;
@@ -52,16 +53,18 @@ x5:		lwl     r10  = [r5 + 0];
 		addi    r0  = r0 , 0;
                 addi    r0  = r0 , 0;
 
-		lwm     r15 = [r21 + 0];
+		lwl     r15 = [r8 + 0];
 		nop	0;
 		addi    r13 = r0, 33;
-		swl	[r5 + 1] = r13;
+		swl	[r5 + 1] = r15;
 #		addi	r0 = r0, 0;
-		subi    r21 = r21, 1;
-		cmpneq	p4 = r21, r0;
+		subi    r8 = r8, 1;
+		cmpneq	p4 = r8, r0;
 	(p4)	bc      x5;
 		addi    r0  = r0 , 0;
                 addi    r0  = r0 , 0;
 		bc      x0;
+		addi	r8 = r0, 0;
+		addi    r22 = r0, 0;		
                 halt;
 
