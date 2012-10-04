@@ -53,7 +53,7 @@ entity patmos_fetch is
 end entity patmos_fetch;
 
 architecture arch of patmos_fetch is
-	constant rom_addr_size : integer := 8;
+	constant rom_addr_size : integer := 10;
 	
 	-- we should have global constants for memory sizes
 	signal pc, pc_next                               : std_logic_vector(pc_length - 1 downto 0);
