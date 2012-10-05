@@ -24,10 +24,10 @@
 	addi    r30 = r0, 31;
 	addi    r29 = r0, 15;
 	addi    r31 = r0, 1;
-	sl	r31 = r31, r30;
+x1:	sl	r31 = r31, r30;
 	ori     r31 = r31, 384;
 	or	r21 = r21, r31;
 	subi    r30 = r30, 1;
 	cmpneq  p1 = r31, r29;
-(p1)	bc	25; #r20 equals to all upper bits 1 
+(p1)	bc	x1; #r20 equals to all upper bits 1 
 	halt;
