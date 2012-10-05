@@ -1,5 +1,5 @@
 /*
-	There shall be a comment, explaining what the program does.
+	This code receives several characters until it encounters the new line where it echos the received characters in reverse!
 
 	Author: Sahar
 	Copyright: DTU, BSD License
@@ -17,10 +17,10 @@ int main() {
 	int cmp2 = 1;
 	int status;
 	char read_val;//[2];
-	char read_string[11];
+	static char read_string[1000];
 	int num = 0;
-	for (k = 0; k <= 9; k++){
-	//while(!flag2){
+//	for(;;){//for (k = 0; k <= 10; k++){
+	while(!flag2){
 		while (!flag )
 		{
 			status = *uart_stat_ptr & cmp1;
@@ -30,11 +30,12 @@ int main() {
 		}
 		read_val =  *uart_val_ptr;
 		*uart_val_ptr = read_val;
-		//if ((int)read_val == 10) break;
+		if ((int)read_val == 10) {flag2 = 1; break;}
 		read_string[k] = read_val; 
-		//k++;		
+		k++;		
 		flag = 0;
 	}
+			flag = 0;
 		//if (read_val == '*'){
 			for (num = k-1 ; num >= 0; num--){
 				while (!flag )
@@ -47,5 +48,6 @@ int main() {
 				*uart_val_ptr =  read_string[num];
 	 			flag = 0;//}
 			}
+	//}
 }
 
