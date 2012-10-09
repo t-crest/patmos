@@ -43,29 +43,31 @@ use work.patmos_type_package.all;
 
 entity patmos_alu is
 	port(
-		clk     : in  std_logic;
-		rst     : in  std_logic;
-		decdout : in  decode_out_type;
-		din     : in  alu_in_type;
-		doutex  : out execution_out_type;
-		memdout : in mem_out_type;
-		memdin   : out std_logic_vector(31 downto 0)
+		clk										: in  std_logic;
+		rst										: in  std_logic;
+		decdout									: in  decode_out_type;
+		din										: in  alu_in_type;
+		doutex									: out execution_out_type;
+		memdout									: in mem_out_type;
+		memdin									: out std_logic_vector(31 downto 0)
 		
 	);
 end entity patmos_alu;
 
 architecture arch of patmos_alu is
-	signal number_of_bytes_in_stack_cache : std_logic_vector(4 downto 0) := (others => '0');
-	signal rd                              : std_logic_vector(31 downto 0);
-	signal cmp_equal, cmp_result          : std_logic;
-	signal predicate, predicate_reg       : std_logic_vector(7 downto 0);
-	signal rs1, rs2							: unsigned(31 downto 0);
-	signal tst				: std_logic;
-	signal tst2			: integer;
-	signal doutex_alu_result_out  		: std_logic_vector(31 downto 0);
-	signal doutex_write_back_reg_out   : std_logic_vector(4 downto 0);
-	signal doutex_reg_write_out 		: std_logic;
-	signal din_rs1, din_rs2, alu_src2  					: std_logic_vector(31 downto 0);
+
+	signal rd, adrs								: std_logic_vector(31 downto 0);
+	signal cmp_equal, cmp_result				: std_logic;
+	signal predicate, predicate_reg				: std_logic_vector(7 downto 0);
+	signal rs1, rs2								: unsigned(31 downto 0);
+	signal tst									: std_logic;
+	signal tst2									: integer;
+	signal doutex_alu_result_out				: std_logic_vector(31 downto 0);
+	signal doutex_alu_adrs_out					: std_logic_vector(31 downto 0);
+	signal doutex_write_back_reg_out			: std_logic_vector(4 downto 0);
+	signal doutex_reg_write_out					: std_logic;
+	signal din_rs1, din_rs2, alu_src2			: std_logic_vector(31 downto 0);
+	
 begin
 
 	-- MS: TODO: This ALU needs to be restructured to share functional units
@@ -77,6 +79,111 @@ begin
 		rs1 <= unsigned(din_rs1);
 		rs2 <= unsigned(din_rs2);
 	end process;
+	
+	patmos_address: process(rs1, rs2)
+	begin
+	--	predicate  <= predicate_reg;
+		adrs <= "00000000000000000000000000000000";
+		case din.inst_type is
+			when LDT =>
+				case din.LDT_instruction_type is
+					----- scratchpad memory
+					when LWL =>
+						 adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
+					when LHL =>
+						 adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+						 
+					when LBL =>
+						 adrs <= std_logic_vector(rs1 + rs2);
+						 	
+					when LHUL =>
+						 adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+						 	
+					when LBUL =>
+						 adrs <= std_logic_vector(rs1 + rs2);
+						 
+					---------------------------------------- stack cache
+					when LWS =>
+						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
+					when LHS =>
+						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+					when LBS =>
+						adrs <= std_logic_vector(rs1 + rs2);
+					when LHUS =>
+						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+					when LBUS =>
+						adrs    <= std_logic_vector(rs1 + rs2);
+					----------------------------------------- global memory	
+					when LWM =>
+						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
+					when LHM =>
+						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+					when LBM =>
+						adrs <= std_logic_vector(rs1 + rs2);
+					when LHUM =>
+						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+					when LBUM =>
+						adrs    <= std_logic_vector(rs1 + rs2);
+					---------------------------------------- data cache
+					when LWC =>
+						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
+					when LHC =>
+						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+					when LBC =>
+						adrs <= std_logic_vector(rs1 + rs2);
+					when LHUC =>
+						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+					when LBUC =>
+						adrs    <= std_logic_vector(rs1 + rs2);		
+
+					when others => adrs <= std_logic_vector(rs1 + rs2);
+				end case;
+
+			when STT =>
+				case din.STT_instruction_type is
+					----- scratchpad memory
+					when SWL =>
+						adrs <=  std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
+					when SHL =>
+						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+						
+					when SBL =>
+						adrs <= std_logic_vector(rs1 + rs2);
+							
+					---------------------------------------- stack cache
+					when SWS =>
+						adrs <=  std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
+					when SHS =>
+						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+					when SBS =>
+						adrs <= std_logic_vector(rs1 + rs2);
+					
+					
+					----------------------------------------- global memory	
+					when SWM =>
+						adrs <=  std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
+						
+					when SHM =>
+						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+					when SBM =>
+						adrs <= std_logic_vector(rs1 + rs2);
+						
+					---------------------------------------- data cache
+					when SWC =>
+						adrs <=  std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
+					when SHC =>
+						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+					when SBC =>
+						adrs <= std_logic_vector(rs1 + rs2);
+						
+					when others => adrs <= std_logic_vector(rs1 + rs2);	
+					---------------------------------------
+				end case;
+			when others => adrs <= std_logic_vector(rs1 + rs2);
+		end case;
+	end process;
+	
+	
 	patmos_alu : process(din, decdout, predicate, predicate_reg, cmp_equal, cmp_result, rs1, rs2)
 	begin
 		predicate  <= predicate_reg;
@@ -181,101 +288,6 @@ begin
 
 					when others => rd <= std_logic_vector(rs1 + rs2);
 				end case;
-			when LDT =>
-				case din.LDT_instruction_type is
-					----- scratchpad memory
-					when LWL =>
-						 rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
-					when LHL =>
-						 rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-						 
-					when LBL =>
-						 rd <= std_logic_vector(rs1 + rs2);
-						 	
-					when LHUL =>
-						 rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-						 	
-					when LBUL =>
-						 rd <= std_logic_vector(rs1 + rs2);
-						 
-					---------------------------------------- stack cache
-					when LWS =>
-						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
-					when LHS =>
-						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when LBS =>
-						rd <= std_logic_vector(rs1 + rs2);
-					when LHUS =>
-						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when LBUS =>
-						rd    <= std_logic_vector(rs1 + rs2);
-					----------------------------------------- global memory	
-					when LWM =>
-						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
-					when LHM =>
-						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when LBM =>
-						rd <= std_logic_vector(rs1 + rs2);
-					when LHUM =>
-						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when LBUM =>
-						rd    <= std_logic_vector(rs1 + rs2);
-					---------------------------------------- data cache
-					when LWC =>
-						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
-					when LHC =>
-						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when LBC =>
-						rd <= std_logic_vector(rs1 + rs2);
-					when LHUC =>
-						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when LBUC =>
-						rd    <= std_logic_vector(rs1 + rs2);		
-
-					when others => rd <= std_logic_vector(rs1 + rs2);
-				end case;
-
-			when STT =>
-				case din.STT_instruction_type is
-					----- scratchpad memory
-					when SWL =>
-						rd <=  std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
-					when SHL =>
-						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-						
-					when SBL =>
-						rd <= std_logic_vector(rs1 + rs2);
-							
-					---------------------------------------- stack cache
-					when SWS =>
-						rd <=  std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
-					when SHS =>
-						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when SBS =>
-						rd <= std_logic_vector(rs1 + rs2);
-					
-					
-					----------------------------------------- global memory	
-					when SWM =>
-						rd <=  std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
-						
-					when SHM =>
-						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when SBM =>
-						rd <= std_logic_vector(rs1 + rs2);
-						
-					---------------------------------------- data cache
-					when SWC =>
-						rd <=  std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
-					when SHC =>
-						rd <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when SBC =>
-						rd <= std_logic_vector(rs1 + rs2);
-						
-					when others => rd <= std_logic_vector(rs1 + rs2);	
-					---------------------------------------
-				end case;
-			--   dout.rd <= rs1 + rs2; -- unsigned(intermediate_add);--
 			when others => rd <= std_logic_vector(rs1 + rs2); -- unsigned(intermediate_add);--
 		end case;
 
@@ -306,9 +318,12 @@ begin
 		predicate(0) <= '1';
 		
 	end process patmos_alu;
-	process(rd)
+	
+	
+	process(rd, adrs)
 	begin
 		doutex.alu_result <= rd;
+		doutex.adrs <= adrs;
 	end process;
 	-- TODO: remove all predicate related stuff from EX out  
 	process(rst, clk)
@@ -338,6 +353,7 @@ begin
 
 			doutex.mem_to_reg_out           <= decdout.mem_to_reg_out;
 			doutex.alu_result_out           <= rd;
+			doutex.adrs_out		      	  <= adrs;
 			doutex.mem_write_data_out       <= din.mem_write_data_in;
 			doutex.write_back_reg_out       <= decdout.rd_out;
 			doutex.STT_instruction_type_out <= decdout.STT_instruction_type_out;
@@ -348,6 +364,7 @@ begin
 			
 
 			doutex_alu_result_out           <= rd;
+			doutex_alu_adrs_out           <= adrs;
 			doutex_write_back_reg_out       <= decdout.rd_out;
 			
 			
@@ -401,38 +418,6 @@ begin
 		memdin <= alu_src2;
 	end process;
 	
---	io_mem_decode_write : process(rd, decdout)
---	begin
---		-- default values
---		doutex.lm_write_out                       <= '0';
---		doutex.lm_read_out                        <= '0';
---		doutex.io_write_out                       <= '0';
---		doutex.io_read_out                        <= '0';
---	--	led_wr                           <= '0';
---		address_uart                     <= rd;
---	--	instruction_mem_din.write_enable <= '0';
---	--	stack_cache_din.write_enable     <= '0';
---
---		
---		if (rd(31 downto 28) = "1000") then -- uart
---			doutex.lm_write_out                        <= '0';
---			doutex.lm_read_out                        <= '0';
---			doutex.io_write_out                         <= decdout.lm_write_out;
---			doutex.io_read_out                          <= decdout.lm_read_out;
---		--	instruction_mem_din.write_enable <= '0';
---		else--if (execute_dout.alu_result(8) = '1') then --data mem
---		
---			doutex.lm_write_out                        <= decdout.lm_write_out;
---			doutex.lm_read_out                         <= decdout.lm_read_out;
---			doutex.io_write_out                         <= '0';
---			doutex.io_write_out                         <= '0';
---		--	instruction_mem_din.write_enable <= '0';
---		--elsif (execute_dout.alu_result_out(7 downto 4) = "0001") then -- the LED
---		--	led_wr <= execute_dout.mem_write_out;
---		--	end if;
---
---		end if;
---	end process;
 
 end arch;
 

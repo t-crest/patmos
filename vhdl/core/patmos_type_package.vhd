@@ -129,9 +129,11 @@ package patmos_type_package is
 	type execution_out_type is record
 		alusrc2                  : std_logic_vector(31 downto 0);
 		alu_result               : std_logic_vector(31 downto 0);
+		adrs					 : std_logic_vector(31 downto 0);
 		predicate                : std_logic_vector(7 downto 0);
 		result                   : result_type;
 		alu_result_out           : std_logic_vector(31 downto 0);
+		adrs_out     	      : std_logic_vector(31 downto 0);
 		reg_write_out            : std_logic;
 		mem_read_out             : std_logic;
 		-- two write back enable signals - shall be merged
@@ -190,6 +192,8 @@ package patmos_type_package is
 
 		alu_result_out               : std_logic_vector(31 downto 0);
 		alu_result		               : std_logic_vector(31 downto 0);
+		adrs_out					: std_logic_vector(31 downto 0);
+		adrs		               : std_logic_vector(31 downto 0);
 		mem_write                : std_logic;
 		STT_instruction_type_out : STT_inst_type;
 		LDT_instruction_type_out : LDT_inst_type;
