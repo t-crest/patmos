@@ -1,7 +1,7 @@
 #!/bin/bash
 
-tests="basic test ALU ALUi ALUl compare dual_forwarding dual_even_odd_address forward_issue unary load_store_data_cache load_store_scratchpad load_store_scratchpad_new load_store_scratchpad_new2 predication fetch_double ld_st_test"
-not_working="branch"
+tests="basic test ALU ALUi ALUl compare dual_forwarding dual_even_odd_address forward_issue unary load_store_data_cache load_store_scratchpad load_store_scratchpad_new load_store_scratchpad_new2 predication fetch_double ld_st_test branch"
+not_working="non"
 expect_fail=0
 
 # How to implement timeout?
