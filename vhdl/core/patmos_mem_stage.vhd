@@ -58,8 +58,7 @@ architecture arch of patmos_mem_stage is
 	signal byte_enable0, byte_enable1       : std_logic;
 	signal byte_enable2, byte_enable3       : std_logic;
 	signal word_enable0, word_enable1       : std_logic;
-	signal read_address						: std_logic_vector(31 downto 0);
---signal test : std_logic;
+    signal ldt_type							: LDT_inst_type;
 begin
 	mem_wb : process(clk)
 	begin
@@ -69,7 +68,8 @@ begin
 			dout.reg_write_out      <= din.reg_write_in;
 			dout.write_back_reg_out <= din.write_back_reg_in;
 			dout.mem_write_data_out <= din.mem_write_data_in;
-			read_address <= din.alu_result;
+		--	read_address <= din.alu_result_out;
+			ldt_type <= din.LDT_instruction_type_out;
 		end if;
 	end process mem_wb;
 
@@ -80,48 +80,48 @@ begin
 	memory0 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     din.alu_result(9 downto 0),
+			     din.adrs(9 downto 0),
 			     mem_write_data0,
 			     en0,
-			     din.alu_result(9 downto 0),
+			     din.adrs(9 downto 0),
 			     dout0);
 
 	memory1 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     din.alu_result(9 downto 0),
+			     din.adrs(9 downto 0),
 			     mem_write_data1,
 			     en1,
-			     din.alu_result(9 downto 0),
+			     din.adrs(9 downto 0),
 			     dout1);
 
 	memory2 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     din.alu_result(9 downto 0),
+			     din.adrs(9 downto 0),
 			     mem_write_data2,
 			     en2,
-			     din.alu_result(9 downto 0),
+			     din.adrs(9 downto 0),
 			     dout2);
 
 	memory3 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     din.alu_result(9 downto 0),
+			     din.adrs(9 downto 0),
 			     mem_write_data3,
 			     en3,
-			     din.alu_result(9 downto 0),
+			     din.adrs(9 downto 0),
 			     dout3);
 
 	ld_type : process(din, dout0, dout1, dout2, dout3)
 	begin
 		dout.data_mem_data_out <= dout0 & dout1 & dout2 & dout3;
-		if (din.LDT_instruction_type_out = LWL or din.LDT_instruction_type_out = LWC or din.LDT_instruction_type_out = LWM) then
+		if (ldt_type = LWL or ldt_type = LWC or ldt_type = LWM) then
 			dout.data_mem_data_out <= dout0 & dout1 & dout2 & dout3;
 
-		elsif (din.LDT_instruction_type_out = LHL or din.LDT_instruction_type_out = LHC or din.LDT_instruction_type_out = LHM or din.LDT_instruction_type_out = LHUL) then
+		elsif (ldt_type = LHL or ldt_type = LHC or ldt_type = LHM or ldt_type = LHUL) then
 			--case din.alu_result(0) is
-			case read_address(0) is
+			case din.adrs_out(1) is
 				when '0' =>
 					dout.data_mem_data_out <= std_logic_vector(resize(signed(dout0 & dout1), 32));
 				when '1' =>
@@ -129,29 +129,33 @@ begin
 				when others => null;
 			end case;
 
-		elsif (din.LDT_instruction_type_out = LBL or din.LDT_instruction_type_out = LBC or din.LDT_instruction_type_out = LBM) then
-			case read_address(1 downto 0) is
+		elsif (ldt_type = LBL or ldt_type = LBC or ldt_type = LBM) then
+			case din.adrs_out(1 downto 0) is
 				when "00" =>
 					dout.data_mem_data_out <= std_logic_vector(resize(signed(dout0), 32));
+--					t0 <= '0';
 				when "01" =>
 					dout.data_mem_data_out <= std_logic_vector(resize(signed(dout1), 32));
+--					t1 <= '0';
 				when "10" =>
 					dout.data_mem_data_out <= std_logic_vector(resize(signed(dout2), 32));
+--					t2 <= '0';
 				when "11" =>
 					dout.data_mem_data_out <= std_logic_vector(resize(signed(dout3), 32));
+--					t3 <= '0';
 				when others => null;
 			end case;
-		elsif (din.LDT_instruction_type_out = LHUL or din.LDT_instruction_type_out = LHUC or din.LDT_instruction_type_out = LHUM) then
+		elsif (ldt_type = LHUL or ldt_type = LHUC or ldt_type = LHUM) then
 			--	dout.data_mem_data_out <= std_logic_vector(resize(unsigned( dout0 & dout1), 32));
-			case din.alu_result(0) is
+			case din.adrs_out(1) is
 				when '0' =>
 					dout.data_mem_data_out <= std_logic_vector(resize(unsigned(dout0 & dout1), 32));
 				when '1' =>
 					dout.data_mem_data_out <= std_logic_vector(resize(unsigned(dout2 & dout3), 32));
 				when others => null;
 			end case;
-		elsif (din.LDT_instruction_type_out = LBUL or din.LDT_instruction_type_out = LBUC or din.LDT_instruction_type_out = LBUM) then
-			case read_address(1 downto 0) is
+		elsif (ldt_type = LBUL or ldt_type = LBUC or ldt_type = LBUM) then
+			case din.adrs_out(1 downto 0) is
 				when "00" =>
 					dout.data_mem_data_out <= std_logic_vector(resize(unsigned(dout0), 32));
 				when "01" =>
@@ -178,7 +182,7 @@ begin
 		byte_enable1 <= '0';
 		byte_enable2 <= '0';
 		byte_enable3 <= '0';
-		case din.alu_result(1 downto 0) is
+		case din.adrs(1 downto 0) is
 			when "00"   => byte_enable0 <= din.mem_write;
 			when "01"   => byte_enable1 <= din.mem_write;
 			when "10"   => byte_enable2 <= din.mem_write;
@@ -191,7 +195,7 @@ begin
 	begin
 		word_enable0 <= '0';
 		word_enable1 <= '0';
-		case din.alu_result(0) is
+		case din.adrs(1) is
 			when '0'    => word_enable0 <= din.mem_write;
 			when '1'    => word_enable1 <= din.mem_write;
 			when others => null;
