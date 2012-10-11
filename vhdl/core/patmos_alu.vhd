@@ -81,105 +81,16 @@ begin
 	end process;
 	
 	patmos_address: process(rs1, rs2)
-	begin
-	--	predicate  <= predicate_reg;
+	begin 
 		adrs <= "00000000000000000000000000000000";
-		case din.inst_type is
-			when LDT =>
-				case din.LDT_instruction_type is
-					----- scratchpad memory
-					when LWL =>
-						 adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
-					when LHL =>
-						 adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-						 
-					when LBL =>
-						 adrs <= std_logic_vector(rs1 + rs2);
-						 	
-					when LHUL =>
-						 adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-						 	
-					when LBUL =>
-						 adrs <= std_logic_vector(rs1 + rs2);
-						 
-					---------------------------------------- stack cache
-					when LWS =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
-					when LHS =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when LBS =>
-						adrs <= std_logic_vector(rs1 + rs2);
-					when LHUS =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when LBUS =>
-						adrs    <= std_logic_vector(rs1 + rs2);
-					----------------------------------------- global memory	
-					when LWM =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
-					when LHM =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when LBM =>
-						adrs <= std_logic_vector(rs1 + rs2);
-					when LHUM =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when LBUM =>
-						adrs    <= std_logic_vector(rs1 + rs2);
-					---------------------------------------- data cache
-					when LWC =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
-					when LHC =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when LBC =>
-						adrs <= std_logic_vector(rs1 + rs2);
-					when LHUC =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when LBUC =>
-						adrs    <= std_logic_vector(rs1 + rs2);		
-
-					when others => adrs <= std_logic_vector(rs1 + rs2);
-				end case;
-
-			when STT =>
-				case din.STT_instruction_type is
-					----- scratchpad memory
-					when SWL =>
-						adrs <=  std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
-					when SHL =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-						
-					when SBL =>
-						adrs <= std_logic_vector(rs1 + rs2);
-							
-					---------------------------------------- stack cache
-					when SWS =>
-						adrs <=  std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
-					when SHS =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when SBS =>
-						adrs <= std_logic_vector(rs1 + rs2);
-					
-					
-					----------------------------------------- global memory	
-					when SWM =>
-						adrs <=  std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
-						
-					when SHM =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when SBM =>
-						adrs <= std_logic_vector(rs1 + rs2);
-						
-					---------------------------------------- data cache
-					when SWC =>
-						adrs <=  std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
-					when SHC =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when SBC =>
-						adrs <= std_logic_vector(rs1 + rs2);
-						
-					when others => adrs <= std_logic_vector(rs1 + rs2);	
-					---------------------------------------
-				end case;
-			when others => adrs <= std_logic_vector(rs1 + rs2);
+		case din.adrs_type is
+			when word => 
+				adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
+			when half =>
+				adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+			when byte =>
+				adrs <= std_logic_vector(rs1 + rs2);
+			when others => null;
 		end case;
 	end process;
 	

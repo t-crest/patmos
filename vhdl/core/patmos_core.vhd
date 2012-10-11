@@ -275,6 +275,7 @@ begin                                   -- architecture begin
 	alu_din.LDT_instruction_type <= decode_dout.LDT_instruction_type_out;
 
 	alu_din.mem_write_data_in <= memdin;
+	alu_din.adrs_type <= decode_dout.adrs_type;
 	---------------------------------------alu
 	alu : entity work.patmos_alu(arch)
 		port map(clk, rst, decode_dout, alu_din, execute_dout, mem_dout, memdin);
@@ -489,7 +490,7 @@ begin                                   -- architecture begin
 
 
 	-- TODO: the memory code belongs into the memory stage component
-
+	
 	mem_din.STT_instruction_type_out <= decode_dout.STT_instruction_type_out;
 	mem_din.LDT_instruction_type_out <= decode_dout.LDT_instruction_type_out;
 	mem_din.alu_result_out               <= execute_dout.alu_result_out;
