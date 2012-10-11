@@ -386,13 +386,13 @@ begin
 	begin
 		if (decdout.rs1_out = doutex_write_back_reg_out and doutex_reg_write_out = '1' and decdout.rs1_out /= "00000") then
 			din_rs1 <= doutex_alu_result_out;
-			t1 <= '1';
+			--t1 <= '1';
 		elsif (decdout.rs1_out = memdout.write_back_reg_out and memdout.reg_write_out = '1' and decdout.rs1_out /= "00000") then
 			din_rs1 <= memdout.data_out;
-			t2 <= '1';
+			--t2 <= '1';
 		else
 			din_rs1 <= decdout.rs1_data_out;
-			t3 <= '1';
+			--t3 <= '1';
 		end if;
 	end process forwarding_rs1;
 	
