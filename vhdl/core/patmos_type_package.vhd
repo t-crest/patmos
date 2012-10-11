@@ -51,7 +51,7 @@ package patmos_type_package is
 	type SPC_type is (NONE, SPCn, SPCw, SPCt, SPCf);
 	type forwarding_type is (FWNOP, FWMEM, FWALU);
 	type load_type is (NONE, lw, lh, lb, lhu, lbu, dlwh, dlbh, dlbu);
-
+	type address_type is (word, half, byte);
 	-------------------------------------------
 	-- in/out records
 	-------------------------------------------
@@ -114,6 +114,13 @@ package patmos_type_package is
 		sc_read_out              : std_logic;
 		STT_instruction_type_out : STT_inst_type;
 		LDT_instruction_type_out : LDT_inst_type;
+		
+		
+		
+		
+		
+		is_predicate_inst			 : std_logic;
+		adrs_type				 : address_type;
 	end record;
 
 	type result_type is record
@@ -177,7 +184,12 @@ package patmos_type_package is
 		STT_instruction_type : STT_inst_type;
 		LDT_instruction_type : LDT_inst_type;
 		mem_write_data_in    : std_logic_vector(31 downto 0);
-
+		
+		
+		
+		
+		is_predicate_inst		 : std_logic;
+		adrs_type			 : address_type;
 	end record;
 
 	------------------------------------------

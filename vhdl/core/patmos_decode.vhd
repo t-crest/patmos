@@ -52,7 +52,7 @@ entity patmos_decode is
 end entity patmos_decode;
 
 architecture arch of patmos_decode is
-	signal predicate_reg : integer;
+
 
 begin
 
@@ -109,6 +109,7 @@ begin
 			dout.sc_read_out              <= '0';
 			dout.lm_write_out			  <= '0';
 			dout.lm_read_out			  <= '0';
+			dout.is_predicate_inst			 <= '0';
 			-- TODO: get defaults for all signals and remove redundant assignments
 
 			--   if din.operation1(30) = '1' then -- predicate bits assignment
@@ -154,6 +155,7 @@ begin
 					when "100" =>       -- predicate
 						dout.ALU_instruction_type_out <= ALUp;
 						dout.reg_write_out <= '0';
+						dout.is_predicate_inst <= '1';
 					when others => NULL;
 				end case;
 

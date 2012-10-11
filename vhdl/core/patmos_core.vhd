@@ -105,14 +105,9 @@ architecture arch of patmos_core is
 	signal stack_cache_ctrl_dout  : patmos_stack_cache_ctrl_out;
 	signal mem_din                : mem_in_type;
 	signal mem_dout               : mem_out_type;
-	signal mux_mem_reg            : std_logic_vector(31 downto 0);
-	signal fw_ctrl_rs1            : forwarding_type;
-	signal fw_ctrl_rs2            : forwarding_type;
-	signal mem_data_out           : std_logic_vector(31 downto 0);
 
 	signal mem_data_out_uart  : std_logic_vector(31 downto 0);
 	signal mem_data_out_muxed : std_logic_vector(31 downto 0);
-	signal mem_data_out3      : std_logic_vector(31 downto 0);
 
 	signal mem_data_out_sdram : std_logic_vector(31 downto 0);
 
@@ -245,9 +240,7 @@ begin                                   -- architecture begin
 			     rst,
 			     fetch_reg1,
 			     fetch_reg2,
-			     std_logic_vector(execute_dout.write_back_reg_out),
-			     --			     fetch_dout.instruction(16 downto 12),
-			     --			     fetch_dout.instruction(11 downto 7),
+			     execute_dout.write_back_reg_out,
 			     decode_din.rs1_data_in,
 			     decode_din.rs2_data_in,
 			     mem_din.data_in,
@@ -276,6 +269,7 @@ begin                                   -- architecture begin
 
 	alu_din.mem_write_data_in <= memdin;
 	alu_din.adrs_type <= decode_dout.adrs_type;
+	alu_din.is_predicate_inst <= decode_dout.is_predicate_inst;
 	---------------------------------------alu
 	alu : entity work.patmos_alu(arch)
 		port map(clk, rst, decode_dout, alu_din, execute_dout, mem_dout, memdin);
