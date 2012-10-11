@@ -203,9 +203,7 @@ namespace patmos
   enum PRR_e
   {
     p0, p1, p2, p3, p4, p5, p6, p7,
-    pn0, pn1, pn2, pn3, pn4, pn5, pn6, pn7,
-    NUM_PRRn,
-    NUM_PRR = pn0
+    NUM_PRR
   };
 
   /// Symbols representing the special purpose registers.
@@ -228,7 +226,7 @@ namespace patmos
   typedef register_file_t<GPR_e, word_t, NUM_GPR> GPR_t;
 
   /// A register file for the predicate registers.
-  typedef register_file_t<PRR_e, bit_t, NUM_PRRn> PRR_t;
+  typedef register_file_t<PRR_e, bit_t, NUM_PRR> PRR_t;
 
   /// A register file for the special purpose registers.
   typedef register_file_t<SPR_e, word_t, NUM_SPR> SPR_t;
@@ -249,6 +247,9 @@ namespace patmos
 
   /// A special purpose register operand.
   typedef register_operand_t<SPR_e, word_t> SPR_op_t;
+
+  /// A guard operand, consisting of a predicate register and an inversion flag
+  typedef std::pair<PRR_e, bit_t> guard_t;
 }
 
 #endif // PATMOS_REGISTERS_H
