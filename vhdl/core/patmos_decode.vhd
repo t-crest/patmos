@@ -304,7 +304,7 @@ begin
 				dout.inst_type_out <= BC;
 				dout.alu_src_out        <= '0'; -- choose the second source, i.e. immediate!
 				dout.reg_write_out      <= '0'; -- reg_write_out is reg_write_ex
-				dout.mem_to_reg_out     <= '1'; -- data comes from alu or mem ? 0 from alu and 1 from mem
+				dout.mem_to_reg_out     <= '0'; -- data comes from alu or mem ? 0 from alu and 1 from mem
 
 			elsif din.operation(26 downto 24) = "011" then -- STC
 				dout.inst_type_out <= STC;
