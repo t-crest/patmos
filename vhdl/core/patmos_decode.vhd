@@ -109,7 +109,7 @@ begin
 			dout.sc_read_out              <= '0';
 			dout.lm_write_out			  <= '0';
 			dout.lm_read_out			  <= '0';
-			dout.is_predicate_inst			 <= '0';
+			
 			-- TODO: get defaults for all signals and remove redundant assignments
 
 			--   if din.operation1(30) = '1' then -- predicate bits assignment
@@ -118,11 +118,32 @@ begin
 			--         dout.predicate_bit <= not predicate_register_bank(to_integer(unsigned(din.operation1(29 downto 27))));
 			--   end if;   
 			
+			case din.operation(3 downto 0) is
+				when "0000" =>  dout.pat_function_type <= pat_add;
+				when "0001" => dout.pat_function_type <= pat_sub;
+				when "0010" => dout.pat_function_type <= pat_rsub;
+				when "0011" => dout.pat_function_type <= pat_sl;
+				when "0100" => dout.pat_function_type <= pat_sr;
+				when "0101" => dout.pat_function_type <= pat_sra;
+				when "0110" => dout.pat_function_type <= pat_or;
+				when "0111" => dout.pat_function_type <= pat_and;
+				-----
+				when "1000" => dout.pat_function_type <= pat_rl;
+				when "1001" => dout.pat_function_type <= pat_rr;
+				when "1010" => dout.pat_function_type <= pat_xor;
+				when "1011" => dout.pat_function_type <= pat_nor;
+				when "1100" => dout.pat_function_type <= pat_shadd;
+				when "1101" => dout.pat_function_type <= pat_shadd2;
+				when others => dout.pat_function_type <= pat_add; -- default add! 
+			end case;
+			dout.is_predicate_inst			 <= '0';
+			
 			
 			if din.operation(26 downto 25) = "00" then -- ALUi instruction
 				dout.reg_write_out    <= '1';
 				dout.inst_type_out         <= ALUi;
 				dout.ALU_function_type_out <= '0' & din.operation(24 downto 22);
+				
 			elsif din.operation(26 downto 22) = "11111" then -- long immediate!
 				dout.ALU_function_type_out <= din.operation(3 downto 0);
 				dout.reg_write_out    <= '1';
@@ -144,6 +165,13 @@ begin
 					when "001" =>       -- Unary
 						dout.ALU_instruction_type_out <= ALUu;
 						dout.reg_write_out    <= '1';
+						case din.operation(3 downto 0) is
+							when "0000" => dout.pat_function_type <= pat_sext8;
+							when "0001" => dout.pat_function_type <= pat_sext16;
+							when "0010" => dout.pat_function_type <= pat_zext16;
+							when "0011" => dout.pat_function_type <=  pat_abs;
+							when others => dout.pat_function_type <= pat_add;
+						end case;
 					when "010" =>       -- Multuply
 						dout.ALU_instruction_type_out <= ALUm;
 						dout.reg_write_out    <= '1';

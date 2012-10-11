@@ -267,7 +267,9 @@ begin                                   -- architecture begin
 	alu_din.STT_instruction_type <= decode_dout.STT_instruction_type_out;
 	alu_din.LDT_instruction_type <= decode_dout.LDT_instruction_type_out;
 
+	
 	alu_din.mem_write_data_in <= memdin;
+	alu_din.pat_function_type <= decode_dout.pat_function_type;
 	alu_din.adrs_type <= decode_dout.adrs_type;
 	alu_din.is_predicate_inst <= decode_dout.is_predicate_inst;
 	---------------------------------------alu
