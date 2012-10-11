@@ -382,27 +382,31 @@ begin
 		end if;
 	end process not_registered_out;
 	
-	forwarding_rs1 : process(doutex_alu_result_out, doutex_write_back_reg_out, doutex_reg_write_out , decdout)
+	forwarding_rs1 : process(doutex_alu_result_out, doutex_write_back_reg_out, doutex_reg_write_out , decdout, memdout)
 	begin
-		if (decdout.rs1_out = doutex_write_back_reg_out and doutex_reg_write_out = '1') then
+		if (decdout.rs1_out = doutex_write_back_reg_out and doutex_reg_write_out = '1' and decdout.rs1_out /= "00000") then
 			din_rs1 <= doutex_alu_result_out;
-		elsif (decdout.rs1_out = memdout.write_back_reg_out and memdout.reg_write_out = '1') then
+			t1 <= '1';
+		elsif (decdout.rs1_out = memdout.write_back_reg_out and memdout.reg_write_out = '1' and decdout.rs1_out /= "00000") then
 			din_rs1 <= memdout.data_out;
+			t2 <= '1';
 		else
 			din_rs1 <= decdout.rs1_data_out;
+			t3 <= '1';
 		end if;
 	end process forwarding_rs1;
 	
-	forwarding_rs2 : process(doutex_alu_result_out, doutex_write_back_reg_out, doutex_reg_write_out , decdout)
+	forwarding_rs2 : process(doutex_alu_result_out, doutex_write_back_reg_out, doutex_reg_write_out , decdout, memdout)
 	begin
-		if (decdout.rs2_out = doutex_write_back_reg_out and doutex_reg_write_out = '1') then
+		if (decdout.rs2_out = doutex_write_back_reg_out and doutex_reg_write_out = '1' and decdout.rs1_out /= "00000") then
 			alu_src2 <= doutex_alu_result_out;
-		elsif (decdout.rs2_out = memdout.write_back_reg_out and memdout.reg_write_out = '1') then
+		elsif (decdout.rs2_out = memdout.write_back_reg_out and memdout.reg_write_out = '1' and decdout.rs1_out /= "00000") then
 			alu_src2 <= memdout.data_out;
 		else
 			alu_src2 <= decdout.rs2_data_out;
 		end if;
 	end process forwarding_rs2;
+
 
 	process(alu_src2, decdout.ALUi_immediate_out, decdout.alu_src_out)
 	begin
