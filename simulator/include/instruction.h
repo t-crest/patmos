@@ -124,8 +124,8 @@ namespace patmos
     /// The instruction class that implements the behavior.
     const instruction_t *I;
 
-    /// The predicate under which the instruction is executed.
-    PRR_e Pred;
+    /// The guard under which the instruction is executed.
+    guard_t Guard;
 
     /// Union to keep operand information depending on instruction classes.
     union
@@ -168,7 +168,9 @@ namespace patmos
       {
         PRR_e Pd;
         PRR_e Ps1;
+        bit_t Ps1inv;
         PRR_e Ps2;
+        bit_t Ps2inv;
       } ALUp;
       /// Operands for an SPCn instruction.
       struct
@@ -279,7 +281,7 @@ namespace patmos
     GPR_by_pass_t GPR_EX_Rd;
 
     /// Result predicate operand from EX stage.
-    PRR_by_pass_t PRR_EX_Pd;
+    //PRR_by_pass_t PRR_EX_Pd;
 
     /// Value for memory stores.
     word_t EX_Rs;
@@ -301,153 +303,137 @@ namespace patmos
 
     /// Create an instruction with a predicate.
     /// @param i The instruction.
-    /// @param pred The predicate register under which the instruction is
-    /// executed.
-    instruction_data_t(const instruction_t &i, PRR_e pred);
+    /// @param pred The guard operand under which the instruction is executed.
+    instruction_data_t(const instruction_t &i, guard_t pred);
 
     // -------------------- CONSTRUCTOR FUNCTIONS ------------------------------
 
     /// Create an ALUi or ALUl instruction with a register operands, an
     /// immediate, and a register destination.
     /// @param i The instruction.
-    /// @param pred The predicate register under which the instruction is
-    /// executed.
+    /// @param pred The guard operand under which the instruction is executed.
     /// @param rd The destination register.
     /// @param rs1 The first operand register.
     /// @param imm2 The second immediate operand.
-    static instruction_data_t mk_ALUil(const instruction_t &i, PRR_e pred,
+    static instruction_data_t mk_ALUil(const instruction_t &i, guard_t pred,
                                        GPR_e rd, GPR_e rs1, word_t imm2);
 
     /// Create an ALUr instruction with two register operands and a register
     /// destination.
     /// @param i The instruction.
-    /// @param pred The predicate register under which the instruction is
-    /// executed.
+    /// @param pred The guard operand under which the instruction is executed.
     /// @param rd The destination register.
     /// @param rs1 The first operand register.
     /// @param rs2 The second operand register.
-    static instruction_data_t mk_ALUr(const instruction_t &i, PRR_e pred,
+    static instruction_data_t mk_ALUr(const instruction_t &i, guard_t pred,
                                       GPR_e rd, GPR_e rs1, GPR_e rs2);
 
     /// Create an ALUu instruction with a register operand and a register
     /// destination.
     /// @param i The instruction.
-    /// @param pred The predicate register under which the instruction is
-    /// executed.
+    /// @param pred The guard operand under which the instruction is executed.
     /// @param rd The destination register.
     /// @param rs1 The first operand register.
-    static instruction_data_t mk_ALUu(const instruction_t &i, PRR_e pred,
+    static instruction_data_t mk_ALUu(const instruction_t &i, guard_t pred,
                                       GPR_e rd, GPR_e rs1);
 
     /// Create an ALUm instruction with two register operands.
     /// @param i The instruction.
-    /// @param pred The predicate register under which the instruction is
-    /// executed.
+    /// @param pred The guard operand under which the instruction is executed.
     /// @param rs1 The first operand register.
     /// @param rs2 The second operand register.
-    static instruction_data_t mk_ALUm(const instruction_t &i, PRR_e pred,
+    static instruction_data_t mk_ALUm(const instruction_t &i, guard_t pred,
                                       GPR_e rs1, GPR_e rs2);
 
     /// Create an ALUc instruction with two register operands and a predicate
     /// register destination.
     /// @param i The instruction.
-    /// @param pred The predicate register under which the instruction is
-    /// executed.
+    /// @param pred The guard operand under which the instruction is executed.
     /// @param pd The predicate destination register.
     /// @param rs1 The first operand register.
     /// @param rs2 The second operand register.
-    static instruction_data_t mk_ALUc(const instruction_t &i, PRR_e pred,
+    static instruction_data_t mk_ALUc(const instruction_t &i, guard_t pred,
                                       PRR_e pd, GPR_e rs1, GPR_e rs2);
 
     /// Create an ALUp instruction with two predicate register operands and a
     /// predicate register destination.
     /// @param i The instruction.
-    /// @param pred The predicate register under which the instruction is
-    /// executed.
+    /// @param pred The guard operand under which the instruction is executed.
     /// @param pd The predicate destination register.
-    /// @param ps1 The first operand predicate register.
-    /// @param ps2 The second operand predicate register.
-    static instruction_data_t mk_ALUp(const instruction_t &i, PRR_e pred,
-                                      PRR_e pd, PRR_e ps1, PRR_e ps2);
+    /// @param ps1 The first input predicate operand.
+    /// @param ps2 The second input predicate operand.
+    static instruction_data_t mk_ALUp(const instruction_t &i, guard_t pred,
+                                      PRR_e pd, guard_t ps1, guard_t ps2);
 
     /// Create an SPCn instruction with an immediate operand.
     /// @param i The instruction.
-    /// @param pred The predicate register under which the instruction is
-    /// executed.
+    /// @param pred The guard operand under which the instruction is executed.
     /// @param imm The immediate operand.
-    static instruction_data_t mk_SPCn(const instruction_t &i, PRR_e pred,
+    static instruction_data_t mk_SPCn(const instruction_t &i, guard_t pred,
                                       word_t imm);
 
     /// Create an SPCw instruction without operands.
     /// @param i The instruction.
-    /// @param pred The predicate register under which the instruction is
-    /// executed.
-    static instruction_data_t mk_SPCw(const instruction_t &i, PRR_e pred);
+    /// @param pred The guard operand under which the instruction is executed.
+    static instruction_data_t mk_SPCw(const instruction_t &i, guard_t pred);
 
     /// Create an SPCt instruction with a register operand and a special
     /// register destination.
     /// @param i The instruction.
-    /// @param pred The predicate register under which the instruction is
-    /// executed.
+    /// @param pred The guard operand under which the instruction is executed.
     /// @param sd The special destination register.
     /// @param rs1 The register operand.
-    static instruction_data_t mk_SPCt(const instruction_t &i, PRR_e pred,
+    static instruction_data_t mk_SPCt(const instruction_t &i, guard_t pred,
                                       SPR_e sd, GPR_e rs1);
 
     /// Create an SPCf instruction with a special register operand and a
     /// register destination.
     /// @param i The instruction.
-    /// @param pred The predicate register under which the instruction is
-    /// executed.
+    /// @param pred The guard operand under which the instruction is executed.
     /// @param rd The destination register.
     /// @param ss The special register operand.
-    static instruction_data_t mk_SPCf(const instruction_t &i, PRR_e pred,
+    static instruction_data_t mk_SPCf(const instruction_t &i, guard_t pred,
                                       GPR_e rd, SPR_e ss);
 
     /// Create an LDT instruction with a register operand, an immediate operand,
     /// and a register destination.
     /// @param i The instruction.
-    /// @param pred The predicate register under which the instruction is
-    /// executed.
+    /// @param pred The guard operand under which the instruction is executed.
     /// @param rd The destination register.
     /// @param ra The first operand register.
     /// @param imm The second operand immediate.
-    static instruction_data_t mk_LDT(const instruction_t &i, PRR_e pred,
+    static instruction_data_t mk_LDT(const instruction_t &i, guard_t pred,
                                      GPR_e rd, GPR_e ra, word_t imm);
 
     /// Create an STT instruction with two register operands and an immediate
     /// operand.
     /// @param i The instruction.
-    /// @param pred The predicate register under which the instruction is
-    /// executed.
+    /// @param pred The guard operand under which the instruction is executed.
     /// @param ra The address operand register.
     /// @param rs1 The first operand register.
     /// @param imm2 The second operand immediate.
-    static instruction_data_t mk_STT(const instruction_t &i, PRR_e pred,
+    static instruction_data_t mk_STT(const instruction_t &i, guard_t pred,
                                      GPR_e ra, GPR_e rs1, word_t imm2);
 
     /// Create an STC instruction with an immediate operand.
     /// @param i The instruction.
-    /// @param pred The predicate register under which the instruction is
-    /// executed.
+    /// @param pred The guard operand under which the instruction is executed.
     /// @param imm The operand immediate.
-    static instruction_data_t mk_STC(const instruction_t &i, PRR_e pred,
+    static instruction_data_t mk_STC(const instruction_t &i, guard_t pred,
                                      word_t imm);
 
     /// Create an CFLb instruction with an immediate operand.
     /// @param i The instruction.
-    /// @param pred The predicate register under which the instruction is
-    /// executed.
+    /// @param pred The guard operand under which the instruction is executed.
     /// @param imm The operand immediate.
-    static instruction_data_t mk_CFLb(const instruction_t &i, PRR_e pred,
+    static instruction_data_t mk_CFLb(const instruction_t &i, guard_t pred,
                                       word_t imm);
 
     /// Create an CFLi instruction with an register operand.
     /// @param i The instruction.
-    /// @param pred The predicate register under which the instruction is
-    /// executed.
+    /// @param pred The guard operand under which the instruction is executed.
     /// @param rs The operand register.
-    static instruction_data_t mk_CFLi(const instruction_t &i, PRR_e pred,
+    static instruction_data_t mk_CFLi(const instruction_t &i, guard_t pred,
                                       GPR_e rs);
 
     /// Create an CFLr instruction without operands.
@@ -456,7 +442,7 @@ namespace patmos
     /// @param rb The register containing the return function base.
     /// @param ro The register containing the return offset.
     /// executed.
-    static instruction_data_t mk_CFLr(const instruction_t &i, PRR_e pred,
+    static instruction_data_t mk_CFLr(const instruction_t &i, guard_t pred,
                                       GPR_e rb, GPR_e ro);
 
     /// Create an BNE instruction with two register operands and an immediate.

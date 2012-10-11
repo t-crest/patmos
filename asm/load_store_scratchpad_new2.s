@@ -50,7 +50,7 @@
 	sli     r5 = r5, 7;
 	addi    r10 = r0, 251;
 	swl     [r1 + 2] = r0;
-	shl	[r1 + 4] = r5; # 
+x1:	shl	[r1 + 4] = r5; # 
 	lwl	r21 = [r1 + 2];	# 
 	nop	0;
 	addi    r16 = r0, 15;
@@ -62,5 +62,5 @@
 	or	r21 = r21, r31;
 	subi    r30 = r30, 1;
 	cmpneq  p1 = r31, r29;
-(p1)	bc	25; #r20 equals to all upper bits 1 
+(p1)	bc	x1; #r20 equals to all upper bits 1 
 	halt;

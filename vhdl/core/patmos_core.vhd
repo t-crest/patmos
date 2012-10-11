@@ -250,7 +250,7 @@ begin                                   -- architecture begin
 			     --			     fetch_dout.instruction(11 downto 7),
 			     decode_din.rs1_data_in,
 			     decode_din.rs2_data_in,
-			     mux_mem_reg,
+			     mem_din.data_in,
 			     execute_dout.reg_write_out);
 
 	decode_din.operation <= fetch_dout.instruction;
@@ -342,7 +342,7 @@ begin                                   -- architecture begin
 
 	begin
 		-- Everything disabled by default: device enabled in particular branch
-		addr       := execute_dout.alu_result;
+		addr       := execute_dout.adrs;
 		io_next    <= (address => addr, device => io_none, others => '0');
 		io_next.rd <= execute_dout.lm_read_out_not_reg;
 		io_next.wr <= execute_dout.lm_write_out_not_reg;
@@ -400,7 +400,7 @@ begin                                   -- architecture begin
 	-- Would also be clearer is address calculation has it's own signals.
 	-- Maybe it shall be in it's own component (together with some address
 	-- decoding).
-	io_mem_read_mux : process(mem_data_out_uart, data_mem_data_out, execute_dout, io_reg, counter)
+	io_mem_read_mux : process(mem_data_out_uart, mem_dout.data_mem_data_out, execute_dout, io_reg, counter)
 	begin
 		mem_data_out_muxed <= mem_data_out_uart;
 		if io_reg.mem_en = '0' then
@@ -413,16 +413,16 @@ begin                                   -- architecture begin
 					mem_data_out_muxed <= std_logic_vector(counter);
 			end case;
 		else
-			mem_data_out_muxed <= data_mem_data_out;
+			mem_data_out_muxed <= mem_dout.data_mem_data_out;
 		end if;
 	end process;
 
 	write_back_proc : process(execute_dout, mem_data_out_muxed)
 	begin
 		if execute_dout.mem_to_reg_out = '1' then
-			mux_mem_reg <= mem_data_out_muxed;
+			mem_din.data_in <= mem_data_out_muxed;
 		else
-			mux_mem_reg <= execute_dout.alu_result_out;
+			mem_din.data_in <= execute_dout.alu_result_out;
 		end if;
 	end process;
 
@@ -492,12 +492,11 @@ begin                                   -- architecture begin
 
 	mem_din.STT_instruction_type_out <= decode_dout.STT_instruction_type_out;
 	mem_din.LDT_instruction_type_out <= decode_dout.LDT_instruction_type_out;
-	mem_din.alu_result               <= execute_dout.alu_result;
+	mem_din.alu_result_out               <= execute_dout.alu_result_out;
+	mem_din.adrs_out               <= execute_dout.adrs_out;
+	mem_din.adrs               		  <= execute_dout.adrs;
 	mem_din.mem_write                <= io_next.wr and io_next.mem_en;
-	--	mem_din.alu_src2   <= memdin;
-	data_mem_data_out                <= mem_dout.data_mem_data_out;
-	--------------------------
-	mem_din.data_in                  <= mux_mem_reg;
+
 	-- forward
 	mem_din.reg_write_in             <= execute_dout.reg_write_out or execute_dout.mem_to_reg_out; --execute_dout.mem_to_reg_out or execute_dout.mem_write_out;
 	mem_din.write_back_reg_in        <= execute_dout.write_back_reg_out;

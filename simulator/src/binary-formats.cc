@@ -55,9 +55,10 @@ namespace patmos
     return (GPR_e)extract(from, start, 5);
   }
 
-  static PRR_e extractPN(uword_t from, unsigned int start)
+  static guard_t extractPN(uword_t from, unsigned int start)
   {
-    return (PRR_e)extract(from, start, 4);
+    std::make_pair( (PRR_e)extract(from, start, 3),
+                    (bit_t)extract(from, start+3, 1) );
   }
 
   static PRR_e extractP(uword_t from, unsigned int start)
@@ -123,7 +124,7 @@ namespace patmos
     word_t imm = extract(iw, 0, 12);
     GPR_e rs1 = extractG(iw, 12);
     GPR_e rd = extractG(iw, 17);
-    PRR_e pred = extractPN(iw, 27);
+    guard_t pred = extractPN(iw, 27);
     return instruction_data_t::mk_ALUil(Instruction, pred, rd, rs1, imm);
   }
 
@@ -155,7 +156,7 @@ namespace patmos
   {
     GPR_e rs1 = extractG(iw, 12);
     GPR_e rd = extractG(iw, 17);
-    PRR_e pred = extractPN(iw, 27);
+    guard_t pred = extractPN(iw, 27);
     return instruction_data_t::mk_ALUil(Instruction, pred, rd, rs1, longimm);
   }
 
@@ -189,7 +190,7 @@ namespace patmos
     GPR_e rs2 = extractG(iw, 7);
     GPR_e rs1 = extractG(iw, 12);
     GPR_e rd = extractG(iw, 17);
-    PRR_e pred = extractPN(iw, 27);
+    guard_t pred = extractPN(iw, 27);
     return instruction_data_t::mk_ALUr(Instruction, pred, rd, rs1, rs2);
   }
 
@@ -222,7 +223,7 @@ namespace patmos
   {
     GPR_e rs1 = extractG(iw, 12);
     GPR_e rd = extractG(iw, 17);
-    PRR_e pred = extractPN(iw, 27);
+    guard_t pred = extractPN(iw, 27);
     return instruction_data_t::mk_ALUu(Instruction, pred, rd, rs1);
   }
 
@@ -255,7 +256,7 @@ namespace patmos
   {
     GPR_e rs2 = extractG(iw, 7);
     GPR_e rs1 = extractG(iw, 12);
-    PRR_e pred = extractPN(iw, 27);
+    guard_t pred = extractPN(iw, 27);
     return instruction_data_t::mk_ALUm(Instruction, pred, rs1, rs2);
   }
 
@@ -289,7 +290,7 @@ namespace patmos
     GPR_e rs2 = extractG(iw, 7);
     GPR_e rs1 = extractG(iw, 12);
     PRR_e pd = extractP(iw, 17);
-    PRR_e pred = extractPN(iw, 27);
+    guard_t pred = extractPN(iw, 27);
     return instruction_data_t::mk_ALUc(Instruction, pred, pd, rs1, rs2);
   }
 
@@ -321,10 +322,10 @@ namespace patmos
   instruction_data_t alup_format_t::decode_operands(word_t iw,
                                                     word_t longimm) const
   {
-    PRR_e ps2 = extractPN(iw, 7);
-    PRR_e ps1 = extractPN(iw, 12);
+    guard_t ps2 = extractPN(iw, 7);
+    guard_t ps1 = extractPN(iw, 12);
     PRR_e pd = extractP(iw, 17);
-    PRR_e pred = extractPN(iw, 27);
+    guard_t pred = extractPN(iw, 27);
     return instruction_data_t::mk_ALUp(Instruction, pred, pd, ps1, ps2);
   }
 
@@ -356,7 +357,7 @@ namespace patmos
                                                     word_t longimm) const
   {
     word_t imm = extract(iw, 0, 4);
-    PRR_e pred = extractPN(iw, 27);
+    guard_t pred = extractPN(iw, 27);
     return instruction_data_t::mk_SPCn(Instruction, pred, imm);
   }
 
@@ -383,7 +384,7 @@ namespace patmos
   instruction_data_t spcw_format_t::decode_operands(word_t iw,
                                                     word_t longimm) const
   {
-    PRR_e pred = extractPN(iw, 27);
+    guard_t pred = extractPN(iw, 27);
     return instruction_data_t::mk_SPCw(Instruction, pred);
   }
 
@@ -412,7 +413,7 @@ namespace patmos
   {
     SPR_e sd = extractS(iw, 0);
     GPR_e rs = extractG(iw, 12);
-    PRR_e pred = extractPN(iw, 27);
+    guard_t pred = extractPN(iw, 27);
     return instruction_data_t::mk_SPCt(Instruction, pred, sd, rs);
   }
 
@@ -442,7 +443,7 @@ namespace patmos
   {
     SPR_e ss = extractS(iw, 0);
     GPR_e rd = extractG(iw, 17);
-    PRR_e pred = extractPN(iw, 27);
+    guard_t pred = extractPN(iw, 27);
     return instruction_data_t::mk_SPCf(Instruction, pred, rd, ss);
   }
 
@@ -474,7 +475,7 @@ namespace patmos
     word_t imm = extractS(iw, 0, 7);
     GPR_e ra = extractG(iw, 12);
     GPR_e rd = extractG(iw, 17);
-    PRR_e pred = extractPN(iw, 27);
+    guard_t pred = extractPN(iw, 27);
     return instruction_data_t::mk_LDT(Instruction, pred, rd, ra, imm);
   }
 
@@ -513,7 +514,7 @@ namespace patmos
     word_t imm = extractS(iw, 0, 7);
     GPR_e rs = extractG(iw, 7);
     GPR_e ra = extractG(iw, 12);
-    PRR_e pred = extractPN(iw, 27);
+    guard_t pred = extractPN(iw, 27);
     return instruction_data_t::mk_STT(Instruction, pred, ra, rs, imm);
   }
 
@@ -544,7 +545,7 @@ namespace patmos
                                                    word_t longimm) const
   {
     word_t imm = extract(iw, 0, 22);
-    PRR_e pred = extractPN(iw, 27);
+    guard_t pred = extractPN(iw, 27);
     return instruction_data_t::mk_STC(Instruction, pred, imm);
   }
 
@@ -573,7 +574,7 @@ namespace patmos
                                                     word_t longimm) const
   {
     word_t imm = extractS(iw, 0, 22);
-    PRR_e pred = extractPN(iw, 27);
+    guard_t pred = extractPN(iw, 27);
     return instruction_data_t::mk_CFLb(Instruction, pred, imm);
   }
 
@@ -602,7 +603,7 @@ namespace patmos
                                                     word_t longimm) const
   {
     GPR_e rs = extractG(iw, 12);
-    PRR_e pred = extractPN(iw, 27);
+    guard_t pred = extractPN(iw, 27);
     return instruction_data_t::mk_CFLi(Instruction, pred, rs);
   }
 
@@ -632,7 +633,7 @@ namespace patmos
   {
     GPR_e ro = extractG(iw,  7);
     GPR_e rb = extractG(iw, 12);
-    PRR_e pred = extractPN(iw, 27);
+    guard_t pred = extractPN(iw, 27);
     return instruction_data_t::mk_CFLr(Instruction, pred, rb, ro);
   }
 

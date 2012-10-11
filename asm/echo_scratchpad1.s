@@ -1,29 +1,32 @@
 #
 # FIXME: add comment
 #
-# Expected Result: just checking if echo works along with other instructions... UART addresses are not valid anymore
+# Expected Result: just checking if echo works along with other instructions.
 #
 
-		addi	r0 = r0, 0;  # first instruction not executed
-		addi	r5 = r0, 0;
+x0:		addi	r0 = r0, 0;  # first instruction not executed
+		addi	r5 = r0, 15;
+		sli	r5 = r5, 28;
 
 		addi	r1   = r0 , 2;
-		lwl     r10  = [r5 + 0];
+x1:		lwl     r10  = [r5 + 0];
 		addi	r0 = r0, 0;
                 and     r11  = r10 , r1;
 		cmpneq  p1 = r1, r11;
-	(p1)	bc	0;
+	(p1)	bc	x1;
                 addi    r0  = r0 , 0;
-                addi    r0  = r0 , 0;
+                addi    r0  = r0 , 0;		
+#		addi	r5 = r5, 1;
 
                 lwl     r15  = [r5 + 1];
 
+#		subi	r5 = r5, 1;
 		addi	r3 = r0, 1;
-		lwl     r10  = [r5 + 0];
+x2:		lwl     r10  = [r5 + 0];
 		addi	r0 = r0, 0;
 		and     r11 = r3 , r10;
 		cmpneq  p1 = r3, r11;
-	(p1)	bc	11;
+	(p1)	bc	x2;
                 addi    r0  = r0 , 0;
                 addi    r0  = r0 , 0;
 
@@ -33,7 +36,7 @@
 		lwl	r25  = [r13 + 1]; # register(25) = whatever from uart 		
 		nop 	0;
 		swl	[r5 + 1] = r25;
-		bc	0;
+		bc	x0;
                 addi    r0  = r0 , 0;
                 addi    r0  = r0 , 0;
                 halt;
