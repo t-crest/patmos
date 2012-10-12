@@ -148,42 +148,6 @@ namespace patmos
                op)))).get();
     }
 
-    /// Print a guard operand to an output stream.
-    /// @param os The output stream to print to.
-    /// @param preg The predicate register.
-    /// @param pflag The predicate inversion flag.
-    /// @param bare If true, print the operand without parentheses,
-    ///        also the default operand (always true).
-    static inline void printGuard(std::ostream &os, PRR_e preg,
-                                 bit_t pflag, bool bare=false)
-    {
-      if (bare) {
-        if (pflag) os << "!";
-        os << "p" << preg;
-        return;
-      }
-      // hide the default predicate operand
-      if (preg != p0 || pflag == true) {
-        os << boost::format("(%1%p%2%) ") % ((pflag)?"!":" ") % preg;
-      } else {
-        // omit default predicate
-        //os << "(!pN) ";
-        os <<   "      ";
-      }
-
-    }
-
-    /// Print a guard operand (pair) to an output stream.
-    /// @param os The output stream to print to.
-    /// @param pred The guard operand.
-    /// @param bare If true, print the operand without parentheses,
-    ///        also the default operand (always true).
-    static inline void printGuard(std::ostream &os, const guard_t &pred,
-                                 bool bare=false)
-    {
-      printGuard(os, pred.first, pred.second, bare);
-    }
-
   public:
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
@@ -213,7 +177,7 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.DR_Pred = s.PRR.get(ops.Guard.first).get() ^ ops.Guard.second;
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
       ops.DR_Rs1 = s.GPR.get(ops.OPS.ALUil.Rs1);
     }
 
@@ -274,9 +238,9 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      printGuard(os, ops.Guard); \
-      os << boost::format("%1% r%2% = r%3%, %4%") % #name \
-          % ops.OPS.ALUil.Rd % ops.OPS.ALUil.Rs1  % ops.OPS.ALUil.Imm2; \
+      os << boost::format("(p%2%) %1% r%3% = r%4%, %5%") % #name \
+          % ops.Pred % ops.OPS.ALUil.Rd % ops.OPS.ALUil.Rs1 \
+          % ops.OPS.ALUil.Imm2; \
       symbols.print(os, ops.OPS.ALUil.Imm2); \
     } \
     virtual word_t compute(word_t value1, word_t value2) const \
@@ -318,7 +282,7 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.DR_Pred = s.PRR.get(ops.Guard.first).get() ^ ops.Guard.second;
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
       ops.DR_Rs1 = s.GPR.get(ops.OPS.ALUr.Rs1);
       ops.DR_Rs2 = s.GPR.get(ops.OPS.ALUr.Rs2);
     }
@@ -381,9 +345,8 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      printGuard(os, ops.Guard); \
-      os << boost::format("%1% r%2% = r%3%, r%4%") % #name \
-          % ops.OPS.ALUr.Rd % ops.OPS.ALUr.Rs1 % ops.OPS.ALUr.Rs2; \
+      os << boost::format("(p%2%) %1% r%3% = r%4%, r%5%") % #name \
+          % ops.Pred % ops.OPS.ALUr.Rd % ops.OPS.ALUr.Rs1 % ops.OPS.ALUr.Rs2; \
     } \
     virtual word_t compute(word_t value1, word_t value2) const \
     { \
@@ -423,7 +386,7 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.DR_Pred = s.PRR.get(ops.Guard.first).get() ^ ops.Guard.second;
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
       ops.DR_Rs1 = s.GPR.get(ops.OPS.ALUu.Rs1);
     }
 
@@ -483,9 +446,8 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      printGuard(os, ops.Guard); \
-      os << boost::format("%1% r%2% = r%3%") % #name \
-          % ops.OPS.ALUu.Rd % ops.OPS.ALUu.Rs1; \
+      os << boost::format("(p%2%) %1% r%3% = r%4%") % #name \
+          % ops.Pred % ops.OPS.ALUu.Rd % ops.OPS.ALUu.Rs1; \
     } \
     virtual word_t compute(word_t value1) const \
     { \
@@ -515,7 +477,7 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.DR_Pred = s.PRR.get(ops.Guard.first).get() ^ ops.Guard.second;
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
       ops.DR_Rs1 = s.GPR.get(ops.OPS.ALUm.Rs1);
       ops.DR_Rs2 = s.GPR.get(ops.OPS.ALUm.Rs2);
     }
@@ -555,9 +517,8 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      printGuard(os, ops.Guard); \
-      os << boost::format("%1% r%2%, r%3%") % #name \
-          % ops.OPS.ALUm.Rs1 % ops.OPS.ALUm.Rs2; \
+      os << boost::format("(p%2%) %1% r%3%, r%4%") % #name \
+          % ops.Pred % ops.OPS.ALUm.Rs1 % ops.OPS.ALUm.Rs2; \
     } \
     virtual dword_t compute(word_t value1, word_t value2) const \
     { \
@@ -585,7 +546,7 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.DR_Pred = s.PRR.get(ops.Guard.first).get() ^ ops.Guard.second;
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
       ops.DR_Rs1 = s.GPR.get(ops.OPS.ALUc.Rs1);
       ops.DR_Rs2 = s.GPR.get(ops.OPS.ALUc.Rs2);
     }
@@ -617,9 +578,8 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      printGuard(os, ops.Guard); \
-      os << boost::format("%1% p%2% = r%3%, r%4%") % #name \
-          % ops.OPS.ALUc.Pd % ops.OPS.ALUc.Rs1 % ops.OPS.ALUc.Rs2; \
+      os << boost::format("(p%2%) %1% p%3% = r%4%, r%5%") % #name \
+          % ops.Pred % ops.OPS.ALUc.Pd % ops.OPS.ALUc.Rs1 % ops.OPS.ALUc.Rs2; \
     } \
     virtual bit_t compute(word_t value1, word_t value2) const \
     { \
@@ -639,9 +599,8 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      printGuard(os, ops.Guard); \
-      os << boost::format("%1% p%2% = r%3%, r%4%") % #name \
-          % ops.OPS.ALUc.Pd % ops.OPS.ALUc.Rs1 % ops.OPS.ALUc.Rs2; \
+      os << boost::format("(p%2%) %1% p%3% = r%4%, r%5%") % #name \
+          % ops.Pred % ops.OPS.ALUc.Pd % ops.OPS.ALUc.Rs1 % ops.OPS.ALUc.Rs2; \
     } \
     virtual bit_t compute(word_t value1, word_t value2) const \
     { \
@@ -662,9 +621,8 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
-      printGuard(os, ops.Guard);
-      os << boost::format("btest p%1% = r%2%, r%3%")
-          % ops.OPS.ALUc.Pd % ops.OPS.ALUc.Rs1 % ops.OPS.ALUc.Rs2;
+      os << boost::format("(p%1%) btest p%2% = r%3%, r%4%")
+          % ops.Pred % ops.OPS.ALUc.Pd % ops.OPS.ALUc.Rs1 % ops.OPS.ALUc.Rs2;
     }
 
     virtual bit_t compute(word_t value1, word_t value2) const
@@ -690,9 +648,9 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.DR_Pred = s.PRR.get(ops.Guard.first).get() ^ ops.Guard.second;
-      ops.DR_Ps1 = s.PRR.get(ops.OPS.ALUp.Ps1).get() ^ ops.OPS.ALUp.Ps1inv;
-      ops.DR_Ps2 = s.PRR.get(ops.OPS.ALUp.Ps2).get() ^ ops.OPS.ALUp.Ps2inv;
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.DR_Ps1 = s.PRR.get(ops.OPS.ALUp.Ps1).get();
+      ops.DR_Ps2 = s.PRR.get(ops.OPS.ALUp.Ps2).get();
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
@@ -721,11 +679,8 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      printGuard(os, ops.Guard); \
-      os << boost::format("%1% p%2% = ") % #name % ops.OPS.ALUp.Pd; \
-      printGuard(os, ops.OPS.ALUp.Ps1, ops.OPS.ALUp.Ps1inv, true); \
-      os << ", "; \
-      printGuard(os, ops.OPS.ALUp.Ps2, ops.OPS.ALUp.Ps2inv, true); \
+      os << boost::format("(p%2%) %1% p%3% = p%4%, p%5%") % #name \
+          % ops.Pred % ops.OPS.ALUp.Pd % ops.OPS.ALUp.Ps1 % ops.OPS.ALUp.Ps2; \
     } \
     virtual bit_t compute(word_t value1, word_t value2) const \
     { \
@@ -749,8 +704,7 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
-      printGuard(os, ops.Guard);
-      os << "nop " << ops.OPS.SPCn.Imm;
+      os << boost::format("(p%1%) nop %2%") % ops.Pred % ops.OPS.SPCn.Imm;
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
@@ -769,8 +723,7 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
-      bit_t Pred = ops.DR_Pred
-                 = s.PRR.get(ops.Guard.first).get() ^ ops.Guard.second;
+      bit_t Pred = ops.DR_Pred = s.PRR.get(ops.Pred).get();
 
       if (Pred)
       {
@@ -801,8 +754,7 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
-      printGuard(os, ops.Guard);
-      os << "waitm";
+      os << boost::format("(p%1%) waitm") % ops.Pred;
     }
 
     // IF inherited from NOP
@@ -813,7 +765,7 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
-      bit_t Pred = s.PRR.get(ops.Guard.first).get() ^ ops.Guard.second;
+      bit_t Pred = s.PRR.get(ops.Pred).get();
 
       if (Pred)
       {
@@ -842,9 +794,8 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
-      printGuard(os, ops.Guard);
-      os << boost::format("mts s%1% = r%2%")
-                          % ops.OPS.SPCt.Sd % ops.OPS.SPCt.Rs1;
+      os << boost::format("(p%1%) mts s%2% = r%3%")
+         % ops.Pred % ops.OPS.SPCt.Sd % ops.OPS.SPCt.Rs1;
     }
 
     // IF inherited from NOP
@@ -855,7 +806,7 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.DR_Pred = s.PRR.get(ops.Guard.first).get() ^ ops.Guard.second;
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
       ops.DR_Rs1 = s.GPR.get(ops.OPS.SPCt.Rs1);
     }
 
@@ -897,9 +848,8 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
-      printGuard(os, ops.Guard);
-      os << boost::format("mfs r%1% = s%2%")
-                          % ops.OPS.SPCf.Rd % ops.OPS.SPCf.Ss;
+      os << boost::format("(p%1%) mfs r%2% = s%3%")
+         % ops.Pred % ops.OPS.SPCf.Rd % ops.OPS.SPCf.Ss;
     }
 
     // IF inherited from NOP
@@ -910,7 +860,7 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.DR_Pred = s.PRR.get(ops.Guard.first).get() ^ ops.Guard.second;
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
       // read a value from the special register file or all predicate registers
       if (ops.OPS.SPCf.Ss == 0)
       {
@@ -993,7 +943,7 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.DR_Pred = s.PRR.get(ops.Guard.first).get() ^ ops.Guard.second;
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
       ops.DR_Rs1 = s.GPR.get(ops.OPS.LDT.Ra);
     }
 
@@ -1046,9 +996,8 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      printGuard(os, ops.Guard); \
-      os << boost::format("%1% r%2% = [r%3% + %4%]") % #name \
-          % ops.OPS.LDT.Rd % ops.OPS.LDT.Ra % ops.OPS.LDT.Imm; \
+      os << boost::format("(p%2%) %1% r%3% = [r%4% + %5%]") % #name \
+          % ops.Pred % ops.OPS.LDT.Rd % ops.OPS.LDT.Ra % ops.OPS.LDT.Imm; \
       symbols.print(os, ops.EX_Address); \
     } \
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
@@ -1116,7 +1065,7 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.DR_Pred = s.PRR.get(ops.Guard.first).get() ^ ops.Guard.second;
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
       ops.DR_Rs1 = s.GPR.get(ops.OPS.LDT.Ra);
 
       if (ops.DR_Pred && s.Is_decoupled_load_active)
@@ -1160,9 +1109,8 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      printGuard(os, ops.Guard); \
-      os << boost::format("%1% sm = [r%2% + %3%]") % #name \
-          % ops.OPS.LDT.Ra % ops.OPS.LDT.Imm; \
+      os << boost::format("(p%2%) %1% sm = [r%3% + %4%]") % #name \
+          % ops.Pred % ops.OPS.LDT.Ra % ops.OPS.LDT.Imm; \
     } \
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
     { \
@@ -1219,7 +1167,7 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.DR_Pred = s.PRR.get(ops.Guard.first).get() ^ ops.Guard.second;
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
       ops.DR_Rs1 = s.GPR.get(ops.OPS.STT.Ra);
       ops.DR_Rs2 = s.GPR.get(ops.OPS.STT.Rs1);
     }
@@ -1250,9 +1198,8 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      printGuard(os, ops.Guard); \
-      os << boost::format("%1% [r%2% + %3%] = r%4%") % #name \
-          % ops.OPS.STT.Ra % ops.OPS.STT.Imm2 % ops.OPS.STT.Rs1; \
+      os << boost::format("(p%2%) %1% [r%3% + %4%] = r%5%") % #name \
+          % ops.Pred % ops.OPS.STT.Ra % ops.OPS.STT.Imm2 % ops.OPS.STT.Rs1; \
       symbols.print(os, ops.EX_Address); \
     } \
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
@@ -1293,13 +1240,12 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      printGuard(os, ops.Guard); \
-      os << #name << " " << ops.OPS.STC.Imm; \
+      os << boost::format("(p%2%) %1% %3%") % #name % ops.Pred % ops.OPS.STC.Imm; \
       symbols.print(os, ops.EX_Address); \
     } \
     virtual void DR(simulator_t &s, instruction_data_t &ops) const \
     { \
-      ops.DR_Pred = s.PRR.get(ops.Guard.first).get() ^ ops.Guard.second; \
+      ops.DR_Pred = s.PRR.get(ops.Pred).get(); \
       ops.DR_Ss = s.SPR.get(st).get(); \
     } \
     virtual void MW(simulator_t &s, instruction_data_t &ops) const \
@@ -1414,7 +1360,7 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.DR_Pred = s.PRR.get(ops.Guard.first).get() ^ ops.Guard.second;
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
       ops.EX_PFL_Discard = 0;
     }
 
@@ -1430,8 +1376,7 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      printGuard(os, ops.Guard); \
-      os << #name << " " << ops.OPS.PFLb.Imm; \
+      os << boost::format("(p%2%) %1% %3%") % #name % ops.Pred % ops.OPS.PFLb.Imm; \
       symbols.print(os, ops.EX_Address); \
     } \
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
@@ -1462,7 +1407,7 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.DR_Pred = s.PRR.get(ops.Guard.first).get() ^ ops.Guard.second;
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
       ops.DR_Rs1 = s.GPR.get(ops.OPS.PFLi.Rs);
       ops.EX_PFL_Discard = 0;
     }
@@ -1479,8 +1424,7 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      printGuard(os, ops.Guard); \
-      os << #name << " r" << ops.OPS.PFLi.Rs; \
+      os << boost::format("(p%2%) %1% r%3%") % #name % ops.Pred % ops.OPS.PFLi.Rs; \
       symbols.print(os, ops.EX_Address); \
     } \
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
@@ -1510,8 +1454,7 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
-      printGuard(os, ops.Guard);
-      os << "ret";
+      os << boost::format("(p%1%) ret") % ops.Pred;
     }
 
     // IF inherited from NOP
@@ -1522,7 +1465,7 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.DR_Pred = s.PRR.get(ops.Guard.first).get() ^ ops.Guard.second;
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
       ops.DR_Base = s.SPR.get(sb).get();
       ops.DR_Offset = s.SPR.get(so).get();
       ops.EX_PFL_Discard = 0;

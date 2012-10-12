@@ -26,13 +26,13 @@ namespace patmos
   {
   }
 
-  instruction_data_t::instruction_data_t(const instruction_t &i, guard_t pred) :
-      I(&i), Guard(pred)
+  instruction_data_t::instruction_data_t(const instruction_t &i, PRR_e pred) :
+      I(&i), Pred(pred)
   {
   }
 
   instruction_data_t instruction_data_t::mk_ALUil(const instruction_t &i,
-                                                  guard_t pred, GPR_e rd,
+                                                  PRR_e pred, GPR_e rd,
                                                   GPR_e rs1, word_t imm2)
   {
     instruction_data_t result(i, pred);
@@ -43,7 +43,7 @@ namespace patmos
   }
 
   instruction_data_t instruction_data_t::mk_ALUr(const instruction_t &i,
-                                                 guard_t pred, GPR_e rd,
+                                                 PRR_e pred, GPR_e rd,
                                                  GPR_e rs1, GPR_e rs2)
   {
     instruction_data_t result(i, pred);
@@ -54,7 +54,7 @@ namespace patmos
   }
 
   instruction_data_t instruction_data_t::mk_ALUu(const instruction_t &i,
-                                                 guard_t pred, GPR_e rd,
+                                                 PRR_e pred, GPR_e rd,
                                                  GPR_e rs1)
   {
     instruction_data_t result(i, pred);
@@ -64,7 +64,7 @@ namespace patmos
   }
 
   instruction_data_t instruction_data_t::mk_ALUm(const instruction_t &i,
-                                                 guard_t pred, GPR_e rs1,
+                                                 PRR_e pred, GPR_e rs1,
                                                  GPR_e rs2)
   {
     instruction_data_t result(i, pred);
@@ -74,7 +74,7 @@ namespace patmos
   }
 
   instruction_data_t instruction_data_t::mk_ALUc(const instruction_t &i,
-                                                 guard_t pred, PRR_e pd,
+                                                 PRR_e pred, PRR_e pd,
                                                  GPR_e rs1, GPR_e rs2)
   {
     instruction_data_t result(i, pred);
@@ -85,20 +85,18 @@ namespace patmos
   }
 
   instruction_data_t instruction_data_t::mk_ALUp(const instruction_t &i,
-                                                 guard_t pred, PRR_e pd,
-                                                 guard_t ps1, guard_t ps2)
+                                                 PRR_e pred, PRR_e pd,
+                                                 PRR_e ps1, PRR_e ps2)
   {
     instruction_data_t result(i, pred);
     result.OPS.ALUp.Pd = pd;
-    result.OPS.ALUp.Ps1 = ps1.first;
-    result.OPS.ALUp.Ps1inv = ps1.second;
-    result.OPS.ALUp.Ps2 = ps2.first;
-    result.OPS.ALUp.Ps2inv = ps2.second;
+    result.OPS.ALUp.Ps1 = ps1;
+    result.OPS.ALUp.Ps2 = ps2;
     return result;
   }
 
   instruction_data_t instruction_data_t::mk_SPCn(const instruction_t &i,
-                                                 guard_t pred, word_t imm)
+                                                 PRR_e pred, word_t imm)
   {
     instruction_data_t result(i, pred);
     result.OPS.SPCn.Imm = imm;
@@ -106,13 +104,13 @@ namespace patmos
   }
 
   instruction_data_t instruction_data_t::mk_SPCw(const instruction_t &i,
-                                                 guard_t pred)
+                                                 PRR_e pred)
   {
     return instruction_data_t(i, pred);
   }
 
   instruction_data_t instruction_data_t::mk_SPCt(const instruction_t &i,
-                                                 guard_t pred, SPR_e sd,
+                                                 PRR_e pred, SPR_e sd,
                                                  GPR_e rs1)
   {
     instruction_data_t result(i, pred);
@@ -122,7 +120,7 @@ namespace patmos
   }
 
   instruction_data_t instruction_data_t::mk_SPCf(const instruction_t &i,
-                                                 guard_t pred, GPR_e rd, SPR_e ss)
+                                                 PRR_e pred, GPR_e rd, SPR_e ss)
   {
     instruction_data_t result(i, pred);
     result.OPS.SPCf.Rd = rd;
@@ -131,7 +129,7 @@ namespace patmos
   }
 
   instruction_data_t instruction_data_t::mk_LDT(const instruction_t &i,
-                                                guard_t pred, GPR_e rd, GPR_e ra,
+                                                PRR_e pred, GPR_e rd, GPR_e ra,
                                                 word_t imm)
   {
     instruction_data_t result(i, pred);
@@ -142,7 +140,7 @@ namespace patmos
   }
 
   instruction_data_t instruction_data_t::mk_STT(const instruction_t &i,
-                                                guard_t pred, GPR_e ra, GPR_e rs1,
+                                                PRR_e pred, GPR_e ra, GPR_e rs1,
                                                 word_t imm2)
   {
     instruction_data_t result(i, pred);
@@ -153,7 +151,7 @@ namespace patmos
   }
 
   instruction_data_t instruction_data_t::mk_STC(const instruction_t &i,
-                                                guard_t pred, word_t imm)
+                                                PRR_e pred, word_t imm)
   {
     instruction_data_t result(i, pred);
     result.OPS.STC.Imm = imm;
@@ -161,7 +159,7 @@ namespace patmos
   }
 
   instruction_data_t instruction_data_t::mk_PFLb(const instruction_t &i,
-                                                 guard_t pred, word_t imm)
+                                                 PRR_e pred, word_t imm)
   {
     instruction_data_t result(i, pred);
     result.OPS.PFLb.Imm = imm;
@@ -169,7 +167,7 @@ namespace patmos
   }
 
   instruction_data_t instruction_data_t::mk_PFLi(const instruction_t &i,
-                                                 guard_t pred, GPR_e rs)
+                                                 PRR_e pred, GPR_e rs)
   {
     instruction_data_t result(i, pred);
     result.OPS.PFLi.Rs = rs;
@@ -177,7 +175,7 @@ namespace patmos
   }
 
   instruction_data_t instruction_data_t::mk_PFLr(const instruction_t &i,
-                                                 guard_t pred)
+                                                 PRR_e pred)
   {
     return instruction_data_t(i, pred);
   }
@@ -186,7 +184,7 @@ namespace patmos
                                                 GPR_e rs1, GPR_e rs2,
                                                 word_t imm)
   {
-    instruction_data_t result(i, std::make_pair(p0,0));
+    instruction_data_t result(i, p0);
     result.OPS.BNE.Rs1 = rs1;
     result.OPS.BNE.Rs2 = rs2;
     result.OPS.BNE.Imm = imm;
@@ -195,7 +193,7 @@ namespace patmos
 
   instruction_data_t instruction_data_t::mk_HLT(const instruction_t &i)
   {
-    return instruction_data_t(i, std::make_pair(p0,0));
+    return instruction_data_t(i, p0);
   }
 }
 

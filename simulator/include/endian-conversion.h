@@ -24,7 +24,6 @@
 #include <boost/spirit/include/karma_binary.hpp>
 #include <boost/spirit/include/qi_parse.hpp>
 #include <boost/spirit/include/qi_binary.hpp>
-#include "basic-types.h"
 
 namespace patmos
 {
