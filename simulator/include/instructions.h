@@ -565,6 +565,8 @@ namespace patmos
 
         // store the result by writing it into the register file.
         s.PRR.set(ops.OPS.ALUc.Pd, result);
+        // store the negation as well
+        s.PRR.set( (PRR_e) (NUM_PRR + ops.OPS.ALUc.Pd), !result);
       }
     }
 
@@ -666,6 +668,8 @@ namespace patmos
 
         // store the result by writing it into the register file.
         s.PRR.set(ops.OPS.ALUp.Pd, result);
+        // store the negation as well
+        s.PRR.set( (PRR_e) (NUM_PRR + ops.OPS.ALUp.Pd), !result);
       }
     }
 
@@ -825,8 +829,10 @@ namespace patmos
         if (ops.OPS.SPCt.Sd == 0)
         {
           // p0 is always 1, so skip it
-          for(unsigned int i = 1; i < NUM_PRR; i++)
-            s.PRR.set((PRR_e)i, ((result >> i) & 1) == 1);
+          for(unsigned int i = 1; i < NUM_PRR; i++) {
+            s.PRR.set ((PRR_e)i, ((result >> i) & 1) == 1);
+            s.PRR.set ((PRR_e)(NUM_PRR+i), ((result >> i) & 1) == 0);
+          }
         }
         else
           s.SPR.set(ops.OPS.SPCt.Sd, result);
