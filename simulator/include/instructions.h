@@ -148,6 +148,33 @@ namespace patmos
                op)))).get();
     }
 
+    /// Print a predicate to an output stream.
+    /// @param os The output stream to print to.
+    /// @param pred The predicate.
+    /// @param bare If true, print the operand without parentheses,
+    ///        also the default operand (always true).
+    static inline void printPred(std::ostream &os, const PRR_e pred,
+                                 bool bare=false)
+    {
+      int preg = pred & (NUM_PRR-1);
+      bit_t pflag = (pred >> 3) & 1;
+
+      if (bare) {
+        if (pflag) os << "!";
+        os << "p" << preg;
+        return;
+      }
+
+      // hide the default predicate operand
+      if (preg != p0 || pflag == true) {
+        os << boost::format("(%1%p%2%) ") % ((pflag)?"!":" ") % preg;
+      } else {
+        // omit default predicate
+        //os << "(!pN) ";
+        os <<   "      ";
+      }
+    }
+
   public:
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
@@ -238,9 +265,9 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      os << boost::format("(p%2%) %1% r%3% = r%4%, %5%") % #name \
-          % ops.Pred % ops.OPS.ALUil.Rd % ops.OPS.ALUil.Rs1 \
-          % ops.OPS.ALUil.Imm2; \
+      printPred(os, ops.Pred); \
+      os << boost::format("%1% r%2% = r%3%, %4%") % #name \
+          % ops.OPS.ALUil.Rd % ops.OPS.ALUil.Rs1  % ops.OPS.ALUil.Imm2; \
       symbols.print(os, ops.OPS.ALUil.Imm2); \
     } \
     virtual word_t compute(word_t value1, word_t value2) const \
@@ -345,8 +372,9 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      os << boost::format("(p%2%) %1% r%3% = r%4%, r%5%") % #name \
-          % ops.Pred % ops.OPS.ALUr.Rd % ops.OPS.ALUr.Rs1 % ops.OPS.ALUr.Rs2; \
+      printPred(os, ops.Pred); \
+      os << boost::format("%1% r%2% = r%3%, r%4%") % #name \
+          % ops.OPS.ALUr.Rd % ops.OPS.ALUr.Rs1 % ops.OPS.ALUr.Rs2; \
     } \
     virtual word_t compute(word_t value1, word_t value2) const \
     { \
@@ -446,8 +474,9 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      os << boost::format("(p%2%) %1% r%3% = r%4%") % #name \
-          % ops.Pred % ops.OPS.ALUu.Rd % ops.OPS.ALUu.Rs1; \
+      printPred(os, ops.Pred); \
+      os << boost::format("%1% r%2% = r%3%") % #name \
+          % ops.OPS.ALUu.Rd % ops.OPS.ALUu.Rs1; \
     } \
     virtual word_t compute(word_t value1) const \
     { \
@@ -517,8 +546,9 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      os << boost::format("(p%2%) %1% r%3%, r%4%") % #name \
-          % ops.Pred % ops.OPS.ALUm.Rs1 % ops.OPS.ALUm.Rs2; \
+      printPred(os, ops.Pred); \
+      os << boost::format("%1% r%2%, r%3%") % #name \
+          % ops.OPS.ALUm.Rs1 % ops.OPS.ALUm.Rs2; \
     } \
     virtual dword_t compute(word_t value1, word_t value2) const \
     { \
@@ -580,8 +610,9 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      os << boost::format("(p%2%) %1% p%3% = r%4%, r%5%") % #name \
-          % ops.Pred % ops.OPS.ALUc.Pd % ops.OPS.ALUc.Rs1 % ops.OPS.ALUc.Rs2; \
+      printPred(os, ops.Pred); \
+      os << boost::format("%1% p%2% = r%3%, r%4%") % #name \
+          % ops.OPS.ALUc.Pd % ops.OPS.ALUc.Rs1 % ops.OPS.ALUc.Rs2; \
     } \
     virtual bit_t compute(word_t value1, word_t value2) const \
     { \
@@ -601,8 +632,9 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      os << boost::format("(p%2%) %1% p%3% = r%4%, r%5%") % #name \
-          % ops.Pred % ops.OPS.ALUc.Pd % ops.OPS.ALUc.Rs1 % ops.OPS.ALUc.Rs2; \
+      printPred(os, ops.Pred); \
+      os << boost::format("%1% p%2% = r%3%, r%4%") % #name \
+          % ops.OPS.ALUc.Pd % ops.OPS.ALUc.Rs1 % ops.OPS.ALUc.Rs2; \
     } \
     virtual bit_t compute(word_t value1, word_t value2) const \
     { \
@@ -623,8 +655,9 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
-      os << boost::format("(p%1%) btest p%2% = r%3%, r%4%")
-          % ops.Pred % ops.OPS.ALUc.Pd % ops.OPS.ALUc.Rs1 % ops.OPS.ALUc.Rs2;
+      printPred(os, ops.Pred);
+      os << boost::format("btest p%1% = r%2%, r%3%")
+          % ops.OPS.ALUc.Pd % ops.OPS.ALUc.Rs1 % ops.OPS.ALUc.Rs2;
     }
 
     virtual bit_t compute(word_t value1, word_t value2) const
@@ -683,8 +716,11 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      os << boost::format("(p%2%) %1% p%3% = p%4%, p%5%") % #name \
-          % ops.Pred % ops.OPS.ALUp.Pd % ops.OPS.ALUp.Ps1 % ops.OPS.ALUp.Ps2; \
+      printPred(os, ops.Pred); \
+      os << boost::format("%1% p%2% = ") % #name % ops.OPS.ALUp.Pd; \
+      printPred(os, ops.OPS.ALUp.Ps1, true); \
+      os << ", "; \
+      printPred(os, ops.OPS.ALUp.Ps2, true); \
     } \
     virtual bit_t compute(word_t value1, word_t value2) const \
     { \
@@ -708,7 +744,8 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
-      os << boost::format("(p%1%) nop %2%") % ops.Pred % ops.OPS.SPCn.Imm;
+      printPred(os, ops.Pred);
+      os << "nop " << ops.OPS.SPCn.Imm;
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
@@ -758,7 +795,8 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
-      os << boost::format("(p%1%) waitm") % ops.Pred;
+      printPred(os, ops.Pred);
+      os << "waitm";
     }
 
     // IF inherited from NOP
@@ -798,8 +836,9 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
-      os << boost::format("(p%1%) mts s%2% = r%3%")
-         % ops.Pred % ops.OPS.SPCt.Sd % ops.OPS.SPCt.Rs1;
+      printPred(os, ops.Pred);
+      os << boost::format("mts s%1% = r%2%")
+                          % ops.OPS.SPCt.Sd % ops.OPS.SPCt.Rs1;
     }
 
     // IF inherited from NOP
@@ -854,8 +893,9 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
-      os << boost::format("(p%1%) mfs r%2% = s%3%")
-         % ops.Pred % ops.OPS.SPCf.Rd % ops.OPS.SPCf.Ss;
+      printPred(os, ops.Pred);
+      os << boost::format("mfs r%1% = s%2%")
+                          % ops.OPS.SPCf.Rd % ops.OPS.SPCf.Ss;
     }
 
     // IF inherited from NOP
@@ -1002,8 +1042,9 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      os << boost::format("(p%2%) %1% r%3% = [r%4% + %5%]") % #name \
-          % ops.Pred % ops.OPS.LDT.Rd % ops.OPS.LDT.Ra % ops.OPS.LDT.Imm; \
+      printPred(os, ops.Pred); \
+      os << boost::format("%1% r%2% = [r%3% + %4%]") % #name \
+          % ops.OPS.LDT.Rd % ops.OPS.LDT.Ra % ops.OPS.LDT.Imm; \
       symbols.print(os, ops.EX_Address); \
     } \
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
@@ -1115,8 +1156,9 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      os << boost::format("(p%2%) %1% sm = [r%3% + %4%]") % #name \
-          % ops.Pred % ops.OPS.LDT.Ra % ops.OPS.LDT.Imm; \
+      printPred(os, ops.Pred); \
+      os << boost::format("%1% sm = [r%2% + %3%]") % #name \
+          % ops.OPS.LDT.Ra % ops.OPS.LDT.Imm; \
     } \
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
     { \
@@ -1204,8 +1246,9 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      os << boost::format("(p%2%) %1% [r%3% + %4%] = r%5%") % #name \
-          % ops.Pred % ops.OPS.STT.Ra % ops.OPS.STT.Imm2 % ops.OPS.STT.Rs1; \
+      printPred(os, ops.Pred); \
+      os << boost::format("%1% [r%2% + %3%] = r%4%") % #name \
+          % ops.OPS.STT.Ra % ops.OPS.STT.Imm2 % ops.OPS.STT.Rs1; \
       symbols.print(os, ops.EX_Address); \
     } \
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
@@ -1246,7 +1289,8 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      os << boost::format("(p%2%) %1% %3%") % #name % ops.Pred % ops.OPS.STC.Imm; \
+      printPred(os, ops.Pred); \
+      os << #name << " " << ops.OPS.STC.Imm; \
       symbols.print(os, ops.EX_Address); \
     } \
     virtual void DR(simulator_t &s, instruction_data_t &ops) const \
@@ -1382,7 +1426,8 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      os << boost::format("(p%2%) %1% %3%") % #name % ops.Pred % ops.OPS.PFLb.Imm; \
+      printPred(os, ops.Pred); \
+      os << #name << " " << ops.OPS.PFLb.Imm; \
       symbols.print(os, ops.EX_Address); \
     } \
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
@@ -1430,7 +1475,8 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      os << boost::format("(p%2%) %1% r%3%") % #name % ops.Pred % ops.OPS.PFLi.Rs; \
+      printPred(os, ops.Pred); \
+      os << #name << " r" << ops.OPS.PFLi.Rs; \
       symbols.print(os, ops.EX_Address); \
     } \
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
@@ -1460,7 +1506,8 @@ namespace patmos
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
-      os << boost::format("(p%1%) ret") % ops.Pred;
+      printPred(os, ops.Pred);
+      os << "ret";
     }
 
     // IF inherited from NOP
