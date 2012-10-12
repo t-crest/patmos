@@ -268,7 +268,7 @@ namespace patmos
     GPR_by_pass_t GPR_EX_Rd;
 
     /// Result predicate operand from EX stage.
-    PRR_by_pass_t PRR_EX_Pd;
+    //PRR_by_pass_t PRR_EX_Pd;
 
     /// Value for memory stores.
     word_t EX_Rs;

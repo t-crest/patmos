@@ -52,7 +52,7 @@ namespace patmos
   /// @return True in case the index is valid, false otherwise.
   inline bool isGPR(word_t index)
   {
-    return 0 <= index && index <= NUM_GPR;
+    return 0 <= index && index < NUM_GPR;
   }
 
   /// Assert that the register index is valid for special purpose registers.
@@ -60,7 +60,7 @@ namespace patmos
   /// @return True in case the index is valid, false otherwise.
   inline bool isSPR(word_t index)
   {
-    return 0 <= index && index <= NUM_SPR;
+    return 0 <= index && index < NUM_SPR;
   }
 
   /// Assert that the register index is valid for predicate registers.
@@ -68,7 +68,7 @@ namespace patmos
   /// @return True in case the index is valid, false otherwise.
   inline bool isPRR(word_t index)
   {
-    return 0 <= index && index <= NUM_PRR;
+    return 0 <= index && index < NUM_PRR;
   }
 
   /// Assert that the register index is valid for predicate registers.
@@ -76,7 +76,7 @@ namespace patmos
   /// @return True in case the index is valid, false otherwise.
   inline bool isPRRn(word_t index)
   {
-    return 0 <= index && index <= NUM_PRRn;
+    return 0 <= index && index < NUM_PRRn;
   }
 }
 
