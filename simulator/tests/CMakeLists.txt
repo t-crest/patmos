@@ -109,7 +109,7 @@ test_asm(34 "Undefined Label: x")
 test_asm(35 "Emitted: 36 bytes
 Errors : 0")
 
-test_asm(36 "Emitted: 40 bytes
+test_asm(36 "Emitted: 36 bytes
 Errors : 0")
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

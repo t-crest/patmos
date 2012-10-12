@@ -61,7 +61,6 @@ architecture arch of patmos_alu is
 	signal predicate, predicate_reg				: std_logic_vector(7 downto 0);
 	signal rs1, rs2								: unsigned(31 downto 0);
 	signal tst									: std_logic;
-	signal tst2									: integer;
 	signal doutex_alu_result_out				: std_logic_vector(31 downto 0);
 	signal doutex_alu_adrs_out					: std_logic_vector(31 downto 0);
 	signal doutex_write_back_reg_out			: std_logic_vector(4 downto 0);
@@ -81,225 +80,85 @@ begin
 	end process;
 	
 	patmos_address: process(rs1, rs2)
-	begin
-	--	predicate  <= predicate_reg;
+	begin 
 		adrs <= "00000000000000000000000000000000";
-		case din.inst_type is
-			when LDT =>
-				case din.LDT_instruction_type is
-					----- scratchpad memory
-					when LWL =>
-						 adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
-					when LHL =>
-						 adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-						 
-					when LBL =>
-						 adrs <= std_logic_vector(rs1 + rs2);
-						 	
-					when LHUL =>
-						 adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-						 	
-					when LBUL =>
-						 adrs <= std_logic_vector(rs1 + rs2);
-						 
-					---------------------------------------- stack cache
-					when LWS =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
-					when LHS =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when LBS =>
-						adrs <= std_logic_vector(rs1 + rs2);
-					when LHUS =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when LBUS =>
-						adrs    <= std_logic_vector(rs1 + rs2);
-					----------------------------------------- global memory	
-					when LWM =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
-					when LHM =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when LBM =>
-						adrs <= std_logic_vector(rs1 + rs2);
-					when LHUM =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when LBUM =>
-						adrs    <= std_logic_vector(rs1 + rs2);
-					---------------------------------------- data cache
-					when LWC =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
-					when LHC =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when LBC =>
-						adrs <= std_logic_vector(rs1 + rs2);
-					when LHUC =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when LBUC =>
-						adrs    <= std_logic_vector(rs1 + rs2);		
-
-					when others => adrs <= std_logic_vector(rs1 + rs2);
-				end case;
-
-			when STT =>
-				case din.STT_instruction_type is
-					----- scratchpad memory
-					when SWL =>
-						adrs <=  std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
-					when SHL =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-						
-					when SBL =>
-						adrs <= std_logic_vector(rs1 + rs2);
-							
-					---------------------------------------- stack cache
-					when SWS =>
-						adrs <=  std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
-					when SHS =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when SBS =>
-						adrs <= std_logic_vector(rs1 + rs2);
-					
-					
-					----------------------------------------- global memory	
-					when SWM =>
-						adrs <=  std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
-						
-					when SHM =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when SBM =>
-						adrs <= std_logic_vector(rs1 + rs2);
-						
-					---------------------------------------- data cache
-					when SWC =>
-						adrs <=  std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
-					when SHC =>
-						adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
-					when SBC =>
-						adrs <= std_logic_vector(rs1 + rs2);
-						
-					when others => adrs <= std_logic_vector(rs1 + rs2);	
-					---------------------------------------
-				end case;
-			when others => adrs <= std_logic_vector(rs1 + rs2);
+		case din.adrs_type is
+			when word => 
+				adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
+			when half =>
+				adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+			when byte =>
+				adrs <= std_logic_vector(rs1 + rs2);
+			when others => null;
 		end case;
 	end process;
 	
-	
-	patmos_alu : process(din, decdout, predicate, predicate_reg, cmp_equal, cmp_result, rs1, rs2)
+	patmos_predicate: process(din, decdout, predicate, predicate_reg, cmp_result)
 	begin
 		predicate  <= predicate_reg;
+		if (din.is_predicate_inst = '1') then 
+			case din.ALU_function_type is
+				when "0110" => predicate(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <= 					
+								(decdout.ps1_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps1_out(2 downto 0)))) ) or 
+								(decdout.ps2_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps2_out(2 downto 0)))));
+						
+				when "0111" => predicate(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <=
+								(decdout.ps1_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps1_out(2 downto 0)))) ) and 
+								(decdout.ps2_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps2_out(2 downto 0)))));
+						
+				when "1010" =>  predicate(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <= 
+								(decdout.ps1_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps1_out(2 downto 0)))) ) xor 
+								(decdout.ps2_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps2_out(2 downto 0)))));
+						
+				when "1011" =>  predicate(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <=
+										not ((decdout.ps1_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps1_out(2 downto 0)))) ) or 
+											(decdout.ps2_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps2_out(2 downto 0)))))); --nor
+				when others =>  predicate(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <= '0';
+			end case;
+		end if;
+		if decdout.instr_cmp='1' then
+			predicate(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <= cmp_result;
+		end if;
+		-- the ever true predicate
+		predicate(0) <= '1';
+	end process;
+	
+	patmos_alu: process(din, rs1, rs2) -- ALU
+	begin 
 		rd <= "00000000000000000000000000000000";
-		case din.inst_type is
-			when ALUl =>
-				case din.ALU_function_type is
-							when "0000" => rd <= std_logic_vector(rs1 + rs2); --add
-							when "0001" => rd <= std_logic_vector(rs1 - rs2); --sub
-							when "0010" => rd <= std_logic_vector(rs2 - rs1); -- sub invert
-							when "0011" => rd <= std_logic_vector(SHIFT_LEFT(rs1, to_integer(rs2(4 downto 0)))); --sl
-							when "0100" => rd <= std_logic_vector(SHIFT_RIGHT(rs1, to_integer(rs2(4 downto 0)))); -- sr
-							when "0101" => rd <= std_logic_vector(SHIFT_RIGHT(signed(rs1), to_integer(rs2(4 downto 0)))); -- sra
-							when "0110" => rd <= std_logic_vector(rs1 or rs2); -- or
-							when "0111" => rd <= std_logic_vector(rs1 and rs2); -- and
-							-----
-							when "1000" => rd <= std_logic_vector(ROTATE_LEFT(rs1, to_integer(rs2(4 downto 0))));
-													--std_logic_vector(SHIFT_LEFT(rs1, to_integer(rs2(4 downto 0))) or 
-										 			--			  SHIFT_RIGHT(rs1, 32 - to_integer(rs2(4 downto 0))	)); -- rl
-							when "1001" => rd <= std_logic_vector(ROTATE_RIGHT(rs1, to_integer(rs2(4 downto 0))));
-													--std_logic_vector(SHIFT_LEFT(rs1, 32 - to_integer(rs2(4 downto 0))) or 
-													--    SHIFT_RIGHT(rs2, to_integer(rs2(4 downto 0))));
-							when "1010" => rd <= std_logic_vector(rs2 xor rs1);
-							when "1011" => rd <= std_logic_vector(rs1 nor rs2);
-							when "1100" => rd <= std_logic_vector(SHIFT_LEFT(rs1, 1) + rs2);
-							when "1101" => rd <= std_logic_vector(SHIFT_LEFT(rs1, 2) + rs2);
-							when others => rd <= std_logic_vector(rs1 + rs2); -- default add! 
-						end case;
-			when ALUi =>
-				case din.ALU_function_type is
-					when "0000" => rd <= std_logic_vector(rs1 + rs2); tst <= '0';--add 
-					when "0001" => rd <= std_logic_vector(rs1 - rs2); --sub
-					when "0010" => rd <= std_logic_vector(rs2 - rs1); -- sub invert
-					when "0011" => rd <= std_logic_vector(SHIFT_LEFT(rs1, to_integer(rs2(4 downto 0)))); --sl
-					when "0100" => rd <= std_logic_vector(SHIFT_RIGHT(rs1, to_integer(rs2(4 downto 0)))); -- sr
-				    when "0101" => rd <= std_logic_vector(SHIFT_RIGHT(signed(rs1), to_integer(rs2(4 downto 0)))); -- sra
-					when "0110" => rd <= std_logic_vector(rs1 or rs2); -- or
-					when "0111" => rd <= std_logic_vector(rs1 and rs2); -- and
-					when others => rd <= std_logic_vector(rs1 + rs2); -- default add! 
-				end case;
-			when ALU =>
-				case din.ALU_instruction_type is
-					when ALUr =>
-						case din.ALU_function_type is
-							when "0000" => rd <= std_logic_vector(rs1 + rs2); --add
-							when "0001" => rd <= std_logic_vector(rs1 - rs2); --sub
-							when "0010" => rd <= std_logic_vector(rs2 - rs1); -- sub invert
-							when "0011" => rd <= std_logic_vector(SHIFT_LEFT(rs1, to_integer(rs2(4 downto 0)))); --sl
-							when "0100" => rd <= std_logic_vector(SHIFT_RIGHT(rs1, to_integer(rs2(4 downto 0)))); -- sr
-							when "0101" => rd <= std_logic_vector(SHIFT_RIGHT(signed(rs1), to_integer(rs2(4 downto 0)))); -- sra
-							when "0110" => rd <= std_logic_vector(rs1 or rs2); -- or
-							when "0111" => rd <= std_logic_vector(rs1 and rs2); -- and
-							-----
-							when "1000" => rd <= std_logic_vector(ROTATE_LEFT(rs1, to_integer(rs2(4 downto 0))));
-													--std_logic_vector(SHIFT_LEFT(rs1, to_integer(rs2(4 downto 0))) or 
-										 			--			  SHIFT_RIGHT(rs1, 32 - to_integer(rs2(4 downto 0))	)); -- rl
-							when "1001" => rd <= std_logic_vector(ROTATE_RIGHT(rs1, to_integer(rs2(4 downto 0))));
-													--std_logic_vector(SHIFT_LEFT(rs1, 32 - to_integer(rs2(4 downto 0))) or 
-													--    SHIFT_RIGHT(rs2, to_integer(rs2(4 downto 0))));
-							when "1010" => rd <= std_logic_vector(rs2 xor rs1);
-							when "1011" => rd <= std_logic_vector(rs1 nor rs2);
-							when "1100" => rd <= std_logic_vector(SHIFT_LEFT(rs1, 1) + rs2);
-							when "1101" => rd <= std_logic_vector(SHIFT_LEFT(rs1, 2) + rs2);
-							when others => rd <= std_logic_vector(rs1 + rs2); -- default add! 
-						end case;
-					when ALUu =>
-						case din.ALU_function_type is
-							when "0000" => rd <= std_logic_vector(rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) &
+		case din.pat_function_type is
+			when pat_add => rd <= std_logic_vector(rs1 + rs2); --add
+			when pat_sub => rd <= std_logic_vector(rs1 - rs2); --sub
+			when pat_rsub => rd <= std_logic_vector(rs2 - rs1); -- sub invert
+			when pat_sl => rd <= std_logic_vector(SHIFT_LEFT(rs1, to_integer(rs2(4 downto 0)))); --sl
+			when pat_sr => rd <= std_logic_vector(SHIFT_RIGHT(rs1, to_integer(rs2(4 downto 0)))); -- sr
+			when pat_sra => rd <= std_logic_vector(SHIFT_RIGHT(signed(rs1), to_integer(rs2(4 downto 0)))); -- sra
+			when pat_or => rd <= std_logic_vector(rs1 or rs2); -- or
+			when pat_and => rd <= std_logic_vector(rs1 and rs2); -- and
+						-----
+			when pat_rl => rd <= std_logic_vector(ROTATE_LEFT(rs1, to_integer(rs2(4 downto 0))));-- rl
+			when pat_rr => rd <= std_logic_vector(ROTATE_RIGHT(rs1, to_integer(rs2(4 downto 0))));
+			when pat_xor => rd <= std_logic_vector(rs2 xor rs1);
+			when pat_nor => rd <= std_logic_vector(rs1 nor rs2);
+			when pat_shadd => rd <= std_logic_vector(SHIFT_LEFT(rs1, 1) + rs2);
+			when pat_shadd2 => rd <= std_logic_vector(SHIFT_LEFT(rs1, 2) + rs2);
+			when pat_sext8 => rd <= std_logic_vector(rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) &
 									rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7 downto 0));
-							when "0001" => rd <= std_logic_vector(rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15 downto 0));
-							when "0010" => rd <= std_logic_vector("0000000000000000" & rs1(15 downto 0));
-							when "0011" => rd <=  std_logic_vector(abs(signed(rs1)));
-							when others => rd <= std_logic_vector(rs1 + rs2);
-						end case;
-					when ALUp =>
-						case din.ALU_function_type is
-						
-							when "0110" => predicate(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <= 					
-												(decdout.ps1_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps1_out(2 downto 0)))) ) or 
-												(decdout.ps2_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps2_out(2 downto 0)))));
-						
-							when "0111" => tst2 <=to_integer(unsigned(decdout.pd_out(2 downto 0)));  
-										tst <= (decdout.ps1_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps1_out(2 downto 0)))) ) and 
-											(decdout.ps2_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps2_out(2 downto 0)))));
-							predicate(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <=
-											  
-											(decdout.ps1_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps1_out(2 downto 0)))) ) and 
-											(decdout.ps2_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps2_out(2 downto 0)))));
-						
-							when "1010" =>  predicate(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <= 
-											(decdout.ps1_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps1_out(2 downto 0)))) ) xor 
-											(decdout.ps2_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps2_out(2 downto 0)))));
-						
-							when "1011" =>  predicate(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <=
-											not 
-											((decdout.ps1_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps1_out(2 downto 0)))) ) or 
-											(decdout.ps2_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps2_out(2 downto 0)))))
-											); --nor
-						
-							when others =>  predicate(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <= '0';
-						end case;
-
-					when others => rd <= std_logic_vector(rs1 + rs2);
-				end case;
-			when others => rd <= std_logic_vector(rs1 + rs2); -- unsigned(intermediate_add);--
+			when pat_sext16 => rd <= std_logic_vector(rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15 downto 0));
+			when pat_zext16 => rd <= std_logic_vector("0000000000000000" & rs1(15 downto 0));
+			when pat_abs => rd <= std_logic_vector(abs(signed(rs1)));
+			when others => rd <= std_logic_vector(rs1 + rs2); -- default add! 
 		end case;
-
-		-- compare instructions
+	end process;
+	
+	patmos_compare: process(decdout, cmp_equal, cmp_result, rs1, rs2)
+	begin
 		cmp_equal <= '0';
 		cmp_result <= '0';
-		
-		
 		if signed(rs1) = signed(rs2) then
 			cmp_equal <= '1';
 		end if;
-
+	--	if din.inst_type = ALUp then
 		case decdout.ALU_function_type_out(2 downto 0) is
 			when "000" => cmp_result <= cmp_equal;
 			when "001" => cmp_result <= not cmp_equal;
@@ -310,14 +169,109 @@ begin
 			when "110" =>  if (rs1(to_integer(rs2(4 downto 0))) = '1') then cmp_result <= '1'; else cmp_result <= '0' ; end if;
 			when others => null;
 		end case;
-		if decdout.instr_cmp='1' then
---			test
-			predicate(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <= cmp_result;
-		end if;
-		-- the ever true predicate
-		predicate(0) <= '1';
-		
-	end process patmos_alu;
+	--	end if;
+	end process;
+--	patmos_alu : process(din, decdout, predicate, predicate_reg, cmp_equal, cmp_result, rs1, rs2)
+--	begin
+--		--predicate  <= predicate_reg;
+--		rd <= "00000000000000000000000000000000";
+--		case din.inst_type is
+--			when ALUl =>
+--				case din.ALU_function_type is
+--							when "0000" => rd <= std_logic_vector(rs1 + rs2); --add
+--							when "0001" => rd <= std_logic_vector(rs1 - rs2); --sub
+--							when "0010" => rd <= std_logic_vector(rs2 - rs1); -- sub invert
+--							when "0011" => rd <= std_logic_vector(SHIFT_LEFT(rs1, to_integer(rs2(4 downto 0)))); --sl
+--							when "0100" => rd <= std_logic_vector(SHIFT_RIGHT(rs1, to_integer(rs2(4 downto 0)))); -- sr
+--							when "0101" => rd <= std_logic_vector(SHIFT_RIGHT(signed(rs1), to_integer(rs2(4 downto 0)))); -- sra
+--							when "0110" => rd <= std_logic_vector(rs1 or rs2); -- or
+--							when "0111" => rd <= std_logic_vector(rs1 and rs2); -- and
+--							-----
+--							when "1000" => rd <= std_logic_vector(ROTATE_LEFT(rs1, to_integer(rs2(4 downto 0))));
+--													--std_logic_vector(SHIFT_LEFT(rs1, to_integer(rs2(4 downto 0))) or 
+--										 			--			  SHIFT_RIGHT(rs1, 32 - to_integer(rs2(4 downto 0))	)); -- rl
+--							when "1001" => rd <= std_logic_vector(ROTATE_RIGHT(rs1, to_integer(rs2(4 downto 0))));
+--													--std_logic_vector(SHIFT_LEFT(rs1, 32 - to_integer(rs2(4 downto 0))) or 
+--													--    SHIFT_RIGHT(rs2, to_integer(rs2(4 downto 0))));
+--							when "1010" => rd <= std_logic_vector(rs2 xor rs1);
+--							when "1011" => rd <= std_logic_vector(rs1 nor rs2);
+--							when "1100" => rd <= std_logic_vector(SHIFT_LEFT(rs1, 1) + rs2);
+--							when "1101" => rd <= std_logic_vector(SHIFT_LEFT(rs1, 2) + rs2);
+--							when others => rd <= std_logic_vector(rs1 + rs2); -- default add! 
+--						end case;
+--			when ALUi =>
+--				case din.ALU_function_type is
+--					when "0000" => rd <= std_logic_vector(rs1 + rs2); tst <= '0';--add 
+--					when "0001" => rd <= std_logic_vector(rs1 - rs2); --sub
+--					when "0010" => rd <= std_logic_vector(rs2 - rs1); -- sub invert
+--					when "0011" => rd <= std_logic_vector(SHIFT_LEFT(rs1, to_integer(rs2(4 downto 0)))); --sl
+--					when "0100" => rd <= std_logic_vector(SHIFT_RIGHT(rs1, to_integer(rs2(4 downto 0)))); -- sr
+--				    when "0101" => rd <= std_logic_vector(SHIFT_RIGHT(signed(rs1), to_integer(rs2(4 downto 0)))); -- sra
+--					when "0110" => rd <= std_logic_vector(rs1 or rs2); -- or
+--					when "0111" => rd <= std_logic_vector(rs1 and rs2); -- and
+--					when others => rd <= std_logic_vector(rs1 + rs2); -- default add! 
+--				end case;
+--			when ALU =>
+--				case din.ALU_instruction_type is
+--					when ALUr =>
+--						case din.ALU_function_type is
+--							when "0000" => rd <= std_logic_vector(rs1 + rs2); --add
+--							when "0001" => rd <= std_logic_vector(rs1 - rs2); --sub
+--							when "0010" => rd <= std_logic_vector(rs2 - rs1); -- sub invert
+--							when "0011" => rd <= std_logic_vector(SHIFT_LEFT(rs1, to_integer(rs2(4 downto 0)))); --sl
+--							when "0100" => rd <= std_logic_vector(SHIFT_RIGHT(rs1, to_integer(rs2(4 downto 0)))); -- sr
+--							when "0101" => rd <= std_logic_vector(SHIFT_RIGHT(signed(rs1), to_integer(rs2(4 downto 0)))); -- sra
+--							when "0110" => rd <= std_logic_vector(rs1 or rs2); -- or
+--							when "0111" => rd <= std_logic_vector(rs1 and rs2); -- and
+--							-----
+--							when "1000" => rd <= std_logic_vector(ROTATE_LEFT(rs1, to_integer(rs2(4 downto 0))));
+--													--std_logic_vector(SHIFT_LEFT(rs1, to_integer(rs2(4 downto 0))) or 
+--										 			--			  SHIFT_RIGHT(rs1, 32 - to_integer(rs2(4 downto 0))	)); -- rl
+--							when "1001" => rd <= std_logic_vector(ROTATE_RIGHT(rs1, to_integer(rs2(4 downto 0))));
+--													--std_logic_vector(SHIFT_LEFT(rs1, 32 - to_integer(rs2(4 downto 0))) or 
+--													--    SHIFT_RIGHT(rs2, to_integer(rs2(4 downto 0))));
+--							when "1010" => rd <= std_logic_vector(rs2 xor rs1);
+--							when "1011" => rd <= std_logic_vector(rs1 nor rs2);
+--							when "1100" => rd <= std_logic_vector(SHIFT_LEFT(rs1, 1) + rs2);
+--							when "1101" => rd <= std_logic_vector(SHIFT_LEFT(rs1, 2) + rs2);
+--							when others => rd <= std_logic_vector(rs1 + rs2); -- default add! 
+--						end case;
+--					when ALUu =>
+--						case din.ALU_function_type is
+--							when "0000" => rd <= std_logic_vector(rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) &
+--									rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7 downto 0));
+--							when "0001" => rd <= std_logic_vector(rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15 downto 0));
+--							when "0010" => rd <= std_logic_vector("0000000000000000" & rs1(15 downto 0));
+--							when "0011" => rd <=  std_logic_vector(abs(signed(rs1)));
+--							when others => rd <= std_logic_vector(rs1 + rs2);
+--						end case;
+--					when others => rd <= std_logic_vector(rs1 + rs2);
+--				end case;
+--			when others => rd <= std_logic_vector(rs1 + rs2); -- unsigned(intermediate_add);--
+--		end case;
+
+		-- compare instructions
+--		cmp_equal <= '0';
+--		cmp_result <= '0';
+--		
+--		
+--		if signed(rs1) = signed(rs2) then
+--			cmp_equal <= '1';
+--		end if;
+--
+--		case decdout.ALU_function_type_out(2 downto 0) is
+--			when "000" => cmp_result <= cmp_equal;
+--			when "001" => cmp_result <= not cmp_equal;
+--			when "010" =>  if (signed(rs1) < signed(rs2) ) then cmp_result <= '1'; else cmp_result <= '0' ; end if;
+--			when "011" =>  if (signed(rs1) <= signed(rs2) ) then cmp_result <= '1'; else cmp_result <= '0' ; end if;
+--			when "100" =>  if (rs1 < rs2 ) then cmp_result <= '1'; else cmp_result <= '0' ; end if;
+--			when "101" =>  if (rs1 <= rs2 ) then cmp_result <= '1'; else cmp_result <= '0' ; end if;
+--			when "110" =>  if (rs1(to_integer(rs2(4 downto 0))) = '1') then cmp_result <= '1'; else cmp_result <= '0' ; end if;
+--			when others => null;
+--		end case;
+--
+--		
+--	end process patmos_alu;
 	
 	
 	process(rd, adrs)
@@ -382,27 +336,31 @@ begin
 		end if;
 	end process not_registered_out;
 	
-	forwarding_rs1 : process(doutex_alu_result_out, doutex_write_back_reg_out, doutex_reg_write_out , decdout)
+	forwarding_rs1 : process(doutex_alu_result_out, doutex_write_back_reg_out, doutex_reg_write_out , decdout, memdout)
 	begin
-		if (decdout.rs1_out = doutex_write_back_reg_out and doutex_reg_write_out = '1') then
+		if (decdout.rs1_out = doutex_write_back_reg_out and doutex_reg_write_out = '1' ) then
 			din_rs1 <= doutex_alu_result_out;
-		elsif (decdout.rs1_out = memdout.write_back_reg_out and memdout.reg_write_out = '1') then
+			--t1 <= '1';
+		elsif (decdout.rs1_out = memdout.write_back_reg_out and memdout.reg_write_out = '1' ) then
 			din_rs1 <= memdout.data_out;
+			--t2 <= '1';
 		else
 			din_rs1 <= decdout.rs1_data_out;
+			--t3 <= '1';
 		end if;
 	end process forwarding_rs1;
 	
-	forwarding_rs2 : process(doutex_alu_result_out, doutex_write_back_reg_out, doutex_reg_write_out , decdout)
+	forwarding_rs2 : process(doutex_alu_result_out, doutex_write_back_reg_out, doutex_reg_write_out , decdout, memdout)
 	begin
-		if (decdout.rs2_out = doutex_write_back_reg_out and doutex_reg_write_out = '1') then
+		if (decdout.rs2_out = doutex_write_back_reg_out and doutex_reg_write_out = '1' ) then
 			alu_src2 <= doutex_alu_result_out;
-		elsif (decdout.rs2_out = memdout.write_back_reg_out and memdout.reg_write_out = '1') then
+		elsif (decdout.rs2_out = memdout.write_back_reg_out and memdout.reg_write_out = '1' ) then
 			alu_src2 <= memdout.data_out;
 		else
 			alu_src2 <= decdout.rs2_data_out;
 		end if;
 	end process forwarding_rs2;
+
 
 	process(alu_src2, decdout.ALUi_immediate_out, decdout.alu_src_out)
 	begin
