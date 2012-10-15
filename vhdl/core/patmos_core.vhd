@@ -196,29 +196,6 @@ begin                                   -- architecture begin
 
 	fet : entity work.patmos_fetch
 		port map(clk, rst, decode_dout, execute_dout, fetch_reg1, fetch_reg2, fetch_dout);
-
-	-- MS: this shall go into the fetch stage
-
-	--   instruction_mem_address: process(execute_dout.alu_result_out, pc, instruction_rom_out, instruction_mem_dout.inst_out) --read/write enable here
-	--  begin
-	--  	if(pc <= 70 ) then --  change this after the final version of boot loader
-	--  		if (execute_dout.mem_write_out = '1') then
-	--  			instruction_mem_din.address <= execute_dout.alu_result_out - 512;
-	--  		end if;
-	--  	end if;
-	--  	if (pc >= 70) then
-	--  		--instruction_mem_din.address <= pc - 70 + 7;
-	--  		
-	--  		--instruction_mem_din.read_enable <= '1';
-	--  	end if;
-	--  end process;
-
-
-	--  instruction_mem : entity work.patmos_instruction_memory(arch)
-	--  port map(clk, rst, instruction_mem_din.address, 
-	--           execute_dout.mem_write_data_out,
-	--           instruction_mem_dout.inst_out, 
-	--	        instruction_mem_din.read_enable, instruction_mem_din.write_enable);
 	-------------------------------------------------------- decode
 
 	reg_file : entity work.patmos_register_file(arch)
@@ -239,9 +216,6 @@ begin                                   -- architecture begin
 
 	---------------------------------------------------- execute
 
-	alu_din.inst_type            <= decode_dout.inst_type_out;
-	alu_din.ALU_instruction_type <= decode_dout.ALU_instruction_type_out;
-	alu_din.ALU_function_type    <= decode_dout.ALU_function_type_out;
 	alu_din.STT_instruction_type <= decode_dout.STT_instruction_type_out;
 	alu_din.LDT_instruction_type <= decode_dout.LDT_instruction_type_out;
 
@@ -252,58 +226,6 @@ begin                                   -- architecture begin
 	---------------------------------------alu
 	alu : entity work.patmos_alu(arch)
 		port map(clk, rst, decode_dout, alu_din, execute_dout, mem_dout);
-
-	-----------------------------------------------cache - memory------------------------------------------------------------
-	---------------------------------------------------- stack cache controller
-
-
-	stack_cache_ctrl_din.stc_immediate_in <= decode_dout.ALUi_immediate_out(4 downto 0);
-	stack_cache_ctrl_din.instruction      <= decode_dout.STC_instruction_type_out;
-	--	stack_cache_ctrl_din.st_in 
-	stack_cache_ctrl : entity work.patmos_stack_cache_ctrl(arch)
-		port map(clk, rst, stack_cache_ctrl_din, stack_cache_ctrl_dout);
-
-	---------------------------------------------------- stack cache
-
-	stack_cache_in : process(execute_dout) -- which type of transfer to stack cache?
-	begin
-		-- some defaults
-		stack_cache_din.din_from_cpu <= execute_dout.mem_write_data_out;
-		if (execute_dout.STT_instruction_type_out = SWS) then
-			stack_cache_din.din_from_cpu <= execute_dout.mem_write_data_out;
-		elsif (execute_dout.STT_instruction_type_out = SBS) then
-			stack_cache_din.din_from_cpu <= execute_dout.mem_write_data_out(15) & execute_dout.mem_write_data_out(15) & execute_dout.mem_write_data_out(15) & execute_dout.mem_write_data_out(15) & execute_dout.mem_write_data_out(15) & execute_dout.mem_write_data_out(15) &
-				execute_dout.mem_write_data_out(15) & execute_dout.mem_write_data_out(15) & execute_dout.mem_write_data_out(15) & execute_dout.mem_write_data_out(15) & execute_dout.mem_write_data_out(15) & execute_dout.mem_write_data_out(15) & execute_dout.mem_write_data_out(15) &
-				execute_dout.mem_write_data_out(15) & execute_dout.mem_write_data_out(15) & execute_dout.mem_write_data_out(15) & execute_dout.mem_write_data_out(15 downto 0); -- <= (16 downto 0) <= execute_dout.mem_write_data_out(16 downto 0);
-		elsif (execute_dout.STT_instruction_type_out = SHS) then
-			stack_cache_din.din_from_cpu(8 downto 0) <= execute_dout.mem_write_data_out(8 downto 0);
-		end if;
-	end process;
-
-	--	stack_cache_out : process(execute_dout, stack_cache_dout.dout_to_cpu) -- which type of transfer from stack cache?
-	--	begin
-	--		mem_data_out <= stack_cache_dout.dout_to_cpu;
-	--		if (execute_dout.LDT_instruction_type_out = LWS) then
-	--			mem_data_out <= stack_cache_dout.dout_to_cpu;
-	--		elsif (execute_dout.LDT_instruction_type_out = LBS) then
-	--			mem_data_out(16 downto 0) <= stack_cache_dout.dout_to_cpu(16 downto 0);
-	--		elsif (execute_dout.LDT_instruction_type_out = LHS) then
-	--			mem_data_out(8 downto 0) <= stack_cache_dout.dout_to_cpu(8 downto 0);
-	--		end if;
-	--	end process;
-
-	--	stack_cache_din.din_from_cpu <= execute_dout.mem_write_data_out; -- transfer to stack cache no matter what, should change based on controlling signals
-
-	--	mem_data_out <= stack_cache_dout.dout_to_cpu;
-	stack_cache_din.spill_fill <= stack_cache_ctrl_dout.spill_fill;
-
-	-- Edgar: is the double register on address intended? (the input is registered in block ram allready)
-	
-	stack_cache_din.address   <= execute_dout.alu_result_out(4 downto 0);
-	stack_cache_din.head_tail <= stack_cache_ctrl_dout.head_tail;
-
-	stack_cache : entity work.patmos_stack_cache(arch)
-		port map(clk, rst, stack_cache_din, stack_cache_dout);
 
 	------------------------------------------------------- memory
 	-- mem/io decoder
@@ -348,9 +270,6 @@ begin                                   -- architecture begin
 
 	end process;
 
-	-- Copy decoded value to pipeline records. (maybe can use only one version later)
-	instruction_mem_din.write_enable <= io_next.instruction_mem_wr;
-	stack_cache_din.write_enable     <= io_next.stack_cache_wr;
 
 	-- Would also be clearer is address calculation has it's own signals.
 	-- Maybe it shall be in it's own component (together with some address

@@ -197,6 +197,13 @@ begin
 						dout.ALU_instruction_type_out <= ALUp;
 						dout.reg_write_out <= '0';
 						dout.is_predicate_inst <= '1';
+						case din.operation(3 downto 0) is
+							when "0110" =>  dout.pat_function_type <= pat_por;
+							when "0111" => dout.pat_function_type <= pat_pand;
+							when "1010" => dout.pat_function_type <= pat_pxor;
+							when "1011" => dout.pat_function_type <= pat_pnor;
+							when others => dout.pat_function_type <= pat_por;
+						end case;
 					when others => NULL;
 				end case;
 

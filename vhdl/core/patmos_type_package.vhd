@@ -53,7 +53,7 @@ package patmos_type_package is
 	type load_type is (NONE, lw, lh, lb, lhu, lbu, dlwh, dlbh, dlbu);
 	type address_type is (word, half, byte);
 	type function_type is (pat_add, pat_sub, pat_rsub, pat_sl, pat_sr, pat_sra, pat_or, pat_and, pat_rl, pat_rr, 
-		pat_xor, pat_nor, pat_shadd, pat_shadd2, pat_sext8, pat_sext16, pat_zext16, pat_abs);
+		pat_xor, pat_nor, pat_shadd, pat_shadd2, pat_sext8, pat_sext16, pat_zext16, pat_abs, pat_por, pat_pand, pat_pxor, pat_pnor);
 	-------------------------------------------
 	-- in/out records
 	-------------------------------------------
