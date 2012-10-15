@@ -144,6 +144,19 @@ begin
 				dout.inst_type_out         <= ALUi;
 				dout.ALU_function_type_out <= '0' & din.operation(24 downto 22);
 				
+				case din.operation(24 downto 22) is
+					when "000" =>  dout.pat_function_type <= pat_add;
+					when "001" => dout.pat_function_type <= pat_sub;
+					when "010" => dout.pat_function_type <= pat_rsub;
+					when "011" => dout.pat_function_type <= pat_sl;
+					when "100" => dout.pat_function_type <= pat_sr;
+					when "101" => dout.pat_function_type <= pat_sra;
+					when "110" => dout.pat_function_type <= pat_or;
+					when "111" => dout.pat_function_type <= pat_and;
+					when others => dout.pat_function_type <= pat_add; -- default add! 
+			end case;
+				
+				
 			elsif din.operation(26 downto 22) = "11111" then -- long immediate!
 				dout.ALU_function_type_out <= din.operation(3 downto 0);
 				dout.reg_write_out    <= '1';
