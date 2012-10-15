@@ -48,8 +48,7 @@ entity patmos_alu is
 		decdout									: in  decode_out_type;
 		din										: in  alu_in_type;
 		doutex									: out execution_out_type;
-		memdout									: in mem_out_type;
-		memdin									: out std_logic_vector(31 downto 0)
+		memdout									: in mem_out_type
 		
 	);
 end entity patmos_alu;
@@ -207,7 +206,6 @@ begin
 			doutex.mem_to_reg_out           <= decdout.mem_to_reg_out;
 			doutex.alu_result_out           <= rd;
 			doutex.adrs_out		      	  <= adrs;
-			doutex.mem_write_data_out       <= din.mem_write_data_in;
 			doutex.write_back_reg_out       <= decdout.rd_out;
 			doutex.STT_instruction_type_out <= decdout.STT_instruction_type_out;
 			doutex.LDT_instruction_type_out <= decdout.LDT_instruction_type_out;
@@ -224,7 +222,7 @@ begin
 		end if;
 	end process;
 	
-	not_registered_out: process(decdout)
+	not_registered_out: process(decdout, alu_src2)
 	begin
 		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit_out then
 				doutex.lm_read_out_not_reg              <= decdout.lm_read_out;
@@ -233,6 +231,7 @@ begin
 				doutex.lm_read_out_not_reg              <= '0';
 				doutex.lm_write_out_not_reg              <= '0';
 		end if;
+		doutex.mem_write_data <= alu_src2;
 	end process not_registered_out;
 	
 	forwarding_rs1 : process(doutex_alu_result_out, doutex_write_back_reg_out, doutex_reg_write_out , decdout, memdout)
@@ -270,10 +269,10 @@ begin
 		end if;
 	end process;
 	
-	process(alu_src2)
-	begin
-		memdin <= alu_src2;
-	end process;
+--	process(alu_src2)
+--	begin
+--		memdin <= alu_src2;
+--	end process;
 	
 
 end arch;

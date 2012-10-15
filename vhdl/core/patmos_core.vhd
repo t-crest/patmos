@@ -77,18 +77,6 @@ architecture arch of patmos_core is
 	signal write_enable : std_logic;
 	signal test         : std_logic;
 
-	signal memdin : std_logic_vector(31 downto 0);
-	-- Edgar: Trying to reverse engineer the memdin/mem_write_data_in/mem_write_data_out:
-	--	  memdin - seames to be alu_src2 (after forwarding)	[in patmos_alu()]
-	--	  alu_din.mem_write_data_in <= memdin 
-	--	  mem_din.mem_write_data_in <= memdin 
-	--	  execute_dout.mem_write_data_out <=clk'<= alu_din.mem_write_data_in; [in patmos_alu()]
-	--	  mem_dout.mem_write_data_out <=clk'<= mem_din.mem_write_data_in; [in patmos_mem_stage()]
-	-- Seams that those are just copies of the same signals (registered and non registered memdin)
-	-- Instead of beeing delayed version
-	-- Don't know the pipeline though, so don't one to interfere with work in progress.
-	-- Adding new signal which is easy to spot and rename. 
-
 	signal memdin_reg : std_logic_vector(31 downto 0);
 
 	signal data_mem_data_out      : std_logic_vector(31 downto 0);
@@ -113,8 +101,6 @@ architecture arch of patmos_core is
 
 	signal spill, fill          : std_logic;
 	signal instruction_mem_din  : instruction_memory_in_type;
-	signal instruction_mem_dout : instruction_memory_out_type;
-	signal instruction_rom_out  : std_logic_vector(31 downto 0);
 
 	signal clk_int : std_logic;
 	-- MS: maybe some signal sorting would be nice
@@ -268,13 +254,12 @@ begin                                   -- architecture begin
 	alu_din.LDT_instruction_type <= decode_dout.LDT_instruction_type_out;
 
 	
-	alu_din.mem_write_data_in <= memdin;
 	alu_din.pat_function_type <= decode_dout.pat_function_type;
 	alu_din.adrs_type <= decode_dout.adrs_type;
 	alu_din.is_predicate_inst <= decode_dout.is_predicate_inst;
 	---------------------------------------alu
 	alu : entity work.patmos_alu(arch)
-		port map(clk, rst, decode_dout, alu_din, execute_dout, mem_dout, memdin);
+		port map(clk, rst, decode_dout, alu_din, execute_dout, mem_dout);
 
 	-----------------------------------------------cache - memory------------------------------------------------------------
 	---------------------------------------------------- stack cache controller
@@ -344,14 +329,7 @@ begin                                   -- architecture begin
 		io_next.rd <= execute_dout.lm_read_out_not_reg;
 		io_next.wr <= execute_dout.lm_write_out_not_reg;
 
-		-- MS: This decoding will also trigger the IO devices as it goes form
-		-- different address bits.
-		-- MS: decoding from two different pipeline stages (alu_result for
-		-- the SPM and alu_result_out for others) does NOT work!!!!!
-
-		-- we need a clear solution for this in the right pipeline stage
-		--		if (execute_dout.alu_result(8) = '1') then --data mem
-
+		
 		-- Edgar: maybe can also use constants for different devices instead of one hot enables	
 		if (addr(31 downto 28) = "1111") then -- UART, counters, LED
 			case addr(11 downto 8) is
@@ -391,9 +369,6 @@ begin                                   -- architecture begin
 	--		end if;
 	--	end process;
 
-	-- MS: what is the difference between alu_result and alu_result_out?
-	-- Maybe _out is the registered value. I don't like that read decode and
-	-- read mux selection is done from two different signals.
 	-- Would also be clearer is address calculation has it's own signals.
 	-- Maybe it shall be in it's own component (together with some address
 	-- decoding).
@@ -433,7 +408,7 @@ begin                                   -- architecture begin
 		elsif rising_edge(clk) then
 			-- register the value decoded in ALU stage, to use it in mem stage
 			io_reg     <= io_next;
-			memdin_reg <= memdin;       -- Edgar: there are multiple copies of registered memdin signal (see comments in the declaration), but maybe some of them are work in progress and will change, so don't want to use the wrong one
+			memdin_reg <= execute_dout.mem_write_data;       
 			-- state for some I/O devices
 			if io_reg.wr = '1' and io_reg.led_en = '1' then -- Edgar: was using unregistered value, so suppose it was a bug
 				led_reg <= memdin_reg(0);
@@ -466,7 +441,7 @@ begin                                   -- architecture begin
 		port map(
 			clk     => clk,
 			reset   => rst,
-			address => io_reg.address(2), -- Edgar: Why (2) not (0)? MS: because we do only word access for IO
+			address => io_reg.address(2),
 			wr_data => memdin_reg,      --memdin,--execute_dout.mem_write_data_out,
 			-- Edgar: Can we use VHDL 2008? 
 			-- rd => io_reg.rd and io_reg.uart_en,
@@ -497,7 +472,7 @@ begin                                   -- architecture begin
 	-- forward
 	mem_din.reg_write_in             <= execute_dout.reg_write_out or execute_dout.mem_to_reg_out; --execute_dout.mem_to_reg_out or execute_dout.mem_write_out;
 	mem_din.write_back_reg_in        <= execute_dout.write_back_reg_out;
-	mem_din.mem_write_data_in        <= memdin; --execute_dout.mem_write_data_out;
+	mem_din.mem_write_data_in        <= execute_dout.mem_write_data; 
 	memory_stage : entity work.patmos_mem_stage(arch)
 		port map(clk, rst, mem_din, mem_dout);
 

@@ -158,7 +158,7 @@ package patmos_type_package is
 		lm_write_out : std_logic;
 		sc_read_out  : std_logic;
 		sc_write_out : std_logic;
-		
+		mem_write_data : std_logic_vector(31 downto 0); 
 		--registered outputs
 		address_reg			: std_logic_vector(31 downto 0);
 		
