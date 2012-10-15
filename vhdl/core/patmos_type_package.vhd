@@ -212,6 +212,7 @@ package patmos_type_package is
 		STT_instruction_type_out : STT_inst_type;
 		LDT_instruction_type_out : LDT_inst_type;
 		alu_src2                 : std_logic_vector(31 downto 0);
+		mem_to_reg_out	: std_logic;
 	end record;
 
 	type mem_out_type is record
@@ -222,6 +223,8 @@ package patmos_type_package is
 		write_back_reg_out : std_logic_vector(4 downto 0);
 		mem_write_data_out : std_logic_vector(31 downto 0);
 		data_mem_data_out  : std_logic_vector(31 downto 0);
+		data  : std_logic_vector(31 downto 0);
+		
 	end record;
 
 	type patmos_stack_cache_ctrl_in is record

@@ -229,7 +229,7 @@ begin                                   -- architecture begin
 			     execute_dout.write_back_reg_out,
 			     decode_din.rs1_data_in,
 			     decode_din.rs2_data_in,
-			     mem_din.data_in,
+			     mem_dout.data,
 			     execute_dout.reg_write_out);
 
 	decode_din.operation <= fetch_dout.instruction;
@@ -238,14 +238,6 @@ begin                                   -- architecture begin
 		port map(clk, rst, decode_din, decode_dout);
 
 	---------------------------------------------------- execute
-	wb : process(clk)
-	begin
-		if rising_edge(clk) then
-			write_back.write_value  <= mem_dout.data_out;
-			write_back.write_reg    <= mem_dout.write_back_reg_out;
-			write_back.write_enable <= mem_dout.reg_write_out;
-		end if;
-	end process wb;
 
 	alu_din.inst_type            <= decode_dout.inst_type_out;
 	alu_din.ALU_instruction_type <= decode_dout.ALU_instruction_type_out;
@@ -360,15 +352,6 @@ begin                                   -- architecture begin
 	instruction_mem_din.write_enable <= io_next.instruction_mem_wr;
 	stack_cache_din.write_enable     <= io_next.stack_cache_wr;
 
-	--	io_mem_read_mux : process(mem_data_out_uart, data_mem_data_out, execute_dout)
-	--	begin
-	--		if (execute_dout.alu_result(8) = '0') then
-	--			mem_data_out_muxed <= mem_data_out_uart;
-	--		else
-	--			mem_data_out_muxed <= data_mem_data_out;
-	--		end if;
-	--	end process;
-
 	-- Would also be clearer is address calculation has it's own signals.
 	-- Maybe it shall be in it's own component (together with some address
 	-- decoding).
@@ -389,14 +372,7 @@ begin                                   -- architecture begin
 		end if;
 	end process;
 
-	write_back_proc : process(execute_dout, mem_data_out_muxed)
-	begin
-		if execute_dout.mem_to_reg_out = '1' then
-			mem_din.data_in <= mem_data_out_muxed;
-		else
-			mem_din.data_in <= execute_dout.alu_result_out;
-		end if;
-	end process;
+
 
 	process(clk, rst)
 	begin
@@ -468,13 +444,13 @@ begin                                   -- architecture begin
 	mem_din.adrs_out               <= execute_dout.adrs_out;
 	mem_din.adrs               		  <= execute_dout.adrs;
 	mem_din.mem_write                <= io_next.wr and io_next.mem_en;
-
+--	mem_din.mem_to_reg_out	        <= execute_dout.mem_to_reg_out;
 	-- forward
 	mem_din.reg_write_in             <= execute_dout.reg_write_out or execute_dout.mem_to_reg_out; --execute_dout.mem_to_reg_out or execute_dout.mem_write_out;
 	mem_din.write_back_reg_in        <= execute_dout.write_back_reg_out;
 	mem_din.mem_write_data_in        <= execute_dout.mem_write_data; 
 	memory_stage : entity work.patmos_mem_stage(arch)
-		port map(clk, rst, mem_din, mem_dout);
+		port map(clk, rst, mem_din, mem_data_out_muxed, execute_dout, mem_dout);
 
 ------------------------------------------------------ SRAM Interface
 --	sc_mem_out.wr_data <= std_logic_vector(stack_cache_dout.dout_to_mem);
