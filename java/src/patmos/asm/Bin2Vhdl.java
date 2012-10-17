@@ -47,7 +47,7 @@ import java.util.List;
  */
 public class Bin2Vhdl {
 
-	static final int ADDRBITS = 8;
+	static final int ADDRBITS = 10;
 	static final int DATABITS = 32;
 	static final int ROM_LEN = 1 << ADDRBITS;
 

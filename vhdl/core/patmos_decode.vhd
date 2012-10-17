@@ -52,7 +52,7 @@ entity patmos_decode is
 end entity patmos_decode;
 
 architecture arch of patmos_decode is
-	signal predicate_reg : integer;
+
 
 begin
 
@@ -109,6 +109,7 @@ begin
 			dout.sc_read_out              <= '0';
 			dout.lm_write_out			  <= '0';
 			dout.lm_read_out			  <= '0';
+			
 			-- TODO: get defaults for all signals and remove redundant assignments
 
 			--   if din.operation1(30) = '1' then -- predicate bits assignment
@@ -117,11 +118,32 @@ begin
 			--         dout.predicate_bit <= not predicate_register_bank(to_integer(unsigned(din.operation1(29 downto 27))));
 			--   end if;   
 			
+			case din.operation(3 downto 0) is
+				when "0000" =>  dout.pat_function_type <= pat_add;
+				when "0001" => dout.pat_function_type <= pat_sub;
+				when "0010" => dout.pat_function_type <= pat_rsub;
+				when "0011" => dout.pat_function_type <= pat_sl;
+				when "0100" => dout.pat_function_type <= pat_sr;
+				when "0101" => dout.pat_function_type <= pat_sra;
+				when "0110" => dout.pat_function_type <= pat_or;
+				when "0111" => dout.pat_function_type <= pat_and;
+				-----
+				when "1000" => dout.pat_function_type <= pat_rl;
+				when "1001" => dout.pat_function_type <= pat_rr;
+				when "1010" => dout.pat_function_type <= pat_xor;
+				when "1011" => dout.pat_function_type <= pat_nor;
+				when "1100" => dout.pat_function_type <= pat_shadd;
+				when "1101" => dout.pat_function_type <= pat_shadd2;
+				when others => dout.pat_function_type <= pat_add; -- default add! 
+			end case;
+			dout.is_predicate_inst			 <= '0';
+			
 			
 			if din.operation(26 downto 25) = "00" then -- ALUi instruction
 				dout.reg_write_out    <= '1';
 				dout.inst_type_out         <= ALUi;
 				dout.ALU_function_type_out <= '0' & din.operation(24 downto 22);
+				
 			elsif din.operation(26 downto 22) = "11111" then -- long immediate!
 				dout.ALU_function_type_out <= din.operation(3 downto 0);
 				dout.reg_write_out    <= '1';
@@ -143,6 +165,13 @@ begin
 					when "001" =>       -- Unary
 						dout.ALU_instruction_type_out <= ALUu;
 						dout.reg_write_out    <= '1';
+						case din.operation(3 downto 0) is
+							when "0000" => dout.pat_function_type <= pat_sext8;
+							when "0001" => dout.pat_function_type <= pat_sext16;
+							when "0010" => dout.pat_function_type <= pat_zext16;
+							when "0011" => dout.pat_function_type <=  pat_abs;
+							when others => dout.pat_function_type <= pat_add;
+						end case;
 					when "010" =>       -- Multuply
 						dout.ALU_instruction_type_out <= ALUm;
 						dout.reg_write_out    <= '1';
@@ -154,6 +183,7 @@ begin
 					when "100" =>       -- predicate
 						dout.ALU_instruction_type_out <= ALUp;
 						dout.reg_write_out <= '0';
+						dout.is_predicate_inst <= '1';
 					when others => NULL;
 				end case;
 
@@ -166,44 +196,56 @@ begin
 					when "00001" =>
 						dout.STT_instruction_type_out <= SWL;
 						dout.lm_write_out			  <= '1';
+						dout.adrs_type <= word;
 					when "00101" =>
 						dout.STT_instruction_type_out <= SHL;
 						dout.lm_write_out			  <= '1';
+						dout.adrs_type <= half;
 					when "01001" =>	
 						dout.STT_instruction_type_out <= SBL;
 						dout.lm_write_out			  <= '1';
+						dout.adrs_type <= byte;
 					----------------------------------------	
 					when "00000" =>
 						dout.STT_instruction_type_out <= SWS;
+						dout.adrs_type <= word;
 --						dout.sc_write_out             <= '1';
 					when "00100" =>
 						dout.STT_instruction_type_out <= SHS;
+						dout.adrs_type <= half;
 	--					dout.sc_write_out             <= '1';
 					when "01000" =>
 						dout.STT_instruction_type_out <= SBS;
+						dout.adrs_type <= byte;
 --						dout.sc_write_out             <= '1';
 					----------------------------------------- global memory	
 					when "00011" =>
 						dout.STT_instruction_type_out <= SWM;
+						dout.adrs_type <= word;
 						dout.lm_write_out			  <= '1';
 					--	dout.mem_write_out      <= '1';
 					when "00111" =>
 						dout.STT_instruction_type_out <= SHM;
+						dout.adrs_type <= half;
 						dout.lm_write_out			  <= '1';
 					when "01011" =>
 						dout.STT_instruction_type_out <= SBM;
+						dout.adrs_type <= byte;
 						dout.lm_write_out			  <= '1';
 						
 					---------------------------------------- data cache
 					when "00010" =>
 						dout.STT_instruction_type_out <= SWC;
+						dout.adrs_type <= word;
 						dout.lm_write_out			  <= '1';
 					--	dout.mem_write_out      <= '1';
 					when "00110" =>
 						dout.STT_instruction_type_out <= SHC;
+						dout.adrs_type <= half;
 						dout.lm_write_out			  <= '1';
 					when "01010" =>
 						dout.STT_instruction_type_out <= SBC;
+						dout.adrs_type <= byte;
 						dout.lm_write_out			  <= '1';
 						
 					
@@ -228,64 +270,83 @@ begin
 					when "00001" =>
 						dout.LDT_instruction_type_out <= LWL;
 						dout.lm_read_out			  <= '1';
+						dout.adrs_type <= word;
 					when "00101" =>
 						dout.LDT_instruction_type_out <= LHL;
 						dout.lm_read_out			  <= '1';
+						dout.adrs_type <= half;
 					when "01001" =>
 						dout.LDT_instruction_type_out <= LBL;
-						dout.lm_read_out			  <= '1';	
+						dout.lm_read_out			  <= '1';
+						dout.adrs_type <= byte;	
 					when "01101" =>
 						dout.LDT_instruction_type_out <= LHUL;
 						dout.lm_read_out			  <= '1';
+						dout.adrs_type <= half;
 					when "10001" =>
 						dout.LDT_instruction_type_out <= LBUL;
-						dout.lm_read_out			  <= '1';			
+						dout.lm_read_out			  <= '1';
+						dout.adrs_type <= byte;			
 					----------------------------------------
 					when "00000" =>
 						dout.LDT_instruction_type_out <= LWS;
+						dout.adrs_type <= word;
 					when "00100" =>
 						dout.LDT_instruction_type_out <= LHS;
+						dout.adrs_type <= half;
 					when "01000" =>
 						dout.LDT_instruction_type_out <= LBS;
+						dout.adrs_type <= byte;
 					when "01100" =>
 						dout.LDT_instruction_type_out <= LHUS;
+						dout.adrs_type <= half;
 					when "10000" =>
 						dout.LDT_instruction_type_out <= LBUS;
+						dout.adrs_type <= byte;
 					----------------------------------------- global memory	
 					when "00011" =>
 						dout.LDT_instruction_type_out <= LWM;
 						dout.lm_read_out			  <= '1';
+						dout.adrs_type <= word;
 					--	dout.mem_read_out     <= '1';
 					when "00111" =>
 						dout.LDT_instruction_type_out <= LHM;
 						dout.lm_read_out			  <= '1';
+						dout.adrs_type <= half;
 					when "01011" =>
 						dout.LDT_instruction_type_out <= LBM;
 						dout.lm_read_out			  <= '1';
+						dout.adrs_type <= byte;
 					when "01111" =>
 						dout.LDT_instruction_type_out <= LHUM;
 						dout.lm_read_out			  <= '1';
+						dout.adrs_type <= half;
 					when "10011" =>
 						dout.LDT_instruction_type_out <= LBUM;
 						dout.lm_read_out			  <= '1';
-					
+						dout.adrs_type <= byte;
 					---------------------------------------- data cache
 					when "00010" =>
 						dout.LDT_instruction_type_out <= LWC;
 						dout.lm_read_out			  <= '1';
+						dout.adrs_type <= word;
 					--	dout.mem_read_out     <= '1';
 					when "00110" =>
 						dout.LDT_instruction_type_out <= LHC;
 						dout.lm_read_out			  <= '1';
+						dout.adrs_type <= half;
 					when "01010" =>
 						dout.LDT_instruction_type_out <= LBC;
 						dout.lm_read_out			  <= '1';
+						dout.adrs_type <= byte;
 					when "01110" =>
 						dout.LDT_instruction_type_out <= LHUC;
 						dout.lm_read_out			  <= '1';
+						dout.adrs_type <= half;
 					when "10010" =>
 						dout.LDT_instruction_type_out <= LBUC;
-						dout.lm_read_out			  <= '1';		
+						dout.lm_read_out			  <= '1';	
+						dout.adrs_type <= byte;	
 						-- again no read, no write?
 --						dout.sc_write_out             <= '0';
 --						dout.sc_read_out              <= '0';
@@ -304,7 +365,7 @@ begin
 				dout.inst_type_out <= BC;
 				dout.alu_src_out        <= '0'; -- choose the second source, i.e. immediate!
 				dout.reg_write_out      <= '0'; -- reg_write_out is reg_write_ex
-				dout.mem_to_reg_out     <= '1'; -- data comes from alu or mem ? 0 from alu and 1 from mem
+				dout.mem_to_reg_out     <= '0'; -- data comes from alu or mem ? 0 from alu and 1 from mem
 
 			elsif din.operation(26 downto 24) = "011" then -- STC
 				dout.inst_type_out <= STC;

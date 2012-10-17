@@ -175,7 +175,8 @@ namespace patmos
   }
 
   instruction_data_t instruction_data_t::mk_CFLr(const instruction_t &i,
-                                                 PRR_e pred, GPR_e rb, GPR_e ro)
+                                                 PRR_e pred,
+                                                 GPR_e rb, GPR_e ro)
   {
     instruction_data_t result(i, pred);
     result.OPS.CFLr.Rb = rb;

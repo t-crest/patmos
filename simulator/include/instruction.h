@@ -279,7 +279,7 @@ namespace patmos
     GPR_by_pass_t GPR_EX_Rd;
 
     /// Result predicate operand from EX stage.
-    PRR_by_pass_t PRR_EX_Pd;
+    //PRR_by_pass_t PRR_EX_Pd;
 
     /// Value for memory stores.
     word_t EX_Rs;
@@ -453,9 +453,9 @@ namespace patmos
     /// Create an CFLr instruction without operands.
     /// @param i The instruction.
     /// @param pred The predicate register under which the instruction is
+    /// executed.
     /// @param rb The register containing the return function base.
     /// @param ro The register containing the return offset.
-    /// executed.
     static instruction_data_t mk_CFLr(const instruction_t &i, PRR_e pred,
                                       GPR_e rb, GPR_e ro);
 

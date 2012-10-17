@@ -51,7 +51,9 @@ package patmos_type_package is
 	type SPC_type is (NONE, SPCn, SPCw, SPCt, SPCf);
 	type forwarding_type is (FWNOP, FWMEM, FWALU);
 	type load_type is (NONE, lw, lh, lb, lhu, lbu, dlwh, dlbh, dlbu);
-
+	type address_type is (word, half, byte);
+	type function_type is (pat_add, pat_sub, pat_rsub, pat_sl, pat_sr, pat_sra, pat_or, pat_and, pat_rl, pat_rr, 
+		pat_xor, pat_nor, pat_shadd, pat_shadd2, pat_sext8, pat_sext16, pat_zext16, pat_abs);
 	-------------------------------------------
 	-- in/out records
 	-------------------------------------------
@@ -114,6 +116,13 @@ package patmos_type_package is
 		sc_read_out              : std_logic;
 		STT_instruction_type_out : STT_inst_type;
 		LDT_instruction_type_out : LDT_inst_type;
+		
+		
+		
+		
+		pat_function_type      :function_type;
+		is_predicate_inst			 : std_logic;
+		adrs_type				 : address_type;
 	end record;
 
 	type result_type is record
@@ -129,9 +138,11 @@ package patmos_type_package is
 	type execution_out_type is record
 		alusrc2                  : std_logic_vector(31 downto 0);
 		alu_result               : std_logic_vector(31 downto 0);
+		adrs					 : std_logic_vector(31 downto 0);
 		predicate                : std_logic_vector(7 downto 0);
 		result                   : result_type;
 		alu_result_out           : std_logic_vector(31 downto 0);
+		adrs_out     	      : std_logic_vector(31 downto 0);
 		reg_write_out            : std_logic;
 		mem_read_out             : std_logic;
 		-- two write back enable signals - shall be merged
@@ -175,7 +186,12 @@ package patmos_type_package is
 		STT_instruction_type : STT_inst_type;
 		LDT_instruction_type : LDT_inst_type;
 		mem_write_data_in    : std_logic_vector(31 downto 0);
-
+		
+		
+		
+		pat_function_type      :function_type;
+		is_predicate_inst		 : std_logic;
+		adrs_type			 : address_type;
 	end record;
 
 	------------------------------------------
@@ -188,7 +204,10 @@ package patmos_type_package is
 		write_back_reg_in : std_logic_vector(4 downto 0);
 		mem_write_data_in : std_logic_vector(31 downto 0);
 
-		alu_result               : std_logic_vector(31 downto 0);
+		alu_result_out               : std_logic_vector(31 downto 0);
+		alu_result		               : std_logic_vector(31 downto 0);
+		adrs_out					: std_logic_vector(31 downto 0);
+		adrs		               : std_logic_vector(31 downto 0);
 		mem_write                : std_logic;
 		STT_instruction_type_out : STT_inst_type;
 		LDT_instruction_type_out : LDT_inst_type;
