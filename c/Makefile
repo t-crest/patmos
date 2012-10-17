@@ -4,6 +4,7 @@
 CC=patmos-clang
 CFLAGS=-ccc-host-triple patmos-unknown-elf \
 	-nodefaultlibs -nostdlib -nostartfiles \
+	-fno-builtin \
 	-mpatmos-disable-stack-cache \
 	-Ttext 0x10 \
 	-e main \
