@@ -59,17 +59,15 @@ architecture arch of patmos_alu is
 	signal cmp_equal, cmp_result				: std_logic;
 	signal predicate, predicate_reg				: std_logic_vector(7 downto 0);
 	signal rs1, rs2								: unsigned(31 downto 0);
-	signal tst									: std_logic;
 	signal doutex_alu_result_out				: std_logic_vector(31 downto 0);
 	signal doutex_alu_adrs_out					: std_logic_vector(31 downto 0);
 	signal doutex_write_back_reg_out			: std_logic_vector(4 downto 0);
 	signal doutex_reg_write_out					: std_logic;
 	signal din_rs1, din_rs2, alu_src2			: std_logic_vector(31 downto 0);
-	
+	signal shamt 								: integer;
+	signal shifted_arg							: unsigned(31 downto 0);
 begin
 
-	-- MS: TODO: This ALU needs to be restructured to share functional units
-	-- also means more decoding in decode and not in execute
 
 	-- we should assign default values;
 	process(din_rs1, din_rs2)
@@ -78,18 +76,26 @@ begin
 		rs2 <= unsigned(din_rs2);
 	end process;
 	
-	patmos_address: process(rs1, rs2)
-	begin 
-		adrs <= "00000000000000000000000000000000";
+	
+	patmos_address_shamt: process(din)
+	begin
 		case din.adrs_type is
 			when word => 
-				adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
+				shamt <= 2;
 			when half =>
-				adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+				shamt <= 1;
 			when byte =>
-				adrs <= std_logic_vector(rs1 + rs2);
+				shamt <= 0;
 			when others => null;
 		end case;
+	end process;
+	patmos_address_shift: process(shamt, rs2)
+	begin
+		shifted_arg <= SHIFT_LEFT(rs2, shamt);
+	end process;
+	patmos_address: process(rs1, rs2, shifted_arg)
+	begin 
+		adrs <= std_logic_vector(rs1 + shifted_arg);
 	end process;
 	
 	patmos_predicate: process(din, decdout, predicate, predicate_reg, cmp_result)
@@ -238,13 +244,10 @@ begin
 	begin
 		if (decdout.rs1_out = doutex_write_back_reg_out and doutex_reg_write_out = '1' ) then
 			din_rs1 <= doutex_alu_result_out;
-			--t1 <= '1';
 		elsif (decdout.rs1_out = memdout.write_back_reg_out and memdout.reg_write_out = '1' ) then
 			din_rs1 <= memdout.data_out;
-			--t2 <= '1';
 		else
 			din_rs1 <= decdout.rs1_data_out;
-			--t3 <= '1';
 		end if;
 	end process forwarding_rs1;
 	
@@ -269,10 +272,6 @@ begin
 		end if;
 	end process;
 	
---	process(alu_src2)
---	begin
---		memdin <= alu_src2;
---	end process;
 	
 
 end arch;
