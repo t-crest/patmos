@@ -46,6 +46,8 @@ entity patmos_mem_stage is
 		clk  : in  std_logic;
 		rst  : in  std_logic;
 		din  : in  mem_in_type;
+		mem_data_out_muxed : in std_logic_vector(31 downto 0);
+		exout : in execution_out_type;
 		dout : out mem_out_type
 	);
 end entity patmos_mem_stage;
@@ -59,11 +61,12 @@ architecture arch of patmos_mem_stage is
 	signal byte_enable2, byte_enable3       : std_logic;
 	signal word_enable0, word_enable1       : std_logic;
     signal ldt_type							: LDT_inst_type;
+    signal datain						    : std_logic_vector(31 downto 0);
 begin
 	mem_wb : process(clk)
 	begin
 		if (rising_edge(clk)) then
-			dout.data_out <= din.data_in;
+			dout.data_out <= datain;
 			-- forwarding
 			dout.reg_write_out      <= din.reg_write_in;
 			dout.write_back_reg_out <= din.write_back_reg_in;
@@ -243,4 +246,14 @@ begin
 		end if;
 	end process;
 
+	write_back_proc : process(mem_data_out_muxed, exout)
+	begin
+		if exout.mem_to_reg_out = '1' then
+			dout.data <= mem_data_out_muxed;
+			datain <= mem_data_out_muxed;
+		else
+			dout.data <= exout.alu_result_out;
+			datain <= exout.alu_result_out;
+		end if;
+	end process;
 end arch;

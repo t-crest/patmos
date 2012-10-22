@@ -103,6 +103,12 @@ Errors : 0")
 
 test_asm(34 "Undefined Label: x")
 
+test_asm(35 "Emitted: 36 bytes
+Errors : 0")
+
+test_asm(36 "Emitted: 36 bytes
+Errors : 0")
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # SIMULATOR TESTS
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -200,3 +206,7 @@ test_dsim(32 "r2 : 00000001")
 
 test_dsim(33 "r2 : 00000001")
 test_sim (33 "r2 : 00000001")
+
+test_sim(35 "r2 : 00000001")
+
+test_sim(36 "r2 : 00000001")

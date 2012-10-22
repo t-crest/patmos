@@ -142,4 +142,27 @@ begin
 		end if;
 	end process;
 
+	
+
+	--   instruction_mem_address: process(execute_dout.alu_result_out, pc, instruction_rom_out, instruction_mem_dout.inst_out) --read/write enable here
+	--  begin
+	--  	if(pc <= 70 ) then --  change this after the final version of boot loader
+	--  		if (execute_dout.mem_write_out = '1') then
+	--  			instruction_mem_din.address <= execute_dout.alu_result_out - 512;
+	--  		end if;
+	--  	end if;
+	--  	if (pc >= 70) then
+	--  		--instruction_mem_din.address <= pc - 70 + 7;
+	--  		
+	--  		--instruction_mem_din.read_enable <= '1';
+	--  	end if;
+	--  end process;
+
+
+	--  instruction_mem : entity work.patmos_instruction_memory(arch)
+	--  port map(clk, rst, instruction_mem_din.address, 
+	--           execute_dout.mem_write_data_out,
+	--           instruction_mem_dout.inst_out, 
+	--	        instruction_mem_din.read_enable, instruction_mem_din.write_enable);
+
 end arch;
