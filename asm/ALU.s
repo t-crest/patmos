@@ -25,7 +25,7 @@
 	shadd   r15 = r15, r3; # r15 = 5
 	shadd2  r15 = r15, r3; # r15 = 5 shift 2 to left + 3  = 23!
 	addi    r1 = r0, 1;
-	sl	r1 = r1, 31;
+	sli	r1 = r1, 31;
 	ori     r1 = r1, 1;
 	addi    r2 = r0, 2;
 	rl	r1 = r1, r2;	
