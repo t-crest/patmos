@@ -74,7 +74,6 @@ entity patmos_core is
 end entity patmos_core;
 
 architecture arch of patmos_core is
-	signal write_enable : std_logic;
 	signal test         : std_logic;
 
 	signal memdin_reg : std_logic_vector(31 downto 0);
@@ -86,21 +85,12 @@ architecture arch of patmos_core is
 	signal decode_dout            : decode_out_type;
 	signal alu_din                : alu_in_type;
 	signal execute_dout           : execution_out_type;
-	signal write_back             : write_back_in_out_type;
-	signal stack_cache_din        : patmos_stack_cache_in;
-	signal stack_cache_dout       : patmos_stack_cache_out;
-	signal stack_cache_ctrl_din   : patmos_stack_cache_ctrl_in;
-	signal stack_cache_ctrl_dout  : patmos_stack_cache_ctrl_out;
+
 	signal mem_din                : mem_in_type;
 	signal mem_dout               : mem_out_type;
 
 	signal mem_data_out_uart  : std_logic_vector(31 downto 0);
 	signal mem_data_out_muxed : std_logic_vector(31 downto 0);
-
-	signal mem_data_out_sdram : std_logic_vector(31 downto 0);
-
-	signal spill, fill          : std_logic;
-	signal instruction_mem_din  : instruction_memory_in_type;
 
 	signal clk_int : std_logic;
 	-- MS: maybe some signal sorting would be nice
@@ -215,14 +205,12 @@ begin                                   -- architecture begin
 		port map(clk, rst, decode_din, decode_dout);
 
 	---------------------------------------------------- execute
-
-	alu_din.STT_instruction_type <= decode_dout.STT_instruction_type_out;
-	alu_din.LDT_instruction_type <= decode_dout.LDT_instruction_type_out;
-
-	
-	alu_din.pat_function_type <= decode_dout.pat_function_type;
+	alu_din.pat_function_type_alu <= decode_dout.pat_function_type_alu;
+	alu_din.pat_function_type_alu_u <= decode_dout.pat_function_type_alu_u;
+	alu_din.pat_function_type_alu_p <= decode_dout.pat_function_type_alu_p;
 	alu_din.adrs_type <= decode_dout.adrs_type;
 	alu_din.is_predicate_inst <= decode_dout.is_predicate_inst;
+	alu_din.alu_alu_u <= decode_dout.alu_alu_u;
 	---------------------------------------alu
 	alu : entity work.patmos_alu(arch)
 		port map(clk, rst, decode_dout, alu_din, execute_dout, mem_dout);

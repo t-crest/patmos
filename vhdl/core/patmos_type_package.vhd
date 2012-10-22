@@ -49,11 +49,12 @@ package patmos_type_package is
 	type STT_inst_type is (NONE, SWS, SWL, SWC, SWM, SHM, SBM, SHS, SHL, SHC, SBS, SBL, SBC); -- all stores
 	type LDT_inst_type is (NONE, LWM, LHM, LBM, LHUM, LBUM, LWS, LHS, LBS, LHUS, LBUS, LWL, LHL, LBL, LHUL, LBUL, LWC, LHC, LBC, LHUC, LBUC);
 	type SPC_type is (NONE, SPCn, SPCw, SPCt, SPCf);
-	type forwarding_type is (FWNOP, FWMEM, FWALU);
 	type load_type is (NONE, lw, lh, lb, lhu, lbu, dlwh, dlbh, dlbu);
 	type address_type is (word, half, byte);
-	type function_type is (pat_add, pat_sub, pat_rsub, pat_sl, pat_sr, pat_sra, pat_or, pat_and, pat_rl, pat_rr, 
-		pat_xor, pat_nor, pat_shadd, pat_shadd2, pat_sext8, pat_sext16, pat_zext16, pat_abs, pat_por, pat_pand, pat_pxor, pat_pnor);
+	type function_type_alu is (pat_add, pat_sub, pat_rsub, pat_sl, pat_sr, pat_sra, pat_or, pat_and, pat_rl, pat_rr, 
+		pat_xor, pat_nor, pat_shadd, pat_shadd2);
+	type function_type_alu_u is (pat_sext8, pat_sext16, pat_zext16, pat_abs);
+	type function_type_alu_p is (pat_por, pat_pand, pat_pxor, pat_pnor);
 	-------------------------------------------
 	-- in/out records
 	-------------------------------------------
@@ -120,9 +121,12 @@ package patmos_type_package is
 		
 		
 		
-		pat_function_type      :function_type;
+		pat_function_type_alu      :function_type_alu;
+		pat_function_type_alu_u      :function_type_alu_u;
+		pat_function_type_alu_p      :function_type_alu_p;
 		is_predicate_inst			 : std_logic;
 		adrs_type				 : address_type;
+		alu_alu_u				: std_logic;
 	end record;
 
 	type result_type is record
@@ -189,9 +193,12 @@ package patmos_type_package is
 		
 		
 		
-		pat_function_type      :function_type;
+		pat_function_type_alu      :function_type_alu;
+		pat_function_type_alu_u      :function_type_alu_u;
+		pat_function_type_alu_p      :function_type_alu_p;
 		is_predicate_inst		 : std_logic;
 		adrs_type			 : address_type;
+		alu_alu_u				: std_logic;
 	end record;
 
 	------------------------------------------

@@ -116,7 +116,7 @@ begin
 			     din.adrs(9 downto 0),
 			     dout3);
 
-	ld_type : process(din, dout0, dout1, dout2, dout3)
+	ld_type : process(din, dout0, dout1, dout2, dout3, ldt_type)
 	begin
 		dout.data_mem_data_out <= dout0 & dout1 & dout2 & dout3;
 		if (ldt_type = LWL or ldt_type = LWC or ldt_type = LWM) then
@@ -205,7 +205,7 @@ begin
 		end case;
 	end process word_address_decode;
 
-	st_store : process(din, din.mem_write, word_enable0, word_enable1, byte_enable0, byte_enable1, byte_enable2, byte_enable3)
+	st_store : process(din, word_enable0, word_enable1, byte_enable0, byte_enable1, byte_enable2, byte_enable3)
 	begin
 		en0             <= '0';
 		en1             <= '0';
