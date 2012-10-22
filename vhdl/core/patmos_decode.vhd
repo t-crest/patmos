@@ -52,8 +52,9 @@ entity patmos_decode is
 end entity patmos_decode;
 
 architecture arch of patmos_decode is
-
-
+	
+	signal alu_func : std_logic_vector(3 downto 0);
+	
 begin
 
 	--------------------------------
@@ -70,8 +71,9 @@ begin
 	
 	-- The source selection between immediate and register might be done here
 	--		Depends on the critical path
+	
 
-	decode : process(clk)
+	decode : process(clk, alu_func)
 	begin
 		if rising_edge(clk) then
 			dout.imm <= std_logic_vector(resize(signed(din.operation(11 downto 0)), 32));
@@ -118,7 +120,7 @@ begin
 			--         dout.predicate_bit <= not predicate_register_bank(to_integer(unsigned(din.operation1(29 downto 27))));
 			--   end if;   
 			dout.alu_alu_u <= '1';
-			case din.operation(3 downto 0) is
+			case alu_func is
 				when "0000" =>  dout.pat_function_type_alu <= pat_add;
 				when "0001" => dout.pat_function_type_alu <= pat_sub;
 				when "0010" => dout.pat_function_type_alu <= pat_rsub;
@@ -143,19 +145,6 @@ begin
 				dout.reg_write_out    <= '1';
 				dout.inst_type_out         <= ALUi;
 				dout.ALU_function_type_out <= '0' & din.operation(24 downto 22);
-				
-				case din.operation(24 downto 22) is
-					when "000" =>  dout.pat_function_type_alu <= pat_add;
-					when "001" => dout.pat_function_type_alu <= pat_sub;
-					when "010" => dout.pat_function_type_alu <= pat_rsub;
-					when "011" => dout.pat_function_type_alu <= pat_sl;
-					when "100" => dout.pat_function_type_alu <= pat_sr;
-					when "101" => dout.pat_function_type_alu <= pat_sra;
-					when "110" => dout.pat_function_type_alu <= pat_or;
-					when "111" => dout.pat_function_type_alu <= pat_and;
-					when others => dout.pat_function_type_alu <= pat_add; -- default add! 
-			end case;
-				
 				
 			elsif din.operation(26 downto 22) = "11111" then -- long immediate!
 				dout.ALU_function_type_out <= din.operation(3 downto 0);
@@ -420,6 +409,20 @@ begin
 			end if;
 		end if;
 	end process decode;
+	
+	patmos_alu_alui: process(din)
+	begin
+		--if rising_edge(clk) then
+			case din.operation(26 downto 25) is 
+				when "00" =>
+					alu_func <= '0' & din.operation(24 downto 22);
+				when "01" =>
+					alu_func <= din.operation(3 downto 0);
+				when "11" =>
+					alu_func <= din.operation(3 downto 0);
+				when others => null; 
+			end case;
+	end process;
 end arch;
 
 
