@@ -219,8 +219,6 @@ begin                                   -- architecture begin
 	-- mem/io decoder
 
 	-- MS: IO shall go into it's own 'top level' component
-	-- We need to find a reasonable address mapping, not starting IO at
-	-- address 0
 	io_decode : process(execute_dout, decode_dout, io_next)
 		variable addr : std_logic_vector(31 downto 0);
 
@@ -251,9 +249,6 @@ begin                                   -- architecture begin
 		else
 			io_next.mem_en             <= '1';
 			io_next.device             <= io_memmory;
-			-- Edgar: didn't want to remove those, maybe somebody is using them.
-			test                       <= '1';
-			io_next.instruction_mem_wr <= '0'; -- instruction_mem_din.write_enable <= '0';
 		end if;
 
 	end process;
@@ -293,7 +288,7 @@ begin                                   -- architecture begin
 			io_reg     <= io_next;
 			memdin_reg <= execute_dout.mem_write_data;       
 			-- state for some I/O devices
-			if io_reg.wr = '1' and io_reg.led_en = '1' then -- Edgar: was using unregistered value, so suppose it was a bug
+			if io_reg.wr = '1' and io_reg.led_en = '1' then 
 				led_reg <= memdin_reg(0);
 			end if;
 			counter <= counter + 1;
@@ -344,14 +339,12 @@ begin                                   -- architecture begin
 
 
 	-- TODO: the memory code belongs into the memory stage component
-	
-	mem_din.STT_instruction_type_out <= decode_dout.STT_instruction_type_out;
-	mem_din.LDT_instruction_type_out <= decode_dout.LDT_instruction_type_out;
+	mem_din.adrs_type <= decode_dout.adrs_type;
+	mem_din.s_u		  <= decode_dout.s_u;
 	mem_din.alu_result_out               <= execute_dout.alu_result_out;
 	mem_din.adrs_out               <= execute_dout.adrs_out;
 	mem_din.adrs               		  <= execute_dout.adrs;
 	mem_din.mem_write                <= io_next.wr and io_next.mem_en;
---	mem_din.mem_to_reg_out	        <= execute_dout.mem_to_reg_out;
 	-- forward
 	mem_din.reg_write_in             <= execute_dout.reg_write_out or execute_dout.mem_to_reg_out; --execute_dout.mem_to_reg_out or execute_dout.mem_write_out;
 	mem_din.write_back_reg_in        <= execute_dout.write_back_reg_out;

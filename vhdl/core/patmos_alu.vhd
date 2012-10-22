@@ -288,7 +288,10 @@ begin
 		end if;
 	end process;
 	
-	
+--	patmos_address_decoding: process(adrs)
+--	begin
+--		
+--	end process;
 
 end arch;
 

@@ -111,7 +111,7 @@ begin
 			dout.sc_read_out              <= '0';
 			dout.lm_write_out			  <= '0';
 			dout.lm_read_out			  <= '0';
-			
+			dout.s_u 					  <= '1';
 			-- TODO: get defaults for all signals and remove redundant assignments
 
 			--   if din.operation1(30) = '1' then -- predicate bits assignment
@@ -293,10 +293,12 @@ begin
 						dout.LDT_instruction_type_out <= LHUL;
 						dout.lm_read_out			  <= '1';
 						dout.adrs_type <= half;
+						dout.s_u		<= '0';
 					when "10001" =>
 						dout.LDT_instruction_type_out <= LBUL;
 						dout.lm_read_out			  <= '1';
 						dout.adrs_type <= byte;			
+						dout.s_u		<= '0';
 					----------------------------------------
 					when "00000" =>
 						dout.LDT_instruction_type_out <= LWS;
@@ -310,9 +312,11 @@ begin
 					when "01100" =>
 						dout.LDT_instruction_type_out <= LHUS;
 						dout.adrs_type <= half;
+						dout.s_u		<= '0';
 					when "10000" =>
 						dout.LDT_instruction_type_out <= LBUS;
 						dout.adrs_type <= byte;
+						dout.s_u		<= '0';
 					----------------------------------------- global memory	
 					when "00011" =>
 						dout.LDT_instruction_type_out <= LWM;
@@ -331,10 +335,12 @@ begin
 						dout.LDT_instruction_type_out <= LHUM;
 						dout.lm_read_out			  <= '1';
 						dout.adrs_type <= half;
+						dout.s_u		<= '0';
 					when "10011" =>
 						dout.LDT_instruction_type_out <= LBUM;
 						dout.lm_read_out			  <= '1';
 						dout.adrs_type <= byte;
+						dout.s_u		<= '0';
 					---------------------------------------- data cache
 					when "00010" =>
 						dout.LDT_instruction_type_out <= LWC;
@@ -353,10 +359,12 @@ begin
 						dout.LDT_instruction_type_out <= LHUC;
 						dout.lm_read_out			  <= '1';
 						dout.adrs_type <= half;
+						dout.s_u		<= '0';
 					when "10010" =>
 						dout.LDT_instruction_type_out <= LBUC;
 						dout.lm_read_out			  <= '1';	
 						dout.adrs_type <= byte;	
+						dout.s_u		<= '0';
 						-- again no read, no write?
 --						dout.sc_write_out             <= '0';
 --						dout.sc_read_out              <= '0';

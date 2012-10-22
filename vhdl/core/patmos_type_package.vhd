@@ -127,6 +127,7 @@ package patmos_type_package is
 		is_predicate_inst			 : std_logic;
 		adrs_type				 : address_type;
 		alu_alu_u				: std_logic;
+		s_u						: std_logic;
 	end record;
 
 	type result_type is record
@@ -166,6 +167,7 @@ package patmos_type_package is
 		--registered outputs
 		address_reg			: std_logic_vector(31 downto 0);
 		
+		adrs_type		    :  address_type;
 		--unregistered outputs
 		lm_read_out_not_reg	: std_logic;
 		lm_write_out_not_reg : std_logic;
@@ -220,6 +222,9 @@ package patmos_type_package is
 		LDT_instruction_type_out : LDT_inst_type;
 		alu_src2                 : std_logic_vector(31 downto 0);
 		mem_to_reg_out	: std_logic;
+		
+		s_u						: std_logic;
+		adrs_type		    :  address_type;
 	end record;
 
 	type mem_out_type is record
