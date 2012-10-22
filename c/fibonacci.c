@@ -1,6 +1,6 @@
 /*
 	This program prints 10 first fibonacci numbers in hex format, for converting to characters / is needed which will generate a big ROM.
-	Author: Martin Schoeberl
+	Author: Sahar
 	Copyright: DTU, BSD License
 */
 
