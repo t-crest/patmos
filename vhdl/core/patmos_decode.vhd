@@ -52,8 +52,9 @@ entity patmos_decode is
 end entity patmos_decode;
 
 architecture arch of patmos_decode is
-
-
+	
+	signal alu_func : std_logic_vector(3 downto 0);
+	
 begin
 
 	--------------------------------
@@ -70,8 +71,9 @@ begin
 	
 	-- The source selection between immediate and register might be done here
 	--		Depends on the critical path
+	
 
-	decode : process(clk)
+	decode : process(clk, alu_func)
 	begin
 		if rising_edge(clk) then
 			dout.imm <= std_logic_vector(resize(signed(din.operation(11 downto 0)), 32));
@@ -109,7 +111,7 @@ begin
 			dout.sc_read_out              <= '0';
 			dout.lm_write_out			  <= '0';
 			dout.lm_read_out			  <= '0';
-			
+			dout.s_u 					  <= '1';
 			-- TODO: get defaults for all signals and remove redundant assignments
 
 			--   if din.operation1(30) = '1' then -- predicate bits assignment
@@ -117,24 +119,24 @@ begin
 			--       elsif din.operation1(30) = '0' then -- ~predicate bits assignment
 			--         dout.predicate_bit <= not predicate_register_bank(to_integer(unsigned(din.operation1(29 downto 27))));
 			--   end if;   
-			
-			case din.operation(3 downto 0) is
-				when "0000" =>  dout.pat_function_type <= pat_add;
-				when "0001" => dout.pat_function_type <= pat_sub;
-				when "0010" => dout.pat_function_type <= pat_rsub;
-				when "0011" => dout.pat_function_type <= pat_sl;
-				when "0100" => dout.pat_function_type <= pat_sr;
-				when "0101" => dout.pat_function_type <= pat_sra;
-				when "0110" => dout.pat_function_type <= pat_or;
-				when "0111" => dout.pat_function_type <= pat_and;
+			dout.alu_alu_u <= '1';
+			case alu_func is
+				when "0000" =>  dout.pat_function_type_alu <= pat_add;
+				when "0001" => dout.pat_function_type_alu <= pat_sub;
+				when "0010" => dout.pat_function_type_alu <= pat_rsub;
+				when "0011" => dout.pat_function_type_alu <= pat_sl;
+				when "0100" => dout.pat_function_type_alu <= pat_sr;
+				when "0101" => dout.pat_function_type_alu <= pat_sra;
+				when "0110" => dout.pat_function_type_alu <= pat_or;
+				when "0111" => dout.pat_function_type_alu <= pat_and;
 				-----
-				when "1000" => dout.pat_function_type <= pat_rl;
-				when "1001" => dout.pat_function_type <= pat_rr;
-				when "1010" => dout.pat_function_type <= pat_xor;
-				when "1011" => dout.pat_function_type <= pat_nor;
-				when "1100" => dout.pat_function_type <= pat_shadd;
-				when "1101" => dout.pat_function_type <= pat_shadd2;
-				when others => dout.pat_function_type <= pat_add; -- default add! 
+				when "1000" => dout.pat_function_type_alu <= pat_rl;
+				when "1001" => dout.pat_function_type_alu <= pat_rr;
+				when "1010" => dout.pat_function_type_alu <= pat_xor;
+				when "1011" => dout.pat_function_type_alu <= pat_nor;
+				when "1100" => dout.pat_function_type_alu <= pat_shadd;
+				when "1101" => dout.pat_function_type_alu <= pat_shadd2;
+				when others => dout.pat_function_type_alu <= pat_add; -- default add! 
 			end case;
 			dout.is_predicate_inst			 <= '0';
 			
@@ -143,19 +145,6 @@ begin
 				dout.reg_write_out    <= '1';
 				dout.inst_type_out         <= ALUi;
 				dout.ALU_function_type_out <= '0' & din.operation(24 downto 22);
-				
-				case din.operation(24 downto 22) is
-					when "000" =>  dout.pat_function_type <= pat_add;
-					when "001" => dout.pat_function_type <= pat_sub;
-					when "010" => dout.pat_function_type <= pat_rsub;
-					when "011" => dout.pat_function_type <= pat_sl;
-					when "100" => dout.pat_function_type <= pat_sr;
-					when "101" => dout.pat_function_type <= pat_sra;
-					when "110" => dout.pat_function_type <= pat_or;
-					when "111" => dout.pat_function_type <= pat_and;
-					when others => dout.pat_function_type <= pat_add; -- default add! 
-			end case;
-				
 				
 			elsif din.operation(26 downto 22) = "11111" then -- long immediate!
 				dout.ALU_function_type_out <= din.operation(3 downto 0);
@@ -179,12 +168,13 @@ begin
 						dout.ALU_instruction_type_out <= ALUu;
 						dout.reg_write_out    <= '1';
 						case din.operation(3 downto 0) is
-							when "0000" => dout.pat_function_type <= pat_sext8;
-							when "0001" => dout.pat_function_type <= pat_sext16;
-							when "0010" => dout.pat_function_type <= pat_zext16;
-							when "0011" => dout.pat_function_type <=  pat_abs;
-							when others => dout.pat_function_type <= pat_add;
+							when "0000" => dout.pat_function_type_alu_u <= pat_sext8;
+							when "0001" => dout.pat_function_type_alu_u <= pat_sext16;
+							when "0010" => dout.pat_function_type_alu_u <= pat_zext16;
+							when "0011" => dout.pat_function_type_alu_u <=  pat_abs;
+							when others => dout.pat_function_type_alu_u <= pat_sext8;
 						end case;
+						dout.alu_alu_u <= '0';
 					when "010" =>       -- Multuply
 						dout.ALU_instruction_type_out <= ALUm;
 						dout.reg_write_out    <= '1';
@@ -198,11 +188,11 @@ begin
 						dout.reg_write_out <= '0';
 						dout.is_predicate_inst <= '1';
 						case din.operation(3 downto 0) is
-							when "0110" =>  dout.pat_function_type <= pat_por;
-							when "0111" => dout.pat_function_type <= pat_pand;
-							when "1010" => dout.pat_function_type <= pat_pxor;
-							when "1011" => dout.pat_function_type <= pat_pnor;
-							when others => dout.pat_function_type <= pat_por;
+							when "0110" =>  dout.pat_function_type_alu_p <= pat_por;
+							when "0111" => dout.pat_function_type_alu_p <= pat_pand;
+							when "1010" => dout.pat_function_type_alu_p <= pat_pxor;
+							when "1011" => dout.pat_function_type_alu_p <= pat_pnor;
+							when others => dout.pat_function_type_alu_p <= pat_por;
 						end case;
 					when others => NULL;
 				end case;
@@ -303,10 +293,12 @@ begin
 						dout.LDT_instruction_type_out <= LHUL;
 						dout.lm_read_out			  <= '1';
 						dout.adrs_type <= half;
+						dout.s_u		<= '0';
 					when "10001" =>
 						dout.LDT_instruction_type_out <= LBUL;
 						dout.lm_read_out			  <= '1';
 						dout.adrs_type <= byte;			
+						dout.s_u		<= '0';
 					----------------------------------------
 					when "00000" =>
 						dout.LDT_instruction_type_out <= LWS;
@@ -320,9 +312,11 @@ begin
 					when "01100" =>
 						dout.LDT_instruction_type_out <= LHUS;
 						dout.adrs_type <= half;
+						dout.s_u		<= '0';
 					when "10000" =>
 						dout.LDT_instruction_type_out <= LBUS;
 						dout.adrs_type <= byte;
+						dout.s_u		<= '0';
 					----------------------------------------- global memory	
 					when "00011" =>
 						dout.LDT_instruction_type_out <= LWM;
@@ -341,10 +335,12 @@ begin
 						dout.LDT_instruction_type_out <= LHUM;
 						dout.lm_read_out			  <= '1';
 						dout.adrs_type <= half;
+						dout.s_u		<= '0';
 					when "10011" =>
 						dout.LDT_instruction_type_out <= LBUM;
 						dout.lm_read_out			  <= '1';
 						dout.adrs_type <= byte;
+						dout.s_u		<= '0';
 					---------------------------------------- data cache
 					when "00010" =>
 						dout.LDT_instruction_type_out <= LWC;
@@ -363,10 +359,12 @@ begin
 						dout.LDT_instruction_type_out <= LHUC;
 						dout.lm_read_out			  <= '1';
 						dout.adrs_type <= half;
+						dout.s_u		<= '0';
 					when "10010" =>
 						dout.LDT_instruction_type_out <= LBUC;
 						dout.lm_read_out			  <= '1';	
 						dout.adrs_type <= byte;	
+						dout.s_u		<= '0';
 						-- again no read, no write?
 --						dout.sc_write_out             <= '0';
 --						dout.sc_read_out              <= '0';
@@ -419,6 +417,20 @@ begin
 			end if;
 		end if;
 	end process decode;
+	
+	patmos_alu_alui: process(din)
+	begin
+		--if rising_edge(clk) then
+			case din.operation(26 downto 25) is 
+				when "00" =>
+					alu_func <= '0' & din.operation(24 downto 22);
+				when "01" =>
+					alu_func <= din.operation(3 downto 0);
+				when "11" =>
+					alu_func <= din.operation(3 downto 0);
+				when others => null; 
+			end case;
+	end process;
 end arch;
 
 

@@ -55,21 +55,19 @@ end entity patmos_alu;
 
 architecture arch of patmos_alu is
 
-	signal rd, adrs								: std_logic_vector(31 downto 0);
+	signal rd, rd1, rd2, adrs								: std_logic_vector(31 downto 0);
 	signal cmp_equal, cmp_result				: std_logic;
 	signal predicate, predicate_reg				: std_logic_vector(7 downto 0);
 	signal rs1, rs2								: unsigned(31 downto 0);
-	signal tst									: std_logic;
 	signal doutex_alu_result_out				: std_logic_vector(31 downto 0);
 	signal doutex_alu_adrs_out					: std_logic_vector(31 downto 0);
 	signal doutex_write_back_reg_out			: std_logic_vector(4 downto 0);
 	signal doutex_reg_write_out					: std_logic;
 	signal din_rs1, din_rs2, alu_src2			: std_logic_vector(31 downto 0);
-	
+	signal shamt 								: integer;
+	signal shifted_arg							: unsigned(31 downto 0);
 begin
 
-	-- MS: TODO: This ALU needs to be restructured to share functional units
-	-- also means more decoding in decode and not in execute
 
 	-- we should assign default values;
 	process(din_rs1, din_rs2)
@@ -78,25 +76,33 @@ begin
 		rs2 <= unsigned(din_rs2);
 	end process;
 	
-	patmos_address: process(rs1, rs2)
-	begin 
-		adrs <= "00000000000000000000000000000000";
+	
+	patmos_address_shamt: process(din)
+	begin
 		case din.adrs_type is
 			when word => 
-				adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 2)));
+				shamt <= 2;
 			when half =>
-				adrs <= std_logic_vector(rs1 + (SHIFT_LEFT(rs2, 1)));
+				shamt <= 1;
 			when byte =>
-				adrs <= std_logic_vector(rs1 + rs2);
+				shamt <= 0;
 			when others => null;
 		end case;
+	end process;
+	patmos_address_shift: process(shamt, rs2)
+	begin
+		shifted_arg <= SHIFT_LEFT(rs2, shamt);
+	end process;
+	patmos_address: process(rs1, rs2, shifted_arg)
+	begin 
+		adrs <= std_logic_vector(rs1 + shifted_arg);
 	end process;
 	
 	patmos_predicate: process(din, decdout, predicate, predicate_reg, cmp_result)
 	begin
 		predicate  <= predicate_reg;
 		if (din.is_predicate_inst = '1') then 
-			case din.pat_function_type is
+			case din.pat_function_type_alu_p is
 				when pat_por => predicate(to_integer(unsigned(decdout.pd_out(2 downto 0)))) <= 					
 								(decdout.ps1_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps1_out(2 downto 0)))) ) or 
 								(decdout.ps2_out(3) xor predicate_reg(to_integer(unsigned(decdout.ps2_out(2 downto 0)))));
@@ -124,29 +130,38 @@ begin
 	
 	patmos_alu: process(din, rs1, rs2) -- ALU
 	begin 
-		rd <= "00000000000000000000000000000000";
-		case din.pat_function_type is
-			when pat_add => rd <= std_logic_vector(rs1 + rs2); --add
-			when pat_sub => rd <= std_logic_vector(rs1 - rs2); --sub
-			when pat_rsub => rd <= std_logic_vector(rs2 - rs1); -- sub invert
-			when pat_sl => rd <= std_logic_vector(SHIFT_LEFT(rs1, to_integer(rs2(4 downto 0)))); --sl
-			when pat_sr => rd <= std_logic_vector(SHIFT_RIGHT(rs1, to_integer(rs2(4 downto 0)))); -- sr
-			when pat_sra => rd <= std_logic_vector(SHIFT_RIGHT(signed(rs1), to_integer(rs2(4 downto 0)))); -- sra
-			when pat_or => rd <= std_logic_vector(rs1 or rs2); -- or
-			when pat_and => rd <= std_logic_vector(rs1 and rs2); -- and
+		rd1 <= "00000000000000000000000000000000";
+		case din.pat_function_type_alu is
+			when pat_add => rd1 <= std_logic_vector(rs1 + rs2); --add
+			when pat_sub => rd1 <= std_logic_vector(rs1 - rs2); --sub
+			when pat_rsub => rd1 <= std_logic_vector(rs2 - rs1); -- sub invert
+			when pat_sl => rd1 <= std_logic_vector(SHIFT_LEFT(rs1, to_integer(rs2(4 downto 0)))); --sl
+			when pat_sr => rd1 <= std_logic_vector(SHIFT_RIGHT(rs1, to_integer(rs2(4 downto 0)))); -- sr
+			when pat_sra => rd1 <= std_logic_vector(SHIFT_RIGHT(signed(rs1), to_integer(rs2(4 downto 0)))); -- sra
+			when pat_or => rd1 <= std_logic_vector(rs1 or rs2); -- or
+			when pat_and => rd1 <= std_logic_vector(rs1 and rs2); -- and
 						-----
-			when pat_rl => rd <= std_logic_vector(ROTATE_LEFT(rs1, to_integer(rs2(4 downto 0))));-- rl
-			when pat_rr => rd <= std_logic_vector(ROTATE_RIGHT(rs1, to_integer(rs2(4 downto 0))));
-			when pat_xor => rd <= std_logic_vector(rs2 xor rs1);
-			when pat_nor => rd <= std_logic_vector(rs1 nor rs2);
-			when pat_shadd => rd <= std_logic_vector(SHIFT_LEFT(rs1, 1) + rs2);
-			when pat_shadd2 => rd <= std_logic_vector(SHIFT_LEFT(rs1, 2) + rs2);
-			when pat_sext8 => rd <= std_logic_vector(rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) &
+			when pat_rl => rd1 <= std_logic_vector(ROTATE_LEFT(rs1, to_integer(rs2(4 downto 0))));-- rl
+			when pat_rr => rd1 <= std_logic_vector(ROTATE_RIGHT(rs1, to_integer(rs2(4 downto 0))));
+			when pat_xor => rd1 <= std_logic_vector(rs2 xor rs1);
+			when pat_nor => rd1 <= std_logic_vector(rs1 nor rs2);
+			when pat_shadd => rd1 <= std_logic_vector(SHIFT_LEFT(rs1, 1) + rs2);
+			when pat_shadd2 => rd1 <= std_logic_vector(SHIFT_LEFT(rs1, 2) + rs2);
+
+			when others => rd1 <= std_logic_vector(rs1 + rs2); -- default add! 
+		end case;
+	end process;
+	
+	patmos_alu_u: process(din, rs1, rs2)
+	begin
+		rd2 <= "00000000000000000000000000000000";
+		case din.pat_function_type_alu_u is
+			when pat_sext8 => rd2 <= std_logic_vector(rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) &
 									rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7 downto 0));
-			when pat_sext16 => rd <= std_logic_vector(rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15 downto 0));
-			when pat_zext16 => rd <= std_logic_vector("0000000000000000" & rs1(15 downto 0));
-			when pat_abs => rd <= std_logic_vector(abs(signed(rs1)));
-			when others => rd <= std_logic_vector(rs1 + rs2); -- default add! 
+			when pat_sext16 => rd2 <= std_logic_vector(rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15 downto 0));
+			when pat_zext16 => rd2 <= std_logic_vector("0000000000000000" & rs1(15 downto 0));
+			when pat_abs => rd2 <= std_logic_vector(abs(signed(rs1)));
+			when others => rd2 <= std_logic_vector(rs1 + rs2); -- default add! 
 		end case;
 	end process;
 	
@@ -171,12 +186,15 @@ begin
 	--	end if;
 	end process;
 	
-	
-	process(rd, adrs)
+	patmos_alu_alu_u: process(rd1, rd2)
 	begin
-		doutex.alu_result <= rd;
-		doutex.adrs <= adrs;
+		if (din.alu_alu_u = '1') then
+			rd <= rd1;
+		else
+			rd <= rd2;	
+		end if;
 	end process;
+		
 	-- TODO: remove all predicate related stuff from EX out  
 	process(rst, clk)
 	begin
@@ -222,7 +240,8 @@ begin
 		end if;
 	end process;
 	
-	not_registered_out: process(decdout, alu_src2)
+	
+	not_registered_out: process(decdout, alu_src2, rd, adrs)
 	begin
 		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit_out then
 				doutex.lm_read_out_not_reg              <= decdout.lm_read_out;
@@ -232,19 +251,19 @@ begin
 				doutex.lm_write_out_not_reg              <= '0';
 		end if;
 		doutex.mem_write_data <= alu_src2;
+		doutex.alu_result <= rd;
+		doutex.adrs <= adrs;
 	end process not_registered_out;
+
 	
 	forwarding_rs1 : process(doutex_alu_result_out, doutex_write_back_reg_out, doutex_reg_write_out , decdout, memdout)
 	begin
 		if (decdout.rs1_out = doutex_write_back_reg_out and doutex_reg_write_out = '1' ) then
 			din_rs1 <= doutex_alu_result_out;
-			--t1 <= '1';
 		elsif (decdout.rs1_out = memdout.write_back_reg_out and memdout.reg_write_out = '1' ) then
 			din_rs1 <= memdout.data_out;
-			--t2 <= '1';
 		else
 			din_rs1 <= decdout.rs1_data_out;
-			--t3 <= '1';
 		end if;
 	end process forwarding_rs1;
 	
@@ -260,7 +279,7 @@ begin
 	end process forwarding_rs2;
 
 
-	process(alu_src2, decdout.ALUi_immediate_out, decdout.alu_src_out)
+	imm_reg_select: process(alu_src2, decdout.ALUi_immediate_out, decdout.alu_src_out)
 	begin
 		if (decdout.alu_src_out = '0') then
 			din_rs2 <= alu_src2;
@@ -269,11 +288,10 @@ begin
 		end if;
 	end process;
 	
---	process(alu_src2)
+--	patmos_address_decoding: process(adrs)
 --	begin
---		memdin <= alu_src2;
+--		
 --	end process;
-	
 
 end arch;
 
