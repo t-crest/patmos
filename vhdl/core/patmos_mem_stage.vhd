@@ -120,7 +120,7 @@ begin
 			     dout3);
 	
 	--------------------------- address muxes begin--------------------------		     
-	ld_add_word: process(din, dout0, dout1, dout2, dout3)
+	process(din, dout0, dout1, dout2, dout3)
 	begin
 		ld_word <= dout0 & dout1 & dout2 & dout3;
 	end process;
@@ -136,7 +136,7 @@ begin
 		end case;
 	end process;
 	
-	ld_add_byte:process(din, dout0, dout1, dout2, dout3)
+	process(din, dout0, dout1, dout2, dout3)
 	begin
 		case din.adrs_out(1 downto 0) is
 			when "00" =>
@@ -153,7 +153,7 @@ begin
 	--------------------------- address muxes end--------------------------	
 	
 	--------------------------- sign extension begin--------------------------
-	ld_sign_half: process(ld_half, s_u)
+	process(ld_half, s_u)
 	begin
 		if (s_u = '1') then
 			half_ext <= std_logic_vector(resize(signed(ld_half), 32));
@@ -162,7 +162,7 @@ begin
 		end if;
 	end process;
 		
-	ld_sign_byte: process(ld_byte, s_u)
+	process(ld_byte, s_u)
 	begin
 		if (s_u = '1') then
 			byte_ext <= std_logic_vector(resize(signed(ld_byte), 32));
@@ -173,7 +173,7 @@ begin
 	--------------------------- sign extension end--------------------------
 	
 	--------------------------- size muxe begin--------------------------
-	ld_type : process(byte_ext, half_ext, ld_word, ldt_type)
+	process(byte_ext, half_ext, ld_word, ldt_type)
 	begin
 		case ldt_type is
 			when word => 
@@ -187,73 +187,8 @@ begin
 	end process;
 	
 	--------------------------- size muxe end--------------------------
-	
 
-
---	ld_type : process(din, dout0, dout1, dout2, dout3, ldt_type)
---	begin
---		dout.data_mem_data_out <= dout0 & dout1 & dout2 & dout3;
---		if (ldt_type = LWL or ldt_type = LWC or ldt_type = LWM) then
---			dout.data_mem_data_out <= dout0 & dout1 & dout2 & dout3;
---
---		elsif (ldt_type = LHL or ldt_type = LHC or ldt_type = LHM or ldt_type = LHUL) then
---			--case din.alu_result(0) is
---			case din.adrs_out(1) is
---				when '0' =>
---					dout.data_mem_data_out <= std_logic_vector(resize(signed(dout0 & dout1), 32));
---				when '1' =>
---					dout.data_mem_data_out <= std_logic_vector(resize(signed(dout2 & dout3), 32));
---				when others => null;
---			end case;
---
---		elsif (ldt_type = LBL or ldt_type = LBC or ldt_type = LBM) then
---			case din.adrs_out(1 downto 0) is
---				when "00" =>
---					dout.data_mem_data_out <= std_logic_vector(resize(signed(dout0), 32));
-----					t0 <= '0';
---				when "01" =>
---					dout.data_mem_data_out <= std_logic_vector(resize(signed(dout1), 32));
-----					t1 <= '0';
---				when "10" =>
---					dout.data_mem_data_out <= std_logic_vector(resize(signed(dout2), 32));
-----					t2 <= '0';
---				when "11" =>
---					dout.data_mem_data_out <= std_logic_vector(resize(signed(dout3), 32));
-----					t3 <= '0';
---				when others => null;
---			end case;
---		elsif (ldt_type = LHUL or ldt_type = LHUC or ldt_type = LHUM) then
---			--	dout.data_mem_data_out <= std_logic_vector(resize(unsigned( dout0 & dout1), 32));
---			case din.adrs_out(1) is
---				when '0' =>
---					dout.data_mem_data_out <= std_logic_vector(resize(unsigned(dout0 & dout1), 32));
---				when '1' =>
---					dout.data_mem_data_out <= std_logic_vector(resize(unsigned(dout2 & dout3), 32));
---				when others => null;
---			end case;
---		elsif (ldt_type = LBUL or ldt_type = LBUC or ldt_type = LBUM) then
---			case din.adrs_out(1 downto 0) is
---				when "00" =>
---					dout.data_mem_data_out <= std_logic_vector(resize(unsigned(dout0), 32));
---				when "01" =>
---					dout.data_mem_data_out <= std_logic_vector(resize(unsigned(dout1), 32));
---				when "10" =>
---					dout.data_mem_data_out <= std_logic_vector(resize(unsigned(dout2), 32));
---				when "11" =>
---					dout.data_mem_data_out <= std_logic_vector(resize(unsigned(dout3), 32));
---				when others => null;
---			end case;
---
---		end if;
---	end process;
-
-	-- MS: why is enable always the same for all four bytes?
-	-- Doesn't this depend on the store size and the address?
-	-- Probably better to have one multiplexer independent of
-	--  typs, just dependent on store size and address?
-	-- Should this be part of the address calculation, in it's
-	-- own component?
-	byte_address_decode : process(din)
+	process(din)
 	begin
 		byte_enable0 <= '0';
 		byte_enable1 <= '0';
@@ -266,9 +201,9 @@ begin
 			when "11"   => byte_enable3 <= din.mem_write;
 			when others => null;
 		end case;
-	end process byte_address_decode;
+	end process;
 
-	word_address_decode : process(din)
+	process(din)
 	begin
 		word_enable0 <= '0';
 		word_enable1 <= '0';
@@ -277,9 +212,9 @@ begin
 			when '1'    => word_enable1 <= din.mem_write;
 			when others => null;
 		end case;
-	end process word_address_decode;
+	end process;
 		
-	st_process:process(din, word_enable0, word_enable1, byte_enable0, byte_enable1, byte_enable2, byte_enable3)
+	process(din, word_enable0, word_enable1, byte_enable0, byte_enable1, byte_enable2, byte_enable3)
 	begin
 		case din.adrs_type is
 			when word => 
@@ -314,7 +249,7 @@ begin
 		end case;
 	end process;
 
-	write_back_proc : process(mem_data_out_muxed, exout)
+	process(mem_data_out_muxed, exout)
 	begin
 		if exout.mem_to_reg_out = '1' then
 			dout.data <= mem_data_out_muxed;

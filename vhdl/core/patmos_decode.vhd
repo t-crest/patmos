@@ -418,7 +418,7 @@ begin
 		end if;
 	end process decode;
 	
-	patmos_alu_alui: process(din)
+	process(din)
 	begin
 		--if rising_edge(clk) then
 			case din.operation(26 downto 25) is 
