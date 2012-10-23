@@ -77,7 +77,7 @@ begin
 	end process;
 	
 	
-	patmos_address_shamt: process(din)
+	process(din)
 	begin
 		case din.adrs_type is
 			when word => 
@@ -89,16 +89,16 @@ begin
 			when others => null;
 		end case;
 	end process;
-	patmos_address_shift: process(shamt, rs2)
+	process(shamt, rs2)
 	begin
 		shifted_arg <= SHIFT_LEFT(rs2, shamt);
 	end process;
-	patmos_address: process(rs1, rs2, shifted_arg)
+	process(rs1, rs2, shifted_arg)
 	begin 
 		adrs <= std_logic_vector(rs1 + shifted_arg);
 	end process;
 	
-	patmos_predicate: process(din, decdout, predicate, predicate_reg, cmp_result)
+	process(din, decdout, predicate, predicate_reg, cmp_result)
 	begin
 		predicate  <= predicate_reg;
 		if (din.is_predicate_inst = '1') then 
@@ -128,7 +128,7 @@ begin
 		predicate(0) <= '1';
 	end process;
 	
-	patmos_alu: process(din, rs1, rs2) -- ALU
+	process(din, rs1, rs2) -- ALU
 	begin 
 		rd1 <= "00000000000000000000000000000000";
 		case din.pat_function_type_alu is
@@ -152,7 +152,7 @@ begin
 		end case;
 	end process;
 	
-	patmos_alu_u: process(din, rs1, rs2)
+	process(din, rs1, rs2)
 	begin
 		rd2 <= "00000000000000000000000000000000";
 		case din.pat_function_type_alu_u is
@@ -165,7 +165,7 @@ begin
 		end case;
 	end process;
 	
-	patmos_compare: process(decdout, cmp_equal, cmp_result, rs1, rs2)
+	process(decdout, cmp_equal, cmp_result, rs1, rs2)
 	begin
 		cmp_equal <= '0';
 		cmp_result <= '0';
@@ -186,7 +186,7 @@ begin
 	--	end if;
 	end process;
 	
-	patmos_alu_alu_u: process(rd1, rd2)
+	process(rd1, rd2)
 	begin
 		if (din.alu_alu_u = '1') then
 			rd <= rd1;
@@ -241,7 +241,7 @@ begin
 	end process;
 	
 	
-	not_registered_out: process(decdout, alu_src2, rd, adrs)
+	process(decdout, alu_src2, rd, adrs)
 	begin
 		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit_out then
 				doutex.lm_read_out_not_reg              <= decdout.lm_read_out;
@@ -253,10 +253,10 @@ begin
 		doutex.mem_write_data <= alu_src2;
 		doutex.alu_result <= rd;
 		doutex.adrs <= adrs;
-	end process not_registered_out;
+	end process;
 
 	
-	forwarding_rs1 : process(doutex_alu_result_out, doutex_write_back_reg_out, doutex_reg_write_out , decdout, memdout)
+	process(doutex_alu_result_out, doutex_write_back_reg_out, doutex_reg_write_out , decdout, memdout)
 	begin
 		if (decdout.rs1_out = doutex_write_back_reg_out and doutex_reg_write_out = '1' ) then
 			din_rs1 <= doutex_alu_result_out;
@@ -265,9 +265,9 @@ begin
 		else
 			din_rs1 <= decdout.rs1_data_out;
 		end if;
-	end process forwarding_rs1;
+	end process;
 	
-	forwarding_rs2 : process(doutex_alu_result_out, doutex_write_back_reg_out, doutex_reg_write_out , decdout, memdout)
+	process(doutex_alu_result_out, doutex_write_back_reg_out, doutex_reg_write_out , decdout, memdout)
 	begin
 		if (decdout.rs2_out = doutex_write_back_reg_out and doutex_reg_write_out = '1' ) then
 			alu_src2 <= doutex_alu_result_out;
@@ -276,10 +276,10 @@ begin
 		else
 			alu_src2 <= decdout.rs2_data_out;
 		end if;
-	end process forwarding_rs2;
+	end process;
 
 
-	imm_reg_select: process(alu_src2, decdout.ALUi_immediate_out, decdout.alu_src_out)
+	process(alu_src2, decdout.ALUi_immediate_out, decdout.alu_src_out)
 	begin
 		if (decdout.alu_src_out = '0') then
 			din_rs2 <= alu_src2;
@@ -288,10 +288,6 @@ begin
 		end if;
 	end process;
 	
---	patmos_address_decoding: process(adrs)
---	begin
---		
---	end process;
 
 end arch;
 
