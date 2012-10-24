@@ -74,7 +74,6 @@ entity patmos_core is
 end entity patmos_core;
 
 architecture arch of patmos_core is
-	signal test         : std_logic;
 
 	signal memdin_reg : std_logic_vector(31 downto 0);
 

@@ -84,8 +84,6 @@ package patmos_type_package is
 	end record;
 	type decode_out_type is record
 		lm_write_out : std_logic;
-		lm_read_out  : std_logic;
-
 		imm       : std_logic_vector(31 downto 0);
 		instr_cmp : std_logic;
 
@@ -96,7 +94,6 @@ package patmos_type_package is
 		inst_type_out            : instruction_type;
 		ALU_function_type_out    : std_logic_vector(3 downto 0);
 		ALU_instruction_type_out : ALU_inst_type;
-		ALUi_immediate_out       : std_logic_vector(31 downto 0);
 		pc_ctrl_gen_out          : pc_type;
 		rs1_out                  : std_logic_vector(4 downto 0);
 		rs2_out                  : std_logic_vector(4 downto 0);
@@ -104,19 +101,14 @@ package patmos_type_package is
 		rs1_data_out             : std_logic_vector(31 downto 0);
 		rs2_data_out             : std_logic_vector(31 downto 0);
 		pd_out                   : std_logic_vector(3 downto 0);
-		ld_type_out              : load_type;
 		reg_write_out            : std_logic;
 		alu_src_out              : std_logic; -- 0 for ALUi/ 1 for ALU
 		mem_to_reg_out           : std_logic; -- data to register file comes from alu or mem? 0 for alu and 1 for mem
-		mem_read_out             : std_logic;
 		mem_write_out            : std_logic;
 		st_out                   : std_logic_vector(3 downto 0);
-		STC_instruction_type_out : STC_instruction_type;
-		stc_immediate_out        : std_logic_vector(4 downto 0);
 		sc_write_out             : std_logic;
 		sc_read_out              : std_logic;
-		STT_instruction_type_out : STT_inst_type;
-		LDT_instruction_type_out : LDT_inst_type;
+
 		
 		
 		
