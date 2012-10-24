@@ -203,9 +203,9 @@ begin
 			doutex.predicate <= "00000001";
 		elsif rising_edge(clk) then
 			if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit_out then
-				doutex.mem_read_out  <= decdout.mem_read_out;
+--				doutex.mem_read_out  <= decdout.mem_read_out;
 				doutex.mem_write_out <= decdout.mem_write_out;
-				doutex.lm_read_out              <= decdout.lm_read_out;
+--				doutex.lm_read_out              <= decdout.lm_read_out;
 				doutex.lm_write_out              <= decdout.lm_write_out;
 				doutex.reg_write_out <= decdout.reg_write_out;
 				
@@ -213,9 +213,9 @@ begin
 			--      	doutex.ps_reg_write_out <= decdout.ps_reg_write_out;
 			--	test <= '1';
 			else
-				doutex.mem_read_out     <= '0';
+--				doutex.mem_read_out     <= '0';
 				doutex.mem_write_out    <= '0';
-				doutex.lm_read_out              <= '0';
+--				doutex.lm_read_out              <= '0';
 				doutex.lm_write_out              <= '0';
 				doutex.reg_write_out    <= '0';
 				doutex_reg_write_out <= '0';
@@ -225,8 +225,8 @@ begin
 			doutex.alu_result_out           <= rd;
 			doutex.adrs_out		      	  <= adrs;
 			doutex.write_back_reg_out       <= decdout.rd_out;
-			doutex.STT_instruction_type_out <= decdout.STT_instruction_type_out;
-			doutex.LDT_instruction_type_out <= decdout.LDT_instruction_type_out;
+--			doutex.STT_instruction_type_out <= decdout.STT_instruction_type_out;
+--			doutex.LDT_instruction_type_out <= decdout.LDT_instruction_type_out;
 			-- this should be under predicate condition as well
 			doutex.predicate                <= predicate;
 			predicate_reg                   <= predicate;
@@ -244,10 +244,10 @@ begin
 	process(decdout, alu_src2, rd, adrs)
 	begin
 		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit_out then
-				doutex.lm_read_out_not_reg              <= decdout.lm_read_out;
+--				doutex.lm_read_out_not_reg              <= decdout.lm_read_out;
 				doutex.lm_write_out_not_reg              <= decdout.lm_write_out;
 		else
-				doutex.lm_read_out_not_reg              <= '0';
+--				doutex.lm_read_out_not_reg              <= '0';
 				doutex.lm_write_out_not_reg              <= '0';
 		end if;
 		doutex.mem_write_data <= alu_src2;
@@ -279,12 +279,12 @@ begin
 	end process;
 
 
-	process(alu_src2, decdout.ALUi_immediate_out, decdout.alu_src_out)
+	process(alu_src2, decdout.imm, decdout.alu_src_out)
 	begin
 		if (decdout.alu_src_out = '0') then
 			din_rs2 <= alu_src2;
 		else
-			din_rs2 <= decdout.ALUi_immediate_out;
+			din_rs2 <= decdout.imm;
 		end if;
 	end process;
 	
