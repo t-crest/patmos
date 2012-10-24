@@ -1,6 +1,5 @@
 /*
-	This program echos the characters it receives
-
+	This program receives a char from UART and counts the number in a default string, and prints the number to UART.
 	Author: Sahar
 	Copyright: DTU, BSD License
 */
@@ -9,34 +8,36 @@ int main() {
 
 	volatile int *uart_stat_ptr = (int *) 0xF0000000;
 	volatile int *uart_val_ptr = (int *) 0xF0000004;	
-	volatile int *led_ptr = (int *) 0xF0000200;
-	int i, j;
+	int i;
+	int counter = 0;
 	int flag = 0;
 	int cmp1 = 2;
 	int cmp2 = 1;
 	int status;
 	char  read_val;
-	
-	for (;;) {
-		
-		while (!flag )
+	char str[15] = {'a', 'v', 'c', 'v', 'g', '7', 'v', 'a', 'p', 'e', 'm', 'u', 'y', 'v', 'o'};
+	while (!flag )
 		{
 			status = *uart_stat_ptr & cmp1;
 			if (status == 2)
 				{flag = 1; break;}
 				
 		}
-		read_val =  *uart_val_ptr;
-		flag = 0;
-		while (!flag )
+	read_val =  *uart_val_ptr;
+	flag = 0;
+	for (i = 0; i < 15; i++)
+		if (read_val == str[i])
+			counter++;
+	while (!flag )
 		{
 			status = *uart_stat_ptr & cmp2;
 			if (status == 1)
 				{flag = 1; break;}
 				
 		}
-		*uart_val_ptr = read_val;
+		*uart_val_ptr = counter + '0';
 		flag = 0;
-	}
+		
+
 }
 

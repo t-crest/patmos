@@ -1,6 +1,6 @@
 /*
 	This is a program printing prime numbers less than 100, for % stdlib is needed which will generate a big ROM not runnable.
-	Author: Martin Schoeberl
+	Author: Sahar
 	Copyright: DTU, BSD License
 */
 
