@@ -42,7 +42,6 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 package patmos_type_package is
-	type instruction_type is (NONE, ALUi, ALU, NOP, SPC, LDT, STT, STC, BC, ALUl);
 	type STC_instruction_type is (NONE, SRES, SENS, SFREE);
 	type pc_type is (PCNext, PCBranch);
 	type ALU_inst_type is (NONE, ALUr, ALUu, ALUm, ALUc, ALUp);
@@ -91,7 +90,6 @@ package patmos_type_package is
 		predicate_condition      : std_logic_vector(2 downto 0);
 		ps1_out                  : std_logic_vector(3 downto 0);
 		ps2_out                  : std_logic_vector(3 downto 0);
-		inst_type_out            : instruction_type;
 		ALU_function_type_out    : std_logic_vector(3 downto 0);
 		ALU_instruction_type_out : ALU_inst_type;
 		pc_ctrl_gen_out          : pc_type;
@@ -107,12 +105,12 @@ package patmos_type_package is
 		mem_write_out            : std_logic;
 		st_out                   : std_logic_vector(3 downto 0);
 		sc_write_out             : std_logic;
-		sc_read_out              : std_logic;
+--		sc_read_out              : std_logic;
 
 		
 		
 		
-		
+		BC						: std_logic;
 		pat_function_type_alu      :function_type_alu;
 		pat_function_type_alu_u      :function_type_alu_u;
 		pat_function_type_alu_p      :function_type_alu_p;
@@ -174,7 +172,6 @@ package patmos_type_package is
 	type alu_in_type is record
 		rs1                  : std_logic_vector(31 downto 0);
 		rs2                  : std_logic_vector(31 downto 0);
-		inst_type            : instruction_type;
 		ALU_function_type    : std_logic_vector(3 downto 0);
 		ALU_instruction_type : ALU_inst_type;
 		--   stack_data_in			   : std_logic_vector(31 downto 0);
@@ -193,6 +190,7 @@ package patmos_type_package is
 		is_predicate_inst		 : std_logic;
 		adrs_type			 : address_type;
 		alu_alu_u				: std_logic;
+
 	end record;
 
 	------------------------------------------
