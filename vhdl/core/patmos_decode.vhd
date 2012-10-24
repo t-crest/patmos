@@ -83,29 +83,25 @@ begin
 			
 			
 			-- MS: time for some defaults to get a clearer view:
-			dout.ALU_function_type_out <= '0' & din.operation(24 downto 22);
+--			dout.ALU_function_type_out <= '0' & din.operation(24 downto 22);
 
-			dout.predicate_bit_out   <= din.operation(30); -- 
+			dout.predicate_bit   <= din.operation(30); -- 
 			dout.predicate_condition <= din.operation(29 downto 27);
-			dout.rd_out              <= din.operation(21 downto 17);
-			dout.rs1_out             <= din.operation(16 downto 12);
-			dout.ps1_out             <= din.operation(15 downto 12);
-			dout.ps2_out             <= din.operation(10 downto 7);
-			dout.pd_out              <= '0' & din.operation(19 downto 17);
-			dout.rd_out              <= din.operation(21 downto 17);
-			dout.rs1_out             <= din.operation(16 downto 12);
-			dout.rs2_out             <= din.operation(11 downto 7);
-			dout.rs1_data_out        <= din.rs1_data_in;
-			dout.rs2_data_out        <= din.rs2_data_in;
-			-- dout.reg_write_out <= din.reg_write_in;
-			dout.alu_src_out      <= '1'; -- choose the second source, i.e. immediate!
-		--	dout.reg_write_out    <= '1'; -- reg_write_out is reg_write_ex
-			dout.mem_to_reg_out   <= '0'; -- data comes from alu or mem ? 0 from alu and 1 from mem
---			dout.mem_read_out     <= '0';
-			dout.mem_write_out    <= '0';
+			dout.rd              <= din.operation(21 downto 17);
+			dout.rs1             <= din.operation(16 downto 12);
+			dout.ps1             <= din.operation(15 downto 12);
+			dout.ps2             <= din.operation(10 downto 7);
+			dout.pd              <= '0' & din.operation(19 downto 17);
+			dout.rd              <= din.operation(21 downto 17);
+			dout.rs1             <= din.operation(16 downto 12);
+			dout.rs2             <= din.operation(11 downto 7);
+			dout.rs1_data        <= din.rs1_data_in;
+			dout.rs2_data        <= din.rs2_data_in;
+			dout.alu_src      <= '1'; -- choose the second source, i.e. immediate!
+			dout.mem_to_reg   <= '0'; -- data comes from alu or mem ? 0 from alu and 1 from mem
 			
-			dout.sc_write_out             <= '0';
-			dout.lm_write_out			  <= '0';
+--			dout.sc_write_out             <= '0';
+			dout.lm_write			  <= '0';
 			dout.s_u 					  <= '1';
 			dout.BC 							  <= '0';
 			-- TODO: get defaults for all signals and remove redundant assignments
@@ -138,28 +134,26 @@ begin
 			
 			
 			if din.operation(26 downto 25) = "00" then -- ALUi instruction
-				dout.reg_write_out    <= '1';
-				dout.ALU_function_type_out <= '0' & din.operation(24 downto 22);
+				dout.reg_write    <= '1';
+--				dout.ALU_function_type_out <= '0' & din.operation(24 downto 22);
 				
 			elsif din.operation(26 downto 22) = "11111" then -- long immediate!
-				dout.ALU_function_type_out <= din.operation(3 downto 0);
-				dout.reg_write_out    <= '1';
+--				dout.ALU_function_type_out <= din.operation(3 downto 0);
+				dout.reg_write    <= '1';
 				dout.imm  <= din.instr_b;
 			
 			elsif din.operation(26 downto 22) = "01000" then -- ALU instructions
-				dout.ALU_function_type_out <= din.operation(3 downto 0);
+--				dout.ALU_function_type_out <= din.operation(3 downto 0);
 
 				--  dout.reg_write_out <= din.reg_write_in;
-				dout.alu_src_out <= '0'; -- choose the first source, i.e. reg!
+				dout.alu_src <= '0'; -- choose the first source, i.e. reg!
 
 			--	dout.reg_write_out    <= '1'; -- reg_write_out is reg_write_ex
 				case din.operation(6 downto 4) is
 					when "000" =>       -- Register
-						dout.ALU_instruction_type_out <= ALUr;
-						dout.reg_write_out    <= '1';
+						dout.reg_write    <= '1';
 					when "001" =>       -- Unary
-						dout.ALU_instruction_type_out <= ALUu;
-						dout.reg_write_out    <= '1';
+						dout.reg_write    <= '1';
 						case din.operation(3 downto 0) is
 							when "0000" => dout.pat_function_type_alu_u <= pat_sext8;
 							when "0001" => dout.pat_function_type_alu_u <= pat_sext16;
@@ -169,16 +163,22 @@ begin
 						end case;
 						dout.alu_alu_u <= '0';
 					when "010" =>       -- Multuply
-						dout.ALU_instruction_type_out <= ALUm;
-						dout.reg_write_out    <= '1';
+						dout.reg_write    <= '1';
 					when "011" =>       -- Compare
-						dout.ALU_instruction_type_out <= ALUc;
 						dout.instr_cmp <= '1';
-						dout.reg_write_out <= '0';
-						
+						dout.reg_write <= '0';
+					case din.operation(2 downto 0) is
+							when "000" =>  dout.pat_function_type_alu_cmp <= pat_cmpeq;
+							when "001" => dout.pat_function_type_alu_cmp <= pat_cmpneq;
+							when "010" => dout.pat_function_type_alu_cmp <= pat_cmplt;
+							when "011" => dout.pat_function_type_alu_cmp <= pat_cmple;
+							when "100" => dout.pat_function_type_alu_cmp <= pat_cmpult;
+							when "101" => dout.pat_function_type_alu_cmp <= pat_cmpule;
+							when "110" => dout.pat_function_type_alu_cmp <= pat_btest;
+							when others => null;
+					end case;
 					when "100" =>       -- predicate
-						dout.ALU_instruction_type_out <= ALUp;
-						dout.reg_write_out <= '0';
+						dout.reg_write <= '0';
 						dout.is_predicate_inst <= '1';
 						case din.operation(3 downto 0) is
 							when "0110" =>  dout.pat_function_type_alu_p <= pat_por;
@@ -196,59 +196,43 @@ begin
 				case din.operation(21 downto 17) is
 					----- scratchpad memory
 					when "00001" =>
---						dout.STT_instruction_type_out <= SWL;
-						dout.lm_write_out			  <= '1';
+						dout.lm_write			  <= '1';
 						dout.adrs_type <= word;
 					when "00101" =>
---						dout.STT_instruction_type_out <= SHL;
-						dout.lm_write_out			  <= '1';
+						dout.lm_write			  <= '1';
 						dout.adrs_type <= half;
 					when "01001" =>	
---						dout.STT_instruction_type_out <= SBL;
-						dout.lm_write_out			  <= '1';
+						dout.lm_write			  <= '1';
 						dout.adrs_type <= byte;
 					----------------------------------------	
 					when "00000" =>
---						dout.STT_instruction_type_out <= SWS;
 						dout.adrs_type <= word;
---						dout.sc_write_out             <= '1';
 					when "00100" =>
---						dout.STT_instruction_type_out <= SHS;
 						dout.adrs_type <= half;
-	--					dout.sc_write_out             <= '1';
 					when "01000" =>
---						dout.STT_instruction_type_out <= SBS;
 						dout.adrs_type <= byte;
 --						dout.sc_write_out             <= '1';
 					----------------------------------------- global memory	
 					when "00011" =>
---						dout.STT_instruction_type_out <= SWM;
 						dout.adrs_type <= word;
-						dout.lm_write_out			  <= '1';
-					--	dout.mem_write_out      <= '1';
+						dout.lm_write			  <= '1';
 					when "00111" =>
---						dout.STT_instruction_type_out <= SHM;
 						dout.adrs_type <= half;
-						dout.lm_write_out			  <= '1';
+						dout.lm_write			  <= '1';
 					when "01011" =>
---						dout.STT_instruction_type_out <= SBM;
 						dout.adrs_type <= byte;
-						dout.lm_write_out			  <= '1';
+						dout.lm_write			  <= '1';
 						
 					---------------------------------------- data cache
 					when "00010" =>
---						dout.STT_instruction_type_out <= SWC;
 						dout.adrs_type <= word;
-						dout.lm_write_out			  <= '1';
-					--	dout.mem_write_out      <= '1';
+						dout.lm_write			  <= '1';
 					when "00110" =>
---						dout.STT_instruction_type_out <= SHC;
 						dout.adrs_type <= half;
-						dout.lm_write_out			  <= '1';
+						dout.lm_write			  <= '1';
 					when "01010" =>
---						dout.STT_instruction_type_out <= SBC;
 						dout.adrs_type <= byte;
-						dout.lm_write_out			  <= '1';
+						dout.lm_write			  <= '1';
 						
 					
 						-- MS: why is sc_write_out here '0'?
@@ -256,11 +240,11 @@ begin
 						--dout.sc_read_out              <= '0';
 					when others => null;
 				end case;
-				dout.rs1_out            <= din.operation(16 downto 12);
-				dout.rs2_out            <= din.operation(11 downto 7);
+				dout.rs1            <= din.operation(16 downto 12);
+				dout.rs2            <= din.operation(11 downto 7);
 				dout.imm <= std_logic_vector(resize(signed(din.operation(6 downto 0)), 32));
-				dout.alu_src_out        <= '1'; -- choose the second source, i.e. immediate!
-				dout.reg_write_out      <= '0'; -- we dont write in registers in store!
+				dout.alu_src        <= '1'; -- choose the second source, i.e. immediate!
+				dout.reg_write      <= '0'; -- we dont write in registers in store!
 				
 
 			elsif din.operation(26 downto 22) = "01010" then -- load
@@ -319,42 +303,41 @@ begin
 						dout.s_u		<= '0';
 					when others => null;
 				end case;
-				dout.rd_out             <= din.operation(21 downto 17);
-				dout.rs1_out            <= din.operation(16 downto 12);
+				dout.rd             <= din.operation(21 downto 17);
+				dout.rs1            <= din.operation(16 downto 12);
 				dout.imm <= std_logic_vector(resize(signed(din.operation(6 downto 0)), 32));
-				--            dout.reg_write_out <= din.reg_write_in;
-				dout.alu_src_out      <= '1'; -- choose the second source, i.e. immediate!
-				dout.reg_write_out    <= '1'; -- reg_write_out is reg_write_ex
-				dout.mem_to_reg_out   <= '1'; -- data comes from alu or mem ? 0 from alu and 1 from mem
+				dout.alu_src      <= '1'; -- choose the second source, i.e. immediate!
+				dout.reg_write    <= '1'; -- reg_write_out is reg_write_ex
+				dout.mem_to_reg   <= '1'; -- data comes from alu or mem ? 0 from alu and 1 from mem
 				
 
 			elsif din.operation(26 downto 22) = "11001" then -- branch, cache relative
-				dout.alu_src_out        <= '0'; -- choose the second source, i.e. immediate!
-				dout.reg_write_out      <= '0'; -- reg_write_out is reg_write_ex
-				dout.mem_to_reg_out     <= '0'; -- data comes from alu or mem ? 0 from alu and 1 from mem
+				dout.alu_src        <= '0'; -- choose the second source, i.e. immediate!
+				dout.reg_write      <= '0'; -- reg_write_out is reg_write_ex
+				dout.mem_to_reg     <= '0'; -- data comes from alu or mem ? 0 from alu and 1 from mem
 				dout.BC						<= '1';
 			elsif din.operation(26 downto 24) = "011" then -- STC
 				case din.operation(23 downto 22) is
 					when "00" =>        -- reserve
-						dout.st_out                   <= "0111"; -- s6 is st (7th register in special reg file)
+--						dout.st_out                   <= "0111"; -- s6 is st (7th register in special reg file)
 						--	dout.stc_immediate_out <= din.operation(4 downto 0);--"0000000000" & din.operation(21 downto 0); 
 						dout.imm <= std_logic_vector(resize(signed(din.operation(4 downto 0)), 32));
-						dout.alu_src_out      <= '0'; -- choose the first source, i.e. reg!
-						dout.reg_write_out    <= '0'; -- reg_write_out is reg_write_ex
+						dout.alu_src      <= '0'; -- choose the first source, i.e. reg!
+						dout.reg_write    <= '0'; -- reg_write_out is reg_write_ex
 
 					when "01" =>        -- ensure
-						dout.st_out                   <= "0111";
+--						dout.st_out                   <= "0111";
 --						dout.stc_immediate_out        <= din.operation(4 downto 0);
 					when "10" =>
 						dout.imm       <= std_logic_vector(resize(signed(din.operation(4 downto 0)), 32));
-						dout.alu_src_out              <= '0'; -- choose the first source, i.e. reg!
-						dout.reg_write_out            <= '0'; -- reg_write_out is reg_write_ex
+						dout.alu_src              <= '0'; -- choose the first source, i.e. reg!
+						dout.reg_write            <= '0'; -- reg_write_out is reg_write_ex
 					when others => NULL;
 				end case;
 			elsif din.operation(26 downto 22) = "01001" then -- nop   
 				dout.imm <= std_logic_vector(resize(signed(din.operation(3 downto 0)), 32));
-				dout.alu_src_out      <= '0'; -- choose the second source, i.e. immediate!
-				dout.reg_write_out    <= '0'; -- reg_write_out is reg_write_ex
+				dout.alu_src      <= '0'; -- choose the second source, i.e. immediate!
+				dout.reg_write    <= '0'; -- reg_write_out is reg_write_ex
 
 			end if;
 		end if;
