@@ -204,6 +204,7 @@ begin                                   -- architecture begin
 		port map(clk, rst, decode_din, decode_dout);
 
 	---------------------------------------------------- execute
+	alu_din.pat_function_type_alu_cmp <= decode_dout.pat_function_type_alu_cmp;
 	alu_din.pat_function_type_alu <= decode_dout.pat_function_type_alu;
 	alu_din.pat_function_type_alu_u <= decode_dout.pat_function_type_alu_u;
 	alu_din.pat_function_type_alu_p <= decode_dout.pat_function_type_alu_p;
