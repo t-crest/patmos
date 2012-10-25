@@ -116,6 +116,24 @@ package patmos_type_package is
 --		sc_write_out             : std_logic;	
 	end record;
 
+	type alu_in_type is record
+		rs1                  : std_logic_vector(31 downto 0);
+		rs2                  : std_logic_vector(31 downto 0);
+		mem_write_data_in    : std_logic_vector(31 downto 0);
+		
+		
+		pat_function_type_alu_cmp	: function_type_alu_cmp;
+		pat_function_type_alu      :function_type_alu;
+		pat_function_type_alu_u      :function_type_alu_u;
+		pat_function_type_alu_p      :function_type_alu_p;
+		is_predicate_inst		 : std_logic;
+		adrs_type			 : address_type;
+		alu_alu_u				: std_logic;
+
+	end record;
+
+
+
 	type result_type is record
 		value  : std_logic_vector(31 downto 0);
 		reg_nr : std_logic_vector(4 downto 0);
@@ -165,24 +183,7 @@ package patmos_type_package is
 	------------------------------------------
 	-- control
 	------------------------------------------
-	type alu_in_type is record
-		rs1                  : std_logic_vector(31 downto 0);
-		rs2                  : std_logic_vector(31 downto 0);
-		--   stack_data_in			   : std_logic_vector(31 downto 0);
-		--   stc_immediate_in				: unsigned (4 downto 0);
-		--   st_in						: unsigned (31 downto 0);
-		mem_write_data_in    : std_logic_vector(31 downto 0);
-		
-		
-		pat_function_type_alu_cmp	: function_type_alu_cmp;
-		pat_function_type_alu      :function_type_alu;
-		pat_function_type_alu_u      :function_type_alu_u;
-		pat_function_type_alu_p      :function_type_alu_p;
-		is_predicate_inst		 : std_logic;
-		adrs_type			 : address_type;
-		alu_alu_u				: std_logic;
 
-	end record;
 
 	------------------------------------------
 	-- mem
