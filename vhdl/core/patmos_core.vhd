@@ -204,16 +204,9 @@ begin                                   -- architecture begin
 		port map(clk, rst, decode_din, decode_dout);
 
 	---------------------------------------------------- execute
-	alu_din.pat_function_type_alu_cmp <= decode_dout.pat_function_type_alu_cmp;
-	alu_din.pat_function_type_alu <= decode_dout.pat_function_type_alu;
-	alu_din.pat_function_type_alu_u <= decode_dout.pat_function_type_alu_u;
-	alu_din.pat_function_type_alu_p <= decode_dout.pat_function_type_alu_p;
-	alu_din.adrs_type <= decode_dout.adrs_type;
-	alu_din.is_predicate_inst <= decode_dout.is_predicate_inst;
-	alu_din.alu_alu_u <= decode_dout.alu_alu_u;
-	---------------------------------------alu
-	alu : entity work.patmos_alu(arch)
-		port map(clk, rst, decode_dout, alu_din, execute_dout, mem_dout);
+
+	alu: entity work.patmos_alu(arch)
+	port map(clk, rst, decode_dout, execute_dout, mem_dout);
 
 	------------------------------------------------------- memory
 	-- mem/io decoder

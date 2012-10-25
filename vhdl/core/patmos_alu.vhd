@@ -46,7 +46,6 @@ entity patmos_alu is
 		clk										: in  std_logic;
 		rst										: in  std_logic;
 		decdout									: in  decode_out_type;
-		din										: in  alu_in_type;
 		doutex									: out execution_out_type;
 		memdout									: in mem_out_type
 		
@@ -77,9 +76,9 @@ begin
 	end process;
 	
 	
-	process(din)
+	process(decdout)
 	begin
-		case din.adrs_type is
+		case decdout.adrs_type is
 			when word => 
 				shamt <= 2;
 			when half =>
@@ -98,11 +97,11 @@ begin
 		adrs <= std_logic_vector(rs1 + shifted_arg);
 	end process;
 	
-	process(din, decdout, predicate, predicate_reg, cmp_result)
+	process(decdout, predicate, predicate_reg, cmp_result)
 	begin
 		predicate  <= predicate_reg;
-		if (din.is_predicate_inst = '1') then 
-			case din.pat_function_type_alu_p is
+		if (decdout.is_predicate_inst = '1') then 
+			case decdout.pat_function_type_alu_p is
 				when pat_por => predicate(to_integer(unsigned(decdout.pd(2 downto 0)))) <= 					
 								(decdout.ps1(3) xor predicate_reg(to_integer(unsigned(decdout.ps1(2 downto 0)))) ) or 
 								(decdout.ps2(3) xor predicate_reg(to_integer(unsigned(decdout.ps2(2 downto 0)))));
@@ -128,10 +127,10 @@ begin
 		predicate(0) <= '1';
 	end process;
 	
-	process(din, rs1, rs2) -- ALU
+	process(decdout, rs1, rs2) -- ALU
 	begin 
 		rd1 <= "00000000000000000000000000000000";
-		case din.pat_function_type_alu is
+		case decdout.pat_function_type_alu is
 			when pat_add => rd1 <= std_logic_vector(rs1 + rs2); --add
 			when pat_sub => rd1 <= std_logic_vector(rs1 - rs2); --sub
 			when pat_rsub => rd1 <= std_logic_vector(rs2 - rs1); -- sub invert
@@ -152,10 +151,10 @@ begin
 		end case;
 	end process;
 	
-	process(din, rs1, rs2)
+	process(decdout, rs1, rs2)
 	begin
 		rd2 <= "00000000000000000000000000000000";
-		case din.pat_function_type_alu_u is
+		case decdout.pat_function_type_alu_u is
 			when pat_sext8 => rd2 <= std_logic_vector(rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) &
 									rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7) & rs1(7 downto 0));
 			when pat_sext16 => rd2 <= std_logic_vector(rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15) & rs1(15 downto 0));
@@ -165,7 +164,7 @@ begin
 		end case;
 	end process;
 	
-	process(din, cmp_equal, cmp_result, rs1, rs2)
+	process(decdout, cmp_equal, cmp_result, rs1, rs2)
 	begin
 		cmp_equal <= '0';
 		cmp_result <= '0';
@@ -173,7 +172,7 @@ begin
 			cmp_equal <= '1';
 		end if;
 
-		case din.pat_function_type_alu_cmp is
+		case decdout.pat_function_type_alu_cmp is
 			when  pat_cmpeq => cmp_result <= cmp_equal;
 			when pat_cmpneq => cmp_result <= not cmp_equal;
 			when pat_cmplt =>  if (signed(rs1) < signed(rs2) ) then cmp_result <= '1'; else cmp_result <= '0' ; end if;
@@ -187,7 +186,7 @@ begin
 	
 	process(rd1, rd2)
 	begin
-		if (din.alu_alu_u = '1') then
+		if (decdout.alu_alu_u = '1') then
 			rd <= rd1;
 		else
 			rd <= rd2;	
