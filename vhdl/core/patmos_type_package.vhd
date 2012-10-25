@@ -84,6 +84,7 @@ package patmos_type_package is
 	end record;
 	type decode_out_type is record
 		lm_write : std_logic;
+		lm_read	 : std_logic;
 		imm       : std_logic_vector(31 downto 0);
 		instr_cmp : std_logic;
 
@@ -100,9 +101,6 @@ package patmos_type_package is
 		reg_write            : std_logic;
 		alu_src              : std_logic; -- 0 for ALUi/ 1 for ALU
 		mem_to_reg           : std_logic; -- data to register file comes from alu or mem? 0 for alu and 1 for mem
---		mem_write_out            : std_logic;
---		st_out                   : std_logic_vector(3 downto 0);
---		sc_write_out             : std_logic;	
 		BC						: std_logic;
 		pat_function_type_alu_cmp	: function_type_alu_cmp;
 		pat_function_type_alu      :function_type_alu;
@@ -112,6 +110,10 @@ package patmos_type_package is
 		adrs_type				 : address_type;
 		alu_alu_u				: std_logic;
 		s_u						: std_logic;
+		
+		--		mem_write_out            : std_logic;
+--		st_out                   : std_logic_vector(3 downto 0);
+--		sc_write_out             : std_logic;	
 	end record;
 
 	type result_type is record
