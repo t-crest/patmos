@@ -204,10 +204,11 @@ begin
 			if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
 				doutex.lm_write              <= decdout.lm_write;
 				doutex.reg_write_out <= decdout.reg_write;
-				
+				doutex.lm_read_out              <= decdout.lm_read;
 				doutex_reg_write_out <= decdout.reg_write;
 			else
 				doutex.lm_write              <= '0';
+				doutex.lm_read_out              <= '0';
 				doutex.reg_write_out    <= '0';
 				doutex_reg_write_out <= '0';
 			end if;
@@ -234,7 +235,9 @@ begin
 	begin
 		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
 				doutex.lm_write_out_not_reg              <= decdout.lm_write;
+				doutex.lm_read_out_not_reg              <= decdout.lm_read;
 		else
+				doutex.lm_write_out_not_reg              <= '0';
 				doutex.lm_write_out_not_reg              <= '0';
 		end if;
 		doutex.mem_write_data <= alu_src2;

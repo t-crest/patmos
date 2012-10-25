@@ -99,7 +99,7 @@ begin
 			dout.rs2_data        <= din.rs2_data_in;
 			dout.alu_src      <= '1'; -- choose the second source, i.e. immediate!
 			dout.mem_to_reg   <= '0'; -- data comes from alu or mem ? 0 from alu and 1 from mem
-			
+			dout.lm_read        <= '0';
 --			dout.sc_write_out             <= '0';
 			dout.lm_write			  <= '0';
 			dout.s_u 					  <= '1';
@@ -136,7 +136,7 @@ begin
 			if din.operation(26 downto 25) = "00" then -- ALUi instruction
 				dout.reg_write    <= '1';
 --				dout.ALU_function_type_out <= '0' & din.operation(24 downto 22);
-				
+				dout.imm  <= "00000000000000000000" & din.operation(11 downto 0);
 			elsif din.operation(26 downto 22) = "11111" then -- long immediate!
 --				dout.ALU_function_type_out <= din.operation(3 downto 0);
 				dout.reg_write    <= '1';
@@ -252,15 +252,20 @@ begin
 					----- scratchpad memory
 					when "00001" =>
 						dout.adrs_type <= word;
+						dout.lm_read        <= '1';
 					when "00101" =>
 						dout.adrs_type <= half;
+						dout.lm_read        <= '1';
 					when "01001" =>
 						dout.adrs_type <= byte;	
+						dout.lm_read        <= '1';
 					when "01101" =>
 						dout.adrs_type <= half;
+						dout.lm_read        <= '1';
 						dout.s_u		<= '0';
 					when "10001" =>
 						dout.adrs_type <= byte;			
+						dout.lm_read       <= '1';
 						dout.s_u		<= '0';
 					----------------------------------------
 					when "00000" =>
@@ -278,34 +283,44 @@ begin
 					----------------------------------------- global memory	
 					when "00011" =>
 						dout.adrs_type <= word;
+						dout.lm_read       <= '1';
 					when "00111" =>
 						dout.adrs_type <= half;
+						dout.lm_read        <= '1';
 					when "01011" =>
 						dout.adrs_type <= byte;
+						dout.lm_read       <= '1';
 					when "01111" =>
 						dout.adrs_type <= half;
+						dout.lm_read       <= '1';
 						dout.s_u		<= '0';
 					when "10011" =>
 						dout.adrs_type <= byte;
+						dout.lm_read       <= '1';
 						dout.s_u		<= '0';
 					---------------------------------------- data cache
 					when "00010" =>
 						dout.adrs_type <= word;
+						dout.lm_read       <= '1';
 					when "00110" =>
 						dout.adrs_type <= half;
+						dout.lm_read       <= '1';
 					when "01010" =>
 						dout.adrs_type <= byte;
+						dout.lm_read        <= '1';
 					when "01110" =>
 						dout.adrs_type <= half;
+						dout.lm_read       <= '1';
 						dout.s_u		<= '0';
 					when "10010" =>
 						dout.adrs_type <= byte;	
+						dout.lm_read        <= '1';
 						dout.s_u		<= '0';
 					when others => null;
 				end case;
 				dout.rd             <= din.operation(21 downto 17);
 				dout.rs1            <= din.operation(16 downto 12);
-				dout.imm <= std_logic_vector(resize(signed(din.operation(6 downto 0)), 32));
+				dout.imm <= std_logic_vector(resize(signed(din.operation(6 downto 0)), 32));				
 				dout.alu_src      <= '1'; -- choose the second source, i.e. immediate!
 				dout.reg_write    <= '1'; -- reg_write_out is reg_write_ex
 				dout.mem_to_reg   <= '1'; -- data comes from alu or mem ? 0 from alu and 1 from mem
@@ -338,7 +353,7 @@ begin
 				dout.imm <= std_logic_vector(resize(signed(din.operation(3 downto 0)), 32));
 				dout.alu_src      <= '0'; -- choose the second source, i.e. immediate!
 				dout.reg_write    <= '0'; -- reg_write_out is reg_write_ex
-
+				dout.mem_to_reg   <= '0';
 			end if;
 		end if;
 	end process decode;
