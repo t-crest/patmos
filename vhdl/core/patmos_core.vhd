@@ -42,6 +42,8 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.patmos_type_package.all;
 use work.sc_pack.all;
+use work.patmos_config_global.all;
+use work.patmos_config.all;
 
 entity patmos_core is
 	port(
@@ -284,9 +286,8 @@ begin                                   -- architecture begin
 				led_reg <= memdin_reg(0);
 			end if;
 			counter <= counter + 1;
-			-- This shall come from a constant
 			-- Maybe counting down and testing against 0 consumes a little less resources. Do we care?
-			if cnt_div=50-1 then
+			if cnt_div=CLK_FREQ/1000000-1 then
 				cntus <= cntus + 1;
 				cnt_div <= (others => '0');
 			else
@@ -299,14 +300,10 @@ begin                                   -- architecture begin
 	uart_rd <= io_reg.rd and io_reg.uart_en;
 	uart_wr <= io_reg.wr and io_reg.uart_en;
 	ua : entity work.uart generic map(
-			-- MS: there shall be constants and configuration files
-			clk_freq  => 50 * 1000 * 1000, -- altera DE2-70
-			baud_rate => 115200,
-			-- clk_freq  => 200 * 1000 * 1000, -- xilinx ML605
-			--			baud_rate => 9600,	-- with 50MHz clk: 9600@50MHz on altera and 38400@200MHz on xilinx
-
-			txf_depth => 1,
-			rxf_depth => 1
+			clk_freq  => CLK_FREQ,
+			baud_rate => UART_BAUD_RATE,
+			txf_depth => UART_TXF_DEPTH,
+			rxf_depth => UART_RXF_DEPTH
 		)
 		port map(
 			clk     => clk,
