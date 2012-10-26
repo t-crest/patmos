@@ -74,8 +74,8 @@ begin
 		if (rising_edge(clk)) then
 			dout.data_out <= datain;
 			-- forwarding
-			dout.reg_write_out      <= exout.reg_write_out or exout.mem_to_reg_out;
-			dout.write_back_reg_out <= exout.write_back_reg_out;
+			dout.reg_write_out      <= exout.reg_write or exout.mem_to_reg;
+			dout.write_back_reg_out <= exout.write_back_reg;
 			dout.mem_write_data_out <= exout.mem_write_data;
 		--	read_address <= din.alu_result_out;
 			ldt_type <= decdout.adrs_type;
@@ -128,7 +128,7 @@ begin
 	
 	ld_add_half:process(exout, dout0, dout1, dout2, dout3)
 	begin
-		case exout.adrs_out(1) is
+		case exout.adrs_reg(1) is
 			when '0' =>
 				ld_half <= dout0 & dout1;
 			when '1' =>
@@ -139,7 +139,7 @@ begin
 	
 	process(exout, dout0, dout1, dout2, dout3)
 	begin
-		case exout.adrs_out(1 downto 0) is
+		case exout.adrs_reg(1 downto 0) is
 			when "00" =>
 				ld_byte <= dout0;
 			when "01" =>
@@ -252,12 +252,12 @@ begin
 
 	process(mem_data_out_muxed, exout)
 	begin
-		if exout.mem_to_reg_out = '1' then
+		if exout.mem_to_reg = '1' then
 			dout.data <= mem_data_out_muxed;
 			datain <= mem_data_out_muxed;
 		else
-			dout.data <= exout.alu_result_out;
-			datain <= exout.alu_result_out;
+			dout.data <= exout.alu_result_reg;
+			datain <= exout.alu_result_reg;
 		end if;
 	end process;
 end arch;

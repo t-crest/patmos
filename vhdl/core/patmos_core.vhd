@@ -191,11 +191,11 @@ begin                                   -- architecture begin
 			     rst,
 			     fetch_reg1,
 			     fetch_reg2,
-			     execute_dout.write_back_reg_out,
+			     execute_dout.write_back_reg,
 			     decode_din.rs1_data_in,
 			     decode_din.rs2_data_in,
 			     mem_dout.data,
-			     execute_dout.reg_write_out);
+			     execute_dout.reg_write);
 
 	decode_din.operation <= fetch_dout.instruction;
 	decode_din.instr_b   <= fetch_dout.instr_b;

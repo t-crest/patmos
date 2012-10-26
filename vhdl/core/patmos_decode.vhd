@@ -135,20 +135,15 @@ begin
 			
 			if din.operation(26 downto 25) = "00" then -- ALUi instruction
 				dout.reg_write    <= '1';
---				dout.ALU_function_type_out <= '0' & din.operation(24 downto 22);
 				dout.imm  <= "00000000000000000000" & din.operation(11 downto 0);
 			elsif din.operation(26 downto 22) = "11111" then -- long immediate!
---				dout.ALU_function_type_out <= din.operation(3 downto 0);
 				dout.reg_write    <= '1';
 				dout.imm  <= din.instr_b;
 			
 			elsif din.operation(26 downto 22) = "01000" then -- ALU instructions
---				dout.ALU_function_type_out <= din.operation(3 downto 0);
 
-				--  dout.reg_write_out <= din.reg_write_in;
 				dout.alu_src <= '0'; -- choose the first source, i.e. reg!
 
-			--	dout.reg_write_out    <= '1'; -- reg_write_out is reg_write_ex
 				case din.operation(6 downto 4) is
 					when "000" =>       -- Register
 						dout.reg_write    <= '1';
