@@ -82,7 +82,6 @@ architecture arch of patmos_core is
 	signal fetch_reg1, fetch_reg2 : std_logic_vector(4 downto 0);
 	signal decode_din             : decode_in_type;
 	signal decode_dout            : decode_out_type;
-	signal alu_din                : alu_in_type;
 	signal execute_dout           : execution_out_type;
 
 	signal mem_din                : mem_in_type;
@@ -331,19 +330,10 @@ begin                                   -- architecture begin
 --	dma_wr_data_i  <= memdin_reg;
 
 
-	-- TODO: the memory code belongs into the memory stage component
-	mem_din.adrs_type <= decode_dout.adrs_type;
-	mem_din.s_u		  <= decode_dout.s_u;
-	mem_din.alu_result_out               <= execute_dout.alu_result_out;
-	mem_din.adrs_out               <= execute_dout.adrs_out;
-	mem_din.adrs               		  <= execute_dout.adrs;
+
 	mem_din.mem_write                <= io_next.wr and io_next.mem_en;
-	-- forward
-	mem_din.reg_write_in             <= execute_dout.reg_write_out or execute_dout.mem_to_reg_out; --execute_dout.mem_to_reg_out or execute_dout.mem_write_out;
-	mem_din.write_back_reg_in        <= execute_dout.write_back_reg_out;
-	mem_din.mem_write_data_in        <= execute_dout.mem_write_data; 
 	memory_stage : entity work.patmos_mem_stage(arch)
-		port map(clk, rst, mem_din, mem_data_out_muxed, execute_dout, mem_dout);
+		port map(clk, rst, mem_din, mem_data_out_muxed, execute_dout, mem_dout, decode_dout);
 
 ------------------------------------------------------ SRAM Interface
 --	sc_mem_out.wr_data <= std_logic_vector(stack_cache_dout.dout_to_mem);
