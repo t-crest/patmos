@@ -4,6 +4,8 @@
 ## Desc     : Patmos core
 ##
 ###################################################################
+lib patmos_core_v1_00_a  patmos/vhdl/top/patmos_config_global.vhd vhdl
+lib patmos_core_v1_00_a  patmos/vhdl/top/patmos_config_ml605.vhd vhdl
 lib patmos_core_v1_00_a  patmos/vhdl/generated/patmos_rom.vhd  vhdl
 lib patmos_core_v1_00_a  patmos/vhdl/io/uart.vhd  vhdl
 lib patmos_core_v1_00_a  patmos/vhdl/core/sc_pack.vhd  vhdl
