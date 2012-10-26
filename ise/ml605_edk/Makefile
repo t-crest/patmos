@@ -35,6 +35,8 @@ program: bits
 # work around for BMM file:
 # The platgen doesn't know that we want to use BRAM inside the patmos core for updating the programs
 # So we have to find the placement of our bram in the synthesized file.
+# NOTE: for this to work, the application compiled with 'make rom APP=test_app' in base directory
+# must be big enougth, for the tool to infer the Block RAM (and not just LUT distributed ROM)
 patmos.bmm: bits
 	xdl -ncd2xdl implementation/system
 	echo -e 'ADDRESS_SPACE fet_rom_evn RAMB36 [0x00000000:0x000011FF]\n BUS_BLOCK\n  patmos_top_0/patmos_top_0/fet_rom_evn/Mram_data_mem1 [35:0] PLACED = '`grep 'inst.*fet_rom' system.xdl | sed 's/^.*RAMB36_//; s/ *,$$//'`';\n END_BUS_BLOCK;\nEND_ADDRESS_SPACE;' > patmos.bmm
