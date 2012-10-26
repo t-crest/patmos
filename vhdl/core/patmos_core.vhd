@@ -251,17 +251,22 @@ begin                                   -- architecture begin
 	-- Would also be clearer is address calculation has it's own signals.
 	-- Maybe it shall be in it's own component (together with some address
 	-- decoding).
-	io_mem_read_mux : process(mem_data_out_uart, mem_dout.data_mem_data_out, execute_dout, io_reg, counter)
+	io_mem_read_mux : process(mem_data_out_uart, mem_dout.data_mem_data_out, execute_dout, io_reg, counter, cntus)
 	begin
-		mem_data_out_muxed <= mem_data_out_uart;
+		mem_data_out_muxed <= (others => '1'); -- The value for unused I/O address
 		if io_reg.mem_en = '0' then
 			case io_reg.device is
 				when io_uart =>
 					mem_data_out_muxed <= mem_data_out_uart;
+				when io_counter =>
+					if io_reg.address(0) = '0' then
+						mem_data_out_muxed <= std_logic_vector(counter);
+					else
+						mem_data_out_muxed <= std_logic_vector(cntus);
+					end if;
 				when io_sdram =>
 --					mem_data_out_muxed <= dma_rd_data_i;
 				when others =>
-					mem_data_out_muxed <= std_logic_vector(counter);
 			end case;
 		else
 			mem_data_out_muxed <= mem_dout.data_mem_data_out;
