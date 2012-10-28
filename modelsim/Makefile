@@ -33,6 +33,8 @@ batch: clean base
 
 base:
 	$(WINE) vlib work
+	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/top/patmos_config_global.vhd
+	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/top/patmos_config_ml605.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_type_package.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/sc_pack.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/generated/patmos_rom.vhd
