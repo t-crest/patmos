@@ -2,6 +2,6 @@
 # Expected Result: undefined label
 #
 
-                bs      x;
+                call    x;
                 nop     0;
                 nop     0;

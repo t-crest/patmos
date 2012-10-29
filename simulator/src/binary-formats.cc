@@ -562,22 +562,22 @@ namespace patmos
     return iw;
   }
 
-  pflb_format_t::pflb_format_t(const instruction_t &instruction,
+  cflb_format_t::cflb_format_t(const instruction_t &instruction,
                                word_t opcode) :
       binary_format_t(instruction, 0x7C00000, insert(0x6000000, 22, 2, opcode),
                       1)
   {
   }
 
-  instruction_data_t pflb_format_t::decode_operands(word_t iw,
+  instruction_data_t cflb_format_t::decode_operands(word_t iw,
                                                     word_t longimm) const
   {
     word_t imm = extractS(iw, 0, 22);
     PRR_e pred = extractPN(iw, 27);
-    return instruction_data_t::mk_PFLb(Instruction, pred, imm);
+    return instruction_data_t::mk_CFLb(Instruction, pred, imm);
   }
 
-  word_t pflb_format_t::encode(word_t pred, word_t opcode, word_t imm)
+  word_t cflb_format_t::encode(word_t pred, word_t opcode, word_t imm)
   {
     word_t iw = 0;
 
@@ -591,22 +591,22 @@ namespace patmos
     return iw;
   }
 
-  pfli_format_t::pfli_format_t(const instruction_t &instruction,
+  cfli_format_t::cfli_format_t(const instruction_t &instruction,
                                word_t opcode) :
       binary_format_t(instruction, 0x7C0000F, insert(0x7000000, 0, 4, opcode),
                       1)
   {
   }
 
-  instruction_data_t pfli_format_t::decode_operands(word_t iw,
+  instruction_data_t cfli_format_t::decode_operands(word_t iw,
                                                     word_t longimm) const
   {
     GPR_e rs = extractG(iw, 12);
     PRR_e pred = extractPN(iw, 27);
-    return instruction_data_t::mk_PFLi(Instruction, pred, rs);
+    return instruction_data_t::mk_CFLi(Instruction, pred, rs);
   }
 
-  word_t pfli_format_t::encode(word_t pred, word_t opcode, word_t rs1)
+  word_t cfli_format_t::encode(word_t pred, word_t opcode, word_t rs1)
   {
     word_t iw = 0;
 
@@ -620,27 +620,31 @@ namespace patmos
     return iw;
   }
 
-  pflr_format_t::pflr_format_t(const instruction_t &instruction,
+  cflr_format_t::cflr_format_t(const instruction_t &instruction,
                                word_t opcode) :
       binary_format_t(instruction, 0x7C0000F, insert(0x7800000, 0, 4, opcode),
                       1)
   {
   }
 
-  instruction_data_t pflr_format_t::decode_operands(word_t iw,
+  instruction_data_t cflr_format_t::decode_operands(word_t iw,
                                                     word_t longimm) const
   {
+    GPR_e ro = extractG(iw,  7);
+    GPR_e rb = extractG(iw, 12);
     PRR_e pred = extractPN(iw, 27);
-    return instruction_data_t::mk_PFLr(Instruction, pred);
+    return instruction_data_t::mk_CFLr(Instruction, pred, rb, ro);
   }
 
-  word_t pflr_format_t::encode(word_t pred, word_t opcode)
+  word_t cflr_format_t::encode(word_t pred, word_t opcode, word_t rb, word_t ro)
   {
     word_t iw = 0;
 
     assert(fitu(opcode, 4));
 
     insertV(iw, 0, 4, opcode);
+    insertG(iw,  7, ro);
+    insertG(iw, 12, rb);
     insertV(iw, 22, 5, BOOST_BINARY(11110));
     insertPN(iw, 27, pred);
 

@@ -5,7 +5,7 @@
                 lwc     r1 = [r0 + 10];
                 nop     0;
                 nop     0;
-                bcr     r1;
+                brr     r1;
                 nop     0;
                 nop     0;
                 halt;

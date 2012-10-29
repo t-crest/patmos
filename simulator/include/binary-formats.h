@@ -411,14 +411,14 @@ namespace patmos
     static word_t encode(word_t pred, word_t opcode, word_t imm);
   };
 
-  /// The PFLb instruction format (see Patmos TR).
-  class pflb_format_t : public binary_format_t
+  /// The CFLb instruction format (see Patmos TR).
+  class cflb_format_t : public binary_format_t
   {
   public:
     /// Construct a new binary format for the instruction using a given opcode.
     /// @param instruction The instruction.
     /// @param opcode The instruction's opcode.
-    pflb_format_t(const instruction_t &instruction, word_t opcode);
+    cflb_format_t(const instruction_t &instruction, word_t opcode);
 
     /// Decode the operands of the instruction and return a corresponding
     /// instruction data instance.
@@ -436,14 +436,14 @@ namespace patmos
     static word_t encode(word_t pred, word_t opcode, word_t imm);
   };
 
-  /// The PFLi instruction format (see Patmos TR).
-  class pfli_format_t : public binary_format_t
+  /// The CFLi instruction format (see Patmos TR).
+  class cfli_format_t : public binary_format_t
   {
   public:
     /// Construct a new binary format for the instruction using a given opcode.
     /// @param instruction The instruction.
     /// @param opcode The instruction's opcode.
-    pfli_format_t(const instruction_t &instruction, word_t opcode);
+    cfli_format_t(const instruction_t &instruction, word_t opcode);
 
     /// Decode the operands of the instruction and return a corresponding
     /// instruction data instance.
@@ -461,14 +461,14 @@ namespace patmos
     static word_t encode(word_t pred, word_t opcode, word_t rs1);
   };
 
-  /// The PFLr instruction format (see Patmos TR).
-  class pflr_format_t : public binary_format_t
+  /// The CFLr instruction format (see Patmos TR).
+  class cflr_format_t : public binary_format_t
   {
   public:
     /// Construct a new binary format for the instruction using a given opcode.
     /// @param instruction The instruction.
     /// @param opcode The instruction's opcode.
-    pflr_format_t(const instruction_t &instruction, word_t opcode);
+    cflr_format_t(const instruction_t &instruction, word_t opcode);
 
     /// Decode the operands of the instruction and return a corresponding
     /// instruction data instance.
@@ -481,8 +481,10 @@ namespace patmos
     /// Encode an instruction.
     /// @param pred The instruction's predicate.
     /// @param opcode The instruction opcode.
+    /// @param rb The function base register operand.
+    /// @param ro The offset register operand.
     /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t opcode);
+    static word_t encode(word_t pred, word_t opcode, word_t rb, word_t ro);
   };
 
   /// The BNE instruction format (temporary, used for hardware model only).

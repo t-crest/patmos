@@ -52,10 +52,12 @@ namespace patmos
     ALUL_ABS,
     /// relocation of absolute addresses for ALUi instructions
     ALUI_ABS,
-    /// relocation of absolute addresses for PFL instructions
-    PFLB_ABS,
-    /// relocation of relative addresses for PFL instructions
-    PFLB_FREL
+    /// relocation of absolute addresses for CFL instructions
+    CFLB_ABS,
+    /// relocation of relative addresses for CFL instructions
+    CFLB_PCREL,
+    /// relocation of relative addresses for CFL instructions
+    CFLB_FREL
   };
 
   /// Relocation information
@@ -139,8 +141,8 @@ namespace patmos
       /// Parse an immediate or label for ALUl and ALUi instructions.
       rule_t ImmALUL, ImmALUI;
 
-      /// Parse an immediate or label for PFL instructions.
-      rule_t ImmPFL_ABS, ImmPFL_FREL;
+      /// Parse an immediate or label for CFL instructions.
+      rule_t ImmCFL_ABS, ImmCFL_FREL, ImmCFL_PCREL;
 
       /// Parse an arbitrary data word.
       rule_t Data_Word;
@@ -187,11 +189,11 @@ namespace patmos
       /// Parse STC instructions.
       rule_t STC;
 
-      /// Parse PFL opcodes.
-      rule_t PFLbopc, PFLiopc, PFLropc;
+      /// Parse CFL opcodes.
+      rule_t CFLbopc, CFLiopc, CFLropc;
 
-      /// Parse PFL instructions.
-      rule_t PFLb, PFLi, PFLr;
+      /// Parse CFL instructions.
+      rule_t CFLb, CFLi, CFLr;
 
       /// Parse BNE instructions.
       rule_t BNE;
@@ -278,6 +280,7 @@ namespace patmos
 
         return size;
       }
+
     public:
       /// Construct a parser for instruction path patterns.
       explicit assembly_line_grammar_t() :
@@ -308,7 +311,7 @@ namespace patmos
                                        boost::spirit::qi::_1)]                 |
                  boost::spirit::lit("halt")
                  [boost::phoenix::bind(&assembly_line_grammar_t::demit, this,
-                                       0x0780000002400024)]                    |
+                                       0x0780000002400000)]                    |
                  (Instruction1
                   [boost::phoenix::bind(&assembly_line_grammar_t::emit, this,
                                         boost::spirit::qi::_1)] >>
@@ -329,9 +332,9 @@ namespace patmos
                           STT  |
                           STC  |
                           BNE  |
-                          PFLi | PFLb | PFLr);
+                          CFLi | CFLb | CFLr);
 
-        // All instructions except SPCn, SPNw, PFL, LDT, STT, and STC.
+        // All instructions except SPCn, SPNw, CFL, LDT, STT, and STC.
         Instruction2 %= (ALUi | ALUr | ALUu | ALUm | ALUc | ALUp |
                          SPCt | SPCf |
                          LDTs | STTs);
@@ -401,15 +404,20 @@ namespace patmos
                                       &assembly_line_grammar_t::make_relocation,
                                       this, ALUI_ABS, boost::spirit::_1)];
 
-        ImmPFL_ABS = Imm22s [boost::spirit::_val = boost::spirit::_1]         |
+        ImmCFL_ABS = Imm22s [boost::spirit::_val = boost::spirit::_1]         |
                      Name [boost::spirit::_val = boost::phoenix::bind(
                                       &assembly_line_grammar_t::make_relocation,
-                                      this, PFLB_ABS, boost::spirit::_1)];
+                                      this, CFLB_ABS, boost::spirit::_1)];
 
-        ImmPFL_FREL = Imm22s [boost::spirit::_val = boost::spirit::_1]        |
+        ImmCFL_FREL = Imm22s [boost::spirit::_val = boost::spirit::_1]        |
                       Name [boost::spirit::_val = boost::phoenix::bind(
                                       &assembly_line_grammar_t::make_relocation,
-                                      this, PFLB_FREL, boost::spirit::_1)];
+                                      this, CFLB_FREL, boost::spirit::_1)];
+
+        ImmCFL_PCREL = Imm22s [boost::spirit::_val = boost::spirit::_1]        |
+                       Name [boost::spirit::_val = boost::phoenix::bind(
+                                      &assembly_line_grammar_t::make_relocation,
+                                      this, CFLB_PCREL, boost::spirit::_1)];
 
         // parse some arbitrary word-sized data
         Data_Word = (".word" >> Imm)
@@ -662,35 +670,36 @@ namespace patmos
                                  stc_format_t::encode, boost::spirit::qi::_1,
                                  boost::spirit::qi::_2, boost::spirit::qi::_3)];
 
-        // Parse PFLb instructions
-        PFLbopc = boost::spirit::lit("bs")    [boost::spirit::qi::_val = 0] |
-                  boost::spirit::lit("b")     [boost::spirit::qi::_val = 2] ;
+        // Parse CFLb instructions
+        CFLbopc = boost::spirit::lit("brcf") [boost::spirit::qi::_val = 2] |
+                  boost::spirit::lit("br")   [boost::spirit::qi::_val = 1] ;
 
-        PFLb = ((Pred >> "bc" >> ImmPFL_FREL)
+        CFLb = ((Pred >> "call" >> ImmCFL_ABS)
                 [boost::spirit::qi::_val = boost::phoenix::bind(
-                                   pflb_format_t::encode, boost::spirit::qi::_1,
-                                   1, boost::spirit::qi::_2)])                 |
-               ((Pred >> PFLbopc >> ImmPFL_ABS)
+                               cflb_format_t::encode, boost::spirit::qi::_1,
+                               0, boost::spirit::qi::_2)]) |
+               ((Pred >> CFLbopc >> ImmCFL_PCREL)
                 [boost::spirit::qi::_val = boost::phoenix::bind(
-                               pflb_format_t::encode, boost::spirit::qi::_1,
-                               boost::spirit::qi::_2, boost::spirit::qi::_3)]);
+                                cflb_format_t::encode, boost::spirit::qi::_1,
+                                boost::spirit::qi::_2, boost::spirit::qi::_3)]);
 
-        // Parse PFLi instructions
-        PFLiopc = boost::spirit::lit("bsr")    [boost::spirit::qi::_val = 0] |
-                  boost::spirit::lit("bcr")    [boost::spirit::qi::_val = 1] |
-                  boost::spirit::lit("br")     [boost::spirit::qi::_val = 2] ;
+        // Parse CFLi instructions
+        CFLiopc = boost::spirit::lit("callr") [boost::spirit::qi::_val = 0] |
+                  boost::spirit::lit("brcfr") [boost::spirit::qi::_val = 2] |
+                  boost::spirit::lit("brr")   [boost::spirit::qi::_val = 1] ;
 
-        PFLi = (Pred >> PFLiopc >> GPR)
+        CFLi = (Pred >> CFLiopc >> GPR)
               [boost::spirit::qi::_val = boost::phoenix::bind(
-                                 pfli_format_t::encode, boost::spirit::qi::_1,
+                                 cfli_format_t::encode, boost::spirit::qi::_1,
                                  boost::spirit::qi::_2, boost::spirit::qi::_3)];
 
-        // Parse PFLr instructions
-        PFLropc = boost::spirit::lit("ret")[boost::spirit::qi::_val = 0];
-        PFLr = (Pred >> PFLropc)
+        // Parse CFLr instructions
+        CFLropc = boost::spirit::lit("ret")[boost::spirit::qi::_val = 0];
+        CFLr = (Pred >> CFLropc >> GPR >> ',' >> GPR)
               [boost::spirit::qi::_val = boost::phoenix::bind(
-                                   pflr_format_t::encode, boost::spirit::qi::_1,
-                                   boost::spirit::qi::_2)];
+                                 cflr_format_t::encode, boost::spirit::qi::_1,
+                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
+                                 boost::spirit::qi::_4)];
 
         // Parse BNE instructions
         BNE = ("bne" >> GPR >> "!=" >> GPR >> ',' >> Imm7s)
@@ -710,8 +719,8 @@ namespace patmos
         BOOST_SPIRIT_DEBUG_NODE(Imm4u);       BOOST_SPIRIT_DEBUG_NODE(Imm12u);
         BOOST_SPIRIT_DEBUG_NODE(Imm22s);      BOOST_SPIRIT_DEBUG_NODE(Imm7s);
         BOOST_SPIRIT_DEBUG_NODE(Imm22u);      BOOST_SPIRIT_DEBUG_NODE(ImmALUL);
-        BOOST_SPIRIT_DEBUG_NODE(ImmPFL_ABS);  BOOST_SPIRIT_DEBUG_NODE(ImmALUI);
-        BOOST_SPIRIT_DEBUG_NODE(ImmPFL_FREL);
+        BOOST_SPIRIT_DEBUG_NODE(ImmCFL_ABS);  BOOST_SPIRIT_DEBUG_NODE(ImmALUI);
+        BOOST_SPIRIT_DEBUG_NODE(ImmCFL_FREL);
         BOOST_SPIRIT_DEBUG_NODE(Pred);
         BOOST_SPIRIT_DEBUG_NODE(ALUiopc);     BOOST_SPIRIT_DEBUG_NODE(ALUlropc);
         BOOST_SPIRIT_DEBUG_NODE(ALUuopc);     BOOST_SPIRIT_DEBUG_NODE(ALUmopc);
@@ -720,8 +729,8 @@ namespace patmos
         BOOST_SPIRIT_DEBUG_NODE(LDTopc);      BOOST_SPIRIT_DEBUG_NODE(dLDTopc);
         BOOST_SPIRIT_DEBUG_NODE(STTopc);
         BOOST_SPIRIT_DEBUG_NODE(STCopc);
-        BOOST_SPIRIT_DEBUG_NODE(PFLbopc);     BOOST_SPIRIT_DEBUG_NODE(PFLiopc);
-        BOOST_SPIRIT_DEBUG_NODE(PFLropc);
+        BOOST_SPIRIT_DEBUG_NODE(CFLbopc);     BOOST_SPIRIT_DEBUG_NODE(CFLiopc);
+        BOOST_SPIRIT_DEBUG_NODE(CFLropc);
         BOOST_SPIRIT_DEBUG_NODE(ALUi);        BOOST_SPIRIT_DEBUG_NODE(ALUl);
         BOOST_SPIRIT_DEBUG_NODE(ALUr);        BOOST_SPIRIT_DEBUG_NODE(ALUu);
         BOOST_SPIRIT_DEBUG_NODE(ALUm);        BOOST_SPIRIT_DEBUG_NODE(ALUc);
@@ -731,8 +740,8 @@ namespace patmos
         BOOST_SPIRIT_DEBUG_NODE(LDT);         BOOST_SPIRIT_DEBUG_NODE(dLDT);
         BOOST_SPIRIT_DEBUG_NODE(STT);
         BOOST_SPIRIT_DEBUG_NODE(STC);
-        BOOST_SPIRIT_DEBUG_NODE(PFLb);        BOOST_SPIRIT_DEBUG_NODE(PFLi);
-        BOOST_SPIRIT_DEBUG_NODE(PFLr);
+        BOOST_SPIRIT_DEBUG_NODE(CFLb);        BOOST_SPIRIT_DEBUG_NODE(CFLi);
+        BOOST_SPIRIT_DEBUG_NODE(CFLr);
         BOOST_SPIRIT_DEBUG_NODE(BNE);
       }
   };
@@ -788,6 +797,11 @@ namespace patmos
         }
 
         word_t address = Line_parser.Symbols[r->second.Symbol];
+        if ( (address & 0x3) != 0) {
+          std::cerr << "Unaligned address: " << address << "\n";
+          return false;
+        }
+
         switch(r->second.Kind)
         {
           case ALUL_ABS:
@@ -798,11 +812,15 @@ namespace patmos
             // patch ALUi instruction -- byte addressing
             iw = (iw & ~0xFFF) | (address & 0xFFF);
             break;
-          case PFLB_ABS:
+          case CFLB_ABS:
             // patch branch -- word addressing
             iw = (iw & ~0x3FFFFF) | ((address >> 2) & 0x3FFFFF);
             break;
-          case PFLB_FREL:
+          case CFLB_PCREL:
+            // patch branch -- word addressing
+            iw = (iw & ~0x3FFFFF) | (((address >> 2) - i) & 0x3FFFFF);
+            break;
+          case CFLB_FREL:
             // patch branch -- word addressing
             iw = (iw & ~0x3FFFFF) | (((address - r->second.Last_fstart) >> 2) &
                                      0x3FFFFF);

@@ -1316,7 +1316,7 @@ namespace patmos
   STC_INSTR(sfree, free)
 
   /// Base class for branch, call, and return instructions.
-  class i_pfl_t : public i_pred_t
+  class i_cfl_t : public i_pred_t
   {
   protected:
     /// Store the method base address and offset to the respective special
@@ -1340,14 +1340,15 @@ namespace patmos
     void store_return_address(simulator_t &s, instruction_data_t &ops,
                               bit_t pred, uword_t base, uword_t pc) const
     {
-      if (pred && !ops.EX_PFL_Discard)
+      if (pred && !ops.EX_CFL_Discard)
       {
         assert(base <= pc);
 
-        // store the return address and method base address by writing them into
-        // special purpose registers
-        s.SPR.set(sb, base);
-        s.SPR.set(so, pc - base);
+        // store the return function offset (return PC) into
+        // a general purpose register
+        s.GPR.set(rfo, pc - base);
+        // function base is compiler/programmer managed,
+        // i.e., not stored implicitly
       }
     }
 
@@ -1361,7 +1362,7 @@ namespace patmos
     void fetch_and_dispatch(simulator_t &s, instruction_data_t &ops,
                             bit_t pred, word_t base, word_t address) const
     {
-      if (pred && !ops.EX_PFL_Discard)
+      if (pred && !ops.EX_CFL_Discard)
       {
         // check if the target method is in the cache, otherwise stall until
         // it is loaded.
@@ -1375,7 +1376,7 @@ namespace patmos
           // set the program counter and base
           s.BASE = base;
           s.PC = s.nPC = address;
-          ops.EX_PFL_Discard = 1;
+          ops.EX_CFL_Discard = 1;
         }
       }
     }
@@ -1390,7 +1391,7 @@ namespace patmos
     void dispatch(simulator_t &s, instruction_data_t &ops, bit_t pred,
                   word_t base, word_t address) const
     {
-      if (pred && !ops.EX_PFL_Discard)
+      if (pred && !ops.EX_CFL_Discard)
       {
         // assure that the target method is in the cache.
         assert(s.Method_cache.assert_availability(base));
@@ -1398,11 +1399,26 @@ namespace patmos
         // set the program counter and base
         s.BASE = base;
         s.PC = s.nPC = address;
-        ops.EX_PFL_Discard = 1;
+        ops.EX_CFL_Discard = 1;
       }
     }
   public:
-    // IF inherited from NOP
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the IF pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void IF(simulator_t &s, instruction_data_t &ops) const
+    {
+      // store the PC for PC-relative addressing in EX stage, if we are not stalling
+      // NB: s.Stall is already set the first time s.PC is updated.
+      //     If we checked (s.Stall==SIF), we would have to include i_pred_t::IF,
+      //     which is rather ugly.
+      if (s.PC != s.nPC) {
+        ops.IF_PC = s.PC;
+      }
+      // call the inherited function (advance PC)
+      i_pred_t::IF(s, ops);
+    }
 
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
@@ -1411,7 +1427,7 @@ namespace patmos
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
-      ops.EX_PFL_Discard = 0;
+      ops.EX_CFL_Discard = 0;
     }
 
     // EX implemented by sub-classes
@@ -1419,15 +1435,15 @@ namespace patmos
     // MW inherited from NOP
   };
 
-#define PFLB_INSTR(name, store, dispatch, new_base, target) \
-  class i_ ## name ## _t : public i_pfl_t \
+#define CFLB_INSTR(name, store, dispatch, new_base, target) \
+  class i_ ## name ## _t : public i_cfl_t \
   { \
   public:\
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
       printPred(os, ops.Pred); \
-      os << #name << " " << ops.OPS.PFLb.Imm; \
+      os << #name << " " << ops.OPS.CFLb.Imm; \
       symbols.print(os, ops.EX_Address); \
     } \
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
@@ -1438,19 +1454,21 @@ namespace patmos
     } \
   };
 
-  PFLB_INSTR(bs, store_return_address, fetch_and_dispatch,
-             ops.OPS.PFLb.Imm*sizeof(word_t), ops.OPS.PFLb.Imm*sizeof(word_t))
-  PFLB_INSTR(bc, no_store_return_address, dispatch, s.BASE,
-             s.BASE + ops.OPS.PFLb.Imm*sizeof(word_t))
-  PFLB_INSTR(b, no_store_return_address, fetch_and_dispatch,
-             s.BASE + ops.OPS.PFLb.Imm*sizeof(word_t),
-             s.BASE + ops.OPS.PFLb.Imm*sizeof(word_t))
+  CFLB_INSTR(call, store_return_address, fetch_and_dispatch,
+             ops.OPS.CFLb.Imm*sizeof(word_t),
+             ops.OPS.CFLb.Imm*sizeof(word_t))
+  CFLB_INSTR(br, no_store_return_address, dispatch,
+             s.BASE,
+             ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t))
+  CFLB_INSTR(brcf, no_store_return_address, fetch_and_dispatch,
+             ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t),
+             ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t))
 
   /// Branch and call instructions with a register operand.
-  class i_pfli_t : public i_pfl_t
+  class i_cfli_t : public i_cfl_t
   {
   public:
-    // IF inherited from NOP
+    // IF inherited from i_cfl_t
 
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
@@ -1459,8 +1477,8 @@ namespace patmos
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
-      ops.DR_Rs1 = s.GPR.get(ops.OPS.PFLi.Rs);
-      ops.EX_PFL_Discard = 0;
+      ops.DR_Rs1 = s.GPR.get(ops.OPS.CFLi.Rs);
+      ops.EX_CFL_Discard = 0;
     }
 
     // EX implemented by sub-classes
@@ -1468,15 +1486,15 @@ namespace patmos
     // MW inherited from NOP
   };
 
-#define PFLI_INSTR(name, store, dispatch, new_base, target) \
-  class i_ ## name ## _t : public i_pfli_t \
+#define CFLI_INSTR(name, store, dispatch, new_base, target) \
+  class i_ ## name ## _t : public i_cfli_t \
   { \
   public:\
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
       printPred(os, ops.Pred); \
-      os << #name << " r" << ops.OPS.PFLi.Rs; \
+      os << #name << " r" << ops.OPS.CFLi.Rs; \
       symbols.print(os, ops.EX_Address); \
     } \
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
@@ -1487,16 +1505,18 @@ namespace patmos
     } \
   };
 
-  PFLI_INSTR(bsr, store_return_address, fetch_and_dispatch,
-             read_GPR_EX(s, ops.DR_Rs1), read_GPR_EX(s, ops.DR_Rs1))
-  PFLI_INSTR(bcr, no_store_return_address, dispatch, s.BASE,
+  CFLI_INSTR(callr, store_return_address, fetch_and_dispatch,
+             read_GPR_EX(s, ops.DR_Rs1),
+             read_GPR_EX(s, ops.DR_Rs1))
+  CFLI_INSTR(brr, no_store_return_address, dispatch,
+             s.BASE,
              s.BASE + read_GPR_EX(s, ops.DR_Rs1))
-  PFLI_INSTR(br, no_store_return_address, fetch_and_dispatch,
+  CFLI_INSTR(brcfr, no_store_return_address, fetch_and_dispatch,
              s.BASE + read_GPR_EX(s, ops.DR_Rs1),
              s.BASE + read_GPR_EX(s, ops.DR_Rs1))
 
   /// An instruction for returning from function calls.
-  class i_ret_t : public i_pfl_t
+  class i_ret_t : public i_cfl_t
   {
   public:
     /// Print the instruction to an output stream.
@@ -1507,7 +1527,8 @@ namespace patmos
                        const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << "ret";
+      os << boost::format("ret r%1%, r%2%")
+                          % ops.OPS.CFLr.Rb % ops.OPS.CFLr.Ro;
     }
 
     // IF inherited from NOP
@@ -1519,9 +1540,9 @@ namespace patmos
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
-      ops.DR_Base = s.SPR.get(sb).get();
-      ops.DR_Offset = s.SPR.get(so).get();
-      ops.EX_PFL_Discard = 0;
+      ops.DR_Base   = s.GPR.get(ops.OPS.CFLr.Rb).get();
+      ops.DR_Offset = s.GPR.get(ops.OPS.CFLr.Ro).get();
+      ops.EX_CFL_Discard = 0;
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
@@ -1554,7 +1575,7 @@ namespace patmos
 
   /// A (temporary) instruction for pc-relative, conditional branches.
   /// Used only for hardware development.
-  class i_bne_t : public i_pfl_t
+  class i_bne_t : public i_cfl_t
   {
   public:
     /// Print the instruction to an output stream.
@@ -1577,7 +1598,7 @@ namespace patmos
       ops.DR_Pred = 1;
       ops.DR_Rs1 = s.GPR.get(ops.OPS.BNE.Rs1);
       ops.DR_Rs2 = s.GPR.get(ops.OPS.BNE.Rs2);
-      ops.EX_PFL_Discard = 0;
+      ops.EX_CFL_Discard = 0;
     }
 
     /// Pipeline function to simulate the behavior of the instruction in

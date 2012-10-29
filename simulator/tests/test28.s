@@ -2,7 +2,7 @@
 # Expected Result: base = 0x00000000 & pc = 0x00000040 & r1 = 38
 #
                 addi     r2  = r0, x;
-                bcr      r2;
+                brr      r2;
                 addi     r1  = r0, 1;
                 addi     r1  = r1, 2;
                 addi     r1  = r1, 3;
