@@ -22,7 +22,7 @@
 		addi	r0 = r0, 0;
                 and     r11  = r10 , r1;
 		cmpneq  p1 = r1, r11;
-	(p1)	bc	8;
+	(p1)	br	8;
                 addi    r0  = r0 , 0;
                 addi    r0  = r0 , 0;
 
@@ -33,12 +33,12 @@
 		addi	r0 = r0, 0;
 		and     r11 = r3 , r10;
 		cmpneq  p1 = r3, r11;
-	(p1)	bc	17;
+	(p1)	br	17;
                 addi    r0  = r0 , 0;
                 addi    r0  = r0 , 0;
 
 		swl	[r5 + 1] = r15;
-		bc	4;
+		br	4;
                 addi    r0  = r0 , 0;
                 addi    r0  = r0 , 0;
 		halt;

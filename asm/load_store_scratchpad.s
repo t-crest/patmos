@@ -54,5 +54,5 @@ x1:	shl	[r1 + 4] = r5; #
 	or	r21 = r21, r31;
 	subi    r30 = r30, 1;
 	cmpneq  p1 = r31, r29;
-(p1)	bc	x1; #r20 equals to all upper bits 1 
+(p1)	br	x1; #r20 equals to all upper bits 1 
 	halt;

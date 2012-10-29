@@ -22,7 +22,7 @@
 		add	r2 = r0, 256477; #
 x2:		add	r1 = r1, 1; #
 		cmplt   p1  = r1, r2; #
-		(p1) 	bc	x2; 
+		(p1) 	br	x2; 
 		nop	0;
 		nop	0; #5 branch delay
 		addi	r3 = r0, 3; #7 r3 = 3
@@ -30,7 +30,7 @@ x2:		add	r1 = r1, 1; #
 		addi    r5 = r5, 0;
 x1:		addi    r5 = r5, 1;
 		cmplt   p2 = r5, r3;
-		(p2) 	bc	x1; 
+		(p2) 	br	x1; 
 		nop	0;
 		nop	0;
 		addi    r13 = r13, 1;

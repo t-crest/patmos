@@ -15,5 +15,5 @@ x1:	swm	[r1 + 1] = r2;
 	addi    r2 = r2, 1;
 	subi    r29 = r29, 1;
 	cmpneq  p1 = r0, r29;
-(p1)	bc	x1; #
+(p1)	br	x1; #
 	halt; 

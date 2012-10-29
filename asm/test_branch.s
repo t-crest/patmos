@@ -23,5 +23,5 @@ x1:	lwm     r10  = [r5 + 0];
 	nop 	0;
 	nop	0;
 	swm	[r7 + 1] = r2;
-#	bc	x2;
+#	br	x2;
 	halt

@@ -11,5 +11,5 @@
 	sli	r1 = r1, 28;
 	addi	r2 = r0, 42; # '*'
 x1:	swl	[r1 + 1] = r2;
-	bc	x1;
+	br	x1;
 	halt;

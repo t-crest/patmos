@@ -13,14 +13,14 @@
 
 l2:	addi	r1 = r0, 9;
 	addi	r1 = r0, 10;
-	bc	end;
+	br	end;
 	addi	r1 = r0, 11; 
 	addi	r1 = r0, 12;
 	addi	r1 = r0, 104;
 
 l1:	addi	r1 = r0, 5;
 	addi	r1 = r0, 6;
-	bc	l2;
+	br	l2;
 	addi	r1 = r0, 7;
 	addi	r1 = r0, 8;
 	addi	r1 = r0, 103;

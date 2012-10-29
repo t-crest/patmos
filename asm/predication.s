@@ -7,7 +7,7 @@
 	cmpeq   p1 = r1, r2;
 	pand    p2 = p0 , p1;
 x1:	addi    r10 = r0, 1; # this is just to jump!
-	(p2)    bc	x1;
+	(p2)    br	x1;
 	addi    r1 = r1, 1;
 	cmpeq   p2 = r1, r2;
 	addi	r3 = r0, 1;
