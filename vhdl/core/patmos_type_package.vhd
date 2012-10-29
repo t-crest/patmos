@@ -158,32 +158,15 @@ package patmos_type_package is
 	------------------------------------------
 	-- mem
 	------------------------------------------
-	type mem_in_type is record
-		data_in           : std_logic_vector(31 downto 0);
-		-- following is forwarding 
-		reg_write_in      : std_logic;
-		write_back_reg_in : std_logic_vector(4 downto 0);
-		mem_write_data_in : std_logic_vector(31 downto 0);
-
-		alu_result_out               : std_logic_vector(31 downto 0);
-		alu_result		               : std_logic_vector(31 downto 0);
-		adrs_out					: std_logic_vector(31 downto 0);
-		adrs		               : std_logic_vector(31 downto 0);
-		mem_write                : std_logic;
-		alu_src2                 : std_logic_vector(31 downto 0);
-		
-		adrs_type		    :  address_type;
-	end record;
 
 	type mem_out_type is record
 		result             : result_type;
-		data_out           : std_logic_vector(31 downto 0);
+		data_out           : std_logic_vector(31 downto 0); -- forwarding
 		-- following is forwarding 
 		reg_write_out      : std_logic;
 		write_back_reg_out : std_logic_vector(4 downto 0);
-		mem_write_data_out : std_logic_vector(31 downto 0);
-		data_mem_data_out  : std_logic_vector(31 downto 0);
-		data  : std_logic_vector(31 downto 0);
+		data_mem_data_out  : std_logic_vector(31 downto 0); -- this is from memory it is used later to select between output of mem or IO
+		data  : std_logic_vector(31 downto 0); -- to register file
 		
 	end record;
 
@@ -258,5 +241,4 @@ package patmos_type_package is
 	end record;
 
 end patmos_type_package;
-
 

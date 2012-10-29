@@ -45,7 +45,7 @@ entity patmos_mem_stage is
 	port(
 		clk  : in  std_logic;
 		rst  : in  std_logic;
-		din  : in  mem_in_type;
+		mem_write  : in  std_logic;
 		mem_data_out_muxed : in std_logic_vector(31 downto 0);
 		exout : in execution_out_type;
 		dout : out mem_out_type;
@@ -76,8 +76,6 @@ begin
 			-- forwarding
 			dout.reg_write_out      <= exout.reg_write or exout.mem_to_reg;
 			dout.write_back_reg_out <= exout.write_back_reg;
-			dout.mem_write_data_out <= exout.mem_write_data;
-		--	read_address <= din.alu_result_out;
 			ldt_type <= decdout.adrs_type;
 			s_u		<= decdout.s_u;
 		end if;
@@ -121,7 +119,7 @@ begin
 			     dout3);
 	
 	--------------------------- address muxes begin--------------------------		     
-	process(din, dout0, dout1, dout2, dout3)
+	process( dout0, dout1, dout2, dout3)
 	begin
 		ld_word <= dout0 & dout1 & dout2 & dout3;
 	end process;
@@ -189,40 +187,40 @@ begin
 	
 	--------------------------- size muxe end--------------------------
 
-	process(din, exout)
+	process(exout, mem_write)
 	begin
 		byte_enable0 <= '0';
 		byte_enable1 <= '0';
 		byte_enable2 <= '0';
 		byte_enable3 <= '0';
 		case exout.adrs(1 downto 0) is
-			when "00"   => byte_enable0 <= din.mem_write;
-			when "01"   => byte_enable1 <= din.mem_write;
-			when "10"   => byte_enable2 <= din.mem_write;
-			when "11"   => byte_enable3 <= din.mem_write;
+			when "00"   => byte_enable0 <= mem_write;
+			when "01"   => byte_enable1 <= mem_write;
+			when "10"   => byte_enable2 <= mem_write;
+			when "11"   => byte_enable3 <= mem_write;
 			when others => null;
 		end case;
 	end process;
 
-	process(din, exout)
+	process(exout, mem_write)
 	begin
 		word_enable0 <= '0';
 		word_enable1 <= '0';
 		case exout.adrs(1) is
-			when '0'    => word_enable0 <= din.mem_write;
-			when '1'    => word_enable1 <= din.mem_write;
+			when '0'    => word_enable0 <= mem_write;
+			when '1'    => word_enable1 <= mem_write;
 			when others => null;
 		end case;
 	end process;
 		
-	process(din, word_enable0, word_enable1, byte_enable0, byte_enable1, byte_enable2, byte_enable3, decdout, exout)
+	process(word_enable0, word_enable1, byte_enable0, byte_enable1, byte_enable2, byte_enable3, decdout, exout, mem_write)
 	begin
 		case decdout.adrs_type is
 			when word => 
-				en0             <= din.mem_write;
-				en1             <= din.mem_write;
-				en2             <= din.mem_write;
-				en3             <= din.mem_write;
+				en0             <= mem_write;
+				en1             <= mem_write;
+				en2             <= mem_write;
+				en3             <= mem_write;
 				mem_write_data0 <= exout.mem_write_data(31 downto 24);
 				mem_write_data1 <= exout.mem_write_data(23 downto 16);
 				mem_write_data2 <= exout.mem_write_data(15 downto 8);
@@ -249,7 +247,8 @@ begin
 			when others => null;
 		end case;
 	end process;
-
+	
+-- write back
 	process(mem_data_out_muxed, exout)
 	begin
 		if exout.mem_to_reg = '1' then

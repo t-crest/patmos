@@ -35,41 +35,32 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use work.patmos_type_package.all;
 
-use work.patmos_types.all;
 
 entity patmos is
 	port  (
-		clk : in std_logic;
-		clk2x : in std_logic;
-		reset : in std_logic;
-		ioout : out io_out_type;
-		ioin : in io_in_type
+			clk : in std_logic;
+			led : out std_logic;
+			txd : out std_logic;
+			rxd : in std_logic
 	);
 end patmos;
 
 architecture rtl of patmos is
 
-	signal fdin : fedec_in_type;
-	signal fdout : fedec_out_type;
-	
-	signal exout : ex_out_type;
-
-
+	signal mem_write	: std_logic;
+	signal mem_data_out_muxed : std_logic_vector(31 downto 0);
+	signal pat_rst				: std_logic;
+	signal data_mem_data_out	: std_logic_vector(31 downto 0);
+	signal execute_dout		: execution_out_type;
 begin
 
-	fdin.accu <= exout.accu;
-	ioout.addr <= fdout.imm(7 downto 0);
-	ioout.rd <= fdout.dec.inp;
-	ioout.wr <= fdout.dec.outp;
-	ioout.wrdata <= exout.accu;
-	
-	
--- 	fd: entity work.leros_fedec port map (
--- 		clk, reset, fdin, fdout
--- 	);
--- 	ex: entity work.leros_ex port map(
--- 		clk, reset, fdout, ioin, exout
--- 	);
-	
+	core : entity work.patmos_core
+		port map(clk, pat_rst, mem_write, mem_data_out_muxed, data_mem_data_out, execute_dout);
+		
+
+	wrapper : entity work.patmos_wrapper
+		port map(clk, pat_rst, mem_write, data_mem_data_out, mem_data_out_muxed, execute_dout, led, txd, rxd);
+		
 end rtl;
