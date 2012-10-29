@@ -4,7 +4,7 @@
 	addi	r0 = r0, 0;  # first instruction not executed
 	addi	r1 = r0, 1;
 	addi	r1 = r0, 2;
-	bc	l1;
+	br	l1;
 	addi	r1 = r0, 3;
 	addi	r1 = r0, 4;
 	addi	r1 = r0, 100;
