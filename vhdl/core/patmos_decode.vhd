@@ -81,7 +81,7 @@ begin
 			-- a single bit for a condition in the ALU
 			dout.instr_cmp <= '0';
 			
-			
+			dout.pc <= din.pc;
 			-- MS: time for some defaults to get a clearer view:
 --			dout.ALU_function_type_out <= '0' & din.operation(24 downto 22);
 

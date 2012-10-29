@@ -54,17 +54,18 @@ end entity patmos_alu;
 
 architecture arch of patmos_alu is
 
-	signal rd, rd1, rd2, adrs								: std_logic_vector(31 downto 0);
+	signal rd, rd1, rd2, adrs					: std_logic_vector(31 downto 0);
 	signal cmp_equal, cmp_result				: std_logic;
 	signal predicate, predicate_reg				: std_logic_vector(7 downto 0);
 	signal rs1, rs2								: unsigned(31 downto 0);
 	signal doutex_alu_result_reg				: std_logic_vector(31 downto 0);
 	signal doutex_alu_adrs_reg					: std_logic_vector(31 downto 0);
-	signal doutex_write_back_reg			: std_logic_vector(4 downto 0);
-	signal doutex_reg_write					: std_logic;
+	signal doutex_write_back_reg				: std_logic_vector(4 downto 0);
+	signal doutex_reg_write						: std_logic;
 	signal din_rs1, din_rs2, alu_src2			: std_logic_vector(31 downto 0);
 	signal shamt 								: integer;
 	signal shifted_arg							: unsigned(31 downto 0);
+	signal pc									: std_logic_vector(pc_length - 1 downto 0);
 begin
 
 
@@ -241,8 +242,13 @@ begin
 		doutex.mem_write_data <= alu_src2;
 		doutex.alu_result <= rd;
 		doutex.adrs <= adrs;
+		--doutex.pc <= pc;
 	end process;
 
+	process(decdout)
+	begin
+		doutex.pc <= std_logic_vector(unsigned(decdout.pc) + unsigned(decdout.imm));
+	end process;
 	
 	process(doutex_alu_result_reg, doutex_write_back_reg, doutex_reg_write , decdout, memdout)
 	begin

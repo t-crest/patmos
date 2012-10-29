@@ -78,7 +78,8 @@ begin
 		-- two branch delay slots
 		if decout.BC = '1' and exout.predicate(to_integer(unsigned(decout.predicate_condition))) = '1' then -- decout.predicate_bit_out then
 			-- no addition? no relative branch???
-			pc_next <= decout.imm;
+		--	pc_next <= decout.imm;
+			pc_next <= exout.pc;
 		end if;
 	end process;
 

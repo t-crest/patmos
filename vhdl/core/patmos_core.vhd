@@ -84,6 +84,7 @@ architecture arch of patmos_core is
 			     execute_dout.reg_write);
 
 	decode_din.operation <= fetch_dout.instruction;
+	decode_din.pc <= fetch_dout.pc;
 	decode_din.instr_b   <= fetch_dout.instr_b;
 	dec : entity work.patmos_decode(arch)
 		port map(clk, rst, decode_din, decode_dout);

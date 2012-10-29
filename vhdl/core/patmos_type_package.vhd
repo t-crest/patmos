@@ -78,6 +78,7 @@ package patmos_type_package is
 	--------------------------------------------
 	type decode_in_type is record
 		operation   : std_logic_vector(31 downto 0);
+		pc			: std_logic_vector(pc_length - 1 downto 0);
 		instr_b     : std_logic_vector(31 downto 0);
 		rs1_data_in : std_logic_vector(31 downto 0);
 		rs2_data_in : std_logic_vector(31 downto 0);
@@ -110,7 +111,7 @@ package patmos_type_package is
 		adrs_type				 : address_type;
 		alu_alu_u				: std_logic;
 		s_u						: std_logic;
-		
+		pc					: std_logic_vector(pc_length - 1 downto 0);
 		--		mem_write_out            : std_logic;
 --		st_out                   : std_logic_vector(3 downto 0);
 --		sc_write_out             : std_logic;	
@@ -152,6 +153,7 @@ package patmos_type_package is
 		sc_read_out_not_reg  : std_logic;
 		sc_write_out_not_reg : std_logic;
 		address_not_reg		: std_logic_vector(31 downto 0);
+		pc					: std_logic_vector(pc_length - 1 downto 0);
 	end record;
 
 
