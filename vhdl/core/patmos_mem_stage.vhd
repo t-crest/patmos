@@ -45,10 +45,11 @@ entity patmos_mem_stage is
 	port(
 		clk  : in  std_logic;
 		rst  : in  std_logic;
-		din  : in  mem_in_type;
+		mem_write  : in  std_logic;
 		mem_data_out_muxed : in std_logic_vector(31 downto 0);
 		exout : in execution_out_type;
-		dout : out mem_out_type
+		dout : out mem_out_type;
+		decdout									: in  decode_out_type
 	);
 end entity patmos_mem_stage;
 
@@ -73,12 +74,10 @@ begin
 		if (rising_edge(clk)) then
 			dout.data_out <= datain;
 			-- forwarding
-			dout.reg_write_out      <= din.reg_write_in;
-			dout.write_back_reg_out <= din.write_back_reg_in;
-			dout.mem_write_data_out <= din.mem_write_data_in;
-		--	read_address <= din.alu_result_out;
-			ldt_type <= din.adrs_type;
-			s_u		<= din.s_u;
+			dout.reg_write_out      <= exout.reg_write or exout.mem_to_reg;
+			dout.write_back_reg_out <= exout.write_back_reg;
+			ldt_type <= decdout.adrs_type;
+			s_u		<= decdout.s_u;
 		end if;
 	end process mem_wb;
 
@@ -86,48 +85,48 @@ begin
 	memory0 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     din.adrs(9 downto 0),
+			     exout.adrs(9 downto 0),
 			     mem_write_data0,
 			     en0,
-			     din.adrs(9 downto 0),
+			     exout.adrs(9 downto 0),
 			     dout0);
 
 	memory1 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     din.adrs(9 downto 0),
+			     exout.adrs(9 downto 0),
 			     mem_write_data1,
 			     en1,
-			     din.adrs(9 downto 0),
+			     exout.adrs(9 downto 0),
 			     dout1);
 
 	memory2 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     din.adrs(9 downto 0),
+			     exout.adrs(9 downto 0),
 			     mem_write_data2,
 			     en2,
-			     din.adrs(9 downto 0),
+			     exout.adrs(9 downto 0),
 			     dout2);
 
 	memory3 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     din.adrs(9 downto 0),
+			     exout.adrs(9 downto 0),
 			     mem_write_data3,
 			     en3,
-			     din.adrs(9 downto 0),
+			     exout.adrs(9 downto 0),
 			     dout3);
 	
 	--------------------------- address muxes begin--------------------------		     
-	process(din, dout0, dout1, dout2, dout3)
+	process( dout0, dout1, dout2, dout3)
 	begin
 		ld_word <= dout0 & dout1 & dout2 & dout3;
 	end process;
 	
-	ld_add_half:process(din, dout0, dout1, dout2, dout3)
+	ld_add_half:process(exout, dout0, dout1, dout2, dout3)
 	begin
-		case din.adrs_out(1) is
+		case exout.adrs_reg(1) is
 			when '0' =>
 				ld_half <= dout0 & dout1;
 			when '1' =>
@@ -136,9 +135,9 @@ begin
 		end case;
 	end process;
 	
-	process(din, dout0, dout1, dout2, dout3)
+	process(exout, dout0, dout1, dout2, dout3)
 	begin
-		case din.adrs_out(1 downto 0) is
+		case exout.adrs_reg(1 downto 0) is
 			when "00" =>
 				ld_byte <= dout0;
 			when "01" =>
@@ -188,75 +187,76 @@ begin
 	
 	--------------------------- size muxe end--------------------------
 
-	process(din)
+	process(exout, mem_write)
 	begin
 		byte_enable0 <= '0';
 		byte_enable1 <= '0';
 		byte_enable2 <= '0';
 		byte_enable3 <= '0';
-		case din.adrs(1 downto 0) is
-			when "00"   => byte_enable0 <= din.mem_write;
-			when "01"   => byte_enable1 <= din.mem_write;
-			when "10"   => byte_enable2 <= din.mem_write;
-			when "11"   => byte_enable3 <= din.mem_write;
+		case exout.adrs(1 downto 0) is
+			when "00"   => byte_enable0 <= mem_write;
+			when "01"   => byte_enable1 <= mem_write;
+			when "10"   => byte_enable2 <= mem_write;
+			when "11"   => byte_enable3 <= mem_write;
 			when others => null;
 		end case;
 	end process;
 
-	process(din)
+	process(exout, mem_write)
 	begin
 		word_enable0 <= '0';
 		word_enable1 <= '0';
-		case din.adrs(1) is
-			when '0'    => word_enable0 <= din.mem_write;
-			when '1'    => word_enable1 <= din.mem_write;
+		case exout.adrs(1) is
+			when '0'    => word_enable0 <= mem_write;
+			when '1'    => word_enable1 <= mem_write;
 			when others => null;
 		end case;
 	end process;
 		
-	process(din, word_enable0, word_enable1, byte_enable0, byte_enable1, byte_enable2, byte_enable3)
+	process(word_enable0, word_enable1, byte_enable0, byte_enable1, byte_enable2, byte_enable3, decdout, exout, mem_write)
 	begin
-		case din.adrs_type is
+		case decdout.adrs_type is
 			when word => 
-				en0             <= din.mem_write;
-				en1             <= din.mem_write;
-				en2             <= din.mem_write;
-				en3             <= din.mem_write;
-				mem_write_data0 <= din.mem_write_data_in(31 downto 24);
-				mem_write_data1 <= din.mem_write_data_in(23 downto 16);
-				mem_write_data2 <= din.mem_write_data_in(15 downto 8);
-				mem_write_data3 <= din.mem_write_data_in(7 downto 0);
+				en0             <= mem_write;
+				en1             <= mem_write;
+				en2             <= mem_write;
+				en3             <= mem_write;
+				mem_write_data0 <= exout.mem_write_data(31 downto 24);
+				mem_write_data1 <= exout.mem_write_data(23 downto 16);
+				mem_write_data2 <= exout.mem_write_data(15 downto 8);
+				mem_write_data3 <= exout.mem_write_data(7 downto 0);
 			when half =>
 				en0             <= word_enable0;
 				en1             <= word_enable0;
 				en2             <= word_enable1;
 				en3             <= word_enable1;
-				mem_write_data0 <= din.mem_write_data_in(15 downto 8);
-				mem_write_data1 <= din.mem_write_data_in(7 downto 0);
-				mem_write_data2 <= din.mem_write_data_in(15 downto 8);
-				mem_write_data3 <= din.mem_write_data_in(7 downto 0);
+				mem_write_data0 <= exout.mem_write_data(15 downto 8);
+				mem_write_data1 <= exout.mem_write_data(7 downto 0);
+				mem_write_data2 <= exout.mem_write_data(15 downto 8);
+				mem_write_data3 <= exout.mem_write_data(7 downto 0);
 			when byte =>
 				en0 <= byte_enable0;
 				en1 <= byte_enable1;
 				en2 <= byte_enable2;
 				en3 <= byte_enable3;
 	
-				mem_write_data0 <= din.mem_write_data_in(7 downto 0);
-				mem_write_data1 <= din.mem_write_data_in(7 downto 0);
-				mem_write_data2 <= din.mem_write_data_in(7 downto 0);
-				mem_write_data3 <= din.mem_write_data_in(7 downto 0);
+				mem_write_data0 <= exout.mem_write_data(7 downto 0);
+				mem_write_data1 <= exout.mem_write_data(7 downto 0);
+				mem_write_data2 <= exout.mem_write_data(7 downto 0);
+				mem_write_data3 <= exout.mem_write_data(7 downto 0);
 			when others => null;
 		end case;
 	end process;
-
+	
+-- write back
 	process(mem_data_out_muxed, exout)
 	begin
-		if exout.mem_to_reg_out = '1' then
+		if exout.mem_to_reg = '1' then
 			dout.data <= mem_data_out_muxed;
 			datain <= mem_data_out_muxed;
 		else
-			dout.data <= exout.alu_result_out;
-			datain <= exout.alu_result_out;
+			dout.data <= exout.alu_result_reg;
+			datain <= exout.alu_result_reg;
 		end if;
 	end process;
 end arch;

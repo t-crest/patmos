@@ -42,12 +42,11 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 package patmos_type_package is
-	type instruction_type is (NONE, ALUi, ALU, NOP, SPC, LDT, STT, STC, BC, ALUl);
 	type STC_instruction_type is (NONE, SRES, SENS, SFREE);
 	type pc_type is (PCNext, PCBranch);
 	type ALU_inst_type is (NONE, ALUr, ALUu, ALUm, ALUc, ALUp);
-	type STT_inst_type is (NONE, SWS, SWL, SWC, SWM, SHM, SBM, SHS, SHL, SHC, SBS, SBL, SBC); -- all stores
-	type LDT_inst_type is (NONE, LWM, LHM, LBM, LHUM, LBUM, LWS, LHS, LBS, LHUS, LBUS, LWL, LHL, LBL, LHUL, LBUL, LWC, LHC, LBC, LHUC, LBUC);
+--	type STT_inst_type is (NONE, SWS, SWL, SWC, SWM, SHM, SBM, SHS, SHL, SHC, SBS, SBL, SBC); -- all stores
+--	type LDT_inst_type is (NONE, LWM, LHM, LBM, LHUM, LBUM, LWS, LHS, LBS, LHUS, LBUS, LWL, LHL, LBL, LHUL, LBUL, LWC, LHC, LBC, LHUC, LBUC);
 	type SPC_type is (NONE, SPCn, SPCw, SPCt, SPCf);
 	type load_type is (NONE, lw, lh, lb, lhu, lbu, dlwh, dlbh, dlbu);
 	type address_type is (word, half, byte);
@@ -55,6 +54,7 @@ package patmos_type_package is
 		pat_xor, pat_nor, pat_shadd, pat_shadd2);
 	type function_type_alu_u is (pat_sext8, pat_sext16, pat_zext16, pat_abs);
 	type function_type_alu_p is (pat_por, pat_pand, pat_pxor, pat_pnor);
+	type function_type_alu_cmp is (pat_cmpeq, pat_cmpneq, pat_cmplt, pat_cmple, pat_cmpult, pat_cmpule, pat_btest);
 	-------------------------------------------
 	-- in/out records
 	-------------------------------------------
@@ -83,44 +83,26 @@ package patmos_type_package is
 		rs2_data_in : std_logic_vector(31 downto 0);
 	end record;
 	type decode_out_type is record
-		lm_write_out : std_logic;
-		lm_read_out  : std_logic;
-
+		lm_write : std_logic;
+		lm_read	 : std_logic;
 		imm       : std_logic_vector(31 downto 0);
 		instr_cmp : std_logic;
 
-		predicate_bit_out        : std_logic;
+		predicate_bit       : std_logic;
 		predicate_condition      : std_logic_vector(2 downto 0);
-		ps1_out                  : std_logic_vector(3 downto 0);
-		ps2_out                  : std_logic_vector(3 downto 0);
-		inst_type_out            : instruction_type;
-		ALU_function_type_out    : std_logic_vector(3 downto 0);
-		ALU_instruction_type_out : ALU_inst_type;
-		ALUi_immediate_out       : std_logic_vector(31 downto 0);
-		pc_ctrl_gen_out          : pc_type;
-		rs1_out                  : std_logic_vector(4 downto 0);
-		rs2_out                  : std_logic_vector(4 downto 0);
-		rd_out                   : std_logic_vector(4 downto 0);
-		rs1_data_out             : std_logic_vector(31 downto 0);
-		rs2_data_out             : std_logic_vector(31 downto 0);
-		pd_out                   : std_logic_vector(3 downto 0);
-		ld_type_out              : load_type;
-		reg_write_out            : std_logic;
-		alu_src_out              : std_logic; -- 0 for ALUi/ 1 for ALU
-		mem_to_reg_out           : std_logic; -- data to register file comes from alu or mem? 0 for alu and 1 for mem
-		mem_read_out             : std_logic;
-		mem_write_out            : std_logic;
-		st_out                   : std_logic_vector(3 downto 0);
-		STC_instruction_type_out : STC_instruction_type;
-		stc_immediate_out        : std_logic_vector(4 downto 0);
-		sc_write_out             : std_logic;
-		sc_read_out              : std_logic;
-		STT_instruction_type_out : STT_inst_type;
-		LDT_instruction_type_out : LDT_inst_type;
-		
-		
-		
-		
+		ps1                  : std_logic_vector(3 downto 0);
+		ps2                  : std_logic_vector(3 downto 0);
+		rs1                  : std_logic_vector(4 downto 0);
+		rs2                  : std_logic_vector(4 downto 0);
+		rd                   : std_logic_vector(4 downto 0);
+		rs1_data             : std_logic_vector(31 downto 0);
+		rs2_data             : std_logic_vector(31 downto 0);
+		pd                   : std_logic_vector(3 downto 0);
+		reg_write            : std_logic;
+		alu_src              : std_logic; -- 0 for ALUi/ 1 for ALU
+		mem_to_reg           : std_logic; -- data to register file comes from alu or mem? 0 for alu and 1 for mem
+		BC						: std_logic;
+		pat_function_type_alu_cmp	: function_type_alu_cmp;
 		pat_function_type_alu      :function_type_alu;
 		pat_function_type_alu_u      :function_type_alu_u;
 		pat_function_type_alu_p      :function_type_alu_p;
@@ -128,7 +110,13 @@ package patmos_type_package is
 		adrs_type				 : address_type;
 		alu_alu_u				: std_logic;
 		s_u						: std_logic;
+		
+		--		mem_write_out            : std_logic;
+--		st_out                   : std_logic_vector(3 downto 0);
+--		sc_write_out             : std_logic;	
 	end record;
+
+
 
 	type result_type is record
 		value  : std_logic_vector(31 downto 0);
@@ -141,31 +129,21 @@ package patmos_type_package is
 	-------------------------------------------
 
 	type execution_out_type is record
-		alusrc2                  : std_logic_vector(31 downto 0);
 		alu_result               : std_logic_vector(31 downto 0);
 		adrs					 : std_logic_vector(31 downto 0);
 		predicate                : std_logic_vector(7 downto 0);
-		result                   : result_type;
-		alu_result_out           : std_logic_vector(31 downto 0);
-		adrs_out     	      : std_logic_vector(31 downto 0);
-		reg_write_out            : std_logic;
-		mem_read_out             : std_logic;
-		-- two write back enable signals - shall be merged
-		mem_write_out            : std_logic;
-		mem_to_reg_out           : std_logic;
-		mem_write_data_out       : std_logic_vector(31 downto 0);
-		write_back_reg_out       : std_logic_vector(4 downto 0);
-		ps_write_back_reg_out    : std_logic_vector(2 downto 0);
-		STT_instruction_type_out : STT_inst_type;
-		LDT_instruction_type_out : LDT_inst_type;
+--		result                   : result_type;
+		alu_result_reg           : std_logic_vector(31 downto 0);
+		adrs_reg     	      : std_logic_vector(31 downto 0);
+		reg_write            : std_logic;
+		mem_to_reg           : std_logic;
+		write_back_reg       : std_logic_vector(4 downto 0);
 
-		lm_read_out  : std_logic;
-		lm_write_out : std_logic;
-		sc_read_out  : std_logic;
-		sc_write_out : std_logic;
+		lm_read  : std_logic;
+		lm_write : std_logic;
+--		sc_read_out  : std_logic;
+--		sc_write_out : std_logic;
 		mem_write_data : std_logic_vector(31 downto 0); 
-		--registered outputs
-		address_reg			: std_logic_vector(31 downto 0);
 		
 		adrs_type		    :  address_type;
 		--unregistered outputs
@@ -176,66 +154,19 @@ package patmos_type_package is
 		address_not_reg		: std_logic_vector(31 downto 0);
 	end record;
 
-	------------------------------------------
-	-- control
-	------------------------------------------
-	type alu_in_type is record
-		rs1                  : std_logic_vector(31 downto 0);
-		rs2                  : std_logic_vector(31 downto 0);
-		inst_type            : instruction_type;
-		ALU_function_type    : std_logic_vector(3 downto 0);
-		ALU_instruction_type : ALU_inst_type;
-		--   stack_data_in			   : std_logic_vector(31 downto 0);
-		STC_instruction_type : STC_instruction_type;
-		--   stc_immediate_in				: unsigned (4 downto 0);
-		--   st_in						: unsigned (31 downto 0);
-		STT_instruction_type : STT_inst_type;
-		LDT_instruction_type : LDT_inst_type;
-		mem_write_data_in    : std_logic_vector(31 downto 0);
-		
-		
-		
-		pat_function_type_alu      :function_type_alu;
-		pat_function_type_alu_u      :function_type_alu_u;
-		pat_function_type_alu_p      :function_type_alu_p;
-		is_predicate_inst		 : std_logic;
-		adrs_type			 : address_type;
-		alu_alu_u				: std_logic;
-	end record;
 
 	------------------------------------------
 	-- mem
 	------------------------------------------
-	type mem_in_type is record
-		data_in           : std_logic_vector(31 downto 0);
-		-- following is forwarding 
-		reg_write_in      : std_logic;
-		write_back_reg_in : std_logic_vector(4 downto 0);
-		mem_write_data_in : std_logic_vector(31 downto 0);
-
-		alu_result_out               : std_logic_vector(31 downto 0);
-		alu_result		               : std_logic_vector(31 downto 0);
-		adrs_out					: std_logic_vector(31 downto 0);
-		adrs		               : std_logic_vector(31 downto 0);
-		mem_write                : std_logic;
-		STT_instruction_type_out : STT_inst_type;
-		LDT_instruction_type_out : LDT_inst_type;
-		alu_src2                 : std_logic_vector(31 downto 0);
-		mem_to_reg_out	: std_logic;
-		
-		s_u						: std_logic;
-		adrs_type		    :  address_type;
-	end record;
 
 	type mem_out_type is record
 		result             : result_type;
-		data_out           : std_logic_vector(31 downto 0);
+		data_out           : std_logic_vector(31 downto 0); -- forwarding
 		-- following is forwarding 
 		reg_write_out      : std_logic;
 		write_back_reg_out : std_logic_vector(4 downto 0);
-		mem_write_data_out : std_logic_vector(31 downto 0);
-		data_mem_data_out  : std_logic_vector(31 downto 0);
-		data  : std_logic_vector(31 downto 0);
+		data_mem_data_out  : std_logic_vector(31 downto 0); -- this is from memory it is used later to select between output of mem or IO
+		data  : std_logic_vector(31 downto 0); -- to register file
 		
 	end record;
 
@@ -286,11 +217,6 @@ package patmos_type_package is
 		q : std_logic_vector(31 downto 0);
 	end record;
 
-	type write_back_in_out_type is record
-		write_reg    : std_logic_vector(4 downto 0);
-		write_enable : std_logic;
-		write_value  : std_logic_vector(31 downto 0);
-	end record;
 
 	-- Memory Mapped I/O
 	-- Edgar: io_none is not stricltly needed as there are read/write enables
@@ -315,5 +241,4 @@ package patmos_type_package is
 	end record;
 
 end patmos_type_package;
-
 

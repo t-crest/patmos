@@ -42,6 +42,8 @@ set_global_assignment -name TOP_LEVEL_ENTITY patmos_core
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION "11.0 SP1"
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "11:11:57  JUNE 19, 2012"
 set_global_assignment -name LAST_QUARTUS_VERSION 10.1
+set_global_assignment -name VHDL_FILE ../../vhdl/top/patmos_config_global.vhd
+set_global_assignment -name VHDL_FILE ../../vhdl/top/patmos_config_de2.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/io/uart.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/sc_pack.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/sc_ssram32.vhd
@@ -58,6 +60,8 @@ set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_decode.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_data_memory.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_core.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_alu.vhd
+set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_wrapper.vhd
+set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos.vhd
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
 set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
 set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 1

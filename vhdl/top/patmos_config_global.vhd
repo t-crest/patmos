@@ -1,5 +1,5 @@
 -- 
--- Copyright 2010 Martin Schoeberl, martin@jopdesign.com. All rights reserved.
+-- Copyright Technical University of Denmark. All rights reserved.
 -- This file is part of the time-predictable VLIW Patmos.
 -- 
 -- Redistribution and use in source and binary forms, with or without
@@ -27,42 +27,24 @@
 -- those of the authors and should not be interpreted as representing official
 -- policies, either expressed or implied, of the copyright holder.
 -- 
---
--- top level of the Leros CPU
--- That should be instanziated in a FPGA specific top level
 
+
+--
+--	patmos_config_global.vhd
+--
+--	package for global patmos configuration
+--
+--	Constants ending with _GLOBAL can be overwritten by
+--	local configurations (and shall not be used directly).
+--	Constants without the _GLOBAL suffix are used directly.
+--
 
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
-use work.patmos_type_package.all;
 
+package patmos_config_global is
+	
+end package patmos_config_global;
 
-entity patmos is
-	port  (
-			clk : in std_logic;
-			led : out std_logic;
-			txd : out std_logic;
-			rxd : in std_logic
-	);
-end patmos;
-
-architecture rtl of patmos is
-
-	signal mem_write	: std_logic;
-	signal mem_data_out_muxed : std_logic_vector(31 downto 0);
-	signal pat_rst				: std_logic;
-	signal data_mem_data_out	: std_logic_vector(31 downto 0);
-	signal execute_dout		: execution_out_type;
---	signal led_val				: std_logic;
-begin
-
-	core : entity work.patmos_core
-		port map(clk, pat_rst, mem_write, mem_data_out_muxed, data_mem_data_out, execute_dout);
-		
-
-	wrapper : entity work.patmos_wrapper
-		port map(clk, pat_rst, mem_write, data_mem_data_out, mem_data_out_muxed, execute_dout, led, txd, rxd);
-	--	led <= led_val;
-		
-end rtl;
+package body patmos_config_global is
+end package body patmos_config_global;

@@ -5,6 +5,8 @@ TOP_NAME = patmos_core
 # file list taken from ../../quartus/altde2-70/patmos.qsf
 
 SRCS_SYNTH = \
+  ../../vhdl/top/patmos_config_global.vhd \
+  ../../vhdl/top/patmos_config_ml605.vhd \
   ../../vhdl/io/uart.vhd \
   ../../vhdl/core/sc_pack.vhd \
   ../../vhdl/core/sc_ssram32.vhd \
