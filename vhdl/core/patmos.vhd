@@ -54,6 +54,7 @@ architecture rtl of patmos is
 	signal pat_rst				: std_logic;
 	signal data_mem_data_out	: std_logic_vector(31 downto 0);
 	signal execute_dout		: execution_out_type;
+--	signal led_val				: std_logic;
 begin
 
 	core : entity work.patmos_core
@@ -62,5 +63,6 @@ begin
 
 	wrapper : entity work.patmos_wrapper
 		port map(clk, pat_rst, mem_write, data_mem_data_out, mem_data_out_muxed, execute_dout, led, txd, rxd);
+	--	led <= led_val;
 		
 end rtl;

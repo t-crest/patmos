@@ -181,7 +181,7 @@ begin                                   -- architecture begin
 	-- If yes, it has to be synchronized
 	-- rst <= not out_rst;
 	rst <= int_res;
-	led <= led_reg;
+	led <= '1';--led_reg;
 	pat_rst <= int_res;
 	
 	io_decode : process(execute_dout, io_next)
