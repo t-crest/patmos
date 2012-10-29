@@ -184,7 +184,7 @@ begin
 		end case;
 	end process;
 	
-	process(rd1, rd2)
+	process(rd1, rd2, decdout)
 	begin
 		if (decdout.alu_alu_u = '1') then
 			rd <= rd1;
@@ -232,12 +232,11 @@ begin
 	
 	process(decdout, alu_src2, rd, adrs)
 	begin
+		doutex.lm_write_out_not_reg              <= '0';
+		doutex.lm_write_out_not_reg              <= '0';
 		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
 				doutex.lm_write_out_not_reg              <= decdout.lm_write;
 				doutex.lm_read_out_not_reg              <= decdout.lm_read;
-		else
-				doutex.lm_write_out_not_reg              <= '0';
-				doutex.lm_write_out_not_reg              <= '0';
 		end if;
 		doutex.mem_write_data <= alu_src2;
 		doutex.alu_result <= rd;

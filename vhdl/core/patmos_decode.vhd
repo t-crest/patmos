@@ -355,7 +355,7 @@ begin
 	
 	process(din)
 	begin
-		--if rising_edge(clk) then
+			alu_func <= '0' & din.operation(24 downto 22);
 			case din.operation(26 downto 25) is 
 				when "00" =>
 					alu_func <= '0' & din.operation(24 downto 22);
