@@ -66,6 +66,7 @@ architecture arch of patmos_alu is
 	signal shamt 								: integer;
 	signal shifted_arg							: unsigned(31 downto 0);
 	signal pc									: std_logic_vector(pc_length - 1 downto 0);
+	signal doutex_lm_write						: std_logic;
 begin
 
 
@@ -201,8 +202,9 @@ begin
 			predicate_reg <= "00000001";
 			doutex.predicate <= "00000001";
 		elsif rising_edge(clk) then
+			doutex.lm_write <= doutex_lm_write; 
 			if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
-				doutex.lm_write              <= decdout.lm_write;
+			--	doutex.lm_write              <= decdout.lm_write;
 				doutex.reg_write <= decdout.reg_write;
 				doutex.lm_read              <= decdout.lm_read;
 				doutex_reg_write <= decdout.reg_write;
@@ -242,10 +244,38 @@ begin
 		doutex.mem_write_data <= alu_src2;
 		doutex.alu_result <= rd;
 		doutex.adrs <= adrs;
-		--doutex.pc <= pc;
+		
+	--	elsif rising_edge(clk) then
+			if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
+				doutex_lm_write              <= decdout.lm_write;
+--				doutex.reg_write <= decdout.reg_write;
+--				doutex.lm_read              <= decdout.lm_read;
+--				doutex_reg_write <= decdout.reg_write;
+--			else
+--				doutex.lm_write              <= '0';
+--				doutex.lm_read              <= '0';
+--				doutex.reg_write    <= '0';
+--				doutex_reg_write <= '0';
+			end if;
+--
+--			doutex.mem_to_reg           <= decdout.mem_to_reg;
+--			doutex.alu_result_reg           <= rd;
+--			doutex.adrs_reg		      	  <= adrs;
+--			doutex.write_back_reg       <= decdout.rd;
+--			-- this should be under predicate condition as well
+--			doutex.predicate                <= predicate;
+--			predicate_reg                   <= predicate;
+--			
+--
+--			doutex_alu_result_reg           <= rd;
+--			doutex_alu_adrs_reg           <= adrs;
+--			doutex_write_back_reg       <= decdout.rd;
+			
+			
+	--	end if;
 	end process;
 
-	process(decdout)
+	process(decdout) -- branch pc relative
 	begin
 		doutex.pc <= std_logic_vector(unsigned(decdout.pc) + unsigned(decdout.imm));
 	end process;

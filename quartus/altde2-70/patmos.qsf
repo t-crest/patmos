@@ -60,7 +60,7 @@ set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_decode.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_data_memory.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_core.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_alu.vhd
-set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_IO.vhd
+set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_io.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos.vhd
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
 set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85

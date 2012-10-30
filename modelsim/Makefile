@@ -49,7 +49,7 @@ base:
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_mem_stage.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_stack_cache.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_core.vhd
-	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_IO.vhd
+	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_io.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos.vhd
 
 clean:
