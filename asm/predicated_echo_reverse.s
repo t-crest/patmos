@@ -20,7 +20,7 @@ x1:	(p2)	lwl     r10  = [r5 + 0];
 		addi	r0 = r0, 0;
                 and     r11  = r10 , r1;
 		cmpneq  p1 = r1, r11;
-	(p1)	bc	x1;
+	(p1)	br	x1;
                 addi    r0  = r0 , 0;
                 addi    r0  = r0 , 0;		
 
@@ -31,7 +31,7 @@ x2:		lwl     r10  = [r5 + 0];
 		addi	r0 = r0, 0;
 		and     r11 = r3 , r10;
                 cmpneq  p1 = r3, r11;
-	(p1)	bc	x2;
+	(p1)	br	x2;
                 addi    r0  = r0 , 0;
                 addi    r0  = r0 , 0;
 
@@ -40,7 +40,7 @@ x2:		lwl     r10  = [r5 + 0];
 		addi	r22 = r22 , 1;
 		addi    r8 = r8, 1;
 		cmpneq  p3 = r7, r8;
-	(p3)	bc      x0;
+	(p3)	br      x0;
 		nop	0;
 		nop	0;
 
@@ -49,7 +49,7 @@ x5:		lwl     r10  = [r5 + 0];
 		addi	r0 = r0, 0;
 		and     r11 = r3 , r10;
                 cmpneq  p5 = r3, r11;
-	(p5)	bc	x5;
+	(p5)	br	x5;
 		addi    r0  = r0 , 0;
                 addi    r0  = r0 , 0;
 
@@ -60,10 +60,10 @@ x5:		lwl     r10  = [r5 + 0];
 #		addi	r0 = r0, 0;
 		subi    r8 = r8, 1;
 		cmpneq	p4 = r8, r0;
-	(p4)	bc      x5;
+	(p4)	br      x5;
 		addi    r0  = r0 , 0;
                 addi    r0  = r0 , 0;
-		bc      x0;
+		br      x0;
 		addi	r8 = r0, 0;
 		addi    r22 = r0, 0;		
                 halt;

@@ -13,7 +13,7 @@ x1:		lwl     r10  = [r5 + 0];
 		addi	r0 = r0, 0;
                 and     r11  = r10 , r1;
 		cmpneq  p1 = r1, r11;
-	(p1)	bc	x1;
+	(p1)	br	x1;
                 addi    r0  = r0 , 0;
                 addi    r0  = r0 , 0;		
 #		addi	r5 = r5, 1;
@@ -26,7 +26,7 @@ x2:		lwl     r10  = [r5 + 0];
 		addi	r0 = r0, 0;
 		and     r11 = r3 , r10;
 		cmpneq  p1 = r3, r11;
-	(p1)	bc	x2;
+	(p1)	br	x2;
                 addi    r0  = r0 , 0;
                 addi    r0  = r0 , 0;
 
@@ -36,7 +36,7 @@ x2:		lwl     r10  = [r5 + 0];
 		lwl	r25  = [r13 + 1]; # register(25) = whatever from uart 		
 		nop 	0;
 		swl	[r5 + 1] = r25;
-		bc	x0;
+		br	x0;
                 addi    r0  = r0 , 0;
                 addi    r0  = r0 , 0;
                 halt;
