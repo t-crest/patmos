@@ -229,7 +229,7 @@ begin
 	process(decdout, alu_src2, rd, adrs, predicate_reg)
 	begin
 		doutex.lm_write_out_not_reg              <= '0';
-		doutex.lm_write_out_not_reg              <= '0';
+		doutex.lm_read_out_not_reg              <= '0';
 		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
 				doutex.lm_write_out_not_reg              <= decdout.lm_write;
 				doutex.lm_read_out_not_reg              <= decdout.lm_read;
