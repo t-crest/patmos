@@ -242,7 +242,7 @@ begin
 			doutex_lm_read              <= decdout.lm_read;
 			doutex_reg_write <= decdout.reg_write;
 		else
-			doutex.lm_write              <= '0';
+			doutex_lm_write              <= '0';
 			doutex_lm_read              <= '0';
 			doutex_reg_write    <= '0';
 			doutex_reg_write <= '0';

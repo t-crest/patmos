@@ -54,7 +54,7 @@ end entity patmos_decode;
 architecture arch of patmos_decode is
 	
 	signal alu_func : std_logic_vector(3 downto 0);
-	
+	signal test		: std_logic;
 begin
 
 	--------------------------------
@@ -80,7 +80,7 @@ begin
 			-- MS: that's the way I would like decoding:
 			-- a single bit for a condition in the ALU
 			dout.instr_cmp <= '0';
-			
+			dout.stall <= '0';
 			dout.pc <= din.pc;
 			-- MS: time for some defaults to get a clearer view:
 --			dout.ALU_function_type_out <= '0' & din.operation(24 downto 22);
@@ -344,11 +344,15 @@ begin
 						dout.reg_write            <= '0'; -- reg_write_out is reg_write_ex
 					when others => NULL;
 				end case;
-			elsif din.operation(26 downto 22) = "01001" then -- nop   
-				dout.imm <= std_logic_vector(resize(signed(din.operation(3 downto 0)), 32));
-				dout.alu_src      <= '0'; -- choose the second source, i.e. immediate!
-				dout.reg_write    <= '0'; -- reg_write_out is reg_write_ex
-				dout.mem_to_reg   <= '0';
+	--		elsif din.operation(26 downto 22) = "01001" then -- nop   
+	--			dout.imm <= std_logic_vector(resize(signed(din.operation(3 downto 0)), 32));
+	--			dout.alu_src      <= '0'; -- choose the second source, i.e. immediate!
+	--			dout.reg_write    <= '0'; -- reg_write_out is reg_write_ex
+	--			dout.mem_to_reg   <= '0';
+			
+			elsif din.operation(26 downto 22) = "01001" then -- wait
+				  dout.stall <= '1';
+				  test <= '1';
 			end if;
 		end if;
 	end process decode;

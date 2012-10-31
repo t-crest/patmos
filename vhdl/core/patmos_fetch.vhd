@@ -56,12 +56,12 @@ architecture arch of patmos_fetch is
 	constant rom_addr_size : integer := 10;
 	
 	-- we should have global constants for memory sizes
-	signal pc, pc_next                               : std_logic_vector(pc_length - 1 downto 0);
+	signal pc, pc_next, pc_intr                      : std_logic_vector(pc_length - 1 downto 0);
 	signal pc_add	: unsigned(1 downto 0);
 	signal evn_next, addr_evn, addr_odd              : std_logic_vector(rom_addr_size - 1 downto 0);
 	signal feout                                     : fetch_out_type;
 	signal data_evn, data_odd, instr_a, instr_b, tmp : std_logic_vector(31 downto 0);
-
+	signal dout_feout									: fetch_out_type;
 begin
 	process(pc, instr_a, pc_add, decout, exout)
 	begin
@@ -135,16 +135,32 @@ begin
 			dout.pc          <= (others => '0');
 			dout.instruction <= (others => '0');
 		elsif (rising_edge(clk) and rst = '0') then
+		if(decout.stall = '0') then
 			pc       <= pc_next;
 			addr_evn <= evn_next;
 			addr_odd <= pc_next(rom_addr_size -1 downto 1) & "1";
 			-- MS: the next pc? PC calculation is REALLY an independent pipe stage!
 			dout <= feout;
+			dout_feout <= feout;
+		else
+			pc       <= pc;
+			addr_evn <= addr_evn;
+			addr_odd <= addr_odd;
+			dout <= dout_feout;
+		end if;
 		end if;
 	end process;
 
+--	process(decout, pc_next) -- stall
+--	begin
+--		if(decout.stall = '1') then
+--			pc_intr		<= pc;
+--		else
+--			pc_intr 		<= pc_next; 	
+--		end if;
+--	end process;
 	
-
+	
 	--   instruction_mem_address: process(execute_dout.alu_result_out, pc, instruction_rom_out, instruction_mem_dout.inst_out) --read/write enable here
 	--  begin
 	--  	if(pc <= 70 ) then --  change this after the final version of boot loader
