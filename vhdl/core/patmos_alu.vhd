@@ -67,6 +67,8 @@ architecture arch of patmos_alu is
 	signal shifted_arg							: unsigned(31 downto 0);
 	signal pc									: std_logic_vector(pc_length - 1 downto 0);
 	signal doutex_lm_write						: std_logic;
+	signal doutex_reg_write_reg					: std_logic;
+	signal doutex_lm_read						: std_logic;
 begin
 
 
@@ -203,18 +205,9 @@ begin
 			doutex.predicate <= "00000001";
 		elsif rising_edge(clk) then
 			doutex.lm_write <= doutex_lm_write; 
-			if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
-			--	doutex.lm_write              <= decdout.lm_write;
-				doutex.reg_write <= decdout.reg_write;
-				doutex.lm_read              <= decdout.lm_read;
-				doutex_reg_write <= decdout.reg_write;
-			else
-				doutex.lm_write              <= '0';
-				doutex.lm_read              <= '0';
-				doutex.reg_write    <= '0';
-				doutex_reg_write <= '0';
-			end if;
-
+			doutex.reg_write <= doutex_reg_write;
+			doutex_reg_write_reg <= doutex_reg_write;
+			doutex.lm_read <= doutex_lm_read;
 			doutex.mem_to_reg           <= decdout.mem_to_reg;
 			doutex.alu_result_reg           <= rd;
 			doutex.adrs_reg		      	  <= adrs;
@@ -233,7 +226,7 @@ begin
 	end process;
 	
 	
-	process(decdout, alu_src2, rd, adrs)
+	process(decdout, alu_src2, rd, adrs, predicate_reg)
 	begin
 		doutex.lm_write_out_not_reg              <= '0';
 		doutex.lm_write_out_not_reg              <= '0';
@@ -244,35 +237,16 @@ begin
 		doutex.mem_write_data <= alu_src2;
 		doutex.alu_result <= rd;
 		doutex.adrs <= adrs;
-		
-	--	elsif rising_edge(clk) then
-			if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
-				doutex_lm_write              <= decdout.lm_write;
---				doutex.reg_write <= decdout.reg_write;
---				doutex.lm_read              <= decdout.lm_read;
---				doutex_reg_write <= decdout.reg_write;
---			else
---				doutex.lm_write              <= '0';
---				doutex.lm_read              <= '0';
---				doutex.reg_write    <= '0';
---				doutex_reg_write <= '0';
-			end if;
---
---			doutex.mem_to_reg           <= decdout.mem_to_reg;
---			doutex.alu_result_reg           <= rd;
---			doutex.adrs_reg		      	  <= adrs;
---			doutex.write_back_reg       <= decdout.rd;
---			-- this should be under predicate condition as well
---			doutex.predicate                <= predicate;
---			predicate_reg                   <= predicate;
---			
---
---			doutex_alu_result_reg           <= rd;
---			doutex_alu_adrs_reg           <= adrs;
---			doutex_write_back_reg       <= decdout.rd;
-			
-			
-	--	end if;
+		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
+			doutex_lm_write              <= decdout.lm_write;
+			doutex_lm_read              <= decdout.lm_read;
+			doutex_reg_write <= decdout.reg_write;
+		else
+			doutex.lm_write              <= '0';
+			doutex_lm_read              <= '0';
+			doutex_reg_write    <= '0';
+			doutex_reg_write <= '0';
+		end if;
 	end process;
 
 	process(decdout) -- branch pc relative
@@ -280,9 +254,9 @@ begin
 		doutex.pc <= std_logic_vector(unsigned(decdout.pc) + unsigned(decdout.imm));
 	end process;
 	
-	process(doutex_alu_result_reg, doutex_write_back_reg, doutex_reg_write , decdout, memdout)
+	process(doutex_alu_result_reg, doutex_write_back_reg, doutex_reg_write_reg , decdout, memdout)
 	begin
-		if (decdout.rs1 = doutex_write_back_reg and doutex_reg_write = '1' ) then
+		if (decdout.rs1 = doutex_write_back_reg and doutex_reg_write_reg = '1' ) then
 			din_rs1 <= doutex_alu_result_reg;
 		elsif (decdout.rs1 = memdout.write_back_reg_out and memdout.reg_write_out = '1' ) then
 			din_rs1 <= memdout.data_out;
@@ -291,9 +265,9 @@ begin
 		end if;
 	end process;
 	
-	process(doutex_alu_result_reg, doutex_write_back_reg, doutex_reg_write , decdout, memdout)
+	process(doutex_alu_result_reg, doutex_write_back_reg, doutex_reg_write_reg , decdout, memdout)
 	begin
-		if (decdout.rs2 = doutex_write_back_reg and doutex_reg_write = '1' ) then
+		if (decdout.rs2 = doutex_write_back_reg and doutex_reg_write_reg = '1' ) then
 			alu_src2 <= doutex_alu_result_reg;
 		elsif (decdout.rs2 = memdout.write_back_reg_out and memdout.reg_write_out = '1' ) then
 			alu_src2 <= memdout.data_out;
