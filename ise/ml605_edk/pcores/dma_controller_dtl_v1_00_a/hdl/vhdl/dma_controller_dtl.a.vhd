@@ -19,7 +19,7 @@ architecture arch of dma_controller_dtl is
 
 	signal words_transferred_r, words_transferred_nxt : std_logic_vector(DMA_ADDR_WIDTH - 1 downto 0);
 
-	signal addr_r, addr_nxt       : std_logic_vector(DMA_DATA_WIDTH - 1 downto 0);
+	signal addr_r, addr_nxt       : std_logic_vector(MTL_ADDR_WIDTH - 1 downto 0);
 	signal cl_addr                : std_logic_vector(DMA_ADDR_WIDTH - 1 downto 0);
 	signal cl_wr                  : std_logic;
 	signal cl_rd_data, cl_wr_data : std_logic_vector(DMA_DATA_WIDTH - 1 downto 0);
@@ -98,7 +98,7 @@ begin
 		dma_cmd_received <= '0';
 		if dma_wr_i = '1' and state_r = ready and dma_addr_special_i = '1' then
 			if dma_addr_i = const2slv(DMA_OFFSET_ADDR_REG, dma_addr_i) then
-				addr_nxt <= dma_wr_data_i;
+				addr_nxt <= dma_wr_data_i(addr_nxt'range);
 			elsif dma_addr_i = const2slv(DMA_OFFSET_CMD_STAT, dma_addr_i) then
 				dma_cmd_received <= '1';
 			end if;
