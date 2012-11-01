@@ -65,10 +65,6 @@ begin
 	-- MS: are we sure that each field is assigned a value in each condition?
 	-- MS: wouldn't it be better to have one combinational process and one register
 	-- process. So we get a latch warning.
-
-	-- MS: I would prefer a case statement instead of if elsif priority based decoding.
-
-	-- And all this copy of assignments. We need sensible default assignments.
 	
 	-- The source selection between immediate and register might be done here
 	--		Depends on the critical path
@@ -105,13 +101,7 @@ begin
 			intr_dout.lm_write			  <= '0';
 			intr_dout.s_u 					  <= '1';
 			intr_dout.BC 							  <= '0';
-			-- TODO: get defaults for all signals and remove redundant assignments
-
-			--   if din.operation1(30) = '1' then -- predicate bits assignment
-			--         intr_dout.predicate_bit <= predicate_register_bank(to_integer(unsigned(din.operation1(29 downto 27))));
-			--       elsif din.operation1(30) = '0' then -- ~predicate bits assignment
-			--         intr_dout.predicate_bit <= not predicate_register_bank(to_integer(unsigned(din.operation1(29 downto 27))));
-			--   end if;   
+			-- TODO: get defaults for all signals and remove redundant assignments 
 			intr_dout.alu_alu_u <= '1';
 			case alu_func is
 				when "0000" =>  intr_dout.pat_function_type_alu <= pat_add;
@@ -137,197 +127,9 @@ begin
 			if din.operation(26 downto 25) = "00" then -- ALUi instruction
 				intr_dout.reg_write    <= '1';
 				intr_dout.imm  <= "00000000000000000000" & din.operation(11 downto 0);
-			elsif din.operation(26 downto 22) = "11111" then -- long immediate!
-				intr_dout.reg_write    <= '1';
-				intr_dout.imm  <= din.instr_b;
+			end if;
 			
-			elsif din.operation(26 downto 22) = "01000" then -- ALU instructions
-
-				intr_dout.alu_src <= '0'; -- choose the first source, i.e. reg!
-
-				case din.operation(6 downto 4) is
-					when "000" =>       -- Register
-						intr_dout.reg_write    <= '1';
-					when "001" =>       -- Unary
-						intr_dout.reg_write    <= '1';
-						case din.operation(3 downto 0) is
-							when "0000" => intr_dout.pat_function_type_alu_u <= pat_sext8;
-							when "0001" => intr_dout.pat_function_type_alu_u <= pat_sext16;
-							when "0010" => intr_dout.pat_function_type_alu_u <= pat_zext16;
-							when "0011" => intr_dout.pat_function_type_alu_u <=  pat_abs;
-							when others => intr_dout.pat_function_type_alu_u <= pat_sext8;
-						end case;
-						intr_dout.alu_alu_u <= '0';
-					when "010" =>       -- Multuply
-						intr_dout.reg_write    <= '1';
-					when "011" =>       -- Compare
-						intr_dout.instr_cmp <= '1';
-						intr_dout.reg_write <= '0';
-					case din.operation(2 downto 0) is
-							when "000" =>  intr_dout.pat_function_type_alu_cmp <= pat_cmpeq;
-							when "001" => intr_dout.pat_function_type_alu_cmp <= pat_cmpneq;
-							when "010" => intr_dout.pat_function_type_alu_cmp <= pat_cmplt;
-							when "011" => intr_dout.pat_function_type_alu_cmp <= pat_cmple;
-							when "100" => intr_dout.pat_function_type_alu_cmp <= pat_cmpult;
-							when "101" => intr_dout.pat_function_type_alu_cmp <= pat_cmpule;
-							when "110" => intr_dout.pat_function_type_alu_cmp <= pat_btest;
-							when others => null;
-					end case;
-					when "100" =>       -- predicate
-						intr_dout.reg_write <= '0';
-						intr_dout.is_predicate_inst <= '1';
-						case din.operation(3 downto 0) is
-							when "0110" =>  intr_dout.pat_function_type_alu_p <= pat_por;
-							when "0111" => intr_dout.pat_function_type_alu_p <= pat_pand;
-							when "1010" => intr_dout.pat_function_type_alu_p <= pat_pxor;
-							when "1011" => intr_dout.pat_function_type_alu_p <= pat_pnor;
-							when others => intr_dout.pat_function_type_alu_p <= pat_por;
-						end case;
-					when others => NULL;
-				end case;
-
-			elsif din.operation(26 downto 22) = "01011" then -- store
---						intr_dout.sc_write_out             <= '1';
---						intr_dout.sc_read_out              <= '0';
-				case din.operation(21 downto 17) is
-					----- scratchpad memory
-					when "00001" =>
-						intr_dout.lm_write			  <= '1';
-						intr_dout.adrs_type <= word;
-					when "00101" =>
-						intr_dout.lm_write			  <= '1';
-						intr_dout.adrs_type <= half;
-					when "01001" =>	
-						intr_dout.lm_write			  <= '1';
-						intr_dout.adrs_type <= byte;
-					----------------------------------------	
-					when "00000" =>
-						intr_dout.adrs_type <= word;
-					when "00100" =>
-						intr_dout.adrs_type <= half;
-					when "01000" =>
-						intr_dout.adrs_type <= byte;
---						intr_dout.sc_write_out             <= '1';
-					----------------------------------------- global memory	
-					when "00011" =>
-						intr_dout.adrs_type <= word;
-						intr_dout.lm_write			  <= '1';
-					when "00111" =>
-						intr_dout.adrs_type <= half;
-						intr_dout.lm_write			  <= '1';
-					when "01011" =>
-						intr_dout.adrs_type <= byte;
-						intr_dout.lm_write			  <= '1';
-						
-					---------------------------------------- data cache
-					when "00010" =>
-						intr_dout.adrs_type <= word;
-						intr_dout.lm_write			  <= '1';
-					when "00110" =>
-						intr_dout.adrs_type <= half;
-						intr_dout.lm_write			  <= '1';
-					when "01010" =>
-						intr_dout.adrs_type <= byte;
-						intr_dout.lm_write			  <= '1';
-						
-					
-						-- MS: why is sc_write_out here '0'?
-						--intr_dout.sc_write_out             <= '0';
-						--intr_dout.sc_read_out              <= '0';
-					when others => null;
-				end case;
-				intr_dout.rs1            <= din.operation(16 downto 12);
-				intr_dout.rs2            <= din.operation(11 downto 7);
-				intr_dout.imm <= std_logic_vector(resize(signed(din.operation(6 downto 0)), 32));
-				intr_dout.alu_src        <= '1'; -- choose the second source, i.e. immediate!
-				intr_dout.reg_write      <= '0'; -- we dont write in registers in store!
-				
-
-			elsif din.operation(26 downto 22) = "01010" then -- load
-				case din.operation(11 downto 7) is
-					----- scratchpad memory
-					when "00001" =>
-						intr_dout.adrs_type <= word;
-						intr_dout.lm_read        <= '1';
-					when "00101" =>
-						intr_dout.adrs_type <= half;
-						intr_dout.lm_read        <= '1';
-					when "01001" =>
-						intr_dout.adrs_type <= byte;	
-						intr_dout.lm_read        <= '1';
-					when "01101" =>
-						intr_dout.adrs_type <= half;
-						intr_dout.lm_read        <= '1';
-						intr_dout.s_u		<= '0';
-					when "10001" =>
-						intr_dout.adrs_type <= byte;			
-						intr_dout.lm_read       <= '1';
-						intr_dout.s_u		<= '0';
-					----------------------------------------
-					when "00000" =>
-						intr_dout.adrs_type <= word;
-					when "00100" =>
-						intr_dout.adrs_type <= half;
-					when "01000" =>
-						intr_dout.adrs_type <= byte;
-					when "01100" =>
-						intr_dout.adrs_type <= half;
-						intr_dout.s_u		<= '0';
-					when "10000" =>
-						intr_dout.adrs_type <= byte;
-						intr_dout.s_u		<= '0';
-					----------------------------------------- global memory	
-					when "00011" =>
-						intr_dout.adrs_type <= word;
-						intr_dout.lm_read       <= '1';
-					when "00111" =>
-						intr_dout.adrs_type <= half;
-						intr_dout.lm_read        <= '1';
-					when "01011" =>
-						intr_dout.adrs_type <= byte;
-						intr_dout.lm_read       <= '1';
-					when "01111" =>
-						intr_dout.adrs_type <= half;
-						intr_dout.lm_read       <= '1';
-						intr_dout.s_u		<= '0';
-					when "10011" =>
-						intr_dout.adrs_type <= byte;
-						intr_dout.lm_read       <= '1';
-						intr_dout.s_u		<= '0';
-					---------------------------------------- data cache
-					when "00010" =>
-						intr_dout.adrs_type <= word;
-						intr_dout.lm_read       <= '1';
-					when "00110" =>
-						intr_dout.adrs_type <= half;
-						intr_dout.lm_read       <= '1';
-					when "01010" =>
-						intr_dout.adrs_type <= byte;
-						intr_dout.lm_read        <= '1';
-					when "01110" =>
-						intr_dout.adrs_type <= half;
-						intr_dout.lm_read       <= '1';
-						intr_dout.s_u		<= '0';
-					when "10010" =>
-						intr_dout.adrs_type <= byte;	
-						intr_dout.lm_read        <= '1';
-						intr_dout.s_u		<= '0';
-					when others => null;
-				end case;
-				intr_dout.rd             <= din.operation(21 downto 17);
-				intr_dout.rs1            <= din.operation(16 downto 12);
-				intr_dout.imm <= std_logic_vector(resize(signed(din.operation(6 downto 0)), 32));				
-				intr_dout.alu_src      <= '1'; -- choose the second source, i.e. immediate!
-				intr_dout.reg_write    <= '1'; -- reg_write_out is reg_write_ex
-				intr_dout.mem_to_reg   <= '1'; -- data comes from alu or mem ? 0 from alu and 1 from mem
-				
-
-			elsif din.operation(26 downto 22) = "11001" then -- branch, cache relative
-				intr_dout.alu_src        <= '0'; -- choose the second source, i.e. immediate!
-				intr_dout.reg_write      <= '0'; -- reg_write_out is reg_write_ex
-				intr_dout.mem_to_reg     <= '0'; -- data comes from alu or mem ? 0 from alu and 1 from mem
-				intr_dout.BC						<= '1';
-			elsif din.operation(26 downto 24) = "011" then -- STC
+			if din.operation(26 downto 24) = "011" then -- STC
 				case din.operation(23 downto 22) is
 					when "00" =>        -- reserve
 --						intr_dout.st_out                   <= "0111"; -- s6 is st (7th register in special reg file)
@@ -345,19 +147,213 @@ begin
 						intr_dout.reg_write            <= '0'; -- reg_write_out is reg_write_ex
 					when others => NULL;
 				end case;
-	--		elsif din.operation(26 downto 22) = "01001" then -- nop  "is removed from ISA"
-	--			intr_dout.imm <= std_logic_vector(resize(signed(din.operation(3 downto 0)), 32));
-	--			intr_dout.alu_src      <= '0'; -- choose the second source, i.e. immediate!
-	--			intr_dout.reg_write    <= '0'; -- reg_write_out is reg_write_ex
-	--			intr_dout.mem_to_reg   <= '0';
-			
-			elsif din.operation(26 downto 22) = "01001" then -- wait
-				case din.operation(6 downto 4) is
-					when "001" => 
-						intr_dout.stall <= '1';
-				  	when others => null;
-				end case;
 			end if;
+			
+			case din.operation(26 downto 22) is
+				when "11111" => -- long immediate!
+					intr_dout.reg_write    <= '1';
+					intr_dout.imm  <= din.instr_b;
+				
+				when "01000" => -- ALU instructions
+	
+					intr_dout.alu_src <= '0'; -- choose the first source, i.e. reg!
+	
+					case din.operation(6 downto 4) is
+						when "000" =>       -- Register
+							intr_dout.reg_write    <= '1';
+						when "001" =>       -- Unary
+							intr_dout.reg_write    <= '1';
+							case din.operation(3 downto 0) is
+								when "0000" => intr_dout.pat_function_type_alu_u <= pat_sext8;
+								when "0001" => intr_dout.pat_function_type_alu_u <= pat_sext16;
+								when "0010" => intr_dout.pat_function_type_alu_u <= pat_zext16;
+								when "0011" => intr_dout.pat_function_type_alu_u <=  pat_abs;
+								when others => intr_dout.pat_function_type_alu_u <= pat_sext8;
+							end case;
+							intr_dout.alu_alu_u <= '0';
+						when "010" =>       -- Multiply
+							intr_dout.reg_write    <= '1';
+						when "011" =>       -- Compare
+							intr_dout.instr_cmp <= '1';
+							intr_dout.reg_write <= '0';
+						case din.operation(2 downto 0) is
+								when "000" =>  intr_dout.pat_function_type_alu_cmp <= pat_cmpeq;
+								when "001" => intr_dout.pat_function_type_alu_cmp <= pat_cmpneq;
+								when "010" => intr_dout.pat_function_type_alu_cmp <= pat_cmplt;
+								when "011" => intr_dout.pat_function_type_alu_cmp <= pat_cmple;
+								when "100" => intr_dout.pat_function_type_alu_cmp <= pat_cmpult;
+								when "101" => intr_dout.pat_function_type_alu_cmp <= pat_cmpule;
+								when "110" => intr_dout.pat_function_type_alu_cmp <= pat_btest;
+								when others => null;
+						end case;
+						when "100" =>       -- predicate
+							intr_dout.reg_write <= '0';
+							intr_dout.is_predicate_inst <= '1';
+							case din.operation(3 downto 0) is
+								when "0110" =>  intr_dout.pat_function_type_alu_p <= pat_por;
+								when "0111" => intr_dout.pat_function_type_alu_p <= pat_pand;
+								when "1010" => intr_dout.pat_function_type_alu_p <= pat_pxor;
+								when "1011" => intr_dout.pat_function_type_alu_p <= pat_pnor;
+								when others => intr_dout.pat_function_type_alu_p <= pat_por;
+							end case;
+						when others => NULL;
+					end case;
+	
+				when  "01011" => -- store
+	--						intr_dout.sc_write_out             <= '1';
+	--						intr_dout.sc_read_out              <= '0';
+					case din.operation(21 downto 17) is
+						----- scratchpad memory
+						when "00001" =>
+							intr_dout.lm_write			  <= '1';
+							intr_dout.adrs_type <= word;
+						when "00101" =>
+							intr_dout.lm_write			  <= '1';
+							intr_dout.adrs_type <= half;
+						when "01001" =>	
+							intr_dout.lm_write			  <= '1';
+							intr_dout.adrs_type <= byte;
+						----------------------------------------	
+						when "00000" =>
+							intr_dout.adrs_type <= word;
+						when "00100" =>
+							intr_dout.adrs_type <= half;
+						when "01000" =>
+							intr_dout.adrs_type <= byte;
+	--						intr_dout.sc_write_out             <= '1';
+						----------------------------------------- global memory	
+						when "00011" =>
+							intr_dout.adrs_type <= word;
+							intr_dout.lm_write			  <= '1';
+						when "00111" =>
+							intr_dout.adrs_type <= half;
+							intr_dout.lm_write			  <= '1';
+						when "01011" =>
+							intr_dout.adrs_type <= byte;
+							intr_dout.lm_write			  <= '1';
+							
+						---------------------------------------- data cache
+						when "00010" =>
+							intr_dout.adrs_type <= word;
+							intr_dout.lm_write			  <= '1';
+						when "00110" =>
+							intr_dout.adrs_type <= half;
+							intr_dout.lm_write			  <= '1';
+						when "01010" =>
+							intr_dout.adrs_type <= byte;
+							intr_dout.lm_write			  <= '1';
+							
+						
+							-- MS: why is sc_write_out here '0'?
+							--intr_dout.sc_write_out             <= '0';
+							--intr_dout.sc_read_out              <= '0';
+						when others => null;
+					end case;
+					intr_dout.rs1            <= din.operation(16 downto 12);
+					intr_dout.rs2            <= din.operation(11 downto 7);
+					intr_dout.imm <= std_logic_vector(resize(signed(din.operation(6 downto 0)), 32));
+					intr_dout.alu_src        <= '1'; -- choose the second source, i.e. immediate!
+					intr_dout.reg_write      <= '0'; -- we dont write in registers in store!
+					
+	
+				when "01010" => -- load
+					case din.operation(11 downto 7) is
+						----- scratchpad memory
+						when "00001" =>
+							intr_dout.adrs_type <= word;
+							intr_dout.lm_read        <= '1';
+						when "00101" =>
+							intr_dout.adrs_type <= half;
+							intr_dout.lm_read        <= '1';
+						when "01001" =>
+							intr_dout.adrs_type <= byte;	
+							intr_dout.lm_read        <= '1';
+						when "01101" =>
+							intr_dout.adrs_type <= half;
+							intr_dout.lm_read        <= '1';
+							intr_dout.s_u		<= '0';
+						when "10001" =>
+							intr_dout.adrs_type <= byte;			
+							intr_dout.lm_read       <= '1';
+							intr_dout.s_u		<= '0';
+						----------------------------------------
+						when "00000" =>
+							intr_dout.adrs_type <= word;
+						when "00100" =>
+							intr_dout.adrs_type <= half;
+						when "01000" =>
+							intr_dout.adrs_type <= byte;
+						when "01100" =>
+							intr_dout.adrs_type <= half;
+							intr_dout.s_u		<= '0';
+						when "10000" =>
+							intr_dout.adrs_type <= byte;
+							intr_dout.s_u		<= '0';
+						----------------------------------------- global memory	
+						when "00011" =>
+							intr_dout.adrs_type <= word;
+							intr_dout.lm_read       <= '1';
+						when "00111" =>
+							intr_dout.adrs_type <= half;
+							intr_dout.lm_read        <= '1';
+						when "01011" =>
+							intr_dout.adrs_type <= byte;
+							intr_dout.lm_read       <= '1';
+						when "01111" =>
+							intr_dout.adrs_type <= half;
+							intr_dout.lm_read       <= '1';
+							intr_dout.s_u		<= '0';
+						when "10011" =>
+							intr_dout.adrs_type <= byte;
+							intr_dout.lm_read       <= '1';
+							intr_dout.s_u		<= '0';
+						---------------------------------------- data cache
+						when "00010" =>
+							intr_dout.adrs_type <= word;
+							intr_dout.lm_read       <= '1';
+						when "00110" =>
+							intr_dout.adrs_type <= half;
+							intr_dout.lm_read       <= '1';
+						when "01010" =>
+							intr_dout.adrs_type <= byte;
+							intr_dout.lm_read        <= '1';
+						when "01110" =>
+							intr_dout.adrs_type <= half;
+							intr_dout.lm_read       <= '1';
+							intr_dout.s_u		<= '0';
+						when "10010" =>
+							intr_dout.adrs_type <= byte;	
+							intr_dout.lm_read        <= '1';
+							intr_dout.s_u		<= '0';
+						when others => null;
+					end case;
+					intr_dout.rd             <= din.operation(21 downto 17);
+					intr_dout.rs1            <= din.operation(16 downto 12);
+					intr_dout.imm <= std_logic_vector(resize(signed(din.operation(6 downto 0)), 32));				
+					intr_dout.alu_src      <= '1'; -- choose the second source, i.e. immediate!
+					intr_dout.reg_write    <= '1'; -- reg_write_out is reg_write_ex
+					intr_dout.mem_to_reg   <= '1'; -- data comes from alu or mem ? 0 from alu and 1 from mem
+					
+	
+				when "11001" => -- branch, cache relative
+					intr_dout.alu_src        <= '0'; -- choose the second source, i.e. immediate!
+					intr_dout.reg_write      <= '0'; -- reg_write_out is reg_write_ex
+					intr_dout.mem_to_reg     <= '0'; -- data comes from alu or mem ? 0 from alu and 1 from mem
+					intr_dout.BC						<= '1';
+		--		elsif din.operation(26 downto 22) = "01001" then -- nop  "is removed from ISA"
+		--			intr_dout.imm <= std_logic_vector(resize(signed(din.operation(3 downto 0)), 32));
+		--			intr_dout.alu_src      <= '0'; -- choose the second source, i.e. immediate!
+		--			intr_dout.reg_write    <= '0'; -- reg_write_out is reg_write_ex
+		--			intr_dout.mem_to_reg   <= '0';
+				
+				when "01001" => -- wait
+					case din.operation(6 downto 4) is
+						when "001" => 
+							intr_dout.stall <= '1';
+					  	when others => null;
+					end case;
+				when others => null;
+			end case;
 		end if;
 	end process decode;
 	
