@@ -147,7 +147,7 @@ BEGIN front_end_dtl
  PORT Mem_clock_rst_n = nRst_Res
 END
 
-BEGIN patmos_core
+BEGIN patmos
 # BEGIN leros_core
  PARAMETER INSTANCE = patmos_top_0
  PARAMETER HW_VER = 1.00.a
