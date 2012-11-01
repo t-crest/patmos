@@ -69,6 +69,7 @@ architecture arch of patmos_alu is
 	signal doutex_lm_write						: std_logic;
 	signal doutex_reg_write_reg					: std_logic;
 	signal doutex_lm_read						: std_logic;
+	signal predicate_checked					: std_logic_vector(7 downto 0);
 begin
 
 
@@ -213,8 +214,8 @@ begin
 			doutex.adrs_reg		      	  <= adrs;
 			doutex.write_back_reg       <= decdout.rd;
 			-- this should be under predicate condition as well
-			doutex.predicate                <= predicate;
-			predicate_reg                   <= predicate;
+			doutex.predicate                <= predicate_checked;
+			predicate_reg                   <= predicate_checked;
 			
 
 			doutex_alu_result_reg           <= rd;
@@ -226,10 +227,11 @@ begin
 	end process;
 	
 	
-	process(decdout, alu_src2, rd, adrs, predicate_reg)
+	process(decdout, alu_src2, rd, adrs, predicate_reg, predicate)
 	begin
 		doutex.lm_write_out_not_reg              <= '0';
 		doutex.lm_read_out_not_reg              <= '0';
+		predicate_checked						<= "00000001";
 		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
 				doutex.lm_write_out_not_reg              <= decdout.lm_write;
 				doutex.lm_read_out_not_reg              <= decdout.lm_read;
@@ -241,6 +243,7 @@ begin
 			doutex_lm_write              <= decdout.lm_write;
 			doutex_lm_read              <= decdout.lm_read;
 			doutex_reg_write <= decdout.reg_write;
+			predicate_checked <= predicate;
 		else
 			doutex_lm_write              <= '0';
 			doutex_lm_read              <= '0';
