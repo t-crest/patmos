@@ -359,6 +359,7 @@ begin
 	
 	process(intr_dout)
 	begin
+		prev_dout <= intr_dout;
 		if(intr_dout.stall = '0') then
 			dout <= intr_dout;
 			prev_dout <= intr_dout;
