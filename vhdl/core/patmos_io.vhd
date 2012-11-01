@@ -46,7 +46,7 @@ use work.patmos_config_global.all;
 use work.patmos_config.all;
 
 
-entity patmos_wrapper is
+entity patmos_io is
 	port(
 		clk                : in  std_logic;
 		pat_rst				   : out std_logic;
@@ -79,9 +79,9 @@ entity patmos_wrapper is
 	--		oSRAM_CE2    : out   std_logic;
 	--		oSRAM_CE3_N  : out   std_logic
 	);
-end entity patmos_wrapper;
+end entity patmos_io;
 
-architecture arch of patmos_wrapper is
+architecture arch of patmos_io is
 
 	signal memdin_reg : std_logic_vector(31 downto 0);
 

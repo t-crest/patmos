@@ -57,11 +57,11 @@ architecture rtl of patmos is
 
 begin
 
-	core : entity work.patmos_core
+	core : entity work.patmos_core(arch)
 		port map(clk, pat_rst, mem_write, mem_data_out_muxed, data_mem_data_out, execute_dout);
 		
 
-	wrapper : entity work.patmos_wrapper
+	wrapper : entity work.patmos_io(arch)
 		port map(clk, pat_rst, mem_write, data_mem_data_out, mem_data_out_muxed, execute_dout, led, txd, rxd);
 
 		
