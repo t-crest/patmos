@@ -19,20 +19,19 @@
 
 
 	addi	r0 = r0, 0;  # first instruction not executed         	#0
-	addi	r5 = r0, 15;                                          	#1
+begin: addi	r5 = r0, 15;                                          	#1
 	sli	r5 = r5, 28; # r5==uart base                           	#2
 	addi	r6 = r5, 768;# r6==sdram base                         	#3
 
-# wait_start:   # Output '?' and wait for any key press
-	addi	r1 = r0, 63; # '?'                                    	#4
+# Output '?' and wait for any key press
+wait_start: addi	r1 = r0, 63; # '?'                                    	#4
 	swl     [r5 + 1] = r1;                                     	#5
 
-#poll_stdin:
-	lwl     r1 = [r5 + 0];                                     	#6
+poll_stdin: lwl     r1 = [r5 + 0];                                     	#6
 	addi	r2 = r0, 2;                                           	#7
 	and     r1 = r2, r1;                                       	#8
 	cmpneq  p1 = r1, r2;                                       	#9
-	(p1)	bc	6;   #l:poll_stdin                                 	#10
+	(p1)	br poll_stdin;                                	#10
                 addi    r0  = r0 , 0;                       	#11
                 addi    r0  = r0 , 0;                       	#12
 
@@ -60,9 +59,8 @@
 	swl     [r5 + 1] = r1;                                     	#18
 	subi	r9 = r0, 64;	# r9 == mask (not 63)                    	#19
 
-#write_word:
 #	Set the value in the cache line 
-	addi    r1  = r10, 1;   # val = addr+1 (+1 just for fun, to have slightly different value)	#20
+write_word: addi    r1  = r10, 1;   # val = addr+1 (+1 just for fun, to have slightly different value)	#20
 	andi	r2  = r10, 63;  # offset                              	#21
 	add	r2  = r6, r2;                                          	#22
 	swl	[r2 + 0] = r1;	# sram.word[offset] <= value            	#23
@@ -72,7 +70,7 @@
 	andi	r1 = r1, 63;                                          	#25
 	cmpneq	p1 = r1, r0;                                        	#26
 
-	(p1)	bc 40; #l:skip_store                           	#27
+	(p1)	br skip_store;                           	#27
                 addi    r0  = r0 , 0;                       	#28
                 addi    r0  = r0 , 0;                       	#29
 
@@ -82,19 +80,17 @@
 	addi    r1  = r0 , 1;                                      	#32
 	swl     [r6 + 17] = r1; # sram.cmd<=cmd_store_line         	#33
 
-#poll_sdram_ready:
-	lwl     r1  = [r6 + 17]; # sdram.status                    	#34
+poll_sdram_ready: lwl     r1  = [r6 + 17]; # sdram.status                    	#34
 	addi	r0 = r0, 0;                                           	#35
 	cmpneq  p1 = r1, r0;     # ?busy                           	#36
-	(p1)	bc	34; #l:poll_sdram_ready                            	#37
+	(p1)	br poll_sdram_ready;                           	#37
                 addi    r0  = r0 , 0;                       	#38
                 addi    r0  = r0 , 0;                       	#39
 
-#skip_store:
 #	check the memory range for the test and advance to next word
-	addi	r10 = r10, 4;                                         	#40
+skip_store: addi	r10 = r10, 4;                                         	#40
 	cmplt  p1 = r10, r11;                                     	#41
-	(p1)	bc	20; # l:write_word                                 	#42
+	(p1)	br write_word;                                 	#42
                 addi    r0  = r0 , 0;                       	#43
                 addi    r0  = r0 , 0;                       	#44
 
@@ -104,12 +100,11 @@
 	swl     [r5 + 1] = r1;                                     	#46
 	addi	r10 = r0, 0;	# addr_cnt <= 0                          	#47
 
-#read_word:
 # check if word starts the block. Load the block in such case
-	andi	r1 = r10, 63;                                         	#48
+read_word: andi	r1 = r10, 63;                                         	#48
 	cmpneq	p1 = r1, r0;                                        	#49
 
-	(p1)	bc 61; #l:skip_load                            	#50
+	(p1)	br skip_load;                            	#50
                 addi    r0  = r0 , 0;                       	#51
                 addi    r0  = r0 , 0;                       	#52
 
@@ -118,43 +113,38 @@
 	swl     [r6 + 16] = r10; # sram.addr<=block_addr           	#53
 	swl     [r6 + 17] = r0; # sram.cmd<=cmd_load_line          	#54
 
-#poll_sdram_ready:
-	lwl     r1  = [r6 + 17]; # sdram.status                    	#55
+poll_sdram_ready2: lwl     r1  = [r6 + 17]; # sdram.status                    	#55
 	addi	r0 = r0, 0;                                           	#56
 	cmpneq  p1 = r1, r0;     # ?busy                           	#57
-	(p1)	bc	55; #l:poll_sdram_ready                            	#58
+	(p1)	br poll_sdram_ready2;                            	#58
                 addi    r0  = r0 , 0;                       	#59
                 addi    r0  = r0 , 0;                       	#60
-
-#skip_load:
 #	 Check the value in the cache line
-	andi	r2  = r10, 63;  # offset                              	#61
+skip_load: andi	r2  = r10, 63;  # offset                              	#61
 	add	r2  = r6, r2;                                          	#62
 	lwl	r2 = [r2 + 0];	# sram.word[offset] => value            	#63
 	addi    r1  = r10 , 1;  # val = addr+1 (use the same mod as during write)	#64
 
 	cmpeq	p1 = r1, r2; # should be the same                    	#65
-	(p1)	bc  70; #l:+3                                         	#66
+	(p1)	br no_error;                                         	#66
         (!p1)   addi    r1  = r0 , 69;  'E'                 	#67
 	(!p1)	addi    r12 = r12, 1; #error_cnt++                   	#68
 	swl     [r5 + 1] = r1; # we write to UART without pooling for ready here,	#69
 
-
 #	check the memory range for the test and advance to next word
-	addi	r10 = r10, 4;                                         	#70
+no_error: addi	r10 = r10, 4;                                         	#70
 	cmplt  p1 = r10, r11;                                     	#71
-	(p1)	bc	48; # l:read_word                                  	#72
+	(p1)	br read_word;                                 	#72
                 addi    r0  = r0 , 0;                       	#73
                 addi    r0  = r0 , 0;                       	#74
 
 # read test done, output result and go back to start
 # output 'OK' or '##' if err	
-#poll_stdout:
-	lwl     r1 = [r5 + 0];                                     	#75
+poll_stdout2: lwl     r1 = [r5 + 0];                                     	#75
 	addi	r2 = r0, 1;                                           	#76
 	and     r1 = r2, r1;                                       	#77
 	cmpneq  p1 = r1, r2;                                       	#78
-	(p1)	bc	75;   #l:poll_stdout                               	#79
+	(p1)	br poll_stdout2;                               	#79
                 addi    r0  = r0 , 0;                       	#80
                 addi    r0  = r0 , 0;                       	#81
 
@@ -165,12 +155,11 @@
 	(p2)	addi	r1 = r0, 35;                                     	#84
 	swl     [r5 + 1] = r1;                                     	#85
 
-#poll_stdout:
-	lwl     r1 = [r5 + 0];                                     	#86
+poll_stdout3: lwl     r1 = [r5 + 0];                                     	#86
 	addi	r2 = r0, 1;                                           	#87
 	and     r1 = r2, r1;                                       	#88
 	cmpneq  p1 = r1, r2;                                       	#89
-	(p1)	bc	86;   #l:poll_stdout                               	#90
+	(p1)	br poll_stdout3;                               	#90
                 addi    r0  = r0 , 0;                       	#91
                 addi    r0  = r0 , 0;                       	#92
 
@@ -180,7 +169,7 @@
 	swl     [r5 + 1] = r1;                                     	#95
 
 	lwl     r0 = [r5 + 1];  # purge input                      	#96
-	bc	1;                                                      	#97
+	br begin;                                                      	#97
 		addi    r0 = r0, 0;                                       	#98
 		addi    r0 = r0, 0;                                       	#99
 halt;                                                       	#100
