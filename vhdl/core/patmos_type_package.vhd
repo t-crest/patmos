@@ -113,7 +113,6 @@ package patmos_type_package is
 		alu_alu_u				: std_logic;
 		s_u						: std_logic;
 		pc					: std_logic_vector(pc_length - 1 downto 0);
-		stall 				: std_logic;
 		
 		inst				:isntrucion;			
 		--		mem_write_out            : std_logic;

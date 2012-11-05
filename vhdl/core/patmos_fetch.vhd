@@ -135,19 +135,19 @@ begin
 			dout.pc          <= (others => '0');
 			dout.instruction <= (others => '0');
 		elsif (rising_edge(clk) and rst = '0') then
-		if(decout.stall = '0') then
+	--	if(decout.stall = '0') then
 			pc       <= pc_next;
 			addr_evn <= evn_next;
 			addr_odd <= pc_next(rom_addr_size -1 downto 1) & "1";
 			-- MS: the next pc? PC calculation is REALLY an independent pipe stage!
 			dout <= feout;
 			dout_feout <= feout;
-		else
-			pc       <= pc;
-			addr_evn <= addr_evn;
-			addr_odd <= addr_odd;
-			dout <= dout_feout;
-		end if;
+	--	else
+--			pc       <= pc;
+--			addr_evn <= addr_evn;
+--			addr_odd <= addr_odd;
+--			dout <= dout_feout;
+--		end if;
 		end if;
 	end process;
 
