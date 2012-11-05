@@ -213,7 +213,6 @@ begin
 			doutex.alu_result_reg           <= rd;
 			doutex.adrs_reg		      	  <= adrs;
 			doutex.write_back_reg       <= decdout.rd;
-			-- this should be under predicate condition as well
 			doutex.predicate                <= predicate_checked;
 			predicate_reg                   <= predicate_checked;
 			

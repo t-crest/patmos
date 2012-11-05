@@ -81,7 +81,7 @@ begin
 			intr_dout.pc <= din.pc;
 			-- MS: time for some defaults to get a clearer view:
 --			intr_dout.ALU_function_type_out <= '0' & din.operation(24 downto 22);
-
+			intr_dout.inst <= nop;
 			intr_dout.predicate_bit   <= din.operation(30); -- 
 			intr_dout.predicate_condition <= din.operation(29 downto 27);
 			intr_dout.rd              <= din.operation(21 downto 17);
@@ -202,6 +202,7 @@ begin
 				when  "01011" => -- store
 	--						intr_dout.sc_write_out             <= '1';
 	--						intr_dout.sc_read_out              <= '0';
+					intr_dout.inst <= st;
 					case din.operation(21 downto 17) is
 						----- scratchpad memory
 						when "00001" =>
@@ -257,6 +258,7 @@ begin
 					
 	
 				when "01010" => -- load
+					intr_dout.inst <= ld;
 					case din.operation(11 downto 7) is
 						----- scratchpad memory
 						when "00001" =>

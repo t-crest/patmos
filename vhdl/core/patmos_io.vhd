@@ -85,14 +85,8 @@ architecture arch of patmos_io is
 
 	signal memdin_reg : std_logic_vector(31 downto 0);
 
---	signal data_mem_data_out      : std_logic_vector(31 downto 0);
---	signal execute_dout           : execution_out_type;
-
---	signal mem_write				: std_logic;
-	
 
 	signal mem_data_out_uart  : std_logic_vector(31 downto 0);
---	signal mem_data_out_muxed : std_logic_vector(31 downto 0);
 
 	
 	signal int_res : std_logic;
@@ -295,6 +289,7 @@ begin                                   -- architecture begin
 			txd     => txd,
 			rxd     => rxd
 		);
+		
 --	-- SDRAM: the I/O device uses word addressess, so we shift io_reg.address by 2 (x4)
 --	dma_addr_special_i  <= io_reg.address(dma_addr_i'high+3);
 --	dma_addr_i  <= io_reg.address(dma_addr_i'high+2 downto dma_addr_i'low+2);

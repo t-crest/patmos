@@ -55,6 +55,7 @@ package patmos_type_package is
 	type function_type_alu_u is (pat_sext8, pat_sext16, pat_zext16, pat_abs);
 	type function_type_alu_p is (pat_por, pat_pand, pat_pxor, pat_pnor);
 	type function_type_alu_cmp is (pat_cmpeq, pat_cmpneq, pat_cmplt, pat_cmple, pat_cmpult, pat_cmpule, pat_btest);
+	type isntrucion is (st, ld, nop);
 	-------------------------------------------
 	-- in/out records
 	-------------------------------------------
@@ -113,6 +114,8 @@ package patmos_type_package is
 		s_u						: std_logic;
 		pc					: std_logic_vector(pc_length - 1 downto 0);
 		stall 				: std_logic;
+		
+		inst				:isntrucion;			
 		--		mem_write_out            : std_logic;
 --		st_out                   : std_logic_vector(3 downto 0);
 --		sc_write_out             : std_logic;	
