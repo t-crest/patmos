@@ -61,13 +61,14 @@ architecture arch of patmos_mem_stage is
 	signal byte_enable0, byte_enable1       : std_logic;
 	signal byte_enable2, byte_enable3       : std_logic;
 	signal word_enable0, word_enable1       : std_logic;
-    signal ldt_type							: address_type;
-    signal datain						    : std_logic_vector(31 downto 0);
-    signal ld_word							: std_logic_vector(31 downto 0);
-    signal ld_half							: std_logic_vector(15 downto 0);
-    signal ld_byte							: std_logic_vector(7 downto 0);
-    signal	s_u								: std_logic;
-    signal half_ext, byte_ext				: std_logic_vector(31 downto 0);
+    signal ldt_type							 : address_type;
+    signal datain						     : std_logic_vector(31 downto 0);
+    signal ld_word							 : std_logic_vector(31 downto 0);
+    signal ld_half							 : std_logic_vector(15 downto 0);
+    signal ld_byte						 	 : std_logic_vector(7 downto 0);
+    signal	s_u								 : std_logic;
+    signal half_ext, byte_ext				 : std_logic_vector(31 downto 0);
+    signal current_state, next_state		 : sc_state;
 begin
 	mem_wb : process(clk)
 	begin
@@ -81,7 +82,55 @@ begin
 		end if;
 	end process mem_wb;
 
-
+	---------------------------------------------- stack cache
+--	        clk       	             : in std_logic;
+--        wr_address               : in std_logic_vector(addr_width -1 downto 0);
+--        data_in                  : in std_logic_vector(width -1 downto 0); -- store
+--        write_enable             : in std_logic;
+--        rd_address               : in std_logic_vector(addr_width - 1 downto 0);
+--        data_out                 : out std_logic_vector(width -1 downto 0) -- load
+--	sc: entity work.patmos_data_memory(arch)
+--		generic map(8, 10)
+--		port map(clk,
+--			     tail,
+--			     mem_write_data0,
+--			     en0,
+--			     tail,
+--			     dout0);
+			     
+			     
+--	process(decdout, current_state)
+--	begin 
+--		case current_state is
+--			when init => 
+--				spill <= '0';
+--				fill  <= '0';	
+--				next_state <= spill;
+--			when spill =>
+--				if (spill = '1') then
+--					--tail <= ; update tail
+--					next_state <= spill;
+--				else
+--					next_state <= init;
+--				end if;
+--			when fill  => 
+--				if (spill = '1') then
+--					--tail <= ; update tail
+--					next_state <= fill;
+--				else
+--					next_state <= init;
+--				end if;
+--		end case;	
+--	end process;		  
+--	
+--	process (clk)
+--	begin
+--   	 	if(rising_edge(clk)) then
+--     		   current_state <= next_state;
+--   	 	end if;
+--	end process;
+	-----------------------------------------------
+	   
 	memory0 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,

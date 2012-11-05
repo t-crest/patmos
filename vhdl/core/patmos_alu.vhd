@@ -70,6 +70,9 @@ architecture arch of patmos_alu is
 	signal doutex_reg_write_reg					: std_logic;
 	signal doutex_lm_read						: std_logic;
 	signal predicate_checked					: std_logic_vector(7 downto 0);
+	
+	signal head, tail							: std_logic_vector(sc_depth - 1 downto 0);
+	signal num_valid_sc_slots					: integer;
 begin
 
 
@@ -288,6 +291,23 @@ begin
 		end if;
 	end process;
 	
+	
+	process(decdout) -- stack cache
+	begin
+		case decdout.pat_function_type_sc is
+			when reserve => 
+			--	if (std_logic_vector(((unsigned(head) + unsigned(decdout.imm) mod sc_depth)) - unsigned(tail)) > num_valid_sc_slots ) then -- is sc full
+				--	doutex.tail <= tail; -- tail pointer to mem stage to spill from sc
+					--head <= std_logic_vector((unsigned(head) + unsigned(decdout.imm)) mod sc_depth); -- update the head
+					doutex.spill <= '1';
+					doutex.stall <= '1';
+			--	else
+				--	head <= std_logic_vector((unsigned(head) + unsigned(decdout.imm)) mod sc_depth); -- just update the head
+			--	end if;
+			when ensure =>
+			when free =>  
+		end case;
+	end process;
 
 end arch;
 

@@ -42,25 +42,28 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 package patmos_type_package is
-	type STC_instruction_type is (NONE, SRES, SENS, SFREE);
-	type pc_type is (PCNext, PCBranch);
-	type ALU_inst_type is (NONE, ALUr, ALUu, ALUm, ALUc, ALUp);
+	type STC_instruction_type					is (NONE, SRES, SENS, SFREE);
+	type pc_type								is (PCNext, PCBranch);
+	type ALU_inst_type							is (NONE, ALUr, ALUu, ALUm, ALUc, ALUp);
 --	type STT_inst_type is (NONE, SWS, SWL, SWC, SWM, SHM, SBM, SHS, SHL, SHC, SBS, SBL, SBC); -- all stores
 --	type LDT_inst_type is (NONE, LWM, LHM, LBM, LHUM, LBUM, LWS, LHS, LBS, LHUS, LBUS, LWL, LHL, LBL, LHUL, LBUL, LWC, LHC, LBC, LHUC, LBUC);
-	type SPC_type is (NONE, SPCn, SPCw, SPCt, SPCf);
-	type load_type is (NONE, lw, lh, lb, lhu, lbu, dlwh, dlbh, dlbu);
-	type address_type is (word, half, byte);
-	type function_type_alu is (pat_add, pat_sub, pat_rsub, pat_sl, pat_sr, pat_sra, pat_or, pat_and, pat_rl, pat_rr, 
-		pat_xor, pat_nor, pat_shadd, pat_shadd2);
-	type function_type_alu_u is (pat_sext8, pat_sext16, pat_zext16, pat_abs);
-	type function_type_alu_p is (pat_por, pat_pand, pat_pxor, pat_pnor);
-	type function_type_alu_cmp is (pat_cmpeq, pat_cmpneq, pat_cmplt, pat_cmple, pat_cmpult, pat_cmpule, pat_btest);
-	type isntrucion is (st, ld, nop);
+	type SPC_type								is (NONE, SPCn, SPCw, SPCt, SPCf);
+	type load_type								is (NONE, lw, lh, lb, lhu, lbu, dlwh, dlbh, dlbu);
+	type address_type							is (word, half, byte);
+	type function_type_alu						is (pat_add, pat_sub, pat_rsub, pat_sl, pat_sr, pat_sra, pat_or, pat_and, pat_rl, pat_rr, 
+													pat_xor, pat_nor, pat_shadd, pat_shadd2);
+	type function_type_alu_u					is(pat_sext8, pat_sext16, pat_zext16, pat_abs);
+	type function_type_alu_p					is (pat_por, pat_pand, pat_pxor, pat_pnor);
+	type function_type_alu_cmp					is (pat_cmpeq, pat_cmpneq, pat_cmplt, pat_cmple, pat_cmpult, pat_cmpule, pat_btest);
+	type isntrucion								is (st, ld, nop);
+	type function_type_sc						is (reserve, free, ensure);
+	type sc_state								is (init, spill, fill);
 	-------------------------------------------
 	-- in/out records
 	-------------------------------------------
-	constant pc_length               : integer := 32;
-	constant instruction_word_length : integer := 32;
+	constant pc_length              			: integer := 32;
+	constant instruction_word_length 			: integer := 32;
+	constant sc_depth							: integer := 8;	
 	-------------------------------------------
 	-- fetch/decode
 	-------------------------------------------
@@ -68,53 +71,55 @@ package patmos_type_package is
 		pc : std_logic_vector(pc_length - 1 downto 0);
 	end record;
 	type fetch_out_type is record
-		pc          : std_logic_vector(pc_length - 1 downto 0);
-		instruction : std_logic_vector(31 downto 0);
-		instr_b     : std_logic_vector(31 downto 0);
-		b_valid     : std_logic;
+		pc          							: std_logic_vector(pc_length - 1 downto 0);
+		instruction 							: std_logic_vector(31 downto 0);
+		instr_b     							: std_logic_vector(31 downto 0);
+		b_valid     							: std_logic;
 	end record;
 
 	--------------------------------------------
 	-- decode/exec
 	--------------------------------------------
 	type decode_in_type is record
-		operation   : std_logic_vector(31 downto 0);
-		pc			: std_logic_vector(pc_length - 1 downto 0);
-		instr_b     : std_logic_vector(31 downto 0);
-		rs1_data_in : std_logic_vector(31 downto 0);
-		rs2_data_in : std_logic_vector(31 downto 0);
+		operation  								: std_logic_vector(31 downto 0);
+		pc										: std_logic_vector(pc_length - 1 downto 0);
+		instr_b     							: std_logic_vector(31 downto 0);
+		rs1_data_in 							: std_logic_vector(31 downto 0);
+		rs2_data_in 							: std_logic_vector(31 downto 0);
 	end record;
+	
 	type decode_out_type is record
-		lm_write : std_logic;
-		lm_read	 : std_logic;
-		imm       : std_logic_vector(31 downto 0);
-		instr_cmp : std_logic;
+		lm_write 								: std_logic;
+		lm_read	 								: std_logic;
+		imm       								: std_logic_vector(31 downto 0);
+		instr_cmp 								: std_logic;
 
-		predicate_bit       : std_logic;
-		predicate_condition      : std_logic_vector(2 downto 0);
-		ps1                  : std_logic_vector(3 downto 0);
-		ps2                  : std_logic_vector(3 downto 0);
-		rs1                  : std_logic_vector(4 downto 0);
-		rs2                  : std_logic_vector(4 downto 0);
-		rd                   : std_logic_vector(4 downto 0);
-		rs1_data             : std_logic_vector(31 downto 0);
-		rs2_data             : std_logic_vector(31 downto 0);
-		pd                   : std_logic_vector(3 downto 0);
-		reg_write            : std_logic;
-		alu_src              : std_logic; -- 0 for ALUi/ 1 for ALU
-		mem_to_reg           : std_logic; -- data to register file comes from alu or mem? 0 for alu and 1 for mem
-		BC						: std_logic;
-		pat_function_type_alu_cmp	: function_type_alu_cmp;
-		pat_function_type_alu      :function_type_alu;
-		pat_function_type_alu_u      :function_type_alu_u;
-		pat_function_type_alu_p      :function_type_alu_p;
-		is_predicate_inst			 : std_logic;
-		adrs_type				 : address_type;
-		alu_alu_u				: std_logic;
-		s_u						: std_logic;
-		pc					: std_logic_vector(pc_length - 1 downto 0);
+		predicate_bit       					: std_logic;
+		predicate_condition      				: std_logic_vector(2 downto 0);
+		ps1                  					: std_logic_vector(3 downto 0);
+		ps2                  					: std_logic_vector(3 downto 0);
+		rs1                  					: std_logic_vector(4 downto 0);
+		rs2                  					: std_logic_vector(4 downto 0);
+		rd                   					: std_logic_vector(4 downto 0);
+		rs1_data             					: std_logic_vector(31 downto 0);
+		rs2_data             					: std_logic_vector(31 downto 0);
+		pd                   					: std_logic_vector(3 downto 0);
+		reg_write            					: std_logic;
+		alu_src              					: std_logic; -- 0 for ALUi/ 1 for ALU
+		mem_to_reg           					: std_logic; -- data to register file comes from alu or mem? 0 for alu and 1 for mem
+		BC										: std_logic;
+		pat_function_type_alu_cmp				: function_type_alu_cmp;
+		pat_function_type_alu      				: function_type_alu;
+		pat_function_type_alu_u      			: function_type_alu_u;
+		pat_function_type_alu_p      			: function_type_alu_p;
+		is_predicate_inst			 			: std_logic;
+		adrs_type				 				: address_type;
+		alu_alu_u								: std_logic;
+		s_u										: std_logic;
+		pc										: std_logic_vector(pc_length - 1 downto 0);
 		
-		inst				:isntrucion;			
+		inst									: isntrucion;	
+		pat_function_type_sc					: function_type_sc;		
 		--		mem_write_out            : std_logic;
 --		st_out                   : std_logic_vector(3 downto 0);
 --		sc_write_out             : std_logic;	
@@ -138,10 +143,10 @@ package patmos_type_package is
 		predicate                : std_logic_vector(7 downto 0);
 --		result                   : result_type;
 		alu_result_reg           : std_logic_vector(31 downto 0);
-		adrs_reg     	      : std_logic_vector(31 downto 0);
-		reg_write            : std_logic;
-		mem_to_reg           : std_logic;
-		write_back_reg       : std_logic_vector(4 downto 0);
+		adrs_reg     	    	 : std_logic_vector(31 downto 0);
+		reg_write            	 : std_logic;
+		mem_to_reg           	 : std_logic;
+		write_back_reg       	 : std_logic_vector(4 downto 0);
 
 		lm_read  : std_logic;
 		lm_write : std_logic;
@@ -157,6 +162,11 @@ package patmos_type_package is
 		sc_write_out_not_reg : std_logic;
 		address_not_reg		: std_logic_vector(31 downto 0);
 		pc					: std_logic_vector(pc_length - 1 downto 0);
+		
+		--stack cache
+		stall         		: std_logic;
+		tail				: std_logic_vector(sc_depth downto 0);
+		spill				: std_logic;
 	end record;
 
 
@@ -175,16 +185,24 @@ package patmos_type_package is
 		
 	end record;
 
+
+
 	type patmos_stack_cache_ctrl_in is record
-		stc_immediate_in : std_logic_vector(4 downto 0);
+		reserve_size	 : std_logic_vector(sc_depth downto 0);
+		
+		
+		
+		
 		instruction      : STC_instruction_type; -- from decode
 	--		st_in				: std_logic_vector(31 downto 0);
 	end record;
 
 	type patmos_stack_cache_ctrl_out is record
 		stall         : std_logic;
+		spill    : std_logic;
+		
 		head_tail     : std_logic_vector(4 downto 0); -- connect to stack cache
-		spill_fill    : std_logic;
+		
 		st_out        : std_logic_vector(31 downto 0);
 		reg_write_out : std_logic;
 	end record;

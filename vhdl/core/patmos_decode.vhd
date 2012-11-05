@@ -127,28 +127,31 @@ begin
 			if din.operation(26 downto 25) = "00" then -- ALUi instruction
 				dout.reg_write    <= '1';
 				dout.imm  <= "00000000000000000000" & din.operation(11 downto 0);
-			end if;
 			
-			if din.operation(26 downto 24) = "011" then -- STC
+			
+			elsif din.operation(26 downto 24) = "011" then -- STC
 				case din.operation(23 downto 22) is
 					when "00" =>        -- reserve
+						dout.pat_function_type_sc <= reserve;
 --						dout.st_out                   <= "0111"; -- s6 is st (7th register in special reg file)
 						--	dout.stc_immediate_out <= din.operation(4 downto 0);--"0000000000" & din.operation(21 downto 0); 
-						dout.imm <= std_logic_vector(resize(signed(din.operation(4 downto 0)), 32));
+						dout.imm <= std_logic_vector(resize(signed(din.operation(21 downto 0)), 32));
 						dout.alu_src      <= '0'; -- choose the first source, i.e. reg!
-						dout.reg_write    <= '0'; -- reg_write_out is reg_write_ex
-
+						dout.reg_write    <= '0'; -- 
+						
 					when "01" =>        -- ensure
+						dout.pat_function_type_sc <= ensure;
 --						dout.st_out                   <= "0111";
 --						dout.stc_immediate_out        <= din.operation(4 downto 0);
 					when "10" =>
+						dout.pat_function_type_sc <= free;
 						dout.imm       <= std_logic_vector(resize(signed(din.operation(4 downto 0)), 32));
 						dout.alu_src              <= '0'; -- choose the first source, i.e. reg!
 						dout.reg_write            <= '0'; -- reg_write_out is reg_write_ex
 					when others => NULL;
 				end case;
-			end if;
-			
+		--	end if;
+			else
 			case din.operation(26 downto 22) is
 				when "11111" => -- long immediate!
 					dout.reg_write    <= '1';
@@ -342,6 +345,7 @@ begin
 					dout.reg_write      <= '0'; -- reg_write_out is reg_write_ex
 					dout.mem_to_reg     <= '0'; -- data comes from alu or mem ? 0 from alu and 1 from mem
 					dout.BC						<= '1';
+					
 		--		elsif din.operation(26 downto 22) = "01001" then -- nop  "is removed from ISA"
 		--			dout.imm <= std_logic_vector(resize(signed(din.operation(3 downto 0)), 32));
 		--			dout.alu_src      <= '0'; -- choose the second source, i.e. immediate!
@@ -356,6 +360,7 @@ begin
 --					end case;
 				when others => null;
 			end case;
+			end if; -- if instruction
 		end if;
 	end process decode;
 	
