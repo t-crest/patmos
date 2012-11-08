@@ -55,7 +55,7 @@ package patmos_type_package is
 	type function_type_alu_u					is(pat_sext8, pat_sext16, pat_zext16, pat_abs);
 	type function_type_alu_p					is (pat_por, pat_pand, pat_pxor, pat_pnor);
 	type function_type_alu_cmp					is (pat_cmpeq, pat_cmpneq, pat_cmplt, pat_cmple, pat_cmpult, pat_cmpule, pat_btest);
-	type isntrucion								is (st, ld, nop);
+	type isntrucion								is (st, ld, nop, br, alu, alui);
 	type function_type_sc						is (reserve, free, ensure);
 	type sc_state								is (init, spill, fill);
 	-------------------------------------------
@@ -162,6 +162,7 @@ package patmos_type_package is
 		sc_write_out_not_reg : std_logic;
 		address_not_reg		: std_logic_vector(31 downto 0);
 		pc					: std_logic_vector(pc_length - 1 downto 0);
+		predicate_to_fetch	: std_logic;
 		
 		--stack cache
 		stall         		: std_logic;

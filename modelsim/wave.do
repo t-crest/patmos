@@ -1,40 +1,288 @@
 onerror {resume}
 quietly WaveActivateNextPane {} 0
-add wave -noupdate -radix hexadecimal /patmos_testbench/clk
-add wave -noupdate -radix hexadecimal /patmos_testbench/core/int_res
+add wave -noupdate /patmos_testbench/clk
 add wave -noupdate /patmos_testbench/led
-add wave -noupdate -radix hexadecimal -childformat {{/patmos_testbench/core/fetch_dout.pc -radix hexadecimal} {/patmos_testbench/core/fetch_dout.instruction -radix hexadecimal} {/patmos_testbench/core/fetch_dout.instr_b -radix hexadecimal} {/patmos_testbench/core/fetch_dout.b_valid -radix hexadecimal}} -expand -subitemconfig {/patmos_testbench/core/fetch_dout.pc {-height 15 -radix hexadecimal} /patmos_testbench/core/fetch_dout.instruction {-height 15 -radix hexadecimal} /patmos_testbench/core/fetch_dout.instr_b {-height 15 -radix hexadecimal} /patmos_testbench/core/fetch_dout.b_valid {-height 15 -radix hexadecimal}} /patmos_testbench/core/fetch_dout
-add wave -noupdate -radix hexadecimal /patmos_testbench/core/fet/pc
-add wave -noupdate -radix hexadecimal /patmos_testbench/core/fet/pc_add
-add wave -noupdate -radix hexadecimal /patmos_testbench/core/fet/pc_next
-add wave -noupdate -radix hexadecimal /patmos_testbench/core/fet/addr_evn
-add wave -noupdate -radix hexadecimal /patmos_testbench/core/fet/addr_odd
-add wave -noupdate -radix hexadecimal /patmos_testbench/core/fet/data_evn
-add wave -noupdate -radix hexadecimal /patmos_testbench/core/fet/data_odd
-add wave -noupdate -radix hexadecimal /patmos_testbench/core/fet/instr_a
-add wave -noupdate -radix hexadecimal /patmos_testbench/core/fet/instr_b
-add wave -noupdate -radix hexadecimal -childformat {{/patmos_testbench/core/decode_dout.lm_write_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.lm_read_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.imm -radix hexadecimal} {/patmos_testbench/core/decode_dout.instr_cmp -radix hexadecimal} {/patmos_testbench/core/decode_dout.predicate_bit_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.predicate_condition -radix hexadecimal} {/patmos_testbench/core/decode_dout.ps1_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.ps2_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.inst_type_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.ALU_function_type_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.ALU_instruction_type_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.ALUi_immediate_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.pc_ctrl_gen_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.rs1_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.rs2_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.rd_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.rs1_data_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.rs2_data_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.pd_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.ld_type_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.reg_write_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.alu_src_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.mem_to_reg_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.mem_read_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.mem_write_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.st_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.STC_instruction_type_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.stc_immediate_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.sc_write_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.sc_read_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.STT_instruction_type_out -radix hexadecimal} {/patmos_testbench/core/decode_dout.LDT_instruction_type_out -radix hexadecimal}} -subitemconfig {/patmos_testbench/core/decode_dout.lm_write_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.lm_read_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.imm {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.instr_cmp {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.predicate_bit_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.predicate_condition {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.ps1_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.ps2_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.inst_type_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.ALU_function_type_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.ALU_instruction_type_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.ALUi_immediate_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.pc_ctrl_gen_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.rs1_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.rs2_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.rd_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.rs1_data_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.rs2_data_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.pd_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.ld_type_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.reg_write_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.alu_src_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.mem_to_reg_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.mem_read_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.mem_write_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.st_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.STC_instruction_type_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.stc_immediate_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.sc_write_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.sc_read_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.STT_instruction_type_out {-height 15 -radix hexadecimal} /patmos_testbench/core/decode_dout.LDT_instruction_type_out {-height 15 -radix hexadecimal}} /patmos_testbench/core/decode_dout
-add wave -noupdate -radix hexadecimal -childformat {{/patmos_testbench/core/execute_dout.alusrc2 -radix hexadecimal} {/patmos_testbench/core/execute_dout.alu_result -radix hexadecimal} {/patmos_testbench/core/execute_dout.adrs -radix hexadecimal} {/patmos_testbench/core/execute_dout.predicate -radix hexadecimal} {/patmos_testbench/core/execute_dout.result -radix hexadecimal} {/patmos_testbench/core/execute_dout.alu_result_out -radix hexadecimal} {/patmos_testbench/core/execute_dout.adrs_out -radix hexadecimal} {/patmos_testbench/core/execute_dout.reg_write_out -radix hexadecimal} {/patmos_testbench/core/execute_dout.mem_read_out -radix hexadecimal} {/patmos_testbench/core/execute_dout.mem_write_out -radix hexadecimal} {/patmos_testbench/core/execute_dout.mem_to_reg_out -radix hexadecimal} {/patmos_testbench/core/execute_dout.mem_write_data_out -radix hexadecimal} {/patmos_testbench/core/execute_dout.write_back_reg_out -radix hexadecimal} {/patmos_testbench/core/execute_dout.ps_write_back_reg_out -radix hexadecimal} {/patmos_testbench/core/execute_dout.STT_instruction_type_out -radix hexadecimal} {/patmos_testbench/core/execute_dout.LDT_instruction_type_out -radix hexadecimal} {/patmos_testbench/core/execute_dout.lm_read_out -radix hexadecimal} {/patmos_testbench/core/execute_dout.lm_write_out -radix hexadecimal} {/patmos_testbench/core/execute_dout.sc_read_out -radix hexadecimal} {/patmos_testbench/core/execute_dout.sc_write_out -radix hexadecimal} {/patmos_testbench/core/execute_dout.address_reg -radix hexadecimal} {/patmos_testbench/core/execute_dout.lm_read_out_not_reg -radix hexadecimal} {/patmos_testbench/core/execute_dout.lm_write_out_not_reg -radix hexadecimal} {/patmos_testbench/core/execute_dout.sc_read_out_not_reg -radix hexadecimal} {/patmos_testbench/core/execute_dout.sc_write_out_not_reg -radix hexadecimal} {/patmos_testbench/core/execute_dout.address_not_reg -radix hexadecimal}} -subitemconfig {/patmos_testbench/core/execute_dout.alusrc2 {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.alu_result {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.adrs {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.predicate {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.result {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.alu_result_out {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.adrs_out {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.reg_write_out {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.mem_read_out {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.mem_write_out {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.mem_to_reg_out {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.mem_write_data_out {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.write_back_reg_out {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.ps_write_back_reg_out {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.STT_instruction_type_out {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.LDT_instruction_type_out {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.lm_read_out {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.lm_write_out {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.sc_read_out {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.sc_write_out {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.address_reg {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.lm_read_out_not_reg {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.lm_write_out_not_reg {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.sc_read_out_not_reg {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.sc_write_out_not_reg {-height 15 -radix hexadecimal} /patmos_testbench/core/execute_dout.address_not_reg {-height 15 -radix hexadecimal}} /patmos_testbench/core/execute_dout
-add wave -noupdate /patmos_testbench/core/alu/cmp_equal
-add wave -noupdate /patmos_testbench/core/alu/cmp_result
-add wave -noupdate -radix hexadecimal /patmos_testbench/core/memory_stage/din
-add wave -noupdate -radix hexadecimal -childformat {{/patmos_testbench/core/memory_stage/dout.result -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out -radix hexadecimal -childformat {{/patmos_testbench/core/memory_stage/dout.data_out(31) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(30) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(29) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(28) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(27) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(26) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(25) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(24) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(23) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(22) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(21) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(20) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(19) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(18) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(17) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(16) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(15) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(14) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(13) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(12) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(11) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(10) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(9) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(8) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(7) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(6) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(5) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(4) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(3) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(2) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(1) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(0) -radix hexadecimal}}} {/patmos_testbench/core/memory_stage/dout.reg_write_out -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.write_back_reg_out -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.mem_write_data_out -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_mem_data_out -radix hexadecimal}} -subitemconfig {/patmos_testbench/core/memory_stage/dout.result {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out {-height 15 -radix hexadecimal -childformat {{/patmos_testbench/core/memory_stage/dout.data_out(31) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(30) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(29) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(28) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(27) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(26) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(25) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(24) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(23) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(22) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(21) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(20) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(19) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(18) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(17) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(16) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(15) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(14) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(13) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(12) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(11) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(10) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(9) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(8) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(7) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(6) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(5) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(4) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(3) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(2) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(1) -radix hexadecimal} {/patmos_testbench/core/memory_stage/dout.data_out(0) -radix hexadecimal}}} /patmos_testbench/core/memory_stage/dout.data_out(31) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(30) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(29) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(28) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(27) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(26) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(25) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(24) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(23) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(22) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(21) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(20) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(19) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(18) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(17) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(16) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(15) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(14) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(13) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(12) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(11) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(10) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(9) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(8) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(7) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(6) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(5) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(4) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(3) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(2) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(1) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_out(0) {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.reg_write_out {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.write_back_reg_out {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.mem_write_data_out {-height 15 -radix hexadecimal} /patmos_testbench/core/memory_stage/dout.data_mem_data_out {-height 15 -radix hexadecimal}} /patmos_testbench/core/memory_stage/dout
-add wave -noupdate -radix hexadecimal -childformat {{/patmos_testbench/core/reg_file/ram(0) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(1) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(2) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(3) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(4) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(5) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(6) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(7) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(8) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(9) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(10) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(11) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(12) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(13) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(14) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(15) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(16) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(17) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(18) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(19) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(20) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(21) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(22) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(23) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(24) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(25) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(26) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(27) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(28) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(29) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(30) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(31) -radix hexadecimal}} -subitemconfig {/patmos_testbench/core/reg_file/ram(0) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(1) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(2) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(3) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(4) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(5) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(6) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(7) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(8) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(9) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(10) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(11) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(12) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(13) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(14) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(15) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(16) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(17) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(18) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(19) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(20) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(21) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(22) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(23) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(24) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(25) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(26) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(27) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(28) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(29) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(30) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(31) {-height 15 -radix hexadecimal}} /patmos_testbench/core/reg_file/ram
-add wave -noupdate -radix hexadecimal /patmos_testbench/core/reg_file/read_address1
-add wave -noupdate -radix hexadecimal /patmos_testbench/core/reg_file/read_address2
-add wave -noupdate -radix hexadecimal /patmos_testbench/core/reg_file/write_address
-add wave -noupdate -radix hexadecimal /patmos_testbench/core/reg_file/read_data1
-add wave -noupdate -radix hexadecimal /patmos_testbench/core/reg_file/read_data2
-add wave -noupdate -radix hexadecimal -childformat {{/patmos_testbench/core/reg_file/write_data(31) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(30) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(29) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(28) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(27) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(26) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(25) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(24) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(23) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(22) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(21) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(20) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(19) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(18) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(17) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(16) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(15) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(14) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(13) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(12) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(11) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(10) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(9) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(8) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(7) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(6) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(5) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(4) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(3) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(2) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(1) -radix hexadecimal} {/patmos_testbench/core/reg_file/write_data(0) -radix hexadecimal}} -subitemconfig {/patmos_testbench/core/reg_file/write_data(31) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(30) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(29) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(28) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(27) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(26) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(25) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(24) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(23) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(22) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(21) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(20) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(19) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(18) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(17) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(16) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(15) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(14) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(13) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(12) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(11) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(10) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(9) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(8) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(7) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(6) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(5) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(4) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(3) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(2) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(1) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/write_data(0) {-height 15 -radix hexadecimal}} /patmos_testbench/core/reg_file/write_data
-add wave -noupdate -radix hexadecimal /patmos_testbench/core/reg_file/write_enable
-add wave -noupdate -radix hexadecimal -childformat {{/patmos_testbench/core/reg_file/ram(0) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(1) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(2) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(3) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(4) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(5) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(6) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(7) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(8) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(9) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(10) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(11) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(12) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(13) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(14) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(15) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(16) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(17) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(18) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(19) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(20) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(21) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(22) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(23) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(24) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(25) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(26) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(27) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(28) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(29) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(30) -radix hexadecimal} {/patmos_testbench/core/reg_file/ram(31) -radix hexadecimal}} -expand -subitemconfig {/patmos_testbench/core/reg_file/ram(0) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(1) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(2) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(3) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(4) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(5) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(6) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(7) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(8) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(9) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(10) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(11) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(12) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(13) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(14) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(15) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(16) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(17) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(18) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(19) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(20) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(21) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(22) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(23) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(24) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(25) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(26) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(27) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(28) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(29) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(30) {-height 15 -radix hexadecimal} /patmos_testbench/core/reg_file/ram(31) {-height 15 -radix hexadecimal}} /patmos_testbench/core/reg_file/ram
-add wave -noupdate -radix hexadecimal /patmos_testbench/core/reg_file/wr_addr_reg
-add wave -noupdate -radix hexadecimal /patmos_testbench/core/reg_file/wr_data_reg
-add wave -noupdate -radix hexadecimal /patmos_testbench/core/reg_file/wr_en_reg
-add wave -noupdate -radix hexadecimal /patmos_testbench/core/reg_file/rd_addr_reg1
-add wave -noupdate -radix hexadecimal /patmos_testbench/core/reg_file/rd_addr_reg2
-add wave -noupdate -radix hexadecimal /patmos_testbench/core/reg_file/fwd1
-add wave -noupdate -radix hexadecimal /patmos_testbench/core/reg_file/fwd2
+add wave -noupdate /patmos_testbench/txd
+add wave -noupdate /patmos_testbench/rxd
+add wave -noupdate /patmos_testbench/oSRAM_A
+add wave -noupdate /patmos_testbench/SRAM_DQ
+add wave -noupdate /patmos_testbench/oSRAM_CE1_N
+add wave -noupdate /patmos_testbench/oSRAM_OE_N
+add wave -noupdate /patmos_testbench/oSRAM_BE_N
+add wave -noupdate /patmos_testbench/oSRAM_WE_N
+add wave -noupdate /patmos_testbench/oSRAM_GW_N
+add wave -noupdate /patmos_testbench/oSRAM_CLK
+add wave -noupdate /patmos_testbench/oSRAM_ADSC_N
+add wave -noupdate /patmos_testbench/oSRAM_ADSP_N
+add wave -noupdate /patmos_testbench/oSRAM_ADV_N
+add wave -noupdate /patmos_testbench/oSRAM_CE2
+add wave -noupdate /patmos_testbench/oSRAM_CE3_N
+add wave -noupdate /patmos_testbench/internal_rst
+add wave -noupdate /patmos_testbench/core/clk
+add wave -noupdate /patmos_testbench/core/led
+add wave -noupdate /patmos_testbench/core/txd
+add wave -noupdate /patmos_testbench/core/rxd
+add wave -noupdate /patmos_testbench/core/mem_write
+add wave -noupdate /patmos_testbench/core/mem_data_out_muxed
+add wave -noupdate /patmos_testbench/core/pat_rst
+add wave -noupdate /patmos_testbench/core/data_mem_data_out
+add wave -noupdate /patmos_testbench/core/execute_dout
+add wave -noupdate /patmos_testbench/core/core/clk
+add wave -noupdate /patmos_testbench/core/core/rst
+add wave -noupdate /patmos_testbench/core/core/mem_write
+add wave -noupdate /patmos_testbench/core/core/mem_data_out_muxed
+add wave -noupdate /patmos_testbench/core/core/data_mem_data_out
+add wave -noupdate /patmos_testbench/core/core/execute_dout_core
+add wave -noupdate /patmos_testbench/core/core/fetch_dout
+add wave -noupdate /patmos_testbench/core/core/fetch_reg1
+add wave -noupdate /patmos_testbench/core/core/fetch_reg2
+add wave -noupdate /patmos_testbench/core/core/decode_din
+add wave -noupdate /patmos_testbench/core/core/decode_dout
+add wave -noupdate /patmos_testbench/core/core/execute_dout
+add wave -noupdate /patmos_testbench/core/core/mem_dout
+add wave -noupdate /patmos_testbench/core/core/fet/clk
+add wave -noupdate /patmos_testbench/core/core/fet/rst
+add wave -noupdate /patmos_testbench/core/core/fet/decout
+add wave -noupdate /patmos_testbench/core/core/fet/exout
+add wave -noupdate /patmos_testbench/core/core/fet/reg1
+add wave -noupdate /patmos_testbench/core/core/fet/reg2
+add wave -noupdate /patmos_testbench/core/core/fet/dout
+add wave -noupdate /patmos_testbench/core/core/fet/pc
+add wave -noupdate /patmos_testbench/core/core/fet/pc_next
+add wave -noupdate /patmos_testbench/core/core/fet/pc_intr
+add wave -noupdate /patmos_testbench/core/core/fet/pc_add
+add wave -noupdate /patmos_testbench/core/core/fet/evn_next
+add wave -noupdate /patmos_testbench/core/core/fet/addr_evn
+add wave -noupdate /patmos_testbench/core/core/fet/addr_odd
+add wave -noupdate /patmos_testbench/core/core/fet/feout
+add wave -noupdate /patmos_testbench/core/core/fet/data_evn
+add wave -noupdate /patmos_testbench/core/core/fet/data_odd
+add wave -noupdate /patmos_testbench/core/core/fet/instr_a
+add wave -noupdate /patmos_testbench/core/core/fet/instr_b
+add wave -noupdate /patmos_testbench/core/core/fet/tmp
+add wave -noupdate /patmos_testbench/core/core/fet/dout_feout
+add wave -noupdate /patmos_testbench/core/core/fet/rom_evn/address
+add wave -noupdate /patmos_testbench/core/core/fet/rom_evn/q
+add wave -noupdate /patmos_testbench/core/core/fet/rom_odd/address
+add wave -noupdate /patmos_testbench/core/core/fet/rom_odd/q
+add wave -noupdate /patmos_testbench/core/core/reg_file/clk
+add wave -noupdate /patmos_testbench/core/core/reg_file/rst
+add wave -noupdate /patmos_testbench/core/core/reg_file/read_address1
+add wave -noupdate /patmos_testbench/core/core/reg_file/read_address2
+add wave -noupdate /patmos_testbench/core/core/reg_file/write_address
+add wave -noupdate /patmos_testbench/core/core/reg_file/read_data1
+add wave -noupdate /patmos_testbench/core/core/reg_file/read_data2
+add wave -noupdate /patmos_testbench/core/core/reg_file/write_data
+add wave -noupdate /patmos_testbench/core/core/reg_file/write_enable
+add wave -noupdate /patmos_testbench/core/core/reg_file/ram
+add wave -noupdate /patmos_testbench/core/core/reg_file/wr_addr_reg
+add wave -noupdate /patmos_testbench/core/core/reg_file/wr_data_reg
+add wave -noupdate /patmos_testbench/core/core/reg_file/wr_en_reg
+add wave -noupdate /patmos_testbench/core/core/reg_file/rd_addr_reg1
+add wave -noupdate /patmos_testbench/core/core/reg_file/rd_addr_reg2
+add wave -noupdate /patmos_testbench/core/core/reg_file/fwd1
+add wave -noupdate /patmos_testbench/core/core/reg_file/fwd2
+add wave -noupdate /patmos_testbench/core/core/dec/clk
+add wave -noupdate /patmos_testbench/core/core/dec/rst
+add wave -noupdate /patmos_testbench/core/core/dec/din
+add wave -noupdate /patmos_testbench/core/core/dec/dout
+add wave -noupdate /patmos_testbench/core/core/dec/alu_func
+add wave -noupdate /patmos_testbench/core/core/alu/clk
+add wave -noupdate /patmos_testbench/core/core/alu/rst
+add wave -noupdate /patmos_testbench/core/core/alu/decdout
+add wave -noupdate /patmos_testbench/core/core/alu/doutex
+add wave -noupdate /patmos_testbench/core/core/alu/memdout
+add wave -noupdate /patmos_testbench/core/core/alu/rd
+add wave -noupdate /patmos_testbench/core/core/alu/rd1
+add wave -noupdate /patmos_testbench/core/core/alu/rd2
+add wave -noupdate /patmos_testbench/core/core/alu/adrs
+add wave -noupdate /patmos_testbench/core/core/alu/cmp_equal
+add wave -noupdate /patmos_testbench/core/core/alu/cmp_result
+add wave -noupdate /patmos_testbench/core/core/alu/predicate
+add wave -noupdate /patmos_testbench/core/core/alu/predicate_reg
+add wave -noupdate /patmos_testbench/core/core/alu/rs1
+add wave -noupdate /patmos_testbench/core/core/alu/rs2
+add wave -noupdate /patmos_testbench/core/core/alu/doutex_alu_result_reg
+add wave -noupdate /patmos_testbench/core/core/alu/doutex_alu_adrs_reg
+add wave -noupdate /patmos_testbench/core/core/alu/doutex_write_back_reg
+add wave -noupdate /patmos_testbench/core/core/alu/doutex_reg_write
+add wave -noupdate /patmos_testbench/core/core/alu/din_rs1
+add wave -noupdate /patmos_testbench/core/core/alu/din_rs2
+add wave -noupdate /patmos_testbench/core/core/alu/alu_src2
+add wave -noupdate /patmos_testbench/core/core/alu/shamt
+add wave -noupdate /patmos_testbench/core/core/alu/shifted_arg
+add wave -noupdate /patmos_testbench/core/core/alu/pc
+add wave -noupdate /patmos_testbench/core/core/alu/doutex_lm_write
+add wave -noupdate /patmos_testbench/core/core/alu/doutex_reg_write_reg
+add wave -noupdate /patmos_testbench/core/core/alu/doutex_lm_read
+add wave -noupdate /patmos_testbench/core/core/alu/predicate_checked
+add wave -noupdate /patmos_testbench/core/core/alu/head
+add wave -noupdate /patmos_testbench/core/core/alu/tail
+add wave -noupdate /patmos_testbench/core/core/alu/num_valid_sc_slots
+add wave -noupdate /patmos_testbench/core/core/memory_stage/clk
+add wave -noupdate /patmos_testbench/core/core/memory_stage/rst
+add wave -noupdate /patmos_testbench/core/core/memory_stage/mem_write
+add wave -noupdate /patmos_testbench/core/core/memory_stage/mem_data_out_muxed
+add wave -noupdate /patmos_testbench/core/core/memory_stage/exout
+add wave -noupdate /patmos_testbench/core/core/memory_stage/dout
+add wave -noupdate /patmos_testbench/core/core/memory_stage/decdout
+add wave -noupdate /patmos_testbench/core/core/memory_stage/en0
+add wave -noupdate /patmos_testbench/core/core/memory_stage/en1
+add wave -noupdate /patmos_testbench/core/core/memory_stage/en2
+add wave -noupdate /patmos_testbench/core/core/memory_stage/en3
+add wave -noupdate /patmos_testbench/core/core/memory_stage/dout0
+add wave -noupdate /patmos_testbench/core/core/memory_stage/dout1
+add wave -noupdate /patmos_testbench/core/core/memory_stage/dout2
+add wave -noupdate /patmos_testbench/core/core/memory_stage/dout3
+add wave -noupdate /patmos_testbench/core/core/memory_stage/mem_write_data0
+add wave -noupdate /patmos_testbench/core/core/memory_stage/mem_write_data1
+add wave -noupdate /patmos_testbench/core/core/memory_stage/mem_write_data2
+add wave -noupdate /patmos_testbench/core/core/memory_stage/mem_write_data3
+add wave -noupdate /patmos_testbench/core/core/memory_stage/byte_enable0
+add wave -noupdate /patmos_testbench/core/core/memory_stage/byte_enable1
+add wave -noupdate /patmos_testbench/core/core/memory_stage/byte_enable2
+add wave -noupdate /patmos_testbench/core/core/memory_stage/byte_enable3
+add wave -noupdate /patmos_testbench/core/core/memory_stage/word_enable0
+add wave -noupdate /patmos_testbench/core/core/memory_stage/word_enable1
+add wave -noupdate /patmos_testbench/core/core/memory_stage/ldt_type
+add wave -noupdate /patmos_testbench/core/core/memory_stage/datain
+add wave -noupdate /patmos_testbench/core/core/memory_stage/ld_word
+add wave -noupdate /patmos_testbench/core/core/memory_stage/ld_half
+add wave -noupdate /patmos_testbench/core/core/memory_stage/ld_byte
+add wave -noupdate /patmos_testbench/core/core/memory_stage/s_u
+add wave -noupdate /patmos_testbench/core/core/memory_stage/half_ext
+add wave -noupdate /patmos_testbench/core/core/memory_stage/byte_ext
+add wave -noupdate /patmos_testbench/core/core/memory_stage/current_state
+add wave -noupdate /patmos_testbench/core/core/memory_stage/next_state
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory0/clk
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory0/wr_address
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory0/data_in
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory0/write_enable
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory0/rd_address
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory0/data_out
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory0/data_mem
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory1/clk
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory1/wr_address
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory1/data_in
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory1/write_enable
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory1/rd_address
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory1/data_out
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory1/data_mem
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory2/clk
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory2/wr_address
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory2/data_in
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory2/write_enable
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory2/rd_address
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory2/data_out
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory2/data_mem
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory3/clk
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory3/wr_address
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory3/data_in
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory3/write_enable
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory3/rd_address
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory3/data_out
+add wave -noupdate /patmos_testbench/core/core/memory_stage/memory3/data_mem
+add wave -noupdate /patmos_testbench/core/wrapper/clk
+add wave -noupdate /patmos_testbench/core/wrapper/pat_rst
+add wave -noupdate /patmos_testbench/core/wrapper/mem_write
+add wave -noupdate /patmos_testbench/core/wrapper/data_mem_data_out
+add wave -noupdate /patmos_testbench/core/wrapper/mem_data_out_muxed
+add wave -noupdate /patmos_testbench/core/wrapper/execute_dout
+add wave -noupdate /patmos_testbench/core/wrapper/led
+add wave -noupdate /patmos_testbench/core/wrapper/txd
+add wave -noupdate /patmos_testbench/core/wrapper/rxd
+add wave -noupdate /patmos_testbench/core/wrapper/memdin_reg
+add wave -noupdate /patmos_testbench/core/wrapper/mem_data_out_uart
+add wave -noupdate /patmos_testbench/core/wrapper/int_res
+add wave -noupdate /patmos_testbench/core/wrapper/res_cnt
+add wave -noupdate /patmos_testbench/core/wrapper/rst
+add wave -noupdate /patmos_testbench/core/wrapper/led_reg
+add wave -noupdate /patmos_testbench/core/wrapper/counter
+add wave -noupdate /patmos_testbench/core/wrapper/cntus
+add wave -noupdate /patmos_testbench/core/wrapper/cnt_div
+add wave -noupdate /patmos_testbench/core/wrapper/io_next
+add wave -noupdate /patmos_testbench/core/wrapper/io_reg
+add wave -noupdate /patmos_testbench/core/wrapper/uart_rd
+add wave -noupdate /patmos_testbench/core/wrapper/uart_wr
+add wave -noupdate /patmos_testbench/core/wrapper/ua/clk
+add wave -noupdate /patmos_testbench/core/wrapper/ua/reset
+add wave -noupdate /patmos_testbench/core/wrapper/ua/address
+add wave -noupdate /patmos_testbench/core/wrapper/ua/wr_data
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rd
+add wave -noupdate /patmos_testbench/core/wrapper/ua/wr
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rd_data
+add wave -noupdate /patmos_testbench/core/wrapper/ua/txd
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rxd
+add wave -noupdate /patmos_testbench/core/wrapper/ua/ua_dout
+add wave -noupdate /patmos_testbench/core/wrapper/ua/ua_wr
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tdre
+add wave -noupdate /patmos_testbench/core/wrapper/ua/ua_rd
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rdrf
+add wave -noupdate /patmos_testbench/core/wrapper/ua/uart_tx_state
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf_dout
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf_rd
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf_empty
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf_full
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tsr
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tx_clk
+add wave -noupdate /patmos_testbench/core/wrapper/ua/uart_rx_state
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf_wr
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf_empty
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf_full
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rxd_reg
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rx_buf
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rx_d
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rsr
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rx_clk
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rx_clk_ena
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/clk
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/reset
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/din
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/dout
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/rd
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/wr
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/empty
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/full
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/r
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/w
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/rp
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/f
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/di
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/do
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/clk
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/reset
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/din
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/dout
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/rd
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/wr
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/rd_prev
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/full
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/buf
+add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/f
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/clk
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/reset
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/din
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/dout
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/rd
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/wr
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/empty
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/full
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/r
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/w
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/rp
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/f
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/di
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/do
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/clk
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/reset
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/din
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/dout
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/rd
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/wr
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/rd_prev
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/full
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/buf
+add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/f
 TreeUpdate [SetDefaultTree]
 WaveRestoreCursors {{Cursor 1} {113641 ps} 0}
 configure wave -namecolwidth 210
@@ -51,4 +299,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ps
 update
-WaveRestoreZoom {9901331 ps} {9999999 ps}
+WaveRestoreZoom {106266 ps} {241429 ps}

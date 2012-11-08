@@ -56,11 +56,11 @@ architecture arch of patmos_fetch is
 	constant rom_addr_size : integer := 10;
 	
 	-- we should have global constants for memory sizes
-	signal pc, pc_next, pc_intr                      : std_logic_vector(pc_length - 1 downto 0);
+	signal pc, pc_next			                      : std_logic_vector(pc_length - 1 downto 0);
 	signal pc_add	: unsigned(1 downto 0);
 	signal evn_next, addr_evn, addr_odd              : std_logic_vector(rom_addr_size - 1 downto 0);
 	signal feout                                     : fetch_out_type;
-	signal data_evn, data_odd, instr_a, instr_b, tmp : std_logic_vector(31 downto 0);
+	signal data_evn, data_odd, instr_a, instr_b		  : std_logic_vector(31 downto 0);
 	signal dout_feout									: fetch_out_type;
 begin
 	process(pc, instr_a, pc_add, decout, exout)
@@ -76,7 +76,8 @@ begin
 		
 		-- this is effective branch in the EX stage with
 		-- two branch delay slots
-		if decout.BC = '1' and exout.predicate(to_integer(unsigned(decout.predicate_condition))) = '1' then -- decout.predicate_bit_out then
+		if decout.BC = '1' and exout.predicate_to_fetch = '1' then -- decout.predicate_bit_out then
+			--predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit
 			-- no addition? no relative branch???
 		--	pc_next <= decout.imm;
 			pc_next <= exout.pc;

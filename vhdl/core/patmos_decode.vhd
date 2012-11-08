@@ -127,7 +127,7 @@ begin
 			if din.operation(26 downto 25) = "00" then -- ALUi instruction
 				dout.reg_write    <= '1';
 				dout.imm  <= "00000000000000000000" & din.operation(11 downto 0);
-			
+				dout.inst <= alui;
 			
 			elsif din.operation(26 downto 24) = "011" then -- STC
 				case din.operation(23 downto 22) is
@@ -158,7 +158,7 @@ begin
 					dout.imm  <= din.instr_b;
 				
 				when "01000" => -- ALU instructions
-	
+					dout.inst <= alu;
 					dout.alu_src <= '0'; -- choose the first source, i.e. reg!
 	
 					case din.operation(6 downto 4) is
@@ -345,7 +345,7 @@ begin
 					dout.reg_write      <= '0'; -- reg_write_out is reg_write_ex
 					dout.mem_to_reg     <= '0'; -- data comes from alu or mem ? 0 from alu and 1 from mem
 					dout.BC						<= '1';
-					
+					dout.inst <= br;
 		--		elsif din.operation(26 downto 22) = "01001" then -- nop  "is removed from ISA"
 		--			dout.imm <= std_logic_vector(resize(signed(din.operation(3 downto 0)), 32));
 		--			dout.alu_src      <= '0'; -- choose the second source, i.e. immediate!
