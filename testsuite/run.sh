@@ -1,6 +1,7 @@
 #!/bin/bash
 
 tests="basic test ALU ALUi ALUl compare dual_forwarding dual_even_odd_address forward_issue unary load_store_data_cache load_store_scratchpad load_store_scratchpad_new load_store_scratchpad_new2 predication fetch_double ld_st_test branch predicated_predicate"
+tests_c="hello_test"
 not_working="non"
 expect_fail=0
 
@@ -13,6 +14,16 @@ make rom bsim
 
 echo === Tests ===
 failed=()
+for f in  ${tests_c}; do
+    $timeout testsuite/single_c.sh ${f}
+    result=$?
+    if [ "$result" -eq 124 ] ; then
+        echo " timeout"
+    fi
+    if [ "$result" -ne 0 ] ; then
+        failed+=("${f}")
+    fi
+done
 for f in  ${tests}; do
     $timeout testsuite/single.sh ${f}
     result=$?
@@ -23,6 +34,7 @@ for f in  ${tests}; do
         failed+=("${f}")
     fi
 done
+
 for f in  ${not_working}; do
     echo $f
     echo " skipped"
