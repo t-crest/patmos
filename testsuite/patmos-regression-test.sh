@@ -10,7 +10,7 @@ MAIL_RESULTS=1
 # prepare logdir
 mkdir -p "${LOG_DIR}"
 
-PATH=.:$PATH:/opt/modelsim_ase/bin
+PATH=.:$PATH:/opt/modelsim_ase/bin:/opt/patmos-toolchain/bin/
 export PATH 
 # get the Patmos source tree
 rm -rf patmos
