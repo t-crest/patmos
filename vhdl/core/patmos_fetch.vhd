@@ -77,8 +77,6 @@ begin
 		-- this is effective branch in the EX stage with
 		-- two branch delay slots
 		if decout.BC = '1' and exout.predicate_to_fetch = '1' then -- decout.predicate_bit_out then
-			--predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit
-			-- no addition? no relative branch???
 		--	pc_next <= decout.imm;
 			pc_next <= exout.pc;
 		end if;

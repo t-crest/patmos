@@ -14,16 +14,16 @@ make rom bsim
 
 echo === Tests ===
 failed=()
-for f in  ${tests_c}; do
-    $timeout testsuite/single_c.sh ${f}
-    result=$?
-    if [ "$result" -eq 124 ] ; then
-        echo " timeout"
-    fi
-    if [ "$result" -ne 0 ] ; then
-        failed+=("${f}")
-    fi
-done
+#for f in  ${tests_c}; do
+#    $timeout testsuite/single_c.sh ${f}
+#    result=$?
+#   if [ "$result" -eq 124 ] ; then
+#        echo " timeout"
+#    fi
+#    if [ "$result" -ne 0 ] ; then
+#        failed+=("${f}")
+#    fi
+#done
 for f in  ${tests}; do
     $timeout testsuite/single.sh ${f}
     result=$?

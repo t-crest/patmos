@@ -72,7 +72,9 @@ architecture arch of patmos_alu is
 	signal predicate_checked					: std_logic_vector(7 downto 0);
 	
 	signal head, tail							: std_logic_vector(sc_depth - 1 downto 0);
-	signal num_valid_sc_slots					: integer;
+	signal doutex_head, doutex_tail				: std_logic_vector(sc_depth - 1 downto 0);
+	signal num_valid_sc_slots					: std_logic_vector(sc_depth - 1 downto 0) := "1111111111";
+	
 begin
 
 
@@ -205,26 +207,30 @@ begin
 	process(rst, clk)
 	begin
 		if rst = '1' then
-			predicate_reg <= "00000001";
-			doutex.predicate <= "00000001";
+			predicate_reg 				<= "00000001";
+			doutex.predicate 			<= "00000001";
+
 		elsif rising_edge(clk) then
-			doutex.lm_write <= doutex_lm_write; 
-			doutex.reg_write <= doutex_reg_write;
-			doutex_reg_write_reg <= doutex_reg_write;
-			doutex.lm_read <= doutex_lm_read;
+			doutex.lm_write 			<= doutex_lm_write; 
+			doutex.reg_write 			<= doutex_reg_write;
+			doutex_reg_write_reg 		<= doutex_reg_write;
+			doutex.lm_read 				<= doutex_lm_read;
 			doutex.mem_to_reg           <= decdout.mem_to_reg;
-			doutex.alu_result_reg           <= rd;
-			doutex.adrs_reg		      	  <= adrs;
+			doutex.alu_result_reg       <= rd;
+			doutex.adrs_reg		      	<= adrs;
 			doutex.write_back_reg       <= decdout.rd;
-			doutex.predicate                <= predicate_checked;
-			predicate_reg                   <= predicate_checked;
+			doutex.predicate            <= predicate_checked;
+			predicate_reg               <= predicate_checked;
 			
 
-			doutex_alu_result_reg           <= rd;
-			doutex_alu_adrs_reg           <= adrs;
+			doutex_alu_result_reg       <= rd;
+			doutex_alu_adrs_reg         <= adrs;
 			doutex_write_back_reg       <= decdout.rd;
 			
-			
+			-- stack cache
+			doutex.imm 					<= decdout.imm;
+	--		doutex.head                 <= doutex_head;
+	--		doutex.tail                 <= doutex_tail;
 		end if;
 	end process;
 	
@@ -293,22 +299,55 @@ begin
 		end if;
 	end process;
 	
-	
-	process(decdout) -- stack cache
+	process(head, tail) -- passing head/ tail to memory
 	begin
+		doutex.head <= head; -- head to mem stage
+		doutex.tail <= tail; -- tail to mem stage
+	end process;
+	
+	process( decdout, predicate_reg) -- stack cache
+	begin
+		doutex.spill <= '0';
+		doutex.stall <= '0';
+		head 						<= (others => '0');
+		tail 						<= (others => '0');
+		--num_valid_sc_slots			<= "";
+
 		case decdout.pat_function_type_sc is
 			when reserve => 
-			--	if (std_logic_vector(((unsigned(head) + unsigned(decdout.imm) mod sc_depth)) - unsigned(tail)) > num_valid_sc_slots ) then -- is sc full
-				--	doutex.tail <= tail; -- tail pointer to mem stage to spill from sc
-					--head <= std_logic_vector((unsigned(head) + unsigned(decdout.imm)) mod sc_depth); -- update the head
-					doutex.spill <= '1';
-					doutex.stall <= '1';
-			--	else
-				--	head <= std_logic_vector((unsigned(head) + unsigned(decdout.imm)) mod sc_depth); -- just update the head
-			--	end if;
-			when ensure =>
-			when free =>  
+				
+				if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
+					if ((unsigned(head) + unsigned(decdout.imm)) > sc_depth) then -- check if wrap around needed
+						if (std_logic_vector(((unsigned(head) + unsigned(decdout.imm) mod sc_depth)) - unsigned(tail)) > num_valid_sc_slots ) then -- check if spill needed 
+							
+							head <= std_logic_vector((unsigned(head) + unsigned(decdout.imm(sc_depth - 1 downto 0))) mod sc_depth); -- update the head
+							doutex.spill <= '1';
+							doutex.stall <= '1';
+						end if;
+						
+					else -- no wrap around
+						if (unsigned(head) >= unsigned(tail)) then
+							if (std_logic_vector( unsigned(head) - unsigned(tail)) > num_valid_sc_slots ) then	
+								head <= std_logic_vector((unsigned(head) + unsigned(decdout.imm(sc_depth - 1 downto 0))) mod sc_depth); -- just update the head
+								num_valid_sc_slots	<= std_logic_vector(unsigned(num_valid_sc_slots) -  unsigned(decdout.imm(sc_depth - 1 downto 0)));
+							else
+								-- spill
+							end if;
+						else 
+							if (std_logic_vector( unsigned(tail) - unsigned(head)) > num_valid_sc_slots ) then	
+								head <= std_logic_vector((unsigned(head) + unsigned(decdout.imm(sc_depth - 1 downto 0))) mod sc_depth); -- just update the head
+								num_valid_sc_slots	<= std_logic_vector(unsigned(num_valid_sc_slots) -  unsigned(decdout.imm(sc_depth - 1 downto 0)));
+							else
+								-- spill
+							end if;
+						end if;
+					end if;
+				end if; -- predicate
+			when ensure => null;
+			when free =>  null;
+		--	when none => null;
 		end case;
+		
 	end process;
 
 end arch;

@@ -136,18 +136,17 @@ begin
 --						dout.st_out                   <= "0111"; -- s6 is st (7th register in special reg file)
 						--	dout.stc_immediate_out <= din.operation(4 downto 0);--"0000000000" & din.operation(21 downto 0); 
 						dout.imm <= std_logic_vector(resize(signed(din.operation(21 downto 0)), 32));
-						dout.alu_src      <= '0'; -- choose the first source, i.e. reg!
-						dout.reg_write    <= '0'; -- 
-						
+						dout.inst <= res;
 					when "01" =>        -- ensure
 						dout.pat_function_type_sc <= ensure;
+						dout.inst <= ens;
 --						dout.st_out                   <= "0111";
 --						dout.stc_immediate_out        <= din.operation(4 downto 0);
 					when "10" =>
 						dout.pat_function_type_sc <= free;
 						dout.imm       <= std_logic_vector(resize(signed(din.operation(4 downto 0)), 32));
-						dout.alu_src              <= '0'; -- choose the first source, i.e. reg!
-						dout.reg_write            <= '0'; -- reg_write_out is reg_write_ex
+						dout.inst <= free;
+						
 					when others => NULL;
 				end case;
 		--	end if;
@@ -217,14 +216,16 @@ begin
 						when "01001" =>	
 							dout.lm_write			  <= '1';
 							dout.adrs_type <= byte;
-						----------------------------------------	
+						----------------------------------------	stack cache
 						when "00000" =>
 							dout.adrs_type <= word;
+							dout.sc_write				<= '1';
 						when "00100" =>
 							dout.adrs_type <= half;
+							dout.sc_write				<= '1';
 						when "01000" =>
 							dout.adrs_type <= byte;
-	--						dout.sc_write_out             <= '1';
+							dout.sc_write				<= '1';
 						----------------------------------------- global memory	
 						when "00011" =>
 							dout.adrs_type <= word;
