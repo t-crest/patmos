@@ -55,7 +55,7 @@ package patmos_type_package is
 	type function_type_alu_u					is(pat_sext8, pat_sext16, pat_zext16, pat_abs);
 	type function_type_alu_p					is (pat_por, pat_pand, pat_pxor, pat_pnor);
 	type function_type_alu_cmp					is (pat_cmpeq, pat_cmpneq, pat_cmplt, pat_cmple, pat_cmpult, pat_cmpule, pat_btest);
-	type isntrucion								is (st, ld, nop, br, alu, alui);
+	type isntrucion								is (none, st, ld, nop, br, alu, alui, res, ens, free);
 	type function_type_sc						is (reserve, free, ensure);
 	type sc_state								is (init, spill, fill);
 	-------------------------------------------
@@ -63,7 +63,7 @@ package patmos_type_package is
 	-------------------------------------------
 	constant pc_length              			: integer := 32;
 	constant instruction_word_length 			: integer := 32;
-	constant sc_depth							: integer := 8;	
+	constant sc_depth							: integer := 10;	
 	-------------------------------------------
 	-- fetch/decode
 	-------------------------------------------
@@ -90,6 +90,7 @@ package patmos_type_package is
 	
 	type decode_out_type is record
 		lm_write 								: std_logic;
+		sc_write								: std_logic;
 		lm_read	 								: std_logic;
 		imm       								: std_logic_vector(31 downto 0);
 		instr_cmp 								: std_logic;
@@ -163,10 +164,11 @@ package patmos_type_package is
 		address_not_reg		: std_logic_vector(31 downto 0);
 		pc					: std_logic_vector(pc_length - 1 downto 0);
 		predicate_to_fetch	: std_logic;
-		
+		imm       			: std_logic_vector(31 downto 0);
 		--stack cache
 		stall         		: std_logic;
-		tail				: std_logic_vector(sc_depth downto 0);
+		head				: std_logic_vector(sc_depth - 1 downto 0);
+		tail				: std_logic_vector(sc_depth - 1 downto 0);
 		spill				: std_logic;
 	end record;
 
@@ -184,6 +186,7 @@ package patmos_type_package is
 		data_mem_data_out  : std_logic_vector(31 downto 0); -- this is from memory it is used later to select between output of mem or IO
 		data  : std_logic_vector(31 downto 0); -- to register file
 		
+		stall         		: std_logic;
 	end record;
 
 

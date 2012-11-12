@@ -55,6 +55,7 @@ end entity patmos_mem_stage;
 
 architecture arch of patmos_mem_stage is
 	signal en0, en1, en2, en3               : std_logic;
+	signal sc_en0, sc_en1, sc_en2, sc_en3   : std_logic;
 	signal dout0, dout1, dout2, dout3       : std_logic_vector(7 downto 0);
 	signal mem_write_data0, mem_write_data1 : std_logic_vector(7 downto 0);
 	signal mem_write_data2, mem_write_data3 : std_logic_vector(7 downto 0);
@@ -68,7 +69,13 @@ architecture arch of patmos_mem_stage is
     signal ld_byte						 	 : std_logic_vector(7 downto 0);
     signal	s_u								 : std_logic;
     signal half_ext, byte_ext				 : std_logic_vector(31 downto 0);
-    signal current_state, next_state		 : sc_state;
+    signal state 							 : sc_state;
+    
+	signal head, tail, head_tail			 : std_logic_vector(sc_depth - 1 downto 0);
+	signal sc_read_data0, sc_write_data0	 : std_logic_vector(7 downto 0);
+	signal spill, fill						 : std_logic;
+
+
 begin
 	mem_wb : process(clk)
 	begin
@@ -89,46 +96,95 @@ begin
 --        write_enable             : in std_logic;
 --        rd_address               : in std_logic_vector(addr_width - 1 downto 0);
 --        data_out                 : out std_logic_vector(width -1 downto 0) -- load
---	sc: entity work.patmos_data_memory(arch)
---		generic map(8, 10)
---		port map(clk,
---			     tail,
---			     mem_write_data0,
---			     en0,
---			     tail,
---			     dout0);
+	sc0: entity work.patmos_data_memory(arch)
+		generic map(8, 10)
+		port map(clk,
+			     head_tail,
+			     sc_write_data0,
+			     sc_en0,
+			     head_tail,
+			     sc_read_data0);
+ 
+	sc1: entity work.patmos_data_memory(arch)
+		generic map(8, 10)
+		port map(clk,
+			     head_tail,
+			     sc_write_data0,
+			     sc_en1,
+			     head_tail,
+			     sc_read_data0);
 			     
+	sc2: entity work.patmos_data_memory(arch)
+		generic map(8, 10)
+		port map(clk,
+			     head_tail,
+			     sc_write_data0,
+			     sc_en2,
+			     head_tail,
+			     sc_read_data0);
 			     
---	process(decdout, current_state)
+	sc3: entity work.patmos_data_memory(arch)
+		generic map(8, 10)
+		port map(clk,
+			     head_tail,
+			     sc_write_data0,
+			     sc_en3,
+			     head_tail,
+			     sc_read_data0);		
+			     
+	process(exout)
+	begin
+		head_tail <= exout.head;
+--		head_tail <= (others => '0');
+--		if (spill = '1') then
+--			head_tail <= head;
+--		elsif (fill = '1') then
+--			head_tail <= tail;
+--		end if;
+	end process;			          
+--			     
+--			     
+--	process(clk, rst, spill, fill) -- adjust head/tail
 --	begin 
---		case current_state is
---			when init => 
---				spill <= '0';
---				fill  <= '0';	
---				next_state <= spill;
---			when spill =>
---				if (spill = '1') then
---					--tail <= ; update tail
---					next_state <= spill;
---				else
---					next_state <= init;
---				end if;
---			when fill  => 
---				if (spill = '1') then
---					--tail <= ; update tail
---					next_state <= fill;
---				else
---					next_state <= init;
---				end if;
---		end case;	
+--		if (rst='1') then
+--			state <= init;
+--
+--		elsif rising_edge(clk) then
+--			case state is
+--				when init => 
+--					spill <= '0';
+--					fill  <= '0';	
+--					head <= exout.head;
+--					tail <= exout.tail;
+--			--	dout.stall <= '0';
+--					if (spill = '1') then
+--						state <= spill;
+--					elsif (fill = '1') then 
+--						state <= fill;
+--					else 
+--						state <= init;
+--					end if;
+--				when spill =>
+--					if (spill = '1') then
+--						--tail <= ; update tail
+--						state <= spill;
+--					else
+--						state <= init;
+--					end if;
+--				when fill  => 
+--					if (spill = '1') then
+--						--tail <= ; update tail
+--						state <= fill;
+--					else
+--						state <= init;
+--					end if;
+--			end case;	
+--		end if;
 --	end process;		  
 --	
---	process (clk)
---	begin
---   	 	if(rising_edge(clk)) then
---     		   current_state <= next_state;
---   	 	end if;
---	end process;
+--	
+--	--	
+
 	-----------------------------------------------
 	   
 	memory0 : entity work.patmos_data_memory(arch)
@@ -296,6 +352,41 @@ begin
 			when others => null;
 		end case;
 	end process;
+	
+--	process(sc_word_enable0, sc_word_enable1, sc_byte_enable0, sc_byte_enable1, sc_byte_enable2, sc_byte_enable3, decdout, exout, sc_write)
+--	begin
+--		case decdout.adrs_type is
+--			when word => 
+--				sc_en0             <= sc_write;
+--				sc_en1             <= sc_write;
+--				sc_en2             <= sc_write;
+--				sc_en3             <= sc_write;
+--				sc_write_data0 <= exout.mem_write_data(31 downto 24);
+--				sc_write_data1 <= exout.mem_write_data(23 downto 16);
+--				sc_write_data2 <= exout.mem_write_data(15 downto 8);
+--				sc_write_data3 <= exout.mem_write_data(7 downto 0);
+--			when half =>
+--				sc_en0             <= word_enable0;
+--				en1             <= word_enable0;
+--				en2             <= word_enable1;
+--				en3             <= word_enable1;
+--				mem_write_data0 <= exout.mem_write_data(15 downto 8);
+--				mem_write_data1 <= exout.mem_write_data(7 downto 0);
+--				mem_write_data2 <= exout.mem_write_data(15 downto 8);
+--				mem_write_data3 <= exout.mem_write_data(7 downto 0);
+--			when byte =>
+--				en0 <= byte_enable0;
+--				en1 <= byte_enable1;
+--				en2 <= byte_enable2;
+--				en3 <= byte_enable3;
+--	
+--				mem_write_data0 <= exout.mem_write_data(7 downto 0);
+--				mem_write_data1 <= exout.mem_write_data(7 downto 0);
+--				mem_write_data2 <= exout.mem_write_data(7 downto 0);
+--				mem_write_data3 <= exout.mem_write_data(7 downto 0);
+--			when others => null;
+--		end case;
+--	end process;
 	
 -- write back
 	process(mem_data_out_muxed, exout)
