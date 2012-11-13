@@ -74,7 +74,7 @@ architecture arch of patmos_alu is
 	----- stack cache
 	
 	signal doutex_sc_write						: std_logic;
-	
+	signal doutex_sc_read						: std_logic;
 	signal head, tail							: std_logic_vector(sc_depth - 1 downto 0);
 	signal doutex_head, doutex_tail				: std_logic_vector(sc_depth - 1 downto 0);
 	signal num_valid_sc_slots					: std_logic_vector(sc_depth - 1 downto 0) := "1111111111";
@@ -219,6 +219,7 @@ begin
 			doutex.reg_write 			<= doutex_reg_write;
 			doutex_reg_write_reg 		<= doutex_reg_write;
 			doutex.lm_read 				<= doutex_lm_read;
+			doutex.sc_read 				<= doutex_sc_read;
 			doutex.mem_to_reg           <= decdout.mem_to_reg;
 			doutex.alu_result_reg       <= rd;
 			doutex.adrs_reg		      	<= adrs;
@@ -258,11 +259,13 @@ begin
 		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
 			doutex_lm_write             <= decdout.lm_write;
 			doutex_lm_read              <= decdout.lm_read;
+			doutex_sc_read              <= decdout.sc_read;
 			doutex_sc_write             <= decdout.sc_write;
 			doutex_reg_write 			<= decdout.reg_write;
 			predicate_checked 			<= predicate;
 		else
 			doutex_lm_write              <= '0';
+			doutex_sc_read               <= '0';
 			doutex_lm_read               <= '0';
 			doutex_reg_write    		 <= '0';
 			doutex_reg_write 			 <= '0';

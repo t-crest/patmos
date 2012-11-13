@@ -74,9 +74,16 @@ architecture arch of patmos_mem_stage is
     signal sc_word_enable0, sc_word_enable1 : std_logic;
     signal sc_byte_enable0, sc_byte_enable1 : std_logic;
     signal sc_byte_enable2, sc_byte_enable3 : std_logic;
-    signal sc_read_data0					 : std_logic_vector(7 downto 0);
+    signal sc_read_data0, sc_read_data1		 : std_logic_vector(7 downto 0);
+    signal sc_read_data2, sc_read_data3		 : std_logic_vector(7 downto 0);
 	signal sc_write_data0, sc_write_data1	 : std_logic_vector(7 downto 0);
 	signal sc_write_data2, sc_write_data3	 : std_logic_vector(7 downto 0);
+    signal sc_ld_word						 : std_logic_vector(31 downto 0);
+    signal sc_ld_half						 : std_logic_vector(15 downto 0);
+    signal sc_ld_byte					 	 : std_logic_vector(7 downto 0);
+    signal sc_half_ext, sc_byte_ext			 : std_logic_vector(31 downto 0);
+    signal sc_data_out						 : std_logic_vector(31 downto 0);
+    signal sc_lm_data						 : std_logic_vector(31 downto 0);
     
     signal state 							 : sc_state;
     signal head, tail, head_tail			 : std_logic_vector(sc_depth - 1 downto 0);
@@ -142,10 +149,14 @@ begin
 			     
 	process(mem_write_data0, mem_write_data1,  mem_write_data2, mem_write_data3) -- write to stack cache from main memory or register
 	begin
-		sc_write_data0 <=  mem_write_data0;
-		sc_write_data1 <=  mem_write_data1;
-		sc_write_data2 <=  mem_write_data2;
-		sc_write_data3 <=  mem_write_data3;
+		--if (exout.sc_write_not_reg = '1') then -- normal store
+			sc_write_data0 <=  mem_write_data0;
+			sc_write_data1 <=  mem_write_data1;
+			sc_write_data2 <=  mem_write_data2;
+			sc_write_data3 <=  mem_write_data3;
+		if (fill = '1') then 				-- fill stack cache
+		end if;	
+		
 	end process;    
 	
 	
@@ -241,54 +252,65 @@ begin
 			     dout3);
 	
 	--------------------------- address muxes begin--------------------------		     
-	process( dout0, dout1, dout2, dout3)
+	process( dout0, dout1, dout2, dout3, sc_read_data0, sc_read_data1, sc_read_data2, sc_read_data3)
 	begin
 		ld_word <= dout0 & dout1 & dout2 & dout3;
+		sc_ld_word <= sc_read_data0 & sc_read_data1 & sc_read_data2 & sc_read_data3; 
 	end process;
 	
-	ld_add_half:process(exout, dout0, dout1, dout2, dout3)
+	ld_add_half:process(exout, dout0, dout1, dout2, dout3, sc_read_data0, sc_read_data1, sc_read_data2, sc_read_data3)
 	begin
 		case exout.adrs_reg(1) is
 			when '0' =>
 				ld_half <= dout0 & dout1;
+				sc_ld_half <= sc_read_data0 & sc_read_data1;
 			when '1' =>
 				ld_half <= dout2 & dout3;
+				sc_ld_half <= sc_read_data2 & sc_read_data3;
 			when others => null;
 		end case;
 	end process;
 	
-	process(exout, dout0, dout1, dout2, dout3)
+	process(exout, dout0, dout1, dout2, dout3, sc_read_data0, sc_read_data1, sc_read_data2, sc_read_data3)
 	begin
 		case exout.adrs_reg(1 downto 0) is
 			when "00" =>
 				ld_byte <= dout0;
+				sc_ld_byte <= sc_read_data0;
 			when "01" =>
 				ld_byte <= dout1;
+				sc_ld_byte <= sc_read_data1;
 			when "10" =>
 				ld_byte <= dout2;
+				sc_ld_byte <= sc_read_data2;
 			when "11" =>
 				ld_byte <= dout3;
+				sc_ld_byte <= sc_read_data3;
 			when others => null;
 		end case;		
 	end process;
 	--------------------------- address muxes end--------------------------	
 	
 	--------------------------- sign extension begin--------------------------
-	process(ld_half, s_u)
+	process(ld_half, sc_ld_half, s_u)
 	begin
 		if (s_u = '1') then
 			half_ext <= std_logic_vector(resize(signed(ld_half), 32));
+			sc_half_ext <= std_logic_vector(resize(signed(sc_ld_half), 32));
 		else
 			half_ext <= std_logic_vector(resize(unsigned(ld_half), 32));
+			sc_half_ext <= std_logic_vector(resize(unsigned(sc_ld_half), 32));
 		end if;
 	end process;
 		
-	process(ld_byte, s_u)
+	process(ld_byte, sc_ld_byte, s_u)
 	begin
 		if (s_u = '1') then
 			byte_ext <= std_logic_vector(resize(signed(ld_byte), 32));
+			sc_byte_ext <= std_logic_vector(resize(signed(sc_ld_byte), 32));
 		else
 			byte_ext <= std_logic_vector(resize(unsigned(ld_byte), 32));
+			sc_byte_ext <= std_logic_vector(resize(unsigned(sc_ld_byte), 32));
 		end if;
 	end process;
 	--------------------------- sign extension end--------------------------
@@ -299,10 +321,13 @@ begin
 		case ldt_type is
 			when word => 
 				dout.data_mem_data_out <= ld_word;
+				sc_data_out	   <= sc_ld_word;	
 			when half =>
 				dout.data_mem_data_out <= half_ext;
+				sc_data_out	   <= sc_half_ext;
 			when byte =>
 				dout.data_mem_data_out <= byte_ext;
+				sc_data_out	   <= sc_byte_ext;
 			when others => null;
 		end case;
 	end process;
@@ -399,14 +424,22 @@ begin
 		end case;
 	end process;
 	
-
+--	process(exout, mem_data_out_muxed, sc_data_out) -- ld from stack cache or  io/scratchpad
+--	begin
+--		sc_lm_data <= mem_data_out_muxed;
+--		if (exout.lm_read = '1') then 
+--			sc_lm_data <= mem_data_out_muxed;
+--		elsif (exout.sc_read = '1') then
+--			sc_lm_data <= sc_data_out;
+--		end if;
+--	end process;
 	
 -- write back
 	process(mem_data_out_muxed, exout)
 	begin
 		if exout.mem_to_reg = '1' then
-			dout.data <= mem_data_out_muxed;
-			datain <= mem_data_out_muxed;
+			dout.data <= mem_data_out_muxed; --sc_lm_data;--
+			datain <= mem_data_out_muxed;--sc_lm_data;--
 		else
 			dout.data <= exout.alu_result_reg;
 			datain <= exout.alu_result_reg;

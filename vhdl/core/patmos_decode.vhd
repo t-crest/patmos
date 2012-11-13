@@ -97,7 +97,7 @@ begin
 			dout.alu_src      	 <= '1'; -- choose the second source, i.e. immediate!
 			dout.mem_to_reg   	 <= '0'; -- data comes from alu or mem ? 0 from alu and 1 from mem
 			dout.lm_read         <= '0';
---			dout.sc_write_out             <= '0';
+			dout.sc_read	     <= '0';
 			dout.lm_write		 <= '0';
 			dout.sc_write		 <= '0';
 			dout.s_u 			 <= '1';
@@ -286,16 +286,21 @@ begin
 						---------------------------------------- stack cache
 						when "00000" =>
 							dout.adrs_type <= word;
+							dout.sc_read			  <= '1';
 						when "00100" =>
 							dout.adrs_type <= half;
+							dout.sc_read			  <= '1';
 						when "01000" =>
 							dout.adrs_type <= byte;
+							dout.sc_read			  <= '1';
 						when "01100" =>
 							dout.adrs_type <= half;
 							dout.s_u		<= '0';
+							dout.sc_read			  <= '1';
 						when "10000" =>
 							dout.adrs_type <= byte;
 							dout.s_u		<= '0';
+							dout.sc_read			  <= '1';
 						----------------------------------------- global memory	
 						when "00011" =>
 							dout.adrs_type <= word;

@@ -91,6 +91,7 @@ package patmos_type_package is
 	type decode_out_type is record
 		lm_write 								: std_logic;
 		sc_write								: std_logic;
+		sc_read									: std_logic;
 		lm_read	 								: std_logic;
 		imm       								: std_logic_vector(31 downto 0);
 		instr_cmp 								: std_logic;
@@ -168,6 +169,7 @@ package patmos_type_package is
 		sc_read_not_reg  						 : std_logic;
 		sc_write_not_reg 						 : std_logic;
 		sc_write 								 : std_logic;
+		sc_read									 : std_logic;
 		stall         							 : std_logic;
 		head									 : std_logic_vector(sc_depth - 1 downto 0);
 		tail									 : std_logic_vector(sc_depth - 1 downto 0);
