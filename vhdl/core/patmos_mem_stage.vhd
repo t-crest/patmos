@@ -55,7 +55,6 @@ end entity patmos_mem_stage;
 
 architecture arch of patmos_mem_stage is
 	signal en0, en1, en2, en3               : std_logic;
-	signal sc_en0, sc_en1, sc_en2, sc_en3   : std_logic;
 	signal dout0, dout1, dout2, dout3       : std_logic_vector(7 downto 0);
 	signal mem_write_data0, mem_write_data1 : std_logic_vector(7 downto 0);
 	signal mem_write_data2, mem_write_data3 : std_logic_vector(7 downto 0);
@@ -69,10 +68,19 @@ architecture arch of patmos_mem_stage is
     signal ld_byte						 	 : std_logic_vector(7 downto 0);
     signal	s_u								 : std_logic;
     signal half_ext, byte_ext				 : std_logic_vector(31 downto 0);
-    signal state 							 : sc_state;
     
-	signal head, tail, head_tail			 : std_logic_vector(sc_depth - 1 downto 0);
-	signal sc_read_data0, sc_write_data0	 : std_logic_vector(7 downto 0);
+    ------ stack cache
+    signal sc_en0, sc_en1, sc_en2, sc_en3   : std_logic;
+    signal sc_word_enable0, sc_word_enable1 : std_logic;
+    signal sc_byte_enable0, sc_byte_enable1 : std_logic;
+    signal sc_byte_enable2, sc_byte_enable3 : std_logic;
+    signal sc_read_data0					 : std_logic_vector(7 downto 0);
+	signal sc_write_data0, sc_write_data1	 : std_logic_vector(7 downto 0);
+	signal sc_write_data2, sc_write_data3	 : std_logic_vector(7 downto 0);
+    
+    signal state 							 : sc_state;
+    signal head, tail, head_tail			 : std_logic_vector(sc_depth - 1 downto 0);
+
 	signal spill, fill						 : std_logic;
 
 
@@ -109,7 +117,7 @@ begin
 		generic map(8, 10)
 		port map(clk,
 			     head_tail,
-			     sc_write_data0,
+			     sc_write_data1,
 			     sc_en1,
 			     head_tail,
 			     sc_read_data0);
@@ -118,7 +126,7 @@ begin
 		generic map(8, 10)
 		port map(clk,
 			     head_tail,
-			     sc_write_data0,
+			     sc_write_data2,
 			     sc_en2,
 			     head_tail,
 			     sc_read_data0);
@@ -127,11 +135,20 @@ begin
 		generic map(8, 10)
 		port map(clk,
 			     head_tail,
-			     sc_write_data0,
+			     sc_write_data3,
 			     sc_en3,
 			     head_tail,
 			     sc_read_data0);		
 			     
+	process(mem_write_data0, mem_write_data1,  mem_write_data2, mem_write_data3) -- write to stack cache from main memory or register
+	begin
+		sc_write_data0 <=  mem_write_data0;
+		sc_write_data1 <=  mem_write_data1;
+		sc_write_data2 <=  mem_write_data2;
+		sc_write_data3 <=  mem_write_data3;
+	end process;    
+	
+	
 	process(exout)
 	begin
 		head_tail <= exout.head;
@@ -298,11 +315,19 @@ begin
 		byte_enable1 <= '0';
 		byte_enable2 <= '0';
 		byte_enable3 <= '0';
+		sc_byte_enable0 <= '0';
+		sc_byte_enable0 <= '0';
+		sc_byte_enable0 <= '0';
+		sc_byte_enable0 <= '0';
 		case exout.adrs(1 downto 0) is
 			when "00"   => byte_enable0 <= mem_write;
+							sc_byte_enable0 <= exout.sc_write_not_reg;
 			when "01"   => byte_enable1 <= mem_write;
+							sc_byte_enable1 <= exout.sc_write_not_reg;
 			when "10"   => byte_enable2 <= mem_write;
+							sc_byte_enable2 <= exout.sc_write_not_reg;
 			when "11"   => byte_enable3 <= mem_write;
+							sc_byte_enable3 <= exout.sc_write_not_reg;
 			when others => null;
 		end case;
 	end process;
@@ -311,9 +336,13 @@ begin
 	begin
 		word_enable0 <= '0';
 		word_enable1 <= '0';
+		sc_word_enable0 <= '0';
+		sc_word_enable1 <= '0';
 		case exout.adrs(1) is
 			when '0'    => word_enable0 <= mem_write;
+							sc_word_enable0 <= exout.sc_write_not_reg;
 			when '1'    => word_enable1 <= mem_write;
+							sc_word_enable1 <= exout.sc_write_not_reg;
 			when others => null;
 		end case;
 	end process;
@@ -326,6 +355,12 @@ begin
 				en1             <= mem_write;
 				en2             <= mem_write;
 				en3             <= mem_write;
+				
+				sc_en0			<= exout.sc_write_not_reg;
+				sc_en1			<= exout.sc_write_not_reg;
+				sc_en2			<= exout.sc_write_not_reg;
+				sc_en3			<= exout.sc_write_not_reg;
+				
 				mem_write_data0 <= exout.mem_write_data(31 downto 24);
 				mem_write_data1 <= exout.mem_write_data(23 downto 16);
 				mem_write_data2 <= exout.mem_write_data(15 downto 8);
@@ -335,6 +370,12 @@ begin
 				en1             <= word_enable0;
 				en2             <= word_enable1;
 				en3             <= word_enable1;
+				
+				sc_en0          <= sc_word_enable0;
+				sc_en1          <= sc_word_enable0;
+				sc_en2          <= sc_word_enable1;
+				sc_en3          <= sc_word_enable1;
+				
 				mem_write_data0 <= exout.mem_write_data(15 downto 8);
 				mem_write_data1 <= exout.mem_write_data(7 downto 0);
 				mem_write_data2 <= exout.mem_write_data(15 downto 8);
@@ -344,6 +385,11 @@ begin
 				en1 <= byte_enable1;
 				en2 <= byte_enable2;
 				en3 <= byte_enable3;
+				
+				sc_en0 <= sc_byte_enable0;
+				sc_en1 <= sc_byte_enable1;
+				sc_en2 <= sc_byte_enable2;
+				sc_en3 <= sc_byte_enable3;
 	
 				mem_write_data0 <= exout.mem_write_data(7 downto 0);
 				mem_write_data1 <= exout.mem_write_data(7 downto 0);
@@ -353,40 +399,7 @@ begin
 		end case;
 	end process;
 	
---	process(sc_word_enable0, sc_word_enable1, sc_byte_enable0, sc_byte_enable1, sc_byte_enable2, sc_byte_enable3, decdout, exout, sc_write)
---	begin
---		case decdout.adrs_type is
---			when word => 
---				sc_en0             <= sc_write;
---				sc_en1             <= sc_write;
---				sc_en2             <= sc_write;
---				sc_en3             <= sc_write;
---				sc_write_data0 <= exout.mem_write_data(31 downto 24);
---				sc_write_data1 <= exout.mem_write_data(23 downto 16);
---				sc_write_data2 <= exout.mem_write_data(15 downto 8);
---				sc_write_data3 <= exout.mem_write_data(7 downto 0);
---			when half =>
---				sc_en0             <= word_enable0;
---				en1             <= word_enable0;
---				en2             <= word_enable1;
---				en3             <= word_enable1;
---				mem_write_data0 <= exout.mem_write_data(15 downto 8);
---				mem_write_data1 <= exout.mem_write_data(7 downto 0);
---				mem_write_data2 <= exout.mem_write_data(15 downto 8);
---				mem_write_data3 <= exout.mem_write_data(7 downto 0);
---			when byte =>
---				en0 <= byte_enable0;
---				en1 <= byte_enable1;
---				en2 <= byte_enable2;
---				en3 <= byte_enable3;
---	
---				mem_write_data0 <= exout.mem_write_data(7 downto 0);
---				mem_write_data1 <= exout.mem_write_data(7 downto 0);
---				mem_write_data2 <= exout.mem_write_data(7 downto 0);
---				mem_write_data3 <= exout.mem_write_data(7 downto 0);
---			when others => null;
---		end case;
---	end process;
+
 	
 -- write back
 	process(mem_data_out_muxed, exout)

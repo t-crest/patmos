@@ -94,13 +94,14 @@ begin
 			dout.rs2             <= din.operation(11 downto 7);
 			dout.rs1_data        <= din.rs1_data_in;
 			dout.rs2_data        <= din.rs2_data_in;
-			dout.alu_src      <= '1'; -- choose the second source, i.e. immediate!
-			dout.mem_to_reg   <= '0'; -- data comes from alu or mem ? 0 from alu and 1 from mem
-			dout.lm_read        <= '0';
+			dout.alu_src      	 <= '1'; -- choose the second source, i.e. immediate!
+			dout.mem_to_reg   	 <= '0'; -- data comes from alu or mem ? 0 from alu and 1 from mem
+			dout.lm_read         <= '0';
 --			dout.sc_write_out             <= '0';
-			dout.lm_write			  <= '0';
-			dout.s_u 					  <= '1';
-			dout.BC 							  <= '0';
+			dout.lm_write		 <= '0';
+			dout.sc_write		 <= '0';
+			dout.s_u 			 <= '1';
+			dout.BC 			 <= '0';
 			-- TODO: get defaults for all signals and remove redundant assignments 
 			dout.alu_alu_u <= '1';
 			case alu_func is
@@ -282,7 +283,7 @@ begin
 							dout.adrs_type <= byte;			
 							dout.lm_read       <= '1';
 							dout.s_u		<= '0';
-						----------------------------------------
+						---------------------------------------- stack cache
 						when "00000" =>
 							dout.adrs_type <= word;
 						when "00100" =>

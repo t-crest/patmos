@@ -139,37 +139,39 @@ package patmos_type_package is
 	-------------------------------------------
 
 	type execution_out_type is record
-		alu_result               : std_logic_vector(31 downto 0);
-		adrs					 : std_logic_vector(31 downto 0);
-		predicate                : std_logic_vector(7 downto 0);
+		alu_result             					 : std_logic_vector(31 downto 0);
+		adrs									 : std_logic_vector(31 downto 0);
+		predicate               				 : std_logic_vector(7 downto 0);
 --		result                   : result_type;
-		alu_result_reg           : std_logic_vector(31 downto 0);
-		adrs_reg     	    	 : std_logic_vector(31 downto 0);
-		reg_write            	 : std_logic;
-		mem_to_reg           	 : std_logic;
-		write_back_reg       	 : std_logic_vector(4 downto 0);
+		alu_result_reg                 			 : std_logic_vector(31 downto 0);
+		adrs_reg     	    					 : std_logic_vector(31 downto 0);
+		reg_write            					 : std_logic;
+		mem_to_reg           					 : std_logic;
+		write_back_reg       					 : std_logic_vector(4 downto 0);
 
-		lm_read  : std_logic;
-		lm_write : std_logic;
+		lm_read  								 : std_logic;
+		lm_write 								 : std_logic;
 --		sc_read_out  : std_logic;
 --		sc_write_out : std_logic;
-		mem_write_data : std_logic_vector(31 downto 0); 
+		mem_write_data 			 				 : std_logic_vector(31 downto 0); 
 		
-		adrs_type		    :  address_type;
+		adrs_type		  		 				 :  address_type;
 		--unregistered outputs
-		lm_read_out_not_reg	: std_logic;
-		lm_write_out_not_reg : std_logic;
-		sc_read_out_not_reg  : std_logic;
-		sc_write_out_not_reg : std_logic;
-		address_not_reg		: std_logic_vector(31 downto 0);
-		pc					: std_logic_vector(pc_length - 1 downto 0);
-		predicate_to_fetch	: std_logic;
-		imm       			: std_logic_vector(31 downto 0);
+		lm_read_not_reg			 				 : std_logic;
+		lm_write_not_reg 		 				 : std_logic;
+
+		address_not_reg			 				 : std_logic_vector(31 downto 0);
+		pc						 				 : std_logic_vector(pc_length - 1 downto 0);
+		predicate_to_fetch		 				 : std_logic;
+		imm       								 : std_logic_vector(31 downto 0);
 		--stack cache
-		stall         		: std_logic;
-		head				: std_logic_vector(sc_depth - 1 downto 0);
-		tail				: std_logic_vector(sc_depth - 1 downto 0);
-		spill				: std_logic;
+		sc_read_not_reg  						 : std_logic;
+		sc_write_not_reg 						 : std_logic;
+		sc_write 								 : std_logic;
+		stall         							 : std_logic;
+		head									 : std_logic_vector(sc_depth - 1 downto 0);
+		tail									 : std_logic_vector(sc_depth - 1 downto 0);
+		spill									 : std_logic;
 	end record;
 
 

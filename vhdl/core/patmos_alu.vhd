@@ -71,6 +71,10 @@ architecture arch of patmos_alu is
 	signal doutex_lm_read						: std_logic;
 	signal predicate_checked					: std_logic_vector(7 downto 0);
 	
+	----- stack cache
+	
+	signal doutex_sc_write						: std_logic;
+	
 	signal head, tail							: std_logic_vector(sc_depth - 1 downto 0);
 	signal doutex_head, doutex_tail				: std_logic_vector(sc_depth - 1 downto 0);
 	signal num_valid_sc_slots					: std_logic_vector(sc_depth - 1 downto 0) := "1111111111";
@@ -229,6 +233,7 @@ begin
 			
 			-- stack cache
 			doutex.imm 					<= decdout.imm;
+			doutex.sc_write 			<= doutex_sc_write;
 	--		doutex.head                 <= doutex_head;
 	--		doutex.tail                 <= doutex_tail;
 		end if;
@@ -237,28 +242,31 @@ begin
 	
 	process(decdout, alu_src2, rd, adrs, predicate_reg, predicate)
 	begin
-		doutex.lm_write_out_not_reg              <= '0';
-		doutex.lm_read_out_not_reg              <= '0';
-		predicate_checked						<= "00000001";
-		doutex.predicate_to_fetch				<= '0';
+		doutex.lm_write_not_reg             <= '0';
+		doutex.lm_read_not_reg              <= '0';
+		predicate_checked					<= "00000001";
+		doutex.predicate_to_fetch			<= '0';
 		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
-				doutex.lm_write_out_not_reg              <= decdout.lm_write;
-				doutex.lm_read_out_not_reg              <= decdout.lm_read;
-				doutex.predicate_to_fetch				<= '1';
+				doutex.lm_write_not_reg              <= decdout.lm_write;
+				doutex.sc_write_not_reg              <= decdout.sc_write;
+				doutex.lm_read_not_reg               <= decdout.lm_read;
+				doutex.predicate_to_fetch			 <= '1';
 		end if;
 		doutex.mem_write_data <= alu_src2;
 		doutex.alu_result <= rd;
 		doutex.adrs <= adrs;
 		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
-			doutex_lm_write              <= decdout.lm_write;
+			doutex_lm_write             <= decdout.lm_write;
 			doutex_lm_read              <= decdout.lm_read;
-			doutex_reg_write <= decdout.reg_write;
-			predicate_checked <= predicate;
+			doutex_sc_write             <= decdout.sc_write;
+			doutex_reg_write 			<= decdout.reg_write;
+			predicate_checked 			<= predicate;
 		else
 			doutex_lm_write              <= '0';
-			doutex_lm_read              <= '0';
-			doutex_reg_write    <= '0';
-			doutex_reg_write <= '0';
+			doutex_lm_read               <= '0';
+			doutex_reg_write    		 <= '0';
+			doutex_reg_write 			 <= '0';
+			doutex_sc_write              <= '0';
 		end if;
 	end process;
 
