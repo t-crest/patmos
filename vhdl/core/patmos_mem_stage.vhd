@@ -424,22 +424,22 @@ begin
 		end case;
 	end process;
 	
---	process(exout, mem_data_out_muxed, sc_data_out) -- ld from stack cache or  io/scratchpad
---	begin
---		sc_lm_data <= mem_data_out_muxed;
---		if (exout.lm_read = '1') then 
---			sc_lm_data <= mem_data_out_muxed;
---		elsif (exout.sc_read = '1') then
---			sc_lm_data <= sc_data_out;
---		end if;
---	end process;
+	process(exout, mem_data_out_muxed, sc_data_out) -- ld from stack cache or  io/scratchpad
+	begin
+		sc_lm_data <= mem_data_out_muxed;
+		if (exout.lm_read = '1') then 
+			sc_lm_data <= mem_data_out_muxed;
+		elsif (exout.sc_read = '1') then
+			sc_lm_data <= sc_data_out;
+		end if;
+	end process;
 	
 -- write back
-	process(mem_data_out_muxed, exout)
+	process(mem_data_out_muxed, exout, sc_lm_data)
 	begin
 		if exout.mem_to_reg = '1' then
-			dout.data <= mem_data_out_muxed; --sc_lm_data;--
-			datain <= mem_data_out_muxed;--sc_lm_data;--
+			dout.data <= sc_lm_data;--mem_data_out_muxed; --
+			datain <= sc_lm_data;--mem_data_out_muxed;--
 		else
 			dout.data <= exout.alu_result_reg;
 			datain <= exout.alu_result_reg;
