@@ -127,7 +127,7 @@ begin
 			     sc_write_data1,
 			     sc_en1,
 			     head_tail,
-			     sc_read_data0);
+			     sc_read_data1);
 			     
 	sc2: entity work.patmos_data_memory(arch)
 		generic map(8, 10)
@@ -136,7 +136,7 @@ begin
 			     sc_write_data2,
 			     sc_en2,
 			     head_tail,
-			     sc_read_data0);
+			     sc_read_data2);
 			     
 	sc3: entity work.patmos_data_memory(arch)
 		generic map(8, 10)
@@ -145,7 +145,7 @@ begin
 			     sc_write_data3,
 			     sc_en3,
 			     head_tail,
-			     sc_read_data0);		
+			     sc_read_data3);		
 			     
 	process(mem_write_data0, mem_write_data1,  mem_write_data2, mem_write_data3) -- write to stack cache from main memory or register
 	begin
@@ -316,7 +316,7 @@ begin
 	--------------------------- sign extension end--------------------------
 	
 	--------------------------- size muxe begin--------------------------
-	process(byte_ext, half_ext, ld_word, ldt_type)
+	process(byte_ext, half_ext, ld_word, ldt_type, sc_ld_word, sc_half_ext, sc_byte_ext)
 	begin
 		case ldt_type is
 			when word => 
@@ -341,9 +341,9 @@ begin
 		byte_enable2 <= '0';
 		byte_enable3 <= '0';
 		sc_byte_enable0 <= '0';
-		sc_byte_enable0 <= '0';
-		sc_byte_enable0 <= '0';
-		sc_byte_enable0 <= '0';
+		sc_byte_enable1 <= '0';
+		sc_byte_enable2 <= '0';
+		sc_byte_enable3 <= '0';
 		case exout.adrs(1 downto 0) is
 			when "00"   => byte_enable0 <= mem_write;
 							sc_byte_enable0 <= exout.sc_write_not_reg;
@@ -372,7 +372,9 @@ begin
 		end case;
 	end process;
 		
-	process(word_enable0, word_enable1, byte_enable0, byte_enable1, byte_enable2, byte_enable3, decdout, exout, mem_write)
+	process(word_enable0, word_enable1, byte_enable0, byte_enable1, byte_enable2, byte_enable3, decdout, exout, mem_write, 
+		     sc_word_enable0, sc_word_enable1, sc_byte_enable0, sc_byte_enable1, sc_byte_enable2, sc_byte_enable3
+	)
 	begin
 		case decdout.adrs_type is
 			when word => 
