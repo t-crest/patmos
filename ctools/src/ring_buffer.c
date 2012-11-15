@@ -43,14 +43,11 @@ void cbReserve(CircularBuffer *cb, int res_count ) {
 		for(t = 0; t < (res_count - (cb->sc_size - cb->count)); t++) // res_count - number of free slots
 		{
 			cb->mem[cb->sp] =  cb->sc[cb->tail];
-			if ((cb->tail + 1) > cb->sc_size) 
-				cb->tail = cb->tail++ % cb->sc_size;
-			else
-				cb->tail++;
+			cb->tail = cb->tail++ & (cb->sc_size - 1);
 			cb->sp++; 
 		}
-	cb->head = (cb->head + res_count) % cb->sc_size; // this will be elimination of higher bits in HW
-	if ((cb->count + res_count) <= cb->sc_size)	
+	cb->head = (cb->head + res_count) & (cb->sc_size - 1)//
+	if ((cb->count + res_count) <= cb->sc_size)	// is there any better way for this?
 		cb->count = cb->count + res_count; //update number of occupied slots
 	else    
 		cb->count = cb->sc_size;	// stack cache is full
@@ -62,12 +59,7 @@ void cbReserve(CircularBuffer *cb, int res_count ) {
 }
 
 void cbFree(CircularBuffer *cb, int free_count ) {
-	if (cb->head < free_count) {	
-//		temp = cb->head;
-		cb->head = cb->sc_size - (free_count - cb->head);
-		}
-	else
-		cb->head = cb->head - free_count;
+		cb->head = (cb->head - free_count) &  (cb->sc_size - 1);
 	cb->count = cb->count - free_count; //update number of occupied slots
 	printf("Free: head:%d\n", cb->head);
 	printf("Free: tail:%d\n", cb->tail);	
@@ -78,16 +70,13 @@ void cbFree(CircularBuffer *cb, int free_count ) {
 
 void cbEnsure(CircularBuffer *cb, int ens_count ) {
 	if ((cb->count) <  ens_count)// check fill, if there are at least the same number of slots...	
-		for(t = 0; t < (ens_count - cb->count); t++) //fill
+		for(t = 0; t < ens_count; t++) //fill
 		{
 			cb->sc[cb->tail] =  cb->mem[cb->sp];
-			if ((cb->tail - 1) > -1)
-				cb->tail--;
-			else     
-				cb->tail <= cb->sc_size;			
+			cb->tail <= cb->tail-- & (cb->sc_size-1);			
 			cb->sp--; 
 		}
-	cb->count = ens_count; // this is not ok, in case we have more that two functions 
+	cb->count = ens_count; 
 	printf("Ensure: head:%d\n", cb->head);
 	printf("Ensure: tail:%d\n", cb->tail);	
 	printf("Ensure: count:%d\n", cb->count);
