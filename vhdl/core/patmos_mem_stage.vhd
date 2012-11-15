@@ -162,7 +162,9 @@ begin
 	
 	process(exout)
 	begin
-		head_tail <= exout.head;
+		--if () -- load/store 
+		head_tail <=  exout.adrs(9 downto 0);--exout.head;
+		--else () spill/fill
 --		head_tail <= (others => '0');
 --		if (spill = '1') then
 --			head_tail <= head;
