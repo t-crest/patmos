@@ -50,9 +50,12 @@ void cbReserve(CircularBuffer *cb, int res_count ) {
 			cb->sp++; 
 		}
 	cb->head = (cb->head + res_count) & (cb->sc_size - 1); //
+	// MS: Why not reducing count in the spill loop
+	// This has to be try in any case, right?
 	if ((cb->count + res_count) <= cb->sc_size)	// is there any better way for this?
 		cb->count = cb->count + res_count; //update number of occupied slots
 	else    
+	// This does not work, right?
 		cb->count = cb->sc_size;	// stack cache is full
 	printf("Reserve: head:%d\n", cb->head);
 	printf("Reserve: tail:%d\n", cb->tail);	
@@ -64,6 +67,11 @@ void cbReserve(CircularBuffer *cb, int res_count ) {
 void cbFree(CircularBuffer *cb, int free_count ) {
 		cb->head = (cb->head - free_count) &  (cb->sc_size - 1);
 	cb->count = cb->count - free_count; //update number of occupied slots
+	// MS: what happens when we free more than count?
+	// Is this legal? It could and would result in manipulation of sp
+	// BTW: what is the 'meaning' of sp? It points to some spill region, right?
+	// In that case it is not a stack pointer in the classic sense and should
+	// be named differently.
 	printf("Free: head:%d\n", cb->head);
 	printf("Free: tail:%d\n", cb->tail);	
 	printf("Free: count:%d\n", cb->count);
@@ -92,6 +100,8 @@ int main(int argc, char **argv) {
 	CircularBuffer cb;
 	ElemType elem = {0};
  
+// MS: MASK = SIZE-1 works ONLY when SIZE is a power of 2.
+// Define the number of address bits n and size as 2 ** n.
 	int scSize = 20; 
 	int memSize = 50;
 	cbInit(&cb, scSize, memSize, 5);
