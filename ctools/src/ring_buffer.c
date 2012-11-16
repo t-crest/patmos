@@ -1,5 +1,8 @@
 #include <stdio.h>
-#include <malloc.h>
+// Mac does not like malloc.h
+//#include <malloc.h>
+// MS: read that stdlib.h shall be used, but that did not work either.
+//#include <stdlib.h>
  
 // Opaque buffer element type.  
 typedef struct { int value; } ElemType;
@@ -46,7 +49,7 @@ void cbReserve(CircularBuffer *cb, int res_count ) {
 			cb->tail = cb->tail++ & (cb->sc_size - 1);
 			cb->sp++; 
 		}
-	cb->head = (cb->head + res_count) & (cb->sc_size - 1)//
+	cb->head = (cb->head + res_count) & (cb->sc_size - 1); //
 	if ((cb->count + res_count) <= cb->sc_size)	// is there any better way for this?
 		cb->count = cb->count + res_count; //update number of occupied slots
 	else    
