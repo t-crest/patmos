@@ -1,6 +1,7 @@
 #include <stdio.h>
 // Mac does not like malloc.h
-#include <malloc.h> // SA: why commenting this, I don't get it
+#include <malloc.h> // SA: why commenting this, I don't get it...
+#include <math.h>
 // MS: read that stdlib.h shall be used, but that did not work either.
 //#include <stdlib.h>
  
@@ -10,6 +11,7 @@ typedef struct { int value; } ElemType;
 // Circular buffer object
 typedef struct {
     int         sc_size;   // maximum number of sc elements           
+    int 	address_size;
     int         mem_size;  // maximum number of mem elements            
     int         head;  // reserve, free            
     int         tail;    // spill, fill 
@@ -19,8 +21,8 @@ typedef struct {
     ElemType   *mem;  // vector of main memory
 } CircularBuffer;
  
-void cbInit(CircularBuffer *cb, int sc_size, int mem_size, int spill_fill) {
-    cb->sc_size  = sc_size;
+void cbInit(CircularBuffer *cb, int address_size, int mem_size, int spill_fill) {
+    cb->sc_size  = pow(2, address_size);//sc_size;
     cb->mem_size  = mem_size;	
     cb->spill_fill       = spill_fill;
     cb->head = 0;
@@ -52,6 +54,7 @@ void cbReserve(CircularBuffer *cb, int res_count ) {
 	else    
 	// This does not work, right? // SA: It works when the stack is full, the second reserve in the main
 		cb->count = cb->sc_size;	// stack cache is full
+//printf("Reserve: sc_:%d\n", cb->sc_size);
 	printf("Reserve: head:%d\n", cb->head);
 	printf("Reserve: tail:%d\n", cb->tail);	
 	printf("Reserve: count:%d\n", cb->count);
@@ -97,14 +100,19 @@ int main(int argc, char **argv) {
 	CircularBuffer cb;
 	ElemType elem = {0};
  
-// MS: MASK = SIZE-1 works ONLY when SIZE is a power of 2. 
+
+// MS: MASK = SIZE-1 works ONLY when SIZE is a power of 2. // SA: Yes, I forgot to change that...
 // Define the number of address bits n and size as 2 ** n.
-	int scSize = 16; 
+	int addrSize = 4; 
 	int memSize = 50;
-	cbInit(&cb, scSize, memSize, 5);
+	cbInit(&cb, addrSize, memSize, 5);
 	
  	cbReserve(&cb, 10); //reserve 10 elements
 	cbReserve(&cb, 10); //reserve 10 elements
+	cbReserve(&cb, 8); //reserve 8 elements
+	
+	cbFree(&cb, 8);
+	cbEnsure(&cb, 16);
 
 	cbFree(&cb, 10);
   
