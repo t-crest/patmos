@@ -84,8 +84,8 @@ architecture arch of patmos_mem_stage is
     signal sc_half_ext, sc_byte_ext			 : std_logic_vector(31 downto 0);
     signal sc_data_out						 : std_logic_vector(31 downto 0);
     signal sc_lm_data						 : std_logic_vector(31 downto 0);
-    
-    signal state 							 : sc_state;
+  
+    signal state							 : sc_state;
     signal head, tail, head_tail			 : std_logic_vector(sc_depth - 1 downto 0);
 
 	signal spill, fill						 : std_logic;
@@ -174,44 +174,45 @@ begin
 	end process;			          
 --			     
 --			     
---	process(clk, rst, spill, fill) -- adjust head/tail
---	begin 
---		if (rst='1') then
---			state <= init;
---
---		elsif rising_edge(clk) then
---			case state is
---				when init => 
---					spill <= '0';
---					fill  <= '0';	
---					head <= exout.head;
---					tail <= exout.tail;
---			--	dout.stall <= '0';
---					if (spill = '1') then
---						state <= spill;
---					elsif (fill = '1') then 
---						state <= fill;
---					else 
---						state <= init;
---					end if;
---				when spill =>
---					if (spill = '1') then
---						--tail <= ; update tail
---						state <= spill;
---					else
---						state <= init;
---					end if;
---				when fill  => 
---					if (spill = '1') then
---						--tail <= ; update tail
---						state <= fill;
---					else
---						state <= init;
---					end if;
---			end case;	
---		end if;
---	end process;		  
---	
+	process(clk, rst, spill, fill) -- adjust head/tail
+	begin 
+		if (rst='1') then
+			state <= init;
+			
+		elsif rising_edge(clk) then
+			case state is
+				when init => 
+					spill <= '0';
+					fill  <= '0';	
+					head <= exout.head;
+					tail <= exout.tail;
+					dout.stall <= '0';
+			--	dout.stall <= '0';
+					if (spill = '1') then
+						state <= spill_state;
+					elsif (fill = '1') then 
+						state <= fill_state;
+					else 
+						state <= init;
+					end if;
+				when spill_state =>
+					if (spill = '1') then
+						--tail <= ; update tail
+						state <= spill_state;
+					else
+						state <= init;
+					end if;
+				when fill_state  => 
+					if (spill = '1') then
+						--tail <= ; update tail
+						state <= fill_state;
+					else
+						state <= init;
+					end if;
+			end case;	
+		end if;
+	end process;		  
+	
 --	
 --	--	
 

@@ -245,6 +245,7 @@ begin
 	begin
 		doutex.lm_write_not_reg             <= '0';
 		doutex.lm_read_not_reg              <= '0';
+		doutex.sc_write_not_reg				<= '0';
 		predicate_checked					<= "00000001";
 		doutex.predicate_to_fetch			<= '0';
 		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
