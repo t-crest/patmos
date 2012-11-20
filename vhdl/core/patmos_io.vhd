@@ -185,8 +185,8 @@ begin                                   -- architecture begin
 		-- Everything disabled by default: device enabled in particular branch
 		addr       := execute_dout.adrs;
 		io_next    <= (address => addr, device => io_none, others => '0');
-		io_next.rd <= execute_dout.lm_read_out_not_reg;
-		io_next.wr <= execute_dout.lm_write_out_not_reg;
+		io_next.rd <= execute_dout.lm_read_not_reg;
+		io_next.wr <= execute_dout.lm_write_not_reg;
 
 		
 		-- Edgar: maybe can also use constants for different devices instead of one hot enables	

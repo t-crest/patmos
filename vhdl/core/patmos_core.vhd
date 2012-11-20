@@ -69,7 +69,7 @@ architecture arch of patmos_core is
 	------------------------------------------------------- fetch	
 
 	fet : entity work.patmos_fetch
-		port map(clk, rst, decode_dout, execute_dout, fetch_reg1, fetch_reg2, fetch_dout);
+		port map(clk, rst, decode_dout, execute_dout, mem_dout, fetch_reg1, fetch_reg2, fetch_dout);
 	-------------------------------------------------------- decode
 
 	reg_file : entity work.patmos_register_file(arch)
@@ -87,7 +87,7 @@ architecture arch of patmos_core is
 	decode_din.pc <= fetch_dout.pc;
 	decode_din.instr_b   <= fetch_dout.instr_b;
 	dec : entity work.patmos_decode(arch)
-		port map(clk, rst, decode_din, decode_dout);
+		port map(clk, rst, decode_din, mem_dout, decode_dout);
 
 	---------------------------------------------------- execute
 

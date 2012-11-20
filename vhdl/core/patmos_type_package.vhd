@@ -55,15 +55,15 @@ package patmos_type_package is
 	type function_type_alu_u					is(pat_sext8, pat_sext16, pat_zext16, pat_abs);
 	type function_type_alu_p					is (pat_por, pat_pand, pat_pxor, pat_pnor);
 	type function_type_alu_cmp					is (pat_cmpeq, pat_cmpneq, pat_cmplt, pat_cmple, pat_cmpult, pat_cmpule, pat_btest);
-	type isntrucion								is (st, ld, nop, br, alu, alui);
+	type isntrucion								is (none, st, ld, nop, br, alu, alui, res, ens, free);
 	type function_type_sc						is (reserve, free, ensure);
-	type sc_state								is (init, spill, fill);
+  	type sc_state								is (init, spill_state, fill_state);
 	-------------------------------------------
 	-- in/out records
 	-------------------------------------------
 	constant pc_length              			: integer := 32;
 	constant instruction_word_length 			: integer := 32;
-	constant sc_depth							: integer := 8;	
+	constant sc_depth							: integer := 10;	
 	-------------------------------------------
 	-- fetch/decode
 	-------------------------------------------
@@ -90,6 +90,8 @@ package patmos_type_package is
 	
 	type decode_out_type is record
 		lm_write 								: std_logic;
+		sc_write								: std_logic;
+		sc_read									: std_logic;
 		lm_read	 								: std_logic;
 		imm       								: std_logic_vector(31 downto 0);
 		instr_cmp 								: std_logic;
@@ -138,36 +140,40 @@ package patmos_type_package is
 	-------------------------------------------
 
 	type execution_out_type is record
-		alu_result               : std_logic_vector(31 downto 0);
-		adrs					 : std_logic_vector(31 downto 0);
-		predicate                : std_logic_vector(7 downto 0);
+		alu_result             					 : std_logic_vector(31 downto 0);
+		adrs									 : std_logic_vector(31 downto 0);
+		predicate               				 : std_logic_vector(7 downto 0);
 --		result                   : result_type;
-		alu_result_reg           : std_logic_vector(31 downto 0);
-		adrs_reg     	    	 : std_logic_vector(31 downto 0);
-		reg_write            	 : std_logic;
-		mem_to_reg           	 : std_logic;
-		write_back_reg       	 : std_logic_vector(4 downto 0);
+		alu_result_reg                 			 : std_logic_vector(31 downto 0);
+		adrs_reg     	    					 : std_logic_vector(31 downto 0);
+		reg_write            					 : std_logic;
+		mem_to_reg           					 : std_logic;
+		write_back_reg       					 : std_logic_vector(4 downto 0);
 
-		lm_read  : std_logic;
-		lm_write : std_logic;
+		lm_read  								 : std_logic;
+		lm_write 								 : std_logic;
 --		sc_read_out  : std_logic;
 --		sc_write_out : std_logic;
-		mem_write_data : std_logic_vector(31 downto 0); 
+		mem_write_data 			 				 : std_logic_vector(31 downto 0); 
 		
-		adrs_type		    :  address_type;
+		adrs_type		  		 				 :  address_type;
 		--unregistered outputs
-		lm_read_out_not_reg	: std_logic;
-		lm_write_out_not_reg : std_logic;
-		sc_read_out_not_reg  : std_logic;
-		sc_write_out_not_reg : std_logic;
-		address_not_reg		: std_logic_vector(31 downto 0);
-		pc					: std_logic_vector(pc_length - 1 downto 0);
-		predicate_to_fetch	: std_logic;
-		
+		lm_read_not_reg			 				 : std_logic;
+		lm_write_not_reg 		 				 : std_logic;
+
+		address_not_reg			 				 : std_logic_vector(31 downto 0);
+		pc						 				 : std_logic_vector(pc_length - 1 downto 0);
+		predicate_to_fetch		 				 : std_logic;
+		imm       								 : std_logic_vector(31 downto 0);
 		--stack cache
-		stall         		: std_logic;
-		tail				: std_logic_vector(sc_depth downto 0);
-		spill				: std_logic;
+		sc_read_not_reg  						 : std_logic;
+		sc_write_not_reg 						 : std_logic;
+		sc_write 								 : std_logic;
+		sc_read									 : std_logic;
+		stall         							 : std_logic;
+		head									 : std_logic_vector(sc_depth - 1 downto 0);
+		tail									 : std_logic_vector(sc_depth - 1 downto 0);
+		spill									 : std_logic;
 	end record;
 
 
@@ -184,6 +190,7 @@ package patmos_type_package is
 		data_mem_data_out  : std_logic_vector(31 downto 0); -- this is from memory it is used later to select between output of mem or IO
 		data  : std_logic_vector(31 downto 0); -- to register file
 		
+		stall         		: std_logic;
 	end record;
 
 
