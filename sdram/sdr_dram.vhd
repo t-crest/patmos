@@ -448,7 +448,7 @@ begin
                     end if;
 
                     -- Schedule Read Data
-                    delay_cnt_nxt <= tCAC_CYCLES - 2; -- (-1) because of counter implementation; extra (-1) because we stay idle during whole counting
+                    delay_cnt_nxt <= tCAC_CYCLES - 2 + 1; -- (-1) because of counter implementation; extra (-1) because we stay idle during whole counting; (+1) because the sdram_DQ input is registered in IOB
                     state_nxt     <= readDataWait;
                 end if;
             when readDataWait =>
