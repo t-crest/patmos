@@ -90,7 +90,7 @@ use ieee.numeric_std.all;
 use work.patmos_type_package.all;
 
 architecture RTL of patmos_top is
-    constant BURST_LENGTH : natural := 4;
+    constant BURST_LENGTH : natural := 8;
 
     constant ADDR_WIDTH  : integer := 23;
     constant DATA_WIDTH  : integer := 32;
@@ -107,9 +107,9 @@ architecture RTL of patmos_top is
     constant SA_WIDTH    : natural := dram0_ADDR'length;
 
     constant tCLK               : time    := 10 ns; --! Clock period
-    constant tINIT_IDLE         : time    := 50 ns; -- 200 us; --! Inactivity perdiod required during initialization 
+    constant tINIT_IDLE         : time    := 200 us; --! Inactivity perdiod required during initialization 
     constant INIT_REFRESH_COUNT : natural := 8; --! Number of Refresh commands required during initialization
-    constant tCAC_CYCLES        : natural := 3; --! CAS latency
+    constant tCAC_CYCLES        : natural := 2; --! CAS latency
     constant tRRD               : time    := 14 ns; --! Row to Row Delay (ACT[0]-ACT[1])
     constant tRCD               : time    := 20 ns; --! Row to Column Delay (ACT-READ/WRITE)
     constant tRAS               : time    := 45 ns; --! Row Access Strobe (ACT-PRE)
@@ -136,7 +136,7 @@ architecture RTL of patmos_top is
     --  constant GEN_REQUEST_SIZE : integer := 64;
     constant GEN_REQUEST_SIZE : integer := 4 * BURST_LENGTH;
     -- DMA control interface
-    constant DMA_ADDR_WIDTH   : integer := 2;
+    constant DMA_ADDR_WIDTH   : integer := 3;
     constant DMA_DATA_WIDTH   : integer := 32;
     
 
@@ -223,14 +223,20 @@ architecture RTL of patmos_top is
   
     
 begin
-    process(sys_clk)
+    assert 2**DMA_ADDR_WIDTH = BURST_LENGTH report "BURST_LENGTH should be == 2**DMA_ADDR_WIDTH" severity failure;
+    
+
+
+    process(sys_clk, pll_locked)
     begin
-        if rising_edge(sys_clk) then
+        if pll_locked = '0' then
+            res_cnt  <= "000";
+            rst  <= '1';
+        elsif rising_edge(sys_clk) then
             if (res_cnt /= "111") then
                 res_cnt <= std_logic_vector(unsigned(res_cnt) + 1);
             end if;
-
-            rst <= not pll_locked or not res_cnt(0) or not res_cnt(1) or not res_cnt(2);
+            rst <= not res_cnt(0) or not res_cnt(1) or not res_cnt(2);
         end if;
     end process;
     rst_n  <= not rst;
@@ -245,6 +251,7 @@ begin
 
     patmos_sdram_inst : entity work.patmos_sdram
         port map(clk                => dram_clk,
+--                 rst                => rst,
                  led                => led,
                  txd                => txd,
                  rxd                => rxd,
@@ -325,7 +332,7 @@ begin
         port map(
             rst                => rst,
             clk                => dram_clk,
-            pll_locked         => '1',
+            pll_locked         => pll_locked,
             ocp_MCmd           => ocp_MCmd,
             ocp_MCmd_doRefresh => ocp_MCmd_doRefresh,
             ocp_MAddr          => ocp_MAddr,
