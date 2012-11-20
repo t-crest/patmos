@@ -46,7 +46,8 @@ entity patmos_alu is
 		clk										: in  std_logic;
 		rst										: in  std_logic;
 		decdout									: in  decode_out_type;
-		doutex									: out execution_out_type;
+		doutex_reg								: out execution_reg;
+		doutex_not_reg							: out execution_not_reg;
 		memdout									: in mem_out_type
 		
 	);
@@ -212,19 +213,19 @@ begin
 	begin
 		if rst = '1' then
 			predicate_reg 				<= "00000001";
-			doutex.predicate 			<= "00000001";
+			doutex_reg.predicate 			<= "00000001";
 
 		elsif rising_edge(clk) then
-			doutex.lm_write 			<= doutex_lm_write; 
-			doutex.reg_write 			<= doutex_reg_write;
+			doutex_reg.lm_write 			<= doutex_lm_write; 
+			doutex_reg.reg_write 			<= doutex_reg_write;
 			doutex_reg_write_reg 		<= doutex_reg_write;
-			doutex.lm_read 				<= doutex_lm_read;
-			doutex.sc_read 				<= doutex_sc_read;
-			doutex.mem_to_reg           <= decdout.mem_to_reg;
-			doutex.alu_result_reg       <= rd;
-			doutex.adrs_reg		      	<= adrs;
-			doutex.write_back_reg       <= decdout.rd;
-			doutex.predicate            <= predicate_checked;
+			doutex_reg.lm_read 				<= doutex_lm_read;
+			doutex_reg.sc_read 				<= doutex_sc_read;
+			doutex_reg.mem_to_reg           <= decdout.mem_to_reg;
+			doutex_reg.alu_result_reg       <= rd;
+			doutex_reg.adrs_reg		      	<= adrs;
+			doutex_reg.write_back_reg       <= decdout.rd;
+			doutex_reg.predicate            <= predicate_checked;
 			predicate_reg               <= predicate_checked;
 			
 
@@ -233,8 +234,8 @@ begin
 			doutex_write_back_reg       <= decdout.rd;
 			
 			-- stack cache
-			doutex.imm 					<= decdout.imm;
-			doutex.sc_write 			<= doutex_sc_write;
+			doutex_reg.imm 					<= decdout.imm;
+			doutex_reg.sc_write 			<= doutex_sc_write;
 	--		doutex.head                 <= doutex_head;
 	--		doutex.tail                 <= doutex_tail;
 		--	if(memdout.stall = '1') then
@@ -246,20 +247,20 @@ begin
 	
 	process(decdout, alu_src2, rd, adrs, predicate_reg, predicate)
 	begin
-		doutex.lm_write_not_reg             <= '0';
-		doutex.lm_read_not_reg              <= '0';
-		doutex.sc_write_not_reg				<= '0';
+		doutex_not_reg.lm_write_not_reg             <= '0';
+		doutex_not_reg.lm_read_not_reg              <= '0';
+		doutex_not_reg.sc_write_not_reg				<= '0';
 		predicate_checked					<= "00000001";
-		doutex.predicate_to_fetch			<= '0';
+		doutex_not_reg.predicate_to_fetch			<= '0';
 		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
-				doutex.lm_write_not_reg              <= decdout.lm_write;
-				doutex.sc_write_not_reg              <= decdout.sc_write;
-				doutex.lm_read_not_reg               <= decdout.lm_read;
-				doutex.predicate_to_fetch			 <= '1';
+				doutex_not_reg.lm_write_not_reg              <= decdout.lm_write;
+				doutex_not_reg.sc_write_not_reg              <= decdout.sc_write;
+				doutex_not_reg.lm_read_not_reg               <= decdout.lm_read;
+				doutex_not_reg.predicate_to_fetch			 <= '1';
 		end if;
-		doutex.mem_write_data <= alu_src2;
-		doutex.alu_result <= rd;
-		doutex.adrs <= adrs;
+		doutex_not_reg.mem_write_data <= alu_src2;
+		doutex_not_reg.alu_result <= rd;
+		doutex_not_reg.adrs <= adrs;
 		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
 			doutex_lm_write             <= decdout.lm_write;
 			doutex_lm_read              <= decdout.lm_read;
@@ -279,7 +280,7 @@ begin
 
 	process(decdout) -- branch pc relative
 	begin
-		doutex.pc <= std_logic_vector(unsigned(decdout.pc) + unsigned(decdout.imm));
+		doutex_not_reg.pc <= std_logic_vector(unsigned(decdout.pc) + unsigned(decdout.imm));
 	end process;
 	
 	process(doutex_alu_result_reg, doutex_write_back_reg, doutex_reg_write_reg , decdout, memdout)
@@ -316,14 +317,14 @@ begin
 	
 	process(head, tail) -- passing head/ tail to memory
 	begin
-		doutex.head <= head; -- head to mem stage
-		doutex.tail <= tail; -- tail to mem stage
+		doutex_not_reg.head <= head; -- head to mem stage
+		doutex_not_reg.tail <= tail; -- tail to mem stage
 	end process;
 	
 	process( decdout, predicate_reg) -- stack cache
 	begin
-		doutex.spill <= '0';
-		doutex.stall <= '0';
+		doutex_not_reg.spill <= '0';
+		doutex_not_reg.stall <= '0';
 		head 						<= (others => '0');
 		tail 						<= (others => '0');
 		--num_valid_sc_slots			<= "";
@@ -332,7 +333,7 @@ begin
 			when reserve => 
 				
 				if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
-					doutex.spill <= '1';
+					doutex_not_reg.spill <= '1';
 --					if ((cb->sc_size - cb->count) <  res_count)// check spill	
 --					for(t = 0; t < (res_count - (cb->sc_size - cb->count)); t++) // res_count - number of free slots
 --						{

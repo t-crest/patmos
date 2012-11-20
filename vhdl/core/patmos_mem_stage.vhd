@@ -43,13 +43,14 @@ use work.patmos_type_package.all;
 
 entity patmos_mem_stage is
 	port(
-		clk  : in  std_logic;
-		rst  : in  std_logic;
-		mem_write  : in  std_logic;
-		mem_data_out_muxed : in std_logic_vector(31 downto 0);
-		exout : in execution_out_type;
-		dout : out mem_out_type;
-		decdout									: in  decode_out_type
+		clk  								: in  std_logic;
+		rst  								: in  std_logic;
+		mem_write  							: in  std_logic;
+		mem_data_out_muxed 					: in std_logic_vector(31 downto 0);
+		exout_reg 							: in execution_reg;
+		exout_not_reg 						: in execution_not_reg;
+		dout 								: out mem_out_type;
+		decdout								: in  decode_out_type
 	);
 end entity patmos_mem_stage;
 
@@ -97,8 +98,8 @@ begin
 		if (rising_edge(clk)) then
 			dout.data_out <= datain;
 			-- forwarding
-			dout.reg_write_out      <= exout.reg_write or exout.mem_to_reg;
-			dout.write_back_reg_out <= exout.write_back_reg;
+			dout.reg_write_out      <= exout_reg.reg_write or exout_reg.mem_to_reg;
+			dout.write_back_reg_out <= exout_reg.write_back_reg;
 			ldt_type <= decdout.adrs_type;
 			s_u		<= decdout.s_u;
 		end if;
@@ -160,10 +161,10 @@ begin
 	end process;    
 	
 	
-	process(exout)
+	process(exout_not_reg)
 	begin
 		--if () -- load/store 
-		head_tail <=  exout.adrs(9 downto 0);--exout.head;
+		head_tail <=  exout_not_reg.adrs(9 downto 0);--exout.head;
 		--else () spill/fill
 --		head_tail <= (others => '0');
 --		if (spill = '1') then
@@ -174,9 +175,9 @@ begin
 	end process;			          
 --			     
 --			  
-	process(exout)
+	process(exout_not_reg)
 	begin
-		spill <= exout.spill;
+	--	spill <= exout_not_reg.spill;
 	end process;
 	   
 	process(clk, rst, spill, fill) -- adjust head/tail
@@ -189,20 +190,20 @@ begin
 				when init => 
 				--	spill <= '0';
 				--	fill  <= '0';	
-					head <= exout.head;
-					tail <= exout.tail;
+					head <= exout_not_reg.head;
+					tail <= exout_not_reg.tail;
 					dout.stall <= '0';
 			--	dout.stall <= '0';
 					if (spill = '1') then
 						state <= spill_state;
-						dout.stall <= '0';
+					--	dout.stall <= '0';
 					elsif (fill = '1') then 
 						state <= fill_state;
 					else 
 						state <= init;
 					end if;
 				when spill_state =>
-					dout.stall <= '1';
+				--	dout.stall <= '1';
 					if (spill = '1') then
 						--tail <= ; update tail
 						state <= spill_state;
@@ -210,7 +211,7 @@ begin
 						state <= init;
 					end if;
 				when fill_state  => 
-					dout.stall <= '1';
+				--	dout.stall <= '1';
 					if (spill = '1') then
 						--tail <= ; update tail
 						state <= fill_state;
@@ -229,37 +230,37 @@ begin
 	memory0 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     exout.adrs(9 downto 0),
+			     exout_not_reg.adrs(9 downto 0),
 			     mem_write_data0,
 			     en0,
-			     exout.adrs(9 downto 0),
+			     exout_not_reg.adrs(9 downto 0),
 			     dout0);
 
 	memory1 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     exout.adrs(9 downto 0),
+			     exout_not_reg.adrs(9 downto 0),
 			     mem_write_data1,
 			     en1,
-			     exout.adrs(9 downto 0),
+			     exout_not_reg.adrs(9 downto 0),
 			     dout1);
 
 	memory2 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     exout.adrs(9 downto 0),
+			     exout_not_reg.adrs(9 downto 0),
 			     mem_write_data2,
 			     en2,
-			     exout.adrs(9 downto 0),
+			     exout_not_reg.adrs(9 downto 0),
 			     dout2);
 
 	memory3 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     exout.adrs(9 downto 0),
+			     exout_not_reg.adrs(9 downto 0),
 			     mem_write_data3,
 			     en3,
-			     exout.adrs(9 downto 0),
+			     exout_not_reg.adrs(9 downto 0),
 			     dout3);
 	
 	--------------------------- address muxes begin--------------------------		     
@@ -269,9 +270,9 @@ begin
 		sc_ld_word <= sc_read_data0 & sc_read_data1 & sc_read_data2 & sc_read_data3; 
 	end process;
 	
-	ld_add_half:process(exout, dout0, dout1, dout2, dout3, sc_read_data0, sc_read_data1, sc_read_data2, sc_read_data3)
+	ld_add_half:process(exout_reg, dout0, dout1, dout2, dout3, sc_read_data0, sc_read_data1, sc_read_data2, sc_read_data3)
 	begin
-		case exout.adrs_reg(1) is
+		case exout_reg.adrs_reg(1) is
 			when '0' =>
 				ld_half <= dout0 & dout1;
 				sc_ld_half <= sc_read_data0 & sc_read_data1;
@@ -282,9 +283,9 @@ begin
 		end case;
 	end process;
 	
-	process(exout, dout0, dout1, dout2, dout3, sc_read_data0, sc_read_data1, sc_read_data2, sc_read_data3)
+	process(exout_reg, dout0, dout1, dout2, dout3, sc_read_data0, sc_read_data1, sc_read_data2, sc_read_data3)
 	begin
-		case exout.adrs_reg(1 downto 0) is
+		case exout_reg.adrs_reg(1 downto 0) is
 			when "00" =>
 				ld_byte <= dout0;
 				sc_ld_byte <= sc_read_data0;
@@ -345,7 +346,7 @@ begin
 	
 	--------------------------- size muxe end--------------------------
 
-	process(exout, mem_write)
+	process(exout_not_reg, mem_write)
 	begin
 		byte_enable0 <= '0';
 		byte_enable1 <= '0';
@@ -355,35 +356,35 @@ begin
 		sc_byte_enable1 <= '0';
 		sc_byte_enable2 <= '0';
 		sc_byte_enable3 <= '0';
-		case exout.adrs(1 downto 0) is
+		case exout_not_reg.adrs(1 downto 0) is
 			when "00"   => byte_enable0 <= mem_write;
-							sc_byte_enable0 <= exout.sc_write_not_reg;
+							sc_byte_enable0 <= exout_not_reg.sc_write_not_reg;
 			when "01"   => byte_enable1 <= mem_write;
-							sc_byte_enable1 <= exout.sc_write_not_reg;
+							sc_byte_enable1 <= exout_not_reg.sc_write_not_reg;
 			when "10"   => byte_enable2 <= mem_write;
-							sc_byte_enable2 <= exout.sc_write_not_reg;
+							sc_byte_enable2 <= exout_not_reg.sc_write_not_reg;
 			when "11"   => byte_enable3 <= mem_write;
-							sc_byte_enable3 <= exout.sc_write_not_reg;
+							sc_byte_enable3 <= exout_not_reg.sc_write_not_reg;
 			when others => null;
 		end case;
 	end process;
 
-	process(exout, mem_write)
+	process(exout_not_reg, mem_write)
 	begin
 		word_enable0 <= '0';
 		word_enable1 <= '0';
 		sc_word_enable0 <= '0';
 		sc_word_enable1 <= '0';
-		case exout.adrs(1) is
+		case exout_not_reg.adrs(1) is
 			when '0'    => word_enable0 <= mem_write;
-							sc_word_enable0 <= exout.sc_write_not_reg;
+							sc_word_enable0 <= exout_not_reg.sc_write_not_reg;
 			when '1'    => word_enable1 <= mem_write;
-							sc_word_enable1 <= exout.sc_write_not_reg;
+							sc_word_enable1 <= exout_not_reg.sc_write_not_reg;
 			when others => null;
 		end case;
 	end process;
 		
-	process(word_enable0, word_enable1, byte_enable0, byte_enable1, byte_enable2, byte_enable3, decdout, exout, mem_write, 
+	process(word_enable0, word_enable1, byte_enable0, byte_enable1, byte_enable2, byte_enable3, decdout, exout_not_reg, mem_write, 
 		     sc_word_enable0, sc_word_enable1, sc_byte_enable0, sc_byte_enable1, sc_byte_enable2, sc_byte_enable3
 	)
 	begin
@@ -394,15 +395,15 @@ begin
 				en2             <= mem_write;
 				en3             <= mem_write;
 				
-				sc_en0			<= exout.sc_write_not_reg;
-				sc_en1			<= exout.sc_write_not_reg;
-				sc_en2			<= exout.sc_write_not_reg;
-				sc_en3			<= exout.sc_write_not_reg;
+				sc_en0			<= exout_not_reg.sc_write_not_reg;
+				sc_en1			<= exout_not_reg.sc_write_not_reg;
+				sc_en2			<= exout_not_reg.sc_write_not_reg;
+				sc_en3			<= exout_not_reg.sc_write_not_reg;
 				
-				mem_write_data0 <= exout.mem_write_data(31 downto 24);
-				mem_write_data1 <= exout.mem_write_data(23 downto 16);
-				mem_write_data2 <= exout.mem_write_data(15 downto 8);
-				mem_write_data3 <= exout.mem_write_data(7 downto 0);
+				mem_write_data0 <= exout_not_reg.mem_write_data(31 downto 24);
+				mem_write_data1 <= exout_not_reg.mem_write_data(23 downto 16);
+				mem_write_data2 <= exout_not_reg.mem_write_data(15 downto 8);
+				mem_write_data3 <= exout_not_reg.mem_write_data(7 downto 0);
 			when half =>
 				en0             <= word_enable0;
 				en1             <= word_enable0;
@@ -414,10 +415,10 @@ begin
 				sc_en2          <= sc_word_enable1;
 				sc_en3          <= sc_word_enable1;
 				
-				mem_write_data0 <= exout.mem_write_data(15 downto 8);
-				mem_write_data1 <= exout.mem_write_data(7 downto 0);
-				mem_write_data2 <= exout.mem_write_data(15 downto 8);
-				mem_write_data3 <= exout.mem_write_data(7 downto 0);
+				mem_write_data0 <= exout_not_reg.mem_write_data(15 downto 8);
+				mem_write_data1 <= exout_not_reg.mem_write_data(7 downto 0);
+				mem_write_data2 <= exout_not_reg.mem_write_data(15 downto 8);
+				mem_write_data3 <= exout_not_reg.mem_write_data(7 downto 0);
 			when byte =>
 				en0 <= byte_enable0;
 				en1 <= byte_enable1;
@@ -429,33 +430,33 @@ begin
 				sc_en2 <= sc_byte_enable2;
 				sc_en3 <= sc_byte_enable3;
 	
-				mem_write_data0 <= exout.mem_write_data(7 downto 0);
-				mem_write_data1 <= exout.mem_write_data(7 downto 0);
-				mem_write_data2 <= exout.mem_write_data(7 downto 0);
-				mem_write_data3 <= exout.mem_write_data(7 downto 0);
+				mem_write_data0 <= exout_not_reg.mem_write_data(7 downto 0);
+				mem_write_data1 <= exout_not_reg.mem_write_data(7 downto 0);
+				mem_write_data2 <= exout_not_reg.mem_write_data(7 downto 0);
+				mem_write_data3 <= exout_not_reg.mem_write_data(7 downto 0);
 			when others => null;
 		end case;
 	end process;
 	
-	process(exout, mem_data_out_muxed, sc_data_out) -- ld from stack cache or  io/scratchpad
+	process(exout_reg, mem_data_out_muxed, sc_data_out) -- ld from stack cache or  io/scratchpad
 	begin
 		sc_lm_data <= mem_data_out_muxed;
-		if (exout.lm_read = '1') then 
+		if (exout_reg.lm_read = '1') then 
 			sc_lm_data <= mem_data_out_muxed;
-		elsif (exout.sc_read = '1') then
+		elsif (exout_reg.sc_read = '1') then
 			sc_lm_data <= sc_data_out;
 		end if;
 	end process;
 	
 -- write back
-	process(mem_data_out_muxed, exout, sc_lm_data)
+	process(mem_data_out_muxed, exout_reg, sc_lm_data)
 	begin
-		if exout.mem_to_reg = '1' then
+		if exout_reg.mem_to_reg = '1' then
 			dout.data <= sc_lm_data;--mem_data_out_muxed; --
 			datain <= sc_lm_data;--mem_data_out_muxed;--
 		else
-			dout.data <= exout.alu_result_reg;
-			datain <= exout.alu_result_reg;
+			dout.data <= exout_reg.alu_result_reg;
+			datain <= exout_reg.alu_result_reg;
 		end if;
 	end process;
 end arch;

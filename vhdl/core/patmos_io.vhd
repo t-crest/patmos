@@ -53,7 +53,7 @@ entity patmos_io is
 		mem_write			: out std_logic;
 		data_mem_data_out	: in std_logic_vector(31 downto 0);
 		mem_data_out_muxed : out std_logic_vector(31 downto 0);
-		execute_dout		: in execution_out_type;
+		execute_dout		: in execution_not_reg;
 		led                : out std_logic;
 		txd                : out std_logic;
 		rxd                : in  std_logic
@@ -216,7 +216,7 @@ begin                                   -- architecture begin
 	-- Would also be clearer is address calculation has it's own signals.
 	-- Maybe it shall be in it's own component (together with some address
 	-- decoding).
-	io_mem_read_mux : process(mem_data_out_uart, data_mem_data_out, execute_dout, io_reg, counter, cntus)
+	io_mem_read_mux : process(mem_data_out_uart, data_mem_data_out, io_reg, counter, cntus)
 	begin
 		mem_data_out_muxed <= (others  => '1'); -- The value for unused I/O address
 		if io_reg.mem_en = '0' then

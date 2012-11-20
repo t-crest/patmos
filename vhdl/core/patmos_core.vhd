@@ -45,12 +45,12 @@ use work.patmos_type_package.all;
 
 entity patmos_core is
 	port(
-		clk                : in  std_logic;
-		rst					:in  std_logic;
-		mem_write			: in std_logic;
-		mem_data_out_muxed	: in std_logic_vector(31 downto 0);
-		data_mem_data_out	: out std_logic_vector(31 downto 0);
-		execute_dout_core		: out execution_out_type
+		clk                			: in  std_logic;
+		rst							:in  std_logic;
+		mem_write					: in std_logic;
+		mem_data_out_muxed			: in std_logic_vector(31 downto 0);
+		data_mem_data_out			: out std_logic_vector(31 downto 0);
+		execute_dout_core			: out execution_not_reg
 	);
 end entity patmos_core;
 
@@ -60,7 +60,8 @@ architecture arch of patmos_core is
 	signal fetch_reg1, fetch_reg2 : std_logic_vector(4 downto 0);
 	signal decode_din             : decode_in_type;
 	signal decode_dout            : decode_out_type;
-	signal execute_dout           : execution_out_type;
+	signal execute_reg            : execution_reg;
+	signal execute_not_reg        : execution_not_reg;
 
 	signal mem_dout               : mem_out_type;
 
@@ -69,7 +70,7 @@ architecture arch of patmos_core is
 	------------------------------------------------------- fetch	
 
 	fet : entity work.patmos_fetch
-		port map(clk, rst, decode_dout, execute_dout, mem_dout, fetch_reg1, fetch_reg2, fetch_dout);
+		port map(clk, rst, decode_dout, execute_not_reg, mem_dout, fetch_reg1, fetch_reg2, fetch_dout);
 	-------------------------------------------------------- decode
 
 	reg_file : entity work.patmos_register_file(arch)
@@ -77,11 +78,11 @@ architecture arch of patmos_core is
 			     rst,
 			     fetch_reg1,
 			     fetch_reg2,
-			     execute_dout.write_back_reg,
+			     execute_reg.write_back_reg,
 			     decode_din.rs1_data_in,
 			     decode_din.rs2_data_in,
 			     mem_dout.data,
-			     execute_dout.reg_write);
+			     execute_reg.reg_write);
 
 	decode_din.operation <= fetch_dout.instruction;
 	decode_din.pc <= fetch_dout.pc;
@@ -92,14 +93,14 @@ architecture arch of patmos_core is
 	---------------------------------------------------- execute
 
 	alu: entity work.patmos_alu(arch)
-	port map(clk, rst, decode_dout, execute_dout, mem_dout);
-	execute_dout_core <= execute_dout;
+	port map(clk, rst, decode_dout, execute_reg, execute_not_reg, mem_dout);
+	execute_dout_core <= execute_not_reg;
 	------------------------------------------------------- memory
 
 
 	            
 	memory_stage : entity work.patmos_mem_stage(arch)
-		port map(clk, rst, mem_write, mem_data_out_muxed, execute_dout, mem_dout, decode_dout);
+		port map(clk, rst, mem_write, mem_data_out_muxed, execute_reg, execute_not_reg, mem_dout, decode_dout);
 
 	data_mem_data_out <= mem_dout.data_mem_data_out;
 end architecture arch;

@@ -53,7 +53,7 @@ architecture rtl of patmos is
 	signal mem_data_out_muxed : std_logic_vector(31 downto 0);
 	signal pat_rst				: std_logic;
 	signal data_mem_data_out	: std_logic_vector(31 downto 0);
-	signal execute_dout		: execution_out_type;
+	signal execute_dout		: execution_not_reg;
 
 begin
 
