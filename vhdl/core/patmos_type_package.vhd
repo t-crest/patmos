@@ -56,7 +56,7 @@ package patmos_type_package is
 	type function_type_alu_p					is (pat_por, pat_pand, pat_pxor, pat_pnor);
 	type function_type_alu_cmp					is (pat_cmpeq, pat_cmpneq, pat_cmplt, pat_cmple, pat_cmpult, pat_cmpule, pat_btest);
 	type isntrucion								is (none, st, ld, nop, br, alu, alui, res, ens, free);
-	type function_type_sc						is (reserve, free, ensure);
+	type function_type_sc						is (none, reserve, free, ensure);
   	type sc_state								is (init, spill_state, fill_state);
 	-------------------------------------------
 	-- in/out records

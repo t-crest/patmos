@@ -70,7 +70,7 @@ architecture arch of patmos_alu is
 	signal doutex_reg_write_reg					: std_logic;
 	signal doutex_lm_read						: std_logic;
 	signal predicate_checked					: std_logic_vector(7 downto 0);
-	
+	signal prev_dout							: execution_out_type;
 	----- stack cache
 	
 	signal doutex_sc_write						: std_logic;
@@ -237,6 +237,9 @@ begin
 			doutex.sc_write 			<= doutex_sc_write;
 	--		doutex.head                 <= doutex_head;
 	--		doutex.tail                 <= doutex_tail;
+		--	if(memdout.stall = '1') then
+		--		doutex <= prev_dout;
+		--	end if;
 		end if;
 	end process;
 	
@@ -329,34 +332,19 @@ begin
 			when reserve => 
 				
 				if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
-					if ((unsigned(head) + unsigned(decdout.imm)) > sc_depth) then -- check if wrap around needed
-						if (std_logic_vector(((unsigned(head) + unsigned(decdout.imm) mod sc_depth)) - unsigned(tail)) > num_valid_sc_slots ) then -- check if spill needed 
-							
-							head <= std_logic_vector((unsigned(head) + unsigned(decdout.imm(sc_depth - 1 downto 0))) mod sc_depth); -- update the head
-							doutex.spill <= '1';
-							doutex.stall <= '1';
-						end if;
-						
-					else -- no wrap around
-						if (unsigned(head) >= unsigned(tail)) then
-							if (std_logic_vector( unsigned(head) - unsigned(tail)) > num_valid_sc_slots ) then	
-								head <= std_logic_vector((unsigned(head) + unsigned(decdout.imm(sc_depth - 1 downto 0))) mod sc_depth); -- just update the head
-								num_valid_sc_slots	<= std_logic_vector(unsigned(num_valid_sc_slots) -  unsigned(decdout.imm(sc_depth - 1 downto 0)));
-							else
-								-- spill
-							end if;
-						else 
-							if (std_logic_vector( unsigned(tail) - unsigned(head)) > num_valid_sc_slots ) then	
-								head <= std_logic_vector((unsigned(head) + unsigned(decdout.imm(sc_depth - 1 downto 0))) mod sc_depth); -- just update the head
-								num_valid_sc_slots	<= std_logic_vector(unsigned(num_valid_sc_slots) -  unsigned(decdout.imm(sc_depth - 1 downto 0)));
-							else
-								-- spill
-							end if;
-						end if;
-					end if;
+					doutex.spill <= '1';
+--					if ((cb->sc_size - cb->count) <  res_count)// check spill	
+--					for(t = 0; t < (res_count - (cb->sc_size - cb->count)); t++) // res_count - number of free slots
+--						{
+--							cb->mem[cb->spill_fill] =  cb->sc[cb->tail];
+--							cb->tail = cb->tail++ & (cb->sc_size - 1);
+--							cb->spill_fill++; 
+--						}
+--					cb->head = (cb->head + res_count) & (cb->sc_size - 1);
 				end if; -- predicate
 			when ensure => null;
 			when free =>  null;
+			when none => null;
 		--	when none => null;
 		end case;
 		

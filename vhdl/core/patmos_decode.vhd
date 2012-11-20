@@ -104,7 +104,7 @@ begin
 			comb_out.pat_function_type_alu <= pat_add;
 			comb_out.pat_function_type_alu_u <= pat_sext8;
 			comb_out.pat_function_type_alu_p <= pat_por;
-			comb_out.pat_function_type_sc	<= reserve;
+			comb_out.pat_function_type_sc	<= none;
 			comb_out.is_predicate_inst 		<= '0';
 			comb_out.adrs_type				<= word;
 			comb_out.alu_alu_u		<= '0';	

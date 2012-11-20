@@ -173,7 +173,12 @@ begin
 --		end if;
 	end process;			          
 --			     
---			     
+--			  
+	process(exout)
+	begin
+		spill <= exout.spill;
+	end process;
+	   
 	process(clk, rst, spill, fill) -- adjust head/tail
 	begin 
 		if (rst='1') then
@@ -182,20 +187,22 @@ begin
 		elsif rising_edge(clk) then
 			case state is
 				when init => 
-					spill <= '0';
-					fill  <= '0';	
+				--	spill <= '0';
+				--	fill  <= '0';	
 					head <= exout.head;
 					tail <= exout.tail;
 					dout.stall <= '0';
 			--	dout.stall <= '0';
 					if (spill = '1') then
 						state <= spill_state;
+						dout.stall <= '0';
 					elsif (fill = '1') then 
 						state <= fill_state;
 					else 
 						state <= init;
 					end if;
 				when spill_state =>
+					dout.stall <= '1';
 					if (spill = '1') then
 						--tail <= ; update tail
 						state <= spill_state;
@@ -203,6 +210,7 @@ begin
 						state <= init;
 					end if;
 				when fill_state  => 
+					dout.stall <= '1';
 					if (spill = '1') then
 						--tail <= ; update tail
 						state <= fill_state;
