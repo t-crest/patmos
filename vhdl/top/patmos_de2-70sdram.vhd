@@ -92,7 +92,7 @@ use work.patmos_type_package.all;
 architecture RTL of patmos_top is
     constant BURST_LENGTH : natural := 8;
 
-    constant ADDR_WIDTH  : integer := 23;
+    constant ADDR_WIDTH  : integer := 24; -- 16M (addr) x 4 (bytes) == 64MB 
     constant DATA_WIDTH  : integer := 32;
     -- Address Mapping
     constant COL_WIDTH   : integer := 9;
@@ -100,9 +100,9 @@ architecture RTL of patmos_top is
     constant BA_WIDTH    : integer := 2;
     constant CS_WIDTH    : integer := 0;
     constant COL_LOW_BIT : integer := 0;
-    constant ROW_LOW_BIT : integer := COL_WIDTH; -- 9
-    constant BA_LOW_BIT  : integer := ROW_LOW_BIT + ROW_WIDTH - 1; -- 9+12=20
-    constant CS_LOW_BIT  : integer := BA_LOW_BIT + BA_WIDTH - 1; -- 20+2-1=21
+    constant ROW_LOW_BIT : integer := COL_LOW_BIT + COL_WIDTH; -- 9
+    constant BA_LOW_BIT  : integer := ROW_LOW_BIT + ROW_WIDTH; -- 9+13=22
+    constant CS_LOW_BIT  : integer := BA_LOW_BIT + BA_WIDTH; -- 22+2=24
     -- SDRAM configuration
     constant SA_WIDTH    : natural := dram0_ADDR'length;
 
@@ -125,6 +125,8 @@ architecture RTL of patmos_top is
     constant tDMD               : time    := 0 ns; --! DQM to Input (Write)
     constant tMRD               : time    := 15 ns; --! Mode Register Delay (program time)
     constant tMRD_CYCLES        : natural := 2; --! Mode Register Delay (program time) in Cycles
+-- This was used to see how many errors would occur if refresh is performed way to rearly 
+--    constant tREF               : time    := 1000*64 ms; --! Refresh Cycle (for each row)
     constant tREF               : time    := 64 ms; --! Refresh Cycle (for each row)
 
     constant DQ_WIDTH         : integer := 8;
@@ -334,7 +336,7 @@ begin
             clk                => dram_clk,
             pll_locked         => pll_locked,
             ocp_MCmd           => ocp_MCmd,
-            ocp_MCmd_doRefresh => ocp_MCmd_doRefresh,
+--            ocp_MCmd_doRefresh => ocp_MCmd_doRefresh,
             ocp_MAddr          => ocp_MAddr,
             ocp_SCmdAccept     => ocp_SCmdAccept,
             ocp_MData          => ocp_MData,

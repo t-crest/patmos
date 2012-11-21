@@ -20,8 +20,8 @@ architecture RTL of sdr_sdram_dma_controller_tb is
     constant CS_WIDTH    : integer := 0;
     constant COL_LOW_BIT : integer := 0;
     constant ROW_LOW_BIT : integer := COL_WIDTH; -- 9
-    constant BA_LOW_BIT  : integer := ROW_LOW_BIT + ROW_WIDTH - 1; -- 9+12=20
-    constant CS_LOW_BIT  : integer := BA_LOW_BIT + BA_WIDTH - 1; -- 20+2-1=21
+    constant BA_LOW_BIT  : integer := ROW_LOW_BIT + ROW_WIDTH; -- 9+13=22
+    constant CS_LOW_BIT  : integer := BA_LOW_BIT + BA_WIDTH; -- 22+2=24
     -- SDRAM configuration
     constant SA_WIDTH    : natural := ROW_WIDTH;
 
@@ -44,7 +44,7 @@ architecture RTL of sdr_sdram_dma_controller_tb is
     constant tDMD               : time    := 0 ns; --! DQM to Input (Write)
     constant tMRD               : time    := 15 ns; --! Mode Register Delay (program time)
     constant tMRD_CYCLES        : natural := 2; --! Mode Register Delay (program time) in Cycles
-    constant tREF               : time    := 64 ms; --! Refresh Cycle (for each row)
+    constant tREF               : time    := tCLK*(2**ROW_WIDTH)*10; --! Refresh Cycle (for each row)
 
     constant DQ_WIDTH         : integer := 8;
     constant MTL_MASK_WIDTH   : integer := 4;
@@ -261,7 +261,7 @@ begin
             clk                => clk,
             pll_locked         => '1',
             ocp_MCmd           => ocp_MCmd,
-            ocp_MCmd_doRefresh => ocp_MCmd_doRefresh,
+--            ocp_MCmd_doRefresh => ocp_MCmd_doRefresh,
             ocp_MAddr          => ocp_MAddr,
             ocp_SCmdAccept     => ocp_SCmdAccept,
             ocp_MData          => ocp_MData,
