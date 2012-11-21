@@ -16,14 +16,17 @@
 #define SDRAM_IO_ADDR_WIDTH 4	// 2^4 addresses * 4 bytes == 64 bytes
 // The size of line supported by controller (words)
 #define N_BURST_WORDS (32/4)
-//#define TEST_MEMORY_BYTES	(64*1024*1024)
-#define TEST_MEMORY_BYTES	(64*1024*100)
+#define TEST_MEMORY_BYTES	(64*1024*1024)
+//#define TEST_MEMORY_BYTES	(64*1024*100)
 
 #define TEST1_SIZE 8
 #define TEST1_START 'A'
 
 #define TEST_VALUE_OFFSET 'A'	// Some arbitrary value added to address value and storred into memory
 #define TEST2_RANGE (TEST_MEMORY_BYTES/4)  // That many addressess
+
+// Wait for keypress before reading
+#define WAIT_BEFORE_READING 1
 
 
 
@@ -107,26 +110,29 @@ int main() {
 
 			//MSG("\nWriting...");
 			uart_out('W');
-			for (i=0; i < TEST2_RANGE;i += N_BURST_WORDS) {
-				for (int j=0; (t=='a' && j==1) ||
+			for (i=0; i+N_BURST_WORDS < TEST2_RANGE;i += N_BURST_WORDS) {
+				for (int j=0; (t=='a' && j==0) ||
 						(t=='b' && j < N_BURST_WORDS) ;
 						j++) {
 					sdram_io[j] = TEST_VALUE_OFFSET+i+j;
 				}
-				sdram_store_line(i*4);
+				sdram_store_line(i);
 			}
-
+#if WAIT_BEFORE_READING
+		uart_out('?');
+		uart_in(c);
+#endif
 			//MSG("\nReading...");
 			uart_out('R');
-			for (i=0; i < TEST2_RANGE;i += N_BURST_WORDS) {
-				sdram_load_line(i*4);
-				for (int j=0; (t=='a' && j==1) ||
+			for (i=0; i+N_BURST_WORDS < TEST2_RANGE;i += N_BURST_WORDS) {
+				sdram_load_line(i);
+				for (int j=0; (t=='a' && j==0) ||
 						(t=='b' && j < N_BURST_WORDS) ;
 						j++) {
 					if (sdram_io[j] != TEST_VALUE_OFFSET+i+j) {
 						err_cnt++;
 						// Show only some errors
-						if (TEST2_RANGE < 128 || (err_cnt & (TEST2_RANGE/128-1)) == 1) {
+						if (err_cnt < 128 || (err_cnt & 2047) == 1) {
 							uart_out('E');
 						}
 					}

@@ -126,14 +126,14 @@ int main() {
 				sdram_io[j] = TEST2_START+i+j;
 				uart_out(TEST2_START+i+j);
 			}
-			sdram_store_line(i*4);
+			sdram_store_line(i);
 		}
 
 		uart_out('\n');
 		uart_out('R');
 		uart_out(':');
 		for (i=0; i < TEST2_SIZE;i += N_BURST_WORDS) {
-			sdram_load_line(i*4);
+			sdram_load_line(i);
 			for (int j=0; j < N_BURST_WORDS; j++) {
 				if (sdram_io[j] != TEST2_START+i+j) {
 					err_cnt++;
