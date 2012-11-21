@@ -437,9 +437,9 @@ namespace patmos
             while (Num_active_blocks + Num_transfer_blocks > Num_blocks)
             {
               assert(Num_active_methods > 0);
-              Num_active_methods--;
               Num_active_blocks -=
                             Methods[Num_blocks - Num_active_methods].Num_blocks;
+              Num_active_methods--;
             }
 
             // update counters
