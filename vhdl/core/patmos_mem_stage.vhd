@@ -69,6 +69,15 @@ architecture arch of patmos_mem_stage is
     signal ld_byte						 	 : std_logic_vector(7 downto 0);
     signal	s_u								 : std_logic;
     signal half_ext, byte_ext				 : std_logic_vector(31 downto 0);
+  	signal exout_reg_adr, prev_exout_reg_adr: std_logic_vector(31 downto 0);
+    signal mem_write_data0_reg				 : std_logic_vector(7 downto 0);
+    signal mem_write_data1_reg				 : std_logic_vector(7 downto 0);
+    signal mem_write_data2_reg				 : std_logic_vector(7 downto 0);
+    signal mem_write_data3_reg				 : std_logic_vector(7 downto 0);
+    signal prev_mem_write_data0_reg			 : std_logic_vector(7 downto 0);
+    signal prev_mem_write_data1_reg			 : std_logic_vector(7 downto 0);
+    signal prev_mem_write_data2_reg			 : std_logic_vector(7 downto 0);
+    signal prev_mem_write_data3_reg			 : std_logic_vector(7 downto 0);
     
     ------ stack cache
     signal sc_en0, sc_en1, sc_en2, sc_en3   : std_logic;
@@ -90,7 +99,7 @@ architecture arch of patmos_mem_stage is
     signal head, tail, head_tail			 : std_logic_vector(sc_depth - 1 downto 0);
 
 	signal spill, fill						 : std_logic;
-
+	signal stall							 : std_logic;	
 
 begin
 	mem_wb : process(clk)
@@ -190,10 +199,10 @@ begin
 				when init => 
 				--	spill <= '0';
 				--	fill  <= '0';	
+					stall <= '0'; --just for now
 					head <= exout_not_reg.head;
 					tail <= exout_not_reg.tail;
 					dout.stall <= '0';
-			--	dout.stall <= '0';
 					if (spill = '1') then
 						state <= spill_state;
 					--	dout.stall <= '0';
@@ -203,7 +212,7 @@ begin
 						state <= init;
 					end if;
 				when spill_state =>
-				--	dout.stall <= '1';
+					dout.stall <= '1';
 					if (spill = '1') then
 						--tail <= ; update tail
 						state <= spill_state;
@@ -211,7 +220,7 @@ begin
 						state <= init;
 					end if;
 				when fill_state  => 
-				--	dout.stall <= '1';
+					dout.stall <= '1';
 					if (spill = '1') then
 						--tail <= ; update tail
 						state <= fill_state;
@@ -230,39 +239,74 @@ begin
 	memory0 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     exout_not_reg.adrs(9 downto 0),
-			     mem_write_data0,
+			     exout_reg_adr(9 downto 0),-- exout_not_reg.adrs(9 downto 0),
+			     mem_write_data0_reg,--mem_write_data0,
 			     en0,
-			     exout_not_reg.adrs(9 downto 0),
+			     exout_reg_adr(9 downto 0), --exout_not_reg.adrs(9 downto 0),
 			     dout0);
 
 	memory1 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     exout_not_reg.adrs(9 downto 0),
-			     mem_write_data1,
+			     exout_reg_adr(9 downto 0), --exout_not_reg.adrs(9 downto 0),
+			     mem_write_data0_reg, --mem_write_data1,
 			     en1,
-			     exout_not_reg.adrs(9 downto 0),
+			     exout_reg_adr(9 downto 0),--exout_not_reg.adrs(9 downto 0),
 			     dout1);
 
 	memory2 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     exout_not_reg.adrs(9 downto 0),
-			     mem_write_data2,
+			     exout_reg_adr(9 downto 0),--exout_not_reg.adrs(9 downto 0),
+			     mem_write_data0_reg, --mem_write_data2,
 			     en2,
-			     exout_not_reg.adrs(9 downto 0),
+			     exout_reg_adr(9 downto 0),--exout_not_reg.adrs(9 downto 0),
 			     dout2);
 
 	memory3 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     exout_not_reg.adrs(9 downto 0),
-			     mem_write_data3,
+			     exout_reg_adr(9 downto 0), --exout_not_reg.adrs(9 downto 0),
+			     mem_write_data0_reg, --mem_write_data3,
 			     en3,
-			     exout_not_reg.adrs(9 downto 0),
+			     exout_reg_adr(9 downto 0), --exout_not_reg.adrs(9 downto 0),
 			     dout3);
 	
+	process(clk) --to register the address and data of memory in case of stull
+	begin
+	--	if (rst = '1') then
+			exout_reg_adr		<= exout_not_reg.adrs;
+			mem_write_data0_reg <= mem_write_data0;
+			mem_write_data1_reg <= mem_write_data1;
+			mem_write_data2_reg <= mem_write_data2;
+			mem_write_data3_reg <= mem_write_data3;
+		if rising_edge(clk) then
+				prev_exout_reg_adr <= exout_not_reg.adrs;
+				prev_mem_write_data0_reg <= mem_write_data0;
+				prev_mem_write_data1_reg <= mem_write_data1;
+				prev_mem_write_data2_reg <= mem_write_data2;
+				prev_mem_write_data3_reg <= mem_write_data3;
+				if (stall = '1') then
+					exout_reg_adr		<= prev_exout_reg_adr;
+					mem_write_data0_reg <= prev_mem_write_data0_reg;
+					mem_write_data1_reg <= prev_mem_write_data1_reg;
+					mem_write_data2_reg <= prev_mem_write_data2_reg;
+					mem_write_data3_reg <= prev_mem_write_data3_reg;
+				end if;
+				
+		end if;	
+	end process;
+	
+	--	decode : process(clk, alu_func)
+--	begin
+--		if rising_edge(clk) then
+--			dout <= comb_out;
+--			prev_dout <= comb_out;
+--			if(memout.stall = '1') then
+--				dout <= prev_dout;
+--			end if;
+--		end if;
+--	end process decode;
 	--------------------------- address muxes begin--------------------------		     
 	process( dout0, dout1, dout2, dout3, sc_read_data0, sc_read_data1, sc_read_data2, sc_read_data3)
 	begin

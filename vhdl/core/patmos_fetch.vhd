@@ -135,32 +135,17 @@ begin
 			dout.pc          <= (others => '0');
 			dout.instruction <= (others => '0');
 		elsif (rising_edge(clk) and rst = '0') then
-		if(memout.stall = '0') then
-			pc       <= pc_next;
-			addr_evn <= evn_next;
-			addr_odd <= pc_next(rom_addr_size -1 downto 1) & "1";
-			-- MS: the next pc? PC calculation is REALLY an independent pipe stage!
-			dout <= feout;
-			dout_feout <= feout;
-		else
-			pc       <= pc;
-			addr_evn <= addr_evn;
-			addr_odd <= addr_odd;
-			dout <= dout_feout;
-		end if;
+			if(memout.stall = '0') then
+				pc       <= pc_next;
+				addr_evn <= evn_next;
+				addr_odd <= pc_next(rom_addr_size -1 downto 1) & "1";
+				-- MS: the next pc? PC calculation is REALLY an independent pipe stage!
+				dout <= feout;
+			end if;
 		end if;
 	end process;
 
---	process(decout, pc_next) -- stall
---	begin
---		if(decout.stall = '1') then
---			pc_intr		<= pc;
---		else
---			pc_intr 		<= pc_next; 	
---		end if;
---	end process;
-	
-	
+
 	--   instruction_mem_address: process(execute_dout.alu_result_out, pc, instruction_rom_out, instruction_mem_dout.inst_out) --read/write enable here
 	--  begin
 	--  	if(pc <= 70 ) then --  change this after the final version of boot loader
