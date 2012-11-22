@@ -71,7 +71,7 @@ architecture arch of patmos_alu is
 	signal doutex_reg_write_reg					: std_logic;
 	signal doutex_lm_read						: std_logic;
 	signal predicate_checked					: std_logic_vector(7 downto 0);
-	signal prev_dout							: execution_out_type;
+--	signal prev_dout							: execution_out_type;
 	----- stack cache
 	
 	signal doutex_sc_write						: std_logic;
@@ -216,26 +216,29 @@ begin
 			doutex_reg.predicate 			<= "00000001";
 
 		elsif rising_edge(clk) then
-			doutex_reg.lm_write 			<= doutex_lm_write; 
-			doutex_reg.reg_write 			<= doutex_reg_write;
-			doutex_reg_write_reg 		<= doutex_reg_write;
-			doutex_reg.lm_read 				<= doutex_lm_read;
-			doutex_reg.sc_read 				<= doutex_sc_read;
-			doutex_reg.mem_to_reg           <= decdout.mem_to_reg;
-			doutex_reg.alu_result_reg       <= rd;
-			doutex_reg.adrs_reg		      	<= adrs;
-			doutex_reg.write_back_reg       <= decdout.rd;
-			doutex_reg.predicate            <= predicate_checked;
-			predicate_reg               <= predicate_checked;
+			if (memdout.stall = '0') then
+				doutex_reg.lm_write 			<= doutex_lm_write; 
+				doutex_reg.reg_write 			<= doutex_reg_write;
+				doutex_reg.lm_read 				<= doutex_lm_read;
+				doutex_reg.sc_read 				<= doutex_sc_read;
+				doutex_reg.mem_to_reg           <= decdout.mem_to_reg;
+				doutex_reg.alu_result_reg       <= rd;
+				doutex_reg.adrs_reg		      	<= adrs;
+				doutex_reg.write_back_reg       <= decdout.rd;
+				-- stack cache
+				doutex_reg.imm 					<= decdout.imm;
+				doutex_reg.sc_write 			<= doutex_sc_write;
 			
+			
+				doutex_reg.predicate            <= predicate_checked;
+				predicate_reg               <= predicate_checked;
+				doutex_reg_write_reg 		<= doutex_reg_write;
+	
+				doutex_alu_result_reg       <= rd;
+				doutex_alu_adrs_reg         <= adrs;
+				doutex_write_back_reg       <= decdout.rd;
+			end if;
 
-			doutex_alu_result_reg       <= rd;
-			doutex_alu_adrs_reg         <= adrs;
-			doutex_write_back_reg       <= decdout.rd;
-			
-			-- stack cache
-			doutex_reg.imm 					<= decdout.imm;
-			doutex_reg.sc_write 			<= doutex_sc_write;
 	--		doutex.head                 <= doutex_head;
 	--		doutex.tail                 <= doutex_tail;
 		--	if(memdout.stall = '1') then

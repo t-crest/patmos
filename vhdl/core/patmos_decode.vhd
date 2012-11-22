@@ -58,6 +58,7 @@ architecture arch of patmos_decode is
 	signal comb_out							: decode_out_type;
 --	signal dout						: decode_out_type;
 	signal prev_dout						: decode_out_type;
+	
 begin
 
 	--------------------------------
@@ -377,17 +378,29 @@ begin
 		
 	end process;
 
-	decode : process(clk, alu_func)
+--	decode : process(clk, alu_func)
+--	begin
+--		if rising_edge(clk) then
+--			dout <= comb_out;
+--			prev_dout <= comb_out;
+--			if(memout.stall = '1') then
+--				dout <= prev_dout;
+--			end if;
+--		end if;
+--	end process decode;
+	
+	
+	process(clk, rst)
 	begin
-		if rising_edge(clk) then
-			dout <= comb_out;
-			prev_dout <= comb_out;
-			if(memout.stall = '1') then
-				dout <= prev_dout;
+		if (rst = '1') then
+		--	din.operation <= (others => '0') what to do here?
+		elsif (rising_edge(clk) and rst = '0') then
+			if(memout.stall = '0') then
+				dout <= comb_out;
 			end if;
 		end if;
-	end process decode;
-	
+	end process;
+
 	
 	process(din)
 	begin
