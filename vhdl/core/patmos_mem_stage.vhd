@@ -78,6 +78,10 @@ architecture arch of patmos_mem_stage is
     signal prev_mem_write_data1_reg			 : std_logic_vector(7 downto 0);
     signal prev_mem_write_data2_reg			 : std_logic_vector(7 downto 0);
     signal prev_mem_write_data3_reg			 : std_logic_vector(7 downto 0);
+    signal prev_en0_reg, prev_en1_reg		 : std_logic;
+    signal prev_en2_reg, prev_en3_reg		 : std_logic;
+    signal en0_reg, en1_reg					 : std_logic;
+    signal en2_reg, en3_reg					 : std_logic;
     
     ------ stack cache
     signal sc_en0, sc_en1, sc_en2, sc_en3   : std_logic;
@@ -241,7 +245,7 @@ begin
 		port map(clk,
 			     exout_reg_adr(9 downto 0),-- exout_not_reg.adrs(9 downto 0),
 			     mem_write_data0_reg,--mem_write_data0,
-			     en0,
+			     en0_reg,
 			     exout_reg_adr(9 downto 0), --exout_not_reg.adrs(9 downto 0),
 			     dout0);
 
@@ -249,8 +253,8 @@ begin
 		generic map(8, 10)
 		port map(clk,
 			     exout_reg_adr(9 downto 0), --exout_not_reg.adrs(9 downto 0),
-			     mem_write_data0_reg, --mem_write_data1,
-			     en1,
+			     mem_write_data1_reg, --mem_write_data1,
+			     en1_reg,
 			     exout_reg_adr(9 downto 0),--exout_not_reg.adrs(9 downto 0),
 			     dout1);
 
@@ -258,8 +262,8 @@ begin
 		generic map(8, 10)
 		port map(clk,
 			     exout_reg_adr(9 downto 0),--exout_not_reg.adrs(9 downto 0),
-			     mem_write_data0_reg, --mem_write_data2,
-			     en2,
+			     mem_write_data2_reg, --mem_write_data2,
+			     en2_reg,
 			     exout_reg_adr(9 downto 0),--exout_not_reg.adrs(9 downto 0),
 			     dout2);
 
@@ -267,34 +271,52 @@ begin
 		generic map(8, 10)
 		port map(clk,
 			     exout_reg_adr(9 downto 0), --exout_not_reg.adrs(9 downto 0),
-			     mem_write_data0_reg, --mem_write_data3,
-			     en3,
+			     mem_write_data3_reg, --
+			     en3_reg,
 			     exout_reg_adr(9 downto 0), --exout_not_reg.adrs(9 downto 0),
 			     dout3);
 	
-	process(clk) --to register the address and data of memory in case of stull
+	process(clk) --to register the enable and address and data of memory in case of stall
 	begin
-	--	if (rst = '1') then
-			exout_reg_adr		<= exout_not_reg.adrs;
-			mem_write_data0_reg <= mem_write_data0;
-			mem_write_data1_reg <= mem_write_data1;
-			mem_write_data2_reg <= mem_write_data2;
-			mem_write_data3_reg <= mem_write_data3;
 		if rising_edge(clk) then
 				prev_exout_reg_adr <= exout_not_reg.adrs;
 				prev_mem_write_data0_reg <= mem_write_data0;
 				prev_mem_write_data1_reg <= mem_write_data1;
 				prev_mem_write_data2_reg <= mem_write_data2;
 				prev_mem_write_data3_reg <= mem_write_data3;
-				if (stall = '1') then
-					exout_reg_adr		<= prev_exout_reg_adr;
-					mem_write_data0_reg <= prev_mem_write_data0_reg;
-					mem_write_data1_reg <= prev_mem_write_data1_reg;
-					mem_write_data2_reg <= prev_mem_write_data2_reg;
-					mem_write_data3_reg <= prev_mem_write_data3_reg;
-				end if;
-				
+				prev_en0_reg			<= en0;
+				prev_en1_reg			<= en1;
+				prev_en2_reg			<= en2;
+				prev_en3_reg			<= en3;
 		end if;	
+	end process;
+	
+	process(stall, en0, en1, en2, en3, prev_en0_reg, prev_en1_reg, prev_en2_reg, prev_en3_reg,
+			exout_not_reg, mem_write_data0, mem_write_data1, mem_write_data2, mem_write_data3, prev_exout_reg_adr, 
+			prev_mem_write_data0_reg, prev_mem_write_data1_reg, prev_mem_write_data2_reg, prev_mem_write_data3_reg
+	)
+	begin
+		if (stall = '1') then
+			exout_reg_adr		<= prev_exout_reg_adr;
+			mem_write_data0_reg <= prev_mem_write_data0_reg;
+			mem_write_data1_reg <= prev_mem_write_data1_reg;
+			mem_write_data2_reg <= prev_mem_write_data2_reg;
+			mem_write_data3_reg <= prev_mem_write_data3_reg;
+			en0_reg				<= prev_en0_reg;
+			en1_reg				<= prev_en1_reg;
+			en2_reg				<= prev_en2_reg;
+			en3_reg				<= prev_en3_reg;
+		else
+			exout_reg_adr		<= exout_not_reg.adrs;
+			mem_write_data0_reg <= mem_write_data0;
+			mem_write_data1_reg <= mem_write_data1;
+			mem_write_data2_reg <= mem_write_data2;
+			mem_write_data3_reg <= mem_write_data3;
+			en0_reg				<= en0;
+			en1_reg				<= en1;
+			en2_reg				<= en2;
+			en3_reg				<= en3;
+		end if;
 	end process;
 	
 	--	decode : process(clk, alu_func)
