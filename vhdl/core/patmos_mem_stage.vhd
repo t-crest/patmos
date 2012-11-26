@@ -275,11 +275,11 @@ begin
 	process(clk) --to register the address and data of memory in case of stull
 	begin
 	--	if (rst = '1') then
-			exout_reg_adr		<= exout_not_reg.adrs;
-			mem_write_data0_reg <= mem_write_data0;
-			mem_write_data1_reg <= mem_write_data1;
-			mem_write_data2_reg <= mem_write_data2;
-			mem_write_data3_reg <= mem_write_data3;
+--			exout_reg_adr		<= exout_not_reg.adrs;
+--			mem_write_data0_reg <= mem_write_data0;
+--			mem_write_data1_reg <= mem_write_data1;
+--			mem_write_data2_reg <= mem_write_data2;
+--			mem_write_data3_reg <= mem_write_data3;
 		if rising_edge(clk) then
 				prev_exout_reg_adr <= exout_not_reg.adrs;
 				prev_mem_write_data0_reg <= mem_write_data0;
