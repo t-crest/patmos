@@ -217,6 +217,11 @@ begin
 
 		elsif rising_edge(clk) then
 			if (memdout.stall = '0') then
+				-- MS: whouldn't it make sense to use the EXE record also for
+				-- the local signals?
+				--    signal doutex : execution_reg -- execution_reg is probably then not the best name
+				-- This would reduce the following 16 lines to:
+				--    doutex_reg <= doutex
 				doutex_reg.lm_write 			<= doutex_lm_write; 
 				doutex_reg.reg_write 			<= doutex_reg_write;
 				doutex_reg.lm_read 				<= doutex_lm_read;

@@ -84,6 +84,7 @@ architecture arch of patmos_mem_stage is
     signal en2_reg, en3_reg					 : std_logic;
     
     ------ stack cache
+    -- MS: what about using arrays for those xxx0 - xxx3 signals?
     signal sc_en0, sc_en1, sc_en2, sc_en3   : std_logic;
     signal sc_word_enable0, sc_word_enable1 : std_logic;
     signal sc_byte_enable0, sc_byte_enable1 : std_logic;
@@ -193,7 +194,10 @@ begin
 	--	spill <= exout_not_reg.spill;
 	end process;
 	   
-	process(clk, rst, spill, fill) -- adjust head/tail
+	-- MS: no need to have additional signals in the sensitivity list
+	-- when it is a clocked/reset process
+--	process(clk, rst, spill, fill) -- adjust head/tail
+	process(clk, rst) -- adjust head/tail
 	begin 
 		if (rst='1') then
 			state <= init;
@@ -239,6 +243,9 @@ begin
 --	--	
 
 	-----------------------------------------------
+	-- MS: This shall be the stack cache, right?
+	-- MS: If a registered address from EX is used here and there is an address
+	-- register in the memory, are we now moving the MEM stage into WB?
 	   
 	memory0 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
