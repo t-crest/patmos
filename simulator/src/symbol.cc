@@ -71,7 +71,8 @@ namespace patmos
       if (i->Address <= address && address < i->Address + i->Size &&
           i->Size != 0)
       {
-        assert(!enclosing || enclosing->Size == 0);
+	// TODO maybe we stop search and print out the function label instead?
+	// if (enclosing && enclosing->>Size > 0) break;
         enclosing = &*i;
       }
       else if (enclosing && i->Address <= address && i->Size == 0)
