@@ -8,6 +8,7 @@
                 shs     [r0 + 2] = r5;
                 sbs     [r0 + 6] = r5;
                 lws     r2  = [r0 + 0];
+		addi    r1 = r0, 0; #load delay 
 		add	r7 = r0, r2;
 		add	r8 = r0, r2;
 		add	r9 = r0, r2;

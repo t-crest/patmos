@@ -246,7 +246,7 @@ begin
 	-- MS: This shall be the stack cache, right?
 	-- MS: If a registered address from EX is used here and there is an address
 	-- register in the memory, are we now moving the MEM stage into WB?
-	   
+	-- this is the scratchpad memory the stack cache is the sc instances 
 	memory0 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,

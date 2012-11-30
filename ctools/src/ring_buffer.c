@@ -25,8 +25,8 @@ void cbInit(CircularBuffer *cb, int address_size, int mem_size, int spill_fill) 
     cb->sc_size  = pow(2, address_size);//sc_size;
     cb->mem_size  = mem_size;	
     cb->spill_fill       = spill_fill;
-    cb->head = 0;
-    cb->tail = 0;	
+    cb->head = 16;
+    cb->tail = 16;	
     cb->count = 0;
     cb->sc = (ElemType *)calloc(cb->sc_size, sizeof(ElemType));
     cb->mem = (ElemType *)calloc(cb->mem_size, sizeof(ElemType));	
@@ -39,21 +39,21 @@ void cbNull(CircularBuffer *cb) {
  
  
 void cbReserve(CircularBuffer *cb, int res_count ) {
-	if ((cb->count + res_count) <= cb->sc_size)	// is there any better way for this?
+	if ((cb->count + res_count) <= cb->sc_size)	
 		cb->count = cb->count + res_count; //update number of occupied slots
 	else    //check spill
 	{
 		
 		for(t = 0; t < (res_count - (cb->sc_size - cb->count)); t++) // res_count - number of free slots
 		{
-			cb->mem[cb->spill_fill] =  cb->sc[cb->tail];
-			cb->tail = cb->tail++;
+			cb->mem[cb->spill_fill] =  cb->sc[cb->tail - 1];
+			cb->tail = cb->tail--;
 			cb->spill_fill--; 
 		}
 		cb->tail = cb->tail & (cb->sc_size - 1);
 		cb->count = cb->sc_size;	// stack cache is full
 	}
-	cb->head = (cb->head + res_count) & (cb->sc_size - 1);
+	cb->head = (cb->head - res_count) & (cb->sc_size - 1);
 
 	printf("Reserve: head:%d\n", cb->head);
 	printf("Reserve: tail:%d\n", cb->tail);	
@@ -68,13 +68,13 @@ void cbFree(CircularBuffer *cb, int free_count ) {
 	if (cb->count >= free_count)
 	{
 		cb->count = cb->count - free_count; //update number of occupied slots
-		cb->head = (cb->head - free_count) &  (cb->sc_size - 1);
+		cb->head = (cb->head + free_count) &  (cb->sc_size - 1);
 	}
 	else
 	{
 		cb->spill_fill = cb->spill_fill + (free_count - cb->count); // obviously...!
 		cb->count = 0;
-		cb->head = cb->tail;
+		cb->head = cb->tail = 16;
 	}
 	printf("Free: head:%d\n", cb->head);
 	printf("Free: tail:%d\n", cb->tail);	
@@ -87,7 +87,7 @@ void cbEnsure(CircularBuffer *cb, int ens_count ) {
 	if ((cb->count) <  ens_count) {// check fill, if there are at least the same number of slots...	
 		for(t = cb->count; t < ens_count; t++) //fill
 		{
-			cb->sc[cb->tail] =  cb->mem[cb->spill_fill];
+			cb->sc[cb->tail - 1] =  cb->mem[cb->spill_fill];
 			cb->tail <= cb->tail-- ;			
 			cb->spill_fill++; 
 		}
@@ -127,7 +127,7 @@ int main(int argc, char **argv) {
 
 	cbFree(&cb, 10);
 
-	printf("Test2:\n");
+	/*printf("Test2:\n");
 	cbReserve(&cb, 10); //reserve 10 elements
 	cbReserve(&cb, 16); 
 
@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
 	printf("Test3:\n");
 	cbReserve(&cb, 10); //reserve 10 elements
 	cbReserve(&cb, 10); //reserve 10 elements
-	cbReserve(&cb, 16); //reserve 8 elements
+	cbReserve(&cb, 16); //reserve 8 elements*/
 	/*
 	cbFree(&cb, 16);
 	cbFree(&cb, 10);
