@@ -74,7 +74,7 @@ void cbFree(CircularBuffer *cb, int free_count ) {
 	{
 		cb->spill_fill = cb->spill_fill + (free_count - cb->count); // obviously...!
 		cb->count = 0;
-		cb->head = cb->tail = 16;
+		//cb->tail = cb->head = 15;
 	}
 	printf("Free: head:%d\n", cb->head);
 	printf("Free: tail:%d\n", cb->tail);	
@@ -84,15 +84,17 @@ void cbFree(CircularBuffer *cb, int free_count ) {
 }
 
 void cbEnsure(CircularBuffer *cb, int ens_count ) {
-	if ((cb->count) <  ens_count) {// check fill, if there are at least the same number of slots...	
+	if ((cb->count) <  ens_count)
+	 {// check fill, if there are at least the same number of slots...	
+	//	printf("test");
 		for(t = cb->count; t < ens_count; t++) //fill
 		{
-			cb->sc[cb->tail - 1] =  cb->mem[cb->spill_fill];
+			cb->sc[cb->tail & (cb->sc_size-1)] =  cb->mem[cb->spill_fill];
 			cb->tail <= cb->tail++ ;			
 			cb->spill_fill++; 
 		}
 		cb->count = ens_count; 
-		cb->tail <= cb->tail & (cb->sc_size-1);
+		cb->tail = cb->tail % cb->sc_size; //& (cb->sc_size - 1); // this is where it assumes whatever so we need to find a limit on this... //or we just use % for c...
 	}
 	printf("Ensure: head:%d\n", cb->head);
 	printf("Ensure: tail:%d\n", cb->tail);	
@@ -117,19 +119,19 @@ int main(int argc, char **argv) {
  	cbReserve(&cb, 10); //reserve 10 elements
 	cbReserve(&cb, 10); //reserve 10 elements
 	cbReserve(&cb, 8); //reserve 8 elements
-	cbReserve(&cb, 8);
+	//cbReserve(&cb, 8);
 
 
-	/*cbFree(&cb, 8);
+	cbFree(&cb, 8);
 	cbEnsure(&cb, 10);
 
 	cbFree(&cb, 10);
   
 	cbEnsure(&cb, 10);
 
-	cbFree(&cb, 10);*/
+	cbFree(&cb, 10);
 
-	/*printf("Test2:\n");
+	printf("Test2:\n");
 	cbReserve(&cb, 10); //reserve 10 elements
 	cbReserve(&cb, 16); 
 
@@ -141,13 +143,13 @@ int main(int argc, char **argv) {
 	printf("Test3:\n");
 	cbReserve(&cb, 10); //reserve 10 elements
 	cbReserve(&cb, 10); //reserve 10 elements
-	cbReserve(&cb, 16); //reserve 8 elements*/
-	/*
+	cbReserve(&cb, 16); //reserve 8 elements
+	
 	cbFree(&cb, 16);
 	cbFree(&cb, 10);
 	
 	cbEnsure(&cb, 10);
-	cbFree(&cb, 10);*/
+	cbFree(&cb, 10);
 	
 
 	cbNull(&cb);
