@@ -25,8 +25,8 @@ void cbInit(CircularBuffer *cb, int address_size, int mem_size, int spill_fill) 
     cb->sc_size  = pow(2, address_size);//sc_size;
     cb->mem_size  = mem_size;	
     cb->spill_fill       = spill_fill;
-    cb->head = 16;
-    cb->tail = 16;	
+    cb->head = 15;
+    cb->tail = 15;	
     cb->count = 0;
     cb->sc = (ElemType *)calloc(cb->sc_size, sizeof(ElemType));
     cb->mem = (ElemType *)calloc(cb->mem_size, sizeof(ElemType));	
@@ -46,14 +46,14 @@ void cbReserve(CircularBuffer *cb, int res_count ) {
 		
 		for(t = 0; t < (res_count - (cb->sc_size - cb->count)); t++) // res_count - number of free slots
 		{
-			cb->mem[cb->spill_fill] =  cb->sc[cb->tail - 1];
+			cb->mem[cb->spill_fill] =  cb->sc[(cb->tail & (cb->sc_size - 1)) - 1];
 			cb->tail = cb->tail--;
 			cb->spill_fill--; 
 		}
 		cb->tail = cb->tail & (cb->sc_size - 1);
 		cb->count = cb->sc_size;	// stack cache is full
 	}
-	cb->head = (cb->head - res_count) & (cb->sc_size - 1);
+		cb->head = ((cb->head - (res_count)) & (cb->sc_size - 1));
 
 	printf("Reserve: head:%d\n", cb->head);
 	printf("Reserve: tail:%d\n", cb->tail);	
@@ -88,7 +88,7 @@ void cbEnsure(CircularBuffer *cb, int ens_count ) {
 		for(t = cb->count; t < ens_count; t++) //fill
 		{
 			cb->sc[cb->tail - 1] =  cb->mem[cb->spill_fill];
-			cb->tail <= cb->tail-- ;			
+			cb->tail <= cb->tail++ ;			
 			cb->spill_fill++; 
 		}
 		cb->count = ens_count; 
@@ -117,15 +117,17 @@ int main(int argc, char **argv) {
  	cbReserve(&cb, 10); //reserve 10 elements
 	cbReserve(&cb, 10); //reserve 10 elements
 	cbReserve(&cb, 8); //reserve 8 elements
-	
-	cbFree(&cb, 8);
+	cbReserve(&cb, 8);
+
+
+	/*cbFree(&cb, 8);
 	cbEnsure(&cb, 10);
 
 	cbFree(&cb, 10);
   
 	cbEnsure(&cb, 10);
 
-	cbFree(&cb, 10);
+	cbFree(&cb, 10);*/
 
 	/*printf("Test2:\n");
 	cbReserve(&cb, 10); //reserve 10 elements
