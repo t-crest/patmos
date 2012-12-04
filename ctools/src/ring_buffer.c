@@ -24,9 +24,9 @@ typedef struct {
 void cbInit(CircularBuffer *cb, int address_size, int mem_size, int spill_fill) {
     cb->sc_size  = pow(2, address_size);//sc_size;
     cb->mem_size  = mem_size;	
-    cb->spill_fill       = spill_fill;
-    cb->head = 15;
-    cb->tail = 15;	
+    cb->spill_fill = spill_fill;
+    cb->head = cb->sc_size - 1;
+    cb->tail = spill_fill & (cb->sc_size - 1);	
     cb->count = 0;
     cb->sc = (ElemType *)calloc(cb->sc_size, sizeof(ElemType));
     cb->mem = (ElemType *)calloc(cb->mem_size, sizeof(ElemType));	
@@ -46,11 +46,10 @@ void cbReserve(CircularBuffer *cb, int res_count ) {
 		
 		for(t = 0; t < (res_count - (cb->sc_size - cb->count)); t++) // res_count - number of free slots
 		{
-			cb->mem[cb->spill_fill] =  cb->sc[(cb->tail & (cb->sc_size - 1)) - 1];
-			cb->tail = cb->tail--;
+			cb->mem[cb->spill_fill] =  cb->sc[cb->spill_fill & (cb->sc_size - 1)];
 			cb->spill_fill--; 
 		}
-		cb->tail = cb->tail & (cb->sc_size - 1);
+		cb->tail = cb->spill_fill & (cb->sc_size - 1);	//  this is just to print and check
 		cb->count = cb->sc_size;	// stack cache is full
 	}
 		cb->head = ((cb->head - (res_count)) & (cb->sc_size - 1));
@@ -68,14 +67,15 @@ void cbFree(CircularBuffer *cb, int free_count ) {
 	if (cb->count >= free_count)
 	{
 		cb->count = cb->count - free_count; //update number of occupied slots
-		cb->head = (cb->head + free_count) &  (cb->sc_size - 1);
+		
 	}
 	else
 	{
 		cb->spill_fill = cb->spill_fill + (free_count - cb->count); // obviously...!
 		cb->count = 0;
-		//cb->tail = cb->head = 15;
+	
 	}
+	cb->head = (cb->head + free_count) &  (cb->sc_size - 1);
 	printf("Free: head:%d\n", cb->head);
 	printf("Free: tail:%d\n", cb->tail);	
 	printf("Free: count:%d\n", cb->count);
@@ -84,18 +84,20 @@ void cbFree(CircularBuffer *cb, int free_count ) {
 }
 
 void cbEnsure(CircularBuffer *cb, int ens_count ) {
+	int k = 0;
 	if ((cb->count) <  ens_count)
 	 {// check fill, if there are at least the same number of slots...	
-	//	printf("test");
 		for(t = cb->count; t < ens_count; t++) //fill
 		{
 			cb->sc[cb->tail & (cb->sc_size-1)] =  cb->mem[cb->spill_fill];
-			cb->tail <= cb->tail++ ;			
+			cb->tail = cb->tail++ ;			
 			cb->spill_fill++; 
 		}
+		cb->tail = cb->spill_fill & (cb->sc_size-1); // this is just for printing the value, we point to sc using spill_fill...
 		cb->count = ens_count; 
-		cb->tail = cb->tail % cb->sc_size; //& (cb->sc_size - 1); // this is where it assumes whatever so we need to find a limit on this... //or we just use % for c...
+		k = cb->tail % cb->sc_size; //& (cb->sc_size - 1); // this is where it assumes whatever so we need to find a limit on this... //or we just use % for c...
 	}
+	printf("k is%d\n", k);
 	printf("Ensure: head:%d\n", cb->head);
 	printf("Ensure: tail:%d\n", cb->tail);	
 	printf("Ensure: count:%d\n", cb->count);
@@ -113,7 +115,7 @@ int main(int argc, char **argv) {
 // Define the number of address bits n and size as 2 ** n.
 	int addrSize = 4; 
 	int memSize = 50;
-	cbInit(&cb, addrSize, memSize, 35);
+	cbInit(&cb, addrSize, memSize, 79);
 	
 	printf("Test1:\n");
  	cbReserve(&cb, 10); //reserve 10 elements
