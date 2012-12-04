@@ -67,7 +67,7 @@ begin
 	cl_rd_data <= mem_line(to_integer(unsigned(cl_addr)));
 
 	-- cache line port sharing: accessed by controll interface in ready state and by memory interface in other states
-	cl_port_sharing : process(state_r, dma_addr_i, dma_wr_i, dma_wr_data_i, words_transferred_r, mtl_rd_accept_ii, mtl_rd_valid_i, mtl_rd_data_i) is
+	cl_port_sharing : process(state_r, dma_addr_i, dma_wr_i, dma_wr_data_i, words_transferred_r, mtl_rd_accept_ii, mtl_rd_valid_i, mtl_rd_data_i, dma_addr_special_i) is
 	begin
 		if state_r = ready then
 			cl_addr    <= dma_addr_i;
@@ -81,7 +81,7 @@ begin
 	end process;
 
 	-- memory map: controll interface memory map
-	memory_map : process(cl_rd_data, dma_addr_special_i, state_r, addr_r, dma_wr_i, dma_wr_data_i) is
+	memory_map : process(cl_rd_data, dma_addr_special_i, state_r, addr_r, dma_wr_i, dma_wr_data_i, dma_rd_data_ii, dma_addr_i) is
 	begin
 		-- Input ports: the address is ignorred since we have only single input_port 
 		dma_rd_data_ii <= cl_rd_data;   -- defaults
