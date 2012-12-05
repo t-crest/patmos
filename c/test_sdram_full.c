@@ -7,6 +7,8 @@
  T2.a: Write/Read first word of each SDRAM block.
  T2.b: Write/Read each word of the SDRAM.
 
+ Author: Edgar Lakis
+ Copyright: DTU, BSD License
 */
 
 /*********************** Test parameters ******************************/
@@ -14,11 +16,24 @@
 // boards, to avoid changing the address mapping. The larger size for ML605 board
 // is used
 #define SDRAM_IO_ADDR_WIDTH 4	// 2^4 addresses * 4 bytes == 64 bytes
-// The size of line supported by controller (words)
-#define N_BURST_WORDS (32/4)
-#define TEST_MEMORY_BYTES	(64*1024*1024)
-//#define TEST_MEMORY_BYTES	(64*1024*100)
 
+//#define EINDHOVEN_CNTRL	// The test is for Eindhoven controller (undefine to use altera board)
+
+// The size of line supported by controller (words)
+#ifdef EINDHOVEN_CNTRL
+#define N_BURST_WORDS (64/4)	// The Eindhoven controller uses 64 byte transfers
+#else
+#define N_BURST_WORDS (32/4)	// The simple controller uses 32 byte transfers
+#endif
+
+// The number of addressess used for one word
+#ifdef EINDHOVEN_CNTRL
+#define WORD_ADDR 4	// The Eindhoven controller is byte addressable
+#else
+#define WORD_ADDR 1	// The simple controller is word addressable
+#endif
+
+#define TEST_MEMORY_BYTES	(64*1024*1024)
 #define TEST1_SIZE 8
 #define TEST1_START 'A'
 
@@ -59,8 +74,8 @@ volatile int *sdram_io = (int *) 0xF0000300;
 #define SDRAM_BUSY 1
 
 #define sdram_wait_ready()     do { while(sdram_io[SDRAM_STATUS_REG] == SDRAM_BUSY);} while (0)
-#define sdram_load_line(addr)  do { sdram_wait_ready(); sdram_io[SDRAM_ADDR_REG] = (addr); sdram_io[SDRAM_COMMAND_REG] = SDRAM_CMD_LOAD_LINE; sdram_wait_ready(); } while (0)
-#define sdram_store_line(addr)  do { sdram_wait_ready(); sdram_io[SDRAM_ADDR_REG] = (addr); sdram_io[SDRAM_COMMAND_REG] = SDRAM_CMD_STORE_LINE; sdram_wait_ready(); } while (0)
+#define sdram_load_line(addr)  do { sdram_wait_ready(); sdram_io[SDRAM_ADDR_REG] = (addr*WORD_ADDR); sdram_io[SDRAM_COMMAND_REG] = SDRAM_CMD_LOAD_LINE; sdram_wait_ready(); } while (0)
+#define sdram_store_line(addr)  do { sdram_wait_ready(); sdram_io[SDRAM_ADDR_REG] = (addr*WORD_ADDR); sdram_io[SDRAM_COMMAND_REG] = SDRAM_CMD_STORE_LINE; sdram_wait_ready(); } while (0)
 /**********************************************************************/
 
 int main() {
