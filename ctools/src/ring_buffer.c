@@ -23,7 +23,7 @@ typedef struct {
  
 void cbInit(CircularBuffer *cb, int address_size, int mem_size, int spill_fill) {
     cb->sc_size  = pow(2, address_size);//sc_size;
-    cb->mem_size  = mem_size;	
+    cb->mem_size  = spill_fill;	
     cb->spill_fill = spill_fill;
     cb->head = cb->sc_size - 1;
     cb->tail = spill_fill & (cb->sc_size - 1);	
@@ -41,7 +41,7 @@ void cbNull(CircularBuffer *cb) {
 void cbReserve(CircularBuffer *cb, int res_count ) {
 	if ((abs(cb->head -(cb->spill_fill - 79 +15))) + res_count > cb->sc_size)
 	{
-		for(t = 0; t < (res_count - (cb->sc_size - (abs(cb->head -(cb->spill_fill - 79 + cb->sc_size - 1))))); t++) // res_count - number of free slots
+		for(t = 0; t < (res_count - (cb->sc_size - (abs(cb->head -(cb->spill_fill - cb->mem_size + cb->sc_size - 1))))); t++) // res_count - number of free slots
 		{
 			cb->mem[cb->spill_fill - t] =  cb->sc[(cb->spill_fill - t) & (cb->sc_size - 1)];
 		}
@@ -58,9 +58,9 @@ void cbReserve(CircularBuffer *cb, int res_count ) {
 }
 
 void cbFree(CircularBuffer *cb, int free_count ) {
-	if (abs(cb->head -(cb->spill_fill - 79 + cb->sc_size - 1)) < free_count)
+	if (abs(cb->head -(cb->spill_fill - cb->mem_size + cb->sc_size - 1)) < free_count)
 	{
-		cb->spill_fill = cb->spill_fill + (free_count - (abs(cb->head -(cb->spill_fill - 79 + cb->sc_size - 1)))); // obviously...!
+		cb->spill_fill = cb->spill_fill + (free_count - (abs(cb->head -(cb->spill_fill - cb->mem_size + cb->sc_size - 1)))); // obviously...!
 	
 	}
 	cb->head = (cb->head + free_count);
@@ -74,9 +74,9 @@ void cbFree(CircularBuffer *cb, int free_count ) {
 void cbEnsure(CircularBuffer *cb, int ens_count ) {
 	int k = 0;
 	int test = cb->spill_fill;
-	if (((abs(cb->head -(test - 79 + cb->sc_size - 1)))) <  ens_count)
+	if (((abs(cb->head -(test - cb->mem_size + cb->sc_size - 1)))) <  ens_count)
 	 {// check fill, if there are at least the same number of slots...	
-		for(t = (abs(cb->head -(test - 79 + cb->sc_size - 1))); t < ens_count; t++) //fill
+		for(t = (abs(cb->head -(test - cb->mem_size + cb->sc_size - 1))); t < ens_count; t++) //fill
 		{
 			cb->sc[cb->spill_fill & (cb->sc_size-1)] =  cb->mem[cb->spill_fill];
 			cb->tail = cb->tail++ ;			
