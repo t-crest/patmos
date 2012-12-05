@@ -39,48 +39,34 @@ void cbNull(CircularBuffer *cb) {
  
  
 void cbReserve(CircularBuffer *cb, int res_count ) {
-	int test = cb->spill_fill;	
-	if ((cb->count + res_count) <= cb->sc_size)	
-			cb->count = cb->count + res_count; //update number of occupied slots
-	else    //check spill
+	if ((abs(cb->head -(cb->spill_fill - 79 +15))) + res_count > cb->sc_size)
 	{
-		printf("fhhh:%d\n", abs(test - cb->head - 79) );
-		for(t = 0; t < (res_count - (cb->sc_size - /*cb->count*/(abs(cb->head -(test - 79 +15))))); t++) // res_count - number of free slots
+		for(t = 0; t < (res_count - (cb->sc_size - (abs(cb->head -(cb->spill_fill - 79 +15))))); t++) // res_count - number of free slots
 		{
-			cb->mem[cb->spill_fill] =  cb->sc[cb->spill_fill & (cb->sc_size - 1)];
-			cb->spill_fill--; 
-			//cb->tail--; 
+			cb->mem[cb->spill_fill - t] =  cb->sc[(cb->spill_fill - t) & (cb->sc_size - 1)];
 		}
+		cb->spill_fill = cb->spill_fill - (res_count - (cb->sc_size - (abs(cb->head -(cb->spill_fill - 79 +15)))));
 		cb->tail = cb->spill_fill & (cb->sc_size - 1);	//  this is just to print and check
-		cb->count = cb->sc_size;	// stack cache is full
 	}
 	cb->head =( cb->head - res_count) ;
 
 	printf("Reserve: head:%d\n", cb->head & (cb->sc_size - 1));
 	printf("Reserve: tail:%d\n", cb->tail);	
-	printf("Reserve: count:%d\n", cb->count);
+//	printf("Reserve: count:%d\n", cb->count);
 	printf("Reserve: spill_fill:%d\n", cb->spill_fill);	
 	printf("\n");	
 }
 
 void cbFree(CircularBuffer *cb, int free_count ) {
-	int test = cb->spill_fill;
-
-	if (cb->count >= free_count)
+	if (abs(cb->head -(test - 79 +15)) < free_count)
 	{
-		cb->count = cb->count - free_count; //update number of occupied slots
-		
-	}
-	else
-	{
-		cb->spill_fill = cb->spill_fill + (free_count - (abs(cb->head -(test - 79 +15)))); // obviously...!
-		cb->count = 0;
+		cb->spill_fill = cb->spill_fill + (free_count - (abs(cb->head -(cb->spill_fill - 79 +15)))); // obviously...!
 	
 	}
-	cb->head = (cb->head + free_count);// &  (cb->sc_size - 1);
+	cb->head = (cb->head + free_count);
 	printf("Free: head:%d\n", cb->head & (cb->sc_size - 1));
 	printf("Free: tail:%d\n", cb->tail);	
-	printf("Free: count:%d\n", cb->count);
+	//printf("Free: count:%d\n", cb->count);
 	printf("Free: spill_fill:%d\n", cb->spill_fill);
 	printf("\n");				
 }
@@ -97,13 +83,12 @@ void cbEnsure(CircularBuffer *cb, int ens_count ) {
 			cb->spill_fill++; 
 		}
 		cb->tail = cb->spill_fill & (cb->sc_size-1); // this is just for printing the value, we point to sc using spill_fill...
-		cb->count = ens_count; 
 		k = cb->tail % cb->sc_size; //& (cb->sc_size - 1); // this is where it assumes whatever so we need to find a limit on this... //or we just use % for c...
 	}
 	
 	printf("Ensure: head:%d\n", cb->head & (cb->sc_size - 1));
 	printf("Ensure: tail:%d\n", cb->tail);	
-	printf("Ensure: count:%d\n", cb->count);
+	//printf("Ensure: count:%d\n", cb->count);
 	printf("Ensure: spill_fill:%d\n", cb->spill_fill);		
 	printf("\n");		
 }
