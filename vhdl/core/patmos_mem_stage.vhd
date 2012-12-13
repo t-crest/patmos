@@ -55,13 +55,16 @@ entity patmos_mem_stage is
 end entity patmos_mem_stage;
 
 architecture arch of patmos_mem_stage is
-	signal en0, en1, en2, en3               : std_logic;
+	--signal en0, en1, en2, en3               : std_logic;
+	signal en								 : std_logic_vector(3 downto 0);
+	signal mm_en							 : std_logic_vector(3 downto 0);
 	signal dout0, dout1, dout2, dout3       : std_logic_vector(7 downto 0);
 	signal mem_write_data0, mem_write_data1 : std_logic_vector(7 downto 0);
 	signal mem_write_data2, mem_write_data3 : std_logic_vector(7 downto 0);
-	signal byte_enable0, byte_enable1       : std_logic;
-	signal byte_enable2, byte_enable3       : std_logic;
-	signal word_enable0, word_enable1       : std_logic;
+	signal mm_read_data0, mm_read_data1		 : std_logic_vector(7 downto 0);
+    signal mm_read_data2, mm_read_data3		 : std_logic_vector(7 downto 0);
+	signal byte_enable						 : std_logic_vector(3 downto 0);
+	signal word_enable					     : std_logic_vector(1 downto 0);
     signal ldt_type							 : address_type;
     signal datain						     : std_logic_vector(31 downto 0);
     signal ld_word							 : std_logic_vector(31 downto 0);
@@ -78,17 +81,14 @@ architecture arch of patmos_mem_stage is
     signal prev_mem_write_data1_reg			 : std_logic_vector(7 downto 0);
     signal prev_mem_write_data2_reg			 : std_logic_vector(7 downto 0);
     signal prev_mem_write_data3_reg			 : std_logic_vector(7 downto 0);
-    signal prev_en0_reg, prev_en1_reg		 : std_logic;
-    signal prev_en2_reg, prev_en3_reg		 : std_logic;
-    signal en0_reg, en1_reg					 : std_logic;
-    signal en2_reg, en3_reg					 : std_logic;
+    signal prev_en_reg						 : std_logic_vector(3 downto 0);
+    signal en_reg							 : std_logic_vector(3 downto 0);
     
     ------ stack cache
     -- MS: what about using arrays for those xxx0 - xxx3 signals?
-    signal sc_en0, sc_en1, sc_en2, sc_en3   : std_logic;
-    signal sc_word_enable0, sc_word_enable1 : std_logic;
-    signal sc_byte_enable0, sc_byte_enable1 : std_logic;
-    signal sc_byte_enable2, sc_byte_enable3 : std_logic;
+    signal sc_en							 : std_logic_vector(3 downto 0);
+    signal sc_word_enable					 : std_logic_vector(1 downto 0);
+    signal sc_byte_enable					 : std_logic_vector(3 downto 0);
     signal sc_read_data0, sc_read_data1		 : std_logic_vector(7 downto 0);
     signal sc_read_data2, sc_read_data3		 : std_logic_vector(7 downto 0);
 	signal sc_write_data0, sc_write_data1	 : std_logic_vector(7 downto 0);
@@ -131,7 +131,7 @@ begin
 		port map(clk,
 			     head_tail,
 			     sc_write_data0,
-			     sc_en0,
+			     sc_en(0),
 			     head_tail,
 			     sc_read_data0);
  
@@ -140,7 +140,7 @@ begin
 		port map(clk,
 			     head_tail,
 			     sc_write_data1,
-			     sc_en1,
+			     sc_en(1),
 			     head_tail,
 			     sc_read_data1);
 			     
@@ -149,7 +149,7 @@ begin
 		port map(clk,
 			     head_tail,
 			     sc_write_data2,
-			     sc_en2,
+			     sc_en(2),
 			     head_tail,
 			     sc_read_data2);
 			     
@@ -158,7 +158,7 @@ begin
 		port map(clk,
 			     head_tail,
 			     sc_write_data3,
-			     sc_en3,
+			     sc_en(3),
 			     head_tail,
 			     sc_read_data3);		
 			     
@@ -252,7 +252,7 @@ begin
 		port map(clk,
 			     exout_reg_adr(9 downto 0),-- exout_not_reg.adrs(9 downto 0),
 			     mem_write_data0_reg,--mem_write_data0,
-			     en0_reg,
+			     en_reg(0),
 			     exout_reg_adr(9 downto 0), --exout_not_reg.adrs(9 downto 0),
 			     dout0);
 
@@ -261,7 +261,7 @@ begin
 		port map(clk,
 			     exout_reg_adr(9 downto 0), --exout_not_reg.adrs(9 downto 0),
 			     mem_write_data1_reg, --mem_write_data1,
-			     en1_reg,
+			     en_reg(1),
 			     exout_reg_adr(9 downto 0),--exout_not_reg.adrs(9 downto 0),
 			     dout1);
 
@@ -270,7 +270,7 @@ begin
 		port map(clk,
 			     exout_reg_adr(9 downto 0),--exout_not_reg.adrs(9 downto 0),
 			     mem_write_data2_reg, --mem_write_data2,
-			     en2_reg,
+			     en_reg(2),
 			     exout_reg_adr(9 downto 0),--exout_not_reg.adrs(9 downto 0),
 			     dout2);
 
@@ -279,7 +279,7 @@ begin
 		port map(clk,
 			     exout_reg_adr(9 downto 0), --exout_not_reg.adrs(9 downto 0),
 			     mem_write_data3_reg, --
-			     en3_reg,
+			     en_reg(3),
 			     exout_reg_adr(9 downto 0), --exout_not_reg.adrs(9 downto 0),
 			     dout3);
 	
@@ -297,14 +297,11 @@ begin
 				prev_mem_write_data1_reg <= mem_write_data1;
 				prev_mem_write_data2_reg <= mem_write_data2;
 				prev_mem_write_data3_reg <= mem_write_data3;
-				prev_en0_reg			<= en0;
-				prev_en1_reg			<= en1;
-				prev_en2_reg			<= en2;
-				prev_en3_reg			<= en3;
+				prev_en_reg			<= en;
 		end if;	
 	end process;
 	
-	process(stall, en0, en1, en2, en3, prev_en0_reg, prev_en1_reg, prev_en2_reg, prev_en3_reg,
+	process(stall, en, prev_en_reg,
 			exout_not_reg, mem_write_data0, mem_write_data1, mem_write_data2, mem_write_data3, prev_exout_reg_adr, 
 			prev_mem_write_data0_reg, prev_mem_write_data1_reg, prev_mem_write_data2_reg, prev_mem_write_data3_reg
 	)
@@ -315,20 +312,14 @@ begin
 			mem_write_data1_reg <= prev_mem_write_data1_reg;
 			mem_write_data2_reg <= prev_mem_write_data2_reg;
 			mem_write_data3_reg <= prev_mem_write_data3_reg;
-			en0_reg				<= prev_en0_reg;
-			en1_reg				<= prev_en1_reg;
-			en2_reg				<= prev_en2_reg;
-			en3_reg				<= prev_en3_reg;
+			en_reg				<= prev_en_reg;
 		else
 			exout_reg_adr		<= exout_not_reg.adrs;
 			mem_write_data0_reg <= mem_write_data0;
 			mem_write_data1_reg <= mem_write_data1;
 			mem_write_data2_reg <= mem_write_data2;
 			mem_write_data3_reg <= mem_write_data3;
-			en0_reg				<= en0;
-			en1_reg				<= en1;
-			en2_reg				<= en2;
-			en3_reg				<= en3;
+			en_reg				<= en;
 		end if;
 	end process;
 	
@@ -427,87 +418,63 @@ begin
 
 	process(exout_not_reg, mem_write)
 	begin
-		byte_enable0 <= '0';
-		byte_enable1 <= '0';
-		byte_enable2 <= '0';
-		byte_enable3 <= '0';
-		sc_byte_enable0 <= '0';
-		sc_byte_enable1 <= '0';
-		sc_byte_enable2 <= '0';
-		sc_byte_enable3 <= '0';
+		byte_enable(3 downto 0) <= (others =>'0');
+		sc_byte_enable(3 downto 0) <= (others =>'0');
 		case exout_not_reg.adrs(1 downto 0) is
-			when "00"   => byte_enable0 <= mem_write;
-							sc_byte_enable0 <= exout_not_reg.sc_write_not_reg;
-			when "01"   => byte_enable1 <= mem_write;
-							sc_byte_enable1 <= exout_not_reg.sc_write_not_reg;
-			when "10"   => byte_enable2 <= mem_write;
-							sc_byte_enable2 <= exout_not_reg.sc_write_not_reg;
-			when "11"   => byte_enable3 <= mem_write;
-							sc_byte_enable3 <= exout_not_reg.sc_write_not_reg;
+			when "00"   => byte_enable(0) <= mem_write;
+							sc_byte_enable(0) <= exout_not_reg.sc_write_not_reg;
+			when "01"   => byte_enable(1) <= mem_write;
+							sc_byte_enable(1) <= exout_not_reg.sc_write_not_reg;
+			when "10"   => byte_enable(2) <= mem_write;
+							sc_byte_enable(2) <= exout_not_reg.sc_write_not_reg;
+			when "11"   => byte_enable(3) <= mem_write;
+							sc_byte_enable(3) <= exout_not_reg.sc_write_not_reg;
 			when others => null;
 		end case;
 	end process;
 
 	process(exout_not_reg, mem_write)
 	begin
-		word_enable0 <= '0';
-		word_enable1 <= '0';
-		sc_word_enable0 <= '0';
-		sc_word_enable1 <= '0';
+		word_enable(1 downto 0) <= (others => '0');
+		sc_word_enable(1 downto 0) <= (others => '0');
 		case exout_not_reg.adrs(1) is
-			when '0'    => word_enable0 <= mem_write;
-							sc_word_enable0 <= exout_not_reg.sc_write_not_reg;
-			when '1'    => word_enable1 <= mem_write;
-							sc_word_enable1 <= exout_not_reg.sc_write_not_reg;
+			when '0'    => word_enable(0) <= mem_write;
+							sc_word_enable(0) <= exout_not_reg.sc_write_not_reg;
+			when '1'    => word_enable(1) <= mem_write;
+							sc_word_enable(1) <= exout_not_reg.sc_write_not_reg;
 			when others => null;
 		end case;
 	end process;
 		
-	process(word_enable0, word_enable1, byte_enable0, byte_enable1, byte_enable2, byte_enable3, decdout, exout_not_reg, mem_write, 
-		     sc_word_enable0, sc_word_enable1, sc_byte_enable0, sc_byte_enable1, sc_byte_enable2, sc_byte_enable3
-	)
+	process(word_enable, byte_enable, decdout, exout_not_reg, mem_write, 
+		     sc_word_enable, sc_word_enable)
 	begin
 		case decdout.adrs_type is
 			when word => 
-				en0             <= mem_write;
-				en1             <= mem_write;
-				en2             <= mem_write;
-				en3             <= mem_write;
+				en(3 downto 0)             <= mem_write & mem_write & mem_write & mem_write;
 				
-				sc_en0			<= exout_not_reg.sc_write_not_reg;
-				sc_en1			<= exout_not_reg.sc_write_not_reg;
-				sc_en2			<= exout_not_reg.sc_write_not_reg;
-				sc_en3			<= exout_not_reg.sc_write_not_reg;
+				sc_en(3 downto 0)  			<= exout_not_reg.sc_write_not_reg & exout_not_reg.sc_write_not_reg & exout_not_reg.sc_write_not_reg & exout_not_reg.sc_write_not_reg;
 				
 				mem_write_data0 <= exout_not_reg.mem_write_data(31 downto 24);
 				mem_write_data1 <= exout_not_reg.mem_write_data(23 downto 16);
 				mem_write_data2 <= exout_not_reg.mem_write_data(15 downto 8);
 				mem_write_data3 <= exout_not_reg.mem_write_data(7 downto 0);
 			when half =>
-				en0             <= word_enable0;
-				en1             <= word_enable0;
-				en2             <= word_enable1;
-				en3             <= word_enable1;
 				
-				sc_en0          <= sc_word_enable0;
-				sc_en1          <= sc_word_enable0;
-				sc_en2          <= sc_word_enable1;
-				sc_en3          <= sc_word_enable1;
+				en(3 downto 2)             <= word_enable(1) & word_enable(1);
+				en(1 downto 0)             <= word_enable(0) & word_enable(0);
+				
+				sc_en(3 downto 2)          <= sc_word_enable(1) & sc_word_enable(1);
+				sc_en(1 downto 0)          <= sc_word_enable(0) & sc_word_enable(0);
 				
 				mem_write_data0 <= exout_not_reg.mem_write_data(15 downto 8);
 				mem_write_data1 <= exout_not_reg.mem_write_data(7 downto 0);
 				mem_write_data2 <= exout_not_reg.mem_write_data(15 downto 8);
 				mem_write_data3 <= exout_not_reg.mem_write_data(7 downto 0);
 			when byte =>
-				en0 <= byte_enable0;
-				en1 <= byte_enable1;
-				en2 <= byte_enable2;
-				en3 <= byte_enable3;
+				en(3 downto 0) <= byte_enable(3 downto 0);
 				
-				sc_en0 <= sc_byte_enable0;
-				sc_en1 <= sc_byte_enable1;
-				sc_en2 <= sc_byte_enable2;
-				sc_en3 <= sc_byte_enable3;
+				sc_en(3 downto 0) <= sc_byte_enable(3 downto 0);
 	
 				mem_write_data0 <= exout_not_reg.mem_write_data(7 downto 0);
 				mem_write_data1 <= exout_not_reg.mem_write_data(7 downto 0);
