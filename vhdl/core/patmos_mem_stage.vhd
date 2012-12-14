@@ -138,9 +138,17 @@ begin
 		mm_read_add <= exout_reg_adr(sc_depth - 1 downto 0);
 		mm_write_add <= exout_reg_adr(sc_depth - 1 downto 0);
 		mm_en_spill <= mm_en;
+		mm_write_data0 <= mem_write_data0_reg;
+		mm_write_data1 <= mem_write_data1_reg;
+		mm_write_data2 <= mem_write_data2_reg;
+		mm_write_data3 <= mem_write_data3_reg;
 		if (spill = '1' or fill = '1') then	
 			mm_read_add <= mem_top and SC_MASK;
 			mm_en_spill <= mm_spill; -- this is for spilling ( writing to main memory)
+			mm_write_data0 <= sc_read_data0;
+			mm_write_data1 <= sc_read_data1;
+			mm_write_data2 <= sc_read_data2;
+			mm_write_data3 <= sc_read_data3;
 			--sc_write_add <= ; -- spill
 		end if;
 	end process;
@@ -151,7 +159,7 @@ begin
 		port map(clk,
 			     mm_write_add,
 			     mm_write_data0,
-			     mm_en(0),
+			     mm_en_spill(0),
 			     mm_read_add,
 			     mm_read_data0);
  
@@ -160,7 +168,7 @@ begin
 		port map(clk,
 			     mm_write_add,
 			     mm_write_data1,
-			     mm_en(1),
+			     mm_en_spill(1),
 			     mm_read_add,
 			     mm_read_data1);
 			     
@@ -169,7 +177,7 @@ begin
 		port map(clk,
 			     mm_write_add,
 			     mm_write_data2,
-			     mm_en(2),
+			     mm_en_spill(2),
 			     mm_read_add,
 			     mm_read_data2);
 			     
@@ -178,7 +186,7 @@ begin
 		port map(clk,
 			     mm_write_add,
 			     mm_write_data3,
-			     mm_en(3),
+			     mm_en_spill(3),
 			     mm_read_add,
 			     mm_read_data3);		
 	
@@ -194,9 +202,17 @@ begin
 		sc_read_add <= exout_reg_adr(sc_depth - 1 downto 0);
 		sc_write_add <= exout_reg_adr(sc_depth - 1 downto 0);
 		sc_en_fill <= sc_en;
+		sc_write_data0 <= mem_write_data0_reg;
+		sc_write_data1 <= mem_write_data1_reg;
+		sc_write_data2 <= mem_write_data2_reg;
+		sc_write_data3 <= mem_write_data3_reg;
 		if (spill = '1' or fill = '1') then	
 			sc_read_add <= mem_top and SC_MASK;
 			sc_en_fill <= sc_fill; -- this is for filling!
+			sc_write_data0 <= mm_read_data0;
+			sc_write_data1 <= mm_read_data1;
+			sc_write_data2 <= mm_read_data2;
+			sc_write_data3 <= mm_read_data3;
 			--sc_write_add <= ; -- spill
 		end if;
 	end process;
@@ -235,41 +251,9 @@ begin
 			     sc_write_data3,
 			     sc_en_fill(3),
 			     sc_read_add,
-			     sc_read_data3);		
-			     
-	process(mem_write_data0, mem_write_data1,  mem_write_data2, mem_write_data3) -- write to stack cache from main memory or register
-	begin
-		--if (exout.sc_write_not_reg = '1') then -- normal store
-			sc_write_data0 <=  mem_write_data0;
-			sc_write_data1 <=  mem_write_data1;
-			sc_write_data2 <=  mem_write_data2;
-			sc_write_data3 <=  mem_write_data3;
-		if (fill = '1') then 				-- fill stack cache
-		end if;	
-		
-	end process;    
+			     sc_read_data3);		    
 	
 	
-	process(exout_not_reg)
-	begin
-		--if () -- load/store 
-		head_tail <=  exout_not_reg.adrs(9 downto 0);--exout.head;
-		--else () spill/fill
---		head_tail <= (others => '0');
---		if (spill = '1') then
---			head_tail <= head;
---		elsif (fill = '1') then
---			head_tail <= tail;
---		end if;
-	end process;			          
---			     
---			  
-	process(exout_not_reg)
-	begin
-	--	spill <= exout_not_reg.spill;
-	end process;
-	   
-
 
 	process(clk, rst) -- adjust head/tail
 	begin 
