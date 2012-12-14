@@ -90,6 +90,9 @@ architecture arch of patmos_mem_stage is
 	signal mm_read_data0, mm_read_data1		 : std_logic_vector(7 downto 0);
     signal mm_read_data2, mm_read_data3		 : std_logic_vector(7 downto 0);
     signal mm_en							 : std_logic_vector(3 downto 0);
+    signal mm_read_add, mm_write_add		 : std_logic_vector(mm_depth - 1 downto 0);
+    signal mm_en_spill						 : std_logic_vector(3 downto 0);
+    signal mm_spill							 : std_logic_vector(3 downto 0);
     
     ------ stack cache
     -- MS: what about using arrays for those xxx0 - xxx3 signals?
@@ -107,8 +110,11 @@ architecture arch of patmos_mem_stage is
     signal sc_data_out						 : std_logic_vector(31 downto 0);
     signal sc_lm_data						 : std_logic_vector(31 downto 0);
   
+  	signal sc_read_add, sc_write_add		 : std_logic_vector(sc_depth - 1 downto 0);
     signal state							 : sc_state;
-    signal sc_top, mem_top, head_tail			 : std_logic_vector(sc_depth - 1 downto 0);
+    signal sc_top, mem_top, head_tail		 : std_logic_vector(sc_depth - 1 downto 0);
+	signal sc_fill							 : std_logic_vector(3 downto 0);
+	signal sc_en_fill						 : std_logic_vector(3 downto 0);
 
 	signal spill, fill						 : std_logic;
 	signal stall							 : std_logic;	
@@ -127,42 +133,53 @@ begin
 		end if;
 	end process mem_wb;
 
+	process(exout_reg_adr, spill, fill, mem_top, mm_spill, mm_en) --SA: Main memory read/write address, normal load/store or fill/spill
+	begin
+		mm_read_add <= exout_reg_adr(sc_depth - 1 downto 0);
+		mm_write_add <= exout_reg_adr(sc_depth - 1 downto 0);
+		mm_en_spill <= mm_en;
+		if (spill = '1' or fill = '1') then	
+			mm_read_add <= mem_top and SC_MASK;
+			mm_en_spill <= mm_spill; -- this is for spilling ( writing to main memory)
+			--sc_write_add <= ; -- spill
+		end if;
+	end process;
 
 	--- main memory for simulation
 	mm0: entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     head_tail,
+			     mm_write_add,
 			     mm_write_data0,
 			     mm_en(0),
-			     head_tail,
+			     mm_read_add,
 			     mm_read_data0);
  
 	mm1: entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     head_tail,
+			     mm_write_add,
 			     mm_write_data1,
 			     mm_en(1),
-			     head_tail,
+			     mm_read_add,
 			     mm_read_data1);
 			     
 	mm2: entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     head_tail,
+			     mm_write_add,
 			     mm_write_data2,
 			     mm_en(2),
-			     head_tail,
+			     mm_read_add,
 			     mm_read_data2);
 			     
 	mm3: entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     head_tail,
+			     mm_write_add,
 			     mm_write_data3,
 			     mm_en(3),
-			     head_tail,
+			     mm_read_add,
 			     mm_read_data3);		
 	
 	---------------------------------------------- stack cache
@@ -172,40 +189,52 @@ begin
 --        write_enable             : in std_logic;
 --        rd_address               : in std_logic_vector(addr_width - 1 downto 0);
 --        data_out                 : out std_logic_vector(width -1 downto 0) -- load
+	process(exout_reg_adr, spill, fill, mem_top, sc_fill, sc_en) --SA: Stack cache read/write address, normal load/store or fill/spill
+	begin
+		sc_read_add <= exout_reg_adr(sc_depth - 1 downto 0);
+		sc_write_add <= exout_reg_adr(sc_depth - 1 downto 0);
+		sc_en_fill <= sc_en;
+		if (spill = '1' or fill = '1') then	
+			sc_read_add <= mem_top and SC_MASK;
+			sc_en_fill <= sc_fill; -- this is for filling!
+			--sc_write_add <= ; -- spill
+		end if;
+	end process;
+	
 	sc0: entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     head_tail,
+			     sc_write_add,
 			     sc_write_data0,
-			     sc_en(0),
-			     head_tail,
+			     sc_en_fill(0),
+			     sc_read_add,
 			     sc_read_data0);
  
 	sc1: entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     head_tail,
+			     sc_write_add,
 			     sc_write_data1,
-			     sc_en(1),
-			     head_tail,
+			     sc_en_fill(1),
+			     sc_read_add,
 			     sc_read_data1);
 			     
 	sc2: entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     head_tail,
+			     sc_write_add,
 			     sc_write_data2,
-			     sc_en(2),
-			     head_tail,
+			     sc_en_fill(2),
+			     sc_read_add,
 			     sc_read_data2);
 			     
 	sc3: entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     head_tail,
+			     sc_write_add,
 			     sc_write_data3,
-			     sc_en(3),
-			     head_tail,
+			     sc_en_fill(3),
+			     sc_read_add,
 			     sc_read_data3);		
 			     
 	process(mem_write_data0, mem_write_data1,  mem_write_data2, mem_write_data3) -- write to stack cache from main memory or register
@@ -257,6 +286,8 @@ begin
 					sc_top <= exout_not_reg.sc_top;
 					mem_top <= exout_not_reg.mem_top;
 					dout.stall <= '0';
+					sc_fill <= (others => '0');
+					mm_spill <= (others => '0');
 					if (spill = '1') then
 						state <= spill_state;
 					--	dout.stall <= '0';
@@ -271,6 +302,7 @@ begin
 						--mem[mem_top] = sc[mem_top & SC_MASK];
 						--}
 					dout.stall <= '1';
+					mm_spill <= (others => '1');
 					if (unsigned (counter) > 0) then
 						mem_top <= std_logic_vector(unsigned(mem_top) - 1); -- if there is more than one clock cycle in each spill/fill, more states should be added
 						state <= spill_state;
@@ -284,6 +316,7 @@ begin
 						--++mem_top;
 						--}
 					dout.stall <= '1';
+					sc_fill <= (others => '1');
 					if (spill = '1') then
 						state <= fill_state;
 					else

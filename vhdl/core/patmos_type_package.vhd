@@ -58,12 +58,15 @@ package patmos_type_package is
 	type isntrucion								is (none, st, ld, nop, br, alu, alui, res, ens, free);
 	type function_type_sc						is (none, reserve, free, ensure);
   	type sc_state								is (init, spill_state, fill_state);
+ 
 	-------------------------------------------
 	-- in/out records
 	-------------------------------------------
 	constant pc_length              			: integer := 32;
 	constant instruction_word_length 			: integer := 32;
-	constant sc_depth							: integer := 10;	
+	constant sc_depth							: integer := 10;
+	constant mm_depth							: integer := 10;
+	signal SC_MASK								: std_logic_vector(sc_depth - 1 downto 0);
 	-------------------------------------------
 	-- fetch/decode
 	-------------------------------------------

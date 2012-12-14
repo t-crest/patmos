@@ -353,7 +353,8 @@ begin
 --	}
 			when ensure => null;
 				if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
-					doutex_not_reg.nspill_fill <= std_logic_vector(unsigned(decdout.imm(sc_depth - 1 downto 0)) - unsigned(mem_top) + sc_depth);
+					doutex_not_reg.nspill_fill <= std_logic_vector(unsigned(decdout.imm(sc_depth - 1 downto 0)) - unsigned(mem_top) + sc_depth); -- SA: This is number of words, but 
+																																	-- we do spill/fill in blocks, what is the difference?
 					doutex_not_reg.fill <= '1';
 				end if; -- predicate
 --					nfill = n - (mem_top - sc_top);
