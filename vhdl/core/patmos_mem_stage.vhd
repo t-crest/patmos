@@ -57,12 +57,11 @@ end entity patmos_mem_stage;
 architecture arch of patmos_mem_stage is
 	--signal en0, en1, en2, en3               : std_logic;
 	signal en								 : std_logic_vector(3 downto 0);
-	signal mm_en							 : std_logic_vector(3 downto 0);
+
 	signal dout0, dout1, dout2, dout3       : std_logic_vector(7 downto 0);
 	signal mem_write_data0, mem_write_data1 : std_logic_vector(7 downto 0);
 	signal mem_write_data2, mem_write_data3 : std_logic_vector(7 downto 0);
-	signal mm_read_data0, mm_read_data1		 : std_logic_vector(7 downto 0);
-    signal mm_read_data2, mm_read_data3		 : std_logic_vector(7 downto 0);
+
 	signal byte_enable						 : std_logic_vector(3 downto 0);
 	signal word_enable					     : std_logic_vector(1 downto 0);
     signal ldt_type							 : address_type;
@@ -84,6 +83,14 @@ architecture arch of patmos_mem_stage is
     signal prev_en_reg						 : std_logic_vector(3 downto 0);
     signal en_reg							 : std_logic_vector(3 downto 0);
     
+    -- Main Memory
+    
+    signal mm_write_data0, mm_write_data1	 : std_logic_vector(7 downto 0);
+	signal mm_write_data2, mm_write_data3	 : std_logic_vector(7 downto 0);
+	signal mm_read_data0, mm_read_data1		 : std_logic_vector(7 downto 0);
+    signal mm_read_data2, mm_read_data3		 : std_logic_vector(7 downto 0);
+    signal mm_en							 : std_logic_vector(3 downto 0);
+    
     ------ stack cache
     -- MS: what about using arrays for those xxx0 - xxx3 signals?
     signal sc_en							 : std_logic_vector(3 downto 0);
@@ -101,10 +108,11 @@ architecture arch of patmos_mem_stage is
     signal sc_lm_data						 : std_logic_vector(31 downto 0);
   
     signal state							 : sc_state;
-    signal head, tail, head_tail			 : std_logic_vector(sc_depth - 1 downto 0);
+    signal sc_top, mem_top, head_tail			 : std_logic_vector(sc_depth - 1 downto 0);
 
 	signal spill, fill						 : std_logic;
 	signal stall							 : std_logic;	
+	signal counter							 : std_logic_vector(sc_depth - 1 downto 0);
 
 begin
 	mem_wb : process(clk)
@@ -119,6 +127,44 @@ begin
 		end if;
 	end process mem_wb;
 
+
+	--- main memory for simulation
+	mm0: entity work.patmos_data_memory(arch)
+		generic map(8, 10)
+		port map(clk,
+			     head_tail,
+			     mm_write_data0,
+			     mm_en(0),
+			     head_tail,
+			     mm_read_data0);
+ 
+	mm1: entity work.patmos_data_memory(arch)
+		generic map(8, 10)
+		port map(clk,
+			     head_tail,
+			     mm_write_data1,
+			     mm_en(1),
+			     head_tail,
+			     mm_read_data1);
+			     
+	mm2: entity work.patmos_data_memory(arch)
+		generic map(8, 10)
+		port map(clk,
+			     head_tail,
+			     mm_write_data2,
+			     mm_en(2),
+			     head_tail,
+			     mm_read_data2);
+			     
+	mm3: entity work.patmos_data_memory(arch)
+		generic map(8, 10)
+		port map(clk,
+			     head_tail,
+			     mm_write_data3,
+			     mm_en(3),
+			     head_tail,
+			     mm_read_data3);		
+	
 	---------------------------------------------- stack cache
 --	        clk       	             : in std_logic;
 --        wr_address               : in std_logic_vector(addr_width -1 downto 0);
@@ -194,22 +240,22 @@ begin
 	--	spill <= exout_not_reg.spill;
 	end process;
 	   
-	-- MS: no need to have additional signals in the sensitivity list
-	-- when it is a clocked/reset process
---	process(clk, rst, spill, fill) -- adjust head/tail
+
+
 	process(clk, rst) -- adjust head/tail
 	begin 
 		if (rst='1') then
 			state <= init;
-			
+			counter <= (others => '0');
 		elsif rising_edge(clk) then
 			case state is
 				when init => 
 				--	spill <= '0';
 				--	fill  <= '0';	
 					stall <= '0'; --just for now
-					head <= exout_not_reg.head;
-					tail <= exout_not_reg.tail;
+					counter <= exout_not_reg.nspill_fill;
+					sc_top <= exout_not_reg.sc_top;
+					mem_top <= exout_not_reg.mem_top;
 					dout.stall <= '0';
 					if (spill = '1') then
 						state <= spill_state;
@@ -220,17 +266,25 @@ begin
 						state <= init;
 					end if;
 				when spill_state =>
+						--for (i=0; i<nspill; ++i) {
+						--mem_top;
+						--mem[mem_top] = sc[mem_top & SC_MASK];
+						--}
 					dout.stall <= '1';
-					if (spill = '1') then
-						--tail <= ; update tail
+					if (unsigned (counter) > 0) then
+						mem_top <= std_logic_vector(unsigned(mem_top) - 1); -- if there is more than one clock cycle in each spill/fill, more states should be added
 						state <= spill_state;
+						counter <= std_logic_vector(unsigned(counter) - 1);
 					else
 						state <= init;
 					end if;
 				when fill_state  => 
+						--for (i=0; i<nfill; ++i) {
+						--sc[mem_top & SC_MASK] = mem[mem_top];
+						--++mem_top;
+						--}
 					dout.stall <= '1';
 					if (spill = '1') then
-						--tail <= ; update tail
 						state <= fill_state;
 					else
 						state <= init;
@@ -239,8 +293,6 @@ begin
 		end if;
 	end process;		  
 	
---	
---	--	
 
 	-----------------------------------------------
 	-- MS: This shall be the stack cache, right?
@@ -446,8 +498,7 @@ begin
 		end case;
 	end process;
 		
-	process(word_enable, byte_enable, decdout, exout_not_reg, mem_write, 
-		     sc_word_enable, sc_word_enable)
+	process(word_enable, byte_enable, decdout, exout_not_reg, mem_write, sc_word_enable)
 	begin
 		case decdout.adrs_type is
 			when word => 

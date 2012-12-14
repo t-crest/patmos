@@ -166,9 +166,11 @@ package patmos_type_package is
 		sc_read_not_reg  						 : std_logic;
 		sc_write_not_reg 						 : std_logic;
 		stall         							 : std_logic;
-		head									 : std_logic_vector(sc_depth - 1 downto 0);
-		tail									 : std_logic_vector(sc_depth - 1 downto 0);
+		sc_top									 : std_logic_vector(sc_depth - 1 downto 0); --head
+		mem_top									 : std_logic_vector(sc_depth - 1 downto 0); --tail
 		spill									 : std_logic;
+		fill									 : std_logic;
+		nspill_fill								 : std_logic_vector(sc_depth - 1 downto 0);
 	end record;
 	
 

@@ -76,9 +76,8 @@ architecture arch of patmos_alu is
 	
 	signal doutex_sc_write						: std_logic;
 	signal doutex_sc_read						: std_logic;
-	signal head, tail							: std_logic_vector(sc_depth - 1 downto 0);
-	signal doutex_head, doutex_tail				: std_logic_vector(sc_depth - 1 downto 0);
-	signal num_valid_sc_slots					: std_logic_vector(sc_depth - 1 downto 0) := "1111111111";
+	signal sc_top, mem_top						: std_logic_vector(sc_depth - 1 downto 0);
+	signal doutex_sc_top, doutex_mem_top		: std_logic_vector(sc_depth - 1 downto 0);
 	
 begin
 
@@ -323,38 +322,58 @@ begin
 		end if;
 	end process;
 	
-	process(head, tail) -- passing head/ tail to memory
+	process(sc_top, mem_top) -- passing head/ tail to memory
 	begin
-		doutex_not_reg.head <= head; -- head to mem stage
-		doutex_not_reg.tail <= tail; -- tail to mem stage
+		doutex_not_reg.sc_top <= sc_top; -- head to mem stage
+		doutex_not_reg.mem_top <= mem_top; -- tail to mem stage
 	end process;
 	
-	process( decdout, predicate_reg) -- stack cache
+	process( decdout, predicate_reg, sc_top, mem_top) -- stack cache
 	begin
 		doutex_not_reg.spill <= '0';
+		doutex_not_reg.fill <= '0';
 		doutex_not_reg.stall <= '0';
-		head 						<= (others => '0');
-		tail 						<= (others => '0');
-		--num_valid_sc_slots			<= "";
+		sc_top 						<= (others => '0');
+		mem_top 					<= (others => '0');
+		doutex_not_reg.nspill_fill <= (others => '0');
 
 		case decdout.pat_function_type_sc is
 			when reserve => 
-				
 				if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
+					sc_top <= std_logic_vector( unsigned(sc_top) - unsigned(decdout.imm(sc_depth - 1 downto 0)));
+					doutex_not_reg.nspill_fill <= std_logic_vector(unsigned(mem_top) - unsigned(sc_top) - sc_depth);
 					doutex_not_reg.spill <= '1';
---					if ((cb->sc_size - cb->count) <  res_count)// check spill	
---					for(t = 0; t < (res_count - (cb->sc_size - cb->count)); t++) // res_count - number of free slots
---						{
---							cb->mem[cb->spill_fill] =  cb->sc[cb->tail];
---							cb->tail = cb->tail++ & (cb->sc_size - 1);
---							cb->spill_fill++; 
---						}
---					cb->head = (cb->head + res_count) & (cb->sc_size - 1);
 				end if; -- predicate
+--						int nspill, i;
+--						sc_top -= n;
+--						nspill = mem_top - sc_top - SC_SIZE;
+--						for (i=0; i<nspill; ++i) {
+--							--mem_top;
+--							mem[mem_top] = sc[mem_top & SC_MASK];
+--	}
 			when ensure => null;
+				if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
+					doutex_not_reg.nspill_fill <= std_logic_vector(unsigned(decdout.imm(sc_depth - 1 downto 0)) - unsigned(mem_top) + sc_depth);
+					doutex_not_reg.fill <= '1';
+				end if; -- predicate
+--					nfill = n - (mem_top - sc_top);
+--					for (i=0; i<nfill; ++i) {
+--						sc[mem_top & SC_MASK] = mem[mem_top];
+--						++mem_top;
+--					}
 			when free =>  null;
+				if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
+					sc_top <= std_logic_vector( unsigned(sc_top) + unsigned(decdout.imm(sc_depth - 1 downto 0)));
+					if (sc_top > mem_top) then
+						mem_top <= sc_top;
+					end if;
+				end if; -- predicate
+--					sc_top += n;
+--					if (sc_top > mem_top) {
+--						mem_top = sc_top;
+--					}
+--				}
 			when none => null;
-		--	when none => null;
 		end case;
 		
 	end process;
