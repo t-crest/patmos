@@ -58,6 +58,9 @@ architecture arch of patmos_mem_stage is
 	--signal en0, en1, en2, en3               : std_logic;
 	signal en								 : std_logic_vector(3 downto 0);
 
+	-- MS: here and also further down to either:
+	-- use an array of 4 bytes
+	-- or (better) define a 32-bit std_logic_vector and use parts of the vector where needed
 	signal dout0, dout1, dout2, dout3       : std_logic_vector(7 downto 0);
 	signal mem_write_data0, mem_write_data1 : std_logic_vector(7 downto 0);
 	signal mem_write_data2, mem_write_data3 : std_logic_vector(7 downto 0);
@@ -329,12 +332,11 @@ begin
 		dout.mem_top <= mem_top;
 	end process;
 	-----------------------------------------------
-	-- MS: This shall be the stack cache, right?
 	-- MS: If a registered address from EX is used here and there is an address
 	-- register in the memory, are we now moving the MEM stage into WB?
-	-- SA: This is the scratchpad memory the stack cache is the sc instances, 
 	-- SA: The address is not registered, in case there is the stall the address
 	-- should be registered, I can change the name though
+	-- MS: a non-registered signal shall not end with _reg.
 	memory0 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
