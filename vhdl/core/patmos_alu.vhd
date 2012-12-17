@@ -76,7 +76,7 @@ architecture arch of patmos_alu is
 	
 	signal doutex_sc_write						: std_logic;
 	signal doutex_sc_read						: std_logic;
-	signal sc_top, mem_top						: std_logic_vector(sc_depth - 1 downto 0);
+	signal sc_top, sc_top_next, mem_top			: std_logic_vector(sc_depth - 1 downto 0);
 	signal doutex_sc_top, doutex_mem_top		: std_logic_vector(sc_depth - 1 downto 0);
 	
 
@@ -212,9 +212,10 @@ begin
 	process(rst, clk)
 	begin
 		if rst = '1' then
-			predicate_reg 				<= "00000001";
-			doutex_reg.predicate 			<= "00000001";
-
+			predicate_reg 						<= "00000001";
+			doutex_reg.predicate 				<= "00000001";
+			sc_top								<= "0111110100";
+	
 		elsif rising_edge(clk) then
 			if (memdout.stall = '0') then
 				-- MS: whouldn't it make sense to use the EXE record also for
@@ -242,6 +243,10 @@ begin
 				doutex_alu_result_reg       <= rd;
 				doutex_alu_adrs_reg         <= adrs;
 				doutex_write_back_reg       <= decdout.rd;
+				
+				
+				sc_top						<= sc_top_next;
+
 			end if;
 
 	--		doutex.head                 <= doutex_head;
@@ -323,10 +328,10 @@ begin
 		end if;
 	end process;
 	
-	process(sc_top, mem_top) -- passing head/ tail to memory
+	process(memdout) -- passing head/ tail to memory
 	begin
-		doutex_not_reg.sc_top <= sc_top; -- head to mem stage
-		doutex_not_reg.mem_top <= mem_top; -- tail to mem stage
+		mem_top <= memdout.mem_top; -- tail from stage
+	--	sc_top <= 
 	end process;
 	
 	process( decdout, predicate_reg, sc_top, mem_top) -- stack cache
@@ -334,14 +339,15 @@ begin
 		doutex_not_reg.spill <= '0';
 		doutex_not_reg.fill <= '0';
 		doutex_not_reg.stall <= '0';
+		sc_top_next			<= (others => '0');
 		--sc_top 						<= (others => '0');
 		--mem_top 					<= (others => '0');
 		doutex_not_reg.nspill_fill <= (others => '0');
-
+		
 		case decdout.pat_function_type_sc is
 			when reserve => 
 				if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
-					sc_top <= std_logic_vector( unsigned(sc_top) - unsigned(decdout.imm(sc_depth - 1 downto 0)));
+					sc_top_next <= std_logic_vector( unsigned(sc_top) - unsigned(decdout.imm(sc_depth - 1 downto 0)));
 					doutex_not_reg.nspill_fill <= std_logic_vector(unsigned(mem_top) - unsigned(sc_top) - sc_depth);
 					doutex_not_reg.spill <= '1';
 				end if; -- predicate
@@ -367,9 +373,9 @@ begin
 				doutex_not_reg.spill <= '0';
 				doutex_not_reg.fill <= '0';
 				if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
-					sc_top <= std_logic_vector( unsigned(sc_top) + unsigned(decdout.imm(sc_depth - 1 downto 0)));
+					sc_top_next <= std_logic_vector( unsigned(sc_top) + unsigned(decdout.imm(sc_depth - 1 downto 0)));
 					if (sc_top > mem_top) then
-						mem_top <= sc_top;
+					--	mem_top <= sc_top;
 					end if;
 				end if; -- predicate
 --					sc_top += n;
@@ -377,7 +383,7 @@ begin
 --						mem_top = sc_top;
 --					}
 --				}
-			when none => null;
+			when none => sc_top_next <= sc_top;
 		end case;
 		
 	end process;

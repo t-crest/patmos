@@ -183,15 +183,16 @@ package patmos_type_package is
 	------------------------------------------
 
 	type mem_out_type is record
-		result             : result_type;
-		data_out           : std_logic_vector(31 downto 0); -- forwarding
+		result             						: result_type;
+		data_out           						: std_logic_vector(31 downto 0); -- forwarding
 		-- following is forwarding 
-		reg_write_out      : std_logic;
-		write_back_reg_out : std_logic_vector(4 downto 0);
-		data_mem_data_out  : std_logic_vector(31 downto 0); -- this is from memory it is used later to select between output of mem or IO
-		data  : std_logic_vector(31 downto 0); -- to register file
+		reg_write_out      						: std_logic;
+		write_back_reg_out 						: std_logic_vector(4 downto 0);
+		data_mem_data_out  						: std_logic_vector(31 downto 0); -- this is from memory it is used later to select between output of mem or IO
+		data  									: std_logic_vector(31 downto 0); -- to register file
 		
-		stall         		: std_logic;
+		stall         							: std_logic;
+		mem_top									: std_logic_vector(sc_depth - 1 downto 0);
 	end record;
 
 

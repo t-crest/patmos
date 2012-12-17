@@ -112,7 +112,7 @@ architecture arch of patmos_mem_stage is
   
   	signal sc_read_add, sc_write_add		 : std_logic_vector(sc_depth - 1 downto 0);
     signal state_reg, next_state			 : sc_state;
-    signal sc_top, mem_top	 				 : std_logic_vector(sc_depth - 1 downto 0);
+    signal mem_top, mem_top_next			 : std_logic_vector(sc_depth - 1 downto 0);
 	signal sc_fill							 : std_logic_vector(3 downto 0);
 	signal sc_en_fill						 : std_logic_vector(3 downto 0);
 
@@ -133,7 +133,10 @@ begin
 		end if;
 	end process mem_wb;
 
-	process(exout_reg_adr, spill, fill, mem_top, mm_spill, mm_en) --SA: Main memory read/write address, normal load/store or fill/spill
+	process(exout_reg_adr, spill, fill, mem_top, mm_spill, mm_en,
+		sc_read_data0, sc_read_data1, sc_read_data2, sc_read_data3,
+		mem_write_data0_reg, mem_write_data1_reg, mem_write_data2_reg, mem_write_data3_reg
+	) --SA: Main memory read/write address, normal load/store or fill/spill
 	begin
 		mm_read_add <= exout_reg_adr(sc_depth - 1 downto 0);
 		mm_write_add <= exout_reg_adr(sc_depth - 1 downto 0);
@@ -197,7 +200,10 @@ begin
 --        write_enable             : in std_logic;
 --        rd_address               : in std_logic_vector(addr_width - 1 downto 0);
 --        data_out                 : out std_logic_vector(width -1 downto 0) -- load
-	process(exout_reg_adr, spill, fill, mem_top, sc_fill, sc_en) --SA: Stack cache read/write address, normal load/store or fill/spill
+	process(exout_reg_adr, spill, fill, mem_top, sc_fill, sc_en,
+		mem_write_data0_reg, mem_write_data1_reg, mem_write_data2_reg, mem_write_data3_reg,
+		mm_read_data0, mm_read_data1, mm_read_data2, mm_read_data3
+	) --SA: Stack cache read/write address, normal load/store or fill/spill
 	begin
 		sc_read_add <= exout_reg_adr(sc_depth - 1 downto 0);
 		sc_write_add <= exout_reg_adr(sc_depth - 1 downto 0);
@@ -256,21 +262,17 @@ begin
 	process(clk, rst)
 	begin 
 		if rst='1' then
-	--		state_reg <= init;
+			state_reg <= init;
+			--spill <= '0';
+			fill <= '0';
+			mem_top <= "0111110100";
 		elsif rising_edge(clk) then
-	--		state_reg <= next_state;
-			
-			-- stall
-			prev_exout_reg_adr <= exout_not_reg.adrs;
-			prev_mem_write_data0_reg <= mem_write_data0;
-			prev_mem_write_data1_reg <= mem_write_data1;
-			prev_mem_write_data2_reg <= mem_write_data2;
-			prev_mem_write_data3_reg <= mem_write_data3;
-			prev_en_reg			<= en;
+			state_reg 	<= next_state;
+			mem_top		<= mem_top_next;
 		end if;
 	end process;
 
-	process(state_reg, exout_not_reg) -- adjust head/tail
+	process(state_reg, exout_not_reg, spill, fill) -- adjust tail
 	begin 
 		next_state <= state_reg;
 		case state_reg is
@@ -280,7 +282,7 @@ begin
 				elsif(exout_not_reg.fill = '1') then 
 					next_state <= fill_state;
 				else 
-					next_state <= fill_state;
+					next_state <= init;
 				end if;
 			when spill_state =>
 				if (spill = '1') then
@@ -298,22 +300,34 @@ begin
 	end process;		  
 	
 	-- Output process
-	process(state_reg)
+	process(state_reg, exout_not_reg, mem_top)
 	begin
-		if (state_reg = init) then
-			nspill_fill <= exout_not_reg.nspill_fill;
-			dout.stall <= '0';
-		elsif (state_reg = spill_state) then
-			if ((unsigned(nspill_fill) - 1) > 0) then
-				--mem_top <=
-				nspill_fill <= std_logic_vector(unsigned(nspill_fill) - 1);
-			end if;
-			 
-		elsif (state_reg = fill_state) then
-			--mem_top <= 
-		end if;
+		mem_top_next <= mem_top;
+		case state_reg is
+			when init =>
+				mem_top_next <= "0111110100";
+				nspill_fill <= exout_not_reg.nspill_fill;
+				dout.stall <= '0';
+			when spill_state =>
+				if ((signed(nspill_fill) - 1) >= 0) then
+					mem_top_next <= std_logic_vector(unsigned(mem_top) - 1); 
+					nspill_fill <= std_logic_vector(unsigned(nspill_fill) - 1);
+					spill <= '1';
+				else
+					spill <= '0';
+					nspill_fill <= exout_not_reg.nspill_fill;
+				end if;
+				 
+			when fill_state =>
+				nspill_fill <= exout_not_reg.nspill_fill;
+				--mem_top <= 
+		end case;
 	end process;
-
+	
+	process(mem_top)
+	begin
+		dout.mem_top <= mem_top;
+	end process;
 	-----------------------------------------------
 	-- MS: This shall be the stack cache, right?
 	-- MS: If a registered address from EX is used here and there is an address
@@ -357,7 +371,23 @@ begin
 			     exout_reg_adr(9 downto 0), --exout_not_reg.adrs(9 downto 0),
 			     dout3);
 	
-
+	process(clk) --to register the enable and address and data of memory in case of stall
+	begin
+	--	if (rst = '1') then
+--			exout_reg_adr		<= exout_not_reg.adrs;
+--			mem_write_data0_reg <= mem_write_data0;
+--			mem_write_data1_reg <= mem_write_data1;
+--			mem_write_data2_reg <= mem_write_data2;
+--			mem_write_data3_reg <= mem_write_data3;
+		if rising_edge(clk) then
+				prev_exout_reg_adr <= exout_not_reg.adrs;
+				prev_mem_write_data0_reg <= mem_write_data0;
+				prev_mem_write_data1_reg <= mem_write_data1;
+				prev_mem_write_data2_reg <= mem_write_data2;
+				prev_mem_write_data3_reg <= mem_write_data3;
+				prev_en_reg			<= en;
+		end if;	
+	end process;
 	
 	process(stall, en, prev_en_reg,
 			exout_not_reg, mem_write_data0, mem_write_data1, mem_write_data2, mem_write_data3, prev_exout_reg_adr, 
