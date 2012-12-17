@@ -79,6 +79,7 @@ architecture arch of patmos_alu is
 	signal sc_top, mem_top						: std_logic_vector(sc_depth - 1 downto 0);
 	signal doutex_sc_top, doutex_mem_top		: std_logic_vector(sc_depth - 1 downto 0);
 	
+
 begin
 
 
@@ -333,8 +334,8 @@ begin
 		doutex_not_reg.spill <= '0';
 		doutex_not_reg.fill <= '0';
 		doutex_not_reg.stall <= '0';
-		sc_top 						<= (others => '0');
-		mem_top 					<= (others => '0');
+		--sc_top 						<= (others => '0');
+		--mem_top 					<= (others => '0');
 		doutex_not_reg.nspill_fill <= (others => '0');
 
 		case decdout.pat_function_type_sc is
@@ -351,7 +352,7 @@ begin
 --							--mem_top;
 --							mem[mem_top] = sc[mem_top & SC_MASK];
 --	}
-			when ensure => null;
+			when ensure => 
 				if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
 					doutex_not_reg.nspill_fill <= std_logic_vector(unsigned(decdout.imm(sc_depth - 1 downto 0)) - unsigned(mem_top) + sc_depth); -- SA: This is number of words, but 
 																																	-- we do spill/fill in blocks, what is the difference?
@@ -362,7 +363,9 @@ begin
 --						sc[mem_top & SC_MASK] = mem[mem_top];
 --						++mem_top;
 --					}
-			when free =>  null;
+			when free => 
+				doutex_not_reg.spill <= '0';
+				doutex_not_reg.fill <= '0';
 				if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
 					sc_top <= std_logic_vector( unsigned(sc_top) + unsigned(decdout.imm(sc_depth - 1 downto 0)));
 					if (sc_top > mem_top) then
@@ -379,8 +382,56 @@ begin
 		
 	end process;
 
-end arch;
+----------------------------------------------------------
+--	process(clk, rst)
+--	begin 
+--		if rst='1' then
+--			state_reg <= init;
+--		elsif rising_edge(clk) then
+--			state_reg <= next_state;
+--		end if;
+--	end process;
+--
+--	process(state_reg, spill, fill) -- adjust head/tail
+--	begin 
+--		next_state <= state_reg;
+--		case state_reg is
+--			when init => 
+--				if (spill = '1') then
+--					next_state <= spill_state;
+--				elsif(fill = '1') then 
+--					next_state <= fill_state;
+--				else 
+--					next_state <= fill_state;
+--				end if;
+--			when inc =>
+--				if (exout_not_reg.spill = '1') then
+--					next_state <= spill_state;
+--				else
+--					next_state <= init;
+--				end if;
+--			when dec  => 
+--				if (exout_not_reg.fill = '1') then
+--					next_state <= fill_state;
+--				else
+--					next_state <= init;
+--				end if;
+--		end case;	
+--	end process;		  
+--	
+--	-- Output process
+--	process(state_reg)
+--	begin
+--		if (state_reg = init) then
+--		elsif (state_reg = inc) then
+--			--mem_top <= 
+--		elsif (state_reg = dec) then
+--			--mem_top <= 
+--		end if;
+--	end process;
 
+
+end arch;
 
 
 

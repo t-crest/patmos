@@ -111,14 +111,14 @@ architecture arch of patmos_mem_stage is
     signal sc_lm_data						 : std_logic_vector(31 downto 0);
   
   	signal sc_read_add, sc_write_add		 : std_logic_vector(sc_depth - 1 downto 0);
-    signal state							 : sc_state;
-    signal sc_top, mem_top, head_tail		 : std_logic_vector(sc_depth - 1 downto 0);
+    signal state_reg, next_state			 : sc_state;
+    signal sc_top, mem_top	 				 : std_logic_vector(sc_depth - 1 downto 0);
 	signal sc_fill							 : std_logic_vector(3 downto 0);
 	signal sc_en_fill						 : std_logic_vector(3 downto 0);
 
 	signal spill, fill						 : std_logic;
 	signal stall							 : std_logic;	
-	signal counter							 : std_logic_vector(sc_depth - 1 downto 0);
+	signal nspill_fill						 : std_logic_vector(sc_depth - 1 downto 0);
 
 begin
 	mem_wb : process(clk)
@@ -252,64 +252,67 @@ begin
 			     sc_en_fill(3),
 			     sc_read_add,
 			     sc_read_data3);		    
-	
-	
 
-	process(clk, rst) -- adjust head/tail
+	process(clk, rst)
 	begin 
-		if (rst='1') then
-			state <= init;
-			counter <= (others => '0');
+		if rst='1' then
+	--		state_reg <= init;
 		elsif rising_edge(clk) then
-			case state is
-				when init => 
-				--	spill <= '0';
-				--	fill  <= '0';	
-					stall <= '0'; --just for now
-					counter <= exout_not_reg.nspill_fill;
-					sc_top <= exout_not_reg.sc_top;
-					mem_top <= exout_not_reg.mem_top;
-					dout.stall <= '0';
-					sc_fill <= (others => '0');
-					mm_spill <= (others => '0');
-					if (spill = '1') then
-						state <= spill_state;
-					--	dout.stall <= '0';
-					elsif (fill = '1') then 
-						state <= fill_state;
-					else 
-						state <= init;
-					end if;
-				when spill_state =>
-						--for (i=0; i<nspill; ++i) {
-						--mem_top;
-						--mem[mem_top] = sc[mem_top & SC_MASK];
-						--}
-					dout.stall <= '1';
-					mm_spill <= (others => '1');
-					if (unsigned (counter) > 0) then
-						mem_top <= std_logic_vector(unsigned(mem_top) - 1); -- if there is more than one clock cycle in each spill/fill, more states should be added
-						state <= spill_state;
-						counter <= std_logic_vector(unsigned(counter) - 1);
-					else
-						state <= init;
-					end if;
-				when fill_state  => 
-						--for (i=0; i<nfill; ++i) {
-						--sc[mem_top & SC_MASK] = mem[mem_top];
-						--++mem_top;
-						--}
-					dout.stall <= '1';
-					sc_fill <= (others => '1');
-					if (spill = '1') then
-						state <= fill_state;
-					else
-						state <= init;
-					end if;
-			end case;	
+	--		state_reg <= next_state;
+			
+			-- stall
+			prev_exout_reg_adr <= exout_not_reg.adrs;
+			prev_mem_write_data0_reg <= mem_write_data0;
+			prev_mem_write_data1_reg <= mem_write_data1;
+			prev_mem_write_data2_reg <= mem_write_data2;
+			prev_mem_write_data3_reg <= mem_write_data3;
+			prev_en_reg			<= en;
 		end if;
+	end process;
+
+	process(state_reg, exout_not_reg) -- adjust head/tail
+	begin 
+		next_state <= state_reg;
+		case state_reg is
+			when init => 
+				if (exout_not_reg.spill = '1') then
+					next_state <= spill_state;
+				elsif(exout_not_reg.fill = '1') then 
+					next_state <= fill_state;
+				else 
+					next_state <= fill_state;
+				end if;
+			when spill_state =>
+				if (spill = '1') then
+					next_state <= spill_state;
+				else
+					next_state <= init;
+				end if;
+			when fill_state  => 
+				if (fill = '1') then
+					next_state <= fill_state;
+				else
+					next_state <= init;
+				end if;
+		end case;	
 	end process;		  
 	
+	-- Output process
+	process(state_reg)
+	begin
+		if (state_reg = init) then
+			nspill_fill <= exout_not_reg.nspill_fill;
+			dout.stall <= '0';
+		elsif (state_reg = spill_state) then
+			if ((unsigned(nspill_fill) - 1) > 0) then
+				--mem_top <=
+				nspill_fill <= std_logic_vector(unsigned(nspill_fill) - 1);
+			end if;
+			 
+		elsif (state_reg = fill_state) then
+			--mem_top <= 
+		end if;
+	end process;
 
 	-----------------------------------------------
 	-- MS: This shall be the stack cache, right?
@@ -354,23 +357,7 @@ begin
 			     exout_reg_adr(9 downto 0), --exout_not_reg.adrs(9 downto 0),
 			     dout3);
 	
-	process(clk) --to register the enable and address and data of memory in case of stall
-	begin
-	--	if (rst = '1') then
---			exout_reg_adr		<= exout_not_reg.adrs;
---			mem_write_data0_reg <= mem_write_data0;
---			mem_write_data1_reg <= mem_write_data1;
---			mem_write_data2_reg <= mem_write_data2;
---			mem_write_data3_reg <= mem_write_data3;
-		if rising_edge(clk) then
-				prev_exout_reg_adr <= exout_not_reg.adrs;
-				prev_mem_write_data0_reg <= mem_write_data0;
-				prev_mem_write_data1_reg <= mem_write_data1;
-				prev_mem_write_data2_reg <= mem_write_data2;
-				prev_mem_write_data3_reg <= mem_write_data3;
-				prev_en_reg			<= en;
-		end if;	
-	end process;
+
 	
 	process(stall, en, prev_en_reg,
 			exout_not_reg, mem_write_data0, mem_write_data1, mem_write_data2, mem_write_data3, prev_exout_reg_adr, 
