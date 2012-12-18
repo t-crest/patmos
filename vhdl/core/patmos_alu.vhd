@@ -76,8 +76,8 @@ architecture arch of patmos_alu is
 	
 	signal doutex_sc_write						: std_logic;
 	signal doutex_sc_read						: std_logic;
-	signal sc_top, sc_top_next, mem_top			: std_logic_vector(sc_depth - 1 downto 0);
-	signal doutex_sc_top, doutex_mem_top		: std_logic_vector(sc_depth - 1 downto 0);
+	signal sc_top, sc_top_next, mem_top			: std_logic_vector(31 downto 0);
+--	signal doutex_sc_top, doutex_mem_top		: std_logic_vector(sc_depth - 1 downto 0);
 	
 
 begin
@@ -214,7 +214,7 @@ begin
 		if rst = '1' then
 			predicate_reg 						<= "00000001";
 			doutex_reg.predicate 				<= "00000001";
-			sc_top								<= "0111110100";
+			sc_top								<= "00000000000000000000000111110100";
 	
 		elsif rising_edge(clk) then
 			if (memdout.stall = '0') then
@@ -345,10 +345,10 @@ begin
 		case decdout.pat_function_type_sc is
 			when reserve => 
 				if predicate_reg(to_integer(signed(decdout.predicate_condition))) /= decdout.predicate_bit then
-					sc_top_next <= std_logic_vector( signed(sc_top) - signed(decdout.imm(sc_depth - 1 downto 0)));
-					if( (signed(mem_top) - signed(sc_top) - sc_depth + signed(decdout.imm(sc_depth - 1 downto 0))) > 0) then
+					sc_top_next <= std_logic_vector( signed(sc_top) - signed(decdout.imm));
+					if( (signed(mem_top) - signed(sc_top) - sc_depth + signed(decdout.imm)) > 0) then
 						doutex_not_reg.spill <= '1';
-						doutex_not_reg.nspill_fill <=  std_logic_vector(signed(mem_top) - signed(sc_top) - sc_depth+ signed(decdout.imm(sc_depth - 1 downto 0)));
+						doutex_not_reg.nspill_fill <=  std_logic_vector(signed(mem_top) - signed(sc_top) - sc_depth+ signed(decdout.imm));
 					else
 						doutex_not_reg.spill <= '0';
 					end if;
@@ -362,7 +362,7 @@ begin
 --	}
 			when ensure => 
 				if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
-					doutex_not_reg.nspill_fill <= std_logic_vector(unsigned(decdout.imm(sc_depth - 1 downto 0)) - unsigned(mem_top) + sc_depth); -- SA: This is number of words, but 
+					doutex_not_reg.nspill_fill <= std_logic_vector(unsigned(decdout.imm) - unsigned(mem_top) + sc_depth); -- SA: This is number of words, but 
 																																	-- we do spill/fill in blocks, what is the difference?
 					doutex_not_reg.fill <= '1';
 				end if; -- predicate
@@ -375,7 +375,7 @@ begin
 				doutex_not_reg.spill <= '0';
 				doutex_not_reg.fill <= '0';
 				if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
-					sc_top_next <= std_logic_vector( unsigned(sc_top) + unsigned(decdout.imm(sc_depth - 1 downto 0)));
+					sc_top_next <= std_logic_vector( unsigned(sc_top) + unsigned(decdout.imm));
 					if (sc_top > mem_top) then
 					--	mem_top <= sc_top;
 					end if;

@@ -64,11 +64,11 @@ package patmos_type_package is
 	-------------------------------------------
 	constant pc_length              			: integer := 32;
 	constant instruction_word_length 			: integer := 32;
-	constant sc_depth							: integer := 10;
+	constant sc_depth							: integer := 6; -- stack cache has 64 slots
 	constant mm_depth							: integer := 10;
-	signal SC_MASK								: std_logic_vector(sc_depth - 1 downto 0);
-	constant mem_top_init						: std_logic_vector(sc_depth - 1 downto 0) := "0111110100";
-	constant sc_top_init						: std_logic_vector(sc_depth - 1 downto 0) := "0111110100";
+	constant SC_MASK							: std_logic_vector(sc_depth - 1 downto 0) := "111111"; -- mask is 63 
+--	constant mem_top_init						: std_logic_vector(sc_depth - 1 downto 0) := "0111110100"; -- we shall use this 
+--	constant sc_top_init						: std_logic_vector(sc_depth - 1 downto 0) := "0111110100";
 	-------------------------------------------
 	-- fetch/decode
 	-------------------------------------------
@@ -171,11 +171,11 @@ package patmos_type_package is
 		sc_read_not_reg  						 : std_logic;
 		sc_write_not_reg 						 : std_logic;
 		stall         							 : std_logic;
-		sc_top									 : std_logic_vector(sc_depth - 1 downto 0); --head
-		mem_top									 : std_logic_vector(sc_depth - 1 downto 0); --tail
+		sc_top									 : std_logic_vector(31 downto 0); --head, what should be the length?
+		mem_top									 : std_logic_vector(31 - 1 downto 0); --tail, what should be the length?
 		spill									 : std_logic;
 		fill									 : std_logic;
-		nspill_fill								 : std_logic_vector(sc_depth - 1 downto 0);
+		nspill_fill								 : std_logic_vector(31 downto 0); -- this is too big and not real, should trim the addresses otherwise  
 	end record;
 	
 
@@ -194,7 +194,7 @@ package patmos_type_package is
 		data  									: std_logic_vector(31 downto 0); -- to register file
 		
 		stall         							: std_logic;
-		mem_top									: std_logic_vector(sc_depth - 1 downto 0);
+		mem_top									: std_logic_vector(31 downto 0);
 	end record;
 
 
