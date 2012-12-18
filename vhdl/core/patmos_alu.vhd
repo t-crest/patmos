@@ -336,20 +336,22 @@ begin
 	
 	process( decdout, predicate_reg, sc_top, mem_top) -- stack cache
 	begin
-		doutex_not_reg.spill <= '0';
-		doutex_not_reg.fill <= '0';
-		doutex_not_reg.stall <= '0';
-		sc_top_next			<= (others => '0');
-		--sc_top 						<= (others => '0');
-		--mem_top 					<= (others => '0');
-		doutex_not_reg.nspill_fill <= (others => '0');
+		doutex_not_reg.spill 		<= '0';
+		doutex_not_reg.fill 		<= '0';
+		doutex_not_reg.stall 		<= '0';
+		sc_top_next					<= (others => '0');
+		doutex_not_reg.nspill_fill 	<= (others => '0');
 		
 		case decdout.pat_function_type_sc is
 			when reserve => 
-				if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
-					sc_top_next <= std_logic_vector( unsigned(sc_top) - unsigned(decdout.imm(sc_depth - 1 downto 0)));
-					doutex_not_reg.nspill_fill <= std_logic_vector(unsigned(mem_top) - unsigned(sc_top) - sc_depth);
-					doutex_not_reg.spill <= '1';
+				if predicate_reg(to_integer(signed(decdout.predicate_condition))) /= decdout.predicate_bit then
+					sc_top_next <= std_logic_vector( signed(sc_top) - signed(decdout.imm(sc_depth - 1 downto 0)));
+					if( (signed(mem_top) - signed(sc_top) - sc_depth + signed(decdout.imm(sc_depth - 1 downto 0))) > 0) then
+						doutex_not_reg.spill <= '1';
+						doutex_not_reg.nspill_fill <=  std_logic_vector(signed(mem_top) - signed(sc_top) - sc_depth+ signed(decdout.imm(sc_depth - 1 downto 0)));
+					else
+						doutex_not_reg.spill <= '0';
+					end if;
 				end if; -- predicate
 --						int nspill, i;
 --						sc_top -= n;

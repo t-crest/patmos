@@ -118,8 +118,9 @@ architecture arch of patmos_mem_stage is
 
 	signal spill, fill						 : std_logic;
 	signal stall							 : std_logic;	
-	signal nspill_fill						 : std_logic_vector(sc_depth - 1 downto 0);
+	signal nspill_fill, nspill_fill_next	 : std_logic_vector(sc_depth - 1 downto 0);
 
+--	signal test								 : signed(sc_depth - 1 downto 0);
 begin
 	mem_wb : process(clk)
 	begin
@@ -269,6 +270,7 @@ begin
 		elsif rising_edge(clk) then
 			state_reg 	<= next_state;
 			mem_top		<= mem_top_next;
+			nspill_fill <= nspill_fill_next;
 		end if;
 	end process;
 
@@ -305,21 +307,24 @@ begin
 		mem_top_next <= mem_top;
 		case state_reg is
 			when init =>
-				mem_top_next <= "0111110100";
-				nspill_fill <= exout_not_reg.nspill_fill;
+				
+				nspill_fill_next <= exout_not_reg.nspill_fill;
 				dout.stall <= '0';
 			when spill_state =>
 				if ((signed(nspill_fill) - 1) >= 0) then
-					mem_top_next <= std_logic_vector(unsigned(mem_top) - 1); 
-					nspill_fill <= std_logic_vector(unsigned(nspill_fill) - 1);
+					mem_top_next <= std_logic_vector(signed(mem_top) - 1); 
+					nspill_fill_next <= std_logic_vector(signed(nspill_fill) - 1);
+			
 					spill <= '1';
+					stall <= '1';
 				else
 					spill <= '0';
-					nspill_fill <= exout_not_reg.nspill_fill;
+					stall <= '0';
+					nspill_fill_next <= exout_not_reg.nspill_fill;
 				end if;
 				 
 			when fill_state =>
-				nspill_fill <= exout_not_reg.nspill_fill;
+				nspill_fill_next <= exout_not_reg.nspill_fill;
 				--mem_top <= 
 		end case;
 	end process;

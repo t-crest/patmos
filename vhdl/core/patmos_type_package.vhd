@@ -67,6 +67,8 @@ package patmos_type_package is
 	constant sc_depth							: integer := 10;
 	constant mm_depth							: integer := 10;
 	signal SC_MASK								: std_logic_vector(sc_depth - 1 downto 0);
+	constant mem_top_init						: std_logic_vector(sc_depth - 1 downto 0) := "0111110100";
+	constant sc_top_init						: std_logic_vector(sc_depth - 1 downto 0) := "0111110100";
 	-------------------------------------------
 	-- fetch/decode
 	-------------------------------------------
