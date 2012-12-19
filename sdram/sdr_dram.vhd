@@ -241,6 +241,14 @@ architecture RTL of sdr_sdram is
         end if;
         return result;
     end function CalculateAct2WriteCycles;
+    function max(constant a, b:integer) return integer is
+    begin
+	if (a > b) then
+		return a;
+	else
+		return b;
+	end if;
+    end function max;
 
     constant c_INIT_IDLE_CYCLES        : natural := RoundTimeConstantToCycles(tCLK, tINIT_IDLE);
     constant c_PRECHARGE_CYCLES        : natural := RP;
@@ -347,7 +355,8 @@ begin
         sdram_CS_n_nxt    <= (others => '0');
         -- row of the bank
         sdram_BA_nxt      <= a_bank;
-        sdram_SA_nxt      <= a_row;
+		  sdram_SA_nxt(sdram_SA_nxt'high downto a_row'length) <= (others => '0');
+        sdram_SA_nxt(a_row'range)      <= a_row;
         -- Data Disabled/High-Z
         -- sdram_DQM_nxt   <= (others => '1');
         sdram_DQM_nxt     <= not ocp_MDataByteEn; -- TODO: handle masking by using tQMD and tDMD
@@ -384,11 +393,11 @@ begin
                 -- TODO: Add check for cnt constant beeing 0 and bypass the idle state
                 -- TODO: Check if doing waiting in single state would improve the design
                 -- TODO: The separate state machines will be used in pipelined version, so it might be better to do it differently
-                delay_cnt_nxt    <= c_PRECHARGE_CYCLES - 2; -- (-1) because of counter implementation; extra (-1) because we stay idle during whole counting
+                delay_cnt_nxt    <= max(0, c_PRECHARGE_CYCLES - 2); -- (-1) because of counter implementation; extra (-1) because we stay idle during whole counting
                 state_nxt        <= initPrechargeComplete;
             when initPrechargeComplete =>
                 if delay_cnt_done = '1' then
-                    refresh_repeat_cnt_nxt <= INIT_REFRESH_COUNT - 1;
+                    refresh_repeat_cnt_nxt <= max(0,INIT_REFRESH_COUNT - 1);
                     state_nxt              <= initRefresh;
                 end if;
             when initRefresh =>
@@ -397,7 +406,7 @@ begin
                 sdram_WE_n_nxt         <= '1';
                 sdram_CS_n_nxt         <= (others => '0'); -- All chips
                 refresh_repeat_cnt_nxt <= refresh_repeat_cnt_r - 1;
-                delay_cnt_nxt          <= c_REFRESH_CYCLES - 2; -- (-1) because of counter implementation; extra (-1) because we stay idle during whole counting
+                delay_cnt_nxt          <= max(0,c_REFRESH_CYCLES - 2); -- (-1) because of counter implementation; extra (-1) because we stay idle during whole counting
                 state_nxt              <= initRefreshComplete;
             when initRefreshComplete =>
                 if delay_cnt_done = '1' then
@@ -414,7 +423,7 @@ begin
                 sdram_BA_nxt    <= DefineModeRegister(BA_WIDTH + SA_WIDTH - 1 downto SA_WIDTH);
                 sdram_SA_nxt    <= DefineModeRegister(SA_WIDTH - 1 downto 0);
                 sdram_CS_n_nxt  <= (others => '0'); -- All chips
-                delay_cnt_nxt   <= c_PROGRAM_REGISTER_CYCLES - 2; -- (-1) because of counter implementation; extra (-1) because we stay idle during whole counting
+                delay_cnt_nxt   <= max(0,c_PROGRAM_REGISTER_CYCLES - 2); -- (-1) because of counter implementation; extra (-1) because we stay idle during whole counting
                 state_nxt       <= initProgramModeRegComplete;
             when initProgramModeRegComplete =>
                 if delay_cnt_done = '1' then
@@ -431,17 +440,17 @@ begin
                     sdram_CAS_n_nxt <= not ocp_MCmd_doRefresh; -- '0': Refresh; '1': Activate
                     sdram_WE_n_nxt  <= '1';
                     sdram_BA_nxt    <= a_bank;
-                    sdram_SA_nxt    <= a_row;
+                    sdram_SA_nxt(a_row'range)    <= a_row;
                     sdram_CS_n_nxt  <= BinDecode_n(a_cs) and (sdram_CS_n_nxt'range => not ocp_MCmd_doRefresh); -- Refresh => All chips (Active LOW)
 
                     if ocp_MCmd_doRefresh = '1' then
-                        delay_cnt_nxt <= c_REFRESH_CYCLES - 2; -- (-1) because of counter implementation; extra (-1) because we stay idle during whole counting
+                        delay_cnt_nxt <= max(0,c_REFRESH_CYCLES - 2); -- (-1) because of counter implementation; extra (-1) because we stay idle during whole counting
                         state_nxt     <= refreshComplete;
                     elsif ocp_MCmd = OCP_CMD_READ then
-                        delay_cnt_nxt <= c_ACT2READ_CYCLES - 1; -- (-1) because of the counter implementation
+                        delay_cnt_nxt <= max(0,c_ACT2READ_CYCLES - 1); -- (-1) because of the counter implementation
                         state_nxt     <= readCmd;
                     else
-                        delay_cnt_nxt <= c_ACT2WRITE_CYCLES - 1; -- (-1) because of the counter implementation
+                        delay_cnt_nxt <= max(0,c_ACT2WRITE_CYCLES - 1); -- (-1) because of the counter implementation
                         state_nxt     <= writeCmd;
                     end if;
                 end if;
@@ -460,7 +469,7 @@ begin
                     end if;
 
                     -- Schedule Read Data
-                    delay_cnt_nxt <= tCAC_CYCLES - 2 + 1; -- (-1) because of counter implementation; extra (-1) because we stay idle during whole counting; (+1) because the sdram_DQ input is registered in IOB
+                    delay_cnt_nxt <= max(0, tCAC_CYCLES - 2 + 1); -- (-1) because of counter implementation; extra (-1) because we stay idle during whole counting; (+1) because the sdram_DQ input is registered in IOB
                     state_nxt     <= readDataWait;
                 end if;
             when readDataWait =>
@@ -492,15 +501,20 @@ begin
                     ocp_SDataAccept <= '1';
                     sdram_DQM_nxt   <= not ocp_MDataByteEn;
                     sdram_DQoe_nxt  <= '1';
-                    burst_cnt_nxt   <= BURST_LENGTH - 2; -- (-1) because of counter implementation; extra (-1) because current state sends first word
-                    state_nxt       <= writeDataRest;
+		    if BURST_LENGTH >= 2 then
+			    burst_cnt_nxt   <= BURST_LENGTH - 2; -- (-1) because of counter implementation; extra (-1) because current state sends first word
+			    state_nxt       <= writeDataRest;
+		    else
+			    delay_cnt_nxt <= max(0,c_WRITE2READY_CYCLES - 2); -- (-1) because of counter implementation; extra (-1) because we stay idle during whole counting
+			    state_nxt       <= writePrechargeComplete;
+		    end if;
                 end if;
             when writeDataRest =>
                 ocp_SDataAccept <= '1';
                 sdram_DQM_nxt   <= not ocp_MDataByteEn;
                 sdram_DQoe_nxt  <= '1';
                 if burst_cnt_done = '1' then
-                    delay_cnt_nxt <= c_WRITE2READY_CYCLES - 2; -- (-1) because of counter implementation; extra (-1) because we stay idle during whole counting
+                    delay_cnt_nxt <= max(0, c_WRITE2READY_CYCLES - 2); -- (-1) because of counter implementation; extra (-1) because we stay idle during whole counting
                     state_nxt     <= writePrechargeComplete;
                 end if;
             when writePrechargeComplete =>

@@ -9,7 +9,7 @@ use std.textio.all;
 use work.dma_controller_dtl_cmp_pkg.all;
 
 architecture RTL of sdr_sdram_dma_controller_tb is
-    constant BURST_LENGTH : natural := 8;
+    constant BURST_LENGTH : natural := 1;
 
     constant ADDR_WIDTH  : integer := 23;
     constant DATA_WIDTH  : integer := 32;
@@ -484,39 +484,41 @@ begin
 
         variable value : natural;
 
-        constant A2 : natural := NWORDS_PER_CMD / 2 - 1;
-        constant A3 : natural := NWORDS_PER_CMD - 1;
+        constant A2 : integer := NWORDS_PER_CMD / 2 - 1;
+        constant A3 : integer := NWORDS_PER_CMD - 1;
 
     begin
         wait until rst_n = '1';
         waitReady;
 
-        controllerWrite('0', 0, 1);
-        controllerWrite('0', A2, 6);
-        controllerWrite('0', A3, 16);
-        controllerRead('0', 0, value);
-        assert value = 1 report "T1 cache word write/read error at 0" severity error;
-        controllerRead('0', A2, value);
-        assert value = 6 report "T1 cache word write/read error at middle" severity error;
-        controllerRead('0', A3, value);
-        assert value = 16 report "T1 cache word write/read error at last" severity error;
+	if (NWORDS_PER_CMD >=4) then
+		controllerWrite('0', 0, 1);
+		controllerWrite('0', A2, 6);
+		controllerWrite('0', A3, 16);
+		controllerRead('0', 0, value);
+		assert value = 1 report "T1 cache word write/read error at 0" severity error;
+		controllerRead('0', A2, value);
+		assert value = 6 report "T1 cache word write/read error at middle" severity error;
+		controllerRead('0', A3, value);
+		assert value = 16 report "T1 cache word write/read error at last" severity error;
 
-        memoryLineOp(0, loStoreLine);
-        memoryLineOp(1, loLoadLine);
-        controllerRead('0', 0, value);
-        assert value = 0 report "T2 cache word write/read error at 0" severity error;
-        controllerRead('0', A2, value);
-        assert value = 0 report "T2 cache word write/read error at middle" severity error;
-        controllerRead('0', A3, value);
-        assert value = 0 report "T2 cache word write/read error at last" severity error;
+		memoryLineOp(0, loStoreLine);
+		memoryLineOp(1, loLoadLine);
+		controllerRead('0', 0, value);
+		assert value = 0 report "T2 cache word write/read error at 0" severity error;
+		controllerRead('0', A2, value);
+		assert value = 0 report "T2 cache word write/read error at middle" severity error;
+		controllerRead('0', A3, value);
+		assert value = 0 report "T2 cache word write/read error at last" severity error;
 
-        memoryLineOp(0, loLoadLine);
-        controllerRead('0', 0, value);
-        assert value = 1 report "T3 cache word write/read error at 0" severity error;
-        controllerRead('0', A2, value);
-        assert value = 6 report "T3 cache word write/read error at middle" severity error;
-        controllerRead('0', A3, value);
-        assert value = 16 report "T3 cache word write/read error at last" severity error;
+		memoryLineOp(0, loLoadLine);
+		controllerRead('0', 0, value);
+		assert value = 1 report "T3 cache word write/read error at 0" severity error;
+		controllerRead('0', A2, value);
+		assert value = 6 report "T3 cache word write/read error at middle" severity error;
+		controllerRead('0', A3, value);
+		assert value = 16 report "T3 cache word write/read error at last" severity error;
+	end if;
         
         report "Writing inc pattern";
         for i in 0 to NWORDS_PER_CMD*2-1 loop
