@@ -52,11 +52,11 @@ entity patmos_io_sdram is
     );
 	port(
 		clk                : in  std_logic;
-		pat_rst				: out std_logic;
+		pat_rst				   : out std_logic;
 		mem_write			: out std_logic;
 		data_mem_data_out	: in std_logic_vector(31 downto 0);
 		mem_data_out_muxed : out std_logic_vector(31 downto 0);
-		execute_dout		: in execution_out_type;
+		execute_dout		: in execution_not_reg;
 		led                : out std_logic;
 		txd                : out std_logic;
 		rxd                : in  std_logic
@@ -88,14 +88,8 @@ architecture arch of patmos_io_sdram is
 
 	signal memdin_reg : std_logic_vector(31 downto 0);
 
---	signal data_mem_data_out      : std_logic_vector(31 downto 0);
---	signal execute_dout           : execution_out_type;
-
---	signal mem_write				: std_logic;
-	
 
 	signal mem_data_out_uart  : std_logic_vector(31 downto 0);
---	signal mem_data_out_muxed : std_logic_vector(31 downto 0);
 
 	
 	signal int_res : std_logic;
@@ -194,8 +188,8 @@ begin                                   -- architecture begin
 		-- Everything disabled by default: device enabled in particular branch
 		addr       := execute_dout.adrs;
 		io_next    <= (address => addr, device => io_none, others => '0');
-		io_next.rd <= execute_dout.lm_read_out_not_reg;
-		io_next.wr <= execute_dout.lm_write_out_not_reg;
+		io_next.rd <= execute_dout.lm_read_not_reg;
+		io_next.wr <= execute_dout.lm_write_not_reg;
 
 		
 		-- Edgar: maybe can also use constants for different devices instead of one hot enables	
@@ -225,7 +219,7 @@ begin                                   -- architecture begin
 	-- Would also be clearer is address calculation has it's own signals.
 	-- Maybe it shall be in it's own component (together with some address
 	-- decoding).
-	io_mem_read_mux : process(mem_data_out_uart, data_mem_data_out, execute_dout, io_reg, counter, cntus, dma_rd_data_i)
+	io_mem_read_mux : process(mem_data_out_uart, data_mem_data_out, io_reg, counter, cntus, dma_rd_data_i)
 	begin
 		mem_data_out_muxed <= (others  => '1'); -- The value for unused I/O address
 		if io_reg.mem_en = '0' then

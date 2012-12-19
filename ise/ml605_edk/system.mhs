@@ -147,11 +147,12 @@ BEGIN front_end_dtl
  PORT Mem_clock_rst_n = nRst_Res
 END
 
-BEGIN patmos
+BEGIN patmos_sdram
 # BEGIN leros_core
  PARAMETER INSTANCE = patmos_top_0
  PARAMETER HW_VER = 1.00.a
  PORT clk = raptor_0_Clk_200MHz_bufg_o
+# PORT rst = mb_reset
  PORT led = raptor_0_mem_check_ok_pin
  PORT txd = txd
  PORT rxd = rxd

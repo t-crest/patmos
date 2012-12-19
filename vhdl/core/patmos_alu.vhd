@@ -46,7 +46,8 @@ entity patmos_alu is
 		clk										: in  std_logic;
 		rst										: in  std_logic;
 		decdout									: in  decode_out_type;
-		doutex									: out execution_out_type;
+		doutex_reg								: out execution_reg;
+		doutex_not_reg							: out execution_not_reg;
 		memdout									: in mem_out_type
 		
 	);
@@ -70,9 +71,15 @@ architecture arch of patmos_alu is
 	signal doutex_reg_write_reg					: std_logic;
 	signal doutex_lm_read						: std_logic;
 	signal predicate_checked					: std_logic_vector(7 downto 0);
+--	signal prev_dout							: execution_out_type;
+	----- stack cache
 	
-	signal head, tail							: std_logic_vector(sc_depth - 1 downto 0);
-	signal num_valid_sc_slots					: integer;
+	signal doutex_sc_write						: std_logic;
+	signal doutex_sc_read						: std_logic;
+	signal sc_top, sc_top_next, mem_top			: std_logic_vector(31 downto 0);
+--	signal doutex_sc_top, doutex_mem_top		: std_logic_vector(sc_depth - 1 downto 0);
+	
+
 begin
 
 
@@ -205,60 +212,88 @@ begin
 	process(rst, clk)
 	begin
 		if rst = '1' then
-			predicate_reg <= "00000001";
-			doutex.predicate <= "00000001";
+			predicate_reg 						<= "00000001";
+			doutex_reg.predicate 				<= "00000001";
+			sc_top								<= "00000000000000000000000111110100";
+	
 		elsif rising_edge(clk) then
-			doutex.lm_write <= doutex_lm_write; 
-			doutex.reg_write <= doutex_reg_write;
-			doutex_reg_write_reg <= doutex_reg_write;
-			doutex.lm_read <= doutex_lm_read;
-			doutex.mem_to_reg           <= decdout.mem_to_reg;
-			doutex.alu_result_reg           <= rd;
-			doutex.adrs_reg		      	  <= adrs;
-			doutex.write_back_reg       <= decdout.rd;
-			doutex.predicate                <= predicate_checked;
-			predicate_reg                   <= predicate_checked;
+			if (memdout.stall = '0') then
+				-- MS: whouldn't it make sense to use the EXE record also for
+				-- the local signals?
+				--    signal doutex : execution_reg -- execution_reg is probably then not the best name
+				-- This would reduce the following 16 lines to:
+				--    doutex_reg <= doutex
+				doutex_reg.lm_write 			<= doutex_lm_write; 
+				doutex_reg.reg_write 			<= doutex_reg_write;
+				doutex_reg.lm_read 				<= doutex_lm_read;
+				doutex_reg.sc_read 				<= doutex_sc_read;
+				doutex_reg.mem_to_reg           <= decdout.mem_to_reg;
+				doutex_reg.alu_result_reg       <= rd;
+				doutex_reg.adrs_reg		      	<= adrs;
+				doutex_reg.write_back_reg       <= decdout.rd;
+				-- stack cache
+				doutex_reg.imm 					<= decdout.imm;
+				doutex_reg.sc_write 			<= doutex_sc_write;
 			
+			
+				doutex_reg.predicate            <= predicate_checked;
+				predicate_reg               <= predicate_checked;
+				doutex_reg_write_reg 		<= doutex_reg_write;
+	
+				doutex_alu_result_reg       <= rd;
+				doutex_alu_adrs_reg         <= adrs;
+				doutex_write_back_reg       <= decdout.rd;
+				
+				
+				sc_top						<= sc_top_next;
 
-			doutex_alu_result_reg           <= rd;
-			doutex_alu_adrs_reg           <= adrs;
-			doutex_write_back_reg       <= decdout.rd;
-			
-			
+			end if;
+
+	--		doutex.head                 <= doutex_head;
+	--		doutex.tail                 <= doutex_tail;
+		--	if(memdout.stall = '1') then
+		--		doutex <= prev_dout;
+		--	end if;
 		end if;
 	end process;
 	
 	
 	process(decdout, alu_src2, rd, adrs, predicate_reg, predicate)
 	begin
-		doutex.lm_write_out_not_reg              <= '0';
-		doutex.lm_read_out_not_reg              <= '0';
-		predicate_checked						<= "00000001";
-		doutex.predicate_to_fetch				<= '0';
+		doutex_not_reg.lm_write_not_reg             <= '0';
+		doutex_not_reg.lm_read_not_reg              <= '0';
+		doutex_not_reg.sc_write_not_reg				<= '0';
+		predicate_checked					<= "00000001";
+		doutex_not_reg.predicate_to_fetch			<= '0';
 		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
-				doutex.lm_write_out_not_reg              <= decdout.lm_write;
-				doutex.lm_read_out_not_reg              <= decdout.lm_read;
-				doutex.predicate_to_fetch				<= '1';
+				doutex_not_reg.lm_write_not_reg              <= decdout.lm_write;
+				doutex_not_reg.sc_write_not_reg              <= decdout.sc_write;
+				doutex_not_reg.lm_read_not_reg               <= decdout.lm_read;
+				doutex_not_reg.predicate_to_fetch			 <= '1';
 		end if;
-		doutex.mem_write_data <= alu_src2;
-		doutex.alu_result <= rd;
-		doutex.adrs <= adrs;
+		doutex_not_reg.mem_write_data <= alu_src2;
+		doutex_not_reg.alu_result <= rd;
+		doutex_not_reg.adrs <= adrs;
 		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
-			doutex_lm_write              <= decdout.lm_write;
+			doutex_lm_write             <= decdout.lm_write;
 			doutex_lm_read              <= decdout.lm_read;
-			doutex_reg_write <= decdout.reg_write;
-			predicate_checked <= predicate;
+			doutex_sc_read              <= decdout.sc_read;
+			doutex_sc_write             <= decdout.sc_write;
+			doutex_reg_write 			<= decdout.reg_write;
+			predicate_checked 			<= predicate;
 		else
 			doutex_lm_write              <= '0';
-			doutex_lm_read              <= '0';
-			doutex_reg_write    <= '0';
-			doutex_reg_write <= '0';
+			doutex_sc_read               <= '0';
+			doutex_lm_read               <= '0';
+			doutex_reg_write    		 <= '0';
+			doutex_reg_write 			 <= '0';
+			doutex_sc_write              <= '0';
 		end if;
 	end process;
 
 	process(decdout) -- branch pc relative
 	begin
-		doutex.pc <= std_logic_vector(unsigned(decdout.pc) + unsigned(decdout.imm));
+		doutex_not_reg.pc <= std_logic_vector(unsigned(decdout.pc) + unsigned(decdout.imm));
 	end process;
 	
 	process(doutex_alu_result_reg, doutex_write_back_reg, doutex_reg_write_reg , decdout, memdout)
@@ -293,26 +328,118 @@ begin
 		end if;
 	end process;
 	
-	
-	process(decdout) -- stack cache
+	process(memdout) -- passing head/ tail to memory
 	begin
+		mem_top <= memdout.mem_top; -- tail from stage
+	--	sc_top <= 
+	end process;
+	
+	process( decdout, predicate_reg, sc_top, mem_top) -- stack cache
+	begin
+		doutex_not_reg.spill 		<= '0';
+		doutex_not_reg.fill 		<= '0';
+		doutex_not_reg.stall 		<= '0';
+		sc_top_next					<= (others => '0');
+		doutex_not_reg.nspill_fill 	<= (others => '0');
+		
 		case decdout.pat_function_type_sc is
 			when reserve => 
-			--	if (std_logic_vector(((unsigned(head) + unsigned(decdout.imm) mod sc_depth)) - unsigned(tail)) > num_valid_sc_slots ) then -- is sc full
-				--	doutex.tail <= tail; -- tail pointer to mem stage to spill from sc
-					--head <= std_logic_vector((unsigned(head) + unsigned(decdout.imm)) mod sc_depth); -- update the head
-					doutex.spill <= '1';
-					doutex.stall <= '1';
-			--	else
-				--	head <= std_logic_vector((unsigned(head) + unsigned(decdout.imm)) mod sc_depth); -- just update the head
-			--	end if;
-			when ensure =>
-			when free =>  
+				if predicate_reg(to_integer(signed(decdout.predicate_condition))) /= decdout.predicate_bit then
+					sc_top_next <= std_logic_vector( signed(sc_top) - signed(decdout.imm));
+					if( (signed(mem_top) - signed(sc_top) - sc_depth + signed(decdout.imm)) > 0) then
+						doutex_not_reg.spill <= '1';
+						doutex_not_reg.nspill_fill <=  std_logic_vector(signed(mem_top) - signed(sc_top) - sc_depth+ signed(decdout.imm));
+					else
+						doutex_not_reg.spill <= '0';
+					end if;
+				end if; -- predicate
+--						int nspill, i;
+--						sc_top -= n;
+--						nspill = mem_top - sc_top - SC_SIZE;
+--						for (i=0; i<nspill; ++i) {
+--							--mem_top;
+--							mem[mem_top] = sc[mem_top & SC_MASK];
+--	}
+			when ensure => 
+				if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
+					doutex_not_reg.nspill_fill <= std_logic_vector(unsigned(decdout.imm) - unsigned(mem_top) + sc_depth); -- SA: This is number of words, but 
+																																	-- we do spill/fill in blocks, what is the difference?
+					doutex_not_reg.fill <= '1';
+				end if; -- predicate
+--					nfill = n - (mem_top - sc_top);
+--					for (i=0; i<nfill; ++i) {
+--						sc[mem_top & SC_MASK] = mem[mem_top];
+--						++mem_top;
+--					}
+			when free => 
+				doutex_not_reg.spill <= '0';
+				doutex_not_reg.fill <= '0';
+				if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
+					sc_top_next <= std_logic_vector( unsigned(sc_top) + unsigned(decdout.imm));
+					if (sc_top > mem_top) then
+					--	mem_top <= sc_top;
+					end if;
+				end if; -- predicate
+--					sc_top += n;
+--					if (sc_top > mem_top) {
+--						mem_top = sc_top;
+--					}
+--				}
+			when none => sc_top_next <= sc_top;
 		end case;
+		
 	end process;
 
-end arch;
+----------------------------------------------------------
+--	process(clk, rst)
+--	begin 
+--		if rst='1' then
+--			state_reg <= init;
+--		elsif rising_edge(clk) then
+--			state_reg <= next_state;
+--		end if;
+--	end process;
+--
+--	process(state_reg, spill, fill) -- adjust head/tail
+--	begin 
+--		next_state <= state_reg;
+--		case state_reg is
+--			when init => 
+--				if (spill = '1') then
+--					next_state <= spill_state;
+--				elsif(fill = '1') then 
+--					next_state <= fill_state;
+--				else 
+--					next_state <= fill_state;
+--				end if;
+--			when inc =>
+--				if (exout_not_reg.spill = '1') then
+--					next_state <= spill_state;
+--				else
+--					next_state <= init;
+--				end if;
+--			when dec  => 
+--				if (exout_not_reg.fill = '1') then
+--					next_state <= fill_state;
+--				else
+--					next_state <= init;
+--				end if;
+--		end case;	
+--	end process;		  
+--	
+--	-- Output process
+--	process(state_reg)
+--	begin
+--		if (state_reg = init) then
+--		elsif (state_reg = inc) then
+--			--mem_top <= 
+--		elsif (state_reg = dec) then
+--			--mem_top <= 
+--		end if;
+--	end process;
 
+
+end arch;
 
 
 

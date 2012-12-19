@@ -9,7 +9,7 @@ use std.textio.all;
 use work.dma_controller_dtl_cmp_pkg.all;
 
 architecture RTL of sdr_sdram_dma_controller_tb is
-    constant BURST_LENGTH : natural := 4;
+    constant BURST_LENGTH : natural := 8;
 
     constant ADDR_WIDTH  : integer := 23;
     constant DATA_WIDTH  : integer := 32;
@@ -17,18 +17,18 @@ architecture RTL of sdr_sdram_dma_controller_tb is
     constant COL_WIDTH   : integer := 9;
     constant ROW_WIDTH   : integer := 12;
     constant BA_WIDTH    : integer := 2;
-    constant CS_WIDTH    : integer := 1;
+    constant CS_WIDTH    : integer := 0;
     constant COL_LOW_BIT : integer := 0;
     constant ROW_LOW_BIT : integer := COL_WIDTH; -- 9
-    constant BA_LOW_BIT  : integer := ROW_LOW_BIT + ROW_WIDTH - 1; -- 9+12=20
-    constant CS_LOW_BIT  : integer := BA_LOW_BIT + BA_WIDTH - 1; -- 20+2-1=21
+    constant BA_LOW_BIT  : integer := ROW_LOW_BIT + ROW_WIDTH; -- 9+13=22
+    constant CS_LOW_BIT  : integer := BA_LOW_BIT + BA_WIDTH; -- 22+2=24
     -- SDRAM configuration
     constant SA_WIDTH    : natural := ROW_WIDTH;
 
     constant tCLK               : time    := 10 ns; --! Clock period
     constant tINIT_IDLE         : time    := 50 ns; -- 200 us; --! Inactivity perdiod required during initialization 
     constant INIT_REFRESH_COUNT : natural := 8; --! Number of Refresh commands required during initialization
-    constant tCAC_CYCLES        : natural := 3; --! CAS latency
+    constant tCAC_CYCLES        : natural := 2; --! CAS latency
     constant tRRD               : time    := 14 ns; --! Row to Row Delay (ACT[0]-ACT[1])
     constant tRCD               : time    := 20 ns; --! Row to Column Delay (ACT-READ/WRITE)
     constant tRAS               : time    := 45 ns; --! Row Access Strobe (ACT-PRE)
@@ -44,7 +44,7 @@ architecture RTL of sdr_sdram_dma_controller_tb is
     constant tDMD               : time    := 0 ns; --! DQM to Input (Write)
     constant tMRD               : time    := 15 ns; --! Mode Register Delay (program time)
     constant tMRD_CYCLES        : natural := 2; --! Mode Register Delay (program time) in Cycles
-    constant tREF               : time    := 64 ms; --! Refresh Cycle (for each row)
+    constant tREF               : time    := tCLK*(2**ROW_WIDTH)*10; --! Refresh Cycle (for each row)
 
     constant DQ_WIDTH         : integer := 8;
     constant MTL_MASK_WIDTH   : integer := 4;
@@ -55,7 +55,7 @@ architecture RTL of sdr_sdram_dma_controller_tb is
     --	constant GEN_REQUEST_SIZE : integer := 64;
     constant GEN_REQUEST_SIZE : integer := 4 * BURST_LENGTH;
     -- DMA control interface
-    constant DMA_ADDR_WIDTH   : integer := 2;
+    constant DMA_ADDR_WIDTH   : integer := 3;
     constant DMA_DATA_WIDTH   : integer := 32;
 
     constant DATA_WIDTH_BITS : integer := 4 * DQ_WIDTH;
@@ -113,17 +113,6 @@ architecture RTL of sdr_sdram_dma_controller_tb is
     constant tCKH : TIME := tDH;
     constant tCMH : TIME := tDH;
 
-    constant c_CAS_LATENCY        : integer := 3;
-    constant c_RAS_TO_CAS         : integer := 3; -- RoundTimeConstantToCycles(tCK, tRCD);
-    constant c_PAGE_MODE_BURST    : boolean := false;
-    constant c_BURST_LENTH        : integer := 8;
-    constant c_REFRESH_CMD_PERIOD : integer := 1000;
-
-    -- Test bench constants
-    constant c_LONG_DELAY             : time    := 100 ns;
-    constant c_SHORT_DELAY            : time    := 50 ns;
-    constant c_PAGE_BURST_TEST_LENGTH : natural := 9;
-
     subtype dma_word_t is std_logic_vector(DMA_DATA_WIDTH - 1 downto 0);
 
     signal clk                  : std_logic;
@@ -144,6 +133,7 @@ architecture RTL of sdr_sdram_dma_controller_tb is
     signal mtl_rd_valid_i     : std_logic;
     signal mtl_rd_accept_i    : std_logic;
     signal mtl_rd_data_i      : std_logic_vector(4 * DQ_WIDTH - 1 downto 0);
+
     signal dma_addr_special_i : std_logic;
     signal dma_addr_i         : std_logic_vector(DMA_ADDR_WIDTH - 1 downto 0);
     signal dma_rd_i           : std_logic;
@@ -195,6 +185,8 @@ architecture RTL of sdr_sdram_dma_controller_tb is
     signal ocp_SData          : std_logic_vector(DATA_WIDTH - 1 downto 0);
     signal ocp_SResp          : std_logic;
     signal ocp_SRespLast      : std_logic;
+    signal sdram_dq_out : STD_LOGIC_VECTOR(DATA_WIDTH - 1 DOWNTO 0);
+    signal sdram_dq_dir : STD_LOGIC_VECTOR(3 downto 0);
 begin
     -- Wrapper
     dut : work.dma_controller_dtl_cmp_pkg.dma_controller_dtl
@@ -269,7 +261,7 @@ begin
             clk                => clk,
             pll_locked         => '1',
             ocp_MCmd           => ocp_MCmd,
-            ocp_MCmd_doRefresh => ocp_MCmd_doRefresh,
+--            ocp_MCmd_doRefresh => ocp_MCmd_doRefresh,
             ocp_MAddr          => ocp_MAddr,
             ocp_SCmdAccept     => ocp_SCmdAccept,
             ocp_MData          => ocp_MData,
@@ -309,6 +301,11 @@ begin
     assert mtl_rd_accept_i = '1' or mtl_rd_valid_i /= '1' report "Protocol error: wrapper not ready to accept data" severity failure;
     -- ocp_MRespAccept not used
 
+    gen_delay_dq_out : for i in sdram_dq_dir'range generate
+        sdram_dq((i+1)*8-1 downto i*8)  <= sdram_dq_out((i+1)*8-1 downto i*8)'delayed(tCLK/10) when sdram_dq_dir'delayed(tCLK/10)(i)='1' else (others => 'Z');
+    end generate gen_delay_dq_out;
+
+    
     -- The SDRAMs
     dimm : if USE_DIMM_MODEL generate
         chips : for i in 0 to 2 ** CS_WIDTH - 1 generate
@@ -337,18 +334,19 @@ begin
                     data_bits => DATA_WIDTH,
                     col_bits  => COL_WIDTH)
                 port map(
-                    Dq_in  => sdram_dq,
-                    Dq_out => sdram_dq,
-                    Dq_dir => open,
-                    Addr   => sdram_sa,
-                    Ba     => sdram_Ba,
-                    Clk    => clk_ram'delayed(tCLK/2),
-                    Cke    => sdram_cke,
-                    Cs_n   => sdram_cs_n(i),
-                    Ras_n  => sdram_ras_n,
-                    Cas_n  => sdram_cas_n,
-                    We_n   => sdram_We_n,
-                    Dqm    => sdram_Dqm
+                    Dq_in  => sdram_dq'delayed(tCLK/10),
+                    Dq_out => sdram_dq_out,
+                    Dq_dir => sdram_dq_dir,
+                    Addr   => sdram_sa'delayed(tCLK/10),
+                    Ba     => sdram_Ba'delayed(tCLK/10),
+--                    Clk    => clk_ram'delayed(tCLK/2),
+                    Clk    => clk_ram,
+                    Cke    => sdram_cke'delayed(tCLK/10),
+                    Cs_n   => sdram_cs_n(i)'delayed(tCLK/10),
+                    Ras_n  => sdram_ras_n'delayed(tCLK/10),
+                    Cas_n  => sdram_cas_n'delayed(tCLK/10),
+                    We_n   => sdram_We_n'delayed(tCLK/10),
+                    Dqm    => sdram_Dqm'delayed(tCLK/10)  
                 );
         end generate chips;
     end generate dimm;
@@ -384,15 +382,15 @@ begin
     clock_driver : process
     begin
         --		if end_of_sim = '0' then
-        clk <= '0';
-        clk_ram  <= '0';
-        wait for tCLK / 2;
         clk <= '1';
         clk_ram  <= '1';
         wait for tCLK / 2;
+        clk <= '0';
+        clk_ram  <= '0';
+        wait for tCLK / 2;
     --		end if;
     end process clock_driver;
-    rst_n <= '0', '1' after tCLK * 2;
+    rst_n <= '0', '1' after tCLK * 2.2;
     rst  <= not rst_n;
 
     show_cache_line_transactions : if DEBUG_SHOW_CACHELINE_TRANSACTIONS generate
@@ -497,28 +495,45 @@ begin
         controllerWrite('0', A2, 6);
         controllerWrite('0', A3, 16);
         controllerRead('0', 0, value);
-        assert value = 1 report "T1 cache word write/read error at 0";
+        assert value = 1 report "T1 cache word write/read error at 0" severity error;
         controllerRead('0', A2, value);
-        assert value = 6 report "T1 cache word write/read error at 5";
+        assert value = 6 report "T1 cache word write/read error at middle" severity error;
         controllerRead('0', A3, value);
-        assert value = 16 report "T1 cache word write/read error at 5";
+        assert value = 16 report "T1 cache word write/read error at last" severity error;
 
         memoryLineOp(0, loStoreLine);
         memoryLineOp(1, loLoadLine);
         controllerRead('0', 0, value);
-        assert value = 0 report "T2 cache word write/read error at 0";
+        assert value = 0 report "T2 cache word write/read error at 0" severity error;
         controllerRead('0', A2, value);
-        assert value = 0 report "T2 cache word write/read error at 5";
+        assert value = 0 report "T2 cache word write/read error at middle" severity error;
         controllerRead('0', A3, value);
-        assert value = 0 report "T2 cache word write/read error at 5";
+        assert value = 0 report "T2 cache word write/read error at last" severity error;
 
         memoryLineOp(0, loLoadLine);
         controllerRead('0', 0, value);
-        assert value = 1 report "T3 cache word write/read error at 0";
+        assert value = 1 report "T3 cache word write/read error at 0" severity error;
         controllerRead('0', A2, value);
-        assert value = 6 report "T3 cache word write/read error at 5";
+        assert value = 6 report "T3 cache word write/read error at middle" severity error;
         controllerRead('0', A3, value);
-        assert value = 16 report "T3 cache word write/read error at 5";
+        assert value = 16 report "T3 cache word write/read error at last" severity error;
+        
+        report "Writing inc pattern";
+        for i in 0 to NWORDS_PER_CMD*2-1 loop
+            controllerWrite('0', (i mod NWORDS_PER_CMD), i);
+            if (i mod NWORDS_PER_CMD) = NWORDS_PER_CMD-1 then
+                memoryLineOp(i/NWORDS_PER_CMD, loStoreLine);
+            end if;
+        end loop;
+        
+        report "Reading inc pattern";
+        for i in 0 to NWORDS_PER_CMD*2-1 loop
+            if (i mod NWORDS_PER_CMD) = 0 then
+                memoryLineOp(i/NWORDS_PER_CMD, loLoadLine);
+            end if;
+            controllerRead('0', i mod NWORDS_PER_CMD, value);
+            assert value = i report "Word Read failed at "& natural'image(i) severity error;
+        end loop;
 
         report "OK.  Test Finished!";
         end_of_sim <= '1';

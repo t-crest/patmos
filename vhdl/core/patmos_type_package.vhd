@@ -55,15 +55,20 @@ package patmos_type_package is
 	type function_type_alu_u					is(pat_sext8, pat_sext16, pat_zext16, pat_abs);
 	type function_type_alu_p					is (pat_por, pat_pand, pat_pxor, pat_pnor);
 	type function_type_alu_cmp					is (pat_cmpeq, pat_cmpneq, pat_cmplt, pat_cmple, pat_cmpult, pat_cmpule, pat_btest);
-	type isntrucion								is (st, ld, nop, br, alu, alui);
-	type function_type_sc						is (reserve, free, ensure);
-	type sc_state								is (init, spill, fill);
+	type isntrucion								is (none, st, ld, nop, br, alu, alui, res, ens, free);
+	type function_type_sc						is (none, reserve, free, ensure);
+  	type sc_state								is (init, spill_state, fill_state);
+ 
 	-------------------------------------------
 	-- in/out records
 	-------------------------------------------
 	constant pc_length              			: integer := 32;
 	constant instruction_word_length 			: integer := 32;
-	constant sc_depth							: integer := 8;	
+	constant sc_depth							: integer := 6; -- stack cache has 64 slots
+	constant mm_depth							: integer := 10;
+	constant SC_MASK							: std_logic_vector(sc_depth - 1 downto 0) := "111111"; -- mask is 63 
+--	constant mem_top_init						: std_logic_vector(sc_depth - 1 downto 0) := "0111110100"; -- we shall use this 
+--	constant sc_top_init						: std_logic_vector(sc_depth - 1 downto 0) := "0111110100";
 	-------------------------------------------
 	-- fetch/decode
 	-------------------------------------------
@@ -90,6 +95,8 @@ package patmos_type_package is
 	
 	type decode_out_type is record
 		lm_write 								: std_logic;
+		sc_write								: std_logic;
+		sc_read									: std_logic;
 		lm_read	 								: std_logic;
 		imm       								: std_logic_vector(31 downto 0);
 		instr_cmp 								: std_logic;
@@ -136,39 +143,41 @@ package patmos_type_package is
 	-------------------------------------------
 	-- execution
 	-------------------------------------------
-
-	type execution_out_type is record
-		alu_result               : std_logic_vector(31 downto 0);
-		adrs					 : std_logic_vector(31 downto 0);
-		predicate                : std_logic_vector(7 downto 0);
---		result                   : result_type;
-		alu_result_reg           : std_logic_vector(31 downto 0);
-		adrs_reg     	    	 : std_logic_vector(31 downto 0);
-		reg_write            	 : std_logic;
-		mem_to_reg           	 : std_logic;
-		write_back_reg       	 : std_logic_vector(4 downto 0);
-
-		lm_read  : std_logic;
-		lm_write : std_logic;
---		sc_read_out  : std_logic;
---		sc_write_out : std_logic;
-		mem_write_data : std_logic_vector(31 downto 0); 
-		
-		adrs_type		    :  address_type;
-		--unregistered outputs
-		lm_read_out_not_reg	: std_logic;
-		lm_write_out_not_reg : std_logic;
-		sc_read_out_not_reg  : std_logic;
-		sc_write_out_not_reg : std_logic;
-		address_not_reg		: std_logic_vector(31 downto 0);
-		pc					: std_logic_vector(pc_length - 1 downto 0);
-		predicate_to_fetch	: std_logic;
-		
-		--stack cache
-		stall         		: std_logic;
-		tail				: std_logic_vector(sc_depth downto 0);
-		spill				: std_logic;
+	type execution_reg		is record
+		lm_read  								 : std_logic;
+		lm_write 								 : std_logic;
+		reg_write            					 : std_logic;
+		sc_write 								 : std_logic;
+		sc_read									 : std_logic;
+		mem_to_reg           					 : std_logic;
+		alu_result_reg                 			 : std_logic_vector(31 downto 0);
+		adrs_reg     	    					 : std_logic_vector(31 downto 0);
+		write_back_reg       					 : std_logic_vector(4 downto 0);
+		predicate               				 : std_logic_vector(7 downto 0);
+		predicate_reg               				 : std_logic_vector(7 downto 0);
+		imm       								 : std_logic_vector(31 downto 0);
 	end record;
+	
+	type execution_not_reg		is record
+		alu_result             					 : std_logic_vector(31 downto 0);
+		adrs									 : std_logic_vector(31 downto 0);
+		mem_write_data 			 				 : std_logic_vector(31 downto 0);
+		adrs_type		  		 				 :  address_type;
+		lm_read_not_reg			 				 : std_logic;
+		lm_write_not_reg 		 				 : std_logic;
+		address_not_reg			 				 : std_logic_vector(31 downto 0);
+		pc						 				 : std_logic_vector(pc_length - 1 downto 0);
+		predicate_to_fetch		 				 : std_logic;
+		sc_read_not_reg  						 : std_logic;
+		sc_write_not_reg 						 : std_logic;
+		stall         							 : std_logic;
+		sc_top									 : std_logic_vector(31 downto 0); --head, what should be the length?
+		mem_top									 : std_logic_vector(31 - 1 downto 0); --tail, what should be the length?
+		spill									 : std_logic;
+		fill									 : std_logic;
+		nspill_fill								 : std_logic_vector(31 downto 0); -- this is too big and not real, should trim the addresses otherwise  
+	end record;
+	
 
 
 	------------------------------------------
@@ -176,14 +185,16 @@ package patmos_type_package is
 	------------------------------------------
 
 	type mem_out_type is record
-		result             : result_type;
-		data_out           : std_logic_vector(31 downto 0); -- forwarding
+		result             						: result_type;
+		data_out           						: std_logic_vector(31 downto 0); -- forwarding
 		-- following is forwarding 
-		reg_write_out      : std_logic;
-		write_back_reg_out : std_logic_vector(4 downto 0);
-		data_mem_data_out  : std_logic_vector(31 downto 0); -- this is from memory it is used later to select between output of mem or IO
-		data  : std_logic_vector(31 downto 0); -- to register file
+		reg_write_out      						: std_logic;
+		write_back_reg_out 						: std_logic_vector(4 downto 0);
+		data_mem_data_out  						: std_logic_vector(31 downto 0); -- this is from memory it is used later to select between output of mem or IO
+		data  									: std_logic_vector(31 downto 0); -- to register file
 		
+		stall         							: std_logic;
+		mem_top									: std_logic_vector(31 downto 0);
 	end record;
 
 
@@ -265,4 +276,3 @@ package patmos_type_package is
 	end record;
 
 end patmos_type_package;
-

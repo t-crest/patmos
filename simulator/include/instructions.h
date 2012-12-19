@@ -1510,10 +1510,10 @@ namespace patmos
              read_GPR_EX(s, ops.DR_Rs1))
   CFLI_INSTR(brr, no_store_return_address, dispatch,
              s.BASE,
-             s.BASE + read_GPR_EX(s, ops.DR_Rs1))
+             read_GPR_EX(s, ops.DR_Rs1))
   CFLI_INSTR(brcfr, no_store_return_address, fetch_and_dispatch,
-             s.BASE + read_GPR_EX(s, ops.DR_Rs1),
-             s.BASE + read_GPR_EX(s, ops.DR_Rs1))
+             read_GPR_EX(s, ops.DR_Rs1),
+             read_GPR_EX(s, ops.DR_Rs1))
 
   /// An instruction for returning from function calls.
   class i_ret_t : public i_cfl_t

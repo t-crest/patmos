@@ -86,7 +86,7 @@ entity sdr_sdram is
         -- FIXME: Some datasheets provide tMRD as fixed cycle count, not as time period
         --        tMRD               : time;      --! Mode Register Delay (program time)
         tMRD_CYCLES        : natural;   --! Mode Register Delay (program time)
-        tREF               : time       --! Refresh Cycle (for each row)
+        tREF               : time       --! Refresh Cycle (this period of refresh for each cell)
     --! \}
     );
     port(
@@ -97,7 +97,8 @@ entity sdr_sdram is
         --! Simple OCP like protocol
         --! \{
         ocp_MCmd           : in    std_logic_vector(2 downto 0); --! Request (Idle/Read/Write)
-        ocp_MCmd_doRefresh : in    std_logic; --! 
+-- TODO: need to add refresh acknowledge. For now just use internal automatic (periodic) refresh
+--        ocp_MCmd_doRefresh : in    std_logic; --! 
         ocp_MAddr          : in    std_logic_vector(ADDR_WIDTH - 1 downto 0); --! Request Address
         --! Acknowledges the validity of the next word. For Read Request this denotes the transmission of
         --! valid word. For Write Request this acknowledges that the current word is accepted and next word
@@ -187,7 +188,7 @@ architecture RTL of sdr_sdram is
     --    constant DMD : natural := RoundTimeConstantToCycles(tCLK, tDMD); --! DQM to Input (Write)
     --    constant MRD : natural := RoundTimeConstantToCycles(tCLK, tMRD); --! Mode Register Delay (program time)
     constant MRD : natural := tMRD_CYCLES;
-    --    constant REF : natural := natural(tREF / (2**ROW_WIDTH)); --! Refresh Cycle (for each row)
+    constant REFI : natural := RoundTimeConstantToCycles(tCLK, tREF / (2**ROW_WIDTH)); --! Minimal refresh interval
 
 
     function DefineModeRegister return std_logic_vector is
@@ -272,12 +273,15 @@ architecture RTL of sdr_sdram is
     alias a_column            : std_logic_vector(COL_WIDTH - 1 downto 0) is ocp_MAddr(COL_WIDTH + COL_LOW_BIT - 1 downto COL_LOW_BIT);
 
     -- Counters
-    signal delay_cnt_nxt, delay_cnt_r                   : integer; -- range -1 to c_INIT_IDLE_CYCLES+c_REFRESH_CYCLES := 0; -- Don't care about the ranges now, just make the simulator run
+    signal refi_cnt_nxt, refi_cnt_r                     : integer := REFI; -- range -1 to REFI := 0;
     signal refresh_repeat_cnt_nxt, refresh_repeat_cnt_r : integer; -- range -1 to INIT_REFRESH_COUNT - 1 := 0;
+    signal delay_cnt_nxt, delay_cnt_r                   : integer; -- range -1 to c_INIT_IDLE_CYCLES+c_REFRESH_CYCLES := 0; -- Don't care about the ranges now, just make the simulator run
     signal burst_cnt_nxt, burst_cnt_r                   : integer; -- range -1 to 7 := 0;
+    signal refi_cnt_done                                : std_logic;
     signal delay_cnt_done                               : std_logic;
     signal refresh_repeat_cnt_done                      : std_logic;
     signal burst_cnt_done                               : std_logic;
+    signal ocp_MCmd_doRefresh                           : std_logic;
     -- The DQ is saved in register during read, so need to delay the acknowledgment
     signal ocp_SResp_nxt                                : std_logic;
     signal ocp_SRespLast_nxt                            : std_logic;
@@ -292,6 +296,7 @@ begin
     begin
         if rst = '1' then
             state_r <= initWaitLock;
+            refi_cnt_r  <= REFI-1;  
         elsif rising_edge(clk) then
             state_r              <= state_nxt;
             -- SDRAM i-face registers
@@ -309,17 +314,21 @@ begin
             ocp_SRespLast        <= ocp_SRespLast_nxt;
             -- Counters
             delay_cnt_r          <= delay_cnt_nxt;
+            refi_cnt_r           <= refi_cnt_nxt;
             refresh_repeat_cnt_r <= refresh_repeat_cnt_nxt;
             burst_cnt_r          <= burst_cnt_nxt;
         end if;
     end process reg;
 
     refresh_repeat_cnt_done <= '1' when refresh_repeat_cnt_r = 0 else '0';
+    refi_cnt_done          <= '1' when refi_cnt_r = 0 else '0';
     delay_cnt_done          <= '1' when delay_cnt_r = 0 else '0';
     burst_cnt_done          <= '1' when burst_cnt_r = 0 else '0';
 
+    ocp_MCmd_doRefresh  <= refi_cnt_done;
+    
     --! State machine
-    controller : process(a_bank, a_column, a_cs, a_row, burst_cnt_done, burst_cnt_r, delay_cnt_done, delay_cnt_r, ocp_MCmd, ocp_MCmd_doRefresh, ocp_MDataByteEn, pll_locked, refresh_repeat_cnt_done, refresh_repeat_cnt_r, state_r)
+    controller : process(a_bank, a_column, a_cs, a_row, burst_cnt_done, burst_cnt_r, delay_cnt_done, delay_cnt_r, ocp_MCmd, ocp_MCmd_doRefresh, ocp_MDataByteEn, pll_locked, refresh_repeat_cnt_done, refresh_repeat_cnt_r, state_r, refi_cnt_r, refi_cnt_done)
         function sl2int(bit : std_logic) return natural is
         begin
             if bit = '1' then
@@ -353,6 +362,7 @@ begin
         -- Counters
         delay_cnt_nxt          <= delay_cnt_r - sl2int(not delay_cnt_done);
         burst_cnt_nxt          <= burst_cnt_r - sl2int(not burst_cnt_done);
+        refi_cnt_nxt           <= refi_cnt_r - sl2int(not refi_cnt_done);
         -- Count only in special state
         refresh_repeat_cnt_nxt <= refresh_repeat_cnt_r;
         case state_r is
@@ -411,7 +421,9 @@ begin
                     state_nxt <= ready;
                 end if;
             when ready =>
-                ocp_SCmdAccept <= '1';
+                -- TODO: Using internal refresh, so ackn is updated accordingly
+                -- ocp_SCmdAccept <= '1';
+                ocp_SCmdAccept <= not refi_cnt_done;
                 -- Read/Write/Refresh
                 if ocp_MCmd = OCP_CMD_READ or ocp_MCmd = OCP_CMD_WRITE or ocp_MCmd_doRefresh = '1' then
                     -- Activate / Refresh
@@ -448,7 +460,7 @@ begin
                     end if;
 
                     -- Schedule Read Data
-                    delay_cnt_nxt <= tCAC_CYCLES - 2; -- (-1) because of counter implementation; extra (-1) because we stay idle during whole counting
+                    delay_cnt_nxt <= tCAC_CYCLES - 2 + 1; -- (-1) because of counter implementation; extra (-1) because we stay idle during whole counting; (+1) because the sdram_DQ input is registered in IOB
                     state_nxt     <= readDataWait;
                 end if;
             when readDataWait =>
@@ -498,6 +510,8 @@ begin
             when refreshComplete =>
                 if delay_cnt_done = '1' then
                     state_nxt <= ready;
+                    -- TODO: Might ackn refresh here or in the ready state as befor (when external refresh request is used)
+                    refi_cnt_nxt <= REFI-1;
                 end if;
         end case;
     end process controller;
