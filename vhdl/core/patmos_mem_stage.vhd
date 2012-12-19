@@ -55,12 +55,8 @@ entity patmos_mem_stage is
 end entity patmos_mem_stage;
 
 architecture arch of patmos_mem_stage is
-	--signal en0, en1, en2, en3               : std_logic;
 	signal en								 : std_logic_vector(3 downto 0);
 
-	-- MS: here and also further down to either:
-	-- use an array of 4 bytes
-	-- or (better) define a 32-bit std_logic_vector and use parts of the vector where needed
 	signal lm_dout								 : std_logic_vector(31 downto 0);
 	signal mem_write_data					 : std_logic_vector(31 downto 0);
 
@@ -89,7 +85,6 @@ architecture arch of patmos_mem_stage is
     signal mm_spill							 : std_logic_vector(3 downto 0);
     
     ------ stack cache
-    -- MS: what about using arrays for those xxx0 - xxx3 signals?
     signal sc_en							 : std_logic_vector(3 downto 0);
     signal sc_word_enable					 : std_logic_vector(1 downto 0);
     signal sc_byte_enable					 : std_logic_vector(3 downto 0);
@@ -150,6 +145,8 @@ begin
 	end process;
 
 	--- main memory for simulation
+	-- Ms: as you exchange 32-bit words you can have one memory with 32 bits
+	-- instead of four byte memories.
 	mm0: entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
@@ -237,6 +234,8 @@ begin
 			state_reg <= init;
 			--spill <= '0';
 			fill <= '0';
+			-- MS: what is this constant?
+			-- We need the implementation of setting the pointers from an instruction
 			mem_top <= "00000000000000000000000111110100";
 		elsif rising_edge(clk) then
 			state_reg 	<= next_state;
@@ -395,6 +394,7 @@ begin
 	begin
 		case exout_reg.adrs_reg(1) is
 			when '0' =>
+				-- MS: why are bytes mixed up here?
 				ld_half <= lm_dout(7 downto 0) & lm_dout(15 downto 8);
 				sc_ld_half <= sc_read_data(7 downto 0) & sc_read_data(15 downto 8);
 			when '1' =>
@@ -425,6 +425,7 @@ begin
 	--------------------------- address muxes end--------------------------	
 	
 	--------------------------- sign extension begin--------------------------
+	-- MS: why do we have double signe extension?
 	process(ld_half, sc_ld_half, s_u)
 	begin
 		if (s_u = '1') then
@@ -449,6 +450,7 @@ begin
 	--------------------------- sign extension end--------------------------
 	
 	--------------------------- size muxe begin--------------------------
+	-- Ms: same here: why can't we share this
 	process(byte_ext, half_ext, ld_word, ldt_type, sc_ld_word, sc_half_ext, sc_byte_ext)
 	begin
 		case ldt_type is
@@ -505,6 +507,7 @@ begin
 				
 				sc_en(3 downto 0)  			<= exout_not_reg.sc_write_not_reg & exout_not_reg.sc_write_not_reg & exout_not_reg.sc_write_not_reg & exout_not_reg.sc_write_not_reg;
 				
+				-- MS: why are the bytes here mixed up?
 				mem_write_data(7 downto 0) <= exout_not_reg.mem_write_data(31 downto 24);
 				mem_write_data(15 downto 8) <= exout_not_reg.mem_write_data(23 downto 16);
 				mem_write_data(23 downto 16) <= exout_not_reg.mem_write_data(15 downto 8);
@@ -517,6 +520,7 @@ begin
 				sc_en(3 downto 2)          <= sc_word_enable(1) & sc_word_enable(1);
 				sc_en(1 downto 0)          <= sc_word_enable(0) & sc_word_enable(0);
 				
+				-- MS: here again - why are te bytes mixed up?
 				mem_write_data(7 downto 0) <= exout_not_reg.mem_write_data(15 downto 8);
 				mem_write_data(15 downto 8) <= exout_not_reg.mem_write_data(7 downto 0);
 				mem_write_data(23 downto 16) <= exout_not_reg.mem_write_data(15 downto 8);
