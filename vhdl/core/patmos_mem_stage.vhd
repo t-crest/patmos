@@ -126,18 +126,25 @@ begin
 		end if;
 	end process mem_wb;
 
-	process(exout_reg_adr, spill, fill, mem_top, mm_spill, mm_en,
-		sc_read_data, mem_write_data_stall
+	process(exout_reg_adr, spill, fill, mem_top, mm_spill, mm_en, sc_en,
+		sc_read_data, mm_read_data, mem_write_data_stall
 	) --SA: Main memory read/write address, normal load/store or fill/spill
 	begin
 		mm_read_add <= exout_reg_adr(9 downto 0);
 		mm_write_add <= exout_reg_adr(9 downto 0);
 		mm_en_spill <= mm_en;
 		mm_write_data <= mem_write_data_stall;
+		sc_read_add <= exout_reg_adr(sc_depth - 1 downto 0);
+		sc_write_add <= exout_reg_adr(sc_depth - 1 downto 0);
+		sc_en_fill <= sc_en;
+		sc_write_data <= mem_write_data_stall;
 		if (spill = '1' or fill = '1') then	
 			mm_read_add <= mem_top(9 downto 0);
+			sc_read_add <= mem_top(sc_depth - 1 downto 0) and SC_MASK;
 			mm_en_spill <= mm_spill; -- this is for spilling ( writing to main memory)
 			mm_write_data <= sc_read_data;
+			sc_en_fill <= sc_fill; -- this is for filling!
+			sc_write_data <= mm_read_data;
 			--sc_write_add <= ; -- spill
 		end if;
 	end process;
@@ -186,20 +193,7 @@ begin
 --        write_enable             : in std_logic;
 --        rd_address               : in std_logic_vector(addr_width - 1 downto 0);
 --        data_out                 : out std_logic_vector(width -1 downto 0) -- load
-	process(exout_reg_adr, spill, fill, mem_top, sc_fill, sc_en,
-		mem_write_data_stall, mm_read_data) --SA: Stack cache read/write address, normal load/store or fill/spill
-	begin
-		sc_read_add <= exout_reg_adr(sc_depth - 1 downto 0);
-		sc_write_add <= exout_reg_adr(sc_depth - 1 downto 0);
-		sc_en_fill <= sc_en;
-		sc_write_data <= mem_write_data_stall;
-		if (spill = '1' or fill = '1') then	
-			sc_read_add <= mem_top(sc_depth - 1 downto 0) and SC_MASK;
-			sc_en_fill <= sc_fill; -- this is for filling!
-			sc_write_data <= mm_read_data;
-			--sc_write_add <= ; -- spill
-		end if;
-	end process;
+
 	
 	sc0: entity work.patmos_data_memory(arch)
 		generic map(8, sc_depth)
@@ -284,17 +278,20 @@ begin
 		mem_top_next <= mem_top;
 		case state_reg is
 			when init =>
-				
+				sc_fill <= "0000";
+				mm_spill <= "0000";
 				nspill_fill_next <= exout_not_reg.nspill_fill;
 				dout.stall <= '0';
 			when spill_state =>
 				if ((signed(nspill_fill) - 1) >= 0) then
 					mem_top_next <= std_logic_vector(signed(mem_top) - 1); 
 					nspill_fill_next <= std_logic_vector(signed(nspill_fill) - 1);
-			
+					mm_spill <= "1111";
 					spill <= '1';
 					stall <= '1';
+					dout.stall <= '1';
 				else
+					mm_spill <= "0000";
 					spill <= '0';
 					stall <= '0';
 					nspill_fill_next <= exout_not_reg.nspill_fill;
@@ -316,6 +313,7 @@ begin
 	-- SA: The address is not registered, in case there is the stall the address
 	-- should be registered, I can change the name though
 	-- MS: a non-registered signal shall not end with _reg.
+	-- SA: Changed the name to _stall
 	memory0 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
