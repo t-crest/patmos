@@ -100,7 +100,7 @@ architecture arch of patmos_mem_stage is
     signal sc_ld_byte					 	 : std_logic_vector(7 downto 0);
     signal sc_half_ext, sc_byte_ext			 : std_logic_vector(31 downto 0);
     signal sc_data_out						 : std_logic_vector(31 downto 0);
-    signal sc_lm_data						 : std_logic_vector(31 downto 0);
+    signal sc_lm_data, prev_sc_lm_data		 : std_logic_vector(31 downto 0);
   
   	signal sc_read_add, sc_write_add		 : std_logic_vector(sc_depth - 1 downto 0);
     signal state_reg, next_state			 : sc_state;
@@ -359,9 +359,12 @@ begin
 --			mem_write_data2_stall <= mem_write_data2;
 --			mem_write_data3_stall <= mem_write_data3;
 		if rising_edge(clk) then
-				prev_exout_reg_adr <= exout_not_reg.adrs;
+				prev_exout_reg_adr 		<= exout_not_reg.adrs;
 				prev_mem_write_data_reg <= mem_write_data;
-				prev_en_reg			<= en;
+				prev_en_reg				<= en;
+				
+				prev_sc_lm_data			<= sc_lm_data;
+				
 		end if;	
 	end process;
 	
@@ -380,16 +383,7 @@ begin
 		end if;
 	end process;
 	
-	--	decode : process(clk, alu_func)
---	begin
---		if rising_edge(clk) then
---			dout <= comb_out;
---			prev_dout <= comb_out;
---			if(memout.stall = '1') then
---				dout <= prev_dout;
---			end if;
---		end if;
---	end process decode;
+
 	--------------------------- address muxes begin--------------------------		     
 	process( lm_dout, sc_read_data)
 	begin
@@ -550,15 +544,35 @@ begin
 		end if;
 	end process;
 	
--- write back
-	process(mem_data_out_muxed, exout_reg, sc_lm_data)
+--		if (stall = '1') then
+--			exout_reg_adr		<= prev_exout_reg_adr;
+--			mem_write_data_stall <= prev_mem_write_data_reg;
+--			en_reg				<= prev_en_reg;
+--		else
+--			exout_reg_adr		<= exout_not_reg.adrs;
+--			mem_write_data_stall <= mem_write_data;
+--			en_reg				<= en;
+--		end if;
+	
+-- write back with stall
+	process(mem_data_out_muxed, exout_reg, sc_lm_data, stall)
 	begin
-		if exout_reg.mem_to_reg = '1' then
-			dout.data <= sc_lm_data;--mem_data_out_muxed; --
-			datain <= sc_lm_data;--mem_data_out_muxed;--
-		else
-			dout.data <= exout_reg.alu_result_reg;
-			datain <= exout_reg.alu_result_reg;
-		end if;
+		if (stall = '1') then
+			if exout_reg.mem_to_reg = '1' then
+				dout.data <= prev_sc_lm_data;--mem_data_out_muxed; --
+				datain <= prev_sc_lm_data;--mem_data_out_muxed;--
+			else
+				dout.data <= exout_reg.alu_result_reg;
+				datain <= exout_reg.alu_result_reg;
+			end if;
+		else -- stall
+			if exout_reg.mem_to_reg = '1' then
+				dout.data <= sc_lm_data;--mem_data_out_muxed; --
+				datain <= sc_lm_data;--mem_data_out_muxed;--
+			else
+				dout.data <= exout_reg.alu_result_reg;
+				datain <= exout_reg.alu_result_reg;
+			end if;
+		end if; -- if stall
 	end process;
 end arch;
