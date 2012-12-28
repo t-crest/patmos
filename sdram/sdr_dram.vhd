@@ -281,9 +281,10 @@ architecture RTL of sdr_sdram is
     alias a_column            : std_logic_vector(COL_WIDTH - 1 downto 0) is ocp_MAddr(COL_WIDTH + COL_LOW_BIT - 1 downto COL_LOW_BIT);
 
     -- Counters
-    signal refi_cnt_nxt, refi_cnt_r                     : integer range 0 to REFI := 0;
+    signal refi_cnt_nxt, refi_cnt_r                     : integer range 0 to max(REFI,c_INIT_IDLE_CYCLES) := 0;
     signal refresh_repeat_cnt_nxt, refresh_repeat_cnt_r : integer range 0 to INIT_REFRESH_COUNT - 1 := 0;
-    signal delay_cnt_nxt, delay_cnt_r                   : integer range 0 to c_INIT_IDLE_CYCLES+c_REFRESH_CYCLES := 0; -- Don't care about the ranges now, just make the simulator run
+    signal delay_cnt_nxt, delay_cnt_r                   : integer range 0 to 
+        max(c_PRECHARGE_CYCLES, max(c_REFRESH_CYCLES, max(c_PROGRAM_REGISTER_CYCLES, max(c_ACT2WRITE_CYCLES, max(c_ACT2READ_CYCLES, c_WRITE2READY_CYCLES)))))  := 0;
     signal burst_cnt_nxt, burst_cnt_r                   : integer range 0 to 7 := 0;
     signal ocp_MCmd_doRefresh                           : std_logic;
     -- The DQ is saved in register during read, so need to delay the acknowledgment
@@ -389,11 +390,11 @@ begin
         case state_r is
             when initWaitLock =>
                 if pll_locked = '1' then
-                    delay_cnt_nxt <= c_INIT_IDLE_CYCLES - 1;
+                    refi_cnt_nxt <= c_INIT_IDLE_CYCLES - 1;
                     state_nxt     <= initWaitIdle;
                 end if;
             when initWaitIdle =>
-                if delay_cnt_done = '1' then
+                if refi_cnt_done = '1' then
                     state_nxt <= initPrecharge;
                 end if;
             when initPrecharge =>
@@ -440,6 +441,7 @@ begin
             when initProgramModeRegComplete =>
                 if delay_cnt_done = '1' then
                     state_nxt <= ready;
+                    refi_cnt_nxt <= REFI-1;
                 end if;
             when ready =>
                 -- TODO: Using internal refresh, so ackn is updated accordingly
