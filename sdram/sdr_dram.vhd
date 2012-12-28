@@ -281,14 +281,10 @@ architecture RTL of sdr_sdram is
     alias a_column            : std_logic_vector(COL_WIDTH - 1 downto 0) is ocp_MAddr(COL_WIDTH + COL_LOW_BIT - 1 downto COL_LOW_BIT);
 
     -- Counters
-    signal refi_cnt_nxt, refi_cnt_r                     : integer := REFI; -- range -1 to REFI := 0;
-    signal refresh_repeat_cnt_nxt, refresh_repeat_cnt_r : integer; -- range -1 to INIT_REFRESH_COUNT - 1 := 0;
-    signal delay_cnt_nxt, delay_cnt_r                   : integer; -- range -1 to c_INIT_IDLE_CYCLES+c_REFRESH_CYCLES := 0; -- Don't care about the ranges now, just make the simulator run
-    signal burst_cnt_nxt, burst_cnt_r                   : integer; -- range -1 to 7 := 0;
-    signal refi_cnt_done                                : std_logic;
-    signal delay_cnt_done                               : std_logic;
-    signal refresh_repeat_cnt_done                      : std_logic;
-    signal burst_cnt_done                               : std_logic;
+    signal refi_cnt_nxt, refi_cnt_r                     : integer range 0 to REFI := 0;
+    signal refresh_repeat_cnt_nxt, refresh_repeat_cnt_r : integer range 0 to INIT_REFRESH_COUNT - 1 := 0;
+    signal delay_cnt_nxt, delay_cnt_r                   : integer range 0 to c_INIT_IDLE_CYCLES+c_REFRESH_CYCLES := 0; -- Don't care about the ranges now, just make the simulator run
+    signal burst_cnt_nxt, burst_cnt_r                   : integer range 0 to 7 := 0;
     signal ocp_MCmd_doRefresh                           : std_logic;
     -- The DQ is saved in register during read, so need to delay the acknowledgment
     signal ocp_SResp_nxt                                : std_logic;
@@ -328,15 +324,16 @@ begin
         end if;
     end process reg;
 
-    refresh_repeat_cnt_done <= '1' when refresh_repeat_cnt_r = 0 else '0';
-    refi_cnt_done          <= '1' when refi_cnt_r = 0 else '0';
-    delay_cnt_done          <= '1' when delay_cnt_r = 0 else '0';
-    burst_cnt_done          <= '1' when burst_cnt_r = 0 else '0';
-
-    ocp_MCmd_doRefresh  <= refi_cnt_done;
-    
     --! State machine
-    controller : process(a_bank, a_column, a_cs, a_row, burst_cnt_done, burst_cnt_r, delay_cnt_done, delay_cnt_r, ocp_MCmd, ocp_MCmd_doRefresh, ocp_MDataByteEn, pll_locked, refresh_repeat_cnt_done, refresh_repeat_cnt_r, state_r, refi_cnt_r, refi_cnt_done)
+    controller : process(a_bank, a_column, a_cs, a_row, burst_cnt_r, delay_cnt_r, ocp_MCmd, ocp_MCmd_doRefresh, ocp_MDataByteEn, pll_locked, refresh_repeat_cnt_r, state_r, refi_cnt_r)
+        function bool2sl(bit : boolean) return std_logic is
+        begin
+            if bit then
+                return '1';
+            else
+                return '0';
+            end if;
+        end function bool2sl;
         function sl2int(bit : std_logic) return natural is
         begin
             if bit = '1' then
@@ -345,6 +342,12 @@ begin
                 return 0;
             end if;
         end function sl2int;
+
+        -- These are created as variables, to get rid of simulation range mismatch, where counters are out of range in transient time.	
+        variable refi_cnt_done                                : std_logic;
+        variable delay_cnt_done                               : std_logic;
+        variable refresh_repeat_cnt_done                      : std_logic;
+        variable burst_cnt_done                               : std_logic;
 
     begin
         -- NOP
@@ -369,11 +372,20 @@ begin
         state_nxt         <= state_r;
 
         -- Counters
+        refresh_repeat_cnt_done := bool2sl(refresh_repeat_cnt_r = 0);
+        refi_cnt_done           := bool2sl(refi_cnt_r = 0);
+        delay_cnt_done          := bool2sl(delay_cnt_r = 0);
+        burst_cnt_done          := bool2sl(burst_cnt_r = 0);
+	-- Default next values (decrement if non zero)
         delay_cnt_nxt          <= delay_cnt_r - sl2int(not delay_cnt_done);
         burst_cnt_nxt          <= burst_cnt_r - sl2int(not burst_cnt_done);
         refi_cnt_nxt           <= refi_cnt_r - sl2int(not refi_cnt_done);
-        -- Count only in special state
+        -- Count only in special state (keep the value by default)
         refresh_repeat_cnt_nxt <= refresh_repeat_cnt_r;
+
+    ocp_MCmd_doRefresh  <= refi_cnt_done;
+
+
         case state_r is
             when initWaitLock =>
                 if pll_locked = '1' then
