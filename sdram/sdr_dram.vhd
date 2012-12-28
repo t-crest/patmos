@@ -78,12 +78,13 @@ entity sdr_sdram is
         tCCD               : time;      --! Column Command Delay Time
         tDPL               : time;      --! Input Data to Precharge (DQ_WR-PRE)
         tDAL               : time;      --! Input Data to Activate (DQ_WR-ACT/PRE)
+        -- We don't use Burst stop command, so these two parameters are not used
         tRBD               : time;      --! Burst Stop to High Impedance (Read)
         tWBD               : time;      --! Burst Stop to Input in Invalid (Write)
         tPQL               : time;      --! Last Output to Auto-Precharge Start (READ)
         tQMD               : time;      --! DQM to Output (Read)
         tDMD               : time;      --! DQM to Input (Write)
-        -- FIXME: Some datasheets provide tMRD as fixed cycle count, not as time period
+        -- TODO: Some datasheets provide tMRD as fixed cycle count, not as time period
         --        tMRD               : time;      --! Mode Register Delay (program time)
         tMRD_CYCLES        : natural;   --! Mode Register Delay (program time)
         tREF               : time       --! Refresh Cycle (this period of refresh for each cell)
@@ -129,22 +130,6 @@ entity sdr_sdram is
 end entity sdr_sdram;
 
 library ieee;
-use ieee.std_logic_1164.all;
-
-entity bin_counter is
-    generic(
-        AUTO_RESET : boolean := false;
-        PERIOD     : natural
-    );
-    port(
-        clk        : in  std_logic;
-        sync_reset : in  std_logic;
-        enable     : in  std_logic;
-        done_tick  : out std_logic
-    );
-end entity bin_counter;
-
-library ieee;
 use ieee.math_real.ceil;
 
 architecture RTL of sdr_sdram is
@@ -173,6 +158,7 @@ architecture RTL of sdr_sdram is
 
     constant BL  : natural := BURST_LENGTH;
     constant CAC : natural := tCAC_CYCLES; --! CAS latency
+    -- Used in case of interleaved bank access
     --    constant RRD : natural := RoundTimeConstantToCycles(tCLK, tRRD); --! Row to Row Delay (ACT[0]-ACT[1])
     constant RCD : natural := RoundTimeConstantToCycles(tCLK, tRCD); --! Row to Column Delay (ACT-READ/WRITE)
     constant RAS : natural := RoundTimeConstantToCycles(tCLK, tRAS); --! Row Access Strobe (ACT-PRE)
@@ -181,11 +167,13 @@ architecture RTL of sdr_sdram is
     --    constant CCD : natural := RoundTimeConstantToCycles(tCLK, tCCD); --! Column Command Delay Time
     constant DPL : natural := RoundTimeConstantToCycles(tCLK, tDPL); --! Input Data to Precharge (DQ_WR-PRE)
     constant DAL : natural := RoundTimeConstantToCycles(tCLK, tDAL); --! Input Data to Activate (DQ_WR-ACT/PRE)
+    -- We don't use Burst stop command, so these two parameters are not used
     --    constant RBD : natural := RoundTimeConstantToCycles(tCLK, tRBD); --! Burst Stop to High Impedance (Read)
     --    constant WBD : natural := RoundTimeConstantToCycles(tCLK, tWBD); --! Burst Stop to Input in Invalid (Write)
     constant PQL : natural := RoundTimeConstantToCycles(tCLK, tPQL); --! Last Output to Auto-Precharge Start (READ)
     --    constant QMD : natural := RoundTimeConstantToCycles(tCLK, tQMD); --! DQM to Output (Read)
     --    constant DMD : natural := RoundTimeConstantToCycles(tCLK, tDMD); --! DQM to Input (Write)
+    -- Even though the time is given in the specs, it seams that the frequency independent value (in clock cycles) should be used
     --    constant MRD : natural := RoundTimeConstantToCycles(tCLK, tMRD); --! Mode Register Delay (program time)
     constant MRD : natural := tMRD_CYCLES;
     constant REFI : natural := RoundTimeConstantToCycles(tCLK, tREF / (2**ROW_WIDTH)); --! Minimal refresh interval
@@ -281,10 +269,14 @@ architecture RTL of sdr_sdram is
     alias a_column            : std_logic_vector(COL_WIDTH - 1 downto 0) is ocp_MAddr(COL_WIDTH + COL_LOW_BIT - 1 downto COL_LOW_BIT);
 
     -- Counters
+    -- A big counter for keeping the refresh/initialisation interval
     signal refi_cnt_nxt, refi_cnt_r                     : integer range 0 to max(REFI,c_INIT_IDLE_CYCLES) := 0;
+    -- Keeps track of number of refreshes perfomed during init
     signal refresh_repeat_cnt_nxt, refresh_repeat_cnt_r : integer range 0 to INIT_REFRESH_COUNT - 1 := 0;
+    -- Small counter for various delays
     signal delay_cnt_nxt, delay_cnt_r                   : integer range 0 to 
         max(c_PRECHARGE_CYCLES, max(c_REFRESH_CYCLES, max(c_PROGRAM_REGISTER_CYCLES, max(c_ACT2WRITE_CYCLES, max(c_ACT2READ_CYCLES, c_WRITE2READY_CYCLES)))))  := 0;
+    -- Counts the word of the burst
     signal burst_cnt_nxt, burst_cnt_r                   : integer range 0 to 7 := 0;
     signal ocp_MCmd_doRefresh                           : std_logic;
     -- The DQ is saved in register during read, so need to delay the acknowledgment
@@ -362,7 +354,6 @@ begin
 		  sdram_SA_nxt(sdram_SA_nxt'high downto a_row'length) <= (others => '0');
         sdram_SA_nxt(a_row'range)      <= a_row;
         -- Data Disabled/High-Z
-        -- sdram_DQM_nxt   <= (others => '1');
         sdram_DQM_nxt     <= not ocp_MDataByteEn; -- TODO: handle masking by using tQMD and tDMD
         sdram_DQoe_nxt    <= '0';
         -- OCP acknowledge
@@ -538,7 +529,7 @@ begin
             when refreshComplete =>
                 if delay_cnt_done = '1' then
                     state_nxt <= ready;
-                    -- TODO: Might ackn refresh here or in the ready state as befor (when external refresh request is used)
+                    -- TODO: Might ackn refresh here or in the ready state as before (when external refresh request is used)
                     refi_cnt_nxt <= REFI-1;
                 end if;
         end case;

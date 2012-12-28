@@ -48,7 +48,7 @@ set_global_assignment -name VHDL_FILE ../../ise/ml605_edk/pcores/dma_controller_
 set_global_assignment -name VHDL_FILE ../../vhdl/io/patmos_io_sdram.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_sdram.vhd
 set_global_assignment -name VHDL_FILE ../../sdram/sdr_dram.vhd
-set_global_assignment -name VHDL_FILE ../../../sdram/altera/dram_pll.vhd
+set_global_assignment -name VHDL_FILE ../../../sdram/altera/de2_70_sdram_pll.vhd
 set_global_assignment -name VHDL_FILE "../../vhdl/top/patmos_de2-70sdram.vhd"
 set_global_assignment -name VHDL_FILE ../../vhdl/top/patmos_config_global.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/top/patmos_config_de2.vhd
