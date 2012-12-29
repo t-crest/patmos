@@ -44,87 +44,91 @@ use ieee.numeric_std.all;
 --! Uses closed page policy.
 entity sdr_sdram is
     generic(
+        --! This enables the automatic periodic refresh that would have higher priority than other requests.
+        --! The value of false: enables the @p ocp_SFlag_CmdRefresh port that would trigger the SDRAM refresh once the SDRAM becomes ready
+        --! In such case, the refresh is acknowledged with @p ocp_MFlag_RefreshAccept port
+        USE_AUTOMATIC_REFRESH : boolean := true;
         --! @name User interface
         --! \{
-        ADDR_WIDTH         : natural := 16; --! The size of address: @p ocp_MAddr
-        DATA_WIDTH         : natural := 32; --! The size of data word: @p ocp_MData, @p ocp_SData
-        BURST_LENGTH       : natural := 2; --! The number of words transfered per request
+        ADDR_WIDTH            : natural := 16; --! The size of address: @p ocp_MAddr
+        DATA_WIDTH            : natural := 32; --! The size of data word: @p ocp_MData, @p ocp_SData
+        BURST_LENGTH          : natural := 2; --! The number of words transfered per request
         --! \}
         --! @name SDRAM interface
         --! \{
-        SA_WIDTH           : natural := 13; --! Number of @p sdram_SA bits
+        SA_WIDTH              : natural := 13; --! Number of @p sdram_SA bits
         -- Address Mapping
-        CS_WIDTH           : natural;   --! Number of Chip Selects bits in user @p ocp_MAddr
-        CS_LOW_BIT         : natural;   --! Last position of Chip Selects bits in user @p ocp_MAddr
-        BA_WIDTH           : natural;   --! Number of Bank Address bits in user @p ocp_MAddr
-        BA_LOW_BIT         : natural;   --! Last position of Bank Address bits in user @p ocp_MAddr
-        ROW_WIDTH          : natural;   --! Number of Row bits in user @p ocp_MAddr
-        ROW_LOW_BIT        : natural;   --! Last position of Row bits in user @p ocp_MAddr
-        COL_WIDTH          : natural;   --! Number of Column bits in user @p ocp_MAddr
-        COL_LOW_BIT        : natural;   --! Last position of Column bits in user @p ocp_MAddr
+        CS_WIDTH              : natural; --! Number of Chip Selects bits in user @p ocp_MAddr
+        CS_LOW_BIT            : natural; --! Last position of Chip Selects bits in user @p ocp_MAddr
+        BA_WIDTH              : natural; --! Number of Bank Address bits in user @p ocp_MAddr
+        BA_LOW_BIT            : natural; --! Last position of Bank Address bits in user @p ocp_MAddr
+        ROW_WIDTH             : natural; --! Number of Row bits in user @p ocp_MAddr
+        ROW_LOW_BIT           : natural; --! Last position of Row bits in user @p ocp_MAddr
+        COL_WIDTH             : natural; --! Number of Column bits in user @p ocp_MAddr
+        COL_LOW_BIT           : natural; --! Last position of Column bits in user @p ocp_MAddr
         --! \}
         --! @name SDRAM timing
         --! Use the values from SDRAM chip's Datasheet
         --! \{
-        tCLK               : time;      --! Clock period
-        tINIT_IDLE         : time;      --! Inactivity perdiod required during initialization 
-        INIT_REFRESH_COUNT : natural;   --! Number of Refresh commands required during initialization
-        tCAC_CYCLES        : natural;   --! CAS latency
-        tRRD               : time;      --! Row to Row Delay (ACT[0]-ACT[1])
-        tRCD               : time;      --! Row to Column Delay (ACT-READ/WRITE)
-        tRAS               : time;      --! Row Access Strobe (ACT-PRE)
-        tRC                : time;      --! Row Cycle (REF-REF,ACT-ACT)
-        tRP                : time;      --! Row Precharge (PRE-ACT)
-        tCCD               : time;      --! Column Command Delay Time
-        tDPL               : time;      --! Input Data to Precharge (DQ_WR-PRE)
-        tDAL               : time;      --! Input Data to Activate (DQ_WR-ACT/PRE)
+        tCLK                  : time;   --! Clock period
+        tINIT_IDLE            : time;   --! Inactivity perdiod required during initialization 
+        INIT_REFRESH_COUNT    : natural; --! Number of Refresh commands required during initialization
+        tCAC_CYCLES           : natural; --! CAS latency
+        tRRD                  : time;   --! Row to Row Delay (ACT[0]-ACT[1])
+        tRCD                  : time;   --! Row to Column Delay (ACT-READ/WRITE)
+        tRAS                  : time;   --! Row Access Strobe (ACT-PRE)
+        tRC                   : time;   --! Row Cycle (REF-REF,ACT-ACT)
+        tRP                   : time;   --! Row Precharge (PRE-ACT)
+        tCCD                  : time;   --! Column Command Delay Time
+        tDPL                  : time;   --! Input Data to Precharge (DQ_WR-PRE)
+        tDAL                  : time;   --! Input Data to Activate (DQ_WR-ACT/PRE)
         -- We don't use Burst stop command, so these two parameters are not used
-        tRBD               : time;      --! Burst Stop to High Impedance (Read)
-        tWBD               : time;      --! Burst Stop to Input in Invalid (Write)
-        tPQL               : time;      --! Last Output to Auto-Precharge Start (READ)
-        tQMD               : time;      --! DQM to Output (Read)
-        tDMD               : time;      --! DQM to Input (Write)
+        tRBD                  : time;   --! Burst Stop to High Impedance (Read)
+        tWBD                  : time;   --! Burst Stop to Input in Invalid (Write)
+        tPQL                  : time;   --! Last Output to Auto-Precharge Start (READ)
+        tQMD                  : time;   --! DQM to Output (Read)
+        tDMD                  : time;   --! DQM to Input (Write)
         -- TODO: Some datasheets provide tMRD as fixed cycle count, not as time period
         --        tMRD               : time;      --! Mode Register Delay (program time)
-        tMRD_CYCLES        : natural;   --! Mode Register Delay (program time)
-        tREF               : time       --! Refresh Cycle (this period of refresh for each cell)
+        tMRD_CYCLES           : natural; --! Mode Register Delay (program time)
+        tREF                  : time    --! Refresh Cycle (this period of refresh for each cell)
     --! \}
     );
     port(
-        rst             : in    std_logic; --! Reset
-        clk             : in    std_logic; --! Clock
-        pll_locked      : in    std_logic; --! '1' when PLL has locked the clocks 
+        rst                     : in    std_logic; --! Reset
+        clk                     : in    std_logic; --! Clock
+        pll_locked              : in    std_logic; --! '1' when PLL has locked the clocks 
         --! @name User interface
         --! Simple OCP like protocol
         --! \{
-        ocp_MCmd        : in    std_logic_vector(2 downto 0); --! Request (Idle/Read/Write)
-        -- TODO: need to add refresh acknowledge. For now just use internal automatic (periodic) refresh
-        --        ocp_MCmd_doRefresh : in    std_logic; --! 
-        ocp_MAddr       : in    std_logic_vector(ADDR_WIDTH - 1 downto 0); --! Request Address
+        ocp_MCmd                : in    std_logic_vector(2 downto 0); --! Request (Idle/Read/Write)
+        ocp_SFlag_CmdRefresh    : in    std_logic; --! OCP sideband signal to trigger refresh (@see USE_AUTOMATIC_REFRESH generic)
+        ocp_MFlag_RefreshAccept : out   std_logic; --! OCP sideband signal to acknowledge refresh (@see USE_AUTOMATIC_REFRESH generic)
+        ocp_MAddr               : in    std_logic_vector(ADDR_WIDTH - 1 downto 0); --! Request Address
         --! Acknowledges the validity of the next word. For Read Request this denotes the transmission of
         --! valid word. For Write Request this acknowledges that the current word is accepted and next word
         --! should be provided during next cycle.
-        ocp_SCmdAccept  : out   std_logic; --! Acknowledges the request and the Data 
-        ocp_MData       : in    std_logic_vector(DATA_WIDTH - 1 downto 0); --! Write Data  
-        ocp_MDataByteEn : in    std_logic_vector(DATA_WIDTH / 8 - 1 downto 0); --! Write Data mask
-        ocp_MDataValid  : in    std_logic; --! Write Data valid (handshaking during write)
-        ocp_MDataLast   : in    std_logic; --! Write Data Last (handshaking during write)
-        ocp_SDataAccept : out   std_logic; --! Write Data accept (handshaking during write)
-        ocp_SData       : out   std_logic_vector(DATA_WIDTH - 1 downto 0); --! Read Data
-        ocp_SResp       : out   std_logic; --! The Read Data is Valid
-        ocp_SRespLast   : out   std_logic; --! Last data in burst
+        ocp_SCmdAccept          : out   std_logic; --! Acknowledges the request and the Data 
+        ocp_MData               : in    std_logic_vector(DATA_WIDTH - 1 downto 0); --! Write Data  
+        ocp_MDataByteEn         : in    std_logic_vector(DATA_WIDTH / 8 - 1 downto 0); --! Write Data mask
+        ocp_MDataValid          : in    std_logic; --! Write Data valid (handshaking during write)
+        ocp_MDataLast           : in    std_logic; --! Write Data Last (handshaking during write)
+        ocp_SDataAccept         : out   std_logic; --! Write Data accept (handshaking during write)
+        ocp_SData               : out   std_logic_vector(DATA_WIDTH - 1 downto 0); --! Read Data
+        ocp_SResp               : out   std_logic; --! The Read Data is Valid
+        ocp_SRespLast           : out   std_logic; --! Last data in burst
         --! \}
         --! @name SDRAM interface 
         --! \{
-        sdram_CKE       : out   std_logic; --! Clock Enable
-        sdram_RAS_n     : out   std_logic; --! Row Address Strobe
-        sdram_CAS_n     : out   std_logic; --! Column Address Strobe
-        sdram_WE_n      : out   std_logic; --! Write Enable
-        sdram_CS_n      : out   std_logic_vector(2 ** CS_WIDTH - 1 downto 0); --! Chip Selects
-        sdram_BA        : out   std_logic_vector(BA_WIDTH - 1 downto 0); --! Bank Address
-        sdram_SA        : out   std_logic_vector(SA_WIDTH - 1 downto 0); --! SDRAM Address
-        sdram_DQ        : inout std_logic_vector(DATA_WIDTH - 1 downto 0); --! Data
-        sdram_DQM       : out   std_logic_vector(DATA_WIDTH / 8 - 1 downto 0) --! Data mask
+        sdram_CKE               : out   std_logic; --! Clock Enable
+        sdram_RAS_n             : out   std_logic; --! Row Address Strobe
+        sdram_CAS_n             : out   std_logic; --! Column Address Strobe
+        sdram_WE_n              : out   std_logic; --! Write Enable
+        sdram_CS_n              : out   std_logic_vector(2 ** CS_WIDTH - 1 downto 0); --! Chip Selects
+        sdram_BA                : out   std_logic_vector(BA_WIDTH - 1 downto 0); --! Bank Address
+        sdram_SA                : out   std_logic_vector(SA_WIDTH - 1 downto 0); --! SDRAM Address
+        sdram_DQ                : inout std_logic_vector(DATA_WIDTH - 1 downto 0); --! Data
+        sdram_DQM               : out   std_logic_vector(DATA_WIDTH / 8 - 1 downto 0) --! Data mask
     --! \}
     );
 end entity sdr_sdram;
@@ -133,6 +137,7 @@ library ieee;
 use ieee.math_real.ceil;
 
 architecture RTL of sdr_sdram is
+
     --! @brief Variable size binary decoder (active low)
     function BinDecode_n(num : std_logic_vector) return std_logic_vector is
         variable result : std_logic_vector(2 ** num'length - 1 downto 0);
@@ -152,6 +157,36 @@ architecture RTL of sdr_sdram is
     begin                               -- RoundTimeConstantToCycles
         return natural(ceil(r));
     end RoundTimeConstantToCycles;
+
+    --! @brief Maximum of two values
+    function max(constant a, b : integer) return integer is
+    begin
+        if (a > b) then
+            return a;
+        else
+            return b;
+        end if;
+    end function max;
+
+    --! @brief Convert boolean to std_logic
+    function bool2sl(bit : boolean) return std_logic is
+    begin
+        if bit then
+            return '1';
+        else
+            return '0';
+        end if;
+    end function bool2sl;
+
+    --! @brief Convert std_logic to natural
+    function sl2int(bit : std_logic) return natural is
+    begin
+        if bit = '1' then
+            return 1;
+        else
+            return 0;
+        end if;
+    end function sl2int;
 
     constant OCP_CMD_READ  : std_logic_vector(2 downto 0) := "001";
     constant OCP_CMD_WRITE : std_logic_vector(2 downto 0) := "010";
@@ -229,14 +264,6 @@ architecture RTL of sdr_sdram is
         end if;
         return result;
     end function CalculateAct2WriteCycles;
-    function max(constant a, b : integer) return integer is
-    begin
-        if (a > b) then
-            return a;
-        else
-            return b;
-        end if;
-    end function max;
 
     constant c_INIT_IDLE_CYCLES        : natural := RoundTimeConstantToCycles(tCLK, tINIT_IDLE);
     constant c_PRECHARGE_CYCLES        : natural := RP;
@@ -270,14 +297,15 @@ architecture RTL of sdr_sdram is
 
     -- Counters
     -- A big counter for keeping the refresh/initialisation interval
-    signal refi_cnt_nxt, refi_cnt_r                     : integer range 0 to max(REFI, c_INIT_IDLE_CYCLES)                                                                                                                         := 0;
+    constant REFI_CNT_MAX                               : natural := max(c_INIT_IDLE_CYCLES, REFI*sl2int(bool2sl(USE_AUTOMATIC_REFRESH)));
+    signal refi_cnt_nxt, refi_cnt_r                     : integer range 0 to REFI_CNT_MAX;
     -- Keeps track of number of refreshes perfomed during init
-    signal refresh_repeat_cnt_nxt, refresh_repeat_cnt_r : integer range 0 to INIT_REFRESH_COUNT - 1                                                                                                                                := 0;
+    signal refresh_repeat_cnt_nxt, refresh_repeat_cnt_r : integer range 0 to INIT_REFRESH_COUNT - 1;
     -- Small counter for various delays
-    signal delay_cnt_nxt, delay_cnt_r                   : integer range 0 to max(c_PRECHARGE_CYCLES, max(c_REFRESH_CYCLES, max(c_PROGRAM_REGISTER_CYCLES, max(c_ACT2WRITE_CYCLES, max(c_ACT2READ_CYCLES, c_WRITE2READY_CYCLES))))) := 0;
+    constant DELAY_CNT_MAX                              : natural := max(c_PRECHARGE_CYCLES, max(c_REFRESH_CYCLES, max(c_PROGRAM_REGISTER_CYCLES, max(c_ACT2WRITE_CYCLES, max(c_ACT2READ_CYCLES, c_WRITE2READY_CYCLES)))));
+    signal delay_cnt_nxt, delay_cnt_r                   : integer range 0 to DELAY_CNT_MAX;
     -- Counts the word of the burst
-    signal burst_cnt_nxt, burst_cnt_r                   : integer range 0 to 7                                                                                                                                                     := 0;
-    signal ocp_MCmd_doRefresh                           : std_logic;
+    signal burst_cnt_nxt, burst_cnt_r                   : integer range 0 to 7;
     -- The DQ is saved in register during read, so need to delay the acknowledgment
     signal ocp_SResp_nxt                                : std_logic;
     signal ocp_SRespLast_nxt                            : std_logic;
@@ -291,8 +319,7 @@ begin
     reg : process(clk, rst) is
     begin
         if rst = '1' then
-            state_r    <= initWaitLock;
-            refi_cnt_r <= REFI - 1;
+            state_r <= initWaitLock;
         elsif rising_edge(clk) then
             state_r              <= state_nxt;
             -- SDRAM i-face registers
@@ -317,25 +344,9 @@ begin
     end process reg;
 
     --! State machine
-    controller : process(a_bank, a_column, a_cs, a_row, burst_cnt_r, delay_cnt_r, ocp_MCmd, ocp_MCmd_doRefresh, ocp_MDataByteEn, pll_locked, refresh_repeat_cnt_r, state_r, refi_cnt_r)
-        function bool2sl(bit : boolean) return std_logic is
-        begin
-            if bit then
-                return '1';
-            else
-                return '0';
-            end if;
-        end function bool2sl;
-        function sl2int(bit : std_logic) return natural is
-        begin
-            if bit = '1' then
-                return 1;
-            else
-                return 0;
-            end if;
-        end function sl2int;
-
-        -- These are created as variables, to get rid of simulation range mismatch, where counters are out of range in transient time.	
+    controller : process(a_bank, a_column, a_cs, a_row, burst_cnt_r, delay_cnt_r, ocp_MCmd, ocp_MDataByteEn, pll_locked, refresh_repeat_cnt_r, state_r, refi_cnt_r)
+        variable do_refresh              : std_logic;
+        -- These are created as variables, to get rid of simulation range mismatch, where counters are out of range in transient time.
         variable refi_cnt_done           : std_logic;
         variable delay_cnt_done          : std_logic;
         variable refresh_repeat_cnt_done : std_logic;
@@ -365,16 +376,15 @@ begin
         -- Counters
         refresh_repeat_cnt_done := bool2sl(refresh_repeat_cnt_r = 0);
         refi_cnt_done           := bool2sl(refi_cnt_r = 0);
-        delay_cnt_done          := bool2sl(delay_cnt_r = 0);
         burst_cnt_done          := bool2sl(burst_cnt_r = 0);
-        -- Default next values (decrement if non zero)
-        delay_cnt_nxt           <= delay_cnt_r - sl2int(not delay_cnt_done);
-        burst_cnt_nxt           <= burst_cnt_r - sl2int(not burst_cnt_done);
-        refi_cnt_nxt            <= refi_cnt_r - sl2int(not refi_cnt_done);
-        -- Count only in special state (keep the value by default)
-        refresh_repeat_cnt_nxt  <= refresh_repeat_cnt_r;
+        delay_cnt_done          := bool2sl(delay_cnt_r = 0);
 
-        ocp_MCmd_doRefresh <= refi_cnt_done;
+        -- Default next values (decrement if non zero)
+        delay_cnt_nxt          <= delay_cnt_r - sl2int(not delay_cnt_done);
+        refi_cnt_nxt           <= refi_cnt_r - sl2int(not refi_cnt_done);
+        burst_cnt_nxt          <= burst_cnt_r - sl2int(not burst_cnt_done);
+        -- Count only in special state (keep the value by default)
+        refresh_repeat_cnt_nxt <= refresh_repeat_cnt_r;
 
         case state_r is
             when initWaitLock =>
@@ -429,24 +439,35 @@ begin
                 state_nxt       <= initProgramModeRegComplete;
             when initProgramModeRegComplete =>
                 if delay_cnt_done = '1' then
-                    state_nxt    <= ready;
-                    refi_cnt_nxt <= REFI - 1;
+                    state_nxt <= ready;
+                    if USE_AUTOMATIC_REFRESH then
+                        refi_cnt_nxt <= REFI - 1;
+                    end if;
                 end if;
             when ready =>
-                -- TODO: Using internal refresh, so ackn is updated accordingly
-                -- ocp_SCmdAccept <= '1';
-                ocp_SCmdAccept <= not refi_cnt_done;
+                if USE_AUTOMATIC_REFRESH then
+                    do_refresh := refi_cnt_done;
+                else
+                    do_refresh := ocp_SFlag_CmdRefresh;
+                end if;
                 -- Read/Write/Refresh
-                if ocp_MCmd = OCP_CMD_READ or ocp_MCmd = OCP_CMD_WRITE or ocp_MCmd_doRefresh = '1' then
+                if ocp_MCmd = OCP_CMD_READ or ocp_MCmd = OCP_CMD_WRITE or do_refresh = '1' then
+                    ocp_SCmdAccept            <= '1';
                     -- Activate / Refresh
                     sdram_RAS_n_nxt           <= '0';
-                    sdram_CAS_n_nxt           <= not ocp_MCmd_doRefresh; -- '0': Refresh; '1': Activate
+                    sdram_CAS_n_nxt           <= not do_refresh; -- '0': Refresh; '1': Activate
                     sdram_WE_n_nxt            <= '1';
                     sdram_BA_nxt              <= a_bank;
                     sdram_SA_nxt(a_row'range) <= a_row;
-                    sdram_CS_n_nxt            <= BinDecode_n(a_cs) and (sdram_CS_n_nxt'range => not ocp_MCmd_doRefresh); -- Refresh => All chips (Active LOW)
+                    sdram_CS_n_nxt            <= BinDecode_n(a_cs) and (sdram_CS_n_nxt'range => not do_refresh); -- Refresh => All chips (Active LOW)
 
-                    if ocp_MCmd_doRefresh = '1' then
+                    if do_refresh = '1' then
+                        -- No cmd acknowledge for Refresh.
+                        ocp_SCmdAccept <= '0';
+                        -- Uses separate acknowledge for manual refreshs trigger
+                        if not USE_AUTOMATIC_REFRESH then
+                            ocp_MFlag_RefreshAccept <= '1';
+                        end if;
                         delay_cnt_nxt <= max(0, c_REFRESH_CYCLES - 2); -- (-1) because of counter implementation; extra (-1) because we stay idle during whole counting
                         state_nxt     <= refreshComplete;
                     elsif ocp_MCmd = OCP_CMD_READ then
@@ -526,9 +547,10 @@ begin
                 end if;
             when refreshComplete =>
                 if delay_cnt_done = '1' then
-                    state_nxt    <= ready;
-                    -- TODO: Might ackn refresh here or in the ready state as before (when external refresh request is used)
-                    refi_cnt_nxt <= REFI - 1;
+                    state_nxt <= ready;
+                    if USE_AUTOMATIC_REFRESH then
+                        refi_cnt_nxt <= REFI - 1;
+                    end if;
                 end if;
         end case;
     end process controller;
