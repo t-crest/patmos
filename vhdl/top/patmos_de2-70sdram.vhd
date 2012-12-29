@@ -300,6 +300,7 @@ begin
    
    sdr_sdram_inst : entity work.sdr_sdram
         generic map(
+	    USE_AUTOMATIC_REFRESH => true,
             ADDR_WIDTH         => ADDR_WIDTH,
             DATA_WIDTH         => DATA_WIDTH,
             BURST_LENGTH       => BURST_LENGTH,
@@ -336,7 +337,8 @@ begin
             clk                => dram_clk,
             pll_locked         => pll_locked,
             ocp_MCmd           => ocp_MCmd,
---            ocp_MCmd_doRefresh => ocp_MCmd_doRefresh,
+            ocp_SFlag_CmdRefresh => '0',
+            ocp_MFlag_RefreshAccept => open,
             ocp_MAddr          => ocp_MAddr,
             ocp_SCmdAccept     => ocp_SCmdAccept,
             ocp_MData          => ocp_MData,

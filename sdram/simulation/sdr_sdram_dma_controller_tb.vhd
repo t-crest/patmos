@@ -9,7 +9,7 @@ use std.textio.all;
 use work.dma_controller_dtl_cmp_pkg.all;
 
 architecture RTL of sdr_sdram_dma_controller_tb is
-    constant BURST_LENGTH : natural := 1;
+    constant BURST_LENGTH : natural := 8;
 
     constant ADDR_WIDTH  : integer := 23;
     constant DATA_WIDTH  : integer := 32;
@@ -173,8 +173,10 @@ architecture RTL of sdr_sdram_dma_controller_tb is
     signal sdram_dqm   : std_logic_vector(DATA_WIDTH / 8 - 1 downto 0);
 
     constant USE_DIMM_MODEL   : boolean := true;
+    constant USE_AUTOMATIC_REFRESH : boolean := true;
     signal ocp_MCmd           : std_logic_vector(2 downto 0);
-    signal ocp_MCmd_doRefresh : std_logic;
+    signal ocp_SFlag_CmdRefresh : std_logic := '0';
+    signal ocp_MFlag_RefreshAccept : std_logic;
     signal ocp_MAddr          : std_logic_vector(ADDR_WIDTH - 1 downto 0);
     signal ocp_SCmdAccept     : std_logic;
     signal ocp_MData          : std_logic_vector(DATA_WIDTH - 1 downto 0);
@@ -225,6 +227,7 @@ begin
     -- The Controller
     sdr_sdram_inst : entity work.sdr_sdram
         generic map(
+	    USE_AUTOMATIC_REFRESH => USE_AUTOMATIC_REFRESH,
             ADDR_WIDTH         => ADDR_WIDTH,
             DATA_WIDTH         => DATA_WIDTH,
             BURST_LENGTH       => BURST_LENGTH,
@@ -261,7 +264,8 @@ begin
             clk                => clk,
             pll_locked         => '1',
             ocp_MCmd           => ocp_MCmd,
---            ocp_MCmd_doRefresh => ocp_MCmd_doRefresh,
+            ocp_SFlag_CmdRefresh => ocp_SFlag_CmdRefresh,
+            ocp_MFlag_RefreshAccept => ocp_MFlag_RefreshAccept,
             ocp_MAddr          => ocp_MAddr,
             ocp_SCmdAccept     => ocp_SCmdAccept,
             ocp_MData          => ocp_MData,
@@ -283,7 +287,7 @@ begin
             sdram_DQM          => sdram_DQM);
 
     -- CMD
-    ocp_MCmd_doRefresh  <= '0';
+    ocp_SFlag_CmdRefresh  <= '0';
     ocp_MCmd         <= '0' & (mtl_cmd_valid_i and (not mtl_cmd_read_i)) & (mtl_cmd_valid_i and mtl_cmd_read_i);
     ocp_MAddr        <= mtl_cmd_addr_i;
     mtl_cmd_accept_i <= ocp_SCmdAccept;
@@ -381,14 +385,15 @@ begin
 
     clock_driver : process
     begin
-        --		if end_of_sim = '0' then
-        clk <= '1';
-        clk_ram  <= '1';
-        wait for tCLK / 2;
-        clk <= '0';
-        clk_ram  <= '0';
-        wait for tCLK / 2;
-    --		end if;
+        if end_of_sim = '0' then
+            -- generate both clocks to have 0 delta_delay seperation
+            clk <= '1';
+            clk_ram  <= '1';
+            wait for tCLK / 2;
+            clk <= '0';
+            clk_ram  <= '0';
+            wait for tCLK / 2;
+        end if;
     end process clock_driver;
     rst_n <= '0', '1' after tCLK * 2.2;
     rst  <= not rst_n;
@@ -522,6 +527,10 @@ begin
         
         report "Writing inc pattern";
         for i in 0 to NWORDS_PER_CMD*2-1 loop
+            if (not USE_AUTOMATIC_REFRESH and (i mod 10 = 0)) then
+                ocp_SFlag_CmdRefresh <= '1';
+                wait until rising_edge(clk) and ocp_MFlag_RefreshAccept = '1';
+            end if;
             controllerWrite('0', (i mod NWORDS_PER_CMD), i);
             if (i mod NWORDS_PER_CMD) = NWORDS_PER_CMD-1 then
                 memoryLineOp(i/NWORDS_PER_CMD, loStoreLine);
@@ -530,6 +539,10 @@ begin
         
         report "Reading inc pattern";
         for i in 0 to NWORDS_PER_CMD*2-1 loop
+            if (not USE_AUTOMATIC_REFRESH and (i mod 10 = 0)) then
+                ocp_SFlag_CmdRefresh <= '1';
+                wait until rising_edge(clk) and ocp_MFlag_RefreshAccept = '1';
+            end if;
             if (i mod NWORDS_PER_CMD) = 0 then
                 memoryLineOp(i/NWORDS_PER_CMD, loLoadLine);
             end if;

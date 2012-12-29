@@ -33,21 +33,21 @@ add wave -noupdate -group sdram /sdr_sdram_dma_controller_tb/sdram_cas_n
 add wave -noupdate -group sdram /sdr_sdram_dma_controller_tb/sdram_we_n
 add wave -noupdate -group sdram -radix hexadecimal /sdr_sdram_dma_controller_tb/sdram_dq
 add wave -noupdate -group sdram /sdr_sdram_dma_controller_tb/sdram_dqm
-add wave -noupdate -group ocp -radix hexadecimal /sdr_sdram_dma_controller_tb/ocp_MCmd
-add wave -noupdate -group ocp /sdr_sdram_dma_controller_tb/ocp_MCmd_doRefresh
-add wave -noupdate -group ocp -radix hexadecimal /sdr_sdram_dma_controller_tb/ocp_MAddr
-add wave -noupdate -group ocp /sdr_sdram_dma_controller_tb/ocp_SCmdAccept
-add wave -noupdate -group ocp -radix hexadecimal /sdr_sdram_dma_controller_tb/ocp_MData
-add wave -noupdate -group ocp /sdr_sdram_dma_controller_tb/ocp_MDataByteEn
-add wave -noupdate -group ocp /sdr_sdram_dma_controller_tb/ocp_MDataValid
-add wave -noupdate -group ocp /sdr_sdram_dma_controller_tb/ocp_MDataLast
-add wave -noupdate -group ocp /sdr_sdram_dma_controller_tb/ocp_SDataAccept
-add wave -noupdate -group ocp -radix hexadecimal /sdr_sdram_dma_controller_tb/ocp_SData
-add wave -noupdate -group ocp /sdr_sdram_dma_controller_tb/ocp_SResp
-add wave -noupdate -group ocp /sdr_sdram_dma_controller_tb/ocp_SRespLast
+add wave -noupdate -expand -group ocp /sdr_sdram_dma_controller_tb/sdr_sdram_inst/ocp_SFlag_CmdRefresh
+add wave -noupdate -expand -group ocp /sdr_sdram_dma_controller_tb/sdr_sdram_inst/ocp_MFlag_RefreshAccept
+add wave -noupdate -expand -group ocp -radix hexadecimal /sdr_sdram_dma_controller_tb/ocp_MCmd
+add wave -noupdate -expand -group ocp -radix hexadecimal /sdr_sdram_dma_controller_tb/ocp_MAddr
+add wave -noupdate -expand -group ocp /sdr_sdram_dma_controller_tb/ocp_SCmdAccept
+add wave -noupdate -expand -group ocp -radix hexadecimal /sdr_sdram_dma_controller_tb/ocp_MData
+add wave -noupdate -expand -group ocp /sdr_sdram_dma_controller_tb/ocp_MDataByteEn
+add wave -noupdate -expand -group ocp /sdr_sdram_dma_controller_tb/ocp_MDataValid
+add wave -noupdate -expand -group ocp /sdr_sdram_dma_controller_tb/ocp_MDataLast
+add wave -noupdate -expand -group ocp /sdr_sdram_dma_controller_tb/ocp_SDataAccept
+add wave -noupdate -expand -group ocp -radix hexadecimal /sdr_sdram_dma_controller_tb/ocp_SData
+add wave -noupdate -expand -group ocp /sdr_sdram_dma_controller_tb/ocp_SResp
+add wave -noupdate -expand -group ocp /sdr_sdram_dma_controller_tb/ocp_SRespLast
 add wave -noupdate /sdr_sdram_dma_controller_tb/sdr_sdram_inst/refi_cnt_nxt
 add wave -noupdate /sdr_sdram_dma_controller_tb/sdr_sdram_inst/refi_cnt_r
-add wave -noupdate /sdr_sdram_dma_controller_tb/sdr_sdram_inst/refi_cnt_done
 add wave -noupdate /sdr_sdram_dma_controller_tb/sdr_sdram_inst/state_r
 add wave -noupdate /sdr_sdram_dma_controller_tb/sdr_sdram_inst/state_nxt
 TreeUpdate [SetDefaultTree]
@@ -66,4 +66,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ps
 update
-WaveRestoreZoom {1503300 ps} {1705500 ps}
+WaveRestoreZoom {8 ns} {210200 ps}
