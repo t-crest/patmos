@@ -64,11 +64,11 @@ package patmos_type_package is
 	-------------------------------------------
 	constant pc_length              			: integer := 32;
 	constant instruction_word_length 			: integer := 32;
-	constant sc_depth							: integer := 6; -- stack cache has 64 slots
-	constant mm_depth							: integer := 10;
-	constant SC_MASK							: std_logic_vector(sc_depth - 1 downto 0) := "111111"; -- mask is 63 
---	constant mem_top_init						: std_logic_vector(sc_depth - 1 downto 0) := "0111110100"; -- we shall use this 
---	constant sc_top_init						: std_logic_vector(sc_depth - 1 downto 0) := "0111110100";
+	constant sc_size							: integer := 64; -- stack cache has 64 slots
+	constant sc_length							: integer := 6;
+--	constant mm_depth							: integer := 10;
+	constant SC_MASK							: std_logic_vector(sc_length - 1 downto 0) := "111111"; -- mask is 63 
+
 	-------------------------------------------
 	-- fetch/decode
 	-------------------------------------------
@@ -200,7 +200,7 @@ package patmos_type_package is
 
 
 	type patmos_stack_cache_ctrl_in is record
-		reserve_size	 : std_logic_vector(sc_depth downto 0);
+--		reserve_size	 : std_logic_vector(sc_depth downto 0);
 		
 		
 		

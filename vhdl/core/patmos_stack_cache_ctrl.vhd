@@ -68,7 +68,7 @@ architecture arch of patmos_stack_cache_ctrl is
 	signal num_valid_sc_slots		: integer;
 --	signal state					: sc_state_type;
 --	signal next_state				: sc_state_type;
-	signal head, tail				: std_logic_vector(sc_depth - 1 downto 0);
+--	signal head, tail				: std_logic_vector(sc_depth - 1 downto 0);
 	
 begin
 
