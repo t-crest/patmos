@@ -346,9 +346,9 @@ begin
 			when reserve => 
 				if predicate_reg(to_integer(signed(decdout.predicate_condition))) /= decdout.predicate_bit then
 					sc_top_next <= std_logic_vector( signed(sc_top) - signed(decdout.imm));
-					if( (signed(mem_top) - signed(sc_top) - sc_depth + signed(decdout.imm)) > 0) then
+					if( (signed(mem_top) - signed(sc_top) - sc_size + signed(decdout.imm)) > 0) then
 						doutex_not_reg.spill <= '1';
-						doutex_not_reg.nspill_fill <=  std_logic_vector(signed(mem_top) - signed(sc_top) - sc_depth+ signed(decdout.imm));
+						doutex_not_reg.nspill_fill <=  std_logic_vector(signed(mem_top) - signed(sc_top) - sc_size+ signed(decdout.imm));
 					else
 						doutex_not_reg.spill <= '0';
 					end if;
@@ -362,9 +362,10 @@ begin
 --	}
 			when ensure => 
 				if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
-					doutex_not_reg.nspill_fill <= std_logic_vector(unsigned(decdout.imm) - unsigned(mem_top) + sc_depth); -- SA: This is number of words, but 
-																																	-- we do spill/fill in blocks, what is the difference?
-					doutex_not_reg.fill <= '1';
+					if ((unsigned(decdout.imm) - unsigned(mem_top) + sc_size) > 0) then
+						doutex_not_reg.nspill_fill <= std_logic_vector(unsigned(decdout.imm) - unsigned(mem_top) + sc_size); -- SA: This is number of words, but 
+						doutex_not_reg.fill <= '1';
+					end if;	
 				end if; -- predicate
 --					nfill = n - (mem_top - sc_top);
 --					for (i=0; i<nfill; ++i) {

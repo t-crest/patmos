@@ -97,7 +97,7 @@ architecture arch of patmos_mem_stage is
     signal sc_data_out						 : std_logic_vector(31 downto 0);
     signal sc_lm_data, prev_sc_lm_data		 : std_logic_vector(31 downto 0);
   
-  	signal sc_read_add, sc_write_add		 : std_logic_vector(sc_depth - 1 downto 0);
+  	signal sc_read_add, sc_write_add		 : std_logic_vector(sc_length - 1 downto 0);
     signal state_reg, next_state			 : sc_state;
     signal mem_top, mem_top_next			 : std_logic_vector(31 downto 0);
 	signal sc_fill							 : std_logic_vector(3 downto 0);
@@ -129,13 +129,13 @@ begin
 		mm_write_add <= exout_reg_adr(9 downto 0);
 		mm_en_spill <= mm_en;
 		mm_write_data <= mem_write_data_stall;
-		sc_read_add <= exout_reg_adr(sc_depth - 1 downto 0);
-		sc_write_add <= exout_reg_adr(sc_depth - 1 downto 0);
+		sc_read_add <= exout_reg_adr(sc_length - 1 downto 0);
+		sc_write_add <= exout_reg_adr(sc_length - 1 downto 0);
 		sc_en_fill <= sc_en;
 		sc_write_data <= mem_write_data_stall;
 		if (spill = '1' or fill = '1') then	
 			mm_read_add <= mem_top(9 downto 0);
-			sc_read_add <= mem_top(sc_depth - 1 downto 0) and SC_MASK;
+			sc_read_add <= mem_top(sc_length - 1 downto 0) and SC_MASK;
 			mm_en_spill <= mm_spill; -- this is for spilling ( writing to main memory)
 			mm_write_data <= sc_read_data;
 			sc_en_fill <= sc_fill; -- this is for filling!
@@ -193,7 +193,7 @@ begin
 
 	
 	sc0: entity work.patmos_data_memory(arch)
-		generic map(8, sc_depth)
+		generic map(8, sc_length)
 		port map(clk,
 			     sc_write_add,
 			     sc_write_data(7 downto 0),
@@ -202,7 +202,7 @@ begin
 			     sc_read_data(7 downto 0));
  
 	sc1: entity work.patmos_data_memory(arch)
-		generic map(8, sc_depth)
+		generic map(8, sc_length)
 		port map(clk,
 			     sc_write_add,
 			     sc_write_data(15 downto 8),
@@ -211,7 +211,7 @@ begin
 			     sc_read_data(15 downto 8));
 			     
 	sc2: entity work.patmos_data_memory(arch)
-		generic map(8, sc_depth)
+		generic map(8, sc_length)
 		port map(clk,
 			     sc_write_add,
 			     sc_write_data(23 downto 16),
@@ -220,7 +220,7 @@ begin
 			     sc_read_data(23 downto 16));
 			     
 	sc3: entity work.patmos_data_memory(arch)
-		generic map(8, sc_depth)
+		generic map(8, sc_length)
 		port map(clk,
 			     sc_write_add,
 			     sc_write_data(31 downto 24),
