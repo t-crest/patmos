@@ -42,7 +42,6 @@ base:
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_alu.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_data_memory.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_stack_cache.vhd
-	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_stack_cache_ctrl.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/io/uart.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_fetch.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_decode.vhd
