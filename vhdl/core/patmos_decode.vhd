@@ -129,13 +129,14 @@ begin
 				when "1101" => comb_out.pat_function_type_alu <= pat_shadd2;
 				when others => comb_out.pat_function_type_alu <= pat_add; -- default add! 
 			end case;
-			comb_out.is_predicate_inst			 <= '0';
-			
+			comb_out.is_predicate_inst		<= '0';
+			comb_out.spc 			 		<= '0'; -- if write is done from normal registers or special registers
 			
 			if din.operation(26 downto 25) = "00" then -- ALUi instruction
 				comb_out.reg_write    <= '1';
 				comb_out.imm  <= "00000000000000000000" & din.operation(11 downto 0);
 				comb_out.inst <= alui;
+			
 			
 			elsif din.operation(26 downto 24) = "011" then -- STC
 				case din.operation(23 downto 22) is
@@ -160,6 +161,16 @@ begin
 		--	end if;
 			else
 			case din.operation(26 downto 22) is
+				when "01001" => 					-- SPC
+					comb_out.sr <= din.operation(3 downto 0); -- special register, SR!
+					case din.operation(6 downto 4) is
+						when "010" =>				-- SPCt
+							comb_out.spc_reg_write(to_integer(unsigned(din.operation(3 downto 0)))) <= '1'; -- write enable for special register
+						when "011" =>				-- SPCf
+							comb_out.reg_write    <= '1'; -- write enable for register
+							comb_out.spc 		  <= '1';
+						when others => null;
+					end case;
 				when "11111" => -- long immediate!
 					comb_out.reg_write    <= '1';
 					comb_out.imm  <= din.instr_b;

@@ -236,7 +236,7 @@ begin
 			fill <= '0';
 			-- MS: what is this constant?
 			-- We need the implementation of setting the pointers from an instruction
-			mem_top <= "00000000000000000000000111110100";
+			mem_top <= "00000000000000000000001000000000";
 		elsif rising_edge(clk) then
 			state_reg 	<= next_state;
 			mem_top		<= mem_top_next;
@@ -271,6 +271,7 @@ begin
 		end case;	
 	end process;		  
 	
+
 	-- Output process
 	process(state_reg, exout_not_reg, mem_top)
 	begin

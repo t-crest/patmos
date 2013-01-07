@@ -79,7 +79,9 @@ architecture arch of patmos_alu is
 	signal sc_top, sc_top_next, mem_top			: std_logic_vector(31 downto 0);
 --	signal doutex_sc_top, doutex_mem_top		: std_logic_vector(sc_depth - 1 downto 0);
 	
-
+	type spc_reg_type is array (0 to 15) of std_logic_vector(31 downto 0);
+	signal spc_reg 								: spc_reg_type;
+	signal rd_rs								: std_logic_vector(31 downto 0);
 begin
 
 
@@ -111,7 +113,7 @@ begin
 	begin 
 		adrs <= std_logic_vector(rs1 + shifted_arg);
 	end process;
-	
+
 	process(decdout, predicate, predicate_reg, cmp_result)
 	begin
 		predicate  <= predicate_reg;
@@ -214,7 +216,7 @@ begin
 		if rst = '1' then
 			predicate_reg 						<= "00000001";
 			doutex_reg.predicate 				<= "00000001";
-			sc_top								<= "00000000000000000000000111110100";
+			sc_top								<= "00000000000000000000001000000000";
 	
 		elsif rising_edge(clk) then
 			if (memdout.stall = '0') then
@@ -228,7 +230,9 @@ begin
 				doutex_reg.lm_read 				<= doutex_lm_read;
 				doutex_reg.sc_read 				<= doutex_sc_read;
 				doutex_reg.mem_to_reg           <= decdout.mem_to_reg;
-				doutex_reg.alu_result_reg       <= rd;
+				doutex_reg.alu_result_reg       <= rd_rs;
+				
+				
 				doutex_reg.adrs_reg		      	<= adrs;
 				doutex_reg.write_back_reg       <= decdout.rd;
 				-- stack cache
@@ -257,6 +261,13 @@ begin
 		end if;
 	end process;
 	
+	process(rd, decdout.sr)
+	begin
+		rd_rs 	 <= rd;
+		if (decdout.spc = '1') then
+			rd_rs <= spc_reg(to_integer(unsigned(decdout.sr(3 downto 0))));
+		end if;
+	end process;
 	
 	process(decdout, alu_src2, rd, adrs, predicate_reg, predicate)
 	begin
@@ -270,6 +281,11 @@ begin
 				doutex_not_reg.sc_write_not_reg              <= decdout.sc_write;
 				doutex_not_reg.lm_read_not_reg               <= decdout.lm_read;
 				doutex_not_reg.predicate_to_fetch			 <= '1';
+				
+				-- SPC
+				if (decdout.spc_reg_write(to_integer(unsigned(decdout.sr(3 downto 0)))) = '1') then
+					spc_reg(to_integer(unsigned(decdout.sr(3 downto 0)))) <= decdout.rs1_data;
+				end if;	
 		end if;
 		doutex_not_reg.mem_write_data <= alu_src2;
 		doutex_not_reg.alu_result <= rd;
@@ -291,7 +307,7 @@ begin
 		end if;
 	end process;
 
-	process(decdout) -- branch pc relative
+	process(decdout) 
 	begin
 		doutex_not_reg.pc <= std_logic_vector(unsigned(decdout.pc) + unsigned(decdout.imm));
 	end process;
@@ -362,8 +378,8 @@ begin
 --	}
 			when ensure => 
 				if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
-					if ((unsigned(decdout.imm) - unsigned(mem_top) + sc_size) > 0) then
-						doutex_not_reg.nspill_fill <= std_logic_vector(unsigned(decdout.imm) - unsigned(mem_top) + sc_size); -- SA: This is number of words, but 
+					if ((signed(decdout.imm) - signed(mem_top) + signed(sc_top)) > 0) then
+						doutex_not_reg.nspill_fill <= std_logic_vector(signed(decdout.imm) - signed(mem_top) + signed(sc_top)); -- SA: This is number of words, but 
 						doutex_not_reg.fill <= '1';
 					end if;	
 				end if; -- predicate
@@ -377,9 +393,7 @@ begin
 				doutex_not_reg.fill <= '0';
 				if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
 					sc_top_next <= std_logic_vector( unsigned(sc_top) + unsigned(decdout.imm));
-					if (sc_top > mem_top) then
-					--	mem_top <= sc_top;
-					end if;
+				--	if (unsigned(sc_top) + unsigned(decdout.imm) )
 				end if; -- predicate
 --					sc_top += n;
 --					if (sc_top > mem_top) {
