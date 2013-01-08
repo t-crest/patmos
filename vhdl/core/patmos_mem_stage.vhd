@@ -122,7 +122,7 @@ begin
 	end process mem_wb;
 
 	process(exout_reg_adr, spill, fill, mem_top, mm_spill, mm_en, sc_en,
-		sc_read_data, mm_read_data, mem_write_data_stall
+		sc_read_data, mm_read_data, mem_write_data_stall, sc_fill
 	) --SA: Main memory read/write address, normal load/store or fill/spill
 	begin
 		mm_read_add <= exout_reg_adr(9 downto 0);
@@ -273,9 +273,12 @@ begin
 	
 
 	-- Output process
-	process(state_reg, exout_not_reg, mem_top)
+	process(state_reg, exout_not_reg, mem_top, nspill_fill)
 	begin
-		mem_top_next <= mem_top;
+		mem_top_next 	<= mem_top;
+		dout.stall 			<= '0';
+		stall <= '0';
+		spill <= '0';
 		case state_reg is
 			when init =>
 				sc_fill <= "0000";
@@ -560,7 +563,7 @@ begin
 --		end if;
 	
 -- write back with stall
-	process(mem_data_out_muxed, exout_reg, sc_lm_data, stall)
+	process(mem_data_out_muxed, exout_reg, sc_lm_data, stall, prev_sc_lm_data)
 	begin
 		if (stall = '1') then
 			if exout_reg.mem_to_reg = '1' then
