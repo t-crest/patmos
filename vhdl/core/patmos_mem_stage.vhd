@@ -399,6 +399,7 @@ begin
 		case exout_reg.adrs_reg(1) is
 			when '0' =>
 				-- MS: why are bytes mixed up here?
+				-- SA: I don't get this question, byte enables are generated this way to support BIG ENDIAN
 				ld_half <= lm_dout(7 downto 0) & lm_dout(15 downto 8);
 				sc_ld_half <= sc_read_data(7 downto 0) & sc_read_data(15 downto 8);
 			when '1' =>
@@ -430,31 +431,29 @@ begin
 	
 	--------------------------- sign extension begin--------------------------
 	-- MS: why do we have double signe extension?
-	process(ld_half, sc_ld_half, s_u)
+	-- SA: what is a double sign extension?
+	process(ld_half, sc_ld_half, ld_byte, sc_ld_byte, s_u)
 	begin
 		if (s_u = '1') then
 			half_ext <= std_logic_vector(resize(signed(ld_half), 32));
 			sc_half_ext <= std_logic_vector(resize(signed(sc_ld_half), 32));
-		else
-			half_ext <= std_logic_vector(resize(unsigned(ld_half), 32));
-			sc_half_ext <= std_logic_vector(resize(unsigned(sc_ld_half), 32));
-		end if;
-	end process;
-		
-	process(ld_byte, sc_ld_byte, s_u)
-	begin
-		if (s_u = '1') then
+			
 			byte_ext <= std_logic_vector(resize(signed(ld_byte), 32));
 			sc_byte_ext <= std_logic_vector(resize(signed(sc_ld_byte), 32));
 		else
+			half_ext <= std_logic_vector(resize(unsigned(ld_half), 32));
+			sc_half_ext <= std_logic_vector(resize(unsigned(sc_ld_half), 32));
+			
 			byte_ext <= std_logic_vector(resize(unsigned(ld_byte), 32));
 			sc_byte_ext <= std_logic_vector(resize(unsigned(sc_ld_byte), 32));
 		end if;
 	end process;
+
 	--------------------------- sign extension end--------------------------
 	
 	--------------------------- size muxe begin--------------------------
 	-- Ms: same here: why can't we share this
+	-- SA: share what?
 	process(byte_ext, half_ext, ld_word, ldt_type, sc_ld_word, sc_half_ext, sc_byte_ext)
 	begin
 		case ldt_type is

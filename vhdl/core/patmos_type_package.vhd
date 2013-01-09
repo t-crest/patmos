@@ -57,6 +57,7 @@ package patmos_type_package is
 	type function_type_alu_cmp					is (pat_cmpeq, pat_cmpneq, pat_cmplt, pat_cmple, pat_cmpult, pat_cmpule, pat_btest);
 	type isntrucion								is (none, st, ld, nop, br, alu, alui, res, ens, free);
 	type function_type_sc						is (none, reserve, free, ensure);
+	type function_type_clfb						is (none, call, br, brcf);
   	type sc_state								is (init, spill_state, fill_state);
  
 	-------------------------------------------
@@ -119,6 +120,7 @@ package patmos_type_package is
 		pat_function_type_alu      				: function_type_alu;
 		pat_function_type_alu_u      			: function_type_alu_u;
 		pat_function_type_alu_p      			: function_type_alu_p;
+		pat_function_type_clfb					: function_type_clfb;
 		is_predicate_inst			 			: std_logic;
 		adrs_type				 				: address_type;
 		alu_alu_u								: std_logic;

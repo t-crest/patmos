@@ -281,11 +281,12 @@ begin
 	
 	process(decdout, alu_src2, rd, adrs, predicate_reg, predicate)
 	begin
-		doutex_not_reg.lm_write_not_reg             <= '0';
-		doutex_not_reg.lm_read_not_reg              <= '0';
-		doutex_not_reg.sc_write_not_reg				<= '0';
-		predicate_checked					<= "00000001";
-		doutex_not_reg.predicate_to_fetch			<= '0';
+		doutex_not_reg.lm_write_not_reg             		<= '0';
+		doutex_not_reg.lm_read_not_reg              		<= '0';
+		doutex_not_reg.sc_write_not_reg						<= '0';
+		predicate_checked									<= "00000001";
+		doutex_not_reg.predicate_to_fetch					<= '0';
+		spec												<= (others => (others => '0'));
 		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
 				doutex_not_reg.lm_write_not_reg              <= decdout.lm_write;
 				doutex_not_reg.sc_write_not_reg              <= decdout.sc_write;
