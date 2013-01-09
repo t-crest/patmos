@@ -79,9 +79,11 @@ architecture arch of patmos_alu is
 	signal sc_top, sc_top_next, mem_top			: std_logic_vector(31 downto 0);
 --	signal doutex_sc_top, doutex_mem_top		: std_logic_vector(sc_depth - 1 downto 0);
 	
-	type spc_reg_type is array (0 to 15) of std_logic_vector(31 downto 0);
+	type spc_reg_type 							is array (0 to 15) of std_logic_vector(31 downto 0);
 	signal spc_reg 								: spc_reg_type;
+	signal spec									: spc_reg_type;
 	signal rd_rs								: std_logic_vector(31 downto 0);
+	signal spc_reg_write						: std_logic_vector(15 downto 0);
 begin
 
 
@@ -250,7 +252,9 @@ begin
 				
 				
 				sc_top						<= sc_top_next;
-
+				
+				spc_reg						<= spec;
+				spc_reg_write				<= decdout.spc_reg_write;
 			end if;
 
 	--		doutex.head                 <= doutex_head;
@@ -261,11 +265,17 @@ begin
 		end if;
 	end process;
 	
-	process(rd, decdout.sr)
+	process(rd, decdout.sr, spec, spc_reg)
 	begin
 		rd_rs 	 <= rd;
+		
+		
 		if (decdout.spc = '1') then
-			rd_rs <= spc_reg(to_integer(unsigned(decdout.sr(3 downto 0))));
+			if (spc_reg_write(to_integer(unsigned(decdout.sr(3 downto 0)))) = '1') then
+				rd_rs <= spec(to_integer(unsigned(decdout.sr(3 downto 0))));
+			else
+				rd_rs <= spc_reg(to_integer(unsigned(decdout.sr(3 downto 0))));
+			end if;
 		end if;
 	end process;
 	
@@ -284,7 +294,7 @@ begin
 				
 				-- SPC
 				if (decdout.spc_reg_write(to_integer(unsigned(decdout.sr(3 downto 0)))) = '1') then
-					spc_reg(to_integer(unsigned(decdout.sr(3 downto 0)))) <= decdout.rs1_data;
+					spec(to_integer(unsigned(decdout.sr(3 downto 0)))) <= din_rs1;
 				end if;	
 		end if;
 		doutex_not_reg.mem_write_data <= alu_src2;
