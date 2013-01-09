@@ -30,6 +30,7 @@ namespace patmos
   enum debug_format_e
   {
     DF_SHORT,
+    DF_TRACE,
     DF_DEFAULT,
     DF_LONG,
     DF_ALL
