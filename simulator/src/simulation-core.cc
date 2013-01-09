@@ -308,6 +308,11 @@ namespace patmos
 
   void simulator_t::print(std::ostream &os, debug_format_e debug_fmt) const
   {
+    if (debug_fmt == DF_TRACE) {
+      os << boost::format("%1$08x %2%\n") % PC % Cycle;
+      return;
+    }
+
     // print register values
     print_registers(os, debug_fmt);
 
