@@ -236,14 +236,15 @@ begin
 			fill <= '0';
 			-- MS: what is this constant?
 			-- We need the implementation of setting the pointers from an instruction
-			mem_top <= "00000000000000000000001000000000";
+			-- mem_top <= "00000000000000000000001000000000";
 		elsif rising_edge(clk) then
 			state_reg 	<= next_state;
 			mem_top		<= mem_top_next;
 			nspill_fill <= nspill_fill_next;
 		end if;
 	end process;
-
+	
+	
 	process(state_reg, exout_not_reg, spill, fill) -- adjust tail
 	begin 
 		next_state <= state_reg;
@@ -252,6 +253,8 @@ begin
 				if (exout_not_reg.spill = '1') then
 					next_state <= spill_state;
 				elsif(exout_not_reg.fill = '1') then 
+					next_state <= fill_state;
+				elsif(exout_not_reg.free = '1') then 
 					next_state <= fill_state;
 				else 
 					next_state <= init;
@@ -268,6 +271,8 @@ begin
 				else
 					next_state <= init;
 				end if;
+			when free_state	 =>
+				next_state <= init;
 		end case;	
 	end process;		  
 	
@@ -275,7 +280,11 @@ begin
 	-- Output process
 	process(state_reg, exout_not_reg, mem_top, nspill_fill)
 	begin
-		mem_top_next 	<= mem_top;
+		if (decdout.sr(3 downto 0) = "0110") then
+			mem_top_next 	<= exout_not_reg.mem_top;
+		else
+			mem_top_next 	<= mem_top;
+		end if;
 		dout.stall 			<= '0';
 		stall <= '0';
 		spill <= '0';
@@ -303,6 +312,8 @@ begin
 			when fill_state =>
 				nspill_fill_next <= exout_not_reg.nspill_fill;
 				--mem_top <= 
+			when free_state	=>
+				mem_top_next	<= exout_not_reg.mem_top;
 		end case;
 	end process;
 	

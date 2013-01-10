@@ -218,7 +218,7 @@ begin
 		if rst = '1' then
 			predicate_reg 						<= "00000001";
 			doutex_reg.predicate 				<= "00000001";
-			sc_top								<= "00000000000000000000001000000000";
+		--	sc_top								<= "00000000000000000000001000000000";
 	
 		elsif rising_edge(clk) then
 			if (memdout.stall = '0') then
@@ -279,7 +279,7 @@ begin
 		end if;
 	end process;
 	
-	process(decdout, alu_src2, rd, adrs, predicate_reg, predicate)
+	process(decdout, alu_src2, rd, adrs, predicate_reg, predicate, din_rs1, spc_reg)
 	begin
 		doutex_not_reg.lm_write_not_reg             		<= '0';
 		doutex_not_reg.lm_read_not_reg              		<= '0';
@@ -287,6 +287,7 @@ begin
 		predicate_checked									<= "00000001";
 		doutex_not_reg.predicate_to_fetch					<= '0';
 		spec												<= spc_reg;
+		doutex_not_reg.mem_top								<= (others => '0');
 		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
 				doutex_not_reg.lm_write_not_reg              <= decdout.lm_write;
 				doutex_not_reg.sc_write_not_reg              <= decdout.sc_write;
@@ -302,6 +303,10 @@ begin
 				-- SPC
 				if (decdout.spc_reg_write(to_integer(unsigned(decdout.sr(3 downto 0)))) = '1') then
 					spec(to_integer(unsigned(decdout.sr(3 downto 0)))) <= din_rs1;
+					if (decdout.sr(3 downto 0) = "0110") then
+						doutex_not_reg.mem_top <= din_rs1;
+						
+					end if;
 				end if;	
 		else
 				doutex_lm_write              <= '0';
@@ -359,14 +364,16 @@ begin
 	--	sc_top <= 
 	end process;
 	
-	process( decdout, predicate_reg, sc_top, mem_top) -- stack cache
+	process( decdout, predicate_reg, sc_top, mem_top, din_rs1) -- stack cache
 	begin
 		doutex_not_reg.spill 		<= '0';
 		doutex_not_reg.fill 		<= '0';
 		doutex_not_reg.stall 		<= '0';
 		sc_top_next					<= (others => '0');
 		doutex_not_reg.nspill_fill 	<= (others => '0');
-		
+		if (decdout.sr(3 downto 0) = "0110") then
+			sc_top_next				   <= din_rs1;
+		end if;	
 		case decdout.pat_function_type_sc is
 			when reserve => 
 				if predicate_reg(to_integer(signed(decdout.predicate_condition))) /= decdout.predicate_bit then
@@ -414,53 +421,7 @@ begin
 		
 	end process;
 
-----------------------------------------------------------
---	process(clk, rst)
---	begin 
---		if rst='1' then
---			state_reg <= init;
---		elsif rising_edge(clk) then
---			state_reg <= next_state;
---		end if;
---	end process;
---
---	process(state_reg, spill, fill) -- adjust head/tail
---	begin 
---		next_state <= state_reg;
---		case state_reg is
---			when init => 
---				if (spill = '1') then
---					next_state <= spill_state;
---				elsif(fill = '1') then 
---					next_state <= fill_state;
---				else 
---					next_state <= fill_state;
---				end if;
---			when inc =>
---				if (exout_not_reg.spill = '1') then
---					next_state <= spill_state;
---				else
---					next_state <= init;
---				end if;
---			when dec  => 
---				if (exout_not_reg.fill = '1') then
---					next_state <= fill_state;
---				else
---					next_state <= init;
---				end if;
---		end case;	
---	end process;		  
---	
---	-- Output process
---	process(state_reg)
---	begin
---		if (state_reg = init) then
---		elsif (state_reg = inc) then
---			--mem_top <= 
---		elsif (state_reg = dec) then
---			--mem_top <= 
---		end if;
---	end process;
+
 
 
 end arch;

@@ -58,7 +58,7 @@ package patmos_type_package is
 	type isntrucion								is (none, st, ld, nop, br, alu, alui, res, ens, free);
 	type function_type_sc						is (none, reserve, free, ensure);
 	type function_type_clfb						is (none, call, br, brcf);
-  	type sc_state								is (init, spill_state, fill_state);
+  	type sc_state								is (init, spill_state, fill_state, free_state);
  
 	-------------------------------------------
 	-- in/out records
@@ -132,6 +132,7 @@ package patmos_type_package is
 		spc_reg_write							: std_logic_vector(15 downto 0);
 		sr										: std_logic_vector(3 downto 0);
 		spc										: std_logic;
+		
 		--		mem_write_out            : std_logic;
 --		st_out                   : std_logic_vector(3 downto 0);
 --		sc_write_out             : std_logic;	
@@ -177,9 +178,10 @@ package patmos_type_package is
 		sc_write_not_reg 						 : std_logic;
 		stall         							 : std_logic;
 		sc_top									 : std_logic_vector(31 downto 0); --head, what should be the length?
-		mem_top									 : std_logic_vector(31 - 1 downto 0); --tail, what should be the length?
+		mem_top									 : std_logic_vector(31 downto 0); --tail, what should be the length?
 		spill									 : std_logic;
 		fill									 : std_logic;
+		free									 : std_logic;
 		nspill_fill								 : std_logic_vector(31 downto 0); -- this is too big and not real, should trim the addresses otherwise  
 	end record;
 	
