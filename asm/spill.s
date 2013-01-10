@@ -2,12 +2,13 @@
 # Expected Result: 
 #
 		addi	r5 = r0, 0;                
-		addi    r1 = r0, 250;
-		addi    r1 = r1, 250;
+		addi    r1 = r0, 0;
+#		addi    r1 = r1, 250;
+#		addi    r1 = r1, 6;
 		addi	r10 = r0, 10;
-                sres    6;
+                sres    16;
 l1:             sws     [r1 + 0] = r5;
-		subi	r1 = r1, 1;
+		addi	r1 = r1, 4;
 		addi    r5 = r5, 1;
 		cmpneq  p2  = r10, r5;
 		(p2)	br      l1;
