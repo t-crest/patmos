@@ -286,36 +286,34 @@ begin
 		doutex_not_reg.sc_write_not_reg						<= '0';
 		predicate_checked									<= "00000001";
 		doutex_not_reg.predicate_to_fetch					<= '0';
-		spec												<= (others => (others => '0'));
+		spec												<= spc_reg;
 		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
 				doutex_not_reg.lm_write_not_reg              <= decdout.lm_write;
 				doutex_not_reg.sc_write_not_reg              <= decdout.sc_write;
 				doutex_not_reg.lm_read_not_reg               <= decdout.lm_read;
 				doutex_not_reg.predicate_to_fetch			 <= '1';
 				
+				doutex_lm_write             <= decdout.lm_write;
+				doutex_lm_read              <= decdout.lm_read;
+				doutex_sc_read              <= decdout.sc_read;
+				doutex_sc_write             <= decdout.sc_write;
+				doutex_reg_write 			<= decdout.reg_write;
+				predicate_checked 			<= predicate;
 				-- SPC
 				if (decdout.spc_reg_write(to_integer(unsigned(decdout.sr(3 downto 0)))) = '1') then
 					spec(to_integer(unsigned(decdout.sr(3 downto 0)))) <= din_rs1;
 				end if;	
+		else
+				doutex_lm_write              <= '0';
+				doutex_sc_read               <= '0';
+				doutex_lm_read               <= '0';
+				doutex_reg_write    		 <= '0';
+				doutex_reg_write 			 <= '0';
+				doutex_sc_write              <= '0';
 		end if;
 		doutex_not_reg.mem_write_data <= alu_src2;
 		doutex_not_reg.alu_result <= rd;
 		doutex_not_reg.adrs <= adrs;
-		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
-			doutex_lm_write             <= decdout.lm_write;
-			doutex_lm_read              <= decdout.lm_read;
-			doutex_sc_read              <= decdout.sc_read;
-			doutex_sc_write             <= decdout.sc_write;
-			doutex_reg_write 			<= decdout.reg_write;
-			predicate_checked 			<= predicate;
-		else
-			doutex_lm_write              <= '0';
-			doutex_sc_read               <= '0';
-			doutex_lm_read               <= '0';
-			doutex_reg_write    		 <= '0';
-			doutex_reg_write 			 <= '0';
-			doutex_sc_write              <= '0';
-		end if;
 	end process;
 
 	process(decdout) 
