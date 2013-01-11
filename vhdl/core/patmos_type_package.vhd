@@ -98,7 +98,11 @@ package patmos_type_package is
 		lm_write 								: std_logic;
 		sc_write								: std_logic;
 		sc_read									: std_logic;
-		lm_read	 								: std_logic;
+		lm_read									: std_logic;
+		gm_write	 							: std_logic;
+		gm_read	 								: std_logic;
+		dc_write	 							: std_logic;
+		dc_read	 								: std_logic;
 		imm       								: std_logic_vector(31 downto 0);
 		instr_cmp 								: std_logic;
 
@@ -155,12 +159,16 @@ package patmos_type_package is
 		reg_write            					 : std_logic;
 		sc_write 								 : std_logic;
 		sc_read									 : std_logic;
+		gm_write								 : std_logic;
+		gm_read								 	 : std_logic;
+		dc_write	 							 : std_logic;
+		dc_read	 								 : std_logic;
 		mem_to_reg           					 : std_logic;
 		alu_result_reg                 			 : std_logic_vector(31 downto 0);
 		adrs_reg     	    					 : std_logic_vector(31 downto 0);
 		write_back_reg       					 : std_logic_vector(4 downto 0);
 		predicate               				 : std_logic_vector(7 downto 0);
-		predicate_reg               				 : std_logic_vector(7 downto 0);
+		predicate_reg               			 : std_logic_vector(7 downto 0);
 		imm       								 : std_logic_vector(31 downto 0);
 	end record;
 	
@@ -171,6 +179,10 @@ package patmos_type_package is
 		adrs_type		  		 				 :  address_type;
 		lm_read_not_reg			 				 : std_logic;
 		lm_write_not_reg 		 				 : std_logic;
+		gm_read_not_reg			 				 : std_logic;
+		gm_write_not_reg 		 				 : std_logic;
+		dc_read_not_reg			 				 : std_logic;
+		dc_write_not_reg 		 				 : std_logic;
 		address_not_reg			 				 : std_logic_vector(31 downto 0);
 		pc						 				 : std_logic_vector(pc_length - 1 downto 0);
 		predicate_to_fetch		 				 : std_logic;

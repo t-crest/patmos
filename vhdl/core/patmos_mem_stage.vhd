@@ -75,14 +75,17 @@ architecture arch of patmos_mem_stage is
     signal prev_en_reg						 : std_logic_vector(3 downto 0);
     signal en_reg							 : std_logic_vector(3 downto 0);
     
+    -- Data Cache
+    signal dc_data_out						: std_logic_vector(31 downto 0);
+    
     -- Main Memory
     
-    signal mm_write_data					 : std_logic_vector(31 downto 0);
-	signal mm_read_data						 : std_logic_vector(31 downto 0);
-    signal mm_en							 : std_logic_vector(3 downto 0);
-    signal mm_read_add, mm_write_add		 : std_logic_vector(9 downto 0);
-    signal mm_en_spill						 : std_logic_vector(3 downto 0);
-    signal mm_spill							 : std_logic_vector(3 downto 0);
+    signal gm_write_data					 : std_logic_vector(31 downto 0);
+	signal gm_data_out						 : std_logic_vector(31 downto 0);
+    signal gm_en							 : std_logic_vector(3 downto 0);
+    signal gm_read_add, gm_write_add		 : std_logic_vector(9 downto 0);
+    signal gm_en_spill						 : std_logic_vector(3 downto 0);
+    signal gm_spill							 : std_logic_vector(3 downto 0);
     
     ------ stack cache
     signal sc_en							 : std_logic_vector(3 downto 0);
@@ -95,7 +98,7 @@ architecture arch of patmos_mem_stage is
     signal sc_ld_byte					 	 : std_logic_vector(7 downto 0);
     signal sc_half_ext, sc_byte_ext			 : std_logic_vector(31 downto 0);
     signal sc_data_out						 : std_logic_vector(31 downto 0);
-    signal sc_lm_data, prev_sc_lm_data		 : std_logic_vector(31 downto 0);
+    signal ld_data, prev_ld_data		 : std_logic_vector(31 downto 0);
   
   	signal sc_read_add, sc_write_add		 : std_logic_vector(sc_length - 1 downto 0);
     signal state_reg, next_state			 : sc_state;
@@ -121,25 +124,25 @@ begin
 		end if;
 	end process mem_wb;
 
-	process(exout_reg_adr, spill, fill, mem_top, mm_spill, mm_en, sc_en,
-		sc_read_data, mm_read_data, mem_write_data_stall, sc_fill
+	process(exout_reg_adr, spill, fill, mem_top, gm_spill, gm_en, sc_en,
+		sc_read_data, gm_data_out, mem_write_data_stall, sc_fill
 	) --SA: Main memory read/write address, normal load/store or fill/spill
 	begin
-		mm_read_add <= exout_reg_adr(9 downto 0);
-		mm_write_add <= exout_reg_adr(9 downto 0);
-		mm_en_spill <= mm_en;
-		mm_write_data <= mem_write_data_stall;
+		gm_read_add <= exout_reg_adr(9 downto 0);
+		gm_write_add <= exout_reg_adr(9 downto 0);
+		gm_en_spill <= gm_en;
+		gm_write_data <= mem_write_data_stall;
 		sc_read_add <= exout_reg_adr(sc_length - 1 downto 0);
 		sc_write_add <= exout_reg_adr(sc_length - 1 downto 0);
 		sc_en_fill <= sc_en;
 		sc_write_data <= mem_write_data_stall;
 		if (spill = '1' or fill = '1') then	
-			mm_read_add <= mem_top(9 downto 0);
+			gm_read_add <= mem_top(9 downto 0);
 			sc_read_add <= mem_top(sc_length - 1 downto 0) and SC_MASK;
-			mm_en_spill <= mm_spill; -- this is for spilling ( writing to main memory)
-			mm_write_data <= sc_read_data;
+			gm_en_spill <= gm_spill; -- this is for spilling ( writing to main memory)
+			gm_write_data <= sc_read_data;
 			sc_en_fill <= sc_fill; -- this is for filling!
-			sc_write_data <= mm_read_data;
+			sc_write_data <= gm_data_out;
 			--sc_write_add <= ; -- spill
 		end if;
 	end process;
@@ -147,41 +150,41 @@ begin
 	--- main memory for simulation
 	-- Ms: as you exchange 32-bit words you can have one memory with 32 bits
 	-- instead of four byte memories.
-	mm0: entity work.patmos_data_memory(arch)
+	gm0: entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     mm_write_add,
-			     mm_write_data(7 downto 0),
-			     mm_en_spill(0),
-			     mm_read_add,
-			     mm_read_data(7 downto 0));
+			     gm_write_add,
+			     gm_write_data(7 downto 0),
+			     gm_en_spill(0),
+			     gm_read_add,
+			     gm_data_out(7 downto 0));
  
-	mm1: entity work.patmos_data_memory(arch)
+	gm1: entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     mm_write_add,
-			     mm_write_data(15 downto 8),
-			     mm_en_spill(1),
-			     mm_read_add,
-			     mm_read_data(15 downto 8));
+			     gm_write_add,
+			     gm_write_data(15 downto 8),
+			     gm_en_spill(1),
+			     gm_read_add,
+			     gm_data_out(15 downto 8));
 			     
-	mm2: entity work.patmos_data_memory(arch)
+	gm2: entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     mm_write_add,
-			     mm_write_data(23 downto 16),
-			     mm_en_spill(2),
-			     mm_read_add,
-			     mm_read_data(23 downto 16));
+			     gm_write_add,
+			     gm_write_data(23 downto 16),
+			     gm_en_spill(2),
+			     gm_read_add,
+			     gm_data_out(23 downto 16));
 			     
-	mm3: entity work.patmos_data_memory(arch)
+	gm3: entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     mm_write_add,
-			     mm_write_data(31 downto 24),
-			     mm_en_spill(3),
-			     mm_read_add,
-			     mm_read_data(31 downto 24));		
+			     gm_write_add,
+			     gm_write_data(31 downto 24),
+			     gm_en_spill(3),
+			     gm_read_add,
+			     gm_data_out(31 downto 24));		
 	
 	---------------------------------------------- stack cache
 --	        clk       	             : in std_logic;
@@ -234,9 +237,6 @@ begin
 			state_reg <= init;
 			--spill <= '0';
 			fill <= '0';
-			-- MS: what is this constant?
-			-- We need the implementation of setting the pointers from an instruction
-			-- mem_top <= "00000000000000000000001000000000";
 		elsif rising_edge(clk) then
 			state_reg 	<= next_state;
 			mem_top		<= mem_top_next;
@@ -280,7 +280,7 @@ begin
 	-- Output process
 	process(state_reg, exout_not_reg, mem_top, nspill_fill)
 	begin
-		if (decdout.sr(3 downto 0) = "0110") then
+		if (decdout.sr(3 downto 0) = "0110" and decdout.spc = '1') then
 			mem_top_next 	<= exout_not_reg.mem_top;
 		else
 			mem_top_next 	<= mem_top;
@@ -291,19 +291,19 @@ begin
 		case state_reg is
 			when init =>
 				sc_fill <= "0000";
-				mm_spill <= "0000";
+				gm_spill <= "0000";
 				nspill_fill_next <= exout_not_reg.nspill_fill;
 				dout.stall <= '0';
 			when spill_state =>
 				if ((signed(nspill_fill) - 1) >= 0) then
 					mem_top_next <= std_logic_vector(signed(mem_top) - 1); 
 					nspill_fill_next <= std_logic_vector(signed(nspill_fill) - 1);
-					mm_spill <= "1111";
+					gm_spill <= "1111";
 					spill <= '1';
 					stall <= '1';
 					dout.stall <= '1';
 				else
-					mm_spill <= "0000";
+					gm_spill <= "0000";
 					spill <= '0';
 					stall <= '0';
 					nspill_fill_next <= exout_not_reg.nspill_fill;
@@ -377,7 +377,7 @@ begin
 				prev_mem_write_data_reg <= mem_write_data;
 				prev_en_reg				<= en;
 				
-				prev_sc_lm_data			<= sc_lm_data;
+				prev_ld_data			<= ld_data;
 				
 		end if;	
 	end process;
@@ -397,16 +397,28 @@ begin
 		end if;
 	end process;
 	
+	------------------------- ld from stack cache or  io/scratchpad or main memory? -----------------------------
+	
+	process(exout_reg, mem_data_out_muxed, sc_data_out) 
+	begin
+		ld_data <= mem_data_out_muxed;
+		if (exout_reg.lm_read = '1') then 
+			ld_data <= mem_data_out_muxed;
+		elsif (exout_reg.sc_read = '1') then
+			ld_data <= sc_data_out;
+		elsif (exout_reg.gm_read = '1') then
+			ld_data <= gm_data_out;
+		elsif (exout_reg.dc_read = '1') then
+			ld_data <= dc_data_out;
+		end if;
+	end process;
 
 	--------------------------- address muxes begin--------------------------		     
-	process( lm_dout, sc_read_data)
+	process( lm_dout, exout_reg, sc_read_data)
 	begin
 		ld_word <= lm_dout(7 downto 0) & lm_dout(15 downto 8) & lm_dout(23 downto 16) & lm_dout(31 downto 24);
 		sc_ld_word <= sc_read_data(7 downto 0) & sc_read_data(15 downto 8) & sc_read_data(23 downto 16) & sc_read_data(31 downto 24); 
-	end process;
-	
-	ld_add_half:process(exout_reg, lm_dout, sc_read_data)
-	begin
+		
 		case exout_reg.adrs_reg(1) is
 			when '0' =>
 				-- MS: why are bytes mixed up here?
@@ -418,26 +430,24 @@ begin
 				sc_ld_half <= sc_read_data(23 downto 16) & sc_read_data(31 downto 24);
 			when others => null;
 		end case;
+		
+		case exout_reg.adrs_reg(1 downto 0) is
+		when "00" =>
+			ld_byte <= lm_dout(7 downto 0);
+			sc_ld_byte <= sc_read_data(7 downto 0);
+		when "01" =>
+			ld_byte <= lm_dout(15 downto 8);
+			sc_ld_byte <= sc_read_data(15 downto 8);
+		when "10" =>
+			ld_byte <= lm_dout(23 downto 16);
+			sc_ld_byte <= sc_read_data(23 downto 16);
+		when "11" =>
+			ld_byte <= lm_dout(31 downto 24);
+			sc_ld_byte <= sc_read_data(31 downto 24);
+		when others => null;
+	end case;		
 	end process;
 	
-	process(exout_reg, lm_dout, sc_read_data)
-	begin
-		case exout_reg.adrs_reg(1 downto 0) is
-			when "00" =>
-				ld_byte <= lm_dout(7 downto 0);
-				sc_ld_byte <= sc_read_data(7 downto 0);
-			when "01" =>
-				ld_byte <= lm_dout(15 downto 8);
-				sc_ld_byte <= sc_read_data(15 downto 8);
-			when "10" =>
-				ld_byte <= lm_dout(23 downto 16);
-				sc_ld_byte <= sc_read_data(23 downto 16);
-			when "11" =>
-				ld_byte <= lm_dout(31 downto 24);
-				sc_ld_byte <= sc_read_data(31 downto 24);
-			when others => null;
-		end case;		
-	end process;
 	--------------------------- address muxes end--------------------------	
 	
 	--------------------------- sign extension begin--------------------------
@@ -552,15 +562,7 @@ begin
 		end case;
 	end process;
 	
-	process(exout_reg, mem_data_out_muxed, sc_data_out) -- ld from stack cache or  io/scratchpad
-	begin
-		sc_lm_data <= mem_data_out_muxed;
-		if (exout_reg.lm_read = '1') then 
-			sc_lm_data <= mem_data_out_muxed;
-		elsif (exout_reg.sc_read = '1') then
-			sc_lm_data <= sc_data_out;
-		end if;
-	end process;
+
 	
 --		if (stall = '1') then
 --			exout_reg_adr		<= prev_exout_reg_adr;
@@ -573,20 +575,20 @@ begin
 --		end if;
 	
 -- write back with stall
-	process(mem_data_out_muxed, exout_reg, sc_lm_data, stall, prev_sc_lm_data)
+	process(mem_data_out_muxed, exout_reg, ld_data, stall, prev_ld_data)
 	begin
 		if (stall = '1') then
 			if exout_reg.mem_to_reg = '1' then
-				dout.data <= prev_sc_lm_data;--mem_data_out_muxed; --
-				datain <= prev_sc_lm_data;--mem_data_out_muxed;--
+				dout.data <= prev_ld_data;--mem_data_out_muxed; --
+				datain <= prev_ld_data;--mem_data_out_muxed;--
 			else
 				dout.data <= exout_reg.alu_result_reg;
 				datain <= exout_reg.alu_result_reg;
 			end if;
 		else -- stall
 			if exout_reg.mem_to_reg = '1' then
-				dout.data <= sc_lm_data;--mem_data_out_muxed; --
-				datain <= sc_lm_data;--mem_data_out_muxed;--
+				dout.data <= ld_data;--mem_data_out_muxed; --
+				datain <= ld_data;--mem_data_out_muxed;--
 			else
 				dout.data <= exout_reg.alu_result_reg;
 				datain <= exout_reg.alu_result_reg;

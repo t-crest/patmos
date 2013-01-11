@@ -4,9 +4,16 @@
 		addi	r5 = r0, 0;                
 		addi    r1 = r0, 0;
 #		addi    r1 = r1, 250;
-#		addi    r1 = r1, 6;
-		addi	r10 = r0, 10;
-                sres    16;
+#		addi    r1 = r1, 10; # 8 will be spilled so 10 should suffice
+		addi	r10 = r0, 5;
+		addi    r16 = r0, 250;
+		addi    r16 = r16, 250;
+		mts     s6 = r16; # stack cache pointer init
+		addi    r15 = r0, 0; #nop
+		addi    r15 = r0, 0; #nop
+		addi    r15 = r0, 0; #nop
+		addi    r15 = r0, 0; #nop
+                sres    64;
 l1:             sws     [r1 + 0] = r5;
 		addi	r1 = r1, 4;
 		addi    r5 = r5, 1;
