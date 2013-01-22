@@ -47,8 +47,8 @@ set_global_assignment -name VHDL_FILE ../../ise/ml605_edk/pcores/dma_controller_
 set_global_assignment -name VHDL_FILE ../../ise/ml605_edk/pcores/dma_controller_dtl_v1_00_a/hdl/vhdl/dma_controller_dtl.p.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/io/patmos_io_sdram.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_sdram.vhd
-set_global_assignment -name VHDL_FILE ../../sdram/sdr_dram.vhd
-set_global_assignment -name VHDL_FILE ../../../sdram/altera/de2_70_sdram_pll.vhd
+set_global_assignment -name VHDL_FILE ../../../sdram/vhdl/sdr_dram.vhd
+set_global_assignment -name VHDL_FILE ../../../sdram/vhdl/altera/de2_70_sdram_pll.vhd
 set_global_assignment -name VHDL_FILE "../../vhdl/top/patmos_de2-70sdram.vhd"
 set_global_assignment -name VHDL_FILE ../../vhdl/top/patmos_config_global.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/top/patmos_config_de2.vhd
@@ -660,5 +660,4 @@ set_location_assignment PIN_M9 -to DRAM1_WE_N
 #set_global_assignment -name LL_ROOT_REGION ON -section_id "Root Region"
 #set_global_assignment -name LL_MEMBER_STATE LOCKED -section_id "Root Region"
 
-set_global_assignment -name QIP_FILE ../../sdram/altera/de2_70_sdram_pll.qip
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
