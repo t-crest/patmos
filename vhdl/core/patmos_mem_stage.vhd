@@ -70,6 +70,7 @@ architecture arch of patmos_mem_stage is
     signal	s_u								 : std_logic;
     signal half_ext, byte_ext				 : std_logic_vector(31 downto 0);
   	signal exout_reg_adr, prev_exout_reg_adr: std_logic_vector(31 downto 0);
+  	signal exout_reg_adr_shft				 : std_logic_vector(31 downto 0);
     signal mem_write_data_stall				 : std_logic_vector(31 downto 0);
     signal prev_mem_write_data_reg			 : std_logic_vector(31 downto 0);
     signal prev_en_reg						 : std_logic_vector(3 downto 0);
@@ -128,12 +129,12 @@ begin
 		sc_read_data, gm_data_out, mem_write_data_stall, sc_fill
 	) --SA: Main memory read/write address, normal load/store or fill/spill
 	begin
-		gm_read_add <= exout_reg_adr(9 downto 0);
-		gm_write_add <= exout_reg_adr(9 downto 0);
+		gm_read_add <= exout_reg_adr_shft(9 downto 0);
+		gm_write_add <= exout_reg_adr_shft(9 downto 0);
 		gm_en_spill <= gm_en;
 		gm_write_data <= mem_write_data_stall;
-		sc_read_add <= exout_reg_adr(sc_length - 1 downto 0);
-		sc_write_add <= exout_reg_adr(sc_length - 1 downto 0);
+		sc_read_add <= exout_reg_adr_shft(sc_length - 1 downto 0);
+		sc_write_add <= exout_reg_adr_shft(sc_length - 1 downto 0);
 		sc_en_fill <= sc_en;
 		sc_write_data <= mem_write_data_stall;
 		if (spill = '1' or fill = '1') then	
@@ -328,40 +329,40 @@ begin
 	-- should be registered, I can change the name though
 	-- MS: a non-registered signal shall not end with _reg.
 	-- SA: Changed the name to _stall
-	memory0 : entity work.patmos_data_memory(arch)
+	lm0 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     exout_reg_adr(9 downto 0),-- exout_not_reg.adrs(9 downto 0),
+			     exout_reg_adr_shft(9 downto 0),-- exout_not_reg.adrs(9 downto 0),
 			     mem_write_data_stall(7 downto 0),--mem_write_data0,
 			     en_reg(0),
-			     exout_reg_adr(9 downto 0), --exout_not_reg.adrs(9 downto 0),
+			     exout_reg_adr_shft(9 downto 0), --exout_not_reg.adrs(9 downto 0),
 			     lm_dout(7 downto 0));
 
-	memory1 : entity work.patmos_data_memory(arch)
+	lm1 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     exout_reg_adr(9 downto 0), --exout_not_reg.adrs(9 downto 0),
+			     exout_reg_adr_shft(9 downto 0), --exout_not_reg.adrs(9 downto 0),
 			     mem_write_data_stall(15 downto 8), --mem_write_data1,
 			     en_reg(1),
-			     exout_reg_adr(9 downto 0),--exout_not_reg.adrs(9 downto 0),
+			     exout_reg_adr_shft(9 downto 0),--exout_not_reg.adrs(9 downto 0),
 			     lm_dout(15 downto 8));
 
-	memory2 : entity work.patmos_data_memory(arch)
+	lm2 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     exout_reg_adr(9 downto 0),--exout_not_reg.adrs(9 downto 0),
+			     exout_reg_adr_shft(9 downto 0),--exout_not_reg.adrs(9 downto 0),
 			     mem_write_data_stall(23 downto 16), --mem_write_data2,
 			     en_reg(2),
-			     exout_reg_adr(9 downto 0),--exout_not_reg.adrs(9 downto 0),
+			     exout_reg_adr_shft(9 downto 0),--exout_not_reg.adrs(9 downto 0),
 			     lm_dout(23 downto 16));
 
-	memory3 : entity work.patmos_data_memory(arch)
+	lm3 : entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
-			     exout_reg_adr(9 downto 0), --exout_not_reg.adrs(9 downto 0),
+			     exout_reg_adr_shft(9 downto 0), --exout_not_reg.adrs(9 downto 0),
 			     mem_write_data_stall(31 downto 24), --
 			     en_reg(3),
-			     exout_reg_adr(9 downto 0), --exout_not_reg.adrs(9 downto 0),
+			     exout_reg_adr_shft(9 downto 0), --exout_not_reg.adrs(9 downto 0),
 			     lm_dout(31 downto 24));
 	
 	process(clk) --to register the enable and address and data of memory in case of stall
@@ -397,6 +398,10 @@ begin
 		end if;
 	end process;
 	
+	process(exout_reg_adr)
+	begin
+		exout_reg_adr_shft <= "00" & exout_reg_adr(31 downto 2); 
+	end process;
 	------------------------- ld from stack cache or  io/scratchpad or main memory? -----------------------------
 	
 	process(exout_reg, mem_data_out_muxed, sc_data_out) 
@@ -468,7 +473,7 @@ begin
 			byte_ext <= std_logic_vector(resize(unsigned(ld_byte), 32));
 			sc_byte_ext <= std_logic_vector(resize(unsigned(sc_ld_byte), 32));
 		end if;
-	end process;
+	end process; 
 
 	--------------------------- sign extension end--------------------------
 	
