@@ -135,7 +135,7 @@ package patmos_type_package is
 		pat_function_type_sc					: function_type_sc;		
 		spc_reg_write							: std_logic_vector(15 downto 0);
 		sr										: std_logic_vector(3 downto 0);
-		spc										: std_logic;
+		spc										: std_logic; -- special reg instruction
 		
 		--		mem_write_out            : std_logic;
 --		st_out                   : std_logic_vector(3 downto 0);

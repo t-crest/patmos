@@ -111,6 +111,7 @@ begin
 			comb_out.alu_alu_u		<= '0';	
 			-- TODO: get defaults for all signals and remove redundant assignments 
 			comb_out.alu_alu_u <= '1';
+			comb_out.spc					<= '0';
 			case alu_func is
 				when "0000" =>  comb_out.pat_function_type_alu <= pat_add;
 				when "0001" => comb_out.pat_function_type_alu <= pat_sub;
@@ -130,9 +131,9 @@ begin
 				when others => comb_out.pat_function_type_alu <= pat_add; -- default add! 
 			end case;
 			comb_out.is_predicate_inst		<= '0';
-			comb_out.spc 			 		<= '0'; -- if write is done from normal registers or special registers
 			comb_out.sr 					<= din.operation(3 downto 0); -- special register, SR!
 			comb_out.spc_reg_write			<= (others => '0');
+			
 			if din.operation(26 downto 25) = "00" then -- ALUi instruction
 				comb_out.reg_write    <= '1';
 				comb_out.imm  <= "00000000000000000000" & din.operation(11 downto 0);
@@ -194,13 +195,12 @@ begin
 			else
 			case din.operation(26 downto 22) is --mfs/mts
 				when "01001" => 					-- SPC
-					
+					comb_out.spc 		  <= '1';
 					case din.operation(6 downto 4) is
 						when "010" =>				-- SPCt
 							comb_out.spc_reg_write(to_integer(unsigned(din.operation(3 downto 0)))) <= '1'; -- write enable for special register
 						when "011" =>				-- SPCf
 							comb_out.reg_write    <= '1'; -- write enable for register
-							comb_out.spc 		  <= '1';
 						when others => null;
 					end case;
 				when "11111" => -- long immediate!

@@ -71,6 +71,7 @@ architecture arch of patmos_alu is
 	signal doutex_reg_write_reg					: std_logic;
 	signal doutex_lm_read						: std_logic;
 	signal predicate_checked					: std_logic_vector(7 downto 0);
+	signal is_exec								: std_logic;
 --	signal prev_dout							: execution_out_type;
 	----- stack cache
 	
@@ -83,11 +84,16 @@ architecture arch of patmos_alu is
 	signal sc_top, sc_top_next, mem_top			: std_logic_vector(31 downto 0);
 --	signal doutex_sc_top, doutex_mem_top		: std_logic_vector(sc_depth - 1 downto 0);
 	
-	type spc_reg_type 							is array (0 to 15) of std_logic_vector(31 downto 0);
-	signal spc_reg 								: spc_reg_type;
-	signal spec									: spc_reg_type;
+	signal spc_reg 								: std_logic_vector(31 downto 0);
+	signal spc	 								: std_logic_vector(31 downto 0);
 	signal rd_rs								: std_logic_vector(31 downto 0);
 	signal spc_reg_write						: std_logic_vector(15 downto 0);
+	
+	
+	signal st_reg								: std_logic_vector(31 downto 0);
+	signal st									: std_logic_vector(31 downto 0);
+	signal res_diff								: signed(31 downto 0);
+	signal ens_diff								: signed(31 downto 0);
 begin
 
 
@@ -261,8 +267,12 @@ begin
 				
 				sc_top						<= sc_top_next;
 	
-				spc_reg						<= spec;
+--				spc_reg						<= spec;
 				spc_reg_write				<= decdout.spc_reg_write;
+				
+				
+				st_reg 						<= st;
+				spc_reg 					<= spc;
 			end if;
 
 	--		doutex.head                 <= doutex_head;
@@ -273,30 +283,44 @@ begin
 		end if;
 	end process;
 	
-	process(rd, decdout, spec, spc_reg)
+	process(rd, decdout, spc, spc_reg, spc_reg_write)
 	begin
 		rd_rs 	 <= rd;
-		
-		
 		if (decdout.spc = '1') then
 			if (spc_reg_write(to_integer(unsigned(decdout.sr(3 downto 0)))) = '1') then
-				rd_rs <= spc_reg(to_integer(unsigned(decdout.sr(3 downto 0))));
+				rd_rs <= spc_reg;
 			else
-				rd_rs <= spec(to_integer(unsigned(decdout.sr(3 downto 0))));
+				rd_rs <= spc;
 			end if;
 		end if;
 	end process;
+
+	process (decdout, st) -- which special register
+	begin
+		spc			<= st;
+		case decdout.sr is
+			when "0110" => -- stack pointer
+				spc <= st;
+			when others => null;
+		end case;
+	end process;
 	
-	process(decdout, alu_src2, rd, adrs, predicate_reg, predicate, din_rs1, spc_reg)
+	process(decdout, alu_src2, rd, adrs, predicate_reg, predicate, din_rs1, st_reg, is_exec)
 	begin
 		doutex_not_reg.lm_write_not_reg             		<= '0';
 		doutex_not_reg.lm_read_not_reg              		<= '0';
-		doutex_not_reg.sc_write_not_reg						<= '0';
+		doutex_not_reg.sc_write_not_reg						<= '0';		
+		doutex_not_reg.sc_read_not_reg						<= '0';
+		doutex_not_reg.dc_write_not_reg						<= '0';
+		doutex_not_reg.dc_read_not_reg						<= '0';
+		doutex_not_reg.gm_write_not_reg						<= '0';
+		doutex_not_reg.gm_read_not_reg						<= '0';
+	
 		predicate_checked									<= "00000001";
 		doutex_not_reg.predicate_to_fetch					<= '0';
-		spec												<= spc_reg;
+		st													<= st_reg;
 		doutex_not_reg.mem_top								<= (others => '0');
-		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
+		if (is_exec = '1') then
 				doutex_not_reg.lm_write_not_reg              <= decdout.lm_write;
 				doutex_not_reg.sc_write_not_reg              <= decdout.sc_write;
 				doutex_not_reg.lm_read_not_reg               <= decdout.lm_read;
@@ -318,9 +342,9 @@ begin
 				doutex_dc_write             <= decdout.dc_write;
 				doutex_reg_write 			<= decdout.reg_write;
 				predicate_checked 			<= predicate;
-				-- SPC
-				if (decdout.spc_reg_write(to_integer(unsigned(decdout.sr(3 downto 0)))) = '1') then
-					spec(to_integer(unsigned(decdout.sr(3 downto 0)))) <= din_rs1;
+				-- SPC-- move to st
+				if (decdout.spc_reg_write(6) = '1') then
+					st <= din_rs1;
 					if (decdout.sr(3 downto 0) = "0110") then
 						doutex_not_reg.mem_top <= din_rs1;
 						
@@ -386,7 +410,22 @@ begin
 	--	sc_top <= 
 	end process;
 	
-	process( decdout, predicate_reg, sc_top, mem_top, din_rs1, spec) -- stack cache
+	
+	process(predicate_reg, decdout, mem_top, sc_top)
+	begin
+		is_exec			<= '0';
+		res_diff		<= (others => '0');
+		ens_diff		<= (others => '0');
+		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
+			is_exec 	<=  '1';
+		end if;
+		res_diff 	<= signed(mem_top) - signed(sc_top) - sc_size + signed(decdout.imm);
+		ens_diff	<= signed(decdout.imm) - signed(mem_top) + signed(sc_top);
+	end process;	
+	
+	
+	
+	process( decdout, sc_top, mem_top, din_rs1, spc, is_exec, res_diff, ens_diff) -- stack cache
 	begin
 		doutex_not_reg.spill 		<= '0';
 		doutex_not_reg.fill 		<= '0';
@@ -394,17 +433,17 @@ begin
 	--	sc_top_next					<= (others => '0');
 		doutex_not_reg.nspill_fill 	<= (others => '0');
 		if (decdout.sr(3 downto 0) = "0110" and decdout.spc = '1') then
-			sc_top_next				   <= spec(6);
+			sc_top_next				   <= spc;
 		else 
 			sc_top_next				   <= sc_top;
 		end if;	
 		case decdout.pat_function_type_sc is
 			when reserve => 
-				if predicate_reg(to_integer(signed(decdout.predicate_condition))) /= decdout.predicate_bit then
+				if (is_exec = '1') then
 					sc_top_next <= std_logic_vector( signed(sc_top) - signed(decdout.imm));
-					if( (signed(mem_top) - signed(sc_top) - sc_size + signed(decdout.imm)) > 0) then
+					if( res_diff > 0) then
 						doutex_not_reg.spill <= '1';
-						doutex_not_reg.nspill_fill <=  std_logic_vector(signed(mem_top) - signed(sc_top) - sc_size + signed(decdout.imm));
+						doutex_not_reg.nspill_fill <=  std_logic_vector(res_diff);
 					else
 						doutex_not_reg.spill <= '0';
 					end if;
@@ -417,9 +456,9 @@ begin
 --							mem[mem_top] = sc[mem_top & SC_MASK];
 --	}
 			when ensure => 
-				if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
-					if ((signed(decdout.imm) - signed(mem_top) + signed(sc_top)) > 0) then
-						doutex_not_reg.nspill_fill <= std_logic_vector(signed(decdout.imm) - signed(mem_top) + signed(sc_top)); -- SA: This is number of words, but 
+				if (is_exec = '1') then
+					if (ens_diff > 0) then
+						doutex_not_reg.nspill_fill <= std_logic_vector(ens_diff); -- SA: This is number of words, but 
 						doutex_not_reg.fill <= '1';
 					else
 						doutex_not_reg.fill <= '0';
@@ -433,7 +472,7 @@ begin
 			when free => 
 				doutex_not_reg.spill <= '0';
 				doutex_not_reg.fill <= '0';
-				if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
+				if (is_exec = '1') then
 					sc_top_next <= std_logic_vector( unsigned(sc_top) + unsigned(decdout.imm));
 				--	if (unsigned(sc_top) + unsigned(decdout.imm) )
 				end if; -- predicate
