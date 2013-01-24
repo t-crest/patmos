@@ -53,6 +53,9 @@ namespace patmos
       /// A method exceeds the size of the method cache.
       CODE_EXCEEDED,
 
+      /// Program counter outside of current method.
+      ILLEGAL_PC,
+
       /// An unaligned memory access has been encountered.
       UNALIGNED
     };
@@ -142,6 +145,12 @@ namespace patmos
     static void code_exceeded(uword_t address)
     {
       throw simulation_exception_t(CODE_EXCEEDED, address);
+    }
+
+    /// Thow a PC-outsize-method simulation exception.
+    static void illegal_pc(uword_t address)
+    {
+      throw simulation_exception_t(ILLEGAL_PC, address);
     }
 
     /// Throw a unaligned simulation exception.
