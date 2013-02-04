@@ -41,6 +41,10 @@ namespace patmos
     // initialize one predicate register to be true, otherwise no instruction
     // will ever execute
     PRR.set(p0, true);
+    // initialize negated predicates
+    for (unsigned int p = pn1; p < NUM_PRRn; p++) {
+	PRR.set((PRR_e)p, true);
+    }
 
     // initialize the pipeline
     for(unsigned int i = 0; i < NUM_STAGES; i++)
