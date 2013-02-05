@@ -40,6 +40,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.patmos_type_package.all;
+use work.sc_pack.all;
 
 entity patmos_mem_stage is
 	port(
@@ -111,7 +112,13 @@ architecture arch of patmos_mem_stage is
 	signal stall							 : std_logic;	
 	signal nspill_fill, nspill_fill_next	 : std_logic_vector(31 downto 0);
 
---	signal test								 : signed(sc_depth - 1 downto 0);
+	signal cpu_out							 : cpu_out_type;
+	signal	cpu_in							 : sc_in_type;
+
+	signal	mem_out							 : sc_out_type;
+	signal	mem_in							 : sc_in_type;
+
+
 begin
 	mem_wb : process(clk)
 	begin
@@ -125,28 +132,28 @@ begin
 		end if;
 	end process mem_wb;
 
-	process(exout_reg_adr, spill, fill, mem_top, gm_spill, gm_en, sc_en,
-		sc_read_data, gm_data_out, mem_write_data_stall, sc_fill, exout_reg_adr_shft
-	) --SA: Main memory read/write address, normal load/store or fill/spill
-	begin
-		gm_read_add <= exout_reg_adr_shft(9 downto 0);
-		gm_write_add <= exout_reg_adr_shft(9 downto 0);
-		gm_en_spill <= gm_en;
-		gm_write_data <= mem_write_data_stall;
-		sc_read_add <= exout_reg_adr_shft(sc_length - 1 downto 0);
-		sc_write_add <= exout_reg_adr_shft(sc_length - 1 downto 0);
-		sc_en_fill <= sc_en;
-		sc_write_data <= mem_write_data_stall;
-		if (spill = '1' or fill = '1') then	
-			gm_read_add <= mem_top(9 downto 0);
-			sc_read_add <= mem_top(sc_length - 1 downto 0) and SC_MASK;
-			gm_en_spill <= gm_spill; -- this is for spilling ( writing to main memory)
-			gm_write_data <= sc_read_data;
-			sc_en_fill <= sc_fill; -- this is for filling!
-			sc_write_data <= gm_data_out;
-			--sc_write_add <= ; -- spill
-		end if;
-	end process;
+--	process(spill, fill, mem_top, gm_spill, gm_en, sc_en,
+--		sc_read_data, gm_data_out, mem_write_data_stall, sc_fill, exout_reg_adr_shft
+--	) --SA: Main memory read/write address, normal load/store or fill/spill
+--	begin
+--		gm_read_add <= exout_reg_adr_shft(9 downto 0);
+--		gm_write_add <= exout_reg_adr_shft(9 downto 0);
+--		gm_en_spill <= gm_en;
+--		gm_write_data <= mem_write_data_stall;
+--		sc_read_add <= exout_reg_adr_shft(sc_length - 1 downto 0);
+--		sc_write_add <= exout_reg_adr_shft(sc_length - 1 downto 0);
+--		sc_en_fill <= sc_en;
+--		sc_write_data <= mem_write_data_stall;
+--		if (spill = '1' or fill = '1') then	
+--			gm_read_add <= mem_top(9 downto 0);
+--			sc_read_add <= mem_top(sc_length - 1 downto 0) and SC_MASK;
+--			gm_en_spill <= gm_spill; -- this is for spilling ( writing to main memory)
+--			gm_write_data <= sc_read_data;
+--			sc_en_fill <= sc_fill; -- this is for filling!
+--			sc_write_data <= gm_data_out;
+--			--sc_write_add <= ; -- spill
+--		end if;
+--	end process;
 
 	--- main memory for simulation
 	-- Ms: as you exchange 32-bit words you can have one memory with 32 bits
@@ -195,42 +202,60 @@ begin
 --        rd_address               : in std_logic_vector(addr_width - 1 downto 0);
 --        data_out                 : out std_logic_vector(width -1 downto 0) -- load
 
-	
-	sc0: entity work.patmos_data_memory(arch)
-		generic map(8, sc_length)
-		port map(clk,
-			     sc_write_add,
-			     sc_write_data(7 downto 0),
-			     sc_en_fill(0),
-			     sc_read_add,
-			     sc_read_data(7 downto 0));
- 
-	sc1: entity work.patmos_data_memory(arch)
-		generic map(8, sc_length)
-		port map(clk,
-			     sc_write_add,
-			     sc_write_data(15 downto 8),
-			     sc_en_fill(1),
-			     sc_read_add,
-			     sc_read_data(15 downto 8));
-			     
-	sc2: entity work.patmos_data_memory(arch)
-		generic map(8, sc_length)
-		port map(clk,
-			     sc_write_add,
-			     sc_write_data(23 downto 16),
-			     sc_en_fill(2),
-			     sc_read_add,
-			     sc_read_data(23 downto 16));
-			     
-	sc3: entity work.patmos_data_memory(arch)
-		generic map(8, sc_length)
-		port map(clk,
-			     sc_write_add,
-			     sc_write_data(31 downto 24),
-			     sc_en_fill(3),
-			     sc_read_add,
-			     sc_read_data(31 downto 24));		    
+	stack_cache: entity work.patmos_stack_cache(arch)
+  	port map
+ 	(
+    	clk,
+    	rst,
+       	cpu_out,
+		cpu_in,
+
+		mem_out,
+		mem_in   	
+  	);   
+  	
+  	process(exout_reg_adr, sc_en, mem_write_data_stall)
+  	begin
+  		cpu_out.address 	<=	exout_reg_adr;
+  		cpu_out.sc_en		<=	sc_en;
+  		cpu_out.wr_data		<=	mem_write_data_stall;
+  	end process;
+  	
+--	sc0: entity work.patmos_data_memory(arch)
+--		generic map(8, sc_length)
+--		port map(clk,
+--			     sc_write_add,
+--			     sc_write_data(7 downto 0),
+--			     sc_en_fill(0),
+--			     sc_read_add,
+--			     sc_read_data(7 downto 0));
+-- 
+--	sc1: entity work.patmos_data_memory(arch)
+--		generic map(8, sc_length)
+--		port map(clk,
+--			     sc_write_add,
+--			     sc_write_data(15 downto 8),
+--			     sc_en_fill(1),
+--			     sc_read_add,
+--			     sc_read_data(15 downto 8));
+--			     
+--	sc2: entity work.patmos_data_memory(arch)
+--		generic map(8, sc_length)
+--		port map(clk,
+--			     sc_write_add,
+--			     sc_write_data(23 downto 16),
+--			     sc_en_fill(2),
+--			     sc_read_add,
+--			     sc_read_data(23 downto 16));
+--			     
+--	sc3: entity work.patmos_data_memory(arch)
+--		generic map(8, sc_length)
+--		port map(clk,
+--			     sc_write_add,
+--			     sc_write_data(31 downto 24),
+--			     sc_en_fill(3),
+--			     sc_read_add,
+--			     sc_read_data(31 downto 24));		    
 
 	process(clk, rst)
 	begin 
