@@ -126,7 +126,7 @@ begin
 	end process mem_wb;
 
 	process(exout_reg_adr, spill, fill, mem_top, gm_spill, gm_en, sc_en,
-		sc_read_data, gm_data_out, mem_write_data_stall, sc_fill
+		sc_read_data, gm_data_out, mem_write_data_stall, sc_fill, exout_reg_adr_shft
 	) --SA: Main memory read/write address, normal load/store or fill/spill
 	begin
 		gm_read_add <= exout_reg_adr_shft(9 downto 0);
