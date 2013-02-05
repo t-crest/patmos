@@ -509,6 +509,12 @@ int main(int argc, char **argv)
                     % e.get_cycle() % e.get_pc() % sym.find(e.get_pc())
                     % e.get_info();
           break;
+        case patmos::simulation_exception_t::ILLEGAL_PC:
+          std::cerr << boost::format("Cycle %1%: Program counter outsize current method: "
+                                    "%2$08x%3%: %4$08x\n")
+                    % e.get_cycle() % e.get_pc() % sym.find(e.get_pc())
+                    % e.get_info();
+          break;
         case patmos::simulation_exception_t::STACK_EXCEEDED:
           std::cerr << boost::format("Cycle %1%: Stack size exceeded: "
                                      "%2$08x%3%\n")

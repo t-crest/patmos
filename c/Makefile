@@ -5,10 +5,11 @@ CC=patmos-clang
 CFLAGS=-ccc-host-triple patmos-unknown-elf \
 	-nodefaultlibs -nostdlib -nostartfiles \
 	-fno-builtin -mfloat-abi=none \
-	-mpatmos-disable-stack-cache \
+#	-mpatmos-disable-stack-cache \
 	-Ttext 0x10 \
 	-e main \
-	-O3
+	-O0
+#	-O3
 
 CFLAGS-WITH-LIBS=-ccc-host-triple patmos-unknown-elf \
 	-nostartfiles \
@@ -20,9 +21,10 @@ CFLAGS-WITH-LIBS=-ccc-host-triple patmos-unknown-elf \
 
 CFLAGS_ASM=-ccc-host-triple patmos-unknown-elf \
 	-fno-builtin -mfloat-abi=none \
-	-mpatmos-disable-stack-cache \
+#	-mpatmos-disable-stack-cache \
         -fpatmos-emit-asm -S \
-	-O3
+	-O0
+#	-O3
 
 %: %.c
 	$(CC) $(CFLAGS) -o $@ $^

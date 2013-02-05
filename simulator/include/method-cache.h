@@ -288,7 +288,7 @@ namespace patmos
       if(address < current_method.Address ||
          current_method.Address + current_method.Num_bytes <= address)
       {
-        simulation_exception_t::code_exceeded(current_method.Address);
+        simulation_exception_t::illegal_pc(current_method.Address);
       }
 
       // get instruction word from the method's instructions
@@ -596,6 +596,8 @@ namespace patmos
   private:
     typedef lru_method_cache_t<NUM_BLOCK_BYTES, NUM_INIT_BLOCKS> base_t;
 
+    size_t active_method;
+
     /// Check whether the method at the given address is in the method cache.
     /// @param address The method address.
     /// @return True in case the method is in the cache, false otherwise.
@@ -610,6 +612,31 @@ namespace patmos
     fifo_method_cache_t(memory_t &memory, unsigned int num_blocks) :
         lru_method_cache_t<NUM_BLOCK_BYTES, NUM_INIT_BLOCKS>(memory, num_blocks)
     {
+	active_method = base_t::Num_blocks - 1;
+    }
+
+    /// Check whether a method is in the method cache, if it is not available
+    /// yet initiate a transfer, evicting other methods if needed.
+    /// @param address The base address of the method.
+    /// @return True when the method is available in the cache, false otherwise.
+    virtual bool is_available(word_t address)
+    {
+      // check if the address is in the cache
+      bool avail = base_t::is_available(address);
+
+      if (avail) {
+	// update the active method pointer
+	for(unsigned int i = base_t::Num_blocks - 1; 
+	    i >= base_t::Num_blocks - base_t::Num_active_methods; i--)
+	{
+	  if (base_t::Methods[i].Address == address)
+	  {
+	    active_method = i;
+	  }
+	}
+      }
+      
+      return avail;
     }
 
     /// A simulated instruction fetch from the method cache.
@@ -618,20 +645,8 @@ namespace patmos
     /// @return True when the instruction word is available from the read port.
     virtual bool fetch(uword_t address, word_t iw[2])
     {
-      // check if the address is in the cache
-      for(unsigned int i = base_t::Num_blocks - 1; i >=
-          base_t::Num_blocks - base_t::Num_active_methods; i--)
-      {
-        if (base_t::Methods[i].Address <= address &&
-            address < base_t::Methods[i].Address + base_t::Methods[i].Num_bytes)
-        {
-          // fetch from the currently active method
-          return base_t::do_fetch(base_t::Methods[i], address, iw);
-        }
-      }
-
-      assert(false);
-      abort();
+      // fetch from the currently active method
+      return base_t::do_fetch(base_t::Methods[active_method], address, iw);
     }
   };
 }
