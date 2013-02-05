@@ -160,38 +160,33 @@ begin
 						
 					when others => NULL;
 				end case;
---			elsif din.operation(26 downto 24) = "110" then -- CLFb /branch, call 
---				case din.operation(23 downto 22) is
---					when "00" =>        -- CLFb
---						comb_out.pat_function_type_clfb <= call;
---					when "01" =>
---						comb_out.pat_function_type_clfb <= br;		
---					when "10" =>
---						comb_out.pat_function_type_clfb <= brcf;
---					when others => null;
---				end case;		
+			elsif din.operation(26 downto 24) = "110" then -- CLFb /branch, call 
+				case din.operation(23 downto 22) is
+					when "00" =>        -- CLFb
+						comb_out.pat_function_type_clfb <= call;
+					when "01" =>
+						comb_out.pat_function_type_clfb <= br;		
+						comb_out.alu_src        <= '0'; -- choose the second source, i.e. immediate!
+						comb_out.reg_write      <= '0'; -- reg_write_out is reg_write_ex
+						comb_out.mem_to_reg     <= '0'; -- data comes from alu or mem ? 0 from alu and 1 from mem
+						comb_out.BC						<= '1';
+						comb_out.inst <= br;
+					when "10" =>
+						comb_out.pat_function_type_clfb <= brcf;
+					when others => null;
+				end case;		
 				
---			elsif din.operation(26 downto 24) = "111" then -- CLFi/CLFr /branch, call => .
---				case din.operation(23 downto 22) is
---					when "00" =>        -- CLF
---						case din.oepration(3 downto 0) is
---							when "0000" => 
---								comb_out.pat_function_type_clfb <= call;
---							when "0001" =>
---								comb_out.pat_function_type_clfb <= br;
---							when "0010" =>
---								comb_out.pat_function_type_clfb <= brcf;
---							when others => null;
---						end case;
---					when "01" =>        -- CLFr
---						comb_out.pat_function_type_sc <= ensure;
---						comb_out.inst <= ens;
-----						comb_out.st_out                   <= "0111";
-----						comb_out.stc_immediate_out        <= din.operation(4 downto 0);
---						
---					when others => NULL;
---				end case;	
+			elsif din.operation(26 downto 24) = "111" then -- CLFi/CLFr /branch, call => .
+				case din.operation(23 downto 22) is
+					when "00" =>     NULL;   -- CLF
+					when "01" =>     NULL;   -- CLFr
+					when "11" =>			  -- ALUl	
+						comb_out.reg_write    <= '1';
+						comb_out.imm  <= din.instr_b;	
+					when others => NULL;
+				end case;	
 		--	end if;
+		
 			else
 			case din.operation(26 downto 22) is --mfs/mts
 				when "01001" => 					-- SPC
@@ -203,9 +198,9 @@ begin
 							comb_out.reg_write    <= '1'; -- write enable for register
 						when others => null;
 					end case;
-				when "11111" => -- long immediate!
-					comb_out.reg_write    <= '1';
-					comb_out.imm  <= din.instr_b;
+--				when "11111" => -- long immediate!
+--					comb_out.reg_write    <= '1';
+--					comb_out.imm  <= din.instr_b;
 				
 				when "01000" => -- ALU instructions
 					comb_out.inst <= alu;
@@ -397,12 +392,12 @@ begin
 					comb_out.mem_to_reg   <= '1'; -- data comes from alu or mem ? 0 from alu and 1 from mem
 					
 	
-				when "11001" => -- branch, cache relative
-					comb_out.alu_src        <= '0'; -- choose the second source, i.e. immediate!
-					comb_out.reg_write      <= '0'; -- reg_write_out is reg_write_ex
-					comb_out.mem_to_reg     <= '0'; -- data comes from alu or mem ? 0 from alu and 1 from mem
-					comb_out.BC						<= '1';
-					comb_out.inst <= br;
+--				when "11001" => -- branch, cache relative
+--					comb_out.alu_src        <= '0'; -- choose the second source, i.e. immediate!
+--					comb_out.reg_write      <= '0'; -- reg_write_out is reg_write_ex
+--					comb_out.mem_to_reg     <= '0'; -- data comes from alu or mem ? 0 from alu and 1 from mem
+--					comb_out.BC						<= '1';
+--					comb_out.inst <= br;
 		--		elsif din.operation(26 downto 22) = "01001" then -- nop  "is removed from ISA"
 		--			comb_out.imm <= std_logic_vector(resize(signed(din.operation(3 downto 0)), 32));
 		--			comb_out.alu_src      <= '0'; -- choose the second source, i.e. immediate!
