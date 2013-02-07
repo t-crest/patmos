@@ -71,8 +71,7 @@ namespace patmos
       if (i->Address <= address && address < i->Address + i->Size &&
           i->Size != 0)
       {
-	// TODO maybe we stop search and print out the function label instead?
-	// if (enclosing && enclosing->>Size > 0) break;
+        os << (enclosing ? ':' : '<') << i->Name;
         enclosing = &*i;
       }
       else if (enclosing && i->Address <= address && i->Size == 0)
@@ -82,6 +81,7 @@ namespace patmos
       else if (i->Address == address)
       {
         assert(!enclosing);
+	os << '<' << i->Name;
         enclosing = &*i;
       }
       else if (address < i->Address)
@@ -92,7 +92,6 @@ namespace patmos
     word_t offset = 0;
     if (enclosing)
     {
-      os << '<' << enclosing->Name;
       offset = address - enclosing->Address;
     }
 
