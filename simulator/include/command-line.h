@@ -31,6 +31,7 @@ namespace patmos
   {
     DF_SHORT,
     DF_TRACE,
+    DF_INSTRUCTIONS,
     DF_DEFAULT,
     DF_LONG,
     DF_ALL

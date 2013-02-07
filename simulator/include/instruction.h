@@ -58,6 +58,14 @@ namespace patmos
                        const instruction_data_t &ops,
                        const symbol_map_t &symbols) const = 0;
 
+    /// Print the instruction's operands to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void printOperands(const simulator_t &s, std::ostream &os,
+                       const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const = 0;
+
     // -------------------------- SIMULATION -----------------------------------
 
     /// Pipeline function to simulate the behavior of the instruction in
@@ -480,6 +488,22 @@ namespace patmos
       else
         os << "bubble";
     }
+
+    /// Print the instruction's operands to an output stream.
+    /// @param os The output stream to print to.
+    /// @param symbols A mapping of addresses to symbols.
+    void printOperands(const simulator_t &s, std::ostream &os, 
+	       const symbol_map_t &symbols) const
+    {
+      if (I) {
+	if (DR_Pred) {
+          I->printOperands(s, os, *this, symbols);
+	} else {
+	  os << "skipped";
+	}
+      }
+    }
+
 
     // ------------------------ SIMULATION -------------------------------------
 

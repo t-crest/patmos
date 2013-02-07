@@ -315,6 +315,25 @@ namespace patmos
     if (debug_fmt == DF_TRACE) {
       os << boost::format("%1$08x %2%\n") % PC % Cycle;
       return;
+    } 
+    else if (debug_fmt == DF_INSTRUCTIONS) {
+	
+      std::ostringstream oss;
+      symbol_map_t emptymap;
+      for(unsigned int i = 0; i < NUM_SLOTS; i++) {
+        if (i != 0) oss << " || ";
+        Pipeline[SMW][i].print(oss, emptymap);
+      }
+
+      os << boost::format("%1$08x %2$9d %3% %|70t|") % PC % Cycle % oss.str();
+
+      for(unsigned int i = 0; i < NUM_SLOTS; i++) {
+        if (i != 0) os << " ";
+        Pipeline[SMW][i].printOperands(*this, os, Symbols);
+      }
+
+      os << "\n";
+      return;
     }
 
     // print register values

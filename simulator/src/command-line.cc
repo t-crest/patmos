@@ -39,6 +39,8 @@ namespace patmos
       df = DF_SHORT;
     else if(kind == "trace")
       df = DF_TRACE;
+    else if(kind == "instr")
+      df = DF_INSTRUCTIONS;
     else if(kind == "default")
       df = DF_DEFAULT;
     else if(kind == "long")
@@ -60,6 +62,8 @@ namespace patmos
         os << "short"; break;
       case DF_TRACE:
         os << "trace"; break;
+      case DF_INSTRUCTIONS:
+        os << "instr"; break;
       case DF_DEFAULT:
         os << "default"; break;
       case DF_LONG:

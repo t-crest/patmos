@@ -55,6 +55,15 @@ namespace patmos
       os << "nop";
     }
 
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+	               const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    { }
+
     /// Pipeline function to simulate the behavior of the instruction in
     /// the IF pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
@@ -175,6 +184,43 @@ namespace patmos
       }
     }
 
+    static inline void printGPReg(std::ostream &os, const char* sep, 
+				  GPR_e reg, word_t val) 
+    {
+      // Not interested in r0, but this messes up the output format
+      // if (reg == r0 && val == 0) return;
+      os << boost::format("%1%r%2$-2d = %3$08x") % sep % reg % val;
+    }
+    
+    static inline void printGPReg(std::ostream &os, const char* sep, 
+				  GPR_e reg, const GPR_t &GPR) 
+    {
+      printGPReg(os, sep, reg, GPR.get(reg).get());
+    }
+        
+    static inline void printSPReg(std::ostream &os, const char* sep, 
+				  SPR_e reg, word_t val) 
+    {
+      os << boost::format("%1%s%2$-2d = %3$08x") % sep % reg % val;
+    }
+    
+    static inline void printPPReg(std::ostream &os, const char* sep,
+				  PRR_e reg, bool val)
+    {
+      os << boost::format("%1%p%2% = %3$1u") % sep % reg % val;
+    }
+    
+    static inline void printSymbol(std::ostream &os, const char* name,
+				   word_t val,
+				   const symbol_map_t &symbols)
+    {
+      std::string sym = symbols.find(val);
+      if (!sym.empty()) {
+	os << name << ": " << sym;
+      }      
+    }
+				   
+    
   public:
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
@@ -255,6 +301,27 @@ namespace patmos
       {
         ops.GPR_MW_Rd.reset();
       }
+    }
+
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+		       const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      // skip NOPs
+      if (ops.OPS.ALUil.Rd == r0 && ops.OPS.ALUil.Rs1 == r0 && 
+	  ops.EX_result == 0 && ops.OPS.ALUil.Imm2 == 0) {
+	os << "nop";
+        return;
+      }
+      
+      printGPReg(os, "out: ", ops.OPS.ALUil.Rd,  ops.EX_result);
+      printGPReg(os, " in: ", ops.OPS.ALUil.Rs1, s.GPR);
+
+      printSymbol(os, " imm", ops.OPS.ALUil.Imm2, symbols);
     }
   };
 
@@ -363,6 +430,19 @@ namespace patmos
         ops.GPR_MW_Rd.reset();
       }
     }
+
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+		       const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printGPReg(os, "out: ", ops.OPS.ALUr.Rd , ops.EX_result);
+      printGPReg(os, " in: ", ops.OPS.ALUr.Rs1, s.GPR);
+      printGPReg(os, ", "   , ops.OPS.ALUr.Rs2, s.GPR);
+    }
   };
 
 #define ALUr_INSTR(name, expr) \
@@ -465,6 +545,18 @@ namespace patmos
         ops.GPR_MW_Rd.reset();
       }
     }
+
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+		       const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printGPReg(os, "out: ", ops.OPS.ALUu.Rd,  ops.EX_result);
+      printGPReg(os, " in: ", ops.OPS.ALUu.Rs1, s.GPR);
+    }
   };
 
 #define ALUu_INSTR(name, operator) \
@@ -537,6 +629,22 @@ namespace patmos
         s.SPR.set(sh, ops.EX_mulh);
       }
     }
+    
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+		       const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      // TODO result should actually not be available yet?
+      printSPReg(os, "out: ", sl, ops.EX_mull);
+      printSPReg(os, ", "   , sh, ops.EX_mulh);
+      printGPReg(os, " in: ", ops.OPS.ALUm.Rs1, s.GPR);
+      printGPReg(os, ", "   , ops.OPS.ALUm.Rs2, s.GPR);
+    }
+
   };
 
 #define ALUm_INSTR(name, type, stype) \
@@ -601,6 +709,19 @@ namespace patmos
     }
 
     // MW inherited from NOP
+    
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+		       const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      // TODO can we get Pd reliably in MW stage?
+      printGPReg(os, "in: ", ops.OPS.ALUc.Rs1, s.GPR);
+      printGPReg(os, ", "   , ops.OPS.ALUc.Rs2, s.GPR);
+    }    
   };
 
 #define ALUc_INSTR(name, operator) \
@@ -707,6 +828,19 @@ namespace patmos
     }
 
     // MW inherited from NOP.
+    
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+		       const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      // TODO can we get Pd reliably in MW stage?
+      printPPReg(os, "in: ", ops.OPS.ALUp.Ps1, ops.DR_Ps1);
+      printPPReg(os, ", "  , ops.OPS.ALUp.Ps2, ops.DR_Ps2);
+    }
   };
 
 #define ALUp_INSTR(name, lval, operator) \
@@ -879,6 +1013,17 @@ namespace patmos
     }
 
     // MW inherited from NOP
+
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+		       const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printGPReg(os, "in: ", ops.OPS.SPCt.Rs1, s.GPR);
+    }
   };
 
   /// Move a value from a special purpose register to a general purpose
@@ -966,6 +1111,17 @@ namespace patmos
         ops.GPR_MW_Rd.reset();
       }
     }
+    
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+		       const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printGPReg(os, "out: ", ops.OPS.SPCf.Rd, ops.EX_result);
+    }    
   };
 
   /// Base class for memory load instructions.
@@ -1033,6 +1189,20 @@ namespace patmos
         ops.GPR_MW_Rd.reset();
       }
     }
+
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+		       const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printGPReg(os, "out: ", ops.OPS.LDT.Rd, s.GPR);
+      printGPReg(os, " in: ", ops.OPS.LDT.Ra, s.GPR);
+      os << boost::format(" addr: %1$08x ") % ops.EX_Address;
+      symbols.print(os, ops.EX_Address);
+    }    
   };
 
 #define LD_INSTR(name, base, atype, ctype) \
@@ -1147,6 +1317,19 @@ namespace patmos
         s.Is_decoupled_load_active = false;
       }
     }
+
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+		       const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printGPReg(os, "in: " , ops.OPS.LDT.Ra, s.GPR);
+      os << boost::format(" addr: %1$08x ") % ops.EX_Address;
+      symbols.print(os, ops.EX_Address);
+    }    
   };
 
 #define DLD_INSTR(name, base, atype, ctype) \
@@ -1159,6 +1342,7 @@ namespace patmos
       printPred(os, ops.Pred); \
       os << boost::format("%1% sm = [r%2% + %3%]") % #name \
           % ops.OPS.LDT.Ra % ops.OPS.LDT.Imm; \
+      symbols.print(os, ops.EX_Address); \
     } \
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
     { \
@@ -1237,6 +1421,20 @@ namespace patmos
         }
       }
     }
+
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+		       const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printGPReg(os, "in: " , ops.OPS.STT.Ra, s.GPR);
+      printGPReg(os, ", "   , ops.OPS.STT.Rs1, ops.EX_Rs);
+      os << boost::format(" addr: %1$08x ") % ops.EX_Address;
+      symbols.print(os, ops.EX_Address);
+    }    
   };
 
 #define ST_INSTR(name, base, type) \
@@ -1433,6 +1631,17 @@ namespace patmos
     // EX implemented by sub-classes
 
     // MW inherited from NOP
+    
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+		       const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printSymbol(os, "PC", ops.EX_Address, symbols);
+    }
   };
 
 #define CFLB_INSTR(name, store, dispatch, new_base, target) \
@@ -1484,6 +1693,19 @@ namespace patmos
     // EX implemented by sub-classes
 
     // MW inherited from NOP
+    
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+		       const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printGPReg(os, "in: ", ops.OPS.CFLi.Rs, ops.EX_Address);
+      os << " ";
+      symbols.print(os, ops.EX_Address);
+    }
   };
 
 #define CFLI_INSTR(name, store, dispatch, new_base, target) \
@@ -1570,6 +1792,18 @@ namespace patmos
       // returning to address 0? interpret this as a halt.
       if (ops.DR_Pred && ops.DR_Base == 0)
         simulation_exception_t::halt(s.GPR.get(GPR_EXIT_CODE_INDEX).get());
+    }
+    
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+		       const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printGPReg(os, "in: ", ops.OPS.CFLr.Rb, s.GPR);
+      printGPReg(os, ", "  , ops.OPS.CFLr.Ro, s.GPR);
     }
   };
 
