@@ -335,6 +335,14 @@ namespace patmos
       os << "\n";
       return;
     }
+    else if (debug_fmt == DF_BLOCKS) {
+      if (Symbols.contains(PC)) {
+	os << boost::format("%1$08x %2$9d ") % PC % Cycle;
+	Symbols.print(os, PC);
+	os << "\n";
+      }
+      return;
+    }
 
     // print register values
     print_registers(os, debug_fmt);

@@ -41,6 +41,8 @@ namespace patmos
       df = DF_TRACE;
     else if(kind == "instr")
       df = DF_INSTRUCTIONS;
+    else if (kind == "blocks")
+      df = DF_BLOCKS;
     else if(kind == "default")
       df = DF_DEFAULT;
     else if(kind == "long")
@@ -64,6 +66,8 @@ namespace patmos
         os << "trace"; break;
       case DF_INSTRUCTIONS:
         os << "instr"; break;
+      case DF_BLOCKS:
+	os << "blocks"; break;
       case DF_DEFAULT:
         os << "default"; break;
       case DF_LONG:

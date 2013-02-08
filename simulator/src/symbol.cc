@@ -46,6 +46,13 @@ namespace patmos
     Is_sorted = false;
   }
 
+  bool symbol_map_t::contains(word_t address) const 
+  {
+    symbol_info_t val(address, 0, "");
+    
+    return std::binary_search(Symbols.begin(), Symbols.end(), val);
+  }
+  
   std::string symbol_map_t::find(word_t address) const
   {
     std::stringstream ss;
