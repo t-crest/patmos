@@ -76,6 +76,11 @@ namespace patmos
     /// @param symbol The symbol to add.
     void add(const symbol_info_t &symbol);
 
+    /// Check if the map contains a symbol for an address.
+    /// @param address The address for which the symbol should be searched.
+    /// @return True if the map contains at least one symbol for that address.
+    bool contains(word_t address) const;
+    
     /// Find a symbol given a specific address.
     /// \see print
     /// @param address The address for which symbol information should be
