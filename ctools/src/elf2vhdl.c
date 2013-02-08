@@ -85,6 +85,7 @@ static void readelf(const char *name)
 		start = start_offset/4;
 		words = size/4;
 printf("X section, %d\n", start);
+		break;  // Edgar: Overwise we'll free the program buffer if the text section is not the la
 	} else {
 		free(buf);
 	}
@@ -121,13 +122,14 @@ int main(int argc, char* argv[]) {
 //		if (i==1) {
 //			// val = 0x06400000 + start;
 //			// Why do we have tools and then fight with byte order..
-//			val = htonl(0x06400000 + start); 
-//			val = htonl(0x06400000 + entry); 
+//			val = htonl(0x06400000 + start);
+//			val = htonl(0x06400000 + entry);
 //		} else {
 //			val = 0;
 //		}
 //		write(fd, &val, 4);
 //	}
+	assert(entry-start >= 0);
 	for (i=entry-start; i<words; ++i) {
 		printf("%08x %08x\n", progr[i], htonl(progr[i]));
 		// val = htonl(progr[i]);
@@ -137,6 +139,6 @@ int main(int argc, char* argv[]) {
 	}
 	close(fd);
 
-	
+
 	return 0;
 }

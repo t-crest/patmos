@@ -5,11 +5,15 @@ CC=patmos-clang
 CFLAGS=-ccc-host-triple patmos-unknown-elf \
 	-nodefaultlibs -nostdlib -nostartfiles \
 	-fno-builtin -mfloat-abi=none \
-#	-mpatmos-disable-stack-cache \
 	-Ttext 0x10 \
-	-e main \
-	-O0
-#	-O3
+	-e main
+# Edgar2MS: the comments didn't work because all have to be one line, so the -Ttext and -e main was skipped which caused the elf2vhdl to crash
+ifeq ($(DISABLE_SC),y)
+CFLAGS+=-mpatmos-disable-stack-cache \
+	-O3
+else
+CFLAGS+=-O0
+endif
 
 CFLAGS-WITH-LIBS=-ccc-host-triple patmos-unknown-elf \
 	-nostartfiles \
@@ -21,10 +25,13 @@ CFLAGS-WITH-LIBS=-ccc-host-triple patmos-unknown-elf \
 
 CFLAGS_ASM=-ccc-host-triple patmos-unknown-elf \
 	-fno-builtin -mfloat-abi=none \
-#	-mpatmos-disable-stack-cache \
-        -fpatmos-emit-asm -S \
-	-O0
-#	-O3
+        -fpatmos-emit-asm -S
+ifeq ($(DISABLE_SC),y)
+CFLAGS_ASM+=-mpatmos-disable-stack-cache \
+	-O3
+else
+CFLAGS_ASM+=-O0
+endif
 
 %: %.c
 	$(CC) $(CFLAGS) -o $@ $^
