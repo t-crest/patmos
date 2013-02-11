@@ -84,17 +84,25 @@ architecture arch of patmos_mem_stage is
     
     signal gm_write_data					 : std_logic_vector(31 downto 0);
 	signal gm_data_out						 : std_logic_vector(31 downto 0);
-    signal gm_en							 : std_logic_vector(3 downto 0);
+    signal gm_en_reg						 : std_logic_vector(3 downto 0);
     signal gm_read_add, gm_write_add		 : std_logic_vector(9 downto 0);
     signal gm_en_spill						 : std_logic_vector(3 downto 0);
     signal gm_spill							 : std_logic_vector(3 downto 0);
+    signal gm_byte_enable					 : std_logic_vector(3 downto 0);
+	signal gm_word_enable					 : std_logic_vector(1 downto 0);
+    signal gm_read_data						 : std_logic_vector(31 downto 0);
+    signal gm_en							 : std_logic_vector(3 downto 0);
+    signal gm_ld_word						 : std_logic_vector(31 downto 0);
+    signal gm_ld_half						 : std_logic_vector(15 downto 0);
+    signal gm_ld_byte					 	 : std_logic_vector(7 downto 0);
+    signal prev_gm_en_reg					 : std_logic_vector(3 downto 0);
+    signal gm_half_ext, gm_byte_ext			 : std_logic_vector(31 downto 0);
     
     ------ stack cache
     signal sc_en							 : std_logic_vector(3 downto 0);
     signal sc_word_enable					 : std_logic_vector(1 downto 0);
     signal sc_byte_enable					 : std_logic_vector(3 downto 0);
     signal sc_read_data						 : std_logic_vector(31 downto 0);
-	signal sc_write_data					 : std_logic_vector(31 downto 0);
     signal sc_ld_word						 : std_logic_vector(31 downto 0);
     signal sc_ld_half						 : std_logic_vector(15 downto 0);
     signal sc_ld_byte					 	 : std_logic_vector(7 downto 0);
@@ -102,11 +110,9 @@ architecture arch of patmos_mem_stage is
     signal sc_data_out						 : std_logic_vector(31 downto 0);
     signal ld_data, prev_ld_data		 : std_logic_vector(31 downto 0);
   
-  	signal sc_read_add, sc_write_add		 : std_logic_vector(sc_length - 1 downto 0);
     signal state_reg, next_state			 : sc_state;
     signal mem_top, mem_top_next			 : std_logic_vector(31 downto 0);
 	signal sc_fill							 : std_logic_vector(3 downto 0);
-	signal sc_en_fill						 : std_logic_vector(3 downto 0);
 
 	signal spill, fill						 : std_logic;
 	signal stall							 : std_logic;	
@@ -136,6 +142,23 @@ begin
 	--- main memory for simulation
 	-- Ms: as you exchange 32-bit words you can have one memory with 32 bits
 	-- instead of four byte memories.
+	
+	process(exout_reg_adr_shft, spill, fill, mem_top, gm_spill, gm_en_reg,
+	gm_data_out, mem_write_data_stall) --SA: Main memory read/write address, normal load/store or fill/spill
+	begin
+		gm_read_add 		<= exout_reg_adr_shft(9 downto 0);
+		gm_write_add 		<= exout_reg_adr_shft(9 downto 0);
+		gm_en_spill 		<= gm_en_reg;
+		gm_write_data 		<= mem_write_data_stall;
+--		gm_read_data		<= gm_data_out;
+		if (spill = '1' or fill = '1') then	
+			gm_read_add 	<= mem_top(9 downto 0);
+			gm_en_spill 	<= gm_spill; -- this is for spilling ( writing to global memory)
+			gm_write_data 	<= sc_read_data;
+		end if;
+	end process;
+	
+	
 	gm0: entity work.patmos_data_memory(arch)
 		generic map(8, 10)
 		port map(clk,
@@ -143,7 +166,7 @@ begin
 			     gm_write_data(7 downto 0),
 			     gm_en_spill(0),
 			     gm_read_add,
-			     gm_data_out(7 downto 0));
+			     gm_read_data(7 downto 0));
  
 	gm1: entity work.patmos_data_memory(arch)
 		generic map(8, 10)
@@ -152,7 +175,7 @@ begin
 			     gm_write_data(15 downto 8),
 			     gm_en_spill(1),
 			     gm_read_add,
-			     gm_data_out(15 downto 8));
+			     gm_read_data(15 downto 8));
 			     
 	gm2: entity work.patmos_data_memory(arch)
 		generic map(8, 10)
@@ -161,7 +184,7 @@ begin
 			     gm_write_data(23 downto 16),
 			     gm_en_spill(2),
 			     gm_read_add,
-			     gm_data_out(23 downto 16));
+			     gm_read_data(23 downto 16));
 			     
 	gm3: entity work.patmos_data_memory(arch)
 		generic map(8, 10)
@@ -170,7 +193,7 @@ begin
 			     gm_write_data(31 downto 24),
 			     gm_en_spill(3),
 			     gm_read_add,
-			     gm_data_out(31 downto 24));		
+			     gm_read_data(31 downto 24));		
 	
 	---------------------------------------------- stack cache
 --	        clk       	             : in std_logic;
@@ -264,7 +287,7 @@ begin
 				nspill_fill_next <= exout_not_reg.nspill_fill;
 				dout.stall <= '0';
 			when spill_state =>
-				if ((signed(nspill_fill) - 1) >= 0) then
+				if ((signed(nspill_fill) - 1) >= 0) then -- this should be changed to bit comparison
 					mem_top_next <= std_logic_vector(signed(mem_top) - 1); 
 					nspill_fill_next <= std_logic_vector(signed(nspill_fill) - 1);
 					gm_spill <= "1111";
@@ -351,18 +374,20 @@ begin
 		end if;	
 	end process;
 	
-	process(stall, en, prev_en_reg,
+	process(stall, en, gm_en, prev_en_reg,
 			exout_not_reg, mem_write_data, prev_exout_reg_adr, 
 			prev_mem_write_data_reg)
 	begin
 		if (stall = '1') then
-			exout_reg_adr		<= prev_exout_reg_adr;
-			mem_write_data_stall <= prev_mem_write_data_reg;
-			en_reg				<= prev_en_reg;
+			exout_reg_adr			<= prev_exout_reg_adr;
+			mem_write_data_stall 	<= prev_mem_write_data_reg;
+			en_reg					<= prev_en_reg;
+			gm_en_reg				<= prev_gm_en_reg;
 		else
-			exout_reg_adr		<= exout_not_reg.adrs;
-			mem_write_data_stall <= mem_write_data;
-			en_reg				<= en;
+			exout_reg_adr			<= exout_not_reg.adrs;
+			mem_write_data_stall 	<= mem_write_data;
+			gm_en_reg				<= gm_en;
+			en_reg					<= en;
 		end if;
 	end process;
 	
@@ -372,7 +397,7 @@ begin
 	end process;
 	------------------------- ld from stack cache or  io/scratchpad or main memory? -----------------------------
 	
-	process(exout_reg, mem_data_out_muxed, sc_data_out) 
+	process(exout_reg, mem_data_out_muxed, sc_data_out, gm_data_out) 
 	begin
 		ld_data <= mem_data_out_muxed;
 		if (exout_reg.lm_read = '1') then 
@@ -387,10 +412,11 @@ begin
 	end process;
 
 	--------------------------- address muxes begin--------------------------		     
-	process( lm_dout, exout_reg, sc_read_data)
+	process( lm_dout, exout_reg, sc_read_data, gm_read_data)
 	begin
 		ld_word <= lm_dout(7 downto 0) & lm_dout(15 downto 8) & lm_dout(23 downto 16) & lm_dout(31 downto 24);
 		sc_ld_word <= sc_read_data(7 downto 0) & sc_read_data(15 downto 8) & sc_read_data(23 downto 16) & sc_read_data(31 downto 24); 
+		gm_ld_word <= gm_read_data(7 downto 0) & gm_read_data(15 downto 8) & gm_read_data(23 downto 16) & gm_read_data(31 downto 24);
 		
 		case exout_reg.adrs_reg(1) is
 			when '0' =>
@@ -398,9 +424,11 @@ begin
 				-- SA: I don't get this question, byte enables are generated this way to support BIG ENDIAN
 				ld_half <= lm_dout(7 downto 0) & lm_dout(15 downto 8);
 				sc_ld_half <= sc_read_data(7 downto 0) & sc_read_data(15 downto 8);
+				gm_ld_half <= gm_read_data(7 downto 0) & gm_read_data(15 downto 8);
 			when '1' =>
 				ld_half <= lm_dout(23 downto 16) & lm_dout(31 downto 24);
 				sc_ld_half <= sc_read_data(23 downto 16) & sc_read_data(31 downto 24);
+				gm_ld_half <= gm_read_data(23 downto 16) & gm_read_data(31 downto 24);
 			when others => null;
 		end case;
 		
@@ -408,15 +436,19 @@ begin
 		when "00" =>
 			ld_byte <= lm_dout(7 downto 0);
 			sc_ld_byte <= sc_read_data(7 downto 0);
+			gm_ld_byte <= gm_read_data(7 downto 0);
 		when "01" =>
 			ld_byte <= lm_dout(15 downto 8);
 			sc_ld_byte <= sc_read_data(15 downto 8);
+			gm_ld_byte <= gm_read_data(15 downto 8);
 		when "10" =>
 			ld_byte <= lm_dout(23 downto 16);
 			sc_ld_byte <= sc_read_data(23 downto 16);
+			gm_ld_byte <= gm_read_data(23 downto 16);
 		when "11" =>
 			ld_byte <= lm_dout(31 downto 24);
 			sc_ld_byte <= sc_read_data(31 downto 24);
+			gm_ld_byte <= gm_read_data(31 downto 24);
 		when others => null;
 	end case;		
 	end process;
@@ -426,20 +458,24 @@ begin
 	--------------------------- sign extension begin--------------------------
 	-- MS: why do we have double signe extension?
 	-- SA: what is a double sign extension?
-	process(ld_half, sc_ld_half, ld_byte, sc_ld_byte, s_u)
+	process(ld_half, sc_ld_half, gm_ld_half, ld_byte, sc_ld_byte, gm_ld_byte, s_u)
 	begin
 		if (s_u = '1') then
 			half_ext <= std_logic_vector(resize(signed(ld_half), 32));
 			sc_half_ext <= std_logic_vector(resize(signed(sc_ld_half), 32));
+			gm_half_ext <= std_logic_vector(resize(signed(gm_ld_half), 32));
 			
 			byte_ext <= std_logic_vector(resize(signed(ld_byte), 32));
 			sc_byte_ext <= std_logic_vector(resize(signed(sc_ld_byte), 32));
+			gm_byte_ext <= std_logic_vector(resize(signed(gm_ld_byte), 32));
 		else
 			half_ext <= std_logic_vector(resize(unsigned(ld_half), 32));
 			sc_half_ext <= std_logic_vector(resize(unsigned(sc_ld_half), 32));
+			gm_half_ext <= std_logic_vector(resize(unsigned(gm_ld_half), 32));
 			
 			byte_ext <= std_logic_vector(resize(unsigned(ld_byte), 32));
 			sc_byte_ext <= std_logic_vector(resize(unsigned(sc_ld_byte), 32));
+			gm_byte_ext <= std_logic_vector(resize(unsigned(gm_ld_byte), 32));
 		end if;
 	end process; 
 
@@ -448,18 +484,21 @@ begin
 	--------------------------- size muxe begin--------------------------
 	-- Ms: same here: why can't we share this
 	-- SA: share what?
-	process(byte_ext, half_ext, ld_word, ldt_type, sc_ld_word, sc_half_ext, sc_byte_ext)
+	process(byte_ext, half_ext, ld_word, ldt_type, sc_ld_word, gm_ld_word, sc_half_ext, gm_half_ext, sc_byte_ext, gm_byte_ext)
 	begin
 		case ldt_type is
 			when word => 
 				dout.data_mem_data_out <= ld_word;
-				sc_data_out	   <= sc_ld_word;	
+				sc_data_out	   <= sc_ld_word;
+				gm_data_out	   <= gm_ld_word;
 			when half =>
 				dout.data_mem_data_out <= half_ext;
 				sc_data_out	   <= sc_half_ext;
+				gm_data_out	   <= gm_half_ext;
 			when byte =>
 				dout.data_mem_data_out <= byte_ext;
 				sc_data_out	   <= sc_byte_ext;
+				gm_data_out	   <= gm_byte_ext;
 			when others => null;
 		end case;
 	end process;
@@ -470,15 +509,20 @@ begin
 	begin
 		byte_enable(3 downto 0) <= (others =>'0');
 		sc_byte_enable(3 downto 0) <= (others =>'0');
+		gm_byte_enable(3 downto 0) <= (others =>'0');
 		case exout_not_reg.adrs(1 downto 0) is
 			when "00"   => byte_enable(0) <= mem_write;
 							sc_byte_enable(0) <= exout_not_reg.sc_write_not_reg;
+							gm_byte_enable(0) <= exout_not_reg.gm_write_not_reg;
 			when "01"   => byte_enable(1) <= mem_write;
 							sc_byte_enable(1) <= exout_not_reg.sc_write_not_reg;
+							gm_byte_enable(1) <= exout_not_reg.gm_write_not_reg;
 			when "10"   => byte_enable(2) <= mem_write;
 							sc_byte_enable(2) <= exout_not_reg.sc_write_not_reg;
+							gm_byte_enable(2) <= exout_not_reg.gm_write_not_reg;
 			when "11"   => byte_enable(3) <= mem_write;
 							sc_byte_enable(3) <= exout_not_reg.sc_write_not_reg;
+							gm_byte_enable(3) <= exout_not_reg.gm_write_not_reg;
 			when others => null;
 		end case;
 	end process;
@@ -487,11 +531,14 @@ begin
 	begin
 		word_enable(1 downto 0) <= (others => '0');
 		sc_word_enable(1 downto 0) <= (others => '0');
+		sc_word_enable(1 downto 0) <= (others => '0');
 		case exout_not_reg.adrs(1) is
 			when '0'    => word_enable(0) <= mem_write;
 							sc_word_enable(0) <= exout_not_reg.sc_write_not_reg;
+							gm_word_enable(0) <= exout_not_reg.gm_write_not_reg;
 			when '1'    => word_enable(1) <= mem_write;
 							sc_word_enable(1) <= exout_not_reg.sc_write_not_reg;
+							gm_word_enable(1) <= exout_not_reg.gm_write_not_reg;
 			when others => null;
 		end case;
 	end process;
@@ -501,7 +548,7 @@ begin
 		case decdout.adrs_type is
 			when word => 
 				en(3 downto 0)             <= mem_write & mem_write & mem_write & mem_write;
-				
+				gm_en(3 downto 0)			<= exout_not_reg.gm_write_not_reg & exout_not_reg.gm_write_not_reg & exout_not_reg.gm_write_not_reg & exout_not_reg.gm_write_not_reg;
 				sc_en(3 downto 0)  			<= exout_not_reg.sc_write_not_reg & exout_not_reg.sc_write_not_reg & exout_not_reg.sc_write_not_reg & exout_not_reg.sc_write_not_reg;
 				
 				-- MS: why are the bytes here mixed up?
@@ -514,6 +561,9 @@ begin
 				en(3 downto 2)             <= word_enable(1) & word_enable(1);
 				en(1 downto 0)             <= word_enable(0) & word_enable(0);
 				
+				gm_en(3 downto 2)             <= gm_word_enable(1) & gm_word_enable(1);
+				gm_en(1 downto 0)             <= gm_word_enable(0) & gm_word_enable(0);
+				
 				sc_en(3 downto 2)          <= sc_word_enable(1) & sc_word_enable(1);
 				sc_en(1 downto 0)          <= sc_word_enable(0) & sc_word_enable(0);
 				
@@ -524,6 +574,8 @@ begin
 				mem_write_data(31 downto 24) <= exout_not_reg.mem_write_data(7 downto 0);
 			when byte =>
 				en(3 downto 0) <= byte_enable(3 downto 0);
+				
+				gm_en(3 downto 0) <= gm_byte_enable(3 downto 0);
 				
 				sc_en(3 downto 0) <= sc_byte_enable(3 downto 0);
 	
@@ -536,16 +588,6 @@ begin
 	end process;
 	
 
-	
---		if (stall = '1') then
---			exout_reg_adr		<= prev_exout_reg_adr;
---			mem_write_data_stall <= prev_mem_write_data_reg;
---			en_reg				<= prev_en_reg;
---		else
---			exout_reg_adr		<= exout_not_reg.adrs;
---			mem_write_data_stall <= mem_write_data;
---			en_reg				<= en;
---		end if;
 	
 -- write back with stall
 	process(mem_data_out_muxed, exout_reg, ld_data, stall, prev_ld_data)

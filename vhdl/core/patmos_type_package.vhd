@@ -217,41 +217,6 @@ package patmos_type_package is
 	end record;
 
 
---
---	type patmos_stack_cache_ctrl_in is record
-----		reserve_size	 : std_logic_vector(sc_depth downto 0);
---		
---		
---		
---		
---		instruction      : STC_instruction_type; -- from decode
---	--		st_in				: std_logic_vector(31 downto 0);
---	end record;
---
---	type patmos_stack_cache_ctrl_out is record
---		stall         : std_logic;
---		spill    : std_logic;
---		
---		head_tail     : std_logic_vector(4 downto 0); -- connect to stack cache
---		
---		st_out        : std_logic_vector(31 downto 0);
---		reg_write_out : std_logic;
---	end record;
---
---	type patmos_stack_cache_in is record
---		head_tail    : std_logic_vector(4 downto 0);
---		din_from_mem : std_logic_vector(31 downto 0); -- mem interface
---		din_from_cpu : std_logic_vector(31 downto 0);
---		spill_fill   : std_logic;
---		write_enable : std_logic;
---		address      : std_logic_vector(4 downto 0);
---	end record;
---
---	type patmos_stack_cache_out is record
---		dout_to_mem : std_logic_vector(31 downto 0); -- mem interface
---		dout_to_cpu : std_logic_vector(31 downto 0);
---	end record;
-
 
 	type cpu_out_type is record
 		wr_data									: std_logic_vector(31 downto 0);

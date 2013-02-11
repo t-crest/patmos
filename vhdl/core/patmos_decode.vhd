@@ -97,8 +97,10 @@ begin
 			comb_out.reg_write   	 <= '0'; -- 
 			comb_out.lm_read         <= '0';
 			comb_out.sc_read	     <= '0';
+			comb_out.gm_read         <= '0';
 			comb_out.lm_write		 <= '0';
 			comb_out.sc_write		 <= '0';
+			comb_out.gm_write		 <= '0';
 			comb_out.s_u 			 <= '1';
 			comb_out.BC 			 <= '0';
 			comb_out.pat_function_type_alu_cmp <= pat_cmpeq;
@@ -275,13 +277,13 @@ begin
 						----------------------------------------- global memory	
 						when "00011" =>
 							comb_out.adrs_type <= word;
-							comb_out.lm_write			  <= '1';
+							comb_out.gm_write			  <= '1';
 						when "00111" =>
 							comb_out.adrs_type <= half;
-							comb_out.lm_write			  <= '1';
+							comb_out.gm_write			  <= '1';
 						when "01011" =>
 							comb_out.adrs_type <= byte;
-							comb_out.lm_write			  <= '1';
+							comb_out.gm_write			  <= '1';
 							
 						---------------------------------------- data cache
 						when "00010" =>
@@ -349,20 +351,20 @@ begin
 						----------------------------------------- global memory	
 						when "00011" =>
 							comb_out.adrs_type <= word;
-							comb_out.lm_read       <= '1';
+							comb_out.gm_read       <= '1';
 						when "00111" =>
 							comb_out.adrs_type <= half;
-							comb_out.lm_read        <= '1';
+							comb_out.gm_read        <= '1';
 						when "01011" =>
 							comb_out.adrs_type <= byte;
-							comb_out.lm_read       <= '1';
+							comb_out.gm_read       <= '1';
 						when "01111" =>
 							comb_out.adrs_type <= half;
-							comb_out.lm_read       <= '1';
+							comb_out.gm_read       <= '1';
 							comb_out.s_u		<= '0';
 						when "10011" =>
 							comb_out.adrs_type <= byte;
-							comb_out.lm_read       <= '1';
+							comb_out.gm_read       <= '1';
 							comb_out.s_u		<= '0';
 						---------------------------------------- data cache
 						when "00010" =>
