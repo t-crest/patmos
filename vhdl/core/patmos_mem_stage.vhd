@@ -65,18 +65,18 @@ architecture arch of patmos_mem_stage is
 	signal word_enable					     : std_logic_vector(1 downto 0);
     signal ldt_type							 : address_type;
     signal datain						     : std_logic_vector(31 downto 0);
-    signal ld_word							 : std_logic_vector(31 downto 0);
+    signal lm_ld_word							 : std_logic_vector(31 downto 0);
     signal ld_half							 : std_logic_vector(15 downto 0);
     signal ld_byte						 	 : std_logic_vector(7 downto 0);
     signal	s_u								 : std_logic;
-    signal half_ext, byte_ext				 : std_logic_vector(31 downto 0);
+    signal lm_half_ext, lm_byte_ext				 : std_logic_vector(31 downto 0);
   	signal exout_reg_adr, prev_exout_reg_adr: std_logic_vector(31 downto 0);
   	signal exout_reg_adr_shft				 : std_logic_vector(31 downto 0);
     signal mem_write_data_stall				 : std_logic_vector(31 downto 0);
     signal prev_mem_write_data_reg			 : std_logic_vector(31 downto 0);
     signal prev_en_reg						 : std_logic_vector(3 downto 0);
     signal en_reg							 : std_logic_vector(3 downto 0);
-    
+    signal lm_data_out						 : std_logic_vector(31 downto 0);
     -- Data Cache
     signal dc_data_out						: std_logic_vector(31 downto 0);
     
@@ -397,15 +397,17 @@ begin
 	end process;
 	------------------------- ld from stack cache or  io/scratchpad or main memory? -----------------------------
 	
-	process(exout_reg, mem_data_out_muxed, sc_data_out, gm_data_out) 
+	process(exout_reg, mem_data_out_muxed, sc_data_out, lm_data_out) 
 	begin
 		ld_data <= mem_data_out_muxed;
 		if (exout_reg.lm_read = '1') then 
-			ld_data <= mem_data_out_muxed;
+			--ld_data <= mem_data_out_muxed;
+			ld_data <= lm_data_out;
 		elsif (exout_reg.sc_read = '1') then
 			ld_data <= sc_data_out;
 		elsif (exout_reg.gm_read = '1') then
-			ld_data <= gm_data_out;
+			--ld_data <= gm_data_out;
+			ld_data	<= mem_data_out_muxed;
 		elsif (exout_reg.dc_read = '1') then
 			ld_data <= dc_data_out;
 		end if;
@@ -414,7 +416,7 @@ begin
 	--------------------------- address muxes begin--------------------------		     
 	process( lm_dout, exout_reg, sc_read_data, gm_read_data)
 	begin
-		ld_word <= lm_dout(7 downto 0) & lm_dout(15 downto 8) & lm_dout(23 downto 16) & lm_dout(31 downto 24);
+		lm_ld_word <= lm_dout(7 downto 0) & lm_dout(15 downto 8) & lm_dout(23 downto 16) & lm_dout(31 downto 24);
 		sc_ld_word <= sc_read_data(7 downto 0) & sc_read_data(15 downto 8) & sc_read_data(23 downto 16) & sc_read_data(31 downto 24); 
 		gm_ld_word <= gm_read_data(7 downto 0) & gm_read_data(15 downto 8) & gm_read_data(23 downto 16) & gm_read_data(31 downto 24);
 		
@@ -461,19 +463,19 @@ begin
 	process(ld_half, sc_ld_half, gm_ld_half, ld_byte, sc_ld_byte, gm_ld_byte, s_u)
 	begin
 		if (s_u = '1') then
-			half_ext <= std_logic_vector(resize(signed(ld_half), 32));
+			lm_half_ext <= std_logic_vector(resize(signed(ld_half), 32));
 			sc_half_ext <= std_logic_vector(resize(signed(sc_ld_half), 32));
 			gm_half_ext <= std_logic_vector(resize(signed(gm_ld_half), 32));
 			
-			byte_ext <= std_logic_vector(resize(signed(ld_byte), 32));
+			lm_byte_ext <= std_logic_vector(resize(signed(ld_byte), 32));
 			sc_byte_ext <= std_logic_vector(resize(signed(sc_ld_byte), 32));
 			gm_byte_ext <= std_logic_vector(resize(signed(gm_ld_byte), 32));
 		else
-			half_ext <= std_logic_vector(resize(unsigned(ld_half), 32));
+			lm_half_ext <= std_logic_vector(resize(unsigned(ld_half), 32));
 			sc_half_ext <= std_logic_vector(resize(unsigned(sc_ld_half), 32));
 			gm_half_ext <= std_logic_vector(resize(unsigned(gm_ld_half), 32));
 			
-			byte_ext <= std_logic_vector(resize(unsigned(ld_byte), 32));
+			lm_byte_ext <= std_logic_vector(resize(unsigned(ld_byte), 32));
 			sc_byte_ext <= std_logic_vector(resize(unsigned(sc_ld_byte), 32));
 			gm_byte_ext <= std_logic_vector(resize(unsigned(gm_ld_byte), 32));
 		end if;
@@ -484,19 +486,22 @@ begin
 	--------------------------- size muxe begin--------------------------
 	-- Ms: same here: why can't we share this
 	-- SA: share what?
-	process(byte_ext, half_ext, ld_word, ldt_type, sc_ld_word, gm_ld_word, sc_half_ext, gm_half_ext, sc_byte_ext, gm_byte_ext)
+	process( ldt_type, sc_ld_word, gm_ld_word, lm_ld_word, sc_half_ext, lm_half_ext, gm_half_ext, lm_byte_ext, sc_byte_ext, gm_byte_ext)
 	begin
 		case ldt_type is
 			when word => 
-				dout.data_mem_data_out <= ld_word;
+				dout.data_mem_data_out <= gm_ld_word;
+				lm_data_out	   <= lm_ld_word;	
 				sc_data_out	   <= sc_ld_word;
 				gm_data_out	   <= gm_ld_word;
 			when half =>
-				dout.data_mem_data_out <= half_ext;
+				dout.data_mem_data_out <= gm_half_ext;
+				lm_data_out	   <= lm_half_ext;
 				sc_data_out	   <= sc_half_ext;
 				gm_data_out	   <= gm_half_ext;
 			when byte =>
-				dout.data_mem_data_out <= byte_ext;
+				dout.data_mem_data_out <= gm_byte_ext;
+				lm_data_out	   <= lm_byte_ext;
 				sc_data_out	   <= sc_byte_ext;
 				gm_data_out	   <= gm_byte_ext;
 			when others => null;
@@ -511,18 +516,21 @@ begin
 		sc_byte_enable(3 downto 0) <= (others =>'0');
 		gm_byte_enable(3 downto 0) <= (others =>'0');
 		case exout_not_reg.adrs(1 downto 0) is
-			when "00"   => byte_enable(0) <= mem_write;
-							sc_byte_enable(0) <= exout_not_reg.sc_write_not_reg;
-							gm_byte_enable(0) <= exout_not_reg.gm_write_not_reg;
-			when "01"   => byte_enable(1) <= mem_write;
-							sc_byte_enable(1) <= exout_not_reg.sc_write_not_reg;
-							gm_byte_enable(1) <= exout_not_reg.gm_write_not_reg;
-			when "10"   => byte_enable(2) <= mem_write;
-							sc_byte_enable(2) <= exout_not_reg.sc_write_not_reg;
-							gm_byte_enable(2) <= exout_not_reg.gm_write_not_reg;
-			when "11"   => byte_enable(3) <= mem_write;
-							sc_byte_enable(3) <= exout_not_reg.sc_write_not_reg;
-							gm_byte_enable(3) <= exout_not_reg.gm_write_not_reg;
+			when "00"   => byte_enable(0) 		<= exout_not_reg.lm_write_not_reg;
+							sc_byte_enable(0) 	<= exout_not_reg.sc_write_not_reg;
+							gm_byte_enable(0) 	<= mem_write;
+							
+			when "01"   => byte_enable(1) 		<= exout_not_reg.lm_write_not_reg;
+							sc_byte_enable(1) 	<= exout_not_reg.sc_write_not_reg;
+							gm_byte_enable(1) 	<= mem_write;
+							
+			when "10"   => byte_enable(2)		<= exout_not_reg.lm_write_not_reg;
+							sc_byte_enable(2) 	<= exout_not_reg.sc_write_not_reg;
+							gm_byte_enable(2) 	<= mem_write;
+							
+			when "11"   => byte_enable(3) 		<= exout_not_reg.lm_write_not_reg;
+							sc_byte_enable(3) 	<= exout_not_reg.sc_write_not_reg;
+							gm_byte_enable(3) 	<= mem_write;
 			when others => null;
 		end case;
 	end process;
@@ -533,12 +541,12 @@ begin
 		sc_word_enable(1 downto 0) <= (others => '0');
 		sc_word_enable(1 downto 0) <= (others => '0');
 		case exout_not_reg.adrs(1) is
-			when '0'    => word_enable(0) <= mem_write;
+			when '0'    => word_enable(0) <= exout_not_reg.lm_write_not_reg;
 							sc_word_enable(0) <= exout_not_reg.sc_write_not_reg;
-							gm_word_enable(0) <= exout_not_reg.gm_write_not_reg;
-			when '1'    => word_enable(1) <= mem_write;
+							gm_word_enable(0) <= mem_write;
+			when '1'    => word_enable(1) <= exout_not_reg.lm_write_not_reg;
 							sc_word_enable(1) <= exout_not_reg.sc_write_not_reg;
-							gm_word_enable(1) <= exout_not_reg.gm_write_not_reg;
+							gm_word_enable(1) <= mem_write;
 			when others => null;
 		end case;
 	end process;
@@ -547,8 +555,8 @@ begin
 	begin
 		case decdout.adrs_type is
 			when word => 
-				en(3 downto 0)             <= mem_write & mem_write & mem_write & mem_write;
-				gm_en(3 downto 0)			<= exout_not_reg.gm_write_not_reg & exout_not_reg.gm_write_not_reg & exout_not_reg.gm_write_not_reg & exout_not_reg.gm_write_not_reg;
+				en(3 downto 0)             <= exout_not_reg.lm_write_not_reg & exout_not_reg.lm_write_not_reg & exout_not_reg.lm_write_not_reg & exout_not_reg.lm_write_not_reg;
+				gm_en(3 downto 0)			<= mem_write & mem_write & mem_write & mem_write;
 				sc_en(3 downto 0)  			<= exout_not_reg.sc_write_not_reg & exout_not_reg.sc_write_not_reg & exout_not_reg.sc_write_not_reg & exout_not_reg.sc_write_not_reg;
 				
 				-- MS: why are the bytes here mixed up?
