@@ -366,7 +366,8 @@ int main(int argc, char **argv)
     ("binary,b", boost::program_options::value<std::string>()->default_value("-"), "binary or elf-executable file (stdin: -)")
     ("output,o", boost::program_options::value<std::string>()->default_value("-"), "output execution trace in file (stdout: -)")
     ("debug", boost::program_options::value<unsigned int>()->implicit_value(0), "enable step-by-step debug tracing after cycle")
-    ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), "format of the debug trace (short, trace, instr, blocks, default, long, all)")
+    ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), "format of the debug trace (short, trace, trace-stack, instr, blocks, default, long, all)")
+    ("debug-file", boost::program_options::value<std::string>()->default_value("-"), "output debug trace in file (stderr: -)")
     ("quiet,q", "disable statistics output");
 
   boost::program_options::options_description memory_options("Memory options");
@@ -428,6 +429,8 @@ int main(int argc, char **argv)
   std::string uart_in(vm["in"].as<std::string>());
   std::string uart_out(vm["out"].as<std::string>());
 
+  std::string debug_out(vm["debug-file"].as<std::string>());
+
   unsigned int ustatus = vm["ustatus"].as<unsigned int>();
   unsigned int udata = vm["udata"].as<unsigned int>();
 
@@ -459,6 +462,8 @@ int main(int argc, char **argv)
   std::ostream *out = NULL;
   std::ostream *uout = NULL;
 
+  std::ostream *dout = NULL;
+
   // setup simulation framework
   patmos::memory_t &gm = create_global_memory(gtime, gsize);
   patmos::stack_cache_t &sc = create_stack_cache(sck, scsize, gm);
@@ -474,10 +479,12 @@ int main(int argc, char **argv)
     uin = patmos::get_stream<std::ifstream>(uart_in, std::cin);
     uout = patmos::get_stream<std::ofstream>(uart_out, std::cout);
 
+    dout = patmos::get_stream<std::ofstream>(debug_out, std::cerr);
+
     // check if the uart input stream is a tty.
     bool uin_istty = (uin == &std::cin) && isatty(STDIN_FILENO);
 
-    assert(in && out && uin && uout);
+    assert(in && out && uin && uout && dout);
 
     // finalize simulation framework
     patmos::ideal_memory_t lm(lsize);
@@ -496,7 +503,7 @@ int main(int argc, char **argv)
     // start execution
     try
     {
-      s.run(entry, debug_cycle, debug_fmt, max_cycle);
+      s.run(entry, debug_cycle, debug_fmt, *dout, max_cycle);
       s.print_stats(*out);
     }
     catch (patmos::simulation_exception_t e)
@@ -569,6 +576,8 @@ int main(int argc, char **argv)
 
   patmos::free_stream(uin, std::cin);
   patmos::free_stream(uout, std::cout);
+
+  patmos::free_stream(dout, std::cerr);
 
   return exit_code;
 }
