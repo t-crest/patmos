@@ -92,6 +92,11 @@ namespace patmos
     /// @return True when the requested data is actually in the cache, false
     /// otherwise.
     virtual bool ensure(uword_t size, uword_t &stack_top) = 0;
+
+    /// Trace the change in occupation of the stack cache to an output stream.
+    /// @param os The output stream to print the trace to.
+    /// @param cycle The current value of the cycle counter.
+    virtual void trace(std::ostream &os, uword_t cycle) = 0;
   };
 
   /// An ideal stack cache with "infinite" space.
@@ -211,6 +216,15 @@ namespace patmos
       os << "\n";
     }
 
+    /// Trace the change in occupation of the stack cache to an output stream.
+    /// @param os The output stream to print the trace to.
+    /// @param cycle The current value of the cycle counter.
+    virtual void trace(std::ostream &os, uword_t cycle)
+    {
+      os << boost::format("Cyc: %1$020d Total: %2$010d Cache: %3$010d\n")
+         % cycle % Content.size() % Content.size();
+    }
+
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
     virtual void print_stats(std::ostream &os)
@@ -263,6 +277,14 @@ namespace patmos
     /// The number of blocks currently spilled to memory.
     unsigned int Num_spilled_blocks;
 
+    // *************************************************************************
+    // tracing
+
+    /// Last total amount of allocated blocks printed during tracing.
+    unsigned int Traced_total;
+
+    /// Last amount of reserved blocks printed during tracing.
+    unsigned int Traced_reserved;
 
     // *************************************************************************
     // statistics
@@ -629,6 +651,26 @@ namespace patmos
 
       // print stack cache content
       ideal_stack_cache_t::print(os);
+    }
+
+    /// Trace the change in occupation of the stack cache to an output stream.
+    /// @param os The output stream to print the trace to.
+    /// @param cycle The current value of the cycle counter.
+    virtual void trace(std::ostream &os, uword_t cycle)
+    {
+      // only trace on change and when we are in an IDLE state, i.e, no 
+      // spill/fill going on.
+      if (Phase == IDLE &&
+          (Traced_total != (Num_spilled_blocks + Num_reserved_blocks) ||
+           Traced_reserved != Num_reserved_blocks))
+      {
+        os << boost::format("Cyc: %1$020d Total: %2$010d Cache: %3$010d\n")
+          % cycle % (Num_spilled_blocks + Num_reserved_blocks)
+          % Num_reserved_blocks;
+
+        Traced_total = (Num_spilled_blocks + Num_reserved_blocks);
+        Traced_reserved = Num_reserved_blocks;
+      }
     }
 
     /// Print statistics to an output stream.

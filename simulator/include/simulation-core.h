@@ -26,6 +26,7 @@
 #include "exception.h"
 
 #include <limits>
+#include <iostream>
 
 namespace patmos
 {
@@ -186,10 +187,12 @@ namespace patmos
     /// Perform a step of the simulation for a given pipeline.
     /// @param pst The pipeline stage.
     /// @param f The simulation/commit function to invoke.
+    /// @param debug_out Stream to print debug output.
     /// @param debug Flag indicating whether debug output should be printed.
     void pipeline_invoke(Pipeline_t pst,
                          void (instruction_data_t::*f)(simulator_t &),
-                         bool debug = false);
+                         bool debug = false,
+                         std::ostream &debug_out = std::cerr);
 
     /// Stall the pipeline up to *not* including the given pipeline stage.
     /// @param pst The pipeline stage up to which instructions should be
@@ -214,10 +217,12 @@ namespace patmos
     /// from this entry address.
     /// @param debug_cycle Print debug trace starting at the given cycle.
     /// @param debug_fmt Format of the debug trace.
+    /// @param debug_out Stream to print debug output.
     /// @param max_cycles The maximum number of cycles to run the simulation.
     void run(word_t entry = 0,
              uint64_t debug_cycle = std::numeric_limits<uint64_t>::max(),
              debug_format_e debug_fmt = DF_DEFAULT,
+             std::ostream &debug_out = std::cerr,
              uint64_t max_cycles = std::numeric_limits<uint64_t>::max());
 
     /// Print the internal state of the simulator to an output stream.

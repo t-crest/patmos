@@ -33,6 +33,7 @@ namespace patmos
     DF_TRACE,
     DF_INSTRUCTIONS,
     DF_BLOCKS,
+    DF_TRACE_STACK,
     DF_DEFAULT,
     DF_LONG,
     DF_ALL

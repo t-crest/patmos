@@ -62,11 +62,11 @@ namespace patmos
 
   void simulator_t::pipeline_invoke(Pipeline_t pst,
                                    void (instruction_data_t::*f)(simulator_t &),
-                                   bool debug)
+                                   bool debug, std::ostream &debug_out)
   {
     if (debug)
     {
-      std::cerr << boost::format("%1% : ") % pst;
+      debug_out << boost::format("%1% : ") % pst;
     }
 
     // invoke simulation functions
@@ -77,10 +77,10 @@ namespace patmos
       {
         if (i != 0)
         {
-          std::cerr << " || ";
+          debug_out << " || ";
         }
-        Pipeline[pst][i].print(std::cerr, Symbols);
-        std::cerr.flush();
+        Pipeline[pst][i].print(debug_out, Symbols);
+        debug_out.flush();
       }
 
       // simulate the respective pipeline stage of the instruction
@@ -89,7 +89,7 @@ namespace patmos
 
     if (debug)
     {
-      std::cerr << "\n";
+      debug_out << "\n";
     }
   }
 
@@ -99,7 +99,8 @@ namespace patmos
   }
 
   void simulator_t::run(word_t entry, uint64_t debug_cycle,
-                        debug_format_e debug_fmt, uint64_t max_cycles)
+                        debug_format_e debug_fmt, std::ostream &debug_out,
+                        uint64_t max_cycles)
   {
     // do some initializations before executing the first instruction.
     if (Cycle == 0)
@@ -120,9 +121,9 @@ namespace patmos
 
         if (debug_pipline)
         {
-          std::cerr << "dMW: ";
-          Decoupled_load.print(std::cerr, Symbols);
-          std::cerr << "\n";
+          debug_out << "dMW: ";
+          Decoupled_load.print(debug_out, Symbols);
+          debug_out << "\n";
         }
 
         // invoke simulation functions
@@ -232,7 +233,7 @@ namespace patmos
 
         if (debug)
         {
-          print(std::cerr, debug_fmt);
+          print(debug_out, debug_fmt);
         }
       }
     }
@@ -312,7 +313,8 @@ namespace patmos
 
   void simulator_t::print(std::ostream &os, debug_format_e debug_fmt) const
   {
-    if (debug_fmt == DF_TRACE) {
+    if (debug_fmt == DF_TRACE)
+    {
       os << boost::format("%1$08x %2%\n") % PC % Cycle;
       return;
     } 
@@ -343,29 +345,35 @@ namespace patmos
       }
       return;
     }
-
-    // print register values
-    print_registers(os, debug_fmt);
-
-    if (debug_fmt == DF_ALL)
+    else if (debug_fmt == DF_TRACE_STACK)
     {
-      // print state of method cache
-      os << "Method Cache:\n";
-      Method_cache.print(os);
+      Stack_cache.trace(os, Cycle);
+    }
+    else
+    {
+      // print register values
+      print_registers(os, debug_fmt);
 
-      // print state of data cache
-      os << "Data Cache:\n";
-      Data_cache.print(os);
+      if (debug_fmt == DF_ALL)
+      {
+        // print state of method cache
+        os << "Method Cache:\n";
+        Method_cache.print(os);
 
-      // print state of stack cache
-      os << "Stack Cache:\n";
-      Stack_cache.print(os);
+        // print state of data cache
+        os << "Data Cache:\n";
+        Data_cache.print(os);
 
-      // print state of main memory
-      os << "Memory:\n";
-      Memory.print(os);
+        // print state of stack cache
+        os << "Stack Cache:\n";
+        Stack_cache.print(os);
 
-      os << "\n";
+        // print state of main memory
+        os << "Memory:\n";
+        Memory.print(os);
+
+        os << "\n";
+      }
     }
   }
 
