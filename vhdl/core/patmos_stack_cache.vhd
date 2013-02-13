@@ -48,10 +48,10 @@ entity patmos_stack_cache is
     	clk       	         				: in std_logic;
     	rst									: in std_logic;
        	cpu_out								: in cpu_out_type;
-		cpu_in								: out sc_in_type;
+		cpu_in								: out cpu_in_type;
 
-		mem_out								: out sc_out_type;
-		mem_in								: in sc_in_type
+		mem_out								: in gm_out_type;
+		mem_in								: out gm_in_type
        	
   );    
 end entity patmos_stack_cache;
@@ -104,7 +104,7 @@ begin
 			     
 	-------------------------------------------------------------------------		 
 	
-	process(cpu_out.address) -- shift the address. . . 
+	process(cpu_out.address) -- shift the address. . . did it already in mem stage should pass that value . . .
 	begin
 		exout_reg_adr_shft <= "00" & cpu_out.address(31 downto 2); 
 	end process;    
@@ -122,17 +122,15 @@ begin
 		sc_write_add 	<= exout_reg_adr_shft(sc_length - 1 downto 0);
 		sc_en_fill 		<= cpu_out.sc_en;
 		sc_write_data 	<= cpu_out.wr_data;
---		if (spill = '1' or fill = '1') then	
---			cpu_in.rd_add <= mem_top(9 downto 0);
---			sc_read_add <= mem_top(sc_length - 1 downto 0) and SC_MASK;
---			gm_en_spill <= gm_spill; -- this is for spilling ( writing to main memory)
---			cpu_in.rd_data <= sc_read_data;
---			sc_en_fill <= sc_fill; -- this is for filling!
---			sc_write_data <= cpu_out.wr_data;
---			--sc_write_add <= ; -- spill
---		end if;
+		if (cpu_out.spill_fill = '1') then	
+			sc_read_add <= cpu_out.mem_top(sc_length - 1 downto 0) and SC_MASK;
+			mem_in.wr_data  <= sc_read_data;
+			sc_en_fill 		<= cpu_out.sc_fill; -- this is for filling!
+			sc_write_data   <= mem_out.wr_data;
+			sc_write_add	<= cpu_out.wr_add;
+		end if;
 	end process;
      
 end arch;
 
-
+--							mem[mem_top] = sc[mem_top & SC_MASK];

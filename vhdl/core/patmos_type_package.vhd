@@ -55,7 +55,7 @@ package patmos_type_package is
 	type function_type_alu_u					is(pat_sext8, pat_sext16, pat_zext16, pat_abs);
 	type function_type_alu_p					is (pat_por, pat_pand, pat_pxor, pat_pnor);
 	type function_type_alu_cmp					is (pat_cmpeq, pat_cmpneq, pat_cmplt, pat_cmple, pat_cmpult, pat_cmpule, pat_btest);
-	type isntrucion								is (none, st, ld, nop, br, alu, alui, res, ens, free);
+	type isntrucion								is (none, st, ld, nop, br, alu, alui, res, ens, free, mts);
 	type function_type_sc						is (none, reserve, free, ensure);
 	type function_type_clfb						is (none, call, br, brcf);
   	type sc_state								is (init, spill_state, fill_state, free_state);
@@ -194,7 +194,8 @@ package patmos_type_package is
 		spill									 : std_logic;
 		fill									 : std_logic;
 		free									 : std_logic;
-		nspill_fill								 : std_logic_vector(31 downto 0); -- this is too big and not real, should trim the addresses otherwise  
+		nspill_fill								 : std_logic_vector(31 downto 0); -- this is too big and not real, should trim the addresses otherwise
+--		sc_top								 : std_logic;  
 	end record;
 	
 
@@ -220,9 +221,36 @@ package patmos_type_package is
 
 	type cpu_out_type is record
 		wr_data									: std_logic_vector(31 downto 0);
+		wr_add									: std_logic_vector(5 downto 0);
 		sc_en									: std_logic_vector(3 downto 0);
 		address									: std_logic_vector(31 downto 0);
+		spill_fill								: std_logic;
+		mem_top									: std_logic_vector(31 downto 0);
+		sc_fill									: std_logic_vector(3 downto 0);
 	end record;
+	
+	type cpu_in_type is record
+		wr_data									: std_logic_vector(31 downto 0);
+		rd_data									: std_logic_vector(31 downto 0);
+		sc_en									: std_logic_vector(3 downto 0);
+		address									: std_logic_vector(31 downto 0);
+		spill_fill								: std_logic;
+	end record;
+	
+	type gm_in_type is record
+		wr_data									: std_logic_vector(31 downto 0);
+--		sc_en									: std_logic_vector(3 downto 0);
+--		address									: std_logic_vector(31 downto 0);
+--		spill_fill								: std_logic;
+	end record;
+	
+	type gm_out_type is record
+		wr_data									: std_logic_vector(31 downto 0);
+		sc_en									: std_logic_vector(3 downto 0);
+		address									: std_logic_vector(31 downto 0);
+		spill_fill								: std_logic;
+	end record;
+	
 
 	type instruction_memory_in_type is record
 		address      : std_logic_vector(31 downto 0);

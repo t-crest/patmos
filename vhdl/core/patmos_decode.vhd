@@ -191,11 +191,17 @@ begin
 		
 			else
 			case din.operation(26 downto 22) is --mfs/mts
-				when "01001" => 					-- SPC
+				
+				when "01001" => 
+					comb_out.inst 		  <= mts;	-- SPC
 					comb_out.spc 		  <= '1';
 					case din.operation(6 downto 4) is
 						when "010" =>				-- SPCt
-							comb_out.spc_reg_write(to_integer(unsigned(din.operation(3 downto 0)))) <= '1'; -- write enable for special register
+							case din.operation(3 downto 0) is
+								when "0110" =>
+									comb_out.spc_reg_write(to_integer(unsigned(din.operation(3 downto 0)))) <= '1'; -- write enable for special register
+								when others => null;
+							end case;
 						when "011" =>				-- SPCf
 							comb_out.reg_write    <= '1'; -- write enable for register
 						when others => null;

@@ -108,7 +108,7 @@ architecture arch of patmos_mem_stage is
     signal sc_ld_byte					 	 : std_logic_vector(7 downto 0);
     signal sc_half_ext, sc_byte_ext			 : std_logic_vector(31 downto 0);
     signal sc_data_out						 : std_logic_vector(31 downto 0);
-    signal ld_data, prev_ld_data		 : std_logic_vector(31 downto 0);
+    signal ld_data, prev_ld_data		 	 : std_logic_vector(31 downto 0);
   
     signal state_reg, next_state			 : sc_state;
     signal mem_top, mem_top_next			 : std_logic_vector(31 downto 0);
@@ -119,10 +119,10 @@ architecture arch of patmos_mem_stage is
 	signal nspill_fill, nspill_fill_next	 : std_logic_vector(31 downto 0);
 
 	signal cpu_out							 : cpu_out_type;
-	signal	cpu_in							 : sc_in_type;
+	signal	cpu_in							 : cpu_in_type;
 
-	signal	mem_out							 : sc_out_type;
-	signal	mem_in							 : sc_in_type;
+	signal	gm_out							 : gm_out_type;
+	signal	gm_in							 : gm_in_type;
 
 
 begin
@@ -153,8 +153,10 @@ begin
 --		gm_read_data		<= gm_data_out;
 		if (spill = '1' or fill = '1') then	
 			gm_read_add 	<= mem_top(9 downto 0);
+			gm_read_add 	<= mem_top(9 downto 0);
 			gm_en_spill 	<= gm_spill; -- this is for spilling ( writing to global memory)
-			gm_write_data 	<= sc_read_data;
+			gm_write_data 	<= gm_in.wr_data; -- comes from sc
+			
 		end if;
 	end process;
 	
@@ -211,17 +213,23 @@ begin
        	cpu_out,
 		cpu_in,
 
-		mem_out,
-		mem_in   	
+		gm_out,
+		gm_in   	
   	);   
   	
-  	process(exout_reg_adr, sc_en, mem_write_data_stall, cpu_in)
+  	process(exout_reg_adr, sc_en, gm_read_data, cpu_in, spill, fill, mem_top, sc_fill)
   	begin
-  		cpu_out.address 	<=	exout_reg_adr;
-  		cpu_out.sc_en		<=	sc_en;
-  		cpu_out.wr_data		<=	mem_write_data_stall;
-  		sc_read_data		<=  cpu_in.rd_data;
+  		cpu_out.address 	<= exout_reg_adr;
+  		cpu_out.sc_en		<= sc_en;
+  		cpu_out.wr_data		<= gm_read_data;
+  		sc_read_data		<= cpu_in.rd_data;
+  		cpu_out.spill_fill  <= spill or fill;
+  		cpu_out.mem_top		<= mem_top;
+  		cpu_out.sc_fill		<= sc_fill;
+  		cpu_out.wr_add		<= mem_top(sc_length - 1 downto 0) and SC_MASK;
   	end process;    
+--sc[mem_top & SC_MASK] = mem[mem_top];
+
 
 	process(clk, rst)
 	begin 
@@ -272,14 +280,14 @@ begin
 	-- Output process
 	process(state_reg, exout_not_reg, mem_top, nspill_fill)
 	begin
-		if (decdout.sr(3 downto 0) = "0110" and decdout.spc = '1') then
+		if (decdout.spc_reg_write(6) = '1') then
 			mem_top_next 	<= exout_not_reg.mem_top;
 		else
 			mem_top_next 	<= mem_top;
 		end if;
 		dout.stall 			<= '0';
-		stall <= '0';
-		spill <= '0';
+		stall 				<= '0';
+		spill 				<= '0';
 		case state_reg is
 			when init =>
 				sc_fill <= "0000";
@@ -287,13 +295,12 @@ begin
 				nspill_fill_next <= exout_not_reg.nspill_fill;
 				dout.stall <= '0';
 			when spill_state =>
-				if ((signed(nspill_fill) - 1) >= 0) then -- this should be changed to bit comparison
+				if ((signed(nspill_fill) - 1) > 0) then -- this should be changed to bit comparison
 					mem_top_next <= std_logic_vector(signed(mem_top) - 1); 
 					nspill_fill_next <= std_logic_vector(signed(nspill_fill) - 1);
-					gm_spill <= "1111";
+					gm_spill <= "1111"; -- spill in words?
 					spill <= '1';
 					stall <= '1';
-					dout.stall <= '1';
 				else
 					gm_spill <= "0000";
 					spill <= '0';
@@ -302,16 +309,29 @@ begin
 				end if;
 				 
 			when fill_state =>
-				nspill_fill_next <= exout_not_reg.nspill_fill;
-				--mem_top <= 
+				if ((signed(nspill_fill) - 1) > 0) then
+					mem_top_next <= std_logic_vector(signed(mem_top) + 1); 
+					nspill_fill_next <= std_logic_vector(signed(nspill_fill) - 1);
+					sc_fill <= "1111"; -- fill in words?
+					fill <= '1';
+					stall <= '1';
+				else
+					sc_fill <= "0000";
+					fill <= '0';
+					stall <= '0';
+					nspill_fill_next <= exout_not_reg.nspill_fill;
+				end if;
 			when free_state	=>
-				mem_top_next	<= exout_not_reg.mem_top;
+				if (exout_not_reg.sc_top > mem_top) then
+					mem_top_next <= exout_not_reg.sc_top;
+				end if;
 		end case;
 	end process;
 	
-	process(mem_top)
+	process(mem_top, stall)
 	begin
 		dout.mem_top <= mem_top;
+		dout.stall   <= stall;
 	end process;
 	-----------------------------------------------
 	-- MS: If a registered address from EX is used here and there is an address

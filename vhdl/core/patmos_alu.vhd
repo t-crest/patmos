@@ -283,16 +283,16 @@ begin
 		end if;
 	end process;
 	
-	process(rd, decdout, spc, spc_reg, spc_reg_write)
+	process(rd)--, decdout, spc, spc_reg, spc_reg_write)
 	begin
 		rd_rs 	 <= rd;
-		if (decdout.spc = '1') then
-			if (spc_reg_write(to_integer(unsigned(decdout.sr(3 downto 0)))) = '1') then
-				rd_rs <= spc_reg;
-			else
-				rd_rs <= spc;
-			end if;
-		end if;
+--		if (decdout.spc = '1') then
+--			if (spc_reg_write(to_integer(unsigned(decdout.sr(3 downto 0)))) = '1') then
+--				rd_rs <= spc_reg;
+--			else
+--				rd_rs <= spc;
+--			end if;
+--		end if;
 	end process;
 
 --	process (decdout, st) -- which special register
@@ -320,7 +320,7 @@ begin
 		doutex_not_reg.predicate_to_fetch					<= '0';
 --		st													<= st_reg;
 		spc 												<= din_rs1;
-		doutex_not_reg.mem_top								<= (others => '0');
+--		doutex_not_reg.mem_top								<= (others => '0');
 		if (is_exec = '1') then
 				doutex_not_reg.lm_write_not_reg              <= decdout.lm_write;
 				doutex_not_reg.sc_write_not_reg              <= decdout.sc_write;
@@ -407,9 +407,9 @@ begin
 		end if;
 	end process;
 	
-	process(memdout) -- passing head/ tail to memory
+	process(memdout) 
 	begin
-		mem_top <= memdout.mem_top; -- tail from stage
+		mem_top <= memdout.mem_top; 
 	--	sc_top <= 
 	end process;
 	
@@ -430,17 +430,17 @@ begin
 	
 	process( decdout, sc_top, mem_top, din_rs1, is_exec, res_diff, ens_diff) -- stack cache
 	begin
-						if (decdout.sr(3 downto 0) = "0110" and decdout.spc = '1') then
-					sc_top_next				   <= din_rs1;
-				else 
-					sc_top_next				   <= sc_top;
-				end if;	
+		if (decdout.spc_reg_write(6) = '1') then
+			sc_top_next				   <= din_rs1;
+			doutex_not_reg.mem_top	   <= din_rs1;	
+		else 
+			sc_top_next				   <= sc_top;
+		end if;	
 		doutex_not_reg.spill 		<= '0';
 		doutex_not_reg.fill 		<= '0';
 		doutex_not_reg.stall 		<= '0';
 	--	sc_top_next					<= (others => '0');
 		doutex_not_reg.nspill_fill 	<= (others => '0');
-
 		case decdout.pat_function_type_sc is
 			when reserve => 
 				if (is_exec = '1') then
