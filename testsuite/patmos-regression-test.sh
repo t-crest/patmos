@@ -15,6 +15,7 @@ export PATH
 # get the Patmos source tree
 rm -rf patmos
 git clone git://github.com/t-crest/patmos.git
+rm -rf sdram
 git clone git://github.com/t-crest/sdram.git
 cd patmos
 
