@@ -54,6 +54,6 @@ package patmos_config is
 end patmos_config;
 
 package body patmos_config is
-    constant USE_SDRAM : boolean := true;
+    constant USE_GLOBAL_MEMORY_SDRAM : boolean := true;
 
 end patmos_config;
