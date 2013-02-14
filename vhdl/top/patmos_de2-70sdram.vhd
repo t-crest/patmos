@@ -95,9 +95,18 @@ use work.sdram_config.all;
 use work.sdram_controller_interface.all;
 
 architecture RTL of patmos_top is
-    constant BURST_LENGTH : natural           := 8;
+    function if_then_else(cond : boolean; true_val : natural; false_val : natural) return natural is
+    begin
+        if cond then
+            return true_val;
+        else
+            return false_val;
+        end if;
+    end function if_then_else;
+
+    constant BURST_LENGTH : natural           := if_then_else(USE_GLOBAL_MEMORY_SDRAM, 1, 8);
     -- 100MHz, 2 cycles read data latency
-    constant tCLK_PERIOD  : time              := 10 ns;
+    constant tCLK_PERIOD  : time              := 20 ns;
     constant CAS_LATENCY  : natural           := 2;
     constant SDRAM        : sdram_config_type := GetSDRAMParameters(tCLK_PERIOD, CAS_LATENCY);
 
@@ -201,8 +210,6 @@ architecture RTL of patmos_top is
 
 
 begin
-    assert 2 ** DMA_ADDR_WIDTH = BURST_LENGTH report "BURST_LENGTH should be == 2**DMA_ADDR_WIDTH" severity failure;
-
     process(sys_clk, pll_locked)
     begin
         if pll_locked = '0' then
@@ -276,6 +283,8 @@ begin
     end generate GM_SDRAM;
 
     IO_SDRAM : if not USE_GLOBAL_MEMORY_SDRAM generate
+        assert 2 ** DMA_ADDR_WIDTH = BURST_LENGTH report "BURST_LENGTH should be == 2**DMA_ADDR_WIDTH" severity failure;
+        
         sdram_io_controller : work.dma_controller_dtl_cmp_pkg.dma_controller_dtl
             generic map(
                 DQ_WIDTH         => DQ_WIDTH,
