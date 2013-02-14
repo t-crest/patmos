@@ -45,6 +45,9 @@ set_global_assignment -name LAST_QUARTUS_VERSION "12.0 SP2"
 set_global_assignment -name VHDL_FILE ../../ise/ml605_edk/pcores/dma_controller_dtl_v1_00_a/hdl/vhdl/dma_controller_dtl.e.vhd
 set_global_assignment -name VHDL_FILE ../../ise/ml605_edk/pcores/dma_controller_dtl_v1_00_a/hdl/vhdl/dma_controller_dtl.a.vhd
 set_global_assignment -name VHDL_FILE ../../ise/ml605_edk/pcores/dma_controller_dtl_v1_00_a/hdl/vhdl/dma_controller_dtl.p.vhd
+set_global_assignment -name VHDL_FILE ../../../sdram/vhdl/sdram_config.vhd
+set_global_assignment -name VHDL_FILE ../../../sdram/vhdl/sdram_config-IS42S16160B-7TLI.vhd
+set_global_assignment -name VHDL_FILE ../../../sdram/vhdl/sdram_controller_interface.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/io/patmos_io_sdram.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/core/patmos_sdram.vhd
 set_global_assignment -name VHDL_FILE ../../../sdram/vhdl/sdr_dram.vhd
