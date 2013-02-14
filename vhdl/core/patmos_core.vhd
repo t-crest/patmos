@@ -42,6 +42,8 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.patmos_type_package.all;
 
+use work.sdram_config.all;
+use work.sdram_controller_interface.all;
 
 entity patmos_core is
 	port(
@@ -50,7 +52,10 @@ entity patmos_core is
 		mem_write					: in std_logic;
 		mem_data_out_muxed			: in std_logic_vector(31 downto 0);
 		data_mem_data_out			: out std_logic_vector(31 downto 0);
-		execute_dout_core			: out execution_not_reg
+		execute_dout_core			: out execution_not_reg;
+        -- SDRAM controller interface
+        gm_slave           : in  SDRAM_controller_slave_type;
+        gm_master          : out SDRAM_controller_master_type
 	);
 end entity patmos_core;
 
@@ -98,9 +103,8 @@ architecture arch of patmos_core is
 	------------------------------------------------------- memory
 
 
-	            
 	memory_stage : entity work.patmos_mem_stage(arch)
-		port map(clk, rst, mem_write, mem_data_out_muxed, execute_reg, execute_not_reg, mem_dout, decode_dout);
+		port map(clk, rst, mem_write, mem_data_out_muxed, execute_reg, execute_not_reg, mem_dout, decode_dout, gm_slave, gm_master);
 
 	data_mem_data_out <= mem_dout.data_mem_data_out;
 end architecture arch;

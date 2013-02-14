@@ -41,16 +41,19 @@ use ieee.std_logic_1164.all;
 use work.patmos_config_global.all;
 
 package patmos_config is
+    constant CLK_FREQ : natural := 50 * 1000 * 1000;
 
-	constant CLK_FREQ : natural := 50*1000*1000;
+    -- UART configuration
+    constant UART_BAUD_RATE : natural := 115200;
+    constant UART_TXF_DEPTH : natural := 1;
+    constant UART_RXF_DEPTH : natural := 1;
 
-	-- UART configuration
-	constant UART_BAUD_RATE : natural := 115200;
-	constant UART_TXF_DEPTH : natural := 1;
-	constant UART_RXF_DEPTH : natural := 1;
+    -- Deffered assignment, to split it later
+    constant USE_GLOBAL_MEMORY_SDRAM : boolean;
 
 end patmos_config;
 
 package body patmos_config is
+    constant USE_SDRAM : boolean := true;
 
 end patmos_config;

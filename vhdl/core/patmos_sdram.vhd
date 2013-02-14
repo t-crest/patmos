@@ -37,6 +37,11 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.patmos_type_package.all;
 
+use work.patmos_config_global.all;
+use work.patmos_config.all;
+
+use work.sdram_config.all;
+use work.sdram_controller_interface.all;
 
 entity patmos_sdram is
 	port  (
@@ -50,7 +55,11 @@ entity patmos_sdram is
 	        dma_rd_i           : out std_logic;
 	        dma_rd_data_i      : in  std_logic_vector(31 downto 0);
 	        dma_wr_i           : out std_logic;
-	        dma_wr_data_i      : out std_logic_vector(31 downto 0)
+	        dma_wr_data_i      : out std_logic_vector(31 downto 0);
+            -- Direct SDRAM access interface.
+            -- Edgar: have it both here for now for integration testing.
+            gm_slave           : in  SDRAM_controller_slave_type;
+            gm_master          : out SDRAM_controller_master_type
 	       );
 end patmos_sdram;
 
@@ -71,7 +80,10 @@ begin
             mem_write          => mem_write,
             mem_data_out_muxed => mem_data_out_muxed,
             data_mem_data_out  => data_mem_data_out,
-            execute_dout_core  => execute_dout);
+            execute_dout_core  => execute_dout,
+            gm_slave           => gm_slave,
+            gm_master          => gm_master
+            );
 
     io : entity work.patmos_io_sdram
         generic map(
@@ -92,5 +104,6 @@ begin
             dma_rd_i           => dma_rd_i,
             dma_rd_data_i      => dma_rd_data_i,
             dma_wr_i           => dma_wr_i,
-            dma_wr_data_i      => dma_wr_data_i);	
+            dma_wr_data_i      => dma_wr_data_i
+            );	
 end rtl;

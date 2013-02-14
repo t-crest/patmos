@@ -61,9 +61,8 @@ entity patmos_mem_stage is
     );
 end entity patmos_mem_stage;
 
+use work.patmos_config.all;
 architecture arch of patmos_mem_stage is
-    -- Edgar: might want to move the constant to some global config file
-    constant USE_SDRAM : boolean := true;
     
 
     signal en : std_logic_vector(3 downto 0);
@@ -168,14 +167,16 @@ begin
         end if;
     end process;
 
-    GM_SDRAM : if USE_SDRAM generate
+    GM_SDRAM : if USE_GLOBAL_MEMORY_SDRAM generate
         gm_do_write  <=  gm_en_spill(0) or gm_en_spill(1) or gm_en_spill(2) or gm_en_spill(3); 
-        gm_do_read  <= '0'; -- Edgar: missing this one?
+        gm_do_read  <= exout_not_reg.gm_read_not_reg;
     
         gm_master.MFlag_CmdRefresh <= '0'; -- Use automatic refresh
         gm_master.MCmd             <= '0' & gm_do_write & gm_do_read;
         -- Edgar: It's confusing to use two signals if they always have the same value anyway. I would recommend to use single gm_address instead.
-        gm_master.MAddr            <= exout_reg_adr_shft(9 downto 0);
+        gm_master.MAddr(gm_read_add'range) <= gm_read_add;
+        gm_master.MAddr(gm_master.MAddr'high downto gm_read_add'length) <= (others=>'0');
+        
         -- Acknowledge command acceptance (ignored here, because we don't use pipelined transactions, and use data word acknowledgement instead)
         --    <= gm_slave.SCmdAccept;
         
@@ -195,7 +196,7 @@ begin
         --        <= gm_slave.SRespLast;
     end generate GM_SDRAM;
 
-    GM_block_ram : if not USE_SDRAM generate
+    GM_block_ram : if not USE_GLOBAL_MEMORY_SDRAM generate
         gm0 : entity work.patmos_data_memory(arch)
             generic map(8, 10)
             port map(clk,

@@ -88,6 +88,9 @@ end entity patmos_top;
 library ieee;
 use ieee.numeric_std.all;
 use work.patmos_type_package.all;
+
+use work.patmos_config.all;
+
 use work.sdram_config.all;
 use work.sdram_controller_interface.all;
 
@@ -144,8 +147,15 @@ architecture RTL of patmos_top is
     signal dma_wr_i           : std_logic;
     signal dma_wr_data_i      : std_logic_vector(31 downto 0);
 
+    -- Edgar: have both interfaces for now selectable thourough USE_SDRAM config param
+
+    -- SDRAM through I/O device
     signal ocpMaster : SDRAM_controller_master_type;
     signal ocpSlave  : SDRAM_controller_slave_type;
+
+    -- SDRAM thruogh direct connection 
+    signal gm_master : SDRAM_controller_master_type;
+    signal gm_slave  : SDRAM_controller_slave_type;
 
     signal mtl_wr_valid_i       : std_logic;
     signal mtl_cmd_valid_i      : std_logic;
@@ -227,41 +237,10 @@ begin
                  dma_rd_i                     => dma_rd_i,
                  dma_rd_data_i                => dma_rd_data_i,
                  dma_wr_i                     => dma_wr_i,
-                 dma_wr_data_i                => dma_wr_data_i);
-
-    sdram_io_controller : work.dma_controller_dtl_cmp_pkg.dma_controller_dtl
-        generic map(
-            DQ_WIDTH         => DQ_WIDTH,
-            MTL_MASK_WIDTH   => MTL_MASK_WIDTH,
-            MTL_SIZE_WIDTH   => MTL_SIZE_WIDTH,
-            MTL_ADDR_WIDTH   => MTL_ADDR_WIDTH,
-            GEN_REQUEST_SIZE => GEN_REQUEST_SIZE,
-            DMA_ADDR_WIDTH   => DMA_ADDR_WIDTH,
-            DMA_DATA_WIDTH   => DMA_DATA_WIDTH)
-        port map(
-            mtl_clk              => dram_clk,
-            mtl_rst_n            => rst_n,
-            mtl_cmd_valid_i      => mtl_cmd_valid_i,
-            mtl_cmd_accept_i     => mtl_cmd_accept_i,
-            mtl_cmd_addr_i       => mtl_cmd_addr_i,
-            mtl_cmd_read_i       => mtl_cmd_read_i,
-            mtl_cmd_block_size_i => mtl_cmd_block_size_i,
-            mtl_wr_last_i        => mtl_wr_last_i,
-            mtl_wr_valid_i       => mtl_wr_valid_i,
-            mtl_flush_i          => mtl_flush_i,
-            mtl_wr_accept_i      => mtl_wr_accept_i,
-            mtl_wr_data_i        => mtl_wr_data_i,
-            mtl_wr_mask_i        => mtl_wr_mask_i,
-            mtl_rd_last_i        => mtl_rd_last_i,
-            mtl_rd_valid_i       => mtl_rd_valid_i,
-            mtl_rd_accept_i      => mtl_rd_accept_i,
-            mtl_rd_data_i        => mtl_rd_data_i,
-            dma_addr_special_i   => dma_addr_special_i,
-            dma_addr_i           => dma_addr_i,
-            dma_rd_i             => dma_rd_i,
-            dma_rd_data_i        => dma_rd_data_i,
-            dma_wr_i             => dma_wr_i,
-            dma_wr_data_i        => dma_wr_data_i);
+                 dma_wr_data_i                => dma_wr_data_i,
+                 gm_slave                     => gm_slave,
+                 gm_master                    => gm_master
+        );
 
     sdr_sdram_inst : entity work.sdr_sdram
         generic map(
@@ -289,24 +268,67 @@ begin
             sdram_DQ    => dram_DQ,
             sdram_DQM   => dram_DQM);
 
-    -- CMD
-    ocpMaster.MFlag_CmdRefresh <= '0';  -- Use automatic refresh
-    ocpMaster.MCmd             <= '0' & (mtl_cmd_valid_i and (not mtl_cmd_read_i)) & (mtl_cmd_valid_i and mtl_cmd_read_i);
-    ocpMaster.MAddr            <= mtl_cmd_addr_i;
-    mtl_cmd_accept_i           <= ocpSlave.SCmdAccept;
-    assert (to_integer(unsigned(mtl_cmd_block_size_i)) + 1) = BURST_LENGTH or mtl_cmd_valid_i /= '1' report "Unsupported block size" severity failure;
-    -- Write 
-    ocpMaster.MData       <= mtl_wr_data_i;
-    -- ocpMaster.MDataValid  <= mtl_wr_valid_i;
-    -- ocpMaster.MDataLast   <= mtl_wr_last_i;
-    ocpMaster.MDataByteEn <= mtl_wr_mask_i;
-    mtl_wr_accept_i       <= ocpSlave.SDataAccept;
-    -- Read 
-    mtl_rd_data_i         <= ocpSlave.SData;
-    mtl_rd_valid_i        <= ocpSlave.SResp;
-    mtl_rd_last_i         <= ocpSlave.SRespLast;
-    assert mtl_rd_accept_i = '1' or mtl_rd_valid_i /= '1' report "Protocol error: wrapper not ready to accept data" severity failure;
+    GM_SDRAM : if USE_GLOBAL_MEMORY_SDRAM generate
+        gm_slave  <= ocpSlave;
+        ocpMaster <= gm_master;
+
+        dma_rd_data_i <= (others => '0');
+    end generate GM_SDRAM;
+
+    IO_SDRAM : if not USE_GLOBAL_MEMORY_SDRAM generate
+        sdram_io_controller : work.dma_controller_dtl_cmp_pkg.dma_controller_dtl
+            generic map(
+                DQ_WIDTH         => DQ_WIDTH,
+                MTL_MASK_WIDTH   => MTL_MASK_WIDTH,
+                MTL_SIZE_WIDTH   => MTL_SIZE_WIDTH,
+                MTL_ADDR_WIDTH   => MTL_ADDR_WIDTH,
+                GEN_REQUEST_SIZE => GEN_REQUEST_SIZE,
+                DMA_ADDR_WIDTH   => DMA_ADDR_WIDTH,
+                DMA_DATA_WIDTH   => DMA_DATA_WIDTH)
+            port map(
+                mtl_clk              => dram_clk,
+                mtl_rst_n            => rst_n,
+                mtl_cmd_valid_i      => mtl_cmd_valid_i,
+                mtl_cmd_accept_i     => mtl_cmd_accept_i,
+                mtl_cmd_addr_i       => mtl_cmd_addr_i,
+                mtl_cmd_read_i       => mtl_cmd_read_i,
+                mtl_cmd_block_size_i => mtl_cmd_block_size_i,
+                mtl_wr_last_i        => mtl_wr_last_i,
+                mtl_wr_valid_i       => mtl_wr_valid_i,
+                mtl_flush_i          => mtl_flush_i,
+                mtl_wr_accept_i      => mtl_wr_accept_i,
+                mtl_wr_data_i        => mtl_wr_data_i,
+                mtl_wr_mask_i        => mtl_wr_mask_i,
+                mtl_rd_last_i        => mtl_rd_last_i,
+                mtl_rd_valid_i       => mtl_rd_valid_i,
+                mtl_rd_accept_i      => mtl_rd_accept_i,
+                mtl_rd_data_i        => mtl_rd_data_i,
+                dma_addr_special_i   => dma_addr_special_i,
+                dma_addr_i           => dma_addr_i,
+                dma_rd_i             => dma_rd_i,
+                dma_rd_data_i        => dma_rd_data_i,
+                dma_wr_i             => dma_wr_i,
+                dma_wr_data_i        => dma_wr_data_i);
+
+        -- CMD
+        ocpMaster.MFlag_CmdRefresh <= '0'; -- Use automatic refresh
+        ocpMaster.MCmd             <= '0' & (mtl_cmd_valid_i and (not mtl_cmd_read_i)) & (mtl_cmd_valid_i and mtl_cmd_read_i);
+        ocpMaster.MAddr            <= mtl_cmd_addr_i;
+        mtl_cmd_accept_i           <= ocpSlave.SCmdAccept;
+        assert (to_integer(unsigned(mtl_cmd_block_size_i)) + 1) = BURST_LENGTH or mtl_cmd_valid_i /= '1' report "Unsupported block size" severity failure;
+        -- Write 
+        ocpMaster.MData       <= mtl_wr_data_i;
+        -- ocpMaster.MDataValid  <= mtl_wr_valid_i;
+        -- ocpMaster.MDataLast   <= mtl_wr_last_i;
+        ocpMaster.MDataByteEn <= mtl_wr_mask_i;
+        mtl_wr_accept_i       <= ocpSlave.SDataAccept;
+        -- Read 
+        mtl_rd_data_i         <= ocpSlave.SData;
+        mtl_rd_valid_i        <= ocpSlave.SResp;
+        mtl_rd_last_i         <= ocpSlave.SRespLast;
+        assert mtl_rd_accept_i = '1' or mtl_rd_valid_i /= '1' report "Protocol error: wrapper not ready to accept data" severity failure;
     -- ocpMaster.MRespAccept not used
+    end generate IO_SDRAM;
 
     dram0_BA_0  <= dram_BA(0);
     dram0_BA_1  <= dram_BA(1);

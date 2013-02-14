@@ -42,6 +42,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.patmos_type_package.all;
 use work.sc_pack.all;
+
 use work.patmos_config_global.all;
 use work.patmos_config.all;
 

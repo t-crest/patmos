@@ -47,6 +47,9 @@ entity patmos is
 	);
 end patmos;
 
+use work.sdram_config.all;
+use work.sdram_controller_interface.all;
+
 architecture rtl of patmos is
 
 	signal mem_write	: std_logic;
@@ -54,12 +57,14 @@ architecture rtl of patmos is
 	signal pat_rst				: std_logic;
 	signal data_mem_data_out	: std_logic_vector(31 downto 0);
 	signal execute_dout		: execution_not_reg;
+	
+    signal gm_master : SDRAM_controller_master_type;
+    signal gm_slave  : SDRAM_controller_slave_type;
 
 begin
 
 	core : entity work.patmos_core(arch)
-		port map(clk, pat_rst, mem_write, mem_data_out_muxed, data_mem_data_out, execute_dout);
-		
+		port map(clk, pat_rst, mem_write, mem_data_out_muxed, data_mem_data_out, execute_dout, gm_slave, gm_master);
 
 	wrapper : entity work.patmos_io(arch)
 		port map(clk, pat_rst, mem_write, data_mem_data_out, mem_data_out_muxed, execute_dout, led, txd, rxd);
