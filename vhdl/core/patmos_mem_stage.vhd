@@ -168,8 +168,7 @@ begin
     end process;
 
     GM_SDRAM : if USE_GLOBAL_MEMORY_SDRAM generate
-        gm_do_write  <=  gm_en_spill(0) or gm_en_spill(1) or gm_en_spill(2) or gm_en_spill(3); 
-        gm_do_read  <= exout_not_reg.gm_read_not_reg;
+        
     
         gm_master.MFlag_CmdRefresh <= '0'; -- Use automatic refresh
         gm_master.MCmd             <= '0' & gm_do_write & gm_do_read;
@@ -187,11 +186,11 @@ begin
         -- gm_master.MDataLast   <= mtl_wr_last_i;
         gm_master.MDataByteEn <= not gm_en_spill;  -- Edgar: a write mask should be used here. I would recommend the name independent of StackCache
         -- This is '1' for each word written, for longer bursts one would need to count words, to decide then new command need to be invoked
-        gm_write_done       <= gm_slave.SDataAccept;
+        
         
         -- Read 
         gm_read_data         <= gm_slave.SData;
-        gm_read_done       <= gm_slave.SResp;
+        
         -- Might use it to issue the new command when longer bursts are used
         --        <= gm_slave.SRespLast;
     end generate GM_SDRAM;
@@ -273,13 +272,28 @@ begin
             state_reg <= init;
         --spill <= '0';
         --fill <= '0';
-        elsif rising_edge(clk) then
-            state_reg   <= next_state;
-            mem_top     <= mem_top_next;
-            nspill_fill <= nspill_fill_next;
+        	
+        elsif rising_edge(clk) then	
+            state_reg   	   <= next_state;
+            mem_top            <= mem_top_next;
+            nspill_fill        <= nspill_fill_next;
+            
         end if;
     end process;
 
+	process(gm_slave, gm_spill, exout_not_reg ) -- SA: This is a temporary fix, need to find when they actually should change 
+	begin
+		gm_do_write  <=  '0';
+        gm_do_read   <= '0';
+        gm_read_done <= '1';
+        gm_write_done <= '1';
+        if (gm_spill(0) = '1' or exout_not_reg.gm_read_not_reg = '1') then
+        	gm_write_done       <= gm_slave.SDataAccept;
+        	gm_read_done       <= gm_slave.SResp;
+        	gm_do_write        <= gm_spill(0) or gm_spill(1) or gm_spill(2) or gm_spill(3); 
+        	gm_do_read         <= exout_not_reg.gm_read_not_reg;
+        end if;
+	end process;
     process(state_reg, exout_not_reg, spill, fill) -- adjust tail
     begin
         next_state <= state_reg;

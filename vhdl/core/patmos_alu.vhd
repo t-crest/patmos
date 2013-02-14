@@ -266,13 +266,9 @@ begin
 				
 				
 				sc_top						<= sc_top_next;
-	
---				spc_reg						<= spec;
 				spc_reg_write				<= decdout.spc_reg_write;
 				
-				
-				st_reg 						<= st;
-				spc_reg 					<= spc;
+
 			end if;
 
 	--		doutex.head                 <= doutex_head;
@@ -295,17 +291,9 @@ begin
 --		end if;
 	end process;
 
---	process (decdout, st) -- which special register
---	begin
---		spc			<= st;
---		case decdout.sr is
---			when "0110" => -- stack pointer
---				spc <= st;
---			when others => null;
---		end case;
---	end process;
+
 	
-	process(decdout, alu_src2, rd, adrs, predicate_reg, predicate, din_rs1, st_reg, is_exec)
+	process(decdout, alu_src2, rd, adrs, predicate_reg, predicate, din_rs1, st_reg, is_exec, rst)
 	begin
 		doutex_not_reg.lm_write_not_reg             		<= '0';
 		doutex_not_reg.lm_read_not_reg              		<= '0';
@@ -319,7 +307,6 @@ begin
 		predicate_checked									<= "00000001";
 		doutex_not_reg.predicate_to_fetch					<= '0';
 --		st													<= st_reg;
-		spc 												<= din_rs1;
 --		doutex_not_reg.mem_top								<= (others => '0');
 		if (is_exec = '1') then
 				doutex_not_reg.lm_write_not_reg              <= decdout.lm_write;
@@ -343,15 +330,6 @@ begin
 				doutex_dc_write             <= decdout.dc_write;
 				doutex_reg_write 			<= decdout.reg_write;
 				predicate_checked 			<= predicate;
-				-- SPC-- move to st
---				if (decdout.spc_reg_write(6) = '1') then
---					spc <= din_rs1;
---					if (decdout.sr(3 downto 0) = "0110") then
---						doutex_not_reg.mem_top <= din_rs1;
---						
---					end if;
---				end if;	
-
 
 		else
 				doutex_lm_write              <= '0';
