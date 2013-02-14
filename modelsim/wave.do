@@ -4,19 +4,19 @@ add wave -noupdate /patmos_testbench/clk
 add wave -noupdate /patmos_testbench/led
 add wave -noupdate /patmos_testbench/txd
 add wave -noupdate /patmos_testbench/rxd
-add wave -noupdate /patmos_testbench/oSRAM_A
-add wave -noupdate /patmos_testbench/SRAM_DQ
-add wave -noupdate /patmos_testbench/oSRAM_CE1_N
-add wave -noupdate /patmos_testbench/oSRAM_OE_N
-add wave -noupdate /patmos_testbench/oSRAM_BE_N
-add wave -noupdate /patmos_testbench/oSRAM_WE_N
-add wave -noupdate /patmos_testbench/oSRAM_GW_N
-add wave -noupdate /patmos_testbench/oSRAM_CLK
-add wave -noupdate /patmos_testbench/oSRAM_ADSC_N
-add wave -noupdate /patmos_testbench/oSRAM_ADSP_N
-add wave -noupdate /patmos_testbench/oSRAM_ADV_N
-add wave -noupdate /patmos_testbench/oSRAM_CE2
-add wave -noupdate /patmos_testbench/oSRAM_CE3_N
+add wave -noupdate -group SRAM /patmos_testbench/oSRAM_A
+add wave -noupdate -group SRAM /patmos_testbench/SRAM_DQ
+add wave -noupdate -group SRAM /patmos_testbench/oSRAM_CE1_N
+add wave -noupdate -group SRAM /patmos_testbench/oSRAM_OE_N
+add wave -noupdate -group SRAM /patmos_testbench/oSRAM_BE_N
+add wave -noupdate -group SRAM /patmos_testbench/oSRAM_WE_N
+add wave -noupdate -group SRAM /patmos_testbench/oSRAM_GW_N
+add wave -noupdate -group SRAM /patmos_testbench/oSRAM_CLK
+add wave -noupdate -group SRAM /patmos_testbench/oSRAM_ADSC_N
+add wave -noupdate -group SRAM /patmos_testbench/oSRAM_ADSP_N
+add wave -noupdate -group SRAM /patmos_testbench/oSRAM_ADV_N
+add wave -noupdate -group SRAM /patmos_testbench/oSRAM_CE2
+add wave -noupdate -group SRAM /patmos_testbench/oSRAM_CE3_N
 add wave -noupdate /patmos_testbench/internal_rst
 add wave -noupdate /patmos_testbench/core/clk
 add wave -noupdate /patmos_testbench/core/led
@@ -38,7 +38,6 @@ add wave -noupdate /patmos_testbench/core/core/fetch_reg1
 add wave -noupdate /patmos_testbench/core/core/fetch_reg2
 add wave -noupdate /patmos_testbench/core/core/decode_din
 add wave -noupdate /patmos_testbench/core/core/decode_dout
-add wave -noupdate /patmos_testbench/core/core/execute_dout
 add wave -noupdate /patmos_testbench/core/core/mem_dout
 add wave -noupdate /patmos_testbench/core/core/fet/clk
 add wave -noupdate /patmos_testbench/core/core/fet/rst
@@ -88,7 +87,6 @@ add wave -noupdate /patmos_testbench/core/core/dec/alu_func
 add wave -noupdate /patmos_testbench/core/core/alu/clk
 add wave -noupdate /patmos_testbench/core/core/alu/rst
 add wave -noupdate /patmos_testbench/core/core/alu/decdout
-add wave -noupdate /patmos_testbench/core/core/alu/doutex
 add wave -noupdate /patmos_testbench/core/core/alu/memdout
 add wave -noupdate /patmos_testbench/core/core/alu/rd
 add wave -noupdate /patmos_testbench/core/core/alu/rd1
@@ -114,121 +112,19 @@ add wave -noupdate /patmos_testbench/core/core/alu/doutex_lm_write
 add wave -noupdate /patmos_testbench/core/core/alu/doutex_reg_write_reg
 add wave -noupdate /patmos_testbench/core/core/alu/doutex_lm_read
 add wave -noupdate /patmos_testbench/core/core/alu/predicate_checked
-add wave -noupdate /patmos_testbench/core/core/alu/head
-add wave -noupdate /patmos_testbench/core/core/alu/tail
-add wave -noupdate /patmos_testbench/core/core/alu/doutex_head
-add wave -noupdate /patmos_testbench/core/core/alu/doutex_tail
-add wave -noupdate /patmos_testbench/core/core/alu/num_valid_sc_slots
 add wave -noupdate /patmos_testbench/core/core/memory_stage/clk
 add wave -noupdate /patmos_testbench/core/core/memory_stage/rst
 add wave -noupdate /patmos_testbench/core/core/memory_stage/mem_write
 add wave -noupdate /patmos_testbench/core/core/memory_stage/mem_data_out_muxed
-add wave -noupdate /patmos_testbench/core/core/memory_stage/exout
 add wave -noupdate /patmos_testbench/core/core/memory_stage/dout
 add wave -noupdate /patmos_testbench/core/core/memory_stage/decdout
-add wave -noupdate /patmos_testbench/core/core/memory_stage/en0
-add wave -noupdate /patmos_testbench/core/core/memory_stage/en1
-add wave -noupdate /patmos_testbench/core/core/memory_stage/en2
-add wave -noupdate /patmos_testbench/core/core/memory_stage/en3
-add wave -noupdate /patmos_testbench/core/core/memory_stage/dout0
-add wave -noupdate /patmos_testbench/core/core/memory_stage/dout1
-add wave -noupdate /patmos_testbench/core/core/memory_stage/dout2
-add wave -noupdate /patmos_testbench/core/core/memory_stage/dout3
-add wave -noupdate /patmos_testbench/core/core/memory_stage/mem_write_data0
-add wave -noupdate /patmos_testbench/core/core/memory_stage/mem_write_data1
-add wave -noupdate /patmos_testbench/core/core/memory_stage/mem_write_data2
-add wave -noupdate /patmos_testbench/core/core/memory_stage/mem_write_data3
-add wave -noupdate /patmos_testbench/core/core/memory_stage/byte_enable0
-add wave -noupdate /patmos_testbench/core/core/memory_stage/byte_enable1
-add wave -noupdate /patmos_testbench/core/core/memory_stage/byte_enable2
-add wave -noupdate /patmos_testbench/core/core/memory_stage/byte_enable3
-add wave -noupdate /patmos_testbench/core/core/memory_stage/word_enable0
-add wave -noupdate /patmos_testbench/core/core/memory_stage/word_enable1
 add wave -noupdate /patmos_testbench/core/core/memory_stage/ldt_type
 add wave -noupdate /patmos_testbench/core/core/memory_stage/datain
-add wave -noupdate /patmos_testbench/core/core/memory_stage/ld_word
 add wave -noupdate /patmos_testbench/core/core/memory_stage/ld_half
 add wave -noupdate /patmos_testbench/core/core/memory_stage/ld_byte
 add wave -noupdate /patmos_testbench/core/core/memory_stage/s_u
-add wave -noupdate /patmos_testbench/core/core/memory_stage/half_ext
-add wave -noupdate /patmos_testbench/core/core/memory_stage/byte_ext
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc_en0
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc_en1
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc_en2
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc_en3
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc_word_enable0
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc_word_enable1
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc_byte_enable0
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc_byte_enable1
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc_byte_enable2
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc_byte_enable3
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc_read_data0
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc_write_data0
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc_write_data1
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc_write_data2
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc_write_data3
-add wave -noupdate /patmos_testbench/core/core/memory_stage/state
-add wave -noupdate /patmos_testbench/core/core/memory_stage/head
-add wave -noupdate /patmos_testbench/core/core/memory_stage/tail
-add wave -noupdate /patmos_testbench/core/core/memory_stage/head_tail
 add wave -noupdate /patmos_testbench/core/core/memory_stage/spill
 add wave -noupdate /patmos_testbench/core/core/memory_stage/fill
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc0/clk
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc0/wr_address
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc0/data_in
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc0/write_enable
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc0/rd_address
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc0/data_out
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc0/data_mem
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc1/clk
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc1/wr_address
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc1/data_in
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc1/write_enable
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc1/rd_address
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc1/data_out
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc1/data_mem
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc2/clk
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc2/wr_address
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc2/data_in
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc2/write_enable
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc2/rd_address
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc2/data_out
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc2/data_mem
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc3/clk
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc3/wr_address
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc3/data_in
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc3/write_enable
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc3/rd_address
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc3/data_out
-add wave -noupdate /patmos_testbench/core/core/memory_stage/sc3/data_mem
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory0/clk
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory0/wr_address
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory0/data_in
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory0/write_enable
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory0/rd_address
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory0/data_out
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory0/data_mem
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory1/clk
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory1/wr_address
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory1/data_in
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory1/write_enable
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory1/rd_address
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory1/data_out
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory1/data_mem
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory2/clk
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory2/wr_address
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory2/data_in
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory2/write_enable
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory2/rd_address
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory2/data_out
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory2/data_mem
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory3/clk
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory3/wr_address
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory3/data_in
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory3/write_enable
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory3/rd_address
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory3/data_out
-add wave -noupdate /patmos_testbench/core/core/memory_stage/memory3/data_mem
 add wave -noupdate /patmos_testbench/core/wrapper/clk
 add wave -noupdate /patmos_testbench/core/wrapper/pat_rst
 add wave -noupdate /patmos_testbench/core/wrapper/mem_write
@@ -330,6 +226,19 @@ add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/rd_prev
 add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/full
 add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/buf
 add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/f
+add wave -noupdate -group SDRAM /patmos_testbench/sdram_sa
+add wave -noupdate -group SDRAM /patmos_testbench/sdram_ba
+add wave -noupdate -group SDRAM /patmos_testbench/sdram_cs_n
+add wave -noupdate -group SDRAM /patmos_testbench/sdram_cke
+add wave -noupdate -group SDRAM /patmos_testbench/sdram_ras_n
+add wave -noupdate -group SDRAM /patmos_testbench/sdram_cas_n
+add wave -noupdate -group SDRAM /patmos_testbench/sdram_we_n
+add wave -noupdate -group SDRAM /patmos_testbench/sdram_dq
+add wave -noupdate -group SDRAM /patmos_testbench/sdram_dqm
+add wave -noupdate -group SDRAM /patmos_testbench/sdram_dq_out
+add wave -noupdate -group SDRAM /patmos_testbench/sdram_dq_dir
+add wave -noupdate /patmos_testbench/gm_master
+add wave -noupdate /patmos_testbench/gm_slave
 TreeUpdate [SetDefaultTree]
 WaveRestoreCursors {{Cursor 1} {113641 ps} 0}
 configure wave -namecolwidth 380
