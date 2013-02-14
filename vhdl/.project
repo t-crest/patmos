@@ -3,6 +3,7 @@
 	<name>Patmos-vhdl</name>
 	<comment></comment>
 	<projects>
+		<project>sdram</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
