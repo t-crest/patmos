@@ -4,6 +4,7 @@
 
 
 PATMOSDIR=../vhdl
+SDRAMDIR=../../sdram/vhdl
 #OPTIONS=-93 -quiet -check_synthesis -lint -pedanticerrors
 OPTIONS=-93 -quiet
 
@@ -33,8 +34,12 @@ batch: clean base
 
 base:
 	$(WINE) vlib work
+	$(WINE) vcom $(OPTIONS) $(SDRAMDIR)/sdram_controller_interface.vhd
+	$(WINE) vcom $(OPTIONS) $(SDRAMDIR)/sdram_config.vhd
+	$(WINE) vcom $(OPTIONS) $(SDRAMDIR)/sdram_config-IS42S16160B-7TLI.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/top/patmos_config_global.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/top/patmos_config_ml605.vhd
+	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/top/patmos_config_de2.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_type_package.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/sc_pack.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/generated/patmos_rom.vhd
@@ -50,6 +55,9 @@ base:
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_core.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos_io.vhd
 	$(WINE) vcom $(OPTIONS) $(PATMOSDIR)/core/patmos.vhd
+	
+
+
 
 clean:
 	-rm -f transcript
