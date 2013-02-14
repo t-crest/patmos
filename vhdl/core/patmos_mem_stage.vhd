@@ -124,6 +124,7 @@ architecture arch of patmos_mem_stage is
 	signal	gm_out							 : gm_out_type;
 	signal	gm_in							 : gm_in_type;
 
+	
 
 begin
 	mem_wb : process(clk)
@@ -156,7 +157,7 @@ begin
 			gm_read_add 	<= mem_top(9 downto 0);
 			gm_en_spill 	<= gm_spill; -- this is for spilling ( writing to global memory)
 			gm_write_data 	<= gm_in.wr_data; -- comes from sc
-			
+			 
 		end if;
 	end process;
 	
@@ -217,16 +218,17 @@ begin
 		gm_in   	
   	);   
   	
-  	process(exout_reg_adr, sc_en, gm_read_data, cpu_in, spill, fill, mem_top, sc_fill)
+  	process(exout_reg_adr, sc_en, gm_read_data, cpu_in, spill, fill, mem_top, sc_fill, mem_write_data_stall)
   	begin
   		cpu_out.address 	<= exout_reg_adr;
   		cpu_out.sc_en		<= sc_en;
-  		cpu_out.wr_data		<= gm_read_data;
+  		gm_out.wr_data		<= gm_read_data;
   		sc_read_data		<= cpu_in.rd_data;
   		cpu_out.spill_fill  <= spill or fill;
   		cpu_out.mem_top		<= mem_top;
   		cpu_out.sc_fill		<= sc_fill;
   		cpu_out.wr_add		<= mem_top(sc_length - 1 downto 0) and SC_MASK;
+  		cpu_out.wr_data		<= mem_write_data_stall;
   	end process;    
 --sc[mem_top & SC_MASK] = mem[mem_top];
 
@@ -236,7 +238,7 @@ begin
 		if rst='1' then
 			state_reg <= init;
 			--spill <= '0';
-			fill <= '0';
+			--fill <= '0';
 		elsif rising_edge(clk) then
 			state_reg 	<= next_state;
 			mem_top		<= mem_top_next;
@@ -285,15 +287,19 @@ begin
 		else
 			mem_top_next 	<= mem_top;
 		end if;
-		dout.stall 			<= '0';
+	--	dout.stall 			<= '0';
 		stall 				<= '0';
 		spill 				<= '0';
+		fill				<= '0';
+		gm_spill <= "0000";
+		sc_fill <= "0000";
+		nspill_fill_next		<= exout_not_reg.nspill_fill;
 		case state_reg is
 			when init =>
 				sc_fill <= "0000";
 				gm_spill <= "0000";
 				nspill_fill_next <= exout_not_reg.nspill_fill;
-				dout.stall <= '0';
+		--		dout.stall <= '0';
 			when spill_state =>
 				if ((signed(nspill_fill) - 1) > 0) then -- this should be changed to bit comparison
 					mem_top_next <= std_logic_vector(signed(mem_top) - 1); 
@@ -557,9 +563,10 @@ begin
 
 	process(exout_not_reg, mem_write)
 	begin
-		word_enable(1 downto 0) <= (others => '0');
-		sc_word_enable(1 downto 0) <= (others => '0');
-		sc_word_enable(1 downto 0) <= (others => '0');
+		word_enable <= (others => '0');
+		sc_word_enable <= (others => '0');
+		sc_word_enable <= (others => '0');
+		gm_word_enable	<= (others => '0');
 		case exout_not_reg.adrs(1) is
 			when '0'    => word_enable(0) <= exout_not_reg.lm_write_not_reg;
 							sc_word_enable(0) <= exout_not_reg.sc_write_not_reg;

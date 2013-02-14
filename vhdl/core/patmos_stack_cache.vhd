@@ -122,9 +122,10 @@ begin
 		sc_write_add 	<= exout_reg_adr_shft(sc_length - 1 downto 0);
 		sc_en_fill 		<= cpu_out.sc_en;
 		sc_write_data 	<= cpu_out.wr_data;
+		mem_in.wr_data  <= sc_read_data;
 		if (cpu_out.spill_fill = '1') then	
 			sc_read_add <= cpu_out.mem_top(sc_length - 1 downto 0) and SC_MASK;
-			mem_in.wr_data  <= sc_read_data;
+--			mem_in.wr_data  <= sc_read_data;
 			sc_en_fill 		<= cpu_out.sc_fill; -- this is for filling!
 			sc_write_data   <= mem_out.wr_data;
 			sc_write_add	<= cpu_out.wr_add;

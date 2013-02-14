@@ -103,13 +103,14 @@ begin
 			comb_out.gm_write		 <= '0';
 			comb_out.s_u 			 <= '1';
 			comb_out.BC 			 <= '0';
-			comb_out.pat_function_type_alu_cmp <= pat_cmpeq;
-			comb_out.pat_function_type_alu <= pat_add;
-			comb_out.pat_function_type_alu_u <= pat_sext8;
-			comb_out.pat_function_type_alu_p <= pat_por;
-			comb_out.pat_function_type_sc	<= none;
-			comb_out.is_predicate_inst 		<= '0';
-			comb_out.adrs_type				<= word;
+			comb_out.pat_function_type_alu_cmp 	<= pat_cmpeq;
+			comb_out.pat_function_type_alu 		<= pat_add;
+			comb_out.pat_function_type_alu_u 	<= pat_sext8;
+			comb_out.pat_function_type_alu_p 	<= pat_por;
+			comb_out.pat_function_type_sc		<= none;
+			comb_out.pat_function_type_clfb 	<= none;
+			comb_out.is_predicate_inst 			<= '0';
+			comb_out.adrs_type					<= word;
 			comb_out.alu_alu_u		<= '0';	
 			-- TODO: get defaults for all signals and remove redundant assignments 
 			comb_out.alu_alu_u <= '1';

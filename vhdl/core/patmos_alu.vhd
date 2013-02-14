@@ -435,6 +435,7 @@ begin
 			doutex_not_reg.mem_top	   <= din_rs1;	
 		else 
 			sc_top_next				   <= sc_top;
+			doutex_not_reg.mem_top	   <= mem_top;
 		end if;	
 		doutex_not_reg.spill 		<= '0';
 		doutex_not_reg.fill 		<= '0';
