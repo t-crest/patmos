@@ -106,7 +106,8 @@ architecture arch of patmos_mem_stage is
     signal prev_gm_en_reg            : std_logic_vector(3 downto 0);
     signal gm_half_ext, gm_byte_ext  : std_logic_vector(31 downto 0);
     signal gm_read_done, gm_write_done : std_logic;
-    signal gm_do_read, gm_do_write : std_logic;
+    signal gm_do_read_reg, gm_do_write_reg : std_logic;
+    signal gm_is_read, gm_is_write : std_logic;
 
     ------ stack cache
     signal sc_en                    : std_logic_vector(3 downto 0);
@@ -125,7 +126,7 @@ architecture arch of patmos_mem_stage is
     signal sc_fill               : std_logic_vector(3 downto 0);
 
     signal spill, fill                   : std_logic;
-    signal stall, sc_need_stall                        : std_logic;
+    signal stall, sc_need_stall, gm_stall, gm_stall_prev : std_logic;
     signal nspill_fill, nspill_fill_next : std_logic_vector(31 downto 0);
 
     signal cpu_out : cpu_out_type;
@@ -138,12 +139,14 @@ begin
     mem_wb : process(clk)
     begin
         if (rising_edge(clk)) then
-            dout.data_out           <= datain;
-            -- forwarding
-            dout.reg_write_out      <= exout_reg.reg_write or exout_reg.mem_to_reg;
-            dout.write_back_reg_out <= exout_reg.write_back_reg;
-            ldt_type                <= decdout.adrs_type;
-            s_u                     <= decdout.s_u;
+			if (stall /= '1') then
+                dout.data_out           <= datain;
+                -- forwarding
+                dout.reg_write_out      <= exout_reg.reg_write or exout_reg.mem_to_reg;
+                dout.write_back_reg_out <= exout_reg.write_back_reg;
+                ldt_type                <= decdout.adrs_type;
+                s_u                     <= decdout.s_u;
+            end if;
         end if;
     end process mem_wb;
 
@@ -168,29 +171,66 @@ begin
     end process;
 
     GM_SDRAM : if USE_GLOBAL_MEMORY_SDRAM generate
-        
+        -- Edgar: FixMe: Need to distinguish from memory mapped I/O operations here, so do a quick hack. This should be consistent with the address decoding done in patmos_io.vhd
+        gm_is_write <= exout_not_reg.gm_write_not_reg when exout_not_reg.adrs(31 downto 28) = "0000" else '0';
+        gm_is_read  <= exout_not_reg.gm_read_not_reg when exout_not_reg.adrs(31 downto 28) = "0000" else '0';
     
         gm_master.MFlag_CmdRefresh <= '0'; -- Use automatic refresh
-        gm_master.MCmd             <= '0' & gm_do_write & gm_do_read;
-        -- Edgar: It's confusing to use two signals if they always have the same value anyway. I would recommend to use single gm_address instead.
-        gm_master.MAddr(gm_read_add'range) <= gm_read_add;
-        gm_master.MAddr(gm_master.MAddr'high downto gm_read_add'length) <= (others=>'0');
+        
+        gm_master.MCmd             <= '0' & gm_do_write_reg & gm_do_read_reg;
+        process (clk, rst) is
+        begin
+            if rising_edge(clk) then
+                if rst = '1' then
+                    gm_do_write_reg  <=  '0';
+                    gm_do_read_reg  <=  '0';
+                else
+                    -- Edgar: FixMe: using stall, to detect the start of the swm/lwm instruction. The edge detection on gm_is_write would not work for back-to-back memory instructions
+                    -- Right hand side is from alu stage, so the result corresponds to mem stage
+                    if gm_is_write = '1' and gm_stall_prev = '0' then
+                        gm_do_write_reg  <= '1';
+                        -- address is delayed together with the command:
+                        gm_master.MAddr <= exout_not_reg.adrs(gm_master.MAddr'high+2 downto 2);
+                    end if;
+                    if gm_is_read = '1' and gm_stall_prev = '0' then
+                        gm_do_read_reg <= '1';
+                        -- address is delayed together with the command:
+                        gm_master.MAddr <= exout_not_reg.adrs(gm_master.MAddr'high+2 downto 2);
+                    end if; 
+                    -- Need to deassert the command after it is accepted, to prevent it from beeing issued twice.
+                    if  gm_slave.SCmdAccept = '1' then
+                        gm_do_write_reg  <= '0';
+                        gm_do_read_reg  <= '0';
+                    end if;
+                    
+                    gm_stall_prev <= stall;
+                end if;
+            end if;
+        end process ;
+        
+        gm_stall <= (gm_is_read and not gm_read_done) or (gm_is_write and not gm_write_done);
+        
+        
         
         -- Acknowledge command acceptance (ignored here, because we don't use pipelined transactions, and use data word acknowledgement instead)
         --    <= gm_slave.SCmdAccept;
         
         -- Write 
+        -- Edgar: The write data seams to be one cycle delayed.
         gm_master.MData       <= gm_write_data;
         -- Not used by controller, but might be beneficial for buffers in arbitration layer
         -- gm_master.MDataValid  <= mtl_wr_valid_i;
         -- gm_master.MDataLast   <= mtl_wr_last_i;
-        gm_master.MDataByteEn <= not gm_en_spill;  -- Edgar: a write mask should be used here. I would recommend the name independent of StackCache
-        -- This is '1' for each word written, for longer bursts one would need to count words, to decide then new command need to be invoked
         
+        gm_master.MDataByteEn <= "1111";  -- Edgar: the byte/halfword stores won't work for now
+        -- gm_master.MDataByteEn <= not gm_en_spill;  -- Edgar: a write mask should be used here. Not sure if the gm_en_spill is the right signal
+        
+        -- FixMe: This is '1' for each word written, for longer bursts one would need to count words, to decide then new command need to be invoked
+        gm_write_done       <= gm_slave.SDataAccept;
         
         -- Read 
-        gm_read_data         <= gm_slave.SData;
-        
+        gm_read_data        <= gm_slave.SData;
+        gm_read_done        <= gm_slave.SResp;
         -- Might use it to issue the new command when longer bursts are used
         --        <= gm_slave.SRespLast;
     end generate GM_SDRAM;
@@ -272,28 +312,13 @@ begin
             state_reg <= init;
         --spill <= '0';
         --fill <= '0';
-        	
-        elsif rising_edge(clk) then	
-            state_reg   	   <= next_state;
-            mem_top            <= mem_top_next;
-            nspill_fill        <= nspill_fill_next;
-            
+        elsif rising_edge(clk) then
+            state_reg   <= next_state;
+            mem_top     <= mem_top_next;
+            nspill_fill <= nspill_fill_next;
         end if;
     end process;
 
-	process(gm_slave, gm_spill, exout_not_reg ) -- SA: This is a temporary fix, need to find when they actually should change 
-	begin
-		gm_do_write  <=  '0';
-        gm_do_read   <= '0';
-        gm_read_done <= '1';
-        gm_write_done <= '1';
-        if (gm_spill(0) = '1' or exout_not_reg.gm_read_not_reg = '1') then
-        	gm_write_done       <= gm_slave.SDataAccept;
-        	gm_read_done       <= gm_slave.SResp;
-        	gm_do_write        <= gm_spill(0) or gm_spill(1) or gm_spill(2) or gm_spill(3); 
-        	gm_do_read         <= exout_not_reg.gm_read_not_reg;
-        end if;
-	end process;
     process(state_reg, exout_not_reg, spill, fill) -- adjust tail
     begin
         next_state <= state_reg;
@@ -385,8 +410,8 @@ begin
     --begin
         dout.mem_top <= mem_top;
         dout.stall   <= stall;
-        -- Edgar: sc_need_stall might be artificial in the future, but it's easier to think this way for now
-        stall <= sc_need_stall or (gm_do_read and not gm_read_done) or (gm_do_write and not gm_write_done);
+        -- Edgar: just use sc_need_stall because it was present in the code.
+        stall <= sc_need_stall or gm_stall;
     --end process;
     -----------------------------------------------
     -- MS: If a registered address from EX is used here and there is an address

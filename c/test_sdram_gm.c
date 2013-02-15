@@ -3,7 +3,7 @@
 
  Outputs '?' to show it is ready, and waits for character input to start the test.
  T1: Store ASCII table into memory, and read it back
- T2: Do the full memory test
+ T2: Do the full memory test (to be done)
 
  Author: Edgar Lakis
  Copyright: DTU, BSD License

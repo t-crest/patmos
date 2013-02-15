@@ -135,7 +135,7 @@ begin
 			dout.pc          <= (others => '0');
 			dout.instruction <= (others => '0');
 		elsif (rising_edge(clk) and rst = '0') then
-			if(memout.stall = '0') then
+			if(memout.stall /= '1') then
 				pc       <= pc_next;
 				addr_evn <= evn_next;
 				addr_odd <= pc_next(rom_addr_size -1 downto 1) & "1";

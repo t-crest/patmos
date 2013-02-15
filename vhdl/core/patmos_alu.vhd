@@ -230,7 +230,7 @@ begin
 			doutex_reg.predicate 				<= "00000001";
 	
 		elsif rising_edge(clk) then
-			if (memdout.stall = '0') then
+			if (memdout.stall /= '1') then
 				-- MS: whouldn't it make sense to use the EXE record also for
 				-- the local signals?
 				--    signal doutex : execution_reg -- execution_reg is probably then not the best name

@@ -442,7 +442,7 @@ begin
 		if (rst = '1') then
 		--	din.operation <= (others => '0') what to do here?
 		elsif (rising_edge(clk) and rst = '0') then
-			if(memout.stall = '0') then
+			if(memout.stall /= '1') then
 				dout <= comb_out;
 			end if;
 		end if;

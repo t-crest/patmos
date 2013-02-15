@@ -125,122 +125,131 @@ add wave -noupdate /patmos_testbench/core/core/memory_stage/ld_byte
 add wave -noupdate /patmos_testbench/core/core/memory_stage/s_u
 add wave -noupdate /patmos_testbench/core/core/memory_stage/spill
 add wave -noupdate /patmos_testbench/core/core/memory_stage/fill
-add wave -noupdate /patmos_testbench/core/wrapper/clk
-add wave -noupdate /patmos_testbench/core/wrapper/pat_rst
-add wave -noupdate /patmos_testbench/core/wrapper/mem_write
-add wave -noupdate /patmos_testbench/core/wrapper/data_mem_data_out
-add wave -noupdate /patmos_testbench/core/wrapper/mem_data_out_muxed
-add wave -noupdate /patmos_testbench/core/wrapper/execute_dout
-add wave -noupdate /patmos_testbench/core/wrapper/led
-add wave -noupdate /patmos_testbench/core/wrapper/txd
-add wave -noupdate /patmos_testbench/core/wrapper/rxd
-add wave -noupdate /patmos_testbench/core/wrapper/memdin_reg
-add wave -noupdate /patmos_testbench/core/wrapper/mem_data_out_uart
-add wave -noupdate /patmos_testbench/core/wrapper/int_res
-add wave -noupdate /patmos_testbench/core/wrapper/res_cnt
-add wave -noupdate /patmos_testbench/core/wrapper/rst
-add wave -noupdate /patmos_testbench/core/wrapper/led_reg
-add wave -noupdate /patmos_testbench/core/wrapper/counter
-add wave -noupdate /patmos_testbench/core/wrapper/cntus
-add wave -noupdate /patmos_testbench/core/wrapper/cnt_div
-add wave -noupdate /patmos_testbench/core/wrapper/io_next
-add wave -noupdate /patmos_testbench/core/wrapper/io_reg
-add wave -noupdate /patmos_testbench/core/wrapper/uart_rd
-add wave -noupdate /patmos_testbench/core/wrapper/uart_wr
-add wave -noupdate /patmos_testbench/core/wrapper/ua/clk
-add wave -noupdate /patmos_testbench/core/wrapper/ua/reset
-add wave -noupdate /patmos_testbench/core/wrapper/ua/address
-add wave -noupdate /patmos_testbench/core/wrapper/ua/wr_data
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rd
-add wave -noupdate /patmos_testbench/core/wrapper/ua/wr
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rd_data
-add wave -noupdate /patmos_testbench/core/wrapper/ua/txd
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rxd
-add wave -noupdate /patmos_testbench/core/wrapper/ua/ua_dout
-add wave -noupdate /patmos_testbench/core/wrapper/ua/ua_wr
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tdre
-add wave -noupdate /patmos_testbench/core/wrapper/ua/ua_rd
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rdrf
-add wave -noupdate /patmos_testbench/core/wrapper/ua/uart_tx_state
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf_dout
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf_rd
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf_empty
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf_full
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tsr
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tx_clk
-add wave -noupdate /patmos_testbench/core/wrapper/ua/uart_rx_state
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf_wr
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf_empty
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf_full
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rxd_reg
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rx_buf
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rx_d
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rsr
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rx_clk
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rx_clk_ena
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/clk
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/reset
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/din
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/dout
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/rd
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/wr
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/empty
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/full
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/r
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/w
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/rp
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/f
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/di
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/do
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/clk
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/reset
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/din
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/dout
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/rd
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/wr
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/rd_prev
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/full
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/buf
-add wave -noupdate /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/f
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/clk
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/reset
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/din
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/dout
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/rd
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/wr
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/empty
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/full
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/r
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/w
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/rp
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/f
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/di
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/do
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/clk
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/reset
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/din
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/dout
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/rd
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/wr
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/rd_prev
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/full
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/buf
-add wave -noupdate /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/f
-add wave -noupdate -group SDRAM /patmos_testbench/sdram_sa
-add wave -noupdate -group SDRAM /patmos_testbench/sdram_ba
-add wave -noupdate -group SDRAM /patmos_testbench/sdram_cs_n
-add wave -noupdate -group SDRAM /patmos_testbench/sdram_cke
-add wave -noupdate -group SDRAM /patmos_testbench/sdram_ras_n
-add wave -noupdate -group SDRAM /patmos_testbench/sdram_cas_n
-add wave -noupdate -group SDRAM /patmos_testbench/sdram_we_n
-add wave -noupdate -group SDRAM /patmos_testbench/sdram_dq
-add wave -noupdate -group SDRAM /patmos_testbench/sdram_dqm
-add wave -noupdate -group SDRAM /patmos_testbench/sdram_dq_out
-add wave -noupdate -group SDRAM /patmos_testbench/sdram_dq_dir
-add wave -noupdate /patmos_testbench/gm_master
-add wave -noupdate /patmos_testbench/gm_slave
+add wave -noupdate /patmos_testbench/core/core/memory_stage/stall
+add wave -noupdate /patmos_testbench/core/core/memory_stage/gm_stall
+add wave -noupdate /patmos_testbench/core/core/memory_stage/gm_is_read
+add wave -noupdate /patmos_testbench/core/core/memory_stage/gm_is_write
+add wave -noupdate /patmos_testbench/core/core/memory_stage/gm_read_done
+add wave -noupdate /patmos_testbench/core/core/memory_stage/gm_write_done
+add wave -noupdate /patmos_testbench/core/core/memory_stage/gm_en_spill
+add wave -noupdate /patmos_testbench/core/core/memory_stage/gm_spill
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/clk
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/pat_rst
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/mem_write
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/data_mem_data_out
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/mem_data_out_muxed
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/execute_dout
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/led
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/txd
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/rxd
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/memdin_reg
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/mem_data_out_uart
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/int_res
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/res_cnt
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/rst
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/led_reg
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/counter
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/cntus
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/cnt_div
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/io_next
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/io_reg
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/uart_rd
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/uart_wr
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/clk
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/reset
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/address
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/wr_data
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rd
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/wr
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rd_data
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/txd
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rxd
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/ua_dout
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/ua_wr
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tdre
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/ua_rd
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rdrf
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/uart_tx_state
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf_dout
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf_rd
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf_empty
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf_full
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tsr
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tx_clk
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/uart_rx_state
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf_wr
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf_empty
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf_full
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rxd_reg
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rx_buf
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rx_d
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rsr
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rx_clk
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rx_clk_ena
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf/clk
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf/reset
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf/din
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf/dout
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf/rd
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf/wr
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf/empty
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf/full
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf/r
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf/w
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf/rp
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf/f
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf/di
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf/do
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/clk
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/reset
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/din
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/dout
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/rd
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/wr
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/rd_prev
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/full
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/buf
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/tf/g1(0)/f1/f
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf/clk
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf/reset
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf/din
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf/dout
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf/rd
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf/wr
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf/empty
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf/full
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf/r
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf/w
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf/rp
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf/f
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf/di
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf/do
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/clk
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/reset
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/din
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/dout
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/rd
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/wr
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/rd_prev
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/full
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/buf
+add wave -noupdate -group hide /patmos_testbench/core/wrapper/ua/rf/g1(0)/f1/f
+add wave -noupdate -expand -group SDRAM /patmos_testbench/sdram_sa
+add wave -noupdate -expand -group SDRAM /patmos_testbench/sdram_ba
+add wave -noupdate -expand -group SDRAM /patmos_testbench/sdram_cs_n
+add wave -noupdate -expand -group SDRAM /patmos_testbench/sdram_cke
+add wave -noupdate -expand -group SDRAM /patmos_testbench/sdram_ras_n
+add wave -noupdate -expand -group SDRAM /patmos_testbench/sdram_cas_n
+add wave -noupdate -expand -group SDRAM /patmos_testbench/sdram_we_n
+add wave -noupdate -expand -group SDRAM /patmos_testbench/sdram_dq
+add wave -noupdate -expand -group SDRAM /patmos_testbench/sdram_dqm
+add wave -noupdate -expand -group SDRAM /patmos_testbench/sdram_dq_out
+add wave -noupdate -expand -group SDRAM /patmos_testbench/sdram_dq_dir
+add wave -noupdate -childformat {{/patmos_testbench/gm_master.MCmd -radix hexadecimal -childformat {{/patmos_testbench/gm_master.MCmd(2) -radix hexadecimal} {/patmos_testbench/gm_master.MCmd(1) -radix hexadecimal} {/patmos_testbench/gm_master.MCmd(0) -radix hexadecimal}}} {/patmos_testbench/gm_master.MAddr -radix hexadecimal} {/patmos_testbench/gm_master.MData -radix hexadecimal}} -expand -subitemconfig {/patmos_testbench/gm_master.MCmd {-height 17 -radix hexadecimal -childformat {{/patmos_testbench/gm_master.MCmd(2) -radix hexadecimal} {/patmos_testbench/gm_master.MCmd(1) -radix hexadecimal} {/patmos_testbench/gm_master.MCmd(0) -radix hexadecimal}}} /patmos_testbench/gm_master.MCmd(2) {-height 17 -radix hexadecimal} /patmos_testbench/gm_master.MCmd(1) {-height 17 -radix hexadecimal} /patmos_testbench/gm_master.MCmd(0) {-height 17 -radix hexadecimal} /patmos_testbench/gm_master.MAddr {-height 17 -radix hexadecimal} /patmos_testbench/gm_master.MData {-height 17 -radix hexadecimal}} /patmos_testbench/gm_master
+add wave -noupdate -childformat {{/patmos_testbench/gm_slave.SData -radix hexadecimal}} -expand -subitemconfig {/patmos_testbench/gm_slave.SData {-height 17 -radix hexadecimal}} /patmos_testbench/gm_slave
+add wave -noupdate /patmos_testbench/sdr_sdram_inst/state_r
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {113641 ps} 0}
+WaveRestoreCursors {{Cursor 1} {509818 ps} 0}
 configure wave -namecolwidth 380
 configure wave -valuecolwidth 100
 configure wave -justifyvalue left
@@ -255,4 +264,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ps
 update
-WaveRestoreZoom {106266 ps} {875356 ps}
+WaveRestoreZoom {169397 ps} {579393 ps}

@@ -141,7 +141,8 @@ begin
 
     -- The SDRAM Controller
     sdr_sdram_inst : entity work.sdr_sdram
-        generic map(USE_AUTOMATIC_REFRESH => true,
+        generic map(SHORT_INITIALIZATION => true,
+                    USE_AUTOMATIC_REFRESH => true,
                     BURST_LENGTH          => BURST_LENGTH,
                     SDRAM                 => SDRAM,
                     CS_WIDTH              => CS_WIDTH,
@@ -213,7 +214,8 @@ begin
         sdram_dq((i + 1) * 8 - 1 downto i * 8) <= sdram_dq_out((i + 1) * 8 - 1 downto i * 8)'delayed(tCLK_PERIOD / 10) when sdram_dq_dir'delayed(tCLK_PERIOD / 10)(i) = '1' else (others => 'Z');
     end generate gen_delay_dq_out;
 
-    clk <= not clk after 5 ns;
+    clk <= not clk after tCLK_PERIOD/2;
+    rst <= '1', '0' after tCLK_PERIOD*1.1;
 
     process
         variable l : line;
