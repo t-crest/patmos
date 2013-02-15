@@ -2,7 +2,7 @@
 
 #CC=$(PATMOS_BASE)/clang
 CC=patmos-clang
-CFLAGS=-ccc-host-triple patmos-unknown-elf \
+CFLAGS=-target patmos-unknown-unknown-elf \
 	-nodefaultlibs -nostdlib -nostartfiles \
 	-fno-builtin -mfloat-abi=none \
 	-Ttext 0x10 \
@@ -15,7 +15,7 @@ else
 CFLAGS+=-O0
 endif
 
-CFLAGS-WITH-LIBS=-ccc-host-triple patmos-unknown-elf \
+CFLAGS-WITH-LIBS=-target patmos-unknown-unknown-elf \
 	-nostartfiles \
 	-fno-builtin -mfloat-abi=none \
 	-mpatmos-disable-stack-cache \
@@ -23,7 +23,7 @@ CFLAGS-WITH-LIBS=-ccc-host-triple patmos-unknown-elf \
 	-e main \
 	-O3
 
-CFLAGS_ASM=-ccc-host-triple patmos-unknown-elf \
+CFLAGS_ASM=-target patmos-unknown-unknown-elf \
 	-fno-builtin -mfloat-abi=none \
         -fpatmos-emit-asm -S
 ifeq ($(DISABLE_SC),y)
