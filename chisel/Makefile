@@ -23,6 +23,7 @@ all:
 	$(SBT) "run-main $(MAIN) --targetDir generated"
 
 test:
+	-rm -rf generated
 	$(SBT) "run-main $(MAIN) --test --compile --vcd --genHarness --targetDir generated"
 
 # the Verilog version

@@ -55,11 +55,23 @@ class FetchIO(addrBits: Int) extends Bundle()
 class Fetch(addrBits: Int) extends Component {
   val io = new FetchIO(addrBits)
   
-  val pc = Reg(resetVal = UFix(0, addrBits))
   
-  pc := pc+UFix(1)
+  def counter (n: Int) = n
+  
+  val x = Array(Bits(1), Bits(2), Bits(4), Bits(8))
+  val rom = Vec(x){ UFix(width = 32) }
+  val v = Vec(2) { Bits(width=32) }
+  v(0) = Bits(34)
+  v(1) = Bits(65)
+  
+  val pc_next = UFix()
+  // variable in the constructor gives the input for the register
+  // alternative is pc := pc_next
+  val pc = Reg(pc_next, resetVal = UFix(0, addrBits))
+  pc_next := pc + UFix(1)
   
   io.pc := pc
+  io.instr_a := v(pc)
 }
 
 /**
@@ -80,7 +92,7 @@ class Patmos() extends Component {
   when(Bool(true)) {
     led := led_next
   }
-  io.led := ~led | fetch.io.pc(7, 0)
+  io.led := ~led | fetch.io.pc(7, 0) | fetch.io.instr_a(7, 0)
 }
 
 // this testing and main file should go into it's own folder
@@ -97,7 +109,7 @@ class PatmosTest(pat: Patmos) extends Tester(pat, Array(pat.io, pat.fetch.io)) {
       //      println("iter: " + i)
       //      println("ovars: " + ovars)
       println("led/litVal " + ovars(pat.io.led).litValue())
-      println("pc" + ovars(pat.fetch.io.pc).litValue())
+      println("pc: " + ovars(pat.fetch.io.pc).litValue())
     }
     ret
   }
