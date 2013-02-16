@@ -86,7 +86,12 @@ class FsmTest(fsm: FsmContainer) extends Tester(fsm, Array(fsm.io)) {
       step(vars, ovars)
       println("iter: "+i)
       println("ovars: "+ovars)
+      // where deos the 'c' come from? Why does this work?
       println("led/litVal "+ovars(c.io.led).litValue())
+//      println("led/litVal "+ovars(io.led).litValue())
+      println("led/litVal "+ovars(fsm.io.led).litValue())
+      // the following does not compile
+//      println("led/litVal "+ovars(xyz.io.led).litValue())
     }
     ret
   }

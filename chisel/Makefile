@@ -17,6 +17,7 @@ SBT = java -Xmx1024M -Xss8M -XX:MaxPermSize=128M -jar sbt/sbt-launch.jar
 # command to compile the C++ files is missing
 
 MAIN=example.FsmMain
+MAIN=patmos.PatmosMain
 
 all:
 	$(SBT) "run-main $(MAIN) --targetDir generated"
