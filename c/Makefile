@@ -1,10 +1,12 @@
 #PATMOS_BASE=/project/flbr/jobs/install/patmos/bin/
+# following is not supported anymore in LLVM 3.2
+# -mfloat-abi=none \
 
 #CC=$(PATMOS_BASE)/clang
 CC=patmos-clang
 CFLAGS=-target patmos-unknown-unknown-elf \
 	-nodefaultlibs -nostdlib -nostartfiles \
-	-fno-builtin -mfloat-abi=none \
+	-fno-builtin \
 	-Ttext 0x10 \
 	-e main
 # Edgar2MS: the comments didn't work because all have to be one line, so the -Ttext and -e main was skipped which caused the elf2vhdl to crash
@@ -17,14 +19,14 @@ endif
 
 CFLAGS-WITH-LIBS=-target patmos-unknown-unknown-elf \
 	-nostartfiles \
-	-fno-builtin -mfloat-abi=none \
+	-fno-builtin \
 	-mpatmos-disable-stack-cache \
 	-Ttext 0x10 \
 	-e main \
 	-O3
 
 CFLAGS_ASM=-target patmos-unknown-unknown-elf \
-	-fno-builtin -mfloat-abi=none \
+	-fno-builtin \
         -fpatmos-emit-asm -S
 ifeq ($(DISABLE_SC),y)
 CFLAGS_ASM+=-mpatmos-disable-stack-cache \
