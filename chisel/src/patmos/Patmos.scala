@@ -58,11 +58,21 @@ class Fetch(addrBits: Int) extends Component {
   
   def counter (n: Int) = n
   
-  val x = Array(Bits(1), Bits(2), Bits(4), Bits(8))
-  val rom = Vec(x){ UFix(width = 32) }
-  val v = Vec(2) { Bits(width=32) }
-  v(0) = Bits(34)
-  v(1) = Bits(65)
+//  val x = Array(Bits(1), Bits(2), Bits(4), Bits(8))
+//  val rom = Vec(x){ UFix(width = 32) }
+  val v = Vec(4) { Bits(width=32) }
+
+/*
+    when "0000000000" => q <= "00000000000000100000000011111111";
+    when "0000000001" => q <= "00000000000001000000000000000001";
+    when "0000000010" => q <= "00000000000001100000000000000010";
+    when "0000000011" => q <= "00000010000010000010000110000000";
+*/
+
+  v(0) = Bits("h_0002_00ff")  // maybe not executed
+  v(1) = Bits("h_0004_0001")  // addi    r2 = r0, 1;
+  v(2) = Bits("h_0006_0002")  // addi    r3 = r0, 2;
+  v(3) = Bits("h_0208_2180") // add     r4 = r2, r3;
   
   val pc_next = UFix()
   // variable in the constructor gives the input for the register
