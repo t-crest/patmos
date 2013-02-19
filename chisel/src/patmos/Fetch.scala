@@ -31,7 +31,7 @@
  */
 
 /*
- * Patmos top level component and test driver.
+ * Fetch stage of Patmos.
  * 
  * Author: Martin Schoeberl (martin@jopdesign.com)
  * 
@@ -42,53 +42,42 @@ package patmos
 import Chisel._
 import Node._
 
-import scala.collection.mutable.HashMap
+class FetchOut(addrBits: Int) extends Bundle()
+{
+  val instr_a = Bits(OUTPUT, 32)
+  val instr_b = Bits(OUTPUT, 32)
+  val b_valid = Bool(OUTPUT)
+  val pc = UFix(OUTPUT, addrBits)
+}
 
-/**
- * The main (top-level) component of Patmos.
- */
-class Patmos() extends Component {
-  val io = new Bundle {
-    val led = Bits(OUTPUT, 8)
-  }
-
-  val fetch = new Fetch(10)
-  // maybe instantiate the FSM here to get some output when
-  // compiling for the FPGA
-  val decode = new Decode(10)
-//  decode.io.in := fetch.io
+class Fetch(addrBits: Int) extends Component {
+  val io = new FetchOut(addrBits)
   
-  val led = Reg(resetVal = Bits(1, 8))
-  val led_next = Cat(led(6, 0), led(7))
+  
+  def counter (n: Int) = n
+  
+//  val x = Array(Bits(1), Bits(2), Bits(4), Bits(8))
+//  val rom = Vec(x){ UFix(width = 32) }
+  val v = Vec(4) { Bits(width=32) }
 
-  when(Bool(true)) {
-    led := led_next
-  }
-  io.led := ~led | fetch.io.pc(7, 0) | fetch.io.instr_a(7, 0) | decode.io.out.pc(7, 0)
-}
+/*
+    when "0000000000" => q <= "00000000000000100000000011111111";
+    when "0000000001" => q <= "00000000000001000000000000000001";
+    when "0000000010" => q <= "00000000000001100000000000000010";
+    when "0000000011" => q <= "00000010000010000010000110000000";
+*/
 
-// this testing and main file should go into it's own folder
-
-class PatmosTest(pat: Patmos) extends Tester(pat, Array(pat.io, pat.fetch.io, pat.decode.io)) {
-  defTests {
-    val ret = true
-    val vars = new HashMap[Node, Node]()
-    val ovars = new HashMap[Node, Node]()
-
-    for (i <- 0 until 10) {
-      vars.clear
-      step(vars, ovars)
-      //      println("iter: " + i)
-      //      println("ovars: " + ovars)
-      println("led/litVal " + ovars(pat.io.led).litValue())
-      println("pc: " + ovars(pat.fetch.io.pc).litValue())
-    }
-    ret
-  }
-}
-
-object PatmosMain {
-  def main(args: Array[String]): Unit = {
-    chiselMainTest(args, () => new Patmos()) { f => new PatmosTest(f) }
-  }
+  v(0) = Bits("h_0002_00ff")  // maybe not executed
+  v(1) = Bits("h_0004_0001")  // addi    r2 = r0, 1;
+  v(2) = Bits("h_0006_0002")  // addi    r3 = r0, 2;
+  v(3) = Bits("h_0208_2180") // add     r4 = r2, r3;
+  
+  val pc_next = UFix()
+  // variable in the constructor gives the input for the register
+  // alternative is pc := pc_next
+  val pc = Reg(pc_next, resetVal = UFix(0, addrBits))
+  pc_next := pc + UFix(1)
+  
+  io.pc := pc
+  io.instr_a := v(pc)
 }
