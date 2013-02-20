@@ -42,7 +42,7 @@ package patmos
 import Chisel._
 import Node._
 
-class Decode() {
+class Decode() extends Component {
   val io = new DecodeIO()
   
 //  val decReg = Reg(io.in) // more needs to be investigated on this...
