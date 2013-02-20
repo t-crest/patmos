@@ -43,7 +43,7 @@ import Chisel._
 import Node._
 
 class Fetch() extends Component {
-  val io = new FetchOut().asOutput
+  val io = new FetchIO()
   
   
   def counter (n: Int) = n
@@ -70,6 +70,6 @@ class Fetch() extends Component {
   val pc = Reg(pc_next, resetVal = UFix(0, Constants.PC_SIZE))
   pc_next := pc + UFix(1)
   
-  io.pc := pc
-  io.instr_a := v(pc)
+  io.out.pc := pc
+  io.out.instr_a := v(pc)
 }

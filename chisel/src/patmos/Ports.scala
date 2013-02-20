@@ -42,7 +42,7 @@ package patmos
 import Chisel._
 import Node._
 
-// leaving out the OUTPUT and using if as new FetchOut().asOutput did not work
+// leaving out the OUTPUT and using if as new FetchOut().asOutput does not really work
 class FetchOut() extends Bundle()
 {
 //  val instr_a = Bits(OUTPUT, 32)
@@ -55,14 +55,19 @@ class FetchOut() extends Bundle()
   val pc = UFix(width=Constants.PC_SIZE)
 }
 
+class FetchIO extends Bundle()
+{
+  val out = new FetchOut().asOutput
+}
+
 class DecodeOut() extends Bundle()
 {
-  val pc = UFix(OUTPUT, Constants.PC_SIZE)
+  val pc = UFix(width=Constants.PC_SIZE)
 }
 
 class DecodeIO() extends Bundle()
 {
-  val in = new FetchOut().flip
+  val in = new FetchOut().asInput
   val out = new DecodeOut().asOutput
 }
 

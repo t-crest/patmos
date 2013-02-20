@@ -46,7 +46,6 @@ class Decode() {
   val io = new DecodeIO()
   
 //  val decReg = Reg(io.in) // more needs to be investigated on this...
-//  val decReg = Reg(io.in)
-  val pcReg = Reg(io.in.pc)
-  io.out.pc := pcReg // decReg.pc
+  val decReg = Reg(io.in.pc)
+  io.out.pc := decReg + UFix(10)
 }

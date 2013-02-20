@@ -16,7 +16,7 @@ object BuildSettings {
       scalaVersion := "2.9.2",
       // default source directory would be something different
       scalaSource in Compile := Path.absolute(file(projectdir + "/src")),
-      libraryDependencies += "edu.berkeley.cs" %% "chisel" % "1.0.7"
+      libraryDependencies += "edu.berkeley.cs" %% "chisel" % "1.0.8"
 //      libraryDependencies += "edu.berkeley.cs" %% "chisel" % "1.0"
     )
   }
