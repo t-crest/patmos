@@ -31,7 +31,7 @@
  */
 
 /*
- * Patmos top level component and test driver.
+ * Constants for Patmos.
  * 
  * Author: Martin Schoeberl (martin@jopdesign.com)
  * 
@@ -39,63 +39,6 @@
 
 package patmos
 
-import Chisel._
-import Node._
-
-import scala.collection.mutable.HashMap
-
-/**
- * The main (top-level) component of Patmos.
- */
-class Patmos() extends Component {
-  val io = new Bundle {
-    val led = Bits(OUTPUT, 8)
-  }
-
-  val fetch = new Fetch()
-//  val decode = new Decode()
-
-//  decode.io.in <> fetch.io
-  
-//  decode.io.in.pc := fetch.io.pc
-
-  // ***** the follwoing code is not really Patmos code ******
-  
-  // maybe instantiate the FSM here to get some output when
-  // compiling for the FPGA
-
-  val led = Reg(resetVal = Bits(1, 8))
-  val led_next = Cat(led(6, 0), led(7))
-
-  when(Bool(true)) {
-    led := led_next
-  }
-  io.led := ~led | fetch.io.pc(7, 0) | fetch.io.instr_a(7, 0) // | decode.io.out.pc(7, 0)
-}
-
-// this testing and main file should go into it's own folder
-
-class PatmosTest(pat: Patmos) extends Tester(pat, Array(pat.io, pat.fetch.io /*, pat.decode.io*/)) {
-  defTests {
-    val ret = true
-    val vars = new HashMap[Node, Node]()
-    val ovars = new HashMap[Node, Node]()
-
-    for (i <- 0 until 4) {
-      vars.clear
-      step(vars, ovars)
-      //      println("iter: " + i)
-      //      println("ovars: " + ovars)
-      println("led/litVal " + ovars(pat.io.led).litValue())
-      println("pc: " + ovars(pat.fetch.io.pc).litValue())
-//      println("pc decode: " + ovars(pat.decode.io.out.pc).litValue())
-    }
-    ret
-  }
-}
-
-object PatmosMain {
-  def main(args: Array[String]): Unit = {
-    chiselMainTest(args, () => new Patmos()) { f => new PatmosTest(f) }
-  }
+object Constants {
+  val PC_SIZE = 10
 }

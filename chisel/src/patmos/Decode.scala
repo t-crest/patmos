@@ -42,21 +42,11 @@ package patmos
 import Chisel._
 import Node._
 
-class DecodeOut(addrBits: Int) extends Bundle()
-{
-  val pc = UFix(OUTPUT, addrBits)
-}
-
-class DecodeIO(addrBits: Int) extends Bundle()
-{
-  val in = new FetchOut(addrBits)
-  val out = new DecodeOut(addrBits)
-}
-
-class Decode(addrBits: Int) {
-  val io = new DecodeIO(addrBits)
+class Decode() {
+  val io = new DecodeIO()
   
 //  val decReg = Reg(io.in) // more needs to be investigated on this...
-  val decReg = Reg(io.in.pc)
-  io.out.pc := decReg
+//  val decReg = Reg(io.in)
+  val pcReg = Reg(io.in.pc)
+  io.out.pc := pcReg // decReg.pc
 }

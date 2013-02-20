@@ -42,16 +42,8 @@ package patmos
 import Chisel._
 import Node._
 
-class FetchOut(addrBits: Int) extends Bundle()
-{
-  val instr_a = Bits(OUTPUT, 32)
-  val instr_b = Bits(OUTPUT, 32)
-  val b_valid = Bool(OUTPUT)
-  val pc = UFix(OUTPUT, addrBits)
-}
-
-class Fetch(addrBits: Int) extends Component {
-  val io = new FetchOut(addrBits)
+class Fetch() extends Component {
+  val io = new FetchOut().asOutput
   
   
   def counter (n: Int) = n
@@ -75,7 +67,7 @@ class Fetch(addrBits: Int) extends Component {
   val pc_next = UFix()
   // variable in the constructor gives the input for the register
   // alternative is pc := pc_next
-  val pc = Reg(pc_next, resetVal = UFix(0, addrBits))
+  val pc = Reg(pc_next, resetVal = UFix(0, Constants.PC_SIZE))
   pc_next := pc + UFix(1)
   
   io.pc := pc
