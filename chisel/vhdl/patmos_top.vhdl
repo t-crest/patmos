@@ -22,7 +22,7 @@ entity patmos_top is
 end entity patmos_top;
 
 architecture rtl of patmos_top is
-	component FsmContainer is
+	component Patmos is
 		port(
 			clk    : in  std_logic;
 			reset  : in  std_logic;
@@ -58,7 +58,7 @@ begin
 		end if;
 	end process;
 
-	comp : FsmContainer port map(
+	comp : Patmos port map(
 			clk, int_res, led
 		);
 
