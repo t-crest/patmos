@@ -31,7 +31,7 @@
  */
 
 /*
- * Port definitions for the pipe stages.
+ * Memory stage of Patmos.
  * 
  * Author: Martin Schoeberl (martin@jopdesign.com)
  * 
@@ -42,60 +42,10 @@ package patmos
 import Chisel._
 import Node._
 
-class FeDec() extends Bundle()
-{
-  val instr_a = Bits(width=32)
-//  val instr_b = Bits(width=32)
-//  val b_valid = Bool()
-  val pc = UFix(width=Constants.PC_SIZE)
-}
-
-
-class DecEx() extends Bundle()
-{
-  val pc = UFix(width=Constants.PC_SIZE)
-}
-
-class ExMem() extends Bundle()
-{
-  val pc = UFix(width=Constants.PC_SIZE)
-}
-
-class MemWb() extends Bundle()
-{
-  val pc = UFix(width=Constants.PC_SIZE)
-}
-
-class WbFinal() extends Bundle()
-{
-  val pc = UFix(width=Constants.PC_SIZE)
-}
-class FetchIO extends Bundle()
-{
-  val out = new FeDec().asOutput
-}
-
-class DecodeIO() extends Bundle()
-{
-  val in = new FeDec().asInput
-  val out = new DecEx().asOutput
-}
-
-class ExecuteIO() extends Bundle()
-{
-  val in = new DecEx().asInput
-  val out = new ExMem().asOutput
-}
-
-
-class MemoryIO() extends Bundle()
-{
-  val in = new ExMem().asInput
-  val out = new MemWb().asOutput
-}
-
-class WriteBackIO() extends Bundle()
-{
-  val in = new MemWb().asInput
-  val out = new WbFinal().asOutput
+class Memory() extends Component {
+  val io = new MemoryIO()
+  
+  val memReg = Reg(io.in)
+  
+  io.out.pc := memReg.pc
 }

@@ -45,7 +45,7 @@ import Node._
 class Decode() extends Component {
   val io = new DecodeIO()
   
-//  val decReg = Reg(io.in) // more needs to be investigated on this...
-  val decReg = Reg(io.in.pc)
-  io.out.pc := decReg + UFix(10)
+  val decReg = Reg(io.in)
+  
+  io.out.pc := decReg.pc
 }

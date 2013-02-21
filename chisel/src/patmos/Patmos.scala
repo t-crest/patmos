@@ -54,15 +54,17 @@ class Patmos() extends Component {
 
   val fetch = new Fetch()
   val decode = new Decode()
+  val execute = new Execute()
+  val memory = new Memory()
+  val writeback = new WriteBack()
 
   decode.io.in <> fetch.io.out
-  
-//  decode.io.in := fetch.io.out
-  
-//  decode.io.in.pc := fetch.io.out.pc
-//  decode.io.in.instr_a := fetch.io.out.instr_a
+  execute.io.in <> decode.io.out
+  memory.io.in <> execute.io.out
+  writeback.io.in <> memory.io.out
 
-//  decode.io.in.pc := UFix(123)
+// this does not work as := is for individual 'wires'
+//  decode.io.in := fetch.io.out
   
   // ***** the follwoing code is not really Patmos code ******
   
@@ -76,18 +78,19 @@ class Patmos() extends Component {
     led := led_next
   }
   // combine the outputs to avoid dropping circuits, which would result in CPP compile errors
-  io.led := ~led | fetch.io.out.pc(7, 0) | fetch.io.out.instr_a(7, 0) & decode.io.out.pc(7, 0)
+  io.led := ~led | fetch.io.out.pc(7, 0) | fetch.io.out.instr_a(7, 0) & decode.io.out.pc(7, 0) & writeback.io.out.pc(7, 0) 
 }
 
 // this testing and main file should go into it's own folder
 
-class PatmosTest(pat: Patmos) extends Tester(pat, Array(pat.io, pat.fetch.io, pat.decode.io)) {
+class PatmosTest(pat: Patmos) extends Tester(pat, Array(pat.io, pat.fetch.io,
+    pat.decode.io, pat.execute.io, pat.memory.io, pat.writeback.io)) {
   defTests {
     val ret = true
     val vars = new HashMap[Node, Node]()
     val ovars = new HashMap[Node, Node]()
 
-    for (i <- 0 until 4) {
+    for (i <- 0 until 8) {
       vars.clear
       step(vars, ovars)
       //      println("iter: " + i)
