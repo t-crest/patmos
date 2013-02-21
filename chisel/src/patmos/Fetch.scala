@@ -50,7 +50,6 @@ class Fetch() extends Component {
   
 //  val x = Array(Bits(1), Bits(2), Bits(4), Bits(8))
 //  val rom = Vec(x){ UFix(width = 32) }
-  val v = Vec(4) { Bits(width=32) }
 
 /*
     when "0000000000" => q <= "00000000000000100000000011111111";
@@ -59,10 +58,38 @@ class Fetch() extends Component {
     when "0000000011" => q <= "00000010000010000010000110000000";
 */
 
+  // using a vector for a ROM
+  val v = Vec(4) { Bits(width=32) }
+
   v(0) = Bits("h_0002_00ff")  // maybe not executed
   v(1) = Bits("h_0004_0001")  // addi    r2 = r0, 1;
   v(2) = Bits("h_0006_0002")  // addi    r3 = r0, 2;
   v(3) = Bits("h_0208_2180") // add     r4 = r2, r3;
+
+  val rom = v
+  
+
+
+  // A ROM the suggested Chisel way - but it does not work
+//  val vals = new Array[Bits](4)
+//  vals(0) = Bits("h_0002_00ff")  // maybe not executed
+//  vals(1) = Bits("h_0004_0001")  // addi    r2 = r0, 1;
+//  vals(2) = Bits("h_0006_0002")  // addi    r3 = r0, 2;
+//  vals(3) = Bits("h_0208_2180") // add     r4 = r2, r3;
+//  for (x <-0 until 4)
+//    vals(x) = UFix(x)
+ 
+  // does not work
+  // val d = Array(UFix(1), UFix(2), UFix(3), UFix(78))
+  // val rom1 = new ROM(d){ UFix(width=32) }
+
+  // does not work either
+//  val tab = new Array[UFix](2)
+//  tab(0) = UFix(1)
+//  tab(1) = UFix(2)
+//  tab(2) = UFix(15)
+//  tab(3) = UFix(100)
+//  val rom2 = ROM(tab){ UFix(32) }
   
   val pc_next = UFix()
   // variable in the constructor gives the input for the register
@@ -71,5 +98,5 @@ class Fetch() extends Component {
   pc_next := pc + UFix(1)
   
   io.out.pc := pc
-  io.out.instr_a := v(pc)
+  io.out.instr_a := rom(pc)
 }
