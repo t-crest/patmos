@@ -46,7 +46,6 @@ class Fetch() extends Component {
   val io = new FetchIO()
   
   
-  def counter (n: Int) = n
   
 //  val x = Array(Bits(1), Bits(2), Bits(4), Bits(8))
 //  val rom = Vec(x){ UFix(width = 32) }
@@ -59,17 +58,19 @@ class Fetch() extends Component {
 */
 
   // using a vector for a ROM
-  val v = Vec(4) { Bits(width=32) }
+  val v = Vec(256) { Bits(width=32) }
 
   v(0) = Bits("h_0002_00ff")  // maybe not executed
   v(1) = Bits("h_0004_0001")  // addi    r2 = r0, 1;
   v(2) = Bits("h_0006_0002")  // addi    r3 = r0, 2;
   v(3) = Bits("h_0208_2180") // add     r4 = r2, r3;
 
+  // generate some dummy data to fill the table
+  for (x <- 4 until 256)
+    v(x) = Bits(x*x+10+((x-2)<<24))
+    
   val rom = v
   
-
-
   // A ROM the suggested Chisel way - but it does not work
 //  val vals = new Array[Bits](4)
 //  vals(0) = Bits("h_0002_00ff")  // maybe not executed

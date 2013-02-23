@@ -42,60 +42,81 @@ package patmos
 import Chisel._
 import Node._
 
-class FeDec() extends Bundle()
-{
-  val instr_a = Bits(width=32)
-//  val instr_b = Bits(width=32)
-//  val b_valid = Bool()
-  val pc = UFix(width=Constants.PC_SIZE)
+class FeDec() extends Bundle() {
+  val instr_a = Bits(width = 32)
+  //  val instr_b = Bits(width=32)
+  //  val b_valid = Bool()
+  val pc = UFix(width = Constants.PC_SIZE)
 }
 
-
-class DecEx() extends Bundle()
-{
-  val pc = UFix(width=Constants.PC_SIZE)
+class DecEx() extends Bundle() {
+  val pc = UFix(width = Constants.PC_SIZE)
+  val rs1 = Bits(width=32)
+  val rs2 = Bits(width=32)
+  val func = Bits(width = 4)
 }
 
-class ExMem() extends Bundle()
-{
-  val pc = UFix(width=Constants.PC_SIZE)
+class Result() extends Bundle() {
+  val addr = Bits(width=5)
+  val data = Bits(width=32)
+  val valid = Bool()
 }
 
-class MemWb() extends Bundle()
-{
-  val pc = UFix(width=Constants.PC_SIZE)
+class ExMem() extends Bundle() {
+//  val rd = new Result()
+  val pc = UFix(width = Constants.PC_SIZE)
 }
 
-class WbFinal() extends Bundle()
-{
-  val pc = UFix(width=Constants.PC_SIZE)
+class MemWb() extends Bundle() {
+//  val rd = new Result()
+  val pc = UFix(width = Constants.PC_SIZE)
 }
-class FetchIO extends Bundle()
-{
+
+class WbFinal() extends Bundle() {
+//  val rd = new Result()
+  val pc = UFix(width = Constants.PC_SIZE)
+}
+
+class RegFileRead() extends Bundle() {
+  // maybe a vector of addresses and data?
+  val rs1Addr = Bits(INPUT, 5)
+  val rs1Data = Bits(OUTPUT, 32)
+  val rs2Addr = Bits(INPUT, 5)
+  val rs2Data = Bits(OUTPUT, 32)
+}
+class RegFileWrite() extends Bundle() {
+  val wrAddr = Bits(INPUT, 5)
+  val wrData = Bits(INPUT, 32)
+  val wrEn = Bool(INPUT)
+}
+
+class RegFileIO() extends Bundle() {
+  val rfRead = new RegFileRead()
+  val rfWrite = new RegFileWrite()
+}
+
+class FetchIO extends Bundle() {
   val out = new FeDec().asOutput
 }
 
-class DecodeIO() extends Bundle()
-{
+class DecodeIO() extends Bundle() {
   val in = new FeDec().asInput
   val out = new DecEx().asOutput
+  val rfRead = new RegFileRead().flip
 }
 
-class ExecuteIO() extends Bundle()
-{
+class ExecuteIO() extends Bundle() {
   val in = new DecEx().asInput
   val out = new ExMem().asOutput
 }
 
-
-class MemoryIO() extends Bundle()
-{
+class MemoryIO() extends Bundle() {
   val in = new ExMem().asInput
   val out = new MemWb().asOutput
 }
 
-class WriteBackIO() extends Bundle()
-{
+class WriteBackIO() extends Bundle() {
   val in = new MemWb().asInput
   val out = new WbFinal().asOutput
+  val rfWrite = new RegFileWrite().flip
 }

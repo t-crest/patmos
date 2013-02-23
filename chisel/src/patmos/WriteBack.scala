@@ -47,5 +47,9 @@ class WriteBack() extends Component {
   
   val wbReg = Reg(io.in)
   
+  io.rfWrite.wrAddr := wbReg.pc(4, 0).toBits
+  io.rfWrite.wrData := wbReg.pc.toBits
+  io.rfWrite.wrEn := Bool(true)
+  
   io.out.pc := wbReg.pc
 }

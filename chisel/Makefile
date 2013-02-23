@@ -24,7 +24,7 @@ all:
 
 test:
 	-rm -rf generated
-	$(SBT) "run-main $(MAIN) --test --compile --vcd --genHarness --targetDir generated"
+	$(SBT) "run-main $(MAIN) --test --debug --compile --vcd --genHarness --targetDir generated"
 
 # the Verilog version
 verilog:

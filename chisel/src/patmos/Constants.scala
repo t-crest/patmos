@@ -40,5 +40,6 @@
 package patmos
 
 object Constants {
-  val PC_SIZE = 10
+  // just now 32 to make it easy to use it as data dummy
+  val PC_SIZE = 32
 }

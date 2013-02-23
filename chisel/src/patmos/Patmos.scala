@@ -57,11 +57,17 @@ class Patmos() extends Component {
   val execute = new Execute()
   val memory = new Memory()
   val writeback = new WriteBack()
+  
+  val register = new RegisterFile()
 
   decode.io.in <> fetch.io.out
   execute.io.in <> decode.io.out
   memory.io.in <> execute.io.out
   writeback.io.in <> memory.io.out
+  
+  decode.io.rfRead <> register.io.rfRead
+  // exe RF connection missing
+  writeback.io.rfWrite <> register.io.rfWrite
 
 // this does not work as := is for individual 'wires'
 //  decode.io.in := fetch.io.out
@@ -77,8 +83,14 @@ class Patmos() extends Component {
   when(Bool(true)) {
     led := led_next
   }
+  
+  val dummy = Cat(xorR(fetch.io.out.instr_a), fetch.io.out.instr_a(23, 17))
   // combine the outputs to avoid dropping circuits, which would result in CPP compile errors
-  io.led := ~led | fetch.io.out.pc(7, 0) | fetch.io.out.instr_a(7, 0) & decode.io.out.pc(7, 0) & writeback.io.out.pc(7, 0) 
+  val abc =   fetch.io.out.pc(7, 0) | fetch.io.out.instr_a(7, 0) | fetch.io.out.instr_a(31, 24) & decode.io.out.pc(7, 0)  ^ dummy | decode.io.out.func  
+  val sum1 = writeback.io.rfWrite.wrData.toUFix + writeback.io.rfWrite.wrAddr.toUFix + writeback.io.out.pc
+  val sum2 = sum1 + register.io.rfRead.rs1Data + register.io.rfRead.rs2Data
+  val part = sum2.toBits
+  io.led := ~led | abc ^ part(7, 0)
 }
 
 // this testing and main file should go into it's own folder
@@ -98,6 +110,7 @@ class PatmosTest(pat: Patmos) extends Tester(pat, Array(pat.io, pat.fetch.io,
       println("led/litVal " + ovars(pat.io.led).litValue())
       println("pc: " + ovars(pat.fetch.io.out.pc).litValue())
       println("pc decode: " + ovars(pat.decode.io.out.pc).litValue())
+      println("instr: " + ovars(pat.fetch.io.out.instr_a).litValue())
     }
     ret
   }

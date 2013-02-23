@@ -45,7 +45,23 @@ import Node._
 class Decode() extends Component {
   val io = new DecodeIO()
   
+  // register file is connected with unregistered instruction word
+  io.rfRead.rs1Addr := io.in.instr_a(16, 12)
+  io.rfRead.rs2Addr := io.in.instr_a(11, 7)
+  
+  // on R0 destiantion just disable wrEna
+  
   val decReg = Reg(io.in)
   
+  val instr = decReg.instr_a
+  // keep it in a way that is easy to refactor into a function for
+  // dual issue decode
+  val func = Bits(width=4)
+  func := instr(3, 0)
+  when (instr(26, 25) === Bits("b00")) {
+    func := Cat(Bits(0), instr(24, 22))
+  }
+  
   io.out.pc := decReg.pc
+  io.out.func := func
 }
