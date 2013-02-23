@@ -88,8 +88,9 @@ class Patmos() extends Component {
   // combine the outputs to avoid dropping circuits, which would result in CPP compile errors
   val abc =   fetch.io.out.pc(7, 0) | fetch.io.out.instr_a(7, 0) | fetch.io.out.instr_a(31, 24) & decode.io.out.pc(7, 0)  ^ dummy | decode.io.out.func  
   val sum1 = writeback.io.rfWrite.wrData.toUFix + writeback.io.rfWrite.wrAddr.toUFix + writeback.io.out.pc
-  val sum2 = sum1 + register.io.rfRead.rs1Data + register.io.rfRead.rs2Data
-  val part = sum2.toBits
+  val sum2 = sum1 + register.io.rfRead.rsData(0) + register.io.rfRead.rsData(1)
+  val sum3 = sum2 + decode.io.out.rsAddr(0) + decode.io.out.rsAddr(1)
+  val part = sum3.toBits
   io.led := ~led | abc ^ part(7, 0)
 }
 

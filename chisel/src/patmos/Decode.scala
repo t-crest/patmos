@@ -46,8 +46,8 @@ class Decode() extends Component {
   val io = new DecodeIO()
   
   // register file is connected with unregistered instruction word
-  io.rfRead.rs1Addr := io.in.instr_a(16, 12)
-  io.rfRead.rs2Addr := io.in.instr_a(11, 7)
+  io.rfRead.rsAddr(0) := io.in.instr_a(16, 12)
+  io.rfRead.rsAddr(1) := io.in.instr_a(11, 7)
   
   // on R0 destiantion just disable wrEna
   
@@ -64,4 +64,9 @@ class Decode() extends Component {
   
   io.out.pc := decReg.pc
   io.out.func := func
+  // forward RF addresses and data
+  io.out.rsAddr(0) := decReg.instr_a(16, 12)
+  io.out.rsAddr(1) := decReg.instr_a(11, 7)
+  io.out.rsData(0) := io.rfRead.rsData(0)
+  io.out.rsData(1) := io.rfRead.rsData(1)
 }

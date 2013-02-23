@@ -44,76 +44,22 @@ package patmos
 import Chisel._
 import Node._
 
-
-
 class RegisterFile() extends Component {
   val io = new RegFileIO()
-  
-//  val mem1 = Mem(32, seqRead=true) { Bits(width=32) }
-//  val mem2 = Mem(32, seqRead=true) { Bits(width=32) }
-//  
-//  // is it really modeled as output register?
-//  // I would prefer address registers
-//  val d1 = Reg() { Bits(width=32) }
-//  val d2 = Reg() { Bits(width=32) }
-//
-//  // Where is the register for write?
-//  when(io.rfWrite.wrEn) {
-//    mem1(io.rfWrite.wrAddr.toUFix) := io.rfWrite.wrData
-//    mem2(io.rfWrite.wrAddr.toUFix) := io.rfWrite.wrData
-//  }
-//  // Who is looking for read during write hazard?
-//  // R0 handling could be done here, in decode, or as part of forwarding
-//  d1 := mem1(io.rfRead.rs1Addr.toUFix)
-//  d2 := mem2(io.rfRead.rs2Addr.toUFix)
 
-//  val rf = Vec(32){ Reg(resetVal = Bits(0, width = 32)) }
-//  val rf = Vec(32) { Bits(width=32) }
-//  for (i <- 0 until 32) {
-//    rf(i) = Reg() { Bits(width=32) }
-//  }
+  // val rf = Vec(32){ Reg() { Bits(width = 32) } }
+  // the reset version generates more logic and a slower fmax
+  val rf = Vec(32) { Reg(resetVal = Bits(0, width = 32)) }
 
-  val rf = Vec(32){ Reg() { Bits(width = 32) } }
-  
   when(io.rfWrite.wrEn) {
     rf(io.rfWrite.wrAddr.toUFix) := io.rfWrite.wrData
   }
 
-  val data = Vec(2) { Bits(width=32) }
-  data(0) := rf(io.rfRead.rs1Addr.toUFix)
-  data(1) := rf(io.rfRead.rs2Addr.toUFix)
+  io.rfRead.rsData(0) := rf(io.rfRead.rsAddr(0).toUFix)
+  io.rfRead.rsData(1) := rf(io.rfRead.rsAddr(1).toUFix)
   // maybe do register 0 here
   // R0 handling could be done here, in decode, or as part of forwarding
   // Or we are just happy with relying on the fact that the registers are reset
   // and just disable writing to register 0
-  
-  
-//  class RFile extends Bundle() {
-//    val regs = Vec(32) { Bits(width=32) }
-//  }
-//  val rf = Reg(new RFile())
-//  
-//  val d1 = rf.regs(io.rfRead.rs1Addr.toUFix)
-//  val d2 = rf.regs(io.rfRead.rs2Addr.toUFix)
-  
-//  val rf = new Array[{ Bits(width=32) }](32)
-//  for (i <= 0 until 32)
-//    rf(i) = new Reg() { Bits(width=32)}
 
-//  val rf = Vec(Reg { Bits(width=32)}, Reg { Bits(width=32)})
-//  val d1 = rf(io.rfRead.rs1Addr(0,0).toUFix)
-//  // Where is the register for write?
-//  when(io.rfWrite.wrEn) {
-//    mem1(io.rfWrite.wrAddr.toUFix) := io.rfWrite.wrData
-//    mem2(io.rfWrite.wrAddr.toUFix) := io.rfWrite.wrData
-//  }
-//  // Who is looking for read during write hazard?
-//  // R0 handling could be done here, in decode, or as part of forwarding
-//
-//  d1 := mem1(io.rfRead.rs1Addr.toUFix)
-//  d2 := mem2(io.rfRead.rs2Addr.toUFix)
-
-  io.rfRead.rs1Data := data(0)
-  io.rfRead.rs2Data := data(1)
-  
 }

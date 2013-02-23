@@ -51,9 +51,10 @@ class FeDec() extends Bundle() {
 
 class DecEx() extends Bundle() {
   val pc = UFix(width = Constants.PC_SIZE)
-  val rs1 = Bits(width=32)
-  val rs2 = Bits(width=32)
   val func = Bits(width = 4)
+  // the register fields are very similar to RegFileRead
+  val rsAddr = Vec(2) { Bits(width=5) }
+  val rsData = Vec(2) { Bits(width=32) }
 }
 
 class Result() extends Bundle() {
@@ -78,12 +79,11 @@ class WbFinal() extends Bundle() {
 }
 
 class RegFileRead() extends Bundle() {
-  // maybe a vector of addresses and data?
-  val rs1Addr = Bits(INPUT, 5)
-  val rs1Data = Bits(OUTPUT, 32)
-  val rs2Addr = Bits(INPUT, 5)
-  val rs2Data = Bits(OUTPUT, 32)
+  // first two are for pipeline A, second two for pipeline B (not yet done)
+  val rsAddr = Vec(2) { Bits(INPUT, 5) }
+  val rsData = Vec(2) { Bits(OUTPUT, 32) }
 }
+
 class RegFileWrite() extends Bundle() {
   val wrAddr = Bits(INPUT, 5)
   val wrData = Bits(INPUT, 32)
