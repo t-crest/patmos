@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.37 (w)1999-2012 BSI
-[*] Tue Feb 26 02:16:53 2013
+[*] Tue Feb 26 08:04:07 2013
 [*]
 [dumpfile] "/Users/martin/t-crest/patmos/chisel/Patmos.vcd"
-[dumpfile_mtime] "Tue Feb 26 02:16:22 2013"
-[dumpfile_size] 16119
+[dumpfile_mtime] "Tue Feb 26 08:01:01 2013"
+[dumpfile_size] 24195
 [savefile] "/Users/martin/t-crest/patmos/chisel/wave.gtkw"
 [timestart] 0
-[size] 1325 724
+[size] 1323 724
 [pos] -1 -1
-*-2.279721 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-1.279721 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] Patmos.
 [sst_width] 211
 [signals_width] 214
@@ -21,12 +21,39 @@ Patmos.Fetch.io_fedec_instr_a[31:0]
 Patmos.Decode.io_decex_pc[31:0]
 Patmos.Decode.io_fedec_instr_a[31:0]
 Patmos.Decode.io_decex_func[3:0]
+@28
+Patmos.Decode.io_decex_immOp
+@22
+Patmos.Decode.io_decex_immVal[31:0]
 Patmos.Decode.io_decex_rsAddr_0[4:0]
 Patmos.Decode.io_decex_rsAddr_1[4:0]
 Patmos.Decode.io_decex_rsData_0[31:0]
 Patmos.Decode.io_decex_rsData_1[31:0]
+@23
+Patmos.Decode.io_decex_rdAddr_0[4:0]
+@22
 Patmos.Execute.io_exmem_pc[31:0]
 Patmos.Memory.io_memwb_pc[31:0]
 Patmos.WriteBack.io_out_pc[31:0]
+@28
+Patmos.Execute.io_decex_immOp
+@22
+Patmos.Execute.io_decex_immVal[31:0]
+Patmos.Execute.op2[31:0]
+Patmos.Execute.io_exmem_rd_addr[4:0]
+Patmos.Execute.io_exmem_rd_data[31:0]
+Patmos.Memory.io_memwb_rd_addr[4:0]
+Patmos.Memory.io_memwb_rd_data[31:0]
+Patmos.WriteBack.io_out_rd_data[31:0]
+Patmos.WriteBack.io_rfWrite_wrAddr[4:0]
+Patmos.WriteBack.io_rfWrite_wrData[31:0]
+@28
+Patmos.WriteBack.io_rfWrite_wrEn
+@22
+Patmos.RegisterFile.rf_0[31:0]
+Patmos.RegisterFile.rf_1[31:0]
+Patmos.RegisterFile.rf_2[31:0]
+Patmos.RegisterFile.rf_3[31:0]
+Patmos.RegisterFile.rf_4[31:0]
 [pattern_trace] 1
 [pattern_trace] 0

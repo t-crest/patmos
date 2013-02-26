@@ -71,11 +71,13 @@ class Patmos() extends Component {
 
   // Stall ever 4 clock cycles for testing the pipeline
   def pulse() = {
-    val x = Reg(resetVal = UFix(0, 4))
-    x := Mux(x === UFix(3), UFix(0), x+UFix(1))
-    x === UFix(3)
+    val x = Reg(resetVal = UFix(0, 256))
+    x := Mux(x === UFix(100), UFix(0), x+UFix(1))
+    x === UFix(100)
   }
   val enable = !pulse()
+  // disable stall tests
+//  val enable = Bool(true)
   
   fetch.io.ena := enable
   decode.io.ena := enable
@@ -102,7 +104,9 @@ class Patmos() extends Component {
   val sum2 = sum1 + register.io.rfRead.rsData(0) + register.io.rfRead.rsData(1)
   val sum3 = sum2 + decode.io.decex.rsAddr(0) + decode.io.decex.rsAddr(1)
   val part = sum3.toBits
-  io.led := ~led | abc ^ part(7, 0)
+  val xyz = ~led | abc ^ part(7, 0)
+  val r = Reg(xyz)
+  io.led := r
 }
 
 // this testing and main file should go into it's own folder

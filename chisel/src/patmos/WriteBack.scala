@@ -50,10 +50,12 @@ class WriteBack() extends Component {
     wbReg := io.memwb
   }
   
-  // just dummy values to keep synthesizing
-  io.rfWrite.wrAddr := wbReg.pc(4, 0).toBits
-  io.rfWrite.wrData := wbReg.pc.toBits
+  io.rfWrite.wrAddr := wbReg.rd.addr
+  io.rfWrite.wrData := wbReg.rd.data
   io.rfWrite.wrEn := Bool(true)
   
   io.out.pc := wbReg.pc
+  io.out.rd.data := wbReg.rd.data
+  io.out.rd.addr := wbReg.rd.addr
+
 }

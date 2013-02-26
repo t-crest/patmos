@@ -49,7 +49,16 @@ class Execute() extends Component {
   when (io.ena) {
     exReg := io.decex
   }
+  // no access to io.decex after this point!!!
 
-  io.exmem.pc := exReg.pc + io.decex.rsData(0) + io.decex.rsData(1) +
-    io.decex.rsAddr(0) + io.decex.rsAddr(1) + io.decex.func
+  val op2 = Mux(exReg.immOp, exReg.immVal, exReg.rsData(1))
+  val result = exReg.rsData(0) + op2
+  
+  io.exmem.rd.addr := exReg.rdAddr(0)
+  io.exmem.rd.data := result
+//  io.exmem.rd.valid := Bool(true)
+
+  // TODO: we should have a dummy field for this kind of nonsense
+  io.exmem.pc := exReg.pc + exReg.rsData(0) + exReg.rsData(1) +
+    exReg.rsAddr(0) + exReg.rsAddr(1) + exReg.func + io.exmem.rd.data
 }

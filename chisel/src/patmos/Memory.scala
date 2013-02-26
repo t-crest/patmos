@@ -51,4 +51,5 @@ class Memory() extends Component {
   }
   
   io.memwb.pc := memReg.pc
+  io.memwb.rd := memReg.rd
 }

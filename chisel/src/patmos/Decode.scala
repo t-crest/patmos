@@ -60,17 +60,25 @@ class Decode() extends Component {
   val instr = decReg.instr_a
   // keep it in a way that is easy to refactor into a function for
   // dual issue decode
+  
   val func = Bits(width=4)
+  io.decex.immOp := Bool(false)
+  // ALU register and long immediate
   func := instr(3, 0)
+  // ALU immediate
   when (instr(26, 25) === Bits("b00")) {
     func := Cat(Bits(0), instr(24, 22))
+    io.decex.immOp := Bool(true)  
   }
+  // TODO sign extend
+  io.decex.immVal := Cat(Bits(0), instr(11, 0))
   
   io.decex.pc := decReg.pc
   io.decex.func := func
   // forward RF addresses and data
   io.decex.rsAddr(0) := decReg.instr_a(16, 12)
   io.decex.rsAddr(1) := decReg.instr_a(11, 7)
+  io.decex.rdAddr(0) := decReg.instr_a(21, 17)
   io.decex.rsData(0) := io.rfRead.rsData(0)
   io.decex.rsData(1) := io.rfRead.rsData(1)
 }

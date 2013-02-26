@@ -60,13 +60,20 @@ class Fetch() extends Component {
   // using a vector for a ROM
   val v = Vec(256) { Bits(width=32) }
 
-  v(0) = Bits("h_0002_00ff")  // maybe not executed
+//  v(0) = Bits("h_0002_00ff")  // maybe not executed
+  v(0) = Bits("h_0002_0000")  // maybe not executed, but don't load ff in R0 now
   v(1) = Bits("h_0004_0001")  // addi    r2 = r0, 1;
   v(2) = Bits("h_0006_0002")  // addi    r3 = r0, 2;
-  v(3) = Bits("h_0208_2180") // add     r4 = r2, r3;
+  // no forwarding yet, probably also needed in the RF
+  v(3) = Bits("h_0006_0002")  // addi    r3 = r0, 2;
+  v(4) = Bits("h_0006_0002")  // addi    r3 = r0, 2;
+  v(5) = Bits("h_0006_0002")  // addi    r3 = r0, 2;
+  v(6) = Bits("h_0208_2180") // add     r4 = r2, r3;
+  v(7) = Bits("h_0208_2180") // add     r4 = r2, r3;
+  v(8) = Bits("h_0208_2180") // add     r4 = r2, r3;
 
   // generate some dummy data to fill the table
-  for (x <- 4 until 256)
+  for (x <- 8 until 256)
     v(x) = Bits(x*x+10+((x-2)<<24))
     
   val rom = v

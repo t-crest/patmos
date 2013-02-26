@@ -56,26 +56,29 @@ class DecEx() extends Bundle() {
   // the register fields are very similar to RegFileRead
   val rsAddr = Vec(2) { Bits(width=5) }
   val rsData = Vec(2) { Bits(width=32) }
+  val rdAddr = Vec(1) { Bits(width=5) }
+  val immVal = Bits(width=32)
+  val immOp = Bool()
 }
 
 class Result() extends Bundle() {
   val addr = Bits(width=5)
   val data = Bits(width=32)
-  val valid = Bool()
+//  val valid = Bool()
 }
 
 class ExMem() extends Bundle() {
-//  val rd = new Result()
+  val rd = new Result()
   val pc = UFix(width = Constants.PC_SIZE)
 }
 
 class MemWb() extends Bundle() {
-//  val rd = new Result()
+  val rd = new Result()
   val pc = UFix(width = Constants.PC_SIZE)
 }
 
 class WbFinal() extends Bundle() {
-//  val rd = new Result()
+  val rd = new Result()
   val pc = UFix(width = Constants.PC_SIZE)
 }
 
