@@ -28,7 +28,7 @@
 -- policies, either expressed or implied, of the copyright holder.
 -- 
 --
--- top level of the Leros CPU
+-- top level of the Patmos CPU
 -- That should be instanziated in a FPGA specific top level
 
 
@@ -37,23 +37,23 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.patmos_type_package.all;
 
-use work.sdram_config.all;
-use work.sdram_controller_interface.all;
+--use work.sdram_config.all;
+--use work.sdram_controller_interface.all;
 
 entity patmos is
     port(
         clk       : in  std_logic;
         led       : out std_logic;
         txd       : out std_logic;
-        rxd       : in  std_logic;
-        -- SDRAM controller interface
-        gm_slave  : in  SDRAM_controller_slave_type;
-        gm_master : out SDRAM_controller_master_type
+        rxd       : in  std_logic
+--        -- SDRAM controller interface
+--        gm_slave  : in  SDRAM_controller_slave_type;
+--        gm_master : out SDRAM_controller_master_type
     );
 end patmos;
 
-use work.sdram_config.all;
-use work.sdram_controller_interface.all;
+--use work.sdram_config.all;
+--use work.sdram_controller_interface.all;
 
 architecture rtl of patmos is
     signal mem_write          : std_logic;
@@ -67,7 +67,7 @@ architecture rtl of patmos is
 
 begin
     core : entity work.patmos_core(arch)
-        port map(clk, pat_rst, mem_write, mem_data_out_muxed, data_mem_data_out, execute_dout, gm_slave, gm_master);
+        port map(clk, pat_rst, mem_write, mem_data_out_muxed, data_mem_data_out, execute_dout); --, gm_slave, gm_master);
 
     wrapper : entity work.patmos_io(arch)
         port map(clk, pat_rst, mem_write, data_mem_data_out, mem_data_out_muxed, execute_dout, led, txd, rxd);

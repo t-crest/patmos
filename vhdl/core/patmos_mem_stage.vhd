@@ -42,8 +42,8 @@ use ieee.numeric_std.all;
 use work.patmos_type_package.all;
 use work.sc_pack.all;
 
-use work.sdram_config.all;
-use work.sdram_controller_interface.all;
+-- use work.sdram_config.all;
+-- use work.sdram_controller_interface.all;
 
 entity patmos_mem_stage is
     port(
@@ -54,10 +54,12 @@ entity patmos_mem_stage is
         exout_reg          : in  execution_reg;
         exout_not_reg      : in  execution_not_reg;
         dout               : out mem_out_type;
-        decdout            : in  decode_out_type;
-        -- SDRAM controller interface
-        gm_slave           : in  SDRAM_controller_slave_type;
-        gm_master          : out SDRAM_controller_master_type
+        decdout            : in  decode_out_type
+        -- MS: a memory interface shall not be memory specific, but
+        -- a standard such as OCP, Wshbone, SimpCon.
+--        -- SDRAM controller interface
+--        gm_slave           : in  SDRAM_controller_slave_type;
+--        gm_master          : out SDRAM_controller_master_type
     );
 end entity patmos_mem_stage;
 
@@ -170,72 +172,72 @@ begin
         end if;
     end process;
 
-    GM_SDRAM : if USE_GLOBAL_MEMORY_SDRAM generate
-        -- Edgar: FixMe: Need to distinguish from memory mapped I/O operations here, so do a quick hack. This should be consistent with the address decoding done in patmos_io.vhd
-        gm_is_write <= exout_not_reg.gm_write_not_reg when exout_not_reg.adrs(31 downto 28) = "0000" else '0';
-        gm_is_read  <= exout_not_reg.gm_read_not_reg when exout_not_reg.adrs(31 downto 28) = "0000" else '0';
-    
-        gm_master.MFlag_CmdRefresh <= '0'; -- Use automatic refresh
-        
-        gm_master.MCmd             <= '0' & gm_do_write_reg & gm_do_read_reg;
-        process (clk, rst) is
-        begin
-            if rising_edge(clk) then
-                if rst = '1' then
-                    gm_do_write_reg  <=  '0';
-                    gm_do_read_reg  <=  '0';
-                else
-                    -- Edgar: FixMe: using stall, to detect the start of the swm/lwm instruction. The edge detection on gm_is_write would not work for back-to-back memory instructions
-                    -- Right hand side is from alu stage, so the result corresponds to mem stage
-                    if gm_is_write = '1' and gm_stall_prev = '0' then
-                        gm_do_write_reg  <= '1';
-                        -- address is delayed together with the command:
-                        gm_master.MAddr <= exout_not_reg.adrs(gm_master.MAddr'high+2 downto 2);
-                    end if;
-                    if gm_is_read = '1' and gm_stall_prev = '0' then
-                        gm_do_read_reg <= '1';
-                        -- address is delayed together with the command:
-                        gm_master.MAddr <= exout_not_reg.adrs(gm_master.MAddr'high+2 downto 2);
-                    end if; 
-                    -- Need to deassert the command after it is accepted, to prevent it from beeing issued twice.
-                    if  gm_slave.SCmdAccept = '1' then
-                        gm_do_write_reg  <= '0';
-                        gm_do_read_reg  <= '0';
-                    end if;
-                    
-                    gm_stall_prev <= stall;
-                end if;
-            end if;
-        end process ;
-        
-        gm_stall <= (gm_is_read and not gm_read_done) or (gm_is_write and not gm_write_done);
-        
-        
-        
-        -- Acknowledge command acceptance (ignored here, because we don't use pipelined transactions, and use data word acknowledgement instead)
-        --    <= gm_slave.SCmdAccept;
-        
-        -- Write 
-        -- Edgar: The write data seams to be one cycle delayed.
-        gm_master.MData       <= gm_write_data;
-        -- Not used by controller, but might be beneficial for buffers in arbitration layer
-        -- gm_master.MDataValid  <= mtl_wr_valid_i;
-        -- gm_master.MDataLast   <= mtl_wr_last_i;
-        
-        gm_master.MDataByteEn <= "1111";  -- Edgar: the byte/halfword stores won't work for now
-        -- gm_master.MDataByteEn <= not gm_en_spill;  -- Edgar: a write mask should be used here. Not sure if the gm_en_spill is the right signal
-        
-        -- FixMe: This is '1' for each word written, for longer bursts one would need to count words, to decide then new command need to be invoked
-        gm_write_done       <= gm_slave.SDataAccept;
-        
-        -- Read 
-        gm_read_data        <= gm_slave.SData;
-        gm_read_done        <= gm_slave.SResp;
-        -- Might use it to issue the new command when longer bursts are used
-        --        <= gm_slave.SRespLast;
-    end generate GM_SDRAM;
-
-    GM_block_ram : if not USE_GLOBAL_MEMORY_SDRAM generate
+--    GM_SDRAM : if USE_GLOBAL_MEMORY_SDRAM generate
+--        -- Edgar: FixMe: Need to distinguish from memory mapped I/O operations here, so do a quick hack. This should be consistent with the address decoding done in patmos_io.vhd
+--        gm_is_write <= exout_not_reg.gm_write_not_reg when exout_not_reg.adrs(31 downto 28) = "0000" else '0';
+--        gm_is_read  <= exout_not_reg.gm_read_not_reg when exout_not_reg.adrs(31 downto 28) = "0000" else '0';
+--    
+--        gm_master.MFlag_CmdRefresh <= '0'; -- Use automatic refresh
+--        
+--        gm_master.MCmd             <= '0' & gm_do_write_reg & gm_do_read_reg;
+--        process (clk, rst) is
+--        begin
+--            if rising_edge(clk) then
+--                if rst = '1' then
+--                    gm_do_write_reg  <=  '0';
+--                    gm_do_read_reg  <=  '0';
+--                else
+--                    -- Edgar: FixMe: using stall, to detect the start of the swm/lwm instruction. The edge detection on gm_is_write would not work for back-to-back memory instructions
+--                    -- Right hand side is from alu stage, so the result corresponds to mem stage
+--                    if gm_is_write = '1' and gm_stall_prev = '0' then
+--                        gm_do_write_reg  <= '1';
+--                        -- address is delayed together with the command:
+--                        gm_master.MAddr <= exout_not_reg.adrs(gm_master.MAddr'high+2 downto 2);
+--                    end if;
+--                    if gm_is_read = '1' and gm_stall_prev = '0' then
+--                        gm_do_read_reg <= '1';
+--                        -- address is delayed together with the command:
+--                        gm_master.MAddr <= exout_not_reg.adrs(gm_master.MAddr'high+2 downto 2);
+--                    end if; 
+--                    -- Need to deassert the command after it is accepted, to prevent it from beeing issued twice.
+--                    if  gm_slave.SCmdAccept = '1' then
+--                        gm_do_write_reg  <= '0';
+--                        gm_do_read_reg  <= '0';
+--                    end if;
+--                    
+--                    gm_stall_prev <= stall;
+--                end if;
+--            end if;
+--        end process ;
+--        
+--        gm_stall <= (gm_is_read and not gm_read_done) or (gm_is_write and not gm_write_done);
+--        
+--        
+--        
+--        -- Acknowledge command acceptance (ignored here, because we don't use pipelined transactions, and use data word acknowledgement instead)
+--        --    <= gm_slave.SCmdAccept;
+--        
+--        -- Write 
+--        -- Edgar: The write data seams to be one cycle delayed.
+--        gm_master.MData       <= gm_write_data;
+--        -- Not used by controller, but might be beneficial for buffers in arbitration layer
+--        -- gm_master.MDataValid  <= mtl_wr_valid_i;
+--        -- gm_master.MDataLast   <= mtl_wr_last_i;
+--        
+--        gm_master.MDataByteEn <= "1111";  -- Edgar: the byte/halfword stores won't work for now
+--        -- gm_master.MDataByteEn <= not gm_en_spill;  -- Edgar: a write mask should be used here. Not sure if the gm_en_spill is the right signal
+--        
+--        -- FixMe: This is '1' for each word written, for longer bursts one would need to count words, to decide then new command need to be invoked
+--        gm_write_done       <= gm_slave.SDataAccept;
+--        
+--        -- Read 
+--        gm_read_data        <= gm_slave.SData;
+--        gm_read_done        <= gm_slave.SResp;
+--        -- Might use it to issue the new command when longer bursts are used
+--        --        <= gm_slave.SRespLast;
+--    end generate GM_SDRAM;
+--
+--    GM_block_ram : if not USE_GLOBAL_MEMORY_SDRAM generate
         gm0 : entity work.patmos_data_memory(arch)
             generic map(8, 10)
             port map(clk,
@@ -271,7 +273,7 @@ begin
                      gm_en_spill(3),
                      gm_read_add,
                      gm_read_data(31 downto 24));
-    end generate GM_block_ram;
+--    end generate GM_block_ram;
 
     ---------------------------------------------- stack cache
     --	        clk       	             : in std_logic;
