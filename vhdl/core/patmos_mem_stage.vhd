@@ -69,8 +69,10 @@ architecture arch of patmos_mem_stage is
 
     signal en : std_logic_vector(3 downto 0);
 
-    signal lm_dout        : std_logic_vector(31 downto 0);
-    signal mem_write_data : std_logic_vector(31 downto 0);
+    signal lm_dout        					  : std_logic_vector(31 downto 0);
+    signal prev_lm_dout   					  :	std_logic_vector(31 downto 0);
+    signal lm_dout_stall					  :	std_logic_vector(31 downto 0);  
+    signal mem_write_data 					  : std_logic_vector(31 downto 0);
 
     signal byte_enable                       : std_logic_vector(3 downto 0);
     signal word_enable                       : std_logic_vector(1 downto 0);
@@ -110,9 +112,13 @@ architecture arch of patmos_mem_stage is
     signal gm_read_done, gm_write_done : std_logic;
     signal gm_do_read_reg, gm_do_write_reg : std_logic;
     signal gm_is_read, gm_is_write : std_logic;
+    signal gm_rd_en_reg				  : std_logic;
+    signal prev_gm_rd_en_reg		  : std_logic;
 
     ------ stack cache
     signal sc_en                    : std_logic_vector(3 downto 0);
+    signal sc_en_reg				 : std_logic_vector(3 downto 0);
+    signal prev_sc_en_reg			 : std_logic_vector(3 downto 0);
     signal sc_word_enable           : std_logic_vector(1 downto 0);
     signal sc_byte_enable           : std_logic_vector(3 downto 0);
     signal sc_read_data             : std_logic_vector(31 downto 0);
@@ -138,19 +144,7 @@ architecture arch of patmos_mem_stage is
     signal gm_in  : gm_in_type;
 
 begin
-    mem_wb : process(clk)
-    begin
-        if (rising_edge(clk)) then
-			if (stall /= '1') then
-                dout.data_out           <= datain;
-                -- forwarding
-                dout.reg_write_out      <= exout_reg.reg_write or exout_reg.mem_to_reg;
-                dout.write_back_reg_out <= exout_reg.write_back_reg;
-                ldt_type                <= decdout.adrs_type;
-                s_u                     <= decdout.s_u;
-            end if;
-        end if;
-    end process mem_wb;
+
 
     --- main memory for simulation
     -- Ms: as you exchange 32-bit words you can have one memory with 32 bits
@@ -164,7 +158,6 @@ begin
         gm_write_data <= mem_write_data_stall;
         --		gm_read_data		<= gm_data_out;
         if (spill = '1' or fill = '1') then
-            gm_read_add   <= mem_top(9 downto 0);
             gm_read_add   <= mem_top(9 downto 0);
             gm_en_spill   <= gm_spill;  -- this is for spilling ( writing to global memory)
             gm_write_data <= gm_in.wr_data; -- comes from sc
@@ -293,10 +286,10 @@ begin
             gm_in
         );
 
-    process(exout_reg_adr, sc_en, gm_read_data, cpu_in, spill, fill, mem_top, sc_fill, mem_write_data_stall)
+    process(exout_reg_adr, sc_en_reg, gm_read_data, cpu_in, spill, fill, mem_top, sc_fill, mem_write_data_stall)
     begin
         cpu_out.address    <= exout_reg_adr;
-        cpu_out.sc_en      <= sc_en;
+        cpu_out.sc_en      <= sc_en_reg;
         gm_out.wr_data     <= gm_read_data;
         sc_read_data       <= cpu_in.rd_data;
         cpu_out.spill_fill <= spill or fill;
@@ -307,7 +300,7 @@ begin
     end process;
     --sc[mem_top & SC_MASK] = mem[mem_top];
 
-
+------------------ state machine to handle spill/fill ------------------
     process(clk, rst)
     begin
         if rst = '1' then
@@ -407,14 +400,16 @@ begin
         end case;
     end process;
 
-    -- Edgar: the process here is not needed (unless you want it to create a label for assignments)
-    --process(mem_top, stall)
-    --begin
+------------------ End state machine to handle spill/fill---------------------
+
+    
+    process(mem_top, stall, gm_stall, sc_need_stall)
+    begin
         dout.mem_top <= mem_top;
         dout.stall   <= stall;
         -- Edgar: just use sc_need_stall because it was present in the code.
         stall <= sc_need_stall or gm_stall;
-    --end process;
+    end process;
     -----------------------------------------------
     -- MS: If a registered address from EX is used here and there is an address
     -- register in the memory, are we now moving the MEM stage into WB?
@@ -425,76 +420,114 @@ begin
     lm0 : entity work.patmos_data_memory(arch)
         generic map(8, 10)
         port map(clk,
-                 exout_reg_adr_shft(9 downto 0), -- exout_not_reg.adrs(9 downto 0),
-                 mem_write_data_stall(7 downto 0), --mem_write_data0,
+                 exout_reg_adr_shft(9 downto 0),
+                 mem_write_data_stall(7 downto 0), 
                  en_reg(0),
-                 exout_reg_adr_shft(9 downto 0), --exout_not_reg.adrs(9 downto 0),
+                 exout_reg_adr_shft(9 downto 0), 
                  lm_dout(7 downto 0));
 
     lm1 : entity work.patmos_data_memory(arch)
         generic map(8, 10)
         port map(clk,
-                 exout_reg_adr_shft(9 downto 0), --exout_not_reg.adrs(9 downto 0),
-                 mem_write_data_stall(15 downto 8), --mem_write_data1,
+                 exout_reg_adr_shft(9 downto 0), 
+                 mem_write_data_stall(15 downto 8), 
                  en_reg(1),
-                 exout_reg_adr_shft(9 downto 0), --exout_not_reg.adrs(9 downto 0),
+                 exout_reg_adr_shft(9 downto 0), 
                  lm_dout(15 downto 8));
 
     lm2 : entity work.patmos_data_memory(arch)
         generic map(8, 10)
         port map(clk,
-                 exout_reg_adr_shft(9 downto 0), --exout_not_reg.adrs(9 downto 0),
-                 mem_write_data_stall(23 downto 16), --mem_write_data2,
+                 exout_reg_adr_shft(9 downto 0), 
+                 mem_write_data_stall(23 downto 16), 
                  en_reg(2),
-                 exout_reg_adr_shft(9 downto 0), --exout_not_reg.adrs(9 downto 0),
+                 exout_reg_adr_shft(9 downto 0), 
                  lm_dout(23 downto 16));
 
     lm3 : entity work.patmos_data_memory(arch)
         generic map(8, 10)
         port map(clk,
-                 exout_reg_adr_shft(9 downto 0), --exout_not_reg.adrs(9 downto 0),
-                 mem_write_data_stall(31 downto 24), --
+                 exout_reg_adr_shft(9 downto 0), 
+                 mem_write_data_stall(31 downto 24), 
                  en_reg(3),
-                 exout_reg_adr_shft(9 downto 0), --exout_not_reg.adrs(9 downto 0),
+                 exout_reg_adr_shft(9 downto 0),
                  lm_dout(31 downto 24));
 
-    process(clk)                        --to register the enable and address and data of memory in case of stall
+-------------------------------------------stall memory stage--------------------------------------------
+	mem_wb : process(clk)
     begin
-        --	if (rst = '1') then
-        --			exout_reg_adr		<= exout_not_reg.adrs;
-        --			mem_write_data0_stall <= mem_write_data0;
-        --			mem_write_data1_stall <= mem_write_data1;
-        --			mem_write_data2_stall <= mem_write_data2;
-        --			mem_write_data3_stall <= mem_write_data3;
+        if (rising_edge(clk)) then
+			if (stall /= '1') then
+                dout.data_out           <= datain;
+                -- forwarding
+                dout.reg_write_out      <= exout_reg.reg_write or exout_reg.mem_to_reg;
+                dout.write_back_reg_out <= exout_reg.write_back_reg;
+                ldt_type                <= decdout.adrs_type;
+                s_u                     <= decdout.s_u;
+            end if;
+        end if;
+    end process mem_wb;
+	
+    process(clk) 
+    begin
         if rising_edge(clk) then
+           -- stall address
             prev_exout_reg_adr      <= exout_not_reg.adrs;
+            -- stall data
             prev_mem_write_data_reg <= mem_write_data;
+            prev_lm_dout			<= lm_dout;
+            -- stall enables
             prev_en_reg             <= en;
-
-            prev_ld_data <= ld_data;
-
+            prev_sc_en_reg			<= sc_en_reg;
+			prev_gm_en_reg			<= gm_en_reg;
+			prev_gm_rd_en_reg		<= gm_rd_en_reg; 
+			
+			
+			
+            prev_ld_data 			<= ld_data;
         end if;
     end process;
 
     process(stall, en, gm_en, prev_en_reg, exout_not_reg, mem_write_data, prev_exout_reg_adr, prev_mem_write_data_reg)
     begin
         if (stall = '1') then
+            -- stall enables
+            en_reg               <= prev_en_reg; -- lm
+            sc_en_reg			 <= prev_sc_en_reg; -- sc
+            gm_en_reg            <= prev_gm_en_reg; --gm
+            gm_rd_en_reg		 <= prev_gm_rd_en_reg;
+            
+            -- stall addresse
             exout_reg_adr        <= prev_exout_reg_adr;
-            mem_write_data_stall <= prev_mem_write_data_reg;
-            en_reg               <= prev_en_reg;
-            gm_en_reg            <= prev_gm_en_reg;
+            
+            -- stall data
+            mem_write_data_stall <= prev_mem_write_data_reg; -- write data the same for all
+            lm_dout_stall		 <= prev_lm_dout; -- sc
         else
-            exout_reg_adr        <= exout_not_reg.adrs;
-            mem_write_data_stall <= mem_write_data;
+            -- stall enables
+            sc_en_reg			 <= sc_en;
             gm_en_reg            <= gm_en;
             en_reg               <= en;
+            gm_rd_en_reg		 <= exout_not_reg.gm_read_not_reg; -- read_enable global memory
+            
+            -- stall addresse
+            exout_reg_adr        <= exout_not_reg.adrs;
+            
+            -- stall data
+            mem_write_data_stall <= mem_write_data;
+            lm_dout_stall		 <= lm_dout; -- sc
+            
         end if;
     end process;
 
+---------------------------------------------------------------------------------------
+	------------------------- Enabling  bytes, 4 rams
     process(exout_reg_adr)
     begin
         exout_reg_adr_shft <= "00" & exout_reg_adr(31 downto 2);
     end process;
+    
+    
     ------------------------- ld from stack cache or  io/scratchpad or main memory? -----------------------------
 
     process(exout_reg, mem_data_out_muxed, sc_data_out, lm_data_out)
@@ -514,9 +547,9 @@ begin
     end process;
 
     --------------------------- address muxes begin--------------------------		     
-    process(lm_dout, exout_reg, sc_read_data, gm_read_data)
+    process(lm_dout_stall, exout_reg, sc_read_data, gm_read_data)
     begin
-        lm_ld_word <= lm_dout(7 downto 0) & lm_dout(15 downto 8) & lm_dout(23 downto 16) & lm_dout(31 downto 24);
+        lm_ld_word <= lm_dout_stall(7 downto 0) & lm_dout_stall(15 downto 8) & lm_dout_stall(23 downto 16) & lm_dout_stall(31 downto 24);
         sc_ld_word <= sc_read_data(7 downto 0) & sc_read_data(15 downto 8) & sc_read_data(23 downto 16) & sc_read_data(31 downto 24);
         gm_ld_word <= gm_read_data(7 downto 0) & gm_read_data(15 downto 8) & gm_read_data(23 downto 16) & gm_read_data(31 downto 24);
 
@@ -524,11 +557,11 @@ begin
             when '0' =>
                 -- MS: why are bytes mixed up here?
                 -- SA: I don't get this question, byte enables are generated this way to support BIG ENDIAN
-                ld_half    <= lm_dout(7 downto 0) & lm_dout(15 downto 8);
+                ld_half    <= lm_dout_stall(7 downto 0) & lm_dout_stall(15 downto 8);
                 sc_ld_half <= sc_read_data(7 downto 0) & sc_read_data(15 downto 8);
                 gm_ld_half <= gm_read_data(7 downto 0) & gm_read_data(15 downto 8);
             when '1' =>
-                ld_half    <= lm_dout(23 downto 16) & lm_dout(31 downto 24);
+                ld_half    <= lm_dout_stall(23 downto 16) & lm_dout_stall(31 downto 24);
                 sc_ld_half <= sc_read_data(23 downto 16) & sc_read_data(31 downto 24);
                 gm_ld_half <= gm_read_data(23 downto 16) & gm_read_data(31 downto 24);
             when others => null;
@@ -536,19 +569,19 @@ begin
 
         case exout_reg.adrs_reg(1 downto 0) is
             when "00" =>
-                ld_byte    <= lm_dout(7 downto 0);
+                ld_byte    <= lm_dout_stall(7 downto 0);
                 sc_ld_byte <= sc_read_data(7 downto 0);
                 gm_ld_byte <= gm_read_data(7 downto 0);
             when "01" =>
-                ld_byte    <= lm_dout(15 downto 8);
+                ld_byte    <= lm_dout_stall(15 downto 8);
                 sc_ld_byte <= sc_read_data(15 downto 8);
                 gm_ld_byte <= gm_read_data(15 downto 8);
             when "10" =>
-                ld_byte    <= lm_dout(23 downto 16);
+                ld_byte    <= lm_dout_stall(23 downto 16);
                 sc_ld_byte <= sc_read_data(23 downto 16);
                 gm_ld_byte <= gm_read_data(23 downto 16);
             when "11" =>
-                ld_byte    <= lm_dout(31 downto 24);
+                ld_byte    <= lm_dout_stall(31 downto 24);
                 sc_ld_byte <= sc_read_data(31 downto 24);
                 gm_ld_byte <= gm_read_data(31 downto 24);
             when others => null;
