@@ -415,15 +415,15 @@ namespace patmos
           assert(Num_transfer_blocks == 0 && Num_transfer_bytes == 0);
 
           // get the size of the method that should be loaded
-          uword_t num_words_big_endian;
+          uword_t num_bytes_big_endian;
           if (Memory.read(address - sizeof(uword_t),
-                          reinterpret_cast<byte_t*>(&num_words_big_endian),
+                          reinterpret_cast<byte_t*>(&num_bytes_big_endian),
                           sizeof(uword_t)))
           {
             // convert method size to native endianess and compute size in
             // blocks
             Num_transfer_bytes = from_big_endian<big_uword_t>(
-                                                          num_words_big_endian);
+                                                          num_bytes_big_endian);
             Num_transfer_blocks = std::ceil(((float)Num_transfer_bytes) /
                                              NUM_BLOCK_BYTES);
 
