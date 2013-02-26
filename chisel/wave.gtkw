@@ -1,0 +1,32 @@
+[*]
+[*] GTKWave Analyzer v3.3.37 (w)1999-2012 BSI
+[*] Tue Feb 26 02:16:53 2013
+[*]
+[dumpfile] "/Users/martin/t-crest/patmos/chisel/Patmos.vcd"
+[dumpfile_mtime] "Tue Feb 26 02:16:22 2013"
+[dumpfile_size] 16119
+[savefile] "/Users/martin/t-crest/patmos/chisel/wave.gtkw"
+[timestart] 0
+[size] 1325 724
+[pos] -1 -1
+*-2.279721 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] Patmos.
+[sst_width] 211
+[signals_width] 214
+[sst_expanded] 1
+[sst_vpaned_height] 198
+@22
+Patmos.Fetch.io_fedec_pc[31:0]
+Patmos.Fetch.io_fedec_instr_a[31:0]
+Patmos.Decode.io_decex_pc[31:0]
+Patmos.Decode.io_fedec_instr_a[31:0]
+Patmos.Decode.io_decex_func[3:0]
+Patmos.Decode.io_decex_rsAddr_0[4:0]
+Patmos.Decode.io_decex_rsAddr_1[4:0]
+Patmos.Decode.io_decex_rsData_0[31:0]
+Patmos.Decode.io_decex_rsData_1[31:0]
+Patmos.Execute.io_exmem_pc[31:0]
+Patmos.Memory.io_memwb_pc[31:0]
+Patmos.WriteBack.io_out_pc[31:0]
+[pattern_trace] 1
+[pattern_trace] 0

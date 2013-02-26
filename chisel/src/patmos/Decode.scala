@@ -50,8 +50,12 @@ class Decode() extends Component {
   io.rfRead.rsAddr(1) := io.fedec.instr_a(11, 7)
   
   // on R0 destiantion just disable wrEna
-  
-  val decReg = Reg(io.fedec)
+
+//  val decReg = Reg(resetVal = new FeDec())
+  val decReg = Reg(new FeDec())
+  when (io.ena) {
+    decReg := io.fedec
+  }
   
   val instr = decReg.instr_a
   // keep it in a way that is easy to refactor into a function for

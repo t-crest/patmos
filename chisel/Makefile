@@ -32,5 +32,8 @@ verilog:
 
 ###### Minimum Makefile ends here ########
 
+view:
+	gtkwave Patmos.vcd wave.gtkw
+
 intsbt:
 	$(SBT)

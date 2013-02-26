@@ -42,6 +42,7 @@ package patmos
 import Chisel._
 import Node._
 
+
 class FeDec() extends Bundle() {
   val instr_a = Bits(width = 32)
   //  val instr_b = Bits(width=32)
@@ -96,26 +97,31 @@ class RegFileIO() extends Bundle() {
 }
 
 class FetchIO extends Bundle() {
+  val ena = Bool(INPUT)
   val fedec = new FeDec().asOutput
 }
 
 class DecodeIO() extends Bundle() {
+  val ena = Bool(INPUT)
   val fedec = new FeDec().asInput
   val decex = new DecEx().asOutput
   val rfRead = new RegFileRead().flip
 }
 
 class ExecuteIO() extends Bundle() {
+  val ena = Bool(INPUT)
   val decex = new DecEx().asInput
   val exmem = new ExMem().asOutput
 }
 
 class MemoryIO() extends Bundle() {
+  val ena = Bool(INPUT)
   val exmem = new ExMem().asInput
   val memwb = new MemWb().asOutput
 }
 
 class WriteBackIO() extends Bundle() {
+  val ena = Bool(INPUT)
   val memwb = new MemWb().asInput
   val out = new WbFinal().asOutput
   val rfWrite = new RegFileWrite().flip

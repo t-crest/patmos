@@ -95,7 +95,10 @@ class Fetch() extends Component {
   val pc_next = UFix()
   // variable in the constructor gives the input for the register
   // alternative is pc := pc_next
-  val pc = Reg(pc_next, resetVal = UFix(0, Constants.PC_SIZE))
+  val pc = Reg(resetVal = UFix(0, Constants.PC_SIZE))
+  when (io.ena) {
+    pc := pc_next
+  }
   pc_next := pc + UFix(1)
   
   io.fedec.pc := pc

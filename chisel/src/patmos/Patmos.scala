@@ -69,8 +69,19 @@ class Patmos() extends Component {
   // exe RF connection missing
   writeback.io.rfWrite <> register.io.rfWrite
 
-// this does not work as := is for individual 'wires'
-//  decode.io.in := fetch.io.out
+  // Stall ever 4 clock cycles for testing the pipeline
+  def pulse() = {
+    val x = Reg(resetVal = UFix(0, 4))
+    x := Mux(x === UFix(3), UFix(0), x+UFix(1))
+    x === UFix(3)
+  }
+  val enable = !pulse()
+  
+  fetch.io.ena := enable
+  decode.io.ena := enable
+  execute.io.ena := enable
+  memory.io.ena := enable
+  writeback.io.ena := enable
   
   // ***** the follwoing code is not really Patmos code ******
   
@@ -103,7 +114,7 @@ class PatmosTest(pat: Patmos) extends Tester(pat, Array(pat.io, pat.fetch.io,
     val vars = new HashMap[Node, Node]()
     val ovars = new HashMap[Node, Node]()
 
-    for (i <- 0 until 8) {
+    for (i <- 0 until 12) {
       vars.clear
       step(vars, ovars)
       //      println("iter: " + i)
