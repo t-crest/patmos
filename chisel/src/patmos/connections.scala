@@ -31,7 +31,7 @@
  */
 
 /*
- * Port definitions for the pipe stages.
+ * Connection definitions for the pipe stages.
  * 
  * Author: Martin Schoeberl (martin@jopdesign.com)
  * 
@@ -96,27 +96,27 @@ class RegFileIO() extends Bundle() {
 }
 
 class FetchIO extends Bundle() {
-  val out = new FeDec().asOutput
+  val fedec = new FeDec().asOutput
 }
 
 class DecodeIO() extends Bundle() {
-  val in = new FeDec().asInput
-  val out = new DecEx().asOutput
+  val fedec = new FeDec().asInput
+  val decex = new DecEx().asOutput
   val rfRead = new RegFileRead().flip
 }
 
 class ExecuteIO() extends Bundle() {
-  val in = new DecEx().asInput
-  val out = new ExMem().asOutput
+  val decex = new DecEx().asInput
+  val exmem = new ExMem().asOutput
 }
 
 class MemoryIO() extends Bundle() {
-  val in = new ExMem().asInput
-  val out = new MemWb().asOutput
+  val exmem = new ExMem().asInput
+  val memwb = new MemWb().asOutput
 }
 
 class WriteBackIO() extends Bundle() {
-  val in = new MemWb().asInput
+  val memwb = new MemWb().asInput
   val out = new WbFinal().asOutput
   val rfWrite = new RegFileWrite().flip
 }

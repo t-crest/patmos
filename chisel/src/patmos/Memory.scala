@@ -45,7 +45,7 @@ import Node._
 class Memory() extends Component {
   val io = new MemoryIO()
   
-  val memReg = Reg(io.in)
+  val memReg = Reg(io.exmem)
   
-  io.out.pc := memReg.pc
+  io.memwb.pc := memReg.pc
 }

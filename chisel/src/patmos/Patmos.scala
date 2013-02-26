@@ -60,10 +60,10 @@ class Patmos() extends Component {
   
   val register = new RegisterFile()
 
-  decode.io.in <> fetch.io.out
-  execute.io.in <> decode.io.out
-  memory.io.in <> execute.io.out
-  writeback.io.in <> memory.io.out
+  decode.io.fedec <> fetch.io.fedec
+  execute.io.decex <> decode.io.decex
+  memory.io.exmem <> execute.io.exmem
+  writeback.io.memwb <> memory.io.memwb
   
   decode.io.rfRead <> register.io.rfRead
   // exe RF connection missing
@@ -84,12 +84,12 @@ class Patmos() extends Component {
     led := led_next
   }
   
-  val dummy = Cat(xorR(fetch.io.out.instr_a), fetch.io.out.instr_a(23, 17))
+  val dummy = Cat(xorR(fetch.io.fedec.instr_a), fetch.io.fedec.instr_a(23, 17))
   // combine the outputs to avoid dropping circuits, which would result in CPP compile errors
-  val abc =   fetch.io.out.pc(7, 0) | fetch.io.out.instr_a(7, 0) | fetch.io.out.instr_a(31, 24) & decode.io.out.pc(7, 0)  ^ dummy | decode.io.out.func  
+  val abc =   fetch.io.fedec.pc(7, 0) | fetch.io.fedec.instr_a(7, 0) | fetch.io.fedec.instr_a(31, 24) & decode.io.decex.pc(7, 0)  ^ dummy | decode.io.decex.func  
   val sum1 = writeback.io.rfWrite.wrData.toUFix + writeback.io.rfWrite.wrAddr.toUFix + writeback.io.out.pc
   val sum2 = sum1 + register.io.rfRead.rsData(0) + register.io.rfRead.rsData(1)
-  val sum3 = sum2 + decode.io.out.rsAddr(0) + decode.io.out.rsAddr(1)
+  val sum3 = sum2 + decode.io.decex.rsAddr(0) + decode.io.decex.rsAddr(1)
   val part = sum3.toBits
   io.led := ~led | abc ^ part(7, 0)
 }
@@ -109,9 +109,9 @@ class PatmosTest(pat: Patmos) extends Tester(pat, Array(pat.io, pat.fetch.io,
       //      println("iter: " + i)
       //      println("ovars: " + ovars)
       println("led/litVal " + ovars(pat.io.led).litValue())
-      println("pc: " + ovars(pat.fetch.io.out.pc).litValue())
-      println("pc decode: " + ovars(pat.decode.io.out.pc).litValue())
-      println("instr: " + ovars(pat.fetch.io.out.instr_a).litValue())
+      println("pc: " + ovars(pat.fetch.io.fedec.pc).litValue())
+      println("instr: " + ovars(pat.fetch.io.fedec.instr_a).litValue())
+      println("pc decode: " + ovars(pat.decode.io.decex.pc).litValue())
     }
     ret
   }

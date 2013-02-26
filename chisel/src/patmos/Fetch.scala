@@ -98,6 +98,6 @@ class Fetch() extends Component {
   val pc = Reg(pc_next, resetVal = UFix(0, Constants.PC_SIZE))
   pc_next := pc + UFix(1)
   
-  io.out.pc := pc
-  io.out.instr_a := rom(pc)
+  io.fedec.pc := pc
+  io.fedec.instr_a := rom(pc)
 }

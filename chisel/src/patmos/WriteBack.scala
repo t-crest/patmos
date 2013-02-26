@@ -45,8 +45,9 @@ import Node._
 class WriteBack() extends Component {
   val io = new WriteBackIO()
   
-  val wbReg = Reg(io.in)
+  val wbReg = Reg(io.memwb)
   
+  // just dummy values to keep synthesizing
   io.rfWrite.wrAddr := wbReg.pc(4, 0).toBits
   io.rfWrite.wrData := wbReg.pc.toBits
   io.rfWrite.wrEn := Bool(true)

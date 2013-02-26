@@ -45,7 +45,8 @@ import Node._
 class Execute() extends Component {
   val io = new ExecuteIO()
   
-  val exReg = Reg(io.in)
+  val exReg = Reg(io.decex)
   
-  io.out.pc := exReg.pc
+  io.exmem.pc := exReg.pc + io.decex.rsData(0) + io.decex.rsData(1) +
+    io.decex.rsAddr(0) + io.decex.rsAddr(1) + io.decex.func
 }
