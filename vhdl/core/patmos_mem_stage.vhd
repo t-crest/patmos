@@ -163,7 +163,6 @@ begin
         --		gm_read_data		<= gm_data_out;
         if (spill = '1' or fill = '1') then
             gm_read_add   <= mem_top(9 downto 0);
-            gm_read_add   <= mem_top(9 downto 0);
             gm_en_spill   <= gm_spill;  -- this is for spilling ( writing to global memory)
             gm_write_data <= gm_in.wr_data; -- comes from sc
 
@@ -456,14 +455,10 @@ begin
                  exout_reg_adr_shft(9 downto 0), --exout_not_reg.adrs(9 downto 0),
                  lm_dout(31 downto 24));
 
+---------------------------------------------------------------------------------------
+
     process(clk)                        --to register the enable and address and data of memory in case of stall
     begin
-        --	if (rst = '1') then
-        --			exout_reg_adr		<= exout_not_reg.adrs;
-        --			mem_write_data0_stall <= mem_write_data0;
-        --			mem_write_data1_stall <= mem_write_data1;
-        --			mem_write_data2_stall <= mem_write_data2;
-        --			mem_write_data3_stall <= mem_write_data3;
         if rising_edge(clk) then
             prev_exout_reg_adr      <= exout_not_reg.adrs;
             prev_mem_write_data_reg <= mem_write_data;
@@ -488,6 +483,8 @@ begin
             en_reg               <= en;
         end if;
     end process;
+
+---------------------------------------------------------------------------------------
 
     process(exout_reg_adr)
     begin
