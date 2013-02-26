@@ -141,7 +141,7 @@ begin
 
     -- The SDRAM Controller
     sdr_sdram_inst : entity work.sdr_sdram
-        generic map(SHORT_INITIALIZATION => true,
+        generic map(--SHORT_INITIALIZATION => true,
                     USE_AUTOMATIC_REFRESH => true,
                     BURST_LENGTH          => BURST_LENGTH,
                     SDRAM                 => SDRAM,
