@@ -42,15 +42,10 @@ package patmos
 import Chisel._
 import Node._
 
-class Fetch() extends Component {
+class Fetch(fileName: String) extends Component {
   val io = new FetchIO()
-  
-  
-  
-//  val x = Array(Bits(1), Bits(2), Bits(4), Bits(8))
-//  val rom = Vec(x){ UFix(width = 32) }
 
-/*
+  /*
     when "0000000000" => q <= "00000000000000100000000011111111";
     when "0000000001" => q <= "00000000000001000000000000000001";
     when "0000000010" => q <= "00000000000001100000000000000010";
@@ -58,56 +53,51 @@ class Fetch() extends Component {
 */
 
   // using a vector for a ROM
-  val v = Vec(256) { Bits(width=32) }
+  val v = Vec(256) { Bits(width = 32) }
+  // should check the program for the size
 
-//  v(0) = Bits("h_0002_00ff")  // maybe not executed
-  v(0) = Bits("h_0002_0000")  // maybe not executed, but don't load ff in R0 now
-  v(1) = Bits("h_0004_0001")  // addi    r2 = r0, 1;
-  v(2) = Bits("h_0006_0002")  // addi    r3 = r0, 2;
-  // no forwarding yet, probably also needed in the RF
-  v(3) = Bits("h_0006_0002")  // addi    r3 = r0, 2;
-  v(4) = Bits("h_0006_0002")  // addi    r3 = r0, 2;
-  v(5) = Bits("h_0006_0002")  // addi    r3 = r0, 2;
-  v(6) = Bits("h_0208_2180") // add     r4 = r2, r3;
-  v(7) = Bits("h_0208_2180") // add     r4 = r2, r3;
-  v(8) = Bits("h_0208_2180") // add     r4 = r2, r3;
+//  //  v(0) = Bits("h_0002_00ff")  // maybe not executed
+//  v(0) = Bits("h_0002_0000") // maybe not executed, but don't load ff in R0 now
+//  v(1) = Bits("h_0004_0001") // addi    r2 = r0, 1;
+//  v(2) = Bits("h_0006_0002") // addi    r3 = r0, 2;
+//  // no forwarding yet, probably also needed in the RF
+//  v(3) = Bits("h_0006_0002") // addi    r3 = r0, 2;
+//  v(4) = Bits("h_0006_0002") // addi    r3 = r0, 2;
+//  v(5) = Bits("h_0006_0002") // addi    r3 = r0, 2;
+//  v(6) = Bits("h_0208_2180") // add     r4 = r2, r3;
+//  v(7) = Bits("h_0208_2180") // add     r4 = r2, r3;
+//  v(8) = Bits("h_0208_2180") // add     r4 = r2, r3;
+//
+//  // generate some dummy data to fill the table
+//  for (x <- 8 until 256)
+//    v(x) = Bits(x * x + 10 + ((x - 2) << 24))
 
-  // generate some dummy data to fill the table
-  for (x <- 8 until 256)
-    v(x) = Bits(x*x+10+((x-2)<<24))
-    
+  // TODO: move ROM file reading to an untility class
+  println("Reading " + fileName)
+  // an encodig to read a binary file? Strange new world.
+  val source = scala.io.Source.fromFile(fileName)(scala.io.Codec.ISO8859)
+  val intArray = source.map(_.toByte).toArray
+  source.close()
+  for (i <- 0 until intArray.length/4) {
+    var word = 0
+    for (j <- 0 until 4) {
+      word <<= 8
+      word += intArray(i*4 +j).toInt & 0xff
+    }
+    printf("%08x\n", word)
+    v(i) = Bits(word)
+  }
+  // TODO: we should set default values for the unused words to avoid warnings
+  
   val rom = v
-  
-  // A ROM the suggested Chisel way - but it does not work
-//  val vals = new Array[Bits](4)
-//  vals(0) = Bits("h_0002_00ff")  // maybe not executed
-//  vals(1) = Bits("h_0004_0001")  // addi    r2 = r0, 1;
-//  vals(2) = Bits("h_0006_0002")  // addi    r3 = r0, 2;
-//  vals(3) = Bits("h_0208_2180") // add     r4 = r2, r3;
-//  for (x <-0 until 4)
-//    vals(x) = UFix(x)
- 
-  // does not work
-  // val d = Array(UFix(1), UFix(2), UFix(3), UFix(78))
-  // val rom1 = new ROM(d){ UFix(width=32) }
 
-  // does not work either
-//  val tab = new Array[UFix](2)
-//  tab(0) = UFix(1)
-//  tab(1) = UFix(2)
-//  tab(2) = UFix(15)
-//  tab(3) = UFix(100)
-//  val rom2 = ROM(tab){ UFix(32) }
-  
   val pc_next = UFix()
-  // variable in the constructor gives the input for the register
-  // alternative is pc := pc_next
   val pc = Reg(resetVal = UFix(0, Constants.PC_SIZE))
-  when (io.ena) {
+  when(io.ena) {
     pc := pc_next
   }
   pc_next := pc + UFix(1)
-  
+
   io.fedec.pc := pc
   io.fedec.instr_a := rom(pc)
 }

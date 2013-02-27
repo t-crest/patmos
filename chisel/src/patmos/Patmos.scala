@@ -47,12 +47,12 @@ import scala.collection.mutable.HashMap
 /**
  * The main (top-level) component of Patmos.
  */
-class Patmos() extends Component {
+class Patmos(fileName: String) extends Component {
   val io = new Bundle {
     val led = Bits(OUTPUT, 8)
   }
 
-  val fetch = new Fetch()
+  val fetch = new Fetch(fileName)
   val decode = new Decode()
   val execute = new Execute()
   val memory = new Memory()
@@ -134,6 +134,10 @@ class PatmosTest(pat: Patmos) extends Tester(pat, Array(pat.io, pat.fetch.io,
 
 object PatmosMain {
   def main(args: Array[String]): Unit = {
-    chiselMainTest(args, () => new Patmos()) { f => new PatmosTest(f) }
+    
+    // Use first arg for program (.bin file)
+    val chiselArgs = args.slice(1, args.length)
+    val file = args(0) + ".bin"
+    chiselMainTest(chiselArgs, () => new Patmos(file)) { f => new PatmosTest(f) }
   }
 }

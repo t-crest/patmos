@@ -19,16 +19,21 @@ SBT = java -Xmx1024M -Xss8M -XX:MaxPermSize=128M -jar sbt/sbt-launch.jar
 MAIN=example.FsmMain
 MAIN=patmos.PatmosMain
 
-all:
-	$(SBT) "run-main $(MAIN) --targetDir generated"
+APP=basic
 
-test:
+all:
+	echo what to do?
+
+asm:
+	cd .. && make rom -e APP=$(APP)
+
+test: asm
 	-rm -rf generated
-	$(SBT) "run-main $(MAIN) --test --debug --compile --vcd --genHarness --targetDir generated"
+	$(SBT) "run-main $(MAIN) ../tmp/$(APP) --test --debug --compile --vcd --genHarness --targetDir generated"
 
 # the Verilog version
-verilog:
-	$(SBT) "run-main $(MAIN) --targetDir generated --backend v"
+verilog: asm
+	$(SBT) "run-main $(MAIN) ../tmp/$(APP) --targetDir generated --backend v"
 
 ###### Minimum Makefile ends here ########
 
