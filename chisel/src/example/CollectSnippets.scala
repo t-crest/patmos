@@ -114,4 +114,6 @@ class CollectSnippets() extends Component {
 //  d1 := mem1(io.rfRead.rs1Addr.toUFix)
 //  d2 := mem2(io.rfRead.rs2Addr.toUFix)
   
+//  v(1) = Bits("h_0004_0001") // addi    r2 = r0, 1;
+
 }

@@ -45,34 +45,11 @@ import Node._
 class Fetch(fileName: String) extends Component {
   val io = new FetchIO()
 
-  /*
-    when "0000000000" => q <= "00000000000000100000000011111111";
-    when "0000000001" => q <= "00000000000001000000000000000001";
-    when "0000000010" => q <= "00000000000001100000000000000010";
-    when "0000000011" => q <= "00000010000010000010000110000000";
-*/
-
   // using a vector for a ROM
   val v = Vec(256) { Bits(width = 32) }
   // should check the program for the size
 
-//  //  v(0) = Bits("h_0002_00ff")  // maybe not executed
-//  v(0) = Bits("h_0002_0000") // maybe not executed, but don't load ff in R0 now
-//  v(1) = Bits("h_0004_0001") // addi    r2 = r0, 1;
-//  v(2) = Bits("h_0006_0002") // addi    r3 = r0, 2;
-//  // no forwarding yet, probably also needed in the RF
-//  v(3) = Bits("h_0006_0002") // addi    r3 = r0, 2;
-//  v(4) = Bits("h_0006_0002") // addi    r3 = r0, 2;
-//  v(5) = Bits("h_0006_0002") // addi    r3 = r0, 2;
-//  v(6) = Bits("h_0208_2180") // add     r4 = r2, r3;
-//  v(7) = Bits("h_0208_2180") // add     r4 = r2, r3;
-//  v(8) = Bits("h_0208_2180") // add     r4 = r2, r3;
-//
-//  // generate some dummy data to fill the table
-//  for (x <- 8 until 256)
-//    v(x) = Bits(x * x + 10 + ((x - 2) << 24))
-
-  // TODO: move ROM file reading to an untility class
+  // TODO: move ROM file reading to an utility class
   println("Reading " + fileName)
   // an encodig to read a binary file? Strange new world.
   val source = scala.io.Source.fromFile(fileName)(scala.io.Codec.ISO8859)
@@ -87,7 +64,10 @@ class Fetch(fileName: String) extends Component {
     printf("%08x\n", word)
     v(i) = Bits(word)
   }
-  // TODO: we should set default values for the unused words to avoid warnings
+  
+  // generate some dummy data to fill the table
+  for (x <- intArray.length/4 until 256)
+    v(x) = Bits(x * x + 10 + ((x - 2) << 24))
   
   val rom = v
 
