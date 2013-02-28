@@ -1,5 +1,5 @@
 #
-# A very simple example to et stuff running on a (chisel) pipeline
+# A very simple example to get stuff running on a (chisel) pipeline
 # that has no forwarding yet.
 #
 
@@ -9,8 +9,10 @@
 	addi	r0 = r0, 0;
 	addi	r0 = r0, 0;
 	addi	r0 = r0, 0;
+	addi	r0 = r0, 0;
 
 	addi	r2 = r0, 2;
+	addi	r0 = r0, 0;
 	addi	r0 = r0, 0;
 	addi	r0 = r0, 0;
 	addi	r0 = r0, 0;

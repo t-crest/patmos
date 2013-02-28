@@ -118,7 +118,7 @@ class PatmosTest(pat: Patmos) extends Tester(pat, Array(pat.io, pat.fetch.io,
     val vars = new HashMap[Node, Node]()
     val ovars = new HashMap[Node, Node]()
 
-    for (i <- 0 until 16) {
+    for (i <- 0 until 20) {
       vars.clear
       step(vars, ovars)
       //      println("iter: " + i)

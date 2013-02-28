@@ -53,20 +53,20 @@ class Fetch(fileName: String) extends Component {
   println("Reading " + fileName)
   // an encodig to read a binary file? Strange new world.
   val source = scala.io.Source.fromFile(fileName)(scala.io.Codec.ISO8859)
-  val intArray = source.map(_.toByte).toArray
+  val byteArray = source.map(_.toByte).toArray
   source.close()
-  for (i <- 0 until intArray.length/4) {
+  for (i <- 0 until byteArray.length/4) {
     var word = 0
     for (j <- 0 until 4) {
       word <<= 8
-      word += intArray(i*4 +j).toInt & 0xff
+      word += byteArray(i*4 +j).toInt & 0xff
     }
     printf("%08x\n", word)
     v(i) = Bits(word)
   }
   
   // generate some dummy data to fill the table
-  for (x <- intArray.length/4 until 256)
+  for (x <- byteArray.length/4 until 256)
     v(x) = Bits(x * x + 10 + ((x - 2) << 24))
   
   val rom = v

@@ -73,6 +73,8 @@ class Decode() extends Component {
   // TODO sign extend
   io.decex.immVal := Cat(Bits(0), instr(11, 0))
   
+  // we could mux the imm / register here as well
+  
   io.decex.pc := decReg.pc
   io.decex.func := func
   // forward RF addresses and data
