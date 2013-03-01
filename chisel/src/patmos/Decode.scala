@@ -44,48 +44,52 @@ import Node._
 
 class Decode() extends Component {
   val io = new DecodeIO()
-  
-  // register file is connected with unregistered instruction word
-  io.rfRead.rsAddr(0) := io.fedec.instr_a(16, 12)
-  io.rfRead.rsAddr(1) := io.fedec.instr_a(11, 7)
-  
-  // on R0 destiantion just disable wrEna
 
-//  val decReg = Reg(resetVal = new FeDec())
+  val rf = new RegisterFile()
+
+  // register file is connected with unregistered instruction word
+  rf.io.rfRead.rsAddr(0) := io.fedec.instr_a(16, 12)
+  rf.io.rfRead.rsAddr(1) := io.fedec.instr_a(11, 7)
+  rf.io.ena := io.ena
+  // RF write from write back stage
+  rf.io.rfWrite <> io.rfWrite
+
+  //  val decReg = Reg(resetVal = new FeDec())
   val decReg = Reg(new FeDec())
-  when (io.ena) {
+  when(io.ena) {
     decReg := io.fedec
   }
-  
+
   val instr = decReg.instr_a
   // keep it in a way that is easy to refactor into a function for
   // dual issue decode
-  
-  val func = Bits(width=4)
+
+  val func = Bits(width = 4)
   io.decex.immOp := Bool(false)
   // ALU register and long immediate
   func := instr(3, 0)
   // ALU immediate
-  when (instr(26, 25) === Bits("b00")) {
+  when(instr(26, 25) === Bits("b00")) {
     func := Cat(Bits(0), instr(24, 22))
-    io.decex.immOp := Bool(true)  
+    io.decex.immOp := Bool(true)
   }
   // TODO sign extend
   io.decex.immVal := Cat(Bits(0), instr(11, 0))
   // we could mux the imm / register here as well
-  
+
   io.decex.wrReg := Bool(true)
   // Disable register write on register 0
-  when (decReg.instr_a(21, 17) === Bits("b00000")) {
+  when(decReg.instr_a(21, 17) === Bits("b00000")) {
     io.decex.wrReg := Bool(false)
   }
-  
+
   io.decex.pc := decReg.pc
   io.decex.func := func
   // forward RF addresses and data
   io.decex.rsAddr(0) := decReg.instr_a(16, 12)
   io.decex.rsAddr(1) := decReg.instr_a(11, 7)
+  io.decex.rsData(0) := rf.io.rfRead.rsData(0)
+  io.decex.rsData(1) := rf.io.rfRead.rsData(1)
+
   io.decex.rdAddr(0) := decReg.instr_a(21, 17)
-  io.decex.rsData(0) := io.rfRead.rsData(0)
-  io.decex.rsData(1) := io.rfRead.rsData(1)
 }

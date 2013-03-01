@@ -113,7 +113,7 @@ class DecodeIO() extends Bundle() {
   val ena = Bool(INPUT)
   val fedec = new FeDec().asInput
   val decex = new DecEx().asOutput
-  val rfRead = new RegFileRead().flip
+  val rfWrite = new RegFileWrite()
 }
 
 class ExecuteIO() extends Bundle() {

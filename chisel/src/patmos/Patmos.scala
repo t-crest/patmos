@@ -58,18 +58,15 @@ class Patmos(fileName: String) extends Component {
   val memory = new Memory()
   val writeback = new WriteBack()
   
-  val register = new RegisterFile()
 
   decode.io.fedec <> fetch.io.fedec
   execute.io.decex <> decode.io.decex
   memory.io.exmem <> execute.io.exmem
   writeback.io.memwb <> memory.io.memwb
+  // RF connection
+  decode.io.rfWrite <> writeback.io.rfWrite 
   
-  decode.io.rfRead <> register.io.rfRead
-  // exe RF connection missing
-  writeback.io.rfWrite <> register.io.rfWrite
-  
-  // this is forwarding of registered result
+  // This is forwarding of registered result
   // Take care that it is the plain register
   execute.io.exResult <> memory.io.exResult
   execute.io.memResult <> writeback.io.memResult
@@ -89,7 +86,6 @@ class Patmos(fileName: String) extends Component {
   execute.io.ena := enable
   memory.io.ena := enable
   writeback.io.ena := enable
-  register.io.ena := enable
   
   // ***** the follwoing code is not really Patmos code ******
   
@@ -107,9 +103,9 @@ class Patmos(fileName: String) extends Component {
   // combine the outputs to avoid dropping circuits, which would result in CPP compile errors
   val abc =   fetch.io.fedec.pc(7, 0) | fetch.io.fedec.instr_a(7, 0) | fetch.io.fedec.instr_a(31, 24) & decode.io.decex.pc(7, 0)  ^ dummy | decode.io.decex.func  
   val sum1 = writeback.io.rfWrite.wrData.toUFix + writeback.io.rfWrite.wrAddr.toUFix + writeback.io.out.pc
-  val sum2 = sum1 + register.io.rfRead.rsData(0) + register.io.rfRead.rsData(1)
-  val sum3 = sum2 + decode.io.decex.rsAddr(0) + decode.io.decex.rsAddr(1)
-  val part = sum3.toBits
+//  val sum2 = sum1 + register.io.rfRead.rsData(0) + register.io.rfRead.rsData(1)
+//  val sum3 = sum2 + decode.io.decex.rsAddr(0) + decode.io.decex.rsAddr(1)
+  val part = sum1.toBits
   val xyz = ~led | abc ^ part(7, 0)
   val r = Reg(xyz)
   io.led := r
