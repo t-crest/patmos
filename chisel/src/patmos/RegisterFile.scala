@@ -56,16 +56,24 @@ class RegisterFile() extends Component {
   val addr0Reg = Reg(UFix(width=5))
   val addr1Reg = Reg(UFix(width=5))
   val wrReg = Reg(new RegFileWrite())
+  val fw0Reg = Reg(Bool())
+  val fw1Reg = Reg(Bool())
   
+  // With an on-chip RAM enable would need for implementation:
+  //   additional register and a MUX feeding the old value into
+  //   the registers
   when (io.ena) {
     addr0Reg := io.rfRead.rsAddr(0).toUFix
     addr1Reg := io.rfRead.rsAddr(1).toUFix
     wrReg := io.rfWrite
+    fw0Reg := io.rfRead.rsAddr(0) === io.rfWrite.wrAddr && io.rfWrite.wrEn
+    fw1Reg := io.rfRead.rsAddr(1) === io.rfWrite.wrAddr && io.rfWrite.wrEn
   }
 
-  io.rfRead.rsData(0) := rf(addr0Reg)
-  io.rfRead.rsData(1) := rf(addr1Reg)
-  // maybe do register 0 here
+  // RF internal forwarding
+  io.rfRead.rsData(0) := Mux(fw0Reg, wrReg.wrData, rf(addr0Reg))
+  io.rfRead.rsData(1) := Mux(fw1Reg, wrReg.wrData, rf(addr1Reg))
+
   // R0 handling could be done here, in decode, or as part of forwarding
   // Or we are just happy with relying on the fact that the registers are reset
   // and just disable writing to register 0
