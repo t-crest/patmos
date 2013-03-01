@@ -72,8 +72,13 @@ class Decode() extends Component {
   }
   // TODO sign extend
   io.decex.immVal := Cat(Bits(0), instr(11, 0))
-  
   // we could mux the imm / register here as well
+  
+  io.decex.wrReg := Bool(true)
+  // Disable register write on register 0
+  when (decReg.instr_a(21, 17) === Bits("b00000")) {
+    io.decex.wrReg := Bool(false)
+  }
   
   io.decex.pc := decReg.pc
   io.decex.func := func

@@ -68,8 +68,13 @@ class Patmos(fileName: String) extends Component {
   decode.io.rfRead <> register.io.rfRead
   // exe RF connection missing
   writeback.io.rfWrite <> register.io.rfWrite
+  
+  // this is forwarding of registered result
+  // Take care that it is the plain register
+  execute.io.exResult <> memory.io.exResult
+  execute.io.memResult <> writeback.io.memResult
 
-  // Stall ever 4 clock cycles for testing the pipeline
+  // Stall ever n clock cycles for testing the pipeline
   def pulse() = {
     val x = Reg(resetVal = UFix(0, 256))
     x := Mux(x === UFix(100), UFix(0), x+UFix(1))

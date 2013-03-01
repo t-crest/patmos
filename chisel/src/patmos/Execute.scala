@@ -44,21 +44,43 @@ import Node._
 
 class Execute() extends Component {
   val io = new ExecuteIO()
-  
+
   val exReg = Reg(new DecEx())
-  when (io.ena) {
+  when(io.ena) {
     exReg := io.decex
   }
   // no access to io.decex after this point!!!
 
-  val op2 = Mux(exReg.immOp, exReg.immVal, exReg.rsData(1))
-  val result = exReg.rsData(0) + op2
+  // this does not work! why not? I don't like the Mux notation
+  //  val ra = exReg.rsData(0)
+  //  val rb = exReg.rsData(1)
+  //  // data forwarding
+  //  when (fwx) {
+  //    ra := io.exResult.data
+  //  } 
+  //  .elsewhen (fwy) {
+  //    ra := io.memResult.data
+  //  } 
   
+  // data forwarding
+  val fwEx0 = exReg.rsAddr(0) === io.exResult.addr && io.exResult.valid
+  val fwMem0 = exReg.rsAddr(0) === io.memResult.addr && io.memResult.valid
+  val ra = Mux(fwEx0, io.exResult.data, Mux(fwMem0, io.memResult.data, exReg.rsData(0)))
+  val fwEx1 = exReg.rsAddr(1) === io.exResult.addr && io.exResult.valid
+  val fwMem1 = exReg.rsAddr(1) === io.memResult.addr && io.memResult.valid
+  val rb = Mux(fwEx1, io.exResult.data, Mux(fwMem1, io.memResult.data, exReg.rsData(1)))
+
+  val op2 = Mux(exReg.immOp, exReg.immVal, rb)
+  
+  // ALU operation
+  val result = ra + op2
+
   io.exmem.rd.addr := exReg.rdAddr(0)
   io.exmem.rd.data := result
-//  io.exmem.rd.valid := Bool(true)
+  io.exmem.rd.valid := exReg.wrReg
 
   // TODO: we should have a dummy field for this kind of nonsense
   io.exmem.pc := exReg.pc + exReg.rsData(0) + exReg.rsData(1) +
     exReg.rsAddr(0) + exReg.rsAddr(1) + exReg.func + io.exmem.rd.data
+
 }

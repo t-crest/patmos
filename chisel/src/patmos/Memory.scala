@@ -51,5 +51,8 @@ class Memory() extends Component {
   }
   
   io.memwb.pc := memReg.pc
+  // rd will change on a load
   io.memwb.rd := memReg.rd
+  // extra port for forwarding the registered value
+  io.exResult := memReg.rd
 }

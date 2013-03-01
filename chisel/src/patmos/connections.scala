@@ -54,17 +54,21 @@ class DecEx() extends Bundle() {
   val pc = UFix(width = Constants.PC_SIZE)
   val func = Bits(width = 4)
   // the register fields are very similar to RegFileRead
+  // maybe join the structures
   val rsAddr = Vec(2) { Bits(width=5) }
   val rsData = Vec(2) { Bits(width=32) }
   val rdAddr = Vec(1) { Bits(width=5) }
   val immVal = Bits(width=32)
   val immOp = Bool()
+  // wrReg? or wrEn? or valid? We use now all three at different places ;-)
+  val wrReg = Bool()
 }
 
+// Why do we have result and reg file write?
 class Result() extends Bundle() {
   val addr = Bits(width=5)
   val data = Bits(width=32)
-//  val valid = Bool()
+  val valid = Bool()
 }
 
 class ExMem() extends Bundle() {
@@ -116,17 +120,22 @@ class ExecuteIO() extends Bundle() {
   val ena = Bool(INPUT)
   val decex = new DecEx().asInput
   val exmem = new ExMem().asOutput
+  val exResult = new Result().asInput
+  val memResult = new Result().asInput
 }
 
 class MemoryIO() extends Bundle() {
   val ena = Bool(INPUT)
   val exmem = new ExMem().asInput
   val memwb = new MemWb().asOutput
+  val exResult = new Result().asOutput
 }
 
 class WriteBackIO() extends Bundle() {
   val ena = Bool(INPUT)
   val memwb = new MemWb().asInput
+  // do we have any useful out from WB?
   val out = new WbFinal().asOutput
   val rfWrite = new RegFileWrite().flip
+  val memResult = new Result().asOutput
 }
