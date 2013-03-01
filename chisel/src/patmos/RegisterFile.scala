@@ -51,21 +51,27 @@ class RegisterFile() extends Component {
   // the reset version generates more logic and a slower fmax
   val rf = Vec(32) { Reg(resetVal = Bits(0, width = 32)) }
 
-  // Shouldn't we also register the write signals to be
-  // compatible with an on-chip memory?
-  when(io.rfWrite.wrEn) {
-    rf(io.rfWrite.wrAddr.toUFix) := io.rfWrite.wrData
+  // We are registering the inputs here, similar as it would
+  // be with an on-chip memory for the register file
+  val addr0Reg = Reg(UFix(width=5))
+  val addr1Reg = Reg(UFix(width=5))
+  val wrReg = Reg(new RegFileWrite())
+  
+  when (io.ena) {
+    addr0Reg := io.rfRead.rsAddr(0).toUFix
+    addr1Reg := io.rfRead.rsAddr(1).toUFix
+    wrReg := io.rfWrite
   }
 
-  // we are registering the addresses here, similar as it would
-  // be with an on-chip memory for the register file
-  val addr0 = Reg(io.rfRead.rsAddr(0).toUFix)
-  val addr1 = Reg(io.rfRead.rsAddr(1).toUFix)
-  io.rfRead.rsData(0) := rf(addr0)
-  io.rfRead.rsData(1) := rf(addr1)
+  io.rfRead.rsData(0) := rf(addr0Reg)
+  io.rfRead.rsData(1) := rf(addr1Reg)
   // maybe do register 0 here
   // R0 handling could be done here, in decode, or as part of forwarding
   // Or we are just happy with relying on the fact that the registers are reset
   // and just disable writing to register 0
+
+  when(wrReg.wrEn) {
+    rf(wrReg.wrAddr.toUFix) := wrReg.wrData
+  }
 
 }

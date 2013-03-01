@@ -95,6 +95,7 @@ class RegFileWrite() extends Bundle() {
 }
 
 class RegFileIO() extends Bundle() {
+  val ena = Bool(INPUT)
   val rfRead = new RegFileRead()
   val rfWrite = new RegFileWrite()
 }

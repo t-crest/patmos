@@ -84,6 +84,7 @@ class Patmos(fileName: String) extends Component {
   execute.io.ena := enable
   memory.io.ena := enable
   writeback.io.ena := enable
+  register.io.ena := enable
   
   // ***** the follwoing code is not really Patmos code ******
   

@@ -50,12 +50,15 @@ class WriteBack() extends Component {
     wbReg := io.memwb
   }
   
-  io.rfWrite.wrAddr := wbReg.rd.addr
-  io.rfWrite.wrData := wbReg.rd.data
+
+  // The register file has input registers
+  io.rfWrite.wrAddr := io.memwb.rd.addr
+  io.rfWrite.wrData := io.memwb.rd.data
   io.rfWrite.wrEn := Bool(true)
   
   io.out.pc := wbReg.pc
-  io.out.rd.data := wbReg.rd.data
-  io.out.rd.addr := wbReg.rd.addr
+  // not yet used - addr will be used for forwarding
+//  io.out.rd.data := wbReg.rd.data
+//  io.out.rd.addr := wbReg.rd.addr
 
 }
