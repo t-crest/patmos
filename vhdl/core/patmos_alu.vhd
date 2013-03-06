@@ -117,6 +117,7 @@ begin
 			when others => null;
 		end case;
 	end process;
+	-- assume SHIFT_LEFT keeps it unsigned
 	process(shamt, rs2)
 	begin
 		shifted_arg <= SHIFT_LEFT(rs2, shamt);

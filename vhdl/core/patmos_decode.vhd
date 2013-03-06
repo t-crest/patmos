@@ -311,7 +311,7 @@ begin
 					end case;
 					comb_out.rs1            <= din.operation(16 downto 12);
 					comb_out.rs2            <= din.operation(11 downto 7);
-					comb_out.imm <= std_logic_vector(resize(signed(din.operation(6 downto 0)), 32));
+					comb_out.imm <= std_logic_vector(resize(unsigned(din.operation(6 downto 0)), 32));
 					comb_out.alu_src        <= '1'; -- choose the second source, i.e. immediate!
 					comb_out.reg_write      <= '0'; -- we dont write in registers in store!
 					
@@ -395,7 +395,7 @@ begin
 					end case;
 					comb_out.rd             <= din.operation(21 downto 17);
 					comb_out.rs1            <= din.operation(16 downto 12);
-					comb_out.imm <= std_logic_vector(resize(signed(din.operation(6 downto 0)), 32));				
+					comb_out.imm <= std_logic_vector(resize(unsigned(din.operation(6 downto 0)), 32));				
 					comb_out.alu_src      <= '1'; -- choose the second source, i.e. immediate!
 					comb_out.reg_write    <= '1'; -- reg_write_out is reg_write_ex
 					comb_out.mem_to_reg   <= '1'; -- data comes from alu or mem ? 0 from alu and 1 from mem

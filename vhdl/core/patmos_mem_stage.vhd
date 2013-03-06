@@ -593,6 +593,8 @@ begin
     --------------------------- sign extension begin--------------------------
     -- MS: why do we have double signe extension?
     -- SA: what is a double sign extension?
+    -- MS: I mean for different memory types. But probably it does not really matter
+    -- as this are just wires
     process(ld_half, sc_ld_half, gm_ld_half, ld_byte, sc_ld_byte, gm_ld_byte, s_u)
     begin
         if (s_u = '1') then
