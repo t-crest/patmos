@@ -51,17 +51,16 @@ class WriteBack() extends Component {
   }
   
   // The register file has input registers
-  io.rfWrite.wrAddr := io.memwb.rd.addr
-  io.rfWrite.wrData := io.memwb.rd.data
-  io.rfWrite.wrEn := io.memwb.rd.valid
+  io.rfWrite <> io.memwb.rd
   
+  // do we need this? 
   io.out.pc := wbReg.pc
   
   // extra port for forwarding the registered value
   // this is probably the only output from WB, besides RF write
   io.memResult := wbReg.rd
 
-  // not yet used - addr will be used for forwarding
+  // not really used - and it is from register, which is normally not in out....
 //  io.out.rd.data := wbReg.rd.data
 //  io.out.rd.addr := wbReg.rd.addr
 

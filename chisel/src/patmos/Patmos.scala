@@ -63,8 +63,8 @@ class Patmos(fileName: String) extends Component {
   execute.io.decex <> decode.io.decex
   memory.io.exmem <> execute.io.exmem
   writeback.io.memwb <> memory.io.memwb
-  // RF connection
-  decode.io.rfWrite <> writeback.io.rfWrite 
+  // RF write connection
+  decode.io.rfWrite <> writeback.io.rfWrite
   
   // This is forwarding of registered result
   // Take care that it is the plain register
@@ -102,7 +102,7 @@ class Patmos(fileName: String) extends Component {
   val dummy = Cat(xorR(fetch.io.fedec.instr_a), fetch.io.fedec.instr_a(23, 17))
   // combine the outputs to avoid dropping circuits, which would result in CPP compile errors
   val abc =   fetch.io.fedec.pc(7, 0) | fetch.io.fedec.instr_a(7, 0) | fetch.io.fedec.instr_a(31, 24) & decode.io.decex.pc(7, 0)  ^ dummy | decode.io.decex.func  
-  val sum1 = writeback.io.rfWrite.wrData.toUFix + writeback.io.rfWrite.wrAddr.toUFix + writeback.io.out.pc
+  val sum1 = writeback.io.rfWrite.data.toUFix + writeback.io.rfWrite.addr.toUFix + writeback.io.out.pc
 //  val sum2 = sum1 + register.io.rfRead.rsData(0) + register.io.rfRead.rsData(1)
 //  val sum3 = sum2 + decode.io.decex.rsAddr(0) + decode.io.decex.rsAddr(1)
   val part = sum1.toBits

@@ -1,17 +1,18 @@
 [*]
 [*] GTKWave Analyzer v3.3.37 (w)1999-2012 BSI
-[*] Fri Mar  1 06:27:30 2013
+[*] Thu Mar  7 19:50:21 2013
 [*]
 [dumpfile] "/Users/martin/t-crest/patmos/chisel/Patmos.vcd"
-[dumpfile_mtime] "Fri Mar  1 06:27:01 2013"
-[dumpfile_size] 43090
+[dumpfile_mtime] "Thu Mar  7 19:49:36 2013"
+[dumpfile_size] 36825
 [savefile] "/Users/martin/t-crest/patmos/chisel/wave.gtkw"
 [timestart] 0
 [size] 1322 724
 [pos] -1 -1
 *-1.279721 11 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] Patmos.
-[sst_width] 211
+[treeopen] Patmos.Decode.
+[sst_width] 225
 [signals_width] 222
 [sst_expanded] 1
 [sst_vpaned_height] 198
@@ -37,20 +38,14 @@ Patmos.Execute.io_exmem_rd_addr[4:0]
 Patmos.Execute.io_exmem_rd_data[31:0]
 Patmos.Memory.io_memwb_rd_addr[4:0]
 Patmos.Memory.io_memwb_rd_data[31:0]
-Patmos.RegisterFile.io_rfRead_rsAddr_0[4:0]
-Patmos.RegisterFile.io_rfRead_rsAddr_1[4:0]
-Patmos.RegisterFile.io_rfRead_rsData_0[31:0]
-Patmos.RegisterFile.io_rfRead_rsData_1[31:0]
-Patmos.WriteBack.io_rfWrite_wrAddr[4:0]
-Patmos.WriteBack.io_rfWrite_wrData[31:0]
-@28
-Patmos.WriteBack.io_rfWrite_wrEn
-@22
 Patmos.WriteBack.io_out_rd_data[31:0]
-Patmos.RegisterFile.rf_0[31:0]
-Patmos.RegisterFile.rf_1[31:0]
-Patmos.RegisterFile.rf_2[31:0]
-Patmos.RegisterFile.rf_3[31:0]
-Patmos.RegisterFile.rf_4[31:0]
+@29
+Patmos.Decode.RegisterFile.io_rfWrite_valid
+@22
+Patmos.Decode.RegisterFile.rf_0[31:0]
+Patmos.Decode.RegisterFile.rf_1[31:0]
+Patmos.Decode.RegisterFile.rf_2[31:0]
+Patmos.Decode.RegisterFile.rf_3[31:0]
+Patmos.Decode.RegisterFile.rf_4[31:0]
 [pattern_trace] 1
 [pattern_trace] 0

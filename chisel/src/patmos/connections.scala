@@ -64,11 +64,10 @@ class DecEx() extends Bundle() {
   val wrReg = Bool()
 }
 
-// Why do we have result and reg file write?
 class Result() extends Bundle() {
-  val addr = Bits(width=5)
-  val data = Bits(width=32)
-  val valid = Bool()
+  val addr = Bits(INPUT, 5)
+  val data = Bits(INPUT, 32)
+  val valid = Bool(INPUT)
 }
 
 class ExMem() extends Bundle() {
@@ -92,16 +91,10 @@ class RegFileRead() extends Bundle() {
   val rsData = Vec(2) { Bits(OUTPUT, 32) }
 }
 
-class RegFileWrite() extends Bundle() {
-  val wrAddr = Bits(INPUT, 5)
-  val wrData = Bits(INPUT, 32)
-  val wrEn = Bool(INPUT)
-}
-
 class RegFileIO() extends Bundle() {
   val ena = Bool(INPUT)
   val rfRead = new RegFileRead()
-  val rfWrite = new RegFileWrite()
+  val rfWrite = new Result()
 }
 
 class FetchIO extends Bundle() {
@@ -113,22 +106,24 @@ class DecodeIO() extends Bundle() {
   val ena = Bool(INPUT)
   val fedec = new FeDec().asInput
   val decex = new DecEx().asOutput
-  val rfWrite = new RegFileWrite()
+  val rfWrite = new Result()
 }
 
 class ExecuteIO() extends Bundle() {
   val ena = Bool(INPUT)
   val decex = new DecEx().asInput
   val exmem = new ExMem().asOutput
-  val exResult = new Result().asInput
-  val memResult = new Result().asInput
+  // forwarding inputs
+  val exResult = new Result()
+  val memResult = new Result()
 }
 
 class MemoryIO() extends Bundle() {
   val ena = Bool(INPUT)
   val exmem = new ExMem().asInput
   val memwb = new MemWb().asOutput
-  val exResult = new Result().asOutput
+  // for result forwarding
+  val exResult = new Result().flip
 }
 
 class WriteBackIO() extends Bundle() {
@@ -136,6 +131,8 @@ class WriteBackIO() extends Bundle() {
   val memwb = new MemWb().asInput
   // do we have any useful out from WB?
   val out = new WbFinal().asOutput
-  val rfWrite = new RegFileWrite().flip
-  val memResult = new Result().asOutput
+  // wb result (unregistered)
+  val rfWrite = new Result().flip
+  // for result forwarding (register)
+  val memResult = new Result().flip
 }
