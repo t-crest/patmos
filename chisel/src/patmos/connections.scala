@@ -77,11 +77,9 @@ class ExMem() extends Bundle() {
 
 class MemWb() extends Bundle() {
   val rd = new Result()
-  val pc = UFix(width = Constants.PC_SIZE)
-}
-
-class WbFinal() extends Bundle() {
-  val rd = new Result()
+  // do we need this? probably not.
+  // maybe drop unused pc fields
+  // maybe nice for debugging?
   val pc = UFix(width = Constants.PC_SIZE)
 }
 
@@ -129,8 +127,6 @@ class MemoryIO() extends Bundle() {
 class WriteBackIO() extends Bundle() {
   val ena = Bool(INPUT)
   val memwb = new MemWb().asInput
-  // do we have any useful out from WB?
-  val out = new WbFinal().asOutput
   // wb result (unregistered)
   val rfWrite = new Result().flip
   // for result forwarding (register)

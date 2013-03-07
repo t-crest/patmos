@@ -102,9 +102,7 @@ class Patmos(fileName: String) extends Component {
   val dummy = Cat(xorR(fetch.io.fedec.instr_a), fetch.io.fedec.instr_a(23, 17))
   // combine the outputs to avoid dropping circuits, which would result in CPP compile errors
   val abc =   fetch.io.fedec.pc(7, 0) | fetch.io.fedec.instr_a(7, 0) | fetch.io.fedec.instr_a(31, 24) & decode.io.decex.pc(7, 0)  ^ dummy | decode.io.decex.func  
-  val sum1 = writeback.io.rfWrite.data.toUFix + writeback.io.rfWrite.addr.toUFix + writeback.io.out.pc
-//  val sum2 = sum1 + register.io.rfRead.rsData(0) + register.io.rfRead.rsData(1)
-//  val sum3 = sum2 + decode.io.decex.rsAddr(0) + decode.io.decex.rsAddr(1)
+  val sum1 = writeback.io.rfWrite.data.toUFix + writeback.io.rfWrite.addr.toUFix + memory.io.memwb.pc
   val part = sum1.toBits
   val xyz = ~led | abc ^ part(7, 0)
   val r = Reg(xyz)
