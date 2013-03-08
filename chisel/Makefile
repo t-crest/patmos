@@ -29,7 +29,7 @@ asm:
 
 test: asm
 	-rm -rf generated
-	$(SBT) "run-main $(MAIN) ../tmp/$(APP) --test --debug --compile --vcd --genHarness --targetDir generated"
+	$(SBT) "run-main $(MAIN) ../tmp/$(APP) --test --compile --vcd --genHarness --targetDir generated"
 
 # the Verilog version
 verilog: asm

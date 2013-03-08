@@ -51,17 +51,6 @@ class Execute() extends Component {
   }
   // no access to io.decex after this point!!!
 
-  // this does not work! why not? I don't like the Mux notation
-  //  val ra = exReg.rsData(0)
-  //  val rb = exReg.rsData(1)
-  //  // data forwarding
-  //  when (fwx) {
-  //    ra := io.exResult.data
-  //  } 
-  //  .elsewhen (fwy) {
-  //    ra := io.memResult.data
-  //  } 
-  
   // data forwarding
   val fwEx0 = exReg.rsAddr(0) === io.exResult.addr && io.exResult.valid
   val fwMem0 = exReg.rsAddr(0) === io.memResult.addr && io.memResult.valid
@@ -71,9 +60,14 @@ class Execute() extends Component {
   val rb = Mux(fwEx1, io.exResult.data, Mux(fwMem1, io.memResult.data, exReg.rsData(1)))
 
   val op2 = Mux(exReg.immOp, exReg.immVal, rb)
-  
+
   // ALU operation
-  val result = ra + op2
+  val result = UFix(width=32)
+  result := UFix(0)
+  switch(exReg.func) {
+    is (Bits("b0000")) { result := ra + op2 }
+    is (Bits("b0001")) { result := ra - op2 }
+  }
 
   io.exmem.rd.addr := exReg.rdAddr(0)
   io.exmem.rd.data := result

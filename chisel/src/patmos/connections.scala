@@ -50,6 +50,12 @@ class FeDec() extends Bundle() {
   val pc = UFix(width = Constants.PC_SIZE)
 }
 
+// just for a test two boolean
+class AluOp {
+  val add = Bool()
+  val sub = Bool()
+}
+
 class DecEx() extends Bundle() {
   val pc = UFix(width = Constants.PC_SIZE)
   val func = Bits(width = 4)
@@ -60,6 +66,7 @@ class DecEx() extends Bundle() {
   val rdAddr = Vec(1) { Bits(width=5) }
   val immVal = Bits(width=32)
   val immOp = Bool()
+  val aluOp = new AluOp()
   // wrReg? or wrEn? or valid? We use now all three at different places ;-)
   val wrReg = Bool()
 }

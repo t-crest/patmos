@@ -37,6 +37,18 @@
  * 
  */
 
+/*
+
+Keep a TODO list here, right at the finger tips:
+
+- Print registers for co-simulation
+- Look into ListLookup for instruction decoding
+
+
+
+
+ */
+
 package patmos
 
 import Chisel._
@@ -111,8 +123,12 @@ class Patmos(fileName: String) extends Component {
 
 // this testing and main file should go into it's own folder
 
-class PatmosTest(pat: Patmos) extends Tester(pat, Array(pat.io, pat.fetch.io,
-    pat.decode.io, pat.execute.io, pat.memory.io, pat.writeback.io)) {
+class PatmosTest(pat: Patmos) extends Tester(pat,
+    Array(pat.io, pat.decode.io)
+//    Array(pat.io, pat.fetch.io,
+//    pat.decode.io, pat.execute.io, pat.memory.io, pat.writeback.io)
+    ) {
+  
   defTests {
     val ret = true
     val vars = new HashMap[Node, Node]()
@@ -123,10 +139,10 @@ class PatmosTest(pat: Patmos) extends Tester(pat, Array(pat.io, pat.fetch.io,
       step(vars, ovars)
       //      println("iter: " + i)
       //      println("ovars: " + ovars)
-      println("led/litVal " + ovars(pat.io.led).litValue())
-      println("pc: " + ovars(pat.fetch.io.fedec.pc).litValue())
-      println("instr: " + ovars(pat.fetch.io.fedec.instr_a).litValue())
-      println("pc decode: " + ovars(pat.decode.io.decex.pc).litValue())
+//      println("led/litVal " + ovars(pat.io.led).litValue())
+//      println("pc: " + ovars(pat.fetch.io.fedec.pc).litValue())
+//      println("instr: " + ovars(pat.fetch.io.fedec.instr_a).litValue())
+//      println("pc decode: " + ovars(pat.decode.io.decex.pc).litValue())
     }
     ret
   }

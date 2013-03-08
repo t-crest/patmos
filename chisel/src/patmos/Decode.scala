@@ -54,7 +54,6 @@ class Decode() extends Component {
   // RF write from write back stage
   rf.io.rfWrite <> io.rfWrite
 
-  //  val decReg = Reg(resetVal = new FeDec())
   val decReg = Reg(new FeDec())
   when(io.ena) {
     decReg := io.fedec
@@ -73,7 +72,11 @@ class Decode() extends Component {
     func := Cat(Bits(0), instr(24, 22))
     io.decex.immOp := Bool(true)
   }
-  // TODO sign extend
+  
+  
+  
+  
+  // Immediate is not sign extended...
   io.decex.immVal := Cat(Bits(0), instr(11, 0))
   // we could mux the imm / register here as well
 
