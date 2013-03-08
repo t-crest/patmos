@@ -10,6 +10,15 @@
 	add	r3 = r1, r2;
 	sub	r4 = r2, r1;
 	subi	r4 = r1, 3;
+	rsub	r4 = r2, r1;
+	or	r4 = r1, r2;
+	and	r4 = r3, r1;
+	and	r4 = r3, r2;
+	sl	r4 = r1, 8;
+	sr	r4 = r2, 1;
+	subi	r3 = r0, 2;
+	sra	r4 = r3, 1;
+	sr	r4 = r3, 1;
 
 
 

@@ -60,13 +60,24 @@ class Execute() extends Component {
   val rb = Mux(fwEx1, io.exResult.data, Mux(fwMem1, io.memResult.data, exReg.rsData(1)))
 
   val op2 = Mux(exReg.immOp, exReg.immVal, rb)
+  val op1 = ra
 
   // ALU operation
   val result = UFix(width=32)
   result := UFix(0)
+  // This kind of decoding of the ALU op in the EX stage is not efficient,
+  // but we keep it for now to get something going soon.
   switch(exReg.func) {
-    is (Bits("b0000")) { result := ra + op2 }
-    is (Bits("b0001")) { result := ra - op2 }
+    is (Bits("b0000")) { result := op1 + op2 }
+    is (Bits("b0001")) { result := op1 - op2 }
+    is (Bits("b0010")) { result := op2 - op1 }
+    // mmh, for whatever reason the shifts do not work
+    is (Bits("b0011")) { result := (op1 << op2).toUFix }
+    is (Bits("b0100")) { result := (op1 >> op2).toUFix }
+    is (Bits("b0101")) { result := (op1.toFix << op2).toUFix }
+    // logic is fine
+    is (Bits("b0110")) { result := (op1 | op2).toUFix }
+    is (Bits("b0111")) { result := (op1 & op2).toUFix }
   }
 
   io.exmem.rd.addr := exReg.rdAddr(0)
