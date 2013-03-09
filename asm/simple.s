@@ -1,6 +1,5 @@
 #
-# A very simple example to get stuff running on a (chisel) pipeline.
-# Now addition with forwarding.
+# Very simple code to get stuff running on the Chisel pipeline.
 #
 
 	addi	r0 = r0, 0;  # first instruction not executed
@@ -14,11 +13,12 @@
 	or	r4 = r1, r2;
 	and	r4 = r3, r1;
 	and	r4 = r3, r2;
-	sl	r4 = r1, 8;
-	sr	r4 = r2, 1;
-	subi	r3 = r0, 2;
-	sra	r4 = r3, 1;
-	sr	r4 = r3, 1;
+# For whatever reason shifts do not work yet
+#	sl	r4 = r1, 8;
+#	sr	r4 = r2, 1;
+#	subi	r3 = r0, 2;
+#	sra	r4 = r3, 1;
+#	sr	r4 = r3, 1;
 
 
 

@@ -82,4 +82,6 @@ class RegisterFile() extends Component {
     rf(wrReg.addr.toUFix) := wrReg.data
   }
 
+  // Just for debugging
+  io.rfDebug := rf
 }

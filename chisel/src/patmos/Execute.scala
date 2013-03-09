@@ -84,8 +84,6 @@ class Execute() extends Component {
   io.exmem.rd.data := result
   io.exmem.rd.valid := exReg.wrReg
 
-  // TODO: we should have a dummy field for this kind of nonsense
-  io.exmem.pc := exReg.pc + exReg.rsData(0) + exReg.rsData(1) +
-    exReg.rsAddr(0) + exReg.rsAddr(1) + exReg.func + io.exmem.rd.data
+  io.exmem.pc := exReg.pc
 
 }

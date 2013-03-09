@@ -124,7 +124,7 @@ class Patmos(fileName: String) extends Component {
 // this testing and main file should go into it's own folder
 
 class PatmosTest(pat: Patmos) extends Tester(pat,
-    Array(pat.io, pat.decode.io)
+    Array(pat.io, pat.decode.io, pat.decode.rf.io, pat.memory.io)
 //    Array(pat.io, pat.fetch.io,
 //    pat.decode.io, pat.execute.io, pat.memory.io, pat.writeback.io)
     ) {
@@ -136,8 +136,13 @@ class PatmosTest(pat: Patmos) extends Tester(pat,
 
     for (i <- 0 until 24) {
       vars.clear
-      step(vars, ovars)
-      //      println("iter: " + i)
+      step(vars, ovars, false) // false as third argument disables printout
+      val pc = ovars(pat.memory.io.memwb.pc).litValue()-2
+      print(pc+" ")
+      for (j <- 0 until 32)
+        print(ovars(pat.decode.rf.io.rfDebug(j)).litValue()+" ")
+      println()
+       //      println("iter: " + i)
       //      println("ovars: " + ovars)
 //      println("led/litVal " + ovars(pat.io.led).litValue())
 //      println("pc: " + ovars(pat.fetch.io.fedec.pc).litValue())
@@ -151,7 +156,7 @@ class PatmosTest(pat: Patmos) extends Tester(pat,
 object PatmosMain {
   def main(args: Array[String]): Unit = {
     
-    // Use first arg for program (.bin file)
+    // Use first argument for the program name (.bin file)
     val chiselArgs = args.slice(1, args.length)
     val file = args(0) + ".bin"
     chiselMainTest(chiselArgs, () => new Patmos(file)) { f => new PatmosTest(f) }

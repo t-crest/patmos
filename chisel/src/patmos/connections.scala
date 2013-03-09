@@ -100,6 +100,7 @@ class RegFileIO() extends Bundle() {
   val ena = Bool(INPUT)
   val rfRead = new RegFileRead()
   val rfWrite = new Result()
+  val rfDebug = Vec(32) { Bits(OUTPUT, 32) }
 }
 
 class FetchIO extends Bundle() {

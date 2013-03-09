@@ -1,4 +1,6 @@
-
+#
+# Main make file for Patmos
+#
 
 # cleanup
 EXTENSIONS=class rbf rpt sof pin summary ttf qdf dat wlf done qws
@@ -8,13 +10,14 @@ EXTENSIONS=class rbf rpt sof pin summary ttf qdf dat wlf done qws
 #
 USB=false
 
-
 # Assembler files
 APP=test
 # Altera FPGA configuration cable
 #BLASTER_TYPE=ByteBlasterMV
 BLASTER_TYPE=USB-Blaster
 
+# Is there an intention to continue to support the Cycore board?
+# Maybe the BeMicro is a better substitution
 ifeq ($(WINDIR),)
 	USBRUNNER=./USBRunner
 	S=:
@@ -103,16 +106,17 @@ old_rom: tools
 sim:
 	cd modelsim; make
 
+# VHDL simulation in batch mode
 bsim:
 	cd modelsim; make batch
 
-old_sim:
-	java -cp java/lib/patmos-tools.jar \
-		simulator.SimPat
-
-# High-level simulation
+# High-level pasim simulation
 hsim:
 	bin/pasim --debug --debug-fmt=short tmp/$(APP).bin
+
+# C simulation of the Chisel version of Patmos
+csim:
+	cd chisel; make test
 
 # Testing
 test:
