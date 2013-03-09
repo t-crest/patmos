@@ -51,9 +51,9 @@ else
 fi
 
 
-echo === Chisel Tests ===
 make csim
 
+echo === Chisel Tests ===
 failed_chsl=()
 for f in  ${tests_chsl}; do
     $timeout testsuite/single_chsl.sh ${f}

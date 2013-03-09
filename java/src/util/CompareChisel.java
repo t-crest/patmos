@@ -105,6 +105,7 @@ public class CompareChisel {
 			}
 			// unsigned int output from Chisel
 			int pc = (int) chisel.nextLong();
+			chisel.next(); // skip '-'
 			// TODO: we would like to keep the ':' after the pc, but I don't have a Scanner docu
 			for (int i=0; i<32; ++i) {
 				int csVal = (int) chisel.nextLong();

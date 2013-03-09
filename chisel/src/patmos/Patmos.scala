@@ -138,7 +138,7 @@ class PatmosTest(pat: Patmos) extends Tester(pat,
       vars.clear
       step(vars, ovars, false) // false as third argument disables printout
       val pc = ovars(pat.memory.io.memwb.pc).litValue()-2
-      print(pc+" ")
+      print(pc+" - ")
       for (j <- 0 until 32)
         print(ovars(pat.decode.rf.io.rfDebug(j)).litValue()+" ")
       println()
