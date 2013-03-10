@@ -30,10 +30,16 @@ architecture rtl of patmos_top is
 		);
 	end component;
 
+	-- constants for 50 MHz input clock
+	constant clk_freq : integer := 100000000;
+	constant pll_mult : natural := 10;
+	constant pll_div : natural := 5;
+
 	signal clk_int : std_logic;
 
 	-- for generation of internal reset
 	signal int_res : std_logic;
+	signal res_reg1, res_reg2 : std_logic;
 	signal res_cnt : unsigned(2 downto 0) := "000"; -- for the simulation
 
 	attribute altera_attribute : string;
@@ -41,8 +47,17 @@ architecture rtl of patmos_top is
 
 begin
 
+	pll_inst : entity work.pll generic map(
+		multiply_by => pll_mult,
+		divide_by => pll_div
+	)
+	port map (
+		inclk0	 => clk,
+		c0	 => clk_int,
+		c1       => open
+	);
 	-- we could use a PLL in future designs
-	clk_int <= clk;
+	-- clk_int <= clk;
 	
 	--
 	--	internal reset generation
@@ -54,12 +69,14 @@ begin
 			if (res_cnt /= "111") then
 				res_cnt <= res_cnt + 1;
 			end if;
-			int_res <= not res_cnt(0) or not res_cnt(1) or not res_cnt(2);
+			res_reg1 <= not res_cnt(0) or not res_cnt(1) or not res_cnt(2);
+			res_reg2 <= res_reg1;
+			int_res <= res_reg2;
 		end if;
 	end process;
 
 	comp : Patmos port map(
-			clk, int_res, led
+			clk_int, int_res, led
 		);
 
 end architecture rtl;

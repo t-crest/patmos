@@ -35,6 +35,11 @@
  * 
  * Author: Martin Schoeberl (martin@jopdesign.com)
  * 
+ * Current Fmax on the DE2-70 is 84 MHz
+ *   from forward address comparison to EXMEM register rd
+ *   Removing the not so nice ALU instrcutions gives 96 MHz
+ *   Drop just rotate: 90 MHz
+ * 
  */
 
 package patmos

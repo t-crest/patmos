@@ -85,7 +85,7 @@ class Patmos(fileName: String) extends Component {
 
   // Stall ever n clock cycles for testing the pipeline
   def pulse() = {
-    val x = Reg(resetVal = UFix(0, 256))
+    val x = Reg(resetVal = UFix(0, 8))
     x := Mux(x === UFix(100), UFix(0), x+UFix(1))
     x === UFix(100)
   }
@@ -99,24 +99,21 @@ class Patmos(fileName: String) extends Component {
   memory.io.ena := enable
   writeback.io.ena := enable
   
-  // ***** the follwoing code is not really Patmos code ******
+  // ***** the following code is not really Patmos code ******
   
   // maybe instantiate the FSM here to get some output when
   // compiling for the FPGA
 
-  val led = Reg(resetVal = Bits(1, 8))
-  val led_next = Cat(led(6, 0), led(7))
-
-  when(Bool(true)) {
-    led := led_next
-  }
+//  val led = Reg(resetVal = Bits(1, 8))
+//  val led_next = Cat(led(6, 0), led(7))
+//
+//  when(Bool(true)) {
+//    led := led_next
+//  }
   
-  val dummy = Cat(xorR(fetch.io.fedec.instr_a), fetch.io.fedec.instr_a(23, 17))
-  // combine the outputs to avoid dropping circuits, which would result in CPP compile errors
-  val abc =   fetch.io.fedec.pc(7, 0) | fetch.io.fedec.instr_a(7, 0) | fetch.io.fedec.instr_a(31, 24) & decode.io.decex.pc(7, 0)  ^ dummy | decode.io.decex.func  
-  val sum1 = writeback.io.rfWrite.data.toUFix + writeback.io.rfWrite.addr.toUFix + memory.io.memwb.pc
-  val part = sum1.toBits
-  val xyz = ~led | abc ^ part(7, 0)
+  val sum1 = writeback.io.rfWrite.data.toUFix + memory.io.memwb.pc
+  val part = Reg(sum1.toBits)
+  val xyz = part(7, 0)
   val r = Reg(xyz)
   io.led := r
 }
