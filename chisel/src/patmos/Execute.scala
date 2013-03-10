@@ -67,6 +67,14 @@ class Execute() extends Component {
       is(Bits("b0110")) { result := (op1 | op2).toUFix }
       is(Bits("b0111")) { result := (op1 & op2).toUFix }
       // TODO: add the other funny ALU instructions
+      // I don't like them and the following is an inefficient description of the rotate
+      is(Bits("b1000")) { result := ((op1 << shamt) | (op1 >> (UFix(32)-shamt))).toUFix }
+      // Rotate right is the same as rotate left
+      is(Bits("b1001")) { result := ((op1 >> shamt) | (op1 << (UFix(32)-shamt))).toUFix }
+      is(Bits("b1010")) { result := (op1 ^ op2).toUFix }      
+      is(Bits("b1011")) { result := (~(op1 | op2)).toUFix }      
+      is(Bits("b1100")) { result := (op1 << UFix(1)) + op2 }      
+      is(Bits("b1101")) { result := (op1 << UFix(2)) + op2 }      
     }
     result
   }
@@ -76,6 +84,7 @@ class Execute() extends Component {
     val op2s = op2.toFix
     val shamt = op2(4, 0).toUFix
     // Is this nicer than the switch?
+    // Some of the comparison function (equ, subtract) could be shared
     MuxLookup(func, Bool(false), Array(
       (Bits("b0000"), (op1 === op2)),
       (Bits("b0001"), (op1 != op2)),
@@ -103,7 +112,7 @@ class Execute() extends Component {
   val aluResult = alu(exReg.func, op1, op2)
   val compResult = comp(exReg.func, op1, op2)
   
-  when(exReg.cmpOp) {
+  when(exReg.cmpOp && io.ena) {
     predReg(exReg.pd) := compResult
   }
   predReg(0) := Bool(true)
