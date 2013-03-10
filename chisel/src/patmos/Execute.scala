@@ -51,6 +51,44 @@ class Execute() extends Component {
   }
   // no access to io.decex after this point!!!
 
+  def alu(func: Bits, op1: UFix, op2: UFix): Bits = {
+    val result = UFix(width = 32)
+    result := UFix(0) // default could be the sum
+    val shamt = op2(4, 0).toUFix
+    // This kind of decoding of the ALU op in the EX stage is not efficient,
+    // but we keep it for now to get something going soon.
+    switch(func) {
+      is(Bits("b0000")) { result := op1 + op2 }
+      is(Bits("b0001")) { result := op1 - op2 }
+      is(Bits("b0010")) { result := op2 - op1 }
+      is(Bits("b0011")) { result := (op1 << shamt).toUFix }
+      is(Bits("b0100")) { result := (op1 >> shamt).toUFix }
+      is(Bits("b0101")) { result := (op1.toFix >> shamt).toUFix }
+      is(Bits("b0110")) { result := (op1 | op2).toUFix }
+      is(Bits("b0111")) { result := (op1 & op2).toUFix }
+      // TODO: add the other funny ALU instructions
+    }
+    result
+  }
+
+  def comp(func: Bits, op1: UFix, op2: UFix): Bool = {
+    val op1s = op1.toFix
+    val op2s = op2.toFix
+    val shamt = op2(4, 0).toUFix
+    // Is this nicer than the switch?
+    MuxLookup(func, Bool(false), Array(
+      (Bits("b0000"), (op1 === op2)),
+      (Bits("b0001"), (op1 != op2)),
+      (Bits("b0010"), (op1s < op2s)),
+      (Bits("b0011"), (op1s <= op2s)),
+      (Bits("b0100"), (op1 < op2)),
+      (Bits("b0101"), (op1 <= op2)),
+      (Bits("b0110"), ((op1 & (Bits(1) << op2)) != UFix(0)))
+      ))
+  }
+
+  val predReg = Vec(8) { Reg(resetVal = Bool(false)) }
+
   // data forwarding
   val fwEx0 = exReg.rsAddr(0) === io.exResult.addr && io.exResult.valid
   val fwMem0 = exReg.rsAddr(0) === io.memResult.addr && io.memResult.valid
@@ -62,26 +100,20 @@ class Execute() extends Component {
   val op2 = Mux(exReg.immOp, exReg.immVal, rb)
   val op1 = ra
 
-  // ALU operation
-  val result = UFix(width=32)
-  result := UFix(0)
-  val shamt = op2(4,0).toUFix
-  // This kind of decoding of the ALU op in the EX stage is not efficient,
-  // but we keep it for now to get something going soon.
-  switch(exReg.func) {
-    is (Bits("b0000")) { result := op1 + op2 }
-    is (Bits("b0001")) { result := op1 - op2 }
-    is (Bits("b0010")) { result := op2 - op1 }
-    is (Bits("b0011")) { result := (op1 << shamt).toUFix }
-    is (Bits("b0100")) { result := (op1 >> shamt).toUFix }
-    is (Bits("b0101")) { result := (op1.toFix >> shamt).toUFix }
-    is (Bits("b0110")) { result := (op1 | op2).toUFix }
-    is (Bits("b0111")) { result := (op1 & op2).toUFix }
+  val aluResult = alu(exReg.func, op1, op2)
+  val compResult = comp(exReg.func, op1, op2)
+  
+  when(exReg.cmpOp) {
+    predReg(exReg.pd) := compResult
   }
+  predReg(0) := Bool(true)
+  
+  // TODO: need to check if this inversion meaning is correct
+  val doExecute = predReg(exReg.pred(2, 0)) ^ exReg.pred(3)
 
   io.exmem.rd.addr := exReg.rdAddr(0)
-  io.exmem.rd.data := result
-  io.exmem.rd.valid := exReg.wrReg
+  io.exmem.rd.data := aluResult
+  io.exmem.rd.valid := exReg.wrReg && doExecute && exReg.aluOp // just for now as it is not used elsewhere
 
   io.exmem.pc := exReg.pc
 

@@ -50,15 +50,12 @@ class FeDec() extends Bundle() {
   val pc = UFix(width = Constants.PC_SIZE)
 }
 
-// just for a test two boolean
-class AluOp {
-  val add = Bool()
-  val sub = Bool()
-}
 
 class DecEx() extends Bundle() {
   val pc = UFix(width = Constants.PC_SIZE)
+  val pred = Bits(width = 4)
   val func = Bits(width = 4)
+  val pd = Bits(width = 3)
   // the register fields are very similar to RegFileRead
   // maybe join the structures
   val rsAddr = Vec(2) { Bits(width=5) }
@@ -66,7 +63,8 @@ class DecEx() extends Bundle() {
   val rdAddr = Vec(1) { Bits(width=5) }
   val immVal = Bits(width=32)
   val immOp = Bool()
-  val aluOp = new AluOp()
+  val aluOp = Bool()
+  val cmpOp = Bool()
   // wrReg? or wrEn? or valid? We use now all three at different places ;-)
   val wrReg = Bool()
 }

@@ -64,23 +64,35 @@ class Decode() extends Component {
   // dual issue decode
 
   val func = Bits(width = 4)
+  // Start with some useful defaults
   io.decex.immOp := Bool(false)
+  io.decex.aluOp := Bool(false)
+  io.decex.cmpOp := Bool(false)
+  // Is this the best default value?
+  io.decex.wrReg := Bool(true)
+
   // ALU register and long immediate
   func := instr(3, 0)
   // ALU immediate
   when(instr(26, 25) === Bits("b00")) {
     func := Cat(Bits(0), instr(24, 22))
     io.decex.immOp := Bool(true)
+    io.decex.aluOp := Bool(true)
   }
-  
-  
-  
-  
+  when(instr(26, 22) === Bits("b01000")) {
+    switch(instr(6, 4)) {
+      is(Bits("b000")) { io.decex.aluOp := Bool(true) }
+      is(Bits("b001")) {  } // unary
+      is(Bits("b010")) {  } // multiply
+      is(Bits("b011")) { io.decex.cmpOp := Bool(true) }
+      is(Bits("b100")) { }  // predicate
+    }
+  }
+
   // Immediate is not sign extended...
   io.decex.immVal := Cat(Bits(0), instr(11, 0))
   // we could mux the imm / register here as well
 
-  io.decex.wrReg := Bool(true)
   // Disable register write on register 0
   when(decReg.instr_a(21, 17) === Bits("b00000")) {
     io.decex.wrReg := Bool(false)
@@ -88,6 +100,8 @@ class Decode() extends Component {
 
   io.decex.pc := decReg.pc
   io.decex.func := func
+  io.decex.pd := decReg.instr_a(19, 17)
+  io.decex.pred := decReg.instr_a(30, 27)
   // forward RF addresses and data
   io.decex.rsAddr(0) := decReg.instr_a(16, 12)
   io.decex.rsAddr(1) := decReg.instr_a(11, 7)
