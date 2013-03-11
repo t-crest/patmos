@@ -47,17 +47,17 @@ architecture rtl of patmos_top is
 
 begin
 
-	pll_inst : entity work.pll generic map(
-		multiply_by => pll_mult,
-		divide_by => pll_div
-	)
-	port map (
-		inclk0	 => clk,
-		c0	 => clk_int,
-		c1       => open
-	);
+--	pll_inst : entity work.pll generic map(
+--		multiply_by => pll_mult,
+--		divide_by => pll_div
+--	)
+--	port map (
+--		inclk0	 => clk,
+--		c0	 => clk_int,
+--		c1       => open
+--	);
 	-- we could use a PLL in future designs
-	-- clk_int <= clk;
+	clk_int <= clk;
 	
 	--
 	--	internal reset generation

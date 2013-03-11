@@ -67,6 +67,7 @@ class DecEx() extends Bundle() {
   val cmpOp = Bool()
   val unaryOp = Bool()
   val branch = Bool()
+  val store = Bool()
   // wrReg? or wrEn? or valid? We use now all three at different places ;-)
   val wrReg = Bool()
 }
@@ -78,6 +79,10 @@ class Result() extends Bundle() {
 }
 
 class ExMem() extends Bundle() {
+  // quick store, address is needed as well.
+  // Might be a structure similar to rd?
+  // Or maybe just use rd and have an address
+  val store = Bool()
   val rd = new Result()
   val pc = UFix(width = Constants.PC_SIZE)
 }
@@ -133,12 +138,20 @@ class ExecuteIO() extends Bundle() {
   val exfe = new ExFe().asOutput
 }
 
+// a better name would be nice
+class MemoryBus extends Bundle() {
+  val wr = Bool(OUTPUT)
+  // val address = Bits(OUTPUT, 32?)
+  val dataOut = Bits(OUTPUT, 32)
+}
+
 class MemoryIO() extends Bundle() {
   val ena = Bool(INPUT)
   val exmem = new ExMem().asInput
   val memwb = new MemWb().asOutput
   // for result forwarding
   val exResult = new Result().flip
+  val memBus = new MemoryBus()
 }
 
 class WriteBackIO() extends Bundle() {

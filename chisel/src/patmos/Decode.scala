@@ -70,6 +70,7 @@ class Decode() extends Component {
   io.decex.cmpOp := Bool(false)
   io.decex.unaryOp := Bool(false)
   io.decex.branch := Bool(false)
+  io.decex.store := Bool(false)
   // Is this the best default value?
   // TODO: maybe turn it around - default not doing anything
   io.decex.wrReg := Bool(true)
@@ -107,14 +108,19 @@ class Decode() extends Component {
       // where is register indirect?
     }
   }
-
+  // store
+  when(instr(26, 22) === Bits("b01011")) {
+    io.decex.wrReg := Bool(false)
+    io.decex.store := Bool(true)
+  }
+  
   // Immediate is not sign extended...
   io.decex.immVal := Cat(Bits(0), instr(11, 0))
   // we could mux the imm / register here as well
 
   // Immediate for branch is sign extended, not extended for call
   // We can do the address calculation already here
-  io.decex.branchPc := decReg.pc + Cat(Fill(Constants.PC_SIZE-22, instr(21)), instr(21, 0))
+  io.decex.branchPc := decReg.pc + Cat(Fill(Constants.PC_SIZE - 22, instr(21)), instr(21, 0))
   // On a call just take the value
 
   // Disable register write on register 0

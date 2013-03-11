@@ -102,6 +102,11 @@ class Patmos(fileName: String) extends Component {
   memory.io.ena := enable
   writeback.io.ena := enable
   
+  // Some IO connection here for short -- shall be moved to a real top level
+  val ledReg = Reg(Bits(0, 8))
+  when(memory.io.memBus.wr) {
+    ledReg := memory.io.memBus.dataOut
+  }
   // ***** the following code is not really Patmos code ******
   
   // maybe instantiate the FSM here to get some output when
@@ -114,11 +119,12 @@ class Patmos(fileName: String) extends Component {
 //    led := led_next
 //  }
   
+  // TODO add some dummy output, which is ignored in the top level VHDL code
   val sum1 = writeback.io.rfWrite.data.toUFix + memory.io.memwb.pc
   val part = Reg(sum1.toBits)
   val xyz = part(7, 0)
   val r = Reg(xyz)
-  io.led := r
+  io.led := ~Cat(r(7), ledReg(6, 0))
 }
 
 // this testing and main file should go into it's own folder
@@ -139,6 +145,7 @@ class PatmosTest(pat: Patmos) extends Tester(pat,
       step(vars, ovars, false) // false as third argument disables printout
       // The PC printout is a little of on a branch
       val pc = ovars(pat.memory.io.memwb.pc).litValue()-2
+      // println(ovars(pat.io.led).litValue())
       print(pc+" - ")
       for (j <- 0 until 32)
         print(ovars(pat.decode.rf.io.rfDebug(j)).litValue()+" ")
