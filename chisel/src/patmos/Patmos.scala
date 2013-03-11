@@ -82,6 +82,9 @@ class Patmos(fileName: String) extends Component {
   // Take care that it is the plain register
   execute.io.exResult <> memory.io.exResult
   execute.io.memResult <> writeback.io.memResult
+  
+  // We branch, jump, call in EX
+  fetch.io.exfe <> execute.io.exfe
 
   // Stall ever n clock cycles for testing the pipeline
   def pulse() = {
@@ -134,6 +137,7 @@ class PatmosTest(pat: Patmos) extends Tester(pat,
     for (i <- 0 until 50) {
       vars.clear
       step(vars, ovars, false) // false as third argument disables printout
+      // The PC printout is a little of on a branch
       val pc = ovars(pat.memory.io.memwb.pc).litValue()-2
       print(pc+" - ")
       for (j <- 0 until 32)

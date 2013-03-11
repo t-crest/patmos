@@ -76,7 +76,11 @@ class Fetch(fileName: String) extends Component {
   when(io.ena) {
     pc := pc_next
   }
+  
   pc_next := pc + UFix(1)
+  when(io.exfe.doBranch) {
+    pc := io.exfe.branchPc
+  } 
 
   io.fedec.pc := pc
   io.fedec.instr_a := rom(pc)

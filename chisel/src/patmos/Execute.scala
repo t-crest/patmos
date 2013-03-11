@@ -133,10 +133,14 @@ class Execute() extends Component {
   // TODO: need to check if this inversion meaning is correct
   val doExecute = predReg(exReg.pred(2, 0)) ^ exReg.pred(3)
 
+  // result
   io.exmem.rd.addr := exReg.rdAddr(0)
   io.exmem.rd.data := aluResult
   io.exmem.rd.valid := exReg.wrReg && doExecute && (exReg.aluOp || exReg.unaryOp) // just for now as it is not used elsewhere
-
+  //branch
+  io.exfe.doBranch := exReg.branch && doExecute
+  io.exfe.branchPc := exReg.branchPc
+  
   io.exmem.pc := exReg.pc
 
 }
