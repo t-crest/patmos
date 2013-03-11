@@ -68,6 +68,7 @@ class Decode() extends Component {
   io.decex.immOp := Bool(false)
   io.decex.aluOp := Bool(false)
   io.decex.cmpOp := Bool(false)
+  io.decex.unaryOp := Bool(false)
   // Is this the best default value?
   io.decex.wrReg := Bool(true)
 
@@ -82,7 +83,7 @@ class Decode() extends Component {
   when(instr(26, 22) === Bits("b01000")) {
     switch(instr(6, 4)) {
       is(Bits("b000")) { io.decex.aluOp := Bool(true) }
-      is(Bits("b001")) {  } // unary
+      is(Bits("b001")) { io.decex.unaryOp := Bool(true) }
       is(Bits("b010")) {  } // multiply
       is(Bits("b011")) { io.decex.cmpOp := Bool(true) }
       is(Bits("b100")) { }  // predicate

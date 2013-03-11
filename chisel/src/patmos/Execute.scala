@@ -73,13 +73,13 @@ class Execute() extends Component {
       is(Bits("b0111")) { result := (op1 & op2).toUFix }
       // TODO: add the other funny ALU instructions
       // I don't like them and the following is an inefficient description of the rotate
-      is(Bits("b1000")) { result := ((op1 << shamt) | (op1 >> (UFix(32)-shamt))).toUFix }
+      is(Bits("b1000")) { result := ((op1 << shamt) | (op1 >> (UFix(32) - shamt))).toUFix }
       // Rotate right is the same as rotate left
-      is(Bits("b1001")) { result := ((op1 >> shamt) | (op1 << (UFix(32)-shamt))).toUFix }
-      is(Bits("b1010")) { result := (op1 ^ op2).toUFix }      
-      is(Bits("b1011")) { result := (~(op1 | op2)).toUFix }      
-      is(Bits("b1100")) { result := (op1 << UFix(1)) + op2 }      
-      is(Bits("b1101")) { result := (op1 << UFix(2)) + op2 }      
+      is(Bits("b1001")) { result := ((op1 >> shamt) | (op1 << (UFix(32) - shamt))).toUFix }
+      is(Bits("b1010")) { result := (op1 ^ op2).toUFix }
+      is(Bits("b1011")) { result := (~(op1 | op2)).toUFix }
+      is(Bits("b1100")) { result := (op1 << UFix(1)) + op2 }
+      is(Bits("b1101")) { result := (op1 << UFix(2)) + op2 }
     }
     result
   }
@@ -97,8 +97,16 @@ class Execute() extends Component {
       (Bits("b0011"), (op1s <= op2s)),
       (Bits("b0100"), (op1 < op2)),
       (Bits("b0101"), (op1 <= op2)),
-      (Bits("b0110"), ((op1 & (Bits(1) << op2)) != UFix(0)))
-      ))
+      (Bits("b0110"), ((op1 & (Bits(1) << op2)) != UFix(0)))))
+  }
+
+  def unary(func: Bits, op: Bits): Bits = {
+    val ops = op.toFix
+    MuxLookup(func, Bool(false), Array(
+      (Bits("b00"), Cat(Fill(24, op(7)), op(7, 0))),
+      (Bits("b01"), Cat(Fill(16, op(15)), op(15, 0))),
+      (Bits("b10"), Cat(Bits(0, 16), op(15, 0))),
+      (Bits("b11"), Mux(ops(31), -ops, ops)))) // I don't like abs
   }
 
   val predReg = Vec(8) { Reg(resetVal = Bool(false)) }
@@ -114,20 +122,20 @@ class Execute() extends Component {
   val op2 = Mux(exReg.immOp, exReg.immVal, rb)
   val op1 = ra
 
-  val aluResult = alu(exReg.func, op1, op2)
+  val aluResult = Mux(exReg.unaryOp, unary(exReg.func(1, 0), op1), alu(exReg.func, op1, op2))
   val compResult = comp(exReg.func, op1, op2)
-  
+
   when(exReg.cmpOp && io.ena) {
     predReg(exReg.pd) := compResult
   }
   predReg(0) := Bool(true)
-  
+
   // TODO: need to check if this inversion meaning is correct
   val doExecute = predReg(exReg.pred(2, 0)) ^ exReg.pred(3)
 
   io.exmem.rd.addr := exReg.rdAddr(0)
   io.exmem.rd.data := aluResult
-  io.exmem.rd.valid := exReg.wrReg && doExecute && exReg.aluOp // just for now as it is not used elsewhere
+  io.exmem.rd.valid := exReg.wrReg && doExecute && (exReg.aluOp || exReg.unaryOp) // just for now as it is not used elsewhere
 
   io.exmem.pc := exReg.pc
 

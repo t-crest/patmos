@@ -65,6 +65,7 @@ class DecEx() extends Bundle() {
   val immOp = Bool()
   val aluOp = Bool()
   val cmpOp = Bool()
+  val unaryOp = Bool()
   // wrReg? or wrEn? or valid? We use now all three at different places ;-)
   val wrReg = Bool()
 }
