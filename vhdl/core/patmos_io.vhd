@@ -218,7 +218,8 @@ begin                                   -- architecture begin
 	-- decoding).
 	io_mem_read_mux : process(mem_data_out_uart, data_mem_data_out, io_reg, counter, cntus)
 	begin
-		mem_data_out_muxed <= (others  => '1'); -- The value for unused I/O address
+		--mem_data_out_muxed <= (others  => '1'); -- The value for unused I/O address
+		mem_data_out_muxed	<= data_mem_data_out;
 		if io_reg.mem_en = '0' then
 			case io_reg.device is
 				when io_uart =>
@@ -233,8 +234,8 @@ begin                                   -- architecture begin
 --					mem_data_out_muxed <= dma_rd_data_i;
 				when others =>
 			end case;
-		else
-			mem_data_out_muxed <= data_mem_data_out;
+--		else
+--			mem_data_out_muxed <= data_mem_data_out;
 		end if;
 	end process;
 
