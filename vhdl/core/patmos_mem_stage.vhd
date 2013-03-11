@@ -80,18 +80,14 @@ architecture arch of patmos_mem_stage is
     signal word_enable                       : std_logic_vector(1 downto 0);
     signal ldt_type                          : address_type;
     signal datain                            : std_logic_vector(31 downto 0);
-    signal lm_ld_word                        : std_logic_vector(31 downto 0);
-    signal ld_half                           : std_logic_vector(15 downto 0);
-    signal ld_byte                           : std_logic_vector(7 downto 0);
+
     signal s_u                               : std_logic;
-    signal lm_half_ext, lm_byte_ext          : std_logic_vector(31 downto 0);
     signal exout_reg_adr, prev_exout_reg_adr : std_logic_vector(31 downto 0);
     signal exout_reg_adr_shft                : std_logic_vector(31 downto 0);
     signal mem_write_data_stall              : std_logic_vector(31 downto 0);
     signal prev_mem_write_data_reg           : std_logic_vector(31 downto 0);
     signal prev_en_reg                       : std_logic_vector(3 downto 0);
     signal en_reg                            : std_logic_vector(3 downto 0);
-    signal lm_data_out                       : std_logic_vector(31 downto 0);
     -- Data Cache
     signal dc_data_out                       : std_logic_vector(31 downto 0);
 
@@ -106,11 +102,7 @@ architecture arch of patmos_mem_stage is
     signal gm_word_enable            : std_logic_vector(1 downto 0);
     signal gm_read_data              : std_logic_vector(31 downto 0);
     signal gm_en                     : std_logic_vector(3 downto 0);
-    signal gm_ld_word                : std_logic_vector(31 downto 0);
-    signal gm_ld_half                : std_logic_vector(15 downto 0);
-    signal gm_ld_byte                : std_logic_vector(7 downto 0);
     signal prev_gm_en_reg            : std_logic_vector(3 downto 0);
-    signal gm_half_ext, gm_byte_ext  : std_logic_vector(31 downto 0);
     signal gm_read_done, gm_write_done : std_logic;
     signal gm_do_read, gm_do_write : std_logic;
 
@@ -119,11 +111,8 @@ architecture arch of patmos_mem_stage is
     signal sc_word_enable           : std_logic_vector(1 downto 0);
     signal sc_byte_enable           : std_logic_vector(3 downto 0);
     signal sc_read_data             : std_logic_vector(31 downto 0);
-    signal sc_ld_word               : std_logic_vector(31 downto 0);
-    signal sc_ld_half               : std_logic_vector(15 downto 0);
-    signal sc_ld_byte               : std_logic_vector(7 downto 0);
-    signal sc_half_ext, sc_byte_ext : std_logic_vector(31 downto 0);
-    signal sc_data_out              : std_logic_vector(31 downto 0);
+    
+    
     signal ld_data, prev_ld_data    : std_logic_vector(31 downto 0);
 
     signal state_reg, next_state : sc_state;
@@ -483,7 +472,7 @@ begin
     end process;
     ------------------------- ld from stack cache or  io/scratchpad or main memory? -----------------------------
 
-    process(exout_reg, mem_data_out_muxed, sc_data_out, lm_data_out
+    process(exout_reg, mem_data_out_muxed
     	, lm_dout, sc_read_data, gm_read_data
     )
     begin
@@ -535,7 +524,7 @@ begin
     --------------------------- sign extension begin--------------------------
     -- MS: why do we have double signe extension?
     -- SA: what is a double sign extension?
-    process(ld_half, sc_ld_half, gm_ld_half, ld_byte, sc_ld_byte, gm_ld_byte, s_u
+    process( s_u
     	, ld_data_half, ld_data_byte
     )
     begin
@@ -553,10 +542,7 @@ begin
     --------------------------- sign extension end--------------------------
 
     --------------------------- size muxe begin--------------------------
-    -- Ms: same here: why can't we share this
-    -- SA: share what?
-    process(ldt_type, sc_ld_word, gm_ld_word, lm_ld_word, sc_half_ext, lm_half_ext, gm_half_ext, lm_byte_ext, sc_byte_ext, gm_byte_ext
-    	, ld_byte_ext, ld_half_ext, ld_data_word
+    process(ldt_type, ld_byte_ext, ld_half_ext, ld_data_word
     )
     begin
         case ldt_type is
