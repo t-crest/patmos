@@ -2,6 +2,9 @@
 # Directories containing assembler tests
 cd asm
 test_dirs="./inst_tests"
+for dir in ${test_dirs} ; do
+    mkdir ../tmp/${dir} 2>/dev/null
+done
 # Discovering the tests in the specified directories.
 test_disc=" "
 for td in ${test_dirs}; do
@@ -26,9 +29,31 @@ not_working_chsl="none"
 expect_fail=0
 expect_fail_chsl=11
 
-# How to implement timeout?
-# Caveat: Neither timeout nor timeout --foreground work properly
-timeout=""
+# How to implement timeout? IMPLEMENTED!
+timeout=60
+
+function run {
+    testsuite/single.sh $1
+    result=$?
+    if [ "$result" -ne 0 ] ; then
+        failed+=("${f}")
+    fi
+}
+
+function wait_timeout {
+    start=$(date +%s);
+    runtime=$(($(date +%s)-$start))
+    while (( ${runtime} < ${timeout} )); do
+        sleep 2s
+        if [[ "$(pgrep -P $1)" == "" ]] ; then
+            break;
+        fi
+        runtime=$(($(date +%s)-$start))
+    done
+    if (( ${runtime} >= ${timeout} )); then
+        echo " timeout"
+    fi
+}
 
 make tools
 make rom bsim
@@ -45,18 +70,16 @@ failed=()
 #        failed+=("${f}")
 #    fi
 #done
-for f in  ${tests}; do
-    $timeout testsuite/single.sh ${f}
-    result=$?
-    if [ "$result" -eq 124 ] ; then
-        echo " timeout"
-    fi
-    if [ "$result" -ne 0 ] ; then
-        failed+=("${f}")
-    fi
+for f in ${tests}; do
+    run ${f} &
+    pid=$!
+    wait_timeout ${pid}
+    # This way of killing the simulator does NOT support multiple run.sh running in parallel
+    pkill -f pasim
 done
 
-for f in  ${not_working}; do
+for f in ${not_working} ;
+do
     echo $f
     echo " skipped"
 done
@@ -72,7 +95,7 @@ make csim
 echo === Chisel Tests ===
 failed_chsl=()
 for f in  ${tests_chsl}; do
-    $timeout testsuite/single_chsl.sh ${f}
+    testsuite/single_chsl.sh ${f}
     result=$?
     if [ "$result" -eq 124 ] ; then
         echo " timeout"
