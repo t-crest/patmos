@@ -44,8 +44,8 @@ import Node._
 
 class FeDec() extends Bundle() {
   val instr_a = Bits(width = 32)
-  //  val instr_b = Bits(width=32)
-  //  val b_valid = Bool()
+  val instr_b = Bits(width = 32)
+  val b_valid = Bool() // not yet used
   val pc = UFix(width = Constants.PC_SIZE)
 }
 

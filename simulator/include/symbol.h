@@ -38,14 +38,19 @@ namespace patmos
     /// Size in bytes occupied by the symbol.
     word_t Size;
 
+    /// If the symbol is a function
+    bool IsFunc;
+
     /// Name of the symbol.
     std::string Name;
 
     /// construct a symbol info record.
-    symbol_info_t(word_t address, word_t size, const std::string &name) :
-        Address(address), Size(size), Name(name)
+    symbol_info_t(word_t address, word_t size, bool isfunc,
+        const std::string &name) :
+      Address(address), Size(size), IsFunc(isfunc), Name(name)
     {
     }
+
   };
 
   /// Provide a mapping from addresses to symbol names.
@@ -71,7 +76,7 @@ namespace patmos
     void sort();
 
     /// Append an entry to the symbol map.
-    /// the entry is simply appended at the end of the map, i.e., the sort 
+    /// the entry is simply appended at the end of the map, i.e., the sort
     /// function has to be invoked once all symbols were added to the map.
     /// @param symbol The symbol to add.
     void add(const symbol_info_t &symbol);
@@ -80,7 +85,7 @@ namespace patmos
     /// @param address The address for which the symbol should be searched.
     /// @return True if the map contains at least one symbol for that address.
     bool contains(word_t address) const;
-    
+
     /// Find a symbol given a specific address.
     /// \see print
     /// @param address The address for which symbol information should be

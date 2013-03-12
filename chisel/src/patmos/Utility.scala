@@ -65,12 +65,12 @@ object Utility {
         word += byteArray(i * 4 + j).toInt & 0xff
       }
       printf("%08x\n", word)
-      v(i) = Bits(word)
+      // mmh, width is needed to keep bit 31
+      v(i) = Bits(word, width=32)
     }
-    // generate some dummy data to fill the table
+    // generate some dummy data to fill the table and make Bit 31 test happy
     for (x <- byteArray.length / 4 until 256)
-      v(x) = Bits(0)
-
+      v(x) = Bits("h8000000000000000")
     v
   }
 }

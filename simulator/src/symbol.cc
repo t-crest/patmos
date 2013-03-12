@@ -48,7 +48,7 @@ namespace patmos
 
   bool symbol_map_t::contains(word_t address) const 
   {
-    symbol_info_t val(address, 0, "");
+    symbol_info_t val(address, 0, false, "");
     
     return std::binary_search(Symbols.begin(), Symbols.end(), val);
   }
