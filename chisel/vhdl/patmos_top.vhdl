@@ -30,8 +30,9 @@ architecture rtl of patmos_top is
 		);
 	end component;
 
-	-- constants for 50 MHz input clock
-	constant clk_freq : integer := 100000000;
+	-- DE2-70: 50 MHz clock => 100 MHz
+	-- BeMicro: 16 MHz clock => 32 MHz
+--	constant clk_freq : integer := 100000000;
 	constant pll_mult : natural := 10;
 	constant pll_div : natural := 5;
 
@@ -47,17 +48,17 @@ architecture rtl of patmos_top is
 
 begin
 
---	pll_inst : entity work.pll generic map(
---		multiply_by => pll_mult,
---		divide_by => pll_div
---	)
---	port map (
---		inclk0	 => clk,
---		c0	 => clk_int,
---		c1       => open
---	);
-	-- we could use a PLL in future designs
-	clk_int <= clk;
+	pll_inst : entity work.pll generic map(
+		multiply_by => pll_mult,
+		divide_by => pll_div
+	)
+	port map (
+		inclk0	 => clk,
+		c0	 => clk_int,
+		c1       => open
+	);
+	-- we use a PLL
+	-- clk_int <= clk;
 	
 	--
 	--	internal reset generation
