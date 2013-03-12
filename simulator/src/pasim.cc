@@ -181,7 +181,9 @@ static patmos::uword_t readelf(std::istream &is, patmos::memory_t &m,
         // construct a symbol and store it for later use, i.e., the symbol map
         // is queried during simulation to find symbol names associated with
         // addresses.
-        patmos::symbol_info_t sym_info(sym.st_value, sym.st_size, name);
+        patmos::symbol_info_t sym_info(sym.st_value, sym.st_size,
+                                       (GELF_ST_TYPE(sym.st_info) == STT_FUNC),
+                                       name);
         symbols.add(sym_info);
       }
     }

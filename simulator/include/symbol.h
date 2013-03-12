@@ -38,14 +38,19 @@ namespace patmos
     /// Size in bytes occupied by the symbol.
     word_t Size;
 
+    /// If the symbol is a function
+    bool IsFunc;
+
     /// Name of the symbol.
     std::string Name;
 
     /// construct a symbol info record.
-    symbol_info_t(word_t address, word_t size, const std::string &name) :
-        Address(address), Size(size), Name(name)
+    symbol_info_t(word_t address, word_t size, bool isfunc,
+        const std::string &name) :
+      Address(address), Size(size), IsFunc(isfunc), Name(name)
     {
     }
+
   };
 
   /// Provide a mapping from addresses to symbol names.
