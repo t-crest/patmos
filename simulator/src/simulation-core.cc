@@ -243,17 +243,20 @@ namespace patmos
         if (profiling)
         {
           instruction_data_t *Inst = &Pipeline[NUM_STAGES-1][0];
-          if (Inst && Inst->DR_Pred)
+          if (Inst)
           {
-            const char *name = Inst->I->Name;
-
             Profiling.bump();
+            // check for call/return
+            if (Inst->DR_Pred)
+            {
+              const char *name = Inst->I->Name;
 
-            if (name=="call" || name=="callr")
-              Profiling.call(PC);
+              if (name=="call" || name=="callr")
+                Profiling.call(PC);
 
-            if (name=="ret")
-              Profiling.ret();
+              if (name=="ret")
+                Profiling.ret();
+            }
           }
         }
 
