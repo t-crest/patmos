@@ -74,7 +74,8 @@ public class CompareChisel {
 			chisel.nextLine();
 		}
 
-		// Drop first 5 cycles form high level simulation
+		// Drop first 4 cycles form high level simulation
+		// we keep this first instruction executing thing
 		for (int i = 0; i < 5 && hs.hasNextLine(); ++i) {
 			hs.nextLine();
 		}

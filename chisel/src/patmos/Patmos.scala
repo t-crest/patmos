@@ -82,10 +82,13 @@ class Patmos(fileName: String) extends Component {
   // Take care that it is the plain register
   execute.io.exResult <> memory.io.exResult
   execute.io.memResult <> writeback.io.memResult
+  
+  // We branch, jump, call in EX
+  fetch.io.exfe <> execute.io.exfe
 
   // Stall ever n clock cycles for testing the pipeline
   def pulse() = {
-    val x = Reg(resetVal = UFix(0, 256))
+    val x = Reg(resetVal = UFix(0, 8))
     x := Mux(x === UFix(100), UFix(0), x+UFix(1))
     x === UFix(100)
   }
@@ -99,26 +102,29 @@ class Patmos(fileName: String) extends Component {
   memory.io.ena := enable
   writeback.io.ena := enable
   
-  // ***** the follwoing code is not really Patmos code ******
+  // Some IO connection here for short -- shall be moved to a real top level
+  val ledReg = Reg(Bits(0, 8))
+  when(memory.io.memBus.wr) {
+    ledReg := memory.io.memBus.dataOut
+  }
+  // ***** the following code is not really Patmos code ******
   
   // maybe instantiate the FSM here to get some output when
   // compiling for the FPGA
 
-  val led = Reg(resetVal = Bits(1, 8))
-  val led_next = Cat(led(6, 0), led(7))
-
-  when(Bool(true)) {
-    led := led_next
-  }
+//  val led = Reg(resetVal = Bits(1, 8))
+//  val led_next = Cat(led(6, 0), led(7))
+//
+//  when(Bool(true)) {
+//    led := led_next
+//  }
   
-  val dummy = Cat(xorR(fetch.io.fedec.instr_a), fetch.io.fedec.instr_a(23, 17))
-  // combine the outputs to avoid dropping circuits, which would result in CPP compile errors
-  val abc =   fetch.io.fedec.pc(7, 0) | fetch.io.fedec.instr_a(7, 0) | fetch.io.fedec.instr_a(31, 24) & decode.io.decex.pc(7, 0)  ^ dummy | decode.io.decex.func  
-  val sum1 = writeback.io.rfWrite.data.toUFix + writeback.io.rfWrite.addr.toUFix + memory.io.memwb.pc
-  val part = sum1.toBits
-  val xyz = ~led | abc ^ part(7, 0)
+  // TODO add some dummy output, which is ignored in the top level VHDL code
+  val sum1 = writeback.io.rfWrite.data.toUFix + memory.io.memwb.pc
+  val part = Reg(sum1.toBits)
+  val xyz = part(7, 0)
   val r = Reg(xyz)
-  io.led := r
+  io.led := ~Cat(r(7), ledReg(6, 0))
 }
 
 // this testing and main file should go into it's own folder
@@ -134,10 +140,12 @@ class PatmosTest(pat: Patmos) extends Tester(pat,
     val vars = new HashMap[Node, Node]()
     val ovars = new HashMap[Node, Node]()
 
-    for (i <- 0 until 24) {
+    for (i <- 0 until 50) {
       vars.clear
       step(vars, ovars, false) // false as third argument disables printout
+      // The PC printout is a little of on a branch
       val pc = ovars(pat.memory.io.memwb.pc).litValue()-2
+      // println(ovars(pat.io.led).litValue())
       print(pc+" - ")
       for (j <- 0 until 32)
         print(ovars(pat.decode.rf.io.rfDebug(j)).litValue()+" ")

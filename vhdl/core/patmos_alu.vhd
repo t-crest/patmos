@@ -388,6 +388,7 @@ begin
 	
 	process(memdout) 
 	begin
+		-- MS: no need for a process here
 		mem_top <= memdout.mem_top; 
 	--	sc_top <= 
 	end process;
@@ -396,11 +397,14 @@ begin
 	process(predicate_reg, decdout, mem_top, sc_top)
 	begin
 		is_exec			<= '0';
+		-- MS: (1) why is stack cache mixed with predicate lookup
+		-- (2) Assigning <= (others => '0') has no meaning when it is followed by an assignmnet
 		res_diff		<= (others => '0');
 		ens_diff		<= (others => '0');
 		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
 			is_exec 	<=  '1';
 		end if;
+		-- (3) Simple assignments need no process, just have it as concurrent statement
 		res_diff 	<= signed(mem_top) - signed(sc_top) - sc_size + signed(decdout.imm);
 		ens_diff	<= signed(decdout.imm) - signed(mem_top) + signed(sc_top);
 	end process;	

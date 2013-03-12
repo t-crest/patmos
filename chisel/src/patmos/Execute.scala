@@ -35,6 +35,11 @@
  * 
  * Author: Martin Schoeberl (martin@jopdesign.com)
  * 
+ * Current Fmax on the DE2-70 is 84 MHz
+ *   from forward address comparison to EXMEM register rd
+ *   Removing the not so nice ALU instrcutions gives 96 MHz
+ *   Drop just rotate: 90 MHz
+ * 
  */
 
 package patmos
@@ -51,6 +56,61 @@ class Execute() extends Component {
   }
   // no access to io.decex after this point!!!
 
+  def alu(func: Bits, op1: UFix, op2: UFix): Bits = {
+    val result = UFix(width = 32)
+    result := UFix(0) // default could be the sum
+    val shamt = op2(4, 0).toUFix
+    // This kind of decoding of the ALU op in the EX stage is not efficient,
+    // but we keep it for now to get something going soon.
+    switch(func) {
+      is(Bits("b0000")) { result := op1 + op2 }
+      is(Bits("b0001")) { result := op1 - op2 }
+      is(Bits("b0010")) { result := op2 - op1 }
+      is(Bits("b0011")) { result := (op1 << shamt).toUFix }
+      is(Bits("b0100")) { result := (op1 >> shamt).toUFix }
+      is(Bits("b0101")) { result := (op1.toFix >> shamt).toUFix }
+      is(Bits("b0110")) { result := (op1 | op2).toUFix }
+      is(Bits("b0111")) { result := (op1 & op2).toUFix }
+      // TODO: add the other funny ALU instructions
+      // I don't like them and the following is an inefficient description of the rotate
+      is(Bits("b1000")) { result := ((op1 << shamt) | (op1 >> (UFix(32) - shamt))).toUFix }
+      // Rotate right is the same as rotate left
+      is(Bits("b1001")) { result := ((op1 >> shamt) | (op1 << (UFix(32) - shamt))).toUFix }
+      is(Bits("b1010")) { result := (op1 ^ op2).toUFix }
+      is(Bits("b1011")) { result := (~(op1 | op2)).toUFix }
+      is(Bits("b1100")) { result := (op1 << UFix(1)) + op2 }
+      is(Bits("b1101")) { result := (op1 << UFix(2)) + op2 }
+    }
+    result
+  }
+
+  def comp(func: Bits, op1: UFix, op2: UFix): Bool = {
+    val op1s = op1.toFix
+    val op2s = op2.toFix
+    val shamt = op2(4, 0).toUFix
+    // Is this nicer than the switch?
+    // Some of the comparison function (equ, subtract) could be shared
+    MuxLookup(func, Bool(false), Array(
+      (Bits("b0000"), (op1 === op2)),
+      (Bits("b0001"), (op1 != op2)),
+      (Bits("b0010"), (op1s < op2s)),
+      (Bits("b0011"), (op1s <= op2s)),
+      (Bits("b0100"), (op1 < op2)),
+      (Bits("b0101"), (op1 <= op2)),
+      (Bits("b0110"), ((op1 & (Bits(1) << op2)) != UFix(0)))))
+  }
+
+  def unary(func: Bits, op: Bits): Bits = {
+    val ops = op.toFix
+    MuxLookup(func, Bool(false), Array(
+      (Bits("b00"), Cat(Fill(24, op(7)), op(7, 0))),
+      (Bits("b01"), Cat(Fill(16, op(15)), op(15, 0))),
+      (Bits("b10"), Cat(Bits(0, 16), op(15, 0))),
+      (Bits("b11"), Mux(ops(31), -ops, ops)))) // I don't like abs
+  }
+
+  val predReg = Vec(8) { Reg(resetVal = Bool(false)) }
+
   // data forwarding
   val fwEx0 = exReg.rsAddr(0) === io.exResult.addr && io.exResult.valid
   val fwMem0 = exReg.rsAddr(0) === io.memResult.addr && io.memResult.valid
@@ -62,28 +122,27 @@ class Execute() extends Component {
   val op2 = Mux(exReg.immOp, exReg.immVal, rb)
   val op1 = ra
 
-  // ALU operation
-  val result = UFix(width=32)
-  result := UFix(0)
-  // This kind of decoding of the ALU op in the EX stage is not efficient,
-  // but we keep it for now to get something going soon.
-  switch(exReg.func) {
-    is (Bits("b0000")) { result := op1 + op2 }
-    is (Bits("b0001")) { result := op1 - op2 }
-    is (Bits("b0010")) { result := op2 - op1 }
-    // mmh, for whatever reason the shifts do not work
-    is (Bits("b0011")) { result := (op1 << op2).toUFix }
-    is (Bits("b0100")) { result := (op1 >> op2).toUFix }
-    is (Bits("b0101")) { result := (op1.toFix << op2).toUFix }
-    // logic is fine
-    is (Bits("b0110")) { result := (op1 | op2).toUFix }
-    is (Bits("b0111")) { result := (op1 & op2).toUFix }
+  val aluResult = Mux(exReg.unaryOp, unary(exReg.func(1, 0), op1), alu(exReg.func, op1, op2))
+  val compResult = comp(exReg.func, op1, op2)
+
+  when(exReg.cmpOp && io.ena) {
+    predReg(exReg.pd) := compResult
   }
+  predReg(0) := Bool(true)
 
+  // TODO: need to check if this inversion meaning is correct
+  val doExecute = predReg(exReg.pred(2, 0)) ^ exReg.pred(3)
+
+  // result
   io.exmem.rd.addr := exReg.rdAddr(0)
-  io.exmem.rd.data := result
-  io.exmem.rd.valid := exReg.wrReg
-
+  // Mux for store: forward the rs2 value
+  io.exmem.rd.data := Mux(exReg.store, op2, aluResult)
+  io.exmem.rd.valid := exReg.wrReg && doExecute && (exReg.aluOp || exReg.unaryOp) // just for now as it is not used elsewhere
+  io.exmem.store := exReg.store && doExecute
+  //branch
+  io.exfe.doBranch := exReg.branch && doExecute
+  io.exfe.branchPc := exReg.branchPc
+  
   io.exmem.pc := exReg.pc
 
 }

@@ -31,7 +31,7 @@
  */
 
 /*
- * Fetch stage of Patmos.
+ * Utility functions for Patmos.
  * 
  * Author: Martin Schoeberl (martin@jopdesign.com)
  * 
@@ -42,22 +42,35 @@ package patmos
 import Chisel._
 import Node._
 
-class Fetch(fileName: String) extends Component {
-  val io = new FetchIO()
+object Utility {
 
-  val rom = Utility.readBin(fileName)
+  /**
+   * Read a binary file into the ROM vector
+   */
+  def readBin(fileName: String): Vec[Bits] = {
+    // using a vector for a ROM
+    val v = Vec(256) { Bits(width = 32) }
+    // should check the program for the size
 
-  val pc_next = UFix()
-  val pc = Reg(resetVal = UFix(0, Constants.PC_SIZE))
-  when(io.ena) {
-    pc := pc_next
+    // TODO: move ROM file reading to an utility class
+    println("Reading " + fileName)
+    // an encodig to read a binary file? Strange new world.
+    val source = scala.io.Source.fromFile(fileName)(scala.io.Codec.ISO8859)
+    val byteArray = source.map(_.toByte).toArray
+    source.close()
+    for (i <- 0 until byteArray.length / 4) {
+      var word = 0
+      for (j <- 0 until 4) {
+        word <<= 8
+        word += byteArray(i * 4 + j).toInt & 0xff
+      }
+      printf("%08x\n", word)
+      v(i) = Bits(word)
+    }
+    // generate some dummy data to fill the table
+    for (x <- byteArray.length / 4 until 256)
+      v(x) = Bits(0)
+
+    v
   }
-  
-  pc_next := pc + UFix(1)
-  when(io.exfe.doBranch) {
-    pc := io.exfe.branchPc
-  } 
-
-  io.fedec.pc := pc
-  io.fedec.instr_a := rom(pc)
 }

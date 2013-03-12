@@ -110,7 +110,7 @@ begin
 	end process;    
 	
   	process(cpu_out,
-		sc_read_data, exout_reg_adr_shft
+		sc_read_data, exout_reg_adr_shft, mem_out
 	) --SA: Main memory read/write address, normal load/store or fill/spill
 	begin
 		--cpu_in.rd_add <= exout_reg_adr_shft(9 downto 0);

@@ -49,6 +49,7 @@ class RegisterFile() extends Component {
 
   // val rf = Vec(32){ Reg() { Bits(width = 32) } }
   // the reset version generates more logic and a slower fmax
+  // Probably due to the synchronous reset
   val rf = Vec(32) { Reg(resetVal = Bits(0, width = 32)) }
 
   // We are registering the inputs here, similar as it would
