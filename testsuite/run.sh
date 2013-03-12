@@ -24,7 +24,7 @@ tests_c="hello_test"
 not_working="none"
 not_working_chsl="none"
 expect_fail=0
-expect_fail_chsl=11
+expect_fail_chsl=9
 
 # How to implement timeout?
 # Caveat: Neither timeout nor timeout --foreground work properly
