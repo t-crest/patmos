@@ -24,6 +24,7 @@
 #include "decoder.h"
 #include "instruction.h"
 #include "exception.h"
+#include "profiling.h"
 
 #include <limits>
 #include <iostream>
@@ -114,6 +115,10 @@ namespace patmos
 
     /// A vector containing instruction statistics.
     typedef std::vector<instruction_stat_t> instruction_stats_t;
+
+    /// Profiling information for function profiling
+    profiling_t Profiling;
+
   public:
     /// Cycle counter
     uint64_t Cycle;
@@ -219,11 +224,13 @@ namespace patmos
     /// @param debug_fmt Format of the debug trace.
     /// @param debug_out Stream to print debug output.
     /// @param max_cycles The maximum number of cycles to run the simulation.
+    /// @param profiling Enable profiling in the simulation run.
     void run(word_t entry = 0,
              uint64_t debug_cycle = std::numeric_limits<uint64_t>::max(),
              debug_format_e debug_fmt = DF_DEFAULT,
              std::ostream &debug_out = std::cerr,
-             uint64_t max_cycles = std::numeric_limits<uint64_t>::max());
+             uint64_t max_cycles = std::numeric_limits<uint64_t>::max(),
+             bool profiling = false);
 
     /// Print the internal state of the simulator to an output stream.
     /// @param os An output stream.
