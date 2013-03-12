@@ -1,7 +1,23 @@
 #!/bin/bash
+# Directories containing assembler tests
+cd asm
+test_dirs="./inst_tests"
+# Discovering the tests in the specified directories.
+test_disc=" "
+for td in ${test_dirs}; do
+    for f in ${td}/* ; do
+        file="$f"
+        extension="${file##*.}"
+        if [[ "$extension" == "s" ]]; then
+            # Only files with .s extension are accepted as test cases
+            test_disc+="${file%.*} "
+        fi
+    done
+done
+cd ..
 
 tests="basic simple test load_store_stackcache ALU ALUi ALUl dual_forwarding dual_even_odd_address forward_issue unary load_store_data_cache load_store_scratchpad load_store_scratchpad_new load_store_scratchpad_new2 predication fetch_double  branch predicated_predicate"
-
+tests+=${test_disc}
 tests_chsl="basic simple test load_store_stackcache ALU ALUi ALUl dual_forwarding dual_even_odd_address forward_issue unary load_store_data_cache load_store_scratchpad load_store_scratchpad_new load_store_scratchpad_new2 predication fetch_double  branch predicated_predicate"
 
 tests_c="hello_test"
