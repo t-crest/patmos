@@ -64,6 +64,8 @@ class Decode() extends Component {
   // dual issue decode
 
   val func = Bits(width = 4)
+  val longImm = Bool()
+  
   // Start with some useful defaults
   io.decex.immOp := Bool(false)
   io.decex.aluOp := Bool(false)
@@ -74,6 +76,7 @@ class Decode() extends Component {
   // Is this the best default value?
   // TODO: maybe turn it around - default not doing anything
   io.decex.wrReg := Bool(true)
+  longImm := Bool(false)
 
   // ALU register and long immediate
   func := instr(3, 0)
@@ -96,6 +99,12 @@ class Decode() extends Component {
       is(Bits("b100")) {} // predicate
     }
   }
+  // ALU long immediate (Bit 31 is set as well)
+  when(instr(26, 22) === Bits("b11111")) {
+    io.decex.immOp := Bool(true)
+    io.decex.aluOp := Bool(true)
+    longImm := Bool(true)
+  }
   // We do not need such a long immediate for branches.
   // So this is waste of opcode space
   when(instr(26, 24) === Bits("b110")) {
@@ -114,8 +123,8 @@ class Decode() extends Component {
     io.decex.store := Bool(true)
   }
   
-  // Immediate is not sign extended...
-  io.decex.immVal := Cat(Bits(0), instr(11, 0))
+  // Immediate is not sign extended
+  io.decex.immVal := Mux(longImm, decReg.instr_b, Cat(Bits(0), instr(11, 0)))
   // we could mux the imm / register here as well
 
   // Immediate for branch is sign extended, not extended for call
