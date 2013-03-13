@@ -92,13 +92,13 @@ class Execute() extends Component {
     // Is this nicer than the switch?
     // Some of the comparison function (equ, subtract) could be shared
     MuxLookup(func, Bool(false), Array(
-      (Bits("b0000"), (op1 === op2)),
-      (Bits("b0001"), (op1 != op2)),
-      (Bits("b0010"), (op1s < op2s)),
-      (Bits("b0011"), (op1s <= op2s)),
-      (Bits("b0100"), (op1 < op2)),
-      (Bits("b0101"), (op1 <= op2)),
-      (Bits("b0110"), ((op1 & (Bits(1) << op2)) != UFix(0)))))
+      (Bits("b000"), (op1 === op2)),
+      (Bits("b001"), (op1 != op2)),
+      (Bits("b010"), (op1s < op2s)),
+      (Bits("b011"), (op1s <= op2s)),
+      (Bits("b100"), (op1 < op2)),
+      (Bits("b101"), (op1 <= op2)),
+      (Bits("b110"), ((op1 & (Bits(1) << op2)) != UFix(0)))))
   }
 
   def unary(func: Bits, op: Bits): Bits = {
@@ -131,7 +131,7 @@ class Execute() extends Component {
   val op2 = Mux(exReg.immOp, exReg.immVal, rb)
   val op1 = ra
   val aluResult = Mux(exReg.unaryOp, unary(exReg.func(1, 0), op1), alu(exReg.func, op1, op2))
-  val compResult = comp(exReg.func, op1, op2)
+  val compResult = comp(exReg.func(2, 0), op1, op2)
 
   val ps1 = predReg(exReg.ps1Addr(2,0)) ^ exReg.ps1Addr(3)
   val ps2 = predReg(exReg.ps2Addr(2,0)) ^ exReg.ps2Addr(3)

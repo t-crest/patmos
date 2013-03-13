@@ -61,6 +61,7 @@ import scala.collection.mutable.HashMap
  */
 class Patmos(fileName: String) extends Component {
   val io = new Bundle {
+    val dummy = Bits(OUTPUT, 32)
     val led = Bits(OUTPUT, 8)
   }
 
@@ -119,15 +120,18 @@ class Patmos(fileName: String) extends Component {
 //    led := led_next
 //  }
   
-  // TODO add some dummy output, which is ignored in the top level VHDL code
+  // The one and only output
+  io.led := ledReg
+
+  // Dummy output, which is ignored in the top level VHDL code, to
+  // keep Chisel happy with unused signals
   val sum1 = writeback.io.rfWrite.data.toUFix + memory.io.memwb.pc
   val part = Reg(sum1.toBits)
   val p = execute.io.exmem.predDebug
   // to dumb for vector to bits...
   val pracc = p(0)|p(1)|p(2)|p(3)|p(4)|p(5)|p(6)|p(7)
-  val xyz = part(7, 0) | pracc
-  val r = Reg(xyz)
-  io.led := ~Cat(r(7), ledReg(6, 0))
+  val xyz = part(31, 0) | pracc
+  io.dummy := Reg(xyz)
 }
 
 // this testing and main file should go into it's own folder
