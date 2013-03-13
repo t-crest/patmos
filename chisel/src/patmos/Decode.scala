@@ -65,17 +65,16 @@ class Decode() extends Component {
 
   val func = Bits(width = 4)
   val longImm = Bool()
-  
+
   // Start with some useful defaults
   io.decex.immOp := Bool(false)
   io.decex.aluOp := Bool(false)
   io.decex.cmpOp := Bool(false)
   io.decex.unaryOp := Bool(false)
+  //  io.decex.predOp := Bool(false)
   io.decex.branch := Bool(false)
   io.decex.store := Bool(false)
-  // Is this the best default value?
-  // TODO: maybe turn it around - default not doing anything
-  io.decex.wrReg := Bool(true)
+  io.decex.wrReg := Bool(false)
   longImm := Bool(false)
 
   // ALU register and long immediate
@@ -85,18 +84,22 @@ class Decode() extends Component {
     func := Cat(Bits(0), instr(24, 22))
     io.decex.immOp := Bool(true)
     io.decex.aluOp := Bool(true)
+    io.decex.wrReg := Bool(true)
   }
   // Other ALU
   when(instr(26, 22) === Bits("b01000")) {
     switch(instr(6, 4)) {
-      is(Bits("b000")) { io.decex.aluOp := Bool(true) }
-      is(Bits("b001")) { io.decex.unaryOp := Bool(true) }
-      is(Bits("b010")) {} // multiply
-      is(Bits("b011")) {
-        io.decex.cmpOp := Bool(true)
-        io.decex.wrReg := Bool(false)
+      is(Bits("b000")) {
+        io.decex.aluOp := Bool(true)
+        io.decex.wrReg := Bool(true)
       }
-      is(Bits("b100")) {} // predicate
+      is(Bits("b001")) {
+        io.decex.unaryOp := Bool(true)
+        io.decex.wrReg := Bool(true)
+      }
+      is(Bits("b010")) {} // multiply
+      is(Bits("b011")) { io.decex.cmpOp := Bool(true) }
+      is(Bits("b100")) {} // io.decex.predOp := Bool(true) } // predicate
     }
   }
   // ALU long immediate (Bit 31 is set as well)
@@ -104,11 +107,12 @@ class Decode() extends Component {
     io.decex.immOp := Bool(true)
     io.decex.aluOp := Bool(true)
     longImm := Bool(true)
+    io.decex.wrReg := Bool(true)
+
   }
   // We do not need such a long immediate for branches.
   // So this is waste of opcode space
   when(instr(26, 24) === Bits("b110")) {
-    io.decex.wrReg := Bool(false)
     // But on a call we will save in register 31 => need to change the target register
     switch(instr(23, 22)) {
       is(Bits("b00")) { /* io.decex.call := Bool(true) */ }
@@ -119,10 +123,9 @@ class Decode() extends Component {
   }
   // store
   when(instr(26, 22) === Bits("b01011")) {
-    io.decex.wrReg := Bool(false)
     io.decex.store := Bool(true)
   }
-  
+
   // Immediate is not sign extended
   io.decex.immVal := Mux(longImm, decReg.instr_b, Cat(Bits(0), instr(11, 0)))
   // we could mux the imm / register here as well
