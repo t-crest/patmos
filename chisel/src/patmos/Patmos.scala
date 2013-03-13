@@ -122,7 +122,10 @@ class Patmos(fileName: String) extends Component {
   // TODO add some dummy output, which is ignored in the top level VHDL code
   val sum1 = writeback.io.rfWrite.data.toUFix + memory.io.memwb.pc
   val part = Reg(sum1.toBits)
-  val xyz = part(7, 0)
+  val p = execute.io.exmem.preds
+  // to dumb for vector to bits...
+  val pracc = p(0)|p(1)|p(2)|p(3)|p(4)|p(5)|p(6)|p(7)
+  val xyz = part(7, 0) | pracc
   val r = Reg(xyz)
   io.led := ~Cat(r(7), ledReg(6, 0))
 }
@@ -130,7 +133,7 @@ class Patmos(fileName: String) extends Component {
 // this testing and main file should go into it's own folder
 
 class PatmosTest(pat: Patmos) extends Tester(pat,
-    Array(pat.io, pat.decode.io, pat.decode.rf.io, pat.memory.io)
+    Array(pat.io, pat.decode.io, pat.decode.rf.io, pat.memory.io, pat.execute.io)
 //    Array(pat.io, pat.fetch.io,
 //    pat.decode.io, pat.execute.io, pat.memory.io, pat.writeback.io)
     ) {
@@ -147,6 +150,9 @@ class PatmosTest(pat: Patmos) extends Tester(pat,
       val pc = ovars(pat.memory.io.memwb.pc).litValue()-2
       // println(ovars(pat.io.led).litValue())
       print(pc+" - ")
+//      for (j <- 0 until 8)
+//        print(ovars(pat.execute.io.exmem.preds(j)).litValue() + " ")
+//      print("- ")
       for (j <- 0 until 32)
         print(ovars(pat.decode.rf.io.rfDebug(j)).litValue()+" ")
       println()

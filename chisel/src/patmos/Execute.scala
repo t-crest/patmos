@@ -78,6 +78,7 @@ class Execute() extends Component {
       is(Bits("b1001")) { result := ((op1 >> shamt) | (op1 << (UFix(32) - shamt))).toUFix }
       is(Bits("b1010")) { result := (op1 ^ op2).toUFix }
       is(Bits("b1011")) { result := (~(op1 | op2)).toUFix }
+      // TODO: shadd shift shall be in it's parallel MUX
       is(Bits("b1100")) { result := (op1 << UFix(1)) + op2 }
       is(Bits("b1101")) { result := (op1 << UFix(2)) + op2 }
     }
@@ -109,6 +110,14 @@ class Execute() extends Component {
       (Bits("b11"), Mux(ops(31), -ops, ops)))) // I don't like abs
   }
 
+  def pred(func: Bits, op1: Bool, op2: Bool): Bool = {
+    MuxLookup(func, Bool(false), Array(
+      (Bits("b00"), op1 | op2),
+      (Bits("b01"), op1 & op2),
+      (Bits("b10"), op1 ^ op2),
+      (Bits("b11"), ~(op1 | op2))))
+  }
+
   val predReg = Vec(8) { Reg(resetVal = Bool(false)) }
 
   // data forwarding
@@ -121,17 +130,20 @@ class Execute() extends Component {
 
   val op2 = Mux(exReg.immOp, exReg.immVal, rb)
   val op1 = ra
-
   val aluResult = Mux(exReg.unaryOp, unary(exReg.func(1, 0), op1), alu(exReg.func, op1, op2))
   val compResult = comp(exReg.func, op1, op2)
 
-  when(exReg.cmpOp && io.ena) {
-    predReg(exReg.pd) := compResult
-  }
-  predReg(0) := Bool(true)
+  val ps1 = predReg(exReg.ps1Addr(2,0)) ^ exReg.ps1Addr(3)
+  val ps2 = predReg(exReg.ps2Addr(2,0)) ^ exReg.ps2Addr(3)
+  val predResult = pred(exReg.pfunc, ps1, ps2)
 
   // TODO: need to check if this inversion meaning is correct
   val doExecute = predReg(exReg.pred(2, 0)) ^ exReg.pred(3)
+
+  when((exReg.cmpOp || exReg.predOp) && doExecute && io.ena) {
+    predReg(exReg.pd) := Mux(exReg.cmpOp, compResult, predResult)
+  }
+  predReg(0) := Bool(true)
 
   // result
   io.exmem.rd.addr := exReg.rdAddr(0)
@@ -144,5 +156,6 @@ class Execute() extends Component {
   io.exfe.branchPc := exReg.branchPc
   
   io.exmem.pc := exReg.pc
+  io.exmem.preds := predReg
 
 }

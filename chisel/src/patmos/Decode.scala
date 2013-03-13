@@ -71,7 +71,7 @@ class Decode() extends Component {
   io.decex.aluOp := Bool(false)
   io.decex.cmpOp := Bool(false)
   io.decex.unaryOp := Bool(false)
-  //  io.decex.predOp := Bool(false)
+  io.decex.predOp := Bool(false)
   io.decex.branch := Bool(false)
   io.decex.store := Bool(false)
   io.decex.wrReg := Bool(false)
@@ -99,7 +99,7 @@ class Decode() extends Component {
       }
       is(Bits("b010")) {} // multiply
       is(Bits("b011")) { io.decex.cmpOp := Bool(true) }
-      is(Bits("b100")) {} // io.decex.predOp := Bool(true) } // predicate
+      is(Bits("b100")) { io.decex.predOp := Bool(true) }
     }
   }
   // ALU long immediate (Bit 31 is set as well)
@@ -142,6 +142,9 @@ class Decode() extends Component {
 
   io.decex.pc := decReg.pc
   io.decex.func := func
+  io.decex.pfunc := Cat(decReg.instr_a(3), decReg.instr_a(0))
+  io.decex.ps1Addr := decReg.instr_a(15, 12)
+  io.decex.ps2Addr := decReg.instr_a(10, 7)
   io.decex.pd := decReg.instr_a(19, 17)
   io.decex.pred := decReg.instr_a(30, 27)
   // forward RF addresses and data
