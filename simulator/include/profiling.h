@@ -20,10 +20,12 @@
 #ifndef PATMOS_PROFILING_H
 #define PATMOS_PROFILING_H
 
+//#include <iostream>
 #include <ostream>
 #include <sstream>
 #include <vector>
 #include <map>
+
 
 #include <boost/format.hpp>
 
@@ -41,13 +43,28 @@ namespace patmos
       /// stack - Call stack.
       std::vector<uword_t> stack;
 
-      /// counter - Pointer to current cycle counter.
-      uint64_t *counter;
+      /// last_cycle - Value of the cycle counter on last update.
+      uint64_t last_cycle;
 
     public:
       /// Constructor
-      profiling_t() : counter(0)
+      profiling_t() : last_cycle(0)
       {
+      }
+
+      /// initialize - Initialize profiling.
+      void initialize(uword_t entry, uint64_t cycle=0)
+      {
+        enter(entry, cycle);
+      }
+
+      /// finalize - Finalize profiling
+      void finalize(uint64_t cycle)
+      {
+        // empty the callstack
+        while (!stack.empty()) {
+          leave(cycle);
+        }
       }
 
       /// empty - Returns tue if there is no profiling information collected.
@@ -56,29 +73,34 @@ namespace patmos
         return cycles_map.empty();
       }
 
-      /// call - Call a function with a given base address.
-      void call(uword_t addr)
+      /// enter - Enter a function with a given base address.
+      void enter(uword_t addr, uint64_t cycle)
       {
+        //std::cerr << "PUSH " << std::hex << addr << "\n";
+        // create entry for function on demand
         if (!cycles_map.count(addr)) {
           cycles_map[addr] = 0;
         }
-        stack.push_back(addr);
-        counter = &cycles_map[addr];
-      }
-
-      /// ret - Leave current function.
-      void ret()
-      {
-        stack.pop_back();
-        counter = &cycles_map[stack.back()];
-      }
-
-      /// bump - Bump cycle counter for current function.
-      void bump()
-      {
-        if (counter) {
-          (*counter)++;
+        // add cycles to caller (current function)
+        if (!stack.empty()) {
+          cycles_map[stack.back()] += cycle-last_cycle;
         }
+        // switch to callee
+        stack.push_back(addr);
+        // update last_cycle
+        last_cycle = cycle;
+      }
+
+      /// leave - Leave current function.
+      void leave(uint64_t cycle)
+      {
+        //std::cerr << "POP " << std::hex << stack.back() << "\n";
+        // add cycles to callee (current function)
+        cycles_map[stack.back()] += cycle-last_cycle;
+        // return to caller
+        stack.pop_back();
+        // update last_cycle
+        last_cycle = cycle;
       }
 
       std::ostream &print(std::ostream &os, symbol_map_t &sym) const
