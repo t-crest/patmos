@@ -10,6 +10,7 @@
 	rsubi	r1 = r0, 3;		||	or		r13 = r12, r11;
 	andi	r15 = r12, 5;	||	ori 	r16 = r12, 5;
 	rl		r16 = r10, r1;	||	rr 		r17 = r10, r1;
+#	rll		r16 = r10, 3;	||	rrl		r17 = r10, 2;
 	xor		r19 = r12, r1;	||	xori 	r18 = r12, 5;
 	nor		r19 = r12, r1;	||	nori 	r18 = r12, 5;
 	shadd	r14 = r12, r1;	||	shadd2	r15 = r12, r1;

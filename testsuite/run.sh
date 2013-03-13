@@ -45,12 +45,15 @@ function wait_timeout {
     runtime=$(($(date +%s)-$start))
     while (( ${runtime} < ${timeout} )); do
         sleep 2s
-        if [[ "$(pgrep -P $1)" == "" ]] ; then
+        if [[ "$(ps | grep $1)" == "" ]] ; then
             break;
         fi
         runtime=$(($(date +%s)-$start))
     done
     if (( ${runtime} >= ${timeout} )); then
+        # This way of killing the simulator does NOT support multiple run.sh running in parallel
+        kill $(ps -ef | grep pasim | grep -v grep | awk '{print $2}') 2>/dev/null
+        # pkill -f pasim ## pkill not standard on Unix/Linux
         echo " timeout"
     fi
 }
@@ -74,8 +77,6 @@ for f in ${tests}; do
     run ${f} &
     pid=$!
     wait_timeout ${pid}
-    # This way of killing the simulator does NOT support multiple run.sh running in parallel
-    pkill -f pasim
 done
 
 for f in ${not_working} ;
