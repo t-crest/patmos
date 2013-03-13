@@ -52,7 +52,7 @@ class Memory() extends Component {
   
   // connection of external IO, memory, NoC,...
   io.memBus.wr := memReg.store
-  io.memBus.dataOut := memReg.rd.data
+  io.memBus.dataOut := memReg.data
   
   io.memwb.pc := memReg.pc
   // rd will change on a load

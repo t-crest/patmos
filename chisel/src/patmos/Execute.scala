@@ -147,8 +147,8 @@ class Execute() extends Component {
 
   // result
   io.exmem.rd.addr := exReg.rdAddr(0)
-  // Mux for store: forward the rs2 value
-  io.exmem.rd.data := Mux(exReg.store, op2, aluResult)
+  io.exmem.rd.data := aluResult
+  io.exmem.data := op2
   io.exmem.rd.valid := exReg.wrReg && doExecute && (exReg.aluOp || exReg.unaryOp) // just for now as it is not used elsewhere
   io.exmem.store := exReg.store && doExecute
   //branch
@@ -156,6 +156,6 @@ class Execute() extends Component {
   io.exfe.branchPc := exReg.branchPc
   
   io.exmem.pc := exReg.pc
-  io.exmem.preds := predReg
+  io.exmem.predDebug := predReg
 
 }

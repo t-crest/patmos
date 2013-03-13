@@ -87,9 +87,13 @@ class ExMem() extends Bundle() {
   // Might be a structure similar to rd?
   // Or maybe just use rd and have an address
   val store = Bool()
+  // val load
+  // val addr
+  val data = Bits(width = 32)
   val rd = new Result()
   val pc = UFix(width = Constants.PC_SIZE)
-  val preds = Vec(8) { Bool() }
+  // just for debugging
+  val predDebug = Vec(8) { Bool() }
 
 }
 
