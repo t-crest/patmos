@@ -113,7 +113,7 @@ bsim:
 
 # High-level pasim simulation
 hsim:
-	bin/pasim --debug --debug-fmt=short tmp/$(APP).bin
+	bin/pasim --debug --debug-fmt=short tmp/asm.bin
 
 # C simulation of the Chisel version of Patmos
 csim:
