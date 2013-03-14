@@ -471,7 +471,7 @@ namespace patmos
   instruction_data_t ldt_format_t::decode_operands(word_t iw,
                                                    word_t longimm) const
   {
-    word_t imm = extractS(iw, 0, 7);
+    word_t imm = extract(iw, 0, 7);
     GPR_e ra = extractG(iw, 12);
     GPR_e rd = extractG(iw, 17);
     PRR_e pred = extractPN(iw, 27);
@@ -485,7 +485,7 @@ namespace patmos
 
     assert(fitu(opcode, 5) && isGPR(rd) && isGPR(ra) && fits(imm, 7));
 
-    insertVs(iw, 0, 7, imm);
+    insertV(iw, 0, 7, imm);
     insertV(iw, 7, 5, opcode);
     insertG(iw, 12, ra);
     insertG(iw, 17, rd);
@@ -510,7 +510,7 @@ namespace patmos
   instruction_data_t stt_format_t::decode_operands(word_t iw,
                                                    word_t longimm) const
   {
-    word_t imm = extractS(iw, 0, 7);
+    word_t imm = extract(iw, 0, 7);
     GPR_e rs = extractG(iw, 7);
     GPR_e ra = extractG(iw, 12);
     PRR_e pred = extractPN(iw, 27);
@@ -524,7 +524,7 @@ namespace patmos
 
     assert(fitu(opcode, 5) && isGPR(ra) && fits(imm, 7) && isGPR(rs));
 
-    insertVs(iw, 0, 7, imm);
+    insertV(iw, 0, 7, imm);
     insertG(iw, 7, rs);
     insertG(iw, 12, ra);
     insertV(iw, 17, 5, opcode);
