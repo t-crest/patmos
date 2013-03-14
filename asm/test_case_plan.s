@@ -1,9 +1,9 @@
 # Pipeline stages:
 # (1) Instruction fetch			[IF]
 # (2) Decode and read register	[DR]
-# (3) Execute						[EX, EX_1, ..., EX_n]
+# (3) Execute					[EX, EX_1, ..., EX_n]
 # (4) Memory access				[MW]
-# (5) Register write back			[WB]
+# (5) Register write back		[WB]
 # 
 # 
 # Patmos test cases:

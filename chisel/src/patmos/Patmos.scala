@@ -61,6 +61,7 @@ import scala.collection.mutable.HashMap
  */
 class Patmos(fileName: String) extends Component {
   val io = new Bundle {
+    val dummy = Bits(OUTPUT, 32)
     val led = Bits(OUTPUT, 8)
   }
 
@@ -82,6 +83,9 @@ class Patmos(fileName: String) extends Component {
   // Take care that it is the plain register
   execute.io.exResult <> memory.io.exResult
   execute.io.memResult <> writeback.io.memResult
+  
+  // We branch, jump, call in EX
+  fetch.io.exfe <> execute.io.exfe
 
   // Stall ever n clock cycles for testing the pipeline
   def pulse() = {
@@ -99,6 +103,11 @@ class Patmos(fileName: String) extends Component {
   memory.io.ena := enable
   writeback.io.ena := enable
   
+  // Some IO connection here for short -- shall be moved to a real top level
+  val ledReg = Reg(Bits(0, 8))
+  when(memory.io.memBus.wr) {
+    ledReg := memory.io.memBus.dataOut
+  }
   // ***** the following code is not really Patmos code ******
   
   // maybe instantiate the FSM here to get some output when
@@ -111,17 +120,24 @@ class Patmos(fileName: String) extends Component {
 //    led := led_next
 //  }
   
+  // The one and only output
+  io.led := ledReg
+
+  // Dummy output, which is ignored in the top level VHDL code, to
+  // keep Chisel happy with unused signals
   val sum1 = writeback.io.rfWrite.data.toUFix + memory.io.memwb.pc
   val part = Reg(sum1.toBits)
-  val xyz = part(7, 0)
-  val r = Reg(xyz)
-  io.led := r
+  val p = execute.io.exmem.predDebug
+  // to dumb for vector to bits...
+  val pracc = p(0)|p(1)|p(2)|p(3)|p(4)|p(5)|p(6)|p(7)
+  val xyz = part(31, 0) | pracc
+  io.dummy := Reg(xyz)
 }
 
 // this testing and main file should go into it's own folder
 
 class PatmosTest(pat: Patmos) extends Tester(pat,
-    Array(pat.io, pat.decode.io, pat.decode.rf.io, pat.memory.io)
+    Array(pat.io, pat.decode.io, pat.decode.rf.io, pat.memory.io, pat.execute.io)
 //    Array(pat.io, pat.fetch.io,
 //    pat.decode.io, pat.execute.io, pat.memory.io, pat.writeback.io)
     ) {
@@ -134,8 +150,13 @@ class PatmosTest(pat: Patmos) extends Tester(pat,
     for (i <- 0 until 50) {
       vars.clear
       step(vars, ovars, false) // false as third argument disables printout
+      // The PC printout is a little of on a branch
       val pc = ovars(pat.memory.io.memwb.pc).litValue()-2
+      // println(ovars(pat.io.led).litValue())
       print(pc+" - ")
+//      for (j <- 0 until 8)
+//        print(ovars(pat.execute.io.exmem.predDebug(j)).litValue() + " ")
+//      print("- ")
       for (j <- 0 until 32)
         print(ovars(pat.decode.rf.io.rfDebug(j)).litValue()+" ")
       println()

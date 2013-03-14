@@ -42,30 +42,36 @@ package patmos
 import Chisel._
 import Node._
 
-
 class FeDec() extends Bundle() {
   val instr_a = Bits(width = 32)
-  //  val instr_b = Bits(width=32)
-  //  val b_valid = Bool()
+  val instr_b = Bits(width = 32)
+  val b_valid = Bool() // not yet used
   val pc = UFix(width = Constants.PC_SIZE)
 }
 
-
 class DecEx() extends Bundle() {
   val pc = UFix(width = Constants.PC_SIZE)
+  val branchPc = UFix(width = Constants.PC_SIZE)
   val pred = Bits(width = 4)
   val func = Bits(width = 4)
+  val pfunc = Bits(width = 2) // as they have a strange encoding
   val pd = Bits(width = 3)
+  val ps1Addr = Bits(width = 4)
+  val ps2Addr = Bits(width = 4)
   // the register fields are very similar to RegFileRead
   // maybe join the structures
-  val rsAddr = Vec(2) { Bits(width=5) }
-  val rsData = Vec(2) { Bits(width=32) }
-  val rdAddr = Vec(1) { Bits(width=5) }
-  val immVal = Bits(width=32)
+  val rsAddr = Vec(2) { Bits(width = 5) }
+  val rsData = Vec(2) { Bits(width = 32) }
+  val rdAddr = Vec(1) { Bits(width = 5) }
+  val immVal = Bits(width = 32)
+  // maybe have a structure for instructions?
   val immOp = Bool()
   val aluOp = Bool()
   val cmpOp = Bool()
   val unaryOp = Bool()
+  val predOp = Bool()
+  val branch = Bool()
+  val store = Bool()
   // wrReg? or wrEn? or valid? We use now all three at different places ;-)
   val wrReg = Bool()
 }
@@ -77,8 +83,23 @@ class Result() extends Bundle() {
 }
 
 class ExMem() extends Bundle() {
+  // quick store, address is needed as well.
+  // Might be a structure similar to rd?
+  // Or maybe just use rd and have an address
+  val store = Bool()
+  // val load
+  // val addr
+  val data = Bits(width = 32)
   val rd = new Result()
   val pc = UFix(width = Constants.PC_SIZE)
+  // just for debugging
+  val predDebug = Vec(8) { Bool() }
+
+}
+
+class ExFe() extends Bundle() {
+  val doBranch = Bool()
+  val branchPc = UFix(width = Constants.PC_SIZE)
 }
 
 class MemWb() extends Bundle() {
@@ -105,6 +126,8 @@ class RegFileIO() extends Bundle() {
 class FetchIO extends Bundle() {
   val ena = Bool(INPUT)
   val fedec = new FeDec().asOutput
+  // branch from EX
+  val exfe = new ExFe().asInput
 }
 
 class DecodeIO() extends Bundle() {
@@ -121,6 +144,15 @@ class ExecuteIO() extends Bundle() {
   // forwarding inputs
   val exResult = new Result()
   val memResult = new Result()
+  // branch for FE
+  val exfe = new ExFe().asOutput
+}
+
+// a better name would be nice
+class MemoryBus extends Bundle() {
+  val wr = Bool(OUTPUT)
+  // val address = Bits(OUTPUT, 32?)
+  val dataOut = Bits(OUTPUT, 32)
 }
 
 class MemoryIO() extends Bundle() {
@@ -129,6 +161,7 @@ class MemoryIO() extends Bundle() {
   val memwb = new MemWb().asOutput
   // for result forwarding
   val exResult = new Result().flip
+  val memBus = new MemoryBus()
 }
 
 class WriteBackIO() extends Bundle() {

@@ -78,6 +78,7 @@ class Execute() extends Component {
       is(Bits("b1001")) { result := ((op1 >> shamt) | (op1 << (UFix(32) - shamt))).toUFix }
       is(Bits("b1010")) { result := (op1 ^ op2).toUFix }
       is(Bits("b1011")) { result := (~(op1 | op2)).toUFix }
+      // TODO: shadd shift shall be in it's parallel MUX
       is(Bits("b1100")) { result := (op1 << UFix(1)) + op2 }
       is(Bits("b1101")) { result := (op1 << UFix(2)) + op2 }
     }
@@ -91,13 +92,13 @@ class Execute() extends Component {
     // Is this nicer than the switch?
     // Some of the comparison function (equ, subtract) could be shared
     MuxLookup(func, Bool(false), Array(
-      (Bits("b0000"), (op1 === op2)),
-      (Bits("b0001"), (op1 != op2)),
-      (Bits("b0010"), (op1s < op2s)),
-      (Bits("b0011"), (op1s <= op2s)),
-      (Bits("b0100"), (op1 < op2)),
-      (Bits("b0101"), (op1 <= op2)),
-      (Bits("b0110"), ((op1 & (Bits(1) << op2)) != UFix(0)))))
+      (Bits("b000"), (op1 === op2)),
+      (Bits("b001"), (op1 != op2)),
+      (Bits("b010"), (op1s < op2s)),
+      (Bits("b011"), (op1s <= op2s)),
+      (Bits("b100"), (op1 < op2)),
+      (Bits("b101"), (op1 <= op2)),
+      (Bits("b110"), ((op1 & (Bits(1) << op2)) != UFix(0)))))
   }
 
   def unary(func: Bits, op: Bits): Bits = {
@@ -107,6 +108,14 @@ class Execute() extends Component {
       (Bits("b01"), Cat(Fill(16, op(15)), op(15, 0))),
       (Bits("b10"), Cat(Bits(0, 16), op(15, 0))),
       (Bits("b11"), Mux(ops(31), -ops, ops)))) // I don't like abs
+  }
+
+  def pred(func: Bits, op1: Bool, op2: Bool): Bool = {
+    MuxLookup(func, Bool(false), Array(
+      (Bits("b00"), op1 | op2),
+      (Bits("b01"), op1 & op2),
+      (Bits("b10"), op1 ^ op2),
+      (Bits("b11"), ~(op1 | op2))))
   }
 
   val predReg = Vec(8) { Reg(resetVal = Bool(false)) }
@@ -121,22 +130,32 @@ class Execute() extends Component {
 
   val op2 = Mux(exReg.immOp, exReg.immVal, rb)
   val op1 = ra
-
   val aluResult = Mux(exReg.unaryOp, unary(exReg.func(1, 0), op1), alu(exReg.func, op1, op2))
-  val compResult = comp(exReg.func, op1, op2)
+  val compResult = comp(exReg.func(2, 0), op1, op2)
 
-  when(exReg.cmpOp && io.ena) {
-    predReg(exReg.pd) := compResult
-  }
-  predReg(0) := Bool(true)
+  val ps1 = predReg(exReg.ps1Addr(2,0)) ^ exReg.ps1Addr(3)
+  val ps2 = predReg(exReg.ps2Addr(2,0)) ^ exReg.ps2Addr(3)
+  val predResult = pred(exReg.pfunc, ps1, ps2)
 
   // TODO: need to check if this inversion meaning is correct
   val doExecute = predReg(exReg.pred(2, 0)) ^ exReg.pred(3)
 
+  when((exReg.cmpOp || exReg.predOp) && doExecute && io.ena) {
+    predReg(exReg.pd) := Mux(exReg.cmpOp, compResult, predResult)
+  }
+  predReg(0) := Bool(true)
+
+  // result
   io.exmem.rd.addr := exReg.rdAddr(0)
   io.exmem.rd.data := aluResult
+  io.exmem.data := op2
   io.exmem.rd.valid := exReg.wrReg && doExecute && (exReg.aluOp || exReg.unaryOp) // just for now as it is not used elsewhere
-
+  io.exmem.store := exReg.store && doExecute
+  //branch
+  io.exfe.doBranch := exReg.branch && doExecute
+  io.exfe.branchPc := exReg.branchPc
+  
   io.exmem.pc := exReg.pc
+  io.exmem.predDebug := predReg
 
 }

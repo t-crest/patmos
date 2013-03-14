@@ -1,18 +1,62 @@
 #!/bin/bash
+# Directories containing assembler tests
+cd asm
+test_dirs="./inst_tests"
+#for dir in ${test_dirs} ; do
+#    mkdir ../tmp/${dir} 2>/dev/null
+#done
+# Discovering the tests in the specified directories.
+test_disc=" "
+for td in ${test_dirs}; do
+    for f in ${td}/* ; do
+        file="$f"
+        extension="${file##*.}"
+        if [[ "$extension" == "s" ]]; then
+            # Only files with .s extension are accepted as test cases
+            test_disc+="${file%.*} "
+        fi
+    done
+done
+cd ..
 
 tests="basic simple test load_store_stackcache ALU ALUi ALUl dual_forwarding dual_even_odd_address forward_issue unary load_store_data_cache load_store_scratchpad load_store_scratchpad_new load_store_scratchpad_new2 predication fetch_double  branch predicated_predicate"
-
+tests+=${test_disc}
 tests_chsl="basic simple test load_store_stackcache ALU ALUi ALUl dual_forwarding dual_even_odd_address forward_issue unary load_store_data_cache load_store_scratchpad load_store_scratchpad_new load_store_scratchpad_new2 predication fetch_double  branch predicated_predicate"
 
 tests_c="hello_test"
 not_working="none"
 not_working_chsl="none"
 expect_fail=0
-expect_fail_chsl=12
+expect_fail_chsl=8
 
-# How to implement timeout?
-# Caveat: Neither timeout nor timeout --foreground work properly
-timeout=""
+# How to implement timeout? IMPLEMENTED!
+timeout=60
+
+function run {
+    testsuite/single.sh $1
+    result=$?
+    if [ "$result" -ne 0 ] ; then
+        failed+=("${f}")
+    fi
+}
+
+function wait_timeout {
+    start=$(date +%s);
+    runtime=$(($(date +%s)-$start))
+    while (( ${runtime} < ${timeout} )); do
+        sleep 2s
+        if [[ "$(ps | grep $1)" == "" ]] ; then
+            break;
+        fi
+        runtime=$(($(date +%s)-$start))
+    done
+    if (( ${runtime} >= ${timeout} )); then
+        # This way of killing the simulator does NOT support multiple run.sh running in parallel
+        kill $(ps -ef | grep pasim | grep -v grep | awk '{print $2}') 2>/dev/null
+        # pkill -f pasim ## pkill not standard on Unix/Linux
+        echo " timeout"
+    fi
+}
 
 make tools
 make rom bsim
@@ -29,18 +73,14 @@ failed=()
 #        failed+=("${f}")
 #    fi
 #done
-for f in  ${tests}; do
-    $timeout testsuite/single.sh ${f}
-    result=$?
-    if [ "$result" -eq 124 ] ; then
-        echo " timeout"
-    fi
-    if [ "$result" -ne 0 ] ; then
-        failed+=("${f}")
-    fi
+for f in ${tests}; do
+    run ${f} &
+    pid=$!
+    wait_timeout ${pid}
 done
 
-for f in  ${not_working}; do
+for f in ${not_working} ;
+do
     echo $f
     echo " skipped"
 done
@@ -56,7 +96,7 @@ make csim
 echo === Chisel Tests ===
 failed_chsl=()
 for f in  ${tests_chsl}; do
-    $timeout testsuite/single_chsl.sh ${f}
+    testsuite/single_chsl.sh ${f}
     result=$?
     if [ "$result" -eq 124 ] ; then
         echo " timeout"

@@ -76,9 +76,10 @@ rom:
 	-rm -rf vhdl/generated
 	mkdir vhdl/generated
 	-mkdir -p tmp
-	bin/paasm asm/$(APP).s tmp/$(APP).bin
+#	bin/paasm asm/$(APP).s tmp/$(APP).bin
+	bin/paasm asm/$(APP).s tmp/asm.bin
 	java -cp java/lib/patmos-tools.jar \
-		patmos.asm.Bin2Vhdl -s tmp -d vhdl/generated $(APP).bin
+		patmos.asm.Bin2Vhdl -s tmp -d vhdl/generated asm.bin
 
 # Compile a C program, the Patmos compiler must be in the path
 comp:

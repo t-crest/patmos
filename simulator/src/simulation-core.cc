@@ -100,13 +100,16 @@ namespace patmos
 
   void simulator_t::run(word_t entry, uint64_t debug_cycle,
                         debug_format_e debug_fmt, std::ostream &debug_out,
-                        uint64_t max_cycles)
+                        uint64_t max_cycles, bool profiling)
   {
     // do some initializations before executing the first instruction.
     if (Cycle == 0)
     {
       BASE = PC = entry;
       Method_cache.initialize(entry);
+
+      if (profiling)
+        Profiling.initialize(entry);
     }
 
     try
@@ -235,13 +238,38 @@ namespace patmos
         {
           print(debug_out, debug_fmt);
         }
+
+
+        if (profiling)
+        {
+          instruction_data_t *Inst = &Pipeline[NUM_STAGES-1][0];
+
+          // check for executed call/return
+          if (Inst && Inst->DR_Pred)
+          {
+            const char *name = Inst->I->Name;
+
+            if (name=="call" || name=="callr")
+              Profiling.enter(PC, Cycle);
+
+            if (name=="ret")
+              Profiling.leave(Cycle);
+          }
+        }
+
       }
     }
     catch (simulation_exception_t e)
     {
+      if (profiling)
+        Profiling.finalize(Cycle);
+
       // pass on to caller
       throw simulation_exception_t(e.get_kind(), e.get_info(), PC, Cycle);
     }
+
+    if (profiling)
+      Profiling.finalize(Cycle);
   }
 
   void simulator_t::print_registers(std::ostream &os,
@@ -317,9 +345,9 @@ namespace patmos
     {
       os << boost::format("%1$08x %2%\n") % PC % Cycle;
       return;
-    } 
+    }
     else if (debug_fmt == DF_INSTRUCTIONS) {
-	
+
       std::ostringstream oss;
       symbol_map_t emptymap;
       for(unsigned int i = 0; i < NUM_SLOTS; i++) {
@@ -431,6 +459,12 @@ namespace patmos
 
     // print statistics of main memory
     Memory.print_stats(os);
+
+    // print profiling information
+    if (!Profiling.empty())
+    {
+      Profiling.print(os, Symbols);
+    }
 
     os << "\n";
   }

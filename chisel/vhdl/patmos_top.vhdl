@@ -26,12 +26,14 @@ architecture rtl of patmos_top is
 		port(
 			clk    : in  std_logic;
 			reset  : in  std_logic;
+			io_dummy  : out std_logic_vector(31 downto 0);
 			io_led : out std_logic_vector(7 downto 0)
 		);
 	end component;
 
-	-- constants for 50 MHz input clock
-	constant clk_freq : integer := 100000000;
+	-- DE2-70: 50 MHz clock => 100 MHz
+	-- BeMicro: 16 MHz clock => 32 MHz
+--	constant clk_freq : integer := 100000000;
 	constant pll_mult : natural := 10;
 	constant pll_div : natural := 5;
 
@@ -56,7 +58,7 @@ begin
 		c0	 => clk_int,
 		c1       => open
 	);
-	-- we could use a PLL in future designs
+	-- we use a PLL
 	-- clk_int <= clk;
 	
 	--
@@ -76,7 +78,7 @@ begin
 	end process;
 
 	comp : Patmos port map(
-			clk_int, int_res, led
+			clk_int, int_res, open, led
 		);
 
 end architecture rtl;

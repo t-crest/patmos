@@ -16,7 +16,7 @@
 
 add_library(patmos-simulator assembler.cc simulation-core.cc instruction.cc
                              binary-formats.cc decoder.cc command-line.cc
-                             symbol.cc)
+                             symbol.cc profiling.cc)
 
 add_executable(pasim pasim.cc)
 
