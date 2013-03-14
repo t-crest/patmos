@@ -2,5 +2,6 @@
 # Expected Result: stack exceeded address space exception
 #
                 sres    1;
-                lws     r1  = [r31 - 2];
+		subi	r1  = r31, 8;
+                lws     r1  = [r1 + 0];
                 halt;
