@@ -1,5 +1,6 @@
 #
 # Expected Result: unmapped address space exception
 #
-                lwm     r1  = [r31 - 1];
+		subi	r1  = r31, 4;
+                lwm     r1  = [r1 + 0];
                 halt;

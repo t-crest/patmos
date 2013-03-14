@@ -50,13 +50,13 @@ Errors : 0")
 test_asm(14 "Emitted: 52 bytes
 Errors : 0")
 
-test_asm(15 "Emitted: 12 bytes
+test_asm(15 "Emitted: 16 bytes
 Errors : 0")
 
 test_asm(16 "Emitted: 16 bytes
 Errors : 0")
 
-test_asm(17 "Emitted: 16 bytes
+test_asm(17 "Emitted: 20 bytes
 Errors : 0")
 
 test_asm(18 "Emitted: 16 bytes
@@ -169,11 +169,11 @@ test_sim(13 "BASE: 00000024   PC : 0000004c.*
 
 test_sim(14 "r0 : 00000000   r1 : 0283f180   r2 : 0283f180   r3 : fffff180   r4 : fffffff1   r5 : 0000f180   r6 : 000000f1")
 
-test_sim(15 "Unmapped memory access: 0000000c: fffffffc")
+test_sim(15 "Unmapped memory access: 00000010: fffffffc")
 
 test_sim(16 "Stack size exceeded: 00000010")
 
-test_sim(17 "Stack size exceeded: 00000010")
+test_sim(17 "Stack size exceeded: 00000014")
 
 test_sim(18 "Stack size exceeded: 00000010")
 
