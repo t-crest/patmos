@@ -29,11 +29,19 @@ asm:
 
 test: asm
 	-rm -rf generated
+<<<<<<< HEAD
 	$(SBT) "run-main $(MAIN) ../tmp/asm --test --compile --vcd --genHarness --targetDir generated"
 
 # the Verilog version
 verilog: asm
 	$(SBT) "run-main $(MAIN) ../tmp/asm --targetDir generated --backend v"
+=======
+	$(SBT) "run-main $(MAIN) ../tmp/temporary --test --compile --vcd --genHarness --targetDir generated"
+
+# the Verilog version
+verilog: asm
+	$(SBT) "run-main $(MAIN) ../tmp/temporary --targetDir generated --backend v"
+>>>>>>> a9deb02c8af7029a819104ae91eee28d4b84f9f7
 
 ###### Minimum Makefile ends here ########
 
