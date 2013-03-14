@@ -21,7 +21,7 @@ cd ..
 
 tests="basic simple test load_store_stackcache ALU ALUi ALUl dual_forwarding dual_even_odd_address forward_issue unary load_store_data_cache load_store_scratchpad load_store_scratchpad_new load_store_scratchpad_new2 predication fetch_double  branch predicated_predicate"
 tests+=${test_disc}
-tests_chsl="basic simple test load_store_stackcache ALU ALUi ALUl dual_forwarding dual_even_odd_address forward_issue unary load_store_data_cache load_store_scratchpad load_store_scratchpad_new load_store_scratchpad_new2 predication fetch_double  branch predicated_predicate"
+
 
 tests_c="hello_test"
 not_working="none"
@@ -45,7 +45,7 @@ function wait_timeout {
     runtime=$(($(date +%s)-$start))
     while (( ${runtime} < ${timeout} )); do
         sleep 2s
-        if [[ "$(ps | grep $1)" == "" ]] ; then
+        if [[ "$(ps -e | grep $1)" == "" ]] ; then
             break;
         fi
         runtime=$(($(date +%s)-$start))
@@ -73,6 +73,7 @@ failed=()
 #        failed+=("${f}")
 #    fi
 #done
+
 for f in ${tests}; do
     run ${f} &
     pid=$!
@@ -95,7 +96,7 @@ make csim
 
 echo === Chisel Tests ===
 failed_chsl=()
-for f in  ${tests_chsl}; do
+for f in  ${tests}; do
     testsuite/single_chsl.sh ${f}
     result=$?
     if [ "$result" -eq 124 ] ; then
