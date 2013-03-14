@@ -2,9 +2,9 @@
 # Directories containing assembler tests
 cd asm
 test_dirs="./inst_tests"
-for dir in ${test_dirs} ; do
-    mkdir ../tmp/${dir} 2>/dev/null
-done
+#for dir in ${test_dirs} ; do
+#    mkdir ../tmp/${dir} 2>/dev/null
+#done
 # Discovering the tests in the specified directories.
 test_disc=" "
 for td in ${test_dirs}; do
