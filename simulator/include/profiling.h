@@ -29,12 +29,28 @@
 namespace patmos
 {
 
-  /// Profiling information for functions
+  /// Profiling information for functions.
   class profiling_t
   {
     private:
+
+      /// prof_funcinfo_t - Data collected for profiling a function.
+      typedef struct {
+        int num_calls;
+        int depth;
+        int maxdepth;
+        uint64_t enter_cycle;
+        uint64_t self;
+        uint64_t min;
+        uint64_t max;
+        uint64_t total;
+      } prof_funcinfo_t;
+
+      /// entry - Top-level program entry point.
+      uword_t entry;
+
       /// cycles_map - Map of function addr -> cycle count.
-      std::map<uword_t, uint64_t> cycles_map;
+      std::map<uword_t, prof_funcinfo_t> cycles_map;
 
       /// stack - Call stack.
       std::vector<uword_t> stack;

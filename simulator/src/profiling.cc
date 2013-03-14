@@ -22,14 +22,16 @@
 
 //#include <iostream>
 #include <sstream>
+#include <algorithm>
 #include <boost/format.hpp>
 
 
 namespace patmos
 {
 
-  void profiling_t::initialize(uword_t entry, uint64_t cycle)
+  void profiling_t::initialize(uword_t e, uint64_t cycle)
   {
+    entry = e;
     enter(entry, cycle);
   }
 
@@ -54,48 +56,70 @@ namespace patmos
     //std::cerr << "PUSH " << std::hex << addr << "\n";
     // create entry for function on demand
     if (!cycles_map.count(addr)) {
-      cycles_map[addr] = 0;
+      prof_funcinfo_t callee = {0};
+      callee.min = (uint64_t) -1U;
+      cycles_map[addr] = callee;
     }
-    // add cycles to caller (current function)
+    // add self-cycles to caller (current function)
     if (!stack.empty()) {
-      cycles_map[stack.back()] += cycle-last_cycle;
+      cycles_map[stack.back()].self += cycle-last_cycle;
     }
     // switch to callee
     stack.push_back(addr);
     // update last_cycle
     last_cycle = cycle;
+
+    // update callee info
+    prof_funcinfo_t *callee = &cycles_map[addr];
+    callee->num_calls++;
+    if (callee->depth == 0)
+      callee->enter_cycle = cycle;
+    callee->depth++;
+    if (callee->depth > callee->maxdepth)
+      callee->maxdepth = callee->depth;
   }
 
 
   void profiling_t::leave(uint64_t cycle)
   {
+
     //std::cerr << "POP " << std::hex << stack.back() << "\n";
-    // add cycles to callee (current function)
-    cycles_map[stack.back()] += cycle-last_cycle;
+
+    // update callee info (current function)
+    prof_funcinfo_t *callee = &cycles_map[stack.back()];
+
+    // self cycles
+    callee->self += cycle-last_cycle;
+
+    // record cycles spent down the calltree
+    callee->depth--;
+    if (callee->depth == 0) {
+      uint64_t diff = cycle - callee->enter_cycle;
+      callee->total += diff;
+      if (diff < callee->min)
+        callee->min = diff;
+      if (diff > callee->max)
+        callee->max = diff;
+    }
+
     // return to caller
     stack.pop_back();
     // update last_cycle
     last_cycle = cycle;
+
   }
 
 
   std::ostream &profiling_t::print(std::ostream &os, symbol_map_t &sym) const
   {
-    uint64_t total = 0;
-    for(std::map<uword_t, uint64_t>::const_iterator i = cycles_map.begin(),
-        e = cycles_map.end();
-        i != e; ++i)
-    {
-      total += i->second;
-    }
+    uint64_t total = cycles_map.at(entry).total;
 
-    os << "\n\nProfiling information:\n\n"
-      "  Function                                 "
-      "cycles (abs)    cycles (rel)\n";
+    os << "\n\nProfiling information:\n\n Function\n"
+      "  #calls       min         max           avg      "
+      "cycles (abs)  cycles (rel)\n";
 
-    for(std::map<uword_t, uint64_t>::const_iterator i = cycles_map.begin(),
-        e = cycles_map.end();
-        i != e; ++i)
+    for(std::map<uword_t, prof_funcinfo_t>::const_iterator
+            i = cycles_map.begin(), e = cycles_map.end(); i != e; ++i)
     {
       std::stringstream func_name;
 
@@ -105,12 +129,24 @@ namespace patmos
         func_name << boost::format("%d") % i->first;
       }
 
-      os << boost::format("  %s: %|35t|%20d        %7.4f%%\n")
-        % func_name.str()
-        % i->second
-        % ((double)(i->second*100.0) / (double)total);
+      const prof_funcinfo_t *entry = &i->second;
+
+      os << "  " << func_name.str() << "\n";
+      // self (flat)
+      os << boost::format("%|46t|%16d     %8.4f%%\n")
+        % entry->self
+        % ((double)(entry->self*100.0) / (double)total);
+      // cumulative (calltree)
+      os << boost::format("  %4d  %10d  %10d  %12.1f  %16d     %8.4f%%\n")
+        % entry->num_calls
+        % entry->min
+        % entry->max
+        % ((double)entry->total / (double)entry->num_calls)
+        % entry->total
+        % ((double)(entry->total*100.0) / (double)total);
     }
     os << "\n";
+    return os;
   }
 
 } // end namespace patmos
