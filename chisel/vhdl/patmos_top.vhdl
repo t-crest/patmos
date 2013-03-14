@@ -26,6 +26,7 @@ architecture rtl of patmos_top is
 		port(
 			clk    : in  std_logic;
 			reset  : in  std_logic;
+			io_dummy  : out std_logic_vector(31 downto 0);
 			io_led : out std_logic_vector(7 downto 0)
 		);
 	end component;
@@ -77,7 +78,7 @@ begin
 	end process;
 
 	comp : Patmos port map(
-			clk_int, int_res, led
+			clk_int, int_res, open, led
 		);
 
 end architecture rtl;

@@ -54,7 +54,10 @@ class DecEx() extends Bundle() {
   val branchPc = UFix(width = Constants.PC_SIZE)
   val pred = Bits(width = 4)
   val func = Bits(width = 4)
+  val pfunc = Bits(width = 2) // as they have a strange encoding
   val pd = Bits(width = 3)
+  val ps1Addr = Bits(width = 4)
+  val ps2Addr = Bits(width = 4)
   // the register fields are very similar to RegFileRead
   // maybe join the structures
   val rsAddr = Vec(2) { Bits(width = 5) }
@@ -66,6 +69,7 @@ class DecEx() extends Bundle() {
   val aluOp = Bool()
   val cmpOp = Bool()
   val unaryOp = Bool()
+  val predOp = Bool()
   val branch = Bool()
   val store = Bool()
   // wrReg? or wrEn? or valid? We use now all three at different places ;-)
@@ -83,8 +87,14 @@ class ExMem() extends Bundle() {
   // Might be a structure similar to rd?
   // Or maybe just use rd and have an address
   val store = Bool()
+  // val load
+  // val addr
+  val data = Bits(width = 32)
   val rd = new Result()
   val pc = UFix(width = Constants.PC_SIZE)
+  // just for debugging
+  val predDebug = Vec(8) { Bool() }
+
 }
 
 class ExFe() extends Bundle() {
