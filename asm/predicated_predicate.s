@@ -134,8 +134,8 @@ x0:	add     r20 = r20, r2;
 	addi    r5 = r0, 1;
 (p6)	shadd2	 r5 = r5, 1048576;
 	add	r10 = r0, 1048576;
-	rl	r10 = r10, 13; # r10(1) = 1
-	rr	r10 = r10, 2; # r10(31) = 1
+#	rl	r10 = r10, 13; # r10(1) = 1
+#	rr	r10 = r10, 2; # r10(31) = 1
 	sra	r10 = r10, 5; # fills in 5 upper bits with 1
 # unary instructions
 
