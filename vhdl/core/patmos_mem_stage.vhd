@@ -62,6 +62,8 @@ end entity patmos_mem_stage;
 use work.patmos_config.all;
 architecture arch of patmos_mem_stage is
     
+	signal cnt      						 : unsigned(1 downto 0);
+	signal gm_rd							 : std_logic;
 	signal ld_data_mem						 : std_logic_vector(31 downto 0);
 	signal ld_data_word						 : std_logic_vector(31 downto 0);
 	signal ld_data_half						 : std_logic_vector(15 downto 0);
@@ -162,42 +164,13 @@ begin
         --		gm_read_data		<= gm_data_out;
         if (spill = '1' or fill = '1') then
             gm_read_add   <= mem_top(9 downto 0);
-            gm_read_add   <= mem_top(9 downto 0);
+            gm_write_add   <= mem_top(9 downto 0);
             gm_en_spill   <= gm_spill;  -- this is for spilling ( writing to global memory)
             gm_write_data <= gm_in.wr_data; -- comes from sc
 
         end if;
     end process;
 
---    GM_SDRAM : if USE_GLOBAL_MEMORY_SDRAM generate
---        
---    
---        gm_master.MFlag_CmdRefresh <= '0'; -- Use automatic refresh
---        gm_master.MCmd             <= '0' & gm_do_write & gm_do_read;
---        -- Edgar: It's confusing to use two signals if they always have the same value anyway. I would recommend to use single gm_address instead.
---        gm_master.MAddr(gm_read_add'range) <= gm_read_add;
---        gm_master.MAddr(gm_master.MAddr'high downto gm_read_add'length) <= (others=>'0');
---        
---        -- Acknowledge command acceptance (ignored here, because we don't use pipelined transactions, and use data word acknowledgement instead)
---        --    <= gm_slave.SCmdAccept;
---        
---        -- Write 
---        gm_master.MData       <= gm_write_data;
---        -- Not used by controller, but might be beneficial for buffers in arbitration layer
---        -- gm_master.MDataValid  <= mtl_wr_valid_i;
---        -- gm_master.MDataLast   <= mtl_wr_last_i;
---        gm_master.MDataByteEn <= not gm_en_spill;  -- Edgar: a write mask should be used here. I would recommend the name independent of StackCache
---        -- This is '1' for each word written, for longer bursts one would need to count words, to decide then new command need to be invoked
---        
---        
---        -- Read 
---        gm_read_data         <= gm_slave.SData;
---        
---        -- Might use it to issue the new command when longer bursts are used
---        --        <= gm_slave.SRespLast;
---    end generate GM_SDRAM;
---
---    GM_block_ram : if not USE_GLOBAL_MEMORY_SDRAM generate
         gm0 : entity work.patmos_data_memory(arch)
             generic map(8, 10)
             port map(clk,
@@ -272,14 +245,18 @@ begin
     begin
         if rst = '1' then
             state_reg <= init;
-        --spill <= '0';
-        --fill <= '0';
+			gm_rd	  <= '0';
         	
         elsif rising_edge(clk) then	
             state_reg   	   <= next_state;
             mem_top            <= mem_top_next;
             nspill_fill        <= nspill_fill_next;
-            
+            if cnt = "11"  then
+                    cnt <= (others => '0');
+                    gm_rd <= '1';
+                else
+                    cnt <= cnt + 1;
+                end if;
         end if;
     end process;
 
@@ -306,7 +283,7 @@ begin
                 elsif (exout_not_reg.fill = '1') then
                     next_state <= fill_state;
                 elsif (exout_not_reg.free = '1') then
-                    next_state <= fill_state;
+                    next_state <= free_state;
                 else
                     next_state <= init;
                 end if;
@@ -388,7 +365,7 @@ begin
         dout.mem_top <= mem_top;
         dout.stall   <= stall;
         -- Edgar: sc_need_stall might be artificial in the future, but it's easier to think this way for now
-        stall <= sc_need_stall or (gm_do_read and not gm_read_done) or (gm_do_write and not gm_write_done);
+        stall <= sc_need_stall;-- or (gm_do_read and not gm_read_done) or (gm_do_write and not gm_write_done);
     --end process;
     -----------------------------------------------
     -- MS: If a registered address from EX is used here and there is an address
@@ -491,15 +468,11 @@ begin
 
 
     --------------------------- address muxes begin--------------------------		     
-    process(lm_dout, exout_reg, sc_read_data, gm_read_data
-    	, ld_data_mem
-    )
+    process(lm_dout, exout_reg, sc_read_data, gm_read_data, ld_data_mem)
     begin
 		ld_data_word <= ld_data_mem(7 downto 0) & ld_data_mem(15 downto 8) & ld_data_mem(23 downto 16) & ld_data_mem(31 downto 24);
         case exout_reg.adrs_reg(1) is
-            when '0' =>
-                -- MS: why are bytes mixed up here?
-                -- SA: I don't get this question, byte enables are generated this way to support BIG ENDIAN    
+            when '0' =>  
                 ld_data_half <= ld_data_mem(7 downto 0) & ld_data_mem(15 downto 8);
             when '1' =>     
                 ld_data_half <= ld_data_mem(23 downto 16) & ld_data_mem(31 downto 24);
@@ -524,8 +497,7 @@ begin
     --------------------------- sign extension begin--------------------------
     -- MS: why do we have double signe extension?
     -- SA: what is a double sign extension?
-    process( s_u
-    	, ld_data_half, ld_data_byte
+    process( s_u, ld_data_half, ld_data_byte
     )
     begin
         if (s_u = '1') then
@@ -612,11 +584,8 @@ begin
                 gm_en(3 downto 0) <= mem_write & mem_write & mem_write & mem_write;
                 sc_en(3 downto 0) <= exout_not_reg.sc_write_not_reg & exout_not_reg.sc_write_not_reg & exout_not_reg.sc_write_not_reg & exout_not_reg.sc_write_not_reg;
 
-                -- MS: why are the bytes here mixed up?
-                mem_write_data(7 downto 0)   <= exout_not_reg.mem_write_data(31 downto 24);
-                mem_write_data(15 downto 8)  <= exout_not_reg.mem_write_data(23 downto 16);
-                mem_write_data(23 downto 16) <= exout_not_reg.mem_write_data(15 downto 8);
-                mem_write_data(31 downto 24) <= exout_not_reg.mem_write_data(7 downto 0);
+                mem_write_data <= exout_not_reg.mem_write_data(7 downto 0) & exout_not_reg.mem_write_data(15 downto 8)
+                								 & exout_not_reg.mem_write_data(23 downto 16) & exout_not_reg.mem_write_data(31 downto 24);
             when half =>
                 en(3 downto 2) <= word_enable(1) & word_enable(1);
                 en(1 downto 0) <= word_enable(0) & word_enable(0);
@@ -627,11 +596,8 @@ begin
                 sc_en(3 downto 2) <= sc_word_enable(1) & sc_word_enable(1);
                 sc_en(1 downto 0) <= sc_word_enable(0) & sc_word_enable(0);
 
-                -- MS: here again - why are te bytes mixed up?
-                mem_write_data(7 downto 0)   <= exout_not_reg.mem_write_data(15 downto 8);
-                mem_write_data(15 downto 8)  <= exout_not_reg.mem_write_data(7 downto 0);
-                mem_write_data(23 downto 16) <= exout_not_reg.mem_write_data(15 downto 8);
-                mem_write_data(31 downto 24) <= exout_not_reg.mem_write_data(7 downto 0);
+                mem_write_data <= exout_not_reg.mem_write_data(7 downto 0) & exout_not_reg.mem_write_data(15 downto 8)
+                				  & exout_not_reg.mem_write_data(7 downto 0) & exout_not_reg.mem_write_data(15 downto 8);
             when byte =>
                 en(3 downto 0) <= byte_enable(3 downto 0);
 
@@ -639,10 +605,8 @@ begin
 
                 sc_en(3 downto 0) <= sc_byte_enable(3 downto 0);
 
-                mem_write_data(7 downto 0)   <= exout_not_reg.mem_write_data(7 downto 0);
-                mem_write_data(15 downto 8)  <= exout_not_reg.mem_write_data(7 downto 0);
-                mem_write_data(23 downto 16) <= exout_not_reg.mem_write_data(7 downto 0);
-                mem_write_data(31 downto 24) <= exout_not_reg.mem_write_data(7 downto 0);
+                mem_write_data   <= exout_not_reg.mem_write_data(7 downto 0) & exout_not_reg.mem_write_data(7 downto 0)
+                					 & exout_not_reg.mem_write_data(7 downto 0) & exout_not_reg.mem_write_data(7 downto 0);
             when others => null;
         end case;
     end process;

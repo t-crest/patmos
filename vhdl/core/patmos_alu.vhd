@@ -84,16 +84,15 @@ architecture arch of patmos_alu is
 	signal sc_top, sc_top_next, mem_top			: std_logic_vector(31 downto 0);
 --	signal doutex_sc_top, doutex_mem_top		: std_logic_vector(sc_depth - 1 downto 0);
 	
-	signal spc_reg 								: std_logic_vector(31 downto 0);
-	signal spc	 								: std_logic_vector(31 downto 0);
+
 	signal rd_rs								: std_logic_vector(31 downto 0);
 	signal spc_reg_write						: std_logic_vector(15 downto 0);
 	
 	
-	signal st_reg								: std_logic_vector(31 downto 0);
-	signal st									: std_logic_vector(31 downto 0);
 	signal res_diff								: signed(31 downto 0);
 	signal ens_diff								: signed(31 downto 0);
+	
+	signal reg_file_not_stall						: std_logic;
 begin
 
 
@@ -127,10 +126,10 @@ begin
 		adrs <= std_logic_vector(rs1 + shifted_arg);
 	end process;
 
-	process(decdout, predicate, predicate_reg, cmp_result)
+	process(decdout, predicate, predicate_reg, cmp_result, is_exec)
 	begin
 		predicate  <= predicate_reg;
-		if (decdout.is_predicate_inst = '1') then 
+		if (decdout.is_predicate_inst = '1' and is_exec = '1') then 
 			case decdout.pat_function_type_alu_p is
 				when pat_por => predicate(to_integer(unsigned(decdout.pd(2 downto 0)))) <= 					
 								(decdout.ps1(3) xor predicate_reg(to_integer(unsigned(decdout.ps1(2 downto 0)))) ) or 
@@ -257,8 +256,8 @@ begin
 
 			
 			
-				doutex_reg.predicate            <= predicate_checked;
-				predicate_reg               <= predicate_checked;
+				doutex_reg.predicate            <= predicate;
+				predicate_reg               <= predicate;
 				doutex_reg_write_reg 		<= doutex_reg_write;
 	
 				doutex_alu_result_reg       <= rd;
@@ -294,7 +293,7 @@ begin
 
 
 	
-	process(decdout, alu_src2, rd, adrs, predicate_reg, predicate, din_rs1, st_reg, is_exec, rst)
+	process(decdout, alu_src2, rd, adrs, predicate_reg, predicate, din_rs1, is_exec, rst)
 	begin
 		doutex_not_reg.lm_write_not_reg             		<= '0';
 		doutex_not_reg.lm_read_not_reg              		<= '0';
@@ -305,7 +304,7 @@ begin
 		doutex_not_reg.gm_write_not_reg						<= '0';
 		doutex_not_reg.gm_read_not_reg						<= '0';
 	
-		predicate_checked									<= "00000001";
+--		predicate_checked									<= "00000001";
 		doutex_not_reg.predicate_to_fetch					<= '0';
 --		st													<= st_reg;
 --		doutex_not_reg.mem_top								<= (others => '0');
@@ -329,7 +328,7 @@ begin
 				doutex_gm_write             <= decdout.gm_write;
 				doutex_dc_read              <= decdout.dc_read;
 				doutex_dc_write             <= decdout.dc_write;
-				doutex_reg_write 			<= decdout.reg_write;
+				doutex_reg_write 			<= decdout.reg_write and reg_file_not_stall;
 				predicate_checked 			<= predicate;
 
 		else
@@ -353,6 +352,8 @@ begin
 	begin
 		doutex_not_reg.pc <= std_logic_vector(unsigned(decdout.pc) + unsigned(decdout.imm));
 	end process;
+	
+	reg_file_not_stall <= not memdout.stall;
 	
 	process(doutex_alu_result_reg, doutex_write_back_reg, doutex_reg_write_reg , decdout, memdout)
 	begin
