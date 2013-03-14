@@ -535,7 +535,7 @@ namespace patmos
   }
 
   stc_format_t::stc_format_t(const instruction_t &instruction, word_t opcode) :
-      binary_format_t(instruction, 0x7C00000, insert(0x3000000, 22, 2, opcode),
+      binary_format_t(instruction, 0x7F00000, insert(0x3000000, 20, 2, opcode),
                       1)
   {
   }
@@ -543,7 +543,7 @@ namespace patmos
   instruction_data_t stc_format_t::decode_operands(word_t iw,
                                                    word_t longimm) const
   {
-    word_t imm = extract(iw, 0, 22);
+    word_t imm = extract(iw, 0, 18);
     PRR_e pred = extractPN(iw, 27);
     return instruction_data_t::mk_STC(Instruction, pred, imm);
   }
@@ -554,9 +554,10 @@ namespace patmos
 
     assert(fitu(opcode, 2) && fitu(imm, 22));
 
-    insertV(iw, 0, 22, imm);
-    insertV(iw, 22, 2, opcode);
-    insertV(iw, 24, 3, BOOST_BINARY(011));
+    insertV(iw, 0, 18, imm);
+    insertV(iw, 18, 2, BOOST_BINARY(000));
+    insertV(iw, 20, 2, opcode);
+    insertV(iw, 22, 5, BOOST_BINARY(01100));
     insertPN(iw, 27, pred);
 
     return iw;
