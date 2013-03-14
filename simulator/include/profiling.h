@@ -21,101 +21,70 @@
 #define PATMOS_PROFILING_H
 
 #include <ostream>
-#include <sstream>
 #include <vector>
 #include <map>
-
-#include <boost/format.hpp>
 
 #include "symbol.h"
 
 namespace patmos
 {
-  /// Profiling information for functions
+
+  /// Profiling information for functions.
   class profiling_t
   {
     private:
+
+      /// prof_funcinfo_t - Data collected for profiling a function.
+      typedef struct {
+        int num_calls;
+        int depth;
+        int maxdepth;
+        uint64_t enter_cycle;
+        uint64_t self;
+        uint64_t min;
+        uint64_t max;
+        uint64_t total;
+      } prof_funcinfo_t;
+
+      /// entry - Top-level program entry point.
+      uword_t entry;
+
       /// cycles_map - Map of function addr -> cycle count.
-      std::map<uword_t, uint64_t> cycles_map;
+      std::map<uword_t, prof_funcinfo_t> cycles_map;
 
       /// stack - Call stack.
       std::vector<uword_t> stack;
 
-      /// counter - Pointer to current cycle counter.
-      uint64_t *counter;
+      /// last_cycle - Value of the cycle counter on last update.
+      uint64_t last_cycle;
 
     public:
       /// Constructor
-      profiling_t() : counter(0)
+      profiling_t() : last_cycle(0)
       {
       }
+
+      /// initialize - Initialize profiling.
+      void initialize(uword_t entry, uint64_t cycle=0);
+
+      /// finalize - Finalize profiling
+      void finalize(uint64_t cycle);
 
       /// empty - Returns tue if there is no profiling information collected.
-      bool empty() const
-      {
-        return cycles_map.empty();
-      }
+      bool empty() const;
 
-      /// call - Call a function with a given base address.
-      void call(uword_t addr)
-      {
-        if (!cycles_map.count(addr)) {
-          cycles_map[addr] = 0;
-        }
-        stack.push_back(addr);
-        counter = &cycles_map[addr];
-      }
+      /// enter - Enter a function with a given base address.
+      void enter(uword_t addr, uint64_t cycle);
 
-      /// ret - Leave current function.
-      void ret()
-      {
-        stack.pop_back();
-        counter = &cycles_map[stack.back()];
-      }
+      /// leave - Leave current function.
+      void leave(uint64_t cycle);
 
-      /// bump - Bump cycle counter for current function.
-      void bump()
-      {
-        if (counter) {
-          (*counter)++;
-        }
-      }
-
-      std::ostream &print(std::ostream &os, symbol_map_t &sym) const
-      {
-        uint64_t total = 0;
-        for(std::map<uword_t, uint64_t>::const_iterator i = cycles_map.begin(),
-                                                  e = cycles_map.end();
-                                                  i != e; ++i)
-        {
-          total += i->second;
-        }
-
-        os << "\n\nProfiling information:\n\n"
-              "  Function                                 "
-              "cycles (abs)    cycles (rel)\n";
-
-        for(std::map<uword_t, uint64_t>::const_iterator i = cycles_map.begin(),
-                                                  e = cycles_map.end();
-                                                  i != e; ++i)
-        {
-          std::stringstream func_name;
-
-          if (sym.contains(i->first)) {
-            func_name << sym.find(i->first);
-          } else {
-            func_name << boost::format("%d") % i->first;
-          }
-
-          os << boost::format("  %s: %|35t|%20d        %7.4f%%\n")
-            % func_name.str()
-            % i->second
-            % ((double)(i->second*100.0) / (double)total);
-        }
-        os << "\n";
-      }
+      /// print - Print profiling information to a given stream, using
+      /// given symbols.
+      std::ostream &print(std::ostream &os, symbol_map_t &sym) const;
   };
-}
+
+} // end namespace patmos
 
 
 #endif // PATMOS_PROFILING_H

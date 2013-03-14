@@ -109,7 +109,7 @@ namespace patmos
       Method_cache.initialize(entry);
 
       if (profiling)
-        Profiling.call(entry);
+        Profiling.initialize(entry);
     }
 
     try
@@ -243,20 +243,17 @@ namespace patmos
         if (profiling)
         {
           instruction_data_t *Inst = &Pipeline[NUM_STAGES-1][0];
-          if (Inst)
+
+          // check for executed call/return
+          if (Inst && Inst->DR_Pred)
           {
-            Profiling.bump();
-            // check for call/return
-            if (Inst->DR_Pred)
-            {
-              const char *name = Inst->I->Name;
+            const char *name = Inst->I->Name;
 
-              if (name=="call" || name=="callr")
-                Profiling.call(PC);
+            if (name=="call" || name=="callr")
+              Profiling.enter(PC, Cycle);
 
-              if (name=="ret")
-                Profiling.ret();
-            }
+            if (name=="ret")
+              Profiling.leave(Cycle);
           }
         }
 
@@ -264,9 +261,15 @@ namespace patmos
     }
     catch (simulation_exception_t e)
     {
+      if (profiling)
+        Profiling.finalize(Cycle);
+
       // pass on to caller
       throw simulation_exception_t(e.get_kind(), e.get_info(), PC, Cycle);
     }
+
+    if (profiling)
+      Profiling.finalize(Cycle);
   }
 
   void simulator_t::print_registers(std::ostream &os,
