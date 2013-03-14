@@ -71,11 +71,10 @@ class Execute() extends Component {
       is(Bits("b0101")) { result := (op1.toFix >> shamt).toUFix }
       is(Bits("b0110")) { result := (op1 | op2).toUFix }
       is(Bits("b0111")) { result := (op1 & op2).toUFix }
-      // TODO: add the other funny ALU instructions
-      // I don't like them and the following is an inefficient description of the rotate
-      is(Bits("b1000")) { result := ((op1 << shamt) | (op1 >> (UFix(32) - shamt))).toUFix }
-      // Rotate right is the same as rotate left
-      is(Bits("b1001")) { result := ((op1 >> shamt) | (op1 << (UFix(32) - shamt))).toUFix }
+//      // I don't like them and the following is an inefficient description of the rotate
+//      is(Bits("b1000")) { result := ((op1 << shamt) | (op1 >> (UFix(32) - shamt))).toUFix }
+//      // Rotate right is the same as rotate left
+//      is(Bits("b1001")) { result := ((op1 >> shamt) | (op1 << (UFix(32) - shamt))).toUFix }
       is(Bits("b1010")) { result := (op1 ^ op2).toUFix }
       is(Bits("b1011")) { result := (~(op1 | op2)).toUFix }
       // TODO: shadd shift shall be in it's parallel MUX
