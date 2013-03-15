@@ -30,13 +30,16 @@ expect_fail=0
 expect_fail_chsl=8
 
 # How to implement timeout? IMPLEMENTED!
-timeout=60
+timeout=90
 
 function run {
     testsuite/single.sh $1
     result=$?
     if [ "$result" -ne 0 ] ; then
-        failed+=("${f}")
+        failed+=("$1")
+        echo "$1" > result.tmp
+    else
+        echo -ne "ok" > result.tmp
     fi
 }
 
@@ -78,7 +81,11 @@ for f in ${tests}; do
     run ${f} &
     pid=$!
     wait_timeout ${pid}
+    if [[ "$(cat result.tmp)" != "ok" ]]; then
+        failed+=("$(cat result.tmp)")
+    fi
 done
+rm result.tmp
 
 for f in ${not_working} ;
 do
