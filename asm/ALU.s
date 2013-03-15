@@ -28,10 +28,10 @@
 	sli	r1 = r1, 31;
 	ori     r1 = r1, 1;
 	addi    r2 = r0, 2;
-	rl	r1 = r1, r2;	
+#	rl	r1 = r1, r2;	
 	addi    r2 = r2, 1;
 	addi    r3 = r0, 1;
-	rr	r2 = r2, r3;
+#	rr	r2 = r2, r3;
 	halt; 
 
 

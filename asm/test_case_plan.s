@@ -95,12 +95,12 @@ and: 	and		r4 = r4, 0; # r4 = 0x0
 
 # br exit; # Should jump to correct exit label, using halt or loop
 
-rl: 	addi	r6 = r0, 1;
-		rl		r6 = r6, r1;
+#rl: 	addi	r6 = r0, 1;
+#		rl		r6 = r6, r1;
 
 # br exit; # Should jump to correct exit label, using halt or loop
 
-rr: 	rr		r6 = r6, r1; # r6 = 1
+#rr: 	rr		r6 = r6, r1; # r6 = 1
 
 # br exit; # Should jump to correct exit label, using halt or loop
 
