@@ -143,8 +143,8 @@ begin
 				comb_out.inst <= alui;
 			
 			
-			elsif din.operation(26 downto 24) = "011" then -- STC
-				case din.operation(23 downto 22) is
+			elsif din.operation(26 downto 22) = "01100" then -- STC
+				case din.operation(21 downto 20) is
 					when "00" =>        -- reserve
 						comb_out.pat_function_type_sc <= reserve;
 --						comb_out.st_out                   <= "0111"; -- s6 is st (7th register in special reg file)
