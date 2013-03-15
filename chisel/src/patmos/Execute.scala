@@ -58,12 +58,13 @@ class Execute() extends Component {
 
   def alu(func: Bits, op1: UFix, op2: UFix): Bits = {
     val result = UFix(width = 32)
-    result := UFix(0) // default could be the sum
+    val sum = op1 + op2
+    result := sum // some default 0 default biggest, fastest. sum default slower smallest
     val shamt = op2(4, 0).toUFix
     // This kind of decoding of the ALU op in the EX stage is not efficient,
     // but we keep it for now to get something going soon.
     switch(func) {
-      is(Bits("b0000")) { result := op1 + op2 }
+      is(Bits("b0000")) { result := sum }
       is(Bits("b0001")) { result := op1 - op2 }
       is(Bits("b0010")) { result := op2 - op1 }
       is(Bits("b0011")) { result := (op1 << shamt).toUFix }
@@ -77,7 +78,7 @@ class Execute() extends Component {
 //      is(Bits("b1001")) { result := ((op1 >> shamt) | (op1 << (UFix(32) - shamt))).toUFix }
       is(Bits("b1010")) { result := (op1 ^ op2).toUFix }
       is(Bits("b1011")) { result := (~(op1 | op2)).toUFix }
-      // TODO: shadd shift shall be in it's parallel MUX
+      // TODO: shadd shift shall be in it's own operand MUX
       is(Bits("b1100")) { result := (op1 << UFix(1)) + op2 }
       is(Bits("b1101")) { result := (op1 << UFix(2)) + op2 }
     }
@@ -136,7 +137,6 @@ class Execute() extends Component {
   val ps2 = predReg(exReg.ps2Addr(2,0)) ^ exReg.ps2Addr(3)
   val predResult = pred(exReg.pfunc, ps1, ps2)
 
-  // TODO: need to check if this inversion meaning is correct
   val doExecute = predReg(exReg.pred(2, 0)) ^ exReg.pred(3)
 
   when((exReg.cmpOp || exReg.predOp) && doExecute && io.ena) {

@@ -77,9 +77,9 @@ rom:
 	mkdir vhdl/generated
 	-mkdir -p tmp
 #	bin/paasm asm/$(APP).s tmp/$(APP).bin
-	bin/paasm asm/$(APP).s tmp/temporary.bin
+	bin/paasm asm/$(APP).s tmp/aout.bin
 	java -cp java/lib/patmos-tools.jar \
-		patmos.asm.Bin2Vhdl -s tmp -d vhdl/generated temporary.bin
+		patmos.asm.Bin2Vhdl -s tmp -d vhdl/generated aout.bin
 
 # Compile a C program, the Patmos compiler must be in the path
 comp:
@@ -93,9 +93,9 @@ crom:
 	-rm -rf vhdl/generated
 	mkdir vhdl/generated
 	-mkdir -p tmp
-	bin/elf2vhdl tmp/$(APP) tmp/temporary.bin
+	bin/elf2vhdl tmp/$(APP) tmp/aout.bin
 	java -cp java/lib/patmos-tools.jar \
-		patmos.asm.Bin2Vhdl -s tmp -d vhdl/generated temporary.bin
+		patmos.asm.Bin2Vhdl -s tmp -d vhdl/generated aout.bin
 
 old_rom: tools
 	-rm -rf vhdl/generated
@@ -113,7 +113,7 @@ bsim:
 
 # High-level pasim simulation
 hsim:
-	bin/pasim --debug --debug-fmt=short tmp/temporary.bin
+	bin/pasim --debug --debug-fmt=short tmp/aout.bin
 
 # C simulation of the Chisel version of Patmos
 csim:

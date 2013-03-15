@@ -75,14 +75,14 @@ class RegisterFile() extends Component {
   io.rfRead.rsData(0) := Mux(fw0Reg, wrReg.data, rf(addr0Reg))
   io.rfRead.rsData(1) := Mux(fw1Reg, wrReg.data, rf(addr1Reg))
 
-  // R0 handling could be done here, in decode, or as part of forwarding
-  // Or we are just happy with relying on the fact that the registers are reset
-  // and just disable writing to register 0
+  // R0 handling could be done here, in decode, or as part of forwarding.
+  // At the moment we are just happy with relying on the fact that the
+  // registers are reset and just disable writing to register 0
 
   when(wrReg.valid) {
     rf(wrReg.addr.toUFix) := wrReg.data
   }
 
-  // Just for debugging
+  // Output for co-simulation with pasim
   io.rfDebug := rf
 }
