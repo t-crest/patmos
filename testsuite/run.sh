@@ -27,7 +27,7 @@ tests_c="hello_test"
 not_working="none"
 not_working_chsl="none"
 expect_fail=0
-expect_fail_chsl=8
+expect_fail_chsl=12
 
 # How to implement timeout? IMPLEMENTED!
 timeout=60
