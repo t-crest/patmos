@@ -73,6 +73,7 @@ class Decode() extends Component {
   io.decex.unaryOp := Bool(false)
   io.decex.predOp := Bool(false)
   io.decex.branch := Bool(false)
+  io.decex.load := Bool(false)
   io.decex.store := Bool(false)
   io.decex.wrReg := Bool(false)
   longImm := Bool(false)
@@ -126,8 +127,9 @@ class Decode() extends Component {
   shamt := UFix(0)
   isMem := Bool(false)
   // load
-  when(instr(26, 22) === Bits("b0101o")) {
+  when(instr(26, 22) === Bits("b01010")) {
     isMem := Bool(true)
+    io.decex.load := Bool(true)
     switch(instr(11, 9)) {
       is(Bits("b000")) { shamt := UFix(2) }
       is(Bits("b001")) { shamt := UFix(1)}
@@ -141,9 +143,11 @@ class Decode() extends Component {
   when(instr(26, 22) === Bits("b01011")) {
     isMem := Bool(true)
     io.decex.store := Bool(true)
+    switch(instr(11, 9)) {
       is(Bits("b000")) { shamt := UFix(2) }
       is(Bits("b001")) { shamt := UFix(1)}
       is(Bits("b010")) {}
+    }
   }
   // we could merge the shamt of load and store when not looking into split load
 

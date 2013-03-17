@@ -71,6 +71,7 @@ class DecEx() extends Bundle() {
   val unaryOp = Bool()
   val predOp = Bool()
   val branch = Bool()
+  val load = Bool()
   val store = Bool()
   // wrReg? or wrEn? or valid? We use now all three at different places ;-)
   val wrReg = Bool()
@@ -87,7 +88,7 @@ class ExMem() extends Bundle() {
   // quick store, address is needed as well.
   // Might be a structure similar to rd?
   // Or maybe just use rd and have an address
-  // val load
+  val load = Bool()
   val store = Bool()
   val addr = Bits(width = 32)
   val data = Bits(width = 32)
