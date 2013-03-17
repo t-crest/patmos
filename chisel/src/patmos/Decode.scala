@@ -121,13 +121,42 @@ class Decode() extends Component {
       // where is register indirect?
     }
   }
+  val isMem = Bool()
+  val shamt = UFix()
+  shamt := UFix(0)
+  isMem := Bool(false)
+  // load
+  when(instr(26, 22) === Bits("b0101o")) {
+    isMem := Bool(true)
+    switch(instr(11, 9)) {
+      is(Bits("b000")) { shamt := UFix(2) }
+      is(Bits("b001")) { shamt := UFix(1)}
+      is(Bits("b010")) {}
+      is(Bits("b011")) { shamt := UFix(1) }
+      is(Bits("b100")) {}
+      // ignore split load for now
+    }
+  }
   // store
   when(instr(26, 22) === Bits("b01011")) {
+    isMem := Bool(true)
     io.decex.store := Bool(true)
+      is(Bits("b000")) { shamt := UFix(2) }
+      is(Bits("b001")) { shamt := UFix(1)}
+      is(Bits("b010")) {}
+  }
+  // we could merge the shamt of load and store when not looking into split load
+
+  val addrImm = Bits()
+  addrImm := Cat(Bits(0), instr(6, 0))
+  switch(shamt) {
+    is(UFix(1)) { addrImm := Cat(Bits(0), instr(6, 0), Bits(0, width = 1)) }
+    is(UFix(2)) { addrImm := Cat(Bits(0), instr(6, 0), Bits(0, width = 2)) }
   }
 
   // Immediate is not sign extended
-  io.decex.immVal := Mux(longImm, decReg.instr_b, Cat(Bits(0), instr(11, 0)))
+  // Maybe later split immediate for ALU and address calculation
+  io.decex.immVal := Mux(isMem, addrImm, Mux(longImm, decReg.instr_b, Cat(Bits(0), instr(11, 0))))
   // we could mux the imm / register here as well
 
   // Immediate for branch is sign extended, not extended for call

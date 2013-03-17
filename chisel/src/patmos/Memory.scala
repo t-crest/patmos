@@ -50,8 +50,15 @@ class Memory() extends Component {
     memReg := io.exmem
   }
   
+  val extMem = Bool()
+  extMem := Bool(false)
+  // some primary decoding here
+  // breaks the current blinking LED
+  // TODO: check (and write into TR) our address map
+  when(memReg.addr(31, 28) != Bits("b0000")) { extMem := Bool(true) }
+  
   // connection of external IO, memory, NoC,...
-  io.memBus.wr := memReg.store
+  io.memBus.wr := memReg.store & extMem
   io.memBus.dataOut := memReg.data
   
   io.memwb.pc := memReg.pc
