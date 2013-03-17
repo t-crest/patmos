@@ -1,7 +1,7 @@
 #!/bin/bash
 # Directories containing assembler tests
 cd asm
-test_dirs="./inst_tests"
+test_dirs="./inst_tests ./vliw_tests"
 #for dir in ${test_dirs} ; do
 #    mkdir ../tmp/${dir} 2>/dev/null
 #done
