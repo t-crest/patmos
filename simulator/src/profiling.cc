@@ -56,15 +56,8 @@ namespace patmos
     //std::cerr << "PUSH " << std::hex << addr << "\n";
     // create entry for function on demand
     if (!cycles_map.count(addr)) {
-      prof_funcinfo_t callee;
-      callee.num_calls = 0;
-      callee.depth = 0;
-      callee.maxdepth;
-      callee.enter_cycle = 0;
-      callee.self = 0;
+      prof_funcinfo_t callee = {0};
       callee.min = (uint64_t) -1U;
-      callee.max = 0;
-      callee.total = 0;
       cycles_map[addr] = callee;
     }
     // add self-cycles to caller (current function)
