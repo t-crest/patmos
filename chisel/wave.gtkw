@@ -1,10 +1,10 @@
 [*]
 [*] GTKWave Analyzer v3.3.37 (w)1999-2012 BSI
-[*] Sun Mar 17 21:51:52 2013
+[*] Mon Mar 18 21:44:30 2013
 [*]
 [dumpfile] "/Users/martin/t-crest/patmos/chisel/Patmos.vcd"
-[dumpfile_mtime] "Sun Mar 17 21:46:31 2013"
-[dumpfile_size] 60591
+[dumpfile_mtime] "Mon Mar 18 21:41:48 2013"
+[dumpfile_size] 63532
 [savefile] "/Users/martin/t-crest/patmos/chisel/wave.gtkw"
 [timestart] 0
 [size] 1321 724
@@ -44,13 +44,14 @@ Patmos.Decode.RegisterFile.rf_1[31:0]
 Patmos.Decode.RegisterFile.rf_2[31:0]
 Patmos.Decode.RegisterFile.rf_3[31:0]
 Patmos.Decode.RegisterFile.rf_4[31:0]
-Patmos.Memory.io_exmem_addr[31:0]
-Patmos.Memory.io_exmem_data[31:0]
-@28
-Patmos.Memory.io_exmem_load
-@29
-Patmos.Memory.io_exmem_store
+Patmos.Decode.RegisterFile.rf_5[31:0]
+Patmos.Decode.RegisterFile.rf_6[31:0]
+Patmos.Decode.RegisterFile.rf_7[31:0]
+@23
+Patmos.Decode.RegisterFile.rf_8[31:0]
 @22
+Patmos.Decode.RegisterFile.rf_9[31:0]
+Patmos.Decode.RegisterFile.rf_10[31:0]
 Patmos.Memory.io_exmem_rd_addr[4:0]
 Patmos.Memory.io_exmem_rd_data[31:0]
 @28
