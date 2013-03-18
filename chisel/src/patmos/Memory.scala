@@ -44,26 +44,42 @@ import Node._
 
 class Memory() extends Component {
   val io = new MemoryIO()
-  
+
   val memReg = Reg(new ExMem())
-  when (io.ena) {
+  when(io.ena) {
     memReg := io.exmem
   }
-  
+
   val extMem = Bool()
   extMem := Bool(false)
-  // some primary decoding here
+  // some primary decoding here - maybe should be done already in EX
+  // to have write enable a real register
   // breaks the current blinking LED
   // TODO: check (and write into TR) our address map
   when(memReg.addr(31, 28) != Bits("b0000")) { extMem := Bool(true) }
-  
+
+  // Manual would like a register here???
+  val dout = Bits()
+  // SPM
+  // How many registers do we have here on the input?
+  // Assuming one more, as no complain about the write enable
+  // not being in a register
+  // Probably do the write enable and address comparison in EX
+  // and use the unregistered values + ena logic for stall
+  val mem = Mem(1024, seqRead = true) { Bits(width = 32) }
+  dout := mem(memReg.addr)
+  when (memReg.store) { mem(memReg.addr) := memReg.data }
+  // mem.write(memReg.addr, memReg.data, memReg.store) // & !extMem)
+
+
   // connection of external IO, memory, NoC,...
   io.memBus.wr := memReg.store & extMem
   io.memBus.dataOut := memReg.data
-  
+
   io.memwb.pc := memReg.pc
-  // rd will change on a load
-  io.memwb.rd := memReg.rd
+  io.memwb.rd.addr := memReg.rd.addr
+  io.memwb.rd.valid := memReg.rd.valid || memReg.load
+  io.memwb.rd.data := Mux(memReg.load, dout, memReg.rd.data)
   // extra port for forwarding the registered value
   io.exResult := memReg.rd
 }

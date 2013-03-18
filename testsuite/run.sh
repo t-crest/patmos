@@ -19,7 +19,7 @@ for td in ${test_dirs}; do
 done
 cd ..
 
-tests="basic simple test load_store_stackcache ALU ALUi ALUl dual_forwarding dual_even_odd_address forward_issue unary load_store_data_cache load_store_scratchpad load_store_scratchpad_new load_store_scratchpad_new2 predication fetch_double  branch predicated_predicate"
+tests="basic simple test load_store_stackcache ALU ALUi ALUl dual_forwarding scratchpad dual_even_odd_address forward_issue unary load_store_data_cache load_store_scratchpad load_store_scratchpad_new load_store_scratchpad_new2 predication fetch_double  branch predicated_predicate"
 tests+=${test_disc}
 
 
@@ -27,9 +27,10 @@ tests_c="hello_test"
 not_working="none"
 not_working_chsl="none"
 expect_fail=5
-expect_fail_chsl=11
+expect_fail_chsl=10
 
 # How to implement timeout? IMPLEMENTED!
+# But does not work under OSX
 timeout=90
 
 function run {
