@@ -83,15 +83,15 @@ class Result() extends Bundle() {
   val valid = Bool(INPUT)
 }
 
-class ExMem() extends Bundle() {
-  val rd = new Result()
-  // quick store, address is needed as well.
-  // Might be a structure similar to rd?
-  // Or maybe just use rd and have an address
+class Mem() extends Bundle() {  
   val load = Bool()
   val store = Bool()
   val addr = Bits(width = 32)
   val data = Bits(width = 32)
+}
+class ExMem() extends Bundle() {
+  val rd = new Result()
+  val mem = new Mem()
   val pc = UFix(width = Constants.PC_SIZE)
   // just for debugging
   val predDebug = Vec(8) { Bool() }
