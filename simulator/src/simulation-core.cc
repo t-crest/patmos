@@ -249,10 +249,10 @@ namespace patmos
           {
             const char *name = Inst->I->Name;
 
-            if (name=="call" || name=="callr")
+            if (strncmp(name, "call", 4) == 0)
               Profiling.enter(PC, Cycle);
 
-            if (name=="ret")
+            if (strncmp(name, "ret", 3) == 0)
               Profiling.leave(Cycle);
           }
         }
