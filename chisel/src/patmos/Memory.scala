@@ -49,17 +49,35 @@ class Memory() extends Component {
   when(io.ena) {
     memReg := io.exmem
   }
+  
+  // Use combinational input in regular case.
+  // Replay old value on a stall.
+  val addr = Mux(io.ena, io.exmem.mem.addr, memReg.mem.addr)
+  val data = Mux(io.ena, io.exmem.mem.data, memReg.mem.data)
+  val store = Mux(io.ena, io.exmem.mem.store, memReg.mem.store)
+  
+  // now the unconditional registers for the on-chip memory
+  val addrReg = Reg(addr)
+  val dataReg = Reg(data)
+  val storeReg = Reg(store)
 
-  val extMem = Bool()
-  extMem := Bool(false)
+  // TODO: use unregistered signals
+  // On a stall replay former registered values from memReg
+  // Use a Bundle for the memory signals
   // some primary decoding here - maybe should be done already in EX
   // to have write enable a real register
   // breaks the current blinking LED
   // TODO: check (and write into TR) our address map
-  when(memReg.addr(31, 28) != Bits("b0000")) { extMem := Bool(true) }
-
-  // Manual would like a register here???
+  val extMem = addr(31, 28) != Bits("b0000")
+  val extWrReg = Reg(extMem & store)
+  
+  
+  // Manual would like an output register here???
+  // val dout = Reg() { Bits() }
+  // However, with registers at the input it looks ok
+  // With the additional output register we get an additional wait cycle
   val dout = Bits()
+
   // SPM
   // How many registers do we have here on the input?
   // Assuming one more, as no complain about the write enable
@@ -67,19 +85,19 @@ class Memory() extends Component {
   // Probably do the write enable and address comparison in EX
   // and use the unregistered values + ena logic for stall
   val mem = Mem(1024, seqRead = true) { Bits(width = 32) }
-  dout := mem(memReg.addr)
-  when (memReg.store) { mem(memReg.addr) := memReg.data }
+  dout := mem(addrReg)
+  when (storeReg) { mem(addrReg) := dataReg }
   // mem.write(memReg.addr, memReg.data, memReg.store) // & !extMem)
 
 
   // connection of external IO, memory, NoC,...
-  io.memBus.wr := memReg.store & extMem
-  io.memBus.dataOut := memReg.data
+  io.memBus.wr := extWrReg
+  io.memBus.dataOut := dataReg
 
   io.memwb.pc := memReg.pc
   io.memwb.rd.addr := memReg.rd.addr
-  io.memwb.rd.valid := memReg.rd.valid || memReg.load
-  io.memwb.rd.data := Mux(memReg.load, dout, memReg.rd.data)
+  io.memwb.rd.valid := memReg.rd.valid || memReg.mem.load
+  io.memwb.rd.data := Mux(memReg.mem.load, dout, memReg.rd.data)
   // extra port for forwarding the registered value
   io.exResult := memReg.rd
 }
