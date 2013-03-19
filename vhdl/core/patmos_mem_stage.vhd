@@ -95,10 +95,13 @@ architecture arch of patmos_mem_stage is
 
     -- Main Memory
     signal gm_write_data             : std_logic_vector(31 downto 0);
+    signal gm_write_data_reg         : std_logic_vector(31 downto 0);
     signal gm_data_out               : std_logic_vector(31 downto 0);
     signal gm_en_reg                 : std_logic_vector(3 downto 0);
     signal gm_read_add, gm_write_add : std_logic_vector(9 downto 0);
+    signal gm_write_add_reg			  : std_logic_vector(9 downto 0);           
     signal gm_en_spill               : std_logic_vector(3 downto 0);
+    signal gm_en_spill_reg           : std_logic_vector(3 downto 0);
     signal gm_spill                  : std_logic_vector(3 downto 0);
     signal gm_byte_enable            : std_logic_vector(3 downto 0);
     signal gm_word_enable            : std_logic_vector(1 downto 0);
@@ -117,12 +120,13 @@ architecture arch of patmos_mem_stage is
     
     signal ld_data, prev_ld_data    : std_logic_vector(31 downto 0);
 
-    signal state_reg, next_state : sc_state;
-    signal mem_top, mem_top_next : std_logic_vector(31 downto 0);
-    signal sc_fill               : std_logic_vector(3 downto 0);
+    signal state_reg, next_state 	: sc_state;
+    signal mem_top, mem_top_next	 : std_logic_vector(31 downto 0);
+    signal sc_fill               	: std_logic_vector(3 downto 0);
 
     signal spill, fill                   : std_logic;
-    signal stall, sc_need_stall                        : std_logic;
+    signal stall, sc_need_stall          : std_logic;
+    signal spill_fill_reg				  : std_logic;
     signal nspill_fill, nspill_fill_next : std_logic_vector(31 downto 0);
 
     signal cpu_out : cpu_out_type;
@@ -130,9 +134,9 @@ architecture arch of patmos_mem_stage is
 
     signal gm_out : gm_out_type;
     signal gm_in  : gm_in_type;
+	signal gm_write_res					: std_logic_vector(31 downto 0);
 
-
-	
+	signal prev_mem_data_out_muxed  	:  std_logic_vector(31 downto 0);
 
 begin
 
@@ -155,20 +159,35 @@ begin
     -- Ms: as you exchange 32-bit words you can have one memory with 32 bits
     -- instead of four byte memories.
 
-    process(exout_reg_adr_shft, spill, fill, mem_top, gm_spill, gm_en_reg, gm_data_out, mem_write_data_stall) --SA: Main memory read/write address, normal load/store or fill/spill
+	gm_write_res <= std_logic_vector(signed(mem_top) - 1);
+    process(exout_reg_adr_shft, spill, fill, mem_top, gm_data_out, mem_write_data_stall, gm_en_reg
+    	, gm_write_add_reg, gm_en_spill_reg, gm_in, spill_fill_reg
+    ) --SA: Main memory read/write address, normal load/store or fill/spill
     begin
         gm_read_add   <= exout_reg_adr_shft(9 downto 0);
         gm_write_add  <= exout_reg_adr_shft(9 downto 0);
         gm_en_spill   <= gm_en_reg;
         gm_write_data <= mem_write_data_stall;
         --		gm_read_data		<= gm_data_out;
-        if (spill = '1' or fill = '1') then
-            gm_read_add   <= mem_top(9 downto 0);
-            gm_write_add   <= mem_top(9 downto 0);
-            gm_en_spill   <= gm_spill;  -- this is for spilling ( writing to global memory)
+        if (spill_fill_reg = '1') then --if (spill = '1' or fill = '1') then
+            
+            gm_write_add   <= gm_write_add_reg(9 downto 0);
+            gm_en_spill   <= gm_en_spill_reg;  -- this is for spilling ( writing to global memory)
             gm_write_data <= gm_in.wr_data; -- comes from sc
 
         end if;
+        if(spill = '1' or fill = '1') then
+        	gm_read_add   <= mem_top(9 downto 0);
+        end if;
+    end process;
+    
+    process(clk) -- compensate one clock delay of loading from stack cache
+    begin
+    	if (rising_edge (clk)) then
+    		gm_write_add_reg   <= gm_write_res(9 downto 0);
+            gm_en_spill_reg   <= gm_spill;  -- this is for spilling ( writing to global memory)
+            spill_fill_reg	  <= spill or fill;
+    	end if;
     end process;
 
         gm0 : entity work.patmos_data_memory(arch)
@@ -226,16 +245,16 @@ begin
             gm_in
         );
 
-    process(exout_reg_adr, sc_en, gm_read_data, cpu_in, spill, fill, mem_top, sc_fill, mem_write_data_stall)
+    process(exout_reg_adr, sc_en, gm_read_data, cpu_in, spill, fill, gm_write_res, mem_top, sc_fill, mem_write_data_stall)
     begin
         cpu_out.address    <= exout_reg_adr;
         cpu_out.sc_en      <= sc_en;
         gm_out.wr_data     <= gm_read_data;
         sc_read_data       <= cpu_in.rd_data;
         cpu_out.spill_fill <= spill or fill;
-        cpu_out.mem_top    <= mem_top;
+        cpu_out.mem_top    <= gm_write_res;
         cpu_out.sc_fill    <= sc_fill;
-        cpu_out.wr_add     <= mem_top(sc_length - 1 downto 0) and SC_MASK;
+        cpu_out.wr_add     <= gm_write_res(sc_length - 1 downto 0) and SC_MASK;
         cpu_out.wr_data    <= mem_write_data_stall;
     end process;
     --sc[mem_top & SC_MASK] = mem[mem_top];
@@ -326,7 +345,7 @@ begin
                 nspill_fill_next <= exout_not_reg.nspill_fill;
             --		dout.stall <= '0';
             when spill_state =>
-                if ((signed(nspill_fill) - 1) > 0) then -- this should be changed to bit comparison
+                if ((signed(nspill_fill) - 1) >= 0) then 
                     mem_top_next     <= std_logic_vector(signed(mem_top) - 1);
                     nspill_fill_next <= std_logic_vector(signed(nspill_fill) - 1);
                     gm_spill         <= "1111"; -- spill in words?
@@ -340,7 +359,7 @@ begin
                 end if;
 
             when fill_state =>
-                if ((signed(nspill_fill) - 1) > 0) then
+                if ((signed(nspill_fill) - 1) >= 0) then
                     mem_top_next     <= std_logic_vector(signed(mem_top) + 1);
                     nspill_fill_next <= std_logic_vector(signed(nspill_fill) - 1);
                     sc_fill          <= "1111"; -- fill in words?
@@ -366,6 +385,8 @@ begin
         dout.stall   <= stall;
         -- Edgar: sc_need_stall might be artificial in the future, but it's easier to think this way for now
         stall <= sc_need_stall;-- or (gm_do_read and not gm_read_done) or (gm_do_write and not gm_write_done);
+        cpu_out.fill <= fill;
+        cpu_out.spill <= spill;
     --end process;
     -----------------------------------------------
     -- MS: If a registered address from EX is used here and there is an address
@@ -422,24 +443,26 @@ begin
             prev_exout_reg_adr      <= exout_not_reg.adrs;
             prev_mem_write_data_reg <= mem_write_data;
             prev_en_reg             <= en;
-
-            prev_ld_data <= ld_data;
-
+			
+            prev_ld_data 			<= ld_data;
+            prev_gm_en_reg			<= gm_en_reg;
+			prev_mem_data_out_muxed	<= mem_data_out_muxed;
         end if;
     end process;
 
     process(stall, en, gm_en, prev_en_reg, exout_not_reg, mem_write_data, prev_exout_reg_adr, prev_mem_write_data_reg)
-    begin
+    begin        
+       
+        exout_reg_adr        <= exout_not_reg.adrs;
+        mem_write_data_stall <= mem_write_data;
+        gm_en_reg            <= gm_en;
+        en_reg               <= en;
+        
         if (stall = '1') then
             exout_reg_adr        <= prev_exout_reg_adr;
             mem_write_data_stall <= prev_mem_write_data_reg;
             en_reg               <= prev_en_reg;
             gm_en_reg            <= prev_gm_en_reg;
-        else
-            exout_reg_adr        <= exout_not_reg.adrs;
-            mem_write_data_stall <= mem_write_data;
-            gm_en_reg            <= gm_en;
-            en_reg               <= en;
         end if;
     end process;
 
@@ -620,6 +643,16 @@ begin
             else
                 dout.data <= exout_reg.alu_result_reg;
                 datain    <= exout_reg.alu_result_reg;
+            end if;
+            
+            if (stall = '1') then
+            	if exout_reg.mem_to_reg = '1' then
+	                dout.data <= prev_mem_data_out_muxed; --mem_data_out_muxed; --
+	                datain <= prev_mem_data_out_muxed; --mem_data_out_muxed;--
+	            else
+	                dout.data <= exout_reg.alu_result_reg;
+	                datain <= exout_reg.alu_result_reg;
+	            end if;
             end if;
     end process;
 end arch;

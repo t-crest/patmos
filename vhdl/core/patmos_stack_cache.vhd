@@ -57,12 +57,14 @@ entity patmos_stack_cache is
 end entity patmos_stack_cache;
 architecture arch of patmos_stack_cache is
 	
-	signal sc_write_data					: std_logic_vector(31 downto 0);		
-	signal sc_write_add						: std_logic_vector(sc_length - 1 downto 0);
-	signal sc_read_data						: std_logic_vector(31 downto 0);
-	signal sc_read_add						: std_logic_vector(sc_length - 1 downto 0);
-	signal sc_en_fill						: std_logic_vector(3 downto 0);
-	signal exout_reg_adr_shft				: std_logic_vector(31 downto 0);
+	signal sc_write_data, sc_write_data_reg		: std_logic_vector(31 downto 0);		
+	signal sc_write_add	, sc_write_add_reg		: std_logic_vector(sc_length - 1 downto 0);
+	signal sc_read_data							: std_logic_vector(31 downto 0);
+	signal sc_read_add							: std_logic_vector(sc_length - 1 downto 0);
+	signal sc_en_fill, sc_en_fill_reg			: std_logic_vector(3 downto 0);
+	signal exout_reg_adr_shft					: std_logic_vector(31 downto 0);
+	signal spill_fill_reg						: std_logic;
+	
 	
 begin
 
@@ -103,34 +105,43 @@ begin
 			     sc_read_data(31 downto 24));	
 			     
 	-------------------------------------------------------------------------		 
-	
+	process(clk) -- compensate one clock delay of loading from global memory
+    begin
+    	if (rising_edge (clk)) then
+    		sc_en_fill_reg 		<= cpu_out.sc_fill; -- this is for filling!
+			sc_write_data_reg   <= mem_out.wr_data;
+			sc_write_add_reg	<= cpu_out.wr_add;
+			spill_fill_reg		<= cpu_out.fill;
+    	end if;
+    end process;
+    
 	process(cpu_out.address) -- shift the address. . . did it already in mem stage should pass that value . . .
 	begin
 		exout_reg_adr_shft <= "00" & cpu_out.address(31 downto 2); 
 	end process;    
 	
   	process(cpu_out,
-		sc_read_data, exout_reg_adr_shft, mem_out
+		sc_read_data, exout_reg_adr_shft, mem_out, sc_en_fill_reg, sc_write_data_reg, sc_write_add_reg
 	) --SA: Main memory read/write address, normal load/store or fill/spill
 	begin
-		--cpu_in.rd_add <= exout_reg_adr_shft(9 downto 0);
-		--cpu_in.wr_add <= exout_reg_adr_shft(9 downto 0);
-		--gm_en_spill <= gm_en;
-		--cpu_in.wr_data <= mem_write_data_stall;
 		cpu_in.rd_data 	<= sc_read_data;
 		sc_read_add 	<= exout_reg_adr_shft(sc_length - 1 downto 0);
 		sc_write_add 	<= exout_reg_adr_shft(sc_length - 1 downto 0);
 		sc_en_fill 		<= cpu_out.sc_en;
 		sc_write_data 	<= cpu_out.wr_data;
-		mem_in.wr_data  <= sc_read_data;
-		if (cpu_out.spill_fill = '1') then	
-			sc_read_add <= cpu_out.mem_top(sc_length - 1 downto 0) and SC_MASK;
---			mem_in.wr_data  <= sc_read_data;
-			sc_en_fill 		<= cpu_out.sc_fill; -- this is for filling!
-			sc_write_data   <= mem_out.wr_data;
+		mem_in.wr_data  <= sc_read_data(7 downto 0) & sc_read_data(15 downto 8) & sc_read_data(23 downto 16) & sc_read_data(31 downto 24);
+		if (spill_fill_reg = '1') then --if (cpu_out.spill_fill = '1') then	
+			
+
+			sc_en_fill 		<= spill_fill_reg & spill_fill_reg & spill_fill_reg & spill_fill_reg; -- this is for filling!
+			sc_write_data   <= mem_out.wr_data(7 downto 0) & mem_out.wr_data(15 downto 8) & mem_out.wr_data(23 downto 16) & mem_out.wr_data(31 downto 24);
 			sc_write_add	<= cpu_out.wr_add;
 		end if;
+		if (cpu_out.spill = '1') then
+			sc_read_add <= cpu_out.mem_top(sc_length - 1 downto 0) and SC_MASK;
+		end if;
 	end process;
+	
      
 end arch;
 
