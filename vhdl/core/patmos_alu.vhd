@@ -228,7 +228,6 @@ begin
 		if rst = '1' then
 			predicate_reg 						<= "00000001";
 			doutex_reg.predicate 				<= "00000001";
-	
 		elsif rising_edge(clk) then
 			if (memdout.stall /= '1') then
 				-- MS: whouldn't it make sense to use the EXE record also for
@@ -246,7 +245,7 @@ begin
 				doutex_reg.dc_read 				<= doutex_dc_read;
 				doutex_reg.dc_write 			<= doutex_dc_write;
 				doutex_reg.mem_to_reg           <= decdout.mem_to_reg;
-				doutex_reg.alu_result_reg       <= rd_rs;
+				doutex_reg.alu_result_reg       <= rd;
 				
 				
 				doutex_reg.adrs_reg		      	<= adrs;
@@ -271,25 +270,9 @@ begin
 
 			end if;
 
-	--		doutex.head                 <= doutex_head;
-	--		doutex.tail                 <= doutex_tail;
-		--	if(memdout.stall = '1') then
-		--		doutex <= prev_dout;
-		--	end if;
 		end if;
 	end process;
 	
-	process(rd)--, decdout, spc, spc_reg, spc_reg_write)
-	begin
-		rd_rs 	 <= rd;
---		if (decdout.spc = '1') then
---			if (spc_reg_write(to_integer(unsigned(decdout.sr(3 downto 0)))) = '1') then
---				rd_rs <= spc_reg;
---			else
---				rd_rs <= spc;
---			end if;
---		end if;
-	end process;
 
 
 	
@@ -328,7 +311,7 @@ begin
 				doutex_gm_write             <= decdout.gm_write;
 				doutex_dc_read              <= decdout.dc_read;
 				doutex_dc_write             <= decdout.dc_write;
-				doutex_reg_write 			<= decdout.reg_write and reg_file_not_stall;
+				doutex_reg_write 			<= decdout.reg_write;-- and reg_file_not_stall;
 				predicate_checked 			<= predicate;
 
 		else
@@ -353,7 +336,6 @@ begin
 		doutex_not_reg.pc <= std_logic_vector(unsigned(decdout.pc) + unsigned(decdout.imm));
 	end process;
 	
-	reg_file_not_stall <= not memdout.stall;
 	
 	process(doutex_alu_result_reg, doutex_write_back_reg, doutex_reg_write_reg , decdout, memdout)
 	begin
@@ -400,8 +382,6 @@ begin
 		is_exec			<= '0';
 		-- MS: (1) why is stack cache mixed with predicate lookup
 		-- (2) Assigning <= (others => '0') has no meaning when it is followed by an assignmnet
-		res_diff		<= (others => '0');
-		ens_diff		<= (others => '0');
 		if predicate_reg(to_integer(unsigned(decdout.predicate_condition))) /= decdout.predicate_bit then
 			is_exec 	<=  '1';
 		end if;

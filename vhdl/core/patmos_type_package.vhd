@@ -227,6 +227,8 @@ package patmos_type_package is
 		spill_fill								: std_logic;
 		mem_top									: std_logic_vector(31 downto 0);
 		sc_fill									: std_logic_vector(3 downto 0);
+		spill									: std_logic;
+		fill									: std_logic;
 	end record;
 	
 	type cpu_in_type is record
@@ -235,6 +237,7 @@ package patmos_type_package is
 		sc_en									: std_logic_vector(3 downto 0);
 		address									: std_logic_vector(31 downto 0);
 		spill_fill								: std_logic;
+
 	end record;
 	
 	type gm_in_type is record
