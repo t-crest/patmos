@@ -155,10 +155,10 @@ begin
 						comb_out.pat_function_type_sc <= ensure;
 						comb_out.inst <= ens;
 --						comb_out.st_out                   <= "0111";
---						comb_out.stc_immediate_out        <= din.operation(4 downto 0);
+						comb_out.imm <= std_logic_vector(resize(signed(din.operation(21 downto 0)), 32));
 					when "10" =>
 						comb_out.pat_function_type_sc <= free;
-						comb_out.imm       <= std_logic_vector(resize(signed(din.operation(4 downto 0)), 32));
+						comb_out.imm       <= std_logic_vector(resize(signed(din.operation(21 downto 0)), 32));
 						comb_out.inst <= free;
 						
 					when others => NULL;
