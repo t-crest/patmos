@@ -121,7 +121,7 @@ class Patmos(fileName: String) extends Component {
 //  }
   
   // The one and only output
-  io.led := ledReg
+  io.led := ~ledReg
 
   // Dummy output, which is ignored in the top level VHDL code, to
   // keep Chisel happy with unused signals
