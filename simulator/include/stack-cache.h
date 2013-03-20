@@ -269,11 +269,16 @@ namespace patmos
     virtual void print(std::ostream &os) const
     {
       unsigned int idx = Content.size();
+      assert(((idx % 4) == 0) && "Stack cache size (in bytes) needs to be multiple of 4");
 
       for(std::vector<byte_t>::const_iterator i(Content.begin()),
-          ie(Content.end()); i != ie; i++, idx--)
+          ie(Content.end()); i != ie; i+=4, idx-=4)
       {
-        os << boost::format(" %1$08x:  %2$02x\n") % idx % (uword_t)(ubyte_t)*i;
+        os << boost::format(" %08x:  %02x%02x%02x%02x\n") % idx
+                                                          % (uword_t)(ubyte_t)*(i+0)
+                                                          % (uword_t)(ubyte_t)*(i+1)
+                                                          % (uword_t)(ubyte_t)*(i+2)
+                                                          % (uword_t)(ubyte_t)*(i+3);
       }
 
       os << "\n";
