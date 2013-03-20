@@ -94,7 +94,8 @@ class Memory() extends Component {
   // to have write enable a real register
   // breaks the current blinking LED
   // TODO: check (and write into TR) our address map
-  val extMem = memIn.addr(31, 28) != Bits("b0000")
+//  val extMem = memIn.addr(31, 28) != Bits("b0000")
+  val extMem = Bool(true)
   val extWrReg = Reg(extMem & memIn.store)
   val extWrDataReg = Reg(memIn.data)
 
