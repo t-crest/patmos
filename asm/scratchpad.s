@@ -13,4 +13,9 @@
 	lwl	r7  = [r1 + 4];
 	addi	r0 = r0, 0;
 	addi	r0 = r0, 0;
+	add	r2 = r0, 0xdeadbeef;
+	swl	[r1 + 8] = r2;
+	lwl	r5  = [r1 + 8];
+	lwl	r6  = [r1 + 4];
+	lwl	r7  = [r1 + 8];
 	halt; 

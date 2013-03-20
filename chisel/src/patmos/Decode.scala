@@ -68,13 +68,16 @@ class Decode() extends Component {
 
   // Start with some useful defaults
   io.decex.immOp := Bool(false)
-//  io.decex.aluOp := Bool(false)
+  //  io.decex.aluOp := Bool(false)
   io.decex.cmpOp := Bool(false)
   io.decex.unaryOp := Bool(false)
   io.decex.predOp := Bool(false)
   io.decex.branch := Bool(false)
   io.decex.load := Bool(false)
   io.decex.store := Bool(false)
+  io.decex.hword := Bool(false)
+  io.decex.byte := Bool(false)
+  io.decex.zext := Bool(false)
   io.decex.wrReg := Bool(false)
   longImm := Bool(false)
 
@@ -84,14 +87,14 @@ class Decode() extends Component {
   when(instr(26, 25) === Bits("b00")) {
     func := Cat(Bits(0), instr(24, 22))
     io.decex.immOp := Bool(true)
-//    io.decex.aluOp := Bool(true)
+    //    io.decex.aluOp := Bool(true)
     io.decex.wrReg := Bool(true)
   }
   // Other ALU
   when(instr(26, 22) === Bits("b01000")) {
     switch(instr(6, 4)) {
       is(Bits("b000")) {
-//        io.decex.aluOp := Bool(true)
+        //        io.decex.aluOp := Bool(true)
         io.decex.wrReg := Bool(true)
       }
       is(Bits("b001")) {
@@ -106,7 +109,7 @@ class Decode() extends Component {
   // ALU long immediate (Bit 31 is set as well)
   when(instr(26, 22) === Bits("b11111")) {
     io.decex.immOp := Bool(true)
-//    io.decex.aluOp := Bool(true)
+    //    io.decex.aluOp := Bool(true)
     longImm := Bool(true)
     io.decex.wrReg := Bool(true)
   }
@@ -121,6 +124,7 @@ class Decode() extends Component {
       // where is register indirect?
     }
   }
+
   val isMem = Bool()
   val shamt = UFix()
   shamt := UFix(0)
@@ -131,11 +135,26 @@ class Decode() extends Component {
     io.decex.load := Bool(true)
     io.decex.wrReg := Bool(true)
     switch(instr(11, 9)) {
-      is(Bits("b000")) { shamt := UFix(2) }
-      is(Bits("b001")) { shamt := UFix(1)}
-      is(Bits("b010")) {}
-      is(Bits("b011")) { shamt := UFix(1) }
-      is(Bits("b100")) {}
+      is(Bits("b000")) {
+        shamt := UFix(2)
+      }
+      is(Bits("b001")) {
+        shamt := UFix(1)
+        io.decex.hword := Bool(true)
+        io.decex.zext := Bool(true)
+      }
+      is(Bits("b010")) {
+        io.decex.byte := Bool(true)
+      }
+      is(Bits("b011")) {
+        shamt := UFix(1)
+        io.decex.hword := Bool(true)
+        io.decex.zext := Bool(true)
+      }
+      is(Bits("b100")) {
+        io.decex.byte := Bool(true)
+        io.decex.zext := Bool(true)
+      }
       // ignore split load for now
     }
   }
@@ -143,10 +162,17 @@ class Decode() extends Component {
   when(instr(26, 22) === Bits("b01011")) {
     isMem := Bool(true)
     io.decex.store := Bool(true)
-    switch(instr(11, 9)) {
-      is(Bits("b000")) { shamt := UFix(2) }
-      is(Bits("b001")) { shamt := UFix(1)}
-      is(Bits("b010")) {}
+    switch(instr(21, 19)) {
+      is(Bits("b000")) {
+        shamt := UFix(2)
+      }
+      is(Bits("b001")) {
+        shamt := UFix(1)
+        io.decex.hword := Bool(true)
+      }
+      is(Bits("b010")) {
+        io.decex.byte := Bool(true)
+      }
     }
   }
   // we could merge the shamt of load and store when not looking into split load

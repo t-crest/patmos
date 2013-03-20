@@ -73,6 +73,9 @@ class DecEx() extends Bundle() {
   val branch = Bool()
   val load = Bool()
   val store = Bool()
+  val hword = Bool()
+  val byte = Bool()
+  val zext = Bool()
   // wrReg? or wrEn? or valid? We use now all three at different places ;-)
   val wrReg = Bool()
 }
@@ -86,6 +89,9 @@ class Result() extends Bundle() {
 class MemIn() extends Bundle() {  
   val load = Bool()
   val store = Bool()
+  val hword = Bool()
+  val byte = Bool()
+  val zext = Bool()
   val addr = Bits(width = 32)
   val data = Bits(width = 32)
 }

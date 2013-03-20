@@ -151,6 +151,9 @@ class Execute() extends Component {
   // load/store
   io.exmem.mem.load := exReg.load && doExecute
   io.exmem.mem.store := exReg.store && doExecute
+  io.exmem.mem.hword := exReg.hword
+  io.exmem.mem.byte := exReg.byte
+  io.exmem.mem.zext := exReg.zext
   io.exmem.mem.addr := op1 + exReg.immVal
   io.exmem.mem.data := op2
   //branch
