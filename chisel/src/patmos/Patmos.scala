@@ -121,11 +121,11 @@ class Patmos(fileName: String) extends Component {
 //  }
   
   // The one and only output
-  io.led := ledReg
+  io.led := ~ledReg
 
   // Dummy output, which is ignored in the top level VHDL code, to
   // keep Chisel happy with unused signals
-  val sum1 = writeback.io.rfWrite.data.toUFix + memory.io.memwb.pc
+  val sum1 = writeback.io.rfWrite.data.toUFix + memory.io.memwb.pc + memory.io.dbgMem
   val part = Reg(sum1.toBits)
   val p = execute.io.exmem.predDebug
   // to dumb for vector to bits...

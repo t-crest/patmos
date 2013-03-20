@@ -66,13 +66,16 @@ class DecEx() extends Bundle() {
   val immVal = Bits(width = 32)
   // maybe have a structure for instructions?
   val immOp = Bool()
-  val aluOp = Bool()
+//  val aluOp = Bool()
   val cmpOp = Bool()
   val unaryOp = Bool()
   val predOp = Bool()
   val branch = Bool()
   val load = Bool()
   val store = Bool()
+  val hword = Bool()
+  val byte = Bool()
+  val zext = Bool()
   // wrReg? or wrEn? or valid? We use now all three at different places ;-)
   val wrReg = Bool()
 }
@@ -83,15 +86,19 @@ class Result() extends Bundle() {
   val valid = Bool(INPUT)
 }
 
-class Mem() extends Bundle() {  
+class MemIn() extends Bundle() {  
   val load = Bool()
   val store = Bool()
+  val hword = Bool()
+  val byte = Bool()
+  val zext = Bool()
   val addr = Bits(width = 32)
   val data = Bits(width = 32)
 }
+
 class ExMem() extends Bundle() {
   val rd = new Result()
-  val mem = new Mem()
+  val mem = new MemIn()
   val pc = UFix(width = Constants.PC_SIZE)
   // just for debugging
   val predDebug = Vec(8) { Bool() }
@@ -163,6 +170,7 @@ class MemoryIO() extends Bundle() {
   // for result forwarding
   val exResult = new Result().flip
   val memBus = new MemoryBus()
+  val dbgMem = Bits(OUTPUT, 32)
 }
 
 class WriteBackIO() extends Bundle() {

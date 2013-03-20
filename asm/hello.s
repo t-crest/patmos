@@ -4,9 +4,9 @@
 # Expected Result: LED blinks
 #
 
-	addi	r0 = r0, 0;  # first instruction not executed
+	addi	r0 = r0, 0;  # first instruction maybe not executed
 
-	addi	r7 = r0, 16;
+        add     r7  = r0, 0xF0000200;
 	addi	r8 = r0, 1;
 
 loop:	xor	r9 = r9, r8;  # toggle value
