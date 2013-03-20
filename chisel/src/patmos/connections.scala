@@ -83,15 +83,16 @@ class Result() extends Bundle() {
   val valid = Bool(INPUT)
 }
 
-class Mem() extends Bundle() {  
+class MemIn() extends Bundle() {  
   val load = Bool()
   val store = Bool()
   val addr = Bits(width = 32)
   val data = Bits(width = 32)
 }
+
 class ExMem() extends Bundle() {
   val rd = new Result()
-  val mem = new Mem()
+  val mem = new MemIn()
   val pc = UFix(width = Constants.PC_SIZE)
   // just for debugging
   val predDebug = Vec(8) { Bool() }

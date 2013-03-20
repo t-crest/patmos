@@ -42,6 +42,40 @@ package patmos
 import Chisel._
 import Node._
 
+class SpmIO extends Bundle() {
+  val in = new MemIn().asInput
+  val data = Bits(OUTPUT, 32)
+}
+
+/*
+ * A on-chip memory.
+ * 
+ * Has input registers (without enable or reset).
+ * Shall do byte enable.
+ * Output mulitplexing and bit filling at the moment also here.
+ * That might move out again when more than one memory is involved.
+ */
+class Spm(size : Int) extends Component {
+  val io = new SpmIO()
+  
+    // now the unconditional registers for the on-chip memory
+  val memInReg = Reg(io.in)
+
+  // Manual would like an output register here???
+  // val dout = Reg() { Bits() }
+  // However, with registers at the input it looks ok
+  // With the additional output register we get an additional wait cycle
+
+  // SPM
+  val mem = Mem(1024, seqRead = true) { Bits(width = 32) }
+  io.data := mem(memInReg.addr)
+  when (memInReg.store) { mem(memInReg.addr) := memInReg.data }
+
+}
+
+/**
+ * The memory stage.
+ */
 class Memory() extends Component {
   val io = new MemoryIO()
 
@@ -52,47 +86,30 @@ class Memory() extends Component {
   
   // Use combinational input in regular case.
   // Replay old value on a stall.
-  val addr = Mux(io.ena, io.exmem.mem.addr, memReg.mem.addr)
-  val data = Mux(io.ena, io.exmem.mem.data, memReg.mem.data)
-  val store = Mux(io.ena, io.exmem.mem.store, memReg.mem.store)
+  val memIn = Mux(io.ena, io.exmem.mem, memReg.mem)
   
-  // now the unconditional registers for the on-chip memory
-  val addrReg = Reg(addr)
-  val dataReg = Reg(data)
-  val storeReg = Reg(store)
-
-  // TODO: use unregistered signals
-  // On a stall replay former registered values from memReg
   // Use a Bundle for the memory signals
-  // some primary decoding here - maybe should be done already in EX
+  // Some primary decoding here - it is done from the
+  // unregistered values. Therefore, practically in EX
   // to have write enable a real register
   // breaks the current blinking LED
   // TODO: check (and write into TR) our address map
-  val extMem = addr(31, 28) != Bits("b0000")
-  val extWrReg = Reg(extMem & store)
-  
-  
-  // Manual would like an output register here???
-  // val dout = Reg() { Bits() }
-  // However, with registers at the input it looks ok
-  // With the additional output register we get an additional wait cycle
-  val dout = Bits()
+  val extMem = memIn.addr(31, 28) != Bits("b0000")
+  val extWrReg = Reg(extMem & memIn.store)
+  val extWrDataReg = Reg(memIn.data)
 
-  // SPM
-  // How many registers do we have here on the input?
-  // Assuming one more, as no complain about the write enable
-  // not being in a register
-  // Probably do the write enable and address comparison in EX
-  // and use the unregistered values + ena logic for stall
-  val mem = Mem(1024, seqRead = true) { Bits(width = 32) }
-  dout := mem(addrReg)
-  when (storeReg) { mem(addrReg) := dataReg }
-  // mem.write(memReg.addr, memReg.data, memReg.store) // & !extMem)
+  
+  // TODO: address decoding for a store between SPM and IO
+  // add a write enable
+  
+  val spm = new Spm(1024)
+  spm.io.in := memIn
+  val dout = spm.io.data
 
 
   // connection of external IO, memory, NoC,...
   io.memBus.wr := extWrReg
-  io.memBus.dataOut := dataReg
+  io.memBus.dataOut := extWrDataReg
 
   io.memwb.pc := memReg.pc
   io.memwb.rd.addr := memReg.rd.addr
@@ -100,5 +117,6 @@ class Memory() extends Component {
   io.memwb.rd.data := Mux(memReg.mem.load, dout, memReg.rd.data)
   // extra port for forwarding the registered value
   io.exResult := memReg.rd
+  // debugging
   io.dbgMem := dout
 }
