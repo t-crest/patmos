@@ -66,7 +66,7 @@ class DecEx() extends Bundle() {
   val immVal = Bits(width = 32)
   // maybe have a structure for instructions?
   val immOp = Bool()
-  val aluOp = Bool()
+//  val aluOp = Bool()
   val cmpOp = Bool()
   val unaryOp = Bool()
   val predOp = Bool()
@@ -163,6 +163,7 @@ class MemoryIO() extends Bundle() {
   // for result forwarding
   val exResult = new Result().flip
   val memBus = new MemoryBus()
+  val dbgMem = Bits(OUTPUT, 32)
 }
 
 class WriteBackIO() extends Bundle() {

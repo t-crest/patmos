@@ -147,11 +147,11 @@ class Execute() extends Component {
   // result
   io.exmem.rd.addr := exReg.rdAddr(0)
   io.exmem.rd.data := aluResult
-  io.exmem.rd.valid := exReg.wrReg && doExecute && (exReg.aluOp || exReg.unaryOp) // just for now as it is not used elsewhere
+  io.exmem.rd.valid := exReg.wrReg && doExecute
   // load/store
   io.exmem.mem.load := exReg.load && doExecute
   io.exmem.mem.store := exReg.store && doExecute
-  io.exmem.mem.addr := op1 + io.decex.immVal
+  io.exmem.mem.addr := op1 + exReg.immVal
   io.exmem.mem.data := op2
   //branch
   io.exfe.doBranch := exReg.branch && doExecute

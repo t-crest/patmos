@@ -68,7 +68,7 @@ class Decode() extends Component {
 
   // Start with some useful defaults
   io.decex.immOp := Bool(false)
-  io.decex.aluOp := Bool(false)
+//  io.decex.aluOp := Bool(false)
   io.decex.cmpOp := Bool(false)
   io.decex.unaryOp := Bool(false)
   io.decex.predOp := Bool(false)
@@ -84,14 +84,14 @@ class Decode() extends Component {
   when(instr(26, 25) === Bits("b00")) {
     func := Cat(Bits(0), instr(24, 22))
     io.decex.immOp := Bool(true)
-    io.decex.aluOp := Bool(true)
+//    io.decex.aluOp := Bool(true)
     io.decex.wrReg := Bool(true)
   }
   // Other ALU
   when(instr(26, 22) === Bits("b01000")) {
     switch(instr(6, 4)) {
       is(Bits("b000")) {
-        io.decex.aluOp := Bool(true)
+//        io.decex.aluOp := Bool(true)
         io.decex.wrReg := Bool(true)
       }
       is(Bits("b001")) {
@@ -106,10 +106,9 @@ class Decode() extends Component {
   // ALU long immediate (Bit 31 is set as well)
   when(instr(26, 22) === Bits("b11111")) {
     io.decex.immOp := Bool(true)
-    io.decex.aluOp := Bool(true)
+//    io.decex.aluOp := Bool(true)
     longImm := Bool(true)
     io.decex.wrReg := Bool(true)
-
   }
   // We do not need such a long immediate for branches.
   // So this is waste of opcode space
@@ -130,6 +129,7 @@ class Decode() extends Component {
   when(instr(26, 22) === Bits("b01010")) {
     isMem := Bool(true)
     io.decex.load := Bool(true)
+    io.decex.wrReg := Bool(true)
     switch(instr(11, 9)) {
       is(Bits("b000")) { shamt := UFix(2) }
       is(Bits("b001")) { shamt := UFix(1)}

@@ -96,8 +96,9 @@ class Memory() extends Component {
 
   io.memwb.pc := memReg.pc
   io.memwb.rd.addr := memReg.rd.addr
-  io.memwb.rd.valid := memReg.rd.valid || memReg.mem.load
+  io.memwb.rd.valid := memReg.rd.valid // || memReg.mem.load
   io.memwb.rd.data := Mux(memReg.mem.load, dout, memReg.rd.data)
   // extra port for forwarding the registered value
   io.exResult := memReg.rd
+  io.dbgMem := dout
 }
