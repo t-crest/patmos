@@ -27,7 +27,7 @@ tests_c="hello_test"
 not_working="none"
 not_working_chsl="none"
 expect_fail=6
-expect_fail_chsl=12
+expect_fail_chsl=11
 
 # How to implement timeout? IMPLEMENTED!
 # But does not work under OSX
@@ -125,8 +125,9 @@ else
     echo "All tests ok"
 fi
 
-echo "Test VHDL failures: expected ${expect_fail}, actual ${#failed[@]}" >&2
-echo "Test Chisel failures: expected ${expect_fail_chsl}, actual ${#failed_chsl[@]}" >&2
+nr=`echo ${tests} | wc -w`
+echo "Test VHDL failures: expected ${expect_fail}, actual ${#failed[@]} out of ${nr}" >&2
+echo "Test Chisel failures: expected ${expect_fail_chsl}, actual ${#failed_chsl[@]} out of ${nr}" >&2
 if [ "${#failed[@]}" -ne $expect_fail ] ; then
     exit 1
 else
