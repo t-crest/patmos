@@ -147,7 +147,7 @@ class PatmosTest(pat: Patmos) extends Tester(pat,
     val vars = new HashMap[Node, Node]()
     val ovars = new HashMap[Node, Node]()
 
-    for (i <- 0 until 50) {
+    for (i <- 0 until 100) {
       vars.clear
       step(vars, ovars, false) // false as third argument disables printout
       // The PC printout is a little of on a branch
