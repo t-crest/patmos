@@ -1,7 +1,7 @@
 # Test case for stack cache load and store
 	nop 	0;
 	addi 	r1 = r0, 4095;
-	addi	r2 = r0, 5;
+	addi	r2 = r0, 4;
 	sws		[r2 + 0] = r1;
 	shs		[r2 + 4] = r1;
 	sbs 	[r2 + 8] = r1;

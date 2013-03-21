@@ -1,7 +1,7 @@
 # Test case for local memory load and store
 	nop 	0;
 	addi 	r1 = r0, 4095;
-	addi	r2 = r0, 5;
+	addi	r2 = r0, 4;
 	swl		[r2 + 0] = r1;
 	shl		[r2 + 4] = r1;
 	sbl 	[r2 + 8] = r1;

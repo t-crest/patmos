@@ -88,7 +88,7 @@ public class CompareChisel {
 		}
 
 		if (!chisel.hasNextLine()) {
-			System.out.println("No suitable output from high-level simulator");
+			System.out.println("No suitable output from chisel simulator");
 			System.exit(1);
 		}
 
@@ -96,7 +96,7 @@ public class CompareChisel {
 		// Now we should be synchronous
 		Pattern makeExitPattern = Pattern.compile("make\\S*:");
 		while (hs.hasNextLine()) {
-			// workaround for exist with error code
+			// workaround for exits with error code
 			if (hs.hasNext(makeExitPattern)) {
 				break;
 			}
@@ -104,8 +104,10 @@ public class CompareChisel {
 				System.out.println("Chisel trace incomplete: "+cnt);
 				System.exit(1);
 			}
+			System.out.println(chisel);
 			// unsigned int output from Chisel
 			int pc = (int) chisel.nextLong();
+//			System.out.print("pc: "+pc);
 			chisel.next(); // skip '-'
 			// TODO: we would like to keep the ':' after the pc, but I don't have a Scanner docu
 			for (int i=0; i<32; ++i) {
@@ -114,13 +116,14 @@ public class CompareChisel {
 					hs.next();
 				}
 				int hsVal = (int) hs.nextLong(16);
+//				System.out.print(" "+csVal+" ("+hsVal+")");
 				if (csVal != hsVal) {
 					System.out.println("Difference at PC: "+pc);
 					System.out.println("Register "+i+ " Chisel: "+csVal+" patsim: "+hsVal);
 					System.exit(1);
 				}
 			}
-
+//System.out.println();
 			hs.nextLine();
 			chisel.nextLine();
 			++cnt;

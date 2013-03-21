@@ -1,7 +1,7 @@
 # Test case for data cache load and store
 	nop 	0;
 	addi 	r1 = r0, 4095;
-	addi	r2 = r0, 5;
+	addi	r2 = r0, 4;
 	swc		[r2 + 0] = r1;
 	shc		[r2 + 4] = r1;
 	sbc 	[r2 + 8] = r1;

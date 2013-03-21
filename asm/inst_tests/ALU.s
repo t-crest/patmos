@@ -15,8 +15,9 @@
 	or		r4 = r4, 0; # r4 = 0xffffffff
 	and		r4 = r4, 0; # r4 = 0x0
 	addi	r6 = r0, 1;
-	rl		r6 = r6, r1;
-	rr		r6 = r6, r1; # r6 = 1
+# rotates have been removed form then Patmos ISA
+#	rl		r6 = r6, r1;
+#	rr		r6 = r6, r1; # r6 = 1
 	xor		r6 = r6, r1; # r6 = 2
 	addi	r7 = r0, 0;
 	nor		r6 = r6, r7; # r6 = 4294967293

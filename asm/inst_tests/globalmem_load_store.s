@@ -1,7 +1,7 @@
 # Test case for global memory load and store
 	nop 	0;
 	addi 	r1 = r0, 4095;
-	addi	r2 = r0, 5;
+	addi	r2 = r0, 4;
 	swm		[r2 + 0] = r1;
 	shm		[r2 + 4] = r1;
 	sbm 	[r2 + 8] = r1;
