@@ -170,6 +170,11 @@ namespace patmos
         // track pipeline stalls
         Num_stall_cycles[Stall]++;
 
+        if (debug && debug_fmt == DF_INSTRUCTIONS)
+        {
+          print_instructions(debug_out, SMW);
+        }
+        
         // move pipeline stages
         for (int i = SEX; i >= Stall; i--)
         {
@@ -339,6 +344,24 @@ namespace patmos
     }
   }
 
+  void simulator_t::print_instructions(std::ostream &os, Pipeline_t stage) const {
+      std::ostringstream oss;
+      symbol_map_t emptymap;
+      for(unsigned int i = 0; i < NUM_SLOTS; i++) {
+        if (i != 0) oss << " || ";
+        Pipeline[stage][i].print(oss, emptymap);
+      }
+
+      os << boost::format("%1$08x %2$9d %3% %|70t|") % PC % Cycle % oss.str();
+
+      for(unsigned int i = 0; i < NUM_SLOTS; i++) {
+        if (i != 0) os << " ";
+        Pipeline[stage][i].printOperands(*this, os, Symbols);
+      }
+
+      os << "\n";      
+  }
+  
   void simulator_t::print(std::ostream &os, debug_format_e debug_fmt) const
   {
     if (debug_fmt == DF_TRACE)
@@ -347,22 +370,7 @@ namespace patmos
       return;
     }
     else if (debug_fmt == DF_INSTRUCTIONS) {
-
-      std::ostringstream oss;
-      symbol_map_t emptymap;
-      for(unsigned int i = 0; i < NUM_SLOTS; i++) {
-        if (i != 0) oss << " || ";
-        Pipeline[SMW][i].print(oss, emptymap);
-      }
-
-      os << boost::format("%1$08x %2$9d %3% %|70t|") % PC % Cycle % oss.str();
-
-      for(unsigned int i = 0; i < NUM_SLOTS; i++) {
-        if (i != 0) os << " ";
-        Pipeline[SMW][i].printOperands(*this, os, Symbols);
-      }
-
-      os << "\n";
+      // already done before
       return;
     }
     else if (debug_fmt == DF_BLOCKS) {
