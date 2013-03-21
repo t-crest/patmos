@@ -104,7 +104,6 @@ public class CompareChisel {
 				System.out.println("Chisel trace incomplete: "+cnt);
 				System.exit(1);
 			}
-			System.out.println(chisel);
 			// unsigned int output from Chisel
 			int pc = (int) chisel.nextLong();
 //			System.out.print("pc: "+pc);
