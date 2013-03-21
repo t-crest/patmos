@@ -152,3 +152,4 @@ x0:	add     r20 = r20, r2;
 (p5)	addi	r4 = r0, 1;
 (p6)	sli     r4 = r4, 15;
 (p7)	zext16   r4 = r4;
+
