@@ -174,11 +174,11 @@ namespace patmos
     /// Flag indicating whether a decoupled load is active.
     bool Is_decoupled_load_active;
 
-    /// Runtime statistics on all instructions.
-    instruction_stats_t Instruction_stats;
+    /// Runtime statistics on all instructions, per pipeline
+    instruction_stats_t Instruction_stats[NUM_SLOTS];
 
     /// Count number of pipeline bubbles retired.
-    unsigned int Num_bubbles_retired;
+    unsigned int Num_bubbles_retired[NUM_SLOTS];
 
     /// Number of stall cycles per pipeline stage
     unsigned int Num_stall_cycles[NUM_STAGES];
@@ -245,7 +245,7 @@ namespace patmos
     /// Print runtime statistics of the current simulation run to an output 
     /// stream.
     /// @param os An output stream.
-    void print_stats(std::ostream &os) const;
+    void print_stats(std::ostream &os, bool slot_stats) const;
   };
 
 

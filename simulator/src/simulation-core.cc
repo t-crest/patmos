@@ -36,7 +36,7 @@ namespace patmos
       Cycle(0), Memory(memory), Local_memory(local_memory),
       Data_cache(data_cache), Method_cache(method_cache),
       Stack_cache(stack_cache), Symbols(symbols), BASE(0), PC(0), nPC(0),
-      Stall(SIF), Is_decoupled_load_active(false), Num_bubbles_retired(0)
+      Stall(SIF), Is_decoupled_load_active(false)
   {
     // initialize one predicate register to be true, otherwise no instruction
     // will ever execute
@@ -55,9 +55,14 @@ namespace patmos
         Pipeline[i][j] = instruction_data_t();
       }
     }
-
+    
     // Initialize instruction statistics
-    Instruction_stats.resize(Decoder.get_num_instructions());
+    for(unsigned int j = 0; j < NUM_SLOTS; j++) 
+    {
+      Instruction_stats[j].resize(Decoder.get_num_instructions());
+      
+      Num_bubbles_retired[j] = 0;
+    }
   }
 
   void simulator_t::pipeline_invoke(Pipeline_t pst,
@@ -154,7 +159,7 @@ namespace patmos
               {
                 // get instruction statistics
                 instruction_stat_t &stat(
-                            Instruction_stats[Pipeline[NUM_STAGES-1][j].I->ID]);
+                        Instruction_stats[j][Pipeline[NUM_STAGES-1][j].I->ID]);
 
                 // update instruction statistics
                 if (Pipeline[NUM_STAGES-1][j].DR_Pred)
@@ -163,7 +168,7 @@ namespace patmos
                   stat.Num_discarded++;
               }
               else
-                Num_bubbles_retired++;
+                Num_bubbles_retired[j]++;
           }
         }
 
@@ -219,7 +224,7 @@ namespace patmos
             for(unsigned int j = 0; j < NUM_SLOTS; j++)
             {
               if (Pipeline[0][j].I)
-                Instruction_stats[Pipeline[0][j].I->ID].Num_fetched++;
+                Instruction_stats[j][Pipeline[0][j].I->ID].Num_fetched++;
             }
          }
         }
@@ -413,41 +418,81 @@ namespace patmos
     }
   }
 
-  void simulator_t::print_stats(std::ostream &os) const
+  void simulator_t::print_stats(std::ostream &os, bool slot_stats) const
   {
     // print register values
     print_registers(os, DF_DEFAULT);
 
-    // instruction statistics
-    os << boost::format("\n\nInstruction Statistics:\n"
-                        "   %1$15s: %2$10s %3$10s %4$10s\n")
-       % "instruction" % "#fetched" % "#retired" % "#discarded";
-
-    unsigned int num_total_fetched = 0;
-    unsigned int num_total_retired = 0;
-    unsigned int num_total_discarded = 0;
-    for(unsigned int i = 0; i < Instruction_stats.size(); i++)
+    unsigned int num_total_fetched[NUM_SLOTS];
+    unsigned int num_total_retired[NUM_SLOTS];
+    unsigned int num_total_discarded[NUM_SLOTS];
+    unsigned int num_total_bubbles[NUM_SLOTS];
+    
+    os << boost::format("\n\nInstruction Statistics:\n   %1$15s:") % "instruction";
+    for (unsigned int i = 0; i < NUM_SLOTS; i++) {
+      num_total_fetched[i] = num_total_retired[i] = num_total_discarded[i] = 0;
+      num_total_bubbles[i] = 0;
+      num_total_bubbles[slot_stats ? i : 0] += Num_bubbles_retired[i];
+    
+      if (!i || slot_stats) {
+        os << boost::format(" %1$10s %2$10s %3$10s")
+           % "#fetched" % "#retired" % "#discarded";
+      }
+    }
+    os << "\n";
+          
+    for(unsigned int i = 0; i < Instruction_stats[0].size(); i++)
     {
       // get instruction and statistics on it
       const instruction_t &I(Decoder.get_instruction(i));
-      const instruction_stat_t &S(Instruction_stats[i]);
 
-      os << boost::format("   %1$15s: %2$10d %3$10d %4$10d\n")
-         % I.Name % S.Num_fetched % S.Num_retired % S.Num_discarded;
+      os << boost::format("   %1$15s:") % I.Name;
+      
+      unsigned int num_fetched[NUM_SLOTS];
+      unsigned int num_retired[NUM_SLOTS];
+      unsigned int num_discarded[NUM_SLOTS];
+      
+      for (unsigned int j = 0; j < NUM_SLOTS; j++) {
+        const instruction_stat_t &S(Instruction_stats[j][i]);
 
-      // collect summary
-      num_total_fetched += S.Num_fetched;
-      num_total_retired += S.Num_retired;
-      num_total_discarded += S.Num_discarded;
+        num_fetched[j] = num_retired[j] = num_discarded[j] = 0;
+        
+        num_fetched[slot_stats ? j : 0] += S.Num_fetched;
+        num_retired[slot_stats ? j : 0] += S.Num_retired;
+        num_discarded[slot_stats ? j : 0] += S.Num_discarded;
 
-      assert(S.Num_fetched >= (S.Num_retired + S.Num_discarded));
+        assert(S.Num_fetched >= (S.Num_retired + S.Num_discarded));
+      }
+      
+      for (unsigned int j = 0; j < NUM_SLOTS; j++) {
+        os << boost::format(" %1$10d %2$10d %3$10d")
+          % num_fetched[j] % num_retired[j] % num_discarded[j];
+
+        // collect summary
+        num_total_fetched[j] += num_fetched[j];
+        num_total_retired[j] += num_retired[j];
+        num_total_discarded[j] += num_discarded[j];
+        
+        if (!slot_stats) break;
+      }
+      
+      os << "\n";
     }
 
     // summary over all instructions
-    os << boost::format("   %1$15s: %2$10d %3$10d %4$10d\n"
-                        "   %5$15s: %6$10s %7$10d %8$10s\n")
-        % "all"     % num_total_fetched % num_total_retired % num_total_discarded
-        % "bubbles" % "-" % Num_bubbles_retired % "-";
+    os << boost::format("   %1$15s:") % "all";
+    for (unsigned int j = 0; j < NUM_SLOTS; j++) {
+      os << boost::format(" %1$10d %2$10d %3$10d")
+          % num_total_fetched[j] % num_total_retired[j] % num_total_discarded[j];
+      if (!slot_stats) break;
+    }          
+    os << "\n";
+    os << boost::format("   %1$15s:") % "bubbles";
+    for (unsigned int j = 0; j < NUM_SLOTS; j++) {
+      os << boost::format(" %1$10s %2$10d %3$10s") % "-" % num_total_bubbles[j] % "-";
+      if (!slot_stats) break;
+    }          
+    os << "\n";
 
     // Cycle statistics
     os << "\nStall Cycles:\n";
@@ -476,7 +521,7 @@ namespace patmos
 
     os << "\n";
   }
-
+  
   std::ostream &operator<<(std::ostream &os, Pipeline_t p)
   {
     const static char* names[NUM_STAGES] = {"IF", "DR", "EX", "MW"};

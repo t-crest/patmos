@@ -371,6 +371,7 @@ int main(int argc, char **argv)
     ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), "format of the debug trace (short, trace, trace-stack, instr, blocks, default, long, all)")
     ("debug-file", boost::program_options::value<std::string>()->default_value("-"), "output debug trace in file (stderr: -)")
     ("profiling,p", "include profiling information in statistics")
+    ("slot-stats,i", "show instruction statistics per slot")
     ("quiet,q", "disable statistics output");
 
   boost::program_options::options_description memory_options("Memory options");
@@ -456,6 +457,7 @@ int main(int argc, char **argv)
   unsigned int max_cycle = vm["maxc"].as<unsigned int>();
 
   bool profiling = (vm.count("profiling") != 0);
+  bool slot_stats = (vm.count("slot-stats") != 0);
 
   // the exit code, initialized by default to signal an error.
   int exit_code = -1;
@@ -509,7 +511,7 @@ int main(int argc, char **argv)
     try
     {
       s.run(entry, debug_cycle, debug_fmt, *dout, max_cycle, profiling);
-      s.print_stats(*out);
+      s.print_stats(*out, slot_stats);
     }
     catch (patmos::simulation_exception_t e)
     {
@@ -555,7 +557,7 @@ int main(int argc, char **argv)
           exit_code = e.get_info();
 	  
 	  if (!vm.count("quiet")) {
-            s.print_stats(*out);
+            s.print_stats(*out, slot_stats);
 	  }
           break;
         default:
