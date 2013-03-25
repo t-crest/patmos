@@ -2,6 +2,7 @@
 	nop 	0;
 	addi 	r1 = r0, 4095;
 	addi	r2 = r0, 4;
+	sres    128;
 	sws		[r2 + 0] = r1;
 	shs		[r2 + 4] = r1;
 	sbs 	[r2 + 8] = r1;
