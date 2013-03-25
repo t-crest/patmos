@@ -113,12 +113,40 @@ namespace patmos
       unsigned int Num_discarded;
     };
 
+    struct dbg_stack_frame_t
+    {
+      dbg_stack_frame_t(uword_t address)
+      : Function(address), Curr_base(0), Curr_offset(0) { }
+        
+      /// Function base address
+      uword_t Function;
+      
+      /// Return base for the callee, i.e., the active subfunction
+      uword_t Curr_base;
+      
+      /// Return offset for the callee, i.e., the current PC
+      uword_t Curr_offset;
+      
+      /// Current register file state
+      GPR_t GPR;
+    };
+    
     /// A vector containing instruction statistics.
     typedef std::vector<instruction_stat_t> instruction_stats_t;
 
+    typedef std::vector<dbg_stack_frame_t*> dbg_stack_t;
+    
     /// Profiling information for function profiling
     profiling_t Profiling;
 
+    /// Update a debug stack frame with the current processor state
+    void update_dbg_stack_state(dbg_stack_frame_t &frame,
+                                word_t base, word_t pc) const;
+    
+    void print_stackframe(std::ostream &os, unsigned int depth, 
+                          const dbg_stack_frame_t &frame,
+                          const dbg_stack_frame_t *callframe) const;
+    
   public:
     /// Cycle counter
     uint64_t Cycle;
@@ -183,6 +211,9 @@ namespace patmos
     /// Number of stall cycles per pipeline stage
     unsigned int Num_stall_cycles[NUM_STAGES];
 
+    /// Stack frame dumps for debugging
+    dbg_stack_t Dbg_stack;
+    
     /// Print the internal register state of the simulator to an output stream 
     /// (excluding memories and caches)
     /// @param os An output stream.
@@ -203,6 +234,14 @@ namespace patmos
     /// @param pst The pipeline stage up to which instructions should be
     /// stalled.
     void pipeline_stall(Pipeline_t pst);
+    
+    /// Push the current state as a stack frame on the debug stack.
+    /// Only used for debugging.
+    void push_dbg_stackframe(word_t target);
+    
+    /// Pop the top stack frame from the debug stack, if the return info matches.
+    /// Only used for debugging.
+    void pop_dbg_stackframe(word_t return_base, word_t return_offset);
   public:
     /// Construct a new instance of a Patmos-core simulator
     /// The simulator only retains the references of the arguments passed in the
@@ -246,6 +285,10 @@ namespace patmos
     /// stream.
     /// @param os An output stream.
     void print_stats(std::ostream &os, bool slot_stats) const;
+    
+    /// Print the current call stack.
+    /// @param os An output stream.
+    void print_stacktrace(std::ostream &os) const;
   };
 
 

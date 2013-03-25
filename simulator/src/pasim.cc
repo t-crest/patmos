@@ -522,35 +522,41 @@ int main(int argc, char **argv)
                                     "%2$08x%3%: %4$08x\n")
                     % e.get_cycle() % e.get_pc() % sym.find(e.get_pc())
                     % e.get_info();
+	  s.print_stacktrace(std::cerr);
           break;
         case patmos::simulation_exception_t::ILLEGAL_PC:
           std::cerr << boost::format("Cycle %1%: Program counter outsize current method: "
                                     "%2$08x%3%: %4$08x\n")
                     % e.get_cycle() % e.get_pc() % sym.find(e.get_pc())
                     % e.get_info();
+	  s.print_stacktrace(std::cerr);
           break;
         case patmos::simulation_exception_t::STACK_EXCEEDED:
           std::cerr << boost::format("Cycle %1%: Stack size exceeded: "
                                      "%2$08x%3%\n")
                     % e.get_cycle() % e.get_pc() % sym.find(e.get_pc());
+	  s.print_stacktrace(std::cerr);
           break;
         case patmos::simulation_exception_t::UNMAPPED:
           std::cerr << boost::format("Cycle %1%: Unmapped memory access: "
                                      "%2$08x%3%: %4$08x\n")
                     % e.get_cycle() % e.get_pc() % sym.find(e.get_pc())
                     % e.get_info();
+	  s.print_stacktrace(std::cerr);
           break;
         case patmos::simulation_exception_t::ILLEGAL:
           std::cerr << boost::format("Cycle %1%: Illegal instruction: "
                                      "%2$08x%3%: %4$08x\n")
                     % e.get_cycle() % e.get_pc() % sym.find(e.get_pc())
                     % e.get_info();
+	  s.print_stacktrace(std::cerr);
           break;
         case patmos::simulation_exception_t::UNALIGNED:
           std::cerr << boost::format("Cycle %1%: Unaligned memory access: "
                                      "%2$08x%3%: %4$08x\n")
                     % e.get_cycle() % e.get_pc() % sym.find(e.get_pc())
                     % e.get_info();
+	  s.print_stacktrace(std::cerr);
           break;
         case patmos::simulation_exception_t::HALT:
           // get the exit code
@@ -562,6 +568,7 @@ int main(int argc, char **argv)
           break;
         default:
           std::cerr << "Unknown simulation error.\n";
+	  s.print_stacktrace(std::cerr);
       }
     }
   }

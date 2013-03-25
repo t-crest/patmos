@@ -102,8 +102,9 @@ namespace patmos
     /// @param os An output stream.
     /// @param address The address for which symbol information should be
     /// retrieved.
+    /// @param func_only If true, print only symbols with function attribute
     /// @return A string representing symbol information.
-    std::ostream &print(std::ostream &os, word_t address) const;
+    std::ostream &print(std::ostream &os, word_t address, bool func_only = false) const;
   };
 }
 

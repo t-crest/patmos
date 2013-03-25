@@ -1520,7 +1520,7 @@ namespace patmos
     /// @param base The base address of the current method.
     /// @param pc The current program counter.
     void no_store_return_address(simulator_t &s, instruction_data_t &ops,
-                                 bit_t pred, uword_t base, uword_t pc) const
+                                 bit_t pred, uword_t base, uword_t pc, word_t address) const
     {
       assert(base <= pc);
     }
@@ -1532,12 +1532,14 @@ namespace patmos
     /// @param base The base address of the current method.
     /// @param pc The current program counter.
     void store_return_address(simulator_t &s, instruction_data_t &ops,
-                              bit_t pred, uword_t base, uword_t pc) const
+                              bit_t pred, uword_t base, uword_t pc, word_t address) const
     {
       if (pred && !ops.EX_CFL_Discard)
       {
         assert(base <= pc);
 
+        s.push_dbg_stackframe(address);
+        
         // store the return function offset (return PC) into
         // a general purpose register
         s.GPR.set(rfo, pc - base);
@@ -1654,7 +1656,7 @@ namespace patmos
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
     { \
       ops.EX_Address = target; \
-      store(s, ops, ops.DR_Pred, s.BASE, s.nPC); \
+      store(s, ops, ops.DR_Pred, s.BASE, s.nPC, target); \
       dispatch(s, ops, ops.DR_Pred, new_base, target); \
     } \
   };
@@ -1718,7 +1720,7 @@ namespace patmos
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
     { \
       ops.EX_Address = target; \
-      store(s, ops, ops.DR_Pred, s.BASE, s.nPC); \
+      store(s, ops, ops.DR_Pred, s.BASE, s.nPC, target); \
       dispatch(s, ops, ops.DR_Pred, new_base, target); \
     } \
   };
@@ -1775,9 +1777,12 @@ namespace patmos
         // stall the first stage of the pipeline
         s.pipeline_stall(SDR);
       }
-      else
+      else 
+      {
+	s.pop_dbg_stackframe(ops.DR_Base, ops.DR_Offset);
         fetch_and_dispatch(s, ops, ops.DR_Pred, ops.DR_Base,
                            ops.DR_Base + ops.DR_Offset);
+      }
     }
 
     /// Signal to the simulator that a "halt" instruction has been executed.

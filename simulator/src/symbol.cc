@@ -60,7 +60,7 @@ namespace patmos
     return ss.str();
   }
 
-  std::ostream &symbol_map_t::print(std::ostream &os, word_t address) const
+  std::ostream &symbol_map_t::print(std::ostream &os, word_t address, bool func_only) const
   {
     assert(Is_sorted);
 
@@ -78,18 +78,22 @@ namespace patmos
       if (i->Address <= address && address < i->Address + i->Size &&
           i->Size != 0)
       {
-        os << (enclosing ? ':' : '<') << i->Name;
-        enclosing = &*i;
+        if (!func_only || i->IsFunc) {
+          os << (enclosing ? ':' : '<') << i->Name;
+          enclosing = &*i;
+        }
       }
-      else if (enclosing && i->Address <= address && i->Size == 0)
+      else if (enclosing && i->Address <= address && i->Size == 0 && !func_only)
       {
         bb = &*i;
       }
       else if (i->Address == address)
       {
         assert(!enclosing);
-	os << '<' << i->Name;
-        enclosing = &*i;
+        if (!func_only || i->IsFunc) {
+	  os << '<' << i->Name;
+          enclosing = &*i;
+        }
       }
       else if (address < i->Address)
         break;
@@ -111,7 +115,7 @@ namespace patmos
 
     if (enclosing)
     {
-      if (offset)
+      if (offset && !func_only)
       {
         os << " + 0x" << std::hex << offset;
       }

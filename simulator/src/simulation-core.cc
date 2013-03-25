@@ -102,7 +102,69 @@ namespace patmos
   {
     Stall = std::max(Stall, pst);
   }
+  
+  void simulator_t::update_dbg_stack_state(dbg_stack_frame_t &frame, 
+                                           word_t base, word_t pc) const
+  {
+    frame.Curr_base = base;
+    frame.Curr_offset = pc - base;
+    // TODO Does not work that way..
+    //frame.GPR = GPR;
+  }
+  
+  void simulator_t::print_stackframe(std::ostream &os, unsigned depth, 
+                                     const dbg_stack_frame_t &frame,
+                                     const dbg_stack_frame_t *callframe) const
+  {
+    os << boost::format("#%d 0x%x ") % depth % frame.Function;
+    Symbols.print(os, frame.Function, true);
+    
+    // TODO print registers r3-r8 from callframe, if available, as well as varargs
+    os << "()\n";
+    
+    os << boost::format("   at 0x%x (base: 0x%x ")  
+                     % (frame.Curr_base + frame.Curr_offset) % frame.Curr_base;
+    Symbols.print(os, frame.Curr_base);
+    os << boost::format(", offset: 0x%x ") % frame.Curr_offset;
+    Symbols.print(os, frame.Curr_base + frame.Curr_offset);
+    os << ")\n";
+    
+    // TODO print frame state (if debug/verbose is enabled?)    
+  }
+  
+  void simulator_t::push_dbg_stackframe(word_t target) 
+  {
+    if (!Dbg_stack.empty()) {
+      update_dbg_stack_state(*Dbg_stack.back(), BASE, nPC);
+    }
+    
+    // Create a new stack frame and initialize it
+    dbg_stack_frame_t *Frame = new dbg_stack_frame_t(target);
+    
+    Dbg_stack.push_back(Frame);    
+  }
 
+  void simulator_t::pop_dbg_stackframe(word_t return_base, word_t return_offset) 
+  {
+    if (Dbg_stack.empty()) return;
+    
+    if (Dbg_stack.size() == 1) {
+      // If there is only one stack frame, just pop it
+      delete Dbg_stack.back();
+      Dbg_stack.pop_back();
+      return;
+    }
+    
+    // Check if we are truly returning, otherwise do not pop (if this is a longjmp)
+    dbg_stack_frame_t *CallFrame = *(Dbg_stack.end() - 2);
+    if (CallFrame->Curr_base == return_base && 
+        CallFrame->Curr_offset == return_offset) 
+    {
+      delete Dbg_stack.back();
+      Dbg_stack.pop_back();
+    }
+  }
+  
   void simulator_t::run(word_t entry, uint64_t debug_cycle,
                         debug_format_e debug_fmt, std::ostream &debug_out,
                         uint64_t max_cycles, bool profiling)
@@ -115,6 +177,8 @@ namespace patmos
 
       if (profiling)
         Profiling.initialize(entry);
+      
+      push_dbg_stackframe(entry);
     }
 
     try
@@ -306,7 +370,6 @@ namespace patmos
         os << pred_value;
       }
 
-      std::string function();
       os << boost::format("  BASE: %1$08x   PC : %2$08x   ")
         % BASE % PC;
 
@@ -520,6 +583,38 @@ namespace patmos
     }
 
     os << "\n";
+  }
+
+  void simulator_t::print_stacktrace(std::ostream &os) const {
+    // TODO Obviously, it would be nicer to print the actual stack
+    // frame, but since we have up to three different stacks and no
+    // easy way to determine the stack frame size, it is much easier 
+    // to just keep track of the stack frames separately. This has the
+    // advantage that we can store more debug info in the frames.
+    // This could be removed when we get GDB support into the simulator ;)
+    
+    os << "Stacktrace:\n";
+    
+    if (Dbg_stack.empty()) {
+      dbg_stack_frame_t Frame(BASE);
+      update_dbg_stack_state(Frame, BASE, PC);
+      print_stackframe(os, 0, Frame, 0);
+      return;
+    }
+    
+    dbg_stack_frame_t *CallFrame = Dbg_stack.size() > 1 ? *(Dbg_stack.end() - 2) : 0;
+    
+    // Need to update the active stack frame with the current state
+    // Make a copy and update it.
+    dbg_stack_frame_t TopFrame = *Dbg_stack.back();
+    update_dbg_stack_state(TopFrame, BASE, PC);
+    print_stackframe(os, 0, TopFrame, CallFrame);
+    
+    for (int i = Dbg_stack.size() - 2; i >= 0; i--) {
+      dbg_stack_frame_t *Frame = *(Dbg_stack.begin() + i);
+      CallFrame = i > 0 ? *(Dbg_stack.begin() + i - 1) : 0;
+      print_stackframe(os, Dbg_stack.size() - i - 1, *Frame, CallFrame);
+    }
   }
   
   std::ostream &operator<<(std::ostream &os, Pipeline_t p)
