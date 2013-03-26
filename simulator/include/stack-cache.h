@@ -97,6 +97,9 @@ namespace patmos
     /// @param os The output stream to print the trace to.
     /// @param cycle The current value of the cycle counter.
     virtual void trace(std::ostream &os, uword_t cycle) = 0;
+    
+    /// Get the current size of the stack cache in bytes.
+    virtual uword_t size() const = 0;
   };
 
   /// An ideal stack cache with "infinite" space.
@@ -231,6 +234,13 @@ namespace patmos
     {
       // nothing to be done here
     }
+    
+    /// Get the current size of the stack cache in words.
+    virtual uword_t size() const
+    {
+      return Content.size();
+    }
+
   };
 
   /// A stack cache organized in blocks.
@@ -695,6 +705,12 @@ namespace patmos
         % Num_read_accesses % Num_bytes_read
         % Num_write_accesses % Num_bytes_written
         % Num_free_empty;
+    }
+
+    /// Get the current size of the stack cache in words.
+    virtual uword_t size() const
+    {
+      return (Num_reserved_blocks + Num_spilled_blocks) * NUM_BLOCK_BYTES;
     }
 
     /// free buffer memory.

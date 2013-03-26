@@ -29,6 +29,23 @@
 
 namespace patmos
 {
+  simulator_t::dbg_stack_frame_t::dbg_stack_frame_t(const simulator_t &s, 
+                                                    uword_t address)
+  : Function(address)
+  { 
+    // We could use r30/r31 here ?!
+    Return_base = s.BASE;
+    Return_offset = s.nPC-s.BASE;
+    
+    // if rsp has not been set yet, use int_max for now
+    word_t sp = s.GPR.get(rsp).get();
+    Caller_TOS_shadow_stack = sp ? sp : INT_MAX;
+    Caller_TOS_stack_cache = s.Stack_cache.size();
+    
+    // TODO remember state of GPR, if debug is enabled.
+  }
+
+  
   simulator_t::simulator_t(memory_t &memory, memory_t &local_memory,
                            data_cache_t &data_cache,
                            method_cache_t &method_cache,
@@ -103,43 +120,72 @@ namespace patmos
     Stall = std::max(Stall, pst);
   }
   
-  void simulator_t::update_dbg_stack_state(dbg_stack_frame_t &frame, 
-                                           word_t base, word_t pc) const
+  bool simulator_t::is_active_frame(const dbg_stack_frame_t &frame) const
   {
-    frame.Curr_base = base;
-    frame.Curr_offset = pc - base;
-    // TODO Does not work that way..
-    //frame.GPR = GPR;
+    // check if the frame stack pointers are below the current pointers
+    if (frame.Caller_TOS_shadow_stack < GPR.get(rsp).get()) {
+      // we are currently further down the shadow stack
+      return false;
+    }
+    // Note that at the moment we store the size of the stack cache, not 
+    // the TOS address.
+    if (frame.Caller_TOS_stack_cache > Stack_cache.size()) {
+      return false;
+    }
+    // Check if the function of the current frame contains the current subfunction
+    return frame.Function == BASE || Symbols.covers(frame.Function, BASE);
   }
   
   void simulator_t::print_stackframe(std::ostream &os, unsigned depth, 
                                      const dbg_stack_frame_t &frame,
-                                     const dbg_stack_frame_t *callframe) const
+                                     const dbg_stack_frame_t *callee) const
   {
     os << boost::format("#%d 0x%x ") % depth % frame.Function;
     Symbols.print(os, frame.Function, true);
     
-    // TODO print registers r3-r8 from callframe, if available, as well as varargs
-    os << "()\n";
+    // TODO print registers r3-r8 from call state, as well as varargs
+    os << "()";
+    os << boost::format(": $rsp 0x%x stack cache size 0x%x\n") 
+          % frame.Caller_TOS_shadow_stack % frame.Caller_TOS_stack_cache;
     
-    os << boost::format("   at 0x%x (base: 0x%x ")  
-                     % (frame.Curr_base + frame.Curr_offset) % frame.Curr_base;
-    Symbols.print(os, frame.Curr_base);
-    os << boost::format(", offset: 0x%x ") % frame.Curr_offset;
-    Symbols.print(os, frame.Curr_base + frame.Curr_offset);
-    os << ")\n";
+    // Print the current location, if any
+    word_t base = 0, offset = 0;
+    if (callee) {
+      base = callee->Return_base;
+      offset = callee->Return_offset;
+    } else if (is_active_frame(frame)) {
+      base = BASE;
+      offset = PC - BASE;
+    }
     
-    // TODO print frame state (if debug/verbose is enabled?)    
+    if (base || offset) {
+      os << boost::format("   at 0x%x (base: 0x%x ") % (base + offset) % base;
+      Symbols.print(os, base);
+      os << boost::format(", offset: 0x%x ") % offset;
+      Symbols.print(os, base + offset);
+      os << ")\n";
+    }
+    
+    // TODO print current state using the callee infos (if debug/verbose is enabled?)
+    
   }
   
   void simulator_t::push_dbg_stackframe(word_t target) 
   {
     if (!Dbg_stack.empty()) {
-      update_dbg_stack_state(*Dbg_stack.back(), BASE, nPC);
+      // Check if the call is coming from the TOS.
+      if (!is_active_frame(*Dbg_stack.back())) {
+        // We are resuming after some longjmp or so..
+        // For now, just nuke the whole stack
+        while (!Dbg_stack.empty()) {
+          delete Dbg_stack.back();
+          Dbg_stack.pop_back();
+        }
+      }
     }
     
     // Create a new stack frame and initialize it
-    dbg_stack_frame_t *Frame = new dbg_stack_frame_t(target);
+    dbg_stack_frame_t *Frame = new dbg_stack_frame_t(*this, target);
     
     Dbg_stack.push_back(Frame);    
   }
@@ -148,17 +194,10 @@ namespace patmos
   {
     if (Dbg_stack.empty()) return;
     
-    if (Dbg_stack.size() == 1) {
-      // If there is only one stack frame, just pop it
-      delete Dbg_stack.back();
-      Dbg_stack.pop_back();
-      return;
-    }
-    
-    // Check if we are truly returning, otherwise do not pop (if this is a longjmp)
-    dbg_stack_frame_t *CallFrame = *(Dbg_stack.end() - 2);
-    if (CallFrame->Curr_base == return_base && 
-        CallFrame->Curr_offset == return_offset) 
+    // Check if we are truly returning, otherwise do not pop .. yet (if this is a longjmp)
+    dbg_stack_frame_t *Frame = Dbg_stack.back();
+    if (Frame->Return_base == return_base && 
+        Frame->Return_offset == return_offset) 
     {
       delete Dbg_stack.back();
       Dbg_stack.pop_back();
@@ -420,7 +459,8 @@ namespace patmos
         Pipeline[stage][i].print(oss, emptymap);
       }
 
-      os << boost::format("%1$08x %2$9d %3% %|70t|") % PC % Cycle % oss.str();
+      os << boost::format("%1$08x %2$9d %3% %|70t|") 
+                   % Pipeline[stage][0].IF_PC % Cycle % oss.str();
 
       for(unsigned int i = 0; i < NUM_SLOTS; i++) {
         if (i != 0) os << " ";
@@ -596,24 +636,17 @@ namespace patmos
     os << "Stacktrace:\n";
     
     if (Dbg_stack.empty()) {
-      dbg_stack_frame_t Frame(BASE);
-      update_dbg_stack_state(Frame, BASE, PC);
+      dbg_stack_frame_t Frame(*this, BASE);
       print_stackframe(os, 0, Frame, 0);
       return;
     }
     
-    dbg_stack_frame_t *CallFrame = Dbg_stack.size() > 1 ? *(Dbg_stack.end() - 2) : 0;
+    dbg_stack_frame_t *CalleeFrame = 0;
     
-    // Need to update the active stack frame with the current state
-    // Make a copy and update it.
-    dbg_stack_frame_t TopFrame = *Dbg_stack.back();
-    update_dbg_stack_state(TopFrame, BASE, PC);
-    print_stackframe(os, 0, TopFrame, CallFrame);
-    
-    for (int i = Dbg_stack.size() - 2; i >= 0; i--) {
-      dbg_stack_frame_t *Frame = *(Dbg_stack.begin() + i);
-      CallFrame = i > 0 ? *(Dbg_stack.begin() + i - 1) : 0;
-      print_stackframe(os, Dbg_stack.size() - i - 1, *Frame, CallFrame);
+    for (unsigned i = 0; i < Dbg_stack.size(); i++) {
+      dbg_stack_frame_t *Frame = *(Dbg_stack.end() - i - 1);
+      print_stackframe(os, i, *Frame, CalleeFrame);
+      CalleeFrame = Frame;
     }
   }
   

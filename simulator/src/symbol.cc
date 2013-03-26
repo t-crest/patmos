@@ -24,6 +24,9 @@
 #include <algorithm>
 #include <sstream>
 
+#include <iostream>
+#include <boost/format.hpp>
+
 namespace patmos
 {
   static bool operator <(const symbol_info_t &a, const symbol_info_t &b)
@@ -51,6 +54,22 @@ namespace patmos
     symbol_info_t val(address, 0, false, "");
     
     return std::binary_search(Symbols.begin(), Symbols.end(), val);
+  }
+  
+  bool symbol_map_t::covers(word_t symbol, word_t address) const 
+  {
+    if (address < symbol) return false;
+    
+    symbol_info_t val(symbol, 0, false, "");
+    symbols_t::const_iterator pos = std::lower_bound(Symbols.begin(), Symbols.end(), val);
+    while (pos != Symbols.end()) {
+      if (pos->Address != symbol) return false;
+      if (pos->Address <= address && address < pos->Address + pos->Size)
+        return true;
+      pos++;
+    }
+    
+    return false;
   }
   
   std::string symbol_map_t::find(word_t address) const

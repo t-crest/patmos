@@ -115,20 +115,26 @@ namespace patmos
 
     struct dbg_stack_frame_t
     {
-      dbg_stack_frame_t(uword_t address)
-      : Function(address), Curr_base(0), Curr_offset(0) { }
+      dbg_stack_frame_t(const simulator_t &s, uword_t address);
         
-      /// Function base address
+      /// Function base address (target address of the call)
       uword_t Function;
       
-      /// Return base for the callee, i.e., the active subfunction
-      uword_t Curr_base;
+      /// Return base, the caller's active subfunction
+      uword_t Return_base;
       
-      /// Return offset for the callee, i.e., the current PC
-      uword_t Curr_offset;
+      /// Return offset, i.e., the caller's current PC - base
+      uword_t Return_offset;
       
-      /// Current register file state
-      GPR_t GPR;
+      /// stack cache TOS address
+      /// TODO at the moment, we store the size of the stack cache here!
+      uword_t Caller_TOS_stack_cache;
+      
+      /// Value of shadow stack pointer (r29) at call
+      uword_t Caller_TOS_shadow_stack;
+      
+      /// Register file state at the call 
+      //GPR_t GPR;
     };
     
     /// A vector containing instruction statistics.
@@ -139,14 +145,17 @@ namespace patmos
     /// Profiling information for function profiling
     profiling_t Profiling;
 
-    /// Update a debug stack frame with the current processor state
-    void update_dbg_stack_state(dbg_stack_frame_t &frame,
-                                word_t base, word_t pc) const;
+    /// Check if the given frame is currently active.
+    /// @param frame the frame to check
+    bool is_active_frame(const dbg_stack_frame_t &frame) const;
     
+    /// Print the given stack frame
+    /// @param frame the frame to print
+    /// @param callframe the stack frame of the callee, or null if not available.
     void print_stackframe(std::ostream &os, unsigned int depth, 
                           const dbg_stack_frame_t &frame,
-                          const dbg_stack_frame_t *callframe) const;
-    
+                          const dbg_stack_frame_t *callee) const;
+
   public:
     /// Cycle counter
     uint64_t Cycle;
@@ -242,6 +251,7 @@ namespace patmos
     /// Pop the top stack frame from the debug stack, if the return info matches.
     /// Only used for debugging.
     void pop_dbg_stackframe(word_t return_base, word_t return_offset);
+
   public:
     /// Construct a new instance of a Patmos-core simulator
     /// The simulator only retains the references of the arguments passed in the

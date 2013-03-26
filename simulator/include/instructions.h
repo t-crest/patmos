@@ -70,6 +70,14 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void IF(simulator_t &s, instruction_data_t &ops) const
     {
+      // store the PC for PC-relative addressing in EX stage, if we are not stalling
+      // NB: s.Stall is already set the first time s.PC is updated.
+      //     If we checked (s.Stall==SIF), we would have to include i_pred_t::IF,
+      //     which is rather ugly.
+      if (s.PC != s.nPC) {
+        ops.IF_PC = s.PC;
+      }
+      
       s.PC = s.nPC;
     }
 
@@ -886,6 +894,7 @@ namespace patmos
     {
       i_pred_t::IF(s, ops);
       ops.DR_Imm = 0;
+      i_pred_t::IF(s, ops);
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
@@ -1571,7 +1580,7 @@ namespace patmos
         {
           // set the program counter and base
           s.BASE = base;
-          s.PC = s.nPC = address;
+          s.nPC = address;
           ops.EX_CFL_Discard = 1;
         }
       }
@@ -1594,28 +1603,11 @@ namespace patmos
 
         // set the program counter and base
         s.BASE = base;
-        s.PC = s.nPC = address;
+        s.nPC = address;
         ops.EX_CFL_Discard = 1;
       }
     }
   public:
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the IF pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void IF(simulator_t &s, instruction_data_t &ops) const
-    {
-      // store the PC for PC-relative addressing in EX stage, if we are not stalling
-      // NB: s.Stall is already set the first time s.PC is updated.
-      //     If we checked (s.Stall==SIF), we would have to include i_pred_t::IF,
-      //     which is rather ugly.
-      if (s.PC != s.nPC) {
-        ops.IF_PC = s.PC;
-      }
-      // call the inherited function (advance PC)
-      i_pred_t::IF(s, ops);
-    }
-
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
     /// @param s The Patmos simulator executing the instruction.

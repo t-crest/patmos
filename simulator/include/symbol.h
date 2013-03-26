@@ -86,6 +86,14 @@ namespace patmos
     /// @return True if the map contains at least one symbol for that address.
     bool contains(word_t address) const;
 
+    /// Check if a symbol at a given address covers the given address, i.e,
+    /// if there is a symbol at address @symbol and @addess is in 
+    /// [@symbol,@symbol+@symbol.size)
+    /// @param symbol an address of a symbol
+    /// @param address the address to check
+    /// @return True if the a symbol at @symbol has a size attribute and covers @address
+    bool covers(word_t symbol, word_t address) const;
+    
     /// Find a symbol given a specific address.
     /// \see print
     /// @param address The address for which symbol information should be
