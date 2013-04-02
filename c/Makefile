@@ -9,13 +9,9 @@ CFLAGS=-target patmos-unknown-unknown-elf \
 	-fno-builtin \
 	-Ttext 0x10 \
 	-e main
-# Edgar2MS: the comments didn't work because all have to be one line, so the -Ttext and -e main was skipped which caused the elf2vhdl to crash
-ifeq ($(DISABLE_SC),y)
 CFLAGS+=-mpatmos-disable-stack-cache \
 	-O3
-else
-CFLAGS+=-O0
-endif
+#CFLAGS+=-O0
 
 CFLAGS-WITH-LIBS=-target patmos-unknown-unknown-elf \
 	-nostartfiles \
@@ -28,12 +24,9 @@ CFLAGS-WITH-LIBS=-target patmos-unknown-unknown-elf \
 CFLAGS_ASM=-target patmos-unknown-unknown-elf \
 	-fno-builtin \
         -fpatmos-emit-asm -S
-ifeq ($(DISABLE_SC),y)
 CFLAGS_ASM+=-mpatmos-disable-stack-cache \
 	-O3
-else
-CFLAGS_ASM+=-O0
-endif
+#CFLAGS_ASM+=-O0
 
 %: %.c
 	$(CC) $(CFLAGS) -o $@ $^
