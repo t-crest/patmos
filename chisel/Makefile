@@ -27,12 +27,15 @@ all:
 asm:
 	cd .. && make rom -e APP=$(APP)
 
-test: asm
+comp:
+	cd .. && make comp crom -e APP=$(APP)
+
+test:
 	-rm -rf generated
 	$(SBT) "run-main $(MAIN) ../tmp/aout --test --compile --vcd --genHarness --targetDir generated"
 
 # the Verilog version
-verilog: asm
+verilog:
 	$(SBT) "run-main $(MAIN) ../tmp/aout --targetDir generated --backend v"
 
 ###### Minimum Makefile ends here ########

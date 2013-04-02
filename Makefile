@@ -117,7 +117,7 @@ hsim:
 
 # C simulation of the Chisel version of Patmos
 csim:
-	cd chisel; make test -e APP=$(APP)
+	cd chisel; make asm test -e APP=$(APP)
 
 # Testing
 test:
