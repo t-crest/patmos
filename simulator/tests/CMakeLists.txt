@@ -68,13 +68,13 @@ Errors : 0")
 test_asm(20 "Emitted: 28 bytes
 Errors : 0")
 
-test_asm(21 "Emitted: 68 bytes
+test_asm(21 "Emitted: 72 bytes
 Errors : 0")
 
-test_asm(22 "Emitted: 44 bytes
+test_asm(22 "Emitted: 48 bytes
 Errors : 0")
 
-test_asm(23 "Emitted: 48 bytes
+test_asm(23 "Emitted: 52 bytes
 Errors : 0")
 
 test_asm(25 "Emitted: 24 bytes
@@ -181,7 +181,7 @@ test_sim(19 "r1 : 00000007")
 
 test_sim(20 "r1 : 0281fa80   r2 : 8281fa81")
 
-test_sim(21 "BASE: 00000000   PC : 00000048.*
+test_sim(21 "BASE: 00000000   PC : 0000004c.*
 .*r1 : 0000003c")
 
 test_io_sim(22 "r1 : 000000fb")

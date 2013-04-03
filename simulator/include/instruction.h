@@ -230,13 +230,6 @@ namespace patmos
         GPR_e Rb;
         GPR_e Ro;
       } CFLr;
-      /// Operands for an BNEinstruction.
-      struct
-      {
-        GPR_e Rs1;
-        GPR_e Rs2;
-        word_t Imm;
-      } BNE;
     } OPS;
 
     // -------------------------- IF -------------------------------------------
@@ -466,11 +459,6 @@ namespace patmos
     /// @param ro The register containing the return offset.
     static instruction_data_t mk_CFLr(const instruction_t &i, PRR_e pred,
                                       GPR_e rb, GPR_e ro);
-
-    /// Create an BNE instruction with two register operands and an immediate.
-    /// @param i The instruction.
-    static instruction_data_t mk_BNE(const instruction_t &i, GPR_e rs1,
-                                     GPR_e rs2, word_t imm);
 
     /// Create an HLT instruction without operands.
     /// @param i The instruction.

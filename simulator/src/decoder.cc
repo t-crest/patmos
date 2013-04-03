@@ -146,7 +146,6 @@ namespace patmos
     // ALUi:
     MK_NINSTR(addil , addi , alui, 0)
     MK_NINSTR(subil , subi , alui, 1)
-    MK_NINSTR(rsubil, rsubi, alui, 2)
     MK_NINSTR(slil  , sli  , alui, 3)
     MK_NINSTR(sril  , sri  , alui, 4)
     MK_NINSTR(srail , srai , alui, 5)
@@ -156,7 +155,6 @@ namespace patmos
     // ALUl:
     MK_NINSTR(addil  , addl  , alul,  0)
     MK_NINSTR(subil  , subl  , alul,  1)
-    MK_NINSTR(rsubil , rsubl , alul,  2)
     MK_NINSTR(slil   , sll   , alul,  3)
     MK_NINSTR(sril   , srl   , alul,  4)
     MK_NINSTR(srail  , sral  , alul,  5)
@@ -170,7 +168,6 @@ namespace patmos
     // ALUr:
     MK_INSTR(add   , alur,  0)
     MK_INSTR(sub   , alur,  1)
-    MK_INSTR(rsub  , alur,  2)
     MK_INSTR(sl    , alur,  3)
     MK_INSTR(sr    , alur,  4)
     MK_INSTR(sra   , alur,  5)
@@ -204,10 +201,8 @@ namespace patmos
     MK_INSTR(por , alup,  6)
     MK_INSTR(pand, alup,  7)
     MK_INSTR(pxor, alup, 10)
-    MK_INSTR(pnor, alup, 11)
 
     // SPC
-    MK_NINSTR(spcn, nop , spcn, 0)
     MK_NINSTR(spcw, wait, spcw, 0)
     MK_NINSTR(spct, mts , spct, 0)
     MK_NINSTR(spcf, mfs , spcf, 0)
@@ -276,9 +271,6 @@ namespace patmos
 
     // CFLr
     MK_INSTR(ret, cflr, 0)
-
-    // BNE
-    MK_INSTR(bne, bne, 0)
   }
 
   const instruction_t &decoder_t::get_instruction(unsigned int ID)

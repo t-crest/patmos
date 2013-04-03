@@ -5,9 +5,10 @@
                 addi    r2  = r0, 1;
                 lwl     r3  = [r1 + 0];
                 andi    r3  = r3, 1;
-                bne     r3 != r2, -4;
-                nop     0;
-                nop     0;
+		cmpneq  p1 = r3, r2;
+          (p1)  br      -3;
+                nop;
+                nop;
                 addi    r2 = r0, 0x21;
                 swl     [r1 + 1] = r2;
                 halt;

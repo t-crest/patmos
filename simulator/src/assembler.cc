@@ -195,9 +195,6 @@ namespace patmos
       /// Parse CFL instructions.
       rule_t CFLb, CFLi, CFLr;
 
-      /// Parse BNE instructions.
-      rule_t BNE;
-
       /// Emit an instruction word to the program.
       /// \param iw the instruction word.
       inline void emit(word_t iw)
@@ -311,7 +308,10 @@ namespace patmos
                                        boost::spirit::qi::_1)]                 |
                  boost::spirit::lit("halt")
                  [boost::phoenix::bind(&assembly_line_grammar_t::demit, this,
-                                       0x0780000002400000)]                    |
+                                       0x0780000000400000)]                    |
+                 boost::spirit::lit("nop")
+                 [boost::phoenix::bind(&assembly_line_grammar_t::emit, this,
+                                       0x00400000)]                            |
                  (Instruction1
                   [boost::phoenix::bind(&assembly_line_grammar_t::emit, this,
                                         boost::spirit::qi::_1)] >>
@@ -331,7 +331,6 @@ namespace patmos
                           LDT  | dLDT |
                           STT  |
                           STC  |
-                          BNE  |
                           CFLi | CFLb | CFLr);
 
         // All instructions except SPCn, SPNw, CFL, LDT, STT, and STC.
@@ -449,7 +448,6 @@ namespace patmos
         // Parse ALUi instructions
         ALUiopc = boost::spirit::lit("addi")  [boost::spirit::qi::_val = 0] |
                   boost::spirit::lit("subi")  [boost::spirit::qi::_val = 1] |
-                  boost::spirit::lit("rsubi") [boost::spirit::qi::_val = 2] |
                   boost::spirit::lit("sli")   [boost::spirit::qi::_val = 3] |
                   boost::spirit::lit("sri")   [boost::spirit::qi::_val = 4] |
                   boost::spirit::lit("srai")  [boost::spirit::qi::_val = 5] |
@@ -465,7 +463,6 @@ namespace patmos
         // Parse ALUl and ALUr opcodes
         ALUlropc = boost::spirit::lit("add")    [boost::spirit::qi::_val =  0] |
                    boost::spirit::lit("sub")    [boost::spirit::qi::_val =  1] |
-                   boost::spirit::lit("rsub")   [boost::spirit::qi::_val =  2] |
                    boost::spirit::lit("sl")     [boost::spirit::qi::_val =  3] |
                    boost::spirit::lit("sra")    [boost::spirit::qi::_val =  5] |
                    boost::spirit::lit("sr")     [boost::spirit::qi::_val =  4] |
@@ -532,20 +529,13 @@ namespace patmos
         // Parse ALUp instructions
         ALUpopc = boost::spirit::lit("por")   [boost::spirit::qi::_val =  6] |
                   boost::spirit::lit("pand")  [boost::spirit::qi::_val =  7] |
-                  boost::spirit::lit("pxor")  [boost::spirit::qi::_val = 10] |
-                  boost::spirit::lit("pnor")  [boost::spirit::qi::_val = 11] ;
+                  boost::spirit::lit("pxor")  [boost::spirit::qi::_val = 10];
 
         ALUp = (Pred >> ALUpopc >> PRR >> '=' >> NegPRR >> ',' >> NegPRR)
                [boost::spirit::qi::_val = boost::phoenix::bind(
                                  alup_format_t::encode, boost::spirit::qi::_1,
                                  boost::spirit::qi::_2, boost::spirit::qi::_3,
                                  boost::spirit::qi::_4, boost::spirit::qi::_5)];
-
-        // Parse SPCn instructions
-        SPCn = (Pred >> "nop" >> Imm4u)
-               [boost::spirit::qi::_val = boost::phoenix::bind(
-                                   spcn_format_t::encode, boost::spirit::qi::_1,
-                                   boost::spirit::qi::_2)];
 
         // Parse SPCw instructions
         SPCwopc = boost::spirit::lit("waitm")  [boost::spirit::qi::_val = 0];
@@ -701,12 +691,6 @@ namespace patmos
                                  boost::spirit::qi::_2, boost::spirit::qi::_3,
                                  boost::spirit::qi::_4)];
 
-        // Parse BNE instructions
-        BNE = ("bne" >> GPR >> "!=" >> GPR >> ',' >> Imm7s)
-               [boost::spirit::qi::_val = boost::phoenix::bind(
-                                 bne_format_t::encode, boost::spirit::qi::_1,
-                                 boost::spirit::qi::_2, boost::spirit::qi::_3)];
-
         // enable debugging of rules -- if BOOST_SPIRIT_DEBUG is defined
         BOOST_SPIRIT_DEBUG_NODE(Line);
         BOOST_SPIRIT_DEBUG_NODE(Bundle);
@@ -742,7 +726,6 @@ namespace patmos
         BOOST_SPIRIT_DEBUG_NODE(STC);
         BOOST_SPIRIT_DEBUG_NODE(CFLb);        BOOST_SPIRIT_DEBUG_NODE(CFLi);
         BOOST_SPIRIT_DEBUG_NODE(CFLr);
-        BOOST_SPIRIT_DEBUG_NODE(BNE);
       }
   };
 

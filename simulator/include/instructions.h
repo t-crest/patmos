@@ -353,7 +353,6 @@ namespace patmos
 
   ALUil_INSTR(addil , value1          +  value2                  )
   ALUil_INSTR(subil , value1          -  value2                  )
-  ALUil_INSTR(rsubil, value2          -  value1                  )
   ALUil_INSTR(slil  , value1          << (value2 & 0x1F)         )
   ALUil_INSTR(sril  , (uword_t)value1 >> (uword_t)(value2 & 0x1F))
   ALUil_INSTR(srail , value1          >> (value2 & 0x1F)         )
@@ -470,7 +469,6 @@ namespace patmos
 
   ALUr_INSTR(add   , value1          +  value2                  )
   ALUr_INSTR(sub   , value1          -  value2                  )
-  ALUr_INSTR(rsub  , value2          -  value1                  )
   ALUr_INSTR(sl    , value1          << (value2 & 0x1F)         )
   ALUr_INSTR(sr    , (uword_t)value1 >> (uword_t)(value2 & 0x1F))
   ALUr_INSTR(sra   , value1          >> (value2 & 0x1F)         )
@@ -869,7 +867,6 @@ namespace patmos
   ALUp_INSTR(por , 1, |)
   ALUp_INSTR(pand, 1, &)
   ALUp_INSTR(pxor, 1, ^)
-  ALUp_INSTR(pnor, 0, |)
 
   /// A multi-cycle NOP operation.
   class i_spcn_t : public i_pred_t
@@ -1797,46 +1794,6 @@ namespace patmos
     {
       printGPReg(os, "in: ", ops.OPS.CFLr.Rb, s.GPR);
       printGPReg(os, ", "  , ops.OPS.CFLr.Ro, s.GPR);
-    }
-  };
-
-  /// A (temporary) instruction for pc-relative, conditional branches.
-  /// Used only for hardware development.
-  class i_bne_t : public i_cfl_t
-  {
-  public:
-    /// Print the instruction to an output stream.
-    /// @param os The output stream to print to.
-    /// @param ops The operands of the instruction.
-    /// @param symbols A mapping of addresses to symbols.
-    virtual void print(std::ostream &os, const instruction_data_t &ops,
-                       const symbol_map_t &symbols) const
-    {
-      os << boost::format("bne %1% != %2%, %3%") % ops.OPS.BNE.Rs1
-         % ops.OPS.BNE.Rs2 % ops.OPS.BNE.Imm;
-    }
-
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the DR pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void DR(simulator_t &s, instruction_data_t &ops) const
-    {
-      ops.DR_Pred = 1;
-      ops.DR_Rs1 = s.GPR.get(ops.OPS.BNE.Rs1);
-      ops.DR_Rs2 = s.GPR.get(ops.OPS.BNE.Rs2);
-      ops.EX_CFL_Discard = 0;
-    }
-
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the EX pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void EX(simulator_t &s, instruction_data_t &ops) const
-    {
-      // compute the result of the ALU instruction
-      bit_t pred = read_GPR_EX(s, ops.DR_Rs1) != read_GPR_EX(s, ops.DR_Rs2);
-      dispatch(s, ops, pred, s.BASE, s.PC + ops.OPS.BNE.Imm*sizeof(word_t));
     }
   };
 }

@@ -2,17 +2,17 @@
 # Expected Result: r2 = 1
 #
 
-                nop     0;
+                nop;
                 lwc     r1 = [r0 + 10];
-                nop     0;
+                nop;
                 brr     r1;
-                nop     0;
-                nop     0;
+                nop;
+                nop;
                 halt;
-                nop     0;
-                nop     0;
+                nop;
+                nop;
                 .word   44;
                 add     r2 = r0, 1;
                 halt;
-                nop     0;
-                nop     0;
+                nop;
+                nop;
