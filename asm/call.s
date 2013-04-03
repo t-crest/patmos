@@ -2,8 +2,15 @@
 #  Test of call and return instructions
 #
 	addi	r1 = r0, 0;
+	addi	r20 = r0, 20;
 	addi	r30 = r0, 0;  # method base?
-	addi	r1 = r1, 1;
+	call	start;        # we need an initial call that does not return for a start
+	addi	r1 = r0, 0;
+	addi	r1 = r0, 0;
+
+	.word 100;
+start:	addi	r1 = r1, 1;
+	addi	r30 = r0, start;
 	call	foo;
 # we should check (and define) delay slots for call/ret - probably 2
 	addi	r2 = r0, 2;
