@@ -178,12 +178,6 @@ namespace patmos
     MK_INSTR(shadd , alur, 12)
     MK_INSTR(shadd2, alur, 13)
 
-    // ALUu
-    MK_INSTR(sext8 , aluu, 0)
-    MK_INSTR(sext16, aluu, 1)
-    MK_INSTR(zext16, aluu, 2)
-    MK_INSTR(abs   , aluu, 3)
-
     // ALUm
     MK_INSTR(mul , alum, 0)
     MK_INSTR(mulu, alum, 1)

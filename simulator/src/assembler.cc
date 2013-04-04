@@ -157,13 +157,13 @@ namespace patmos
       rule_t Addresse;
 
       /// Parse ALU opcodes.
-      rule_t ALUiopc, ALUlropc, ALUuopc, ALUmopc, ALUcopc, ALUpopc;
+      rule_t ALUiopc, ALUlropc, ALUmopc, ALUcopc, ALUpopc;
 
       /// Parse long ALU instructions.
       drule_t ALUl;
 
       /// Parse ALU instructions.
-      rule_t ALUi, ALUr, ALUu, ALUm, ALUc, ALUp;
+      rule_t ALUi, ALUr, ALUm, ALUc, ALUp;
 
       /// Parse SPC opcodes.
       rule_t SPCwopc;
@@ -326,7 +326,7 @@ namespace patmos
                                        boost::spirit::qi::_1)]                 ;
 
         // All instructions except ALUl
-        Instruction1 %= ( ALUi | ALUr | ALUu | ALUm | ALUc | ALUp |
+        Instruction1 %= ( ALUi | ALUr | ALUm | ALUc | ALUp |
                           SPCn | SPCw | SPCt | SPCf |
                           LDT  | dLDT |
                           STT  |
@@ -334,7 +334,7 @@ namespace patmos
                           CFLi | CFLb | CFLr);
 
         // All instructions except SPCn, SPNw, CFL, LDT, STT, and STC.
-        Instruction2 %= (ALUi | ALUr | ALUu | ALUm | ALUc | ALUp |
+        Instruction2 %= (ALUi | ALUr | ALUm | ALUc | ALUp |
                          SPCt | SPCf |
                          LDTs | STTs);
 
@@ -488,18 +488,6 @@ namespace patmos
                                  alur_format_t::encode, boost::spirit::qi::_1,
                                  boost::spirit::qi::_2, boost::spirit::qi::_3,
                                  boost::spirit::qi::_4, boost::spirit::qi::_5)];
-
-        // Parse ALUu instructions
-        ALUuopc = boost::spirit::lit("sext8")  [boost::spirit::qi::_val = 0] |
-                  boost::spirit::lit("sext16") [boost::spirit::qi::_val = 1] |
-                  boost::spirit::lit("zext16") [boost::spirit::qi::_val = 2] |
-                  boost::spirit::lit("abs")    [boost::spirit::qi::_val = 3] ;
-
-        ALUu = (Pred >> ALUuopc >> GPR >> '=' >> GPR)
-               [boost::spirit::qi::_val = boost::phoenix::bind(
-                                   aluu_format_t::encode, boost::spirit::qi::_1,
-                                   boost::spirit::qi::_2, boost::spirit::qi::_3,
-                                   boost::spirit::qi::_4)];
 
         // Parse ALUm instructions
         ALUmopc = boost::spirit::lit("mulu")  [boost::spirit::qi::_val = 1] |
@@ -707,7 +695,6 @@ namespace patmos
         BOOST_SPIRIT_DEBUG_NODE(ImmCFL_FREL);
         BOOST_SPIRIT_DEBUG_NODE(Pred);
         BOOST_SPIRIT_DEBUG_NODE(ALUiopc);     BOOST_SPIRIT_DEBUG_NODE(ALUlropc);
-        BOOST_SPIRIT_DEBUG_NODE(ALUuopc);     BOOST_SPIRIT_DEBUG_NODE(ALUmopc);
         BOOST_SPIRIT_DEBUG_NODE(ALUcopc);     BOOST_SPIRIT_DEBUG_NODE(ALUpopc);
         BOOST_SPIRIT_DEBUG_NODE(SPCwopc);
         BOOST_SPIRIT_DEBUG_NODE(LDTopc);      BOOST_SPIRIT_DEBUG_NODE(dLDTopc);
@@ -716,7 +703,7 @@ namespace patmos
         BOOST_SPIRIT_DEBUG_NODE(CFLbopc);     BOOST_SPIRIT_DEBUG_NODE(CFLiopc);
         BOOST_SPIRIT_DEBUG_NODE(CFLropc);
         BOOST_SPIRIT_DEBUG_NODE(ALUi);        BOOST_SPIRIT_DEBUG_NODE(ALUl);
-        BOOST_SPIRIT_DEBUG_NODE(ALUr);        BOOST_SPIRIT_DEBUG_NODE(ALUu);
+        BOOST_SPIRIT_DEBUG_NODE(ALUr);
         BOOST_SPIRIT_DEBUG_NODE(ALUm);        BOOST_SPIRIT_DEBUG_NODE(ALUc);
         BOOST_SPIRIT_DEBUG_NODE(ALUp);
         BOOST_SPIRIT_DEBUG_NODE(SPCn);        BOOST_SPIRIT_DEBUG_NODE(SPCw);

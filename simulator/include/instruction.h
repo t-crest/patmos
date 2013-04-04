@@ -152,12 +152,6 @@ namespace patmos
         GPR_e Rs1;
         GPR_e Rs2;
       } ALUr;
-      /// Operands for an ALUu instruction.
-      struct
-      {
-        GPR_e Rd;
-        GPR_e Rs1;
-      } ALUu;
       /// Operands for an ALUm instruction.
       struct
       {
@@ -329,16 +323,6 @@ namespace patmos
     /// @param rs2 The second operand register.
     static instruction_data_t mk_ALUr(const instruction_t &i, PRR_e pred,
                                       GPR_e rd, GPR_e rs1, GPR_e rs2);
-
-    /// Create an ALUu instruction with a register operand and a register
-    /// destination.
-    /// @param i The instruction.
-    /// @param pred The predicate register under which the instruction is
-    /// executed.
-    /// @param rd The destination register.
-    /// @param rs1 The first operand register.
-    static instruction_data_t mk_ALUu(const instruction_t &i, PRR_e pred,
-                                      GPR_e rd, GPR_e rs1);
 
     /// Create an ALUm instruction with two register operands.
     /// @param i The instruction.

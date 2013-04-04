@@ -53,16 +53,6 @@ namespace patmos
     return result;
   }
 
-  instruction_data_t instruction_data_t::mk_ALUu(const instruction_t &i,
-                                                 PRR_e pred, GPR_e rd,
-                                                 GPR_e rs1)
-  {
-    instruction_data_t result(i, pred);
-    result.OPS.ALUu.Rd = rd;
-    result.OPS.ALUu.Rs1 = rs1;
-    return result;
-  }
-
   instruction_data_t instruction_data_t::mk_ALUm(const instruction_t &i,
                                                  PRR_e pred, GPR_e rs1,
                                                  GPR_e rs2)

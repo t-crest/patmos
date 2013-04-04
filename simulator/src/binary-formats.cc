@@ -210,39 +210,6 @@ namespace patmos
     return iw;
   }
 
-  aluu_format_t::aluu_format_t(const instruction_t &instruction,
-                               word_t opcode) :
-      binary_format_t(instruction, 0x7C0007F, insert(0x2000010, 0, 4, opcode),
-                      3)
-  {
-  }
-
-  instruction_data_t aluu_format_t::decode_operands(word_t iw,
-                                                    word_t longimm) const
-  {
-    GPR_e rs1 = extractG(iw, 12);
-    GPR_e rd = extractG(iw, 17);
-    PRR_e pred = extractPN(iw, 27);
-    return instruction_data_t::mk_ALUu(Instruction, pred, rd, rs1);
-  }
-
-  word_t aluu_format_t::encode(word_t pred, word_t opcode, word_t rd,
-                               word_t rs1)
-  {
-    word_t iw = 0;
-
-    assert(fitu(opcode, 4) && isGPR(rd) && isGPR(rs1));
-
-    insertV(iw, 0, 4, opcode);
-    insertV(iw, 4, 3, BOOST_BINARY(001));
-    insertG(iw, 12, rs1);
-    insertG(iw, 17, rd);
-    insertV(iw, 22, 5, BOOST_BINARY(01000));
-    insertPN(iw, 27, pred);
-
-    return iw;
-  }
-
   alum_format_t::alum_format_t(const instruction_t &instruction,
                                word_t opcode) :
       binary_format_t(instruction, 0x7C0007F, insert(0x2000020, 0, 4, opcode),
