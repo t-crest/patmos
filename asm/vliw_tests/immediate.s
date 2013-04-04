@@ -1,5 +1,5 @@
 # Test case for add instruction
-	nop		0;
+	addi	r0 = r0, 0;
 	addi	r1 = r0, 2		||	addi	r1 = r0, 5;
 	subi 	r2 = r1, 2		||	addi 	r3 = r1, 347;
 	ori 	r4 = r1, 5		||	subi 	r5 = r1, 1024;

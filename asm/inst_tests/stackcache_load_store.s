@@ -1,5 +1,5 @@
 # Test case for stack cache load and store
-	nop 	0;
+	addi 	r1 = r0, 4095;
 	addi 	r1 = r0, 4095;
 	addi	r2 = r0, 4;
 	sres    128;
@@ -12,7 +12,6 @@
 	lhs		r3 = [r2 + 0];
 	lbs		r4 = [r2 + 4];
 	lws		r5 = [r2 + 8];
-	nop		0;
 	sws		[r2 + 0] = r1;
 	shs		[r2 + 1] = r1;
 	sbs 	[r2 + 2] = r1;
@@ -22,7 +21,6 @@
 	lhs		r3 = [r2 + 0];
 	lbs		r4 = [r2 + 1];
 	lws		r5 = [r2 + 2];
-	nop		0;
 	sws		[r0 + 1] = r1;
 	shs		[r0 + 2] = r1;
 	sbs 	[r0 + 4] = r1;
@@ -32,7 +30,6 @@
 	lhs		r3 = [r0 + 1];
 	lbs		r4 = [r0 + 2];
 	lws		r5 = [r0 + 4];
-	nop		0;
 	addi	r1 = r0, 111;
 	sli		r2 = r1, 8;
 	addi	r2 = r2, 222;
@@ -44,7 +41,6 @@
 	lws		r4 = [r0 + 1];
 	lhs		r5 = [r0 + 1];
 	lbs		r6 = [r0 + 1];
-	nop 	0;
 	sws		[r0 + 2] = r3;
 	shs		[r0 + 2] = r2;
 	sbs		[r0 + 2] = r1;

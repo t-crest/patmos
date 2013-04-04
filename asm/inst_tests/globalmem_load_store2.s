@@ -1,5 +1,5 @@
 # Test case for data cache load and store
-	nop 	0;
+	addi 	r1 = r0, 4095;
 	addi 	r1 = r0, 4095;
 	addi	r2 = r0, 4;
 	swm		[r2 + 0] = r1;
@@ -17,7 +17,6 @@
 	lbum	r13 = [r2 + 3];
 	lhum	r14 = [r2 + 0];
 	lhum	r15 = [r2 + 1];
-	nop		0;	
 	shm		[r2 + 0] = r1;
 	shm		[r2 + 1] = r1;
 	shm		[r2 + 0] = r1;
@@ -35,7 +34,6 @@
 	lbum	r13 = [r2 + 3];
 	lhum	r14 = [r2 + 0];
 	lhum	r15 = [r2 + 1];
-	nop		0;	
 	sbm		[r2 + 0] = r1;
 	sbm		[r2 + 1] = r1;
 	sbm		[r2 + 2] = r1;
@@ -57,5 +55,4 @@
 	lbum	r13 = [r2 + 3];
 	lhum	r14 = [r2 + 0];
 	lhum	r15 = [r2 + 1];
-	nop		0;	
 	halt;

@@ -1,5 +1,5 @@
 # Test case for global memory load and store
-	nop 	0;
+	addi 	r1 = r0, 4095;
 	addi 	r1 = r0, 4095;
 	addi	r2 = r0, 4;
 	swm		[r2 + 0] = r1;
@@ -11,7 +11,6 @@
 	lhm		r3 = [r2 + 0];
 	lbm		r4 = [r2 + 4];
 	lwm		r5 = [r2 + 8];
-	nop		0;
 	swm		[r2 + 0] = r1;
 	shm		[r2 + 1] = r1;
 	sbm 	[r2 + 2] = r1;
@@ -21,7 +20,6 @@
 	lhm		r3 = [r2 + 0];
 	lbm		r4 = [r2 + 1];
 	lwm		r5 = [r2 + 2];
-	nop		0;
 	swm		[r0 + 1] = r1;
 	shm		[r0 + 2] = r1;
 	sbm 	[r0 + 4] = r1;
@@ -31,7 +29,6 @@
 	lhm		r3 = [r0 + 1];
 	lbm		r4 = [r0 + 2];
 	lwm		r5 = [r0 + 4];
-	nop		0;
 	addi	r1 = r0, 111;
 	sli		r2 = r1, 8;
 	addi	r2 = r2, 222;
@@ -43,7 +40,6 @@
 	lwm		r4 = [r0 + 1];
 	lhm		r5 = [r0 + 1];
 	lbm		r6 = [r0 + 1];
-	nop 	0;
 	swm		[r0 + 2] = r3;
 	shm		[r0 + 2] = r2;
 	sbm		[r0 + 2] = r1;

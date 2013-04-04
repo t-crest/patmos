@@ -1,5 +1,5 @@
 # Test case for data cache load and store
-	nop 	0;
+	addi 	r1 = r0, 4095;
 	addi 	r1 = r0, 4095;
 	addi	r2 = r0, 4;
 	swc		[r2 + 0] = r1;
@@ -17,7 +17,6 @@
 	lbuc	r13 = [r2 + 3];
 	lhuc	r14 = [r2 + 0];
 	lhuc	r15 = [r2 + 1];
-	nop		0;	
 	shc		[r2 + 0] = r1;
 	shc		[r2 + 1] = r1;
 	shc		[r2 + 0] = r1;
@@ -35,7 +34,6 @@
 	lbuc	r13 = [r2 + 3];
 	lhuc	r14 = [r2 + 0];
 	lhuc	r15 = [r2 + 1];
-	nop		0;	
 	sbc		[r2 + 0] = r1;
 	sbc		[r2 + 1] = r1;
 	sbc		[r2 + 2] = r1;
@@ -57,5 +55,4 @@
 	lbuc	r13 = [r2 + 3];
 	lhuc	r14 = [r2 + 0];
 	lhuc	r15 = [r2 + 1];
-	nop		0;	
 	halt;

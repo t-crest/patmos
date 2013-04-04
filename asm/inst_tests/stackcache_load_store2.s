@@ -1,5 +1,5 @@
 # Test case for data cache load and store
-	nop 	0;
+	addi 	r1 = r0, 4095;
 	addi 	r1 = r0, 4095;
 	addi	r2 = r0, 4;
 	sres	128;
@@ -18,7 +18,6 @@
 	lbus	r13 = [r2 + 3];
 	lhus	r14 = [r2 + 0];
 	lhus	r15 = [r2 + 1];
-	nop		0;	
 	shs		[r2 + 0] = r1;
 	shs		[r2 + 1] = r1;
 	shs		[r2 + 0] = r1;
@@ -36,7 +35,6 @@
 	lbus	r13 = [r2 + 3];
 	lhus	r14 = [r2 + 0];
 	lhus	r15 = [r2 + 1];
-	nop		0;	
 	sbs		[r2 + 0] = r1;
 	sbs		[r2 + 1] = r1;
 	sbs		[r2 + 2] = r1;
@@ -58,5 +56,4 @@
 	lbus	r13 = [r2 + 3];
 	lhus	r14 = [r2 + 0];
 	lhus	r15 = [r2 + 1];
-	nop		0;	
 	halt;
