@@ -64,8 +64,6 @@ sub: 	sub		r3 = r3, r2; # r3 = 100
 
 # br exit; # Should jump to correct exit label, using halt or loop
 
-rsub: 	rsub	r3 = r3, r2; # r3 = -90
-		rsub	r3 = r3, r2; # r3 = 100
 
 # br exit; # Should jump to correct exit label, using halt or loop
 
@@ -132,9 +130,6 @@ shadd2: shadd2	r8 = r8, 1; # r8 = 23
 
 #not: 	not		r7 = r7; # r7 = 9
 
-# br exit; # Should jump to correct exit label, using halt or loop
-
-#zext8: 	zext8	r6 = r6;
 
 # br exit; # Should jump to correct exit label, using halt or loop
 
@@ -146,23 +141,6 @@ shadd2: shadd2	r8 = r8, 1; # r8 = 23
 
 # br exit; # Should jump to correct exit label, using halt or loop
 
-sext8:	addi	r1 = r0, 255;
-		sext8	r2 = r1; # r2 = 4294967295
-
-# br exit; # Should jump to correct exit label, using halt or loop
-
-sext16: addi	r1 = r0, 255;
-		sext16	r2 = r1; # r2 = 255
-
-# br exit; # Should jump to correct exit label, using halt or loop
-
-zext16: zext16	r2 = r1; # r2 = 255
-
-# br exit; # Should jump to correct exit label, using halt or loop
-
-abs: 	addi	r3 = r0, 10;
-		sub		r3 = r0, r3;
-		abs		r4 = r3; # r4 = 10
 
 # br exit; # Should jump to correct exit label, using halt or loop
 

@@ -25,7 +25,7 @@
 
 	addi    r3 = r0, 13;
 	pand	p2 = p0, p1;
-(p2)	rsubi   r3 = r3, 1;
+(p2)	subi   r3 = r3, 1;
 
 	addi    r3 = r0, 4;
 	por	p3 = p0, p1;
@@ -106,7 +106,7 @@ x0:	add     r20 = r20, r2;
 	xor     r16 = r15, r16; # r16 = 1
 (!p2)   sub     r16 = r16, r15;
 
-(p0)    rsub     r16 = r16, r15;
+(p0)    sub     r16 = r16, r15;
 	swl	[r10+0] = r16;
 	lwl	r12 = [r10+0];
 	nop	0;
@@ -119,7 +119,7 @@ x0:	add     r20 = r20, r2;
 (p1)	add     r1  = r1, 65536; # r1 = 65538
 	add     r2 = r0, 65536; # r2 = 65536
 (p2)	sub     r1 = r1, 65500; # r1 = 38
-(!p1)	rsub    r1 = r2, 66000; # r1 = 464
+(!p1)	sub    r1 = r2, 66000; # r1 = ?
 	addi    r3 = r0, 1;
 	sl	r3 = r3, 1; # 
 	sli	r3 = r3, 30;
@@ -142,14 +142,10 @@ x0:	add     r20 = r20, r2;
 	sra	r10 = r10, 5; # fills in 5 upper bits with 1
 # unary instructions
 
-(p1)	abs	r1 = r1;
 (!p2)	addi	r2 = r0, 1;
 (p3)	sli     r2 = r2, 7;
-(!p3)	sext8   r2 = r2;
 (p4)	addi	r3 = r0, 1;
 (p5)	sli     r3 = r3, 15;
-(!p4)	sext16   r3 = r3;
 (p5)	addi	r4 = r0, 1;
 (p6)	sli     r4 = r4, 15;
-(p7)	zext16   r4 = r4;
 

@@ -4,8 +4,6 @@
 	add 	r2 = r1, r0;
 	subi	r3 = r1, 5;
 	sub 	r4 = r1, r3;
-	rsub	r2 = r1, r3;
-	rsub	r2 = r3, r1;
 	subi	r4 = r3, 50; # r4 = 50
 	sl		r4 = r4, 1; # r4 = 100
 	sr		r4 = r4, 2; # r4 = 25

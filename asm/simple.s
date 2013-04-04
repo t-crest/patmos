@@ -10,7 +10,6 @@
 
 	sub	r4 = r2, r1;
 	subi	r4 = r1, 3;
-	rsub	r4 = r2, r1;
 	or	r4 = r1, r2;
 	and	r4 = r3, r1;
 	and	r4 = r3, r2;
