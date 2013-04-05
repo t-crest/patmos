@@ -6,7 +6,7 @@
 	add 	r6 = r3, r5		||	add 	r7 = r4, r5;
 #	subi	r8 = r0, 8		||	subi	r9 = r0, 5;
 	addi	r12 = r0, 70;
-	rsubi	r1 = r0, 3		||	or		r13 = r12, r11;
+	subi	r1 = r0, 3		||	or		r13 = r12, r11;
 	andi	r15 = r12, 5	||	ori 	r16 = r12, 5;
 #	rl		r16 = r10, r1	||	rr 		r17 = r10, r1;
 #	rll		r16 = r10, 3	||	rrl		r17 = r10, 2;

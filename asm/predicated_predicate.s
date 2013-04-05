@@ -25,7 +25,7 @@
 
 	addi    r3 = r0, 13;
 	pand	p2 = p0, p1;
-(p2)	rsubi   r3 = r3, 1;
+(p2)	subi   r3 = r3, 1;
 
 	addi    r3 = r0, 4;
 	por	p3 = p0, p1;

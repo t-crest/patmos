@@ -6,8 +6,8 @@
 (p1) add 	r5 = r1, r2 	||(p1) add 	r6 = r1, r2;
 (p1) add 	r5 = r1, r2 	||(p1) add 	r6 = r1, r2;
 	por		p5 = p0, p0 	||	pxor	p6 = p0, p0;
-	pxor	p3 = p5, p6 	||	pnor	p4 = p5, p6;
-	pxor	p3 = p5, p6 	||	pnor	p4 = p5, p6;
-	pxor	p3 = p5, p6 	||	pnor	p4 = p5, p6;
+	pxor	p3 = p5, p6 	||	por	p4 = p5, p6;
+	pxor	p3 = p5, p6 	||	por	p4 = p5, p6;
+	pxor	p3 = p5, p6 	||	por	p4 = p5, p6;
 
 	halt;

@@ -14,7 +14,7 @@ x1:	addi    r10 = r0, 1; # this is just to jump!
 	subi    r1 = r1, 1; # just to check register file, r1 = 2, 3, 4, 3
 	por     p3 = p0, p1; #p3 = 1
 	pxor    p3 = p0, p1; #p3 = 0	
-	pnor    p1 = p0, p3; #p1 = 0
+	pand	p1 = !p0, !p0; #p1 = 0
 	pand    p1 = p0, !p1;#p1 = 1
 
 ####################

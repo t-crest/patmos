@@ -12,7 +12,7 @@
 	and		r10 = r8, r9	||	and 	r11 = r8, r9;
 	addi	r12 = r0, 70;
 #	addi	r12 = r0, 5000;
-	rsubi	r1 = r0, 3		||	or		r13 = r12, r11;
+	subi	r1 = r0, 3		||	or		r13 = r12, r11;
 	sli		r15 = r12, 5	||	sri 	r16 = r12, 5;
 	sl		r16 = r10, r1	||	sr 		r17 = r10, r1;
 	sra		r19 = r12, r1	||	srai 	r18 = r12, 5;
