@@ -8,7 +8,7 @@
 	addi    r4 = r0, 4;
 	swl	[r1 + 1] = r2; # memory address 260 (256 + (1 sl 2)) = 5 (all memory banks are updated)
 	lwl	r10  = [r1 + 1]; # register(10) = 5
-	nop 	0;
+	nop;
 	add	r2 = r2, r10; # r2 = 10
 
 	swl     [r1 + 1] = r0;	
@@ -32,7 +32,7 @@
 	sli	r5 = r5, 7;
 	swl     [r1 + 3] = r5; # memory address 267 =
 	lbl	r19 = [r1 + 12];
-	nop	0;
+	nop;
 	addi    r5 = r0, 5;
 	addi	r6 = r0, 6;
 	addi	r7 = r0, 7;
@@ -52,7 +52,7 @@
 	swl     [r1 + 2] = r0;
 x1:	shl	[r1 + 4] = r5; # 
 	lwl	r21 = [r1 + 2];	# 
-	nop	0;
+	nop;
 	addi    r16 = r0, 15;
 	addi    r30 = r0, 31;
 	addi    r29 = r0, 15;

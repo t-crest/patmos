@@ -5,6 +5,7 @@
 #
 
 # TODO: looks like the UART is in memory address 0....
+# update or drop
 
 	addi	r0 = r0, 0;  # first instruction not executed
 	addi	r1 = r0, 0;
@@ -13,15 +14,15 @@
 	addi	r1   = r0 , 2;
 	addi	r3 = r19 , 1;
 x1:	lwm     r10  = [r5 + 0];
-	nop	0;
+	nop;
         and     r11  = r10 , r3;
 	cmpneq  p1 = r11 , r1;
-	nop	0;
-	nop	0;
-	nop	0;
+	nop;
+	nop;
+	nop;
 	(p1) 	bc x1;
-	nop 	0;
-	nop	0;
+	nop;
+	nop;
 	swm	[r7 + 1] = r2;
 #	br	x2;
 	halt

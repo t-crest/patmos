@@ -19,7 +19,7 @@
 	swl     [r1 + 2] = r0;
 	shl	[r1 + 4] = r5; # 
 	lwl	r21 = [r1 + 2];	# 
-	nop	0;
+	nop;
 	addi    r16 = r0, 15;
 	addi    r30 = r0, 31;
 	addi    r29 = r0, 15;

@@ -3,11 +3,13 @@
 # this echos wrong characters
 # MS: what does this program? Looks very out of date: UART at wrong address, bne,...
 # SA: should I continue with assembly boot loader? 
+# MS: I think a boot loader shall be done in C if possible
+# and we shall drop unused out-of-date code
 		addi    r16  = r16 , 64;
 		addi    r7 = r7 , 511;
 		addi	r1   = r0 , 2;
 		lwm     r10  = [r5 + 0];
-                nop	0;
+                nop;
                 and     r11  = r10 , r1;
 		bne     r1 != r11 , 4;
 		addi	r0  = r0 , 1;
@@ -28,7 +30,7 @@
 		sl      r18 = r18 , r19;
 		or	r15 = r15 , r18;
 		lwm     r10  = [r5 + 0];
-		nop	0;
+		nop;
                 and     r11  = r10 , r1;
 		bne     r1 != r11 , 4;
 		addi	r0  = r0 , 1;
@@ -39,7 +41,7 @@
 		sl      r20 = r20 , r21;
 		or	r15 = r15 , r20;
 		lwm     r10  = [r5 + 0];
-		nop	0;
+		nop;
                 and     r11  = r10 , r1;
 		bne     r1 != r11 , 4;
 		addi	r0  = r0 , 1;

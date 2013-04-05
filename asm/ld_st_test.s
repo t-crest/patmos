@@ -8,7 +8,7 @@
 	addi    r30 = r0, 0;
 	addi	r2 = r0, 10;
 #	swl	[r1 + 1] = r2;
-	nop	0;
+	nop;
 x1:	swm	[r1 + 1] = r2;
 	addi    r5 = r0, 5;
 	lwm	r10  = [r1 + 1];

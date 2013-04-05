@@ -91,7 +91,7 @@ x0:	add     r20 = r20, r2;
 	addi	r10 = r0, 0;	
 	swl	[r10+0] = r11;
 	lwl	r2 = [r10+0];
-	nop	0;
+	nop;
 	cmple   p4 = r1, r2;
 	addi    r15 = r0, 1;
 	addi    r16 = r0, 0;
@@ -100,7 +100,7 @@ x0:	add     r20 = r20, r2;
 
 	pand    p1 = p0, p2;
 	cmple   p4 = r1, r2;
-	nop	0;
+	nop;
 	addi    r15 = r0, 1;
 	addi    r16 = r0, 0;
 	xor     r16 = r15, r16; # r16 = 1
@@ -109,7 +109,7 @@ x0:	add     r20 = r20, r2;
 (p0)    sub     r16 = r16, r15;
 	swl	[r10+0] = r16;
 	lwl	r12 = [r10+0];
-	nop	0;
+	nop;
 (p1)	sra	r25 = r12, r16;
 (p2)	shadd   r2 = r2, r11;
 (!p3)   shadd2  r13 = r2, r12;

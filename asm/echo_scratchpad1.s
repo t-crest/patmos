@@ -32,9 +32,9 @@ x2:		lwl     r10  = [r5 + 0];
 
 		addi	r13 = r0, 255; # r13 = 255
 		swl	[r13 + 1] = r15; # memory address 259 (255 + (1 sl 2)) = whatever from uart 
-		nop	0;
+		nop;
 		lwl	r25  = [r13 + 1]; # register(25) = whatever from uart 		
-		nop 	0;
+		nop;
 		swl	[r5 + 1] = r25;
 		br	x0;
                 addi    r0  = r0 , 0;

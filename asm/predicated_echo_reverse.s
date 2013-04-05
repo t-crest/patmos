@@ -41,8 +41,8 @@ x2:		lwl     r10  = [r5 + 0];
 		addi    r8 = r8, 1;
 		cmpneq  p3 = r7, r8;
 	(p3)	br      x0;
-		nop	0;
-		nop	0;
+		nop;
+		nop;
 
 		subi    r8 = r8, 1;
 x5:		lwl     r10  = [r5 + 0];
@@ -54,7 +54,7 @@ x5:		lwl     r10  = [r5 + 0];
                 addi    r0  = r0 , 0;
 
 		lwl     r15 = [r8 + 0];
-		nop	0;
+		nop;
 		addi    r13 = r0, 33;
 		swl	[r5 + 1] = r15;
 #		addi	r0 = r0, 0;

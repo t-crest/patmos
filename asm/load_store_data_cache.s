@@ -12,13 +12,13 @@
 	addi    r15 = r0, 257;
 	swc	[r1 + 1] = r2; # memory address 260 (256 + (1 sl 2)) = 5 (all memory banks are updated)
 	lwc	r10  = [r1 + 1]; # register(10) = 5
-	nop 	0;
+	nop;
 	add	r2 = r2, r10; # r2 = 5 + 5 = 10 
 
 	shc     [r1 + 2] = r0;
 	shc	[r1 + 3] = r2; # memory address 262 = 10 (two memory banks are updated)
 	lhc	r11  = [r1 + 3]; # register(11) = 10
-	nop	0;
+	nop;
 
 	swc	[r1 + 0] = r0;	
 	sbc	[r1 + 0] = r4; # memory address 258 (255 +3 ) = 4 (one memory bank updated)
@@ -40,7 +40,7 @@ addi    r1 = r0 , 256;
 	addi    r5 = r0, 3; # r0 =3
 	sli     r5 = r5, 7; # r5(8,7) = 11
 	shc	[r1 + 4] = r5; # memory address 263 #25
-	nop	0;
+	nop;
 	swc     [r1 + 2] = r0;
 	lwc	r21 = [r1 + 2];	# 16 upper bits of r21 are invalid since 16 bits are loaded from memory
 	addi    r16 = r0, 15;
