@@ -70,7 +70,6 @@ class Decode() extends Component {
   io.decex.immOp := Bool(false)
   //  io.decex.aluOp := Bool(false)
   io.decex.cmpOp := Bool(false)
-  io.decex.unaryOp := Bool(false)
   io.decex.predOp := Bool(false)
   io.decex.branch := Bool(false)
   io.decex.load := Bool(false)
@@ -98,7 +97,6 @@ class Decode() extends Component {
         io.decex.wrReg := Bool(true)
       }
       is(Bits("b001")) {
-        io.decex.unaryOp := Bool(true)
         io.decex.wrReg := Bool(true)
       }
       is(Bits("b010")) {} // multiply

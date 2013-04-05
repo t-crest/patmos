@@ -66,16 +66,12 @@ class Execute() extends Component {
     switch(func) {
       is(Bits("b0000")) { result := sum }
       is(Bits("b0001")) { result := op1 - op2 }
-//      is(Bits("b0010")) { result := op2 - op1 }
+      // space for one immediate op
       is(Bits("b0011")) { result := (op1 << shamt).toUFix }
       is(Bits("b0100")) { result := (op1 >> shamt).toUFix }
       is(Bits("b0101")) { result := (op1.toFix >> shamt).toUFix }
       is(Bits("b0110")) { result := (op1 | op2).toUFix }
       is(Bits("b0111")) { result := (op1 & op2).toUFix }
-//      // I don't like them and the following is an inefficient description of the rotate
-//      is(Bits("b1000")) { result := ((op1 << shamt) | (op1 >> (UFix(32) - shamt))).toUFix }
-//      // Rotate right is the same as rotate left
-//      is(Bits("b1001")) { result := ((op1 >> shamt) | (op1 << (UFix(32) - shamt))).toUFix }
       is(Bits("b1010")) { result := (op1 ^ op2).toUFix }
       is(Bits("b1011")) { result := (~(op1 | op2)).toUFix }
       // TODO: shadd shift shall be in it's own operand MUX
@@ -101,15 +97,6 @@ class Execute() extends Component {
       (Bits("b110"), ((op1 & (Bits(1) << op2)) != UFix(0)))))
   }
 
-//  def unary(func: Bits, op: Bits): Bits = {
-//    val ops = op.toFix
-//    MuxLookup(func, Bool(false), Array(
-//      (Bits("b00"), Cat(Fill(24, op(7)), op(7, 0))),
-//      (Bits("b01"), Cat(Fill(16, op(15)), op(15, 0))),
-//      (Bits("b10"), Cat(Bits(0, 16), op(15, 0))),
-//      (Bits("b11"), Mux(ops(31), -ops, ops)))) // I don't like abs
-//  }
-
   def pred(func: Bits, op1: Bool, op2: Bool): Bool = {
     MuxLookup(func, Bool(false), Array(
       (Bits("b00"), op1 | op2),
@@ -130,7 +117,6 @@ class Execute() extends Component {
 
   val op2 = Mux(exReg.immOp, exReg.immVal, rb)
   val op1 = ra
-//  val aluResult = Mux(exReg.unaryOp, unary(exReg.func(1, 0), op1), alu(exReg.func, op1, op2))
   val aluResult = alu(exReg.func, op1, op2)
   val compResult = comp(exReg.func(2, 0), op1, op2)
 

@@ -68,7 +68,6 @@ class DecEx() extends Bundle() {
   val immOp = Bool()
 //  val aluOp = Bool()
   val cmpOp = Bool()
-  val unaryOp = Bool()
   val predOp = Bool()
   val branch = Bool()
   val load = Bool()

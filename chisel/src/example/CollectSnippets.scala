@@ -31,9 +31,7 @@
  */
 
 /*
- * Register file for Patmos.
- * 
- * Needs to be extended to support two ALUs
+ * Possible register file for Patmos and other example Chisel code.
  * 
  * Author: Martin Schoeberl (martin@jopdesign.com)
  * 
@@ -48,6 +46,22 @@ import Node._
 
 class CollectSnippets() extends Component {
   val io = Bits(width=10)
+  
+    def unary(func: Bits, op: Bits): Bits = {
+    val ops = op.toFix
+    MuxLookup(func, Bool(false), Array(
+      (Bits("b00"), Cat(Fill(24, op(7)), op(7, 0))),
+      (Bits("b01"), Cat(Fill(16, op(15)), op(15, 0))),
+      (Bits("b10"), Cat(Bits(0, 16), op(15, 0))),
+      (Bits("b11"), Mux(ops(31), -ops, ops)))) // I don't like abs
+  }
+
+// Rotate
+//      // I don't like them and the following is an inefficient description of the rotate
+//      is(Bits("b1000")) { result := ((op1 << shamt) | (op1 >> (UFix(32) - shamt))).toUFix }
+//      // Rotate right is the same as rotate left
+//      is(Bits("b1001")) { result := ((op1 >> shamt) | (op1 << (UFix(32) - shamt))).toUFix }
+
 // ****** register file variations **********
   
   // we could make it configurable if using a RAM block or not
