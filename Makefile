@@ -11,7 +11,7 @@ EXTENSIONS=class rbf rpt sof pin summary ttf qdf dat wlf done qws
 USB=false
 
 # Assembler files
-APP=test
+APP=ALU
 # Altera FPGA configuration cable
 #BLASTER_TYPE=ByteBlasterMV
 BLASTER_TYPE=USB-Blaster
@@ -142,10 +142,31 @@ endif
 endif
 
 synth:
+	make vsynth
+	make chslgen
+	make csynth
+
+# This is ugly, but I don't have Quartus under OSX
+# and I don't have cmake/paasm under cygwin
+# Tools in Java would be easier...
+
+chslgen:
+	cd chisel; make asm verilog -e APP=$(APP)
+
+csynth:
+	echo "building $(QPROJ) from Chisel"
+	-rm -rf chisel/quartus/$(QPROJ)/db
+	-rm -f chisel/quartus/$(QPROJ)/patmos.sof
+	quartus_map chisel/quartus/$(QPROJ)/patmos
+	quartus_fit chisel/quartus/$(QPROJ)/patmos
+	quartus_asm chisel/quartus/$(QPROJ)/patmos
+	quartus_sta chisel/quartus/$(QPROJ)/patmos
+
+
+vsynth:
 	@echo $(QPROJ)
 	for target in $(QPROJ); do \
 		make qsyn -e QBT=$$target || exit; \
-#		cd quartus/$$target && quartus_cpf -c patmos.sof ../../rbf/$$target.rbf; \
 	done
 
 #
@@ -153,7 +174,6 @@ synth:
 #		called by jopser, jopusb,...
 #
 qsyn:
-	echo $(QBT)
 	echo "building $(QBT)"
 	-rm -rf quartus/$(QBT)/db
 	-rm -f quartus/$(QBT)/patmos.sof

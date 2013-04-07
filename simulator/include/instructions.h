@@ -59,7 +59,7 @@ namespace patmos
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+    virtual void print_operands(const simulator_t &s, std::ostream &os, 
 	               const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     { }
@@ -244,7 +244,11 @@ namespace patmos
   /// Base class for ALUi or ALUl instructions.
   class i_aluil_t : public i_pred_t
   {
+    uint64_t cnt_nops;
+    uint64_t cnt_short_imm;
   public:
+    i_aluil_t() { reset_stats(); }
+    
     /// Compute the result of an ALUi or ALUl instruction.
     /// @param value1 The value of the first operand.
     /// @param value2 The value of the second operand.
@@ -315,7 +319,7 @@ namespace patmos
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+    virtual void print_operands(const simulator_t &s, std::ostream &os, 
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
@@ -330,6 +334,29 @@ namespace patmos
       printGPReg(os, " in: ", ops.OPS.ALUil.Rs1, s.GPR);
 
       printSymbol(os, " imm", ops.OPS.ALUil.Imm2, symbols);
+    }
+    
+    virtual void reset_stats() {
+      cnt_nops = 0;
+      cnt_short_imm = 0;
+    }
+    
+    virtual void collect_stats(const simulator_t &s, 
+                               const instruction_data_t &ops) {
+      if (ops.OPS.ALUil.Rd == r0 && 
+          ops.OPS.ALUil.Rs1 == r0 &&
+          ops.OPS.ALUil.Imm2 == 0) {
+        ++cnt_nops;
+      }
+      else if (ops.OPS.ALUil.Imm2 < (1<<12)) {
+        ++cnt_short_imm;
+      }
+    }
+    
+    virtual void print_stats(const simulator_t &s, std::ostream &os,
+                             const symbol_map_t &symbols) const {
+      os << "NOPs: " << cnt_nops;
+      os << " Short Imm: " << cnt_short_imm;
     }
   };
 
@@ -440,7 +467,7 @@ namespace patmos
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+    virtual void print_operands(const simulator_t &s, std::ostream &os, 
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
@@ -533,7 +560,7 @@ namespace patmos
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+    virtual void print_operands(const simulator_t &s, std::ostream &os, 
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
@@ -569,7 +596,14 @@ namespace patmos
   /// Base class for ALUc instructions.
   class i_aluc_t : public i_pred_t
   {
+    uint64_t cnt_cmp_r0;
+    uint64_t cnt_cmp_zero;
+    uint64_t cnt_cmp_short_negimm;
+    uint64_t cnt_cmp_short_imm;
+    uint64_t cnt_cmp_short_uimm;
   public:
+    i_aluc_t() { reset_stats(); }
+    
     /// Compute the result of an ALUc instruction.
     /// @param value1 The value of the first operand.
     /// @param value2 The value of the second operand.
@@ -613,7 +647,7 @@ namespace patmos
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+    virtual void print_operands(const simulator_t &s, std::ostream &os, 
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
@@ -621,6 +655,40 @@ namespace patmos
       printGPReg(os, "in: ", ops.OPS.ALUc.Rs1, s.GPR);
       printGPReg(os, ", "   , ops.OPS.ALUc.Rs2, s.GPR);
     }    
+    
+    virtual void reset_stats() {
+      cnt_cmp_r0 = 0;
+      cnt_cmp_zero = 0;
+      cnt_cmp_short_imm = 0;
+      cnt_cmp_short_negimm = 0;
+      cnt_cmp_short_uimm = 0;
+    }
+    
+    virtual void collect_stats(const simulator_t &s, 
+                               const instruction_data_t &ops) {
+      if (ops.OPS.ALUc.Rs1 == r0 || 
+          ops.OPS.ALUc.Rs2 == r0) {
+        cnt_cmp_r0++;
+      } else {
+        word_t value = std::min(s.GPR.get(ops.OPS.ALUc.Rs1).get(),
+                                s.GPR.get(ops.OPS.ALUc.Rs2).get());
+        if (value == 0) {
+          cnt_cmp_zero++;
+        } else if (value < 0 && -value < (1<<5)) {
+          cnt_cmp_short_negimm++;
+        } else if (value > 0 && value < (1<<5)) {
+          cnt_cmp_short_imm++;
+        } else if (value > 0 && value < (1<<6)) {
+          cnt_cmp_short_uimm++;
+        }
+      }
+    }
+    
+    virtual void print_stats(const simulator_t &s, std::ostream &os,
+                             const symbol_map_t &symbols) const {
+      os << boost::format("r0: %d zero: %d negimm: %d short imm: %d uimm: %d") 
+         % cnt_cmp_r0 % cnt_cmp_zero % cnt_cmp_short_negimm % cnt_cmp_short_imm % cnt_cmp_short_uimm;
+    }
   };
 
 #define ALUc_INSTR(name, operator) \
@@ -732,7 +800,7 @@ namespace patmos
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+    virtual void print_operands(const simulator_t &s, std::ostream &os, 
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
@@ -917,7 +985,7 @@ namespace patmos
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+    virtual void print_operands(const simulator_t &s, std::ostream &os, 
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
@@ -929,7 +997,10 @@ namespace patmos
   /// register.
   class i_spcf_t : public i_pred_t
   {
+    uint64_t cnt_accesses[8];
   public:
+    i_spcf_t() { reset_stats(); }
+    
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
@@ -1015,12 +1086,33 @@ namespace patmos
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+    virtual void print_operands(const simulator_t &s, std::ostream &os, 
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
       printGPReg(os, "out: ", ops.OPS.SPCf.Rd, ops.EX_result);
     }    
+    
+    virtual void reset_stats() {
+      for (int i = 0; i < 8; i++) {
+        cnt_accesses[i] = 0;
+      }
+    }
+
+    virtual void collect_stats(const simulator_t &s, 
+                               const instruction_data_t &ops) {
+      if (ops.OPS.SPCf.Rd < 8) {
+        cnt_accesses[ops.OPS.SPCf.Rd]++;
+      }
+    }
+    
+    virtual void print_stats(const simulator_t &s, std::ostream &os,
+                             const symbol_map_t &symbols) const {
+      for (int i = 0; i < 8; i++) {
+        os << boost::format("s%d: %d ") % i % cnt_accesses[i];
+      }
+    }
+    
   };
 
   /// Base class for memory load instructions.
@@ -1093,7 +1185,7 @@ namespace patmos
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+    virtual void print_operands(const simulator_t &s, std::ostream &os, 
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
@@ -1221,7 +1313,7 @@ namespace patmos
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+    virtual void print_operands(const simulator_t &s, std::ostream &os, 
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
@@ -1325,7 +1417,7 @@ namespace patmos
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+    virtual void print_operands(const simulator_t &s, std::ostream &os, 
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
@@ -1520,7 +1612,7 @@ namespace patmos
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+    virtual void print_operands(const simulator_t &s, std::ostream &os, 
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
@@ -1582,7 +1674,7 @@ namespace patmos
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+    virtual void print_operands(const simulator_t &s, std::ostream &os, 
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
@@ -1685,7 +1777,7 @@ namespace patmos
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void printOperands(const simulator_t &s, std::ostream &os, 
+    virtual void print_operands(const simulator_t &s, std::ostream &os, 
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {

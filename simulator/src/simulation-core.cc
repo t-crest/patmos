@@ -206,7 +206,8 @@ namespace patmos
   
   void simulator_t::run(word_t entry, uint64_t debug_cycle,
                         debug_format_e debug_fmt, std::ostream &debug_out,
-                        uint64_t max_cycles, bool profiling)
+                        uint64_t max_cycles, bool profiling,
+                        bool collect_instr_stats)
   {
     // do some initializations before executing the first instruction.
     if (Cycle == 0)
@@ -352,7 +353,18 @@ namespace patmos
           print(debug_out, debug_fmt);
         }
 
-
+        // Collect stats for instructions
+        if (collect_instr_stats) {
+          for (unsigned int j = 0; j < NUM_SLOTS; j++)
+          {
+            if (Pipeline[SMW][j].I) {
+              // I am too lazy now to remove all the const's..
+              instruction_t &I(Decoder.get_instruction(Pipeline[SMW][j].I->ID));
+              I.collect_stats(*this, Pipeline[SMW][j]);
+            }
+          }
+        }
+        
         if (profiling)
         {
           instruction_data_t *Inst = &Pipeline[NUM_STAGES-1][0];
@@ -464,7 +476,7 @@ namespace patmos
 
       for(unsigned int i = 0; i < NUM_SLOTS; i++) {
         if (i != 0) os << " ";
-        Pipeline[stage][i].printOperands(*this, os, Symbols);
+        Pipeline[stage][i].print_operands(*this, os, Symbols);
       }
 
       os << "\n";      
@@ -521,7 +533,7 @@ namespace patmos
     }
   }
 
-  void simulator_t::print_stats(std::ostream &os, bool slot_stats) const
+  void simulator_t::print_stats(std::ostream &os, bool slot_stats, bool instr_stats) const
   {
     // print register values
     print_registers(os, DF_DEFAULT);
@@ -577,6 +589,11 @@ namespace patmos
         num_total_discarded[j] += num_discarded[j];
         
         if (!slot_stats) break;
+      }
+      
+      if (instr_stats) {
+        os << "\t";
+        I.print_stats(*this, os, Symbols);
       }
       
       os << "\n";

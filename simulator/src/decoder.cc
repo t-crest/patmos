@@ -267,9 +267,9 @@ namespace patmos
     MK_INSTR(ret, cflr, 0)
   }
 
-  const instruction_t &decoder_t::get_instruction(unsigned int ID)
+  instruction_t &decoder_t::get_instruction(unsigned int ID)
   {
-    const instruction_t *result = Instructions[ID].get<0>();
+    instruction_t *result = Instructions[ID].get<0>();
     assert(result && result->ID == ID);
     return *result;
   }
