@@ -39,7 +39,7 @@ namespace patmos
   private:
     /// A vector of Patmos instructions and binary formats available to the
     /// simulator.
-    typedef std::vector<boost::tuples::tuple<const instruction_t*,
+    typedef std::vector<boost::tuples::tuple<instruction_t*,
                                              const binary_format_t*> >
                                                                  instructions_t;
 
@@ -83,7 +83,7 @@ namespace patmos
 
     /// Return instruction by ID.
     /// @return The instruction having the given ID.
-    static const instruction_t &get_instruction(unsigned int ID);
+    static instruction_t &get_instruction(unsigned int ID);
   };
 }
 

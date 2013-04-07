@@ -62,10 +62,23 @@ namespace patmos
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void printOperands(const simulator_t &s, std::ostream &os,
+    virtual void print_operands(const simulator_t &s, std::ostream &os,
                        const instruction_data_t &ops,
                        const symbol_map_t &symbols) const = 0;
 
+    /// Reset all statistic counters.
+    virtual void reset_stats() { }
+    
+    /// Collect statistic for instruction instance and add to stats counters.
+    virtual void collect_stats(const simulator_t &s, 
+                               const instruction_data_t &ops) { }
+    
+    /// Print statistics for this instruction type.
+    /// This should print statistics as one line without newlines, and 
+    /// always format it as list of '<name>: <value>' pairs, for automatic evaluation.
+    virtual void print_stats(const simulator_t &s, std::ostream &os, 
+                             const symbol_map_t &symbols) const { }
+                            
     // -------------------------- SIMULATION -----------------------------------
 
     /// Pipeline function to simulate the behavior of the instruction in
@@ -464,12 +477,12 @@ namespace patmos
     /// Print the instruction's operands to an output stream.
     /// @param os The output stream to print to.
     /// @param symbols A mapping of addresses to symbols.
-    void printOperands(const simulator_t &s, std::ostream &os, 
+    void print_operands(const simulator_t &s, std::ostream &os, 
 	       const symbol_map_t &symbols) const
     {
       if (I) {
 	if (DR_Pred) {
-          I->printOperands(s, os, *this, symbols);
+          I->print_operands(s, os, *this, symbols);
 	} else {
 	  os << "skipped";
 	}

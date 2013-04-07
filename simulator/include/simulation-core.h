@@ -274,12 +274,14 @@ namespace patmos
     /// @param debug_out Stream to print debug output.
     /// @param max_cycles The maximum number of cycles to run the simulation.
     /// @param profiling Enable profiling in the simulation run.
+    /// @param collect_instr_stats 
     void run(word_t entry = 0,
              uint64_t debug_cycle = std::numeric_limits<uint64_t>::max(),
              debug_format_e debug_fmt = DF_DEFAULT,
              std::ostream &debug_out = std::cerr,
              uint64_t max_cycles = std::numeric_limits<uint64_t>::max(),
-             bool profiling = false);
+             bool profiling = false, 
+             bool collect_instr_stats = false);
 
     /// Print the instructions and their operands in a pipeline stage
     /// @param os An output stream.
@@ -294,7 +296,7 @@ namespace patmos
     /// Print runtime statistics of the current simulation run to an output 
     /// stream.
     /// @param os An output stream.
-    void print_stats(std::ostream &os, bool slot_stats) const;
+    void print_stats(std::ostream &os, bool slot_stats, bool instr_stats) const;
     
     /// Print the current call stack.
     /// @param os An output stream.
