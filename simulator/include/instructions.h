@@ -355,8 +355,12 @@ namespace patmos
     
     virtual void print_stats(const simulator_t &s, std::ostream &os,
                              const symbol_map_t &symbols) const {
-      os << "NOPs: " << cnt_nops;
-      os << " Short Imm: " << cnt_short_imm;
+      if (cnt_nops) 
+        os << "NOPs: " << cnt_nops;
+      if (cnt_nops && cnt_short_imm) 
+        os << ", ";
+      if (cnt_short_imm) 
+        os << "Short Imm: " << cnt_short_imm;
     }
   };
 
@@ -686,7 +690,7 @@ namespace patmos
     
     virtual void print_stats(const simulator_t &s, std::ostream &os,
                              const symbol_map_t &symbols) const {
-      os << boost::format("r0: %d zero: %d negimm: %d short imm: %d uimm: %d") 
+      os << boost::format("r0: %d, zero: %d, negimm: %d, short imm: %d, uimm: %d") 
          % cnt_cmp_r0 % cnt_cmp_zero % cnt_cmp_short_negimm % cnt_cmp_short_imm % cnt_cmp_short_uimm;
     }
   };
@@ -1109,7 +1113,8 @@ namespace patmos
     virtual void print_stats(const simulator_t &s, std::ostream &os,
                              const symbol_map_t &symbols) const {
       for (int i = 0; i < 8; i++) {
-        os << boost::format("s%d: %d ") % i % cnt_accesses[i];
+        if (i) os << ", ";
+        os << boost::format("s%d: %d") % i % cnt_accesses[i];
       }
     }
     

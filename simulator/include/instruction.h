@@ -75,7 +75,7 @@ namespace patmos
     
     /// Print statistics for this instruction type.
     /// This should print statistics as one line without newlines, and 
-    /// always format it as list of '<name>: <value>' pairs, for automatic evaluation.
+    /// always format it as comma-separated list of '<name>: <value>' pairs.
     virtual void print_stats(const simulator_t &s, std::ostream &os, 
                              const symbol_map_t &symbols) const { }
                             
