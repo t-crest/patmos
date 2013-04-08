@@ -331,7 +331,7 @@ namespace patmos
       }
       
       printGPReg(os, "out: ", ops.OPS.ALUil.Rd,  ops.EX_result);
-      printGPReg(os, " in: ", ops.OPS.ALUil.Rs1, s.GPR);
+      printGPReg(os, " in: ", ops.OPS.ALUil.Rs1, ops.DR_Rs1.get());
 
       printSymbol(os, " imm", ops.OPS.ALUil.Imm2, symbols);
     }
@@ -472,8 +472,8 @@ namespace patmos
                        const symbol_map_t &symbols) const
     {
       printGPReg(os, "out: ", ops.OPS.ALUr.Rd , ops.EX_result);
-      printGPReg(os, " in: ", ops.OPS.ALUr.Rs1, s.GPR);
-      printGPReg(os, ", "   , ops.OPS.ALUr.Rs2, s.GPR);
+      printGPReg(os, " in: ", ops.OPS.ALUr.Rs1, ops.DR_Rs1.get());
+      printGPReg(os, ", "   , ops.OPS.ALUr.Rs2, ops.DR_Rs2.get());
     }
   };
 
@@ -567,8 +567,8 @@ namespace patmos
       // TODO result should actually not be available yet?
       printSPReg(os, "out: ", sl, ops.EX_mull);
       printSPReg(os, ", "   , sh, ops.EX_mulh);
-      printGPReg(os, " in: ", ops.OPS.ALUm.Rs1, s.GPR);
-      printGPReg(os, ", "   , ops.OPS.ALUm.Rs2, s.GPR);
+      printGPReg(os, " in: ", ops.OPS.ALUm.Rs1, ops.DR_Rs1.get());
+      printGPReg(os, ", "   , ops.OPS.ALUm.Rs2, ops.DR_Rs2.get());
     }
 
   };
@@ -652,8 +652,8 @@ namespace patmos
                        const symbol_map_t &symbols) const
     {
       // TODO can we get Pd reliably in MW stage?
-      printGPReg(os, "in: ", ops.OPS.ALUc.Rs1, s.GPR);
-      printGPReg(os, ", "   , ops.OPS.ALUc.Rs2, s.GPR);
+      printGPReg(os, "in: ", ops.OPS.ALUc.Rs1, ops.DR_Rs1.get());
+      printGPReg(os, ", "  , ops.OPS.ALUc.Rs2, ops.DR_Rs2.get());
     }    
     
     virtual void reset_stats() {
@@ -989,7 +989,7 @@ namespace patmos
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
-      printGPReg(os, "in: ", ops.OPS.SPCt.Rs1, s.GPR);
+      printGPReg(os, "in: ", ops.OPS.SPCt.Rs1, ops.DR_Rs1.get());
     }
   };
 
@@ -1101,8 +1101,8 @@ namespace patmos
 
     virtual void collect_stats(const simulator_t &s, 
                                const instruction_data_t &ops) {
-      if (ops.OPS.SPCf.Rd < 8) {
-        cnt_accesses[ops.OPS.SPCf.Rd]++;
+      if (ops.OPS.SPCf.Ss < 8) {
+        cnt_accesses[ops.OPS.SPCf.Ss]++;
       }
     }
     
@@ -1190,7 +1190,7 @@ namespace patmos
                        const symbol_map_t &symbols) const
     {
       printGPReg(os, "out: ", ops.OPS.LDT.Rd, s.GPR);
-      printGPReg(os, " in: ", ops.OPS.LDT.Ra, s.GPR);
+      printGPReg(os, " in: ", ops.OPS.LDT.Ra, ops.DR_Rs1.get());
       os << boost::format(" addr: %1$08x ") % ops.EX_Address;
       symbols.print(os, ops.EX_Address);
     }    
@@ -1317,7 +1317,7 @@ namespace patmos
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
-      printGPReg(os, "in: " , ops.OPS.LDT.Ra, s.GPR);
+      printGPReg(os, "in: " , ops.OPS.LDT.Ra, ops.DR_Rs1.get());
       os << boost::format(" addr: %1$08x ") % ops.EX_Address;
       symbols.print(os, ops.EX_Address);
     }    
@@ -1421,7 +1421,7 @@ namespace patmos
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
-      printGPReg(os, "in: " , ops.OPS.STT.Ra, s.GPR);
+      printGPReg(os, "in: " , ops.OPS.STT.Ra, ops.DR_Rs1.get());
       printGPReg(os, ", "   , ops.OPS.STT.Rs1, ops.EX_Rs);
       os << boost::format(" addr: %1$08x ") % ops.EX_Address;
       symbols.print(os, ops.EX_Address);
@@ -1781,8 +1781,8 @@ namespace patmos
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
-      printGPReg(os, "in: ", ops.OPS.CFLr.Rb, s.GPR);
-      printGPReg(os, ", "  , ops.OPS.CFLr.Ro, s.GPR);
+      printGPReg(os, "in: ", ops.OPS.CFLr.Rb, ops.DR_Base);
+      printGPReg(os, ", "  , ops.OPS.CFLr.Ro, ops.DR_Offset);
     }
   };
 }

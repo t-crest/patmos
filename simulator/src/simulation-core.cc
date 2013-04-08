@@ -467,15 +467,18 @@ namespace patmos
       std::ostringstream oss;
       symbol_map_t emptymap;
       for(unsigned int i = 0; i < NUM_SLOTS; i++) {
+        std::ostringstream instr;
+        Pipeline[stage][i].print(instr, emptymap);
+        
         if (i != 0) oss << " || ";
-        Pipeline[stage][i].print(oss, emptymap);
+        oss << boost::format("%1% %|30t|") % instr.str();
       }
 
-      os << boost::format("%1$08x %2$9d %3% %|70t|") 
+      os << boost::format("%1$08x %2$9d %3% %|75t|") 
                    % Pipeline[stage][0].IF_PC % Cycle % oss.str();
 
       for(unsigned int i = 0; i < NUM_SLOTS; i++) {
-        if (i != 0) os << " ";
+        if (i != 0) os << " || ";
         Pipeline[stage][i].print_operands(*this, os, Symbols);
       }
 
