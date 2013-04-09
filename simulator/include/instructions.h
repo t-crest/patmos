@@ -246,6 +246,7 @@ namespace patmos
   {
     uint64_t cnt_nops;
     uint64_t cnt_short_imm;
+    uint64_t cnt_short_loads;
   public:
     i_aluil_t() { reset_stats(); }
     
@@ -339,6 +340,7 @@ namespace patmos
     virtual void reset_stats() {
       cnt_nops = 0;
       cnt_short_imm = 0;
+      cnt_short_loads = 0;
     }
     
     virtual void collect_stats(const simulator_t &s, 
@@ -348,6 +350,9 @@ namespace patmos
           ops.OPS.ALUil.Imm2 == 0) {
         ++cnt_nops;
       }
+      else if (ops.OPS.ALUil.Rs1 == r0 && ops.OPS.ALUil.Imm2 < (1<<12)) {
+        ++cnt_short_loads;
+      }
       else if (ops.OPS.ALUil.Imm2 < (1<<12)) {
         ++cnt_short_imm;
       }
@@ -355,12 +360,20 @@ namespace patmos
     
     virtual void print_stats(const simulator_t &s, std::ostream &os,
                              const symbol_map_t &symbols) const {
-      if (cnt_nops) 
+      bool printed = false;
+      if (cnt_nops) {
         os << "NOPs: " << cnt_nops;
-      if (cnt_nops && cnt_short_imm) 
-        os << ", ";
-      if (cnt_short_imm) 
+        printed = true;
+      }
+      if (cnt_short_loads) {
+        if (printed) os << ", ";
+        os << "Short Load Imm: " << cnt_short_loads;
+        printed = true;
+      }
+      if (cnt_short_imm) {
+        if (printed) os << ", ";
         os << "Short Imm: " << cnt_short_imm;
+      }
     }
   };
 
