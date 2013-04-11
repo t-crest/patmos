@@ -66,13 +66,12 @@ class Execute() extends Component {
     switch(func) {
       is(Bits("b0000")) { result := sum }
       is(Bits("b0001")) { result := op1 - op2 }
-      // space for one immediate op
+      is(Bits("b0010")) { result := (op1 ^ op2).toUFix }
       is(Bits("b0011")) { result := (op1 << shamt).toUFix }
       is(Bits("b0100")) { result := (op1 >> shamt).toUFix }
       is(Bits("b0101")) { result := (op1.toFix >> shamt).toUFix }
       is(Bits("b0110")) { result := (op1 | op2).toUFix }
       is(Bits("b0111")) { result := (op1 & op2).toUFix }
-      is(Bits("b1010")) { result := (op1 ^ op2).toUFix }
       is(Bits("b1011")) { result := (~(op1 | op2)).toUFix }
       // TODO: shadd shift shall be in it's own operand MUX
       is(Bits("b1100")) { result := (op1 << UFix(1)) + op2 }

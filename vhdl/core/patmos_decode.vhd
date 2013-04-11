@@ -118,7 +118,7 @@ begin
 			case alu_func is
 				when "0000" =>  comb_out.pat_function_type_alu <= pat_add;
 				when "0001" => comb_out.pat_function_type_alu <= pat_sub;
-				when "0010" => comb_out.pat_function_type_alu <= pat_rsub;
+				when "0010" => comb_out.pat_function_type_alu <= pat_xor;
 				when "0011" => comb_out.pat_function_type_alu <= pat_sl;
 				when "0100" => comb_out.pat_function_type_alu <= pat_sr;
 				when "0101" => comb_out.pat_function_type_alu <= pat_sra;
@@ -127,7 +127,7 @@ begin
 				-----
 				when "1000" => comb_out.pat_function_type_alu <= pat_rl;
 				when "1001" => comb_out.pat_function_type_alu <= pat_rr;
-				when "1010" => comb_out.pat_function_type_alu <= pat_xor;
+				when "1010" => comb_out.pat_function_type_alu <= pat_xor; -- moved up
 				when "1011" => comb_out.pat_function_type_alu <= pat_nor;
 				when "1100" => comb_out.pat_function_type_alu <= pat_shadd;
 				when "1101" => comb_out.pat_function_type_alu <= pat_shadd2;

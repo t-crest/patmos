@@ -10,7 +10,7 @@ import Chisel._
 import Node._
 
 
-class Test() extends Component {
+class Test2() extends Component {
   val io = new Bundle {
 //    val reset = Bool(dir = INPUT)
 	val rx = UFix(INPUT, 1)
@@ -51,7 +51,7 @@ class Test() extends Component {
 
 
 // Generate the Verlog code by invoking chiselMain() in our main()
-object HelloMain {
+object HelloMain2 {
   def main(args: Array[String]): Unit = { 
     chiselMain( args, () => new Test())
   }
