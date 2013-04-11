@@ -448,6 +448,7 @@ namespace patmos
         // Parse ALUi instructions
         ALUiopc = boost::spirit::lit("addi")  [boost::spirit::qi::_val = 0] |
                   boost::spirit::lit("subi")  [boost::spirit::qi::_val = 1] |
+                  boost::spirit::lit("xori")  [boost::spirit::qi::_val = 2] |
                   boost::spirit::lit("sli")   [boost::spirit::qi::_val = 3] |
                   boost::spirit::lit("sri")   [boost::spirit::qi::_val = 4] |
                   boost::spirit::lit("srai")  [boost::spirit::qi::_val = 5] |
@@ -463,14 +464,12 @@ namespace patmos
         // Parse ALUl and ALUr opcodes
         ALUlropc = boost::spirit::lit("add")    [boost::spirit::qi::_val =  0] |
                    boost::spirit::lit("sub")    [boost::spirit::qi::_val =  1] |
+                   boost::spirit::lit("xor")    [boost::spirit::qi::_val =  2] |
                    boost::spirit::lit("sl")     [boost::spirit::qi::_val =  3] |
                    boost::spirit::lit("sra")    [boost::spirit::qi::_val =  5] |
                    boost::spirit::lit("sr")     [boost::spirit::qi::_val =  4] |
                    boost::spirit::lit("or")     [boost::spirit::qi::_val =  6] |
                    boost::spirit::lit("and")    [boost::spirit::qi::_val =  7] |
-                   boost::spirit::lit("rl")     [boost::spirit::qi::_val =  8] |
-                   boost::spirit::lit("rr")     [boost::spirit::qi::_val =  9] |
-                   boost::spirit::lit("xor")    [boost::spirit::qi::_val = 10] |
                    boost::spirit::lit("nor")    [boost::spirit::qi::_val = 11] |
                    boost::spirit::lit("shadd2") [boost::spirit::qi::_val = 13] |
                    boost::spirit::lit("shadd")  [boost::spirit::qi::_val = 12] ;

@@ -397,13 +397,13 @@ namespace patmos
 
   ALUil_INSTR(addil , value1          +  value2                  )
   ALUil_INSTR(subil , value1          -  value2                  )
+  ALUil_INSTR(xoril , value1          ^  value2                  )
   ALUil_INSTR(slil  , value1          << (value2 & 0x1F)         )
   ALUil_INSTR(sril  , (uword_t)value1 >> (uword_t)(value2 & 0x1F))
   ALUil_INSTR(srail , value1          >> (value2 & 0x1F)         )
   ALUil_INSTR(oril  , value1          |  value2                  )
   ALUil_INSTR(andil , value1          &  value2                  )
 
-  ALUil_INSTR(xorl   , value1          ^  value2                  )
   ALUil_INSTR(norl   , ~(value1        |  value2)                 )
   ALUil_INSTR(shaddl , (value1 << 1)   +  value2                  )
   ALUil_INSTR(shadd2l, (value1 << 2)   +  value2                  )
@@ -513,13 +513,13 @@ namespace patmos
 
   ALUr_INSTR(add   , value1          +  value2                  )
   ALUr_INSTR(sub   , value1          -  value2                  )
+  ALUr_INSTR(xor   , value1          ^  value2                  )
   ALUr_INSTR(sl    , value1          << (value2 & 0x1F)         )
   ALUr_INSTR(sr    , (uword_t)value1 >> (uword_t)(value2 & 0x1F))
   ALUr_INSTR(sra   , value1          >> (value2 & 0x1F)         )
   ALUr_INSTR(or    , value1          |  value2                  )
   ALUr_INSTR(and   , value1          &  value2                  )
 
-  ALUr_INSTR(xor   , value1          ^  value2                  )
   ALUr_INSTR(nor   , ~(value1        |  value2)                 )
   ALUr_INSTR(shadd , (value1 << 1)   +  value2                  )
   ALUr_INSTR(shadd2, (value1 << 2)   +  value2                  )
