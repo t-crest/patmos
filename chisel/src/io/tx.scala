@@ -14,9 +14,9 @@ class TX() extends Component {
   val io = new Bundle {
 //    val reset = Bool(dir = INPUT)
 	val data_in = UFix(INPUT, 8)
-//	val in_valid = UFix(INPUT, 1) 
+	val in_valid = UFix(INPUT, 1) 
 	val tx = UFix(OUTPUT, 1)
-//	val accept_in = UFix(OUTPUT, 1)
+	val accept_in = UFix(OUTPUT, 1)
   }
 
   	val accept_reg = Reg(resetVal = UFix(0, 1))
@@ -55,10 +55,7 @@ class TX() extends Component {
 	    data_counter := UFix(0)
 	  }
 	}
-    
-//	data_counter := Mux(state === send_data && baud_tick === UFix(1),  data_counter + UFix(1), UFix(0))
-
-    
+	
     // TX state machine
 when (baud_tick === UFix(1)){	
 	when (state === reset_state) {
@@ -70,7 +67,7 @@ when (baud_tick === UFix(1)){
   		accept_reg	:= UFix(1)
   		tx_reg		:= UFix(1)
   		
-  		when (accept_reg === UFix(1)){
+  		when (io.in_valid === UFix(1)){
   		  state       := start_bit
   		  }
  		when (accept_reg === UFix(0)){
@@ -105,7 +102,7 @@ when (baud_tick === UFix(1)){
 }
 //	io.rdy := (state === s_ok)
 	io.tx := tx_reg
-//	io.accept_in := accept_reg
+	io.accept_in := accept_reg
 }
   
 
