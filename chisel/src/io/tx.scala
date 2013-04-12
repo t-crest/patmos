@@ -21,14 +21,18 @@ class TX() extends Component {
 
   	val accept_reg = Reg(resetVal = UFix(0, 1))
   	val tx_reg = Reg(resetVal = UFix(0, 1))
-  	val data_counter = Reg(resetVal = UFix(0, 3))
+  	val data_counter = Reg(resetVal = UFix(0, 4))
  // 	val baud_counter = Reg(resetVal = UFix(0))
   	
   	
-  	val reset_state :: idle :: start_bit :: send_data :: stop_bit :: Nil  = Enum(5){ UFix() } 
+  	val reset_state :: idle :: send:: Nil  = Enum(3){ UFix() } 
 	val state = Reg(resetVal = reset_state)
 	val baud_counter = Reg(resetVal = UFix(0, 10))
 	val baud_tick = Reg(resetVal = UFix(0, 1))
+	
+
+	val data = Reg(resetVal = UFix(0, 10))//io.data_in
+
 	
 	
 	// Baud generator
@@ -43,19 +47,22 @@ class TX() extends Component {
 	  baud_tick := UFix(0)
 	}
 	
-  // Change state on baud tick
+  // Count data bits
 	when (baud_tick === UFix(1))
 	{
-	  when (state === send_data)
+	  when (state === send)
 	  {
 	    data_counter := data_counter + UFix(1)
+	    accept_reg := UFix(0)
 	  }
 	  .otherwise
 	  {
 	    data_counter := UFix(0)
 	  }
 	}
-	
+    
+
+    
     // TX state machine
 when (baud_tick === UFix(1)){	
 	when (state === reset_state) {
@@ -67,39 +74,32 @@ when (baud_tick === UFix(1)){
   		accept_reg	:= UFix(1)
   		tx_reg		:= UFix(1)
   		
-  		when (io.in_valid === UFix(1)){
-  		  state       := start_bit
+  		when (accept_reg === UFix(1) && io.in_valid === UFix(1)){
+  		  state       := send
+  		  data := Cat (UFix(1), io.data_in, UFix(0))
   		  }
- 		when (accept_reg === UFix(0)){
+ 		when (accept_reg === UFix(0) || io.in_valid === UFix(0)){
  		  state       := idle
  		  }
   	}
-  	when (state === start_bit) {
-  		accept_reg  := UFix(0)
-  		tx_reg		:= UFix(0)
-  		state       := send_data
-  	}
   	
-  	when (state === send_data) 
+  	when (state === send)
   	{
-  	  accept_reg := UFix(0)
-  	  tx_reg := io.data_in(data_counter)
   	  
-  	  when (data_counter === UFix(7))
+  	  accept_reg  := UFix(0)
+  	  tx_reg	  := data(0)
+  	  data := Cat (UFix(0), data (9, 1))
+  	  when (data_counter === UFix(9))
   	  {
-  	    state := stop_bit
+  	    accept_reg := UFix(0)
+  	    state := reset_state
   	  }
-  	  .otherwise { state := send_data}
+  	  .otherwise {state := send}
   	}
-  	when (state === stop_bit)
-  	{
-  	  accept_reg := UFix(0)
-  	  tx_reg     := UFix(1)
-  	  state      := reset_state
-  	}
+}
   	
 
-}
+
 //	io.rdy := (state === s_ok)
 	io.tx := tx_reg
 	io.accept_in := accept_reg
@@ -114,3 +114,4 @@ when (baud_tick === UFix(1)){
 //    chiselMain( args, () => new TX())
 //  }
 //}
+
