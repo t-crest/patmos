@@ -140,11 +140,19 @@ namespace patmos
     return result;
   }
 
-  instruction_data_t instruction_data_t::mk_STC(const instruction_t &i,
+  instruction_data_t instruction_data_t::mk_STCi(const instruction_t &i,
                                                 PRR_e pred, word_t imm)
   {
     instruction_data_t result(i, pred);
-    result.OPS.STC.Imm = imm;
+    result.OPS.STCi.Imm = imm;
+    return result;
+  }
+
+  instruction_data_t instruction_data_t::mk_STCr(const instruction_t &i,
+                                                PRR_e pred, GPR_e rs)
+  {
+    instruction_data_t result(i, pred);
+    result.OPS.STCr.Rs = rs;
     return result;
   }
 

@@ -501,28 +501,57 @@ namespace patmos
     return iw;
   }
 
-  stc_format_t::stc_format_t(const instruction_t &instruction, word_t opcode) :
-      binary_format_t(instruction, 0x7F00000, insert(0x3000000, 20, 2, opcode),
+  stci_format_t::stci_format_t(const instruction_t &instruction, word_t opcode) :
+      binary_format_t(instruction, 0x7FC0000, insert(0x3000000, 20, 2, opcode),
                       1)
   {
   }
 
-  instruction_data_t stc_format_t::decode_operands(word_t iw,
+  instruction_data_t stci_format_t::decode_operands(word_t iw,
                                                    word_t longimm) const
   {
     word_t imm = extract(iw, 0, 18);
     PRR_e pred = extractPN(iw, 27);
-    return instruction_data_t::mk_STC(Instruction, pred, imm);
+    return instruction_data_t::mk_STCi(Instruction, pred, imm);
   }
 
-  word_t stc_format_t::encode(word_t pred, word_t opcode, word_t imm)
+  word_t stci_format_t::encode(word_t pred, word_t opcode, word_t imm)
   {
     word_t iw = 0;
 
     assert(fitu(opcode, 2) && fitu(imm, 22));
 
     insertV(iw, 0, 18, imm);
-    insertV(iw, 18, 2, BOOST_BINARY(000));
+    insertV(iw, 18, 2, BOOST_BINARY(00));
+    insertV(iw, 20, 2, opcode);
+    insertV(iw, 22, 5, BOOST_BINARY(01100));
+    insertPN(iw, 27, pred);
+
+    return iw;
+  }
+
+  stcr_format_t::stcr_format_t(const instruction_t &instruction, word_t opcode) :
+      binary_format_t(instruction, 0x7FC0000, insert(0x3400000, 20, 2, opcode),
+                      1)
+  {
+  }
+
+  instruction_data_t stcr_format_t::decode_operands(word_t iw,
+                                                   word_t longimm) const
+  {
+    GPR_e rs = extractG(iw, 12);
+    PRR_e pred = extractPN(iw, 27);
+    return instruction_data_t::mk_STCr(Instruction, pred, rs);
+  }
+
+  word_t stcr_format_t::encode(word_t pred, word_t opcode, word_t rs)
+  {
+    word_t iw = 0;
+
+    assert(fitu(opcode, 2) && fitu(rs, 5));
+
+    insertG(iw, 12, rs);
+    insertV(iw, 18, 2, BOOST_BINARY(01));
     insertV(iw, 20, 2, opcode);
     insertV(iw, 22, 5, BOOST_BINARY(01100));
     insertPN(iw, 27, pred);

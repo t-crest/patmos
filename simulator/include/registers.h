@@ -218,9 +218,8 @@ namespace patmos
     sm = s1,
     sl = s2,
     sh = s3,
-    st = s6,
-    scl = s7,
-    sch = s8
+    ss = s5,
+    st = s6
   };
 
   /// A register file for the general purpose registers.

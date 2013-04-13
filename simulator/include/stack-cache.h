@@ -71,27 +71,43 @@ namespace patmos
     /// Reserve a given number of bytes, potentially spilling stack data to some
     /// memory.
     /// @param size The number of bytes to be reserved.
+    /// @param stack_spill Reference to the current value of the stack spill 
+    /// pointer (might be updated).
     /// @param stack_top Reference to the current value of the stack top
     /// pointer (might be updated).
     /// @return True when the stack space is actually reserved on the cache,
     /// false otherwise.
-    virtual bool reserve(uword_t size, uword_t &stack_top) = 0;
+    virtual bool reserve(uword_t size, uword_t &stack_spill, uword_t &stack_top) = 0;
 
     /// Free a given number of bytes on the stack.
     /// @param size The number of bytes to be freed.
+    /// @param stack_spill Reference to the current value of the stack spill 
+    /// pointer (might be updated).
     /// @param stack_top Reference to the current value of the stack top
     /// pointer (might be updated).
     /// @return True when the stack space is actually freed in the cache, false
     /// otherwise.
-    virtual bool free(uword_t size, uword_t &stack_top) = 0;
+    virtual bool free(uword_t size, uword_t &stack_spill, uword_t &stack_top) = 0;
 
     /// Ensure that a given number of bytes are actually on the stack.
     /// @param size The number of bytes that have to be available.
+    /// @param stack_spill Reference to the current value of the stack spill 
+    /// pointer (might be updated).
     /// @param stack_top Reference to the current value of the stack top
     /// pointer (might be updated).
     /// @return True when the requested data is actually in the cache, false
     /// otherwise.
-    virtual bool ensure(uword_t size, uword_t &stack_top) = 0;
+    virtual bool ensure(uword_t size, uword_t &stack_spill, uword_t &stack_top) = 0;
+
+    /// Spill the given number of bytes from the stack.
+    /// @param size The number of bytes that have to be spilled.
+    /// @param stack_spill Reference to the current value of the stack spill 
+    /// pointer (might be updated).
+    /// @param stack_top Reference to the current value of the stack top
+    /// pointer (might be updated).
+    /// @return True when the requested data is actually in the cache, false
+    /// otherwise.
+    virtual bool spill(uword_t size, uword_t &stack_spill, uword_t &stack_top) = 0;
 
     /// Trace the change in occupation of the stack cache to an output stream.
     /// @param os The output stream to print the trace to.
@@ -113,11 +129,13 @@ namespace patmos
     /// Reserve a given number of bytes, potentially spilling stack data to some 
     /// memory.
     /// @param size The number of bytes to be reserved.
+    /// @param stack_spill Reference to the current value of the stack spill 
+    /// pointer (might be updated).
     /// @param stack_top Reference to the current value of the stack top
     /// pointer (might be updated).
     /// @return True when the stack space is actually reserved on the cache,
     /// false otherwise.
-    virtual bool reserve(uword_t size, uword_t &stack_top)
+    virtual bool reserve(uword_t size, uword_t &stack_spill, uword_t &stack_top)
     {
       Content.resize(Content.size() + size);
       return true;
@@ -125,11 +143,13 @@ namespace patmos
 
     /// Free a given number of bytes on the stack.
     /// @param size The number of bytes to be freed.
+    /// @param stack_spill Reference to the current value of the stack spill 
+    /// pointer (might be updated).
     /// @param stack_top Reference to the current value of the stack top
     /// pointer (might be updated).
     /// @return True when the stack space is actually freed in the cache, false
     /// otherwise.
-    virtual bool free(uword_t size, uword_t &stack_top)
+    virtual bool free(uword_t size, uword_t &stack_spill, uword_t &stack_top)
     {
       // check if stack size is exceeded
       if (Content.size() < size)
@@ -143,15 +163,30 @@ namespace patmos
 
     /// Ensure that a given number of bytes are actually on the stack.
     /// @param size The number of bytes that have to be available.
+    /// @param stack_spill Reference to the current value of the stack spill 
+    /// pointer (might be updated).
     /// @param stack_top Reference to the current value of the stack top
     /// pointer (might be updated).
     /// @return True when the requested data is actually in the cache, false
     /// otherwise.
-    virtual bool ensure(uword_t size, uword_t &stack_top)
+    virtual bool ensure(uword_t size, uword_t &stack_spill, uword_t &stack_top)
     {
       return true;
     }
 
+    /// Spill the given number of bytes from the stack.
+    /// @param size The number of bytes that have to be spilled.
+    /// @param stack_spill Reference to the current value of the stack spill 
+    /// pointer (might be updated).
+    /// @param stack_top Reference to the current value of the stack top
+    /// pointer (might be updated).
+    /// @return True when the requested data is actually in the cache, false
+    /// otherwise.
+    virtual bool spill(uword_t size, uword_t &stack_spill, uword_t &stack_top)
+    {
+      return true;
+    }
+    
     /// A simulated access to a read port.
     /// @param address The memory address to read from.
     /// @param value A pointer to a destination to store the value read from
@@ -358,11 +393,13 @@ namespace patmos
     /// Reserve a given number of bytes, potentially spilling stack data to some 
     /// memory.
     /// @param size The number of bytes to be reserved.
+    /// @param stack_spill Reference to the current value of the stack spill 
+    /// pointer (might be updated).
     /// @param stack_top Reference to the current value of the stack top
     /// pointer (might be updated).
     /// @return True when the stack space is actually reserved on the cache,
     /// false otherwise.
-    virtual bool reserve(uword_t size, uword_t &stack_top)
+    virtual bool reserve(uword_t size, uword_t &stack_spill, uword_t &stack_top)
     {
       // convert byte-level size to block size.
       unsigned int size_blocks = std::ceil((float)size/(float)NUM_BLOCK_BYTES);
@@ -382,7 +419,7 @@ namespace patmos
           // reserve stack space
           Num_reserved_blocks += size_blocks;
           bool result = ideal_stack_cache_t::reserve(
-                                      size_blocks * NUM_BLOCK_BYTES, stack_top);
+                                      size_blocks * NUM_BLOCK_BYTES, stack_spill, stack_top);
           assert(result);
 
           // update statistics
@@ -469,11 +506,13 @@ namespace patmos
 
     /// Free a given number of bytes on the stack.
     /// @param size The number of bytes to be freed.
+    /// @param stack_spill Reference to the current value of the stack spill 
+    /// pointer (might be updated).
     /// @param stack_top Reference to the current value of the stack top
     /// pointer (might be updated).
     /// @return True when the stack space is actually freed in the cache, false
     /// otherwise.
-    virtual bool free(uword_t size, uword_t &stack_top)
+    virtual bool free(uword_t size, uword_t &stack_spill, uword_t &stack_top)
     {
       // we do not expect any transfers at this point
       assert(Phase == IDLE && Num_transfer_blocks == 0);
@@ -494,7 +533,7 @@ namespace patmos
 
       // free space on the stack
       bool result = ideal_stack_cache_t::free(size_blocks * NUM_BLOCK_BYTES,
-                                              stack_top);
+                                              stack_spill, stack_top);
       assert(result);
 
       // also free space in memory?
@@ -524,11 +563,13 @@ namespace patmos
 
     /// Ensure that a given number of bytes are actually on the stack.
     /// @param size The number of bytes that have to be available.
+    /// @param stack_spill Reference to the current value of the stack spill 
+    /// pointer (might be updated).
     /// @param stack_top Reference to the current value of the stack top
     /// pointer (might be updated).
     /// @return True when the requested data is actually in the cache, false
     /// otherwise.
-    virtual bool ensure(uword_t size, uword_t &stack_top)
+    virtual bool ensure(uword_t size, uword_t &stack_spill, uword_t &stack_top)
     {
       // convert byte-level size to block size.
       unsigned int size_blocks = std::ceil((float)size/(float)NUM_BLOCK_BYTES);
@@ -612,6 +653,19 @@ namespace patmos
       abort();
     }
 
+    /// Spill the given number of bytes from the stack.
+    /// @param size The number of bytes that have to be spilled.
+    /// @param stack_spill Reference to the current value of the stack spill 
+    /// pointer (might be updated).
+    /// @param stack_top Reference to the current value of the stack top
+    /// pointer (might be updated).
+    /// @return True when the requested data is actually in the cache, false
+    /// otherwise.
+    virtual bool spill(uword_t size, uword_t &stack_spill, uword_t &stack_top)
+    {
+      return true;
+    }
+    
     /// A simulated access to a read port.
     /// @param address The memory address to read from.
     /// @param value A pointer to a destination to store the value read from

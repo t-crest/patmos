@@ -1489,7 +1489,7 @@ namespace patmos
   ST_INSTR(sbm, s.Memory, byte_t)
 
 
-#define STC_INSTR(name, function) \
+#define STCi_INSTR(name, function) \
   class i_ ## name ## _t : public i_pred_t \
   { \
   public:\
@@ -1497,30 +1497,68 @@ namespace patmos
                        const symbol_map_t &symbols) const \
     { \
       printPred(os, ops.Pred); \
-      os << #name << " " << ops.OPS.STC.Imm; \
-      symbols.print(os, ops.EX_Address); \
+      os << #name << " " << ops.OPS.STCi.Imm; \
     } \
     virtual void DR(simulator_t &s, instruction_data_t &ops) const \
     { \
       ops.DR_Pred = s.PRR.get(ops.Pred).get(); \
-      ops.DR_Ss = s.SPR.get(st).get(); \
+      ops.DR_Ss = s.SPR.get(ss).get(); \
+      ops.DR_St = s.SPR.get(st).get(); \
     } \
     virtual void MW(simulator_t &s, instruction_data_t &ops) const \
     { \
-      uword_t stack_top = ops.DR_Ss; \
-      if(ops.DR_Pred && !s.Stack_cache.function(ops.OPS.STC.Imm * \
-                                                NUM_STACK_CACHE_BLOCK_BYTES, \
-                                                stack_top)) \
+      uword_t stack_spill = ops.DR_Ss; \
+      uword_t stack_top = ops.DR_St; \
+      if(ops.DR_Pred && !s.Stack_cache.function(ops.OPS.STCi.Imm * \
+                                                sizeof(word_t), \
+                                                stack_spill, stack_top)) \
       { \
         s.pipeline_stall(SMW); \
       } \
+      s.SPR.set(ss, stack_spill); \
       s.SPR.set(st, stack_top); \
     } \
   };
 
-  STC_INSTR(sres, reserve)
-  STC_INSTR(sens, ensure)
-  STC_INSTR(sfree, free)
+#define STCr_INSTR(name, function) \
+  class i_ ## name ## _t : public i_pred_t \
+  { \
+  public:\
+    virtual void print(std::ostream &os, const instruction_data_t &ops, \
+                       const symbol_map_t &symbols) const \
+    { \
+      printPred(os, ops.Pred); \
+      os << #name << " r" << ops.OPS.STCr.Rs; \
+    } \
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const \
+    { \
+      ops.DR_Pred = s.PRR.get(ops.Pred).get(); \
+      ops.DR_Ss = s.SPR.get(ss).get(); \
+      ops.DR_St = s.SPR.get(st).get(); \
+      ops.DR_Rs1 = s.GPR.get(ops.OPS.STCr.Rs); \
+    } \
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const \
+    { \
+      uword_t stack_spill = ops.DR_Ss; \
+      uword_t stack_top = ops.DR_St; \
+      uword_t size = read_GPR_EX(s, ops.DR_Rs1); \
+      if(ops.DR_Pred && !s.Stack_cache.function(size, \
+                                                stack_spill, stack_top)) \
+      { \
+        s.pipeline_stall(SMW); \
+      } \
+      s.SPR.set(ss, stack_spill); \
+      s.SPR.set(st, stack_top); \
+    } \
+  };
+
+  STCi_INSTR(sres, reserve)
+  STCi_INSTR(sens, ensure)
+  STCi_INSTR(sfree, free)
+  STCi_INSTR(sspill, spill)
+
+  STCr_INSTR(sensr, ensure)
+  STCr_INSTR(sspillr, spill)
 
   /// Base class for branch, call, and return instructions.
   class i_cfl_t : public i_pred_t

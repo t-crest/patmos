@@ -370,6 +370,7 @@ int main(int argc, char **argv)
     ("debug", boost::program_options::value<unsigned int>()->implicit_value(0), "enable step-by-step debug tracing after cycle")
     ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), "format of the debug trace (short, trace, trace-stack, instr, blocks, default, long, all)")
     ("debug-file", boost::program_options::value<std::string>()->default_value("-"), "output debug trace in file (stderr: -)")
+    ("cpuid", boost::program_options::value<unsigned int>()->default_value(0), "Set CPU ID in the simulator")
     ("profiling,p", "include profiling information in statistics")
     ("slot-stats,a", "show instruction statistics per slot")
     ("instr-stats,i", "show more detailed statistics per instruction")
@@ -436,6 +437,8 @@ int main(int argc, char **argv)
 
   std::string debug_out(vm["debug-file"].as<std::string>());
 
+  unsigned int cpuid = vm["cpuid"].as<unsigned int>();
+  
   unsigned int ustatus = vm["ustatus"].as<unsigned int>();
   unsigned int udata = vm["udata"].as<unsigned int>();
 

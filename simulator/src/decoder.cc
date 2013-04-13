@@ -249,10 +249,15 @@ namespace patmos
     MK_INSTR(sbc , stt, 10)
     MK_INSTR(sbm , stt, 11)
 
-    // STC
-    MK_INSTR(sres , stc, 0)
-    MK_INSTR(sens , stc, 1)
-    MK_INSTR(sfree, stc, 2)
+    // STCi
+    MK_INSTR(sres  , stci, 0)
+    MK_INSTR(sens  , stci, 1)
+    MK_INSTR(sfree , stci, 2)
+    MK_INSTR(sspill, stci, 3)
+
+    // STCr
+    MK_INSTR(sens  , stcr, 1)
+    MK_INSTR(sspill, stcr, 3)
 
     // CFLb
     MK_INSTR(call, cflb, 0)

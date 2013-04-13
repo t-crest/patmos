@@ -360,14 +360,14 @@ namespace patmos
                          word_t rs);
   };
 
-  /// The STC instruction format (see Patmos TR).
-  class stc_format_t : public binary_format_t
+  /// The STCi instruction format (see Patmos TR).
+  class stci_format_t : public binary_format_t
   {
   public:
     /// Construct a new binary format for the instruction using a given opcode.
     /// @param instruction The instruction.
     /// @param opcode The instruction's opcode.
-    stc_format_t(const instruction_t &instruction, word_t opcode);
+    stci_format_t(const instruction_t &instruction, word_t opcode);
 
     /// Decode the operands of the instruction and return a corresponding
     /// instruction data instance.
@@ -383,6 +383,31 @@ namespace patmos
     /// @param imm The immediate operand.
     /// @return An encoded instruction word.
     static word_t encode(word_t pred, word_t opcode, word_t imm);
+  };
+
+  /// The STCr instruction format (see Patmos TR).
+  class stcr_format_t : public binary_format_t
+  {
+  public:
+    /// Construct a new binary format for the instruction using a given opcode.
+    /// @param instruction The instruction.
+    /// @param opcode The instruction's opcode.
+    stcr_format_t(const instruction_t &instruction, word_t opcode);
+
+    /// Decode the operands of the instruction and return a corresponding
+    /// instruction data instance.
+    /// @param iw The instruction word.
+    /// @param longimm A long immediate (exclusively for the ALUl format),
+    /// @return The resulting instruction data instance representing the
+    /// instruction and its operands.
+    virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
+
+    /// Encode an instruction.
+    /// @param pred The instruction's predicate.
+    /// @param opcode The instruction opcode.
+    /// @param rs The register operand.
+    /// @return An encoded instruction word.
+    static word_t encode(word_t pred, word_t opcode, word_t rs);
   };
 
   /// The CFLb instruction format (see Patmos TR).

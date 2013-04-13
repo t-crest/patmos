@@ -216,11 +216,16 @@ namespace patmos
         GPR_e Rs1;
         word_t Imm2;
       } STT;
-      /// Operands for an STC instruction.
+      /// Operands for an STCi instruction.
       struct
       {
         word_t Imm;
-      } STC;
+      } STCi;
+      /// Operands for an STCr instruction.
+      struct
+      {
+        GPR_e Rs;
+      } STCr;
       /// Operands for an CFLb instruction.
       struct
       {
@@ -251,6 +256,9 @@ namespace patmos
 
     /// Read value from special register at the DR stage.
     word_t DR_Ss;
+
+    /// Read value from special register at the DR stage.
+    word_t DR_St;
 
     /// Read value from first general register operand at the DR stage.
     GPR_op_t DR_Rs1;
@@ -429,9 +437,17 @@ namespace patmos
     /// @param pred The predicate register under which the instruction is
     /// executed.
     /// @param imm The operand immediate.
-    static instruction_data_t mk_STC(const instruction_t &i, PRR_e pred,
-                                     word_t imm);
+    static instruction_data_t mk_STCi(const instruction_t &i, PRR_e pred,
+                                      word_t imm);
 
+    /// Create an STC instruction with a register operand.
+    /// @param i The instruction.
+    /// @param pred The predicate register under which the instruction is
+    /// executed.
+    /// @param imm The operand register.
+    static instruction_data_t mk_STCr(const instruction_t &i, PRR_e pred,
+                                      GPR_e rs);
+    
     /// Create an CFLb instruction with an immediate operand.
     /// @param i The instruction.
     /// @param pred The predicate register under which the instruction is

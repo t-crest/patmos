@@ -24,6 +24,8 @@
 #include <ostream>
 #include <cstdio>
 
+#include "memory.h"
+
 namespace patmos
 {
   /// Default address of the UART status register.

@@ -184,10 +184,10 @@ namespace patmos
       rule_t STT, STTs;
 
       /// Parse STC opcodes.
-      rule_t STCopc;
+      rule_t STCiopc, STCropc;
 
       /// Parse STC instructions.
-      rule_t STC;
+      rule_t STCi, STCr;
 
       /// Parse CFL opcodes.
       rule_t CFLbopc, CFLiopc, CFLropc;
@@ -330,7 +330,7 @@ namespace patmos
                           SPCn | SPCw | SPCt | SPCf |
                           LDT  | dLDT |
                           STT  |
-                          STC  |
+                          STCi | STCr |
                           CFLi | CFLb | CFLr);
 
         // All instructions except SPCn, SPNw, CFL, LDT, STT, and STC.
@@ -637,14 +637,24 @@ namespace patmos
                                  boost::spirit::qi::_2, boost::spirit::qi::_3,
                                  boost::spirit::qi::_4, boost::spirit::qi::_5)];
 
-        // Parse STCt instructions
-        STCopc = boost::spirit::lit("sres")    [boost::spirit::qi::_val = 0] |
-                 boost::spirit::lit("sens")    [boost::spirit::qi::_val = 1] |
-                 boost::spirit::lit("sfree")   [boost::spirit::qi::_val = 2] ;
+        // Parse STCi instructions
+        STCiopc = boost::spirit::lit("sres")    [boost::spirit::qi::_val = 0] |
+                  boost::spirit::lit("sens")    [boost::spirit::qi::_val = 1] |
+                  boost::spirit::lit("sfree")   [boost::spirit::qi::_val = 2] |
+                  boost::spirit::lit("sspill")  [boost::spirit::qi::_val = 3] ;
 
-        STC = (Pred >> STCopc >> Imm22u)
-              [boost::spirit::qi::_val = boost::phoenix::bind(
-                                 stc_format_t::encode, boost::spirit::qi::_1,
+        STCi = (Pred >> STCiopc >> Imm22u)
+               [boost::spirit::qi::_val = boost::phoenix::bind(
+                                 stci_format_t::encode, boost::spirit::qi::_1,
+                                 boost::spirit::qi::_2, boost::spirit::qi::_3)];
+
+        // Parse STCr instructions
+        STCropc = boost::spirit::lit("sens")    [boost::spirit::qi::_val = 1] |
+                  boost::spirit::lit("sspill")  [boost::spirit::qi::_val = 3] ;
+
+        STCr = (Pred >> STCropc >> GPR)
+               [boost::spirit::qi::_val = boost::phoenix::bind(
+                                 stcr_format_t::encode, boost::spirit::qi::_1,
                                  boost::spirit::qi::_2, boost::spirit::qi::_3)];
 
         // Parse CFLb instructions
@@ -698,7 +708,7 @@ namespace patmos
         BOOST_SPIRIT_DEBUG_NODE(SPCwopc);
         BOOST_SPIRIT_DEBUG_NODE(LDTopc);      BOOST_SPIRIT_DEBUG_NODE(dLDTopc);
         BOOST_SPIRIT_DEBUG_NODE(STTopc);
-        BOOST_SPIRIT_DEBUG_NODE(STCopc);
+        BOOST_SPIRIT_DEBUG_NODE(STCiopc);     BOOST_SPIRIT_DEBUG_NODE(STCropc);
         BOOST_SPIRIT_DEBUG_NODE(CFLbopc);     BOOST_SPIRIT_DEBUG_NODE(CFLiopc);
         BOOST_SPIRIT_DEBUG_NODE(CFLropc);
         BOOST_SPIRIT_DEBUG_NODE(ALUi);        BOOST_SPIRIT_DEBUG_NODE(ALUl);
@@ -709,7 +719,7 @@ namespace patmos
         BOOST_SPIRIT_DEBUG_NODE(SPCt);        BOOST_SPIRIT_DEBUG_NODE(SPCf);
         BOOST_SPIRIT_DEBUG_NODE(LDT);         BOOST_SPIRIT_DEBUG_NODE(dLDT);
         BOOST_SPIRIT_DEBUG_NODE(STT);
-        BOOST_SPIRIT_DEBUG_NODE(STC);
+        BOOST_SPIRIT_DEBUG_NODE(STCi);        BOOST_SPIRIT_DEBUG_NODE(STCr);
         BOOST_SPIRIT_DEBUG_NODE(CFLb);        BOOST_SPIRIT_DEBUG_NODE(CFLi);
         BOOST_SPIRIT_DEBUG_NODE(CFLr);
       }
