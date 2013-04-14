@@ -112,6 +112,9 @@ Errors : 0")
 test_asm(36 "Emitted: 36 bytes
 Errors : 0")
 
+test_asm(37 "Emitted: 100 bytes
+Errors : 0")
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # SIMULATOR TESTS
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -216,3 +219,5 @@ test_sim (33 "r2 : 00000001")
 test_sim(35 "r2 : 00000001")
 
 test_sim(36 "r2 : 00000001")
+
+test_sim(37 "r0 : 00000000   r1 : 0283f180   r2 : 0283f180   r3 : 003ffff0   r4 : 003fffe8   r5 : 00000008")

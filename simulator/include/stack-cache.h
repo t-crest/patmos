@@ -188,8 +188,7 @@ namespace patmos
       while (stack_spill < stack_top + size) {
         byte_t c;
         Memory.read_peek(stack_spill, &c, 1);
-        Content[stack_spill - stack_top] = c;
-        stack_spill++;
+        Content[Content.size() - (++stack_spill - stack_top)] = c;
       }
       return true;
     }
@@ -211,9 +210,8 @@ namespace patmos
       }
       // write back to memory
       for (int i = 0; i < size; i++) {
-        byte_t c = Content[stack_spill - stack_top];
-        Memory.write_peek(stack_spill, &c, 1);
-        stack_spill--;
+        byte_t c = Content[Content.size() - (stack_spill - stack_top)];
+        Memory.write_peek(--stack_spill, &c, 1);
       }
       return true;
     }
