@@ -125,7 +125,12 @@ namespace patmos
     /// The content of the cache.
     std::vector<byte_t> Content;
 
+    /// The memory to spill/fill.
+    memory_t &Memory;
+
   public:
+    ideal_stack_cache_t(memory_t &memory) : Memory(memory) {}
+    
     /// Reserve a given number of bytes, potentially spilling stack data to some 
     /// memory.
     /// @param size The number of bytes to be reserved.
@@ -138,6 +143,7 @@ namespace patmos
     virtual bool reserve(uword_t size, uword_t &stack_spill, uword_t &stack_top)
     {
       Content.resize(Content.size() + size);
+      stack_top -= size;
       return true;
     }
 
@@ -158,6 +164,8 @@ namespace patmos
       }
 
       Content.resize(Content.size() - size);
+      stack_top += size;
+      stack_spill = std::max(stack_spill, stack_top);
       return true;
     }
 
@@ -171,6 +179,18 @@ namespace patmos
     /// otherwise.
     virtual bool ensure(uword_t size, uword_t &stack_spill, uword_t &stack_top)
     {
+      // check if stack size is exceeded
+      if (Content.size() < size)
+      {
+        Content.insert(Content.begin(), size - Content.size(), 0);
+      }
+      // load from memory, to support setting the spill pointer
+      while (stack_spill < stack_top + size) {
+        byte_t c;
+        Memory.read_peek(stack_spill, &c, 1);
+        Content[stack_spill - stack_top] = c;
+        stack_spill++;
+      }
       return true;
     }
 
@@ -184,6 +204,17 @@ namespace patmos
     /// otherwise.
     virtual bool spill(uword_t size, uword_t &stack_spill, uword_t &stack_top)
     {
+      // check if stack size is exceeded
+      if (stack_top > stack_spill - size)
+      {
+        simulation_exception_t::stack_exceeded();
+      }
+      // write back to memory
+      for (int i = 0; i < size; i++) {
+        byte_t c = Content[stack_spill - stack_top];
+        Memory.write_peek(stack_spill, &c, 1);
+        stack_spill--;
+      }
       return true;
     }
     
@@ -378,7 +409,7 @@ namespace patmos
     /// data.
     block_stack_cache_t(memory_t &memory, unsigned int num_blocks,
                         unsigned int num_blocks_total) :
-        ideal_stack_cache_t(), Num_blocks(num_blocks),
+        ideal_stack_cache_t(memory), Num_blocks(num_blocks),
         Num_blocks_total(num_blocks_total), Phase(IDLE), Memory(memory),
         Num_transfer_blocks(0), Num_reserved_blocks(0), Num_spilled_blocks(0),
         Num_blocks_reserved_total(0), Max_blocks_allocated(0),
@@ -415,6 +446,10 @@ namespace patmos
           {
             simulation_exception_t::stack_exceeded();
           }
+
+          unsigned int reserved_blocks = std::ceil((float)(stack_spill - stack_top)/(float)NUM_BLOCK_BYTES);
+          assert(Num_reserved_blocks == reserved_blocks &&
+                 "Stack cache has not been properly spilled/free'd before.");
 
           // reserve stack space
           Num_reserved_blocks += size_blocks;
@@ -465,7 +500,7 @@ namespace patmos
           assert(Num_transfer_blocks != 0);
 
           // spill the content of the stack buffer to the memory.
-          if (Memory.write(stack_top, &Buffer[0],
+          if (Memory.write(stack_spill, &Buffer[0],
                            Num_transfer_blocks * NUM_BLOCK_BYTES))
           {
             // update the internal stack cache state.
@@ -478,7 +513,7 @@ namespace patmos
                                           Num_transfer_blocks);
 
             // update the stack top pointer of the processor 
-            stack_top -= Num_transfer_blocks * NUM_BLOCK_BYTES;
+            stack_spill -= Num_transfer_blocks * NUM_BLOCK_BYTES;
 
             // the transfer is done, go back to IDLE phase
             Num_transfer_blocks = 0;
@@ -531,11 +566,6 @@ namespace patmos
         simulation_exception_t::stack_exceeded();
       }
 
-      // free space on the stack
-      bool result = ideal_stack_cache_t::free(size_blocks * NUM_BLOCK_BYTES,
-                                              stack_spill, stack_top);
-      assert(result);
-
       // also free space in memory?
       if (size_blocks <= Num_reserved_blocks)
       {
@@ -552,11 +582,16 @@ namespace patmos
         Num_reserved_blocks = 0;
 
         // update the stack top pointer of the processor
-        stack_top += freed_spilled_blocks * NUM_BLOCK_BYTES;
+        stack_spill += freed_spilled_blocks * NUM_BLOCK_BYTES;
 
         // update statistics
         Num_free_empty++;
       }
+
+      // free space on the stack (updates stack_top and stack_spill)
+      bool result = ideal_stack_cache_t::free(size_blocks * NUM_BLOCK_BYTES,
+                                              stack_spill, stack_top);
+      assert(result);
 
       return true;
     }
@@ -614,11 +649,14 @@ namespace patmos
           assert(Num_transfer_blocks != 0);
 
           // copy the data from memory into a temporary buffer
-          if (Memory.read(stack_top - Num_transfer_blocks * NUM_BLOCK_BYTES,
+          if (Memory.read(stack_spill - Num_transfer_blocks * NUM_BLOCK_BYTES,
                           Buffer, Num_transfer_blocks * NUM_BLOCK_BYTES))
           {
             // no need to copy from the temporary buffer into the stack cache,
             // since the data has never been erased there during the spill.
+            
+            // TODO we still need to copy the data back, if the stack_spill 
+            // pointer has been changed!
 
             // update the internal state of the stack cache
             Num_spilled_blocks -= Num_transfer_blocks;
@@ -629,6 +667,9 @@ namespace patmos
             Max_blocks_filled = std::max(Max_blocks_filled,
                                          Num_transfer_blocks);
 
+            // update the stack top pointer of the processor 
+            stack_spill += Num_transfer_blocks * NUM_BLOCK_BYTES;
+            
             // terminate transfer -- goto IDLE state
             Phase = IDLE;
             Num_transfer_blocks = 0;
@@ -663,7 +704,78 @@ namespace patmos
     /// otherwise.
     virtual bool spill(uword_t size, uword_t &stack_spill, uword_t &stack_top)
     {
-      return true;
+      // convert byte-level size to block size.
+      unsigned int size_blocks = std::ceil((float)size/(float)NUM_BLOCK_BYTES);
+
+      switch (Phase)
+      {
+        case IDLE:
+        {
+          assert(Num_transfer_blocks == 0);
+
+          // ensure that the stack cache size is not exceeded
+          if (size_blocks > Num_reserved_blocks)
+          {
+            simulation_exception_t::stack_exceeded();
+          }
+
+          Num_transfer_blocks = size_blocks;
+
+          // copy data to a buffer to allow contiguous transfer to the memory.
+          unsigned int idx = Content.size() -
+                              Num_reserved_blocks * NUM_BLOCK_BYTES;
+          for(unsigned int i = 0; i < Num_transfer_blocks * NUM_BLOCK_BYTES;
+              i++, idx++)
+          {
+            Buffer[i] = Content[idx];
+          }
+
+          // proceed to spill phase ...
+          // NOTE: the spill commences immediately
+          Phase = SPILL;
+        }
+        case SPILL:
+        {
+          assert(Num_transfer_blocks != 0);
+
+          // spill the content of the stack buffer to the memory.
+          if (Memory.write(stack_spill, &Buffer[0],
+                           Num_transfer_blocks * NUM_BLOCK_BYTES))
+          {
+            // update the internal stack cache state.
+            Num_reserved_blocks -= Num_transfer_blocks;
+            Num_spilled_blocks += Num_transfer_blocks;
+
+            // update statistics
+            Num_blocks_spilled += Num_transfer_blocks;
+            Max_blocks_spilled = std::max(Max_blocks_spilled,
+                                          Num_transfer_blocks);
+
+            // update the stack top pointer of the processor 
+            stack_spill -= Num_transfer_blocks * NUM_BLOCK_BYTES;
+
+            // the transfer is done, go back to IDLE phase
+            Num_transfer_blocks = 0;
+            Phase = IDLE;
+            return true;
+          }
+          else
+          {
+            // keep waiting until the transfer is completed.
+            return false;
+          }
+
+          // should never be reached
+          break;
+        }
+        case FILL:
+          // should never be reached
+          break;
+      };
+
+      // we should not get here.
+      assert(false);
+      abort();
     }
     
     /// A simulated access to a read port.

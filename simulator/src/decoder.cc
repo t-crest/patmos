@@ -256,8 +256,8 @@ namespace patmos
     MK_INSTR(sspill, stci, 3)
 
     // STCr
-    MK_INSTR(sens  , stcr, 1)
-    MK_INSTR(sspill, stcr, 3)
+    MK_INSTR(sensr  , stcr, 1)
+    MK_INSTR(sspillr, stcr, 3)
 
     // CFLb
     MK_INSTR(call, cflb, 0)

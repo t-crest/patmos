@@ -315,7 +315,7 @@ static patmos::stack_cache_t &create_stack_cache(patmos::stack_cache_e sck,
   switch(sck)
   {
     case patmos::SC_IDEAL:
-      return *new patmos::ideal_stack_cache_t();
+      return *new patmos::ideal_stack_cache_t(gm);
     case patmos::SC_BLOCK:
     {
       // convert size to number of blocks

@@ -1537,18 +1537,27 @@ namespace patmos
       ops.DR_St = s.SPR.get(st).get(); \
       ops.DR_Rs1 = s.GPR.get(ops.OPS.STCr.Rs); \
     } \
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const \
+    { \
+      ops.EX_Rs = read_GPR_EX(s, ops.DR_Rs1); \
+    } \
     virtual void MW(simulator_t &s, instruction_data_t &ops) const \
     { \
       uword_t stack_spill = ops.DR_Ss; \
       uword_t stack_top = ops.DR_St; \
-      uword_t size = read_GPR_EX(s, ops.DR_Rs1); \
-      if(ops.DR_Pred && !s.Stack_cache.function(size, \
+      if(ops.DR_Pred && !s.Stack_cache.function(ops.EX_Rs, \
                                                 stack_spill, stack_top)) \
       { \
         s.pipeline_stall(SMW); \
       } \
       s.SPR.set(ss, stack_spill); \
       s.SPR.set(st, stack_top); \
+    } \
+    virtual void print_operands(const simulator_t &s, std::ostream &os, \
+                       const instruction_data_t &ops, \
+                       const symbol_map_t &symbols) const \
+    { \
+      printGPReg(os, "in: " , ops.OPS.STCr.Rs, ops.EX_Rs); \
     } \
   };
 

@@ -531,7 +531,7 @@ namespace patmos
   }
 
   stcr_format_t::stcr_format_t(const instruction_t &instruction, word_t opcode) :
-      binary_format_t(instruction, 0x7FC0000, insert(0x3400000, 20, 2, opcode),
+      binary_format_t(instruction, 0x7FC0000, insert(0x3040000, 20, 2, opcode),
                       1)
   {
   }

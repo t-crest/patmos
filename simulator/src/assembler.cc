@@ -649,8 +649,8 @@ namespace patmos
                                  boost::spirit::qi::_2, boost::spirit::qi::_3)];
 
         // Parse STCr instructions
-        STCropc = boost::spirit::lit("sens")    [boost::spirit::qi::_val = 1] |
-                  boost::spirit::lit("sspill")  [boost::spirit::qi::_val = 3] ;
+        STCropc = boost::spirit::lit("sensr")    [boost::spirit::qi::_val = 1] |
+                  boost::spirit::lit("sspillr")  [boost::spirit::qi::_val = 3] ;
 
         STCr = (Pred >> STCropc >> GPR)
                [boost::spirit::qi::_val = boost::phoenix::bind(
