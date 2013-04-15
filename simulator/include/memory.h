@@ -34,6 +34,8 @@ namespace patmos
   class memory_t
   {
   public:
+    virtual ~memory_t() {}
+    
     /// A simulated access to a read port.
     /// @param address The memory address to read from.
     /// @param value A pointer to a destination to store the value read from

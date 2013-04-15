@@ -27,6 +27,8 @@ namespace patmos
   /// A data cache.
   class data_cache_t : public memory_t
   {
+  public:
+    virtual ~data_cache_t() {}
   };
 
   /// An ideal data cache.

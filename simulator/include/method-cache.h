@@ -40,6 +40,8 @@ namespace patmos
   {
   private:
   public:
+    virtual ~method_cache_t() {}
+    
     /// Initialize the cache before executing the first instruction.
     /// @param address Address to fetch initial instructions.
     virtual void initialize(uword_t address) = 0;
@@ -298,6 +300,7 @@ namespace patmos
         *iwp = current_method.Instructions[address + i -
                                            current_method.Address];
       }
+      return true;
     }
 
     /// Check whether the method at the given address is in the method cache.

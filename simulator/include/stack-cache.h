@@ -68,6 +68,8 @@ namespace patmos
       abort();
     }
   public:
+    virtual ~stack_cache_t() {}
+    
     /// Reserve a given number of bytes, potentially spilling stack data to some
     /// memory.
     /// @param size The number of bytes to be reserved.
