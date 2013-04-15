@@ -517,9 +517,9 @@ int main(int argc, char **argv)
     patmos::simulator_t s(gm, mm, dc, mc, sc, sym);
     
     // setup IO mapped devices
-    patmos::cpuinfo_t cpuinfo(s, mmbase, cpuid, freq);
+    patmos::cpuinfo_t cpuinfo(s, mmbase + patmos::CPUINFO_BASE_OFFSET, cpuid, freq);
     patmos::uart_t uart(ustatus, udata, *uin, uin_istty, *uout);
-    patmos::led_t leds(mmbase + 0x200, *uout);
+    patmos::led_t leds(mmbase + patmos::LED_BASE_OFFSET, *uout);
     mm.add_device(cpuinfo);
     mm.add_device(uart);
     mm.add_device(leds);

@@ -35,6 +35,18 @@ namespace patmos
   /// Default address of the UART data register.
   static const uword_t IOMAP_HIGH_ADDRESS = 0xFFFFFFFF;
 
+  // Offset to the IO base address for the CPU info.
+  static const uword_t CPUINFO_BASE_OFFSET = 0x0000;
+  
+  // Number of bytes mapped to the CPU Info.
+  static const uword_t CPUINFO_MAP_SIZE = 0x0100;
+  
+  // Offset to the IO base address for the LED IO.
+  static const uword_t LED_BASE_OFFSET = 0x0200;
+  
+  // Number of bytes mapped to the LED IO.
+  static const uword_t LED_MAP_SIZE = 0x0004;
+  
   class mapped_device_t {
   protected:
     
@@ -130,7 +142,8 @@ namespace patmos
     uword_t High_usec;
   public:
     cpuinfo_t(simulator_t &s, uword_t base_address, uword_t cpuid, double frequency)
-    : mapped_device_t(base_address, 0x100), Simulator(s), Cpu_id(cpuid), Frequency(frequency),
+    : mapped_device_t(base_address, CPUINFO_MAP_SIZE), Simulator(s), 
+      Cpu_id(cpuid), Frequency(frequency),
       High_clock(0), High_usec(0)
     {}
     
@@ -181,7 +194,7 @@ namespace patmos
     uword_t Curr_state;
   public:
     led_t(uword_t base_address, std::ostream &os) 
-    : mapped_device_t(base_address, 4), Out_stream(os) {}
+    : mapped_device_t(base_address, LED_MAP_SIZE), Out_stream(os) {}
     
     virtual bool read(uword_t address, byte_t *value, uword_t size) {
       simulation_exception_t::illegal_access(address);
