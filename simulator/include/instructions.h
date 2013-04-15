@@ -1597,6 +1597,7 @@ namespace patmos
       if (pred && !ops.EX_CFL_Discard)
       {
         assert(base <= pc);
+        assert(pc == ops.IF_PC + 12 && "Wrong delay slot size of call instruction.");
 
         s.push_dbg_stackframe(address);
         
