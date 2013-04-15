@@ -25,6 +25,7 @@
 #include "stack-cache.h"
 #include "streams.h"
 #include "symbol.h"
+#include "memory-map.h"
 #include "uart.h"
 
 #include <gelf.h>
@@ -370,7 +371,6 @@ int main(int argc, char **argv)
     ("debug", boost::program_options::value<unsigned int>()->implicit_value(0), "enable step-by-step debug tracing after cycle")
     ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), "format of the debug trace (short, trace, trace-stack, instr, blocks, default, long, all)")
     ("debug-file", boost::program_options::value<std::string>()->default_value("-"), "output debug trace in file (stderr: -)")
-    ("cpuid", boost::program_options::value<unsigned int>()->default_value(0), "Set CPU ID in the simulator")
     ("profiling,p", "include profiling information in statistics")
     ("slot-stats,a", "show instruction statistics per slot")
     ("instr-stats,i", "show more detailed statistics per instruction")
@@ -393,6 +393,13 @@ int main(int argc, char **argv)
     ("mcsize,m", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_METHOD_CACHE_BYTES), "method cache size in bytes")
     ("mckind,M", boost::program_options::value<patmos::method_cache_e>()->default_value(patmos::MC_IDEAL), "kind of method cache (ideal, lru, fifo)");
 
+  boost::program_options::options_description sim_options("Simulator options");
+  sim_options.add_options()
+    ("cpuid", boost::program_options::value<unsigned int>()->default_value(0), "Set CPU ID in the simulator")
+    ("freq",  boost::program_options::value<double>()->default_value(90.0), "Set CPU Frequency in Mhz")
+    ("mmbase", boost::program_options::value<unsigned int>()->default_value(patmos::IOMAP_BASE_ADDRESS), "base address of the IO device map address range")
+    ("mmhigh", boost::program_options::value<unsigned int>()->default_value(patmos::IOMAP_HIGH_ADDRESS), "highest address of the IO device map address range");
+  
   boost::program_options::options_description uart_options("UART options");
   uart_options.add_options()
     ("in,I", boost::program_options::value<std::string>()->default_value("-"), "input file for UART simulation (stdin: -)")
@@ -405,7 +412,7 @@ int main(int argc, char **argv)
 
   boost::program_options::options_description cmdline_options;
   cmdline_options.add(generic_options).add(memory_options).add(cache_options)
-                 .add(uart_options);
+                 .add(sim_options).add(uart_options);
 
   // process command-line options
   boost::program_options::variables_map vm;
@@ -438,6 +445,9 @@ int main(int argc, char **argv)
   std::string debug_out(vm["debug-file"].as<std::string>());
 
   unsigned int cpuid = vm["cpuid"].as<unsigned int>();
+  double       freq = vm["freq"].as<double>();
+  unsigned int mmbase = vm["mmbase"].as<unsigned int>();
+  unsigned int mmhigh = vm["mmhigh"].as<unsigned int>();
   
   unsigned int ustatus = vm["ustatus"].as<unsigned int>();
   unsigned int udata = vm["udata"].as<unsigned int>();
@@ -500,10 +510,19 @@ int main(int argc, char **argv)
 
     // finalize simulation framework
     patmos::ideal_memory_t lm(lsize);
-    patmos::uart_t uart(lm, ustatus, udata, *uin, uin_istty, *uout);
+    patmos::memory_map_t mm(lm, mmbase, mmhigh);
+    
     patmos::symbol_map_t sym;
 
-    patmos::simulator_t s(gm, uart, dc, mc, sc, sym);
+    patmos::simulator_t s(gm, mm, dc, mc, sc, sym);
+    
+    // setup IO mapped devices
+    patmos::cpuinfo_t cpuinfo(s, mmbase, cpuid, freq);
+    patmos::uart_t uart(ustatus, udata, *uin, uin_istty, *uout);
+    patmos::led_t leds(mmbase + 0x200, *uout);
+    mm.add_device(cpuinfo);
+    mm.add_device(uart);
+    mm.add_device(leds);
 
     // load input program
     patmos::uword_t entry = 0;
@@ -548,6 +567,13 @@ int main(int argc, char **argv)
                     % e.get_cycle() % e.get_pc() % sym.find(e.get_pc())
                     % e.get_info();
 	  s.print_stacktrace(std::cerr);
+          break;
+        case patmos::simulation_exception_t::ILLEGAL_ACCESS:
+          std::cerr << boost::format("Cycle %1%: Illegal memory access: "
+                                     "%2$08x%3%: %4$08x\n")
+                    % e.get_cycle() % e.get_pc() % sym.find(e.get_pc())
+                    % e.get_info();
+          s.print_stacktrace(std::cerr);
           break;
         case patmos::simulation_exception_t::ILLEGAL:
           std::cerr << boost::format("Cycle %1%: Illegal instruction: "

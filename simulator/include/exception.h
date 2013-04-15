@@ -47,6 +47,9 @@ namespace patmos
       /// An unmapped memory region has been accessed.
       UNMAPPED,
 
+      /// An illegal memory address has been accessed.
+      ILLEGAL_ACCESS,
+      
       /// A stack operation exceeded the stack size.
       STACK_EXCEEDED,
 
@@ -135,6 +138,13 @@ namespace patmos
       throw simulation_exception_t(UNMAPPED, address);
     }
 
+    /// Throw an illegal access simulation exception.
+    /// @param address The unmapped address.
+    static void illegal_access(uword_t address)
+    {
+      throw simulation_exception_t(ILLEGAL_ACCESS, address);
+    }
+    
     /// Throw a stack-cache-size-exceeded simulation exception.
     static void stack_exceeded()
     {

@@ -250,10 +250,6 @@ namespace patmos
         pipeline_invoke(SDR, &instruction_data_t::DR_commit);
         pipeline_invoke(SIF, &instruction_data_t::IF_commit);
 
-        // write cycle counter-value into special registers
-        SPR.set(s7, Cycle & 0xffffffff);
-        SPR.set(s8, Cycle >> 32);
-
         // track instructions retired
         if (Stall != NUM_STAGES-1)
         {

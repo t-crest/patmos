@@ -24,7 +24,7 @@
 #include <ostream>
 #include <cstdio>
 
-#include "memory.h"
+#include "memory-map.h"
 
 namespace patmos
 {
@@ -35,12 +35,9 @@ namespace patmos
   static const uword_t UART_DATA_ADDRESS = 0xF0000104;
 
   /// A simple UART implementation allowing memory-mapped I/O.
-  class uart_t : public memory_t
+  class uart_t : public mapped_device_t
   {
   private:
-    /// Memory onto which the UART is mapped.
-    memory_t &Memory;
-
     /// Address at which the UART's status can be read/written.
     const uword_t Status_address;
 
@@ -66,6 +63,9 @@ namespace patmos
 
     /// bit position of the transmit-ready bit (TRE).
     static const uword_t TRE = 0;
+    
+    /// bit position of the transmit-flush control bit (FLU).
+    static const uword_t TFL = 3;
   protected:
     /// A simulated access to the UART's status register.
     /// @param value A pointer to a destination to store the value read from
@@ -86,6 +86,17 @@ namespace patmos
       return true;
     }
 
+    /// A simulated access to the UART's status register.
+    /// @param value A pointer to a destination to read the value to write.
+    /// @return True when the data is written to the UART.
+    virtual bool write_control(byte_t *value)
+    {
+      if (*value & (1 << TFL)) {
+        Out_stream.flush();
+      }
+      return true;
+    }
+    
     /// A simulated access to the UART's data register.
     /// @param value A pointer to a destination to store the value read from
     /// the UART.
@@ -109,7 +120,6 @@ namespace patmos
 
   public:
     /// Construct a new memory-mapped UART.
-    /// @param memory The memory onto which the UART is memory mapped.
     /// @param status_address The address from/to which the UART's status can be
     /// read/written.
     /// @param data_address The address through which data can be exchanged with
@@ -117,9 +127,12 @@ namespace patmos
     /// @param in_stream Stream providing data read from the UART.
     /// @param istty Flag indicating whether the input stream is a TTY.
     /// @param out_stream Stream storing data written to the UART.
-    uart_t(memory_t &memory, uword_t status_address, uword_t data_address,
+    uart_t(uword_t status_address, uword_t data_address,
            std::istream &in_stream, bool istty, std::ostream &out_stream) :
-        Memory(memory), Status_address(status_address),
+        mapped_device_t(std::min(status_address,data_address), 
+                        std::max(status_address,data_address) - 
+                        std::min(status_address,data_address) + 4), 
+        Status_address(status_address),
         Data_address(data_address), In_stream(in_stream), IsTTY(istty),
         Out_stream(out_stream)
     {
@@ -141,7 +154,8 @@ namespace patmos
       else if (address == Data_address && size == 4)
         return read_data(value+3);
       else
-        return Memory.read(address, value, size);
+        simulation_exception_t::unmapped(address);
+      assert(false && "never reached");
     }
 
     /// A simulated access to a write port.
@@ -152,57 +166,13 @@ namespace patmos
     /// otherwise.
     virtual bool write(uword_t address, byte_t *value, uword_t size)
     {
-      if (address == Data_address && size == 4)
+      if (address == Status_address && size == 4)
+        return write_control(value+3);
+      else if (address == Data_address && size == 4)
         return write_data(value+3);
       else
-        return Memory.write(address, value, size);
-    }
-
-    /// Read some values from the memory -- DO NOT SIMULATE TIMING.
-    /// @param address The memory address to read from.
-    /// @param value A pointer to a destination to store the value read from
-    /// the memory.
-    /// @param size The number of bytes to read.
-    virtual void read_peek(uword_t address, byte_t *value, uword_t size)
-    {
-      Memory.read_peek(address, value, size);
-    }
-
-    /// Write some values into the memory -- DO NOT SIMULATE TIMING, just write.
-    /// @param address The memory address to write to.
-    /// @param value The value to be written to the memory.
-    /// @param size The number of bytes to write.
-    virtual void write_peek(uword_t address, byte_t *value, uword_t size)
-    {
-      Memory.write_peek(address, value, size);
-    }
-
-    /// Check if the memory is busy handling some request.
-    /// @return False in case the memory is currently handling some request,
-    /// otherwise true.
-    virtual bool is_ready()
-    {
-      return Memory.is_ready();
-    }
-
-    /// Notify the memory that a cycle has passed.
-    virtual void tick()
-    {
-      Memory.tick();
-    }
-
-    /// Print the internal state of the memory to an output stream.
-    /// @param os The output stream to print to.
-    virtual void print(std::ostream &os) const
-    {
-      Memory.print(os);
-    }
-
-    /// Print statistics to an output stream.
-    /// @param os The output stream to print to.
-    virtual void print_stats(std::ostream &os)
-    {
-      Memory.print_stats(os);
+        simulation_exception_t::unmapped(address);
+      assert(false && "never reached");
     }
   };
 }
