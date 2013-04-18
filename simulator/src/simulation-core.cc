@@ -24,11 +24,12 @@
 #include "method-cache.h"
 #include "stack-cache.h"
 #include "symbol.h"
-
 #include "interrupts.h"
 #include "instructions.h"
 
+#include <ios>
 #include <iostream>
+#include <iomanip>
 
 namespace patmos
 {
@@ -553,7 +554,13 @@ namespace patmos
   {
     if (debug_fmt == DF_TRACE)
     {
-      os << boost::format("%1$08x %2%\n") % PC % Cycle;
+      // Boost::format is unacceptably slow (adpcm.elf):
+      //  => no debugging output:  1.6s
+      //  => os with custom formatting: 2.4s
+      //  => boost::format: 10.6s !!
+      os << std::hex << std::setw(8) << std::setfill('0') << PC << ' '
+         << std::dec << Cycle << '\n' << std::setfill(' ');
+      // os << boost::format("%1$08x %2%\n") % PC % Cycle;
       return;
     }
     else if (debug_fmt == DF_INSTRUCTIONS) {
