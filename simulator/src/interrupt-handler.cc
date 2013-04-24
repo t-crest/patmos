@@ -56,6 +56,7 @@ namespace patmos
 
   void interrupt_handler_t::fire_interrupt(interrupt_e interrupt_type, ISR_address interrupt_address)
   {
+    if (Interrupt_status == INTERRUPT_DISABLED) return;
     // the address must be given in words not in bytes
   	interrupt_t interrupt(interrupt_type, interrupt_address/4);
   	Interrupt_vector.push_back(interrupt);
