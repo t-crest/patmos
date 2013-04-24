@@ -41,10 +41,7 @@
 
 Keep a TODO list here, right at the finger tips:
 
-- Print registers for co-simulation
 - Look into ListLookup for instruction decoding
-
-
 
 
  */
@@ -56,6 +53,7 @@ import Node._
 
 import scala.collection.mutable.HashMap
 
+
 /**
  * The main (top-level) component of Patmos.
  */
@@ -63,6 +61,7 @@ class Patmos(fileName: String) extends Component {
   val io = new Bundle {
     val dummy = Bits(OUTPUT, 32)
     val led = Bits(OUTPUT, 8)
+    val uart = new UartIO()
   }
 
   val fetch = new Fetch(fileName)
@@ -108,6 +107,7 @@ class Patmos(fileName: String) extends Component {
   when(memory.io.memBus.wr) {
     ledReg := memory.io.memBus.dataOut
   }
+  memory.io.uart <> io.uart
   // ***** the following code is not really Patmos code ******
   
   // maybe instantiate the FSM here to get some output when
@@ -122,6 +122,7 @@ class Patmos(fileName: String) extends Component {
   
   // The one and only output
   io.led := ~ledReg
+
 
   // Dummy output, which is ignored in the top level VHDL code, to
   // keep Chisel happy with unused signals

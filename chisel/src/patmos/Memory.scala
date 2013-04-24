@@ -215,6 +215,13 @@ class Memory() extends Component {
   io.memBus.wr := extWrReg
   io.memBus.dataOut := extWrDataReg
 
+  // quick fix here - shall be moved into an IO component
+  io.uart.address := UFix(1)
+  io.uart.wr_data := UFix('B')
+  io.uart.rd := UFix(0)
+  io.uart.wr := UFix(1)
+  //  val abc := io.uart.rd_data
+
   io.memwb.pc := memReg.pc
   io.memwb.rd.addr := memReg.rd.addr
   io.memwb.rd.valid := memReg.rd.valid // || memReg.mem.load

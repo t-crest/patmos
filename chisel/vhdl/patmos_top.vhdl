@@ -25,10 +25,15 @@ end entity patmos_top;
 architecture rtl of patmos_top is
 	component Patmos is
 		port(
-			clk      : in  std_logic;
-			reset    : in  std_logic;
-			io_dummy : out std_logic_vector(31 downto 0);
-			io_led   : out std_logic_vector(7 downto 0)
+			clk             : in  std_logic;
+			reset           : in  std_logic;
+			io_dummy        : out std_logic_vector(31 downto 0);
+			io_led          : out std_logic_vector(7 downto 0);
+			io_uart_address : out std_logic;
+			io_uart_wr_data : out std_logic_vector(31 downto 0);
+			io_uart_rd      : out std_logic;
+			io_uart_wr      : out std_logic;
+			io_uart_rd_data : in  std_logic_vector(31 downto 0)
 		);
 	end component;
 
@@ -47,6 +52,13 @@ architecture rtl of patmos_top is
 
 	attribute altera_attribute : string;
 	attribute altera_attribute of res_cnt : signal is "POWER_UP_LEVEL=LOW";
+
+	-- just for now using the VHDL UART
+	signal io_uart_address : std_logic;
+	signal io_uart_wr_data : std_logic_vector(31 downto 0);
+	signal io_uart_rd      : std_logic;
+	signal io_uart_wr      : std_logic;
+	signal io_uart_rd_data : std_logic_vector(31 downto 0);
 
 begin
 	pll_inst : entity work.pll generic map(
@@ -78,7 +90,12 @@ begin
 	end process;
 
 	comp : Patmos port map(
-			clk_int, int_res, open, led
+			clk_int, int_res, open, led,
+			io_uart_address,
+			io_uart_wr_data,
+			io_uart_rd,
+			io_uart_wr,
+			io_uart_rd_data
 		);
 
 	ua : entity work.uart generic map(
@@ -90,11 +107,11 @@ begin
 		port map(
 			clk     => clk_int,
 			reset   => int_res,
-			address => '1',
-			wr_data => x"00000040",
-			rd      => '0',
-			wr      => '1',
-			rd_data => open,
+			address => io_uart_address,
+			wr_data => io_uart_wr_data,
+			rd      => io_uart_rd,
+			wr      => io_uart_wr,
+			rd_data => io_uart_rd_data,
 			txd     => txd,
 			rxd     => rxd
 		);

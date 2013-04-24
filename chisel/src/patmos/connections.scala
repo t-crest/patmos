@@ -162,6 +162,18 @@ class MemoryBus extends Bundle() {
   val dataOut = Bits(OUTPUT, 32)
 }
 
+/**
+ * Just for now connect the VHDL UART at the VHDL top level.
+ * Shall become a Chisel UART when Sahar has finished it.
+ */
+class UartIO() extends Bundle() {
+  val address = Bits(OUTPUT, 1)
+  val wr_data = Bits(OUTPUT, 32)
+  val rd = Bits(OUTPUT, 1)
+  val wr = Bits(OUTPUT, 1)
+  val rd_data = Bits(INPUT, 32)  
+}
+
 class MemoryIO() extends Bundle() {
   val ena = Bool(INPUT)
   val exmem = new ExMem().asInput
@@ -170,6 +182,7 @@ class MemoryIO() extends Bundle() {
   val exResult = new Result().flip
   val memBus = new MemoryBus()
   val dbgMem = Bits(OUTPUT, 32)
+  val uart = new UartIO()
 }
 
 class WriteBackIO() extends Bundle() {
