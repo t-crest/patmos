@@ -26,6 +26,9 @@
 #include "exception.h"
 #include "profiling.h"
 
+#include "interrupts.h"
+#include "rtc.h"
+
 #include <limits>
 #include <iostream>
 
@@ -178,6 +181,12 @@ namespace patmos
     /// A map to retrieve symbol information from addresses.
     symbol_map_t &Symbols;
 
+    /// Real time clock
+    rtc_t &Rtc;
+
+    /// Interrupt handler
+    interrupt_handler_t &Interrupt_handler;
+
     /// The decoder of the simulator.
     decoder_t Decoder;
 
@@ -201,6 +210,9 @@ namespace patmos
 
     /// Counter up to which pipeline stage the processor stalls.
     Pipeline_t Stall;
+
+    /// Interrupt handler
+    interrupt_handler_t interrupt_handler;
 
     /// Active instructions in the pipeline stage.
     instruction_data_t Pipeline[NUM_STAGES][NUM_SLOTS];
@@ -264,7 +276,8 @@ namespace patmos
     /// @param symbols A mapping from addresses to symbols.
     simulator_t(memory_t &memory, memory_t &local_memory,
                 data_cache_t &data_cache, method_cache_t &method_cache,
-                stack_cache_t &stack_cache, symbol_map_t &symbols);
+                stack_cache_t &stack_cache, symbol_map_t &symbols,
+                rtc_t &rtc, interrupt_handler_t &interrupt_handler);
 
     /// Run the simulator.
     /// @param entry Initialize the method cache, PC, etc. to start execution

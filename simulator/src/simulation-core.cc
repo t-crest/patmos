@@ -25,6 +25,9 @@
 #include "stack-cache.h"
 #include "symbol.h"
 
+#include "interrupts.h"
+#include "instructions.h"
+
 #include <iostream>
 
 namespace patmos
@@ -49,10 +52,13 @@ namespace patmos
   simulator_t::simulator_t(memory_t &memory, memory_t &local_memory,
                            data_cache_t &data_cache,
                            method_cache_t &method_cache,
-                           stack_cache_t &stack_cache, symbol_map_t &symbols) :
+                           stack_cache_t &stack_cache, symbol_map_t &symbols,
+                           rtc_t &rtc, interrupt_handler_t &interrupt_handler) :
       Cycle(0), Memory(memory), Local_memory(local_memory),
       Data_cache(data_cache), Method_cache(method_cache),
-      Stack_cache(stack_cache), Symbols(symbols), BASE(0), PC(0), nPC(0),
+      Stack_cache(stack_cache), Symbols(symbols), 
+      Rtc(rtc), Interrupt_handler(interrupt_handler), 
+      BASE(0), PC(0), nPC(0),
       Stall(SIF), Is_decoupled_load_active(false)
   {
     // initialize one predicate register to be true, otherwise no instruction
@@ -209,6 +215,13 @@ namespace patmos
                         uint64_t max_cycles, bool profiling,
                         bool collect_instr_stats)
   {
+
+    int branch_counter      = 0;
+    int interrupt_handling  = 0;
+    instruction_t *intr     = new i_intr_t();
+    intr->ID                = patmos::decoder_t::get_num_instructions();
+    intr->Name              = "intr";
+
     // do some initializations before executing the first instruction.
     if (Cycle == 0)
     {
@@ -249,6 +262,8 @@ namespace patmos
         pipeline_invoke(SEX, &instruction_data_t::EX_commit);
         pipeline_invoke(SDR, &instruction_data_t::DR_commit);
         pipeline_invoke(SIF, &instruction_data_t::IF_commit);
+
+        Rtc.tick();        
 
         // track instructions retired
         if (Stall != NUM_STAGES-1)
@@ -298,20 +313,57 @@ namespace patmos
           }
         }
 
+        unsigned int iw_size;
+        word_t iw[2];
+
         // decode the next instruction, only if we are not stalling.
         if (Stall == SIF)
         {
-          unsigned int iw_size;
-
-          // fetch the instruction word from the method cache.
-          word_t iw[2];
-          Method_cache.fetch(PC, iw);
 
           // decode the instruction word.
-          iw_size = Decoder.decode(iw,  Pipeline[0]);
+          if (Interrupt_handler.interrupt_pending() && 
+              branch_counter == 0 && 
+              interrupt_handling == 0) 
+          { 
 
-          // provide next program counter value
-          nPC = PC + iw_size*4;
+            interrupt_t &interrupt = Interrupt_handler.get_interrupt();
+
+            Pipeline[0][0] = instruction_data_t::mk_CFLb(*intr, p0, interrupt.Address);
+            Pipeline[0][1] = instruction_data_t();
+
+            // Handling interrupt, next CPU cycle no new instructions have to be decoded
+            interrupt_handling = 1;
+
+            // Store return from interrupt address
+            SPR.set(s9, PC);
+
+            nPC = PC;
+          }
+          else 
+          {
+            if (interrupt_handling > 0) 
+            {
+              // Putting more empty instrutions
+              Pipeline[0][0] = instruction_data_t();
+              Pipeline[0][1] = instruction_data_t();
+              interrupt_handling--;
+
+            } else {
+
+              // fetch the instruction word from the method cache.
+              Method_cache.fetch(PC, iw);
+              iw_size = Decoder.decode(iw,  Pipeline[0]);
+
+              // provide next program counter value
+              if(Pipeline[0][0].I->is_flow_control())
+                branch_counter = 3;
+              else if (branch_counter)
+                branch_counter--;
+
+              nPC = PC + iw_size*4;
+            }
+
+          }
 
           // unknown instruction
           if (iw_size == 0)
@@ -382,12 +434,16 @@ namespace patmos
     }
     catch (simulation_exception_t e)
     {
+      delete intr;
+
       if (profiling)
         Profiling.finalize(Cycle);
 
       // pass on to caller
       throw simulation_exception_t(e.get_kind(), e.get_info(), PC, Cycle);
     }
+
+    delete intr;
 
     if (profiling)
       Profiling.finalize(Cycle);

@@ -66,6 +66,9 @@ namespace patmos
                        const instruction_data_t &ops,
                        const symbol_map_t &symbols) const = 0;
 
+    /// Returns true if the instruction is a flow control instruction
+    virtual bool is_flow_control() const = 0;
+
     /// Reset all statistic counters.
     virtual void reset_stats() { }
     
@@ -583,4 +586,3 @@ namespace patmos
 }
 
 #endif // PATMOS_INSTRUCTION_H
-
