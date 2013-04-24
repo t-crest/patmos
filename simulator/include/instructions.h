@@ -64,6 +64,12 @@ namespace patmos
                        const symbol_map_t &symbols) const
     { }
 
+    /// Returs false, nop is not a flow control instruction
+    virtual bool is_flow_control() const
+    {
+      return false;
+    }
+
     /// Pipeline function to simulate the behavior of the instruction in
     /// the IF pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
@@ -137,7 +143,7 @@ namespace patmos
     {
     }
 
-    /// Pipeline function to simulate the behavior of a decoupled load
+    /// Pipeline function to simulate the behavior of a decoupled 
     /// instruction running in parallel to the pipeline.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
@@ -193,7 +199,7 @@ namespace patmos
     }
 
     static inline void printGPReg(std::ostream &os, const char* sep, 
-				  GPR_e reg, word_t val) 
+          GPR_e reg, word_t val) 
     {
       // Not interested in r0, but this messes up the output format
       // if (reg == r0 && val == 0) return;
@@ -201,33 +207,33 @@ namespace patmos
     }
     
     static inline void printGPReg(std::ostream &os, const char* sep, 
-				  GPR_e reg, const GPR_t &GPR) 
+          GPR_e reg, const GPR_t &GPR) 
     {
       printGPReg(os, sep, reg, GPR.get(reg).get());
     }
         
     static inline void printSPReg(std::ostream &os, const char* sep, 
-				  SPR_e reg, word_t val) 
+          SPR_e reg, word_t val) 
     {
       os << boost::format("%1%s%2$-2d = %3$08x") % sep % reg % val;
     }
     
     static inline void printPPReg(std::ostream &os, const char* sep,
-				  PRR_e reg, bool val)
+          PRR_e reg, bool val)
     {
       os << boost::format("%1%p%2% = %3$1u") % sep % reg % val;
     }
     
     static inline void printSymbol(std::ostream &os, const char* name,
-				   word_t val,
-				   const symbol_map_t &symbols)
+           word_t val,
+           const symbol_map_t &symbols)
     {
       std::string sym = symbols.find(val);
       if (!sym.empty()) {
-	os << name << ": " << sym;
+  os << name << ": " << sym;
       }      
     }
-				   
+           
     
   public:
     /// Print the instruction to an output stream.
@@ -326,8 +332,8 @@ namespace patmos
     {
       // skip NOPs
       if (ops.OPS.ALUil.Rd == r0 && ops.OPS.ALUil.Rs1 == r0 && 
-	  ops.EX_result == 0 && ops.OPS.ALUil.Imm2 == 0) {
-	os << "nop";
+    ops.EX_result == 0 && ops.OPS.ALUil.Imm2 == 0) {
+  os << "nop";
         return;
       }
       
@@ -1002,6 +1008,7 @@ namespace patmos
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
     /// @param symbols A mapping of addresses to symbols.
+
     virtual void print_operands(const simulator_t &s, std::ostream &os, 
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
@@ -1103,6 +1110,7 @@ namespace patmos
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
     /// @param symbols A mapping of addresses to symbols.
+
     virtual void print_operands(const simulator_t &s, std::ostream &os, 
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
@@ -1202,7 +1210,6 @@ namespace patmos
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
-    /// @param symbols A mapping of addresses to symbols.
     virtual void print_operands(const simulator_t &s, std::ostream &os, 
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
@@ -1684,6 +1691,12 @@ namespace patmos
     {
       printSymbol(os, "PC", ops.EX_Address, symbols);
     }
+
+    /// Returns true because these are all flow control instruction
+    virtual bool is_flow_control() const
+    {
+      return true;
+    }
   };
 
 #define CFLB_INSTR(name, store, dispatch, new_base, target) \
@@ -1714,6 +1727,25 @@ namespace patmos
   CFLB_INSTR(brcf, no_store_return_address, fetch_and_dispatch,
              ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t),
              ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t))
+
+  class i_intr_t : public i_cfl_t \
+  { \
+  public:\
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printPred(os, ops.Pred);
+      os << "intr" << " " << ops.OPS.CFLb.Imm;
+      symbols.print(os, ops.EX_Address);
+    }
+
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const 
+    { 
+      ops.EX_Address = ops.OPS.CFLb.Imm*sizeof(word_t); 
+      no_store_return_address(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t)); 
+      fetch_and_dispatch(s, ops, ops.DR_Pred, ops.OPS.CFLb.Imm*sizeof(word_t), ops.OPS.CFLb.Imm*sizeof(word_t)); 
+    } 
+  };
 
   /// Branch and call instructions with a register operand.
   class i_cfli_t : public i_cfl_t
@@ -1854,5 +1886,4 @@ namespace patmos
 }
 
 #endif // PATMOS_INSTRUCTIONS_H
-
 

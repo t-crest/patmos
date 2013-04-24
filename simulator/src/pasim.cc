@@ -27,6 +27,8 @@
 #include "symbol.h"
 #include "memory-map.h"
 #include "uart.h"
+#include "mm_rtc.h"
+#include "interrupts.h"
 
 #include <gelf.h>
 #include <libelf.h>
@@ -407,12 +409,16 @@ int main(int argc, char **argv)
     ("ustatus", boost::program_options::value<unsigned int>()->default_value(patmos::UART_STATUS_ADDRESS), "address where the UART's status register is mapped")
     ("udata", boost::program_options::value<unsigned int>()->default_value(patmos::UART_DATA_ADDRESS), "address where the UART's data register is mapped");
 
+  boost::program_options::options_description interrupt_options("Interrupt options");
+  interrupt_options.add_options()
+    ("interrupt", boost::program_options::value<unsigned int>()->default_value(0), "enable interval interrupts");
+
   boost::program_options::positional_options_description pos;
   pos.add("binary", 1);
 
   boost::program_options::options_description cmdline_options;
   cmdline_options.add(generic_options).add(memory_options).add(cache_options)
-                 .add(sim_options).add(uart_options);
+                 .add(sim_options).add(uart_options).add(interrupt_options);
 
   // process command-line options
   boost::program_options::variables_map vm;
@@ -470,6 +476,8 @@ int main(int argc, char **argv)
                                        std::numeric_limits<unsigned int>::max();
   unsigned int max_cycle = vm["maxc"].as<unsigned int>();
 
+  unsigned int interrupt_enabled = vm["interrupt"].as<unsigned int>();
+
   bool profiling = (vm.count("profiling") != 0);
   bool slot_stats = (vm.count("slot-stats") != 0);
   bool instr_stats = (vm.count("instr-stats") != 0);
@@ -514,15 +522,31 @@ int main(int argc, char **argv)
     
     patmos::symbol_map_t sym;
 
-    patmos::simulator_t s(gm, mm, dc, mc, sc, sym);
+    patmos::interrupt_handler_t interrupt_handler;
+    patmos::rtc_t rtc(interrupt_handler);
+
+    if (interrupt_enabled) {
+      interrupt_handler.enable_interrupts();
+    }
+
+    patmos::simulator_t s(gm, mm, dc, mc, sc, sym, rtc, interrupt_handler);
     
     // setup IO mapped devices
     patmos::cpuinfo_t cpuinfo(s, mmbase + patmos::CPUINFO_BASE_OFFSET, cpuid, freq);
     patmos::uart_t uart(ustatus, udata, *uin, uin_istty, *uout);
     patmos::led_t leds(mmbase + patmos::LED_BASE_OFFSET, *uout);
+
+    patmos::mm_rtc_t mm_rtc(patmos::RTC_CLOCK_CYCLES_LOW_ADDRESS,
+                      patmos::RTC_CLOCK_CYCLES_UP_ADDRESS,
+                      patmos::RTC_MICROSECONDS_LOW_ADDRESS,
+                      patmos::RTC_MICROSECONDS_UP_ADDRESS,
+                      patmos::RTC_INTERRUPT_INTERVAL_ADDRESS,
+                      patmos::RTC_ISR_ADDRESS,
+                      rtc);
     mm.add_device(cpuinfo);
     mm.add_device(uart);
     mm.add_device(leds);
+    mm.add_device(mm_rtc);
 
     // load input program
     patmos::uword_t entry = 0;
