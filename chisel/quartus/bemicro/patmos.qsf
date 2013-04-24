@@ -55,6 +55,8 @@ set_location_assignment PIN_E6 -to led[4]
 set_location_assignment PIN_B3 -to led[5]
 set_location_assignment PIN_A7 -to led[6]
 set_location_assignment PIN_B1 -to led[7]
+set_location_assignment PIN_D8 -to txd
+set_location_assignment PIN_C8 -to rxd
 set_global_assignment -name USE_CONFIGURATION_DEVICE OFF
 set_global_assignment -name CRC_ERROR_OPEN_DRAIN OFF
 set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -rise
@@ -71,8 +73,9 @@ set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to led
 
 
 
+set_global_assignment -name VHDL_FILE ../../../vhdl/io/uart.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/altera/cyc3_pll.vhd
-set_global_assignment -name VHDL_FILE ../../vhdl/patmos_top.vhdl
 set_global_assignment -name VERILOG_FILE ../../generated/Patmos.v
+set_global_assignment -name VHDL_FILE ../../vhdl/patmos_top.vhdl
 set_global_assignment -name CDF_FILE patmos.cdf
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
