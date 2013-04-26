@@ -24,6 +24,7 @@
 #include "endian-conversion.h"
 #include "interrupts.h"
 #include "rtc.h"
+#include "memory-map.h"
 
 namespace patmos
 {
@@ -121,7 +122,6 @@ namespace patmos
         return Rtc.read_ISR(value);
       else
         simulation_exception_t::unmapped(address);
-      assert(false && "never reached");
     }
 
     /// A simulated access to a write port.
@@ -146,7 +146,6 @@ namespace patmos
         return Rtc.write_ISR(value);
       else
         simulation_exception_t::unmapped(address);
-      assert(false && "never reached");
     }
   };
 }

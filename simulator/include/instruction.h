@@ -48,6 +48,8 @@ namespace patmos
     /// Instruction name.
     const char *Name;
 
+    virtual ~instruction_t() {}
+
     // -------------------------- UTILITY --------------------------------------
 
     /// Print the instruction to an output stream.
