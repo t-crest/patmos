@@ -198,6 +198,7 @@ class Memory() extends Component {
   // breaks the current blinking LED
   // TODO: check (and write into TR) our address map
   val extMem = memIn.addr(31, 28) === Bits("b1111")
+  val extUart = memIn.addr(11, 8) === Bits("b0001")
   // TODO: this should also be in the stall logic
   // mmh, or is the memIn already fine?
   // Issue on replaying load/store on IO devices with side effects
@@ -209,7 +210,8 @@ class Memory() extends Component {
 
   val spm = new Spm(1024)
   spm.io.in := memIn
-  val dout = spm.io.data
+  // I think this should be in a register
+  val dout = Mux(extUart, spm.io.data, io.uart.rd_data)
 
   // connection of external IO, memory, NoC,...
   io.memBus.wr := extWrReg
