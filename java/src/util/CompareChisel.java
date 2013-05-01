@@ -30,18 +30,13 @@
 
 package util;
 
-import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Scanner;
 import java.util.regex.Pattern;
+
 /**
- * Small tool to compare high-level and Chisel/c simulation results. Read in the
- * register dumps and compare.
+ * Small tool to compare high-level and Chisel/c simulation results with the SW
+ * simulation of Patmos (pasim). Read in the register dumps and compare.
  * 
  * @author Martin Schoeberl <masca@imm.dtu.dk>
  * 
@@ -54,7 +49,8 @@ public class CompareChisel {
 	public static void main(String[] args) throws Exception {
 
 		if (args.length != 2) {
-			System.out.println("usage: java CompareChisel pasim-log chisel-log");
+			System.out
+					.println("usage: java CompareChisel pasim-log chisel-log");
 			System.exit(-1);
 		}
 
@@ -62,25 +58,16 @@ public class CompareChisel {
 		Scanner hs = new Scanner(new FileInputStream(args[0]));
 		Scanner chisel = new Scanner(new FileInputStream(args[1]));
 
-        // Read till the Chisel C based simulation prvodes useful output
+		// Read till the Chisel C based simulation provides useful output
 		while (chisel.hasNextLine()) {
 			String s = chisel.nextLine();
 			if (s.startsWith("STARTING")) {
 				break;
 			}
 		}
-		// Drop 5 clock cycles for pipeline fill
-		for (int i = 0; i < 5 && chisel.hasNextLine(); ++i) {
-			chisel.nextLine();
-		}
 
-		// Drop first 4 cycles form high level simulation
-		// we keep this first instruction executing thing
-		for (int i = 0; i < 5 && hs.hasNextLine(); ++i) {
-			hs.nextLine();
-		}
-		
-		// TODO we should be more tolerant on different timings (stall cycles)
+		// Drop first line from pasim:
+		hs.nextLine();
 
 		if (!hs.hasNextLine()) {
 			System.out.println("No suitable output from high-level simulator");
@@ -92,8 +79,17 @@ public class CompareChisel {
 			System.exit(1);
 		}
 
+		// This is now more tolerant related to different timings.
+		// We compare only register dumps when at least one register has
+		// changed.
+		// However, this also might show the difference a little bit later.
+		int hsReg[] = new int[32];
+		int csReg[] = new int[32];
+		int hsRegOld[] = new int[32];
+		int csRegOld[] = new int[32];
+
 		int cnt = 1;
-		// Now we should be synchronous
+		int pc = 0;
 		Pattern makeExitPattern = Pattern.compile("make\\S*:");
 		while (hs.hasNextLine()) {
 			// workaround for exits with error code
@@ -101,30 +97,58 @@ public class CompareChisel {
 				break;
 			}
 			if (chisel.hasNext(makeExitPattern)) {
-				System.out.println("Chisel trace incomplete: "+cnt);
+				System.out.println("Chisel trace incomplete: " + cnt);
 				System.exit(1);
 			}
-			// unsigned int output from Chisel
-			int pc = (int) chisel.nextLong();
-//			System.out.print("pc: "+pc);
-			chisel.next(); // skip '-'
-			// TODO: we would like to keep the ':' after the pc, but I don't have a Scanner docu
-			for (int i=0; i<32; ++i) {
-				int csVal = (int) chisel.nextLong();
-				while (!hs.hasNextLong(16)) {
-					hs.next();
+			while (true) {
+				// unsigned int output from Chisel
+				pc = (int) chisel.nextLong();
+				// System.out.print("pc: "+pc);
+				chisel.next(); // skip '-'
+				boolean change = false;
+				for (int i = 0; i < 32; ++i) {
+					csReg[i] = (int) chisel.nextLong();
+					if (csReg[i] != csRegOld[i])
+						change = true;
 				}
-				int hsVal = (int) hs.nextLong(16);
-//				System.out.print(" "+csVal+" ("+hsVal+")");
-				if (csVal != hsVal) {
-					System.out.println("Difference at PC: "+pc);
-					System.out.println("Register "+i+ " Chisel: "+csVal+" patsim: "+hsVal);
+				if (change) {
+					for (int i = 0; i < 32; ++i) {
+						csRegOld[i] = csReg[i];
+					}
+					break;
+				} else {
+					chisel.nextLine();
+				}
+			}
+			while (true) {
+				boolean change = false;
+				for (int i = 0; i < 32; ++i) {
+					while (!hs.hasNextLong(16)) {
+						hs.next();
+					}
+					hsReg[i] = (int) hs.nextLong(16);
+					if (hsReg[i] != hsRegOld[i])
+						change = true;
+				}
+				if (change) {
+					for (int i = 0; i < 32; ++i) {
+						hsRegOld[i] = hsReg[i];
+					}
+					break;
+				} else {
+					hs.nextLine();
+				}
+			}
+			for (int i = 0; i < 32; ++i) {
+				if (csReg[i] != hsReg[i]) {
+					System.out.println("Difference at PC: " + pc);
+					System.out.println("Register " + i + " Chisel: " + csReg[i]
+							+ " patsim: " + hsReg[i]);
 					System.exit(1);
 				}
 			}
-//System.out.println();
-			hs.nextLine();
 			chisel.nextLine();
+			hs.nextLine();
 			++cnt;
 		}
 		System.out.println(" ok");
