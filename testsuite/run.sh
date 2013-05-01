@@ -26,7 +26,7 @@ tests+=${test_disc}
 tests_c="hello_test"
 not_working="none"
 not_working_chsl="none"
-expect_fail=12
+expect_fail=13
 expect_fail_chsl=14
 
 # How to implement timeout? IMPLEMENTED!
