@@ -91,7 +91,11 @@ public class CompareChisel {
 		int cnt = 1;
 		int pc = 0;
 		Pattern makeExitPattern = Pattern.compile("make\\S*:");
-		while (hs.hasNextLine()) {
+		Pattern makeEndPattern = Pattern.compile("make");
+		Pattern passedExitPattern = Pattern.compile("PASSED");
+		
+		outerloop:
+		while (hs.hasNextLine() && chisel.hasNextLine()) {
 			// workaround for exits with error code
 			if (hs.hasNext(makeExitPattern)) {
 				break;
@@ -101,6 +105,9 @@ public class CompareChisel {
 				System.exit(1);
 			}
 			while (true) {
+				if (chisel.hasNext(passedExitPattern)) {
+					break outerloop;
+				}
 				// unsigned int output from Chisel
 				pc = (int) chisel.nextLong();
 				// System.out.print("pc: "+pc);
@@ -117,13 +124,20 @@ public class CompareChisel {
 					}
 					break;
 				} else {
-					chisel.nextLine();
+					if (chisel.hasNextLine()) {
+						chisel.nextLine();						
+					} else {
+						break outerloop;
+					}
 				}
 			}
 			while (true) {
 				boolean change = false;
 				for (int i = 0; i < 32; ++i) {
 					while (!hs.hasNextLong(16)) {
+						if (!hs.hasNext()) {
+							break outerloop;
+						}
 						hs.next();
 					}
 					hsReg[i] = (int) hs.nextLong(16);
@@ -136,7 +150,11 @@ public class CompareChisel {
 					}
 					break;
 				} else {
-					hs.nextLine();
+					if (hs.hasNextLine()) {
+						hs.nextLine();						
+					} else {
+						break outerloop;
+					}
 				}
 			}
 			for (int i = 0; i < 32; ++i) {
@@ -147,8 +165,16 @@ public class CompareChisel {
 					System.exit(1);
 				}
 			}
-			chisel.nextLine();
-			hs.nextLine();
+			if (chisel.hasNextLine()) {
+				chisel.nextLine();						
+			} else {
+				break;
+			}
+			if (hs.hasNextLine()) {
+				hs.nextLine();						
+			} else {
+				break;
+			}
 			++cnt;
 		}
 		System.out.println(" ok");
