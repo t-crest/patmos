@@ -35,8 +35,13 @@ test:
 	$(SBT) "run-main $(MAIN) ../tmp/aout --test --compile --vcd --genHarness --targetDir generated"
 
 # the Verilog version
-verilog:
+verilog: generated/Patmos.v
+
+generated/Patmos.v:	src ../tmp/aout.bin
 	$(SBT) "run-main $(MAIN) ../tmp/aout --targetDir generated --backend v"
+
+vsim: verilog
+	make -C modelsim sim
 
 ###### Minimum Makefile ends here ########
 
