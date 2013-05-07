@@ -70,7 +70,7 @@ object Utility {
     }
     // generate some dummy data to fill the table and make Bit 31 test happy
     for (x <- byteArray.length / 4 until 256)
-      v(x) = Bits("h8000000000000000")
+      v(x) = Bits("h80000000")
     v
   }
 }
