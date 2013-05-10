@@ -139,6 +139,12 @@ namespace patmos
       /// Register file state at the call 
       //GPR_t GPR;
     };
+
+    /// Delayslot counter for 'calls' debug-fmt
+    unsigned int Dbg_cnt_delay;
+    
+    /// Remember call / return status for 'calls' debug-fmt
+    bool Dbg_is_call;
     
     /// A vector containing instruction statistics.
     typedef std::vector<instruction_stat_t> instruction_stats_t;
@@ -304,7 +310,7 @@ namespace patmos
     /// Print the internal state of the simulator to an output stream.
     /// @param os An output stream.
     /// @param debug_fmt The selected output format.
-    void print(std::ostream &os, debug_format_e debug_fmt) const;
+    void print(std::ostream &os, debug_format_e debug_fmt);
 
     /// Print runtime statistics of the current simulation run to an output 
     /// stream.

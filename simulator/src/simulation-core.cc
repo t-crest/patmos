@@ -53,7 +53,8 @@ namespace patmos
                            data_cache_t &data_cache,
                            method_cache_t &method_cache,
                            stack_cache_t &stack_cache, symbol_map_t &symbols,
-                           rtc_t &rtc, interrupt_handler_t &interrupt_handler) :
+                           rtc_t &rtc, interrupt_handler_t &interrupt_handler) 
+    : Dbg_cnt_delay(0), 
       Cycle(0), Memory(memory), Local_memory(local_memory),
       Data_cache(data_cache), Method_cache(method_cache),
       Stack_cache(stack_cache), Symbols(symbols), 
@@ -534,7 +535,7 @@ namespace patmos
       os << "\n";      
   }
   
-  void simulator_t::print(std::ostream &os, debug_format_e debug_fmt) const
+  void simulator_t::print(std::ostream &os, debug_format_e debug_fmt)
   {
     if (debug_fmt == DF_TRACE)
     {
@@ -552,6 +553,46 @@ namespace patmos
 	os << "\n";
       }
       return;
+    }
+    else if (debug_fmt == DF_CALLS) {
+      if (Dbg_cnt_delay == 1) {
+        
+        if (Dbg_is_call) {
+          os << " args: " << boost::format("r3 = %1$08x, r4 = %2$08x, ") 
+                % GPR.get(r3).get() % GPR.get(r4).get();
+          os << boost::format("r5 = %1$08x, r6 = %2$08x, r7 = %3$08x, r8 = %4$08x") 
+                % GPR.get(r5).get() % GPR.get(r6).get()
+                % GPR.get(r7).get() % GPR.get(r8).get();
+        } else {
+          os << " retval: " << boost::format("r1 = %1$08x, r2 = %2$08x") 
+                % GPR.get(r1).get() % GPR.get(r2).get();
+        }
+        os << "\n";
+        Dbg_cnt_delay = 0;
+      } 
+      else if (Dbg_cnt_delay > 1) {
+        Dbg_cnt_delay--;
+      }
+      else if (Pipeline[SMW][0].I && Pipeline[SMW][0].DR_Pred &&
+               Pipeline[SMW][0].I->is_flow_control()) {
+        std::string name = Pipeline[SMW][0].I->Name;
+        Dbg_cnt_delay = 0;
+        if (name == "ret") {
+          Dbg_cnt_delay = 2;
+          Dbg_is_call = false;
+        }
+        else if (name == "call" || name == "callr") {
+          Dbg_cnt_delay = 2;
+          Dbg_is_call = true;
+        }
+        if (Dbg_cnt_delay) {
+          os << boost::format("%1$08x %2$9d ") % PC % Cycle;
+          os << (Dbg_is_call ? "call from " : "return from ");
+          Symbols.print(os, Pipeline[SMW][0].IF_PC);
+          os << " to ";
+          Symbols.print(os, PC);
+        }
+      }
     }
     else if (debug_fmt == DF_TRACE_STACK)
     {
