@@ -101,7 +101,6 @@ class ExMem() extends Bundle() {
   val pc = UFix(width = Constants.PC_SIZE)
   // just for debugging
   val predDebug = Vec(8) { Bool() }
-
 }
 
 class ExFe() extends Bundle() {
@@ -167,6 +166,14 @@ class UartIO() extends Bundle() {
   val rd_data = Bits(INPUT, 32)
 }
 
+class Mem2InOut() extends Bundle() {
+  val rd = Bool(OUTPUT)
+  val wr = Bool(OUTPUT)
+  val address = Bits(OUTPUT, 12)
+  val wrData = Bits(OUTPUT, 32)
+  val rdData = Bits(INPUT, 32)
+}
+
 class InOutIO() extends Bundle() {
   // shall there be an ena here? I don't think so.
   //  val ena = Bool(INPUT)
@@ -175,12 +182,6 @@ class InOutIO() extends Bundle() {
   val led = Bits(OUTPUT, 8)
 }
 
-class Mem2InOut() extends Bundle() {
-  val wr = Bool(OUTPUT)
-  // val address = Bits(OUTPUT, 32?)
-  val dataOut = Bits(OUTPUT, 32)
-  val rdData = Bits(INPUT, 32)
-}
 
 
 class MemoryIO() extends Bundle() {

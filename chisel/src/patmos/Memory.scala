@@ -189,37 +189,23 @@ class Memory() extends Component {
 
   // Use combinational input in regular case.
   // Replay old value on a stall.
+  // This is for the on-chip memory without an enable.
   val memIn = Mux(io.ena, io.exmem.mem, memReg.mem)
 
-  // Use a Bundle for the memory signals
-  // Some primary decoding here - it is done from the
-  // unregistered values. Therefore, practically in EX
-  // to have write enable a real register
-  // breaks the current blinking LED
-  // TODO: check (and write into TR) our address map
-  val extMem = memIn.addr(31, 28) === Bits("b1111")
-  val extUart = memIn.addr(11, 8) === Bits("b0001")
-  // TODO: this should also be in the stall logic
-  // mmh, or is the memIn already fine?
-  // Issue on replaying load/store on IO devices with side effects
-  val extWrReg = Reg(extMem & memIn.store)
-  val extWrDataReg = Reg(memIn.data)
-
-  // TODO: address decoding for a store between SPM and IO
-  // add a write enable
-
+  // SPM is straight forward
   val spm = new Spm(1024)
   spm.io.in := memIn
-  // I think this should be in a register
-  val selUart = Reg(extMem & extUart)
-  val doutX = Mux(selUart, spm.io.data, io.memInOut.rdData)
-  val dout = spm.io.data
 
-  // connection of external IO, memory, NoC,...
-  io.memInOut.wr := extWrReg
-  io.memInOut.dataOut := extWrDataReg
-
-  //  val abc := io.uart.rd_data
+  // Do IO address decode form the registered values.
+  // Might be an optimization from doing it in EX.
+  val selIO = memReg.mem.addr(31, 28) === Bits("b1111")
+  io.memInOut.rd := selIO  & memReg.mem.load & io.ena
+  io.memInOut.wr := selIO  & memReg.mem.store & io.ena
+  io.memInOut.address := memReg.mem.addr(11, 0)
+  io.memInOut.wrData := memReg.mem.data  
+    
+  // read data select in the same cycle IO
+  val dout = Mux(selIO, io.memInOut.rdData, spm.io.data)
 
   io.memwb.pc := memReg.pc
   io.memwb.rd.addr := memReg.rd.addr
