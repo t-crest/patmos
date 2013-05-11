@@ -69,6 +69,7 @@ class Patmos(fileName: String) extends Component {
   val execute = new Execute()
   val memory = new Memory()
   val writeback = new WriteBack()
+  val iocomp = new InOut()
   
 
   decode.io.fedec <> fetch.io.fedec
@@ -85,6 +86,8 @@ class Patmos(fileName: String) extends Component {
   
   // We branch, jump, call in EX
   fetch.io.exfe <> execute.io.exfe
+  
+  memory.io.memInOut <> iocomp.io.memInOut
 
   // Stall ever n clock cycles for testing the pipeline
   def pulse() = {
@@ -107,7 +110,7 @@ class Patmos(fileName: String) extends Component {
   when(memory.io.memBus.wr) {
     ledReg := memory.io.memBus.dataOut
   }
-  memory.io.uart <> io.uart
+  iocomp.io.uart <> io.uart
   // ***** the following code is not really Patmos code ******
   
   // maybe instantiate the FSM here to get some output when

@@ -155,13 +155,6 @@ class ExecuteIO() extends Bundle() {
   val exfe = new ExFe().asOutput
 }
 
-// a better name would be nice
-class MemoryBus extends Bundle() {
-  val wr = Bool(OUTPUT)
-  // val address = Bits(OUTPUT, 32?)
-  val dataOut = Bits(OUTPUT, 32)
-}
-
 /**
  * Just for now connect the VHDL UART at the VHDL top level.
  * Shall become a Chisel UART when Sahar has finished it.
@@ -174,15 +167,35 @@ class UartIO() extends Bundle() {
   val rd_data = Bits(INPUT, 32)  
 }
 
+class InOutIO() extends Bundle() {
+// shall there be an ena here? I don't think so.
+//  val ena = Bool(INPUT)
+  val memInOut = new Mem2InOut().flip
+  val uart = new UartIO()
+}
+
+class Mem2InOut() extends Bundle() {
+  val rdData = Bits(INPUT, 32)  
+}
+
+// a better name would be nice
+class MemoryBus extends Bundle() {
+  val wr = Bool(OUTPUT)
+  // val address = Bits(OUTPUT, 32?)
+  val dataOut = Bits(OUTPUT, 32)
+}
+
+
+
 class MemoryIO() extends Bundle() {
   val ena = Bool(INPUT)
   val exmem = new ExMem().asInput
   val memwb = new MemWb().asOutput
   // for result forwarding
   val exResult = new Result().flip
+  val memInOut = new Mem2InOut()
   val memBus = new MemoryBus()
   val dbgMem = Bits(OUTPUT, 32)
-  val uart = new UartIO()
 }
 
 class WriteBackIO() extends Bundle() {

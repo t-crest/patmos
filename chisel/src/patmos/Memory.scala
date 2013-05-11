@@ -212,18 +212,13 @@ class Memory() extends Component {
   spm.io.in := memIn
   // I think this should be in a register
   val selUart = Reg(extMem & extUart)
-  val doutX = Mux(selUart, spm.io.data, io.uart.rd_data)
+  val doutX = Mux(selUart, spm.io.data, io.memInOut.rdData)
   val dout = spm.io.data
 
   // connection of external IO, memory, NoC,...
   io.memBus.wr := extWrReg
   io.memBus.dataOut := extWrDataReg
 
-  // quick fix here - shall be moved into an IO component
-  io.uart.address := UFix(1)
-  io.uart.wr_data := UFix('B')
-  io.uart.rd := UFix(0)
-  io.uart.wr := UFix(1)
   //  val abc := io.uart.rd_data
 
   io.memwb.pc := memReg.pc
@@ -233,5 +228,5 @@ class Memory() extends Component {
   // extra port for forwarding the registered value
   io.exResult := memReg.rd
   // debugging
-  io.dbgMem := io.uart.rd_data
+  io.dbgMem := io.memInOut.rdData
 }
