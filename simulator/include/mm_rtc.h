@@ -29,22 +29,22 @@
 namespace patmos
 {
   /// Default address of the RTC clock cycles low register.
-  static const uword_t RTC_CLOCK_CYCLES_LOW_ADDRESS = 0xF0000100;
+  static const uword_t RTC_CLOCK_CYCLES_LOW_ADDRESS = 0xF0000300;
 
   /// Default address of the RTC clock cycles up register.
-  static const uword_t RTC_CLOCK_CYCLES_UP_ADDRESS = 0xF0000104;
+  static const uword_t RTC_CLOCK_CYCLES_UP_ADDRESS = 0xF0000304;
 
   /// Default address of the RTC microseconds cycles low register.
-  static const uword_t RTC_MICROSECONDS_LOW_ADDRESS = 0xF0000108;
+  static const uword_t RTC_MICROSECONDS_LOW_ADDRESS = 0xF0000308;
 
   /// Default address of the RTC microseconds cycles up register.
-  static const uword_t RTC_MICROSECONDS_UP_ADDRESS = 0xF000010C;
+  static const uword_t RTC_MICROSECONDS_UP_ADDRESS = 0xF000030C;
 
   /// Default address of the RTC interrupt interval register.
-  static const uword_t RTC_INTERRUPT_INTERVAL_ADDRESS = 0xF0000110;
+  static const uword_t RTC_INTERRUPT_INTERVAL_ADDRESS = 0xF0000310;
 
   /// Default address of the timer ISR
-  static const uword_t RTC_ISR_ADDRESS = 0xF0000114;
+  static const uword_t RTC_ISR_ADDRESS = 0xF0000314;
 
   /// A simple RTC implementation allowing memory-mapped I/O.
   class mm_rtc_t : public mapped_device_t
