@@ -66,7 +66,7 @@ class DecEx() extends Bundle() {
   val immVal = Bits(width = 32)
   // maybe have a structure for instructions?
   val immOp = Bool()
-//  val aluOp = Bool()
+  //  val aluOp = Bool()
   val cmpOp = Bool()
   val predOp = Bool()
   val branch = Bool()
@@ -85,7 +85,7 @@ class Result() extends Bundle() {
   val valid = Bool(INPUT)
 }
 
-class MemIn() extends Bundle() {  
+class MemIn() extends Bundle() {
   val load = Bool()
   val store = Bool()
   val hword = Bool()
@@ -164,27 +164,23 @@ class UartIO() extends Bundle() {
   val wr_data = Bits(OUTPUT, 32)
   val rd = Bits(OUTPUT, 1)
   val wr = Bits(OUTPUT, 1)
-  val rd_data = Bits(INPUT, 32)  
+  val rd_data = Bits(INPUT, 32)
 }
 
 class InOutIO() extends Bundle() {
-// shall there be an ena here? I don't think so.
-//  val ena = Bool(INPUT)
+  // shall there be an ena here? I don't think so.
+  //  val ena = Bool(INPUT)
   val memInOut = new Mem2InOut().flip
   val uart = new UartIO()
+  val led = Bits(OUTPUT, 8)
 }
 
 class Mem2InOut() extends Bundle() {
-  val rdData = Bits(INPUT, 32)  
-}
-
-// a better name would be nice
-class MemoryBus extends Bundle() {
   val wr = Bool(OUTPUT)
   // val address = Bits(OUTPUT, 32?)
   val dataOut = Bits(OUTPUT, 32)
+  val rdData = Bits(INPUT, 32)
 }
-
 
 
 class MemoryIO() extends Bundle() {
@@ -194,7 +190,6 @@ class MemoryIO() extends Bundle() {
   // for result forwarding
   val exResult = new Result().flip
   val memInOut = new Mem2InOut()
-  val memBus = new MemoryBus()
   val dbgMem = Bits(OUTPUT, 32)
 }
 

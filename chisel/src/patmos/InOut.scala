@@ -47,10 +47,17 @@ class InOut() extends Component {
 
   // quick fix here - shall be moved into an IO component
   io.uart.address := UFix(1)
-  io.uart.wr_data := UFix('A')
+  io.uart.wr_data := UFix('C')
   io.uart.rd := UFix(0)
   io.uart.wr := UFix(1)
-  
+
+  // Some IO connection here for short -- shall be moved to a real top level
+  val ledReg = Reg(Bits(0, 8))
+  when(io.memInOut.wr) {
+    ledReg := io.memInOut.dataOut
+  }
+  io.led := ledReg
+
   // dummy connection now
   io.memInOut.rdData := io.uart.rd_data
 

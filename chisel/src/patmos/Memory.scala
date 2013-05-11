@@ -216,8 +216,8 @@ class Memory() extends Component {
   val dout = spm.io.data
 
   // connection of external IO, memory, NoC,...
-  io.memBus.wr := extWrReg
-  io.memBus.dataOut := extWrDataReg
+  io.memInOut.wr := extWrReg
+  io.memInOut.dataOut := extWrDataReg
 
   //  val abc := io.uart.rd_data
 
