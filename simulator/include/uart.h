@@ -155,7 +155,6 @@ namespace patmos
         return read_data(value+3);
       else
         simulation_exception_t::unmapped(address);
-      assert(false && "never reached");
     }
 
     /// A simulated access to a write port.
@@ -172,7 +171,6 @@ namespace patmos
         return write_data(value+3);
       else
         simulation_exception_t::unmapped(address);
-      assert(false && "never reached");
     }
   };
 }

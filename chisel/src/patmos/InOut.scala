@@ -31,7 +31,7 @@
  */
 
 /*
- * Utility functions for Patmos.
+ * IO component of Patmos.
  * 
  * Author: Martin Schoeberl (martin@jopdesign.com)
  * 
@@ -42,35 +42,23 @@ package patmos
 import Chisel._
 import Node._
 
-object Utility {
+class InOut() extends Component {
+  val io = new InOutIO()
 
-  /**
-   * Read a binary file into the ROM vector
-   */
-  def readBin(fileName: String): Vec[Bits] = {
-    // using a vector for a ROM
-    val v = Vec(256) { Bits(width = 32) }
-    // should check the program for the size
+  // quick fix here - shall be moved into an IO component
+  io.uart.address := UFix(1)
+  io.uart.wr_data := UFix('C')
+  io.uart.rd := UFix(0)
+  io.uart.wr := UFix(1)
 
-    // TODO: move ROM file reading to an utility class
-    println("Reading " + fileName)
-    // an encodig to read a binary file? Strange new world.
-    val source = scala.io.Source.fromFile(fileName)(scala.io.Codec.ISO8859)
-    val byteArray = source.map(_.toByte).toArray
-    source.close()
-    for (i <- 0 until byteArray.length / 4) {
-      var word = 0
-      for (j <- 0 until 4) {
-        word <<= 8
-        word += byteArray(i * 4 + j).toInt & 0xff
-      }
-      printf("%08x\n", word)
-      // mmh, width is needed to keep bit 31
-      v(i) = Bits(word, width=32)
-    }
-    // generate some dummy data to fill the table and make Bit 31 test happy
-    for (x <- byteArray.length / 4 until 256)
-      v(x) = Bits("h80000000")
-    v
+  // Some IO connection here for short -- shall be moved to a real top level
+  val ledReg = Reg(Bits(0, 8))
+  when(io.memInOut.wr) {
+    ledReg := io.memInOut.dataOut
   }
+  io.led := ledReg
+
+  // dummy connection now
+  io.memInOut.rdData := io.uart.rd_data
+
 }

@@ -181,7 +181,6 @@ namespace patmos
 
     virtual bool write(uword_t address, byte_t *value, uword_t size) {
       simulation_exception_t::illegal_access(address);
-      assert(false && "never reached");
     }
     
   };
@@ -198,7 +197,6 @@ namespace patmos
     
     virtual bool read(uword_t address, byte_t *value, uword_t size) {
       simulation_exception_t::illegal_access(address);
-      assert(false && "never reached");
     }
 
     virtual bool write(uword_t address, byte_t *value, uword_t size) {
@@ -257,7 +255,6 @@ namespace patmos
         }
       }
       simulation_exception_t::unmapped(address);
-      assert(false && "never reached");
     }
     
   public:

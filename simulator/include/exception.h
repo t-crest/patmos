@@ -119,52 +119,52 @@ namespace patmos
     /// Throw a halt simulation exception.
     /// @param exit_code The exit code signaled by the simulated program, i.e.,
     /// the value of register r1 before terminating.
-    static void halt(int exit_code)
+    static void halt(int exit_code) __attribute__ ((noreturn))
     {
       throw simulation_exception_t(HALT, exit_code);
     }
 
     /// Throw an illegal instruction simulation exception.
     /// @param iw The illegal instruction word.
-    static void illegal(uword_t iw)
+    static void illegal(uword_t iw) __attribute__ ((noreturn))
     {
       throw simulation_exception_t(ILLEGAL, iw);
     }
 
     /// Throw an unmapped address simulation exception.
     /// @param address The unmapped address.
-    static void unmapped(uword_t address)
+    static void unmapped(uword_t address) __attribute__ ((noreturn))
     {
       throw simulation_exception_t(UNMAPPED, address);
     }
 
     /// Throw an illegal access simulation exception.
     /// @param address The unmapped address.
-    static void illegal_access(uword_t address)
+    static void illegal_access(uword_t address) __attribute__ ((noreturn))
     {
       throw simulation_exception_t(ILLEGAL_ACCESS, address);
     }
     
     /// Throw a stack-cache-size-exceeded simulation exception.
-    static void stack_exceeded()
+    static void stack_exceeded()  __attribute__ ((noreturn))
     {
       throw simulation_exception_t(STACK_EXCEEDED);
     }
 
     /// Throw a method-cache-size-exceeded simulation exception.
-    static void code_exceeded(uword_t address)
+    static void code_exceeded(uword_t address) __attribute__ ((noreturn))
     {
       throw simulation_exception_t(CODE_EXCEEDED, address);
     }
 
     /// Thow a PC-outsize-method simulation exception.
-    static void illegal_pc(uword_t address)
+    static void illegal_pc(uword_t address) __attribute__ ((noreturn))
     {
       throw simulation_exception_t(ILLEGAL_PC, address);
     }
 
     /// Throw a unaligned simulation exception.
-    static void unaligned(uword_t address)
+    static void unaligned(uword_t address) __attribute__ ((noreturn))
     {
       throw simulation_exception_t(UNALIGNED, address);
     }

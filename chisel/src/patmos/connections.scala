@@ -66,7 +66,7 @@ class DecEx() extends Bundle() {
   val immVal = Bits(width = 32)
   // maybe have a structure for instructions?
   val immOp = Bool()
-//  val aluOp = Bool()
+  //  val aluOp = Bool()
   val cmpOp = Bool()
   val predOp = Bool()
   val branch = Bool()
@@ -85,7 +85,7 @@ class Result() extends Bundle() {
   val valid = Bool(INPUT)
 }
 
-class MemIn() extends Bundle() {  
+class MemIn() extends Bundle() {
   val load = Bool()
   val store = Bool()
   val hword = Bool()
@@ -155,12 +155,33 @@ class ExecuteIO() extends Bundle() {
   val exfe = new ExFe().asOutput
 }
 
-// a better name would be nice
-class MemoryBus extends Bundle() {
+/**
+ * Just for now connect the VHDL UART at the VHDL top level.
+ * Shall become a Chisel UART when Sahar has finished it.
+ */
+class UartIO() extends Bundle() {
+  val address = Bits(OUTPUT, 1)
+  val wr_data = Bits(OUTPUT, 32)
+  val rd = Bits(OUTPUT, 1)
+  val wr = Bits(OUTPUT, 1)
+  val rd_data = Bits(INPUT, 32)
+}
+
+class InOutIO() extends Bundle() {
+  // shall there be an ena here? I don't think so.
+  //  val ena = Bool(INPUT)
+  val memInOut = new Mem2InOut().flip
+  val uart = new UartIO()
+  val led = Bits(OUTPUT, 8)
+}
+
+class Mem2InOut() extends Bundle() {
   val wr = Bool(OUTPUT)
   // val address = Bits(OUTPUT, 32?)
   val dataOut = Bits(OUTPUT, 32)
+  val rdData = Bits(INPUT, 32)
 }
+
 
 class MemoryIO() extends Bundle() {
   val ena = Bool(INPUT)
@@ -168,7 +189,7 @@ class MemoryIO() extends Bundle() {
   val memwb = new MemWb().asOutput
   // for result forwarding
   val exResult = new Result().flip
-  val memBus = new MemoryBus()
+  val memInOut = new Mem2InOut()
   val dbgMem = Bits(OUTPUT, 32)
 }
 
