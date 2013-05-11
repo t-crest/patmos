@@ -1728,9 +1728,40 @@ namespace patmos
              ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t),
              ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t))
 
-  class i_intr_t : public i_cfl_t \
-  { \
-  public:\
+  class i_intr_t : public i_cfl_t 
+  { 
+  protected:
+    /// Perform a function branch/call/return.
+    /// Fetch the function into the method cache, stall the pipeline, and set
+    /// the program counter.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param pred The predicate under which the instruction is executed.
+    /// @param base The base address of the target method.
+    /// @param address The target address.
+    void fetch_and_dispatch(simulator_t &s, instruction_data_t &ops,
+                            bit_t pred, word_t base, word_t address) const
+    {
+      if (pred && !ops.EX_CFL_Discard)
+      {
+        // set the program counter and base
+        s.BASE = base;
+        s.nPC = address;
+        s.PC = address;
+        ops.EX_CFL_Discard = 1;
+      }
+    }
+
+    /// Store the method base address and offset to the respective special
+    /// purpose registers.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param pred The predicate under which the instruction is executed.
+    /// @param base The base address of the current method.
+    /// @param pc The current program counter.
+    void no_store_return_address(simulator_t &s, instruction_data_t &ops,
+                                 bit_t pred, uword_t base, uword_t pc, word_t address) const
+    {
+    }
+  public:
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
