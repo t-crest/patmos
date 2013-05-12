@@ -45,24 +45,21 @@ import Node._
 class InOut() extends Component {
   val io = new InOutIO()
   
-  // chisel is picky in unused signals...
-//  val selUart = io.memInOut.address(11, 8) === Bits("b0001")
-//  val selUart = io.memInOut.address(11, 1) === Bits("b00010000000")
-  val selUart = io.memInOut.address(11, 0) === Bits("b000100000000")
-  // quick fix here - shall be moved into an IO component
-  io.uart.address := UFix(1) // io.memInOut.address(0)
-  io.uart.wr_data := UFix('C')
-  io.uart.rd := io.memInOut.rd
-  io.uart.wr := UFix(1)
+  val selUart = io.memInOut.address(11, 8) === Bits(0x1)
+  val selLed = io.memInOut.address(11, 8) === Bits(0x2)
+  io.uart.address := io.memInOut.address(2)
+  io.uart.wr_data := io.memInOut.wrData
+  io.uart.rd := io.memInOut.rd & selUart
+  io.uart.wr := io.memInOut.wr & selUart
 
-  // Some IO connection here for short -- shall be moved to a real top level
+  // The LED
   val ledReg = Reg(Bits(0, 8))
-  when(io.memInOut.wr) {
+  when(io.memInOut.wr & selLed) {
     ledReg := io.memInOut.wrData
   }
   io.led := ledReg
 
-  // dummy connection now
-  io.memInOut.rdData := Mux(selUart, io.uart.rd_data, UFix(0))
+  // We only read from the UART for now
+  io.memInOut.rdData := io.uart.rd_data  
 
 }

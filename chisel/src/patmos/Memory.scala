@@ -196,7 +196,7 @@ class Memory() extends Component {
   val spm = new Spm(1024)
   spm.io.in := memIn
 
-  // Do IO address decode form the registered values.
+  // IO address decode form the registered values.
   // Might be an optimization from doing it in EX.
   val selIO = memReg.mem.addr(31, 28) === Bits("b1111")
   io.memInOut.rd := selIO  & memReg.mem.load & io.ena
@@ -204,7 +204,7 @@ class Memory() extends Component {
   io.memInOut.address := memReg.mem.addr(11, 0)
   io.memInOut.wrData := memReg.mem.data  
     
-  // read data select in the same cycle IO
+  // Read data select. For IO it is a single cycle read. No wait at the moment.
   val dout = Mux(selIO, io.memInOut.rdData, spm.io.data)
 
   io.memwb.pc := memReg.pc
