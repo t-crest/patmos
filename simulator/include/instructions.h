@@ -164,10 +164,10 @@ namespace patmos
     /// stages.
     static inline word_t read_GPR_EX(simulator_t &s, GPR_op_t op)
     {
-      return s.Pipeline[SEX][0].GPR_EX_Rd.get(
-             s.Pipeline[SEX][1].GPR_EX_Rd.get(
-              s.Pipeline[SMW][0].GPR_MW_Rd.get(
+      return s.Pipeline[SEX][1].GPR_EX_Rd.get(
+             s.Pipeline[SEX][0].GPR_EX_Rd.get(
               s.Pipeline[SMW][1].GPR_MW_Rd.get(
+              s.Pipeline[SMW][0].GPR_MW_Rd.get(
                op)))).get();
     }
 
