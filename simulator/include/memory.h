@@ -87,6 +87,17 @@ namespace patmos
     /// @param size The number of bytes to write.
     virtual void write_peek(uword_t address, byte_t *value, uword_t size) = 0;
 
+    
+    /// Read some values of a fixed size from the memory -- DO NOT SIMULATE TIMING, just read.
+    /// @param address The memory address to read from.
+    /// @param value A pointer to a destination to store the value read from
+    /// the memory.
+    template<typename T>
+    inline void peek_fixed(uword_t address, T &value)
+    {
+      read_peek(address, (byte_t*)&value, sizeof(T));
+    }
+
     /// Check if the memory is busy handling some request.
     /// @return False in case the memory is currently handling some request,
     /// otherwise true.

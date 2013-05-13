@@ -35,18 +35,6 @@ namespace patmos
   class stack_cache_t : public memory_t
   {
   private:
-    /// Read some values from the memory -- DO NOT SIMULATE TIMING.
-    /// @param address The memory address to read from.
-    /// @param value A pointer to a destination to store the value read from
-    /// the memory.
-    /// @param size The number of bytes to read.
-    virtual void read_peek(uword_t address, byte_t *value, uword_t size)
-    {
-      // this is not supported by stack caches.
-      assert(false);
-      abort();
-    }
-
     /// Write some values into the memory -- DO NOT SIMULATE TIMING, just write.
     /// @param address The memory address to write to.
     /// @param value The value to be written to the memory.
@@ -57,7 +45,7 @@ namespace patmos
       assert(false);
       abort();
     }
-
+    
     /// Check if the memory is busy handling some request.
     /// @return False in case the memory is currently handling some request,
     /// otherwise true.
@@ -262,6 +250,17 @@ namespace patmos
       }
 
       return true;
+    }
+
+    /// Read some values from the memory -- DO NOT SIMULATE TIMING.
+    /// @param address The memory address to read from.
+    /// @param value A pointer to a destination to store the value read from
+    /// the memory.
+    /// @param size The number of bytes to read.
+    virtual void read_peek(uword_t address, byte_t *value, uword_t size)
+    {
+      // we do not simulate timing here anyway..
+      read(address, value, size);
     }
 
     /// Notify the stack cache that a cycle has passed.

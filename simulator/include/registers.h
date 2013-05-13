@@ -140,7 +140,7 @@ namespace patmos
     /// @param initial The value
     /// @return The value stored at an active by-pass and return its value, in
     /// case the by-pass is inactive, the supplied initial value is returned.
-    register_operand_t<I, D> get(register_operand_t<I, D> initial)
+    register_operand_t<I, D> get(register_operand_t<I, D> initial) const
     {
       if (Active && initial.get_index() == Operand.get_index())
       {

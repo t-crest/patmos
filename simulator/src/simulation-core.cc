@@ -258,6 +258,12 @@ namespace patmos
         pipeline_invoke(SDR, &instruction_data_t::DR, debug_pipline);
         pipeline_invoke(SIF, &instruction_data_t::IF, debug_pipline);
 
+        // print instructions in EX stage
+        if (debug && debug_fmt == DF_INSTRUCTIONS)
+        {
+          print_instructions(debug_out, SEX);
+        }
+        
         // commit results
         pipeline_invoke(SMW, &instruction_data_t::MW_commit);
         pipeline_invoke(SEX, &instruction_data_t::EX_commit);
@@ -291,11 +297,6 @@ namespace patmos
         // track pipeline stalls
         Num_stall_cycles[Stall]++;
 
-        if (debug && debug_fmt == DF_INSTRUCTIONS)
-        {
-          print_instructions(debug_out, SMW);
-        }
-        
         // move pipeline stages
         for (int i = SEX; i >= Stall; i--)
         {
