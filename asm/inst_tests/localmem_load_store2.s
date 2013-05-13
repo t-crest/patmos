@@ -1,6 +1,6 @@
 # Test case for data cache load and store
-	addi 	r1 = r0, 4095;
-	addi 	r1 = r0, 4095;
+	add 	r1 = r0, 0xFF0FF000;
+	add 	r1 = r0, 0xFF0FF000;
 	addi	r2 = r0, 4;
 	swl		[r2 + 0] = r1;
 	swl		[r2 + 0] = r1;
