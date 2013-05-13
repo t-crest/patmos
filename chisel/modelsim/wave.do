@@ -12,13 +12,14 @@ add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/decode/addrImm
 add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/decode/decReg_instr_b
 add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/decode/decReg_pc
 add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/decode/func
-add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/decode/instr
 add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/decode/isMem
 add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/decode/longImm
 add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/decode/shamt
+add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/fetch/memEven
+add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/fetch/memOdd
 TreeUpdate [SetDefaultTree]
 WaveRestoreCursors {{Cursor 1} {0 ps} 0}
-configure wave -namecolwidth 432
+configure wave -namecolwidth 255
 configure wave -valuecolwidth 156
 configure wave -justifyvalue left
 configure wave -signalnamewidth 0
@@ -32,4 +33,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ps
 update
-WaveRestoreZoom {0 ps} {800 ps}
+WaveRestoreZoom {0 ps} {482500 ps}
