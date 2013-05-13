@@ -31,12 +31,23 @@ class UART() extends Component {
 	val baud_tick = Reg(resetVal = UFix(0, 1))
 	val data = Reg(resetVal = UFix(0, 10))//io.data_in
 
-	// 
-	val data_buffer = Reg(resetVal = UFix(0, 8))
+	//*****************//
+	val data_buffer = Reg(resetVal = UFix(0, 8))	
+	val s_baud_counter = Reg(resetVal = UFix(0, 10))
+	val s_baud_tick = Reg(resetVal = UFix(0, 1))
+  	val r_data_counter = Reg(resetVal = UFix(0, 3))
+  	
+  	val r_reset_state :: r_idle  :: r_receive_data :: r_stop_bit :: Nil  = Enum(4){ UFix() }
+	val r_state = Reg(resetVal = r_reset_state)
 	
-	data_buffer := UFix(0)
+//	data_buffer := UFix(0)
+	
+	
+	
 	// address decoding
 	io.rd_data := Mux(io.address === UFix(0), UFix(3), data_buffer)
+	
+	
 	
 	
 	// Baud generator
@@ -51,7 +62,25 @@ class UART() extends Component {
 	  baud_tick := UFix(0)
 	}
 
-    
+    // high speed baud counter
+	when (s_baud_counter === Bits("b0011011001"))//(UFix(50000000) / UFix(115200)) / UFix(2))
+	{	 
+	  s_baud_tick := UFix(1)
+	  s_baud_counter := s_baud_counter + UFix(1)  
+	}
+	.otherwise
+	{
+	  when (s_baud_counter === (UFix(50000000) / UFix(115200)))
+	  {
+	    s_baud_counter := UFix(0)
+	  }
+	  .otherwise 
+	  {
+	    s_baud_counter := s_baud_counter + UFix(1)
+	  }
+	  s_baud_tick := UFix(0)
+	}
+	
     // TX state machine
 	
 	when (state === reset_state) {
@@ -74,7 +103,7 @@ class UART() extends Component {
  		  }
   	}
   	
-	  	when (state === send)
+	when (state === send)
 	  	{
 		  	  accept_reg  := UFix(0)
 		  	  when (baud_tick === UFix(1)){
@@ -87,9 +116,52 @@ class UART() extends Component {
 		  	}
 	  	}
   	
-
+	  	
+   // RX state machine	  	
+	when (r_state === r_reset_state) {
+		//	out_valid_reg	:= UFix(0)
+			r_state       	:= r_idle  
+		}
+	when (r_state === r_idle) {
+	  		//out_valid_reg	:= UFix(0)
+	  		when (s_baud_tick === UFix(1)){
+		  		when (io.rx === UFix(0))
+		  		{
+		  		  r_state := r_receive_data
+		  		}
+	  		}
+	  	}
+	when (r_state === r_receive_data) {
+		  	  
+		  		//out_valid_reg  := UFix(0)
+		  		
+		  		when (s_baud_tick === UFix(1)){
+		  		  
+		  			data_buffer := Cat(io.rx, data_buffer(7, 1))
+		  			r_data_counter := Mux(data_counter === UFix(7), UFix(0), data_counter + UFix(1)) //
+		  	  	    r_state := Mux(data_counter === UFix(7), r_stop_bit, r_receive_data)
+		  		}
+		  	}
+	when (r_state === r_stop_bit) 
+		  	{
+		  	 //	out_valid_reg  := UFix(1)
+				when (s_baud_tick === UFix(1)){
+			  	 	when (io.rx === UFix(1))		
+					{
+			  	 	  r_state := r_idle
+					}
+			  	 	.otherwise
+			  	 	{
+			  	 	  r_state := r_stop_bit
+			  	 	}
+		  	 	}	
+		  	}
+	
+	  	
+	  	
+	io.rd_data := data_buffer  	
 	io.tx := tx_reg
-//	io.accept_in := accept_reg
+
 }
   
 
@@ -101,4 +173,5 @@ class UART() extends Component {
 //    chiselMain( args, () => new TX())
 //  }
 //}
+
 
