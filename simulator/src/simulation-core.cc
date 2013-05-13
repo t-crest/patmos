@@ -588,9 +588,9 @@ namespace patmos
         if (Dbg_cnt_delay) {
           os << boost::format("%1$08x %2$9d ") % PC % Cycle;
           os << (Dbg_is_call ? "call from " : "return from ");
-          Symbols.print(os, Pipeline[SMW][0].IF_PC);
+          Symbols.print(os, Pipeline[SMW][0].IF_PC, true);
           os << " to ";
-          Symbols.print(os, PC);
+          Symbols.print(os, PC, true);
         }
       }
     }
