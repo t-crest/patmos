@@ -106,6 +106,10 @@ class ExMem() extends Bundle() {
 class ExFe() extends Bundle() {
   val doBranch = Bool()
   val branchPc = UFix(width = Constants.PC_SIZE)
+  // for ISPM write
+  val store = Bool()
+  val addr = Bits(width = 32)
+  val data = Bits(width = 32)
 }
 
 class MemWb() extends Bundle() {

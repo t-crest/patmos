@@ -67,8 +67,32 @@ class Fetch(fileName: String) extends Component {
   //  val data_odd: Bits = rom_b(addr_odd(Constants.PC_SIZE-1, 1))
   // relay on the optimization to recognize that those addresses are always even and odd
   // TODO: maybe make it explicit
-  val data_even = rom(addr_even)
-  val data_odd = rom(addr_odd)
+
+  val ispmSize = 4096 // in bytes
+  val ispmAddrBits = log2Up(ispmSize / 4 / 2)
+  val memEven = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = 32) } }
+  val memOdd = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = 32) } }
+  
+  // write from EX - use registers - ignore stall, as reply does not hurt
+  val selWrite = io.exfe.store & (io.exfe.addr(31, 28) === Bits(0x1))
+  val wrEven = Reg(selWrite & (io.exfe.addr(2) === Bits(0)))
+  val wrOdd = Reg(selWrite & (io.exfe.addr(2) === Bits(1)))
+  val addrReg = Reg(io.exfe.addr)
+  val dataReg = Reg(io.exfe.data)
+  when(wrEven) { memEven(addrReg(ispmAddrBits+3-1, 3)) := dataReg }
+  when(wrOdd) { memOdd(addrReg(ispmAddrBits+3-1, 3)) := dataReg }
+  // This would not work with asynchronous reset as the address
+  // registers are set on reset. However, chisel uses synchronous
+  // reset, which 'just' generates some more logic. And it looks
+  // like the synthesize tool is able to duplicate the register.
+  val ispm_even = memEven(addr_even(ispmAddrBits-1, 0))
+  val ispm_odd = memOdd(addr_odd(ispmAddrBits-1, 0))
+  
+  // read from ISPM mapped to address 0x10000000
+  val selIspm = pc(31-2, 28-2) === Bits(0x1)
+  // ROM/ISPM Mux
+  val data_even = Mux(selIspm, ispm_even, rom(addr_even))
+  val data_odd = Mux(selIspm, ispm_odd, rom(addr_odd))
 
   val instr_a = Mux(pc(0) === Bits(0), data_even, data_odd)
   val instr_b = Mux(pc(0) === Bits(0), data_odd, data_even)

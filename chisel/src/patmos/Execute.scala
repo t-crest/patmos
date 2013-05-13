@@ -145,6 +145,10 @@ class Execute() extends Component {
   //branch
   io.exfe.doBranch := exReg.branch && doExecute
   io.exfe.branchPc := exReg.branchPc
+  // ISPM write
+  io.exfe.store := exReg.store && doExecute
+  io.exfe.addr := op1 + exReg.immVal
+  io.exfe.data := op2
   
   io.exmem.pc := exReg.pc
   io.exmem.predDebug := predReg

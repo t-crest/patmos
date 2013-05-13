@@ -52,8 +52,11 @@ class SpmIO extends Bundle() {
  * 
  * Has input registers (without enable or reset).
  * Shall do byte enable.
- * Output mulitplexing and bit filling at the moment also here.
+ * Output multiplexing and bit filling at the moment also here.
  * That might move out again when more than one memory is involved.
+ * 
+ * Address decoding here. At the moment map to 0x00000000.
+ * Only take care on a write.
  * 
  * Size is in bytes.
  */
@@ -73,6 +76,8 @@ class Spm(size: Int) extends Component {
   bw(3) := io.in.data(7, 0)
   val stmsk = Bits()
   stmsk := Bits("b1111")
+  
+  val select = io.in.addr(31, 28) === Bits(0x0)
 
   // Input multiplexing and write enables
   when(io.in.hword) {
@@ -111,7 +116,7 @@ class Spm(size: Int) extends Component {
     }
   }
 
-  when(!io.in.store) {
+  when(!(io.in.store & select)) {
     stmsk := Bits(0)
   }
   // now unconditional registers for write data and enable
@@ -203,7 +208,10 @@ class Memory() extends Component {
   io.memInOut.wr := selIO  & memReg.mem.store & io.ena
   io.memInOut.address := memReg.mem.addr(11, 0)
   io.memInOut.wrData := memReg.mem.data  
-    
+
+  // ISPM write is handled in write
+  // val selIspm = memReg.mem.addr(31, 28) === Bits("b0001")
+
   // Read data select. For IO it is a single cycle read. No wait at the moment.
   val dout = Mux(selIO, io.memInOut.rdData, spm.io.data)
 
