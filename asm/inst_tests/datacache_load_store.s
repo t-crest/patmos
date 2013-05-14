@@ -1,4 +1,4 @@
-# Test case for local memory load and store
+# Test case for data cache load and store
 # Initialization begin
 	add 	r1 = r0, 0xFF0FF000;
 	add 	r1 = r0, 0xFF0FF000;
