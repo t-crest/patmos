@@ -112,7 +112,19 @@ namespace patmos
     /// @return True when the data is written finally to the memory, false
     /// otherwise.
     virtual bool write(uword_t address, byte_t *value, uword_t size) = 0;
-    
+
+    /// A simulated access to a read port. Does not update the device state or 
+    /// simulate timing, just reads the value.
+    /// @param address The memory address to read from.
+    /// @param value A pointer to a destination to store the value read from
+    /// the memory.
+    /// @param size The number of bytes to read.
+    virtual void peek(uword_t address, byte_t *value, uword_t size) {
+      // By default, just return zero, this is primarily used for debugging and
+      // should not assert if read is supported.
+      write_word(value, size, 0);
+    }
+
     /// Notify the device that a cycle has passed.
     virtual void tick() { }
 
@@ -183,6 +195,14 @@ namespace patmos
       simulation_exception_t::illegal_access(address);
     }
     
+    virtual void peek(uword_t address, byte_t *value, uword_t size) {
+      if (is_word_access(address, size, 0x00)) {
+        write_word(value, size, Cpu_id);
+      }
+      else {
+        mapped_device_t::peek(address, value, size);
+      }
+    }
   };
   
   class led_t : public mapped_device_t 
@@ -199,6 +219,10 @@ namespace patmos
       simulation_exception_t::illegal_access(address);
     }
 
+    virtual void peek(uword_t address, byte_t *value, uword_t size) {
+      simulation_exception_t::illegal_access(address);
+    }
+    
     virtual bool write(uword_t address, byte_t *value, uword_t size) {
       if (is_word_access(address, size, 0x00)) {
         uword_t state = read_word(value, size);
@@ -311,9 +335,11 @@ namespace patmos
     /// @param size The number of bytes to read.
     virtual void read_peek(uword_t address, byte_t *value, uword_t size)
     {
-      // TODO should we pass that to the mapped devices?
-      assert(address < Base_address || address > High_address);
-      Memory.read_peek(address, value, size);
+      if (address >= Base_address && address <= High_address) {
+        find_device(address).peek(address, value, size);
+      } else {
+        Memory.read_peek(address, value, size);
+      }
     }
 
     /// Write some values into the memory -- DO NOT SIMULATE TIMING, just write.

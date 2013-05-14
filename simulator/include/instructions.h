@@ -162,12 +162,12 @@ namespace patmos
     /// @param op The register operand.
     /// @return The register value, considering by-passing from the EX, and MW
     /// stages.
-    static inline word_t read_GPR_EX(simulator_t &s, GPR_op_t op)
+    static inline word_t read_GPR_EX(const simulator_t &s, GPR_op_t op)
     {
-      return s.Pipeline[SEX][0].GPR_EX_Rd.get(
-             s.Pipeline[SEX][1].GPR_EX_Rd.get(
-              s.Pipeline[SMW][0].GPR_MW_Rd.get(
+      return s.Pipeline[SEX][1].GPR_EX_Rd.get(
+             s.Pipeline[SEX][0].GPR_EX_Rd.get(
               s.Pipeline[SMW][1].GPR_MW_Rd.get(
+              s.Pipeline[SMW][0].GPR_MW_Rd.get(
                op)))).get();
     }
 
@@ -207,9 +207,11 @@ namespace patmos
     }
     
     static inline void printGPReg(std::ostream &os, const char* sep, 
-          GPR_e reg, const GPR_t &GPR) 
+          GPR_e reg, GPR_op_t op, const simulator_t &s) 
     {
-      printGPReg(os, sep, reg, GPR.get(reg).get());
+      // Note: we are already after EX_commit, so EX bypasses already 
+      // contain the new values, but we want the inputs.
+      printGPReg(os, sep, reg, read_GPR_EX(s, op));
     }
         
     static inline void printSPReg(std::ostream &os, const char* sep, 
@@ -224,13 +226,19 @@ namespace patmos
       os << boost::format("%1%p%2% = %3$1u") % sep % reg % val;
     }
     
+    static inline void printPPReg(std::ostream &os, const char* sep,
+          PRR_e reg, const simulator_t &s)
+    {
+      printPPReg(os, sep, reg, s.PRR.get(reg).get());
+    }
+    
     static inline void printSymbol(std::ostream &os, const char* name,
            word_t val,
            const symbol_map_t &symbols)
     {
       std::string sym = symbols.find(val);
       if (!sym.empty()) {
-  os << name << ": " << sym;
+        os << name << ": " << sym;
       }      
     }
            
@@ -332,13 +340,13 @@ namespace patmos
     {
       // skip NOPs
       if (ops.OPS.ALUil.Rd == r0 && ops.OPS.ALUil.Rs1 == r0 && 
-    ops.EX_result == 0 && ops.OPS.ALUil.Imm2 == 0) {
-  os << "nop";
+          ops.EX_result == 0 && ops.OPS.ALUil.Imm2 == 0) {
+        os << "nop";
         return;
       }
       
       printGPReg(os, "out: ", ops.OPS.ALUil.Rd,  ops.EX_result);
-      printGPReg(os, " in: ", ops.OPS.ALUil.Rs1, ops.DR_Rs1.get());
+      printGPReg(os, " in: ", ops.OPS.ALUil.Rs1, ops.DR_Rs1, s);
 
       printSymbol(os, " imm", ops.OPS.ALUil.Imm2, symbols);
     }
@@ -495,8 +503,8 @@ namespace patmos
                        const symbol_map_t &symbols) const
     {
       printGPReg(os, "out: ", ops.OPS.ALUr.Rd , ops.EX_result);
-      printGPReg(os, " in: ", ops.OPS.ALUr.Rs1, ops.DR_Rs1.get());
-      printGPReg(os, ", "   , ops.OPS.ALUr.Rs2, ops.DR_Rs2.get());
+      printGPReg(os, " in: ", ops.OPS.ALUr.Rs1, ops.DR_Rs1, s);
+      printGPReg(os, ", "   , ops.OPS.ALUr.Rs2, ops.DR_Rs2, s);
     }
   };
 
@@ -590,8 +598,8 @@ namespace patmos
       // TODO result should actually not be available yet?
       printSPReg(os, "out: ", sl, ops.EX_mull);
       printSPReg(os, ", "   , sh, ops.EX_mulh);
-      printGPReg(os, " in: ", ops.OPS.ALUm.Rs1, ops.DR_Rs1.get());
-      printGPReg(os, ", "   , ops.OPS.ALUm.Rs2, ops.DR_Rs2.get());
+      printGPReg(os, " in: ", ops.OPS.ALUm.Rs1, ops.DR_Rs1, s);
+      printGPReg(os, ", "   , ops.OPS.ALUm.Rs2, ops.DR_Rs2, s);
     }
 
   };
@@ -674,9 +682,9 @@ namespace patmos
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
-      // TODO can we get Pd reliably in MW stage?
-      printGPReg(os, "in: ", ops.OPS.ALUc.Rs1, ops.DR_Rs1.get());
-      printGPReg(os, ", "  , ops.OPS.ALUc.Rs2, ops.DR_Rs2.get());
+      printPPReg(os, "out: ", ops.OPS.ALUc.Pd, s);
+      printGPReg(os, ", in: ", ops.OPS.ALUc.Rs1, ops.DR_Rs1, s);
+      printGPReg(os, ", "  , ops.OPS.ALUc.Rs2, ops.DR_Rs2, s);
     }    
     
     virtual void reset_stats() {
@@ -827,8 +835,8 @@ namespace patmos
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
-      // TODO can we get Pd reliably in MW stage?
-      printPPReg(os, "in: ", ops.OPS.ALUp.Ps1, ops.DR_Ps1);
+      printPPReg(os, "out: ", ops.OPS.ALUp.Pd, s);
+      printPPReg(os, ", in: ", ops.OPS.ALUp.Ps1, ops.DR_Ps1);
       printPPReg(os, ", "  , ops.OPS.ALUp.Ps2, ops.DR_Ps2);
     }
   };
@@ -1013,7 +1021,7 @@ namespace patmos
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
-      printGPReg(os, "in: ", ops.OPS.SPCt.Rs1, ops.DR_Rs1.get());
+      printGPReg(os, "in: ", ops.OPS.SPCt.Rs1, ops.DR_Rs1, s);
     }
   };
 
@@ -1154,6 +1162,12 @@ namespace patmos
     /// available and stalling is needed.
     virtual bool load(simulator_t &s, word_t address, word_t &value) const = 0;
 
+    /// peek into the memory to read the value without delay.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param address The address of the memory access.
+    /// @return The read value.
+    virtual word_t peek(simulator_t &s, word_t address) const = 0;
+    
     // IF inherited from NOP
 
     /// Pipeline function to simulate the behavior of the instruction in
@@ -1214,8 +1228,13 @@ namespace patmos
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
-      printGPReg(os, "out: ", ops.OPS.LDT.Rd, s.GPR);
-      printGPReg(os, " in: ", ops.OPS.LDT.Ra, ops.DR_Rs1.get());
+      // This might return an old value if there is a store in MW in progress,
+      // but this is much better than nothing.
+      // TODO this is nasty, that we have to cast const away, peek should be const.
+      word_t result = peek(const_cast<simulator_t &>(s), ops.EX_Address);
+      
+      printGPReg(os, "peek: ", ops.OPS.LDT.Rd, result);
+      printGPReg(os, " in: ", ops.OPS.LDT.Ra, ops.DR_Rs1, s);
       os << boost::format(" addr: %1$08x ") % ops.EX_Address;
       symbols.print(os, ops.EX_Address);
     }    
@@ -1245,6 +1264,12 @@ namespace patmos
       bool is_available = base.read_fixed(address, tmp); \
       value = (ctype)from_big_endian<big_ ## atype>(tmp); \
       return is_available; \
+    } \
+    virtual word_t peek(simulator_t &s, word_t address) const \
+    { \
+      atype tmp=0; \
+      base.peek_fixed(address, tmp); \
+      return (ctype)from_big_endian<big_ ## atype>(tmp); \
     } \
   };
 
@@ -1342,7 +1367,7 @@ namespace patmos
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
-      printGPReg(os, "in: " , ops.OPS.LDT.Ra, ops.DR_Rs1.get());
+      printGPReg(os, "in: " , ops.OPS.LDT.Ra, ops.DR_Rs1, s);
       os << boost::format(" addr: %1$08x ") % ops.EX_Address;
       symbols.print(os, ops.EX_Address);
     }    
@@ -1446,7 +1471,7 @@ namespace patmos
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
-      printGPReg(os, "in: " , ops.OPS.STT.Ra, ops.DR_Rs1.get());
+      printGPReg(os, "in: " , ops.OPS.STT.Ra, ops.DR_Rs1, s);
       printGPReg(os, ", "   , ops.OPS.STT.Rs1, ops.EX_Rs);
       os << boost::format(" addr: %1$08x ") % ops.EX_Address;
       symbols.print(os, ops.EX_Address);

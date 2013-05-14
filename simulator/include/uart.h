@@ -108,6 +108,15 @@ namespace patmos
       return true;
     }
 
+    /// A simulated peek access to the UART's data register
+    /// @param value A pointer to a destination to store the value read from
+    /// the UART.
+    virtual bool peek_data(byte_t *value)
+    {
+      *value = (byte_t)In_stream.peek();
+      return true;
+    }
+
     /// A simulated access to a UART's data register.
     /// @param value The value to be written to the UART.
     /// @return True when the data is written finally to the UART, false
@@ -153,6 +162,21 @@ namespace patmos
         return read_status(value+3);
       else if (address == Data_address && size == 4)
         return read_data(value+3);
+      else
+        simulation_exception_t::unmapped(address);
+    }
+
+    /// A simulated access to a read port. Does not update the device state or 
+    /// simulate timing, just reads the value.
+    /// @param address The memory address to read from.
+    /// @param value A pointer to a destination to store the value read from
+    /// the memory.
+    /// @param size The number of bytes to read.
+    virtual void peek(uword_t address, byte_t *value, uword_t size) {
+      if (address == Status_address && size == 4)
+        read_status(value+3);
+      else if (address == Data_address && size == 4)
+        peek_data(value+3);
       else
         simulation_exception_t::unmapped(address);
     }
