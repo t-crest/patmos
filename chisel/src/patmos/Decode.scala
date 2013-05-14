@@ -139,7 +139,6 @@ class Decode() extends Component {
       is(Bits("b001")) {
         shamt := UFix(1)
         io.decex.hword := Bool(true)
-        io.decex.zext := Bool(true)
       }
       is(Bits("b010")) {
         io.decex.byte := Bool(true)
