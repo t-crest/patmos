@@ -536,6 +536,20 @@ namespace patmos
       os << "\n";      
   }
   
+  /// Read a GPR register at the EX stage.
+  /// @param s The parent simulator.
+  /// @param op The register operand.
+  /// @return The register value, considering by-passing from the EX, and MW
+  /// stages.
+  static inline word_t read_GPR_post_EX(const simulator_t &s, GPR_e reg)
+  {
+    // Note: we are between cycles, so the EX bypass has been updated, 
+    // the EX instructions have been moved to MW, but the MW bypass is not yet set.
+    return s.Pipeline[SMW][1].GPR_EX_Rd.get(
+           s.Pipeline[SMW][0].GPR_EX_Rd.get(
+              s.GPR.get(reg))).get();
+  }
+  
   void simulator_t::print(std::ostream &os, debug_format_e debug_fmt)
   {
     if (debug_fmt == DF_TRACE)
@@ -560,13 +574,13 @@ namespace patmos
 
         if (Dbg_is_call) {
           os << " args: " << boost::format("r3 = %1$08x, r4 = %2$08x, ") 
-                % GPR.get(r3).get() % GPR.get(r4).get();
+                % read_GPR_post_EX(*this, r3) % read_GPR_post_EX(*this, r4);
           os << boost::format("r5 = %1$08x, r6 = %2$08x, r7 = %3$08x, r8 = %4$08x") 
-                % GPR.get(r5).get() % GPR.get(r6).get()
-                % GPR.get(r7).get() % GPR.get(r8).get();
+                % read_GPR_post_EX(*this, r5) % read_GPR_post_EX(*this, r6)
+                % read_GPR_post_EX(*this, r7) % read_GPR_post_EX(*this, r8);
         } else {
           os << " retval: " << boost::format("r1 = %1$08x, r2 = %2$08x") 
-                % GPR.get(r1).get() % GPR.get(r2).get();
+                % read_GPR_post_EX(*this, r1) % read_GPR_post_EX(*this, r2);
         }
         os << "\n";
         Dbg_cnt_delay = 0;
