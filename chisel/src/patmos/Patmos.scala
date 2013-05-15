@@ -82,8 +82,10 @@ class Patmos(fileName: String) extends Component {
   execute.io.exResult <> memory.io.exResult
   execute.io.memResult <> writeback.io.memResult
 
-  // We branch, jump, call in EX
+  // We branch in EX
   fetch.io.exfe <> execute.io.exfe
+  // We call in MEM
+  fetch.io.memfe <> memory.io.memfe
 
   memory.io.memInOut <> iocomp.io.memInOut
 

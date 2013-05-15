@@ -64,12 +64,14 @@ class DecEx() extends Bundle() {
   val rsData = Vec(2) { Bits(width = 32) }
   val rdAddr = Vec(1) { Bits(width = 5) }
   val immVal = Bits(width = 32)
+  val callAddr = UFix(width = 32)
   // maybe have a structure for instructions?
   val immOp = Bool()
   //  val aluOp = Bool()
   val cmpOp = Bool()
   val predOp = Bool()
   val branch = Bool()
+  val call = Bool()
   val load = Bool()
   val store = Bool()
   val hword = Bool()
@@ -93,6 +95,8 @@ class MemIn() extends Bundle() {
   val zext = Bool()
   val addr = Bits(width = 32)
   val data = Bits(width = 32)
+  val call = Bool()
+  val callAddr = UFix(width = 32)
 }
 
 class ExMem() extends Bundle() {
@@ -110,6 +114,11 @@ class ExFe() extends Bundle() {
   val store = Bool()
   val addr = Bits(width = 32)
   val data = Bits(width = 32)
+}
+
+class MemFe() extends Bundle() {
+  val doCall = Bool()
+  val callPc = UFix(width = Constants.PC_SIZE)  
 }
 
 class MemWb() extends Bundle() {
@@ -138,6 +147,8 @@ class FetchIO extends Bundle() {
   val fedec = new FeDec().asOutput
   // branch from EX
   val exfe = new ExFe().asInput
+  // call from MEM
+  val memfe = new MemFe().asInput
 }
 
 class DecodeIO() extends Bundle() {
@@ -192,6 +203,7 @@ class MemoryIO() extends Bundle() {
   val ena = Bool(INPUT)
   val exmem = new ExMem().asInput
   val memwb = new MemWb().asOutput
+  val memfe = new MemFe().asOutput
   // for result forwarding
   val exResult = new Result().flip
   val memInOut = new Mem2InOut()

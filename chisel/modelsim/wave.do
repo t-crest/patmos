@@ -7,6 +7,8 @@ add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/fetch/addr_odd
 add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/fetch/instr_a
 add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/fetch/instr_b
 add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/fetch/pc
+add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/fetch/io_memfe_callPc
+add wave -noupdate /Patmos_tb/patmos/fetch/io_memfe_doCall
 add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/fetch/pc_next
 add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/decode/addrImm
 add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/decode/decReg_instr_b
@@ -33,4 +35,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ps
 update
-WaveRestoreZoom {0 ps} {482500 ps}
+WaveRestoreZoom {132 ns} {373 ns}

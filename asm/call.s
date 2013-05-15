@@ -5,19 +5,30 @@
 	addi	r20 = r0, 20;
 	addi	r30 = r0, 0;  # method base?
 	call	start;        # we need an initial call that does not return for a start
+	addi	r1 = r0, 1;
+	addi	r1 = r0, 2;
+	addi	r1 = r0, 3;
+	addi	r1 = r0, 0;   # dummy instructions needed for the call as .word does not work
+	addi	r1 = r0, 0;
+	addi	r1 = r0, 0;
+	addi	r1 = r0, 0;
+	addi	r1 = r0, 0;
+	addi	r1 = r0, 0;
+	addi	r1 = r0, 0;
 	addi	r1 = r0, 0;
 	addi	r1 = r0, 0;
 
-	.word 100;
+	.word 100; # This looks like not working at all....
 start:	addi	r1 = r1, 1;
 	addi	r30 = r0, start;
 	call	foo;
 # we should check (and define) delay slots for call/ret - probably 2
 	addi	r2 = r0, 2;
 	addi	r3 = r0, 3;
-# return shall come in here
 	addi	r4 = r0, 4;
+# return shall come in here
 	addi	r5 = r0, 5;
+	addi	r6 = r0, 6;
 	br	end;
 	addi	r0 = r0, 0;
 	addi	r0 = r0, 0;

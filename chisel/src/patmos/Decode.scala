@@ -72,6 +72,7 @@ class Decode() extends Component {
   io.decex.cmpOp := Bool(false)
   io.decex.predOp := Bool(false)
   io.decex.branch := Bool(false)
+  io.decex.call := Bool(false)
   io.decex.load := Bool(false)
   io.decex.store := Bool(false)
   io.decex.hword := Bool(false)
@@ -116,7 +117,7 @@ class Decode() extends Component {
   when(instr(26, 24) === Bits("b110")) {
     // But on a call we will save in register 31 => need to change the target register
     switch(instr(23, 22)) {
-      is(Bits("b00")) { /* io.decex.call := Bool(true) */ }
+      is(Bits("b00")) { io.decex.call := Bool(true) }
       is(Bits("b01")) { io.decex.branch := Bool(true) }
       is(Bits("b10")) { /* io.decex.brcf := Bool(true) */ }
       // where is register indirect?
@@ -185,6 +186,9 @@ class Decode() extends Component {
   // Maybe later split immediate for ALU and address calculation
   io.decex.immVal := Mux(isMem, addrImm, Mux(longImm, decReg.instr_b, Cat(Bits(0), instr(11, 0))))
   // we could mux the imm / register here as well
+  
+  // Immediate for absolute calls
+  io.decex.callAddr := Cat(Bits(0), instr(21, 0)).toUFix()
 
   // Immediate for branch is sign extended, not extended for call
   // We can do the address calculation already here
