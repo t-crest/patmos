@@ -1915,8 +1915,19 @@ namespace patmos
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
-      ops.DR_Base   = s.GPR.get(ops.OPS.CFLr.Rb).get();
-      ops.DR_Offset = s.GPR.get(ops.OPS.CFLr.Ro).get();
+      ops.DR_Base   = s.GPR.get(ops.OPS.CFLr.Rb);
+      ops.DR_Offset = s.GPR.get(ops.OPS.CFLr.Ro);
+      ops.EX_CFL_Discard = 0;
+    }
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the EX pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.EX_Base   = read_GPR_EX(s, ops.DR_Base);
+      ops.EX_Offset = read_GPR_EX(s, ops.DR_Offset);
       ops.EX_CFL_Discard = 0;
     }
 
@@ -1927,16 +1938,16 @@ namespace patmos
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
       // returning to address 0? interpret this as a halt.
-      if (ops.DR_Pred && ops.DR_Base == 0)
+      if (ops.DR_Pred && ops.EX_Base == 0)
       {
         // stall the first stage of the pipeline
         s.pipeline_stall(SDR);
       }
       else 
       {
-	s.pop_dbg_stackframe(ops.DR_Base, ops.DR_Offset);
-        fetch_and_dispatch(s, ops, ops.DR_Pred, ops.DR_Base,
-                           ops.DR_Base + ops.DR_Offset);
+	s.pop_dbg_stackframe(ops.EX_Base, ops.EX_Offset);
+        fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base,
+                           ops.EX_Base + ops.EX_Offset);
       }
     }
 
@@ -1946,7 +1957,7 @@ namespace patmos
     virtual void MW_commit(simulator_t &s, instruction_data_t &ops) const
     {
       // returning to address 0? interpret this as a halt.
-      if (ops.DR_Pred && ops.DR_Base == 0)
+      if (ops.DR_Pred && ops.EX_Base == 0)
         simulation_exception_t::halt(s.GPR.get(GPR_EXIT_CODE_INDEX).get());
     }
     
@@ -1958,8 +1969,8 @@ namespace patmos
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
-      printGPReg(os, "in: ", ops.OPS.CFLr.Rb, ops.DR_Base);
-      printGPReg(os, ", "  , ops.OPS.CFLr.Ro, ops.DR_Offset);
+      printGPReg(os, "in: ", ops.OPS.CFLr.Rb, ops.EX_Base);
+      printGPReg(os, ", "  , ops.OPS.CFLr.Ro, ops.EX_Offset);
     }
   };
 }

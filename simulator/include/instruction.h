@@ -281,10 +281,10 @@ namespace patmos
     bit_t DR_Pred;
 
     /// Current base address of the method cache, as read at the DR stage.
-    word_t DR_Base;
+    GPR_op_t DR_Base;
 
     /// Current method offset of the method cache, as read at the DR stage.
-    word_t DR_Offset;
+    GPR_op_t DR_Offset;
 
     // -------------------------- EX -------------------------------------------
     /// Result from EX stage.
@@ -311,6 +311,12 @@ namespace patmos
     /// Discard CFL instructions in EX stage (stalling).
     word_t EX_CFL_Discard;
 
+    /// Method base address as read in EX stage.
+    word_t EX_Base;
+    
+    /// Method offset as read in EX stage.
+    word_t EX_Offset;
+    
     // -------------------------- MW -------------------------------------------
     /// Result register operand from MW stage.
     GPR_by_pass_t GPR_MW_Rd;
