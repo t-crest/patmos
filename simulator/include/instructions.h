@@ -1629,7 +1629,7 @@ namespace patmos
       if (pred && !ops.EX_CFL_Discard)
       {
         assert(base <= pc);
-        assert(pc == ops.IF_PC + 12 && "Wrong delay slot size of call instruction.");
+        assert(pc == ops.IF_PC + 16 && "Wrong delay slot size of call instruction.");
 
         s.push_dbg_stackframe(address);
         
@@ -1724,7 +1724,7 @@ namespace patmos
     }
   };
 
-#define CFLB_INSTR(name, store, dispatch, new_base, target) \
+#define CFLB_INSTR(name, store, dispatch, new_base, target, stage)	\
   class i_ ## name ## _t : public i_cfl_t \
   { \
   public:\
@@ -1735,7 +1735,7 @@ namespace patmos
       os << #name << " " << ops.OPS.CFLb.Imm; \
       symbols.print(os, ops.EX_Address); \
     } \
-    virtual void EX(simulator_t &s, instruction_data_t &ops) const \
+    virtual void stage(simulator_t &s, instruction_data_t &ops) const \
     { \
       ops.EX_Address = target; \
       store(s, ops, ops.DR_Pred, s.BASE, s.nPC, target); \
@@ -1745,13 +1745,13 @@ namespace patmos
 
   CFLB_INSTR(call, store_return_address, fetch_and_dispatch,
              ops.OPS.CFLb.Imm*sizeof(word_t),
-             ops.OPS.CFLb.Imm*sizeof(word_t))
+             ops.OPS.CFLb.Imm*sizeof(word_t), MW)
   CFLB_INSTR(br, no_store_return_address, dispatch,
              s.BASE,
-             ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t))
+             ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t), EX)
   CFLB_INSTR(brcf, no_store_return_address, fetch_and_dispatch,
              ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t),
-             ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t))
+             ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t), MW)
 
   class i_intr_t : public i_cfl_t 
   { 
@@ -1838,7 +1838,7 @@ namespace patmos
     }
   };
 
-#define CFLI_INSTR(name, store, dispatch, new_base, target) \
+#define CFLI_EX_INSTR(name, store, dispatch, new_base, target)	\
   class i_ ## name ## _t : public i_cfli_t \
   { \
   public:\
@@ -1857,15 +1857,38 @@ namespace patmos
     } \
   };
 
-  CFLI_INSTR(callr, store_return_address, fetch_and_dispatch,
-             read_GPR_EX(s, ops.DR_Rs1),
-             read_GPR_EX(s, ops.DR_Rs1))
-  CFLI_INSTR(brr, no_store_return_address, dispatch,
-             s.BASE,
-             read_GPR_EX(s, ops.DR_Rs1))
-  CFLI_INSTR(brcfr, no_store_return_address, fetch_and_dispatch,
-             read_GPR_EX(s, ops.DR_Rs1),
-             read_GPR_EX(s, ops.DR_Rs1))
+#define CFLI_MW_INSTR(name, store, dispatch, new_base, target)   \
+  class i_ ## name ## _t : public i_cfli_t \
+  { \
+  public:\
+    virtual void print(std::ostream &os, const instruction_data_t &ops, \
+                       const symbol_map_t &symbols) const \
+    { \
+      printPred(os, ops.Pred); \
+      os << #name << " r" << ops.OPS.CFLi.Rs; \
+      symbols.print(os, ops.EX_Address); \
+    } \
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const \
+    { \
+      ops.EX_Address = target; \
+    } \
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const \
+    { \
+      store(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address); \
+      dispatch(s, ops, ops.DR_Pred, new_base, ops.EX_Address); \
+    } \
+  };
+
+
+  CFLI_MW_INSTR(callr, store_return_address, fetch_and_dispatch,
+                read_GPR_EX(s, ops.DR_Rs1),
+                read_GPR_EX(s, ops.DR_Rs1))
+  CFLI_EX_INSTR(brr, no_store_return_address, dispatch,
+                s.BASE,
+                read_GPR_EX(s, ops.DR_Rs1))
+  CFLI_MW_INSTR(brcfr, no_store_return_address, fetch_and_dispatch,
+                read_GPR_EX(s, ops.DR_Rs1),
+                read_GPR_EX(s, ops.DR_Rs1))
 
   /// An instruction for returning from function calls.
   class i_ret_t : public i_cfl_t
@@ -1898,10 +1921,10 @@ namespace patmos
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
-    /// the EX pipeline stage.
+    /// the MW pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
-    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
       // returning to address 0? interpret this as a halt.
       if (ops.DR_Pred && ops.DR_Base == 0)

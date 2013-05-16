@@ -17,6 +17,7 @@
 	addi	r1 = r0, 0;
 	addi	r1 = r0, 0;
 	addi	r1 = r0, 0;
+	addi	r1 = r0, 0;
 
 	.word 100; # This looks like not working at all....
 start:	addi	r1 = r1, 1;
@@ -32,7 +33,7 @@ start:	addi	r1 = r1, 1;
 	br	end;
 	addi	r0 = r0, 0;
 	addi	r0 = r0, 0;
-	.word 16; # this shall be the length - which unit, assume bytes?
+	.word 20; # this shall be the length - which unit, assume bytes?
 foo:	addi	r6 = r0, 6;
 	addi	r7 = r0, 7;
 	ret	r30, r31;   # r32 offset to method base in r30
