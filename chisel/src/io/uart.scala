@@ -23,6 +23,7 @@ class UART() extends Component {
 
   
  	val accept_reg = Reg(resetVal = UFix(0, 1))
+ 	val r_data = Reg(resetVal = UFix(0, 1))
   	val tx_reg = Reg(resetVal = UFix(0, 1))
   	val data_counter = Reg(resetVal = UFix(0, 4))  	
   	val reset_state :: idle :: send:: Nil  = Enum(3){ UFix() } 
@@ -45,7 +46,7 @@ class UART() extends Component {
 	
 	
 	// address decoding
-	io.rd_data := Mux(io.address === UFix(0), UFix(3), data_buffer)
+	io.rd_data := Mux(io.address === UFix(0), Cat(UFix(0, width = 6), r_data, accept_reg), data_buffer)
 	
 	
 	
@@ -121,6 +122,7 @@ class UART() extends Component {
 	when (r_state === r_reset_state) {
 		//	out_valid_reg	:= UFix(0)
 			r_state       	:= r_idle  
+			r_data  := UFix(0)
 		}
 	when (r_state === r_idle) {
 	  		//out_valid_reg	:= UFix(0)
@@ -149,6 +151,7 @@ class UART() extends Component {
 			  	 	when (io.rx === UFix(1))		
 					{
 			  	 	  r_state := r_idle
+			  	 	  r_data  := UFix(1)
 					}
 			  	 	.otherwise
 			  	 	{
