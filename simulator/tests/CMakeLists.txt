@@ -101,7 +101,7 @@ Errors : 0")
 test_asm(32 "Emitted: 68 bytes
 Errors : 0")
 
-test_asm(33 "Emitted: 84 bytes
+test_asm(33 "Emitted: 96 bytes
 Errors : 0")
 
 test_asm(34 "Undefined Label: x")
@@ -113,6 +113,9 @@ test_asm(36 "Emitted: 36 bytes
 Errors : 0")
 
 test_asm(37 "Emitted: 100 bytes
+Errors : 0")
+
+test_asm(38 "Emitted: 84 bytes
 Errors : 0")
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -161,14 +164,14 @@ test_sim(09 "r0 : 00000000   r1 : 0283f180   r2 : fffff180   r3 : fffffff1   r4 
 
 test_sim(10 "r0 : 00000000   r1 : 0283f180   r2 : 000000f0   r3 : 0283f180   r4 : f1800000   r5 : 80000000")
 
-test_sim(11a "BASE: 00000000   PC : 0000003c.*
+test_sim(11a "BASE: 00000000   PC : 00000040.*
 .*r1 : 00000026")
 
-test_sim(11b "BASE: 00000000   PC : 00000040.*
+test_sim(11b "BASE: 00000000   PC : 00000044.*
 .*r1 : 00000029   r2 : 000000ff")
 
-test_sim(13 "BASE: 00000024   PC : 0000004c.*
-.*r1 : 00000026   r2 : 00000000   r3 : 00000010")
+test_sim(13 "BASE: 00000024   PC : 00000050.*
+.*r1 : 00000029   r2 : 00000000   r3 : 00000014")
 
 test_sim(14 "r0 : 00000000   r1 : 0283f180   r2 : 0283f180   r3 : 00000283   r4 : ffffff83   r5 : 00000283   r6 : 00000083")
 
@@ -184,7 +187,7 @@ test_sim(19 "r1 : 00000007")
 
 test_sim(20 "r1 : 0281fa80   r2 : 8281fa81")
 
-test_sim(21 "BASE: 00000000   PC : 0000004c.*
+test_sim(21 "BASE: 00000000   PC : 00000050.*
 .*r1 : 0000003c")
 
 test_io_sim(22 "r1 : 000000fb")
@@ -201,7 +204,7 @@ test_sim(26 "Unaligned")
 
 test_sim(27 "Unaligned")
 
-test_sim(28 "BASE: 00000000   PC : 00000040.*
+test_sim(28 "BASE: 00000000   PC : 00000044.*
 .*r1 : 00000026")
 
 test_sim(29 "PRR: 00000001.*
@@ -221,3 +224,6 @@ test_sim(35 "r2 : 00000001")
 test_sim(36 "r2 : 00000001")
 
 test_sim(37 "r0 : 00000000   r1 : 0283f180   r2 : 0283f180   r3 : 003ffff0   r4 : 003fffe8   r5 : 00000008")
+
+test_sim(38 "r1 : 00000001")
+

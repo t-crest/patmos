@@ -1,5 +1,5 @@
 #
-# Expected Result: base = 0x00000000 & pc = 0x0000003c & r1 = 38 & r2 = 255
+# Expected Result: base = 0x00000000 & pc = 0x00000044 & r1 = 38 & r2 = 255
 #
                 addi     r1  = r0, 1;
                 br       x;
