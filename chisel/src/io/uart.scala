@@ -18,7 +18,7 @@ class UART() extends Component {
 	val rd = UFix(INPUT, 1)
 	val tx = UFix(OUTPUT, 1)
 	val rx = UFix(INPUT, 1)
-	val rd_data = UFix(OUTPUT, 1)
+	val rd_data = UFix(OUTPUT, 8)
   }
 
   
@@ -127,7 +127,7 @@ class UART() extends Component {
 	when (r_state === r_idle) {
 	  		//out_valid_reg	:= UFix(0)
 	  		when (s_baud_tick === UFix(1)){
-		  		when (io.rx === UFix(0))
+		  		when (io.rx === UFix(0) && io.rd === UFix(1))
 		  		{
 		  		  r_state := r_receive_data
 		  		}
