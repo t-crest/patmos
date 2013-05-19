@@ -84,10 +84,11 @@ class Test2() extends Component {
 
 
 // Generate the Verlog code by invoking chiselMain() in our main()
+/*
 object HelloMain {
   def main(args: Array[String]): Unit = { 
     chiselMain( args, () => new Test2())
   }
 }
-
+*/
 
