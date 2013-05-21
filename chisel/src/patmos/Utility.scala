@@ -42,6 +42,8 @@ package patmos
 import Chisel._
 import Node._
 
+import Constants._
+
 object Utility {
 
   /**
@@ -49,7 +51,7 @@ object Utility {
    */
   def readBin(fileName: String): Vec[Bits] = {
     // using a vector for a ROM
-    val v = Vec(256) { Bits(width = 32) }
+    val v = Vec(256) { Bits(width = INSTR_WIDTH) }
     // should check the program for the size
 
     // TODO: move ROM file reading to an utility class
@@ -66,7 +68,7 @@ object Utility {
       }
       printf("%08x\n", word)
       // mmh, width is needed to keep bit 31
-      v(i) = Bits(word, width=32)
+      v(i) = Bits(word, width=INSTR_WIDTH)
     }
     // generate some dummy data to fill the table and make Bit 31 test happy
     for (x <- byteArray.length / 4 until 256)

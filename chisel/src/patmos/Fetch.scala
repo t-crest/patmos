@@ -42,18 +42,20 @@ package patmos
 import Chisel._
 import Node._
 
+import Constants._
+
 class Fetch(fileName: String) extends Component {
   val io = new FetchIO()
 
-  val pc = Reg(resetVal = UFix(0, Constants.PC_SIZE))
-  val addr_even = Reg(resetVal = UFix(0, Constants.PC_SIZE - 1))
-  val addr_odd = Reg(resetVal = UFix(1, Constants.PC_SIZE - 1))
+  val pc = Reg(resetVal = UFix(0, PC_SIZE))
+  val addr_even = Reg(resetVal = UFix(0, PC_SIZE - 1))
+  val addr_odd = Reg(resetVal = UFix(1, PC_SIZE - 1))
 
   val rom = Utility.readBin(fileName)
   // Split the ROM into two blocks for dual fetch
   //  val len = rom.length / 2
-  //  val rom_a = Vec(len) { Bits(width = 32) }
-  //  val rom_b = Vec(len) { Bits(width = 32) }
+  //  val rom_a = Vec(len) { Bits(width = INSTR_WIDTH) }
+  //  val rom_b = Vec(len) { Bits(width = INSTR_WIDTH) }
   //  for (i <- 0 until len) {
   //    rom_a(i) = rom(i * 2)
   //    rom_b(i) = rom(i * 2 + 1)
@@ -63,15 +65,15 @@ class Fetch(fileName: String) extends Component {
   //  }
   //
   //  // addr_even and odd count in words. Shall this be optimized?
-  //  val data_even: Bits = rom_a(addr_even(Constants.PC_SIZE-1, 1))
-  //  val data_odd: Bits = rom_b(addr_odd(Constants.PC_SIZE-1, 1))
+  //  val data_even: Bits = rom_a(addr_even(PC_SIZE-1, 1))
+  //  val data_odd: Bits = rom_b(addr_odd(PC_SIZE-1, 1))
   // relay on the optimization to recognize that those addresses are always even and odd
   // TODO: maybe make it explicit
 
   val ispmSize = 4096 // in bytes
   val ispmAddrBits = log2Up(ispmSize / 4 / 2)
-  val memEven = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = 32) } }
-  val memOdd = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = 32) } }
+  val memEven = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
+  val memOdd = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
 
   // write from EX - use registers - ignore stall, as reply does not hurt
   val selWrite = io.exfe.store & (io.exfe.addr(31, 28) === Bits(0x1))
@@ -105,13 +107,13 @@ class Fetch(fileName: String) extends Component {
 
   // TODO clean up
   //  val addEven = Mux(pc_next(0) === Bits(1), UFix(0), UFix(1))
-  val xyz = Cat(pc_next(Constants.PC_SIZE - 1, 1), Bits(0))
-  val abc = Cat(pc_next(Constants.PC_SIZE - 1, 1) + UFix(1), Bits(0))
+  val xyz = Cat(pc_next(PC_SIZE - 1, 1), Bits(0))
+  val abc = Cat(pc_next(PC_SIZE - 1, 1) + UFix(1), Bits(0))
   val even_next = Mux(pc_next(0) === Bits(1), abc, xyz)
 
   when(io.ena) {
     addr_even := even_next.toUFix
-    addr_odd := Cat(pc_next(Constants.PC_SIZE - 1, 1), Bits(1)).toUFix
+    addr_odd := Cat(pc_next(PC_SIZE - 1, 1), Bits(1)).toUFix
     pc := pc_next
   }
 

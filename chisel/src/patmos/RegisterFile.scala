@@ -44,18 +44,20 @@ package patmos
 import Chisel._
 import Node._
 
+import Constants._
+
 class RegisterFile() extends Component {
   val io = new RegFileIO()
 
-  // val rf = Vec(32){ Reg() { Bits(width = 32) } }
+  // val rf = Vec(REG_COUNT){ Reg() { Bits(width = DATA_WIDTH) } }
   // the reset version generates more logic and a slower fmax
   // Probably due to the synchronous reset
-  val rf = Vec(32) { Reg(resetVal = Bits(0, width = 32)) }
+  val rf = Vec(REG_COUNT) { Reg(resetVal = Bits(0, width = DATA_WIDTH)) }
 
   // We are registering the inputs here, similar as it would
   // be with an on-chip memory for the register file
-  val addr0Reg = Reg(UFix(width=5))
-  val addr1Reg = Reg(UFix(width=5))
+  val addr0Reg = Reg(UFix(width=REG_BITS))
+  val addr1Reg = Reg(UFix(width=REG_BITS))
   val wrReg = Reg(new Result())
   val fw0Reg = Reg(Bool())
   val fw1Reg = Reg(Bool())

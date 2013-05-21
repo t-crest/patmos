@@ -42,9 +42,11 @@ package patmos
 import Chisel._
 import Node._
 
+import Constants._
+
 class SpmIO extends Bundle() {
   val in = new MemIn().asInput
-  val data = Bits(OUTPUT, 32)
+  val data = Bits(OUTPUT, DATA_WIDTH)
 }
 
 /*
@@ -69,27 +71,27 @@ class Spm(size: Int) extends Component {
 
   // Big endian, where MSB is at the lowest address
   // default is word store
-  val bw = Vec(4) { Bits() }
-  bw(0) := io.in.data(31, 24)
-  bw(1) := io.in.data(23, 16)
-  bw(2) := io.in.data(15, 8)
-  bw(3) := io.in.data(7, 0)
-  val stmsk = Bits()
+  val bw = Vec(BYTES_PER_WORD) { Bits(width = BYTE_WIDTH) }
+  for (i <- 0 until BYTES_PER_WORD) {
+	bw(i) := io.in.data(DATA_WIDTH-i*BYTE_WIDTH-1, DATA_WIDTH-i*BYTE_WIDTH-BYTE_WIDTH)
+  }
+
+  val stmsk = Bits(width = BYTES_PER_WORD)
   stmsk := Bits("b1111")
   
-  val select = io.in.addr(31, 28) === Bits(0x0)
+  val select = io.in.addr(DATA_WIDTH-1, DATA_WIDTH-4) === Bits(0x0)
 
   // Input multiplexing and write enables
   when(io.in.hword) {
     switch(io.in.addr(1)) {
       is(Bits("b0")) {
-        bw(0) := io.in.data(15, 8)
-        bw(1) := io.in.data(7, 0)
+        bw(0) := io.in.data(2*BYTE_WIDTH-1, BYTE_WIDTH)
+        bw(1) := io.in.data(BYTE_WIDTH-1, 0)
         stmsk := Bits("b0011")
       }
       is(Bits("b1")) {
-        bw(2) := io.in.data(15, 8)
-        bw(3) := io.in.data(7, 0)
+        bw(2) := io.in.data(2*BYTE_WIDTH-1, BYTE_WIDTH)
+        bw(3) := io.in.data(BYTE_WIDTH-1, 0)
         stmsk := Bits("b1100")
       }
     }
@@ -98,19 +100,19 @@ class Spm(size: Int) extends Component {
   when(io.in.byte) {
     switch(io.in.addr(1, 0)) {
       is(Bits("b00")) {
-        bw(0) := io.in.data(7, 0)
+        bw(0) := io.in.data(BYTE_WIDTH-1, 0)
         stmsk := Bits("b0001")
       }
       is(Bits("b01")) {
-        bw(1) := io.in.data(7, 0)
+        bw(1) := io.in.data(BYTE_WIDTH-1, 0)
         stmsk := Bits("b0010")
       }
       is(Bits("b10")) {
-        bw(2) := io.in.data(7, 0)
+        bw(2) := io.in.data(BYTE_WIDTH-1, 0)
         stmsk := Bits("b0100")
       }
       is(Bits("b11")) {
-        bw(3) := io.in.data(7, 0)
+        bw(3) := io.in.data(BYTE_WIDTH-1, 0)
         stmsk := Bits("b1000")
       }
     }
@@ -120,61 +122,59 @@ class Spm(size: Int) extends Component {
     stmsk := Bits(0)
   }
   // now unconditional registers for write data and enable
-  val bw0Reg = Reg(bw(0))
-  val bw1Reg = Reg(bw(1))
-  val bw2Reg = Reg(bw(2))
-  val bw3Reg = Reg(bw(3))
+  val bwReg = Reg(bw)
   val stmskReg = Reg(stmsk)
 
   // SPM
   // I would like to have a vector of memories.
-  // val mem = Vec(4) { Mem(size, seqRead = true) { Bits(width = 32) } }
+  // val mem = Vec(4) { Mem(size, seqRead = true) { Bits(width = DATA_WIDTH) } }
 
-  val addrBits = log2Up(size / 4)
+  val addrBits = log2Up(size / BYTES_PER_WORD)
 
   // ok, the dumb way
-  val mem0 = { Mem(size / 4, seqRead = true) { Bits(width = 8) } }
-  val mem1 = { Mem(size / 4, seqRead = true) { Bits(width = 8) } }
-  val mem2 = { Mem(size / 4, seqRead = true) { Bits(width = 8) } }
-  val mem3 = { Mem(size / 4, seqRead = true) { Bits(width = 8) } }
+  val mem0 = { Mem(size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) } }
+  val mem1 = { Mem(size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) } }
+  val mem2 = { Mem(size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) } }
+  val mem3 = { Mem(size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) } }
 
   // store
-  when(stmskReg(0)) { mem0(memInReg.addr(addrBits + 1, 2)) := bw0Reg }
-  when(stmskReg(1)) { mem1(memInReg.addr(addrBits + 1, 2)) := bw1Reg }
-  when(stmskReg(2)) { mem2(memInReg.addr(addrBits + 1, 2)) := bw2Reg }
-  when(stmskReg(3)) { mem3(memInReg.addr(addrBits + 1, 2)) := bw3Reg }
+  when(stmskReg(0)) { mem0(memInReg.addr(addrBits + 1, 2)) := bwReg(0) }
+  when(stmskReg(1)) { mem1(memInReg.addr(addrBits + 1, 2)) := bwReg(1) }
+  when(stmskReg(2)) { mem2(memInReg.addr(addrBits + 1, 2)) := bwReg(2) }
+  when(stmskReg(3)) { mem3(memInReg.addr(addrBits + 1, 2)) := bwReg(3) }
 
   // load
-  val br0 = mem0(memInReg.addr(addrBits + 1, 2))
-  val br1 = mem1(memInReg.addr(addrBits + 1, 2))
-  val br2 = mem2(memInReg.addr(addrBits + 1, 2))
-  val br3 = mem3(memInReg.addr(addrBits + 1, 2))
+  val br = Vec(BYTES_PER_WORD) { Bits(width = BYTE_WIDTH) }
+  br(0) := mem0(memInReg.addr(addrBits + 1, 2))
+  br(1) := mem1(memInReg.addr(addrBits + 1, 2))
+  br(2) := mem2(memInReg.addr(addrBits + 1, 2))
+  br(3) := mem3(memInReg.addr(addrBits + 1, 2))
 
-  val dout = Bits()
+  val dout = Bits(width = DATA_WIDTH)
   // default word read
-  dout := Cat(br0, br1, br2, br3)
+  dout := Cat(br(0), br(1), br(2), br(3))
 
   // Output multiplexing and sign extensions if needed
-  val bval = MuxLookup(memInReg.addr(1, 0), br0, Array(
-    (Bits("b00"), br0),
-    (Bits("b01"), br1),
-    (Bits("b10"), br2),
-    (Bits("b11"), br3)))
+  val bval = MuxLookup(memInReg.addr(1, 0), br(0), Array(
+    (Bits("b00"), br(0)),
+    (Bits("b01"), br(1)),
+    (Bits("b10"), br(2)),
+    (Bits("b11"), br(3))))
 
-  val hval = MuxLookup(memInReg.addr(1), Cat(br0, br1), Array(
-    (Bits("b00"), Cat(br0, br1)),
-    (Bits("b01"), Cat(br2, br3))))
+  val hval = MuxLookup(memInReg.addr(1), Cat(br(0), br(1)), Array(
+    (Bits("b00"), Cat(br(0), br(1))),
+    (Bits("b01"), Cat(br(2), br(3)))))
 
   when(memInReg.byte) {
-    dout := Cat(Fill(24, bval(7)), bval)
+    dout := Cat(Fill(DATA_WIDTH-BYTE_WIDTH, bval(BYTE_WIDTH-1)), bval)
     when(memInReg.zext) {
-      dout := Cat(Bits(0, 24), bval)
+      dout := Cat(Bits(0, DATA_WIDTH-BYTE_WIDTH), bval)
     }
   }
   when(memInReg.hword) {
-    dout := Cat(Fill(16, hval(15)), hval)
+    dout := Cat(Fill(DATA_WIDTH-2*BYTE_WIDTH, hval(DATA_WIDTH/2-1)), hval)
     when(memInReg.zext) {
-      dout := Cat(Bits(0, 16), hval)
+      dout := Cat(Bits(0, DATA_WIDTH-2*BYTE_WIDTH), hval)
     }
   }
 
@@ -203,14 +203,14 @@ class Memory() extends Component {
 
   // IO address decode form the registered values.
   // Might be an optimization from doing it in EX.
-  val selIO = memReg.mem.addr(31, 28) === Bits("b1111")
+  val selIO = memReg.mem.addr(DATA_WIDTH-1, DATA_WIDTH-4) === Bits("b1111")
   io.memInOut.rd := selIO  & memReg.mem.load & io.ena
   io.memInOut.wr := selIO  & memReg.mem.store & io.ena
   io.memInOut.address := memReg.mem.addr(11, 0)
   io.memInOut.wrData := memReg.mem.data  
 
   // ISPM write is handled in write
-  // val selIspm = memReg.mem.addr(31, 28) === Bits("b0001")
+  // val selIspm = memReg.mem.addr(DATA_WIDTH-1, DATA_WIDTH-4) === Bits("b0001")
 
   // Read data select. For IO it is a single cycle read. No wait at the moment.
   val dout = Mux(selIO, io.memInOut.rdData, spm.io.data)

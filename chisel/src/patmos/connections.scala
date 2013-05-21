@@ -42,48 +42,65 @@ package patmos
 import Chisel._
 import Node._
 
+import Constants._
+
 class FeDec() extends Bundle() {
-  val instr_a = Bits(width = 32)
-  val instr_b = Bits(width = 32)
+  val instr_a = Bits(width = INSTR_WIDTH)
+  val instr_b = Bits(width = INSTR_WIDTH)
   val b_valid = Bool() // not yet used
-  val pc = UFix(width = Constants.PC_SIZE)
+  val pc = UFix(width = PC_SIZE)
 }
 
-class DecEx() extends Bundle() {
-  val pc = UFix(width = Constants.PC_SIZE)
-  val branchPc = UFix(width = Constants.PC_SIZE)
-  val pred = Bits(width = 4)
+class AluOp() extends Bundle() {
   val func = Bits(width = 4)
-  val pfunc = Bits(width = 2) // as they have a strange encoding
-  val pd = Bits(width = 3)
-  val ps1Addr = Bits(width = 4)
-  val ps2Addr = Bits(width = 4)
-  // the register fields are very similar to RegFileRead
-  // maybe join the structures
-  val rsAddr = Vec(2) { Bits(width = 5) }
-  val rsData = Vec(2) { Bits(width = 32) }
-  val rdAddr = Vec(1) { Bits(width = 5) }
-  val immVal = Bits(width = 32)
-  val callAddr = UFix(width = 32)
-  // maybe have a structure for instructions?
-  val immOp = Bool()
-  //  val aluOp = Bool()
-  val cmpOp = Bool()
-  val predOp = Bool()
+  val isCmp = Bool()
+  val isPred = Bool()
+}
+
+class PredOp() extends Bundle() {
+  val func = Bits(width = 2) // as they have a strange encoding
+  val dest = Bits(width = 3)
+  val s1Addr = Bits(width = 4)
+  val s2Addr = Bits(width = 4)
+}
+
+class JmpOp() extends Bundle() {
   val branch = Bool()
-  val call = Bool()
+  val target = UFix(width = PC_SIZE)
+}
+
+class MemOp() extends Bundle() {
   val load = Bool()
   val store = Bool()
   val hword = Bool()
   val byte = Bool()
   val zext = Bool()
+}
+
+class DecEx() extends Bundle() {
+  val pc = UFix(width = PC_SIZE)
+  val aluOp = new AluOp()
+  val predOp = new PredOp()
+  val jmpOp = new JmpOp()
+  val memOp = new MemOp()
+  val pred = Bits(width = 4)
+  // the register fields are very similar to RegFileRead
+  // maybe join the structures
+  val rsAddr = Vec(2) { Bits(width = REG_BITS) }
+  val rsData = Vec(2) { Bits(width = DATA_WIDTH) }
+  val rdAddr = Vec(1) { Bits(width = REG_BITS) }
+  val immVal = Bits(width = DATA_WIDTH)
+  val callAddr = UFix(width = DATA_WIDTH)
+  // maybe have a structure for instructions?
+  val immOp = Bool()
+  val call = Bool()
   // wrReg? or wrEn? or valid? We use now all three at different places ;-)
   val wrReg = Bool()
 }
 
 class Result() extends Bundle() {
-  val addr = Bits(INPUT, 5)
-  val data = Bits(INPUT, 32)
+  val addr = Bits(INPUT, REG_BITS)
+  val data = Bits(INPUT, DATA_WIDTH)
   val valid = Bool(INPUT)
 }
 
@@ -93,32 +110,32 @@ class MemIn() extends Bundle() {
   val hword = Bool()
   val byte = Bool()
   val zext = Bool()
-  val addr = Bits(width = 32)
-  val data = Bits(width = 32)
+  val addr = Bits(width = DATA_WIDTH)
+  val data = Bits(width = DATA_WIDTH)
   val call = Bool()
-  val callAddr = UFix(width = 32)
+  val callAddr = UFix(width = DATA_WIDTH)
 }
 
 class ExMem() extends Bundle() {
   val rd = new Result()
   val mem = new MemIn()
-  val pc = UFix(width = Constants.PC_SIZE)
+  val pc = UFix(width = PC_SIZE)
   // just for debugging
   val predDebug = Vec(8) { Bool() }
 }
 
 class ExFe() extends Bundle() {
   val doBranch = Bool()
-  val branchPc = UFix(width = Constants.PC_SIZE)
+  val branchPc = UFix(width = PC_SIZE)
   // for ISPM write
   val store = Bool()
-  val addr = Bits(width = 32)
-  val data = Bits(width = 32)
+  val addr = Bits(width = DATA_WIDTH)
+  val data = Bits(width = DATA_WIDTH)
 }
 
 class MemFe() extends Bundle() {
   val doCall = Bool()
-  val callPc = UFix(width = Constants.PC_SIZE)  
+  val callPc = UFix(width = PC_SIZE)  
 }
 
 class MemWb() extends Bundle() {
@@ -126,20 +143,20 @@ class MemWb() extends Bundle() {
   // do we need this? probably not.
   // maybe drop unused pc fields
   // maybe nice for debugging?
-  val pc = UFix(width = Constants.PC_SIZE)
+  val pc = UFix(width = PC_SIZE)
 }
 
 class RegFileRead() extends Bundle() {
   // first two are for pipeline A, second two for pipeline B (not yet done)
-  val rsAddr = Vec(2) { Bits(INPUT, 5) }
-  val rsData = Vec(2) { Bits(OUTPUT, 32) }
+  val rsAddr = Vec(2) { Bits(INPUT, REG_BITS) }
+  val rsData = Vec(2) { Bits(OUTPUT, DATA_WIDTH) }
 }
 
 class RegFileIO() extends Bundle() {
   val ena = Bool(INPUT)
   val rfRead = new RegFileRead()
   val rfWrite = new Result()
-  val rfDebug = Vec(32) { Bits(OUTPUT, 32) }
+  val rfDebug = Vec(REG_COUNT) { Bits(OUTPUT, DATA_WIDTH) }
 }
 
 class FetchIO extends Bundle() {
@@ -175,18 +192,18 @@ class ExecuteIO() extends Bundle() {
  */
 class UartIO() extends Bundle() {
   val address = Bits(OUTPUT, 1)
-  val wr_data = Bits(OUTPUT, 32)
+  val wr_data = Bits(OUTPUT, DATA_WIDTH)
   val rd = Bits(OUTPUT, 1)
   val wr = Bits(OUTPUT, 1)
-  val rd_data = Bits(INPUT, 32)
+  val rd_data = Bits(INPUT, DATA_WIDTH)
 }
 
 class Mem2InOut() extends Bundle() {
   val rd = Bool(OUTPUT)
   val wr = Bool(OUTPUT)
   val address = Bits(OUTPUT, 12)
-  val wrData = Bits(OUTPUT, 32)
-  val rdData = Bits(INPUT, 32)
+  val wrData = Bits(OUTPUT, DATA_WIDTH)
+  val rdData = Bits(INPUT, DATA_WIDTH)
 }
 
 class InOutIO() extends Bundle() {
@@ -207,7 +224,7 @@ class MemoryIO() extends Bundle() {
   // for result forwarding
   val exResult = new Result().flip
   val memInOut = new Mem2InOut()
-  val dbgMem = Bits(OUTPUT, 32)
+  val dbgMem = Bits(OUTPUT, DATA_WIDTH)
 }
 
 class WriteBackIO() extends Bundle() {

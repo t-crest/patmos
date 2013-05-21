@@ -47,6 +47,8 @@ package patmos
 import Chisel._
 import Node._
 
+import Constants._
+
 class Execute() extends Component {
   val io = new ExecuteIO()
 
@@ -57,25 +59,25 @@ class Execute() extends Component {
   // no access to io.decex after this point!!!
 
   def alu(func: Bits, op1: UFix, op2: UFix): Bits = {
-    val result = UFix(width = 32)
+    val result = UFix(width = DATA_WIDTH)
     val sum = op1 + op2
     result := sum // some default 0 default biggest, fastest. sum default slower smallest
     val shamt = op2(4, 0).toUFix
     // This kind of decoding of the ALU op in the EX stage is not efficient,
     // but we keep it for now to get something going soon.
     switch(func) {
-      is(Bits("b0000")) { result := sum }
-      is(Bits("b0001")) { result := op1 - op2 }
-      is(Bits("b0010")) { result := (op1 ^ op2).toUFix }
-      is(Bits("b0011")) { result := (op1 << shamt).toUFix }
-      is(Bits("b0100")) { result := (op1 >> shamt).toUFix }
-      is(Bits("b0101")) { result := (op1.toFix >> shamt).toUFix }
-      is(Bits("b0110")) { result := (op1 | op2).toUFix }
-      is(Bits("b0111")) { result := (op1 & op2).toUFix }
-      is(Bits("b1011")) { result := (~(op1 | op2)).toUFix }
+      is(FUNC_ADD)    { result := sum }
+      is(FUNC_SUB)    { result := op1 - op2 }
+      is(FUNC_XOR)    { result := (op1 ^ op2).toUFix }
+      is(FUNC_SL)     { result := (op1 << shamt).toUFix }
+      is(FUNC_SR)     { result := (op1 >> shamt).toUFix }
+      is(FUNC_SRA)    { result := (op1.toFix >> shamt).toUFix }
+      is(FUNC_OR)     { result := (op1 | op2).toUFix }
+      is(FUNC_AND)    { result := (op1 & op2).toUFix }
+      is(FUNC_NOR)    { result := (~(op1 | op2)).toUFix }
       // TODO: shadd shift shall be in it's own operand MUX
-      is(Bits("b1100")) { result := (op1 << UFix(1)) + op2 }
-      is(Bits("b1101")) { result := (op1 << UFix(2)) + op2 }
+      is(FUNC_SHADD)  { result := (op1 << UFix(1)) + op2 }
+      is(FUNC_SHADD2) { result := (op1 << UFix(2)) + op2 }
     }
     result
   }
@@ -87,21 +89,21 @@ class Execute() extends Component {
     // Is this nicer than the switch?
     // Some of the comparison function (equ, subtract) could be shared
     MuxLookup(func, Bool(false), Array(
-      (Bits("b000"), (op1 === op2)),
-      (Bits("b001"), (op1 != op2)),
-      (Bits("b010"), (op1s < op2s)),
-      (Bits("b011"), (op1s <= op2s)),
-      (Bits("b100"), (op1 < op2)),
-      (Bits("b101"), (op1 <= op2)),
-      (Bits("b110"), ((op1 & (Bits(1) << op2)) != UFix(0)))))
+      (CFUNC_EQ,    (op1 === op2)),
+      (CFUNC_NEQ,   (op1 != op2)),
+      (CFUNC_LT,    (op1s < op2s)),
+      (CFUNC_LE,    (op1s <= op2s)),
+      (CFUNC_ULT,   (op1 < op2)),
+      (CFUNC_ULE,   (op1 <= op2)),
+      (CFUNC_BTEST, ((op1 & (Bits(1) << op2)) != UFix(0)))))
   }
 
   def pred(func: Bits, op1: Bool, op2: Bool): Bool = {
     MuxLookup(func, Bool(false), Array(
-      (Bits("b00"), op1 | op2),
-      (Bits("b01"), op1 & op2),
-      (Bits("b10"), op1 ^ op2),
-      (Bits("b11"), ~(op1 | op2))))
+      (PFUNC_OR, op1 | op2),
+      (PFUNC_AND, op1 & op2),
+      (PFUNC_XOR, op1 ^ op2),
+      (PFUNC_NOR, ~(op1 | op2))))
   }
 
   val predReg = Vec(8) { Reg(resetVal = Bool(false)) }
@@ -116,17 +118,17 @@ class Execute() extends Component {
 
   val op2 = Mux(exReg.immOp, exReg.immVal, rb)
   val op1 = ra
-  val aluResult = alu(exReg.func, op1, op2)
-  val compResult = comp(exReg.func(2, 0), op1, op2)
+  val aluResult = alu(exReg.aluOp.func, op1, op2)
+  val compResult = comp(exReg.aluOp.func, op1, op2)
 
-  val ps1 = predReg(exReg.ps1Addr(2,0)) ^ exReg.ps1Addr(3)
-  val ps2 = predReg(exReg.ps2Addr(2,0)) ^ exReg.ps2Addr(3)
-  val predResult = pred(exReg.pfunc, ps1, ps2)
+  val ps1 = predReg(exReg.predOp.s1Addr(2,0)) ^ exReg.predOp.s1Addr(3)
+  val ps2 = predReg(exReg.predOp.s2Addr(2,0)) ^ exReg.predOp.s2Addr(3)
+  val predResult = pred(exReg.predOp.func, ps1, ps2)
 
   val doExecute = predReg(exReg.pred(2, 0)) ^ exReg.pred(3)
 
-  when((exReg.cmpOp || exReg.predOp) && doExecute && io.ena) {
-    predReg(exReg.pd) := Mux(exReg.cmpOp, compResult, predResult)
+  when((exReg.aluOp.isCmp || exReg.aluOp.isPred) && doExecute && io.ena) {
+    predReg(exReg.predOp.dest) := Mux(exReg.aluOp.isCmp, compResult, predResult)
   }
   predReg(0) := Bool(true)
 
@@ -135,20 +137,20 @@ class Execute() extends Component {
   io.exmem.rd.data := aluResult
   io.exmem.rd.valid := exReg.wrReg && doExecute
   // load/store
-  io.exmem.mem.load := exReg.load && doExecute
-  io.exmem.mem.store := exReg.store && doExecute
-  io.exmem.mem.hword := exReg.hword
-  io.exmem.mem.byte := exReg.byte
-  io.exmem.mem.zext := exReg.zext
+  io.exmem.mem.load := exReg.memOp.load && doExecute
+  io.exmem.mem.store := exReg.memOp.store && doExecute
+  io.exmem.mem.hword := exReg.memOp.hword
+  io.exmem.mem.byte := exReg.memOp.byte
+  io.exmem.mem.zext := exReg.memOp.zext
   io.exmem.mem.addr := op1 + exReg.immVal
   io.exmem.mem.data := op2
   io.exmem.mem.call := exReg.call
   io.exmem.mem.callAddr := exReg.callAddr
   //branch
-  io.exfe.doBranch := exReg.branch && doExecute
-  io.exfe.branchPc := exReg.branchPc
+  io.exfe.doBranch := exReg.jmpOp.branch && doExecute
+  io.exfe.branchPc := exReg.jmpOp.target
   // ISPM write
-  io.exfe.store := exReg.store && doExecute
+  io.exfe.store := exReg.memOp.store && doExecute
   io.exfe.addr := op1 + exReg.immVal
   io.exfe.data := op2
   
