@@ -142,9 +142,10 @@ class Execute() extends Component {
   io.exmem.mem.zext := exReg.zext
   io.exmem.mem.addr := op1 + exReg.immVal
   io.exmem.mem.data := op2
-  io.exmem.mem.call := exReg.call
+  // call forward to MEM
+  io.exmem.mem.call := exReg.call && doExecute
   io.exmem.mem.callAddr := exReg.callAddr
-  //branch
+  // branch
   io.exfe.doBranch := exReg.branch && doExecute
   io.exfe.branchPc := exReg.branchPc
   // ISPM write
