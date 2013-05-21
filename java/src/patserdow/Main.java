@@ -7,8 +7,7 @@ import jssc.*;
 
 public class Main 
 {
-	final byte MAGIC_NUMBER = (byte)0xAB;
-	
+	final private static int BAUD_RATE = 115200;
 	
     /**
      * @param args the command line arguments
@@ -65,19 +64,35 @@ public class Main
                 System.err.println("Incorrect number of arguments. Usage: java -jar patserdow COMPORT FILENAME");
         }
         FileInputStream file = null;
+        SerialPort port = null;
         try 
         {
         	file = new FileInputStream(FILENAME);
-            Transmitter transmitter = new Transmitter(PORT);
+        	port = new SerialPort(PORT);
+    		System.out.println("Port opened: " + port.openPort());
+            System.out.println("Params set: " + port.setParams(BAUD_RATE, 8, 1, 0));
+            
+            Transmitter transmitter = new Transmitter(new UARTInputStream(port), new UARTOutputStream(port));
             transmitter.send(file);
             file.close();
 		}
         finally
         {
-        	if(file != null)
+        	try 
         	{
-        		file.close();
-        	}
+	    		if(file != null)
+	        	{
+	        		file.close();
+	        	}
+			} 
+        	finally 
+			{
+				if(port != null)
+            	{
+					port.closePort();
+            	}
+			}
+        	
         }
     }
     

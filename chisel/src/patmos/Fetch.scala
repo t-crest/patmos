@@ -74,7 +74,7 @@ class Fetch(fileName: String) extends Component {
   val memOdd = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = 32) } }
 
   // write from EX - use registers - ignore stall, as reply does not hurt
-  val selWrite = io.exfe.store & (io.exfe.addr(31, 28) === Bits(0x1))
+  val selWrite = io.exfe.store & (io.exfe.addr(31, 21) === Bits(0x1))
   val wrEven = Reg(selWrite & (io.exfe.addr(2) === Bits(0)))
   val wrOdd = Reg(selWrite & (io.exfe.addr(2) === Bits(1)))
   val addrReg = Reg(io.exfe.addr)
@@ -88,8 +88,8 @@ class Fetch(fileName: String) extends Component {
   val ispm_even = memEven(addr_even(ispmAddrBits - 1, 0))
   val ispm_odd = memOdd(addr_odd(ispmAddrBits - 1, 0))
 
-  // read from ISPM mapped to address 0x10000000
-  val selIspm = pc(31 - 2, 28 - 2) === Bits(0x1)
+  // read from ISPM mapped to address 0x200000
+  val selIspm = pc(31, 21) === Bits(0x1)
   // ROM/ISPM Mux
   val data_even = Mux(selIspm, ispm_even, rom(addr_even))
   val data_odd = Mux(selIspm, ispm_odd, rom(addr_odd))
