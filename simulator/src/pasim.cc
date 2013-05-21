@@ -35,6 +35,7 @@
 
 #include <unistd.h>
 #include <termios.h>
+#include <signal.h>
 
 #include <fstream>
 #include <iostream>
@@ -341,6 +342,9 @@ void disable_line_buffering()
   if (isatty(STDIN_FILENO))
   {
     struct termios tio;
+
+    // ignore SIGTTOU (which would stop background process)
+    signal(SIGTTOU, SIG_IGN);
 
     // get the termios flags for stdin
     tcgetattr(STDIN_FILENO, &tio);
