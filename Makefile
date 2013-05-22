@@ -122,7 +122,11 @@ csim:
 # Testing
 test:
 	testsuite/run.sh
-.PHONY: test
+test-vhdl:
+	testsuite/run.sh vhdl
+test-chsl:
+	testsuite/run.sh chsl
+.PHONY: test test-vhdl test-chsl
 
 # Compile Patmos and download
 patmos:
