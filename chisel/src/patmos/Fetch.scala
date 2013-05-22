@@ -87,8 +87,8 @@ class Fetch(fileName: String) extends Component {
   // registers are set on reset. However, chisel uses synchronous
   // reset, which 'just' generates some more logic. And it looks
   // like the synthesize tool is able to duplicate the register.
-  val ispm_even = memEven(addr_even(ispmAddrBits - 1, 0))
-  val ispm_odd = memOdd(addr_odd(ispmAddrBits - 1, 0))
+  val ispm_even = memEven(addr_even(ispmAddrBits, 1))
+  val ispm_odd = memOdd(addr_odd(ispmAddrBits, 1))
 
   // read from ISPM mapped to address 0x200000
   val selIspm = pc(31, 21) === Bits(0x1)
