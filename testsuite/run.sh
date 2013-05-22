@@ -62,11 +62,11 @@ function wait_timeout {
     fi
 }
 
-make tools
-make rom bsim
+function run_vhdl {
+	make rom bsim
 
-echo === VHDL Tests ===
-failed=()
+	echo === VHDL Tests ===
+	failed=()
 #for f in  ${tests_c}; do
 #    $timeout testsuite/single_c.sh ${f}
 #    result=$?
@@ -78,63 +78,77 @@ failed=()
 #    fi
 #done
 
-for f in ${tests}; do
-    run ${f} &
-    pid=$!
-    wait_timeout ${pid}
-    if [[ "$(cat result.tmp)" != "ok" ]]; then
-        failed+=("$(cat result.tmp)")
-    fi
-done
-rm result.tmp
+	for f in ${tests}; do
+		run ${f} &
+		pid=$!
+		wait_timeout ${pid}
+		if [[ "$(cat result.tmp)" != "ok" ]]; then
+			failed+=("$(cat result.tmp)")
+		fi
+	done
+	rm result.tmp
 
-for f in ${not_working} ;
-do
-    echo $f
-    echo " skipped"
-done
-if [ "${#failed[@]}" -ne 0 ] ; then
-    echo "Failed tests: ${failed[@]}" >&2
-else
-    echo "All tests ok"
-fi
+	for f in ${not_working} ;
+	do
+		echo $f
+		echo " skipped"
+	done
+	if [ "${#failed[@]}" -ne 0 ] ; then
+		echo "Failed tests: ${failed[@]}" >&2
+	else
+		echo "All tests ok"
+	fi
+}
 
+function run_chsl {
+	make csim
 
-make csim
+	echo === Chisel Tests ===
+	failed_chsl=()
+	for f in  ${tests}; do
+		testsuite/single_chsl.sh ${f}
+		result=$?
+		if [ "$result" -eq 124 ] ; then
+			echo " timeout"
+		fi
+		if [ "$result" -ne 0 ] ; then
+			failed_chsl+=("${f}")
+		fi
+	done
 
-echo === Chisel Tests ===
-failed_chsl=()
-for f in  ${tests}; do
-    testsuite/single_chsl.sh ${f}
-    result=$?
-    if [ "$result" -eq 124 ] ; then
-        echo " timeout"
-    fi
-    if [ "$result" -ne 0 ] ; then
-        failed_chsl+=("${f}")
-    fi
-done
+	for f in  ${not_working_chsl}; do
+		echo $f
+		echo " skipped"
+	done
+	if [ "${#failed_chsl[@]}" -ne 0 ] ; then
+		echo "Failed tests: ${failed_chsl[@]}" >&2
+	else
+		echo "All tests ok"
+	fi
+}
 
-for f in  ${not_working_chsl}; do
-    echo $f
-    echo " skipped"
-done
-if [ "${#failed_chsl[@]}" -ne 0 ] ; then
-    echo "Failed tests: ${failed_chsl[@]}" >&2
-else
-    echo "All tests ok"
-fi
+function run_all {
 
-nr=`echo ${tests} | wc -w`
-echo "Test VHDL failures: expected ${expect_fail}, actual ${#failed[@]} out of ${nr}" >&2
-echo "Test Chisel failures: expected ${expect_fail_chsl}, actual ${#failed_chsl[@]} out of ${nr}" >&2
-if [ "${#failed[@]}" -ne $expect_fail ] ; then
-    exit 1
-else
-    if [ "${#failed_chsl[@]}" -ne $expect_fail_chsl ] ; then
-        exit 1
-    else
-        exit 0
-    fi
-fi
+	run_vhdl
+	run_chsl
 
+	nr=`echo ${tests} | wc -w`
+	echo "Test VHDL failures: expected ${expect_fail}, actual ${#failed[@]} out of ${nr}" >&2
+	echo "Test Chisel failures: expected ${expect_fail_chsl}, actual ${#failed_chsl[@]} out of ${nr}" >&2
+	if [ "${#failed[@]}" -ne $expect_fail ] ; then
+		exit 1
+	else
+		if [ "${#failed_chsl[@]}" -ne $expect_fail_chsl ] ; then
+			exit 1
+		else
+			exit 0
+		fi
+	fi
+}
+
+make tools
+case "$1" in
+	"vhdl") run_vhdl;;
+	"chsl") run_chsl;;
+	*) run_all;;
+esac
