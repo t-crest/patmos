@@ -61,7 +61,7 @@ public class CompareChisel {
 		// Read till the Chisel C based simulation provides useful output
 		while (chisel.hasNextLine()) {
 			String s = chisel.nextLine();
-			if (s.startsWith("STARTING")) {
+			if (s.startsWith("Patmos start")) {
 				break;
 			}
 		}
