@@ -3,16 +3,6 @@ int main()
 
 	int (*start_program)(void) = (int (*)(void)) 0x200000;
 	volatile int *ispm_ptr = (int *) 0x200000;
-/*
-	*(ispm_ptr+0) = 0x20031;
-	*(ispm_ptr+1) = 0x40030;
-	*(ispm_ptr+2) = 0x87c60000;
-	*(ispm_ptr+3) = 0xf0000104;
-	*(ispm_ptr+4) = 0x2c43080;
-	*(ispm_ptr+5) = 0x67fffff;
-	*(ispm_ptr+6) = 0x400000;
-	*(ispm_ptr+7) = 0x2c43100;
-*/
 
 	//Writes echo.c to ISPM and jumps to it
 	*(ispm_ptr+0) = 0x24c0030;
