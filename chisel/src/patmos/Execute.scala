@@ -144,7 +144,7 @@ class Execute() extends Component {
   io.exmem.mem.zext := exReg.memOp.zext
   io.exmem.mem.addr := op1 + exReg.immVal
   io.exmem.mem.data := op2
-  io.exmem.mem.call := exReg.call
+  io.exmem.mem.call := exReg.call && doExecute
   io.exmem.mem.callAddr := exReg.callAddr
   //branch
   io.exfe.doBranch := exReg.jmpOp.branch && doExecute
