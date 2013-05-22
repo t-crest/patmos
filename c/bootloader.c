@@ -35,12 +35,27 @@ int main()
 
 	int uart_status;
 	int reset = 0;
-	int program_size = 0;
-	unsigned char frame_byte = 0;
-	unsigned int frame_data_size = 0;
-	unsigned int frame_position = 0;
 
+	int frame_data_size = 0;
+	int frame_position = 0;
 	unsigned char uart_byte;
+
+	const int STATE_SECTION_AMOUNT = 0;
+	const int STATE_SECTION_SIZE = 1;
+	const int STATE_SECTION_OFFSET = 2;
+	const int STATE_SECTION_DATA = 3;
+	const int STATE_START = 4;
+	int state = STATE_SECTION_AMOUNT;
+
+	int section_data_count = 0;
+	int section_size = 0;
+	int section_offset = 0;
+	int section_amount = 0;
+	int section_count = 0;
+	int instruction = 0;
+
+	int integer_byte_count = 0;
+
 	//char uart_byte_temp;
 	//char *uart_byte_temp_ptr = &uart_byte_temp;
 
@@ -73,8 +88,51 @@ int main()
 						crc = (crc >> 1);
 					}
 				}
-				frame_byte = uart_byte;
-				*(ispm_ptr+program_size+frame_position) = frame_byte;
+				if(state < STATE_SECTION_DATA)
+				{
+					if(state == STATE_SECTION_AMOUNT)
+					{
+						section_amount |= uart_byte <<  ((4-1-integer_byte_count)*8);
+					}
+					else if(state == STATE_SECTION_SIZE)
+					{
+						section_size |= uart_byte <<  ((4-1-integer_byte_count)*8);
+					}
+					else if(state == STATE_SECTION_OFFSET)
+					{
+						section_offset |= uart_byte <<  ((4-1-integer_byte_count)*8);
+					}
+					integer_byte_count++;
+					if(integer_byte_count == 4)
+					{
+						state++;
+						integer_byte_count = 0;
+					}
+				}
+				else if(state == STATE_SECTION_DATA)
+				{
+					instruction |= uart_byte << ((4-1-integer_byte_count)*8);
+					integer_byte_count++;
+					if(integer_byte_count == 4)
+					{
+						integer_byte_count = 0;
+						*(ispm_ptr-1+(section_offset+section_data_count)/4) = instruction;
+						section_data_count += 4;
+					}
+
+					if(section_data_count == section_size)
+					{
+						state = STATE_SECTION_SIZE;
+						section_data_count = 0;
+						section_size = 0;
+						section_offset = 0;
+						section_count++;
+						if(section_count == section_amount)
+						{
+							state = STATE_START;
+						}
+					}
+				}
 				frame_position++;
 			}
 			else if(frame_position < frame_data_size+CRC_LENGTH)
@@ -89,17 +147,17 @@ int main()
 				if(crc == hostcrc)
 				{
 					*uart_data = 'o';
-					//uart_printc('o');
-					//uart_flush();
-					program_size += frame_position;
-					if(frame_byte == MAGIC_NUMBER)
+					if(state == STATE_START)
 					{
 						*led_ptr = 0xAB;
+
 						//End of program transmission
 						//Jump to program execution
 						start_program();
-
 					}
+					//uart_printc('o');
+					//uart_flush();
+
 				}
 				else
 				{
@@ -107,19 +165,12 @@ int main()
 					//uart_printc('r');
 					//uart_flush();
 				}
-				reset = 1;
+				frame_data_size = 0;
+				frame_position = 0;
+				crc  = 0xFFFFFFFF;
+				hostcrc = 0;
 			}
-
-		}
-		if(reset)
-		{
-			reset = 0;
-			frame_data_size = 0;
-			frame_position = 0;
-			crc  = 0xFFFFFFFF;
-			hostcrc = 0;
 		}
 	}
-
 	return 0;
 }

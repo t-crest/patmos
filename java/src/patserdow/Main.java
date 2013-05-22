@@ -1,8 +1,21 @@
 package patserdow;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.SequenceInputStream;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.ArrayList;
 import java.util.concurrent.TimeoutException;
+
+import nl.lxtreme.binutils.coff.SectionHeader;
+import nl.lxtreme.binutils.elf.Attribute;
+import nl.lxtreme.binutils.elf.Elf;
+import nl.lxtreme.binutils.elf.ProgramHeader;
+import nl.lxtreme.binutils.elf.Section;
+import nl.lxtreme.binutils.elf.Symbol;
 import jssc.*;
 
 public class Main 
@@ -16,39 +29,7 @@ public class Main
      */
     public static void main(String[] args) throws IOException, InterruptedException, SerialPortException, TimeoutException, SerialPortTimeoutException
     {
-        /*Elf elf = new Elf(new File("C:\\Projects\\a.out"));
         
-        
-        
-        Attribute attribute = elf.getAttributes();
-        System.out.println(attribute.getCPU());
-        System.out.println(attribute.getDebugType());
-        System.out.println(attribute.getType());
-        System.out.println(attribute.getWidth());
-        System.out.println();
-        
-        for(ProgramHeader header : elf.getProgramHeaders())
-        {
-            System.out.println("//HEADER");
-            System.out.println(header.getTypeName());
-            System.out.println(header.getType());
-            System.out.println(header.getAlignment());
-            System.out.println(header.getFileOffset());
-            System.out.println(header.getFileSize());
-            System.out.println(header.getMemorySize());
-            System.out.println(header.getVirtualAddress());
-        }
-        elf.loadSymbols();
-        for(Symbol symbol : elf.getSymtabSymbols())
-        {
-            System.out.println("//SYMBOL");
-            System.out.println(symbol.getName());
-            System.out.println(symbol.getType());
-            System.out.println(symbol.getSize());
-            System.out.println(symbol.getValue());
-            System.out.println(symbol.);
-            
-        }*/
         
         
         String PORT = null;
@@ -63,36 +44,76 @@ public class Main
             default:
                 System.err.println("Incorrect number of arguments. Usage: java -jar patserdow COMPORT FILENAME");
         }
-        FileInputStream file = null;
+        
         SerialPort port = null;
         try 
         {
-        	file = new FileInputStream(FILENAME);
-        	port = new SerialPort(PORT);
+        	File file = new File(FILENAME);
+            Elf elf = new Elf(file);
+            Attribute attribute = elf.getAttributes();
+            System.out.println("CPU type is:"+attribute.getCPU());
+            System.out.println("Instruction width is 32 bits:"+(attribute.getWidth()==32));
+            System.out.println("File is of type exe:"+(attribute.getType()==Attribute.ELF_TYPE_EXE));
+            System.out.println();
+            
+            
+            port = new SerialPort(PORT);
     		System.out.println("Port opened: " + port.openPort());
             System.out.println("Params set: " + port.setParams(BAUD_RATE, 8, 1, 0));
-            
             Transmitter transmitter = new Transmitter(new UARTInputStream(port), new UARTOutputStream(port));
-            transmitter.send(file);
-            file.close();
+            //Transmitter transmitter = new Transmitter(System.in, System.out);
+            
+            ArrayList<Section> sections = new ArrayList<Section>();
+            
+            for (Section section : elf.getSections(Section.SHT_PROGBITS)) 
+            {
+            	if(section.getSize() > 0)
+                {
+            		sections.add(section);
+                }
+    		}
+            
+            byte[] headerCount = new byte[4];
+    		ByteBuffer buffer = ByteBuffer.wrap(headerCount);
+    		//buffer.order(ByteOrder.BIG_ENDIAN);
+    		buffer.putInt((int)sections.size());
+    		ByteArrayInputStream tempStream = new ByteArrayInputStream(headerCount);
+    		//Send number of headers here
+    		transmitter.send(tempStream,(int)4);
+    		
+    		
+    		
+            for(Section section : sections)
+            {
+                System.out.println("//HEADER");
+                long sectionSize = section.getSize();
+                long sectionFileOffset = section.getFileOffset();
+                
+                
+            	FileInputStream fileStream = new FileInputStream(file);
+                
+            	fileStream.skip(sectionFileOffset);
+            	
+            	//Adding the header size and offset as the first 8 bytes of the stream
+            	byte[] headerArray = new byte[8];
+        		buffer = ByteBuffer.wrap(headerArray);
+        		buffer.putInt((int)sectionSize);
+        		buffer.putInt(0);
+        		tempStream = new ByteArrayInputStream(headerArray);
+        		SequenceInputStream stream = new SequenceInputStream(tempStream, fileStream);
+        		transmitter.send(stream,(int)sectionSize+8);
+            	fileStream.close();
+            	
+            	
+                
+            }
 		}
         finally
         {
-        	try 
+			if(port != null)
         	{
-	    		if(file != null)
-	        	{
-	        		file.close();
-	        	}
-			} 
-        	finally 
-			{
-				if(port != null)
-            	{
-					port.closePort();
-            	}
-			}
-        	
+				port.closePort();
+        	}
         }
     }
     
