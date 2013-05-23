@@ -63,11 +63,11 @@ object Constants {
 
   val OPCODE_STC      = Bits("b011")
 
-  val OPCODE_CLF_CALL = Bits("b11000")
-  val OPCODE_CLF_BR   = Bits("b11001")
-  val OPCODE_CLF_BRCF = Bits("b11010")
-  val OPCODE_CLF_CLFI = Bits("b11100")
-  val OPCODE_CLF_RET  = Bits("b11110")
+  val OPCODE_CFL_CALL = Bits("b11000")
+  val OPCODE_CFL_BR   = Bits("b11001")
+  val OPCODE_CFL_BRCF = Bits("b11010")
+  val OPCODE_CFL_CFLI = Bits("b11100")
+  val OPCODE_CFL_RET  = Bits("b11110")
 
   val OPCODE_ALUL     = Bits("b11111")
 

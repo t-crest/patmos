@@ -86,6 +86,7 @@ class Patmos(fileName: String) extends Component {
   fetch.io.exfe <> execute.io.exfe
   // We call in MEM
   fetch.io.memfe <> memory.io.memfe
+  fetch.io.femem <> memory.io.femem
 
   memory.io.memInOut <> iocomp.io.memInOut
 
@@ -149,7 +150,7 @@ class PatmosTest(pat: Patmos) extends Tester(pat,
     for (i <- 0 until 100) {
       vars.clear
       step(vars, ovars, false) // false as third argument disables printout
-      // The PC printout is a little of on a branch
+      // The PC printout is a little off on a branch
       val pc = ovars(pat.memory.io.memwb.pc).litValue() - 2
       // println(ovars(pat.io.led).litValue())
       print(pc + " - ")

@@ -65,13 +65,15 @@ class Decode() extends Component {
   // keep it in a way that is easy to refactor into a function for
   // dual issue decode
 
-  val opcode  = Bits(width = 5)
-  val opc     = Bits(width = 3)
-  val ldsize  = Bits(width = 3)
-  val ldtype  = Bits(width = 2)
-  val stsize  = Bits(width = 3)
-  val sttype  = Bits(width = 2)
+  val opcode  = instr(26, 22)
+  val opc     = instr(6, 4)
+  val ldsize  = instr(11, 9)
+  val ldtype  = instr(8, 7)
+  val stsize  = instr(21, 19)
+  val sttype  = instr(18, 17)
+
   val func    = Bits(width = 4)
+  val dest    = Bits(width = REG_BITS)
   val longImm = Bool()
 
   // Start with some useful defaults
@@ -80,22 +82,22 @@ class Decode() extends Component {
   io.decex.aluOp.isPred := Bool(false)
   io.decex.jmpOp.branch := Bool(false)
   io.decex.call := Bool(false)
+  io.decex.ret := Bool(false)
   io.decex.memOp.load := Bool(false)
   io.decex.memOp.store := Bool(false)
   io.decex.memOp.hword := Bool(false)
   io.decex.memOp.byte := Bool(false)
   io.decex.memOp.zext := Bool(false)
   io.decex.wrReg := Bool(false)
+
+  // Long immediates set this
   longImm := Bool(false)
 
-  opcode := instr(26, 22)
-  opc    := instr(6, 4)
-  ldsize := instr(11, 9)
-  ldtype := instr(8, 7)
-  stsize := instr(21, 19)
-  sttype := instr(18, 17)
+  // Everything except calls uses the default
+  dest := decReg.instr_a(21, 17)
+
   // ALU register and long immediate
-  func   := instr(3, 0)
+  func := instr(3, 0)
 
   // ALU immediate
   when(opcode(4, 3) === OPCODE_ALUI) {
@@ -106,12 +108,8 @@ class Decode() extends Component {
   // Other ALU
   when(opcode === OPCODE_ALU) {
     switch(opc) {
-      is(OPC_ALUR) {
-        io.decex.wrReg := Bool(true)
-      }
-      is(OPC_ALUU) {
-        io.decex.wrReg := Bool(true)
-      }
+      is(OPC_ALUR) { io.decex.wrReg := Bool(true) }
+      is(OPC_ALUU) { io.decex.wrReg := Bool(true) }
       is(OPC_ALUM) {} // multiply
       is(OPC_ALUC) { io.decex.aluOp.isCmp := Bool(true) }
       is(OPC_ALUP) { io.decex.aluOp.isPred := Bool(true) }
@@ -123,16 +121,20 @@ class Decode() extends Component {
     longImm := Bool(true)
     io.decex.wrReg := Bool(true)
   }
-  // We do not need such a long immediate for branches.
-  // So this is waste of opcode space
-  when(opcode === OPCODE_CLF_CALL) {
+  // Control-flow operations
+  when(opcode === OPCODE_CFL_CALL) {
     io.decex.call := Bool(true)
+    io.decex.wrReg := Bool(true)
+	dest := Bits("b11111")
   }
-  when(opcode === OPCODE_CLF_BR) {
+  when(opcode === OPCODE_CFL_BR) {
 	io.decex.jmpOp.branch := Bool(true)
   }
-  when(opcode === OPCODE_CLF_BRCF) {
-	// nothing to do yet, probably merge with call
+  when(opcode === OPCODE_CFL_BRCF) {
+    io.decex.call := Bool(true)
+  }
+  when(opcode === OPCODE_CFL_RET) {
+    io.decex.ret := Bool(true)
   }
 
   val isMem = Bool()
@@ -201,17 +203,12 @@ class Decode() extends Component {
   // we could mux the imm / register here as well
   
   // Immediate for absolute calls
-  io.decex.callAddr := Cat(Bits(0), instr(21, 0)).toUFix()
+  io.decex.callAddr := Cat(Bits(0), instr(21, 0), Bits("b00")).toUFix()
 
   // Immediate for branch is sign extended, not extended for call
   // We can do the address calculation already here
   io.decex.jmpOp.target := decReg.pc + Cat(Fill(PC_SIZE - 22, instr(21)), instr(21, 0))
   // On a call just take the value
-
-  // Disable register write on register 0
-  when(decReg.instr_a(21, 17) === Bits("b00000")) {
-    io.decex.wrReg := Bool(false)
-  }
 
   io.decex.pc := decReg.pc
   io.decex.aluOp.func := func
@@ -228,5 +225,10 @@ class Decode() extends Component {
   io.decex.rsData(0) := rf.io.rfRead.rsData(0)
   io.decex.rsData(1) := rf.io.rfRead.rsData(1)
 
-  io.decex.rdAddr(0) := decReg.instr_a(21, 17)
+  io.decex.rdAddr(0) := dest
+
+  // Disable register write on register 0
+  when(io.decex.rdAddr(0) === Bits("b00000")) {
+    io.decex.wrReg := Bool(false)
+  }
 }

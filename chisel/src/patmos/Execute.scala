@@ -145,16 +145,13 @@ class Execute() extends Component {
   io.exmem.mem.addr := op1 + exReg.immVal
   io.exmem.mem.data := op2
   io.exmem.mem.call := exReg.call && doExecute
-  io.exmem.mem.callAddr := exReg.callAddr
+  io.exmem.mem.ret  := exReg.ret && doExecute
+  io.exmem.mem.callRetAddr := Mux(exReg.call, exReg.callAddr, op1 + op2)
+  io.exmem.mem.callRetBase := Mux(exReg.call, exReg.callAddr, op1.toUFix)
   //branch
   io.exfe.doBranch := exReg.jmpOp.branch && doExecute
   io.exfe.branchPc := exReg.jmpOp.target
-  // ISPM write
-  io.exfe.store := exReg.memOp.store && doExecute
-  io.exfe.addr := op1 + exReg.immVal
-  io.exfe.data := op2
   
   io.exmem.pc := exReg.pc
   io.exmem.predDebug := predReg
-
 }

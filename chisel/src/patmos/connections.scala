@@ -94,6 +94,7 @@ class DecEx() extends Bundle() {
   // maybe have a structure for instructions?
   val immOp = Bool()
   val call = Bool()
+  val ret = Bool()
   // wrReg? or wrEn? or valid? We use now all three at different places ;-)
   val wrReg = Bool()
 }
@@ -113,7 +114,9 @@ class MemIn() extends Bundle() {
   val addr = Bits(width = DATA_WIDTH)
   val data = Bits(width = DATA_WIDTH)
   val call = Bool()
-  val callAddr = UFix(width = DATA_WIDTH)
+  val ret = Bool()
+  val callRetAddr = UFix(width = DATA_WIDTH)
+  val callRetBase = UFix(width = DATA_WIDTH)
 }
 
 class ExMem() extends Bundle() {
@@ -127,15 +130,19 @@ class ExMem() extends Bundle() {
 class ExFe() extends Bundle() {
   val doBranch = Bool()
   val branchPc = UFix(width = PC_SIZE)
+}
+
+class MemFe() extends Bundle() {
+  val doCallRet = Bool()
+  val callRetPc = UFix(width = PC_SIZE)  
   // for ISPM write
   val store = Bool()
   val addr = Bits(width = DATA_WIDTH)
   val data = Bits(width = DATA_WIDTH)
 }
 
-class MemFe() extends Bundle() {
-  val doCall = Bool()
-  val callPc = UFix(width = PC_SIZE)  
+class FeMem() extends Bundle() {
+  val pc = UFix(width = PC_SIZE)
 }
 
 class MemWb() extends Bundle() {
@@ -162,6 +169,8 @@ class RegFileIO() extends Bundle() {
 class FetchIO extends Bundle() {
   val ena = Bool(INPUT)
   val fedec = new FeDec().asOutput
+  // PC for returns
+  val femem = new FeMem().asOutput
   // branch from EX
   val exfe = new ExFe().asInput
   // call from MEM
@@ -221,6 +230,7 @@ class MemoryIO() extends Bundle() {
   val exmem = new ExMem().asInput
   val memwb = new MemWb().asOutput
   val memfe = new MemFe().asOutput
+  val femem = new FeMem().asInput
   // for result forwarding
   val exResult = new Result().flip
   val memInOut = new Mem2InOut()

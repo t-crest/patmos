@@ -76,11 +76,11 @@ class Fetch(fileName: String) extends Component {
   val memOdd = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
 
   // write from EX - use registers - ignore stall, as reply does not hurt
-  val selWrite = io.exfe.store & (io.exfe.addr(31, 21) === Bits(0x1))
-  val wrEven = Reg(selWrite & (io.exfe.addr(2) === Bits(0)))
-  val wrOdd = Reg(selWrite & (io.exfe.addr(2) === Bits(1)))
-  val addrReg = Reg(io.exfe.addr)
-  val dataReg = Reg(io.exfe.data)
+  val selWrite = io.memfe.store & (io.memfe.addr(31, 21) === Bits(0x1))
+  val wrEven = Reg(selWrite & (io.memfe.addr(2) === Bits(0)))
+  val wrOdd = Reg(selWrite & (io.memfe.addr(2) === Bits(1)))
+  val addrReg = Reg(io.memfe.addr)
+  val dataReg = Reg(io.memfe.data)
   when(wrEven) { memEven(addrReg(ispmAddrBits + 3 - 1, 3)) := dataReg }
   when(wrOdd) { memOdd(addrReg(ispmAddrBits + 3 - 1, 3)) := dataReg }
   // This would not work with asynchronous reset as the address
@@ -100,19 +100,15 @@ class Fetch(fileName: String) extends Component {
   val instr_b = Mux(pc(0) === Bits(0), data_odd, data_even)
 
   val b_valid = instr_a(31) === Bits(1)
-  val pc_next = Mux(io.memfe.doCall, io.memfe.callPc,
-    Mux(io.exfe.doBranch,
-      io.exfe.branchPc,
-      pc + Mux(b_valid, UFix(2), Bits(1))))
+  val pc_cont = pc + Mux(b_valid, UFix(2), UFix(1))
+  val pc_next =
+	Mux(io.memfe.doCallRet, io.memfe.callRetPc,
+		Mux(io.exfe.doBranch, io.exfe.branchPc,
+			pc_cont))
 
-  // TODO clean up
-  //  val addEven = Mux(pc_next(0) === Bits(1), UFix(0), UFix(1))
-  val xyz = Cat(pc_next(PC_SIZE - 1, 1), Bits(0))
-  val abc = Cat(pc_next(PC_SIZE - 1, 1) + UFix(1), Bits(0))
-  val even_next = Mux(pc_next(0) === Bits(1), abc, xyz)
-
+  val pc_inc = Mux(pc_next(0), pc_next + UFix(2), pc_next)
   when(io.ena) {
-    addr_even := even_next.toUFix
+    addr_even := Cat(pc_inc(PC_SIZE - 1, 1), Bits(0)).toUFix
     addr_odd := Cat(pc_next(PC_SIZE - 1, 1), Bits(1)).toUFix
     pc := pc_next
   }
@@ -121,4 +117,6 @@ class Fetch(fileName: String) extends Component {
   io.fedec.instr_a := instr_a
   io.fedec.instr_b := instr_b
   io.fedec.b_valid := b_valid // not used at the moment
+
+  io.femem.pc := pc_cont
 }

@@ -215,13 +215,32 @@ class Memory() extends Component {
   // Read data select. For IO it is a single cycle read. No wait at the moment.
   val dout = Mux(selIO, io.memInOut.rdData, spm.io.data)
 
+  // TODO: PC is absolute in ISPM, but we fake the return offset to
+  // be relative to the base address.
+  val baseReg = Reg(resetVal = UFix(0, DATA_WIDTH))
+
   io.memwb.pc := memReg.pc
   io.memwb.rd.addr := memReg.rd.addr
-  io.memwb.rd.valid := memReg.rd.valid // || memReg.mem.load
-  io.memwb.rd.data := Mux(memReg.mem.load, dout, memReg.rd.data)
+  io.memwb.rd.valid := memReg.rd.valid
+  io.memwb.rd.data := Mux(memReg.mem.load, dout,
+						  Mux(memReg.mem.call,
+							  Cat(io.femem.pc, Bits("b00")) - baseReg,
+							  memReg.rd.data))
+
   // call to fetch
-  io.memfe.doCall := memReg.mem.call
-  io.memfe.callPc := memReg.mem.callAddr
+  io.memfe.doCallRet := memReg.mem.call || memReg.mem.ret
+  io.memfe.callRetPc := memReg.mem.callRetAddr(DATA_WIDTH-1, 2)
+
+  // TODO: remember base address for faking return offset
+  when(io.ena && io.memfe.doCallRet) {
+	baseReg := memReg.mem.callRetBase
+  }
+
+  // ISPM write
+  io.memfe.store := memIn.store
+  io.memfe.addr := memIn.addr
+  io.memfe.data := memIn.data
+
   // extra port for forwarding the registered value
   io.exResult := memReg.rd
   // debugging
