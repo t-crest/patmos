@@ -1838,7 +1838,7 @@ namespace patmos
     }
   };
 
-#define CFLI_EX_INSTR(name, store, dispatch, new_base, target)	\
+#define CFLI_EX_INSTR(name, store, dispatch, new_base)	\
   class i_ ## name ## _t : public i_cfli_t \
   { \
   public:\
@@ -1851,13 +1851,13 @@ namespace patmos
     } \
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
     { \
-      ops.EX_Address = target; \
-      store(s, ops, ops.DR_Pred, s.BASE, s.nPC, target); \
-      dispatch(s, ops, ops.DR_Pred, new_base, target); \
+      ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1); \
+      store(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address); \
+      dispatch(s, ops, ops.DR_Pred, new_base, ops.EX_Address); \
     } \
   };
 
-#define CFLI_MW_INSTR(name, store, dispatch, new_base, target)   \
+#define CFLI_MW_INSTR(name, store, dispatch, new_base)   \
   class i_ ## name ## _t : public i_cfli_t \
   { \
   public:\
@@ -1870,7 +1870,7 @@ namespace patmos
     } \
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
     { \
-      ops.EX_Address = target; \
+      ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1); \
     } \
     virtual void MW(simulator_t &s, instruction_data_t &ops) const \
     { \
@@ -1881,14 +1881,11 @@ namespace patmos
 
 
   CFLI_MW_INSTR(callr, store_return_address, fetch_and_dispatch,
-                read_GPR_EX(s, ops.DR_Rs1),
-                read_GPR_EX(s, ops.DR_Rs1))
+                ops.EX_Address)
   CFLI_EX_INSTR(brr, no_store_return_address, dispatch,
-                s.BASE,
-                read_GPR_EX(s, ops.DR_Rs1))
+                s.BASE)
   CFLI_MW_INSTR(brcfr, no_store_return_address, fetch_and_dispatch,
-                read_GPR_EX(s, ops.DR_Rs1),
-                read_GPR_EX(s, ops.DR_Rs1))
+                ops.EX_Address)
 
   /// An instruction for returning from function calls.
   class i_ret_t : public i_cfl_t
