@@ -136,7 +136,7 @@ namespace patmos
     {
       if (offset && !func_only)
       {
-        os << " + 0x" << std::hex << offset;
+        os << " + 0x" << std::hex << offset << std::dec;
       }
       os << '>';
     }
