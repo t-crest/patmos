@@ -45,8 +45,6 @@ namespace patmos
       df = DF_BLOCKS;
     else if (kind == "calls")
       df = DF_CALLS;
-    else if(kind == "trace-stack")
-      df = DF_TRACE_STACK;
     else if(kind == "default")
       df = DF_DEFAULT;
     else if(kind == "long")
@@ -74,8 +72,6 @@ namespace patmos
 	os << "blocks"; break;
       case DF_CALLS:
         os << "calls"; break;
-      case DF_TRACE_STACK:
-        os << "trace-stack"; break;
       case DF_DEFAULT:
         os << "default"; break;
       case DF_LONG:

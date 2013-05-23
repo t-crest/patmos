@@ -1,6 +1,6 @@
 #
-# Expected Result: r1 = 0x0283f180 & r2 = 0x0283f180 & r3 = 0xfffff180 & 
-#                  r4 = 0xfffffff1 & r5 = 0x0000f180 & r6 = 0x000000f1
+# Expected Result: r1 = 0x0283f180 & r2 = 0x0283f180 & r3 = 0x00000283 & 
+#                  r4 = 0xffffff83 & r5 = 0x00000283 & r6 = 0x00000083
 #
                 lwm     r1  = [r31 + 0];
                 sres     4;

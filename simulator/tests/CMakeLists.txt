@@ -170,7 +170,7 @@ test_sim(11b "BASE: 00000000   PC : 00000040.*
 test_sim(13 "BASE: 00000024   PC : 0000004c.*
 .*r1 : 00000026   r2 : 00000000   r3 : 00000010")
 
-test_sim(14 "r0 : 00000000   r1 : 0283f180   r2 : 0283f180   r3 : fffff180   r4 : fffffff1   r5 : 0000f180   r6 : 000000f1")
+test_sim(14 "r0 : 00000000   r1 : 0283f180   r2 : 0283f180   r3 : 00000283   r4 : ffffff83   r5 : 00000283   r6 : 00000083")
 
 test_sim(15 "Unmapped memory access: 00000010: fffffffc")
 

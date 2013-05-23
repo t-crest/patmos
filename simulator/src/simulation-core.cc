@@ -557,7 +557,7 @@ namespace patmos
     }
     else if (debug_fmt == DF_CALLS) {
       if (Dbg_cnt_delay == 1) {
-        
+
         if (Dbg_is_call) {
           os << " args: " << boost::format("r3 = %1$08x, r4 = %2$08x, ") 
                 % GPR.get(r3).get() % GPR.get(r4).get();
@@ -594,10 +594,6 @@ namespace patmos
           Symbols.print(os, PC, true);
         }
       }
-    }
-    else if (debug_fmt == DF_TRACE_STACK)
-    {
-      Stack_cache.trace(os, Cycle);
     }
     else
     {

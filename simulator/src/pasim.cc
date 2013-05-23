@@ -326,8 +326,7 @@ static patmos::stack_cache_t &create_stack_cache(patmos::stack_cache_e sck,
       unsigned int num_blocks = std::ceil((float)size/
                                     (float)patmos::NUM_STACK_CACHE_BLOCK_BYTES);
 
-      return *new patmos::block_stack_cache_t<>(gm, num_blocks,
-                                          patmos::NUM_STACK_CACHE_TOTAL_BLOCKS);
+      return *new patmos::block_stack_cache_t<>(gm, num_blocks);
     }
   }
 
@@ -375,7 +374,7 @@ int main(int argc, char **argv)
     ("binary,b", boost::program_options::value<std::string>()->default_value("-"), "binary or elf-executable file (stdin: -)")
     ("output,o", boost::program_options::value<std::string>()->default_value("-"), "output execution trace in file (stdout: -)")
     ("debug", boost::program_options::value<unsigned int>()->implicit_value(0), "enable step-by-step debug tracing after cycle")
-    ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), "format of the debug trace (short, trace, trace-stack, instr, blocks, calls, default, long, all)")
+    ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), "format of the debug trace (short, trace, instr, blocks, calls, default, long, all)")
     ("debug-file", boost::program_options::value<std::string>()->default_value("-"), "output debug trace in file (stderr: -)")
     ("profiling,p", "include profiling information in statistics")
     ("slot-stats,a", "show instruction statistics per slot")

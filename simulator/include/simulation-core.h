@@ -67,10 +67,6 @@ namespace patmos
   /// Define the number of bytes in a block of the stack cache.
   static const unsigned int NUM_STACK_CACHE_BLOCK_BYTES = 4;
 
-  /// Define the maximum total number of stack data, including spilled data.
-  static const unsigned int NUM_STACK_CACHE_TOTAL_BLOCKS =
-                                       std::numeric_limits<unsigned int>::max();
-
   /// Define the number of bytes used for the method cache.
   static const unsigned int NUM_METHOD_CACHE_BYTES = 0x800;
 
