@@ -113,4 +113,7 @@ object Constants {
   val PFUNC_XOR   = Bits("b10")
   val PFUNC_NOR   = Bits("b11")
 
+  val JFUNC_CALL  = Bits("b0000")
+  val JFUNC_BR    = Bits("b0001")
+  val JFUNC_BRCF  = Bits("b0010")
 }

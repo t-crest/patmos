@@ -123,15 +123,33 @@ class Decode() extends Component {
   }
   // Control-flow operations
   when(opcode === OPCODE_CFL_CALL) {
+    io.decex.immOp := Bool(true)
     io.decex.call := Bool(true)
     io.decex.wrReg := Bool(true)
 	dest := Bits("b11111")
   }
   when(opcode === OPCODE_CFL_BR) {
+    io.decex.immOp := Bool(true)
 	io.decex.jmpOp.branch := Bool(true)
   }
   when(opcode === OPCODE_CFL_BRCF) {
+    io.decex.immOp := Bool(true)
     io.decex.call := Bool(true)
+  }
+  when(opcode === OPCODE_CFL_CFLI) {
+	switch(func) {
+	  is(JFUNC_CALL) {
+		io.decex.call := Bool(true)
+		io.decex.wrReg := Bool(true)
+		dest := Bits("b11111")
+	  }
+	  is(JFUNC_BR) {
+		io.decex.jmpOp.branch := Bool(true)
+	  }
+	  is(JFUNC_BRCF) {
+		io.decex.call := Bool(true)
+	  }
+	}
   }
   when(opcode === OPCODE_CFL_RET) {
     io.decex.ret := Bool(true)
