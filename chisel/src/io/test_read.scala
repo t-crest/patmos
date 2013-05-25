@@ -64,12 +64,10 @@ class Test() extends Component {
   	val r_read :: r_wait_st :: read_st :: data_read_st :: wait_st :: write_st:: Nil  = Enum(6){ UFix() } 
 	val state = Reg(resetVal = r_read)
 
-  	val uart = new UART()
+  	val uart = new UART(UFix(50000000), UFix(115200))
  // 	val rx = new RX()
   	
   	
-	uart.io.clk_freq := UFix(50000000)
-	uart.io.baud_rate := UFix(115200)
 // 	val wr_data = Mux(blk === UFix(0), UFix(40), UFix(41))
  	
 	uart.io.tx <> io.tx
