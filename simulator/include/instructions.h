@@ -1626,7 +1626,7 @@ namespace patmos
     void store_return_address(simulator_t &s, instruction_data_t &ops,
                               bit_t pred, uword_t base, uword_t pc, word_t address) const
     {
-      if (pred && !ops.EX_CFL_Discard)
+      if (pred && !ops.MW_CFL_Discard)
       {
         assert(base <= pc);
         assert(pc == ops.IF_PC + 16 && "Wrong delay slot size of call instruction.");
@@ -1651,21 +1651,21 @@ namespace patmos
     void fetch_and_dispatch(simulator_t &s, instruction_data_t &ops,
                             bit_t pred, word_t base, word_t address) const
     {
-      if (pred && !ops.EX_CFL_Discard)
+      if (pred && !ops.MW_CFL_Discard)
       {
         // check if the target method is in the cache, otherwise stall until
         // it is loaded.
         if (!s.Method_cache.is_available(base))
         {
           // stall the pipeline
-          s.pipeline_stall(SEX);
+          s.pipeline_stall(SMW);
         }
         else
         {
           // set the program counter and base
           s.BASE = base;
           s.nPC = address;
-          ops.EX_CFL_Discard = 1;
+          ops.MW_CFL_Discard = 1;
         }
       }
     }
@@ -1680,7 +1680,7 @@ namespace patmos
     void dispatch(simulator_t &s, instruction_data_t &ops, bit_t pred,
                   word_t base, word_t address) const
     {
-      if (pred && !ops.EX_CFL_Discard)
+      if (pred && !ops.MW_CFL_Discard)
       {
         // assure that the target method is in the cache.
         assert(s.Method_cache.assert_availability(base));
@@ -1688,7 +1688,7 @@ namespace patmos
         // set the program counter and base
         s.BASE = base;
         s.nPC = address;
-        ops.EX_CFL_Discard = 1;
+        ops.MW_CFL_Discard = 1;
       }
     }
   public:
@@ -1699,7 +1699,7 @@ namespace patmos
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
-      ops.EX_CFL_Discard = 0;
+      ops.MW_CFL_Discard = 0;
     }
 
     // EX implemented by sub-classes
@@ -1738,8 +1738,8 @@ namespace patmos
     virtual void stage(simulator_t &s, instruction_data_t &ops) const \
     { \
       ops.EX_Address = target; \
-      store(s, ops, ops.DR_Pred, s.BASE, s.nPC, target); \
-      dispatch(s, ops, ops.DR_Pred, new_base, target); \
+      store(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address); \
+      dispatch(s, ops, ops.DR_Pred, new_base, ops.EX_Address); \
     } \
   };
 
@@ -1766,26 +1766,16 @@ namespace patmos
     void fetch_and_dispatch(simulator_t &s, instruction_data_t &ops,
                             bit_t pred, word_t base, word_t address) const
     {
-      if (pred && !ops.EX_CFL_Discard)
+      if (pred && !ops.MW_CFL_Discard)
       {
         // set the program counter and base
         s.BASE = base;
         s.nPC = address;
         s.PC = address;
-        ops.EX_CFL_Discard = 1;
+        ops.MW_CFL_Discard = 1;
       }
     }
 
-    /// Store the method base address and offset to the respective special
-    /// purpose registers.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param pred The predicate under which the instruction is executed.
-    /// @param base The base address of the current method.
-    /// @param pc The current program counter.
-    void no_store_return_address(simulator_t &s, instruction_data_t &ops,
-                                 bit_t pred, uword_t base, uword_t pc, word_t address) const
-    {
-    }
   public:
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
@@ -1797,9 +1787,8 @@ namespace patmos
 
     virtual void EX(simulator_t &s, instruction_data_t &ops) const 
     { 
-      ops.EX_Address = ops.OPS.CFLb.Imm*sizeof(word_t); 
-      no_store_return_address(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t)); 
-      fetch_and_dispatch(s, ops, ops.DR_Pred, ops.OPS.CFLb.Imm*sizeof(word_t), ops.OPS.CFLb.Imm*sizeof(word_t)); 
+      ops.EX_Address = ops.OPS.CFLb.Imm*sizeof(word_t);
+      fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address); 
     } 
   };
 
@@ -1817,13 +1806,9 @@ namespace patmos
     {
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
       ops.DR_Rs1 = s.GPR.get(ops.OPS.CFLi.Rs);
-      ops.EX_CFL_Discard = 0;
+      ops.MW_CFL_Discard = 0;
     }
 
-    // EX implemented by sub-classes
-
-    // MW inherited from NOP
-    
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
@@ -1914,7 +1899,7 @@ namespace patmos
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
       ops.DR_Base   = s.GPR.get(ops.OPS.CFLr.Rb);
       ops.DR_Offset = s.GPR.get(ops.OPS.CFLr.Ro);
-      ops.EX_CFL_Discard = 0;
+      ops.MW_CFL_Discard = 0;
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
@@ -1925,7 +1910,6 @@ namespace patmos
     {
       ops.EX_Base   = read_GPR_EX(s, ops.DR_Base);
       ops.EX_Offset = read_GPR_EX(s, ops.DR_Offset);
-      ops.EX_CFL_Discard = 0;
     }
 
     /// Pipeline function to simulate the behavior of the instruction in

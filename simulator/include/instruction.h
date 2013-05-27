@@ -308,9 +308,6 @@ namespace patmos
     /// Address for memory accesses.
     word_t EX_Address;
 
-    /// Discard CFL instructions in EX stage (stalling).
-    word_t EX_CFL_Discard;
-
     /// Method base address as read in EX stage.
     word_t EX_Base;
     
@@ -320,6 +317,9 @@ namespace patmos
     // -------------------------- MW -------------------------------------------
     /// Result register operand from MW stage.
     GPR_by_pass_t GPR_MW_Rd;
+
+    /// Discard CFL instructions in MW stage (stalling).
+    word_t MW_CFL_Discard;
 
     // ------------------------ CONSTRUCTOR  -----------------------------------
 
