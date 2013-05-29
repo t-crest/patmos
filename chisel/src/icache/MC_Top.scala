@@ -102,12 +102,14 @@ class TopCacheTests(c: Top) extends Tester(c, Array(c.io)) {
     while (end_simulation != true) {
       if (init == false) {
         vars(c.io.mcache_in.address) = Bits("h0000000000000000",32)
+        vars(c.io.mcache_in.request) = Bits(0)
         allGood = step(vars, ovars) && allGood
         init = true
       }
       else {
         val pc =  Bits(12)
         vars(c.io.mcache_in.address) = pc
+        vars(c.io.mcache_in.request) = Bits(1)
         allGood = step(vars, ovars) && allGood
         for (i <- 0 until 1000) {
           var hit = ovars(c.io.mcache_out.ena).litValue()

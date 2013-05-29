@@ -21,6 +21,8 @@ object Constants {
   val MCACHE_SIZE = 4096 //* 8 //4KB = 2^12*2^3 = 32*1024 = 32768Bit
   val EXTMEM_SIZE = 2 * MCACHE_SIZE // =32*2048
 
+  val MAX_METHOD_SIZE = 12//log2(MCACHE_SIZE)
+
   val WORD_COUNT = 4
 
   //DEBUG INFO
@@ -47,9 +49,12 @@ class MCacheIO extends Bundle() {
   val extmem_out = new ExtMemOut().asInput
 }
 
-/* cache memory of icache and mcache should be integrated in one mem.scala class and one package: cache */
+/* cache memory of icache and mcache should be integrated in one mem.scala class and one package: cache 
+   ...at least external Memory since it is a simulation of a extmem and the same for icache and mcache
+*/
 class ExtMemIn extends Bundle() {
   val address = Bits(width = 32)
+  val msize = Bits(width = Constants.MAX_METHOD_SIZE) //size or block count to fetch
   val fetch = Bits(width = 1)
 }
 class ExtMemOut extends Bundle() {
@@ -98,8 +103,8 @@ object ExtMemROM {
   //external memory instance
   val rom_extmem = Vec(Constants.EXTMEM_SIZE) {Bits(width = 32)} //width = 8?
 
-  //init the rom memory with dummy messages counter 0-xxx
-  def initROM() {
+  //init the rom memory with dummy messages
+  def initROM_random() {
     for (i <- 0 until (Constants.EXTMEM_SIZE - 1)) {
       rom_extmem(i) = Bits(i)
     }
@@ -109,7 +114,7 @@ object ExtMemROM {
    * Read a binary file into the ROM vector, from Utility.scala
      Author: Martin Schoeberl
    */
-  def readBin(fileName: String): Vec[Bits] = { 
+  def initROM_bin(fileName: String): Vec[Bits] = { 
     println("Reading " + fileName)
     // an encodig to read a binary file? Strange new world.
     val source = scala.io.Source.fromFile(fileName)(scala.io.Codec.ISO8859)
@@ -144,34 +149,25 @@ class ExtMemROM(filename: String) extends Component {
   val dout_ready = Reg(resetVal = Bits(0, width = 1))
   val burst_counter = Reg(resetVal = UFix(0, width = 32))
   val read_address = Reg(resetVal = UFix(0))
-  val fetching_data = Reg(resetVal = Bits(0))
 
   //only for debugging rom is filled with dummy data
+  rom_init := Bits(1)
   when (rom_init === Bits(0)) {
-    rom_init := Bits(1)
-    //readBin(filename)
-    initROM()
+    //initROM_bin(filename)
+    initROM_random()
   }
   
   when (io.extmem_in.fetch) {
-    dout := rom_extmem(Cat(io.extmem_in.address(31,2), Bits("b00")))
+    dout := rom_extmem(io.extmem_in.address)
     dout_ready := Bits(1)
-    read_address := (Cat(io.extmem_in.address(31,2), Bits("b00")) + UFix(1))
-    fetching_data := Bits(1)
+    read_address := io.extmem_in.address + UFix(1)
+    burst_counter := io.extmem_in.msize - UFix(1)
   }
-  .elsewhen (fetching_data === Bits(1)) {
+  .elsewhen (burst_counter != Bits(0)) {
     dout := rom_extmem(read_address)
-    when (burst_counter === UFix(Constants.WORD_COUNT - 1)) {
-      burst_counter := UFix(0)
-      fetching_data := Bits(0)
-      dout := Bits(0)
-      dout_ready := Bits(0)
-    }
-    .otherwise {
-      burst_counter := burst_counter + UFix(1)
-    }
-    read_address := read_address + UFix(1)
     dout_ready := Bits(1)
+    burst_counter := burst_counter - UFix(1)
+    read_address := read_address + UFix(1)
   }
   .otherwise {
     dout := Bits(0)
@@ -186,7 +182,7 @@ class ExtMemROM(filename: String) extends Component {
 class MCache extends Component {
   val io = new MCacheIO()
 
-  val init_state :: idle_state :: size_state :: transfer_state :: Nil = Enum(4){ UFix() }
+  val init_state :: idle_state :: size_state :: transfer_state :: restart_state :: Nil = Enum(5){ UFix() }
   val mcache_state = Reg(resetVal = init_state)
 
   //signals
@@ -195,9 +191,19 @@ class MCache extends Component {
   val mcache_hit = Bits(width = 1)
   val extmem_fetch = Bits(width = 1)
   val extmem_fetch_address = Bits(width = 32)
+  val extmem_msize = Bits(width = Constants.MAX_METHOD_SIZE)
   val mcachemem_address = Bits(width = 12)
   val mcache_w_enable = Bits(width = 1)
   val mcache_fetched_data = Bits(width = 32)
+
+  //two registers only needed in a one method cache, otherwise it is stored in a memory
+  val method_cachtag = Reg(resetVal = Bits(0, width = 32))
+  val method_sizetag = Reg(resetVal = Bits(0, width = 32))
+
+  val transfer_size = Reg(resetVal = Bits(0, width = Constants.MAX_METHOD_SIZE))
+  val fword_counter = Reg(resetVal = Bits(0, width = 32))
+  val mcache_address = Reg(resetVal = Bits(0, width = 32))
+  val mcache_address_next = Reg(resetVal = Bits(0, width = 32))
 
   //init signals
   mcache_hit := Bits(0)
@@ -205,18 +211,78 @@ class MCache extends Component {
   mcache_instr_b := Bits(0)
   extmem_fetch := Bits(0)
   extmem_fetch_address := Bits(0)
-  mcachemem_address := io.mcache_in.address(11,0)
+  extmem_msize := Bits(0)
+  mcachemem_address := io.mcache_in.address(11,0) //todo: check width
   mcache_fetched_data := Bits(0)
   mcache_w_enable := Bits(0)
 
+  //check for a hit
+  //either put it in the state machine or reprogram that its not needed
+  when (io.mcache_in.address >= method_cachtag && io.mcache_in.address < (method_cachtag + method_sizetag)) {
+    when (mcache_state === idle_state) {
+      mcache_hit := Bits(1)
+      mcache_instr_a := io.mcachemem_out.r_data(31,0)
+      mcache_instr_b := io.mcachemem_out.r_data(63,32)
+    }
+  }
 
   //fsm
   when (mcache_state === init_state) {
-    mcache_state := idle_state
+    when(io.mcache_in.request) {
+      mcache_address := io.mcache_in.address
+      mcache_state := idle_state
+    }
   }
 
+  //check if instruction is available
   when (mcache_state === idle_state) {
+    when(mcache_hit === Bits(1)) {
+      mcache_state := idle_state
+      mcache_address := io.mcache_in.address
+    }
+    .otherwise { //no hit... fetch from external memory
+      mcache_address_next := io.mcache_in.address
+      mcache_state := size_state
+      extmem_fetch := Bits(1)
+      extmem_fetch_address := mcache_address - Bits(1)
+      extmem_msize := Bits(1)
+      method_cachtag := mcache_address //easy going here, gets more complicated with a list of methods
+    }
+  }
+
+  //fetch size of the required method from external memory
+  when (mcache_state === size_state) {
+    when (io.extmem_out.ready === Bits(1)) {
+      fword_counter := io.extmem_out.data
+      extmem_fetch := Bits(1)
+      extmem_fetch_address := mcache_address
+      extmem_msize := io.extmem_out.data
+      method_sizetag := io.extmem_out.data //easy going here, gets more complicated with a list of methods
+      transfer_size := io.extmem_out.data
+      mcache_state := transfer_state
+    }
+  }
+  //fetch method to the cache
+  when (mcache_state === transfer_state) {
+    when (io.extmem_out.ready === Bits(1)) {
+      when (fword_counter > Bits(1)) { //TODO: check here that it is transfered the correct lenght
+        fword_counter := fword_counter - Bits(1)
+        //write fetched data to method cache memory
+        mcache_fetched_data := io.extmem_out.data
+        mcache_w_enable := Bits(1)
+        mcachemem_address := mcache_address + (transfer_size - fword_counter)
+      }
+      .otherwise {
+        mcache_state := restart_state
+        mcachemem_address := mcache_address
+      }
+    }
+  }
+  //restart using the latched address_next address
+  when (mcache_state === restart_state) {
     mcache_state := idle_state
+    mcachemem_address := mcache_address_next
+    mcache_address := mcache_address_next
   }
 
   //set output signals
@@ -230,5 +296,6 @@ class MCache extends Component {
 
   io.extmem_in.address := extmem_fetch_address
   io.extmem_in.fetch := extmem_fetch
+  io.extmem_in.msize := extmem_msize
 
 }
