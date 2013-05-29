@@ -68,10 +68,11 @@ class Test() extends Component {
  // 	val rx = new RX()
   	
   	
+ 
 // 	val wr_data = Mux(blk === UFix(0), UFix(40), UFix(41))
  	
 	uart.io.tx <> io.tx
-	uart.io.rx <> io.rx
+	uart.io.rx := io.rx //blk //
 //	rx.io.rx <> io.rx
 
 
@@ -83,7 +84,7 @@ class Test() extends Component {
  	r1 := r1 + UFix(1)
 	when (r1 === CNT_MAX) {
   		 r1 := UFix(0)
-  		// blk := ~blk
+  		 blk := ~blk
   		
 	}
 	
@@ -154,4 +155,3 @@ object HelloMain {
     chiselMain( args, () => new Test())
   }
 }
-
