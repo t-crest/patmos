@@ -79,8 +79,8 @@ class UART(clk_freq: UFix, baud_rate: UFix) extends Component {
 	val data_buffer = Reg(resetVal = UFix(0, 8))	
 	val r_data = Reg(resetVal = UFix(0, 1))
 	val r_data_counter = Reg(resetVal = UFix(0, 3)) 	
-  	val r_reset_state :: r_idle  :: r_receive_data :: r_stop_bit :: Nil  = Enum(4){ UFix() }
-	val r_state = Reg(resetVal = r_reset_state)
+  	val r_idle  :: r_receive_data :: r_stop_bit :: Nil  = Enum(3){ UFix() }
+	val r_state = Reg(resetVal = r_idle)
 	val rx_clk_en = Reg(resetVal = UFix(0, 1))
 	val half = Reg(resetVal = UFix(0, 1))
 	val tx_divide = clk_freq / baud_rate
@@ -174,11 +174,7 @@ when (state === reset_state) {
 		rxd_reg1 := rxd_reg0;
 		rxd_reg2 := rxd_reg1
 		// RX state machine
-		
-		when (r_state === r_reset_state) {
-			
-			r_state       	:= r_idle  
-		}
+
 	  	when (r_state === r_idle) {
 	  	   r_data := UFix(0)
 	  	//	when (s_baud_tick === UFix(1)){
@@ -209,7 +205,7 @@ when (state === reset_state) {
 			  	 	  rx_clk_en := UFix(0)
 			  	 	  s_baud_counter := UFix(0)
 			  	 	  half := UFix(0)
-			  	 	  r_state := r_reset_state
+			  	 	  r_state := r_idle
 			  	 	  r_data := UFix(1)
 					}
 			  	 	.otherwise
