@@ -2,8 +2,8 @@
 # sbt creates per default a target folder
 SBT = java -Xmx1024M -Xss8M -XX:MaxPermSize=2G -jar sbt/sbt-launch.jar
 
-hdldir=icache_generated
-simdir=icache_emulator
+hdldir=cache_generated
+simdir=cache_emulator
 basedir=../../
 binfile=pclang_files/patmos_in
 
@@ -11,8 +11,8 @@ binfile=pclang_files/patmos_in
 SBTARGS_SIM = --backend c --vcd --compile --test --targetDir $(simdir) --genHarness
 SBTARGS_HDL = --backend v --targetDir $(hdldir) --genHarness
 
-#MAIN=icache.TopMain
-#TOP=Top
+MCACHEMAIN=mcache.TopMain
+MCACHETOP=Top
 MAIN=icache.PatmosMain
 TOP=Patmos
 
@@ -20,19 +20,21 @@ TOP=Patmos
 all:	hdl sim
 
 # Generare Verilog code
-hdl:
+icache:
 	cd $(basedir); $(SBT) "run-main $(MAIN) $(binfile) $(SBTARGS_HDL)"
 
-# .vcd generation
-sim:
-	cd $(basedir); $(SBT) "run-main $(DIR)$(MAIN) $(SBTARGS_SIM)"
-
-# with input bin file
-test:
+# with input bin file and vcd generation
+isim:
 	cd $(basedir); $(SBT) "run-main $(DIR)$(MAIN) $(binfile) $(SBTARGS_SIM)"
+
+mcache:
+	cd $(basedir); $(SBT) "run-main $(MCACHEMAIN) $(binfile) $(SBTARGS_HDL)"
+
+msim:
+	cd $(basedir); $(SBT) "run-main $(DIR)$(MCACHEMAIN) $(binfile) $(SBTARGS_SIM)"
 
 # clean all
 clean:
-	rm -rf $(basedir)$(simdir) $(basedir)$(hdldir) $(basedir)$(TOP).vcd
+	cd $(basedir); rm -rf $(simdir) $(hdldir) $(TOP).vcd $(MCACHETOP).vcd
 
 .PHONY: all clean
