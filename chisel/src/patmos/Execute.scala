@@ -147,7 +147,7 @@ class Execute() extends Component {
   io.exmem.mem.call := exReg.call && doExecute
   io.exmem.mem.ret  := exReg.ret && doExecute
   // call/return
-  val callAddr = Mux(exReg.immOp, exReg.callAddr, op2.toUFix)
+  val callAddr = Mux(exReg.immOp, exReg.callAddr, op1.toUFix)
   io.exmem.mem.callRetAddr := Mux(exReg.call, callAddr, op1 + op2)
   io.exmem.mem.callRetBase := Mux(exReg.call, callAddr, op1.toUFix)
   // branch
