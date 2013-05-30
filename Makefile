@@ -60,6 +60,7 @@ tools:
 	mkdir java/classes
 	mkdir java/lib
 	mkdir java/src/patmos/asm/generated
+	javac -classpath lib/java-binutils-0.1.0.jar:lib/jssc.jar -d java/classes java/src/patserdow/*.java
 	java -classpath lib/antlr-3.3-complete.jar org.antlr.Tool \
 		-fo java/src/patmos/asm/generated java/src/grammar/PatGram.g
 	javac -classpath lib/antlr-3.3-complete.jar \
@@ -193,6 +194,9 @@ config_byteblaster:
 
 config_usb:
 	cd rbf && ../$(USBRUNNER) $(QPROJ).rbf
+
+download:
+	java -cp lib/*:java/classes/ patserdow.Main /dev/ttyUSB0 $(APP)
 
 # TODO: no Xilinx Makefiles available yet
 config_xilinx:
