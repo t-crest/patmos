@@ -19,14 +19,14 @@ for td in ${test_dirs}; do
 done
 cd ..
 
-tests="basic simple test ldst load_store_stackcache ALU ALUi ALUl dual_forwarding scratchpad dual_even_odd_address forward_issue load_store_data_cache load_store_scratchpad load_store_scratchpad_new load_store_scratchpad_new2 predication fetch_double  branch predicate predicated_predicate call"
+tests="basic simple test ldst load_store_stackcache ALU ALUi ALUl dual_forwarding scratchpad dual_even_odd_address forward_issue load_store_data_cache load_store_scratchpad load_store_scratchpad_new load_store_scratchpad_new2 predication fetch_double  branch predicate predicated_predicate call callr"
 tests+=${test_disc}
 
 
 tests_c="hello_test"
 not_working="none"
 not_working_chsl="none"
-expect_fail=10
+expect_fail=11
 expect_fail_chsl=6
 
 # How to implement timeout? IMPLEMENTED!
