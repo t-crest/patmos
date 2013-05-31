@@ -71,7 +71,7 @@ class UART(clk_freq: UFix, baud_rate: UFix) extends Component {
 	val baud_tick = Reg(resetVal = UFix(0, 1))
 	
 
-	val data = Reg(resetVal = UFix(0, 10))//io.data_in
+//	val data = Reg(resetVal = UFix(0, 10))//io.data_in
 	
 	//
 	val s_baud_counter = Reg(resetVal = UFix(0, 10))
@@ -89,6 +89,29 @@ class UART(clk_freq: UFix, baud_rate: UFix) extends Component {
 	val rxd_reg1 = Reg(resetVal = UFix(1, 1))
 	val rxd_reg2 = Reg(resetVal = UFix(1, 1))
 	//
+	
+	//****buffer****//
+	val tx_buff1 = Reg(resetVal = UFix(0, 10))
+	val tx_buff2 = Reg(resetVal = UFix(0, 10))
+	val tx_e1 = Reg(resetVal = UFix(1, 1))
+	val tx_e2 = Reg(resetVal = UFix(1, 1))
+	
+	when (io.wr === UFix(1)){// latch input data
+		when (tx_e1 === UFix(1)){
+		  tx_buff1 := Mux(tx_e2 === UFix(1), Cat (UFix(1), io.data_in, UFix(0)), tx_buff2) 
+		  tx_e1 := UFix(0)
+		}
+		.otherwise{
+		  when (tx_e2 === UFix(1)){
+		    tx_buff2 := Cat(UFix(1), io.data_in, UFix(0))
+		    tx_e2 := UFix(0)
+		  }
+		}
+	}
+	
+	//**************//
+	
+	
 	
 	io.rd_data := Mux(io.address === UFix(0), Cat(UFix(0, width = 6), r_data, accept_reg), data_buffer)
 	
@@ -126,6 +149,7 @@ when (state === reset_state) {
 		accept_reg	:= UFix(0)
 		tx_reg      := UFix(1)
 		state       := idle  
+		tx_e1 		:= UFix(1)
 	}
 	
   	when (state === idle) {
@@ -133,9 +157,7 @@ when (state === reset_state) {
   		tx_reg		:= UFix(1)
   		
   		when (io.wr === UFix(1)){
-  		  state       := send
-  		  data := Cat (UFix(1), io.data_in, UFix(0)) // latch input data
-  		  
+  		  state       := send	  
   		  }
  		when (accept_reg === UFix(0) || io.wr === UFix(0)){
  		  state       := idle
@@ -148,9 +170,9 @@ when (state === reset_state) {
 	  	
 		  	  when (baud_tick === UFix(1)){
 		  	  	  state := Mux(data_counter === UFix(10), reset_state, send)
-			  	  tx_reg	  := Mux(data_counter === UFix(10), UFix(1), data(0))
-			  	  data := Cat (UFix(0), data (9, 1))
-			  	  data_counter := Mux(data_counter === UFix(10), UFix(0), data_counter + UFix(1)) //  
+			  	  tx_reg	  := Mux(data_counter === UFix(10), UFix(1), tx_buff1(0))
+			  	  tx_buff1 := Cat (UFix(0), tx_buff1 (9, 1))
+			  	  data_counter := Mux(data_counter === UFix(10), UFix(0), data_counter + UFix(1)) // 
 		  	}
 	  	}
   	
@@ -174,7 +196,11 @@ when (state === reset_state) {
 		rxd_reg1 := rxd_reg0;
 		rxd_reg2 := rxd_reg1
 		// RX state machine
-
+		
+//		when (r_state === r_reset_state) {
+			
+//			r_state       	:= r_idle  
+//		}
 	  	when (r_state === r_idle) {
 	  	   r_data := UFix(0)
 	  	//	when (s_baud_tick === UFix(1)){
