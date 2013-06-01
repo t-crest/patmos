@@ -70,13 +70,15 @@ class Fetch(fileName: String) extends Component {
   // relay on the optimization to recognize that those addresses are always even and odd
   // TODO: maybe make it explicit
 
-  val ispmSize = 4096 // in bytes
+  val ispmSize = 1 << ISPM_BITS // in bytes
   val ispmAddrBits = log2Up(ispmSize / 4 / 2)
   val memEven = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
   val memOdd = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
 
   // write from EX - use registers - ignore stall, as reply does not hurt
-  val selWrite = io.memfe.store & (io.memfe.addr(31, 21) === Bits(0x1))
+  val selWrite = (io.memfe.store
+				  & (io.memfe.addr(DATA_WIDTH-1, SPM_MAX_BITS) === Bits(0x1))
+				  & (io.memfe.addr(SPM_MAX_BITS-1, ISPM_BITS) === Bits(0x0)))
   val wrEven = Reg(selWrite & (io.memfe.addr(2) === Bits(0)))
   val wrOdd = Reg(selWrite & (io.memfe.addr(2) === Bits(1)))
   val addrReg = Reg(io.memfe.addr)
@@ -91,7 +93,7 @@ class Fetch(fileName: String) extends Component {
   val ispm_odd = memOdd(addr_odd(ispmAddrBits, 1))
 
   // read from ISPM mapped to address 0x200000
-  val selIspm = pc(31, 21) === Bits(0x1)
+  val selIspm = pc(PC_SIZE-1, SPM_MAX_BITS-2) === Bits(0x1)
   // ROM/ISPM Mux
   val data_even = Mux(selIspm, ispm_even, rom(addr_even))
   val data_odd = Mux(selIspm, ispm_odd, rom(addr_odd))

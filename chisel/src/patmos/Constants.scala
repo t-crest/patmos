@@ -43,6 +43,11 @@ import Chisel._
 import Node._
 
 object Constants {
+
+  val SPM_MAX_BITS = 21
+  val ISPM_BITS = 15
+  val DSPM_BITS = 14
+
   // just now 32 to make it easy to use it as data dummy
   val PC_SIZE = 32
 

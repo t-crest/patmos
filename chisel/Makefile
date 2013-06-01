@@ -6,6 +6,9 @@
 
 SBT = java -Xmx1024M -Xss8M -XX:MaxPermSize=128M -jar sbt/sbt-launch.jar
 
+CXX=g++
+CXXFLAGS=-O2 -g
+
 # This generates the C++ files by invoking main from
 # class HelloMain in package example
 # Source directory is configured in project/Build.scala
@@ -21,6 +24,8 @@ MAIN=patmos.PatmosMain
 
 APP=basic
 
+SRC=$(shell find src -name '*.scala')
+
 all:
 	echo what to do?
 
@@ -30,14 +35,23 @@ asm:
 comp:
 	cd .. && make comp crom -e APP=$(APP)
 
-test:
-	-rm -rf generated
-	$(SBT) "run-main $(MAIN) ../tmp/aout --test --compile --vcd --genHarness --targetDir generated"
+
+oldtest:
+	$(SBT) "run-main $(MAIN) ../tmp/aout --genHarness --compile --test --targetDir generated --backend c"
+
+test: generated/emulator
+	./generated/emulator -l 1000000
+
+generated/Patmos.cpp: $(SRC) ../tmp/aout.bin
+	$(SBT) "run-main $(MAIN) ../tmp/aout --vcd --targetDir generated --backend c"
+
+generated/emulator: emulator.cpp generated/Patmos.cpp
+	$(CXX) $(CXXFLAGS) -I generated -o $@ $^ -lelf
 
 # the Verilog version
 verilog: generated/Patmos.v
 
-generated/Patmos.v:	src ../tmp/aout.bin
+generated/Patmos.v:	$(SRC) ../tmp/aout.bin
 	$(SBT) "run-main $(MAIN) ../tmp/aout --targetDir generated --backend v"
 
 vsim: verilog
