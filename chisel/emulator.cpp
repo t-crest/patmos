@@ -98,10 +98,10 @@ static val_t readelf(istream &is, Patmos_t *c)
 		  }
 		}
 
-		if (((phdr.p_paddr + k) >> 21) == 0x2) {
+		if (((phdr.p_paddr + k) >> 21) == 0x0) {
 		  // Address maps to data SPM
 		  val_t byte = k >= phdr.p_filesz ? 0 : elfbuf[phdr.p_offset + k];
-		  val_t addr = ((phdr.p_paddr + k) - (0x2 << 21)) >> 2;
+		  val_t addr = (phdr.p_paddr + k) >> 2;
 		  switch ((phdr.p_paddr + k) & 0x3) {
 		  case 0: c->Patmos_memory_spm__mem0.put(addr, byte); break;
 		  case 1: c->Patmos_memory_spm__mem1.put(addr, byte); break;
