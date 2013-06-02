@@ -80,6 +80,8 @@ class Decode() extends Component {
   io.decex.immOp := Bool(false)
   io.decex.aluOp.isCmp := Bool(false)
   io.decex.aluOp.isPred := Bool(false)
+  io.decex.aluOp.isMTS := Bool(false)
+  io.decex.aluOp.isMFS := Bool(false)
   io.decex.jmpOp.branch := Bool(false)
   io.decex.call := Bool(false)
   io.decex.ret := Bool(false)
@@ -121,6 +123,13 @@ class Decode() extends Component {
     longImm := Bool(true)
     io.decex.wrReg := Bool(true)
   }
+  // Special registers
+  when(opcode === OPCODE_SPC) {
+	switch(opc) {
+	  is(OPC_MTS) { io.decex.aluOp.isMTS := Bool(true) }
+	  is(OPC_MFS) { io.decex.aluOp.isMFS := Bool(true) }
+	}
+  }
   // Control-flow operations
   when(opcode === OPCODE_CFL_CALL) {
     io.decex.immOp := Bool(true)
@@ -156,9 +165,11 @@ class Decode() extends Component {
   }
 
   val isMem = Bool()
+  val isStack = Bool()
   val shamt = UFix()
   shamt := UFix(0)
   isMem := Bool(false)
+  isStack := Bool(false)
   // load
   when(opcode === OPCODE_LDT) {
     isMem := Bool(true)
@@ -186,6 +197,9 @@ class Decode() extends Component {
       }
       // ignore split load for now
     }
+	when(ldtype === MTYPE_S) {
+	  isStack := Bool(true)
+	}
   }
   // store
   when(opcode === OPCODE_STT) {
@@ -203,6 +217,9 @@ class Decode() extends Component {
         io.decex.memOp.byte := Bool(true)
       }
     }
+	when(sttype === MTYPE_S) {
+	  isStack := Bool(true)
+	}
   }
   // we could merge the shamt of load and store when not looking into split load
 
@@ -215,9 +232,10 @@ class Decode() extends Component {
 
   // Immediate is not sign extended
   // Maybe later split immediate for ALU and address calculation
-  io.decex.immVal := Mux(isMem, addrImm,
-						 Mux(longImm, decReg.instr_b,
-							 Cat(Bits(0), instr(11, 0))))
+  io.decex.immVal := Mux(isStack, addrImm + io.exdec.sp,
+						 Mux(isMem, addrImm,
+							 Mux(longImm, decReg.instr_b,
+								 Cat(Bits(0), instr(11, 0)))))
   // we could mux the imm / register here as well
   
   // Immediate for absolute calls

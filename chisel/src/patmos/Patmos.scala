@@ -72,6 +72,7 @@ class Patmos(fileName: String) extends Component {
 
   decode.io.fedec <> fetch.io.fedec
   execute.io.decex <> decode.io.decex
+  decode.io.exdec <> execute.io.exdec
   memory.io.exmem <> execute.io.exmem
   writeback.io.memwb <> memory.io.memwb
   // RF write connection

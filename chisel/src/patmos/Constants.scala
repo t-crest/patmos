@@ -54,6 +54,9 @@ object Constants {
   val REG_BITS = 5
   val REG_COUNT = 1 << REG_BITS
 
+  val PRED_BITS = 3
+  val PRED_COUNT = 1 << PRED_BITS
+
   val INSTR_WIDTH = 32
   val DATA_WIDTH = 32
 
@@ -81,6 +84,9 @@ object Constants {
   val OPC_ALUM = Bits("b010")
   val OPC_ALUC = Bits("b011")
   val OPC_ALUP = Bits("b100")
+
+  val OPC_MTS  = Bits("b010")
+  val OPC_MFS  = Bits("b011")
 
   val MSIZE_W  = Bits("b000")
   val MSIZE_H  = Bits("b001")
@@ -121,4 +127,8 @@ object Constants {
   val JFUNC_CALL  = Bits("b0000")
   val JFUNC_BR    = Bits("b0001")
   val JFUNC_BRCF  = Bits("b0010")
+
+  val SPEC_FL  = Bits("b0000")
+  val SPEC_SS  = Bits("b0101")
+  val SPEC_ST  = Bits("b0110")
 }

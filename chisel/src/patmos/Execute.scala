@@ -106,8 +106,6 @@ class Execute() extends Component {
       (PFUNC_NOR, ~(op1 | op2))))
   }
 
-  val predReg = Vec(8) { Reg(resetVal = Bool(false)) }
-
   // data forwarding
   val fwEx0 = exReg.rsAddr(0) === io.exResult.addr && io.exResult.valid
   val fwMem0 = exReg.rsAddr(0) === io.memResult.addr && io.memResult.valid
@@ -121,20 +119,54 @@ class Execute() extends Component {
   val aluResult = alu(exReg.aluOp.func, op1, op2)
   val compResult = comp(exReg.aluOp.func, op1, op2)
 
-  val ps1 = predReg(exReg.predOp.s1Addr(2,0)) ^ exReg.predOp.s1Addr(3)
-  val ps2 = predReg(exReg.predOp.s2Addr(2,0)) ^ exReg.predOp.s2Addr(3)
+  // predicates
+  val predReg = Vec(PRED_COUNT) { Reg(resetVal = Bool(false)) }
+
+  val ps1 = predReg(exReg.predOp.s1Addr(PRED_BITS-1,0)) ^ exReg.predOp.s1Addr(PRED_BITS)
+  val ps2 = predReg(exReg.predOp.s2Addr(PRED_BITS-1,0)) ^ exReg.predOp.s2Addr(PRED_BITS)
   val predResult = pred(exReg.predOp.func, ps1, ps2)
 
-  val doExecute = predReg(exReg.pred(2, 0)) ^ exReg.pred(3)
+  val doExecute = predReg(exReg.pred(PRED_BITS-1, 0)) ^ exReg.pred(PRED_BITS)
 
   when((exReg.aluOp.isCmp || exReg.aluOp.isPred) && doExecute && io.ena) {
     predReg(exReg.predOp.dest) := Mux(exReg.aluOp.isCmp, compResult, predResult)
   }
   predReg(0) := Bool(true)
 
+  // stack registers
+  val stackTopReg = Reg(resetVal = UFix(0, DATA_WIDTH))
+  val stackSpillReg = Reg(resetVal = UFix(0, DATA_WIDTH))
+  io.exdec.sp := stackTopReg
+  when(exReg.aluOp.isMTS) {
+	when(exReg.aluOp.func === SPEC_FL) {
+	  predReg := op1(PRED_COUNT-1, 0).toBits()
+	  predReg(0) := Bool(true)
+	}
+	when(exReg.aluOp.func === SPEC_ST) {
+	  io.exdec.sp := op1.toUFix()
+	  stackTopReg := op1.toUFix()
+	}
+	when(exReg.aluOp.func === SPEC_SS) {
+	  stackSpillReg := op1.toUFix()
+	}
+  }
+  val mfsResult = UFix();
+  mfsResult := UFix(0, DATA_WIDTH)
+  when(exReg.aluOp.isMFS) {
+	when(exReg.aluOp.func === SPEC_FL) {
+	  mfsResult := Cat(Bits(0, DATA_WIDTH-PRED_COUNT), predReg.toBits()).toUFix()
+	}
+	when(exReg.aluOp.func === SPEC_ST) {
+	  mfsResult := stackTopReg
+	}
+	when(exReg.aluOp.func === SPEC_SS) {
+	  mfsResult := stackSpillReg
+	}
+  }
+
   // result
   io.exmem.rd.addr := exReg.rdAddr(0)
-  io.exmem.rd.data := aluResult
+  io.exmem.rd.data := Mux(exReg.aluOp.isMFS, mfsResult, aluResult)
   io.exmem.rd.valid := exReg.wrReg && doExecute
   // load/store
   io.exmem.mem.load := exReg.memOp.load && doExecute

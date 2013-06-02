@@ -55,6 +55,8 @@ class AluOp() extends Bundle() {
   val func = Bits(width = 4)
   val isCmp = Bool()
   val isPred = Bool()
+  val isMTS = Bool()
+  val isMFS = Bool()
 }
 
 class PredOp() extends Bundle() {
@@ -119,6 +121,10 @@ class MemIn() extends Bundle() {
   val callRetBase = UFix(width = DATA_WIDTH)
 }
 
+class ExDec() extends Bundle() {
+  val sp = UFix(width = DATA_WIDTH)
+}
+
 class ExMem() extends Bundle() {
   val rd = new Result()
   val mem = new MemIn()
@@ -181,12 +187,14 @@ class DecodeIO() extends Bundle() {
   val ena = Bool(INPUT)
   val fedec = new FeDec().asInput
   val decex = new DecEx().asOutput
+  val exdec = new ExDec().asInput
   val rfWrite = new Result()
 }
 
 class ExecuteIO() extends Bundle() {
   val ena = Bool(INPUT)
   val decex = new DecEx().asInput
+  val exdec = new ExDec().asOutput
   val exmem = new ExMem().asOutput
   // forwarding inputs
   val exResult = new Result()
