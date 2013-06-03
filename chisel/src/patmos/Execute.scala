@@ -188,7 +188,7 @@ class Execute() extends Component {
   io.exmem.mem.callRetBase := Mux(exReg.call, callAddr, op1.toUFix)
   // branch
   io.exfe.doBranch := exReg.jmpOp.branch && doExecute
-  val target = Mux(exReg.immOp, exReg.jmpOp.target, op1.toUFix)
+  val target = Mux(exReg.immOp, exReg.jmpOp.target, op1(DATA_WIDTH-1, 2).toUFix)
   io.exfe.branchPc := target
   
   io.exmem.pc := exReg.pc
