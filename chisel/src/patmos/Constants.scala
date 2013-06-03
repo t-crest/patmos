@@ -69,7 +69,7 @@ object Constants {
   val OPCODE_LDT      = Bits("b01010")
   val OPCODE_STT      = Bits("b01011")
 
-  val OPCODE_STC      = Bits("b011")
+  val OPCODE_STC      = Bits("b01100")
 
   val OPCODE_CFL_CALL = Bits("b11000")
   val OPCODE_CFL_BR   = Bits("b11001")
@@ -131,4 +131,7 @@ object Constants {
   val SPEC_FL  = Bits("b0000")
   val SPEC_SS  = Bits("b0101")
   val SPEC_ST  = Bits("b0110")
+
+  val STC_SRES  = Bits("b0000")
+  val STC_SFREE = Bits("b1000")
 }

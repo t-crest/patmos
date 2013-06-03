@@ -71,10 +71,18 @@ class Decode() extends Component {
   val ldtype  = instr(8, 7)
   val stsize  = instr(21, 19)
   val sttype  = instr(18, 17)
+  val stcfun  = instr(21, 18)
 
   val func    = Bits(width = 4)
   val dest    = Bits(width = REG_BITS)
   val longImm = Bool()
+
+  val isMem   = Bool()
+  val isStack = Bool()
+
+  val isSTC   = Bool()
+  val stcVal  = Bits(width = DATA_WIDTH)
+  val stcImm  = Cat(Bits(0), instr(17, 0), Bits("b00")).toUFix()
 
   // Start with some useful defaults
   io.decex.immOp := Bool(false)
@@ -82,6 +90,7 @@ class Decode() extends Component {
   io.decex.aluOp.isPred := Bool(false)
   io.decex.aluOp.isMTS := Bool(false)
   io.decex.aluOp.isMFS := Bool(false)
+  io.decex.aluOp.isSTC := Bool(false)
   io.decex.jmpOp.branch := Bool(false)
   io.decex.call := Bool(false)
   io.decex.ret := Bool(false)
@@ -94,6 +103,12 @@ class Decode() extends Component {
 
   // Long immediates set this
   longImm := Bool(false)
+
+  // Load/stores and stack control operations set this
+  isMem := Bool(false)
+  isStack := Bool(false)
+  isSTC := Bool(false)
+  stcVal := io.exdec.sp
 
   // Everything except calls uses the default
   dest := decReg.instr_a(21, 17)
@@ -130,6 +145,23 @@ class Decode() extends Component {
 	  is(OPC_MFS) { io.decex.aluOp.isMFS := Bool(true) }
 	}
   }
+  // Stack control
+  when(opcode === OPCODE_STC) {
+	switch(stcfun) {
+	  is(STC_SRES) {
+		io.decex.aluOp.isSTC := Bool(true)
+		isSTC := Bool(true)
+		io.decex.immOp := Bool(true)
+		stcVal := io.exdec.sp - stcImm
+	  }
+	  is(STC_SFREE) {
+		io.decex.aluOp.isSTC := Bool(true)
+		isSTC := Bool(true)
+		io.decex.immOp := Bool(true)
+		stcVal := io.exdec.sp + stcImm
+	  }
+	}
+  }
   // Control-flow operations
   when(opcode === OPCODE_CFL_CALL) {
     io.decex.immOp := Bool(true)
@@ -164,12 +196,8 @@ class Decode() extends Component {
     io.decex.ret := Bool(true)
   }
 
-  val isMem = Bool()
-  val isStack = Bool()
   val shamt = UFix()
   shamt := UFix(0)
-  isMem := Bool(false)
-  isStack := Bool(false)
   // load
   when(opcode === OPCODE_LDT) {
     isMem := Bool(true)
@@ -232,10 +260,11 @@ class Decode() extends Component {
 
   // Immediate is not sign extended
   // Maybe later split immediate for ALU and address calculation
-  io.decex.immVal := Mux(isStack, addrImm + io.exdec.sp,
-						 Mux(isMem, addrImm,
-							 Mux(longImm, decReg.instr_b,
-								 Cat(Bits(0), instr(11, 0)))))
+  io.decex.immVal := Mux(isSTC, stcVal,
+						 Mux(isStack, addrImm + io.exdec.sp,
+							 Mux(isMem, addrImm,
+								 Mux(longImm, decReg.instr_b,
+									 Cat(Bits(0), instr(11, 0))))))
   // we could mux the imm / register here as well
   
   // Immediate for absolute calls

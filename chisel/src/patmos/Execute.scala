@@ -150,6 +150,10 @@ class Execute() extends Component {
 	  stackSpillReg := op1.toUFix()
 	}
   }
+  when(exReg.aluOp.isSTC) {
+	io.exdec.sp := op2.toUFix()
+	stackTopReg := op2.toUFix()
+  }
   val mfsResult = UFix();
   mfsResult := UFix(0, DATA_WIDTH)
   when(exReg.aluOp.isMFS) {

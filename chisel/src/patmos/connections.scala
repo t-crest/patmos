@@ -57,6 +57,7 @@ class AluOp() extends Bundle() {
   val isPred = Bool()
   val isMTS = Bool()
   val isMFS = Bool()
+  val isSTC = Bool()
 }
 
 class PredOp() extends Bundle() {
