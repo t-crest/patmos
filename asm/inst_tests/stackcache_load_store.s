@@ -5,7 +5,7 @@
 	addi	r2 = r0, 4;
 	addi    r3 = r0, 0x100;
 	mts     s6 = r3;
-	sres    128;
+	sres    32;
 	sws		[r2 + 0] = r0;
 	sws		[r2 + 1] = r0;
 	sws		[r2 + 2] = r0;
