@@ -53,6 +53,7 @@ class FeDec() extends Bundle() {
 
 class AluOp() extends Bundle() {
   val func = Bits(width = 4)
+  val isMul = Bool()
   val isCmp = Bool()
   val isPred = Bool()
   val isMTS = Bool()

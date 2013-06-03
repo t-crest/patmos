@@ -133,37 +133,100 @@ class Execute() extends Component {
   }
   predReg(0) := Bool(true)
 
+  // multiplication
+  val mulLoReg = Reg(resetVal = UFix(0, DATA_WIDTH))
+  val mulHiReg = Reg(resetVal = UFix(0, DATA_WIDTH))
+
+  val mulLL    = Reg(resetVal = UFix(0, DATA_WIDTH))
+  val mulLH    = Reg(resetVal = UFix(0, DATA_WIDTH))
+  val mulHL    = Reg(resetVal = UFix(0, DATA_WIDTH))
+  val mulHH    = Reg(resetVal = UFix(0, DATA_WIDTH))
+
+  val mulBuf = Reg(resetVal = UFix(0, 2*DATA_WIDTH))
+  
+  val mulPipe = Vec(3) { Reg(resetVal = Bool(false)) }
+
+  when(io.ena) {
+	mulPipe(0) := exReg.aluOp.isMul && doExecute
+	mulPipe(1) := mulPipe(0)
+	mulPipe(2) := mulPipe(1)
+
+	val signed = exReg.aluOp.func === MFUNC_MUL
+
+	val op1H = op1(DATA_WIDTH-1, DATA_WIDTH/2)
+	val op1L = op1(DATA_WIDTH/2-1, 0)
+	val op2H = op2(DATA_WIDTH-1, DATA_WIDTH/2)
+	val op2L = op2(DATA_WIDTH/2-1, 0)
+
+	mulLL := op1L.toUFix * op2L.toUFix
+	mulLH := op1L.toUFix * op2H.toUFix
+	mulHL := op1H.toUFix * op2L.toUFix
+	mulHH := op1H.toUFix * op2H.toUFix
+
+	when(signed) {
+	  mulLL := (op1L.toUFix * op2L.toUFix).toUFix
+	  mulLH := (op1L.toUFix * op2H.toFix).toUFix
+	  mulHL := (op1H.toFix * op2L.toUFix).toUFix
+	  mulHH := (op1H.toFix * op2H.toFix).toUFix
+	}
+
+	mulBuf := (Cat(mulHH, mulLL)
+			   + Cat(mulHL, UFix(0, width = DATA_WIDTH/2))
+			   + Cat(mulLH, UFix(0, width = DATA_WIDTH/2)))
+
+	when(mulPipe(1)) {
+	  mulHiReg := mulBuf(2*DATA_WIDTH-1, DATA_WIDTH)
+	  mulLoReg := mulBuf(DATA_WIDTH-1, 0)
+	}
+  }
+
   // stack registers
   val stackTopReg = Reg(resetVal = UFix(0, DATA_WIDTH))
   val stackSpillReg = Reg(resetVal = UFix(0, DATA_WIDTH))
   io.exdec.sp := stackTopReg
-  when(exReg.aluOp.isMTS && doExecute) {
-	when(exReg.aluOp.func === SPEC_FL) {
-	  predReg := op1(PRED_COUNT-1, 0).toBits()
-	  predReg(0) := Bool(true)
-	}
-	when(exReg.aluOp.func === SPEC_ST) {
-	  io.exdec.sp := op1.toUFix()
-	  stackTopReg := op1.toUFix()
-	}
-	when(exReg.aluOp.func === SPEC_SS) {
-	  stackSpillReg := op1.toUFix()
-	}
-  }
-  when(exReg.aluOp.isSTC && doExecute) {
+  when(exReg.aluOp.isSTC && doExecute && io.ena) {
 	io.exdec.sp := op2.toUFix()
 	stackTopReg := op2.toUFix()
   }
+
+  // special registers
+  when(exReg.aluOp.isMTS && doExecute && io.ena) {
+	switch(exReg.aluOp.func) {
+	  is(SPEC_FL) {
+		predReg := op1(PRED_COUNT-1, 0).toBits()
+		predReg(0) := Bool(true)
+	  }
+	  is(SPEC_SL) {
+		mulLoReg := op1.toUFix()
+	  }
+	  is(SPEC_SH) {
+		mulHiReg := op1.toUFix()
+	  }
+	  is(SPEC_ST) {
+		io.exdec.sp := op1.toUFix()
+		stackTopReg := op1.toUFix()
+	  }
+	  is(SPEC_SS) {
+		stackSpillReg := op1.toUFix()
+	  }
+	}
+  }
   val mfsResult = UFix();
   mfsResult := UFix(0, DATA_WIDTH)
-  when(exReg.aluOp.isMFS) {
-	when(exReg.aluOp.func === SPEC_FL) {
+  switch(exReg.aluOp.func) {
+	is(SPEC_FL) {
 	  mfsResult := Cat(Bits(0, DATA_WIDTH-PRED_COUNT), predReg.toBits()).toUFix()
 	}
-	when(exReg.aluOp.func === SPEC_ST) {
+	is(SPEC_SL) {
+	  mfsResult := mulLoReg
+	}
+	is(SPEC_SH) {
+	  mfsResult := mulHiReg
+	}
+	is(SPEC_ST) {
 	  mfsResult := stackTopReg
 	}
-	when(exReg.aluOp.func === SPEC_SS) {
+	is(SPEC_SS) {
 	  mfsResult := stackSpillReg
 	}
   }

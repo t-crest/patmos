@@ -86,6 +86,7 @@ class Decode() extends Component {
 
   // Start with some useful defaults
   io.decex.immOp := Bool(false)
+  io.decex.aluOp.isMul := Bool(false)
   io.decex.aluOp.isCmp := Bool(false)
   io.decex.aluOp.isPred := Bool(false)
   io.decex.aluOp.isMTS := Bool(false)
@@ -127,7 +128,7 @@ class Decode() extends Component {
     switch(opc) {
       is(OPC_ALUR) { io.decex.wrReg := Bool(true) }
       is(OPC_ALUU) { io.decex.wrReg := Bool(true) }
-      is(OPC_ALUM) {} // multiply
+      is(OPC_ALUM) { io.decex.aluOp.isMul := Bool(true) }
       is(OPC_ALUC) { io.decex.aluOp.isCmp := Bool(true) }
       is(OPC_ALUP) { io.decex.aluOp.isPred := Bool(true) }
     }

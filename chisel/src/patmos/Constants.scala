@@ -111,6 +111,9 @@ object Constants {
   val FUNC_SHADD  = Bits("b1100")
   val FUNC_SHADD2 = Bits("b1101")
 
+  val MFUNC_MUL   = Bits("b0000")
+  val MFUNC_MULU  = Bits("b0001")
+
   val CFUNC_EQ    = Bits("b0000")
   val CFUNC_NEQ   = Bits("b0001")
   val CFUNC_LT    = Bits("b0010")
@@ -129,6 +132,8 @@ object Constants {
   val JFUNC_BRCF  = Bits("b0010")
 
   val SPEC_FL  = Bits("b0000")
+  val SPEC_SL  = Bits("b0010")
+  val SPEC_SH  = Bits("b0011")
   val SPEC_SS  = Bits("b0101")
   val SPEC_ST  = Bits("b0110")
 
