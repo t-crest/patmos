@@ -143,7 +143,7 @@ class MCFetch() extends Component {
 
   val b_valid = instr_a(31) === Bits(1)
   val pc_cont = pc + Mux(b_valid, UFix(2), UFix(1))
-  val mcache_address_in = pc + Bits(2)
+  //val mcache_address_in = pc + Bits(2)
   val pc_next =
 	Mux(io.memfe.doCallRet, io.memfe.callRetPc,
 		Mux(io.exfe.doBranch, io.exfe.branchPc,
@@ -164,6 +164,6 @@ class MCFetch() extends Component {
   io.femem.pc := pc_cont
 
   //outputs to mcache
-  io.mcache_in.address := mcache_address_in
-  io.mcache_in.request := Bits(1)
+  io.mcache_in.address := pc_next //mcache_address_in //pc_next
+  io.mcache_in.request := Bits(1) //not used at the momenent
 }

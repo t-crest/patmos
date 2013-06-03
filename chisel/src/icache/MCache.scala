@@ -27,7 +27,7 @@ object MConstants {
   val MCACHE_SIZE = 4096 //* 8 //4KB = 2^12*2^3 = 32*1024 = 32768Bit
   val EXTMEM_SIZE = 2 * MCACHE_SIZE // =32*2048
 
-  val MAX_METHOD_SIZE = 12//log2Up(MCACHE_SIZE)
+  val MAX_METHOD_SIZE = log2Up(MCACHE_SIZE)
 
   val WORD_COUNT = 4
 
@@ -35,15 +35,16 @@ object MConstants {
   println("MCACHE_SIZE=" + MCACHE_SIZE)
   println("EXTMEM_SIZE=" + EXTMEM_SIZE)
   println("WORD_COUNT=" + WORD_COUNT)
+  println("MAX_METHOD_SIZE=" + MAX_METHOD_SIZE)
 }
 
 class MCacheIn extends Bundle() {
-  val address = Bits(width = 32) //=pc
-  val request = Bits(width = 1) //not used at the moment
+  val address = Bits(width = 32) //=pc_next
+  val request = Bits(width = 1) //should be used in future maybe when data cache stalls?
 }
 class MCacheOut extends Bundle() {
-  val instr_a = Bits(width = 32)
-  val instr_b = Bits(width = 32)
+  val instr_a = Bits(width = 32) //lower 32 bits
+  val instr_b = Bits(width = 32) //higher 32 bits
   val hit = Bits(width = 1) //hit/stall signal
 }
 class MCacheIO extends Bundle() {
@@ -74,7 +75,7 @@ class ExtMemIO extends Bundle() {
 class MCacheMemIn extends Bundle() {
   val w_enable = Bits(width = 1)
   val w_data = Bits(width = 32)
-  val address = Bits(width = 32)
+  val address = Bits(width = MAX_METHOD_SIZE) //at least method can be as big as the cache size
 }
 class MCacheMemOut extends Bundle() {
   val r_data = Bits(width = 64) //VLIW 2* 32Bit instr
@@ -93,7 +94,7 @@ class MCacheMem extends Component {
   val dout = Reg() {Bits(width = 32)}
   when (io.mcachemem_in.w_enable) { ram_icache(io.mcachemem_in.address) := io.mcachemem_in.w_data }
   .otherwise { 
-    dout := Cat(ram_icache(io.mcachemem_in.address), ram_icache(io.mcachemem_in.address + Bits(1))) //dout := ram_icache(io.mcachemem_in.address)
+    dout := Cat(ram_icache(io.mcachemem_in.address + Bits(1)), ram_icache(io.mcachemem_in.address))
   }
   io.mcachemem_out.r_data := dout
 
@@ -115,6 +116,7 @@ object ExtMemROM {
       rom_extmem(i) = Bits(i)
     }
     rom_extmem(1) = Bits(10)
+    rom_extmem(0) = Bits(10)
   }
   
   /**
@@ -198,18 +200,18 @@ class MCache extends Component {
   val extmem_fetch = Bits(width = 1)
   val extmem_fetch_address = Bits(width = 32)
   val extmem_msize = Bits(width = MAX_METHOD_SIZE)
-  val mcachemem_address = Bits(width = 12)
+  val mcachemem_address = Bits(width = MAX_METHOD_SIZE)
   val mcache_w_enable = Bits(width = 1)
   val mcache_fetched_data = Bits(width = 32)
 
-  //two registers only needed in a one method cache, otherwise it is stored in a memory
+  //two registers only needed in a one method cache, otherwise it is moved to a cachetag logic
   val method_cachetag = Reg(resetVal = Bits(0, width = 32))
   val method_sizetag = Reg(resetVal = Bits(0, width = 32))
 
   val transfer_size = Reg(resetVal = Bits(0, width = MAX_METHOD_SIZE))
   val fword_counter = Reg(resetVal = Bits(0, width = 32))
-  val mcache_address = Reg(resetVal = Bits(0, width = 32))
-  val mcache_address_next = Reg(resetVal = Bits(0, width = 32))
+  val mcache_address = Reg(resetVal = Bits(0, width = 32)) //save address in case no hit occours
+  val mcache_address_next = Reg(resetVal = Bits(0, width = 32)) //save next address in case of fetch to restart fast
 
   //init signals
   mcache_hit := Bits(0)
@@ -219,21 +221,28 @@ class MCache extends Component {
   extmem_fetch_address := Bits(0)
   extmem_msize := Bits(0)
 
-  //something like: io.mcache_in.address - method_cachetag
-  mcachemem_address := io.mcache_in.address(11,0) //todo: check width here we need to read the correct pos
+  //when n-method cache is used the address is set here
+  mcachemem_address := Bits(0) //(io.mcache_in.address(MAX_METHOD_SIZE - 1, 0) - method_cachetag)
+
+  //only in one method cache should be moved to cache logic afterwards
+  when (io.mcache_in.address >= method_cachetag) {
+    mcachemem_address := (io.mcache_in.address(MAX_METHOD_SIZE - 1, 0) - method_cachetag)
+  }
+
   mcache_fetched_data := Bits(0)
   mcache_w_enable := Bits(0)
 
-  //check for a hit in idle_state can we do it everytime?!
-  //either put it in the state machine or reprogram that its not needed
-  when (io.mcache_in.address >= method_cachetag && io.mcache_in.address < (method_cachetag + method_sizetag)) {
-    when (mcache_state === idle_state) {
+  //problem here? check the latched address mcache_address since in future the size and cachetag comes from memory
+  when (mcache_address >= method_cachetag && mcache_address < (method_cachetag + method_sizetag)) {
+    when ((mcache_state === idle_state) || (mcache_state === restart_state)) {
       mcache_hit := Bits(1)
-      //mcachemem_address := io.mcache_in.address - method_cachetag
-      mcache_instr_a := io.mcachemem_out.r_data(31,0)
+      mcache_instr_a := Cat(Bits(1), io.mcachemem_out.r_data(30,0))
+      //mcache_instr_a := io.mcachemem_out.r_data(31,0)
       mcache_instr_b := io.mcachemem_out.r_data(63,32)
     }
   }
+
+
 
   //fsm
   when (mcache_state === init_state) {
@@ -242,7 +251,6 @@ class MCache extends Component {
       mcache_state := idle_state
     }
   }
-
   //check if instruction is available
   when (mcache_state === idle_state) {
     when(mcache_hit === Bits(1)) {
