@@ -95,7 +95,7 @@ class Execute() extends Component {
       (CFUNC_LE,    (op1s <= op2s)),
       (CFUNC_ULT,   (op1 < op2)),
       (CFUNC_ULE,   (op1 <= op2)),
-      (CFUNC_BTEST, ((op1 & (Bits(1) << op2)) != UFix(0)))))
+      (CFUNC_BTEST, ((op1 & (Bits(1) << shamt)) != UFix(0)))))
   }
 
   def pred(func: Bits, op1: Bool, op2: Bool): Bool = {
@@ -137,7 +137,7 @@ class Execute() extends Component {
   val stackTopReg = Reg(resetVal = UFix(0, DATA_WIDTH))
   val stackSpillReg = Reg(resetVal = UFix(0, DATA_WIDTH))
   io.exdec.sp := stackTopReg
-  when(exReg.aluOp.isMTS) {
+  when(exReg.aluOp.isMTS && doExecute) {
 	when(exReg.aluOp.func === SPEC_FL) {
 	  predReg := op1(PRED_COUNT-1, 0).toBits()
 	  predReg(0) := Bool(true)
@@ -150,7 +150,7 @@ class Execute() extends Component {
 	  stackSpillReg := op1.toUFix()
 	}
   }
-  when(exReg.aluOp.isSTC) {
+  when(exReg.aluOp.isSTC && doExecute) {
 	io.exdec.sp := op2.toUFix()
 	stackTopReg := op2.toUFix()
   }

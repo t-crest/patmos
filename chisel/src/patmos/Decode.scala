@@ -141,8 +141,13 @@ class Decode() extends Component {
   // Special registers
   when(opcode === OPCODE_SPC) {
 	switch(opc) {
-	  is(OPC_MTS) { io.decex.aluOp.isMTS := Bool(true) }
-	  is(OPC_MFS) { io.decex.aluOp.isMFS := Bool(true) }
+	  is(OPC_MTS) {
+		io.decex.aluOp.isMTS := Bool(true)
+	  }
+	  is(OPC_MFS) {
+		io.decex.aluOp.isMFS := Bool(true)
+		io.decex.wrReg := Bool(true)
+	  }
 	}
   }
   // Stack control
