@@ -45,11 +45,17 @@ import Node._
 object Constants {
 
   val SPM_MAX_BITS = 21
+  // MS: maybe better use sizes in bytes and use log2Up() to
+  // get the number of bits.
+  // XX_BITS might confuse as the ISPM is origanized in words,
+  // even in 2 times words, which results in other number of
+  // bits.
   val ISPM_BITS = 15
   val DSPM_BITS = 14
 
-  // just now 32 to make it easy to use it as data dummy
-  val PC_SIZE = 32
+  // The PC counts in words. 30 bits are enough for the 4 GB address space.
+  // We might cut that down to what we actually really support (16 MB)
+  val PC_SIZE = 30
 
   val REG_BITS = 5
   val REG_COUNT = 1 << REG_BITS
