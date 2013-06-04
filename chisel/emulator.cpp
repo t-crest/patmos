@@ -80,7 +80,7 @@ static val_t readelf(istream &is, Patmos_t *c)
       // copy from the buffer into the on-chip memories
 	  for (size_t k = 0; k < phdr.p_memsz; k++) {
 
-		if (((phdr.p_paddr + k) >> 21) == 0x1 && 
+		if (((phdr.p_paddr + k) >> 23) == 0x1 && 
 			((phdr.p_paddr + k) & 0x3) == 0) {
 		  // Address maps to ISPM and is at a word boundary
 		  val_t word = k >= phdr.p_filesz ? 0 :
@@ -88,7 +88,7 @@ static val_t readelf(istream &is, Patmos_t *c)
 			 ((val_t)elfbuf[phdr.p_offset + k + 1] << 16) |
 			 ((val_t)elfbuf[phdr.p_offset + k + 2] << 8) |
 			 ((val_t)elfbuf[phdr.p_offset + k + 3] << 0));
-		  val_t addr = ((phdr.p_paddr + k) - (0x1 << 21)) >> 3;
+		  val_t addr = ((phdr.p_paddr + k) - (0x1 << 23)) >> 3;
 
 		  unsigned size = (sizeof(c->Patmos_fetch__memEven.contents) / 
 						   sizeof(c->Patmos_fetch__memEven.contents[0]));
@@ -102,7 +102,7 @@ static val_t readelf(istream &is, Patmos_t *c)
 		  }
 		}
 
-		if (((phdr.p_paddr + k) >> 21) == 0x0) {
+		if (((phdr.p_paddr + k) >> 23) == 0x0) {
 		  // Address maps to data SPM
 		  val_t byte = k >= phdr.p_filesz ? 0 : elfbuf[phdr.p_offset + k];
 		  val_t addr = (phdr.p_paddr + k) >> 2;

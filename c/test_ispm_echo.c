@@ -1,8 +1,8 @@
 int main() 
 {
 
-	int (*start_program)() = (int (*)()) (0x200000); //Call immediate uses words and not bytes
-	volatile int *ispm_ptr = (int *) 0x200000; //Writing uses bytes
+	int (*start_program)() = (int (*)()) (0x800000); //Call immediate uses words and not bytes
+	volatile int *ispm_ptr = (int *) 0x800000; //Writing uses bytes
 
 	//Writes echo.c to ISPM and jumps to it
 	*(ispm_ptr+0) = 0x24c0030;
