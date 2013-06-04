@@ -11,7 +11,7 @@ binfile=pclang_files/patmos_in
 SBTARGS_SIM = --backend c --vcd --compile --test --targetDir $(simdir) --genHarness
 SBTARGS_HDL = --backend v --targetDir $(hdldir) --genHarness
 
-MCACHEMAIN=mcache.MCPatmosMain
+MCACHEMAIN=patmos.MCPatmosMain
 MCACHETOP=MCPatmos
 MAIN=icache.PatmosMain
 TOP=Patmos

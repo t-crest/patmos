@@ -5,7 +5,7 @@
 
 
 //merge package mcache and icache in future
-package mcache
+package patmos
 
 import Chisel._
 import Node._
@@ -140,7 +140,7 @@ object ExtMemROM {
       rom_extmem(i) = Bits(word, width=32)
     }
     // generate some dummy data to fill the table and make Bit 31 test happy
-    for (x <- byteArray.length / 4 until 256)
+    for (x <- byteArray.length / 4 until EXTMEM_SIZE)
       rom_extmem(x) = Bits("h8000000000000000")
     rom_extmem
   }
@@ -161,8 +161,8 @@ class ExtMemROM(filename: String) extends Component {
   //only for debugging rom is filled with dummy data
   rom_init := Bits(1)
   when (rom_init === Bits(0)) {
-    //initROM_bin(filename)
-    initROM_random()
+    initROM_bin(filename)
+    //initROM_random()
   }
   
   when (io.extmem_in.fetch) {
@@ -236,12 +236,10 @@ class MCache extends Component {
   when (mcache_address >= method_cachetag && mcache_address < (method_cachetag + method_sizetag)) {
     when ((mcache_state === idle_state) || (mcache_state === restart_state)) {
       mcache_hit := Bits(1)
-      mcache_instr_a := Cat(Bits(1), io.mcachemem_out.r_data(30,0))
-      //mcache_instr_a := io.mcachemem_out.r_data(31,0)
+      mcache_instr_a := io.mcachemem_out.r_data(31,0)
       mcache_instr_b := io.mcachemem_out.r_data(63,32)
     }
   }
-
 
 
   //fsm
@@ -270,13 +268,15 @@ class MCache extends Component {
   //fetch size of the required method from external memory
   when (mcache_state === size_state) {
     when (io.extmem_out.ready === Bits(1)) {
-      fword_counter := io.extmem_out.data
-      extmem_fetch := Bits(1)
-      extmem_fetch_address := mcache_address
-      extmem_msize := io.extmem_out.data
-      method_sizetag := io.extmem_out.data //easy going here, gets more complicated with a list of methods
-      transfer_size := io.extmem_out.data
-      mcache_state := transfer_state
+      //when (io.extmem_out.data < (EXTMEM_SIZE + Bits(1))) {
+        fword_counter := io.extmem_out.data / Bits(4)
+        extmem_fetch := Bits(1)
+        extmem_fetch_address := mcache_address
+        extmem_msize := io.extmem_out.data / Bits(4)
+        method_sizetag := io.extmem_out.data //easy going here, gets more complicated with a list of methods
+        transfer_size := io.extmem_out.data / Bits(4)
+        mcache_state := transfer_state
+      //}
     }
   }
   //fetch method to the cache

@@ -46,7 +46,7 @@ Keep a TODO list here, right at the finger tips:
 
  */
 
-package mcache
+package patmos
 
 import Chisel._
 import Node._
@@ -63,11 +63,14 @@ import scala.collection.mutable.HashMap
 
 class MCPatmosIO extends Bundle() {
   //connections to mfetch class
-  val fedec = new FeDec().asOutput
-  val femem = new FeMem().asOutput
-  val exfe = new ExFe().asInput
-  val memfe = new MemFe().asInput
+  //val fedec = new FeDec().asOutput
+  //val femem = new FeMem().asOutput
+  //val exfe = new ExFe().asInput
+  //val memfe = new MemFe().asInput
+
+  val dummy = Bits(OUTPUT, 32)
   val led = Bits(OUTPUT, width = 8)
+  val uart = new UartIO()
 }
 
 class MCPatmos(fileName: String) extends Component {
@@ -84,6 +87,11 @@ class MCPatmos(fileName: String) extends Component {
   val extmemrom = new ExtMemROM(fileName)
 
   val fetch = new MCFetch()
+  val decode = new Decode()
+  val execute = new Execute()
+  val memory = new Memory()
+  val writeback = new WriteBack()
+  val iocomp = new InOut()
 
   mcache.io.mcachemem_in <> mcachemem.io.mcachemem_in
   mcache.io.mcachemem_out <> mcachemem.io.mcachemem_out
@@ -95,36 +103,13 @@ class MCPatmos(fileName: String) extends Component {
   mcache.io.mcache_out <> fetch.io.mcache_out
 
   //connect top with other fetch i/o for debugging
-  fetch.io.exfe <> io.exfe
-  fetch.io.memfe <> io.memfe
-  fetch.io.fedec <> io.fedec
-  fetch.io.femem <> io.femem
+  //fetch.io.exfe <> io.exfe
+  //fetch.io.memfe <> io.memfe
+  //fetch.io.femem <> io.femem
 
-  //for debugging on target a led counter
-  val led_counter = Reg(resetVal = UFix(0, 32))
-  val CNT_MAX = UFix(4)
-  val led_output = Reg(resetVal = UFix(0, 1))    
-  led_counter := led_counter + UFix(1)
-  when (led_counter === CNT_MAX) {
-    led_counter := UFix(0)
-    led_output := ~led_output
-  }
-  io.led := led_output
-
-/*
-  val fetch = new Fetch(fileName)
-  val decode = new Decode()
-  val execute = new Execute()
-  val memory = new Memory()
-  val writeback = new WriteBack()
-  val iocomp = new InOut()
- */
-
-
-/*
   decode.io.fedec <> fetch.io.fedec
   execute.io.decex <> decode.io.decex
-  decode.io.exdec <> execute.io.exdec
+  //decode.io.exdec <> execute.io.exdec
   memory.io.exmem <> execute.io.exmem
   writeback.io.memwb <> memory.io.memwb
   // RF write connection
@@ -144,7 +129,7 @@ class MCPatmos(fileName: String) extends Component {
   memory.io.memInOut <> iocomp.io.memInOut
 
   // Stall ever n clock cycles for testing the pipeline
-  def pulse() = {
+  /*def pulse() = {
     val x = Reg(resetVal = UFix(0, 8))
     x := Mux(x === UFix(100), UFix(0), x + UFix(1))
     x === UFix(100)
@@ -152,17 +137,36 @@ class MCPatmos(fileName: String) extends Component {
   val enable = !pulse()
   // disable stall tests
   //  val enable = Bool(true)
+   */
 
+  //fetch.io.ena := enable
+  decode.io.ena := mcache.io.mcache_out.hit
+  execute.io.ena := mcache.io.mcache_out.hit
+  memory.io.ena := mcache.io.mcache_out.hit
+  writeback.io.ena := mcache.io.mcache_out.hit
+
+/*
   fetch.io.ena := enable
   decode.io.ena := enable
   execute.io.ena := enable
   memory.io.ena := enable
   writeback.io.ena := enable
+ */
 
   iocomp.io.uart <> io.uart
   // The one and only output
-  io.led := ~iocomp.io.led
- */
+  //io.led := ~iocomp.io.led
+
+  //for debugging on target a led counter
+  val led_counter = Reg(resetVal = UFix(0, 32))
+  val CNT_MAX = UFix(4)
+  val led_output = Reg(resetVal = UFix(0, 1))    
+  led_counter := led_counter + UFix(1)
+  when (led_counter === CNT_MAX) {
+    led_counter := UFix(0)
+    led_output := ~led_output
+  }
+  io.led := led_output
 
   // ***** the following code is not really Patmos code ******
 
@@ -252,9 +256,13 @@ class PatmosMCacheTest(c: MCPatmos) extends Tester(c, Array(c.io)) {
       else {
         println("RUN")
         for (i <- 0 until 1000) {
-          vars(c.io.exfe.doBranch) = Bits(0)
-          vars(c.io.exfe.branchPc) = Bits(0)
-          vars(c.io.memfe.doCallRet) = Bits(0)
+          //println("hit:" + ovars(c.mcache.io.mcache_out.hit).litValue())
+          //println("instr_a" + ovars(c.mcache.io.mcache_out.instr_a).litValue())
+          //println("instr_b" + ovars(c.mcache.io.mcache_out.instr_b).litValue())
+          //println("address" + ovars(c.mcache.io.mcache_in.address).litValue())
+          //vars(c.io.exfe.doBranch) = Bits(0)
+          //vars(c.io.exfe.branchPc) = Bits(0)
+          //vars(c.io.memfe.doCallRet) = Bits(0)
           allGood = step(vars, ovars) && allGood
         }
         end_simulation = true

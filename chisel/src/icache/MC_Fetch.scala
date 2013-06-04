@@ -37,37 +37,12 @@
  * 
  */
 
-package mcache
+package patmos
 
 import Chisel._
 import Node._
-
 import MConstants._
 
-/*
- connections for Fetch-Stage copied from connections.scala
- */
-class FeDec() extends Bundle() {
-  val instr_a = Bits(width = 32)
-  val instr_b = Bits(width = 32)
-  val b_valid = Bool() // not yet used
-  val pc = UFix(width = PC_SIZE)
-}
-class ExFe() extends Bundle() {
-  val doBranch = Bool()
-  val branchPc = UFix(width = PC_SIZE)
-}
-class FeMem() extends Bundle() {
-  val pc = UFix(width = PC_SIZE)
-}
-class MemFe() extends Bundle() {
-  val doCallRet = Bool()
-  val callRetPc = UFix(width = PC_SIZE)  
-  // for ISPM write
-  val store = Bool()
-  val addr = Bits(width = DATA_WIDTH)
-  val data = Bits(width = DATA_WIDTH)
-}
 class MCFetchIO extends Bundle() {
   val fedec = new FeDec().asOutput
   // PC for returns
@@ -143,7 +118,6 @@ class MCFetch() extends Component {
 
   val b_valid = instr_a(31) === Bits(1)
   val pc_cont = pc + Mux(b_valid, UFix(2), UFix(1))
-  //val mcache_address_in = pc + Bits(2)
   val pc_next =
 	Mux(io.memfe.doCallRet, io.memfe.callRetPc,
 		Mux(io.exfe.doBranch, io.exfe.branchPc,
@@ -160,7 +134,6 @@ class MCFetch() extends Component {
   io.fedec.instr_a := instr_a
   io.fedec.instr_b := instr_b
   io.fedec.b_valid := b_valid // not used at the moment
-
   io.femem.pc := pc_cont
 
   //outputs to mcache
