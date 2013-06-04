@@ -1,5 +1,5 @@
-#include "../../newlib/newlib/libc/machine/patmos/machine/patmos.h"
-#include "../../newlib/newlib/libc/machine/patmos/machine/spm.h"
+#include <machine/patmos.h>
+#include <machine/spm.h>
 
 void exit()
 {
@@ -10,30 +10,21 @@ void exit()
 	}
 }
 
-unsigned int crc(unsigned int crc, unsigned int data, unsigned int poly)
-{
-	crc = crc ^ data;
-	int i;
-	for (i = 0; i < 8; ++i)
-	{
-		if((crc & 1) > 0)
-		{
-			crc = (crc >> 1) ^ poly;
-		}
-		else
-		{
-			crc = (crc >> 1);
-		}
-	}
-	return crc;
-}
-
-//Dragons' start
 int main() __attribute__((naked,used));
+
+//#define _stack_cache_base 0x1000
+//#define _shadow_stack_base 0x2000
 
 int main()
 {
 
+
+	   // setup stack frame and stack cache.
+	   /* asm volatile ("mov $r29 = %0;" // initialize shadow stack pointer"
+	                "mts $ss  = %1;" // initialize the stack cache's spill pointer"
+	                "mts $st  = %1;" // initialize the stack cache's top pointer"
+	                 : : "r" (_shadow_stack_base), "r" (_stack_cache_base));
+	*/
 	int (*start_program)() = (int (*)()) 0x0;
 	volatile _SPM int *ispm_ptr = (_SPM int *) 0x0;
 	volatile _SPM int *uart_status_ptr = (_SPM int *) 0xF0000100;
@@ -80,7 +71,19 @@ int main()
 			{
 				if(packet_byte_count < packet_size)
 				{
-					calculated_crc = crc(calculated_crc,data,poly);
+					calculated_crc = calculated_crc ^ data;
+					int i;
+					for (i = 0; i < 8; ++i)
+					{
+						if((calculated_crc & 1) > 0)
+						{
+							calculated_crc = (calculated_crc >> 1) ^ poly;
+						}
+						else
+						{
+							calculated_crc = (calculated_crc >> 1);
+						}
+					}
 
 					integer |= data << ((3-(section_byte_count%4))*8);
 					section_byte_count++;
@@ -148,7 +151,7 @@ int main()
 							//state = STATE_SECTION_AMOUNT;
 							//section_amount = 0;
 							//section_count = 0;
-							(*(start_program+0x200078))();
+							(*(start_program+(0x200078/4)))();
 							//(*(start_program+entrypoint))();
 						}
 					}

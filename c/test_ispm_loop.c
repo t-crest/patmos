@@ -1,7 +1,7 @@
 int main() 
 {
 
-	int (*start_program)(void) = (int (*)(void)) 0x200000;
+	int (*start_program)() = (int (*)()) (0x200000/4);
 	volatile int *ispm_ptr = (int *) 0x200000;
 
 	/*
