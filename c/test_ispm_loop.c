@@ -1,8 +1,8 @@
 int main() 
 {
 
-	int (*start_program)() = (int (*)()) (0x200000/4);
-	volatile int *ispm_ptr = (int *) 0x200000;
+	int (*start_program)() = (int (*)()) (0x800000);
+	volatile int *ispm_ptr = (int *) 0x800000;
 
 	/*
 	This is the code being loaded into the ISPM and executed below

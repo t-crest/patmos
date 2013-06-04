@@ -6,6 +6,6 @@ SECTIONS
   .data : { *(.data) }
   .bss : { *(.bss) }
 
-  . = SEGMENT_START(".text", 0x200000);
+  . = SEGMENT_START(".text", 0x800000);
   .text : { *(.text .text.*) }
 }
