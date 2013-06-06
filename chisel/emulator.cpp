@@ -181,12 +181,16 @@ int main (int argc, char* argv[]) {
   int opt;
   int lim = -1;
   bool vcd = false;
+  bool uart = false;
   bool quiet = false;
   
-  while ((opt = getopt(argc, argv, "qvl:")) != -1) {
+  while ((opt = getopt(argc, argv, "quvl:")) != -1) {
 	switch (opt) {
 	case 'q':
 	  quiet = true;
+	  break;
+	case 'u':
+	  uart = true;
 	  break;
 	case 'v':
 	  vcd = true;
@@ -195,7 +199,7 @@ int main (int argc, char* argv[]) {
 	  lim = atoi(optarg);
 	  break;
 	default: /* '?' */
-	  cerr << "Usage: " << argv[0] << "[-q] [-v] [-l cycles] [file]" << endl;
+	  cerr << "Usage: " << argv[0] << "[-q] [-u] [-v] [-l cycles] [file]" << endl;
 	  exit(EXIT_FAILURE);
 	}
   }
@@ -237,6 +241,15 @@ int main (int argc, char* argv[]) {
 
 	if (vcd) {
 	  c->dump(f, t);
+	}
+
+	if (uart) {
+	  // Pass on data from UART, to be changed once the Chisel-UART is integrated
+	  c->Patmos__io_uart_rd_data = 0x01;
+	  if (c->Patmos__io_uart_wr.to_bool()
+		  && c->Patmos__io_uart_address.to_ulong() == 0x01) {
+		cout << (char)c->Patmos__io_uart_wr_data.to_ulong();
+	  }
 	}
 
 	if (!quiet) {

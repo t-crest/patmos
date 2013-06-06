@@ -157,10 +157,11 @@ namespace patmos
   }
 
   instruction_data_t instruction_data_t::mk_CFLb(const instruction_t &i,
-                                                 PRR_e pred, word_t imm)
+                                                 PRR_e pred, word_t imm, uword_t uimm)
   {
     instruction_data_t result(i, pred);
     result.OPS.CFLb.Imm = imm;
+    result.OPS.CFLb.UImm = uimm;
     return result;
   }
 
