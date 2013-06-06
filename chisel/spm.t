@@ -6,6 +6,9 @@ SECTIONS
   .data : { *(.data) }
   .bss : { *(.bss) }
 
+  . = ALIGN(8);
+  _end = .; PROVIDE (end = .);
+
   . = SEGMENT_START(".text", 0x800000);
   .text : { *(.text .text.*) }
 }
