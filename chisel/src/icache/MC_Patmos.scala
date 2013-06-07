@@ -109,7 +109,7 @@ class MCPatmos(fileName: String) extends Component {
 
   decode.io.fedec <> fetch.io.fedec
   execute.io.decex <> decode.io.decex
-  //decode.io.exdec <> execute.io.exdec
+  decode.io.exdec <> execute.io.exdec
   memory.io.exmem <> execute.io.exmem
   writeback.io.memwb <> memory.io.memwb
   // RF write connection
@@ -139,7 +139,7 @@ class MCPatmos(fileName: String) extends Component {
   //  val enable = Bool(true)
    */
 
-  //fetch.io.ena := enable
+  fetch.io.ena := mcache.io.mcache_out.hit
   decode.io.ena := mcache.io.mcache_out.hit
   execute.io.ena := mcache.io.mcache_out.hit
   memory.io.ena := mcache.io.mcache_out.hit
@@ -155,8 +155,9 @@ class MCPatmos(fileName: String) extends Component {
 
   iocomp.io.uart <> io.uart
   // The one and only output
-  //io.led := ~iocomp.io.led
+  io.led := ~iocomp.io.led
 
+  /*
   //for debugging on target a led counter
   val led_counter = Reg(resetVal = UFix(0, 32))
   val CNT_MAX = UFix(4)
@@ -167,6 +168,7 @@ class MCPatmos(fileName: String) extends Component {
     led_output := ~led_output
   }
   io.led := led_output
+  */
 
   // ***** the following code is not really Patmos code ******
 
@@ -182,15 +184,14 @@ class MCPatmos(fileName: String) extends Component {
 
   // Dummy output, which is ignored in the top level VHDL code, to
   // keep Chisel happy with unused signals
-  /*
+  
   val sum1 = writeback.io.rfWrite.data.toUFix + memory.io.memwb.pc + memory.io.dbgMem
   val part = Reg(sum1.toBits)
   val p = execute.io.exmem.predDebug
   // to dumb for vector to bits...
   val pracc = p(0) | p(1) | p(2) | p(3) | p(4) | p(5) | p(6) | p(7)
   val xyz = part(31, 0) | pracc
-  io.dummy := Reg(xyz)
-   */
+  io.dummy := Reg(xyz) 
 }
 
 // this testing and main file should go into it's own folder

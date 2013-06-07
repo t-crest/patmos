@@ -41,9 +41,10 @@ package patmos
 
 import Chisel._
 import Node._
-import MConstants._
+import Constants._
 
 class MCFetchIO extends Bundle() {
+  val ena = Bool(INPUT)
   val fedec = new FeDec().asOutput
   // PC for returns
   val femem = new FeMem().asOutput
@@ -84,8 +85,6 @@ class MCFetch() extends Component {
   // relay on the optimization to recognize that those addresses are always even and odd
   // TODO: maybe make it explicit
 
-  val ena = io.mcache_out.hit
-
   val ispmSize = 4096 // in bytes
   val ispmAddrBits = log2Up(ispmSize / 4 / 2)
   val memEven = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
@@ -110,8 +109,8 @@ class MCFetch() extends Component {
   // ROM/ISPM Mux
   //val data_even = Mux(selIspm, ispm_even, rom(addr_even))
   //val data_odd = Mux(selIspm, ispm_odd, rom(addr_odd))
-  val data_even = Mux(selIspm, ispm_even, io.mcache_out.instr_a)
-  val data_odd = Mux(selIspm, ispm_odd, io.mcache_out.instr_b)
+  val data_even = Mux(selIspm, ispm_even, io.mcache_out.data_even)
+  val data_odd = Mux(selIspm, ispm_odd, io.mcache_out.data_odd)
 
   val instr_a = Mux(pc(0) === Bits(0), data_even, data_odd)
   val instr_b = Mux(pc(0) === Bits(0), data_odd, data_even)
@@ -124,7 +123,7 @@ class MCFetch() extends Component {
 			pc_cont))
 
   val pc_inc = Mux(pc_next(0), pc_next + UFix(2), pc_next)
-  when(ena) {
+  when(io.ena) {
     addr_even := Cat(pc_inc(PC_SIZE - 1, 1), Bits(0)).toUFix
     addr_odd := Cat(pc_next(PC_SIZE - 1, 1), Bits(1)).toUFix
     pc := pc_next

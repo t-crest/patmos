@@ -1,5 +1,5 @@
 /*
- Method Cache, 2 Method Blocks, LRU-Replacement
+ Method Cache, N Fixed Method Blocks, LRU-Replacement
  Author: Philipp Degasperi (philipp.degasperi@gmail.com)
  */
 
@@ -11,31 +11,31 @@ import Chisel._
 import Node._
 import ExtMemROM._
 import MConstants._
+import Constants._
+import MCacheMem._
 
 import scala.collection.mutable.HashMap
 import scala.util.Random
 import scala.math
 
 object MConstants {
-
-  //from Constants.scala
-  val PC_SIZE = 32
-  val INSTR_WIDTH = 32
-  val DATA_WIDTH = 32
-
   //on chip 4KB icache
-  val MCACHE_SIZE = 4096 //* 8 //4KB = 2^12*2^3 = 32*1024 = 32768Bit
+  val MCACHE_SIZE = 4096 / 4 //* 8 //4KB = 2^12*2^3 = 32*1024 = 32768Bit
   val EXTMEM_SIZE = 2 * MCACHE_SIZE // =32*2048
-
-  val MAX_METHOD_SIZE = log2Up(MCACHE_SIZE)
-
+  val METHOD_COUNT = 4
+  val METHOD_BLOCK_SIZE = MCACHE_SIZE / METHOD_COUNT
+  val METHOD_SIZETAG_WIDTH = log2Up(MCACHE_SIZE)
+  val METHOD_COUNT_WIDTH = log2Up(METHOD_COUNT)
   val WORD_COUNT = 4
 
   //DEBUG INFO
   println("MCACHE_SIZE=" + MCACHE_SIZE)
   println("EXTMEM_SIZE=" + EXTMEM_SIZE)
+  println("METHOD_BLOCK_SIZE=" + METHOD_BLOCK_SIZE)
+  println("METHOD_COUNT=" + METHOD_COUNT)
+  println("METHOD_SIZETAG_WIDTH=" + METHOD_SIZETAG_WIDTH)
+  println("METHOD_COUNT_WIDTH=" + METHOD_COUNT_WIDTH)
   println("WORD_COUNT=" + WORD_COUNT)
-  println("MAX_METHOD_SIZE=" + MAX_METHOD_SIZE)
 }
 
 class MCacheIn extends Bundle() {
@@ -43,8 +43,8 @@ class MCacheIn extends Bundle() {
   val request = Bits(width = 1) //should be used in future maybe when data cache stalls?
 }
 class MCacheOut extends Bundle() {
-  val instr_a = Bits(width = 32) //lower 32 bits
-  val instr_b = Bits(width = 32) //higher 32 bits
+  val data_even = Bits(width = 32) //lower 32 bits
+  val data_odd = Bits(width = 32) //higher 32 bits
   val hit = Bits(width = 1) //hit/stall signal
 }
 class MCacheIO extends Bundle() {
@@ -61,7 +61,7 @@ class MCacheIO extends Bundle() {
 */
 class ExtMemIn extends Bundle() {
   val address = Bits(width = 32)
-  val msize = Bits(width = MAX_METHOD_SIZE) //size or block count to fetch
+  val msize = Bits(width = METHOD_SIZETAG_WIDTH) //size or block count to fetch
   val fetch = Bits(width = 1)
 }
 class ExtMemOut extends Bundle() {
@@ -75,14 +75,26 @@ class ExtMemIO extends Bundle() {
 class MCacheMemIn extends Bundle() {
   val w_enable = Bits(width = 1)
   val w_data = Bits(width = 32)
-  val address = Bits(width = MAX_METHOD_SIZE) //at least method can be as big as the cache size
+  val address = Bits(width = 32) //should be 32 because we need whole address for tag?!
+
+  val w_tag = Bits(width = 1)
 }
 class MCacheMemOut extends Bundle() {
-  val r_data = Bits(width = 64) //VLIW 2* 32Bit instr
+  val even_data = Bits(width = INSTR_WIDTH)
+  val odd_data = Bits(width = INSTR_WIDTH)
+  val hit = Bits(width = 1)
 }
 class MCacheMemIO extends Bundle() {
   val mcachemem_in = new MCacheMemIn().asInput
   val mcachemem_out = new MCacheMemOut().asOutput
+}
+
+object MCacheMem {
+
+  def get_address(pos : Bits,  offset : Bits) : Bits = {
+    ((pos * Bits(METHOD_BLOCK_SIZE)) + offset) / UFix(2)
+  }
+
 }
 
 /*
@@ -90,15 +102,132 @@ class MCacheMemIO extends Bundle() {
 */
 class MCacheMem extends Component {
   val io = new MCacheMemIO()
-  val ram_icache = Mem(MCACHE_SIZE, seqRead = true) {Bits(width = 32)}
-  val dout = Reg() {Bits(width = 32)}
-  when (io.mcachemem_in.w_enable) { ram_icache(io.mcachemem_in.address) := io.mcachemem_in.w_data }
-  .otherwise { 
-    dout := Cat(ram_icache(io.mcachemem_in.address + Bits(1)), ram_icache(io.mcachemem_in.address))
-  }
-  io.mcachemem_out.r_data := dout
+  val ram_mcache_even = Mem(MCACHE_SIZE / 2, seqRead = true) {Bits(width = INSTR_WIDTH)}
+  val ram_mcache_odd = Mem(MCACHE_SIZE / 2, seqRead = true) {Bits(width = INSTR_WIDTH)}
 
-  //here is needed some memory to save methods in cache + size of them
+  //IS THERE a VALID TAG NEEDED?
+  //TAG FIELDS THINK ABOUT HOW TO USE MEMORY HERE
+  val mcache_addr_tag = Mem(METHOD_COUNT) {Bits(width = 32)}
+  val mcache_size_tag = Mem(METHOD_COUNT) {Bits(width = METHOD_SIZETAG_WIDTH)}
+  val mcache_list_prev = Mem(METHOD_COUNT) {Bits(width = METHOD_COUNT_WIDTH)}
+  val mcache_list_next = Mem(METHOD_COUNT) {Bits(width = METHOD_COUNT_WIDTH)}
+
+  //regs
+  val dout_even = Reg() {Bits(width = INSTR_WIDTH)}
+  val dout_odd = Reg() {Bits(width = INSTR_WIDTH)}
+  val dout_hit = Reg() {Bits(width = 1)}
+
+  val lru_tag = Reg(resetVal = Bits(0, width = METHOD_COUNT_WIDTH))
+  val mru_tag = Reg(resetVal = Bits(METHOD_COUNT - 1, width = METHOD_COUNT_WIDTH))
+
+  //signals
+  //val address = io.mcachemem_in.address / UFix(2)
+  val data_even = Bits(width = INSTR_WIDTH)
+  val data_odd = Bits(width = INSTR_WIDTH)
+  val addr_offset = Bits(width = METHOD_SIZETAG_WIDTH)
+
+  //tag field type
+  class TagField extends Bundle {
+    val pos = Bits(width = METHOD_COUNT_WIDTH)
+    val hit = Bits(width = 1)
+    val tag = Bits(width = 32)
+  }
+
+  //new bundle
+  val tag_field = new TagField()
+
+  //init signals
+  data_even := Bits(0)
+  data_odd := Bits(0)
+  tag_field := search_tag_addr(io.mcachemem_in.address)
+  addr_offset := io.mcachemem_in.address - tag_field.tag //offset between incoming address and base address
+
+  //init list
+  def init_tag_list() = {
+    for (i <- 0 until METHOD_COUNT - 1) {
+      mcache_list_next(Bits(i)) := Bits(i) - Bits(1)
+      mcache_list_prev(Bits(i)) := Bits(i) + Bits(1)
+    }
+  }
+
+  //how we can init Memories???
+  val list_init = Reg(resetVal = Bits(0, width = 1))
+  when (list_init === Bits(0)) {
+    init_tag_list()
+  }
+  list_init := Bits(1)
+
+  //update list, input tag is the position which should be updated
+  def update_tag_list(tag : Bits) = {
+    //moving current tag to head
+    mru_tag := tag
+    mcache_list_next(tag) := mru_tag
+    mcache_list_prev(mru_tag) := tag
+
+    when (tag === lru_tag) {
+      lru_tag := mcache_list_prev(tag)
+    }
+    .elsewhen (tag === mru_tag) {
+      //nothing to do here?
+    }
+    .otherwise {
+      mcache_list_next(mcache_list_prev(tag)) := mcache_list_next(tag)
+      mcache_list_prev(mcache_list_next(tag)) := mcache_list_prev(tag)
+    }    
+  }
+
+  def search_tag_addr (addr : Bits) : TagField = {
+    val tagfield = new TagField()
+    tagfield.tag := Bits(0)
+    tagfield.hit := Bits(0)
+    tagfield.pos := Bits(0)
+    for (i <- 0 until METHOD_COUNT - 1) {
+      when ((io.mcachemem_in.address >= mcache_addr_tag(Bits(i))) && (io.mcachemem_in.address <= (mcache_addr_tag(Bits(i)) + mcache_size_tag(Bits(i))))) {
+        tagfield.pos := Bits(i)
+        tagfield.hit := Bits(1)
+        tagfield.tag := mcache_addr_tag(Bits(i))  //not really used!
+      }
+    }
+    tagfield
+  }
+
+  //write at LRU index the sicze and the address tag
+  when (io.mcachemem_in.w_tag === Bits(1)) {
+
+    mcache_addr_tag(lru_tag) := io.mcachemem_in.address
+    mcache_size_tag(lru_tag) := io.mcachemem_in.w_data
+    update_tag_list(lru_tag) 
+
+  }
+
+  //write at lru place signed the round before
+  when (io.mcachemem_in.w_enable) {
+    when (tag_field.hit === Bits(1)) {
+
+      when (addr_offset(0) === Bits(1)) {
+        ram_mcache_odd((tag_field.pos * Bits(METHOD_BLOCK_SIZE)) + (addr_offset / UFix(2))) := io.mcachemem_in.w_data
+      }
+      .otherwise {
+        ram_mcache_even((tag_field.pos * Bits(METHOD_BLOCK_SIZE)) + (addr_offset / UFix(2))) := io.mcachemem_in.w_data
+      }
+
+    }.otherwise {} //expection should be in the tag_field
+  }
+  //read
+  .otherwise {
+    
+    when (tag_field.hit === Bits(1)) {
+      data_even := ram_mcache_even(Mux(addr_offset(0), get_address(tag_field.pos, addr_offset) + Bits(1), get_address(tag_field.pos, addr_offset)))
+      data_odd := ram_mcache_odd(get_address(tag_field.pos, addr_offset))
+    }
+    dout_hit := tag_field.hit
+    dout_even := data_even
+    dout_odd := data_odd
+  }
+
+  io.mcachemem_out.even_data := dout_even
+  io.mcachemem_out.odd_data := dout_odd 
+  io.mcachemem_out.hit := dout_hit
 
 }
 
@@ -108,7 +237,7 @@ class MCacheMem extends Component {
 object ExtMemROM {
 
   //external memory instance
-  val rom_extmem = Vec(EXTMEM_SIZE) {Bits(width = 32)} //width = 8?
+  val rom_extmem = Vec(EXTMEM_SIZE) {Bits(width = 32)} //how is the bus width?
 
   //init the rom memory with dummy messages
   def initROM_random() {
@@ -158,7 +287,7 @@ class ExtMemROM(filename: String) extends Component {
   val burst_counter = Reg(resetVal = UFix(0, width = 32))
   val read_address = Reg(resetVal = UFix(0))
 
-  //only for debugging rom is filled with dummy data
+  //reading something into rom for debugging
   rom_init := Bits(1)
   when (rom_init === Bits(0)) {
     initROM_bin(filename)
@@ -190,57 +319,43 @@ class ExtMemROM(filename: String) extends Component {
 class MCache extends Component {
   val io = new MCacheIO()
 
+  //fsm variables
   val init_state :: idle_state :: size_state :: transfer_state :: restart_state :: Nil = Enum(5){ UFix() }
   val mcache_state = Reg(resetVal = init_state)
 
   //signals
-  val mcache_instr_a = Bits(width = 32)
-  val mcache_instr_b = Bits(width = 32)
-  val mcache_hit = Bits(width = 1)
+  val mcache_data_even = Bits(width = DATA_WIDTH)
+  val mcache_data_odd = Bits(width = DATA_WIDTH)
   val extmem_fetch = Bits(width = 1)
   val extmem_fetch_address = Bits(width = 32)
-  val extmem_msize = Bits(width = MAX_METHOD_SIZE)
-  val mcachemem_address = Bits(width = MAX_METHOD_SIZE)
+  val extmem_msize = Bits(width = METHOD_SIZETAG_WIDTH)
+  val mcachemem_address = Bits(width = 32) //???
   val mcache_w_enable = Bits(width = 1)
-  val mcache_fetched_data = Bits(width = 32)
+  val mcachemem_w_data = Bits(width = DATA_WIDTH)
+  val mcachemem_wtag = Bits(width = 1)
 
-  //two registers only needed in a one method cache, otherwise it is moved to a cachetag logic
-  val method_cachetag = Reg(resetVal = Bits(0, width = 32))
-  val method_sizetag = Reg(resetVal = Bits(0, width = 32))
-
-  val transfer_size = Reg(resetVal = Bits(0, width = MAX_METHOD_SIZE))
+  //regs
+  val transfer_size = Reg(resetVal = Bits(0, width = METHOD_SIZETAG_WIDTH))
   val fword_counter = Reg(resetVal = Bits(0, width = 32))
   val mcache_address = Reg(resetVal = Bits(0, width = 32)) //save address in case no hit occours
   val mcache_address_next = Reg(resetVal = Bits(0, width = 32)) //save next address in case of fetch to restart fast
 
   //init signals
-  mcache_hit := Bits(0)
-  mcache_instr_a := Bits(0)
-  mcache_instr_b := Bits(0)
+  mcache_data_even := Bits(0)
+  mcache_data_odd := Bits(0)
   extmem_fetch := Bits(0)
   extmem_fetch_address := Bits(0)
   extmem_msize := Bits(0)
-
-  //when n-method cache is used the address is set here
-  mcachemem_address := Bits(0) //(io.mcache_in.address(MAX_METHOD_SIZE - 1, 0) - method_cachetag)
-
-  //only in one method cache should be moved to cache logic afterwards
-  when (io.mcache_in.address >= method_cachetag) {
-    mcachemem_address := (io.mcache_in.address(MAX_METHOD_SIZE - 1, 0) - method_cachetag)
-  }
-
-  mcache_fetched_data := Bits(0)
+  mcachemem_wtag := Bits(0)
+  mcachemem_w_data := Bits(0)
   mcache_w_enable := Bits(0)
+  mcachemem_address := io.mcache_in.address
 
-  //problem here? check the latched address mcache_address since in future the size and cachetag comes from memory
-  when (mcache_address >= method_cachetag && mcache_address < (method_cachetag + method_sizetag)) {
-    when ((mcache_state === idle_state) || (mcache_state === restart_state)) {
-      mcache_hit := Bits(1)
-      mcache_instr_a := io.mcachemem_out.r_data(31,0)
-      mcache_instr_b := io.mcachemem_out.r_data(63,32)
-    }
+  //when memcache replies with a hit valid data can be outputed
+  when (io.mcachemem_out.hit === Bits(1)) {
+    mcache_data_even := io.mcachemem_out.even_data
+    mcache_data_odd := io.mcachemem_out.odd_data
   }
-
 
   //fsm
   when (mcache_state === init_state) {
@@ -251,65 +366,68 @@ class MCache extends Component {
   }
   //check if instruction is available
   when (mcache_state === idle_state) {
-    when(mcache_hit === Bits(1)) {
-      mcache_state := idle_state
+    when(io.mcachemem_out.hit === Bits(1)) {
       mcache_address := io.mcache_in.address
     }
-    .otherwise { //no hit... fetch from external memory
-      mcache_address_next := io.mcache_in.address
+     //no hit... fetch from external memory
+    .otherwise {
+      mcache_address_next := io.mcache_in.address //save pc + 4 for restart
       mcache_state := size_state
       extmem_fetch := Bits(1)
-      extmem_fetch_address := mcache_address - Bits(1)
-      extmem_msize := Bits(1)
-      method_cachetag := mcache_address //easy going here, gets more complicated with a list of methods
+      extmem_fetch_address := mcache_address - Bits(1) // -1 because size is at method head -1
+      extmem_msize := Bits(1) //here we could fetch already one first block instead single size tag
     }
   }
 
   //fetch size of the required method from external memory
   when (mcache_state === size_state) {
     when (io.extmem_out.ready === Bits(1)) {
-      //when (io.extmem_out.data < (EXTMEM_SIZE + Bits(1))) {
-        fword_counter := io.extmem_out.data / Bits(4)
-        extmem_fetch := Bits(1)
-        extmem_fetch_address := mcache_address
-        extmem_msize := io.extmem_out.data / Bits(4)
-        method_sizetag := io.extmem_out.data //easy going here, gets more complicated with a list of methods
-        transfer_size := io.extmem_out.data / Bits(4)
-        mcache_state := transfer_state
-      //}
+      
+      fword_counter := io.extmem_out.data / Bits(WORD_COUNT) //size is given in bytes not words
+      extmem_fetch := Bits(1)
+      extmem_fetch_address := mcache_address //fetch from extmem with latched address
+      extmem_msize := io.extmem_out.data / Bits(WORD_COUNT) //size of words zu fetch
+      transfer_size := io.extmem_out.data / Bits(WORD_COUNT) //save transfer size because extmem is accessed in burst mode
+      mcachemem_wtag := Bits(1)  //init transfer in mcachemem
+      mcachemem_w_data := io.extmem_out.data //write size to mcachemem for LRU tagfield
+      mcachemem_address := mcache_address //write base address to mcachemem for LRU tagfield
+      mcache_state := transfer_state
+
     }
   }
-  //fetch method to the cache
+
+  //transfer/fetch method to the cache
   when (mcache_state === transfer_state) {
     when (fword_counter > Bits(0)) {
       when (io.extmem_out.ready === Bits(1)) {
         fword_counter := fword_counter - Bits(1)
-        //write fetched data to method cache memory
-        mcache_fetched_data := io.extmem_out.data
+        mcachemem_w_data := io.extmem_out.data //write fetched data to method cache memory
         mcache_w_enable := Bits(1)
-        mcachemem_address := (transfer_size - fword_counter) //mcache_address + (transfer_size - fword_counter)
+        mcachemem_address := mcache_address + (transfer_size - fword_counter) //adress is base address + offset
       }
     }
     .otherwise {
-       mcache_state := restart_state
-       mcachemem_address := mcache_address
+      mcachemem_address := mcache_address
+      mcache_state := restart_state
     }
   }
+
   //restart using the latched address_next address
   when (mcache_state === restart_state) {
-    mcache_state := idle_state
     mcachemem_address := mcache_address_next
     mcache_address := mcache_address_next
+    mcache_state := idle_state
   }
 
   //set output signals
   io.mcachemem_in.address := mcachemem_address
   io.mcachemem_in.w_enable := mcache_w_enable
-  io.mcachemem_in.w_data := mcache_fetched_data
+  io.mcachemem_in.w_data := mcachemem_w_data
+  io.mcachemem_in.w_tag := mcachemem_wtag
 
-  io.mcache_out.instr_a := mcache_instr_a
-  io.mcache_out.instr_b := mcache_instr_b
-  io.mcache_out.hit := mcache_hit
+  io.mcache_out.data_even := mcache_data_even
+  io.mcache_out.data_odd := mcache_data_odd
+  io.mcache_out.hit := io.mcachemem_out.hit
 
   io.extmem_in.address := extmem_fetch_address
   io.extmem_in.fetch := extmem_fetch
