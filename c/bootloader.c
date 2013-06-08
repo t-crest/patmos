@@ -32,7 +32,7 @@ int main()
 	volatile _SPM int *led_ptr = (_SPM int *) 0xF0000200;
 
 	int entrypoint = 0;
-	int section_number = 0;
+	int section_number = -1;
 	int section_count = 0;
 	int section_offset = 0;
 	int section_size = 0;
@@ -151,7 +151,7 @@ int main()
 							//state = STATE_SECTION_AMOUNT;
 							//section_amount = 0;
 							//section_count = 0;
-							(*(start_program+(0x200078/4)))();
+							(*(start_program+0x800000))();
 							//(*(start_program+entrypoint))();
 						}
 					}

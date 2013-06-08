@@ -11,8 +11,6 @@
 
 int main() {
 
-volatile int *dummy = (int *) 0x123;
-
 	volatile int *led_ptr = (int *) 0xF0000200;
 	volatile int *uart_status = (int *) 0xF0000100;
 	volatile int *uart_data = (int *) 0xF0000104;
