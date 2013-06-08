@@ -18,6 +18,8 @@ project(patmos)
 
 cmake_minimum_required(VERSION 2.8)
 
+set(CMAKE_CXX_FLAGS "-O2 -g")
+
 # Find boost library
 include(FindBoost)
 find_package( Boost 1.40.0 COMPONENTS program_options REQUIRED)
