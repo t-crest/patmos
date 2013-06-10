@@ -33,7 +33,8 @@
 /*
  * Memory stage of Patmos.
  * 
- * Author: Martin Schoeberl (martin@jopdesign.com)
+ * Authors: Martin Schoeberl (martin@jopdesign.com)
+ *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
  * 
  */
 
@@ -223,12 +224,16 @@ class Memory() extends Component {
   val baseReg = Reg(resetVal = UFix(0, DATA_WIDTH))
 
   io.memwb.pc := memReg.pc
-  io.memwb.rd.addr := memReg.rd.addr
-  io.memwb.rd.valid := memReg.rd.valid
-  io.memwb.rd.data := Mux(memReg.mem.load, dout,
-						  Mux(memReg.mem.call,
-							  Cat(io.femem.pc, Bits("b00")) - baseReg,
-							  memReg.rd.data))
+  for (i <- 0 until PIPE_COUNT) {
+	io.memwb.rd(i).addr := memReg.rd(i).addr
+	io.memwb.rd(i).valid := memReg.rd(i).valid
+	io.memwb.rd(i).data := memReg.rd(i).data 
+  }
+  // Fill in data from loads or calls
+  io.memwb.rd(0).data := Mux(memReg.mem.load, dout,
+							 Mux(memReg.mem.call,
+								 Cat(io.femem.pc, Bits("b00")) - baseReg,
+								 memReg.rd(0).data))  
 
   // call to fetch
   io.memfe.doCallRet := memReg.mem.call || memReg.mem.ret

@@ -33,7 +33,8 @@
 /*
  * Constants for Patmos.
  * 
- * Author: Martin Schoeberl (martin@jopdesign.com)
+ * Authors: Martin Schoeberl (martin@jopdesign.com)
+ *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
  * 
  */
 
@@ -60,6 +61,8 @@ object Constants {
   // The PC counts in words. 30 bits are enough for the 4 GB address space.
   // We might cut that down to what we actually really support (16 MB)
   val PC_SIZE = 30
+
+  val PIPE_COUNT = 2
 
   val REG_BITS = 5
   val REG_COUNT = 1 << REG_BITS

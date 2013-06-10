@@ -35,8 +35,8 @@
  * 
  * Needs to be extended to support two ALUs
  * 
- * Author: Martin Schoeberl (martin@jopdesign.com)
- * 
+ * Authors: Martin Schoeberl (martin@jopdesign.com)
+ *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
  */
 
 package patmos
@@ -56,33 +56,44 @@ class RegisterFile() extends Component {
 
   // We are registering the inputs here, similar as it would
   // be with an on-chip memory for the register file
-  val addr0Reg = Reg(UFix(width=REG_BITS))
-  val addr1Reg = Reg(UFix(width=REG_BITS))
-  val wrReg = Reg(new Result())
-  val fw0Reg = Reg(Bool())
-  val fw1Reg = Reg(Bool())
+  val addrReg = Vec(2*PIPE_COUNT) { Reg(UFix(width=REG_BITS)) }
+  val wrReg   = Vec(PIPE_COUNT)   { Reg(new Result()) }
+  val fwReg   = Vec(2*PIPE_COUNT) { Vec(PIPE_COUNT) { Reg(Bool()) } }
   
   // With an on-chip RAM enable would need for implementation:
   //   additional register and a MUX feeding the old value into
   //   the registers
   when (io.ena) {
-    addr0Reg := io.rfRead.rsAddr(0).toUFix
-    addr1Reg := io.rfRead.rsAddr(1).toUFix
-    wrReg := io.rfWrite
-    fw0Reg := io.rfRead.rsAddr(0) === io.rfWrite.addr && io.rfWrite.valid
-    fw1Reg := io.rfRead.rsAddr(1) === io.rfWrite.addr && io.rfWrite.valid
+	for (i <- 0 until 2*PIPE_COUNT) {
+      addrReg(i) := io.rfRead.rsAddr(i).toUFix
+	}
+	for (k <- 0 until PIPE_COUNT) {
+      wrReg(k) := io.rfWrite(k)
+	}	
+	for (i <- 0 until 2*PIPE_COUNT) {
+	  for (k <- 0 until PIPE_COUNT) {
+		fwReg(i)(k) := io.rfRead.rsAddr(i) === io.rfWrite(k).addr && io.rfWrite(k).valid
+	  }
+	}
   }
 
   // RF internal forwarding
-  io.rfRead.rsData(0) := Mux(fw0Reg, wrReg.data, rf(addr0Reg))
-  io.rfRead.rsData(1) := Mux(fw1Reg, wrReg.data, rf(addr1Reg))
+  for (i <- 0 until 2*PIPE_COUNT) {
+	io.rfRead.rsData(i) := rf(addrReg(i))
+	for (k <- 0 until PIPE_COUNT) {
+	  when (fwReg(i)(k)) {
+		io.rfRead.rsData(i) := wrReg(k).data
+	  }
+	}
+  }
 
   // R0 handling could be done here, in decode, or as part of forwarding.
   // At the moment we are just happy with relying on the fact that the
   // registers are reset and just disable writing to register 0
-
-  when(wrReg.valid) {
-    rf(wrReg.addr.toUFix) := wrReg.data
+  for (k <- 0 until PIPE_COUNT) {
+	when(wrReg(k).valid) {
+      rf(wrReg(k).addr.toUFix) := wrReg(k).data
+	}
   }
 
   // Output for co-simulation with pasim
