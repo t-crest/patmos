@@ -85,12 +85,13 @@ class MCFetch() extends Component {
   // relay on the optimization to recognize that those addresses are always even and odd
   // TODO: maybe make it explicit
 
-  val ispmSize = 4096 // in bytes
+  val ispmSize = 1 << ISPM_BITS // in bytes
   val ispmAddrBits = log2Up(ispmSize / 4 / 2)
   val memEven = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
   val memOdd = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
+
   // write from EX - use registers - ignore stall, as reply does not hurt
-  val selWrite = io.memfe.store & (io.memfe.addr(31, 21) === Bits(0x1))
+  val selWrite = (io.memfe.store & (io.memfe.addr(ISPM_ONE_BIT) === Bits(0x1)))
   val wrEven = Reg(selWrite & (io.memfe.addr(2) === Bits(0)))
   val wrOdd = Reg(selWrite & (io.memfe.addr(2) === Bits(1)))
   val addrReg = Reg(io.memfe.addr)
@@ -104,8 +105,10 @@ class MCFetch() extends Component {
   val ispm_even = memEven(addr_even(ispmAddrBits, 1))
   val ispm_odd = memOdd(addr_odd(ispmAddrBits, 1))
 
-  // read from ISPM mapped to address 0x200000
-  val selIspm = pc(31, 21) === Bits(0x1)
+  // read from ISPM mapped to address 0x00800000
+  // PC counts in words
+  val selIspm = pc(ISPM_ONE_BIT - 2) === Bits(0x1)
+
   // ROM/ISPM Mux
   //val data_even = Mux(selIspm, ispm_even, rom(addr_even))
   //val data_odd = Mux(selIspm, ispm_odd, rom(addr_odd))
@@ -121,6 +124,10 @@ class MCFetch() extends Component {
 	Mux(io.memfe.doCallRet, io.memfe.callRetPc,
 		Mux(io.exfe.doBranch, io.exfe.branchPc,
 			pc_cont))
+  
+  //debugging...
+  //val pc_next = pc_cont 
+  //val pc_next = Mux(io.exfe.doBranch, io.exfe.branchPc, pc_cont)
 
   val pc_inc = Mux(pc_next(0), pc_next + UFix(2), pc_next)
   when(io.ena) {
@@ -133,6 +140,7 @@ class MCFetch() extends Component {
   io.fedec.instr_a := instr_a
   io.fedec.instr_b := instr_b
   io.fedec.b_valid := b_valid // not used at the moment
+
   io.femem.pc := pc_cont
 
   //outputs to mcache

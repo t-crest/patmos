@@ -22,7 +22,7 @@ object MConstants {
   //on chip 4KB icache
   val MCACHE_SIZE = 4096 / 4 //* 8 //4KB = 2^12*2^3 = 32*1024 = 32768Bit
   val EXTMEM_SIZE = 2 * MCACHE_SIZE // =32*2048
-  val METHOD_COUNT = 4
+  val METHOD_COUNT = 32
   val METHOD_BLOCK_SIZE = MCACHE_SIZE / METHOD_COUNT
   val METHOD_SIZETAG_WIDTH = log2Up(MCACHE_SIZE)
   val METHOD_COUNT_WIDTH = log2Up(METHOD_COUNT)
@@ -91,40 +91,11 @@ class MCacheMemIO extends Bundle() {
 
 object MCacheMem {
 
-  def get_address(pos : Bits,  offset : Bits) : Bits = {
-    ((pos * Bits(METHOD_BLOCK_SIZE)) + offset) / UFix(2)
-  }
-
-}
-
-/*
- memory of the method cache
-*/
-class MCacheMem extends Component {
-  val io = new MCacheMemIO()
-  val ram_mcache_even = Mem(MCACHE_SIZE / 2, seqRead = true) {Bits(width = INSTR_WIDTH)}
-  val ram_mcache_odd = Mem(MCACHE_SIZE / 2, seqRead = true) {Bits(width = INSTR_WIDTH)}
-
-  //IS THERE a VALID TAG NEEDED?
   //TAG FIELDS THINK ABOUT HOW TO USE MEMORY HERE
   val mcache_addr_tag = Mem(METHOD_COUNT) {Bits(width = 32)}
   val mcache_size_tag = Mem(METHOD_COUNT) {Bits(width = METHOD_SIZETAG_WIDTH)}
   val mcache_list_prev = Mem(METHOD_COUNT) {Bits(width = METHOD_COUNT_WIDTH)}
   val mcache_list_next = Mem(METHOD_COUNT) {Bits(width = METHOD_COUNT_WIDTH)}
-
-  //regs
-  val dout_even = Reg() {Bits(width = INSTR_WIDTH)}
-  val dout_odd = Reg() {Bits(width = INSTR_WIDTH)}
-  val dout_hit = Reg() {Bits(width = 1)}
-
-  val lru_tag = Reg(resetVal = Bits(0, width = METHOD_COUNT_WIDTH))
-  val mru_tag = Reg(resetVal = Bits(METHOD_COUNT - 1, width = METHOD_COUNT_WIDTH))
-
-  //signals
-  //val address = io.mcachemem_in.address / UFix(2)
-  val data_even = Bits(width = INSTR_WIDTH)
-  val data_odd = Bits(width = INSTR_WIDTH)
-  val addr_offset = Bits(width = METHOD_SIZETAG_WIDTH)
 
   //tag field type
   class TagField extends Bundle {
@@ -132,6 +103,48 @@ class MCacheMem extends Component {
     val hit = Bits(width = 1)
     val tag = Bits(width = 32)
   }
+
+  def init_tag_list() = {
+    for (i <- 0 until METHOD_COUNT) {
+      mcache_list_next(Bits(i)) := Bits(i) - Bits(1)
+      mcache_list_prev(Bits(i)) := Bits(i) + Bits(1)
+    }
+  }
+
+  def get_address(pos : Bits,  offset : Bits) : Bits = {
+    ((pos * Bits(METHOD_BLOCK_SIZE)) + (offset / UFix(2)))
+  }
+
+  def check_block_size(size : Bits) : Bits = {
+    ((size - Bits(1)) / Bits(METHOD_BLOCK_SIZE))
+  }
+
+}
+
+/*
+ memory logic of the method cache
+*/
+class MCacheMem extends Component {
+  val io = new MCacheMemIO()
+  val ram_mcache_even = Mem(MCACHE_SIZE / 2, seqRead = true) {Bits(width = INSTR_WIDTH)}
+  val ram_mcache_odd = Mem(MCACHE_SIZE / 2, seqRead = true) {Bits(width = INSTR_WIDTH)}
+
+  //regs
+  val dout_even = Reg() {Bits(width = INSTR_WIDTH)}
+  val dout_odd = Reg() {Bits(width = INSTR_WIDTH)}
+  val dout_hit = Reg() {Bits(width = 1)}
+  //keep track of lru and mru of the list
+  val lru_tag = Reg(resetVal = Bits(0, width = METHOD_COUNT_WIDTH))
+  val mru_tag = Reg(resetVal = Bits(METHOD_COUNT - 1, width = METHOD_COUNT_WIDTH))
+  //for splitting up methods if needed
+  val split_mcounter = Reg(resetVal = Bits(0, width = METHOD_COUNT_WIDTH))
+  val split_maddress = Reg(resetVal = Bits(0, width = 32))
+  val split_msize = Reg(resetVal = Bits(0, width = METHOD_SIZETAG_WIDTH))
+
+  //signals
+  val data_even = Bits(width = INSTR_WIDTH)
+  val data_odd = Bits(width = INSTR_WIDTH)
+  val addr_offset = Bits(width = METHOD_SIZETAG_WIDTH)
 
   //new bundle
   val tag_field = new TagField()
@@ -141,14 +154,6 @@ class MCacheMem extends Component {
   data_odd := Bits(0)
   tag_field := search_tag_addr(io.mcachemem_in.address)
   addr_offset := io.mcachemem_in.address - tag_field.tag //offset between incoming address and base address
-
-  //init list
-  def init_tag_list() = {
-    for (i <- 0 until METHOD_COUNT - 1) {
-      mcache_list_next(Bits(i)) := Bits(i) - Bits(1)
-      mcache_list_prev(Bits(i)) := Bits(i) + Bits(1)
-    }
-  }
 
   //how we can init Memories???
   val list_init = Reg(resetVal = Bits(0, width = 1))
@@ -168,7 +173,7 @@ class MCacheMem extends Component {
       lru_tag := mcache_list_prev(tag)
     }
     .elsewhen (tag === mru_tag) {
-      //nothing to do here?
+      //nothing to do here, tag is already mru
     }
     .otherwise {
       mcache_list_next(mcache_list_prev(tag)) := mcache_list_next(tag)
@@ -176,46 +181,80 @@ class MCacheMem extends Component {
     }    
   }
 
+  //search the given addr in the tag field
   def search_tag_addr (addr : Bits) : TagField = {
     val tagfield = new TagField()
     tagfield.tag := Bits(0)
     tagfield.hit := Bits(0)
     tagfield.pos := Bits(0)
-    for (i <- 0 until METHOD_COUNT - 1) {
+    for (i <- 0 until METHOD_COUNT) {
       when ((io.mcachemem_in.address >= mcache_addr_tag(Bits(i))) && (io.mcachemem_in.address <= (mcache_addr_tag(Bits(i)) + mcache_size_tag(Bits(i))))) {
         tagfield.pos := Bits(i)
         tagfield.hit := Bits(1)
-        tagfield.tag := mcache_addr_tag(Bits(i))  //not really used!
+        tagfield.tag := mcache_addr_tag(Bits(i))  //could be dropped!
       }
     }
     tagfield
   }
 
-  //write at LRU index the sicze and the address tag
+  /*
+   split up blockes if to big... this should be no problem with fixed block size
+   just go through lru table pick up the head till size is fine and update the tables
+   --> can also be done sequential so no need to build a big paralell mux an do it in 1 cycle
+
+   TODO: FOR VARIABLE BLOCK SIZE its getting more complicated we have to track the position of each
+   ...but we run into problems when replacing so maybe FIFO is better with variable block size
+  */
+
+  //prepare LRU: index the sicze and the address tag and check the size fits into one block otherwise split up
   when (io.mcachemem_in.w_tag === Bits(1)) {
-
+    //everything fine method fits into one block
+    when (check_block_size(io.mcachemem_in.w_data) === Bits(0)) {
+      mcache_size_tag(lru_tag) := io.mcachemem_in.w_data
+    }
+    //split up in more blocks and set counter
+    .otherwise {
+      mcache_size_tag(lru_tag) := Bits(METHOD_BLOCK_SIZE)
+      split_mcounter := check_block_size(io.mcachemem_in.w_data)
+      split_maddress := io.mcachemem_in.address + Bits(METHOD_BLOCK_SIZE)
+      split_msize := io.mcachemem_in.w_data - Bits(METHOD_BLOCK_SIZE)
+    }
     mcache_addr_tag(lru_tag) := io.mcachemem_in.address
-    mcache_size_tag(lru_tag) := io.mcachemem_in.w_data
-    update_tag_list(lru_tag) 
-
+    update_tag_list(lru_tag)
+  }
+  
+  //here it is handled a split up of the methods if needed
+  when (split_mcounter != Bits(0)) {
+    //one more block is needed
+    when (check_block_size(split_msize) === Bits(0)) {
+      mcache_size_tag(lru_tag) := split_msize
+    }
+    //split up in even more blocks
+    .otherwise {
+      mcache_size_tag(lru_tag) := Bits(METHOD_BLOCK_SIZE)
+      split_maddress := split_maddress + Bits(METHOD_BLOCK_SIZE)
+      split_msize := split_msize - Bits(METHOD_BLOCK_SIZE)
+    }
+    mcache_addr_tag(lru_tag) := split_maddress
+    update_tag_list(lru_tag)
+    split_mcounter := split_mcounter - Bits(1)
   }
 
-  //write at lru place signed the round before
+  //write at lru place
   when (io.mcachemem_in.w_enable) {
     when (tag_field.hit === Bits(1)) {
 
       when (addr_offset(0) === Bits(1)) {
-        ram_mcache_odd((tag_field.pos * Bits(METHOD_BLOCK_SIZE)) + (addr_offset / UFix(2))) := io.mcachemem_in.w_data
+        ram_mcache_odd(get_address(tag_field.pos, addr_offset)) := io.mcachemem_in.w_data
       }
       .otherwise {
-        ram_mcache_even((tag_field.pos * Bits(METHOD_BLOCK_SIZE)) + (addr_offset / UFix(2))) := io.mcachemem_in.w_data
+        ram_mcache_even(get_address(tag_field.pos, addr_offset)) := io.mcachemem_in.w_data
       }
 
-    }.otherwise {} //expection should be in the tag_field
+    }.otherwise {} //expection: addr must be in the tag_field at this point
   }
   //read
   .otherwise {
-    
     when (tag_field.hit === Bits(1)) {
       data_even := ram_mcache_even(Mux(addr_offset(0), get_address(tag_field.pos, addr_offset) + Bits(1), get_address(tag_field.pos, addr_offset)))
       data_odd := ram_mcache_odd(get_address(tag_field.pos, addr_offset))
@@ -389,7 +428,7 @@ class MCache extends Component {
       extmem_msize := io.extmem_out.data / Bits(WORD_COUNT) //size of words zu fetch
       transfer_size := io.extmem_out.data / Bits(WORD_COUNT) //save transfer size because extmem is accessed in burst mode
       mcachemem_wtag := Bits(1)  //init transfer in mcachemem
-      mcachemem_w_data := io.extmem_out.data //write size to mcachemem for LRU tagfield
+      mcachemem_w_data := io.extmem_out.data / Bits(WORD_COUNT) //write size to mcachemem for LRU tagfield
       mcachemem_address := mcache_address //write base address to mcachemem for LRU tagfield
       mcache_state := transfer_state
 

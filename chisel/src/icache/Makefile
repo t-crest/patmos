@@ -8,7 +8,7 @@ basedir=../../
 binfile=pclang_files/patmos_in
 
 # what is --checkPorts?
-SBTARGS_SIM = --backend c --vcd --compile --test --targetDir $(simdir) --genHarness
+SBTARGS_SIM = --backend c --vcd --compile --debug --test --targetDir $(simdir) --genHarness
 SBTARGS_HDL = --backend v --targetDir $(hdldir) --genHarness
 
 MCACHEMAIN=patmos.MCPatmosMain
