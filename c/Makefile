@@ -20,6 +20,12 @@ CFLAGS-WITH-LIBS=-target patmos-unknown-unknown-elf \
 	-Ttext 0x10 \
 	-e main \
 	-O3
+	
+CFLAGS-BOOTABLE=-target patmos-unknown-unknown-elf \
+	-Xgold -T../chisel/spm.t \
+	-mpatmos-method-cache-size=0x8000 \
+	-mpatmos-disable-stack-cache \
+	-O3
 
 CFLAGS_ASM=-target patmos-unknown-unknown-elf \
 	-fno-builtin \
@@ -34,3 +40,7 @@ CFLAGS_ASM+=-mpatmos-disable-stack-cache \
 
 %.s: %.c
 	$(CC) $(CFLAGS_ASM) -o $@ $^
+	
+bootable-%: %.c
+	$(CC) $(CFLAGS-BOOTABLE) -o $* $^
+	patmos-llvm-objdump -t -d $*

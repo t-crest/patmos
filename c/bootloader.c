@@ -1,30 +1,21 @@
 #include <machine/patmos.h>
 #include <machine/spm.h>
 
-void exit()
-{
-	int i = 0;
-	for(;;)
-	{
-		i++;
-	}
-}
-
 int main() __attribute__((naked,used));
 
-//#define _stack_cache_base 0x1000
-//#define _shadow_stack_base 0x2000
+#define _stack_cache_base 0x3000
+#define _shadow_stack_base 0x4000
 
 int main()
 {
 
 
 	   // setup stack frame and stack cache.
-	   /* asm volatile ("mov $r29 = %0;" // initialize shadow stack pointer"
+	    asm volatile ("mov $r29 = %0;" // initialize shadow stack pointer"
 	                "mts $ss  = %1;" // initialize the stack cache's spill pointer"
 	                "mts $st  = %1;" // initialize the stack cache's top pointer"
 	                 : : "r" (_shadow_stack_base), "r" (_stack_cache_base));
-	*/
+
 	int (*start_program)() = (int (*)()) 0x0;
 	volatile _SPM int *ispm_ptr = (_SPM int *) 0x0;
 	volatile _SPM int *uart_status_ptr = (_SPM int *) 0xF0000100;

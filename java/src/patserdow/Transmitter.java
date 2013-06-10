@@ -42,7 +42,7 @@ public class Transmitter
 		int response = INSTREAM.read();
 		if( response != 'o')
 		{
-			throw new java.io.IOException("Receiver did not reply correctly!(CRC might be incorrect)");
+			throw new java.io.IOException("Receiver did not reply correctly["+response+"]!(CRC might be incorrect)");
 		}
 	}
 	
