@@ -41,7 +41,7 @@ asm:
 	cd .. && make rom -e APP=$(APP)
 
 comp:
-	cd .. && make comp crom -e APP=$(APP)
+	cd .. && make comp -e APP=$(APP)
 
 
 oldtest:

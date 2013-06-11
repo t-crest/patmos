@@ -570,8 +570,9 @@ namespace patmos
                                                     word_t longimm) const
   {
     word_t imm = extractS(iw, 0, 22);
+    uword_t uimm = extract(iw, 0, 22);
     PRR_e pred = extractPN(iw, 27);
-    return instruction_data_t::mk_CFLb(Instruction, pred, imm);
+    return instruction_data_t::mk_CFLb(Instruction, pred, imm, uimm);
   }
 
   word_t cflb_format_t::encode(word_t pred, word_t opcode, word_t imm)

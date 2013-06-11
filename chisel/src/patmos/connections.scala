@@ -33,7 +33,8 @@
 /*
  * Connection definitions for the pipe stages.
  * 
- * Author: Martin Schoeberl (martin@jopdesign.com)
+ * Authors: Martin Schoeberl (martin@jopdesign.com)
+ *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
  * 
  */
 
@@ -63,9 +64,9 @@ class AluOp() extends Bundle() {
 
 class PredOp() extends Bundle() {
   val func = Bits(width = 2) // as they have a strange encoding
-  val dest = Bits(width = 3)
-  val s1Addr = Bits(width = 4)
-  val s2Addr = Bits(width = 4)
+  val dest = Bits(width = PRED_BITS)
+  val s1Addr = Bits(width = PRED_BITS+1)
+  val s2Addr = Bits(width = PRED_BITS+1)
 }
 
 class JmpOp() extends Bundle() {
@@ -83,24 +84,24 @@ class MemOp() extends Bundle() {
 
 class DecEx() extends Bundle() {
   val pc = UFix(width = PC_SIZE)
-  val aluOp = new AluOp()
-  val predOp = new PredOp()
+  val pred =  Vec(PIPE_COUNT) { Bits(width = PRED_BITS+1) }
+  val aluOp = Vec(PIPE_COUNT) { new AluOp() }
+  val predOp = Vec(PIPE_COUNT) { new PredOp() }
   val jmpOp = new JmpOp()
   val memOp = new MemOp()
-  val pred = Bits(width = 4)
+
   // the register fields are very similar to RegFileRead
   // maybe join the structures
-  val rsAddr = Vec(2) { Bits(width = REG_BITS) }
-  val rsData = Vec(2) { Bits(width = DATA_WIDTH) }
-  val rdAddr = Vec(1) { Bits(width = REG_BITS) }
-  val immVal = Bits(width = DATA_WIDTH)
+  val rsAddr = Vec(2*PIPE_COUNT) { Bits(width = REG_BITS) }
+  val rsData = Vec(2*PIPE_COUNT) { Bits(width = DATA_WIDTH) }
+  val rdAddr = Vec(PIPE_COUNT) { Bits(width = REG_BITS) }
+  val immVal = Vec(PIPE_COUNT) { Bits(width = DATA_WIDTH) }
+  val immOp  = Vec(PIPE_COUNT) { Bool() }
+  val wrReg  = Vec(PIPE_COUNT) { Bool() }
+
   val callAddr = UFix(width = DATA_WIDTH)
-  // maybe have a structure for instructions?
-  val immOp = Bool()
   val call = Bool()
   val ret = Bool()
-  // wrReg? or wrEn? or valid? We use now all three at different places ;-)
-  val wrReg = Bool()
 }
 
 class Result() extends Bundle() {
@@ -128,7 +129,7 @@ class ExDec() extends Bundle() {
 }
 
 class ExMem() extends Bundle() {
-  val rd = new Result()
+  val rd = Vec(PIPE_COUNT) { new Result() }
   val mem = new MemIn()
   val pc = UFix(width = PC_SIZE)
   // just for debugging
@@ -154,7 +155,7 @@ class FeMem() extends Bundle() {
 }
 
 class MemWb() extends Bundle() {
-  val rd = new Result()
+  val rd = Vec(PIPE_COUNT) { new Result() }
   // do we need this? probably not.
   // maybe drop unused pc fields
   // maybe nice for debugging?
@@ -162,15 +163,15 @@ class MemWb() extends Bundle() {
 }
 
 class RegFileRead() extends Bundle() {
-  // first two are for pipeline A, second two for pipeline B (not yet done)
-  val rsAddr = Vec(2) { Bits(INPUT, REG_BITS) }
-  val rsData = Vec(2) { Bits(OUTPUT, DATA_WIDTH) }
+  // first two are for pipeline A, second two for pipeline B
+  val rsAddr = Vec(2*PIPE_COUNT) { Bits(INPUT, REG_BITS) }
+  val rsData = Vec(2*PIPE_COUNT) { Bits(OUTPUT, DATA_WIDTH) }
 }
 
 class RegFileIO() extends Bundle() {
   val ena = Bool(INPUT)
   val rfRead = new RegFileRead()
-  val rfWrite = new Result()
+  val rfWrite = Vec(PIPE_COUNT) { new Result() }
   val rfDebug = Vec(REG_COUNT) { Bits(OUTPUT, DATA_WIDTH) }
 }
 
@@ -190,7 +191,7 @@ class DecodeIO() extends Bundle() {
   val fedec = new FeDec().asInput
   val decex = new DecEx().asOutput
   val exdec = new ExDec().asInput
-  val rfWrite = new Result()
+  val rfWrite =  Vec(PIPE_COUNT) { new Result() }
 }
 
 class ExecuteIO() extends Bundle() {
@@ -199,8 +200,8 @@ class ExecuteIO() extends Bundle() {
   val exdec = new ExDec().asOutput
   val exmem = new ExMem().asOutput
   // forwarding inputs
-  val exResult = new Result()
-  val memResult = new Result()
+  val exResult = Vec(PIPE_COUNT) { new Result() }
+  val memResult = Vec(PIPE_COUNT) { new Result() }
   // branch for FE
   val exfe = new ExFe().asOutput
 }
@@ -242,7 +243,7 @@ class MemoryIO() extends Bundle() {
   val memfe = new MemFe().asOutput
   val femem = new FeMem().asInput
   // for result forwarding
-  val exResult = new Result().flip
+  val exResult = Vec(PIPE_COUNT) { new Result().flip }
   val memInOut = new Mem2InOut()
   val dbgMem = Bits(OUTPUT, DATA_WIDTH)
 }
@@ -251,7 +252,7 @@ class WriteBackIO() extends Bundle() {
   val ena = Bool(INPUT)
   val memwb = new MemWb().asInput
   // wb result (unregistered)
-  val rfWrite = new Result().flip
+  val rfWrite = Vec(PIPE_COUNT) { new Result().flip }
   // for result forwarding (register)
-  val memResult = new Result().flip
+  val memResult =  Vec(PIPE_COUNT) { new Result().flip }
 }

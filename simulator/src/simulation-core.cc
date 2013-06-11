@@ -330,7 +330,7 @@ namespace patmos
 
             interrupt_t &interrupt = Interrupt_handler.get_interrupt();
 
-            Pipeline[0][0] = instruction_data_t::mk_CFLb(*intr, p0, interrupt.Address);
+            Pipeline[0][0] = instruction_data_t::mk_CFLb(*intr, p0, interrupt.Address, interrupt.Address);
             Pipeline[0][1] = instruction_data_t();
 
             // Handling interrupt, next CPU cycle no new instructions have to be decoded

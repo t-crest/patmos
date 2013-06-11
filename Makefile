@@ -9,6 +9,8 @@ EXTENSIONS=class rbf rpt sof pin summary ttf qdf dat wlf done qws
 #	Set USB to true for an FTDI chip based board (dspio, usbmin, lego)
 #
 USB=false
+# COM port for downloader
+COM_PORT=/dev/ttyUSB0
 
 # Assembler files
 APP=ALU
@@ -82,6 +84,14 @@ rom:
 	java -cp java/lib/patmos-tools.jar \
 		patmos.asm.Bin2Vhdl -s tmp -d vhdl/generated aout.bin
 
+# Compile a C program and download to FPGA
+capp:
+#	todo:Add bootloader compilation here
+	-mkdir -p tmp
+	cd c; make bootable-$(APP)
+	mv c/$(APP) tmp/$(APP)
+	make download APP=tmp/$(APP) 
+	
 # Compile a C program, the Patmos compiler must be in the path
 comp:
 	-mkdir -p tmp
@@ -195,8 +205,8 @@ config_byteblaster:
 config_usb:
 	cd rbf && ../$(USBRUNNER) $(QPROJ).rbf
 
-download:
-	java -cp lib/*:java/classes/ patserdow.Main /dev/ttyUSB0 $(APP)
+download: 
+	java -cp lib/*:java/classes/ patserdow.Main $(COM_PORT) $(APP)
 
 # TODO: no Xilinx Makefiles available yet
 config_xilinx:

@@ -33,7 +33,8 @@
 /*
  * Constants for Patmos.
  * 
- * Author: Martin Schoeberl (martin@jopdesign.com)
+ * Authors: Martin Schoeberl (martin@jopdesign.com)
+ *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
  * 
  */
 
@@ -44,7 +45,7 @@ import Node._
 
 object Constants {
 
-  val SPM_MAX_BITS = 21
+//  val SPM_MAX_BITS = 21
   // MS: maybe better use sizes in bytes and use log2Up() to
   // get the number of bits.
   // XX_BITS might confuse as the ISPM is origanized in words,
@@ -52,10 +53,16 @@ object Constants {
   // bits.
   val ISPM_BITS = 15
   val DSPM_BITS = 14
+  
+  // we use now a very simple decode of ISPM ad address 0x00800000
+  // this is the one bit in byte address counting
+  val ISPM_ONE_BIT = 23
 
   // The PC counts in words. 30 bits are enough for the 4 GB address space.
   // We might cut that down to what we actually really support (16 MB)
   val PC_SIZE = 30
+
+  val PIPE_COUNT = 2
 
   val REG_BITS = 5
   val REG_COUNT = 1 << REG_BITS

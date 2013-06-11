@@ -76,9 +76,7 @@ class Fetch(fileName: String) extends Component {
   val memOdd = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
 
   // write from EX - use registers - ignore stall, as reply does not hurt
-  val selWrite = (io.memfe.store
-				  & (io.memfe.addr(DATA_WIDTH-1, SPM_MAX_BITS) === Bits(0x1))
-				  & (io.memfe.addr(SPM_MAX_BITS-1, ISPM_BITS) === Bits(0x0)))
+  val selWrite = (io.memfe.store & (io.memfe.addr(ISPM_ONE_BIT) === Bits(0x1)))
   val wrEven = Reg(selWrite & (io.memfe.addr(2) === Bits(0)))
   val wrOdd = Reg(selWrite & (io.memfe.addr(2) === Bits(1)))
   val addrReg = Reg(io.memfe.addr)
@@ -92,8 +90,9 @@ class Fetch(fileName: String) extends Component {
   val ispm_even = memEven(addr_even(ispmAddrBits, 1))
   val ispm_odd = memOdd(addr_odd(ispmAddrBits, 1))
 
-  // read from ISPM mapped to address 0x200000
-  val selIspm = pc(PC_SIZE-1, SPM_MAX_BITS-2) === Bits(0x1)
+  // read from ISPM mapped to address 0x00800000
+  // PC counts in words
+  val selIspm = pc(ISPM_ONE_BIT - 2) === Bits(0x1)
   // ROM/ISPM Mux
   val data_even = Mux(selIspm, ispm_even, rom(addr_even))
   val data_odd = Mux(selIspm, ispm_odd, rom(addr_odd))
@@ -104,9 +103,9 @@ class Fetch(fileName: String) extends Component {
   val b_valid = instr_a(31) === Bits(1)
   val pc_cont = pc + Mux(b_valid, UFix(2), UFix(1))
   val pc_next =
-	Mux(io.memfe.doCallRet, io.memfe.callRetPc,
-		Mux(io.exfe.doBranch, io.exfe.branchPc,
-			pc_cont))
+    Mux(io.memfe.doCallRet, io.memfe.callRetPc,
+      Mux(io.exfe.doBranch, io.exfe.branchPc,
+        pc_cont))
 
   val pc_inc = Mux(pc_next(0), pc_next + UFix(2), pc_next)
   when(io.ena) {

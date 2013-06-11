@@ -113,19 +113,9 @@ class Patmos(fileName: String) extends Component {
 
   // ***** the following code is not really Patmos code ******
 
-  // maybe instantiate the FSM here to get some output when
-  // compiling for the FPGA
-
-  //  val led = Reg(resetVal = Bits(1, 8))
-  //  val led_next = Cat(led(6, 0), led(7))
-  //
-  //  when(Bool(true)) {
-  //    led := led_next
-  //  }
-
   // Dummy output, which is ignored in the top level VHDL code, to
   // keep Chisel happy with unused signals
-  val sum1 = writeback.io.rfWrite.data.toUFix + memory.io.memwb.pc + memory.io.dbgMem
+  val sum1 = memory.io.memwb.pc + memory.io.dbgMem
   val part = Reg(sum1.toBits)
   val p = execute.io.exmem.predDebug
   // to dumb for vector to bits...

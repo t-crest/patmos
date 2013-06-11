@@ -33,7 +33,8 @@
 /*
  * Memory stage of Patmos.
  * 
- * Author: Martin Schoeberl (martin@jopdesign.com)
+ * Authors: Martin Schoeberl (martin@jopdesign.com)
+ *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
  * 
  */
 
@@ -79,8 +80,10 @@ class Spm(size: Int) extends Component {
   val stmsk = Bits(width = BYTES_PER_WORD)
   stmsk := Bits("b1111")
   
-  val select = ((io.in.addr(DATA_WIDTH-1, SPM_MAX_BITS) === Bits(0x0))
-				& (io.in.addr(SPM_MAX_BITS-1, DSPM_BITS) === Bits(0x0)))
+//  val select = ((io.in.addr(DATA_WIDTH-1, SPM_MAX_BITS) === Bits(0x0))
+//				& (io.in.addr(SPM_MAX_BITS-1, DSPM_BITS) === Bits(0x0)))
+  // Everything that is not ISPM is DSMP write
+  val select = (io.in.addr(ISPM_ONE_BIT) === Bits(0x0))
 
   // Input multiplexing and write enables
   when(io.in.hword) {
@@ -221,12 +224,16 @@ class Memory() extends Component {
   val baseReg = Reg(resetVal = UFix(0, DATA_WIDTH))
 
   io.memwb.pc := memReg.pc
-  io.memwb.rd.addr := memReg.rd.addr
-  io.memwb.rd.valid := memReg.rd.valid
-  io.memwb.rd.data := Mux(memReg.mem.load, dout,
-						  Mux(memReg.mem.call,
-							  Cat(io.femem.pc, Bits("b00")) - baseReg,
-							  memReg.rd.data))
+  for (i <- 0 until PIPE_COUNT) {
+	io.memwb.rd(i).addr := memReg.rd(i).addr
+	io.memwb.rd(i).valid := memReg.rd(i).valid
+	io.memwb.rd(i).data := memReg.rd(i).data 
+  }
+  // Fill in data from loads or calls
+  io.memwb.rd(0).data := Mux(memReg.mem.load, dout,
+							 Mux(memReg.mem.call,
+								 Cat(io.femem.pc, Bits("b00")) - baseReg,
+								 memReg.rd(0).data))  
 
   // call to fetch
   io.memfe.doCallRet := memReg.mem.call || memReg.mem.ret

@@ -1744,8 +1744,8 @@ namespace patmos
   };
 
   CFLB_INSTR(call, store_return_address, fetch_and_dispatch,
-             ops.OPS.CFLb.Imm*sizeof(word_t),
-             ops.OPS.CFLb.Imm*sizeof(word_t), MW)
+             ops.OPS.CFLb.UImm*sizeof(word_t),
+             ops.OPS.CFLb.UImm*sizeof(word_t), MW)
   CFLB_INSTR(br, no_store_return_address, dispatch,
              s.BASE,
              ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t), EX)

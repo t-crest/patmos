@@ -80,7 +80,7 @@ static val_t readelf(istream &is, Patmos_t *c)
       // copy from the buffer into the on-chip memories
 	  for (size_t k = 0; k < phdr.p_memsz; k++) {
 
-		if (((phdr.p_paddr + k) >> 21) == 0x1 && 
+		if (((phdr.p_paddr + k) >> 23) == 0x1 && 
 			((phdr.p_paddr + k) & 0x3) == 0) {
 		  // Address maps to ISPM and is at a word boundary
 		  val_t word = k >= phdr.p_filesz ? 0 :
@@ -88,7 +88,11 @@ static val_t readelf(istream &is, Patmos_t *c)
 			 ((val_t)elfbuf[phdr.p_offset + k + 1] << 16) |
 			 ((val_t)elfbuf[phdr.p_offset + k + 2] << 8) |
 			 ((val_t)elfbuf[phdr.p_offset + k + 3] << 0));
-		  val_t addr = ((phdr.p_paddr + k) - (0x1 << 21)) >> 3;
+		  val_t addr = ((phdr.p_paddr + k) - (0x1 << 23)) >> 3;
+
+		  unsigned size = (sizeof(c->Patmos_fetch__memEven.contents) / 
+						   sizeof(c->Patmos_fetch__memEven.contents[0]));
+		  assert(addr < size && "Instructions mapped to ISPM exceed size");
 
 		  // Write to even or odd block
 		  if (((phdr.p_paddr + k) & 0x4) == 0) {
@@ -98,10 +102,15 @@ static val_t readelf(istream &is, Patmos_t *c)
 		  }
 		}
 
-		if (((phdr.p_paddr + k) >> 21) == 0x0) {
+		if (((phdr.p_paddr + k) >> 23) == 0x0) {
 		  // Address maps to data SPM
 		  val_t byte = k >= phdr.p_filesz ? 0 : elfbuf[phdr.p_offset + k];
 		  val_t addr = (phdr.p_paddr + k) >> 2;
+		  
+		  unsigned size = (sizeof(c->Patmos_memory_spm__mem0.contents) /
+						   sizeof(c->Patmos_memory_spm__mem0.contents[0]));
+		  assert (addr < size && "Data mapped to DSPM exceed size");
+
 		  switch ((phdr.p_paddr + k) & 0x3) {
 		  case 0: c->Patmos_memory_spm__mem0.put(addr, byte); break;
 		  case 1: c->Patmos_memory_spm__mem1.put(addr, byte); break;
@@ -172,12 +181,16 @@ int main (int argc, char* argv[]) {
   int opt;
   int lim = -1;
   bool vcd = false;
+  bool uart = false;
   bool quiet = false;
   
-  while ((opt = getopt(argc, argv, "qvl:")) != -1) {
+  while ((opt = getopt(argc, argv, "quvl:")) != -1) {
 	switch (opt) {
 	case 'q':
 	  quiet = true;
+	  break;
+	case 'u':
+	  uart = true;
 	  break;
 	case 'v':
 	  vcd = true;
@@ -186,7 +199,7 @@ int main (int argc, char* argv[]) {
 	  lim = atoi(optarg);
 	  break;
 	default: /* '?' */
-	  cerr << "Usage: " << argv[0] << "[-l cycles] [file]" << endl;
+	  cerr << "Usage: " << argv[0] << "[-q] [-u] [-v] [-l cycles] [file]" << endl;
 	  exit(EXIT_FAILURE);
 	}
   }
@@ -228,6 +241,15 @@ int main (int argc, char* argv[]) {
 
 	if (vcd) {
 	  c->dump(f, t);
+	}
+
+	if (uart) {
+	  // Pass on data from UART, to be changed once the Chisel-UART is integrated
+	  c->Patmos__io_uart_rd_data = 0x01;
+	  if (c->Patmos__io_uart_wr.to_bool()
+		  && c->Patmos__io_uart_address.to_ulong() == 0x01) {
+		cout << (char)c->Patmos__io_uart_wr_data.to_ulong();
+	  }
 	}
 
 	if (!quiet) {

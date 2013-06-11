@@ -33,7 +33,8 @@
 /*
  * Execution stage of Patmos.
  * 
- * Author: Martin Schoeberl (martin@jopdesign.com)
+ * Authors: Martin Schoeberl (martin@jopdesign.com)
+ *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
  * 
  * Current Fmax on the DE2-70 is 84 MHz
  *   from forward address comparison to EXMEM register rd
@@ -107,33 +108,40 @@ class Execute() extends Component {
   }
 
   // data forwarding
-  val fwEx0 = exReg.rsAddr(0) === io.exResult.addr && io.exResult.valid
-  val fwMem0 = exReg.rsAddr(0) === io.memResult.addr && io.memResult.valid
-  val ra = Mux(fwEx0, io.exResult.data, Mux(fwMem0, io.memResult.data, exReg.rsData(0)))
-  val fwEx1 = exReg.rsAddr(1) === io.exResult.addr && io.exResult.valid
-  val fwMem1 = exReg.rsAddr(1) === io.memResult.addr && io.memResult.valid
-  val rb = Mux(fwEx1, io.exResult.data, Mux(fwMem1, io.memResult.data, exReg.rsData(1)))
-
-  val op2 = Mux(exReg.immOp, exReg.immVal, rb)
-  val op1 = ra
-  val aluResult = alu(exReg.aluOp.func, op1, op2)
-  val compResult = comp(exReg.aluOp.func, op1, op2)
+  val op = Vec(2*PIPE_COUNT) { Bits(width = 32) }
+  for (i <- 0 until 2*PIPE_COUNT) { 
+	op(i) := exReg.rsData(i)
+	for (k <- 0 until PIPE_COUNT) {
+	  when(exReg.rsAddr(i) === io.memResult(k).addr && io.memResult(k).valid) {
+		op(i) := io.memResult(k).data
+	  }
+	}
+	for (k <- 0 until PIPE_COUNT) {
+	  when(exReg.rsAddr(i) === io.exResult(k).addr && io.exResult(k).valid) {
+		op(i) := io.exResult(k).data
+	  }
+	}	
+  }
+  for (i <- 0 until PIPE_COUNT) { 
+	when(exReg.immOp(i)) {
+	  op(2*i+1) := exReg.immVal(i)
+	}
+  }
 
   // predicates
   val predReg = Vec(PRED_COUNT) { Reg(resetVal = Bool(false)) }
 
-  val ps1 = predReg(exReg.predOp.s1Addr(PRED_BITS-1,0)) ^ exReg.predOp.s1Addr(PRED_BITS)
-  val ps2 = predReg(exReg.predOp.s2Addr(PRED_BITS-1,0)) ^ exReg.predOp.s2Addr(PRED_BITS)
-  val predResult = pred(exReg.predOp.func, ps1, ps2)
-
-  val doExecute = predReg(exReg.pred(PRED_BITS-1, 0)) ^ exReg.pred(PRED_BITS)
-
-  when((exReg.aluOp.isCmp || exReg.aluOp.isPred) && doExecute && io.ena) {
-    predReg(exReg.predOp.dest) := Mux(exReg.aluOp.isCmp, compResult, predResult)
+  val doExecute = Vec(PIPE_COUNT) { Bool() }
+  for (i <- 0 until PIPE_COUNT) {
+	doExecute(i) := predReg(exReg.pred(i)(PRED_BITS-1, 0)) ^ exReg.pred(i)(PRED_BITS)
   }
-  predReg(0) := Bool(true)
 
-  // multiplication
+  // stack registers
+  val stackTopReg = Reg(resetVal = UFix(0, DATA_WIDTH))
+  val stackSpillReg = Reg(resetVal = UFix(0, DATA_WIDTH))
+  io.exdec.sp := stackTopReg
+
+  // multiplication pipeline registers
   val mulLoReg = Reg(resetVal = UFix(0, DATA_WIDTH))
   val mulHiReg = Reg(resetVal = UFix(0, DATA_WIDTH))
 
@@ -146,17 +154,18 @@ class Execute() extends Component {
   
   val mulPipe = Vec(3) { Reg(resetVal = Bool(false)) }
 
+  // multiplication only in first pipeline
   when(io.ena) {
-	mulPipe(0) := exReg.aluOp.isMul && doExecute
+	mulPipe(0) := exReg.aluOp(0).isMul && doExecute(0)
 	mulPipe(1) := mulPipe(0)
 	mulPipe(2) := mulPipe(1)
 
-	val signed = exReg.aluOp.func === MFUNC_MUL
+	val signed = exReg.aluOp(0).func === MFUNC_MUL
 
-	val op1H = op1(DATA_WIDTH-1, DATA_WIDTH/2)
-	val op1L = op1(DATA_WIDTH/2-1, 0)
-	val op2H = op2(DATA_WIDTH-1, DATA_WIDTH/2)
-	val op2L = op2(DATA_WIDTH/2-1, 0)
+	val op1H = op(0)(DATA_WIDTH-1, DATA_WIDTH/2)
+	val op1L = op(0)(DATA_WIDTH/2-1, 0)
+	val op2H = op(1)(DATA_WIDTH-1, DATA_WIDTH/2)
+	val op2L = op(1)(DATA_WIDTH/2-1, 0)
 
 	mulLL := op1L.toUFix * op2L.toUFix
 	mulLH := op1L.toUFix * op2H.toUFix
@@ -180,78 +189,93 @@ class Execute() extends Component {
 	}
   }
 
-  // stack registers
-  val stackTopReg = Reg(resetVal = UFix(0, DATA_WIDTH))
-  val stackSpillReg = Reg(resetVal = UFix(0, DATA_WIDTH))
-  io.exdec.sp := stackTopReg
-  when(exReg.aluOp.isSTC && doExecute && io.ena) {
-	io.exdec.sp := op2.toUFix()
-	stackTopReg := op2.toUFix()
-  }
+  // dual-issue operations
+  for (i <- 0 until PIPE_COUNT) {
 
-  // special registers
-  when(exReg.aluOp.isMTS && doExecute && io.ena) {
-	switch(exReg.aluOp.func) {
+	val aluResult = alu(exReg.aluOp(i).func, op(2*i), op(2*i+1))
+	val compResult = comp(exReg.aluOp(i).func, op(2*i), op(2*i+1))
+
+	// predicate operations
+	val ps1 = predReg(exReg.predOp(i).s1Addr(PRED_BITS-1,0)) ^ exReg.predOp(i).s1Addr(PRED_BITS)
+	val ps2 = predReg(exReg.predOp(i).s2Addr(PRED_BITS-1,0)) ^ exReg.predOp(i).s2Addr(PRED_BITS)
+	val predResult = pred(exReg.predOp(i).func, ps1, ps2)
+
+	when((exReg.aluOp(i).isCmp || exReg.aluOp(i).isPred) && doExecute(i) && io.ena) {
+      predReg(exReg.predOp(i).dest) := Mux(exReg.aluOp(i).isCmp, compResult, predResult)
+	}
+	predReg(0) := Bool(true)
+
+	// stack register handling
+	when(exReg.aluOp(i).isSTC && doExecute(i) && io.ena) {
+	  io.exdec.sp := op(2*i+1).toUFix()
+	  stackTopReg := op(2*i+1).toUFix()
+	}
+
+	// special registers
+	when(exReg.aluOp(i).isMTS && doExecute(i) && io.ena) {
+	  switch(exReg.aluOp(i).func) {
+		is(SPEC_FL) {
+		  predReg := op(i)(PRED_COUNT-1, 0).toBits()
+		  predReg(0) := Bool(true)
+		}
+		is(SPEC_SL) {
+		  mulLoReg := op(2*i).toUFix()
+		}
+		is(SPEC_SH) {
+		  mulHiReg := op(2*i).toUFix()
+		}
+		is(SPEC_ST) {
+		  io.exdec.sp := op(2*i).toUFix()
+		  stackTopReg := op(2*i).toUFix()
+		}
+		is(SPEC_SS) {
+		  stackSpillReg := op(2*i).toUFix()
+		}
+	  }
+	}
+	val mfsResult = UFix();
+	mfsResult := UFix(0, DATA_WIDTH)
+	switch(exReg.aluOp(i).func) {
 	  is(SPEC_FL) {
-		predReg := op1(PRED_COUNT-1, 0).toBits()
-		predReg(0) := Bool(true)
+		mfsResult := Cat(Bits(0, DATA_WIDTH-PRED_COUNT), predReg.toBits()).toUFix()
 	  }
 	  is(SPEC_SL) {
-		mulLoReg := op1.toUFix()
+		mfsResult := mulLoReg
 	  }
 	  is(SPEC_SH) {
-		mulHiReg := op1.toUFix()
+		mfsResult := mulHiReg
 	  }
 	  is(SPEC_ST) {
-		io.exdec.sp := op1.toUFix()
-		stackTopReg := op1.toUFix()
+		mfsResult := stackTopReg
 	  }
 	  is(SPEC_SS) {
-		stackSpillReg := op1.toUFix()
+		mfsResult := stackSpillReg
 	  }
 	}
-  }
-  val mfsResult = UFix();
-  mfsResult := UFix(0, DATA_WIDTH)
-  switch(exReg.aluOp.func) {
-	is(SPEC_FL) {
-	  mfsResult := Cat(Bits(0, DATA_WIDTH-PRED_COUNT), predReg.toBits()).toUFix()
-	}
-	is(SPEC_SL) {
-	  mfsResult := mulLoReg
-	}
-	is(SPEC_SH) {
-	  mfsResult := mulHiReg
-	}
-	is(SPEC_ST) {
-	  mfsResult := stackTopReg
-	}
-	is(SPEC_SS) {
-	  mfsResult := stackSpillReg
-	}
+
+	// result
+	io.exmem.rd(i).addr := exReg.rdAddr(i)
+	io.exmem.rd(i).valid := exReg.wrReg(i) && doExecute(i)
+	io.exmem.rd(i).data := Mux(exReg.aluOp(i).isMFS, mfsResult, aluResult)
   }
 
-  // result
-  io.exmem.rd.addr := exReg.rdAddr(0)
-  io.exmem.rd.data := Mux(exReg.aluOp.isMFS, mfsResult, aluResult)
-  io.exmem.rd.valid := exReg.wrReg && doExecute
   // load/store
-  io.exmem.mem.load := exReg.memOp.load && doExecute
-  io.exmem.mem.store := exReg.memOp.store && doExecute
+  io.exmem.mem.load := exReg.memOp.load && doExecute(0)
+  io.exmem.mem.store := exReg.memOp.store && doExecute(0)
   io.exmem.mem.hword := exReg.memOp.hword
   io.exmem.mem.byte := exReg.memOp.byte
   io.exmem.mem.zext := exReg.memOp.zext
-  io.exmem.mem.addr := op1 + exReg.immVal
-  io.exmem.mem.data := op2
-  io.exmem.mem.call := exReg.call && doExecute
-  io.exmem.mem.ret  := exReg.ret && doExecute
+  io.exmem.mem.addr := op(0) + exReg.immVal(0)
+  io.exmem.mem.data := op(1)
+  io.exmem.mem.call := exReg.call && doExecute(0)
+  io.exmem.mem.ret  := exReg.ret && doExecute(0)
   // call/return
-  val callAddr = Mux(exReg.immOp, exReg.callAddr, op1.toUFix)
-  io.exmem.mem.callRetAddr := Mux(exReg.call, callAddr, op1 + op2)
-  io.exmem.mem.callRetBase := Mux(exReg.call, callAddr, op1.toUFix)
+  val callAddr = Mux(exReg.immOp(0), exReg.callAddr, op(0).toUFix)
+  io.exmem.mem.callRetAddr := Mux(exReg.call, callAddr, op(0) + op(1))
+  io.exmem.mem.callRetBase := Mux(exReg.call, callAddr, op(0).toUFix)
   // branch
-  io.exfe.doBranch := exReg.jmpOp.branch && doExecute
-  val target = Mux(exReg.immOp, exReg.jmpOp.target, op1(DATA_WIDTH-1, 2).toUFix)
+  io.exfe.doBranch := exReg.jmpOp.branch && doExecute(0)
+  val target = Mux(exReg.immOp(0), exReg.jmpOp.target, op(0)(DATA_WIDTH-1, 2).toUFix)
   io.exfe.branchPc := target
   
   io.exmem.pc := exReg.pc

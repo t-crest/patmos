@@ -235,6 +235,7 @@ namespace patmos
       struct
       {
         word_t Imm;
+        uword_t UImm;
       } CFLb;
       /// Operands for an CFLi instruction.
       struct
@@ -465,7 +466,7 @@ namespace patmos
     /// executed.
     /// @param imm The operand immediate.
     static instruction_data_t mk_CFLb(const instruction_t &i, PRR_e pred,
-                                      word_t imm);
+                                      word_t imm, uword_t uimm);
 
     /// Create an CFLi instruction with an register operand.
     /// @param i The instruction.

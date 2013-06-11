@@ -19,11 +19,15 @@ public class UARTOutputStream extends OutputStream
 	@Override
 	public void write(byte[] b, int off, int len) throws IOException 
 	{
-		byte[] newbuffer = new byte[len]; //Because SerialPort doesn't do offset
-		System.arraycopy(b, off, newbuffer, 0, len);
+		if(off > 0 || len < b.length)
+		{
+			byte[] newbuffer = new byte[len-off]; //Because SerialPort doesn't do offset
+			System.arraycopy(b, off, newbuffer, 0, len);
+			b = newbuffer;
+		}
 		try 
 		{
-			port.writeBytes(newbuffer);
+			port.writeBytes(b);
 		} 
 		catch (SerialPortException e) 
 		{
