@@ -108,20 +108,46 @@ class Execute() extends Component {
   }
 
   // data forwarding
+  val fwMem = Vec(2*PIPE_COUNT) { Vec(PIPE_COUNT) { Reg(resetVal = Bool(false)) } }
+  val fwEx  = Vec(2*PIPE_COUNT) { Vec(PIPE_COUNT) { Reg(resetVal = Bool(false)) } }
+  val memResultData = Vec(PIPE_COUNT) { Reg(Bits(width = DATA_WIDTH)) }
+  val exResultData  = Vec(PIPE_COUNT) { Reg(Bits(width = DATA_WIDTH)) }
   val op = Vec(2*PIPE_COUNT) { Bits(width = 32) }
-  for (i <- 0 until 2*PIPE_COUNT) { 
-	op(i) := exReg.rsData(i)
-	for (k <- 0 until PIPE_COUNT) {
-	  when(exReg.rsAddr(i) === io.memResult(k).addr && io.memResult(k).valid) {
-		op(i) := io.memResult(k).data
+
+  // precompute forwarding
+  when (io.ena) {
+	for (i <- 0 until 2*PIPE_COUNT) { 
+	  for (k <- 0 until PIPE_COUNT) {
+		fwMem(i)(k) := Bool(false)
+		when(io.decex.rsAddr(i) === io.memResult(k).addr && io.memResult(k).valid) {
+		  fwMem(i)(k) := Bool(true)
+		}
+		fwEx(i)(k) := Bool(false)
+		when(io.decex.rsAddr(i) === io.exResult(k).addr && io.exResult(k).valid) {
+		  fwEx(i)(k) := Bool(true)
+		}
 	  }
 	}
 	for (k <- 0 until PIPE_COUNT) {
-	  when(exReg.rsAddr(i) === io.exResult(k).addr && io.exResult(k).valid) {
-		op(i) := io.exResult(k).data
-	  }
-	}	
+	  memResultData(k) := io.memResult(k).data
+	  exResultData(k) := io.exResult(k).data
+	}
   }
+  // forwarding multiplexers
+  for (i <- 0 until 2*PIPE_COUNT) { 
+	op(i) := exReg.rsData(i)
+	for (k <- 0 until PIPE_COUNT) {
+	  when(fwMem(i)(k)) { 
+		op(i) := memResultData(k)
+	  }
+	}
+	for (k <- 0 until PIPE_COUNT) {
+	  when(fwEx(i)(k)) { 
+		op(i) := exResultData(k)
+	  }
+	}
+  }
+
   for (i <- 0 until PIPE_COUNT) { 
 	when(exReg.immOp(i)) {
 	  op(2*i+1) := exReg.immVal(i)

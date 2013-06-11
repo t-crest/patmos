@@ -54,7 +54,7 @@ class WriteBack() extends Component {
   
   // The register file has input registers
   io.rfWrite <> io.memwb.rd  
-  // extra port for forwarding the registered value
-  io.memResult := wbReg.rd
+  // extra port for forwarding
+  io.memResult := io.memwb.rd
 
 }

@@ -249,8 +249,8 @@ class Memory() extends Component {
   io.memfe.addr := memIn.addr
   io.memfe.data := memIn.data
 
-  // extra port for forwarding the registered value
-  io.exResult := memReg.rd
+  // extra port for forwarding
+  io.exResult := io.exmem.rd
   // debugging
   io.dbgMem := io.memInOut.rdData
 }
