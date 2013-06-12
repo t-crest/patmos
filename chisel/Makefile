@@ -5,6 +5,8 @@ APP=basic
 BOOTBINROOT=..
 BOOTBIN=tmp/$(APP).bin
 
+QPROJ=altde2-70
+
 # Building Patmos with Chisel without too much sbt/scala/... stuff
 #
 # sbt looks for default into a folder project/ for build.sdt and Build.scala
@@ -77,8 +79,17 @@ $(VGEN): $(BOOTBINROOT)/$(BOOTBIN) $(SRC)
 vsim: verilog
 	$(MAKE) -C modelsim sim
 
-# build the boot binary exists
-$(BOOTBINROOT)/$(BOOTBIN):
+# synthesize
+qsyn: verilog
+	quartus_map quartus/$(QPROJ)/patmos
+	quartus_fit quartus/$(QPROJ)/patmos
+	quartus_asm quartus/$(QPROJ)/patmos
+	quartus_sta quartus/$(QPROJ)/patmos
+
+# build the boot binary
+$(BOOTBINROOT)/$(BOOTBIN): .FORCE
 	$(MAKE) -C $(BOOTBINROOT) $(BOOTBIN)
+
+.FORCE:
 
 .PHONY: all emulator test view verilog vsim

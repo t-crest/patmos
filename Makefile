@@ -168,25 +168,14 @@ endif
 
 synth:
 	make vsynth
-	make chslgen
 	make csynth
 
 # This is ugly, but I don't have Quartus under OSX
 # and I don't have cmake/paasm under cygwin
 # Tools in Java would be easier...
 
-chslgen:
-	$(MAKE) -C chisel verilog APP=$(APP)
-
 csynth:
-	echo "building $(QPROJ) from Chisel"
-	-rm -rf chisel/quartus/$(QPROJ)/db
-	-rm -f chisel/quartus/$(QPROJ)/patmos.sof
-	quartus_map chisel/quartus/$(QPROJ)/patmos
-	quartus_fit chisel/quartus/$(QPROJ)/patmos
-	quartus_asm chisel/quartus/$(QPROJ)/patmos
-	quartus_sta chisel/quartus/$(QPROJ)/patmos
-
+	$(MAKE) -C chisel qsyn APP=$(APP) QPROJ=$(QPROJ)
 
 vsynth:
 	@echo $(QPROJ)
