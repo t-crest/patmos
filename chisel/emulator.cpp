@@ -8,6 +8,9 @@
 
 #include "Patmos.h"
 
+istream *in = &cin;
+ostream *out = &cout;
+  
 /// Read an elf executable image into the on-chip memories
 static val_t readelf(istream &is, Patmos_t *c)
 {
@@ -40,7 +43,7 @@ static val_t readelf(istream &is, Patmos_t *c)
   // check file kind
   Elf_Kind ek = elf_kind(elf);
   if (ek != ELF_K_ELF) {
-    cout << "readelf: ELF file must be of kind ELF.\n";
+    cerr << "readelf: ELF file must be of kind ELF.\n";
     exit(EXIT_FAILURE);
   }
 
@@ -50,14 +53,14 @@ static val_t readelf(istream &is, Patmos_t *c)
   assert(tmphdr);
 
   if (hdr.e_machine != 0xBEEB) {
-    cout << "readelf: unsupported architecture: ELF file is not a Patmos ELF file.\n";
+    cerr << "readelf: unsupported architecture: ELF file is not a Patmos ELF file.\n";
     exit(EXIT_FAILURE);
   }
   
   // check class
   int ec = gelf_getclass(elf);
   if (ec != ELFCLASS32) {
-    cout << "readelf: unsupported architecture: ELF file is not a 32bit Patmos ELF file.\n";
+    cerr << "readelf: unsupported architecture: ELF file is not a 32bit Patmos ELF file.\n";
     exit(EXIT_FAILURE);
   }
 
@@ -132,7 +135,7 @@ static val_t readelf(istream &is, Patmos_t *c)
 
 static void print_state(Patmos_t *c) {
 	sval_t pc = c->Patmos_memory__io_memwb_pc.to_ulong();
-	cout << (pc - 2) << " - ";
+	*out << (pc - 2) << " - ";
 
 	sval_t rf [32];
 	rf[0] = c->Patmos_decode_rf__rf_0.to_ulong();
@@ -169,10 +172,10 @@ static void print_state(Patmos_t *c) {
 	rf[31] = c->Patmos_decode_rf__rf_31.to_ulong();
 
 	for (int i = 0; i < 32; i++) {
-	  cout << rf[i] << " ";
+	  *out << rf[i] << " ";
 	}
 
-	cout << endl;
+	*out << endl;
 }
 
 int main (int argc, char* argv[]) {
@@ -183,8 +186,8 @@ int main (int argc, char* argv[]) {
   bool vcd = false;
   bool uart = false;
   bool quiet = false;
-  
-  while ((opt = getopt(argc, argv, "quvl:")) != -1) {
+
+  while ((opt = getopt(argc, argv, "quvl:I:O:")) != -1) {
 	switch (opt) {
 	case 'q':
 	  quiet = true;
@@ -198,8 +201,31 @@ int main (int argc, char* argv[]) {
 	case 'l':
 	  lim = atoi(optarg);
 	  break;
+	case 'I':
+	  if (strcmp(optarg, "-") == 0) {
+		in = &cin;
+	  } else {
+		in = new ifstream(optarg);
+		if (!in->good()) {
+		  cerr << argv[0] << "error: Cannot open input file " << optarg << endl;
+		  exit(EXIT_FAILURE);
+		}
+	  }
+	  break;
+	case 'O':
+	  if (strcmp(optarg, "-") == 0) {
+		out = &cout;
+	  } else {
+		out = new ofstream(optarg);
+		if (!out->good()) {
+		  cerr << argv[0] << ": error: Cannot open output file " << optarg << endl;
+		  exit(EXIT_FAILURE);
+		}
+	  }
+	  break;
 	default: /* '?' */
-	  cerr << "Usage: " << argv[0] << "[-q] [-u] [-v] [-l cycles] [file]" << endl;
+	  cerr << "Usage: " << argv[0]
+		   << "[-q] [-u] [-v] [-l cycles] [-I file] [-O file] [file]" << endl;
 	  exit(EXIT_FAILURE);
 	}
   }
@@ -208,15 +234,18 @@ int main (int argc, char* argv[]) {
 
   val_t entry = 0;
   if (optind < argc) {
-	ifstream fs;
-	fs.open(argv[optind]);
-	entry = readelf(fs, c);
+	ifstream *fs = new ifstream(argv[optind]);
+	if (!fs->good()) {
+	  cerr << argv[0] << ": error: Cannot open elf file " << argv[optind] << endl;
+	  exit(EXIT_FAILURE);
+	}
+	entry = readelf(*fs, c);
   }
 
   FILE *f = vcd ? fopen("Patmos.vcd", "w") : NULL;
   
   if (!quiet) {
-	cout << "Patmos start" << endl;
+	*out << "Patmos start" << endl;
   }
 
   // Assert reset for a few cycles
@@ -248,7 +277,7 @@ int main (int argc, char* argv[]) {
 	  c->Patmos__io_uart_rd_data = 0x01;
 	  if (c->Patmos__io_uart_wr.to_bool()
 		  && c->Patmos__io_uart_address.to_ulong() == 0x01) {
-		cout << (char)c->Patmos__io_uart_wr_data.to_ulong();
+		*out << (char)c->Patmos__io_uart_wr_data.to_ulong();
 	  }
 	}
 
@@ -268,7 +297,7 @@ int main (int argc, char* argv[]) {
 
   // TODO: adapt comparison tool so this can be removed
   if (!quiet) {
-	cout << "PASSED" << endl;
+	*out << "PASSED" << endl;
   }
 
   // Pass on return value from processor
