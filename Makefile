@@ -46,6 +46,12 @@ patsim:
 	-mkdir -p bin
 	cp simulator/build/src/pa* bin
 
+emulator:
+	-mkdir -p chisel/build
+	$(MAKE) -C chisel BUILDDIR=$(CURDIR)/chisel/build emulator
+	-mkdir -p bin
+	cp chisel/build/emulator bin
+
 elf2vhdl:
 	-mkdir -p ctools/build
 	cd ctools/build && cmake ..
@@ -74,15 +80,19 @@ tools:
 		-d java/classes
 	cd java/classes && jar cf ../lib/patmos-tools.jar *
 
+# Assemble a program
+tmp/%.bin: asm/%.s
+	-mkdir -p $(dir $@)
+	bin/paasm $< $@
+
 # Assemble a program and generate the instruction memory VHDL table
 rom:
 	-rm -rf vhdl/generated
 	mkdir vhdl/generated
-	-mkdir -p tmp
-#	bin/paasm asm/$(APP).s tmp/$(APP).bin
-	bin/paasm asm/$(APP).s tmp/aout.bin
+	-mkdir -p tmp/$(dir $(APP))
+	bin/paasm asm/$(APP).s tmp/$(APP).bin
 	java -cp java/lib/patmos-tools.jar \
-		patmos.asm.Bin2Vhdl -s tmp -d vhdl/generated aout.bin
+		patmos.asm.Bin2Vhdl -s tmp -d vhdl/generated $(APP).bin
 
 # Compile a C program and download to FPGA
 capp:
@@ -91,7 +101,7 @@ capp:
 	cd c; make bootable-$(APP)
 	mv c/$(APP) tmp/$(APP)
 	make download APP=tmp/$(APP) 
-	
+
 # Compile a C program, the Patmos compiler must be in the path
 comp:
 	-mkdir -p tmp
@@ -104,9 +114,9 @@ crom:
 	-rm -rf vhdl/generated
 	mkdir vhdl/generated
 	-mkdir -p tmp
-	bin/elf2vhdl tmp/$(APP) tmp/aout.bin
+	bin/elf2vhdl tmp/$(APP) tmp/$(APP).bin
 	java -cp java/lib/patmos-tools.jar \
-		patmos.asm.Bin2Vhdl -s tmp -d vhdl/generated aout.bin
+		patmos.asm.Bin2Vhdl -s tmp -d vhdl/generated $(APP).bin
 
 old_rom: tools
 	-rm -rf vhdl/generated
@@ -124,11 +134,11 @@ bsim:
 
 # High-level pasim simulation
 hsim:
-	bin/pasim --debug --debug-fmt=short tmp/aout.bin
+	bin/pasim --debug --debug-fmt=short tmp/$(APP).bin
 
 # C simulation of the Chisel version of Patmos
 csim:
-	cd chisel; make asm test -e APP=$(APP)
+	$(MAKE) -C chisel test APP=$(APP)
 
 # Testing
 test:
@@ -166,7 +176,7 @@ synth:
 # Tools in Java would be easier...
 
 chslgen:
-	cd chisel; make asm verilog -e APP=$(APP)
+	$(MAKE) -C chisel verilog APP=$(APP)
 
 csynth:
 	echo "building $(QPROJ) from Chisel"

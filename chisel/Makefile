@@ -1,11 +1,20 @@
-#
+BUILDDIR=$(CURDIR)/build
+
+APP=basic
+
+BOOTBINROOT=..
+BOOTBIN=tmp/$(APP).bin
+
 # Building Patmos with Chisel without too much sbt/scala/... stuff
 #
 # sbt looks for default into a folder project/ for build.sdt and Build.scala
 # sbt creates per default a target folder
+#
+# Source directory is configured in project/Build.scala
+# Scala/Java build directory is configured in project/Build.scala
+SBT=java -Xmx1024M -Xss8M -XX:MaxPermSize=128M -jar sbt/sbt-launch.jar
 
-SBT = java -Xmx1024M -Xss8M -XX:MaxPermSize=128M -jar sbt/sbt-launch.jar
-
+# C++ build flags
 CXX=g++
 CXXFLAGS=-O2 -g
 
@@ -17,58 +26,59 @@ else
 	INC_EXTRA=
 endif
 
-# This generates the C++ files by invoking main from
-# class HelloMain in package example
-# Source directory is configured in project/Build.scala
-# Scala/Java build directory is configured in project/Build.scala
-
-# The first two arguments are consumed by sbt, the others are
-# forwarded to the 
-
-# command to compile the C++ files is missing
-
-MAIN=example.FsmMain
-MAIN=patmos.PatmosMain
-
-APP=basic
-
+# consider everything a source file
 SRC=$(shell find src -name '*.scala')
 
-all:
-	echo what to do?
+# main class for Patmos
+MAIN=patmos.PatmosMain
 
-asm:
-	cd .. && make rom -e APP=$(APP)
+# build C++ and Verilog versions by default
+all: emulator verilog
 
-comp:
-	cd .. && make comp -e APP=$(APP)
+# Temporary files to remember the ROM we built into the C++ and Verilog versions
+CGEN=$(BUILDDIR)/.cgen
+VGEN=$(BUILDDIR)/.vgen
 
+# build the C++ version
+emulator: $(BUILDDIR)/emulator
 
-oldtest:
-	$(SBT) "run-main $(MAIN) ../tmp/aout --genHarness --compile --test --targetDir generated --backend c"
+$(BUILDDIR)/emulator: emulator.cpp $(BUILDDIR)/Patmos.cpp
+	$(CXX) $(CXXFLAGS) $(INC_EXTRA) -I $(BUILDDIR) -o $@ $^ -lelf
 
-test: generated/emulator
-	./generated/emulator -l 1000000
+$(BUILDDIR)/Patmos.cpp: $(CGEN)
+	if [ x`cat $(CGEN)` != x"$(BOOTBINROOT)/$(BOOTBIN)" ]; then \
+		rm $(CGEN); $(MAKE) $(CGEN); \
+	fi
 
-generated/Patmos.cpp: $(SRC) ../tmp/aout.bin
-	$(SBT) "run-main $(MAIN) ../tmp/aout --vcd --targetDir generated --backend c"
+$(CGEN): $(BOOTBINROOT)/$(BOOTBIN) $(SRC)
+	$(SBT) "run-main $(MAIN) $< --vcd --targetDir $(BUILDDIR) --backend c"
+	echo $(BOOTBINROOT)/$(BOOTBIN) > $(CGEN)
 
-generated/emulator: emulator.cpp generated/Patmos.cpp
-	$(CXX) $(CXXFLAGS) $(INC_EXTRA) -I generated -o $@ $^ -lelf
-
-# the Verilog version
-verilog: generated/Patmos.v
-
-generated/Patmos.v:	$(SRC) ../tmp/aout.bin
-	$(SBT) "run-main $(MAIN) ../tmp/aout --targetDir generated --backend v"
-
-vsim: verilog
-	make -C modelsim sim
-
-###### Minimum Makefile ends here ########
-
+# run emulator
+test: emulator
+	$(BUILDDIR)/emulator -v -l 1000000
+# view detailed emulation results
 view:
 	gtkwave Patmos.vcd wave.gtkw
 
-intsbt:
-	$(SBT)
+# build the Verilog version
+verilog: $(BUILDDIR)/Patmos.v
+
+$(BUILDDIR)/Patmos.v: $(VGEN)
+	if [ x`cat $(VGEN)` != x"$(BOOTBINROOT)/$(BOOTBIN)" ]; then \
+		rm $(VGEN); $(MAKE) $(VGEN); \
+	fi
+
+$(VGEN): $(BOOTBINROOT)/$(BOOTBIN) $(SRC)
+	$(SBT) "run-main $(MAIN) $< --targetDir $(BUILDDIR) --backend v"
+	echo -n $(BOOTBINROOT)/$(BOOTBIN) > $(VGEN)
+
+# run Verilog simulation
+vsim: verilog
+	$(MAKE) -C modelsim sim
+
+# build the boot binary exists
+$(BOOTBINROOT)/$(BOOTBIN):
+	$(MAKE) -C $(BOOTBINROOT) $(BOOTBIN)
+
+.PHONY: all emulator test view verilog vsim

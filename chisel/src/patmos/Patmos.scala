@@ -167,7 +167,7 @@ object PatmosMain {
 
     // Use first argument for the program name (.bin file)
     val chiselArgs = args.slice(1, args.length)
-    val file = args(0) + ".bin"
+    val file = args(0)
     chiselMainTest(chiselArgs, () => new Patmos(file)) { f => new PatmosTest(f) }
   }
 }
