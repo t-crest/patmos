@@ -50,6 +50,7 @@ package patmos
 
 import Chisel._
 import Node._
+import MConstants._
 
 import scala.collection.mutable.HashMap
 
@@ -83,7 +84,7 @@ class MCPatmos(fileName: String) extends Component {
   val io = new MCPatmosIO()
   //new mcache classes
   val mcache = new MCache()
-  val mcachemem = new MCacheMem()
+  val mcachemem = new MCacheMem(method_count = 4, replacement = LRU_REPL, block_arrangement = FIXED_SIZE)
   val extmemrom = new ExtMemROM(fileName)
 
   val fetch = new MCFetch()

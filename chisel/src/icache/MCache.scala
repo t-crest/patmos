@@ -1,8 +1,28 @@
 /*
- Method Cache, N Fixed Method Blocks, LRU-Replacement
+ Method Cache for Patmos
  Author: Philipp Degasperi (philipp.degasperi@gmail.com)
  */
 
+
+/*
+ Replacement Strategy
+
+ LRU Replacement with fixed block size (MAYBE USE THE LRU DESIGN with shift registers to save list with pointers
+ --> cost: addr_tag , size_tag, list(prev/next), search logic: all depending on method count in cache, LRU/MRU reg
+ 
+ VARIABLE BLOCK SIZE its getting more complicated we have to track the position of each
+ ...but we run into problems when replacing so maybe FIFO/NEXT strategy is the solution here
+
+ FIFO with variable block size
+ --> cost: addr_tag, size_tag, pos_tag, search logic, next_index reg, next_replace reg, free_space reg
+ 
+ FIFO with fixed block size could be implemented for comparison, this is straight forward just use
+ a next_tag instead of the lru_tag at replacement and no lru table is needed than...
+ --> cost: addr_tag, size_tag, search logic: all depending on method count in cache, NEXT reg
+ 
+ at this point we should maybe generate a generic approach to select replacement
+
+*/
 
 //merge package mcache and icache in future
 package patmos
@@ -22,11 +42,15 @@ object MConstants {
   //on chip 4KB icache
   val MCACHE_SIZE = 4096 / 4 //* 8 //4KB = 2^12*2^3 = 32*1024 = 32768Bit
   val EXTMEM_SIZE = 2 * MCACHE_SIZE // =32*2048
-  val METHOD_COUNT = 32
+  val METHOD_COUNT = 4
   val METHOD_BLOCK_SIZE = MCACHE_SIZE / METHOD_COUNT
   val METHOD_SIZETAG_WIDTH = log2Up(MCACHE_SIZE)
   val METHOD_COUNT_WIDTH = log2Up(METHOD_COUNT)
   val WORD_COUNT = 4
+  val LRU_REPL = 1
+  val FIFO_REPL = 2
+  val FIXED_SIZE = 1
+  val VARIABLE_SIZE = 2
 
   //DEBUG INFO
   println("MCACHE_SIZE=" + MCACHE_SIZE)
@@ -76,7 +100,6 @@ class MCacheMemIn extends Bundle() {
   val w_enable = Bits(width = 1)
   val w_data = Bits(width = 32)
   val address = Bits(width = 32) //should be 32 because we need whole address for tag?!
-
   val w_tag = Bits(width = 1)
 }
 class MCacheMemOut extends Bundle() {
@@ -91,53 +114,52 @@ class MCacheMemIO extends Bundle() {
 
 object MCacheMem {
 
-  //TAG FIELDS THINK ABOUT HOW TO USE MEMORY HERE
-  val mcache_addr_tag = Mem(METHOD_COUNT) {Bits(width = 32)}
-  val mcache_size_tag = Mem(METHOD_COUNT) {Bits(width = METHOD_SIZETAG_WIDTH)}
-  val mcache_list_prev = Mem(METHOD_COUNT) {Bits(width = METHOD_COUNT_WIDTH)}
-  val mcache_list_next = Mem(METHOD_COUNT) {Bits(width = METHOD_COUNT_WIDTH)}
-
-  //tag field type
+  //move some functions here...
+  //tag field type for search function
   class TagField extends Bundle {
-    val pos = Bits(width = METHOD_COUNT_WIDTH)
+    val pos = Bits(width = METHOD_SIZETAG_WIDTH)
     val hit = Bits(width = 1)
     val tag = Bits(width = 32)
   }
-
-  def init_tag_list() = {
-    for (i <- 0 until METHOD_COUNT) {
-      mcache_list_next(Bits(i)) := Bits(i) - Bits(1)
-      mcache_list_prev(Bits(i)) := Bits(i) + Bits(1)
-    }
-  }
-
-  def get_address(pos : Bits,  offset : Bits) : Bits = {
-    ((pos * Bits(METHOD_BLOCK_SIZE)) + (offset / UFix(2)))
-  }
-
-  def check_block_size(size : Bits) : Bits = {
-    ((size - Bits(1)) / Bits(METHOD_BLOCK_SIZE))
-  }
-
 }
+
 
 /*
  memory logic of the method cache
 */
-class MCacheMem extends Component {
+class MCacheMem( 
+  method_count : Int = METHOD_COUNT,
+  replacement : Int = LRU_REPL,
+  block_arrangement : Int = FIXED_SIZE
+) extends Component {
   val io = new MCacheMemIO()
   val ram_mcache_even = Mem(MCACHE_SIZE / 2, seqRead = true) {Bits(width = INSTR_WIDTH)}
   val ram_mcache_odd = Mem(MCACHE_SIZE / 2, seqRead = true) {Bits(width = INSTR_WIDTH)}
+
+  val mcache_addr_tag = Mem(method_count) {Bits(width = 32)}
+  val mcache_size_tag = Mem(method_count) {Bits(width = METHOD_SIZETAG_WIDTH)}
+  val mcache_pos_tag = Mem(method_count) {Bits(width = METHOD_SIZETAG_WIDTH)} //neeeded when variable size is used
+
+  //linked list for LRU replacement
+  val mcache_list_prev = Mem(method_count) {Bits(width = log2Up(method_count))}
+  val mcache_list_next = Mem(method_count) {Bits(width = log2Up(method_count))}
 
   //regs
   val dout_even = Reg() {Bits(width = INSTR_WIDTH)}
   val dout_odd = Reg() {Bits(width = INSTR_WIDTH)}
   val dout_hit = Reg() {Bits(width = 1)}
   //keep track of lru and mru of the list
-  val lru_tag = Reg(resetVal = Bits(0, width = METHOD_COUNT_WIDTH))
-  val mru_tag = Reg(resetVal = Bits(METHOD_COUNT - 1, width = METHOD_COUNT_WIDTH))
+  val lru_tag = Reg(resetVal = Bits(0, width = log2Up(method_count)))
+  val mru_tag = Reg(resetVal = Bits(method_count - 1, width = log2Up(method_count)))
+  //why this doesnt work????
+  //if (replacement == FIFO_REPL) {
+  val next_index_tag = Reg(resetVal = Bits(0, width = log2Up(method_count)))
+  val next_replace_tag = Reg(resetVal = Bits(0, width = log2Up(method_count)))
+  val next_replace_pos = Reg(resetVal = Bits(0, width = log2Up(method_count)))
+  val free_space = Reg(resetVal = Fix(MCACHE_SIZE))
+  //}
   //for splitting up methods if needed
-  val split_mcounter = Reg(resetVal = Bits(0, width = METHOD_COUNT_WIDTH))
+  val split_mcounter = Reg(resetVal = Bits(0, width = log2Up(method_count)))
   val split_maddress = Reg(resetVal = Bits(0, width = 32))
   val split_msize = Reg(resetVal = Bits(0, width = METHOD_SIZETAG_WIDTH))
 
@@ -149,36 +171,82 @@ class MCacheMem extends Component {
   //new bundle
   val tag_field = new TagField()
 
+  //TODO
+  //should not need this but seems to work and synthezis away not needed regs
+  if (replacement == FIFO_REPL) {
+    if (block_arrangement == FIXED_SIZE) {
+      next_index_tag := Bits(0)
+      next_replace_pos := Bits(0)
+      free_space := Fix(0)
+    }
+    else if (block_arrangement == VARIABLE_SIZE) {
+      split_mcounter := Bits(0)
+      split_maddress := Bits(0)
+      split_msize := Bits(0)
+    }
+    lru_tag := Bits(0)
+    mru_tag := Bits(0)
+  }
+  else if (replacement == LRU_REPL) {
+    next_index_tag := Bits(0)
+    next_replace_tag := Bits(0)
+    next_replace_pos := Bits(0)
+    free_space := Fix(0)
+  }
+
   //init signals
   data_even := Bits(0)
   data_odd := Bits(0)
   tag_field := search_tag_addr(io.mcachemem_in.address)
   addr_offset := io.mcachemem_in.address - tag_field.tag //offset between incoming address and base address
 
-  //how we can init Memories???
+  //how we can init Memories??? programming init in C?!
   val list_init = Reg(resetVal = Bits(0, width = 1))
   when (list_init === Bits(0)) {
     init_tag_list()
   }
   list_init := Bits(1)
 
-  //update list, input tag is the position which should be updated
-  def update_tag_list(tag : Bits) = {
-    //moving current tag to head
-    mru_tag := tag
-    mcache_list_next(tag) := mru_tag
-    mcache_list_prev(mru_tag) := tag
 
-    when (tag === lru_tag) {
-      lru_tag := mcache_list_prev(tag)
+  //should be done in c!
+  def init_tag_list() = {
+    for (i <- 0 until method_count) {
+      mcache_list_next(Bits(i)) := Bits(i) - Bits(1)
+      mcache_list_prev(Bits(i)) := Bits(i) + Bits(1)
     }
-    .elsewhen (tag === mru_tag) {
-      //nothing to do here, tag is already mru
+  }
+
+  //update tag field
+  def update_tag(tag : Bits) = {
+    if (replacement == FIFO_REPL) {
+      tag := (tag + Bits(1)) % Bits(method_count)
     }
-    .otherwise {
-      mcache_list_next(mcache_list_prev(tag)) := mcache_list_next(tag)
-      mcache_list_prev(mcache_list_next(tag)) := mcache_list_prev(tag)
-    }    
+    else if (replacement == LRU_REPL) {
+      //moving current tag to head
+      mru_tag := tag
+      mcache_list_next(tag) := mru_tag
+      mcache_list_prev(mru_tag) := tag
+      when (tag === lru_tag) {
+        lru_tag := mcache_list_prev(tag)
+      }
+        .elsewhen (tag === mru_tag) {
+        //nothing to do here, tag is already mru
+      }
+        .otherwise {
+        mcache_list_next(mcache_list_prev(tag)) := mcache_list_next(tag)
+        mcache_list_prev(mcache_list_next(tag)) := mcache_list_prev(tag)
+      }
+    }
+  }
+
+  def get_address(pos : Bits,  offset : Bits) : Bits = {
+    ((pos + (offset / UFix(2))) % Bits(MCACHE_SIZE)) //modulo if you write over the cache size (variable blocks)
+  }
+
+
+  //TODO: should integrate the check for variable blocks too...
+  def check_block_size(size : Bits) : Bits = {
+    ((size - Bits(1)) / Bits(METHOD_BLOCK_SIZE))
   }
 
   //search the given addr in the tag field
@@ -187,60 +255,116 @@ class MCacheMem extends Component {
     tagfield.tag := Bits(0)
     tagfield.hit := Bits(0)
     tagfield.pos := Bits(0)
-    for (i <- 0 until METHOD_COUNT) {
+    for (i <- 0 until method_count) {
       when ((io.mcachemem_in.address >= mcache_addr_tag(Bits(i))) && (io.mcachemem_in.address <= (mcache_addr_tag(Bits(i)) + mcache_size_tag(Bits(i))))) {
-        tagfield.pos := Bits(i)
+        if (block_arrangement == FIXED_SIZE) {
+          tagfield.pos := Bits(i) * Bits(METHOD_BLOCK_SIZE)
+        }
+        else if (block_arrangement == VARIABLE_SIZE) {
+          tagfield.pos := mcache_pos_tag(Bits(i))
+        }
         tagfield.hit := Bits(1)
-        tagfield.tag := mcache_addr_tag(Bits(i))  //could be dropped!
+        tagfield.tag := mcache_addr_tag(Bits(i))
       }
     }
     tagfield
   }
 
-  /*
-   split up blockes if to big... this should be no problem with fixed block size
-   just go through lru table pick up the head till size is fine and update the tables
-   --> can also be done sequential so no need to build a big paralell mux an do it in 1 cycle
-
-   TODO: FOR VARIABLE BLOCK SIZE its getting more complicated we have to track the position of each
-   ...but we run into problems when replacing so maybe FIFO is better with variable block size
-  */
-
-  //prepare LRU: index the sicze and the address tag and check the size fits into one block otherwise split up
+  //prepare replacement: index the size and the address tag and check the size fits into one block/free size otherwise split up
   when (io.mcachemem_in.w_tag === Bits(1)) {
-    //everything fine method fits into one block
-    when (check_block_size(io.mcachemem_in.w_data) === Bits(0)) {
-      mcache_size_tag(lru_tag) := io.mcachemem_in.w_data
+
+    if (replacement == FIFO_REPL && block_arrangement == VARIABLE_SIZE) {
+      //enough free space to fill up
+      when (free_space >= io.mcachemem_in.w_data) {
+        free_space := free_space - io.mcachemem_in.w_data + mcache_size_tag(next_index_tag)
+      }
+        .otherwise {
+        free_space := free_space + mcache_size_tag(next_replace_tag) - io.mcachemem_in.w_data
+      }
+      next_replace_pos := (next_replace_pos + io.mcachemem_in.w_data) % Bits(MCACHE_SIZE)
+      mcache_pos_tag(next_index_tag) := next_replace_pos
+      mcache_size_tag(next_index_tag) := io.mcachemem_in.w_data
+      mcache_addr_tag(next_index_tag) := io.mcachemem_in.address
+      update_tag(next_index_tag)
     }
-    //split up in more blocks and set counter
-    .otherwise {
-      mcache_size_tag(lru_tag) := Bits(METHOD_BLOCK_SIZE)
-      split_mcounter := check_block_size(io.mcachemem_in.w_data)
-      split_maddress := io.mcachemem_in.address + Bits(METHOD_BLOCK_SIZE)
-      split_msize := io.mcachemem_in.w_data - Bits(METHOD_BLOCK_SIZE)
+
+    if (block_arrangement == FIXED_SIZE) {
+      //everything fine method fits into one block
+      when (check_block_size(io.mcachemem_in.w_data) === Bits(0)) {
+        if (replacement == FIFO_REPL) {
+          mcache_size_tag(next_replace_tag) := io.mcachemem_in.w_data
+          mcache_addr_tag(next_replace_tag) := io.mcachemem_in.address
+          update_tag(next_replace_tag)
+        }
+        else if (replacement == LRU_REPL) {
+          mcache_size_tag(lru_tag) := io.mcachemem_in.w_data
+          mcache_addr_tag(lru_tag) := io.mcachemem_in.address
+          update_tag(lru_tag)
+        }
+      }
+      //split up in more blocks and set counter
+      .otherwise {
+        split_mcounter := check_block_size(io.mcachemem_in.w_data)
+        split_maddress := io.mcachemem_in.address + Bits(METHOD_BLOCK_SIZE)
+        split_msize := io.mcachemem_in.w_data - Bits(METHOD_BLOCK_SIZE)
+        if (replacement == FIFO_REPL) {
+          mcache_size_tag(next_replace_tag) := Bits(METHOD_BLOCK_SIZE)
+          mcache_addr_tag(next_replace_tag) := io.mcachemem_in.address
+          update_tag(next_replace_tag)
+        }
+        else if (replacement == LRU_REPL) {
+          mcache_size_tag(lru_tag) := Bits(METHOD_BLOCK_SIZE)
+          mcache_addr_tag(lru_tag) := io.mcachemem_in.address
+          update_tag(lru_tag)
+        }
+      }
     }
-    mcache_addr_tag(lru_tag) := io.mcachemem_in.address
-    update_tag_list(lru_tag)
-  }
-  
-  //here it is handled a split up of the methods if needed
-  when (split_mcounter != Bits(0)) {
-    //one more block is needed
-    when (check_block_size(split_msize) === Bits(0)) {
-      mcache_size_tag(lru_tag) := split_msize
-    }
-    //split up in even more blocks
-    .otherwise {
-      mcache_size_tag(lru_tag) := Bits(METHOD_BLOCK_SIZE)
-      split_maddress := split_maddress + Bits(METHOD_BLOCK_SIZE)
-      split_msize := split_msize - Bits(METHOD_BLOCK_SIZE)
-    }
-    mcache_addr_tag(lru_tag) := split_maddress
-    update_tag_list(lru_tag)
-    split_mcounter := split_mcounter - Bits(1)
   }
 
-  //write at lru place
+  //more space is needed!
+  if (replacement == FIFO_REPL && block_arrangement == VARIABLE_SIZE) {
+    //the following handles a possible split up if more space is needed
+    when (free_space < Fix(0)) {
+      free_space := free_space + mcache_size_tag(next_replace_tag)
+      mcache_size_tag(next_replace_tag) := Bits(0)
+      update_tag(next_replace_tag)
+    }
+  }
+  else if (replacement == FIXED_SIZE) {
+    when (split_mcounter != Bits(0)) {
+      //one more block is needed
+      when (check_block_size(split_msize) === Bits(0)) {
+        if (replacement == FIFO_REPL) {
+          mcache_size_tag(next_replace_tag) := split_msize
+          mcache_addr_tag(next_replace_tag) := split_maddress
+          update_tag(next_replace_tag)
+        }
+        else if (replacement == LRU_REPL) {
+          mcache_addr_tag(lru_tag) := split_maddress
+          update_tag(lru_tag)
+          mcache_size_tag(lru_tag) := split_msize
+        }
+      }
+      //split up in even more blocks
+      .otherwise {
+        split_maddress := split_maddress + Bits(METHOD_BLOCK_SIZE)
+        split_msize := split_msize - Bits(METHOD_BLOCK_SIZE)
+        if (replacement == FIFO_REPL) {
+          mcache_size_tag(next_replace_tag) := Bits(METHOD_BLOCK_SIZE)
+          mcache_addr_tag(next_replace_tag) := split_maddress
+          update_tag(next_replace_tag)
+        }
+        else if (replacement == LRU_REPL) {
+          mcache_size_tag(lru_tag) := Bits(METHOD_BLOCK_SIZE)
+          mcache_addr_tag(lru_tag) := split_maddress
+          update_tag(lru_tag)
+        }
+      }
+      split_mcounter := split_mcounter - Bits(1)
+    }
+  }
+
+  //write
   when (io.mcachemem_in.w_enable) {
     when (tag_field.hit === Bits(1)) {
 
@@ -277,15 +401,6 @@ object ExtMemROM {
 
   //external memory instance
   val rom_extmem = Vec(EXTMEM_SIZE) {Bits(width = 32)} //how is the bus width?
-
-  //init the rom memory with dummy messages
-  def initROM_random() {
-    for (i <- 0 until (EXTMEM_SIZE)) {
-      rom_extmem(i) = Bits(i)
-    }
-    rom_extmem(1) = Bits(10)
-    rom_extmem(0) = Bits(10)
-  }
   
   /**
    * Read a binary file into the ROM vector, from Utility.scala
@@ -330,7 +445,6 @@ class ExtMemROM(filename: String) extends Component {
   rom_init := Bits(1)
   when (rom_init === Bits(0)) {
     initROM_bin(filename)
-    //initROM_random()
   }
   
   when (io.extmem_in.fetch) {
