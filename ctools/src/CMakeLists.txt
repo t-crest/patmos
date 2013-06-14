@@ -1,8 +1,8 @@
 #
 #
 
-add_executable(elf2vhdl elf2vhdl.c)
+add_executable(elf2bin elf2bin.c)
 
-target_link_libraries(elf2vhdl ${ELF})
+target_link_libraries(elf2bin ${ELF})
 
-install(TARGETS elf2vhdl RUNTIME DESTINATION bin)
+install(TARGETS elf2bin RUNTIME DESTINATION bin)
