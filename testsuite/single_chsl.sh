@@ -9,23 +9,23 @@
 LOG_DIR="tmp"
 TEST="${1}"
 
-mkdir -p "${LOG_DIR}"
+mkdir -p "${LOG_DIR}"/`dirname ${TEST}`
 echo "${TEST}"
 
 # run chisel
-make csim APP="${TEST}" 1>"${LOG_DIR}/cs.out" 2>"${LOG_DIR}/cs.err"
-echo "EXIT $?" >> "${LOG_DIR}/cs.out"
+make csim APP="${TEST}" 1> "${LOG_DIR}/${TEST}.cs.out" 2> "${LOG_DIR}/${TEST}.cs.err"
+echo "EXIT $?" >> "${LOG_DIR}/${TEST}.cs.out"
 
 # run high-level simulator
-make hsim APP="${TEST}" 1>"${LOG_DIR}/hs.out" 2>"${LOG_DIR}/hs.err"
-echo "EXIT $?" >> "${LOG_DIR}/hs.out"
+make hsim APP="${TEST}" 1> "${LOG_DIR}/${TEST}.hs.out" 2> "${LOG_DIR}/${TEST}.hs.err"
+echo "EXIT $?" >> "${LOG_DIR}/${TEST}.hs.out"
 
 # compare output
-java -cp java/lib/patmos-tools.jar util.CompareChisel "${LOG_DIR}/hs.err" "${LOG_DIR}/cs.out" | \
-    tee "${LOG_DIR}/comptest.out" | sed -e 's/^\(\S\)/ \1/'
+java -cp java/lib/patmos-tools.jar util.CompareChisel "${LOG_DIR}/${TEST}.hs.err" "${LOG_DIR}/${TEST}.cs.out" | \
+    tee "${LOG_DIR}/${TEST}.comptest.out" | sed -e 's/^\(\S\)/ \1/'
 
 # report failure or ok
-if (grep '^[ ]*ok[ ]*$' "${LOG_DIR}/comptest.out" >/dev/null) ; then
+if (grep '^[ ]*ok[ ]*$' "${LOG_DIR}/${TEST}.comptest.out" >/dev/null) ; then
     exit 0
 else
     echo " failed"

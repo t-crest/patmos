@@ -1,9 +1,10 @@
-#PATMOS_BASE=/project/flbr/jobs/install/patmos/bin/
-# following is not supported anymore in LLVM 3.2
-# -mfloat-abi=none \
+BUILDDIR=../tmp
 
+#PATMOS_BASE=/project/flbr/jobs/install/patmos/bin/
 #CC=$(PATMOS_BASE)/clang
+
 CC=patmos-clang
+
 CFLAGS=-target patmos-unknown-unknown-elf \
 	-nodefaultlibs -nostdlib -nostartfiles \
 	-fno-builtin \
@@ -20,27 +21,20 @@ CFLAGS-WITH-LIBS=-target patmos-unknown-unknown-elf \
 	-Ttext 0x10 \
 	-e main \
 	-O3
-	
+
 CFLAGS-BOOTABLE=-target patmos-unknown-unknown-elf \
 	-Xgold -T../chisel/spm.t \
 	-mpatmos-method-cache-size=0x8000 \
 	-mpatmos-disable-stack-cache \
 	-O3
 
-CFLAGS_ASM=-target patmos-unknown-unknown-elf \
-	-fno-builtin \
-        -fpatmos-emit-asm -S
-CFLAGS_ASM+=-mpatmos-disable-stack-cache \
-	-O3
-#CFLAGS_ASM+=-O0
+compile: $(BUILDDIR)/$(APP).elf
 
-%: %.c
+$(BUILDDIR)/%.elf: %.c
 	$(CC) $(CFLAGS) -o $@ $^
-	patmos-llvm-objdump -t -d $@
 
-%.s: %.c
-	$(CC) $(CFLAGS_ASM) -o $@ $^
-	
-bootable-%: %.c
-	$(CC) $(CFLAGS-BOOTABLE) -o $* $^
-	patmos-llvm-objdump -t -d $*
+$(BUILDDIR)/%.s: %.c
+	$(CC) $(CFLAGS) -fpatmos-emit-asm -S -o $@ $^
+
+$(BUILDDIR)/bootable-%.elf: %.c
+	$(CC) $(CFLAGS-BOOTABLE) -o $(BUILDDIR)/$(APP).elf $^

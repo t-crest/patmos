@@ -23,26 +23,12 @@ tests="basic simple test ldst load_store_stackcache ALU ALUi ALUl dual_forwardin
 tests+=${test_disc}
 
 
-tests_c="hello_test"
-not_working="none"
 not_working_chsl="none"
-expect_fail=9
 expect_fail_chsl=0
 
 # How to implement timeout? IMPLEMENTED!
 # But does not work under OSX
 timeout=90
-
-function run {
-    testsuite/single.sh $1
-    result=$?
-    if [ "$result" -ne 0 ] ; then
-        failed+=("$1")
-        echo "$1" > result.tmp
-    else
-        echo -ne "ok" > result.tmp
-    fi
-}
 
 function wait_timeout {
     start=$(date +%s);
@@ -62,47 +48,7 @@ function wait_timeout {
     fi
 }
 
-function run_vhdl {
-	make rom bsim
-
-	echo === VHDL Tests ===
-	failed=()
-#for f in  ${tests_c}; do
-#    $timeout testsuite/single_c.sh ${f}
-#    result=$?
-#   if [ "$result" -eq 124 ] ; then
-#        echo " timeout"
-#    fi
-#    if [ "$result" -ne 0 ] ; then
-#        failed+=("${f}")
-#    fi
-#done
-
-	for f in ${tests}; do
-		run ${f} &
-		pid=$!
-		wait_timeout ${pid}
-		if [[ "$(cat result.tmp)" != "ok" ]]; then
-			failed+=("$(cat result.tmp)")
-		fi
-	done
-	rm result.tmp
-
-	for f in ${not_working} ;
-	do
-		echo $f
-		echo " skipped"
-	done
-	if [ "${#failed[@]}" -ne 0 ] ; then
-		echo "Failed tests: ${failed[@]}" >&2
-	else
-		echo "All tests ok"
-	fi
-}
-
 function run_chsl {
-	make csim
-
 	echo === Chisel Tests ===
 	failed_chsl=()
 	for f in  ${tests}; do
@@ -129,26 +75,16 @@ function run_chsl {
 
 function run_all {
 
-	run_vhdl
 	run_chsl
 
 	nr=`echo ${tests} | wc -w`
-	echo "Test VHDL failures: expected ${expect_fail}, actual ${#failed[@]} out of ${nr}" >&2
 	echo "Test Chisel failures: expected ${expect_fail_chsl}, actual ${#failed_chsl[@]} out of ${nr}" >&2
-	if [ "${#failed[@]}" -ne $expect_fail ] ; then
+	if [ "${#failed_chsl[@]}" -ne $expect_fail_chsl ] ; then
 		exit 1
 	else
-		if [ "${#failed_chsl[@]}" -ne $expect_fail_chsl ] ; then
-			exit 1
-		else
-			exit 0
-		fi
+		exit 0
 	fi
 }
 
 make tools
-case "$1" in
-	"vhdl") run_vhdl;;
-	"chsl") run_chsl;;
-	*) run_all;;
-esac
+run_all
