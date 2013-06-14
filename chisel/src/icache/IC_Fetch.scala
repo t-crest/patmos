@@ -37,47 +37,95 @@
  * 
  */
 
-package icache
+package patmos
 
 import Chisel._
 import Node._
 
-//class Fetch(fileName: String) extends Component {
-class Fetch() extends Component {
-  val io = new FetchIO()
+import Constants._
 
-  val pc = Reg(resetVal = UFix(0, Constants.PC_SIZE))
-  val addr_even = Reg(resetVal = UFix(0, Constants.PC_SIZE - 1))
-  val addr_odd = Reg(resetVal = UFix(1, Constants.PC_SIZE - 1))
+class ICFetchIO extends Bundle() {
+  val ena = Bool(INPUT)
+  val fedec = new FeDec().asOutput
+  // PC for returns
+  val femem = new FeMem().asOutput
+  //branch from EX
+  val exfe = new ExFe().asInput
+  //call from MEM
+  val memfe = new MemFe().asInput
+  val icache_in = new ICacheIn().asOutput
+  val icache_out = new ICacheOut().asInput
+}
 
-  val instr_a = io.icache_out.instr_a
-  val instr_b = io.icache_out.instr_b
+class ICFetch() extends Component {
+  val io = new ICFetchIO()
 
-  //NOT used since we don't have two instr. with direct mapped cache
-  /*
-   val data_even = io.icache_out.instr_a
-   val data_odd = io.icache_out.instr_b
-   val instr_a = Mux(pc(0) === Bits(0), data_even, data_odd)
-   val instr_b = Mux(pc(0) === Bits(0), data_odd, data_even)
-   */
+  val pc = Reg(resetVal = UFix(0, PC_SIZE))
+  val addr_even = Reg(resetVal = UFix(0,PC_SIZE - 1))
+  val addr_odd = Reg(resetVal = UFix(1, PC_SIZE - 1))
 
-  // This becomes an issue when no bit 31 is set in the ROM!
-  // Too much optimization happens here. We set the unused words with bit 31 set.
-  // Probably an instruction SPM will help to avoid this optimization.
+  //val rom = Utility.readBin(fileName)
+  // Split the ROM into two blocks for dual fetch
+  //  val len = rom.length / 2
+  //  val rom_a = Vec(len) { Bits(width = INSTR_WIDTH) }
+  //  val rom_b = Vec(len) { Bits(width = INSTR_WIDTH) }
+  //  for (i <- 0 until len) {
+  //    rom_a(i) = rom(i * 2)
+  //    rom_b(i) = rom(i * 2 + 1)
+  //    val a:Bits = rom_a(i)
+  //    val b:Bits = rom_b(i)
+  //    println(i+" "+a.toUFix.litValue()+" "+b.toUFix.litValue())
+  //  }
+  //
+  //  // addr_even and odd count in words. Shall this be optimized?
+  //  val data_even: Bits = rom_a(addr_even(PC_SIZE-1, 1))
+  //  val data_odd: Bits = rom_b(addr_odd(PC_SIZE-1, 1))
+  // relay on the optimization to recognize that those addresses are always even and odd
+  // TODO: maybe make it explicit
+
+  val ispmSize = 1 << ISPM_BITS // in bytes
+  val ispmAddrBits = log2Up(ispmSize / 4 / 2)
+  val memEven = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
+  val memOdd = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
+
+  // write from EX - use registers - ignore stall, as reply does not hurt
+  val selWrite = (io.memfe.store & (io.memfe.addr(ISPM_ONE_BIT) === Bits(0x1)))
+  val wrEven = Reg(selWrite & (io.memfe.addr(2) === Bits(0)))
+  val wrOdd = Reg(selWrite & (io.memfe.addr(2) === Bits(1)))
+  val addrReg = Reg(io.memfe.addr)
+  val dataReg = Reg(io.memfe.data)
+  when(wrEven) { memEven(addrReg(ispmAddrBits + 3 - 1, 3)) := dataReg }
+  when(wrOdd) { memOdd(addrReg(ispmAddrBits + 3 - 1, 3)) := dataReg }
+  // This would not work with asynchronous reset as the address
+  // registers are set on reset. However, chisel uses synchronous
+  // reset, which 'just' generates some more logic. And it looks
+  // like the synthesize tool is able to duplicate the register.
+  val ispm_even = memEven(addr_even(ispmAddrBits, 1))
+  val ispm_odd = memOdd(addr_odd(ispmAddrBits, 1))
+
+  // read from ISPM mapped to address 0x00800000
+  // PC counts in words
+  val selIspm = pc(ISPM_ONE_BIT - 2) === Bits(0x1)
+  // ROM/ISPM Mux
+  //val data_even = Mux(selIspm, ispm_even, rom(addr_even))
+  //val data_odd = Mux(selIspm, ispm_odd, rom(addr_odd))
+  val data_even = Mux(selIspm, ispm_even, io.icache_out.data_even)
+  val data_odd = Mux(selIspm, ispm_odd, io.icache_out.data_odd)
+
+  val instr_a = Mux(pc(0) === Bits(0), data_even, data_odd)
+  val instr_b = Mux(pc(0) === Bits(0), data_odd, data_even)
+
   val b_valid = instr_a(31) === Bits(1)
-  val pc_next = Mux(io.exfe.doBranch,
-    io.exfe.branchPc,
-    pc + Mux(b_valid, UFix(2), Bits(1)))
+  val pc_cont = pc + Mux(b_valid, UFix(2), UFix(1))
+  val pc_next =
+    Mux(io.memfe.doCallRet, io.memfe.callRetPc,
+      Mux(io.exfe.doBranch, io.exfe.branchPc,
+        pc_cont))
 
-  // TODO clean up
-  //  val addEven = Mux(pc_next(0) === Bits(1), UFix(0), UFix(1))
-  val xyz = Cat(pc_next(Constants.PC_SIZE - 1, 1), Bits(0))
-  val abc = Cat(pc_next(Constants.PC_SIZE - 1, 1) + UFix(1), Bits(0))
-  val even_next = Mux(pc_next(0) === Bits(1), abc, xyz)
-
-  when (io.icache_out.ena) {
-    addr_even := even_next.toUFix
-    addr_odd := Cat(pc_next(Constants.PC_SIZE - 1, 1), Bits(1)).toUFix
+  val pc_inc = Mux(pc_next(0), pc_next + UFix(2), pc_next)
+  when(io.ena) {
+    addr_even := Cat(pc_inc(PC_SIZE - 1, 1), Bits(0)).toUFix
+    addr_odd := Cat(pc_next(PC_SIZE - 1, 1), Bits(1)).toUFix
     pc := pc_next
   }
 
@@ -86,5 +134,9 @@ class Fetch() extends Component {
   io.fedec.instr_b := instr_b
   io.fedec.b_valid := b_valid // not used at the moment
 
+  io.femem.pc := pc_cont
+
+  //outputs to icache
   io.icache_in.address := pc_next
+  io.icache_in.request := Bits(1)
 }

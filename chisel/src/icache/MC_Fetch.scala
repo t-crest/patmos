@@ -121,10 +121,11 @@ class MCFetch() extends Component {
   val b_valid = instr_a(31) === Bits(1)
   val pc_cont = pc + Mux(b_valid, UFix(2), UFix(1))
   val pc_next =
-	Mux(io.memfe.doCallRet, io.memfe.callRetPc - Bits("h1c") / Bits(4),
+	Mux(io.memfe.doCallRet, io.memfe.callRetPc,
 		Mux(io.exfe.doBranch, io.exfe.branchPc,
 			pc_cont))
   
+  // - Bits("h1c") / Bits(4),
   //debugging...
   //val pc_next = pc_cont 
   //val pc_next = Mux(io.exfe.doBranch, io.exfe.branchPc, pc_cont)

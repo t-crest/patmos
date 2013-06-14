@@ -13,19 +13,19 @@ SBTARGS_HDL = --backend v --targetDir $(hdldir) --genHarness
 
 MCACHEMAIN=patmos.MCPatmosMain
 MCACHETOP=MCPatmos
-MAIN=icache.PatmosMain
-TOP=Patmos
+ICACHEMAIN=patmos.ICPatmosMain
+ICACHETOP=ICPatmos
 
 # Generate Verilog code and C++ for Emulation
-all:	hdl sim
+all:	icache isim mcache msim
 
 # Generare Verilog code
 icache:
-	cd $(basedir); $(SBT) "run-main $(MAIN) $(binfile) $(SBTARGS_HDL)"
+	cd $(basedir); $(SBT) "run-main $(ICACHEMAIN) $(binfile) $(SBTARGS_HDL)"
 
 # with input bin file and vcd generation
 isim:
-	cd $(basedir); $(SBT) "run-main $(DIR)$(MAIN) $(binfile) $(SBTARGS_SIM)"
+	cd $(basedir); $(SBT) "run-main $(DIR)$(ICACHEMAIN) $(binfile) $(SBTARGS_SIM)"
 
 mcache:
 	cd $(basedir); $(SBT) "run-main $(MCACHEMAIN) $(binfile) $(SBTARGS_HDL)"
@@ -35,6 +35,6 @@ msim:
 
 # clean all
 clean:
-	cd $(basedir); rm -rf $(simdir) $(hdldir) $(TOP).vcd $(MCACHETOP).vcd
+	cd $(basedir); rm -rf $(simdir) $(hdldir) $(ICACHETOP).vcd $(MCACHETOP).vcd
 
 .PHONY: all clean

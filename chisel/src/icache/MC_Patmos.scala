@@ -61,27 +61,12 @@ import scala.collection.mutable.HashMap
 /*
  MC_Patmos is top-level with connected mcache... should be merged with Patmos top level in future
  */
-
-class MCPatmosIO extends Bundle() {
-  //connections to mfetch class
-  //val fedec = new FeDec().asOutput
-  //val femem = new FeMem().asOutput
-  //val exfe = new ExFe().asInput
-  //val memfe = new MemFe().asInput
-
-  val dummy = Bits(OUTPUT, 32)
-  val led = Bits(OUTPUT, width = 8)
-  val uart = new UartIO()
-}
-
 class MCPatmos(fileName: String) extends Component {
-  //val io = new Bundle {
-    //val dummy = Bits(OUTPUT, 32)
-    //val led = Bits(OUTPUT, 8)
-    //val uart = new UartIO()
-  //}
-
-  val io = new MCPatmosIO()
+  val io = new Bundle {
+    val dummy = Bits(OUTPUT, 32)
+    val led = Bits(OUTPUT, 8)
+    val uart = new UartIO()
+  }
   //new mcache classes
   val mcache = new MCache()
   val mcachemem = new MCacheMem(method_count = 4, replacement = LRU_REPL, block_arrangement = FIXED_SIZE)
@@ -102,11 +87,6 @@ class MCPatmos(fileName: String) extends Component {
   //connect to fetch stage
   mcache.io.mcache_in <> fetch.io.mcache_in
   mcache.io.mcache_out <> fetch.io.mcache_out
-
-  //connect top with other fetch i/o for debugging
-  //fetch.io.exfe <> io.exfe
-  //fetch.io.memfe <> io.memfe
-  //fetch.io.femem <> io.femem
 
   decode.io.fedec <> fetch.io.fedec
   execute.io.decex <> decode.io.decex
@@ -173,26 +153,15 @@ class MCPatmos(fileName: String) extends Component {
 
   // ***** the following code is not really Patmos code ******
 
-  // maybe instantiate the FSM here to get some output when
-  // compiling for the FPGA
-
-  //  val led = Reg(resetVal = Bits(1, 8))
-  //  val led_next = Cat(led(6, 0), led(7))
-  //
-  //  when(Bool(true)) {
-  //    led := led_next
-  //  }
-
   // Dummy output, which is ignored in the top level VHDL code, to
   // keep Chisel happy with unused signals
-  
-  val sum1 = writeback.io.rfWrite.data.toUFix + memory.io.memwb.pc + memory.io.dbgMem
+  val sum1 = memory.io.memwb.pc + memory.io.dbgMem
   val part = Reg(sum1.toBits)
   val p = execute.io.exmem.predDebug
   // to dumb for vector to bits...
   val pracc = p(0) | p(1) | p(2) | p(3) | p(4) | p(5) | p(6) | p(7)
   val xyz = part(31, 0) | pracc
-  io.dummy := Reg(xyz) 
+  io.dummy := Reg(xyz)
 }
 
 // this testing and main file should go into it's own folder
@@ -237,7 +206,6 @@ class PatmosTest(pat: Patmos) extends Tester(pat,
 /*
  test mcache connected to fetch stage
 */
-
 class PatmosMCacheTest(c: MCPatmos) extends Tester(c, Array(c.io)) {
   defTests {
     var allGood = true
