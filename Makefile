@@ -2,10 +2,6 @@
 # Main make file for Patmos
 #
 
-#
-#	Set USB to true for an FTDI chip based board (dspio, usbmin, lego)
-#
-USB=false
 # COM port for downloader
 COM_PORT=/dev/ttyUSB0
 
@@ -15,26 +11,21 @@ APP=ALU
 #BLASTER_TYPE=ByteBlasterMV
 BLASTER_TYPE=USB-Blaster
 
-# Is there an intention to continue to support the Cycore board?
-# Maybe the BeMicro is a better substitution
+# Path delimiter for Wdoz and others
 ifeq ($(WINDIR),)
-	USBRUNNER=./USBRunner
 	S=:
 else
-	USBRUNNER=USBRunner.exe
 	S=\;
 endif
 
 # The Quartus project
-QPROJ=dspio
+# MeMicro missing
 QPROJ=altde2-70
 
 # Where to put elf files and binaries
 BUILDDIR=tmp
 # Where to install tools
 INSTALLDIR=bin
-# Where to place FPGA bitstreams
-HWBUILDDIR=rbf
 
 all: tools emulator patmos
 
@@ -85,14 +76,17 @@ binary: $(BUILDDIR)/$(APP).bin
 
 # Assemble a program
 asm: asm-$(APP)
+
 asm-% $(BUILDDIR)/%.bin: asm/%.s
 	-mkdir -p $(dir $(BUILDDIR)/$*)
 	$(INSTALLDIR)/paasm $< $(BUILDDIR)/$*.bin
 
 # Compile a program
 comp: comp-$(APP)
+
 comp-% $(BUILDDIR)/%.bin: $(BUILDDIR)/%.elf
 	bin/elf2bin $< $(BUILDDIR)/$*.bin
+
 $(BUILDDIR)/%.elf: .FORCE
 	-mkdir -p $(dir $@)
 	$(MAKE) -C c BUILDDIR=$(CURDIR)/$(BUILDDIR) APP=$* compile
@@ -117,14 +111,10 @@ patmos: synth config
 
 # configure the FPGA
 config:
-ifeq ($(USB),true)
-	make config_usb
-else
 ifeq ($(XFPGA),true)
 	make config_xilinx
 else
 	make config_byteblaster
-endif
 endif
 
 synth: csynth
@@ -135,21 +125,19 @@ csynth:
 config_byteblaster:
 	quartus_pgm -c $(BLASTER_TYPE) -m JTAG quartus/$(QPROJ)/patmos.cdf
 
-config_usb:
-	$(USBRUNNER) $(HWBUILDDIR)/$(QPROJ).rbf
-
 download: $(BUILDDIR)/$(APP).elf
 	java -cp lib/*:java/lib/* patserdow.Main $(COM_PORT) $<
 
 # TODO: no Xilinx Makefiles available yet
 config_xilinx:
-	$(MAKE) -C xilinx/$(XPROJ) config
+	echo "No Xilinx Makefile"
+#	$(MAKE) -C xilinx/$(XPROJ) config
 
 # cleanup
 CLEANEXTENSIONS=rbf rpt sof pin summary ttf qdf dat wlf done qws
 
 clean:
-	-rm -rf $(BUILDDIR) $(INSTALLDIR) $(HWBUILDDIR)
+	-rm -rf $(BUILDDIR) $(INSTALLDIR)
 	-rm -rf java/classes java/lib
 	for ext in $(CLEANEXTENSIONS); do \
 		find `ls` -name \*.$$ext -print -exec rm -r -f {} \; ; \
