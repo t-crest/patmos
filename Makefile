@@ -106,6 +106,9 @@ csim:
 test:
 	testsuite/run.sh
 
+directories:
+	echo "Dummy target for buildbot - to be removed"
+
 # Compile Patmos and download
 patmos: synth config
 
