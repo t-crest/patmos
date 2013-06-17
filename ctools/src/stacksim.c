@@ -6,6 +6,8 @@
 
 	By LLVM/Patmos convention the stack grows towards lower addresses.
 	Therefore the top of stack (cache or memory) is the smallest address.
+
+	TODO: this version might be off by one... see paper and pasim
 */
 
 #include <stdio.h>
