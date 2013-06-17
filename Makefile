@@ -109,6 +109,9 @@ test:
 directories:
 	echo "Dummy target for buildbot - to be removed"
 
+rom:
+	echo "Another dummy for the buildbot"
+
 # Compile Patmos and download
 patmos: synth config
 
