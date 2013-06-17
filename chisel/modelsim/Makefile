@@ -12,5 +12,5 @@ all: sim
 sim:
 	rm -rf work
 	$(WINE) vlib work
-	$(WINE) vlog -quiet ../generated/Patmos.v Patmos_tb.v
+	$(WINE) vlog -quiet ../build/Patmos.v Patmos_tb.v
 	$(WINE) vsim -i -do sim.do Patmos_tb
