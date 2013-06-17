@@ -2,8 +2,10 @@ BUILDDIR=$(CURDIR)/build
 
 APP=basic
 
-BOOTBINROOT=..
-BOOTBIN=tmp/$(APP).bin
+BOOTBUILDROOT=..
+BOOTBUILDDIR=tmp
+BOOTFILE=$(APP).bin
+BOOTBIN=$(BOOTBUILDROOT)/$(BOOTBUILDDIR)/$(BOOTFILE)
 
 QPROJ=altde2-70
 
@@ -48,17 +50,18 @@ $(BUILDDIR)/emulator: emulator.cpp $(BUILDDIR)/Patmos.cpp
 	$(CXX) $(CXXFLAGS) $(INC_EXTRA) -I $(BUILDDIR) -o $@ $^ -lelf
 
 $(BUILDDIR)/Patmos.cpp: $(CGEN)
-	if [ x`cat $(CGEN)` != x"$(BOOTBINROOT)/$(BOOTBIN)" ]; then \
+	if [ x`cat $(CGEN)` != x"$(BOOTBIN)" ]; then \
 		rm $(CGEN); $(MAKE) $(CGEN); \
 	fi
 
-$(CGEN): $(BOOTBINROOT)/$(BOOTBIN) $(SRC)
+$(CGEN): $(BOOTBIN) $(SRC)
 	$(SBT) "run-main $(MAIN) $< --vcd --targetDir $(BUILDDIR) --backend c"
-	echo $(BOOTBINROOT)/$(BOOTBIN) > $(CGEN)
+	echo $(BOOTBIN) > $(CGEN)
 
 # run emulator
 test: emulator
 	$(BUILDDIR)/emulator -v -l 1000000
+
 # view detailed emulation results
 view:
 	gtkwave Patmos.vcd wave.gtkw
@@ -67,13 +70,13 @@ view:
 verilog: $(BUILDDIR)/Patmos.v
 
 $(BUILDDIR)/Patmos.v: $(VGEN)
-	if [ x`cat $(VGEN)` != x"$(BOOTBINROOT)/$(BOOTBIN)" ]; then \
+	if [ x`cat $(VGEN)` != x"$(BOOTBIN)" ]; then \
 		rm $(VGEN); $(MAKE) $(VGEN); \
 	fi
 
-$(VGEN): $(BOOTBINROOT)/$(BOOTBIN) $(SRC)
+$(VGEN): $(BOOTBIN) $(SRC)
 	$(SBT) "run-main $(MAIN) $< --targetDir $(BUILDDIR) --backend v"
-	echo -n $(BOOTBINROOT)/$(BOOTBIN) > $(VGEN)
+	echo -n $(BOOTBIN) > $(VGEN)
 
 # run Verilog simulation
 vsim: verilog
@@ -87,8 +90,8 @@ qsyn: verilog
 	quartus_sta quartus/$(QPROJ)/patmos
 
 # build the boot binary
-$(BOOTBINROOT)/$(BOOTBIN): .FORCE
-	$(MAKE) -C $(BOOTBINROOT) $(BOOTBIN)
+$(BOOTBUILDROOT)/$(BOOTBUILDDIR)/$(BOOTFILE): .FORCE
+	$(MAKE) -C $(BOOTBUILDROOT) BUILDDIR=$(BOOTBUILDDIR) $(BOOTBUILDDIR)/$(BOOTFILE)
 
 .FORCE:
 
