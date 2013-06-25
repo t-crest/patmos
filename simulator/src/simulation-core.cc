@@ -334,7 +334,7 @@ namespace patmos
             Pipeline[0][1] = instruction_data_t();
 
             // Handling interrupt, next CPU cycle no new instructions have to be decoded
-            interrupt_handling = 2;
+            interrupt_handling = 3;
 
             // Store return from interrupt address
             SPR.set(s9, PC);
@@ -356,7 +356,7 @@ namespace patmos
 
               // provide next program counter value
               if(Pipeline[0][0].I->is_flow_control())
-                  branch_counter = 2;
+                  branch_counter = 3;
               else if (branch_counter)
                 branch_counter--;
 
