@@ -5,28 +5,20 @@ BUILDDIR=../tmp
 
 CC=patmos-clang
 
-CFLAGS=-target patmos-unknown-unknown-elf \
-	-nodefaultlibs -nostdlib -nostartfiles \
-	-fno-builtin \
-	-Ttext 0x10 \
-	-e main
-CFLAGS+=-mpatmos-disable-stack-cache \
-	-O3
-#CFLAGS+=-O0
-
-CFLAGS-WITH-LIBS=-target patmos-unknown-unknown-elf \
-	-nostartfiles \
-	-fno-builtin \
-	-mpatmos-disable-stack-cache \
-	-Ttext 0x10 \
-	-e main \
-	-O3
-
+# Flags for compiling to boot ROM
 CFLAGS-BOOTABLE=-target patmos-unknown-unknown-elf \
+	-mpatmos-method-cache-size=0x8000 \
+	-mpatmos-disable-stack-cache \
+	-nodefaultlibs -nostdlib -nostartfiles \
+	-Xgold --section-start -Xgold .text=0x0 -e main \
+	-Os
+
+# Flags for compiling normal applications
+CFLAGS=-target patmos-unknown-unknown-elf \
 	-Xgold -T../chisel/spm.t \
 	-mpatmos-method-cache-size=0x8000 \
 	-mpatmos-disable-stack-cache \
-	-O3
+	-O2
 
 compile: $(BUILDDIR)/$(APP).elf
 
@@ -37,4 +29,8 @@ $(BUILDDIR)/%.s: %.c
 	$(CC) $(CFLAGS) -fpatmos-emit-asm -S -o $@ $^
 
 $(BUILDDIR)/bootable-%.elf: %.c
-	$(CC) $(CFLAGS-BOOTABLE) -o $(BUILDDIR)/$(APP).elf $^
+	$(CC) $(CFLAGS-BOOTABLE) -o $@ $^
+
+$(BUILDDIR)/bootable-%.s: %.c
+	$(CC) $(CFLAGS-BOOTABLE) -fpatmos-emit-asm -S -o $@ $^
+

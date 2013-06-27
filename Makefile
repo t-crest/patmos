@@ -5,8 +5,13 @@
 # COM port for downloader
 COM_PORT=/dev/ttyUSB0
 
-# Assembler files
-APP=ALU
+# Application to be stored in boot ROM
+BOOTAPP=basic
+#BOOTAPP=bootable-bootloader
+
+# Application to be downloaded
+APP=hello
+
 # Altera FPGA configuration cable
 #BLASTER_TYPE=ByteBlasterMV
 BLASTER_TYPE=USB-Blaster
@@ -65,52 +70,44 @@ java/classes/%.class: java/src/%.java
 		-sourcepath java/src -d java/classes $<
 
 # Build the Chisel emulator
-emulator:
+emulator: elf2bin
 	-mkdir -p chisel/build
-	$(MAKE) -C chisel BUILDDIR=$(CURDIR)/chisel/build APP=$(APP) emulator
+	$(MAKE) -C chisel BUILDDIR=$(CURDIR)/chisel/build BOOTAPP=$(BOOTAPP) emulator
 	-mkdir -p $(INSTALLDIR)
 	cp chisel/build/emulator $(INSTALLDIR)
 
-# Create binary, no matter how
-binary: $(BUILDDIR)/$(APP).bin
-
 # Assemble a program
-asm: asm-$(APP)
+asm: asm-$(BOOTAPP)
 
 asm-% $(BUILDDIR)/%.bin: asm/%.s
 	-mkdir -p $(dir $(BUILDDIR)/$*)
 	$(INSTALLDIR)/paasm $< $(BUILDDIR)/$*.bin
 
-# Compile a program
-comp: comp-$(APP)
+# Compile a program with flags for booting
+bootcomp: bin-$(BOOTAPP)
 
-comp-% $(BUILDDIR)/%.bin: $(BUILDDIR)/%.elf
+# Convert elf file to binary
+bin-% $(BUILDDIR)/%.bin: $(BUILDDIR)/%.elf
 	bin/elf2bin $< $(BUILDDIR)/$*.bin
 
-$(BUILDDIR)/%.elf: .FORCE
+# Compile a program to an elf file
+comp: comp-$(APP)
+
+comp-% $(BUILDDIR)/%.elf: .FORCE
 	-mkdir -p $(dir $@)
 	$(MAKE) -C c BUILDDIR=$(CURDIR)/$(BUILDDIR) APP=$* compile
 
-# Compile a program with flags for booting
-bootcomp: comp-bootable-$(APP)
-
 # High-level pasim simulation
-hsim: $(BUILDDIR)/$(APP).bin
-	bin/pasim --debug --debug-fmt=short $(BUILDDIR)/$(APP).bin
+hsim: $(BUILDDIR)/$(BOOTAPP).bin
+	bin/pasim --debug --debug-fmt=short $(BUILDDIR)/$(BOOTAPP).bin
 
 # C simulation of the Chisel version of Patmos
 csim:
-	$(MAKE) -C chisel test APP=$(APP)
+	$(MAKE) -C chisel test BOOTAPP=$(BOOTAPP)
 
 # Testing
 test:
 	testsuite/run.sh
-
-directories:
-	echo "Dummy target for buildbot - to be removed"
-
-rom:
-	echo "Another dummy for the buildbot"
 
 # Compile Patmos and download
 patmos: synth config
@@ -126,10 +123,10 @@ endif
 synth: csynth
 
 csynth:
-	$(MAKE) -C chisel qsyn APP=$(APP) QPROJ=$(QPROJ)
+	$(MAKE) -C chisel qsyn BOOTAPP=$(BOOTAPP) QPROJ=$(QPROJ)
 
 config_byteblaster:
-	quartus_pgm -c $(BLASTER_TYPE) -m JTAG quartus/$(QPROJ)/patmos.cdf
+	quartus_pgm -c $(BLASTER_TYPE) -m JTAG chisel/quartus/$(QPROJ)/patmos.cdf
 
 download: $(BUILDDIR)/$(APP).elf
 	java -cp lib/*:java/lib/* patserdow.Main $(COM_PORT) $<

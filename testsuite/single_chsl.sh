@@ -13,11 +13,11 @@ mkdir -p "${LOG_DIR}"/`dirname ${TEST}`
 echo "${TEST}"
 
 # run chisel
-make csim APP="${TEST}" 1> "${LOG_DIR}/${TEST}.cs.out" 2> "${LOG_DIR}/${TEST}.cs.err"
+make csim BOOTAPP="${TEST}" 1> "${LOG_DIR}/${TEST}.cs.out" 2> "${LOG_DIR}/${TEST}.cs.err"
 echo "EXIT $?" >> "${LOG_DIR}/${TEST}.cs.out"
 
 # run high-level simulator
-make hsim APP="${TEST}" 1> "${LOG_DIR}/${TEST}.hs.out" 2> "${LOG_DIR}/${TEST}.hs.err"
+make hsim BOOTAPP="${TEST}" 1> "${LOG_DIR}/${TEST}.hs.out" 2> "${LOG_DIR}/${TEST}.hs.err"
 echo "EXIT $?" >> "${LOG_DIR}/${TEST}.hs.out"
 
 # compare output
