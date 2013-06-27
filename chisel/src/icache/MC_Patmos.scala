@@ -69,10 +69,18 @@ class MCPatmos(fileName: String) extends Component {
     val led = Bits(OUTPUT, 8)
     val uart = new UartIO()
   }
+
   //new mcache classes
-  val mcache = new MCache()
-  val mcachemem = new MCacheMem(method_count = 4, replacement = LRU_REPL, block_arrangement = FIXED_SIZE)
+  val mcache = new MCache(fileName)
+
+  //TODO: move this to mcache not needed in patmos.scala
+  //components
+  val mcachemem = new MCacheMem(method_count = 4, replacement = FIFO_REPL, block_arrangement = VARIABLE_SIZE)
   val extmemrom = new ExtMemROM(fileName)
+  mcache.io.mcachemem_in <> mcachemem.io.mcachemem_in
+  mcache.io.mcachemem_out <> mcachemem.io.mcachemem_out
+  mcache.io.extmem_in <> extmemrom.io.extmem_in
+  mcache.io.extmem_out <> extmemrom.io.extmem_out
 
   val fetch = new MCFetch()
   val decode = new Decode()
@@ -80,11 +88,6 @@ class MCPatmos(fileName: String) extends Component {
   val memory = new Memory()
   val writeback = new WriteBack()
   val iocomp = new InOut()
-
-  mcache.io.mcachemem_in <> mcachemem.io.mcachemem_in
-  mcache.io.mcachemem_out <> mcachemem.io.mcachemem_out
-  mcache.io.extmem_in <> extmemrom.io.extmem_in
-  mcache.io.extmem_out <> extmemrom.io.extmem_out
 
   //connect to fetch stage
   mcache.io.mcache_in <> fetch.io.mcache_in
@@ -124,21 +127,14 @@ class MCPatmos(fileName: String) extends Component {
   val enable = !pulse()
   // disable stall tests
   //  val enable = Bool(true)
-   */
+  */ 
+  val enable = mcache.io.mcache_out.hit
 
-  fetch.io.ena := mcache.io.mcache_out.hit
-  decode.io.ena := mcache.io.mcache_out.hit
-  execute.io.ena := mcache.io.mcache_out.hit
-  memory.io.ena := mcache.io.mcache_out.hit
-  writeback.io.ena := mcache.io.mcache_out.hit
-
-/*
   fetch.io.ena := enable
   decode.io.ena := enable
   execute.io.ena := enable
   memory.io.ena := enable
   writeback.io.ena := enable
- */
 
   iocomp.io.uart <> io.uart
   // The one and only output
