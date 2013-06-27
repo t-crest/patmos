@@ -3,20 +3,17 @@
 
 int main() __attribute__((naked,used));
 
-#define _stack_cache_base 0x3000
-#define _shadow_stack_base 0x4000
+#define _stack_cache_base 0x2f00
+#define _shadow_stack_base 0x3f00
 
 int main()
 {
-
-
 	   // setup stack frame and stack cache.
 	    asm volatile ("mov $r29 = %0;" // initialize shadow stack pointer"
 	                "mts $ss  = %1;" // initialize the stack cache's spill pointer"
 	                "mts $st  = %1;" // initialize the stack cache's top pointer"
 	                 : : "r" (_shadow_stack_base), "r" (_stack_cache_base));
 
-	int (*start_program)() = (int (*)()) 0x0;
 	volatile _SPM int *ispm_ptr = (_SPM int *) 0x0;
 	volatile _SPM int *uart_status_ptr = (_SPM int *) 0xF0000100;
 	volatile _SPM int *uart_data = (_SPM int *) 0xF0000104;
@@ -83,23 +80,15 @@ int main()
 					{
 						if(section_byte_count == 4)
 						{
-							switch (current_state)
-							{
-								case STATE_ENTRYPOINT:
-									entrypoint = integer;
-									break;
-								case STATE_SECTION_NUMBER:
-									section_number = integer;
-									break;
-								case STATE_SECTION_SIZE:
-									section_size = integer;
-									break;
-								case STATE_SECTION_OFFSET:
-									section_offset = integer;
-									break;
-								default:
-									break;
-							}
+							if (current_state == STATE_ENTRYPOINT)
+								entrypoint = integer;
+							else if (current_state == STATE_SECTION_NUMBER)
+								section_number = integer;
+							else if (current_state == STATE_SECTION_SIZE)
+								section_size = integer;
+							else if (current_state == STATE_SECTION_OFFSET)
+								section_offset = integer;
+
 							section_byte_count = 0;
 							current_state++;
 						}
@@ -135,15 +124,9 @@ int main()
 						*uart_data = 'o';
 						if(section_count == section_number)
 						{
-
 							//End of program transmission
 							//Jump to program execution
-							//start_program();
-							//state = STATE_SECTION_AMOUNT;
-							//section_amount = 0;
-							//section_count = 0;
-							(*(start_program+0x800000))();
-							//(*(start_program+entrypoint))();
+							(*(volatile int (*)())entrypoint)();
 						}
 					}
 					else
