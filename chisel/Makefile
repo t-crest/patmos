@@ -76,7 +76,7 @@ $(BUILDDIR)/Patmos.v: $(VGEN)
 
 $(VGEN): $(BOOTBIN) $(SRC)
 	$(SBT) "run-main $(MAIN) $< --targetDir $(BUILDDIR) --backend v"
-	echo -n $(BOOTBIN) > $(VGEN)
+	echo $(BOOTBIN) > $(VGEN)
 
 # run Verilog simulation
 vsim: verilog
