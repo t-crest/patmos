@@ -17,7 +17,8 @@ CFLAGS-BOOTABLE=-target patmos-unknown-unknown-elf \
 CFLAGS=-target patmos-unknown-unknown-elf \
 	-Xgold -T../chisel/spm.t \
 	-mpatmos-method-cache-size=0x8000 \
-	-mpatmos-disable-stack-cache \
+	-mpatmos-stack-base=0x3000 -mpatmos-shadow-stack-base=0x4000 \
+	-nolibsyms \
 	-O2
 
 compile: $(BUILDDIR)/$(APP).elf
