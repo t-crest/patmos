@@ -64,6 +64,7 @@ public class Main
             print_stream.println("Instruction width is 32 bits:"+(header.is32bit()));
             print_stream.println("Is Big Endian:"+header.isBigEndian());
             print_stream.println("File is of type exe:"+(header.getType()==ElfHeader.ET_EXEC));
+            print_stream.println("Entry point:"+header.getEntryPoint());
             print_stream.println();
             
             
@@ -113,7 +114,16 @@ public class Main
         		file_stream.close();
             }
             print_stream.println();
-		}
+
+            while (true)
+            {
+                print_stream.print((char)in_stream.read());
+            }
+        }
+        catch (Exception exc)
+        {
+            System.out.println(exc);
+        }
         finally
         {
 			if(port != null)
