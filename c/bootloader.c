@@ -6,6 +6,22 @@ int main() __attribute__((naked,used));
 #define _stack_cache_base 0x2f00
 #define _shadow_stack_base 0x3f00
 
+#define ISPM        ((volatile _SPM int *) 0x0)
+
+#define UART_STATUS *((volatile _SPM int *) 0xF0000100)
+#define UART_DATA   *((volatile _SPM int *) 0xF0000104)
+#define LEDS        *((volatile _SPM int *) 0xF0000100)
+
+#define XDIGIT(c) ((c) <= 9 ? '0' + (c) : 'a' + (c) - 10)
+
+#define WRITE(data,len) do { \
+  unsigned i; \
+  for (i = 0; i < (len); i++) {		   \
+    while ((UART_STATUS & 0x01) == 0); \
+    UART_DATA = (data)[i];			   \
+  } \
+} while(0)
+
 int main()
 {
 	   // setup stack frame and stack cache.
@@ -13,11 +29,6 @@ int main()
 	                "mts $ss  = %1;" // initialize the stack cache's spill pointer"
 	                "mts $st  = %1;" // initialize the stack cache's top pointer"
 	                 : : "r" (_shadow_stack_base), "r" (_stack_cache_base));
-
-	volatile _SPM int *ispm_ptr = (_SPM int *) 0x0;
-	volatile _SPM int *uart_status_ptr = (_SPM int *) 0xF0000100;
-	volatile _SPM int *uart_data = (_SPM int *) 0xF0000104;
-	volatile _SPM int *led_ptr = (_SPM int *) 0xF0000200;
 
 	int entrypoint = 0;
 	int section_number = -1;
@@ -31,7 +42,6 @@ int main()
 
 	enum state current_state = STATE_ENTRYPOINT;
 
-
 	//Packet stuff
 	int CRC_LENGTH = 4;
 	int packet_byte_count = 0;
@@ -42,11 +52,10 @@ int main()
 
 	for (;;)
 	{
-		int uart_status = *uart_status_ptr;
-		*led_ptr = current_state;
-		if(uart_status & 0x02)
+		LEDS = current_state;
+		if(UART_STATUS & 0x02)
 		{
-			int data = *uart_data;
+			int data = UART_DATA;
 			if(packet_size == 0)
 			{
 				//First received byte sets the packet size
@@ -96,7 +105,7 @@ int main()
 					else
 					{
 						//In case of data less than 4 bytes write everytime
-						*(ispm_ptr+(section_offset/4)+((section_byte_count-1)/4)) = integer;
+						*(ISPM+(section_offset/4)+((section_byte_count-1)/4)) = integer;
 						if(section_byte_count == section_size)
 						{
 							//current_state = STATE_SECTION_START;
@@ -121,17 +130,41 @@ int main()
 					calculated_crc = calculated_crc ^ 0xFFFFFFFF; //Flipped final value
 					if(calculated_crc == received_crc)
 					{
-						*uart_data = 'o';
+						UART_DATA = 'o';
 						if(section_count == section_number)
 						{
 							//End of program transmission
 							//Jump to program execution
-							(*(volatile int (*)())entrypoint)();
+							int retval = (*(volatile int (*)())entrypoint)();
+
+							// Compensate off-by-one of return offset with NOP
+							// (internal base address is 0 after booting).
+							// Return may be "unclean" and leave registers clobbered.
+							asm volatile ("nop" : :
+										  : "$r2", "$r3", "$r4", "$r5",
+											"$r6", "$r7", "$r8", "$r9",
+											"$r10", "$r11", "$r12", "$r13",
+											"$r14", "$r15", "$r16", "$r17",
+											"$r18", "$r19", "$r20", "$r21",
+											"$r22", "$r23", "$r24", "$r25",
+											"$r26", "$r27", "$r28", "$r29");
+
+							// Print exit magic and return code
+							{
+							  char msg[10];
+							  msg[0] = '\0';
+							  msg[1] = 'x';
+							  msg[2] = retval & 0xff;
+							  WRITE(msg, 3);
+							}
+							// Start again
+							// TODO: replace with a real reset
+							main();
 						}
 					}
 					else
 					{
-						*uart_data = 'r';
+						UART_DATA = 'r';
 					}
 					packet_size = 0;
 				}

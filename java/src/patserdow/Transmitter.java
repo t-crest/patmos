@@ -67,7 +67,9 @@ public class Transmitter
             byteBuffer.putInt((int)CRC.getValue());
             send(buffer,0,FRAME_SIZE_OFFSET+read+CRC_SIZE);
             remaining -= read;
-            monitor.update(read);
+            if (monitor != null) {
+                monitor.update(read);
+            }
 		}
 	}
 }

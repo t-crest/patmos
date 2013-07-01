@@ -129,7 +129,10 @@ config_byteblaster:
 	quartus_pgm -c $(BLASTER_TYPE) -m JTAG chisel/quartus/$(QPROJ)/patmos.cdf
 
 download: $(BUILDDIR)/$(APP).elf
-	java -cp lib/*:java/lib/* patserdow.Main $(COM_PORT) $<
+	java -Dverbose=true -cp lib/*:java/lib/* patserdow.Main $(COM_PORT) $<
+
+fpgaexec: $(BUILDDIR)/$(APP).elf
+	java -Dverbose=false -cp lib/*:java/lib/* patserdow.Main $(COM_PORT) $<
 
 # TODO: no Xilinx Makefiles available yet
 config_xilinx:
