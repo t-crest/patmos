@@ -12,7 +12,7 @@
  LRU Replacement with variable size
 
  VARIABLE BLOCK SIZE its getting more complicated we have to track the position of each
- ...but we run into problems when replacing so maybe FIFO/NEXT strategy is the solution here
+ ...but we run into problems when replacing there is needed an adress translation
 
  FIFO with variable block size
  --> cost: addr_tag, size_tag, pos_tag, search logic, next_index reg, next_replace reg, free_space reg
@@ -39,7 +39,7 @@ import scala.math
 
 object MConstants {
   //on chip 4KB icache
-  val MCACHE_SIZE = 4096 / 4 //* 8 //4KB = 2^12*2^3 = 32*1024 = 32768Bit
+  val MCACHE_SIZE = 64//4096 / 4 //* 8 //4KB = 2^12*2^3 = 32*1024 = 32768Bit
   val EXTMEM_SIZE = 2 * MCACHE_SIZE // =32*2048
   val METHOD_COUNT = 4
   val METHOD_BLOCK_SIZE = MCACHE_SIZE / METHOD_COUNT
@@ -63,6 +63,7 @@ object MConstants {
 
 class MCacheIn extends Bundle() {
   val address = Bits(width = 32) //=pc_next
+  val doCallRet = Bits(width = 1)
   val request = Bits(width = 1) //should be used in future maybe when data cache stalls?
 }
 class MCacheOut extends Bundle() {
@@ -79,6 +80,7 @@ class MCacheIO extends Bundle() {
   val extmem_out = new ExtMemOut().asInput
 }
 
+//TODO will be moved to a OPC interface!
 /* cache memory of icache and mcache should be integrated in one mem.scala class and one package: cache 
    ...at least external Memory since it is a simulation of a extmem and the same for icache and mcache
 */
@@ -95,11 +97,14 @@ class ExtMemIO extends Bundle() {
   val extmem_in = new ExtMemIn().asInput
   val extmem_out = new ExtMemOut().asOutput
 }
+
+
 class MCacheMemIn extends Bundle() {
   val w_enable = Bits(width = 1)
   val w_data = Bits(width = 32)
   val address = Bits(width = 32) //should be 32 because we need whole address for tag?!
   val w_tag = Bits(width = 1)
+  val doCallRet = Bits(width = 1)
 }
 class MCacheMemOut extends Bundle() {
   val instr_a = Bits(width = INSTR_WIDTH)
@@ -114,6 +119,15 @@ class MCacheMemIO extends Bundle() {
 object MCacheMem {
 
   //move some functions here...
+
+  def get_address(pos : Bits,  offset : Bits) : Bits = {
+    ((pos + (offset / UFix(2))) % Bits(MCACHE_SIZE)) //modulo if you write over the cache size (variable blocks)
+  }
+
+  //TODO: should integrate the check for variable blocks too...
+  def check_block_size(size : Bits) : Bits = {
+    ((size - Bits(1)) / Bits(METHOD_BLOCK_SIZE))
+  }
  
 }
 
@@ -123,7 +137,7 @@ object MCacheMem {
 */
 class MCacheMem( 
   method_count : Int = METHOD_COUNT,
-  replacement : Int = LRU_REPL,
+  replacement : Int = FIFO_REPL,
   block_arrangement : Int = FIXED_SIZE
 ) extends Component {
   val io = new MCacheMemIO()
@@ -145,7 +159,8 @@ class MCacheMem(
   //keep track of lru and mru of the list
   val lru_tag = Reg(resetVal = Bits(0, width = log2Up(method_count)))
   val mru_tag = Reg(resetVal = Bits(method_count - 1, width = log2Up(method_count)))
-  //why this doesnt work????
+
+//TODO why this doesnt work????
   //if (replacement == FIFO_REPL) {
   val next_index_tag = Reg(resetVal = Bits(0, width = log2Up(method_count)))
   val next_replace_tag = Reg(resetVal = Bits(0, width = log2Up(method_count)))
@@ -160,19 +175,9 @@ class MCacheMem(
   //signals
   val data_even = Bits(width = INSTR_WIDTH)
   val data_odd = Bits(width = INSTR_WIDTH)
-  val addr_offset = Bits(width = METHOD_SIZETAG_WIDTH)
 
-  //tag field type for search function
-  class TagField extends Bundle {
-    val pos = Bits(width = METHOD_SIZETAG_WIDTH)
-    val hit = Bits(width = 1)
-    val tag = Bits(width = 32)
-  }
 
-  //new bundle
-  val tag_field = new TagField()
-
-  //TODO
+//TODO:
   //should not need this but seems to work and synthezis away not needed regs
   if (replacement == FIFO_REPL) {
     if (block_arrangement == FIXED_SIZE) {
@@ -198,23 +203,65 @@ class MCacheMem(
   //init signals
   data_even := Bits(0)
   data_odd := Bits(0)
-  tag_field := search_tag_addr(io.mcachemem_in.address)
-  addr_offset := io.mcachemem_in.address - tag_field.tag //offset between incoming address and base address
 
-  //how we can init Memories??? programming init in C?!
-  val list_init = Reg(resetVal = Bits(0, width = 1))
-  when (list_init === Bits(0)) {
-    init_tag_list()
+  //signal of the current tagfield with position and hit result
+  class TagField extends Bundle {
+    val pos = Bits(width = METHOD_SIZETAG_WIDTH)
+    val hit = Bits(width = 1)
+    val tag = Bits(width = 32)
   }
-  list_init := Bits(1)
+  val tag_field = new TagField()
+  tag_field.pos := Bits(0)
+  tag_field.hit := Bits(0)
+  tag_field.tag := Bits(0)
 
+  //saves the current tagfield position since fetch can only occur on call/return
+  val pos = Reg(resetVal = Bits(0, width = METHOD_SIZETAG_WIDTH))
+  val hit = Reg(resetVal = Bits(0, width = 1))
+  val tag = Reg(resetVal = Bits(0, width = 32))
 
-  //should be done in c!
+  //search the given addr in the tag field
+  def search_tag_addr(addr : Bits, tagfield: TagField) = {
+    for (i <- 0 until method_count) {
+      when ((io.mcachemem_in.address >= mcache_addr_tag(Bits(i))) && (io.mcachemem_in.address < (mcache_addr_tag(Bits(i)) + mcache_size_tag(Bits(i))))) {
+        if (block_arrangement == FIXED_SIZE) {
+          tagfield.pos := Bits(i) * Bits(METHOD_BLOCK_SIZE / 2) // divided by two because even odd memory!
+        }
+        else if (block_arrangement == VARIABLE_SIZE) {
+          tagfield.pos := mcache_pos_tag(Bits(i))
+        }
+        tagfield.hit := Bits(1)
+        tagfield.tag := mcache_addr_tag(Bits(i))
+      }
+    }
+  }
+
+  //search needed or not
+  when(io.mcachemem_in.doCallRet === Bits(1) || (check_block_size(io.mcachemem_in.address - tag) != Bits(0))) {
+    search_tag_addr(io.mcachemem_in.address, tag_field)
+    pos := tag_field.pos
+    hit := tag_field.hit
+    tag := tag_field.tag
+  }
+  .otherwise {
+    tag_field.pos := pos
+    tag_field.hit := hit
+    tag_field.tag := tag
+  }
+
+  val addr_offset = (io.mcachemem_in.address - tag_field.tag) //offset between incoming address and base address
+
+//TODO how we can init Memories??? programming init in C?!
   def init_tag_list() = {
     for (i <- 0 until method_count) {
       mcache_list_next(Bits(i)) := Bits(i) - Bits(1)
       mcache_list_prev(Bits(i)) := Bits(i) + Bits(1)
     }
+  }
+  val list_init = Reg(resetVal = Bits(0, width = 1))
+  when (list_init === Bits(0)) {
+    init_tag_list()
+    list_init := Bits(1)
   }
 
   //update tag field
@@ -240,37 +287,6 @@ class MCacheMem(
     }
   }
 
-  def get_address(pos : Bits,  offset : Bits) : Bits = {
-    ((pos + (offset / UFix(2))) % Bits(MCACHE_SIZE)) //modulo if you write over the cache size (variable blocks)
-  }
-
-
-  //TODO: should integrate the check for variable blocks too...
-  def check_block_size(size : Bits) : Bits = {
-    ((size - Bits(1)) / Bits(METHOD_BLOCK_SIZE))
-  }
-
-  //search the given addr in the tag field
-  def search_tag_addr (addr : Bits) : TagField = {
-    val tagfield = new TagField()
-    tagfield.tag := Bits(0)
-    tagfield.hit := Bits(0)
-    tagfield.pos := Bits(0)
-    for (i <- 0 until method_count) {
-      when ((io.mcachemem_in.address >= mcache_addr_tag(Bits(i))) && (io.mcachemem_in.address < (mcache_addr_tag(Bits(i)) + mcache_size_tag(Bits(i))))) {
-        if (block_arrangement == FIXED_SIZE) {
-          tagfield.pos := Bits(i) * Bits(METHOD_BLOCK_SIZE / 2) // divided by two because even odd memory?!
-        }
-        else if (block_arrangement == VARIABLE_SIZE) {
-          tagfield.pos := mcache_pos_tag(Bits(i))
-        }
-        tagfield.hit := Bits(1)
-        tagfield.tag := mcache_addr_tag(Bits(i))
-      }
-    }
-    tagfield
-  }
-
   //prepare replacement: index the size and the address tag and check the size fits into one block/free size otherwise split up
   when (io.mcachemem_in.w_tag === Bits(1)) {
 
@@ -279,13 +295,19 @@ class MCacheMem(
       when (free_space >= io.mcachemem_in.w_data) {
         free_space := free_space - io.mcachemem_in.w_data + mcache_size_tag(next_index_tag)
       }
-        .otherwise {
+      .otherwise {
         free_space := free_space + mcache_size_tag(next_replace_tag) - io.mcachemem_in.w_data
       }
+
       next_replace_pos := (next_replace_pos + io.mcachemem_in.w_data) % Bits(MCACHE_SIZE)
       mcache_pos_tag(next_index_tag) := next_replace_pos
       mcache_size_tag(next_index_tag) := io.mcachemem_in.w_data
       mcache_addr_tag(next_index_tag) := io.mcachemem_in.address
+
+      pos := next_replace_pos
+      hit := Bits(1)
+      tag := io.mcachemem_in.address
+
       update_tag(next_index_tag)
     }
 
@@ -295,7 +317,13 @@ class MCacheMem(
         if (replacement == FIFO_REPL) {
           mcache_size_tag(next_replace_tag) := io.mcachemem_in.w_data
           mcache_addr_tag(next_replace_tag) := io.mcachemem_in.address
+
+          pos := next_replace_tag * Bits(METHOD_BLOCK_SIZE / 2)
+          hit := Bits(1)
+          tag := io.mcachemem_in.address
+
           update_tag(next_replace_tag)
+
         }
         else if (replacement == LRU_REPL) {
           mcache_size_tag(lru_tag) := io.mcachemem_in.w_data
@@ -312,6 +340,11 @@ class MCacheMem(
           mcache_size_tag(next_replace_tag) := Bits(METHOD_BLOCK_SIZE)
           mcache_addr_tag(next_replace_tag) := io.mcachemem_in.address
           update_tag(next_replace_tag)
+
+          pos := next_replace_tag * Bits(METHOD_BLOCK_SIZE / 2)
+          hit := Bits(1)
+          tag := io.mcachemem_in.address
+
         }
         else if (replacement == LRU_REPL) {
           mcache_size_tag(lru_tag) := Bits(METHOD_BLOCK_SIZE)
@@ -331,7 +364,8 @@ class MCacheMem(
       update_tag(next_replace_tag)
     }
   }
-  else if (replacement == FIXED_SIZE) {
+  
+  if (block_arrangement == FIXED_SIZE) {
     when (split_mcounter != Bits(0)) {
       //one more block is needed
       when (check_block_size(split_msize) === Bits(0)) {
@@ -363,27 +397,27 @@ class MCacheMem(
       }
       split_mcounter := split_mcounter - Bits(1)
     }
+
   }
 
   //write
   when (io.mcachemem_in.w_enable) {
-    when (tag_field.hit === Bits(1)) {
 
+//TODO: should always be a hit... not used...
+    when (tag_field.hit === Bits(1)) {
       when (addr_offset(0) === Bits(1)) {
         ram_mcache_odd(get_address(tag_field.pos, addr_offset)) := io.mcachemem_in.w_data
       }
       .otherwise {
         ram_mcache_even(get_address(tag_field.pos, addr_offset)) := io.mcachemem_in.w_data
       }
-
-    }.otherwise {} //expection: addr must be in the tag_field at this point
+    }
   }
   //read
   .otherwise {
     when (tag_field.hit === Bits(1)) {
-      data_even := ram_mcache_even(Mux(addr_offset(0) === Bits(1), (get_address(tag_field.pos, addr_offset) + Bits(1)), get_address(tag_field.pos, addr_offset)))
+      data_even := ram_mcache_even(Mux(addr_offset(0), (get_address(tag_field.pos, addr_offset) + Bits(1)), get_address(tag_field.pos, addr_offset)))
       data_odd := ram_mcache_odd(get_address(tag_field.pos, addr_offset))
-
     }
     dout_hit := tag_field.hit
     dout_a := Mux(addr_offset(0), data_odd, data_even) //instr_a must be set here because instr_a and b depend on offset
@@ -485,6 +519,7 @@ class MCache(fileName : String) extends Component {
   val mcache_w_enable = Bits(width = 1)
   val mcachemem_w_data = Bits(width = DATA_WIDTH)
   val mcachemem_wtag = Bits(width = 1)
+  val mcachemem_doCallRet = Bits(width = 1)
 
   val mcache_instr_a = Bits(width = DATA_WIDTH)
   val mcache_instr_b = Bits(width = DATA_WIDTH)
@@ -504,6 +539,7 @@ class MCache(fileName : String) extends Component {
   mcachemem_w_data := Bits(0)
   mcache_w_enable := Bits(0)
   mcachemem_address := io.mcache_in.address
+  mcachemem_doCallRet := io.mcache_in.doCallRet
 
   mcachemem_hit := io.mcachemem_out.hit
   mcache_instr_a := io.mcachemem_out.instr_a
@@ -521,20 +557,23 @@ class MCache(fileName : String) extends Component {
     when(io.mcachemem_out.hit === Bits(1)) {
       mcache_address := io.mcache_in.address
     }
-     //no hit... fetch from external memory
-    .elsewhen (io.mcache_in.request === Bits(1)) {
+    //no hit... fetch from external memory
+    .otherwise {
       //mcache_address_next := io.mcache_in.address //save pc + 4 for restart
       mcache_state := size_state
       extmem_fetch := Bits(1)
       extmem_fetch_address := mcache_address - Bits(1) // -1 because size is at method head -1
       extmem_msize := Bits(1) //here we could fetch already one first block instead single size tag
     }
-    //on return of a method we have a miss but should not fetch from ext memory
-    .otherwise {
+
+//TODO: on return of a method we have a miss but should not fetch from ext memory: THIS CASE SHOULD NOT HAPPEN
+//TODO check compiler version at these place should come valid data from the cache
+    when (io.mcache_in.doCallRet === Bits(1)) {
       mcachemem_hit := Bits(1)
       mcache_instr_a := Bits("h00400000")
       mcache_instr_b := Bits("h00400000")
     }
+
   }
 
   //fetch size of the required method from external memory
@@ -568,6 +607,7 @@ class MCache(fileName : String) extends Component {
     }
   }
 
+//TODO: NOT NEEDED any more...
   //restart using the latched address_next address
   when (mcache_state === restart_state) {
     mcachemem_address := io.mcache_in.address //mcache_address_next
@@ -580,6 +620,7 @@ class MCache(fileName : String) extends Component {
   io.mcachemem_in.w_enable := mcache_w_enable
   io.mcachemem_in.w_data := mcachemem_w_data
   io.mcachemem_in.w_tag := mcachemem_wtag
+  io.mcachemem_in.doCallRet := mcachemem_doCallRet //io.mcache_in.doCallRet
 
   io.mcache_out.instr_a := mcache_instr_a //io.mcachemem_out.instr_a
   io.mcache_out.instr_b := mcache_instr_b //io.mcachemem_out.instr_b
