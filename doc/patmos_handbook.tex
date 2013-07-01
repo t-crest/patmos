@@ -2305,7 +2305,37 @@ Current version (4.4.2013) with all ALU operations and test case ALU.s
 for the DE2-70 is: 3415 LCs, 85.44 MHz. Dropping \code{rsub} and all unary
 ALU operations: 3173 LCs, 91.91 MHz.
 
-% % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
+\section{Building Patmos}
+
+The whole build process of Patmos,
+\footnote{Get the source from GitHub with:\\
+\code{git clone git@github.com:t-crest/patmos}}
+applications in assembler
+and in C, configuration of the FPGA, and downloading an application
+is \code{Makefile} based.
+
+The complete design flow (including the LLVM
+based C compiler) can execute in a Linux machine. The flow without
+the C compiler should be able to execute in a Windows/Cygwin environment.
+Under Mac OS X all tools, except Quartus, are working (ModelSim under
+wine). For FPGA synthesis and configuration Windows XP within a VMWare
+virtual machine is a possible solution.
+
+On a Linux box with the installed LLMV compiler in your PATH,
+\footnote{Installation and build is a simple two step approach:\\
+\code{git clone git@github.com:t-crest/patmos-misc.git misc}\\
+and build with:\\
+\code{./misc/build.sh}}
+the complete build processes is kicked of by:
+
+% make BOOTAPP=bootable-bootloader APP=helloworld tools synth comp config download
+\begin{verbatim}
+make BOOTAPP=bootable-bootloader \\
+  APP=helloworld tools synth comp \\
+  config download
+\end{verbatim}
+
+\todo{More words on individual \code{make} targets.}
 \section{Application Binary Interface}
 \label{sec:abi}
 
