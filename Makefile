@@ -12,8 +12,9 @@ BOOTAPP=basic
 # Application to be downloaded
 APP=hello
 
-# Altera FPGA configuration cable
+# Altera FPGA configuration cables
 #BLASTER_TYPE=ByteBlasterMV
+#BLASTER_TYPE=Arrow-USB-Blaster 
 BLASTER_TYPE=USB-Blaster
 
 # Path delimiter for Wdoz and others
@@ -24,8 +25,9 @@ else
 endif
 
 # The Quartus project
-# MeMicro missing
+#QPROJ=bemicro
 QPROJ=altde2-70
+
 
 # Where to put elf files and binaries
 BUILDDIR=tmp

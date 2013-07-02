@@ -76,6 +76,6 @@ set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to led
 set_global_assignment -name VHDL_FILE ../../../vhdl/io/uart.vhd
 set_global_assignment -name VHDL_FILE ../../vhdl/altera/cyc3_pll.vhd
 set_global_assignment -name VERILOG_FILE ../../build/Patmos.v
-set_global_assignment -name VHDL_FILE ../../vhdl/patmos_top.vhdl
+set_global_assignment -name VHDL_FILE ../../vhdl/patmos_bemicro.vhdl
 set_global_assignment -name CDF_FILE patmos.cdf
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
