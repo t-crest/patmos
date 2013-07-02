@@ -206,6 +206,11 @@ class ExecuteIO() extends Bundle() {
   val exfe = new ExFe().asOutput
 }
 
+class SpmIO extends Bundle() {
+  val in = new MemIn().asInput
+  val data = Bits(OUTPUT, DATA_WIDTH)
+}
+
 /**
  * Just for now connect the VHDL UART at the VHDL top level.
  * Shall become a Chisel UART when Sahar has finished it.
