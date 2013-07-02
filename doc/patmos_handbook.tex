@@ -1,4 +1,5 @@
 \documentclass{IEEEtran}
+%\documentclass{article}
 
 \usepackage{pslatex} % -- times instead of computer modern
 \usepackage{url}
@@ -2335,7 +2336,45 @@ make BOOTAPP=bootable-bootloader \\
   config download
 \end{verbatim}
 
+Here a list of the most important make targets:
+
+
+\begin{description}[\settowidth{\labelwidth}{emulator}]
+\item[tools] build of all tools, including the Patmos software simulator
+\item[asm] assemble source (from folder \code{asm})
+\item[emulator] build the Chisel based C++ emulator
+\item[csim] execute the Patmos emulator 
+\item[comp] compile a C program as loadable ELF binary
+\item[bootcomp] compile a C program as a bootable image
+
+\item[synth] create the verily code and synthesize for an FPGA
+\end{description}
+
+Here an example of individual steps to build the blinking LED C hello world:
+\begin{verbatim}
+make tools
+make BOOTAPP=bootable-echo bootcomp
+make BOOTAPP=bootable-echo synth
+make config
+\end{verbatim}
+
+\todo{It would be nice to split the \code{synth} target into
+Verilog generation/Scala execution and Quartus synthesis}
+
 \todo{More words on individual \code{make} targets.}
+
+
+The \code{Makefile} use following variables to configure the build process:
+\code{BOOTAPP} is an application that ends in the on-chip ROM. This may
+be an assembler program or a simple C program that does not need any
+initialized data; most prominent the boot loader for ELF binaries.
+A C program that shall be compiled as ROM target needs to be prefixed
+with \code{bootable-}.
+\code{APP} is a C program resulting in an ELF binary that can be either
+loaded by the emulator or the boot loader when executing in an FPGA.
+% TODO: test and talk about patsim. Having a complete ELF in the FPGA
+% without the boot loader would be nice as well.
+
 \section{Application Binary Interface}
 \label{sec:abi}
 

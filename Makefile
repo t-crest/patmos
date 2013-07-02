@@ -99,6 +99,8 @@ comp-% $(BUILDDIR)/%.elf: .FORCE
 	-mkdir -p $(dir $@)
 	$(MAKE) -C c BUILDDIR=$(CURDIR)/$(BUILDDIR) APP=$* compile
 
+.PRECIOUS: $(BUILDDIR)/%.elf
+
 # High-level pasim simulation
 hsim: $(BUILDDIR)/$(BOOTAPP).bin
 	bin/pasim --debug --debug-fmt=short $(BUILDDIR)/$(BOOTAPP).bin
