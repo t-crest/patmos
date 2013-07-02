@@ -83,7 +83,7 @@ vsim: verilog
 	$(MAKE) -C modelsim sim
 
 # synthesize
-qsyn: verilog
+qsyn:
 	quartus_map quartus/$(QPROJ)/patmos
 	quartus_fit quartus/$(QPROJ)/patmos
 	quartus_asm quartus/$(QPROJ)/patmos

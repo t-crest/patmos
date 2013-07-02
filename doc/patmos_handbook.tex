@@ -2346,14 +2346,14 @@ Here a list of the most important make targets:
 \item[csim] execute the Patmos emulator 
 \item[comp] compile a C program as loadable ELF binary
 \item[bootcomp] compile a C program as a bootable image
-
-\item[synth] create the verily code and synthesize for an FPGA
+\item[gen] generate the verily code
+\item[synth] synthesize for an FPGA
 \end{description}
 
 Here an example of individual steps to build the blinking LED C hello world:
 \begin{verbatim}
 make tools
-make BOOTAPP=bootable-echo bootcomp
+make BOOTAPP=bootable-echo bootcomp gen
 make BOOTAPP=bootable-echo synth
 make config
 \end{verbatim}
