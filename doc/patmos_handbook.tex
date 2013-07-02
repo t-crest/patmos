@@ -2332,7 +2332,7 @@ the complete build processes is kicked of by:
 % make BOOTAPP=bootable-bootloader APP=helloworld tools synth comp config download
 \begin{verbatim}
 make BOOTAPP=bootable-bootloader \\
-  APP=helloworld tools synth comp \\
+  APP=helloworld tools comp gen synth  \\
   config download
 \end{verbatim}
 
@@ -2350,19 +2350,8 @@ Here a list of the most important make targets:
 \item[synth] synthesize for an FPGA
 \end{description}
 
-Here an example of individual steps to build the blinking LED C hello world:
-\begin{verbatim}
-make tools
-make BOOTAPP=bootable-echo bootcomp gen
-make BOOTAPP=bootable-echo synth
-make config
-\end{verbatim}
 
-\todo{It would be nice to split the \code{synth} target into
-Verilog generation/Scala execution and Quartus synthesis}
-
-\todo{More words on individual \code{make} targets.}
-
+\todo{Test and described the ELF download flow.}
 
 The \code{Makefile} use following variables to configure the build process:
 \code{BOOTAPP} is an application that ends in the on-chip ROM. This may
@@ -2374,6 +2363,21 @@ with \code{bootable-}.
 loaded by the emulator or the boot loader when executing in an FPGA.
 % TODO: test and talk about patsim. Having a complete ELF in the FPGA
 % without the boot loader would be nice as well.
+
+Here an example of the individual steps to build the blinking LED C
+hello world (on a different FPGA board):
+\begin{verbatim}
+make tools
+make BOOTAPP=bootable-echo bootcomp gen
+make QPROJ=bemicro synth
+make QPROJ=bemicro \\
+   BLASTER_TYPE=Arrow-USB-Blaster config
+\end{verbatim}
+
+This split of the make commands is for demonstration. It is
+possible to merge all steps into a single make (on Linux
+systems) or two steps when using a two operating
+systems (for compilation and synthesis).
 
 \section{Application Binary Interface}
 \label{sec:abi}
