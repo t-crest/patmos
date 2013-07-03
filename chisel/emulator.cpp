@@ -110,15 +110,15 @@ static val_t readelf(istream &is, Patmos_t *c)
 		  val_t byte = k >= phdr.p_filesz ? 0 : elfbuf[phdr.p_offset + k];
 		  val_t addr = (phdr.p_paddr + k) >> 2;
 		  
-		  unsigned size = (sizeof(c->Patmos_memory_spm__mem0.contents) /
-						   sizeof(c->Patmos_memory_spm__mem0.contents[0]));
+		  unsigned size = (sizeof(c->Patmos_globMem__mem0.contents) /
+						   sizeof(c->Patmos_globMem__mem0.contents[0]));
 		  assert (addr < size && "Data mapped to DSPM exceed size");
 
 		  switch ((phdr.p_paddr + k) & 0x3) {
-		  case 0: c->Patmos_memory_spm__mem0.put(addr, byte); break;
-		  case 1: c->Patmos_memory_spm__mem1.put(addr, byte); break;
-		  case 2: c->Patmos_memory_spm__mem2.put(addr, byte); break;
-		  case 3: c->Patmos_memory_spm__mem3.put(addr, byte); break;
+		  case 0: c->Patmos_globMem__mem0.put(addr, byte); break;
+		  case 1: c->Patmos_globMem__mem1.put(addr, byte); break;
+		  case 2: c->Patmos_globMem__mem2.put(addr, byte); break;
+		  case 3: c->Patmos_globMem__mem3.put(addr, byte); break;
 		  }
 		}
 	  }

@@ -167,6 +167,7 @@ class Decode() extends Component {
   io.decex.memOp.hword := Bool(false)
   io.decex.memOp.byte := Bool(false)
   io.decex.memOp.zext := Bool(false)
+  io.decex.memOp.typ := ldtype
   io.decex.call := Bool(false)
   io.decex.ret := Bool(false)
 
@@ -269,6 +270,7 @@ class Decode() extends Component {
       }
       // ignore split load for now
     }
+	io.decex.memOp.typ := ldtype;
 	when(ldtype === MTYPE_S) {
 	  isStack := Bool(true)
 	}
@@ -289,6 +291,7 @@ class Decode() extends Component {
         io.decex.memOp.byte := Bool(true)
       }
     }
+	io.decex.memOp.typ := sttype;
 	when(sttype === MTYPE_S) {
 	  isStack := Bool(true)
 	}

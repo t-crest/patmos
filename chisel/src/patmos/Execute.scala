@@ -291,6 +291,7 @@ class Execute() extends Component {
   io.exmem.mem.hword := exReg.memOp.hword
   io.exmem.mem.byte := exReg.memOp.byte
   io.exmem.mem.zext := exReg.memOp.zext
+  io.exmem.mem.typ := exReg.memOp.typ
   io.exmem.mem.addr := op(0) + exReg.immVal(0)
   io.exmem.mem.data := op(1)
   io.exmem.mem.call := exReg.call && doExecute(0)

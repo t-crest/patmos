@@ -48,34 +48,105 @@ import Constants._
 class Memory() extends Component {
   val io = new MemoryIO()
 
+  // Register from execution stage
   val memReg = Reg(new ExMem())
   when(io.ena) {
     memReg := io.exmem
   }
 
-  // Use combinational input in regular case.
-  // Replay old value on a stall.
-  // This is for the on-chip memory without an enable.
-  val memIn = Mux(io.ena, io.exmem.mem, memReg.mem)
+  // Write data multiplexing and write enables
+  // Big endian, where MSB is at the lowest address
 
-  // SPM is straight forward
-  val spm = new Spm(1 << DSPM_BITS)
-  spm.io.in := memIn
+  // default is word store
+  val wrData = Vec(BYTES_PER_WORD) { Bits(width = BYTE_WIDTH) }
+  for (i <- 0 until BYTES_PER_WORD) {
+	wrData(i) := io.exmem.mem.data(DATA_WIDTH-i*BYTE_WIDTH-1,
+								   DATA_WIDTH-i*BYTE_WIDTH-BYTE_WIDTH)
+  }
+  val byteEna = Bits(width = BYTES_PER_WORD)
+  byteEna := Bits("b1111")  
+  // half-word stores
+  when(io.exmem.mem.hword) {
+    switch(io.exmem.mem.addr(1)) {
+      is(Bits("b0")) {
+        wrData(0) := io.exmem.mem.data(2*BYTE_WIDTH-1, BYTE_WIDTH)
+        wrData(1) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
+        byteEna := Bits("b0011")
+      }
+      is(Bits("b1")) {
+        wrData(2) := io.exmem.mem.data(2*BYTE_WIDTH-1, BYTE_WIDTH)
+        wrData(3) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
+        byteEna := Bits("b1100")
+      }
+    }
+  }
+  // byte stores
+  when(io.exmem.mem.byte) {
+    switch(io.exmem.mem.addr(1, 0)) {
+      is(Bits("b00")) {
+        wrData(0) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
+        byteEna := Bits("b0001")
+      }
+      is(Bits("b01")) {
+        wrData(1) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
+        byteEna := Bits("b0010")
+      }
+      is(Bits("b10")) {
+        wrData(2) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
+        byteEna := Bits("b0100")
+      }
+      is(Bits("b11")) {
+        wrData(3) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
+        byteEna := Bits("b1000")
+      }
+    }
+  }
+  
+  // Path to memories and IO is combinatorial, registering happens in
+  // the individual modules
+  io.localInOut.rd := Mux(io.exmem.mem.typ === MTYPE_L, io.exmem.mem.load, Bits("b0"))
+  io.localInOut.wr := Mux(io.exmem.mem.typ === MTYPE_L, io.exmem.mem.store, Bits("b0"))
+  io.localInOut.address := io.exmem.mem.addr
+  io.localInOut.wrData := wrData
+  io.localInOut.byteEna := byteEna
 
-  // IO address decode form the registered values.
-  // Might be an optimization from doing it in EX.
-  val selIO = memReg.mem.addr(DATA_WIDTH-1, DATA_WIDTH-4) === Bits("b1111")
-  io.memInOut.rd := selIO  & memReg.mem.load & io.ena
-  io.memInOut.wr := selIO  & memReg.mem.store & io.ena
-  io.memInOut.address := memReg.mem.addr(11, 0)
-  io.memInOut.wrData := memReg.mem.data  
+  io.globalInOut.rd := Mux(io.exmem.mem.typ != MTYPE_L, io.exmem.mem.load, Bits("b0"))
+  io.globalInOut.wr := Mux(io.exmem.mem.typ != MTYPE_L, io.exmem.mem.store, Bits("b0"))
+  io.globalInOut.address := io.exmem.mem.addr
+  io.globalInOut.wrData := wrData
+  io.globalInOut.byteEna := byteEna
 
-  // ISPM write is handled in write
-  // val selIspm = memReg.mem.addr(DATA_WIDTH-1, DATA_WIDTH-4) === Bits("b0001")
+  // Read data multiplexing and sign extensions if needed
+  val rdData = Mux(memReg.mem.typ === MTYPE_L,
+				   io.localInOut.rdData, io.globalInOut.rdData)
 
-  // Read data select. For IO it is a single cycle read. No wait at the moment.
-  val dout = Mux(selIO, io.memInOut.rdData, spm.io.data)
-
+  val dout = Bits(width = DATA_WIDTH)
+  // default word read
+  dout := Cat(rdData(0), rdData(1), rdData(2), rdData(3))
+  // byte read
+  val bval = MuxLookup(memReg.mem.addr(1, 0), rdData(0), Array(
+    (Bits("b00"), rdData(0)),
+    (Bits("b01"), rdData(1)),
+    (Bits("b10"), rdData(2)),
+    (Bits("b11"), rdData(3))))
+  // half-word read
+  val hval = MuxLookup(memReg.mem.addr(1), Cat(rdData(0), rdData(1)), Array(
+    (Bits("b00"), Cat(rdData(0), rdData(1))),
+    (Bits("b01"), Cat(rdData(2), rdData(3)))))
+  // sign extensions
+  when(memReg.mem.byte) {
+    dout := Cat(Fill(DATA_WIDTH-BYTE_WIDTH, bval(BYTE_WIDTH-1)), bval)
+    when(memReg.mem.zext) {
+      dout := Cat(Bits(0, DATA_WIDTH-BYTE_WIDTH), bval)
+    }
+  }
+  when(memReg.mem.hword) {
+    dout := Cat(Fill(DATA_WIDTH-2*BYTE_WIDTH, hval(DATA_WIDTH/2-1)), hval)
+    when(memReg.mem.zext) {
+      dout := Cat(Bits(0, DATA_WIDTH-2*BYTE_WIDTH), hval)
+    }
+  }
+  
   // TODO: PC is absolute in ISPM, but we fake the return offset to
   // be relative to the base address.
   val baseReg = Reg(resetVal = UFix(0, DATA_WIDTH))
@@ -102,12 +173,13 @@ class Memory() extends Component {
   }
 
   // ISPM write
-  io.memfe.store := memIn.store
-  io.memfe.addr := memIn.addr
-  io.memfe.data := memIn.data
+  io.memfe.store := io.localInOut.wr
+  io.memfe.addr := io.localInOut.address
+  io.memfe.data := Cat(io.localInOut.wrData(0),
+					   io.localInOut.wrData(1),
+					   io.localInOut.wrData(2),
+					   io.localInOut.wrData(3))
 
   // extra port for forwarding
   io.exResult := io.exmem.rd
-  // debugging
-  io.dbgMem := io.memInOut.rdData
 }

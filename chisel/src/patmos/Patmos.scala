@@ -33,7 +33,8 @@
 /*
  * Patmos top level component and test driver.
  * 
- * Author: Martin Schoeberl (martin@jopdesign.com)
+ * Authors: Martin Schoeberl (martin@jopdesign.com)
+ *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
  * 
  */
 
@@ -52,6 +53,8 @@ import Chisel._
 import Node._
 
 import scala.collection.mutable.HashMap
+
+import Constants._
 
 /**
  * The main (top-level) component of Patmos.
@@ -89,7 +92,11 @@ class Patmos(fileName: String) extends Component {
   fetch.io.memfe <> memory.io.memfe
   fetch.io.femem <> memory.io.femem
 
-  memory.io.memInOut <> iocomp.io.memInOut
+  memory.io.localInOut <> iocomp.io.memInOut
+
+  // TODO: to be replaced with a connection to external memory
+  val globMem = new Spm(1 << DSPM_BITS)
+  memory.io.globalInOut <> globMem.io
 
   // Stall ever n clock cycles for testing the pipeline
   def pulse() = {
@@ -115,12 +122,12 @@ class Patmos(fileName: String) extends Component {
 
   // Dummy output, which is ignored in the top level VHDL code, to
   // keep Chisel happy with unused signals
-  val sum1 = memory.io.memwb.pc + memory.io.dbgMem
+  val sum1 = memory.io.memwb.pc
   val part = Reg(sum1.toBits)
   val p = execute.io.exmem.predDebug
   // to dumb for vector to bits...
   val pracc = p(0) | p(1) | p(2) | p(3) | p(4) | p(5) | p(6) | p(7)
-  val xyz = part(31, 0) | pracc
+  val xyz = part(29, 0) | pracc
   io.dummy := Reg(xyz)
 }
 

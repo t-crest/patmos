@@ -36,7 +36,8 @@ architecture rtl of patmos_top is
 			io_uart_wr_data : out std_logic_vector(31 downto 0);
 			io_uart_rd      : out std_logic;
 			io_uart_wr      : out std_logic;
-			io_uart_rd_data : in  std_logic_vector(31 downto 0)
+			io_uart_rd_data : in  std_logic_vector(31 downto 0);
+			io_uart_rdy_cnt : in  unsigned(1 downto 0)
 		);
 	end component;
 
@@ -62,6 +63,7 @@ architecture rtl of patmos_top is
 	signal io_uart_rd      : std_logic;
 	signal io_uart_wr      : std_logic;
 	signal io_uart_rd_data : std_logic_vector(31 downto 0);
+	signal io_uart_rdy_cnt : unsigned(1 downto 0);
 
 begin
 	pll_inst : entity work.pll generic map(
@@ -98,7 +100,8 @@ begin
 			io_uart_wr_data,
 			io_uart_rd,
 			io_uart_wr,
-			io_uart_rd_data
+			io_uart_rd_data,
+			io_uart_rdy_cnt
 		);
 
 	ua : entity work.uart generic map(
@@ -115,8 +118,11 @@ begin
 			rd      => io_uart_rd,
 			wr      => io_uart_wr,
 			rd_data => io_uart_rd_data,
+			rdy_cnt => io_uart_rdy_cnt,
 			txd     => txd,
-			rxd     => rxd
+			rxd     => rxd,
+			ncts    => '0',
+			nrts    => open
 		);
 
 end architecture rtl;

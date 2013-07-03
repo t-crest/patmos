@@ -80,6 +80,7 @@ class MemOp() extends Bundle() {
   val hword = Bool()
   val byte = Bool()
   val zext = Bool()
+  val typ  = Bits(width = 2)
 }
 
 class DecEx() extends Bundle() {
@@ -116,6 +117,7 @@ class MemIn() extends Bundle() {
   val hword = Bool()
   val byte = Bool()
   val zext = Bool()
+  val typ = Bits(width = 2)
   val addr = Bits(width = DATA_WIDTH)
   val data = Bits(width = DATA_WIDTH)
   val call = Bool()
@@ -206,9 +208,14 @@ class ExecuteIO() extends Bundle() {
   val exfe = new ExFe().asOutput
 }
 
-class SpmIO extends Bundle() {
-  val in = new MemIn().asInput
-  val data = Bits(OUTPUT, DATA_WIDTH)
+class SimpCon() extends Bundle() {
+  val rd = Bool(OUTPUT)
+  val wr = Bool(OUTPUT)
+  val address = Bits(OUTPUT, ADDR_WIDTH)
+  val wrData = Vec(BYTES_PER_WORD) { Bits(OUTPUT, BYTE_WIDTH) }
+  val byteEna = Bits(OUTPUT, BYTES_PER_WORD)
+  val rdData = Vec(BYTES_PER_WORD) { Bits(INPUT, BYTE_WIDTH) }
+  val rdyCnt = Bits(INPUT, 2)
 }
 
 /**
@@ -221,25 +228,14 @@ class UartIO() extends Bundle() {
   val rd = Bits(OUTPUT, 1)
   val wr = Bits(OUTPUT, 1)
   val rd_data = Bits(INPUT, DATA_WIDTH)
-}
-
-class Mem2InOut() extends Bundle() {
-  val rd = Bool(OUTPUT)
-  val wr = Bool(OUTPUT)
-  val address = Bits(OUTPUT, 12)
-  val wrData = Bits(OUTPUT, DATA_WIDTH)
-  val rdData = Bits(INPUT, DATA_WIDTH)
+  val rdy_cnt = Bits(INPUT, 2)
 }
 
 class InOutIO() extends Bundle() {
-  // shall there be an ena here? I don't think so.
-  //  val ena = Bool(INPUT)
-  val memInOut = new Mem2InOut().flip
+  val memInOut = new SimpCon().flip
   val uart = new UartIO()
   val led = Bits(OUTPUT, 8)
 }
-
-
 
 class MemoryIO() extends Bundle() {
   val ena = Bool(INPUT)
@@ -249,8 +245,9 @@ class MemoryIO() extends Bundle() {
   val femem = new FeMem().asInput
   // for result forwarding
   val exResult = Vec(PIPE_COUNT) { new Result().flip }
-  val memInOut = new Mem2InOut()
-  val dbgMem = Bits(OUTPUT, DATA_WIDTH)
+  // local and global accesses
+  val localInOut = new SimpCon()
+  val globalInOut = new SimpCon()
 }
 
 class WriteBackIO() extends Bundle() {

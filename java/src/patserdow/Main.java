@@ -48,10 +48,10 @@ public class Main
                     port = new SerialPort(args[0]);
                     if (verbose) {
                         print_stream.println("Port opened: " + port.openPort());
-                        print_stream.println("Params set: " + port.setParams(BAUD_RATE, 8, 1, 0));
+                        print_stream.println("Params set: " + port.setParams(BAUD_RATE, 8, 2, 0));
                     } else {
                         port.openPort();
-                        port.setParams(BAUD_RATE, 8, 1, 0);
+                        port.setParams(BAUD_RATE, 8, 2, 0);
 				    }
                     in_stream = new UARTInputStream(port);
                     out_stream = new UARTOutputStream(port);

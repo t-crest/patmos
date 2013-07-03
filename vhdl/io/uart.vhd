@@ -1,17 +1,19 @@
---
---  Copyright 2000-2011 Martin Schoeberl <masca@imm.dtu.dk>,
---  All rights reserved.
+----------------------------------------------------------------------------
+-- Copyright 2001-2011 Martin Schoeberl
+-- All rights reserved.
+-- 
+-- This file is part of the time-predictable VLIW processor Patmos.
 --
 -- Redistribution and use in source and binary forms, with or without
 -- modification, are permitted provided that the following conditions are met:
--- 
+--
 --    1. Redistributions of source code must retain the above copyright notice,
 --       this list of conditions and the following disclaimer.
--- 
+--
 --    2. Redistributions in binary form must reproduce the above copyright
 --       notice, this list of conditions and the following disclaimer in the
 --       documentation and/or other materials provided with the distribution.
--- 
+--
 -- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
 -- OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
 -- OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
@@ -22,16 +24,12 @@
 -- ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 -- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 -- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
--- 
+--
 -- The views and conclusions contained in the software and documentation are
 -- those of the authors and should not be interpreted as representing official
 -- policies, either expressed or implied, of the copyright holder.
--- 
+----------------------------------------------------------------------------
 
-
---
---	This file is an adapted version of the SimpCon UART (from JOP).
---	Simplify to have a one cycle read.
 --
 --	uart.vhd
 --
@@ -40,16 +38,11 @@
 --	wr, rd should be one cycle long => trde, rdrf goes 0 one cycle later
 --
 --	Author: Martin Schoeberl	martin@jopdesign.com
---
 
---	2000-12-02	first working version
---  history deleted
---	2011-06-02	simplify for Leros
+---
+---	The FIFO for read and write buffers
+---
 
-
---
---	The FIFO for read and write buffers
---
 library ieee;
 use ieee.std_logic_1164.all;
 
@@ -184,12 +177,6 @@ begin
 	
 end rtl;
 
---
---	The UART
--- this UART consumes 104 LCs!!! The original version
--- was way smaller - let's get it down again.
---
-
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -197,7 +184,7 @@ use ieee.numeric_std.all;
 entity uart is
 
 	generic (clk_freq : integer;
-			 baud_rate : integer;
+			 baud_rate : integer := 115200;
 			 txf_depth : integer;
 			 rxf_depth : integer);
 	port (
@@ -210,9 +197,12 @@ entity uart is
 		wr_data		: in std_logic_vector(31 downto 0);
 		rd, wr		: in std_logic;
 		rd_data		: out std_logic_vector(31 downto 0);
+		rdy_cnt		: out unsigned(1 downto 0);
 
 		txd		: out std_logic;
-		rxd		: in std_logic
+		rxd		: in std_logic;
+		ncts	: in std_logic;
+		nrts	: out std_logic
 		);
 end uart;
 
@@ -251,7 +241,9 @@ architecture rtl of uart is
 	signal tf_empty		: std_logic;
 	signal tf_full		: std_logic;
 
-	signal tsr			: std_logic_vector(9 downto 0); -- tx shift register
+	signal ncts_buf		: std_logic_vector(2 downto 0);	-- sync in
+
+	signal tsr			: std_logic_vector(10 downto 0); -- tx shift register
 
 	signal tx_clk		: std_logic;
 
@@ -267,31 +259,55 @@ architecture rtl of uart is
 	signal rx_buf		: std_logic_vector(2 downto 0);	-- sync in, filter
 	signal rx_d			: std_logic;					-- rx serial data
 	
-	signal rsr			: std_logic_vector(9 downto 0); -- rx shift register
+	signal rsr			: std_logic_vector(10 downto 0); -- rx shift register
 
 	signal rx_clk		: std_logic;
 	signal rx_clk_ena	: std_logic;
 	
+	constant PARITY_NONE : std_logic_vector(1 downto 0) := "00";
+	constant PARITY_ODD  : std_logic_vector(1 downto 0) := "01";
+	constant PARITY_EVEN : std_logic_vector(1 downto 0) := "10";
+
+	signal parity_mode  : std_logic_vector(1 downto 0) := PARITY_NONE;
+	signal parity_error : std_logic;
+
 	constant clk16_cnt	: integer := (clk_freq/baud_rate+8)/16-1;
 	
 
 begin
 
-	rd_data(31 downto 8) <= (others => '0');
+	rdy_cnt <= "00";	-- no wait states
+	rd_data(31 downto 8) <= std_logic_vector(to_unsigned(0, 24));
+--
+--	The registered MUX is all we need for a SimpCon read.
+--	The read data is stored in registered rd_data.
+--
+	process(clk, reset)
+	begin
+		if (reset='1') then
 
--- This is a single cycle read, different from SimpCon	
-process(address, rd, rdrf, tdre, ua_dout)
-begin
-	ua_rd <= '0';
-	if address='0' then
-		rd_data(7 downto 0) <= "000000" & rdrf & tdre;
-	else
-		rd_data(7 downto 0) <= ua_dout;
-		if rd='1' then
-			ua_rd <= rd;
+			ua_rd <= '0';
+			rd_data(7 downto 0) <= (others => '0');
+			parity_mode <= PARITY_NONE;
+
+		elsif rising_edge(clk) then
+
+			ua_rd <= '0';
+			if rd='1' then
+				-- that's our very simple address decoder
+				if address='0' then
+					rd_data(7 downto 0) <= "00000" & parity_error & rdrf & tdre;
+				else
+					rd_data(7 downto 0) <= ua_dout;
+					ua_rd <= rd;
+				end if;
+			end if;
+			if wr = '1' and address = '0' then
+				parity_mode(1 downto 0) <= wr_data(1 downto 0);
+			end if;
 		end if;
-	end if;
-end process;
+
+	end process;
 
 	-- write is on address offset 1	
 	ua_wr <= wr and address;
@@ -313,7 +329,8 @@ end process;
 			tx_clk <= '0';
 			rx_clk <= '0';
 			rx_buf <= "111";
-
+			rxd_reg <= "111";
+			
 		elsif rising_edge(clk) then
 
 			rxd_reg(0) <= rxd;			-- to avoid setup timing error in Quartus
@@ -372,37 +389,53 @@ end process;
 --
 	process(clk, reset)
 
-		variable i : integer range 0 to 11;
+		variable i : integer range 0 to 12;
+		variable parity_tx  : std_logic;
 
 	begin
 		
 
 		if (reset='1') then
 			uart_tx_state <= s0;
-			tsr <= "1111111111";
+			tsr <= "11111111111";
 			tf_rd <= '0';
+			ncts_buf <= "111";
 
 		elsif rising_edge(clk) then
+
+			ncts_buf(0) <= ncts;
+			ncts_buf(2 downto 1) <= ncts_buf(1 downto 0);
 
 			case uart_tx_state is
 
 				when s0 =>
+
+					-- even parity
+					parity_tx := '0';
+					for k in 0 to 7 loop
+						parity_tx := parity_tx xor tf_dout(k);
+					end loop;  -- k
+
+					if (parity_mode = PARITY_ODD) then   -- odd parity
+						parity_tx := not parity_tx;
+					elsif (parity_mode = PARITY_NONE) then  -- no parity, stop bit
+						parity_tx := '1';
+					end if;
 					
 					i := 0;
-					if tf_empty='0' then
+					if (tf_empty='0' and ncts_buf(2)='0') then
 						uart_tx_state <= s1;
-						-- is there a reason to start with a stop bit?
-						tsr <= tf_dout & '0' & '1';
+						tsr <= parity_tx & tf_dout & '0' & '1';
 						tf_rd <= '1';
 					end if; 
 
 				when s1 =>
 					tf_rd <= '0';
 					if (tx_clk='1') then
-						tsr(9) <= '1';
-						tsr(8 downto 0) <= tsr(9 downto 1);
+						tsr(10) <= '1';
+						tsr(9 downto 0) <= tsr(10 downto 1);
 						i := i+1;
-						if i=11 then
+						if (i=12) or (i=11 and parity_mode=PARITY_NONE) then -- two stop bits
 							uart_tx_state <= s0;
 						end if;
 						
@@ -424,12 +457,10 @@ end process;
 		port map (clk, reset, rsr(8 downto 1), ua_dout, ua_rd, rf_wr, rf_empty, rf_full);
 
 	rdrf <= not rf_empty;
+	nrts <= rf_full;
 
 --
 --	filter rxd
---
--- TODO: this is not really needed and should go away
--- just do a dual FF synchronizer
 --
 	with rx_buf select
 		rx_d <=	'0' when "000",
@@ -447,20 +478,21 @@ end process;
 --
 	process(clk, reset)
 
-		variable i : integer range 0 to 10;
+		variable i : integer range 0 to 11;
+		variable parity_rx : std_logic;
 
 	begin
 
 		if (reset='1') then
 			uart_rx_state <= s0;
-			rsr <= "0000000000";
+			rsr <= "00000000000";
 			rf_wr <= '0';
 			rx_clk_ena <= '0';
+			parity_error <= '0';
 
 		elsif rising_edge(clk) then
 
 			case uart_rx_state is
-
 
 				when s0 =>
 					i := 0;
@@ -474,19 +506,43 @@ end process;
 
 				when s1 =>
 					if (rx_clk='1') then
-						rsr(9) <= rx_d;
-						rsr(8 downto 0) <= rsr(9 downto 1);
+						rsr(10) <= rx_d;
+						rsr(9 downto 0) <= rsr(10 downto 1);
 						i := i+1;
 
-						if i=10 then
+						if i=11 then
 							uart_rx_state <= s2;
 						end if;
+
+						if i=10 and parity_mode=PARITY_NONE then
+							rsr(10) <= rx_d;
+							rsr(9) <= rx_d;
+							rsr(8 downto 0) <= rsr(10 downto 2);
+							uart_rx_state <= s2;
+						end if;						
 					end if;
 					
 				when s2 =>
 					rx_clk_ena <= '0';
 					
-					if rsr(0)='0' and rsr(9)='1' then						
+					if rsr(0)='0' and rsr(10)='1' then
+						
+						parity_rx := '0';
+						for k in 1 to 8 loop
+							parity_rx := parity_rx xor rsr(k);
+						end loop;  -- k
+
+						parity_error <= '0';
+						if (rsr(9) = parity_rx) then -- ok for even parity
+							if (parity_mode = PARITY_ODD) then  -- odd parity
+								parity_error <= '1';								
+							end if;
+						else -- ok for odd parity
+							if (parity_mode = PARITY_EVEN) then  -- even parity
+								parity_error <= '1';
+							end if;
+						end if;
+						
 						if rf_full='0' then				-- if full just drop it
 							rf_wr <= '1';
 						end if;
