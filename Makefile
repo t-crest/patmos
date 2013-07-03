@@ -99,6 +99,8 @@ comp-% $(BUILDDIR)/%.elf: .FORCE
 	-mkdir -p $(dir $@)
 	$(MAKE) -C c BUILDDIR=$(CURDIR)/$(BUILDDIR) APP=$* compile
 
+.PRECIOUS: $(BUILDDIR)/%.elf
+
 # High-level pasim simulation
 hsim: $(BUILDDIR)/$(BOOTAPP).bin
 	bin/pasim --debug --debug-fmt=short $(BUILDDIR)/$(BOOTAPP).bin
@@ -112,7 +114,7 @@ test:
 	testsuite/run.sh
 
 # Compile Patmos and download
-patmos: synth config
+patmos: gen synth config
 
 # configure the FPGA
 config:
@@ -121,6 +123,9 @@ ifeq ($(XFPGA),true)
 else
 	make config_byteblaster
 endif
+
+gen:
+	$(MAKE) -C chisel verilog BOOTAPP=$(BOOTAPP) QPROJ=$(QPROJ)
 
 synth: csynth
 

@@ -1,0 +1,8 @@
+This directory contains just a collection of useful,
+but private scripts. It shall not be considered as part
+of the official Patmos distribution. Every developer may
+add some convenient scripts here. There shall be no
+dependency of the Patmos design flow on the scripts here.
+
+Martin: I will use this to easy my split development
+environment (OS X and Windoz in a VMWare).

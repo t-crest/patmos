@@ -1,4 +1,5 @@
 \documentclass{IEEEtran}
+%\documentclass{article}
 
 \usepackage{pslatex} % -- times instead of computer modern
 \usepackage{url}
@@ -2331,11 +2332,53 @@ the complete build processes is kicked of by:
 % make BOOTAPP=bootable-bootloader APP=helloworld tools synth comp config download
 \begin{verbatim}
 make BOOTAPP=bootable-bootloader \\
-  APP=helloworld tools synth comp \\
+  APP=helloworld tools comp gen synth  \\
   config download
 \end{verbatim}
 
-\todo{More words on individual \code{make} targets.}
+Here a list of the most important make targets:
+
+
+\begin{description}[\settowidth{\labelwidth}{emulator}]
+\item[tools] build of all tools, including the Patmos software simulator
+\item[asm] assemble source (from folder \code{asm})
+\item[emulator] build the Chisel based C++ emulator
+\item[csim] execute the Patmos emulator 
+\item[comp] compile a C program as loadable ELF binary
+\item[bootcomp] compile a C program as a bootable image
+\item[gen] generate the verily code
+\item[synth] synthesize for an FPGA
+\end{description}
+
+
+\todo{Test and described the ELF download flow.}
+
+The \code{Makefile} use following variables to configure the build process:
+\code{BOOTAPP} is an application that ends in the on-chip ROM. This may
+be an assembler program or a simple C program that does not need any
+initialized data; most prominent the boot loader for ELF binaries.
+A C program that shall be compiled as ROM target needs to be prefixed
+with \code{bootable-}.
+\code{APP} is a C program resulting in an ELF binary that can be either
+loaded by the emulator or the boot loader when executing in an FPGA.
+% TODO: test and talk about patsim. Having a complete ELF in the FPGA
+% without the boot loader would be nice as well.
+
+Here an example of the individual steps to build the blinking LED C
+hello world (on a different FPGA board):
+\begin{verbatim}
+make tools
+make BOOTAPP=bootable-echo bootcomp gen
+make QPROJ=bemicro synth
+make QPROJ=bemicro \\
+   BLASTER_TYPE=Arrow-USB-Blaster config
+\end{verbatim}
+
+This split of the make commands is for demonstration. It is
+possible to merge all steps into a single make (on Linux
+systems) or two steps when using a two operating
+systems (for compilation and synthesis).
+
 \section{Application Binary Interface}
 \label{sec:abi}
 
