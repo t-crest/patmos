@@ -124,6 +124,7 @@ namespace patmos
     virtual bool write_data(byte_t *value)
     {
       Out_stream.write(reinterpret_cast<char*>(value), sizeof(byte_t));
+      Out_stream.flush();
       return true;
     }
 
