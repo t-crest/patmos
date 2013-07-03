@@ -200,3 +200,4 @@ class UART(clk_freq: Int, baud_rate: Int) extends Component {
 	
 	io.rd_data := Mux(io.address === UFix(0), Cat(UFix(0, width = 6), rx_full, tx_empty), rx_data_buffer)
 	io.tx := tx_reg
+}
