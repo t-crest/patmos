@@ -44,7 +44,7 @@ import Chisel._
 import Node._
 
 
-class UART(clk_freq: UFix, baud_rate: UFix) extends Component {
+class UART(clk_freq: Int, baud_rate: Int) extends Component {
   val io = new Bundle {
     val address = UFix(INPUT, 1)
 	val data_in = UFix(INPUT, 8)
@@ -53,194 +53,150 @@ class UART(clk_freq: UFix, baud_rate: UFix) extends Component {
 	val tx = UFix(OUTPUT, 1)
 	val rx = UFix(INPUT, 1)
 	val rd_data = UFix(OUTPUT, 8)
-//	val data_out_r = UFix(OUTPUT, 8)
   }
 
-  
-  
-  
-  	val accept_reg = Reg(resetVal = UFix(0, 1))
-  	val tx_reg = Reg(resetVal = UFix(1, 1))
-  	val data_counter = Reg(resetVal = UFix(0, 4))
-
   	
-  	
-  	val reset_state :: idle :: send:: Nil  = Enum(3){ UFix() } 
-	val state = Reg(resetVal = reset_state)
-	val baud_counter = Reg(resetVal = UFix(0, 10))
-	val baud_tick = Reg(resetVal = UFix(0, 1))
+  	val c_tx_divider_val 	= clk_freq/baud_rate	
+  	val tx_baud_counter 	= Reg(resetVal = UFix(0, log2Up(clk_freq/baud_rate)))
+	val tx_baud_tick 		= Reg(resetVal = UFix(0, 1))
 	
+	val tx_reset_state :: tx_send:: Nil  = Enum(2){ UFix() } 
+	val tx_state 			= Reg(resetVal = tx_reset_state)
+	val tx_empty 			= Reg(resetVal = UFix(0, 1))
+  	val tx_reg 				= Reg(resetVal = UFix(1, 1))
+  	val tx_counter 			= Reg(resetVal = UFix(0, 4))
+//	val tx_buff				= Reg(resetVal = UFix(0, 10))
+	
+	
+	val rxd_reg0 			= Reg(resetVal = UFix(1, 1))
+	val rxd_reg1 			= Reg(resetVal = UFix(1, 1))
+	val rxd_reg2 			= Reg(resetVal = UFix(1, 1))
+	
+	val rx_baud_counter 	= Reg(resetVal = UFix(0, log2Up(clk_freq/baud_rate)))
+	val rx_baud_tick 		= Reg(resetVal = UFix(0, 1))
+	val rx_enable	 		= Reg(resetVal = UFix(0, 1))
+	
+	val rx_data_buffer 		= Reg(resetVal = UFix(0, 8))	
+	val rx_full = Reg(resetVal = UFix(0, 1))
+	val rx_counter = Reg(resetVal = UFix(0, 3)) 	
+  	val rx_idle  :: rx_start :: rx_receive_data :: rx_stop_bit :: Nil  = Enum(4){ UFix() }
+	val rx_state 			= Reg(resetVal = rx_idle)
+	
+	// UART TX clk
+	when (tx_baud_counter === UFix(clk_freq/baud_rate)){
+  	  	tx_baud_counter		:= UFix(0)
+  	  	tx_baud_tick			:= UFix(1)
+  	}
+  	.otherwise {
+  		tx_baud_counter		:= tx_baud_counter + UFix(1)
+  		tx_baud_tick			:= UFix(0)
+  	}
 
-//	val data = Reg(resetVal = UFix(0, 10))//io.data_in
-	
-	//
-	val s_baud_counter = Reg(resetVal = UFix(0, 10))
-	val s_baud_tick = Reg(resetVal = UFix(0, 1))
-	val data_buffer = Reg(resetVal = UFix(0, 8))	
-	val r_data = Reg(resetVal = UFix(0, 1))
-	val r_data_counter = Reg(resetVal = UFix(0, 3)) 	
-  	val r_idle  :: r_receive_data :: r_stop_bit :: Nil  = Enum(3){ UFix() }
-	val r_state = Reg(resetVal = r_idle)
-	val rx_clk_en = Reg(resetVal = UFix(0, 1))
-	val half = Reg(resetVal = UFix(0, 1))
-	val tx_divide = clk_freq / baud_rate
-	val rx_divide = (clk_freq / baud_rate) / UFix(2)
-	val rxd_reg0 = Reg(resetVal = UFix(1, 1))
-	val rxd_reg1 = Reg(resetVal = UFix(1, 1))
-	val rxd_reg2 = Reg(resetVal = UFix(1, 1))
-	//
-	
-	//****buffer****//
-	val tx_buff1 = Reg(resetVal = UFix(0, 10))
+  	val tx_buff1 = Reg(resetVal = UFix(0, 10))
 	val tx_buff2 = Reg(resetVal = UFix(0, 10))
 	val tx_e1 = Reg(resetVal = UFix(1, 1))
 	val tx_e2 = Reg(resetVal = UFix(1, 1))
 	
-	when (io.wr === UFix(1)){// latch input data
-		when (tx_e1 === UFix(1)){
-		  tx_buff1 := Mux(tx_e2 === UFix(1), Cat (UFix(1), io.data_in, UFix(0)), tx_buff2) 
-		  tx_e1 := UFix(0)
-		}
-		.otherwise{
-		  when (tx_e2 === UFix(1)){
-		    tx_buff2 := Cat(UFix(1), io.data_in, UFix(0))
-		    tx_e2 := UFix(0)
-		  }
-		}
-	}
-	
-	//**************//
-	
-	
-	
-	io.rd_data := Mux(io.address === UFix(0), Cat(UFix(0, width = 6), r_data, accept_reg), data_buffer)
-	
-//	io.rd_data := data_buffer
-	// Baud generator
-	when (baud_counter === tx_divide)
-	{
-	  baud_counter := UFix(0)
-	  baud_tick := UFix(1)
-	}
-	.otherwise
-	{
-	  baud_counter := baud_counter + UFix(1)
-	  baud_tick := UFix(0)
-	}
-	
-  // Count data bits
-	when (baud_tick === UFix(1))
-	{
-	  when (state === send)
-	  {
-	    data_counter := data_counter + UFix(1)
-	    accept_reg := UFix(0)
-	  }
-	  .otherwise
-	  {
-	    data_counter := UFix(0)
-	  }
-	}
-    
 
     
-    // TX state machine
-when (state === reset_state) {
-		accept_reg	:= UFix(0)
-		tx_reg      := UFix(1)
-		state       := idle  
+    // Send data	
+  	
+  	when (tx_state === tx_reset_state) {
+		tx_empty			:= UFix(1)
+		tx_counter			:= UFix(0)
+		tx_reg      		:= UFix(1)
 		tx_e1 		:= UFix(1)
-	}
-	
-  	when (state === idle) {
-  		accept_reg	:= UFix(1)
-  		tx_reg		:= UFix(1)
-  		
-  		when (io.wr === UFix(1)){
-  		  state       := send	  
-  		  }
- 		when (accept_reg === UFix(0) || io.wr === UFix(0)){
- 		  state       := idle
- 		  }
-  	}
-  	
-	when (state === send)
-	  	{
-		  	  accept_reg  := UFix(0)
-	  	
-		  	  when (baud_tick === UFix(1)){
-		  	  	  state := Mux(data_counter === UFix(10), reset_state, send)
-			  	  tx_reg	  := Mux(data_counter === UFix(10), UFix(1), tx_buff1(0))
-			  	  tx_buff1 := Cat (UFix(0), tx_buff1 (9, 1))
-			  	  data_counter := Mux(data_counter === UFix(10), UFix(0), data_counter + UFix(1)) // 
-		  	}
-	  	}
-  	
-	//rx_clk
-	
-	when (rx_clk_en === UFix(1)){
-	  s_baud_counter := s_baud_counter + UFix(1)
-	  when( s_baud_counter === tx_divide){
-	    s_baud_counter := UFix(0)
-	    half := UFix(1)
-	  }
-	  when (s_baud_counter === rx_divide && half === UFix(1)){
-	    s_baud_tick := UFix(1)
-	  }
-	  .otherwise{
-	    s_baud_tick := UFix(0) 
-	  }
-	}
-
-		rxd_reg0 := io.rx;
-		rxd_reg1 := rxd_reg0;
-		rxd_reg2 := rxd_reg1
-		// RX state machine
 		
-//		when (r_state === r_reset_state) {
+		when (io.wr === UFix(1)) {
+			//tx_buff			:= Cat (UFix(1), io.data_in, UFix(0)) // keep the input
+			when (tx_e1 === UFix(1)){
+			  tx_buff1 := Mux(tx_e2 === UFix(1), Cat (UFix(1), io.data_in, UFix(0)), tx_buff2) 
+			  tx_e1 := UFix(0)
+			}
+			.otherwise{
+			  when (tx_e2 === UFix(1)){
+			    tx_buff2 := Cat(UFix(1), io.data_in, UFix(0))
+			    tx_e2 := UFix(0)
+			  }
+			}
 			
-//			r_state       	:= r_idle  
-//		}
-	  	when (r_state === r_idle) {
-	  	   r_data := UFix(0)
-	  	//	when (s_baud_tick === UFix(1)){
-		  		when (rxd_reg2 === UFix(0))
-		  		{
-		  		  r_state := r_receive_data
-		  			rx_clk_en := UFix(1);
-		  		}
-		  		.otherwise {rx_clk_en := UFix(0)}
-	  	//	}
-	  	}
-
-		  	when (r_state === r_receive_data) {
-
-		  		when (s_baud_tick === UFix(1)){
-		  		  
-		  			data_buffer := Cat(rxd_reg2, data_buffer(7, 1))
-		  			r_data_counter := Mux(r_data_counter === UFix(7), UFix(0), r_data_counter + UFix(1)) //
-		  	  	    r_state := Mux(r_data_counter === UFix(7), r_stop_bit, r_receive_data)
-		  		}
-		  	}
-		  	when (r_state === r_stop_bit) 
-		  	{
-		  	 
-				when (s_baud_tick === UFix(1)){
-			  	 	when (rxd_reg2 === UFix(1))		
-					{
-			  	 	  rx_clk_en := UFix(0)
-			  	 	  s_baud_counter := UFix(0)
-			  	 	  half := UFix(0)
-			  	 	  r_state := r_idle
-			  	 	  r_data := UFix(1)
-					}
-			  	 	.otherwise
-			  	 	{
-			  	 	  r_state := r_stop_bit // wait until receiving stop bit?
-			  	 	}
-		  	 	}	
-		  	}
+			tx_state       	:= tx_send	  
+		}
+	}
 	
+  	
+	when (tx_state === tx_send){
+		tx_empty  			:= UFix(0)
+	  	
+		when (tx_baud_tick === UFix(1)){
+		  	tx_state 		:= Mux(tx_counter === UFix(10), tx_reset_state, tx_send)
+			tx_reg	  		:= Mux(tx_counter === UFix(10), UFix(1), tx_buff1(0))
+			tx_buff1 		:= Cat (UFix(0), tx_buff1 (9, 1))
+			tx_counter 		:= Mux(tx_counter === UFix(10), UFix(0), tx_counter + UFix(1)) // 
+		}
+	}
+  	
+	
+	
+	// UART TX clk
+	when (rx_enable) {
+		when (rx_baud_counter === UFix(clk_freq/baud_rate)){
+  	  	rx_baud_counter		:= UFix(0)
+  	  	rx_baud_tick		:= UFix(1)
+		}
+	  	.otherwise {
+	  		rx_baud_counter		:= rx_baud_counter + UFix(1)
+	  		rx_baud_tick		:= UFix(0)
+	  	}
+	}
+	
+	
+  	// Receive data
+  	
+	rxd_reg0 				:= io.rx;
+	rxd_reg1 				:= rxd_reg0;
+	rxd_reg2 				:= rxd_reg1
+	
+	
+	// RX shift in
+	when (rx_state === rx_idle) {
+		rx_full				:= UFix(0)
+  		when (rxd_reg2 === UFix(0)){
+  		   rx_state 		:= rx_start
+  		   rx_baud_counter	:= UFix(clk_freq/baud_rate) / UFix(2)
+  		   rx_enable 		:= UFix(1)
+  		}
+	}
+	
+	when (rx_state === rx_start){
+		when (rx_baud_tick === UFix(1)) {
+			when (rxd_reg2 != UFix(0)) {
+				rx_state 		:= rx_idle
+			}
+			.otherwise{
+				rx_state		:= rx_receive_data
+			}
+		}
+	}
+	
+	when (rx_state === rx_receive_data) {
+		when (rx_baud_tick === UFix(1)){
+			rx_data_buffer := Cat(rxd_reg2, rx_data_buffer(7, 1))
+		  	rx_counter := Mux(rx_counter === UFix(7), UFix(0), rx_counter + UFix(1)) //
+		  	rx_state := Mux(rx_counter === UFix(7), rx_stop_bit, rx_receive_data)
+		}
+	}
+ 	
+	when (rx_state === rx_stop_bit) {
+		when (rx_baud_tick === UFix(1)){
+			when (rxd_reg2 === UFix(1)) {
+				rx_state := rx_idle
+				rx_enable		:= UFix(0)
+				rx_full			:= UFix(1)
+			}
+			
+		}
+	}
+	
+	io.rd_data := Mux(io.address === UFix(0), Cat(UFix(0, width = 6), rx_full, tx_empty), rx_data_buffer)
 	io.tx := tx_reg
- //   io.data_out_r := data_buffer
-}
