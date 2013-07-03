@@ -11,12 +11,14 @@
 	Copyright: DTU, BSD License
 */
 
+#include <machine/spm.h>
+
 int main() {
 
 volatile int *dummy = (int *) 0x123;
 
-	volatile int *led_ptr = (int *) 0xF0000200;
-	volatile int *uart_ptr = (int *) 0xF0000104;
+	volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0000200;
+	volatile _SPM int *uart_ptr = (volatile _SPM int *) 0xF0000104;
 	int i, j;
 
 	for (;;) {

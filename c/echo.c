@@ -9,23 +9,22 @@
 	Copyright: DTU, BSD License
 */
 
+#include <machine/spm.h>
+
 int main() {
 
-	volatile int *led_ptr = (int *) 0xF0000200;
-	volatile int *uart_status = (int *) 0xF0000100;
-	volatile int *uart_data = (int *) 0xF0000104;
-	int tog = 0;
+	volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0000200;
+	volatile _SPM int *uart_status = (volatile _SPM int *) 0xF0000100;
+	volatile _SPM int *uart_data = (volatile _SPM int *) 0xF0000104;
 	int status;
 	int val;
 
-	*led_ptr = 1;
 	for (;;) {
 		status = *uart_status;
 		if (status & 0x02) {
 			val = *uart_data;
 			*uart_data = val;
-			tog = ~tog;
-			*led_ptr = tog;
+			*led_ptr = ~val;
 		}
 	}
 }

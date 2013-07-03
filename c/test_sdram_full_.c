@@ -53,9 +53,11 @@ but that version was not allways working, so this is as a backup.
 /**********************************************************************/
 /***********************  IO parameters *******************************/
 
+#include <machine/spm.h>
+
 /* UART */
-volatile int *uart_status_ptr = (int *) 0xF0000000;
-volatile int *uart_data_ptr = (int *) 0xF0000004;
+volatile _SPM int *uart_status_ptr = (volatile _SPM int *) 0xF0000100;
+volatile _SPM int *uart_data_ptr = (volatile _SPM int *) 0xF0000104;
 
 
 /* The outermost fake loop is to make a macro resolve to single statement
@@ -65,7 +67,7 @@ volatile int *uart_data_ptr = (int *) 0xF0000004;
 #define uart_out(val) do { while(!(*uart_status_ptr & 1)); *uart_data_ptr = (val); } while (0)
 
 /* SDRAM IO */
-volatile int *sdram_io = (int *) 0xF0000300;
+volatile _SPM int *sdram_io = (volatile _SPM int *) 0xF0000300;
 
 #define SDRAM_ADDR_REG     (1 << SDRAM_IO_ADDR_WIDTH)
 /* Same offset is used for both STATUS (during read) and COMMAND (during write) */

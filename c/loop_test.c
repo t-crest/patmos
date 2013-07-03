@@ -6,9 +6,11 @@
 	Copyright: DTU, BSD License
 */
 
+#include <machine/spm.h>
+
 int main() {
 
-	volatile int *led_ptr = (int *) 0xF0000200;
+	volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0000200;
 	int i, j, k;
 	volatile int str [10];
 

@@ -5,11 +5,13 @@
 	Copyright: DTU, BSD License
 */
 
+#include <machine/spm.h>
+
 int main() {
 
-	volatile int *uart_stat_ptr = (int *) 0xF0000000;
-	volatile int *uart_val_ptr = (int *) 0xF0000004;	
-	volatile int *led_ptr = (int *) 0xF0000200;
+	volatile _SPM int *uart_stat_ptr = (volatile _SPM int *) 0xF0000100;
+	volatile _SPM int *uart_val_ptr = (volatile _SPM int *) 0xF0000104;
+	volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0000200;
 	int i, j, k;
 	int flag = 0;
 	int flag2 = 0;

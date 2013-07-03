@@ -29,9 +29,11 @@
 /**********************************************************************/
 /***********************  IO parameters *******************************/
 
+#include <machine/spm.h>
+
 /* UART */
-volatile int *uart_status_ptr = (int *) 0xF0000000;
-volatile int *uart_data_ptr = (int *) 0xF0000004;
+volatile _SPM int *uart_status_ptr = (volatile _SPM int *) 0xF0000100;
+volatile _SPM int *uart_data_ptr = (volatile _SPM int *) 0xF0000104;
 
 
 /* The outermost fake loop is to make a macro resolve to single statement

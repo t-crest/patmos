@@ -1,14 +1,16 @@
+#include <machine/spm.h>
+
 int main() 
 {
 
 	int (*start_program)() = (int (*)()) (0x800000);
-	volatile int *ispm_ptr = (int *) 0x800000;
+	volatile _SPM int *ispm_ptr = (volatile _SPM int *) 0x800000;
 
 	/*
 	This is the code being loaded into the ISPM and executed below
 	int main() {
 
-		volatile int *led_ptr = (int *) 0xF0000200;
+		volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0000200;
 		for(;;)
 		{
 			*led_ptr = 1;
