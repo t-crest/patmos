@@ -83,7 +83,7 @@ class UART(clk_freq: Int, baud_rate: Int) extends Component {
 	}
 
 	// Read data
-	val rdDataReg = Reg(resetVal = UFix(0, width = 32))
+	val rdDataReg = Reg(resetVal = UFix(0, width = 8))
 	when(io.rd === UFix(1)) {
 		rdDataReg := Mux(io.address === UFix(0),
 						 Cat(UFix(0, width = 6), rx_full, tx_empty),

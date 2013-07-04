@@ -98,15 +98,8 @@ class Patmos(fileName: String) extends Component {
   val globMem = new Spm(1 << DSPM_BITS)
   memory.io.globalInOut <> globMem.io
 
-  // Stall ever n clock cycles for testing the pipeline
-  def pulse() = {
-    val x = Reg(resetVal = UFix(0, 8))
-    x := Mux(x === UFix(100), UFix(0), x + UFix(1))
-    x === UFix(100)
-  }
-  val enable = !pulse()
-  // disable stall tests
-  //  val enable = Bool(true)
+  // TODO: compute enable signals
+  val enable = Bool(true)
 
   fetch.io.ena := enable
   decode.io.ena := enable
@@ -114,9 +107,9 @@ class Patmos(fileName: String) extends Component {
   memory.io.ena := enable
   writeback.io.ena := enable
 
-  iocomp.io.uartPins <> io.uartPins
-  // The one and only output
-  io.led := ~iocomp.io.led
+  // The inputs and outputs
+  io.uartPins <> iocomp.io.uartPins
+  io.led <> iocomp.io.led
 
   // ***** the following code is not really Patmos code ******
 
@@ -128,8 +121,7 @@ class Patmos(fileName: String) extends Component {
 // this testing and main file should go into it's own folder
 
 class PatmosTest(pat: Patmos) extends Tester(pat,
-  Array(pat.io, pat.decode.io, pat.decode.rf.io, pat.memory.io, pat.execute.io) //    Array(pat.io, pat.fetch.io,
-  //    pat.decode.io, pat.execute.io, pat.memory.io, pat.writeback.io)
+  Array(pat.io, pat.decode.io, pat.decode.rf.io, pat.memory.io, pat.execute.io)
   ) {
 
   defTests {

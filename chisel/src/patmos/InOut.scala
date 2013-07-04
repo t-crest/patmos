@@ -88,7 +88,7 @@ class InOut() extends Component {
   val spmRdyCnt = spm.io.rdyCnt;
 
   // The UART
-  val uart = new UART(100000000, 115200)
+  val uart = new UART(CLOCK_FREQ, UART_BAUD)
   uart.io.rd := (io.memInOut.rd & selUart).toUFix
   uart.io.wr := (io.memInOut.wr & selUart).toUFix
   uart.io.address := io.memInOut.address(2).toUFix

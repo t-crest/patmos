@@ -35,7 +35,6 @@ architecture rtl of patmos_top is
 
 	-- DE2-70: 50 MHz clock => 100 MHz
 	-- BeMicro: 16 MHz clock => 32 MHz
-	constant clk_freq : integer := 100000000;
 	constant pll_mult : natural := 10;
 	constant pll_div  : natural := 5;
 
