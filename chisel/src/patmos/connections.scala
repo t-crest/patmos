@@ -145,7 +145,8 @@ class ExFe() extends Bundle() {
 
 class MemFe() extends Bundle() {
   val doCallRet = Bool()
-  val callRetPc = UFix(width = PC_SIZE)  
+  val callRetPc = UFix(width = PC_SIZE)
+  val callRetBase = UFix(width = PC_SIZE)
   // for ISPM write
   val store = Bool()
   val addr = Bits(width = DATA_WIDTH)

@@ -143,6 +143,7 @@ class MCFetch() extends Component {
   //outputs to mcache
   io.mcache_in.address := pc_next
   io.mcache_in.doCallRet := io.memfe.doCallRet //sign to mcache that a callreturn is executed
+  io.mcache_in.callRetBase := io.memfe.callRetBase
   io.mcache_in.request := Bits(1) //not used at the moment just for starting the mcache
 
 }
