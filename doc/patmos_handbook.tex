@@ -2369,7 +2369,7 @@ hello world (on a different FPGA board):
 \begin{verbatim}
 make tools
 make BOOTAPP=bootable-echo bootcomp gen
-make QPROJ=bemicro synth
+make BOOTAPP=bootable-echo QPROJ=bemicro synth
 make QPROJ=bemicro \\
    BLASTER_TYPE=Arrow-USB-Blaster config
 \end{verbatim}
