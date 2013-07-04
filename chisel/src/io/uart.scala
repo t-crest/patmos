@@ -53,14 +53,14 @@ class UART(clk_freq: Int, baud_rate: Int) extends Component {
   	val tx_baud_counter 	= Reg(resetVal = UFix(0, log2Up(clk_freq/baud_rate)))
 	val tx_baud_tick 		= Reg(resetVal = UFix(0, 1))
 	
-	val tx_reset_state :: tx_send:: Nil  = Enum(2){ UFix() } 
-	val tx_state 			= Reg(resetVal = tx_reset_state)
-	val tx_empty 			= Reg(resetVal = UFix(0, 1))
+	val tx_idle :: tx_send :: Nil  = Enum(2){ UFix() } 
+	val tx_state 			= Reg(resetVal = tx_idle)
+	val tx_empty 			= Reg(resetVal = UFix(1, 1))
+	val tx_data 			= Reg(resetVal = UFix(0, 8))
+	val tx_buff				= Reg(resetVal = UFix(0, 10))
   	val tx_reg 				= Reg(resetVal = UFix(1, 1))
   	val tx_counter 			= Reg(resetVal = UFix(0, 4))
-//	val tx_buff				= Reg(resetVal = UFix(0, 10))
-	
-	
+		
 	val rxd_reg0 			= Reg(resetVal = UFix(1, 1))
 	val rxd_reg1 			= Reg(resetVal = UFix(1, 1))
 	val rxd_reg2 			= Reg(resetVal = UFix(1, 1))
@@ -69,66 +69,67 @@ class UART(clk_freq: Int, baud_rate: Int) extends Component {
 	val rx_baud_tick 		= Reg(resetVal = UFix(0, 1))
 	val rx_enable	 		= Reg(resetVal = UFix(0, 1))
 	
-//	val rx_data_buffer 		= Reg(resetVal = UFix(0, 8))	
-	val rx_full = Reg(resetVal = UFix(0, 1))
-	val rx_counter = Reg(resetVal = UFix(0, 3)) 	
+	val rx_data 			= Reg(resetVal = UFix(0, 8))	
+	val rx_buff 			= Reg(resetVal = UFix(0, 8))	
+	val rx_full 			= Reg(resetVal = UFix(0, 1))
+	val rx_counter			= Reg(resetVal = UFix(0, 3)) 	
   	val rx_idle  :: rx_start :: rx_receive_data :: rx_stop_bit :: Nil  = Enum(4){ UFix() }
 	val rx_state 			= Reg(resetVal = rx_idle)
 	
+	// Write to UART
+	when (io.wr === UFix(1)) {
+		tx_data := io.data_in
+	    tx_empty := UFix(0)
+	}
+
+	// Read data
+	val rdDataReg = Reg(resetVal = UFix(0, width = 32))
+	when(io.rd === UFix(1)) {
+		rdDataReg := Mux(io.address === UFix(0),
+						 Cat(UFix(0, width = 6), rx_full, tx_empty),
+						 rx_data)
+		rx_full := Mux(io.address === UFix(0), rx_full, UFix(0))
+	}
+
 	// UART TX clk
 	when (tx_baud_counter === UFix(clk_freq/baud_rate)){
   	  	tx_baud_counter		:= UFix(0)
-  	  	tx_baud_tick			:= UFix(1)
+  	  	tx_baud_tick		:= UFix(1)
   	}
   	.otherwise {
   		tx_baud_counter		:= tx_baud_counter + UFix(1)
-  		tx_baud_tick			:= UFix(0)
+  		tx_baud_tick		:= UFix(0)
   	}
 
-  	val tx_buff1 = Reg(resetVal = UFix(0, 10))
-	val tx_buff2 = Reg(resetVal = UFix(0, 10))
-	val tx_e1 = Reg(resetVal = UFix(1, 1))
-	val tx_e2 = Reg(resetVal = UFix(1, 1))
-	
-	val rx_buff1 = Reg(resetVal = UFix(0, 8))
-	val rx_buff2 = Reg(resetVal = UFix(0, 8))
-	val rx_f1 = Reg(resetVal = UFix(0, 1))
-	val rx_f2 = Reg(resetVal = UFix(0, 1))
-    
     // Send data	
   	
-  	when (tx_state === tx_reset_state) {
-		tx_empty			:= UFix(1)
-		tx_counter			:= UFix(0)
-		tx_reg      		:= UFix(1)
-		tx_e1 		:= UFix(1)
-		
-		when (io.wr === UFix(1)) {
-			//tx_buff			:= Cat (UFix(1), io.data_in, UFix(0)) // keep the input
-			when (tx_e1 === UFix(1)){
-			  tx_buff1 := Mux(tx_e2 === UFix(1), Cat (UFix(1), io.data_in, UFix(0)), tx_buff2) 
-			  tx_e1 := UFix(0)
-			}
-			.otherwise{
-			  when (tx_e2 === UFix(1)){
-			    tx_buff2 := Cat(UFix(1), io.data_in, UFix(0))
-			    tx_e2 := UFix(0)
+  	when (tx_state === tx_idle) {
+		when (tx_empty === UFix(0)) {
+		  tx_empty			:= UFix(1)
+		  tx_buff			:= Cat(UFix(1), tx_data, UFix(0))
+		  tx_state			:= tx_send
+		}
+	}	
+  	
+	when (tx_state === tx_send) {
+		when (tx_baud_tick === UFix(1)){
+			tx_buff			:= Cat (UFix(0), tx_buff (9, 1))
+			tx_reg	  		:= tx_buff(0)
+			tx_counter 		:= Mux(tx_counter === UFix(10), UFix(0), tx_counter + UFix(1))
+
+		    when (tx_counter === UFix(10)) {
+			  when (tx_empty === UFix(0)) {
+				tx_empty		:= UFix(1)
+				tx_buff			:= Cat(UFix(1), tx_data)
+				tx_reg  		:= UFix(0)
+				tx_counter		:= UFix(1)
+			  }
+			  .otherwise {
+				tx_reg  		:= UFix(1)
+				tx_counter		:= UFix(0)
+		  		tx_state 		:= tx_idle
 			  }
 			}
-			
-			tx_state       	:= tx_send	  
-		}
-	}
-	
-  	
-	when (tx_state === tx_send){
-		tx_empty  			:= UFix(0)
-	  	
-		when (tx_baud_tick === UFix(1)){
-		  	tx_state 		:= Mux(tx_counter === UFix(10), tx_reset_state, tx_send)
-			tx_reg	  		:= Mux(tx_counter === UFix(10), UFix(1), tx_buff1(0))
-			tx_buff1 		:= Cat (UFix(0), tx_buff1 (9, 1))
-			tx_counter 		:= Mux(tx_counter === UFix(10), UFix(0), tx_counter + UFix(1)) // 
 		}
 	}
   	
@@ -137,8 +138,8 @@ class UART(clk_freq: Int, baud_rate: Int) extends Component {
 	// UART TX clk
 	when (rx_enable) {
 		when (rx_baud_counter === UFix(clk_freq/baud_rate)){
-  	  	rx_baud_counter		:= UFix(0)
-  	  	rx_baud_tick		:= UFix(1)
+  	  		rx_baud_counter		:= UFix(0)
+  	  		rx_baud_tick		:= UFix(1)
 		}
 	  	.otherwise {
 	  		rx_baud_counter		:= rx_baud_counter + UFix(1)
@@ -165,89 +166,36 @@ class UART(clk_freq: Int, baud_rate: Int) extends Component {
 	
 	when (rx_state === rx_start){
 		when (rx_baud_tick === UFix(1)) {
-			when (rxd_reg2 != UFix(0)) {
-				rx_state 		:= rx_idle
+			when (rxd_reg2 === UFix(0)) {
+				rx_state		:= rx_receive_data
 			}
 			.otherwise{
-				rx_state		:= rx_receive_data
+				rx_state 		:= rx_idle
 			}
 		}
 	}
 	
 	when (rx_state === rx_receive_data) {
 		when (rx_baud_tick === UFix(1)){
-
-			when (rx_f2 === UFix(0)) {
-				 when (rx_f1 === UFix(0)){
-					 rx_buff1 :=  Cat(rxd_reg2, rx_buff1(7, 1))
-				 }
-				 when (rx_f1 === UFix(1)){
-					 rx_buff2 :=  Cat(rxd_reg2, rx_buff2(7, 1))
-				 }
-			}
-			when (rx_f2 === UFix(1)) {
-				 when (rx_f1 === UFix(0)){
-					 rx_buff1 :=  rx_buff2
-				 }
-				 when (rx_f1 === UFix(1)){
-					 // drop it
-				 }
-			}
-			
-		  	rx_counter := Mux(rx_counter === UFix(7), UFix(0), rx_counter + UFix(1)) //
 		  	rx_state := Mux(rx_counter === UFix(7), rx_stop_bit, rx_receive_data)
-//		  	rx_data_buffer := Cat(rxd_reg2, rx_data_buffer(7, 1))
-		  
+		  	rx_counter := Mux(rx_counter === UFix(7), UFix(0), rx_counter + UFix(1))
+			rx_buff :=  Cat(rxd_reg2, rx_buff(7, 1))
 		}
 	}
  	
 	when (rx_state === rx_stop_bit) {
 		when (rx_baud_tick === UFix(1)){
 			when (rxd_reg2 === UFix(1)) {
-				rx_state := rx_idle
+				rx_state 		:= rx_idle
 				rx_enable		:= UFix(0)
+				rx_data 		:= rx_buff
 				rx_full			:= UFix(1)
-
-				//update buffers status
-				when (rx_f2 === UFix(0)) {
-					 when (rx_f1 === UFix(0)){
-						 rx_f1 :=  UFix(1)
-					 }
-					 when (rx_f1 === UFix(1)){
-						 rx_f2 := UFix(1)
-					 }
-				}
-				when (rx_f2 === UFix(1)) {
-					 when (rx_f1 === UFix(0)){
-						 rx_f1 :=  UFix(1)
-					 }
-					 when (rx_f1 === UFix(1)){
-						 // drop it
-					 }
-				}
-				
-
 			}
-			
+			.otherwise{
+				rx_state 		:= rx_idle
+				rx_enable		:= UFix(0)
+			}
 		}
-	}
-	
-	// Read data
-	val rdDataReg = Reg(resetVal = UFix(0, width = 32))
-	when(io.rd === UFix(1)) {
-		when (rx_f2 === UFix(0)) {
-			 when (rx_f1 === UFix(1)){
-				 rx_f1 := UFix(0)
-			 }
-		}
-		when (rx_f2 === UFix(1)) {
-			 rx_f2 := UFix(0)
-		}
-
-		rdDataReg := Mux(io.address === UFix(0),
-						 Cat(UFix(0, width = 6), rx_full, tx_empty),
-						 rx_buff1)
-		rx_full := Mux(io.address === UFix(0), rx_full, UFix(0))
 	}
 
 	io.rd_data := rdDataReg
