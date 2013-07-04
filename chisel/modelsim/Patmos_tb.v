@@ -4,16 +4,15 @@ module Patmos_tb();
    Patmos patmos(.clk(clk), .reset(reset),
 				 .io_dummy(io_dummy),
 				 .io_led(io_led),
-				 .io_uart_address(io_uart_address),
-				 .io_uart_wr_data(io_uart_wr_data),
-				 .io_uart_rd(io_uart_rd),
-				 .io_uart_wr(io_uart_wr),
-				 .io_uart_rd_data(io_uart_rd_data));
+				 .io_uartPins_tx(io_uartPins_tx),
+				 .io_uartPins_rx(io_uartPins_rx));
 
    reg clk_reg;
    reg reset_reg;   
    assign clk = clk_reg;
    assign reset = reset_reg;
+
+   assign io_uartPins_rx = 1'b1;
    
    initial
 	 begin

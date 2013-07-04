@@ -38,24 +38,17 @@
  */
 
 
-package hello
+package io
 
 import Chisel._
 import Node._
 
+import patmos.UartIO
+import patmos.UartPinIO
 
 class UART(clk_freq: Int, baud_rate: Int) extends Component {
-  val io = new Bundle {
-    val address = UFix(INPUT, 1)
-	val data_in = UFix(INPUT, 8)
-	val wr = UFix(INPUT, 1) 
-	val rd = UFix(INPUT, 1)
-	val tx = UFix(OUTPUT, 1)
-	val rx = UFix(INPUT, 1)
-	val rd_data = UFix(OUTPUT, 8)
-  }
+  	val io = new UartIO()
 
-  	
   	val c_tx_divider_val 	= clk_freq/baud_rate	
   	val tx_baud_counter 	= Reg(resetVal = UFix(0, log2Up(clk_freq/baud_rate)))
 	val tx_baud_tick 		= Reg(resetVal = UFix(0, 1))
@@ -76,6 +69,7 @@ class UART(clk_freq: Int, baud_rate: Int) extends Component {
 	val rx_baud_tick 		= Reg(resetVal = UFix(0, 1))
 	val rx_enable	 		= Reg(resetVal = UFix(0, 1))
 	
+	val rx_data        		= Reg(resetVal = UFix(0, 8))
 	val rx_data_buffer 		= Reg(resetVal = UFix(0, 8))	
 	val rx_full = Reg(resetVal = UFix(0, 1))
 	val rx_counter = Reg(resetVal = UFix(0, 3)) 	
@@ -150,17 +144,16 @@ class UART(clk_freq: Int, baud_rate: Int) extends Component {
 	  	}
 	}
 	
-	
+
   	// Receive data
   	
-	rxd_reg0 				:= io.rx;
+	rxd_reg0 				:= io.pins.rx;
 	rxd_reg1 				:= rxd_reg0;
 	rxd_reg2 				:= rxd_reg1
 	
 	
 	// RX shift in
 	when (rx_state === rx_idle) {
-		rx_full				:= UFix(0)
   		when (rxd_reg2 === UFix(0)){
   		   rx_state 		:= rx_start
   		   rx_baud_counter	:= UFix(clk_freq/baud_rate) / UFix(2)
@@ -182,7 +175,7 @@ class UART(clk_freq: Int, baud_rate: Int) extends Component {
 	when (rx_state === rx_receive_data) {
 		when (rx_baud_tick === UFix(1)){
 			rx_data_buffer := Cat(rxd_reg2, rx_data_buffer(7, 1))
-		  	rx_counter := Mux(rx_counter === UFix(7), UFix(0), rx_counter + UFix(1)) //
+		  	rx_counter := Mux(rx_counter === UFix(7), UFix(0), rx_counter + UFix(1))
 		  	rx_state := Mux(rx_counter === UFix(7), rx_stop_bit, rx_receive_data)
 		}
 	}
@@ -192,12 +185,22 @@ class UART(clk_freq: Int, baud_rate: Int) extends Component {
 			when (rxd_reg2 === UFix(1)) {
 				rx_state := rx_idle
 				rx_enable		:= UFix(0)
+				rx_data			:= rx_data_buffer
 				rx_full			:= UFix(1)
 			}
 			
 		}
 	}
 	
-	io.rd_data := Mux(io.address === UFix(0), Cat(UFix(0, width = 6), rx_full, tx_empty), rx_data_buffer)
-	io.tx := tx_reg
+	// Read data
+	val rdDataReg = Reg(resetVal = UFix(0, width = 32))
+	when(io.rd) {
+		rdDataReg := Mux(io.address === UFix(0),
+						 Cat(UFix(0, width = 6), rx_full, tx_empty),
+						 rx_data)
+		rx_full := Mux(io.address === UFix(0), rx_full, UFix(0))
+	}
+
+	io.rd_data := rdDataReg
+	io.pins.tx := tx_reg
 }

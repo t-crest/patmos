@@ -63,7 +63,7 @@ class Patmos(fileName: String) extends Component {
   val io = new Bundle {
     val dummy = Bits(OUTPUT, 32)
     val led = Bits(OUTPUT, 8)
-    val uart = new UartIO()
+    val uartPins = new UartPinIO()
   }
 
   val fetch = new Fetch(fileName)
@@ -114,21 +114,15 @@ class Patmos(fileName: String) extends Component {
   memory.io.ena := enable
   writeback.io.ena := enable
 
-  iocomp.io.uart <> io.uart
+  iocomp.io.uartPins <> io.uartPins
   // The one and only output
   io.led := ~iocomp.io.led
 
   // ***** the following code is not really Patmos code ******
 
   // Dummy output, which is ignored in the top level VHDL code, to
-  // keep Chisel happy with unused signals
-  val sum1 = memory.io.memwb.pc
-  val part = Reg(sum1.toBits)
-  val p = execute.io.exmem.predDebug
-  // to dumb for vector to bits...
-  val pracc = p(0) | p(1) | p(2) | p(3) | p(4) | p(5) | p(6) | p(7)
-  val xyz = part(29, 0) | pracc
-  io.dummy := Reg(xyz)
+  // keep Chisel keep this signal alive unused signals
+  io.dummy := Reg(memory.io.memwb.pc)
 }
 
 // this testing and main file should go into it's own folder
