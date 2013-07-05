@@ -11,7 +11,7 @@ int main() __attribute__((naked,used));
 
 #define UART_STATUS *((volatile _SPM int *) 0xF0000100)
 #define UART_DATA   *((volatile _SPM int *) 0xF0000104)
-#define LEDS        *((volatile _SPM int *) 0xF0000100)
+#define LEDS        *((volatile _SPM int *) 0xF0000200)
 
 #define XDIGIT(c) ((c) <= 9 ? '0' + (c) : 'a' + (c) - 10)
 
