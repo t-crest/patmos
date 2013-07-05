@@ -273,12 +273,11 @@ int main (int argc, char* argv[]) {
 	}
 
 	if (uart) {
-	  // // Pass on data from UART, to be changed once the Chisel-UART is integrated
-	  // c->Patmos__io_uart_rd_data = 0x01;
-	  // if (c->Patmos__io_uart_wr.to_bool()
-	  // 	  && c->Patmos__io_uart_address.to_ulong() == 0x01) {
-	  // 	*out << (char)c->Patmos__io_uart_wr_data.to_ulong();
-	  // }
+	  // Pass on data from UART
+	  if (c->Patmos_iocomp_uart__io_wr.to_bool()
+	  	  && c->Patmos_iocomp_uart__io_address.to_ulong() == 0x01) {
+	  	*out << (char)c->Patmos_iocomp_uart__io_data_in.to_ulong();
+	  }
 	}
 
 	if (!quiet) {
