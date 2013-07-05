@@ -64,7 +64,7 @@ class ICPatmos(fileName: String) extends Component {
   val io = new Bundle {
     val dummy = Bits(OUTPUT, 32)
     val led = Bits(OUTPUT, 8)
-    val uart = new UartIO()
+    val uartPins = new UartPinIO()
     //val fedec = new FeDec().asOutput //connect fetch st. to patmos top for debugg
     //val exfe = new ExFe().asInput //connect fetch st. to patmos top for debugg
   }
@@ -137,7 +137,7 @@ class ICPatmos(fileName: String) extends Component {
   memory.io.ena := enable
   writeback.io.ena := enable
 
-  iocomp.io.uart <> io.uart
+  iocomp.io.uartPins <> io.uartPins
   // The one and only output
   io.led := ~iocomp.io.led
  

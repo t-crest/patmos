@@ -131,8 +131,8 @@ class Memory() extends Component {
     (Bits("b11"), rdData(3))))
   // half-word read
   val hval = MuxLookup(memReg.mem.addr(1), Cat(rdData(0), rdData(1)), Array(
-    (Bits("b00"), Cat(rdData(0), rdData(1))),
-    (Bits("b01"), Cat(rdData(2), rdData(3)))))
+    (Bits("b0"), Cat(rdData(0), rdData(1))),
+    (Bits("b1"), Cat(rdData(2), rdData(3)))))
   // sign extensions
   when(memReg.mem.byte) {
     dout := Cat(Fill(DATA_WIDTH-BYTE_WIDTH, bval(BYTE_WIDTH-1)), bval)

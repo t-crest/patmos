@@ -67,7 +67,7 @@ class MCPatmos(fileName: String) extends Component {
   val io = new Bundle {
     val dummy = Bits(OUTPUT, 32)
     val led = Bits(OUTPUT, 8)
-    val uart = new UartIO()
+    val uartPins = new UartPinIO()
   }
   //new mcache classes
   val mcache = new MCache()
@@ -140,7 +140,7 @@ class MCPatmos(fileName: String) extends Component {
   writeback.io.ena := enable
  */
 
-  iocomp.io.uart <> io.uart
+  iocomp.io.uartPins <> io.uartPins
   // The one and only output
   io.led := ~iocomp.io.led
 

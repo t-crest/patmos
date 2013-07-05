@@ -38,7 +38,7 @@
  */
 
 
-package hello
+package io
 
 import Chisel._
 import Node._
@@ -69,8 +69,8 @@ class Test() extends Component {
   	
   	
  	
-	uart.io.tx <> io.tx
-	uart.io.rx :=  io.rx //blk //
+	uart.io.pins.tx <> io.tx
+	uart.io.pins.rx :=  io.rx //blk //
 //	rx.io.rx <> io.rx
 
 

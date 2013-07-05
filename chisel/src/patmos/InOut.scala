@@ -45,6 +45,8 @@ import Node._
 
 import Constants._
 
+import io.UART
+
 class InOut() extends Component {
   val io = new InOutIO()
 
@@ -86,15 +88,14 @@ class InOut() extends Component {
   val spmRdyCnt = spm.io.rdyCnt;
 
   // The UART
-  io.uart.rd := io.memInOut.rd & selUart
-  io.uart.wr := io.memInOut.wr & selUart
-  io.uart.address := io.memInOut.address(2)
-  io.uart.wr_data := Cat(io.memInOut.wrData(0),
-						 io.memInOut.wrData(1),
-						 io.memInOut.wrData(2),
-						 io.memInOut.wrData(3))
-  val uartData = splitData(io.uart.rd_data)
-  val uartRdyCnt = io.uart.rdy_cnt
+  val uart = new UART(CLOCK_FREQ, UART_BAUD)
+  uart.io.rd := (io.memInOut.rd & selUart).toUFix
+  uart.io.wr := (io.memInOut.wr & selUart).toUFix
+  uart.io.address := io.memInOut.address(2).toUFix
+  uart.io.data_in := io.memInOut.wrData(3).toUFix
+  val uartData = splitData(Cat(Bits(0, width = 24), uart.io.rd_data))
+  val uartRdyCnt = Bits("b00") // uart.io.rdy_cnt
+  io.uartPins <> uart.io.pins
 
   // The LED
   val ledReg = Reg(Bits(0, 8))

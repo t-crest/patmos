@@ -218,22 +218,23 @@ class SimpCon() extends Bundle() {
   val rdyCnt = Bits(INPUT, 2)
 }
 
-/**
- * Just for now connect the VHDL UART at the VHDL top level.
- * Shall become a Chisel UART when Sahar has finished it.
- */
+class UartPinIO() extends Bundle() {
+  val tx = UFix(OUTPUT, 1)
+  val rx = UFix(INPUT, 1)  
+}
+
 class UartIO() extends Bundle() {
-  val address = Bits(OUTPUT, 1)
-  val wr_data = Bits(OUTPUT, DATA_WIDTH)
-  val rd = Bits(OUTPUT, 1)
-  val wr = Bits(OUTPUT, 1)
-  val rd_data = Bits(INPUT, DATA_WIDTH)
-  val rdy_cnt = Bits(INPUT, 2)
+  val rd = UFix(INPUT, 1)
+  val wr = UFix(INPUT, 1) 
+  val address = UFix(INPUT, 1)
+  val data_in = UFix(INPUT, 8)
+  val rd_data = UFix(OUTPUT, 8)
+  val pins = new UartPinIO()
 }
 
 class InOutIO() extends Bundle() {
   val memInOut = new SimpCon().flip
-  val uart = new UartIO()
+  val uartPins = new UartPinIO()
   val led = Bits(OUTPUT, 8)
 }
 
