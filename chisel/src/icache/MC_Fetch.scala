@@ -62,7 +62,7 @@ class MCFetchIO extends Bundle() {
 class MCFetch() extends Component {
   val io = new MCFetchIO()
 
-  val pc = Reg(resetVal = UFix(0, PC_SIZE))
+  val pc = Reg(resetVal = UFix(8, PC_SIZE))
   val addr_even = Reg(resetVal = UFix(0, PC_SIZE - 1))
   val addr_odd = Reg(resetVal = UFix(1, PC_SIZE - 1))
 
@@ -112,23 +112,19 @@ class MCFetch() extends Component {
   // ROM/ISPM Mux
   //val data_even = Mux(selIspm, ispm_even, rom(addr_even))
   //val data_odd = Mux(selIspm, ispm_odd, rom(addr_odd))
-  val data_even = Mux(selIspm, ispm_even, io.mcache_out.data_even)
-  val data_odd = Mux(selIspm, ispm_odd, io.mcache_out.data_odd)
 
-  val instr_a = Mux(pc(0) === Bits(0), data_even, data_odd)
-  val instr_b = Mux(pc(0) === Bits(0), data_odd, data_even)
+  //instr_a and instr_b depend on offset in mcache not on pc!!! add mux selIspm here!!!
+ 
+  val instr_a = io.mcache_out.instr_a //Mux(selIspm, ispm_even, io.mcache_out.instr_a)
+  val instr_b = io.mcache_out.instr_b //Mux(selIspm, ispm_odd, io.mcache_out.instr_b)
 
   val b_valid = instr_a(31) === Bits(1)
   val pc_cont = pc + Mux(b_valid, UFix(2), UFix(1))
+
   val pc_next =
 	Mux(io.memfe.doCallRet, io.memfe.callRetPc,
 		Mux(io.exfe.doBranch, io.exfe.branchPc,
 			pc_cont))
-  
-  // - Bits("h1c") / Bits(4),
-  //debugging...
-  //val pc_next = pc_cont 
-  //val pc_next = Mux(io.exfe.doBranch, io.exfe.branchPc, pc_cont)
 
   val pc_inc = Mux(pc_next(0), pc_next + UFix(2), pc_next)
   when(io.ena) {
@@ -145,6 +141,9 @@ class MCFetch() extends Component {
   io.femem.pc := pc_cont
 
   //outputs to mcache
-  io.mcache_in.address := pc_next //mcache_address_in //pc_next
-  io.mcache_in.request := Bits(1) //not used at the momenent
+  io.mcache_in.address := pc_next
+  io.mcache_in.doCallRet := io.memfe.doCallRet //sign to mcache that a callreturn is executed
+  io.mcache_in.callRetBase := io.memfe.callRetBase
+  io.mcache_in.request := Bits(1) //not used at the moment just for starting the mcache
+
 }

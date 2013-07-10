@@ -131,8 +131,8 @@ class Memory() extends Component {
     (Bits("b11"), rdData(3))))
   // half-word read
   val hval = MuxLookup(memReg.mem.addr(1), Cat(rdData(0), rdData(1)), Array(
-    (Bits("b00"), Cat(rdData(0), rdData(1))),
-    (Bits("b01"), Cat(rdData(2), rdData(3)))))
+    (Bits("b0"), Cat(rdData(0), rdData(1))),
+    (Bits("b1"), Cat(rdData(2), rdData(3)))))
   // sign extensions
   when(memReg.mem.byte) {
     dout := Cat(Fill(DATA_WIDTH-BYTE_WIDTH, bval(BYTE_WIDTH-1)), bval)
@@ -166,6 +166,7 @@ class Memory() extends Component {
   // call to fetch
   io.memfe.doCallRet := memReg.mem.call || memReg.mem.ret
   io.memfe.callRetPc := memReg.mem.callRetAddr(DATA_WIDTH-1, 2)
+  io.memfe.callRetBase := memReg.mem.callRetBase(DATA_WIDTH-1, 2)
 
   // TODO: remember base address for faking return offset
   when(io.ena && io.memfe.doCallRet) {

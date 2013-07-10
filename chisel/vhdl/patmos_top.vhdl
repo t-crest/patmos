@@ -27,20 +27,14 @@ architecture rtl of patmos_top is
 		port(
 			clk             : in  std_logic;
 			reset           : in  std_logic;
-			io_dummy        : out std_logic_vector(31 downto 0);
 			io_led          : out std_logic_vector(7 downto 0);
-			io_uart_address : out std_logic;
-			io_uart_wr_data : out std_logic_vector(31 downto 0);
-			io_uart_rd      : out std_logic;
-			io_uart_wr      : out std_logic;
-			io_uart_rd_data : in  std_logic_vector(31 downto 0);
-			io_uart_rdy_cnt : in  unsigned(1 downto 0)
+			io_uartPins_tx  : out std_logic;
+			io_uartPins_rx  : in  std_logic
 		);
 	end component;
 
 	-- DE2-70: 50 MHz clock => 100 MHz
 	-- BeMicro: 16 MHz clock => 32 MHz
-	constant clk_freq : integer := 100000000;
 	constant pll_mult : natural := 10;
 	constant pll_div  : natural := 5;
 
@@ -53,14 +47,6 @@ architecture rtl of patmos_top is
 
 	attribute altera_attribute : string;
 	attribute altera_attribute of res_cnt : signal is "POWER_UP_LEVEL=LOW";
-
-	-- just for now using the VHDL UART
-	signal io_uart_address : std_logic;
-	signal io_uart_wr_data : std_logic_vector(31 downto 0);
-	signal io_uart_rd      : std_logic;
-	signal io_uart_wr      : std_logic;
-	signal io_uart_rd_data : std_logic_vector(31 downto 0);
-	signal io_uart_rdy_cnt : unsigned(1 downto 0);
 
 begin
 	pll_inst : entity work.pll generic map(
@@ -91,35 +77,6 @@ begin
 		end if;
 	end process;
 
-	comp : Patmos port map(
-			clk_int, int_res, open, led,
-			io_uart_address,
-			io_uart_wr_data,
-			io_uart_rd,
-			io_uart_wr,
-			io_uart_rd_data,
-			io_uart_rdy_cnt
-		);
-
-	ua : entity work.uart generic map(
-			clk_freq  => clk_freq,
-			baud_rate => 115200,
-			txf_depth => 1,
-			rxf_depth => 1
-		)
-		port map(
-			clk     => clk_int,
-			reset   => int_res,
-			address => io_uart_address,
-			wr_data => io_uart_wr_data,
-			rd      => io_uart_rd,
-			wr      => io_uart_wr,
-			rd_data => io_uart_rd_data,
-			rdy_cnt => io_uart_rdy_cnt,
-			txd     => txd,
-			rxd     => rxd,
-			ncts    => '0',
-			nrts    => open
-		);
+	comp : Patmos port map(clk_int, int_res, led, txd, rxd);
 
 end architecture rtl;

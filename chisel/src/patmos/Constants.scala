@@ -45,6 +45,11 @@ import Node._
 
 object Constants {
 
+  // TODO: this should come from some configuration file
+  val CLOCK_FREQ = 100000000
+
+  val UART_BAUD = 115200
+
 //  val SPM_MAX_BITS = 21
   // MS: maybe better use sizes in bytes and use log2Up() to
   // get the number of bits.
