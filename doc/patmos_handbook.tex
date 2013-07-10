@@ -2379,6 +2379,36 @@ possible to merge all steps into a single make (on Linux
 systems) or two steps when using a two operating
 systems (for compilation and synthesis).
 
+\section{Hardware Interface}
+
+For the connection of Patmos to a memory controller, I/O devices,
+the core-to-core network on chip, and/or the memory arbiter an interface
+standard needs to be specified. Several standards are available.
+We decided to base the interface on OCP\footnote{\url{http://www.ocpip.org/}}
+and subset the standard as we need it.
+
+Currently we decided on following restrictions:
+
+\begin{itemize}
+\item No pipelined read
+\item Only one outstanding read or write
+\item Only non-posted writes
+\item CmdAccept always `1'
+\item Single burst length (a system property)
+\item Burst without wait states
+\item Aligned bursts
+\item Burst increment
+\item Write bursts handshake with SDataAccept
+\item Maybe use read exclusive for locks?
+\end{itemize}
+
+\todo{The details need to be written down and timing diagrams drawn.}
+
+\todo{The legal status of using a subset of OCP in an open-source
+project needs to be checked. The Patmos document shall be
+self contained and no membership to OCP necessary to use
+Patmos.}
+
 \section{Application Binary Interface}
 \label{sec:abi}
 
