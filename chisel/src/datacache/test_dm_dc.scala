@@ -94,12 +94,11 @@ class Test_dc() extends Component {
 		state 		:= write_hit
 	}
 	
-//	mem()
+
 	io.led 				:= test(1)
 	dc.io.address		:= address
 	dc.io.mem_data_in	:= mem(address)
 	mem(address)		:= dc.io.mem_data_out
-//	dc.io.mem_data_out	:= 
 	dc.io.wr			:= wr
 	dc.io.rd			:= rd
 	dc.io.data_in		:= data_in
@@ -110,7 +109,7 @@ class Test_dc() extends Component {
 
 
 // Generate the Verlog code by invoking chiselMain() in our main()
-object HelloMain2 {
+object HelloMain {
   def main(args: Array[String]): Unit = { 
     chiselMain( args, () => new Test_dc())
   }
