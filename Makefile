@@ -3,19 +3,19 @@
 #
 
 # COM port for downloader
-COM_PORT=/dev/ttyUSB0
+COM_PORT?=/dev/ttyUSB0
 
 # Application to be stored in boot ROM
-BOOTAPP=basic
+BOOTAPP?=basic
 #BOOTAPP=bootable-bootloader
 
 # Application to be downloaded
-APP=hello
+APP?=hello
 
 # Altera FPGA configuration cables
 #BLASTER_TYPE=ByteBlasterMV
 #BLASTER_TYPE=Arrow-USB-Blaster 
-BLASTER_TYPE=USB-Blaster
+BLASTER_TYPE?=USB-Blaster
 
 # Path delimiter for Wdoz and others
 ifeq ($(WINDIR),)
@@ -26,13 +26,18 @@ endif
 
 # The Quartus project
 #QPROJ=bemicro
-QPROJ=altde2-70
+QPROJ?=altde2-70
 
 
 # Where to put elf files and binaries
-BUILDDIR=tmp
+BUILDDIR?=$(CURDIR)/tmp
+# Build directories for various tools
+SIMBUILDDIR?=$(CURDIR)/simulator/build
+CTOOLSBUILDDIR?=$(CURDIR)/ctools/build
+CHISELBUILDDIR?=$(CURDIR)/chisel/build
 # Where to install tools
-INSTALLDIR=bin
+INSTALLDIR?=$(CURDIR)/bin
+CHISELINSTALLDIR?=$(INSTALLDIR)
 
 all: tools emulator patmos
 
@@ -40,19 +45,19 @@ tools: patsim elf2bin javatools
 
 # Build simulator and assembler
 patsim:
-	-mkdir -p simulator/build
-	cd simulator/build && cmake ..
-	cd simulator/build && make
+	-mkdir -p $(SIMBUILDDIR)
+	cd $(SIMBUILDDIR) && cmake ..
+	cd $(SIMBUILDDIR) && make
 	-mkdir -p $(INSTALLDIR)
-	cp simulator/build/src/pa* $(INSTALLDIR)
+	cp $(SIMBUILDDIR)/src/pa* $(INSTALLDIR)
 
 # Build tool to transform elf to binary
 elf2bin:
-	-mkdir -p ctools/build
-	cd ctools/build && cmake ..
-	cd ctools/build && make
+	-mkdir -p $(CTOOLSBUILDDIR)
+	cd $(CTOOLSBUILDDIR) && cmake ..
+	cd $(CTOOLSBUILDDIR) && make
 	-mkdir -p $(INSTALLDIR)
-	cp ctools/build/src/elf2bin $(INSTALLDIR)
+	cp $(CTOOLSBUILDDIR)/src/elf2bin $(INSTALLDIR)
 
 # Build various Java tools
 javatools: java/lib/patmos-tools.jar
@@ -72,11 +77,11 @@ java/classes/%.class: java/src/%.java
 		-sourcepath java/src -d java/classes $<
 
 # Build the Chisel emulator
-emulator: elf2bin
-	-mkdir -p chisel/build
-	$(MAKE) -C chisel BUILDDIR=$(CURDIR)/chisel/build BOOTAPP=$(BOOTAPP) emulator
-	-mkdir -p $(INSTALLDIR)
-	cp chisel/build/emulator $(INSTALLDIR)
+emulator:
+	-mkdir -p $(CHISELBUILDDIR)
+	$(MAKE) -C chisel BOOTBUILDROOT=$(CURDIR) BOOTBUILDDIR=$(BUILDDIR) BOOTAPP=$(BOOTAPP) BOOTBIN=$(BUILDDIR)/$(BOOTAPP).bin emulator
+	-mkdir -p $(CHISELINSTALLDIR)
+	cp $(CHISELBUILDDIR)/emulator $(CHISELINSTALLDIR)
 
 # Assemble a program
 asm: asm-$(BOOTAPP)
@@ -90,14 +95,14 @@ bootcomp: bin-$(BOOTAPP)
 
 # Convert elf file to binary
 bin-% $(BUILDDIR)/%.bin: $(BUILDDIR)/%.elf
-	bin/elf2bin $< $(BUILDDIR)/$*.bin
+	$(INSTALLDIR)/elf2bin $< $(BUILDDIR)/$*.bin
 
 # Compile a program to an elf file
 comp: comp-$(APP)
 
 comp-% $(BUILDDIR)/%.elf: .FORCE
 	-mkdir -p $(dir $@)
-	$(MAKE) -C c BUILDDIR=$(CURDIR)/$(BUILDDIR) APP=$* compile
+	$(MAKE) -C c BUILDDIR=$(BUILDDIR) APP=$* compile
 
 .PRECIOUS: $(BUILDDIR)/%.elf
 
