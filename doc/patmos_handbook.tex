@@ -622,7 +622,7 @@ versions of the rotate instructions as those are the same.}
 
 \subsection{Multiply} Applies to the ALUm format only. Multiplications are
 executed in parallel with the regular pipeline and finish within a fixed number
-of cycles (3-5 cycles).
+of cycles \todo{how many?}.
 
 \begin{itemize}
   \item[-] ALUm -- Multiply \\[3mm]
@@ -1188,9 +1188,7 @@ Therefore, we shall not read when the predicate is false.}
 \vspace{7mm}
 \emph{Note}
 
-All loads can only be issued on the first slot. An optimization to
-allow loads in both slots of an instruction bundle for the stack cache
-is open for evaluation.
+All loads can only be issued on the first slot.
 
 Two successive decoupled loads can be used in the following manner without the
 use of an additional \texttt{wait} instruction:
