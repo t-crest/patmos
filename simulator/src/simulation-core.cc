@@ -327,7 +327,6 @@ namespace patmos
               branch_counter == 0 && 
               interrupt_handling == 0) 
           { 
-
             interrupt_t &interrupt = Interrupt_handler.get_interrupt();
 
             Pipeline[0][0] = instruction_data_t::mk_CFLb(*intr, p0, interrupt.Address, interrupt.Address);
@@ -356,7 +355,7 @@ namespace patmos
 
               // provide next program counter value
               if(Pipeline[0][0].I->is_flow_control())
-                  branch_counter = 3;
+                  branch_counter = 2;
               else if (branch_counter)
                 branch_counter--;
 
