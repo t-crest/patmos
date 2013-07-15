@@ -2428,6 +2428,38 @@ project needs to be checked. The Patmos document shall be
 self contained and no membership to OCP necessary to use
 Patmos.}
 
+The T-CREST subset of OCP use the following signals:
+
+The clock:
+  Clk
+Signals produced by master:
+  MCmd
+  MAdr
+  MData
+Signals produced by slave:
+ SResp
+ SData
+
+Note 1:
+It was decided to not implement SCmdAccept. Consequently a slave must be able to accept the command in the first cycle of the transaction. Among the arguments for this is that memory blocks in FPGA have input registers. The slave may respond in the first cycle or in a subsequent cycle.
+
+The T-CREST subset of OCP support the following transactions:
+
+(Simple) Read 	 - SData is valid for one clock cycle along with SResp. Possible in 1st cycle resulting in a one-cycle transaction	  
+Write with response	 - SResp is valid for one clock cycle and indicate completion of the write. Possible in 1st cycle
+Burst Read		 - SResp is valid during clock cycles where burst data is provided by slave
+Burst write		 - SResp is valid during clock cycles where burst data is accepted by slave
+
+Note 2: 
+Pipelined transactions are not supported
+
+Note 3:  
+A new transaction can only be initiated in the clock cycle that follows SResp of the previous transaction.
+
+Note 4: 
+Bursts are restricted to exactly four words (D1, D2, D3 and D4), or some other constant which is a power of 2.  The address must be aligned. Burst data must be provided in four consecutive cycles. SResp is active during these cycles. For a burst write the master may have to provide D1 for two or more cycles if SResp is not active in the first cycle of the transaction.
+
+
 \section{Application Binary Interface}
 \label{sec:abi}
 
