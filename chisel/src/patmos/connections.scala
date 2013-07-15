@@ -48,8 +48,13 @@ import Constants._
 class FeDec() extends Bundle() {
   val instr_a = Bits(width = INSTR_WIDTH)
   val instr_b = Bits(width = INSTR_WIDTH)
-  val b_valid = Bool() // not yet used
   val pc = UFix(width = PC_SIZE)
+}
+
+object FeDecResetVal extends FeDec {
+  instr_a := Bits(0)
+  instr_b := Bits(0)
+  pc := UFix(0)
 }
 
 class AluOp() extends Bundle() {
@@ -62,6 +67,16 @@ class AluOp() extends Bundle() {
   val isSTC = Bool()
 }
 
+object AluOpResetVal extends AluOp {
+  func := Bits(0)
+  isMul := Bool(false)
+  isCmp := Bool(false)
+  isPred := Bool(false)
+  isMTS := Bool(false)
+  isMFS := Bool(false)
+  isSTC := Bool(false)
+}
+
 class PredOp() extends Bundle() {
   val func = Bits(width = 2) // as they have a strange encoding
   val dest = Bits(width = PRED_BITS)
@@ -69,9 +84,21 @@ class PredOp() extends Bundle() {
   val s2Addr = Bits(width = PRED_BITS+1)
 }
 
+object PredOpResetVal extends PredOp {
+  func := Bits(0)
+  dest := Bits(0)
+  s1Addr := Bits(0)
+  s2Addr := Bits(0)
+}
+
 class JmpOp() extends Bundle() {
   val branch = Bool()
   val target = UFix(width = PC_SIZE)
+}
+
+object JmpOpResetVal extends JmpOp {
+  branch := Bool(false)
+  target := UFix(0)
 }
 
 class MemOp() extends Bundle() {
@@ -81,6 +108,15 @@ class MemOp() extends Bundle() {
   val byte = Bool()
   val zext = Bool()
   val typ  = Bits(width = 2)
+}
+
+object MemOpResetVal extends MemOp {
+  load := Bool(false)
+  store := Bool(false)
+  hword := Bool(false)
+  byte := Bool(false)
+  zext := Bool(false)
+  typ := Bits(0)
 }
 
 class DecEx() extends Bundle() {
@@ -105,10 +141,34 @@ class DecEx() extends Bundle() {
   val ret = Bool()
 }
 
+object DecExResetVal extends DecEx {
+  pc := UFix(0)
+  pred := Vec(PIPE_COUNT) { Bits(0) }
+  aluOp :=  Vec(PIPE_COUNT) { AluOpResetVal }
+  predOp := Vec(PIPE_COUNT) { PredOpResetVal }
+  jmpOp := JmpOpResetVal
+  memOp := MemOpResetVal
+  rsAddr := Vec(2*PIPE_COUNT) { Bits(0) }
+  rsData := Vec(2*PIPE_COUNT) { Bits(0) }
+  rdAddr := Vec(PIPE_COUNT) { Bits(0) }
+  immVal := Vec(PIPE_COUNT) { Bits(0) }
+  immOp := Vec(PIPE_COUNT) { Bool(false) }
+  wrReg := Vec(PIPE_COUNT) { Bool(false) }
+  callAddr := UFix(0)
+  call := Bool(false)
+  ret := Bool(false)
+}
+
 class Result() extends Bundle() {
-  val addr = Bits(INPUT, REG_BITS)
-  val data = Bits(INPUT, DATA_WIDTH)
-  val valid = Bool(INPUT)
+  val addr = Bits(width = REG_BITS)
+  val data = Bits(width = DATA_WIDTH)
+  val valid = Bool()
+}
+
+object ResultResetVal extends Result {
+  addr := Bits(0)
+  data := Bits(0)
+  valid := Bool(false)
 }
 
 class MemIn() extends Bundle() {
@@ -126,6 +186,21 @@ class MemIn() extends Bundle() {
   val callRetBase = UFix(width = DATA_WIDTH)
 }
 
+object MemInResetVal extends MemIn {
+  load := Bool(false)
+  store := Bool(false)
+  hword := Bool(false)
+  byte := Bool(false)
+  zext := Bool(false)
+  typ := Bits(0)
+  addr := Bits(0)
+  data := Bits(0)
+  call := Bool(false)
+  ret := Bool(false)
+  callRetAddr := UFix(0)
+  callRetBase := UFix(0)
+}
+
 class ExDec() extends Bundle() {
   val sp = UFix(width = DATA_WIDTH)
 }
@@ -134,8 +209,12 @@ class ExMem() extends Bundle() {
   val rd = Vec(PIPE_COUNT) { new Result() }
   val mem = new MemIn()
   val pc = UFix(width = PC_SIZE)
-  // just for debugging
-  val predDebug = Vec(8) { Bool() }
+}
+
+object ExMemResetVal extends ExMem {
+  rd := Vec(PIPE_COUNT) { ResultResetVal }
+  mem := MemInResetVal
+  pc := UFix(0)
 }
 
 class ExFe() extends Bundle() {
@@ -174,7 +253,7 @@ class RegFileRead() extends Bundle() {
 class RegFileIO() extends Bundle() {
   val ena = Bool(INPUT)
   val rfRead = new RegFileRead()
-  val rfWrite = Vec(PIPE_COUNT) { new Result() }
+  val rfWrite = Vec(PIPE_COUNT) { new Result().asInput }
   val rfDebug = Vec(REG_COUNT) { Bits(OUTPUT, DATA_WIDTH) }
 }
 
@@ -194,7 +273,7 @@ class DecodeIO() extends Bundle() {
   val fedec = new FeDec().asInput
   val decex = new DecEx().asOutput
   val exdec = new ExDec().asInput
-  val rfWrite =  Vec(PIPE_COUNT) { new Result() }
+  val rfWrite =  Vec(PIPE_COUNT) { new Result().asInput }
 }
 
 class ExecuteIO() extends Bundle() {
@@ -203,8 +282,8 @@ class ExecuteIO() extends Bundle() {
   val exdec = new ExDec().asOutput
   val exmem = new ExMem().asOutput
   // forwarding inputs
-  val exResult = Vec(PIPE_COUNT) { new Result() }
-  val memResult = Vec(PIPE_COUNT) { new Result() }
+  val exResult = Vec(PIPE_COUNT) { new Result().asInput }
+  val memResult = Vec(PIPE_COUNT) { new Result().asInput }
   // branch for FE
   val exfe = new ExFe().asOutput
 }
@@ -246,7 +325,7 @@ class MemoryIO() extends Bundle() {
   val memfe = new MemFe().asOutput
   val femem = new FeMem().asInput
   // for result forwarding
-  val exResult = Vec(PIPE_COUNT) { new Result().flip }
+  val exResult = Vec(PIPE_COUNT) { new Result().asOutput }
   // local and global accesses
   val localInOut = new SimpCon()
   val globalInOut = new SimpCon()
@@ -256,7 +335,7 @@ class WriteBackIO() extends Bundle() {
   val ena = Bool(INPUT)
   val memwb = new MemWb().asInput
   // wb result (unregistered)
-  val rfWrite = Vec(PIPE_COUNT) { new Result().flip }
+  val rfWrite = Vec(PIPE_COUNT) { new Result().asOutput }
   // for result forwarding (register)
-  val memResult =  Vec(PIPE_COUNT) { new Result().flip }
+  val memResult =  Vec(PIPE_COUNT) { new Result().asOutput }
 }

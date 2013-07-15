@@ -138,9 +138,6 @@ class PatmosTest(pat: Patmos) extends Tester(pat,
       val pc = ovars(pat.memory.io.memwb.pc).litValue() - 2
       // println(ovars(pat.io.led).litValue())
       print(pc + " - ")
-      //      for (j <- 0 until 8)
-      //        print(ovars(pat.execute.io.exmem.predDebug(j)).litValue() + " ")
-      //      print("- ")
       for (j <- 0 until 32)
         print(ovars(pat.decode.rf.io.rfDebug(j)).litValue() + " ")
       println()

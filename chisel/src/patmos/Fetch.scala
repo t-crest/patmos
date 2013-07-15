@@ -117,7 +117,6 @@ class Fetch(fileName: String) extends Component {
   io.fedec.pc := pc
   io.fedec.instr_a := instr_a
   io.fedec.instr_b := instr_b
-  io.fedec.b_valid := b_valid // not used at the moment
 
   io.femem.pc := pc_cont
 }

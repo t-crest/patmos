@@ -59,7 +59,7 @@ class Decode() extends Component {
   rf.io.rfWrite <> io.rfWrite
 
   // register input from fetch stage
-  val decReg = Reg(new FeDec())
+  val decReg = Reg(new FeDec(), resetVal = FeDecResetVal)
   when(io.ena) {
     decReg := io.fedec
   }

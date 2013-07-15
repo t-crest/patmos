@@ -53,7 +53,7 @@ import Constants._
 class Execute() extends Component {
   val io = new ExecuteIO()
 
-  val exReg = Reg(new DecEx())
+  val exReg = Reg(new DecEx(), resetVal = DecExResetVal)
   when(io.ena) {
     exReg := io.decex
   }
@@ -306,5 +306,4 @@ class Execute() extends Component {
   io.exfe.branchPc := target
   
   io.exmem.pc := exReg.pc
-  io.exmem.predDebug := predReg
 }
