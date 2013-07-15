@@ -1,13 +1,14 @@
-BUILDDIR=$(CURDIR)/build
+# Get the chisel build dir from the parent make
+CHISELBUILDDIR?=$(CURDIR)/build
 
-BOOTAPP=basic
+BOOTAPP?=basic
 
-BOOTBUILDROOT=..
-BOOTBUILDDIR=tmp
-BOOTFILE=$(BOOTAPP).bin
-BOOTBIN=$(BOOTBUILDROOT)/$(BOOTBUILDDIR)/$(BOOTFILE)
+BOOTBUILDROOT?=..
+BOOTBUILDDIR?=tmp
+BOOTFILE?=$(BOOTAPP).bin
+BOOTBIN?=$(BOOTBUILDROOT)/$(BOOTBUILDDIR)/$(BOOTFILE)
 
-QPROJ=altde2-70
+QPROJ?=altde2-70
 
 # Building Patmos with Chisel without too much sbt/scala/... stuff
 #
@@ -40,42 +41,42 @@ MAIN=patmos.PatmosMain
 all: emulator verilog
 
 # Temporary files to remember the ROM we built into the C++ and Verilog versions
-CGEN=$(BUILDDIR)/.cgen
-VGEN=$(BUILDDIR)/.vgen
+CGEN=$(CHISELBUILDDIR)/.cgen
+VGEN=$(CHISELBUILDDIR)/.vgen
 
 # build the C++ version
-emulator: $(BUILDDIR)/emulator
+emulator: $(CHISELBUILDDIR)/emulator
 
-$(BUILDDIR)/emulator: emulator.cpp $(BUILDDIR)/Patmos.cpp
-	$(CXX) $(CXXFLAGS) $(INC_EXTRA) -I $(BUILDDIR) -o $@ $^ -lelf
+$(CHISELBUILDDIR)/emulator: emulator.cpp $(CHISELBUILDDIR)/Patmos.cpp
+	$(CXX) $(CXXFLAGS) $(INC_EXTRA) -I $(CHISELBUILDDIR) -o $@ $^ -lelf
 
-$(BUILDDIR)/Patmos.cpp: $(CGEN)
+$(CHISELBUILDDIR)/Patmos.cpp: $(CGEN)
 	if [ x`cat $(CGEN)` != x"$(BOOTBIN)" ]; then \
 		rm $(CGEN); $(MAKE) $(CGEN); \
 	fi
 
 $(CGEN): $(BOOTBIN) $(SRC)
-	$(SBT) "run-main $(MAIN) $< --vcd --targetDir $(BUILDDIR) --backend c"
+	$(SBT) "run-main $(MAIN) $< --vcd --targetDir $(CHISELBUILDDIR) --backend c"
 	echo $(BOOTBIN) > $(CGEN)
 
 # run emulator
 test: emulator
-	$(BUILDDIR)/emulator -v -l 1000000
+	$(CHISELBUILDDIR)/emulator -v -l 1000000
 
 # view detailed emulation results
 view:
 	gtkwave Patmos.vcd wave.gtkw
 
 # build the Verilog version
-verilog: $(BUILDDIR)/Patmos.v
+verilog: $(CHISELBUILDDIR)/Patmos.v
 
-$(BUILDDIR)/Patmos.v: $(VGEN)
+$(CHISELBUILDDIR)/Patmos.v: $(VGEN)
 	if [ x`cat $(VGEN)` != x"$(BOOTBIN)" ]; then \
 		rm $(VGEN); $(MAKE) $(VGEN); \
 	fi
 
 $(VGEN): $(BOOTBIN) $(SRC)
-	$(SBT) "run-main $(MAIN) $< --targetDir $(BUILDDIR) --backend v"
+	$(SBT) "run-main $(MAIN) $< --targetDir $(CHISELBUILDDIR) --backend v"
 	echo $(BOOTBIN) > $(VGEN)
 
 # run Verilog simulation
@@ -90,7 +91,7 @@ qsyn: verilog
 	quartus_sta quartus/$(QPROJ)/patmos
 
 # build the boot binary
-$(BOOTBUILDROOT)/$(BOOTBUILDDIR)/$(BOOTFILE): .FORCE
+$(BOOTBIN): .FORCE
 	$(MAKE) -C $(BOOTBUILDROOT) BUILDDIR=$(BOOTBUILDDIR) $(BOOTBUILDDIR)/$(BOOTFILE)
 
 .FORCE:

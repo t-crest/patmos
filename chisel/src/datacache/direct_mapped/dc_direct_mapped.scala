@@ -37,7 +37,7 @@
  * 
  */
 
-// TODO: burst 
+
 package dc
 
 import Chisel._
@@ -55,7 +55,7 @@ import scala.math
 //  	      val data 			= Mem(num_blocks / associativity) {Bits(width = 32)}
 //  	}
 
-class DC_1_way(associativity: Int, num_blocks: Int, word_length: Int) extends Component {
+class DC_1_way(associativity: Int, num_blocks: Int, word_length: Int, burst_size : Int) extends Component {
     val io = new Bundle {
   
     val rd				= UFix(INPUT, 1) // CPU read, load
@@ -65,7 +65,7 @@ class DC_1_way(associativity: Int, num_blocks: Int, word_length: Int) extends Co
     val mem_data_in		= Bits(INPUT, width = 32) // 
     val mem_data_out	= Bits(OUTPUT, width = 32) // 
     val address			= Bits(INPUT, width = 32) //
-    
+    val stall			= UFix(OUTPUT, 1) // for simulation
   } 
    
     val index_number 	= io.address(log2Up(num_blocks) + 1, 2)
@@ -80,9 +80,20 @@ class DC_1_way(associativity: Int, num_blocks: Int, word_length: Int) extends Co
 	  	valid (Bits(25)) := Bits(0)
 	  	valid (Bits(27)) := Bits(0)
 	  	valid (Bits(37)) := Bits(0) // address == 150
+	  	valid (Bits(38)) := Bits(0) // address == 150
+	  	valid (Bits(39)) := Bits(0) // address == 150
+	  	valid (Bits(40)) := Bits(0) // address == 150
+	  	valid (Bits(41)) := Bits(0) // address == 150
+	  	valid (Bits(42)) := Bits(0) // address == 150
 	  	tag	(Bits(25)) := Bits(10)
 	  	tag(Bits(27)) := Bits(10)
-	  	tag(Bits(37)) := Bits(10)
+	  	tag(Bits(37)) := Bits(10) 
+	  	tag(Bits(38)) := Bits(10) 
+	  	tag(Bits(39)) := Bits(10) 
+	  	tag(Bits(40)) := Bits(10) 
+	  	tag(Bits(41)) := Bits(10) 
+	  	tag(Bits(42)) := Bits(10)
+	  	
 	  	init := UFix(0)
   	}
   	// register inputs
@@ -108,11 +119,13 @@ class DC_1_way(associativity: Int, num_blocks: Int, word_length: Int) extends Co
   	val tag_dout =  Reg() { Bits() }
  	val data_dout = Reg() { Bits() }
   	
- //	val read_data = Reg(resetVal = Bits(10, 32))
- // 	val data_out = Reg(resetVal = Bits(0, 32))
+ 	val idle :: transfer:: transfer_done :: Nil  = Enum(3){ UFix() } 
+	val state = Reg(resetVal = idle)
+	val burst_count	= Reg(resetVal = UFix(burst_size, burst_size))
 
  	io.data_out := Bits(0)
  	io.mem_data_out := Bits(1)
+ 	io.stall		:= UFix(0)
   	
 	when (io.rd === UFix(1) || io.wr === UFix(1)) { // on a read/write, read the tag and valid
 		valid_dout := valid(index_number) 
@@ -134,10 +147,12 @@ class DC_1_way(associativity: Int, num_blocks: Int, word_length: Int) extends Co
   		}
   		
   		when (rd_reg === UFix(1)) {
-  			data(index_number_reg) := mem_data_in_reg // read data and write it to cache
-  			valid(index_number_reg) := Bits(1)// update the valid bit
-			tag(index_number_reg)	:= address_reg(word_length - 1, log2Up(num_blocks) + 2)// update the tag
-			io.data_out :=  mem_data_in_reg// on a miss, it reads again, this is for sim
+//  			data(index_number_reg) := mem_data_in_reg // read data and write it to cache
+//  			valid(index_number_reg) := Bits(1)// update the valid bit
+//			tag(index_number_reg)	:= address_reg(word_length - 1, log2Up(num_blocks) + 2)// update the tag
+//			io.data_out :=  mem_data_in_reg// on a miss, it reads again, this is for sim
+			state := transfer
+			// read a block from main memory		
   		}
 
   	}
@@ -153,6 +168,20 @@ class DC_1_way(associativity: Int, num_blocks: Int, word_length: Int) extends Co
   		}
   	}
  	
+  	when (state === transfer) {
+  		io.stall := UFix(1)
+	  	burst_count	:= burst_count - UFix(1)
+	  	data(index_number_reg) := mem_data_in_reg // read data and write it to cache
+	  	valid(index_number_reg) := Bits(1)// update the valid bit
+	  	tag(index_number_reg)	:= address_reg(word_length - 1, log2Up(num_blocks) + 2)// update the tag
+	  	io.data_out :=  mem_data_in_reg// on a miss, it reads again, this is for sim
+	  	index_number_reg := index_number_reg + Bits(1) //
+	  	//address_reg		:= address_reg + Bits(4) // next address
+	  	when (burst_count === UFix(0)) {
+	  		state := transfer_done
+	  		burst_count := UFix(burst_size)
+	  	}
+  	}
  // 	io.data_out := read_data 
   //		:= data_out
 

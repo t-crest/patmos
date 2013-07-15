@@ -48,25 +48,35 @@ class Test_dc() extends Component {
 	val led = Bits(OUTPUT, 1) 
   }
   
-	val dc	 		= new DC_1_way(1, 1024, 32)
-	val mem 		= Mem(2 ^ 32, seqRead = true) {Bits(width = 32)}
+	val dc	 		= new DC_1_way(1, 1024, 32, 5)
+		val mem 			= Mem(150000) {Bits(width = 32)}
 	
-	// some initializiation of memory
+	val init			= Reg(resetVal = UFix(1, 1))
 	
-//	mem(Bits(100)) := Bits(100)
-//	mem(Bits(101)) := Bits(101)
+	when (init === UFix(1)) { // initialize memory, for simulation
+		mem(Bits(110)) := Bits(120)
+		
+		mem(Bits(16484)) := Bits(130)
+		
+		mem(Bits(154)) := Bits(154)
+		mem(Bits(158)) := Bits(158)
+		mem(Bits(162)) := Bits(162)
+		mem(Bits(166)) := Bits(166)
+		mem(Bits(170)) := Bits(170)
+		mem(Bits(174)) := Bits(174)
+		
+	  	init := UFix(0)
+  	}
 	
-	val test = Reg(resetVal = Bits(0, 32))
-	test	:= mem(Bits(100))
+
 	val wr = Reg(resetVal = UFix(0, 1))
   	val rd = Reg(resetVal = UFix(0, 1))
- //	val wr_data = Reg(resetVal = UFix(0, 8))
  	val data_in = Reg(resetVal = Bits(0, 32))
   	val address = Reg(resetVal = Bits(0, 32))
-  	val idle :: read :: read_miss :: read_hit :: write1 :: write2 :: write_hit:: Nil  = Enum(7){ UFix() } 
+  	val idle :: read :: read_miss :: read_hit :: write1 :: write2 :: write_hit:: wait_st :: read1 :: Nil  = Enum(9){ UFix() } 
 	val state = Reg(resetVal = idle)
 	
-//	dc.io.data_in	:= Bits(0)
+
 	when (state === idle) {
 		wr			:= UFix(0)
 		address		:= UFix(0)
@@ -91,14 +101,32 @@ class Test_dc() extends Component {
 		rd			:= UFix(1)
 		wr			:= UFix(0)
 		address		:= UFix(100)
+		state 		:= wait_st
+	}
+	
+	when (state === wait_st) {
+		rd			:= UFix(0)
+		wr			:= UFix(0)
+		state 		:= read_miss
+	}
+	when (state === read_miss) {
+		rd			:= UFix(1) // rd goes low after one clock?
+		address		:= UFix(150)
+		when (dc.io.stall === UFix(0)) {
+			state 		:= read1
+		}
+	}
+	
+	when (state === read1) {
+		rd			:= UFix(1)
+		address		:= UFix(162)
 		state 		:= write_hit
 	}
 	
 
-	io.led 				:= test(1)
+	io.led 				:= UFix(1)
 	dc.io.address		:= address
 	dc.io.mem_data_in	:= mem(address)
-	mem(address)		:= dc.io.mem_data_out
 	dc.io.wr			:= wr
 	dc.io.rd			:= rd
 	dc.io.data_in		:= data_in
