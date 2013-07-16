@@ -82,10 +82,17 @@ class Spm(size: Int) extends Component {
   when(stmskReg(3)) { mem3(ioReg.address(addrBits + 1, 2)) := ioReg.wrData(3) }
 
   // load
-  io.rdData(0) := mem0(ioReg.address(addrBits + 1, 2))
-  io.rdData(1) := mem1(ioReg.address(addrBits + 1, 2))
-  io.rdData(2) := mem2(ioReg.address(addrBits + 1, 2))
-  io.rdData(3) := mem3(ioReg.address(addrBits + 1, 2))
+  val rdData = Vec(BYTES_PER_WORD) { Bits(width = BYTE_WIDTH) }
+  rdData(0) := mem0(ioReg.address(addrBits + 1, 2))
+  rdData(1) := mem1(ioReg.address(addrBits + 1, 2))
+  rdData(2) := mem2(ioReg.address(addrBits + 1, 2))
+  rdData(3) := mem3(ioReg.address(addrBits + 1, 2))
 
+  // Return data immediately
+  io.rdData := rdData
   io.rdyCnt := Bits("b00")
+
+  // Delay result by one cycle to test stalling
+  // io.rdData := Reg(rdData)
+  // io.rdyCnt := Reg(io.rd || io.wr)
 }
