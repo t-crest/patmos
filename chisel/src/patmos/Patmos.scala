@@ -62,7 +62,7 @@ import Constants._
 class Patmos(fileName: String) extends Component {
   val io = new Bundle {
     val dummy = Bits(OUTPUT, 32)
-    val led = Bits(OUTPUT, 8)
+    val led = Bits(OUTPUT, 9)
     val uartPins = new UartPinIO()
   }
 
@@ -98,18 +98,16 @@ class Patmos(fileName: String) extends Component {
   val globMem = new Spm(1 << DSPM_BITS)
   memory.io.globalInOut <> globMem.io
 
-  // TODO: compute enable signals
-  val enable = Bool(true)
-
+  // Enable signal
+  val enable = memory.io.ena
   fetch.io.ena := enable
   decode.io.ena := enable
   execute.io.ena := enable
-  memory.io.ena := enable
   writeback.io.ena := enable
 
   // The inputs and outputs
   io.uartPins <> iocomp.io.uartPins
-  io.led <> iocomp.io.led
+  io.led <> Cat(memory.io.ena, iocomp.io.led)
 
   // ***** the following code is not really Patmos code ******
 

@@ -48,9 +48,13 @@ import Constants._
 class Memory() extends Component {
   val io = new MemoryIO()
 
+  val enable = (io.localInOut.rdyCnt === Bits("b00") 
+				&& io.globalInOut.rdyCnt === Bits("b00"))
+  io.ena := enable
+
   // Register from execution stage
   val memReg = Reg(new ExMem(), resetVal = ExMemResetVal)
-  when(io.ena) {
+  when(enable) {
     memReg := io.exmem
   }
 
@@ -104,14 +108,18 @@ class Memory() extends Component {
   
   // Path to memories and IO is combinatorial, registering happens in
   // the individual modules
-  io.localInOut.rd := Mux(io.exmem.mem.typ === MTYPE_L, io.exmem.mem.load, Bits("b0"))
-  io.localInOut.wr := Mux(io.exmem.mem.typ === MTYPE_L, io.exmem.mem.store, Bits("b0"))
+  io.localInOut.rd := Mux(io.exmem.mem.typ === MTYPE_L,
+						  io.exmem.mem.load & enable, Bits("b0"))
+  io.localInOut.wr := Mux(io.exmem.mem.typ === MTYPE_L,
+						  io.exmem.mem.store & enable, Bits("b0"))
   io.localInOut.address := io.exmem.mem.addr
   io.localInOut.wrData := wrData
   io.localInOut.byteEna := byteEna
 
-  io.globalInOut.rd := Mux(io.exmem.mem.typ != MTYPE_L, io.exmem.mem.load, Bits("b0"))
-  io.globalInOut.wr := Mux(io.exmem.mem.typ != MTYPE_L, io.exmem.mem.store, Bits("b0"))
+  io.globalInOut.rd := Mux(io.exmem.mem.typ != MTYPE_L,
+						   io.exmem.mem.load & enable, Bits("b0"))
+  io.globalInOut.wr := Mux(io.exmem.mem.typ != MTYPE_L,
+						   io.exmem.mem.store & enable, Bits("b0"))
   io.globalInOut.address := io.exmem.mem.addr
   io.globalInOut.wrData := wrData
   io.globalInOut.byteEna := byteEna
@@ -169,7 +177,7 @@ class Memory() extends Component {
   io.memfe.callRetBase := memReg.mem.callRetBase(DATA_WIDTH-1, 2)
 
   // TODO: remember base address for faking return offset
-  when(io.ena && io.memfe.doCallRet) {
+  when(enable && io.memfe.doCallRet) {
 	baseReg := memReg.mem.callRetBase
   }
 

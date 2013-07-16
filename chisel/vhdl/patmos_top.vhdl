@@ -16,7 +16,7 @@ use ieee.numeric_std.all;
 entity patmos_top is
 	port(
 		clk : in  std_logic;
-		led : out std_logic_vector(7 downto 0);
+		led : out std_logic_vector(8 downto 0);
 		txd : out std_logic;
 		rxd : in  std_logic
 	);
@@ -27,7 +27,7 @@ architecture rtl of patmos_top is
 		port(
 			clk             : in  std_logic;
 			reset           : in  std_logic;
-			io_led          : out std_logic_vector(7 downto 0);
+			io_led          : out std_logic_vector(8 downto 0);
 			io_uartPins_tx  : out std_logic;
 			io_uartPins_rx  : in  std_logic
 		);
