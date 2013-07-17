@@ -48,24 +48,23 @@ import Node._
 import scala.math
 
 
-class SC_mem(sc_size: Int, mm_size: Int) extends Component {
+class SC_mem(sc_size: Int) extends Component {
     val io = new Bundle {
     val spill 		= UFix(INPUT, 1)
 	val fill 		= UFix(INPUT, 1)
 	val free 		= UFix(INPUT, 1) 
 	val sc_top 		= UFix(INPUT, width = 32) 
 	val m_top		= UFix(OUTPUT, width = 32)
-	val n_spill		= UFix(INPUT, sc_size)
-    val n_fill		= UFix(INPUT, sc_size)
+	val n_spill		= UFix(INPUT, log2Up(sc_size))
+    val n_fill		= UFix(INPUT, log2Up(sc_size))
     val stall		= UFix(OUTPUT, 1)
   }
 
-  	val sc 			= Mem(2 ^ sc_size) {Bits(width = 32)}
-  	val mem 		= Mem(2 ^ mm_size) {Bits(width = 32)}
+  	
   	val init_st :: spill_st :: fill_st :: free_st :: Nil  = Enum(4){ UFix() } 
 	val state 		= Reg(resetVal = init_st)
-	val n_spill 	= Reg(resetVal = Fix(0, width = sc_size))
-	val n_fill 		= Reg(resetVal = Fix(0, width = sc_size))
+	val n_spill 	= Reg(resetVal = Fix(0, width = log2Up(sc_size)))
+	val n_fill 		= Reg(resetVal = Fix(0, width = log2Up(sc_size)))
 	val m_top 		= Reg(resetVal = UFix(500, width = 32))
 	val gm_spill 	= Reg(resetVal = UFix(0, 1))
 	val sc_fill 	= Reg(resetVal = UFix(0, 1))
