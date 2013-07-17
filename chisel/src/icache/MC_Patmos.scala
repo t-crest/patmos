@@ -147,9 +147,9 @@ class MCPatmos(fileName: String) extends Component {
   memory.io.ena := enable
   writeback.io.ena := enable
 
-  iocomp.io.uartPins <> io.uartPins
-  // The one and only output
-  io.led := ~iocomp.io.led
+  // The inputs and outputs
+  io.uartPins <> iocomp.io.uartPins
+  io.led <> Cat(memory.io.ena, iocomp.io.ledPins)
 
   /*
   //for debugging on target a led counter

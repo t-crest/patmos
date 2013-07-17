@@ -49,6 +49,7 @@ object Constants {
   val CLOCK_FREQ = 100000000
 
   val UART_BAUD = 115200
+  val LED_COUNT = 8
 
 //  val SPM_MAX_BITS = 21
   // MS: maybe better use sizes in bytes and use log2Up() to
@@ -77,7 +78,7 @@ object Constants {
 
   val INSTR_WIDTH = 32
   val DATA_WIDTH = 32
-  val ADDR_WIDTH = 32
+  val ADDR_WIDTH = 30
 
   val BYTE_WIDTH = 8
   val BYTES_PER_WORD = DATA_WIDTH/BYTE_WIDTH

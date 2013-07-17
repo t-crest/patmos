@@ -31,67 +31,47 @@
  */
 
 /*
- * IO component of Patmos.
+ * Simple I/O module for LEDs
  * 
- * Authors: Martin Schoeberl (martin@jopdesign.com)
- *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
+ * Authors: Wolfgang Puffitsch (wpuffitsch@gmail.com)
  * 
  */
 
-package patmos
+
+package io
 
 import Chisel._
 import Node._
 
-import Constants._
+import patmos.LedIO
+import patmos.LedPinIO
 
 import ocp._
 
-import io.UART
-import io.Leds
+class Leds(ledCount : Int) extends Component {
+  val io = new LedIO()
 
-class InOut() extends Component {
-  val io = new InOutIO()
+  val ledReg = Reg(resetVal = Bits(0, ledCount))
 
-  // Compute selects
-  val selIO = io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-4) === Bits("b1111")
-  val selSpm = !selIO & io.memInOut.M.Addr(ISPM_ONE_BIT-2) === Bits(0x0)
-  val selUart = selIO & io.memInOut.M.Addr(9, 6) === Bits(0x1)
-  val selLed = selIO & io.memInOut.M.Addr(9, 6) === Bits(0x2)
+  // Default response
+  val respReg = Reg(resetVal = OcpResp.NULL)
+  respReg := OcpResp.NULL
 
-  // Register selects
-  val selSpmReg = Reg(resetVal = Bits("b0"))
-  val selUartReg = Reg(resetVal = Bits("b0"))
-  val selLedReg = Reg(resetVal = Bits("b0"))
-  when(io.memInOut.M.Cmd != OcpCmd.IDLE) {
-	selSpmReg := selSpm
-	selUartReg := selUart
-	selLedReg := selLed
+  // Write to LEDs
+  when(io.ocp.M.Cmd === OcpCmd.WRNP) {
+	respReg := OcpResp.DVA
+    ledReg := io.ocp.M.Data
   }
 
-  // The SPM
-  val spm = new Spm(1 << DSPM_BITS)
-  spm.io.M := io.memInOut.M
-  spm.io.M.Cmd := Mux(selSpm, io.memInOut.M.Cmd, OcpCmd.IDLE)
-  val spmS = spm.io.S
+  // Read current state of LEDs
+  when(io.ocp.M.Cmd === OcpCmd.RD) {
+	respReg := OcpResp.DVA
+  }
 
-  // The UART
-  val uart = new UART(CLOCK_FREQ, UART_BAUD)
-  uart.io.ocp.M := io.memInOut.M
-  uart.io.ocp.M.Cmd := Mux(selUart, io.memInOut.M.Cmd, OcpCmd.IDLE)
-  val uartS = uart.io.ocp.S
-  io.uartPins <> uart.io.pins
+  // Connections to master
+  io.ocp.S.Resp := respReg
+  io.ocp.S.Data := ledReg
 
-  // The LEDs
-  val leds = new Leds(LED_COUNT)
-  leds.io.ocp.M := io.memInOut.M
-  leds.io.ocp.M.Cmd := Mux(selLed, io.memInOut.M.Cmd, OcpCmd.IDLE)
-  val ledsS = leds.io.ocp.S
-  io.ledPins <> leds.io.pins
-
-  // Return data to pipeline
-  io.memInOut.S.Data := Mux(selUartReg, uartS.Data,
-							Mux(selLedReg, ledsS.Data, 
-								spmS.Data))
-  io.memInOut.S.Resp := spmS.Resp | uartS.Resp | ledsS.Resp
+  // Connection to pins
+  io.pins.led := ledReg
 }

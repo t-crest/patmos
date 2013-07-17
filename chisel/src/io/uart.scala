@@ -46,6 +46,8 @@ import Node._
 import patmos.UartIO
 import patmos.UartPinIO
 
+import ocp._
+
 class UART(clk_freq: Int, baud_rate: Int) extends Component {
   	val io = new UartIO()
 
@@ -56,40 +58,51 @@ class UART(clk_freq: Int, baud_rate: Int) extends Component {
 	val tx_idle :: tx_send :: Nil  = Enum(2){ UFix() } 
 	val tx_state 			= Reg(resetVal = tx_idle)
 	val tx_empty 			= Reg(resetVal = UFix(1, 1))
-	val tx_data 			= Reg(resetVal = UFix(0, 8))
-	val tx_buff				= Reg(resetVal = UFix(0, 10))
-  	val tx_reg 				= Reg(resetVal = UFix(1, 1))
+	val tx_data 			= Reg(resetVal = Bits(0, 8))
+	val tx_buff 			= Reg(resetVal = Bits(0, 10))
+  	val tx_reg  			= Reg(resetVal = Bits(1, 1))
   	val tx_counter 			= Reg(resetVal = UFix(0, 4))
 		
-	val rxd_reg0 			= Reg(resetVal = UFix(1, 1))
-	val rxd_reg1 			= Reg(resetVal = UFix(1, 1))
-	val rxd_reg2 			= Reg(resetVal = UFix(1, 1))
+	val rxd_reg0 			= Reg(resetVal = Bits(1, 1))
+	val rxd_reg1 			= Reg(resetVal = Bits(1, 1))
+	val rxd_reg2 			= Reg(resetVal = Bits(1, 1))
 	
 	val rx_baud_counter 	= Reg(resetVal = UFix(0, log2Up(clk_freq/baud_rate)))
 	val rx_baud_tick 		= Reg(resetVal = UFix(0, 1))
 	val rx_enable	 		= Reg(resetVal = UFix(0, 1))
 	
-	val rx_data 			= Reg(resetVal = UFix(0, 8))	
-	val rx_buff 			= Reg(resetVal = UFix(0, 8))	
+	val rx_data 			= Reg(resetVal = Bits(0, 8))	
+	val rx_buff 			= Reg(resetVal = Bits(0, 8))	
 	val rx_full 			= Reg(resetVal = UFix(0, 1))
 	val rx_counter			= Reg(resetVal = UFix(0, 3)) 	
   	val rx_idle  :: rx_start :: rx_receive_data :: rx_stop_bit :: Nil  = Enum(4){ UFix() }
 	val rx_state 			= Reg(resetVal = rx_idle)
+
+	// Default response and data
+	val respReg = Reg(resetVal = OcpResp.NULL)
+	respReg := OcpResp.NULL
+
+	val rdDataReg = Reg(resetVal = Bits(0, width = 8))
+	rdDataReg := Mux(io.ocp.M.Addr === Bits(0),
+					 Cat(Bits(0, width = 6), rx_full, tx_empty),
+					 rx_data)
 	
 	// Write to UART
-	when (io.wr === UFix(1)) {
-		tx_data := io.data_in
+	when (io.ocp.M.Cmd === OcpCmd.WRNP) {
+	    respReg := OcpResp.DVA
+		tx_data := io.ocp.M.Data
 	    tx_empty := UFix(0)
 	}
 
 	// Read data
-	val rdDataReg = Reg(resetVal = UFix(0, width = 8))
-	when(io.rd === UFix(1)) {
-		rdDataReg := Mux(io.address === UFix(0),
-						 Cat(UFix(0, width = 6), rx_full, tx_empty),
-						 rx_data)
-		rx_full := Mux(io.address === UFix(0), rx_full, UFix(0))
+	when(io.ocp.M.Cmd === OcpCmd.RD) {
+	    respReg := OcpResp.DVA
+		rx_full := Mux(io.ocp.M.Addr === Bits(0), rx_full, UFix(0))
 	}
+
+	// Connections to master
+	io.ocp.S.Resp := respReg
+	io.ocp.S.Data := rdDataReg
 
 	// UART TX clk
 	when (tx_baud_counter === UFix(clk_freq/baud_rate)){
@@ -106,7 +119,7 @@ class UART(clk_freq: Int, baud_rate: Int) extends Component {
   	when (tx_state === tx_idle) {
 		when (tx_empty === UFix(0)) {
 		  tx_empty			:= UFix(1)
-		  tx_buff			:= Cat(UFix(1), tx_data, UFix(0))
+		  tx_buff			:= Cat(Bits(1), tx_data, Bits(0))
 		  tx_state			:= tx_send
 		}
 	}	
@@ -120,7 +133,7 @@ class UART(clk_freq: Int, baud_rate: Int) extends Component {
 		    when (tx_counter === UFix(10)) {
 			  when (tx_empty === UFix(0)) {
 				tx_empty		:= UFix(1)
-				tx_buff			:= Cat(UFix(1), tx_data)
+				tx_buff			:= Cat(Bits(1), tx_data)
 				tx_reg  		:= UFix(0)
 				tx_counter		:= UFix(1)
 			  }
@@ -133,9 +146,11 @@ class UART(clk_freq: Int, baud_rate: Int) extends Component {
 		}
 	}
   	
+	// Connect TX pin
+	io.pins.tx := tx_reg
 	
 	
-	// UART TX clk
+	// UART RX clk
 	when (rx_enable) {
 		when (rx_baud_counter === UFix(clk_freq/baud_rate)){
   	  		rx_baud_counter		:= UFix(0)
@@ -197,7 +212,4 @@ class UART(clk_freq: Int, baud_rate: Int) extends Component {
 			}
 		}
 	}
-
-	io.rd_data := rdDataReg
-	io.pins.tx := tx_reg
 }

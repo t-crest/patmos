@@ -67,6 +67,7 @@ class OcpMasterSignals(addrWidth : Int, dataWidth : Int) extends Bundle() {
   val Cmd = Bits(width = 3)
   val Addr = Bits(width = addrWidth)
   val Data = Bits(width = dataWidth)
+  val ByteEn = Bits(width = dataWidth/8)
 
   // This does not really clone, but Data.clone doesn't either
   override def clone() = {
@@ -82,6 +83,7 @@ object OcpMasterSignals {
 	res.Cmd := OcpCmd.IDLE
 	res.Addr := Bits(0)
 	res.Data := Bits(0)
+	res.ByteEn := Bits(0)
 	res
   }
   def resetVal(addrWidth : Int, dataWidth : Int) : OcpMasterSignals = {

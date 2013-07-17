@@ -115,10 +115,10 @@ static val_t readelf(istream &is, Patmos_t *c)
 		  assert (addr < size && "Data mapped to DSPM exceed size");
 
 		  switch ((phdr.p_paddr + k) & 0x3) {
-		  case 0: c->Patmos_globMem__mem0.put(addr, byte); break;
-		  case 1: c->Patmos_globMem__mem1.put(addr, byte); break;
-		  case 2: c->Patmos_globMem__mem2.put(addr, byte); break;
-		  case 3: c->Patmos_globMem__mem3.put(addr, byte); break;
+		  case 0: c->Patmos_globMem__mem3.put(addr, byte); break;
+		  case 1: c->Patmos_globMem__mem2.put(addr, byte); break;
+		  case 2: c->Patmos_globMem__mem1.put(addr, byte); break;
+		  case 3: c->Patmos_globMem__mem0.put(addr, byte); break;
 		  }
 		}
 	  }
@@ -274,9 +274,9 @@ int main (int argc, char* argv[]) {
 
 	if (uart) {
 	  // Pass on data from UART
-	  if (c->Patmos_iocomp_uart__io_wr.to_bool()
-	  	  && c->Patmos_iocomp_uart__io_address.to_ulong() == 0x01) {
-	  	*out << (char)c->Patmos_iocomp_uart__io_data_in.to_ulong();
+	  if (c->Patmos_iocomp_uart__io_ocp_M_Cmd.to_ulong() == 0x5
+	  	  && c->Patmos_iocomp_uart__io_ocp_M_Addr.to_ulong() == 0x01) {
+	  	*out << (char)c->Patmos_iocomp_uart__io_ocp_M_Data.to_ulong();
 	  }
 	}
 

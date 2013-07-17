@@ -45,6 +45,8 @@ import Node._
 
 import Constants._
 
+import ocp._
+
 class FeDec() extends Bundle() {
   val instr_a = Bits(width = INSTR_WIDTH)
   val instr_b = Bits(width = INSTR_WIDTH)
@@ -288,34 +290,29 @@ class ExecuteIO() extends Bundle() {
   val exfe = new ExFe().asOutput
 }
 
-class SimpCon() extends Bundle() {
-  val rd = Bool(OUTPUT)
-  val wr = Bool(OUTPUT)
-  val address = Bits(OUTPUT, ADDR_WIDTH)
-  val wrData = Vec(BYTES_PER_WORD) { Bits(OUTPUT, BYTE_WIDTH) }
-  val byteEna = Bits(OUTPUT, BYTES_PER_WORD)
-  val rdData = Vec(BYTES_PER_WORD) { Bits(INPUT, BYTE_WIDTH) }
-  val rdyCnt = Bits(INPUT, 2)
-}
-
 class UartPinIO() extends Bundle() {
-  val tx = UFix(OUTPUT, 1)
-  val rx = UFix(INPUT, 1)  
+  val tx = Bits(OUTPUT, 1)
+  val rx = Bits(INPUT, 1)  
 }
 
 class UartIO() extends Bundle() {
-  val rd = UFix(INPUT, 1)
-  val wr = UFix(INPUT, 1) 
-  val address = UFix(INPUT, 1)
-  val data_in = UFix(INPUT, 8)
-  val rd_data = UFix(OUTPUT, 8)
+  val ocp = new OcpSlavePort(1, DATA_WIDTH)
   val pins = new UartPinIO()
 }
 
+class LedPinIO() extends Bundle() {
+  val led = Bits(OUTPUT, LED_COUNT)
+}
+
+class LedIO() extends Bundle() {
+  val ocp = new OcpSlavePort(0, DATA_WIDTH)
+  val pins = new LedPinIO()
+}
+
 class InOutIO() extends Bundle() {
-  val memInOut = new SimpCon().flip
+  val memInOut = new OcpSlavePort(ADDR_WIDTH, DATA_WIDTH)
   val uartPins = new UartPinIO()
-  val led = Bits(OUTPUT, 8)
+  val ledPins = new LedPinIO()
 }
 
 class MemoryIO() extends Bundle() {
@@ -327,8 +324,8 @@ class MemoryIO() extends Bundle() {
   // for result forwarding
   val exResult = Vec(PIPE_COUNT) { new Result().asOutput }
   // local and global accesses
-  val localInOut = new SimpCon()
-  val globalInOut = new SimpCon()
+  val localInOut = new OcpMasterPort(ADDR_WIDTH, DATA_WIDTH)
+  val globalInOut = new OcpMasterPort(ADDR_WIDTH, DATA_WIDTH)
 }
 
 class WriteBackIO() extends Bundle() {

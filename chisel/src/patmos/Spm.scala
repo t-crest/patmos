@@ -54,15 +54,17 @@ import Node._
 
 import Constants._
 
+import ocp._
+
 class Spm(size: Int) extends Component {
-  val io = new SimpCon().flip
+  val io = new OcpSlavePort(log2Up(size), DATA_WIDTH)
 
   // Unconditional registers for the on-chip memory
   // All stall/enable handling has been done in the input with a MUX
-  val ioReg = Reg(io)
+  val masterReg = Reg(io.M)
 
   // Compute write enable
-  val stmsk = Mux(io.wr, io.byteEna,  Bits("b0000"))
+  val stmsk = Mux(io.M.Cmd === OcpCmd.WRNP, io.M.ByteEn,  Bits("b0000"))
   val stmskReg = Reg(stmsk)
 
   // I would like to have a vector of memories.
@@ -76,23 +78,28 @@ class Spm(size: Int) extends Component {
   val mem3 = { Mem(size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) } }
 
   // store
-  when(stmskReg(0)) { mem0(ioReg.address(addrBits + 1, 2)) := ioReg.wrData(0) }
-  when(stmskReg(1)) { mem1(ioReg.address(addrBits + 1, 2)) := ioReg.wrData(1) }
-  when(stmskReg(2)) { mem2(ioReg.address(addrBits + 1, 2)) := ioReg.wrData(2) }
-  when(stmskReg(3)) { mem3(ioReg.address(addrBits + 1, 2)) := ioReg.wrData(3) }
+  when(stmskReg(0)) { mem0(masterReg.Addr(addrBits - 1, 0)) :=
+					   masterReg.Data(BYTE_WIDTH-1, 0) }
+  when(stmskReg(1)) { mem1(masterReg.Addr(addrBits - 1, 0)) :=
+					   masterReg.Data(2*BYTE_WIDTH-1, BYTE_WIDTH) }
+  when(stmskReg(2)) { mem2(masterReg.Addr(addrBits - 1, 0)) :=
+					   masterReg.Data(3*BYTE_WIDTH-1, 2*BYTE_WIDTH) }
+  when(stmskReg(3)) { mem3(masterReg.Addr(addrBits - 1, 0)) :=
+					   masterReg.Data(DATA_WIDTH-1, 3*BYTE_WIDTH) }
 
   // load
-  val rdData = Vec(BYTES_PER_WORD) { Bits(width = BYTE_WIDTH) }
-  rdData(0) := mem0(ioReg.address(addrBits + 1, 2))
-  rdData(1) := mem1(ioReg.address(addrBits + 1, 2))
-  rdData(2) := mem2(ioReg.address(addrBits + 1, 2))
-  rdData(3) := mem3(ioReg.address(addrBits + 1, 2))
+  val rdData = Cat(mem3(masterReg.Addr(addrBits - 1, 0)),
+				   mem2(masterReg.Addr(addrBits - 1, 0)),
+				   mem1(masterReg.Addr(addrBits - 1, 0)),
+				   mem0(masterReg.Addr(addrBits - 1, 0)))
 
   // Return data immediately
-  io.rdData := rdData
-  io.rdyCnt := Bits("b00")
+  io.S.Data := rdData
+  io.S.Resp := Mux(masterReg.Cmd === OcpCmd.WRNP || masterReg.Cmd === OcpCmd.RD,
+   				   OcpResp.DVA, OcpResp.NULL)
 
   // Delay result by one cycle to test stalling
-  // io.rdData := Reg(rdData)
-  // io.rdyCnt := Reg(io.rd || io.wr)
+  // io.S.Data := Reg(rdData)
+  // io.S.Resp := Reg(Mux(masterReg.Cmd === OcpCmd.WRNP || masterReg.Cmd === OcpCmd.RD,
+  // 					   OcpResp.DVA, OcpResp.NULL))
 }

@@ -107,7 +107,7 @@ class Patmos(fileName: String) extends Component {
 
   // The inputs and outputs
   io.uartPins <> iocomp.io.uartPins
-  io.led <> Cat(memory.io.ena, iocomp.io.led)
+  io.led <> Cat(memory.io.ena, iocomp.io.ledPins)
 
   // ***** the following code is not really Patmos code ******
 

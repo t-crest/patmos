@@ -45,11 +45,17 @@ import Node._
 
 import Constants._
 
+import ocp._
+
 class Memory() extends Component {
   val io = new MemoryIO()
 
-  val enable = (io.localInOut.rdyCnt === Bits("b00") 
-				&& io.globalInOut.rdyCnt === Bits("b00"))
+  // Stall logic
+  val stall = Reg(Bool(), resetVal = Bool(false))
+  val enable = Mux(stall, (io.localInOut.S.Resp === OcpResp.DVA
+						   || io.globalInOut.S.Resp === OcpResp.DVA),
+				   Bool(true))
+  stall := io.exmem.mem.load || io.exmem.mem.store
   io.ena := enable
 
   // Register from execution stage
@@ -64,23 +70,22 @@ class Memory() extends Component {
   // default is word store
   val wrData = Vec(BYTES_PER_WORD) { Bits(width = BYTE_WIDTH) }
   for (i <- 0 until BYTES_PER_WORD) {
-	wrData(i) := io.exmem.mem.data(DATA_WIDTH-i*BYTE_WIDTH-1,
-								   DATA_WIDTH-i*BYTE_WIDTH-BYTE_WIDTH)
+	wrData(i) := io.exmem.mem.data((i+1)*BYTE_WIDTH-1, i*BYTE_WIDTH)
   }
-  val byteEna = Bits(width = BYTES_PER_WORD)
-  byteEna := Bits("b1111")  
+  val byteEn = Bits(width = BYTES_PER_WORD)
+  byteEn := Bits("b1111")  
   // half-word stores
   when(io.exmem.mem.hword) {
     switch(io.exmem.mem.addr(1)) {
       is(Bits("b0")) {
-        wrData(0) := io.exmem.mem.data(2*BYTE_WIDTH-1, BYTE_WIDTH)
-        wrData(1) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
-        byteEna := Bits("b0011")
+        wrData(2) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
+        wrData(3) := io.exmem.mem.data(2*BYTE_WIDTH-1, BYTE_WIDTH)
+        byteEn := Bits("b1100")
       }
       is(Bits("b1")) {
-        wrData(2) := io.exmem.mem.data(2*BYTE_WIDTH-1, BYTE_WIDTH)
-        wrData(3) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
-        byteEna := Bits("b1100")
+        wrData(0) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
+        wrData(1) := io.exmem.mem.data(2*BYTE_WIDTH-1, BYTE_WIDTH)
+        byteEn := Bits("b0011")
       }
     }
   }
@@ -88,59 +93,67 @@ class Memory() extends Component {
   when(io.exmem.mem.byte) {
     switch(io.exmem.mem.addr(1, 0)) {
       is(Bits("b00")) {
-        wrData(0) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
-        byteEna := Bits("b0001")
+        wrData(3) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
+        byteEn := Bits("b1000")
       }
       is(Bits("b01")) {
-        wrData(1) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
-        byteEna := Bits("b0010")
+        wrData(2) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
+        byteEn := Bits("b0100")
       }
       is(Bits("b10")) {
-        wrData(2) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
-        byteEna := Bits("b0100")
+        wrData(1) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
+        byteEn := Bits("b0010")
       }
       is(Bits("b11")) {
-        wrData(3) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
-        byteEna := Bits("b1000")
+        wrData(0) := io.exmem.mem.data(BYTE_WIDTH-1, 0)
+        byteEn := Bits("b0001")
       }
     }
   }
   
   // Path to memories and IO is combinatorial, registering happens in
   // the individual modules
-  io.localInOut.rd := Mux(io.exmem.mem.typ === MTYPE_L,
-						  io.exmem.mem.load & enable, Bits("b0"))
-  io.localInOut.wr := Mux(io.exmem.mem.typ === MTYPE_L,
-						  io.exmem.mem.store & enable, Bits("b0"))
-  io.localInOut.address := io.exmem.mem.addr
-  io.localInOut.wrData := wrData
-  io.localInOut.byteEna := byteEna
+  val cmd = Mux(enable,
+				Mux(io.exmem.mem.load, OcpCmd.RD,
+					Mux(io.exmem.mem.store, OcpCmd.WRNP,
+						OcpCmd.IDLE)),
+				OcpCmd.IDLE)
 
-  io.globalInOut.rd := Mux(io.exmem.mem.typ != MTYPE_L,
-						   io.exmem.mem.load & enable, Bits("b0"))
-  io.globalInOut.wr := Mux(io.exmem.mem.typ != MTYPE_L,
-						   io.exmem.mem.store & enable, Bits("b0"))
-  io.globalInOut.address := io.exmem.mem.addr
-  io.globalInOut.wrData := wrData
-  io.globalInOut.byteEna := byteEna
+  io.localInOut.M.Cmd := Mux(io.exmem.mem.typ === MTYPE_L, cmd, OcpCmd.IDLE)
+  io.localInOut.M.Addr := io.exmem.mem.addr(DATA_WIDTH-1, 2)
+  io.localInOut.M.Data := Cat(wrData(3), wrData(2), wrData(1), wrData(0))
+  io.localInOut.M.ByteEn := byteEn
+
+  io.globalInOut.M.Cmd := Mux(io.exmem.mem.typ != MTYPE_L, cmd, OcpCmd.IDLE)
+  io.globalInOut.M.Addr := io.exmem.mem.addr(DATA_WIDTH-1, 2)
+  io.globalInOut.M.Data := Cat(wrData(3), wrData(2), wrData(1), wrData(0))
+  io.globalInOut.M.ByteEn := byteEn
+
+  def splitData(word: Bits) = {
+	val retval = Vec(BYTES_PER_WORD) { Bits(width = BYTE_WIDTH) }
+	for (i <- 0 until BYTES_PER_WORD) {
+	  retval(i) := word((i+1)*BYTE_WIDTH-1, i*BYTE_WIDTH)
+	}
+	retval
+  }
 
   // Read data multiplexing and sign extensions if needed
-  val rdData = Mux(memReg.mem.typ === MTYPE_L,
-				   io.localInOut.rdData, io.globalInOut.rdData)
+  val rdData = splitData(Mux(memReg.mem.typ === MTYPE_L,
+							 io.localInOut.S.Data, io.globalInOut.S.Data))
 
   val dout = Bits(width = DATA_WIDTH)
   // default word read
-  dout := Cat(rdData(0), rdData(1), rdData(2), rdData(3))
+  dout := Cat(rdData(3), rdData(2), rdData(1), rdData(0))
   // byte read
   val bval = MuxLookup(memReg.mem.addr(1, 0), rdData(0), Array(
-    (Bits("b00"), rdData(0)),
-    (Bits("b01"), rdData(1)),
-    (Bits("b10"), rdData(2)),
-    (Bits("b11"), rdData(3))))
+    (Bits("b00"), rdData(3)),
+    (Bits("b01"), rdData(2)),
+    (Bits("b10"), rdData(1)),
+    (Bits("b11"), rdData(0))))
   // half-word read
-  val hval = MuxLookup(memReg.mem.addr(1), Cat(rdData(0), rdData(1)), Array(
-    (Bits("b0"), Cat(rdData(0), rdData(1))),
-    (Bits("b1"), Cat(rdData(2), rdData(3)))))
+  val hval = MuxLookup(memReg.mem.addr(1), Cat(rdData(2), rdData(3)), Array(
+    (Bits("b0"), Cat(rdData(3), rdData(2))),
+    (Bits("b1"), Cat(rdData(1), rdData(0)))))
   // sign extensions
   when(memReg.mem.byte) {
     dout := Cat(Fill(DATA_WIDTH-BYTE_WIDTH, bval(BYTE_WIDTH-1)), bval)
@@ -182,12 +195,9 @@ class Memory() extends Component {
   }
 
   // ISPM write
-  io.memfe.store := io.localInOut.wr
-  io.memfe.addr := io.localInOut.address
-  io.memfe.data := Cat(io.localInOut.wrData(0),
-					   io.localInOut.wrData(1),
-					   io.localInOut.wrData(2),
-					   io.localInOut.wrData(3))
+  io.memfe.store := io.localInOut.M.Cmd === OcpCmd.WRNP
+  io.memfe.addr := io.exmem.mem.addr
+  io.memfe.data := Cat(wrData(3), wrData(2), wrData(1), wrData(0))
 
   // extra port for forwarding
   io.exResult := io.exmem.rd
