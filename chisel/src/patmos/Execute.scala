@@ -241,7 +241,7 @@ class Execute() extends Component {
 	when(exReg.aluOp(i).isMTS && doExecute(i) && io.ena) {
 	  switch(exReg.aluOp(i).func) {
 		is(SPEC_FL) {
-		  predReg := op(i)(PRED_COUNT-1, 0).toBits()
+		  predReg := op(2*i)(PRED_COUNT-1, 0).toBits()
 		  predReg(0) := Bool(true)
 		}
 		is(SPEC_SL) {
