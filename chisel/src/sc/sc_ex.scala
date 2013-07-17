@@ -56,10 +56,11 @@ class SC_ex(sc_size: Int) extends Component {
     val imm				= UFix(INPUT, width = 32)
     val spill 			= UFix(OUTPUT, 1)
     val fill 			= UFix(OUTPUT, 1)
+    val free			= UFix(OUTPUT, 1)
     val stall			= UFix(INPUT, 1)
     val m_top			= UFix(INPUT, width = 32)
-    val n_spill			= UFix(OUTPUT, sc_size)
-    val n_fill			= UFix(OUTPUT, sc_size)
+    val n_spill			= UFix(OUTPUT, log2Up(sc_size))
+    val n_fill			= UFix(OUTPUT, log2Up(sc_size))
     val sc_top			= UFix(OUTPUT, width = 32) 
   }
   	
@@ -68,7 +69,8 @@ class SC_ex(sc_size: Int) extends Component {
 	
 	io.n_spill 			:= UFix(0) // reset value
 	io.n_fill 			:= UFix(0) // reset value
-	val reserve_size 	= io.m_top - sc_top - (UFix(1)  << UFix(sc_size)) + io.imm 
+	io.free				:= UFix(0)
+	val reserve_size 	= io.m_top - sc_top - (UFix(1)  << UFix(log2Up(sc_size))) + io.imm 
 	val ensure_size 	= io.imm - io.m_top + sc_top
 	  
 	// res_diff 	<= signed(mem_top) - signed(sc_top) - sc_size + signed(decdout.imm);
@@ -103,6 +105,7 @@ class SC_ex(sc_size: Int) extends Component {
 		  when (io.sc_func_type === UFix(2)){ // free
 		    io.spill 		:= UFix(0)
 		    io.fill			:= UFix(0)
+		    io.free			:= UFix(1)
 		    sc_top 			:= sc_top + io.imm
 		    io.sc_top 		:= sc_top + io.imm
 		  }
