@@ -31,6 +31,7 @@ public class Main
     public static void main(String[] args) throws IOException, InterruptedException, SerialPortException, TimeoutException, SerialPortTimeoutException
     {
         boolean verbose = true;
+        boolean error = false;
 
         PrintStream print_stream = System.err;
         InputStream in_stream = null;
@@ -154,6 +155,7 @@ public class Main
         catch (Exception exc)
         {
             print_stream.println(exc);
+            error = true;
         }
         finally
         {
@@ -161,6 +163,11 @@ public class Main
         	{
 				port.closePort();
         	}
+        }
+
+        if(error)
+        {
+            System.exit(-1);
         }
     }
 
