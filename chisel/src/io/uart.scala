@@ -83,7 +83,7 @@ class UART(clk_freq: Int, baud_rate: Int) extends Component {
 	respReg := OcpResp.NULL
 
 	val rdDataReg = Reg(resetVal = Bits(0, width = 8))
-	rdDataReg := Mux(io.ocp.M.Addr === Bits(0),
+	rdDataReg := Mux(io.ocp.M.Addr(2) === Bits(0),
 					 Cat(Bits(0, width = 6), rx_full, tx_empty),
 					 rx_data)
 	

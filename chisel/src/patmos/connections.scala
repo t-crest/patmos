@@ -296,7 +296,7 @@ class UartPinIO() extends Bundle() {
 }
 
 class UartIO() extends Bundle() {
-  val ocp = new OcpSlavePort(1, DATA_WIDTH)
+  val ocp = new OcpSlavePort(3, DATA_WIDTH)
   val pins = new UartPinIO()
 }
 

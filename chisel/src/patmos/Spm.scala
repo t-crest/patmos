@@ -78,20 +78,20 @@ class Spm(size: Int) extends Component {
   val mem3 = { Mem(size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) } }
 
   // store
-  when(stmskReg(0)) { mem0(masterReg.Addr(addrBits - 1, 0)) :=
+  when(stmskReg(0)) { mem0(masterReg.Addr(addrBits + 1, 2)) :=
 					   masterReg.Data(BYTE_WIDTH-1, 0) }
-  when(stmskReg(1)) { mem1(masterReg.Addr(addrBits - 1, 0)) :=
+  when(stmskReg(1)) { mem1(masterReg.Addr(addrBits + 1, 2)) :=
 					   masterReg.Data(2*BYTE_WIDTH-1, BYTE_WIDTH) }
-  when(stmskReg(2)) { mem2(masterReg.Addr(addrBits - 1, 0)) :=
+  when(stmskReg(2)) { mem2(masterReg.Addr(addrBits + 1, 2)) :=
 					   masterReg.Data(3*BYTE_WIDTH-1, 2*BYTE_WIDTH) }
-  when(stmskReg(3)) { mem3(masterReg.Addr(addrBits - 1, 0)) :=
+  when(stmskReg(3)) { mem3(masterReg.Addr(addrBits + 1, 2)) :=
 					   masterReg.Data(DATA_WIDTH-1, 3*BYTE_WIDTH) }
 
   // load
-  val rdData = Cat(mem3(masterReg.Addr(addrBits - 1, 0)),
-				   mem2(masterReg.Addr(addrBits - 1, 0)),
-				   mem1(masterReg.Addr(addrBits - 1, 0)),
-				   mem0(masterReg.Addr(addrBits - 1, 0)))
+  val rdData = Cat(mem3(masterReg.Addr(addrBits + 1, 2)),
+				   mem2(masterReg.Addr(addrBits + 1, 2)),
+				   mem1(masterReg.Addr(addrBits + 1, 2)),
+				   mem0(masterReg.Addr(addrBits + 1, 2)))
 
   // Return data immediately
   io.S.Data := rdData

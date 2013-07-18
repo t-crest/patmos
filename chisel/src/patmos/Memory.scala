@@ -120,12 +120,12 @@ class Memory() extends Component {
 				OcpCmd.IDLE)
 
   io.localInOut.M.Cmd := Mux(io.exmem.mem.typ === MTYPE_L, cmd, OcpCmd.IDLE)
-  io.localInOut.M.Addr := io.exmem.mem.addr(DATA_WIDTH-1, 2)
+  io.localInOut.M.Addr := Cat(io.exmem.mem.addr(ADDR_WIDTH-1, 2), Bits("b00"))
   io.localInOut.M.Data := Cat(wrData(3), wrData(2), wrData(1), wrData(0))
   io.localInOut.M.ByteEn := byteEn
 
   io.globalInOut.M.Cmd := Mux(io.exmem.mem.typ != MTYPE_L, cmd, OcpCmd.IDLE)
-  io.globalInOut.M.Addr := io.exmem.mem.addr(DATA_WIDTH-1, 2)
+  io.globalInOut.M.Addr := Cat(io.exmem.mem.addr(ADDR_WIDTH-1, 2), Bits("b00"))
   io.globalInOut.M.Data := Cat(wrData(3), wrData(2), wrData(1), wrData(0))
   io.globalInOut.M.ByteEn := byteEn
 
