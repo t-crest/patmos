@@ -329,8 +329,8 @@ namespace patmos
           { 
             interrupt_t &interrupt = Interrupt_handler.get_interrupt();
 
-            Pipeline[0][0] = instruction_data_t::mk_CFLb(*intr, p0, interrupt.Address, interrupt.Address);
-            Pipeline[0][1] = instruction_data_t();
+            Pipeline[SIF][0] = instruction_data_t::mk_CFLb(*intr, p0, interrupt.Address, interrupt.Address);
+            Pipeline[SIF][1] = instruction_data_t();
 
             // Handling interrupt, next CPU cycle no new instructions have to be decoded
             interrupt_handling = 3;
@@ -343,8 +343,8 @@ namespace patmos
             if (interrupt_handling > 0) 
             {
               // Putting more empty instrutions
-              Pipeline[0][0] = instruction_data_t();
-              Pipeline[0][1] = instruction_data_t();
+              Pipeline[SIF][0] = instruction_data_t();
+              Pipeline[SIF][1] = instruction_data_t();
               interrupt_handling--;
 
             } else {
@@ -354,7 +354,7 @@ namespace patmos
               iw_size = Decoder.decode(iw,  Pipeline[0]);
 
               // provide next program counter value
-              if(Pipeline[0][0].I->is_flow_control())
+              if(Pipeline[SIF][0].I->is_flow_control())
                   branch_counter = 2;
               else if (branch_counter)
                 branch_counter--;
@@ -373,8 +373,8 @@ namespace patmos
             // track instructions fetched
             for(unsigned int j = 0; j < NUM_SLOTS; j++)
             {
-              if (Pipeline[0][j].I)
-                Instruction_stats[j][Pipeline[0][j].I->ID].Num_fetched++;
+              if (Pipeline[SIF][j].I)
+                Instruction_stats[j][Pipeline[SIF][j].I->ID].Num_fetched++;
             }
          }
         }
@@ -592,11 +592,11 @@ namespace patmos
         std::string name = Pipeline[SMW][0].I->Name;
         Dbg_cnt_delay = 0;
         if (name == "ret") {
-          Dbg_cnt_delay = 2;
+          Dbg_cnt_delay = 3;
           Dbg_is_call = false;
         }
         else if (name == "call" || name == "callr") {
-          Dbg_cnt_delay = 2;
+          Dbg_cnt_delay = 3;
           Dbg_is_call = true;
         }
         if (Dbg_cnt_delay) {
@@ -604,7 +604,7 @@ namespace patmos
           os << (Dbg_is_call ? "call from " : "return from ");
           Symbols.print(os, Pipeline[SMW][0].IF_PC, true);
           os << " to ";
-          Symbols.print(os, PC, true);
+          Symbols.print(os, Pipeline[SMW][0].EX_Address, true);
         }
       }
     }

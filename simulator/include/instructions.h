@@ -1702,10 +1702,8 @@ namespace patmos
       ops.MW_CFL_Discard = 0;
     }
 
-    // EX implemented by sub-classes
+    // EX, MW implemented by sub-classes
 
-    // MW inherited from NOP
-    
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
@@ -1724,7 +1722,7 @@ namespace patmos
     }
   };
 
-#define CFLB_INSTR(name, store, dispatch, new_base, target, stage)	\
+#define CFLB_EX_INSTR(name, store, dispatch, new_base, target)	\
   class i_ ## name ## _t : public i_cfl_t \
   { \
   public:\
@@ -1735,23 +1733,44 @@ namespace patmos
       os << #name << " " << ops.OPS.CFLb.Imm; \
       symbols.print(os, ops.EX_Address); \
     } \
-    virtual void stage(simulator_t &s, instruction_data_t &ops) const \
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const \
     { \
       ops.EX_Address = target; \
       store(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address); \
       dispatch(s, ops, ops.DR_Pred, new_base, ops.EX_Address); \
     } \
   };
+#define CFLB_MW_INSTR(name, store, dispatch, new_base, target)      \
+  class i_ ## name ## _t : public i_cfl_t \
+  { \
+  public:\
+    virtual void print(std::ostream &os, const instruction_data_t &ops, \
+                        const symbol_map_t &symbols) const \
+    { \
+      printPred(os, ops.Pred); \
+      os << #name << " " << ops.OPS.CFLb.Imm; \
+      symbols.print(os, ops.EX_Address); \
+    } \
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const \
+    { \
+      ops.EX_Address = target; \
+    } \
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const \
+    { \
+      store(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address); \
+      dispatch(s, ops, ops.DR_Pred, new_base, ops.EX_Address); \
+    } \
+  };
 
-  CFLB_INSTR(call, store_return_address, fetch_and_dispatch,
-             ops.OPS.CFLb.UImm*sizeof(word_t),
-             ops.OPS.CFLb.UImm*sizeof(word_t), MW)
-  CFLB_INSTR(br, no_store_return_address, dispatch,
-             s.BASE,
-             ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t), EX)
-  CFLB_INSTR(brcf, no_store_return_address, fetch_and_dispatch,
-             ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t),
-             ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t), MW)
+  CFLB_MW_INSTR(call, store_return_address, fetch_and_dispatch,
+                ops.OPS.CFLb.UImm*sizeof(word_t),
+                ops.OPS.CFLb.UImm*sizeof(word_t))
+  CFLB_EX_INSTR(br, no_store_return_address, dispatch,
+                s.BASE,
+                ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t))
+  CFLB_MW_INSTR(brcf, no_store_return_address, fetch_and_dispatch,
+                ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t),
+                ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t))
 
   class i_intr_t : public i_cfl_t 
   { 
@@ -1910,6 +1929,7 @@ namespace patmos
     {
       ops.EX_Base   = read_GPR_EX(s, ops.DR_Base);
       ops.EX_Offset = read_GPR_EX(s, ops.DR_Offset);
+      ops.EX_Address = ops.EX_Base + ops.EX_Offset;
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
@@ -1927,8 +1947,7 @@ namespace patmos
       else 
       {
 	s.pop_dbg_stackframe(ops.EX_Base, ops.EX_Offset);
-        fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base,
-                           ops.EX_Base + ops.EX_Offset);
+        fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Address);
       }
     }
 
