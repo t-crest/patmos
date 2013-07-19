@@ -102,9 +102,12 @@ namespace patmos
           enclosing = &*i;
         }
       }
-      else if (enclosing && i->Address <= address && i->Size == 0 && !func_only)
+      else if (enclosing && i->Address <= address && i->Size == 0)
       {
-        bb = &*i;
+        // Found a BB symbol inside a function
+        if (!func_only) {
+          bb = &*i;
+        }
       }
       else if (i->Address == address)
       {
