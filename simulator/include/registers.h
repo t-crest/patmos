@@ -98,8 +98,7 @@ namespace patmos
     /// register to be written.
     void set(const register_operand_t<I, D> &operand)
     {
-      assert(operand.get_index() < S);
-      Content[operand.get_index()] = operand.get();
+      set(operand.get_index(), operand.get());
     }
 
     /// Set the value of a register in the register file.
@@ -107,8 +106,8 @@ namespace patmos
     /// @param value The new value to be written.
     void set(I index, D value)
     {
-      register_operand_t<I, D> tmp(index, value);
-      set(tmp);
+      assert(index < S);
+      Content[index] = value;
     }
 
     /// Destruct the register file and free its content.

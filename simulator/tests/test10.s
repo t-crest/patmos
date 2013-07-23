@@ -3,6 +3,7 @@
 #
                 lwm     r1  = [r31 + 0];
                 lbum    r2  = [r0 + 2];
+		nop;
                 andi    r2  = r2, 0xf0;
                 swm     [r2 + 0] = r1;
                 shm     [r2 + 2] = r1;

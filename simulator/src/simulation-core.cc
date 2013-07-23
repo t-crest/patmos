@@ -264,12 +264,6 @@ namespace patmos
         {
           print_instructions(debug_out, SEX);
         }
-        
-        // commit results
-        pipeline_invoke(SMW, &instruction_data_t::MW_commit);
-        pipeline_invoke(SEX, &instruction_data_t::EX_commit);
-        pipeline_invoke(SDR, &instruction_data_t::DR_commit);
-        pipeline_invoke(SIF, &instruction_data_t::IF_commit);
 
         Rtc.tick();        
 
@@ -307,9 +301,22 @@ namespace patmos
           }
         }
 
-        // prevent forwarding
-        if (Stall > SEX)
+        // insert bubbles after stalling stage.
+        // Note that it is not possible to stall in IF, this is interpreted as
+        // 'not stalling'.
+        if (Stall > SIF && Stall != NUM_STAGES- 1)
         {
+          for(unsigned int i = 0; i < NUM_SLOTS; i++)
+          {
+            Pipeline[Stall + 1][i] = instruction_data_t();
+          }
+        }
+
+
+        // if we are stalling in MW, reset the bypass in EX so that it can be
+        // filled by the stalled EX stage again (needs to be done for all
+        // stalled bypasses).
+        if (Stall > SEX) {
           for(unsigned int i = 0; i < NUM_SLOTS; i++)
           {
             Pipeline[SEX][i].GPR_EX_Rd.reset();
@@ -331,7 +338,10 @@ namespace patmos
             interrupt_t &interrupt = Interrupt_handler.get_interrupt();
 
             Pipeline[SIF][0] = instruction_data_t::mk_CFLb(*intr, p0, interrupt.Address, interrupt.Address);
-            Pipeline[SIF][1] = instruction_data_t();
+            for(unsigned int i = 1; i < NUM_SLOTS; i++)
+            {
+              Pipeline[SIF][i] = instruction_data_t();
+            }
 
             // Handling interrupt, next CPU cycle no new instructions have to be decoded
             interrupt_handling = 3;
@@ -339,29 +349,30 @@ namespace patmos
             // Store return from interrupt address
             SPR.set(s9, PC);
           }
-          else 
+          else if (interrupt_handling > 0)
           {
-            if (interrupt_handling > 0) 
+            // Putting more empty instrutions after an interrupt
+            for(unsigned int i = 0; i < NUM_SLOTS; i++)
             {
-              // Putting more empty instrutions
-              Pipeline[SIF][0] = instruction_data_t();
-              Pipeline[SIF][1] = instruction_data_t();
-              interrupt_handling--;
-
-            } else {
-
-              // fetch the instruction word from the method cache.
-              Method_cache.fetch(PC, iw);
-              iw_size = Decoder.decode(iw,  Pipeline[0]);
-
-              // provide next program counter value
-              if(Pipeline[SIF][0].I->is_flow_control())
-                  branch_counter = 2;
-              else if (branch_counter)
-                branch_counter--;
-
-              nPC = PC + iw_size*4;
+              Pipeline[SIF][i] = instruction_data_t();
             }
+            interrupt_handling--;
+
+          }
+          else
+          {
+
+            // fetch the instruction word from the method cache.
+            Method_cache.fetch(PC, iw);
+            iw_size = Decoder.decode(iw,  Pipeline[0]);
+
+            // provide next program counter value
+            if(Pipeline[SIF][0].I->is_flow_control())
+                branch_counter = 2;
+            else if (branch_counter)
+              branch_counter--;
+
+            nPC = PC + iw_size*4;
           }
 
           // unknown instruction
@@ -377,13 +388,6 @@ namespace patmos
               if (Pipeline[SIF][j].I)
                 Instruction_stats[j][Pipeline[SIF][j].I->ID].Num_fetched++;
             }
-         }
-        }
-        else if (Stall != NUM_STAGES- 1)
-        {
-          for(unsigned int i = 0; i < NUM_SLOTS; i++)
-          {
-            Pipeline[Stall + 1][i] = instruction_data_t();
           }
         }
 

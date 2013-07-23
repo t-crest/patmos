@@ -92,25 +92,11 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void IF(simulator_t &s, instruction_data_t &ops) const = 0;
 
-    /// Commit function to commit the shadow state of the instruction in
-    /// the IF pipeline stage to the global state.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-
-    virtual void IF_commit(simulator_t &s, instruction_data_t &ops) const = 0;
-
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
     virtual void DR(simulator_t &s, instruction_data_t &ops) const = 0;
-
-    /// Commit function to commit the shadow state of the instruction in
-    /// the DR pipeline stage to the global state.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-
-    virtual void DR_commit(simulator_t &s, instruction_data_t &ops) const = 0;
 
     /// Pipeline function to simulate the behavior of the instruction in
     /// the EX pipeline stage.
@@ -118,23 +104,11 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void EX(simulator_t &s, instruction_data_t &ops) const = 0;
 
-    /// Commit function to commit the shadow state of the instruction in
-    /// the EX pipeline stage to the global state.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void EX_commit(simulator_t &s, instruction_data_t &ops) const = 0;
-
     /// Pipeline function to simulate the behavior of the instruction in
     /// the MW pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
     virtual void MW(simulator_t &s, instruction_data_t &ops) const = 0;
-
-    /// Commit function to commit the shadow state of the instruction in
-    /// the MW pipeline stage to the global state.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void MW_commit(simulator_t &s, instruction_data_t &ops) const = 0;
 
     /// Pipeline function to simulate the behavior of a decoupled load
     /// instruction running in parallel to the pipeline.
@@ -316,9 +290,6 @@ namespace patmos
     word_t EX_Offset;
     
     // -------------------------- MW -------------------------------------------
-    /// Result register operand from MW stage.
-    GPR_by_pass_t GPR_MW_Rd;
-
     /// Discard CFL instructions in MW stage (stalling).
     word_t MW_CFL_Discard;
 
@@ -528,28 +499,12 @@ namespace patmos
         I->IF(s, *this);
     }
 
-    /// Invoke the IF commit function.
-    /// @param s The Patmos simulator executing the instruction.
-    void IF_commit(simulator_t &s)
-    {
-      if (I)
-        I->IF_commit(s, *this);
-    }
-
     /// Invoke the DR simulation function.
     /// @param s The Patmos simulator executing the instruction.
     void DR(simulator_t &s)
     {
       if (I)
         I->DR(s, *this);
-    }
-
-    /// Invoke the DR commit function.
-    /// @param s The Patmos simulator executing the instruction.
-    void DR_commit(simulator_t &s)
-    {
-      if (I)
-        I->DR_commit(s, *this);
     }
 
     /// Invoke the EX simulation function.
@@ -560,28 +515,12 @@ namespace patmos
         I->EX(s, *this);
     }
 
-    /// Invoke the EX commit function.
-    /// @param s The Patmos simulator executing the instruction.
-    void EX_commit(simulator_t &s)
-    {
-      if (I)
-        I->EX_commit(s, *this);
-    }
-
     /// Invoke the MW simulation function.
     /// @param s The Patmos simulator executing the instruction.
     void MW(simulator_t &s)
     {
       if (I)
         I->MW(s, *this);
-    }
-
-    /// Invoke the MW commit function.
-    /// @param s The Patmos simulator executing the instruction.
-    void MW_commit(simulator_t &s)
-    {
-      if (I)
-        I->MW_commit(s, *this);
     }
 
     /// Invoke the dMW simulation function.

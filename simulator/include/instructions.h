@@ -87,27 +87,11 @@ namespace patmos
       s.PC = s.nPC;
     }
 
-    /// Commit function to commit the shadow state of the instruction in
-    /// the IF pipeline stage to the global state.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void IF_commit(simulator_t &s, instruction_data_t &ops) const
-    {
-    }
-
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
-    {
-    }
-
-    /// Commit function to commit the shadow state of the instruction in
-    /// the DR pipeline stage to the global state.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void DR_commit(simulator_t &s, instruction_data_t &ops) const
     {
     }
 
@@ -119,27 +103,11 @@ namespace patmos
     {
     }
 
-    /// Commit function to commit the shadow state of the instruction in
-    /// the EX pipeline stage to the global state.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void EX_commit(simulator_t &s, instruction_data_t &ops) const
-    {
-    }
-
     /// Pipeline function to simulate the behavior of the instruction in
     /// the MW pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
-    {
-    }
-
-    /// Commit function to commit the shadow state of the instruction in
-    /// the MW pipeline stage to the global state.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void MW_commit(simulator_t &s, instruction_data_t &ops) const
     {
     }
 
@@ -164,11 +132,47 @@ namespace patmos
     /// stages.
     static inline word_t read_GPR_EX(const simulator_t &s, GPR_op_t op)
     {
-      return s.Pipeline[SEX][1].GPR_EX_Rd.get(
-             s.Pipeline[SEX][0].GPR_EX_Rd.get(
-              s.Pipeline[SMW][1].GPR_MW_Rd.get(
-              s.Pipeline[SMW][0].GPR_MW_Rd.get(
-               op)))).get();
+      // Note: Usually we would need forwarding from MW here, but since we
+      // execute MW before EX stages and there is no WB stage, data is already
+      // commited to the register file and DR stage already got the correct
+      // value.
+      // Also note that we read out EX bypass from MW, since the intruction
+      // writing the bypass has already moved on in this cycle.
+      //
+      // If we modifiy the simulator to 5 stages or change the order of
+      // execution, we need a bypass from MW to EX (but any EX bypass must have
+      // precendence!), which must be fetched from WB stage.
+
+      return s.Pipeline[SMW][1].GPR_EX_Rd.get(
+             s.Pipeline[SMW][0].GPR_EX_Rd.get(
+               op)).get();
+    }
+
+    /// Write the result of the EX stage into the bypass.
+    static inline void store_GPR_EX_result(simulator_t &s,
+                                           instruction_data_t &ops,
+                                           GPR_e reg, word_t value)
+    {
+      if (ops.DR_Pred)
+      {
+        // store the result by writing it into a by-pass
+        ops.GPR_EX_Rd.set(reg, value);
+      }
+    }
+
+    /// Write the result of the MW stage into the bypass and to the register.
+    static inline void store_GPR_MW_result(simulator_t &s,
+                                           instruction_data_t &ops,
+                                           GPR_e reg, word_t value)
+    {
+      if (ops.DR_Pred)
+      {
+        // Store to register file
+        s.GPR.set(reg, value);
+        // Resetting the EX bypass is not necessary, this instruction will be
+        // dropped after this stage.
+        //ops.GPR_EX_Rd.reset();
+      }
     }
 
     /// Print a predicate to an output stream.
@@ -289,19 +293,8 @@ namespace patmos
     {
       // compute the result of the ALU instruction
       ops.EX_result = compute(read_GPR_EX(s, ops.DR_Rs1), ops.OPS.ALUil.Imm2);
-    }
 
-    /// Commit function to commit the shadow state of the instruction in
-    /// the EX pipeline stage to the global state.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void EX_commit(simulator_t &s, instruction_data_t &ops) const
-    {
-      if (ops.DR_Pred)
-      {
-        // store the result by writing it into a by-pass
-        ops.GPR_EX_Rd.set(ops.OPS.ALUil.Rd, ops.EX_result);
-      }
+      store_GPR_EX_result(s, ops, ops.OPS.ALUil.Rd, ops.EX_result);
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
@@ -310,24 +303,7 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
-      if (ops.DR_Pred)
-      {
-        s.GPR.set(ops.GPR_EX_Rd.get());
-        ops.GPR_MW_Rd.set(ops.GPR_EX_Rd.get());
-        ops.GPR_EX_Rd.reset();
-      }
-    }
-
-    /// Commit function to commit the shadow state of the instruction in
-    /// the MW pipeline stage to the global state.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void MW_commit(simulator_t &s, instruction_data_t &ops) const
-    {
-      if (ops.DR_Pred)
-      {
-        ops.GPR_MW_Rd.reset();
-      }
+      store_GPR_MW_result(s, ops, ops.OPS.ALUil.Rd, ops.EX_result);
     }
 
     /// Print the instruction to an output stream.
@@ -453,19 +429,8 @@ namespace patmos
       // compute the result of the ALU instruction
       ops.EX_result = compute(read_GPR_EX(s, ops.DR_Rs1),
                               read_GPR_EX(s, ops.DR_Rs2));
-    }
 
-    /// Commit function to commit the shadow state of the instruction in
-    /// the EX pipeline stage to the global state.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void EX_commit(simulator_t &s, instruction_data_t &ops) const
-    {
-      if (ops.DR_Pred)
-      {
-        // store the result by writing it into a by-pass.
-        ops.GPR_EX_Rd.set(ops.OPS.ALUr.Rd, ops.EX_result);
-      }
+      store_GPR_EX_result(s, ops, ops.OPS.ALUr.Rd, ops.EX_result);
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
@@ -474,24 +439,7 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
-      if (ops.DR_Pred)
-      {
-        s.GPR.set(ops.GPR_EX_Rd.get());
-        ops.GPR_MW_Rd.set(ops.GPR_EX_Rd.get());
-        ops.GPR_EX_Rd.reset();
-      }
-    }
-
-    /// Commit function to commit the shadow state of the instruction in
-    /// the MW pipeline stage to the global state.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void MW_commit(simulator_t &s, instruction_data_t &ops) const
-    {
-      if (ops.DR_Pred)
-      {
-        ops.GPR_MW_Rd.reset();
-      }
+      store_GPR_MW_result(s, ops, ops.OPS.ALUr.Rd, ops.EX_result);
     }
 
     /// Print the instruction to an output stream.
@@ -538,7 +486,7 @@ namespace patmos
   ALUr_INSTR(shadd , (value1 << 1)   +  value2                  )
   ALUr_INSTR(shadd2, (value1 << 2)   +  value2                  )
 
-  /// Base class for ALUr instructions.
+  /// Base class for ALUm instructions.
   class i_alum_t : public i_pred_t
   {
   public:
@@ -1073,19 +1021,8 @@ namespace patmos
     {
       // read the special purpose register, without forwarding
       ops.EX_result = ops.DR_Ss;
-    }
 
-    /// Commit function to commit the shadow state of the instruction in
-    /// the EX pipeline stage to the global state.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void EX_commit(simulator_t &s, instruction_data_t &ops) const
-    {
-      if (ops.DR_Pred)
-      {
-        // store the result by writing it into a by-pass.
-        ops.GPR_EX_Rd.set(ops.OPS.SPCf.Rd, ops.EX_result);
-      }
+      store_GPR_EX_result(s, ops, ops.OPS.SPCf.Rd, ops.EX_result);
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
@@ -1094,26 +1031,9 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
-      if (ops.DR_Pred)
-      {
-        s.GPR.set(ops.GPR_EX_Rd.get());
-        ops.GPR_MW_Rd.set(ops.GPR_EX_Rd.get());
-        ops.GPR_EX_Rd.reset();
-      }
+      store_GPR_MW_result(s, ops, ops.OPS.SPCf.Rd, ops.EX_result);
     }
 
-    /// Commit function to commit the shadow state of the instruction in
-    /// the MW pipeline stage to the global state.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void MW_commit(simulator_t &s, instruction_data_t &ops) const
-    {
-      if (ops.DR_Pred)
-      {
-        ops.GPR_MW_Rd.reset();
-      }
-    }
-    
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
@@ -1180,7 +1100,7 @@ namespace patmos
       ops.DR_Rs1 = s.GPR.get(ops.OPS.LDT.Ra);
     }
 
-    // EX implemented by base class
+    // EX implemented by sub classes
 
     /// Pipeline function to simulate the behavior of the instruction in
     /// the MW pipeline stage.
@@ -1197,27 +1117,13 @@ namespace patmos
         // the value is already available?
         if (is_available)
         {
-          // store the loaded value by writing it into a by-pass
-          s.GPR.set(ops.OPS.LDT.Rd, result);
-          ops.GPR_MW_Rd.set(ops.OPS.LDT.Rd, result);
+          store_GPR_MW_result(s, ops, ops.OPS.LDT.Rd, result);
         }
         else
         {
           // stall and wait for the memory/cache
           s.pipeline_stall(SMW);
         }
-      }
-    }
-
-    /// Commit function to commit the shadow state of the instruction in
-    /// the MW pipeline stage to the global state.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void MW_commit(simulator_t &s, instruction_data_t &ops) const
-    {
-      if (ops.DR_Pred)
-      {
-        ops.GPR_MW_Rd.reset();
       }
     }
 
@@ -1941,26 +1847,23 @@ namespace patmos
       // returning to address 0? interpret this as a halt.
       if (ops.DR_Pred && ops.EX_Base == 0)
       {
-        // stall the first stage of the pipeline
-        s.pipeline_stall(SDR);
+        // TODO this is one really ugly hack to let the simulator finish the
+        // other stages before we exit, so that the PC is updated and stuff.
+        // This should move into some simulator.halt(retvalue) call.
+        if (ops.EX_Offset == 0) {
+          ops.EX_Offset = 1;
+          s.pipeline_stall(SMW);
+        } else {
+          simulation_exception_t::halt(s.GPR.get(GPR_EXIT_CODE_INDEX).get());
+        }
       }
-      else 
+      else if (ops.DR_Pred)
       {
 	s.pop_dbg_stackframe(ops.EX_Base, ops.EX_Offset);
         fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Address);
       }
     }
 
-    /// Signal to the simulator that a "halt" instruction has been executed.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void MW_commit(simulator_t &s, instruction_data_t &ops) const
-    {
-      // returning to address 0? interpret this as a halt.
-      if (ops.DR_Pred && ops.EX_Base == 0)
-        simulation_exception_t::halt(s.GPR.get(GPR_EXIT_CODE_INDEX).get());
-    }
-    
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
