@@ -147,9 +147,6 @@ namespace patmos
 
     typedef std::vector<dbg_stack_frame_t*> dbg_stack_t;
     
-    /// Profiling information for function profiling
-    profiling_t Profiling;
-
     /// Check if the given frame is currently active.
     /// @param frame the frame to check
     bool is_active_frame(const dbg_stack_frame_t &frame) const;
@@ -236,7 +233,10 @@ namespace patmos
 
     /// Stack frame dumps for debugging
     dbg_stack_t Dbg_stack;
-    
+
+    /// Profiling information for function profiling
+    profiling_t Profiling;
+
     /// Print the internal register state of the simulator to an output stream 
     /// (excluding memories and caches)
     /// @param os An output stream.
@@ -295,7 +295,6 @@ namespace patmos
              debug_format_e debug_fmt = DF_DEFAULT,
              std::ostream &debug_out = std::cerr,
              uint64_t max_cycles = std::numeric_limits<uint64_t>::max(),
-             bool profiling = false, 
              bool collect_instr_stats = false);
 
     /// Print the instructions and their operands in a pipeline stage

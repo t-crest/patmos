@@ -376,7 +376,6 @@ int main(int argc, char **argv)
     ("debug", boost::program_options::value<unsigned int>()->implicit_value(0), "enable step-by-step debug tracing after cycle")
     ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), "format of the debug trace (short, trace, instr, blocks, calls, default, long, all)")
     ("debug-file", boost::program_options::value<std::string>()->default_value("-"), "output debug trace in file (stderr: -)")
-    ("profiling,p", "include profiling information in statistics")
     ("slot-stats,a", "show instruction statistics per slot")
     ("instr-stats,i", "show more detailed statistics per instruction")
     ("quiet,q", "disable statistics output");
@@ -481,7 +480,6 @@ int main(int argc, char **argv)
 
   unsigned int interrupt_enabled = vm["interrupt"].as<unsigned int>();
 
-  bool profiling = (vm.count("profiling") != 0);
   bool slot_stats = (vm.count("slot-stats") != 0);
   bool instr_stats = (vm.count("instr-stats") != 0);
 
@@ -561,7 +559,7 @@ int main(int argc, char **argv)
     // start execution
     try
     {
-      s.run(entry, debug_cycle, debug_fmt, *dout, max_cycle, profiling, instr_stats);
+      s.run(entry, debug_cycle, debug_fmt, *dout, max_cycle, instr_stats);
       s.print_stats(*out, slot_stats, instr_stats);
     }
     catch (patmos::simulation_exception_t e)

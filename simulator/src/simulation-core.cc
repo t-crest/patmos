@@ -214,7 +214,7 @@ namespace patmos
   
   void simulator_t::run(word_t entry, uint64_t debug_cycle,
                         debug_format_e debug_fmt, std::ostream &debug_out,
-                        uint64_t max_cycles, bool profiling,
+                        uint64_t max_cycles,
                         bool collect_instr_stats)
   {
 
@@ -229,15 +229,13 @@ namespace patmos
     {
       BASE = PC = entry;
       Method_cache.initialize(entry);
-
-      if (profiling)
-        Profiling.initialize(entry);
-      
+      Profiling.initialize(entry);
       push_dbg_stackframe(entry);
     }
 
     try
     {
+      // start of main simulation loop
       for(uint64_t cycle = 0; cycle < max_cycles; cycle++, Cycle++)
       {
         bool debug = (Cycle >= debug_cycle);
@@ -415,32 +413,13 @@ namespace patmos
             }
           }
         }
-        
-        if (profiling)
-        {
-          instruction_data_t *Inst = &Pipeline[NUM_STAGES-1][0];
-
-          // check for executed call/return
-          if (Inst && Inst->DR_Pred)
-          {
-            const char *name = Inst->I->Name;
-
-            if (strncmp(name, "call", 4) == 0)
-              Profiling.enter(PC, Cycle);
-
-            if (strncmp(name, "ret", 3) == 0)
-              Profiling.leave(Cycle);
-          }
-        }
-
-      }
+      } // end of simulation loop
     }
     catch (simulation_exception_t e)
     {
       delete intr;
 
-      if (profiling)
-        Profiling.finalize(Cycle);
+      Profiling.finalize(Cycle);
 
       // pass on to caller
       throw simulation_exception_t(e.get_kind(), e.get_info(), PC, Cycle);
@@ -448,8 +427,7 @@ namespace patmos
 
     delete intr;
 
-    if (profiling)
-      Profiling.finalize(Cycle);
+    Profiling.finalize(Cycle);
   }
 
   void simulator_t::print_registers(std::ostream &os,
@@ -748,10 +726,7 @@ namespace patmos
     Memory.print_stats(os);
 
     // print profiling information
-    if (!Profiling.empty())
-    {
-      Profiling.print(os, Symbols);
-    }
+    Profiling.print(os, Symbols);
 
     os << "\n";
   }
