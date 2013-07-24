@@ -124,9 +124,9 @@ namespace patmos
       std::stringstream func_name;
 
       if (sym.contains(i->first)) {
-        func_name << sym.find(i->first);
+        sym.print(func_name, i->first, true);
       } else {
-        func_name << boost::format("%d") % i->first;
+        func_name << boost::format("%#x") % i->first;
       }
 
       const prof_funcinfo_t *entry = &i->second;

@@ -1537,8 +1537,9 @@ namespace patmos
         assert(base <= pc);
         assert(pc == ops.IF_PC + 16 && "Wrong delay slot size of call instruction.");
 
-        s.push_dbg_stackframe(address);
-        
+        s.Dbg_stack.push(address);
+        s.Profiling.enter(address, s.Cycle);
+
         // store the return function offset (return PC) into
         // a general purpose register
         s.GPR.set(rfo, pc - base);
@@ -1711,10 +1712,10 @@ namespace patmos
     }
 
     virtual void EX(simulator_t &s, instruction_data_t &ops) const 
-    { 
+    {
       ops.EX_Address = ops.OPS.CFLb.Imm*sizeof(word_t);
       fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address); 
-    } 
+    }
   };
 
   /// Branch and call instructions with a register operand.
@@ -1859,7 +1860,8 @@ namespace patmos
       }
       else if (ops.DR_Pred)
       {
-	s.pop_dbg_stackframe(ops.EX_Base, ops.EX_Offset);
+	s.Dbg_stack.pop(ops.EX_Base, ops.EX_Offset);
+        s.Profiling.leave(s.Cycle);
         fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Address);
       }
     }
