@@ -33,33 +33,16 @@
 
 namespace patmos
 {
-  simulator_t::dbg_stack_frame_t::dbg_stack_frame_t(const simulator_t &s, 
-                                                    uword_t address)
-  : Function(address)
-  { 
-    // We could use r30/r31 here ?!
-    Return_base = s.BASE;
-    Return_offset = s.nPC-s.BASE;
-    
-    // if rsp has not been set yet, use int_max for now
-    word_t sp = s.GPR.get(rsp).get();
-    Caller_TOS_shadow_stack = sp ? sp : INT_MAX;
-    Caller_TOS_stack_cache = s.Stack_cache.size();
-    
-    // TODO remember state of GPR, if debug is enabled.
-  }
-
-  
   simulator_t::simulator_t(memory_t &memory, memory_t &local_memory,
                            data_cache_t &data_cache,
                            method_cache_t &method_cache,
                            stack_cache_t &stack_cache, symbol_map_t &symbols,
-                           rtc_t &rtc, interrupt_handler_t &interrupt_handler) 
-    : Dbg_cnt_delay(0), 
+                           rtc_t &rtc, interrupt_handler_t &interrupt_handler)
+    : Dbg_cnt_delay(0),
       Cycle(0), Memory(memory), Local_memory(local_memory),
       Data_cache(data_cache), Method_cache(method_cache),
-      Stack_cache(stack_cache), Symbols(symbols), 
-      Rtc(rtc), Interrupt_handler(interrupt_handler), 
+      Stack_cache(stack_cache), Symbols(symbols), Dbg_stack(*this),
+      Rtc(rtc), Interrupt_handler(interrupt_handler),
       BASE(0), PC(0), nPC(0),
       Stall(SIF), Is_decoupled_load_active(false)
   {
@@ -80,15 +63,16 @@ namespace patmos
         Pipeline[i][j] = instruction_data_t();
       }
     }
-    
+
     // Initialize instruction statistics
-    for(unsigned int j = 0; j < NUM_SLOTS; j++) 
+    for(unsigned int j = 0; j < NUM_SLOTS; j++)
     {
       Instruction_stats[j].resize(Decoder.get_num_instructions());
-      
+
       Num_bubbles_retired[j] = 0;
     }
   }
+
 
   void simulator_t::pipeline_invoke(Pipeline_t pst,
                                    void (instruction_data_t::*f)(simulator_t &),
@@ -127,91 +111,8 @@ namespace patmos
   {
     Stall = std::max(Stall, pst);
   }
-  
-  bool simulator_t::is_active_frame(const dbg_stack_frame_t &frame) const
-  {
-    // check if the frame stack pointers are below the current pointers
-    if (frame.Caller_TOS_shadow_stack < GPR.get(rsp).get()) {
-      // we are currently further down the shadow stack
-      return false;
-    }
-    // Note that at the moment we store the size of the stack cache, not 
-    // the TOS address.
-    if (frame.Caller_TOS_stack_cache > Stack_cache.size()) {
-      return false;
-    }
-    // Check if the function of the current frame contains the current subfunction
-    return frame.Function == BASE || Symbols.covers(frame.Function, BASE);
-  }
-  
-  void simulator_t::print_stackframe(std::ostream &os, unsigned depth, 
-                                     const dbg_stack_frame_t &frame,
-                                     const dbg_stack_frame_t *callee) const
-  {
-    os << boost::format("#%d 0x%x ") % depth % frame.Function;
-    Symbols.print(os, frame.Function, true);
-    
-    // TODO print registers r3-r8 from call state, as well as varargs
-    os << "()";
-    os << boost::format(": $rsp 0x%x stack cache size 0x%x\n") 
-          % frame.Caller_TOS_shadow_stack % frame.Caller_TOS_stack_cache;
-    
-    // Print the current location, if any
-    word_t base = 0, offset = 0;
-    if (callee) {
-      base = callee->Return_base;
-      offset = callee->Return_offset;
-    } else if (is_active_frame(frame)) {
-      base = BASE;
-      offset = PC - BASE;
-    }
-    
-    if (base || offset) {
-      os << boost::format("   at 0x%x (base: 0x%x ") % (base + offset) % base;
-      Symbols.print(os, base);
-      os << boost::format(", offset: 0x%x ") % offset;
-      Symbols.print(os, base + offset);
-      os << ")\n";
-    }
-    
-    // TODO print current state using the callee infos (if debug/verbose is enabled?)
-    
-  }
-  
-  void simulator_t::push_dbg_stackframe(word_t target) 
-  {
-    if (!Dbg_stack.empty()) {
-      // Check if the call is coming from the TOS.
-      if (!is_active_frame(*Dbg_stack.back())) {
-        // We are resuming after some longjmp or so..
-        // For now, just nuke the whole stack
-        while (!Dbg_stack.empty()) {
-          delete Dbg_stack.back();
-          Dbg_stack.pop_back();
-        }
-      }
-    }
-    
-    // Create a new stack frame and initialize it
-    dbg_stack_frame_t *Frame = new dbg_stack_frame_t(*this, target);
-    
-    Dbg_stack.push_back(Frame);    
-  }
 
-  void simulator_t::pop_dbg_stackframe(word_t return_base, word_t return_offset) 
-  {
-    if (Dbg_stack.empty()) return;
-    
-    // Check if we are truly returning, otherwise do not pop .. yet (if this is a longjmp)
-    dbg_stack_frame_t *Frame = Dbg_stack.back();
-    if (Frame->Return_base == return_base && 
-        Frame->Return_offset == return_offset) 
-    {
-      delete Dbg_stack.back();
-      Dbg_stack.pop_back();
-    }
-  }
-  
+
   void simulator_t::run(word_t entry, uint64_t debug_cycle,
                         debug_format_e debug_fmt, std::ostream &debug_out,
                         uint64_t max_cycles,
@@ -230,7 +131,7 @@ namespace patmos
       BASE = PC = entry;
       Method_cache.initialize(entry);
       Profiling.initialize(entry);
-      push_dbg_stackframe(entry);
+      Dbg_stack.initialize(entry);
     }
 
     try
@@ -731,31 +632,7 @@ namespace patmos
     os << "\n";
   }
 
-  void simulator_t::print_stacktrace(std::ostream &os) const {
-    // TODO Obviously, it would be nicer to print the actual stack
-    // frame, but since we have up to three different stacks and no
-    // easy way to determine the stack frame size, it is much easier 
-    // to just keep track of the stack frames separately. This has the
-    // advantage that we can store more debug info in the frames.
-    // This could be removed when we get GDB support into the simulator ;)
-    
-    os << "Stacktrace:\n";
-    
-    if (Dbg_stack.empty()) {
-      dbg_stack_frame_t Frame(*this, BASE);
-      print_stackframe(os, 0, Frame, 0);
-      return;
-    }
-    
-    dbg_stack_frame_t *CalleeFrame = 0;
-    
-    for (unsigned i = 0; i < Dbg_stack.size(); i++) {
-      dbg_stack_frame_t *Frame = *(Dbg_stack.end() - i - 1);
-      print_stackframe(os, i, *Frame, CalleeFrame);
-      CalleeFrame = Frame;
-    }
-  }
-  
+
   std::ostream &operator<<(std::ostream &os, Pipeline_t p)
   {
     const static char* names[NUM_STAGES] = {"IF", "DR", "EX", "MW"};

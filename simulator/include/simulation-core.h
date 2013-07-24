@@ -21,6 +21,7 @@
 #define PATMOS_SIMULATOR_CORE_H
 
 #include "command-line.h"
+#include "dbgstack.h"
 #include "decoder.h"
 #include "instruction.h"
 #include "exception.h"
@@ -112,51 +113,16 @@ namespace patmos
       unsigned int Num_discarded;
     };
 
-    struct dbg_stack_frame_t
-    {
-      dbg_stack_frame_t(const simulator_t &s, uword_t address);
-        
-      /// Function base address (target address of the call)
-      uword_t Function;
-      
-      /// Return base, the caller's active subfunction
-      uword_t Return_base;
-      
-      /// Return offset, i.e., the caller's current PC - base
-      uword_t Return_offset;
-      
-      /// stack cache TOS address
-      /// TODO at the moment, we store the size of the stack cache here!
-      uword_t Caller_TOS_stack_cache;
-      
-      /// Value of shadow stack pointer (r29) at call
-      uword_t Caller_TOS_shadow_stack;
-      
-      /// Register file state at the call 
-      //GPR_t GPR;
-    };
 
     /// Delayslot counter for 'calls' debug-fmt
     unsigned int Dbg_cnt_delay;
-    
+
     /// Remember call / return status for 'calls' debug-fmt
     bool Dbg_is_call;
-    
+
     /// A vector containing instruction statistics.
     typedef std::vector<instruction_stat_t> instruction_stats_t;
 
-    typedef std::vector<dbg_stack_frame_t*> dbg_stack_t;
-    
-    /// Check if the given frame is currently active.
-    /// @param frame the frame to check
-    bool is_active_frame(const dbg_stack_frame_t &frame) const;
-    
-    /// Print the given stack frame
-    /// @param frame the frame to print
-    /// @param callframe the stack frame of the callee, or null if not available.
-    void print_stackframe(std::ostream &os, unsigned int depth, 
-                          const dbg_stack_frame_t &frame,
-                          const dbg_stack_frame_t *callee) const;
 
   public:
     /// Cycle counter
@@ -179,6 +145,9 @@ namespace patmos
 
     /// A map to retrieve symbol information from addresses.
     symbol_map_t &Symbols;
+
+    /// Stack frame dumps for debugging
+    dbgstack_t Dbg_stack;
 
     /// Real time clock
     rtc_t &Rtc;
@@ -231,9 +200,6 @@ namespace patmos
     /// Number of stall cycles per pipeline stage
     unsigned int Num_stall_cycles[NUM_STAGES];
 
-    /// Stack frame dumps for debugging
-    dbg_stack_t Dbg_stack;
-
     /// Profiling information for function profiling
     profiling_t Profiling;
 
@@ -257,14 +223,6 @@ namespace patmos
     /// @param pst The pipeline stage up to which instructions should be
     /// stalled.
     void pipeline_stall(Pipeline_t pst);
-    
-    /// Push the current state as a stack frame on the debug stack.
-    /// Only used for debugging.
-    void push_dbg_stackframe(word_t target);
-    
-    /// Pop the top stack frame from the debug stack, if the return info matches.
-    /// Only used for debugging.
-    void pop_dbg_stackframe(word_t return_base, word_t return_offset);
 
   public:
     /// Construct a new instance of a Patmos-core simulator
@@ -289,7 +247,7 @@ namespace patmos
     /// @param debug_out Stream to print debug output.
     /// @param max_cycles The maximum number of cycles to run the simulation.
     /// @param profiling Enable profiling in the simulation run.
-    /// @param collect_instr_stats 
+    /// @param collect_instr_stats
     void run(word_t entry = 0,
              uint64_t debug_cycle = std::numeric_limits<uint64_t>::max(),
              debug_format_e debug_fmt = DF_DEFAULT,
@@ -301,20 +259,17 @@ namespace patmos
     /// @param os An output stream.
     /// @param debug_fmt The stage to print.
     void print_instructions(std::ostream &os, Pipeline_t stage) const;
-    
+
     /// Print the internal state of the simulator to an output stream.
     /// @param os An output stream.
     /// @param debug_fmt The selected output format.
     void print(std::ostream &os, debug_format_e debug_fmt);
 
-    /// Print runtime statistics of the current simulation run to an output 
+    /// Print runtime statistics of the current simulation run to an output
     /// stream.
     /// @param os An output stream.
     void print_stats(std::ostream &os, bool slot_stats, bool instr_stats) const;
-    
-    /// Print the current call stack.
-    /// @param os An output stream.
-    void print_stacktrace(std::ostream &os) const;
+
   };
 
 

@@ -1537,7 +1537,7 @@ namespace patmos
         assert(base <= pc);
         assert(pc == ops.IF_PC + 16 && "Wrong delay slot size of call instruction.");
 
-        s.push_dbg_stackframe(address);
+        s.Dbg_stack.push(address);
         s.Profiling.enter(address, s.Cycle);
 
         // store the return function offset (return PC) into
@@ -1860,7 +1860,7 @@ namespace patmos
       }
       else if (ops.DR_Pred)
       {
-	s.pop_dbg_stackframe(ops.EX_Base, ops.EX_Offset);
+	s.Dbg_stack.pop(ops.EX_Base, ops.EX_Offset);
         s.Profiling.leave(s.Cycle);
         fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Address);
       }
