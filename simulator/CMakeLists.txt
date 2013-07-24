@@ -22,7 +22,7 @@ set(CMAKE_CXX_FLAGS "-O2 -g")
 
 # Find boost library
 include(FindBoost)
-find_package( Boost 1.40.0 COMPONENTS program_options REQUIRED)
+find_package( Boost 1.46.0 COMPONENTS program_options REQUIRED)
 
 # Find libelf
 find_library(ELF elf)
