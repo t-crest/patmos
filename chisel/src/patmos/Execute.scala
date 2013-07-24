@@ -206,8 +206,10 @@ class Execute() extends Component {
 	}
 
 	mulBuf := (Cat(mulHH, mulLL)
-			   + Cat(mulHL, UFix(0, width = DATA_WIDTH/2))
-			   + Cat(mulLH, UFix(0, width = DATA_WIDTH/2)))
+			   + Cat(Fill(DATA_WIDTH/2, mulHL(DATA_WIDTH-1)),
+					 mulHL, UFix(0, width = DATA_WIDTH/2))
+			   + Cat(Fill(DATA_WIDTH/2, mulLH(DATA_WIDTH-1)),
+					 mulLH, UFix(0, width = DATA_WIDTH/2)))
 
 	when(mulPipe(1)) {
 	  mulHiReg := mulBuf(2*DATA_WIDTH-1, DATA_WIDTH)
