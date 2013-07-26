@@ -47,39 +47,51 @@ import scala.collection.mutable.HashMap
 class OcpMaster() extends Component {
   val io = new OcpMasterPort(8, 32)
 
-  io.M.Cmd := OcpCmd.IDLE
-  io.M.Addr := Bits(0)
-  io.M.Data := Bits(0)
-
   val cnt = Reg(UFix(), resetVal = UFix(0))
   cnt := cnt + UFix(1, 32)
 
-  when(cnt(1, 0) === Bits("b11")) {
-	io.M.Cmd := OcpCmd.WR
-	io.M.Data := cnt
+  io.M.Cmd := OcpCmd.IDLE
+  io.M.Addr := cnt(15, 8)
+  io.M.Data := cnt
+  io.M.ByteEn := cnt(7, 4)
+
+  when(cnt(3, 0) === Bits("b1111")) {
+	io.M.Cmd := OcpCmd.RD
   }
 }
 
 class OcpSlave() extends Component {
-  val io = new OcpSlavePort(8, 32)
+  val io = new OcpBurstSlavePort(8, 32)
 
   val M = Reg(io.M, resetVal = OcpMasterSignals.resetVal(io.M))
 
+  val data = Reg(UFix(), resetVal = UFix(0))
+  data := data + UFix(1, 32)
+
+  val cnt = Reg(UFix(), resetVal = UFix(0))
+
   io.S.Resp := OcpResp.NULL
-  io.S.Data := M.Data
+  io.S.Data := data
   when(M.Cmd != OcpCmd.IDLE) {
+	cnt := UFix(4)
+  }
+
+  when(cnt != UFix(0)) {
+	cnt := cnt - UFix(1)
 	io.S.Resp := OcpResp.DVA
   }
 }
 
 class Ocp() extends Component {
-  val io = Bits(width = 32)
+  val io = new OcpBurstSlavePort(8, 32)
 
   val master = new OcpMaster()
+  val bridge = new OcpBurstBridge(8, 32, 4)
   val slave = new OcpSlave()
-  master.io <> slave.io
+  master.io <> bridge.io.master
+  bridge.io.slave <> slave.io
 
-  io <> master.io.M.Data
+  io <> slave.io.M
 }
 
 object OcpTestMain {
