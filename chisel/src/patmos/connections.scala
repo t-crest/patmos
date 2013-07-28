@@ -141,6 +141,7 @@ class DecEx() extends Bundle() {
   val callAddr = UFix(width = DATA_WIDTH)
   val call = Bool()
   val ret = Bool()
+  val brcf = Bool()
 }
 
 object DecExResetVal extends DecEx {
@@ -159,6 +160,7 @@ object DecExResetVal extends DecEx {
   callAddr := UFix(0)
   call := Bool(false)
   ret := Bool(false)
+  brcf := Bool(false)
 }
 
 class Result() extends Bundle() {
@@ -184,6 +186,7 @@ class MemIn() extends Bundle() {
   val data = Bits(width = DATA_WIDTH)
   val call = Bool()
   val ret = Bool()
+  val brcf = Bool()
   val callRetAddr = UFix(width = DATA_WIDTH)
   val callRetBase = UFix(width = DATA_WIDTH)
 }
@@ -199,6 +202,7 @@ object MemInResetVal extends MemIn {
   data := Bits(0)
   call := Bool(false)
   ret := Bool(false)
+  brcf := Bool(false)
   callRetAddr := UFix(0)
   callRetBase := UFix(0)
 }

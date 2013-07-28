@@ -170,6 +170,7 @@ class Decode() extends Component {
   io.decex.memOp.typ := ldtype
   io.decex.call := Bool(false)
   io.decex.ret := Bool(false)
+  io.decex.brcf := Bool(false)
 
   // Long immediates set this
   longImm := Bool(false)
@@ -220,7 +221,7 @@ class Decode() extends Component {
   }
   when(opcode === OPCODE_CFL_BRCF) {
     io.decex.immOp(0) := Bool(true)
-    io.decex.call := Bool(true)
+    io.decex.brcf := Bool(true)
   }
   when(opcode === OPCODE_CFL_CFLI) {
 	switch(func) {
@@ -233,7 +234,7 @@ class Decode() extends Component {
 		io.decex.jmpOp.branch := Bool(true)
 	  }
 	  is(JFUNC_BRCF) {
-		io.decex.call := Bool(true)
+		io.decex.brcf := Bool(true)
 	  }
 	}
   }

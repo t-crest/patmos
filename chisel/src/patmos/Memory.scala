@@ -185,7 +185,7 @@ class Memory() extends Component {
 								 memReg.rd(0).data))  
 
   // call to fetch
-  io.memfe.doCallRet := memReg.mem.call || memReg.mem.ret
+  io.memfe.doCallRet := memReg.mem.call || memReg.mem.ret || memReg.mem.brcf
   io.memfe.callRetPc := memReg.mem.callRetAddr(DATA_WIDTH-1, 2)
   io.memfe.callRetBase := memReg.mem.callRetBase(DATA_WIDTH-1, 2)
 
