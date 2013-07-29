@@ -812,58 +812,6 @@ namespace patmos
   ALUp_INSTR(pand, 1, &)
   ALUp_INSTR(pxor, 1, ^)
 
-  /// A multi-cycle NOP operation.
-  class i_spcn_t : public i_pred_t
-  {
-  public:
-    /// Print the instruction to an output stream.
-    /// @param os The output stream to print to.
-    /// @param ops The operands of the instruction.
-    /// @param symbols A mapping of addresses to symbols.
-    virtual void print(std::ostream &os, const instruction_data_t &ops,
-                       const symbol_map_t &symbols) const
-    {
-      printPred(os, ops.Pred);
-      os << "nop " << ops.OPS.SPCn.Imm;
-    }
-
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the IF pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void IF(simulator_t &s, instruction_data_t &ops) const
-    {
-      i_pred_t::IF(s, ops);
-      ops.DR_Imm = 0;
-      i_pred_t::IF(s, ops);
-    }
-
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the DR pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void DR(simulator_t &s, instruction_data_t &ops) const
-    {
-      bit_t Pred = ops.DR_Pred = s.PRR.get(ops.Pred).get();
-
-      if (Pred)
-      {
-        if (ops.DR_Imm != ops.OPS.SPCn.Imm)
-        {
-          // increment NOP cycle counter
-          ops.DR_Imm++;
-
-          // stall the pipeline
-          s.pipeline_stall(SDR);
-        }
-      }
-    }
-
-    // EX inherited from NOP
-
-    // MW inherited from NOP
-  };
-
   /// Wait for memory operations to complete.
   class i_spcw_t : public i_pred_t
   {

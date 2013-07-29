@@ -313,33 +313,6 @@ namespace patmos
     return iw;
   }
 
-  spcn_format_t::spcn_format_t(const instruction_t &instruction,
-                               word_t opcode) :
-      binary_format_t(instruction, 0x7C00070, 0x2400000, 1)
-  {
-  }
-
-  instruction_data_t spcn_format_t::decode_operands(word_t iw,
-                                                    word_t longimm) const
-  {
-    word_t imm = extract(iw, 0, 4);
-    PRR_e pred = extractPN(iw, 27);
-    return instruction_data_t::mk_SPCn(Instruction, pred, imm);
-  }
-
-  word_t spcn_format_t::encode(word_t pred, word_t imm)
-  {
-    word_t iw = 0;
-
-    assert(fitu(imm, 4));
-
-    insertV(iw, 0, 4, imm);
-    insertV(iw, 22, 5, BOOST_BINARY(01001));
-    insertPN(iw, 27, pred);
-
-    return iw;
-  }
-
   spcw_format_t::spcw_format_t(const instruction_t &instruction,
                                word_t opcode) :
       binary_format_t(instruction, 0x7C0007F, insert(0x2400010, 0, 4, opcode),
