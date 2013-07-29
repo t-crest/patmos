@@ -278,7 +278,7 @@ namespace patmos
       unsigned int tag_index = ASSOCIATIVITY - 1;
       for(unsigned int i = 0; i < ASSOCIATIVITY; i++)
       {
-        if (tags[i].Block_address == block_address && tags[i].Is_valid)
+        if (tags[i].Is_valid && tags[i].Block_address == block_address)
         {
           tag_index = i;
           break;
@@ -348,7 +348,7 @@ namespace patmos
         unsigned int tag_index = ASSOCIATIVITY - 1;
         for(unsigned int i = 0; i < ASSOCIATIVITY; i++)
         {
-          if (tags[i].Block_address == block_address && tags[i].Is_valid)
+          if (tags[i].Is_valid && tags[i].Block_address == block_address)
           {
             tag_index = i;
             break;
