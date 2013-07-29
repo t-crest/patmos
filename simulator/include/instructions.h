@@ -1537,9 +1537,6 @@ namespace patmos
         assert(base <= pc);
         assert(pc == ops.IF_PC + 16 && "Wrong delay slot size of call instruction.");
 
-        s.Dbg_stack.push(address);
-        s.Profiling.enter(address, s.Cycle);
-
         // store the return function offset (return PC) into
         // a general purpose register
         s.GPR.set(rfo, pc - base);
@@ -1555,7 +1552,8 @@ namespace patmos
     /// @param pred The predicate under which the instruction is executed.
     /// @param base The base address of the target method.
     /// @param address The target address.
-    void fetch_and_dispatch(simulator_t &s, instruction_data_t &ops,
+    /// @return returns true one single time when fetching completed.
+    bool fetch_and_dispatch(simulator_t &s, instruction_data_t &ops,
                             bit_t pred, word_t base, word_t address) const
     {
       if (pred && !ops.MW_CFL_Discard)
@@ -1573,8 +1571,10 @@ namespace patmos
           s.BASE = base;
           s.nPC = address;
           ops.MW_CFL_Discard = 1;
+          return true;
         }
       }
+      return false;
     }
 
     /// Perform a function branch or call.
@@ -1584,7 +1584,8 @@ namespace patmos
     /// @param pred The predicate under which the instruction is executed.
     /// @param base The base address of the target method.
     /// @param address The target address.
-    void dispatch(simulator_t &s, instruction_data_t &ops, bit_t pred,
+    /// @return returns true one single time when fetching completed.
+    bool dispatch(simulator_t &s, instruction_data_t &ops, bit_t pred,
                   word_t base, word_t address) const
     {
       if (pred && !ops.MW_CFL_Discard)
@@ -1596,7 +1597,9 @@ namespace patmos
         s.BASE = base;
         s.nPC = address;
         ops.MW_CFL_Discard = 1;
+        return true;
       }
+      return false;
     }
   public:
     /// Pipeline function to simulate the behavior of the instruction in
@@ -1629,55 +1632,67 @@ namespace patmos
     }
   };
 
-#define CFLB_EX_INSTR(name, store, dispatch, new_base, target)	\
-  class i_ ## name ## _t : public i_cfl_t \
-  { \
-  public:\
-    virtual void print(std::ostream &os, const instruction_data_t &ops, \
-                       const symbol_map_t &symbols) const \
-    { \
-      printPred(os, ops.Pred); \
-      os << #name << " " << ops.OPS.CFLb.Imm; \
-      symbols.print(os, ops.EX_Address); \
-    } \
-    virtual void EX(simulator_t &s, instruction_data_t &ops) const \
-    { \
-      ops.EX_Address = target; \
-      store(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address); \
-      dispatch(s, ops, ops.DR_Pred, new_base, ops.EX_Address); \
-    } \
-  };
-#define CFLB_MW_INSTR(name, store, dispatch, new_base, target)      \
-  class i_ ## name ## _t : public i_cfl_t \
-  { \
-  public:\
-    virtual void print(std::ostream &os, const instruction_data_t &ops, \
-                        const symbol_map_t &symbols) const \
-    { \
-      printPred(os, ops.Pred); \
-      os << #name << " " << ops.OPS.CFLb.Imm; \
-      symbols.print(os, ops.EX_Address); \
-    } \
-    virtual void EX(simulator_t &s, instruction_data_t &ops) const \
-    { \
-      ops.EX_Address = target; \
-    } \
-    virtual void MW(simulator_t &s, instruction_data_t &ops) const \
-    { \
-      store(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address); \
-      dispatch(s, ops, ops.DR_Pred, new_base, ops.EX_Address); \
-    } \
+  class i_call_t : public i_cfl_t
+  {
+  public:
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printPred(os, ops.Pred);
+      os << "call " << ops.OPS.CFLb.UImm;
+      symbols.print(os, ops.EX_Address);
+    }
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.EX_Address = ops.OPS.CFLb.UImm*sizeof(word_t);
+    }
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
+    {
+      store_return_address(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address);
+      if (fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address))
+      {
+        s.Dbg_stack.push(ops.EX_Address);
+        s.Profiling.enter(ops.EX_Address, s.Cycle);
+      }
+    }
   };
 
-  CFLB_MW_INSTR(call, store_return_address, fetch_and_dispatch,
-                ops.OPS.CFLb.UImm*sizeof(word_t),
-                ops.OPS.CFLb.UImm*sizeof(word_t))
-  CFLB_EX_INSTR(br, no_store_return_address, dispatch,
-                s.BASE,
-                ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t))
-  CFLB_MW_INSTR(brcf, no_store_return_address, fetch_and_dispatch,
-                ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t),
-                ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t))
+  class i_br_t : public i_cfl_t
+  {
+  public:
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printPred(os, ops.Pred);
+      os << "br " << ops.OPS.CFLb.Imm;
+      symbols.print(os, ops.EX_Address);
+    }
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.EX_Address = ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t);
+      dispatch(s, ops, ops.DR_Pred, s.BASE, ops.EX_Address);
+    }
+  };
+
+  class i_brcf_t : public i_cfl_t
+  {
+  public:
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                        const symbol_map_t &symbols) const
+    {
+      printPred(os, ops.Pred);
+      os << "brcf " << ops.OPS.CFLb.Imm;
+      symbols.print(os, ops.EX_Address);
+    }
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.EX_Address = ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t);
+    }
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
+    {
+      fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+    }
+  };
 
   class i_intr_t : public i_cfl_t 
   { 
@@ -1707,13 +1722,13 @@ namespace patmos
                        const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << "intr" << " " << ops.OPS.CFLb.Imm;
+      os << "intr " << ops.OPS.CFLb.UImm;
       symbols.print(os, ops.EX_Address);
     }
 
     virtual void EX(simulator_t &s, instruction_data_t &ops) const 
     {
-      ops.EX_Address = ops.OPS.CFLb.Imm*sizeof(word_t);
+      ops.EX_Address = ops.OPS.CFLb.UImm*sizeof(word_t);
       fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address); 
     }
   };
@@ -1749,54 +1764,68 @@ namespace patmos
     }
   };
 
-#define CFLI_EX_INSTR(name, store, dispatch, new_base)	\
-  class i_ ## name ## _t : public i_cfli_t \
-  { \
-  public:\
-    virtual void print(std::ostream &os, const instruction_data_t &ops, \
-                       const symbol_map_t &symbols) const \
-    { \
-      printPred(os, ops.Pred); \
-      os << #name << " r" << ops.OPS.CFLi.Rs; \
-      symbols.print(os, ops.EX_Address); \
-    } \
-    virtual void EX(simulator_t &s, instruction_data_t &ops) const \
-    { \
-      ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1); \
-      store(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address); \
-      dispatch(s, ops, ops.DR_Pred, new_base, ops.EX_Address); \
-    } \
+  class i_callr_t : public i_cfli_t
+  {
+  public:
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printPred(os, ops.Pred);
+      os << "callr r" << ops.OPS.CFLi.Rs;
+      symbols.print(os, ops.EX_Address);
+    }
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1);
+    }
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
+    {
+      store_return_address(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address);
+      if (fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address))
+      {
+        s.Dbg_stack.push(ops.EX_Address);
+        s.Profiling.enter(ops.EX_Address, s.Cycle);
+      }
+    }
   };
 
-#define CFLI_MW_INSTR(name, store, dispatch, new_base)   \
-  class i_ ## name ## _t : public i_cfli_t \
-  { \
-  public:\
-    virtual void print(std::ostream &os, const instruction_data_t &ops, \
-                       const symbol_map_t &symbols) const \
-    { \
-      printPred(os, ops.Pred); \
-      os << #name << " r" << ops.OPS.CFLi.Rs; \
-      symbols.print(os, ops.EX_Address); \
-    } \
-    virtual void EX(simulator_t &s, instruction_data_t &ops) const \
-    { \
-      ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1); \
-    } \
-    virtual void MW(simulator_t &s, instruction_data_t &ops) const \
-    { \
-      store(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address); \
-      dispatch(s, ops, ops.DR_Pred, new_base, ops.EX_Address); \
-    } \
+  class i_brr_t : public i_cfli_t
+  {
+  public:
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printPred(os, ops.Pred);
+      os << "brr r" << ops.OPS.CFLi.Rs;
+      symbols.print(os, ops.EX_Address);
+    }
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1);
+      dispatch(s, ops, ops.DR_Pred, s.BASE, ops.EX_Address);
+    }
   };
 
+  class i_brcfr_t : public i_cfli_t
+  {
+  public:
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printPred(os, ops.Pred);
+      os << "brcfr r" << ops.OPS.CFLi.Rs;
+      symbols.print(os, ops.EX_Address);
+    }
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1);
+    }
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
+    {
+      fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+    }
+  };
 
-  CFLI_MW_INSTR(callr, store_return_address, fetch_and_dispatch,
-                ops.EX_Address)
-  CFLI_EX_INSTR(brr, no_store_return_address, dispatch,
-                s.BASE)
-  CFLI_MW_INSTR(brcfr, no_store_return_address, fetch_and_dispatch,
-                ops.EX_Address)
 
   /// An instruction for returning from function calls.
   class i_ret_t : public i_cfl_t
@@ -1860,9 +1889,11 @@ namespace patmos
       }
       else if (ops.DR_Pred)
       {
-	s.Dbg_stack.pop(ops.EX_Base, ops.EX_Offset);
-        s.Profiling.leave(s.Cycle);
-        fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Address);
+        if (fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Address))
+        {
+          s.Dbg_stack.pop(ops.EX_Base, ops.EX_Offset);
+          s.Profiling.leave(s.Cycle);
+        }
       }
     }
 
