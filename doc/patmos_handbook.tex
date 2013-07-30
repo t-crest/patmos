@@ -1,9 +1,11 @@
-\documentclass{IEEEtran}
-%\documentclass{article}
+\documentclass[a4paper,fontsize=10pt,twoside,DIV15,BCOR12mm,headinclude=true,footinclude=false,pagesize,bibtotoc]{scrbook}
 
+\usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 
 \usepackage{pslatex} % -- times instead of computer modern
+\usepackage[scaled=.84]{beramono} % a sane monospace font
+\usepackage{microtype}
 
 \usepackage{url}
 \usepackage{booktabs}
@@ -14,27 +16,30 @@
 \usepackage{colortbl}
 \usepackage{multicol}
 \usepackage{rotating}
-\usepackage{subfigure}
+\usepackage{subfig}
 \usepackage{ulem}
+\usepackage{enumerate}
+
+\clubpenalty=10000
+\widowpenalty=10000
 
 \newcommand{\code}[1]{{\texttt{#1}}}
 \newcommand{\codefoot}[1]{{\textsf{#1}}}
 \def\figref#1{Figure~\ref{fig:#1}}
 
-\usepackage[scaled=.84]{beramono} % looks way better than txtt
-%\renewcommand*\ttdefault{txtt}
-
-\newcommand{\todo}[1]{{\emph{TODO: #1}}}
-%\renewcommand{\todo}[1]{}
-
 % ulem package, otherwise emphasized text becomes underlined
 \normalem
 
 
+\newcommand{\todo}[1]{{\emph{TODO: #1}}}
+%\renewcommand{\todo}[1]{}
+
 %
 % generic command to comment something
 %
-\newcommand{\comment}[3]{\paragraph*{\textbf{#1}}{\color{#3}#2}}
+\newcommand{\comment}[3]{
+
+\textsf{\textbf{#1}} {\color{#3}#2}}
 
 %
 % commentators
@@ -78,7 +83,7 @@
   columns=flexible, % add any modifications here
 }}{}
 
-\usepackage{bytefield}
+\usepackage[endianness=big]{bytefield}
 
 % long immediate in second slot
 \newcommand{\lconst}{\texttt{const}_{32}}
@@ -104,7 +109,6 @@
 %
 \usepackage[open]{bookmark}
 \usepackage[all]{hypcap}
-\usepackage{enumerate}
 
 %
 % hyperref setup (depends on bookmark/hyperref}
@@ -113,10 +117,10 @@
     pdftitle = {Patmos Reference Handbook},
     pdfsubject = {Technical Report},
     colorlinks = {true},
-    citecolor = {blue},
-    filecolor = {blue},
-    linkcolor = {blue},
-    urlcolor = {blue},
+    citecolor = {black},
+    filecolor = {black},
+    linkcolor = {black},
+    urlcolor = {black},
     final
 }
 
@@ -127,22 +131,50 @@
 
 \title{Patmos Reference Handbook\\{\huge Technical Report}}
 
-\author{Martin Schoeberl, Florian Brandner, Stefan Hepp, Wolfgang Puffitsch, Daniel Prokesch\\
-\today}
+\author{Martin Schoeberl, Florian Brandner, Stefan Hepp,\\Wolfgang Puffitsch, Daniel Prokesch}
 
+\lowertitleback{\todo{Copyright and license terms come here.}}
+
+\frontmatter
 
 \maketitle
-%\thispagestyle{empty}
 
-\begin{abstract}
-This TR shall evolve to the documentation of Patmos. In the mean time it is intended to collect design notes and discussions.
-Especially ISA design notes now.
+\chapter{Preface}
 
-\end{abstract}
+This TR shall evolve to the documentation of Patmos. In the mean time
+it is intended to collect design notes and discussions.  Especially
+ISA design notes now.
 
+\section*{Acknowledgment}
 
+We would like to thank Tommy Thorn for the always intense and enjoyable
+discussions of the Patmos ISA and processor design in general.
+Jack Whitham offered his experience with RISC
+ISA design and tradeoffs. 
+Gernot Gebhard and Christoph Cullmann gave valuable feedback on the ISA
+relative to WCET analysis.
+Sahar Abbaspourseyedi is working on the stack
+cache and verifies the ideas and concepts presented here. We thank
+Rasmus Bo Sørensen for fixing some documentation errors.
 
-\section{Introduction}
+This work was partially funded under the
+European Union's 7th Framework Programme
+under grant agreement no. 288008:
+Time-predictable Multi-Core Architecture for Embedded
+Systems (T-CREST).
+
+\tableofcontents
+
+\begingroup
+\let\cleardoublepage\clearpage
+\listoffigures
+\listoftables
+%\lstlistoflistings
+\endgroup
+
+\mainmatter
+
+\chapter{Introduction}
 
 Real-time systems need a time-predictable execution platform so that the worst-case execution time (WCET) can be statically estimated. It has been argued that we have to rethink computer architecture for real-time systems instead of trying to catch up with new processors in the WCET analysis tools~\cite{tpca:jes, pret:dac2007}.
 
@@ -150,7 +182,7 @@ We present the time-predictable processor Patmos as one approach to attack the c
 
 
 
-%\section{Related Work}
+%\chapter{Related Work}
 %\label{sec:related}
 
 
@@ -164,7 +196,7 @@ rewritten to reflect the actual simulator and hardware implementation of Patmos.
 E.g. predicate registers are *not* read in the decode stage, but directly in EX.
 Reading in decode would mean a one cycle generate use delay.}
 
-\subsection{TODO}
+\section{TODO}
 
 This report shall converge towards a real manual. At the moment it serves
 discussion well, but we shall keep this in mind. Here a starting list of TODOs:
@@ -175,24 +207,6 @@ discussion well, but we shall keep this in mind. Here a starting list of TODOs:
 did what we did
 \item Get a nice introduction and a good architecture section written
 \end{itemize}
-
-\subsection*{Acknowledegment}
-
-We would like to thank Tommy Thorn for the always intense and enjoyable
-discussions of the Patmos ISA and processor design in general.
-Jack Whitham offered his experience with RISC
-ISA design and tradeoffs. 
-Gernot Gebhard and Christoph Cullmann gave valuable feedback on the ISA
-relative to WCET analysis.
-Sahar Abbaspourseyedi is working on the stack
-cache and verifies the ideas and concepts presented here. We thank
-Rasmus Bo Sorensen for fixing some documentation errors.
-
-This work was partially funded under the
-European Union's 7th Framework Programme
-under grant agreement no. 288008:
-Time-predictable Multi-Core Architecture for Embedded
-Systems (T-CREST).
 
 \section{Pending Changes}
 
@@ -215,10 +229,10 @@ Merge date: 15 August 2013 (?)
 
 
 
-\section{The Architecture of Patmos}
+\chapter{The Architecture of Patmos}
 \label{sec:arch}
 
-\subsection{Pipeline}
+\section{Pipeline}
 
 Figure~\ref{fig:pipeline} shows an overview of Patmos' pipeline. The pipeline
 consist of 5 stages: (1) instruction fetch (\texttt{FE}), (2) decode and
@@ -229,23 +243,23 @@ are executed, starting from the \texttt{EX} stage, in a parallel pipeline with
 fixed-length (see the instruction definition). The respective stages are
 referred to by \texttt{EX$_1$}, \dots, \texttt{EX$_n$}.
 
-\begin{figure*}
+\begin{figure}
     \centering
-    \includegraphics[scale=0.6]{fig/pipeline}
+    \includegraphics[width=\textwidth]{fig/pipeline}
     \caption{Pipeline of Patmos with fetch, decode, execute, memory, and write back stages.}\label{fig:pipeline}
-\end{figure*}
+\end{figure}
 
 
-\subsection{Register Files}
+\section{Register Files}
 
 The register files available in Patmos are depicted by
 Figure~\ref{fig:registers}. In short, Patmos offers:
 \begin{itemize}
-  \item [-] 32, 32-bit general-purpose registers (\texttt{R}) : \verb!r0, ..., r31! \\
-            \verb!r0! is read-only, set to zero (\texttt{0}).
-  \item [-] 8, single-bit predicate registers (\texttt{P}): \verb!p0, ..., p7!, \\
-            \verb!p0! is read-only, set to \texttt{true} (\texttt{1}).
-  \item [-] 16, 32-bit special-purpose registers (\texttt{S}): \verb!s0, ..., s15!
+  \item 32, 32-bit general-purpose registers (\texttt{R}) : \texttt{r0}, \ldots, \texttt{r31} \\
+    \texttt{r0} is read-only, set to zero (\texttt{0}).
+  \item 8, single-bit predicate registers (\texttt{P}): \texttt{p0}, \ldots, \texttt{p7}, \\
+    \texttt{p0} is read-only, set to \texttt{true} (\texttt{1}).
+  \item 16, 32-bit special-purpose registers (\texttt{S}): \texttt{s0}, \ldots, \texttt{s15}
 \end{itemize}
 
 The general-purpose registers \texttt{R} are read in the \code{DEC} stage
@@ -271,22 +285,19 @@ So all-in-all the recoverable process state is: general-purpose registers
 \code{R}, the predicates \code{P}, and a collection of various processor
 registers mapped to the `special' register files \code{S}.
 
-Concurrently writing and reading the same register in the same cycle will, for
-the read, yield the value that is about to be written.
-\martin{what does this mean? add r1 = r2, r1 will be an infinite loop?
-Or does it mean that the register file has a local forward, which is ok and
-usually assumed in RISC pipelines.}
+Concurrently writing and reading the same register in the same cycle
+will, for the read, yield the old value of the register. Reads in
+subsequent cycles return the result most recently written to the
+register, i.e., the pipeline implements full forwarding.
 
-When writing concurrently to the same register, i.e., the two instructions of
-the current bundle have the same destination register, 
-it must be guaranteed that the predicate of at least one instruction in the bundle
-%the value of the second slot is taken, unless the predicate of that instruction 
-evaluates to \texttt{false} (0).
-\stefan{Martin: comment on that? Can I assume that in the scheduler?}
-\martin{I would at the moment consider this wrong, undefined code.
-If we want to define a priority I would say local forwarding has priority.}
-\stefan{I changed the definition so that there are no priorities required, this is handled by the predicates now. This makes the
-scheduler a bit simpler too.}
+When writing concurrently to the same register, the result is
+undefined. If two instructions of the current bundle have the same
+destination register, the result is only defined if the predicate of
+at most one instruction in the bundle evaluates to \texttt{true} (1).
+
+\wolf{In practice, the result is even defined if both instructions
+  write to the same register, but I would not make this a feature of
+  the ISA.}
 
 The predicate registers are usually encoded as $4$-bit operands, where the most
 significant bit indicates that the value read from the register file should be
@@ -296,118 +307,106 @@ is omitted.
 The special-purpose registers of \texttt{S} allow access to some dedicated
 registers:
 \begin{itemize}
-  \item [-] The lower $8$ bits of \texttt{s0} can be used to save/restore
-            \emph{all} predicate registers at once. The other bits of that
-            register are currently reserved, but not used. Setting the reserved 
-	    bits has no effect.
-  \item [-] \texttt{s1} can also be accessed through the name \texttt{sm} and
-            represents the result of a decoupled load operation. The value is
-            already sign-/zero-extended according to the load instruction. 
-	    %This register is read-only.
-  \item [-] \texttt{s2} and \texttt{s3} can also be accessed through the names
-            \texttt{sl} and \texttt{sh} and represent the lower and upper
-            32-bits a multiplication. 
-	    %These registers are read-only.
-%  \item [-] \texttt{s4} and \texttt{s5} can also be accessed through the names
-%            \texttt{sb} and \texttt{so}. \texttt{sb} denotes the base address of
-%            the method containing the most recently executed call instruction.
-%            \texttt{so} denotes the offset within that method of the bundle
-%            following the bundle containing the call instruction.
-
-  \item [-] \texttt{s5} can alse be access through the name \texttt{ss} and 
-            represents the register pointing to the top of the saved stack 
-	    content in the main memory (i.e., the current stack spill pointer).
-	    Updating \texttt{s5} does not change \texttt{s6} or spill the stack cache.
-
-  \item [-] \texttt{s6} can also be accessed through the name \texttt{st} and
-            represents a pointer to the top-most element of the content of the
-            stack cache. 
-	    Updating \texttt{s6} does not change \texttt{s5} or spill the stack cache.
-	    %This register is read-only.
+  \item The lower $8$ bits of \texttt{s0} can be used to save/restore
+    \emph{all} predicate registers at once. The other bits of that
+    register are currently reserved, but not used. Setting the reserved 
+	bits has no effect.
+  \item \texttt{s1} can also be accessed through the name \texttt{sm} and
+    represents the result of a decoupled load operation. The value is
+    already sign-/zero-extended according to the load instruction. 
+  \item \texttt{s2} and \texttt{s3} can also be accessed through the names
+    \texttt{sl} and \texttt{sh} and represent the lower and upper
+    32-bits a multiplication. 
+  \item \texttt{s5} can alse be accessed through the name \texttt{ss} and 
+    represents the register pointing to the top of the saved stack 
+	content in the main memory (i.e., the current stack spill pointer).
+	Updating \texttt{s5} does not change \texttt{s6} or spill the stack cache.
+  \item \texttt{s6} can also be accessed through the name \texttt{st} and
+    represents a pointer to the top-most element of the content of the
+    stack cache. 
+	Updating \texttt{s6} does not change \texttt{s5} or spill the stack cache.
 \end{itemize}
 
-\sahar{s5 and s6 are read out on a thread switch.}
-\martin{S6 cannot be read-only when we want to support thread switch.}
-\martin{Both descriptions read for me that they represent what we call \code{m\_top}
-in our SEUS paper. Sahar, please clarify this.}
-\martin{We shall have names for the two stack cache related register. And I don't
-like the current ones, but don't have a good idea either.}
-\stefan{I kept the alias names for the special registers, but just barely, and added an alias for s5.
-However, I would appreciate it if we do not change the names too often, as there are \emph{quite} a few places 
-in the toolchain which have to be updated (including the clang inlineasm driver, don't forget!).}
 \stefan{None of the registers should be read-only, as they need to be restored when
-we switch contexts. We can define that setting s5 also sets s6 and maybe also spills the cache,
-however, knowning how Martin despises CISCish things, I defined them for now just as register set ops.}
+we switch contexts.}
 
-\begin{figure*}[p]
+\begin{figure}[p]
 
   \begin{multicols}{2}
     \centering
 
-    \begin{bytefield}{32}
-      \bitheader[b]{0-31} \\
-      \bitbox{32}{r0 (zero, read-only)} \\
-      \bitbox{32}{r1 (result, scratch)} \\
-      \bitbox{32}{r2 (result 64-bit, scratch)} \\
-      \bitbox{32}{r3 (argument 1, scratch)} \\
-      \bitbox{32}{r4 (argument 2, scratch)} \\
-      \bitbox{32}{r5 (argument 3, scratch)} \\
-      \bitbox{32}{r6 (argument 4, scratch)} \\
-      \bitbox{32}{r7 (argument 5, scratch)} \\
-      \bitbox{32}{r8 (argument 6, scratch)} \\ \bitbox{32}{r9 (scratch)} \\
-      \bitbox{32}{r10 (scratch)} \\ \bitbox{32}{r11 (scratch)} \\
-      \bitbox{32}{r12 (scratch)} \\ \bitbox{32}{r13 (scratch)} \\
-      \bitbox{32}{r14 (scratch)} \\ \bitbox{32}{r15 (scratch)} \\
-      \bitbox{32}{r16 (scratch)} \\ \bitbox{32}{r17 (scratch)} \\
-      \bitbox{32}{r18 (scratch)} \\ \bitbox{32}{r19 (scratch)} \\
-      \bitbox{32}{r20 (saved)} \\ \bitbox{32}{r21 (saved)} \\
-      \bitbox{32}{r22 (saved)} \\ \bitbox{32}{r23 (saved)} \\
-      \bitbox{32}{r24 (saved)} \\ \bitbox{32}{r25 (saved)} \\
-      \bitbox{32}{r26 (saved)} \\
-      \bitbox{32}{r27 (temp.\ register, saved)} \\
-      \bitbox{32}{r28 (frame pointer, saved)} \\
-      \bitbox{32}{r29 (stack pointer, saved)} \\
-      \bitbox{32}{r30 (function base, saved)} \\
-      \bitbox{32}{r31 (function offset, saved)} \\
-    \end{bytefield} \\ [-6mm]
-    \subfigure[\label{fig:registers:r}General-Purpose Registers (\texttt{R})]{\begin{minipage}{7cm}~\end{minipage}}
+    \subfloat[\label{fig:registers:r}General-Purpose Registers (\texttt{R})]{
+      \begin{bytefield}[bitwidth=.59em]{32}
+        \bitheader{0-31} \\
+        \bitbox{32}{r0 (zero, read-only)} \\
+        \bitbox{32}{r1 (result, scratch)} \\
+        \bitbox{32}{r2 (result 64-bit, scratch)} \\
+        \bitbox{32}{r3 (argument 1, scratch)} \\
+        \bitbox{32}{r4 (argument 2, scratch)} \\
+        \bitbox{32}{r5 (argument 3, scratch)} \\
+        \bitbox{32}{r6 (argument 4, scratch)} \\
+        \bitbox{32}{r7 (argument 5, scratch)} \\
+        \bitbox{32}{r8 (argument 6, scratch)} \\ \bitbox{32}{r9 (scratch)} \\
+        \bitbox{32}{r10 (scratch)} \\ \bitbox{32}{r11 (scratch)} \\
+        \bitbox{32}{r12 (scratch)} \\ \bitbox{32}{r13 (scratch)} \\
+        \bitbox{32}{r14 (scratch)} \\ \bitbox{32}{r15 (scratch)} \\
+        \bitbox{32}{r16 (scratch)} \\ \bitbox{32}{r17 (scratch)} \\
+        \bitbox{32}{r18 (scratch)} \\ \bitbox{32}{r19 (scratch)} \\
+        \bitbox{32}{r20 (saved)} \\ \bitbox{32}{r21 (saved)} \\
+        \bitbox{32}{r22 (saved)} \\ \bitbox{32}{r23 (saved)} \\
+        \bitbox{32}{r24 (saved)} \\ \bitbox{32}{r25 (saved)} \\
+        \bitbox{32}{r26 (saved)} \\
+        \bitbox{32}{r27 (temp.\ register, saved)} \\
+        \bitbox{32}{r28 (frame pointer, saved)} \\
+        \bitbox{32}{r29 (stack pointer, saved)} \\
+        \bitbox{32}{r30 (function base, saved)} \\
+        \bitbox{32}{r31 (function offset, saved)} \\
+      \end{bytefield}
+    }
 
     \newpage
 
-\newcommand{\bitlabel}[1]{
-  \bitbox[]{1}{\raisebox{0pt}[5ex][1pt]{\turnbox{45}{\fontsize{7}{7}\selectfont#1}}}
-}
-    \begin{bytefield}{8}
-        \bitlabel{p7} & \bitlabel{p6} & \bitlabel{p5} & \bitlabel{p4} &
-        \bitlabel{p3} & \bitlabel{p2} & \bitlabel{p1} & \bitlabel{p0 -- Readonly, always \texttt{1}} \\
-        \bitheader[b]{0-7} \\ \bitbox{1}{} & \bitbox{1}{} & \bitbox{1}{} &
-        \bitbox{1}{} & \bitbox{1}{} & \bitbox{1}{} & \bitbox{1}{} & \bitbox{1}{} \\
-    \end{bytefield} \\ [-6mm]
-    \subfigure[\label{fig:registers:pr}Predicate Registers (\texttt{P})]{\begin{minipage}{7cm}~\end{minipage}}
+    \vspace*{\stretch{1}}
 
-    \vspace{1cm}
+    \subfloat[\label{fig:registers:pr}Predicate Registers (\texttt{P})]{
+      \newcommand{\bitlabel}[1]{
+        \bitbox[]{1}{\raisebox{0pt}[5ex][1pt]{\turnbox{45}{\fontsize{7}{7}\selectfont#1}}}
+      }
+      \begin{bytefield}[bitwidth=1.5em]{8}
+        \bitlabel{p7} \bitlabel{p6} \bitlabel{p5} \bitlabel{p4}
+        \bitlabel{p3} \bitlabel{p2} \bitlabel{p1} \bitlabel{p0 -- Readonly, always \texttt{1}} \\
+        \bitheader{0-7} \\
+        \bitbox{1}{} \bitbox{1}{} \bitbox{1}{} \bitbox{1}{}
+        \bitbox{1}{} \bitbox{1}{} \bitbox{1}{} \bitbox{1}{} \\
+      \end{bytefield}
+    }
 
-    \begin{bytefield}{32}
-      \bitheader[b]{0-31} \\
-      \bitbox{24}{reserved} & \bitbox{8}{p7 \dots p0} & \bitbox[]{4}{s0} \\
-      \bitbox{32}{sm (load result)} \bitbox[]{4}{s1} \\
-      \bitbox{32}{sl (mul low)} & \bitbox[]{4}{s2} \\
-      \bitbox{32}{sh (mul high)} & \bitbox[]{4}{s3} \\
-      \bitbox{32}{s4} \\
-      \bitbox{32}{ss (spill pointer)} & \bitbox[]{4}{s5} \\
-      \bitbox{32}{st (stack pointer)} & \bitbox[]{4}{s6} \\
-      \bitbox{32}{s7} \\ \bitbox{32}{s8} \\
-      \bitbox{32}{s9} \\ \bitbox{32}{s10} \\ \bitbox{32}{s11} \\
-      \bitbox{32}{s12} \\ \bitbox{32}{s13} \\ \bitbox{32}{s14} \\ \bitbox{32}{s15} \\
-    \end{bytefield} \\ [-6mm]
-    \subfigure[\label{fig:registers:s}Special-Purpose Registers (\texttt{S})]{\begin{minipage}{7cm}~\end{minipage}}
+    \vspace*{\stretch{2}}
+
+    \subfloat[\label{fig:registers:s}Special-Purpose Registers (\texttt{S})]{
+      \begin{bytefield}[bitwidth=.59em]{32}
+        \bitheader{0-31} \\
+        \bitbox{24}{reserved} \bitbox{8}{p7 \dots p0} \bitbox[]{4}{s0} \\
+        \bitbox{32}{sm (load result)} \bitbox[]{4}{s1} \\
+        \bitbox{32}{sl (mul low)} \bitbox[]{4}{s2} \\
+        \bitbox{32}{sh (mul high)} \bitbox[]{4}{s3} \\
+        \bitbox{32}{s4} \\
+        \bitbox{32}{ss (spill pointer)} \bitbox[]{4}{s5} \\
+        \bitbox{32}{st (stack pointer)} \bitbox[]{4}{s6} \\
+        \bitbox{32}{s7} \\ \bitbox{32}{s8} \\
+        \bitbox{32}{s9} \\ \bitbox{32}{s10} \\ \bitbox{32}{s11} \\
+        \bitbox{32}{s12} \\ \bitbox{32}{s13} \\ \bitbox{32}{s14} \\ \bitbox{32}{s15} \\
+      \end{bytefield}
+    }
+
+    \vspace*{\stretch{4}}~
+
   \end{multicols}
 
-
-  \caption{General-purpose register files, predicate registers, and
+  \caption{General-purpose register file, predicate registers, and
            special-purpose registers of Patmos.}
   \label{fig:registers}
-\end{figure*}
+\end{figure}
 
 \section{Bundle Formats}
 
@@ -416,16 +415,24 @@ one of the instruction formats defined in the following section. Up to two
 instructions can be combined to form an instruction bundle; Patmos bundles are
 thus either 32 or 64 bits wide. The bundles sizes are recognized by the value of
 the most significant bit, where $0$ indicates a short, 32-bit bundle and $1$ a
-long, 64-bit bundle. \\[2mm] The following figures illustrate these two bundle
-variants:
+long, 64-bit bundle.
 
+The following figures illustrate these two bundle variants:
 \begin{itemize}
- \item 32-bit bundle format \\[2mm]
-       \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{0} & \bitbox{31}{\bitssubclass} \\ \end{bytefield}
+ \item 32-bit bundle format\\[2ex]
+   \begin{bytefield}{32}
+     \bitheader{0-31} \\
+     \bitbox{1}{0} & \bitbox{31}{\bitssubclass} \\
+   \end{bytefield}
 
- \item 64-bit bundle format \\[2mm]
-      \begin{bytefield}{64} \bitheader[b]{32-63}\\ \bitbox{1}{1} & \bitbox{31}{\bitssubclass}  \\ \end{bytefield}
-      \begin{bytefield}{32} \bitheader[b]{0-31} \\ \bitbox{1}{x} & \bitbox{31}{\bitssubclass}  \\ \end{bytefield}
+ \item 64-bit bundle format \\[2ex]
+   \begin{bytefield}[lsb=32]{32} \bitheader{32-63} \\
+     \bitbox{1}{1} & \bitbox{31}{\bitssubclass} \\
+   \end{bytefield}
+   \hspace{.5em}
+   \begin{bytefield}{32} \bitheader{0-31} \\
+     \bitbox{1}{x} & \bitbox{31}{\bitssubclass} \\
+   \end{bytefield}
 \end{itemize}
 
 \section{Instruction Formats}
@@ -436,77 +443,206 @@ section. Gray fields indicate bits whose function is determined by a sub-class
 of the instruction format. Black fields are not used.
 
 \begin{itemize}
-  \item ALUi -- Arithmetic Immediate \\[2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{00} & \bitbox{3}{Func} & \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{12}{Immediate}\end{bytefield} \\
-  \item ALUl -- Long Immediate\\[2mm]
-      \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{1} & \bitbox{4}{Pred} & \bitbox{5}{11111} & \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{5}{\bitsunused} & \bitbox{3}{000} & \bitbox{4}{Func} \end{bytefield} \\ [3mm]
-      \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{32}{Long Immediate} \end{bytefield} \\
-  \item ALU -- Arithmetic \\[2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} & \bitbox{15}{\bitssubclass} & \bitbox{3}{Opc} & \bitbox{4}{Func} \end{bytefield} \\
-  \begin{itemize}
-    \item ALUr -- Register \\[2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} & \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} & \bitbox{3}{000} & \bitbox{4}{Func} \end{bytefield} \\
-    \item ALUm -- Multiply \\[2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} & \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} & \bitbox{3}{010} & \bitbox{4}{Func} \end{bytefield} \\
-    \item ALUc -- Compare \\[2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} & \bitbox{2}{\bitsunused} & \bitbox{3}{Pd} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} & \bitbox{3}{011} & \bitbox{4}{Func} \end{bytefield} \\
-    \item ALUp -- Predicate \\[2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} & \bitbox{2}{\bitsunused} & \bitbox{3}{Pd} & \bitbox{1}{\bitsunused} & \bitbox{4}{Ps1} & \bitbox{1}{\bitsunused} & \bitbox{4}{Ps2} & \bitbox{3}{100} & \bitbox{4}{Func}\end{bytefield}\\
-    \item Unused \\[2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} & \bitbox{15}{\bitssubclass} & \bitbox{3}{001} & \bitbox{4}{Func}\end{bytefield}\\ [2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} & \bitbox{15}{\bitssubclass} & \bitbox{3}{101} & \bitbox{4}{Func}\end{bytefield}\\ [2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} & \bitbox{15}{\bitssubclass} & \bitbox{3}{110} & \bitbox{4}{Func}\end{bytefield}\\ [2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} & \bitbox{15}{\bitssubclass} & \bitbox{3}{111} & \bitbox{4}{Func}\end{bytefield}
-  \end{itemize}
+  \item ALUi -- Arithmetic Immediate \\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{00} & \bitbox{3}{Func} &
+      \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{12}{Immediate} \\
+    \end{bytefield}
+  \item ALUl -- Long Immediate \\[2ex]
+    \begin{bytefield}{32} 
+      \bitheader{0-31} \\
+      \bitbox{1}{1} & \bitbox{4}{Pred} & \bitbox{5}{11111} &
+      \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{5}{\bitsunused} &
+      \bitbox{3}{000} & \bitbox{4}{Func} \\
+      \bitheader{0-31} \\ 
+      \bitbox{32}{Long Immediate} \\
+    \end{bytefield}
+  \item ALU -- Arithmetic \\[2ex]
+        \begin{bytefield}{32}
+          \bitheader{0-31} \\
+          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
+          \bitbox{15}{\bitssubclass} &
+          \bitbox{3}{Opc} & \bitbox{4}{Func} \\
+        \end{bytefield}
 
-  \item SPC -- Special \\[2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} & \bitbox{15}{\bitssubclass} & \bitbox{3}{Opc} & \bitbox{4}{I/R/F} \end{bytefield}\\
-  \begin{itemize}
-    \item SPCw -- Wait \\[2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} & \bitbox{15}{\bitsunused} & \bitbox{3}{001} & \bitbox{4}{Func} \end{bytefield}\\
-    \item SPCt -- Move To Special \\[2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} & \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{5}{\bitsunused} & \bitbox{3}{010} & \bitbox{4}{Sd} \end{bytefield}\\
-    \item SPCf -- Move From Special \\[2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} & \bitbox{5}{Rd} & \bitbox{10}{\bitsunused} & \bitbox{3}{011} & \bitbox{4}{Ss} \end{bytefield}\\
-    \item Unused \\[2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} & \bitbox{15}{\bitssubclass} & \bitbox{3}{000} & \bitbox{4}{I/R/F} \end{bytefield}\\ [2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} & \bitbox{15}{\bitssubclass} & \bitbox{3}{100} & \bitbox{4}{I/R/F} \end{bytefield}\\ [2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} & \bitbox{15}{\bitssubclass} & \bitbox{3}{101} & \bitbox{4}{I/R/F} \end{bytefield}\\ [2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} & \bitbox{15}{\bitssubclass} & \bitbox{3}{110} & \bitbox{4}{I/R/F} \end{bytefield}\\ [2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} & \bitbox{15}{\bitssubclass} & \bitbox{3}{111} & \bitbox{4}{I/R/F} \end{bytefield}\\
-  \end{itemize}
+        \begin{bytefield}[leftcurly=.]{32}
+          \begin{leftwordgroup}{\parbox{8em}{ALUr -- Register}}
+            \bitheader{0-31} \\
+            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
+            \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
+            \bitbox{3}{000} & \bitbox{4}{Func}
+          \end{leftwordgroup} \\
+          \begin{leftwordgroup}{\parbox{8em}{ALUm -- Multiply}}
+            \bitheader{0-31} \\
+            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
+            \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
+            \bitbox{3}{010} & \bitbox{4}{Func}
+          \end{leftwordgroup} \\
+          \begin{leftwordgroup}{\parbox{8em}{ALUc -- Compare}}
+            \bitheader{0-31} \\
+            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
+            \bitbox{2}{\bitsunused} & \bitbox{3}{Pd} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
+            \bitbox{3}{011} & \bitbox{4}{Func}
+          \end{leftwordgroup} \\
+          \begin{leftwordgroup}{\parbox{8em}{ALUp -- Predicate}}
+            \bitheader{0-31} \\
+            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
+            \bitbox{2}{\bitsunused} & \bitbox{3}{Pd} & \bitbox{1}{\bitsunused} & \bitbox{4}{Ps1} & \bitbox{1}{\bitsunused} & \bitbox{4}{Ps2} &
+            \bitbox{3}{100} & \bitbox{4}{Func}
+          \end{leftwordgroup} \\
+          %% \begin{leftwordgroup}{\parbox{8em}{Unused}}
+          %%   \bitheader{0-31} \\
+          %%   \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
+          %%   \bitbox{15}{\bitssubclass} &
+          %%   \bitbox{3}{001} & \bitbox{4}{Func}
+          %% \end{leftwordgroup} \\
+          %% \begin{leftwordgroup}{\parbox{8em}{Unused}}
+          %%   \bitheader{0-31} \\
+          %%   \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
+          %%   \bitbox{15}{\bitssubclass} &
+          %%   \bitbox{3}{101} & \bitbox{4}{Func}
+          %% \end{leftwordgroup} \\
+          %% \begin{leftwordgroup}{\parbox{8em}{Unused}}
+          %%   \bitheader{0-31} \\
+          %%   \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
+          %%   \bitbox{15}{\bitssubclass} &
+          %%   \bitbox{3}{110} & \bitbox{4}{Func}
+          %% \end{leftwordgroup} \\
+          %% \begin{leftwordgroup}{\parbox{8em}{Unused}}
+          %%   \bitheader{0-31} \\
+          %%   \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
+          %%   \bitbox{15}{\bitssubclass} &
+          %%   \bitbox{3}{111} & \bitbox{4}{Func}
+          \end{leftwordgroup} \\
+        \end{bytefield}
 
-  \item LDT -- Load Typed \\[2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01010} & \bitbox{5}{Rd} & \bitbox{5}{Ra} & \bitbox{5}{Type} & \bitbox{7}{Offset}\end{bytefield}\\
-  \item STT -- Store Typed \\[2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01011}  & \bitbox{5}{Type} & \bitbox{5}{Ra} & \bitbox{5}{Rs} & \bitbox{7}{Offset} \end{bytefield}\\
+  \item SPC -- Special \\[2ex]
+        \begin{bytefield}{32}
+          \bitheader{0-31} \\
+          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} &
+          \bitbox{15}{\bitssubclass} &
+          \bitbox{3}{Opc} & \bitbox{4}{I/R/F} \\
+        \end{bytefield}
 
-  \item STC -- Stack Control \\[2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01100} & \bitbox{2}{Op} & \bitbox{2}{F} & \bitbox{18}{\bitssubclass} \end{bytefield}\\
-  \begin{itemize}
-    \item STCi -- Stack Control Immediate \\[2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01100} & \bitbox{2}{Op} & \bitbox{2}{00} & \bitbox{18}{Immediate}\end{bytefield} \\
-    \item STCr -- Stack Control Register \\[2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01100} & \bitbox{2}{Op} & \bitbox{2}{01} & \bitbox{1}{\bitsunused} & \bitbox{5}{Rs} & \bitbox{12}{\bitsunused}\end{bytefield} \\
-  \end{itemize}
+        \begin{bytefield}[leftcurly=.]{32}
+          \begin{leftwordgroup}{\parbox{11em}{SPCw -- Wait}}
+            \bitheader{0-31} \\
+            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} &
+            \bitbox{15}{\bitsunused} &
+            \bitbox{3}{001} & \bitbox{4}{Func}
+          \end{leftwordgroup} \\
+          \begin{leftwordgroup}{\parbox{11em}{SPCt -- Move To Special}}
+            \bitheader{0-31} \\
+            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} &
+            \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{5}{\bitsunused} &
+            \bitbox{3}{010} & \bitbox{4}{Sd}
+          \end{leftwordgroup} \\
+          \begin{leftwordgroup}{\parbox{11em}{SPCf -- Move From Special}}
+            \bitheader{0-31} \\
+            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} &
+            \bitbox{5}{Rd} & \bitbox{10}{\bitsunused} &
+            \bitbox{3}{011} & \bitbox{4}{Ss}
+          \end{leftwordgroup} \\
+          %% \begin{leftwordgroup}{\parbox{11em}{Unused}}
+          %%   \bitheader{0-31} \\
+          %%   \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} &
+          %%   \bitbox{15}{\bitssubclass} &
+          %%   \bitbox{3}{000} & \bitbox{4}{I/R/F}
+          %% \end{leftwordgroup} \\
+          %% \begin{leftwordgroup}{\parbox{11em}{Unused}}
+          %%   \bitheader{0-31} \\
+          %%   \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} & 
+          %%   \bitbox{15}{\bitssubclass} &
+          %%   \bitbox{3}{100} & \bitbox{4}{I/R/F}
+          %% \end{leftwordgroup} \\
+          %% \begin{leftwordgroup}{\parbox{11em}{Unused}}
+          %%   \bitheader{0-31} \\
+          %%   \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} &
+          %%   \bitbox{15}{\bitssubclass} &
+          %%   \bitbox{3}{101} & \bitbox{4}{I/R/F}
+          %% \end{leftwordgroup} \\
+          %% \begin{leftwordgroup}{\parbox{11em}{Unused}}
+          %%   \bitheader{0-31} \\
+          %%   \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} &
+          %%   \bitbox{15}{\bitssubclass} &
+          %%   \bitbox{3}{110} & \bitbox{4}{I/R/F}
+          %% \end{leftwordgroup} \\
+          %% \begin{leftwordgroup}{\parbox{11em}{Unused}}
+          %%   \bitheader{0-31} \\
+          %%   \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} &
+          %%   \bitbox{15}{\bitssubclass} &
+          %%   \bitbox{3}{111} & \bitbox{4}{I/R/F}
+          %% \end{leftwordgroup}
+        \end{bytefield}
 
-  \item CFL -- Control Flow \\[2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{11x} & \bitbox{2}{Op} & \bitbox{22}{\bitssubclass}\end{bytefield}\\
+  \item LDT -- Load Typed \\[2ex]
+        \begin{bytefield}{32}
+          \bitheader{0-31} \\
+          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01010} &
+          \bitbox{5}{Rd} & \bitbox{5}{Ra} & \bitbox{5}{Type} & \bitbox{7}{Offset} \\
+        \end{bytefield}
+  \item STT -- Store Typed \\[2ex]
+        \begin{bytefield}{32}
+          \bitheader{0-31} \\
+          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01011} &
+          \bitbox{5}{Type} & \bitbox{5}{Ra} & \bitbox{5}{Rs} & \bitbox{7}{Offset} \\
+        \end{bytefield}
 
-  \begin{itemize}
-    \item CFLb -- Call / Branch \\[2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{110} & \bitbox{2}{Op} & \bitbox{22}{Immediate}\end{bytefield}\\
-    \item CFLi -- Call / Branch Indirect \\[2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{111} & \bitbox{2}{00} & \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{8}{\bitsunused} & \bitbox{4}{Op}\end{bytefield}\\
-    \item CFLr -- Return \\[2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{111} & \bitbox{2}{10} & \bitbox{5}{\bitsunused} & \bitbox{5}{Rb} & \bitbox{5}{Ro} & \bitbox{3}{\bitsunused} &\bitbox{4}{Op}\end{bytefield}\\
-    \item Reserved \\[2mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{111} & \bitbox{2}{11} & \bitbox{22}{\bitssubclass}\end{bytefield}\\
-  \end{itemize}
+  \item STC -- Stack Control \\[2ex]
+        \begin{bytefield}{32}
+          \bitheader{0-31} \\
+          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01100} &
+          \bitbox{2}{Op} & \bitbox{2}{F} & \bitbox{18}{\bitssubclass} \\
+        \end{bytefield}
+
+        \begin{bytefield}[leftcurly=.]{32}
+          \begin{leftwordgroup}{\parbox{13em}{STCi -- Stack Control Immediate}}
+            \bitheader{0-31} \\
+            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01100} &
+            \bitbox{2}{Op} & \bitbox{2}{00} &
+            \bitbox{18}{Immediate}
+          \end{leftwordgroup} \\
+          \begin{leftwordgroup}{\parbox{13em}{STCr -- Stack Control Register}}
+            \bitheader{0-31} \\
+            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01100} &
+            \bitbox{2}{Op} & \bitbox{2}{01} &
+            \bitbox{1}{\bitsunused} & \bitbox{5}{Rs} & \bitbox{12}{\bitsunused}
+          \end{leftwordgroup}
+        \end{bytefield}
+
+  \item CFL -- Control Flow \\[2ex]
+        \begin{bytefield}{32}
+          \bitheader{0-31} \\
+          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{11x} & \bitbox{2}{Op} &
+          \bitbox{22}{\bitssubclass} \\
+        \end{bytefield}
+
+        \begin{bytefield}[leftcurly=.]{32}
+          \begin{leftwordgroup}{\parbox{12em}{CFLb -- Call / Branch}}
+            \bitheader{0-31} \\
+            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{110} & \bitbox{2}{Op} &
+            \bitbox{22}{Immediate}
+          \end{leftwordgroup} \\
+          \begin{leftwordgroup}{\parbox{12em}{CFLi -- Call / Branch Indirect}}
+            \bitheader{0-31} \\
+            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{111} & \bitbox{2}{00} & 
+            \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{8}{\bitsunused} & \bitbox{4}{Op}
+          \end{leftwordgroup} \\
+          \begin{leftwordgroup}{\parbox{12em}{CFLr -- Return}}
+            \bitheader{0-31} \\
+            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{111} & \bitbox{2}{10} &
+            \bitbox{5}{\bitsunused} & \bitbox{5}{Rb} & \bitbox{5}{Ro} & \bitbox{3}{\bitsunused} &\bitbox{4}{Op}
+          \end{leftwordgroup} \\
+          \begin{leftwordgroup}{\parbox{12em}{Reserved}}
+            \bitheader{0-31} \\
+            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{111} & \bitbox{2}{11} &
+            \bitbox{22}{\bitssubclass}
+          \end{leftwordgroup} \\
+        \end{bytefield}
 \end{itemize}
 
-\stefan{I added the STCr format as subformat of STC, but it could also be made a subformat of SPC, using bits 1-0 for Op.}
-
+\clearpage
 \section{Instruction Opcodes}
 \label{sec:instruction_opcodes}
 
@@ -515,67 +651,82 @@ and the behavior of the respective instructions of Patmos. This section should
 be less used for discussions and should slowly converge to a final definition
 of the instruction set.
 
-\subsection{Binary Arithmetic} Applies to the ALUr, ALUi, and ALUl formats.
-Operand \texttt{Op2} denotes either the \texttt{Rs2}, or the \texttt{Immediate} operand, 
-or the \texttt{Long Immediate}. For the ALUi format only
-the first $8$ opcodes are supported. The immediate operand is zero-extended.
-For shift and rotate operations, only the lower $5$ bits of the operand are
-considered.
+\subsection{Binary Arithmetic}
+
+Applies to the ALUr, ALUi, and ALUl formats.  Operand \texttt{Op2}
+denotes either the \texttt{Rs2}, or the \texttt{Immediate} operand, or
+the \texttt{Long Immediate}. The immediate operand is zero-extended.  For
+shift and rotate operations, only the lower $5$ bits of the operand
+are considered. Table~\ref{tab:alufunc} shows the encoding of the
+\texttt{func} field; for ALUi instructions, only functions in the
+upper half of that table are available.
+
 \begin{itemize}
-  \item[-] ALUr -- Register \\[3mm]
-           \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} & \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} & \bitbox{3}{000} & \bitbox{4}{Func} \end{bytefield} \\
-  \item[-] ALUi -- Arithmetic Immediate \\[3mm]
-           \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{00} & \bitbox{3}{Func} & \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{12}{Immediate}\end{bytefield} \\
-  \item[-] ALUl -- Long Immediate\\[3mm]
-           \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{1} & \bitbox{4}{Pred} & \bitbox{5}{11111} & \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{5}{\bitsunused} & \bitbox{3}{000} & \bitbox{4}{Func} \end{bytefield} \\ [3mm]
-           \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{32}{Long Immediate} \end{bytefield} \\
+  \item ALUr -- Register \\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
+      \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
+      \bitbox{3}{000} & \bitbox{4}{Func} \\
+    \end{bytefield}
+  \item ALUi -- Arithmetic Immediate \\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{00} & \bitbox{3}{Func} &
+      \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{12}{Immediate} \\
+    \end{bytefield}
+  \item ALUl -- Long Immediate\\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{1} & \bitbox{4}{Pred} & \bitbox{5}{11111} &
+      \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{5}{\bitsunused} & 
+      \bitbox{3}{000} & \bitbox{4}{Func} \\
+      \bitheader{0-31} \\ 
+      \bitbox{32}{Long Immediate} \\
+   \end{bytefield}
 \end{itemize}
 
-\begin{tabular}{lll}
-  Func & Name   & Semantics \\ \hline
-  \arrayrulecolor{gray}
-  0000 & add    & \texttt{Rd = Rs1 + Op2} \\
-  0001 & sub    & \texttt{Rd = Rs1 - Op2} \\
-  0010 & xor    & \texttt{Rd = Rs1 \XOR Op2} \\
-  0011 & sl     & \texttt{Rd = Rs1 \shl Op2$_{[0:4]}$} \\
-  0100 & sr     & \texttt{Rd = Rs1 \shr Op2$_{[0:4]}$} \\
-  0101 & sra    & \texttt{Rd = Rs1 \ashr Op2$_{[0:4]}$} \\
-  0110 & or     & \texttt{Rd = Rs1 \OR Op2} \\
-  0111 & and    & \texttt{Rd = Rs1 \AND Op2} \\ \hline
-  1000 & ---	& unused \\
-  1001 & ---    & unused \\
-%  1000 & rl     & \texttt{Rd = (Rs1 \shl Op2$_{[0:4]}$) \OR} \\
-%       &        & \texttt{\phantom{Rd = }(Rs1 \shr (32-Op2$_{[0:4]}$))} \\
-%  1001 & rr     & \texttt{Rd = (Rs1 \shr Op2$_{[0:4]}$) \OR} \\
-%       &        & \texttt{\phantom{Rd = }(Rs1 \shl (32-Op2$_{[0:4]}$))} \\
-  1010 & ---    & unused \\
-  1011 & nor    & \texttt{Rd = \NOT (Rs1 \OR Op2)} \\
-  1100 & shadd  & \texttt{Rd = (Rs1 \shl 1) + Op2} \\
-  1101 & shadd2 & \texttt{Rd = (Rs1 \shl 2) + Op2} \\
-  \arrayrulecolor{black}
-  1110 & ---    & unused \\
-  1111 & ---    & unused \\ \hline
-\end{tabular}
+\begin{table}[hb]
+  \centering
+  \begin{tabular}{lll}
+    \toprule
+    Func & Name   & Semantics \\
+    \midrule
+    0000 & add    & \texttt{Rd = Rs1 + Op2} \\
+    0001 & sub    & \texttt{Rd = Rs1 - Op2} \\
+    0010 & xor    & \texttt{Rd = Rs1 \XOR Op2} \\
+    0011 & sl     & \texttt{Rd = Rs1 \shl Op2$_{[0:4]}$} \\
+    0100 & sr     & \texttt{Rd = Rs1 \shr Op2$_{[0:4]}$} \\
+    0101 & sra    & \texttt{Rd = Rs1 \ashr Op2$_{[0:4]}$} \\
+    0110 & or     & \texttt{Rd = Rs1 \OR Op2} \\
+    0111 & and    & \texttt{Rd = Rs1 \AND Op2} \\
+    \cmidrule{1-3}
+    1000 & ---	& unused \\
+    1001 & ---    & unused \\
+    1010 & ---    & unused \\
+    1011 & nor    & \texttt{Rd = \NOT (Rs1 \OR Op2)} \\
+    1100 & shadd  & \texttt{Rd = (Rs1 \shl 1) + Op2} \\
+    1101 & shadd2 & \texttt{Rd = (Rs1 \shl 2) + Op2} \\
+    1110 & ---    & unused \\
+    1111 & ---    & unused \\
+    \bottomrule
+  \end{tabular}
+  \caption{General ALU functions}
+  \label{tab:alufunc}
+\end{table}
 
-\rasmus{All instrctions are available with an immediate as the second operant.
-Some of the instructions are also available with long immediates.}
-\stefan{It's actually the opposite, all instructions have long immediate versions, some of them (the first 8) have also short immediate
-variants.}
-
-\vspace{7mm}
-\emph{Pseudo Instructions}
+\paragraph{Pseudo Instructions}
 \begin{itemize}
-  \item[-] \texttt{mov Rd = Rs}~\dots~\texttt{add Rd = Rs + 0}
-  \item[-] \texttt{clr Rd}~\dots~\texttt{add Rd = r0 + 0}
-  \item[-] \texttt{neg Rd = -Rs}~\dots~\texttt{sub Rd = 0 - Rs}
-  \item[-] \texttt{not Rd = \NOT Rs}~\dots~\texttt{nor Rd = \NOT (Rs \OR R0)}
-  \item[-] \texttt{li Rd = Immediate}~\dots~\texttt{add Rd = r0 + Immediate}
-  \item[-] \texttt{li Rd = Immediate}~\dots~\texttt{sub Rd = r0 - Immediate}
-  \item[-] \texttt{nop}~\dots~\texttt{sub r0 = r0 - 0}
+  \item \texttt{mov Rd = Rs}~\dots~\texttt{add Rd = Rs + 0}
+  \item \texttt{clr Rd}~\dots~\texttt{add Rd = r0 + 0}
+  \item \texttt{neg Rd = -Rs}~\dots~\texttt{sub Rd = 0 - Rs}
+  \item \texttt{not Rd = \NOT Rs}~\dots~\texttt{nor Rd = \NOT (Rs \OR R0)}
+  \item \texttt{li Rd = Immediate}~\dots~\texttt{add Rd = r0 + Immediate}
+  \item \texttt{li Rd = Immediate}~\dots~\texttt{sub Rd = r0 - Immediate}
+  \item \texttt{nop}~\dots~\texttt{sub r0 = r0 - 0}
 \end{itemize}
 
-\vspace{7mm}
-\emph{Behavior}
+\paragraph{Behavior}
 \begin{itemize}
   \item[\texttt{IF}] --
   \item[\texttt{DR}] Read register operands \texttt{Pred}, \texttt{Rs1}, and
@@ -591,96 +742,52 @@ variants.}
                      Supply result value for by-passing to \texttt{EX} stage.
 \end{itemize}
 
-\vspace{5mm}
-\emph{Note}
-Function codes \texttt{1000} and \texttt{1001} have been used for rotate left and rotate right, they have been removed.
+\paragraph{Note}
+The use of \texttt{sub r0 = r0 - 0} to encode a \texttt{nop}
+pseudo-instruction results in a value of \texttt{0x00400000} in the
+binary instruction stream. This helps in distinguishing the execution
+of compiler-generated \texttt{nops} from executing instructions from
+memory that happens to be zero.
 
-\jack{Some of these operations are most unlikely to be used by the
-compiler. OpenRISC had a similar set and in the end only the main
-five (add/sub/xor/and/or) were actually used by GCC. This was
-a waste of opcode space and also meant the ALU was much bigger
-than it needed to be. In this case we are using LLVM, and that means
-that we should omit ALU operations unless they appear in
-LLVM's intermediate representation.}
+\clearpage
+\subsection{Multiply}
 
-\fb{Shifts and rotates are quit common too. The shadd variants are intended for
-address calculations since the number of bits available for loads/stores is
-quite limited.}
-
-\jack{shadd etc.~does have a purpose, I can agree. It can be used to
-implement the LLVM IR operation getelementptr, where multiplying by 2 or
-4 is very common.  The rotates I am still unsure about. There are no
-rotate operations in the LLVM IR. Same for nor. I think this stems from the
-C language, where there are also no rotates.}
-
-\gebhard{Why do we implement special instructions to ensure 2-byte and 4-byte alignment?
-We could instead reserve some bits of the immediate constant to allow larger alignment.
-For array of structures this would become handy, as we then only need one instruction to compute the offset to an element in the array.}
-
-\daniel{Single cycle NOP: Jack pointed out that a NOP instruction with all-zero
-encoding might be undesirable, as it would be indistinguishable from uninitialized memory.
-Hence the suggestion for a nop where only 1 bit is set. you'd see it as $0x40000000$
-in the instruction stream.}
-
-\stefan{We use \texttt{sub} for the NOP, so that we always have an encoding different from 0, even with the default predicate.
-Otherwise we would need to handle NOPs as special case for predicate handling.}
-
-\daniel{In this case, you'd see $0x00400000$.
-From the predicate logic perspective, it should be no big deal to use \texttt{!p0}.
-Special treatment would manifest itself in (dis-)assembling.
-Though, I worry about the possibility of \texttt{r0} being nonzero when read from a bypass,
-like Martin described at one occasion. Then, we can't even use nop to mask that effect.
-Imagine using a speculative load or whatever other reason to exploit \texttt{r0} being a data sink:
-}
-\begin{verbatim}
-lwc r0 = [addr] # speculative load to cache
-nop             # (sub r0 = r0 - 0): r0 != 0
-li  r1 = imm    # (add r1 = r0 + imm ):
-                #   r0 != 0 => r1 != imm
-\end{verbatim}
-
-\martin{I'm very skeptic that we need the second set of ALU
-operations. It just adds some more multiplexers into the
-critical path. There is no rotate in C. We don't need two
-versions of the rotate instructions as those are the same.}
-
-
-\subsection{Multiply} Applies to the ALUm format only. Multiplications are
-executed in parallel with the regular pipeline and finish within a fixed number
-of cycles \todo{how many?}.
+Applies to the ALUm format only. Multiplications are executed in
+parallel with the regular pipeline and finish within a fixed number of
+cycles \todo{how many?}. Table~\ref{tab:mulfunc} shows the encoding of
+the \texttt{func} field for the ALUm instruction format.
 
 \begin{itemize}
-  \item[-] ALUm -- Multiply \\[3mm]
-           \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} & \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} & \bitbox{3}{010} & \bitbox{4}{Func} \end{bytefield} \\
+  \item ALUm -- Multiply \\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
+      \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
+      \bitbox{3}{010} & \bitbox{4}{Func} \\
+    \end{bytefield}
 \end{itemize}
 
-\begin{tabular}{lll}
-  Func & Name   & Semantics \\ \hline
-  0000 & mul    & \texttt{sl = Rs1 * Rs2;}\\
-       &        & \texttt{sh = (Rs1 * Rs2) \shr 32} \\
-  0001 & mulu   & \texttt{sl = (uint32\_t)Rs1 *} \\
-       &        & \texttt{\phantom{sl = }(uint32\_t)Rs2;} \\
-       &        & \texttt{sh = ((uint32\_t)Rs1 *} \\
-       &        & \texttt{\phantom{sh = }((uint32\_t)Rs2) \shr 32} \\
-  0010 & ---    & unused \\
-%   0011 & ---    & unused \\
-%   0100 & ---    & unused \\
-%   0101 & ---    & unused \\
-%   0110 & ---    & unused \\
-%   0111 & ---    & unused \\
-%   1000 & ---    & unused \\
-%   1001 & ---    & unused \\
-%   1010 & ---    & unused \\
-%   1011 & ---    & unused \\
-%   1100 & ---    & unused \\
-%   1101 & ---    & unused \\
-%   1110 & ---    & unused \\
-  \dots& \dots  & \dots \\
-  1111 & ---    & unused \\ \hline
-\end{tabular}
+\begin{table}[hb]
+  \centering
+  \begin{tabular}{lll}
+    \toprule
+    Func & Name   & Semantics \\
+    \midrule
+    0000 & mul    & \texttt{sl = Rs1 * Rs2;}\\
+         &        & \texttt{sh = (Rs1 * Rs2) \shr 32} \\
+    0001 & mulu   & \texttt{sl = (uint32\_t)Rs1 * (uint32\_t)Rs2;} \\
+         &        & \texttt{sh = ((uint32\_t)Rs1 * (uint32\_t)Rs2) \shr 32} \\
+    0010 & ---    & unused \\
+    \dots& \dots  & \dots \\
+    1111 & ---    & unused \\
+    \bottomrule
+  \end{tabular}
+  \caption{Multiplication functions}
+  \label{tab:mulfunc}
+\end{table}
 
-\vspace{7mm}
-\emph{Behavior}
+
+\paragraph{Behavior}
 \begin{itemize}
   \item[\texttt{IF}] --
   \item[\texttt{DR}] Read register operands \texttt{Pred}, \texttt{Rs1},
@@ -696,11 +803,10 @@ of cycles \todo{how many?}.
                          \texttt{sh}.
 \end{itemize}
 
-\vspace{7mm}
-\emph{Note}
+\paragraph{Note}
 
-Multiplies are pipelined, it is thus possible to issue one multiplication on
-every cycles.
+Multiplications are pipelined, it is thus possible to issue one multiplication on
+every cycles. Multiplications can only be issued in the first slot. 
 
 \stefan{Not yet final. 64bit support and the special registers for multiply might 
 vanish. Maybe merge mul and mulu into the ALU Func field somehow to kill off the ALUm format? 
@@ -708,44 +814,51 @@ We could keep the special register to access the high word and write the low
 word into a GPR when using ALUl format, so we save one mfs per mul.
 (remove this comment when multiply ISA is (somewhat) finalized)}
 
-\vspace{5mm}
-\subsection{Compare} Applies to the ALUc format only.
+\clearpage
+\subsection{Compare}
+
+Applies to the ALUc format only. Table~\ref{tab:cmpfunc} shows the
+encoding of the \texttt{func} field for the ALUc format.
 
 \begin{itemize}
-  \item[-] ALUc -- Compare \\[3mm]
-          \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} & \bitbox{2}{\bitsunused} & \bitbox{3}{Pd} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} & \bitbox{3}{011} & \bitbox{4}{Func} \end{bytefield} \\
+  \item ALUc -- Compare \\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
+      \bitbox{2}{\bitsunused} & \bitbox{3}{Pd} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
+      \bitbox{3}{011} & \bitbox{4}{Func} \\
+    \end{bytefield}
 \end{itemize}
 
-\begin{tabular}{lll}
-  Func & Name   & Semantics \\ \hline
-  0000 & cmpeq  & \texttt{Pd = Rs1 ==  Rs2} \\
-  0001 & cmpneq & \texttt{Pd = Rs1 !=  Rs2} \\
-  0010 & cmplt  & \texttt{Pd = Rs1 \textless\ Rs2} \\
-  0011 & cmple  & \texttt{Pd = Rs1 \textless= Rs2} \\
-  0100 & cmpult & \texttt{Pd = Rs1 \textless\ Rs2, unsigned} \\
-  0101 & cmpule & \texttt{Pd = Rs1 \textless= Rs2, unsigned} \\
-  0110 & btest  & \texttt{Pd = (Rs1 \AND (1 \shl Rs2)) != 0} \\
-  0111 & ---    & unused \\
-%   1000 & ---    & unused \\
-%   1001 & ---    & unused \\
-%   1010 & ---    & unused \\
-%   1011 & ---    & unused \\
-%   1100 & ---    & unused \\
-%   1101 & ---    & unused \\
-%   1110 & ---    & unused \\
-  \dots& \dots  & \dots \\
-  1111 & ---    & unused \\ \hline
-\end{tabular}
+\begin{table}[hb]
+  \centering
+  \begin{tabular}{lll}
+    \toprule
+    Func & Name   & Semantics \\
+    \midrule
+    0000 & cmpeq  & \texttt{Pd = Rs1 ==  Rs2} \\
+    0001 & cmpneq & \texttt{Pd = Rs1 !=  Rs2} \\
+    0010 & cmplt  & \texttt{Pd = Rs1 \textless\ Rs2} \\
+    0011 & cmple  & \texttt{Pd = Rs1 \textless= Rs2} \\
+    0100 & cmpult & \texttt{Pd = Rs1 \textless\ Rs2, unsigned} \\
+    0101 & cmpule & \texttt{Pd = Rs1 \textless= Rs2, unsigned} \\
+    0110 & btest  & \texttt{Pd = (Rs1 \AND (1 \shl Rs2)) != 0} \\
+    0111 & ---    & unused \\
+    \dots& \dots  & \dots \\
+    1111 & ---    & unused \\
+    \bottomrule
+  \end{tabular}
+  \caption{Compare functions}
+  \label{tab:cmpfunc}
+\end{table}
 
-\vspace{7mm}
-\emph{Pseudo Instructions}
+\paragraph{Pseudo Instructions}
 \begin{itemize}
-  \item[-] \texttt{isodd Pd = Rs1}~\dots~\texttt{btest Pd = Rs1[r0]}
-  \item[-] \texttt{mov Pd = Rs}~\dots~\texttt{cmpneq Pd = Rs != r0}
+  \item \texttt{isodd Pd = Rs1}~\dots~\texttt{btest Pd = Rs1[r0]}
+  \item \texttt{mov Pd = Rs}~\dots~\texttt{cmpneq Pd = Rs != r0}
 \end{itemize}
 
-\vspace{7mm}
-\emph{Behavior}
+\paragraph{Behavior}
 \begin{itemize}
   \item[\texttt{IF}] --
   \item[\texttt{DR}] Read register operands \texttt{Pred}, \texttt{Rs1}, and
@@ -759,63 +872,63 @@ word into a GPR when using ALUl format, so we save one mfs per mul.
   \item[\texttt{MW}] --
 \end{itemize}
 
-\jack{I'm a bit doubtful about btest (see earlier comments). Might
-    be better to substitute $<, \geq$ comparisons
-    with zero as suggested by Stefan?}
-
-\fb{You can always use r0 to implement those.}
-
-\stefan{btest is used by the compiler to convert i1 from register to predicate.}
-
 \stefan{We discussed about adding short immediate versions, but with the current predicate handling this is not
 a trivial change for the compiler, so we skip that. Instead, we might introduce bez/bnez instructions, which is much more common anyway.}
 
-\vspace{5mm}
-\subsection{Predicate} Applies to the ALUp format only, the opcodes correspond
-to those of the ALU operations on general purpose registers.
+\clearpage
+\subsection{Predicate}
+
+Applies to the ALUp format only, the opcodes correspond to those of
+the ALU operations on general purpose
+registers. Table~\ref{tab:predfunc} shows the encoding of the
+\texttt{func} field for the ALUp format.
 
 \martin{Why do we have this encoding of predicate operations with empty function
 codes in-between? No need to be `compatible' with ALU operations, just makes decoding
 a little bit more complex.}
 
 \begin{itemize}
-  \item[-] ALUp -- Predicate \\[3mm]
-           \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} & \bitbox{2}{\bitsunused} & \bitbox{3}{Pd} & \bitbox{1}{\bitsunused} & \bitbox{4}{Ps1} & \bitbox{1}{\bitsunused} & \bitbox{4}{Ps2} & \bitbox{3}{100} & \bitbox{4}{Func}\end{bytefield}\\
+  \item ALUp -- Predicate \\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
+      \bitbox{2}{\bitsunused} & \bitbox{3}{Pd} & \bitbox{1}{\bitsunused} & \bitbox{4}{Ps1} & \bitbox{1}{\bitsunused} & \bitbox{4}{Ps2} &
+      \bitbox{3}{100} & \bitbox{4}{Func} \\
+    \end{bytefield}
 \end{itemize}
 
-\begin{tabular}{lll}
-  Func & Name   & Semantics \\ \hline
-  0000 & ---    & unused \\
-%   0001 & ---    & unused \\
-%   0010 & ---    & unused \\
-%   0011 & ---    & unused \\
-%   0100 & ---    & unused \\
-  \dots& \dots  & \dots \\
-  0101 & ---    & unused \\
-  0110 & por     & \texttt{Pd = Ps1 \OR Ps2} \\
-  0111 & pand    & \texttt{Pd = Ps1 \AND Ps2} \\
-  1000 & ---    & unused \\
-  1001 & ---    & unused \\
-  1010 & pxor    & \texttt{Pd = Ps1 \XOR Ps2} \\
-  1011 & ---    & unused \\
-  1100 & ---    & unused \\
-%   1101 & ---    & unused \\
-%   1110 & ---    & unused \\
-  \dots& \dots  & \dots \\
-  1111 & ---    & unused \\ \hline
-\end{tabular}
+\begin{table}[hb]
+  \centering
+  \begin{tabular}{lll}
+    \toprule
+    Func & Name   & Semantics \\
+    \midrule
+    0000 & ---    & unused \\
+    \dots& \dots  & \dots \\
+    0101 & ---    & unused \\
+    0110 & por     & \texttt{Pd = Ps1 \OR Ps2} \\
+    0111 & pand    & \texttt{Pd = Ps1 \AND Ps2} \\
+    1000 & ---    & unused \\
+    1001 & ---    & unused \\
+    1010 & pxor    & \texttt{Pd = Ps1 \XOR Ps2} \\
+    1011 & ---    & unused \\
+    \dots& \dots  & \dots \\
+    1111 & ---    & unused \\
+    \bottomrule
+  \end{tabular}
+  \caption{Predicate functions}
+  \label{tab:predfunc}
+\end{table}
 
-\vspace{7mm}
-\emph{Pseudo Instructions}
+\paragraph{Pseudo Instructions}
 \begin{itemize}
-  \item[-] \texttt{pmov Pd = Ps}~\dots~\texttt{por Pd = Ps \OR Ps}
-  \item[-] \texttt{pnot Pd = \NOT Ps}~\dots~\texttt{pxor Pd = (Ps \XOR p0)}
-  \item[-] \texttt{pset Pd = 1}~\dots~\texttt{por Pd = p0 \OR p0}
-  \item[-] \texttt{pclr Pd = 0}~\dots~\texttt{pxor Pd = p0 \XOR p0}
+  \item \texttt{pmov Pd = Ps}~\dots~\texttt{por Pd = Ps \OR Ps}
+  \item \texttt{pnot Pd = \NOT Ps}~\dots~\texttt{pxor Pd = (Ps \XOR p0)}
+  \item \texttt{pset Pd = 1}~\dots~\texttt{por Pd = p0 \OR p0}
+  \item \texttt{pclr Pd = 0}~\dots~\texttt{pxor Pd = p0 \XOR p0}
 \end{itemize}
 
-\vspace{7mm}
-\emph{Behavior}
+\paragraph{Behavior}
 \begin{itemize}
   \item[\texttt{IF}] --
   \item[\texttt{DR}] Read register operands \texttt{Pred}, \texttt{Ps1}, and
@@ -829,33 +942,15 @@ a little bit more complex.}
   \item[\texttt{MW}] --
 \end{itemize}
 
-\emph{Note}
+\paragraph{Note}
 
 All predicate combine instruction mnemonics (including pseudo instructions) are prefixed with \texttt{p}, 
 all other instructions involving predicates are not prefixed (e.g., moving from register to predicate).
-
-
-\stefan{How many different source registers can we use in one instruction, i.e., can we use two predicate operations in one cycle and do
-\texttt{(p0) p1 = p2 \& p3, (p4) p5 = p6 \& p7;}?
-}
-\martin{predicates are just single bits and are implemented in `real'
-registers. You can read from that as often as you like (just wires).}
-\jack{Why is the width of the Pred/Ps1/Ps2 field 4 bits if there are only
-8 predicate registers? I assume the first bit must mean ``not'', though
-in this case there is no need for a NOR operation.}
-\martin{True. pnor is gone.}
-\fb{This is now clearly stated in the definition of the register files. (felt
-    like the best place to keep this information)}
 
 \stefan{We have a mov with two registers (\texttt{add}), mov with two predicates (\texttt{por}), a mov from register to
 predicate (\texttt{cmpnez}), as well as mov from register bit to predicate (\texttt{btest}), but we are missing a 
 mov from predicate to register (is now a predicated set and predicated clr), and mov from predicate to register bit (is now done with
 bitmasks).}
-
-
-\vspace{5mm}
-\subsection{NOP} 
-Multicycle NOP has been removed from the ISA and replaced by a single cycle pseudo-instruction NOP (see ALU section). 
 
 %Applies to the SPCn format only. Issue \texttt{Imm} NOP
 %operations to the pipeline. The main idea is to save code size, however, the
@@ -863,12 +958,11 @@ Multicycle NOP has been removed from the ISA and replaced by a single cycle pseu
 %wait for a certain amount of time, ensure a minimal execution time, et cetera.
 %
 %\begin{itemize}
-%  \item[-] SPCn -- NOP \\[3mm]
-%        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} & \bitbox{15}{\bitsunused} & \bitbox{3}{000} & \bitbox{4}{Imm} \end{bytefield}\\
+%  \item SPCn -- NOP \\[2ex]
+%        \begin{bytefield}{32} \bitheader{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} & \bitbox{15}{\bitsunused} & \bitbox{3}{000} & \bitbox{4}{Imm} \end{bytefield}\\
 %\end{itemize}
 %
-%\vspace{7mm}
-%\emph{Behavior}
+%\paragraph{Behavior}
 %\begin{itemize}
 %  \item[\texttt{IF}] --
 %  \item[\texttt{DR}] Read register operands \texttt{Pred}.\\
@@ -878,50 +972,48 @@ Multicycle NOP has been removed from the ISA and replaced by a single cycle pseu
 %  \item[\texttt{MW}] --
 %\end{itemize}
 %
-%\vspace{7mm}
-%\emph{Note}
+%\paragraph{Note}
 %
 %A NOP can only be issued at the first position within a bundle. This does in no
 %way restrict the use of the NOP. It can always be scheduled in the next/previous
 %bundle, while incrementing/decrementing the number of NOP cycles accordingly;
 %the code size is in both cases not increased.
 
-\vspace{5mm}
-\subsection{Wait} Applies to the SPCw format only. Wait for a multiplication or
-memory operation to complete by stalling the pipeline.
+\clearpage
+\subsection{Wait}
+
+Applies to the SPCw format only. Wait for a multiplication or memory
+operation to complete by stalling the
+pipeline. Table~\ref{tab:waitfunc} shows theencoding of the
+\code{func} field.
 
 \begin{itemize}
-  \item[-] SPCw -- Wait \\[3mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} & \bitbox{15}{\bitsunused} & \bitbox{3}{001} & \bitbox{4}{Func} \end{bytefield}\\
+  \item SPCw -- Wait \\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} &
+      \bitbox{15}{\bitsunused} &
+      \bitbox{3}{001} & \bitbox{4}{Func} \\
+    \end{bytefield}
 \end{itemize}
 
-\begin{tabular}{lll}
-  Func & Name     & Semantics \\ \hline
-  0000 & wait.mem & Wait for a memory access \\
-  0001 & ---    & unused \\
-%   0010 & ---    & unused \\
-%   0011 & ---    & unused \\
-%   0100 & ---    & unused \\
-%   0101 & ---    & unused \\
-%   0110 & ---    & unused \\
-%   0111 & ---    & unused \\
-%   1000 & ---    & unused \\
-%   1001 & ---    & unused \\
-%   1010 & ---    & unused \\
-%   0111 & ---    & unused \\
-%   1000 & ---    & unused \\
-%   1001 & ---    & unused \\
-%   1010 & ---    & unused \\
-%   1011 & ---    & unused \\
-%   1100 & ---    & unused \\
-%   1101 & ---    & unused \\
-%   1110 & ---    & unused \\
-  \dots& \dots  & \dots \\
-  1111 & ---    & unused \\ \hline
-\end{tabular}
+\begin{table}[hb]
+  \centering
+  \begin{tabular}{lll}
+    \toprule
+    Func & Name     & Semantics \\
+    \midrule
+    0000 & wait.mem & Wait for a memory access \\
+    0001 & ---    & unused \\
+    \dots& \dots  & \dots \\
+    1111 & ---    & unused \\
+    \bottomrule
+  \end{tabular}
+  \caption{Wait function encoding}
+  \label{tab:waitfunc}
+\end{table}
 
-\vspace{7mm}
-\emph{Behavior}
+\paragraph{Behavior}
 \begin{itemize}
   \item[\texttt{IF}] --
   \item[\texttt{DR}] Read register operands \texttt{Pred}.\\
@@ -930,42 +1022,40 @@ memory operation to complete by stalling the pipeline.
   \item[\texttt{MW}] --
 \end{itemize}
 
-\vspace{7mm}
-\emph{Note}
+\paragraph{Note}
 
 A Wait can only be issued at the first position within a bundle.
 
+\clearpage
+\subsection{Move To Special}
 
-\vspace{5mm}
-\subsection{Move To Special} Applies to the SPCt format only. Copy the value of
-a general-purpose register to a special-purpose register.
+Applies to the SPCt format only. Copy the value of a general-purpose
+register to a special-purpose register. The only instruction is
+\texttt{mts}, which stores the content of general-purpose register
+\texttt{Rs1} in special register \texttt{Sd}.
 
 \begin{itemize}
-  \item[-] SPCt -- Move To Special \\[3mm]
-           \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} & \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{5}{\bitsunused} & \bitbox{3}{010} & \bitbox{4}{Sd} \end{bytefield}\\
+  \item SPCt -- Move To Special \\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} &
+      \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{5}{\bitsunused} &
+      \bitbox{3}{010} & \bitbox{4}{Sd} \\
+    \end{bytefield}
 \end{itemize}
 
-\begin{center}
-  \begin{tabular}{lll}
-    Name  & Semantics \\ \hline
-    mts   & \texttt{Sd = Rs1} \\ \hline
-  \end{tabular}
-\end{center}
-
-\vspace{7mm}
-\emph{Behavior}
+\paragraph{Behavior}
 \begin{itemize}
   \item[\texttt{IF}] --
   \item[\texttt{DR}] Read register operands \texttt{Pred} and \texttt{Rs1}.
   \item[\texttt{EX}] By-pass value for \texttt{Rs1}. \\
                      Derive write-enable signal for destination register
                      \texttt{Sd} from predicate \texttt{Pred}. \\
-                     Write to destination register \texttt{Sd}. \\
+                     Write to destination register \texttt{Sd}.
   \item[\texttt{MW}] --
 \end{itemize}
 
-\vspace{7mm}
-\emph{Note}
+\paragraph{Note}
 
 Special registers \texttt{sm}, \texttt{sl}, \texttt{sh} are read-only, writing
 to those registers may result in undefined behavior.
@@ -974,30 +1064,37 @@ to those registers may result in undefined behavior.
 \martin{Restart sounds problematic. I would say the special registers are part of the context and need to be saved and
 than writable.}
 
+\wolf{Saving \texttt{sm} can be faked by storing the contents of
+  \texttt{sm} to a reserved memory location and loading from there to
+  restore it. \texttt{sl} and \texttt{sh} should be writable though.}
+
 \martin{More on special registers: we build a RISC and there `special' registers
 sound quite CISCi for me. We shall keep those to a minimum. One for split
 load ok. One for the jul ok. But I don't think we need a 64-bit result in the
 multiplication. No direct support in C. If we do want to support more fancy
 DSP stuff I would actually go for a MAC operation. But not for now...}
 
+\wolf{The 64-bit result is already implemented in the hardware, so I guess we can keep it...}
 
-\vspace{5mm}
-\subsection{Move From Special} Applies to the SPCf format only. Copy the value
-of a special-purpose register to a general-purpose register.
+\clearpage
+\subsection{Move From Special}
+
+Applies to the SPCf format only. Copy the value of a special-purpose
+register to a general-purpose register. The only instruction is
+\texttt{mfs}, which loads the content of special register \texttt{Ss}
+to general-purpose register \texttt{Rd}.
 
 \begin{itemize}
-  \item[-] SPCf -- Move From Special \\[3mm]
-           \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} & \bitbox{5}{Rd} & \bitbox{10}{\bitsunused} & \bitbox{3}{011} & \bitbox{4}{Ss} \end{bytefield}\\
+  \item SPCf -- Move From Special \\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} &
+      \bitbox{5}{Rd} & \bitbox{10}{\bitsunused} &
+      \bitbox{3}{011} & \bitbox{4}{Ss} \\
+    \end{bytefield}
 \end{itemize}
 
-\begin{center}
-  \begin{tabular}{lll}
-    Name  & Semantics \\ \hline
-    mfs   & \texttt{Rd = Ss} \\ \hline
-  \end{tabular}
-\end{center}
-\vspace{7mm}
-\emph{Behavior}
+\paragraph{Behavior}
 \begin{itemize}
   \item[\texttt{IF}] --
   \item[\texttt{DR}] Read register operands \texttt{Pred} and \texttt{Ss}.
@@ -1017,7 +1114,7 @@ above, then we cannot read the result of a split load and start the next load in
 
 Are we able to issue two \texttt{mfs} ops in one cycle (e.g., read return base and return offset in the same cycle)?}
 
-\vspace{5mm}
+\clearpage
 \subsection{Load Typed}
 \label{subsec:load_typed}
 
@@ -1132,12 +1229,20 @@ register allocation.
 The displacement value (\code{Imm}) value is interpreted unsigned.
 
 \begin{itemize}
-  \item[-] LDT -- Load Typed \\[3mm]
-           \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01010} & \bitbox{5}{Rd} & \bitbox{5}{Ra} & \bitbox{5}{Type} & \bitbox{7}{Immediate}\end{bytefield}\\
+  \item LDT -- Load Typed \\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01010} &
+      \bitbox{5}{Rd} & \bitbox{5}{Ra} & \bitbox{5}{Type} & \bitbox{7}{Immediate} \\
+    \end{bytefield}
 \end{itemize}
 
+\begin{table}[htb!]
+  \centering
 \begin{tabular}{lll}
-  Type            & Name   & Semantics \\ \hline
+  \toprule
+  Type            & Name   & Semantics \\
+  \midrule
   000 \textbar~00 & lws    & \texttt{Rd=sc[Ra+(Imm \shl 2)]$_{32}$} \\
   000 \textbar~01 & lwl    & \texttt{Rd=lm[Ra+(Imm \shl 2)]$_{32}$ } \\
   000 \textbar~10 & lwc    & \texttt{Rd=dc[Ra+(Imm \shl 2)]$_{32}$} \\
@@ -1158,7 +1263,7 @@ The displacement value (\code{Imm}) value is interpreted unsigned.
   100 \textbar~01 & lbul   & \texttt{Rd=(uint32\_t)lm[Ra+Imm]$_{8}$ } \\
   100 \textbar~10 & lbuc   & \texttt{Rd=(uint32\_t)dc[Ra+Imm]$_{8}$} \\
   100 \textbar~11 & lbum   & \texttt{Rd=(uint32\_t)gm[Ra+Imm]$_{8}$} \\
-  \hline
+  \cmidrule{1-3}
   1010 \textbar~0 & dlwc   & \texttt{sm=dc[Ra+(Imm \shl 2)]$_{32}$} \\
   1010 \textbar~1 & dlwm   & \texttt{sm=gm[Ra+(Imm \shl 2)]$_{32}$} \\
   1011 \textbar~0 & dlhc   & \texttt{sm=(int32\_t)dc[Ra+(Imm \shl 1)]$_{16}$} \\
@@ -1168,17 +1273,21 @@ The displacement value (\code{Imm}) value is interpreted unsigned.
   1101 \textbar~0 & dlhuc  & \texttt{sm=(uint32\_t)dc[Ra+(Imm \shl 1)]$_{16}$} \\
   1101 \textbar~1 & dlhum  & \texttt{sm=(uint32\_t)gm[Ra+(Imm \shl 1)]$_{16}$} \\
   1110 \textbar~0 & dlbuc  & \texttt{sm=(uint32\_t)dc[Ra+Imm]$_{8}$} \\
-  1110 \textbar~1 & dlbum  & \texttt{sm=(uint32\_t)gm[Ra+Imm]$_{8}$} \\ \hline
+  1110 \textbar~1 & dlbum  & \texttt{sm=(uint32\_t)gm[Ra+Imm]$_{8}$} \\
+  \cmidrule{1-3}
   11110 & ---    & unused \\
-  11111 & ---    & unused \\ \hline
+  11111 & ---    & unused \\
+  \bottomrule
 \end{tabular}
+\caption{Typed loads}
+\label{tab:loads}
+\end{table}
 
-\vspace{7mm}
 
 \martin{I don't think that (uint32\_t) does the zero extension. But I might be wrong
 as my C knowledge is rusty. We should use the H\&P MIPS green card notion.}
 
-\emph{Behavior -- regular Load}
+\paragraph{Behavior -- Regular Load}
 \begin{itemize}
   \item[\texttt{IF}] --
   \item[\texttt{DR}] Read register operands \texttt{Pred} and \texttt{Ra}.
@@ -1193,11 +1302,10 @@ as my C knowledge is rusty. We should use the H\&P MIPS green card notion.}
 \end{itemize}
 
 \martin{Do we do a memory read even when the predicate is false?
-Some memory locations (IO) might have side effects on a read.
+Some memory locations (I/O) might have side effects on a read.
 Therefore, we shall not read when the predicate is false.}
 
-\vspace{7mm}
-\emph{Behavior -- decoupled Load}
+\paragraph{Behavior -- Decoupled Load}
 \begin{itemize}
   \item[\texttt{IF}] --
   \item[\texttt{DR}] Read register operands \texttt{Pred} and \texttt{Ra}. \\
@@ -1210,8 +1318,7 @@ Therefore, we shall not read when the predicate is false.}
                      Write to destination register \texttt{sm}.
 \end{itemize}
 
-\vspace{7mm}
-\emph{Note}
+\paragraph{Note}
 
 All loads can only be issued on the first slot.
 
@@ -1224,27 +1331,34 @@ use of an additional \texttt{wait} instruction:
 
 \texttt{\{ dlwc   [\$r2 + 7]   ;   mfs  \$r2 = \$sm \}}
 
-
-\vspace{5mm}
+\clearpage
 \subsection{Store Typed} Applies to the STT format only. Store to a memory or
 cache. In the table accesses to the stack cache are denoted by \texttt{sc}, to
 the local scratchpad memory by \texttt{lm}, to the date cache by \texttt{dc},
 and to the global shared memory by \texttt{gm}.
 
 \martin{TODO: make is clear at some point that \code{gm} is basically
-data cache bypass. Would be natural for IO, but mapping IO to \code{lm},
+data cache bypass. Would be natural for I/O, but mapping I/O to \code{lm},
 as it is currently in passim, is also fine.}
 
 The displacement value (\code{Imm}) value is interpreted unsigned.
 Stores can only be issued on the first slot.
 
 \begin{itemize}
-  \item[-] STT -- Store Typed \\[3mm]
-           \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01011}  & \bitbox{5}{Type} & \bitbox{5}{Ra} & \bitbox{5}{Rs} & \bitbox{7}{Offset} \end{bytefield}\\
+  \item STT -- Store Typed \\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01011} &
+      \bitbox{5}{Type} & \bitbox{5}{Ra} & \bitbox{5}{Rs} & \bitbox{7}{Offset} \\
+    \end{bytefield}
 \end{itemize}
 
+\begin{table}[hb]
+  \centering
 \begin{tabular}{lll}
-  Type            & Name   & Semantics \\ \hline
+  \toprule
+  Type            & Name   & Semantics \\
+  \midrule
   000 \textbar~00 & sws    & \texttt{sc[Ra+(Imm \shl 2)]$_{32}$ = Rs} \\
   000 \textbar~01 & swl    & \texttt{lm[Ra+(Imm \shl 2)]$_{32}$ = Rs} \\
   000 \textbar~10 & swc    & \texttt{dc[Ra+(Imm \shl 2)]$_{32}$ = Rs} \\
@@ -1258,30 +1372,15 @@ Stores can only be issued on the first slot.
   010 \textbar~10 & sbc    & \texttt{dc[Ra+Imm]$_{8}$ = Rs$_{[7:0]}$} \\
   010 \textbar~11 & sbm    & \texttt{gm[Ra+Imm]$_{8}$ = Rs$_{[7:0]}$} \\
   01100 & ---   & unused \\
-%   01101 & ---   & unused \\
-%   01110 & ---   & unused \\
-%   01111 & ---   & unused \\
-%   10000 & ---   & unused \\
-%   10001 & ---   & unused \\
-%   10010 & ---   & unused \\
-%   10011 & ---   & unused \\
-%   10100 & ---   & unused \\
-%   10101 & ---   & unused \\
-%   10110 & ---   & unused \\
-%   10111 & ---   & unused \\
-%   11000 & ---   & unused \\
-%   11001 & ---   & unused \\
-%   11010 & ---   & unused \\
-%   11011 & ---   & unused \\
-%   11100 & ---   & unused \\
-%   11101 & ---   & unused \\
-%   11110 & ---    & unused \\
   \dots& \dots  & \dots \\
-  11111 & ---    & unused \\ \hline
+  11111 & ---    & unused \\
+  \bottomrule
 \end{tabular}
+\caption{Typed stores}
+\label{tab:stores}
+\end{table}
 
-\vspace{7mm}
-\emph{Behavior}
+\paragraph{Behavior}
 \begin{itemize}
   \item[\texttt{IF}] --
   \item[\texttt{DR}] Read register operands \texttt{Pred}, \texttt{Ra}, and
@@ -1289,19 +1388,16 @@ Stores can only be issued on the first slot.
   \item[\texttt{EX}] By-pass values for \texttt{Ra} and \texttt{Rs}. \\
                      Check predicate \texttt{Pred}. \\
                      Begin memory access.
-  \item[\texttt{MW}] Finish memory access. \\
+  \item[\texttt{MW}] Finish memory access.
 \end{itemize}
 
-\vspace{7mm}
-\emph{Note - Global Memory / Data Cache}
+\paragraph{Note - Global Memory / Data Cache}
 
 With regard the data cache, stores are performed using a \emph{write-through}
 strategy without \emph{write-allocation}. Data that is not available in the
 cache will not be loaded by stores; but will be updated if it is available in
 the cache.
 
-Store operations do not stall. \martin{Cannot be in general as two consecutive stores 
-(or load and stall) can lead to a stall. Do we have a store buffer?}
 Consistency between loads and other stores is
 assumed to be guaranteed by the memory interface, i.e., memory accesses are
 handled in-order with respect to a specific processor. This has implications on
@@ -1310,8 +1406,7 @@ the bus, Network-on-Chip connection between the processor and the global memory.
 % TODO:
 % - Arbitration of global memory
 
-
-\vspace{5mm}
+\clearpage
 \subsection{Stack Control} Applies to the STC format only. Manipulate the stack
 frame in the stack cache. \texttt{sres} reserves space on the stack, potentially
 spilling other stack frames to main memory. \texttt{sens} ensures that a stack
@@ -1321,52 +1416,78 @@ other side effect, i.e., no spill/fill is executed).
 \texttt{sspill} writes the tail of the stack cache to main memory and updates the 
 spill pointer.
 
-All immediate stack control operations are carried out assuming word size, i.e., the immediate operand is
-multiplied by four. All register operands and stack pointer addresses
-in special registers are in units of bytes.
+All immediate stack control operations are carried out assuming word
+size, i.e., the immediate operand is multiplied by four. All register
+operands and stack pointer addresses in special registers are in units
+of bytes.
 
 A more detailed description of the stack cache is given in
-Section~\ref{sec:stack-cache}.
-\martin{This or the above section shall contain pseudo code for the stack
-cache. Sahar is in charge to do this.}
+Section~\ref{sec:stack-cache}. Table~\ref{tab:stciops} shows the
+encoding of operations for STCi, while Table~\ref{tab:stcrops} shows
+the encoding for STCr.
+
+\martin{This or the above section shall contain pseudo code for the
+  stack cache. Sahar is in charge to do this.}
 
 \martin{TODO: There is no mentioning in load/store section that stack ld/st
 use an implicit stack pointer for addressing.}
 
 \begin{itemize}
-  \item[-] STCi -- Stack Control Immediate \\[3mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01100} & \bitbox{2}{Op} & \bitbox{2}{00} & \bitbox{18}{Immediate}\end{bytefield} \\
+  \item STCi -- Stack Control Immediate \\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01100} &
+      \bitbox{2}{Op} & \bitbox{2}{00} & \bitbox{18}{Immediate} \\
+    \end{bytefield}
 \end{itemize}
 
 % TODO: more formal semantics
-\begin{tabular}{lll}
-  Op & Name   & Semantics \\ \hline
-  00 & sres   & Reserve space on the stack (with spill) \\
-  01 & sens   & Ensure stack space (with refill) \\
-  10 & sfree  & Free stack space. \\
-  11 & sspill & Spill tail of the stack cache to memory \\ \hline
-\end{tabular}
+\begin{table}[hb]
+  \centering
+  \begin{tabular}{lll}
+    \toprule
+    Op & Name   & Semantics \\
+    \midrule
+    00 & sres   & Reserve space on the stack (with spill) \\
+    01 & sens   & Ensure stack space (with refill) \\
+    10 & sfree  & Free stack space. \\
+    11 & sspill & Spill tail of the stack cache to memory \\
+    \bottomrule
+  \end{tabular}
+  \caption{Stack control operations with immediates}
+  \label{tab:stciops}
+\end{table}
 
-\vspace{5mm}
 \begin{itemize}
-  \item[-] STCr -- Stack Control Register \\[3mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01100} & \bitbox{2}{Op} & \bitbox{2}{01} & \bitbox{1}{\bitsunused} & \bitbox{5}{Rs} & \bitbox{12}{\bitsunused}\end{bytefield} \\
+  \item STCr -- Stack Control Register \\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01100} &
+      \bitbox{2}{Op} & \bitbox{2}{01} & \bitbox{1}{\bitsunused} & \bitbox{5}{Rs} & \bitbox{12}{\bitsunused} \\
+    \end{bytefield}
 \end{itemize}
 
 % TODO: more formal semantics
-\begin{tabular}{lll}
-  Op & Name   & Semantics \\ \hline
-  00 & ---    & unused \\
-  01 & sens   & Ensure stack space (with refill) \\
-  10 & ---    & unused \\
-  11 & sspill & Spill tail of the stack cache to memory \\ \hline
-\end{tabular}
+\begin{table}[hb]
+  \centering
+  \begin{tabular}{lll}
+    \toprule
+    Op & Name   & Semantics \\
+    \midrule
+    00 & ---    & unused \\
+    01 & sens   & Ensure stack space (with refill) \\
+    10 & ---    & unused \\
+    11 & sspill & Spill tail of the stack cache to memory \\
+    \bottomrule
+  \end{tabular}
+  \caption{Stack control operations for registers}
+  \label{tab:stcrops}
+\end{table}
 
 \martin{In general: can we drop the pipeline descriptions as they are not accurate anyway?
 Ask Florian on this.}
 
-\vspace{7mm}
-\emph{Behavior -- Reserve}
+\paragraph{Behavior -- Reserve}
 \begin{itemize}
   \item[\texttt{IF}] --
   \item[\texttt{DR}] Read register operand \texttt{Pred}, \texttt{ss}, \texttt{st}, and
@@ -1380,8 +1501,7 @@ Ask Florian on this.}
 
 \end{itemize}
 
-\vspace{7mm}
-\emph{Behavior -- Ensure}
+\paragraph{Behavior -- Ensure}
 \begin{itemize}
   \item[\texttt{IF}] --
   \item[\texttt{DR}] Read register operand \texttt{Pred}, \texttt{ss}, \texttt{st}, and
@@ -1393,8 +1513,7 @@ Ask Florian on this.}
                      stall.
 \end{itemize}
 
-\vspace{7mm}
-\emph{Behavior -- Free}
+\paragraph{Behavior -- Free}
 \begin{itemize}
   \item[\texttt{IF}] --
   \item[\texttt{DR}] Read register operand \texttt{Pred} and internal
@@ -1406,8 +1525,7 @@ Ask Florian on this.}
   \item[\texttt{MW}] --
 \end{itemize}
 
-\vspace{7mm}
-\emph{Behavior -- Spill}
+\paragraph{Behavior -- Spill}
 \begin{itemize}
   \item[\texttt{IF}] --
   \item[\texttt{DR}] Read register operand \texttt{Pred}, \texttt{ss}, \texttt{st} and internal
@@ -1419,8 +1537,7 @@ Ask Florian on this.}
                      stall.
 \end{itemize}
 
-\vspace{7mm}
-\emph{Note}
+\paragraph{Note}
 
 Stack control instructions can only be issued on the first position within a
 bundle.
@@ -1461,10 +1578,10 @@ are updated separately from the internal stack pointers, which causes the hazard
 hardware actually behaves, and then the simulator should be updated to reflect that behaviour. However, the latter is not quite trivial, I will
 leave that to Florian ;) }
 
-\vspace{5mm}
-\martin{Can we get a formatting without relying on \\vspace commands?}
+\clearpage
+\subsection{Control-Flow Instructions}
 
-\subsection{Control Instructions}
+\wolf{This section is to be updated for the upcoming ISA revision. Leave as-is for now.}
 
 Applies to CFLb and CFLi format only.
 Transfer control to another function or perform function-local branches.
@@ -1567,24 +1684,35 @@ stall with the branch in the \texttt{EX} stage. I'd opt for the latter solution.
 the same as other RISC processors, e.g. your mentioned SPARC.}
 
 \begin{itemize}
-  \item[-] CFLb -- Call / Branch \\[3mm]
-          \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{110} & \bitbox{2}{Op} & \bitbox{22}{Immediate}\end{bytefield}\\
+  \item CFLb -- Call / Branch \\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{110} & \bitbox{2}{Op} &
+      \bitbox{22}{Immediate} \\
+    \end{bytefield}
 \end{itemize}
 
-\begin{tabular}{lll}
-  Op & Name & Semantics \\ \hline
-  00 & call & function call (absolute, with cache fill) \\
-  01 & br   & local branch (PC relative, always hit) \\
-  10 & brcf & local branch (PC relative, with cache fill) \\
-  11 & ---  & unused \\ \hline
-\end{tabular}
+\begin{table}[hb]
+  \centering
+  \begin{tabular}{lll}
+    \toprule
+    Op & Name & Semantics \\
+    \midrule
+    00 & call & function call (absolute, with cache fill) \\
+    01 & br   & local branch (PC relative, always hit) \\
+    10 & brcf & local branch (PC relative, with cache fill) \\
+    11 & ---  & unused \\
+    \bottomrule
+  \end{tabular}
+  \caption{Control-flow operations}
+  \label{tab:cflbops}
+\end{table}
 
 \martin{The 22 bit immediate is good for 16 MB code size. Maybe this is good enough
 for most embedded programs. With a little different encoding we could get two more bits
 for 64 MB code size. We don't need that big immediate for PC relative branches.}
 
-\vspace{7mm}
-\emph{Behavior -- call, brcf, and system call}
+\paragraph{Behavior -- call, brcf, and system call}
 
 \begin{itemize}
   \item[\texttt{IF}] --
@@ -1598,19 +1726,17 @@ for 64 MB code size. We don't need that big immediate for PC relative branches.}
                      Update program counter.
 \end{itemize}
 
-\vspace{7mm}
-\emph{Behavior -- branch within cache}
+\paragraph{Behavior -- branch within cache}
 \begin{itemize}
   \item[\texttt{IF}] --
   \item[\texttt{DR}] Read register operand \texttt{Pred}.
   \item[\texttt{EX}] Check predicate \texttt{Pred}. \\
                      Assert on method cache. \\
-                     Compute new, cache-relative program counter value.
+                     Compute new, cache-relative program counter value. \\
                      Update program counter.
   \item[\texttt{MW}] --
 \end{itemize}
 
-\vspace{7mm}
 
 %\martin{Don't see a big use on an immediate function call}
 %\daniel{Save a cycle and 4 bytes of instruction memory}
@@ -1618,7 +1744,7 @@ for 64 MB code size. We don't need that big immediate for PC relative branches.}
 %\daniel{Ah, right ;)}
 %\stefan{Immediate function call is also easier to analyze.}
 
-\emph{Implementation Note}
+\paragraph{Implementation Note}
 
 The method cache keeps track of the base address of the current function, i.e., 
 the target/base address of the last \texttt{call}, \texttt{brcf} or \texttt{ret} instruction.
@@ -1633,7 +1759,7 @@ should only be used to jump back to a call site to make the analysis easier. How
 also just define the link info to be an offset (in bytes!) and accept the slight overhead for I-caches that
 do not need a base address.}
 
-\emph{Note}
+\paragraph{Note}
 
 All branch/call instructions can only be issued on the first position within a
 bundle.
@@ -1671,32 +1797,33 @@ instructions that are a bundle from their fetch behavior. Unaligned two-word fet
 but evil for a plain instruction cache.}
 
 \begin{itemize}
-  \item[-] CFLi -- Call / Branch Indirect \\[3mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{111} & \bitbox{2}{00} & \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{8}{\bitsunused} & \bitbox{4}{Op}\end{bytefield}\\
+  \item CFLi -- Call / Branch Indirect \\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{111} & \bitbox{2}{00} &
+      \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{8}{\bitsunused} & \bitbox{4}{Op} \\
+    \end{bytefield}
 \end{itemize}
 
-\begin{tabular}{lll}
-  Op & Name  & Semantics \\ \hline
-  0000 & call  & function call (indirect, with cache fill) \\
-  0001 & br    & local branch (indirect, always hit) \\
-  0010 & brcf  & local branch (indirect, with cache fill) \\
-  0011 & ---   & unused \\
-%   0100 & ---   & unused \\
-%   0101 & ---   & unused \\
-%   0110 & ---   & unused \\
-%   0111 & ---   & unused \\
-%   1001 & ---   & unused \\
-%   1010 & ---   & unused \\
-%   1011 & ---   & unused \\
-%   1100 & ---   & unused \\
-%   1101 & ---   & unused \\
-%   1110 & ---   & unused \\
-  \dots& \dots  & \dots \\
-  1111 & ---   & unused \\ \hline
-\end{tabular}
+\begin{table}[hb]
+  \centering
+  \begin{tabular}{lll}
+    \toprule
+    Op & Name  & Semantics \\
+    \midrule
+    0000 & call  & function call (indirect, with cache fill) \\
+    0001 & br    & local branch (indirect, always hit) \\
+    0010 & brcf  & local branch (indirect, with cache fill) \\
+    0011 & ---   & unused \\
+    \dots& \dots  & \dots \\
+    1111 & ---   & unused \\
+    \bottomrule
+  \end{tabular}
+  \caption{Indirect control-flow operations}
+  \label{tab:cfliops}
+\end{table}
 
-\vspace{7mm}
-\emph{Behavior -- call, branch, and system call}
+\paragraph{Behavior -- call, branch, and system call}
 
 \begin{itemize}
   \item[\texttt{IF}] --
@@ -1711,8 +1838,7 @@ but evil for a plain instruction cache.}
                      Update program counter.
 \end{itemize}
 
-\vspace{7mm}
-\emph{Behavior -- branch within cache}
+\paragraph{Behavior -- branch within cache}
 \begin{itemize}
   \item[\texttt{IF}] --
   \item[\texttt{DR}] Read register operand \texttt{Pred} and \texttt{Rs1}.
@@ -1724,20 +1850,22 @@ but evil for a plain instruction cache.}
   \item[\texttt{MW}] --
 \end{itemize}
 
-\vspace{7mm}
 
-\emph{Note}
+\paragraph{Note}
 
 All branch/call instructions can only be issued on the first position within a
 bundle.
 
 See also CFLi format notes.
 
-\vspace{5mm}
-\subsection{Return} Applies to CFLr format only. Transfer control to the
-function specified by function base and offset.
-\texttt{ret} may cause a cache miss and a subsequent cache refill
-to load the target code.
+\clearpage
+\subsection{Return}
+
+Applies to CFLr format only. Transfer control to the function
+specified by function base and offset.  \texttt{ret} may cause a cache
+miss and a subsequent cache refill to load the target
+code. Table~\ref{tab:retfunc} shows the encoding of the \texttt{func}
+field.
 
 \daniel{(TODO return from an interrupt)}
 \martin{That might be covered by the ret itself. However, we have not
@@ -1747,33 +1875,32 @@ interrupt. Maybe just a `special' register, again ;-)}
 usually called a SW interrupt as well? Exceptions? Restartable exceptions?}
 
 \begin{itemize}
-  \item[-] CFLr -- Return \\[3mm]
-        \begin{bytefield}{32} \bitheader[b]{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{111} & \bitbox{2}{10} & \bitbox{5}{\bitsunused} & \bitbox{5}{Rb} & \bitbox{5}{Ro} & \bitbox{3}{\bitsunused} &\bitbox{4}{Op}\end{bytefield}\\
+  \item CFLr -- Return \\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{111} & \bitbox{2}{10} &
+      \bitbox{5}{\bitsunused} & \bitbox{5}{Rb} & \bitbox{5}{Ro} & \bitbox{3}{\bitsunused} &\bitbox{4}{Op} \\
+    \end{bytefield}
 \end{itemize}
 
 % TODO: more formal semantics
-\begin{tabular}{lll}
-  Op & Name  & Semantics \\ \hline
-  0000 & ret   & Return from a function (w. cache fill) \\
-  0001 & ---   & unused \\
-%   0010 & ---   & unused \\
-%   0011 & ---   & unused \\
-%   0100 & ---   & unused \\
-%   0101 & ---   & unused \\
-%   0110 & ---   & unused \\
-%   0111 & ---   & unused \\
-%   1001 & ---   & unused \\
-%   1010 & ---   & unused \\
-%   1011 & ---   & unused \\
-%   1100 & ---   & unused \\
-%   1101 & ---   & unused \\
-%   1110 & ---   & unused \\
-  \dots& \dots  & \dots \\
-  1111 & ---   & unused \\ \hline
-\end{tabular}
+\begin{table}[hb]
+  \centering
+  \begin{tabular}{lll}
+    \toprule
+    Op & Name  & Semantics \\
+    \midrule
+    0000 & ret   & Return from a function (with cache fill) \\
+    0001 & ---   & unused \\
+    \dots& \dots  & \dots \\
+    1111 & ---   & unused \\
+    \bottomrule
+  \end{tabular}  
+  \caption{Return function encoding}
+  \label{tab:retfunc}
+\end{table}
 
-\vspace{7mm}
-\emph{Behavior}
+\paragraph{Behavior}
 
 \begin{itemize}
   \item[\texttt{IF}] --
@@ -1799,6 +1926,7 @@ of the function offset is hardware implementation dependent.
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 
+\clearpage
 \section{Dual Issue Instructions}
 
 Not all instructions can be executed in both pipelines. In general, the first
@@ -1821,6 +1949,222 @@ in both slots and write to it, ... }
 \martin{TODO: agree that we/I should write more on this. Currently
 Wolfgang has implemented ALU and predicate operations in both
 pipelines. More details shall be described.}
+
+% % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
+\section{Assembly format}
+
+\martin{This is not pasim, right?}
+
+A VLIW instruction consists of one or two operations that are issued in the first or both pipelines.
+Each operation is predicated, the predicate register is specified before the operation in parentheses \texttt{()}.
+If the predicate register is prefixed by a \texttt{!}, its negation is considered.
+If omitted, it defaults to \texttt{(p0)}, i.e.\ always true.
+
+A semi-colon \texttt{;} or a newline denotes the end of an instruction or operation. If an instruction contains two operations, the operations
+in the bundle must be enclosed by curly brackets. Bundles do not need to be separated by newlines or semi-colons. For bundles consisting of
+only one operation, the curly brackets are optional. Labels that are prefixed by \texttt{.L} are local labels.
+
+All register names must be prefixed by \texttt{\$}. 
+We use destination before source in the instructions, between destination and source a \texttt{=} character must be used instead of a comma.
+Immediate values are not prefixed for decimal notation, the usual 0 and 0x formats are accepted for octal and hexadecimal immediates.
+Comments start with the hash symbol \texttt{\#} and are considered to the end of the line. For memory operations, the syntax is
+\texttt{[\$register + offset]}. Register or offset can be ommited, in that case the zero register \texttt{r0} or an offset of $0$ is used.
+
+Example:
+\begin{verbatim}
+       # add 42 to contents of r2
+       # and store result in r1 (first slot)
+       { add   $r1 = $r2, $42
+       # if r3 equals 50, set p1 to true
+       cmpeq $p1, $r3, 50 }
+       # if p1 is true, jump to label_1
+ ($p1) br label_1 ; nop; nop # then wait 2 cycles
+       # Load the address of a symbol into r2
+       li $r2 = .L.str2 
+       # perform a memory store and a pred op
+       { swc [$r31 + 2] = $r3 ; or $p1 = !$p2, $p3 }
+       ...
+label_1:
+       ...
+\end{verbatim}
+
+\stefan{TODO: some words about units of .align, .size, ..; describe .fstart; 
+I would like to move the assembly format description out into a public repo (patmos-misc) and merge 
+it with a compiler usage manual, ELF file format and backend description, though.}
+
+\subsection{Instruction Mnemonics}
+
+The LLVM assembler supports the instructions mnemonics as specified in this document, including all pseudo instructions.
+
+The \texttt{paasm} assembler and the \texttt{pasim} simulator use the same basic instruction mnemonic, but a \texttt{i} or 
+\texttt{l} suffix is appended for \emph{immediate} and \emph{long immediate} variants, while no suffix in general refers to 
+the register indirect variant of the instructions. As exception, the control flow instructions use a \texttt{r} suffix for the register
+indirect variants and no suffix for the immediate instructions.
+\stefan{This should be cleaned up, always use \texttt{i} suffix for immediates in pasim/paasm, including control flow.}
+
+\subsection{Inline Assembly}
+
+Inline assembly syntax is similar to GCC inline assembly. It uses \texttt{\%0}, \texttt{\%1}, \ldots as placeholders
+for operands. Accepted register constraints are: \texttt{r} or \texttt{R} for any general purpose register, or 
+\texttt{\{<registername>\}} to use a specific register.
+
+Example:
+\begin{verbatim}
+    int i, j, k;
+    asm("mov  $r31 = %1  # copy i into r31\n\t"
+        "add  %0 = $r5, %2"
+        : "=r" (j)
+        : "r" (i), "{r10}" (k));
+\end{verbatim}
+
+\chapter{Memory and I/O Subsystem}
+
+\section{Local and Global Address Space}
+
+The typed loads of Patmos imply two address spaces: a local address
+space that is accessed through local loads and stores, and a global
+address space that is accessed when using other access types. All
+caches use memory that is mapped to the global address space as
+backing memory. For example, the data cache fetches data from global
+memory on a cache miss, and the stack cache uses global memory for
+spilling and filling. Consequently, there are two memory maps, one for
+the local address space and one for the global address
+space. Tables~\ref{tab:lmmap} and~\ref{tab:gmmap} show the respective
+address mappings. To simplify address decoding, the top four bits
+(A31--A28) are generally used to distinguish between different memory
+and I/O areas. The address range for I/O devices is divided further to
+distinguish the different devices, as discussed in
+Section~\ref{sec:iodevs}.
+
+\begin{table}
+\centering
+\begin{tabular}{ll}
+\toprule
+Address & Memory area \\
+\midrule
+\code{0x00000000}--\code{0x007fffff} & Data Scratchpad Memory \\
+\code{0x00800000}--\code{0x00ffffff} & Instruction Scratchpad Memory \\
+\code{0xe0000000}--\code{0xefffffff} & NoC interface and communication memory\\
+\code{0xf0000000}--\code{0xffffffff} & I/O devices \\
+\bottomrule
+\end{tabular}
+\caption{Address mapping for local address space}
+\label{tab:lmmap}
+\end{table}
+
+\begin{table}
+\centering
+\begin{tabular}{ll}
+\toprule
+Address & Memory area \\
+\midrule
+\code{0x00000000}--\code{0x0fffffff} & External SRAM \\
+\bottomrule
+\end{tabular}
+\caption{Address mapping for global address space}
+\label{tab:gmmap}
+\end{table}
+
+\stefan{We discussed about making the stack cache memory mapped, like the SPM. The disadvantage is that 
+we need to reserve an additional register for the stack pointer of the stack cache. s5 (the stack cache spill pointer) must point into a main 
+memory address range. s6 (the stack top pointer) must point to the top of the stack cache in the cache address range and must be modifiable
+(for context switching). An additional s7 must either contain the size of the stack cache or the tail pointer of the stack cache. 
+
+The advantage is we can then pass typed pointers to functions, similar to SPM pointers, if the caller stack frame is not evicted, in a first
+step. As a second step, we can drop the typed loads and use the compiler to emit address range information to the WCET analysis. 
+A pointer into the stack cache address range is always guaranteed to be a hit (accessing an address that has been evicted is an error). We
+can therefore get rid of function duplication depending on their pointer types. We basically move the information about the accessed memory from the
+memory instruction to the pointer value, which can be context-sensitive.}
+
+% % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
+\section{I/O Devices}
+\label{sec:iodevs}
+
+Each processor contains a minimum set of standard I/O devices, such as:
+processor ID, cycle counter, timer, and interrupt controller. For a minimum
+communication with the outside world a processor shall be attached to a
+serial port (UART). The UART represents \code{stdout}.
+
+Within the I/O device memory area bits 11--8 are used to distinguish between different devices.
+I/O device registers are mapped and aligned to 32-bit words. If a register is shorter than a word,
+the upper bits shall be filled with 0 on a read. With this mapping each I/O device can have up to
+64 32-bit registers.
+
+In the initial prototype of Patmos we have 3 I/O devices: a system device that contains cycle and microsecond counters, a UART for basic communication, and LEDs
+on the FPGA board. One counter ticks with the clock frequency and the second
+counter ticks with 1~MHz for clock frequency independent time measurements.
+The counters are 64-bit values and readout of the lower 32 bits also latches the
+upper 32 bits.
+Table~\ref{tab:iomap} shows the I/O devices and the registers.
+
+\begin{table}
+\centering
+\begin{tabular}{llll}
+\toprule
+Address & I/O Device & read & write \\
+\midrule
+\code{0xf0000000} & ID & processor ID & -- \\
+\code{0xf0000010} & counter & clock cycles (high word) & -- \\
+\code{0xf0000014} & counter & clock cycles (low word) & -- \\
+\code{0xf0000018} & counter & time in $\mu s$ (high word) & -- \\
+\code{0xf000001c} & counter & time in $\mu s$ (low word) & -- \\
+\code{0xf0000100} & UART & status & control \\
+\code{0xf0000104} & UART & receive buffer & transmit buffer \\
+\code{0xf0000200} & LED & -- & output register \\
+\code{0xf0000300} & SDRAM &  not used \\
+\bottomrule
+\end{tabular}
+\caption{I/O devices and registers}
+\label{tab:iomap}
+\end{table}
+
+\subsection{UART}
+
+On a multicore system only one processor can be directly connected to the
+UART. However, for debugging it would be convenient to attach several (or all)
+cores to the UART. Sharing the UART can be achieved by an arbitration device
+that has $n$ input ports and a simple protocol that precedes UART data by a
+marker from which core the data is coming. The marker byte may be precede
+each data byte or it may be distinguished by setting Bit 8. This mechanism can
+also be used to represent several UARTs per core (e.g., stdout, stderr, user for SLIP,...).
+\martin{The protocol shall be done in HW -- let's find a student for this.}
+
+On the PC side a small program is needed to dispatch/demultiplex the different
+data streams. 
+
+\begin{table}
+\centering
+\begin{tabular}{lllll}
+\toprule
+Bit & Status & & Control & \\
+\midrule
+0 & TRE & TX Transmit ready & -- & -- \\
+1 & DAV & RX Data available & -- & -- \\
+2 & PAE & RX Parity error (or EOF) & -- & -- \\
+3 & --  & -- & TFL & TX Flush \\
+\bottomrule
+\end{tabular}
+\caption{UART status bits {-- What does flush mean on a UART?}}
+\label{tab:mmap}
+\end{table}
+
+\stefan{Would be nice to be able to insert control bytes to flush the output as well, but that must be understood by the simulator as well (it
+must flush its output stream). 
+
+With multiple cores writing to the UART, we need to prevent mixing up control bytes and data bytes from different cores, so I assume adding 
+the control bytes to is done by hardware? We could also designate one core to I/O and communicate over SPMs with the other cores, although it
+adds another layer of potential bugs to the debugging process.}
+
+\martin{Yes, the idea is that the UARTs look simple for all cores and the HW does the arbitration and additional control byte. However, no one is assigned this task :-(}
+
+\martin{Other I/O (and using a dedicated core) is application dependent and not the topic of this report.}
+
+
+
+
+The UART address for \code{pasim} is defined in \code{patmos/simulator/include/uart.h}.
+
+For the compiler/library the constant is in \code{llvm/tools/clang/lib/Driver/Tools.cpp}.
 
 \section{Stack Cache}
 \label{sec:stack-cache}
@@ -2083,6 +2427,76 @@ part.}
 
 \martin{We could also think about doing the load/replacement
 in SW - more like a managed ISPM.}
+
+\subsection{Method Cache Options}
+\label{sec:method_cache_options}
+
+We have several options to implement the method cache and related instructions
+(call, return). Note, all replacement policies operate on the method/function
+level.
+\begin{itemize}
+  \item Fetch on call, with FIFO replacement \\
+        On a call it is checked whether the target method is in the cache or
+        not. If yes, execution continues. Otherwise, the call instruction
+        starts fetching the method into the cache, the pipeline is stalled.
+  \item Fetch on call, with FILO replacement \\
+        Same as above, only that the replacement strategy if FILO, i.e., like a
+        stack.
+  \item prefetch before call, with FILO replacement \\
+        We define two instructions to perform a function call. A compiler-placed
+        prefetch instructions ensure that the target method is either in the
+        cache, or triggers the loading of the function. Calls merely check
+        whether the method is completely loaded and transfer control.
+        (FIFO replacement is not possible due to potential eviction of the
+        current method executing the prefetch).
+  \item prefetch before call, explicit unload, with FILO replacement \\
+        Same as before, with an additional \emph{unload} instruction to evict
+        methods explicitly from the cache -- i.e., to free space after as shown
+        by the following example:
+\begin{verbatim}
+  A()
+  // unload here to avoid mutual eviction
+  // in loop of B and C, assuming A+B, A+C,
+  // B+C fit in the cache, but not A+B+C
+  while(true) {
+    B() //
+    C();
+  }
+\end{verbatim}
+  \item fetch on call, LRU replacement
+  \item prefetch before call, LRU replacement \\
+        This is everybody's darling: compiler-placed prefetching with stalling
+        call instructions. Safe, clean, and expensive in hardware ;-)
+\end{itemize}
+
+%\stefan{There are quite a few knobs that we can turn with the method cache (btw, should we call it function cache since we are compiling C
+%code?)
+%
+%\begin{itemize}
+%\item Functions or subfunctions:
+%
+%\item Split allocation and preloading or always load complete (sub)function:
+%
+%\item Allocation in hardware (FIFO) or software (FIFO, LRU,..):
+%
+%\item Organize in blocks or as SPM, continous function entries or allow allocation of random blocks:
+%
+%\item Hit detection in hardware or software:
+%
+%\item Separate i-cache to persist 'macros', interrupt handlers, or commonly used functions:
+%
+%\end{itemize}
+%
+%I will elaborate on this, just commiting it as it is for now.
+%}
+
+
+\stefan{How do we initialize the core, i.e., how do we get the initial startup code into the i-cache, especially when
+we use software-controlled i-cache allocation? How do we handle interrupts (they need to get into the cache before they can be executed)?}
+
+\jack{This is a good use for I-SPM. Use it as an operating system ``ROM''
+or at least a first-stage bootloader.}
+
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 \section{Instruction Cache}
 
@@ -2120,288 +2534,6 @@ It might also be interesting to explore the object cache idea \cite{jop:ocache, 
 a fully associative cache. Furthermore, for arrays with low temporal localty
 a small set of prefetch buffers may benefit from spacial locality.
 
-% % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
-\section{IO Devices}
-
-Each processor contains a minimum set of standard IO devices, such as:
-processor ID, cycle counter, timer, and interrupt controller. For a minimum
-communication with the outside world a processor shall be attached to a
-serial port (UART). The UART represents \code{stdout}.
-
-On a multicore system only one processor can be directly connected to the
-UART. However, for debugging it would be convenient to attach several (or all)
-cores to the UART. Sharing the UART can be achieved by an arbitration device
-that has $n$ input ports and a simple protocol that precedes UART data by a
-marker from which core the data is coming. The marker byte may be precede
-each data byte or it may be distinguished by setting Bit 8. This mechanism can
-also be used to represent several UARTs per core (e.g., stdout, stderr, user for SLIP,...).
-\martin{The protocol shall be done in HW -- let's find a student for this.}
-
-On the PC side a small program is needed to dispatch/demultiplex the different
-data streams. 
-
-Main memory, SPMs, communication memory, and I/O devices are all accessed via memory
-load and store operations (some memories also support DMA transfers).
-To simplify address decoding, the top four bits (A31--A28) are used to distinguish between
-different memory and I/O areas. Table~\ref{tab:mmap} shows this address mapping.
-
-\begin{table}
-\centering
-\begin{tabular}{ll}
-\toprule
-Address & Memory area \\
-\midrule
-\code{0x00000000}--\code{0x0fffffff} & Scratchpad memories -- MS: should be higher\\
-\code{0x00800000}--\code{0x00ffffff} & ISPM \\
-\code{0x10000000}--\code{0xdfffffff} & Main memory -- MS: really?\\
-\code{0xe0000000}--\code{0xefffffff} & NoC interface and comm. memory\\
-\code{0xf0000000}--\code{0xffffffff} & I/O devices \\
-\bottomrule
-\end{tabular}
-\caption{Address mapping}
-\label{tab:mmap}
-\end{table}
-
-\martin{A little bit strange that the main memory does NOT start at 0}
-
-\stefan{We discussed about making the stack cache memory mapped, like the SPM. The disadvantage is that 
-we need to reserve an additional register for the stack pointer of the stack cache. s5 (the stack cache spill pointer) must point into a main 
-memory address range. s6 (the stack top pointer) must point to the top of the stack cache in the cache address range and must be modifiable
-(for context switching). An additional s7 must either contain the size of the stack cache or the tail pointer of the stack cache. 
-
-The advantage is we can then pass typed pointers to functions, similar to SPM pointers, if the caller stack frame is not evicted, in a first
-step. As a second step, we can drop the typed loads and use the compiler to emit address range information to the WCET analysis. 
-A pointer into the stack cache address range is always guaranteed to be a hit (accessing an address that has been evicted is an error). We
-can therefore get rid of function duplication depending on their pointer types. We basically move the information about the accessed memory from the
-memory instruction to the pointer value, which can be context-sensitive.}
-
-
-
-
-Within the I/O device memory area bits 11--8 are used to distinguish between different devices.
-I/O device registers are mapped and aligned to 32-bit words. If a register is shorter than a word,
-the upper bits shall be filled with 0 on a read. With this mapping each I/O device can have up to
-64 32-bit registers.
-
-In the initial prototype of Patmos we have 3 I/O devices: a system device that contains cycle and microsecond counters, a UART for basic communication, and LEDs
-on the FPGA board. One counter ticks with the clock frequency and the second
-counter ticks with 1~MHz for clock frequency independent time measurements.
-The counters are 64-bit values and readout of the lower 32 bits also latches the
-upper 32 bits.
-Table~\ref{tab:iomap} shows the I/O devices and the registers.
-
-
-\begin{table}
-\centering
-\begin{tabular}{llll}
-\toprule
-Address & I/O Device & read & write \\
-\midrule
-\code{0xf0000000} & ID & processor ID & -- \\
-\code{0xf0000010} & counter & clock cycles (high word) & -- \\
-\code{0xf0000014} & counter & clock cycles (low word) & -- \\
-\code{0xf0000018} & counter & time in $\mu s$ (high word) & -- \\
-\code{0xf000001c} & counter & time in $\mu s$ (low word) & -- \\
-\code{0xf0000100} & UART & status & control \\
-\code{0xf0000104} & UART & receive buffer & transmit buffer \\
-\code{0xf0000200} & LED & -- & output register \\
-\code{0xf0000300} & SDRAM &  not used \\
-\bottomrule
-\end{tabular}
-\caption{I/O devices and registers}
-\label{tab:iomap}
-\end{table}
-
-\begin{table}
-\centering
-\begin{tabular}{lllll}
-\toprule
-Bit & Status & & Control & \\
-\midrule
-0 & TRE & TX Transmit ready & -- & -- \\
-1 & DAV & RX Data available & -- & -- \\
-2 & PAE & RX Parity error (or EOF) & -- & -- \\
-3 & --  & -- & TFL & TX Flush \\
-\bottomrule
-\end{tabular}
-\caption{UART status bits {-- What does flush mean on a UART?}}
-\label{tab:mmap}
-\end{table}
-
-\stefan{Would be nice to be able to insert control bytes to flush the output as well, but that must be understood by the simulator as well (it
-must flush its output stream). 
-
-With multiple cores writing to the UART, we need to prevent mixing up control bytes and data bytes from different cores, so I assume adding 
-the control bytes to is done by hardware? We could also designate one core to IO and communicate over SPMs with the other cores, although it
-adds another layer of potential bugs to the debugging process.}
-
-\martin{Yes, the idea is that the UARTs look simple for all cores and the HW does the arbitration and additional control byte. However, no one is assigned this task :-(}
-
-\martin{Other IO (and using a dedicated core) is application dependent and not the topic of this report.}
-
-
-
-
-The UART address for \code{pasim} is defined in \code{patmos/simulator/include/uart.h}.
-
-For the compiler/library the constant is in \code{llvm/tools/clang/lib/Driver/Tools.cpp}.
-
-% % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
-\section{Implementation}
-
-\martin{This sections shall describe implementation details,
-decisions, and options.}
-
-After a first implementation of Patmos in VHDL we did a cleanup and
-rewrite in a the hardware description language Chisel~\cite{chisel:dac2012}.
-The following notes on the implementation of Patmos and implementation
-decisions is based on first design discussions within the VHDL version
-and concrete implementation experiments with Chisel. All size and frequency
-numbers are from the Chisel implementation. A comparison between VHDL
-and Chisel would be of great interest.
-
-LoC, excluding the copyright header at 6.4.2013:
-Chisel: 996
-VHDL: 3020
-
-\subsection{Component Organization and Pipeline Structure}
-
-The architecture of Patmos is structured around five components, each
-representing one pipeline stage. Each component contains the \emph{left}
-pipeline register. E.g., the output of the \code{DEC} stage (decode signals,
-the two register values, and the immediate field) is combinational from
-the decode stage and registered in the \code{EX} stage. The motivation of
-this organization is that input registers of on-chip memory elements (e.g., instruction
-memory, register file, and data memory) are part of the pipeline register.
-They need to be fed unconditionally from the unregistered output of
-the former stage.
-
-Each stage has exactly one pipeline register, which is placed at the begin
-of the component. The pipeline registers use an enable for stalling.
-Register that have no enable (input registers of on-chip memories) need
-a \emph{shadow} register and a multiplexer for stalls.
-
-The interface from the EX stage to the MEM stage might use one
-field for ALU results and the store data or individual fields. Individual
-fields might reduce the pressure on the ALU multiplexers.
-\martin{Update to the current implementation -- check for difference.}
-
-
-\subsection{Register File}
-
-There are two options to implement the register file (RF) in an FPGA: (1) use
-two on-chip memories to provide two read ports and one write port, or (2)
-use dedicated registers and larger multiplexer structures for the read
-ports. Usually one aims to use on-chip memory for the RF. However,
-in a design constraint largely by the available amount of on-chip memory,
-a RF built out of registers might be preferable.
-
-For a dual issue pipeline we need 4 read ports and 2 write ports into the RF.
-We explored double clocking of a on-chip based RF in~\cite{patmos:ppes2011}.
-It is feasible, the resulting maximum frequency fits for the ALU path, but feels
-a little bit brittle. A RF from registers might give a more robust design for the
-two write ports. Furthermore, Chisel does not provide the possibility to use
-more than one clock.
-
-The ideal solution would be to make it configurable if on-chip memory or
-LCs are used. The issue width should also be configurable.
-
-
-
-
-\subsection{Resource and Fmax Numbers}
-
-State 13.3.2013 with Chisel and DE2-70: A shared field (for EX to MEM?) results 3435 LCs
-and 81.7 MHz, two fields in 3499 LCs and 81.8 MHz. Looks like not a big deal,
-but just 64 more LCs. Where does this cost come from? A very inefficient
-enable on the pipeline register (MUX instead of an enable signal?).
-
-\martin{Update with reduced ALU muxes and also with additional second
-ALU pipeline (forwarding). Is dual issue configurable?}
-
-\subsection{ALU Discussion}
-
-The large multiplexers and the forwarding limit the maximum frequency.
-We have already removed the expensive rotate instructions. Maybe more
-can go (e.g. \code{abs}).
-
-Current version (4.4.2013) with all ALU operations and test case ALU.s
-for the DE2-70 is: 3415 LCs, 85.44 MHz. Dropping \code{rsub} and all unary
-ALU operations: 3173 LCs, 91.91 MHz.
-
-\section{Building Patmos}
-
-The whole build process of Patmos,
-\footnote{Get the source from GitHub with:\\
-\code{git clone git@github.com:t-crest/patmos}}
-applications in assembler
-and in C, configuration of the FPGA, and downloading an application
-is \code{Makefile} based.
-
-The complete design flow (including the LLVM
-based C compiler) can execute in a Linux machine. The flow without
-the C compiler should be able to execute in a Windows/Cygwin environment.
-Under Mac OS X all tools, except Quartus, are working (ModelSim under
-wine). For FPGA synthesis and configuration Windows XP within a VMWare
-virtual machine is a possible solution.
-
-On a Linux box with the installed LLMV compiler in your PATH,
-\footnote{Installation and build is a simple two step approach:\\
-\code{git clone git@github.com:t-crest/patmos-misc.git misc}\\
-and build with:\\
-\code{./misc/build.sh}}
-the complete build processes is kicked of by:
-
-% make BOOTAPP=bootable-bootloader APP=helloworld tools synth comp config download
-\begin{verbatim}
-make BOOTAPP=bootable-bootloader \\
-  APP=helloworld tools comp gen synth  \\
-  config download
-\end{verbatim}
-
-Here a list of the most important make targets:
-
-
-\begin{description}[\settowidth{\labelwidth}{emulator}]
-\item[tools] build of all tools, including the Patmos software simulator
-\item[asm] assemble source (from folder \code{asm})
-\item[emulator] build the Chisel based C++ emulator
-\item[csim] execute the Patmos emulator 
-\item[comp] compile a C program as loadable ELF binary
-\item[bootcomp] compile a C program as a bootable image
-\item[gen] generate the verily code
-\item[synth] synthesize for an FPGA
-\end{description}
-
-
-\todo{Test and described the ELF download flow.}
-
-The \code{Makefile} use following variables to configure the build process:
-\code{BOOTAPP} is an application that ends in the on-chip ROM. This may
-be an assembler program or a simple C program that does not need any
-initialized data; most prominent the boot loader for ELF binaries.
-A C program that shall be compiled as ROM target needs to be prefixed
-with \code{bootable-}.
-\code{APP} is a C program resulting in an ELF binary that can be either
-loaded by the emulator or the boot loader when executing in an FPGA.
-% TODO: test and talk about patsim. Having a complete ELF in the FPGA
-% without the boot loader would be nice as well.
-
-Here an example of the individual steps to build the blinking LED C
-hello world (on a different FPGA board):
-\begin{verbatim}
-make tools
-make BOOTAPP=bootable-echo bootcomp gen
-make BOOTAPP=bootable-echo QPROJ=bemicro synth
-make QPROJ=bemicro \\
-   BLASTER_TYPE=Arrow-USB-Blaster config
-\end{verbatim}
-
-This split of the make commands is for demonstration. It is
-possible to merge all steps into a single make (on Linux
-systems) or two steps when using a two operating
-systems (for compilation and synthesis).
-
 \section{Hardware Interface}
 
 For the connection of Patmos to a memory controller, I/O devices,
@@ -2409,21 +2541,6 @@ the core-to-core network on chip, and/or the memory arbiter an interface
 standard needs to be specified. Several standards are available.
 We decided to base the interface on OCP\footnote{\url{http://www.ocpip.org/}}
 and subset the standard as we need it.
-
-Currently we decided on following restrictions:
-
-\begin{itemize}
-\item No pipelined read
-\item Only one outstanding read or write
-\item Only non-posted writes
-\item CmdAccept always `1'
-\item Single burst length (a system property)
-\item Burst without wait states
-\item Aligned bursts
-\item Burst increment
-\item Write bursts handshake with SDataAccept
-\item Maybe use read exclusive for locks?
-\end{itemize}
 
 \subsection{Description}
 
@@ -2540,106 +2657,6 @@ is received.
   \end{tabular}
 \end{table}
 
-\subsection{Timing Diagrams}
-
-\subsubsection{\code{OCPcore}}
-
-Figure~\ref{fig:timing_core} shows a sequence read/write/read in
-\code{OCPcore}, where the slave delays the response to the write by
-one cycle.
-
-\begin{figure}
-\centering
-\includegraphics[scale=.95]{fig/timing_core}
-\caption{Timing diagram for \code{OCPcore}}
-\label{fig:timing_core}
-\end{figure}
-
-\begin{enumerate}[A:]
-\item The master issues a read by setting \code{MCmd} to \code{RD}.
-\item The slave responds to the read issued in cycle A by setting
-  \code{SResp} to \code{DVA} and returning the appropriate data. The
-  master can issue the next command in the same cycle as it receives
-  the response and issues a non-posted write command \code{WRNP}.
-\item The slave does not respond immediately and the master is
-  stalled. \code{MCmd} must be \code{IDLE} while the master is
-  stalled.
-\item The slave responds to the write issued in cycle B. The master
-  issues a read.
-\item The slave responds to the read issued in cycle D.
-\end{enumerate}
-
-\subsubsection{\code{OCPio}}
-
-Figure~\ref{fig:timing_core} shows a sequence read/write/read in
-\code{OCPio}, where the slave does not accept the write immediately
-and delays the response to the write by one cycle.
-
-\begin{figure}
-\centering
-\includegraphics[scale=.95]{fig/timing_io}
-\caption{Timing diagram for \code{OCPio}}
-\label{fig:timing_io}
-\end{figure}
-
-\begin{figure*}
-\centering
-\includegraphics[scale=.95]{fig/timing_burst}
-\caption{Timing diagram for \code{OCPburst}}
-\label{fig:timing_burst}
-\end{figure*}
-
-\begin{enumerate}[A:]
-\item The master issues a read by setting \code{MCmd} to
-  \code{RD}. The slave accepts the command by setting
-  \code{SCmdAccept} to high and responds immediately by setting
-  \code{SResp} to \code{DVA} and returning the appropriate data.
-\item The master issues a non-posted write command \code{WRNP}. The
-  slave signals that it does not accept the command by setting
-  \code{SCmdAccept} to low.
-\item As the slave did not accept the command in cycle B, the master
-  still issues the command. The slave accepts the command by setting
-  \code{SCmdAccept} to high.
-\item The slave responds to the write it accepted in cycle C. Note
-  that a) the master is not allowed to issue a new command immediately
-  and b) \code{SCmdAccept} may take any value, because \code{MCmd} is
-  \code{IDLE}.
-\item The master issues a read to which the slave responds immediately.
-\end{enumerate}
-
-\subsubsection{\code{OCPburst}}
-
-Figure~\ref{fig:timing_burst} shows a read followed by a write in
-\code{OCPburst}, were the slave does not accept the first data word
-immediately.
-
-\begin{enumerate}[A:]
-\item The master issues a read command by setting \code{MCmd} to
-  \code{RD}.
-\item The slave provides the first response \code{DVA$_{1.0}$}, with
-  data from address \code{A$_1$}.
-\item The slave provides the second response \code{DVA$_{1.1}$}, with
-  data from address \code{A$_1$+4}.
-\item The slave provides the third response \code{DVA$_{1.2}$}, with
-  data from address \code{A$_1$+8}.
-\item The slave provides the fourt and last response
-  \code{DVA$_{1.3}$}, with data from address \code{A$_1$+12}.
-\item The master issues a write command by setting \code{MCmd} to
-  \code{WRNP} and provides the first data word \code{D$_{2.0}$}. It
-  signals that the data is valid by asserting \code{MDataValid}. The
-  slave signals that it cannot accept the data by setting
-  \code{SDataAccept} to low.
-\item As the slave did not accept the data in cycle F, the master
-  keeps issuing the command and providing the data word
-  \code{D$_{2.0}$}. The slave now accepts the data by setting
-  \code{SDataAccept} to high.
-\item The master provides the second data word, \code{D$_{2.1}$}.
-\item The master provides the third data word, \code{D$_{2.2}$}.
-\item The master provides the fourth and last data word, \code{D$_{2.3}$}.
-\item The slave responds to the write burst by setting \code{SResp} to
-  \code{DVA}.
-\end{enumerate}
-
 \subsection{Remarks}
 
 \code{SCmdAccept} is valid only while a command is unequal to
@@ -2671,15 +2688,271 @@ project needs to be checked. The Patmos document shall be
 self contained and no membership to OCP necessary to use
 Patmos.}
 
-\section{Application Binary Interface}
+\clearpage
+\subsection{Timing Diagrams}
+
+\subsubsection{\code{OCPcore}}
+
+Figure~\ref{fig:timing_core} shows a sequence read/write/read in
+\code{OCPcore}, where the slave delays the response to the write by
+one cycle.
+
+\begin{figure}
+\centering
+\includegraphics{fig/timing_core}
+\caption{Timing diagram for \code{OCPcore}}
+\label{fig:timing_core}
+\end{figure}
+
+\begin{enumerate}[A:]
+\item The master issues a read by setting \code{MCmd} to \code{RD}.
+\item The slave responds to the read issued in cycle A by setting
+  \code{SResp} to \code{DVA} and returning the appropriate data. The
+  master can issue the next command in the same cycle as it receives
+  the response and issues a non-posted write command \code{WRNP}.
+\item The slave does not respond immediately and the master is
+  stalled. \code{MCmd} must be \code{IDLE} while the master is
+  stalled.
+\item The slave responds to the write issued in cycle B. The master
+  issues a read.
+\item The slave responds to the read issued in cycle D.
+\end{enumerate}
+
+\clearpage
+\subsubsection{\code{OCPio}}
+
+Figure~\ref{fig:timing_io} shows a sequence read/write/read in
+\code{OCPio}, where the slave does not accept the write immediately
+and delays the response to the write by one cycle.
+
+\begin{figure}
+\centering
+\includegraphics{fig/timing_io}
+\caption{Timing diagram for \code{OCPio}}
+\label{fig:timing_io}
+\end{figure}
+
+\begin{enumerate}[A:]
+\item The master issues a read by setting \code{MCmd} to
+  \code{RD}. The slave accepts the command by setting
+  \code{SCmdAccept} to high and responds immediately by setting
+  \code{SResp} to \code{DVA} and returning the appropriate data.
+\item The master issues a non-posted write command \code{WRNP}. The
+  slave signals that it does not accept the command by setting
+  \code{SCmdAccept} to low.
+\item As the slave did not accept the command in cycle B, the master
+  still issues the command. The slave accepts the command by setting
+  \code{SCmdAccept} to high.
+\item The slave responds to the write it accepted in cycle C. Note
+  that a) the master is not allowed to issue a new command immediately
+  and b) \code{SCmdAccept} may take any value, because \code{MCmd} is
+  \code{IDLE}.
+\item The master issues a read to which the slave responds immediately.
+\end{enumerate}
+
+\clearpage
+\subsubsection{\code{OCPburst}}
+
+Figure~\ref{fig:timing_burst} shows a read followed by a write in
+\code{OCPburst}, were the slave does not accept the first data word
+immediately.
+
+\begin{figure}
+\centering
+\includegraphics{fig/timing_burst}
+\caption{Timing diagram for \code{OCPburst}}
+\label{fig:timing_burst}
+\end{figure}
+
+\begin{enumerate}[A:]
+\item The master issues a read command by setting \code{MCmd} to
+  \code{RD}.
+\item The slave provides the first response \code{DVA$_{1.0}$}, with
+  data from address \code{A$_1$}.
+\item The slave provides the second response \code{DVA$_{1.1}$}, with
+  data from address \code{A$_1$+4}.
+\item The slave provides the third response \code{DVA$_{1.2}$}, with
+  data from address \code{A$_1$+8}.
+\item The slave provides the fourth and last response
+  \code{DVA$_{1.3}$}, with data from address \code{A$_1$+12}.
+\item The master issues a write command by setting \code{MCmd} to
+  \code{WRNP} and provides the first data word \code{D$_{2.0}$}. It
+  signals that the data is valid by asserting \code{MDataValid}. The
+  slave signals that it cannot accept the data by setting
+  \code{SDataAccept} to low.
+\item As the slave did not accept the data in cycle F, the master
+  keeps issuing the command and providing the data word
+  \code{D$_{2.0}$}. The slave now accepts the data by setting
+  \code{SDataAccept} to high.
+\item The master provides the second data word, \code{D$_{2.1}$}.
+\item The master provides the third data word, \code{D$_{2.2}$}.
+\item The master provides the fourth and last data word, \code{D$_{2.3}$}.
+\item The slave responds to the write burst by setting \code{SResp} to
+  \code{DVA}.
+\end{enumerate}
+
+% % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
+\chapter{Implementation}
+
+\martin{This sections shall describe implementation details,
+decisions, and options.}
+
+After a first implementation of Patmos in VHDL we did a cleanup and
+rewrite in a the hardware description language Chisel~\cite{chisel:dac2012}.
+The following notes on the implementation of Patmos and implementation
+decisions is based on first design discussions within the VHDL version
+and concrete implementation experiments with Chisel. All size and frequency
+numbers are from the Chisel implementation. A comparison between VHDL
+and Chisel would be of great interest.
+
+LoC, excluding the copyright header at 6.4.2013:
+Chisel: 996
+VHDL: 3020
+
+\section{Component Organization and Pipeline Structure}
+
+The architecture of Patmos is structured around five components, each
+representing one pipeline stage. Each component contains the \emph{left}
+pipeline register. E.g., the output of the \code{DEC} stage (decode signals,
+the two register values, and the immediate field) is combinational from
+the decode stage and registered in the \code{EX} stage. The motivation of
+this organization is that input registers of on-chip memory elements (e.g., instruction
+memory, register file, and data memory) are part of the pipeline register.
+They need to be fed unconditionally from the unregistered output of
+the former stage.
+
+Each stage has exactly one pipeline register, which is placed at the begin
+of the component. The pipeline registers use an enable for stalling.
+Register that have no enable (input registers of on-chip memories) need
+a \emph{shadow} register and a multiplexer for stalls.
+
+The interface from the EX stage to the MEM stage might use one
+field for ALU results and the store data or individual fields. Individual
+fields might reduce the pressure on the ALU multiplexers.
+\martin{Update to the current implementation -- check for difference.}
+
+
+\section{Register File}
+
+There are two options to implement the register file (RF) in an FPGA: (1) use
+two on-chip memories to provide two read ports and one write port, or (2)
+use dedicated registers and larger multiplexer structures for the read
+ports. Usually one aims to use on-chip memory for the RF. However,
+in a design constraint largely by the available amount of on-chip memory,
+a RF built out of registers might be preferable.
+
+For a dual issue pipeline we need 4 read ports and 2 write ports into the RF.
+We explored double clocking of a on-chip based RF in~\cite{patmos:ppes2011}.
+It is feasible, the resulting maximum frequency fits for the ALU path, but feels
+a little bit brittle. A RF from registers might give a more robust design for the
+two write ports. Furthermore, Chisel does not provide the possibility to use
+more than one clock.
+
+The ideal solution would be to make it configurable if on-chip memory or
+LCs are used. The issue width should also be configurable.
+
+
+
+
+\section{Resource and Fmax Numbers}
+
+State 13.3.2013 with Chisel and DE2-70: A shared field (for EX to MEM?) results 3435 LCs
+and 81.7 MHz, two fields in 3499 LCs and 81.8 MHz. Looks like not a big deal,
+but just 64 more LCs. Where does this cost come from? A very inefficient
+enable on the pipeline register (MUX instead of an enable signal?).
+
+\martin{Update with reduced ALU muxes and also with additional second
+ALU pipeline (forwarding). Is dual issue configurable?}
+
+\section{ALU Discussion}
+
+The large multiplexers and the forwarding limit the maximum frequency.
+We have already removed the expensive rotate instructions. Maybe more
+can go (e.g. \code{abs}).
+
+Current version (4.4.2013) with all ALU operations and test case ALU.s
+for the DE2-70 is: 3415 LCs, 85.44 MHz. Dropping \code{rsub} and all unary
+ALU operations: 3173 LCs, 91.91 MHz.
+
+\section{Building Patmos}
+
+The whole build process of Patmos,%
+\footnote{Get the source from GitHub with: \code{git clone git@github.com:t-crest/patmos}}
+applications in assembler
+and in C, configuration of the FPGA, and downloading an application
+is \code{Makefile} based.
+
+The complete design flow (including the LLVM
+based C compiler) can execute in a Linux machine. The flow without
+the C compiler should be able to execute in a Windows/Cygwin environment.
+Under Mac OS X all tools, except Quartus, are working (ModelSim under
+wine). For FPGA synthesis and configuration Windows XP within a VMWare
+virtual machine is a possible solution.
+
+On a Linux box with the installed LLMV compiler in your PATH,%
+\footnote{Installation and build is a simple two step approach:
+\code{git clone git@github.com:t-crest/patmos-misc.git misc}
+and build with:
+\code{./misc/build.sh}}
+the complete build processes is kicked of by:
+
+% make BOOTAPP=bootable-bootloader APP=helloworld tools synth comp config download
+\begin{verbatim}
+make BOOTAPP=bootable-bootloader APP=helloworld \
+   tools comp gen synth config download
+\end{verbatim}
+
+Here a list of the most important make targets:
+
+
+\begin{description}
+\item[tools] build of all tools, including the Patmos software simulator
+\item[asm] assemble source (from folder \code{asm})
+\item[emulator] build the Chisel based C++ emulator
+\item[csim] execute the Patmos emulator 
+\item[comp] compile a C program as loadable ELF binary
+\item[bootcomp] compile a C program as a bootable image
+\item[gen] generate the verilog code
+\item[synth] synthesize for an FPGA
+\end{description}
+
+
+\todo{Test and describe the ELF download flow.}
+
+The \code{Makefile} use following variables to configure the build process:
+\code{BOOTAPP} is an application that ends in the on-chip ROM. This may
+be an assembler program or a simple C program that does not need any
+initialized data; most prominent the boot loader for ELF binaries.
+A C program that shall be compiled as ROM target needs to be prefixed
+with \code{bootable-}.
+\code{APP} is a C program resulting in an ELF binary that can be either
+loaded by the emulator or the boot loader when executing in an FPGA.
+% TODO: test and talk about patsim. Having a complete ELF in the FPGA
+% without the boot loader would be nice as well.
+
+Here an example of the individual steps to build the blinking LED C
+hello world (on a different FPGA board):
+\begin{verbatim}
+make tools
+make BOOTAPP=bootable-echo bootcomp gen
+make BOOTAPP=bootable-echo QPROJ=bemicro synth
+make QPROJ=bemicro BLASTER_TYPE=Arrow-USB-Blaster config
+\end{verbatim}
+
+This split of the make commands is for demonstration. It is
+possible to merge all steps into a single make (on Linux
+systems) or two steps when using a two operating
+systems (for compilation and synthesis).
+
+\chapter{Application Binary Interface}
 \label{sec:abi}
 
-\subsection{Data Representation}
+\section{Data Representation}
 
 Data words in memories are stored using the big-endian data representation, this
 also includes the instruction representation.
 
-\subsection{Register Usage Conventions}
+\section{Register Usage Conventions}
 
 The register usage conventions for the general purpose registers are as follows:
 \begin{itemize}
@@ -2739,7 +3012,7 @@ The usage conventions of the special registers are as follows:
         across function calls.
 \end{itemize}
 
-\subsection{Function Calls}
+\section{Function Calls}
 \label{sec:function_calls}
 
 Function calls have to be executed using the \texttt{call}
@@ -2780,7 +3053,7 @@ return offset refers to the next instruction after the \emph{delay slot} of the
 corresponding \texttt{call} and can be implementation dependent (cf.\ the description
 of the \texttt{call} and \texttt{ret} instructions).
 
-\subsection{Sub-Functions} 
+\section{Sub-Functions} 
 A function can be split into several sub-functions. The program is only allowed to use
 \texttt{br} to jump within the same sub-function. To enter a different sub-function,
 \texttt{brcf} must be used. It can only be used to jump to the first instruction of a 
@@ -2824,7 +3097,7 @@ to have those sizes as part of the virtual method dispatch table.
 One indirection is there needed anyway, so why not having those
 data there.}
 
-\subsection{Stack Layout}
+\section{Stack Layout}
 
 All stack data in the global memory, either managed by the stack cache or using
 a frame/stack pointer, grows from top-to-bottom. The use of a frame pointer is
@@ -2833,7 +3106,7 @@ optional.
 Unwinding of the call stack is done on the stack-cache managed stack frame,
 following the conventions declared in the previous subsection on function calls.
 
-\subsection{Interrupts and Context Switching}
+\section{Interrupts and Context Switching}
 
 Interrupt handlers may use the shadow stack pointer \texttt{r29} to spill registers
 to the shadow stack. Interrupts must ensure that all special registers that might be in use 
@@ -2878,9 +3151,9 @@ the compiler does not restore all the special registers for normal functions.}
 
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
-\section{Potential Extensions}
+\chapter{Potential Extensions}
 
-\subsection{Decoupled Loads / Multiply / Wait / Move from Special}
+\section{Decoupled Loads / Multiply / Wait / Move from Special}
 
 \begin{itemize}
   \item Attaching a ready flag with all special registers.
@@ -2908,7 +3181,7 @@ ready, I guess we could just stall the pipeline for one cycle to write to the re
 current ISA, since we do not need the code space for the additional move from special instruction, but it may cost one stall whereas the
 move-from-special could be scheduled in the second slot parallel to some other operation (ok, but then its not so RISC anymore..).}
 
-\subsection{Bypass load checks data cache}
+\section{Bypass load checks data cache}
 
 Let the bypass load use the data cache if the data is cached. If the data is not in the cache, load it from main memory, but do not update
 the data cache (in contrast to the normal load). Therefore the compiler could use bypass to load data that will not be used a second time or
@@ -2921,7 +3194,7 @@ hit? (probably not, it should not modify the cache state).
 On the other hand, for synchronization we need a bypass that \emph{always} checks main memory. For consistency reasons, we may want to
 update the data cache if it contains the accessed address.}
 
-\subsection{Merged Stack Cache Operations and Function Return}
+\section{Merged Stack Cache Operations and Function Return}
 
 This might require an additional special-purpose register(?) to track the size
 of the last reserve instruction (this register might also be set explicitly).
@@ -2942,7 +3215,7 @@ allocate stack e.g. only in certain contexts.}
 and return this merge would make sense. It makes also
 very clear that M$ memory access and S$ memory access are coordinated.}
 
-\subsection{Non-Blocking Stack Control Instructions}
+\section{Non-Blocking Stack Control Instructions}
 
 Currently, all stack control operations, except \texttt{sfree}, are blocking. It
 might be useful to define non-blocking variants or define them to be
@@ -2953,7 +3226,7 @@ It is questionable whether this would actually buy us anything. Most
 (spill of saved registers). It might be more profitable for \texttt{sens}
 instructions.
 
-\subsection{Purge Cache Content}
+\section{Purge Cache Content}
 \begin{itemize}
   \item dynamic code generation, self-modifying code, etc.
   \item help cache analysis?
@@ -2963,7 +3236,7 @@ instructions.
 and for the method cache, purging the cache might also not gain much (depending on the used analysis). I do not think that Self-modifying
 should be used in hard realtime code anyway, as it might introduce some slight problems to the WCET analysis ;) }
 
-\subsection{Freeze Cache Content}
+\section{Freeze Cache Content}
 
 \begin{itemize}
   \item Bypass load can be used to avoid cache updates, but not on per-context basis (we cannot lock the cache and then call any function
@@ -2971,7 +3244,7 @@ should be used in hard realtime code anyway, as it might introduce some slight p
   \item Method cache freeze? Or should we just use a I-SPM for this if we want instruction cache locking?
 \end{itemize}
 
-\subsection{Unified memory access}
+\section{Unified memory access}
 
 \stefan{All our memories (except the stack cache) use a unified address space, but due to the typed loads, references must include both address and
 type of the cache. Since the type is encoded in the code, any generated code can only use one type of cache or SPM. 
@@ -3013,7 +3286,7 @@ Might be interesting to compare those two approaches.
 DMA controller can determine source and target based on the addresses (hopefully).
 }
 
-\subsection{Memory Management Unit}
+\section{Memory Management Unit}
 \begin{itemize}
   \item Simple software managed TLB.
   \item Main idea is to provide protection and separation.
@@ -3021,7 +3294,7 @@ DMA controller can determine source and target based on the addresses (hopefully
   \item No traps. Instead, reset or kill thread?
 \end{itemize}
 
-\subsection{Supervisor Mode}
+\section{Supervisor Mode}
 \begin{itemize}
   \item To restrict reconfiguration of critical components (e.g., TLB, Interrupt
         Tables).
@@ -3029,19 +3302,19 @@ DMA controller can determine source and target based on the addresses (hopefully
   \item Might be handy when running multiple threads or an OS.
 \end{itemize}
 
-\subsection{DMA Interface}
+\section{DMA Interface}
 \begin{itemize}
   \item Transfers between local and global memory
   \item Through special registers
   \item Alternatively, dedicated instructions \texttt{dmastart} and \texttt{dmalen}
 \end{itemize}
 
-\vspace{7mm}
 \begin{bytefield}{32}
-\bitheader[b]{0-31}\\
+\bitheader{0-31}\\
 \bitbox{1}{x} & \bitbox{5}{01010} &
 \bitbox{4}{Pred} & \bitbox{5}{Type} & \bitbox{5}{Ra} & \bitbox{5}{Rs} &
-\bitbox{7}{} \end{bytefield}\\
+\bitbox{7}{} \\
+\end{bytefield}
 
 \begin{tabular}{lll}
 Type  & Mnemonic & Operation \\ \hline
@@ -3101,7 +3374,7 @@ with architectures and naming conventions in a spectrum. E.g. instruction
 memory: plain I\$ -- I\$ with prefetch instructions -- method cache -- SPM with
 pointer redirect (address translation) -- plain SPM in its own address space.} 
 
-\subsection{Data scratchpad}
+\section{Data scratchpad}
 
 \begin{itemize}
   \item Every core has its D-SPM with its own address range (all in the same address space), a core can write to the D-SPM of another core
@@ -3133,18 +3406,18 @@ need to have an extra one.
 Write access to the same address from two sides is simply undefined.
 Why shall we provide HW for that? It is a programming error anyway.}
 
-\subsection{Halt}
+\section{Halt}
 \fb{Might not be needed for now. In the simulator we could simply jump to a
 label \texttt{exit} or \texttt{halt} or do an explicit syscall to quit the
 simulation.}
 
-\subsection{Exceptions}
+\section{Exceptions}
 
 \emph{also delayed exceptions for speculative execution}
 
-\subsection{Floating-Point Instructions}
+\section{Floating-Point Instructions}
 
-\subsection{Interrupt Handling}
+\section{Interrupt Handling}
 
 \begin{itemize}
   \item Enable/disable interrupts
@@ -3159,7 +3432,7 @@ branch delay slots -- Marco has fought this in the simulator, right?
 Also an issue for 64-bit atomic read of time register and some
 care to be taken for the multiply.}
 
-\subsection{Prefetching}
+\section{Prefetching}
 
 \begin{itemize}
   \item For method cache
@@ -3169,7 +3442,7 @@ care to be taken for the multiply.}
 \stefan{Prefetching with Method cache with FIFO is tricky, maybe we can use an I-SPM to store code that is executed while we prefetch the
 method cache.}
 
-\subsection{Data Caches}
+\section{Data Caches}
 
 \begin{itemize}
   \item Add a second (possibly larger), simple (direct mapped,..) data cache, to be used when the pointer address is known at compile time
@@ -3197,7 +3470,7 @@ static data (as mentioned before where addresses are known) and one
 for constants. The difference is cache coherency, which is not needed
 for constants. But are we considering cache coherence?}
 
-\subsection{Instruction scratchpad}
+\section{Instruction scratchpad}
 
 \begin{itemize}
 \item For instruction handlers or other code that should not destroy the method cache
@@ -3220,7 +3493,7 @@ control flow graph (inlining/exlining/combining methods) and using
 a method cache. So it is hard to make that argument in a report.}
 
 
-\subsection{Wired-AND/OR for predicates}
+\section{Wired-AND/OR for predicates}
 
 Let \texttt{cmp} be some operation that sets a predicate \texttt{Pd} and is predicated by \texttt{Pred}.
 Then we could define the following variants:
@@ -3255,13 +3528,14 @@ Pd |= <cmp>  ... if (!Pd)  Pd = <cmp>
 i.e., we use \texttt{Pd} as \texttt{Pred}.
 
 
-\subsection{Deadline instruction}
+\section{Deadline instruction}
 
 \begin{bytefield}{32}
-\bitheader[b]{0-31}\\
+\bitheader{0-31}\\
 \bitbox{1}{x} & \bitbox{5}{01011} &
 \bitbox{4}{Pred} &
-\bitbox{22}{Counter} \end{bytefield}\\
+\bitbox{22}{Counter} \\
+\end{bytefield}
 
 Wait until the deadline counter reaches zero, then restart the counter with the given initial value.
 
@@ -3294,77 +3568,413 @@ free of timing anomalies,.., so that we avoid this use-case by design. We want t
 WCET of the basic-blocks as easily as possible, so that we can keep track of the WCET/WCEP in the compiler when doing code
 transformations.}
 
+\chapter{Conclusion}
+\label{sec:conclusion}
+
+Patmos is the next cool thing in the dry world of real-time systems.
+
+\bibliographystyle{abbrv}
+\bibliography{patbib.bib}
+
+\appendix
+
+\end{document}
+
+\chapter{Archived Discussions}
+
+\begin{itemize}
+
+\item ALU immediate (add, or, and, xor), the function is indicated with \emph{ff}: \\
+
+\begin{bytefield}{32}
+\bitheader{0-31}\\
+\bitbox{1}{x} & \bitbox{3}{000} & \bitbox{2}{ff} &
+\bitbox{4}{Pred} & \bitbox{5}{Rd} & \bitbox{5}{Rs1} &
+\bitbox{12}{Constant}\end{bytefield}\\
+
+\begin{tabular}{lll}
+ff & Name & Semantics \\ \hline
+00 & add & Rd = Rs1 + $\sconst$ \\
+01 & or  & Rd = Rs1 \OR $\sconst$ \\
+10 & and & Rd = Rs1 \AND $\sconst$ \\
+11 & xor & Rd = Rs1 \XOR $\sconst$
+\end{tabular}
+
+\stefan{Is Constant sign extended? We have the long immediate ALU instruction anyway, so we do not
+need sign extension here, but then we cannot use this short form for subtraction.}
+\martin{Yes, it is sign extension.}
+\cullmann{Question: for the add, sign extension makes sense, but for the logic stuff, I see no real reason to sign extend, beside that you then only can use 1 bit less of the constant.}
+\fb{Might be a good idea to spend some more bits on \texttt{ff} here -- to merge
+    the \emph{ALU very short immediate} format introduced by Stefan (except for
+    \texttt{rl}). Merge with \texttt{ldi}. \texttt{xor} might not be that
+    relevant here, we could replace it with \texttt{sub} and then consider the
+    constant to be unsigned.}
 
 
-% % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
-\section{Assembly format}
+\item ALU function: \\
 
-\martin{This is not pasim, right?}
+\begin{bytefield}{32}
+\bitheader{0-31}\\
+\bitbox{1}{x} & \bitbox{5}{00101} &
+\bitbox{4}{Pred} & \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
+\bitbox{7}{0~\textbar~Func}\end{bytefield}\\
 
-A VLIW instruction consists of one or two operations that are issued in the first or both pipelines.
-Each operation is predicated, the predicate register is specified before the operation in parentheses \texttt{()}.
-If the predicate register is prefixed by a \texttt{!}, its negation is considered.
-If omitted, it defaults to \texttt{(p0)}, i.e.\ always true.
+\begin{tabular}{lll}
+Function & Name & Semantics \\ \hline
+0000000 & add  & Rd = Rs1 + Rs2 \\
+0000001 & or   & Rd = Rs1 \OR Rs2 \\
+0000010 & and  & Rd = Rs1 \AND Rs2 \\
+0000011 & xor  & Rd = Rs1 \XOR Rs2 \\
+0000100 & sub  & Rd = Rs1 - Rs2 \\
+0000110 & nor  & Rd = \NOT (Rs1 \OR Rs2) \\
 
-A semi-colon \texttt{;} or a newline denotes the end of an instruction or operation. If an instruction contains two operations, the operations
-in the bundle must be enclosed by curly brackets. Bundles do not need to be separated by newlines or semi-colons. For bundles consisting of
-only one operation, the curly brackets are optional. Labels that are prefixed by \texttt{.L} are local labels.
+0001000 & sl   & Rd = Rs1 \shl Rs2 \\
+0001001 & sr   & Rd = Rs1 \shr Rs2 \\
+0001010 & sra  & Rd = Rs1 \ashr Rs2 \\
+0001011 & rl   & Rd = (Rs1 \shl Rs2) \OR \\
+        &      & \phantom{Rd = }(Rs1 \shr (32-Rs2)) \\
 
-All register names must be prefixed by \texttt{\$}. 
-We use destination before source in the instructions, between destination and source a \texttt{=} character must be used instead of a comma.
-Immediate values are not prefixed for decimal notation, the usual 0 and 0x formats are accepted for octal and hexadecimal immediates.
-Comments start with the hash symbol \texttt{\#} and are considered to the end of the line. For memory operations, the syntax is
-\texttt{[\$register + offset]}. Register or offset can be ommited, in that case the zero register \texttt{r0} or an offset of $0$ is used.
+0010000 & carr & Rd = ((uint64\_t)Rs1 + \\
+        &      & \phantom{Rd = }(uint64\_t)Rs2) \shr 32 \\
+0010001 & borr & Rd = ((uint64\_t)Rs1 - \\
+        &      & \phantom{Rd = }(uint64\_t)Rs2) \shr 32 \\
 
-Example:
+??????? & shadd  & Rd = Rs1 + Rs2 \shl 1 \\
+??????? & shadd2 & Rd = Rs1 + Rs2 \shl 2 \\
+\end{tabular}
+
+\fb{What is the semantic of shifts when \texttt{R2} \textgreater~32 or
+    \texttt{R2} \textless~0? I would suggest to consider the lower 5 bits only.}
+
+\stefan{Wolfgang will probably recognize a lot of this.. I shamelessly copied most of the arithmetic
+and condition stuff from the Lemberg ISA, so that Martin can copy the implementation and I can copy the compiler ;) }
+\martin{Is an ISA under copyright ;-) I'm not sure if I really want all of that, but lets see...}
+
+\stefan{Do we want to have compare instructions that store the result in registers? We could use the same Function code as
+for the compare-to-predicate instruction, including compare with immediate value..}
+\martin{Compare instructions set a predicate.}
+
+\cullmann{Can't we just allow all ALU functions that take 2 arguments in both ways? e.g. one with R and imm, one with R1 and R2. Would make the ISA for ALU instructions more regular.}
+
+
+\item Compare (constant could be Rs2 field). It is predicated and has a
+destination predicate field: \\
+
+\begin{bytefield}{32}
+\bitheader{0-31}\\
+\bitbox{1}{x} & \bitbox{5}{01000} &
+\bitbox{4}{Pred} & \bitbox{2}{\bitsunused} & \bitbox{3}{Pd} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
+\bitbox{7}{Function}\end{bytefield}\\
+
+\begin{tabular}{lll}
+Function & Name & Semantics \\ \hline
+??????? & cmpz  & Pd = Rs1 ==  0 \\
+??????? & cmpnz  & Pd = Rs1 !=  0 \\
+0100000 & cmpeq  & Pd = Rs1 ==  Rs2 \\
+0100001 & cmpne  & Pd = Rs1 != Rs2 \\
+0100010 & cmplt  & Pd = Rs1 \textless Rs2 \\
+0100011 & cmple  & Pd = Rs1 \textless= Rs2 \\
+0100100 & cmpult & Pd = Rs1 \textless Rs2, unsigned \\
+0100101 & cmpule & Pd = Rs1 \textless= Rs2, unsigned \\
+0100110 & btest  & Pd = (Rs1 \AND (1 \shl Rs2)) != 0 \\
+\end{tabular}
+
+If the MSB in the Function field is set, use Rs2 as immediate value.
+
+\stefan{We could use bits 3-4 to define wired-AND/OR combination operation, like
+
+\begin{tabular}{lll}
+Function & Name & Semantics \\ \hline
+0100xxx & uncond & Pd = (Rs1 op Rs2) \\
+0101xxx & and    & Pd \AND= (Rs1 op Rs2) \\
+0110xxx & or     & Pd \OR= (Rs1 op Rs2) \\
+\end{tabular}
+}
+
+\daniel{The idea of this was that one can compute a predicate for an expression like
+the following by implementing the definition type with wired semantics,
+i.e. with wired-AND, 0 is only written to Pd if (Rs1 op Rs2) evaluates to false,
+whereas if it evaluates to true, Pd remains untouched by the operation.
+}
 \begin{verbatim}
-       # add 42 to contents of r2
-       # and store result in r1 (first slot)
-       { add   $r1 = $r2, $42
-       # if r3 equals 50, set p1 to true
-       cmpeq $p1, $r3, 50 }
-       # if p1 is true, jump to label_1
- ($p1) br label_1 ; nop; nop # then wait 2 cycles
-       # Load the address of a symbol into r2
-       li $r2 = .L.str2 
-       # perform a memory store and a pred op
-       { swc [$r31 + 2] = $r3 ; or $p1 = !$p2, $p3 }
-       ...
-label_1:
-       ...
+  if (a<b && b<c) { ..
+
+the boolean expr becomes ($p1 needs to be
+initialized somewhere previously)
+
+  cmplt_AND $p1, a, b
+  cmplt_AND $p1, b, c
+  ;;
 \end{verbatim}
 
-\stefan{TODO: some words about units of .align, .size, ..; describe .fstart; 
-I would like to move the assembly format description out into a public repo (patmos-misc) and merge 
-it with a compiler usage manual, ELF file format and backend description, though.}
+\daniel{Likewise with OR that does not write 0 but only 1 if the comparison evals to true.\\
+To make it complete, we'd need also complement variants, i.e. a NAND that
+only writes 0 to the Pd if the comparison evaluates to true (likewise NOR).\\
+Maybe we could abuse bit 20 or 21 for this? Could make cmpne superfluous.
+}
+\fb{The \texttt{\&=} and \texttt{\textbar=} variants would require an additional
+    register port for the predicate register file -- not sure it the overhead is
+    negligible.}
 
-\subsection{Instruction Mnemonics}
+\daniel{For single-path code generation (and if-conversion in general), an additional variant for predicate definition
+(\texttt{cmpXX}) is useful. The standard semantics is \texttt{if Pred then Pd := Rs1 op Rs2}. In a block guarded by Pred,
+if we compute predicates for an if-statement, the predicate \texttt{Pd} for the then-block would be \texttt{Pred $\wedge$ (Rs1 op Rs2)} and for the
+else-block \texttt{Pred $\wedge$ $\neg$(Rs1 op Rs2)}. Note that with the semantics above, \texttt{Pd} needs to be initialised to false.
+Directly $\wedge$-ing the Pred and comparison result to define Pd could avoid explicit initialisation.
+Ideally, the compare instruction would accept two \texttt{Pd}s, one for $\wedge$-ing Pred with the comparison result and one for $\wedge$-ing Pred
+with the negation of the comparison result, but I guess this is infeasible to encode and implement in hardware,
+and we'll need to use predicate combination for that purpose.
+}
 
-The LLVM assembler supports the instructions mnemonics as specified in this document, including all pseudo instructions.
+\stefan{
+In case we run out of opcodes, we could consider to use only 3 bits for \texttt{Pred}, allow only \texttt{if (Pd)} predicate, use the
+bit for opcode or \texttt{Func}/\texttt{Offset} instead, and use either bit 20 or bit 3 to negate the result of the comparison, i.e.,
+do \texttt{Pd = !(Rs1 op Rs2)} if that bit is set, instead of \texttt{cmpnez} and \texttt{cmpne}.}
 
-The \texttt{paasm} assembler and the \texttt{pasim} simulator use the same basic instruction mnemonic, but a \texttt{i} or 
-\texttt{l} suffix is appended for \emph{immediate} and \emph{long immediate} variants, while no suffix in general refers to 
-the register indirect variant of the instructions. As exception, the control flow instructions use a \texttt{r} suffix for the register
-indirect variants and no suffix for the immediate instructions.
-\stefan{This should be cleaned up, always use \texttt{i} suffix for immediates in pasim/paasm, including control flow.}
 
-\subsection{Inline Assembly}
+\item Multicycle NOP: \\
 
-Inline assembly syntax is similar to GCC inline assembly. It uses \texttt{\%0}, \texttt{\%1}, \ldots as placeholders
-for operands. Accepted register constraints are: \texttt{r} or \texttt{R} for any general purpose register, or 
-\texttt{\{<registername>\}} to use a specific register.
+\begin{bytefield}{32}
+\bitheader{0-31}\\
+\bitbox{1}{x} & \bitbox{5}{01010} &
+\bitbox{4}{Pred} & \bitbox{5}{\bitsunused} & \bitbox{5}{\bitsunused} & \bitbox{5}{count} &
+\bitbox{7}{\bitsunused} \end{bytefield}\\
 
-Example:
-\begin{verbatim}
-    int i, j, k;
-    asm("mov  $r31 = %1  # copy i into r31\n\t"
-        "add  %0 = $r5, %2"
-        : "=r" (j)
-        : "r" (i), "{r10}" (k));
-\end{verbatim}
+\stefan{Predicated multicycle nop? Creepy.. However, it might actually make sense to
+issue the nop together with another operation (like a branch), so we could do stuff like
+
+  \begin{tabular}{ll}
+    Pipeline A & Pipeline B \\
+    \hline
+    \texttt{if (c1) br addrA} & \texttt{if (c1) nop 5} \\
+    \ldots & \\
+    \texttt{if (c2) mul r1, r2} & \texttt{if (c2) nop 3} \\
+    \texttt{if (c2) ldx r3, \$mul}
+  \end{tabular}
+
+Therefore it would be nice to be able to issue the nop in both pipelines.
+}
+
+\cullmann{For timing analysis, I see no benefit in specifying a time for the nop.}
+\stefan{It should save a lot of code size though, since most instructions are not intended to stall or to detect hazards (branch, mul, call,
+..).}
+
+
+\item Wait instruction: \\
+
+\begin{bytefield}{32}
+\bitheader{0-31}\\
+\bitbox{1}{x} & \bitbox{5}{01110} &
+\bitbox{4}{Pred} &
+\bitbox{22}{\bitsunused} \end{bytefield}\\
+
+Wait for the current memory transaction to finish.
+
+\cullmann{For our analysis and in practice, blocking loads would be in my eyes more interesting than explicit waits.
+It is true that if you know that e.g. it will be a cache hit you might save to emit the wait, but with blocking loads, you will never need them.
+}
+\stefan{I agree that we do want to have blocking loads in our ISA. However, the advantage of split loads is that in case of a cache miss, we
+can hide some other instructions, therefore I would argue that we would like to have both in the ISA (if starting a load should wait for the
+previous memory transaction to finish is a different question though, since in case of a cache hit we would not need to wait for a store to
+complete, but having to insert a wait between each store and load explicitly maybe hurts even more due to instruction cache miss costs..
+should be evaluated). In any case, we still need a generic 'wait for memory' instruction, since we need it to
+\begin{itemize}
+\item wait for scratchpad load / store, instruction cache loads, ..
+\item wait for all memory transactions to finish at the end of basic blocks /.. to make the timing of the next blocks independent from the
+previous block (as much as possible), so that we can estimate the WCET of some code in the compiler during optimization more easily.. On the
+other hand, we should just try to get our ISA free of timing anomalies.
+\end{itemize}
+}
+
+\item Multiply: \\
+
+\begin{bytefield}{32}
+\bitheader{0-31}\\
+\bitbox{1}{x} & \bitbox{5}{01101} &
+\bitbox{4}{Pred} & \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
+\bitbox{7}{\bitsunused} \end{bytefield}\\
+
+Start multiplication of Rs1 * Rs2. Result is stored to a special register after a fixed number of cycles.
+
+\cullmann{For the analysis, it makes no difference, but for later use, would a blocking multiply not be more easy?}
+
+
+\item Load with a memory type: \\
+
+\begin{bytefield}{32}
+\bitheader{0-31}\\
+\bitbox{1}{x} & \bitbox{5}{01001} &
+\bitbox{4}{Pred} & \bitbox{5}{Rd} & \bitbox{5}{Ra} &
+\bitbox{5}{Type} & \bitbox{7}{Offset}\end{bytefield}\\
+
+\medskip
+
+\begin{tabular}{lll}
+Type  & Mnemonic   & Operation \\ \hline
+xx100 & ldm.bypass & Bypass caches, load from  \\
+      &            & main memory to Rd, impl.\ wait \\
+xx101 & ldm.dm     & Direct-mapped cache, load from \\
+      &            & main memory, impl.\ wait on miss \\
+xx110 & ldm.fa     & Fully-assoc.\ cache, load from \\
+      &            & main memory, impl.\ wait on miss \\
+xx010 & ldm.sc     & Stack cache, always hit (no wait) \\
+xx001 & ldm.sp     & Scratchpad, always hit (no wait) \\
+00xxx &            & Load word \\
+01xxx &            & Load half-word \\
+10xxx &            & Load byte \\
+11100 & ldm.split  & Start Split-load from main-memory, \\
+      &            & aligned, implicit wait \\
+\end{tabular}
+
+Address register Ra counts in bytes, Offset counts in natural word length (4 bytes for a word).
+
+ldm.sp can be issued in both pipelines, the others only in the first pipeline.
+
+\daniel{If offset is in word length, what do load word/half-word/byte mean?
+Only from starting at byte 0?  MIPS offers st/ld for word, half-word, byte as
+well, with byte offset addressing.
+I see two solutions: offset in bytes (range -64 to 63 as +/-16 words, ouch), or,
+we could, to be consistent with the \texttt{ldx} instruction, offer an extract
+instruction that extracts half-word/byte from a register with an offset. Not as
+much code bloat as shift/and.  }
+\daniel{Okay, one can use byte offsets from Ra, but this somehow destroys the concept of base address\ldots}
+
+
+
+
+\item Store with a memory type: \\
+
+\begin{bytefield}{32}
+\bitheader{0-31}\\
+\bitbox{1}{x} & \bitbox{5}{01010} &
+\bitbox{4}{Pred} & \bitbox{5}{Type} & \bitbox{5}{Ra} & \bitbox{5}{Rs} &
+\bitbox{7}{Offset} \end{bytefield}\\
+
+Address register Ra counts in bytes, Offset counts in natural word length (4 bytes for a word).
+
+\begin{tabular}{lll}
+Type  & Mnemonic & Operation \\ \hline
+xx111 & st.mem   & Store to memory, update caches \\
+      &          & which contain the word \\
+xx001 & st.sc    & Stack cache, no write through to \\
+      &          & main memory, never wait \\
+xx010 & st.sp    & Scratchpad, no write through to \\
+      &          & main memory, never wait \\
+00xxx &          & Store word \\
+01xxx &          & Store half-word \\
+10xxx &          & Store byte
+\end{tabular}
+
+\texttt{st.mem} always writes through to memory and stalls at the start of the operation if the memory bus is not ready.
+Storing is performed in two stages:
+\begin{enumerate}
+\item cache update; within one cycle (or a fixed number of cycles)
+\item write to memory
+\end{enumerate}
+For \texttt{st.sp, st.sc} stage 2 is omitted -- hence no interaction with memory bus, never has to wait.  \texttt{st.sc}
+can be issued in both pipelines.
+
+\cullmann{
+Would loads that implicitly wait not make the life easier for the compiler? For the analysis, in any way, we will need to keep track of the load to implement wait.
+For the "good" cases which hit the cache or SPM, an implicit waiting load would have no penalty, but for the "normal" cached main memory access, you would only need one instruction and not up to three (load, wait, move result).
+Beside, it will avoid possible semantic errors which are hard to detect. e.g. you can miss to insert a wait and it will work ok as long as you hit the cache but if by accident, you miss it, you get wrong behaviour.
+To create such timing sensitive code would be impossible with stalling loads.
+Beside, I see no benefit in performance and predictability with the split load approach. With blocking loads, you will save instructions, which should increase performance, and for the analysis, we need to implement the waiting anyway.
+}
+
+\daniel{We have reworked the load instructions to offer both a stalling and a split load. We can use a split load whenever we know we will miss the cache.}
+
+%\item xxx: \\
+%
+%\begin{bytefield}{32}
+%\bitheader{0-31}\\
+%\bitbox{1}{x} & \bitbox{5}{00---} &
+%\bitbox{4}{Pred} & \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
+%\bitbox{7}{Function}%\end{bytefield}\\
+
+\end{itemize}
+
+\bigskip
+
+\todo{The above should be generated from a common definition of the ISA (which is used by all parts of the project).}
+
+Some more instructions to be defined: branch and link, load method cache, interrupt handling -- we will support multithreading, therefore the full processor context needs to be save- and restorable,...
+
+\martin{Do we need exceptions? The only two I can think of are null pointer and divide by zero. Is it worth implementing (exact) exceptions for this or do we just leave it to the compiler?}
+
+\wolf{I do not think that we need exceptions besides null pointer and division by zero (and even those could be raised explicitly). But we have to think about the handling of interrupts: What do we do if we get an interrupt between issuing a memory load or the start of a multiplication and retrieving the result? Disable interrupts in between? Make result registers writable so we can restore the original state?}
+
+\wolf{We also need to think about the handling of exceptions on the higher-language level. Can we support Java-style exceptions efficiently?}
+
+
+\cullmann{
+For aiT, we definitely want to have call/return instructions. (they should perhaps even do stuff like save/restore the registers which need to be restored/saved)
+For avionics software, which uses a lot of floating point computations, is any FPU in the todo?
+General: If you lower the bits reserved for predicates, you could use more bits for immediate constants.
+}
+
+
+\section{Memory Accesses}
+
+\wolf{There are (at least) two ways to split memory loads. Explicit wait and
+load: \texttt{ldm addr; wait; dest = ldx \$mem}, or implicit wait:
+\texttt{ldm addr; dest = ldx \$mem}. Depending on the available units,
+the former may allow pipelined memory accesses:
+
+\medskip
+\begin{tabular}{ll}
+  Pipeline A & Pipeline B \\
+  \hline
+  \texttt{ldm addrA} & \\
+  \texttt{wait for rdycnt<=1} & \texttt{ldm addrB} \\
+  \texttt{destA = ldx \$mem} & \\
+  \texttt{ldm addrC} & \texttt{wait for rdycnt<=1} \\
+                     & \texttt{destB = ldx \$mem} \\
+  \texttt{wait for rdycnt<=1} & \\
+  \texttt{destC = ldx \$mem} & \\
+\end{tabular}
+
+\medskip
+Also, the \texttt{ldx} part of the loads can go through the ALU, which
+\emph{might} reduce multiplexing in the forwarding logic (only the
+ALUs ever produce results). The \texttt{wait} could maybe be omitted
+for stack and scratchpad memory accesses.
+
+On the other hand, implicit waiting clearly wins in terms of code size
+and instructions to be executed (more free slots for other stuff).  I
+think that implicit waiting is more profitable for Patmos, but
+educated guesses (or facts\ldots) would be very welcome.}
+
+\martin{I would argue that split loads are only for the main memory and
+caches that \emph{might} miss. Access to stack cache and SPM should
+be a guaranteed hit. BTW: normal memory loads can only be scheduled
+in the first instruction slot -- we have only one l/s unit. However, Florian
+convinced me that double ld/st to the stack can be beneficial for register
+spill and fill. So the plan is to allow stack ld/st (we just need word here....)
+in both slots.}
+
+\wolf{Fast access to the stack is a good idea, the following only
+  applies to ``normal'' memory accesses. Loading the results of all
+  loads via the ALUs would be a cheap way to free the first slot for
+  issuing loads/stores and jumps. There is no real need to put that
+  into the memory unit (is there?). Do you assume that waiting is
+  handled in the l/s unit? In my opinion, a separate stall unit that
+  is accessible from both pipelines would be nice (forwarding does not
+  get more complicated). With implicit waiting, three consecutive
+  accesses could look like this:
+
+  \medskip
+  \begin{tabular}{ll}
+    Pipeline A & Pipeline B \\
+    \hline
+    \texttt{ldm addrA} & \\
+    \texttt{ldm addrB} & \texttt{destA = ldx \$mem} \\
+    \texttt{ldm addrC} & \texttt{destB = ldx \$mem} \\
+                       & \texttt{destC = ldx \$mem} \\
+  \end{tabular}
+}
 
 \section{General Discussion}
-
 
 \tommy{Martin (jokingly?) told me that Patmos aims to
 beat YARI. I'm all for it as I've been trying to do the same for a long
@@ -3490,7 +4100,7 @@ stage. So we can only perform educated guesses.}
 \martin{Something to be evaluated....}
 
 
-\subsection{More on load/store}
+\section{More on load/store}
 
 \tommy{Sign extended loads hurts FPGA implementations much more than real
 silicon because muxes are very expensive here. I strongly recommend
@@ -3498,7 +4108,7 @@ making all loads zero extending and provide explicit sext8 and sext16
 instructions. (This matches the RISC philosophy of exposing the real
 cost of operations).
 
-(Caution: The Alpha route of providing only word-level accesses proved to be a mistake (IO
+(Caution: The Alpha route of providing only word-level accesses proved to be a mistake (I/O
 problems and more) and they had to provide byte and short level accesses
 in the second version of the architecture.)}
 
@@ -3559,483 +4169,5 @@ complete.
 see you already mentioned waiting for the {\it previous} DMA to finish,
 but we probably also want to wait for the current DMA to finish,
 e.g.~if the next instruction depends on something being loaded.}
-
-\section{Method Cache Options}
-\label{sec:method_cache_options}
-
-We have several options to implement the method cache and related instructions
-(call, return). Note, all replacement policies operate on the method/function
-level.
-\begin{itemize}
-  \item Fetch on call, with FIFO replacement \\
-        On a call it is checked whether the target method is in the cache or
-        not. If yes, execution continues. Otherwise, the call instruction
-        starts fetching the method into the cache, the pipeline is stalled.
-  \item Fetch on call, with FILO replacement \\
-        Same as above, only that the replacement strategy if FILO, i.e., like a
-        stack.
-  \item prefetch before call, with FILO replacement \\
-        We define two instructions to perform a function call. A compiler-placed
-        prefetch instructions ensure that the target method is either in the
-        cache, or triggers the loading of the function. Calls merely check
-        whether the method is completely loaded and transfer control.
-        (FIFO replacement is not possible due to potential eviction of the
-        current method executing the prefetch).
-  \item prefetch before call, explicit unload, with FILO replacement \\
-        Same as before, with an additional \emph{unload} instruction to evict
-        methods explicitly from the cache -- i.e., to free space after as shown
-        by the following example:
-\begin{verbatim}
-  A()
-  // unload here to avoid mutual eviction
-  // in loop of B and C, assuming A+B, A+C,
-  // B+C fit in the cache, but not A+B+C
-  while(true) {
-    B() //
-    C();
-  }
-\end{verbatim}
-  \item fetch on call, LRU replacement \\
-  \item prefetch before call, LRU replacement \\
-        This is everybody's darling: compiler-placed prefetching with stalling
-        call instructions. Safe, clean, and expensive in hardware ;-)
-\end{itemize}
-
-%\stefan{There are quite a few knobs that we can turn with the method cache (btw, should we call it function cache since we are compiling C
-%code?)
-%
-%\begin{itemize}
-%\item Functions or subfunctions:
-%
-%\item Split allocation and preloading or always load complete (sub)function:
-%
-%\item Allocation in hardware (FIFO) or software (FIFO, LRU,..):
-%
-%\item Organize in blocks or as SPM, continous function entries or allow allocation of random blocks:
-%
-%\item Hit detection in hardware or software:
-%
-%\item Separate i-cache to persist 'macros', interrupt handlers, or commonly used functions:
-%
-%\end{itemize}
-%
-%I will elaborate on this, just commiting it as it is for now.
-%}
-
-
-\stefan{How do we initialize the core, i.e., how do we get the initial startup code into the i-cache, especially when
-we use software-controlled i-cache allocation? How do we handle interrupts (they need to get into the cache before they can be executed)?}
-
-\jack{This is a good use for I-SPM. Use it as an operating system ``ROM''
-or at least a first-stage bootloader.}
-
-% \section{Scratchpad Memory}
-
-\section{Conclusion}
-\label{sec:conclusion}
-
-Patmos is the next cool thing in the dry world of real-time systems.
-
-
-\bibliographystyle{abbrv}
-\bibliography{patbib.bib}
-
-
-\appendix
-
-
-\subsection{Archived ISA Discussions}
-
-\begin{itemize}
-
-\item ALU immediate (add, or, and, xor), the function is indicated with \emph{ff}: \\
-
-\begin{bytefield}{32}
-\bitheader[b]{0-31}\\
-\bitbox{1}{x} & \bitbox{3}{000} & \bitbox{2}{ff} &
-\bitbox{4}{Pred} & \bitbox{5}{Rd} & \bitbox{5}{Rs1} &
-\bitbox{12}{Constant}\end{bytefield}\\
-
-\begin{tabular}{lll}
-ff & Name & Semantics \\ \hline
-00 & add & Rd = Rs1 + $\sconst$ \\
-01 & or  & Rd = Rs1 \OR $\sconst$ \\
-10 & and & Rd = Rs1 \AND $\sconst$ \\
-11 & xor & Rd = Rs1 \XOR $\sconst$
-\end{tabular}
-
-\stefan{Is Constant sign extended? We have the long immediate ALU instruction anyway, so we do not
-need sign extension here, but then we cannot use this short form for subtraction.}
-\martin{Yes, it is sign extension.}
-\cullmann{Question: for the add, sign extension makes sense, but for the logic stuff, I see no real reason to sign extend, beside that you then only can use 1 bit less of the constant.}
-\fb{Might be a good idea to spend some more bits on \texttt{ff} here -- to merge
-    the \emph{ALU very short immediate} format introduced by Stefan (except for
-    \texttt{rl}). Merge with \texttt{ldi}. \texttt{xor} might not be that
-    relevant here, we could replace it with \texttt{sub} and then consider the
-    constant to be unsigned.}
-
-
-\item ALU function: \\
-
-\begin{bytefield}{32}
-\bitheader[b]{0-31}\\
-\bitbox{1}{x} & \bitbox{5}{00101} &
-\bitbox{4}{Pred} & \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
-\bitbox{7}{0~\textbar~Func}\end{bytefield}\\
-
-\begin{tabular}{lll}
-Function & Name & Semantics \\ \hline
-0000000 & add  & Rd = Rs1 + Rs2 \\
-0000001 & or   & Rd = Rs1 \OR Rs2 \\
-0000010 & and  & Rd = Rs1 \AND Rs2 \\
-0000011 & xor  & Rd = Rs1 \XOR Rs2 \\
-0000100 & sub  & Rd = Rs1 - Rs2 \\
-0000110 & nor  & Rd = \NOT (Rs1 \OR Rs2) \\
-
-0001000 & sl   & Rd = Rs1 \shl Rs2 \\
-0001001 & sr   & Rd = Rs1 \shr Rs2 \\
-0001010 & sra  & Rd = Rs1 \ashr Rs2 \\
-0001011 & rl   & Rd = (Rs1 \shl Rs2) \OR \\
-        &      & \phantom{Rd = }(Rs1 \shr (32-Rs2)) \\
-
-0010000 & carr & Rd = ((uint64\_t)Rs1 + \\
-        &      & \phantom{Rd = }(uint64\_t)Rs2) \shr 32 \\
-0010001 & borr & Rd = ((uint64\_t)Rs1 - \\
-        &      & \phantom{Rd = }(uint64\_t)Rs2) \shr 32 \\
-
-??????? & shadd  & Rd = Rs1 + Rs2 \shl 1 \\
-??????? & shadd2 & Rd = Rs1 + Rs2 \shl 2 \\
-\end{tabular}
-
-\fb{What is the semantic of shifts when \texttt{R2} \textgreater~32 or
-    \texttt{R2} \textless~0? I would suggest to consider the lower 5 bits only.}
-
-\stefan{Wolfgang will probably recognize a lot of this.. I shamelessly copied most of the arithmetic
-and condition stuff from the Lemberg ISA, so that Martin can copy the implementation and I can copy the compiler ;) }
-\martin{Is an ISA under copyright ;-) I'm not sure if I really want all of that, but lets see...}
-
-\stefan{Do we want to have compare instructions that store the result in registers? We could use the same Function code as
-for the compare-to-predicate instruction, including compare with immediate value..}
-\martin{Compare instructions set a predicate.}
-
-\cullmann{Can't we just allow all ALU functions that take 2 arguments in both ways? e.g. one with R and imm, one with R1 and R2. Would make the ISA for ALU instructions more regular.}
-
-
-\item Compare (constant could be Rs2 field). It is predicated and has a
-destination predicate field: \\
-
-\begin{bytefield}{32}
-\bitheader[b]{0-31}\\
-\bitbox{1}{x} & \bitbox{5}{01000} &
-\bitbox{4}{Pred} & \bitbox{2}{\bitsunused} & \bitbox{3}{Pd} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
-\bitbox{7}{Function}\end{bytefield}\\
-
-\begin{tabular}{lll}
-Function & Name & Semantics \\ \hline
-??????? & cmpz  & Pd = Rs1 ==  0 \\
-??????? & cmpnz  & Pd = Rs1 !=  0 \\
-0100000 & cmpeq  & Pd = Rs1 ==  Rs2 \\
-0100001 & cmpne  & Pd = Rs1 != Rs2 \\
-0100010 & cmplt  & Pd = Rs1 \textless Rs2 \\
-0100011 & cmple  & Pd = Rs1 \textless= Rs2 \\
-0100100 & cmpult & Pd = Rs1 \textless Rs2, unsigned \\
-0100101 & cmpule & Pd = Rs1 \textless= Rs2, unsigned \\
-0100110 & btest  & Pd = (Rs1 \AND (1 \shl Rs2)) != 0 \\
-\end{tabular}
-
-If the MSB in the Function field is set, use Rs2 as immediate value.
-
-\stefan{We could use bits 3-4 to define wired-AND/OR combination operation, like
-
-\begin{tabular}{lll}
-Function & Name & Semantics \\ \hline
-0100xxx & uncond & Pd = (Rs1 op Rs2) \\
-0101xxx & and    & Pd \AND= (Rs1 op Rs2) \\
-0110xxx & or     & Pd \OR= (Rs1 op Rs2) \\
-\end{tabular}
-}
-
-\daniel{The idea of this was that one can compute a predicate for an expression like
-the following by implementing the definition type with wired semantics,
-i.e. with wired-AND, 0 is only written to Pd if (Rs1 op Rs2) evaluates to false,
-whereas if it evaluates to true, Pd remains untouched by the operation.
-}
-\begin{verbatim}
-  if (a<b && b<c) { ..
-
-the boolean expr becomes ($p1 needs to be
-initialized somewhere previously)
-
-  cmplt_AND $p1, a, b
-  cmplt_AND $p1, b, c
-  ;;
-\end{verbatim}
-
-\daniel{Likewise with OR that does not write 0 but only 1 if the comparison evals to true.\\
-To make it complete, we'd need also complement variants, i.e. a NAND that
-only writes 0 to the Pd if the comparison evaluates to true (likewise NOR).\\
-Maybe we could abuse bit 20 or 21 for this? Could make cmpne superfluous.
-}
-\fb{The \texttt{\&=} and \texttt{\textbar=} variants would require an additional
-    register port for the predicate register file -- not sure it the overhead is
-    negligible.}
-
-\daniel{For single-path code generation (and if-conversion in general), an additional variant for predicate definition
-(\texttt{cmpXX}) is useful. The standard semantics is \texttt{if Pred then Pd := Rs1 op Rs2}. In a block guarded by Pred,
-if we compute predicates for an if-statement, the predicate \texttt{Pd} for the then-block would be \texttt{Pred $\wedge$ (Rs1 op Rs2)} and for the
-else-block \texttt{Pred $\wedge$ $\neg$(Rs1 op Rs2)}. Note that with the semantics above, \texttt{Pd} needs to be initialised to false.
-Directly $\wedge$-ing the Pred and comparison result to define Pd could avoid explicit initialisation.
-Ideally, the compare instruction would accept two \texttt{Pd}s, one for $\wedge$-ing Pred with the comparison result and one for $\wedge$-ing Pred
-with the negation of the comparison result, but I guess this is infeasible to encode and implement in hardware,
-and we'll need to use predicate combination for that purpose.
-}
-
-\stefan{
-In case we run out of opcodes, we could consider to use only 3 bits for \texttt{Pred}, allow only \texttt{if (Pd)} predicate, use the
-bit for opcode or \texttt{Func}/\texttt{Offset} instead, and use either bit 20 or bit 3 to negate the result of the comparison, i.e.,
-do \texttt{Pd = !(Rs1 op Rs2)} if that bit is set, instead of \texttt{cmpnez} and \texttt{cmpne}.}
-
-
-\item Multicycle NOP: \\
-
-\begin{bytefield}{32}
-\bitheader[b]{0-31}\\
-\bitbox{1}{x} & \bitbox{5}{01010} &
-\bitbox{4}{Pred} & \bitbox{5}{\bitsunused} & \bitbox{5}{\bitsunused} & \bitbox{5}{count} &
-\bitbox{7}{\bitsunused} \end{bytefield}\\
-
-\stefan{Predicated multicycle nop? Creepy.. However, it might actually make sense to
-issue the nop together with another operation (like a branch), so we could do stuff like
-
-  \begin{tabular}{ll}
-    Pipeline A & Pipeline B \\
-    \hline
-    \texttt{if (c1) br addrA} & \texttt{if (c1) nop 5} \\
-    \ldots & \\
-    \texttt{if (c2) mul r1, r2} & \texttt{if (c2) nop 3} \\
-    \texttt{if (c2) ldx r3, \$mul}
-  \end{tabular}
-
-Therefore it would be nice to be able to issue the nop in both pipelines.
-}
-
-\cullmann{For timing analysis, I see no benefit in specifying a time for the nop.}
-\stefan{It should save a lot of code size though, since most instructions are not intended to stall or to detect hazards (branch, mul, call,
-..).}
-
-
-\item Wait instruction: \\
-
-\begin{bytefield}{32}
-\bitheader[b]{0-31}\\
-\bitbox{1}{x} & \bitbox{5}{01110} &
-\bitbox{4}{Pred} &
-\bitbox{22}{\bitsunused} \end{bytefield}\\
-
-Wait for the current memory transaction to finish.
-
-\cullmann{For our analysis and in practice, blocking loads would be in my eyes more interesting than explicit waits.
-It is true that if you know that e.g. it will be a cache hit you might save to emit the wait, but with blocking loads, you will never need them.
-}
-\stefan{I agree that we do want to have blocking loads in our ISA. However, the advantage of split loads is that in case of a cache miss, we
-can hide some other instructions, therefore I would argue that we would like to have both in the ISA (if starting a load should wait for the
-previous memory transaction to finish is a different question though, since in case of a cache hit we would not need to wait for a store to
-complete, but having to insert a wait between each store and load explicitly maybe hurts even more due to instruction cache miss costs..
-should be evaluated). In any case, we still need a generic 'wait for memory' instruction, since we need it to
-\begin{itemize}
-\item wait for scratchpad load / store, instruction cache loads, ..
-\item wait for all memory transactions to finish at the end of basic blocks /.. to make the timing of the next blocks independent from the
-previous block (as much as possible), so that we can estimate the WCET of some code in the compiler during optimization more easily.. On the
-other hand, we should just try to get our ISA free of timing anomalies.
-\end{itemize}
-}
-
-\item Multiply: \\
-
-\begin{bytefield}{32}
-\bitheader[b]{0-31}\\
-\bitbox{1}{x} & \bitbox{5}{01101} &
-\bitbox{4}{Pred} & \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
-\bitbox{7}{\bitsunused} \end{bytefield}\\
-
-Start multiplication of Rs1 * Rs2. Result is stored to a special register after a fixed number of cycles.
-
-\cullmann{For the analysis, it makes no difference, but for later use, would a blocking multiply not be more easy?}
-
-
-\item Load with a memory type: \\
-
-\begin{bytefield}{32}
-\bitheader[b]{0-31}\\
-\bitbox{1}{x} & \bitbox{5}{01001} &
-\bitbox{4}{Pred} & \bitbox{5}{Rd} & \bitbox{5}{Ra} &
-\bitbox{5}{Type} & \bitbox{7}{Offset}\end{bytefield}\\
-
-\medskip
-
-\begin{tabular}{lll}
-Type  & Mnemonic   & Operation \\ \hline
-xx100 & ldm.bypass & Bypass caches, load from  \\
-      &            & main memory to Rd, impl.\ wait \\
-xx101 & ldm.dm     & Direct-mapped cache, load from \\
-      &            & main memory, impl.\ wait on miss \\
-xx110 & ldm.fa     & Fully-assoc.\ cache, load from \\
-      &            & main memory, impl.\ wait on miss \\
-xx010 & ldm.sc     & Stack cache, always hit (no wait) \\
-xx001 & ldm.sp     & Scratchpad, always hit (no wait) \\
-00xxx &            & Load word \\
-01xxx &            & Load half-word \\
-10xxx &            & Load byte \\
-11100 & ldm.split  & Start Split-load from main-memory, \\
-      &            & aligned, implicit wait \\
-\end{tabular}
-
-Address register Ra counts in bytes, Offset counts in natural word length (4 bytes for a word).
-
-ldm.sp can be issued in both pipelines, the others only in the first pipeline.
-
-\daniel{If offset is in word length, what do load word/half-word/byte mean?
-Only from starting at byte 0?  MIPS offers st/ld for word, half-word, byte as
-well, with byte offset addressing.
-I see two solutions: offset in bytes (range -64 to 63 as +/-16 words, ouch), or,
-we could, to be consistent with the \texttt{ldx} instruction, offer an extract
-instruction that extracts half-word/byte from a register with an offset. Not as
-much code bloat as shift/and.  }
-\daniel{Okay, one can use byte offsets from Ra, but this somehow destroys the concept of base address\ldots}
-
-
-
-
-\item Store with a memory type: \\
-
-\begin{bytefield}{32}
-\bitheader[b]{0-31}\\
-\bitbox{1}{x} & \bitbox{5}{01010} &
-\bitbox{4}{Pred} & \bitbox{5}{Type} & \bitbox{5}{Ra} & \bitbox{5}{Rs} &
-\bitbox{7}{Offset} \end{bytefield}\\
-
-Address register Ra counts in bytes, Offset counts in natural word length (4 bytes for a word).
-
-\begin{tabular}{lll}
-Type  & Mnemonic & Operation \\ \hline
-xx111 & st.mem   & Store to memory, update caches \\
-      &          & which contain the word \\
-xx001 & st.sc    & Stack cache, no write through to \\
-      &          & main memory, never wait \\
-xx010 & st.sp    & Scratchpad, no write through to \\
-      &          & main memory, never wait \\
-00xxx &          & Store word \\
-01xxx &          & Store half-word \\
-10xxx &          & Store byte
-\end{tabular}
-
-\texttt{st.mem} always writes through to memory and stalls at the start of the operation if the memory bus is not ready.
-Storing is performed in two stages:
-\begin{enumerate}
-\item cache update; within one cycle (or a fixed number of cycles)
-\item write to memory
-\end{enumerate}
-For \texttt{st.sp, st.sc} stage 2 is omitted -- hence no interaction with memory bus, never has to wait.  \texttt{st.sc}
-can be issued in both pipelines.
-
-\cullmann{
-Would loads that implicitly wait not make the life easier for the compiler? For the analysis, in any way, we will need to keep track of the load to implement wait.
-For the "good" cases which hit the cache or SPM, an implicit waiting load would have no penalty, but for the "normal" cached main memory access, you would only need one instruction and not up to three (load, wait, move result).
-Beside, it will avoid possible semantic errors which are hard to detect. e.g. you can miss to insert a wait and it will work ok as long as you hit the cache but if by accident, you miss it, you get wrong behaviour.
-To create such timing sensitive code would be impossible with stalling loads.
-Beside, I see no benefit in performance and predictability with the split load approach. With blocking loads, you will save instructions, which should increase performance, and for the analysis, we need to implement the waiting anyway.
-}
-
-\daniel{We have reworked the load instructions to offer both a stalling and a split load. We can use a split load whenever we know we will miss the cache.}
-
-%\item xxx: \\
-%
-%\begin{bytefield}{32}
-%\bitheader[b]{0-31}\\
-%\bitbox{1}{x} & \bitbox{5}{00---} &
-%\bitbox{4}{Pred} & \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
-%\bitbox{7}{Function}%\end{bytefield}\\
-
-\end{itemize}
-
-\bigskip
-
-\todo{The above should be generated from a common definition of the ISA (which is used by all parts of the project).}
-
-Some more instructions to be defined: branch and link, load method cache, interrupt handling -- we will support multithreading, therefore the full processor context needs to be save- and restorable,...
-
-\martin{Do we need exceptions? The only two I can think of are null pointer and divide by zero. Is it worth implementing (exact) exceptions for this or do we just leave it to the compiler?}
-
-\wolf{I do not think that we need exceptions besides null pointer and division by zero (and even those could be raised explicitly). But we have to think about the handling of interrupts: What do we do if we get an interrupt between issuing a memory load or the start of a multiplication and retrieving the result? Disable interrupts in between? Make result registers writable so we can restore the original state?}
-
-\wolf{We also need to think about the handling of exceptions on the higher-language level. Can we support Java-style exceptions efficiently?}
-
-
-\cullmann{
-For aiT, we definitely want to have call/return instructions. (they should perhaps even do stuff like save/restore the registers which need to be restored/saved)
-For avionics software, which uses a lot of floating point computations, is any FPU in the todo?
-General: If you lower the bits reserved for predicates, you could use more bits for immediate constants.
-}
-
-
-\subsection{Memory Accesses}
-
-\wolf{There are (at least) two ways to split memory loads. Explicit wait and
-load: \texttt{ldm addr; wait; dest = ldx \$mem}, or implicit wait:
-\texttt{ldm addr; dest = ldx \$mem}. Depending on the available units,
-the former may allow pipelined memory accesses:
-
-\medskip
-\begin{tabular}{ll}
-  Pipeline A & Pipeline B \\
-  \hline
-  \texttt{ldm addrA} & \\
-  \texttt{wait for rdycnt<=1} & \texttt{ldm addrB} \\
-  \texttt{destA = ldx \$mem} & \\
-  \texttt{ldm addrC} & \texttt{wait for rdycnt<=1} \\
-                     & \texttt{destB = ldx \$mem} \\
-  \texttt{wait for rdycnt<=1} & \\
-  \texttt{destC = ldx \$mem} & \\
-\end{tabular}
-
-\medskip
-Also, the \texttt{ldx} part of the loads can go through the ALU, which
-\emph{might} reduce multiplexing in the forwarding logic (only the
-ALUs ever produce results). The \texttt{wait} could maybe be omitted
-for stack and scratchpad memory accesses.
-
-On the other hand, implicit waiting clearly wins in terms of code size
-and instructions to be executed (more free slots for other stuff).  I
-think that implicit waiting is more profitable for Patmos, but
-educated guesses (or facts\ldots) would be very welcome.}
-
-\martin{I would argue that split loads are only for the main memory and
-caches that \emph{might} miss. Access to stack cache and SPM should
-be a guaranteed hit. BTW: normal memory loads can only be scheduled
-in the first instruction slot -- we have only one l/s unit. However, Florian
-convinced me that double ld/st to the stack can be beneficial for register
-spill and fill. So the plan is to allow stack ld/st (we just need word here....)
-in both slots.}
-
-\wolf{Fast access to the stack is a good idea, the following only
-  applies to ``normal'' memory accesses. Loading the results of all
-  loads via the ALUs would be a cheap way to free the first slot for
-  issuing loads/stores and jumps. There is no real need to put that
-  into the memory unit (is there?). Do you assume that waiting is
-  handled in the l/s unit? In my opinion, a separate stall unit that
-  is accessible from both pipelines would be nice (forwarding does not
-  get more complicated). With implicit waiting, three consecutive
-  accesses could look like this:
-
-  \medskip
-  \begin{tabular}{ll}
-    Pipeline A & Pipeline B \\
-    \hline
-    \texttt{ldm addrA} & \\
-    \texttt{ldm addrB} & \texttt{destA = ldx \$mem} \\
-    \texttt{ldm addrC} & \texttt{destB = ldx \$mem} \\
-                       & \texttt{destC = ldx \$mem} \\
-  \end{tabular}
-}
 
 \end{document}
