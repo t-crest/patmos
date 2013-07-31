@@ -2536,11 +2536,12 @@ a small set of prefetch buffers may benefit from spacial locality.
 
 \section{Hardware Interface}
 
-For the connection of Patmos to a memory controller, I/O devices,
-the core-to-core network on chip, and/or the memory arbiter an interface
-standard needs to be specified. Several standards are available.
-We decided to base the interface on OCP\footnote{\url{http://www.ocpip.org/}}
-and subset the standard as we need it.
+For the connection of Patmos to a memory controller, I/O devices, the
+core-to-core network on chip, and/or the memory arbiter an interface
+standard needs to be specified. Several standards are available.  We
+decided to base the interface on
+OCP\footnote{\url{http://www.ocpip.org/}}~\cite{ocp:spec} and subset
+the standard as we need it.
 
 \subsection{Description}
 
@@ -2635,7 +2636,7 @@ to specify the cache that should serve the access.
 \subsubsection{\code{OCPburst}}
 
 The caches access the external memory through bursts only;
-Table~\ref{tab:burstsignals} shows the signals of the \core{OCPburst}
+Table~\ref{tab:burstsignals} shows the signals of the \code{OCPburst}
 interface. The tie-off value for \code{MBurstLength} is 4, and
 \code{MBurstSingleReq} is tied off to 1. This means that the master
 supplies four data words for each write command, and the slave returns
