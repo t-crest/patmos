@@ -1469,7 +1469,7 @@ namespace patmos
       {
         // check if the target method is in the cache, otherwise stall until
         // it is loaded.
-        if (!s.Method_cache.is_available(base))
+        if (!s.Method_cache.assert_availability(base))
         {
           // stall the pipeline
           s.pipeline_stall(SMW);
@@ -1500,7 +1500,7 @@ namespace patmos
       if (pred && !ops.MW_CFL_Discard)
       {
         // assure that the target method is in the cache.
-        assert(s.Method_cache.assert_availability(base));
+        assert(s.Method_cache.is_available(base));
 
         // set the program counter and base
         s.BASE = base;

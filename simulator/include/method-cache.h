@@ -52,17 +52,17 @@ namespace patmos
     /// @return True when the instruction word is available from the read port.
     virtual bool fetch(uword_t address, word_t iw[2]) = 0;
 
-
-    /// Check whether a method is in the method cache, if it is not available
-    /// yet initiate a transfer, evicting other methods if needed.
-    /// @param address The base address of the method.
-    /// @return True when the method is available in the cache, false otherwise.
-    virtual bool is_available(word_t address) = 0;
-
     /// Assert that the method is in the method cache.
+    /// If it is not available yet, initiate a transfer,
+    /// evicting other methods if needed.
     /// @param address The base address of the method.
     /// @return True when the method is available in the cache, false otherwise.
     virtual bool assert_availability(word_t address) = 0;
+
+    /// Check whether a method is in the method cache.
+    /// @param address The base address of the method.
+    /// @return True when the method is available in the cache, false otherwise.
+    virtual bool is_available(word_t address) = 0;
 
     /// Get the base address of the currently active method.
     /// @return The base address of the currently active method.
@@ -117,20 +117,21 @@ namespace patmos
       return true;
     }
 
-    /// Check whether a method is in the method cache, if it is not available
-    /// yet initiate a transfer, evicting other methods if needed.
+    /// Assert that the method is in the method cache.
+    /// If it is not available yet, initiate a transfer,
+    /// evicting other methods if needed.
     /// @param address The base address of the method.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool is_available(word_t address)
+    virtual bool assert_availability(word_t address)
     {
       current_base = address;
       return true;
     }
 
-    /// Assert that the method is in the method cache.
+    /// Check whether a method is in the method cache.
     /// @param address The base address of the method.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool assert_availability(word_t address)
+    virtual bool is_available(word_t address)
     {
       return true;
     }
@@ -396,11 +397,12 @@ namespace patmos
       return do_fetch(Methods[Num_blocks - 1], address, iw);
     }
 
-    /// Check whether a method is in the method cache, if it is not available
-    /// yet initiate a transfer, evicting other methods if needed.
+    /// Assert that the method is in the method cache.
+    /// If it is not available yet, initiate a transfer,
+    /// evicting other methods if needed.
     /// @param address The base address of the method.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool is_available(word_t address)
+    virtual bool assert_availability(word_t address)
     {
       // check status of the method cache
       switch(Phase)
@@ -521,10 +523,10 @@ namespace patmos
       abort();
     }
 
-    /// Assert that the method is in the method cache.
+    /// Check whether a method is in the method cache.
     /// @param address The base address of the method.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool assert_availability(word_t address)
+    virtual bool is_available(word_t address)
     {
       // check if the address is in the cache
       for(unsigned int i = Num_blocks - 1; i >= Num_blocks - Num_active_methods;
@@ -626,7 +628,7 @@ namespace patmos
     /// @return True in case the method is in the cache, false otherwise.
     virtual bool lookup(uword_t address)
     {
-      return base_t::assert_availability(address);
+      return base_t::is_available(address);
     }
   public:
     /// Construct an FIFO-based method cache.
@@ -638,14 +640,15 @@ namespace patmos
 	active_method = base_t::Num_blocks - 1;
     }
 
-    /// Check whether a method is in the method cache, if it is not available
-    /// yet initiate a transfer, evicting other methods if needed.
+    /// Assert that the method is in the method cache.
+    /// If it is not available yet, initiate a transfer,
+    /// evicting other methods if needed.
     /// @param address The base address of the method.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool is_available(word_t address)
+    virtual bool assert_availability(word_t address)
     {
       // check if the address is in the cache
-      bool avail = base_t::is_available(address);
+      bool avail = base_t::assert_availability(address);
 
       if (avail) {
 	// update the active method pointer
