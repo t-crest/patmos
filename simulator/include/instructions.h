@@ -71,23 +71,6 @@ namespace patmos
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
-    /// the IF pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void IF(simulator_t &s, instruction_data_t &ops) const
-    {
-      // store the PC for PC-relative addressing in EX stage, if we are not stalling
-      // NB: s.Stall is already set the first time s.PC is updated.
-      //     If we checked (s.Stall==SIF), we would have to include i_pred_t::IF,
-      //     which is rather ugly.
-      if (s.PC != s.nPC) {
-        ops.IF_PC = s.PC;
-      }
-      
-      s.PC = s.nPC;
-    }
-
-    /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
@@ -273,8 +256,6 @@ namespace patmos
     /// @param value2 The value of the second operand.
     virtual word_t compute(word_t value1, word_t value2) const = 0;
 
-    // IF inherited from NOP
-
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
@@ -407,8 +388,6 @@ namespace patmos
     /// @param value2 The value of the second operand.
     virtual word_t compute(word_t value1, word_t value2) const = 0;
 
-    // IF inherited from NOP
-
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
@@ -494,8 +473,6 @@ namespace patmos
     /// @param value1 The value of the first operand.
     /// @param value2 The value of the second operand.
     virtual dword_t compute(word_t value1, word_t value2) const = 0;
-
-    // IF inherited from NOP
 
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
@@ -587,8 +564,6 @@ namespace patmos
     /// @param value1 The value of the first operand.
     /// @param value2 The value of the second operand.
     virtual bit_t compute(word_t value1, word_t value2) const = 0;
-
-    // IF inherited from NOP
 
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
@@ -742,8 +717,6 @@ namespace patmos
     /// @param value2 The value of the second operand.
     virtual bit_t compute(word_t value1, word_t value2) const = 0;
 
-    // IF inherited from NOP
-
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
@@ -827,8 +800,6 @@ namespace patmos
       os << "waitm";
     }
 
-    // IF inherited from NOP
-
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
@@ -868,8 +839,6 @@ namespace patmos
       os << boost::format("mts s%1% = r%2%")
                           % ops.OPS.SPCt.Sd % ops.OPS.SPCt.Rs1;
     }
-
-    // IF inherited from NOP
 
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
@@ -940,8 +909,6 @@ namespace patmos
       os << boost::format("mfs r%1% = s%2%")
                           % ops.OPS.SPCf.Rd % ops.OPS.SPCf.Ss;
     }
-
-    // IF inherited from NOP
 
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
@@ -1036,8 +1003,6 @@ namespace patmos
     /// @return The read value.
     virtual word_t peek(simulator_t &s, word_t address) const = 0;
     
-    // IF inherited from NOP
-
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
@@ -1169,8 +1134,6 @@ namespace patmos
     /// available and stalling is needed.
     virtual bool load(simulator_t &s, word_t address, word_t &value) const = 0;
 
-    // IF inherited from NOP
-
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
@@ -1285,8 +1248,6 @@ namespace patmos
     /// @return True when the value was finally written to the memory, false
     /// if the instruction has to stall.
     virtual bool store(simulator_t &s, word_t address, word_t value) const = 0;
-
-    // IF inherited from NOP
 
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
@@ -1483,7 +1444,7 @@ namespace patmos
       if (pred && !ops.MW_CFL_Discard)
       {
         assert(base <= pc);
-        assert(pc == ops.IF_PC + 16 && "Wrong delay slot size of call instruction.");
+        assert(pc == ops.Address + 16 && "Wrong delay slot size of call instruction.");
 
         // store the return function offset (return PC) into
         // a general purpose register
@@ -1617,7 +1578,7 @@ namespace patmos
     }
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.EX_Address = ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t);
+      ops.EX_Address = ops.Address + ops.OPS.CFLb.Imm*sizeof(word_t);
       dispatch(s, ops, ops.DR_Pred, s.BASE, ops.EX_Address);
     }
   };
@@ -1634,7 +1595,7 @@ namespace patmos
     }
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.EX_Address = ops.IF_PC + ops.OPS.CFLb.Imm*sizeof(word_t);
+      ops.EX_Address = ops.Address + ops.OPS.CFLb.Imm*sizeof(word_t);
     }
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
@@ -1642,8 +1603,8 @@ namespace patmos
     }
   };
 
-  class i_intr_t : public i_cfl_t 
-  { 
+  class i_intr_t : public i_cfl_t
+  {
   protected:
     /// Perform a function branch/call/return.
     /// Fetch the function into the method cache, stall the pipeline, and set
@@ -1674,10 +1635,10 @@ namespace patmos
       symbols.print(os, ops.EX_Address);
     }
 
-    virtual void EX(simulator_t &s, instruction_data_t &ops) const 
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
       ops.EX_Address = ops.OPS.CFLb.UImm*sizeof(word_t);
-      fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address); 
+      fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
     }
   };
 
@@ -1685,8 +1646,6 @@ namespace patmos
   class i_cfli_t : public i_cfl_t
   {
   public:
-    // IF inherited from i_cfl_t
-
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
@@ -1702,7 +1661,7 @@ namespace patmos
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void print_operands(const simulator_t &s, std::ostream &os, 
+    virtual void print_operands(const simulator_t &s, std::ostream &os,
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
@@ -1791,8 +1750,6 @@ namespace patmos
                           % ops.OPS.CFLr.Rb % ops.OPS.CFLr.Ro;
     }
 
-    // IF inherited from NOP
-
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
@@ -1849,7 +1806,7 @@ namespace patmos
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void print_operands(const simulator_t &s, std::ostream &os, 
+    virtual void print_operands(const simulator_t &s, std::ostream &os,
 		       const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {

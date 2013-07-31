@@ -73,24 +73,18 @@ namespace patmos
 
     /// Reset all statistic counters.
     virtual void reset_stats() { }
-    
-    /// Collect statistic for instruction instance and add to stats counters.
-    virtual void collect_stats(const simulator_t &s, 
-                               const instruction_data_t &ops) { }
-    
-    /// Print statistics for this instruction type.
-    /// This should print statistics as one line without newlines, and 
-    /// always format it as comma-separated list of '<name>: <value>' pairs.
-    virtual void print_stats(const simulator_t &s, std::ostream &os, 
-                             const symbol_map_t &symbols) const { }
-                            
-    // -------------------------- SIMULATION -----------------------------------
 
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the IF pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void IF(simulator_t &s, instruction_data_t &ops) const = 0;
+    /// Collect statistic for instruction instance and add to stats counters.
+    virtual void collect_stats(const simulator_t &s,
+                               const instruction_data_t &ops) { }
+
+    /// Print statistics for this instruction type.
+    /// This should print statistics as one line without newlines, and
+    /// always format it as comma-separated list of '<name>: <value>' pairs.
+    virtual void print_stats(const simulator_t &s, std::ostream &os,
+                             const symbol_map_t &symbols) const { }
+
+    // -------------------------- SIMULATION -----------------------------------
 
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
@@ -123,6 +117,9 @@ namespace patmos
   public:
     /// The instruction class that implements the behavior.
     const instruction_t *I;
+
+    /// Address the instruction was fetched from.
+    uword_t Address;
 
     /// The predicate under which the instruction is executed.
     PRR_e Pred;
@@ -224,10 +221,6 @@ namespace patmos
       } CFLr;
     } OPS;
 
-    // -------------------------- IF -------------------------------------------
-
-    /// Stored PC for PC-relative branches
-    uword_t IF_PC;
 
     // -------------------------- DR -------------------------------------------
 
@@ -285,10 +278,10 @@ namespace patmos
 
     /// Method base address as read in EX stage.
     word_t EX_Base;
-    
+
     /// Method offset as read in EX stage.
     word_t EX_Offset;
-    
+
     // -------------------------- MW -------------------------------------------
     /// Discard CFL instructions in MW stage (stalling).
     word_t MW_CFL_Discard;
@@ -430,7 +423,7 @@ namespace patmos
     /// @param imm The operand register.
     static instruction_data_t mk_STCr(const instruction_t &i, PRR_e pred,
                                       GPR_e rs);
-    
+
     /// Create an CFLb instruction with an immediate operand.
     /// @param i The instruction.
     /// @param pred The predicate register under which the instruction is
@@ -490,14 +483,6 @@ namespace patmos
 
 
     // ------------------------ SIMULATION -------------------------------------
-
-    /// Invoke the IF simulation function.
-    /// @param s The Patmos simulator executing the instruction.
-    void IF(simulator_t &s)
-    {
-      if (I)
-        I->IF(s, *this);
-    }
 
     /// Invoke the DR simulation function.
     /// @param s The Patmos simulator executing the instruction.

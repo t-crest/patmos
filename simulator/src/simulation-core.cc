@@ -128,7 +128,7 @@ namespace patmos
     // do some initializations before executing the first instruction.
     if (Cycle == 0)
     {
-      BASE = PC = entry;
+      BASE = nPC = entry;
       Method_cache.initialize(entry);
       Profiling.initialize(entry);
       Dbg_stack.initialize(entry);
@@ -156,7 +156,6 @@ namespace patmos
         pipeline_invoke(SMW, &instruction_data_t::MW, debug_pipline);
         pipeline_invoke(SEX, &instruction_data_t::EX, debug_pipline);
         pipeline_invoke(SDR, &instruction_data_t::DR, debug_pipline);
-        pipeline_invoke(SIF, &instruction_data_t::IF, debug_pipline);
 
         // print instructions in EX stage
         if (debug && debug_fmt == DF_INSTRUCTIONS)
@@ -164,7 +163,7 @@ namespace patmos
           print_instructions(debug_out, SEX);
         }
 
-        Rtc.tick();        
+        Rtc.tick();
 
         // track instructions retired
         if (Stall != NUM_STAGES-1)
@@ -222,6 +221,9 @@ namespace patmos
           }
         }
 
+        // update the Program counter
+        PC = nPC;
+
         unsigned int iw_size;
         word_t iw[2];
 
@@ -263,7 +265,7 @@ namespace patmos
 
             // fetch the instruction word from the method cache.
             Method_cache.fetch(PC, iw);
-            iw_size = Decoder.decode(iw,  Pipeline[0]);
+            iw_size = Decoder.decode(iw, Pipeline[0]);
 
             // provide next program counter value
             if(Pipeline[SIF][0].I->is_flow_control())
@@ -288,6 +290,13 @@ namespace patmos
                 Instruction_stats[j][Pipeline[SIF][j].I->ID].Num_fetched++;
             }
           }
+
+          // assign fetch address to new instructions
+          for(unsigned int i = 0; i < NUM_SLOTS; i++)
+          {
+            Pipeline[SIF][i].Address = PC;
+          }
+
         }
 
         // reset the stall counter.
@@ -409,7 +418,7 @@ namespace patmos
       }
 
       os << boost::format("%1$08x %2$9d %3% %|75t|") 
-                   % Pipeline[stage][0].IF_PC % Cycle % oss.str();
+                   % Pipeline[stage][0].Address % Cycle % oss.str();
 
       for(unsigned int i = 0; i < NUM_SLOTS; i++) {
         if (i != 0) os << " || ";
@@ -492,7 +501,7 @@ namespace patmos
         if (Dbg_cnt_delay) {
           os << boost::format("%1$08x %2$9d ") % PC % Cycle;
           os << (Dbg_is_call ? "call from " : "return from ");
-          Symbols.print(os, Pipeline[SMW][0].IF_PC, true);
+          Symbols.print(os, Pipeline[SMW][0].Address, true);
           os << " to ";
           Symbols.print(os, Pipeline[SMW][0].EX_Address, true);
         }
