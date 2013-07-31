@@ -41,7 +41,7 @@ namespace patmos
   private:
   public:
     virtual ~method_cache_t() {}
-    
+
     /// Initialize the cache before executing the first instruction.
     /// @param address Address to fetch initial instructions.
     virtual void initialize(uword_t address) = 0;
@@ -64,6 +64,10 @@ namespace patmos
     /// @return True when the method is available in the cache, false otherwise.
     virtual bool assert_availability(word_t address) = 0;
 
+    /// Get the base address of the currently active method.
+    /// @return The base address of the currently active method.
+    virtual uword_t get_active_method_base() = 0;
+
     /// Notify the cache that a cycle passed.
     virtual void tick() = 0;
 
@@ -84,6 +88,10 @@ namespace patmos
   private:
     /// The backing memory to fetch instructions from.
     memory_t &Memory;
+
+    /// Keeping track of the most recenty loaded method
+    uword_t current_base;
+
   public:
     /// Construct an ideal method cache that always hits.
     /// @param memory The memory to fetch instructions from.
@@ -95,7 +103,7 @@ namespace patmos
     /// @param address Address to fetch initial instructions.
     virtual void initialize(uword_t address)
     {
-      // nothing to be done here
+      current_base = address;
     }
 
     /// A simulated instruction fetch from the method cache.
@@ -115,6 +123,7 @@ namespace patmos
     /// @return True when the method is available in the cache, false otherwise.
     virtual bool is_available(word_t address)
     {
+      current_base = address;
       return true;
     }
 
@@ -124,6 +133,11 @@ namespace patmos
     virtual bool assert_availability(word_t address)
     {
       return true;
+    }
+
+    virtual uword_t get_active_method_base()
+    {
+      return current_base;
     }
 
     /// Notify the cache that a cycle passed.
@@ -290,7 +304,8 @@ namespace patmos
       if(address < current_method.Address ||
          current_method.Address + current_method.Num_bytes <= address)
       {
-        simulation_exception_t::illegal_pc(current_method.Address);
+        //simulation_exception_t::illegal_pc(current_method.Address);
+        return false;
       }
 
       // get instruction word from the method's instructions
@@ -524,6 +539,11 @@ namespace patmos
       return false;
     }
 
+    virtual uword_t get_active_method_base()
+    {
+      return Methods[Num_blocks - 1].Address;
+    }
+
     /// Notify the cache that a cycle passed -- i.e., if there is an ongoing
     /// transfer of a method to the cache, advance this transfer by one cycle.
     virtual void tick()
@@ -564,7 +584,7 @@ namespace patmos
                           "   Cache Hits        : %5$10d\n"
                           "   Cache Misses      : %6$10d\n"
                           "   Miss Stall Cycles : %7$10d\n\n")
-        % Num_blocks_transferred % Num_max_blocks_transferred 
+        % Num_blocks_transferred % Num_max_blocks_transferred
         % Num_bytes_transferred % Num_max_bytes_transferred
         % Num_hits % Num_misses % Num_stall_cycles;
 
@@ -629,7 +649,7 @@ namespace patmos
 
       if (avail) {
 	// update the active method pointer
-	for(unsigned int i = base_t::Num_blocks - 1; 
+	for(unsigned int i = base_t::Num_blocks - 1;
 	    i >= base_t::Num_blocks - base_t::Num_active_methods; i--)
 	{
 	  if (base_t::Methods[i].Address == address)
@@ -638,8 +658,13 @@ namespace patmos
 	  }
 	}
       }
-      
+
       return avail;
+    }
+
+    virtual uword_t get_active_method_base()
+    {
+      return base_t::Methods[active_method].Address;
     }
 
     /// A simulated instruction fetch from the method cache.

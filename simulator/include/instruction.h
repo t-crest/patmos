@@ -35,10 +35,6 @@ namespace patmos
   class instruction_data_t;
 
   /// Base class for all Patmos instructions.
-  /// Every instruction consists of several "pipeline" functions, that operate
-  /// on a shadow state of the processor, once all pipeline stages have
-  /// completed the simulation of a cycle a series of "commit"  functions are
-  /// invoked in order to commit the shadow state to the global processor state.
   class instruction_t
   {
   public:

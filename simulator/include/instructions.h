@@ -511,7 +511,7 @@ namespace patmos
         s.SPR.set(sh, ops.EX_mulh);
       }
     }
-    
+
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.

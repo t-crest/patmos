@@ -574,7 +574,7 @@ int main(int argc, char **argv)
 	  std::cerr << s.Dbg_stack;
           break;
         case patmos::simulation_exception_t::ILLEGAL_PC:
-          std::cerr << boost::format("Cycle %1%: Program counter outsize current method: "
+          std::cerr << boost::format("Cycle %1%: Program counter outside current method: "
                                     "%2$08x%3%: %4$08x\n")
                     % e.get_cycle() % e.get_pc() % sym.find(e.get_pc())
                     % e.get_info();

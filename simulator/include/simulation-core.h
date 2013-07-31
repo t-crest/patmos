@@ -179,6 +179,9 @@ namespace patmos
     /// Counter up to which pipeline stage the processor stalls.
     Pipeline_t Stall;
 
+    /// Interrupt instruction
+    instruction_t *Instr_INTR;
+
     /// Interrupt handler
     interrupt_handler_t interrupt_handler;
 
@@ -224,6 +227,12 @@ namespace patmos
     /// stalled.
     void pipeline_stall(Pipeline_t pst);
 
+    /// Track retiring instructions for stats.
+    void track_retiring_instructions();
+
+    /// Simulate the instruction fetch stage.
+    void instruction_fetch();
+
   public:
     /// Construct a new instance of a Patmos-core simulator
     /// The simulator only retains the references of the arguments passed in the
@@ -238,6 +247,9 @@ namespace patmos
                 data_cache_t &data_cache, method_cache_t &method_cache,
                 stack_cache_t &stack_cache, symbol_map_t &symbols,
                 rtc_t &rtc, interrupt_handler_t &interrupt_handler);
+
+    // Destroy an instance of a Patms-core simulator
+    ~simulator_t();
 
     /// Run the simulator.
     /// @param entry Initialize the method cache, PC, etc. to start execution

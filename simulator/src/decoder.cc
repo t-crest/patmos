@@ -143,6 +143,7 @@ namespace patmos
     Instructions.push_back(boost::make_tuple(itmp, ftmp));                     \
   }
 
+
     // ALUi:
     MK_NINSTR(addil , addi , alui, 0)
     MK_NINSTR(subil , subi , alui, 1)

@@ -71,6 +71,18 @@ namespace patmos
 
       Num_bubbles_retired[j] = 0;
     }
+
+    // Create the interrupt instruction
+    Instr_INTR       = new i_intr_t();
+    Instr_INTR->ID   = patmos::decoder_t::get_num_instructions();
+    Instr_INTR->Name = "intr";
+  }
+
+
+
+  simulator_t::~simulator_t()
+  {
+    delete Instr_INTR;
   }
 
 
@@ -98,7 +110,9 @@ namespace patmos
       }
 
       // simulate the respective pipeline stage of the instruction
-      (Pipeline[pst][i].*f)(*this);
+      if (f) {
+        (Pipeline[pst][i].*f)(*this);
+      }
     }
 
     if (debug)
@@ -113,17 +127,132 @@ namespace patmos
   }
 
 
+
+  void simulator_t::track_retiring_instructions()
+  {
+    if (Stall != NUM_STAGES-1)
+    {
+      for(unsigned int j = 0; j < NUM_SLOTS; j++)
+      {
+        if (Pipeline[NUM_STAGES-1][j].I)
+        {
+          // get instruction statistics
+          instruction_stat_t &stat(
+              Instruction_stats[j][Pipeline[NUM_STAGES-1][j].I->ID]);
+
+          // update instruction statistics
+          if (Pipeline[NUM_STAGES-1][j].DR_Pred)
+            stat.Num_retired++;
+          else
+            stat.Num_discarded++;
+        }
+        else
+          Num_bubbles_retired[j]++;
+      }
+    }
+  }
+
+
+
+  void simulator_t::instruction_fetch()
+  {
+    // FIXME this is bad practice and will break if multiple instances
+    //       of the simulator exist.
+    static int branch_counter      = 0;
+    static int interrupt_handling  = 0;
+
+    // we get a pointer to the instructions of the IF stage, for easier
+    // reference
+    instruction_data_t *instr_SIF = Pipeline[SIF];
+
+
+    // Fetch the instruction word from the method cache.
+    // NB: We fetch in each cycle, as preparation for supporting a standard
+    //     I-Cache in addition.
+    word_t iw[2];
+    bool ready = Method_cache.fetch(PC, iw);
+
+    // Decode the next instruction, or service an interrupt,
+    // only if we are not stalling.
+    if (Stall == SIF)
+    {
+
+      if (Interrupt_handler.interrupt_pending() &&
+          branch_counter == 0 &&
+          interrupt_handling == 0)
+      {
+        interrupt_t &interrupt = Interrupt_handler.get_interrupt();
+
+        instr_SIF[0] = instruction_data_t::mk_CFLb(*Instr_INTR, p0,
+                                        interrupt.Address, interrupt.Address);
+        for(unsigned int i = 1; i < NUM_SLOTS; i++)
+        {
+          instr_SIF[i] = instruction_data_t();
+        }
+
+        // Handling interrupt, next CPU cycle no new instructions have to be decoded
+        interrupt_handling = 3;
+
+        // Store return from interrupt address
+        SPR.set(s9, PC);
+      }
+      else if (interrupt_handling > 0)
+      {
+        // Putting more empty instrutions after an interrupt
+        for(unsigned int i = 0; i < NUM_SLOTS; i++)
+        {
+          instr_SIF[i] = instruction_data_t();
+        }
+        interrupt_handling--;
+
+      }
+      else
+      {
+        if (!ready) {
+          simulation_exception_t::illegal_pc(
+              Method_cache.get_active_method_base());
+        }
+
+        // decode the instruction word.
+        unsigned int iw_size = Decoder.decode(iw, instr_SIF);
+
+        // unknown instruction: throw exception
+        if (iw_size == 0)
+        {
+          simulation_exception_t::illegal(from_big_endian<big_word_t>(iw[0]));
+        }
+
+        if(instr_SIF[0].I->is_flow_control())
+          branch_counter = 2;
+        else if (branch_counter)
+          branch_counter--;
+
+
+        for(unsigned int j = 0; j < NUM_SLOTS; j++)
+        {
+          // assign fetch address to new instructions
+          instr_SIF[j].Address = PC;
+
+          // track instructions fetched
+          if (instr_SIF[j].I)
+            Instruction_stats[j][instr_SIF[j].I->ID].Num_fetched++;
+        }
+
+
+        // provide next program counter value (as incremented PC)
+        nPC = PC + iw_size*4;
+      }
+
+
+
+    }
+  }
+
   void simulator_t::run(word_t entry, uint64_t debug_cycle,
                         debug_format_e debug_fmt, std::ostream &debug_out,
                         uint64_t max_cycles,
                         bool collect_instr_stats)
   {
-
-    int branch_counter      = 0;
-    int interrupt_handling  = 0;
-    instruction_t *intr     = new i_intr_t();
-    intr->ID                = patmos::decoder_t::get_num_instructions();
-    intr->Name              = "intr";
 
     // do some initializations before executing the first instruction.
     if (Cycle == 0)
@@ -156,6 +285,8 @@ namespace patmos
         pipeline_invoke(SMW, &instruction_data_t::MW, debug_pipline);
         pipeline_invoke(SEX, &instruction_data_t::EX, debug_pipline);
         pipeline_invoke(SDR, &instruction_data_t::DR, debug_pipline);
+        // invoke IF only for printing
+        pipeline_invoke(SIF, NULL, debug_pipline);
 
         // print instructions in EX stage
         if (debug && debug_fmt == DF_INSTRUCTIONS)
@@ -165,48 +296,21 @@ namespace patmos
 
         Rtc.tick();
 
-        // track instructions retired
-        if (Stall != NUM_STAGES-1)
-        {
-          for(unsigned int j = 0; j < NUM_SLOTS; j++)
-          {
-              if (Pipeline[NUM_STAGES-1][j].I)
-              {
-                // get instruction statistics
-                instruction_stat_t &stat(
-                        Instruction_stats[j][Pipeline[NUM_STAGES-1][j].I->ID]);
-
-                // update instruction statistics
-                if (Pipeline[NUM_STAGES-1][j].DR_Pred)
-                  stat.Num_retired++;
-                else
-                  stat.Num_discarded++;
-              }
-              else
-                Num_bubbles_retired[j]++;
-          }
-        }
+        track_retiring_instructions();
 
         // track pipeline stalls
         Num_stall_cycles[Stall]++;
 
-        // move pipeline stages
-        for (int i = SEX; i >= Stall; i--)
+        // Move pipeline stages and insert bubbles after stalling stage.
+        // Note that it is not possible to stall in IF, this is interpreted as
+        // 'not stalling'.
+        for (int i = SMW; i >= Stall+1; i--)
         {
           for (unsigned int j = 0; j < NUM_SLOTS; j++)
           {
-            Pipeline[i + 1][j] = Pipeline[i][j];
-          }
-        }
-
-        // insert bubbles after stalling stage.
-        // Note that it is not possible to stall in IF, this is interpreted as
-        // 'not stalling'.
-        if (Stall > SIF && Stall != NUM_STAGES- 1)
-        {
-          for(unsigned int i = 0; i < NUM_SLOTS; i++)
-          {
-            Pipeline[Stall + 1][i] = instruction_data_t();
+            Pipeline[i][j] = (i==Stall+1 && Stall!=SIF)
+                                ? instruction_data_t() // insert bubble
+                                : Pipeline[i-1][j];    // get previous stage
           }
         }
 
@@ -221,83 +325,14 @@ namespace patmos
           }
         }
 
-        // update the Program counter
+        // Update the Program counter.
+        // Either nPC was updated in the fetch stage in the previous cycle,
+        // or it was overwritten by a CFL instruction in EX/MW stage.
         PC = nPC;
 
-        unsigned int iw_size;
-        word_t iw[2];
+        // Simulate the instruction fetch stage.
+        instruction_fetch();
 
-        // decode the next instruction, only if we are not stalling.
-        if (Stall == SIF)
-        {
-
-          // decode the instruction word.
-          if (Interrupt_handler.interrupt_pending() && 
-              branch_counter == 0 && 
-              interrupt_handling == 0) 
-          { 
-            interrupt_t &interrupt = Interrupt_handler.get_interrupt();
-
-            Pipeline[SIF][0] = instruction_data_t::mk_CFLb(*intr, p0, interrupt.Address, interrupt.Address);
-            for(unsigned int i = 1; i < NUM_SLOTS; i++)
-            {
-              Pipeline[SIF][i] = instruction_data_t();
-            }
-
-            // Handling interrupt, next CPU cycle no new instructions have to be decoded
-            interrupt_handling = 3;
-
-            // Store return from interrupt address
-            SPR.set(s9, PC);
-          }
-          else if (interrupt_handling > 0)
-          {
-            // Putting more empty instrutions after an interrupt
-            for(unsigned int i = 0; i < NUM_SLOTS; i++)
-            {
-              Pipeline[SIF][i] = instruction_data_t();
-            }
-            interrupt_handling--;
-
-          }
-          else
-          {
-
-            // fetch the instruction word from the method cache.
-            Method_cache.fetch(PC, iw);
-            iw_size = Decoder.decode(iw, Pipeline[0]);
-
-            // provide next program counter value
-            if(Pipeline[SIF][0].I->is_flow_control())
-                branch_counter = 2;
-            else if (branch_counter)
-              branch_counter--;
-
-            nPC = PC + iw_size*4;
-          }
-
-          // unknown instruction
-          if (iw_size == 0)
-          {
-            simulation_exception_t::illegal(from_big_endian<big_word_t>(iw[0]));
-          }
-          else
-          {
-            // track instructions fetched
-            for(unsigned int j = 0; j < NUM_SLOTS; j++)
-            {
-              if (Pipeline[SIF][j].I)
-                Instruction_stats[j][Pipeline[SIF][j].I->ID].Num_fetched++;
-            }
-          }
-
-          // assign fetch address to new instructions
-          for(unsigned int i = 0; i < NUM_SLOTS; i++)
-          {
-            Pipeline[SIF][i].Address = PC;
-          }
-
-        }
 
         // reset the stall counter.
         Stall = SIF;
@@ -327,15 +362,11 @@ namespace patmos
     }
     catch (simulation_exception_t e)
     {
-      delete intr;
-
       Profiling.finalize(Cycle);
 
       // pass on to caller
       throw simulation_exception_t(e.get_kind(), e.get_info(), PC, Cycle);
     }
-
-    delete intr;
 
     Profiling.finalize(Cycle);
   }
