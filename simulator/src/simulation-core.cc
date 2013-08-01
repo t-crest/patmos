@@ -44,7 +44,7 @@ namespace patmos
       Stack_cache(stack_cache), Symbols(symbols), Dbg_stack(*this),
       Rtc(rtc), Interrupt_handler(interrupt_handler),
       BASE(0), PC(0), nPC(0),
-      Stall(SIF), Is_decoupled_load_active(false)
+      Stall(SXX), Is_decoupled_load_active(false)
   {
     // initialize one predicate register to be true, otherwise no instruction
     // will ever execute
@@ -165,16 +165,45 @@ namespace patmos
     // reference
     instruction_data_t *instr_SIF = Pipeline[SIF];
 
+#ifdef METHOD_CACHE_STALL_FETCH
+    // Move stalling for method cache from MW stage to IF stage.
+    // At the same time, calls to fetch_and_dispatch() in instructions.h
+    // are replaced by dispatch().
+    // Note that this change will affect hit/miss stats of the method cache,
+    // as hits are accounted at every fetch, not only at CFL (misses are
+    // counted only once).
+    // Same holds for profiling: the miss is attributed to the callee instead
+    // of the caller.
+    if (!Method_cache.assert_availability(BASE))
+    {
+      pipeline_stall(SIF);
+    }
+#endif
 
     // Fetch the instruction word from the method cache.
     // NB: We fetch in each cycle, as preparation for supporting a standard
     //     I-Cache in addition.
     word_t iw[2];
-    bool ready = Method_cache.fetch(PC, iw);
+    if (!Method_cache.fetch(PC, iw)) {
+      // Method cache specific:
+      // Note that the Methoc_cache.fetch() can return true even if the method
+      // was not loaded into the cache: this happens due to the way
+      // the method cache is bootstrapped - it is initialized such that the
+      // first blocks are contained in the cache magically.
+      // Otherwise, we could call assert_availability(BASE) here.
+      if (Stall == SXX)
+      {
+        simulation_exception_t::illegal_pc(
+            Method_cache.get_active_method_base());
+      }
+      // For a standard I-Cache, we would naturally stall here
+      // pipeline_stall(SIF);
+    }
+
 
     // Decode the next instruction, or service an interrupt,
     // only if we are not stalling.
-    if (Stall == SIF)
+    if (Stall == SXX)
     {
 
       if (Interrupt_handler.interrupt_pending() &&
@@ -208,11 +237,6 @@ namespace patmos
       }
       else
       {
-        if (!ready) {
-          simulation_exception_t::illegal_pc(
-              Method_cache.get_active_method_base());
-        }
-
         // decode the instruction word.
         unsigned int iw_size = Decoder.decode(iw, instr_SIF);
 
@@ -298,17 +322,14 @@ namespace patmos
 
         track_retiring_instructions();
 
-        // track pipeline stalls
-        Num_stall_cycles[Stall]++;
-
         // Move pipeline stages and insert bubbles after stalling stage.
-        // Note that it is not possible to stall in IF, this is interpreted as
-        // 'not stalling'.
+        // If Stall == SXX, we do not stall, but a bubble is inserted in SIF,
+        // which is later replaced by the fetched instruction.
         for (int i = SMW; i >= Stall+1; i--)
         {
           for (unsigned int j = 0; j < NUM_SLOTS; j++)
           {
-            Pipeline[i][j] = (i==Stall+1 && Stall!=SIF)
+            Pipeline[i][j] = (i==Stall+1)
                                 ? instruction_data_t() // insert bubble
                                 : Pipeline[i-1][j];    // get previous stage
           }
@@ -333,9 +354,11 @@ namespace patmos
         // Simulate the instruction fetch stage.
         instruction_fetch();
 
+        // track pipeline stalls
+        Num_stall_cycles[Stall]++;
 
         // reset the stall counter.
-        Stall = SIF;
+        Stall = SXX;
 
         // advance the time for the method cache, stack cache, and memory
         Memory.tick();
@@ -649,7 +672,7 @@ namespace patmos
 
     // Cycle statistics
     os << "\nStall Cycles:\n";
-    for (int i = SDR; i < NUM_STAGES; i++)
+    for (int i = SIF; i < NUM_STAGES; i++)
     {
       os << boost::format("   %1%: %2%\n")
          % (Pipeline_t)i % Num_stall_cycles[i];

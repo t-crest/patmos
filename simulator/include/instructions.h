@@ -32,6 +32,22 @@
 #include <ostream>
 #include <boost/format.hpp>
 
+
+// Define the following to change stalling of the method cache from
+// MW stage to IF stage.
+//
+//#define METHOD_CACHE_STALL_FETCH
+
+#ifdef METHOD_CACHE_STALL_FETCH
+#define FETCH_AND_DISPATCH(sim, ops, pred, base, addr) \
+                    dispatch((s), (ops), (pred), (base), (addr))
+#else
+#define FETCH_AND_DISPATCH(sim, ops, pred, base, addr) \
+          fetch_and_dispatch((s), (ops), (pred), (base), (addr))
+#endif
+
+
+
 namespace patmos
 {
   template<typename T>
@@ -1499,8 +1515,10 @@ namespace patmos
     {
       if (pred && !ops.MW_CFL_Discard)
       {
+#ifndef METHOD_CACHE_STALL_FETCH
         // assure that the target method is in the cache.
         assert(s.Method_cache.is_available(base));
+#endif
 
         // set the program counter and base
         s.BASE = base;
@@ -1558,7 +1576,7 @@ namespace patmos
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
       store_return_address(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address);
-      if (fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address))
+      if (FETCH_AND_DISPATCH(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address))
       {
         s.Dbg_stack.push(ops.EX_Address);
         s.Profiling.enter(ops.EX_Address, s.Cycle);
@@ -1599,7 +1617,7 @@ namespace patmos
     }
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
-      fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+      FETCH_AND_DISPATCH(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
     }
   };
 
@@ -1638,7 +1656,7 @@ namespace patmos
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
       ops.EX_Address = ops.OPS.CFLb.UImm*sizeof(word_t);
-      fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+      FETCH_AND_DISPATCH(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
     }
   };
 
@@ -1688,7 +1706,7 @@ namespace patmos
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
       store_return_address(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address);
-      if (fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address))
+      if (FETCH_AND_DISPATCH(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address))
       {
         s.Dbg_stack.push(ops.EX_Address);
         s.Profiling.enter(ops.EX_Address, s.Cycle);
@@ -1729,7 +1747,7 @@ namespace patmos
     }
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
-      fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+      FETCH_AND_DISPATCH(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
     }
   };
 
@@ -1794,7 +1812,7 @@ namespace patmos
       }
       else if (ops.DR_Pred)
       {
-        if (fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Address))
+        if (FETCH_AND_DISPATCH(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Address))
         {
           s.Dbg_stack.pop(ops.EX_Base, ops.EX_Offset);
           s.Profiling.leave(s.Cycle);

@@ -80,6 +80,8 @@ namespace patmos
   /// Definition of Pipeline stages.
   enum Pipeline_t
   {
+    /// No stage.
+    SXX = -1,
     /// Fetch the bundle from instruction memory.
     SIF = 0,
     /// Decode the instruction's format and read register operands.
