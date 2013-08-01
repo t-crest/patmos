@@ -1,0 +1,50 @@
+\documentclass[multi=tikzpicture]{standalone}
+
+\usepackage[T1]{fontenc}
+\usepackage{pslatex}
+%\renewcommand*\ttdefault{txtt} % I prefer Bera Mono
+\usepackage[scaled=.84]{beramono}
+\usepackage{tikz-timing}
+\usetikztiminglibrary[rising arrows]{clockarrows}
+\usetikztiminglibrary{either}
+
+\begin{document}
+
+\begin{tikztimingtable}[
+font=\tt,
+timing/yunit=2.5ex,
+timing/xunit=3ex,
+timing/text format=\raisebox{.4ex}\strut\tt\Large,
+timing/u/background/.style={fill=lightgray},
+timing/e/background/.style={fill=lightgray}
+]
+{clk}         & [L] 20{C} \\
+{fe.pc}       & .1D 2D{010c}   2D{0110}   2D{0114}   2D{0118}  2D{011c}   2D{0120}   2D{8000}   2D{8004}   2D{8008}   2D{800c}   \\
+{fe.instr}    & .1D 2D{OP$_3$} 2D{OP$_4$} 2D{OP$_5$} 2D{OP$_6$} 2D{OP$_7$} 2D{OP$_7$} 2D{OP$_8$} 2D{OP$_9$} 2D{OP$_A$} 2D{OP$_B$} \\
+{dec.pc}      & .1D 2D{0108}   2D{010c}   2D{0110}   2D{0114}  2D{0118}   2D{011c}   2D{0120}   2D{8000}   2D{8004}   2D{8008}   \\
+{dec.instr}   & .1D 2D{OP$_2$} 2D{INTR}   2D{INTR}   2D{EXC}   2D{EXC}    2D{EXC}    2D{NOP}    2D{OP$_8$} 2D{OP$_9$} 2D{OP$_A$} \\
+{ex.pc}       & .1D 2D{0104}   2D{0108}   2D{010c}   2D{0110}  2D{0114}   2D{0118}   2D{011c}   2D{0120}   2D{8000}   2D{8004}   \\
+{ex.instr}    & .1D 2D{OP$_1$} 2D{OP$_2$} 2D{INTR}   2D{NOP}   2D{EXC}    2D{EXC}    2D{NOP}    2D{NOP}    2D{OP$_8$} 2D{OP$_9$} \\
+{mem.pc}      & .1D 2D{0100}   2D{0104}   2D{0108}   2D{010c}  2D{0110}   2D{0114}   2D{0118}   2D{011c}   2D{0120}   2D{8000}   \\
+{mem.instr}   & .1D 2D{OP$_0$} 2D{OP$_1$} 2D{OP$_2$} 2D{NOP}   2D{NOP}    2D{EXC}    2D{NOP}    2D{NOP}    2D{NOP}    2D{OP$_8$} \\
+{mem.exc}     & .1L 2L         2L         2H         2L        2L         2L         2L         2L         2L         2L         \\
+{mem.flush}   & .1L 2L         2L         2H         2L        2L         2H         2L         2L         2L         2L         \\
+{mem.exccall} & .1L 2L         2L         2L         2L        2L         2H         2L         2L         2L         2L         \\
+{xu.intr}     & .1L 2L         2H         2H         2H        2H         2H         2L         2L         2L         2L         \\
+{xu.exc}      & .1L 2L         2L         2L         2H        2H         2H         2L         2L         2L         2L         \\
+{retaddr}     & .1D 12D{}                                                 8D{0108}                                              \\
+\extracode
+\vertlines[semitransparent,semithick,blue]{2,4,6,8,10,12,14,16,18}
+\node[blue,font=\sf] at (2,-29)  {A};
+\node[blue,font=\sf] at (4,-29)  {B};
+\node[blue,font=\sf] at (6,-29)  {C};
+\node[blue,font=\sf] at (8,-29)  {D};
+\node[blue,font=\sf] at (10,-29) {E};
+\node[blue,font=\sf] at (12,-29) {F};
+\node[blue,font=\sf] at (14,-29) {G};
+\node[blue,font=\sf] at (16,-29) {H};
+\node[blue,font=\sf] at (18,-29) {I};
+\endextracode
+\end{tikztimingtable}
+
+\end{document}

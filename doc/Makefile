@@ -13,7 +13,9 @@ OPEN=open # program for displaying the pdf
 
 all: open
 
-TIKZFIGURES=fig/timing_core.pdf fig/timing_io.pdf fig/timing_burst.pdf
+TIKZFIGURES=fig/timing_core.pdf fig/timing_io.pdf fig/timing_burst.pdf \
+	fig/intr.pdf fig/exc.pdf
+
 fig/%.pdf: fig/%.tex
 	pdflatex --output-directory fig $^
 
