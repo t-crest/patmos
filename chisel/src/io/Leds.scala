@@ -60,7 +60,7 @@ class Leds(ledCount : Int) extends Component {
   // Write to LEDs
   when(io.ocp.M.Cmd === OcpCmd.WRNP) {
 	respReg := OcpResp.DVA
-    ledReg := io.ocp.M.Data
+    ledReg := io.ocp.M.Data(ledCount-1, 0)
   }
 
   // Read current state of LEDs
