@@ -20,8 +20,21 @@
 \usepackage{ulem}
 \usepackage{enumerate}
 
+% avoid clubs and widows
 \clubpenalty=10000
 \widowpenalty=10000
+
+% tweak float placement
+%% \renewcommand{\textfraction}{.15}
+\renewcommand{\topfraction}{.75}
+%% \renewcommand{\bottomfraction}{.7}
+\renewcommand{\floatpagefraction}{.75}
+%% \renewcommand{\dbltopfraction}{.66}
+%% \renewcommand{\dblfloatpagefraction}{.66}
+\setcounter{topnumber}{4}
+%% \setcounter{bottomnumber}{4}
+%% \setcounter{totalnumber}{16}
+%% \setcounter{dbltopnumber}{4}
 
 \newcommand{\code}[1]{{\texttt{#1}}}
 \newcommand{\codefoot}[1]{{\textsf{#1}}}
@@ -77,10 +90,13 @@
 
 \usepackage{listings}
 
+% general style for listings
+\lstset{basicstyle=\ttfamily,keywordstyle=\ttfamily}
+
+% listings style for Java
 \lstnewenvironment{Java} {\lstset{
-  basicstyle=\sffamily\small,keywordstyle=\sffamily\small,xleftmargin=12pt,
-  language=Java,
-  columns=flexible, % add any modifications here
+  xleftmargin=12pt,
+  language=Java
 }}{}
 
 \usepackage[endianness=big]{bytefield}
@@ -220,14 +236,183 @@ Currently we have following proposals for a change:
 \item bcopy instruction
 \item btest and bcopy with an immediate
 \item Automatic save of method base in a special register for a call
-\item Interrupts (not yet an ISA change)
+\item Revised branch addressing modes
+\item Non-delayed branches
+\item Interrupts
 \end{itemize}
 
 Remote branch: not specified
 
 Merge date: 15 August 2013 (?)
 
+\subsection{\texttt{bcopy}/\texttt{btest}}
 
+\wolf{Please describe the requested change.}
+
+\subsection{Special Registers for Return Information}
+
+In order to support exceptions (see Section~\ref{sec:exc}), it is
+necessary that the base address of the current function is available
+\emph{at any time}. Otherwise, it could not be guaranteed that an
+interrupt handler is able to return to the correct
+function. Consequently, the \texttt{call} and \texttt{brcf} functions
+must store the base address in some hardware register. This makes the
+return-base information in register \texttt{r30} redundant and it
+could be replaced by an appropriate special return base register
+\texttt{sb} with minimal effort. One can then go even further and move
+the functionality of register \texttt{r31} to a special register
+\texttt{so} to free up another general-purpose register.
+
+\subsubsection{Costs and Benefits}
+
+For functions that call other functions, the change saves one
+instruction to set the base address, and adds two instructions to both
+the prologue and the epilogue. On the other hand, the change frees up
+two general-purpose registers, which can avoid spilling and lead to
+more efficient code.
+
+\subsection{Revised Branch Adressing Modes}
+
+\wolf{I propose to change the branch adressing modes as shown in
+  Table~\ref{tab:braddr}.}
+
+\begin{table}
+  \centering
+  \begin{tabular}{lllll}
+    \toprule
+    Instruction & Immediate             & Indirect                   & Cache fill & Link \\
+    \midrule
+    call        & absolute              & absolute                   & yes        & yes \\
+    br          & PC relative           & \color{red}{base relative} & no         & no \\
+    brcf        & \color{red}{absolute} & absolute                   & yes        & no \\
+    \bottomrule
+  \end{tabular}
+  \caption{Revised branch addressing modes}
+  \label{tab:braddr}
+\end{table}
+
+\subsubsection{Rationale}
+
+With a method cache, there are two distinct view of the program
+counter: the program counter to address the cache memory
+(PC$_{cache}$), and the address of the respective instruction in
+memory (PC$_{mem}$). When loading instructions from memory
+(\code{call}, \code{brcf}), PC$_{mem}$ is relevant, because it
+specifies from where data should be loaded. However, when execution
+remains within a function (\code{br}), only PC$_{cache}$ is taken into
+account.
+
+Listing~\ref{lst:call} shows the pseudo-code for a call (using special
+registers \texttt{sb} and \texttt{so} for the return
+information). First, it stores the return information, and remembers
+the new base address. Then, it retrieves the offset into the cache for
+the function to be called and if necessary copies the instructions
+into the cache. Finally, it updates the internal program counter and
+continues execution from there.
+
+\begin{lstlisting}[language=C,mathescape=true,float=t,caption={Call\label{lst:call}}]
+call(addr) {
+  // Store return information
+  sb = base;
+  so = PC$_{cache}$;  
+  // Remember base address
+  base = addr;
+  // Cache look-up and load
+  coff = offset(addr);
+  if (!hit(base)) memcpy(cache[coff], mem[base], mem[base-4]);
+  // Update PC
+  PC$_{cache}$ = coff;
+}
+\end{lstlisting}
+
+Listing~\ref{lst:return} shows the pseudo-code for a return. It first
+retrieves the return base and does the appropriate cache handling. It
+then adds the cache offset and the return offset and assigns the sum
+to the internal program counter, from which execution continues.
+
+\begin{lstlisting}[language=C,mathescape=true,float=t,caption={Return\label{lst:return}}]
+ret() {
+  // Retrieve return base
+  base = sb;
+  // Cache look-up and load
+  coff = offset(sb);
+  if (!hit(base)) memcpy(cache[coff], mem[base], mem[base-4]);
+  // Update PC
+  PC$_{cache}$ = coff+so;
+}
+\end{lstlisting}
+
+The pseudo-code for a PC-relative \texttt{brcf} is shown in
+Listing~\ref{lst:brcfrel}. It is similar to the call, but does not
+store any return information. However, before being able to do any
+cache handling, it has to compute the actual address, given by
+\code{base-coff+PC$_{cache}$+off}. Even when precomputing
+\code{base-coff}, this includes two additions that increase the
+hardware overhead.
+
+\begin{lstlisting}[language=C,mathescape=true,float=t,caption={PC-relative \texttt{brcf}\label{lst:brcfrel}}]
+brcf(off) {
+  // Compute actual address
+  addr = base-coff+PC$_{cache}$+off;
+  // Remember base address
+  base = addr;
+  // Cache look-up and load
+  coff = offset(addr);
+  if (!hit(base)) memcpy(cache[coff], mem[base], mem[base-4]);
+  // Update PC
+  PC$_{cache}$ = coff;
+}
+\end{lstlisting}
+
+Listing~\ref{lst:brcfabs} shows the pseudo-code for \texttt{brcf} with
+absolute addressing. It avoids the address computation of the
+PC-relative \texttt{brcf} and thus reduces the hardware overhead.
+
+\begin{lstlisting}[language=C,mathescape=true,float=t,caption={Absolute \texttt{brcf}\label{lst:brcfabs}}]
+brcf(addr) {
+  // Cache look-up and load
+  base = addr;
+  coff = offset(addr);
+  if (!hit(base)) memcpy(cache[coff], mem[base], mem[base-4]);
+  // Update PC
+  PC$_{cache}$ = coff;
+}
+\end{lstlisting}
+
+The argument for base-relative indirect branches is more subtle. In
+any case, the instruction requires an addition or subtraction
+(absolute: \code{PC$_{cache}$ = addr-base+coff}, base-relative:
+\code{PC$_{cache}$ = addr+coff}, PC-relative: \code{PC$_{cache}$ =
+  PC$_{cache}$+addr}). The address information for indirect branches
+only becomes available in the execute stage, because the value might
+require forwarding. Keeping this addition as cheap as possible avoids
+putting stress on the timing of the path from the execute stage to the
+fetch stage. Of the three variants, the addition \code{addr+coff} is
+``cheapest'', because the lowest bits of \code{coff} are cleared due
+to the guaranteed alignment of functions to cache blocks in the method
+cache.
+
+\subsection{Non-delayed Branches}
+
+Delayed branches are a good means to hide the costs of branching.
+However, the compiler is not always able to fill the delay slots. In
+these cases, even a primitive strategy such as predict-not-taken
+provides better performance. Predict-not-taken has very little
+hardware overhead and can be modeled easily in an exact manner for
+WCET analysis. By introducing an \emph{additional} instruction for
+non-delayed immediate branches, Patmos can gain from the advantages of
+both delayed and non-delayed branches.
+
+Furthermore, having a non-delayed branch instructions enables research
+towards time-predictable branch-prediction schemes. Depending on our
+future findings, predict-not-taken could be replaced by
+predict-backward-taken or time-predictable forms of dynamic branch
+prediction to further improve both performance and WCET bounds.
+
+\subsection{Interrupts and Exceptions}
+
+See Section~\ref{sec:exc} for the proposed implementation and changes
+to the ISA to support interrupts and exceptions in Patmos.
 
 \chapter{The Architecture of Patmos}
 \label{sec:arch}
@@ -3191,6 +3376,7 @@ the compiler does not restore all the special registers for normal functions.}
 \chapter{Potential Extensions}
 
 \section{Exceptions: Interrupts, Faults and Traps}
+\label{sec:exc}
 
 \wolf{These is a first attempt to specify how we could/should
   implement asynchronous transfer of control.}
