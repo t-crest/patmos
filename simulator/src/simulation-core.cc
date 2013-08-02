@@ -171,13 +171,21 @@ namespace patmos
     word_t iw[2];
     if (!Method_cache.fetch(PC, iw))
     {
+      // For a standard I-Cache, we would naturally stall here
+      //pipeline_stall(SIF);
 #ifdef METHOD_CACHE_STALL_FETCH
       // Move stalling for method cache from MW stage to IF stage.
       // At the same time, calls to fetch_and_dispatch() in instructions.h
       // are replaced by dispatch().
       // Note that this change will affect profiling: the costs at miss are
       // attributed to the callee instead of the caller.
-      Method_cache.assert_availability(BASE);
+      if (!Method_cache.assert_availability(BASE))
+      {
+        pipeline_stall(SIF);
+      } else {
+        // refetch, as it became available in the cache
+        Method_cache.fetch(PC, iw);
+      }
 #else
       if (Stall == SXX)
       {
@@ -185,8 +193,6 @@ namespace patmos
             Method_cache.get_active_method_base());
       }
 #endif
-      // For a standard I-Cache, we would naturally stall here
-      pipeline_stall(SIF);
     }
 
 
