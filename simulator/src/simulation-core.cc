@@ -165,39 +165,34 @@ namespace patmos
     // reference
     instruction_data_t *instr_SIF = Pipeline[SIF];
 
-#ifdef METHOD_CACHE_STALL_FETCH
-    // Move stalling for method cache from MW stage to IF stage.
-    // At the same time, calls to fetch_and_dispatch() in instructions.h
-    // are replaced by dispatch().
-    // Note that this change will affect hit/miss stats of the method cache,
-    // as hits are accounted at every fetch, not only at CFL (misses are
-    // counted only once).
-    // Same holds for profiling: the miss is attributed to the callee instead
-    // of the caller.
-    if (!Method_cache.assert_availability(BASE))
-    {
-      pipeline_stall(SIF);
-    }
-#endif
-
     // Fetch the instruction word from the method cache.
     // NB: We fetch in each cycle, as preparation for supporting a standard
     //     I-Cache in addition.
     word_t iw[2];
-    if (!Method_cache.fetch(PC, iw)) {
-      // Method cache specific:
-      // Note that the Methoc_cache.fetch() can return true even if the method
-      // was not loaded into the cache: this happens due to the way
-      // the method cache is bootstrapped - it is initialized such that the
-      // first blocks are contained in the cache magically.
-      // Otherwise, we could call assert_availability(BASE) here.
+    if (!Method_cache.fetch(PC, iw))
+    {
+      // For a standard I-Cache, we would naturally stall here
+      //pipeline_stall(SIF);
+#ifdef METHOD_CACHE_STALL_FETCH
+      // Move stalling for method cache from MW stage to IF stage.
+      // At the same time, calls to fetch_and_dispatch() in instructions.h
+      // are replaced by dispatch().
+      // Note that this change will affect profiling: the costs at miss are
+      // attributed to the callee instead of the caller.
+      if (!Method_cache.assert_availability(BASE))
+      {
+        pipeline_stall(SIF);
+      } else {
+        // refetch, as it became available in the cache
+        Method_cache.fetch(PC, iw);
+      }
+#else
       if (Stall == SXX)
       {
         simulation_exception_t::illegal_pc(
             Method_cache.get_active_method_base());
       }
-      // For a standard I-Cache, we would naturally stall here
-      // pipeline_stall(SIF);
+#endif
     }
 
 

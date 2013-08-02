@@ -302,7 +302,8 @@ namespace patmos
     bool do_fetch(const method_info_t &current_method, uword_t address,
                   word_t iw[2])
     {
-      if(address < current_method.Address ||
+      if(Phase != IDLE ||
+         address < current_method.Address ||
          current_method.Address + current_method.Num_bytes <= address)
       {
         //simulation_exception_t::illegal_pc(current_method.Address);
@@ -352,6 +353,41 @@ namespace patmos
       // No entry matches the given address.
       return false;
     }
+
+
+    bool read_function_size(word_t function_base, uword_t *result_size)
+    {
+      uword_t num_bytes_big_endian;
+      if (Memory.read(function_base - sizeof(uword_t),
+            reinterpret_cast<byte_t*>(&num_bytes_big_endian),
+            sizeof(uword_t)))
+      {
+        // convert method size to native endianess and compute size in
+        // blocks
+        *result_size = from_big_endian<big_uword_t>(num_bytes_big_endian);
+        return true;
+      }
+      return false;
+    }
+
+    bool peek_function_size(word_t function_base, uword_t *result_size)
+    {
+      uword_t num_bytes_big_endian;
+      Memory.read_peek(function_base - sizeof(uword_t),
+          reinterpret_cast<byte_t*>(&num_bytes_big_endian),
+          sizeof(uword_t));
+      // convert method size to native endianess and compute size in
+      // blocks
+      *result_size = from_big_endian<big_uword_t>(num_bytes_big_endian);
+      return true;
+    }
+
+
+    uword_t get_num_blocks_for_bytes(uword_t num_bytes)
+    {
+      return std::ceil( ((float) num_bytes) / NUM_BLOCK_BYTES);
+    }
+
   public:
     /// Construct an LRU-based method cache.
     /// @param memory The memory to fetch instructions from on a cache miss.
@@ -378,12 +414,27 @@ namespace patmos
       // get 'most-recent' method of the cache
       method_info_t &current_method = Methods[Num_blocks - 1];
 
-      // initialize the method cache with some dummy method entry.
-      Memory.read_peek(address, current_method.Instructions, NUM_INIT_BLOCKS *
-                                                             NUM_BLOCK_BYTES);
-      current_method.update(current_method.Instructions, address,
-                            NUM_INIT_BLOCKS, NUM_INIT_BLOCKS * NUM_BLOCK_BYTES);
-      Num_active_blocks = NUM_INIT_BLOCKS;
+      if (address != 0x0)
+      {
+        // we assume it is an ordinary function with sie specification
+        // and copy it in the cache.
+        uword_t num_bytes, num_blocks;
+        peek_function_size(address, &num_bytes);
+        num_blocks = get_num_blocks_for_bytes(num_bytes);
+
+        Memory.read_peek(address, current_method.Instructions,
+            num_blocks * NUM_BLOCK_BYTES);
+        current_method.update(current_method.Instructions, address,
+            num_blocks, num_bytes);
+        Num_active_blocks = num_blocks;
+      } else {
+        // initialize the method cache with some dummy method entry.
+        Memory.read_peek(address, current_method.Instructions,
+            NUM_INIT_BLOCKS * NUM_BLOCK_BYTES);
+        current_method.update(current_method.Instructions, address,
+            NUM_INIT_BLOCKS, NUM_INIT_BLOCKS * NUM_BLOCK_BYTES);
+        Num_active_blocks = NUM_INIT_BLOCKS;
+      }
       Num_active_methods = 1;
     }
 
@@ -435,17 +486,9 @@ namespace patmos
           assert(Num_transfer_blocks == 0 && Num_transfer_bytes == 0);
 
           // get the size of the method that should be loaded
-          uword_t num_bytes_big_endian;
-          if (Memory.read(address - sizeof(uword_t),
-                          reinterpret_cast<byte_t*>(&num_bytes_big_endian),
-                          sizeof(uword_t)))
+          if (read_function_size(address, &Num_transfer_bytes))
           {
-            // convert method size to native endianess and compute size in
-            // blocks
-            Num_transfer_bytes = from_big_endian<big_uword_t>(
-                                                          num_bytes_big_endian);
-            Num_transfer_blocks = std::ceil(((float)Num_transfer_bytes) /
-                                             NUM_BLOCK_BYTES);
+            Num_transfer_blocks = get_num_blocks_for_bytes(Num_transfer_bytes);
 
             // check method size against cache size.
             if (Num_transfer_blocks == 0 || Num_transfer_blocks > Num_blocks)
