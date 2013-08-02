@@ -42,32 +42,40 @@ package ocp
 import Chisel._
 import Node._
 
-// Trait for ports that support DataValid
-trait DataValid {
+// Burst masters provide handshake signals
+class OcpBurstMasterSignals(addrWidth : Int, dataWidth : Int)
+  extends OcpMasterSignals(addrWidth, dataWidth) {
   val DataValid = Bits(width = 1)
+  val DataByteEn = Bits(width = dataWidth/8)
+
+  // This does not really clone, but Data.clone doesn't either
+  override def clone() = {
+    val res = new OcpBurstMasterSignals(addrWidth, dataWidth)
+  	res.asInstanceOf[this.type]
+  }
 }
 
 // Master port
-class OcpBurstMasterPort(addrWidth : Int, dataWidth : Int) extends Bundle() {
+class OcpBurstMasterPort(addrWidth : Int, dataWidth : Int, burstLen : Int) extends Bundle() {
+  val burstLength = burstLen
   // Clk is implicit in Chisel
-  val M = (new OcpMasterSignals(addrWidth, dataWidth) with DataValid).asOutput
+  val M = new OcpBurstMasterSignals(addrWidth, dataWidth).asOutput
   val S = new OcpSlaveSignals(dataWidth).asInput 
 }
 
 // Slave port is reverse of master port
-class OcpBurstSlavePort(addrWidth : Int, dataWidth : Int) extends Bundle() {
+class OcpBurstSlavePort(addrWidth : Int, dataWidth : Int, burstLen : Int) extends Bundle() {
+  val burstLength = burstLen
   // Clk is implicit in Chisel
-  val M = (new OcpMasterSignals(addrWidth, dataWidth) with DataValid).asInput
+  val M = new OcpBurstMasterSignals(addrWidth, dataWidth).asInput
   val S = new OcpSlaveSignals(dataWidth).asOutput
 }
 
 // Bridge between word-oriented port and burst port
-class OcpBurstBridge(addrWidth : Int, dataWidth : Int, burstLength : Int) extends Component() {
-  val io = new Bundle() {
-	val master = new OcpSlavePort(addrWidth, dataWidth)
-	val slave = new OcpBurstMasterPort(addrWidth, dataWidth)
-  }
-
+class OcpBurstBridge(master : OcpCoreMasterPort, slave : OcpBurstSlavePort) {
+  val addrWidth = master.M.Addr.width
+  val dataWidth = master.M.Data.width
+  val burstLength = slave.burstLength
   val burstAddrBits = log2Up(burstLength)
 
   // State of transmission
@@ -77,58 +85,58 @@ class OcpBurstBridge(addrWidth : Int, dataWidth : Int, burstLength : Int) extend
   val cmdPos = Reg(resetVal = Bits(0, burstAddrBits))
 
   // Register signals that come from master
-  val masterReg = Reg(resetVal = OcpMasterSignals.resetVal(io.master.M))
+  val masterReg = Reg(resetVal = OcpMasterSignals.resetVal(master.M))
 
   // Register to delay response
-  val slaveReg = Reg(resetVal = OcpSlaveSignals.resetVal(io.slave.S))
+  val slaveReg = Reg(resetVal = OcpSlaveSignals.resetVal(slave.S))
 
-  masterReg.Cmd := io.master.M.Cmd
-  masterReg.Addr := io.master.M.Addr
-  when(io.master.M.Cmd === OcpCmd.RD) {
+  masterReg.Cmd := master.M.Cmd
+  masterReg.Addr := master.M.Addr
+  when(master.M.Cmd === OcpCmd.RD) {
 	state := read
-	cmdPos := io.master.M.Addr(burstAddrBits+log2Up(dataWidth/8)-1, log2Up(dataWidth/8))
+	cmdPos := master.M.Addr(burstAddrBits+log2Up(dataWidth/8)-1, log2Up(dataWidth/8))
   }
-  when(io.master.M.Cmd === OcpCmd.WRNP) {
+  when(master.M.Cmd === OcpCmd.WRNP) {
 	state := write
-	cmdPos := io.master.M.Addr(burstAddrBits+log2Up(dataWidth/8)-1, log2Up(dataWidth/8))
-	masterReg.Data := io.master.M.Data
-	masterReg.ByteEn := io.master.M.ByteEn
+	cmdPos := master.M.Addr(burstAddrBits+log2Up(dataWidth/8)-1, log2Up(dataWidth/8))
+	masterReg.Data := master.M.Data
+	masterReg.ByteEn := master.M.ByteEn
   }
 
   // Default values
-  io.slave.M.Cmd := masterReg.Cmd
-  io.slave.M.Addr := Cat(masterReg.Addr(addrWidth-1, burstAddrBits+log2Up(dataWidth/8)),
+  slave.M.Cmd := masterReg.Cmd
+  slave.M.Addr := Cat(masterReg.Addr(addrWidth-1, burstAddrBits+log2Up(dataWidth/8)),
 						 Fill(Bits(0), burstAddrBits+log2Up(dataWidth/8)))
-  io.slave.M.Data := Bits(0)
-  io.slave.M.ByteEn := Bits(0)
-  io.slave.M.DataValid := Bits(0)
-  io.master.S := io.slave.S
+  slave.M.Data := Bits(0)
+  slave.M.DataByteEn := Bits(0)
+  slave.M.DataValid := Bits(0)
+  master.S := slave.S
   
   // Read burst
   when(state === read) {
-	when(io.slave.S.Resp === OcpResp.DVA) {
+	when(slave.S.Resp === OcpResp.DVA) {
 	  when(burstCnt === cmdPos) {
-		slaveReg := io.slave.S
+		slaveReg := slave.S
 	  }
 	  when(burstCnt === UFix(burstLength - 1)) {
 		state := readResp
 	  }
 	  burstCnt := burstCnt + UFix(1)
 	}
-	io.master.S.Resp := OcpResp.NULL
-	io.master.S.Data := Bits(0)
+	master.S.Resp := OcpResp.NULL
+	master.S.Data := Bits(0)
   }
   when(state === readResp) {
 	state := idle
-	io.master.S := slaveReg
+	master.S := slaveReg
   }
   
   // Write burst
   when(state === write) {
-	io.slave.M.DataValid := Bits(1)
+	slave.M.DataValid := Bits(1)
 	when(burstCnt === cmdPos) {
-	  io.slave.M.Data := masterReg.Data
-	  io.slave.M.ByteEn := masterReg.ByteEn
+	  slave.M.Data := masterReg.Data
+	  slave.M.DataByteEn := masterReg.ByteEn
 	}
 	when(burstCnt === UFix(burstLength - 1)) {
 	  state := idle

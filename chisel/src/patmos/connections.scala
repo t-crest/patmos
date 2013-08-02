@@ -300,7 +300,7 @@ class UartPinIO() extends Bundle() {
 }
 
 class UartIO() extends Bundle() {
-  val ocp = new OcpSlavePort(3, DATA_WIDTH)
+  val ocp = new OcpCoreSlavePort(3, DATA_WIDTH)
   val pins = new UartPinIO()
 }
 
@@ -309,12 +309,12 @@ class LedPinIO() extends Bundle() {
 }
 
 class LedIO() extends Bundle() {
-  val ocp = new OcpSlavePort(0, DATA_WIDTH)
+  val ocp = new OcpCoreSlavePort(0, DATA_WIDTH)
   val pins = new LedPinIO()
 }
 
 class InOutIO() extends Bundle() {
-  val memInOut = new OcpSlavePort(ADDR_WIDTH, DATA_WIDTH)
+  val memInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
   val uartPins = new UartPinIO()
   val ledPins = new LedPinIO()
 }
@@ -328,8 +328,8 @@ class MemoryIO() extends Bundle() {
   // for result forwarding
   val exResult = Vec(PIPE_COUNT) { new Result().asOutput }
   // local and global accesses
-  val localInOut = new OcpMasterPort(ADDR_WIDTH, DATA_WIDTH)
-  val globalInOut = new OcpMasterPort(ADDR_WIDTH, DATA_WIDTH)
+  val localInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
+  val globalInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
 }
 
 class WriteBackIO() extends Bundle() {

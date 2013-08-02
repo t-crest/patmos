@@ -31,7 +31,7 @@
  */
 
 /*
- * Deffinitions for OCP ports that support CmdAccept
+ * Definitions for Patmos' OCP ports for general I/O
  * 
  * Authors: Wolfgang Puffitsch (wpuffitsch@gmail.com)
  * 
@@ -42,40 +42,41 @@ package ocp
 import Chisel._
 import Node._
 
-// Trait for ports that support CmdAccept
-trait CommandAccept {
+// Slaves include a CmdAccept signal
+class OcpIOSlaveSignals(dataWidth : Int)
+  extends OcpSlaveSignals(dataWidth) {
   val CmdAccept = Bits(width = 1)
+
+  // This does not really clone, but Data.clone doesn't either
+  override def clone() = {
+    val res = new OcpIOSlaveSignals(dataWidth)
+  	res.asInstanceOf[this.type]
+  }
 }
 
 // Master port
-class OcpCmdAcceptMasterPort(addrWidth : Int, dataWidth : Int) extends Bundle() {
+class OcpIOMasterPort(addrWidth : Int, dataWidth : Int) extends Bundle() {
   // Clk is implicit in Chisel
-  val M = new OcpMasterSignals(addrWidth, dataWidth).asOutput
-  val S = (new OcpSlaveSignals(dataWidth) with CommandAccept).asInput 
+  val M = new OcpCoreMasterSignals(addrWidth, dataWidth).asOutput
+  val S = new OcpIOSlaveSignals(dataWidth).asInput 
 }
 
 // Slave port is reverse of master port
-class OcpCmdAcceptSlavePort(addrWidth : Int, dataWidth : Int) extends Bundle() {
+class OcpIOSlavePort(addrWidth : Int, dataWidth : Int) extends Bundle() {
   // Clk is implicit in Chisel
-  val M = new OcpMasterSignals(addrWidth, dataWidth).asInput
-  val S = (new OcpSlaveSignals(dataWidth) with CommandAccept).asOutput
+  val M = new OcpCoreMasterSignals(addrWidth, dataWidth).asInput
+  val S = new OcpIOSlaveSignals(dataWidth).asOutput
 }
 
 // Bridge between ports that do/do not support CmdAccept
-class OcpCmdAcceptBridge(addrWidth : Int, dataWidth : Int) extends Component() {
-  val io = new Bundle() {
-	val master = new OcpSlavePort(addrWidth, dataWidth)
-	val slave = new OcpCmdAcceptMasterPort(addrWidth, dataWidth)
-  }
-
+class OcpIOBridge(master : OcpCoreMasterPort, slave : OcpIOSlavePort) {
   // Register signals that come from master
-  val masterReg = Reg(resetVal = OcpMasterSignals.resetVal(io.master.M))
-  when(masterReg.Cmd === OcpCmd.IDLE || io.slave.S.CmdAccept) {
-	masterReg := io.master.M
+  val masterReg = Reg(resetVal = OcpMasterSignals.resetVal(master.M))
+  when(masterReg.Cmd === OcpCmd.IDLE || slave.S.CmdAccept) {
+	masterReg := master.M
   }
   // Forward master signals to slave
-  io.slave.M := masterReg
-
+  slave.M := masterReg
   // Forward slave signals to master
-  io.master.S <> io.slave.S
+  master.S <> slave.S
 }

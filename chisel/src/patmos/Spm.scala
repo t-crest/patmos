@@ -57,7 +57,7 @@ import Constants._
 import ocp._
 
 class Spm(size: Int) extends Component {
-  val io = new OcpSlavePort(log2Up(size), DATA_WIDTH)
+  val io = new OcpCoreSlavePort(log2Up(size), DATA_WIDTH)
 
   // Unconditional registers for the on-chip memory
   // All stall/enable handling has been done in the input with a MUX

@@ -45,7 +45,7 @@ import Node._
 import scala.collection.mutable.HashMap
 
 class OcpMaster() extends Component {
-  val io = new OcpMasterPort(8, 32)
+  val io = new OcpCoreMasterPort(8, 32)
 
   val cnt = Reg(UFix(), resetVal = UFix(0))
   cnt := cnt + UFix(1, 32)
@@ -56,12 +56,12 @@ class OcpMaster() extends Component {
   io.M.ByteEn := cnt(7, 4)
 
   when(cnt(3, 0) === Bits("b1111")) {
-	io.M.Cmd := OcpCmd.RD
+	io.M.Cmd := OcpCmd.WRNP
   }
 }
 
 class OcpSlave() extends Component {
-  val io = new OcpBurstSlavePort(8, 32)
+  val io = new OcpBurstSlavePort(8, 32, 4)
 
   val M = Reg(io.M, resetVal = OcpMasterSignals.resetVal(io.M))
 
@@ -83,15 +83,13 @@ class OcpSlave() extends Component {
 }
 
 class Ocp() extends Component {
-  val io = new OcpBurstSlavePort(8, 32)
+  val io = new OcpBurstSlavePort(8, 32, 4)
 
   val master = new OcpMaster()
-  val bridge = new OcpBurstBridge(8, 32, 4)
   val slave = new OcpSlave()
-  master.io <> bridge.io.master
-  bridge.io.slave <> slave.io
+  val bridge = new OcpBurstBridge(master.io, slave.io)
 
-  io <> slave.io.M
+  io <> slave.io
 }
 
 object OcpTestMain {
