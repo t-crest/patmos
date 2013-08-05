@@ -313,6 +313,10 @@ class LedIO() extends Bundle() {
   val pins = new LedPinIO()
 }
 
+class TimerIO() extends Bundle() {
+  val ocp = new OcpCoreSlavePort(4, DATA_WIDTH)
+}
+
 class InOutIO() extends Bundle() {
   val memInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
   val uartPins = new UartPinIO()

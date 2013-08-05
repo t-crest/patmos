@@ -47,6 +47,7 @@ import Constants._
 
 import ocp._
 
+import io.Timer
 import io.UART
 import io.Leds
 
@@ -56,15 +57,18 @@ class InOut() extends Component {
   // Compute selects
   val selIO = io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-4) === Bits("b1111")
   val selSpm = !selIO & io.memInOut.M.Addr(ISPM_ONE_BIT) === Bits(0x0)
+  val selTimer = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x0)
   val selUart = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x1)
   val selLed = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x2)
 
   // Register selects
   val selSpmReg = Reg(resetVal = Bits("b0"))
+  val selTimerReg = Reg(resetVal = Bits("b0"))
   val selUartReg = Reg(resetVal = Bits("b0"))
   val selLedReg = Reg(resetVal = Bits("b0"))
   when(io.memInOut.M.Cmd != OcpCmd.IDLE) {
 	selSpmReg := selSpm
+	selTimerReg := selTimer
 	selUartReg := selUart
 	selLedReg := selLed
   }
@@ -74,6 +78,12 @@ class InOut() extends Component {
   spm.io.M := io.memInOut.M
   spm.io.M.Cmd := Mux(selSpm, io.memInOut.M.Cmd, OcpCmd.IDLE)
   val spmS = spm.io.S
+
+  // The Timer
+  val timer = new Timer(CLOCK_FREQ)
+  timer.io.ocp.M := io.memInOut.M
+  timer.io.ocp.M.Cmd := Mux(selTimer, io.memInOut.M.Cmd, OcpCmd.IDLE)
+  val timerS = timer.io.ocp.S
 
   // The UART
   val uart = new UART(CLOCK_FREQ, UART_BAUD)
@@ -90,8 +100,9 @@ class InOut() extends Component {
   io.ledPins <> leds.io.pins
 
   // Return data to pipeline
-  io.memInOut.S.Data := Mux(selUartReg, uartS.Data,
-							Mux(selLedReg, ledsS.Data, 
-								spmS.Data))
-  io.memInOut.S.Resp := spmS.Resp | uartS.Resp | ledsS.Resp
+  io.memInOut.S.Data := Mux(selTimerReg, timerS.Data,
+							Mux(selUartReg, uartS.Data,
+								Mux(selLedReg, ledsS.Data, 
+									spmS.Data)))
+  io.memInOut.S.Resp := spmS.Resp | timerS.Resp | uartS.Resp | ledsS.Resp
 }
