@@ -166,7 +166,7 @@ ISA design notes now.
 We would like to thank Tommy Thorn for the always intense and enjoyable
 discussions of the Patmos ISA and processor design in general.
 Jack Whitham offered his experience with RISC
-ISA design and tradeoffs. 
+ISA design and trade-offs. 
 Gernot Gebhard and Christoph Cullmann gave valuable feedback on the ISA
 relative to WCET analysis.
 Sahar Abbaspourseyedi is working on the stack
@@ -203,7 +203,7 @@ We present the time-predictable processor Patmos as one approach to attack the c
 
 
 \fb{Martin wishes that Patmos will not require more than 3000 LC ;-)}
-\martin{And fmax shall not be below 80\% of NIOS or MircoBlaze.
+\martin{And fmax shall not be below 80\% of NIOS or MicroBlaze.
 And performance (also average case ;-) shall be better, compared to NIOS/MB.
 And we could compare against Tommy's YARI.}
 
@@ -271,9 +271,9 @@ the prologue and the epilogue. On the other hand, the change frees up
 two general-purpose registers, which can avoid spilling and lead to
 more efficient code.
 
-\subsection{Revised Branch Adressing Modes}
+\subsection{Revised Branch Addressing Modes}
 
-\wolf{I propose to change the branch adressing modes as shown in
+\wolf{I propose to change the branch addressing modes as shown in
   Table~\ref{tab:braddr}.}
 
 \begin{table}
@@ -502,7 +502,7 @@ registers:
   \item \texttt{s2} and \texttt{s3} can also be accessed through the names
     \texttt{sl} and \texttt{sh} and represent the lower and upper
     32-bits a multiplication. 
-  \item \texttt{s5} can alse be accessed through the name \texttt{ss} and 
+  \item \texttt{s5} can also be accessed through the name \texttt{ss} and 
     represents the register pointing to the top of the saved stack 
 	content in the main memory (i.e., the current stack spill pointer).
 	Updating \texttt{s5} does not change \texttt{s6} or spill the stack cache.
@@ -559,7 +559,7 @@ we switch contexts.}
       }
       \begin{bytefield}[bitwidth=1.5em]{8}
         \bitlabel{p7} \bitlabel{p6} \bitlabel{p5} \bitlabel{p4}
-        \bitlabel{p3} \bitlabel{p2} \bitlabel{p1} \bitlabel{p0 -- Readonly, always \texttt{1}} \\
+        \bitlabel{p3} \bitlabel{p2} \bitlabel{p1} \bitlabel{p0 -- Read only, always \texttt{1}} \\
         \bitheader{0-7} \\
         \bitbox{1}{} \bitbox{1}{} \bitbox{1}{} \bitbox{1}{}
         \bitbox{1}{} \bitbox{1}{} \bitbox{1}{} \bitbox{1}{} \\
@@ -1169,7 +1169,7 @@ bitmasks).}
 
 Applies to the SPCw format only. Wait for a multiplication or memory
 operation to complete by stalling the
-pipeline. Table~\ref{tab:waitfunc} shows theencoding of the
+pipeline. Table~\ref{tab:waitfunc} shows the encoding of the
 \code{func} field.
 
 \begin{itemize}
@@ -1346,7 +1346,7 @@ with high priority though).}
 
 \martin{When there is a NOP in the delay slot it is the same execution time as when the pipeline is (partially) stalled for one cycle.
 
-If the compiler can fill the delay slot, the solution with the delay slot is more efficient. If it cannot be filled, code size increases due to the NOPs. So this is a tradeoff, and we do not (yet) know which is better.
+If the compiler can fill the delay slot, the solution with the delay slot is more efficient. If it cannot be filled, code size increases due to the NOPs. So this is a trade-off, and we do not (yet) know which is better.
 
 So we keep it as it is and say that using the load value in the delay slot leads to undefined behavior.}
 
@@ -1760,7 +1760,7 @@ This (and all hazards for all other instructions) should be documented here in t
 
 \stefan{The reason for the hazards is primarily the current implementation of the the simulator, there the special registers 
 are updated separately from the internal stack pointers, which causes the hazards. We should define how the 
-hardware actually behaves, and then the simulator should be updated to reflect that behaviour. However, the latter is not quite trivial, I will
+hardware actually behaves, and then the simulator should be updated to reflect that behavior. However, the latter is not quite trivial, I will
 leave that to Florian ;) }
 
 \clearpage
@@ -2153,7 +2153,7 @@ All register names must be prefixed by \texttt{\$}.
 We use destination before source in the instructions, between destination and source a \texttt{=} character must be used instead of a comma.
 Immediate values are not prefixed for decimal notation, the usual 0 and 0x formats are accepted for octal and hexadecimal immediates.
 Comments start with the hash symbol \texttt{\#} and are considered to the end of the line. For memory operations, the syntax is
-\texttt{[\$register + offset]}. Register or offset can be ommited, in that case the zero register \texttt{r0} or an offset of $0$ is used.
+\texttt{[\$register + offset]}. Register or offset can be omitted, in that case the zero register \texttt{r0} or an offset of $0$ is used.
 
 Example:
 \begin{verbatim}
@@ -2676,7 +2676,7 @@ level.
 %}
 
 
-\stefan{How do we initialize the core, i.e., how do we get the initial startup code into the i-cache, especially when
+\stefan{How do we initialize the core, i.e., how do we get the initial start-up code into the i-cache, especially when
 we use software-controlled i-cache allocation? How do we handle interrupts (they need to get into the cache before they can be executed)?}
 
 \jack{This is a good use for I-SPM. Use it as an operating system ``ROM''
@@ -2716,7 +2716,7 @@ The data cache should be write-through.
 Again this allows for a "real" comparison between the stack cache and a standard data cache on the same architecture.
 
 It might also be interesting to explore the object cache idea \cite{jop:ocache, jop:ocwcet:ccpe} where objects (heap allocated structures) are tracked via
-a fully associative cache. Furthermore, for arrays with low temporal localty
+a fully associative cache. Furthermore, for arrays with low temporal locality
 a small set of prefetch buffers may benefit from spacial locality.
 
 \section{Hardware Interface}
@@ -2877,13 +2877,13 @@ is received.
 \code{SCmdAccept} is valid only while a command is unequal to
 \code{IDLE}. Consequently, \code{SCmdAccept} must be properly
 multiplexed to support multiple slaves. For handshaking via
-\code{SResp}, it is sufficient to combine the responses of differens
+\code{SResp}, it is sufficient to combine the responses of different
 slaves with OR.
 
 \wolf{With \code{writeresp\_enable} we could also require a response
   for ``normal'' writes.}
 
-\wolf{\code{OCPburst} currently allows neiter pipelining nor
+\wolf{\code{OCPburst} currently allows neither pipelining nor
   same-cycle responses. If we want to, we can make it more like
   \code{OCPcore} or \code{OCPio}.}
 
@@ -3036,7 +3036,7 @@ VHDL: 3020
 The architecture of Patmos is structured around five components, each
 representing one pipeline stage. Each component contains the \emph{left}
 pipeline register. E.g., the output of the \code{DEC} stage (decode signals,
-the two register values, and the immediate field) is combinational from
+the two register values, and the immediate field) is combinatorial from
 the decode stage and registered in the \code{EX} stage. The motivation of
 this organization is that input registers of on-chip memory elements (e.g., instruction
 memory, register file, and data memory) are part of the pipeline register.
@@ -3111,7 +3111,7 @@ Under Mac OS X all tools, except Quartus, are working (ModelSim under
 wine). For FPGA synthesis and configuration Windows XP within a VMWare
 virtual machine is a possible solution.
 
-On a Linux box with the installed LLMV compiler in your PATH,%
+On a Linux box with the installed LLVM compiler in your PATH,%
 \footnote{Installation and build is a simple two step approach:
 \code{git clone git@github.com:t-crest/patmos-misc.git misc}
 and build with:
@@ -3134,7 +3134,7 @@ Here a list of the most important make targets:
 \item[csim] execute the Patmos emulator 
 \item[comp] compile a C program as loadable ELF binary
 \item[bootcomp] compile a C program as a bootable image
-\item[gen] generate the verilog code
+\item[gen] generate the Verilog code
 \item[synth] synthesize for an FPGA
 \end{description}
 
@@ -3385,7 +3385,7 @@ In the following, we use \emph{exception} to denote any kind of
 ``abnormal'' transfer of control. \emph{Interrupts} are generated
 outside of the pipeline by I/O devices. \emph{Faults} are triggered by
 the pipeline for instructions that cannot be executed as expected
-(acesses to unmapped memory, undecodable instructions,
+(accesses to unmapped memory, undecodable instructions,
 etc.). \emph{Traps} are willfully generated exceptions, and are used
 to invoke operating system functions, which might require elevated
 privileges (see Section~\ref{sec:supervisor}).
@@ -3580,8 +3580,8 @@ Figure~\ref{fig:timing_intr} shows the triggering of an interrupt.
 \item The exception unit requests an interrupt by asserting
   \texttt{xu.intr}. As \texttt{dec.indly} is still high, the request
   is ignored.
-\item The signal \texttt{xu.intr} is still asserted, but the curreent
-  instruction is not part os a branch-delay slot, so the decode stage
+\item The signal \texttt{xu.intr} is still asserted, but the current
+  instruction is not part of a branch-delay slot, so the decode stage
   generates an interrupt instruction \texttt{INTR}.
 \item The interrupt has not been acknowledged, so signal
   \texttt{xu.intr} is still asserted and the decode stage generates
@@ -3684,11 +3684,11 @@ Another option would be to merge the return and stack free operations. Both
 instructions belong to the same function and, due to the simpler semantics of
 the free, the combination would be easier to implement.
 
-\stefan{I doubt that merging those functions would actually gain something. It reduces the flexibilty for the compiler to perform ensure
-only where needed, may limit the possiblities for passing data over the stack cache, and requires additional
+\stefan{I doubt that merging those functions would actually gain something. It reduces the flexibility for the compiler to perform ensure
+only where needed, may limit the possibilities for passing data over the stack cache, and requires additional
 code to restore the special registers that are required to track the size of the stack. Only gain I see is when the word in front of the 
 method code that stores the size of the method is used to store the stack size as 16bit value, and limit the size of the method to a 16bit
-value. Then no additional data needs to be transfered. The stack control instructions would still be required to allow the compiler to
+value. Then no additional data needs to be transferred. The stack control instructions would still be required to allow the compiler to
 allocate stack e.g. only in certain contexts.}
 
 \martin{If stack operations only happens at function call
@@ -3714,7 +3714,7 @@ instructions.
 
 \stefan{Might not gain much: for LRU caches there is no need to purge, we might need to purge the stack cache on context switches anyway,
 and for the method cache, purging the cache might also not gain much (depending on the used analysis). I do not think that Self-modifying
-should be used in hard realtime code anyway, as it might introduce some slight problems to the WCET analysis ;) }
+should be used in hard real-time code anyway, as it might introduce some slight problems to the WCET analysis ;) }
 
 \section{Freeze Cache Content}
 
@@ -3863,7 +3863,7 @@ pointer redirect (address translation) -- plain SPM in its own address space.}
   \item Maybe have some sort of protection mechanism, to prevent cores from writing to any address in any remote SPM
   \item How do we handle writes to the same address by (remote) dma transfers and local writes (this might prevent local load and stores to
   the SPM from completing in a single cycle)?  \jack{This sounds
-    like undefined behaviour. The program should avoid doing this.
+    like undefined behavior. The program should avoid doing this.
     But local loads/stores must take priority over remote loads/stores
     to SPM (including locally-initiated DMA transfers) because otherwise
     we will not have single-cycle access to SPM. There must be fixed-priority
@@ -3874,7 +3874,7 @@ pointer redirect (address translation) -- plain SPM in its own address space.}
 much pain to the programmer (we would need to annotate all variables, including function arguments and pointers to SPM allocated data). 
 Same problem here as with stack cache and second data cache due to typed access: Passing data to a function requires the function to know in which memory the
 data is stored. We need specialized functions for
-memory types of parameters, in all occuring combinations, this increases code size and method cache misses.}
+memory types of parameters, in all occurring combinations, this increases code size and method cache misses.}
 
 \martin{I see the D-SPM mainly as buffer for core-to-core message passing.
 DMAs transfer data between the NoC and the D-SPM on one memory port
@@ -3950,7 +3950,7 @@ sometimes better than using the method cache. This is a bit tricky
 because while dynamic (run-time replacement) I-SPM allocation strategies
 do have the advantage of being able to load parts of methods, or pack
 multiple methods into a single load, and thus get better performance
-in some cases, you can get the same behaviour by manipulating the
+in some cases, you can get the same behavior by manipulating the
 control flow graph (inlining/exlining/combining methods) and using
 a method cache. So it is hard to make that argument in a report.}
 
@@ -4339,7 +4339,7 @@ can be issued in both pipelines.
 \cullmann{
 Would loads that implicitly wait not make the life easier for the compiler? For the analysis, in any way, we will need to keep track of the load to implement wait.
 For the "good" cases which hit the cache or SPM, an implicit waiting load would have no penalty, but for the "normal" cached main memory access, you would only need one instruction and not up to three (load, wait, move result).
-Beside, it will avoid possible semantic errors which are hard to detect. e.g. you can miss to insert a wait and it will work ok as long as you hit the cache but if by accident, you miss it, you get wrong behaviour.
+Beside, it will avoid possible semantic errors which are hard to detect. e.g. you can miss to insert a wait and it will work ok as long as you hit the cache but if by accident, you miss it, you get wrong behavior.
 To create such timing sensitive code would be impossible with stalling loads.
 Beside, I see no benefit in performance and predictability with the split load approach. With blocking loads, you will save instructions, which should increase performance, and for the analysis, we need to implement the waiting anyway.
 }
