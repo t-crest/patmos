@@ -5,6 +5,7 @@
 # Toggle LED with input from UART.
 #
 
+		.word   124;
 		addi	r0 = r0, 0;  # first instruction not executed
 
 		addi	r7 = r0, 16;

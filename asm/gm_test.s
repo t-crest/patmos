@@ -1,3 +1,4 @@
+	.word   88;
 	addi	r1 = r0, 255;  # first instruction not executed
 	addi	r20 = r0, 15;
 	sli	r20 = r20, 28;

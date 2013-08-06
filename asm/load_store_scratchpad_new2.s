@@ -2,6 +2,7 @@
 # Basic instructions test
 # different ld/st from/to scratchpad memory
 
+	.word   228;
 	addi	r1 = r0, 255;  # first instruction not executed
 	addi	r1 = r0, 256; # r1 = 256
 	addi	r2 = r0, 5;

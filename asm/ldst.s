@@ -1,6 +1,7 @@
 #
 # Basic load/store tests
 
+	.word   100;
 	addi	r0 = r0, 0;
 	addi	r1 = r0, 4;
 	add	r2 = r0, 0xabcd1234;

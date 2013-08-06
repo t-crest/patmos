@@ -5,6 +5,7 @@
 #   first load (in the load use delay slot) will get old value
 #   second load the correct value from memory
 #
+	.word   52;
 	sres	10;
 	addi	r1 = r0, 4;
 	addi	r2 = r0, 2;

@@ -13,6 +13,7 @@
 # r11==read/write test bound (address limit)
 # r12==memory read error count
 
+	.word	176;
 
 	addi	r0 = r0, 0;  # first instruction not executed         	#0
 begin:	addi	r12 = r0, 0; # r12==error count                       	#1

@@ -2,6 +2,7 @@
 # Just a few basic instructions to watch the pipeline going in ModelSim
 #
 
+	.word   28;
 	addi	r1 = r0, 255;  # first instruction not executed
 
 	addi	r1 = r0, 15;

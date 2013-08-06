@@ -1,6 +1,7 @@
 #
 #  Test of call and return instructions
 #
+	.word   32;
 	addi	r1 = r0, 0;
 	addi	r20 = r0, 20;
 	addi	r30 = r0, 0;  # method base?

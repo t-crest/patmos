@@ -1,4 +1,5 @@
 # Test case for forwarding of ALU instructions
+	.word	68;
 	addi	r4 = r0, 0;
 	addi	r4 = r0, 0;
 	addi	r1 = r0, 2		||	addi	r1 = r0, 5;

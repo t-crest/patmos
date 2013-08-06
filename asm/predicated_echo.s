@@ -5,6 +5,7 @@
 # SA: this tests predicated ld/st which was a bug
 #
 
+		.word   116;
 x0:		addi	r0 = r0, 0;  # first instruction not executed
 		addi	r5 = r0, 15;
 		sli	r5 = r5, 28;

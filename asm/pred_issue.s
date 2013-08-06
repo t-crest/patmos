@@ -1,6 +1,7 @@
 
 # Try to extract the issue Sahar observed,
 # but this works - al variations of r1/r2 lt, eq, gt tried
+	.word   36;
 	addi	r1 = r0, 2;
 	addi	r2 = r0, 1;
 	cmple   p4 = r1, r2;

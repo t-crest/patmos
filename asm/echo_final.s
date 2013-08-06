@@ -6,6 +6,7 @@
 # MS: is this roughly the same as echo.s? 
 # SA: This is a deprecated version of echo, it is no longer valid.
 
+		.word   104;
 		addi	r0 = r0, 0;  # first instruction not executed
 		addi	r5 = r0, 15;
 		sli	r5 = r5, 28;
