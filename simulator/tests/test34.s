@@ -2,7 +2,7 @@
 # Expected Result: undefined label
 #
 
-                .word   3;
+                .word   12;
                 call    x;
                 nop;
                 nop;

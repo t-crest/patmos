@@ -2,7 +2,7 @@
 # Expected Result: r1 = 0x0283f181 & r2 = 0x0283f181 & r3 = 0x00000283 & 
 #                  r4 = 0xffffff83 & r5 = 0x00000283 & r6 = 0x00000083
 #
-                .word   13;
+                .word   52;
                 lwm     r1  = [r31 + 1];
                 sres     4;
                 sws     [r0 + 0] = r1;

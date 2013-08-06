@@ -2,7 +2,7 @@
 # Expected Result: r2 = 1
 #
 
-                .word   5;
+                .word   20;
                 addi    r1 = r0, y;
                 call    x;
                 nop;

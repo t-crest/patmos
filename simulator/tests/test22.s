@@ -2,7 +2,7 @@
 # Expected Result: r1 = 0xfb
 #
 
-                .word   13;
+                .word   52;
                 add     r1  = r0, 0xF0000100;
                 addi    r2  = r0, 2;
                 lwl     r3  = [r1 + 0];

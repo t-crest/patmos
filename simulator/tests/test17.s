@@ -2,7 +2,7 @@
 # Expected Result: stack exceeded address space exception
 #
 
-                .word   5;
+                .word   20;
                 sres    1;
 		subi	r1  = r31, 8;
                 lws     r1  = [r1 + 0];

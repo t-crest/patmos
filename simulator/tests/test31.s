@@ -2,7 +2,7 @@
 # Expected Result: r2 = 1
 #
 
-                .word   16;
+                .word   64;
                 lwc     r1 = [r0 + 11];
                 nop;
                 nop;
