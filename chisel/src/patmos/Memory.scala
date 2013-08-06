@@ -170,7 +170,7 @@ class Memory() extends Component {
   
   // TODO: PC is absolute in ISPM, but we fake the return offset to
   // be relative to the base address.
-  val baseReg = Reg(resetVal = UFix(0, DATA_WIDTH))
+  val baseReg = Reg(resetVal = UFix(4, DATA_WIDTH))
 
   io.memwb.pc := memReg.pc
   for (i <- 0 until PIPE_COUNT) {
