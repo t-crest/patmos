@@ -1,10 +1,41 @@
 /*
- Author: Philipp Degasperi (philipp.degasperi@gmail.com)
+   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   All rights reserved.
+   
+   This file is part of the time-predictable VLIW processor Patmos.
 
- SSRAM connection to memory bus (f.e. DE2-70 board)
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions are met:
 
+      1. Redistributions of source code must retain the above copyright notice,
+         this list of conditions and the following disclaimer.
+
+      2. Redistributions in binary form must reproduce the above copyright
+         notice, this list of conditions and the following disclaimer in the
+         documentation and/or other materials provided with the distribution.
+
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
+   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
+   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+   The views and conclusions contained in the software and documentation are
+   those of the authors and should not be interpreted as representing official
+   policies, either expressed or implied, of the copyright holder.
  */
 
+/*
+ * SSRAM connection to memory bus (f.e. DE2-70 board)
+ * 
+ * Author: Philipp Degasperi (philipp.degasperi@gmail.com)
+ * 
+ */
 
 package patmos
 
@@ -12,34 +43,32 @@ import Chisel._
 import Node._
 import MConstants._
 
+import scala.collection.mutable.HashMap
+
 /*
  for the moment a small version of SimpleCon interface
  */
-class ScCacheType extends Bundle() {
-  val bypass :: direct_mapped_const :: direct_mapped :: full_assoc :: Nil = Enum(4){ Bits() }
-}
 class ScInType extends Bundle() {
   val rd_data = Bits(width = 32)
-  val rd_count = Bits(width = 2)
+  val rd_count = UFix(width = 2)
 }
 class ScOutType extends Bundle() {
-  val address = Bits(width = 23)
+  val address = Bits(width = 19)
   val wr_data = Bits(width = 32)
   val rd = Bits(width = 1)
   val wr = Bits(width = 1)
   val byte_ena = Bits(width = 4) //Bytes per word
-  //val cache = new sc_cache_t() //not working???
 }
 class RamInType extends Bundle() {
   val din = Bits(width = 32)
 }
 class RamOutType extends Bundle() {
-  val addr = Bits(width = 23)
-  //val clk = Bits(width = 1)
+  val addr = Bits(width = 19)
+  val dout_ena = Bits(width = 1) //needed to drive tristate in top level
   val nadsc = Bits(width = 1)
   val noe = Bits(width = 1)
   val nwe = Bits(width = 1)
-  //val nbw = Bits(width = 4)
+  val nbw = Bits(width = 4)
   val ngw = Bits(width = 1)
   val nce1 = Bits(width = 1)
   val ce2 = Bits(width = 1)
@@ -49,12 +78,10 @@ class RamOutType extends Bundle() {
   val dout = Bits(width = 32)
 }
 
-
 /*
- we could also use a OPC interface instead, f.e. when we want to have burst
+ we could also use a OCP interface instead, f.e. when we want to have burst
  */
 class SsramIO extends Bundle() {
-  val ram_din_reg = Bits(INPUT, width = 32) //need to get the data input from inverted clock from top-level
   val sc_mem_out = new ScOutType().asInput
   val sc_mem_in = new ScInType().asOutput 
   val ram_out = new RamOutType().asOutput
@@ -65,136 +92,129 @@ class SsramIO extends Bundle() {
   pipelined ssram access via a SimpCon interface
 */
 class Ssram (
-   ram_ws_rd : Int = 3,
-   ram_ws_wr : Int = 3
+   ram_ws_rd : Int = 1,
+   ram_ws_wr : Int = 1
 ) extends Component {
   
   val io = new SsramIO()
 
-  val idl :: rd1 :: rd2 :: wr1 :: wr2 :: Nil = Enum(5){ Bits() }
+  val idl :: rd1 :: rd2 :: wr1 :: wr2 :: Nil = Enum(5){ UFix() }
   val ssram_state = Reg(resetVal = idl)
-
-  val wait_state = Reg(resetVal = Bits(0, width = 4))
-  val cnt = Bits(width = 2)
-  val dout_ena = Bits(width = 1)
+  val wait_state = Reg(resetVal = UFix(0, width = 4))
+  val cnt = UFix(width = 2)
+  val rd_ena = Bits(width = 1)
+  val wr_ena = Bits(width = 1)
   val rd_data_ena = Bits(width = 1)
-
-  val ram_dout = Bits(width = 32)
+  val rd_data = Reg(resetVal = Bits(0, width = 32))
+  val ram_dout = Reg(resetVal = Bits(0, width = 32))
+  val address = Reg(resetVal = Bits(0, width = 19))
+  val dout_ena = Reg(resetVal = Bits(0, width = 1))
+  val nadsc = Reg(resetVal = Bits(1, width = 1))
+  val noe = Reg(resetVal = Bits(1, width = 1))
+  val nwe = Reg(resetVal = Bits(1, width = 1))
+  val nbw = Reg(resetVal = Bits("b1111", width = 4))
 
   //init default signal values
   rd_data_ena := Bits(0)
-  dout_ena := Bits(0)
-  ram_dout := Bits(0)
-  //are the following really needed?
-  io.ram_out.addr := Bits(0)
-  io.sc_mem_in.rd_data := Bits(0)
+  io.ram_out.addr := address
+  io.sc_mem_in.rd_data := rd_data
+  rd_ena := io.sc_mem_out.rd
+  wr_ena := io.sc_mem_out.wr
 
+  //init default register values
+  dout_ena := Bits(0)
+  nadsc := Bits(1)
+  noe := Bits(1)
+  nwe := Bits(1)
+  nbw := Bits("b1111")
+
+  //catch inputs
   when (io.sc_mem_out.rd === Bits(1) || io.sc_mem_out.wr === Bits(1)) {
-    io.ram_out.addr := io.sc_mem_out.address
+    address := io.sc_mem_out.address
   }
   when (io.sc_mem_out.wr === Bits(1)) {
     ram_dout := io.sc_mem_out.wr_data
   }
   when (rd_data_ena === Bits(1)) {
-    io.sc_mem_in.rd_data := io.ram_din_reg
+    io.sc_mem_in.rd_data := io.ram_in.din
+    rd_data := io.ram_in.din
   }
 
-  //next state logic
+  //fsm, next state + output logic
   when (ssram_state === idl) {
-    //idle
-  }
+   //idle
+  } 
   when (ssram_state === rd1) {
     ssram_state := rd2
+    noe := Bits(0)
+    when (wait_state === UFix(1)) {
+      rd_data_ena := Bits(1)
+    }
   }
   when (ssram_state === rd2) {
-    when(wait_state === Bits(1)) {
+    noe := Bits(0)
+    when(wait_state === UFix(1)) {
       ssram_state := idl
+      rd_data_ena := Bits(1)
     }
   }
   when (ssram_state === wr1) {
     ssram_state := wr2
   }
   when (ssram_state === wr2) {
-    when (wait_state === Bits(1)) {
+    when (wait_state === UFix(1)) {
       ssram_state := idl
     }
   }
-
-  //this gives pipeline level of 2
-  when (io.sc_mem_out.rd === Bits(1)) {
+  when (rd_ena) {
     ssram_state := rd1
+    nadsc := Bits(0)
+    noe := Bits(0)
   }
-  .elsewhen (io.sc_mem_out.wr === Bits(1)) {
+  .elsewhen(wr_ena) {
     ssram_state := wr1
-  }
-
-  //output logic
-  io.ram_out.nadsc := Bits(1)
-  io.ram_out.noe := Bits(1)
-  io.ram_out.nwe := Bits(1)
-  //io.ram_out.nbw := Bits("b1111") //width = 4?!
-
-  when (ssram_state === rd1) {
-    io.ram_out.nadsc := Bits(0)
-    io.ram_out.noe := Bits(0)
-  }
-  when (ssram_state === rd2) {
-    io.ram_out.noe := Bits(0)
-    when (wait_state === Bits(2)) {
-      rd_data_ena := Bits(1)
-    }
-  }
-  when (ssram_state === wr1) {
-    io.ram_out.nadsc := Bits(0)
-    io.ram_out.nwe := Bits(0)
-    //io.ram_out.nbw := ~(io.sc_mem_out.byte_ena)
+    nadsc := Bits(0)
+    nwe := Bits(0)
+    nbw := ~(io.sc_mem_out.byte_ena)
+    noe := Bits(1)
     dout_ena := Bits(1)
   }
 
-  cnt := Bits("b11")
-
-  when (wait_state != Bits(0)) {
-    wait_state := wait_state - Bits(1)
+  //counter till output is ready
+  cnt := UFix(3)
+  when (wait_state != UFix(0)) {
+    wait_state := wait_state - UFix(1)
   }
-
-  when (wait_state(3,2) === Bits("b00")) {
-    when (wait_state === Bits(0)) {
-      cnt := Bits(0)
+  when (wait_state(3,2) === UFix(0)) {
+    when (wait_state === UFix(0)) {
+      cnt := UFix(0)
     }
-      .otherwise{
-      cnt := (wait_state)(1,0) - Bits(1)
-    }
-  }
-
-  when (io.sc_mem_out.rd === Bits(1)) {
-    wait_state := Bits(ram_ws_rd)
-
-    //for what???
-    /*when (Bits(ram_ws_rd) < Bits(3)) {
-      cnt := Bits(ram_ws_rd + 1)(1,0)
-    }
-    .otherwise {
-      cnt := Bits("b11")
-    }*/
-  }
-
-  when (io.sc_mem_out.wr === Bits(1)) {
-    wait_state := Bits(ram_ws_wr + 1)
-    when (Bits(ram_ws_wr) < Bits(3)) {
-      cnt := Bits(ram_ws_wr + 1)(1,0)
-    }
-    .otherwise {
-      cnt := Bits("b11")
+    .otherwise{
+      cnt := (wait_state)(1,0)
     }
   }
-
-  io.ram_out.dout := Bits(0) //don't care
+  .otherwise {
+    cnt := UFix(3)
+  }
+  when (rd_ena === Bits(1)) {
+    wait_state := UFix(ram_ws_rd + 1)
+  }
+  when (wr_ena === Bits(1)) {
+    wait_state := UFix(ram_ws_wr + 1)
+  }
+  io.ram_out.dout := io.sc_mem_out.wr_data //don't care
   when (dout_ena === Bits(1)) {
     io.ram_out.dout := ram_dout
   }
 
+  //output registers
+  io.ram_out.nadsc := nadsc
+  io.ram_out.noe := noe
+  io.ram_out.nwe := nwe
+  io.ram_out.nbw := nbw
+  io.ram_out.dout_ena := dout_ena //needed for driving tristate in top-l
   io.sc_mem_in.rd_count := cnt
-
+  //output fixed signals
   io.ram_out.ngw := Bits(1)
   io.ram_out.nce1 := Bits(0)
   io.ram_out.ce2 := Bits(1)
@@ -204,15 +224,46 @@ class Ssram (
 
 }
 
+/*
+ Test Class for the SSRAM implemenation
+ */
+class SsramTest(c: Ssram, fileName: String) extends Tester(c, Array(c.io)) {
+  defTests {
+    var allGood = true
+    val vars = new HashMap[Node, Node]()
+    val ovars = new HashMap[Node, Node]()
+    val extmemssram = new ExtSsram(fileName)
+    c.io.ram_out <> extmemssram.io.ram_out
+    c.io.ram_in <> extmemssram.io.ram_in
+    vars.clear()
+    ovars.clear()
+    println("RUN")
+    for (i <- 0 until 100) {
+      allGood = step(vars, ovars) && allGood
+    }
+    allGood
+  }
+}
 
 /*
-  External Memory, only to simulate a SSRAM in Chisel as a on-chip memory implementation
+ Used to instantiate a single SSRAM control component
+ */
+object SsramMain {
+  def main(args: Array[String]): Unit = {
+    val chiselArgs = args.slice(1, args.length)
+    val file = args(0) + ".bin"
+    chiselMainTest(chiselArgs, () => new Ssram()) { f => new SsramTest(f, file) }
+  }
+}
+
+/*
+ External Memory, only to simulate a SSRAM in Chisel as a on-chip memory implementation
+ and reading some data from binary to memory vector
 */
 class ExtSsramIO extends Bundle() {
   val ram_out = new RamOutType().asInput
   val ram_in = new RamInType().asOutput
 }
-
 class ExtSsram(fileName : String) extends Component {
   val io = new ExtSsramIO()
 
@@ -243,18 +294,16 @@ class ExtSsram(fileName : String) extends Component {
 
   initSsram(fileName)
 
-  io.ram_in.din := Bits(0)
   val dout = Reg(resetVal = Bits(0, width = 32))
-  val addr = Reg(resetVal = Bits(0, width = 23))
-  addr := io.ram_out.addr
-  when (io.ram_out.nwe === Bits(1) && io.ram_out.noe === Bits(0)) {
-    dout := ssram_extmem(addr)
+  when (io.ram_out.noe === Bits(0)) {
+    dout := ssram_extmem(io.ram_out.addr)
   }
   io.ram_in.din := dout
 }
 
 /*
  old memory class for reading a bin file in to a vector and outputing in a burst-like mode
+ should be removed in the future only needed for keeping the current version of method cache
 */
 class ExtMemIn extends Bundle() {
   val address = Bits(width = 32)

@@ -504,7 +504,7 @@ class MCacheMem(
   io.mcachemem_out.hit := dout_hit
 }
 
-class MCache(fileName : String) extends Component {
+class MCache() extends Component {
   val io = new MCacheIO()
 
   //fsm state variables
@@ -557,6 +557,7 @@ class MCache(fileName : String) extends Component {
   when (mcache_state === init_state) {
     when(io.mcache_in.request) {
       mcache_address := io.mcache_in.address - Bits(1)
+      mcachemem_address := io.mcache_in.address - Bits(1)
       mcache_state := idle_state
     }
   }
