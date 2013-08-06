@@ -1,6 +1,7 @@
 #
 # Test branch
 #
+	.word   104;
 	addi	r0 = r0, 0;  # first instruction not executed
 	addi	r1 = r0, 1;
 	addi	r1 = r0, 2;

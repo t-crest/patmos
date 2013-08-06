@@ -1,5 +1,6 @@
 # Test case for stack cache load and store
 # Initialization begin
+	.word	236;
 	add 	r1 = r0, 0xFF0FF000;
 	add 	r1 = r0, 0xFF0FF000;
 	addi	r2 = r0, 4;

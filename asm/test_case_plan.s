@@ -44,6 +44,7 @@
 # Function calls
 # 
 
+		.word   120;
 		addi	r0 = r0, 0;
 
 add:	addi	r1 = r0, 5; 

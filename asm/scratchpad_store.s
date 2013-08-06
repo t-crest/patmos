@@ -3,6 +3,7 @@
 # different ld/st from/to scratchpad memory
 # this is a deprecated version there are other tests on scratchpad
 
+	.word   32;
 	addi	r1 = r0, 255;  # first instruction not executed
 	addi	r1 = r0, 255; # r1 = 255
 	addi	r2 = r0, 5;

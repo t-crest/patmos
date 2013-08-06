@@ -4,6 +4,7 @@
 #
 # Expected Result: 
 #
+		.word   140;
 		addi	r0 = r0, 0;  # first instruction not executed
 		addi	r1 = r0, 1;
 		add	r2   = r0 , 65536; 

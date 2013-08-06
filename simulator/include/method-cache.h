@@ -181,10 +181,8 @@ namespace patmos
 
   /// A direct-mapped method cache using LRU replacement on methods.
   /// The cache is organized in blocks (Num_blocks) each of a fixed size
-  /// (NUM_BLOCK_BYTES) in bytes. On start-up the cache fetches a given number
-  /// of blocks from address 0 of its memory (NUM_INIT_BLOCKS).
-  template<unsigned int NUM_BLOCK_BYTES = NUM_METHOD_CACHE_BLOCK_BYTES,
-           unsigned int NUM_INIT_BLOCKS = 4>
+  /// (NUM_BLOCK_BYTES) in bytes.
+  template<unsigned int NUM_BLOCK_BYTES = NUM_METHOD_CACHE_BLOCK_BYTES>
   class lru_method_cache_t : public method_cache_t
   {
   protected:
@@ -414,27 +412,18 @@ namespace patmos
       // get 'most-recent' method of the cache
       method_info_t &current_method = Methods[Num_blocks - 1];
 
-      if (address != 0x0)
-      {
-        // we assume it is an ordinary function with sie specification
-        // and copy it in the cache.
-        uword_t num_bytes, num_blocks;
-        peek_function_size(address, &num_bytes);
-        num_blocks = get_num_blocks_for_bytes(num_bytes);
+      // we assume it is an ordinary function entry with size specification
+      // (the word before) and copy it in the cache.
+      uword_t num_bytes, num_blocks;
+      peek_function_size(address, &num_bytes);
+      num_blocks = get_num_blocks_for_bytes(num_bytes);
 
-        Memory.read_peek(address, current_method.Instructions,
-            num_blocks * NUM_BLOCK_BYTES);
-        current_method.update(current_method.Instructions, address,
-            num_blocks, num_bytes);
-        Num_active_blocks = num_blocks;
-      } else {
-        // initialize the method cache with some dummy method entry.
-        Memory.read_peek(address, current_method.Instructions,
-            NUM_INIT_BLOCKS * NUM_BLOCK_BYTES);
-        current_method.update(current_method.Instructions, address,
-            NUM_INIT_BLOCKS, NUM_INIT_BLOCKS * NUM_BLOCK_BYTES);
-        Num_active_blocks = NUM_INIT_BLOCKS;
-      }
+      Memory.read_peek(address, current_method.Instructions,
+          num_blocks * NUM_BLOCK_BYTES);
+      current_method.update(current_method.Instructions, address,
+          num_blocks, num_bytes);
+      Num_active_blocks = num_blocks;
+
       Num_active_methods = 1;
     }
 
@@ -656,13 +645,11 @@ namespace patmos
 
   /// A direct-mapped method cache using FIFO replacement on methods.
   /// \see lru_method_cache_t
-  template<unsigned int NUM_BLOCK_BYTES = NUM_METHOD_CACHE_BLOCK_BYTES,
-           unsigned int NUM_INIT_BLOCKS = 4>
-  class fifo_method_cache_t : public lru_method_cache_t<NUM_BLOCK_BYTES,
-                                                        NUM_INIT_BLOCKS>
+  template<unsigned int NUM_BLOCK_BYTES = NUM_METHOD_CACHE_BLOCK_BYTES>
+  class fifo_method_cache_t : public lru_method_cache_t<NUM_BLOCK_BYTES>
   {
   private:
-    typedef lru_method_cache_t<NUM_BLOCK_BYTES, NUM_INIT_BLOCKS> base_t;
+    typedef lru_method_cache_t<NUM_BLOCK_BYTES> base_t;
 
     size_t active_method;
 
@@ -678,7 +665,7 @@ namespace patmos
     /// @param memory The memory to fetch instructions from on a cache miss.
     /// @param num_blocks The size of the cache in blocks.
     fifo_method_cache_t(memory_t &memory, unsigned int num_blocks) :
-        lru_method_cache_t<NUM_BLOCK_BYTES, NUM_INIT_BLOCKS>(memory, num_blocks)
+        lru_method_cache_t<NUM_BLOCK_BYTES>(memory, num_blocks)
     {
 	active_method = base_t::Num_blocks - 1;
     }

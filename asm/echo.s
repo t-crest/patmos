@@ -4,6 +4,7 @@
 # Expected Result: echo entered characters
 # SA: this is the working version of echo.
 
+		.word   104;
 # Set up IO address
 x0:		addi	r0 = r0, 0;
 		add 	r5 = r0, 0xf0000100;

@@ -1,6 +1,7 @@
 #
 # Expected Result: 
 #
+		.word   168;
 		addi	r5 = r0, 0;                
 		addi    r1 = r0, 0;
 		addi	r10 = r0, 64;

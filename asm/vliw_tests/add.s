@@ -1,4 +1,5 @@
 # Test case for add instruction
+	.word	40;
 	addi	r1 = r0, 2		||	addi	r1 = r0, 5;
 	add 	r2 = r1, r1		||	add 	r3 = r1, r1;
 	add 	r4 = r1, r1		||	add 	r5 = r1, r1;

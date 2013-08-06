@@ -1,4 +1,5 @@
 # This test case  tests the different instructions of the ALU
+	.word	116;
 	addi	r1 = r0, 10;
 	addi	r1 = r0, 10;
 	add 	r2 = r1, r0;

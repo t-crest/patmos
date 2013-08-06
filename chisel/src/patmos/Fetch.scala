@@ -47,8 +47,8 @@ import Constants._
 class Fetch(fileName: String) extends Component {
   val io = new FetchIO()
 
-  val pc = Reg(resetVal = UFix(0, PC_SIZE))
-  val addr_even = Reg(resetVal = UFix(0, PC_SIZE))
+  val pc = Reg(resetVal = UFix(1, PC_SIZE))
+  val addr_even = Reg(resetVal = UFix(2, PC_SIZE))
   val addr_odd = Reg(resetVal = UFix(1, PC_SIZE))
 
   val rom = Utility.readBin(fileName)

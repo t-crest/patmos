@@ -2,6 +2,7 @@
 # Basic instructions test
 # long immediate instructions
 
+	.word   168;
 	addi	r1 = r0, 255;  # first instruction not executed 0
 	addi	r1 = r0, 2; # r1 = 2
 	add     r1  = r1, 65536; # r1 = 65538

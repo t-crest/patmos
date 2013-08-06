@@ -2,6 +2,7 @@
 # Very simple code to get stuff running on the Chisel pipeline.
 #
 
+	.word   76;
 	addi	r0 = r0, 0;  # first instruction not executed
 
 	addi	r1 = r0, 1;

@@ -1,7 +1,9 @@
 #
-# Expected Result: base = 0x00000000 & pc = 0x0000004c &
+# Expected Result: base = 0x00000028 & pc = 0x00000050 &
 #                  r1 = 41 & r2 = 00000000 & r3 = 00000014
 #
+
+                .word     8;
                 addi     r30 = r0, 0;
                 call     x;
                 addi     r1  = r0, 1;

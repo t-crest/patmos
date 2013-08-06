@@ -1,4 +1,5 @@
 # This test case tests the branching
+	.word	48;
 	addi 	r1 = r0, 2;
 	addi 	r1 = r0, 2;
 	addi	r2 = r0, 2;

@@ -1,6 +1,7 @@
 #
 # Expected Result: 
 #
+		.word   48;
 		addi	r5 = r0, 5;                
 #		lwm     r1  = [r31 + 0];
                 sres     4;

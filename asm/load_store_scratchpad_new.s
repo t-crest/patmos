@@ -1,6 +1,7 @@
 #
 # Basic instructions test
 # different ld/st from/to scratchpad memory
+	.word   116;
 	addi    r1 = r0, 256;
 	sbl     [r1 + 4] = r0;
 	sbl     [r1 + 5] = r0;

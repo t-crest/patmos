@@ -2,6 +2,7 @@
 # Basic instructions test
 # test if memory works fine
 
+	.word   60;
 	addi	r1 = r0, 255;  # first instruction not executed
 	addi	r1 = r0, 256; # r1 = 256
 	addi    r29 = r0, 10;

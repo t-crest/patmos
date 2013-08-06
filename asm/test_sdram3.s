@@ -17,6 +17,7 @@
 # r11==read/write test bound (address limit)
 # r12==memory read error count
 
+	.word	408;
 
 	addi	r0 = r0, 0;  # first instruction not executed         	#0
 begin: addi	r5 = r0, 15;                                          	#1

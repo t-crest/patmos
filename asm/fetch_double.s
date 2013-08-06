@@ -2,6 +2,7 @@
 # Test dual issue feature by using long constants with a double word fetch
 #
 
+	.word   56;
 	addi	r0 = r0, 0;  # first instruction not executed
 	addi	r1 = r0, 1;
 	add	r2 = r0, 65536;

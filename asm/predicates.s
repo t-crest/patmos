@@ -1,6 +1,7 @@
 #
 # Test predicates and branch
 #
+	.word   44;
 x0:	addi	r0 = r0, 0;  # first instruction not executed
 
 	addi	r1 = r0, 2;

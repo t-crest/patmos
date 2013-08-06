@@ -2,6 +2,7 @@
 # Basic instructions test
 # 
 
+	.word   116;
 	addi	r1 = r0, 255;  # first instruction not executed 0
 	addi	r1 = r0, 2; #1 r1 = 2
 	addi	r2 = r0, 3; #2 r2 = 3

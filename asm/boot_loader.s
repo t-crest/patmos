@@ -5,6 +5,7 @@
 # SA: should I continue with assembly boot loader? 
 # MS: I think a boot loader shall be done in C if possible
 # and we shall drop unused out-of-date code
+		.word	264;
 		addi    r16  = r16 , 64;
 		addi    r7 = r7 , 511;
 		addi	r1   = r0 , 2;

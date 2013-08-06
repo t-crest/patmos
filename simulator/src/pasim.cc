@@ -550,7 +550,7 @@ int main(int argc, char **argv)
     mm.add_device(mm_rtc);
 
     // load input program
-    patmos::uword_t entry = 0;
+    patmos::uword_t entry = 0x4;
     if (is_elf(*in))
       entry = readelf(*in, gm, gsize, sym);
     else

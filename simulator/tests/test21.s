@@ -1,6 +1,8 @@
 #
-# Expected Result: base = 0x00000000 & pc = 0x00000050 & r1 = 60
+# Expected Result: base = 0x00000004 & pc = 0x00000054 & r1 = 60
 #
+
+                .word    18;
                 addi     r1  = r0, 1;
                 addi     r1  = r1, 2;
 		cmpneq	 p1 = r1, r2;

@@ -4,6 +4,7 @@
 # MS: is SPM accessed with lxc/sxc? I thought it is via lxl/sxl.
 # SA: this test case is for data cache with lxc/sxc which is mapped to scratchpad at the moment
 
+	.word   188;
 	addi	r1 = r0, 255;  # first instruction not executed
 	addi	r1 = r0, 256; # r1 = 256
 	addi	r2 = r0, 5;
