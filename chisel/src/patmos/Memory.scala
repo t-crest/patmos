@@ -59,7 +59,7 @@ class Memory() extends Component {
   io.ena := enable
 
   // Register from execution stage
-  val memReg = Reg(new ExMem(), resetVal = ExMemResetVal)
+  val memReg = Reg(resetVal = ExMem.resetVal)
   when(enable) {
     memReg := io.exmem
   }

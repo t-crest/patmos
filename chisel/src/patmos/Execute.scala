@@ -53,7 +53,7 @@ import Constants._
 class Execute() extends Component {
   val io = new ExecuteIO()
 
-  val exReg = Reg(new DecEx(), resetVal = DecExResetVal)
+  val exReg = Reg(resetVal = DecEx.resetVal)
   when(io.ena) {
     exReg := io.decex
   }
