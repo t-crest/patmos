@@ -1,6 +1,8 @@
 #
 # Expected Result: r2 = 0x21
 #
+
+                .word   14;
                 add     r1  = r0, 0xF0000100;
                 addi    r2  = r0, 1;
                 lwl     r3  = [r1 + 0];

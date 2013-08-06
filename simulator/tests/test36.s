@@ -1,6 +1,8 @@
 #
 # Expected Result: r2 = 1
 #
+
+                .word   9;
                 btest   p1 = r0, r0;
                 pand    p2 = p0, !p1;
           ( p2) br      x;

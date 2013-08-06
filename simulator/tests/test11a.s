@@ -1,6 +1,8 @@
 #
-# Expected Result: base = 0x00000000 & pc = 0x0000040 & r1 = 38
+# Expected Result: base = 0x00000004 & pc = 0x0000044 & r1 = 38
 #
+
+                .word    14;
                 br       x;
                 addi     r1  = r0, 1;
                 addi     r1  = r1, 2;

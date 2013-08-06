@@ -1,7 +1,9 @@
 #
-# Expected Result: r1 = 0x0283f180 & r2 = 0x0283f180 & r5 = 0x00000008
+# Expected Result: r1 = 0x0283f181 & r2 = 0x0283f181 & r3 = 0x003ffff0 & r4 = 0x003fffe8 & r5 = 0x00000008
 #
-                lwm      r1  = [r31 + 0];
+
+                .word    25;
+                lwm      r1  = [r31 + 1];
 		add      r2 = r0, 0x400000;
 		mts      s5 = r2;
 		mts      s6 = r2;

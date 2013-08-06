@@ -1,6 +1,7 @@
 #
 # Expected Result: r1 = 1
 #
+                .word    4;
 		call   x;
 		nop;
 		nop;
