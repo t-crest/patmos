@@ -42,23 +42,25 @@ package patmos
 import Chisel._
 import Node._
 import MConstants._
+import ocp._
 
 import scala.collection.mutable.HashMap
 
 /*
- for the moment a small version of SimpleCon interface
+ for the start a small version of SimpleCon interface
  */
-class ScInType extends Bundle() {
-  val rd_data = Bits(width = 32)
-  val rd_count = UFix(width = 2)
-}
-class ScOutType extends Bundle() {
-  val address = Bits(width = 19)
-  val wr_data = Bits(width = 32)
-  val rd = Bits(width = 1)
-  val wr = Bits(width = 1)
-  val byte_ena = Bits(width = 4) //Bytes per word
-}
+// class ScInType extends Bundle() {
+//   val rd_data = Bits(width = 32)
+//   val rd_count = UFix(width = 2)
+// }
+// class ScOutType extends Bundle() {
+//   val address = Bits(width = 19)
+//   val wr_data = Bits(width = 32)
+//   val rd = Bits(width = 1)
+//   val wr = Bits(width = 1)
+//   val byte_ena = Bits(width = 4) //Bytes per word
+// }
+
 class RamInType extends Bundle() {
   val din = Bits(width = 32)
 }
@@ -78,21 +80,17 @@ class RamOutType extends Bundle() {
   val dout = Bits(width = 32)
 }
 
-/*
- we could also use a OCP interface instead, f.e. when we want to have burst
- */
 class SsramIO extends Bundle() {
-  val sc_mem_out = new ScOutType().asInput
-  val sc_mem_in = new ScInType().asOutput 
+  val ocp_port = new OcpCoreSlavePort(19, 32)
   val ram_out = new RamOutType().asOutput
   val ram_in = new RamInType().asInput
 }
 
 /*
-  pipelined ssram access via a SimpCon interface
+  pipelined ssram access via a simplified OCP interface
 */
 class Ssram (
-   ram_ws_rd : Int = 1,
+   ram_ws_rd : Int = 2,
    ram_ws_wr : Int = 1
 ) extends Component {
   
@@ -102,10 +100,9 @@ class Ssram (
   val ssram_state = Reg(resetVal = idl)
   val wait_state = Reg(resetVal = UFix(0, width = 4))
   val cnt = UFix(width = 2)
-  val rd_ena = Bits(width = 1)
-  val wr_ena = Bits(width = 1)
-  val rd_data_ena = Bits(width = 1)
-  val rd_data = Reg(resetVal = Bits(0, width = 32))
+  val rd_data_ena = Reg(resetVal = Bits(0, width = 1))
+  val resp = Reg(resetVal = Bits(0, width = 2))
+  val rd_data = Reg(resetVal = Bits(0, width = 32)) //holds data output
   val ram_dout = Reg(resetVal = Bits(0, width = 32))
   val address = Reg(resetVal = Bits(0, width = 19))
   val dout_ena = Reg(resetVal = Bits(0, width = 1))
@@ -114,14 +111,11 @@ class Ssram (
   val nwe = Reg(resetVal = Bits(1, width = 1))
   val nbw = Reg(resetVal = Bits("b1111", width = 4))
 
-  //init default signal values
-  rd_data_ena := Bits(0)
   io.ram_out.addr := address
-  io.sc_mem_in.rd_data := rd_data
-  rd_ena := io.sc_mem_out.rd
-  wr_ena := io.sc_mem_out.wr
+  io.ocp_port.S.Data := rd_data
 
   //init default register values
+  rd_data_ena := Bits(0)
   dout_ena := Bits(0)
   nadsc := Bits(1)
   noe := Bits(1)
@@ -129,15 +123,15 @@ class Ssram (
   nbw := Bits("b1111")
 
   //catch inputs
-  when (io.sc_mem_out.rd === Bits(1) || io.sc_mem_out.wr === Bits(1)) {
-    address := io.sc_mem_out.address
+  when (io.ocp_port.M.Cmd === OcpCmd.RD || io.ocp_port.M.Cmd === OcpCmd.WR) {
+    address := io.ocp_port.M.Addr
   }
-  when (io.sc_mem_out.wr === Bits(1)) {
-    ram_dout := io.sc_mem_out.wr_data
+  when (io.ocp_port.M.Cmd === OcpCmd.WR) {
+    ram_dout := io.ocp_port.M.Data
   }
   when (rd_data_ena === Bits(1)) {
-    io.sc_mem_in.rd_data := io.ram_in.din
     rd_data := io.ram_in.din
+    io.ocp_port.S.Data := io.ram_in.din
   }
 
   //fsm, next state + output logic
@@ -166,16 +160,16 @@ class Ssram (
       ssram_state := idl
     }
   }
-  when (rd_ena) {
+  when (io.ocp_port.M.Cmd === OcpCmd.RD) {
     ssram_state := rd1
     nadsc := Bits(0)
     noe := Bits(0)
   }
-  .elsewhen(wr_ena) {
+  .elsewhen(io.ocp_port.M.Cmd === OcpCmd.WR) {
     ssram_state := wr1
     nadsc := Bits(0)
     nwe := Bits(0)
-    nbw := ~(io.sc_mem_out.byte_ena)
+    nbw := ~(io.ocp_port.M.ByteEn)
     noe := Bits(1)
     dout_ena := Bits(1)
   }
@@ -196,13 +190,19 @@ class Ssram (
   .otherwise {
     cnt := UFix(3)
   }
-  when (rd_ena === Bits(1)) {
+  when (io.ocp_port.M.Cmd === OcpCmd.RD) {
     wait_state := UFix(ram_ws_rd + 1)
   }
-  when (wr_ena === Bits(1)) {
+  when (io.ocp_port.M.Cmd === OcpCmd.WR) {
     wait_state := UFix(ram_ws_wr + 1)
   }
-  io.ram_out.dout := io.sc_mem_out.wr_data //don't care
+
+  resp := OcpResp.NULL
+  when (cnt === UFix(1)) {
+    resp := OcpResp.DVA
+  }
+
+  io.ram_out.dout := io.ocp_port.M.Data
   when (dout_ena === Bits(1)) {
     io.ram_out.dout := ram_dout
   }
@@ -213,7 +213,9 @@ class Ssram (
   io.ram_out.nwe := nwe
   io.ram_out.nbw := nbw
   io.ram_out.dout_ena := dout_ena //needed for driving tristate in top-l
-  io.sc_mem_in.rd_count := cnt
+
+  io.ocp_port.S.Resp := resp
+
   //output fixed signals
   io.ram_out.ngw := Bits(1)
   io.ram_out.nce1 := Bits(0)
@@ -227,14 +229,11 @@ class Ssram (
 /*
  Test Class for the SSRAM implemenation
  */
-class SsramTest(c: Ssram, fileName: String) extends Tester(c, Array(c.io)) {
+class SsramTest(c: Ssram) extends Tester(c, Array(c.io)) {
   defTests {
     var allGood = true
     val vars = new HashMap[Node, Node]()
     val ovars = new HashMap[Node, Node]()
-    val extmemssram = new ExtSsram(fileName)
-    c.io.ram_out <> extmemssram.io.ram_out
-    c.io.ram_in <> extmemssram.io.ram_in
     vars.clear()
     ovars.clear()
     println("RUN")
@@ -250,9 +249,7 @@ class SsramTest(c: Ssram, fileName: String) extends Tester(c, Array(c.io)) {
  */
 object SsramMain {
   def main(args: Array[String]): Unit = {
-    val chiselArgs = args.slice(1, args.length)
-    val file = args(0) + ".bin"
-    chiselMainTest(chiselArgs, () => new Ssram()) { f => new SsramTest(f, file) }
+    chiselMainTest(args, () => new Ssram()) { f => new SsramTest(f) }
   }
 }
 

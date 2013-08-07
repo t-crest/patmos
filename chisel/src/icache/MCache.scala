@@ -30,6 +30,7 @@ import Node._
 import MConstants._
 import Constants._
 import MCacheMem._
+import ocp._
 
 import scala.collection.mutable.HashMap
 import scala.util.Random
@@ -73,8 +74,9 @@ class MCacheIO extends Bundle() {
   val mcachemem_out = new MCacheMemOut().asInput
   val mcache_in = new MCacheIn().asInput
   val mcache_out = new MCacheOut().asOutput
-  val sc_mem_out = new ScOutType().asOutput
-  val sc_mem_in = new ScInType().asInput
+  val ocp_port = new OcpCoreMasterPort(19, 32)
+  // val sc_mem_out = new ScOutType().asOutput
+  // val sc_mem_in = new ScInType().asInput
   //external memory (old)
   /*val extmem_in = new ExtMemIn().asOutput
   val extmem_out = new ExtMemOut().asInput*/
@@ -522,7 +524,7 @@ class MCache() extends Component {
   val mcache_instr_b = Bits(width = DATA_WIDTH)
   val mcache_hit = Bits(width = 1)
   //signals for external memory
-  val ext_mem_rd = Bits(width = 1)
+  val ext_mem_cmd = Bits(width = 3)
   val ext_mem_addr = Bits(width = 23)
   //signals for external memory (old)
   val extmem_fetch = Bits(width = 1)
@@ -547,7 +549,7 @@ class MCache() extends Component {
   mcache_hit := Bits(0)//io.mcachemem_out.hit
   mcache_instr_a := io.mcachemem_out.instr_a
   mcache_instr_b := io.mcachemem_out.instr_b
-  ext_mem_rd := Bits(0)
+  ext_mem_cmd := OcpCmd.IDLE
   ext_mem_addr := Bits(0)
   extmem_fetch := Bits(0)
   extmem_fetch_address := Bits(0)
@@ -570,7 +572,7 @@ class MCache() extends Component {
     //no hit... fetch from external memory
     .otherwise {
       ext_mem_addr := mcache_address - Bits(1)
-      ext_mem_rd := Bits(1)
+      ext_mem_cmd := OcpCmd.RD
       mcache_state := size_state
       /*extmem_fetch := Bits(1)
       extmem_fetch_address := mcache_address - Bits(1) // -1 because size is at method head -1
@@ -590,15 +592,15 @@ class MCache() extends Component {
       extmem_fetch := Bits(1)
       mcache_state := transfer_state
     }*/
-    when (io.sc_mem_in.rd_count === Bits(1)) {
+    when (io.ocp_port.S.Resp === OcpResp.DVA) {
       //init transfer from external memory
-      ext_mem_tsize := io.sc_mem_in.rd_data / Bits(WORD_COUNT)
-      ext_mem_fcounter := io.sc_mem_in.rd_data / Bits(WORD_COUNT)     
+      ext_mem_tsize := io.ocp_port.S.Data / Bits(WORD_COUNT)
+      ext_mem_fcounter := io.ocp_port.S.Data / Bits(WORD_COUNT)     
       ext_mem_addr := mcache_address
-      ext_mem_rd := Bits(1)
+      ext_mem_cmd := OcpCmd.RD
       //init transfer to on-chip method cache memory
       mcachemem_wtag := Bits(1)
-      mcachemem_w_data := io.sc_mem_in.rd_data / Bits(WORD_COUNT) //write size to mcachemem for LRU tagfield
+      mcachemem_w_data := io.ocp_port.S.Data / Bits(WORD_COUNT) //write size to mcachemem for LRU tagfield
       mcachemem_address := mcache_address //write base address to mcachemem for tagfield
       mcache_state := transfer_state
     }
@@ -615,15 +617,15 @@ class MCache() extends Component {
       }
     }*/
     when (ext_mem_fcounter > Bits(0)) {
-      when (io.sc_mem_in.rd_count === Bits(1)) {
+      when (io.ocp_port.S.Resp === OcpResp.DVA) {
         ext_mem_fcounter := ext_mem_fcounter - Bits(1)
         when (ext_mem_fcounter > Bits(1)) {
           //fetch next address from external memory
-          ext_mem_rd := Bits(1)
+          ext_mem_cmd := OcpCmd.RD
           ext_mem_addr := mcache_address + (ext_mem_tsize - ext_mem_fcounter) + Bits(1)
         }
         //write current address to mcache memory
-        mcachemem_w_data := io.sc_mem_in.rd_data
+        mcachemem_w_data := io.ocp_port.S.Data
         mcachemem_w_enable := Bits(1)
       }
       mcachemem_address := mcache_address + (ext_mem_tsize - ext_mem_fcounter)//adress = base address + offset
@@ -653,10 +655,14 @@ class MCache() extends Component {
   io.extmem_in.fetch := extmem_fetch
   io.extmem_in.msize := extmem_msize*/
   //outputs to external memory ssram
-  io.sc_mem_out.address := ext_mem_addr
-  io.sc_mem_out.rd := ext_mem_rd
-  io.sc_mem_out.wr := Bits(0)   //not writing anything to ssram...
-  io.sc_mem_out.wr_data := Bits(0) //not writing anything to ssram...
-  io.sc_mem_out.byte_ena := Bits("b1111")
-   
+  // io.sc_mem_out.address := ext_mem_addr
+  // io.sc_mem_out.rd := ext_mem_rd
+  // io.sc_mem_out.wr := Bits(0)   //not writing anything to ssram...
+  // io.sc_mem_out.wr_data := Bits(0) //not writing anything to ssram...
+  // io.sc_mem_out.byte_ena := Bits("b1111")
+  io.ocp_port.M.Addr := ext_mem_addr
+  io.ocp_port.M.Cmd := ext_mem_cmd
+  io.ocp_port.M.Data := Bits(0)
+  io.ocp_port.M.ByteEn := Bits("b1111")
+
 }

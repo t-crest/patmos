@@ -36,7 +36,7 @@ msim:
 	cd $(basedir); $(SBT) "run-main $(DIR)$(MCACHEMAIN) $(binfile) $(SBTARGS_SIM)"
 
 ssram:
-	cd $(basedir); $(SBT) "run-main $(SSRAMMAIN) $(binfile) $(SBTARGS_HDL)"
+	cd $(basedir); $(SBT) "run-main $(SSRAMMAIN) $(SBTARGS_HDL)"
 
 ssramsim:
 	cd $(basedir); $(SBT) "run-main $(DIR)$(SSRAMMAIN) $(binfile) $(SBTARGS_SIM)"

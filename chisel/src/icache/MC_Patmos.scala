@@ -78,8 +78,9 @@ class MCPatmos(fileName: String) extends Component {
   val ssram = new Ssram()
   mcache.io.mcachemem_in <> mcachemem.io.mcachemem_in
   mcache.io.mcachemem_out <> mcachemem.io.mcachemem_out
-  mcache.io.sc_mem_out <> ssram.io.sc_mem_out
-  mcache.io.sc_mem_in <> ssram.io.sc_mem_in
+  //mcache.io.sc_mem_out <> ssram.io.sc_mem_out
+  //mcache.io.sc_mem_in <> ssram.io.sc_mem_in
+  mcache.io.ocp_port <> ssram.io.ocp_port
 
   val extmemssram = new ExtSsram(fileName)
   ssram.io.ram_out <> extmemssram.io.ram_out
@@ -124,19 +125,8 @@ class MCPatmos(fileName: String) extends Component {
   // TODO: to be replaced with a connection to external memory
   val globMem = new Spm(1 << DSPM_BITS)
   memory.io.globalInOut <> globMem.io
-
-  // Stall ever n clock cycles for testing the pipeline
-  /*def pulse() = {
-    val x = Reg(resetVal = UFix(0, 8))
-    x := Mux(x === UFix(100), UFix(0), x + UFix(1))
-    x === UFix(100)
-  }
-  val enable = !pulse()
-  // disable stall tests
-  //  val enable = Bool(true)
-  */ 
+ 
   val enable = mcache.io.mcache_out.hit
-
   fetch.io.ena := enable
   decode.io.ena := enable
   execute.io.ena := enable
@@ -146,19 +136,6 @@ class MCPatmos(fileName: String) extends Component {
   // The inputs and outputs
   io.uartPins <> iocomp.io.uartPins
   io.led <> Cat(memory.io.ena, iocomp.io.ledPins)
-
-  /*
-  //for debugging on target a led counter
-  val led_counter = Reg(resetVal = UFix(0, 32))
-  val CNT_MAX = UFix(4)
-  val led_output = Reg(resetVal = UFix(0, 1))    
-  led_counter := led_counter + UFix(1)
-  when (led_counter === CNT_MAX) {
-    led_counter := UFix(0)
-    led_output := ~led_output
-  }
-  io.led := led_output
-  */
 
   // ***** the following code is not really Patmos code ******
 
