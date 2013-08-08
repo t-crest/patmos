@@ -62,7 +62,14 @@ class Decode() extends Component {
   val decReg = Reg(resetVal = FeDec.resetVal)
   when(io.ena) {
     decReg := io.fedec
+    when(io.flush) {
+      decReg.reset()
+      decReg.pc := io.fedec.pc
+    }
   }
+
+  // default values
+  io.decex.reset()
 
   // forward RF addresses and data
   io.decex.rsAddr(0) := decReg.instr_a(16, 12)
@@ -83,16 +90,6 @@ class Decode() extends Component {
 	val opcode  = instr(26, 22)
 	val opc     = instr(6, 4)
 	val isValid = if (i == 0) { Bool(true) } else { dual }
-
-	// Start with some useful defaults
-	io.decex.immOp(i) := Bool(false)
-	io.decex.aluOp(i).isMul := Bool(false)
-	io.decex.aluOp(i).isCmp := Bool(false)
-	io.decex.aluOp(i).isPred := Bool(false)
-	io.decex.aluOp(i).isMTS := Bool(false)
-	io.decex.aluOp(i).isMFS := Bool(false)
-	io.decex.aluOp(i).isSTC := Bool(false)
-	io.decex.wrReg(i) := Bool(false)
 
 	// ALU register
 	io.decex.aluOp(i).func := instr(3, 0)
@@ -161,17 +158,6 @@ class Decode() extends Component {
   val stcVal  = Bits(width = DATA_WIDTH)
   val stcImm  = Cat(Bits(0), instr(17, 0), Bits("b00")).toUFix()
 
-  io.decex.jmpOp.branch := Bool(false)
-  io.decex.memOp.load := Bool(false)
-  io.decex.memOp.store := Bool(false)
-  io.decex.memOp.hword := Bool(false)
-  io.decex.memOp.byte := Bool(false)
-  io.decex.memOp.zext := Bool(false)
-  io.decex.memOp.typ := ldtype
-  io.decex.call := Bool(false)
-  io.decex.ret := Bool(false)
-  io.decex.brcf := Bool(false)
-
   // Long immediates set this
   longImm := Bool(false)
 
@@ -239,7 +225,14 @@ class Decode() extends Component {
 	}
   }
   when(opcode === OPCODE_CFL_RET) {
-    io.decex.ret := Bool(true)
+    switch(func) {
+      is(RFUNC_RET) {
+        io.decex.ret := Bool(true)
+      }
+      is(RFUNC_XRET) {
+        io.decex.xret := Bool(true)
+      }
+    }
   }
 
   val shamt = UFix()
@@ -332,5 +325,26 @@ class Decode() extends Component {
 	when(io.decex.rdAddr(i) === Bits("b00000")) {
       io.decex.wrReg(i) := Bool(false)
 	}
+  }
+
+  // Trigger exceptions
+  val inDelaySlot = Reg(UFix(width = 2))
+
+  when(io.exc.exc ||
+       (io.exc.intr && inDelaySlot === UFix(0))) {
+    io.decex.reset()
+    io.decex.pred(0) := Bits("b0000")
+    io.decex.xcall := Bool(true)
+    io.decex.callAddr := io.exc.addr
+    io.decex.immOp(0) := Bool(true)
+    io.decex.pc := Mux(io.exc.exc, io.exc.excAddr, decReg.pc)
+  }
+
+  // Update delay slot information
+  when(io.ena && !io.flush) {
+    inDelaySlot := Mux(io.decex.call || io.decex.ret || io.decex.brcf ||
+                       io.decex.xcall || io.decex.xret, UFix(3),
+                       Mux(io.decex.jmpOp.branch, UFix(2),
+                           Mux(inDelaySlot != UFix(0), inDelaySlot - UFix(1), UFix(0))))
   }
 }

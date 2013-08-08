@@ -150,6 +150,8 @@ class DecEx() extends Bundle() {
   val call = Bool()
   val ret = Bool()
   val brcf = Bool()
+  val xcall = Bool()
+  val xret = Bool()
 
   def reset() = {
 	pc := UFix(0)
@@ -170,6 +172,8 @@ class DecEx() extends Bundle() {
 	call := Bool(false)
 	ret := Bool(false)
 	brcf := Bool(false)
+	xcall := Bool(false)
+	xret := Bool(false)
   }
 }
 
@@ -205,6 +209,8 @@ class MemIn() extends Bundle() {
   val call = Bool()
   val ret = Bool()
   val brcf = Bool()
+  val xcall = Bool()
+  val xret = Bool()
   val callRetAddr = UFix(width = DATA_WIDTH)
   val callRetBase = UFix(width = DATA_WIDTH)
 
@@ -220,6 +226,8 @@ class MemIn() extends Bundle() {
 	call := Bool(false)
 	ret := Bool(false)
 	brcf := Bool(false)
+	xcall := Bool(false)
+	xret := Bool(false)
 	callRetAddr := UFix(0)
 	callRetBase := UFix(0)
   }
@@ -302,16 +310,26 @@ class FetchIO extends Bundle() {
   val memfe = new MemFe().asInput
 }
 
+class ExcDec() extends Bundle() {
+  val exc = Bool()
+  val excAddr = UFix(width = PC_SIZE)
+  val intr = Bool()
+  val addr = UFix(width = ADDR_WIDTH)
+}
+
 class DecodeIO() extends Bundle() {
   val ena = Bool(INPUT)
+  val flush = Bool(INPUT)
   val fedec = new FeDec().asInput
   val decex = new DecEx().asOutput
   val exdec = new ExDec().asInput
   val rfWrite =  Vec(PIPE_COUNT) { new Result().asInput }
+  val exc = new ExcDec().asInput
 }
 
 class ExecuteIO() extends Bundle() {
   val ena = Bool(INPUT)
+  val flush = Bool(INPUT)
   val decex = new DecEx().asInput
   val exdec = new ExDec().asOutput
   val exmem = new ExMem().asOutput
@@ -347,12 +365,22 @@ class TimerIO() extends Bundle() {
 
 class InOutIO() extends Bundle() {
   val memInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+  val excInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val uartPins = new UartPinIO()
   val ledPins = new LedPinIO()
 }
 
+class MemExc() extends Bundle() {
+  val call = Bool()
+  val ret = Bool()
+
+  val memFault = Bool()
+  val excAddr = UFix(width = PC_SIZE)
+}
+
 class MemoryIO() extends Bundle() {
   val ena = Bool(OUTPUT)
+  val flush = Bool(OUTPUT)
   val exmem = new ExMem().asInput
   val memwb = new MemWb().asOutput
   val memfe = new MemFe().asOutput
@@ -362,6 +390,8 @@ class MemoryIO() extends Bundle() {
   // local and global accesses
   val localInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val globalInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
+  // exceptions
+  val exc = new MemExc().asOutput
 }
 
 class WriteBackIO() extends Bundle() {
@@ -371,4 +401,11 @@ class WriteBackIO() extends Bundle() {
   val rfWrite = Vec(PIPE_COUNT) { new Result().asOutput }
   // for result forwarding (register)
   val memResult =  Vec(PIPE_COUNT) { new Result().asOutput }
+}
+
+class ExcIO() extends Bundle() {
+  val ocp = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+  val excdec = new ExcDec().asOutput
+  val memexc = new MemExc().asInput
+  val intrPins = Bits(INPUT, width = INTR_COUNT)
 }

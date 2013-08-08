@@ -60,18 +60,27 @@ class InOut() extends Component {
   val selTimer = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x0)
   val selUart = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x1)
   val selLed = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x2)
+  val selExc = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x3)
 
   // Register selects
   val selSpmReg = Reg(resetVal = Bits("b0"))
   val selTimerReg = Reg(resetVal = Bits("b0"))
   val selUartReg = Reg(resetVal = Bits("b0"))
   val selLedReg = Reg(resetVal = Bits("b0"))
+  val selExcReg = Reg(resetVal = Bits("b0"))
   when(io.memInOut.M.Cmd != OcpCmd.IDLE) {
 	selSpmReg := selSpm
 	selTimerReg := selTimer
 	selUartReg := selUart
 	selLedReg := selLed
+	selExcReg := selExc
   }
+
+  // Register for error response
+  val errResp = Reg(resetVal = OcpResp.NULL)
+  errResp := Mux(io.memInOut.M.Cmd != OcpCmd.IDLE &&
+                 selIO && !(selTimer || selUart || selLed || selExc),
+                 OcpResp.ERR, OcpResp.NULL)
 
   // The SPM
   val spm = new Spm(1 << DSPM_BITS)
@@ -99,10 +108,22 @@ class InOut() extends Component {
   val ledsS = leds.io.ocp.S
   io.ledPins <> leds.io.pins
 
+  // The exception unit is outside this unit
+  io.excInOut.M := io.memInOut.M
+  io.excInOut.M.Cmd := Mux(selExc, io.memInOut.M.Cmd, OcpCmd.IDLE)
+  val excS = io.excInOut.S
+
   // Return data to pipeline
-  io.memInOut.S.Data := Mux(selTimerReg, timerS.Data,
-							Mux(selUartReg, uartS.Data,
-								Mux(selLedReg, ledsS.Data, 
-									spmS.Data)))
-  io.memInOut.S.Resp := spmS.Resp | timerS.Resp | uartS.Resp | ledsS.Resp
+  io.memInOut.S.Data := spmS.Data
+  when(selTimerReg) { io.memInOut.S.Data := timerS.Data }
+  when(selUartReg)  { io.memInOut.S.Data := uartS.Data }
+  when(selLedReg)   { io.memInOut.S.Data := ledsS.Data }
+  when(selExcReg)   { io.memInOut.S.Data := excS.Data }
+
+  io.memInOut.S.Resp := (spmS.Resp |
+                         timerS.Resp |
+                         uartS.Resp |
+                         ledsS.Resp |
+                         excS.Resp |
+                         errResp)
 }

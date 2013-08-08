@@ -51,6 +51,9 @@ object Constants {
   val UART_BAUD = 115200
   val LED_COUNT = 8
 
+  val EXC_COUNT  = 8
+  val INTR_COUNT = 4
+
 //  val SPM_MAX_BITS = 21
   // MS: maybe better use sizes in bytes and use log2Up() to
   // get the number of bits.
@@ -151,11 +154,17 @@ object Constants {
   val JFUNC_BR    = Bits("b0001")
   val JFUNC_BRCF  = Bits("b0010")
 
+  val RFUNC_RET   = Bits("b0000")
+  val RFUNC_XRET  = Bits("b0001")
+
   val SPEC_FL  = Bits("b0000")
   val SPEC_SL  = Bits("b0010")
   val SPEC_SH  = Bits("b0011")
   val SPEC_SS  = Bits("b0101")
   val SPEC_ST  = Bits("b0110")
+
+  val SPEC_SXB = Bits("b1010")
+  val SPEC_SXO = Bits("b1011")
 
   val STC_SRES  = Bits("b0000")
   val STC_SFREE = Bits("b1000")

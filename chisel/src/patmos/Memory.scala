@@ -50,18 +50,31 @@ import ocp._
 class Memory() extends Component {
   val io = new MemoryIO()
 
-  // Stall logic
-  val stall = Reg(Bool(), resetVal = Bool(false))
-  val enable = Mux(stall, (io.localInOut.S.Resp === OcpResp.DVA
-						   || io.globalInOut.S.Resp === OcpResp.DVA),
-				   Bool(true))
-  stall := io.exmem.mem.load || io.exmem.mem.store
-  io.ena := enable
-
   // Register from execution stage
   val memReg = Reg(resetVal = ExMem.resetVal)
+
+  // React on error responses
+  val memFault = (io.localInOut.S.Resp === OcpResp.ERR ||
+                  io.globalInOut.S.Resp === OcpResp.ERR)
+
+  // Flush logic
+  val flush = (memReg.mem.xcall || memFault)
+  io.flush := flush
+
+  // Stall logic
+  val stall = Reg(Bool(), resetVal = Bool(false))
+  val enable = Mux(stall, (io.localInOut.S.Resp != OcpResp.NULL
+						   || io.globalInOut.S.Resp != OcpResp.NULL),
+				   Bool(true))
+  stall := (io.exmem.mem.load || io.exmem.mem.store) && !flush
+  io.ena := enable
+
+  // Latch register
   when(enable) {
     memReg := io.exmem
+    when(flush) {
+      memReg.reset()
+    }
   }
 
   // Write data multiplexing and write enables
@@ -113,7 +126,7 @@ class Memory() extends Component {
   
   // Path to memories and IO is combinatorial, registering happens in
   // the individual modules
-  val cmd = Mux(enable,
+  val cmd = Mux(enable && !flush,
 				Mux(io.exmem.mem.load, OcpCmd.RD,
 					Mux(io.exmem.mem.store, OcpCmd.WRNP,
 						OcpCmd.IDLE)),
@@ -185,7 +198,8 @@ class Memory() extends Component {
 								 memReg.rd(0).data))  
 
   // call to fetch
-  io.memfe.doCallRet := memReg.mem.call || memReg.mem.ret || memReg.mem.brcf
+  io.memfe.doCallRet := (memReg.mem.call || memReg.mem.ret || memReg.mem.brcf ||
+                         memReg.mem.xcall || memReg.mem.xret)
   io.memfe.callRetPc := memReg.mem.callRetAddr(DATA_WIDTH-1, 2)
   io.memfe.callRetBase := memReg.mem.callRetBase(DATA_WIDTH-1, 2)
 
@@ -201,4 +215,12 @@ class Memory() extends Component {
 
   // extra port for forwarding
   io.exResult := io.exmem.rd
+
+  // acknowledge exception
+  io.exc.call := memReg.mem.xcall
+  io.exc.ret := memReg.mem.xret
+
+  // trigger memory fault exception
+  io.exc.memFault := memFault
+  io.exc.excAddr := memReg.pc
 }

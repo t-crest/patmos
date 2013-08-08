@@ -71,6 +71,7 @@ class Patmos(fileName: String) extends Component {
   val execute = new Execute()
   val memory = new Memory()
   val writeback = new WriteBack()
+  val exc = new Exceptions()
   val iocomp = new InOut()
 
   decode.io.fedec <> fetch.io.fedec
@@ -94,6 +95,12 @@ class Patmos(fileName: String) extends Component {
 
   memory.io.localInOut <> iocomp.io.memInOut
 
+  // Connect exception unit
+  exc.io.ocp <> iocomp.io.excInOut
+  exc.io.excdec <> decode.io.exc
+  exc.io.memexc <> memory.io.exc
+  exc.io.intrPins := Bits(0)
+
   // TODO: to be replaced with a connection to external memory
   val globMem = new Spm(1 << DSPM_BITS)
   memory.io.globalInOut <> globMem.io
@@ -104,6 +111,11 @@ class Patmos(fileName: String) extends Component {
   decode.io.ena := enable
   execute.io.ena := enable
   writeback.io.ena := enable
+
+  // Flush signal
+  val flush = memory.io.flush
+  decode.io.flush := flush
+  execute.io.flush := flush
 
   // The inputs and outputs
   io.uartPins <> iocomp.io.uartPins

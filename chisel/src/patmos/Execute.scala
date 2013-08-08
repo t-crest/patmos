@@ -56,6 +56,10 @@ class Execute() extends Component {
   val exReg = Reg(resetVal = DecEx.resetVal)
   when(io.ena) {
     exReg := io.decex
+    when(io.flush) {
+      exReg.reset()
+      exReg.pc := io.decex.pc
+    }
   }
   // no access to io.decex after this point!!!
 
@@ -159,13 +163,18 @@ class Execute() extends Component {
 
   val doExecute = Vec(PIPE_COUNT) { Bool() }
   for (i <- 0 until PIPE_COUNT) {
-	doExecute(i) := predReg(exReg.pred(i)(PRED_BITS-1, 0)) ^ exReg.pred(i)(PRED_BITS)
+    doExecute(i) := Mux(io.flush, Bool(false),
+                        predReg(exReg.pred(i)(PRED_BITS-1, 0)) ^ exReg.pred(i)(PRED_BITS))
   }
 
   // stack registers
   val stackTopReg = Reg(resetVal = UFix(0, DATA_WIDTH))
   val stackSpillReg = Reg(resetVal = UFix(0, DATA_WIDTH))
   io.exdec.sp := stackTopReg
+
+  // exception return information
+  val excBaseReg = Reg(resetVal = UFix(0, DATA_WIDTH))
+  val excOffReg = Reg(resetVal = UFix(0, DATA_WIDTH))
 
   // multiplication pipeline registers
   val mulLoReg = Reg(resetVal = UFix(0, DATA_WIDTH))
@@ -259,6 +268,12 @@ class Execute() extends Component {
 		is(SPEC_SS) {
 		  stackSpillReg := op(2*i).toUFix()
 		}
+		is(SPEC_SXB) {
+		  excBaseReg := op(2*i).toUFix()
+		}
+		is(SPEC_SXO) {
+		  excOffReg := op(2*i).toUFix()
+		}
 	  }
 	}
 	val mfsResult = UFix();
@@ -278,6 +293,12 @@ class Execute() extends Component {
 	  }
 	  is(SPEC_SS) {
 		mfsResult := stackSpillReg
+	  }
+	  is(SPEC_SXB) {
+		mfsResult := excBaseReg
+	  }
+	  is(SPEC_SXO) {
+		mfsResult := excOffReg
 	  }
 	}
 
@@ -299,15 +320,32 @@ class Execute() extends Component {
   io.exmem.mem.call := exReg.call && doExecute(0)
   io.exmem.mem.ret  := exReg.ret && doExecute(0)
   io.exmem.mem.brcf := exReg.brcf && doExecute(0)
+  io.exmem.mem.xcall := exReg.xcall && doExecute(0)
+  io.exmem.mem.xret := exReg.xret && doExecute(0)
+
   // call/return
   val callAddr = Mux(exReg.immOp(0), exReg.callAddr, op(0).toUFix)
   val brcfAddr = Mux(exReg.immOp(0), Cat(exReg.jmpOp.target, Bits("b00")).toUFix, op(0).toUFix)
-  io.exmem.mem.callRetAddr := Mux(exReg.call, callAddr,
-								  Mux(exReg.brcf, brcfAddr,
-									  op(0) + op(1)))
-  io.exmem.mem.callRetBase := Mux(exReg.call, callAddr,
-								  Mux(exReg.brcf, brcfAddr,
-									  op(0).toUFix))
+  val callRetAddr = Mux(exReg.call || exReg.xcall, callAddr,
+                        Mux(exReg.brcf, brcfAddr,
+                            op(0) + op(1)))
+  val callRetBase = Mux(exReg.call || exReg.xcall, callAddr,
+                        Mux(exReg.brcf, brcfAddr,
+                            op(0).toUFix))
+  io.exmem.mem.callRetBase := callRetBase
+  io.exmem.mem.callRetAddr := callRetAddr
+
+  // exception return information
+  val baseReg = Reg(resetVal = UFix(4, DATA_WIDTH))
+  when(exReg.xcall && doExecute(0) && io.ena) {
+    excBaseReg := baseReg
+    excOffReg := Cat(exReg.pc, Bits("b00")) - baseReg
+  }
+  when((exReg.call || exReg.ret || exReg.brcf ||
+        exReg.xcall || exReg.xret) && doExecute(0) && io.ena) {
+    baseReg := callRetBase
+  }
+
   // branch
   io.exfe.doBranch := exReg.jmpOp.branch && doExecute(0)
   val target = Mux(exReg.immOp(0), exReg.jmpOp.target, op(0)(DATA_WIDTH-1, 2).toUFix)
