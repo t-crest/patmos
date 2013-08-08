@@ -91,6 +91,7 @@ class Exceptions extends Component {
 	}
   }
 
+  val trapLatch = Reg(resetVal = Bool(false))
   val faultLatch = Reg(resetVal = Bool(false))
   val intrLatch = Reg(resetVal = Bool(false))
 
@@ -101,12 +102,18 @@ class Exceptions extends Component {
 	intrLatch := Bool(true)
   }
 
+  when(io.memexc.trap) {
+	trapLatch := Bool(true)
+	excAddr := io.memexc.excAddr
+  }
+
   when(io.memexc.memFault) {
 	faultLatch := Bool(true)
 	excAddr := io.memexc.excAddr
   }
 
   when(io.memexc.call) {
+	trapLatch := Bool(false)
 	faultLatch := Bool(false)
 	intrLatch := Bool(false)
 	status := status << UFix(1)
@@ -115,9 +122,11 @@ class Exceptions extends Component {
 	status := status >> UFix(1)
   }
 
-  io.excdec.exc  := faultLatch
+  io.excdec.exc  := trapLatch || faultLatch
   io.excdec.intr := intrLatch && status(0) === Bits(1)
 
-  io.excdec.addr := Mux(faultLatch, vec(0), vec(1))
+  io.excdec.addr := Mux(trapLatch, vec(0),
+						Mux(faultLatch, vec(1),
+							vec(2)))
   io.excdec.excAddr := excAddr
 }

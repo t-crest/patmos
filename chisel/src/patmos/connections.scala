@@ -150,6 +150,7 @@ class DecEx() extends Bundle() {
   val call = Bool()
   val ret = Bool()
   val brcf = Bool()
+  val trap = Bool()
   val xcall = Bool()
   val xret = Bool()
 
@@ -172,6 +173,7 @@ class DecEx() extends Bundle() {
 	call := Bool(false)
 	ret := Bool(false)
 	brcf := Bool(false)
+	trap := Bool(false)
 	xcall := Bool(false)
 	xret := Bool(false)
   }
@@ -209,6 +211,7 @@ class MemIn() extends Bundle() {
   val call = Bool()
   val ret = Bool()
   val brcf = Bool()
+  val trap = Bool()
   val xcall = Bool()
   val xret = Bool()
   val callRetAddr = UFix(width = DATA_WIDTH)
@@ -226,6 +229,7 @@ class MemIn() extends Bundle() {
 	call := Bool(false)
 	ret := Bool(false)
 	brcf := Bool(false)
+	trap := Bool(false)
 	xcall := Bool(false)
 	xret := Bool(false)
 	callRetAddr := UFix(0)
@@ -374,6 +378,7 @@ class MemExc() extends Bundle() {
   val call = Bool()
   val ret = Bool()
 
+  val trap = Bool()
   val memFault = Bool()
   val excAddr = UFix(width = PC_SIZE)
 }

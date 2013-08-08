@@ -224,6 +224,9 @@ class Decode() extends Component {
 	  }
 	}
   }
+  when(opcode === OPCODE_CFL_TRAP) {
+    io.decex.trap := Bool(true)
+  }
   when(opcode === OPCODE_CFL_RET) {
     switch(func) {
       is(RFUNC_RET) {

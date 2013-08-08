@@ -320,6 +320,7 @@ class Execute() extends Component {
   io.exmem.mem.call := exReg.call && doExecute(0)
   io.exmem.mem.ret  := exReg.ret && doExecute(0)
   io.exmem.mem.brcf := exReg.brcf && doExecute(0)
+  io.exmem.mem.trap := exReg.trap && doExecute(0)
   io.exmem.mem.xcall := exReg.xcall && doExecute(0)
   io.exmem.mem.xret := exReg.xret && doExecute(0)
 

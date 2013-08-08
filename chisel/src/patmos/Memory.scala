@@ -58,7 +58,7 @@ class Memory() extends Component {
                   io.globalInOut.S.Resp === OcpResp.ERR)
 
   // Flush logic
-  val flush = (memReg.mem.xcall || memFault)
+  val flush = (memReg.mem.xcall || memReg.mem.trap || memFault)
   io.flush := flush
 
   // Stall logic
@@ -221,6 +221,7 @@ class Memory() extends Component {
   io.exc.ret := memReg.mem.xret
 
   // trigger memory fault exception
+  io.exc.trap := memReg.mem.trap
   io.exc.memFault := memFault
-  io.exc.excAddr := memReg.pc
+  io.exc.excAddr := Mux(memReg.mem.trap, memReg.pc + UFix(1), memReg.pc)
 }
