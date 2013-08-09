@@ -13,8 +13,8 @@
 #define EXC_SOURCE (*((volatile _SPM unsigned *)EXC_BASE+3))
 #define EXC_VEC      ((volatile _SPM unsigned *)EXC_BASE+32)
 
-void trap(void) __attribute__((naked));
 void fault(void);
+void trap(void) __attribute__((naked));
 void intr(void) __attribute__((naked));
 
 #define N 1000
@@ -25,7 +25,6 @@ int main(void) {
   for (unsigned i = 0; i < 32; i++) {
 	EXC_VEC[i] = (unsigned)&fault;
   }
-  EXC_VEC[1] = (unsigned)&fault;
   EXC_VEC[8] = (unsigned)&trap;
   EXC_VEC[16] = (unsigned)&intr;
   EXC_VEC[17] = (unsigned)&intr;
@@ -59,10 +58,29 @@ int main(void) {
   
   asm volatile(".word 0x07400008"); // trap 8
 
-  // trigger fault
+  // trigger illegal operation
+  asm volatile(".word 0x04000000"); // illegal operation
+  // trigger illegal memory access
   (*((volatile _SPM unsigned *)0xffffffff)) = 0;
 
   return 0;
+}
+
+void fault(void) {
+  unsigned source = EXC_SOURCE;
+  LEDS = source;
+
+  const char *msg = "FAULT";
+  switch(source) {
+  case 0: msg = "Illegal operation"; break;
+  case 1: msg = "Illegal memory access"; break;
+  }
+  puts(msg);
+
+  for(unsigned i = 0; i < EXIT_N; i++) {
+	asm volatile("");
+  }
+  abort();
 }
 
 void trap(void) {
@@ -150,15 +168,6 @@ void trap(void) {
 			   "lws  $r30 = [30];"
 			   "lws  $r31 = [31];"
 			   "sfree 36;");
-}
-
-void fault(void) {
-  puts("FAULT");
-  LEDS = EXC_SOURCE;
-  for(unsigned i = 0; i < EXIT_N; i++) {
-	asm volatile("");
-  }
-  abort();
 }
 
 void intr(void) {

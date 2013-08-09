@@ -81,7 +81,9 @@ class Decode() extends Component {
   io.decex.rsData(1) := rf.io.rfRead.rsData(1)
   io.decex.rsData(2) := rf.io.rfRead.rsData(2)
   io.decex.rsData(3) := rf.io.rfRead.rsData(3)
-  
+
+  val decoded = Bool()
+  decoded := Bool(false)
 
   // Decoding of dual-issue operations
   val dual = decReg.instr_a(INSTR_WIDTH-1) && decReg.instr_a(26, 22) != OPCODE_ALUL;
@@ -99,15 +101,31 @@ class Decode() extends Component {
       io.decex.aluOp(i).func := Cat(Bits(0), instr(24, 22))
       io.decex.immOp(i) := isValid
       io.decex.wrReg(i) := isValid
+      decoded := Bool(true)
 	}
 	// Other ALU
 	when(opcode === OPCODE_ALU) {
       switch(opc) {
-		is(OPC_ALUR) { io.decex.wrReg(i) := isValid }
-		is(OPC_ALUU) { io.decex.wrReg(i) := isValid }
-		is(OPC_ALUM) { io.decex.aluOp(i).isMul := isValid }
-		is(OPC_ALUC) { io.decex.aluOp(i).isCmp := isValid }
-		is(OPC_ALUP) { io.decex.aluOp(i).isPred := isValid }
+		is(OPC_ALUR) {
+		  io.decex.wrReg(i) := isValid
+		  decoded := Bool(true)
+		}
+		is(OPC_ALUU) {
+		  io.decex.wrReg(i) := isValid 
+		  decoded := Bool(true)
+		}
+		is(OPC_ALUM) {
+		  io.decex.aluOp(i).isMul := isValid
+		  decoded := Bool(true)
+		}
+		is(OPC_ALUC) {
+		  io.decex.aluOp(i).isCmp := isValid
+		  decoded := Bool(true)
+		}
+		is(OPC_ALUP) {
+		  io.decex.aluOp(i).isPred := isValid
+		  decoded := Bool(true)
+		}
       }
 	}
 	// Special registers
@@ -115,10 +133,12 @@ class Decode() extends Component {
 	  switch(opc) {
 		is(OPC_MTS) {
 		  io.decex.aluOp(i).isMTS := isValid
+		  decoded := Bool(true)
 		}
 		is(OPC_MFS) {
 		  io.decex.aluOp(i).isMFS := isValid
 		  io.decex.wrReg(i) := isValid
+		  decoded := Bool(true)
 		}
 	  }
 	}
@@ -176,6 +196,7 @@ class Decode() extends Component {
     io.decex.immOp(0) := Bool(true)
     longImm := Bool(true)
     io.decex.wrReg(0) := Bool(true)
+    decoded := Bool(true)
   }
   // Stack control
   when(opcode === OPCODE_STC) {
@@ -185,12 +206,18 @@ class Decode() extends Component {
 		isSTC := Bool(true)
 		io.decex.immOp(0) := Bool(true)
 		stcVal := io.exdec.sp - stcImm
+		decoded := Bool(true)
 	  }
 	  is(STC_SFREE) {
 		io.decex.aluOp(0).isSTC := Bool(true)
 		isSTC := Bool(true)
 		io.decex.immOp(0) := Bool(true)
 		stcVal := io.exdec.sp + stcImm
+		decoded := Bool(true)
+	  }
+	  is(STC_SENS) {
+		// TODO: ignored for now
+		decoded := Bool(true)
 	  }
 	}
   }
@@ -200,14 +227,17 @@ class Decode() extends Component {
     io.decex.call := Bool(true)
     io.decex.wrReg(0) := Bool(true)
 	dest := Bits("b11111")
+	decoded := Bool(true)
   }
   when(opcode === OPCODE_CFL_BR) {
     io.decex.immOp(0) := Bool(true)
 	io.decex.jmpOp.branch := Bool(true)
+	decoded := Bool(true)
   }
   when(opcode === OPCODE_CFL_BRCF) {
     io.decex.immOp(0) := Bool(true)
     io.decex.brcf := Bool(true)
+	decoded := Bool(true)
   }
   when(opcode === OPCODE_CFL_CFLI) {
 	switch(func) {
@@ -215,26 +245,32 @@ class Decode() extends Component {
 		io.decex.call := Bool(true)
 		io.decex.wrReg(0) := Bool(true)
 		dest := Bits("b11111")
+		decoded := Bool(true)
 	  }
 	  is(JFUNC_BR) {
 		io.decex.jmpOp.branch := Bool(true)
+		decoded := Bool(true)
 	  }
 	  is(JFUNC_BRCF) {
 		io.decex.brcf := Bool(true)
+		decoded := Bool(true)
 	  }
 	}
   }
   when(opcode === OPCODE_CFL_TRAP) {
     io.decex.trap := Bool(true)
     io.decex.xsrc := instr(EXC_SRC_BITS-1, 0)
+    decoded := Bool(true)
   }
   when(opcode === OPCODE_CFL_RET) {
     switch(func) {
       is(RFUNC_RET) {
         io.decex.ret := Bool(true)
+        decoded := Bool(true)
       }
       is(RFUNC_XRET) {
         io.decex.xret := Bool(true)
+        decoded := Bool(true)
       }
     }
   }
@@ -272,6 +308,7 @@ class Decode() extends Component {
 	when(ldtype === MTYPE_S) {
 	  isStack := Bool(true)
 	}
+	decoded := Bool(true)
   }
   // store
   when(opcode === OPCODE_STT) {
@@ -293,6 +330,7 @@ class Decode() extends Component {
 	when(sttype === MTYPE_S) {
 	  isStack := Bool(true)
 	}
+	decoded := Bool(true)
   }
 
   // Offset for loads/stores
@@ -330,6 +368,9 @@ class Decode() extends Component {
       io.decex.wrReg(i) := Bool(false)
 	}
   }
+  
+  // Illegal operation
+  io.decex.illOp := !decoded
 
   // Trigger exceptions
   val inDelaySlot = Reg(UFix(width = 2))

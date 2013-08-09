@@ -171,5 +171,6 @@ object Constants {
   val SPEC_SXO = Bits("b1011")
 
   val STC_SRES  = Bits("b0000")
+  val STC_SENS  = Bits("b0100")
   val STC_SFREE = Bits("b1000")
 }

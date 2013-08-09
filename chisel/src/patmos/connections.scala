@@ -155,6 +155,8 @@ class DecEx() extends Bundle() {
   val xret = Bool()
   val xsrc = Bits(width = EXC_SRC_BITS)
 
+  val illOp = Bool()
+  
   def reset() = {
 	pc := UFix(0)
 	pred := Vec(PIPE_COUNT) { Bits(0) }
@@ -178,6 +180,7 @@ class DecEx() extends Bundle() {
 	xcall := Bool(false)
 	xret := Bool(false)
 	xsrc := Bits(0)
+	illOp := Bool(false)
   }
 }
 
@@ -217,6 +220,7 @@ class MemIn() extends Bundle() {
   val xcall = Bool()
   val xret = Bool()
   val xsrc = Bits(width = EXC_SRC_BITS)
+  val illOp = Bool()
   val callRetAddr = UFix(width = DATA_WIDTH)
   val callRetBase = UFix(width = DATA_WIDTH)
 
@@ -236,6 +240,7 @@ class MemIn() extends Bundle() {
 	xcall := Bool(false)
 	xret := Bool(false)
 	xsrc := Bits(0)
+	illOp := Bool(false)
 	callRetAddr := UFix(0)
 	callRetBase := UFix(0)
   }
