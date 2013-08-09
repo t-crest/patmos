@@ -317,14 +317,16 @@ class Execute() extends Component {
   io.exmem.mem.typ := exReg.memOp.typ
   io.exmem.mem.addr := op(0) + exReg.immVal(0)
   io.exmem.mem.data := op(1)
+
+  // call/return
   io.exmem.mem.call := exReg.call && doExecute(0)
   io.exmem.mem.ret  := exReg.ret && doExecute(0)
   io.exmem.mem.brcf := exReg.brcf && doExecute(0)
   io.exmem.mem.trap := exReg.trap && doExecute(0)
   io.exmem.mem.xcall := exReg.xcall && doExecute(0)
   io.exmem.mem.xret := exReg.xret && doExecute(0)
+  io.exmem.mem.xsrc := exReg.xsrc
 
-  // call/return
   val callAddr = Mux(exReg.immOp(0), exReg.callAddr, op(0).toUFix)
   val brcfAddr = Mux(exReg.immOp(0), Cat(exReg.jmpOp.target, Bits("b00")).toUFix, op(0).toUFix)
   val callRetAddr = Mux(exReg.call || exReg.xcall, callAddr,

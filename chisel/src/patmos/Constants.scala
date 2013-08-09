@@ -51,8 +51,9 @@ object Constants {
   val UART_BAUD = 115200
   val LED_COUNT = 8
 
-  val EXC_COUNT  = 8
-  val INTR_COUNT = 4
+  val EXC_SRC_BITS = 5
+  val EXC_COUNT  = 1 << EXC_SRC_BITS
+  val INTR_COUNT = 16
 
 //  val SPM_MAX_BITS = 21
   // MS: maybe better use sizes in bytes and use log2Up() to

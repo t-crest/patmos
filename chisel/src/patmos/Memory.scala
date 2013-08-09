@@ -219,9 +219,9 @@ class Memory() extends Component {
   // acknowledge exception
   io.exc.call := memReg.mem.xcall
   io.exc.ret := memReg.mem.xret
+  // trigger exception
+  io.exc.exc := memReg.mem.trap || memFault
 
-  // trigger memory fault exception
-  io.exc.trap := memReg.mem.trap
-  io.exc.memFault := memFault
+  io.exc.src := Mux(memFault, Bits(1), memReg.mem.xsrc)
   io.exc.excAddr := Mux(memReg.mem.trap, memReg.pc + UFix(1), memReg.pc)
 }

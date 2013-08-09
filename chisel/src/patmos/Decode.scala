@@ -226,6 +226,7 @@ class Decode() extends Component {
   }
   when(opcode === OPCODE_CFL_TRAP) {
     io.decex.trap := Bool(true)
+    io.decex.xsrc := instr(EXC_SRC_BITS-1, 0)
   }
   when(opcode === OPCODE_CFL_RET) {
     switch(func) {
@@ -336,8 +337,9 @@ class Decode() extends Component {
   when(io.exc.exc ||
        (io.exc.intr && inDelaySlot === UFix(0))) {
     io.decex.reset()
-    io.decex.pred(0) := Bits("b0000")
+    io.decex.pred(0) := Bits(0)
     io.decex.xcall := Bool(true)
+    io.decex.xsrc := io.exc.src
     io.decex.callAddr := io.exc.addr
     io.decex.immOp(0) := Bool(true)
     io.decex.pc := Mux(io.exc.exc, io.exc.excAddr, decReg.pc)

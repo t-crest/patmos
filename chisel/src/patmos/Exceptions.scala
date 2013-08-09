@@ -49,84 +49,111 @@ import ocp._
 class Exceptions extends Component {
   val io = new ExcIO()
 
+  val EXC_ADDR_WIDTH = 8
+
   val masterReg = Reg(io.ocp.M)
 
   val status = Reg(resetVal = Bits(0, width = DATA_WIDTH))
   val mask   = Reg(resetVal = Bits(0, width = DATA_WIDTH))
-  val pend   = Reg(resetVal = Bits(0, width = DATA_WIDTH))
   val source = Reg(resetVal = Bits(0, width = DATA_WIDTH))
 
-  val vec = Vec(EXC_COUNT) { Reg(resetVal = UFix(0, width = DATA_WIDTH)) }
+  val vec    = Mem(EXC_COUNT) { UFix(width = DATA_WIDTH) }
+  val vecDup = Mem(EXC_COUNT) { UFix(width = DATA_WIDTH) }
 
-  val excAddr = Reg(resetVal = UFix(0, width = PC_SIZE))
+  // Latches for incoming exceptions and interrupts
+  val excPend     = Vec(EXC_COUNT) { Bool() }
+  val excPendReg  = Vec(EXC_COUNT) { Reg(resetVal = Bool(false)) }
+  val intrPend    = Vec(EXC_COUNT) { Bool() }
+  val intrPendReg = Vec(EXC_COUNT) { Reg(resetVal = Bool(false)) }  
+  excPend := excPendReg
+  intrPend := intrPendReg
 
-  // Default response
+  // Default OCP response
   io.ocp.S.Resp := OcpResp.NULL
   io.ocp.S.Data := Bits(0, width = DATA_WIDTH)
 
+  // Handle OCP reads and writes
   when(masterReg.Cmd === OcpCmd.RD) {
 	io.ocp.S.Resp := OcpResp.DVA
 	
-	switch(masterReg.Addr(5, 2)) {
-	  is(Bits("b0000")) { io.ocp.S.Data := status }
-	  is(Bits("b0001")) { io.ocp.S.Data := mask }
-	  is(Bits("b0010")) { io.ocp.S.Data := pend }
-	  is(Bits("b0011")) { io.ocp.S.Data := source }
+	switch(masterReg.Addr(EXC_ADDR_WIDTH-1, 2)) {
+	  is(Bits("b000000")) { io.ocp.S.Data := status }
+	  is(Bits("b000001")) { io.ocp.S.Data := mask }
+	  is(Bits("b000011")) { io.ocp.S.Data := source }
+	  is(Bits("b000010")) { io.ocp.S.Data := intrPendReg.toBits }
 	}
-	when(masterReg.Addr(5) === Bits("b1")) {
-	  io.ocp.S.Data := vec(masterReg.Addr(4, 2))
+	when(masterReg.Addr(EXC_ADDR_WIDTH-1) === Bits("b1")) {
+	  io.ocp.S.Data := vec(masterReg.Addr(EXC_ADDR_WIDTH-2, 2))
 	}
   }
 
   when(masterReg.Cmd === OcpCmd.WRNP) {
 	io.ocp.S.Resp := OcpResp.DVA
-	switch(masterReg.Addr(5, 2)) {
-	  is(Bits("b0000")) { status := masterReg.Data }
-	  is(Bits("b0001")) { mask   := masterReg.Data }
-	  is(Bits("b0010")) { pend   := masterReg.Data }
-	  is(Bits("b0011")) { source := masterReg.Data }
+	switch(masterReg.Addr(EXC_ADDR_WIDTH-1, 2)) {
+	  is(Bits("b000000")) { status := masterReg.Data }
+	  is(Bits("b000001")) { mask := masterReg.Data }
+	  is(Bits("b000011")) { source := masterReg.Data }
+	  is(Bits("b000010")) {
+		for(i <- 0 until EXC_COUNT) {
+		  intrPend(i) := masterReg.Data(i)
+		}
+	  }
 	}
-	when(masterReg.Addr(5) === Bits("b1")) {
-	  vec(masterReg.Addr(4, 2)) := masterReg.Data.toUFix
+	when(masterReg.Addr(EXC_ADDR_WIDTH-1) === Bits("b1")) {
+	  vec(masterReg.Addr(EXC_ADDR_WIDTH-2, 2)) := masterReg.Data.toUFix
+	  vecDup(masterReg.Addr(EXC_ADDR_WIDTH-2, 2)) := masterReg.Data.toUFix
 	}
   }
 
-  val trapLatch = Reg(resetVal = Bool(false))
-  val faultLatch = Reg(resetVal = Bool(false))
-  val intrLatch = Reg(resetVal = Bool(false))
+  // Acknowledgement of exception
+  when(io.memexc.call) {
+	excPend(io.memexc.src) := Bool(false)
+	intrPend(io.memexc.src) := Bool(false)
+	source := io.memexc.src
+	status := status << UFix(1)
+  }
+  // Return from exception
+  when(io.memexc.ret) {
+	status := status >> UFix(1)
+  }
 
   // Creaty a dummy "interrupt" for testing
   val cnt = Reg(resetVal = UFix(1, width = 10))
   cnt := cnt + UFix(1)
   when(cnt === UFix(0)) {
-	intrLatch := Bool(true)
+	intrPend(16) := Bool(true)
   }
 
-  when(io.memexc.trap) {
-	trapLatch := Bool(true)
+  // Trigger internal exceptions
+  val excAddr = Reg(resetVal = UFix(0, width = PC_SIZE))
+  when(io.memexc.exc) {
+	excPend(io.memexc.src) := Bool(true)
 	excAddr := io.memexc.excAddr
   }
 
-  when(io.memexc.memFault) {
-	faultLatch := Bool(true)
-	excAddr := io.memexc.excAddr
+  // Latch new pending flags
+  excPendReg := excPend
+  intrPendReg := intrPend
+
+  // Compute next exception source
+  val src = Bits(width = EXC_SRC_BITS)
+  val srcReg = Reg(src)
+  src := Bits(0)
+  for (i <- 0 until EXC_COUNT) {
+	when(intrPend(i) && (mask(i) === Bits(1))) { src := Bits(i) }
+  }
+  for (i <- 0 until EXC_COUNT) {
+	when(excPend(i)) { src := Bits(i) }
   }
 
-  when(io.memexc.call) {
-	trapLatch := Bool(false)
-	faultLatch := Bool(false)
-	intrLatch := Bool(false)
-	status := status << UFix(1)
-  }
-  when(io.memexc.ret) {
-	status := status >> UFix(1)
-  }
+  // Create signals to decode stage
+  val exc = Reg(excPend.toBits != Bits(0))
+  val intr = Reg((intrPend.toBits & mask) != Bits(0))
 
-  io.excdec.exc  := trapLatch || faultLatch
-  io.excdec.intr := intrLatch && status(0) === Bits(1)
+  io.excdec.exc  := exc
+  io.excdec.intr := intr && status(0) === Bits(1)
+  io.excdec.addr := vecDup(srcReg)
+  io.excdec.src  := srcReg
 
-  io.excdec.addr := Mux(trapLatch, vec(0),
-						Mux(faultLatch, vec(1),
-							vec(2)))
   io.excdec.excAddr := excAddr
 }

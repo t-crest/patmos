@@ -153,6 +153,7 @@ class DecEx() extends Bundle() {
   val trap = Bool()
   val xcall = Bool()
   val xret = Bool()
+  val xsrc = Bits(width = EXC_SRC_BITS)
 
   def reset() = {
 	pc := UFix(0)
@@ -176,6 +177,7 @@ class DecEx() extends Bundle() {
 	trap := Bool(false)
 	xcall := Bool(false)
 	xret := Bool(false)
+	xsrc := Bits(0)
   }
 }
 
@@ -214,6 +216,7 @@ class MemIn() extends Bundle() {
   val trap = Bool()
   val xcall = Bool()
   val xret = Bool()
+  val xsrc = Bits(width = EXC_SRC_BITS)
   val callRetAddr = UFix(width = DATA_WIDTH)
   val callRetBase = UFix(width = DATA_WIDTH)
 
@@ -232,6 +235,7 @@ class MemIn() extends Bundle() {
 	trap := Bool(false)
 	xcall := Bool(false)
 	xret := Bool(false)
+	xsrc := Bits(0)
 	callRetAddr := UFix(0)
 	callRetBase := UFix(0)
   }
@@ -319,6 +323,7 @@ class ExcDec() extends Bundle() {
   val excAddr = UFix(width = PC_SIZE)
   val intr = Bool()
   val addr = UFix(width = ADDR_WIDTH)
+  val src = Bits(width = EXC_SRC_BITS)
 }
 
 class DecodeIO() extends Bundle() {
@@ -377,9 +382,9 @@ class InOutIO() extends Bundle() {
 class MemExc() extends Bundle() {
   val call = Bool()
   val ret = Bool()
+  val src = Bits(width = EXC_SRC_BITS)
 
-  val trap = Bool()
-  val memFault = Bool()
+  val exc = Bool()
   val excAddr = UFix(width = PC_SIZE)
 }
 
