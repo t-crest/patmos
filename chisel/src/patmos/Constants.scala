@@ -50,7 +50,9 @@ object Constants {
 
   val UART_BAUD = 115200
   val LED_COUNT = 8
+  val KEY_COUNT = 4
 
+  // Exceptions/interrupts
   val EXC_SRC_BITS = 5
   val EXC_COUNT  = 1 << EXC_SRC_BITS
   val INTR_COUNT = 16

@@ -372,11 +372,23 @@ class TimerIO() extends Bundle() {
   val ocp = new OcpCoreSlavePort(4, DATA_WIDTH)
 }
 
+class KeyPinIO() extends Bundle() {
+  val keys = Bits(INPUT, KEY_COUNT)
+}
+
+class KeyIO() extends Bundle() {
+  val ocp = new OcpCoreSlavePort(0, DATA_WIDTH)
+  val pins = new KeyPinIO()
+  val intrs = Vec(KEY_COUNT) { Bool(OUTPUT) }
+}
+
 class InOutIO() extends Bundle() {
   val memInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
   val excInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
+  val intrs = Vec(INTR_COUNT) { Bool(OUTPUT) }
   val uartPins = new UartPinIO()
   val ledPins = new LedPinIO()
+  val keyPins = new KeyPinIO()
 }
 
 class MemExc() extends Bundle() {
@@ -415,7 +427,7 @@ class WriteBackIO() extends Bundle() {
 
 class ExcIO() extends Bundle() {
   val ocp = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+  val intrs = Vec(INTR_COUNT) { Bool(INPUT) }
   val excdec = new ExcDec().asOutput
   val memexc = new MemExc().asInput
-  val intrPins = Bits(INPUT, width = INTR_COUNT)
 }

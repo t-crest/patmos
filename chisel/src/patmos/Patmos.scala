@@ -63,6 +63,7 @@ class Patmos(fileName: String) extends Component {
   val io = new Bundle {
     val dummy = Bits(OUTPUT, 32)
     val led = Bits(OUTPUT, 9)
+    val key = Bits(INPUT, 4)
     val uartPins = new UartPinIO()
   }
 
@@ -97,9 +98,9 @@ class Patmos(fileName: String) extends Component {
 
   // Connect exception unit
   exc.io.ocp <> iocomp.io.excInOut
+  exc.io.intrs <> iocomp.io.intrs
   exc.io.excdec <> decode.io.exc
   exc.io.memexc <> memory.io.exc
-  exc.io.intrPins := Bits(0)
 
   // TODO: to be replaced with a connection to external memory
   val globMem = new Spm(1 << DSPM_BITS)
@@ -119,7 +120,8 @@ class Patmos(fileName: String) extends Component {
 
   // The inputs and outputs
   io.uartPins <> iocomp.io.uartPins
-  io.led <> Cat(memory.io.ena, iocomp.io.ledPins)
+  io.led <> Cat(memory.io.ena, iocomp.io.ledPins.led)
+  io.key <> iocomp.io.keyPins.keys
 
   // ***** the following code is not really Patmos code ******
 

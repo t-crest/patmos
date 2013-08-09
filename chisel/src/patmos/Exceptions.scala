@@ -117,11 +117,11 @@ class Exceptions extends Component {
 	status := status >> UFix(1)
   }
 
-  // Creaty a dummy "interrupt" for testing
-  val cnt = Reg(resetVal = UFix(1, width = 10))
-  cnt := cnt + UFix(1)
-  when(cnt === UFix(0)) {
-	intrPend(16) := Bool(true)
+  // Latch interrupt pins
+  for (i <- 0 until INTR_COUNT) {
+	when(io.intrs(i)) {
+	  intrPend(16+i) := Bool(true)
+	}
   }
 
   // Trigger internal exceptions
