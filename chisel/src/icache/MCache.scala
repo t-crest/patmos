@@ -48,6 +48,7 @@ object MConstants {
   val FIFO_REPL = 2
   val FIXED_SIZE = 1
   val VARIABLE_SIZE = 2
+  val BURST_LENGHT = 4
 
   //DEBUG INFO
   println("MCACHE_SIZE=" + MCACHE_SIZE)
@@ -74,12 +75,7 @@ class MCacheIO extends Bundle() {
   val mcachemem_out = new MCacheMemOut().asInput
   val mcache_in = new MCacheIn().asInput
   val mcache_out = new MCacheOut().asOutput
-  val ocp_port = new OcpCoreMasterPort(19, 32)
-  // val sc_mem_out = new ScOutType().asOutput
-  // val sc_mem_in = new ScInType().asInput
-  //external memory (old)
-  /*val extmem_in = new ExtMemIn().asOutput
-  val extmem_out = new ExtMemOut().asInput*/
+  val ocp_port = new OcpBurstMasterPort(19, 32, 4)
 }
 class MCacheMemIn extends Bundle() {
   val w_enable = Bits(width = 1)
@@ -537,6 +533,7 @@ class MCache() extends Component {
   //regs for external meomory
   val ext_mem_tsize = Reg(resetVal = Bits(0, width = METHOD_SIZETAG_WIDTH))
   val ext_mem_fcounter = Reg(resetVal = Bits(0, width = METHOD_SIZETAG_WIDTH))
+  val ext_mem_burst_cnt = Reg(resetVal = UFix(0, width = log2Up(BURST_LENGHT)))
   //save address in case no hit occours
   val mcache_address = Reg(resetVal = Bits(0, width = 32))
 
@@ -573,6 +570,7 @@ class MCache() extends Component {
     .otherwise {
       ext_mem_addr := mcache_address - Bits(1)
       ext_mem_cmd := OcpCmd.RD
+      ext_mem_burst_cnt := UFix(0)
       mcache_state := size_state
       /*extmem_fetch := Bits(1)
       extmem_fetch_address := mcache_address - Bits(1) // -1 because size is at method head -1
@@ -595,9 +593,13 @@ class MCache() extends Component {
     when (io.ocp_port.S.Resp === OcpResp.DVA) {
       //init transfer from external memory
       ext_mem_tsize := io.ocp_port.S.Data / Bits(WORD_COUNT)
-      ext_mem_fcounter := io.ocp_port.S.Data / Bits(WORD_COUNT)     
-      ext_mem_addr := mcache_address
-      ext_mem_cmd := OcpCmd.RD
+      ext_mem_fcounter := io.ocp_port.S.Data / Bits(WORD_COUNT)
+      ext_mem_burst_cnt := ext_mem_burst_cnt + Bits(1)
+      when (ext_mem_burst_cnt >= UFix(BURST_LENGHT - 1)) {
+        ext_mem_addr := mcache_address
+        ext_mem_cmd := OcpCmd.RD
+        ext_mem_burst_cnt := UFix(0)
+      }
       //init transfer to on-chip method cache memory
       mcachemem_wtag := Bits(1)
       mcachemem_w_data := io.ocp_port.S.Data / Bits(WORD_COUNT) //write size to mcachemem for LRU tagfield
@@ -619,10 +621,14 @@ class MCache() extends Component {
     when (ext_mem_fcounter > Bits(0)) {
       when (io.ocp_port.S.Resp === OcpResp.DVA) {
         ext_mem_fcounter := ext_mem_fcounter - Bits(1)
+        ext_mem_burst_cnt := ext_mem_burst_cnt + Bits(1)
         when (ext_mem_fcounter > Bits(1)) {
           //fetch next address from external memory
-          ext_mem_cmd := OcpCmd.RD
-          ext_mem_addr := mcache_address + (ext_mem_tsize - ext_mem_fcounter) + Bits(1)
+          when (ext_mem_burst_cnt >= UFix(BURST_LENGHT - 1)) {
+            ext_mem_cmd := OcpCmd.RD
+            ext_mem_addr := mcache_address + (ext_mem_tsize - ext_mem_fcounter) + Bits(1)
+            ext_mem_burst_cnt := UFix(0)
+          }
         }
         //write current address to mcache memory
         mcachemem_w_data := io.ocp_port.S.Data
@@ -663,6 +669,7 @@ class MCache() extends Component {
   io.ocp_port.M.Addr := ext_mem_addr
   io.ocp_port.M.Cmd := ext_mem_cmd
   io.ocp_port.M.Data := Bits(0)
-  io.ocp_port.M.ByteEn := Bits("b1111")
+  io.ocp_port.M.DataByteEn := Bits("b1111")
+  io.ocp_port.M.DataValid := Bits(0)
 
 }
