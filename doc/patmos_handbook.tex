@@ -145,7 +145,7 @@
 %
 \begin{document}
 
-\title{Patmos Reference Handbook\\{\huge Technical Report}}
+\title{Patmos Reference Handbook}
 
 \author{Martin Schoeberl, Florian Brandner, Stefan Hepp,\\Wolfgang Puffitsch, Daniel Prokesch}
 
@@ -427,6 +427,34 @@ Some instructions define additional pipeline stages. Multiplication instructions
 are executed, starting from the \texttt{EX} stage, in a parallel pipeline with
 fixed-length (see the instruction definition). The respective stages are
 referred to by \texttt{EX$_1$}, \dots, \texttt{EX$_n$}.
+
+\martin{\todo{A more detailed description of the pipeline stages, as the individual
+4 stage description is gone.} Here a start:}
+
+\subsection{Fetch}
+
+Fetch one or two words of instruction from the ROM or method cache.
+Calculate next PC depending on the length of the instruction bundle.
+
+\subsection{Decode}
+
+Decode the instruction and generate control signals for the following stages.
+Read register operands. Sign or zero extend immediate operands.
+
+\subsection{Execute}
+
+Read predicate registers. Conditional execute (ALU) instructions.
+Write predicate register. Calculate effective address for memory operations.
+
+\subsection{Memory}
+
+Read or write memory. This is the only pipeline stage that might
+stall the pipeline.
+
+\subsection{Write Back}
+
+Write result into destination register.
+
 
 \begin{figure}
     \centering
@@ -911,21 +939,6 @@ upper half of that table are available.
   \item \texttt{nop}~\dots~\texttt{sub r0 = r0 - 0}
 \end{itemize}
 
-\paragraph{Behavior}
-\begin{itemize}
-  \item[\texttt{IF}] --
-  \item[\texttt{DR}] Read register operands \texttt{Pred}, \texttt{Rs1}, and
-                     \texttt{Rs2} if needed. If needed zero-extend the
-                     \texttt{Immediate} operand.
-  \item[\texttt{EX}] By-pass values for \texttt{Rs1} and \texttt{Rs2}, if
-                     needed. \\
-                     Perform computation (see above). \\
-                     Derive write-enable signal for destination register
-                     \texttt{Rd} from predicate \texttt{Pred}. \\
-                     Supply result value for by-passing to \texttt{EX} stage.
-  \item[\texttt{MW}] Write to destination register \texttt{Rd}. \\
-                     Supply result value for by-passing to \texttt{EX} stage.
-\end{itemize}
 
 \paragraph{Note}
 The use of \texttt{sub r0 = r0 - 0} to encode a \texttt{nop}
@@ -973,20 +986,9 @@ the \texttt{func} field for the ALUm instruction format.
 
 
 \paragraph{Behavior}
-\begin{itemize}
-  \item[\texttt{IF}] --
-  \item[\texttt{DR}] Read register operands \texttt{Pred}, \texttt{Rs1},
-                     \texttt{Rs2}.
-  \item[\texttt{EX}] By-pass values for \texttt{Rs1} and \texttt{Rs2}. \\
-                     Derive write-enable signal for destination registers
-                     \texttt{sl} and \texttt{sh} from predicate \texttt{Pred}. \\
-                     Perform multiplication (see above).
-  \item[\texttt{EX$_1$}] Perform multiplication.
-  \item[\dots]
-  \item[\texttt{EX$_n$}] Perform multiplication. \\
-                         Write to destination registers \texttt{sl} and
-                         \texttt{sh}.
-\end{itemize}
+
+Perform multiplication in multiple cycles and write the result into
+destination registers \texttt{sl} and \texttt{sh}.
 
 \paragraph{Note}
 
@@ -1043,19 +1045,9 @@ encoding of the \texttt{func} field for the ALUc format.
   \item \texttt{mov Pd = Rs}~\dots~\texttt{cmpneq Pd = Rs != r0}
 \end{itemize}
 
-\paragraph{Behavior}
-\begin{itemize}
-  \item[\texttt{IF}] --
-  \item[\texttt{DR}] Read register operands \texttt{Pred}, \texttt{Rs1}, and
-                     \texttt{Rs2}.
-  \item[\texttt{EX}] By-pass values for \texttt{Rs1} and \texttt{Rs2}, if
-                     needed. \\
-                     Perform comparison (see above). \\
-                     Derive write-enable signal for destination register
-                     \texttt{Pd} from predicate \texttt{Pred}. \\
-                     Write to destination register \texttt{Pd}.
-  \item[\texttt{MW}] --
-\end{itemize}
+\paragraph{Note}
+
+The predicate register is read and written in the execute stage.
 
 \stefan{We discussed about adding short immediate versions, but with the current predicate handling this is not
 a trivial change for the compiler, so we skip that. Instead, we might introduce bez/bnez instructions, which is much more common anyway.}
@@ -1113,22 +1105,8 @@ a little bit more complex.}
   \item \texttt{pclr Pd = 0}~\dots~\texttt{pxor Pd = p0 \XOR p0}
 \end{itemize}
 
-\paragraph{Behavior}
-\begin{itemize}
-  \item[\texttt{IF}] --
-  \item[\texttt{DR}] Read register operands \texttt{Pred}, \texttt{Ps1}, and
-                     \texttt{Ps2}.
-  \item[\texttt{EX}] By-pass values for \texttt{Ps1} and \texttt{Ps2}, if
-                     needed. \\
-                     Perform predicate computation (see above). \\
-                     Derive write-enable signal for destination register
-                     \texttt{Pd} from predicate \texttt{Pred}. \\
-                     Write to destination register \texttt{Pd}.
-  \item[\texttt{MW}] --
-\end{itemize}
-
 \paragraph{Note}
-
+The predicate register is read and written in the execute stage.
 All predicate combine instruction mnemonics (including pseudo instructions) are prefixed with \texttt{p}, 
 all other instructions involving predicates are not prefixed (e.g., moving from register to predicate).
 
@@ -1198,18 +1176,12 @@ pipeline. Table~\ref{tab:waitfunc} shows the encoding of the
   \label{tab:waitfunc}
 \end{table}
 
-\paragraph{Behavior}
-\begin{itemize}
-  \item[\texttt{IF}] --
-  \item[\texttt{DR}] Read register operands \texttt{Pred}.\\
-                     while (\NOT Pred \AND \NOT finished) \{ stall \texttt{DR}; next cycle; \}
-  \item[\texttt{EX}] --
-  \item[\texttt{MW}] --
-\end{itemize}
-
 \paragraph{Note}
 
 A Wait can only be issued at the first position within a bundle.
+This instruction is not (yet) implemented in hardware as we do not
+(yet) support split loads. \martin{And maybe we will never do as
+the gain is not worth the effort.}
 
 \clearpage
 \subsection{Move To Special}
@@ -1229,18 +1201,11 @@ register to a special-purpose register. The only instruction is
     \end{bytefield}
 \end{itemize}
 
-\paragraph{Behavior}
-\begin{itemize}
-  \item[\texttt{IF}] --
-  \item[\texttt{DR}] Read register operands \texttt{Pred} and \texttt{Rs1}.
-  \item[\texttt{EX}] By-pass value for \texttt{Rs1}. \\
-                     Derive write-enable signal for destination register
-                     \texttt{Sd} from predicate \texttt{Pred}. \\
-                     Write to destination register \texttt{Sd}.
-  \item[\texttt{MW}] --
-\end{itemize}
+
 
 \paragraph{Note}
+
+
 
 Special registers \texttt{sm}, \texttt{sl}, \texttt{sh} are read-only, writing
 to those registers may result in undefined behavior.
@@ -1252,14 +1217,17 @@ than writable.}
 \wolf{Saving \texttt{sm} can be faked by storing the contents of
   \texttt{sm} to a reserved memory location and loading from there to
   restore it. \texttt{sl} and \texttt{sh} should be writable though.}
+  
+\martin{\todo{We should document in which stage each special register
+is read and written.}}
 
-\martin{More on special registers: we build a RISC and there `special' registers
-sound quite CISCi for me. We shall keep those to a minimum. One for split
-load ok. One for the jul ok. But I don't think we need a 64-bit result in the
-multiplication. No direct support in C. If we do want to support more fancy
-DSP stuff I would actually go for a MAC operation. But not for now...}
-
-\wolf{The 64-bit result is already implemented in the hardware, so I guess we can keep it...}
+%\martin{But I don't think we need a 64-bit result in the
+%multiplication. No direct support in C. If we do want to support more fancy
+%DSP stuff I would actually go for a MAC operation. But not for now...}
+%
+%\wolf{The 64-bit result is already implemented in the hardware, so I guess we can keep it...}
+%
+%\martin{Yes. Thanks.} -- Text can be removed after reading
 
 \clearpage
 \subsection{Move From Special}
@@ -1277,17 +1245,6 @@ to general-purpose register \texttt{Rd}.
       \bitbox{5}{Rd} & \bitbox{10}{\bitsunused} &
       \bitbox{3}{011} & \bitbox{4}{Ss} \\
     \end{bytefield}
-\end{itemize}
-
-\paragraph{Behavior}
-\begin{itemize}
-  \item[\texttt{IF}] --
-  \item[\texttt{DR}] Read register operands \texttt{Pred} and \texttt{Ss}.
-  \item[\texttt{EX}] Derive write-enable signal for destination register
-                     \texttt{Rd} from predicate \texttt{Pred}. \\
-                     Supply result value for by-passing to \texttt{EX} stage.
-  \item[\texttt{MW}] Write to destination register \texttt{Rd}. \\
-                     Supply result value for by-passing to \texttt{EX} stage.
 \end{itemize}
 
 \fb{It would make sense to merge the \texttt{wait} instructions with this
@@ -1472,36 +1429,13 @@ The displacement value (\code{Imm}) value is interpreted unsigned.
 \martin{I don't think that (uint32\_t) does the zero extension. But I might be wrong
 as my C knowledge is rusty. We should use the H\&P MIPS green card notion.}
 
-\paragraph{Behavior -- Regular Load}
-\begin{itemize}
-  \item[\texttt{IF}] --
-  \item[\texttt{DR}] Read register operands \texttt{Pred} and \texttt{Ra}.
-  \item[\texttt{EX}] By-pass value for \texttt{Ra}. \\
-                     Derive write-enable signal for destination register
-                     \texttt{Rd} from predicate \texttt{Pred}. \\
-                     Begin memory access.
-  \item[\texttt{MW}] Finish memory access. \\
-                     while (\NOT Pred \AND \NOT finished) \{ stall \texttt{MW}; next cycle; \} \\
-                     Write to destination register \texttt{Rd}. \\
-                     Supply result value for by-passing to \texttt{EX} stage.
-\end{itemize}
+
 
 \martin{Do we do a memory read even when the predicate is false?
 Some memory locations (I/O) might have side effects on a read.
 Therefore, we shall not read when the predicate is false.}
 
-\paragraph{Behavior -- Decoupled Load}
-\begin{itemize}
-  \item[\texttt{IF}] --
-  \item[\texttt{DR}] Read register operands \texttt{Pred} and \texttt{Ra}. \\
-                     while (\NOT finished) \{ stall \texttt{DR}; next cycle; \}
-  \item[\texttt{EX}] By-pass value for \texttt{Ra}. \\
-                     Derive write-enable signal for destination register \\
-                     \texttt{sm} from predicate \texttt{Pred}. \\
-                     Begin memory access.
-  \item[\texttt{MW}] Finish memory access. \\
-                     Write to destination register \texttt{sm}.
-\end{itemize}
+
 
 \paragraph{Note}
 
@@ -1565,16 +1499,6 @@ Stores can only be issued on the first slot.
 \label{tab:stores}
 \end{table}
 
-\paragraph{Behavior}
-\begin{itemize}
-  \item[\texttt{IF}] --
-  \item[\texttt{DR}] Read register operands \texttt{Pred}, \texttt{Ra}, and
-                     \texttt{Rs}.
-  \item[\texttt{EX}] By-pass values for \texttt{Ra} and \texttt{Rs}. \\
-                     Check predicate \texttt{Pred}. \\
-                     Begin memory access.
-  \item[\texttt{MW}] Finish memory access.
-\end{itemize}
 
 \paragraph{Note - Global Memory / Data Cache}
 
@@ -1586,7 +1510,7 @@ the cache.
 Consistency between loads and other stores is
 assumed to be guaranteed by the memory interface, i.e., memory accesses are
 handled in-order with respect to a specific processor. This has implications on
-the bus, Network-on-Chip connection between the processor and the global memory.
+the bus, the network-on-chip, and the global memory.
 
 % TODO:
 % - Arbitration of global memory
@@ -1611,8 +1535,8 @@ Section~\ref{sec:stack-cache}. Table~\ref{tab:stciops} shows the
 encoding of operations for STCi, while Table~\ref{tab:stcrops} shows
 the encoding for STCr.
 
-\martin{This or the above section shall contain pseudo code for the
-  stack cache. Sahar is in charge to do this.}
+\martin{This or the stack cache section shall contain pseudo code for the
+  stack cache.}
 
 \martin{TODO: There is no mentioning in load/store section that stack ld/st
 use an implicit stack pointer for addressing.}
@@ -1669,58 +1593,23 @@ use an implicit stack pointer for addressing.}
   \label{tab:stcrops}
 \end{table}
 
-\martin{In general: can we drop the pipeline descriptions as they are not accurate anyway?
-Ask Florian on this.}
 
-\paragraph{Behavior -- Reserve}
-\begin{itemize}
-  \item[\texttt{IF}] --
-  \item[\texttt{DR}] Read register operand \texttt{Pred}, \texttt{ss}, \texttt{st}, and
-                     internal stack-cache registers \texttt{head} and
-                     \texttt{tail}.
-  \item[\texttt{EX}] Check predicate \texttt{Pred}. \\
-                     Check free space left in the stack cache. \\
-                     Update stack-cache registers.
-  \item[\texttt{MW}] If needed, spill to global memory using \texttt{ss} and
-                     stall.
+\paragraph{Behavior}
+~\newline
 
-\end{itemize}
+\texttt{sres}: Check free space left in the stack cache. Update stack-cache registers.
+If needed, spill to global memory using \texttt{ss}.
 
-\paragraph{Behavior -- Ensure}
-\begin{itemize}
-  \item[\texttt{IF}] --
-  \item[\texttt{DR}] Read register operand \texttt{Pred}, \texttt{ss}, \texttt{st}, and
-                     internal stack-cache registers \texttt{head} and
-                     \texttt{tail}.
-  \item[\texttt{EX}] Check predicate \texttt{Pred}. \\
-                     Check reserved space available in the stack cache.
-  \item[\texttt{MW}] If needed, refill from global memory using \texttt{ss} and
-                     stall.
-\end{itemize}
+\texttt{sense}: Check reserved space available in the stack cache.
+If needed, refill from global memory using \texttt{ss}.
 
-\paragraph{Behavior -- Free}
-\begin{itemize}
-  \item[\texttt{IF}] --
-  \item[\texttt{DR}] Read register operand \texttt{Pred} and internal
-                     stack-cache registers \texttt{head}.
-  \item[\texttt{EX}] Check predicate \texttt{Pred}. \\
-                     Account for $\mathtt{head} - \mathtt{tail} < 0$, update
-                     \texttt{ss} and \texttt{st}. \\
+\texttt{sfree}:  Account for $\mathtt{head} - \mathtt{tail} < 0$, update
+                     \texttt{ss} and \texttt{st}.
                      Update stack-cache register \texttt{head}.
-  \item[\texttt{MW}] --
-\end{itemize}
 
-\paragraph{Behavior -- Spill}
-\begin{itemize}
-  \item[\texttt{IF}] --
-  \item[\texttt{DR}] Read register operand \texttt{Pred}, \texttt{ss}, \texttt{st} and internal
-                     stack-cache registers \texttt{head}.
-  \item[\texttt{EX}] Check predicate \texttt{Pred}. \\
-                     Update \texttt{ss} and \texttt{st}. \\
+\texttt{sspill}: Update \texttt{ss} and \texttt{st}.
                      Update stack-cache register \texttt{tail}.
-  \item[\texttt{MW}] Spill to global memory using \texttt{ss} and
-                     stall.
-\end{itemize}
+Spill to global memory using \texttt{ss}.
 
 \paragraph{Note}
 
@@ -1730,21 +1619,6 @@ bundle.
 It is permissible to use several reserve, ensure, and free operations within the
 same function.
 
-\jack{It might be a good idea to merge STC with CFLb/CFLr, because
-alloca is going to use a shadow stack, so user code only needs to
-change the stack pointer and spill/fill on call/return. STC and CFLb
-are complex instructions that are going to need to be implemented by
-some sort of state machine anyway (if not microcode!). So I think it
-actually makes the architecture simpler if these instructions are
-one and the same thing. And it reduces code size.
-
-Q. How do the call instructions know how big the target method
-is? I'd guess the code size must be stored somewhere in the binary.
-Why not store the stack frame size in the same place and then have the call
-instruction automatically reserve that space?}
-
-\fb{We might want to place STC independently from CFL instructions, depending on
-the worst-case execution path; but that needs more investigation.}
 
 \stefan{We only need sens and sspill with registers for context-switch. Should we allow a 
 register version for sres and sfree as well nevertheless (I would say no)?}
@@ -1899,35 +1773,14 @@ for 64 MB code size. We don't need that big immediate for PC relative branches.}
 
 \paragraph{Behavior -- call, brcf, and system call}
 
-\begin{itemize}
-  \item[\texttt{IF}] --
-  \item[\texttt{DR}] Read register operand \texttt{Pred}.
-  \item[\texttt{EX}] Check predicate \texttt{Pred}. \\
 		     Store link information into R31. Method base
-		     is not stored to a visible register (this must be done by the caller, by convention using R30). \\
-                     Check method cache. \\
-                     Compute cache-relative program counter.
-  \item[\texttt{MW}] If needed, fill method cache and stall. \\
-                     Update program counter.
-\end{itemize}
+		     is not stored to a visible register (this must be done by the caller, by convention using R30). 
+                     Compute cache-relative program counter and update the PC.
 
 \paragraph{Behavior -- branch within cache}
-\begin{itemize}
-  \item[\texttt{IF}] --
-  \item[\texttt{DR}] Read register operand \texttt{Pred}.
-  \item[\texttt{EX}] Check predicate \texttt{Pred}. \\
-                     Assert on method cache. \\
-                     Compute new, cache-relative program counter value. \\
+                     Compute new, cache-relative program counter value.
                      Update program counter.
-  \item[\texttt{MW}] --
-\end{itemize}
 
-
-%\martin{Don't see a big use on an immediate function call}
-%\daniel{Save a cycle and 4 bytes of instruction memory}
-%\martin{Ack, as it actually saves 8 bytes (the long immediate load).}
-%\daniel{Ah, right ;)}
-%\stefan{Immediate function call is also easier to analyze.}
 
 \paragraph{Implementation Note}
 
@@ -2010,30 +1863,17 @@ but evil for a plain instruction cache.}
 
 \paragraph{Behavior -- call, branch, and system call}
 
-\begin{itemize}
-  \item[\texttt{IF}] --
-  \item[\texttt{DR}] Read register operand \texttt{Pred} and \texttt{Rs1}.
-  \item[\texttt{EX}] By-pass value for \texttt{Rs1}. \\
-                     Check predicate \texttt{Pred}. \\
 		     Store link information into R31. Method base
-		     is not stored to a visible register (this must be done by the caller, by convention using R30). \\
-                     Check method cache. \\
+		     is not stored to a visible register (this must be done by the caller, by convention using R30). 
+                     Check method cache.
                      Compute cache-relative program counter.
-  \item[\texttt{MW}] If needed, fill method cache and stall. \\
+If needed, fill method cache and stall.
                      Update program counter.
-\end{itemize}
+
 
 \paragraph{Behavior -- branch within cache}
-\begin{itemize}
-  \item[\texttt{IF}] --
-  \item[\texttt{DR}] Read register operand \texttt{Pred} and \texttt{Rs1}.
-  \item[\texttt{EX}] By-pass value for \texttt{Rs1}. \\
-                     Check predicate \texttt{Pred}. \\
-                     Assert on method cache. \\
-                     Compute new, cache-relative program counter value. \\
+                     Compute new, cache-relative program counter value.
                      Update program counter.
-  \item[\texttt{MW}] --
-\end{itemize}
 
 
 \paragraph{Note}
@@ -2087,18 +1927,6 @@ usually called a SW interrupt as well? Exceptions? Restartable exceptions?}
 
 \paragraph{Behavior}
 
-\begin{itemize}
-  \item[\texttt{IF}] --
-  \item[\texttt{DR}] Read register operand \texttt{Pred}, \texttt{Rb} and
-                     \texttt{Ro}.
-  \item[\texttt{EX}] Check predicate \texttt{Pred}. \\
-                     Check method cache. \\
-                     Compute program counter value.
-  \item[\texttt{MW}] If needed, fill method cache and stall. \\
-                     Update program counter.
-                     %\martin{PC update should be done in EX. Let's not have too many stages where
-                     %the PC is updated. This instruction might (will ?) be multi-cycle anyway.}
-\end{itemize}
 
 The return function base address \texttt{Rb} is an absolute address in bytes. The return function base will typically
 be provided by the caller in \texttt{r30} (see Section~\ref{sec:function_calls}). 
@@ -2136,7 +1964,7 @@ Wolfgang has implemented ALU and predicate operations in both
 pipelines. More details shall be described.}
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
-\section{Assembly format}
+\section{Assembly Format}
 
 \martin{This is not pasim, right?}
 
@@ -2305,6 +2133,26 @@ Address & I/O Device & read & write \\
 
 \subsection{UART}
 
+The UART is a minimal IO device for \texttt{stdout} and \texttt{stdin}.
+It is also used for program download. Table~\ref{tab:uart} shows the
+bits of the control register.
+
+\begin{table}
+\centering
+\begin{tabular}{lllll}
+\toprule
+Bit & Status & & Control & \\
+\midrule
+0 & TRE & TX Transmit ready & -- & -- \\
+1 & DAV & RX Data available & -- & -- \\
+% 2 & PAE & RX Parity error (or EOF) & -- & -- \\
+% 3 & --  & -- & TFL & TX Flush \\
+\bottomrule
+\end{tabular}
+\caption{UART status bits} % {-- What does flush mean on a UART?}}
+\label{tab:uart}
+\end{table}
+
 On a multicore system only one processor can be directly connected to the
 UART. However, for debugging it would be convenient to attach several (or all)
 cores to the UART. Sharing the UART can be achieved by an arbitration device
@@ -2317,21 +2165,7 @@ also be used to represent several UARTs per core (e.g., stdout, stderr, user for
 On the PC side a small program is needed to dispatch/demultiplex the different
 data streams. 
 
-\begin{table}
-\centering
-\begin{tabular}{lllll}
-\toprule
-Bit & Status & & Control & \\
-\midrule
-0 & TRE & TX Transmit ready & -- & -- \\
-1 & DAV & RX Data available & -- & -- \\
-2 & PAE & RX Parity error (or EOF) & -- & -- \\
-3 & --  & -- & TFL & TX Flush \\
-\bottomrule
-\end{tabular}
-\caption{UART status bits {-- What does flush mean on a UART?}}
-\label{tab:mmap}
-\end{table}
+
 
 \stefan{Would be nice to be able to insert control bytes to flush the output as well, but that must be understood by the simulator as well (it
 must flush its output stream). 
@@ -3724,7 +3558,7 @@ should be used in hard real-time code anyway, as it might introduce some slight 
   \item Method cache freeze? Or should we just use a I-SPM for this if we want instruction cache locking?
 \end{itemize}
 
-\section{Unified memory access}
+\section{Unified Memory Access}
 
 \stefan{All our memories (except the stack cache) use a unified address space, but due to the typed loads, references must include both address and
 type of the cache. Since the type is encoded in the code, any generated code can only use one type of cache or SPM. 
