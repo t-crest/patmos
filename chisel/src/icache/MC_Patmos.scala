@@ -75,19 +75,15 @@ class MCPatmos(fileName: String) extends Component {
 
   //TODO: move this to mcache not needed in patmos.scala
   val mcachemem = new MCacheMem(method_count = 4, replacement = FIFO_REPL, block_arrangement = VARIABLE_SIZE)
-  val ssram = new Ssram()
+  val ssram = new SsramBurstRW()
   mcache.io.mcachemem_in <> mcachemem.io.mcachemem_in
   mcache.io.mcachemem_out <> mcachemem.io.mcachemem_out
-  mcache.io.sc_mem_out <> ssram.io.sc_mem_out
-  mcache.io.sc_mem_in <> ssram.io.sc_mem_in
+  mcache.io.ocp_port <> ssram.io.ocp_port
 
+  //chisel simulation for ssram... would be nice to implement it only in the tester unit...
   val extmemssram = new ExtSsram(fileName)
   ssram.io.ram_out <> extmemssram.io.ram_out
   ssram.io.ram_in <> extmemssram.io.ram_in
-  //external memory (old) connections
-  /*val extmemrom = new ExtMemROM(fileName)
-   mcache.io.extmem_in <> extmemrom.io.extmem_in
-   mcache.io.extmem_out <> extmemrom.io.extmem_out*/
 
   val fetch = new MCFetch()
   val decode = new Decode()
@@ -124,19 +120,8 @@ class MCPatmos(fileName: String) extends Component {
   // TODO: to be replaced with a connection to external memory
   val globMem = new Spm(1 << DSPM_BITS)
   memory.io.globalInOut <> globMem.io
-
-  // Stall ever n clock cycles for testing the pipeline
-  /*def pulse() = {
-    val x = Reg(resetVal = UFix(0, 8))
-    x := Mux(x === UFix(100), UFix(0), x + UFix(1))
-    x === UFix(100)
-  }
-  val enable = !pulse()
-  // disable stall tests
-  //  val enable = Bool(true)
-  */ 
+ 
   val enable = mcache.io.mcache_out.hit
-
   fetch.io.ena := enable
   decode.io.ena := enable
   execute.io.ena := enable
@@ -147,61 +132,12 @@ class MCPatmos(fileName: String) extends Component {
   io.uartPins <> iocomp.io.uartPins
   io.led <> Cat(memory.io.ena, iocomp.io.ledPins)
 
-  /*
-  //for debugging on target a led counter
-  val led_counter = Reg(resetVal = UFix(0, 32))
-  val CNT_MAX = UFix(4)
-  val led_output = Reg(resetVal = UFix(0, 1))    
-  led_counter := led_counter + UFix(1)
-  when (led_counter === CNT_MAX) {
-    led_counter := UFix(0)
-    led_output := ~led_output
-  }
-  io.led := led_output
-  */
-
   // ***** the following code is not really Patmos code ******
 
   // Dummy output, which is ignored in the top level VHDL code, to
   // keep Chisel happy with unused signals
   io.dummy := Reg(memory.io.memwb.pc)
 }
-
-// this testing and main file should go into it's own folder
-/*
-class PatmosTest(pat: Patmos) extends Tester(pat,
-  Array(pat.io, pat.decode.io, pat.decode.rf.io, pat.memory.io, pat.execute.io) //    Array(pat.io, pat.fetch.io,
-  //    pat.decode.io, pat.execute.io, pat.memory.io, pat.writeback.io)
-  ) {
-
-  defTests {
-    val ret = true
-    val vars = new HashMap[Node, Node]()
-    val ovars = new HashMap[Node, Node]()
-
-	println("Patmos start")
-
-    for (i <- 0 until 100) {
-      vars.clear
-      step(vars, ovars, false) // false as third argument disables printout
-      // The PC printout is a little off on a branch
-      val pc = ovars(pat.memory.io.memwb.pc).litValue() - 2
-      // println(ovars(pat.io.led).litValue())
-      print(pc + " - ")
-      for (j <- 0 until 32)
-        print(ovars(pat.decode.rf.io.rfDebug(j)).litValue() + " ")
-      println()
-      //      println("iter: " + i)
-      //      println("ovars: " + ovars)
-      //      println("led/litVal " + ovars(pat.io.led).litValue())
-      //      println("pc: " + ovars(pat.fetch.io.fedec.pc).litValue())
-      //      println("instr: " + ovars(pat.fetch.io.fedec.instr_a).litValue())
-      //      println("pc decode: " + ovars(pat.decode.io.decex.pc).litValue())
-    }
-    ret
-  }
-}
- */
 
 /*
  test mcache connected to fetch stage

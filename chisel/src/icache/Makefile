@@ -5,7 +5,7 @@ SBT = java -Xmx1024M -Xss8M -XX:MaxPermSize=2G -jar sbt/sbt-launch.jar
 hdldir=cache_generated
 simdir=cache_emulator
 basedir=../../
-binfile=/Users/phell/work/pclang_files/patmos_in
+binfile=/Users/phell/work/method_cache/pclang_files/patmos_in
 
 # what is --checkPorts?
 SBTARGS_SIM = --backend c --vcd --compile --debug --test --targetDir $(simdir) --genHarness
@@ -36,7 +36,7 @@ msim:
 	cd $(basedir); $(SBT) "run-main $(DIR)$(MCACHEMAIN) $(binfile) $(SBTARGS_SIM)"
 
 ssram:
-	cd $(basedir); $(SBT) "run-main $(SSRAMMAIN) $(binfile) $(SBTARGS_HDL)"
+	cd $(basedir); $(SBT) "run-main $(SSRAMMAIN) $(SBTARGS_HDL)"
 
 ssramsim:
 	cd $(basedir); $(SBT) "run-main $(DIR)$(SSRAMMAIN) $(binfile) $(SBTARGS_SIM)"
