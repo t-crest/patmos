@@ -1377,8 +1377,10 @@ namespace patmos
                                                 stack_spill, stack_top)) \
       { \
         s.pipeline_stall(SMW); \
+        ops.DR_Ss = stack_spill; \
+        ops.DR_St = stack_top; \
       } \
-      if (ops.DR_Pred) { \
+      else if (ops.DR_Pred) { \
         s.SPR.set(ss, stack_spill); \
         s.SPR.set(st, stack_top); \
       } \
@@ -1422,8 +1424,10 @@ namespace patmos
                                                 stack_spill, stack_top)) \
       { \
         s.pipeline_stall(SMW); \
+        ops.DR_Ss = stack_spill; \
+        ops.DR_St = stack_top; \
       } \
-      if (ops.DR_Pred) { \
+      else if (ops.DR_Pred) { \
         s.SPR.set(ss, stack_spill); \
         s.SPR.set(st, stack_top); \
       } \
