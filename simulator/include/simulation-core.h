@@ -229,6 +229,10 @@ namespace patmos
     /// stalled.
     void pipeline_stall(Pipeline_t pst);
 
+    /// Check if the given pipeline stage is currently stalled, either by
+    /// itself or any following stage.
+    bool is_stalling(Pipeline_t pst) const;
+
     /// Track retiring instructions for stats.
     void track_retiring_instructions();
 

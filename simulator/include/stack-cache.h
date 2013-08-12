@@ -415,7 +415,7 @@ namespace patmos
         {
           assert(Num_transfer_blocks == 0);
 
-          // unsure that the stack cache size is not exceeded
+          // ensure that the stack cache size is not exceeded
           if (size_blocks > Num_blocks)
           {
             simulation_exception_t::stack_exceeded();
@@ -563,7 +563,7 @@ namespace patmos
         {
           assert(Num_transfer_blocks == 0);
 
-          // unsure that the stack cache size is not exceeded
+          // ensure that the stack cache size is not exceeded
           if (size_blocks > Num_blocks)
           {
             simulation_exception_t::stack_exceeded();

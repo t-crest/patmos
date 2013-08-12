@@ -1378,8 +1378,18 @@ namespace patmos
       { \
         s.pipeline_stall(SMW); \
       } \
-      s.SPR.set(ss, stack_spill); \
-      s.SPR.set(st, stack_top); \
+      if (ops.DR_Pred) { \
+        s.SPR.set(ss, stack_spill); \
+        s.SPR.set(st, stack_top); \
+      } \
+    } \
+    virtual void print_operands(const simulator_t &s, std::ostream &os, \
+                                const instruction_data_t &ops, \
+                                const symbol_map_t &symbols) const \
+    { \
+      printSPReg(os, "in: ", ss, ops.DR_Ss); \
+      printSPReg(os, ", "  , st, ops.DR_St); \
+      os << ", size: " << s.Stack_cache.size(); \
     } \
   };
 
@@ -1413,14 +1423,19 @@ namespace patmos
       { \
         s.pipeline_stall(SMW); \
       } \
-      s.SPR.set(ss, stack_spill); \
-      s.SPR.set(st, stack_top); \
+      if (ops.DR_Pred) { \
+        s.SPR.set(ss, stack_spill); \
+        s.SPR.set(st, stack_top); \
+      } \
     } \
     virtual void print_operands(const simulator_t &s, std::ostream &os, \
                        const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
     { \
-      printGPReg(os, "in: " , ops.OPS.STCr.Rs, ops.EX_Rs); \
+      printGPReg(os, "in: ", ops.OPS.STCr.Rs, ops.EX_Rs); \
+      printSPReg(os, ", "  , ss, ops.DR_Ss); \
+      printSPReg(os, ", "  , st, ops.DR_St); \
+      os << ", size: " << s.Stack_cache.size(); \
     } \
   };
 

@@ -126,7 +126,10 @@ namespace patmos
     Stall = std::max(Stall, pst);
   }
 
-
+  bool simulator_t::is_stalling(Pipeline_t pst) const
+  {
+    return Stall >= pst;
+  }
 
   void simulator_t::track_retiring_instructions()
   {
@@ -334,7 +337,7 @@ namespace patmos
         // if we are stalling in MW, reset the bypass in EX so that it can be
         // filled by the stalled EX stage again (needs to be done for all
         // stalled bypasses).
-        if (Stall > SEX) {
+        if (is_stalling(SEX)) {
           for(unsigned int i = 0; i < NUM_SLOTS; i++)
           {
             Pipeline[SEX][i].GPR_EX_Rd.reset();
@@ -469,9 +472,15 @@ namespace patmos
       os << boost::format("%1$08x %2$9d %3% %|75t|") 
                    % Pipeline[stage][0].Address % Cycle % oss.str();
 
-      for(unsigned int i = 0; i < NUM_SLOTS; i++) {
-        if (i != 0) os << " || ";
-        Pipeline[stage][i].print_operands(*this, os, Symbols);
+      if (is_stalling(stage)) {
+        // Avoid peeking into memory while memory stage is still working by
+        // not printing out operands in this case
+        os << "stalling";
+      } else {
+        for(unsigned int i = 0; i < NUM_SLOTS; i++) {
+          if (i != 0) os << " || ";
+          Pipeline[stage][i].print_operands(*this, os, Symbols);
+        }
       }
 
       os << "\n";      
