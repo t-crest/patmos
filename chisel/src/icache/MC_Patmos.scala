@@ -68,18 +68,11 @@ class MCPatmos(fileName: String) extends Component {
     val dummy = Bits(OUTPUT, 32)
     val led = Bits(OUTPUT, 8)
     val uartPins = new UartPinIO()
+    //val sramPins = new RamOutPinsIO() 
   }
 
-  //new mcache classes
   val mcache = new MCache()
-
-  //TODO: move this to mcache not needed in patmos.scala
-  val mcachemem = new MCacheMem(method_count = 4, replacement = FIFO_REPL, block_arrangement = VARIABLE_SIZE)
   val ssram = new SsramBurstRW()
-  mcache.io.mcachemem_in <> mcachemem.io.mcachemem_in
-  mcache.io.mcachemem_out <> mcachemem.io.mcachemem_out
-  mcache.io.ocp_port <> ssram.io.ocp_port
-
   //chisel simulation for ssram... would be nice to implement it only in the tester unit...
   val extmemssram = new ExtSsram(fileName)
   ssram.io.ram_out <> extmemssram.io.ram_out
@@ -92,9 +85,14 @@ class MCPatmos(fileName: String) extends Component {
   val writeback = new WriteBack()
   val iocomp = new InOut()
 
-  //connect to fetch stage
+  //feed ssram to ouput pins of top level
+  // ssram.io.ram_out <> io.sramPins.ram_out
+  // ssram.io.ram_in <> io.sramPins.ram_in
+
+  //connect mcache
   mcache.io.mcache_in <> fetch.io.mcache_in
   mcache.io.mcache_out <> fetch.io.mcache_out
+  mcache.io.ocp_port <> ssram.io.ocp_port
 
   decode.io.fedec <> fetch.io.fedec
   execute.io.decex <> decode.io.decex
@@ -142,7 +140,7 @@ class MCPatmos(fileName: String) extends Component {
 /*
  test mcache connected to fetch stage
 */
-class PatmosMCacheTest(c: MCPatmos) extends Tester(c, Array(c.io)) {
+class PatmosMCacheTest(c: MCPatmos, fileName: String) extends Tester(c, Array(c.io)) {
   defTests {
     var allGood = true
     val vars = new HashMap[Node, Node]()
@@ -150,12 +148,17 @@ class PatmosMCacheTest(c: MCPatmos) extends Tester(c, Array(c.io)) {
     var init = false
     var end_simulation = false
 
+    // val extmemssram = new ExtSsram(fileName)
+    // c.io.sramPins.ram_out <> extmemssram.io.ram_out
+    // c.io.sramPins.ram_in <> extmemssram.io.ram_in
+
     vars.clear()
     ovars.clear()
     while (end_simulation != true) {
       if (init == false) {
         for (i <- 0 until 4) {
           println("INIT")
+          println(fileName)
         }
         init = true
       }
@@ -184,6 +187,6 @@ object MCPatmosMain {
     // Use first argument for the program name (.bin file)
     val chiselArgs = args.slice(1, args.length)
     val file = args(0) + ".bin"
-    chiselMainTest(chiselArgs, () => new MCPatmos(file)) { f => new PatmosMCacheTest(f) }
+    chiselMainTest(chiselArgs, () => new MCPatmos(file)) { f => new PatmosMCacheTest(f, file) }
   }
 }

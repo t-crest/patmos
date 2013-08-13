@@ -79,6 +79,15 @@ class RamOutType extends Bundle() {
   val nadv = Bits(width = 1)
   val dout = Bits(width = 32)
 }
+class RamOutPinsIO extends Bundle() {
+  val ram_out = new RamOutType().asOutput
+  val ram_in = new RamInType().asInput
+}
+class RamInPinsIO extends Bundle() {
+  val ram_out = new RamOutType().asInput
+  val ram_in = new RamInType().asOutput
+}
+
 class SsramIOBurst extends Bundle() {
   val ocp_port = new OcpBurstSlavePort(19, 32, 4)
   val ram_out = new RamOutType().asOutput
@@ -126,6 +135,7 @@ class SsramBurstRW (
   burst_cnt := UFix(1)
 
   //catch inputs
+
   when (io.ocp_port.M.Cmd === OcpCmd.RD || io.ocp_port.M.Cmd === OcpCmd.WR) {
     address := io.ocp_port.M.Addr
   }
@@ -248,12 +258,8 @@ object SsramMain {
  External Memory, only to simulate a SSRAM in Chisel as a on-chip memory implementation
  and reading some data from binary to memory vector
 */
-class ExtSsramIO extends Bundle() {
-  val ram_out = new RamOutType().asInput
-  val ram_in = new RamInType().asOutput
-}
 class ExtSsram(fileName : String) extends Component {
-  val io = new ExtSsramIO()
+  val io = new RamInPinsIO()
 
   //on chip memory instance
   val ssram_extmem = Vec(2 * MCACHE_SIZE) {Bits(width = 32)} //bus width = 32
