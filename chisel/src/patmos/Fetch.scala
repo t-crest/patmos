@@ -101,7 +101,7 @@ class Fetch(fileName: String) extends Component {
   val instr_b = Mux(pc(0) === Bits(0), data_odd, data_even)
 
   val b_valid = instr_a(31) === Bits(1)
-  val pc_cont = pc + Mux(b_valid, UFix(2), UFix(1))
+  val pc_cont = Mux(b_valid, pc + UFix(2), pc + UFix(1))
   val pc_next =
     Mux(io.memfe.doCallRet, io.memfe.callRetPc,
       Mux(io.exfe.doBranch, io.exfe.branchPc,
