@@ -219,6 +219,18 @@ class Decode() extends Component {
 		// TODO: ignored for now
 		decoded := Bool(true)
 	  }
+	  is(STC_SENSR) {
+		// TODO: ignored for now
+		decoded := Bool(true)
+	  }
+	  is(STC_SSPILL) {
+		// TODO: ignored for now
+		decoded := Bool(true)
+	  }
+	  is(STC_SSPILLR) {
+		// TODO: ignored for now
+		decoded := Bool(true)
+	  }
 	}
   }
   // Control-flow operations

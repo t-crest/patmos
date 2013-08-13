@@ -170,7 +170,11 @@ object Constants {
   val SPEC_SXB = Bits("b1010")
   val SPEC_SXO = Bits("b1011")
 
-  val STC_SRES  = Bits("b0000")
-  val STC_SENS  = Bits("b0100")
-  val STC_SFREE = Bits("b1000")
+  val STC_SRES   = Bits("b0000")
+  val STC_SENS   = Bits("b0100")
+  val STC_SFREE  = Bits("b1000")
+  val STC_SSPILL = Bits("b1100")
+
+  val STC_SENSR   = Bits("b0101")
+  val STC_SSPILLR = Bits("b1101")
 }
