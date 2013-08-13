@@ -272,6 +272,15 @@ except for (sub)functions that do not have calls inside, can be changed easily).
 that there are problems when the interrupt appears between the \texttt{call} and the \texttt{ldi} that sets 
 \texttt{r30} (they cannot be bundled), and a scheduler might further move the load around.}
 
+\wolf{The latter issue is exactly the problem. The hardware needs to
+  keep track of the base whenever a \texttt{call}, \texttt{brcf} or
+  \texttt{ret} is executed to be able to return from interrupts at any
+  time. The question is if we move the current base to a visible
+  register upon calls to serve as return base. It is not necessary,
+  but why keep track of the base both in hardware and in software?
+  Note that the hardware does not need to expose the current base,
+  only the return base would be made visible.}
+
 \subsubsection{Costs and Benefits}
 
 For functions that call other functions, the change saves one
@@ -295,6 +304,11 @@ At the moment we could also use \texttt{ret} for the same purpose, but this has 
 (needs compiler support to tell the WCET analysis which \texttt{ret} is actually used as return), and it
 does not work nicely if we change \texttt{ret} to use special registers.}
 
+\wolf{If I understand correctly, indirect \texttt{brcf} would then do
+  exactly the same thing as \texttt{ret} does currently, except that
+  it gets a different opcode. I don't see a problem with that from the
+  hardware perspective.}
+
 \subsubsection{Costs and Benefits}
 
 Much of the complexity and restrictions of the function splitter are eliminated (jump tables
@@ -307,6 +321,8 @@ Note that as long only \texttt{r0} is used for the offset, no changes to the com
 
 \stefan{It also moves \texttt{brcf} from \texttt{CFLi} to \texttt{CFLr}, which makes the naming of the formats less intuitive 
 (although having \texttt{CFLi} for register operands is not good anyway, as we usually use \texttt{i} for immediate).}
+
+\wolf{I guess the naming of the formats is not our biggest concern ;-)}
 
 \subsection{Revised Branch Addressing Modes}
 
@@ -431,13 +447,31 @@ cache.
 
 \stefan{I am kind of OK-ish with changing brcf immediate to absolute, if it is absolutely necessary (assuming that we do not need to address
 code above 16MB, otherwise we cannot use an immediate absolute brcf!), though I do not really want to touch that code in the tool chain and 
-loose compatibility with a3 again (if someone else takes care of all that, feel free to go ahead though ;) ). 
+loose compatibility with a3 again (if someone else takes care of all that, feel free to go ahead though ;) ).}
 
-However, I strongly oppose changing any of the indirect branches to anything else than absolute, it makes quite a mess 
+\wolf{Regarding the size limitation: If the code grows above 16MB, we
+  have to issue indirect calls as well. I don't see a real problem
+  with issuing indirect \texttt{brcfs} in that case (there is a
+  reserved scratch register somewhere, right?). The change in the tool
+  chain is -- unless I am missing something big -- roughly 5 lines of
+  code to give the instruction a different relocation type. Losing
+  compatibility with a3 is an issue, but my guess would be that the
+  changes on their side are similarly simple.}
+
+\stefan{However, I strongly oppose changing any of the indirect branches to anything else than absolute, it makes quite a mess 
 in the compiler backend and the linker (and probably the analysis). The problem here are jump tables, which are 
 kind of outside of the function and have no clear reference to the function, making the calculation of any base offset in the linker quite
 complicated (you need to introduce a new relocation type, change the relocation type of the jump table symbols depending on the way they are
 used, and calculate the symbol value in the linker by finding the (already relocated!) surrounding sub-function symbol).}
+
+\wolf{The base-relative address difference does not need ``real''
+  relocation, because basic blocks always have the same distance to
+  the function entry. Everything you need in the linker is already
+  there for the \texttt{.fsize} and \texttt{.size} directives. I am
+  not sure how much trouble it is to have LLVM emit the difference of
+  two symbols for jump tables, but it is definitely possible. That
+  being said, I could live with leaving indirect branches as they are,
+  I just don't think that it's the most efficient solution.}
 
 \subsection{Non-delayed Branches}
 
@@ -459,6 +493,12 @@ prediction to further improve both performance and WCET bounds.
 \stefan{But this would introduce the need to take care of exceptions in hardware that might
 arise due to a mis-predicted branch, e.g., due to a load at the beginning of
 the fallthrough target, right?}
+
+\wolf{Nope. A mispredicted branch is detected in the execute stage and
+  flushes the instructions that are currently in the fetch and the
+  decode stage. The flushed instructions never make it to the execute
+  stage, which would be the earliest place where any effect could
+  become visible.}
 
 \subsection{Interrupts and Exceptions}
 
