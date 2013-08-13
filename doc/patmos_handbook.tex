@@ -263,6 +263,15 @@ could be replaced by an appropriate special return base register
 the functionality of register \texttt{r31} to a special register
 \texttt{so} to free up another general-purpose register.
 
+\stefan{This is actually how we had it in the first ISA version, but Martin wanted to get rid of 
+the special registers.. ;) }
+
+\stefan{Note that we could still make this part of the ABI: we can simply require that \texttt{r30} is 
+never used for something else and must always contain the valid base address (this is the case at the moment 
+except for (sub)functions that do not have calls inside, can be changed easily). The bigger issue I see is
+that there are problems when the interrupt appears between the \texttt{call} and the \texttt{ldi} that sets 
+\texttt{r30} (they cannot be bundled), and a scheduler might further move the load around.}
+
 \subsubsection{Costs and Benefits}
 
 For functions that call other functions, the change saves one
@@ -270,6 +279,34 @@ instruction to set the base address, and adds two instructions to both
 the prologue and the epilogue. On the other hand, the change frees up
 two general-purpose registers, which can avoid spilling and lead to
 more efficient code.
+
+\stefan{It also saves some logic in the function splitter to calculate
+the code size increase due to the requirement to set the base address in all
+new sub-functions that contain a call.}
+
+\subsection{Branch into Subfunction Instruction}
+
+\stefan{In order to eliminate the current restriction of having only single-entry subfunctions, 
+I would suggest to make \texttt{brcf} indirect accept both an (absolute) base address, as well 
+as an offset. Using \texttt{r0} for the offset makes \texttt{brcf} behave similar to now. 
+
+At the moment we could also use \texttt{ret} for the same purpose, but this has two disadvantages:
+\texttt{call} and \texttt{ret} would no longer appear in pairs, making call graph reconstruction more complicated 
+(needs compiler support to tell the WCET analysis which \texttt{ret} is actually used as return), and it
+does not work nicely if we change \texttt{ret} to use special registers.}
+
+\subsubsection{Costs and Benefits}
+
+Much of the complexity and restrictions of the function splitter are eliminated (jump tables
+still have to be handled carefully, though we in theory we could even support having jump table entries 
+anywhere in any region), without resorting to misuse \texttt{ret}. It works regardless of whether return information
+is stored in special registers or GPRs.
+
+To make use of this feature, the function splitter needs a major rewrite though. 
+Note that as long only \texttt{r0} is used for the offset, no changes to the compiler or the WCET analysis are required.
+
+\stefan{It also moves \texttt{brcf} from \texttt{CFLi} to \texttt{CFLr}, which makes the naming of the formats less intuitive 
+(although having \texttt{CFLi} for register operands is not good anyway, as we usually use \texttt{i} for immediate).}
 
 \subsection{Revised Branch Addressing Modes}
 
@@ -392,6 +429,16 @@ fetch stage. Of the three variants, the addition \code{addr+coff} is
 to the guaranteed alignment of functions to cache blocks in the method
 cache.
 
+\stefan{I am kind of OK-ish with changing brcf immediate to absolute, if it is absolutely necessary (assuming that we do not need to address
+code above 16MB, otherwise we cannot use an immediate absolute brcf!), though I do not really want to touch that code in the tool chain and 
+loose compatibility with a3 again (if someone else takes care of all that, feel free to go ahead though ;) ). 
+
+However, I strongly oppose changing any of the indirect branches to anything else than absolute, it makes quite a mess 
+in the compiler backend and the linker (and probably the analysis). The problem here are jump tables, which are 
+kind of outside of the function and have no clear reference to the function, making the calculation of any base offset in the linker quite
+complicated (you need to introduce a new relocation type, change the relocation type of the jump table symbols depending on the way they are
+used, and calculate the symbol value in the linker by finding the (already relocated!) surrounding sub-function symbol).}
+
 \subsection{Non-delayed Branches}
 
 Delayed branches are a good means to hide the costs of branching.
@@ -408,6 +455,10 @@ towards time-predictable branch-prediction schemes. Depending on our
 future findings, predict-not-taken could be replaced by
 predict-backward-taken or time-predictable forms of dynamic branch
 prediction to further improve both performance and WCET bounds.
+
+\stefan{But this would introduce the need to take care of exceptions in hardware that might
+arise due to a mis-predicted branch, e.g., due to a load at the beginning of
+the fallthrough target, right?}
 
 \subsection{Interrupts and Exceptions}
 
@@ -455,6 +506,10 @@ stall the pipeline.
 
 Write result into destination register.
 
+\stefan{Note that in the \texttt{pasim} simulator the Memory and Write Back stages are merged into a single MW stage at the time of writing,
+and the stages are simulated from back to front.
+While this has no effect on the timing and hazards of the instructions, there is only a single bypass from MW to EX (per pipeline). Apart
+from that, all implementations of all instructions in the simulator should adhere to the above description of the stages.}
 
 \begin{figure}
     \centering
@@ -493,6 +548,9 @@ register.
 Every non-obvious register, such as method base, shall be mapped to a
 `special' register. Even the current PC on an interrupt shall end up in a
 register that is mapped into the special register domain.}
+
+\stefan{Umm .. it would be really good to define somewhere in which stages which special register is actually read or written by mfs/mts
+;).}
 
 So all-in-all the recoverable process state is: general-purpose registers
 \code{R}, the predicates \code{P}, and a collection of various processor
@@ -1963,6 +2021,21 @@ in both slots and write to it, ... }
 Wolfgang has implemented ALU and predicate operations in both
 pipelines. More details shall be described.}
 
+\stefan{Is MFS/MTS allowed in both pipelines (and at the same time)? Should be helpful for prologue/epiloge code,
+especially when we move return infos back to special registers.}
+
+\stefan{I know the hardware folks will hate me for this, but: we could allow stack cache access to happen
+in the second pipeline, provided that there is no stack cache access in the first pipeline. 
+The rationale for this is that we can still do spilling, maybe even data scratchpad access
+in the second pipeline while the first pipeline is accessing main memory or doing control flow, 
+without the need to double-clock the stack cache, and we can schedule mutually exclusive 
+speculative execution paths (more) in parallel. 
+
+I frankly do not know how much this will actually gain since usually the code contains either
+main memory access or stack access, not a mixture of both, and we need a proper scheduler and if-converter first to
+see how much ILP we can get out of the code.}
+
+
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 \section{Assembly Format}
 
@@ -3114,12 +3187,6 @@ A function can be split into several sub-functions. The program is only allowed 
 \texttt{br} to jump within the same sub-function. To enter a different sub-function,
 \texttt{brcf} must be used. It can only be used to jump to the first instruction of a 
 sub-function.
-
-\stefan{Actually, we could use \texttt{ret} to jump \emph{into} subfunctions,
-but we want \texttt{ret} to be paired with \texttt{call} for the analysis, so
-we should not do that. We could define \texttt{brcf} indirect with an additional
-offset register though, or just emit an indirect branch as first instruction in a
-subfunction as trampoline, but that costs additional cycles and code size (should be quite rare though).}
 
 In contrast to \texttt{call}, \texttt{brcf} does not provide link information.
 Executing \texttt{ret} in a sub-function will therefore return to the last \texttt{call}, not to the last \texttt{brcf}.
