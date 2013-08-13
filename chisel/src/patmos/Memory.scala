@@ -128,6 +128,9 @@ class Memory() extends Component {
   io.globalInOut.M.Addr := Cat(io.exmem.mem.addr(ADDR_WIDTH-1, 2), Bits("b00"))
   io.globalInOut.M.Data := Cat(wrData(3), wrData(2), wrData(1), wrData(0))
   io.globalInOut.M.ByteEn := byteEn
+  io.globalInOut.M.AddrSpace := Mux(io.exmem.mem.typ === MTYPE_S, OcpCache.STACK_CACHE,
+									Mux(io.exmem.mem.typ === MTYPE_C, OcpCache.DATA_CACHE,
+										OcpCache.UNCACHED))
 
   def splitData(word: Bits) = {
 	val retval = Vec(BYTES_PER_WORD) { Bits(width = BYTE_WIDTH) }

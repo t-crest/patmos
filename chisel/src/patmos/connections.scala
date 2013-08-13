@@ -333,7 +333,7 @@ class MemoryIO() extends Bundle() {
   val exResult = Vec(PIPE_COUNT) { new Result().asOutput }
   // local and global accesses
   val localInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
-  val globalInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
+  val globalInOut = new OcpCacheMasterPort(ADDR_WIDTH, DATA_WIDTH)
 }
 
 class WriteBackIO() extends Bundle() {
