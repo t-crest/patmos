@@ -51,12 +51,12 @@ class Memory() extends Component {
   val io = new MemoryIO()
 
   // Stall logic
-  val stall = Reg(Bool(), resetVal = Bool(false))
-  val enable = Mux(stall, (io.localInOut.S.Resp === OcpResp.DVA
+  val mayStall = Reg(io.exmem.mem.load || io.exmem.mem.store,
+    resetVal = Bool(false))
+  val enable = Mux(mayStall, (io.localInOut.S.Resp === OcpResp.DVA
 						   || io.globalInOut.S.Resp === OcpResp.DVA),
 				   Bool(true))
-  stall := io.exmem.mem.load || io.exmem.mem.store
-  io.ena := enable
+  io.ena := enable // stall = !enable
 
   // Register from execution stage
   val memReg = Reg(new ExMem(), resetVal = ExMemResetVal)
@@ -70,7 +70,7 @@ class Memory() extends Component {
   // default is word store
   val wrData = Vec(BYTES_PER_WORD) { Bits(width = BYTE_WIDTH) }
   for (i <- 0 until BYTES_PER_WORD) {
-	wrData(i) := io.exmem.mem.data((i+1)*BYTE_WIDTH-1, i*BYTE_WIDTH)
+    wrData(i) := io.exmem.mem.data((i+1)*BYTE_WIDTH-1, i*BYTE_WIDTH)
   }
   val byteEn = Bits(width = BYTES_PER_WORD)
   byteEn := Bits("b1111")  
