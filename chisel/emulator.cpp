@@ -137,42 +137,8 @@ static void print_state(Patmos_t *c) {
 	sval_t pc = c->Patmos_memory__io_memwb_pc.to_ulong();
 	*out << (pc - 2) << " - ";
 
-	sval_t rf [32];
-	rf[0] = c->Patmos_decode_rf__rfReg_0.to_ulong();
-	rf[1] = c->Patmos_decode_rf__rfReg_1.to_ulong();
-	rf[2] = c->Patmos_decode_rf__rfReg_2.to_ulong();
-	rf[3] = c->Patmos_decode_rf__rfReg_3.to_ulong();
-	rf[4] = c->Patmos_decode_rf__rfReg_4.to_ulong();
-	rf[5] = c->Patmos_decode_rf__rfReg_5.to_ulong();
-	rf[6] = c->Patmos_decode_rf__rfReg_6.to_ulong();
-	rf[7] = c->Patmos_decode_rf__rfReg_7.to_ulong();
-	rf[8] = c->Patmos_decode_rf__rfReg_8.to_ulong();
-	rf[9] = c->Patmos_decode_rf__rfReg_9.to_ulong();
-	rf[10] = c->Patmos_decode_rf__rfReg_10.to_ulong();
-	rf[11] = c->Patmos_decode_rf__rfReg_11.to_ulong();
-	rf[12] = c->Patmos_decode_rf__rfReg_12.to_ulong();
-	rf[13] = c->Patmos_decode_rf__rfReg_13.to_ulong();
-	rf[14] = c->Patmos_decode_rf__rfReg_14.to_ulong();
-	rf[15] = c->Patmos_decode_rf__rfReg_15.to_ulong();
-	rf[16] = c->Patmos_decode_rf__rfReg_16.to_ulong();
-	rf[17] = c->Patmos_decode_rf__rfReg_17.to_ulong();
-	rf[18] = c->Patmos_decode_rf__rfReg_18.to_ulong();
-	rf[19] = c->Patmos_decode_rf__rfReg_19.to_ulong();
-	rf[20] = c->Patmos_decode_rf__rfReg_20.to_ulong();
-	rf[21] = c->Patmos_decode_rf__rfReg_21.to_ulong();
-	rf[22] = c->Patmos_decode_rf__rfReg_22.to_ulong();
-	rf[23] = c->Patmos_decode_rf__rfReg_23.to_ulong();
-	rf[24] = c->Patmos_decode_rf__rfReg_24.to_ulong();
-	rf[25] = c->Patmos_decode_rf__rfReg_25.to_ulong();
-	rf[26] = c->Patmos_decode_rf__rfReg_26.to_ulong();
-	rf[27] = c->Patmos_decode_rf__rfReg_27.to_ulong();
-	rf[28] = c->Patmos_decode_rf__rfReg_28.to_ulong();
-	rf[29] = c->Patmos_decode_rf__rfReg_29.to_ulong();
-	rf[30] = c->Patmos_decode_rf__rfReg_30.to_ulong();
-	rf[31] = c->Patmos_decode_rf__rfReg_31.to_ulong();
-
-	for (int i = 0; i < 32; i++) {
-	  *out << rf[i] << " ";
+	for (unsigned i = 0; i < 32; i++) {
+	  *out << c->Patmos_decode_rf__rf.get(i).to_ulong() << " ";
 	}
 
 	*out << endl;
@@ -300,5 +266,5 @@ int main (int argc, char* argv[]) {
   }
 
   // Pass on return value from processor
-  return c->Patmos_decode_rf__rfReg_1.to_ulong();
+  return c->Patmos_decode_rf__rf.get(1).to_ulong();
 }

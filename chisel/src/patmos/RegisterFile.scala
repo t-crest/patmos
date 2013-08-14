@@ -49,10 +49,8 @@ import Constants._
 class RegisterFile() extends Component {
   val io = new RegFileIO()
 
-  // val rf = Vec(REG_COUNT){ Reg() { Bits(width = DATA_WIDTH) } }
-  // the reset version generates more logic and a slower fmax
-  // Probably due to the synchronous reset
-  val rfReg = Vec(REG_COUNT) { Reg(resetVal = Bits(0, width = DATA_WIDTH)) }
+  // Using Mem (instead of Vec) leads to smaller HW for single-issue config
+  val rf = Mem(REG_COUNT) { Bits(width = DATA_WIDTH) }
 
   // We are registering the inputs here, similar as it would
   // be with an on-chip memory for the register file
@@ -79,23 +77,27 @@ class RegisterFile() extends Component {
 
   // RF internal forwarding
   for (i <- 0 until 2*PIPE_COUNT) {
-	io.rfRead.rsData(i) := rfReg(addrReg(i))
+	io.rfRead.rsData(i) := rf(addrReg(i))
 	for (k <- 0 until PIPE_COUNT) {
 	  when (fwReg(i)(k)) {
 		io.rfRead.rsData(i) := wrReg(k).data
 	  }
 	}
+	when(addrReg(i) === Bits(0)) {
+	  io.rfRead.rsData(i) := Bits(0)
+	}
   }
 
-  // R0 handling could be done here, in decode, or as part of forwarding.
-  // At the moment we are just happy with relying on the fact that the
-  // registers are reset and just disable writing to register 0
-  for (k <- 0 until PIPE_COUNT) {
+  // Don't care about R0 here: reads return zero and writes to
+  // register R0 are disabled in decode stage anyway
+  for (k <- (0 until PIPE_COUNT).reverse) {
 	when(wrReg(k).valid) {
-      rfReg(wrReg(k).addr.toUFix) := wrReg(k).data
+      rf(wrReg(k).addr.toUFix) := wrReg(k).data
 	}
   }
 
   // Output for co-simulation with pasim
-  io.rfDebug := rfReg
+  for(i <- 0 until REG_COUNT) {
+	io.rfDebug(i) := rf(Bits(i))
+  }
 }

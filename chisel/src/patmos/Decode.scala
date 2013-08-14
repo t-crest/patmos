@@ -52,8 +52,10 @@ class Decode() extends Component {
   // register file is connected with unregistered instruction word
   rf.io.rfRead.rsAddr(0) := io.fedec.instr_a(16, 12)
   rf.io.rfRead.rsAddr(1) := io.fedec.instr_a(11, 7)
-  rf.io.rfRead.rsAddr(2) := io.fedec.instr_b(16, 12)
-  rf.io.rfRead.rsAddr(3) := io.fedec.instr_b(11, 7)
+  if (PIPE_COUNT > 1) {
+	rf.io.rfRead.rsAddr(2) := io.fedec.instr_b(16, 12)
+	rf.io.rfRead.rsAddr(3) := io.fedec.instr_b(11, 7)
+  }
   rf.io.ena := io.ena
   // RF write from write back stage
   rf.io.rfWrite <> io.rfWrite
@@ -67,13 +69,17 @@ class Decode() extends Component {
   // forward RF addresses and data
   io.decex.rsAddr(0) := decReg.instr_a(16, 12)
   io.decex.rsAddr(1) := decReg.instr_a(11, 7)
-  io.decex.rsAddr(2) := decReg.instr_b(16, 12)
-  io.decex.rsAddr(3) := decReg.instr_b(11, 7)
+  if (PIPE_COUNT > 1) {
+	io.decex.rsAddr(2) := decReg.instr_b(16, 12)
+	io.decex.rsAddr(3) := decReg.instr_b(11, 7)
+  }
 
   io.decex.rsData(0) := rf.io.rfRead.rsData(0)
   io.decex.rsData(1) := rf.io.rfRead.rsData(1)
-  io.decex.rsData(2) := rf.io.rfRead.rsData(2)
-  io.decex.rsData(3) := rf.io.rfRead.rsData(3)
+  if (PIPE_COUNT > 1) {
+	io.decex.rsData(2) := rf.io.rfRead.rsData(2)
+	io.decex.rsData(3) := rf.io.rfRead.rsData(3)
+  }
   
 
   // Decoding of dual-issue operations
