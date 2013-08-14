@@ -136,7 +136,8 @@ class DecEx() extends Bundle() {
   val rdAddr = Vec(PIPE_COUNT) { Bits(width = REG_BITS) }
   val immVal = Vec(PIPE_COUNT) { Bits(width = DATA_WIDTH) }
   val immOp  = Vec(PIPE_COUNT) { Bool() }
-  val wrReg  = Vec(PIPE_COUNT) { Bool() }
+  // maybe we should have similar structure as the Result one here
+  val wrRd  = Vec(PIPE_COUNT) { Bool() }
 
   val callAddr = UFix(width = DATA_WIDTH)
   val call = Bool()
@@ -156,7 +157,7 @@ object DecExResetVal extends DecEx {
   rdAddr := Vec(PIPE_COUNT) { Bits(0) }
   immVal := Vec(PIPE_COUNT) { Bits(0) }
   immOp := Vec(PIPE_COUNT) { Bool(false) }
-  wrReg := Vec(PIPE_COUNT) { Bool(false) }
+  wrRd := Vec(PIPE_COUNT) { Bool(false) }
   callAddr := UFix(0)
   call := Bool(false)
   ret := Bool(false)

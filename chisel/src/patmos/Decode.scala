@@ -92,7 +92,7 @@ class Decode() extends Component {
 	io.decex.aluOp(i).isMTS := Bool(false)
 	io.decex.aluOp(i).isMFS := Bool(false)
 	io.decex.aluOp(i).isSTC := Bool(false)
-	io.decex.wrReg(i) := Bool(false)
+	io.decex.wrRd(i) := Bool(false)
 
 	// ALU register
 	io.decex.aluOp(i).func := instr(3, 0)
@@ -101,13 +101,13 @@ class Decode() extends Component {
 	when(opcode(4, 3) === OPCODE_ALUI) {
       io.decex.aluOp(i).func := Cat(Bits(0), instr(24, 22))
       io.decex.immOp(i) := isValid
-      io.decex.wrReg(i) := isValid
+      io.decex.wrRd(i) := isValid
 	}
 	// Other ALU
 	when(opcode === OPCODE_ALU) {
       switch(opc) {
-		is(OPC_ALUR) { io.decex.wrReg(i) := isValid }
-		is(OPC_ALUU) { io.decex.wrReg(i) := isValid }
+		is(OPC_ALUR) { io.decex.wrRd(i) := isValid }
+		is(OPC_ALUU) { io.decex.wrRd(i) := isValid }
 		is(OPC_ALUM) { io.decex.aluOp(i).isMul := isValid }
 		is(OPC_ALUC) { io.decex.aluOp(i).isCmp := isValid }
 		is(OPC_ALUP) { io.decex.aluOp(i).isPred := isValid }
@@ -121,7 +121,7 @@ class Decode() extends Component {
 		}
 		is(OPC_MFS) {
 		  io.decex.aluOp(i).isMFS := isValid
-		  io.decex.wrReg(i) := isValid
+		  io.decex.wrRd(i) := isValid
 		}
 	  }
 	}
@@ -189,7 +189,7 @@ class Decode() extends Component {
 	io.decex.aluOp(0).func := func
     io.decex.immOp(0) := Bool(true)
     longImm := Bool(true)
-    io.decex.wrReg(0) := Bool(true)
+    io.decex.wrRd(0) := Bool(true)
   }
   // Stack control
   when(opcode === OPCODE_STC) {
@@ -212,7 +212,7 @@ class Decode() extends Component {
   when(opcode === OPCODE_CFL_CALL) {
     io.decex.immOp(0) := Bool(true)
     io.decex.call := Bool(true)
-    io.decex.wrReg(0) := Bool(true)
+    io.decex.wrRd(0) := Bool(true)
 	dest := Bits("b11111")
   }
   when(opcode === OPCODE_CFL_BR) {
@@ -227,7 +227,7 @@ class Decode() extends Component {
 	switch(func) {
 	  is(JFUNC_CALL) {
 		io.decex.call := Bool(true)
-		io.decex.wrReg(0) := Bool(true)
+		io.decex.wrRd(0) := Bool(true)
 		dest := Bits("b11111")
 	  }
 	  is(JFUNC_BR) {
@@ -248,7 +248,7 @@ class Decode() extends Component {
   when(opcode === OPCODE_LDT) {
     isMem := Bool(true)
     io.decex.memOp.load := Bool(true)
-    io.decex.wrReg(0) := Bool(true)
+    io.decex.wrRd(0) := Bool(true)
     switch(ldsize) {
       is(MSIZE_W) {
         shamt := UFix(2)
@@ -330,7 +330,7 @@ class Decode() extends Component {
   // Disable register write on register 0
   for (i <- 0 until PIPE_COUNT) {
 	when(io.decex.rdAddr(i) === Bits("b00000")) {
-      io.decex.wrReg(i) := Bool(false)
+      io.decex.wrRd(i) := Bool(false)
 	}
   }
 }

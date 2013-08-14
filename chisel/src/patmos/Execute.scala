@@ -108,42 +108,42 @@ class Execute() extends Component {
   }
 
   // data forwarding
-  val fwMem = Vec(2*PIPE_COUNT) { Vec(PIPE_COUNT) { Reg(resetVal = Bool(false)) } }
-  val fwEx  = Vec(2*PIPE_COUNT) { Vec(PIPE_COUNT) { Reg(resetVal = Bool(false)) } }
-  val memResultData = Vec(PIPE_COUNT) { Reg(Bits(width = DATA_WIDTH)) }
-  val exResultData  = Vec(PIPE_COUNT) { Reg(Bits(width = DATA_WIDTH)) }
+  val fwMemReg = Vec(2*PIPE_COUNT) { Vec(PIPE_COUNT) { Reg(resetVal = Bool(false)) } }
+  val fwExReg  = Vec(2*PIPE_COUNT) { Vec(PIPE_COUNT) { Reg(resetVal = Bool(false)) } }
+  val memResultDataReg = Vec(PIPE_COUNT) { Reg(Bits(width = DATA_WIDTH)) }
+  val exResultDataReg  = Vec(PIPE_COUNT) { Reg(Bits(width = DATA_WIDTH)) }
   val op = Vec(2*PIPE_COUNT) { Bits(width = 32) }
 
   // precompute forwarding
   when (io.ena) {
 	for (i <- 0 until 2*PIPE_COUNT) { 
 	  for (k <- 0 until PIPE_COUNT) {
-		fwMem(i)(k) := Bool(false)
+		fwMemReg(i)(k) := Bool(false)
 		when(io.decex.rsAddr(i) === io.memResult(k).addr && io.memResult(k).valid) {
-		  fwMem(i)(k) := Bool(true)
+		  fwMemReg(i)(k) := Bool(true)
 		}
-		fwEx(i)(k) := Bool(false)
+		fwExReg(i)(k) := Bool(false)
 		when(io.decex.rsAddr(i) === io.exResult(k).addr && io.exResult(k).valid) {
-		  fwEx(i)(k) := Bool(true)
+		  fwExReg(i)(k) := Bool(true)
 		}
 	  }
 	}
 	for (k <- 0 until PIPE_COUNT) {
-	  memResultData(k) := io.memResult(k).data
-	  exResultData(k) := io.exResult(k).data
+	  memResultDataReg(k) := io.memResult(k).data
+	  exResultDataReg(k) := io.exResult(k).data
 	}
   }
   // forwarding multiplexers
   for (i <- 0 until 2*PIPE_COUNT) { 
 	op(i) := exReg.rsData(i)
 	for (k <- 0 until PIPE_COUNT) {
-	  when(fwMem(i)(k)) { 
-		op(i) := memResultData(k)
+	  when(fwMemReg(i)(k)) { 
+		op(i) := memResultDataReg(k)
 	  }
 	}
 	for (k <- 0 until PIPE_COUNT) {
-	  when(fwEx(i)(k)) { 
-		op(i) := exResultData(k)
+	  when(fwExReg(i)(k)) { 
+		op(i) := exResultDataReg(k)
 	  }
 	}
   }
@@ -167,24 +167,27 @@ class Execute() extends Component {
   val stackSpillReg = Reg(resetVal = UFix(0, DATA_WIDTH))
   io.exdec.sp := stackTopReg
 
-  // multiplication pipeline registers
+  // MS: maybe the multiplication should be in a local component?
+  
+  // multiplication result registers
   val mulLoReg = Reg(resetVal = UFix(0, DATA_WIDTH))
   val mulHiReg = Reg(resetVal = UFix(0, DATA_WIDTH))
 
-  val mulLL    = Reg(resetVal = UFix(0, DATA_WIDTH))
-  val mulLH    = Reg(resetVal = UFix(0, DATA_WIDTH))
-  val mulHL    = Reg(resetVal = UFix(0, DATA_WIDTH))
-  val mulHH    = Reg(resetVal = UFix(0, DATA_WIDTH))
+  // multiplication pipeline registers
+  val mulLLReg    = Reg(resetVal = UFix(0, DATA_WIDTH))
+  val mulLHReg    = Reg(resetVal = UFix(0, DATA_WIDTH))
+  val mulHLReg    = Reg(resetVal = UFix(0, DATA_WIDTH))
+  val mulHHReg    = Reg(resetVal = UFix(0, DATA_WIDTH))
 
-  val mulBuf = Reg(resetVal = UFix(0, 2*DATA_WIDTH))
+  val mulBufReg = Reg(resetVal = UFix(0, 2*DATA_WIDTH))
   
-  val mulPipe = Vec(3) { Reg(resetVal = Bool(false)) }
+  val mulPipeReg = Vec(3) { Reg(resetVal = Bool(false)) }
 
   // multiplication only in first pipeline
   when(io.ena) {
-	mulPipe(0) := exReg.aluOp(0).isMul && doExecute(0)
-	mulPipe(1) := mulPipe(0)
-	mulPipe(2) := mulPipe(1)
+	mulPipeReg(0) := exReg.aluOp(0).isMul && doExecute(0)
+	mulPipeReg(1) := mulPipeReg(0)
+	mulPipeReg(2) := mulPipeReg(1)
 
 	val signed = exReg.aluOp(0).func === MFUNC_MUL
 
@@ -193,27 +196,27 @@ class Execute() extends Component {
 	val op2H = op(1)(DATA_WIDTH-1, DATA_WIDTH/2)
 	val op2L = op(1)(DATA_WIDTH/2-1, 0)
 
-	mulLL := op1L.toUFix * op2L.toUFix
-	mulLH := op1L.toUFix * op2H.toUFix
-	mulHL := op1H.toUFix * op2L.toUFix
-	mulHH := op1H.toUFix * op2H.toUFix
+	mulLLReg := op1L.toUFix * op2L.toUFix
+	mulLHReg := op1L.toUFix * op2H.toUFix
+	mulHLReg := op1H.toUFix * op2L.toUFix
+	mulHHReg := op1H.toUFix * op2H.toUFix
 
 	when(signed) {
-	  mulLL := (op1L.toUFix * op2L.toUFix).toUFix
-	  mulLH := (op1L.toUFix * op2H.toFix).toUFix
-	  mulHL := (op1H.toFix * op2L.toUFix).toUFix
-	  mulHH := (op1H.toFix * op2H.toFix).toUFix
+	  mulLLReg := (op1L.toUFix * op2L.toUFix).toUFix
+	  mulLHReg := (op1L.toUFix * op2H.toFix).toUFix
+	  mulHLReg := (op1H.toFix * op2L.toUFix).toUFix
+	  mulHHReg := (op1H.toFix * op2H.toFix).toUFix
 	}
 
-	mulBuf := (Cat(mulHH, mulLL)
-			   + Cat(Fill(DATA_WIDTH/2, mulHL(DATA_WIDTH-1)),
-					 mulHL, UFix(0, width = DATA_WIDTH/2))
-			   + Cat(Fill(DATA_WIDTH/2, mulLH(DATA_WIDTH-1)),
-					 mulLH, UFix(0, width = DATA_WIDTH/2)))
+	mulBufReg := (Cat(mulHHReg, mulLLReg)
+			   + Cat(Fill(DATA_WIDTH/2, mulHLReg(DATA_WIDTH-1)),
+					 mulHLReg, UFix(0, width = DATA_WIDTH/2))
+			   + Cat(Fill(DATA_WIDTH/2, mulLHReg(DATA_WIDTH-1)),
+					 mulLHReg, UFix(0, width = DATA_WIDTH/2)))
 
-	when(mulPipe(1)) {
-	  mulHiReg := mulBuf(2*DATA_WIDTH-1, DATA_WIDTH)
-	  mulLoReg := mulBuf(DATA_WIDTH-1, 0)
+	when(mulPipeReg(1)) {
+	  mulHiReg := mulBufReg(2*DATA_WIDTH-1, DATA_WIDTH)
+	  mulLoReg := mulBufReg(DATA_WIDTH-1, 0)
 	}
   }
 
@@ -283,7 +286,7 @@ class Execute() extends Component {
 
 	// result
 	io.exmem.rd(i).addr := exReg.rdAddr(i)
-	io.exmem.rd(i).valid := exReg.wrReg(i) && doExecute(i)
+	io.exmem.rd(i).valid := exReg.wrRd(i) && doExecute(i)
 	io.exmem.rd(i).data := Mux(exReg.aluOp(i).isMFS, mfsResult, aluResult)
   }
 

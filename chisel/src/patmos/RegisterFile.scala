@@ -52,7 +52,7 @@ class RegisterFile() extends Component {
   // val rf = Vec(REG_COUNT){ Reg() { Bits(width = DATA_WIDTH) } }
   // the reset version generates more logic and a slower fmax
   // Probably due to the synchronous reset
-  val rf = Vec(REG_COUNT) { Reg(resetVal = Bits(0, width = DATA_WIDTH)) }
+  val rfReg = Vec(REG_COUNT) { Reg(resetVal = Bits(0, width = DATA_WIDTH)) }
 
   // We are registering the inputs here, similar as it would
   // be with an on-chip memory for the register file
@@ -79,7 +79,7 @@ class RegisterFile() extends Component {
 
   // RF internal forwarding
   for (i <- 0 until 2*PIPE_COUNT) {
-	io.rfRead.rsData(i) := rf(addrReg(i))
+	io.rfRead.rsData(i) := rfReg(addrReg(i))
 	for (k <- 0 until PIPE_COUNT) {
 	  when (fwReg(i)(k)) {
 		io.rfRead.rsData(i) := wrReg(k).data
@@ -92,10 +92,10 @@ class RegisterFile() extends Component {
   // registers are reset and just disable writing to register 0
   for (k <- 0 until PIPE_COUNT) {
 	when(wrReg(k).valid) {
-      rf(wrReg(k).addr.toUFix) := wrReg(k).data
+      rfReg(wrReg(k).addr.toUFix) := wrReg(k).data
 	}
   }
 
   // Output for co-simulation with pasim
-  io.rfDebug := rf
+  io.rfDebug := rfReg
 }

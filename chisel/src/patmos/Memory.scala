@@ -51,9 +51,9 @@ class Memory() extends Component {
   val io = new MemoryIO()
 
   // Stall logic
-  val mayStall = Reg(io.exmem.mem.load || io.exmem.mem.store,
+  val mayStallReg = Reg(io.exmem.mem.load || io.exmem.mem.store,
     resetVal = Bool(false))
-  val enable = Mux(mayStall, (io.localInOut.S.Resp === OcpResp.DVA
+  val enable = Mux(mayStallReg, (io.localInOut.S.Resp === OcpResp.DVA
 						   || io.globalInOut.S.Resp === OcpResp.DVA),
 				   Bool(true))
   io.ena := enable // stall = !enable
