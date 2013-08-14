@@ -283,6 +283,9 @@ that there are problems when the interrupt appears between the \texttt{call} and
   
 \martin{Agree on that.}
 
+\stefan{And I was so happy not to have both \texttt{S0} and \texttt{SO} in the compiler anymore ;) I would suggest to call them 
+\texttt{srb} and \texttt{sro} instead (for return base and return offset, which they actually are).}
+
 \subsubsection{Costs and Benefits}
 
 For functions that call other functions, the change saves one
@@ -310,6 +313,9 @@ does not work nicely if we change \texttt{ret} to use special registers.}
   exactly the same thing as \texttt{ret} does currently, except that
   it gets a different opcode. I don't see a problem with that from the
   hardware perspective.}
+
+\stefan{Correct. With moving return infos to special registers, \texttt{ret} would become different from \texttt{brcf} though as 
+\texttt{ret} would use \texttt{srb} and \texttt{sro}, I presume, while \texttt{brcf} always uses two GPRs.}
 
 \subsubsection{Costs and Benefits}
 
@@ -465,6 +471,14 @@ loose compatibility with a3 again (if someone else takes care of all that, feel 
   compatibility with a3 is an issue, but my guess would be that the
   changes on their side are similarly simple.}
 
+\stefan{The advantage of PC indirect brcf is that even if we have code above 16MB (the code does not need to be that large,
+it might just be a result of the address mapping), we might still simply assume not to have any single function larger than 
+8MB. In this case, we only need to take care of \texttt{call}, not of \texttt{brcf}. 
+
+From a compiler point of view, \texttt{br} and \texttt{brcf} really are the same. Any difference there just introduces some more complexity
+to the function splitter (as it needs to track code sizes and generated code carefully). Since we already have the absolute immediate
+relocation type though, the change is indeed not a big one (assuming no code above 16MB).}
+
 \stefan{However, I strongly oppose changing any of the indirect branches to anything else than absolute, it makes quite a mess 
 in the compiler backend and the linker (and probably the analysis). The problem here are jump tables, which are 
 kind of outside of the function and have no clear reference to the function, making the calculation of any base offset in the linker quite
@@ -486,6 +500,16 @@ going into the dual issue fetch stage is an issue.
 
 If we really want to avoid changing the br indirect right now,
 a work around would be to make it a two cycle stalling instruction.}
+
+\stefan{How about pre-calculating \code{coff-base} at \texttt{call}/\texttt{brcf}/\texttt{ret}? It costs one 32bit register (or
+30bit assuming alignment) and an additional op at those instructions, but saves the second subtract at \texttt{br} (note that we cannot 
+use the second ALU for a \texttt{call} and most likely never will use it for \texttt{brcf} as long as it has one cycle more than \texttt{br}
+since it is only introduced after the scheduler and replaces a \texttt{br}). 
+
+Another reason apart from the linker issue is that debugging becomes harder, as
+the binary no longer contains absolute addresses at jump tables, but one has to know the base of the current sub-function (which is usually
+not obvious from just looking at the disassembly) and add the values to get the actual target addresses, and you cannot grep for the
+addresses in the disassembly easily. Debugging some jump table/method cache related bugs in the compiler backend is already quite painful as it is..}
 
 \subsection{Non-delayed Branches}
 
@@ -515,6 +539,12 @@ the fallthrough target, right?}
   become visible.}
   
 \martin{Very much in favor to this addition.}
+
+\stefan{Also agree, and I would like to have this for both \texttt{br} and \texttt{brcf} (function splitter ...). This could 
+at least save quite some code space and reduce the overestimations in the function splitter quite a lot.
+
+We should really get a proper scheduler though to support this properly, the current delay slot filler is getting more and more 
+scary..}
 
 \subsection{Interrupts and Exceptions}
 
