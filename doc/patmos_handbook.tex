@@ -236,8 +236,10 @@ Currently we have following proposals for a change:
 \item bcopy instruction
 \item btest and bcopy with an immediate
 \item Automatic save of method base in a special register for a call
+\item Branch into subfunction
 \item Revised branch addressing modes
 \item Non-delayed branches
+\item Issue memory operations from any pipeline
 \item Interrupts
 \end{itemize}
 
@@ -545,6 +547,36 @@ at least save quite some code space and reduce the overestimations in the functi
 
 We should really get a proper scheduler though to support this properly, the current delay slot filler is getting more and more 
 scary..}
+
+\subsection{Issue Memory Operations in any Pipeline}
+
+Allow stack cache accesses, maybe even any memory access in the second pipeline, as long as there is no memory access to the same 
+memory executed in the first pipeline.
+
+\begin{lstlisting}
+  { (p1) sws [1] = $r1  ; (!p1) sws [3] = $r2 }   # allowed, only one predicate is true
+  {      swc [r1] = $r4 ;       sws [2] = $r4 }   # allowed, different memories
+  {      br  -4         ;       swl [$r1] = $r2 } # could also be allowed
+  {      ret            ;       swc [$r1] = $r2 } # could also be allowed
+  {      sws [4] = $r1  ;       sws [5] = $r2  }  # not allowed
+\end{lstlisting}
+
+\subsubsection{Costs and Benefits}
+
+In contrast to the original plan, we do not need to have a double-clocked stack cache, but are still able to spill in the second
+pipeline while the first pipeline is either accessing main memory or doing control flow, and we can schedule if-converted code and
+single-path code more in parallel.
+
+While this does not improve the situation for blocks with large sequences of spills,
+e.g. at prologues and epilogues, it might improve the situation for code with lots of control-flow or if-converted code, even in
+situations where a double-clocked stack cache access alone does not help.
+
+\stefan{I frankly do not know how much this will actually gain since usually the code contains either
+main memory access or stack access, not so much a mixture of both, and we need a proper scheduler and play around with the if-converter first to
+see how much ILP we can get out of the code. 
+
+Martin promised to take a real serious look at it when we can get some figures showing a gain from the compiler.. ;) }
+
 
 \subsection{Interrupts and Exceptions}
 
@@ -2109,17 +2141,6 @@ pipelines. More details shall be described.}
 
 \stefan{Is MFS/MTS allowed in both pipelines (and at the same time)? Should be helpful for prologue/epiloge code,
 especially when we move return infos back to special registers.}
-
-\stefan{I know the hardware folks will hate me for this, but: we could allow stack cache access to happen
-in the second pipeline, provided that there is no stack cache access in the first pipeline. 
-The rationale for this is that we can still do spilling, maybe even data scratchpad access
-in the second pipeline while the first pipeline is accessing main memory or doing control flow, 
-without the need to double-clock the stack cache, and we can schedule mutually exclusive 
-speculative execution paths (more) in parallel. 
-
-I frankly do not know how much this will actually gain since usually the code contains either
-main memory access or stack access, not a mixture of both, and we need a proper scheduler and if-converter first to
-see how much ILP we can get out of the code.}
 
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
