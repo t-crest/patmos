@@ -101,13 +101,20 @@ class Fetch(fileName: String) extends Component {
   val instr_b = Mux(pcReg(0) === Bits(0), data_odd, data_even)
 
   val b_valid = instr_a(31) === Bits(1)
+
   val pc_cont = Mux(b_valid, pcReg + UFix(2), pcReg + UFix(1))
   val pc_next =
     Mux(io.memfe.doCallRet, io.memfe.callRetPc,
-      Mux(io.exfe.doBranch, io.exfe.branchPc,
-        pc_cont))
+		Mux(io.exfe.doBranch, io.exfe.branchPc,
+			pc_cont))
 
-  val pc_inc = Mux(pc_next(0), pc_next + UFix(2), pc_next)
+  val pc_cont2 = Mux(b_valid, pcReg + UFix(4), pcReg + UFix(3))
+  val pc_next2 =
+    Mux(io.memfe.doCallRet, io.memfe.callRetPc + UFix(2),
+		Mux(io.exfe.doBranch, io.exfe.branchPc + UFix(2),
+			pc_cont2))
+
+  val pc_inc = Mux(pc_next(0), pc_next2, pc_next)
   when(io.ena) {
     addrEvenReg := Cat(pc_inc(PC_SIZE - 1, 1), Bits(0)).toUFix
     addrOddReg := Cat(pc_next(PC_SIZE - 1, 1), Bits(1)).toUFix
