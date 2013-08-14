@@ -280,6 +280,8 @@ that there are problems when the interrupt appears between the \texttt{call} and
   but why keep track of the base both in hardware and in software?
   Note that the hardware does not need to expose the current base,
   only the return base would be made visible.}
+  
+\martin{Agree on that.}
 
 \subsubsection{Costs and Benefits}
 
@@ -362,6 +364,11 @@ the new base address. Then, it retrieves the offset into the cache for
 the function to be called and if necessary copies the instructions
 into the cache. Finally, it updates the internal program counter and
 continues execution from there.
+
+\martin{I do not understand those listing fully. E.g. what those variables
+are: intern registers, special registers,... However, I very much appreciate
+this pseudo code. That should then go into the `normal' ISA description as
+well.}
 
 \begin{lstlisting}[language=C,mathescape=true,float=t,caption={Call\label{lst:call}}]
 call(addr) {
@@ -472,6 +479,13 @@ used, and calculate the symbol value in the linker by finding the (already reloc
   two symbols for jump tables, but it is definitely possible. That
   being said, I could live with leaving indirect branches as they are,
   I just don't think that it's the most efficient solution.}
+  
+\martin{I'm with Wolfgang on the timing issue of having two
+additions (one operand coming from the register forward path)
+going into the dual issue fetch stage is an issue.
+
+If we really want to avoid changing the br indirect right now,
+a work around would be to make it a two cycle stalling instruction.}
 
 \subsection{Non-delayed Branches}
 
@@ -499,6 +513,8 @@ the fallthrough target, right?}
   decode stage. The flushed instructions never make it to the execute
   stage, which would be the earliest place where any effect could
   become visible.}
+  
+\martin{Very much in favor to this addition.}
 
 \subsection{Interrupts and Exceptions}
 
