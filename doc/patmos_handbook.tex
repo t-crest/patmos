@@ -288,6 +288,8 @@ that there are problems when the interrupt appears between the \texttt{call} and
 \stefan{And I was so happy not to have both \texttt{S0} and \texttt{SO} in the compiler anymore ;) I would suggest to call them 
 \texttt{srb} and \texttt{sro} instead (for return base and return offset, which they actually are).}
 
+\wolf{Agree for \texttt{srb} and \textt{sro}.}
+
 \subsubsection{Costs and Benefits}
 
 For functions that call other functions, the change saves one
@@ -356,7 +358,7 @@ Note that as long only \texttt{r0} is used for the offset, no changes to the com
 
 \subsubsection{Rationale}
 
-With a method cache, there are two distinct view of the program
+With a method cache, there are two distinct views of the program
 counter: the program counter to address the cache memory
 (PC$_{cache}$), and the address of the respective instruction in
 memory (PC$_{mem}$). When loading instructions from memory
@@ -506,9 +508,21 @@ a work around would be to make it a two cycle stalling instruction.}
 \stefan{How about pre-calculating \code{coff-base} at \texttt{call}/\texttt{brcf}/\texttt{ret}? It costs one 32bit register (or
 30bit assuming alignment) and an additional op at those instructions, but saves the second subtract at \texttt{br} (note that we cannot 
 use the second ALU for a \texttt{call} and most likely never will use it for \texttt{brcf} as long as it has one cycle more than \texttt{br}
-since it is only introduced after the scheduler and replaces a \texttt{br}). 
+since it is only introduced after the scheduler and replaces a \texttt{br}).} 
 
-Another reason apart from the linker issue is that debugging becomes harder, as
+\wolf{Precalculating is what we should anyway if we keep things as
+  they are. Still, all bits of the addend \code{coff-base} are
+  significant, while \texttt{coff} has its lowest bits
+  cleared. Imagine a method cache with 32KB and 128 functions. With
+  word addressing, PC$_{cache}$ and \texttt{coff} would be 13
+  bits. The lowest 6 bits of \texttt{coff} would be guaranteed zero
+  due to alignment. Consequently, the complexity of the addition is
+  almost cut in half (13 significant bits vs 7 significant bits).
+
+  What do you mean exactly with ``we cannot use the second ALU for a
+  \texttt{call}''?}
+
+\stefan{Another reason apart from the linker issue is that debugging becomes harder, as
 the binary no longer contains absolute addresses at jump tables, but one has to know the base of the current sub-function (which is usually
 not obvious from just looking at the disassembly) and add the values to get the actual target addresses, and you cannot grep for the
 addresses in the disassembly easily. Debugging some jump table/method cache related bugs in the compiler backend is already quite painful as it is..}
@@ -548,6 +562,9 @@ at least save quite some code space and reduce the overestimations in the functi
 We should really get a proper scheduler though to support this properly, the current delay slot filler is getting more and more 
 scary..}
 
+\wolf{Non-delayed \texttt{brcf} should be okay, the stages that need
+  to be flushed are the same as for interrupts.}
+
 \subsection{Issue Memory Operations in any Pipeline}
 
 Allow stack cache accesses, maybe even any memory access in the second pipeline, as long as there is no memory access to the same 
@@ -577,6 +594,15 @@ see how much ILP we can get out of the code.
 
 Martin promised to take a real serious look at it when we can get some figures showing a gain from the compiler.. ;) }
 
+\wolf{I oppose this change. It's quite a bit of hardware, and
+  performance gains are most likely negligible. There is not much else
+  to do in the prologue/epilogue, and stack accesses are relatively
+  rare elsewhere. If you can show a realistic example where
+  performance gains are significant, I might change my mind.
+
+  Note that we cannot mix XXc and XXm, because both might go to main
+  memory in case of a cache miss. Stack control and
+  \texttt{call}/\texttt{brcf} conflict with both XXc and XXm.}
 
 \subsection{Interrupts and Exceptions}
 
