@@ -5,7 +5,7 @@ SBT = java -Xmx1024M -Xss8M -XX:MaxPermSize=2G -jar sbt/sbt-launch.jar
 hdldir=build
 simdir=build
 basedir=../../
-binfile=../tmp/patmos_in
+binfile=../tmp/patmos_in.bin
 
 # what is --checkPorts?
 SBTARGS_SIM = --backend c --vcd --compile --debug --test --targetDir $(simdir) --genHarness

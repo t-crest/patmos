@@ -71,13 +71,13 @@ class MCPatmos(fileName: String) extends Component {
     //val sramPins = new RamOutPinsIO() 
   }
 
-  val mcache = new MCache()
   val ssram = new SsramBurstRW()
   //chisel simulation for ssram... would be nice to implement it only in the tester unit...
   val extmemssram = new ExtSsram(fileName)
   ssram.io.ram_out <> extmemssram.io.ram_out
   ssram.io.ram_in <> extmemssram.io.ram_in
 
+  val mcache = new MCache()
   val fetch = new MCFetch()
   val decode = new Decode()
   val execute = new Execute()
@@ -119,12 +119,16 @@ class MCPatmos(fileName: String) extends Component {
   val globMem = new Spm(1 << DSPM_BITS)
   memory.io.globalInOut <> globMem.io
  
-  val enable = mcache.io.mcache_out.hit
+  val enable = (memory.io.ena & mcache.io.ena)
   fetch.io.ena := enable
   decode.io.ena := enable
   execute.io.ena := enable
-  memory.io.ena := enable
   writeback.io.ena := enable
+  // fetch.io.ena <> mcache.io.ena
+  // decode.io.ena <> mcache.io.ena
+  // execute.io.ena <> mcache.io.ena
+  // writeback.io.ena <> mcache.io.ena
+
 
   // The inputs and outputs
   io.uartPins <> iocomp.io.uartPins
@@ -186,7 +190,7 @@ object MCPatmosMain {
 
     // Use first argument for the program name (.bin file)
     val chiselArgs = args.slice(1, args.length)
-    val file = args(0) + ".bin"
+    val file = args(0)
     chiselMainTest(chiselArgs, () => new MCPatmos(file)) { f => new PatmosMCacheTest(f, file) }
   }
 }
