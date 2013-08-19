@@ -288,7 +288,7 @@ that there are problems when the interrupt appears between the \texttt{call} and
 \stefan{And I was so happy not to have both \texttt{S0} and \texttt{SO} in the compiler anymore ;) I would suggest to call them 
 \texttt{srb} and \texttt{sro} instead (for return base and return offset, which they actually are).}
 
-\wolf{Agree for \texttt{srb} and \textt{sro}.}
+\wolf{Agree for \texttt{srb} and \texttt{sro}.}
 
 \subsubsection{Costs and Benefits}
 
@@ -521,6 +521,10 @@ since it is only introduced after the scheduler and replaces a \texttt{br}).}
 
   What do you mean exactly with ``we cannot use the second ALU for a
   \texttt{call}''?}
+
+\stefan{Due to the fixed size of the call delay slot, we are never allowed to issue anything in parallel with a call anyway, so from my
+naive point of view we should have the second ALU available to do the precalculation ;) }
+
 
 \stefan{Another reason apart from the linker issue is that debugging becomes harder, as
 the binary no longer contains absolute addresses at jump tables, but one has to know the base of the current sub-function (which is usually
