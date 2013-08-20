@@ -51,7 +51,7 @@ class Fetch(fileName: String) extends Component {
   val addrEvenReg = Reg(resetVal = UFix(2, PC_SIZE))
   val addrOddReg = Reg(resetVal = UFix(1, PC_SIZE))
 
-  val rom = Utility.readBin(fileName)
+  //val rom = Utility.readBin(fileName)
   // Split the ROM into two blocks for dual fetch
   //  val len = rom.length / 2
   //  val rom_a = Vec(len) { Bits(width = INSTR_WIDTH) }
@@ -94,11 +94,19 @@ class Fetch(fileName: String) extends Component {
   // PC counts in words
   val selIspm = pcReg(ISPM_ONE_BIT - 2) === Bits(0x1)
   // ROM/ISPM Mux
-  val data_even = Mux(selIspm, ispm_even, rom(addrEvenReg))
-  val data_odd = Mux(selIspm, ispm_odd, rom(addrOddReg))
+  // val data_even = Mux(selIspm, ispm_even, rom(addrEvenReg))
+  // val data_odd = Mux(selIspm, ispm_odd, rom(addrOddReg))
 
-  val instr_a = Mux(pcReg(0) === Bits(0), data_even, data_odd)
-  val instr_b = Mux(pcReg(0) === Bits(0), data_odd, data_even)
+  //select even/odd from ispm
+  val instr_a_ispm = Mux(pcReg(0) === Bits(0), ispm_even, ispm_odd)
+  val instr_b_ispm = Mux(pcReg(0) === Bits(0), ispm_odd, ispm_even)
+
+  // val instr_a = Mux(pcReg(0) === Bits(0), data_even, data_odd)
+  // val instr_b = Mux(pcReg(0) === Bits(0), data_odd, data_even)
+
+  //MCache/ISPM Mux
+  val instr_a = Mux(selIspm, instr_a_ispm, io.mcache_out.instr_a)
+  val instr_b = Mux(selIspm, instr_b_ispm, io.mcache_out.instr_b)
 
   val b_valid = instr_a(31) === Bits(1)
 
@@ -121,9 +129,24 @@ class Fetch(fileName: String) extends Component {
     pcReg := pc_next
   }
 
+  //short solution to wait for pcReg = start of IS and check if MCache (mapped to 0x200000) is selected instead of SPM
+  //placing the IS start .text section for MCache directly at 0x0 address should make this needles
+  val mcache_req = Bits(width = 1)
+  mcache_req := Bits(0)
+  when (pcReg(18,0) === Bits(8) && pcReg(19) === Bits(1)) {
+    mcache_req := Bits(1)
+  }
+
   io.fedec.pc := pcReg
   io.fedec.instr_a := instr_a
   io.fedec.instr_b := instr_b
 
   io.femem.pc := pc_cont
+
+  //outputs to mcache
+  io.mcache_in.address := pc_next(18,0)
+  io.mcache_in.doCallRet := io.memfe.doCallRet //sign to mcache that a callreturn is executed
+  io.mcache_in.callRetBase := io.memfe.callRetBase(18,0) //base address needed for fetching from ext mem
+  io.mcache_in.request := mcache_req //used to change from initial state to running mcache
+
 }

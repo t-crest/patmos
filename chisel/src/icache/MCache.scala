@@ -38,7 +38,7 @@ import scala.math
 
 object MConstants {
   //on chip 4KB icache
-  val MCACHE_SIZE = 128 //4096 / 4
+  val MCACHE_SIZE = 4096
   val METHOD_COUNT = 4
   val METHOD_BLOCK_SIZE = MCACHE_SIZE / METHOD_COUNT
   val METHOD_SIZETAG_WIDTH = log2Up(MCACHE_SIZE)
@@ -71,7 +71,7 @@ class MCacheOut extends Bundle() {
   //val hit = Bits(width = 1) //hit/stall signal
 }
 class MCacheIO extends Bundle() {
-  val ena = Bits(OUTPUT, width = 1)
+  val ena = Bool(OUTPUT)
   val mcache_in = new MCacheIn().asInput
   val mcache_out = new MCacheOut().asOutput
   val ocp_port = new OcpBurstMasterPort(19, DATA_WIDTH, BURST_LENGHT)
@@ -293,7 +293,7 @@ class MCacheReplFifo(method_count : Int = METHOD_COUNT) extends Component {
     update_tag(next_replace_tag) //update pointer to the next tag to replace
   }
 
-  val addr_offset = (io.mcache_repl_in.address - tag_field.tag) //offset between incoming address and base address
+  val addr_offset = Mux(tag_rd_ena, (addr_reg - tag_field.tag), (io.mcache_repl_in.address - tag_field.tag)) //offset between incoming address and base address
   val addr_parity = (addr_offset(0) ^ tag_field.pos(0))
   val addr_parity_reg = Reg(addr_parity)
 
@@ -372,10 +372,12 @@ class MCacheCtrl() extends Component {
 
   //init state needs to fetch at program counter - 1 the first size of method block
   when (mcache_state === init_state) {
+    mcache_hit := Bits(1)
     when(io.mcache_in.request) {
       mcache_address := io.mcache_in.address - Bits(1)
       mcachemem_address := io.mcache_in.address - Bits(1)
       mcache_state := idle_state
+      mcache_hit := Bits(0)
     }
   }
   //check if instruction is available
@@ -384,10 +386,13 @@ class MCacheCtrl() extends Component {
     when(io.mcache_repl_out.hit === Bits(1)) {
       mcache_address := io.mcache_in.callRetBase // use callret to save base address for next cycle
       //short workaround we have one wait cycle between call and method is found in cache
+      // when (io.mcache_in.doCallRet) {
+      //   mcache_hit := Bits(0)
+      // }
       when (doCallRet_reg) {
-        //mcache_hit := Bits(0)
         mcache_instr_a := Bits(0)
         mcache_instr_b := Bits(0)
+        mcache_hit := Bits(0)
       }
     }
     //no hit... fetch from external memory

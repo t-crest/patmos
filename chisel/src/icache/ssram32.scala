@@ -262,9 +262,9 @@ class ExtSsram(fileName : String) extends Component {
   val io = new RamInPinsIO()
 
   //on chip memory instance
-  val ssram_extmem = Vec(2 * MCACHE_SIZE) {Bits(width = 32)} //bus width = 32
+  val ssram_extmem = Mem(2 * MCACHE_SIZE) {Bits(width = 32)} //bus width = 32
 
-  def initSsram(fileName: String): Vec[Bits] = { 
+  def initSsram(fileName: String): Mem[Bits] = { 
     println("Reading " + fileName)
     // an encodig to read a binary file? Strange new world.
     val source = scala.io.Source.fromFile(fileName)(scala.io.Codec.ISO8859)
@@ -278,15 +278,15 @@ class ExtSsram(fileName : String) extends Component {
       }
       printf("%08x\n", word)
       // mmh, width is needed to keep bit 31
-      ssram_extmem(i) = Bits(word, width=32)
+      ssram_extmem(Bits(i)) := Bits(word, width=32)
     }
     // generate some dummy data to fill the table and make Bit 31 test happy
     for (x <- byteArray.length / 4 until MCACHE_SIZE * 2)
-      ssram_extmem(x) = Bits("h8000000000000000")
+      ssram_extmem(Bits(x)) := Bits("h8000000000000000")
     ssram_extmem
   }
 
-  initSsram(fileName)
+  //initSsram(fileName)
   val address = Reg(resetVal = Bits(0, width = 19))
   val dout = Reg(resetVal = Bits(0, width = 32))
   val nadv = Reg(resetVal = Bits(0, width = 1))
@@ -303,6 +303,7 @@ class ExtSsram(fileName : String) extends Component {
   }
   io.ram_in.din := dout
 }
+
 
 class SsramIOSingle extends Bundle() {
   val ocp_port = new OcpCoreSlavePort(19, 32)
@@ -415,77 +416,3 @@ class SsramSingleRW (
   io.ram_out.nce3 := Bits(0)
   io.ram_out.nadsp := Bits(1)
 }
-
-/*
- old memory class for reading a bin file in to a vector and outputing in a burst-like mode
- should be removed in the future only needed for keeping the current version of method cache
-*/
-// class ExtMemIn extends Bundle() {
-//   val address = Bits(width = 32)
-//   val msize = Bits(width = METHOD_SIZETAG_WIDTH) //size or block count to fetch
-//   val fetch = Bits(width = 1)
-// }
-// class ExtMemOut extends Bundle() {
-//   val data = Bits(width = 32)
-//   val ready = Bits(width = 1)
-// }
-// class ExtMemIO extends Bundle() {
-//   val extmem_in = new ExtMemIn().asInput
-//   val extmem_out = new ExtMemOut().asOutput
-// }
-// class ExtMemROM(fileName: String) extends Component {
-//   val io = new ExtMemIO()
-//   val rom_init = Reg(resetVal = Bits(0, width = 1))
-//   val dout = Reg(resetVal = Bits(0, width = 32))
-//   val dout_ready = Reg(resetVal = Bits(0, width = 1))
-//   val burst_counter = Reg(resetVal = UFix(0, width = 32))
-//   val read_address = Reg(resetVal = UFix(0))
-//   //external memory instance
-//   val rom_extmem = Vec(2 * MCACHE_SIZE) {Bits(width = 32)} //bus width = 32
-//   /**
-//    * Read a binary file into the ROM vector, from Utility.scala
-//      Author: Martin Schoeberl
-//    */
-//   def initROM_bin(fileName: String): Vec[Bits] = { 
-//     println("Reading " + fileName)
-//     // an encodig to read a binary file? Strange new world.
-//     val source = scala.io.Source.fromFile(fileName)(scala.io.Codec.ISO8859)
-//     val byteArray = source.map(_.toByte).toArray
-//     source.close()
-//     for (i <- 0 until byteArray.length / 4) {
-//       var word = 0
-//       for (j <- 0 until 4) {
-//         word <<= 8
-//         word += byteArray(i * 4 + j).toInt & 0xff
-//       }
-//       printf("%08x\n", word)
-//       // mmh, width is needed to keep bit 31
-//       rom_extmem(i) = Bits(word, width=32)
-//     }
-//     // generate some dummy data to fill the table and make Bit 31 test happy
-//     for (x <- byteArray.length / 4 until MCACHE_SIZE * 2)
-//       rom_extmem(x) = Bits("h8000000000000000")
-//     rom_extmem
-//   }
-
-//   initROM_bin(fileName)
-  
-//   when (io.extmem_in.fetch) {
-//     dout := rom_extmem(io.extmem_in.address)
-//     dout_ready := Bits(1)
-//     read_address := io.extmem_in.address + UFix(1)
-//     burst_counter := (io.extmem_in.msize - UFix(1)) % UFix(MCACHE_SIZE - 1)
-//   }
-//   .elsewhen (burst_counter != Bits(0)) {
-//     dout := rom_extmem(read_address)
-//     dout_ready := Bits(1)
-//     burst_counter := burst_counter - UFix(1)
-//     read_address := read_address + UFix(1)
-//   }
-//   .otherwise {
-//     dout := Bits(0)
-//     dout_ready := Bits(0)
-//   }
-//   io.extmem_out.data := dout
-//   io.extmem_out.ready := dout_ready
-// }

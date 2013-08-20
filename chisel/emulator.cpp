@@ -105,13 +105,35 @@ static val_t readelf(istream &is, Patmos_t *c)
 		  }
 		}
 
-		if (((phdr.p_paddr + k) >> 23) == 0x0) {
+		if (((phdr.p_paddr + k) >> 21) == 0x1 && ((phdr.p_paddr + k) & 0x3) == 0) {
+		  // Address maps to ISPM and is at a word boundary
+		  val_t word = k >= phdr.p_filesz ? 0 :
+			(((val_t)elfbuf[phdr.p_offset + k + 0] << 24) |
+			 ((val_t)elfbuf[phdr.p_offset + k + 1] << 16) |
+			 ((val_t)elfbuf[phdr.p_offset + k + 2] << 8) |
+			 ((val_t)elfbuf[phdr.p_offset + k + 3] << 0));
+
+		  val_t addr = ((phdr.p_paddr + k) - (0x1 << 21)) >> 2;
+
+		  unsigned size = (sizeof(c->Patmos_extmemssram__ssram_extmem.contents) / 
+						   sizeof(c->Patmos_extmemssram__ssram_extmem.contents[0]));
+
+		  //*out << k << "MCache - Word:" << word << "addr:" << addr << " size:" << size << "phdr_memsz" << phdr.p_memsz << "phdr_addr"<< phdr.p_paddr << "\n";;
+
+		  assert(addr < size && "Instructions mapped to simulation of SSRAM exceed size");
+		  c->Patmos_extmemssram__ssram_extmem.put(addr, word);
+
+		}
+
+		if (((phdr.p_paddr + k) >> 21) == 0x0) {
 		  // Address maps to data SPM
 		  val_t byte = k >= phdr.p_filesz ? 0 : elfbuf[phdr.p_offset + k];
 		  val_t addr = (phdr.p_paddr + k) >> 2;
 		  
 		  unsigned size = (sizeof(c->Patmos_globMem__mem0.contents) /
 						   sizeof(c->Patmos_globMem__mem0.contents[0]));
+
+
 		  assert (addr < size && "Data mapped to DSPM exceed size");
 
 		  switch ((phdr.p_paddr + k) & 0x3) {
@@ -121,6 +143,7 @@ static val_t readelf(istream &is, Patmos_t *c)
 		  case 3: c->Patmos_globMem__mem0.put(addr, byte); break;
 		  }
 		}
+
 	  }
     }
   }

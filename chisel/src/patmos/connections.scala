@@ -273,6 +273,9 @@ class FetchIO extends Bundle() {
   val exfe = new ExFe().asInput
   // call from MEM
   val memfe = new MemFe().asInput
+  //connections to mcache
+  val mcache_in = new MCacheIn().asOutput
+  val mcache_out = new MCacheOut().asInput
 }
 
 class DecodeIO() extends Bundle() {
@@ -326,6 +329,7 @@ class InOutIO() extends Bundle() {
 
 class MemoryIO() extends Bundle() {
   val ena = Bool(OUTPUT)
+  val mc_ena = Bool(INPUT)
   val exmem = new ExMem().asInput
   val memwb = new MemWb().asOutput
   val memfe = new MemFe().asOutput
