@@ -55,12 +55,24 @@ class OcpBurstMasterSignals(addrWidth : Int, dataWidth : Int)
   }
 }
 
+// Burst slaves provide handshake signal
+class OcpBurstSlaveSignals(dataWidth : Int)
+  extends OcpSlaveSignals(dataWidth) {
+  val DataAccept = Bits(width = 1)
+
+  // This does not really clone, but Data.clone doesn't either
+  override def clone() = {
+    val res = new OcpBurstSlaveSignals(dataWidth)
+  	res.asInstanceOf[this.type]
+  }
+}
+
 // Master port
 class OcpBurstMasterPort(addrWidth : Int, dataWidth : Int, burstLen : Int) extends Bundle() {
   val burstLength = burstLen
   // Clk is implicit in Chisel
   val M = new OcpBurstMasterSignals(addrWidth, dataWidth).asOutput
-  val S = new OcpSlaveSignals(dataWidth).asInput 
+  val S = new OcpBurstSlaveSignals(dataWidth).asInput 
 }
 
 // Slave port is reverse of master port
@@ -68,7 +80,7 @@ class OcpBurstSlavePort(addrWidth : Int, dataWidth : Int, burstLen : Int) extend
   val burstLength = burstLen
   // Clk is implicit in Chisel
   val M = new OcpBurstMasterSignals(addrWidth, dataWidth).asInput
-  val S = new OcpSlaveSignals(dataWidth).asOutput
+  val S = new OcpBurstSlaveSignals(dataWidth).asOutput
 }
 
 // Bridge between word-oriented port and burst port
@@ -141,7 +153,9 @@ class OcpBurstBridge(master : OcpCoreMasterPort, slave : OcpBurstSlavePort) {
 	when(burstCnt === UFix(burstLength - 1)) {
 	  state := idle
 	}
-	burstCnt := burstCnt + UFix(1)
+	when(slave.S.DataAccept === Bits(1)) {
+	  burstCnt := burstCnt + UFix(1)
+	}
   }
 
 }

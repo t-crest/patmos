@@ -2808,8 +2808,8 @@ register. To enable sub-word transfers of data, the signal
 \begin{itemize}
 \item Only reads and non-posted writes are supported. This entails
   that every command must be followed by a response.
-\item No \code{SCmdAccept}, handshaking is done solely via
-  \code{SResp}.
+\item No \code{SCmdAccept} or \code{MRespAccept}, flow control is done
+  solely via \code{SResp}.
 \item Slaves may generate responses earliest in the cycle after a
   command.
 \item The master may issue commands in the same cycle as the slave
@@ -2850,9 +2850,14 @@ the master signals changes the protocol as follows:
   receive a command.
 \item Commands are issued earliest in the cycle after a response (no
   pipelining).
-\item \code{SCmdAccept} may be supported. To do so, it is sufficient
-  to register the master signals only if the currently registered
-  command is \code{IDLE} or \code{SCmdAccept} is high.
+\item \code{SCmdAccept} is supported. It is sufficient to register the
+  master signals only if the currently registered command is
+  \code{IDLE} or \code{SCmdAccept} is high.
+\item In order to have symmetric handshaking for commands and
+  responses and to facilitate clock-domain crossing, \code{OCPio} also
+  includes a signal \code{MRespAccept}. An \code{OCPio} port that is
+  derived directly from the pipeline's \code{OCPcore} port always
+  accepts responses.
 \end{itemize}
 
 \subsubsection{\code{OCPcache}}
