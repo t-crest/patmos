@@ -12,10 +12,13 @@ istream *in = &cin;
 ostream *out = &cout;
   
 /// Read an elf executable image into the on-chip memories
-static val_t readelf(istream &is, Patmos_t *c)
+static val_t readelf(istream &is, Patmos_t *c, uint *ssram_buf)
 {
   vector<unsigned char> elfbuf;
   elfbuf.reserve(1 << 20);
+  
+  //uint ssram_buf[8192];
+
   // read the whole stream.
   while (!is.eof())
   {
@@ -115,13 +118,15 @@ static val_t readelf(istream &is, Patmos_t *c)
 
 		  val_t addr = ((phdr.p_paddr + k) - (0x1 << 21)) >> 2;
 
-		  unsigned size = (sizeof(c->Patmos_extmemssram__ssram_extmem.contents) / 
-						   sizeof(c->Patmos_extmemssram__ssram_extmem.contents[0]));
+		  // unsigned size = (sizeof(c->Patmos_extmemssram__ssram_extmem.contents) / 
+		  // 				   sizeof(c->Patmos_extmemssram__ssram_extmem.contents[0]));
 
 		  //*out << k << "MCache - Word:" << word << "addr:" << addr << " size:" << size << "phdr_memsz" << phdr.p_memsz << "phdr_addr"<< phdr.p_paddr << "\n";;
 
-		  assert(addr < size && "Instructions mapped to simulation of SSRAM exceed size");
-		  c->Patmos_extmemssram__ssram_extmem.put(addr, word);
+		  //assert(addr < size && "Instructions mapped to simulation of SSRAM exceed size");
+		  ssram_buf[addr] = word;
+		  //*out << ssram_buf[k] << "\n";
+		  //c->Patmos_extmemssram__ssram_extmem.put(addr, word);
 
 		}
 
@@ -167,6 +172,30 @@ static void print_state(Patmos_t *c) {
 	*out << endl;
 }
 
+static void extSsramSim(Patmos_t *c, uint *ssram) { 
+  static int addr_cnt;
+  static int address;
+  static int counter;
+  //*out << "noe:" << c->Patmos__io_sramPins_ram_out_noe.to_ulong() << " nadv: " << c->Patmos__io_sramPins_ram_out_nadv.to_ulong() << " nadsc:" << c->Patmos__io_sramPins_ram_out_nadsc.to_ulong() << " addr:" << c->Patmos__io_sramPins_ram_out_addr.to_ulong() << "\n";
+  if (c->Patmos__io_sramPins_ram_out_nadsc.to_ulong() == 0) {
+    address = c->Patmos__io_sramPins_ram_out_addr.to_ulong();
+    addr_cnt = c->Patmos__io_sramPins_ram_out_addr.to_ulong();;
+    counter = 0;
+  }
+  if (c->Patmos__io_sramPins_ram_out_nadv.to_ulong() == 0) {
+    addr_cnt++;
+  }
+  if (c->Patmos__io_sramPins_ram_out_noe.to_ulong() == 0) {
+    counter++;
+    if (counter >= 3) {
+      c->Patmos__io_sramPins_ram_in_din = ssram[address];
+      if (address <= addr_cnt) {
+	address++;
+      }
+    }
+  }
+}
+
 int main (int argc, char* argv[]) {
   Patmos_t* c = new Patmos_t();
 
@@ -175,6 +204,8 @@ int main (int argc, char* argv[]) {
   bool vcd = false;
   bool uart = false;
   bool quiet = false;
+
+  uint ssram_buf[16384];
 
   while ((opt = getopt(argc, argv, "quvl:I:O:")) != -1) {
 	switch (opt) {
@@ -228,7 +259,7 @@ int main (int argc, char* argv[]) {
 	  cerr << argv[0] << ": error: Cannot open elf file " << argv[optind] << endl;
 	  exit(EXIT_FAILURE);
 	}
-	entry = readelf(*fs, c);
+	entry = readelf(*fs, c, ssram_buf);
   }
 
   FILE *f = vcd ? fopen("Patmos.vcd", "w") : NULL;
@@ -249,6 +280,11 @@ int main (int argc, char* argv[]) {
 	c->Patmos_memory__baseReg = entry;
   }
 
+  //init ssram buffer
+  // for (int i = 0; i < 4000; i++) {
+  //   *out << i << ":" << ssram_buf[i] << "\n";
+  // }
+
   // Main emulation loop
   bool halt = false;
   for (int t = 0; lim < 0 || t < lim; t++) {
@@ -256,6 +292,8 @@ int main (int argc, char* argv[]) {
 
     c->clock_lo(reset);
     c->clock_hi(reset);
+
+    extSsramSim(c, ssram_buf);
 
 	if (vcd) {
 	  c->dump(f, t);

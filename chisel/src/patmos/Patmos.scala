@@ -64,11 +64,13 @@ class Patmos(fileName: String) extends Component {
     val dummy = Bits(OUTPUT, 32)
     val led = Bits(OUTPUT, 9)
     val uartPins = new UartPinIO()
+    val sramPins = new RamOutPinsIO() 
   }
 
   val ssram = new SsramBurstRW()
   val mcache = new MCache()
-  val fetch = new MCFetch()
+
+  val fetch = new Fetch(fileName)
   val decode = new Decode()
   val execute = new Execute()
   val memory = new Memory()
@@ -76,9 +78,11 @@ class Patmos(fileName: String) extends Component {
   val iocomp = new InOut()
 
   //chisel simulation for ssram... should be moved to the emulator as c++ simulation
-  val extmemssram = new ExtSsram(fileName)
-  ssram.io.ram_out <> extmemssram.io.ram_out //should be connected to the IO of top-level in future
-  ssram.io.ram_in <> extmemssram.io.ram_in
+  // val extmemssram = new ExtSsram(fileName)
+  // ssram.io.ram_out <> extmemssram.io.ram_out //should be connected to the IO of top-level in future
+  // ssram.io.ram_in <> extmemssram.io.ram_in
+  ssram.io.ram_out <> io.sramPins.ram_out
+  ssram.io.ram_in <> io.sramPins.ram_in
 
   //connect mcache
   mcache.io.mcache_in <> fetch.io.mcache_in

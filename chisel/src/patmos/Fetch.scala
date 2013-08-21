@@ -44,7 +44,7 @@ import Node._
 
 import Constants._
 
-class Fetch(fileName: String) extends Component {
+class Fetch(fileName : String) extends Component {
   val io = new FetchIO()
 
   val pcReg = Reg(resetVal = UFix(1, PC_SIZE))

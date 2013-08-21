@@ -219,6 +219,7 @@ class SsramBurstRW (
   io.ram_out.addr := address
   //output to master
   io.ocp_port.S.Resp := resp
+  io.ocp_port.S.DataAccept := Bits(1) //don't care for the moment
   //output fixed signals
   io.ram_out.ngw := Bits(1)
   io.ram_out.nce1 := Bits(0)
