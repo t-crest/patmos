@@ -243,6 +243,7 @@ class MCacheReplFifo(method_count : Int = METHOD_COUNT) extends Component {
   //need to save size to write and start reading new size from tag memory when starting new transfer
   when(io.mcache_repl_in.w_tag) {
     tag_wr_size := io.mcache_repl_in.w_data(12,0) //size of the new method
+    tag_field_size := mcache_size_vec(next_index_tag)
   }
 
   //search tag in list
@@ -358,6 +359,7 @@ class MCacheCtrl() extends Component {
   val ext_mem_burst_cnt = Reg(resetVal = UFix(0, width = log2Up(BURST_LENGHT)))
   //save address in case no hit occours
   val mcache_address = Reg(resetVal = Bits(0, width = 32))
+  val mcache_address_pc = Reg(resetVal = Bits(0, width = 32))
 
   val doCallRet_reg = Reg(resetVal = Bits(0, width = 1))
   doCallRet_reg := io.mcache_in.doCallRet
@@ -392,6 +394,7 @@ class MCacheCtrl() extends Component {
     mcache_hit := io.mcache_repl_out.hit
     when(io.mcache_repl_out.hit === Bits(1)) {
       mcache_address := io.mcache_in.callRetBase // use callret to save base address for next cycle
+      mcache_address_pc := io.mcache_in.address
       //short workaround we have one wait cycle between call and method is found in cache -> not needed in future
       when (doCallRet_reg) {
         mcache_instr_a := Bits(0)
@@ -449,7 +452,7 @@ class MCacheCtrl() extends Component {
     }
     //restart to idle state
     .otherwise {
-      mcachemem_address := mcache_address
+      mcachemem_address := mcache_address_pc
       mcache_state := idle_state
     }
   }
