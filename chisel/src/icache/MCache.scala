@@ -1,4 +1,36 @@
 /*
+   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   All rights reserved.
+   
+   This file is part of the time-predictable VLIW processor Patmos.
+
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions are met:
+
+      1. Redistributions of source code must retain the above copyright notice,
+         this list of conditions and the following disclaimer.
+
+      2. Redistributions in binary form must reproduce the above copyright
+         notice, this list of conditions and the following disclaimer in the
+         documentation and/or other materials provided with the distribution.
+
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
+   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
+   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+   The views and conclusions contained in the software and documentation are
+   those of the authors and should not be interpreted as representing official
+   policies, either expressed or implied, of the copyright holder.
+ */
+
+/*
  Method Cache for Patmos
  Author: Philipp Degasperi (philipp.degasperi@gmail.com)
  */
@@ -22,7 +54,6 @@
 
 */
 
-//merge package mcache and icache in future
 package patmos
 
 import Chisel._
@@ -36,8 +67,8 @@ import scala.collection.mutable.HashMap
 import scala.util.Random
 import scala.math
 
+//move to Constants.scala
 object MConstants {
-  //on chip 4KB icache
   val MCACHE_SIZE = 4096
   val METHOD_COUNT = 4
   val METHOD_BLOCK_SIZE = MCACHE_SIZE / METHOD_COUNT
@@ -49,14 +80,6 @@ object MConstants {
   val FIFO_REPL = 2
   val FIXED_SIZE = 1
   val VARIABLE_SIZE = 2
-
-  //DEBUG INFO
-  // println("MCACHE_SIZE=" + MCACHE_SIZE)
-  // println("METHOD_BLOCK_SIZE=" + METHOD_BLOCK_SIZE)
-  // println("METHOD_COUNT=" + METHOD_COUNT)
-  // println("METHOD_SIZETAG_WIDTH=" + METHOD_SIZETAG_WIDTH)
-  // println("METHOD_COUNT_WIDTH=" + METHOD_COUNT_WIDTH)
-  // println("WORD_COUNT=" + WORD_COUNT)
 }
 
 class MCacheIn extends Bundle() {
@@ -68,7 +91,6 @@ class MCacheIn extends Bundle() {
 class MCacheOut extends Bundle() {
   val instr_a = Bits(width = 32) //lower 32 bits
   val instr_b = Bits(width = 32) //higher 32 bits
-  //val hit = Bits(width = 1) //hit/stall signal
 }
 class MCacheIO extends Bundle() {
   val ena = Bool(OUTPUT)
@@ -171,19 +193,16 @@ object MCacheRepl {
     ((size - Bits(1)) / Bits(METHOD_BLOCK_SIZE))
   }
 
-  //update tag field
+  //update tag field... not needed any more
   // def update_tag(tag : Bits) = {
   //   tag := (tag + Bits(1)) % Bits(METHOD_COUNT)
   // }
  
 }
 
-// class CacheTag(method_count : Int = METHOD_COUNT) extends Bundle() {
-//   val addr = { Mem(method_count) { Bits(width = 32) } }
-//   val size = { Mem(method_count) { Bits(width = METHOD_SIZETAG_WIDTH) } }
-//   val pos = { Mem(method_count) { Bits(width = METHOD_SIZETAG_WIDTH) } }
-// }
-
+/*
+ MCacheReplFifo: Class controlls a FIFO replacement strategie including tag-memory to keep history of methods in cache
+ */
 class MCacheReplFifo(method_count : Int = METHOD_COUNT) extends Component {
   val io = new MCacheReplIO()
 
@@ -333,10 +352,6 @@ class MCacheCtrl() extends Component {
   val extmem_fetch = Bits(width = 1)
   val extmem_fetch_address = Bits(width = 32)
   val extmem_msize = Bits(width = METHOD_SIZETAG_WIDTH)
-
-  //regs for external memory (old)
-  //val transfer_size = Reg(resetVal = Bits(0, width = METHOD_SIZETAG_WIDTH))
-  //val fword_counter = Reg(resetVal = Bits(0, width = 32))
   //regs for external meomory
   val ext_mem_tsize = Reg(resetVal = Bits(0, width = 32))
   val ext_mem_fcounter = Reg(resetVal = Bits(0, width = 32))
@@ -377,10 +392,7 @@ class MCacheCtrl() extends Component {
     mcache_hit := io.mcache_repl_out.hit
     when(io.mcache_repl_out.hit === Bits(1)) {
       mcache_address := io.mcache_in.callRetBase // use callret to save base address for next cycle
-      //short workaround we have one wait cycle between call and method is found in cache
-      // when (io.mcache_in.doCallRet) {
-      //   mcache_hit := Bits(0)
-      // }
+      //short workaround we have one wait cycle between call and method is found in cache -> not needed in future
       when (doCallRet_reg) {
         mcache_instr_a := Bits(0)
         mcache_instr_b := Bits(0)
@@ -393,24 +405,10 @@ class MCacheCtrl() extends Component {
       ext_mem_cmd := OcpCmd.RD
       ext_mem_burst_cnt := UFix(0)
       mcache_state := size_state
-      /*extmem_fetch := Bits(1)
-      extmem_fetch_address := mcache_address - Bits(1) // -1 because size is at method head -1
-      extmem_msize := Bits(1) //here we could fetch one complete block in case of burst inst single size tag*/
     }
   }
   //fetch size of the required method from external memory address - 1
   when (mcache_state === size_state) {
-    /*when (io.extmem_out.ready === Bits(1)) {
-      fword_counter := io.extmem_out.data / Bits(WORD_COUNT) //size is given in bytes not words
-      extmem_fetch_address := mcache_address //fetch from extmem with latched address
-      extmem_msize := io.extmem_out.data / Bits(WORD_COUNT) //size of words zu fetch
-      transfer_size := io.extmem_out.data / Bits(WORD_COUNT) //save transfer size because extmem is accessed in burst mode
-      mcachemem_wtag := Bits(1)  //init transfer in mcachemem
-      mcachemem_w_data := io.extmem_out.data / Bits(WORD_COUNT) //write size to mcachemem for LRU tagfield
-      mcachemem_address := mcache_address //write base address to mcachemem for LRU tagfield
-      extmem_fetch := Bits(1)
-      mcache_state := transfer_state
-    }*/
     when (io.ocp_port.S.Resp === OcpResp.DVA) {
       //init transfer from external memory
       ext_mem_tsize := io.ocp_port.S.Data / Bits(WORD_COUNT)
@@ -431,14 +429,6 @@ class MCacheCtrl() extends Component {
 
   //transfer/fetch method to the cache
   when (mcache_state === transfer_state) {
-    /*when (fword_counter > Bits(0)) {
-      when (io.extmem_out.ready === Bits(1)) {
-        fword_counter := fword_counter - Bits(1)
-        mcachemem_w_data := io.extmem_out.data //write fetched data to method cache memory
-        mcachemem_w_enable := Bits(1)
-        mcachemem_address := mcache_address + (transfer_size - fword_counter) //adress is base address + offset
-      }
-    }*/
     when (ext_mem_fcounter > Bits(0)) {
       when (io.ocp_port.S.Resp === OcpResp.DVA) {
         ext_mem_fcounter := ext_mem_fcounter - Bits(1)
@@ -455,7 +445,7 @@ class MCacheCtrl() extends Component {
         mcachemem_w_data := io.ocp_port.S.Data
         mcachemem_w_enable := Bits(1)
       }
-      mcachemem_address := mcache_address + (ext_mem_tsize - ext_mem_fcounter)//adress = base address + offset
+      mcachemem_address := mcache_address + (ext_mem_tsize - ext_mem_fcounter) //adress = base address + offset
     }
     //restart to idle state
     .otherwise {
@@ -470,7 +460,7 @@ class MCacheCtrl() extends Component {
   io.mcache_repl_in.w_data := mcachemem_w_data
   io.mcache_repl_in.w_tag := mcachemem_wtag
   io.mcache_repl_in.doCallRet := mcachemem_doCallRet //io.mcache_in.doCallRet
-  io.mcache_repl_in.callRetBase := io.mcache_in.callRetBase //forwarding the base address
+  io.mcache_repl_in.callRetBase := io.mcache_in.callRetBase //forwarding the base address... really needed?
 
   //outputs to fetch stage
   io.mcache_out.instr_a := mcache_instr_a
@@ -478,16 +468,7 @@ class MCacheCtrl() extends Component {
   //io.mcache_out.hit := mcache_hit
   io.ena := mcache_hit
 
-  //outputs to external memory (old)
-  /*io.extmem_in.address := extmem_fetch_address
-  io.extmem_in.fetch := extmem_fetch
-  io.extmem_in.msize := extmem_msize*/
-  //outputs to external memory ssram
-  // io.sc_mem_out.address := ext_mem_addr
-  // io.sc_mem_out.rd := ext_mem_rd
-  // io.sc_mem_out.wr := Bits(0)   //not writing anything to ssram...
-  // io.sc_mem_out.wr_data := Bits(0) //not writing anything to ssram...
-  // io.sc_mem_out.byte_ena := Bits("b1111")
+  //output to external memory
   io.ocp_port.M.Addr := ext_mem_addr
   io.ocp_port.M.Cmd := ext_mem_cmd
   io.ocp_port.M.Data := Bits(0)

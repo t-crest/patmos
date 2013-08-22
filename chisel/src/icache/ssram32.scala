@@ -47,20 +47,8 @@ import ocp._
 import scala.collection.mutable.HashMap
 
 /*
- for the start a small version of SimpleCon interface
- */
-// class ScInType extends Bundle() {
-//   val rd_data = Bits(width = 32)
-//   val rd_count = UFix(width = 2)
-// }
-// class ScOutType extends Bundle() {
-//   val address = Bits(width = 19)
-//   val wr_data = Bits(width = 32)
-//   val rd = Bits(width = 1)
-//   val wr = Bits(width = 1)
-//   val byte_ena = Bits(width = 4) //Bytes per word
-// }
-
+ Connections to the SRAM
+*/
 class RamInType extends Bundle() {
   val din = Bits(width = 32)
 }
@@ -93,7 +81,6 @@ class SsramIOBurst extends Bundle() {
   val ram_out = new RamOutType().asOutput
   val ram_in = new RamInType().asInput
 }
-
 /*
   SSRAM Controller for a Burst R/W access to the SSRAM
   Notes: Burst addresses in the used SSRAM are generated internally only for max. 4 addresses (= max. burst lenght)
@@ -258,6 +245,8 @@ object SsramMain {
 /*
  External Memory, only to simulate a SSRAM in Chisel as a on-chip memory implementation
  and reading some data from binary to memory vector
+
+ >>> This is handled by the emulator now! <<<
 */
 class ExtSsram(fileName : String) extends Component {
   val io = new RamInPinsIO()
