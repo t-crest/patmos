@@ -566,54 +566,6 @@ int main(int argc, char **argv)
     {
       switch(e.get_kind())
       {
-        case patmos::simulation_exception_t::CODE_EXCEEDED:
-          std::cerr << boost::format("Cycle %1%: Method cache size exceeded: "
-                                    "%2$08x%3%: %4$08x\n")
-                    % e.get_cycle() % e.get_pc() % sym.find(e.get_pc())
-                    % e.get_info();
-	  std::cerr << s.Dbg_stack;
-          break;
-        case patmos::simulation_exception_t::ILLEGAL_PC:
-          std::cerr << boost::format("Cycle %1%: Program counter outside current method: "
-                                    "%2$08x%3%: %4$08x\n")
-                    % e.get_cycle() % e.get_pc() % sym.find(e.get_pc())
-                    % e.get_info();
-	  std::cerr << s.Dbg_stack;
-          break;
-        case patmos::simulation_exception_t::STACK_EXCEEDED:
-          std::cerr << boost::format("Cycle %1%: Stack size exceeded: "
-                                     "%2$08x%3%\n")
-                    % e.get_cycle() % e.get_pc() % sym.find(e.get_pc());
-	  std::cerr << s.Dbg_stack;
-          break;
-        case patmos::simulation_exception_t::UNMAPPED:
-          std::cerr << boost::format("Cycle %1%: Unmapped memory access: "
-                                     "%2$08x%3%: %4$08x\n")
-                    % e.get_cycle() % e.get_pc() % sym.find(e.get_pc())
-                    % e.get_info();
-	  std::cerr << s.Dbg_stack;
-          break;
-        case patmos::simulation_exception_t::ILLEGAL_ACCESS:
-          std::cerr << boost::format("Cycle %1%: Illegal memory access: "
-                                     "%2$08x%3%: %4$08x\n")
-                    % e.get_cycle() % e.get_pc() % sym.find(e.get_pc())
-                    % e.get_info();
-	  std::cerr << s.Dbg_stack;
-          break;
-        case patmos::simulation_exception_t::ILLEGAL:
-          std::cerr << boost::format("Cycle %1%: Illegal instruction: "
-                                     "%2$08x%3%: %4$08x\n")
-                    % e.get_cycle() % e.get_pc() % sym.find(e.get_pc())
-                    % e.get_info();
-	  std::cerr << s.Dbg_stack;
-          break;
-        case patmos::simulation_exception_t::UNALIGNED:
-          std::cerr << boost::format("Cycle %1%: Unaligned memory access: "
-                                     "%2$08x%3%: %4$08x\n")
-                    % e.get_cycle() % e.get_pc() % sym.find(e.get_pc())
-                    % e.get_info();
-	  std::cerr << s.Dbg_stack;
-          break;
         case patmos::simulation_exception_t::HALT:
           // get the exit code
           exit_code = e.get_info();
@@ -623,7 +575,7 @@ int main(int argc, char **argv)
 	  }
           break;
         default:
-          std::cerr << "Unknown simulation error.\n";
+          std::cerr << e.to_string(sym);
 	  std::cerr << s.Dbg_stack;
       }
     }

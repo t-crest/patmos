@@ -21,8 +21,12 @@
 #define PATMOS_EXCEPTION_H
 
 #include "basic-types.h"
+#include "symbol.h"
 
 #include <cassert>
+#include <sstream>
+
+#include <boost/format.hpp>
 
 namespace patmos
 {
@@ -76,17 +80,31 @@ namespace patmos
 
     /// The value of the cycle counter when the exception was raised.
     unsigned int Cycle;
+    
+    /// An optional error message.
+    std::string Message;
 
     /// Construction a simulation exception.
     /// @param kind The kind of the simulation exception.
     /// @param info Additional information on the simulation exception, e.g.,
     /// the address of an unmapped memory access, et cetera.
-    simulation_exception_t(kind_t kind, uword_t info = 0, uword_t pc = 0,
+    simulation_exception_t(kind_t kind, uword_t info, uword_t pc = 0,
                            unsigned int cycle = 0) :
-        Kind(kind), Info(info), PC(pc), Cycle(cycle)
-    {
-    }
+        Kind(kind), Message(""), Info(info), PC(pc), Cycle(cycle)
+    {}
+    
+    simulation_exception_t(kind_t kind, std::string msg, uword_t pc = 0, 
+                           unsigned int cycle = 0) :
+        Kind(kind), Message(msg), Info(0), PC(pc), Cycle(cycle)
+    {}
+
   public:
+    void set_cycle(unsigned int cycle, uword_t pc) 
+    {
+      Cycle = cycle;
+      PC = pc;
+    }
+    
     /// Return the kind of the simulation exception.
     /// @return The kind of the simulation exception.
     kind_t get_kind() const
@@ -99,6 +117,53 @@ namespace patmos
     uword_t get_info() const
     {
       return Info;
+    }
+    
+    std::string get_message() const
+    {
+      if (Message.empty()) {
+        std::stringstream ss;
+        ss << boost::format("%1$08x") % Info;
+        return ss.str();
+      } else {
+        return Message;
+      }
+    }
+    
+    std::string to_string(symbol_map_t &sym) const {
+      std::string kind_msg;
+      switch (Kind) {
+        case CODE_EXCEEDED:
+          kind_msg = "Method cache size exceeded";
+          break;
+        case ILLEGAL_PC:
+          kind_msg = "Program counter outside current method";
+          break;
+        case STACK_EXCEEDED:
+          kind_msg = "Stack size exceeded";
+          break;
+        case UNMAPPED:
+          kind_msg = "Unmapped memory access";
+          break;
+        case ILLEGAL_ACCESS:
+          kind_msg = "Illegal memory access";
+          break;
+        case ILLEGAL:
+          kind_msg = "Illegal instruction";
+          break;
+        case UNALIGNED:
+          kind_msg = "Unaligned memory access";
+          break;
+        case HALT:
+          kind_msg = "Halt called";
+          break;
+        default:
+          return "Unknown simulation error: " + get_message() + "\n";
+      }
+      std::stringstream ss;
+      ss << boost::format("Cycle %1%: %2% at %3$08x%4%: %5%\n")
+                    % Cycle % kind_msg % PC % sym.find(PC) % get_message();
+      return ss.str();
     }
 
     /// Return the value of the program counter when the exception was raised.
@@ -146,9 +211,9 @@ namespace patmos
     }
     
     /// Throw a stack-cache-size-exceeded simulation exception.
-    static void stack_exceeded()  __attribute__ ((noreturn))
+    static void stack_exceeded(std::string msg)  __attribute__ ((noreturn))
     {
-      throw simulation_exception_t(STACK_EXCEEDED);
+      throw simulation_exception_t(STACK_EXCEEDED, msg);
     }
 
     /// Throw a method-cache-size-exceeded simulation exception.
