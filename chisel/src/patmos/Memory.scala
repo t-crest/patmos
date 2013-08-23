@@ -56,11 +56,12 @@ class Memory() extends Component {
   val enable = Mux(mayStallReg, (io.localInOut.S.Resp === OcpResp.DVA
 						   || io.globalInOut.S.Resp === OcpResp.DVA),
 				   Bool(true))
-  io.ena := enable // stall = !enable
+
+  io.ena := enable & io.mc_ena // stall = !enable
 
   // Register from execution stage
   val memReg = Reg(new ExMem(), resetVal = ExMemResetVal)
-  when(enable) {
+  when(enable & io.mc_ena) {
     memReg := io.exmem
   }
 

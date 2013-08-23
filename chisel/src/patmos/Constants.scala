@@ -46,7 +46,7 @@ import Node._
 object Constants {
 
   // TODO: this should come from some configuration file
-  val CLOCK_FREQ = 100000000
+  val CLOCK_FREQ = 80000000
 
   val UART_BAUD = 115200
   val LED_COUNT = 8

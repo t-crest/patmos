@@ -178,13 +178,13 @@ test_sim(13 "BASE: 00000028   PC : 00000050.*
 
 test_sim(14 "r0 : 00000000   r1 : 0283f181   r2 : 0283f181   r3 : 00000283   r4 : ffffff83   r5 : 00000283   r6 : 00000083")
 
-test_sim(15 "Unmapped memory access: 00000014: fffffffc")
+test_sim(15 "Unmapped memory access at 00000014: fffffffc")
 
-test_sim(16 "Stack size exceeded: 00000014")
+test_sim(16 "Stack size exceeded at 00000014")
 
-test_sim(17 "Stack size exceeded: 00000018")
+test_sim(17 "Stack size exceeded at 00000018")
 
-test_sim(18 "Stack size exceeded: 00000014")
+test_sim(18 "Stack size exceeded at 00000014")
 
 test_sim(19 "r1 : 00000007")
 

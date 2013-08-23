@@ -42,6 +42,18 @@ package ocp
 import Chisel._
 import Node._
 
+// Masters include a RespAccept signal
+class OcpIOMasterSignals(addrWidth : Int, dataWidth : Int)
+  extends OcpMasterSignals(addrWidth, dataWidth) {
+  val RespAccept = Bits(width = 1)
+
+  // This does not really clone, but Data.clone doesn't either
+  override def clone() = {
+    val res = new OcpIOMasterSignals(addrWidth, dataWidth)
+  	res.asInstanceOf[this.type]
+  }
+}
+
 // Slaves include a CmdAccept signal
 class OcpIOSlaveSignals(dataWidth : Int)
   extends OcpSlaveSignals(dataWidth) {
@@ -57,14 +69,14 @@ class OcpIOSlaveSignals(dataWidth : Int)
 // Master port
 class OcpIOMasterPort(addrWidth : Int, dataWidth : Int) extends Bundle() {
   // Clk is implicit in Chisel
-  val M = new OcpCoreMasterSignals(addrWidth, dataWidth).asOutput
+  val M = new OcpIOMasterSignals(addrWidth, dataWidth).asOutput
   val S = new OcpIOSlaveSignals(dataWidth).asInput 
 }
 
 // Slave port is reverse of master port
 class OcpIOSlavePort(addrWidth : Int, dataWidth : Int) extends Bundle() {
   // Clk is implicit in Chisel
-  val M = new OcpCoreMasterSignals(addrWidth, dataWidth).asInput
+  val M = new OcpIOMasterSignals(addrWidth, dataWidth).asInput
   val S = new OcpIOSlaveSignals(dataWidth).asOutput
 }
 
@@ -75,8 +87,10 @@ class OcpIOBridge(master : OcpCoreMasterPort, slave : OcpIOSlavePort) {
   when(masterReg.Cmd === OcpCmd.IDLE || slave.S.CmdAccept) {
 	masterReg := master.M
   }
-  // Forward master signals to slave
+  // Forward master signals to slave, always accept responses
   slave.M := masterReg
+  slave.M.RespAccept := Bits("b1")
+
   // Forward slave signals to master
   master.S <> slave.S
 }

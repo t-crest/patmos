@@ -288,6 +288,8 @@ that there are problems when the interrupt appears between the \texttt{call} and
 \stefan{And I was so happy not to have both \texttt{S0} and \texttt{SO} in the compiler anymore ;) I would suggest to call them 
 \texttt{srb} and \texttt{sro} instead (for return base and return offset, which they actually are).}
 
+\wolf{Agree for \texttt{srb} and \texttt{sro}.}
+
 \subsubsection{Costs and Benefits}
 
 For functions that call other functions, the change saves one
@@ -356,7 +358,7 @@ Note that as long only \texttt{r0} is used for the offset, no changes to the com
 
 \subsubsection{Rationale}
 
-With a method cache, there are two distinct view of the program
+With a method cache, there are two distinct views of the program
 counter: the program counter to address the cache memory
 (PC$_{cache}$), and the address of the respective instruction in
 memory (PC$_{mem}$). When loading instructions from memory
@@ -506,9 +508,25 @@ a work around would be to make it a two cycle stalling instruction.}
 \stefan{How about pre-calculating \code{coff-base} at \texttt{call}/\texttt{brcf}/\texttt{ret}? It costs one 32bit register (or
 30bit assuming alignment) and an additional op at those instructions, but saves the second subtract at \texttt{br} (note that we cannot 
 use the second ALU for a \texttt{call} and most likely never will use it for \texttt{brcf} as long as it has one cycle more than \texttt{br}
-since it is only introduced after the scheduler and replaces a \texttt{br}). 
+since it is only introduced after the scheduler and replaces a \texttt{br}).} 
 
-Another reason apart from the linker issue is that debugging becomes harder, as
+\wolf{Precalculating is what we should anyway if we keep things as
+  they are. Still, all bits of the addend \code{coff-base} are
+  significant, while \texttt{coff} has its lowest bits
+  cleared. Imagine a method cache with 32KB and 128 functions. With
+  word addressing, PC$_{cache}$ and \texttt{coff} would be 13
+  bits. The lowest 6 bits of \texttt{coff} would be guaranteed zero
+  due to alignment. Consequently, the complexity of the addition is
+  almost cut in half (13 significant bits vs 7 significant bits).
+
+  What do you mean exactly with ``we cannot use the second ALU for a
+  \texttt{call}''?}
+
+\stefan{Due to the fixed size of the call delay slot, we are never allowed to issue anything in parallel with a call anyway, so from my
+naive point of view we should have the second ALU available to do the precalculation ;) }
+
+
+\stefan{Another reason apart from the linker issue is that debugging becomes harder, as
 the binary no longer contains absolute addresses at jump tables, but one has to know the base of the current sub-function (which is usually
 not obvious from just looking at the disassembly) and add the values to get the actual target addresses, and you cannot grep for the
 addresses in the disassembly easily. Debugging some jump table/method cache related bugs in the compiler backend is already quite painful as it is..}
@@ -548,6 +566,9 @@ at least save quite some code space and reduce the overestimations in the functi
 We should really get a proper scheduler though to support this properly, the current delay slot filler is getting more and more 
 scary..}
 
+\wolf{Non-delayed \texttt{brcf} should be okay, the stages that need
+  to be flushed are the same as for interrupts.}
+
 \subsection{Issue Memory Operations in any Pipeline}
 
 Allow stack cache accesses, maybe even any memory access in the second pipeline, as long as there is no memory access to the same 
@@ -577,6 +598,15 @@ see how much ILP we can get out of the code.
 
 Martin promised to take a real serious look at it when we can get some figures showing a gain from the compiler.. ;) }
 
+\wolf{I oppose this change. It's quite a bit of hardware, and
+  performance gains are most likely negligible. There is not much else
+  to do in the prologue/epilogue, and stack accesses are relatively
+  rare elsewhere. If you can show a realistic example where
+  performance gains are significant, I might change my mind.
+
+  Note that we cannot mix XXc and XXm, because both might go to main
+  memory in case of a cache miss. Stack control and
+  \texttt{call}/\texttt{brcf} conflict with both XXc and XXm.}
 
 \subsection{Interrupts and Exceptions}
 
@@ -2778,8 +2808,8 @@ register. To enable sub-word transfers of data, the signal
 \begin{itemize}
 \item Only reads and non-posted writes are supported. This entails
   that every command must be followed by a response.
-\item No \code{SCmdAccept}, handshaking is done solely via
-  \code{SResp}.
+\item No \code{SCmdAccept} or \code{MRespAccept}, flow control is done
+  solely via \code{SResp}.
 \item Slaves may generate responses earliest in the cycle after a
   command.
 \item The master may issue commands in the same cycle as the slave
@@ -2820,9 +2850,14 @@ the master signals changes the protocol as follows:
   receive a command.
 \item Commands are issued earliest in the cycle after a response (no
   pipelining).
-\item \code{SCmdAccept} may be supported. To do so, it is sufficient
-  to register the master signals only if the currently registered
-  command is \code{IDLE} or \code{SCmdAccept} is high.
+\item \code{SCmdAccept} is supported. It is sufficient to register the
+  master signals only if the currently registered command is
+  \code{IDLE} or \code{SCmdAccept} is high.
+\item In order to have symmetric handshaking for commands and
+  responses and to facilitate clock-domain crossing, \code{OCPio} also
+  includes a signal \code{MRespAccept}. An \code{OCPio} port that is
+  derived directly from the pipeline's \code{OCPcore} port always
+  accepts responses.
 \end{itemize}
 
 \subsubsection{\code{OCPcache}}
@@ -2855,9 +2890,14 @@ consecutive cycles and that slaves can accept all burst data words
 once they accept the first word. To enable handshaking for the
 acceptance of the first data word, the \code{OCPburst} variant
 includes the signals \code{MDataValid} and \code{SDataAccept}. As
-\code{reqdata\_together} is set to 1, a separate \code{SCmdAccept}
-signal is not needed. We also assume that slaves return burst read
-data in consecutive cycles.
+\code{reqdata\_together} is set to 1, delaying the acceptance of data
+also delays the acceptance of write commands. In order to do the same
+for read commands, \code{OCPburst} also includes the signal
+\code{SCmdAccept}. The signals \code{SCmdAccept} and
+\code{SDataAccept} can be generated by the same logic. For the
+acceptance of write commands they must be identical, otherwise at
+least one of the signals can have an undefined value. We assume that
+slaves return burst read data in consecutive cycles
 
 The first response to a read command may be given in the cycle after
 the command. The response to a write command may be given earliest in
@@ -2881,6 +2921,7 @@ is received.
     \cmidrule{1-2}
     \code{SResp} & Response \\
     \code{SData} & Data for reads, 32 bits \\
+    \code{SCmdAccept} & Signal that command is accepted, 1 bit \\
     \code{SDataAccept} & Signal that data is accepted, 1 bit \\
     \bottomrule
   \end{tabular}
@@ -2999,7 +3040,7 @@ immediately.
 
 \begin{enumerate}[A:]
 \item The master issues a read command by setting \code{MCmd} to
-  \code{RD}.
+  \code{RD}. The slave accepts by asserting \code{SCmdAccept}.
 \item The slave provides the first response \code{DVA$_{1.0}$}, with
   data from address \code{A$_1$}.
 \item The slave provides the second response \code{DVA$_{1.1}$}, with

@@ -145,7 +145,8 @@ namespace patmos
       // check if stack size is exceeded
       if (Content.size() < size)
       {
-        simulation_exception_t::stack_exceeded();
+        simulation_exception_t::stack_exceeded("Freeing more than the current "
+                                        " size of the stack cache.");
       }
 
       Content.resize(Content.size() - size);
@@ -170,6 +171,12 @@ namespace patmos
         Content.insert(Content.begin(), size - Content.size(), 0);
       }
       // load from memory, to support setting the spill pointer
+      if (stack_spill < stack_top) {
+        std::stringstream ss;
+        ss << boost::format("Stack spill pointer %1$08x"
+              " is below stack top pointer %2$08x") % stack_spill % stack_top;
+        simulation_exception_t::stack_exceeded(ss.str());
+      }
       while (stack_spill < stack_top + size) {
         byte_t c;
         Memory.read_peek(stack_spill, &c, 1);
@@ -191,7 +198,11 @@ namespace patmos
       // check if stack size is exceeded
       if (stack_top > stack_spill - size)
       {
-        simulation_exception_t::stack_exceeded();
+        std::stringstream ss;
+        ss << boost::format("Spilling %1% bytes would move stack spill pointer"
+               "%2$08x below stack top pointer %3$08x") 
+             % size % stack_spill % stack_top;
+        simulation_exception_t::stack_exceeded(ss.str());
       }
       // write back to memory
       for (int i = 0; i < size; i++) {
@@ -212,7 +223,8 @@ namespace patmos
       // if access exceeds the stack size
       if (Content.size() < address + size)
       {
-        simulation_exception_t::stack_exceeded();
+        simulation_exception_t::stack_exceeded("Reading beyond the current size"
+                                               " of the stack cache");
       }
 
       // read the value
@@ -235,7 +247,8 @@ namespace patmos
       // if access exceeds the stack size
       if (Content.size() < address + size)
       {
-        simulation_exception_t::stack_exceeded();
+        simulation_exception_t::stack_exceeded("Writing beyond the current size"
+                                               " of the stack cache");
       }
 
       // store the value
@@ -418,7 +431,8 @@ namespace patmos
           // ensure that the stack cache size is not exceeded
           if (size_blocks > Num_blocks)
           {
-            simulation_exception_t::stack_exceeded();
+            simulation_exception_t::stack_exceeded("Reserving more blocks than"
+              "the number of blocks in the stack cache");
           }
 
           // reserve stack space
@@ -521,7 +535,8 @@ namespace patmos
       // ensure that the stack cache size is not exceeded
       if(size_blocks > Num_blocks)
       {
-        simulation_exception_t::stack_exceeded();
+        simulation_exception_t::stack_exceeded("Freeing more blocks than"
+          " the number of blocks in the stack cache");
       }
 
       // also free space in memory?
@@ -566,7 +581,8 @@ namespace patmos
           // ensure that the stack cache size is not exceeded
           if (size_blocks > Num_blocks)
           {
-            simulation_exception_t::stack_exceeded();
+            simulation_exception_t::stack_exceeded("Ensuring more blocks than"
+               " the number of blocks in the stack cache");
           }
 
           // need to transfer blocks from memory?

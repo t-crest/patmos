@@ -402,7 +402,8 @@ namespace patmos
       Profiling.finalize(Cycle);
 
       // pass on to caller
-      throw simulation_exception_t(e.get_kind(), e.get_info(), PC, Cycle);
+      e.set_cycle(Cycle, PC);
+      throw e;
     }
 
     Profiling.finalize(Cycle);

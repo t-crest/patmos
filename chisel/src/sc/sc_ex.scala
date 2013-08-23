@@ -38,7 +38,7 @@
  */
 
 
-package sc
+package patmos
 
 import Chisel._
 import Node._
@@ -52,7 +52,6 @@ import scala.math
 class SC_ex(sc_size: Int) extends Component {
     val io = new Bundle {
     val sc_func_type 	= UFix(INPUT, 2) // 00: reserve, 01: ensure, 10: free
-    val predicate 		= UFix(INPUT, 1)
     val imm				= UFix(INPUT, width = 32)
     val spill 			= UFix(OUTPUT, 1)
     val fill 			= UFix(OUTPUT, 1)
@@ -64,8 +63,8 @@ class SC_ex(sc_size: Int) extends Component {
     val sc_top			= UFix(OUTPUT, width = 32) 
   }
   	
-	val sc_top 			= Reg(resetVal = UFix(500, width = 32)) // mts is implemented supposedly?
-
+	val sc_top 			= Reg(resetVal = UFix(512, width = 32)) // 
+//	val spill	 		= Reg(resetVal = UFix(0, 1))
 	
 	io.n_spill 			:= UFix(0) // reset value
 	io.n_fill 			:= UFix(0) // reset value
@@ -78,10 +77,11 @@ class SC_ex(sc_size: Int) extends Component {
 	io.spill 			:= UFix(0)
 	io.fill				:= UFix(0)
 	io.sc_top			:= sc_top // 
-//	io.stall			:= UFix(0)
 	
-	
-		when (io.predicate === UFix(1)){
+	val stall 	= Reg(resetVal = UFix(0, 1))
+    stall := io.stall
+
+    when (stall === UFix(0)) {
 		  when (io.sc_func_type === UFix(0)){ // reserve
 		    sc_top 			:= sc_top - io.imm
 		    io.sc_top		:= sc_top - io.imm
@@ -116,7 +116,8 @@ class SC_ex(sc_size: Int) extends Component {
 		    io.n_spill 		:= UFix(0)
 		    io.n_fill 		:= UFix(0)
 		  }
-		}
+	}
+
 }
   
 
