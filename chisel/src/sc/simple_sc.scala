@@ -50,10 +50,10 @@ import scala.math
 import ocp._
 import Constants._ 
 
-class StackCache(sc_size: Int, mem_size: Int) extends Component {
+class StackCache(sc_size: Int, mem_size: Int, burstLen : Int) extends Component {
 val io = new Bundle {
     val scCpuInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH) // slave to cpu
-    val scMemInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH) // master to memory
+    val scMemInOut = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, burstLen) // master to memory
     
     val spill 		= UFix(INPUT, 1)
 	val fill 		= UFix(INPUT, 1)
@@ -70,13 +70,24 @@ val io = new Bundle {
     val sc2 = { Mem(sc_size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) } }
     val sc3 = { Mem(sc_size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) } }
   	
+    val init_st :: spill_st :: fill_st :: free_st :: spill_wait_st :: fill_wait_st :: Nil  = Enum(6){ UFix() } 
+	val state 		= Reg(resetVal = init_st)
+	val n_spill 	= Reg(resetVal = Fix(0, width = log2Up(sc_size)))
+	val n_fill 		= Reg(resetVal = Fix(0, width = log2Up(sc_size)))
+	val m_top 		= Reg(resetVal = UFix(512, width = 32))
+	val spill = Reg(resetVal = UFix(0, 1))
+	val fill = Reg(resetVal = UFix(0, 1))
+	val fill_en = Mux(state === fill_st, Bits("b1111"),  Bits("b0000"))
+    
 	val addrBits = log2Up(mem_size)
     val sc_en = Mux(io.scCpuInOut.M.Cmd === OcpCmd.WR, io.scCpuInOut.M.ByteEn,  Bits("b0000"))
 	
     val SC_MASK		= UFix(255)
     
     val cpu_addr_masked = io.scCpuInOut.M.Addr & SC_MASK
-    val mem_addr_masked = io.scMemInOut.M.Addr & SC_MASK
+    val mem_addr_masked = (m_top - UFix(1)) & SC_MASK
+    
+    val burst_count = Reg(resetVal = Fix(3, 3))
     
 	when(sc_en(0)) { sc0(cpu_addr_masked ) := io.scCpuInOut.M.Data(BYTE_WIDTH-1, 0) }
 	when(sc_en(1)) { sc1(cpu_addr_masked ) := io.scCpuInOut.M.Data(2*BYTE_WIDTH-1, BYTE_WIDTH) }
@@ -97,10 +108,7 @@ val io = new Bundle {
 		  			sc1(cpu_addr_masked),
 		  			sc0(cpu_addr_masked ))
 
-//	val Cmd = Bits(width = 3)
-//  val Addr = Bits(width = addrWidth)
-//  val Data = Bits(width = dataWidth)
-//  val ByteEn = Bits(width = dataWidth/8)
+
 	io.scMemInOut.M.Data := rdDataSpill  			
 	io.scCpuInOut.S.Data := rdData
 	io.scCpuInOut.S.Resp := Mux(io.scCpuInOut.M.Cmd === OcpCmd.WRNP || io.scCpuInOut.M.Cmd === OcpCmd.RD, OcpResp.DVA, OcpResp.NULL)
@@ -108,88 +116,134 @@ val io = new Bundle {
 	io.scMemInOut.M.Cmd := OcpCmd.IDLE
 	io.scMemInOut.M.Addr := UFix(0)
 	io.scMemInOut.M.Data := Bits(0)
-	io.scMemInOut.M.ByteEn := Bits("b0000")
-  
-	val init_st :: spill_st :: fill_st :: free_st :: wait_st :: Nil  = Enum(5){ UFix() } 
-	val state 		= Reg(resetVal = init_st)
-	val n_spill 	= Reg(resetVal = Fix(0, width = log2Up(sc_size)))
-	val n_fill 		= Reg(resetVal = Fix(0, width = log2Up(sc_size)))
-	val m_top 		= Reg(resetVal = UFix(512, width = 32))
-
-	val mem_addr_masked_reg = Reg(resetVal = Bits(0, width = 32))
+	io.scMemInOut.M.DataByteEn := Bits("b0000")
+	io.scMemInOut.M.DataValid := Bits(0)
+	
+	
+	val mem_addr_masked_reg = Reg(resetVal = Bits(0, width = log2Up(sc_size)))
 	mem_addr_masked_reg := mem_addr_masked
-	when (state === fill_st) {
-	  sc0(mem_addr_masked_reg) := io.scMemInOut.S.Data(BYTE_WIDTH-1, 0)
-	  sc1(mem_addr_masked_reg) := io.scMemInOut.S.Data(2*BYTE_WIDTH-1, BYTE_WIDTH)
-	  sc2(mem_addr_masked_reg) := io.scMemInOut.S.Data(3*BYTE_WIDTH-1, 2*BYTE_WIDTH)
-	  sc3(mem_addr_masked_reg) := io.scMemInOut.S.Data(DATA_WIDTH-1, 3*BYTE_WIDTH)
-	}
+	
+	val mem_addr_reg = Reg(resetVal = Bits(0, width = ADDR_WIDTH))
+	mem_addr_reg := m_top - UFix(1)
+	
 
 	io.stall		:= UFix(0)
 	
 	when (state === init_st){
+	  // spill
 	  when (io.spill === UFix(1)){
-	    state 		:= spill_st
-	    n_spill		:= io.n_spill
+	    spill := UFix(1)
+	    n_spill := io.n_spill
 	    io.stall	:= UFix(1)
-	    io.scMemInOut.M.Cmd := OcpCmd.WR
+	    state := spill_st
+	    io.scMemInOut.M.Cmd	:= OcpCmd.WRNP
+    	io.scMemInOut.M.Addr := mem_addr_reg  
+    	io.scMemInOut.M.Data := rdDataSpill
 	  } 
+	  // fill
 	  .elsewhen (io.fill === UFix(1)){
-	    when ( io.scMemInOut.S.Resp === OcpResp.DVA) {
-	    	state 		:= fill_st 
-	    }
-	    .otherwise { state := wait_st}
-	    n_fill		:= io.n_fill
-        io.stall	:= UFix(1)
+	    fill := UFix(1)
+	    state := fill_st
+	    io.stall := UFix(1)
 	    io.scMemInOut.M.Cmd	:= OcpCmd.RD
+	    io.scMemInOut.M.Addr := mem_addr_reg
 	  }
+	  // free
 	  .elsewhen (io.free === UFix(1)){
 	    state 		:= free_st
 	    io.stall	:= UFix(0)
 	  }
 	}
 	
-	when (state === wait_st) {
-		io.scMemInOut.M.Addr := m_top + UFix(1);
-		io.scMemInOut.M.Cmd	:= OcpCmd.RD
-		io.stall	:= UFix(1)
-		when ( io.scMemInOut.S.Resp === OcpResp.DVA) {
-			state 		:= fill_st 
+	when (state === spill_wait_st) { // wait for the slave to response
+		spill := UFix(1)
+	    io.stall	:= UFix(1)
+	    io.scMemInOut.M.Cmd	:= OcpCmd.WRNP
+    	io.scMemInOut.M.Addr := mem_addr_reg
+    	io.scMemInOut.M.Data := rdDataSpill
+    	io.scMemInOut.M.DataValid := Bits(1)
+		when (io.scMemInOut.S.DataAccept === Bits(1) ) {
+			state := spill_st
+			m_top  		:= m_top - UFix(1)
+			n_spill 	:= n_spill - UFix(1)
+		}
+		
+	}
+	
+	when (state === fill_wait_st) { // 
+		fill := UFix(1)
+	    io.stall	:= UFix(1)
+	    io.scMemInOut.M.Cmd	:= OcpCmd.RD
+    	io.scMemInOut.M.Addr := m_top // mem_addr_reg + UFix(1) // m_top
+    	io.scMemInOut.M.DataValid := Bits(0)
+	    when (io.scMemInOut.S.Resp === OcpResp.DVA) {
+			m_top  		:= m_top + UFix(1)
+			n_fill 	:= n_fill - UFix(1)
+			state := fill_st
 		}
 	}
 	
 	when (state === spill_st){
-	  when ((n_spill - Fix(1)) >= Fix(0)){
-	    m_top  		:= m_top - UFix(1);
-	    n_spill 	:= n_spill - UFix(1)
-	    io.stall 	:= UFix(1)
-	    io.scMemInOut.M.Addr := m_top - UFix(1);
-	    io.scMemInOut.M.Data := rdDataSpill
-	    io.scMemInOut.M.ByteEn := Bits("b1111")
-	    io.scMemInOut.M.Cmd := OcpCmd.WR
-	  }
-	  
-	  .otherwise {
-		io.scMemInOut.M.Cmd := OcpCmd.IDLE
-	    state 		:= init_st
-	    io.stall 	:= UFix(0)
-	  }
+		io.stall := UFix(1)
+	  	io.scMemInOut.M.Cmd	:= OcpCmd.IDLE
+    	io.scMemInOut.M.Addr := mem_addr_reg
+    	io.scMemInOut.M.Data := rdDataSpill
+	  when ( io.scMemInOut.S.DataAccept === Bits(0)) { // wait for the acc signal from slave
+	    	state 		:= spill_wait_st  	
+	    }
+	  .elsewhen (io.scMemInOut.S.DataAccept === Bits(1)){ //start transfer
+		  when (n_spill - Fix(burstLen) >= UFix(0)) {io.scMemInOut.M.DataByteEn := Bits("b1111")} 
+		  .elsewhen (n_spill - UFix(burstLen - 1) === UFix(0)) {io.scMemInOut.M.DataByteEn := Bits("b1110")} 
+		  .elsewhen (n_spill - UFix(burstLen - 2) === UFix(0)) {io.scMemInOut.M.DataByteEn := Bits("b1100")}
+		  .elsewhen (n_spill - UFix(burstLen - 3) === UFix(0)) {io.scMemInOut.M.DataByteEn := Bits("b1000")}
+		  when ((n_spill - Fix(1)) >= Fix(0)){
+		    m_top  		:= m_top - UFix(1)
+		    n_spill 	:= n_spill - UFix(1)
+		    io.stall 	:= UFix(1)
+		    io.scMemInOut.M.Addr := m_top - UFix(1)
+		   
+		       
+		    io.scMemInOut.M.Cmd := OcpCmd.IDLE
+		    io.scMemInOut.M.DataValid := Bits(1)
+		    io.scMemInOut.M.Data := rdDataSpill
+		  }
+		  
+		  .otherwise {
+			io.scMemInOut.M.Cmd := OcpCmd.IDLE
+		    state 		:= init_st
+		    io.stall 	:= UFix(0)
+		  }
+	   }
 	}
 	
 	when (state === fill_st){
-	  
-	  when (n_fill - Fix(1) >= Fix(0)){
-	    m_top 		:= m_top + UFix(1)
-	    n_fill 		:= n_fill - UFix(1)
-	    io.stall 	:= UFix(1)
-	    io.scMemInOut.M.Addr := m_top + UFix(1);
-	    io.scMemInOut.M.Cmd := OcpCmd.RD
+	  when ( io.scMemInOut.S.Resp === OcpResp.DVA && (burst_count - Fix(1)) >= Fix(0)) { // 
+		  burst_count := burst_count - Fix(1)
+		  io.stall := UFix(1)
+		  io.scMemInOut.M.Cmd	:= OcpCmd.IDLE
+		  when (fill_en(0)) {sc0(mem_addr_masked) := io.scMemInOut.S.Data(BYTE_WIDTH-1, 0)}
+		  when (fill_en(1)) {sc1(mem_addr_masked) := io.scMemInOut.S.Data(2*BYTE_WIDTH-1, BYTE_WIDTH)}
+		  when (fill_en(2)) {sc2(mem_addr_masked) := io.scMemInOut.S.Data(3*BYTE_WIDTH-1, 2*BYTE_WIDTH)}
+		  when (fill_en(3)) {sc3(mem_addr_masked) := io.scMemInOut.S.Data(DATA_WIDTH-1, 3*BYTE_WIDTH)}
+		  
+		  when (n_fill - Fix(1) >= Fix(0)){
+		    m_top 		:= m_top + UFix(1)
+		    n_fill 		:= n_fill - UFix(1)
+		    io.stall 	:= UFix(1)
+		    io.scMemInOut.M.Cmd := OcpCmd.IDLE
+		  }
+		  .otherwise {
+		    io.scMemInOut.M.Cmd := OcpCmd.IDLE
+		    state 		:= init_st
+		    io.stall 	:= UFix(0)
+		  }
 	  }
 	  .otherwise {
-	    io.scMemInOut.M.Cmd := OcpCmd.IDLE
-	    state 		:= init_st
-	    io.stall 	:= UFix(0)
+		  burst_count := UFix(3)
+		  state 		:= fill_wait_st  	
 	  }
+	  
+	  
 	}
 	
 	when (state === free_st){
@@ -200,17 +254,21 @@ val io = new Bundle {
 	   when (io.fill === UFix(1)) {
 		  when ( io.scMemInOut.S.Resp === OcpResp.DVA) {
 	    	state 		:= fill_st 
+	    	n_fill		:= io.n_fill
 	    	io.scMemInOut.M.Cmd	:= OcpCmd.RD
 		  }
-	     .otherwise { state := wait_st}
+	     .otherwise { state := fill_wait_st}
 	     
 		  n_fill		:= io.n_fill
 		  io.stall := UFix(1)
 	   }
 	   .elsewhen (io.spill === UFix(1)) { 
-		   state := spill_st
-		   n_spill := io.n_fill
-		   io.stall := UFix(1)
+		   when (io.scMemInOut.S.DataAccept === Bits(1)) {
+			   state := spill_st
+			   n_spill := io.n_spill
+			   io.stall := UFix(1)
+		   }
+		   .otherwise { state := spill_wait_st}
 		}
 	   .otherwise {state := init_st}
 	}

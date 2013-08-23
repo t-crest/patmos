@@ -53,46 +53,26 @@ class StackCacheTest() extends Component {
     val led = Bits(OUTPUT, 1)
   }
     
-    val mem 			= Mem(512) {Bits(width = 32)}	
-	val init			= Reg(resetVal = UFix(1, 1))
 	val sc_init			= Reg(resetVal = UFix(1, 1))
+	val mm = new MainMemory(512, 4)
 	
-	when (init === UFix(1)) { // initialize memory, for simulation
-//		mem(Bits(110)) := Bits(120)
-//		
-//		mem(Bits(16484)) := Bits(130)
-//		
-//		mem(Bits(154)) := Bits(154)
-//		mem(Bits(158)) := Bits(158)
-//		mem(Bits(162)) := Bits(162)
-//		mem(Bits(166)) := Bits(166)
-//		mem(Bits(170)) := Bits(170)
-//		mem(Bits(174)) := Bits(174)
-		
-//		mem(Bits(503)) := Bits(503)
-//		mem(Bits(504)) := Bits(504)
-//		mem(Bits(505)) := Bits(505)
-//		mem(Bits(506)) := Bits(506)
-//		mem(Bits(507)) := Bits(507)
-//		mem(Bits(508)) := Bits(508)
-//		mem(Bits(509)) := Bits(509)
-//		mem(Bits(510)) := Bits(510)
-//		mem(Bits(511)) := Bits(511)
-//		mem(Bits(512)) := Bits(512)
-		
-	  	init := UFix(0)
-  	}
+    val sc_simple = new StackCache(256, 512, 4)
+    
+	mm.io.mmInOut.M.Cmd := sc_simple.io.scMemInOut.M.Cmd
+	mm.io.mmInOut.M.Addr := sc_simple.io.scMemInOut.M.Addr
+	mm.io.mmInOut.M.Data := sc_simple.io.scMemInOut.M.Data
+	mm.io.mmInOut.M.DataByteEn := sc_simple.io.scMemInOut.M.DataByteEn
+	mm.io.mmInOut.M.DataValid := sc_simple.io.scMemInOut.M.DataValid
 	
-	
-    val sc_simple = new StackCache(256, 512)
     sc_simple.io.scCpuInOut.M.Addr := UFix(0)
 	sc_simple.io.scCpuInOut.M.Data := UFix(0)
     sc_simple.io.scCpuInOut.M.ByteEn := Bits(0)
     sc_simple.io.scCpuInOut.M.Cmd := OcpCmd.IDLE
     
-    sc_simple.io.scMemInOut.S.Resp := OcpResp.NULL
- //   sc_simple.io.scMemInOut.S.Resp := OcpResp.NULL // default
-	sc_simple.io.scMemInOut.S.Data := mem(sc_simple.io.scMemInOut.M.Addr)
+    sc_simple.io.scMemInOut.S.Resp := mm.io.mmInOut.S.Resp
+	sc_simple.io.scMemInOut.S.Data := mm.io.mmInOut.S.Data
+	sc_simple.io.scMemInOut.S.DataAccept := mm.io.mmInOut.S.DataAccept
+	
 	
 	val mem_delay = Reg(resetVal = UFix(0, 1))
     val mem_delay_cnt = Reg(resetVal = UFix(0, 3))
@@ -110,7 +90,7 @@ class StackCacheTest() extends Component {
     
     when (mem_delay_cnt === UFix(7)) {
     	io.led := UFix(1)
-    	sc_simple.io.scMemInOut.S.Resp := OcpResp.DVA
+    //	sc_simple.io.scMemInOut.S.Resp := OcpResp.DVA
     //	mem_delay_cnt := UFix(0)
     }
 
@@ -127,7 +107,6 @@ class StackCacheTest() extends Component {
 	
 	sc_ex.io.free <> sc_simple.io.free
 
-	mem(sc_simple.io.m_top) := sc_simple.io.scMemInOut.M.Data
     
     val func_gen	= Reg(resetVal = UFix(0, 5))
     
@@ -180,7 +159,7 @@ class StackCacheTest() extends Component {
       }
 
       when (func_gen === UFix(5)) { // load from stack cache
-    	  sc_simple.io.scCpuInOut.M.Addr := UFix(505)
+    	  sc_simple.io.scCpuInOut.M.Addr := UFix(503)
     	  sc_simple.io.scCpuInOut.M.Cmd := OcpCmd.RD
       }
 	
