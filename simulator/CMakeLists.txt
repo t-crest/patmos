@@ -22,7 +22,7 @@ set(CMAKE_CXX_FLAGS "-O2 -g")
 
 # Find boost library
 include(FindBoost)
-find_package( Boost 1.46.0 COMPONENTS program_options REQUIRED)
+find_package( Boost 1.46.0 COMPONENTS program_options unit_test_framework REQUIRED)
 
 # Find libelf
 find_library(ELF elf)
@@ -42,5 +42,6 @@ enable_testing()
 
 # add sub-directories
 add_subdirectory(src)
+add_subdirectory(src/debug)
 add_subdirectory(tests)
-
+add_subdirectory(tests/debug)

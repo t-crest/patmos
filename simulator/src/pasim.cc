@@ -376,6 +376,7 @@ int main(int argc, char **argv)
     ("debug", boost::program_options::value<unsigned int>()->implicit_value(0), "enable step-by-step debug tracing after cycle")
     ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), "format of the debug trace (short, trace, instr, blocks, calls, default, long, all)")
     ("debug-file", boost::program_options::value<std::string>()->default_value("-"), "output debug trace in file (stderr: -)")
+    ("debug-gdb", "enable gdb-debugging interface. use gdb's target remote to debug the program")
     ("slot-stats,a", "show instruction statistics per slot")
     ("instr-stats,i", "show more detailed statistics per instruction")
     ("quiet,q", "disable statistics output");
@@ -476,6 +477,7 @@ int main(int argc, char **argv)
   unsigned int debug_cycle = vm.count("debug") ?
                                        vm["debug"].as<unsigned int>() :
                                        std::numeric_limits<unsigned int>::max();
+  bool debug_gdb = (vm.count("debug-gdb") != 0);
   unsigned int max_cycle = vm["maxc"].as<unsigned int>();
 
   unsigned int interrupt_enabled = vm["interrupt"].as<unsigned int>();
@@ -559,7 +561,7 @@ int main(int argc, char **argv)
     // start execution
     try
     {
-      s.run(entry, debug_cycle, debug_fmt, *dout, max_cycle, instr_stats);
+      s.run(entry, debug_cycle, debug_fmt, *dout, max_cycle, instr_stats, debug_gdb);
       s.print_stats(*out, slot_stats, instr_stats);
     }
     catch (patmos::simulation_exception_t e)
@@ -632,6 +634,11 @@ int main(int argc, char **argv)
   {
     std::cerr << f.what() << "\n";
   }
+  catch(const std::exception& e)
+  {
+    std::cerr << e.what() << "\n";
+  } 
+
 
   // free memory/cache instances
   // note: no need to free the local memory here.

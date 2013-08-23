@@ -26,10 +26,13 @@
 #include "symbol.h"
 #include "interrupts.h"
 #include "instructions.h"
+#include "debug/GdbServer.h"
+#include "debug/DebugClient.h"
 
 #include <ios>
 #include <iostream>
 #include <iomanip>
+#include <boost/scoped_ptr.hpp>
 
 namespace patmos
 {
@@ -273,9 +276,12 @@ namespace patmos
   void simulator_t::run(word_t entry, uint64_t debug_cycle,
                         debug_format_e debug_fmt, std::ostream &debug_out,
                         uint64_t max_cycles,
-                        bool collect_instr_stats)
+                        bool collect_instr_stats,
+                        const bool debug_gdb)
   {
-
+    // debugging client
+    boost::scoped_ptr<DebugClient> debugClient;
+    
     // do some initializations before executing the first instruction.
     if (Cycle == 0)
     {
@@ -283,6 +289,12 @@ namespace patmos
       Method_cache.initialize(entry);
       Profiling.initialize(entry);
       Dbg_stack.initialize(entry);
+      if (debug_gdb)
+      {
+        /*GdbServer *server = new GdbServer();
+        server->Init();
+        debugClient.reset(server);*/
+      }
     }
 
     try
@@ -292,6 +304,10 @@ namespace patmos
       {
         bool debug = (Cycle >= debug_cycle);
         bool debug_pipline = debug && (debug_fmt >= DF_LONG);
+ 
+        if (debug_gdb)
+        {
+        }
 
         // simulate decoupled load
         Decoupled_load.dMW(*this);

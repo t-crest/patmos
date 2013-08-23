@@ -14,21 +14,5 @@
 #  along with the Patmos Simulator. If not, see <http://www.gnu.org/licenses/>.
 #
 
-add_library(patmos-simulator assembler.cc simulation-core.cc instruction.cc
-                             binary-formats.cc decoder.cc command-line.cc
-                             symbol.cc profiling.cc interrupt-handler.cc
-                             dbgstack.cc)
-
-add_executable(pasim pasim.cc)
-
-target_link_libraries(pasim patmos-simulator patmos-simulator-debug ${Boost_LIBRARIES} ${ELF})
-
-add_executable(paasm paasm.cc)
-
-target_link_libraries(paasm patmos-simulator patmos-simulator-debug ${Boost_LIBRARIES})
-
-add_executable(padasm padasm.cc)
-
-target_link_libraries(padasm patmos-simulator patmos-simulator-debug ${Boost_LIBRARIES})
-
-install(TARGETS pasim paasm padasm RUNTIME DESTINATION bin)
+add_library(patmos-simulator-debug 
+  GdbServer.cc GdbMessage.cc GdbPacketHandler.cc GdbPacket.cc)
