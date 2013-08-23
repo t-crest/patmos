@@ -58,6 +58,7 @@ class OcpBurstMasterSignals(addrWidth : Int, dataWidth : Int)
 // Burst slaves provide handshake signal
 class OcpBurstSlaveSignals(dataWidth : Int)
   extends OcpSlaveSignals(dataWidth) {
+  val CmdAccept = Bits(width = 1)
   val DataAccept = Bits(width = 1)
 
   // This does not really clone, but Data.clone doesn't either
@@ -102,8 +103,14 @@ class OcpBurstBridge(master : OcpCoreMasterPort, slave : OcpBurstSlavePort) {
   // Register to delay response
   val slaveReg = Reg(resetVal = OcpSlaveSignals.resetVal(slave.S))
 
-  masterReg.Cmd := master.M.Cmd
-  masterReg.Addr := master.M.Addr
+  when(masterReg.Cmd === OcpCmd.IDLE
+	   || slave.S.CmdAccept) {
+	masterReg.Cmd := master.M.Cmd
+	masterReg.Addr := master.M.Addr
+	masterReg.Data := master.M.Data
+	masterReg.ByteEn := master.M.ByteEn
+  }
+	
   when(master.M.Cmd === OcpCmd.RD) {
 	state := read
 	cmdPos := master.M.Addr(burstAddrBits+log2Up(dataWidth/8)-1, log2Up(dataWidth/8))
@@ -111,8 +118,6 @@ class OcpBurstBridge(master : OcpCoreMasterPort, slave : OcpBurstSlavePort) {
   when(master.M.Cmd === OcpCmd.WRNP) {
 	state := write
 	cmdPos := master.M.Addr(burstAddrBits+log2Up(dataWidth/8)-1, log2Up(dataWidth/8))
-	masterReg.Data := master.M.Data
-	masterReg.ByteEn := master.M.ByteEn
   }
 
   // Default values
