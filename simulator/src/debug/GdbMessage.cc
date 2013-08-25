@@ -20,106 +20,15 @@
 //
 
 #include "debug/GdbMessage.h"
-#include "debug/GdbPacketHandler.h"
+#include "debug/GdbMessageHandler.h"
 
 #include <sstream>
 #include <boost/format.hpp>
 #include <iostream> //debug only
 
-namespace
-{
-  using namespace patmos;
-
-  //////////////////////////////////////////////////////////////////
-  // Messages
-  // Formatted strings have boost::format syntax
-  //////////////////////////////////////////////////////////////////
-  
-  const std::string supportedMessage = "qSupported";
-  const std::string supportedMessage_response = "PacketSize=%x";
-  const std::string getReasonMessage = "?";
-  const std::string getReasonMessage_response = "S%02x";
-
-  //////////////////////////////////////////////////////////////////
-  // Helper functions
-  //////////////////////////////////////////////////////////////////
- 
-  void SendMessage(const GdbPacketHandler &packetHandler,
-      std::string message)
-  {
-    GdbPacket packet = CreateGdbPacket(message);
-    packetHandler.WriteGdbPacket(packet);
-  }
-
-  //////////////////////////////////////////////////////////////////
-  // qSupported
-  //////////////////////////////////////////////////////////////////
-  class GdbSupportedMessage : public GdbMessage
-  {
-  public:
-    virtual std::string GetMessageString() const
-    {
-      return supportedMessage;
-    }
-    virtual void Handle(const GdbPacketHandler &packetHandler) const
-    {
-      const int maxBytes = 0;
-      const std::string response = 
-        (boost::format(supportedMessage_response) % maxBytes).str();
-      SendMessage(packetHandler, response);
-    }
-  };
-  
-  //////////////////////////////////////////////////////////////////
-  // ?
-  //////////////////////////////////////////////////////////////////
-  class GdbGetReasonMessage : public GdbMessage
-  {
-  public:
-    virtual std::string GetMessageString() const
-    {
-      return getReasonMessage;
-    }
-    virtual void Handle(const GdbPacketHandler &packetHandler) const
-    {
-      const int signalNumber = 5;
-      const std::string response = 
-        (boost::format(getReasonMessage_response) % signalNumber).str();
-      SendMessage(packetHandler, response);
-    }
-  };
-  
-  //////////////////////////////////////////////////////////////////
-  // Unsupported message. This is used to indicate that the message
-  // is unknown or not implemented. Calling Handle() on this message
-  // will result in an exception.
-  //////////////////////////////////////////////////////////////////
-  class GdbUnsupportedMessage : public GdbMessage
-  {
-  public:
-    GdbUnsupportedMessage(std::string packetContent)
-      : m_packetContent(packetContent)
-    {
-    }
-
-    virtual std::string GetMessageString() const
-    {
-      return "Unsupported Message: " + m_packetContent;
-    }
-    
-    virtual void Handle(const GdbPacketHandler &packetHandler) const
-    {
-      throw GdbUnsupportedMessageException(m_packetContent);
-    }
-
-  private:
-    std::string m_packetContent;
-  };
-
-}
-
 namespace patmos
 {
+  
   //////////////////////////////////////////////////////////////////
   // Exceptions
   //////////////////////////////////////////////////////////////////
@@ -127,9 +36,7 @@ namespace patmos
   GdbUnsupportedMessageException::GdbUnsupportedMessageException(
       std::string packetContent)
   {
-    std::stringstream ss;
-    ss << "Error: GdbServer: Received an unsupported message: " << packetContent;
-    m_whatMessage= ss.str();
+    m_whatMessage = "Error: GdbServer: Received an unsupported message: " + packetContent;
   }
   GdbUnsupportedMessageException::~GdbUnsupportedMessageException() throw()
   {
@@ -138,24 +45,116 @@ namespace patmos
   {
     return m_whatMessage.c_str();
   }
-  
-  //////////////////////////////////////////////////////////////////
-  // GetMessage implementation
-  //////////////////////////////////////////////////////////////////
-  
-  GdbMessagePtr GetGdbMessage(std::string packetContent)
-  {
-    // first, check static messages
-    if (packetContent == supportedMessage)
-    {
-      return GdbMessagePtr(new GdbSupportedMessage());
-    }
-    else if (packetContent == getReasonMessage)
-    {
-      return GdbMessagePtr(new GdbGetReasonMessage());
-    }
 
-    // unsupported message / we do not know now to handle that
-    return GdbMessagePtr(new GdbUnsupportedMessage(packetContent));
+  //////////////////////////////////////////////////////////////////
+  // response messages
+  //////////////////////////////////////////////////////////////////
+
+  void GdbResponseMessage::Handle(const GdbMessageHandler &messageHandler,
+      bool &targetContinue) const
+  {
+    throw GdbUnsupportedMessageException(GetMessageString());
   }
+  
+  std::string GdbOKMessage::GetMessageString() const
+  {
+    return okMessage;
+  }
+  
+  GdbErrorMessage::GdbErrorMessage(int errorNr)
+    : m_errorNr(errorNr)
+  {
+  }
+
+  std::string GdbErrorMessage::GetMessageString() const
+  {
+    return (boost::format(errorMessage) % m_errorNr).str();
+  }
+  
+  //////////////////////////////////////////////////////////////////
+  // qSupported
+  //////////////////////////////////////////////////////////////////
+  std::string GdbSupportedMessage::GetMessageString() const
+  {
+    return supportedMessage;
+  }
+  void GdbSupportedMessage::Handle(
+      const GdbMessageHandler &messageHandler,
+      bool &targetContinue) const
+  {
+    const int maxBytes = 0;
+    GdbMessagePtr response(new GdbSupportedMessageResponse(maxBytes));
+    messageHandler.SendGdbMessage(response);
+    targetContinue = false;
+  }
+  GdbSupportedMessageResponse::GdbSupportedMessageResponse(int maxBytes)
+    : m_maxBytes(maxBytes)
+  {
+  }
+  std::string GdbSupportedMessageResponse::GetMessageString() const
+  {
+    return (boost::format(supportedMessage_response) % m_maxBytes).str();
+  }
+  
+  //////////////////////////////////////////////////////////////////
+  // ?
+  //////////////////////////////////////////////////////////////////
+  std::string GdbGetReasonMessage::GetMessageString() const
+  {
+    return getReasonMessage;
+  }
+  void GdbGetReasonMessage::Handle(const GdbMessageHandler &messageHandler,
+      bool &targetContinue) const
+  {
+    const int signalNumber = 5;
+    GdbMessagePtr response(new GdbGetReasonMessageResponse(signalNumber));
+    messageHandler.SendGdbMessage(response);
+    targetContinue = false;
+  }
+  GdbGetReasonMessageResponse::GdbGetReasonMessageResponse(int signalNumber)
+    : m_signalNumber(signalNumber)
+  {
+  }
+  std::string GdbGetReasonMessageResponse::GetMessageString() const
+  {
+    return (boost::format(getReasonMessage_response) % m_signalNumber).str();
+  }
+  
+  //////////////////////////////////////////////////////////////////
+  // H <op> <thread-id>
+  //////////////////////////////////////////////////////////////////
+  std::string GdbSetThreadMessage::GetMessageString() const
+  {
+    return setThreadMessage;
+  }
+  void GdbSetThreadMessage::Handle(const GdbMessageHandler &messageHandler,
+      bool &targetContinue) const
+  {
+    // currently we do not care about threads
+    GdbMessagePtr response(new GdbOKMessage);
+    messageHandler.SendGdbMessage(response);
+    targetContinue = false;
+  }
+
+  //////////////////////////////////////////////////////////////////
+  // Unsupported message. This is used to indicate that the message
+  // is unknown or not implemented. Calling Handle() on this message
+  // will result in an exception.
+  //////////////////////////////////////////////////////////////////
+  GdbUnsupportedMessage::GdbUnsupportedMessage(std::string packetContent)
+    : m_packetContent(packetContent)
+  {
+  }
+
+  std::string GdbUnsupportedMessage::GetMessageString() const
+  {
+    return "Unsupported Message: " + m_packetContent;
+  }
+    
+  void GdbUnsupportedMessage::Handle(const GdbMessageHandler &messageHandler,
+      bool &targetContinue) const
+  {
+    throw GdbUnsupportedMessageException(m_packetContent);
+  }
+  
 }

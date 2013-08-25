@@ -18,6 +18,7 @@
 //
 
 #include "debug/GdbServer.h"
+#include "debug/GdbMessage.h"
 
 namespace patmos
 {
@@ -43,14 +44,29 @@ namespace patmos
   // GdbServer implementation
   //////////////////////////////////////////////////////////////////
   
-  GdbServer::GdbServer(DebugInterface &debugInterface)
-    : m_debugInterface(debugInterface)
+  GdbServer::GdbServer(DebugInterface &debugInterface,
+      const GdbConnection &connection)
+    : m_debugInterface(debugInterface),
+      m_connection(connection),
+      m_packetHandler(new GdbPacketHandler(m_connection)),
+      m_messageHandler(new GdbMessageHandler(*m_packetHandler))
   {
   }
 
-  void GdbServer::Init()
+  void GdbServer::Start()
   {
-    throw GdbConnectionFailedException();
+    // Get the first message from the gdb client.
+    // Everything else is now driven by the client.
+    // The server only responds to messages that are received from the client.
+    // These respond messages are created and sent by the message's 
+    // Handle function.
+    GdbMessagePtr message;
+    bool targetContinue = false;
+    while (!targetContinue)
+    {
+      message = m_messageHandler->ReadGdbMessage();
+      message->Handle(*m_messageHandler, targetContinue);
+    }
   }
 
   // Implement DebugClient

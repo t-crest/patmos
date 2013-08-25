@@ -13,26 +13,33 @@
 //  You should have received a copy of the GNU General Public License
 //  along with the Patmos Simulator. If not, see <http://www.gnu.org/licenses/>.
 //
+//
+//  This handles the different GDB RSP messages. It implements the server side
+//  of the high level GDB RSP protocol.
+//
 
-#ifndef PATMOS_PIPE_H
-#define PATMOS_PIPE_H
+#ifndef PATMOS_GDB_MESSAGE_HANDLER_H
+#define PATMOS_GDB_MESSAGE_HANDLER_H
 
-#include "debug/GdbConnection.h"
+#include <string>
+#include <boost/shared_ptr.hpp>
 
 namespace patmos
 {
+  class GdbPacketHandler;
+  class GdbMessage;
+  typedef boost::shared_ptr<GdbMessage> GdbMessagePtr;
 
-  /*
-   * Simple implementation of a gdb connection using a pipe. Using std input/
-   * std output to read/write from.
-   */
-  class Pipe : public GdbConnection
+  class GdbMessageHandler
   {
   public:
-    virtual void PutChar(char c) const;
-    virtual char GetChar() const;
-    virtual void Write(const std::string &str) const;
+    GdbMessageHandler(const GdbPacketHandler &packetHandler);
+    GdbMessagePtr ReadGdbMessage() const;
+    void SendGdbMessage(const GdbMessagePtr &message) const;
+  
+  private:
+    const GdbPacketHandler &m_packetHandler;
   };
 
 }
-#endif // PATMOS_PIPE_H
+#endif // PATMOS_GDB_MESSAGE_HANDLER_H

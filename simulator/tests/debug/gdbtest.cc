@@ -13,26 +13,38 @@
 //  You should have received a copy of the GNU General Public License
 //  along with the Patmos Simulator. If not, see <http://www.gnu.org/licenses/>.
 //
+//
+//  Test implementation of the gdb server.
+//
 
-#ifndef PATMOS_PIPE_H
-#define PATMOS_PIPE_H
+#include <iostream>
+#include "debug/GdbServer.h"
+#include "debug/Pipe.h"
+#include "debug/DebugInterface.h"
 
-#include "debug/GdbConnection.h"
+using namespace patmos;
 
-namespace patmos
+namespace
 {
-
-  /*
-   * Simple implementation of a gdb connection using a pipe. Using std input/
-   * std output to read/write from.
-   */
-  class Pipe : public GdbConnection
+  class TestInterface : public DebugInterface
   {
-  public:
-    virtual void PutChar(char c) const;
-    virtual char GetChar() const;
-    virtual void Write(const std::string &str) const;
+    virtual void SetDebugClient(DebugClient &debugClient)
+    {
+    }
+    virtual void AddBreakpoint(Breakpoint bp)
+    {
+    }
+    virtual void RemoveBreakpoint(Breakpoint bp)
+    {
+    }
   };
-
 }
-#endif // PATMOS_PIPE_H
+
+int main(int argc, char **argv)
+{
+  Pipe pipe;
+  TestInterface debugInterface;
+  GdbServer server(debugInterface,pipe);
+
+  server.Start();
+}

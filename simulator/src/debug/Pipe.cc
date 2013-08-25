@@ -17,6 +17,10 @@
 //  Simply writes to std out and reads from std in
 //
 
+#include "debug/Pipe.h"
+
+#include <iostream>
+
 namespace patmos
 {
 
@@ -38,4 +42,3 @@ namespace patmos
   }
 
 }
-#endif // PATMOS_PIPE_H

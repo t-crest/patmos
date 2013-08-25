@@ -21,11 +21,19 @@
 #define PATMOS_GDB_SERVER_H
 
 #include <string>
+#include <boost/scoped_ptr.hpp>
 
 #include "debug/DebugClient.h"
+#include "debug/GdbPacketHandler.h"
+#include "debug/GdbMessageHandler.h"
 
 namespace patmos
 {
+
+  class GdbConnection;
+
+  typedef boost::scoped_ptr<GdbPacketHandler> GdbPacketHandlerPtr;
+  typedef boost::scoped_ptr<GdbMessageHandler> GdbMessageHandlerPtr;
 
   class GdbConnectionFailedException : public std::exception
   {
@@ -41,15 +49,25 @@ namespace patmos
   class GdbServer : public DebugClient
   {
   public:
-    GdbServer(DebugInterface &debugInterface);
+    GdbServer(DebugInterface &debugInterface,
+        const GdbConnection &connection);
 
-    void Init();
+    /*
+     * starts to listen on the connection given at construction time.
+     * this will block until the initial handshake with the gdb client
+     * program is done. Depending on gdb client commands, the program
+     * will then continue or not
+     */
+    void Start();
 
     // Implement DebugClient
     virtual void BreakpointHit(const Breakpoint &bp);
   
   private:
     DebugInterface &m_debugInterface;
+    const GdbConnection &m_connection;
+    GdbPacketHandlerPtr m_packetHandler;
+    GdbMessageHandlerPtr m_messageHandler;
   };
 
 }

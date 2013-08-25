@@ -15,4 +15,4 @@
 #
 
 add_library(patmos-simulator-debug 
-  GdbServer.cc GdbMessage.cc GdbPacketHandler.cc GdbPacket.cc)
+  Pipe.cc GdbServer.cc GdbMessageHandler.cc GdbMessage.cc GdbPacketHandler.cc GdbPacket.cc)

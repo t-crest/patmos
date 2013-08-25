@@ -16,7 +16,6 @@
 //
 //  This represents the GDB RSP message layout, i.e. the high level
 //  abstraction of rsp packets.
-//  Each message handles its effect on its own.
 //
 
 #ifndef PATMOS_GDB_MESSAGE_H
@@ -27,8 +26,27 @@
 
 namespace patmos
 {
-  class GdbPacketHandler;
+  class GdbMessageHandler;
 
+  //////////////////////////////////////////////////////////////////
+  // Messages
+  // Formatted strings have boost::format syntax
+  //////////////////////////////////////////////////////////////////
+  
+  const std::string supportedMessage = "qSupported";
+  const std::string supportedMessage_response = "PacketSize=%x";
+  const std::string getReasonMessage = "?";
+  const std::string getReasonMessage_response = "S%02x";
+  const std::string setThreadMessage = "H";
+
+
+  const std::string okMessage = "OK";
+  const std::string errorMessage = "E %02x";
+  
+  //////////////////////////////////////////////////////////////////
+  // Exceptions
+  //////////////////////////////////////////////////////////////////
+  
   class GdbUnsupportedMessageException : public std::exception
   {
   public:
@@ -40,16 +58,111 @@ namespace patmos
     std::string m_whatMessage;
   };
 
+  //////////////////////////////////////////////////////////////////
+  // Message Implementations
+  //////////////////////////////////////////////////////////////////
+  
   class GdbMessage
   {
   public:
+    virtual ~GdbMessage() {}
     virtual std::string GetMessageString() const = 0;
-    virtual void Handle(const GdbPacketHandler &packethandler) const = 0;
+    virtual void Handle(const GdbMessageHandler &messageHandler,
+        bool &targetContinue) const = 0;
   };
-
   typedef boost::shared_ptr<GdbMessage> GdbMessagePtr;
 
-  GdbMessagePtr GetGdbMessage(std::string packetContent);
+  class GdbResponseMessage : public GdbMessage
+  {
+  public:
+    virtual std::string GetMessageString() const = 0;
+    virtual void Handle(const GdbMessageHandler &messageHandler,
+        bool &targetContinue) const;
+  };
+
+  class GdbOKMessage : public GdbResponseMessage
+  {
+  public:
+    virtual std::string GetMessageString() const;
+  };
+  
+  class GdbErrorMessage : public GdbResponseMessage
+  {
+  public:
+    GdbErrorMessage(int errorNr);
+    virtual std::string GetMessageString() const;
+  private:
+    int m_errorNr;
+  };
+  
+  //////////////////////////////////////////////////////////////////
+  // qSupported
+  //////////////////////////////////////////////////////////////////
+  
+  class GdbSupportedMessage : public GdbMessage
+  {
+  public:
+    virtual std::string GetMessageString() const;
+    virtual void Handle(const GdbMessageHandler &messageHandler,
+        bool &targetContinue) const;
+  };
+  
+  class GdbSupportedMessageResponse : public GdbResponseMessage
+  {
+  public:
+    GdbSupportedMessageResponse(int maxBytes);
+    virtual std::string GetMessageString() const;
+  private:
+    int m_maxBytes;
+  };
+  
+  //////////////////////////////////////////////////////////////////
+  // ?
+  //////////////////////////////////////////////////////////////////
+  
+  class GdbGetReasonMessage : public GdbMessage
+  {
+  public:
+    virtual std::string GetMessageString() const;
+    virtual void Handle(const GdbMessageHandler &messageHandler,
+        bool &targetContinue) const;
+  };
+  
+  class GdbGetReasonMessageResponse : public GdbResponseMessage
+  {
+  public:
+    GdbGetReasonMessageResponse(int signalNumber);
+    virtual std::string GetMessageString() const;
+  private:
+    int m_signalNumber;
+  };
+
+  //////////////////////////////////////////////////////////////////
+  // H <op> <thread-id>
+  //////////////////////////////////////////////////////////////////
+  
+  class GdbSetThreadMessage : public GdbMessage
+  {
+  public:
+    virtual std::string GetMessageString() const;
+    virtual void Handle(const GdbMessageHandler &messageHandler,
+        bool &targetContinue) const;
+  };
+  
+  //////////////////////////////////////////////////////////////////
+  // Unsupported messages
+  //////////////////////////////////////////////////////////////////
+  
+  class GdbUnsupportedMessage : public GdbMessage
+  {
+  public:
+    GdbUnsupportedMessage(std::string packetContent);
+    virtual std::string GetMessageString() const;
+    virtual void Handle(const GdbMessageHandler &messageHandler,
+        bool &targetContinue) const;
+  private:
+    std::string m_packetContent;
+  };
 
 }
 #endif // PATMOS_GDB_MESSAGE_H

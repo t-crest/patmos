@@ -24,6 +24,7 @@
 #include <sstream>
 #include <algorithm>
 #include <iostream>
+#include <iomanip>
 
 namespace
 {
@@ -104,16 +105,17 @@ namespace patmos
 
   void GdbPacketHandler::WriteGdbPacket(const GdbPacket &packet) const
   {
-    if (debug)
-    {
-      std::cerr << "GdbPacketHandler::WriteGdbPacket - " << 
-        packet.GetContent() << std::endl;
-    }
     int r = 0; // retransmission count
     do
     {
       if (r++ > maxRetransmissions)
         throw GdbMaxRetransmissionsException();
+
+      if (debug)
+      {
+        std::cerr << "GdbPacketHandler::WriteGdbPacket - " << 
+          packet.GetPacketString()<< std::endl;
+      }
 
       m_con.Write(packet.GetPacketString());
     } while (!GetAck(m_con));
@@ -141,16 +143,26 @@ namespace patmos
       packet = ParseGdbPacket(ss.str());
       isValid = packet.IsValid();
       
+      if (debug)
+      {
+        int checksum = packet.GetChecksum();
+        // if invalid, calc checksum of the given packet
+        if (!isValid)
+        {
+          GdbPacket checksumHelper = CreateGdbPacket(packet.GetContent());
+          checksum = checksumHelper.GetChecksum();
+        }
+        std::cerr << "GdbPacketHandler::ReadGdbPacket - " << 
+          packet.GetPacketString() << "(" << packet.GetContent() <<
+          ", checksum: " << std::hex << std::setw(2) << checksum << 
+          ", is valid: " << isValid << ")" << std::endl;
+      }
+
       if (!isValid)
         m_con.Write(failSeq);
     } while (!isValid);
 
     m_con.Write(ackSeq);
-    if (debug)
-    {
-      std::cerr << "GdbPacketHandler::ReadGdbPacket - " << 
-        packet.GetContent() << std::endl;
-    }
     return packet;
   }
 
