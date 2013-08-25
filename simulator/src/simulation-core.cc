@@ -26,8 +26,6 @@
 #include "symbol.h"
 #include "interrupts.h"
 #include "instructions.h"
-#include "debug/GdbServer.h"
-#include "debug/DebugClient.h"
 
 #include <ios>
 #include <iostream>
@@ -279,9 +277,6 @@ namespace patmos
                         bool collect_instr_stats,
                         const bool debug_gdb)
   {
-    // debugging client
-    boost::scoped_ptr<DebugClient> debugClient;
-    
     // do some initializations before executing the first instruction.
     if (Cycle == 0)
     {
