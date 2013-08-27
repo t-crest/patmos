@@ -62,7 +62,7 @@ object Constants {
   
   // we use now a very simple decode of ISPM ad address 0x00800000
   // this is the one bit in byte address counting
-  val ISPM_ONE_BIT = 23
+  val ISPM_ONE_BIT = 16 //23
 
   // The PC counts in words. 30 bits are enough for the 4 GB address space.
   // We might cut that down to what we actually really support (16 MB)

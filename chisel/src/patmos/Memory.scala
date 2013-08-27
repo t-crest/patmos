@@ -174,7 +174,7 @@ class Memory() extends Component {
   
   // TODO: PC is absolute in ISPM, but we fake the return offset to
   // be relative to the base address.
-  val baseReg = Reg(resetVal = UFix(4, DATA_WIDTH))
+  //val baseReg = Reg(resetVal = UFix(4, DATA_WIDTH))
 
   io.memwb.pc := memReg.pc
   for (i <- 0 until PIPE_COUNT) {
@@ -182,11 +182,12 @@ class Memory() extends Component {
 	io.memwb.rd(i).valid := memReg.rd(i).valid
 	io.memwb.rd(i).data := memReg.rd(i).data 
   }
-  // Fill in data from loads or calls
-  io.memwb.rd(0).data := Mux(memReg.mem.load, dout,
-							 Mux(memReg.mem.call,
-								 Cat(io.femem.pc, Bits("b00")) - baseReg,
-								 memReg.rd(0).data))  
+  //Fill in data from loads or calls
+  // io.memwb.rd(0).data := Mux(memReg.mem.load, dout,
+  //       						 Mux(memReg.mem.call,
+  //       							 Cat(io.femem.pc, Bits("b00")) - baseReg,
+  //       							 memReg.rd(0).data))  
+  io.memwb.rd(0).data := Mux(memReg.mem.load, dout, Mux(memReg.mem.call, Cat(io.femem.pc, Bits("b00")), memReg.rd(0).data)) 
 
   // call to fetch
   io.memfe.doCallRet := memReg.mem.call || memReg.mem.ret || memReg.mem.brcf
@@ -194,9 +195,9 @@ class Memory() extends Component {
   io.memfe.callRetBase := memReg.mem.callRetBase(DATA_WIDTH-1, 2)
 
   // TODO: remember base address for faking return offset
-  when(enable && io.memfe.doCallRet) {
-	baseReg := memReg.mem.callRetBase
-  }
+  // when(enable && io.memfe.doCallRet) {
+  //       baseReg := memReg.mem.callRetBase
+  // }
 
   // ISPM write
   io.memfe.store := io.localInOut.M.Cmd === OcpCmd.WRNP
