@@ -57,9 +57,9 @@ class InOut() extends Component {
   // Compute selects
   val selIO = io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-4) === Bits("b1111")
   val selSpm = !selIO & io.memInOut.M.Addr(ISPM_ONE_BIT) === Bits(0x0)
-  val selTimer = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x0)
-  val selUart = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x1)
-  val selLed = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x2)
+  val selTimer = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x2)
+  val selUart = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x8)
+  val selLed = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x9)
 
   // Register selects
   val selSpmReg = Reg(resetVal = Bits("b0"))

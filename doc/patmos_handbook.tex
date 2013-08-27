@@ -2326,15 +2326,14 @@ Table~\ref{tab:iomap} shows the I/O devices and the registers.
 \toprule
 Address & I/O Device & read & write \\
 \midrule
-\code{0xf0000000} & ID & processor ID & -- \\
-\code{0xf0000010} & counter & clock cycles (high word) & -- \\
-\code{0xf0000014} & counter & clock cycles (low word) & -- \\
-\code{0xf0000018} & counter & time in $\mu s$ (high word) & -- \\
-\code{0xf000001c} & counter & time in $\mu s$ (low word) & -- \\
-\code{0xf0000100} & UART & status & control \\
-\code{0xf0000104} & UART & receive buffer & transmit buffer \\
-\code{0xf0000200} & LED & -- & output register \\
-\code{0xf0000300} & SDRAM &  not used \\
+\code{0xf0000000} & cpuinfo & processor ID & -- \\
+\code{0xf0000200} & timer & clock cycles (high word) & -- \\
+\code{0xf0000204} & timer & clock cycles (low word) & -- \\
+\code{0xf0000208} & timer & time in $\mu s$ (high word) & -- \\
+\code{0xf000020c} & timer & time in $\mu s$ (low word) & -- \\
+\code{0xf0000800} & UART & status & control \\
+\code{0xf0000804} & UART & receive buffer & transmit buffer \\
+\code{0xf0000900} & LED & -- & output register \\
 \bottomrule
 \end{tabular}
 \caption{I/O devices and registers}

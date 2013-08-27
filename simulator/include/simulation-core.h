@@ -26,9 +26,7 @@
 #include "instruction.h"
 #include "exception.h"
 #include "profiling.h"
-
 #include "interrupts.h"
-#include "rtc.h"
 
 #include <limits>
 #include <iostream>
@@ -42,6 +40,7 @@ namespace patmos
   class stack_cache_t;
   class method_cache_t;
   class binary_format_t;
+  class rtc_t;
 
   /// Define the maximum number of slots in a bundle.
   static const unsigned int NUM_SLOTS = 2;
@@ -152,7 +151,7 @@ namespace patmos
     dbgstack_t Dbg_stack;
 
     /// Real time clock
-    rtc_t &Rtc;
+    rtc_t *Rtc;
 
     /// Interrupt handler
     interrupt_handler_t &Interrupt_handler;
@@ -252,7 +251,7 @@ namespace patmos
     simulator_t(memory_t &memory, memory_t &local_memory,
                 data_cache_t &data_cache, method_cache_t &method_cache,
                 stack_cache_t &stack_cache, symbol_map_t &symbols,
-                rtc_t &rtc, interrupt_handler_t &interrupt_handler);
+                interrupt_handler_t &interrupt_handler);
 
     // Destroy an instance of a Patms-core simulator
     ~simulator_t();

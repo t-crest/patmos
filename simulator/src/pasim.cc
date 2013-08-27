@@ -27,7 +27,7 @@
 #include "symbol.h"
 #include "memory-map.h"
 #include "uart.h"
-#include "mm_rtc.h"
+#include "rtc.h"
 #include "interrupts.h"
 
 #include <gelf.h>
@@ -402,14 +402,17 @@ int main(int argc, char **argv)
     ("cpuid", boost::program_options::value<unsigned int>()->default_value(0), "Set CPU ID in the simulator")
     ("freq",  boost::program_options::value<double>()->default_value(90.0), "Set CPU Frequency in Mhz")
     ("mmbase", boost::program_options::value<unsigned int>()->default_value(patmos::IOMAP_BASE_ADDRESS), "base address of the IO device map address range")
-    ("mmhigh", boost::program_options::value<unsigned int>()->default_value(patmos::IOMAP_HIGH_ADDRESS), "highest address of the IO device map address range");
+    ("mmhigh", boost::program_options::value<unsigned int>()->default_value(patmos::IOMAP_HIGH_ADDRESS), "highest address of the IO device map address range")
+    ("cpuinfo_offset", boost::program_options::value<unsigned int>()->default_value(patmos::CPUINFO_OFFSET), "address where the cpuinfo device is mapped")
+    ("excunit_offset", boost::program_options::value<unsigned int>()->default_value(patmos::EXCUNIT_OFFSET), "address where the exception unit is mapped")
+    ("timer_offset", boost::program_options::value<unsigned int>()->default_value(patmos::TIMER_OFFSET), "address where the timer device is mapped")
+    ("uart_offset", boost::program_options::value<unsigned int>()->default_value(patmos::UART_OFFSET), "address where the UART device is mapped")
+    ("led_offset", boost::program_options::value<unsigned int>()->default_value(patmos::LED_OFFSET), "address where the LED device is mapped");
   
   boost::program_options::options_description uart_options("UART options");
   uart_options.add_options()
     ("in,I", boost::program_options::value<std::string>()->default_value("-"), "input file for UART simulation (stdin: -)")
-    ("out,O", boost::program_options::value<std::string>()->default_value("-"), "output file for UART simulation (stdout: -)")
-    ("ustatus", boost::program_options::value<unsigned int>()->default_value(patmos::UART_STATUS_ADDRESS), "address where the UART's status register is mapped")
-    ("udata", boost::program_options::value<unsigned int>()->default_value(patmos::UART_DATA_ADDRESS), "address where the UART's data register is mapped");
+    ("out,O", boost::program_options::value<std::string>()->default_value("-"), "output file for UART simulation (stdout: -)");
 
   boost::program_options::options_description interrupt_options("Interrupt options");
   interrupt_options.add_options()
@@ -457,8 +460,11 @@ int main(int argc, char **argv)
   unsigned int mmbase = vm["mmbase"].as<unsigned int>();
   unsigned int mmhigh = vm["mmhigh"].as<unsigned int>();
   
-  unsigned int ustatus = vm["ustatus"].as<unsigned int>();
-  unsigned int udata = vm["udata"].as<unsigned int>();
+  unsigned int cpuinfo_offset = vm["cpuinfo_offset"].as<unsigned int>();
+  unsigned int excunit_offset = vm["excunit_offset"].as<unsigned int>();
+  unsigned int timer_offset = vm["timer_offset"].as<unsigned int>();
+  unsigned int uart_offset = vm["uart_offset"].as<unsigned int>();
+  unsigned int led_offset = vm["led_offset"].as<unsigned int>();
 
   unsigned int gsize = vm["gsize"].as<patmos::byte_size_t>().value();
   unsigned int lsize = vm["lsize"].as<patmos::byte_size_t>().value();
@@ -524,30 +530,26 @@ int main(int argc, char **argv)
     patmos::symbol_map_t sym;
 
     patmos::interrupt_handler_t interrupt_handler;
-    patmos::rtc_t rtc(interrupt_handler);
 
+    patmos::simulator_t s(gm, mm, dc, mc, sc, sym, interrupt_handler);
+
+    // set up timer device
+    patmos::rtc_t rtc(mmbase+timer_offset, s, freq);
     if (interrupt_enabled) {
       interrupt_handler.enable_interrupts();
     }
-
-    patmos::simulator_t s(gm, mm, dc, mc, sc, sym, rtc, interrupt_handler);
     
     // setup IO mapped devices
-    patmos::cpuinfo_t cpuinfo(s, mmbase + patmos::CPUINFO_BASE_OFFSET, cpuid, freq);
-    patmos::uart_t uart(ustatus, udata, *uin, uin_istty, *uout);
-    patmos::led_t leds(mmbase + patmos::LED_BASE_OFFSET, *uout);
+    patmos::cpuinfo_t cpuinfo(mmbase+cpuinfo_offset, cpuid);
+    patmos::excunit_t excunit(mmbase+excunit_offset);
+    patmos::uart_t uart(mmbase+uart_offset, *uin, uin_istty, *uout);
+    patmos::led_t leds(mmbase+led_offset, *uout);
 
-    patmos::mm_rtc_t mm_rtc(patmos::RTC_CLOCK_CYCLES_LOW_ADDRESS,
-                      patmos::RTC_CLOCK_CYCLES_UP_ADDRESS,
-                      patmos::RTC_MICROSECONDS_LOW_ADDRESS,
-                      patmos::RTC_MICROSECONDS_UP_ADDRESS,
-                      patmos::RTC_INTERRUPT_INTERVAL_ADDRESS,
-                      patmos::RTC_ISR_ADDRESS,
-                      rtc);
     mm.add_device(cpuinfo);
+    mm.add_device(excunit);
     mm.add_device(uart);
     mm.add_device(leds);
-    mm.add_device(mm_rtc);
+    mm.add_device(rtc);
 
     // load input program
     patmos::uword_t entry = 0x4;

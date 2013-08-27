@@ -9,9 +9,9 @@ int main() __attribute__((naked,used));
 #define MEM         ((volatile int *) 0x0)
 #define SPM         ((volatile _SPM int *) 0x0)
 
-#define UART_STATUS *((volatile _SPM int *) 0xF0000100)
-#define UART_DATA   *((volatile _SPM int *) 0xF0000104)
-#define LEDS        *((volatile _SPM int *) 0xF0000200)
+#define UART_STATUS *((volatile _SPM int *) 0xF0000800)
+#define UART_DATA   *((volatile _SPM int *) 0xF0000804)
+#define LEDS        *((volatile _SPM int *) 0xF0000900)
 
 #define XDIGIT(c) ((c) <= 9 ? '0' + (c) : 'a' + (c) - 10)
 

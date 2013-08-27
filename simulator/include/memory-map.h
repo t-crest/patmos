@@ -35,16 +35,34 @@ namespace patmos
   /// Default address of the UART data register.
   static const uword_t IOMAP_HIGH_ADDRESS = 0xFFFFFFFF;
 
-  // Offset to the IO base address for the CPU info.
-  static const uword_t CPUINFO_BASE_OFFSET = 0x0000;
+  /// Offset from IO base address for the CPU info.
+  static const uword_t CPUINFO_OFFSET = 0x0000;
   
-  // Number of bytes mapped to the CPU Info.
-  static const uword_t CPUINFO_MAP_SIZE = 0x0100;
+  /// Number of bytes mapped to the CPU Info.
+  static const uword_t CPUINFO_MAP_SIZE = 0x0004;
   
-  // Offset to the IO base address for the LED IO.
-  static const uword_t LED_BASE_OFFSET = 0x0200;
+  /// Offset from IO base address for the exception unit.
+  static const uword_t EXCUNIT_OFFSET = 0x0100;
   
-  // Number of bytes mapped to the LED IO.
+  /// Number of bytes mapped to the exception unit.
+  static const uword_t EXCUNIT_MAP_SIZE = 0x0100;
+
+  /// Offset from IO base address for the timer device.
+  static const uword_t TIMER_OFFSET = 0x0200;
+  
+  /// Number of bytes mapped to the timer device.
+  static const uword_t TIMER_MAP_SIZE = 0x0018;
+  
+  /// Offset from IO base address for UART device.
+  static const uword_t UART_OFFSET = 0x0800;
+
+  /// Number of bytes mapped to the UART device.
+  static const uword_t UART_MAP_SIZE = 0x0008;
+
+  /// Offset from IO base address for the LED device.
+  static const uword_t LED_OFFSET = 0x0900;
+  
+  /// Number of bytes mapped to the LED device.
   static const uword_t LED_MAP_SIZE = 0x0004;
   
   class mapped_device_t {
@@ -140,50 +158,16 @@ namespace patmos
   
   class cpuinfo_t : public mapped_device_t 
   {
-    simulator_t &Simulator;
-    
-    // Frequency of the CPU in MHz.
-    double Frequency;
-    
-    uword_t Cpu_id;
-    
-    /// Latched high word of clock counter
-    uword_t High_clock;
-    
-    /// Latched high word of usec counter
-    uword_t High_usec;
+    uword_t Cpu_id;    
   public:
-    cpuinfo_t(simulator_t &s, uword_t base_address, uword_t cpuid, double frequency)
-    : mapped_device_t(base_address, CPUINFO_MAP_SIZE), Simulator(s), 
-      Cpu_id(cpuid), Frequency(frequency),
-      High_clock(0), High_usec(0)
+    cpuinfo_t(uword_t base_address, uword_t cpuid)
+    : mapped_device_t(base_address, CPUINFO_MAP_SIZE),
+      Cpu_id(cpuid)
     {}
     
     virtual bool read(uword_t address, byte_t *value, uword_t size) {
       if (is_word_access(address, size, 0x00)) {
         write_word(value, size, Cpu_id);
-      }
-      else if (is_word_access(address, size, 0x10)) {
-        // read latched high word of cycle counter
-        write_word(value, size, High_clock);
-      }
-      else if (is_word_access(address, size, 0x14)) {
-        // read low word of cycle counter, latch high word
-        uword_t low_clock = (uword_t)Simulator.Cycle;
-        High_clock = (uword_t)(Simulator.Cycle >> 32);
-        write_word(value, size, low_clock);
-      }
-      else if (is_word_access(address, size, 0x18)) {
-        // read latched high word of usec
-        write_word(value, size, High_usec);
-      }
-      else if (is_word_access(address, size, 0x1c)) {
-        // read low word of usec, latch high word
-        // TODO if Frequency == 0, use wall clock for usec
-        uint64_t usec = (uint64_t)((double)Simulator.Cycle / Frequency);
-        uword_t low_usec = (uword_t)usec;
-        High_usec = (uword_t)(usec >> 32);
-        write_word(value, size, low_usec);
       }
       else {
         simulation_exception_t::unmapped(address);
@@ -205,6 +189,25 @@ namespace patmos
     }
   };
   
+  class excunit_t : public mapped_device_t 
+  {
+  public:
+    excunit_t(uword_t base_address) 
+    : mapped_device_t(base_address, EXCUNIT_MAP_SIZE) {}
+
+    virtual bool read(uword_t address, byte_t *value, uword_t size) {
+      // simulation_exception_t::illegal_access(address);
+	  return true;
+    }
+    virtual void peek(uword_t address, byte_t *value, uword_t size) {
+      //simulation_exception_t::illegal_access(address);
+    }
+    virtual bool write(uword_t address, byte_t *value, uword_t size) {
+      // simulation_exception_t::illegal_access(address);
+	  return true;
+	}
+  };
+
   class led_t : public mapped_device_t 
   {
     /// Stream to write LED status to

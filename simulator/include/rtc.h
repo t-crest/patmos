@@ -23,216 +23,101 @@
 #include <istream>
 #include <ostream>
 #include <cstdio>
+
+#include "memory-map.h"
 #include "endian-conversion.h"
 #include "interrupts.h"
 
 namespace patmos
 {
 
-  class rtc_t 
+  class rtc_t : public mapped_device_t
   {
   private:
+    simulator_t &Simulator;
 
-    /// Clock cycles counter
-    byte_t Clock_cycles[8];
-
-    /// Microseconds cycles counter
-    byte_t Microseconds[8];
+    // Frequency of the CPU in MHz.
+    double Frequency;
+    
+    /// Latched high word of clock counter
+    uword_t High_clock;
+    
+    /// Latched high word of usec counter
+    uword_t High_usec;
 
     /// Interrupt interval register value
-    byte_t Interrupt_interval[4];
+    uword_t Interrupt_interval;
 
     /// Interrupt interval register value
-    byte_t ISR[4];
-
-    /// Interrupt handler used to fire interrupts
-    interrupt_handler_t &Interrupt_handler;  
+    uword_t ISR;
 
   public:
 
-    rtc_t(interrupt_handler_t &interrupt_handler) : Interrupt_handler(interrupt_handler)
-    {
-      Interrupt_interval[0] = 0xff;
-      Interrupt_interval[1] = 0xff;
-      Interrupt_interval[2] = 0xff;
-      Interrupt_interval[3] = 0xff;
-    }
+    rtc_t(uword_t base_address, simulator_t &s, double frequency)
+    : mapped_device_t(base_address, TIMER_MAP_SIZE),
+	  Simulator(s),
+	  Frequency(frequency), High_clock(0), High_usec(0),
+      Interrupt_interval(0xffffffff)
+	{
+	  Simulator.Rtc = this;
+	}
 
-    /// A simulated access to clock cycles low register.
-    /// @param value A pointer to a destination to store the value read
-    /// @return True   
-    virtual bool read_clock_cycles_low(byte_t *value)
-    {
-      *value      = Clock_cycles[4];
-      *(value+1)  = Clock_cycles[5];
-      *(value+2)  = Clock_cycles[6];
-      *(value+3)  = Clock_cycles[7];
+    virtual bool read(uword_t address, byte_t *value, uword_t size) {
+	  if (is_word_access(address, size, 0x00)) {
+        // read latched high word of cycle counter
+        write_word(value, size, High_clock);
+      }
+      else if (is_word_access(address, size, 0x04)) {
+        // read low word of cycle counter, latch high word
+        uword_t low_clock = (uword_t)Simulator.Cycle;
+        High_clock = (uword_t)(Simulator.Cycle >> 32);
+        write_word(value, size, low_clock);
+      }
+      else if (is_word_access(address, size, 0x08)) {
+        // read latched high word of usec
+        write_word(value, size, High_usec);
+      }
+      else if (is_word_access(address, size, 0x0c)) {
+        // read low word of usec, latch high word
+        // TODO if Frequency == 0, use wall clock for usec
+        uint64_t usec = (uint64_t)((double)Simulator.Cycle / Frequency);
+        uword_t low_usec = (uword_t)usec;
+        High_usec = (uword_t)(usec >> 32);
+        write_word(value, size, low_usec);
+      }
+      else if (is_word_access(address, size, 0x10)) {
+        // read current interrupt interval counter
+        write_word(value, size, Interrupt_interval);
+      }
+      else if (is_word_access(address, size, 0x14)) {
+        // read latched high word of usec
+        write_word(value, size, ISR);
+      }
+      else {
+        simulation_exception_t::unmapped(address);
+      }
       return true;
-    }
+	}
 
-    /// A simulated access to clock cycles up register.
-    /// @param value A pointer to a destination to store the value read
-    /// @return True   
-    virtual bool read_clock_cycles_up(byte_t *value)
-    {
-      *value      = Clock_cycles[0];
-      *(value+1)  = Clock_cycles[1];
-      *(value+2)  = Clock_cycles[2];
-      *(value+3)  = Clock_cycles[3];
-      return true;
-    }
-
-    /// A simulated access to microseconds low register.
-    /// @param value A pointer to a destination to store the value read
-    /// @return True   
-    virtual bool read_microseconds_low(byte_t *value)
-    {
-      *value      = Microseconds[4];
-      *(value+1)  = Microseconds[5];
-      *(value+2)  = Microseconds[6];
-      *(value+3)  = Microseconds[7];
-      return true;
-    }
-
-    /// A simulated access to microseconds up register.
-    /// @param value A pointer to a destination to store the value read
-    /// @return True   
-    virtual bool read_microseconds_up(byte_t *value)
-    {
-      *value      = Microseconds[0];
-      *(value+1)  = Microseconds[1];
-      *(value+2)  = Microseconds[2];
-      *(value+3)  = Microseconds[3];
-
-      return true;
-    }
-
-    /// A simulated access to interrupt interval register.
-    /// @param value A pointer to a destination to store the value read
-    /// @return True   
-    virtual bool read_interrupt_interval(byte_t *value)
-    {
-      *value      = Interrupt_interval[0];
-      *(value+1)  = Interrupt_interval[1];
-      *(value+2)  = Interrupt_interval[2];
-      *(value+3)  = Interrupt_interval[3];
-      return true;
-    }
-
-    /// A simulated access to ISR address register
-    /// @param value A pointer to a destination to store the value read
-    /// @return True   
-    virtual bool read_ISR(byte_t *value)
-    {
-      *value      = ISR[0];
-      *(value+1)  = ISR[1];
-      *(value+2)  = ISR[2];
-      *(value+3)  = ISR[3];
-      return true;
-    }
-
-    /// A simulated access to clock cycles low register.
-    /// @param value A pointer to the value to set
-    /// @return True   
-    virtual bool write_clock_cycles_low(byte_t *value)
-    {
-      Clock_cycles[4] = *value;
-      Clock_cycles[5] = *(value+1);
-      Clock_cycles[6] = *(value+2);
-      Clock_cycles[7] = *(value+3);
-      return true;
-    }
-
-    /// A simulated access to clock cycles up register.
-    /// @param value A pointer to the value to set
-    /// @return True   
-    virtual bool write_clock_cycles_up(byte_t *value)
-    {
-      Clock_cycles[0] = *value;
-      Clock_cycles[1] = *(value+1);
-      Clock_cycles[2] = *(value+2);
-      Clock_cycles[3] = *(value+3);
-      return true;
-    }
-
-    /// A simulated access to microseconds low register.
-    /// @param value A pointer to the value to set
-    /// @return True   
-    virtual bool write_microseconds_low(byte_t *value)
-    {
-      Microseconds[4] = *value;
-      Microseconds[5] = *(value+1);
-      Microseconds[6] = *(value+2);
-      Microseconds[7] = *(value+3);           
-      return true;
-    }
-
-    /// A simulated access to microseconds up register.
-    /// @param value A pointer to the value to set
-    /// @return True   
-    virtual bool write_microseconds_up(byte_t *value)
-    {
-      Microseconds[0] = *value;
-      Microseconds[1] = *(value+1);
-      Microseconds[2] = *(value+2);
-      Microseconds[3] = *(value+3);   
-      return true;
-    }
-
-    /// A simulated access to interrupt interval register.
-    /// @param value A pointer to the value to set
-    /// @return True   
-    virtual bool write_interrupt_interval(byte_t *value)
-    {
-      Interrupt_interval[0] = *value;
-      Interrupt_interval[1] = *(value+1);
-      Interrupt_interval[2] = *(value+2);
-      Interrupt_interval[3] = *(value+3);
-      return true;
-    }
-
-    /// A simulated access to ISR address register.
-    /// @param value A pointer to the value to set
-    /// @return True   
-    virtual bool write_ISR(byte_t *value)
-    {
-      ISR[0] = *value;
-      ISR[1] = *(value+1);
-      ISR[2] = *(value+2);
-      ISR[3] = *(value+3);
+    virtual bool write(uword_t address, byte_t *value, uword_t size) {
+      if (is_word_access(address, size, 0x10)) {
+        Interrupt_interval = read_word(value, size);
+	  } 
+	  else if (is_word_access(address, size, 0x14)) {
+        ISR = read_word(value, size);
+	  }
+      else {
+        simulation_exception_t::unmapped(address);
+      }
       return true;
     }
 
     virtual void tick() {
-
-      udword_t Clock_cycles_small                 = (udword_t)from_big_endian<big_dword_t>(
-                                                    *reinterpret_cast<udword_t*>(Clock_cycles));
-      Clock_cycles_small                          += 1;
-      *reinterpret_cast<udword_t*>(Clock_cycles)  = to_big_endian<big_dword_t>(Clock_cycles_small);
-
-      udword_t Microseconds_small                 = (udword_t)from_big_endian<big_dword_t>(
-                                                    *reinterpret_cast<udword_t*>(Microseconds));
-      Microseconds_small                          += 1;
-      *reinterpret_cast<udword_t*>(Microseconds)  = to_big_endian<big_dword_t>(Microseconds_small);
-
-
-      uword_t Interrupt_interval_small          = (uword_t)from_big_endian<big_uword_t>(
-                                                  *reinterpret_cast<uword_t*>(Interrupt_interval));
-      Interrupt_interval_small                  -= 1;
-      *reinterpret_cast<uword_t*>(Interrupt_interval)  
-                                                = to_big_endian<big_uword_t>(Interrupt_interval_small);
-
+	  Interrupt_interval--;
       /// If interrupt interval reached 0 we fire an interrupt
-      if (Interrupt_interval_small == 0) {
-
-        uword_t ISR_small              = (uword_t)from_big_endian<big_uword_t>(
-                                                  *reinterpret_cast<uword_t*>(ISR));
-        Interrupt_handler.fire_interrupt(interval, ISR_small);
-       
-        Interrupt_interval[0] = 0xff;
-        Interrupt_interval[1] = 0xff;
-        Interrupt_interval[2] = 0xff;
-        Interrupt_interval[3] = 0xff;
+      if (Interrupt_interval == 0) {
+        Simulator.Interrupt_handler.fire_interrupt(interval, ISR);
+		Interrupt_interval = 0xffffffff;
       }
     }
   };

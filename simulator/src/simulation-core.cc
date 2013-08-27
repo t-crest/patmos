@@ -26,6 +26,7 @@
 #include "symbol.h"
 #include "interrupts.h"
 #include "instructions.h"
+#include "rtc.h"
 
 #include <ios>
 #include <iostream>
@@ -37,12 +38,12 @@ namespace patmos
                            data_cache_t &data_cache,
                            method_cache_t &method_cache,
                            stack_cache_t &stack_cache, symbol_map_t &symbols,
-                           rtc_t &rtc, interrupt_handler_t &interrupt_handler)
+                           interrupt_handler_t &interrupt_handler)
     : Dbg_cnt_delay(0),
       Cycle(0), Memory(memory), Local_memory(local_memory),
       Data_cache(data_cache), Method_cache(method_cache),
       Stack_cache(stack_cache), Symbols(symbols), Dbg_stack(*this),
-      Rtc(rtc), Interrupt_handler(interrupt_handler),
+      Interrupt_handler(interrupt_handler),
       BASE(0), PC(0), nPC(0),
       Stall(SXX), Is_decoupled_load_active(false)
   {
@@ -316,7 +317,7 @@ namespace patmos
           print_instructions(debug_out, SEX);
         }
 
-        Rtc.tick();
+        Rtc->tick();
 
         track_retiring_instructions();
 
