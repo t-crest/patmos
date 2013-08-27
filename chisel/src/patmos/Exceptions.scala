@@ -95,7 +95,7 @@ class Exceptions extends Component {
 	  is(Bits("b000011")) { source := masterReg.Data }
 	  is(Bits("b000010")) {
 		for(i <- 0 until EXC_COUNT) {
-		  intrPend(i) := masterReg.Data(i)
+		  intrPend(i) := intrPendReg(i) & masterReg.Data(i)
 		}
 	  }
 	}
