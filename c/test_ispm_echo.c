@@ -10,13 +10,13 @@ int main()
 	*(ispm_ptr+0) = 0x24c0030;
 	*(ispm_ptr+1) = 0x40001;
 	*(ispm_ptr+2) = 0x87c20000;
-	*(ispm_ptr+3) = 0xf0000200;
+	*(ispm_ptr+3) = 0xf0000900;
 	*(ispm_ptr+4) = 0x2c41100;
 	*(ispm_ptr+5) = 0x87c40000;
-	*(ispm_ptr+6) = 0xf0000100;
+	*(ispm_ptr+6) = 0xf0000800;
 	*(ispm_ptr+7) = 0x6400008;
 	*(ispm_ptr+8) = 0x87c60000;
-	*(ispm_ptr+9) = 0xf0000104;
+	*(ispm_ptr+9) = 0xf0000804;
 	*(ispm_ptr+10) = 0x80000;
 	*(ispm_ptr+11) = 0x28a3100;
 	*(ispm_ptr+12) = 0x208400b;

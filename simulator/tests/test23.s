@@ -3,7 +3,7 @@
 #
 
                 .word   56;
-                add     r1  = r0, 0xF0000100;
+                add     r1  = r0, 0xF0000800;
                 addi    r2  = r0, 1;
                 lwl     r3  = [r1 + 0];
 		nop;

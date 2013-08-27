@@ -7,7 +7,7 @@
 		.word   104;
 # Set up IO address
 x0:		addi	r0 = r0, 0;
-		add 	r5 = r0, 0xf0000100;
+		add 	r5 = r0, 0xf0000800;
 
 # Wait until receive bit is set
 		addi	r1  = r0, 2;
