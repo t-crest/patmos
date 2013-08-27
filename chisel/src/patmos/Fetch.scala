@@ -50,7 +50,7 @@ class Fetch(fileName : String) extends Component {
   val pcReg = Reg(resetVal = UFix(1, PC_SIZE))
   val addrEvenReg = Reg(resetVal = UFix(2, PC_SIZE))
   val addrOddReg = Reg(resetVal = UFix(1, PC_SIZE))
-  val baseReg = Reg(resetVal = UFix(4, DATA_WIDTH))
+  val baseReg = Reg(resetVal = UFix(1, DATA_WIDTH))
 
   val rom = Utility.readBin(fileName)
   // Split the ROM into two blocks for dual fetch
@@ -98,7 +98,9 @@ class Fetch(fileName : String) extends Component {
   call_offset := UFix(0)
   when(io.memfe.doCallRet) {
     baseReg := io.memfe.callRetBase
-    call_offset := Mux(selIspm, io.memfe.callRetPc(ISPM_ONE_BIT - 3,0), io.memfe.callRetPc - io.memfe.callRetBase)
+    call_offset := Mux(selMCache,
+                       io.memfe.callRetPc - io.memfe.callRetBase,
+                       io.memfe.callRetPc(ISPM_ONE_BIT - 3,0))
   }
 
   val ispm_even = memEven(addrEvenReg(ispmAddrBits, 1))
@@ -121,8 +123,10 @@ class Fetch(fileName : String) extends Component {
   val instr_b_rom = Mux(pcReg(0) === Bits(0), data_odd, data_even)
 
   //MCache/ISPM/ROM Mux
-  val instr_a = Mux(selIspm, instr_a_ispm, Mux(selMCache, io.mcache_out.instr_a, instr_a_rom))
-  val instr_b = Mux(selIspm, instr_b_ispm, Mux(selMCache, io.mcache_out.instr_b, instr_b_rom))
+  val instr_a = Mux(selIspm, instr_a_ispm,
+                    Mux(selMCache, io.mcache_out.instr_a, instr_a_rom))
+  val instr_b = Mux(selIspm, instr_b_ispm,
+                    Mux(selMCache, io.mcache_out.instr_b, instr_b_rom))
 
   val b_valid = instr_a(31) === Bits(1)
 
