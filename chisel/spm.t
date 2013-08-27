@@ -9,6 +9,6 @@ SECTIONS
   . = ALIGN(8);
   _end = .; PROVIDE (end = .);
 
-  . = SEGMENT_START(".text", 0x800000);
+  . = SEGMENT_START(".text", 0x10000);
   .text : { *(.text .text.*) }
 }

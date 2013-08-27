@@ -65,6 +65,7 @@ class Patmos(fileName: String) extends Component {
     val led = Bits(OUTPUT, 9)
     val uartPins = new UartPinIO()
     val sramPins = new RamOutPinsIO() 
+    //val rfDebug = Vec(REG_COUNT) { Bits(OUTPUT, DATA_WIDTH) }
   }
 
   val ssram = new SsramBurstRW()
@@ -77,10 +78,8 @@ class Patmos(fileName: String) extends Component {
   val writeback = new WriteBack()
   val iocomp = new InOut()
 
-  //chisel simulation for ssram... should be moved to the emulator as c++ simulation
-  // val extmemssram = new ExtSsram(fileName)
-  // ssram.io.ram_out <> extmemssram.io.ram_out //should be connected to the IO of top-level in future
-  // ssram.io.ram_in <> extmemssram.io.ram_in
+  //io.rfDebug := decode.rf.io.rfDebug
+
   ssram.io.ram_out <> io.sramPins.ram_out
   ssram.io.ram_in <> io.sramPins.ram_in
 
@@ -116,7 +115,7 @@ class Patmos(fileName: String) extends Component {
   memory.io.globalInOut <> globMem.io
 
   // Enable signal
-  val enable = memory.io.ena //containts also the ena signal from mcache
+  val enable = memory.io.ena //& mcache.io.ena //containts also the ena signal from mcache
   fetch.io.ena := enable
   decode.io.ena := enable
   execute.io.ena := enable
