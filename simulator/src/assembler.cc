@@ -658,14 +658,14 @@ namespace patmos
                                  boost::spirit::qi::_2, boost::spirit::qi::_3)];
 
         // Parse CFLb instructions
-        CFLbopc = boost::spirit::lit("brcf") [boost::spirit::qi::_val = 2] |
-                  boost::spirit::lit("br")   [boost::spirit::qi::_val = 1] ;
+        CFLbopc = boost::spirit::lit("call") [boost::spirit::qi::_val = 0] |
+                  boost::spirit::lit("brcf") [boost::spirit::qi::_val = 2] ;
 
-        CFLb = ((Pred >> "call" >> ImmCFL_ABS)
+        CFLb = ((Pred >> "br" >> ImmCFL_PCREL)
                 [boost::spirit::qi::_val = boost::phoenix::bind(
                                cflb_format_t::encode, boost::spirit::qi::_1,
-                               0, boost::spirit::qi::_2)]) |
-               ((Pred >> CFLbopc >> ImmCFL_PCREL)
+                               1, boost::spirit::qi::_2)]) |
+               ((Pred >> CFLbopc >> ImmCFL_ABS)
                 [boost::spirit::qi::_val = boost::phoenix::bind(
                                 cflb_format_t::encode, boost::spirit::qi::_1,
                                 boost::spirit::qi::_2, boost::spirit::qi::_3)]);

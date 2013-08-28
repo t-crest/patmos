@@ -1632,7 +1632,7 @@ namespace patmos
     }
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.EX_Address = ops.Address + ops.OPS.CFLb.Imm*sizeof(word_t);
+      ops.EX_Address = ops.OPS.CFLb.UImm*sizeof(word_t);
     }
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
