@@ -11,7 +11,10 @@
 istream *in = &cin;
 ostream *out = &cout;
 
-static uint ssram_buf[524288]; //2MB
+#define OCMEM_ADDR_BITS 16
+
+#define SRAM_ADDR_BITS 19 // 2MB
+static uint ssram_buf [1 << SRAM_ADDR_BITS];
   
 /// Read an elf executable image into the on-chip memories
 static val_t readelf(istream &is, Patmos_t *c)
@@ -86,8 +89,7 @@ static val_t readelf(istream &is, Patmos_t *c)
       // copy from the buffer into the on-chip memories
 	  for (size_t k = 0; k < phdr.p_memsz; k++) {
 
-	    //if (((phdr.p_paddr + k) >> 23) == 0x1 && 
-	      if (((phdr.p_paddr + k) >> 16) == 0x1 && 
+		if (((phdr.p_paddr + k) >> OCMEM_ADDR_BITS) == 0x1 && 
 			((phdr.p_paddr + k) & 0x3) == 0) {
 		  // Address maps to ISPM and is at a word boundary
 		  val_t word = k >= phdr.p_filesz ? 0 :
@@ -95,8 +97,7 @@ static val_t readelf(istream &is, Patmos_t *c)
 			 ((val_t)elfbuf[phdr.p_offset + k + 1] << 16) |
 			 ((val_t)elfbuf[phdr.p_offset + k + 2] << 8) |
 			 ((val_t)elfbuf[phdr.p_offset + k + 3] << 0));
-		  // val_t addr = ((phdr.p_paddr + k) - (0x1 << 23)) >> 3;
-		   val_t addr = ((phdr.p_paddr + k) - (0x1 << 16)) >> 3;
+		  val_t addr = ((phdr.p_paddr + k) - (0x1 << OCMEM_ADDR_BITS)) >> 3;
 
 		  unsigned size = (sizeof(c->Patmos_fetch__memEven.contents) / 
 						   sizeof(c->Patmos_fetch__memEven.contents[0]));
@@ -111,6 +112,7 @@ static val_t readelf(istream &is, Patmos_t *c)
 		}
 
 		if (((phdr.p_paddr + k) & 0x3) == 0) {
+		  // Address maps to SRAM and is at a word boundary
 		  val_t word = k >= phdr.p_filesz ? 0 :
 			(((val_t)elfbuf[phdr.p_offset + k + 0] << 24) |
 			 ((val_t)elfbuf[phdr.p_offset + k + 1] << 16) |
@@ -121,27 +123,14 @@ static val_t readelf(istream &is, Patmos_t *c)
 		  ssram_buf[addr] = word;
 		}
 
-		// if (((phdr.p_paddr + k) >> 17) >= 0x1 && ((phdr.p_paddr + k) & 0x3) == 0) {
-		//   val_t word = k >= phdr.p_filesz ? 0 :
-		// 	(((val_t)elfbuf[phdr.p_offset + k + 0] << 24) |
-		// 	 ((val_t)elfbuf[phdr.p_offset + k + 1] << 16) |
-		// 	 ((val_t)elfbuf[phdr.p_offset + k + 2] << 8) |
-		// 	 ((val_t)elfbuf[phdr.p_offset + k + 3] << 0));
-
-		//   val_t addr = ((phdr.p_paddr + k) - (0x1 << 17)) >> 2;
-		//   //*out << k << "MCache - Word:" << word << "addr:" << addr << "phdr_memsz" << phdr.p_memsz << "phdr_addr"<< phdr.p_paddr << "\n";;
-		//   ssram_buf[addr] = word;
-
-		// }
-
-		if (((phdr.p_paddr + k) >> 16) == 0x0) {
+		// TODO: this really writes to globmem and should go away
+		if (((phdr.p_paddr + k) >> OCMEM_ADDR_BITS) == 0x0) {
 		  // Address maps to data SPM
 		  val_t byte = k >= phdr.p_filesz ? 0 : elfbuf[phdr.p_offset + k];
 		  val_t addr = (phdr.p_paddr + k) >> 2;
 		  
 		  unsigned size = (sizeof(c->Patmos_globMem__mem0.contents) /
 						   sizeof(c->Patmos_globMem__mem0.contents[0]));
-
 
 		  assert (addr < size && "Data mapped to DSPM exceed size");
 
@@ -180,7 +169,10 @@ static void extSsramSim(Patmos_t *c) {
   static int addr_cnt;
   static int address;
   static int counter;
-  //*out << "noe:" << c->Patmos__io_sramPins_ram_out_noe.to_ulong() << " nadv: " << c->Patmos__io_sramPins_ram_out_nadv.to_ulong() << " nadsc:" << c->Patmos__io_sramPins_ram_out_nadsc.to_ulong() << " addr:" << c->Patmos__io_sramPins_ram_out_addr.to_ulong() << "\n";
+  // *out << "noe:" << c->Patmos__io_sramPins_ram_out_noe.to_ulong() 
+  // 	   << " nadv: " << c->Patmos__io_sramPins_ram_out_nadv.to_ulong()
+  // 	   << " nadsc:" << c->Patmos__io_sramPins_ram_out_nadsc.to_ulong()
+  // 	   << " addr:" << c->Patmos__io_sramPins_ram_out_addr.to_ulong() << "\n";
   if (c->Patmos__io_sramPins_ram_out_nadsc.to_ulong() == 0) {
     address = c->Patmos__io_sramPins_ram_out_addr.to_ulong();
     addr_cnt = c->Patmos__io_sramPins_ram_out_addr.to_ulong();
@@ -194,7 +186,7 @@ static void extSsramSim(Patmos_t *c) {
     if (counter >= 3) {
       c->Patmos__io_sramPins_ram_in_din = ssram_buf[address];
       if (address <= addr_cnt) {
-	address++;
+        address++;
       }
     }
   }
@@ -279,18 +271,15 @@ int main (int argc, char* argv[]) {
 
   if (entry != 0) {
     if (entry >= 0x20000) {
-      c->Patmos_fetch__pcReg = 0; //pcReg for method cache starts at 0
+      // pcReg for method cache starts at 0
+      c->Patmos_fetch__pcReg = 0;
     }
     else {
-      c->Patmos_fetch__pcReg = ((entry - 0x10000) >> 2) - 1; //pcReg for ispm starts at entry point - ispm base
+      // pcReg for ispm starts at entry point - ispm base
+      c->Patmos_fetch__pcReg = ((entry - 0x10000) >> 2) - 1;
     }
-    c->Patmos_fetch__baseReg = (entry >> 2); //base address = entry point address
-    //c->Patmos_memory__baseReg = entry;
-    //*out << "baseReg: " << (entry >> 2) << "\n";
-    // for (int i = 32768; i < 32868; i++) {
-    //   *out << "sram[i] " << i << " " << ssram_buf[i] << "\n";
-    // }
-
+    // base address = entry point address
+    c->Patmos_fetch__baseReg = (entry >> 2);
   }
 
   // Main emulation loop
