@@ -1676,6 +1676,8 @@ namespace patmos
     {
       ops.EX_Address = ops.OPS.CFLb.UImm*sizeof(word_t);
       FETCH_AND_DISPATCH(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+      s.Dbg_stack.push(ops.EX_Address);
+      s.Profiling.enter(ops.EX_Address, s.Cycle);
     }
   };
 
