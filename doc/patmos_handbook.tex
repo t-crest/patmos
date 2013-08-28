@@ -243,7 +243,7 @@ Currently we have following proposals for a change:
 \item Interrupts
 \end{itemize}
 
-Remote branch: not specified
+Remote branch: \texttt{isa\_rev}
 
 Merge date: 15 August 2013 (?)
 
@@ -525,11 +525,18 @@ since it is only introduced after the scheduler and replaces a \texttt{br}).}
 \stefan{Due to the fixed size of the call delay slot, we are never allowed to issue anything in parallel with a call anyway, so from my
 naive point of view we should have the second ALU available to do the precalculation ;) }
 
+\wolf{I almost forgot about that restriction. I think it should be
+  dropped. The hardware can handle dual-issue bundles in the delay
+  slot, and the simulator should be okay with it too.}
 
 \stefan{Another reason apart from the linker issue is that debugging becomes harder, as
 the binary no longer contains absolute addresses at jump tables, but one has to know the base of the current sub-function (which is usually
 not obvious from just looking at the disassembly) and add the values to get the actual target addresses, and you cannot grep for the
 addresses in the disassembly easily. Debugging some jump table/method cache related bugs in the compiler backend is already quite painful as it is..}
+
+\wolf{As the actual implementation is different than what I expected,
+  I drop my request for base-relative indirect branches. My request
+  for making \code{brcf} with immediates absolute still stands.}
 
 \subsection{Non-delayed Branches}
 
