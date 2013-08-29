@@ -86,6 +86,11 @@ namespace patmos
       return false;
     }
 
+    virtual unsigned get_delay_slots() const
+    {
+      return 0;
+    }
+    
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
@@ -1601,6 +1606,12 @@ namespace patmos
         s.Profiling.enter(ops.EX_Address, s.Cycle);
       }
     }
+    virtual bool is_call() const {
+      return true;
+    }
+    virtual unsigned get_delay_slots() const {
+      return 3;
+    }
   };
 
   class i_br_t : public i_cfl_t
@@ -1617,6 +1628,9 @@ namespace patmos
     {
       ops.EX_Address = ops.Address + ops.OPS.CFLb.Imm*sizeof(word_t);
       dispatch(s, ops, ops.DR_Pred, s.BASE, ops.EX_Address);
+    }
+    virtual unsigned get_delay_slots() const {
+      return 2;
     }
   };
 
@@ -1638,6 +1652,9 @@ namespace patmos
     {
       FETCH_AND_DISPATCH(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
     }
+    virtual unsigned get_delay_slots() const {
+      return 3;
+    }   
   };
 
   class i_intr_t : public i_cfl_t
@@ -1678,6 +1695,9 @@ namespace patmos
       FETCH_AND_DISPATCH(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
       s.Dbg_stack.push(ops.EX_Address);
       s.Profiling.enter(ops.EX_Address, s.Cycle);
+    }
+    virtual unsigned get_delay_slots() const {
+      return 3;
     }
   };
 
@@ -1733,6 +1753,12 @@ namespace patmos
         s.Profiling.enter(ops.EX_Address, s.Cycle);
       }
     }
+    virtual bool is_call() const { 
+      return true;
+    }
+    virtual unsigned get_delay_slots() const {
+      return 3;
+    }
   };
 
   class i_brr_t : public i_cfli_t
@@ -1749,6 +1775,9 @@ namespace patmos
     {
       ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1);
       dispatch(s, ops, ops.DR_Pred, s.BASE, ops.EX_Address);
+    }
+    virtual unsigned get_delay_slots() const {
+      return 2;
     }
   };
 
@@ -1769,6 +1798,9 @@ namespace patmos
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
       FETCH_AND_DISPATCH(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+    }
+    virtual unsigned get_delay_slots() const {
+      return 3;
     }
   };
 
@@ -1852,6 +1884,9 @@ namespace patmos
       printGPReg(os, "in: ", ops.OPS.CFLr.Rb, ops.EX_Base);
       printGPReg(os, ", "  , ops.OPS.CFLr.Ro, ops.EX_Offset);
     }
+    virtual unsigned get_delay_slots() const {
+      return 3;
+    }    
   };
 }
 

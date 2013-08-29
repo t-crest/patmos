@@ -246,7 +246,7 @@ namespace patmos
         }
 
         if(instr_SIF[0].I->is_flow_control())
-          branch_counter = 2;
+          branch_counter = instr_SIF[0].I->get_delay_slots();
         else if (branch_counter)
           branch_counter--;
 
