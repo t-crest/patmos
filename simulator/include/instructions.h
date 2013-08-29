@@ -1484,7 +1484,9 @@ namespace patmos
       if (pred && !ops.MW_CFL_Discard)
       {
         assert(base <= pc);
-        assert(pc == ops.Address + 16 && "Wrong delay slot size of call instruction.");
+        if (pc != ops.Address + 16) {
+          simulation_exception_t::illegal_pc_msg("Wrong delay slot size of call instruction.");
+        }
 
         // store the return function offset (return PC) into
         // a general purpose register

@@ -228,6 +228,12 @@ namespace patmos
       throw simulation_exception_t(ILLEGAL_PC, address);
     }
 
+    /// Thow a PC-outsize-method simulation exception.
+    static void illegal_pc_msg(std::string msg) __attribute__ ((noreturn))
+    {
+      throw simulation_exception_t(ILLEGAL_PC, msg);
+    }
+    
     /// Throw a unaligned simulation exception.
     static void unaligned(uword_t address) __attribute__ ((noreturn))
     {

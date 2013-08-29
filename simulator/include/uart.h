@@ -98,7 +98,10 @@ namespace patmos
     virtual bool read_data(byte_t *value)
     {
       In_stream.read(reinterpret_cast<char*>(value), sizeof(byte_t));
-      assert(In_stream.gcount() == sizeof(byte_t));
+      std::streamsize num = In_stream.gcount();
+      if (num == 0) return false;
+      
+      assert(num == sizeof(byte_t));
       return true;
     }
 
