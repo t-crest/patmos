@@ -213,6 +213,8 @@ namespace patmos
 
         instr_SIF[0] = instruction_data_t::mk_CFLb(*Instr_INTR, p0,
                                         interrupt.Address, interrupt.Address);
+        instr_SIF[0].Address = PC;
+
         for(unsigned int i = 1; i < NUM_SLOTS; i++)
         {
           instr_SIF[i] = instruction_data_t();
@@ -221,8 +223,6 @@ namespace patmos
         // Handling interrupt, next CPU cycle no new instructions have to be decoded
         interrupt_handling = 3;
 
-        // Store return from interrupt address
-        SPR.set(s9, PC);
       }
       else if (interrupt_handling > 0)
       {
@@ -246,7 +246,7 @@ namespace patmos
         }
 
         if(instr_SIF[0].I->is_flow_control())
-          branch_counter = 2;
+          branch_counter = instr_SIF[0].I->get_delay_slots();
         else if (branch_counter)
           branch_counter--;
 

@@ -67,6 +67,11 @@ namespace patmos
     /// Returns true if the instruction is a flow control instruction
     virtual bool is_flow_control() const = 0;
 
+    virtual bool is_call() const { return false; }
+    
+    /// Returns the number of delay slot cycles of this instruction
+    virtual unsigned get_delay_slots() const = 0;
+    
     /// Reset all statistic counters.
     virtual void reset_stats() { }
 

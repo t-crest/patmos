@@ -18,6 +18,7 @@
 //
 
 #include "command-line.h"
+#include "loader.h"
 #include "data-cache.h"
 #include "instruction.h"
 #include "method-cache.h"
@@ -30,9 +31,6 @@
 #include "rtc.h"
 #include "interrupts.h"
 
-#include <gelf.h>
-#include <libelf.h>
-
 #include <unistd.h>
 #include <termios.h>
 #include <signal.h>
@@ -42,195 +40,6 @@
 
 #include <boost/program_options.hpp>
 
-/// Test whether the file is an elf executable image or a raw binary stream.
-/// @param is The input stream to test.
-/// @return True, in case the file appears to be an elf executable image, false
-/// otherwise.
-static bool is_elf(std::istream &is)
-{
-  char data[4];
-
-  for(unsigned int i = 0; i < 4; i++)
-  {
-    data[i] = is.get();
-  }
-
-  bool result = (data[0] == '\177') && (data[1] == 'E') &&
-                (data[2] == 'L') && (data[3] == 'F');
-
-  for(unsigned int i = 0; i < 4; i++)
-  {
-    is.putback(data[3 - i]);
-  }
-
-  return result;
-}
-
-/// Read an elf executable image into the simulator's main memory.
-/// @param is The input stream to read from.
-/// @param m The main memory to load to.
-/// @param msize Maximal number of bytes to load.
-/// @param symbols Map to store symbol information, if available.
-/// @return The entry point of the elf executable.
-static patmos::uword_t readelf(std::istream &is, patmos::memory_t &m,
-                               unsigned int msize,
-                               patmos::symbol_map_t &symbols)
-{
-  std::vector<char> elfbuf;
-  elfbuf.reserve(1 << 20);
-  // read the whole stream.
-  while (!is.eof())
-  {
-    char buf[128];
-
-    // read into buffer
-    is.read(&buf[0], sizeof(buf));
-
-    // check how much was read
-    std::streamsize count = is.gcount();
-    assert(count <= 128);
-
-    // write into main memory
-    for(unsigned int i = 0; i < count; i++)
-      elfbuf.push_back(buf[i]);
-  }
-
-  // check libelf version
-  elf_version(EV_CURRENT);
-
-  // open elf binary
-  Elf *elf = elf_memory((char*)&elfbuf[0], elfbuf.size());
-  assert(elf);
-
-  // check file kind
-  Elf_Kind ek = elf_kind(elf);
-  if (ek != ELF_K_ELF) {
-    std::cout << "readelf: ELF file must be of kind ELF.\n";
-    exit(1);
-  }
-
-  // get elf header
-  GElf_Ehdr hdr;
-  GElf_Ehdr *tmphdr = gelf_getehdr(elf, &hdr);
-  assert(tmphdr);
-
-  if (hdr.e_machine != 0xBEEB) {
-    std::cout << "readelf: unsupported architecture: ELF file is not a Patmos ELF file.\n";
-    exit(1);
-  }
-  
-  // check class
-  int ec = gelf_getclass(elf);
-  if (ec != ELFCLASS32) {
-    std::cout << "readelf: unsupported architecture: ELF file is not a 32bit Patmos ELF file.\n";
-    exit(1);
-  }
-
-  // get program headers
-  size_t n;
-  int ntmp = elf_getphdrnum (elf, &n);
-  assert(ntmp == 0);
-
-  for(size_t i = 0; i < n; i++)
-  {
-    // get program header
-    GElf_Phdr phdr;
-    GElf_Phdr *phdrtmp = gelf_getphdr(elf, i, &phdr);
-    assert(phdrtmp);
-
-    if (phdr.p_type == PT_LOAD)
-    {
-      // some assertions
-      assert(phdr.p_vaddr == phdr.p_paddr);
-      assert(phdr.p_filesz <= phdr.p_memsz);
-      assert(phdr.p_paddr + phdr.p_memsz <= msize);
-
-      // copy from the buffer into the main memory
-      m.write_peek(phdr.p_paddr,
-                   reinterpret_cast<patmos::byte_t*>(&elfbuf[phdr.p_offset]),
-                   phdr.p_filesz);
-    }
-  }
-
-  // get sections
-  ntmp = elf_getshdrnum(elf, &n);
-  assert(ntmp == 0);
-
-  // read symbol information
-  for(size_t i = 0; i < n; i++)
-  {
-    Elf_Scn *sec =  elf_getscn (elf, i);
-    assert(sec);
-
-    // get section header
-    GElf_Shdr shdr;
-    gelf_getshdr(sec, &shdr);
-    GElf_Shdr *shdrtmp = gelf_getshdr(sec, &shdr);
-    assert(shdrtmp);
-
-    if (shdr.sh_type == SHT_SYMTAB)
-    {
-      int num_entries = shdr.sh_size/shdr.sh_entsize;
-      Elf_Data *data = elf_getdata(sec, NULL);
-      assert(data);
-
-      for(int j = 0; j != num_entries; j++)
-      {
-        GElf_Sym sym;
-        GElf_Sym *tmpsym = gelf_getsym(data, j, &sym);
-        assert(tmpsym);
-        char *name = elf_strptr(elf, shdr.sh_link, sym.st_name);
-        assert(name);
-
-        // construct a symbol and store it for later use, i.e., the symbol map
-        // is queried during simulation to find symbol names associated with
-        // addresses.
-        patmos::symbol_info_t sym_info(sym.st_value, sym.st_size,
-                                       (GELF_ST_TYPE(sym.st_info) == STT_FUNC),
-                                       name);
-        symbols.add(sym_info);
-      }
-    }
-  }
-
-  // ensure that the symbol map is sorted.
-  symbols.sort();
-
-  // get entry point
-  patmos::uword_t entry = hdr.e_entry;
-
-  elf_end(elf);
-
-  return entry;
-}
-
-/// Read a raw binary image into the simulator's main memory.
-/// @param is The input stream to read from.
-/// @param m The main memory to load to.
-/// @param msize Maximal number of bytes to load.
-static void readbin(std::istream &is, patmos::memory_t &m, unsigned int msize)
-{
-  std::streamsize offset = 0;
-  while (!is.eof())
-  {
-    patmos::byte_t buf[128];
-
-    // read into buffer
-    is.read(reinterpret_cast<char*>(&buf[0]), sizeof(buf));
-
-    // check how much was read
-    std::streamsize count = is.gcount();
-    assert((count <= 128) && (offset + count < msize));
-
-    // write into main memory
-    m.write_peek(offset, buf, count);
-
-    offset += count;
-  }
-
-  // some output
-  std::cerr << boost::format("Loaded: %1% bytes\n") % offset;
-}
 
 /// Construct a global memory for the simulation.
 /// @param time Access time in cycles for memory accesses.
@@ -552,12 +361,19 @@ int main(int argc, char **argv)
     mm.add_device(rtc);
 
     // load input program
-    patmos::uword_t entry = 0x4;
-    if (is_elf(*in))
-      entry = readelf(*in, gm, gsize, sym);
-    else
-      readbin(*in, gm, gsize);
-
+    patmos::section_list_t text;
+    patmos::loader_t *loader = patmos::create_loader(*in);
+    patmos::uword_t entry = loader->get_program_entry();
+    
+    if (!loader->is_ELF()) {
+      // some output for compatibility
+      std::cerr << boost::format("Loaded: %1% bytes\n") 
+                   % loader->get_binary_size();
+    }
+    
+    loader->load_symbols(sym, text);
+    loader->load_to_memory(gm);
+    
     // start execution
     try
     {
