@@ -1693,8 +1693,13 @@ namespace patmos
 
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
+      // Store return from interrupt address in special registers.
+      s.SPR.set(s9, s.BASE);
+      s.SPR.set(s10, s.nPC - s.BASE);
+
       ops.EX_Address = ops.OPS.CFLb.UImm*sizeof(word_t);
       FETCH_AND_DISPATCH(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+      
       s.Dbg_stack.push(ops.EX_Address);
       s.Profiling.enter(ops.EX_Address, s.Cycle);
     }
