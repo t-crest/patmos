@@ -311,8 +311,13 @@ namespace patmos
           return *i;
       }
 
+      uword_t start = (address/Num_bytes_per_block) * Num_bytes_per_block;
+      uword_t end   = (((address + size - 1)/Num_bytes_per_block) + 1) *
+                      Num_bytes_per_block;
+      word_t aligned_size = end - start;
+      
       // no matching request found, create a new one
-      unsigned int num_blocks = (((size-1) / Num_bytes_per_block) + 1); 
+      unsigned int num_blocks = (((aligned_size-1) / Num_bytes_per_block) + 1); 
       unsigned int num_ticks = Num_ticks_per_block * num_blocks;
       
       request_info_t tmp = {address, size, is_load, num_ticks};
