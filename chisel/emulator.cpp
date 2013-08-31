@@ -279,18 +279,14 @@ int main (int argc, char* argv[]) {
 
   if (entry != 0) {
     if (entry >= 0x20000) {
-      c->Patmos_fetch__pcReg = 0; //pcReg for method cache starts at 0
+      c->Patmos_fetch__pcReg = 1; //pcReg for method cache starts at 0, todo 1 only for the moment change even odd to start from even
     }
     else {
       c->Patmos_fetch__pcReg = ((entry - 0x10000) >> 2) - 1; //pcReg for ispm starts at entry point - ispm base
     }
     c->Patmos_fetch__baseReg = (entry >> 2); //base address = entry point address
-    //c->Patmos_memory__baseReg = entry;
-    //*out << "baseReg: " << (entry >> 2) << "\n";
-    // for (int i = 32768; i < 32868; i++) {
-    //   *out << "sram[i] " << i << " " << ssram_buf[i] << "\n";
-    // }
-
+    c->Patmos_mcache_mcachectrl__callRetBaseReg = (entry >> 2);
+    c->Patmos_mcache_mcacherepl__callRetBaseReg = (entry >> 2);
   }
 
   // Main emulation loop
