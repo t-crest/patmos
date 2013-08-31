@@ -180,6 +180,9 @@ namespace patmos
     /// Counter up to which pipeline stage the processor stalls.
     Pipeline_t Stall;
 
+    /// Signal to disable the IF stage.
+    bool Disable_IF;
+    
     /// Interrupt instruction
     instruction_t *Instr_INTR;
 
@@ -194,6 +197,12 @@ namespace patmos
 
     /// Flag indicating whether a decoupled load is active.
     bool Is_decoupled_load_active;
+
+    /// Keep track of current branch delay
+    int Branch_counter;
+    
+    /// Delay decoder when an interrupt has been executed
+    int Interrupt_handling_counter;
 
     /// Runtime statistics on all instructions, per pipeline
     instruction_stats_t Instruction_stats[NUM_SLOTS];

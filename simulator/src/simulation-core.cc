@@ -45,7 +45,8 @@ namespace patmos
       Stack_cache(stack_cache), Symbols(symbols), Dbg_stack(*this),
       Interrupt_handler(interrupt_handler),
       BASE(0), PC(0), nPC(0),
-      Stall(SXX), Is_decoupled_load_active(false)
+      Stall(SXX), Disable_IF(false), Is_decoupled_load_active(false), 
+      Branch_counter(0), Interrupt_handling_counter(0)
   {
     // initialize one predicate register to be true, otherwise no instruction
     // will ever execute
@@ -160,11 +161,6 @@ namespace patmos
 
   void simulator_t::instruction_fetch()
   {
-    // FIXME this is bad practice and will break if multiple instances
-    //       of the simulator exist.
-    static int branch_counter      = 0;
-    static int interrupt_handling  = 0;
-
     // we get a pointer to the instructions of the IF stage, for easier
     // reference
     instruction_data_t *instr_SIF = Pipeline[SIF];
@@ -172,10 +168,16 @@ namespace patmos
     // Fetch the instruction word from the method cache.
     // NB: We fetch in each cycle, as preparation for supporting a standard
     //     I-Cache in addition.
-    word_t iw[2];
+    word_t iw[NUM_SLOTS];
     if (!Instr_cache.fetch(BASE, PC, iw))
     {
-      pipeline_stall(SIF);      
+      // Stall the whole pipeline
+      pipeline_stall(SMW);
+    } else {
+      // Disable fetching until we filled the pipeline with a bubble at IF 
+      // again. This is to prevent re-fetching an instruction while we update
+      // the method cache.
+      Disable_IF = true;
     }
 
     // Decode the next instruction, or service an interrupt,
@@ -184,8 +186,8 @@ namespace patmos
     {
 
       if (Interrupt_handler.interrupt_pending() &&
-          branch_counter == 0 &&
-          interrupt_handling == 0)
+          Branch_counter == 0 &&
+          Interrupt_handling_counter == 0)
       {
         interrupt_t &interrupt = Interrupt_handler.get_interrupt();
 
@@ -198,17 +200,17 @@ namespace patmos
         }
 
         // Handling interrupt, next CPU cycle no new instructions have to be decoded
-        interrupt_handling = 3;
+        Interrupt_handling_counter = 3;
 
       }
-      else if (interrupt_handling > 0)
+      else if (Interrupt_handling_counter > 0)
       {
         // Putting more empty instrutions after an interrupt
         for(unsigned int i = 0; i < NUM_SLOTS; i++)
         {
           instr_SIF[i] = instruction_data_t();
         }
-        interrupt_handling--;
+        Interrupt_handling_counter--;
 
       }
       else
@@ -223,9 +225,9 @@ namespace patmos
         }
 
         if(instr_SIF[0].I->is_flow_control())
-          branch_counter = instr_SIF[0].I->get_delay_slots();
-        else if (branch_counter)
-          branch_counter--;
+          Branch_counter = instr_SIF[0].I->get_delay_slots();
+        else if (Branch_counter)
+          Branch_counter--;
 
 
         for(unsigned int j = 0; j < NUM_SLOTS; j++)
@@ -255,7 +257,7 @@ namespace patmos
     // do some initializations before executing the first instruction.
     if (Cycle == 0)
     {
-      BASE = nPC = entry;
+      BASE = PC = nPC = entry;
       Instr_cache.initialize(entry);
       Profiling.initialize(entry);
       Dbg_stack.initialize(entry);
@@ -268,6 +270,15 @@ namespace patmos
       {
         bool debug = (Cycle >= debug_cycle);
         bool debug_pipline = debug && (debug_fmt >= DF_LONG);
+
+        // reset the stall counter.
+        Stall = SXX;
+
+        // Simulate the instruction fetch stage first.
+        // MW stage might need the nPC from instruction fetch for return info.
+        if (!Disable_IF) {
+          instruction_fetch();
+        }
 
         // simulate decoupled load
         Decoupled_load.dMW(*this);
@@ -292,8 +303,6 @@ namespace patmos
           print_instructions(debug_out, SEX);
         }
 
-        Rtc->tick();
-
         track_retiring_instructions();
 
         // Move pipeline stages and insert bubbles after stalling stage.
@@ -309,6 +318,14 @@ namespace patmos
           }
         }
 
+        // Update the Program counter. Either nPC was updated in the fetch stage
+        // or it was overwritten by a CFL instruction in EX/MW stage.
+        if (!is_stalling(SIF)) {
+          PC = nPC;
+          // We just inserted a bubble at SIF before, enable fetching for 
+          // this new instruction.
+          Disable_IF = false;
+        }
 
         // if we are stalling in MW, reset the bypass in EX so that it can be
         // filled by the stalled EX stage again (needs to be done for all
@@ -320,21 +337,11 @@ namespace patmos
           }
         }
 
-        // Update the Program counter.
-        // Either nPC was updated in the fetch stage in the previous cycle,
-        // or it was overwritten by a CFL instruction in EX/MW stage.
-        PC = nPC;
-
-        // Simulate the instruction fetch stage.
-        instruction_fetch();
-
         // track pipeline stalls
         Num_stall_cycles[Stall]++;
 
-        // reset the stall counter.
-        Stall = SXX;
-
         // advance the time for the method cache, stack cache, and memory
+        Rtc->tick();
         Memory.tick();
         Instr_cache.tick();
         Stack_cache.tick();
@@ -455,6 +462,7 @@ namespace patmos
         os << "stalling";
       } else {
         for(unsigned int i = 0; i < NUM_SLOTS; i++) {
+          if (!Pipeline[stage][i].I) continue;
           if (i != 0) os << " || ";
           Pipeline[stage][i].print_operands(*this, os, Symbols);
         }
