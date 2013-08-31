@@ -84,8 +84,9 @@ class Patmos(fileName: String) extends Component {
   ssram.io.ram_in <> io.sramPins.ram_in
 
   //connect mcache
-  mcache.io.mcache_in <> fetch.io.mcache_in
-  mcache.io.mcache_out <> fetch.io.mcache_out
+  mcache.io.femcache <> fetch.io.femcache
+  mcache.io.mcachefe <> fetch.io.mcachefe
+  mcache.io.exmcache <> execute.io.exmcache
   mcache.io.ocp_port <> ssram.io.ocp_port
   mcache.io.ena <> memory.io.mc_ena  //feeds Hit/Miss signal to m-stage for a possible stall
 

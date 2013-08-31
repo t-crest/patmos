@@ -274,8 +274,8 @@ class FetchIO extends Bundle() {
   // call from MEM
   val memfe = new MemFe().asInput
   //connections to mcache
-  val mcache_in = new MCacheIn().asOutput
-  val mcache_out = new MCacheOut().asInput
+  val femcache = new FeMCache().asOutput
+  val mcachefe = new MCacheFe().asInput
 }
 
 class DecodeIO() extends Bundle() {
@@ -291,6 +291,7 @@ class ExecuteIO() extends Bundle() {
   val decex = new DecEx().asInput
   val exdec = new ExDec().asOutput
   val exmem = new ExMem().asOutput
+  val exmcache = new ExMCache().asOutput
   // forwarding inputs
   val exResult = Vec(PIPE_COUNT) { new Result().asInput }
   val memResult = Vec(PIPE_COUNT) { new Result().asInput }
