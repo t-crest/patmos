@@ -274,7 +274,6 @@ namespace patmos
   /// A memory with fixed access times to transfer fixed-sized blocks.
   /// Memory accesses are performed in blocks (NUM_BLOCK_BYTES) with a fixed 
   /// access delay (Num_ticks_per_block).
-  template<int NUM_BLOCK_BYTES=NUM_MEMORY_BLOCK_BYTES>
   class fixed_delay_memory_t : public ideal_memory_t
   {
   private:
@@ -284,6 +283,9 @@ namespace patmos
     /// Memory access time per block in cycles.
     unsigned int Num_ticks_per_block;
 
+    /// Block transfer size
+    unsigned int Num_bytes_per_block;
+    
     /// Outstanding requests to the memory.
     requests_t Requests;
 
@@ -310,21 +312,27 @@ namespace patmos
       }
 
       // no matching request found, create a new one
-      unsigned int num_ticks = Num_ticks_per_block * std::ceil((float)size /
-                                                               NUM_BLOCK_BYTES);
+      unsigned int num_blocks = (((size-1) / Num_bytes_per_block) + 1); 
+      unsigned int num_ticks = Num_ticks_per_block * num_blocks;
+      
       request_info_t tmp = {address, size, is_load, num_ticks};
       Requests.push_back(tmp);
 
       // return the newly created request
       return Requests.back();
     }
+    
   public:
     /// Construct a new memory instance.
     /// @param memory_size The size of the memory in bytes.
     /// @param num_ticks_per_block Memory access time per block in cycles.
+    /// @param num_bytes_per_block Memory block size.
     fixed_delay_memory_t(unsigned int memory_size,
-                         unsigned int num_ticks_per_block) :
-        ideal_memory_t(memory_size), Num_ticks_per_block(num_ticks_per_block)
+                         unsigned int num_ticks_per_block, 
+                         unsigned int num_bytes_per_block
+                        ) :
+        ideal_memory_t(memory_size), Num_ticks_per_block(num_ticks_per_block),
+        Num_bytes_per_block(num_bytes_per_block)
     {
     }
 

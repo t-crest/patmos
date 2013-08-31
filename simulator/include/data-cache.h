@@ -162,8 +162,7 @@ namespace patmos
 
   /// An associative, block-based data cache using an LRU replacement policy and
   /// a write-through strategy with no write allocation.
-  template<unsigned int ASSOCIATIVITY,
-           unsigned int NUM_BLOCK_BYTES = NUM_DATA_CACHE_BLOCK_BYTES>
+  template<unsigned int ASSOCIATIVITY>
   class lru_data_cache_t : public ideal_data_cache_t
   {
   private:
@@ -183,6 +182,9 @@ namespace patmos
     /// The number of blocks in the cache.
     unsigned int Num_blocks;
 
+    /// Number of bytes per block.
+    unsigned int Num_block_bytes;
+    
     /// The number of indexes.
     /// i.e., Num_blocks / ASSOCIATIVITY.
     unsigned int Num_indexes;
@@ -220,13 +222,13 @@ namespace patmos
     /// Align an address to the block size.
     /// @param address The memory address to read from.
     /// @param size The number of bytes to read.
-    static unsigned int get_block_address(uword_t address, uword_t size)
+    unsigned int get_block_address(uword_t address, uword_t size)
     {
       // align to block addresses
-      unsigned int block_address = (address / NUM_BLOCK_BYTES) *
-                                      NUM_BLOCK_BYTES;
-      assert(block_address == (((address + size - 1) / NUM_BLOCK_BYTES) *
-                                NUM_BLOCK_BYTES));
+      unsigned int block_address = (address / Num_block_bytes) *
+                                      Num_block_bytes;
+      assert(block_address == (((address + size - 1) / Num_block_bytes) *
+                                Num_block_bytes));
 
       return block_address;
     }
@@ -235,8 +237,10 @@ namespace patmos
     /// Construct a new data cache instance.
     /// @param memory The memory that is accessed through the cache.
     /// @param num_blocks The size of the cache in blocks.
-    lru_data_cache_t(memory_t &memory, unsigned int num_blocks) :
+    lru_data_cache_t(memory_t &memory, unsigned int num_blocks, 
+                     unsigned int num_block_bytes) :
         ideal_data_cache_t(memory), Num_blocks(num_blocks),
+        Num_block_bytes(num_block_bytes),
         Num_indexes(num_blocks / ASSOCIATIVITY), Is_busy(false),
         Num_read_hits(0), Num_read_misses(0), Num_read_hit_bytes(0),
         Num_read_miss_bytes(0), Num_write_hits(0), Num_write_misses(0),
@@ -264,13 +268,13 @@ namespace patmos
     virtual bool read(uword_t address, byte_t *value, uword_t size)
     {
       // temporary buffer
-      byte_t buf[NUM_BLOCK_BYTES];
+      byte_t buf[Num_block_bytes];
 
       // get block address
       unsigned int block_address = get_block_address(address, size);
 
       // get tag information
-      unsigned int entry_index = (block_address / NUM_BLOCK_BYTES)
+      unsigned int entry_index = (block_address / Num_block_bytes)
                                  % Num_indexes;
       cache_tags_t &tags(Content[entry_index]);
 
@@ -287,7 +291,7 @@ namespace patmos
 
       // update cache state and read data
       if (tag_index != ASSOCIATIVITY - 1 || Memory.read(block_address, buf,
-                                                        NUM_BLOCK_BYTES))
+                                                        Num_block_bytes))
       {
         // update LRU ordering
         for(unsigned int i = tag_index; i != 0; i--)
@@ -334,13 +338,13 @@ namespace patmos
       unsigned int block_address = get_block_address(address, size);
 
       // read block data to simulate a block-based write
-      byte_t buf[NUM_BLOCK_BYTES];
-      Memory.read_peek(block_address, buf, NUM_BLOCK_BYTES);
+      byte_t buf[Num_block_bytes];
+      Memory.read_peek(block_address, buf, Num_block_bytes);
 
-      if (Memory.write(block_address, buf, NUM_BLOCK_BYTES))
+      if (Memory.write(block_address, buf, Num_block_bytes))
       {
         // get tag information
-        unsigned int entry_index = (block_address / NUM_BLOCK_BYTES)
+        unsigned int entry_index = (block_address / Num_block_bytes)
                                    % Num_indexes;
         cache_tags_t &tags(Content[entry_index]);
 
@@ -433,7 +437,7 @@ namespace patmos
       unsigned int total_reads = Num_read_hits + Num_read_misses;
       unsigned int read_miss_rate = total_reads == 0 ? 0 :
                                           (Num_read_misses * 100) / total_reads;
-      unsigned int read_transfer_bytes = Num_read_misses * NUM_BLOCK_BYTES;
+      unsigned int read_transfer_bytes = Num_read_misses * Num_block_bytes;
       unsigned int total_read_bytes = Num_read_hit_bytes + Num_read_miss_bytes;
       float        read_reuse = (float)total_read_bytes /
                                 (float)read_transfer_bytes;
@@ -441,13 +445,12 @@ namespace patmos
       unsigned int total_writes = Num_write_hits + Num_write_misses;
       unsigned int write_miss_rate = total_writes == 0 ? 0 :
                                         (Num_write_misses * 100) / total_writes;
-      unsigned int write_transfer_bytes = total_writes * NUM_BLOCK_BYTES;
+      unsigned int write_transfer_bytes = total_writes * Num_block_bytes;
       unsigned int total_write_bytes = Num_write_hit_bytes + Num_write_miss_bytes;
       float        write_reuse = (float)total_write_bytes /
                                  (float)write_transfer_bytes;
 
-      os << boost::format("\n\nData Cache Statistics:\n"
-                          "                           total        hit      miss    miss-rate     reuse\n"
+      os << boost::format("                           total        hit      miss    miss-rate     reuse\n"
                           "   Reads            : %1$10d %2$10d %3$10d %4$10d%%\n"
                           "   Bytes Read       : %5$10d %6$10d %7$10d          - %8$10.2f\n"
                           "   Writes           : %9$10d %10$10d %11$10d %12$10d%%\n"

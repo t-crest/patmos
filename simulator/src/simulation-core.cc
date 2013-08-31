@@ -36,12 +36,12 @@ namespace patmos
 {
   simulator_t::simulator_t(memory_t &memory, memory_t &local_memory,
                            data_cache_t &data_cache,
-                           method_cache_t &method_cache,
+                           instr_cache_t &instr_cache,
                            stack_cache_t &stack_cache, symbol_map_t &symbols,
                            interrupt_handler_t &interrupt_handler)
     : Dbg_cnt_delay(0),
       Cycle(0), Memory(memory), Local_memory(local_memory),
-      Data_cache(data_cache), Method_cache(method_cache),
+      Data_cache(data_cache), Instr_cache(instr_cache),
       Stack_cache(stack_cache), Symbols(symbols), Dbg_stack(*this),
       Interrupt_handler(interrupt_handler),
       BASE(0), PC(0), nPC(0),
@@ -173,32 +173,10 @@ namespace patmos
     // NB: We fetch in each cycle, as preparation for supporting a standard
     //     I-Cache in addition.
     word_t iw[2];
-    if (!Method_cache.fetch(PC, iw))
+    if (!Instr_cache.fetch(BASE, PC, iw))
     {
-      // For a standard I-Cache, we would naturally stall here
-      //pipeline_stall(SIF);
-#ifdef METHOD_CACHE_STALL_FETCH
-      // Move stalling for method cache from MW stage to IF stage.
-      // At the same time, calls to fetch_and_dispatch() in instructions.h
-      // are replaced by dispatch().
-      // Note that this change will affect profiling: the costs at miss are
-      // attributed to the callee instead of the caller.
-      if (!Method_cache.assert_availability(BASE))
-      {
-        pipeline_stall(SIF);
-      } else {
-        // refetch, as it became available in the cache
-        Method_cache.fetch(PC, iw);
-      }
-#else
-      if (Stall == SXX)
-      {
-        simulation_exception_t::illegal_pc(
-            Method_cache.get_active_method_base());
-      }
-#endif
+      pipeline_stall(SIF);      
     }
-
 
     // Decode the next instruction, or service an interrupt,
     // only if we are not stalling.
@@ -213,7 +191,6 @@ namespace patmos
 
         instr_SIF[0] = instruction_data_t::mk_CFLb(*Instr_INTR, p0,
                                         interrupt.Address, interrupt.Address);
-        instr_SIF[0].Address = PC;
 
         for(unsigned int i = 1; i < NUM_SLOTS; i++)
         {
@@ -266,8 +243,6 @@ namespace patmos
         nPC = PC + iw_size*4;
       }
 
-
-
     }
   }
 
@@ -281,7 +256,7 @@ namespace patmos
     if (Cycle == 0)
     {
       BASE = nPC = entry;
-      Method_cache.initialize(entry);
+      Instr_cache.initialize(entry);
       Profiling.initialize(entry);
       Dbg_stack.initialize(entry);
     }
@@ -361,7 +336,7 @@ namespace patmos
 
         // advance the time for the method cache, stack cache, and memory
         Memory.tick();
-        Method_cache.tick();
+        Instr_cache.tick();
         Stack_cache.tick();
 
         if (debug)
@@ -576,7 +551,7 @@ namespace patmos
       {
         // print state of method cache
         os << "Method Cache:\n";
-        Method_cache.print(os);
+        Instr_cache.print(os);
 
         // print state of data cache
         os << "Data Cache:\n";
@@ -684,15 +659,19 @@ namespace patmos
          % (Pipeline_t)i % Num_stall_cycles[i];
     }
     // print statistics of method cache
-    Method_cache.print_stats(os, Symbols);
+    os << "\n\nInstruction Cache Statistics:\n";
+    Instr_cache.print_stats(os, Symbols);
 
     // print statistics of data cache
+    os << "\n\nData Cache Statistics:\n";
     Data_cache.print_stats(os);
 
     // print statistics of stack cache
+    os << "\n\nStack Cache Statistics:\n";
     Stack_cache.print_stats(os);
 
     // print statistics of main memory
+    os << "\n\nMain Memory Statistics:\n";
     Memory.print_stats(os);
 
     // print profiling information
