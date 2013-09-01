@@ -299,7 +299,7 @@ namespace patmos
 
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
-    virtual void print_stats(std::ostream &os)
+    virtual void print_stats(const simulator_t &s, std::ostream &os)
     {
       // nothing to be done here
     }
@@ -773,7 +773,7 @@ namespace patmos
 
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
-    virtual void print_stats(std::ostream &os)
+    virtual void print_stats(const simulator_t &s, std::ostream &os)
     {
       // stack cache statistics
       os << boost::format("                           total        max.\n"

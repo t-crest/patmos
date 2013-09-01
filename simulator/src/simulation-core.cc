@@ -668,19 +668,19 @@ namespace patmos
     }
     // print statistics of method cache
     os << "\n\nInstruction Cache Statistics:\n";
-    Instr_cache.print_stats(os, Symbols);
+    Instr_cache.print_stats(*this, os);
 
     // print statistics of data cache
     os << "\n\nData Cache Statistics:\n";
-    Data_cache.print_stats(os);
+    Data_cache.print_stats(*this, os);
 
     // print statistics of stack cache
     os << "\n\nStack Cache Statistics:\n";
-    Stack_cache.print_stats(os);
+    Stack_cache.print_stats(*this, os);
 
     // print statistics of main memory
     os << "\n\nMain Memory Statistics:\n";
-    Memory.print_stats(os);
+    Memory.print_stats(*this, os);
 
     // print profiling information
     Profiling.print(os, Symbols);

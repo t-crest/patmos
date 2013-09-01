@@ -113,7 +113,7 @@ namespace patmos
 
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
-    virtual void print_stats(std::ostream &os) = 0;
+    virtual void print_stats(const simulator_t &s, std::ostream &os) = 0;
   };
 
   /// An ideal memory.
@@ -244,7 +244,7 @@ namespace patmos
 
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
-    virtual void print_stats(std::ostream &os)
+    virtual void print_stats(const simulator_t &s, std::ostream &os)
     {
       // nothing to be done here
     }
@@ -268,6 +268,9 @@ namespace patmos
     /// Flag indicating whether the request is a load or store.
     bool Is_load;
 
+    /// If true, do not wait for the request to be retrieved, but delete it.
+    bool Is_posted;
+    
     /// Number of ticks remaining until the request completes.
     unsigned int Num_ticks_remaining;
   };
@@ -281,11 +284,19 @@ namespace patmos
     /// Set of pending requests processed by the memory.
     typedef std::vector<request_info_t> requests_t;
 
+    typedef std::map<uword_t, uint64_t> request_size_map_t;
+    
     /// Memory access time per block in cycles.
     unsigned int Num_ticks_per_block;
 
     /// Block transfer size
     unsigned int Num_bytes_per_block;
+    
+    /// Enable posted writes.
+    unsigned int Num_posted_writes;
+    
+    /// Number of initial read delay ticks.
+    unsigned int Num_read_delay_ticks;
     
     /// Outstanding requests to the memory.
     requests_t Requests;
@@ -325,17 +336,23 @@ namespace patmos
     /// Number of cycles the memory interface was busy.
     uint64_t Num_busy_cycles;
     
+    /// Number of cycles hidden by posted writes.
+    uint64_t Num_posted_write_cycles;
     
+    /// Track number of requests per request size.
+    request_size_map_t Num_requests_per_size;
     
     
     /// Find or create a request given an address, size, and load/store flag.
     /// @param address The address of the request.
     /// @param size The number of bytes request by the access.
     /// @param is_load A flag indicating whether the access is a load or store.
+    /// @param is_posted A flag indicating whether the store is posted or not.
     /// @return An existing or newly created request info object.
     /// \see request_info_t
     const request_info_t &find_or_create_request(uword_t address, uword_t size,
-                                                 bool is_load)
+                                                 bool is_load, 
+                                                 bool is_posted = false)
     {
       // check if the access exceeds the memory size and lazily initialize
       // memory content
@@ -359,7 +376,11 @@ namespace patmos
       unsigned int num_blocks = (((aligned_size-1) / Num_bytes_per_block) + 1); 
       unsigned int num_ticks = Num_ticks_per_block * num_blocks;
       
-      request_info_t tmp = {address, size, is_load, num_ticks};
+      if (is_load || !is_posted) {
+        num_ticks += Num_read_delay_ticks;
+      }
+      
+      request_info_t tmp = {address, size, is_load, is_posted, num_ticks};
       Requests.push_back(tmp);
 
       // Update statistics
@@ -380,6 +401,16 @@ namespace patmos
       Last_address = address + size;
       Last_is_load = is_load;
       
+      // calculate bucket for request size histogram
+      uword_t hist_size = (((size - 1) / 4) + 1) * 4;
+      request_size_map_t::iterator it = Num_requests_per_size.find(hist_size);
+      if (it == Num_requests_per_size.end()) {
+        Num_requests_per_size.insert(std::make_pair(hist_size, (uint64_t)1));
+      } else {
+        it->second++;
+      }
+      
+      
       // return the newly created request
       return Requests.back();
     }
@@ -389,16 +420,25 @@ namespace patmos
     /// @param memory_size The size of the memory in bytes.
     /// @param num_ticks_per_block Memory access time per block in cycles.
     /// @param num_bytes_per_block Memory block size.
+    /// @param num_posted_writes Enable posted writes, sets the max size 
+    ///                          of the request queue.
+    /// @param Num_read_delay_ticks Number of ticks until a response to a 
+    ///                             request is received
     fixed_delay_memory_t(unsigned int memory_size,
                          unsigned int num_ticks_per_block, 
-                         unsigned int num_bytes_per_block
+                         unsigned int num_bytes_per_block,
+                         unsigned int num_posted_writes,
+                         unsigned int num_read_delay_ticks
                         ) :
         ideal_memory_t(memory_size), Num_ticks_per_block(num_ticks_per_block),
-        Num_bytes_per_block(num_bytes_per_block), Last_address(0), 
+        Num_bytes_per_block(num_bytes_per_block), 
+        Num_posted_writes(num_posted_writes), 
+        Num_read_delay_ticks(num_read_delay_ticks), Last_address(0), 
         Last_is_load(false), Num_max_queue_size(0),
         Num_reads(0), Num_writes(0), Num_bytes_read(0), Num_bytes_written(0),
         Num_bytes_read_transferred(0), Num_bytes_write_transferred(0), 
-        Num_consecutive_requests(0), Num_busy_cycles(0)
+        Num_consecutive_requests(0), Num_busy_cycles(0), 
+        Num_posted_write_cycles(0)
     {
     }
 
@@ -444,8 +484,14 @@ namespace patmos
     /// otherwise.
     virtual bool write(uword_t address, byte_t *value, uword_t size)
     {
+      // To avoid delaying reads until the write has been stored to the queue,
+      // we just add it to the queue and delay later until the queue is small 
+      // enough.
+      bool posted = (Num_posted_writes > 0);
+      
       // get the request info
-      const request_info_t &req(find_or_create_request(address, size, false));
+      const request_info_t &req(find_or_create_request(address, size, false, 
+                                                       posted));
 
       // check if the request has finished
       if(req.Num_ticks_remaining == 0)
@@ -462,6 +508,10 @@ namespace patmos
 
         // write the data
         return ideal_memory_t::write(address, value, size);
+      }
+      else if (posted) {
+        // delay only until the request queue size is small enough
+        return Requests.size() <= Num_posted_writes;
       }
       else
       {
@@ -496,16 +546,39 @@ namespace patmos
     /// otherwise true.
     virtual bool is_ready()
     {
-      // always ready
       return Requests.empty();
     }
 
     /// Notify the memory that a cycle has passed.
     virtual void tick()
     {
+      // check if there are only posted writes in the queue, then there is
+      // no one waiting on any result and we are actually not stalling in this
+      // cycle
+      if (!Requests.empty() && Requests.size() <= Num_posted_writes) {
+        bool posted = true;
+        for (requests_t::iterator it = Requests.begin(), ie = Requests.end();
+             it != ie; it++)
+        {
+          if (!it->Is_posted) {
+            posted = false;
+            break;
+          }
+        }
+        if (posted) {
+          Num_posted_write_cycles++;
+        }
+      }
+
+      // update the request queue
       if (!Requests.empty() && Requests.front().Num_ticks_remaining)
       {
-        Requests.front().Num_ticks_remaining--;
+        request_info_t &req = Requests.front();
+        req.Num_ticks_remaining--;
+        
+        if (req.Num_ticks_remaining == 0 && req.Is_posted) {
+          Requests.erase(Requests.begin());
+        }
       }
     }
 
@@ -531,15 +604,17 @@ namespace patmos
 
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
-    virtual void print_stats(std::ostream &os)
+    virtual void print_stats(const simulator_t &s, std::ostream &os)
     {
       os << boost::format("                                total\n"
                           "   Max Queue Size        : %1$10d\n"
                           "   Consecutive Transfers : %2$10d\n"
-                          "   Busy Cycles           : %3$10d\n\n")
+                          "   Busy Cycles           : %3$10d\n"
+                          "   Hidden Write Cycles   : %4$10d\n\n")
         % Num_max_queue_size 
         % Num_consecutive_requests
-        % Num_busy_cycles;
+        % Num_busy_cycles
+        % Num_posted_write_cycles;
       
       os << boost::format("                                 Read      Write\n"
                           "   Requests              : %1$10d %2$10d\n"
@@ -548,6 +623,13 @@ namespace patmos
         % Num_reads % Num_writes 
         % Num_bytes_read % Num_bytes_written
         % Num_bytes_read_transferred % Num_bytes_write_transferred;
+        
+      os << "Request size    #requests\n";
+      for (request_size_map_t::iterator it = Num_requests_per_size.begin(),
+           ie = Num_requests_per_size.end(); it != ie; it++)
+      {
+        os << boost::format("  %1$10d : %2$12d\n") % it->first % it->second;
+      }
     }
   };
 }

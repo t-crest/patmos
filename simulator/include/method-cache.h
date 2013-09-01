@@ -115,7 +115,7 @@ namespace patmos
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void print_stats(std::ostream &os, const symbol_map_t &symbols)
+    virtual void print_stats(const simulator_t &s, std::ostream &os)
     {
       // nothing to do here either, since the cache has no internal state.
     }
@@ -569,7 +569,7 @@ namespace patmos
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void print_stats(std::ostream &os, const symbol_map_t &symbols)
+    virtual void print_stats(const simulator_t &s, std::ostream &os)
     {
       // instruction statistics
       os << boost::format("                            total        max.\n"
@@ -589,7 +589,7 @@ namespace patmos
       {
         os << boost::format("   0x%1$08x: %2$10d  %3$10d    %4%\n")
            % i->first % i->second.Num_hits % i->second.Num_misses
-           % symbols.find(i->first);
+           % s.Symbols.find(i->first);
       }
     }
 

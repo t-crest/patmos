@@ -47,12 +47,16 @@
 /// @return An instance of the requested memory.
 static patmos::memory_t &create_global_memory(unsigned int time,
                                               unsigned int size,
-                                              unsigned int burst_size)
+                                              unsigned int burst_size,
+                                              unsigned int posted,
+                                              unsigned int setup_time
+                                             )
 {
-  if (time == 0)
+  if (time == 0 && setup_time == 0)
     return *new patmos::ideal_memory_t(size);
   else
-    return *new patmos::fixed_delay_memory_t(size, time, burst_size);
+    return *new patmos::fixed_delay_memory_t(size, time, burst_size, posted, 
+                                             setup_time);
 }
 
 /// Construct a data cache for the simulation.
@@ -251,8 +255,10 @@ int main(int argc, char **argv)
   boost::program_options::options_description memory_options("Memory options");
   memory_options.add_options()
     ("gsize,g",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_MEMORY_BYTES), "global memory size in bytes")
-    ("gtime,G",  boost::program_options::value<unsigned int>()->default_value(0), "fixed access delay to global memory in cycles per burst")
+    ("gtime,G",  boost::program_options::value<unsigned int>()->default_value(0), "global memory transfer time per burst in cycles")
+    ("tdelay,t", boost::program_options::value<unsigned int>()->default_value(0), "read delay to global memory per request in cycles")
     ("bsize,b",  boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES), "burst size (and alignment) of the memory system.")
+    ("posted,p", boost::program_options::value<unsigned int>()->default_value(0), "Enable posted writes (sets max queue size)")
     ("lsize,l",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_LOCAL_MEMORY_BYTES), "local memory size in bytes");
 
   boost::program_options::options_description cache_options("Cache options");
@@ -348,6 +354,8 @@ int main(int argc, char **argv)
 
   unsigned int gtime = vm["gtime"].as<unsigned int>();
   unsigned int bsize = vm["bsize"].as<unsigned int>();
+  unsigned int posted = vm["posted"].as<unsigned int>();
+  unsigned int tdelay = vm["tdelay"].as<unsigned int>();
 
   patmos::data_cache_e dck = vm["dckind"].as<patmos::data_cache_e>();
   patmos::stack_cache_e sck = vm["sckind"].as<patmos::stack_cache_e>();
@@ -379,7 +387,7 @@ int main(int argc, char **argv)
   std::ostream *dout = NULL;
 
   // setup simulation framework
-  patmos::memory_t &gm = create_global_memory(gtime, gsize, bsize);
+  patmos::memory_t &gm = create_global_memory(gtime, gsize, bsize, posted, tdelay);
   patmos::stack_cache_t &sc = create_stack_cache(sck, scsize, gm);
   patmos::instr_cache_t &ic = create_instr_cache(ick, isck, mck, mcsize, bsize, 
                                                  mbsize, gm);
