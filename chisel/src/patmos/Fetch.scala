@@ -95,11 +95,9 @@ class Fetch(fileName : String) extends Component {
   val selMCache = io.mcachefe.mem_sel(0)
 
   //need to register these values to save them in  memory stage at call/return
-  val mcoffReg = Reg(resetVal = Bits(1))
-  val baseReg = Reg(resetVal = UFix(1, DATA_WIDTH))
+  val pcRetReg = Reg(resetVal = UFix(1, DATA_WIDTH))
   when(io.memfe.doCallRet && io.ena) {
-    mcoffReg := io.mcachefe.pos_offset - io.memfe.callRetPc + io.memfe.callRetBase
-    baseReg := io.memfe.callRetBase
+    pcRetReg := Mux(selMCache, io.mcachefe.pos_offset - io.memfe.callRetPc + io.memfe.callRetBase, io.memfe.callRetBase)
   }
 
   // ROM/ISPM Mux
@@ -148,7 +146,8 @@ class Fetch(fileName : String) extends Component {
   io.fedec.instr_a := instr_a
   io.fedec.instr_b := instr_b
 
-  io.femem.pc := Mux(selMCache, pc_cont - mcoffReg, pc_cont - baseReg(ISPM_ONE_BIT - 3,0))
+  //io.femem.pc := pc_cont - io.mcachefe.ret_pc
+  io.femem.pc := pc_cont - pcRetReg
 
   //outputs to mcache
   io.femcache.address := pc_next
