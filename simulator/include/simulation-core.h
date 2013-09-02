@@ -38,7 +38,7 @@ namespace patmos
   class data_cache_t;
   class symbol_map_t;
   class stack_cache_t;
-  class method_cache_t;
+  class instr_cache_t;
   class binary_format_t;
   class rtc_t;
 
@@ -139,7 +139,7 @@ namespace patmos
     data_cache_t &Data_cache;
 
     /// The method cache used during the simulation.
-    method_cache_t &Method_cache;
+    instr_cache_t &Instr_cache;
 
     /// The stack cache used during the simulation.
     stack_cache_t &Stack_cache;
@@ -180,6 +180,9 @@ namespace patmos
     /// Counter up to which pipeline stage the processor stalls.
     Pipeline_t Stall;
 
+    /// Signal to disable the IF stage.
+    bool Disable_IF;
+    
     /// Interrupt instruction
     instruction_t *Instr_INTR;
 
@@ -194,6 +197,12 @@ namespace patmos
 
     /// Flag indicating whether a decoupled load is active.
     bool Is_decoupled_load_active;
+
+    /// Keep track of current branch delay
+    int Branch_counter;
+    
+    /// Delay decoder when an interrupt has been executed
+    int Interrupt_handling_counter;
 
     /// Runtime statistics on all instructions, per pipeline
     instruction_stats_t Instruction_stats[NUM_SLOTS];
@@ -245,11 +254,11 @@ namespace patmos
     /// @param memory The main memory to use during the simulation.
     /// @param local_memory The local memory to use during the simulation.
     /// @param data_cache The data cache to use during the simulation.
-    /// @param method_cache The method cache to use during the simulation.
+    /// @param instr_cache The instruction cache to use during the simulation.
     /// @param stack_cache The stack cache to use during the simulation.
     /// @param symbols A mapping from addresses to symbols.
     simulator_t(memory_t &memory, memory_t &local_memory,
-                data_cache_t &data_cache, method_cache_t &method_cache,
+                data_cache_t &data_cache, instr_cache_t &instr_cache,
                 stack_cache_t &stack_cache, symbol_map_t &symbols,
                 interrupt_handler_t &interrupt_handler);
 
