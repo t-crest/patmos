@@ -1,165 +1,165 @@
-/*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
-   All rights reserved.
+// /*
+//    Copyright 2013 Technical University of Denmark, DTU Compute. 
+//    All rights reserved.
    
-   This file is part of the time-predictable VLIW processor Patmos.
+//    This file is part of the time-predictable VLIW processor Patmos.
 
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
+//    Redistribution and use in source and binary forms, with or without
+//    modification, are permitted provided that the following conditions are met:
 
-      1. Redistributions of source code must retain the above copyright notice,
-         this list of conditions and the following disclaimer.
+//       1. Redistributions of source code must retain the above copyright notice,
+//          this list of conditions and the following disclaimer.
 
-      2. Redistributions in binary form must reproduce the above copyright
-         notice, this list of conditions and the following disclaimer in the
-         documentation and/or other materials provided with the distribution.
+//       2. Redistributions in binary form must reproduce the above copyright
+//          notice, this list of conditions and the following disclaimer in the
+//          documentation and/or other materials provided with the distribution.
 
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
-   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
-   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
+//    OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+//    OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+//    NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
+//    DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+//    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+//    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+//    ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+//    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+//    THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-   The views and conclusions contained in the software and documentation are
-   those of the authors and should not be interpreted as representing official
-   policies, either expressed or implied, of the copyright holder.
- */
+//    The views and conclusions contained in the software and documentation are
+//    those of the authors and should not be interpreted as representing official
+//    policies, either expressed or implied, of the copyright holder.
+//  */
 
-/*
- * Fetch stage of Patmos.
- * 
- * Author: Martin Schoeberl (martin@jopdesign.com)
- * 
- */
+// /*
+//  * Fetch stage of Patmos.
+//  * 
+//  * Author: Martin Schoeberl (martin@jopdesign.com)
+//  * 
+//  */
 
-package patmos
+// package patmos
 
-import Chisel._
-import Node._
-import Constants._
+// import Chisel._
+// import Node._
+// import Constants._
 
-class MCFetchIO extends Bundle() {
-  val ena = Bool(INPUT)
-  val fedec = new FeDec().asOutput
-  // PC for returns
-  val femem = new FeMem().asOutput
-  //branch from EX
-  val exfe = new ExFe().asInput
-  //call from MEM
-  val memfe = new MemFe().asInput
-  val mcache_in = new MCacheIn().asOutput
-  val mcache_out = new MCacheOut().asInput
-}
+// class MCFetchIO extends Bundle() {
+//   val ena = Bool(INPUT)
+//   val fedec = new FeDec().asOutput
+//   // PC for returns
+//   val femem = new FeMem().asOutput
+//   //branch from EX
+//   val exfe = new ExFe().asInput
+//   //call from MEM
+//   val memfe = new MemFe().asInput
+//   val mcache_in = new MCacheIn().asOutput
+//   val mcache_out = new MCacheOut().asInput
+// }
 
-/*
-  extension to class Fetch.scala to connect with the method cache
- */
-class MCFetch() extends Component {
-  val io = new MCFetchIO()
+// /*
+//   extension to class Fetch.scala to connect with the method cache
+//  */
+// class MCFetch() extends Component {
+//   val io = new MCFetchIO()
 
-  // val pc = Reg(resetVal = UFix(8, PC_SIZE))
-  // val addr_even = Reg(resetVal = UFix(0, PC_SIZE - 1))
-  val pcReg = Reg(resetVal = UFix(1, PC_SIZE)) //why 2???
-  val addrEvenReg = Reg(resetVal = UFix(2, PC_SIZE))
-  val addrOddReg = Reg(resetVal = UFix(1, PC_SIZE))
+//   // val pc = Reg(resetVal = UFix(8, PC_SIZE))
+//   // val addr_even = Reg(resetVal = UFix(0, PC_SIZE - 1))
+//   val pcReg = Reg(resetVal = UFix(1, PC_SIZE)) //why 2???
+//   val addrEvenReg = Reg(resetVal = UFix(2, PC_SIZE))
+//   val addrOddReg = Reg(resetVal = UFix(1, PC_SIZE))
 
-  //val rom = Utility.readBin(fileName)
-  // Split the ROM into two blocks for dual fetch
-  //  val len = rom.length / 2
-  //  val rom_a = Vec(len) { Bits(width = INSTR_WIDTH) }
-  //  val rom_b = Vec(len) { Bits(width = INSTR_WIDTH) }
-  //  for (i <- 0 until len) {
-  //    rom_a(i) = rom(i * 2)
-  //    rom_b(i) = rom(i * 2 + 1)
-  //    val a:Bits = rom_a(i)
-  //    val b:Bits = rom_b(i)
-  //    println(i+" "+a.toUFix.litValue()+" "+b.toUFix.litValue())
-  //  }
-  //
-  //  // addr_even and odd count in words. Shall this be optimized?
-  //  val data_even: Bits = rom_a(addr_even(PC_SIZE-1, 1))
-  //  val data_odd: Bits = rom_b(addr_odd(PC_SIZE-1, 1))
-  // relay on the optimization to recognize that those addresses are always even and odd
-  // TODO: maybe make it explicit
+//   //val rom = Utility.readBin(fileName)
+//   // Split the ROM into two blocks for dual fetch
+//   //  val len = rom.length / 2
+//   //  val rom_a = Vec(len) { Bits(width = INSTR_WIDTH) }
+//   //  val rom_b = Vec(len) { Bits(width = INSTR_WIDTH) }
+//   //  for (i <- 0 until len) {
+//   //    rom_a(i) = rom(i * 2)
+//   //    rom_b(i) = rom(i * 2 + 1)
+//   //    val a:Bits = rom_a(i)
+//   //    val b:Bits = rom_b(i)
+//   //    println(i+" "+a.toUFix.litValue()+" "+b.toUFix.litValue())
+//   //  }
+//   //
+//   //  // addr_even and odd count in words. Shall this be optimized?
+//   //  val data_even: Bits = rom_a(addr_even(PC_SIZE-1, 1))
+//   //  val data_odd: Bits = rom_b(addr_odd(PC_SIZE-1, 1))
+//   // relay on the optimization to recognize that those addresses are always even and odd
+//   // TODO: maybe make it explicit
 
-  val ispmSize = 1 << ISPM_BITS // in bytes
-  val ispmAddrBits = log2Up(ispmSize / 4 / 2)
-  val memEven = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
-  val memOdd = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
+//   val ispmSize = 1 << ISPM_BITS // in bytes
+//   val ispmAddrBits = log2Up(ispmSize / 4 / 2)
+//   val memEven = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
+//   val memOdd = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
 
-  // write from EX - use registers - ignore stall, as reply does not hurt
-  val selWrite = (io.memfe.store & (io.memfe.addr(ISPM_ONE_BIT) === Bits(0x1)))
-  val wrEvenReg = Reg(selWrite & (io.memfe.addr(2) === Bits(0)))
-  val wrOddReg = Reg(selWrite & (io.memfe.addr(2) === Bits(1)))
-  val addrReg = Reg(io.memfe.addr)
-  val dataReg = Reg(io.memfe.data)
-  when(wrEvenReg) { memEven(addrReg(ispmAddrBits + 3 - 1, 3)) := dataReg }
-  when(wrOddReg) { memOdd(addrReg(ispmAddrBits + 3 - 1, 3)) := dataReg }
-  // This would not work with asynchronous reset as the address
-  // registers are set on reset. However, chisel uses synchronous
-  // reset, which 'just' generates some more logic. And it looks
-  // like the synthesize tool is able to duplicate the register.
-  val ispm_even = memEven(addrEvenReg(ispmAddrBits, 1))
-  val ispm_odd = memOdd(addrOddReg(ispmAddrBits, 1))
+//   // write from EX - use registers - ignore stall, as reply does not hurt
+//   val selWrite = (io.memfe.store & (io.memfe.addr(ISPM_ONE_BIT) === Bits(0x1)))
+//   val wrEvenReg = Reg(selWrite & (io.memfe.addr(2) === Bits(0)))
+//   val wrOddReg = Reg(selWrite & (io.memfe.addr(2) === Bits(1)))
+//   val addrReg = Reg(io.memfe.addr)
+//   val dataReg = Reg(io.memfe.data)
+//   when(wrEvenReg) { memEven(addrReg(ispmAddrBits + 3 - 1, 3)) := dataReg }
+//   when(wrOddReg) { memOdd(addrReg(ispmAddrBits + 3 - 1, 3)) := dataReg }
+//   // This would not work with asynchronous reset as the address
+//   // registers are set on reset. However, chisel uses synchronous
+//   // reset, which 'just' generates some more logic. And it looks
+//   // like the synthesize tool is able to duplicate the register.
+//   val ispm_even = memEven(addrEvenReg(ispmAddrBits, 1))
+//   val ispm_odd = memOdd(addrOddReg(ispmAddrBits, 1))
 
-  // read from ISPM mapped to address 0x00800000
-  // PC counts in words
-  val selIspm = pcReg(ISPM_ONE_BIT - 2) === Bits(0x1)
+//   // read from ISPM mapped to address 0x00800000
+//   // PC counts in words
+//   val selIspm = pcReg(ISPM_ONE_BIT - 2) === Bits(0x1)
 
-  // ROM/ISPM Mux
-  // val data_even = Mux(selIspm, ispm_even, rom(addrEvenReg))
-  // val data_odd = Mux(selIspm, ispm_odd, rom(addrOddReg))
+//   // ROM/ISPM Mux
+//   // val data_even = Mux(selIspm, ispm_even, rom(addrEvenReg))
+//   // val data_odd = Mux(selIspm, ispm_odd, rom(addrOddReg))
 
-  val instr_a_ispm = Mux(pcReg(0) === Bits(0), ispm_even, ispm_odd)
-  val instr_b_ispm = Mux(pcReg(0) === Bits(0), ispm_odd, ispm_even)
+//   val instr_a_ispm = Mux(pcReg(0) === Bits(0), ispm_even, ispm_odd)
+//   val instr_b_ispm = Mux(pcReg(0) === Bits(0), ispm_odd, ispm_even)
 
-  val instr_a = Mux(selIspm, instr_a_ispm, io.mcache_out.instr_a)
-  val instr_b = Mux(selIspm, instr_b_ispm, io.mcache_out.instr_b)
+//   val instr_a = Mux(selIspm, instr_a_ispm, io.mcache_out.instr_a)
+//   val instr_b = Mux(selIspm, instr_b_ispm, io.mcache_out.instr_b)
 
-  val b_valid = instr_a(31) === Bits(1)
+//   val b_valid = instr_a(31) === Bits(1)
 
-  val pc_cont = Mux(b_valid, pcReg + UFix(2), pcReg + UFix(1))
-  val pc_next =
-    Mux(io.memfe.doCallRet, io.memfe.callRetPc,
-		Mux(io.exfe.doBranch, io.exfe.branchPc,
-			pc_cont))
+//   val pc_cont = Mux(b_valid, pcReg + UFix(2), pcReg + UFix(1))
+//   val pc_next =
+//     Mux(io.memfe.doCallRet, io.memfe.callRetPc,
+// 		Mux(io.exfe.doBranch, io.exfe.branchPc,
+// 			pc_cont))
 
-  val pc_cont2 = Mux(b_valid, pcReg + UFix(4), pcReg + UFix(3))
-  val pc_next2 =
-    Mux(io.memfe.doCallRet, io.memfe.callRetPc + UFix(2),
-		Mux(io.exfe.doBranch, io.exfe.branchPc + UFix(2),
-			pc_cont2))
+//   val pc_cont2 = Mux(b_valid, pcReg + UFix(4), pcReg + UFix(3))
+//   val pc_next2 =
+//     Mux(io.memfe.doCallRet, io.memfe.callRetPc + UFix(2),
+// 		Mux(io.exfe.doBranch, io.exfe.branchPc + UFix(2),
+// 			pc_cont2))
 
-  val pc_inc = Mux(pc_next(0), pc_next2, pc_next)
-  when(io.ena) {
-    addrEvenReg := Cat(pc_inc(PC_SIZE - 1, 1), Bits(0)).toUFix
-    addrOddReg := Cat(pc_next(PC_SIZE - 1, 1), Bits(1)).toUFix
-    pcReg := pc_next
-  }
+//   val pc_inc = Mux(pc_next(0), pc_next2, pc_next)
+//   when(io.ena) {
+//     addrEvenReg := Cat(pc_inc(PC_SIZE - 1, 1), Bits(0)).toUFix
+//     addrOddReg := Cat(pc_next(PC_SIZE - 1, 1), Bits(1)).toUFix
+//     pcReg := pc_next
+//   }
 
-  //short solution to wait for pcReg = start of IS and check if MCache (mapped to 0x200000) is selected instead of SPM
-  //placing the IS start .text section for MCache directly at 0x0 address should make this needles
-  val mcache_req = Bits(width = 1)
-  mcache_req := Bits(0)
-  when (pcReg(18,0) === Bits(8) && pcReg(19) === Bits(1)) {
-    mcache_req := Bits(1)
-  }
+//   //short solution to wait for pcReg = start of IS and check if MCache (mapped to 0x200000) is selected instead of SPM
+//   //placing the IS start .text section for MCache directly at 0x0 address should make this needles
+//   val mcache_req = Bits(width = 1)
+//   mcache_req := Bits(0)
+//   when (pcReg(18,0) === Bits(8) && pcReg(19) === Bits(1)) {
+//     mcache_req := Bits(1)
+//   }
 
-  io.fedec.pc := pcReg
-  io.fedec.instr_a := instr_a
-  io.fedec.instr_b := instr_b
+//   io.fedec.pc := pcReg
+//   io.fedec.instr_a := instr_a
+//   io.fedec.instr_b := instr_b
 
-  io.femem.pc := pc_cont
+//   io.femem.pc := pc_cont
 
-  //outputs to mcache
-  io.mcache_in.address := pc_next(18,0)
-  io.mcache_in.doCallRet := io.memfe.doCallRet //sign to mcache that a callreturn is executed
-  io.mcache_in.callRetBase := io.memfe.callRetBase(18,0) //base address needed for fetching from ext mem
-  io.mcache_in.request := mcache_req //used to change from initial state to running mcache
+//   //outputs to mcache
+//   io.mcache_in.address := pc_next(18,0)
+//   io.mcache_in.doCallRet := io.memfe.doCallRet //sign to mcache that a callreturn is executed
+//   io.mcache_in.callRetBase := io.memfe.callRetBase(18,0) //base address needed for fetching from ext mem
+//   io.mcache_in.request := mcache_req //used to change from initial state to running mcache
 
-}
+// }

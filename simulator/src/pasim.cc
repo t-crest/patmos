@@ -46,21 +46,28 @@
 /// @param size The requested size of the memory in bytes.
 /// @return An instance of the requested memory.
 static patmos::memory_t &create_global_memory(unsigned int time,
-                                              unsigned int size)
+                                              unsigned int size,
+                                              unsigned int burst_size,
+                                              unsigned int posted,
+                                              unsigned int setup_time
+                                             )
 {
-  if (time == 0)
+  if (time == 0 && setup_time == 0)
     return *new patmos::ideal_memory_t(size);
   else
-    return *new patmos::fixed_delay_memory_t<>(size, time);
+    return *new patmos::fixed_delay_memory_t(size, time, burst_size, posted, 
+                                             setup_time);
 }
 
 /// Construct a data cache for the simulation.
 /// @param dck The kind of the data cache requested.
 /// @param size The requested size of the data cache in bytes.
+/// @param line_size The size of one cache line.
 /// @param gm Global memory accessed on a cache miss.
 /// @return An instance of a data cache.
 static patmos::data_cache_t &create_data_cache(patmos::data_cache_e dck,
                                                unsigned int size,
+                                               unsigned int line_size,
                                                patmos::memory_t &gm)
 {
   unsigned int num_blocks = std::ceil((float)size/
@@ -73,22 +80,24 @@ static patmos::data_cache_t &create_data_cache(patmos::data_cache_e dck,
     case patmos::DC_NO:
       return *new patmos::no_data_cache_t(gm);
     case patmos::DC_LRU2:
-      return *new patmos::lru_data_cache_t<2>(gm, num_blocks);
+      return *new patmos::lru_data_cache_t<2>(gm, num_blocks, line_size);
     case patmos::DC_LRU4:
-      return *new patmos::lru_data_cache_t<4>(gm, num_blocks);
+      return *new patmos::lru_data_cache_t<4>(gm, num_blocks, line_size);
     case patmos::DC_LRU8:
-      return *new patmos::lru_data_cache_t<8>(gm, num_blocks);
+      return *new patmos::lru_data_cache_t<8>(gm, num_blocks, line_size);
   };
 }
 
 /// Construct a method cache for the simulation.
 /// @param mck The kind of the method cache requested.
 /// @param size The requested size of the method cache in bytes.
+/// @param block_size The size of one cache block in bytes.
 /// @param gm Global memory accessed on a cache miss.
 /// @return An instance of the requested method  cache kind.
-static patmos::method_cache_t &create_method_cache(patmos::method_cache_e mck,
-                                                   unsigned int size,
-                                                   patmos::memory_t &gm)
+static patmos::instr_cache_t &create_method_cache(patmos::method_cache_e mck,
+                                                 unsigned int size,
+                                                 unsigned int block_size,
+                                                 patmos::memory_t &gm)
 {
   switch(mck)
   {
@@ -97,23 +106,77 @@ static patmos::method_cache_t &create_method_cache(patmos::method_cache_e mck,
     case patmos::MC_LRU:
     {
       // convert size to number of blocks
-      unsigned int num_blocks = std::ceil((float)size/
-                                   (float)patmos::NUM_METHOD_CACHE_BLOCK_BYTES);
+      unsigned int num_blocks = ((size - 1)/block_size) + 1;
 
-      return *new patmos::lru_method_cache_t<>(gm, num_blocks);
+      return *new patmos::lru_method_cache_t(gm, num_blocks, block_size);
     }
     case patmos::MC_FIFO:
     {
       // convert size to number of blocks
-      unsigned int num_blocks = std::ceil((float)size/
-                                   (float)patmos::NUM_METHOD_CACHE_BLOCK_BYTES);
+      unsigned int num_blocks = ((size - 1)/block_size) + 1;
 
-      return *new patmos::fifo_method_cache_t<>(gm, num_blocks);
+      return *new patmos::fifo_method_cache_t(gm, num_blocks, block_size);
     }
   }
 
   assert(false);
   abort();
+}
+
+static patmos::instr_cache_t &create_iset_cache(patmos::iset_cache_e isck, 
+       unsigned int size, unsigned int block_size,
+       patmos::memory_t &gm)
+{
+  switch (isck) {
+    case patmos::ISC_IDEAL:
+      return *new patmos::i_cache_t<true>(new patmos::ideal_data_cache_t(gm));
+    case patmos::ISC_NO:
+      return *new patmos::i_cache_t<false>(&gm);
+    case patmos::ISC_LRU2:
+    {
+      unsigned int num_blocks = ((size - 1)/block_size) + 1;
+      
+      patmos::memory_t *lru = 
+                    new patmos::lru_data_cache_t<2>(gm, num_blocks, block_size);
+                    
+      return *new patmos::i_cache_t<true>(lru);
+    }
+    case patmos::ISC_LRU4:
+    {
+      unsigned int num_blocks = ((size - 1)/block_size) + 1;
+      
+      patmos::memory_t *lru = 
+                    new patmos::lru_data_cache_t<4>(gm, num_blocks, block_size);
+                    
+      return *new patmos::i_cache_t<true>(lru);
+    }
+    case patmos::ISC_LRU8:
+    {
+      unsigned int num_blocks = ((size - 1)/block_size) + 1;
+      
+      patmos::memory_t *lru = 
+                    new patmos::lru_data_cache_t<8>(gm, num_blocks, block_size);
+
+      return *new patmos::i_cache_t<true>(lru);
+    }
+      
+    default: abort();
+  }
+}
+
+static patmos::instr_cache_t &create_instr_cache(patmos::instr_cache_e ick, 
+       patmos::iset_cache_e isck, patmos::method_cache_e mck,
+       unsigned int size, unsigned int burst_size, unsigned int block_size,
+       patmos::memory_t &gm)
+{
+  switch (ick) {
+    case patmos::IC_MCACHE: 
+      return create_method_cache(mck, size, block_size, gm);
+    case patmos::IC_ICACHE:
+      return create_iset_cache(isck, size, burst_size, gm);
+    default:
+      abort();
+  }
 }
 
 /// Construct a stack cache for the simulation.
@@ -191,9 +254,12 @@ int main(int argc, char **argv)
 
   boost::program_options::options_description memory_options("Memory options");
   memory_options.add_options()
-    ("gsize,g", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_MEMORY_BYTES), "global memory size in bytes")
-    ("gtime,G", boost::program_options::value<unsigned int>()->default_value(0), "access delay to global memory in cycles")
-    ("lsize,l", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_LOCAL_MEMORY_BYTES), "local memory size in bytes");
+    ("gsize,g",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_MEMORY_BYTES), "global memory size in bytes")
+    ("gtime,G",  boost::program_options::value<unsigned int>()->default_value(0), "global memory transfer time per burst in cycles")
+    ("tdelay,t", boost::program_options::value<unsigned int>()->default_value(0), "read delay to global memory per request in cycles")
+    ("bsize",  boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES), "burst size (and alignment) of the memory system.")
+    ("posted,p", boost::program_options::value<unsigned int>()->default_value(0), "Enable posted writes (sets max queue size)")
+    ("lsize,l",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_LOCAL_MEMORY_BYTES), "local memory size in bytes");
 
   boost::program_options::options_description cache_options("Cache options");
   cache_options.add_options()
@@ -203,8 +269,12 @@ int main(int argc, char **argv)
     ("scsize,s", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_STACK_CACHE_BYTES), "stack cache size in bytes")
     ("sckind,S", boost::program_options::value<patmos::stack_cache_e>()->default_value(patmos::SC_IDEAL), "kind of stack cache (ideal, block)")
 
-    ("mcsize,m", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_METHOD_CACHE_BYTES), "method cache size in bytes")
-    ("mckind,M", boost::program_options::value<patmos::method_cache_e>()->default_value(patmos::MC_IDEAL), "kind of method cache (ideal, lru, fifo)");
+    ("icache,C", boost::program_options::value<patmos::instr_cache_e>()->default_value(patmos::IC_MCACHE), "kind of instruction cache (mcache, icache)")
+    ("ickind,K", boost::program_options::value<patmos::iset_cache_e>()->default_value(patmos::ISC_IDEAL), "kind of set-associative I-cache (ideal, no. lru2, lru4, lru8)")
+     
+    ("mcsize,m", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_METHOD_CACHE_BYTES), "method cache / instruction cache size in bytes")
+    ("mckind,M", boost::program_options::value<patmos::method_cache_e>()->default_value(patmos::MC_IDEAL), "kind of method cache (ideal, lru, fifo)")
+    ("mbsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_METHOD_CACHE_BLOCK_BYTES), "method cache block size in bytes");
 
   boost::program_options::options_description sim_options("Simulator options");
   sim_options.add_options()
@@ -280,12 +350,18 @@ int main(int argc, char **argv)
   unsigned int dcsize = vm["dcsize"].as<patmos::byte_size_t>().value();
   unsigned int scsize = vm["scsize"].as<patmos::byte_size_t>().value();
   unsigned int mcsize = vm["mcsize"].as<patmos::byte_size_t>().value();
+  unsigned int mbsize = vm["mbsize"].as<patmos::byte_size_t>().value();
 
   unsigned int gtime = vm["gtime"].as<unsigned int>();
+  unsigned int bsize = vm["bsize"].as<unsigned int>();
+  unsigned int posted = vm["posted"].as<unsigned int>();
+  unsigned int tdelay = vm["tdelay"].as<unsigned int>();
 
   patmos::data_cache_e dck = vm["dckind"].as<patmos::data_cache_e>();
   patmos::stack_cache_e sck = vm["sckind"].as<patmos::stack_cache_e>();
+  patmos::instr_cache_e ick = vm["icache"].as<patmos::instr_cache_e>();
   patmos::method_cache_e mck = vm["mckind"].as<patmos::method_cache_e>();
+  patmos::iset_cache_e isck = vm["ickind"].as<patmos::iset_cache_e>();
 
   patmos::debug_format_e debug_fmt= vm["debug-fmt"].as<patmos::debug_format_e>();
   unsigned int debug_cycle = vm.count("debug") ?
@@ -311,10 +387,11 @@ int main(int argc, char **argv)
   std::ostream *dout = NULL;
 
   // setup simulation framework
-  patmos::memory_t &gm = create_global_memory(gtime, gsize);
+  patmos::memory_t &gm = create_global_memory(gtime, gsize, bsize, posted, tdelay);
   patmos::stack_cache_t &sc = create_stack_cache(sck, scsize, gm);
-  patmos::method_cache_t &mc = create_method_cache(mck, mcsize, gm);
-  patmos::data_cache_t &dc = create_data_cache(dck, dcsize, gm);
+  patmos::instr_cache_t &ic = create_instr_cache(ick, isck, mck, mcsize, bsize, 
+                                                 mbsize, gm);
+  patmos::data_cache_t &dc = create_data_cache(dck, dcsize, bsize, gm);
 
   try
   {
@@ -340,7 +417,7 @@ int main(int argc, char **argv)
 
     patmos::interrupt_handler_t interrupt_handler;
 
-    patmos::simulator_t s(gm, mm, dc, mc, sc, sym, interrupt_handler);
+    patmos::simulator_t s(gm, mm, dc, ic, sc, sym, interrupt_handler);
 
     // set up timer device
     patmos::rtc_t rtc(mmbase+timer_offset, s, freq);
@@ -407,7 +484,7 @@ int main(int argc, char **argv)
   // note: no need to free the local memory here.
   delete &gm;
   delete &dc;
-  delete &mc;
+  delete &ic;
   delete &sc;
 
   // free streams

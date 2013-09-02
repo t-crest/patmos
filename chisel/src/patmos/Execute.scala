@@ -314,4 +314,10 @@ class Execute() extends Component {
   io.exfe.branchPc := target
   
   io.exmem.pc := exReg.pc
+
+  //call/return for mcache
+  io.exmcache.doCallRet := ((exReg.call || exReg.ret || exReg.brcf) && doExecute(0))
+  io.exmcache.callRetBase := io.exmem.mem.callRetBase(31,2)
+  io.exmcache.callRetAddr := io.exmem.mem.callRetAddr(31,2)
+
 }

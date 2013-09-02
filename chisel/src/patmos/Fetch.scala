@@ -50,7 +50,6 @@ class Fetch(fileName : String) extends Component {
   val pcReg = Reg(resetVal = UFix(1, PC_SIZE))
   val addrEvenReg = Reg(resetVal = UFix(2, PC_SIZE))
   val addrOddReg = Reg(resetVal = UFix(1, PC_SIZE))
-  val baseReg = Reg(resetVal = UFix(1, DATA_WIDTH))
 
   val rom = Utility.readBin(fileName)
   // Split the ROM into two blocks for dual fetch
@@ -89,22 +88,17 @@ class Fetch(fileName : String) extends Component {
   // reset, which 'just' generates some more logic. And it looks
   // like the synthesize tool is able to duplicate the register.
 
-  val selBase = Mux(io.memfe.doCallRet, io.memfe.callRetBase, baseReg)
-  //select source
-  val selIspm = selBase(DATA_WIDTH - 1,ISPM_ONE_BIT - 2) === Bits(0x1)
-  val selMCache = selBase(DATA_WIDTH - 1,15) >= Bits(0x1)
-
-  val call_offset = UFix()
-  call_offset := UFix(0)
-  when(io.memfe.doCallRet) {
-    baseReg := io.memfe.callRetBase
-    call_offset := Mux(selMCache,
-                       io.memfe.callRetPc - io.memfe.callRetBase,
-                       io.memfe.callRetPc(ISPM_ONE_BIT - 3,0))
-  }
-
   val ispm_even = memEven(addrEvenReg(ispmAddrBits, 1))
   val ispm_odd = memOdd(addrOddReg(ispmAddrBits, 1))
+
+  val selIspm = io.mcachefe.mem_sel(1)
+  val selMCache = io.mcachefe.mem_sel(0)
+
+  //need to register these values to save them in  memory stage at call/return
+  val pcRetReg = Reg(resetVal = UFix(1, DATA_WIDTH))
+  when(io.memfe.doCallRet && io.ena) {
+    pcRetReg := Mux(selMCache, io.mcachefe.pos_offset - io.memfe.callRetPc + io.memfe.callRetBase, io.memfe.callRetBase)
+  }
 
   // ROM/ISPM Mux
   val data_even = Mux(selIspm, ispm_even, rom(addrEvenReg))
@@ -124,20 +118,20 @@ class Fetch(fileName : String) extends Component {
 
   //MCache/ISPM/ROM Mux
   val instr_a = Mux(selIspm, instr_a_ispm,
-                    Mux(selMCache, io.mcache_out.instr_a, instr_a_rom))
+                    Mux(selMCache, io.mcachefe.instr_a, instr_a_rom))
   val instr_b = Mux(selIspm, instr_b_ispm,
-                    Mux(selMCache, io.mcache_out.instr_b, instr_b_rom))
+                    Mux(selMCache, io.mcachefe.instr_b, instr_b_rom))
 
   val b_valid = instr_a(31) === Bits(1)
 
   val pc_cont = Mux(b_valid, pcReg + UFix(2), pcReg + UFix(1))
   val pc_next =
-    Mux(io.memfe.doCallRet, call_offset,
+    Mux(io.memfe.doCallRet, (io.mcachefe.pos_offset).toUFix,
         	Mux(io.exfe.doBranch, io.exfe.branchPc,
         		pc_cont))
   val pc_cont2 = Mux(b_valid, pcReg + UFix(4), pcReg + UFix(3))
   val pc_next2 =
-    Mux(io.memfe.doCallRet, call_offset + UFix(2),
+    Mux(io.memfe.doCallRet, (io.mcachefe.pos_offset).toUFix + UFix(2),
 		Mux(io.exfe.doBranch, io.exfe.branchPc + UFix(2),
 			pc_cont2))
 
@@ -152,12 +146,11 @@ class Fetch(fileName : String) extends Component {
   io.fedec.instr_a := instr_a
   io.fedec.instr_b := instr_b
 
-  io.femem.pc := Mux(selMCache, pc_cont, pc_cont - baseReg(ISPM_ONE_BIT - 3,0))
+  //io.femem.pc := pc_cont - io.mcachefe.ret_pc
+  io.femem.pc := pc_cont - pcRetReg
 
   //outputs to mcache
-  io.mcache_in.address := pc_next
-  io.mcache_in.doCallRet := io.memfe.doCallRet
-  io.mcache_in.callRetBase := selBase //io.memfe.callRetBase
-  io.mcache_in.request := selMCache //used to change from initial state to running mcache
+  io.femcache.address := pc_next
+  io.femcache.request := selMCache
 
 }

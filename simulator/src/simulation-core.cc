@@ -36,16 +36,17 @@ namespace patmos
 {
   simulator_t::simulator_t(memory_t &memory, memory_t &local_memory,
                            data_cache_t &data_cache,
-                           method_cache_t &method_cache,
+                           instr_cache_t &instr_cache,
                            stack_cache_t &stack_cache, symbol_map_t &symbols,
                            interrupt_handler_t &interrupt_handler)
     : Dbg_cnt_delay(0),
       Cycle(0), Memory(memory), Local_memory(local_memory),
-      Data_cache(data_cache), Method_cache(method_cache),
+      Data_cache(data_cache), Instr_cache(instr_cache),
       Stack_cache(stack_cache), Symbols(symbols), Dbg_stack(*this),
       Interrupt_handler(interrupt_handler),
       BASE(0), PC(0), nPC(0),
-      Stall(SXX), Is_decoupled_load_active(false)
+      Stall(SXX), Disable_IF(false), Is_decoupled_load_active(false), 
+      Branch_counter(0), Interrupt_handling_counter(0)
   {
     // initialize one predicate register to be true, otherwise no instruction
     // will ever execute
@@ -160,11 +161,6 @@ namespace patmos
 
   void simulator_t::instruction_fetch()
   {
-    // FIXME this is bad practice and will break if multiple instances
-    //       of the simulator exist.
-    static int branch_counter      = 0;
-    static int interrupt_handling  = 0;
-
     // we get a pointer to the instructions of the IF stage, for easier
     // reference
     instruction_data_t *instr_SIF = Pipeline[SIF];
@@ -172,33 +168,17 @@ namespace patmos
     // Fetch the instruction word from the method cache.
     // NB: We fetch in each cycle, as preparation for supporting a standard
     //     I-Cache in addition.
-    word_t iw[2];
-    if (!Method_cache.fetch(PC, iw))
+    word_t iw[NUM_SLOTS];
+    if (!Instr_cache.fetch(BASE, PC, iw))
     {
-      // For a standard I-Cache, we would naturally stall here
-      //pipeline_stall(SIF);
-#ifdef METHOD_CACHE_STALL_FETCH
-      // Move stalling for method cache from MW stage to IF stage.
-      // At the same time, calls to fetch_and_dispatch() in instructions.h
-      // are replaced by dispatch().
-      // Note that this change will affect profiling: the costs at miss are
-      // attributed to the callee instead of the caller.
-      if (!Method_cache.assert_availability(BASE))
-      {
-        pipeline_stall(SIF);
-      } else {
-        // refetch, as it became available in the cache
-        Method_cache.fetch(PC, iw);
-      }
-#else
-      if (Stall == SXX)
-      {
-        simulation_exception_t::illegal_pc(
-            Method_cache.get_active_method_base());
-      }
-#endif
+      // Stall the whole pipeline
+      pipeline_stall(SMW);
+    } else {
+      // Disable fetching until we filled the pipeline with a bubble at IF 
+      // again. This is to prevent re-fetching an instruction while we update
+      // the method cache.
+      Disable_IF = true;
     }
-
 
     // Decode the next instruction, or service an interrupt,
     // only if we are not stalling.
@@ -206,14 +186,13 @@ namespace patmos
     {
 
       if (Interrupt_handler.interrupt_pending() &&
-          branch_counter == 0 &&
-          interrupt_handling == 0)
+          Branch_counter == 0 &&
+          Interrupt_handling_counter == 0)
       {
         interrupt_t &interrupt = Interrupt_handler.get_interrupt();
 
         instr_SIF[0] = instruction_data_t::mk_CFLb(*Instr_INTR, p0,
                                         interrupt.Address, interrupt.Address);
-        instr_SIF[0].Address = PC;
 
         for(unsigned int i = 1; i < NUM_SLOTS; i++)
         {
@@ -221,17 +200,17 @@ namespace patmos
         }
 
         // Handling interrupt, next CPU cycle no new instructions have to be decoded
-        interrupt_handling = 3;
+        Interrupt_handling_counter = 3;
 
       }
-      else if (interrupt_handling > 0)
+      else if (Interrupt_handling_counter > 0)
       {
         // Putting more empty instrutions after an interrupt
         for(unsigned int i = 0; i < NUM_SLOTS; i++)
         {
           instr_SIF[i] = instruction_data_t();
         }
-        interrupt_handling--;
+        Interrupt_handling_counter--;
 
       }
       else
@@ -246,9 +225,9 @@ namespace patmos
         }
 
         if(instr_SIF[0].I->is_flow_control())
-          branch_counter = instr_SIF[0].I->get_delay_slots();
-        else if (branch_counter)
-          branch_counter--;
+          Branch_counter = instr_SIF[0].I->get_delay_slots();
+        else if (Branch_counter)
+          Branch_counter--;
 
 
         for(unsigned int j = 0; j < NUM_SLOTS; j++)
@@ -266,8 +245,6 @@ namespace patmos
         nPC = PC + iw_size*4;
       }
 
-
-
     }
   }
 
@@ -280,8 +257,8 @@ namespace patmos
     // do some initializations before executing the first instruction.
     if (Cycle == 0)
     {
-      BASE = nPC = entry;
-      Method_cache.initialize(entry);
+      BASE = PC = nPC = entry;
+      Instr_cache.initialize(entry);
       Profiling.initialize(entry);
       Dbg_stack.initialize(entry);
     }
@@ -293,6 +270,15 @@ namespace patmos
       {
         bool debug = (Cycle >= debug_cycle);
         bool debug_pipline = debug && (debug_fmt >= DF_LONG);
+
+        // reset the stall counter.
+        Stall = SXX;
+
+        // Simulate the instruction fetch stage first.
+        // MW stage might need the nPC from instruction fetch for return info.
+        if (!Disable_IF) {
+          instruction_fetch();
+        }
 
         // simulate decoupled load
         Decoupled_load.dMW(*this);
@@ -317,8 +303,6 @@ namespace patmos
           print_instructions(debug_out, SEX);
         }
 
-        Rtc->tick();
-
         track_retiring_instructions();
 
         // Move pipeline stages and insert bubbles after stalling stage.
@@ -334,6 +318,14 @@ namespace patmos
           }
         }
 
+        // Update the Program counter. Either nPC was updated in the fetch stage
+        // or it was overwritten by a CFL instruction in EX/MW stage.
+        if (!is_stalling(SIF)) {
+          PC = nPC;
+          // We just inserted a bubble at SIF before, enable fetching for 
+          // this new instruction.
+          Disable_IF = false;
+        }
 
         // if we are stalling in MW, reset the bypass in EX so that it can be
         // filled by the stalled EX stage again (needs to be done for all
@@ -345,23 +337,13 @@ namespace patmos
           }
         }
 
-        // Update the Program counter.
-        // Either nPC was updated in the fetch stage in the previous cycle,
-        // or it was overwritten by a CFL instruction in EX/MW stage.
-        PC = nPC;
-
-        // Simulate the instruction fetch stage.
-        instruction_fetch();
-
         // track pipeline stalls
         Num_stall_cycles[Stall]++;
 
-        // reset the stall counter.
-        Stall = SXX;
-
         // advance the time for the method cache, stack cache, and memory
+        Rtc->tick();
         Memory.tick();
-        Method_cache.tick();
+        Instr_cache.tick();
         Stack_cache.tick();
 
         if (debug)
@@ -480,6 +462,7 @@ namespace patmos
         os << "stalling";
       } else {
         for(unsigned int i = 0; i < NUM_SLOTS; i++) {
+          if (!Pipeline[stage][i].I) continue;
           if (i != 0) os << " || ";
           Pipeline[stage][i].print_operands(*this, os, Symbols);
         }
@@ -576,7 +559,7 @@ namespace patmos
       {
         // print state of method cache
         os << "Method Cache:\n";
-        Method_cache.print(os);
+        Instr_cache.print(os);
 
         // print state of data cache
         os << "Data Cache:\n";
@@ -684,16 +667,20 @@ namespace patmos
          % (Pipeline_t)i % Num_stall_cycles[i];
     }
     // print statistics of method cache
-    Method_cache.print_stats(os, Symbols);
+    os << "\n\nInstruction Cache Statistics:\n";
+    Instr_cache.print_stats(*this, os);
 
     // print statistics of data cache
-    Data_cache.print_stats(os);
+    os << "\n\nData Cache Statistics:\n";
+    Data_cache.print_stats(*this, os);
 
     // print statistics of stack cache
-    Stack_cache.print_stats(os);
+    os << "\n\nStack Cache Statistics:\n";
+    Stack_cache.print_stats(*this, os);
 
     // print statistics of main memory
-    Memory.print_stats(os);
+    os << "\n\nMain Memory Statistics:\n";
+    Memory.print_stats(*this, os);
 
     // print profiling information
     Profiling.print(os, Symbols);

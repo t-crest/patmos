@@ -63,7 +63,7 @@ class SC_ex(sc_size: Int) extends Component {
     val sc_top			= UFix(OUTPUT, width = 32) 
   }
   	
-	val sc_top 			= Reg(resetVal = UFix(512, width = 32)) // 
+	val sc_top 			= Reg(resetVal = UFix(511, width = 32)) // 
 //	val spill	 		= Reg(resetVal = UFix(0, 1))
 	
 	io.n_spill 			:= UFix(0) // reset value
@@ -120,5 +120,6 @@ class SC_ex(sc_size: Int) extends Component {
 
 }
   
+
 
 

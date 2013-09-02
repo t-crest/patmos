@@ -284,8 +284,8 @@ namespace patmos
     word_t EX_Offset;
 
     // -------------------------- MW -------------------------------------------
-    /// Discard CFL instructions in MW stage (stalling).
-    word_t MW_CFL_Discard;
+    /// Discard instructions in MW stage (stalling).
+    word_t MW_Discard;
 
     // ------------------------ CONSTRUCTOR  -----------------------------------
 

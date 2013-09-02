@@ -271,15 +271,20 @@ int main (int argc, char* argv[]) {
 
   if (entry != 0) {
     if (entry >= 0x20000) {
-      // pcReg for method cache starts at 0
-      c->Patmos_fetch__pcReg = 0;
+      c->Patmos_fetch__pcReg = 1; //pcReg for method cache starts at 0, todo 1 only for the moment change even odd to start from even
+      c->Patmos_mcache_mcacherepl__hitReg = 0;
+      c->Patmos_mcache_mcacherepl__selMCacheReg = 1;
+      c->Patmos_fetch__pcRetReg = 1;
+      //c->Patmos_mcache_mcacherepl__pcRetReg = 1;
     }
     else {
       // pcReg for ispm starts at entry point - ispm base
       c->Patmos_fetch__pcReg = ((entry - 0x10000) >> 2) - 1;
+      c->Patmos_mcache_mcacherepl__selIspmReg = 1;
+      c->Patmos_fetch__pcRetReg = ((entry - 0x10000) >> 2);
     }
-    // base address = entry point address
-    c->Patmos_fetch__baseReg = (entry >> 2);
+    c->Patmos_mcache_mcachectrl__callRetBaseReg = (entry >> 2);
+    c->Patmos_mcache_mcacherepl__callRetBaseReg = (entry >> 2);
   }
 
   // Main emulation loop
