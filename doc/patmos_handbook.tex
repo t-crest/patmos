@@ -249,7 +249,20 @@ Merge date: 15 August 2013 (?)
 
 \subsection{\texttt{bcopy}/\texttt{btest}}
 
-\wolf{Please describe the requested change.}
+Semantically, \texttt{bcopy} is the ``inverse'' to \texttt{btest}, such that it
+allows to copy the value of a predicate register to a position in a 32-bit
+register. This instruction should be used for
+\begin{enumerate}
+  \item \texttt{mov Rd $\leftarrow$ Ps \ldots{} bcopy Rd $\leftarrow$ Ps, r0}\\
+        Currently, LLVM generates a two-instruction sequence
+        \texttt{clr Rd; (Ps) li Rd $\leftarrow$ 1} for
+        for extending a 1 bit register to a 32 bit register.
+  \item Predicate register spilling.
+\end{enumerate}
+
+To avoid the requirement for an additional temporary 32-bit register,
+particularly for register spill/restore, variants of bcopy and btest with a
+5-bit immediate operand are beneficial.
 
 \subsection{Special Registers for Return Information}
 
@@ -911,36 +924,36 @@ of the instruction format. Black fields are not used.
             \bitbox{2}{\bitsunused} & \bitbox{3}{Pd} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
             \bitbox{3}{011} & \bitbox{4}{Func}
           \end{leftwordgroup} \\
+          \begin{leftwordgroup}{\parbox{8em}{ALUci -- Compare immediate}}
+            \bitheader{0-31} \\
+            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
+            \bitbox{2}{\bitsunused} & \bitbox{3}{Pd} & \bitbox{5}{Rs1} & \bitbox{5}{Imm} &
+            \bitbox{3}{110} & \bitbox{4}{Func}
+          \end{leftwordgroup} \\
           \begin{leftwordgroup}{\parbox{8em}{ALUp -- Predicate}}
             \bitheader{0-31} \\
             \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
             \bitbox{2}{\bitsunused} & \bitbox{3}{Pd} & \bitbox{1}{\bitsunused} & \bitbox{4}{Ps1} & \bitbox{1}{\bitsunused} & \bitbox{4}{Ps2} &
             \bitbox{3}{100} & \bitbox{4}{Func}
           \end{leftwordgroup} \\
-          %% \begin{leftwordgroup}{\parbox{8em}{Unused}}
-          %%   \bitheader{0-31} \\
-          %%   \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
-          %%   \bitbox{15}{\bitssubclass} &
-          %%   \bitbox{3}{001} & \bitbox{4}{Func}
-          %% \end{leftwordgroup} \\
-          %% \begin{leftwordgroup}{\parbox{8em}{Unused}}
-          %%   \bitheader{0-31} \\
-          %%   \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
-          %%   \bitbox{15}{\bitssubclass} &
-          %%   \bitbox{3}{101} & \bitbox{4}{Func}
-          %% \end{leftwordgroup} \\
-          %% \begin{leftwordgroup}{\parbox{8em}{Unused}}
-          %%   \bitheader{0-31} \\
-          %%   \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
-          %%   \bitbox{15}{\bitssubclass} &
-          %%   \bitbox{3}{110} & \bitbox{4}{Func}
-          %% \end{leftwordgroup} \\
+          \begin{leftwordgroup}{\parbox{8em}{ALUb -- Bitmove}}
+            \bitheader{0-31} \\
+            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
+            \bitbox{5}{Rd} & \bitbox{1}{\bitsunused} & \bitbox{4}{Ps1} & \bitbox{5}{Rs2} &
+            \bitbox{3}{001} & \bitbox{4}{Func}
+          \end{leftwordgroup} \\
+          \begin{leftwordgroup}{\parbox{8em}{ALUbi -- Bitmove immediate}}
+            \bitheader{0-31} \\
+            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
+            \bitbox{5}{Rd} & \bitbox{1}{\bitsunused} & \bitbox{4}{Ps1} & \bitbox{5}{Imm} &
+            \bitbox{3}{101} & \bitbox{4}{Func}
+          \end{leftwordgroup} \\
           %% \begin{leftwordgroup}{\parbox{8em}{Unused}}
           %%   \bitheader{0-31} \\
           %%   \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
           %%   \bitbox{15}{\bitssubclass} &
           %%   \bitbox{3}{111} & \bitbox{4}{Func}
-          \end{leftwordgroup} \\
+          %% \end{leftwordgroup} \\
         \end{bytefield}
 
   \item SPC -- Special \\[2ex]
@@ -1217,8 +1230,9 @@ word into a GPR when using ALUl format, so we save one mfs per mul.
 \clearpage
 \subsection{Compare}
 
-Applies to the ALUc format only. Table~\ref{tab:cmpfunc} shows the
-encoding of the \texttt{func} field for the ALUc format.
+Applies to the ALUc and ALUci formats only. Tables~\ref{tab:cmpfunc} and
+\ref{tab:cmpifunc} show the encoding of the \texttt{func} field for the ALUc
+and ALUci formats, respectively.
 
 \begin{itemize}
   \item ALUc -- Compare \\[2ex]
@@ -1227,6 +1241,13 @@ encoding of the \texttt{func} field for the ALUc format.
       \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
       \bitbox{2}{\bitsunused} & \bitbox{3}{Pd} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
       \bitbox{3}{011} & \bitbox{4}{Func} \\
+    \end{bytefield}
+  \item ALUci -- Compare immediate \\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
+      \bitbox{2}{\bitsunused} & \bitbox{3}{Pd} & \bitbox{5}{Rs1} & \bitbox{5}{Imm} &
+      \bitbox{3}{110} & \bitbox{4}{Func} \\
     \end{bytefield}
 \end{itemize}
 
@@ -1250,6 +1271,25 @@ encoding of the \texttt{func} field for the ALUc format.
   \end{tabular}
   \caption{Compare functions}
   \label{tab:cmpfunc}
+\end{table}
+
+\begin{table}[hb]
+  \centering
+  \begin{tabular}{lll}
+    \toprule
+    Func & Name   & Semantics \\
+    \midrule
+    0000 & ---    & unused \\
+    \dots& \dots  & \dots \\
+    0101 & ---    & unused \\
+    0110 & btest  & \texttt{Pd = (Rs1 \AND (1 \shl Imm)) != 0} \\
+    0111 & ---    & unused \\
+    \dots& \dots  & \dots \\
+    1111 & ---    & unused \\
+    \bottomrule
+  \end{tabular}
+  \caption{Compare immediate functions}
+  \label{tab:cmpifunc}
 \end{table}
 
 \paragraph{Pseudo Instructions}
@@ -1354,6 +1394,62 @@ bitmasks).}
 %way restrict the use of the NOP. It can always be scheduled in the next/previous
 %bundle, while incrementing/decrementing the number of NOP cycles accordingly;
 %the code size is in both cases not increased.
+
+
+\clearpage
+\subsection{Bitmove}
+
+Applies to the ALUb, ALUbi formats only.
+Table~\ref{tab:bitmvfunc} shows the encoding of the
+\texttt{func} field for the ALUb and ALUbi formats.
+
+
+\begin{itemize}
+  \item ALUb -- Bitmove \\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
+      \bitbox{5}{Rd} & \bitbox{1}{\bitsunused} & \bitbox{4}{Ps1} & \bitbox{5}{Rs2} &
+      \bitbox{3}{001} & \bitbox{4}{Func} \\
+    \end{bytefield}
+  \item ALUbi -- Bitmove immediate \\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
+      \bitbox{5}{Rd} & \bitbox{1}{\bitsunused} & \bitbox{4}{Ps1} & \bitbox{5}{Imm} &
+      \bitbox{3}{101} & \bitbox{4}{Func} \\
+    \end{bytefield}
+\end{itemize}
+
+\begin{table}[hb]
+  \centering
+  \begin{tabular}{lll}
+    \toprule
+    Func & Name   & Semantics \\
+    \midrule
+    0000 & bcopy  & \texttt{Rd[Rs2] = Ps1} \\
+         &        & \texttt{Rd[Imm] = Ps1} \\
+    0001 & ---    & unused \\
+    \dots& \dots  & \dots \\
+    1111 & ---    & unused \\
+    \bottomrule
+  \end{tabular}
+  \caption{Bitmove functions}
+  \label{tab:bitmvfunc}
+\end{table}
+
+\paragraph{Pseudo Instructions}
+\begin{itemize}
+  \item \texttt{mov Rd = Ps}~\dots~\texttt{bcopy Rd = Pd, r0}
+\end{itemize}
+
+\paragraph{Note}
+\texttt{bcopy} sets a single bit in the destination register
+\texttt{Rd} to the value in \texttt{Ps1}.
+The position of the bit is specified by the lowest 5 bits of \texttt{Rs2}
+or by \texttt{Imm}, respectively.
+All other bits in \texttt{Rd} remain unchanged.
+
 
 \clearpage
 \subsection{Wait}
