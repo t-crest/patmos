@@ -95,9 +95,11 @@ class Fetch(fileName : String) extends Component {
   val selMCache = io.mcachefe.mem_sel(0)
 
   //need to register these values to save them in  memory stage at call/return
-  val pcRetReg = Reg(resetVal = UFix(1, DATA_WIDTH))
+  val relBaseReg = Reg(resetVal = UFix(1, DATA_WIDTH))
+  val relocReg = Reg(resetVal = UFix(1, DATA_WIDTH))
   when(io.memfe.doCallRet && io.ena) {
-    pcRetReg := Mux(selMCache, io.mcachefe.pos_offset - io.memfe.callRetPc + io.memfe.callRetBase, io.memfe.callRetBase)
+    relBaseReg := io.mcachefe.relBase
+    relocReg := io.mcachefe.reloc
   }
 
   // ROM/ISPM Mux
@@ -126,12 +128,12 @@ class Fetch(fileName : String) extends Component {
 
   val pc_cont = Mux(b_valid, pcReg + UFix(2), pcReg + UFix(1))
   val pc_next =
-    Mux(io.memfe.doCallRet, (io.mcachefe.pos_offset).toUFix,
+    Mux(io.memfe.doCallRet, io.mcachefe.relPc.toUFix,
         	Mux(io.exfe.doBranch, io.exfe.branchPc,
         		pc_cont))
   val pc_cont2 = Mux(b_valid, pcReg + UFix(4), pcReg + UFix(3))
   val pc_next2 =
-    Mux(io.memfe.doCallRet, (io.mcachefe.pos_offset).toUFix + UFix(2),
+    Mux(io.memfe.doCallRet, io.mcachefe.relPc.toUFix + UFix(2),
 		Mux(io.exfe.doBranch, io.exfe.branchPc + UFix(2),
 			pc_cont2))
 
@@ -143,11 +145,11 @@ class Fetch(fileName : String) extends Component {
   }
 
   io.fedec.pc := pcReg
+  io.fedec.reloc := relocReg
   io.fedec.instr_a := instr_a
   io.fedec.instr_b := instr_b
 
-  //io.femem.pc := pc_cont - io.mcachefe.ret_pc
-  io.femem.pc := pc_cont - pcRetReg
+  io.femem.pc := pc_cont - relBaseReg
 
   //outputs to mcache
   io.femcache.address := pc_next

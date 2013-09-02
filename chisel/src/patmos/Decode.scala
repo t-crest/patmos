@@ -326,6 +326,7 @@ class Decode() extends Component {
   // Immediate for branch is sign extended, not extended for call
   // PC-relative value is precomputed here
   io.decex.jmpOp.target := decReg.pc + Cat(Fill(PC_SIZE - 22, instr(21)), instr(21, 0))
+  io.decex.jmpOp.reloc := decReg.reloc
 
   // Pass on PC
   io.decex.pc := decReg.pc
