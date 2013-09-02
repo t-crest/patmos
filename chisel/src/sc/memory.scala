@@ -49,7 +49,7 @@ import Constants._
 import scala.math
 
 
-class MainMemory(mm_size: Int, burstLen : Int) extends Component {
+class MainMem(mm_size: Int, burstLen : Int) extends Component {
     val io = new Bundle {
     val mmInOut = new OcpBurstSlavePort(ADDR_WIDTH, DATA_WIDTH, burstLen) // slave to cache
 
@@ -102,6 +102,7 @@ class MainMemory(mm_size: Int, burstLen : Int) extends Component {
 	io.mmInOut.S.Resp := OcpResp.NULL
 	io.mmInOut.S.Data := Bits(0)
 	io.mmInOut.S.DataAccept := Bits(0) // not accepting 
+	io.mmInOut.S.CmdAccept := Bits(0)
    
 	cmd := io.mmInOut.M.Cmd
 	valid := io.mmInOut.M.DataValid 
@@ -137,9 +138,16 @@ class MainMemory(mm_size: Int, burstLen : Int) extends Component {
 	when (state === rd_wait_st) {
 		
 		io.mmInOut.S.Data := mem(io.mmInOut.M.Addr) // read the first data
-		rd_addr := io.mmInOut.M.Addr // register the address since master will remove it later
+		
+		when (mem_delay_cnt === UFix(6)) {
+			io.mmInOut.S.CmdAccept := Bits(1)
+			rd_addr := io.mmInOut.M.Addr // register the address since master will remove it later
+		}
 		when (mem_delay_cnt === UFix(7)) {
+				io.mmInOut.S.Data := mem(rd_addr)
+				rd_addr := rd_addr + UFix(1)
 				io.mmInOut.S.Resp := OcpResp.DVA
+				io.mmInOut.S.CmdAccept := Bits(0)
 				io.mmInOut.S.DataAccept := Bits(0)
 				state := rd_st	
 		}
@@ -165,7 +173,7 @@ class MainMemory(mm_size: Int, burstLen : Int) extends Component {
 		io.mmInOut.S.Data := mem(rd_addr)
 		io.mmInOut.S.DataAccept := Bits(0)
 		burst_count := burst_count + UFix(1)
-		when (burst_count === UFix(burstLen - 1)) { 
+		when (burst_count === UFix(burstLen - 2)) { 
 			io.mmInOut.S.Resp := OcpResp.DVA
 			burst_count := UFix(0)
 			burst_start := UFix(1)
@@ -186,4 +194,5 @@ class MainMemory(mm_size: Int, burstLen : Int) extends Component {
 //    chiselMain( args, () => new MainMemory())
 //  }
 //}
+
 
