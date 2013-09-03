@@ -304,10 +304,7 @@ class Execute() extends Component {
   io.exmem.mem.brcf := exReg.brcf && doExecute(0)
   // call/return
   val callAddr = Mux(exReg.immOp(0), exReg.callAddr, op(0).toUFix)
-  val brcfAddr = Mux(exReg.immOp(0),
-					 Cat(exReg.jmpOp.target, Bits("b00"))
-					 + Cat(exReg.jmpOp.reloc, Bits("b00")),
-					 op(0).toUFix)
+  val brcfAddr = Mux(exReg.immOp(0), exReg.brcfAddr, op(0).toUFix)
   io.exmem.mem.callRetAddr := Mux(exReg.call || exReg.brcf, UFix(0), op(1).toUFix)
   io.exmem.mem.callRetBase := Mux(exReg.call, callAddr,
 								  Mux(exReg.brcf, brcfAddr,

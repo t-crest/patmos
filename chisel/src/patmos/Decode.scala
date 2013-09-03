@@ -328,6 +328,10 @@ class Decode() extends Component {
   io.decex.jmpOp.target := decReg.pc + Cat(Fill(PC_SIZE - 22, instr(21)), instr(21, 0))
   io.decex.jmpOp.reloc := decReg.reloc
 
+  // PC-relative address for brcf
+  // TODO: this goes away when we make brcf like calls
+  io.decex.brcfAddr := Cat(io.decex.jmpOp.target + decReg.reloc, Bits("b00").toUFix)
+
   // Pass on PC
   io.decex.pc := decReg.pc
 

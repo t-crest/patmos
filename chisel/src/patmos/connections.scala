@@ -144,6 +144,7 @@ class DecEx() extends Bundle() {
   val wrRd  = Vec(PIPE_COUNT) { Bool() }
 
   val callAddr = UFix(width = DATA_WIDTH)
+  val brcfAddr = UFix(width = DATA_WIDTH)
   val call = Bool()
   val ret = Bool()
   val brcf = Bool()
@@ -163,6 +164,7 @@ object DecExResetVal extends DecEx {
   immOp := Vec(PIPE_COUNT) { Bool(false) }
   wrRd := Vec(PIPE_COUNT) { Bool(false) }
   callAddr := UFix(0)
+  brcfAddr := UFix(0)
   call := Bool(false)
   ret := Bool(false)
   brcf := Bool(false)
