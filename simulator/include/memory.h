@@ -347,6 +347,24 @@ namespace patmos
     /// Track number of requests per request size.
     request_size_map_t Num_requests_per_size;
     
+    uword_t get_aligned_size(uword_t address, uword_t size) {
+      uword_t start = (address/Num_bytes_per_block) * Num_bytes_per_block;
+      uword_t end   = (((address + size - 1)/Num_bytes_per_block) + 1) *
+                      Num_bytes_per_block;
+      return end - start;
+    }
+    
+    unsigned int get_transfer_ticks(uword_t aligned_size, bool is_load, 
+                                    bool is_posted) 
+    {
+      unsigned int num_blocks = (((aligned_size-1) / Num_bytes_per_block) + 1); 
+      unsigned int num_ticks = Num_ticks_per_block * num_blocks;
+      
+      if (is_load || !is_posted) {
+        num_ticks += Num_read_delay_ticks;
+      }
+      return num_ticks;
+    }
     
     /// Find or create a request given an address, size, and load/store flag.
     /// @param address The address of the request.
@@ -372,18 +390,10 @@ namespace patmos
           return *i;
       }
 
-      uword_t start = (address/Num_bytes_per_block) * Num_bytes_per_block;
-      uword_t end   = (((address + size - 1)/Num_bytes_per_block) + 1) *
-                      Num_bytes_per_block;
-      word_t aligned_size = end - start;
-      
       // no matching request found, create a new one
-      unsigned int num_blocks = (((aligned_size-1) / Num_bytes_per_block) + 1); 
-      unsigned int num_ticks = Num_ticks_per_block * num_blocks;
-      
-      if (is_load || !is_posted) {
-        num_ticks += Num_read_delay_ticks;
-      }
+      uword_t aligned_size = get_aligned_size(address, size);      
+      unsigned int num_ticks = get_transfer_ticks(aligned_size, is_load, 
+                                                  is_posted);
       
       request_info_t tmp = {address, size, is_load, is_posted, num_ticks};
       Requests.push_back(tmp);
@@ -611,23 +621,45 @@ namespace patmos
     /// @param os The output stream to print to.
     virtual void print_stats(const simulator_t &s, std::ostream &os)
     {
-      os << boost::format("                                total\n"
+      uint64_t stall_cycles = Num_busy_cycles - Num_posted_write_cycles;
+      
+      float cycles = s.Cycle;
+      float stalls = (float)stall_cycles/cycles;
+      float hidden = (float)Num_posted_write_cycles/cycles;
+      uint64_t total_bytes = Num_bytes_read_transferred + 
+                             Num_bytes_write_transferred;
+      
+      os << boost::format("                                total  %% of cycles\n"
                           "   Max Queue Size        : %1$10d\n"
                           "   Consecutive Transfers : %2$10d\n"
-                          "   Busy Cycles           : %3$10d\n"
-                          "   Hidden Write Cycles   : %4$10d\n\n")
+                          "   Requests              : %3$10d\n"
+                          "   Bursts transferred    : %4$10d\n"
+                          "   Bytes transferred     : %5$10d\n"
+                          "   Stall Cycles          : %6$10d %7$10.2d%%\n"
+                          "   Hidden Write Cycles   : %8$10d %9$10.2d%%\n\n")
         % Num_max_queue_size 
         % Num_consecutive_requests
-        % Num_busy_cycles
-        % Num_posted_write_cycles;
+        % (Num_reads + Num_writes) 
+        % (total_bytes / Num_bytes_per_block)
+        % total_bytes
+        % stall_cycles % stalls
+        % Num_posted_write_cycles % hidden;
       
-      os << boost::format("                                 Read      Write\n"
-                          "   Requests              : %1$10d %2$10d\n"
-                          "   Bytes Requested       : %3$10d %4$10d\n"
-                          "   Bytes Transferred     : %5$10d %6$10d\n\n")
+      float read_pct = (float)Num_bytes_read / (float)total_bytes;
+      float write_pct = (float)Num_bytes_written / (float)total_bytes;
+      float read_trans_pct = (float)Num_bytes_read_transferred /
+                             (float)total_bytes;
+      float write_trans_pct = (float)Num_bytes_write_transferred / 
+                              (float)total_bytes;
+      
+      os << boost::format("                                 Read              Write\n"
+                          "   Requests              : %1$10d         %2$10d\n"
+                          "   Bytes Requested       : %3$10d %4$6.2d%% %5$10d %6$6.2d%%\n"
+                          "   Bytes Transferred     : %7$10d %8$6.2d%% %9$10d %10$6.2d%%\n\n")
         % Num_reads % Num_writes 
-        % Num_bytes_read % Num_bytes_written
-        % Num_bytes_read_transferred % Num_bytes_write_transferred;
+        % Num_bytes_read % read_pct % Num_bytes_written % write_pct
+        % Num_bytes_read_transferred % read_trans_pct 
+        % Num_bytes_write_transferred % write_trans_pct;
         
       os << "Request size    #requests\n";
       for (request_size_map_t::iterator it = Num_requests_per_size.begin(),

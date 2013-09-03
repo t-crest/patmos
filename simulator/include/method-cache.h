@@ -30,6 +30,7 @@
 #include <cmath>
 #include <map>
 #include <ostream>
+#include <limits>
 
 #include <boost/format.hpp>
 #include "exception.h"
@@ -133,8 +134,16 @@ namespace patmos
     /// Number of cache misses for the method.
     unsigned int Num_misses;
 
+    /// Minimum utilization of the cache entry for this method in words.
+    float Min_utilization;
+    
+    /// Maximum utilization of the cache entry for this method in words.
+    float Max_utilization;
+    
     /// Initialize the method statistics.
-    method_stats_info_t() : Num_hits(0), Num_misses(0)
+    method_stats_info_t() : Num_hits(0), Num_misses(0),
+      Min_utilization(std::numeric_limits<float>::max()), 
+      Max_utilization(0)
     {
     }
   };
@@ -173,6 +182,8 @@ namespace patmos
       /// The size of the method in bytes.
       uword_t Num_bytes;
 
+      std::vector<bool> Utilization;
+      
       /// Construct a method lru info object. All data is initialized to zero.
       /// @param instructions Pointer to the method's instructions.
       method_info_t(byte_t *instructions = NULL): Instructions(instructions),
@@ -192,6 +203,22 @@ namespace patmos
         Address = address;
         Num_blocks = num_blocks;
         Num_bytes = num_bytes;
+        reset_utilization();
+      }
+      
+      void reset_utilization() {
+        Utilization.clear();
+        Utilization.resize(Num_bytes / sizeof(uword_t));        
+      }
+      
+      unsigned int get_utilized_bytes() {
+        uword_t utilized_bytes = 0;
+        for (int i = 0; i < Utilization.size(); i++) {
+          if (Utilization[i]) {
+            utilized_bytes += sizeof(uword_t);
+          }
+        }
+        return utilized_bytes;
       }
     };
 
@@ -251,6 +278,9 @@ namespace patmos
     /// Number of stall cycles caused by method cache misses.
     unsigned int Num_stall_cycles;
 
+    /// Number of bytes used in evicted methods.
+    unsigned int Num_bytes_utilized;
+    
     /// Cache statistics of individual method.
     method_stats_t Method_stats;
 
@@ -259,8 +289,7 @@ namespace patmos
     /// @param address The memory address to fetch from.
     /// @param iw A pointer to store the fetched instruction word.
     /// @return True when the instruction word is available from the read port.
-    bool do_fetch(const method_info_t &current_method, uword_t address,
-                  word_t iw[2])
+    bool do_fetch(method_info_t &current_method, uword_t address, word_t iw[2])
     {
       if(Phase != IDLE ||
          address < current_method.Address ||
@@ -271,10 +300,15 @@ namespace patmos
 
       // get instruction word from the method's instructions
       byte_t *iwp = reinterpret_cast<byte_t*>(&iw[0]);
-      for(unsigned int i = 0; i != sizeof(word_t)*2; i++, iwp++)
+      for(unsigned int i = 0; i != sizeof(word_t)*NUM_SLOTS; i++, iwp++)
       {
         *iwp = current_method.Instructions[address + i -
                                            current_method.Address];
+      }
+      
+      for (unsigned int i = 0; i < NUM_SLOTS; i++) {
+        unsigned int word = (address-current_method.Address)/sizeof(word_t) + i;
+        current_method.Utilization[word] = true;
       }
       return true;
     }
@@ -313,6 +347,25 @@ namespace patmos
       return false;
     }
 
+    void update_utilization_stats(method_info_t &method, uword_t utilized_bytes) 
+    {
+      
+      float utilization = (float)utilized_bytes / (float)method.Num_bytes;
+      
+      Method_stats[method.Address].Max_utilization = std::max(utilization, 
+                                  Method_stats[method.Address].Max_utilization);
+      Method_stats[method.Address].Min_utilization = std::min(utilization, 
+                                  Method_stats[method.Address].Min_utilization);      
+    }
+    
+    void evict(method_info_t &method)
+    {
+      unsigned int utilized_bytes = method.get_utilized_bytes();
+      
+      Num_bytes_utilized += utilized_bytes;
+      
+      update_utilization_stats(method, utilized_bytes);
+    }
 
     bool read_function_size(word_t function_base, uword_t *result_size)
     {
@@ -347,6 +400,15 @@ namespace patmos
       return ((num_bytes - 1) / Num_block_bytes) + 1;
     }
 
+    uword_t get_transfer_size()
+    {
+      // Transfer whole blocks only?
+      //return Num_transfer_blocks * Num_block_bytes;
+      
+      // Memory controller aligns to burst size
+      return Num_transfer_bytes;
+    }
+    
   public:
     /// Construct an LRU-based method cache.
     /// @param memory The memory to fetch instructions from on a cache miss.
@@ -359,7 +421,7 @@ namespace patmos
         Num_active_blocks(0), Num_blocks_transferred(0),
         Num_max_blocks_transferred(0), Num_bytes_transferred(0),
         Num_max_bytes_transferred(0), Num_hits(0), Num_misses(0),
-        Num_stall_cycles(0)
+        Num_stall_cycles(0), Num_bytes_utilized(0)
     {
       Methods = new method_info_t[Num_blocks];
       for(unsigned int i = 0; i < Num_blocks; i++)
@@ -454,6 +516,7 @@ namespace patmos
               assert(Num_active_methods > 0);
               Num_active_blocks -=
                             Methods[Num_blocks - Num_active_methods].Num_blocks;
+              evict(Methods[Num_blocks - Num_active_methods]);
               Num_active_methods--;
             }
 
@@ -499,7 +562,7 @@ namespace patmos
           assert(Num_transfer_blocks != 0 && Num_transfer_bytes != 0);
 
           if (Memory.read(address, Methods[Num_blocks - 1].Instructions,
-                          Num_transfer_blocks * Num_block_bytes))
+                          get_transfer_size()))
           {
             // the transfer is done, go back to IDLE phase
             Num_transfer_blocks = Num_transfer_bytes = 0;
@@ -573,15 +636,31 @@ namespace patmos
     /// @param symbols A mapping of addresses to symbols.
     virtual void print_stats(const simulator_t &s, std::ostream &os)
     {
+      uword_t bytes_utilized = Num_bytes_utilized;
+      for(unsigned int j = Num_blocks - Num_active_methods; j < Num_blocks; j++)
+      {
+        bytes_utilized += Methods[j].get_utilized_bytes();
+      }
+      // Utilization = Bytes used / bytes allocated in cache
+      float utilization = (float)bytes_utilized / 
+                          (float)(Num_blocks_transferred * Num_block_bytes);
+      // Fragmentation = Bytes loaded to cache / Bytes allocated in cache
+      float fragmentation = 1.0 - (float)Num_bytes_transferred / 
+                          (float)(Num_blocks_transferred * Num_block_bytes);
+      
       // instruction statistics
       os << boost::format("                            total        max.\n"
                           "   Blocks Transferred: %1$10d  %2$10d\n"
                           "   Bytes Transferred : %3$10d  %4$10d\n"
-                          "   Cache Hits        : %5$10d\n"
-                          "   Cache Misses      : %6$10d\n"
-                          "   Miss Stall Cycles : %7$10d\n\n")
+                          "   Bytes Used        : %5$10d\n"
+                          "   Utilization       : %6$10.2d\n"
+                          "   Fragmentation     : %7$10.2d\n"
+                          "   Cache Hits        : %8$10d\n"
+                          "   Cache Misses      : %9$10d\n"
+                          "   Miss Stall Cycles : %10$10d\n\n")
         % Num_blocks_transferred % Num_max_blocks_transferred
         % Num_bytes_transferred % Num_max_bytes_transferred
+        % bytes_utilized % utilization % fragmentation
         % Num_hits % Num_misses % Num_stall_cycles;
 
       // print stats per method
@@ -601,10 +680,16 @@ namespace patmos
       Num_max_blocks_transferred = 0;
       Num_bytes_transferred = 0;
       Num_max_blocks_transferred = 0;
+      Num_bytes_utilized = 0;
       Num_hits = 0; 
       Num_misses = 0;
       Num_stall_cycles = 0;
       Method_stats.clear();
+      for(unsigned int j = Num_blocks - Num_active_methods; j < Num_blocks; j++)
+      {
+        Methods[j].reset_utilization();
+      }
+
     }
     
     /// free dynamically allocated cache memory.
