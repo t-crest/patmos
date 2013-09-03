@@ -114,6 +114,9 @@ namespace patmos
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
     virtual void print_stats(const simulator_t &s, std::ostream &os) = 0;
+    
+    /// Reset statistics.
+    virtual void reset_stats() = 0;
   };
 
   /// An ideal memory.
@@ -248,6 +251,8 @@ namespace patmos
     {
       // nothing to be done here
     }
+    
+    virtual void reset_stats() {}
 
     /// Destroy the memory instance and free its memory.
     virtual ~ideal_memory_t()
@@ -631,6 +636,22 @@ namespace patmos
         os << boost::format("  %1$10d : %2$12d\n") % it->first % it->second;
       }
     }
+    
+    virtual void reset_stats() 
+    {
+      Num_max_queue_size = 0;
+      Num_consecutive_requests = 0;
+      Num_busy_cycles = 0;
+      Num_posted_write_cycles = 0;
+      Num_reads = 0;
+      Num_writes = 0;
+      Num_bytes_read = 0;
+      Num_bytes_written = 0;
+      Num_bytes_read_transferred = 0;
+      Num_bytes_write_transferred = 0;
+      Num_requests_per_size.clear();
+    }
+
   };
 }
 

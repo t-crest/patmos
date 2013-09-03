@@ -179,6 +179,37 @@ namespace patmos
   /// @param os An output stream.
   /// @param bs The size in bytes.
   std::ostream &operator <<(std::ostream &os, const byte_size_t &bs);
+  
+    /// Parsing addresses as command-line options.
+  class address_t
+  {
+    private:
+      unsigned int V;
+
+    public:
+      /// Construct a new byte address.
+      /// @param v The initial value.
+      address_t(unsigned int v = 0) : V(v)
+      {
+      }
+
+      /// Return the value of the address object.
+      /// @return The value of the address object.
+      unsigned int value() const
+      {
+        return V;
+      }
+  };
+
+  /// Read an address as hex or decimal
+  /// @param in An input stream to read from.
+  /// @param a The result address.
+  std::istream &operator >>(std::istream &in, address_t &a);
+
+  /// Write an address as hex number.
+  /// @param os An output stream.
+  /// @param a The address.
+  std::ostream &operator <<(std::ostream &os, const address_t &a);
 }
 
 #endif // PATMOS_COMMAND_LINE_H

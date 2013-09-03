@@ -119,6 +119,8 @@ namespace patmos
     {
       // nothing to do here either, since the cache has no internal state.
     }
+    
+    virtual void reset_stats() {}
   };
 
   /// Cache statistics of a particular method.
@@ -593,6 +595,18 @@ namespace patmos
       }
     }
 
+    virtual void reset_stats() 
+    {
+      Num_blocks_transferred = 0;
+      Num_max_blocks_transferred = 0;
+      Num_bytes_transferred = 0;
+      Num_max_blocks_transferred = 0;
+      Num_hits = 0; 
+      Num_misses = 0;
+      Num_stall_cycles = 0;
+      Method_stats.clear();
+    }
+    
     /// free dynamically allocated cache memory.
     virtual ~lru_method_cache_t()
     {
