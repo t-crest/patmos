@@ -304,6 +304,8 @@ namespace patmos
       // nothing to be done here
     }
 
+    virtual void reset_stats() {}
+
     /// Get the current size of the stack cache in words.
     virtual uword_t size() const
     {
@@ -314,9 +316,8 @@ namespace patmos
 
   /// A stack cache organized in blocks.
   /// The cache is organized in blocks (Num_blocks) each a fixed size in bytes
-  /// (NUM_BLOCK_BYTES). Spills and fills are performed automatically during the
+  /// Num_block_bytes. Spills and fills are performed automatically during the
   /// reserve and ensure instructions.
-  template<unsigned int NUM_BLOCK_BYTES = NUM_STACK_CACHE_BLOCK_BYTES>
   class block_stack_cache_t : public ideal_stack_cache_t
   {
   private:
@@ -334,6 +335,9 @@ namespace patmos
     /// Size of the stack cache in blocks.
     unsigned int Num_blocks;
 
+    /// Size of blocks in bytes.
+    unsigned int Num_block_bytes;
+    
     /// Store currently ongoing transfer.
     phase_e Phase;
 
@@ -389,15 +393,16 @@ namespace patmos
     /// Return the number of blocks currently reserved.
     inline unsigned int get_num_reserved_blocks() const
     {
-      return Content.size() / NUM_BLOCK_BYTES;
+      return Content.size() / Num_block_bytes;
     }
   public:
     /// Construct a black-based stack cache.
     /// @param memory The memory to spill/fill.
     /// @param num_blocks Size of the stack cache in blocks.
-    block_stack_cache_t(memory_t &memory, unsigned int num_blocks) :
+    block_stack_cache_t(memory_t &memory, unsigned int num_blocks, 
+                        unsigned int num_block_bytes) :
         ideal_stack_cache_t(memory), Num_blocks(num_blocks),
-        Phase(IDLE), Memory(memory),
+        Num_block_bytes(num_block_bytes), Phase(IDLE), Memory(memory),
         Num_transfer_blocks(0),
         Num_blocks_reserved_total(0), Max_blocks_allocated(0),
         Max_blocks_reserved(0), Num_blocks_spilled(0), Max_blocks_spilled(0),
@@ -405,7 +410,7 @@ namespace patmos
         Num_read_accesses(0), Num_bytes_read(0), Num_write_accesses(0),
         Num_bytes_written(0)
     {
-      Buffer = new byte_t[num_blocks * NUM_BLOCK_BYTES];
+      Buffer = new byte_t[num_blocks * Num_block_bytes];
     }
 
     /// Reserve a given number of bytes, potentially spilling stack data to some 
@@ -420,7 +425,7 @@ namespace patmos
     virtual bool reserve(uword_t size, uword_t &stack_spill, uword_t &stack_top)
     {
       // convert byte-level size to block size.
-      unsigned int size_blocks = std::ceil((float)size/(float)NUM_BLOCK_BYTES);
+      unsigned int size_blocks = std::ceil((float)size/(float)Num_block_bytes);
 
       switch (Phase)
       {
@@ -437,7 +442,7 @@ namespace patmos
 
           // reserve stack space
           bool result = ideal_stack_cache_t::reserve(
-                                      size_blocks * NUM_BLOCK_BYTES, stack_spill, 
+                                      size_blocks * Num_block_bytes, stack_spill, 
                                       stack_top);
           assert(result);
 
@@ -446,7 +451,7 @@ namespace patmos
           Max_blocks_reserved = std::max(Max_blocks_reserved, size_blocks);
           Max_blocks_allocated = std::max(Max_blocks_allocated,
                                           (unsigned int)(
-                                             Content.size() / NUM_BLOCK_BYTES));
+                                             Content.size() / Num_block_bytes));
 
           // need to spill some blocks?
           if(get_num_reserved_blocks() <= Num_blocks)
@@ -460,10 +465,10 @@ namespace patmos
             Num_transfer_blocks = get_num_reserved_blocks() - Num_blocks;
 
             // copy data to a buffer to allow contiguous transfer to the memory.
-            for(unsigned int i = 0; i < Num_transfer_blocks * NUM_BLOCK_BYTES;
+            for(unsigned int i = 0; i < Num_transfer_blocks * Num_block_bytes;
                 i++)
             {
-              Buffer[Num_transfer_blocks * NUM_BLOCK_BYTES - i - 1] =
+              Buffer[Num_transfer_blocks * Num_block_bytes - i - 1] =
                                                                 Content.front();
               Content.erase(Content.begin());
             }
@@ -478,8 +483,8 @@ namespace patmos
           assert(Num_transfer_blocks != 0);
 
           // spill the content of the stack buffer to the memory.
-          if (Memory.write(stack_spill - Num_transfer_blocks * NUM_BLOCK_BYTES,
-                           &Buffer[0], Num_transfer_blocks * NUM_BLOCK_BYTES))
+          if (Memory.write(stack_spill - Num_transfer_blocks * Num_block_bytes,
+                           &Buffer[0], Num_transfer_blocks * Num_block_bytes))
           {
             // update statistics
             Num_blocks_spilled += Num_transfer_blocks;
@@ -487,7 +492,7 @@ namespace patmos
                                           Num_transfer_blocks);
 
             // update the stack top pointer of the processor 
-            stack_spill -= Num_transfer_blocks * NUM_BLOCK_BYTES;
+            stack_spill -= Num_transfer_blocks * Num_block_bytes;
 
             // the transfer is done, go back to IDLE phase
             Num_transfer_blocks = 0;
@@ -527,7 +532,7 @@ namespace patmos
       assert(Phase == IDLE && Num_transfer_blocks == 0);
 
       // convert byte-level size to block size.
-      unsigned int size_blocks = std::ceil((float)size/(float)NUM_BLOCK_BYTES);
+      unsigned int size_blocks = std::ceil((float)size/(float)Num_block_bytes);
       unsigned int freed_spilled_blocks =
                                 (size_blocks <= get_num_reserved_blocks()) ? 0 :
                                         size_blocks - get_num_reserved_blocks();
@@ -545,14 +550,14 @@ namespace patmos
         assert(Content.size() == 0);
 
         // update the stack top pointer of the processor
-        stack_spill += freed_spilled_blocks * NUM_BLOCK_BYTES;
+        stack_spill += freed_spilled_blocks * Num_block_bytes;
 
         // update statistics
         Num_free_empty++;
       }
 
       // free space on the stack (updates stack_top and stack_spill)
-      bool result = ideal_stack_cache_t::free(size_blocks * NUM_BLOCK_BYTES,
+      bool result = ideal_stack_cache_t::free(size_blocks * Num_block_bytes,
                                               stack_spill, stack_top);
       assert(result);
 
@@ -570,7 +575,7 @@ namespace patmos
     virtual bool ensure(uword_t size, uword_t &stack_spill, uword_t &stack_top)
     {
       // convert byte-level size to block size.
-      unsigned int size_blocks = std::ceil((float)size/(float)NUM_BLOCK_BYTES);
+      unsigned int size_blocks = std::ceil((float)size/(float)Num_block_bytes);
 
       switch(Phase)
       {
@@ -607,10 +612,10 @@ namespace patmos
 
           // copy the data from memory into a temporary buffer
           if (Memory.read(stack_spill, Buffer,
-                          Num_transfer_blocks * NUM_BLOCK_BYTES))
+                          Num_transfer_blocks * Num_block_bytes))
           {
             // copy the data back into the stack cache
-            for(unsigned int i = 0; i < Num_transfer_blocks * NUM_BLOCK_BYTES;
+            for(unsigned int i = 0; i < Num_transfer_blocks * Num_block_bytes;
                 i++)
             {
               Content.insert(Content.begin(), Buffer[i]);
@@ -622,7 +627,7 @@ namespace patmos
                                          Num_transfer_blocks);
 
             // update the stack top pointer of the processor 
-            stack_spill += Num_transfer_blocks * NUM_BLOCK_BYTES;
+            stack_spill += Num_transfer_blocks * Num_block_bytes;
 
             // terminate transfer -- goto IDLE state
             Phase = IDLE;
@@ -659,7 +664,7 @@ namespace patmos
     virtual bool spill(uword_t size, uword_t &stack_spill, uword_t &stack_top)
     {
       // convert byte-level size to block size.
-      unsigned int size_blocks = std::ceil((float)size/(float)NUM_BLOCK_BYTES);
+      unsigned int size_blocks = std::ceil((float)size/(float)Num_block_bytes);
 
       switch (Phase)
       {
@@ -670,10 +675,10 @@ namespace patmos
           Num_transfer_blocks = size_blocks;
 
           // copy data to a buffer to allow contiguous transfer to the memory.
-          for(unsigned int i = 0; i < Num_transfer_blocks * NUM_BLOCK_BYTES;
+          for(unsigned int i = 0; i < Num_transfer_blocks * Num_block_bytes;
               i++)
           {
-            Buffer[Num_transfer_blocks * NUM_BLOCK_BYTES - i - 1] =
+            Buffer[Num_transfer_blocks * Num_block_bytes - i - 1] =
                                                                 Content.front();
             Content.erase(Content.begin());
           }
@@ -687,8 +692,8 @@ namespace patmos
           assert(Num_transfer_blocks != 0);
 
           // spill the content of the stack buffer to the memory.
-          if (Memory.write(stack_spill - Num_transfer_blocks * NUM_BLOCK_BYTES,
-                           &Buffer[0], Num_transfer_blocks * NUM_BLOCK_BYTES))
+          if (Memory.write(stack_spill - Num_transfer_blocks * Num_block_bytes,
+                           &Buffer[0], Num_transfer_blocks * Num_block_bytes))
           {
             // update statistics
             Num_blocks_spilled += Num_transfer_blocks;
@@ -696,7 +701,7 @@ namespace patmos
                                           Num_transfer_blocks);
 
             // update the stack top pointer of the processor 
-            stack_spill -= Num_transfer_blocks * NUM_BLOCK_BYTES;
+            stack_spill -= Num_transfer_blocks * Num_block_bytes;
 
             // the transfer is done, go back to IDLE phase
             Num_transfer_blocks = 0;
@@ -794,6 +799,22 @@ namespace patmos
         % Num_free_empty;
     }
 
+    virtual void reset_stats() 
+    {
+      Num_blocks_spilled = 0;
+      Max_blocks_spilled = 0;
+      Num_blocks_filled = 0;
+      Max_blocks_filled = 0;
+      Num_blocks_reserved_total = 0;
+      Max_blocks_allocated = 0;
+      Max_blocks_reserved = 0;
+      Num_read_accesses = 0;
+      Num_bytes_read = 0;
+      Num_write_accesses = 0;
+      Num_bytes_written = 0;
+      Num_free_empty = 0;
+    }
+    
     /// free buffer memory.
     virtual ~block_stack_cache_t()
     {

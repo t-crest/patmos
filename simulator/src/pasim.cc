@@ -37,6 +37,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <limits>
 
 #include <boost/program_options.hpp>
 
@@ -182,10 +183,12 @@ static patmos::instr_cache_t &create_instr_cache(patmos::instr_cache_e ick,
 /// Construct a stack cache for the simulation.
 /// @param sck The kind of the stack cache requested.
 /// @param size The requested size of the stack cache in bytes.
+/// @param block_size The size of a cache block in bytes.
 /// @param gm Global memory accessed on stack cache fills/spills.
 /// @return An instance of the requested stack cache kind.
 static patmos::stack_cache_t &create_stack_cache(patmos::stack_cache_e sck,
                                                  unsigned int size,
+                                                 unsigned int block_size,
                                                  patmos::memory_t &gm)
 {
   switch(sck)
@@ -195,10 +198,9 @@ static patmos::stack_cache_t &create_stack_cache(patmos::stack_cache_e sck,
     case patmos::SC_BLOCK:
     {
       // convert size to number of blocks
-      unsigned int num_blocks = std::ceil((float)size/
-                                    (float)patmos::NUM_STACK_CACHE_BLOCK_BYTES);
+      unsigned int num_blocks = (size - 1) / block_size + 1;
 
-      return *new patmos::block_stack_cache_t<>(gm, num_blocks);
+      return *new patmos::block_stack_cache_t(gm, num_blocks, block_size);
     }
   }
 
@@ -248,6 +250,7 @@ int main(int argc, char **argv)
     ("debug", boost::program_options::value<unsigned int>()->implicit_value(0), "enable step-by-step debug tracing after cycle")
     ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), "format of the debug trace (short, trace, instr, blocks, calls, default, long, all)")
     ("debug-file", boost::program_options::value<std::string>()->default_value("-"), "output debug trace in file (stderr: -)")
+    ("reset-stats", boost::program_options::value<patmos::address_t>()->default_value(0), "reset statistics at the given PC")
     ("slot-stats,a", "show instruction statistics per slot")
     ("instr-stats,i", "show more detailed statistics per instruction")
     ("quiet,q", "disable statistics output");
@@ -268,6 +271,7 @@ int main(int argc, char **argv)
 
     ("scsize,s", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_STACK_CACHE_BYTES), "stack cache size in bytes")
     ("sckind,S", boost::program_options::value<patmos::stack_cache_e>()->default_value(patmos::SC_IDEAL), "kind of stack cache (ideal, block)")
+    ("sbsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_DATA_CACHE_BLOCK_BYTES), "stack cache block size in bytes")
 
     ("icache,C", boost::program_options::value<patmos::instr_cache_e>()->default_value(patmos::IC_MCACHE), "kind of instruction cache (mcache, icache)")
     ("ickind,K", boost::program_options::value<patmos::iset_cache_e>()->default_value(patmos::ISC_IDEAL), "kind of set-associative I-cache (ideal, no. lru2, lru4, lru8)")
@@ -280,13 +284,13 @@ int main(int argc, char **argv)
   sim_options.add_options()
     ("cpuid", boost::program_options::value<unsigned int>()->default_value(0), "Set CPU ID in the simulator")
     ("freq",  boost::program_options::value<double>()->default_value(90.0), "Set CPU Frequency in Mhz")
-    ("mmbase", boost::program_options::value<unsigned int>()->default_value(patmos::IOMAP_BASE_ADDRESS), "base address of the IO device map address range")
-    ("mmhigh", boost::program_options::value<unsigned int>()->default_value(patmos::IOMAP_HIGH_ADDRESS), "highest address of the IO device map address range")
-    ("cpuinfo_offset", boost::program_options::value<unsigned int>()->default_value(patmos::CPUINFO_OFFSET), "address where the cpuinfo device is mapped")
-    ("excunit_offset", boost::program_options::value<unsigned int>()->default_value(patmos::EXCUNIT_OFFSET), "address where the exception unit is mapped")
-    ("timer_offset", boost::program_options::value<unsigned int>()->default_value(patmos::TIMER_OFFSET), "address where the timer device is mapped")
-    ("uart_offset", boost::program_options::value<unsigned int>()->default_value(patmos::UART_OFFSET), "address where the UART device is mapped")
-    ("led_offset", boost::program_options::value<unsigned int>()->default_value(patmos::LED_OFFSET), "address where the LED device is mapped");
+    ("mmbase", boost::program_options::value<patmos::address_t>()->default_value(patmos::IOMAP_BASE_ADDRESS), "base address of the IO device map address range")
+    ("mmhigh", boost::program_options::value<patmos::address_t>()->default_value(patmos::IOMAP_HIGH_ADDRESS), "highest address of the IO device map address range")
+    ("cpuinfo_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::CPUINFO_OFFSET), "offset where the cpuinfo device is mapped")
+    ("excunit_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::EXCUNIT_OFFSET), "offset where the exception unit is mapped")
+    ("timer_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::TIMER_OFFSET), "offset where the timer device is mapped")
+    ("uart_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::UART_OFFSET), "offset where the UART device is mapped")
+    ("led_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::LED_OFFSET), "offset where the LED device is mapped");
   
   boost::program_options::options_description uart_options("UART options");
   uart_options.add_options()
@@ -336,19 +340,20 @@ int main(int argc, char **argv)
 
   unsigned int cpuid = vm["cpuid"].as<unsigned int>();
   double       freq = vm["freq"].as<double>();
-  unsigned int mmbase = vm["mmbase"].as<unsigned int>();
-  unsigned int mmhigh = vm["mmhigh"].as<unsigned int>();
+  unsigned int mmbase = vm["mmbase"].as<patmos::address_t>().value();
+  unsigned int mmhigh = vm["mmhigh"].as<patmos::address_t>().value();
   
-  unsigned int cpuinfo_offset = vm["cpuinfo_offset"].as<unsigned int>();
-  unsigned int excunit_offset = vm["excunit_offset"].as<unsigned int>();
-  unsigned int timer_offset = vm["timer_offset"].as<unsigned int>();
-  unsigned int uart_offset = vm["uart_offset"].as<unsigned int>();
-  unsigned int led_offset = vm["led_offset"].as<unsigned int>();
+  unsigned int cpuinfo_offset = vm["cpuinfo_offset"].as<patmos::address_t>().value();
+  unsigned int excunit_offset = vm["excunit_offset"].as<patmos::address_t>().value();
+  unsigned int timer_offset = vm["timer_offset"].as<patmos::address_t>().value();
+  unsigned int uart_offset = vm["uart_offset"].as<patmos::address_t>().value();
+  unsigned int led_offset = vm["led_offset"].as<patmos::address_t>().value();
 
   unsigned int gsize = vm["gsize"].as<patmos::byte_size_t>().value();
   unsigned int lsize = vm["lsize"].as<patmos::byte_size_t>().value();
   unsigned int dcsize = vm["dcsize"].as<patmos::byte_size_t>().value();
   unsigned int scsize = vm["scsize"].as<patmos::byte_size_t>().value();
+  unsigned int sbsize = vm["sbsize"].as<patmos::byte_size_t>().value();
   unsigned int mcsize = vm["mcsize"].as<patmos::byte_size_t>().value();
   unsigned int mbsize = vm["mbsize"].as<patmos::byte_size_t>().value();
 
@@ -369,6 +374,10 @@ int main(int argc, char **argv)
                                        std::numeric_limits<unsigned int>::max();
   unsigned int max_cycle = vm["maxc"].as<unsigned int>();
 
+  bool reset_stats = vm.count("reset-stats");
+  // TODO allow to use a symbol name, resolve the symbol name here.
+  unsigned int reset_stats_PC = vm["reset-stats"].as<patmos::address_t>().value();
+  
   unsigned int interrupt_enabled = vm["interrupt"].as<unsigned int>();
 
   bool slot_stats = (vm.count("slot-stats") != 0);
@@ -388,7 +397,7 @@ int main(int argc, char **argv)
 
   // setup simulation framework
   patmos::memory_t &gm = create_global_memory(gtime, gsize, bsize, posted, tdelay);
-  patmos::stack_cache_t &sc = create_stack_cache(sck, scsize, gm);
+  patmos::stack_cache_t &sc = create_stack_cache(sck, scsize, sbsize, gm);
   patmos::instr_cache_t &ic = create_instr_cache(ick, isck, mck, mcsize, bsize, 
                                                  mbsize, gm);
   patmos::data_cache_t &dc = create_data_cache(dck, dcsize, bsize, gm);
@@ -450,6 +459,11 @@ int main(int argc, char **argv)
     
     loader->load_symbols(sym, text);
     loader->load_to_memory(gm);
+    
+    // setup stats reset trigger
+    if (reset_stats) {
+      s.reset_stats_at(reset_stats_PC);
+    }
     
     // start execution
     try

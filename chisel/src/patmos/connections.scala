@@ -51,12 +51,14 @@ class FeDec() extends Bundle() {
   val instr_a = Bits(width = INSTR_WIDTH)
   val instr_b = Bits(width = INSTR_WIDTH)
   val pc = UFix(width = PC_SIZE)
+  val reloc = UFix(width = ADDR_WIDTH)
 }
 
 object FeDecResetVal extends FeDec {
   instr_a := Bits(0)
   instr_b := Bits(0)
   pc := UFix(0)
+  reloc := UFix(0)
 }
 
 class AluOp() extends Bundle() {
@@ -96,11 +98,13 @@ object PredOpResetVal extends PredOp {
 class JmpOp() extends Bundle() {
   val branch = Bool()
   val target = UFix(width = PC_SIZE)
+  val reloc = UFix(width = ADDR_WIDTH)
 }
 
 object JmpOpResetVal extends JmpOp {
   branch := Bool(false)
   target := UFix(0)
+  reloc := UFix(0)
 }
 
 class MemOp() extends Bundle() {
@@ -140,6 +144,7 @@ class DecEx() extends Bundle() {
   val wrRd  = Vec(PIPE_COUNT) { Bool() }
 
   val callAddr = UFix(width = DATA_WIDTH)
+  val brcfAddr = UFix(width = DATA_WIDTH)
   val call = Bool()
   val ret = Bool()
   val brcf = Bool()
@@ -159,6 +164,7 @@ object DecExResetVal extends DecEx {
   immOp := Vec(PIPE_COUNT) { Bool(false) }
   wrRd := Vec(PIPE_COUNT) { Bool(false) }
   callAddr := UFix(0)
+  brcfAddr := UFix(0)
   call := Bool(false)
   ret := Bool(false)
   brcf := Bool(false)

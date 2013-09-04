@@ -116,6 +116,8 @@ namespace patmos
     {
       // nothing to be done here
     }
+    
+    virtual void reset_stats() {}
   };
 
   /// A data cache always accessing a memory.
@@ -463,6 +465,18 @@ namespace patmos
         % write_reuse;
     }
 
+    virtual void reset_stats() 
+    {
+      Num_read_hits = 0;
+      Num_read_misses = 0;
+      Num_read_hit_bytes = 0;
+      Num_read_miss_bytes = 0;
+      Num_write_hits = 0;
+      Num_write_misses = 0;
+      Num_write_hit_bytes = 0;
+      Num_write_miss_bytes = 0;
+    }
+    
     /// free tag information.
     ~lru_data_cache_t()
     {
