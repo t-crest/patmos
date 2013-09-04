@@ -2362,14 +2362,26 @@ and I/O areas. The address range for I/O devices is divided further to
 distinguish the different devices, as discussed in
 Section~\ref{sec:iodevs}.
 
+As \code{call}, \code{ret}, and \code{brcf} do not include memory type
+information, the distinction between memory areas for these
+instructions is done solely through the address mapping. The boot ROM
+and the instruction scratchpad memory are mapped to the lowest 128K of
+the global address space. Note that this applies only to these
+instructions; i.e., a \code{call} to address \code{0x00010100}
+executes code that is located in the instruction scratchpad, while
+non-local loads or stores to the same address access the external
+SRAM. Therefore, a binary that is loaded to external memory can use
+the lowest 128K of memory for data segments, but not for code
+segments.
+
 \begin{table}
 \centering
 \begin{tabular}{ll}
 \toprule
 Address & Memory area \\
 \midrule
-\code{0x00000000}--\code{0x007fffff} & Data Scratchpad Memory \\
-\code{0x00800000}--\code{0x00ffffff} & Instruction Scratchpad Memory \\
+\code{0x00000000}--\code{0x0000ffff} & Data Scratchpad Memory \\
+\code{0x00010000}--\code{0x0001ffff} & Instruction Scratchpad Memory (write only) \\
 \code{0xe0000000}--\code{0xefffffff} & NoC interface and communication memory\\
 \code{0xf0000000}--\code{0xffffffff} & I/O devices \\
 \bottomrule
@@ -2384,6 +2396,8 @@ Address & Memory area \\
 \toprule
 Address & Memory area \\
 \midrule
+\code{0x00000000}--\code{0x0000ffff} & Boot ROM (only for code) \\
+\code{0x00010000}--\code{0x0001ffff} & Instruction Scratchpad Memory (only for code) \\
 \code{0x00000000}--\code{0x0fffffff} & External SRAM \\
 \bottomrule
 \end{tabular}
