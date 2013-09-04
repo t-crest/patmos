@@ -76,7 +76,7 @@ class Fetch(fileName : String) extends Component {
   val memOdd = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
 
   // write from EX - use registers - ignore stall, as reply does not hurt
-  val selWrite = (io.memfe.store & (io.memfe.addr(ISPM_ONE_BIT) === Bits(0x1)))
+  val selWrite = (io.memfe.store & (io.memfe.addr(DATA_WIDTH-1, ISPM_ONE_BIT) === Bits(0x1)))
   val wrEvenReg = Reg(selWrite & (io.memfe.addr(2) === Bits(0)))
   val wrOddReg = Reg(selWrite & (io.memfe.addr(2) === Bits(1)))
   val addrReg = Reg(io.memfe.addr)
@@ -88,11 +88,8 @@ class Fetch(fileName : String) extends Component {
   // reset, which 'just' generates some more logic. And it looks
   // like the synthesize tool is able to duplicate the register.
 
-  val ispm_even = memEven(addrEvenReg(ispmAddrBits, 1))
-  val ispm_odd = memOdd(addrOddReg(ispmAddrBits, 1))
-
-  val selIspm = io.mcachefe.mem_sel(1)
-  val selMCache = io.mcachefe.mem_sel(0)
+  val selIspm = Reg(io.mcachefe.mem_sel(1))
+  val selMCache = Reg(io.mcachefe.mem_sel(0))
 
   //need to register these values to save them in  memory stage at call/return
   val relBaseReg = Reg(resetVal = UFix(1, DATA_WIDTH))
@@ -102,19 +99,15 @@ class Fetch(fileName : String) extends Component {
     relocReg := io.mcachefe.reloc
   }
 
-  // ROM/ISPM Mux
-  val data_even = Mux(selIspm, ispm_even, rom(addrEvenReg))
-  val data_odd = Mux(selIspm, ispm_odd, rom(addrOddReg))
-
-  //rom data even and data odd output
-  // val data_even = rom(addrEvenReg)
-  // val data_odd = rom(addrOddReg)
-
   //select even/odd from ispm
+  val ispm_even = memEven(addrEvenReg(ispmAddrBits, 1))
+  val ispm_odd = memOdd(addrOddReg(ispmAddrBits, 1))
   val instr_a_ispm = Mux(pcReg(0) === Bits(0), ispm_even, ispm_odd)
   val instr_b_ispm = Mux(pcReg(0) === Bits(0), ispm_odd, ispm_even)
 
   //select even/odd from rom
+  val data_even = rom(addrEvenReg)
+  val data_odd = rom(addrOddReg)
   val instr_a_rom = Mux(pcReg(0) === Bits(0), data_even, data_odd)
   val instr_b_rom = Mux(pcReg(0) === Bits(0), data_odd, data_even)
 
