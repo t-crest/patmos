@@ -259,6 +259,7 @@ namespace patmos
     if (Cycle == 0)
     {
       BASE = PC = nPC = entry;
+      lPC = ~0;
       Instr_cache.initialize(entry);
       Profiling.initialize(entry);
       Dbg_stack.initialize(entry);
@@ -371,6 +372,7 @@ namespace patmos
             }
           }
         }
+        lPC = PC;
       } // end of simulation loop
     }
     catch (simulation_exception_t e)
@@ -493,18 +495,23 @@ namespace patmos
            s.Pipeline[SMW][0].GPR_EX_Rd.get(
               s.GPR.get(reg))).get();
   }
-  
+
   void simulator_t::print(std::ostream &os, debug_format_e debug_fmt)
   {
     if (debug_fmt == DF_TRACE)
     {
-      // Boost::format is unacceptably slow (adpcm.elf):
-      //  => no debugging output:  1.6s
-      //  => os with custom formatting: 2.4s
-      //  => boost::format: 10.6s !!
-      os << std::hex << std::setw(8) << std::setfill('0') << PC << ' '
-         << std::dec << Cycle << '\n' << std::setfill(' ');
-      // os << boost::format("%1$08x %2%\n") % PC % Cycle;
+      // CAVEAT: this trace mode is used by platin's 'analyze-trace' module
+      // do not change without adapting platin
+      if (PC != lPC)
+      {
+        // Boost::format is unacceptably slow (adpcm.elf):
+        //  => no debugging output:  1.6s
+        //  => os with custom formatting: 2.4s
+        //  => boost::format: 10.6s !!
+        os << std::hex << std::setw(8) << std::setfill('0') << PC << ' '
+           << std::dec << Cycle << '\n' << std::setfill(' ');
+        // os << boost::format("%1$08x %2%\n") % PC % Cycle;
+      }
       return;
     }
     else if (debug_fmt == DF_INSTRUCTIONS) {
@@ -512,7 +519,7 @@ namespace patmos
       return;
     }
     else if (debug_fmt == DF_BLOCKS) {
-      if (Symbols.contains(PC)) {
+      if (PC != lPC && Symbols.contains(PC)) {
 	os << boost::format("%1$08x %2$9d ") % PC % Cycle;
 	Symbols.print(os, PC);
 	os << "\n";
@@ -534,7 +541,7 @@ namespace patmos
         }
         os << "\n";
         Dbg_cnt_delay = 0;
-      } 
+      }
       else if (Dbg_cnt_delay > 1) {
         Dbg_cnt_delay--;
       }

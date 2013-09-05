@@ -174,6 +174,9 @@ namespace patmos
     /// The next value for program counter register.
     uword_t nPC;
 
+    /// The last value of the program counter register
+    uword_t lPC;
+
     /// The general purpose registers.
     GPR_t GPR;
 
