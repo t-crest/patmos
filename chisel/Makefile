@@ -94,6 +94,13 @@ qsyn: verilog
 $(BOOTBIN): .FORCE
 	$(MAKE) -C $(BOOTBUILDROOT) BUILDDIR=$(BOOTBUILDDIR) $(BOOTBIN)
 
+# for module tests
+MODUL=example.FsmMain
+MODUL=ocp.test.TestMain
+modtest:
+#	-rm -rf generated
+	$(SBT) "run-main $(MODUL) --backend c --compile --vcd --test --genHarness --targetDir generated"
+
 .FORCE:
 
 .PHONY: all emulator test view verilog vsim
