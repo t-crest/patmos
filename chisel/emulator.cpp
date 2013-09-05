@@ -273,11 +273,21 @@ int main (int argc, char* argv[]) {
     if (entry >= 0x20000) {
       // pcReg for method cache starts at 0
       // TODO: 1 only for the moment change even odd to start from even
-      c->Patmos_fetch__pcReg = 1;
+      c->Patmos_fetch__pcReg = 1; //0 for lru
       c->Patmos_mcache_mcacherepl__hitReg = 0;
       c->Patmos_mcache_mcacherepl__selMCacheReg = 1;
-      c->Patmos_fetch__relBaseReg = 1;
+      c->Patmos_fetch__relBaseReg = 1; //0 for lru
       c->Patmos_fetch__relocReg = (entry >> 2) - 1;
+      //init linked list for lru replacement
+      // c->Patmos_mcache_mcachectrl__addrReg = 0;
+      // c->Patmos_mcache_mcacherepl__lru_list_prev_0 = 1;
+      // c->Patmos_mcache_mcacherepl__lru_list_prev_1 = 2;
+      // c->Patmos_mcache_mcacherepl__lru_list_prev_2 = 3;
+      // c->Patmos_mcache_mcacherepl__lru_list_prev_3 = 0;
+      // c->Patmos_mcache_mcacherepl__lru_list_next_0 = 3;
+      // c->Patmos_mcache_mcacherepl__lru_list_next_1 = 0;
+      // c->Patmos_mcache_mcacherepl__lru_list_next_2 = 1;
+      // c->Patmos_mcache_mcacherepl__lru_list_next_3 = 2;
     }
     else {
       // pcReg for ispm starts at entry point - ispm base
