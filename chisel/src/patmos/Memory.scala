@@ -62,18 +62,19 @@ class Memory() extends Component {
   io.flush := flush
 
   // Stall logic
-  val stall = Reg(Bool(), resetVal = Bool(false))
-  val enable = Mux(stall, (io.localInOut.S.Resp != OcpResp.NULL
-						   || io.globalInOut.S.Resp != OcpResp.NULL),
+  val mayStallReg = Reg(resetVal = Bool(false))
+  val enable = Mux(mayStallReg, (io.localInOut.S.Resp != OcpResp.NULL
+								 || io.globalInOut.S.Resp != OcpResp.NULL),
 				   Bool(true))
-  stall := (io.exmem.mem.load || io.exmem.mem.store) && !flush
-  io.ena := enable
+  io.ena := enable & io.mc_ena // stall = !enable
 
   // Latch register
-  when(enable) {
+  when(enable & io.mc_ena) {
     memReg := io.exmem
+    mayStallReg := io.exmem.mem.load || io.exmem.mem.store
     when(flush) {
       memReg.reset()
+	  mayStallReg := Bool(false)
     }
   }
 
@@ -83,7 +84,7 @@ class Memory() extends Component {
   // default is word store
   val wrData = Vec(BYTES_PER_WORD) { Bits(width = BYTE_WIDTH) }
   for (i <- 0 until BYTES_PER_WORD) {
-	wrData(i) := io.exmem.mem.data((i+1)*BYTE_WIDTH-1, i*BYTE_WIDTH)
+    wrData(i) := io.exmem.mem.data((i+1)*BYTE_WIDTH-1, i*BYTE_WIDTH)
   }
   val byteEn = Bits(width = BYTES_PER_WORD)
   byteEn := Bits("b1111")  
@@ -141,6 +142,9 @@ class Memory() extends Component {
   io.globalInOut.M.Addr := Cat(io.exmem.mem.addr(ADDR_WIDTH-1, 2), Bits("b00"))
   io.globalInOut.M.Data := Cat(wrData(3), wrData(2), wrData(1), wrData(0))
   io.globalInOut.M.ByteEn := byteEn
+  io.globalInOut.M.AddrSpace := Mux(io.exmem.mem.typ === MTYPE_S, OcpCache.STACK_CACHE,
+									Mux(io.exmem.mem.typ === MTYPE_C, OcpCache.DATA_CACHE,
+										OcpCache.UNCACHED))
 
   def splitData(word: Bits) = {
 	val retval = Vec(BYTES_PER_WORD) { Bits(width = BYTE_WIDTH) }
@@ -181,32 +185,22 @@ class Memory() extends Component {
     }
   }
   
-  // TODO: PC is absolute in ISPM, but we fake the return offset to
-  // be relative to the base address.
-  val baseReg = Reg(resetVal = UFix(4, DATA_WIDTH))
-
   io.memwb.pc := memReg.pc
   for (i <- 0 until PIPE_COUNT) {
 	io.memwb.rd(i).addr := memReg.rd(i).addr
 	io.memwb.rd(i).valid := memReg.rd(i).valid
 	io.memwb.rd(i).data := memReg.rd(i).data 
   }
-  // Fill in data from loads or calls
+  //Fill in data from loads or calls
   io.memwb.rd(0).data := Mux(memReg.mem.load, dout,
-							 Mux(memReg.mem.call,
-								 Cat(io.femem.pc, Bits("b00")) - baseReg,
-								 memReg.rd(0).data))  
+                             Mux(memReg.mem.call, Cat(io.femem.pc, Bits("b00")),
+                                 memReg.rd(0).data))
 
   // call to fetch
   io.memfe.doCallRet := (memReg.mem.call || memReg.mem.ret || memReg.mem.brcf ||
                          memReg.mem.xcall || memReg.mem.xret)
   io.memfe.callRetPc := memReg.mem.callRetAddr(DATA_WIDTH-1, 2)
   io.memfe.callRetBase := memReg.mem.callRetBase(DATA_WIDTH-1, 2)
-
-  // TODO: remember base address for faking return offset
-  when(enable && io.memfe.doCallRet) {
-	baseReg := memReg.mem.callRetBase
-  }
 
   // ISPM write
   io.memfe.store := io.localInOut.M.Cmd === OcpCmd.WRNP

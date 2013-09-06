@@ -167,10 +167,10 @@ test_sim(09 "r0 : 00000000   r1 : 0283f181   r2 : fffff181   r3 : fffffff1   r4 
 
 test_sim(10 "r0 : 00000000   r1 : 0283f181   r2 : 000000f0   r3 : 0283f181   r4 : f1810000   r5 : 81000000")
 
-test_sim(11a "BASE: 00000004   PC : 00000044.*
+test_sim(11a "BASE: 00000004   PC : 00000040.*
 .*r1 : 00000026")
 
-test_sim(11b "BASE: 00000004   PC : 00000048.*
+test_sim(11b "BASE: 00000004   PC : 00000044.*
 .*r1 : 00000029   r2 : 000000ff")
 
 test_sim(13 "BASE: 00000028   PC : 00000050.*
@@ -178,19 +178,19 @@ test_sim(13 "BASE: 00000028   PC : 00000050.*
 
 test_sim(14 "r0 : 00000000   r1 : 0283f181   r2 : 0283f181   r3 : 00000283   r4 : ffffff83   r5 : 00000283   r6 : 00000083")
 
-test_sim(15 "Unmapped memory access: 00000014: fffffffc")
+test_sim(15 "Unmapped memory access at 00000014: fffffffc")
 
-test_sim(16 "Stack size exceeded: 00000014")
+test_sim(16 "Stack size exceeded at 00000014")
 
-test_sim(17 "Stack size exceeded: 00000018")
+test_sim(17 "Stack size exceeded at 00000018")
 
-test_sim(18 "Stack size exceeded: 00000014")
+test_sim(18 "Stack size exceeded at 00000014")
 
 test_sim(19 "r1 : 00000007")
 
 test_sim(20 "r1 : 0281fa81   r2 : 8281fa82")
 
-test_sim(21 "BASE: 00000004   PC : 00000054.*
+test_sim(21 "BASE: 00000004   PC : 00000050.*
 .*r1 : 0000003c")
 
 test_io_sim(22 "r1 : 000000fb")
@@ -207,7 +207,7 @@ test_sim(26 "Unaligned")
 
 test_sim(27 "Unaligned")
 
-test_sim(28 "BASE: 00000004   PC : 00000048.*
+test_sim(28 "BASE: 00000004   PC : 00000044.*
 .*r1 : 00000026")
 
 test_sim(29 "PRR: 00000001.*

@@ -55,12 +55,28 @@ class OcpBurstMasterSignals(addrWidth : Int, dataWidth : Int)
   }
 }
 
+// Burst slaves provide handshake signal
+class OcpBurstSlaveSignals(dataWidth : Int)
+  extends OcpSlaveSignals(dataWidth) {
+  val CmdAccept = Bits(width = 1)
+  val DataAccept = Bits(width = 1)
+
+  // This does not really clone, but Data.clone doesn't either
+  override def clone() = {
+    val res = new OcpBurstSlaveSignals(dataWidth)
+  	res.asInstanceOf[this.type]
+  }
+}
+
+// MS: Chisel has the flip method to change the direction of connections
+// shouldn't we use that one instead of defining additional classes?
+
 // Master port
 class OcpBurstMasterPort(addrWidth : Int, dataWidth : Int, burstLen : Int) extends Bundle() {
   val burstLength = burstLen
   // Clk is implicit in Chisel
   val M = new OcpBurstMasterSignals(addrWidth, dataWidth).asOutput
-  val S = new OcpSlaveSignals(dataWidth).asInput 
+  val S = new OcpBurstSlaveSignals(dataWidth).asInput 
 }
 
 // Slave port is reverse of master port
@@ -68,7 +84,7 @@ class OcpBurstSlavePort(addrWidth : Int, dataWidth : Int, burstLen : Int) extend
   val burstLength = burstLen
   // Clk is implicit in Chisel
   val M = new OcpBurstMasterSignals(addrWidth, dataWidth).asInput
-  val S = new OcpSlaveSignals(dataWidth).asOutput
+  val S = new OcpBurstSlaveSignals(dataWidth).asOutput
 }
 
 // Bridge between word-oriented port and burst port
@@ -90,8 +106,14 @@ class OcpBurstBridge(master : OcpCoreMasterPort, slave : OcpBurstSlavePort) {
   // Register to delay response
   val slaveReg = Reg(resetVal = OcpSlaveSignals.resetVal(slave.S))
 
-  masterReg.Cmd := master.M.Cmd
-  masterReg.Addr := master.M.Addr
+  when(masterReg.Cmd === OcpCmd.IDLE
+	   || slave.S.CmdAccept) {
+	masterReg.Cmd := master.M.Cmd
+	masterReg.Addr := master.M.Addr
+	masterReg.Data := master.M.Data
+	masterReg.ByteEn := master.M.ByteEn
+  }
+	
   when(master.M.Cmd === OcpCmd.RD) {
 	state := read
 	cmdPos := master.M.Addr(burstAddrBits+log2Up(dataWidth/8)-1, log2Up(dataWidth/8))
@@ -99,8 +121,6 @@ class OcpBurstBridge(master : OcpCoreMasterPort, slave : OcpBurstSlavePort) {
   when(master.M.Cmd === OcpCmd.WRNP) {
 	state := write
 	cmdPos := master.M.Addr(burstAddrBits+log2Up(dataWidth/8)-1, log2Up(dataWidth/8))
-	masterReg.Data := master.M.Data
-	masterReg.ByteEn := master.M.ByteEn
   }
 
   // Default values
@@ -141,7 +161,9 @@ class OcpBurstBridge(master : OcpCoreMasterPort, slave : OcpBurstSlavePort) {
 	when(burstCnt === UFix(burstLength - 1)) {
 	  state := idle
 	}
-	burstCnt := burstCnt + UFix(1)
+	when(slave.S.DataAccept === Bits(1)) {
+	  burstCnt := burstCnt + UFix(1)
+	}
   }
 
 }

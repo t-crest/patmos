@@ -9,9 +9,9 @@
 
 int main() {
 
-	volatile _SPM int *uart_stat_ptr = (volatile _SPM int *) 0xF0000100;
-	volatile _SPM int *uart_val_ptr = (volatile _SPM int *) 0xF0000104;
-	volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0000200;
+	volatile _SPM int *uart_stat_ptr = (volatile _SPM int *) 0xF0000800;
+	volatile _SPM int *uart_val_ptr = (volatile _SPM int *) 0xF0000804;
+	volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0000900;
 	int i, j, k;
 	int flag = 0;
 	int flag2 = 0;

@@ -145,7 +145,8 @@ namespace patmos
       // check if stack size is exceeded
       if (Content.size() < size)
       {
-        simulation_exception_t::stack_exceeded();
+        simulation_exception_t::stack_exceeded("Freeing more than the current "
+                                        " size of the stack cache.");
       }
 
       Content.resize(Content.size() - size);
@@ -170,6 +171,12 @@ namespace patmos
         Content.insert(Content.begin(), size - Content.size(), 0);
       }
       // load from memory, to support setting the spill pointer
+      if (stack_spill < stack_top) {
+        std::stringstream ss;
+        ss << boost::format("Stack spill pointer %1$08x"
+              " is below stack top pointer %2$08x") % stack_spill % stack_top;
+        simulation_exception_t::stack_exceeded(ss.str());
+      }
       while (stack_spill < stack_top + size) {
         byte_t c;
         Memory.read_peek(stack_spill, &c, 1);
@@ -191,7 +198,11 @@ namespace patmos
       // check if stack size is exceeded
       if (stack_top > stack_spill - size)
       {
-        simulation_exception_t::stack_exceeded();
+        std::stringstream ss;
+        ss << boost::format("Spilling %1% bytes would move stack spill pointer"
+               "%2$08x below stack top pointer %3$08x") 
+             % size % stack_spill % stack_top;
+        simulation_exception_t::stack_exceeded(ss.str());
       }
       // write back to memory
       for (int i = 0; i < size; i++) {
@@ -212,7 +223,8 @@ namespace patmos
       // if access exceeds the stack size
       if (Content.size() < address + size)
       {
-        simulation_exception_t::stack_exceeded();
+        simulation_exception_t::stack_exceeded("Reading beyond the current size"
+                                               " of the stack cache");
       }
 
       // read the value
@@ -235,7 +247,8 @@ namespace patmos
       // if access exceeds the stack size
       if (Content.size() < address + size)
       {
-        simulation_exception_t::stack_exceeded();
+        simulation_exception_t::stack_exceeded("Writing beyond the current size"
+                                               " of the stack cache");
       }
 
       // store the value
@@ -286,10 +299,12 @@ namespace patmos
 
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
-    virtual void print_stats(std::ostream &os)
+    virtual void print_stats(const simulator_t &s, std::ostream &os)
     {
       // nothing to be done here
     }
+
+    virtual void reset_stats() {}
 
     /// Get the current size of the stack cache in words.
     virtual uword_t size() const
@@ -301,9 +316,8 @@ namespace patmos
 
   /// A stack cache organized in blocks.
   /// The cache is organized in blocks (Num_blocks) each a fixed size in bytes
-  /// (NUM_BLOCK_BYTES). Spills and fills are performed automatically during the
+  /// Num_block_bytes. Spills and fills are performed automatically during the
   /// reserve and ensure instructions.
-  template<unsigned int NUM_BLOCK_BYTES = NUM_STACK_CACHE_BLOCK_BYTES>
   class block_stack_cache_t : public ideal_stack_cache_t
   {
   private:
@@ -321,6 +335,9 @@ namespace patmos
     /// Size of the stack cache in blocks.
     unsigned int Num_blocks;
 
+    /// Size of blocks in bytes.
+    unsigned int Num_block_bytes;
+    
     /// Store currently ongoing transfer.
     phase_e Phase;
 
@@ -376,15 +393,16 @@ namespace patmos
     /// Return the number of blocks currently reserved.
     inline unsigned int get_num_reserved_blocks() const
     {
-      return Content.size() / NUM_BLOCK_BYTES;
+      return Content.size() / Num_block_bytes;
     }
   public:
     /// Construct a black-based stack cache.
     /// @param memory The memory to spill/fill.
     /// @param num_blocks Size of the stack cache in blocks.
-    block_stack_cache_t(memory_t &memory, unsigned int num_blocks) :
+    block_stack_cache_t(memory_t &memory, unsigned int num_blocks, 
+                        unsigned int num_block_bytes) :
         ideal_stack_cache_t(memory), Num_blocks(num_blocks),
-        Phase(IDLE), Memory(memory),
+        Num_block_bytes(num_block_bytes), Phase(IDLE), Memory(memory),
         Num_transfer_blocks(0),
         Num_blocks_reserved_total(0), Max_blocks_allocated(0),
         Max_blocks_reserved(0), Num_blocks_spilled(0), Max_blocks_spilled(0),
@@ -392,7 +410,7 @@ namespace patmos
         Num_read_accesses(0), Num_bytes_read(0), Num_write_accesses(0),
         Num_bytes_written(0)
     {
-      Buffer = new byte_t[num_blocks * NUM_BLOCK_BYTES];
+      Buffer = new byte_t[num_blocks * Num_block_bytes];
     }
 
     /// Reserve a given number of bytes, potentially spilling stack data to some 
@@ -407,7 +425,7 @@ namespace patmos
     virtual bool reserve(uword_t size, uword_t &stack_spill, uword_t &stack_top)
     {
       // convert byte-level size to block size.
-      unsigned int size_blocks = std::ceil((float)size/(float)NUM_BLOCK_BYTES);
+      unsigned int size_blocks = std::ceil((float)size/(float)Num_block_bytes);
 
       switch (Phase)
       {
@@ -415,15 +433,16 @@ namespace patmos
         {
           assert(Num_transfer_blocks == 0);
 
-          // unsure that the stack cache size is not exceeded
+          // ensure that the stack cache size is not exceeded
           if (size_blocks > Num_blocks)
           {
-            simulation_exception_t::stack_exceeded();
+            simulation_exception_t::stack_exceeded("Reserving more blocks than"
+              "the number of blocks in the stack cache");
           }
 
           // reserve stack space
           bool result = ideal_stack_cache_t::reserve(
-                                      size_blocks * NUM_BLOCK_BYTES, stack_spill, 
+                                      size_blocks * Num_block_bytes, stack_spill, 
                                       stack_top);
           assert(result);
 
@@ -432,7 +451,7 @@ namespace patmos
           Max_blocks_reserved = std::max(Max_blocks_reserved, size_blocks);
           Max_blocks_allocated = std::max(Max_blocks_allocated,
                                           (unsigned int)(
-                                             Content.size() / NUM_BLOCK_BYTES));
+                                             Content.size() / Num_block_bytes));
 
           // need to spill some blocks?
           if(get_num_reserved_blocks() <= Num_blocks)
@@ -446,10 +465,10 @@ namespace patmos
             Num_transfer_blocks = get_num_reserved_blocks() - Num_blocks;
 
             // copy data to a buffer to allow contiguous transfer to the memory.
-            for(unsigned int i = 0; i < Num_transfer_blocks * NUM_BLOCK_BYTES;
+            for(unsigned int i = 0; i < Num_transfer_blocks * Num_block_bytes;
                 i++)
             {
-              Buffer[Num_transfer_blocks * NUM_BLOCK_BYTES - i - 1] =
+              Buffer[Num_transfer_blocks * Num_block_bytes - i - 1] =
                                                                 Content.front();
               Content.erase(Content.begin());
             }
@@ -464,8 +483,8 @@ namespace patmos
           assert(Num_transfer_blocks != 0);
 
           // spill the content of the stack buffer to the memory.
-          if (Memory.write(stack_spill - Num_transfer_blocks * NUM_BLOCK_BYTES,
-                           &Buffer[0], Num_transfer_blocks * NUM_BLOCK_BYTES))
+          if (Memory.write(stack_spill - Num_transfer_blocks * Num_block_bytes,
+                           &Buffer[0], Num_transfer_blocks * Num_block_bytes))
           {
             // update statistics
             Num_blocks_spilled += Num_transfer_blocks;
@@ -473,7 +492,7 @@ namespace patmos
                                           Num_transfer_blocks);
 
             // update the stack top pointer of the processor 
-            stack_spill -= Num_transfer_blocks * NUM_BLOCK_BYTES;
+            stack_spill -= Num_transfer_blocks * Num_block_bytes;
 
             // the transfer is done, go back to IDLE phase
             Num_transfer_blocks = 0;
@@ -513,7 +532,7 @@ namespace patmos
       assert(Phase == IDLE && Num_transfer_blocks == 0);
 
       // convert byte-level size to block size.
-      unsigned int size_blocks = std::ceil((float)size/(float)NUM_BLOCK_BYTES);
+      unsigned int size_blocks = std::ceil((float)size/(float)Num_block_bytes);
       unsigned int freed_spilled_blocks =
                                 (size_blocks <= get_num_reserved_blocks()) ? 0 :
                                         size_blocks - get_num_reserved_blocks();
@@ -521,7 +540,8 @@ namespace patmos
       // ensure that the stack cache size is not exceeded
       if(size_blocks > Num_blocks)
       {
-        simulation_exception_t::stack_exceeded();
+        simulation_exception_t::stack_exceeded("Freeing more blocks than"
+          " the number of blocks in the stack cache");
       }
 
       // also free space in memory?
@@ -530,14 +550,14 @@ namespace patmos
         assert(Content.size() == 0);
 
         // update the stack top pointer of the processor
-        stack_spill += freed_spilled_blocks * NUM_BLOCK_BYTES;
+        stack_spill += freed_spilled_blocks * Num_block_bytes;
 
         // update statistics
         Num_free_empty++;
       }
 
       // free space on the stack (updates stack_top and stack_spill)
-      bool result = ideal_stack_cache_t::free(size_blocks * NUM_BLOCK_BYTES,
+      bool result = ideal_stack_cache_t::free(size_blocks * Num_block_bytes,
                                               stack_spill, stack_top);
       assert(result);
 
@@ -555,7 +575,7 @@ namespace patmos
     virtual bool ensure(uword_t size, uword_t &stack_spill, uword_t &stack_top)
     {
       // convert byte-level size to block size.
-      unsigned int size_blocks = std::ceil((float)size/(float)NUM_BLOCK_BYTES);
+      unsigned int size_blocks = std::ceil((float)size/(float)Num_block_bytes);
 
       switch(Phase)
       {
@@ -563,10 +583,11 @@ namespace patmos
         {
           assert(Num_transfer_blocks == 0);
 
-          // unsure that the stack cache size is not exceeded
+          // ensure that the stack cache size is not exceeded
           if (size_blocks > Num_blocks)
           {
-            simulation_exception_t::stack_exceeded();
+            simulation_exception_t::stack_exceeded("Ensuring more blocks than"
+               " the number of blocks in the stack cache");
           }
 
           // need to transfer blocks from memory?
@@ -591,10 +612,10 @@ namespace patmos
 
           // copy the data from memory into a temporary buffer
           if (Memory.read(stack_spill, Buffer,
-                          Num_transfer_blocks * NUM_BLOCK_BYTES))
+                          Num_transfer_blocks * Num_block_bytes))
           {
             // copy the data back into the stack cache
-            for(unsigned int i = 0; i < Num_transfer_blocks * NUM_BLOCK_BYTES;
+            for(unsigned int i = 0; i < Num_transfer_blocks * Num_block_bytes;
                 i++)
             {
               Content.insert(Content.begin(), Buffer[i]);
@@ -606,7 +627,7 @@ namespace patmos
                                          Num_transfer_blocks);
 
             // update the stack top pointer of the processor 
-            stack_spill += Num_transfer_blocks * NUM_BLOCK_BYTES;
+            stack_spill += Num_transfer_blocks * Num_block_bytes;
 
             // terminate transfer -- goto IDLE state
             Phase = IDLE;
@@ -643,7 +664,7 @@ namespace patmos
     virtual bool spill(uword_t size, uword_t &stack_spill, uword_t &stack_top)
     {
       // convert byte-level size to block size.
-      unsigned int size_blocks = std::ceil((float)size/(float)NUM_BLOCK_BYTES);
+      unsigned int size_blocks = std::ceil((float)size/(float)Num_block_bytes);
 
       switch (Phase)
       {
@@ -654,10 +675,10 @@ namespace patmos
           Num_transfer_blocks = size_blocks;
 
           // copy data to a buffer to allow contiguous transfer to the memory.
-          for(unsigned int i = 0; i < Num_transfer_blocks * NUM_BLOCK_BYTES;
+          for(unsigned int i = 0; i < Num_transfer_blocks * Num_block_bytes;
               i++)
           {
-            Buffer[Num_transfer_blocks * NUM_BLOCK_BYTES - i - 1] =
+            Buffer[Num_transfer_blocks * Num_block_bytes - i - 1] =
                                                                 Content.front();
             Content.erase(Content.begin());
           }
@@ -671,8 +692,8 @@ namespace patmos
           assert(Num_transfer_blocks != 0);
 
           // spill the content of the stack buffer to the memory.
-          if (Memory.write(stack_spill - Num_transfer_blocks * NUM_BLOCK_BYTES,
-                           &Buffer[0], Num_transfer_blocks * NUM_BLOCK_BYTES))
+          if (Memory.write(stack_spill - Num_transfer_blocks * Num_block_bytes,
+                           &Buffer[0], Num_transfer_blocks * Num_block_bytes))
           {
             // update statistics
             Num_blocks_spilled += Num_transfer_blocks;
@@ -680,7 +701,7 @@ namespace patmos
                                           Num_transfer_blocks);
 
             // update the stack top pointer of the processor 
-            stack_spill -= Num_transfer_blocks * NUM_BLOCK_BYTES;
+            stack_spill -= Num_transfer_blocks * Num_block_bytes;
 
             // the transfer is done, go back to IDLE phase
             Num_transfer_blocks = 0;
@@ -757,11 +778,10 @@ namespace patmos
 
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
-    virtual void print_stats(std::ostream &os)
+    virtual void print_stats(const simulator_t &s, std::ostream &os)
     {
       // stack cache statistics
-      os << boost::format("\n\nStack Cache Statistics:\n"
-                          "                           total        max.\n"
+      os << boost::format("                           total        max.\n"
                           "   Blocks Spilled   : %1$10d  %2$10d\n"
                           "   Blocks Filled    : %3$10d  %4$10d\n"
                           "   Blocks Allocated : %5$10d  %6$10d\n"
@@ -779,6 +799,22 @@ namespace patmos
         % Num_free_empty;
     }
 
+    virtual void reset_stats() 
+    {
+      Num_blocks_spilled = 0;
+      Max_blocks_spilled = 0;
+      Num_blocks_filled = 0;
+      Max_blocks_filled = 0;
+      Num_blocks_reserved_total = 0;
+      Max_blocks_allocated = 0;
+      Max_blocks_reserved = 0;
+      Num_read_accesses = 0;
+      Num_bytes_read = 0;
+      Num_write_accesses = 0;
+      Num_bytes_written = 0;
+      Num_free_empty = 0;
+    }
+    
     /// free buffer memory.
     virtual ~block_stack_cache_t()
     {

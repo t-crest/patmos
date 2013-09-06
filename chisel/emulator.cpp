@@ -10,12 +10,18 @@
 
 istream *in = &cin;
 ostream *out = &cout;
+
+#define OCMEM_ADDR_BITS 16
+
+#define SRAM_ADDR_BITS 19 // 2MB
+static uint ssram_buf [1 << SRAM_ADDR_BITS];
   
 /// Read an elf executable image into the on-chip memories
 static val_t readelf(istream &is, Patmos_t *c)
 {
   vector<unsigned char> elfbuf;
   elfbuf.reserve(1 << 20);
+
   // read the whole stream.
   while (!is.eof())
   {
@@ -83,7 +89,7 @@ static val_t readelf(istream &is, Patmos_t *c)
       // copy from the buffer into the on-chip memories
 	  for (size_t k = 0; k < phdr.p_memsz; k++) {
 
-		if (((phdr.p_paddr + k) >> 23) == 0x1 && 
+		if (((phdr.p_paddr + k) >> OCMEM_ADDR_BITS) == 0x1 && 
 			((phdr.p_paddr + k) & 0x3) == 0) {
 		  // Address maps to ISPM and is at a word boundary
 		  val_t word = k >= phdr.p_filesz ? 0 :
@@ -91,7 +97,7 @@ static val_t readelf(istream &is, Patmos_t *c)
 			 ((val_t)elfbuf[phdr.p_offset + k + 1] << 16) |
 			 ((val_t)elfbuf[phdr.p_offset + k + 2] << 8) |
 			 ((val_t)elfbuf[phdr.p_offset + k + 3] << 0));
-		  val_t addr = ((phdr.p_paddr + k) - (0x1 << 23)) >> 3;
+		  val_t addr = ((phdr.p_paddr + k) - (0x1 << OCMEM_ADDR_BITS)) >> 3;
 
 		  unsigned size = (sizeof(c->Patmos_fetch__memEven.contents) / 
 						   sizeof(c->Patmos_fetch__memEven.contents[0]));
@@ -105,13 +111,27 @@ static val_t readelf(istream &is, Patmos_t *c)
 		  }
 		}
 
-		if (((phdr.p_paddr + k) >> 23) == 0x0) {
+		if (((phdr.p_paddr + k) & 0x3) == 0) {
+		  // Address maps to SRAM and is at a word boundary
+		  val_t word = k >= phdr.p_filesz ? 0 :
+			(((val_t)elfbuf[phdr.p_offset + k + 0] << 24) |
+			 ((val_t)elfbuf[phdr.p_offset + k + 1] << 16) |
+			 ((val_t)elfbuf[phdr.p_offset + k + 2] << 8) |
+			 ((val_t)elfbuf[phdr.p_offset + k + 3] << 0));
+
+		  val_t addr = ((phdr.p_paddr + k) >> 2);
+		  ssram_buf[addr] = word;
+		}
+
+		// TODO: this really writes to globmem and should go away
+		if (((phdr.p_paddr + k) >> OCMEM_ADDR_BITS) == 0x0) {
 		  // Address maps to data SPM
 		  val_t byte = k >= phdr.p_filesz ? 0 : elfbuf[phdr.p_offset + k];
 		  val_t addr = (phdr.p_paddr + k) >> 2;
 		  
 		  unsigned size = (sizeof(c->Patmos_globMem__mem0.contents) /
 						   sizeof(c->Patmos_globMem__mem0.contents[0]));
+
 		  assert (addr < size && "Data mapped to DSPM exceed size");
 
 		  switch ((phdr.p_paddr + k) & 0x3) {
@@ -121,6 +141,7 @@ static val_t readelf(istream &is, Patmos_t *c)
 		  case 3: c->Patmos_globMem__mem0.put(addr, byte); break;
 		  }
 		}
+
 	  }
     }
   }
@@ -137,45 +158,38 @@ static void print_state(Patmos_t *c) {
 	sval_t pc = c->Patmos_memory__io_memwb_pc.to_ulong();
 	*out << (pc - 2) << " - ";
 
-	sval_t rf [32];
-	rf[0] = c->Patmos_decode_rf__rf_0.to_ulong();
-	rf[1] = c->Patmos_decode_rf__rf_1.to_ulong();
-	rf[2] = c->Patmos_decode_rf__rf_2.to_ulong();
-	rf[3] = c->Patmos_decode_rf__rf_3.to_ulong();
-	rf[4] = c->Patmos_decode_rf__rf_4.to_ulong();
-	rf[5] = c->Patmos_decode_rf__rf_5.to_ulong();
-	rf[6] = c->Patmos_decode_rf__rf_6.to_ulong();
-	rf[7] = c->Patmos_decode_rf__rf_7.to_ulong();
-	rf[8] = c->Patmos_decode_rf__rf_8.to_ulong();
-	rf[9] = c->Patmos_decode_rf__rf_9.to_ulong();
-	rf[10] = c->Patmos_decode_rf__rf_10.to_ulong();
-	rf[11] = c->Patmos_decode_rf__rf_11.to_ulong();
-	rf[12] = c->Patmos_decode_rf__rf_12.to_ulong();
-	rf[13] = c->Patmos_decode_rf__rf_13.to_ulong();
-	rf[14] = c->Patmos_decode_rf__rf_14.to_ulong();
-	rf[15] = c->Patmos_decode_rf__rf_15.to_ulong();
-	rf[16] = c->Patmos_decode_rf__rf_16.to_ulong();
-	rf[17] = c->Patmos_decode_rf__rf_17.to_ulong();
-	rf[18] = c->Patmos_decode_rf__rf_18.to_ulong();
-	rf[19] = c->Patmos_decode_rf__rf_19.to_ulong();
-	rf[20] = c->Patmos_decode_rf__rf_20.to_ulong();
-	rf[21] = c->Patmos_decode_rf__rf_21.to_ulong();
-	rf[22] = c->Patmos_decode_rf__rf_22.to_ulong();
-	rf[23] = c->Patmos_decode_rf__rf_23.to_ulong();
-	rf[24] = c->Patmos_decode_rf__rf_24.to_ulong();
-	rf[25] = c->Patmos_decode_rf__rf_25.to_ulong();
-	rf[26] = c->Patmos_decode_rf__rf_26.to_ulong();
-	rf[27] = c->Patmos_decode_rf__rf_27.to_ulong();
-	rf[28] = c->Patmos_decode_rf__rf_28.to_ulong();
-	rf[29] = c->Patmos_decode_rf__rf_29.to_ulong();
-	rf[30] = c->Patmos_decode_rf__rf_30.to_ulong();
-	rf[31] = c->Patmos_decode_rf__rf_31.to_ulong();
-
-	for (int i = 0; i < 32; i++) {
-	  *out << rf[i] << " ";
+	for (unsigned i = 0; i < 32; i++) {
+	  *out << c->Patmos_decode_rf__rf.get(i).to_ulong() << " ";
 	}
 
 	*out << endl;
+}
+
+static void extSsramSim(Patmos_t *c) {
+  static int addr_cnt;
+  static int address;
+  static int counter;
+  // *out << "noe:" << c->Patmos__io_sramPins_ram_out_noe.to_ulong() 
+  // 	   << " nadv: " << c->Patmos__io_sramPins_ram_out_nadv.to_ulong()
+  // 	   << " nadsc:" << c->Patmos__io_sramPins_ram_out_nadsc.to_ulong()
+  // 	   << " addr:" << c->Patmos__io_sramPins_ram_out_addr.to_ulong() << "\n";
+  if (c->Patmos__io_sramPins_ram_out_nadsc.to_ulong() == 0) {
+    address = c->Patmos__io_sramPins_ram_out_addr.to_ulong();
+    addr_cnt = c->Patmos__io_sramPins_ram_out_addr.to_ulong();
+    counter = 0;
+  }
+  if (c->Patmos__io_sramPins_ram_out_nadv.to_ulong() == 0) {
+    addr_cnt++;
+  }
+  if (c->Patmos__io_sramPins_ram_out_noe.to_ulong() == 0) {
+    counter++;
+    if (counter >= 3) {
+      c->Patmos__io_sramPins_ram_in_din = ssram_buf[address];
+      if (address <= addr_cnt) {
+        address++;
+      }
+    }
+  }
 }
 
 int main (int argc, char* argv[]) {
@@ -256,8 +270,34 @@ int main (int argc, char* argv[]) {
   }
 
   if (entry != 0) {
-	c->Patmos_fetch__pc = (entry >> 2) - 1;
-	c->Patmos_memory__baseReg = entry;
+    if (entry >= 0x20000) {
+      // pcReg for method cache starts at 0
+      // TODO: 1 only for the moment change even odd to start from even
+      c->Patmos_fetch__pcReg = 1; //0 for lru
+      c->Patmos_mcache_mcacherepl__hitReg = 0;
+      c->Patmos_mcache_mcacherepl__selMCacheReg = 1;
+      c->Patmos_fetch__relBaseReg = 1; //0 for lru
+      c->Patmos_fetch__relocReg = (entry >> 2) - 1;
+      //init linked list for lru replacement
+      // c->Patmos_mcache_mcachectrl__addrReg = 0;
+      // c->Patmos_mcache_mcacherepl__lru_list_prev_0 = 1;
+      // c->Patmos_mcache_mcacherepl__lru_list_prev_1 = 2;
+      // c->Patmos_mcache_mcacherepl__lru_list_prev_2 = 3;
+      // c->Patmos_mcache_mcacherepl__lru_list_prev_3 = 0;
+      // c->Patmos_mcache_mcacherepl__lru_list_next_0 = 3;
+      // c->Patmos_mcache_mcacherepl__lru_list_next_1 = 0;
+      // c->Patmos_mcache_mcacherepl__lru_list_next_2 = 1;
+      // c->Patmos_mcache_mcacherepl__lru_list_next_3 = 2;
+    }
+    else {
+      // pcReg for ispm starts at entry point - ispm base
+      c->Patmos_fetch__pcReg = ((entry - 0x10000) >> 2) - 1;
+      c->Patmos_mcache_mcacherepl__selIspmReg = 1;
+      c->Patmos_fetch__relBaseReg = (entry - 0x10000) >> 2;
+      c->Patmos_fetch__relocReg = 0x10000 >> 2;
+    }
+    c->Patmos_mcache_mcachectrl__callRetBaseReg = (entry >> 2);
+    c->Patmos_mcache_mcacherepl__callRetBaseReg = (entry >> 2);
   }
 
   // Main emulation loop
@@ -267,6 +307,8 @@ int main (int argc, char* argv[]) {
 
     c->clock_lo(reset);
     c->clock_hi(reset);
+
+    extSsramSim(c);
 
 	if (vcd) {
 	  c->dump(f, t);
@@ -289,7 +331,7 @@ int main (int argc, char* argv[]) {
 	  break;
 	}
 	if (c->Patmos_memory__memReg_mem_ret.to_bool()
-		&& c->Patmos_memory__memReg_mem_callRetBase.to_ulong() == 0) {
+		&& c->Patmos_mcache_mcachectrl__callRetBaseReg.to_ulong() == 0) {
 	  halt = true;
 	}
   }
@@ -300,5 +342,5 @@ int main (int argc, char* argv[]) {
   }
 
   // Pass on return value from processor
-  return c->Patmos_decode_rf__rf_1.to_ulong();
+  return c->Patmos_decode_rf__rf.get(1).to_ulong();
 }

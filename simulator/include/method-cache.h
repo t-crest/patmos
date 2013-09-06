@@ -22,6 +22,7 @@
 
 #include "basic-types.h"
 #include "endian-conversion.h"
+#include "instr-cache.h"
 #include "simulation-core.h"
 #include "symbol.h"
 
@@ -29,61 +30,19 @@
 #include <cmath>
 #include <map>
 #include <ostream>
+#include <limits>
 
 #include <boost/format.hpp>
 #include "exception.h"
 
+
+
+
 namespace patmos
 {
-  /// Basic interface for method-caches implementations.
-  class method_cache_t
-  {
-  private:
-  public:
-    virtual ~method_cache_t() {}
-
-    /// Initialize the cache before executing the first instruction.
-    /// @param address Address to fetch initial instructions.
-    virtual void initialize(uword_t address) = 0;
-
-    /// A simulated instruction fetch from the method cache.
-    /// @param address The memory address to fetch from.
-    /// @param iw A pointer to store the fetched instruction word.
-    /// @return True when the instruction word is available from the read port.
-    virtual bool fetch(uword_t address, word_t iw[2]) = 0;
-
-    /// Assert that the method is in the method cache.
-    /// If it is not available yet, initiate a transfer,
-    /// evicting other methods if needed.
-    /// @param address The base address of the method.
-    /// @return True when the method is available in the cache, false otherwise.
-    virtual bool assert_availability(word_t address) = 0;
-
-    /// Check whether a method is in the method cache.
-    /// @param address The base address of the method.
-    /// @return True when the method is available in the cache, false otherwise.
-    virtual bool is_available(word_t address) = 0;
-
-    /// Get the base address of the currently active method.
-    /// @return The base address of the currently active method.
-    virtual uword_t get_active_method_base() = 0;
-
-    /// Notify the cache that a cycle passed.
-    virtual void tick() = 0;
-
-    /// Print debug information to an output stream.
-    /// @param os The output stream to print to.
-    virtual void print(std::ostream &os) = 0;
-
-    /// Print statistics to an output stream.
-    /// @param os The output stream to print to.
-    /// @param symbols A mapping of addresses to symbols.
-    virtual void print_stats(std::ostream &os, const symbol_map_t &symbols) = 0;
-  };
-
   /// An ideal method cache, i.e., all methods are always in the cache --
   /// magically.
-  class ideal_method_cache_t : public method_cache_t
+  class ideal_method_cache_t : public instr_cache_t
   {
   private:
     /// The backing memory to fetch instructions from.
@@ -110,7 +69,7 @@ namespace patmos
     /// @param address The memory address to fetch from.
     /// @param iw A pointer to store the fetched instruction word.
     /// @return True when the instruction word is available from the read port.
-    virtual bool fetch(uword_t address, word_t iw[2])
+    virtual bool fetch(uword_t base, uword_t address, word_t iw[2])
     {
       Memory.read_peek(address, reinterpret_cast<byte_t*>(&iw[0]),
                        sizeof(word_t)*2);
@@ -122,7 +81,7 @@ namespace patmos
     /// evicting other methods if needed.
     /// @param address The base address of the method.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool assert_availability(word_t address)
+    virtual bool load_method(word_t address)
     {
       current_base = address;
       return true;
@@ -157,10 +116,12 @@ namespace patmos
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void print_stats(std::ostream &os, const symbol_map_t &symbols)
+    virtual void print_stats(const simulator_t &s, std::ostream &os)
     {
       // nothing to do here either, since the cache has no internal state.
     }
+    
+    virtual void reset_stats() {}
   };
 
   /// Cache statistics of a particular method.
@@ -173,17 +134,24 @@ namespace patmos
     /// Number of cache misses for the method.
     unsigned int Num_misses;
 
+    /// Minimum utilization of the cache entry for this method in words.
+    float Min_utilization;
+    
+    /// Maximum utilization of the cache entry for this method in words.
+    float Max_utilization;
+    
     /// Initialize the method statistics.
-    method_stats_info_t() : Num_hits(0), Num_misses(0)
+    method_stats_info_t() : Num_hits(0), Num_misses(0),
+      Min_utilization(std::numeric_limits<float>::max()), 
+      Max_utilization(0)
     {
     }
   };
 
   /// A direct-mapped method cache using LRU replacement on methods.
   /// The cache is organized in blocks (Num_blocks) each of a fixed size
-  /// (NUM_BLOCK_BYTES) in bytes.
-  template<unsigned int NUM_BLOCK_BYTES = NUM_METHOD_CACHE_BLOCK_BYTES>
-  class lru_method_cache_t : public method_cache_t
+  /// (Num_block_bytes) in bytes.
+  class lru_method_cache_t : public instr_cache_t
   {
   protected:
     /// Phases of fetching a method from memory.
@@ -214,6 +182,8 @@ namespace patmos
       /// The size of the method in bytes.
       uword_t Num_bytes;
 
+      std::vector<bool> Utilization;
+      
       /// Construct a method lru info object. All data is initialized to zero.
       /// @param instructions Pointer to the method's instructions.
       method_info_t(byte_t *instructions = NULL): Instructions(instructions),
@@ -233,6 +203,22 @@ namespace patmos
         Address = address;
         Num_blocks = num_blocks;
         Num_bytes = num_bytes;
+        reset_utilization();
+      }
+      
+      void reset_utilization() {
+        Utilization.clear();
+        Utilization.resize(Num_bytes / sizeof(uword_t));        
+      }
+      
+      unsigned int get_utilized_bytes() {
+        uword_t utilized_bytes = 0;
+        for (int i = 0; i < Utilization.size(); i++) {
+          if (Utilization[i]) {
+            utilized_bytes += sizeof(uword_t);
+          }
+        }
+        return utilized_bytes;
       }
     };
 
@@ -245,6 +231,9 @@ namespace patmos
     /// Number of blocks in the method cache.
     unsigned int Num_blocks;
 
+    /// Number of bytes in a block.
+    unsigned int Num_block_bytes;
+    
     /// Currently active phase to fetch a method from memory.
     phase_e Phase;
 
@@ -289,6 +278,9 @@ namespace patmos
     /// Number of stall cycles caused by method cache misses.
     unsigned int Num_stall_cycles;
 
+    /// Number of bytes used in evicted methods.
+    unsigned int Num_bytes_utilized;
+    
     /// Cache statistics of individual method.
     method_stats_t Method_stats;
 
@@ -297,23 +289,26 @@ namespace patmos
     /// @param address The memory address to fetch from.
     /// @param iw A pointer to store the fetched instruction word.
     /// @return True when the instruction word is available from the read port.
-    bool do_fetch(const method_info_t &current_method, uword_t address,
-                  word_t iw[2])
+    bool do_fetch(method_info_t &current_method, uword_t address, word_t iw[2])
     {
       if(Phase != IDLE ||
          address < current_method.Address ||
          current_method.Address + current_method.Num_bytes <= address)
       {
-        //simulation_exception_t::illegal_pc(current_method.Address);
-        return false;
+        simulation_exception_t::illegal_pc(current_method.Address);
       }
 
       // get instruction word from the method's instructions
       byte_t *iwp = reinterpret_cast<byte_t*>(&iw[0]);
-      for(unsigned int i = 0; i != sizeof(word_t)*2; i++, iwp++)
+      for(unsigned int i = 0; i != sizeof(word_t)*NUM_SLOTS; i++, iwp++)
       {
         *iwp = current_method.Instructions[address + i -
                                            current_method.Address];
+      }
+      
+      for (unsigned int i = 0; i < NUM_SLOTS; i++) {
+        unsigned int word = (address-current_method.Address)/sizeof(word_t) + i;
+        current_method.Utilization[word] = true;
       }
       return true;
     }
@@ -352,6 +347,25 @@ namespace patmos
       return false;
     }
 
+    void update_utilization_stats(method_info_t &method, uword_t utilized_bytes) 
+    {
+      
+      float utilization = (float)utilized_bytes / (float)method.Num_bytes;
+      
+      Method_stats[method.Address].Max_utilization = std::max(utilization, 
+                                  Method_stats[method.Address].Max_utilization);
+      Method_stats[method.Address].Min_utilization = std::min(utilization, 
+                                  Method_stats[method.Address].Min_utilization);      
+    }
+    
+    void evict(method_info_t &method)
+    {
+      unsigned int utilized_bytes = method.get_utilized_bytes();
+      
+      Num_bytes_utilized += utilized_bytes;
+      
+      update_utilization_stats(method, utilized_bytes);
+    }
 
     bool read_function_size(word_t function_base, uword_t *result_size)
     {
@@ -383,24 +397,35 @@ namespace patmos
 
     uword_t get_num_blocks_for_bytes(uword_t num_bytes)
     {
-      return std::ceil( ((float) num_bytes) / NUM_BLOCK_BYTES);
+      return ((num_bytes - 1) / Num_block_bytes) + 1;
     }
 
+    uword_t get_transfer_size()
+    {
+      // Transfer whole blocks only?
+      //return Num_transfer_blocks * Num_block_bytes;
+      
+      // Memory controller aligns to burst size
+      return Num_transfer_bytes;
+    }
+    
   public:
     /// Construct an LRU-based method cache.
     /// @param memory The memory to fetch instructions from on a cache miss.
     /// @param num_blocks The size of the cache in blocks.
-    lru_method_cache_t(memory_t &memory, unsigned int num_blocks) :
-        Memory(memory), Num_blocks(num_blocks), Phase(IDLE),
+    lru_method_cache_t(memory_t &memory, unsigned int num_blocks, 
+                       unsigned int num_block_bytes) :
+        Memory(memory), Num_blocks(num_blocks), 
+        Num_block_bytes(num_block_bytes), Phase(IDLE),
         Num_transfer_blocks(0), Num_transfer_bytes(0), Num_active_methods(0),
         Num_active_blocks(0), Num_blocks_transferred(0),
         Num_max_blocks_transferred(0), Num_bytes_transferred(0),
         Num_max_bytes_transferred(0), Num_hits(0), Num_misses(0),
-        Num_stall_cycles(0)
+        Num_stall_cycles(0), Num_bytes_utilized(0)
     {
       Methods = new method_info_t[Num_blocks];
       for(unsigned int i = 0; i < Num_blocks; i++)
-        Methods[i] = method_info_t(new byte_t[NUM_BLOCK_BYTES * Num_blocks]);
+        Methods[i] = method_info_t(new byte_t[Num_block_bytes * Num_blocks]);
     }
 
     /// Initialize the cache before executing the first instruction.
@@ -419,7 +444,7 @@ namespace patmos
       num_blocks = get_num_blocks_for_bytes(num_bytes);
 
       Memory.read_peek(address, current_method.Instructions,
-          num_blocks * NUM_BLOCK_BYTES);
+          num_blocks * Num_block_bytes);
       current_method.update(current_method.Instructions, address,
           num_blocks, num_bytes);
       Num_active_blocks = num_blocks;
@@ -431,7 +456,7 @@ namespace patmos
     /// @param address The memory address to fetch from.
     /// @param iw A pointer to store the fetched instruction word.
     /// @return True when the instruction word is available from the read port.
-    virtual bool fetch(uword_t address, word_t iw[2])
+    virtual bool fetch(uword_t base, uword_t address, word_t iw[2])
     {
       // fetch from 'most-recent' method of the cache
       return do_fetch(Methods[Num_blocks - 1], address, iw);
@@ -442,7 +467,7 @@ namespace patmos
     /// evicting other methods if needed.
     /// @param address The base address of the method.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool assert_availability(word_t address)
+    virtual bool load_method(word_t address)
     {
       // check status of the method cache
       switch(Phase)
@@ -491,6 +516,7 @@ namespace patmos
               assert(Num_active_methods > 0);
               Num_active_blocks -=
                             Methods[Num_blocks - Num_active_methods].Num_blocks;
+              evict(Methods[Num_blocks - Num_active_methods]);
               Num_active_methods--;
             }
 
@@ -536,7 +562,7 @@ namespace patmos
           assert(Num_transfer_blocks != 0 && Num_transfer_bytes != 0);
 
           if (Memory.read(address, Methods[Num_blocks - 1].Instructions,
-                          Num_transfer_blocks * NUM_BLOCK_BYTES))
+                          get_transfer_size()))
           {
             // the transfer is done, go back to IDLE phase
             Num_transfer_blocks = Num_transfer_bytes = 0;
@@ -608,18 +634,33 @@ namespace patmos
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void print_stats(std::ostream &os, const symbol_map_t &symbols)
+    virtual void print_stats(const simulator_t &s, std::ostream &os)
     {
+      uword_t bytes_utilized = Num_bytes_utilized;
+      for(unsigned int j = Num_blocks - Num_active_methods; j < Num_blocks; j++)
+      {
+        bytes_utilized += Methods[j].get_utilized_bytes();
+      }
+      // Utilization = Bytes used / bytes allocated in cache
+      float utilization = (float)bytes_utilized / 
+                          (float)(Num_blocks_transferred * Num_block_bytes);
+      // Fragmentation = Bytes loaded to cache / Bytes allocated in cache
+      float fragmentation = 1.0 - (float)Num_bytes_transferred / 
+                          (float)(Num_blocks_transferred * Num_block_bytes);
+      
       // instruction statistics
-      os << boost::format("\n\nMethod Cache Statistics:\n"
-                          "                            total        max.\n"
+      os << boost::format("                            total        max.\n"
                           "   Blocks Transferred: %1$10d  %2$10d\n"
                           "   Bytes Transferred : %3$10d  %4$10d\n"
-                          "   Cache Hits        : %5$10d\n"
-                          "   Cache Misses      : %6$10d\n"
-                          "   Miss Stall Cycles : %7$10d\n\n")
+                          "   Bytes Used        : %5$10d\n"
+                          "   Utilization       : %6$10.2d\n"
+                          "   Fragmentation     : %7$10.2d\n"
+                          "   Cache Hits        : %8$10d\n"
+                          "   Cache Misses      : %9$10d\n"
+                          "   Miss Stall Cycles : %10$10d\n\n")
         % Num_blocks_transferred % Num_max_blocks_transferred
         % Num_bytes_transferred % Num_max_bytes_transferred
+        % bytes_utilized % utilization % fragmentation
         % Num_hits % Num_misses % Num_stall_cycles;
 
       // print stats per method
@@ -629,10 +670,28 @@ namespace patmos
       {
         os << boost::format("   0x%1$08x: %2$10d  %3$10d    %4%\n")
            % i->first % i->second.Num_hits % i->second.Num_misses
-           % symbols.find(i->first);
+           % s.Symbols.find(i->first);
       }
     }
 
+    virtual void reset_stats() 
+    {
+      Num_blocks_transferred = 0;
+      Num_max_blocks_transferred = 0;
+      Num_bytes_transferred = 0;
+      Num_max_blocks_transferred = 0;
+      Num_bytes_utilized = 0;
+      Num_hits = 0; 
+      Num_misses = 0;
+      Num_stall_cycles = 0;
+      Method_stats.clear();
+      for(unsigned int j = Num_blocks - Num_active_methods; j < Num_blocks; j++)
+      {
+        Methods[j].reset_utilization();
+      }
+
+    }
+    
     /// free dynamically allocated cache memory.
     virtual ~lru_method_cache_t()
     {
@@ -645,11 +704,10 @@ namespace patmos
 
   /// A direct-mapped method cache using FIFO replacement on methods.
   /// \see lru_method_cache_t
-  template<unsigned int NUM_BLOCK_BYTES = NUM_METHOD_CACHE_BLOCK_BYTES>
-  class fifo_method_cache_t : public lru_method_cache_t<NUM_BLOCK_BYTES>
+  class fifo_method_cache_t : public lru_method_cache_t
   {
   private:
-    typedef lru_method_cache_t<NUM_BLOCK_BYTES> base_t;
+    typedef lru_method_cache_t base_t;
 
     size_t active_method;
 
@@ -664,8 +722,9 @@ namespace patmos
     /// Construct an FIFO-based method cache.
     /// @param memory The memory to fetch instructions from on a cache miss.
     /// @param num_blocks The size of the cache in blocks.
-    fifo_method_cache_t(memory_t &memory, unsigned int num_blocks) :
-        lru_method_cache_t<NUM_BLOCK_BYTES>(memory, num_blocks)
+    fifo_method_cache_t(memory_t &memory, unsigned int num_blocks, 
+                        unsigned int num_block_bytes) :
+        lru_method_cache_t(memory, num_blocks, num_block_bytes)
     {
 	active_method = base_t::Num_blocks - 1;
     }
@@ -675,10 +734,10 @@ namespace patmos
     /// evicting other methods if needed.
     /// @param address The base address of the method.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool assert_availability(word_t address)
+    virtual bool load_method(word_t address)
     {
       // check if the address is in the cache
-      bool avail = base_t::assert_availability(address);
+      bool avail = base_t::load_method(address);
 
       if (avail) {
 	// update the active method pointer
@@ -704,7 +763,7 @@ namespace patmos
     /// @param address The memory address to fetch from.
     /// @param iw A pointer to store the fetched instruction word.
     /// @return True when the instruction word is available from the read port.
-    virtual bool fetch(uword_t address, word_t iw[2])
+    virtual bool fetch(uword_t base, uword_t address, word_t iw[2])
     {
       // fetch from the currently active method
       return base_t::do_fetch(base_t::Methods[active_method], address, iw);

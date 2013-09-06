@@ -9,9 +9,9 @@ int main() __attribute__((naked,used));
 #define MEM         ((volatile int *) 0x0)
 #define SPM         ((volatile _SPM int *) 0x0)
 
-#define UART_STATUS *((volatile _SPM int *) 0xF0000100)
-#define UART_DATA   *((volatile _SPM int *) 0xF0000104)
-#define LEDS        *((volatile _SPM int *) 0xF0000200)
+#define UART_STATUS *((volatile _SPM int *) 0xF0000800)
+#define UART_DATA   *((volatile _SPM int *) 0xF0000804)
+#define LEDS        *((volatile _SPM int *) 0xF0000900)
 
 #define XDIGIT(c) ((c) <= 9 ? '0' + (c) : 'a' + (c) - 10)
 
@@ -106,12 +106,15 @@ int main()
 					else
 					{
 						//In case of data less than 4 bytes write everytime
-						//Write to ISPM or main memory
-						if ((section_offset+section_byte_count-1) & (1 << 23)) {
+						//Write to ISPM
+						if ((section_offset+section_byte_count-1) >> 16 == 0x01) {
 						  *(SPM+(section_offset+section_byte_count-1)/4) = integer;
-						} else {
+						}
+						//Write to "main memory"
+						if ((section_offset+section_byte_count-1) <= 0x10000) {
 						  *(MEM+(section_offset+section_byte_count-1)/4) = integer;
 						}
+
 						if(section_byte_count == section_size)
 						{
 							//current_state = STATE_SECTION_START;

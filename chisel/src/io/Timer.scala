@@ -51,6 +51,8 @@ import ocp._
 class Timer(clk_freq: Int) extends Component {
   val io = new TimerIO()
 
+  val masterReg = Reg(io.ocp.M)
+
   // Register for cycle counter
   val cycleReg   = Reg(resetVal = UFix(0, 2*DATA_WIDTH))
 
@@ -60,42 +62,43 @@ class Timer(clk_freq: Int) extends Component {
   val usecReg    = Reg(resetVal = UFix(0, 2*DATA_WIDTH))
 
   // Registers for data to read
-  val dataReg   = Reg(resetVal = Bits(0, DATA_WIDTH))
   val cycleHiReg = Reg(resetVal = Bits(0, DATA_WIDTH))
   val usecHiReg  = Reg(resetVal = Bits(0, DATA_WIDTH))
 
   // Default response
-  val respReg = Reg(resetVal = OcpResp.NULL)
-  respReg := OcpResp.NULL
+  val resp = Bits()
+  val data = Bits(width = DATA_WIDTH)
+  resp := OcpResp.NULL
+  data := Bits(0)
 
   // Read current state of timer
-  when(io.ocp.M.Cmd === OcpCmd.RD) {
-	respReg := OcpResp.DVA
+  when(masterReg.Cmd === OcpCmd.RD) {
+	resp := OcpResp.DVA
 
 	// Read cycle counter
 	// Must read word at higher address first!
-	when(io.ocp.M.Addr(3, 2) === Bits("b01")) {
-	  dataReg := cycleReg(DATA_WIDTH-1, 0)
+	when(masterReg.Addr(3, 2) === Bits("b01")) {
+	  data := cycleReg(DATA_WIDTH-1, 0)
 	  cycleHiReg := cycleReg(2*DATA_WIDTH-1, DATA_WIDTH)
 	}
-	when(io.ocp.M.Addr(3, 2) === Bits("b00")) {
-	  dataReg := cycleHiReg
+	when(masterReg.Addr(3, 2) === Bits("b00")) {
+	  data := cycleHiReg
 	}
 
 	// Read usec counter
 	// Must read word at higher address first!
-	when(io.ocp.M.Addr(3, 2) === Bits("b11")) {
-	  dataReg := usecReg(DATA_WIDTH-1, 0)
+	when(masterReg.Addr(3, 2) === Bits("b11")) {
+	  data := usecReg(DATA_WIDTH-1, 0)
 	  usecHiReg := usecReg(2*DATA_WIDTH-1, DATA_WIDTH)
 	}
-	when(io.ocp.M.Addr(3, 2) === Bits("b10")) {
-	  dataReg := usecHiReg
+	when(masterReg.Addr(3, 2) === Bits("b10")) {
+	  data := usecHiReg
 	}
   }
 
   // Connections to master
-  io.ocp.S.Resp := respReg
-  io.ocp.S.Data := dataReg
+  io.ocp.S.Resp := resp
+  io.ocp.S.Data := data
 
   // Increment cycle counter
   cycleReg := cycleReg + UFix(1)

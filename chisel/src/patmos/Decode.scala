@@ -52,8 +52,10 @@ class Decode() extends Component {
   // register file is connected with unregistered instruction word
   rf.io.rfRead.rsAddr(0) := io.fedec.instr_a(16, 12)
   rf.io.rfRead.rsAddr(1) := io.fedec.instr_a(11, 7)
-  rf.io.rfRead.rsAddr(2) := io.fedec.instr_b(16, 12)
-  rf.io.rfRead.rsAddr(3) := io.fedec.instr_b(11, 7)
+  if (PIPE_COUNT > 1) {
+	rf.io.rfRead.rsAddr(2) := io.fedec.instr_b(16, 12)
+	rf.io.rfRead.rsAddr(3) := io.fedec.instr_b(11, 7)
+  }
   rf.io.ena := io.ena
   // RF write from write back stage
   rf.io.rfWrite <> io.rfWrite
@@ -74,13 +76,17 @@ class Decode() extends Component {
   // forward RF addresses and data
   io.decex.rsAddr(0) := decReg.instr_a(16, 12)
   io.decex.rsAddr(1) := decReg.instr_a(11, 7)
-  io.decex.rsAddr(2) := decReg.instr_b(16, 12)
-  io.decex.rsAddr(3) := decReg.instr_b(11, 7)
+  if (PIPE_COUNT > 1) {
+	io.decex.rsAddr(2) := decReg.instr_b(16, 12)
+	io.decex.rsAddr(3) := decReg.instr_b(11, 7)
+  }
 
   io.decex.rsData(0) := rf.io.rfRead.rsData(0)
   io.decex.rsData(1) := rf.io.rfRead.rsData(1)
-  io.decex.rsData(2) := rf.io.rfRead.rsData(2)
-  io.decex.rsData(3) := rf.io.rfRead.rsData(3)
+  if (PIPE_COUNT > 1) {
+	io.decex.rsData(2) := rf.io.rfRead.rsData(2)
+	io.decex.rsData(3) := rf.io.rfRead.rsData(3)
+  }
 
   val decoded = Bool()
   decoded := Bool(false)
@@ -100,18 +106,18 @@ class Decode() extends Component {
 	when(opcode(4, 3) === OPCODE_ALUI) {
       io.decex.aluOp(i).func := Cat(Bits(0), instr(24, 22))
       io.decex.immOp(i) := isValid
-      io.decex.wrReg(i) := isValid
+      io.decex.wrRd(i) := isValid
       decoded := Bool(true)
 	}
 	// Other ALU
 	when(opcode === OPCODE_ALU) {
       switch(opc) {
 		is(OPC_ALUR) {
-		  io.decex.wrReg(i) := isValid
+		  io.decex.wrRd(i) := isValid
 		  decoded := Bool(true)
 		}
 		is(OPC_ALUU) {
-		  io.decex.wrReg(i) := isValid 
+		  io.decex.wrRd(i) := isValid 
 		  decoded := Bool(true)
 		}
 		is(OPC_ALUM) {
@@ -137,7 +143,7 @@ class Decode() extends Component {
 		}
 		is(OPC_MFS) {
 		  io.decex.aluOp(i).isMFS := isValid
-		  io.decex.wrReg(i) := isValid
+		  io.decex.wrRd(i) := isValid
 		  decoded := Bool(true)
 		}
 	  }
@@ -195,7 +201,7 @@ class Decode() extends Component {
 	io.decex.aluOp(0).func := func
     io.decex.immOp(0) := Bool(true)
     longImm := Bool(true)
-    io.decex.wrReg(0) := Bool(true)
+    io.decex.wrRd(0) := Bool(true)
     decoded := Bool(true)
   }
   // Stack control
@@ -237,7 +243,7 @@ class Decode() extends Component {
   when(opcode === OPCODE_CFL_CALL) {
     io.decex.immOp(0) := Bool(true)
     io.decex.call := Bool(true)
-    io.decex.wrReg(0) := Bool(true)
+    io.decex.wrRd(0) := Bool(true)
 	dest := Bits("b11111")
 	decoded := Bool(true)
   }
@@ -255,7 +261,7 @@ class Decode() extends Component {
 	switch(func) {
 	  is(JFUNC_CALL) {
 		io.decex.call := Bool(true)
-		io.decex.wrReg(0) := Bool(true)
+		io.decex.wrRd(0) := Bool(true)
 		dest := Bits("b11111")
 		decoded := Bool(true)
 	  }
@@ -293,7 +299,7 @@ class Decode() extends Component {
   when(opcode === OPCODE_LDT) {
     isMem := Bool(true)
     io.decex.memOp.load := Bool(true)
-    io.decex.wrReg(0) := Bool(true)
+    io.decex.wrRd(0) := Bool(true)
     switch(ldsize) {
       is(MSIZE_W) {
         shamt := UFix(2)
@@ -367,6 +373,12 @@ class Decode() extends Component {
   // Immediate for branch is sign extended, not extended for call
   // PC-relative value is precomputed here
   io.decex.jmpOp.target := decReg.pc + Cat(Fill(PC_SIZE - 22, instr(21)), instr(21, 0))
+  io.decex.jmpOp.relPc := decReg.relPc
+  io.decex.jmpOp.reloc := decReg.reloc
+
+  // PC-relative address for brcf
+  // TODO: this goes away when we make brcf like calls
+  io.decex.brcfAddr := Cat(io.decex.jmpOp.target + decReg.reloc, Bits("b00").toUFix)
 
   // Pass on PC
   io.decex.pc := decReg.pc
@@ -377,7 +389,7 @@ class Decode() extends Component {
   // Disable register write on register 0
   for (i <- 0 until PIPE_COUNT) {
 	when(io.decex.rdAddr(i) === Bits("b00000")) {
-      io.decex.wrReg(i) := Bool(false)
+      io.decex.wrRd(i) := Bool(false)
 	}
   }
   

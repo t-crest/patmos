@@ -51,8 +51,8 @@
 #include <machine/spm.h>
 
 /* UART */
-volatile _SPM int *uart_status_ptr = (volatile _SPM int *) 0xF0000100;
-volatile _SPM int *uart_data_ptr = (volatile _SPM int *) 0xF0000104;
+volatile _SPM int *uart_status_ptr = (volatile _SPM int *) 0xF0000800;
+volatile _SPM int *uart_data_ptr = (volatile _SPM int *) 0xF0000804;
 
 
 /* The outermost fake loop is to make a macro resolve to single statement

@@ -28,12 +28,6 @@
 
 namespace patmos
 {
-  /// Default address of the UART status register.
-  static const uword_t UART_STATUS_ADDRESS = 0xF0000100;
-
-  /// Default address of the UART data register.
-  static const uword_t UART_DATA_ADDRESS = 0xF0000104;
-
   /// A simple UART implementation allowing memory-mapped I/O.
   class uart_t : public mapped_device_t
   {
@@ -64,8 +58,6 @@ namespace patmos
     /// bit position of the transmit-ready bit (TRE).
     static const uword_t TRE = 0;
     
-    /// bit position of the transmit-flush control bit (FLU).
-    static const uword_t TFL = 3;
   protected:
     /// A simulated access to the UART's status register.
     /// @param value A pointer to a destination to store the value read from
@@ -91,9 +83,6 @@ namespace patmos
     /// @return True when the data is written to the UART.
     virtual bool write_control(byte_t *value)
     {
-      if (*value & (1 << TFL)) {
-        Out_stream.flush();
-      }
       return true;
     }
     
@@ -104,7 +93,10 @@ namespace patmos
     virtual bool read_data(byte_t *value)
     {
       In_stream.read(reinterpret_cast<char*>(value), sizeof(byte_t));
-      assert(In_stream.gcount() == sizeof(byte_t));
+      std::streamsize num = In_stream.gcount();
+      if (num == 0) return false;
+      
+      assert(num == sizeof(byte_t));
       return true;
     }
 
@@ -130,20 +122,16 @@ namespace patmos
 
   public:
     /// Construct a new memory-mapped UART.
-    /// @param status_address The address from/to which the UART's status can be
-    /// read/written.
-    /// @param data_address The address through which data can be exchanged with
-    /// the UART.
+    /// @param base_address The address of the UART device
     /// @param in_stream Stream providing data read from the UART.
     /// @param istty Flag indicating whether the input stream is a TTY.
     /// @param out_stream Stream storing data written to the UART.
-    uart_t(uword_t status_address, uword_t data_address,
+    uart_t(uword_t base_address,
            std::istream &in_stream, bool istty, std::ostream &out_stream) :
-        mapped_device_t(std::min(status_address,data_address), 
-                        std::max(status_address,data_address) - 
-                        std::min(status_address,data_address) + 4), 
-        Status_address(status_address),
-        Data_address(data_address), In_stream(in_stream), IsTTY(istty),
+        mapped_device_t(base_address, 8),
+        Status_address(base_address+0x00),
+        Data_address(base_address+0x04),
+        In_stream(in_stream), IsTTY(istty),
         Out_stream(out_stream)
     {
       // Ensure that we can check the rd buffer of the streams

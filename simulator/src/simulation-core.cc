@@ -26,25 +26,28 @@
 #include "symbol.h"
 #include "interrupts.h"
 #include "instructions.h"
+#include "rtc.h"
 
 #include <ios>
 #include <iostream>
 #include <iomanip>
+#include <limits>
 
 namespace patmos
 {
   simulator_t::simulator_t(memory_t &memory, memory_t &local_memory,
                            data_cache_t &data_cache,
-                           method_cache_t &method_cache,
+                           instr_cache_t &instr_cache,
                            stack_cache_t &stack_cache, symbol_map_t &symbols,
-                           rtc_t &rtc, interrupt_handler_t &interrupt_handler)
-    : Dbg_cnt_delay(0),
+                           interrupt_handler_t &interrupt_handler)
+    : Dbg_cnt_delay(0), Reset_stats_PC(std::numeric_limits<unsigned int>::max()),
       Cycle(0), Memory(memory), Local_memory(local_memory),
-      Data_cache(data_cache), Method_cache(method_cache),
+      Data_cache(data_cache), Instr_cache(instr_cache),
       Stack_cache(stack_cache), Symbols(symbols), Dbg_stack(*this),
-      Rtc(rtc), Interrupt_handler(interrupt_handler),
+      Interrupt_handler(interrupt_handler),
       BASE(0), PC(0), nPC(0),
-      Stall(SXX), Is_decoupled_load_active(false)
+      Stall(SXX), Disable_IF(false), Is_decoupled_load_active(false), 
+      Branch_counter(0), Interrupt_handling_counter(0)
   {
     // initialize one predicate register to be true, otherwise no instruction
     // will ever execute
@@ -126,7 +129,10 @@ namespace patmos
     Stall = std::max(Stall, pst);
   }
 
-
+  bool simulator_t::is_stalling(Pipeline_t pst) const
+  {
+    return Stall >= pst;
+  }
 
   void simulator_t::track_retiring_instructions()
   {
@@ -156,11 +162,6 @@ namespace patmos
 
   void simulator_t::instruction_fetch()
   {
-    // FIXME this is bad practice and will break if multiple instances
-    //       of the simulator exist.
-    static int branch_counter      = 0;
-    static int interrupt_handling  = 0;
-
     // we get a pointer to the instructions of the IF stage, for easier
     // reference
     instruction_data_t *instr_SIF = Pipeline[SIF];
@@ -168,33 +169,17 @@ namespace patmos
     // Fetch the instruction word from the method cache.
     // NB: We fetch in each cycle, as preparation for supporting a standard
     //     I-Cache in addition.
-    word_t iw[2];
-    if (!Method_cache.fetch(PC, iw))
+    word_t iw[NUM_SLOTS];
+    if (!Instr_cache.fetch(BASE, PC, iw))
     {
-      // For a standard I-Cache, we would naturally stall here
-      //pipeline_stall(SIF);
-#ifdef METHOD_CACHE_STALL_FETCH
-      // Move stalling for method cache from MW stage to IF stage.
-      // At the same time, calls to fetch_and_dispatch() in instructions.h
-      // are replaced by dispatch().
-      // Note that this change will affect profiling: the costs at miss are
-      // attributed to the callee instead of the caller.
-      if (!Method_cache.assert_availability(BASE))
-      {
-        pipeline_stall(SIF);
-      } else {
-        // refetch, as it became available in the cache
-        Method_cache.fetch(PC, iw);
-      }
-#else
-      if (Stall == SXX)
-      {
-        simulation_exception_t::illegal_pc(
-            Method_cache.get_active_method_base());
-      }
-#endif
+      // Stall the whole pipeline
+      pipeline_stall(SMW);
+    } else {
+      // Disable fetching until we filled the pipeline with a bubble at IF 
+      // again. This is to prevent re-fetching an instruction while we update
+      // the method cache.
+      Disable_IF = true;
     }
-
 
     // Decode the next instruction, or service an interrupt,
     // only if we are not stalling.
@@ -202,32 +187,31 @@ namespace patmos
     {
 
       if (Interrupt_handler.interrupt_pending() &&
-          branch_counter == 0 &&
-          interrupt_handling == 0)
+          Branch_counter == 0 &&
+          Interrupt_handling_counter == 0)
       {
         interrupt_t &interrupt = Interrupt_handler.get_interrupt();
 
         instr_SIF[0] = instruction_data_t::mk_CFLb(*Instr_INTR, p0,
                                         interrupt.Address, interrupt.Address);
+
         for(unsigned int i = 1; i < NUM_SLOTS; i++)
         {
           instr_SIF[i] = instruction_data_t();
         }
 
         // Handling interrupt, next CPU cycle no new instructions have to be decoded
-        interrupt_handling = 3;
+        Interrupt_handling_counter = 3;
 
-        // Store return from interrupt address
-        SPR.set(s9, PC);
       }
-      else if (interrupt_handling > 0)
+      else if (Interrupt_handling_counter > 0)
       {
         // Putting more empty instrutions after an interrupt
         for(unsigned int i = 0; i < NUM_SLOTS; i++)
         {
           instr_SIF[i] = instruction_data_t();
         }
-        interrupt_handling--;
+        Interrupt_handling_counter--;
 
       }
       else
@@ -242,9 +226,9 @@ namespace patmos
         }
 
         if(instr_SIF[0].I->is_flow_control())
-          branch_counter = 2;
-        else if (branch_counter)
-          branch_counter--;
+          Branch_counter = instr_SIF[0].I->get_delay_slots();
+        else if (Branch_counter)
+          Branch_counter--;
 
 
         for(unsigned int j = 0; j < NUM_SLOTS; j++)
@@ -262,8 +246,6 @@ namespace patmos
         nPC = PC + iw_size*4;
       }
 
-
-
     }
   }
 
@@ -276,8 +258,9 @@ namespace patmos
     // do some initializations before executing the first instruction.
     if (Cycle == 0)
     {
-      BASE = nPC = entry;
-      Method_cache.initialize(entry);
+      BASE = PC = nPC = entry;
+      lPC = ~0;
+      Instr_cache.initialize(entry);
       Profiling.initialize(entry);
       Dbg_stack.initialize(entry);
     }
@@ -289,6 +272,23 @@ namespace patmos
       {
         bool debug = (Cycle >= debug_cycle);
         bool debug_pipline = debug && (debug_fmt >= DF_LONG);
+        
+        // Reset statistics if we hit the reset PC.
+        // TODO we might add a hit counter and print the stats (to a file)
+        // before we reset them. We should also be able to print them once
+        // we enter a function and once we exit from that function.
+        if (PC == Reset_stats_PC) {
+          reset_stats();
+        }
+
+        // reset the stall counter.
+        Stall = SXX;
+
+        // Simulate the instruction fetch stage first.
+        // MW stage might need the nPC from instruction fetch for return info.
+        if (!Disable_IF) {
+          instruction_fetch();
+        }
 
         // simulate decoupled load
         Decoupled_load.dMW(*this);
@@ -313,8 +313,6 @@ namespace patmos
           print_instructions(debug_out, SEX);
         }
 
-        Rtc.tick();
-
         track_retiring_instructions();
 
         // Move pipeline stages and insert bubbles after stalling stage.
@@ -330,34 +328,32 @@ namespace patmos
           }
         }
 
+        // Update the Program counter. Either nPC was updated in the fetch stage
+        // or it was overwritten by a CFL instruction in EX/MW stage.
+        if (!is_stalling(SIF)) {
+          PC = nPC;
+          // We just inserted a bubble at SIF before, enable fetching for 
+          // this new instruction.
+          Disable_IF = false;
+        }
 
         // if we are stalling in MW, reset the bypass in EX so that it can be
         // filled by the stalled EX stage again (needs to be done for all
         // stalled bypasses).
-        if (Stall > SEX) {
+        if (is_stalling(SEX)) {
           for(unsigned int i = 0; i < NUM_SLOTS; i++)
           {
             Pipeline[SEX][i].GPR_EX_Rd.reset();
           }
         }
 
-        // Update the Program counter.
-        // Either nPC was updated in the fetch stage in the previous cycle,
-        // or it was overwritten by a CFL instruction in EX/MW stage.
-        PC = nPC;
-
-        // Simulate the instruction fetch stage.
-        instruction_fetch();
-
         // track pipeline stalls
         Num_stall_cycles[Stall]++;
 
-        // reset the stall counter.
-        Stall = SXX;
-
         // advance the time for the method cache, stack cache, and memory
+        Rtc->tick();
         Memory.tick();
-        Method_cache.tick();
+        Instr_cache.tick();
         Stack_cache.tick();
 
         if (debug)
@@ -376,6 +372,7 @@ namespace patmos
             }
           }
         }
+        lPC = PC;
       } // end of simulation loop
     }
     catch (simulation_exception_t e)
@@ -383,7 +380,8 @@ namespace patmos
       Profiling.finalize(Cycle);
 
       // pass on to caller
-      throw simulation_exception_t(e.get_kind(), e.get_info(), PC, Cycle);
+      e.set_cycle(Cycle, PC);
+      throw e;
     }
 
     Profiling.finalize(Cycle);
@@ -469,9 +467,16 @@ namespace patmos
       os << boost::format("%1$08x %2$9d %3% %|75t|") 
                    % Pipeline[stage][0].Address % Cycle % oss.str();
 
-      for(unsigned int i = 0; i < NUM_SLOTS; i++) {
-        if (i != 0) os << " || ";
-        Pipeline[stage][i].print_operands(*this, os, Symbols);
+      if (is_stalling(stage)) {
+        // Avoid peeking into memory while memory stage is still working by
+        // not printing out operands in this case
+        os << "stalling";
+      } else {
+        for(unsigned int i = 0; i < NUM_SLOTS; i++) {
+          if (!Pipeline[stage][i].I) continue;
+          if (i != 0) os << " || ";
+          Pipeline[stage][i].print_operands(*this, os, Symbols);
+        }
       }
 
       os << "\n";      
@@ -490,18 +495,23 @@ namespace patmos
            s.Pipeline[SMW][0].GPR_EX_Rd.get(
               s.GPR.get(reg))).get();
   }
-  
+
   void simulator_t::print(std::ostream &os, debug_format_e debug_fmt)
   {
     if (debug_fmt == DF_TRACE)
     {
-      // Boost::format is unacceptably slow (adpcm.elf):
-      //  => no debugging output:  1.6s
-      //  => os with custom formatting: 2.4s
-      //  => boost::format: 10.6s !!
-      os << std::hex << std::setw(8) << std::setfill('0') << PC << ' '
-         << std::dec << Cycle << '\n' << std::setfill(' ');
-      // os << boost::format("%1$08x %2%\n") % PC % Cycle;
+      // CAVEAT: this trace mode is used by platin's 'analyze-trace' module
+      // do not change without adapting platin
+      if (PC != lPC)
+      {
+        // Boost::format is unacceptably slow (adpcm.elf):
+        //  => no debugging output:  1.6s
+        //  => os with custom formatting: 2.4s
+        //  => boost::format: 10.6s !!
+        os << std::hex << std::setw(8) << std::setfill('0') << PC << ' '
+           << std::dec << Cycle << '\n' << std::setfill(' ');
+        // os << boost::format("%1$08x %2%\n") % PC % Cycle;
+      }
       return;
     }
     else if (debug_fmt == DF_INSTRUCTIONS) {
@@ -509,7 +519,7 @@ namespace patmos
       return;
     }
     else if (debug_fmt == DF_BLOCKS) {
-      if (Symbols.contains(PC)) {
+      if (PC != lPC && Symbols.contains(PC)) {
 	os << boost::format("%1$08x %2$9d ") % PC % Cycle;
 	Symbols.print(os, PC);
 	os << "\n";
@@ -531,7 +541,7 @@ namespace patmos
         }
         os << "\n";
         Dbg_cnt_delay = 0;
-      } 
+      }
       else if (Dbg_cnt_delay > 1) {
         Dbg_cnt_delay--;
       }
@@ -565,7 +575,7 @@ namespace patmos
       {
         // print state of method cache
         os << "Method Cache:\n";
-        Method_cache.print(os);
+        Instr_cache.print(os);
 
         // print state of data cache
         os << "Data Cache:\n";
@@ -584,6 +594,29 @@ namespace patmos
     }
   }
 
+  void simulator_t::reset_stats()
+  {
+    for(unsigned int i = 0; i < NUM_STAGES; i++)
+    {
+      Num_stall_cycles[i] = 0;
+    }
+
+    for(unsigned int j = 0; j < NUM_SLOTS; j++)
+    {
+      for (unsigned int k = 0; k < Decoder.get_num_instructions(); k++) { 
+        Instruction_stats[j][k].reset();
+      }
+
+      Num_bubbles_retired[j] = 0;
+    }
+    
+    Instr_cache.reset_stats();
+    Data_cache.reset_stats();
+    Stack_cache.reset_stats();
+    Memory.reset_stats();
+    Profiling.reset_stats();
+  }
+  
   void simulator_t::print_stats(std::ostream &os, bool slot_stats, bool instr_stats) const
   {
     // print register values
@@ -627,7 +660,10 @@ namespace patmos
         num_retired[slot_stats ? j : 0] += S.Num_retired;
         num_discarded[slot_stats ? j : 0] += S.Num_discarded;
 
-        assert(S.Num_fetched >= (S.Num_retired + S.Num_discarded));
+        // If we reset the statistics counters, we might have some 
+        // instructions that were in flight at the reset and thus are 
+        // counted as discarded but not as fetched
+        //assert(S.Num_fetched >= (S.Num_retired + S.Num_discarded));
       }
       
       for (unsigned int j = 0; j < NUM_SLOTS; j++) {
@@ -673,16 +709,20 @@ namespace patmos
          % (Pipeline_t)i % Num_stall_cycles[i];
     }
     // print statistics of method cache
-    Method_cache.print_stats(os, Symbols);
+    os << "\n\nInstruction Cache Statistics:\n";
+    Instr_cache.print_stats(*this, os);
 
     // print statistics of data cache
-    Data_cache.print_stats(os);
+    os << "\n\nData Cache Statistics:\n";
+    Data_cache.print_stats(*this, os);
 
     // print statistics of stack cache
-    Stack_cache.print_stats(os);
+    os << "\n\nStack Cache Statistics:\n";
+    Stack_cache.print_stats(*this, os);
 
     // print statistics of main memory
-    Memory.print_stats(os);
+    os << "\n\nMain Memory Statistics:\n";
+    Memory.print_stats(*this, os);
 
     // print profiling information
     Profiling.print(os, Symbols);

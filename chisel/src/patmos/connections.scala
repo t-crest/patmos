@@ -51,11 +51,15 @@ class FeDec() extends Bundle() {
   val instr_a = Bits(width = INSTR_WIDTH)
   val instr_b = Bits(width = INSTR_WIDTH)
   val pc = UFix(width = PC_SIZE)
+  val relPc = UFix(width = PC_SIZE)
+  val reloc = UFix(width = ADDR_WIDTH)
 
   def reset() = {
 	instr_a := Bits(0)
 	instr_b := Bits(0)
 	pc := UFix(0)
+	relPc := UFix(0)
+	reloc := UFix(0)
   }
 }
 
@@ -104,10 +108,14 @@ class PredOp() extends Bundle() {
 class JmpOp() extends Bundle() {
   val branch = Bool()
   val target = UFix(width = PC_SIZE)
+  val relPc = UFix(width = PC_SIZE)
+  val reloc = UFix(width = ADDR_WIDTH)
 
   def reset() = {
 	branch := Bool(false)
 	target := UFix(0)
+	relPc := UFix(0)
+	reloc := UFix(0)
   }
 }
 
@@ -144,9 +152,11 @@ class DecEx() extends Bundle() {
   val rdAddr = Vec(PIPE_COUNT) { Bits(width = REG_BITS) }
   val immVal = Vec(PIPE_COUNT) { Bits(width = DATA_WIDTH) }
   val immOp  = Vec(PIPE_COUNT) { Bool() }
-  val wrReg  = Vec(PIPE_COUNT) { Bool() }
+  // maybe we should have similar structure as the Result one here
+  val wrRd  = Vec(PIPE_COUNT) { Bool() }
 
   val callAddr = UFix(width = DATA_WIDTH)
+  val brcfAddr = UFix(width = DATA_WIDTH)
   val call = Bool()
   val ret = Bool()
   val brcf = Bool()
@@ -171,7 +181,7 @@ class DecEx() extends Bundle() {
 	rdAddr := Vec(PIPE_COUNT) { Bits(0) }
 	immVal := Vec(PIPE_COUNT) { Bits(0) }
 	immOp := Vec(PIPE_COUNT) { Bool(false) }
-	wrReg := Vec(PIPE_COUNT) { Bool(false) }
+	wrRd := Vec(PIPE_COUNT) { Bool(false) }
 	callAddr := UFix(0)
 	call := Bool(false)
 	ret := Bool(false)
@@ -321,6 +331,9 @@ class FetchIO extends Bundle() {
   val exfe = new ExFe().asInput
   // call from MEM
   val memfe = new MemFe().asInput
+  //connections to mcache
+  val femcache = new FeMCache().asOutput
+  val mcachefe = new MCacheFe().asInput
 }
 
 class ExcDec() extends Bundle() {
@@ -347,6 +360,7 @@ class ExecuteIO() extends Bundle() {
   val decex = new DecEx().asInput
   val exdec = new ExDec().asOutput
   val exmem = new ExMem().asOutput
+  val exmcache = new ExMCache().asOutput
   // forwarding inputs
   val exResult = Vec(PIPE_COUNT) { new Result().asInput }
   val memResult = Vec(PIPE_COUNT) { new Result().asInput }
@@ -407,6 +421,7 @@ class MemExc() extends Bundle() {
 
 class MemoryIO() extends Bundle() {
   val ena = Bool(OUTPUT)
+  val mc_ena = Bool(INPUT)
   val flush = Bool(OUTPUT)
   val exmem = new ExMem().asInput
   val memwb = new MemWb().asOutput
@@ -416,7 +431,7 @@ class MemoryIO() extends Bundle() {
   val exResult = Vec(PIPE_COUNT) { new Result().asOutput }
   // local and global accesses
   val localInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
-  val globalInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
+  val globalInOut = new OcpCacheMasterPort(ADDR_WIDTH, DATA_WIDTH)
   // exceptions
   val exc = new MemExc().asOutput
 }

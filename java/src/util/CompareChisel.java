@@ -91,9 +91,9 @@ public class CompareChisel {
 		int cnt = 1;
 		int pc = 0;
 		Pattern makeExitPattern = Pattern.compile("make\\S*:");
-		Pattern makeEndPattern = Pattern.compile("make");
 		Pattern passedExitPattern = Pattern.compile("PASSED");
 		
+		int cntNoChange = 0;
 		outerloop:
 		while (hs.hasNextLine() && chisel.hasNextLine()) {
 			// workaround for exits with error code
@@ -115,8 +115,10 @@ public class CompareChisel {
 				boolean change = false;
 				for (int i = 0; i < 32; ++i) {
 					csReg[i] = (int) chisel.nextLong();
-					if (csReg[i] != csRegOld[i])
+					if (csReg[i] != csRegOld[i]) {
 						change = true;
+						cntNoChange = 0;
+					}
 				}
 				if (change) {
 					for (int i = 0; i < 32; ++i) {
@@ -124,13 +126,19 @@ public class CompareChisel {
 					}
 					break;
 				} else {
+					++cntNoChange;
 					if (chisel.hasNextLine()) {
 						chisel.nextLine();						
 					} else {
 						break outerloop;
 					}
+					if (cntNoChange>1000) {
+						System.out.println("No change in Chisel simulation");
+						System.exit(1);
+					}
 				}
 			}
+			cntNoChange = 0;
 			while (true) {
 				boolean change = false;
 				for (int i = 0; i < 32; ++i) {
@@ -141,8 +149,10 @@ public class CompareChisel {
 						hs.next();
 					}
 					hsReg[i] = (int) hs.nextLong(16);
-					if (hsReg[i] != hsRegOld[i])
+					if (hsReg[i] != hsRegOld[i]) {
 						change = true;
+						cntNoChange = 0;
+					}
 				}
 				if (change) {
 					for (int i = 0; i < 32; ++i) {
@@ -150,10 +160,15 @@ public class CompareChisel {
 					}
 					break;
 				} else {
+					++cntNoChange;
 					if (hs.hasNextLine()) {
 						hs.nextLine();						
 					} else {
 						break outerloop;
+					}
+					if (cntNoChange>1000) {
+						System.out.println("No change in pasim simulation");
+						System.exit(1);
 					}
 				}
 			}

@@ -25,7 +25,7 @@ CXXFLAGS=-O2 -g
 
 # Quick fix for Mac OS X
 # How are include paths handled these days in *nix? CMake?
-ifeq ($(TERM_PROGRAM),Apple_Terminal)
+ifeq ($(TERM_PROGRAM),$(filter $(TERM_PROGRAM), Apple_Terminal iTerm.app))
 	INC_EXTRA=-I /opt/local/include -I /opt/local/include/libelf -L/opt/local/lib
 else
 	INC_EXTRA=
@@ -93,6 +93,13 @@ qsyn: verilog
 # build the boot binary
 $(BOOTBIN): .FORCE
 	$(MAKE) -C $(BOOTBUILDROOT) BUILDDIR=$(BOOTBUILDDIR) $(BOOTBIN)
+
+# for module tests
+MODUL=example.FsmMain
+MODUL=ocp.test.TestMain
+modtest:
+#	-rm -rf generated
+	$(SBT) "run-main $(MODUL) --backend c --compile --vcd --test --genHarness --targetDir generated"
 
 .FORCE:
 

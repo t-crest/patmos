@@ -3,8 +3,8 @@ quietly WaveActivateNextPane {} 0
 add wave -noupdate -radix hexadecimal /Patmos_tb/clk
 add wave -noupdate -radix hexadecimal /Patmos_tb/reset
 add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/io_led
-add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/fetch/addr_even
-add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/fetch/addr_odd
+add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/fetch/addrEvenReg
+add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/fetch/addrOddReg
 add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/fetch/ispm_even
 add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/fetch/ispm_odd
 add wave -noupdate /Patmos_tb/patmos/fetch/selIspm
@@ -12,7 +12,7 @@ add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/fetch/data_even
 add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/fetch/data_odd
 add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/fetch/instr_a
 add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/fetch/instr_b
-add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/fetch/pc
+add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/fetch/pcReg
 add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/fetch/pc_next
 add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/decode/addrImm
 add wave -noupdate -radix hexadecimal /Patmos_tb/patmos/decode/decReg_instr_b

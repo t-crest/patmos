@@ -65,7 +65,12 @@ class Patmos(fileName: String) extends Component {
     val led = Bits(OUTPUT, 9)
     val key = Bits(INPUT, 4)
     val uartPins = new UartPinIO()
+    val sramPins = new RamOutPinsIO() 
+    //val rfDebug = Vec(REG_COUNT) { Bits(OUTPUT, DATA_WIDTH) }
   }
+
+  val ssram = new SsramBurstRW()
+  val mcache = new MCache()
 
   val fetch = new Fetch(fileName)
   val decode = new Decode()
@@ -74,6 +79,18 @@ class Patmos(fileName: String) extends Component {
   val writeback = new WriteBack()
   val exc = new Exceptions()
   val iocomp = new InOut()
+
+  //io.rfDebug := decode.rf.io.rfDebug
+
+  ssram.io.ram_out <> io.sramPins.ram_out
+  ssram.io.ram_in <> io.sramPins.ram_in
+
+  //connect mcache
+  mcache.io.femcache <> fetch.io.femcache
+  mcache.io.mcachefe <> fetch.io.mcachefe
+  mcache.io.exmcache <> execute.io.exmcache
+  mcache.io.ocp_port <> ssram.io.ocp_port
+  mcache.io.ena <> memory.io.mc_ena  //feeds Hit/Miss signal to m-stage for a possible stall
 
   decode.io.fedec <> fetch.io.fedec
   execute.io.decex <> decode.io.decex
@@ -107,7 +124,7 @@ class Patmos(fileName: String) extends Component {
   memory.io.globalInOut <> globMem.io
 
   // Enable signal
-  val enable = memory.io.ena
+  val enable = memory.io.ena //& mcache.io.ena //containts also the ena signal from mcache
   fetch.io.ena := enable
   decode.io.ena := enable
   execute.io.ena := enable

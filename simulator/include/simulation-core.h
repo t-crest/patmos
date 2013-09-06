@@ -26,9 +26,7 @@
 #include "instruction.h"
 #include "exception.h"
 #include "profiling.h"
-
 #include "interrupts.h"
-#include "rtc.h"
 
 #include <limits>
 #include <iostream>
@@ -40,8 +38,9 @@ namespace patmos
   class data_cache_t;
   class symbol_map_t;
   class stack_cache_t;
-  class method_cache_t;
+  class instr_cache_t;
   class binary_format_t;
+  class rtc_t;
 
   /// Define the maximum number of slots in a bundle.
   static const unsigned int NUM_SLOTS = 2;
@@ -113,6 +112,10 @@ namespace patmos
       /// Number of times an instruction of the instruction class was retired
       /// (s.t. the predicate evaluated to false)
       unsigned int Num_discarded;
+      
+      void reset() {
+        Num_fetched = Num_retired = Num_discarded = 0;
+      }
     };
 
 
@@ -125,7 +128,9 @@ namespace patmos
     /// A vector containing instruction statistics.
     typedef std::vector<instruction_stat_t> instruction_stats_t;
 
-
+    /// Reset all statistics on the given program counter value.
+    uword_t Reset_stats_PC;
+    
   public:
     /// Cycle counter
     uint64_t Cycle;
@@ -140,7 +145,7 @@ namespace patmos
     data_cache_t &Data_cache;
 
     /// The method cache used during the simulation.
-    method_cache_t &Method_cache;
+    instr_cache_t &Instr_cache;
 
     /// The stack cache used during the simulation.
     stack_cache_t &Stack_cache;
@@ -152,7 +157,7 @@ namespace patmos
     dbgstack_t Dbg_stack;
 
     /// Real time clock
-    rtc_t &Rtc;
+    rtc_t *Rtc;
 
     /// Interrupt handler
     interrupt_handler_t &Interrupt_handler;
@@ -169,6 +174,9 @@ namespace patmos
     /// The next value for program counter register.
     uword_t nPC;
 
+    /// The last value of the program counter register
+    uword_t lPC;
+
     /// The general purpose registers.
     GPR_t GPR;
 
@@ -181,6 +189,9 @@ namespace patmos
     /// Counter up to which pipeline stage the processor stalls.
     Pipeline_t Stall;
 
+    /// Signal to disable the IF stage.
+    bool Disable_IF;
+    
     /// Interrupt instruction
     instruction_t *Instr_INTR;
 
@@ -195,6 +206,12 @@ namespace patmos
 
     /// Flag indicating whether a decoupled load is active.
     bool Is_decoupled_load_active;
+
+    /// Keep track of current branch delay
+    int Branch_counter;
+    
+    /// Delay decoder when an interrupt has been executed
+    int Interrupt_handling_counter;
 
     /// Runtime statistics on all instructions, per pipeline
     instruction_stats_t Instruction_stats[NUM_SLOTS];
@@ -229,6 +246,10 @@ namespace patmos
     /// stalled.
     void pipeline_stall(Pipeline_t pst);
 
+    /// Check if the given pipeline stage is currently stalled, either by
+    /// itself or any following stage.
+    bool is_stalling(Pipeline_t pst) const;
+
     /// Track retiring instructions for stats.
     void track_retiring_instructions();
 
@@ -242,13 +263,13 @@ namespace patmos
     /// @param memory The main memory to use during the simulation.
     /// @param local_memory The local memory to use during the simulation.
     /// @param data_cache The data cache to use during the simulation.
-    /// @param method_cache The method cache to use during the simulation.
+    /// @param instr_cache The instruction cache to use during the simulation.
     /// @param stack_cache The stack cache to use during the simulation.
     /// @param symbols A mapping from addresses to symbols.
     simulator_t(memory_t &memory, memory_t &local_memory,
-                data_cache_t &data_cache, method_cache_t &method_cache,
+                data_cache_t &data_cache, instr_cache_t &instr_cache,
                 stack_cache_t &stack_cache, symbol_map_t &symbols,
-                rtc_t &rtc, interrupt_handler_t &interrupt_handler);
+                interrupt_handler_t &interrupt_handler);
 
     // Destroy an instance of a Patms-core simulator
     ~simulator_t();
@@ -269,6 +290,9 @@ namespace patmos
              uint64_t max_cycles = std::numeric_limits<uint64_t>::max(),
              bool collect_instr_stats = false);
 
+    /// Reset the statistics when the given program counter is executed.
+    void reset_stats_at(uword_t pc) { Reset_stats_PC = pc; }
+    
     /// Print the instructions and their operands in a pipeline stage
     /// @param os An output stream.
     /// @param debug_fmt The stage to print.
@@ -284,6 +308,8 @@ namespace patmos
     /// @param os An output stream.
     void print_stats(std::ostream &os, bool slot_stats, bool instr_stats) const;
 
+    /// Reset all simulation statistics.
+    void reset_stats();
   };
 
 
