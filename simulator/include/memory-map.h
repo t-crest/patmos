@@ -153,6 +153,9 @@ namespace patmos
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
     virtual void print_stats(const simulator_t &s, std::ostream &os) { }
+    
+    /// Reset the statistics.
+    virtual void reset_stats() { }
   };
   
   
@@ -398,6 +401,16 @@ namespace patmos
         (*it)->print_stats(s, os);
       }
       Memory.print_stats(s, os);
+    }
+    
+    virtual void reset_stats()
+    {
+      for (DeviceList::iterator it = Devices.begin(), ie = Devices.end();
+           it != ie; ++it) 
+      {
+        (*it)->reset_stats();
+      }      
+      Memory.reset_stats(); 
     }
   };
 }

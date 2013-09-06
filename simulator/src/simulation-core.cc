@@ -31,6 +31,7 @@
 #include <ios>
 #include <iostream>
 #include <iomanip>
+#include <limits>
 
 namespace patmos
 {
@@ -39,7 +40,7 @@ namespace patmos
                            instr_cache_t &instr_cache,
                            stack_cache_t &stack_cache, symbol_map_t &symbols,
                            interrupt_handler_t &interrupt_handler)
-    : Dbg_cnt_delay(0),
+    : Dbg_cnt_delay(0), Reset_stats_PC(std::numeric_limits<unsigned int>::max()),
       Cycle(0), Memory(memory), Local_memory(local_memory),
       Data_cache(data_cache), Instr_cache(instr_cache),
       Stack_cache(stack_cache), Symbols(symbols), Dbg_stack(*this),
@@ -258,6 +259,7 @@ namespace patmos
     if (Cycle == 0)
     {
       BASE = PC = nPC = entry;
+      lPC = ~0;
       Instr_cache.initialize(entry);
       Profiling.initialize(entry);
       Dbg_stack.initialize(entry);
@@ -270,6 +272,14 @@ namespace patmos
       {
         bool debug = (Cycle >= debug_cycle);
         bool debug_pipline = debug && (debug_fmt >= DF_LONG);
+        
+        // Reset statistics if we hit the reset PC.
+        // TODO we might add a hit counter and print the stats (to a file)
+        // before we reset them. We should also be able to print them once
+        // we enter a function and once we exit from that function.
+        if (PC == Reset_stats_PC) {
+          reset_stats();
+        }
 
         // reset the stall counter.
         Stall = SXX;
@@ -362,6 +372,7 @@ namespace patmos
             }
           }
         }
+        lPC = PC;
       } // end of simulation loop
     }
     catch (simulation_exception_t e)
@@ -484,18 +495,23 @@ namespace patmos
            s.Pipeline[SMW][0].GPR_EX_Rd.get(
               s.GPR.get(reg))).get();
   }
-  
+
   void simulator_t::print(std::ostream &os, debug_format_e debug_fmt)
   {
     if (debug_fmt == DF_TRACE)
     {
-      // Boost::format is unacceptably slow (adpcm.elf):
-      //  => no debugging output:  1.6s
-      //  => os with custom formatting: 2.4s
-      //  => boost::format: 10.6s !!
-      os << std::hex << std::setw(8) << std::setfill('0') << PC << ' '
-         << std::dec << Cycle << '\n' << std::setfill(' ');
-      // os << boost::format("%1$08x %2%\n") % PC % Cycle;
+      // CAVEAT: this trace mode is used by platin's 'analyze-trace' module
+      // do not change without adapting platin
+      if (PC != lPC)
+      {
+        // Boost::format is unacceptably slow (adpcm.elf):
+        //  => no debugging output:  1.6s
+        //  => os with custom formatting: 2.4s
+        //  => boost::format: 10.6s !!
+        os << std::hex << std::setw(8) << std::setfill('0') << PC << ' '
+           << std::dec << Cycle << '\n' << std::setfill(' ');
+        // os << boost::format("%1$08x %2%\n") % PC % Cycle;
+      }
       return;
     }
     else if (debug_fmt == DF_INSTRUCTIONS) {
@@ -503,7 +519,7 @@ namespace patmos
       return;
     }
     else if (debug_fmt == DF_BLOCKS) {
-      if (Symbols.contains(PC)) {
+      if (PC != lPC && Symbols.contains(PC)) {
 	os << boost::format("%1$08x %2$9d ") % PC % Cycle;
 	Symbols.print(os, PC);
 	os << "\n";
@@ -525,7 +541,7 @@ namespace patmos
         }
         os << "\n";
         Dbg_cnt_delay = 0;
-      } 
+      }
       else if (Dbg_cnt_delay > 1) {
         Dbg_cnt_delay--;
       }
@@ -578,6 +594,29 @@ namespace patmos
     }
   }
 
+  void simulator_t::reset_stats()
+  {
+    for(unsigned int i = 0; i < NUM_STAGES; i++)
+    {
+      Num_stall_cycles[i] = 0;
+    }
+
+    for(unsigned int j = 0; j < NUM_SLOTS; j++)
+    {
+      for (unsigned int k = 0; k < Decoder.get_num_instructions(); k++) { 
+        Instruction_stats[j][k].reset();
+      }
+
+      Num_bubbles_retired[j] = 0;
+    }
+    
+    Instr_cache.reset_stats();
+    Data_cache.reset_stats();
+    Stack_cache.reset_stats();
+    Memory.reset_stats();
+    Profiling.reset_stats();
+  }
+  
   void simulator_t::print_stats(std::ostream &os, bool slot_stats, bool instr_stats) const
   {
     // print register values
@@ -621,7 +660,10 @@ namespace patmos
         num_retired[slot_stats ? j : 0] += S.Num_retired;
         num_discarded[slot_stats ? j : 0] += S.Num_discarded;
 
-        assert(S.Num_fetched >= (S.Num_retired + S.Num_discarded));
+        // If we reset the statistics counters, we might have some 
+        // instructions that were in flight at the reset and thus are 
+        // counted as discarded but not as fetched
+        //assert(S.Num_fetched >= (S.Num_retired + S.Num_discarded));
       }
       
       for (unsigned int j = 0; j < NUM_SLOTS; j++) {

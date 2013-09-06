@@ -148,5 +148,10 @@ namespace patmos
     os << "\n";
     return os;
   }
+  
+  void profiling_t::reset_stats() 
+  {
+    cycles_map.clear();
+  }
 
 } // end namespace patmos

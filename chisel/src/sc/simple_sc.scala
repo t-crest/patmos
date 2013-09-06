@@ -96,6 +96,7 @@ val io = new Bundle {
 
     val spill_burst_len = Reg(resetVal = Fix(3, 3))
     val spill_en_cnt = Reg(resetVal = Fix(0, 2))
+    val fill_en_cnt = Reg(resetVal = Fix(0, 2))
     
 	when(sc_en(0)) { sc0(cpu_addr_masked ) := io.scCpuInOut.M.Data(BYTE_WIDTH-1, 0) }
 	when(sc_en(1)) { sc1(cpu_addr_masked ) := io.scCpuInOut.M.Data(2*BYTE_WIDTH-1, BYTE_WIDTH) }
@@ -146,7 +147,7 @@ val io = new Bundle {
 	  // spill
 	  when (io.spill === UFix(1)){
 	    spill := UFix(1)
-	    n_spill := io.n_spill
+	    n_spill := io.n_spill + UFix(4) - m_top(1, 0)
 	    io.stall	:= UFix(1)
 	    state := spill_st
 	    io.scMemInOut.M.Cmd	:= OcpCmd.WRNP
@@ -159,18 +160,21 @@ val io = new Bundle {
   
 	    //
     	
-    	m_top := m_top - UFix(1) + UFix(4) - m_top(1, 0)
+    	m_top := m_top - UFix(1) + UFix(4) - m_top(1, 0) // addrs alignment
     	spill_en_cnt := UFix(4) - m_top(1, 0)
 	  } 
 	  // fill
 	  .elsewhen (io.fill === UFix(1)){
 	    fill := UFix(1)
 	    state := fill_st
+	    n_fill		:= io.n_fill + m_top(1, 0) // adjust the fill size according to addr
 	    io.stall := UFix(1)
 	    io.scMemInOut.M.Cmd	:= OcpCmd.RD
-	    io.scMemInOut.M.Addr := m_top + UFix(1)
+	    io.scMemInOut.M.Addr := m_top - m_top(1, 0) + UFix(1)
 	    first_cmd := OcpCmd.RD
-    	first_addr := m_top + UFix(1)
+    	first_addr := m_top - m_top(1, 0) + UFix(1)
+    	fill_en_cnt := m_top(1, 0)
+    	m_top := m_top - m_top(1, 0) // addrs alignment
 	  }
 	  // free
 	  .elsewhen (io.free === UFix(1)){
@@ -179,14 +183,6 @@ val io = new Bundle {
 	  }
 	}
 	
-	
-
-//	when (io.scMemInOut.S.DataAccept === Bits(1) ) {
-//		 when (n_spill - Fix(burstLen) >= UFix(0)) {io.scMemInOut.M.DataByteEn := Bits("b1111")} 
-//			  .elsewhen (n_spill - Fix(burstLen - 1) === UFix(0)) {io.scMemInOut.M.DataByteEn := Bits("b1110")} 
-//			  .elsewhen (n_spill - Fix(burstLen - 2) === UFix(0)) {io.scMemInOut.M.DataByteEn := Bits("b1100")}
-//			  .elsewhen (n_spill - Fix(burstLen - 3) === UFix(0)) {io.scMemInOut.M.DataByteEn := Bits("b1000")}
-//	}
 	
 	when (state === spill_st){
 	  io.stall := UFix(1)
@@ -198,8 +194,13 @@ val io = new Bundle {
 		    	first_addr := mem_addr_reg
 		    	first_data := rdDataSpill
 		    	first_cmd := OcpCmd.WRNP
+		    	io.scMemInOut.M.Cmd := OcpCmd.WRNP
+		    	io.scMemInOut.M.Addr := mem_addr_reg	  	
+	    		io.scMemInOut.M.Data := rdDataSpill
+	    		io.scMemInOut.M.DataValid := Bits(1)  
 		    	start_spill := UFix(0)
-		    	spill_burst_len := UFix(3)
+		    	spill_burst_len := Fix(3)
+		    	spill_en_cnt := Fix(0)
 		    }
 	    	.otherwise {
 	    		io.scMemInOut.M.Cmd	:= first_cmd		  	
@@ -214,8 +215,24 @@ val io = new Bundle {
 		    when (spill_en_cnt - Fix(1) >= Fix(0)) {
 		    	io.scMemInOut.M.DataByteEn := Bits(0)
 		    }
-		    .otherwise { io.scMemInOut.M.DataByteEn := (Bits(1) << spill_burst_len)}
+		    .otherwise { 
+		      when (spill_burst_len === UFix(0)) { 
+		    	  io.scMemInOut.M.DataByteEn := Bits(1) }
+		      .otherwise {
+		    	  when (start_spill === UFix(0)) {io.scMemInOut.M.DataByteEn := (Bits(1) << spill_burst_len) }
+		    	  .otherwise {
+		    	  io.scMemInOut.M.DataByteEn := (Bits(1) << spill_burst_len - Fix(1) )
+		    	  }
+		      }
+		      
+		     }
 		    
+		    
+		    when (spill_burst_len === UFix(0)) {
+		    	first_addr := mem_addr_reg
+		    	first_data := rdDataSpill
+		    	first_cmd := OcpCmd.WRNP
+		    }
 		   	when (start_spill === UFix(0)) { 
 		   		start_spill := UFix(1)
 				io.scMemInOut.M.Cmd	:= first_cmd
@@ -228,12 +245,16 @@ val io = new Bundle {
 		   		io.scMemInOut.M.Data := rdDataSpill
 		   		spill_burst_len := spill_burst_len - Fix(1)
 		   }
+		   	
 		    m_top  		:= m_top - UFix(1)
 		    n_spill 	:= n_spill - UFix(1)
 		    io.scMemInOut.M.DataValid := Bits(1)
-		    spill_en_cnt := spill_en_cnt - Fix(1)
+		    when (spill_en_cnt - Fix(1) >= Fix(0)) {
+		    	spill_en_cnt := spill_en_cnt - Fix(1)
+		    }
+		    
 		  }
-//		  }
+
 		  
 		  .otherwise {
 			io.scMemInOut.M.Cmd := OcpCmd.IDLE
@@ -247,25 +268,28 @@ val io = new Bundle {
 	when (state === fill_st){
 	  io.stall := UFix(1)
 	  io.scMemInOut.M.Cmd	:= OcpCmd.RD
-	  io.scMemInOut.M.Addr	:= m_top + UFix(1)
+	  io.scMemInOut.M.Addr	:= m_top
 
 	  when ( io.scMemInOut.S.Resp === OcpResp.DVA) { // 
 		  
 		  when ((n_fill - Fix(2)) >= Fix(0)){
 				io.scMemInOut.M.Cmd	:= OcpCmd.IDLE
-			  	when (fill_en(0)) {sc0((m_top + UFix(1)) & SC_MASK) := io.scMemInOut.S.Data(BYTE_WIDTH-1, 0)}
-		   		when (fill_en(1)) {sc1((m_top + UFix(1)) & SC_MASK) := io.scMemInOut.S.Data(2*BYTE_WIDTH-1, BYTE_WIDTH)}
-		   		when (fill_en(2)) {sc2((m_top + UFix(1)) & SC_MASK) := io.scMemInOut.S.Data(3*BYTE_WIDTH-1, 2*BYTE_WIDTH)}
-		   		when (fill_en(3)) {sc3((m_top + UFix(1)) & SC_MASK) := io.scMemInOut.S.Data(DATA_WIDTH-1, 3*BYTE_WIDTH)}
+				when (fill_en_cnt === Fix(0)) {
+			  	 {sc0((m_top ) & SC_MASK) := io.scMemInOut.S.Data(BYTE_WIDTH-1, 0)}
+		   		 {sc1((m_top ) & SC_MASK) := io.scMemInOut.S.Data(2*BYTE_WIDTH-1, BYTE_WIDTH)}
+		   		 {sc2((m_top ) & SC_MASK) := io.scMemInOut.S.Data(3*BYTE_WIDTH-1, 2*BYTE_WIDTH)}
+		   		 {sc3((m_top ) & SC_MASK) := io.scMemInOut.S.Data(DATA_WIDTH-1, 3*BYTE_WIDTH)}
+				}
 		   		
 		   		m_top  		:= m_top + UFix(1)
 		   		n_fill 	:= n_fill - UFix(1)
+		   		when (fill_en_cnt - Fix(1) >= Fix(0)) {fill_en_cnt := fill_en_cnt - Fix(1)}
 		   	}
 		  .otherwise {
 			io.scMemInOut.M.Cmd := OcpCmd.IDLE
 		    state 		:= init_st
 		    io.stall 	:= UFix(0)
-		   // start_spill := UFix(0)
+		   
 		  }		
 	  } 
 	}
@@ -278,19 +302,28 @@ val io = new Bundle {
 	   io.stall 	:= UFix(0)
 	   when (io.fill === UFix(1)) {
 	    	state 		:= fill_st 
-	    	n_fill		:= io.n_fill
+	    	n_fill		:= io.n_fill + m_top(1, 0) // adjust the fill size according to addr
 	    	io.scMemInOut.M.Cmd	:= OcpCmd.RD
 	    	io.stall := UFix(1)
 		  	fill := UFix(1)
-		  	io.scMemInOut.M.Addr := m_top + UFix(1)
+		  	io.scMemInOut.M.Addr := m_top - m_top(1, 0)  + UFix(1)
 		  	first_cmd := OcpCmd.RD
-		  	first_addr := m_top + UFix(1)
+		  	first_addr := m_top - m_top(1, 0)  + UFix(1)
+		  	m_top := m_top - m_top(1, 0) // addrs alignment
 	   }
 	   .elsewhen (io.spill === UFix(1)) { 
 	//	   when (io.scMemInOut.S.DataAccept === Bits(1)) {
 			   state := spill_st
-			   n_spill := io.n_spill
+			   n_spill := io.n_spill + UFix(4) - m_top(1, 0)
 			   io.stall := UFix(1)
+			   spill := UFix(1)
+			   io.scMemInOut.M.Cmd	:= OcpCmd.WRNP
+			   io.scMemInOut.M.Addr := mem_addr_reg + UFix(4) - m_top(1, 0)
+			   io.scMemInOut.M.Data := rdDataSpill
+			   io.scMemInOut.M.DataValid := Bits(1)
+			   first_cmd := OcpCmd.WRNP
+			   first_addr := mem_addr_reg + UFix(4) - m_top(1, 0)
+			   first_data := rdDataSpill
 
 		}
 	   .otherwise {state := init_st}

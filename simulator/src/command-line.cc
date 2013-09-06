@@ -24,6 +24,7 @@
 #include <cctype>
 
 #include <boost/program_options.hpp>
+#include <boost/format.hpp>
 
 namespace patmos
 {
@@ -304,7 +305,9 @@ namespace patmos
   {
     unsigned int v = bs.value();
 
-    if ((v & 0x3fffffff) == 0)
+    if (v == 0)
+      os << "0";
+    else if ((v & 0x3fffffff) == 0)
       os << (v >> 10) << "g";
     else if ((v & 0xfffff) == 0)
       os << (v >> 20) << "m";
@@ -313,6 +316,38 @@ namespace patmos
     else
       os << v;
 
+    return os;
+  }
+  
+  std::istream &operator >>(std::istream &in, address_t &a)
+  {
+    unsigned int v;
+
+    std::string tmp;
+    in >> tmp;
+    
+    std::stringstream s;
+    if (tmp.size() > 2 && tmp.substr(0, 2) == "0x") {
+      s << std::hex << tmp.substr(2);
+    } else if (tmp.size() > 1 && tmp.substr(0, 1) == "0") {
+      // TODO this might be misleading!! warn about that
+      s << std::oct << tmp.substr(1);      
+    } else {
+      s << tmp;
+    }
+    
+    s >> v;
+    a = v;
+    
+    return in;
+  }
+
+  std::ostream &operator <<(std::ostream &os, const address_t &a)
+  {
+    unsigned int v = a.value();
+
+    os << boost::format("0x%1$x") % v;
+    
     return os;
   }
 }

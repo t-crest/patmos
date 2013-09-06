@@ -112,6 +112,10 @@ namespace patmos
       /// Number of times an instruction of the instruction class was retired
       /// (s.t. the predicate evaluated to false)
       unsigned int Num_discarded;
+      
+      void reset() {
+        Num_fetched = Num_retired = Num_discarded = 0;
+      }
     };
 
 
@@ -124,7 +128,9 @@ namespace patmos
     /// A vector containing instruction statistics.
     typedef std::vector<instruction_stat_t> instruction_stats_t;
 
-
+    /// Reset all statistics on the given program counter value.
+    uword_t Reset_stats_PC;
+    
   public:
     /// Cycle counter
     uint64_t Cycle;
@@ -167,6 +173,9 @@ namespace patmos
 
     /// The next value for program counter register.
     uword_t nPC;
+
+    /// The last value of the program counter register
+    uword_t lPC;
 
     /// The general purpose registers.
     GPR_t GPR;
@@ -281,6 +290,9 @@ namespace patmos
              uint64_t max_cycles = std::numeric_limits<uint64_t>::max(),
              bool collect_instr_stats = false);
 
+    /// Reset the statistics when the given program counter is executed.
+    void reset_stats_at(uword_t pc) { Reset_stats_PC = pc; }
+    
     /// Print the instructions and their operands in a pipeline stage
     /// @param os An output stream.
     /// @param debug_fmt The stage to print.
@@ -296,6 +308,8 @@ namespace patmos
     /// @param os An output stream.
     void print_stats(std::ostream &os, bool slot_stats, bool instr_stats) const;
 
+    /// Reset all simulation statistics.
+    void reset_stats();
   };
 
 

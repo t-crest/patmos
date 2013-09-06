@@ -58,8 +58,6 @@ namespace patmos
     /// bit position of the transmit-ready bit (TRE).
     static const uword_t TRE = 0;
     
-    /// bit position of the transmit-flush control bit (FLU).
-    static const uword_t TFL = 3;
   protected:
     /// A simulated access to the UART's status register.
     /// @param value A pointer to a destination to store the value read from
@@ -85,9 +83,6 @@ namespace patmos
     /// @return True when the data is written to the UART.
     virtual bool write_control(byte_t *value)
     {
-      if (*value & (1 << TFL)) {
-        Out_stream.flush();
-      }
       return true;
     }
     
