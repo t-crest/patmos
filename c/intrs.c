@@ -4,9 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define LEDS (*((volatile _SPM unsigned *)0xf0000200))
+#define LEDS (*((volatile _SPM unsigned *)0xf0000900))
 
-#define EXC_BASE 0xf0000300
+#define EXC_BASE 0xf0000100
 #define EXC_STATUS (*((volatile _SPM unsigned *)EXC_BASE+0))
 #define EXC_MASK   (*((volatile _SPM unsigned *)EXC_BASE+1))
 #define EXC_PEND   (*((volatile _SPM unsigned *)EXC_BASE+2))
