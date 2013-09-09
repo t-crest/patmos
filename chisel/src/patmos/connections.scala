@@ -108,13 +108,11 @@ class PredOp() extends Bundle() {
 class JmpOp() extends Bundle() {
   val branch = Bool()
   val target = UFix(width = PC_SIZE)
-  val relPc = UFix(width = PC_SIZE)
   val reloc = UFix(width = ADDR_WIDTH)
 
   def reset() = {
 	branch := Bool(false)
 	target := UFix(0)
-	relPc := UFix(0)
 	reloc := UFix(0)
   }
 }
@@ -138,7 +136,7 @@ class MemOp() extends Bundle() {
 }
 
 class DecEx() extends Bundle() {
-  val pc = UFix(width = PC_SIZE)
+  val relPc = UFix(width = PC_SIZE)
   val pred =  Vec(PIPE_COUNT) { Bits(width = PRED_BITS+1) }
   val aluOp = Vec(PIPE_COUNT) { new AluOp() }
   val predOp = Vec(PIPE_COUNT) { new PredOp() }
@@ -168,7 +166,7 @@ class DecEx() extends Bundle() {
   val illOp = Bool()
   
   def reset() = {
-	pc := UFix(0)
+	relPc := UFix(0)
 	pred := Vec(PIPE_COUNT) { Bits(0) }
 	for (i <- 0 until PIPE_COUNT) {
 	  aluOp(i).reset()
@@ -263,14 +261,14 @@ class ExDec() extends Bundle() {
 class ExMem() extends Bundle() {
   val rd = Vec(PIPE_COUNT) { new Result() }
   val mem = new MemIn()
-  val pc = UFix(width = PC_SIZE)
+  val relPc = UFix(width = PC_SIZE)
 
   def reset() = {
 	for (i <- 0 until PIPE_COUNT) {
 	  rd(i).reset()
 	}
 	mem.reset()
-	pc := UFix(0)
+	relPc := UFix(0)
   }
 }
 
@@ -306,7 +304,7 @@ class MemWb() extends Bundle() {
   // do we need this? probably not.
   // maybe drop unused pc fields
   // maybe nice for debugging?
-  val pc = UFix(width = PC_SIZE)
+  val relPc = UFix(width = PC_SIZE)
 }
 
 class RegFileRead() extends Bundle() {

@@ -144,7 +144,7 @@ class Patmos(fileName: String) extends Component {
 
   // Dummy output, which is ignored in the top level VHDL code, to
   // keep Chisel keep this signal alive unused signals
-  io.dummy := Reg(memory.io.memwb.pc)
+  io.dummy := Reg(memory.io.memwb.relPc)
 }
 
 // this testing and main file should go into it's own folder
@@ -164,7 +164,7 @@ class PatmosTest(pat: Patmos) extends Tester(pat,
       vars.clear
       step(vars, ovars, false) // false as third argument disables printout
       // The PC printout is a little off on a branch
-      val pc = ovars(pat.memory.io.memwb.pc).litValue() - 2
+      val pc = ovars(pat.memory.io.memwb.relPc).litValue() - 2
       // println(ovars(pat.io.led).litValue())
       print(pc + " - ")
       for (j <- 0 until 32)

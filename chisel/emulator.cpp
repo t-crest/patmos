@@ -155,7 +155,7 @@ static val_t readelf(istream &is, Patmos_t *c)
 }
 
 static void print_state(Patmos_t *c) {
-	sval_t pc = c->Patmos_memory__io_memwb_pc.to_ulong();
+	sval_t pc = c->Patmos_memory__io_memwb_relPc.to_ulong();
 	*out << (pc - 2) << " - ";
 
 	for (unsigned i = 0; i < 32; i++) {

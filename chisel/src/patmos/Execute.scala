@@ -58,7 +58,7 @@ class Execute() extends Component {
     exReg := io.decex
     when(io.flush) {
       exReg.reset()
-      exReg.pc := io.decex.pc
+      exReg.relPc := io.decex.relPc
     }
   }
   // no access to io.decex after this point!!!
@@ -346,7 +346,7 @@ class Execute() extends Component {
   val baseReg = Reg(resetVal = UFix(4, DATA_WIDTH))
   when(exReg.xcall && doExecute(0) && io.ena) {
     excBaseReg := baseReg
-    excOffReg := Cat(exReg.jmpOp.relPc, Bits("b00").toUFix)
+    excOffReg := Cat(exReg.relPc, Bits("b00").toUFix)
   }
   when(doCallRet && io.ena) {
     baseReg := callRetBase
@@ -359,7 +359,8 @@ class Execute() extends Component {
 				   op(0)(DATA_WIDTH-1, 2).toUFix - exReg.jmpOp.reloc)
   io.exfe.branchPc := target
   
-  io.exmem.pc := exReg.pc
+  // pass on PC
+  io.exmem.relPc := exReg.relPc
 
   //call/return for mcache
   io.exmcache.doCallRet := doCallRet
