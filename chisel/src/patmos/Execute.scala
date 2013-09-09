@@ -179,15 +179,11 @@ class Execute() extends Component {
   val mulHLReg    = Reg(resetVal = UFix(0, DATA_WIDTH))
   val mulHHReg    = Reg(resetVal = UFix(0, DATA_WIDTH))
 
-  val mulBufReg = Reg(resetVal = UFix(0, 2*DATA_WIDTH))
-  
-  val mulPipeReg = Vec(3) { Reg(resetVal = Bool(false)) }
+  val mulPipeReg = Reg(resetVal = Bool(false))
 
   // multiplication only in first pipeline
   when(io.ena) {
-	mulPipeReg(0) := exReg.aluOp(0).isMul && doExecute(0)
-	mulPipeReg(1) := mulPipeReg(0)
-	mulPipeReg(2) := mulPipeReg(1)
+	mulPipeReg := exReg.aluOp(0).isMul && doExecute(0)
 
 	val signed = exReg.aluOp(0).func === MFUNC_MUL
 
@@ -208,15 +204,15 @@ class Execute() extends Component {
 	  mulHHReg := (op1H.toFix * op2H.toFix).toUFix
 	}
 
-	mulBufReg := (Cat(mulHHReg, mulLLReg)
-			   + Cat(Fill(DATA_WIDTH/2, mulHLReg(DATA_WIDTH-1)),
-					 mulHLReg, UFix(0, width = DATA_WIDTH/2))
-			   + Cat(Fill(DATA_WIDTH/2, mulLHReg(DATA_WIDTH-1)),
-					 mulLHReg, UFix(0, width = DATA_WIDTH/2)))
+	val mulResult = (Cat(mulHHReg, mulLLReg)
+					 + Cat(Fill(DATA_WIDTH/2, mulHLReg(DATA_WIDTH-1)),
+						   mulHLReg, UFix(0, width = DATA_WIDTH/2))
+					 + Cat(Fill(DATA_WIDTH/2, mulLHReg(DATA_WIDTH-1)),
+						   mulLHReg, UFix(0, width = DATA_WIDTH/2)))
 
-	when(mulPipeReg(1)) {
-	  mulHiReg := mulBufReg(2*DATA_WIDTH-1, DATA_WIDTH)
-	  mulLoReg := mulBufReg(DATA_WIDTH-1, 0)
+	when(mulPipeReg) {
+	  mulHiReg := mulResult(2*DATA_WIDTH-1, DATA_WIDTH)
+	  mulLoReg := mulResult(DATA_WIDTH-1, 0)
 	}
   }
 
