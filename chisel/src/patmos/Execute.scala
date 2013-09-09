@@ -53,9 +53,13 @@ import Constants._
 class Execute() extends Component {
   val io = new ExecuteIO()
 
-  val exReg = Reg(new DecEx(), resetVal = DecExResetVal)
+  val exReg = Reg(resetVal = DecEx.resetVal)
   when(io.ena) {
     exReg := io.decex
+    when(io.flush) {
+      exReg.reset()
+      exReg.relPc := io.decex.relPc
+    }
   }
   // no access to io.decex after this point!!!
 
@@ -159,13 +163,18 @@ class Execute() extends Component {
 
   val doExecute = Vec(PIPE_COUNT) { Bool() }
   for (i <- 0 until PIPE_COUNT) {
-	doExecute(i) := predReg(exReg.pred(i)(PRED_BITS-1, 0)) ^ exReg.pred(i)(PRED_BITS)
+    doExecute(i) := Mux(io.flush, Bool(false),
+                        predReg(exReg.pred(i)(PRED_BITS-1, 0)) ^ exReg.pred(i)(PRED_BITS))
   }
 
   // stack registers
   val stackTopReg = Reg(resetVal = UFix(0, DATA_WIDTH))
   val stackSpillReg = Reg(resetVal = UFix(0, DATA_WIDTH))
   io.exdec.sp := stackTopReg
+
+  // exception return information
+  val excBaseReg = Reg(resetVal = UFix(0, DATA_WIDTH))
+  val excOffReg = Reg(resetVal = UFix(0, DATA_WIDTH))
 
   // MS: maybe the multiplication should be in a local component?
   
@@ -262,6 +271,12 @@ class Execute() extends Component {
 		is(SPEC_SS) {
 		  stackSpillReg := op(2*i).toUFix()
 		}
+		is(SPEC_SXB) {
+		  excBaseReg := op(2*i).toUFix()
+		}
+		is(SPEC_SXO) {
+		  excOffReg := op(2*i).toUFix()
+		}
 	  }
 	}
 	val mfsResult = UFix();
@@ -282,6 +297,12 @@ class Execute() extends Component {
 	  is(SPEC_SS) {
 		mfsResult := stackSpillReg
 	  }
+	  is(SPEC_SXB) {
+		mfsResult := excBaseReg
+	  }
+	  is(SPEC_SXO) {
+		mfsResult := excOffReg
+	  }
 	}
 
 	// result
@@ -299,16 +320,38 @@ class Execute() extends Component {
   io.exmem.mem.typ := exReg.memOp.typ
   io.exmem.mem.addr := op(0) + exReg.immVal(0)
   io.exmem.mem.data := op(1)
+
+  // call/return
   io.exmem.mem.call := exReg.call && doExecute(0)
   io.exmem.mem.ret  := exReg.ret && doExecute(0)
   io.exmem.mem.brcf := exReg.brcf && doExecute(0)
-  // call/return
+  io.exmem.mem.trap := exReg.trap && doExecute(0)
+  io.exmem.mem.xcall := exReg.xcall && doExecute(0)
+  io.exmem.mem.xret := exReg.xret && doExecute(0)
+  io.exmem.mem.xsrc := exReg.xsrc
+  io.exmem.mem.illOp := exReg.illOp
+
+  val doCallRet = (exReg.call || exReg.ret || exReg.brcf ||
+				   exReg.xcall || exReg.xret) && doExecute(0)
   val callAddr = Mux(exReg.immOp(0), exReg.callAddr, op(0).toUFix)
   val brcfAddr = Mux(exReg.immOp(0), exReg.brcfAddr, op(0).toUFix)
-  io.exmem.mem.callRetAddr := Mux(exReg.call || exReg.brcf, UFix(0), op(1).toUFix)
-  io.exmem.mem.callRetBase := Mux(exReg.call, callAddr,
-								  Mux(exReg.brcf, brcfAddr,
-									  op(0).toUFix))
+  val callRetAddr = Mux(exReg.call || exReg.xcall || exReg.brcf, UFix(0), op(1).toUFix)
+  val callRetBase = Mux(exReg.call || exReg.xcall, callAddr,
+                        Mux(exReg.brcf, brcfAddr,
+                            op(0).toUFix))
+  io.exmem.mem.callRetBase := callRetBase
+  io.exmem.mem.callRetAddr := callRetAddr
+
+  // exception return information
+  val baseReg = Reg(resetVal = UFix(4, DATA_WIDTH))
+  when(exReg.xcall && doExecute(0) && io.ena) {
+    excBaseReg := baseReg
+    excOffReg := Cat(exReg.relPc, Bits("b00").toUFix)
+  }
+  when(doCallRet && io.ena) {
+    baseReg := callRetBase
+  }
+
   // branch
   io.exfe.doBranch := exReg.jmpOp.branch && doExecute(0)
   val target = Mux(exReg.immOp(0),
@@ -316,10 +359,11 @@ class Execute() extends Component {
 				   op(0)(DATA_WIDTH-1, 2).toUFix - exReg.jmpOp.reloc)
   io.exfe.branchPc := target
   
-  io.exmem.pc := exReg.pc
+  // pass on PC
+  io.exmem.relPc := exReg.relPc
 
   //call/return for mcache
-  io.exmcache.doCallRet := ((exReg.call || exReg.ret || exReg.brcf) && doExecute(0))
+  io.exmcache.doCallRet := doCallRet
   io.exmcache.callRetBase := io.exmem.mem.callRetBase(31,2)
   io.exmcache.callRetAddr := io.exmem.mem.callRetAddr(31,2)
 

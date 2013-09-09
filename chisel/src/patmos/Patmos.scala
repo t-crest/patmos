@@ -63,6 +63,7 @@ class Patmos(fileName: String) extends Component {
   val io = new Bundle {
     val dummy = Bits(OUTPUT, 32)
     val led = Bits(OUTPUT, 9)
+    val key = Bits(INPUT, 4)
     val uartPins = new UartPinIO()
     val sramPins = new RamOutPinsIO() 
     //val rfDebug = Vec(REG_COUNT) { Bits(OUTPUT, DATA_WIDTH) }
@@ -76,6 +77,7 @@ class Patmos(fileName: String) extends Component {
   val execute = new Execute()
   val memory = new Memory()
   val writeback = new WriteBack()
+  val exc = new Exceptions()
   val iocomp = new InOut()
 
   //io.rfDebug := decode.rf.io.rfDebug
@@ -111,6 +113,12 @@ class Patmos(fileName: String) extends Component {
 
   memory.io.localInOut <> iocomp.io.memInOut
 
+  // Connect exception unit
+  exc.io.ocp <> iocomp.io.excInOut
+  exc.io.intrs <> iocomp.io.intrs
+  exc.io.excdec <> decode.io.exc
+  exc.io.memexc <> memory.io.exc
+
   // TODO: to be replaced with a connection to external memory
   val globMem = new Spm(1 << DSPM_BITS)
   memory.io.globalInOut <> globMem.io
@@ -122,15 +130,21 @@ class Patmos(fileName: String) extends Component {
   execute.io.ena := enable
   writeback.io.ena := enable
 
+  // Flush signal
+  val flush = memory.io.flush
+  decode.io.flush := flush
+  execute.io.flush := flush
+
   // The inputs and outputs
   io.uartPins <> iocomp.io.uartPins
-  io.led <> Cat(memory.io.ena, iocomp.io.ledPins)
+  io.led <> Cat(memory.io.ena, iocomp.io.ledPins.led)
+  io.key <> iocomp.io.keyPins.keys
 
   // ***** the following code is not really Patmos code ******
 
   // Dummy output, which is ignored in the top level VHDL code, to
   // keep Chisel keep this signal alive unused signals
-  io.dummy := Reg(memory.io.memwb.pc)
+  io.dummy := Reg(memory.io.memwb.relPc)
 }
 
 // this testing and main file should go into it's own folder
@@ -150,7 +164,7 @@ class PatmosTest(pat: Patmos) extends Tester(pat,
       vars.clear
       step(vars, ovars, false) // false as third argument disables printout
       // The PC printout is a little off on a branch
-      val pc = ovars(pat.memory.io.memwb.pc).litValue() - 2
+      val pc = ovars(pat.memory.io.memwb.relPc).litValue() - 2
       // println(ovars(pat.io.led).litValue())
       print(pc + " - ")
       for (j <- 0 until 32)

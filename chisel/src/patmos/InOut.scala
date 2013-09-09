@@ -50,6 +50,7 @@ import ocp._
 import io.Timer
 import io.UART
 import io.Leds
+import io.Keys
 
 class InOut() extends Component {
   val io = new InOutIO()
@@ -58,21 +59,33 @@ class InOut() extends Component {
   val selIO = io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-4) === Bits("b1111")
   val selISpm = !selIO & io.memInOut.M.Addr(ISPM_ONE_BIT) === Bits(0x1)
   val selSpm = !selIO & io.memInOut.M.Addr(ISPM_ONE_BIT) === Bits(0x0)
+  val selExc = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x1)
   val selTimer = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x2)
   val selUart = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x8)
   val selLed = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x9)
+  val selKey = selIO & io.memInOut.M.Addr(11, 8) === Bits(0xa)
 
   // Register selects
   val selSpmReg = Reg(resetVal = Bits("b0"))
   val selTimerReg = Reg(resetVal = Bits("b0"))
   val selUartReg = Reg(resetVal = Bits("b0"))
   val selLedReg = Reg(resetVal = Bits("b0"))
+  val selKeyReg = Reg(resetVal = Bits("b0"))
+  val selExcReg = Reg(resetVal = Bits("b0"))
   when(io.memInOut.M.Cmd != OcpCmd.IDLE) {
 	selSpmReg := selSpm
 	selTimerReg := selTimer
 	selUartReg := selUart
 	selLedReg := selLed
+	selKeyReg := selKey
+	selExcReg := selExc
   }
+
+  // Register for error response
+  val errResp = Reg(resetVal = OcpResp.NULL)
+  errResp := Mux(io.memInOut.M.Cmd != OcpCmd.IDLE &&
+                 selIO && !(selTimer || selUart || selLed || selExc || selKey),
+                 OcpResp.ERR, OcpResp.NULL)
 
   // Dummy ISPM (create fake response)
   val ispmCmdReg = Reg(Mux(selISpm, io.memInOut.M.Cmd, OcpCmd.IDLE))
@@ -104,10 +117,40 @@ class InOut() extends Component {
   val ledsS = leds.io.ocp.S
   io.ledPins <> leds.io.pins
 
+   // The Keys
+  val keys = new Keys(KEY_COUNT)
+  keys.io.ocp.M := io.memInOut.M
+  keys.io.ocp.M.Cmd := Mux(selKey, io.memInOut.M.Cmd, OcpCmd.IDLE)
+  val keysS = keys.io.ocp.S
+  io.keyPins <> keys.io.pins
+
+  // The exception unit is outside this unit
+  io.excInOut.M := io.memInOut.M
+  io.excInOut.M.Cmd := Mux(selExc, io.memInOut.M.Cmd, OcpCmd.IDLE)
+  val excS = io.excInOut.S
+
   // Return data to pipeline
-  io.memInOut.S.Data := Mux(selTimerReg, timerS.Data,
-							Mux(selUartReg, uartS.Data,
-								Mux(selLedReg, ledsS.Data, 
-									spmS.Data)))
-  io.memInOut.S.Resp := ispmResp | spmS.Resp | timerS.Resp | uartS.Resp | ledsS.Resp
+  io.memInOut.S.Data := spmS.Data
+  when(selTimerReg) { io.memInOut.S.Data := timerS.Data }
+  when(selUartReg)  { io.memInOut.S.Data := uartS.Data }
+  when(selLedReg)   { io.memInOut.S.Data := ledsS.Data }
+  when(selKeyReg)   { io.memInOut.S.Data := keysS.Data }
+  when(selExcReg)   { io.memInOut.S.Data := excS.Data }
+
+  io.memInOut.S.Resp := (ispmResp |
+						 spmS.Resp |
+                         timerS.Resp |
+                         uartS.Resp |
+                         ledsS.Resp |
+                         keysS.Resp |
+                         excS.Resp |
+                         errResp)
+
+  // Connect interrupt lines
+  for (i <- 0 until INTR_COUNT) {
+   	io.intrs(i) := Bool(false)
+  }
+  for (i <- 0 until KEY_COUNT) {
+   	io.intrs(i) := keys.io.intrs(i)
+  }
 }

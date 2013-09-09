@@ -51,14 +51,24 @@ class FeDec() extends Bundle() {
   val instr_a = Bits(width = INSTR_WIDTH)
   val instr_b = Bits(width = INSTR_WIDTH)
   val pc = UFix(width = PC_SIZE)
+  val relPc = UFix(width = PC_SIZE)
   val reloc = UFix(width = ADDR_WIDTH)
+
+  def reset() = {
+	instr_a := Bits(0)
+	instr_b := Bits(0)
+	pc := UFix(0)
+	relPc := UFix(0)
+	reloc := UFix(0)
+  }
 }
 
-object FeDecResetVal extends FeDec {
-  instr_a := Bits(0)
-  instr_b := Bits(0)
-  pc := UFix(0)
-  reloc := UFix(0)
+object FeDec {
+  def resetVal() = {
+	val res = new FeDec()
+	res.reset()
+	res
+  }
 }
 
 class AluOp() extends Bundle() {
@@ -69,16 +79,16 @@ class AluOp() extends Bundle() {
   val isMTS = Bool()
   val isMFS = Bool()
   val isSTC = Bool()
-}
 
-object AluOpResetVal extends AluOp {
-  func := Bits(0)
-  isMul := Bool(false)
-  isCmp := Bool(false)
-  isPred := Bool(false)
-  isMTS := Bool(false)
-  isMFS := Bool(false)
-  isSTC := Bool(false)
+  def reset() = {
+	func := Bits(0)
+	isMul := Bool(false)
+	isCmp := Bool(false)
+	isPred := Bool(false)
+	isMTS := Bool(false)
+	isMFS := Bool(false)
+	isSTC := Bool(false)
+  }
 }
 
 class PredOp() extends Bundle() {
@@ -86,25 +96,25 @@ class PredOp() extends Bundle() {
   val dest = Bits(width = PRED_BITS)
   val s1Addr = Bits(width = PRED_BITS+1)
   val s2Addr = Bits(width = PRED_BITS+1)
-}
 
-object PredOpResetVal extends PredOp {
-  func := Bits(0)
-  dest := Bits(0)
-  s1Addr := Bits(0)
-  s2Addr := Bits(0)
+  def reset() = {
+	func := Bits(0)
+	dest := Bits(0)
+	s1Addr := Bits(0)
+	s2Addr := Bits(0)
+  }
 }
 
 class JmpOp() extends Bundle() {
   val branch = Bool()
   val target = UFix(width = PC_SIZE)
   val reloc = UFix(width = ADDR_WIDTH)
-}
 
-object JmpOpResetVal extends JmpOp {
-  branch := Bool(false)
-  target := UFix(0)
-  reloc := UFix(0)
+  def reset() = {
+	branch := Bool(false)
+	target := UFix(0)
+	reloc := UFix(0)
+  }
 }
 
 class MemOp() extends Bundle() {
@@ -114,19 +124,19 @@ class MemOp() extends Bundle() {
   val byte = Bool()
   val zext = Bool()
   val typ  = Bits(width = 2)
-}
 
-object MemOpResetVal extends MemOp {
-  load := Bool(false)
-  store := Bool(false)
-  hword := Bool(false)
-  byte := Bool(false)
-  zext := Bool(false)
-  typ := Bits(0)
+  def reset() = {
+	load := Bool(false)
+	store := Bool(false)
+	hword := Bool(false)
+	byte := Bool(false)
+	zext := Bool(false)
+	typ := Bits(0)
+  }
 }
 
 class DecEx() extends Bundle() {
-  val pc = UFix(width = PC_SIZE)
+  val relPc = UFix(width = PC_SIZE)
   val pred =  Vec(PIPE_COUNT) { Bits(width = PRED_BITS+1) }
   val aluOp = Vec(PIPE_COUNT) { new AluOp() }
   val predOp = Vec(PIPE_COUNT) { new PredOp() }
@@ -148,38 +158,58 @@ class DecEx() extends Bundle() {
   val call = Bool()
   val ret = Bool()
   val brcf = Bool()
+  val trap = Bool()
+  val xcall = Bool()
+  val xret = Bool()
+  val xsrc = Bits(width = EXC_SRC_BITS)
+
+  val illOp = Bool()
+  
+  def reset() = {
+	relPc := UFix(0)
+	pred := Vec(PIPE_COUNT) { Bits(0) }
+	for (i <- 0 until PIPE_COUNT) {
+	  aluOp(i).reset()
+	  predOp(i).reset()
+	}
+	jmpOp.reset()
+	memOp.reset()
+	rsAddr := Vec(2*PIPE_COUNT) { Bits(0) }
+	rsData := Vec(2*PIPE_COUNT) { Bits(0) }
+	rdAddr := Vec(PIPE_COUNT) { Bits(0) }
+	immVal := Vec(PIPE_COUNT) { Bits(0) }
+	immOp := Vec(PIPE_COUNT) { Bool(false) }
+	wrRd := Vec(PIPE_COUNT) { Bool(false) }
+	callAddr := UFix(0)
+	call := Bool(false)
+	ret := Bool(false)
+	brcf := Bool(false)
+	trap := Bool(false)
+	xcall := Bool(false)
+	xret := Bool(false)
+	xsrc := Bits(0)
+	illOp := Bool(false)
+  }
 }
 
-object DecExResetVal extends DecEx {
-  pc := UFix(0)
-  pred := Vec(PIPE_COUNT) { Bits(0) }
-  aluOp :=  Vec(PIPE_COUNT) { AluOpResetVal }
-  predOp := Vec(PIPE_COUNT) { PredOpResetVal }
-  jmpOp := JmpOpResetVal
-  memOp := MemOpResetVal
-  rsAddr := Vec(2*PIPE_COUNT) { Bits(0) }
-  rsData := Vec(2*PIPE_COUNT) { Bits(0) }
-  rdAddr := Vec(PIPE_COUNT) { Bits(0) }
-  immVal := Vec(PIPE_COUNT) { Bits(0) }
-  immOp := Vec(PIPE_COUNT) { Bool(false) }
-  wrRd := Vec(PIPE_COUNT) { Bool(false) }
-  callAddr := UFix(0)
-  brcfAddr := UFix(0)
-  call := Bool(false)
-  ret := Bool(false)
-  brcf := Bool(false)
+object DecEx {
+  def resetVal = {
+	val res = new DecEx()
+	res.reset()
+	res
+  }
 }
 
 class Result() extends Bundle() {
   val addr = Bits(width = REG_BITS)
   val data = Bits(width = DATA_WIDTH)
   val valid = Bool()
-}
 
-object ResultResetVal extends Result {
-  addr := Bits(0)
-  data := Bits(0)
-  valid := Bool(false)
+  def reset() = {
+	addr := Bits(0)
+	data := Bits(0)
+	valid := Bool(false)
+  }
 }
 
 class MemIn() extends Bundle() {
@@ -194,24 +224,34 @@ class MemIn() extends Bundle() {
   val call = Bool()
   val ret = Bool()
   val brcf = Bool()
+  val trap = Bool()
+  val xcall = Bool()
+  val xret = Bool()
+  val xsrc = Bits(width = EXC_SRC_BITS)
+  val illOp = Bool()
   val callRetAddr = UFix(width = DATA_WIDTH)
   val callRetBase = UFix(width = DATA_WIDTH)
-}
 
-object MemInResetVal extends MemIn {
-  load := Bool(false)
-  store := Bool(false)
-  hword := Bool(false)
-  byte := Bool(false)
-  zext := Bool(false)
-  typ := Bits(0)
-  addr := Bits(0)
-  data := Bits(0)
-  call := Bool(false)
-  ret := Bool(false)
-  brcf := Bool(false)
-  callRetAddr := UFix(0)
-  callRetBase := UFix(0)
+  def reset() = {
+	load := Bool(false)
+	store := Bool(false)
+	hword := Bool(false)
+	byte := Bool(false)
+	zext := Bool(false)
+	typ := Bits(0)
+	addr := Bits(0)
+	data := Bits(0)
+	call := Bool(false)
+	ret := Bool(false)
+	brcf := Bool(false)
+	trap := Bool(false)
+	xcall := Bool(false)
+	xret := Bool(false)
+	xsrc := Bits(0)
+	illOp := Bool(false)
+	callRetAddr := UFix(0)
+	callRetBase := UFix(0)
+  }
 }
 
 class ExDec() extends Bundle() {
@@ -221,13 +261,23 @@ class ExDec() extends Bundle() {
 class ExMem() extends Bundle() {
   val rd = Vec(PIPE_COUNT) { new Result() }
   val mem = new MemIn()
-  val pc = UFix(width = PC_SIZE)
+  val relPc = UFix(width = PC_SIZE)
+
+  def reset() = {
+	for (i <- 0 until PIPE_COUNT) {
+	  rd(i).reset()
+	}
+	mem.reset()
+	relPc := UFix(0)
+  }
 }
 
-object ExMemResetVal extends ExMem {
-  rd := Vec(PIPE_COUNT) { ResultResetVal }
-  mem := MemInResetVal
-  pc := UFix(0)
+object ExMem {
+  def resetVal() = {
+	val res = new ExMem();
+	res.reset
+	res
+  }
 }
 
 class ExFe() extends Bundle() {
@@ -254,7 +304,7 @@ class MemWb() extends Bundle() {
   // do we need this? probably not.
   // maybe drop unused pc fields
   // maybe nice for debugging?
-  val pc = UFix(width = PC_SIZE)
+  val relPc = UFix(width = PC_SIZE)
 }
 
 class RegFileRead() extends Bundle() {
@@ -284,16 +334,27 @@ class FetchIO extends Bundle() {
   val mcachefe = new MCacheFe().asInput
 }
 
+class ExcDec() extends Bundle() {
+  val exc = Bool()
+  val excAddr = UFix(width = PC_SIZE)
+  val intr = Bool()
+  val addr = UFix(width = ADDR_WIDTH)
+  val src = Bits(width = EXC_SRC_BITS)
+}
+
 class DecodeIO() extends Bundle() {
   val ena = Bool(INPUT)
+  val flush = Bool(INPUT)
   val fedec = new FeDec().asInput
   val decex = new DecEx().asOutput
   val exdec = new ExDec().asInput
   val rfWrite =  Vec(PIPE_COUNT) { new Result().asInput }
+  val exc = new ExcDec().asInput
 }
 
 class ExecuteIO() extends Bundle() {
   val ena = Bool(INPUT)
+  val flush = Bool(INPUT)
   val decex = new DecEx().asInput
   val exdec = new ExDec().asOutput
   val exmem = new ExMem().asOutput
@@ -328,15 +389,38 @@ class TimerIO() extends Bundle() {
   val ocp = new OcpCoreSlavePort(4, DATA_WIDTH)
 }
 
+class KeyPinIO() extends Bundle() {
+  val keys = Bits(INPUT, KEY_COUNT)
+}
+
+class KeyIO() extends Bundle() {
+  val ocp = new OcpCoreSlavePort(0, DATA_WIDTH)
+  val pins = new KeyPinIO()
+  val intrs = Vec(KEY_COUNT) { Bool(OUTPUT) }
+}
+
 class InOutIO() extends Bundle() {
   val memInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+  val excInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
+  val intrs = Vec(INTR_COUNT) { Bool(OUTPUT) }
   val uartPins = new UartPinIO()
   val ledPins = new LedPinIO()
+  val keyPins = new KeyPinIO()
+}
+
+class MemExc() extends Bundle() {
+  val call = Bool()
+  val ret = Bool()
+  val src = Bits(width = EXC_SRC_BITS)
+
+  val exc = Bool()
+  val excAddr = UFix(width = PC_SIZE)
 }
 
 class MemoryIO() extends Bundle() {
   val ena = Bool(OUTPUT)
   val mc_ena = Bool(INPUT)
+  val flush = Bool(OUTPUT)
   val exmem = new ExMem().asInput
   val memwb = new MemWb().asOutput
   val memfe = new MemFe().asOutput
@@ -346,6 +430,8 @@ class MemoryIO() extends Bundle() {
   // local and global accesses
   val localInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val globalInOut = new OcpCacheMasterPort(ADDR_WIDTH, DATA_WIDTH)
+  // exceptions
+  val exc = new MemExc().asOutput
 }
 
 class WriteBackIO() extends Bundle() {
@@ -355,4 +441,11 @@ class WriteBackIO() extends Bundle() {
   val rfWrite = Vec(PIPE_COUNT) { new Result().asOutput }
   // for result forwarding (register)
   val memResult =  Vec(PIPE_COUNT) { new Result().asOutput }
+}
+
+class ExcIO() extends Bundle() {
+  val ocp = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+  val intrs = Vec(INTR_COUNT) { Bool(INPUT) }
+  val excdec = new ExcDec().asOutput
+  val memexc = new MemExc().asInput
 }

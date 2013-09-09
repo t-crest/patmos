@@ -138,6 +138,7 @@ class Fetch(fileName : String) extends Component {
   }
 
   io.fedec.pc := pcReg
+  io.fedec.relPc := pcReg - relBaseReg
   io.fedec.reloc := relocReg
   io.fedec.instr_a := instr_a
   io.fedec.instr_b := instr_b

@@ -22,10 +22,10 @@ timing/e/background/.style={fill=lightgray}
 {fe.pc}       & .1D 2D{010c}   2D{0110}   2D{0114}   2D{0118}  2D{011c}   2D{0120}   2D{0124}   2D{8000}   2D{8004}   2D{8008}   2D{800c}   \\
 {fe.instr}    & .1D 2D{BR}     2D{OP$_4$} 2D{OP$_5$} 2D{OP$_6$} 2D{OP$_7$} 2D{OP$_7$} 2D{OP$_8$} 2D{OP$_9$} 2D{OP$_A$} 2D{OP$_B$}  2D{OP$_C$} \\
 {dec.pc}      & .1D 2D{0108}   2D{010c}   2D{0110}   2D{0114}  2D{0118}   2D{011c}   2D{0120}   2D{0124}   2D{8000}   2D{8004}   2D{8008}   \\
-{dec.instr}   & .1D 2D{OP$_2$} 2D{BR}     2D{OP$_4$} 2D{OP$_5$} 2D{INTR}   2D{INTR}   2D{INTR}   2D{NOP}    2D{OP$_9$} 2D{OP$_A$} 2D{OP$_B$} \\
-{dec.indly}   & .1L 2L         2L         2H         2H        2L         2L         2L         2L         2L         2L         2L         \\
+{dec.instr}   & .1D 2D{OP$_2$} 2D{BR}     2D{OP$_4$} 2D{OP$_5$} 2D{INTR}   2D{OP$_7$}   2D{OP$_8$}   2D{NOP}    2D{OP$_9$} 2D{OP$_A$} 2D{OP$_B$} \\
+{dec.indly}   & .1L 2L         2L         2H         2H        2L         2H         2H         2H         2L         2L         2L         \\
 {ex.pc}       & .1D 2D{0104}   2D{0108}   2D{010c}   2D{0110}  2D{0114}   2D{0118}   2D{011c}   2D{0120}   2D{0124}   2D{8000}   2D{8004}   \\
-{ex.instr}    & .1D 2D{OP$_1$} 2D{OP$_2$} 2D{BR}     2D{OP$_4$} 2D{OP$_5$} 2D{INTR}   2D{INTR}   2D{NOP}    2D{NOP}    2D{OP$_9$} 2D{OP$_A$} \\
+{ex.instr}    & .1D 2D{OP$_1$} 2D{OP$_2$} 2D{BR}     2D{OP$_4$} 2D{OP$_5$} 2D{INTR}   2D{OP$_7$}   2D{NOP}    2D{NOP}    2D{OP$_9$} 2D{OP$_A$} \\
 {mem.pc}      & .1D 2D{0100}   2D{0104}   2D{0108}   2D{010c}  2D{0110}   2D{0114}   2D{0118}   2D{011c}   2D{0120}   2D{0124}   2D{8000}   \\
 {mem.instr}   & .1D 2D{OP$_0$} 2D{OP$_1$} 2D{OP$_2$} 2D{BR}     2D{OP$_4$} 2D{OP$_5$} 2D{INTR}   2D{NOP}    2D{NOP}    2D{NOP}    2D{OP$_9$} \\
 {mem.flush}   & .1L 2L         2L         2L         2L        2L         2L         2H         2L         2L         2L         2L         \\
