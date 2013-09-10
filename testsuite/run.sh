@@ -19,9 +19,8 @@ for td in ${test_dirs}; do
 done
 cd ..
 
-tests="basic simple test ldst load_store_stackcache ALU ALUi ALUl dual_forwarding scratchpad dual_even_odd_address forward_issue load_store_data_cache load_store_scratchpad load_store_scratchpad_new load_store_scratchpad_new2 predication fetch_double  branch predicate predicated_predicate call callr"
+tests="basic simple test ldst load_store_stackcache ALU ALUi ALUl dual_forwarding scratchpad dual_even_odd_address forward_issue load_store_data_cache load_store_scratchpad load_store_scratchpad_new load_store_scratchpad_new2 predication fetch_double  branch predicate predicated_predicate call callr mulpipe"
 tests+=${test_disc}
-
 
 not_working_chsl="none"
 expect_fail_chsl=0
