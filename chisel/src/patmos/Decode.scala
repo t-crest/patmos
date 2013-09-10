@@ -411,9 +411,12 @@ class Decode() extends Component {
 
   // Update delay slot information
   when(io.ena && !io.flush) {
+    val decDelaySlot = inDelaySlot - UFix(1)
     inDelaySlot := Mux(io.decex.call || io.decex.ret || io.decex.brcf ||
                        io.decex.xcall || io.decex.xret, UFix(3),
                        Mux(io.decex.jmpOp.branch, UFix(2),
-                           Mux(inDelaySlot != UFix(0), inDelaySlot - UFix(1), UFix(0))))
+                           Mux(io.decex.aluOp(0).isMul,
+                               Mux(inDelaySlot > UFix(1), decDelaySlot, UFix(1)),
+                               Mux(inDelaySlot != UFix(0), decDelaySlot, UFix(0)))))
   }
 }
