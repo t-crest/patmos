@@ -221,14 +221,15 @@ val io = new Bundle {
 		    	io.scMemInOut.M.DataByteEn := Bits(0)
 		    }
 		    .otherwise { 
-		      when (spill_burst_len === UFix(0)) { 
-		    	  io.scMemInOut.M.DataByteEn := Bits(1) }
-		      .otherwise {
-		    	  when (start_spill === UFix(0)) {io.scMemInOut.M.DataByteEn := (Bits(1) << spill_burst_len) }
-		    	  .otherwise {
-		    	  io.scMemInOut.M.DataByteEn := (Bits(1) << spill_burst_len - Fix(1) )
-		    	  }
-		      }
+//		      when (spill_burst_len === UFix(0)) { 
+//		    	  io.scMemInOut.M.DataByteEn := Bits(1) }
+//		      .otherwise {
+//		    	  when (start_spill === UFix(0)) {io.scMemInOut.M.DataByteEn := (Bits(1) << spill_burst_len) }
+//		    	  .otherwise {
+//		    	  io.scMemInOut.M.DataByteEn := (Bits(1) << spill_burst_len - Fix(1) )
+//		    	  }
+//		      }
+		      io.scMemInOut.M.DataByteEn := Bits(15)
 		      
 		     }
 		    
