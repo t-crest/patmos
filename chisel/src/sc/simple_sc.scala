@@ -106,6 +106,9 @@ val io = new Bundle {
 
 	val rdData = Reg() { Bits() }
 	val rdDataSpill = Reg() { Bits() }
+	
+	val sResp = Reg(resetVal = Bits(0, 2))
+	
 	val mem_addr_masked = (m_top - UFix(1)) & SC_MASK
 	
    // m_top := (m_top + UFix(4) - m_top(1, 0))
@@ -126,7 +129,9 @@ val io = new Bundle {
 
 	io.scMemInOut.M.Data := rdDataSpill  			
 	io.scCpuInOut.S.Data := rdData
-	io.scCpuInOut.S.Resp := Mux(io.scCpuInOut.M.Cmd === OcpCmd.WRNP || io.scCpuInOut.M.Cmd === OcpCmd.RD, OcpResp.DVA, OcpResp.NULL)
+	
+	sResp := Mux(io.scCpuInOut.M.Cmd === OcpCmd.WRNP || io.scCpuInOut.M.Cmd === OcpCmd.RD, OcpResp.DVA, OcpResp.NULL)
+	io.scCpuInOut.S.Resp := sResp
 	
 	io.scMemInOut.M.Cmd := OcpCmd.IDLE
 	io.scMemInOut.M.Addr := UFix(0)
@@ -173,7 +178,7 @@ val io = new Bundle {
 	    io.scMemInOut.M.Addr := m_top - m_top(1, 0) + UFix(1)
 	    first_cmd := OcpCmd.RD
     	first_addr := m_top - m_top(1, 0) + UFix(1)
-    	fill_en_cnt := m_top(1, 0)
+    	fill_en_cnt := m_top(1, 0) + UFix(1)
     	m_top := m_top - m_top(1, 0) // addrs alignment
 	  }
 	  // free
@@ -309,7 +314,8 @@ val io = new Bundle {
 		  	io.scMemInOut.M.Addr := m_top - m_top(1, 0)  + UFix(1)
 		  	first_cmd := OcpCmd.RD
 		  	first_addr := m_top - m_top(1, 0)  + UFix(1)
-		  	m_top := m_top - m_top(1, 0) // addrs alignment
+		  	fill_en_cnt := m_top(1, 0) + UFix(1)
+		  	m_top := m_top - m_top(1, 0) // addrs alignment 
 	   }
 	   .elsewhen (io.spill === UFix(1)) { 
 	//	   when (io.scMemInOut.S.DataAccept === Bits(1)) {

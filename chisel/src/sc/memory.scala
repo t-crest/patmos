@@ -127,10 +127,13 @@ class MainMem(mm_size: Int, burstLen : Int) extends Component {
 	}
 	
 	when (state === wr_wait_st) {
+	  
+		
 		when (mem_delay_cnt === UFix(7)) {
 				state := wr_st
 				
 				io.mmInOut.S.DataAccept := Bits(1)
+				io.mmInOut.S.CmdAccept := Bits(1)
 				//mem_delay_cnt := UFix(0)
 		}
 	}
@@ -149,6 +152,7 @@ class MainMem(mm_size: Int, burstLen : Int) extends Component {
 				io.mmInOut.S.Resp := OcpResp.DVA
 				io.mmInOut.S.CmdAccept := Bits(0)
 				io.mmInOut.S.DataAccept := Bits(0)
+				io.mmInOut.S.CmdAccept := Bits(0)
 				state := rd_st	
 		}
 	}
