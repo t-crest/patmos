@@ -330,7 +330,8 @@ int main (int argc, char* argv[]) {
 	if (halt) {
 	  break;
 	}
-	if (c->Patmos_memory__memReg_mem_ret.to_bool()
+	if ((c->Patmos_memory__memReg_mem_brcf.to_bool()
+		 || c->Patmos_memory__memReg_mem_ret.to_bool())
 		&& c->Patmos_mcache_mcachectrl__callRetBaseReg.to_ulong() == 0) {
 	  halt = true;
 	}

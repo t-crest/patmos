@@ -295,7 +295,7 @@ class MemFe() extends Bundle() {
   val data = Bits(width = DATA_WIDTH)
 }
 
-class FeMem() extends Bundle() {
+class FeEx() extends Bundle() {
   val pc = UFix(width = PC_SIZE)
 }
 
@@ -324,7 +324,7 @@ class FetchIO extends Bundle() {
   val ena = Bool(INPUT)
   val fedec = new FeDec().asOutput
   // PC for returns
-  val femem = new FeMem().asOutput
+  val feex = new FeEx().asOutput
   // branch from EX
   val exfe = new ExFe().asInput
   // call from MEM
@@ -359,6 +359,7 @@ class ExecuteIO() extends Bundle() {
   val exdec = new ExDec().asOutput
   val exmem = new ExMem().asOutput
   val exmcache = new ExMCache().asOutput
+  val feex = new FeEx().asInput
   // forwarding inputs
   val exResult = Vec(PIPE_COUNT) { new Result().asInput }
   val memResult = Vec(PIPE_COUNT) { new Result().asInput }
@@ -424,7 +425,6 @@ class MemoryIO() extends Bundle() {
   val exmem = new ExMem().asInput
   val memwb = new MemWb().asOutput
   val memfe = new MemFe().asOutput
-  val femem = new FeMem().asInput
   // for result forwarding
   val exResult = Vec(PIPE_COUNT) { new Result().asOutput }
   // local and global accesses

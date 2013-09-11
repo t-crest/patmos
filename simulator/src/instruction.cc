@@ -156,30 +156,37 @@ namespace patmos
     return result;
   }
 
-  instruction_data_t instruction_data_t::mk_CFLb(const instruction_t &i,
+  instruction_data_t instruction_data_t::mk_CFLi(const instruction_t &i,
                                                  PRR_e pred, word_t imm, uword_t uimm)
   {
     instruction_data_t result(i, pred);
-    result.OPS.CFLb.Imm = imm;
-    result.OPS.CFLb.UImm = uimm;
+    result.OPS.CFLi.Imm = imm;
+    result.OPS.CFLi.UImm = uimm;
     return result;
   }
 
-  instruction_data_t instruction_data_t::mk_CFLi(const instruction_t &i,
-                                                 PRR_e pred, GPR_e rs)
+  instruction_data_t instruction_data_t::mk_CFLri(const instruction_t &i,
+                                                  PRR_e pred)
   {
     instruction_data_t result(i, pred);
-    result.OPS.CFLi.Rs = rs;
     return result;
   }
 
-  instruction_data_t instruction_data_t::mk_CFLr(const instruction_t &i,
-                                                 PRR_e pred,
-                                                 GPR_e rb, GPR_e ro)
+  instruction_data_t instruction_data_t::mk_CFLrs(const instruction_t &i,
+                                                  PRR_e pred, GPR_e rs)
   {
     instruction_data_t result(i, pred);
-    result.OPS.CFLr.Rb = rb;
-    result.OPS.CFLr.Ro = ro;
+    result.OPS.CFLrs.Rs = rs;
+    return result;
+  }
+
+  instruction_data_t instruction_data_t::mk_CFLrt(const instruction_t &i,
+                                                  PRR_e pred,
+                                                  GPR_e rs1, GPR_e rs2)
+  {
+    instruction_data_t result(i, pred);
+    result.OPS.CFLrt.Rs1 = rs1;
+    result.OPS.CFLrt.Rs2 = rs2;
     return result;
   }
 

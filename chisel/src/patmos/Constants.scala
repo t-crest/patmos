@@ -97,12 +97,11 @@ object Constants {
 
   val OPCODE_STC      = Bits("b01100")
 
-  val OPCODE_CFL_CALL = Bits("b11000")
-  val OPCODE_CFL_BR   = Bits("b11001")
-  val OPCODE_CFL_BRCF = Bits("b11010")
-  val OPCODE_CFL_CFLI = Bits("b11100")
-  val OPCODE_CFL_TRAP = Bits("b11101")
-  val OPCODE_CFL_RET  = Bits("b11110")
+  val OPCODE_CFL_TRAP = Bits("b10011")
+  val OPCODE_CFL_CALL = Bits("b10100")
+  val OPCODE_CFL_BR   = Bits("b10101")
+  val OPCODE_CFL_BRCF = Bits("b10110")
+  val OPCODE_CFL_CFLR = Bits("b11000")
 
   val OPCODE_ALUL     = Bits("b11111")
 
@@ -154,12 +153,11 @@ object Constants {
   val PFUNC_XOR   = Bits("b10")
   val PFUNC_NOR   = Bits("b11")
 
-  val JFUNC_CALL  = Bits("b0000")
-  val JFUNC_BR    = Bits("b0001")
-  val JFUNC_BRCF  = Bits("b0010")
-
-  val RFUNC_RET   = Bits("b0000")
-  val RFUNC_XRET  = Bits("b0001")
+  val JFUNC_RET   = Bits("b0000")
+  val JFUNC_XRET  = Bits("b0001")
+  val JFUNC_CALL  = Bits("b0100")
+  val JFUNC_BR    = Bits("b0101")
+  val JFUNC_BRCF  = Bits("b1010")
 
   val SPEC_FL  = Bits("b0000")
   val SPEC_SL  = Bits("b0010")
@@ -167,8 +165,10 @@ object Constants {
   val SPEC_SS  = Bits("b0101")
   val SPEC_ST  = Bits("b0110")
 
-  val SPEC_SXB = Bits("b1010")
-  val SPEC_SXO = Bits("b1011")
+  val SPEC_SRB = Bits("b0111")
+  val SPEC_SRO = Bits("b1000")
+  val SPEC_SXB = Bits("b1001")
+  val SPEC_SXO = Bits("b1010")
 
   val STC_SRES   = Bits("b0000")
   val STC_SENS   = Bits("b0100")

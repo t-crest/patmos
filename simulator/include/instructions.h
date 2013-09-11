@@ -65,7 +65,7 @@ namespace patmos
                        const symbol_map_t &symbols) const
     { }
 
-    /// Returs false, nop is not a flow control instruction
+    /// Returns false, nop is not a flow control instruction
     virtual bool is_flow_control() const
     {
       return false;
@@ -1480,14 +1480,6 @@ namespace patmos
       if (pred && !s.is_stalling(stage))
       {
         assert(base <= pc);
-
-        if (!is_interrupt) {
-          // store the return function offset (return PC) into
-          // a general purpose register
-          // function base is compiler/programmer managed,
-          // i.e., not stored implicitly
-          s.GPR.set(rfo, get_offset(base, pc));
-        }
         
         // store return info to special registers
         s.SPR.set(is_interrupt ? sxb : srb, base);
@@ -1590,13 +1582,13 @@ namespace patmos
                        const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << "call " << ops.OPS.CFLb.UImm;
+      os << "call " << ops.OPS.CFLi.UImm;
       symbols.print(os, ops.EX_Address);
     }
     
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.EX_Address = ops.OPS.CFLb.UImm*sizeof(word_t);
+      ops.EX_Address = ops.OPS.CFLi.UImm*sizeof(word_t);
     }
     
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
@@ -1626,13 +1618,13 @@ namespace patmos
                        const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << "br " << ops.OPS.CFLb.Imm;
+      os << "br " << ops.OPS.CFLi.Imm;
       symbols.print(os, ops.EX_Address);
     }
     
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.EX_Address = ops.Address + ops.OPS.CFLb.Imm*sizeof(word_t);
+      ops.EX_Address = ops.Address + ops.OPS.CFLi.Imm*sizeof(word_t);
       dispatch(s, ops, ops.DR_Pred, s.BASE, ops.EX_Address);
     }
     
@@ -1648,13 +1640,13 @@ namespace patmos
                         const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << "brcf " << ops.OPS.CFLb.Imm;
+      os << "brcf " << ops.OPS.CFLi.Imm;
       symbols.print(os, ops.EX_Address);
     }
     
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.EX_Address = ops.OPS.CFLb.UImm*sizeof(word_t);
+      ops.EX_Address = ops.OPS.CFLi.UImm*sizeof(word_t);
     }
     
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
@@ -1674,13 +1666,13 @@ namespace patmos
                        const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << "intr " << ops.OPS.CFLb.UImm;
+      os << "intr " << ops.OPS.CFLi.UImm;
       symbols.print(os, ops.EX_Address);
     }
 
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.EX_Address = ops.OPS.CFLb.UImm*sizeof(word_t);
+      ops.EX_Address = ops.OPS.CFLi.UImm*sizeof(word_t);
     }
     
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
@@ -1700,8 +1692,8 @@ namespace patmos
   };
 
   
-  /// Branch and call instructions with a register operand.
-  class i_cfli_t : public i_cfl_t
+  /// Control flow instructions with implicit register operands.
+  class i_cflri_t : public i_cfl_t
   {
   public:
     /// Pipeline function to simulate the behavior of the instruction in
@@ -1711,7 +1703,6 @@ namespace patmos
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
-      ops.DR_Rs1 = s.GPR.get(ops.OPS.CFLi.Rs);
     }
 
     /// Print the instruction to an output stream.
@@ -1719,23 +1710,79 @@ namespace patmos
     /// @param ops The operands of the instruction.
     /// @param symbols A mapping of addresses to symbols.
     virtual void print_operands(const simulator_t &s, std::ostream &os,
-		       const instruction_data_t &ops,
-                       const symbol_map_t &symbols) const
+                                const instruction_data_t &ops,
+                                const symbol_map_t &symbols) const
     {
-      printGPReg(os, "in: ", ops.OPS.CFLi.Rs, ops.EX_Address);
+      symbols.print(os, ops.EX_Address);
+    }
+  };
+
+  /// Control flow instructions with a single register operand.
+  class i_cflrs_t : public i_cfl_t
+  {
+  public:
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the DR pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.DR_Rs1 = s.GPR.get(ops.OPS.CFLrs.Rs);
+    }
+
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void print_operands(const simulator_t &s, std::ostream &os,
+                                const instruction_data_t &ops,
+                                const symbol_map_t &symbols) const
+    {
+      printGPReg(os, "in: ", ops.OPS.CFLrs.Rs, ops.EX_Address);
       os << " ";
       symbols.print(os, ops.EX_Address);
     }
   };
 
-  class i_callr_t : public i_cfli_t
+  /// Control flow instructions with two register operands.
+  class i_cflrt_t : public i_cfl_t
+  {
+  public:
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the DR pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.DR_Rs1 = s.GPR.get(ops.OPS.CFLrt.Rs1);
+      ops.DR_Rs2 = s.GPR.get(ops.OPS.CFLrt.Rs2);
+    }
+
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void print_operands(const simulator_t &s, std::ostream &os,
+                                const instruction_data_t &ops,
+                                const symbol_map_t &symbols) const
+    {
+      printGPReg(os, "in: ", ops.OPS.CFLrt.Rs1, ops.EX_Base);
+      printGPReg(os, ", "  , ops.OPS.CFLrt.Rs2, ops.EX_Offset);
+      os << " ";
+      symbols.print(os, ops.EX_Base);
+    }
+  };
+
+  class i_callr_t : public i_cflrs_t
   {
   public:
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << "callr r" << ops.OPS.CFLi.Rs;
+      os << "callr r" << ops.OPS.CFLrs.Rs;
       symbols.print(os, ops.EX_Address);
     }
     
@@ -1764,14 +1811,14 @@ namespace patmos
     }
   };
 
-  class i_brr_t : public i_cfli_t
+  class i_brr_t : public i_cflrs_t
   {
   public:
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << "brr r" << ops.OPS.CFLi.Rs;
+      os << "brr r" << ops.OPS.CFLrs.Rs;
       symbols.print(os, ops.EX_Address);
     }
     
@@ -1786,14 +1833,14 @@ namespace patmos
     }
   };
 
-  class i_brcfr_t : public i_cfli_t
+  class i_brcfr_t : public i_cflrt_t
   {
   public:
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << "brcfr r" << ops.OPS.CFLi.Rs;
+      os << "brcfr r" << ops.OPS.CFLrt.Rs1 << ", r" << ops.OPS.CFLrt.Rs2;
       symbols.print(os, ops.EX_Address);
     }
     
@@ -1804,7 +1851,23 @@ namespace patmos
     
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
-      fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+      // brcf to address 0? interpret this as a halt.
+      if (ops.DR_Pred && ops.EX_Address == 0)
+      {
+        // TODO this is one really ugly hack to let the simulator finish the
+        // other stages before we exit, so that the PC is updated and stuff.
+        // This should move into some simulator.halt(retvalue) call.
+        if (ops.EX_Offset == 0) {
+          ops.EX_Offset = 1;
+          s.pipeline_stall(SMW);
+        } else {
+          simulation_exception_t::halt(s.GPR.get(GPR_EXIT_CODE_INDEX).get());
+        }
+      }
+      else
+      {
+        fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+      }
     }
     
     virtual unsigned get_delay_slots() const {
@@ -1814,7 +1877,7 @@ namespace patmos
 
 
   /// An instruction for returning from function calls.
-  class i_ret_t : public i_cfl_t
+  class i_ret_t : public i_cflri_t
   {
   public:
     /// Print the instruction to an output stream.
@@ -1825,8 +1888,7 @@ namespace patmos
                        const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << boost::format("ret r%1%, r%2%")
-                          % ops.OPS.CFLr.Rb % ops.OPS.CFLr.Ro;
+      os << "ret";
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
@@ -1836,8 +1898,6 @@ namespace patmos
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
-      ops.DR_Base   = s.GPR.get(ops.OPS.CFLr.Rb);
-      ops.DR_Offset = s.GPR.get(ops.OPS.CFLr.Ro);
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
@@ -1846,8 +1906,8 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.EX_Base   = read_GPR_EX(s, ops.DR_Base);
-      ops.EX_Offset = read_GPR_EX(s, ops.DR_Offset);
+      ops.EX_Base   = s.SPR.get(srb).get();
+      ops.EX_Offset = s.SPR.get(sro).get();
       ops.EX_Address = get_PC(ops.EX_Base, ops.EX_Offset);
     }
 
@@ -1885,11 +1945,11 @@ namespace patmos
     /// @param ops The operands of the instruction.
     /// @param symbols A mapping of addresses to symbols.
     virtual void print_operands(const simulator_t &s, std::ostream &os,
-		       const instruction_data_t &ops,
-                       const symbol_map_t &symbols) const
+                                const instruction_data_t &ops,
+                                const symbol_map_t &symbols) const
     {
-      printGPReg(os, "in: ", ops.OPS.CFLr.Rb, ops.EX_Base);
-      printGPReg(os, ", "  , ops.OPS.CFLr.Ro, ops.EX_Offset);
+      printSPReg(os, "in: ", srb, ops.EX_Base);
+      printSPReg(os, ", "  , sro, ops.EX_Offset);
     }
     
     virtual unsigned get_delay_slots() const {

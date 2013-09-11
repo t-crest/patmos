@@ -143,7 +143,7 @@ class Fetch(fileName : String) extends Component {
   io.fedec.instr_a := instr_a
   io.fedec.instr_b := instr_b
 
-  io.femem.pc := pc_cont - relBaseReg
+  io.feex.pc := pc_cont - relBaseReg
 
   //outputs to mcache
   io.femcache.address := pc_next

@@ -192,7 +192,7 @@ namespace patmos
       {
         interrupt_t &interrupt = Interrupt_handler.get_interrupt();
 
-        instr_SIF[0] = instruction_data_t::mk_CFLb(*Instr_INTR, p0,
+        instr_SIF[0] = instruction_data_t::mk_CFLi(*Instr_INTR, p0,
                                         interrupt.Address, interrupt.Address);
 
         for(unsigned int i = 1; i < NUM_SLOTS; i++)

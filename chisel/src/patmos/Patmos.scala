@@ -109,7 +109,8 @@ class Patmos(fileName: String) extends Component {
   fetch.io.exfe <> execute.io.exfe
   // We call in MEM
   fetch.io.memfe <> memory.io.memfe
-  fetch.io.femem <> memory.io.femem
+  // We store the return base in EX (in cycle corresponding to MEM)
+  fetch.io.feex <> execute.io.feex
 
   memory.io.localInOut <> iocomp.io.memInOut
 

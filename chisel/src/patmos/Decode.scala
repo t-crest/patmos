@@ -240,11 +240,14 @@ class Decode() extends Component {
 	}
   }
   // Control-flow operations
+  when(opcode === OPCODE_CFL_TRAP) {
+    io.decex.trap := Bool(true)
+    io.decex.xsrc := instr(EXC_SRC_BITS-1, 0)
+    decoded := Bool(true)
+  }
   when(opcode === OPCODE_CFL_CALL) {
     io.decex.immOp(0) := Bool(true)
     io.decex.call := Bool(true)
-    io.decex.wrRd(0) := Bool(true)
-	dest := Bits("b11111")
 	decoded := Bool(true)
   }
   when(opcode === OPCODE_CFL_BR) {
@@ -257,12 +260,18 @@ class Decode() extends Component {
     io.decex.brcf := Bool(true)
 	decoded := Bool(true)
   }
-  when(opcode === OPCODE_CFL_CFLI) {
+  when(opcode === OPCODE_CFL_CFLR) {
 	switch(func) {
+	  is(JFUNC_RET) {
+		io.decex.ret := Bool(true)
+		decoded := Bool(true)
+	  }
+	  is(JFUNC_XRET) {
+		io.decex.xret := Bool(true)
+		decoded := Bool(true)
+	  }
 	  is(JFUNC_CALL) {
 		io.decex.call := Bool(true)
-		io.decex.wrRd(0) := Bool(true)
-		dest := Bits("b11111")
 		decoded := Bool(true)
 	  }
 	  is(JFUNC_BR) {
@@ -274,23 +283,6 @@ class Decode() extends Component {
 		decoded := Bool(true)
 	  }
 	}
-  }
-  when(opcode === OPCODE_CFL_TRAP) {
-    io.decex.trap := Bool(true)
-    io.decex.xsrc := instr(EXC_SRC_BITS-1, 0)
-    decoded := Bool(true)
-  }
-  when(opcode === OPCODE_CFL_RET) {
-    switch(func) {
-      is(RFUNC_RET) {
-        io.decex.ret := Bool(true)
-        decoded := Bool(true)
-      }
-      is(RFUNC_XRET) {
-        io.decex.xret := Bool(true)
-        decoded := Bool(true)
-      }
-    }
   }
 
   val shamt = UFix()
@@ -374,10 +366,6 @@ class Decode() extends Component {
   // PC-relative value is precomputed here
   io.decex.jmpOp.target := decReg.pc + Cat(Fill(PC_SIZE - 22, instr(21)), instr(21, 0))
   io.decex.jmpOp.reloc := decReg.reloc
-
-  // PC-relative address for brcf
-  // TODO: this goes away when we make brcf like calls
-  io.decex.brcfAddr := Cat(io.decex.jmpOp.target + decReg.reloc, Bits("b00").toUFix)
 
   // Pass on PC
   io.decex.relPc := decReg.relPc

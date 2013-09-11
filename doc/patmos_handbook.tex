@@ -832,8 +832,11 @@ we switch contexts.}
         \bitbox{32}{s4} \\
         \bitbox{32}{ss (spill pointer)} \bitbox[]{4}{s5} \\
         \bitbox{32}{st (stack pointer)} \bitbox[]{4}{s6} \\
-        \bitbox{32}{s7} \\ \bitbox{32}{s8} \\
-        \bitbox{32}{s9} \\ \bitbox{32}{s10} \\ \bitbox{32}{s11} \\
+        \bitbox{32}{srb (return base)} \bitbox[]{4}{s7} \\
+        \bitbox{32}{sro (return offset)} \bitbox[]{4}{s8} \\
+        \bitbox{32}{sxb (exception return base)} \bitbox[]{4}{s9} \\
+        \bitbox{32}{sxo (exception return offset)} \bitbox[]{4}{s10} \\
+        \bitbox{32}{s11} \\
         \bitbox{32}{s12} \\ \bitbox{32}{s13} \\ \bitbox{32}{s14} \\ \bitbox{32}{s15} \\
       \end{bytefield}
     }
@@ -1050,35 +1053,41 @@ of the instruction format. Black fields are not used.
           \end{leftwordgroup}
         \end{bytefield}
 
-  \item CFL -- Control Flow \\[2ex]
+  \item CFLi -- Control Flow with Immediate \nopagebreak\\[2ex]
         \begin{bytefield}{32}
           \bitheader{0-31} \\
-          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{11x} & \bitbox{2}{Op} &
-          \bitbox{22}{\bitssubclass} \\
+          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{10} & \bitbox{1}{D} & \bitbox{2}{Op} &
+          \bitbox{22}{Immediate} \\
+        \end{bytefield}
+
+  \item CFLr -- Control Flow with Registers \\[2ex]
+        \begin{bytefield}{32}
+          \bitheader{0-31} \\
+          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{11000} &
+          \bitbox{18}{\bitssubclass} & \bitbox{2}{F} & \bitbox{2}{Op} \\
         \end{bytefield}
 
         \begin{bytefield}[leftcurly=.]{32}
-          \begin{leftwordgroup}{\parbox{12em}{CFLb -- Call / Branch}}
-            \bitheader{0-31} \\
-            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{110} & \bitbox{2}{Op} &
-            \bitbox{22}{Immediate}
-          \end{leftwordgroup} \\
-          \begin{leftwordgroup}{\parbox{12em}{CFLi -- Call / Branch Indirect}}
-            \bitheader{0-31} \\
-            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{111} & \bitbox{2}{00} & 
-            \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{8}{\bitsunused} & \bitbox{4}{Op}
-          \end{leftwordgroup} \\
-          \begin{leftwordgroup}{\parbox{12em}{CFLr -- Return}}
-            \bitheader{0-31} \\
-            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{111} & \bitbox{2}{10} &
-            \bitbox{5}{\bitsunused} & \bitbox{5}{Rb} & \bitbox{5}{Ro} & \bitbox{3}{\bitsunused} &\bitbox{4}{Op}
-          \end{leftwordgroup} \\
-          \begin{leftwordgroup}{\parbox{12em}{Reserved}}
-            \bitheader{0-31} \\
-            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{111} & \bitbox{2}{11} &
-            \bitbox{22}{\bitssubclass}
-          \end{leftwordgroup} \\
+          \begin{leftwordgroup}{\parbox{18em}{CFLri -- Control Flow with implicit registers}}
+          \bitheader{0-31} \\
+          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{11000} &
+          \bitbox{18}{\bitsunused} &
+          \bitbox{2}{00} & \bitbox{2}{Op}
+          \end{leftwordgroup}\\
+          \begin{leftwordgroup}{\parbox{18em}{CFLrs -- Control Flow with single register}}
+          \bitheader{0-31} \\
+          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{11000} &
+          \bitbox{5}{\bitsunused} & \bitbox{5}{Rs} & \bitbox{8}{\bitsunused} &
+          \bitbox{2}{01} & \bitbox{2}{Op}
+          \end{leftwordgroup}\\
+          \begin{leftwordgroup}{\parbox{18em}{CFLrt -- Control Flow with two registers}}
+          \bitheader{0-31} \\
+          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{11000} &
+          \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} & \bitbox{3}{\bitsunused} &
+          \bitbox{2}{10} & \bitbox{2}{Op}
+          \end{leftwordgroup}
         \end{bytefield}
+ 
 \end{itemize}
 
 \clearpage
@@ -1951,7 +1960,7 @@ leave that to Florian ;) }
 
 \wolf{This section is to be updated for the upcoming ISA revision. Leave as-is for now.}
 
-Applies to CFLb and CFLi format only.
+Applies to CFLi and CFLr format only.
 Transfer control to another function or perform function-local branches.
 \texttt{br} performs a function-local, relative branch within the method cache.
 \martin{mmh, cache - explain better}
@@ -1991,7 +2000,7 @@ call and branch instructions.
   Instruction & Immediate   & Indirect & Cache fill & Link \\ \hline
   call        & absolute    & absolute & yes        & yes \\
   br          & PC relative & absolute & no         & no \\
-  brcf        & PC relative & absolute & yes        & no \\
+  brcf        & absolute    & absolute & yes        & no \\
 \end{tabular}
 
 \medskip
@@ -2052,10 +2061,10 @@ stall with the branch in the \texttt{EX} stage. I'd opt for the latter solution.
 the same as other RISC processors, e.g. your mentioned SPARC.}
 
 \begin{itemize}
-  \item CFLb -- Call / Branch \\[2ex]
+  \item CFLi -- Control Flow with Immediate \\[2ex]
     \begin{bytefield}{32}
       \bitheader{0-31} \\
-      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{110} & \bitbox{2}{Op} &
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{10} & \bitbox{2}{D} & \bitbox{2}{Op} &
       \bitbox{22}{Immediate} \\
     \end{bytefield}
 \end{itemize}
@@ -2068,7 +2077,7 @@ the same as other RISC processors, e.g. your mentioned SPARC.}
     \midrule
     00 & call & function call (absolute, with cache fill) \\
     01 & br   & local branch (PC relative, always hit) \\
-    10 & brcf & local branch (PC relative, with cache fill) \\
+    10 & brcf & branch (absolute, with cache fill) \\
     11 & ---  & unused \\
     \bottomrule
   \end{tabular}
@@ -2144,11 +2153,11 @@ instructions that are a bundle from their fetch behavior. Unaligned two-word fet
 but evil for a plain instruction cache.}
 
 \begin{itemize}
-  \item CFLi -- Call / Branch Indirect \\[2ex]
+  \item CFLr -- Control Flow with Registers \\[2ex]
     \begin{bytefield}{32}
       \bitheader{0-31} \\
-      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{111} & \bitbox{2}{00} &
-      \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{8}{\bitsunused} & \bitbox{4}{Op} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{11000} &
+      \bitbox{18}{\bitssubclass} & \bitbox{2}{F} & \bitbox{2}{Op} \\
     \end{bytefield}
 \end{itemize}
 
@@ -2160,7 +2169,7 @@ but evil for a plain instruction cache.}
     \midrule
     0000 & call  & function call (indirect, with cache fill) \\
     0001 & br    & local branch (indirect, always hit) \\
-    0010 & brcf  & local branch (indirect, with cache fill) \\
+    0010 & brcf  & branch (indirect, with cache fill) \\
     0011 & ---   & unused \\
     \dots& \dots  & \dots \\
     1111 & ---   & unused \\
@@ -2212,8 +2221,9 @@ usually called a SW interrupt as well? Exceptions? Restartable exceptions?}
   \item CFLr -- Return \\[2ex]
     \begin{bytefield}{32}
       \bitheader{0-31} \\
-      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{111} & \bitbox{2}{10} &
-      \bitbox{5}{\bitsunused} & \bitbox{5}{Rb} & \bitbox{5}{Ro} & \bitbox{3}{\bitsunused} &\bitbox{4}{Op} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{11000} &
+      \bitbox{18}{\bitsunused} &
+      \bitbox{2}{00} & \bitbox{2}{Op} \\
     \end{bytefield}
 \end{itemize}
 
@@ -3653,8 +3663,8 @@ register. This makes the return-base information in register
 special return base register \texttt{sb} with minimal effort.
 
 The return information for exceptions must be stored in registers that
-are not used otherwise. Two special registers \texttt{sxb} (\texttt{s10}) and
-\texttt{sxo} (\texttt{s11}) provide the return base and return offset for exceptions.
+are not used otherwise. Two special registers \texttt{sxb} (\texttt{s9}) and
+\texttt{sxo} (\texttt{s10}) provide the return base and return offset for exceptions.
 
 Depending of on the exact implementation, delayed loads might require
 another special register to save the contents of the special register
@@ -3670,10 +3680,10 @@ not have a delay slot despite altering the control flow.
 
 \bigskip
 \begin{bytefield}[leftcurly=.]{32}
-  \begin{leftwordgroup}{\parbox{12em}{CFLt -- Trap}}
+  \begin{leftwordgroup}{\parbox{12em}{CFLi -- Trap}}
     \bitheader{0-31} \\
-    \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{111} & \bitbox{2}{01} &
-    \bitbox{17}{\bitsunused} &\bitbox{5}{Func}
+    \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{10} & \bitbox{0}{1} & \bitbox{2}{11} &
+    \bitbox{17}{\bitsunused} & \bitbox{5}{Func}
   \end{leftwordgroup} \\
 \end{bytefield}
 
@@ -3683,10 +3693,10 @@ the status word appropriately.
 
 \bigskip
 \begin{bytefield}[leftcurly=.]{32}
-  \begin{leftwordgroup}{\parbox{12em}{CFLr -- \texttt{xret}}}
+  \begin{leftwordgroup}{\parbox{12em}{CFLri -- \texttt{xret}}}
     \bitheader{0-31} \\
-    \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{111} & \bitbox{2}{10} &
-    \bitbox{5}{\bitsunused} & \bitbox{5}{Rb} & \bitbox{5}{Ro} & \bitbox{3}{\bitsunused} &\bitbox{4}{0001}
+    \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{11000}
+    \bitbox{18}{\bitsunused} & \bitbox{2}{00} & \bitbox{2}{01}
   \end{leftwordgroup} \\
 \end{bytefield}
 

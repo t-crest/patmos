@@ -203,23 +203,27 @@ namespace patmos
       {
         GPR_e Rs;
       } STCr;
-      /// Operands for an CFLb instruction.
+      /// Operands for an CFLi instruction.
       struct
       {
         word_t Imm;
         uword_t UImm;
-      } CFLb;
-      /// Operands for an CFLi instruction.
+      } CFLi;
+      /// Operands for an CFLri instruction.
+      struct
+      {
+      } CFLri;
+      /// Operands for an CFLrs instruction.
       struct
       {
         GPR_e Rs;
-      } CFLi;
-      /// Operands for an CFLr instruction.
+      } CFLrs;
+      /// Operands for an CFLrt instruction.
       struct
       {
-        GPR_e Rb;
-        GPR_e Ro;
-      } CFLr;
+        GPR_e Rs1;
+        GPR_e Rs2;
+      } CFLrt;
     } OPS;
 
 
@@ -425,30 +429,36 @@ namespace patmos
     static instruction_data_t mk_STCr(const instruction_t &i, PRR_e pred,
                                       GPR_e rs);
 
-    /// Create an CFLb instruction with an immediate operand.
+    /// Create an CFLi instruction with an immediate operand.
     /// @param i The instruction.
     /// @param pred The predicate register under which the instruction is
     /// executed.
     /// @param imm The operand immediate.
-    static instruction_data_t mk_CFLb(const instruction_t &i, PRR_e pred,
+    static instruction_data_t mk_CFLi(const instruction_t &i, PRR_e pred,
                                       word_t imm, uword_t uimm);
 
-    /// Create an CFLi instruction with an register operand.
+    /// Create an CFLr instruction with implicit operands.
+    /// @param i The instruction.
+    /// @param pred The predicate register under which the instruction is
+    /// executed.
+    static instruction_data_t mk_CFLri(const instruction_t &i, PRR_e pred);
+
+    /// Create an CFLr instruction with a single register operand.
     /// @param i The instruction.
     /// @param pred The predicate register under which the instruction is
     /// executed.
     /// @param rs The operand register.
-    static instruction_data_t mk_CFLi(const instruction_t &i, PRR_e pred,
-                                      GPR_e rs);
+    static instruction_data_t mk_CFLrs(const instruction_t &i, PRR_e pred,
+                                       GPR_e rs);
 
-    /// Create an CFLr instruction without operands.
+    /// Create an CFLr instruction with two register operands.
     /// @param i The instruction.
     /// @param pred The predicate register under which the instruction is
     /// executed.
-    /// @param rb The register containing the return function base.
-    /// @param ro The register containing the return offset.
-    static instruction_data_t mk_CFLr(const instruction_t &i, PRR_e pred,
-                                      GPR_e rb, GPR_e ro);
+    /// @param rs1 The first operand register.
+    /// @param rs2 The second operand register.
+    static instruction_data_t mk_CFLrt(const instruction_t &i, PRR_e pred,
+                                       GPR_e rs1, GPR_e rs2);
 
     /// Create an HLT instruction without operands.
     /// @param i The instruction.

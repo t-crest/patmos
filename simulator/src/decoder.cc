@@ -315,18 +315,20 @@ namespace patmos
     MK_INSTR(sensr  , stcr, 1)
     MK_INSTR(sspillr, stcr, 3)
 
-    // CFLb
-    MK_INSTR(call, cflb, 0)
-    MK_INSTR(br  , cflb, 1)
-    MK_INSTR(brcf, cflb, 2)
-
     // CFLi
-    MK_INSTR(callr, cfli, 0)
-    MK_INSTR(brr  , cfli, 1)
-    MK_INSTR(brcfr, cfli, 2)
+    MK_INSTR(call, cfli, 4)
+    MK_INSTR(br  , cfli, 5)
+    MK_INSTR(brcf, cfli, 6)
 
-    // CFLr
-    MK_INSTR(ret, cflr, 0)
+    // CFLri
+    MK_INSTR(ret, cflri, 0)
+
+    // CFLrs
+    MK_INSTR(callr, cflrs, 0)
+    MK_INSTR(brr  , cflrs, 1)
+
+    // CFLrt
+    MK_INSTR(brcfr, cflrt, 2)
   }
 
   instruction_t &decoder_t::get_instruction(unsigned int ID)

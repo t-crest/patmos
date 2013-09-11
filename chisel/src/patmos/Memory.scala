@@ -191,10 +191,8 @@ class Memory() extends Component {
 	io.memwb.rd(i).valid := memReg.rd(i).valid
 	io.memwb.rd(i).data := memReg.rd(i).data 
   }
-  //Fill in data from loads or calls
-  io.memwb.rd(0).data := Mux(memReg.mem.load, dout,
-                             Mux(memReg.mem.call, Cat(io.femem.pc, Bits("b00")),
-                                 memReg.rd(0).data))
+  // Fill in data from loads
+  io.memwb.rd(0).data := Mux(memReg.mem.load, dout, memReg.rd(0).data)
 
   // call to fetch
   io.memfe.doCallRet := (memReg.mem.call || memReg.mem.ret || memReg.mem.brcf ||

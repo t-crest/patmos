@@ -4,7 +4,6 @@
 	.word   68;
 	addi	r1 = r0, 0;
 	addi	r20 = r0, 20;
-	addi	r30 = r0, 0;  # method base?
 	call	start;        # we need an initial call that does not return for a start
 	addi	r1 = r0, 1;
 	addi	r1 = r0, 2;
@@ -22,7 +21,6 @@
 
 	.word 100; # This looks like not working at all....
 start:	addi	r1 = r1, 1;
-	addi	r30 = r0, start;
 	call	foo;
 # we should check (and define) delay slots for call/ret - probably 2
 	addi	r2 = r0, 2;
@@ -37,7 +35,7 @@ start:	addi	r1 = r1, 1;
 	.word 20; # this shall be the length - which unit, assume bytes?
 foo:	addi	r6 = r0, 6;
 	addi	r7 = r0, 7;
-	ret	r30, r31;   # r32 offset to method base in r30
+	ret; # base/offset in srb/sro
 	addi	r10 = r0, 10; # how many return delay slots? Maybe 2 as all others
 	addi	r11 = r0, 11;
 	addi	r12 = r0, 12;

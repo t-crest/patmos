@@ -172,6 +172,11 @@ class Execute() extends Component {
   val stackSpillReg = Reg(resetVal = UFix(0, DATA_WIDTH))
   io.exdec.sp := stackTopReg
 
+  // return information
+  val retBaseReg = Reg(resetVal = UFix(0, DATA_WIDTH))
+  val retOffReg = Reg(resetVal = UFix(0, DATA_WIDTH))
+  val saveRetOff = Reg(resetVal = Bool(false))
+
   // exception return information
   val excBaseReg = Reg(resetVal = UFix(0, DATA_WIDTH))
   val excOffReg = Reg(resetVal = UFix(0, DATA_WIDTH))
@@ -267,6 +272,12 @@ class Execute() extends Component {
 		is(SPEC_SS) {
 		  stackSpillReg := op(2*i).toUFix()
 		}
+		is(SPEC_SRB) {
+		  retBaseReg := op(2*i).toUFix()
+		}
+		is(SPEC_SRO) {
+		  retOffReg := op(2*i).toUFix()
+		}
 		is(SPEC_SXB) {
 		  excBaseReg := op(2*i).toUFix()
 		}
@@ -292,6 +303,12 @@ class Execute() extends Component {
 	  }
 	  is(SPEC_SS) {
 		mfsResult := stackSpillReg
+	  }
+	  is(SPEC_SXB) {
+		mfsResult := retBaseReg
+	  }
+	  is(SPEC_SXO) {
+		mfsResult := retOffReg
 	  }
 	  is(SPEC_SXB) {
 		mfsResult := excBaseReg
@@ -330,20 +347,30 @@ class Execute() extends Component {
   val doCallRet = (exReg.call || exReg.ret || exReg.brcf ||
 				   exReg.xcall || exReg.xret) && doExecute(0)
   val callAddr = Mux(exReg.immOp(0), exReg.callAddr, op(0).toUFix)
-  val brcfAddr = Mux(exReg.immOp(0), exReg.brcfAddr, op(0).toUFix)
-  val callRetAddr = Mux(exReg.call || exReg.xcall || exReg.brcf, UFix(0), op(1).toUFix)
-  val callRetBase = Mux(exReg.call || exReg.xcall, callAddr,
-                        Mux(exReg.brcf, brcfAddr,
-                            op(0).toUFix))
+  val callRetAddr = Mux(exReg.call || exReg.xcall, UFix(0),
+                        Mux(exReg.brcf, op(1).toUFix,
+                            Mux(exReg.xret, excOffReg, retOffReg)))
+  val callRetBase = Mux(exReg.call || exReg.xcall || exReg.brcf, callAddr,
+                        Mux(exReg.xret, excBaseReg, retBaseReg))
   io.exmem.mem.callRetBase := callRetBase
   io.exmem.mem.callRetAddr := callRetAddr
 
-  // exception return information
+  // return information
   val baseReg = Reg(resetVal = UFix(4, DATA_WIDTH))
+  when(exReg.call && doExecute(0) && io.ena) {
+    retBaseReg := baseReg
+  }
+  // the offset is saved when the call is already in the MEM statge
+  saveRetOff := exReg.call && doExecute(0) && io.ena
+  when(saveRetOff) {
+    retOffReg := Cat(io.feex.pc, Bits("b00").toUFix)
+  }
+  // exception return information
   when(exReg.xcall && doExecute(0) && io.ena) {
     excBaseReg := baseReg
     excOffReg := Cat(exReg.relPc, Bits("b00").toUFix)
   }
+  // remember base address
   when(doCallRet && io.ena) {
     baseReg := callRetBase
   }

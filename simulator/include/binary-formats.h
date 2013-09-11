@@ -386,31 +386,6 @@ namespace patmos
     static word_t encode(word_t pred, word_t opcode, word_t rs);
   };
 
-  /// The CFLb instruction format (see Patmos TR).
-  class cflb_format_t : public binary_format_t
-  {
-  public:
-    /// Construct a new binary format for the instruction using a given opcode.
-    /// @param instruction The instruction.
-    /// @param opcode The instruction's opcode.
-    cflb_format_t(const instruction_t &instruction, word_t opcode);
-
-    /// Decode the operands of the instruction and return a corresponding
-    /// instruction data instance.
-    /// @param iw The instruction word.
-    /// @param longimm A long immediate (exclusively for the ALUl format),
-    /// @return The resulting instruction data instance representing the
-    /// instruction and its operands.
-    virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
-
-    /// Encode an instruction.
-    /// @param pred The instruction's predicate.
-    /// @param opcode The instruction opcode.
-    /// @param imm The immediate operand.
-    /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t opcode, word_t imm);
-  };
-
   /// The CFLi instruction format (see Patmos TR).
   class cfli_format_t : public binary_format_t
   {
@@ -431,19 +406,68 @@ namespace patmos
     /// Encode an instruction.
     /// @param pred The instruction's predicate.
     /// @param opcode The instruction opcode.
-    /// @param rs1 The register operand.
+    /// @param imm The immediate operand.
     /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t opcode, word_t rs1);
+    static word_t encode(word_t pred, word_t opcode, word_t imm);
   };
 
-  /// The CFLr instruction format (see Patmos TR).
-  class cflr_format_t : public binary_format_t
+  /// The CFLri instruction format (see Patmos TR).
+  class cflri_format_t : public binary_format_t
   {
   public:
     /// Construct a new binary format for the instruction using a given opcode.
     /// @param instruction The instruction.
     /// @param opcode The instruction's opcode.
-    cflr_format_t(const instruction_t &instruction, word_t opcode);
+    cflri_format_t(const instruction_t &instruction, word_t opcode);
+
+    /// Decode the operands of the instruction and return a corresponding
+    /// instruction data instance.
+    /// @param iw The instruction word.
+    /// @param longimm A long immediate (exclusively for the ALUl format),
+    /// @return The resulting instruction data instance representing the
+    /// instruction and its operands.
+    virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
+
+    /// Encode an instruction.
+    /// @param pred The instruction's predicate.
+    /// @param opcode The instruction opcode.
+    /// @return An encoded instruction word.
+    static word_t encode(word_t pred, word_t opcode);
+  };
+
+  /// The CFLrs instruction format (see Patmos TR).
+  class cflrs_format_t : public binary_format_t
+  {
+  public:
+    /// Construct a new binary format for the instruction using a given opcode.
+    /// @param instruction The instruction.
+    /// @param opcode The instruction's opcode.
+    cflrs_format_t(const instruction_t &instruction, word_t opcode);
+
+    /// Decode the operands of the instruction and return a corresponding
+    /// instruction data instance.
+    /// @param iw The instruction word.
+    /// @param longimm A long immediate (exclusively for the ALUl format),
+    /// @return The resulting instruction data instance representing the
+    /// instruction and its operands.
+    virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
+
+    /// Encode an instruction.
+    /// @param pred The instruction's predicate.
+    /// @param opcode The instruction opcode.
+    /// @param rs The register operand.
+    /// @return An encoded instruction word.
+    static word_t encode(word_t pred, word_t opcode, word_t rs);
+  };
+
+  /// The CFLrt instruction format (see Patmos TR).
+  class cflrt_format_t : public binary_format_t
+  {
+  public:
+    /// Construct a new binary format for the instruction using a given opcode.
+    /// @param instruction The instruction.
+    /// @param opcode The instruction's opcode.
+    cflrt_format_t(const instruction_t &instruction, word_t opcode);
 
     /// Decode the operands of the instruction and return a corresponding
     /// instruction data instance.
@@ -459,7 +483,7 @@ namespace patmos
     /// @param rb The function base register operand.
     /// @param ro The offset register operand.
     /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t opcode, word_t rb, word_t ro);
+    static word_t encode(word_t pred, word_t opcode, word_t rs1, word_t rs2);
   };
 
 }
