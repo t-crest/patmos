@@ -194,6 +194,9 @@ namespace patmos
     
     /// Interrupt instruction
     instruction_t *Instr_INTR;
+    
+    /// Halt pseudo instruction.
+    instruction_t *Instr_HALT;
 
     /// Interrupt handler
     interrupt_handler_t interrupt_handler;
@@ -209,6 +212,9 @@ namespace patmos
 
     /// Keep track of current branch delay
     int Branch_counter;
+    
+    /// If set to true, flush the pipeline and halt the simulation.
+    bool Halt;
     
     /// Delay decoder when an interrupt has been executed
     int Interrupt_handling_counter;
@@ -250,6 +256,10 @@ namespace patmos
     /// itself or any following stage.
     bool is_stalling(Pipeline_t pst) const;
 
+    /// Halt the simulation. All instructions currently in flight will be 
+    /// completed first.
+    void halt();
+    
     /// Track retiring instructions for stats.
     void track_retiring_instructions();
 

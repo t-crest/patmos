@@ -1699,6 +1699,26 @@ namespace patmos
     }
   };
 
+  class i_halt_t : public i_cfl_t
+  {
+  public:
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printPred(os, ops.Pred);
+      os << "halt";
+    }
+
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
+    {
+      simulation_exception_t::halt(s.GPR.get(GPR_EXIT_CODE_INDEX).get());
+    }
+    
+    virtual unsigned get_delay_slots() const {
+      return 3;
+    }
+  };
+
   
   /// Branch and call instructions with a register operand.
   class i_cfli_t : public i_cfl_t
@@ -1860,15 +1880,7 @@ namespace patmos
       // returning to address 0? interpret this as a halt.
       if (ops.DR_Pred && ops.EX_Base == 0)
       {
-        // TODO this is one really ugly hack to let the simulator finish the
-        // other stages before we exit, so that the PC is updated and stuff.
-        // This should move into some simulator.halt(retvalue) call.
-        if (ops.EX_Offset == 0) {
-          ops.EX_Offset = 1;
-          s.pipeline_stall(SMW);
-        } else {
-          simulation_exception_t::halt(s.GPR.get(GPR_EXIT_CODE_INDEX).get());
-        }
+        s.halt();
       }
       else if (ops.DR_Pred)
       {
