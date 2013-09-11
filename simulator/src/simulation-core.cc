@@ -77,11 +77,11 @@ namespace patmos
 
     // Create the interrupt instruction
     Instr_INTR       = new i_intr_t();
-    Instr_INTR->ID   = patmos::decoder_t::get_num_instructions();
+    Instr_INTR->ID   = -1;
     Instr_INTR->Name = "intr";
     
     Instr_HALT       = new i_halt_t();
-    Instr_HALT->ID   = patmos::decoder_t::get_num_instructions() + 1;
+    Instr_HALT->ID   = -2;
     Instr_HALT->Name = "halt";
   }
 
@@ -150,7 +150,8 @@ namespace patmos
     {
       for(unsigned int j = 0; j < NUM_SLOTS; j++)
       {
-        if (Pipeline[NUM_STAGES-1][j].I)
+        if (Pipeline[NUM_STAGES-1][j].I && 
+            Pipeline[NUM_STAGES-1][j].I->ID >= 0)
         {
           // get instruction statistics
           instruction_stat_t &stat(
@@ -388,7 +389,7 @@ namespace patmos
         if (collect_instr_stats) {
           for (unsigned int j = 0; j < NUM_SLOTS; j++)
           {
-            if (Pipeline[SMW][j].I) {
+            if (Pipeline[SMW][j].I && Pipeline[SMW][j].I->ID >= 0) {
               // I am too lazy now to remove all the const's..
               instruction_t &I(Decoder.get_instruction(Pipeline[SMW][j].I->ID));
               I.collect_stats(*this, Pipeline[SMW][j]);

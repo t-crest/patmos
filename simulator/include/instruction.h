@@ -38,8 +38,8 @@ namespace patmos
   class instruction_t
   {
   public:
-    /// ID of the instruction.
-    unsigned int ID;
+    /// ID of the instruction. Negative for pseudo instructions.
+    int ID;
 
     /// Instruction name.
     const char *Name;
