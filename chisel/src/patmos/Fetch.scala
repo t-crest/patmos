@@ -92,7 +92,7 @@ class Fetch(fileName : String) extends Component {
   val selMCache = Reg(io.mcachefe.mem_sel(0))
 
   //need to register these values to save them in  memory stage at call/return
-  val relBaseReg = Reg(resetVal = UFix(1, DATA_WIDTH))
+  val relBaseReg = Reg(resetVal = UFix(1, width = MAX_RELADDR_WIDTH))
   val relocReg = Reg(resetVal = UFix(1, DATA_WIDTH))
   when(io.memfe.doCallRet && io.ena) {
     relBaseReg := io.mcachefe.relBase
