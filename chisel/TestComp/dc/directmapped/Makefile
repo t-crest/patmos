@@ -14,21 +14,21 @@ SBT = java -Xmx1024M -Xss8M -XX:MaxPermSize=128M -jar sbt/sbt-launch.jar
 # The first two arguments are consumed by sbt, the others are
 # forwarded to the Scala/Chisel main().
 
-hdldir=sc_generated
-simdir=sc_emulator
-basedir=../../../
+hdldir=dc_generated
+simdir=dc_emulator
+basedir=../../
 
 test:
 #	-rm -rf generated
-	cd $(basedir); $(SBT) "run-main dc.HelloMain --backend c --compile --vcd --test --genHarness --targetDir src/datacache/direct_mapped/generated"
+	cd $(basedir); $(SBT) "run-main patmos.directmappedMain --backend c --compile --vcd --test --genHarness --targetDir $(hdldir)"
 
 # Generare Verilog code
 hdl:
-	cd $(basedir); $(SBT) "run-main dc.HelloMain --targetDir src/datacache/direct_mapped/generated --backend v"
+	cd $(basedir); $(SBT) "run-main patmos.directmappedMain --targetDir $(hdldir) --backend v"
 
 # C++ genertion
 cpp:
-	cd $(basedir); $(SBT) "run-main example.HelloMain --targetDir src/datacache/direct_mapped/generated"
+	cd $(basedir); $(SBT) "run-main example.directmappedMain --targetDir $(hdldir)"
 
 ###### Minimum Makefile ends here ########
 
