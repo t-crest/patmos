@@ -82,7 +82,7 @@ val io = new Bundle {
 	val addrBits = log2Up(mem_size)
     val sc_en = Mux(io.scCpuInOut.M.Cmd === OcpCmd.WRNP, io.scCpuInOut.M.ByteEn,  Bits("b0000"))
 	
-    val SC_MASK		= UFix(255)
+    val SC_MASK		= Bits(sc_size) - Bits(1)
     
     val first_addr = Reg(resetVal = Bits(0, width = ADDR_WIDTH))
     val first_cmd = Reg(resetVal = Bits(0, 3))
@@ -111,7 +111,7 @@ val io = new Bundle {
 	
 	val mem_addr_masked = (m_top - UFix(1)) & SC_MASK
 	
-   // m_top := (m_top + UFix(4) - m_top(1, 0))
+  
     val mem_addr_reg = Reg(resetVal = Bits(0, width = ADDR_WIDTH))
 	mem_addr_reg := m_top - UFix(1)
 	
