@@ -3069,6 +3069,17 @@ Bursts are restricted to exactly four words (D1, D2, D3 and D4), or some other c
   to the OCP spec. If necessary, handshaking for write bursts is done
   via \code{SCmdAccept} and/or \code{SDataAccept}.}
 
+\martin{Bust: Is it legal (in our OCP subset) that SCmdAccept comes earlier than SDataAccept?}
+
+\martin{Burst: we said that we do not support pipelined requests in bust mode.
+So when the slave sets SResp we are not allowing the master to initiate the next
+request in the same cycle. Right?} 
+
+\martin{Are OCP addresses always in bytes? Even on the burst interface? I assume yes.
+We need to look this up.}
+
+
+
 \todo{The legal status of using a subset of OCP in an open-source
 project needs to be checked. The Patmos document shall be
 self contained and no membership to OCP necessary to use
