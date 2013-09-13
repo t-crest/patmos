@@ -2511,31 +2511,192 @@ The UART address for \code{pasim} is defined in \code{patmos/simulator/include/u
 
 For the compiler/library the constant is in \code{llvm/tools/clang/lib/Driver/Tools.cpp}.
 
-\section{Stack Cache}
+\section{The Stack Cache}
 \label{sec:stack-cache}
 
-The stack cache of Patmos essentially consists of a fast, small, local memory
-\texttt{head} and \texttt{tail} pointers into the local memory, and a
-top-of-stack pointer into the global memory.
-\martin{Why should there be three pointers? We have two in the
-HW implementation (paper). TODO: update with some paper content
-and maybe C based examples. Check for off by one error.}
+The stack cache is a processor-local, on-chip memory~\cite{patmos:stack:seus}. The stack
+cache operates similar to a ring buffer. It can be seen as a stack-cache-sized
+window into the main memory address range.
+To manage the stack cache, we use three additional
+instructions: \code{reserve}, \code{ensure},
+and \code{free}. Two hardware registers define which
+part of the stack area is currently in the stack cache.
 
-The structure has some similarities
-with a ring buffer, reserving and freeing space on the stack moves the
-\texttt{head} pointer, spilling and filling moves the \texttt{tail}.
+\subsection{Stack Cache Manipulation}
 
-\martin{I don't like head and tail as this is used in functional languages for
-the first element of a list and the rest of the list. This is not what the stack
-cache is.}
+We present the mechanics of the stack cache in C code for easier readability.
+However, the hardware implementation is a synchronous design and
+the algorithm is implemented by a state machine that handles
+the memory spill and fill operations. In the C code following data structures are used:
 
-\martin{We might update this section with the content from the S\$ paper
-and add some pseudo code for the hardware/simulation implementation.}
+\begin{description}
+\item[\code{mem}] is an array representing the main memory,
+\item[\code{sc}] is an array representing the stack cache,
+\item[\code{m\_top}] is the register pointing to the top of the saved stack content in the main memory, and
+\item[\code{sc\_top}] points to the top element in the stack cache. 
+\end{description}
+
+The two pointers are full-length address registers. However,
+when addressing the stack cache, only the lower $n$ bits
+are used for a stack cache of a size of $2^n$ words.
+The constant \code{SC\_SIZE} represents the stack
+cache size and \code{SC\_MASK} is the bit mask for
+the stack cache addressing. The stack cache is managed in 32-bit
+words. % Therefore, the pointers count in 32-bit words.
+
+At program start the stack cache is empty and both pointers,
+\code{m\_top} and \code{sc\_top}, point to the same address,
+the address that one higher as the stack area. \code{m\_top}
+points to the last spilled word in main memory.
+Similar, \code{sc\_top} points to the last slot in the stack
+frame (top of stack). Therefore, the number of currently valid
+elements in the stack cache is \code{m\_top} - \code{sc\_top}. 
+
+The compiler generates code to grow the stack downward,
+as it is common for many architectures. Growing the stack downwards
+has historical reasons. However, for multi-threaded
+systems each thread needs a reserved, fixed memory area
+for the stack and there is no benefit from growing the stack
+downwards.
+
+%We have some constants, two pointers, and main memory and the stack memory:
+%\begin{figure} [!h]
+%
+%\begin{lstlisting}
+%#define SC_SIZE 64
+%#define SC_MASK (SC_SIZE-1)
+%
+%// The main memory
+%static int mem[1024];
+%// The stack cache
+%static int sc[SC_SIZE];
+%
+%// Pointer the top memory saved stack content
+%int m_top;
+%
+%// Pointer to the top element in the stack cache
+%int sc_top;
+%
+%// #elements is m_top - sc_top and always has to 	be <= SC_SIZE
+%\end{lstlisting}
+%
+% 	 \caption{Stack cache and main memory pointer definitions.}
+% 	 \label{fig:sc_mem_def}
+%\end{figure} 
+
+\begin{figure} 
+\begin{lstlisting}
+void reserve(int n) {
+
+    int nspill, i;
+
+    sc_top -= n;
+    nspill = m_top - sc_top - SC_SIZE;
+    for (i=0; i<nspill; ++i) {
+       --m_top;
+       mem[m_top] = sc[m_top & SC_MASK];
+    }   
+}
+	\end{lstlisting}
+ 	 \caption{The \code{reserve} instruction provides \code{n}
+	 free words in the stack cache. It may spill data into main memory.}
+ 	 \label{fig:res_iml}
+\end{figure}
+
+
+\paragraph{Reserve} The \code{reserve} instruction, as shown in Figure~\ref{fig:res_iml},
+reserves space in the stack cache. Typed load and store instructions use
+this reserved space. The reserve instruction may spill data to the
+main memory. This spilling happens when there are not enough free words in the
+stack cache to reserve the requested space.
+
+The processor reads the number of words to be reserved
+(the immediate operand of the instruction) in the decode stage.
+The processor adjusts the \code{sc\_top} register in the execution
+stage and also computes how many words need to be spilled in the
+execution stage. The processor spills to the main memory
+in the memory stage, as shown by the for loop in~Figure~\ref{fig:res_iml}.
+
+\begin{figure}
+\begin{lstlisting}
+void free(int n) {
+
+    sc_top += n;
+    if (sc_top > m_top) {
+        m_top = sc_top; 
+    }       
+}
+\end{lstlisting}
+	\caption{The \code{free} instruction drops \code{n}
+	elements from the stack cache. It may change the top memory
+	pointer \code{m\_top}.}
+ 	 \label{fig:free_iml}
+\end{figure}
+
+\paragraph{Free} The \code{free} instruction frees the reserved
+space on the stack. It does not fill previously spilled data back into the stack cache.
+It just changes the top of the stack pointer and may change the top of the memory
+pointer, as shown in Figure~\ref{fig:free_iml}.
+
+ 
+\begin{figure}
+\begin{lstlisting}
+void ensure(int n) {
+
+    int nfill, i;
+
+    nfill = n - (m_top - sc_top);
+    for (i=0; i<nfill; ++i) {
+        sc[m_top & SC_MASK] = mem[m_top];
+        ++m_top;
+    }       
+}
+\end{lstlisting}
+	\caption{The \code{ensure} instruction ensures that
+	at least \code{n} elements are valid in the stack cache.
+	It may need to fill data from main memory.}
+ 	\label{fig:ens_iml}
+\end{figure}
+
+
+\paragraph{Ensure} Returning into a function needs to ensure that the stack
+frame of this function is available in the stack cache. The \code{ensure} instruction,
+as shown in Figure~\ref{fig:ens_iml}, guarantees this condition.
+This instruction may need to fill back the stack cache with previously spilled data.
+This happens when the number of valid words in the stack cache is less than the
+number of words that need to be in the stack cache.
+Filling the stack cache is shown in the loop in Figure~\ref{fig:ens_iml}.
+
+One processor register serves as stack pointer and points to the end of the stack frame.
+Load and store instructions use displacement addressing relative to this stack pointer
+to access the stack cache.
+
+\begin{figure}
+\begin{lstlisting}
+// load one word from the stack cache
+// addr is a main memory address (register value plus offset)
+
+int load(int addr) {
+    return sc[(sc_top + addr) & SC_MASK];
+}
+
+// store one word into the stack cache
+// addr is a plain main memory address
+
+void store(int addr, int val) {
+    sc[(st_top + addr) & SC_MASK] = val;
+}
+\end{lstlisting}
+	\caption{Pseudo code for the load and store instructions.}
+ 	\label{fig:ld_st_iml}
+\end{figure}
+
+\martin{We might update this section with more content from the S\$ paper}
 
 As with regular ring buffers, when the size of the stack cache is not sufficient
 in order to reserve additional space requested, it needs to spill some data
 so far kept in the stack cache to the global memory, i.e., whenever
-$\mathtt{head} - \mathtt{tail} > \emph{stack cache size}$. A major difference,
+\code{m\_top} - \code{sc\_top} $>$ \emph{stack cache size}. A major difference,
 however, is that freeing space does \emph{not} imply the reloading of data from
 the global memory. When a free operation frees all stack space currently held in
 the cache (or more), the special register \texttt{ss} is accordingly
@@ -2549,7 +2710,7 @@ generate correct code (soon). So we might bring in stack cache manipulation
 in burst blocks as well.}
 
 Addresses for load and store operations from/to the stack cache are relative to
-the \texttt{head} pointer.
+the \code{sc\_top} pointer.
 
 The base address for fill and spill operations of the stack cache is kept in
 special register \texttt{ss}. \texttt{st} contains the address the top of the
@@ -2578,73 +2739,6 @@ The organization of the stack cache implies some limitations:
         size (see Section~\ref{sec:abi}).
 \end{itemize}
 
-In order to allow two parallel load/store operations the memory of the stack
-cache might be operated with a doubled clock frequency.
-
-\fb{This might also allow to define a precise definition of the result of
-    concurrent, overlapping stores on the stack cache.}
-\martin{Double clocking of the S\$ is conditional and depending on
-the critical path with the rather large multiplexer for the memory stage.}
-
-\gebhard{Where is the benefit of the stack cache, if we additionally need to maintain a shadow stack in main memory?
-This complicates a static stack/value analysis.
-For C/C++ programs using pointers the compiler would often have to allocate local variables on the shadow stack.
-Consider the following program:
-
-\begin{tabular}{l}
-\texttt{int main (void) \{} \\
-\texttt{  int c;} \\
-\texttt{  void compute (\&c);} \\
-\texttt{\}} \\
-\end{tabular}
-
-Obviously, the variable \texttt{c} cannot be put onto the stack cache.
-The function \texttt{compute} cannot know that its parameter references an object in the stack cache.
-A similar problem would occur with 3rd party library routines that have pointer parameters.
-In general, we thus cannot benefit from discerning between references on the stack and references on the heap on the instruction level.
-This does actually not correspond to the C/C++ memory model.
-
-Why don't we use a dedicated memory for the stack?
-This could be a fast scratchpad memory that is allocated to a dedicated address range.
-Similarly, we could implement the stack cache as a separate data cache that only caches words from a dedicated memory region.
-As we cannot discern between types of references on the instruction level, we can do so by means of the target address of a memory access.}
-
-\fb{We will find out ... Some things might be interesting though: stack accesses
-through the cache do not pollute the data cache and do not interfere with the
-analysis of the other caches in the system. All stack accesses can be predicted
-nicely. The compiler can place the stack control instructions depending on the
-WCET. Most C functions should be easily handled with the stack cache. It becomes
-easier to judge how spill code generated during register allocation impacts the
-WCET. .... }
-
-\gebhard{This benefit of not polluting the data cache is also given in my design.
-The stack scratchpad memory would be dedicated to a certain address range that is \emph{not} cached.
-Hence, we would have the same benefit with less effort (i.e., in terms of instructions and processor logic).}
-
-\cullmann{An additional problem is: the timing of a task relies then on the exact fill level of the stack cache at task start.
-This causes additional interference of multiple tasks, if the stack cache is already filled to some amount, the new started task will need to evict the stuff to memory.
-Or is the stack cache cleared before a new task is started to decouple the tasks again?}
-
-\cullmann{What happens on preemptions or interrupts btw.? Is the stack then saved and restored somehow?}
-
-\fb{This is actually a nice property of the stack cache. You can reestablish the
-state of the stack cache -- as far as WCET analysis is concerned -- after a task
-switch. You clear the cache with a \texttt{reserve} of the stack cache size, you
-switch to another task, when you activate the original task all you need to do
-is a \texttt{free} of the stack cache size and an \texttt{ensure} of either
-the stack cache size or the actual size of the data that was in the cache before
-the last task switch. Other schemes might also be possible.}
-
-%\stefan{Currently all the stack control operations use immediates, so \texttt{ensure} using the actual size will be .. tricky. This may
-%actually cause problems, since after a context switch there might be more data in the stack cache than before, which can cause the following
-%\texttt{reserve} ops to spill, i.e., they take longer than without the context switch (assuming the hardware does not keep track of dirty
-%cache lines). If might also be a good idea to avoid spilling/filling above the stack origin, else we would need to have an unused memory block of
-%the size of the stack cache above every stack to support context switches (this requires telling the hardware about the stack origin address).
-%However, we do not even know as of yet how/when/if we want to do
-%context switches and interrupts anyway in this project (only at preemption points?, handling of dma transfers/loads/method cache fills,..).}
-%\martin{I think stack spill and fill on a context switch is a reasonable option.
-%One has to consider this in preemption cache cost analysis anyway.
-%Why not simply make it explicit?}
 
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
@@ -2689,6 +2783,9 @@ Figure~\ref{fig:cacheable_code} illustrates this convention.
   \label{fig:cacheable_code}
 \end{figure}
 
+ \martin{We need to check with Philipp, but it might make sense to align the length
+  word.}
+  
 The organization of the method cache implies some limitations:
 \begin{itemize}
   \item The size of a code sequence intended for caching is limited to the size
@@ -4214,9 +4311,10 @@ Patmos is the next cool thing in the dry world of real-time systems.
 \bibliographystyle{abbrv}
 \bibliography{patbib.bib}
 
+\end{document}
+
 \appendix
 
-\end{document}
 
 \chapter{Archived Discussions}
 
@@ -4807,5 +4905,76 @@ complete.
 see you already mentioned waiting for the {\it previous} DMA to finish,
 but we probably also want to wait for the current DMA to finish,
 e.g.~if the next instruction depends on something being loaded.}
+
+
+\section{Stack Cache Discussion}
+
+In order to allow two parallel load/store operations the memory of the stack
+cache might be operated with a doubled clock frequency.
+
+\fb{This might also allow to define a precise definition of the result of
+    concurrent, overlapping stores on the stack cache.}
+\martin{Double clocking of the S\$ is conditional and depending on
+the critical path with the rather large multiplexer for the memory stage.}
+
+\gebhard{Where is the benefit of the stack cache, if we additionally need to maintain a shadow stack in main memory?
+This complicates a static stack/value analysis.
+For C/C++ programs using pointers the compiler would often have to allocate local variables on the shadow stack.
+Consider the following program:
+
+\begin{tabular}{l}
+\texttt{int main (void) \{} \\
+\texttt{  int c;} \\
+\texttt{  void compute (\&c);} \\
+\texttt{\}} \\
+\end{tabular}
+
+Obviously, the variable \texttt{c} cannot be put onto the stack cache.
+The function \texttt{compute} cannot know that its parameter references an object in the stack cache.
+A similar problem would occur with 3rd party library routines that have pointer parameters.
+In general, we thus cannot benefit from discerning between references on the stack and references on the heap on the instruction level.
+This does actually not correspond to the C/C++ memory model.
+
+Why don't we use a dedicated memory for the stack?
+This could be a fast scratchpad memory that is allocated to a dedicated address range.
+Similarly, we could implement the stack cache as a separate data cache that only caches words from a dedicated memory region.
+As we cannot discern between types of references on the instruction level, we can do so by means of the target address of a memory access.}
+
+\fb{We will find out ... Some things might be interesting though: stack accesses
+through the cache do not pollute the data cache and do not interfere with the
+analysis of the other caches in the system. All stack accesses can be predicted
+nicely. The compiler can place the stack control instructions depending on the
+WCET. Most C functions should be easily handled with the stack cache. It becomes
+easier to judge how spill code generated during register allocation impacts the
+WCET. .... }
+
+\gebhard{This benefit of not polluting the data cache is also given in my design.
+The stack scratchpad memory would be dedicated to a certain address range that is \emph{not} cached.
+Hence, we would have the same benefit with less effort (i.e., in terms of instructions and processor logic).}
+
+\cullmann{An additional problem is: the timing of a task relies then on the exact fill level of the stack cache at task start.
+This causes additional interference of multiple tasks, if the stack cache is already filled to some amount, the new started task will need to evict the stuff to memory.
+Or is the stack cache cleared before a new task is started to decouple the tasks again?}
+
+\cullmann{What happens on preemptions or interrupts btw.? Is the stack then saved and restored somehow?}
+
+\fb{This is actually a nice property of the stack cache. You can reestablish the
+state of the stack cache -- as far as WCET analysis is concerned -- after a task
+switch. You clear the cache with a \texttt{reserve} of the stack cache size, you
+switch to another task, when you activate the original task all you need to do
+is a \texttt{free} of the stack cache size and an \texttt{ensure} of either
+the stack cache size or the actual size of the data that was in the cache before
+the last task switch. Other schemes might also be possible.}
+
+%\stefan{Currently all the stack control operations use immediates, so \texttt{ensure} using the actual size will be .. tricky. This may
+%actually cause problems, since after a context switch there might be more data in the stack cache than before, which can cause the following
+%\texttt{reserve} ops to spill, i.e., they take longer than without the context switch (assuming the hardware does not keep track of dirty
+%cache lines). If might also be a good idea to avoid spilling/filling above the stack origin, else we would need to have an unused memory block of
+%the size of the stack cache above every stack to support context switches (this requires telling the hardware about the stack origin address).
+%However, we do not even know as of yet how/when/if we want to do
+%context switches and interrupts anyway in this project (only at preemption points?, handling of dma transfers/loads/method cache fills,..).}
+%\martin{I think stack spill and fill on a context switch is a reasonable option.
+%One has to consider this in preemption cache cost analysis anyway.
+%Why not simply make it explicit?}
 
 \end{document}
