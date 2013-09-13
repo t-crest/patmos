@@ -296,6 +296,7 @@ int main (int argc, char* argv[]) {
       c->Patmos_fetch__relBaseReg = (entry - 0x10000) >> 2;
       c->Patmos_fetch__relocReg = 0x10000 >> 2;
     }
+    c->Patmos_execute__baseReg = entry;
     c->Patmos_mcache_mcachectrl__callRetBaseReg = (entry >> 2);
     c->Patmos_mcache_mcacherepl__callRetBaseReg = (entry >> 2);
   }

@@ -304,10 +304,10 @@ class Execute() extends Component {
 	  is(SPEC_SS) {
 		mfsResult := stackSpillReg
 	  }
-	  is(SPEC_SXB) {
+	  is(SPEC_SRB) {
 		mfsResult := retBaseReg
 	  }
-	  is(SPEC_SXO) {
+	  is(SPEC_SRO) {
 		mfsResult := retOffReg
 	  }
 	  is(SPEC_SXB) {
@@ -346,12 +346,16 @@ class Execute() extends Component {
 
   val doCallRet = (exReg.call || exReg.ret || exReg.brcf ||
 				   exReg.xcall || exReg.xret) && doExecute(0)
-  val callAddr = Mux(exReg.immOp(0), exReg.callAddr, op(0).toUFix)
+
+  val brcfOff = Mux(exReg.immOp(0), UFix(0), op(1).toUFix)
   val callRetAddr = Mux(exReg.call || exReg.xcall, UFix(0),
-                        Mux(exReg.brcf, op(1).toUFix,
+                        Mux(exReg.brcf, brcfOff,
                             Mux(exReg.xret, excOffReg, retOffReg)))
-  val callRetBase = Mux(exReg.call || exReg.xcall || exReg.brcf, callAddr,
+
+  val callBase = Mux(exReg.immOp(0), exReg.callAddr, op(0).toUFix)
+  val callRetBase = Mux(exReg.call || exReg.xcall || exReg.brcf, callBase,
                         Mux(exReg.xret, excBaseReg, retBaseReg))
+
   io.exmem.mem.callRetBase := callRetBase
   io.exmem.mem.callRetAddr := callRetAddr
 
