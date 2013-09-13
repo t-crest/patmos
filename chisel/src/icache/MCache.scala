@@ -138,6 +138,7 @@ class MCacheMemIO extends Bundle() {
 class MCache() extends Component {
   val io = new MCacheIO()
   val mcachectrl = new MCacheCtrl()
+  //val mcacherepl = new MCacheReplFifo2()
   val mcacherepl = new MCacheReplFifo(method_count = METHOD_COUNT)
   //val mcacherepl = new MCacheReplLru(method_count = METHOD_COUNT)
   val mcachemem = new MCacheMem()
@@ -607,4 +608,88 @@ class MCacheCtrl() extends Component {
   io.ocp_port.M.DataByteEn := Bits("b1111")
   io.ocp_port.M.DataValid := Bits(0)
 
+}
+
+class MCacheReplFifo2() extends Component {
+  val io = new MCacheReplIO()
+
+  val mcache_addr_vec = { Vec(METHOD_COUNT) { Reg(resetVal = Bits(0, width = ADDR_WIDTH)) } }
+  val mcache_valid_vec = { Vec(METHOD_COUNT) { Reg(resetVal = Bits(0, width = 1)) } }
+  val next_index_tag = Reg(resetVal = Bits(0, width = log2Up(METHOD_COUNT)))
+  val next_replace_tag = Reg(resetVal = Bits(0, width = log2Up(METHOD_COUNT)))
+  val posReg = Reg(resetVal = Bits(0, width = MCACHE_SIZE_WIDTH))
+  val hitReg = Reg(resetVal = Bits(1, width = 1))
+  val wrPosReg = Reg(resetVal = Bits(1, width = MCACHE_SIZE_WIDTH)) //could may dropped
+  val callRetBaseReg = Reg(resetVal = UFix(1, DATA_WIDTH))
+  val callAddrReg = Reg(resetVal = UFix(1, DATA_WIDTH))
+  val selIspmReg = Reg(resetVal = Bits(0, width = 1))
+  val selMCacheReg = Reg(resetVal = Bits(0, width = 1))
+
+  when (io.exmcache.doCallRet) {
+    callRetBaseReg := io.exmcache.callRetBase
+    callAddrReg := io.exmcache.callRetAddr
+    selIspmReg := io.exmcache.callRetBase(DATA_WIDTH - 1,ISPM_ONE_BIT - 2) === Bits(0x1)
+    selMCacheReg := io.exmcache.callRetBase(DATA_WIDTH - 1,15) >= Bits(0x1)
+    when (io.exmcache.callRetBase(DATA_WIDTH-1,15) >= Bits(0x1)) {
+      hitReg := Bits(0)
+      posReg := (next_index_tag << Bits(log2Up(METHOD_BLOCK_SIZE)))
+      for (i <- 0 until METHOD_COUNT) {
+        when (io.exmcache.callRetBase === mcache_addr_vec(i) && mcache_valid_vec(i) === Bits(1)) {
+          hitReg := Bits(1)
+          posReg := Bits(i << log2Up(METHOD_BLOCK_SIZE)) //makes no sence to start writing at odd position
+        }
+      }
+    }
+  }
+
+  //should do this only on call/return!
+  val relBase = Mux(selMCacheReg,
+                    posReg.toUFix,
+                    callRetBaseReg(ISPM_ONE_BIT-3, 0))
+  val relPc = callAddrReg + relBase
+
+  val reloc = Mux(selMCacheReg,
+                  callRetBaseReg - posReg.toUFix,
+                  UFix(1 << (ISPM_ONE_BIT - 2)))
+
+  //insert new tags
+  when (io.mcache_ctrlrepl.w_tag) {
+    hitReg := Bits(1)
+    wrPosReg := posReg //could use only posReg
+    mcache_addr_vec(next_index_tag) := io.mcache_ctrlrepl.w_addr
+    mcache_valid_vec(next_index_tag) := Bits(1)
+    next_index_tag := (next_index_tag + io.mcache_ctrlrepl.w_data(31,log2Up(METHOD_BLOCK_SIZE)) + Bits(1)) % Bits(METHOD_COUNT)
+    next_replace_tag := (next_replace_tag + Bits(1)) % Bits(METHOD_COUNT)
+  }
+
+  //invalidate next methods
+  when (next_replace_tag != next_index_tag) {
+    next_replace_tag := (next_replace_tag + Bits(1)) % Bits(METHOD_COUNT)
+    mcache_valid_vec(next_replace_tag) := Bits(0)
+  }
+
+  val wr_parity = io.mcache_ctrlrepl.w_addr(0)
+  val mcachemem_w_address = (wrPosReg + io.mcache_ctrlrepl.w_addr)(MCACHE_SIZE_WIDTH-1,1)
+  val rd_parity = io.mcache_ctrlrepl.address(0)
+  val mcachemem_in_address = (io.mcache_ctrlrepl.address)(MCACHE_SIZE_WIDTH-1,1)
+  val addr_parity_reg = Reg(rd_parity)
+
+  io.mcachemem_in.w_even := Mux(wr_parity, Bits(0), io.mcache_ctrlrepl.w_enable)
+  io.mcachemem_in.w_odd := Mux(wr_parity, io.mcache_ctrlrepl.w_enable, Bits(0))
+  io.mcachemem_in.w_data := io.mcache_ctrlrepl.w_data
+  io.mcachemem_in.w_addr := mcachemem_w_address
+  io.mcachemem_in.addr_even := Mux(rd_parity, mcachemem_in_address + Bits(1), mcachemem_in_address)
+  io.mcachemem_in.addr_odd := mcachemem_in_address
+
+  io.mcachefe.instr_a := Mux(addr_parity_reg, io.mcachemem_out.instr_odd, io.mcachemem_out.instr_even)
+  io.mcachefe.instr_b := Mux(addr_parity_reg, io.mcachemem_out.instr_even, io.mcachemem_out.instr_odd)
+  io.mcachefe.relBase := relBase
+  io.mcachefe.relPc := relPc
+  io.mcachefe.reloc := reloc
+  io.mcachefe.mem_sel := Cat(selIspmReg, selMCacheReg)
+
+  io.mcache_replctrl.hit := hitReg
+  io.mcache_replctrl.pos_offset := wrPosReg
+
+  io.hit_ena := hitReg
 }
