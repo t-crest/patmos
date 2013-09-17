@@ -144,8 +144,8 @@ class Patmos(fileName: String) extends Component {
   // ***** the following code is not really Patmos code ******
 
   // Dummy output, which is ignored in the top level VHDL code, to
-  // keep Chisel keep this signal alive unused signals
-  io.dummy := Reg(memory.io.memwb.relPc)
+  // keep Chisel keep some unused signals alive
+  io.dummy := Reg(memory.io.memwb.relPc | decode.rf.io.rfDebug.toBits())
 }
 
 // this testing and main file should go into it's own folder
