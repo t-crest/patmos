@@ -56,7 +56,7 @@ int main(void) {
 
   EXC_STATUS &= ~1;
   
-  asm volatile(".word 0x07400008"); // trap 8
+  asm volatile("trap 8");
 
   // trigger illegal operation
   asm volatile(".word 0x04000000"); // illegal operation
@@ -84,7 +84,7 @@ void fault(void) {
 }
 
 void trap(void) {
-  asm volatile("sres 36;"
+  asm volatile("sres 48;"
 			   // Save general-purpose registers
 			   "sws  [1] = $r1;"
 			   "sws  [2] = $r2;"
@@ -119,17 +119,74 @@ void trap(void) {
 			   "sws  [31] = $r31;"
 			   // Save special registers
 			   "mfs  $r1 = $s0;"
-			   "sws  [32] = $r1;");
-
-  // Set base in case we do a call
-  asm volatile("li  $r30 = %0" : : "i" (&intr));
+			   "mfs  $r2 = $s1;"
+			   "mfs  $r3 = $s2;"
+			   "mfs  $r4 = $s3;"
+			   "mfs  $r5 = $s4;"
+			   "mfs  $r6 = $s5;"
+			   "mfs  $r7 = $s6;"
+			   "mfs  $r8 = $s7;"
+			   "mfs  $r9 = $s8;"
+			   "mfs  $r10 = $s9;"
+			   "mfs  $r11 = $s10;"
+			   "mfs  $r12 = $s11;"
+			   "mfs  $r13 = $s12;"
+			   "mfs  $r14 = $s13;"
+			   "mfs  $r15 = $s14;"
+			   "mfs  $r16 = $s15;"
+			   "sws  [32] = $r1;"
+			   "sws  [33] = $r2;"
+			   "sws  [34] = $r3;"
+			   "sws  [35] = $r4;"
+			   "sws  [36] = $r5;"
+			   "sws  [37] = $r6;"
+			   "sws  [38] = $r7;"
+			   "sws  [39] = $r8;"
+			   "sws  [40] = $r9;"
+			   "sws  [41] = $r10;"
+			   "sws  [42] = $r11;"
+			   "sws  [43] = $r12;"
+			   "sws  [44] = $r13;"
+			   "sws  [45] = $r14;"
+			   "sws  [46] = $r15;"
+			   "sws  [47] = $r16;");
 
   puts("TRAP");
 
   asm volatile(// Restore special registers
 			   "lws  $r1 = [32];"
+			   "lws  $r2 = [33];"
+			   "lws  $r3 = [34];"
+			   "lws  $r4 = [35];"
+			   "lws  $r5 = [36];"
+			   "lws  $r6 = [37];"
+			   "lws  $r7 = [38];"
+			   "lws  $r8 = [39];"
+			   "lws  $r9 = [40];"
+			   "lws  $r10 = [41];"
+			   "lws  $r11 = [42];"
+			   "lws  $r12 = [43];"
+			   "lws  $r13 = [44];"
+			   "lws  $r14 = [45];"
+			   "lws  $r15 = [46];"
+			   "lws  $r16 = [47];"
 			   "nop;"
 			   "mts  $s0 = $r1;"
+			   "mts  $s1 = $r2;"
+			   "mts  $s2 = $r3;"
+			   "mts  $s3 = $r4;"
+			   "mts  $s4 = $r5;"
+			   "mts  $s5 = $r6;"
+			   "mts  $s6 = $r7;"
+			   "mts  $s7 = $r8;"
+			   "mts  $s8 = $r9;"
+			   "mts  $s9 = $r10;"
+			   "mts  $s10 = $r11;"
+			   "mts  $s11 = $r12;"
+			   "mts  $s12 = $r13;"
+			   "mts  $s13 = $r14;"
+			   "mts  $s14 = $r15;"
+			   "mts  $s15 = $r16;"
 			   // Restore general-purpose registers
 			   "lws  $r1 = [1];"
 			   "lws  $r2 = [2];"
@@ -160,18 +217,17 @@ void trap(void) {
 			   "lws  $r27 = [27];"
 			   "lws  $r28 = [28];"
 			   "lws  $r29 = [29];"			   
-			   // Return to exception base/offset
-			   "mfs  $r30 = $s10;"
-			   "mfs  $r31 = $s11;"
-			   ".word 0x0781ef81;" // xret r30, r31
-			   // Restore r30/r31 in delay slot
 			   "lws  $r30 = [30];"
 			   "lws  $r31 = [31];"
-			   "sfree 36;");
+			   // Return to exception base/offset
+			   "xret;"
+			   "nop;"
+			   "nop;"
+			   "sfree 48;");
 }
 
 void intr(void) {
-  asm volatile("sres 36;"
+  asm volatile("sres 48;"
 			   // Save general-purpose registers
 			   "sws  [1] = $r1;"
 			   "sws  [2] = $r2;"
@@ -206,18 +262,78 @@ void intr(void) {
 			   "sws  [31] = $r31;"
 			   // Save special registers
 			   "mfs  $r1 = $s0;"
-			   "sws  [32] = $r1;");
+			   "mfs  $r2 = $s1;"
+			   "mfs  $r3 = $s2;"
+			   "mfs  $r4 = $s3;"
+			   "mfs  $r5 = $s4;"
+			   "mfs  $r6 = $s5;"
+			   "mfs  $r7 = $s6;"
+			   "mfs  $r8 = $s7;"
+			   "mfs  $r9 = $s8;"
+			   "mfs  $r10 = $s9;"
+			   "mfs  $r11 = $s10;"
+			   "mfs  $r12 = $s11;"
+			   "mfs  $r13 = $s12;"
+			   "mfs  $r14 = $s13;"
+			   "mfs  $r15 = $s14;"
+			   "mfs  $r16 = $s15;"
+			   "sws  [32] = $r1;"
+			   "sws  [33] = $r2;"
+			   "sws  [34] = $r3;"
+			   "sws  [35] = $r4;"
+			   "sws  [36] = $r5;"
+			   "sws  [37] = $r6;"
+			   "sws  [38] = $r7;"
+			   "sws  [39] = $r8;"
+			   "sws  [40] = $r9;"
+			   "sws  [41] = $r10;"
+			   "sws  [42] = $r11;"
+			   "sws  [43] = $r12;"
+			   "sws  [44] = $r13;"
+			   "sws  [45] = $r14;"
+			   "sws  [46] = $r15;"
+			   "sws  [47] = $r16;");
 
-  // Set base in case we do a call
-  asm volatile("li  $r30 = %0" : : "i" (&intr));
+  // keep the scheduler from doing something stupid
+  asm volatile("");
 
   // Increment leds
   LEDS += EXC_SOURCE & 0xf;
 
   asm volatile(// Restore special registers
 			   "lws  $r1 = [32];"
+			   "lws  $r2 = [33];"
+			   "lws  $r3 = [34];"
+			   "lws  $r4 = [35];"
+			   "lws  $r5 = [36];"
+			   "lws  $r6 = [37];"
+			   "lws  $r7 = [38];"
+			   "lws  $r8 = [39];"
+			   "lws  $r9 = [40];"
+			   "lws  $r10 = [41];"
+			   "lws  $r11 = [42];"
+			   "lws  $r12 = [43];"
+			   "lws  $r13 = [44];"
+			   "lws  $r14 = [45];"
+			   "lws  $r15 = [46];"
+			   "lws  $r16 = [47];"
 			   "nop;"
 			   "mts  $s0 = $r1;"
+			   "mts  $s1 = $r2;"
+			   "mts  $s2 = $r3;"
+			   "mts  $s3 = $r4;"
+			   "mts  $s4 = $r5;"
+			   "mts  $s5 = $r6;"
+			   "mts  $s6 = $r7;"
+			   "mts  $s7 = $r8;"
+			   "mts  $s8 = $r9;"
+			   "mts  $s9 = $r10;"
+			   "mts  $s10 = $r11;"
+			   "mts  $s11 = $r12;"
+			   "mts  $s12 = $r13;"
+			   "mts  $s13 = $r14;"
+			   "mts  $s14 = $r15;"
+			   "mts  $s15 = $r16;"
 			   // Restore general-purpose registers
 			   "lws  $r1 = [1];"
 			   "lws  $r2 = [2];"
@@ -248,12 +364,11 @@ void intr(void) {
 			   "lws  $r27 = [27];"
 			   "lws  $r28 = [28];"
 			   "lws  $r29 = [29];"			   
-			   // Return to exception base/offset
-			   "mfs  $r30 = $s10;"
-			   "mfs  $r31 = $s11;"
-			   ".word 0x0781ef81;" // xret r30, r31
-			   // Restore r30/r31 in delay slot
 			   "lws  $r30 = [30];"
 			   "lws  $r31 = [31];"
-			   "sfree 36;");
+			   // Return to exception base/offset
+			   "xret;"
+			   "nop;"
+			   "nop;"
+			   "sfree 48;");
 }
