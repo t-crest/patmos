@@ -218,9 +218,10 @@ namespace patmos
     
     uword_t Curr_state;
   public:
-    led_t(uword_t base_address, std::ostream &os) 
-    : mapped_device_t(base_address, LED_MAP_SIZE), Out_stream(os) {}
-    
+    led_t(uword_t base_address, std::ostream &os)
+    : mapped_device_t(base_address, LED_MAP_SIZE), Out_stream(os),
+      Curr_state(0) {}
+
     virtual bool read(uword_t address, byte_t *value, uword_t size) {
       simulation_exception_t::illegal_access(address);
     }
