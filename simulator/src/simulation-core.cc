@@ -47,7 +47,7 @@ namespace patmos
       Interrupt_handler(interrupt_handler),
       BASE(0), PC(0), nPC(0),
       Stall(SXX), Disable_IF(false), Is_decoupled_load_active(false), 
-      Branch_counter(0), Interrupt_handling_counter(0)
+      Branch_counter(0), Halt(false), Interrupt_handling_counter(0)
   {
     // initialize one predicate register to be true, otherwise no instruction
     // will ever execute
@@ -77,8 +77,12 @@ namespace patmos
 
     // Create the interrupt instruction
     Instr_INTR       = new i_intr_t();
-    Instr_INTR->ID   = patmos::decoder_t::get_num_instructions();
+    Instr_INTR->ID   = -1;
     Instr_INTR->Name = "intr";
+    
+    Instr_HALT       = new i_halt_t();
+    Instr_HALT->ID   = -2;
+    Instr_HALT->Name = "halt";
   }
 
 
@@ -86,6 +90,7 @@ namespace patmos
   simulator_t::~simulator_t()
   {
     delete Instr_INTR;
+    delete Instr_HALT;
   }
 
 
@@ -134,13 +139,19 @@ namespace patmos
     return Stall >= pst;
   }
 
+  void simulator_t::halt() 
+  {
+    Halt = true;
+  }
+  
   void simulator_t::track_retiring_instructions()
   {
     if (Stall != NUM_STAGES-1)
     {
       for(unsigned int j = 0; j < NUM_SLOTS; j++)
       {
-        if (Pipeline[NUM_STAGES-1][j].I)
+        if (Pipeline[NUM_STAGES-1][j].I && 
+            Pipeline[NUM_STAGES-1][j].I->ID >= 0)
         {
           // get instruction statistics
           instruction_stat_t &stat(
@@ -166,6 +177,19 @@ namespace patmos
     // reference
     instruction_data_t *instr_SIF = Pipeline[SIF];
 
+    if (Halt) {
+      // When we are halting, just fill the pipeline with halt instructions
+      // halt when we flushed the whole pipeline. 
+      instr_SIF[0] = instruction_data_t::mk_CFLb(*Instr_HALT, p0, 0, 0);
+
+      for(unsigned int i = 1; i < NUM_SLOTS; i++)
+      {
+        instr_SIF[i] = instruction_data_t();
+      }
+      
+      return;
+    }
+    
     // Fetch the instruction word from the method cache.
     // NB: We fetch in each cycle, as preparation for supporting a standard
     //     I-Cache in addition.
@@ -365,7 +389,7 @@ namespace patmos
         if (collect_instr_stats) {
           for (unsigned int j = 0; j < NUM_SLOTS; j++)
           {
-            if (Pipeline[SMW][j].I) {
+            if (Pipeline[SMW][j].I && Pipeline[SMW][j].I->ID >= 0) {
               // I am too lazy now to remove all the const's..
               instruction_t &I(Decoder.get_instruction(Pipeline[SMW][j].I->ID));
               I.collect_stats(*this, Pipeline[SMW][j]);

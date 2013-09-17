@@ -42,6 +42,7 @@ package patmos
 import Chisel._
 import Node._
 import MConstants._
+import Constants._
 import ocp._
 
 import scala.collection.mutable.HashMap
@@ -77,7 +78,7 @@ class RamInPinsIO extends Bundle() {
 }
 
 class SsramIOBurst extends Bundle() {
-  val ocp_port = new OcpBurstSlavePort(19, 32, 4)
+  val ocp_port = new OcpBurstSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGHT)
   val ram_out = new RamOutType().asOutput
   val ram_in = new RamInType().asInput
 }
