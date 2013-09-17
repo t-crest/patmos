@@ -199,15 +199,19 @@ int main (int argc, char* argv[]) {
   int lim = -1;
   bool vcd = false;
   bool uart = false;
+  bool keys = false;
   bool quiet = false;
 
-  while ((opt = getopt(argc, argv, "quvl:I:O:")) != -1) {
+  while ((opt = getopt(argc, argv, "qukvl:I:O:")) != -1) {
 	switch (opt) {
 	case 'q':
 	  quiet = true;
 	  break;
 	case 'u':
 	  uart = true;
+	  break;
+	case 'k':
+	  keys = true;
 	  break;
 	case 'v':
 	  vcd = true;
@@ -245,6 +249,8 @@ int main (int argc, char* argv[]) {
   }
 
   c->init();
+
+  srand(0);
 
   val_t entry = 0;
   if (optind < argc) {
@@ -313,6 +319,12 @@ int main (int argc, char* argv[]) {
 
 	if (vcd) {
 	  c->dump(f, t);
+	}
+
+	if (keys) {
+	  if ((rand() % 0x10000) == 0) {
+		c->Patmos__io_key = rand();
+	  }
 	}
 
 	if (uart) {
