@@ -113,7 +113,7 @@ namespace patmos
 
       if (debug)
       {
-        std::cerr << "GdbPacketHandler::WriteGdbPacket - " << 
+        std::cerr << "GdbPacketHandler::WriteGdbPacket > " << 
           packet.GetPacketString()<< std::endl;
       }
 
@@ -152,7 +152,7 @@ namespace patmos
           GdbPacket checksumHelper = CreateGdbPacket(packet.GetContent());
           checksum = checksumHelper.GetChecksum();
         }
-        std::cerr << "GdbPacketHandler::ReadGdbPacket - " << 
+        std::cerr << "GdbPacketHandler::ReadGdbPacket  < " << 
           packet.GetPacketString() << "(" << packet.GetContent() <<
           ", checksum: " << std::hex << std::setw(2) << checksum << 
           ", is valid: " << isValid << ")" << std::endl;

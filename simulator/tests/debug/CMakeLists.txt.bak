@@ -1,4 +1,0 @@
-add_executable(ut-gdb-server ut-gdb-server.cc)
-target_link_libraries(ut-gdb-server ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
-add_test(ut-gdb-server ut-gdb-server)
-

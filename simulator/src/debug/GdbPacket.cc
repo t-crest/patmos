@@ -21,6 +21,7 @@
 #include "debug/GdbPacket.h"
 
 #include <sstream>
+#include <iomanip>
 
 namespace
 {
@@ -80,7 +81,8 @@ namespace patmos
   std::string GdbPacket::GetPacketString() const
   {
     std::stringstream ss;
-    ss << startSeq << m_content << checkSeq << std::hex << m_checksum;
+    ss << startSeq << m_content << checkSeq << 
+      std::hex << std::setw(2) << std::setfill('0') << m_checksum;
     return ss.str();
   }
 

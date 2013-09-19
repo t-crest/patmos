@@ -19,6 +19,13 @@ BOOST_AUTO_TEST_CASE( CreateEmptyPacketReturnsCorrectChecksum )
   BOOST_REQUIRE_EQUAL(empty.GetChecksum(), 0);
 }
 
+BOOST_AUTO_TEST_CASE( CreateEmptyPacketReturnsCorrectPacketString )
+{
+  const std::string expectedPacketString = "$#00";
+  GdbPacket empty;
+  BOOST_REQUIRE_EQUAL(empty.GetPacketString(), expectedPacketString);
+}
+
 BOOST_AUTO_TEST_CASE( CreatePacketWithEmptyContentReturnsCorrectContent )
 {
   GdbPacket blank("",0);
@@ -29,6 +36,13 @@ BOOST_AUTO_TEST_CASE( CreatePacketWithEmptyContentReturnsCorrectChecksum )
 {
   GdbPacket blank("",0);
   BOOST_REQUIRE_EQUAL(blank.GetChecksum(), 0);
+}
+
+BOOST_AUTO_TEST_CASE( CreatePacketWithEmptyContentReturnsCorrectPacketString )
+{
+  const std::string expectedPacketString = "$#00";
+  GdbPacket blank("",0);
+  BOOST_REQUIRE_EQUAL(blank.GetPacketString(), expectedPacketString);
 }
 
 BOOST_AUTO_TEST_CASE( CreateNonEmptyPacketReturnsCorrectContent )

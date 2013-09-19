@@ -25,6 +25,27 @@
 #include <sstream>
 #include <boost/format.hpp>
 #include <iostream> //debug only
+#include <boost/algorithm/string/predicate.hpp>
+
+namespace
+{
+  using namespace patmos;
+
+  GdbResponseMessage GetOKMessage()
+  {
+    return GdbResponseMessage(okMessage);
+  }
+
+  GdbResponseMessage GetErrorMessage(int errorNr)
+  {
+    return GdbResponseMessage((boost::format(errorMessage) % errorNr).str());
+  }
+
+  GdbResponseMessage GetEmptyMessage()
+  {
+    return GdbResponseMessage("");
+  }
+}
 
 namespace patmos
 {
@@ -47,30 +68,19 @@ namespace patmos
   }
 
   //////////////////////////////////////////////////////////////////
-  // response messages
+  // response message
   //////////////////////////////////////////////////////////////////
 
-  void GdbResponseMessage::Handle(const GdbMessageHandler &messageHandler,
-      bool &targetContinue) const
+  GdbResponseMessage::GdbResponseMessage(std::string response)
+    : m_response(response)
   {
-    throw GdbUnsupportedMessageException(GetMessageString());
   }
   
-  std::string GdbOKMessage::GetMessageString() const
+  std::string GdbResponseMessage::GetMessageString() const
   {
-    return okMessage;
-  }
-  
-  GdbErrorMessage::GdbErrorMessage(int errorNr)
-    : m_errorNr(errorNr)
-  {
+    return m_response;
   }
 
-  std::string GdbErrorMessage::GetMessageString() const
-  {
-    return (boost::format(errorMessage) % m_errorNr).str();
-  }
-  
   //////////////////////////////////////////////////////////////////
   // qSupported
   //////////////////////////////////////////////////////////////////
@@ -82,18 +92,14 @@ namespace patmos
       const GdbMessageHandler &messageHandler,
       bool &targetContinue) const
   {
-    const int maxBytes = 0;
-    GdbMessagePtr response(new GdbSupportedMessageResponse(maxBytes));
-    messageHandler.SendGdbMessage(response);
+    const std::string response = 
+      (boost::format(supportedMessage_response) % maxPacketSize).str();
+    messageHandler.SendGdbMessage(GdbResponseMessage(response));
     targetContinue = false;
   }
-  GdbSupportedMessageResponse::GdbSupportedMessageResponse(int maxBytes)
-    : m_maxBytes(maxBytes)
+  bool GdbSupportedMessage::CanHandle(std::string messageString)
   {
-  }
-  std::string GdbSupportedMessageResponse::GetMessageString() const
-  {
-    return (boost::format(supportedMessage_response) % m_maxBytes).str();
+    return boost::starts_with(messageString, supportedMessage);
   }
   
   //////////////////////////////////////////////////////////////////
@@ -107,17 +113,14 @@ namespace patmos
       bool &targetContinue) const
   {
     const int signalNumber = 5;
-    GdbMessagePtr response(new GdbGetReasonMessageResponse(signalNumber));
-    messageHandler.SendGdbMessage(response);
+    const std::string response = 
+          (boost::format(getReasonMessage_response) % signalNumber).str();
+    messageHandler.SendGdbMessage(GdbResponseMessage(response));
     targetContinue = false;
   }
-  GdbGetReasonMessageResponse::GdbGetReasonMessageResponse(int signalNumber)
-    : m_signalNumber(signalNumber)
+  bool GdbGetReasonMessage::CanHandle(std::string messageString)
   {
-  }
-  std::string GdbGetReasonMessageResponse::GetMessageString() const
-  {
-    return (boost::format(getReasonMessage_response) % m_signalNumber).str();
+    return messageString == getReasonMessage;
   }
   
   //////////////////////////////////////////////////////////////////
@@ -131,9 +134,54 @@ namespace patmos
       bool &targetContinue) const
   {
     // currently we do not care about threads
-    GdbMessagePtr response(new GdbOKMessage);
-    messageHandler.SendGdbMessage(response);
+    messageHandler.SendGdbMessage(GetOKMessage());
     targetContinue = false;
+  }
+  bool GdbSetThreadMessage::CanHandle(std::string messageString)
+  {
+    return boost::starts_with(messageString, setThreadMessage);
+  }
+
+  //////////////////////////////////////////////////////////////////
+  // qC
+  //////////////////////////////////////////////////////////////////
+  std::string GdbGetCurrentThreadMessage::GetMessageString() const
+  {
+    return getCurrentThreadMessage;
+  }
+  void GdbGetCurrentThreadMessage::Handle(
+      const GdbMessageHandler &messageHandler,
+      bool &targetContinue) const
+  {
+    // currently we do not care about threads
+    messageHandler.SendGdbMessage(GetEmptyMessage());
+    targetContinue = false;
+  }
+  bool GdbGetCurrentThreadMessage::CanHandle(std::string messageString)
+  {
+    return messageString == getCurrentThreadMessage;
+  }
+
+  //////////////////////////////////////////////////////////////////
+  // qAttached
+  //////////////////////////////////////////////////////////////////
+  std::string GdbIsAttachedMessage::GetMessageString() const
+  {
+    return isAttachedMessage;
+  }
+  void GdbIsAttachedMessage::Handle(
+      const GdbMessageHandler &messageHandler,
+      bool &targetContinue) const
+  {
+    // currently we do not supported processes and the simulator
+    // is never attached. This results in the client terminating the
+    // target, rather than just detaching from it
+    messageHandler.SendGdbMessage(GdbResponseMessage("0"));
+    targetContinue = false;
+  }
+  bool GdbIsAttachedMessage::CanHandle(std::string messageString)
+  {
+    return messageString == isAttachedMessage;
   }
 
   //////////////////////////////////////////////////////////////////
@@ -145,12 +193,10 @@ namespace patmos
     : m_packetContent(packetContent)
   {
   }
-
   std::string GdbUnsupportedMessage::GetMessageString() const
   {
     return "Unsupported Message: " + m_packetContent;
   }
-    
   void GdbUnsupportedMessage::Handle(const GdbMessageHandler &messageHandler,
       bool &targetContinue) const
   {

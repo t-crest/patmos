@@ -43,26 +43,35 @@ namespace patmos
 
     std::string packetContent = packet.GetContent();
 
-    if (boost::starts_with(packetContent, supportedMessage))
+    if (GdbSupportedMessage::CanHandle(packetContent))
     {
       return GdbMessagePtr(new GdbSupportedMessage());
     }
-    else if (boost::starts_with(packetContent, setThreadMessage))
+    else if (GdbSetThreadMessage::CanHandle(packetContent))
     {
       return GdbMessagePtr(new GdbSetThreadMessage());
     }
-    else if (packetContent == getReasonMessage)
+    else if (GdbGetReasonMessage::CanHandle(packetContent))
     {
       return GdbMessagePtr(new GdbGetReasonMessage());
+    }
+    else if (GdbGetCurrentThreadMessage::CanHandle(packetContent))
+    {
+      return GdbMessagePtr(new GdbGetCurrentThreadMessage());
+    }
+    else if (GdbIsAttachedMessage::CanHandle(packetContent))
+    {
+      return GdbMessagePtr(new GdbIsAttachedMessage());
     }
 
     // unsupported message / we do not know now to handle that
     return GdbMessagePtr(new GdbUnsupportedMessage(packetContent));
   }
   
-  void GdbMessageHandler::SendGdbMessage(const GdbMessagePtr &message) const
+  void GdbMessageHandler::SendGdbMessage(
+      const GdbResponseMessage &message) const
   {
-    GdbPacket packet = CreateGdbPacket(message->GetMessageString());
+    GdbPacket packet = CreateGdbPacket(message.GetMessageString());
     m_packetHandler.WriteGdbPacket(packet);
   }
 

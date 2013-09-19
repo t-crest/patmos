@@ -23,7 +23,7 @@ BOOST_AUTO_TEST_CASE( SupportedMessageCreatesCorrectMessage )
 
 BOOST_AUTO_TEST_CASE( HandleSupportedMessageProducesCorrectResponse )
 {
-  const std::string expectedResponse = "$PacketSize=0#60";
+  const std::string expectedResponse = "$PacketSize=200#c2";
   bool targetContinue;
 
   boost::scoped_ptr<test::TestConnection> con(new test::TestConnection("+"));

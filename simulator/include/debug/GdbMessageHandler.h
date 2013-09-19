@@ -29,13 +29,14 @@ namespace patmos
   class GdbPacketHandler;
   class GdbMessage;
   typedef boost::shared_ptr<GdbMessage> GdbMessagePtr;
+  class GdbResponseMessage;
 
   class GdbMessageHandler
   {
   public:
     GdbMessageHandler(const GdbPacketHandler &packetHandler);
     GdbMessagePtr ReadGdbMessage() const;
-    void SendGdbMessage(const GdbMessagePtr &message) const;
+    void SendGdbMessage(const GdbResponseMessage &message) const;
   
   private:
     const GdbPacketHandler &m_packetHandler;
