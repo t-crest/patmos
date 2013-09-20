@@ -48,27 +48,30 @@ import scala.collection.mutable.HashMap
 
 class AComponent() extends Component {
   val io = new Bundle {
-    val fromMaster = new OcpBurstMasterPort(32, 32, 4)
-    val toSlave = new OcpBurstSlavePort(32, 32, 4)
+    val fromMaster = new OcpBurstSlavePort(32, 32, 4)
+    val toSlave = new OcpBurstMasterPort(32, 32, 4)
   }
-  
+
   io.fromMaster <> io.toSlave
 }
 
-
-class OcpTester(fsm: AComponent) extends Tester(fsm, Array(fsm.io)) {
+class OcpTester(dut: AComponent) extends Tester(dut, Array(dut.io)) {
   defTests {
     val ret = true
     val vars = new HashMap[Node, Node]()
     val ovars = new HashMap[Node, Node]()
 
-    for (i <- 0 until 10) {
+    val testVec = Array( OcpCmd.IDLE, OcpCmd.WRNP, OcpCmd.IDLE )
+
+    for (i <- 0 until testVec.length) {
       vars.clear
+      vars(dut.io.fromMaster.M.Cmd) = testVec(i)
+
       step(vars, ovars)
-      println("iter: "+i)
-      println("ovars: "+ovars)
-      // where does the 'c' come from? Why does this work?
-//      println("led/litVal "+ovars(c.io.led).litValue())
+      println("out cmd: " + ovars(dut.io.toSlave.M.Cmd))
+      //      println("iter: "+i)
+      //      println("vars: "+vars)
+      //      println("ovars: "+ovars)
     }
     ret
   }
