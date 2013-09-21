@@ -10,14 +10,17 @@
 
 istream *in = &cin;
 ostream *out = &cout;
+
+#define OCMEM_ADDR_BITS 16
+
+#define SRAM_ADDR_BITS 19 // 2MB
+static uint ssram_buf [1 << SRAM_ADDR_BITS];
   
 /// Read an elf executable image into the on-chip memories
-static val_t readelf(istream &is, Patmos_t *c, uint *ssram_buf)
+static val_t readelf(istream &is, Patmos_t *c)
 {
   vector<unsigned char> elfbuf;
   elfbuf.reserve(1 << 20);
-  
-  //uint ssram_buf[8192];
 
   // read the whole stream.
   while (!is.eof())
@@ -86,7 +89,7 @@ static val_t readelf(istream &is, Patmos_t *c, uint *ssram_buf)
       // copy from the buffer into the on-chip memories
 	  for (size_t k = 0; k < phdr.p_memsz; k++) {
 
-		if (((phdr.p_paddr + k) >> 23) == 0x1 && 
+		if (((phdr.p_paddr + k) >> OCMEM_ADDR_BITS) == 0x1 && 
 			((phdr.p_paddr + k) & 0x3) == 0) {
 		  // Address maps to ISPM and is at a word boundary
 		  val_t word = k >= phdr.p_filesz ? 0 :
@@ -94,7 +97,7 @@ static val_t readelf(istream &is, Patmos_t *c, uint *ssram_buf)
 			 ((val_t)elfbuf[phdr.p_offset + k + 1] << 16) |
 			 ((val_t)elfbuf[phdr.p_offset + k + 2] << 8) |
 			 ((val_t)elfbuf[phdr.p_offset + k + 3] << 0));
-		  val_t addr = ((phdr.p_paddr + k) - (0x1 << 23)) >> 3;
+		  val_t addr = ((phdr.p_paddr + k) - (0x1 << OCMEM_ADDR_BITS)) >> 3;
 
 		  unsigned size = (sizeof(c->Patmos_fetch__memEven.contents) / 
 						   sizeof(c->Patmos_fetch__memEven.contents[0]));
@@ -108,36 +111,26 @@ static val_t readelf(istream &is, Patmos_t *c, uint *ssram_buf)
 		  }
 		}
 
-		if (((phdr.p_paddr + k) >> 21) == 0x1 && ((phdr.p_paddr + k) & 0x3) == 0) {
-		  // Address maps to ISPM and is at a word boundary
+		if (((phdr.p_paddr + k) & 0x3) == 0) {
+		  // Address maps to SRAM and is at a word boundary
 		  val_t word = k >= phdr.p_filesz ? 0 :
 			(((val_t)elfbuf[phdr.p_offset + k + 0] << 24) |
 			 ((val_t)elfbuf[phdr.p_offset + k + 1] << 16) |
 			 ((val_t)elfbuf[phdr.p_offset + k + 2] << 8) |
 			 ((val_t)elfbuf[phdr.p_offset + k + 3] << 0));
 
-		  val_t addr = ((phdr.p_paddr + k) - (0x1 << 21)) >> 2;
-
-		  // unsigned size = (sizeof(c->Patmos_extmemssram__ssram_extmem.contents) / 
-		  // 				   sizeof(c->Patmos_extmemssram__ssram_extmem.contents[0]));
-
-		  //*out << k << "MCache - Word:" << word << "addr:" << addr << " size:" << size << "phdr_memsz" << phdr.p_memsz << "phdr_addr"<< phdr.p_paddr << "\n";;
-
-		  //assert(addr < size && "Instructions mapped to simulation of SSRAM exceed size");
+		  val_t addr = ((phdr.p_paddr + k) >> 2);
 		  ssram_buf[addr] = word;
-		  //*out << ssram_buf[k] << "\n";
-		  //c->Patmos_extmemssram__ssram_extmem.put(addr, word);
-
 		}
 
-		if (((phdr.p_paddr + k) >> 21) == 0x0) {
+		// TODO: this really writes to globmem and should go away
+		if (((phdr.p_paddr + k) >> OCMEM_ADDR_BITS) == 0x0) {
 		  // Address maps to data SPM
 		  val_t byte = k >= phdr.p_filesz ? 0 : elfbuf[phdr.p_offset + k];
 		  val_t addr = (phdr.p_paddr + k) >> 2;
 		  
 		  unsigned size = (sizeof(c->Patmos_globMem__mem0.contents) /
 						   sizeof(c->Patmos_globMem__mem0.contents[0]));
-
 
 		  assert (addr < size && "Data mapped to DSPM exceed size");
 
@@ -172,14 +165,17 @@ static void print_state(Patmos_t *c) {
 	*out << endl;
 }
 
-static void extSsramSim(Patmos_t *c, uint *ssram) { 
+static void extSsramSim(Patmos_t *c) {
   static int addr_cnt;
   static int address;
   static int counter;
-  //*out << "noe:" << c->Patmos__io_sramPins_ram_out_noe.to_ulong() << " nadv: " << c->Patmos__io_sramPins_ram_out_nadv.to_ulong() << " nadsc:" << c->Patmos__io_sramPins_ram_out_nadsc.to_ulong() << " addr:" << c->Patmos__io_sramPins_ram_out_addr.to_ulong() << "\n";
+  // *out << "noe:" << c->Patmos__io_sramPins_ram_out_noe.to_ulong() 
+  // 	   << " nadv: " << c->Patmos__io_sramPins_ram_out_nadv.to_ulong()
+  // 	   << " nadsc:" << c->Patmos__io_sramPins_ram_out_nadsc.to_ulong()
+  // 	   << " addr:" << c->Patmos__io_sramPins_ram_out_addr.to_ulong() << "\n";
   if (c->Patmos__io_sramPins_ram_out_nadsc.to_ulong() == 0) {
     address = c->Patmos__io_sramPins_ram_out_addr.to_ulong();
-    addr_cnt = c->Patmos__io_sramPins_ram_out_addr.to_ulong();;
+    addr_cnt = c->Patmos__io_sramPins_ram_out_addr.to_ulong();
     counter = 0;
   }
   if (c->Patmos__io_sramPins_ram_out_nadv.to_ulong() == 0) {
@@ -188,9 +184,9 @@ static void extSsramSim(Patmos_t *c, uint *ssram) {
   if (c->Patmos__io_sramPins_ram_out_noe.to_ulong() == 0) {
     counter++;
     if (counter >= 3) {
-      c->Patmos__io_sramPins_ram_in_din = ssram[address];
+      c->Patmos__io_sramPins_ram_in_din = ssram_buf[address];
       if (address <= addr_cnt) {
-	address++;
+        address++;
       }
     }
   }
@@ -204,8 +200,6 @@ int main (int argc, char* argv[]) {
   bool vcd = false;
   bool uart = false;
   bool quiet = false;
-
-  uint ssram_buf[16384];
 
   while ((opt = getopt(argc, argv, "quvl:I:O:")) != -1) {
 	switch (opt) {
@@ -259,7 +253,7 @@ int main (int argc, char* argv[]) {
 	  cerr << argv[0] << ": error: Cannot open elf file " << argv[optind] << endl;
 	  exit(EXIT_FAILURE);
 	}
-	entry = readelf(*fs, c, ssram_buf);
+	entry = readelf(*fs, c);
   }
 
   FILE *f = vcd ? fopen("Patmos.vcd", "w") : NULL;
@@ -276,14 +270,35 @@ int main (int argc, char* argv[]) {
   }
 
   if (entry != 0) {
-	c->Patmos_fetch__pcReg = (entry >> 2) - 1;
-	c->Patmos_memory__baseReg = entry;
+    if (entry >= 0x20000) {
+      // pcReg for method cache starts at 0
+      // TODO: 1 only for the moment change even odd to start from even
+      c->Patmos_fetch__pcReg = 1; //0 for lru
+      c->Patmos_mcache_mcacherepl__hitReg = 0;
+      c->Patmos_mcache_mcacherepl__selMCacheReg = 1;
+      c->Patmos_fetch__relBaseReg = 1; //0 for lru
+      c->Patmos_fetch__relocReg = (entry >> 2) - 1;
+      //init linked list for lru replacement
+      // c->Patmos_mcache_mcachectrl__addrReg = 0;
+      // c->Patmos_mcache_mcacherepl__lru_list_prev_0 = 1;
+      // c->Patmos_mcache_mcacherepl__lru_list_prev_1 = 2;
+      // c->Patmos_mcache_mcacherepl__lru_list_prev_2 = 3;
+      // c->Patmos_mcache_mcacherepl__lru_list_prev_3 = 0;
+      // c->Patmos_mcache_mcacherepl__lru_list_next_0 = 3;
+      // c->Patmos_mcache_mcacherepl__lru_list_next_1 = 0;
+      // c->Patmos_mcache_mcacherepl__lru_list_next_2 = 1;
+      // c->Patmos_mcache_mcacherepl__lru_list_next_3 = 2;
+    }
+    else {
+      // pcReg for ispm starts at entry point - ispm base
+      c->Patmos_fetch__pcReg = ((entry - 0x10000) >> 2) - 1;
+      c->Patmos_mcache_mcacherepl__selIspmReg = 1;
+      c->Patmos_fetch__relBaseReg = (entry - 0x10000) >> 2;
+      c->Patmos_fetch__relocReg = 0x10000 >> 2;
+    }
+    c->Patmos_mcache_mcachectrl__callRetBaseReg = (entry >> 2);
+    c->Patmos_mcache_mcacherepl__callRetBaseReg = (entry >> 2);
   }
-
-  //init ssram buffer
-  // for (int i = 0; i < 4000; i++) {
-  //   *out << i << ":" << ssram_buf[i] << "\n";
-  // }
 
   // Main emulation loop
   bool halt = false;
@@ -293,7 +308,7 @@ int main (int argc, char* argv[]) {
     c->clock_lo(reset);
     c->clock_hi(reset);
 
-    extSsramSim(c, ssram_buf);
+    extSsramSim(c);
 
 	if (vcd) {
 	  c->dump(f, t);
@@ -316,7 +331,7 @@ int main (int argc, char* argv[]) {
 	  break;
 	}
 	if (c->Patmos_memory__memReg_mem_ret.to_bool()
-		&& c->Patmos_memory__memReg_mem_callRetBase.to_ulong() == 0) {
+		&& c->Patmos_mcache_mcachectrl__callRetBaseReg.to_ulong() == 0) {
 	  halt = true;
 	}
   }

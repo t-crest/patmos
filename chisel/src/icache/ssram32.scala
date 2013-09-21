@@ -42,6 +42,7 @@ package patmos
 import Chisel._
 import Node._
 import MConstants._
+import Constants._
 import ocp._
 
 import scala.collection.mutable.HashMap
@@ -77,7 +78,7 @@ class RamInPinsIO extends Bundle() {
 }
 
 class SsramIOBurst extends Bundle() {
-  val ocp_port = new OcpBurstSlavePort(19, 32, 4)
+  val ocp_port = new OcpBurstSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGHT)
   val ram_out = new RamOutType().asOutput
   val ram_in = new RamInType().asInput
 }
@@ -108,6 +109,8 @@ class SsramBurstRW (
   val nbwe = Reg(resetVal = Bits(1, width = 1))
   val nbw = Reg(resetVal = Bits("b1111", width = 4))
   val nadv = Reg(resetVal = Bits(0, width = 1))
+  val cmd_accept = Bits(width = 1)
+  val data_accept = Bits(width = 1)
 
   //init default register values
   rd_data_ena := Bits(0)
@@ -120,11 +123,13 @@ class SsramBurstRW (
   resp := OcpResp.NULL
   ram_dout := io.ocp_port.M.Data
   burst_cnt := UFix(1)
+  cmd_accept := Bits(0)
+  data_accept := Bits(0)
 
   //catch inputs
-
   when (io.ocp_port.M.Cmd === OcpCmd.RD || io.ocp_port.M.Cmd === OcpCmd.WR) {
     address := io.ocp_port.M.Addr
+    cmd_accept := Bits(1)
   }
 
   //following helps to output only when output data is valid
@@ -157,6 +162,7 @@ class SsramBurstRW (
         ssram_state := idle
       }
       when (io.ocp_port.M.DataValid === Bits(1)) {
+        data_accept := Bits(1)
         burst_cnt := burst_cnt + UFix(1)
         nadv := Bits(0)
         nbwe := Bits(0)
@@ -172,6 +178,7 @@ class SsramBurstRW (
     noe := Bits(0)
   }
   .elsewhen(io.ocp_port.M.Cmd === OcpCmd.WR && io.ocp_port.M.DataValid === Bits(1)) {
+    data_accept := Bits(1)
     ssram_state := wr1
     nbwe := Bits(0)
     nbw := ~(io.ocp_port.M.DataByteEn)
@@ -206,7 +213,8 @@ class SsramBurstRW (
   io.ram_out.addr := address
   //output to master
   io.ocp_port.S.Resp := resp
-  io.ocp_port.S.DataAccept := Bits(1) //don't care for the moment
+  io.ocp_port.S.DataAccept := data_accept
+  io.ocp_port.S.CmdAccept := cmd_accept
   //output fixed signals
   io.ram_out.ngw := Bits(1)
   io.ram_out.nce1 := Bits(0)

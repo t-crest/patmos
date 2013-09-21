@@ -32,7 +32,24 @@ namespace patmos
   class instruction_t;
   class binary_format_t;
   class instruction_data_t;
+  class loader_t;
+  class symbol_map_t;
+  class section_info_t;
 
+  class decoder_callback_t 
+  {
+  public:
+    
+    /// Called when a bundle has been decoded.
+    /// @param addr the current address of the bundle
+    /// @param bundle the decoded bundle
+    /// @param size the size of the bundle in operations, 0 if decoding failed.
+    /// @param sym the symbol table
+    /// @return 0 on success, anything else on error.
+    virtual int process_bundle(uword_t addr, instruction_data_t *bundle, 
+                               unsigned slots, symbol_map_t &sym) = 0;
+  };
+  
   /// Interface to decoder Patmos instructions.
   class decoder_t
   {
@@ -74,6 +91,11 @@ namespace patmos
     /// error.
     unsigned int decode(word_t *iwp, instruction_data_t *result);
 
+    /// Decode a stream of instructions provided by a binary loader.
+    /// @return 0 on success, or any error code returned by the callback handler
+    int decode(loader_t &loader, section_info_t &section,
+               symbol_map_t &sym, decoder_callback_t &cb);
+    
     /// Return the number of instructions known to the decoder.
     /// @return The number of instructions known to the decoder
     static unsigned int get_num_instructions()
@@ -84,7 +106,7 @@ namespace patmos
     /// Return instruction by ID.
     /// @return The instruction having the given ID.
     static instruction_t &get_instruction(unsigned int ID);
-  };
+  };  
 }
 
 #endif // PATMOS_DECODER_H

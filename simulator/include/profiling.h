@@ -82,6 +82,8 @@ namespace patmos
       /// print - Print profiling information to a given stream, using
       /// given symbols.
       std::ostream &print(std::ostream &os, symbol_map_t &sym) const;
+      
+      void reset_stats();
   };
 
 } // end namespace patmos

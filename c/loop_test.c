@@ -10,7 +10,7 @@
 
 int main() {
 
-	volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0000200;
+	volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0000900;
 	int i, j, k;
 	volatile int str [10];
 

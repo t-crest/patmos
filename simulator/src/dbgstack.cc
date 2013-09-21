@@ -26,6 +26,7 @@
 //#include <iostream>
 #include <sstream>
 #include <boost/format.hpp>
+#include <climits>
 
 
 namespace patmos

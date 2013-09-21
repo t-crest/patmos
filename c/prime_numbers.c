@@ -8,8 +8,8 @@
 
 int main() {
 
-	volatile _SPM int *uart_stat_ptr = (volatile _SPM int *) 0xF0000100;
-	volatile _SPM int *uart_val_ptr = (volatile _SPM int *) 0xF0000104;
+	volatile _SPM int *uart_stat_ptr = (volatile _SPM int *) 0xF0000800;
+	volatile _SPM int *uart_val_ptr = (volatile _SPM int *) 0xF0000804;
 	int i, j;
 	int prime = 1;
 	int flag = 0;

@@ -68,6 +68,9 @@ class OcpBurstSlaveSignals(dataWidth : Int)
   }
 }
 
+// MS: Chisel has the flip method to change the direction of connections
+// shouldn't we use that one instead of defining additional classes?
+
 // Master port
 class OcpBurstMasterPort(addrWidth : Int, dataWidth : Int, burstLen : Int) extends Bundle() {
   val burstLength = burstLen

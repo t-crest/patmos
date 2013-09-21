@@ -56,10 +56,11 @@ class InOut() extends Component {
 
   // Compute selects
   val selIO = io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-4) === Bits("b1111")
+  val selISpm = !selIO & io.memInOut.M.Addr(ISPM_ONE_BIT) === Bits(0x1)
   val selSpm = !selIO & io.memInOut.M.Addr(ISPM_ONE_BIT) === Bits(0x0)
-  val selTimer = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x0)
-  val selUart = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x1)
-  val selLed = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x2)
+  val selTimer = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x2)
+  val selUart = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x8)
+  val selLed = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x9)
 
   // Register selects
   val selSpmReg = Reg(resetVal = Bits("b0"))
@@ -72,6 +73,10 @@ class InOut() extends Component {
 	selUartReg := selUart
 	selLedReg := selLed
   }
+
+  // Dummy ISPM (create fake response)
+  val ispmCmdReg = Reg(Mux(selISpm, io.memInOut.M.Cmd, OcpCmd.IDLE))
+  val ispmResp = Mux(ispmCmdReg === OcpCmd.IDLE, OcpResp.NULL, OcpResp.DVA)
 
   // The SPM
   val spm = new Spm(1 << DSPM_BITS)
@@ -104,5 +109,5 @@ class InOut() extends Component {
 							Mux(selUartReg, uartS.Data,
 								Mux(selLedReg, ledsS.Data, 
 									spmS.Data)))
-  io.memInOut.S.Resp := spmS.Resp | timerS.Resp | uartS.Resp | ledsS.Resp
+  io.memInOut.S.Resp := ispmResp | spmS.Resp | timerS.Resp | uartS.Resp | ledsS.Resp
 }

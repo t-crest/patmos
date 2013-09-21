@@ -17,8 +17,8 @@ int main() {
 
 volatile int *dummy = (int *) 0x123;
 
-	volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0000200;
-	volatile _SPM int *uart_ptr = (volatile _SPM int *) 0xF0000104;
+	volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0000900;
+	volatile _SPM int *uart_ptr = (volatile _SPM int *) 0xF0000804;
 	int i, j;
 
 	for (;;) {
