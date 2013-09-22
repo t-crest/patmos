@@ -59,8 +59,21 @@ namespace patmos
      */
     GdbPacket ReadGdbPacket() const;
 
+    /*
+     * @param useAck set to false to disable ack messages (useful for reliable
+     *  connection such as TCP or pipe)
+     */
+    void SetUseAck(bool useAck);
+
+    /*
+     * @returns true if this packet handler is currently using ack messages
+     *  to ensure correct transmission of messages
+     */
+    bool IsUsingAck() const;
+
   private:
     const GdbConnection &m_con;
+    bool m_useAck;
   };
 }
 #endif // PATMOS_GDB_PACKET_HANDLER_H

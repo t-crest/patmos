@@ -37,6 +37,8 @@ namespace
 
   // helper functions
   
+  using namespace patmos;
+
   bool StrEndsWith(std::string s, std::string e)
   {
     const int sLen = s.length();
@@ -72,6 +74,33 @@ namespace
       return true;
     else
       return false;
+  }
+
+  void DebugWrite(const GdbPacket &packet)
+  {
+    if (debug)
+    {
+      std::cerr << "GdbPacketHandler::WriteGdbPacket > " << 
+        packet.GetPacketString()<< std::endl;
+    }
+  }
+
+  void DebugRead(const GdbPacket &packet, bool isValid)
+  {
+    if (debug)
+    {
+      int checksum = packet.GetChecksum();
+      // if invalid, calc checksum of the given packet
+      if (!isValid)
+      {
+        GdbPacket checksumHelper = CreateGdbPacket(packet.GetContent());
+        checksum = checksumHelper.GetChecksum();
+      }
+      std::cerr << "GdbPacketHandler::ReadGdbPacket  < " << 
+        packet.GetPacketString() << "(" << packet.GetContent() <<
+        ", checksum: " << std::hex << std::setw(2) << checksum << 
+        ", is valid: " << isValid << ")" << std::endl;
+    }
   }
 }
 
@@ -111,14 +140,10 @@ namespace patmos
       if (r++ > maxRetransmissions)
         throw GdbMaxRetransmissionsException();
 
-      if (debug)
-      {
-        std::cerr << "GdbPacketHandler::WriteGdbPacket > " << 
-          packet.GetPacketString()<< std::endl;
-      }
+      DebugWrite(packet);
 
       m_con.Write(packet.GetPacketString());
-    } while (!GetAck(m_con));
+    } while (IsUsingAck() && !GetAck(m_con));
   }
 
   GdbPacket GdbPacketHandler::ReadGdbPacket() const
@@ -143,27 +168,24 @@ namespace patmos
       packet = ParseGdbPacket(ss.str());
       isValid = packet.IsValid();
       
-      if (debug)
-      {
-        int checksum = packet.GetChecksum();
-        // if invalid, calc checksum of the given packet
-        if (!isValid)
-        {
-          GdbPacket checksumHelper = CreateGdbPacket(packet.GetContent());
-          checksum = checksumHelper.GetChecksum();
-        }
-        std::cerr << "GdbPacketHandler::ReadGdbPacket  < " << 
-          packet.GetPacketString() << "(" << packet.GetContent() <<
-          ", checksum: " << std::hex << std::setw(2) << checksum << 
-          ", is valid: " << isValid << ")" << std::endl;
-      }
+      DebugRead(packet, isValid);
 
-      if (!isValid)
+      if (IsUsingAck() && !isValid)
         m_con.Write(failSeq);
-    } while (!isValid);
+    } while (IsUsingAck() && !isValid);
 
     m_con.Write(ackSeq);
     return packet;
+  }
+
+  void GdbPacketHandler::SetUseAck(bool useAck)
+  {
+    m_useAck = useAck;
+  }
+
+  bool GdbPacketHandler::IsUsingAck() const
+  {
+    return m_useAck;
   }
 
 }

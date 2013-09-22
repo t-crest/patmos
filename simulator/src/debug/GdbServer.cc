@@ -65,7 +65,7 @@ namespace patmos
     while (!targetContinue)
     {
       message = m_messageHandler->ReadGdbMessage();
-      message->Handle(*m_messageHandler, targetContinue);
+      message->Handle(*m_messageHandler, m_debugInterface, targetContinue);
     }
   }
 

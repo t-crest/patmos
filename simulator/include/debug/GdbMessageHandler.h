@@ -21,6 +21,8 @@
 #ifndef PATMOS_GDB_MESSAGE_HANDLER_H
 #define PATMOS_GDB_MESSAGE_HANDLER_H
 
+#include "debug/DebugInterface.h"
+
 #include <string>
 #include <boost/shared_ptr.hpp>
 
@@ -31,15 +33,36 @@ namespace patmos
   typedef boost::shared_ptr<GdbMessage> GdbMessagePtr;
   class GdbResponseMessage;
 
+  //////////////////////////////////////////////////////////////////
+  // Exceptions
+  //////////////////////////////////////////////////////////////////
+  
+  class GdbUnsupportedMessageException : public std::exception
+  {
+  public:
+    GdbUnsupportedMessageException(std::string packetContent);
+    ~GdbUnsupportedMessageException() throw();
+    virtual const char* what() const throw();
+  
+  private:
+    std::string m_whatMessage;
+  };
+
+  //////////////////////////////////////////////////////////////////
+  // Message Handler
+  //////////////////////////////////////////////////////////////////
+  
   class GdbMessageHandler
   {
   public:
-    GdbMessageHandler(const GdbPacketHandler &packetHandler);
+    GdbMessageHandler(GdbPacketHandler &packetHandler);
     GdbMessagePtr ReadGdbMessage() const;
     void SendGdbMessage(const GdbResponseMessage &message) const;
-  
+    
+    void SetUseAck(bool useAck);
+
   private:
-    const GdbPacketHandler &m_packetHandler;
+    GdbPacketHandler &m_packetHandler;
   };
 
 }

@@ -20,6 +20,8 @@
 #ifndef PATMOS_DEBUG_INTERFACE_H
 #define PATMOS_DEBUG_INTERFACE_H
 
+#include <string>
+
 namespace patmos
 {
   class DebugClient;
@@ -33,13 +35,35 @@ namespace patmos
     int m_pc;
   };
 
+  struct HostInfo
+  {
+    HostInfo()
+      : cputype(0), cpusubtype(0), ostype("unknown"), vendor("unknown"),
+        endian("little"), ptrsize(0)
+    {};
+
+    int cputype;        // is a number that is the mach-o CPU type that is 
+                        // being debugged
+    int cpusubtype;     // is a number that is the mach-o CPU subtype type 
+                        // that is being debugged
+    std::string ostype; // is a string the represents the OS being debugged 
+                        // (darwin, linux, freebsd)
+    std::string vendor; // is a string that represents the vendor (apple)
+    std::string endian; // is one of "little", "big", or "pdp"
+    int ptrsize;        // is a number that represents how big pointers are in 
+                        // bytes on the debug target
+  };
+
   /*
-   * Interface for a debugging interface.
+   * Debugging Interface.
    */
   class DebugInterface
   {
   public:
     virtual ~DebugInterface() {}
+
+    virtual HostInfo GetHostInfo() const = 0;
+
     virtual void SetDebugClient(DebugClient &debugClient) = 0;
     virtual void AddBreakpoint(Breakpoint bp) = 0;
     virtual void RemoveBreakpoint(Breakpoint bp) = 0;

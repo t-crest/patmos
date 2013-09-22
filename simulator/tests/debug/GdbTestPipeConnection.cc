@@ -28,6 +28,11 @@ namespace
 {
   class TestInterface : public DebugInterface
   {
+    virtual HostInfo GetHostInfo() const
+    {
+      HostInfo info;
+      return info;
+    }
     virtual void SetDebugClient(DebugClient &debugClient)
     {
     }

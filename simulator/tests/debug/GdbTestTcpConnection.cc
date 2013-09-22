@@ -28,6 +28,11 @@ namespace
 {
   class TestInterface : public DebugInterface
   {
+    virtual HostInfo GetHostInfo() const
+    {
+      HostInfo info;
+      return info;
+    }
     virtual void SetDebugClient(DebugClient &debugClient)
     {
     }
@@ -42,9 +47,17 @@ namespace
 
 int main(int argc, char **argv)
 {
-  TcpConnection con(1234);
+  const int listenPort = 1234;
+
+  std::cerr << "using port " << listenPort << std::endl;
+
+  std::cerr << "establishing connection...";
+  TcpConnection con(listenPort);
+  std::cerr << " done." << std::endl;
+
   TestInterface debugInterface;
   GdbServer server(debugInterface, con);
 
+  std::cerr << "starting gdb server" << std::endl;
   server.Start();
 }
