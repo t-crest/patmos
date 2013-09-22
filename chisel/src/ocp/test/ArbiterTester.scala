@@ -31,7 +31,7 @@
  */
 
 /*
- * Start for OCP tests.
+ * Start for OCP arbiter tests.
  * 
  * Author: Martin Schoeberl (martin@jopdesign.com)
  * 
@@ -46,14 +46,14 @@ import ocp._
 
 import scala.collection.mutable.HashMap
 
-class BComponent() extends Component {
-  val io = new Bundle {
-    val fromMaster = new OcpBurstSlavePort(32, 32, 4)
-    val toSlave = new OcpBurstMasterPort(32, 32, 4)
-  }
-
-  io.fromMaster <> io.toSlave
-}
+//class BComponent() extends Component {
+//  val io = new Bundle {
+//    val fromMaster = new OcpBurstSlavePort(32, 32, 4)
+//    val toSlave = new OcpBurstMasterPort(32, 32, 4)
+//  }
+//
+//  io.fromMaster <> io.toSlave
+//}
 
 class ArbiterTester(dut: ocp.Arbiter) extends Tester(dut, Array(dut.io)) {
   defTests {
@@ -67,8 +67,10 @@ class ArbiterTester(dut: ocp.Arbiter) extends Tester(dut, Array(dut.io)) {
       vars.clear
 //      vars(dut.io.fromMaster.M.Cmd) = testVec(i)
 
+//      vars(dut.io.slave.S.CmdAccept) = Bits(1)
+//      vars(dut.io.slave.S.DataAccept) = Bits(1)
       step(vars, ovars)
-      println("out data: " + ovars(dut.io.out.M.Data))
+//      println("out data: " + ovars(dut.io.slave))
       //      println("iter: "+i)
       //      println("vars: "+vars)
       //      println("ovars: "+ovars)

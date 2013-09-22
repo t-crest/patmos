@@ -68,7 +68,7 @@ class OcpTester(dut: AComponent) extends Tester(dut, Array(dut.io)) {
       vars(dut.io.fromMaster.M.Cmd) = testVec(i)
 
       step(vars, ovars)
-      println("out cmd: " + ovars(dut.io.toSlave.M.Cmd))
+      println("out cmd: " + ovars(dut.io.fromMaster.M.Cmd))
       //      println("iter: "+i)
       //      println("vars: "+vars)
       //      println("ovars: "+ovars)

@@ -42,6 +42,8 @@ package ocp
 import Chisel._
 import Node._
 
+// MS: I would like to follow the Scala/Java naming convention (instead of the OCP naming)
+
 // Burst masters provide handshake signals
 class OcpBurstMasterSignals(addrWidth : Int, dataWidth : Int)
   extends OcpMasterSignals(addrWidth, dataWidth) {
@@ -68,9 +70,6 @@ class OcpBurstSlaveSignals(dataWidth : Int)
   }
 }
 
-// MS: Chisel has the flip method to change the direction of connections
-// shouldn't we use that one instead of defining additional classes?
-
 // Master port
 class OcpBurstMasterPort(addrWidth : Int, dataWidth : Int, burstLen : Int) extends Bundle() {
   val burstLength = burstLen
@@ -85,6 +84,13 @@ class OcpBurstSlavePort(addrWidth : Int, dataWidth : Int, burstLen : Int) extend
   // Clk is implicit in Chisel
   val M = new OcpBurstMasterSignals(addrWidth, dataWidth).asInput
   val S = new OcpBurstSlaveSignals(dataWidth).asOutput
+
+  // This does not really clone, but Data.clone doesn't either
+  override def clone() = {
+    val res = new OcpBurstSlavePort(addrWidth, dataWidth, burstLen)
+  	res.asInstanceOf[this.type]
+  }
+
 }
 
 // Bridge between word-oriented port and burst port

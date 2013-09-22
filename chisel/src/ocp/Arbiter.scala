@@ -32,6 +32,7 @@
 
 /*
  * Arbiter for OCP burst slaves.
+ * Pseudo round robin arbitration. Each turn for a non-requesting master costs 1 clock cycle.
  * 
  * Author: Martin Schoeberl (martin@jopdesign.com)
  * 
@@ -44,18 +45,48 @@ import Node._
 
 import scala.collection.mutable.HashMap
 
-class Arbiter(width : Int) extends Component {
+class Arbiter(cnt: Int) extends Component {
+  // MS: I'm always confused from which direction the name shall be
+  // probably the other way round...
   val io = new Bundle {
-    val in = new OcpBurstSlavePort(32, 32, 4)
-    val out = new OcpBurstMasterPort(32, 32, 4)
+    val master = Vec(cnt) { new OcpBurstSlavePort(32, 32, 4) }
+    val slave = new OcpBurstMasterPort(32, 32, 4)
   }
 
-  val turnReg = Reg(resetVal = UFix(0, width=8)) // FIXME width
-
-  turnReg := Mux(turnReg === UFix(width-1), UFix(0), turnReg + UFix(1))
+  val turnReg = Reg(resetVal = UFix(0, log2Up(cnt)))
+  val s_idle :: s_busy :: Nil = Enum(2) { UFix() }
+  val stateReg = Reg(resetVal = s_idle)
   
-  io.out.M.Data := turnReg
+  // TODO def turn
 
+  val master = io.master(turnReg).M
+  val slave = io.slave.S
+  when(stateReg === s_idle) {
+    when(master.Cmd != OcpCmd.IDLE) {
+      stateReg := s_busy
+    }
+      .otherwise {
+        turnReg := Mux(turnReg === UFix(cnt - 1), UFix(0), turnReg + UFix(1))
+      }
+  }
+  when(stateReg === s_busy) {
+      // TODO count the DVAs for the read burst
+      when(slave.Resp === OcpResp.DVA) {
+        turnReg := Mux(turnReg === UFix(cnt - 1), UFix(0), turnReg + UFix(1))
+        stateReg := s_idle
+      }
+    stateReg := s_idle
+  }
+
+  io.slave.M := master
+  for (i <- 0 to cnt-1) {
+    io.master(i).S.CmdAccept := Bits(0)
+    io.master(i).S.DataAccept := Bits(0)
+    // we could forward the data to all masters
+    io.master(i).S.Resp := Bits(0)
+    io.master(i).S.Data := Bits(0)
+  }
+  io.master(turnReg).S := slave
 }
 
 
