@@ -54,7 +54,7 @@ class RamInType extends Bundle() {
   val din = Bits(width = 32)
 }
 class RamOutType extends Bundle() {
-  val addr = Bits(width = 19)
+  val addr = Bits(width = EXTMEM_ADDR_WIDTH-2)
   val dout_ena = Bits(width = 1) //needed to drive tristate in top level
   val nadsc = Bits(width = 1)
   val noe = Bits(width = 1)
@@ -78,7 +78,7 @@ class RamInPinsIO extends Bundle() {
 }
 
 class SsramIOBurst extends Bundle() {
-  val ocp_port = new OcpBurstSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGHT)
+  val ocp_port = new OcpBurstSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
   val ram_out = new RamOutType().asOutput
   val ram_in = new RamInType().asInput
 }
@@ -97,12 +97,12 @@ class SsramBurstRW (
   val idle :: rd1 :: wr1 :: Nil = Enum(3){ UFix() }
   val ssram_state = Reg(resetVal = idle)
   val wait_state = Reg(resetVal = UFix(0, width = 4))
-  val burst_cnt = Reg(resetVal = UFix(0, width = 8))
+  val burst_cnt = Reg(resetVal = UFix(0, width = log2Up(BURST_LENGTH)))
   val rd_data_ena = Reg(resetVal = Bits(0, width = 1))
   val rd_data = Reg(resetVal = Bits(0, width = 32))
   val resp = Reg(resetVal = Bits(0, width = 2))
   val ram_dout = Reg(resetVal = Bits(0, width = 32))
-  val address = Reg(resetVal = Bits(0, width = 19))
+  val address = Reg(resetVal = Bits(0, width = EXTMEM_ADDR_WIDTH-2))
   val dout_ena = Reg(resetVal = Bits(0, width = 1))
   val nadsc = Reg(resetVal = Bits(1, width = 1))
   val noe = Reg(resetVal = Bits(1, width = 1))
@@ -122,13 +122,13 @@ class SsramBurstRW (
   nadv := Bits(1)
   resp := OcpResp.NULL
   ram_dout := io.ocp_port.M.Data
-  burst_cnt := UFix(1)
+  burst_cnt := UFix(0)
   cmd_accept := Bits(0)
   data_accept := Bits(0)
 
   //catch inputs
-  when (io.ocp_port.M.Cmd === OcpCmd.RD || io.ocp_port.M.Cmd === OcpCmd.WR) {
-    address := io.ocp_port.M.Addr
+  when (io.ocp_port.M.Cmd === OcpCmd.RD || io.ocp_port.M.Cmd === OcpCmd.WRNP) {
+    address := io.ocp_port.M.Addr(EXTMEM_ADDR_WIDTH-1, 2)
     cmd_accept := Bits(1)
   }
 
@@ -146,7 +146,7 @@ class SsramBurstRW (
       rd_data_ena := Bits(1)
       burst_cnt := burst_cnt + UFix(1)
       resp := OcpResp.DVA
-      when (burst_cnt === UFix(burstLen)) {
+      when (burst_cnt === UFix(burstLen-1)) {
         burst_cnt := UFix(0)
         nadv := Bits(1)
         noe := Bits(1)
@@ -156,7 +156,7 @@ class SsramBurstRW (
   }
   when (ssram_state === wr1) {
     when (wait_state <= UFix(1)) {
-      when (burst_cnt === UFix(burstLen)) {
+      when (burst_cnt === UFix(burstLen-1)) {
         burst_cnt := UFix(0)
         resp := OcpResp.DVA
         ssram_state := idle
@@ -166,7 +166,7 @@ class SsramBurstRW (
         burst_cnt := burst_cnt + UFix(1)
         nadv := Bits(0)
         nbwe := Bits(0)
-        nbw := Bits("b0000")
+        nbw := ~(io.ocp_port.M.DataByteEn)
         dout_ena := Bits(1)
       }
     }
@@ -177,7 +177,7 @@ class SsramBurstRW (
     nadsc := Bits(0)
     noe := Bits(0)
   }
-  .elsewhen(io.ocp_port.M.Cmd === OcpCmd.WR && io.ocp_port.M.DataValid === Bits(1)) {
+  .elsewhen(io.ocp_port.M.Cmd === OcpCmd.WRNP && io.ocp_port.M.DataValid === Bits(1)) {
     data_accept := Bits(1)
     ssram_state := wr1
     nbwe := Bits(0)
@@ -194,7 +194,7 @@ class SsramBurstRW (
   when (io.ocp_port.M.Cmd === OcpCmd.RD) {
     wait_state := UFix(ram_ws_rd + 1)
   }
-  when (io.ocp_port.M.Cmd === OcpCmd.WR) {
+  when (io.ocp_port.M.Cmd === OcpCmd.WRNP) {
     wait_state := UFix(ram_ws_wr + 1)
   }
 
@@ -302,115 +302,3 @@ class ExtSsram(fileName : String) extends Component {
   io.ram_in.din := dout
 }
 
-
-class SsramIOSingle extends Bundle() {
-  val ocp_port = new OcpCoreSlavePort(19, 32)
-  val ram_out = new RamOutType().asOutput
-  val ram_in = new RamInType().asInput
-}
-/*
- SSRAM Controller with single r/w interface (OCP_CORE)
- ...not needed in future can also be achieved by setting burst lenght to 1
- */
-class SsramSingleRW (
-   ram_ws_rd : Int = 2,
-   ram_ws_wr : Int = 1
-) extends Component {
-  val io = new SsramIOSingle()
-
-  val idl :: rd1 :: wr1 :: Nil = Enum(3){ UFix() }
-  val ssram_state = Reg(resetVal = idl)
-  val wait_state = Reg(resetVal = UFix(0, width = 4))
-  val resp = Reg(resetVal = Bits(0, width = 2))
-  val ram_dout = Reg(resetVal = Bits(0, width = 32))
-  val address = Reg(resetVal = Bits(0, width = 19))
-  val dout_ena = Reg(resetVal = Bits(0, width = 1))
-  val nadsc = Reg(resetVal = Bits(1, width = 1))
-  val noe = Reg(resetVal = Bits(1, width = 1))
-  val nbwe = Reg(resetVal = Bits(1, width = 1))
-  val nbw = Reg(resetVal = Bits("b1111", width = 4))
-  val nadv = Reg(resetVal = Bits(0, width = 1))
-  //val rd_data_ena = Reg(resetVal = Bits(0, width = 1)) //used only if reg not handled in top-level
-
-  //init default register values
-  //rd_data_ena := Bits(0)
-  dout_ena := Bits(0)
-  nadsc := Bits(1)
-  noe := Bits(1)
-  nbwe := Bits(1)
-  nbw := Bits("b1111")
-  nadv := Bits(1)
-  resp := OcpResp.NULL
-
-  //catch inputs
-  when (io.ocp_port.M.Cmd === OcpCmd.RD || io.ocp_port.M.Cmd === OcpCmd.WR) {
-    address := io.ocp_port.M.Addr
-  }
-  when (io.ocp_port.M.Cmd === OcpCmd.WR) {
-    ram_dout := io.ocp_port.M.Data
-  }
-  //when (rd_data_ena === Bits(1)) {
-    // io.ocp_port.S.Data := io.ram_in.din
-  // }
-
-  //fsm, next state + output logic 
-  when (ssram_state === rd1) {
-    noe := Bits(0)
-    when (wait_state === UFix(1)) {
-      resp := OcpResp.DVA
-      ssram_state := idl
-    }
-  }
-  when (ssram_state === wr1) {
-    when (wait_state === UFix(1)) {
-      ssram_state := idl
-      resp := OcpResp.DVA
-    }
-  }
-  when (io.ocp_port.M.Cmd === OcpCmd.RD) {
-    ssram_state := rd1
-    nadsc := Bits(0)
-    noe := Bits(0)
-  }
-  .elsewhen(io.ocp_port.M.Cmd === OcpCmd.WR) {
-    ssram_state := wr1
-    nbwe := Bits(0)
-    nbw := ~(io.ocp_port.M.ByteEn)
-    dout_ena := Bits(1)
-    nadsc := Bits(0)
-  }
-
-  //counter till output is ready
-  when (wait_state != UFix(0)) {
-    wait_state := wait_state - UFix(1)
-  }
-  //set wait state after incoming request
-  when (io.ocp_port.M.Cmd === OcpCmd.RD) {
-    wait_state := UFix(ram_ws_rd + 1)
-  }
-  when (io.ocp_port.M.Cmd === OcpCmd.WR) {
-    wait_state := UFix(ram_ws_wr + 1)
-  }
-
-  io.ram_out.dout := io.ocp_port.M.Data
-  when (dout_ena === Bits(1)) {
-    io.ram_out.dout := ram_dout
-  }
-  //output registers
-  io.ram_out.nadsc := nadsc
-  io.ram_out.noe := noe
-  io.ram_out.nbwe := nbwe
-  io.ram_out.nbw := nbw
-  io.ram_out.nadv := nadv
-  io.ram_out.dout_ena := dout_ena //needed for driving tristate in top-l
-  io.ram_out.addr := address
-  //output response to master
-  io.ocp_port.S.Resp := resp
-  io.ocp_port.S.Data := io.ram_in.din
-  //output fixed signals
-  io.ram_out.ngw := Bits(1)
-  io.ram_out.nce1 := Bits(0)
-  io.ram_out.ce2 := Bits(1)
-  io.ram_out.nce3 := Bits(0)
-  io.ram_out.nadsp := Bits(1)
-}

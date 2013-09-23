@@ -335,8 +335,8 @@ class InOutIO() extends Bundle() {
 }
 
 class MemoryIO() extends Bundle() {
-  val ena = Bool(OUTPUT)
-  val mc_ena = Bool(INPUT)
+  val ena_out = Bool(OUTPUT)
+  val ena_in = Bool(INPUT)
   val exmem = new ExMem().asInput
   val memwb = new MemWb().asOutput
   val memfe = new MemFe().asOutput

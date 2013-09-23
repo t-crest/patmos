@@ -145,7 +145,7 @@ class Fetch(fileName : String) extends Component {
   io.femem.pc := pc_cont - relBaseReg
 
   //outputs to mcache
-  io.femcache.address := pc_next
+  io.femcache.address := Mux(io.ena, pc_next, pcReg)
   io.femcache.request := selMCache
 
 }

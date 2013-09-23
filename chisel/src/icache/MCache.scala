@@ -81,19 +81,21 @@ class MCacheFe extends Bundle() {
   val mem_sel = Bits(width = 2)
 }
 class MCacheIO extends Bundle() {
-  val ena = Bool(OUTPUT)
+  val ena_out = Bool(OUTPUT)
+  val ena_in = Bool(INPUT)
   val femcache = new FeMCache().asInput
   val exmcache = new ExMCache().asInput
   val mcachefe = new MCacheFe().asOutput
-  val ocp_port = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGHT)
+  val ocp_port = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
 }
 class MCacheCtrlIO extends Bundle() {
+  val ena = Bool(INPUT)
   val fetch_ena = Bits(OUTPUT, width = 1)
   val mcache_ctrlrepl = new MCacheCtrlRepl().asOutput
   val mcache_replctrl = new MCacheReplCtrl().asInput
   val femcache = new FeMCache().asInput
   val exmcache = new ExMCache().asInput
-  val ocp_port = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGHT)
+  val ocp_port = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
 }
 class MCacheCtrlRepl extends Bundle() {
   val w_enable = Bits(width = 1)
@@ -107,6 +109,7 @@ class MCacheReplCtrl extends Bundle() {
   val pos_offset = Bits(width = OFF_WIDTH)
 }
 class MCacheReplIO extends Bundle() {
+  val ena = Bool(INPUT)
   val hit_ena = Bits(OUTPUT, width = 1)
   val exmcache = new ExMCache().asInput
   val mcachefe = new MCacheFe().asOutput
@@ -128,6 +131,7 @@ class MCacheMemOut extends Bundle() {
   val instr_odd = Bits(width = INSTR_WIDTH)
 }
 class MCacheMemIO extends Bundle() {
+  val ena = Bool(INPUT)
   val mcachemem_in = new MCacheMemIn().asInput
   val mcachemem_out = new MCacheMemOut().asOutput
 }
@@ -155,7 +159,11 @@ class MCache() extends Component {
   mcacherepl.io.mcachemem_in <> mcachemem.io.mcachemem_in
   mcacherepl.io.mcachemem_out <> mcachemem.io.mcachemem_out
 
-  io.ena := (mcachectrl.io.fetch_ena & mcacherepl.io.hit_ena)
+  //connect enables
+  mcachectrl.io.ena <> io.ena_in
+  mcachemem.io.ena <> io.ena_in
+
+  io.ena_out := (mcachectrl.io.fetch_ena & mcacherepl.io.hit_ena)
 }
 
 /*
@@ -166,17 +174,18 @@ class MCacheMem() extends Component {
 
   val ram_mcache_even = { Mem(MCACHE_SIZE / 2, seqRead = true) {Bits(width = INSTR_WIDTH)} }
   val ram_mcache_odd = { Mem(MCACHE_SIZE / 2, seqRead = true) {Bits(width = INSTR_WIDTH)} }
-  val dout_even = Reg() {Bits(width = INSTR_WIDTH)}
-  val dout_odd = Reg() {Bits(width = INSTR_WIDTH)}
 
-  when (io.mcachemem_in.w_even) {ram_mcache_even(io.mcachemem_in.w_addr) := io.mcachemem_in.w_data}
-  .otherwise {(dout_even := ram_mcache_even(io.mcachemem_in.addr_even))}
+  when (io.mcachemem_in.w_even) {
+	ram_mcache_even(io.mcachemem_in.w_addr) := io.mcachemem_in.w_data
+  }
+  when (io.mcachemem_in.w_odd) {
+	ram_mcache_odd(io.mcachemem_in.w_addr) := io.mcachemem_in.w_data
+  }
 
-  when (io.mcachemem_in.w_odd) {ram_mcache_odd(io.mcachemem_in.w_addr) := io.mcachemem_in.w_data}
-  .otherwise {(dout_odd := ram_mcache_odd(io.mcachemem_in.addr_odd))}
-
-  io.mcachemem_out.instr_even := dout_even
-  io.mcachemem_out.instr_odd := dout_odd
+  val addrEvenReg = Reg(io.mcachemem_in.addr_even)
+  val addrOddReg = Reg(io.mcachemem_in.addr_odd)
+  io.mcachemem_out.instr_even := ram_mcache_even(addrEvenReg)
+  io.mcachemem_out.instr_odd := ram_mcache_odd(addrOddReg)
 }
 
 /*
@@ -498,12 +507,14 @@ class MCacheCtrl() extends Component {
   val ext_mem_addr = Bits(width = EXTMEM_ADDR_WIDTH)
   val ext_mem_tsize = Reg(resetVal = Bits(0, width = MCACHE_SIZE_WIDTH))
   val ext_mem_fcounter = Reg(resetVal = Bits(0, width = 32))
-  val ext_mem_burst_cnt = Reg(resetVal = UFix(0, width = log2Up(BURST_LENGHT)))
+  val ext_mem_burst_cnt = Reg(resetVal = UFix(0, width = log2Up(BURST_LENGTH)))
   //input/output registers
   val callRetBaseReg = Reg(resetVal = Bits(0, width = ADDR_WIDTH))
   val msize_addr = callRetBaseReg - Bits(1)
   val addrReg = Reg(resetVal = Bits(1))
   val wenaReg = Reg(resetVal = Bits(0))
+
+  val ocpSlaveReg = Reg(io.ocp_port.S)
 
   //init signals
   mcachemem_address := addrReg
@@ -542,14 +553,14 @@ class MCacheCtrl() extends Component {
   }
   //fetch size of the required method from external memory address - 1
   when (mcache_state === size_state) {
-    when (io.ocp_port.S.Resp === OcpResp.DVA) {
+    when (ocpSlaveReg.Resp === OcpResp.DVA) {
       ext_mem_burst_cnt := ext_mem_burst_cnt + Bits(1)
       when (ext_mem_burst_cnt === msize_addr(1,0)) {
-        val size = io.ocp_port.S.Data(MCACHE_SIZE_WIDTH,2)
+        val size = ocpSlaveReg.Data(MCACHE_SIZE_WIDTH,2)
         //init transfer from external memory
         ext_mem_tsize := size
         ext_mem_fcounter := Bits(0) //start to write to cache with offset 0
-        when (ext_mem_burst_cnt >= UFix(BURST_LENGHT - 1)) {
+        when (ext_mem_burst_cnt >= UFix(BURST_LENGTH - 1)) {
           ext_mem_addr := callRetBaseReg
           ext_mem_cmd := OcpCmd.RD
           ext_mem_burst_cnt := UFix(0)
@@ -568,19 +579,19 @@ class MCacheCtrl() extends Component {
   //transfer/fetch method to the cache
   when (mcache_state === transfer_state) {
     when (ext_mem_fcounter < ext_mem_tsize) {
-      when (io.ocp_port.S.Resp === OcpResp.DVA) {
+      when (ocpSlaveReg.Resp === OcpResp.DVA) {
         ext_mem_fcounter := ext_mem_fcounter + Bits(1)
         ext_mem_burst_cnt := ext_mem_burst_cnt + Bits(1)
         when(ext_mem_fcounter < ext_mem_tsize - Bits(1)) {
           //fetch next address from external memory
-          when (ext_mem_burst_cnt >= UFix(BURST_LENGHT - 1)) {
+          when (ext_mem_burst_cnt >= UFix(BURST_LENGTH - 1)) {
             ext_mem_cmd := OcpCmd.RD
             ext_mem_addr := callRetBaseReg + ext_mem_fcounter + Bits(1) //need +1 because start fetching with the size of method
             ext_mem_burst_cnt := UFix(0)
           }
         }
         //write current address to mcache memory
-        mcachemem_w_data := io.ocp_port.S.Data
+        mcachemem_w_data := ocpSlaveReg.Data
         mcachemem_w_enable := Bits(1)
       }
       mcachemem_w_addr := ext_mem_fcounter //+ io.mcache_replctrl.pos_offset
@@ -602,7 +613,7 @@ class MCacheCtrl() extends Component {
   io.fetch_ena := ~wenaReg
 
   //output to external memory
-  io.ocp_port.M.Addr := ext_mem_addr
+  io.ocp_port.M.Addr := Cat(ext_mem_addr, Bits("b00"))
   io.ocp_port.M.Cmd := ext_mem_cmd
   io.ocp_port.M.Data := Bits(0)
   io.ocp_port.M.DataByteEn := Bits("b1111")

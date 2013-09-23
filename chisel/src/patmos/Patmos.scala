@@ -56,6 +56,8 @@ import scala.collection.mutable.HashMap
 
 import Constants._
 
+import ocp._
+
 /**
  * The main (top-level) component of Patmos.
  */
@@ -87,8 +89,8 @@ class Patmos(fileName: String) extends Component {
   mcache.io.femcache <> fetch.io.femcache
   mcache.io.mcachefe <> fetch.io.mcachefe
   mcache.io.exmcache <> execute.io.exmcache
-  mcache.io.ocp_port <> ssram.io.ocp_port
-  mcache.io.ena <> memory.io.mc_ena  //feeds Hit/Miss signal to m-stage for a possible stall
+  mcache.io.ena_out <> memory.io.ena_in
+  mcache.io.ena_in <> memory.io.ena_out
 
   decode.io.fedec <> fetch.io.fedec
   execute.io.decex <> decode.io.decex
@@ -111,12 +113,15 @@ class Patmos(fileName: String) extends Component {
 
   memory.io.localInOut <> iocomp.io.memInOut
 
-  // TODO: to be replaced with a connection to external memory
-  val globMem = new Spm(1 << DSPM_BITS)
-  memory.io.globalInOut <> globMem.io
+  // Merge OCP ports from memory stage and method cache
+  val loadStoreBus = new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+
+  val burstBridge = new OcpBurstBridge(memory.io.globalInOut, loadStoreBus.io.slave)
+  val burstJoin = new OcpBurstJoin(mcache.io.ocp_port, loadStoreBus.io.master,
+                                   ssram.io.ocp_port)
 
   // Enable signal
-  val enable = memory.io.ena //& mcache.io.ena //containts also the ena signal from mcache
+  val enable = memory.io.ena_out & mcache.io.ena_out
   fetch.io.ena := enable
   decode.io.ena := enable
   execute.io.ena := enable
@@ -124,13 +129,13 @@ class Patmos(fileName: String) extends Component {
 
   // The inputs and outputs
   io.uartPins <> iocomp.io.uartPins
-  io.led <> Cat(memory.io.ena, iocomp.io.ledPins)
+  io.led <> Cat(enable, iocomp.io.ledPins)
 
   // ***** the following code is not really Patmos code ******
 
   // Dummy output, which is ignored in the top level VHDL code, to
   // keep Chisel keep this signal alive unused signals
-  io.dummy := Reg(memory.io.memwb.pc)
+  io.dummy := Reg(memory.io.memwb.pc | decode.rf.io.rfDebug.toBits)
 }
 
 // this testing and main file should go into it's own folder

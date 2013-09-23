@@ -77,15 +77,19 @@ class OcpMasterSignals(addrWidth : Int, dataWidth : Int) extends Bundle() {
     val res = new OcpMasterSignals(addrWidth, dataWidth)
   	res.asInstanceOf[this.type]
   }
+
+  def reset() = {
+	Cmd := OcpCmd.IDLE
+	Addr := Bits(0)
+	Data := Bits(0)
+  }
 }
 
 // Reset values for master signals
 object OcpMasterSignals {
   def resetVal[T <: OcpMasterSignals](sig : T) : T = {
 	val res = sig.clone
-	res.Cmd := OcpCmd.IDLE
-	res.Addr := Bits(0)
-	res.Data := Bits(0)
+	res.reset()
 	res
   }
   def resetVal(addrWidth : Int, dataWidth : Int) : OcpMasterSignals = {
@@ -103,17 +107,21 @@ class OcpSlaveSignals(dataWidth : Int) extends Bundle() {
     val res = new OcpSlaveSignals(dataWidth)
   	res.asInstanceOf[this.type]
   }
+
+  def reset() = {
+	Resp := OcpResp.NULL
+	Data := Bits(0)
+  }
 }
 
 // Reset values for slave signals
 object OcpSlaveSignals {
   def resetVal[T <: OcpSlaveSignals] (sig : T) : T = {
 	val res = sig.clone
-	res.Resp := OcpResp.NULL
-	res.Data := Bits(0)
+	res.reset()
 	res
   }
-  def resetVal(addrWidth : Int, dataWidth : Int) : OcpSlaveSignals = {
+  def resetVal(dataWidth : Int) : OcpSlaveSignals = {
 	resetVal(new OcpSlaveSignals(dataWidth))
   }
 }

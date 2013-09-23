@@ -14,7 +14,8 @@ ostream *out = &cout;
 #define OCMEM_ADDR_BITS 16
 
 #define SRAM_ADDR_BITS 19 // 2MB
-static uint ssram_buf [1 << SRAM_ADDR_BITS];
+static uint32_t ssram_buf [1 << SRAM_ADDR_BITS];
+#define SRAM_CYCLES 3
   
 /// Read an elf executable image into the on-chip memories
 static val_t readelf(istream &is, Patmos_t *c)
@@ -122,26 +123,6 @@ static val_t readelf(istream &is, Patmos_t *c)
 		  val_t addr = ((phdr.p_paddr + k) >> 2);
 		  ssram_buf[addr] = word;
 		}
-
-		// TODO: this really writes to globmem and should go away
-		if (((phdr.p_paddr + k) >> OCMEM_ADDR_BITS) == 0x0) {
-		  // Address maps to data SPM
-		  val_t byte = k >= phdr.p_filesz ? 0 : elfbuf[phdr.p_offset + k];
-		  val_t addr = (phdr.p_paddr + k) >> 2;
-		  
-		  unsigned size = (sizeof(c->Patmos_globMem__mem0.contents) /
-						   sizeof(c->Patmos_globMem__mem0.contents[0]));
-
-		  assert (addr < size && "Data mapped to DSPM exceed size");
-
-		  switch ((phdr.p_paddr + k) & 0x3) {
-		  case 0: c->Patmos_globMem__mem3.put(addr, byte); break;
-		  case 1: c->Patmos_globMem__mem2.put(addr, byte); break;
-		  case 2: c->Patmos_globMem__mem1.put(addr, byte); break;
-		  case 3: c->Patmos_globMem__mem0.put(addr, byte); break;
-		  }
-		}
-
 	  }
     }
   }
@@ -169,10 +150,12 @@ static void extSsramSim(Patmos_t *c) {
   static int addr_cnt;
   static int address;
   static int counter;
+
   // *out << "noe:" << c->Patmos__io_sramPins_ram_out_noe.to_ulong() 
   // 	   << " nadv: " << c->Patmos__io_sramPins_ram_out_nadv.to_ulong()
   // 	   << " nadsc:" << c->Patmos__io_sramPins_ram_out_nadsc.to_ulong()
   // 	   << " addr:" << c->Patmos__io_sramPins_ram_out_addr.to_ulong() << "\n";
+
   if (c->Patmos__io_sramPins_ram_out_nadsc.to_ulong() == 0) {
     address = c->Patmos__io_sramPins_ram_out_addr.to_ulong();
     addr_cnt = c->Patmos__io_sramPins_ram_out_addr.to_ulong();
@@ -183,13 +166,30 @@ static void extSsramSim(Patmos_t *c) {
   }
   if (c->Patmos__io_sramPins_ram_out_noe.to_ulong() == 0) {
     counter++;
-    if (counter >= 3) {
+    if (counter >= SRAM_CYCLES) {
       c->Patmos__io_sramPins_ram_in_din = ssram_buf[address];
       if (address <= addr_cnt) {
         address++;
       }
     }
   }
+  if (c->Patmos__io_sramPins_ram_out_nbwe.to_ulong() == 0) {
+	uint32_t nbw = c->Patmos__io_sramPins_ram_out_nbw.to_ulong();
+	uint32_t mask = 0x00000000;
+	for (unsigned i = 0; i < 4; i++) {
+	  if ((nbw & (1 << i)) == 0) {
+		mask |= 0xff << (i*8);
+	  }
+	}
+
+	ssram_buf[address] &= ~mask;
+	ssram_buf[address] |= mask & c->Patmos__io_sramPins_ram_out_dout.to_ulong();
+
+	if (address <= addr_cnt) {
+	  address++;
+	}
+  }
+
 }
 
 int main (int argc, char* argv[]) {

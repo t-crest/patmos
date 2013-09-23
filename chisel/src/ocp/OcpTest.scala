@@ -45,7 +45,7 @@ import Node._
 import scala.collection.mutable.HashMap
 
 class OcpMaster() extends Component {
-  val io = new OcpCoreMasterPort(8, 32)
+  val io = new OcpCacheMasterPort(8, 32)
 
   val cnt = Reg(UFix(), resetVal = UFix(0))
   cnt := cnt + UFix(1, 32)

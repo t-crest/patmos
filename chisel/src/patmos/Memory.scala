@@ -55,11 +55,11 @@ class Memory() extends Component {
   val enable = Mux(mayStallReg, (io.localInOut.S.Resp === OcpResp.DVA
                                  || io.globalInOut.S.Resp === OcpResp.DVA),
 				   Bool(true))
-  io.ena := enable & io.mc_ena // stall = !enable
+  io.ena_out := enable
 
   // Register from execution stage
   val memReg = Reg(new ExMem(), resetVal = ExMemResetVal)
-  when(enable & io.mc_ena) {
+  when(enable && io.ena_in) {
     memReg := io.exmem
     mayStallReg := io.exmem.mem.load || io.exmem.mem.store
   }
@@ -113,7 +113,7 @@ class Memory() extends Component {
   
   // Path to memories and IO is combinatorial, registering happens in
   // the individual modules
-  val cmd = Mux(enable,
+  val cmd = Mux(enable && io.ena_in,
 				Mux(io.exmem.mem.load, OcpCmd.RD,
 					Mux(io.exmem.mem.store, OcpCmd.WRNP,
 						OcpCmd.IDLE)),

@@ -69,8 +69,8 @@ object Constants {
   val METHOD_COUNT = 16
   val OFF_WIDTH = log2Up(math.max(MCACHE_SIZE, 1 << ISPM_ONE_BIT)) //? isn't the max between ISPM and MCACHE width enough for pcReg?
 
-  val EXTMEM_ADDR_WIDTH = 19
-  val BURST_LENGHT = 4 //for ssram on de2-70 board max. 4
+  val EXTMEM_ADDR_WIDTH = 21
+  val BURST_LENGTH = 4 //for ssram on de2-70 board max. 4
 
   // The PC counts in words. 30 bits are enough for the 4 GB address space.
   // We might cut that down to what we actually really support (16 MB)
