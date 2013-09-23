@@ -1,0 +1,22 @@
+Patmos coding style
+===================
+
+Scala is very flexible relative to file names and directory structure.
+However, within the Patmos project we intend to adhere to the common
+Java/Scala coding style.
+
+Symbols, names are written in CamelCase. No C style _ are used.
+
+Types (classes) start with an upper case character. Class members
+(fields, methods), functions, and local variables start with a lower
+case character. Constants are written all upper case.
+
+Indentation is two spaces.
+
+File names have the name of the (main) class. Helper classes can
+be in the same file. Packages are organized in the Java style,
+where the directories represent the package hierarchy.
+
+It is important in HW design to quickly distinguish between combinational
+circuits and registers. Therefore, all registers shall end with Reg
+(e.g., cntReg).
