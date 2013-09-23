@@ -45,46 +45,64 @@ import Node._
 
 import scala.collection.mutable.HashMap
 
-class Arbiter(cnt: Int) extends Component {
+class Arbiter(cnt: Int, burstLength: Int) extends Component {
   // MS: I'm always confused from which direction the name shall be
   // probably the other way round...
   val io = new Bundle {
-    val master = Vec(cnt) { new OcpBurstSlavePort(32, 32, 4) }
-    val slave = new OcpBurstMasterPort(32, 32, 4)
+    val master = Vec(cnt) { new OcpBurstSlavePort(32, 32, burstLength) }
+    val slave = new OcpBurstMasterPort(32, 32, burstLength)
   }
 
   val turnReg = Reg(resetVal = UFix(0, log2Up(cnt)))
-  val s_idle :: s_busy :: Nil = Enum(2) { UFix() }
-  val stateReg = Reg(resetVal = s_idle)
-  
+  val burstCntReg = Reg(resetVal = UFix(0, log2Up(burstLength)))
+
+  val sIdle :: sRead :: sWrite :: Nil = Enum(3) { UFix() }
+  val stateReg = Reg(resetVal = sIdle)
+
   // TODO def turn
 
   val master = io.master(turnReg).M
   val slave = io.slave.S
-  when(stateReg === s_idle) {
+
+  when(stateReg === sIdle) {
     when(master.Cmd != OcpCmd.IDLE) {
-      stateReg := s_busy
+      when(master.Cmd === OcpCmd.RD) {
+        stateReg := sRead
+      }
+      when(master.Cmd === OcpCmd.WRNP) {
+        stateReg := sWrite
+        burstCntReg := UFix(0)
+      }
     }
       .otherwise {
         turnReg := Mux(turnReg === UFix(cnt - 1), UFix(0), turnReg + UFix(1))
       }
   }
-  when(stateReg === s_busy) {
-      // TODO count the DVAs for the read burst
-      when(slave.Resp === OcpResp.DVA) {
+  when(stateReg === sWrite) {
+    // Just wait on the DVA after the write
+    when(slave.Resp === OcpResp.DVA) {
+      turnReg := Mux(turnReg === UFix(cnt - 1), UFix(0), turnReg + UFix(1))
+      stateReg := sIdle
+    }
+  }
+  when(stateReg === sRead) {
+    // For read we have to count the DVAs
+    when(slave.Resp === OcpResp.DVA) {
+      burstCntReg := burstCntReg + UFix(1)
+      when(burstCntReg === UFix(burstLength) - UFix(1)) {
         turnReg := Mux(turnReg === UFix(cnt - 1), UFix(0), turnReg + UFix(1))
-        stateReg := s_idle
+        stateReg := sIdle
       }
-    stateReg := s_idle
+    }
   }
 
   io.slave.M := master
-  for (i <- 0 to cnt-1) {
+  for (i <- 0 to cnt - 1) {
     io.master(i).S.CmdAccept := Bits(0)
     io.master(i).S.DataAccept := Bits(0)
-    // we could forward the data to all masters
     io.master(i).S.Resp := Bits(0)
-    io.master(i).S.Data := Bits(0)
+    // we forward the data to all masters
+    io.master(i).S.Data := slave.Data
   }
   io.master(turnReg).S := slave
 }

@@ -42,6 +42,7 @@ package ocp
 import Chisel._
 import Node._
 
+// MS would like to comment out the commands we are not using/implementing
 // Constants for MCmd
 object OcpCmd {
   val IDLE = Bits("b000")

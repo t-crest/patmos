@@ -81,7 +81,7 @@ class ArbiterTester(dut: ocp.Arbiter) extends Tester(dut, Array(dut.io)) {
 
 object ArbiterTester {
   def main(args: Array[String]): Unit = {
-    chiselMainTest(args, () => new ocp.Arbiter(3)) {
+    chiselMainTest(args, () => new ocp.Arbiter(3, 4)) {
       f => new ArbiterTester(f)
     }
 
