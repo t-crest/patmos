@@ -280,8 +280,11 @@ namespace patmos
                                  % Num_indexes;
       cache_tags_t &tags(Content[entry_index]);
 
+      // tag_index corresponds to age of the cache block; we have
+      // (tag_index == ASSOCIATIVITY) iff tag is not in the cache
+      unsigned int tag_index = ASSOCIATIVITY;
+
       // check if content is in the cache
-      unsigned int tag_index = ASSOCIATIVITY - 1;
       for(unsigned int i = 0; i < ASSOCIATIVITY; i++)
       {
         if (tags[i].Is_valid && tags[i].Block_address == block_address)
@@ -292,11 +295,14 @@ namespace patmos
       }
 
       // update cache state and read data
-      if (tag_index != ASSOCIATIVITY - 1 || Memory.read(block_address, buf,
-                                                        Num_block_bytes))
+      if (tag_index != ASSOCIATIVITY || Memory.read(block_address, buf,
+                                                    Num_block_bytes))
       {
         // update LRU ordering
-        for(unsigned int i = tag_index; i != 0; i--)
+        unsigned int last_index_changed = tag_index;
+        if(last_index_changed == ASSOCIATIVITY)
+          last_index_changed = ASSOCIATIVITY-1;
+        for(unsigned int i = last_index_changed; i != 0; i--)
         {
           tags[i] = tags[i -1];
         }
@@ -309,7 +315,7 @@ namespace patmos
         Memory.read_peek(address, value, size);
 
         // update statistics
-        if (tag_index != ASSOCIATIVITY - 1)
+        if (tag_index != ASSOCIATIVITY)
         {
           Num_read_hits++;
           Num_read_hit_bytes += size;
@@ -351,7 +357,7 @@ namespace patmos
         cache_tags_t &tags(Content[entry_index]);
 
         // check if content is in the cache
-        unsigned int tag_index = ASSOCIATIVITY - 1;
+        unsigned int tag_index = ASSOCIATIVITY;
         for(unsigned int i = 0; i < ASSOCIATIVITY; i++)
         {
           if (tags[i].Is_valid && tags[i].Block_address == block_address)
@@ -361,21 +367,12 @@ namespace patmos
           }
         }
 
-        // update the LRU ordering only when the data was in the cache
-        if (tag_index != ASSOCIATIVITY - 1)
-        {
-          for(unsigned int i = tag_index; i != 0; i--)
-          {
-            tags[i] = tags[i -1];
-          }
-
-          // set tag information
-          tags[0].Is_valid = 1;
-          tags[0].Block_address = block_address;
-        }
+        // No write allocate; contents of cache is updated on write-hit,
+        // but as the simulator implementation does not store contents in
+        // the cache, we simply omit cache updates for the write-through D$
 
         // update statistics
-        if (tag_index != ASSOCIATIVITY - 1)
+        if (tag_index != ASSOCIATIVITY)
         {
           Num_write_hits++;
           Num_write_hit_bytes += size;
