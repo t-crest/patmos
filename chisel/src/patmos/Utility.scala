@@ -49,30 +49,28 @@ object Utility {
   /**
    * Read a binary file into the ROM vector
    */
-  def readBin(fileName: String): Vec[Bits] = {
-    // using a vector for a ROM
-    val v = Vec(256) { Bits(width = INSTR_WIDTH) }
-    // should check the program for the size
+  def readBin(fileName: String, width: Int): Vec[Bits] = {
 
-    // TODO: move ROM file reading to an utility class
+    val bytesPerWord = (width+7) / 8
+
     println("Reading " + fileName)
-    // an encodig to read a binary file? Strange new world.
+    // an encoding to read a binary file? Strange new world.
     val source = scala.io.Source.fromFile(fileName)(scala.io.Codec.ISO8859)
     val byteArray = source.map(_.toByte).toArray
+
+    // using a vector for a ROM
+    val v = Vec(byteArray.length / bytesPerWord) { Bits(width = width) }
+
     source.close()
-    for (i <- 0 until byteArray.length / 4) {
+    for (i <- 0 until byteArray.length / bytesPerWord) {
       var word = 0
-      for (j <- 0 until 4) {
+      for (j <- 0 until bytesPerWord) {
         word <<= 8
-        word += byteArray(i * 4 + j).toInt & 0xff
+        word += byteArray(i * bytesPerWord + j).toInt & 0xff
       }
       printf("%08x\n", word)
-      // mmh, width is needed to keep bit 31
-      v(i) = Bits(word, width=INSTR_WIDTH)
+      v(i) = Bits(word, width = width)
     }
-    // generate some dummy data to fill the table and make Bit 31 test happy
-    for (x <- byteArray.length / 4 until 256)
-      v(x) = Bits("h80000000")
     v
   }
 }
