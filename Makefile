@@ -94,8 +94,8 @@ asm-% $(BUILDDIR)/%.bin: asm/%.s
 bootcomp: bin-$(BOOTAPP)
 
 # Convert elf file to binary
-bin-% $(BUILDDIR)/%.bin: $(BUILDDIR)/%.elf
-	$(INSTALLDIR)/elf2bin $< $(BUILDDIR)/$*.bin
+bin-% $(BUILDDIR)/%.bin $(BUILDDIR)/%.dat: $(BUILDDIR)/%.elf
+	$(INSTALLDIR)/elf2bin $< $(BUILDDIR)/$*.bin $(BUILDDIR)/$*.dat
 
 # Compile a program to an elf file
 comp: comp-$(APP)

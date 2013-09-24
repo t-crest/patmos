@@ -11,6 +11,8 @@ CFLAGS-BOOTABLE=-target patmos-unknown-unknown-elf \
 	-mpatmos-disable-stack-cache \
 	-nodefaultlibs -nostdlib -nostartfiles \
 	-Xgold --section-start -Xgold .text=0x0 -e main \
+	-Xgold --section-start -Xgold .rodata=0x80000000 \
+	-Xgold --section-start -Xgold .data=0x80010000 \
 	-Os
 
 # Flags for compiling normal applications
