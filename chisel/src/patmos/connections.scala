@@ -334,6 +334,11 @@ class InOutIO() extends Bundle() {
   val ledPins = new LedPinIO()
 }
 
+class BootMemIO() extends Bundle() {
+  val memInOut = new OcpCacheSlavePort(ADDR_WIDTH, DATA_WIDTH)
+  val extMem = new OcpCacheMasterPort(ADDR_WIDTH, DATA_WIDTH)
+}
+
 class MemoryIO() extends Bundle() {
   val ena_out = Bool(OUTPUT)
   val ena_in = Bool(INPUT)

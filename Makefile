@@ -86,16 +86,17 @@ emulator:
 # Assemble a program
 asm: asm-$(BOOTAPP)
 
-asm-% $(BUILDDIR)/%.bin: asm/%.s
+asm-% $(BUILDDIR)/%.bin $(BUILDDIR)/%.dat: asm/%.s
 	-mkdir -p $(dir $(BUILDDIR)/$*)
 	$(INSTALLDIR)/paasm $< $(BUILDDIR)/$*.bin
+	touch $(BUILDDIR)/$*.dat
 
 # Compile a program with flags for booting
 bootcomp: bin-$(BOOTAPP)
 
 # Convert elf file to binary
-bin-% $(BUILDDIR)/%.bin: $(BUILDDIR)/%.elf
-	$(INSTALLDIR)/elf2bin $< $(BUILDDIR)/$*.bin
+bin-% $(BUILDDIR)/%.bin $(BUILDDIR)/%.dat: $(BUILDDIR)/%.elf
+	$(INSTALLDIR)/elf2bin $< $(BUILDDIR)/$*.bin $(BUILDDIR)/$*.dat
 
 # Compile a program to an elf file
 comp: comp-$(APP)

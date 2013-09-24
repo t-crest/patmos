@@ -51,7 +51,7 @@ class Fetch(fileName : String) extends Component {
   val addrEvenReg = Reg(resetVal = UFix(2, PC_SIZE))
   val addrOddReg = Reg(resetVal = UFix(1, PC_SIZE))
 
-  val rom = Utility.readBin(fileName)
+  val rom = Utility.readBin(fileName, INSTR_WIDTH)
   // Split the ROM into two blocks for dual fetch
   //  val len = rom.length / 2
   //  val rom_a = Vec(len) { Bits(width = INSTR_WIDTH) }

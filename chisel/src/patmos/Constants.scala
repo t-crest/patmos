@@ -51,7 +51,6 @@ object Constants {
   val UART_BAUD = 115200
   val LED_COUNT = 8
 
-//  val SPM_MAX_BITS = 21
   // MS: maybe better use sizes in bytes and use log2Up() to
   // get the number of bits.
   // XX_BITS might confuse as the ISPM is origanized in words,
@@ -60,9 +59,13 @@ object Constants {
   val ISPM_BITS = 15
   val DSPM_BITS = 14
   
-  // we use now a very simple decode of ISPM ad address 0x00800000
-  // this is the one bit in byte address counting
-  val ISPM_ONE_BIT = 16 //23
+  // we use a very simple decoding of ISPM at address 0x00010000
+  val ISPM_ONE_BIT = 16
+
+  // The boot ROM is at 0x80000000 and the boot SPM at 0x80010000,
+  // both in the global address space
+  val BOOTMEM_ONE_BIT = 16
+  val BOOTSPM_BITS = 14
 
   val MCACHE_SIZE = 4096
   val MAX_RELADDR_WIDTH = math.max(log2Up(MCACHE_SIZE), log2Up(1 << ISPM_BITS-2)) //max width for relative base

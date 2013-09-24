@@ -61,7 +61,7 @@ import ocp._
 /**
  * The main (top-level) component of Patmos.
  */
-class Patmos(fileName: String) extends Component {
+class Patmos(binFile: String, datFile: String) extends Component {
   val io = new Bundle {
     val dummy = Bits(OUTPUT, 32)
     val led = Bits(OUTPUT, 9)
@@ -73,7 +73,7 @@ class Patmos(fileName: String) extends Component {
   val ssram = new SsramBurstRW()
   val mcache = new MCache()
 
-  val fetch = new Fetch(fileName)
+  val fetch = new Fetch(binFile)
   val decode = new Decode()
   val execute = new Execute()
   val memory = new Memory()
@@ -113,10 +113,14 @@ class Patmos(fileName: String) extends Component {
 
   memory.io.localInOut <> iocomp.io.memInOut
 
+  // The boot memories intercept accesses before they are translated to bursts
+  val bootMem = new BootMem(datFile)
+  memory.io.globalInOut <> bootMem.io.memInOut
+
   // Merge OCP ports from memory stage and method cache
   val loadStoreBus = new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
 
-  val burstBridge = new OcpBurstBridge(memory.io.globalInOut, loadStoreBus.io.slave)
+  val burstBridge = new OcpBurstBridge(bootMem.io.extMem, loadStoreBus.io.slave)
   val burstJoin = new OcpBurstJoin(mcache.io.ocp_port, loadStoreBus.io.master,
                                    ssram.io.ocp_port)
 
@@ -176,8 +180,9 @@ object PatmosMain {
   def main(args: Array[String]): Unit = {
 
     // Use first argument for the program name (.bin file)
-    val chiselArgs = args.slice(1, args.length)
-    val file = args(0)
-    chiselMainTest(chiselArgs, () => new Patmos(file)) { f => new PatmosTest(f) }
+    val chiselArgs = args.slice(2, args.length)
+    val binFile = args(0)
+    val datFile = args(1)
+    chiselMainTest(chiselArgs, () => new Patmos(binFile, datFile)) { f => new PatmosTest(f) }
   }
 }
