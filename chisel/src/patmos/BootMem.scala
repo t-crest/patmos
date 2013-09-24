@@ -31,9 +31,9 @@
  */
 
 /*
- * Utility functions for Patmos.
+ * Boot ROM and boot SPM for Patmos.
  * 
- * Author: Martin Schoeberl (martin@jopdesign.com)
+ * Author: Wolfgang Puffitsch (wpuffitsch@gmail.com)
  * 
  */
 
@@ -44,33 +44,44 @@ import Node._
 
 import Constants._
 
-object Utility {
+import ocp._
 
-  /**
-   * Read a binary file into the ROM vector
-   */
-  def readBin(fileName: String, width: Int): Vec[Bits] = {
+class BootMem(fileName : String) extends Component {
+  val io = new BootMemIO()
 
-    val bytesPerWord = (width+7) / 8
+  // Compute selects
+  val selExt = io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-1) === Bits("b0")
+  val selRom = !selExt & io.memInOut.M.Addr(BOOTMEM_ONE_BIT) === Bits(0x0)
+  val selSpm = !selExt & io.memInOut.M.Addr(BOOTMEM_ONE_BIT) === Bits(0x1)
 
-    println("Reading " + fileName)
-    // an encoding to read a binary file? Strange new world.
-    val source = scala.io.Source.fromFile(fileName)(scala.io.Codec.ISO8859)
-    val byteArray = source.map(_.toByte).toArray
-
-    // using a vector for a ROM
-    val v = Vec(math.max(1, byteArray.length / bytesPerWord)) { Bits(width = width) }
-
-    source.close()
-    for (i <- 0 until byteArray.length / bytesPerWord) {
-      var word = 0
-      for (j <- 0 until bytesPerWord) {
-        word <<= 8
-        word += byteArray(i * bytesPerWord + j).toInt & 0xff
-      }
-      printf("%08x\n", word)
-      v(i) = Bits(word, width = width)
-    }
-    v
+  // Register selects
+  val selRomReg = Reg(resetVal = Bits("b0"))
+  val selSpmReg = Reg(resetVal = Bits("b0"))
+  when(io.memInOut.M.Cmd != OcpCmd.IDLE) {
+	selRomReg := selRom
+	selSpmReg := selSpm
   }
+
+  // The ROM
+  val rom = Utility.readBin(fileName, DATA_WIDTH)
+  val romCmdReg = Reg(Mux(selRom, io.memInOut.M.Cmd, OcpCmd.IDLE))
+  val romAddr = Reg(io.memInOut.M.Addr)
+  val romResp = Mux(romCmdReg === OcpCmd.IDLE, OcpResp.NULL, OcpResp.DVA)
+  val romData = rom(romAddr(log2Up(rom.length)+1, 2))
+
+  // The SPM
+  val spm = new Spm(1 << BOOTSPM_BITS)
+  spm.io.M := io.memInOut.M
+  spm.io.M.Cmd := Mux(selSpm, io.memInOut.M.Cmd, OcpCmd.IDLE)
+  val spmS = spm.io.S
+
+  // Connect to external memory
+  io.extMem.M := io.memInOut.M
+  io.extMem.M.Cmd := Mux(selExt, io.memInOut.M.Cmd, OcpCmd.IDLE)
+
+  // Return data to pipeline
+  io.memInOut.S.Data := Mux(selRomReg, romData,
+							Mux(selSpmReg, spmS.Data,
+								io.extMem.S.Data))
+  io.memInOut.S.Resp := romResp | spmS.Resp | io.extMem.S.Resp
 }

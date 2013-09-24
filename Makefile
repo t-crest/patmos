@@ -86,9 +86,10 @@ emulator:
 # Assemble a program
 asm: asm-$(BOOTAPP)
 
-asm-% $(BUILDDIR)/%.bin: asm/%.s
+asm-% $(BUILDDIR)/%.bin $(BUILDDIR)/%.dat: asm/%.s
 	-mkdir -p $(dir $(BUILDDIR)/$*)
 	$(INSTALLDIR)/paasm $< $(BUILDDIR)/$*.bin
+	touch $(BUILDDIR)/$*.dat
 
 # Compile a program with flags for booting
 bootcomp: bin-$(BOOTAPP)

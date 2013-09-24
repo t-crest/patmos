@@ -5,8 +5,8 @@ BOOTAPP?=basic
 
 BOOTBUILDROOT?=$(CURDIR)/..
 BOOTBUILDDIR?=$(BOOTBUILDROOT)/tmp
-BOOTFILE?=$(BOOTAPP).bin
-BOOTBIN?=$(BOOTBUILDDIR)/$(BOOTFILE)
+BOOTBIN?=$(BOOTBUILDDIR)/$(BOOTAPP).bin
+BOOTDAT?=$(BOOTBUILDDIR)/$(BOOTAPP).dat
 
 QPROJ?=altde2-70
 
@@ -51,13 +51,13 @@ $(CHISELBUILDDIR)/emulator: emulator.cpp $(CHISELBUILDDIR)/Patmos.cpp
 	$(CXX) $(CXXFLAGS) $(INC_EXTRA) -I $(CHISELBUILDDIR) -o $@ $^ -lelf
 
 $(CHISELBUILDDIR)/Patmos.cpp: $(CGEN)
-	if [ x`cat $(CGEN)` != x"$(BOOTBIN)" ]; then \
+	if [ x`cat $(CGEN)` != x"$(BOOTBIN)+$(BOOTDAT)" ]; then \
 		rm $(CGEN); $(MAKE) $(CGEN); \
 	fi
 
-$(CGEN): $(BOOTBIN) $(SRC)
-	$(SBT) "run-main $(MAIN) $< --vcd --targetDir $(CHISELBUILDDIR) --backend c"
-	echo $(BOOTBIN) > $(CGEN)
+$(CGEN): $(BOOTBIN) $(BOOTDAT) $(SRC)
+	$(SBT) "run-main $(MAIN) $(BOOTBIN) $(BOOTDAT) --vcd --targetDir $(CHISELBUILDDIR) --backend c"
+	echo $(BOOTBIN)+$(BOOTDAT) > $(CGEN)
 
 # run emulator
 test: emulator
@@ -71,13 +71,13 @@ view:
 verilog: $(CHISELBUILDDIR)/Patmos.v
 
 $(CHISELBUILDDIR)/Patmos.v: $(VGEN)
-	if [ x`cat $(VGEN)` != x"$(BOOTBIN)" ]; then \
+	if [ x`cat $(VGEN)` != x"$(BOOTBIN)+$(BOOTDAT)" ]; then \
 		rm $(VGEN); $(MAKE) $(VGEN); \
 	fi
 
-$(VGEN): $(BOOTBIN) $(SRC)
+$(VGEN): $(BOOTBIN) $(BOOTDAT) $(SRC)
 	$(SBT) "run-main $(MAIN) $< --targetDir $(CHISELBUILDDIR) --backend v"
-	echo $(BOOTBIN) > $(VGEN)
+	echo $(BOOTBIN)+$(BOOTDAT) > $(VGEN)
 
 # run Verilog simulation
 vsim: verilog
@@ -91,8 +91,8 @@ qsyn: verilog
 	quartus_sta quartus/$(QPROJ)/patmos
 
 # build the boot binary
-$(BOOTBIN): .FORCE
-	$(MAKE) -C $(BOOTBUILDROOT) BUILDDIR=$(BOOTBUILDDIR) $(BOOTBIN)
+$(BOOTBIN) $(BOOTDAT): .FORCE
+	$(MAKE) -C $(BOOTBUILDROOT) BUILDDIR=$(BOOTBUILDDIR) $(BOOTBIN) $(BOOTDAT)
 
 # for module tests
 MODUL=example.FsmMain

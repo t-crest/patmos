@@ -7,7 +7,7 @@
 
 #include <stddef.h>
 #include <sys/types.h>
-// #include <net/hton.h>
+#include <arpa/inet.h>
 
 #include <gelf.h>
 #include <libelf.h>
@@ -149,10 +149,10 @@ static void elf2bin_data(Elf *elf, int infd, int outfd, unsigned displace)
 				   outfd, max_pos, phdr.p_filesz);
 
 	  // write information for run-time loading
-	  unsigned src_start = displace+max_pos;
-	  unsigned src_size = phdr.p_filesz;
-	  unsigned dst_start = phdr.p_paddr;
-	  unsigned dst_size = phdr.p_memsz;
+	  unsigned src_start = htonl(displace+max_pos);
+	  unsigned src_size = htonl(phdr.p_filesz);
+	  unsigned dst_start = htonl(phdr.p_paddr);
+	  unsigned dst_size = htonl(phdr.p_memsz);
 	  lseek(outfd, 0, SEEK_SET);
 	  write(outfd, &src_start, 4);
 	  write(outfd, &src_size, 4);
@@ -161,6 +161,12 @@ static void elf2bin_data(Elf *elf, int infd, int outfd, unsigned displace)
 
 	  seen_wrdata = 1;
     }
+  }
+
+  // pad to word boundary
+  while (lseek(outfd, 0, SEEK_END) & 0x03) {
+	const int b = 0;
+	write(outfd, &b, 1);
   }
 }
 
