@@ -3413,6 +3413,61 @@ Current version (4.4.2013) with all ALU operations and test case ALU.s
 for the DE2-70 is: 3415 LCs, 85.44 MHz. Dropping \code{rsub} and all unary
 ALU operations: 3173 LCs, 91.91 MHz.
 
+\chapter{Build Instructions}
+
+\section{Setup On Ubuntu 13.04}
+
+After a plain Ubuntu installation several packages need to be installed.
+First install a recent version of the Java JDK (not just the runtime).
+Following packages need to be installed as well:
+
+\begin{verbatim}
+sudo apt-get install git cmake make g++ texinfo flex bison \
+  libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1
+\end{verbatim}
+
+For Quartus it is best to change the default shall to \code{/bin/bash}:
+
+\begin{verbatim}
+sudo rm /bin/sh
+sudo ln -s /bin/bash /bin/sh
+\end{verbatim}
+
+We assume that the T-CREST project will live in \code{\$HOME/t-crest}.
+Patmos and the compiler can be checked out from GitHub and built as follows:
+
+\begin{verbatim}
+mkdir ~/t-crest
+cd ~/t-crest
+git clone https://github.com/t-crest/patmos-misc.git misc
+./misc/build.sh
+\end{verbatim}
+
+This will take some time. After building the compiler add the path
+to the compiler into your \code{.profile}:
+
+\begin{verbatim}
+export PATH="~/t-crest/local/bin:$PATH"
+\end{verbatim}
+
+A complete logout from Ubuntu is needed to take effect (just closing
+a terminal window is not enough).
+
+\subsection{A Hello World}
+
+\subsection{Quartus}
+
+Download the free web edition of Quartus from Altera. The Linux version is
+installed as follows:\footnote{\url{http://www.altera.com/literature/manual/quartus_install.pdf}}
+
+\begin{verbatim}
+tar xvf Quartus-web-xxx.tar
+\end{verbatim}
+
+
+
+
+
 \section{Building Patmos}
 
 The whole build process of Patmos,%
