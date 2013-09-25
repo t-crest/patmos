@@ -2364,7 +2364,7 @@ Section~\ref{sec:iodevs}.
 
 As \code{call}, \code{ret}, and \code{brcf} do not include memory type
 information, the distinction between memory areas for these
-instructions is done solely through the address mapping. The boot ROM
+instructions is done solely through the address mapping. The boot instruction ROM
 and the instruction scratchpad memory are mapped to the lowest 128K of
 the global address space. Note that this applies only to these
 instructions; i.e., a \code{call} to address \code{0x00010100}
@@ -2373,6 +2373,14 @@ non-local loads or stores to the same address access the external
 SRAM. Therefore, a binary that is loaded to external memory can use
 the lowest 128K of memory for data segments, but not for code
 segments.
+
+The global address space also includes a ROM and a scratchpad for
+booting. The boot data ROM enables boot programs to use initialized
+data segments. By copying (parts of) the boot data ROM to the boot
+scratchpad, these programs can also use initialized data segments that
+require write access. Note that these memory areas can be accessed by
+loads and stores only; it is not possible to execute code located in
+them.
 
 \begin{table}
 \centering
@@ -2396,14 +2404,43 @@ Address & Memory area \\
 \toprule
 Address & Memory area \\
 \midrule
-\code{0x00000000}--\code{0x0000ffff} & Boot ROM (only for code) \\
+\code{0x00000000}--\code{0x0000ffff} & Boot Instruction ROM (only for code) \\
 \code{0x00010000}--\code{0x0001ffff} & Instruction Scratchpad Memory (only for code) \\
-\code{0x00000000}--\code{0x0fffffff} & External SRAM \\
+\code{0x00000000}--\code{0x7fffffff} & External SRAM \\
+\code{0x80000000}--\code{0x8000ffff} & Boot Data ROM (only for data) \\
+\code{0x80010000}--\code{0x8001ffff} & Boot Data Scratchpad Memory (only for data) \\
 \bottomrule
 \end{tabular}
 \caption{Address mapping for global address space}
 \label{tab:gmmap}
 \end{table}
+
+\subsection{Boot Memories}
+
+By convention, the first four words of the boot data ROM contain
+information about data to be copied to the boot data scratchpad before
+starting actual execution. Table~\ref{tab:bootrommap} shows the
+respective data fields. Upon start, the program should copy
+\code{src\_size} bytes of data from \code{src\_start} to
+\code{dst\_start}. If \code{dst\_size} is greater than
+\code{src\_size}, the remaining bytes are filled with zeroes.
+
+\begin{table}
+\centering
+\begin{tabular}{lll}
+\toprule
+Address & Name & Description \\
+\midrule
+\code{0x80000000} & \code{src\_start} & Start address of data to be copied \\
+\code{0x80000004} & \code{src\_size} & Size of data to be copied \\
+\code{0x80000008} & \code{dst\_start} & Destination for copying \\
+\code{0x8000000c} & \code{dst\_size} & Size of initialized data \\
+\bottomrule
+\end{tabular}
+\caption{Boot data initialization information}
+\label{tab:bootrommap}
+\end{table}
+
 
 \stefan{We discussed about making the stack cache memory mapped, like the SPM. The disadvantage is that 
 we need to reserve an additional register for the stack pointer of the stack cache. s5 (the stack cache spill pointer) must point into a main 
