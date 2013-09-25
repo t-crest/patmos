@@ -61,7 +61,7 @@ class OcpTester(dut: AComponent) extends Tester(dut, Array(dut.io)) {
     val vars = new HashMap[Node, Node]()
     val ovars = new HashMap[Node, Node]()
 
-    val testVec = Array( OcpCmd.IDLE, OcpCmd.WRNP, OcpCmd.IDLE )
+    val testVec = Array( OcpCmd.IDLE, OcpCmd.WR, OcpCmd.IDLE )
 
     for (i <- 0 until testVec.length) {
       vars.clear

@@ -80,7 +80,7 @@ val io = new Bundle {
 	val fill_en = Mux(state === fill_st, Bits("b1111"),  Bits("b0000"))
     
 	val addrBits = log2Up(mem_size)
-    val sc_en = Mux(io.scCpuInOut.M.Cmd === OcpCmd.WRNP, io.scCpuInOut.M.ByteEn,  Bits("b0000"))
+    val sc_en = Mux(io.scCpuInOut.M.Cmd === OcpCmd.WR, io.scCpuInOut.M.ByteEn,  Bits("b0000"))
 	
     val SC_MASK		= Bits(sc_size) - Bits(1)
     
@@ -130,7 +130,7 @@ val io = new Bundle {
 	io.scMemInOut.M.Data := rdDataSpill  			
 	io.scCpuInOut.S.Data := rdData
 	
-	sResp := Mux(io.scCpuInOut.M.Cmd === OcpCmd.WRNP || io.scCpuInOut.M.Cmd === OcpCmd.RD, OcpResp.DVA, OcpResp.NULL)
+	sResp := Mux(io.scCpuInOut.M.Cmd === OcpCmd.WR || io.scCpuInOut.M.Cmd === OcpCmd.RD, OcpResp.DVA, OcpResp.NULL)
 	io.scCpuInOut.S.Resp := sResp
 	
 	io.scMemInOut.M.Cmd := OcpCmd.IDLE
@@ -155,11 +155,11 @@ val io = new Bundle {
 	    n_spill := io.n_spill + UFix(4) - m_top(1, 0)
 	    io.stall	:= UFix(1)
 	    state := spill_st
-	    io.scMemInOut.M.Cmd	:= OcpCmd.WRNP
+	    io.scMemInOut.M.Cmd	:= OcpCmd.WR
     	io.scMemInOut.M.Addr := mem_addr_reg + UFix(4) - m_top(1, 0)
     	io.scMemInOut.M.Data := rdDataSpill
     	io.scMemInOut.M.DataValid := Bits(1)
-    	first_cmd := OcpCmd.WRNP
+    	first_cmd := OcpCmd.WR
     	first_addr := mem_addr_reg + UFix(4) - m_top(1, 0)
     	first_data := rdDataSpill
   
@@ -198,8 +198,8 @@ val io = new Bundle {
 	    	when (spill_burst_len === Fix(0)) {
 		    	first_addr := mem_addr_reg
 		    	first_data := rdDataSpill
-		    	first_cmd := OcpCmd.WRNP
-		    	io.scMemInOut.M.Cmd := OcpCmd.WRNP
+		    	first_cmd := OcpCmd.WR
+		    	io.scMemInOut.M.Cmd := OcpCmd.WR
 		    	io.scMemInOut.M.Addr := mem_addr_reg	  	
 	    		io.scMemInOut.M.Data := rdDataSpill
 	    		io.scMemInOut.M.DataValid := Bits(1)  
@@ -237,7 +237,7 @@ val io = new Bundle {
 		    when (spill_burst_len === UFix(0)) {
 		    	first_addr := mem_addr_reg
 		    	first_data := rdDataSpill
-		    	first_cmd := OcpCmd.WRNP
+		    	first_cmd := OcpCmd.WR
 		    }
 		   	when (start_spill === UFix(0)) { 
 		   		start_spill := UFix(1)
@@ -324,11 +324,11 @@ val io = new Bundle {
 			   n_spill := io.n_spill + UFix(4) - m_top(1, 0)
 			   io.stall := UFix(1)
 			   spill := UFix(1)
-			   io.scMemInOut.M.Cmd	:= OcpCmd.WRNP
+			   io.scMemInOut.M.Cmd	:= OcpCmd.WR
 			   io.scMemInOut.M.Addr := mem_addr_reg + UFix(4) - m_top(1, 0)
 			   io.scMemInOut.M.Data := rdDataSpill
 			   io.scMemInOut.M.DataValid := Bits(1)
-			   first_cmd := OcpCmd.WRNP
+			   first_cmd := OcpCmd.WR
 			   first_addr := mem_addr_reg + UFix(4) - m_top(1, 0)
 			   first_data := rdDataSpill
 

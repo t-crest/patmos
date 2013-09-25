@@ -88,7 +88,7 @@ class UART(clk_freq: Int, baud_rate: Int) extends Component {
 					 rx_data)
 	
 	// Write to UART
-	when (io.ocp.M.Cmd === OcpCmd.WRNP) {
+	when (io.ocp.M.Cmd === OcpCmd.WR) {
 	    respReg := OcpResp.DVA
 		tx_data := io.ocp.M.Data(7, 0)
 	    tx_empty := UFix(0)

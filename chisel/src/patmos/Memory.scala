@@ -115,7 +115,7 @@ class Memory() extends Component {
   // the individual modules
   val cmd = Mux(enable && io.ena_in,
 				Mux(io.exmem.mem.load, OcpCmd.RD,
-					Mux(io.exmem.mem.store, OcpCmd.WRNP,
+					Mux(io.exmem.mem.store, OcpCmd.WR,
 						OcpCmd.IDLE)),
 				OcpCmd.IDLE)
 
@@ -188,7 +188,7 @@ class Memory() extends Component {
   io.memfe.callRetBase := memReg.mem.callRetBase(DATA_WIDTH-1, 2)
 
   // ISPM write
-  io.memfe.store := io.localInOut.M.Cmd === OcpCmd.WRNP
+  io.memfe.store := io.localInOut.M.Cmd === OcpCmd.WR
   io.memfe.addr := io.exmem.mem.addr
   io.memfe.data := Cat(wrData(3), wrData(2), wrData(1), wrData(0))
 

@@ -183,7 +183,7 @@ class OcpBurstBridge(master : OcpCacheMasterPort, slave : OcpBurstSlavePort) {
 	state := read
 	cmdPos := master.M.Addr(burstAddrBits+log2Up(dataWidth/8)-1, log2Up(dataWidth/8))
   }
-  when(master.M.Cmd === OcpCmd.WRNP) {
+  when(master.M.Cmd === OcpCmd.WR) {
 	state := write
 	cmdPos := master.M.Addr(burstAddrBits+log2Up(dataWidth/8)-1, log2Up(dataWidth/8))
   }

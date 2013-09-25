@@ -69,7 +69,7 @@ class Arbiter(cnt: Int, burstLength: Int) extends Component {
       when(master.Cmd === OcpCmd.RD) {
         stateReg := sRead
       }
-      when(master.Cmd === OcpCmd.WRNP) {
+      when(master.Cmd === OcpCmd.WR) {
         stateReg := sWrite
         burstCntReg := UFix(0)
       }

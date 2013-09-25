@@ -127,7 +127,7 @@ class SsramBurstRW (
   data_accept := Bits(0)
 
   //catch inputs
-  when (io.ocp_port.M.Cmd === OcpCmd.RD || io.ocp_port.M.Cmd === OcpCmd.WRNP) {
+  when (io.ocp_port.M.Cmd === OcpCmd.RD || io.ocp_port.M.Cmd === OcpCmd.WR) {
     address := io.ocp_port.M.Addr(EXTMEM_ADDR_WIDTH-1, 2)
     cmd_accept := Bits(1)
   }
@@ -177,7 +177,7 @@ class SsramBurstRW (
     nadsc := Bits(0)
     noe := Bits(0)
   }
-  .elsewhen(io.ocp_port.M.Cmd === OcpCmd.WRNP && io.ocp_port.M.DataValid === Bits(1)) {
+  .elsewhen(io.ocp_port.M.Cmd === OcpCmd.WR && io.ocp_port.M.DataValid === Bits(1)) {
     data_accept := Bits(1)
     ssram_state := wr1
     nbwe := Bits(0)
@@ -194,7 +194,7 @@ class SsramBurstRW (
   when (io.ocp_port.M.Cmd === OcpCmd.RD) {
     wait_state := UFix(ram_ws_rd + 1)
   }
-  when (io.ocp_port.M.Cmd === OcpCmd.WRNP) {
+  when (io.ocp_port.M.Cmd === OcpCmd.WR) {
     wait_state := UFix(ram_ws_wr + 1)
   }
 

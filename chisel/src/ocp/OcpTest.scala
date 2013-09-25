@@ -56,7 +56,7 @@ class OcpMaster() extends Component {
   io.M.ByteEn := cnt(7, 4)
 
   when(cnt(3, 0) === Bits("b1111")) {
-	io.M.Cmd := OcpCmd.WRNP
+	io.M.Cmd := OcpCmd.WR
   }
 }
 

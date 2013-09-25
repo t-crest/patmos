@@ -116,7 +116,7 @@ class MainMem(mm_size: Int, burstLen : Int) extends Component {
 		io.mmInOut.S.Data := Bits(0)
 		io.mmInOut.S.DataAccept := Bits(0) // not accepting 
 		mem_delay_cnt := UFix(0)
-		when (cmd === OcpCmd.WRNP ) {
+		when (cmd === OcpCmd.WR ) {
 			state := wr_wait_st
 			mem_delay := UFix(1)
 		}

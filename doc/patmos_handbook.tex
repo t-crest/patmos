@@ -3056,8 +3056,9 @@ on-chip memories, which on FPGAs necessarily include an internal
 register. To enable sub-word transfers of data, the signal
 \code{MByteEn} is used. The following assumptions apply:
 \begin{itemize}
-\item Only reads and non-posted writes are supported. This entails
-  that every command must be followed by a response.
+\item Only reads (\code{RD}) and writes (\code{WR}) are
+  supported. Writes require a response (\code{writeresp\_enable=1}),
+  such that every command must be followed by a response.
 \item No \code{SCmdAccept} or \code{MRespAccept}, flow control is done
   solely via \code{SResp}.
 \item Slaves may generate responses earliest in the cycle after a
@@ -3241,7 +3242,7 @@ one cycle.
 \item The slave responds to the read issued in cycle A by setting
   \code{SResp} to \code{DVA} and returning the appropriate data. The
   master can issue the next command in the same cycle as it receives
-  the response and issues a non-posted write command \code{WRNP}. The
+  the response and issues a write command \code{WR}. The
   master provides the byte enable value \code{E$_2$} along with the
   data \code{D$_2$} to specify which bytes should be actually written.
 \item The slave does not respond immediately and the master is
@@ -3271,7 +3272,7 @@ and delays the response to the write by one cycle.
   \code{RD}. The slave accepts the command by setting
   \code{SCmdAccept} to high and responds immediately by setting
   \code{SResp} to \code{DVA} and returning the appropriate data.
-\item The master issues a non-posted write command \code{WRNP} with
+\item The master issues a write command \code{WR} with
   data \code{D$_2$} and byte enables \code{E$_2$}. The slave
   signals that it does not accept the command by setting
   \code{SCmdAccept} to low.
@@ -3311,7 +3312,7 @@ immediately.
 \item The slave provides the fourth and last response
   \code{DVA$_{1.3}$}, with data from address \code{A$_1$+12}.
 \item The master issues a write command by setting \code{MCmd} to
-  \code{WRNP} and provides the first data word \code{D$_{2.0}$} width
+  \code{WR} and provides the first data word \code{D$_{2.0}$} width
   byte enables \code{E$_{2.0}$} It signals that the data is valid by
   asserting \code{MDataValid}. The slave signals that it cannot accept
   the data by setting \code{SDataAccept} to low.

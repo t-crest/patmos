@@ -128,7 +128,7 @@ class StackCacheTest() extends Component {
 		sc_simple.io.scCpuInOut.M.Addr := UFix(511) - count
 		sc_simple.io.scCpuInOut.M.Data := UFix(511) - count
 		sc_simple.io.scCpuInOut.M.ByteEn := Bits(15)
-		sc_simple.io.scCpuInOut.M.Cmd := OcpCmd.WRNP
+		sc_simple.io.scCpuInOut.M.Cmd := OcpCmd.WR
 	}
 	.otherwise {
 		sc_init := UFix(0)
@@ -152,7 +152,7 @@ class StackCacheTest() extends Component {
 		  sc_simple.io.scCpuInOut.M.Addr := UFix(503)
 		  sc_simple.io.scCpuInOut.M.Data := UFix(305)
 		  sc_simple.io.scCpuInOut.M.ByteEn := Bits(15)
-		  sc_simple.io.scCpuInOut.M.Cmd := OcpCmd.WRNP
+		  sc_simple.io.scCpuInOut.M.Cmd := OcpCmd.WR
       }
 
       when (func_gen === UFix(4)) { // wait
