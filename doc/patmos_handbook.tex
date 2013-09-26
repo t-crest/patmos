@@ -3415,14 +3415,20 @@ ALU operations: 3173 LCs, 91.91 MHz.
 
 \chapter{Build Instructions}
 
+In the following we present an example configuration on a Linux/Ubuntu system.
+Patmos and the compiler have also been successfully been installed on a Mac OSX
+system. The support of Windows is marginal, or basically not existent.
+
+
 \section{Setup On Ubuntu 13.04}
 
 After a plain Ubuntu installation several packages need to be installed.
-First install a recent version of the Java JDK (not just the runtime).
-Following packages need to be installed as well:
+The following apt-get lists the packages that need to be
+installed:\footnote{Some packages might be available in newer version
+when reading this document.}
 
 \begin{verbatim}
-sudo apt-get install git cmake make g++ texinfo flex bison \
+sudo apt-get install openjdk-7-jdk git cmake make g++ texinfo flex bison \
   libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1
 \end{verbatim}
 
@@ -3443,7 +3449,19 @@ git clone https://github.com/t-crest/patmos-misc.git misc
 ./misc/build.sh
 \end{verbatim}
 
-This will take some time. After building the compiler add the path
+For developers with push permission generate an ssh key and upload
+it at GitHub (see \url{https://help.github.com/articles/generating-ssh-keys}
+for detailed instructions).
+Then the ssh based clone string for write access is then:
+
+\begin{verbatim}
+git clone git@github.com:t-crest/patmos-misc.git misc
+./misc/build.sh
+\end{verbatim}
+
+This will build the compiler, the Patmos simulator, an test benches.
+Therefore, take a cup of coffee and find some nice reading.
+After building the compiler add the path
 to the compiler into your \code{.profile}:
 
 \begin{verbatim}
