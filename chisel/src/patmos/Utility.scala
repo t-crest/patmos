@@ -57,11 +57,15 @@ object Utility {
     // an encoding to read a binary file? Strange new world.
     val source = scala.io.Source.fromFile(fileName)(scala.io.Codec.ISO8859)
     val byteArray = source.map(_.toByte).toArray
+    source.close()
 
     // using a vector for a ROM
     val v = Vec(math.max(1, byteArray.length / bytesPerWord)) { Bits(width = width) }
 
-    source.close()
+    if (byteArray.length == 0) {
+      v(0) = Bits(0, width = width)
+    }
+
     for (i <- 0 until byteArray.length / bytesPerWord) {
       var word = 0
       for (j <- 0 until bytesPerWord) {
