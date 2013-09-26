@@ -89,7 +89,7 @@ class MCacheIO extends Bundle() {
   val ocp_port = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
 }
 class MCacheCtrlIO extends Bundle() {
-  val ena = Bool(INPUT)
+  val ena_in = Bool(INPUT)
   val fetch_ena = Bits(OUTPUT, width = 1)
   val mcache_ctrlrepl = new MCacheCtrlRepl().asOutput
   val mcache_replctrl = new MCacheReplCtrl().asInput
@@ -109,7 +109,7 @@ class MCacheReplCtrl extends Bundle() {
   val pos_offset = Bits(width = OFF_WIDTH)
 }
 class MCacheReplIO extends Bundle() {
-  val ena = Bool(INPUT)
+  val ena_in = Bool(INPUT)
   val hit_ena = Bits(OUTPUT, width = 1)
   val exmcache = new ExMCache().asInput
   val mcachefe = new MCacheFe().asOutput
@@ -131,7 +131,7 @@ class MCacheMemOut extends Bundle() {
   val instr_odd = Bits(width = INSTR_WIDTH)
 }
 class MCacheMemIO extends Bundle() {
-  val ena = Bool(INPUT)
+  val ena_in = Bool(INPUT)
   val mcachemem_in = new MCacheMemIn().asInput
   val mcachemem_out = new MCacheMemOut().asOutput
 }
@@ -160,8 +160,9 @@ class MCache() extends Component {
   mcacherepl.io.mcachemem_out <> mcachemem.io.mcachemem_out
 
   //connect enables
-  mcachectrl.io.ena <> io.ena_in
-  mcachemem.io.ena <> io.ena_in
+  mcachectrl.io.ena_in <> io.ena_in
+  mcachemem.io.ena_in <> io.ena_in
+  mcacherepl.io.ena_in <> io.ena_in
 
   io.ena_out := (mcachectrl.io.fetch_ena & mcacherepl.io.hit_ena)
 }
@@ -395,7 +396,7 @@ class MCacheReplFifo(method_count : Int = METHOD_COUNT) extends Component {
   // }
   //how is this done time effective, is the for loop building parallel elements right???
   //read from tag memory on call/return to check if method is in the cache
-  when (io.exmcache.doCallRet) {
+  when (io.exmcache.doCallRet && io.ena_in) {
 
     callRetBaseReg := io.exmcache.callRetBase
     callAddrReg := io.exmcache.callRetAddr
@@ -480,10 +481,10 @@ class MCacheReplFifo(method_count : Int = METHOD_COUNT) extends Component {
   io.mcachefe.reloc := reloc
   io.mcachefe.mem_sel := Cat(selIspmReg, selMCacheReg)
 
-  io.mcache_replctrl.hit := hitReg
+  io.mcache_replctrl.hit := hitReg //Mux(io.ena_in, hitReg, Bits(1))
   io.mcache_replctrl.pos_offset := wrPosReg
 
-  io.hit_ena := hitReg
+  io.hit_ena := hitReg //Mux(io.ena_in, hitReg, Bits(1))
 }
 
 
@@ -543,6 +544,7 @@ class MCacheCtrl() extends Component {
     }
     //no hit... fetch from external memory
     .otherwise {
+    //.elsewhen (io.ena_in) {
       ext_mem_addr := Cat(msize_addr(31,2), Bits("b00"))
       //ext_mem_addr := msize_addr
       ext_mem_cmd := OcpCmd.RD
