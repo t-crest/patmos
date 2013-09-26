@@ -330,6 +330,8 @@ class TimerIO() extends Bundle() {
 
 class InOutIO() extends Bundle() {
   val memInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+  val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
+  val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val uartPins = new UartPinIO()
   val ledPins = new LedPinIO()
 }

@@ -56,19 +56,29 @@ class InOut() extends Component {
 
   // Compute selects
   val selIO = io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-4) === Bits("b1111")
-  val selISpm = !selIO & io.memInOut.M.Addr(ISPM_ONE_BIT) === Bits(0x1)
-  val selSpm = !selIO & io.memInOut.M.Addr(ISPM_ONE_BIT) === Bits(0x0)
+  val selNI = io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-4) === Bits("b1110")
+
+  val selISpm = !selIO & !selNI & io.memInOut.M.Addr(ISPM_ONE_BIT) === Bits(0x1)
+  val selSpm = !selIO & !selNI & io.memInOut.M.Addr(ISPM_ONE_BIT) === Bits(0x0)
+
+  val selComConf = selNI & io.memInOut.M.Addr(ADDR_WIDTH-5) === Bits("b0")
+  val selComSpm  = selNI & io.memInOut.M.Addr(ADDR_WIDTH-5) === Bits("b1")
+
   val selTimer = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x2)
   val selUart = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x8)
   val selLed = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x9)
 
   // Register selects
   val selSpmReg = Reg(resetVal = Bits("b0"))
+  val selComConfReg = Reg(resetVal = Bits("b0"))
+  val selComSpmReg = Reg(resetVal = Bits("b0"))
   val selTimerReg = Reg(resetVal = Bits("b0"))
   val selUartReg = Reg(resetVal = Bits("b0"))
   val selLedReg = Reg(resetVal = Bits("b0"))
   when(io.memInOut.M.Cmd != OcpCmd.IDLE) {
 	selSpmReg := selSpm
+	selComConfReg := selComConf
+	selComSpmReg := selComSpm
 	selTimerReg := selTimer
 	selUartReg := selUart
 	selLedReg := selLed
@@ -83,6 +93,21 @@ class InOut() extends Component {
   spm.io.M := io.memInOut.M
   spm.io.M.Cmd := Mux(selSpm, io.memInOut.M.Cmd, OcpCmd.IDLE)
   val spmS = spm.io.S
+
+  // The communication configuration, including bridge to OcpIO interface
+  val comConf = new OcpCoreBus(ADDR_WIDTH, DATA_WIDTH)
+  comConf.io.slave.M := io.memInOut.M
+  comConf.io.slave.M.Cmd := Mux(selComConf, io.memInOut.M.Cmd, OcpCmd.IDLE)
+  val comConfS = comConf.io.slave.S
+  val comConfIO = new OcpIOBus(ADDR_WIDTH, DATA_WIDTH)
+  io.comConf.M := comConfIO.io.master.M
+  comConfIO.io.master.S := io.comConf.S
+  val comConfBridge = new OcpIOBridge(comConf.io.master, comConfIO.io.slave)
+
+  // The communication scratchpad
+  io.comSpm.M := io.memInOut.M
+  io.comSpm.M.Cmd := Mux(selComSpm, io.memInOut.M.Cmd, OcpCmd.IDLE)
+  val comSpmS = io.comSpm.S
 
   // The Timer
   val timer = new Timer(CLOCK_FREQ)
@@ -105,9 +130,14 @@ class InOut() extends Component {
   io.ledPins <> leds.io.pins
 
   // Return data to pipeline
-  io.memInOut.S.Data := Mux(selTimerReg, timerS.Data,
-							Mux(selUartReg, uartS.Data,
-								Mux(selLedReg, ledsS.Data, 
-									spmS.Data)))
-  io.memInOut.S.Resp := ispmResp | spmS.Resp | timerS.Resp | uartS.Resp | ledsS.Resp
+  io.memInOut.S.Data := spmS.Data
+  when(selComConfReg) { io.memInOut.S.Data := comConfS.Data }
+  when(selComSpmReg)  { io.memInOut.S.Data := comSpmS.Data }
+  when(selTimerReg)   { io.memInOut.S.Data := timerS.Data }
+  when(selUartReg)    { io.memInOut.S.Data := uartS.Data }
+  when(selLedReg)     { io.memInOut.S.Data := ledsS.Data }
+
+  io.memInOut.S.Resp := ispmResp | spmS.Resp |
+                        comConfS.Resp | comSpmS.Resp |
+                        timerS.Resp | uartS.Resp | ledsS.Resp
 }

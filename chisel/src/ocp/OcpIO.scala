@@ -44,7 +44,7 @@ import Node._
 
 // Masters include a RespAccept signal
 class OcpIOMasterSignals(addrWidth : Int, dataWidth : Int)
-  extends OcpMasterSignals(addrWidth, dataWidth) {
+  extends OcpCoreMasterSignals(addrWidth, dataWidth) {
   val RespAccept = Bits(width = 1)
 
   // This does not really clone, but Data.clone doesn't either
@@ -93,4 +93,13 @@ class OcpIOBridge(master : OcpCoreMasterPort, slave : OcpIOSlavePort) {
 
   // Forward slave signals to master
   master.S <> slave.S
+}
+
+// Provide a "bus" with a master port and a slave port to simplify plumbing
+class OcpIOBus(addrWidth : Int, dataWidth : Int) extends Component {
+  val io = new Bundle {
+    val slave = new OcpIOSlavePort(addrWidth, dataWidth)
+    val master = new OcpIOMasterPort(addrWidth, dataWidth)
+  }
+  io.master <> io.slave
 }

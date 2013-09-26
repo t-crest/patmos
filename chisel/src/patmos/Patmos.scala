@@ -64,6 +64,8 @@ import ocp._
 class Patmos(binFile: String, datFile: String) extends Component {
   val io = new Bundle {
     val dummy = Bits(OUTPUT, 32)
+    val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
+    val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
     val led = Bits(OUTPUT, 9)
     val uartPins = new UartPinIO()
     val sramPins = new RamOutPinsIO() 
@@ -81,9 +83,6 @@ class Patmos(binFile: String, datFile: String) extends Component {
   val iocomp = new InOut()
 
   //io.rfDebug := decode.rf.io.rfDebug
-
-  ssram.io.ram_out <> io.sramPins.ram_out
-  ssram.io.ram_in <> io.sramPins.ram_in
 
   //connect mcache
   mcache.io.femcache <> fetch.io.femcache
@@ -132,8 +131,12 @@ class Patmos(binFile: String, datFile: String) extends Component {
   writeback.io.ena := enable
 
   // The inputs and outputs
-  io.uartPins <> iocomp.io.uartPins
+  io.comConf <> iocomp.io.comConf
+  io.comSpm <> iocomp.io.comSpm
   io.led <> Cat(enable, iocomp.io.ledPins)
+  io.uartPins <> iocomp.io.uartPins
+  io.sramPins.ram_out <> ssram.io.ram_out
+  io.sramPins.ram_in <> ssram.io.ram_in
 
   // ***** the following code is not really Patmos code ******
 
