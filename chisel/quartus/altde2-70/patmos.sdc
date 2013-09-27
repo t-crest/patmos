@@ -38,3 +38,6 @@ set_min_delay -from [all_registers] -to [all_outputs] -0.0
 # Tco 3 ns
 # set_max_delay -from [get_registers *] -to [get_ports {ram*}] 3
 
+# ssram clk derived from clk1 of pll_inst
+set_min_delay 0 -from [get_clocks {*pll:pll_inst*_clk1}] -to [get_ports {oSRAM_CLK}]
+set_max_delay 3 -from [get_clocks {*pll:pll_inst*_clk1}] -to [get_ports {oSRAM_CLK}]

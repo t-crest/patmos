@@ -129,7 +129,8 @@ BEGIN
 		clk1_divide_by => divide_by,
 		clk1_duty_cycle => 50,
 		clk1_multiply_by => multiply_by,
-		clk1_phase_shift => "5000", -- this is in ps, and shall be an inverted clock
+		clk1_phase_shift => "6250", -- this is in ps, and shall be an inverted
+                                            -- clock: todo make it implicit
 		compensate_clock => "CLK0",
 		gate_lock_signal => "NO",
 		inclk0_input_frequency => 20000, -- 50 Mhz = 20000 ps
