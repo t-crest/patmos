@@ -14,6 +14,6 @@ Getting Started
 ===============
 
 How to setup all needed tools and to build Patmos is described in
-Section 5 (Build Instructions) in the hadnbook.
+Section 5 (Build Instructions) in the handbook.
 
 A minimal getting started will be described here as well.
