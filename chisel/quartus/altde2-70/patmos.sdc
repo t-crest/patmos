@@ -8,7 +8,7 @@ create_clock -period 20 [get_ports clk]
 
 derive_clock_uncertainty
 # Create generated clocks based on PLLs
-derive_pll_clocks
+derive_pll_clocks -use_tan_name
 
 # ** Input/Output Delays
 #    -------------------
