@@ -328,7 +328,13 @@ class TimerIO() extends Bundle() {
   val ocp = new OcpCoreSlavePort(4, DATA_WIDTH)
 }
 
+class CpuInfoIO() extends Bundle() {
+  val ocp = new OcpCoreSlavePort(4, DATA_WIDTH)
+  val id = Bits(INPUT, DATA_WIDTH)
+}
+
 class InOutIO() extends Bundle() {
+  val cpuId = Bits(INPUT, DATA_WIDTH)
   val memInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
   val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)

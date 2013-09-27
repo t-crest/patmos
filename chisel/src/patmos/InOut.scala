@@ -47,6 +47,7 @@ import Constants._
 
 import ocp._
 
+import io.CpuInfo
 import io.Timer
 import io.UART
 import io.Leds
@@ -64,6 +65,7 @@ class InOut() extends Component {
   val selComConf = selNI & io.memInOut.M.Addr(ADDR_WIDTH-5) === Bits("b0")
   val selComSpm  = selNI & io.memInOut.M.Addr(ADDR_WIDTH-5) === Bits("b1")
 
+  val selCpuInfo = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x0)
   val selTimer = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x2)
   val selUart = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x8)
   val selLed = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x9)
@@ -72,6 +74,7 @@ class InOut() extends Component {
   val selSpmReg = Reg(resetVal = Bits("b0"))
   val selComConfReg = Reg(resetVal = Bits("b0"))
   val selComSpmReg = Reg(resetVal = Bits("b0"))
+  val selCpuInfoReg = Reg(resetVal = Bits("b0"))
   val selTimerReg = Reg(resetVal = Bits("b0"))
   val selUartReg = Reg(resetVal = Bits("b0"))
   val selLedReg = Reg(resetVal = Bits("b0"))
@@ -79,6 +82,7 @@ class InOut() extends Component {
 	selSpmReg := selSpm
 	selComConfReg := selComConf
 	selComSpmReg := selComSpm
+	selCpuInfoReg := selCpuInfo
 	selTimerReg := selTimer
 	selUartReg := selUart
 	selLedReg := selLed
@@ -109,6 +113,13 @@ class InOut() extends Component {
   io.comSpm.M.Cmd := Mux(selComSpm, io.memInOut.M.Cmd, OcpCmd.IDLE)
   val comSpmS = io.comSpm.S
 
+  // The CpuInfo device
+  val cpuInfo = new CpuInfo()
+  cpuInfo.io.id := io.cpuId
+  cpuInfo.io.ocp.M := io.memInOut.M
+  cpuInfo.io.ocp.M.Cmd := Mux(selCpuInfo, io.memInOut.M.Cmd, OcpCmd.IDLE)
+  val cpuInfoS = cpuInfo.io.ocp.S
+
   // The Timer
   val timer = new Timer(CLOCK_FREQ)
   timer.io.ocp.M := io.memInOut.M
@@ -133,11 +144,13 @@ class InOut() extends Component {
   io.memInOut.S.Data := spmS.Data
   when(selComConfReg) { io.memInOut.S.Data := comConfS.Data }
   when(selComSpmReg)  { io.memInOut.S.Data := comSpmS.Data }
+  when(selCpuInfoReg) { io.memInOut.S.Data := cpuInfoS.Data }
   when(selTimerReg)   { io.memInOut.S.Data := timerS.Data }
   when(selUartReg)    { io.memInOut.S.Data := uartS.Data }
   when(selLedReg)     { io.memInOut.S.Data := ledsS.Data }
 
+  // Merge responses
   io.memInOut.S.Resp := ispmResp | spmS.Resp |
                         comConfS.Resp | comSpmS.Resp |
-                        timerS.Resp | uartS.Resp | ledsS.Resp
+                        cpuInfoS.Resp | timerS.Resp | uartS.Resp | ledsS.Resp
 }

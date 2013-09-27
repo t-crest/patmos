@@ -28,6 +28,8 @@ architecture rtl of patmos_top is
 			clk             : in  std_logic;
 			reset           : in  std_logic;
 
+			io_cpuId        : in  std_logic_vector(31 downto 0);
+            
 			io_comConf_M_Cmd        : out std_logic_vector(2 downto 0);
 			io_comConf_M_Addr       : out std_logic_vector(31 downto 0);
 			io_comConf_M_Data       : out std_logic_vector(31 downto 0);
@@ -94,7 +96,7 @@ begin
 		end if;
 	end process;
 
-	comp : Patmos port map(clk_int, int_res,
+	comp : Patmos port map(clk_int, int_res, X"00000000",
                            open, open, open, open, open,
                            (others => '0'), (others => '0'), '0',
                            open, open, open, open,

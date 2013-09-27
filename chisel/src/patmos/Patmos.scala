@@ -64,6 +64,7 @@ import ocp._
 class Patmos(binFile: String, datFile: String) extends Component {
   val io = new Bundle {
     val dummy = Bits(OUTPUT, 32)
+    val cpuId = Bits(INPUT, DATA_WIDTH)
     val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
     val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
     val led = Bits(OUTPUT, 9)
@@ -131,6 +132,7 @@ class Patmos(binFile: String, datFile: String) extends Component {
   writeback.io.ena := enable
 
   // The inputs and outputs
+  io.cpuId <> iocomp.io.cpuId
   io.comConf <> iocomp.io.comConf
   io.comSpm <> iocomp.io.comSpm
   io.led <> Cat(enable, iocomp.io.ledPins)
