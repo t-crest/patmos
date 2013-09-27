@@ -55,6 +55,24 @@ class OcpBurstMasterSignals(addrWidth : Int, dataWidth : Int)
     val res = new OcpBurstMasterSignals(addrWidth, dataWidth)
   	res.asInstanceOf[this.type]
   }
+
+  override def reset() = {
+	super.reset()
+	DataValid := Bits(0)
+	DataByteEn := Bits(0)
+  }
+}
+
+// Reset values for master signals
+object OcpBurstMasterSignals {
+  def resetVal[T <: OcpBurstMasterSignals](sig : T) : T = {
+	val res = sig.clone
+	res.reset()
+	res
+  }
+  def resetVal(addrWidth : Int, dataWidth : Int) : OcpBurstMasterSignals = {
+	resetVal(new OcpBurstMasterSignals(addrWidth, dataWidth))
+  }
 }
 
 // Burst slaves provide handshake signal
@@ -76,7 +94,7 @@ class OcpBurstSlaveSignals(dataWidth : Int)
   }
 }
 
-// Reset values for master signals
+// Reset values for slave signals
 object OcpBurstSlaveSignals {
   def resetVal[T <: OcpBurstSlaveSignals](sig : T) : T = {
 	val res = sig.clone
