@@ -229,7 +229,7 @@ class MCacheReplFifo() extends Component {
 
     when (io.exmcache.callRetBase(DATA_WIDTH-1,15) >= Bits(0x1)) {
       hitReg := Bits(0)
-      posReg := next_replace_pos
+      posReg := next_replace_pos(MCACHE_SIZE_WIDTH-1,0) //cast not needed here!!!
       for (i <- 0 until METHOD_COUNT) {
         when (io.exmcache.callRetBase === mcache_addr_vec(i)) {
           hitReg := Bits(1)
@@ -262,7 +262,7 @@ class MCacheReplFifo() extends Component {
       tag_field_size := mcache_size_vec(next_replace_tag)
     }
     //update tag fields
-    mcache_pos_vec(next_index_tag) := next_replace_pos
+    mcache_pos_vec(next_index_tag) := next_replace_pos(MCACHE_SIZE_WIDTH-1,0) //cast not needed!!!
     mcache_size_vec(next_index_tag) := io.mcache_ctrlrepl.w_data
     mcache_addr_vec(next_index_tag) := io.mcache_ctrlrepl.w_addr
     //update pointers
