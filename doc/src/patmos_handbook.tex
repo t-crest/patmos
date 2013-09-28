@@ -2517,6 +2517,10 @@ Bit & Status & & Control & \\
 \label{tab:uart}
 \end{table}
 
+The UART address for \code{pasim} is defined in \code{patmos/simulator/include/uart.h}.
+For the compiler/library the constant is in \code{llvm/tools/clang/lib/Driver/Tools.cpp}.
+
+\paragraph{Proposal for CMP UART Sharing}
 On a multicore system only one processor can be directly connected to the
 UART. However, for debugging it would be convenient to attach several (or all)
 cores to the UART. Sharing the UART can be achieved by an arbitration device
@@ -2545,9 +2549,6 @@ adds another layer of potential bugs to the debugging process.}
 
 
 
-The UART address for \code{pasim} is defined in \code{patmos/simulator/include/uart.h}.
-
-For the compiler/library the constant is in \code{llvm/tools/clang/lib/Driver/Tools.cpp}.
 
 \section{The Stack Cache}
 \label{sec:stack-cache}
