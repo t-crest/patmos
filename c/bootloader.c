@@ -110,10 +110,8 @@ int main()
 						if ((section_offset+section_byte_count-1) >> 16 == 0x01) {
 						  *(SPM+(section_offset+section_byte_count-1)/4) = integer;
 						}
-						//Write to "main memory"
-						if ((section_offset+section_byte_count-1) <= 0x10000) {
-						  *(MEM+(section_offset+section_byte_count-1)/4) = integer;
-						}
+						//Write to main memory
+						*(MEM+(section_offset+section_byte_count-1)/4) = integer;
 
 						if(section_byte_count == section_size)
 						{
