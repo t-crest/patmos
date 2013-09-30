@@ -77,7 +77,7 @@ class OcpTester(dut: AComponent) extends Tester(dut, Array(dut.io)) {
   }
 }
 
-object TestMain {
+object OcpTester {
   def main(args: Array[String]): Unit = {
     chiselMainTest(args, () => new AComponent()) {
       f => new OcpTester(f)

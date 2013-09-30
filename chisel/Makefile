@@ -96,7 +96,8 @@ $(BOOTBIN) $(BOOTDAT): .FORCE
 
 # for module tests
 MODUL=example.FsmMain
-MODUL=ocp.test.TestMain
+MODUL=ocp.test.OcpTester
+MODUL=ocp.test.ArbiterTester
 modtest:
 #	-rm -rf generated
 	$(SBT) "run-main $(MODUL) --backend c --compile --vcd --test --genHarness --targetDir generated"

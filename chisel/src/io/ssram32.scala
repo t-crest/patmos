@@ -37,6 +37,9 @@
  * 
  */
 
+// MS: This should not be in package patmos (and then in folder io)
+// TODO: fix coding and file naming conventions
+
 package patmos
 
 import Chisel._

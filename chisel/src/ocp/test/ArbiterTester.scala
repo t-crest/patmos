@@ -43,19 +43,54 @@ import Chisel._
 import Node._
 
 import ocp._
+import patmos._
 
 import scala.collection.mutable.HashMap
 
-//class BComponent() extends Component {
-//  val io = new Bundle {
-//    val fromMaster = new OcpBurstSlavePort(32, 32, 4)
-//    val toSlave = new OcpBurstMasterPort(32, 32, 4)
-//  }
-//
-//  io.fromMaster <> io.toSlave
-//}
 
-class ArbiterTester(dut: ocp.Arbiter) extends Tester(dut, Array(dut.io)) {
+class Master(nr: Int, burstLength: Int) extends Component {
+  
+  val io = new Bundle {
+    val port = new OcpBurstMasterPort(32, 32, burstLength)
+  }
+  
+  val cntReg = Reg(resetVal = UFix(0, width=8))
+
+  io.port.M.Cmd := OcpCmd.IDLE
+
+  cntReg := cntReg + UFix(1)
+  switch(cntReg) {
+    is(UFix(1)) { io.port.M.Cmd := OcpCmd.WR }
+    is(UFix(2)) { io.port.M.Cmd := OcpCmd.IDLE }
+  }
+  
+  io.port.M.Addr := (UFix(nr * 256) + cntReg).toBits()
+  io.port.M.Data := (UFix(nr * 256 * 16) + cntReg).toBits()
+}
+
+/** A top level to test the arbiter */
+class ArbiterTop() extends Component {
+  
+  val io = new Bundle {
+    val port = new OcpBurstMasterPort(32, 32, 4)
+  }
+  val CNT = 3
+  val arb = new ocp.Arbiter(CNT, 4)
+  val mem = new SsramBurstRW()
+  
+  for (i <- 0 until CNT) {
+    val m = new Master(i, 4)
+    arb.io.master(i) <> m.io.port
+  }
+  
+  mem.io.ocp_port <> arb.io.slave
+  
+  io.port.M <> arb.io.slave.M
+
+}
+
+
+class ArbiterTester(dut: ocp.test.ArbiterTop) extends Tester(dut, Array(dut.io)) {
   defTests {
     val ret = true
     val vars = new HashMap[Node, Node]()
@@ -81,7 +116,7 @@ class ArbiterTester(dut: ocp.Arbiter) extends Tester(dut, Array(dut.io)) {
 
 object ArbiterTester {
   def main(args: Array[String]): Unit = {
-    chiselMainTest(args, () => new ocp.Arbiter(3, 4)) {
+    chiselMainTest(args, () => new ocp.test.ArbiterTop) {
       f => new ArbiterTester(f)
     }
 
