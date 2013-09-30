@@ -198,10 +198,12 @@ class Execute() extends Component {
 	mulHHReg := op1H.toUFix * op2H.toUFix
 
 	when(signed) {
+	  val op1HSigned = Cat(Fill(DATA_WIDTH/2, op1H(DATA_WIDTH/2-1)), op1H.toFix)
+	  val op2HSigned = Cat(Fill(DATA_WIDTH/2, op2H(DATA_WIDTH/2-1)), op2H.toFix)
 	  mulLLReg := (op1L.toUFix * op2L.toUFix).toUFix
-	  mulLHReg := (op1L.toUFix * op2H.toFix).toUFix
-	  mulHLReg := (op1H.toFix * op2L.toUFix).toUFix
-	  mulHHReg := (op1H.toFix * op2H.toFix).toUFix
+	  mulLHReg := (op1L.toUFix * op2HSigned).toUFix
+	  mulHLReg := (op1HSigned * op2L.toUFix).toUFix
+	  mulHHReg := (op1HSigned * op2HSigned).toUFix
 	}
 
 	val mulResult = (Cat(mulHHReg, mulLLReg)
