@@ -19,7 +19,8 @@ The following apt-get lists the packages that need to be
 installed:
 
     sudo apt-get install openjdk-7-jdk git cmake make g++ texinfo flex bison \
-      libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1
+      libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
+      gtkwave
 
 We assume that the T-CREST project will live in $HOME/t-crest.
 Patmos and the compiler can be checked out from GitHub and built as follows:
