@@ -97,7 +97,7 @@ class SsramBurstRW (
   val idle :: rd1 :: wr1 :: Nil = Enum(3){ UFix() }
   val ssram_state = Reg(resetVal = idle)
   val wait_state = Reg(resetVal = UFix(0, width = 4))
-  val burst_cnt = Reg(resetVal = UFix(0, width = log2Up(BURST_LENGTH)))
+  val burst_cnt = Reg(resetVal = UFix(0, width = log2Up(burstLen)))
   val rd_data_ena = Reg(resetVal = Bits(0, width = 1))
   val rd_data = Reg(resetVal = Bits(0, width = 32))
   val resp = Reg(resetVal = Bits(0, width = 2))
@@ -164,7 +164,7 @@ class SsramBurstRW (
       when (io.ocp_port.M.DataValid === Bits(1)) {
         data_accept := Bits(1)
         burst_cnt := burst_cnt + UFix(1)
-        nadv := Bits(0)
+        nadsc := Bits(0)
         nbwe := Bits(0)
         nbw := ~(io.ocp_port.M.DataByteEn)
         dout_ena := Bits(1)
@@ -180,10 +180,10 @@ class SsramBurstRW (
   .elsewhen(io.ocp_port.M.Cmd === OcpCmd.WR && io.ocp_port.M.DataValid === Bits(1)) {
     data_accept := Bits(1)
     ssram_state := wr1
+    nadsc := Bits(0)
     nbwe := Bits(0)
     nbw := ~(io.ocp_port.M.DataByteEn)
     dout_ena := Bits(1)
-    nadsc := Bits(0)
   }
 
   //counter till output is ready
@@ -210,7 +210,7 @@ class SsramBurstRW (
   io.ram_out.nbw := nbw
   io.ram_out.nadv := nadv
   io.ram_out.dout_ena := dout_ena
-  io.ram_out.addr := address
+  io.ram_out.addr := Cat(address(EXTMEM_ADDR_WIDTH-3, log2Up(burstLen)), burst_cnt)
   //output to master
   io.ocp_port.S.Resp := resp
   io.ocp_port.S.DataAccept := data_accept
