@@ -118,15 +118,18 @@ class MCacheReplFifo2() extends Component {
   io.mcachemem_in.addr_even := Mux(rd_parity, mcachemem_in_address + Bits(1), mcachemem_in_address)
   io.mcachemem_in.addr_odd := mcachemem_in_address
 
-  // val instr_aReg = Reg(resetVal = Bits(0, width = INSTR_WIDTH))
-  // val instr_bReg = Reg(resetVal = Bits(0, width = INSTR_WIDTH))
-  // when (io.ena_in) {
-  //   instr_aReg := io.mcachefe.instr_a
-  //   instr_bReg := io.mcachefe.instr_b
-  // }
+  val instr_aReg = Reg(resetVal = Bits(0, width = INSTR_WIDTH))
+  val instr_bReg = Reg(resetVal = Bits(0, width = INSTR_WIDTH))
+  val instr_a = Mux(addr_parity_reg, io.mcachemem_out.instr_odd, io.mcachemem_out.instr_even)
+  val instr_b = Mux(addr_parity_reg, io.mcachemem_out.instr_even, io.mcachemem_out.instr_odd)
+  //save instr. ouput since method block at the given address could be overwritten during fetch
+  when (io.mcache_ctrlrepl.instr_stall === Bits(0)) {
+    instr_aReg := io.mcachefe.instr_a
+    instr_bReg := io.mcachefe.instr_b
+  }
+  io.mcachefe.instr_a := Mux(io.mcache_ctrlrepl.instr_stall, instr_aReg, instr_a)
+  io.mcachefe.instr_b := Mux(io.mcache_ctrlrepl.instr_stall, instr_bReg, instr_b)
 
-  io.mcachefe.instr_a := Mux(addr_parity_reg, io.mcachemem_out.instr_odd, io.mcachemem_out.instr_even)
-  io.mcachefe.instr_b := Mux(addr_parity_reg, io.mcachemem_out.instr_even, io.mcachemem_out.instr_odd)
   io.mcachefe.relBase := relBase
   io.mcachefe.relPc := relPc
   io.mcachefe.reloc := reloc
