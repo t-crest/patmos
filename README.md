@@ -39,9 +39,12 @@ the Patmos source, and benchmarks) and
 build the compiler, the Patmos simulator, and the test benches.
 Therefore, take a cup of coffee and find some nice reading.
 After building the compiler add the path
-to the compiler into your .profile:
+to the compiler executables into your .profile:
 
-    export PATH="~/t-crest/local/bin:$PATH"
+    export PATH="/home/martin/t-crest/local/bin:$PATH"
+
+Use an absolute path as LLVM cannot handle a path relative to the
+home directory (~).
 
 One might start with the standard, harmless looking Hello World:
 
