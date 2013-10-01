@@ -28,6 +28,8 @@ endif
 #QPROJ=bemicro
 QPROJ?=altde2-70
 
+# MS: why do we need all those symbols when
+# the various paths are fixed anyway?
 
 # Where to put elf files and binaries
 BUILDDIR?=$(CURDIR)/tmp
@@ -50,6 +52,7 @@ patsim:
 	cd $(SIMBUILDDIR) && make
 	-mkdir -p $(INSTALLDIR)
 	cp $(SIMBUILDDIR)/src/pa* $(INSTALLDIR)
+	rm -rf $(SIMBUILDDIR)
 
 # Build tool to transform elf to binary
 elf2bin:
@@ -58,6 +61,7 @@ elf2bin:
 	cd $(CTOOLSBUILDDIR) && make
 	-mkdir -p $(INSTALLDIR)
 	cp $(CTOOLSBUILDDIR)/src/elf2bin $(INSTALLDIR)
+	rm -rf $(CTOOLSBUILDDIR)
 
 # Build various Java tools
 javatools: java/lib/patmos-tools.jar
