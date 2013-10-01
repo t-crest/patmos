@@ -106,6 +106,7 @@ class MCacheCtrlRepl extends Bundle() {
   val w_addr = Bits(width = ADDR_WIDTH)
   val w_tag = Bits(width = 1)
   val address = Bits(width = MCACHE_SIZE_WIDTH)
+  val instr_stall = Bits(width = 1)
 }
 class MCacheReplCtrl extends Bundle() {
   val hit = Bits(width = 1)
@@ -421,9 +422,13 @@ class MCacheCtrl() extends Component {
     }
     //restart to idle state
     .otherwise {
-      mcache_state := idle_state
+      mcache_state := restart_state //restart_state
       wenaReg := Bits(0)
     }
+  }
+  when (mcache_state === restart_state) {
+    mcachemem_address := io.femcache.address
+    mcache_state := idle_state
   }
 
   //outputs to mcache memory
@@ -432,6 +437,7 @@ class MCacheCtrl() extends Component {
   io.mcache_ctrlrepl.w_data := mcachemem_w_data
   io.mcache_ctrlrepl.w_addr := mcachemem_w_addr
   io.mcache_ctrlrepl.w_tag := mcachemem_w_tag
+  io.mcache_ctrlrepl.instr_stall := Mux(mcache_state === idle_state, Bits(0), Bits(1))
 
   io.fetch_ena := ~wenaReg
 
