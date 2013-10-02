@@ -95,7 +95,7 @@ namespace patmos
     /// @param value the pointer to the data to read
     /// @param size the size of the value to read in bytes
     /// @return the read value
-    uword_t read_word(byte_t *value, uword_t size) {
+    uword_t get_word(byte_t *value, uword_t size) {
       uword_t data = *((uword_t*)value);
       return (uword_t)from_big_endian<big_uword_t>(data);
     }
@@ -104,7 +104,7 @@ namespace patmos
     /// @param value the pointer to the data to write
     /// @param size the size of the value to write in bytes
     /// @param data the word to write
-    void write_word(byte_t *value, uword_t size, uword_t data) {
+    void set_word(byte_t *value, uword_t size, uword_t data) {
       uword_t big_data = to_big_endian<big_uword_t>(data);
       *((uword_t*)value) = big_data;
     }
@@ -140,7 +140,7 @@ namespace patmos
     virtual void peek(uword_t address, byte_t *value, uword_t size) {
       // By default, just return zero, this is primarily used for debugging and
       // should not assert if read is supported.
-      write_word(value, size, 0);
+      set_word(value, size, 0);
     }
 
     /// Notify the device that a cycle has passed.
@@ -162,22 +162,26 @@ namespace patmos
   class cpuinfo_t : public mapped_device_t 
   {
     uword_t Cpu_id;
+    
+    // The CPU frequency (Hz)
     uword_t Cpu_freq;
        
   public:
-    cpuinfo_t(uword_t base_address, uword_t cpuid, uword_t freq)
+    
+    /// @param freq The CPU frequency in Mhz
+    cpuinfo_t(uword_t base_address, uword_t cpuid, double freq)
     : mapped_device_t(base_address, CPUINFO_MAP_SIZE),
       Cpu_id(cpuid),
-      Cpu_freq(freq)
+      Cpu_freq(freq * 1000000)
     {}
     
     // MS: why do we have this duplication of read and peek?
     // Why could't one call the other
     virtual bool read(uword_t address, byte_t *value, uword_t size) {
       if (is_word_access(address, size, 0x00)) {
-        write_word(value, size, Cpu_id);
+        set_word(value, size, Cpu_id);
       } else if (is_word_access(address, size, 0x04)) {
-        write_word(value, size, Cpu_freq);
+        set_word(value, size, Cpu_freq);
       } else {
         simulation_exception_t::unmapped(address);
       }
@@ -190,9 +194,9 @@ namespace patmos
     
     virtual void peek(uword_t address, byte_t *value, uword_t size) {
       if (is_word_access(address, size, 0x00)) {
-        write_word(value, size, Cpu_id);
+        set_word(value, size, Cpu_id);
       } else if (is_word_access(address, size, 0x04)) {
-        write_word(value, size, Cpu_freq);
+        set_word(value, size, Cpu_freq);
       } else {
         mapped_device_t::peek(address, value, size);
       }
@@ -239,7 +243,7 @@ namespace patmos
     
     virtual bool write(uword_t address, byte_t *value, uword_t size) {
       if (is_word_access(address, size, 0x00)) {
-        uword_t state = read_word(value, size);
+        uword_t state = get_word(value, size);
          
         if (state == Curr_state) return true;
         
