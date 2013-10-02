@@ -39,7 +39,7 @@ namespace patmos
   static const uword_t CPUINFO_OFFSET = 0x0000;
   
   /// Number of bytes mapped to the CPU Info.
-  static const uword_t CPUINFO_MAP_SIZE = 0x0004;
+  static const uword_t CPUINFO_MAP_SIZE = 0x0008;
   
   /// Offset from IO base address for the exception unit.
   static const uword_t EXCUNIT_OFFSET = 0x0100;
@@ -161,18 +161,24 @@ namespace patmos
   
   class cpuinfo_t : public mapped_device_t 
   {
-    uword_t Cpu_id;    
+    uword_t Cpu_id;
+    uword_t Cpu_freq;
+       
   public:
-    cpuinfo_t(uword_t base_address, uword_t cpuid)
+    cpuinfo_t(uword_t base_address, uword_t cpuid, uword_t freq)
     : mapped_device_t(base_address, CPUINFO_MAP_SIZE),
-      Cpu_id(cpuid)
+      Cpu_id(cpuid),
+      Cpu_freq(freq)
     {}
     
+    // MS: why do we have this duplication of read and peek?
+    // Why could't one call the other
     virtual bool read(uword_t address, byte_t *value, uword_t size) {
       if (is_word_access(address, size, 0x00)) {
         write_word(value, size, Cpu_id);
-      }
-      else {
+      } else if (is_word_access(address, size, 0x04)) {
+        write_word(value, size, Cpu_freq);
+      } else {
         simulation_exception_t::unmapped(address);
       }
       return true;
@@ -185,8 +191,9 @@ namespace patmos
     virtual void peek(uword_t address, byte_t *value, uword_t size) {
       if (is_word_access(address, size, 0x00)) {
         write_word(value, size, Cpu_id);
-      }
-      else {
+      } else if (is_word_access(address, size, 0x04)) {
+        write_word(value, size, Cpu_freq);
+      } else {
         mapped_device_t::peek(address, value, size);
       }
     }

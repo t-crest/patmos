@@ -67,7 +67,11 @@ class CpuInfo() extends Component {
   // Read information
   when(masterReg.Cmd === OcpCmd.RD) {
 	resp := OcpResp.DVA
-	data := io.id
+	when(masterReg.Addr(2) === Bits(0)) {
+      data := io.id	  
+	} .otherwise {
+      data := Bits(CLOCK_FREQ)  
+	}
   }
 
   // Connections to master

@@ -285,6 +285,8 @@ int main(int argc, char **argv)
   boost::program_options::options_description sim_options("Simulator options");
   sim_options.add_options()
     ("cpuid", boost::program_options::value<unsigned int>()->default_value(0), "Set CPU ID in the simulator")
+// MS: maybe the default value should be a little bit lower for the simulator
+// needs to be checked with some timing measurements
     ("freq",  boost::program_options::value<double>()->default_value(90.0), "Set CPU Frequency in Mhz")
     ("mmbase", boost::program_options::value<patmos::address_t>()->default_value(patmos::IOMAP_BASE_ADDRESS), "base address of the IO device map address range")
     ("mmhigh", boost::program_options::value<patmos::address_t>()->default_value(patmos::IOMAP_HIGH_ADDRESS), "highest address of the IO device map address range")
@@ -441,7 +443,7 @@ int main(int argc, char **argv)
     }
     
     // setup IO mapped devices
-    patmos::cpuinfo_t cpuinfo(mmbase+cpuinfo_offset, cpuid);
+    patmos::cpuinfo_t cpuinfo(mmbase+cpuinfo_offset, cpuid, freq);
     patmos::excunit_t excunit(mmbase+excunit_offset);
     patmos::uart_t uart(mmbase+uart_offset, *uin, uin_istty, *uout);
     patmos::led_t leds(mmbase+led_offset, *uout);
