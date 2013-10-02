@@ -635,15 +635,15 @@ namespace patmos
                           "   Requests              : %3$10d\n"
                           "   Bursts transferred    : %4$10d\n"
                           "   Bytes transferred     : %5$10d\n"
-                          "   Stall Cycles          : %6$10d %7$10.2d%%\n"
-                          "   Hidden Write Cycles   : %8$10d %9$10.2d%%\n\n")
+                          "   Stall Cycles          : %6$10d %7$10.2f%%\n"
+                          "   Hidden Write Cycles   : %8$10d %9$10.2f%%\n\n")
         % Num_max_queue_size 
         % Num_consecutive_requests
         % (Num_reads + Num_writes) 
         % (total_bytes / Num_bytes_per_block)
         % total_bytes
-        % stall_cycles % stalls
-        % Num_posted_write_cycles % hidden;
+        % stall_cycles % (stalls * 100.0)
+        % Num_posted_write_cycles % (hidden * 100.0);
       
       float read_pct = (float)Num_bytes_read / (float)total_bytes;
       float write_pct = (float)Num_bytes_written / (float)total_bytes;
@@ -652,14 +652,15 @@ namespace patmos
       float write_trans_pct = (float)Num_bytes_write_transferred / 
                               (float)total_bytes;
       
-      os << boost::format("                                 Read              Write\n"
-                          "   Requests              : %1$10d         %2$10d\n"
-                          "   Bytes Requested       : %3$10d %4$6.2d%% %5$10d %6$6.2d%%\n"
-                          "   Bytes Transferred     : %7$10d %8$6.2d%% %9$10d %10$6.2d%%\n\n")
+      os << boost::format("                                 Read                  Write\n"
+                          "   Requests              : %1$10d             %2$10d\n"
+                          "   Bytes Requested       : %3$10d %4$10.2f%% %5$10d %6$10.2f%%\n"
+                          "   Bytes Transferred     : %7$10d %8$10.2f%% %9$10d %10$10.2f%%\n\n")
         % Num_reads % Num_writes 
-        % Num_bytes_read % read_pct % Num_bytes_written % write_pct
-        % Num_bytes_read_transferred % read_trans_pct 
-        % Num_bytes_write_transferred % write_trans_pct;
+        % Num_bytes_read % (read_pct * 100.0) 
+        % Num_bytes_written % (write_pct * 100.0)
+        % Num_bytes_read_transferred % (read_trans_pct * 100.0)
+        % Num_bytes_write_transferred % (write_trans_pct * 100.0);
         
       os << "Request size    #requests\n";
       for (request_size_map_t::iterator it = Num_requests_per_size.begin(),

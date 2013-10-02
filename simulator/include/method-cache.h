@@ -128,6 +128,9 @@ namespace patmos
   class method_stats_info_t
   {
   public:
+    /// Number of bytes transferred for this method.
+    unsigned int Num_bytes_transferred;
+    
     /// Number of cache hits for the method.
     unsigned int Num_hits;
 
@@ -141,7 +144,8 @@ namespace patmos
     float Max_utilization;
     
     /// Initialize the method statistics.
-    method_stats_info_t() : Num_hits(0), Num_misses(0),
+    method_stats_info_t() : Num_bytes_transferred(0),
+      Num_hits(0), Num_misses(0),
       Min_utilization(std::numeric_limits<float>::max()), 
       Max_utilization(0)
     {
@@ -269,6 +273,9 @@ namespace patmos
     /// method.
     unsigned int Num_max_bytes_transferred;
 
+    /// Maximum number of methods allocated in the cache.
+    unsigned int Num_max_active_methods;
+    
     /// Number of cache hits.
     unsigned int Num_hits;
 
@@ -420,8 +427,8 @@ namespace patmos
         Num_transfer_blocks(0), Num_transfer_bytes(0), Num_active_methods(0),
         Num_active_blocks(0), Num_blocks_transferred(0),
         Num_max_blocks_transferred(0), Num_bytes_transferred(0),
-        Num_max_bytes_transferred(0), Num_hits(0), Num_misses(0),
-        Num_stall_cycles(0), Num_bytes_utilized(0)
+        Num_max_bytes_transferred(0), Num_max_active_methods(0),
+        Num_hits(0), Num_misses(0), Num_stall_cycles(0), Num_bytes_utilized(0)
     {
       Methods = new method_info_t[Num_blocks];
       for(unsigned int i = 0; i < Num_blocks; i++)
@@ -450,6 +457,7 @@ namespace patmos
       Num_active_blocks = num_blocks;
 
       Num_active_methods = 1;
+      Num_max_active_methods = std::max(Num_max_active_methods, 1U);
     }
 
     /// A simulated instruction fetch from the method cache.
@@ -504,6 +512,11 @@ namespace patmos
           {
             Num_transfer_blocks = get_num_blocks_for_bytes(Num_transfer_bytes);
 
+            // Note that this does not include alignment, this is done by the 
+            // memory controller.
+            Method_stats[address].Num_bytes_transferred = Num_transfer_blocks * 
+                                                          Num_block_bytes;
+            
             // check method size against cache size.
             if (Num_transfer_blocks == 0 || Num_transfer_blocks > Num_blocks)
             {
@@ -522,6 +535,8 @@ namespace patmos
 
             // update counters
             Num_active_methods++;
+            Num_max_active_methods = std::max(Num_max_active_methods,
+                                              Num_active_methods);
             Num_active_blocks += Num_transfer_blocks;
             Num_blocks_transferred += Num_transfer_blocks;
             Num_max_blocks_transferred = std::max(Num_max_blocks_transferred,
@@ -650,26 +665,39 @@ namespace patmos
       
       // instruction statistics
       os << boost::format("                            total        max.\n"
-                          "   Blocks Transferred: %1$10d  %2$10d\n"
-                          "   Bytes Transferred : %3$10d  %4$10d\n"
-                          "   Bytes Used        : %5$10d\n"
-                          "   Utilization       : %6$10.2d\n"
-                          "   Fragmentation     : %7$10.2d\n"
-                          "   Cache Hits        : %8$10d\n"
-                          "   Cache Misses      : %9$10d\n"
-                          "   Miss Stall Cycles : %10$10d\n\n")
+                          "   Blocks Transferred  : %1$10d  %2$10d\n"
+                          "   Bytes Transferred   : %3$10d  %4$10d\n"
+                          "   Bytes Used          : %5$10d\n"
+                          "   Utilization         : %6$10.2f%%\n"
+                          "   Fragmentation       : %7$10.2f%%\n"
+                          "   Max Methods in Cache: %8$10d\n"
+                          "   Cache Hits          : %9$10d\n"
+                          "   Cache Misses        : %10$10d\n"
+                          "   Miss Stall Cycles   : %11$10d\n\n")
         % Num_blocks_transferred % Num_max_blocks_transferred
         % Num_bytes_transferred % Num_max_bytes_transferred
-        % bytes_utilized % utilization % fragmentation
-        % Num_hits % Num_misses % Num_stall_cycles;
+        % bytes_utilized % (utilization * 100.0) % (fragmentation * 100.0)
+        % Num_max_active_methods % Num_hits % Num_misses % Num_stall_cycles;
+
+      // Update utilization stats for all methods not yet evicted.
+      for(unsigned int i = Num_blocks - 1; i >= Num_blocks - Num_active_methods;
+          i--)
+      {
+        // TODO we do not *actually* want to evict this method, use a diffent 
+        //      method.
+        evict(Methods[i]);
+      }
 
       // print stats per method
-      os << "       Method:      #hits     #misses\n";
+      os << "       Method:      #hits     #misses       bytes    min-util    max-util\n";
       for(method_stats_t::iterator i(Method_stats.begin()),
           ie(Method_stats.end()); i != ie; i++)
       {
-        os << boost::format("   0x%1$08x: %2$10d  %3$10d    %4%\n")
+        os << boost::format("   0x%1$08x: %2$10d  %3$10d  %4$10d  %5$10.2f%%  %6$10.2f%%    %7%\n")
            % i->first % i->second.Num_hits % i->second.Num_misses
+           % i->second.Num_bytes_transferred
+           % (i->second.Min_utilization * 100.0)
+           % (i->second.Max_utilization * 100.0)
            % s.Symbols.find(i->first);
       }
     }
@@ -681,6 +709,7 @@ namespace patmos
       Num_bytes_transferred = 0;
       Num_max_blocks_transferred = 0;
       Num_bytes_utilized = 0;
+      Num_max_active_methods = 0;
       Num_hits = 0; 
       Num_misses = 0;
       Num_stall_cycles = 0;
