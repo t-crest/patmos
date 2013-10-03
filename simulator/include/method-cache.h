@@ -319,7 +319,7 @@ namespace patmos
     virtual bool lookup(uword_t address)
     {
       // check if the address is in the cache
-      for(unsigned int i = Num_blocks - 1; i >= Num_blocks - Num_active_methods;
+      for(int i = Num_blocks - 1; i >= (int)(Num_blocks - Num_active_methods);
           i--)
       {
         if (Methods[i].Address == address)
@@ -587,7 +587,7 @@ namespace patmos
     virtual bool is_available(word_t address)
     {
       // check if the address is in the cache
-      for(unsigned int i = Num_blocks - 1; i >= Num_blocks - Num_active_methods;
+      for(int i = Num_blocks - 1; i >= (int)(Num_blocks - Num_active_methods);
           i--)
       {
         if (Methods[i].Address == address)
@@ -620,7 +620,7 @@ namespace patmos
       os << boost::format(" #M: %1$02d #B: %2$02d\n")
          % Num_active_methods % Num_active_blocks;
 
-      for(unsigned int i = Num_blocks - 1; i >= Num_blocks - Num_active_methods;
+      for(int i = Num_blocks - 1; i >= (int)(Num_blocks - Num_active_methods);
           i--)
       {
         os << boost::format("   M%1$02d: 0x%2$08x (%3$8d Blk %4$8d b)\n")
@@ -741,8 +741,8 @@ namespace patmos
 
       if (avail) {
 	// update the active method pointer
-	for(unsigned int i = base_t::Num_blocks - 1;
-	    i >= base_t::Num_blocks - base_t::Num_active_methods; i--)
+	for(int i = base_t::Num_blocks - 1;
+	    i >= (int)(base_t::Num_blocks - base_t::Num_active_methods); i--)
 	{
 	  if (base_t::Methods[i].Address == address)
 	  {
