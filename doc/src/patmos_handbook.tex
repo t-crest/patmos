@@ -3431,7 +3431,7 @@ installed:\footnote{Some packages might be available in newer version
 when reading this document.}
 
 \begin{verbatim}
-sudo apt-get install openjdk-7-jdk git cmake make g++ texinfo flex bison \
+sudo apt-get install openjdk-7-jdk git gitk cmake make g++ texinfo flex bison \
   libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
   gtkwave
 \end{verbatim}
@@ -3480,6 +3480,14 @@ export PATH="/home/martin/t-crest/local/bin:$PATH"
 
 A complete logout from Ubuntu is needed to take effect (just closing
 a terminal window is not enough).
+
+For correct correct signing of your changes set the username and
+email in git with:
+
+\begin{verbatim}
+git config --global user.name "Joe Someone"
+git config --global user.email "joe.someone@domain.com"
+\end{verbatim}
 
 \subsection{Quartus}
 
