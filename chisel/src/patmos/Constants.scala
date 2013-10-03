@@ -53,11 +53,11 @@ object Constants {
 
   // MS: maybe better use sizes in bytes and use log2Up() to
   // get the number of bits.
-  // XX_BITS might confuse as the ISPM is origanized in words,
+  // XX_BITS might confuse as the ISPM is organized in words,
   // even in 2 times words, which results in other number of
   // bits.
-  val ISPM_BITS = 15
-  val DSPM_BITS = 14
+  val ISPM_BITS = 13
+  val DSPM_BITS = 11
   
   // we use a very simple decoding of ISPM at address 0x00010000
   val ISPM_ONE_BIT = 16
@@ -65,9 +65,9 @@ object Constants {
   // The boot ROM is at 0x80000000 and the boot SPM at 0x80010000,
   // both in the global address space
   val BOOTMEM_ONE_BIT = 16
-  val BOOTSPM_BITS = 14
+  val BOOTSPM_BITS = 11
 
-  val MCACHE_SIZE = 4096
+  val MCACHE_SIZE = 4096 // this is apparently in words, should be changed to bytes to fit the rest
   val MAX_RELADDR_WIDTH = math.max(log2Up(MCACHE_SIZE), log2Up(1 << ISPM_BITS-2)) //max width for relative base
   val METHOD_COUNT = 16
   val OFF_WIDTH = log2Up(math.max(MCACHE_SIZE, 1 << ISPM_ONE_BIT)) //? isn't the max between ISPM and MCACHE width enough for pcReg?
