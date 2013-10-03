@@ -50,7 +50,7 @@ namespace patmos
 
   /// Define the number of bytes in a block transferred on an access to the 
   /// global main memory.
-  static const unsigned int NUM_MEMORY_BLOCK_BYTES = 8;
+  static const unsigned int NUM_MEMORY_BLOCK_BYTES = 16;
 
   /// Define the number of bytes used for the local memory.
   static const unsigned int NUM_LOCAL_MEMORY_BYTES = 0x800;
@@ -58,20 +58,22 @@ namespace patmos
   /// Define the number of bytes used for the data cache.
   static const unsigned int NUM_DATA_CACHE_BYTES = 0x800;
 
+  // MS: is this still used when there is the dlsize option?
+  // If not it should be removed.
   /// Define the number of bytes in a block of the data cache.
-  static const unsigned int NUM_DATA_CACHE_BLOCK_BYTES = 32;
+  static const unsigned int NUM_DATA_CACHE_BLOCK_BYTES = 16;
 
   /// Define the number of bytes used for the stack cache.
   static const unsigned int NUM_STACK_CACHE_BYTES = 0x800;
 
   /// Define the number of bytes in a block of the stack cache.
-  static const unsigned int NUM_STACK_CACHE_BLOCK_BYTES = 4;
+  static const unsigned int NUM_STACK_CACHE_BLOCK_BYTES = 16;
 
   /// Define the number of bytes used for the method cache.
   static const unsigned int NUM_METHOD_CACHE_BYTES = 0x800;
 
   /// Define the number of bytes in a block of the method cache.
-  static const unsigned int NUM_METHOD_CACHE_BLOCK_BYTES = 32;
+  static const unsigned int NUM_METHOD_CACHE_BLOCK_BYTES = 256;
 
   /// General-purpose register holding the program's exit code when terminating.
   static const GPR_e GPR_EXIT_CODE_INDEX = r1;
