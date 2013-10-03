@@ -58,11 +58,6 @@ namespace patmos
   /// Define the number of bytes used for the data cache.
   static const unsigned int NUM_DATA_CACHE_BYTES = 0x800;
 
-  // MS: is this still used when there is the dlsize option?
-  // If not it should be removed.
-  /// Define the number of bytes in a block of the data cache.
-  static const unsigned int NUM_DATA_CACHE_BLOCK_BYTES = 16;
-
   /// Define the number of bytes used for the stack cache.
   static const unsigned int NUM_STACK_CACHE_BYTES = 0x800;
 

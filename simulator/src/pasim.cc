@@ -71,8 +71,7 @@ static patmos::data_cache_t &create_data_cache(patmos::data_cache_e dck,
                                                unsigned int line_size,
                                                patmos::memory_t &gm)
 {
-  unsigned int num_blocks = std::ceil((float)size/
-                                     (float)patmos::NUM_DATA_CACHE_BLOCK_BYTES);
+  unsigned int num_blocks = (size - 1)/line_size + 1;
 
   switch (dck)
   {
@@ -264,7 +263,7 @@ int main(int argc, char **argv)
 
     ("scsize,s", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_STACK_CACHE_BYTES), "stack cache size in bytes")
     ("sckind,S", boost::program_options::value<patmos::stack_cache_e>()->default_value(patmos::SC_IDEAL), "kind of stack cache (ideal, block)")
-    ("sbsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_DATA_CACHE_BLOCK_BYTES), "stack cache block size in bytes")
+    ("sbsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_STACK_CACHE_BLOCK_BYTES), "stack cache block size in bytes")
 
     ("icache,C", boost::program_options::value<patmos::instr_cache_e>()->default_value(patmos::IC_MCACHE), "kind of instruction cache (mcache, icache)")
     ("ickind,K", boost::program_options::value<patmos::iset_cache_e>()->default_value(patmos::ISC_IDEAL), "kind of set-associative I-cache (ideal, no. lru2, lru4, lru8)")
