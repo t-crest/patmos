@@ -72,8 +72,11 @@ namespace patmos
   /// Define the number of bytes used for the method cache.
   static const unsigned int NUM_METHOD_CACHE_BYTES = 0x800;
 
+  /// Define the maximum number of methods that can be cached in the method cache.
+  static const unsigned int NUM_METHOD_CACHE_MAX_METHODS = 16;
+  
   /// Define the number of bytes in a block of the method cache.
-  static const unsigned int NUM_METHOD_CACHE_BLOCK_BYTES = 256;
+  static const unsigned int NUM_METHOD_CACHE_BLOCK_BYTES = 4;
 
   /// General-purpose register holding the program's exit code when terminating.
   static const GPR_e GPR_EXIT_CODE_INDEX = r1;

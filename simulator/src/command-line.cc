@@ -332,8 +332,12 @@ namespace patmos
     } else if (tmp.size() > 1 && tmp.substr(0, 1) == "0") {
       // TODO this might be misleading!! warn about that
       s << std::oct << tmp.substr(1);      
-    } else {
+    } else if (tmp[0] >= '0' && tmp[0] <= '9') {
       s << tmp;
+    } else {
+      // We do not know how to resolve the symbol yet..
+      a.set_symbol(tmp);
+      return in;
     }
     
     s >> v;

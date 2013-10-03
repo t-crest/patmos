@@ -237,6 +237,9 @@ namespace patmos
 
     /// Number of bytes in a block.
     unsigned int Num_block_bytes;
+
+    /// Maximum number of active functions allowed in the cache.
+    unsigned int Num_max_methods;
     
     /// Currently active phase to fetch a method from memory.
     phase_e Phase;
@@ -420,8 +423,11 @@ namespace patmos
     /// Construct an LRU-based method cache.
     /// @param memory The memory to fetch instructions from on a cache miss.
     /// @param num_blocks The size of the cache in blocks.
+    /// @param num_block_bytes The size of a single block in bytes
+    /// @param max_active_methods The max number of active methods
     lru_method_cache_t(memory_t &memory, unsigned int num_blocks, 
-                       unsigned int num_block_bytes) :
+                       unsigned int num_block_bytes, 
+                       unsigned int max_active_methods = 0) :
         Memory(memory), Num_blocks(num_blocks), 
         Num_block_bytes(num_block_bytes), Phase(IDLE),
         Num_transfer_blocks(0), Num_transfer_bytes(0), Num_active_methods(0),
@@ -430,6 +436,7 @@ namespace patmos
         Num_max_bytes_transferred(0), Num_max_active_methods(0),
         Num_hits(0), Num_misses(0), Num_stall_cycles(0), Num_bytes_utilized(0)
     {
+      Num_max_methods = max_active_methods ? max_active_methods : num_blocks;
       Methods = new method_info_t[Num_blocks];
       for(unsigned int i = 0; i < Num_blocks; i++)
         Methods[i] = method_info_t(new byte_t[Num_block_bytes * Num_blocks]);
@@ -524,7 +531,8 @@ namespace patmos
             }
 
             // throw other entries out of the cache if needed
-            while (Num_active_blocks + Num_transfer_blocks > Num_blocks)
+            while (Num_active_blocks + Num_transfer_blocks > Num_blocks ||
+                   Num_active_methods >= Num_max_methods)
             {
               assert(Num_active_methods > 0);
               Num_active_blocks -=
@@ -673,11 +681,12 @@ namespace patmos
                           "   Max Methods in Cache: %8$10d\n"
                           "   Cache Hits          : %9$10d\n"
                           "   Cache Misses        : %10$10d\n"
-                          "   Miss Stall Cycles   : %11$10d\n\n")
+                          "   Miss Stall Cycles   : %11$10d  %12$10.2f%%\n\n")
         % Num_blocks_transferred % Num_max_blocks_transferred
         % Num_bytes_transferred % Num_max_bytes_transferred
         % bytes_utilized % (utilization * 100.0) % (fragmentation * 100.0)
-        % Num_max_active_methods % Num_hits % Num_misses % Num_stall_cycles;
+        % Num_max_active_methods % Num_hits % Num_misses % Num_stall_cycles 
+        % (100.0 * Num_stall_cycles / (float)s.Cycle);
 
       // Update utilization stats for all methods not yet evicted.
       for(unsigned int i = Num_blocks - 1; i >= Num_blocks - Num_active_methods;
@@ -693,7 +702,7 @@ namespace patmos
       for(method_stats_t::iterator i(Method_stats.begin()),
           ie(Method_stats.end()); i != ie; i++)
       {
-        os << boost::format("   0x%1$08x: %2$10d  %3$10d  %4$10d  %5$10.2f%%  %6$10.2f%%    %7%\n")
+        os << boost::format("   0x%1$08x: %2$10d  %3$10d  %4$10d %5$10.2f%% %6$10.2f%%    %7%\n")
            % i->first % i->second.Num_hits % i->second.Num_misses
            % i->second.Num_bytes_transferred
            % (i->second.Min_utilization * 100.0)
@@ -751,9 +760,13 @@ namespace patmos
     /// Construct an FIFO-based method cache.
     /// @param memory The memory to fetch instructions from on a cache miss.
     /// @param num_blocks The size of the cache in blocks.
+    /// @param num_block_bytes The size of a single block in bytes
+    /// @param max_active_methods The max number of active methods
     fifo_method_cache_t(memory_t &memory, unsigned int num_blocks, 
-                        unsigned int num_block_bytes) :
-        lru_method_cache_t(memory, num_blocks, num_block_bytes)
+                        unsigned int num_block_bytes,
+                        unsigned int max_active_methods = 0) :
+        lru_method_cache_t(memory, num_blocks, num_block_bytes, 
+                           max_active_methods)
     {
 	active_method = base_t::Num_blocks - 1;
     }

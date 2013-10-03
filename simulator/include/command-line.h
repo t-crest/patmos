@@ -21,6 +21,8 @@
 #ifndef PATMOS_COMMAND_LINE_H
 #define PATMOS_COMMAND_LINE_H
 
+#include "symbol.h"
+
 #include <istream>
 #include <ostream>
 #include <boost/iterator/iterator_concepts.hpp>
@@ -185,6 +187,8 @@ namespace patmos
   {
     private:
       unsigned int V;
+      
+      std::string symbol;
 
     public:
       /// Construct a new byte address.
@@ -193,10 +197,21 @@ namespace patmos
       {
       }
 
+      void set_symbol(const std::string &sym) {
+        symbol = sym;
+      }
+      
       /// Return the value of the address object.
       /// @return The value of the address object.
       unsigned int value() const
       {
+        return V;
+      }
+      
+      unsigned int parse(symbol_map_t &symbols)
+      {
+        if (V) return V;
+        V = symbols.find(symbol);
         return V;
       }
   };
