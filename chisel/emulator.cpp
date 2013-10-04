@@ -271,7 +271,7 @@ int main (int argc, char* argv[]) {
 
   if (entry != 0) {
     if (entry >= 0x20000) {
-      c->Patmos_fetch__pcReg = 0;
+      c->Patmos_fetch__pcReg = -1;
       c->Patmos_mcache_mcacherepl__hitReg = 0;
       c->Patmos_mcache_mcacherepl__selMCacheReg = 1;
       c->Patmos_fetch__relBaseReg = 0;

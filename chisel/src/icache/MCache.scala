@@ -378,9 +378,9 @@ class MCacheCtrl() extends Component {
     when (ocpSlaveReg.Resp === OcpResp.DVA) {
       ext_mem_burst_cnt := ext_mem_burst_cnt + Bits(1)
       when (ext_mem_burst_cnt === msize_addr(1,0)) {
-        val size = ocpSlaveReg.Data(MCACHE_SIZE_WIDTH+1,2)
+        val size = ocpSlaveReg.Data(MCACHE_SIZE_WIDTH+2,2)
         //init transfer from external memory
-        ext_mem_tsize := size - Bits(1)
+        ext_mem_tsize := size
         ext_mem_fcounter := Bits(0) //start to write to cache with offset 0
         when (ext_mem_burst_cnt >= UFix(BURST_LENGTH - 1)) {
           ext_mem_addr := callRetBaseReg
@@ -400,11 +400,11 @@ class MCacheCtrl() extends Component {
 
   //transfer/fetch method to the cache
   when (mcache_state === transfer_state) {
-    when (ext_mem_fcounter <= ext_mem_tsize) {
+    when (ext_mem_fcounter < ext_mem_tsize) {
       when (ocpSlaveReg.Resp === OcpResp.DVA) {
         ext_mem_fcounter := ext_mem_fcounter + Bits(1)
         ext_mem_burst_cnt := ext_mem_burst_cnt + Bits(1)
-        when(ext_mem_fcounter < ext_mem_tsize) {
+        when(ext_mem_fcounter < ext_mem_tsize - Bits(1)) {
           //fetch next address from external memory
           when (ext_mem_burst_cnt >= UFix(BURST_LENGTH - 1)) {
             ext_mem_cmd := OcpCmd.RD
