@@ -65,12 +65,19 @@ class Master(nr: Int, burstLength: Int) extends Component {
     is(UFix(1)) {
       io.port.M.Cmd := OcpCmd.WR
       io.port.M.DataValid := Bits(1)
-      when (io.port.S.CmdAccept != Bits(0)) {
+      when (io.port.S.CmdAccept === Bits(0)) {
         cntReg := cntReg
       }
     }
+    is(UFix(2)) {
+      io.port.M.DataValid := Bits(1)      
+    }
+    is(UFix(3)) {
+      io.port.M.DataValid := Bits(1)
+    }
     // now we should be on our last word - wait for DVA
     is(UFix(4)) {
+      io.port.M.DataValid := Bits(1)
       when (io.port.S.Resp != OcpResp.DVA) {
         cntReg := cntReg
       }
@@ -113,7 +120,7 @@ class ArbiterTester(dut: ocp.test.ArbiterTop) extends Tester(dut, Array(dut.io))
 
     val testVec = Array( OcpCmd.IDLE, OcpCmd.WR, OcpCmd.IDLE )
 
-    for (i <- 0 until 10) {
+    for (i <- 0 until 25) {
       vars.clear
 //      vars(dut.io.fromMaster.M.Cmd) = testVec(i)
 

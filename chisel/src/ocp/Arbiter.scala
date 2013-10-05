@@ -97,7 +97,7 @@ class Arbiter(cnt: Int, burstLength: Int) extends Component {
   }
 
   io.slave.M := master
-  
+
   for (i <- 0 to cnt - 1) {
     io.master(i).S.CmdAccept := Bits(0)
     io.master(i).S.DataAccept := Bits(0)
@@ -105,21 +105,9 @@ class Arbiter(cnt: Int, burstLength: Int) extends Component {
     // we forward the data to all masters
     io.master(i).S.Data := slave.Data
   }
+  io.master(turnReg).S := slave
   
-  for (i <- 0 to cnt - 1) {
-    when (turnReg === UFix(i)) {
-      io.master(turnReg).S := slave  
-    }
-  }
-  
-//  for (i <- 0 to cnt - 1) {
-//    io.master(i).S.CmdAccept := Bits(0)
-//    io.master(i).S.DataAccept := Bits(0)
-//    io.master(i).S.Resp := Bits(0)
-//    // we forward the data to all masters
-//    io.master(i).S.Data := slave.Data
-//  }
-//  io.master(turnReg).S := slave
+  // The response of the SSRAM comes a little bit late
 }
 
 
