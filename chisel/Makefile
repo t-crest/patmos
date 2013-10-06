@@ -61,7 +61,7 @@ $(CGEN): $(BOOTBIN) $(BOOTDAT) $(SRC)
 
 # run emulator
 test: emulator
-	$(CHISELBUILDDIR)/emulator -v -l 1000000
+	$(CHISELBUILDDIR)/emulator -r -n -v -l 1000000
 
 # view detailed emulation results
 view:

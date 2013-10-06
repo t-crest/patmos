@@ -198,16 +198,24 @@ int main (int argc, char* argv[]) {
   int opt;
   int lim = -1;
   bool vcd = false;
-  bool uart = false;
-  bool quiet = false;
+  // MS: what it the usage of disabling the UART?
+  bool uart = true;
+  bool quiet = true;
 
-  while ((opt = getopt(argc, argv, "quvl:I:O:")) != -1) {
+  while ((opt = getopt(argc, argv, "qurnvl:I:O:")) != -1) {
 	switch (opt) {
+	// MS: q and u should go away, but tests in bench need updates first
 	case 'q':
 	  quiet = true;
 	  break;
 	case 'u':
 	  uart = true;
+	  break;
+	case 'r':
+	  quiet = false;
+	  break;
+	case 'n':
+	  uart = false;
 	  break;
 	case 'v':
 	  vcd = true;
