@@ -70,17 +70,17 @@
 \newcommand{\rasmus}[1]{\comment{Rasmus}{#1}{Mahogany}}
 
 %% uncomment to get rid of comments
-%\renewcommand{\tommy}[1]{}
-%\renewcommand{\wolf}[1]{}
-%\renewcommand{\martin}[1]{}
-%\renewcommand{\stefan}[1]{}
-%\renewcommand{\daniel}[1]{}
-%\renewcommand{\cullmann}[1]{}
-%\renewcommand{\gebhard}[1]{}
-%\renewcommand{\fb}[1]{}
-%\renewcommand{\jack}[1]{}
-%\renewcommand{\sahar}[1]{}
-%\renewcommand{\rasmus}[1]{}
+\renewcommand{\tommy}[1]{}
+\renewcommand{\wolf}[1]{}
+\renewcommand{\martin}[1]{}
+\renewcommand{\stefan}[1]{}
+\renewcommand{\daniel}[1]{}
+\renewcommand{\cullmann}[1]{}
+\renewcommand{\gebhard}[1]{}
+\renewcommand{\fb}[1]{}
+\renewcommand{\jack}[1]{}
+\renewcommand{\sahar}[1]{}
+\renewcommand{\rasmus}[1]{}
 
 %
 % custom colors
@@ -642,6 +642,12 @@ Figure~\ref{fig:pipeline} shows an overview of Patmos' pipeline. The pipeline
 consist of 5 stages: (1) instruction fetch (\texttt{FE}), (2) decode and
 register read (\texttt{DEC}), (3) execute (\texttt{EX}), (4) memory access (\texttt{MEM}), and (5) register write  back (\texttt{WB}).
 
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{fig/pipeline}
+    \caption{Pipeline of Patmos with fetch, decode, execute, memory, and write back stages.}\label{fig:pipeline}
+\end{figure}
+
 Some instructions define additional pipeline stages. Multiplication instructions
 are executed, starting from the \texttt{EX} stage, in a parallel pipeline with
 fixed-length (see the instruction definition). The respective stages are
@@ -679,11 +685,18 @@ and the stages are simulated from back to front.
 While this has no effect on the timing and hazards of the instructions, there is only a single bypass from MW to EX (per pipeline). Apart
 from that, all implementations of all instructions in the simulator should adhere to the above description of the stages.}
 
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{fig/pipeline}
-    \caption{Pipeline of Patmos with fetch, decode, execute, memory, and write back stages.}\label{fig:pipeline}
-\end{figure}
+\section{Local Memories}
+
+Patmos contains several on-chip memories, as sketched in Figure~\ref{fig:pipeline}.
+We apply the idea of split caches~\cite{jop:dcache:rts} to simplify and enhance
+the cache analysis. Instructions are fetched from the method cache that caches
+whole methods. Patmos also supports instruction and data scratchpad memories.
+Stack allocated data is cached in a stack cache and we envision also a normal
+data cache with LRU replacement. Accesses to data that are hard to analyze can
+bypass the data cache.
+
+% \cite{jop:ocwcet:ccpe}
+
 
 
 \section{Register Files}
@@ -3214,14 +3227,8 @@ So when the slave sets SResp we are not allowing the master to initiate the next
 request in the same cycle. Right?} 
 
 \martin{Are OCP addresses always in bytes? Even on the burst interface? I assume yes.
-We need to look this up.}
+We need to look this up. -- According to Wolfgang they are.}
 
-
-
-\todo{The legal status of using a subset of OCP in an open-source
-project needs to be checked. The Patmos document shall be
-self contained and no membership to OCP necessary to use
-Patmos.}
 
 \clearpage
 \subsection{Timing Diagrams}
@@ -3602,6 +3609,15 @@ This split of the make commands is for demonstration. It is
 possible to merge all steps into a single make (on Linux
 systems) or two steps when using a two operating
 systems (for compilation and synthesis).
+
+\chapter{The Patmos Compiler}
+\label{sec:compiler}
+
+The LLVM compiler has been adapted to emit code for the Patmos ISA
+and support the special features, e.g., the stack cache~\cite{Seus13:compiler}.
+
+\martin{Daniel and Stefan shall add here an overview of the compiler and
+some words on source organization.}
 
 \chapter{Application Binary Interface}
 \label{sec:abi}
