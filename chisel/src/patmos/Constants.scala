@@ -67,10 +67,9 @@ object Constants {
   val BOOTMEM_ONE_BIT = 16
   val BOOTSPM_BITS = 11
 
-  val MCACHE_SIZE = 4096 // this is apparently in words, should be changed to bytes to fit the rest
-  val MAX_RELADDR_WIDTH = math.max(log2Up(MCACHE_SIZE), log2Up(1 << ISPM_BITS-2)) //max width for relative base
+  val MCACHE_SIZE = 4096 //in bytes
+  val MAX_OFF_WIDTH = math.max(log2Up(MCACHE_SIZE / 4), log2Up(1 << ISPM_BITS-2)) //max width between SPM size and MCACHE size
   val METHOD_COUNT = 16
-  val OFF_WIDTH = log2Up(math.max(MCACHE_SIZE, 1 << ISPM_ONE_BIT)) //? isn't the max between ISPM and MCACHE width enough for pcReg?
 
   val EXTMEM_ADDR_WIDTH = 21
   val BURST_LENGTH = 4 //for ssram on de2-70 board max. 4

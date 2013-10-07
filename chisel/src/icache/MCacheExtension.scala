@@ -158,7 +158,7 @@ class MCacheReplLru(method_count : Int = METHOD_COUNT) extends Component {
   val mru_tag = Reg(resetVal = Bits(method_count - 1, width = log2Up(method_count)))
   //val lru_pos = Reg(resetVal = Bits(0, width = log2Up(method_count)))
   //registers for splitting up
-  val split_msize_cnt = Reg(resetVal = Bits(0, width = METHOD_SIZETAG_WIDTH))
+  val split_msize_cnt = Reg(resetVal = Bits(0, width = MCACHE_SIZE_WIDTH))
   val mmu_offset_cnt = Reg(resetVal = Bits(0, width = log2Up(method_count)))
   val update_cnt = Reg(resetVal = Bits(0, width = log2Up(method_count)))
   //variables when call/return occurs to check and set tag fields
