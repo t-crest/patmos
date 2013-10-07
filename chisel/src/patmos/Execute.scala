@@ -235,9 +235,11 @@ class Execute() extends Component {
 	predReg(0) := Bool(true)
 
 	// stack register handling
-	when(exReg.aluOp(i).isSTC && doExecute(i) && io.ena) {
+	when(exReg.aluOp(i).isSTC && doExecute(i)) {
 	  io.exdec.sp := op(2*i+1).toUFix()
-	  stackTopReg := op(2*i+1).toUFix()
+	  when (io.ena) {
+		stackTopReg := op(2*i+1).toUFix()
+	  }
 	}
 
 	// special registers
