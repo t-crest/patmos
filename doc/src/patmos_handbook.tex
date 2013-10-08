@@ -70,17 +70,17 @@
 \newcommand{\rasmus}[1]{\comment{Rasmus}{#1}{Mahogany}}
 
 %% uncomment to get rid of comments
-\renewcommand{\tommy}[1]{}
-\renewcommand{\wolf}[1]{}
-\renewcommand{\martin}[1]{}
-\renewcommand{\stefan}[1]{}
-\renewcommand{\daniel}[1]{}
-\renewcommand{\cullmann}[1]{}
-\renewcommand{\gebhard}[1]{}
-\renewcommand{\fb}[1]{}
-\renewcommand{\jack}[1]{}
-\renewcommand{\sahar}[1]{}
-\renewcommand{\rasmus}[1]{}
+%\renewcommand{\tommy}[1]{}
+%\renewcommand{\wolf}[1]{}
+%\renewcommand{\martin}[1]{}
+%\renewcommand{\stefan}[1]{}
+%\renewcommand{\daniel}[1]{}
+%\renewcommand{\cullmann}[1]{}
+%\renewcommand{\gebhard}[1]{}
+%\renewcommand{\fb}[1]{}
+%\renewcommand{\jack}[1]{}
+%\renewcommand{\sahar}[1]{}
+%\renewcommand{\rasmus}[1]{}
 
 %
 % custom colors
@@ -3596,6 +3596,7 @@ loaded by the emulator or the boot loader when executing in an FPGA.
 % TODO: test and talk about patsim. Having a complete ELF in the FPGA
 % without the boot loader would be nice as well.
 
+
 Here an example of the individual steps to build the blinking LED C
 hello world (on a different FPGA board):
 \begin{verbatim}
@@ -3609,6 +3610,21 @@ This split of the make commands is for demonstration. It is
 possible to merge all steps into a single make (on Linux
 systems) or two steps when using a two operating
 systems (for compilation and synthesis).
+
+\paragraph{Emulator and elf file}
+
+The emulator can read a standard ELF file. An example how to compile
+a small C program that uses part of the standard library and executing
+it on the emulator is as follows:
+
+\begin{verbatim}
+make emulator
+make comp APP=helloworld
+bin/emulator tmp/helloworld.elf
+\end{verbatim}
+
+\martin{Where is the make target to run the emulator with an ELF file?}
+
 
 \chapter{The Patmos Compiler}
 \label{sec:compiler}
