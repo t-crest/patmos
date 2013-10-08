@@ -30,69 +30,54 @@
    policies, either expressed or implied, of the copyright holder.
  */
 
-/*
- * Utility functions for Patmos.
+package util
+
+/**
+ * A tiny configuration tool for Patmos.
  * 
- * Author: Martin Schoeberl (martin@jopdesign.com)
- * 
+ * Authors: Martin Schoeberl (martin@jopdesign.com)
  */
+abstract class Config {
+  val description: String
+  val frequency: Int
+  
+  override def toString = description + " at " + (frequency/1000000).toString() + " MHz"
+  
+  def toXML =
+    <processor>
+      <description>{description}</description>
+      <frequency>{frequency}</frequency>  	
+    </processor>
 
-package patmos
+}
 
-import Chisel._
-import Node._
-
-import Constants._
-
-object Utility {
-
-  /**
-   * Read a binary file into the ROM vector
-   */
-  def readBin(fileName: String, width: Int): Vec[Bits] = {
-
-    val bytesPerWord = (width+7) / 8
-
-    println("Reading " + fileName)
-    // an encoding to read a binary file? Strange new world.
-    val source = scala.io.Source.fromFile(fileName)(scala.io.Codec.ISO8859)
-    val byteArray = source.map(_.toByte).toArray
-    source.close()
-
-    // using a vector for a ROM
-    val v = Vec(math.max(1, byteArray.length / bytesPerWord)) { Bits(width = width) }
-
-    if (byteArray.length == 0) {
-      v(0) = Bits(0, width = width)
-    }
-
-    for (i <- 0 until byteArray.length / bytesPerWord) {
-      var word = 0
-      for (j <- 0 until bytesPerWord) {
-        word <<= 8
-        word += byteArray(i * bytesPerWord + j).toInt & 0xff
-      }
-      printf("%08x\n", word)
-      v(i) = Bits(word, width = width)
-    }
-    v
+object Config {
+  
+  def fromXML(node: scala.xml.Node): Config =
+    new Config {
+      val description = (node \ "description").text
+      val frequency = (node \ "frequency").text.toInt
   }
   
-  def testConfig(configFile: String): Unit = {
-    val config = util.Config.load(configFile)
-    println("Just a small test config:")
-    println(config)
+  def load(file: String) = {
+    val node = xml.XML.loadFile(file)
+    fromXML(node)
   }
   
-  def printConfig(configFile: String): Unit = {
-    printf("\nPatmos configuration:\n")
-    printf("\tFrequency: %d MHz\n", Constants.CLOCK_FREQ/1000000)
-    printf("\tMethod cache size: %d KB\n", Constants.MCACHE_SIZE/1024)
-    printf("\tInstruction SPM  size: %d KB\n", (1 << Constants.ISPM_BITS)/1024)
-    printf("\tData SPM size: %d KB\n", (1 << Constants.DSPM_BITS)/1024)
-    printf("\tBoot SPM size: %d KB\n", (1 << Constants.BOOTSPM_BITS)/1024)
-    printf("\n")
+  /** Helper main to avoid writing an XML file by hand */ 
+  def main(args: Array[String]) = {
     
-    testConfig(configFile)
+    val processor = new Config {
+      val description = "default configuration"
+      val frequency = 80000000
+    }
+    
+    println(processor.toString())
+    println(processor.toXML.toString)
+    scala.xml.XML.save("default.xml", processor.toXML)
+    
+    val config = load("default2.xml")
+    
+    println(config)
   }
 }

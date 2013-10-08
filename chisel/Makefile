@@ -15,8 +15,8 @@ QPROJ?=altde2-70
 # sbt looks for default into a folder project/ for build.sdt and Build.scala
 # sbt creates per default a target folder
 #
-# Source directory is configured in project/Build.scala
-# Scala/Java build directory is configured in project/Build.scala
+# Source directory is configured in build.sbt
+# Scala/Java build directory is the default one
 SBT=java -Xmx1024M -Xss8M -XX:MaxPermSize=128M -jar sbt/sbt-launch.jar
 
 # C++ build flags
@@ -37,6 +37,9 @@ SRC=$(shell find src -name '*.scala')
 # main class for Patmos
 MAIN=patmos.PatmosMain
 
+# config file for Patmos -- now yust in test mode
+CONFIG=config/default.xml
+
 # build C++ and Verilog versions by default
 all: emulator verilog
 
@@ -56,7 +59,7 @@ $(CHISELBUILDDIR)/Patmos.cpp: $(CGEN)
 	fi
 
 $(CGEN): $(BOOTBIN) $(BOOTDAT) $(SRC)
-	$(SBT) "run-main $(MAIN) $(BOOTBIN) $(BOOTDAT) --vcd --targetDir $(CHISELBUILDDIR) --backend c"
+	$(SBT) "run-main $(MAIN) $(CONFIG) $(BOOTBIN) $(BOOTDAT) --vcd --targetDir $(CHISELBUILDDIR) --backend c"
 	echo $(BOOTBIN)+$(BOOTDAT) > $(CGEN)
 
 # run emulator
