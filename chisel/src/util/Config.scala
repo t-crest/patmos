@@ -32,6 +32,10 @@
 
 package util
 
+// Ms: shall this really be in util?
+// I doubt, when this becomes central.
+
+
 /**
  * A tiny configuration tool for Patmos.
  * 
@@ -59,7 +63,15 @@ object Config {
       val frequency = (node \ "frequency").text.toInt
   }
   
-  def load(file: String) = {
+  // This is probably not the best way to have the singleton
+  // for the configuration available and around.
+  // We also do not want this to be a var.
+  var conf: Config = new Config {
+      val description = "dummy"
+      val frequency = 12345678
+    }
+  
+  def load(file: String): Config = {
     val node = xml.XML.loadFile(file)
     fromXML(node)
   }
@@ -76,7 +88,7 @@ object Config {
     println(processor.toXML.toString)
     scala.xml.XML.save("default.xml", processor.toXML)
     
-    val config = load("default2.xml")
+    val config = load("default.xml")
     
     println(config)
   }

@@ -74,6 +74,8 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Compo
     //val rfDebug = Vec(REG_COUNT) { Bits(OUTPUT, DATA_WIDTH) }
   }
   
+//  Config.conf = Config.load(configFile)
+  
   val ssram = new SsramBurstRW()
   val mcache = new MCache()
 

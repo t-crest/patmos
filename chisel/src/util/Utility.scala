@@ -93,6 +93,7 @@ object Utility {
     printf("\tBoot SPM size: %d KB\n", (1 << Constants.BOOTSPM_BITS)/1024)
     printf("\n")
     
+    println(util.Config.conf)
     testConfig(configFile)
   }
 }

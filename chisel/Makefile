@@ -38,7 +38,8 @@ SRC=$(shell find src -name '*.scala')
 MAIN=patmos.PatmosMain
 
 # config file for Patmos -- now yust in test mode
-CONFIG=config/default.xml
+CONFIG=default
+CONFIGFILE=config/$(CONFIG).xml
 
 # build C++ and Verilog versions by default
 all: emulator verilog
@@ -59,7 +60,7 @@ $(CHISELBUILDDIR)/Patmos.cpp: $(CGEN)
 	fi
 
 $(CGEN): $(BOOTBIN) $(BOOTDAT) $(SRC)
-	$(SBT) "run-main $(MAIN) $(CONFIG) $(BOOTBIN) $(BOOTDAT) --vcd --targetDir $(CHISELBUILDDIR) --backend c"
+	$(SBT) "run-main $(MAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --vcd --targetDir $(CHISELBUILDDIR) --backend c"
 	echo $(BOOTBIN)+$(BOOTDAT) > $(CGEN)
 
 # run emulator
