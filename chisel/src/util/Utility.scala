@@ -77,4 +77,14 @@ object Utility {
     }
     v
   }
+  
+  def printConfig(): Unit = {
+    printf("\nPatmos configuration:\n")
+    printf("\tFrequency: %d MHz\n", Constants.CLOCK_FREQ/1000000)
+    printf("\tMethod cache size: %d KB\n", Constants.MCACHE_SIZE/1024)
+    printf("\tInstruction SPM  size: %d KB\n", (1 << Constants.ISPM_BITS)/1024)
+    printf("\tData SPM size: %d KB\n", (1 << Constants.DSPM_BITS)/1024)
+    printf("\tBoot SPM size: %d KB\n", (1 << Constants.BOOTSPM_BITS)/1024)
+    printf("\n")
+  }
 }

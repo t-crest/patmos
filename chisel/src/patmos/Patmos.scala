@@ -56,6 +56,7 @@ import scala.collection.mutable.HashMap
 
 import Constants._
 
+import util._
 import ocp._
 
 /**
@@ -72,7 +73,7 @@ class Patmos(binFile: String, datFile: String) extends Component {
     val sramPins = new RamOutPinsIO() 
     //val rfDebug = Vec(REG_COUNT) { Bits(OUTPUT, DATA_WIDTH) }
   }
-
+  
   val ssram = new SsramBurstRW()
   val mcache = new MCache()
 
@@ -139,6 +140,9 @@ class Patmos(binFile: String, datFile: String) extends Component {
   io.uartPins <> iocomp.io.uartPins
   io.sramPins.ram_out <> ssram.io.ram_out
   io.sramPins.ram_in <> ssram.io.ram_in
+
+  // Print out the configuration
+  Utility.printConfig()
 
   // ***** the following code is not really Patmos code ******
 
