@@ -174,9 +174,6 @@ namespace patmos
     /// The next value for program counter register.
     uword_t nPC;
 
-    /// The last value of the program counter register
-    uword_t lPC;
-
     /// The general purpose registers.
     GPR_t GPR;
 
@@ -259,6 +256,9 @@ namespace patmos
     /// Halt the simulation. All instructions currently in flight will be 
     /// completed first.
     void halt();
+    
+    /// Check if the simulator has been requested to halt.
+    bool is_halting() const;
     
     /// Track retiring instructions for stats.
     void track_retiring_instructions();
