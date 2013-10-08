@@ -246,7 +246,7 @@ class MemFe() extends Bundle() {
 }
 
 class FeMem() extends Bundle() {
-  val pc = UFix(width = PC_SIZE)
+  val pc = UFix(width = MAX_OFF_WIDTH)
 }
 
 class MemWb() extends Bundle() {

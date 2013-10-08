@@ -251,10 +251,10 @@ class MCacheReplFifo() extends Component {
     hitReg := Bits(1) //start fetch, we have again a hit!
     wrPosReg := posReg
     //update free space
-    free_space := free_space - io.mcache_ctrlrepl.w_data + mcache_size_vec(next_index_tag)
+    free_space := free_space - io.mcache_ctrlrepl.w_data(MCACHE_SIZE_WIDTH,0) + mcache_size_vec(next_index_tag)
     //update tag fields
     mcache_pos_vec(next_index_tag) := next_replace_pos
-    mcache_size_vec(next_index_tag) := io.mcache_ctrlrepl.w_data
+    mcache_size_vec(next_index_tag) := io.mcache_ctrlrepl.w_data(MCACHE_SIZE_WIDTH, 0)
     mcache_addr_vec(next_index_tag) := io.mcache_ctrlrepl.w_addr
     mcache_valid_vec(next_index_tag) := Bits(1)
     //update pointers
@@ -330,7 +330,7 @@ class MCacheCtrl() extends Component {
   val ext_mem_cmd = Bits(width = 3)
   val ext_mem_addr = Bits(width = EXTMEM_ADDR_WIDTH)
   val ext_mem_tsize = Reg(resetVal = Bits(0, width = MCACHE_SIZE_WIDTH))
-  val ext_mem_fcounter = Reg(resetVal = Bits(0, width = 32))
+  val ext_mem_fcounter = Reg(resetVal = Bits(0, width = MCACHE_SIZE_WIDTH))
   val ext_mem_burst_cnt = Reg(resetVal = UFix(0, width = log2Up(BURST_LENGTH)))
   //input/output registers
   val callRetBaseReg = Reg(resetVal = Bits(0, width = ADDR_WIDTH))
