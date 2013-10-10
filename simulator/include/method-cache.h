@@ -131,6 +131,9 @@ namespace patmos
     /// Number of bytes transferred for this method.
     unsigned int Num_bytes_transferred;
     
+    /// Number of blocks required for this method.
+    unsigned int Num_blocks_allocated;
+    
     /// Number of cache hits for the method.
     unsigned int Num_hits;
 
@@ -144,7 +147,7 @@ namespace patmos
     float Max_utilization;
     
     /// Initialize the method statistics.
-    method_stats_info_t() : Num_bytes_transferred(0),
+    method_stats_info_t() : Num_bytes_transferred(0), Num_blocks_allocated(0),
       Num_hits(0), Num_misses(0),
       Min_utilization(std::numeric_limits<float>::max()), 
       Max_utilization(0)
@@ -263,11 +266,11 @@ namespace patmos
     unsigned int Num_active_blocks;
 
     /// Number of blocks transferred from the main memory.
-    unsigned int Num_blocks_transferred;
+    unsigned int Num_blocks_allocated;
 
     /// Largest number of blocks transferred from the main memory for a single
     /// method.
-    unsigned int Num_max_blocks_transferred;
+    unsigned int Num_max_blocks_allocated;
 
     /// Number of bytes transferred from the main memory.
     unsigned int Num_bytes_transferred;
@@ -412,9 +415,6 @@ namespace patmos
 
     uword_t get_transfer_size()
     {
-      // Transfer whole blocks only?
-      //return Num_transfer_blocks * Num_block_bytes;
-      
       // Memory controller aligns to burst size
       return Num_transfer_bytes;
     }
@@ -431,8 +431,8 @@ namespace patmos
         Memory(memory), Num_blocks(num_blocks), 
         Num_block_bytes(num_block_bytes), Phase(IDLE),
         Num_transfer_blocks(0), Num_transfer_bytes(0), Num_active_methods(0),
-        Num_active_blocks(0), Num_blocks_transferred(0),
-        Num_max_blocks_transferred(0), Num_bytes_transferred(0),
+        Num_active_blocks(0), Num_blocks_allocated(0),
+        Num_max_blocks_allocated(0), Num_bytes_transferred(0),
         Num_max_bytes_transferred(0), Num_max_active_methods(0),
         Num_hits(0), Num_misses(0), Num_stall_cycles(0), Num_bytes_utilized(0)
     {
@@ -521,8 +521,8 @@ namespace patmos
 
             // Note that this does not include alignment, this is done by the 
             // memory controller.
-            Method_stats[address].Num_bytes_transferred = Num_transfer_blocks * 
-                                                          Num_block_bytes;
+            Method_stats[address].Num_bytes_transferred = get_transfer_size();
+            Method_stats[address].Num_blocks_allocated = Num_transfer_blocks;
             
             // check method size against cache size.
             if (Num_transfer_blocks == 0 || Num_transfer_blocks > Num_blocks)
@@ -546,8 +546,8 @@ namespace patmos
             Num_max_active_methods = std::max(Num_max_active_methods,
                                               Num_active_methods);
             Num_active_blocks += Num_transfer_blocks;
-            Num_blocks_transferred += Num_transfer_blocks;
-            Num_max_blocks_transferred = std::max(Num_max_blocks_transferred,
+            Num_blocks_allocated += Num_transfer_blocks;
+            Num_max_blocks_allocated = std::max(Num_max_blocks_allocated,
                                                   Num_transfer_blocks);
             Num_bytes_transferred += Num_transfer_bytes;
             Num_max_bytes_transferred = std::max(Num_max_bytes_transferred,
@@ -666,14 +666,14 @@ namespace patmos
       }
       // Utilization = Bytes used / bytes allocated in cache
       float utilization = (float)bytes_utilized / 
-                          (float)(Num_blocks_transferred * Num_block_bytes);
+                          (float)(Num_blocks_allocated * Num_block_bytes);
       // Fragmentation = Bytes loaded to cache / Bytes allocated in cache
       float fragmentation = 1.0 - (float)Num_bytes_transferred / 
-                          (float)(Num_blocks_transferred * Num_block_bytes);
+                          (float)(Num_blocks_allocated * Num_block_bytes);
       
       // instruction statistics
       os << boost::format("                            total        max.\n"
-                          "   Blocks Transferred  : %1$10d  %2$10d\n"
+                          "   Blocks Allocated    : %1$10d  %2$10d\n"
                           "   Bytes Transferred   : %3$10d  %4$10d\n"
                           "   Bytes Used          : %5$10d\n"
                           "   Utilization         : %6$10.2f%%\n"
@@ -682,7 +682,7 @@ namespace patmos
                           "   Cache Hits          : %9$10d\n"
                           "   Cache Misses        : %10$10d\n"
                           "   Miss Stall Cycles   : %11$10d  %12$10.2f%%\n\n")
-        % Num_blocks_transferred % Num_max_blocks_transferred
+        % Num_blocks_allocated % Num_max_blocks_allocated
         % Num_bytes_transferred % Num_max_bytes_transferred
         % bytes_utilized % (utilization * 100.0) % (fragmentation * 100.0)
         % Num_max_active_methods % Num_hits % Num_misses % Num_stall_cycles 
@@ -697,13 +697,13 @@ namespace patmos
       }
 
       // print stats per method
-      os << "       Method:      #hits     #misses       bytes    min-util    max-util\n";
+      os << "       Method:      #hits     #misses       bytes      blocks    min-util    max-util\n";
       for(method_stats_t::iterator i(Method_stats.begin()),
           ie(Method_stats.end()); i != ie; i++)
       {
-        os << boost::format("   0x%1$08x: %2$10d  %3$10d  %4$10d %5$10.2f%% %6$10.2f%%    %7%\n")
+        os << boost::format("   0x%1$08x: %2$10d  %3$10d  %4$10d  %5$10d %6$10.2f%% %7$10.2f%%    %8%\n")
            % i->first % i->second.Num_hits % i->second.Num_misses
-           % i->second.Num_bytes_transferred
+           % i->second.Num_bytes_transferred % i->second.Num_blocks_allocated
            % (i->second.Min_utilization * 100.0)
            % (i->second.Max_utilization * 100.0)
            % s.Symbols.find(i->first);
@@ -712,10 +712,10 @@ namespace patmos
 
     virtual void reset_stats() 
     {
-      Num_blocks_transferred = 0;
-      Num_max_blocks_transferred = 0;
+      Num_blocks_allocated = 0;
+      Num_max_blocks_allocated = 0;
       Num_bytes_transferred = 0;
-      Num_max_blocks_transferred = 0;
+      Num_max_blocks_allocated = 0;
       Num_bytes_utilized = 0;
       Num_max_active_methods = 0;
       Num_hits = 0; 
