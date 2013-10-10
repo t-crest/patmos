@@ -53,6 +53,14 @@ volatile int *dummy = (int *) 0x123;
 
     }
 
+    int k;
+    char msg[] = "Hello, world\n";
+    for (k = 0; k < 13;) {
+        if (UART_STATUS & 0x02) {
+            UART_DATA = msg[k];
+        }
+    }
+
     int i, j;
 
     for (;;) {
