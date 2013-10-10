@@ -12,6 +12,14 @@
 #define UART_DATA   *((volatile _SPM int *) 0xF0000804)
 #define CPU_ID      *((volatile _SPM int *) 0xF0000000)
 
+#define WRITE(data,len) do { \
+  unsigned i; \
+  for (i = 0; i < (len); i++) {        \
+    while ((UART_STATUS & 0x01) == 0); \
+    UART_DATA = (data)[i];             \
+  } \
+} while(0)
+
 struct network_interface
 {
     volatile _SPM int *dma;
@@ -25,14 +33,18 @@ struct network_interface
     (volatile _SPM int *) 0xE8000000
 };
 
-
 int main() {
 
 volatile int *dummy = (int *) 0x123;
 
     volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0000900;
 
+    char msg[] = "Hello world, from core: ";
+    char cid = (char)(CPU_ID + (int)'0');
 
+    WRITE(msg,24);
+    WRITE(&cid,1);
+    WRITE("\n",1);
 
     if (CPU_ID == 0)
     {
@@ -52,6 +64,7 @@ volatile int *dummy = (int *) 0x123;
         *ni.dma = 4 | (1 << 15) ; // DWord count and valid bit
 
     }
+
 
     int i, j;
 
