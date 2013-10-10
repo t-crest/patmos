@@ -689,7 +689,7 @@ namespace patmos
         % (100.0 * Num_stall_cycles / (float)s.Cycle);
 
       // Update utilization stats for all methods not yet evicted.
-      for(int i = Num_blocks - 1; i >= (int)(Num_blocks - Num_active_methods); i--)
+      for(int i = Num_blocks - Num_active_methods; i < Num_blocks; i++)
       {
         // TODO we do not *actually* want to evict this method, use a diffent 
         //      method.
