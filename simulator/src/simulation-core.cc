@@ -144,6 +144,11 @@ namespace patmos
     Halt = true;
   }
   
+  bool simulator_t::is_halting() const 
+  {
+    return Halt;
+  }
+  
   void simulator_t::track_retiring_instructions()
   {
     if (Stall != NUM_STAGES-1)
@@ -283,7 +288,6 @@ namespace patmos
     if (Cycle == 0)
     {
       BASE = PC = nPC = entry;
-      lPC = ~0;
       Instr_cache.initialize(entry);
       Profiling.initialize(entry);
       Dbg_stack.initialize(entry);
@@ -396,7 +400,6 @@ namespace patmos
             }
           }
         }
-        lPC = PC;
       } // end of simulation loop
     }
     catch (simulation_exception_t e)
@@ -526,7 +529,7 @@ namespace patmos
     {
       // CAVEAT: this trace mode is used by platin's 'analyze-trace' module
       // do not change without adapting platin
-      if (PC != lPC)
+      if (!is_stalling(SIF) && !is_halting())
       {
         // Boost::format is unacceptably slow (adpcm.elf):
         //  => no debugging output:  1.6s
@@ -543,7 +546,7 @@ namespace patmos
       return;
     }
     else if (debug_fmt == DF_BLOCKS) {
-      if (PC != lPC && Symbols.contains(PC)) {
+      if (!is_stalling(SIF) && !is_halting() && Symbols.contains(PC)) {
 	os << boost::format("%1$08x %2$9d ") % PC % Cycle;
 	Symbols.print(os, PC);
 	os << "\n";
