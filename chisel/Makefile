@@ -80,7 +80,7 @@ $(CHISELBUILDDIR)/Patmos.v: $(VGEN)
 	fi
 
 $(VGEN): $(BOOTBIN) $(BOOTDAT) $(SRC)
-	$(SBT) "run-main $(MAIN) $(BOOTBIN) $(BOOTDAT) --targetDir $(CHISELBUILDDIR) --backend v"
+	$(SBT) "run-main $(MAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --targetDir $(CHISELBUILDDIR) --backend v"
 	echo $(BOOTBIN)+$(BOOTDAT) > $(VGEN)
 
 # run Verilog simulation
