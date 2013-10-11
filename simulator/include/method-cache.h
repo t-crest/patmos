@@ -129,7 +129,7 @@ namespace patmos
   {
   public:
     /// Number of bytes transferred for this method.
-    unsigned int Num_bytes_transferred;
+    unsigned int Num_method_bytes;
     
     /// Number of blocks required for this method.
     unsigned int Num_blocks_allocated;
@@ -147,7 +147,7 @@ namespace patmos
     float Max_utilization;
     
     /// Initialize the method statistics.
-    method_stats_info_t() : Num_bytes_transferred(0), Num_blocks_allocated(0),
+    method_stats_info_t() : Num_method_bytes(0), Num_blocks_allocated(0),
       Num_hits(0), Num_misses(0),
       Min_utilization(std::numeric_limits<float>::max()), 
       Max_utilization(0)
@@ -248,16 +248,16 @@ namespace patmos
     phase_e Phase;
 
     /// Number of blocks of the currently pending transfer, if any.
-    uword_t Num_transfer_blocks;
+    uword_t Num_allocate_blocks;
 
     /// Number of bytes of the currently pending transfer, if any.
-    uword_t Num_transfer_bytes;
+    uword_t Num_method_size;
 
     /// The methods in the cache sorted by age.
     method_info_t *Methods;
 
-    /// The methods' instructions sorted by ID.
-    byte_t *Instructions;
+    /// Temporary transfer buffer
+    byte_t *Transfer_buffer;
 
     /// The number of methods currently in the cache.
     unsigned int Num_active_methods;
@@ -382,19 +382,11 @@ namespace patmos
 
     bool read_function_size(word_t function_base, uword_t *result_size)
     {
-      uword_t num_bytes_big_endian;
-      if (Memory.read(function_base - sizeof(uword_t),
-            reinterpret_cast<byte_t*>(&num_bytes_big_endian),
-            sizeof(uword_t)))
-      {
-        // convert method size to native endianess and compute size in
-        // blocks
-        *result_size = from_big_endian<big_uword_t>(num_bytes_big_endian);
-        return true;
-      }
-      return false;
+      // We only peek at the size in the simulation, and load the method
+      // together with the size word
+      return peek_function_size(function_base, result_size);
     }
-
+    
     bool peek_function_size(word_t function_base, uword_t *result_size)
     {
       uword_t num_bytes_big_endian;
@@ -413,10 +405,15 @@ namespace patmos
       return ((num_bytes - 1) / Num_block_bytes) + 1;
     }
 
+    uword_t get_transfer_start(uword_t address) {
+      return address - 4;
+    }
+    
     uword_t get_transfer_size()
     {
       // Memory controller aligns to burst size
-      return Num_transfer_bytes;
+      // But we need to transfer the size word as well.
+      return Num_method_size + 4;
     }
     
   public:
@@ -430,7 +427,7 @@ namespace patmos
                        unsigned int max_active_methods = 0) :
         Memory(memory), Num_blocks(num_blocks), 
         Num_block_bytes(num_block_bytes), Phase(IDLE),
-        Num_transfer_blocks(0), Num_transfer_bytes(0), Num_active_methods(0),
+        Num_allocate_blocks(0), Num_method_size(0), Num_active_methods(0),
         Num_active_blocks(0), Num_blocks_allocated(0),
         Num_max_blocks_allocated(0), Num_bytes_transferred(0),
         Num_max_bytes_transferred(0), Num_max_active_methods(0),
@@ -440,6 +437,7 @@ namespace patmos
       Methods = new method_info_t[Num_blocks];
       for(unsigned int i = 0; i < Num_blocks; i++)
         Methods[i] = method_info_t(new byte_t[Num_block_bytes * Num_blocks]);
+      Transfer_buffer = new byte_t[Num_block_bytes * Num_blocks + 4];
     }
 
     /// Initialize the cache before executing the first instruction.
@@ -490,7 +488,7 @@ namespace patmos
         // a new request has to be started.
         case IDLE:
         {
-          assert(Num_transfer_blocks == 0 && Num_transfer_bytes == 0);
+          assert(Num_allocate_blocks == 0 && Num_method_size == 0);
 
           if (lookup(address))
           {
@@ -512,27 +510,27 @@ namespace patmos
         // the size of the method has to be fetched from memory.
         case SIZE:
         {
-          assert(Num_transfer_blocks == 0 && Num_transfer_bytes == 0);
+          assert(Num_allocate_blocks == 0 && Num_method_size == 0);
 
           // get the size of the method that should be loaded
-          if (read_function_size(address, &Num_transfer_bytes))
-          {
-            Num_transfer_blocks = get_num_blocks_for_bytes(Num_transfer_bytes);
+          if (peek_function_size(address, &Num_method_size)) {
+            
+            Num_allocate_blocks = get_num_blocks_for_bytes(Num_method_size);
 
-            // Note that this does not include alignment, this is done by the 
-            // memory controller.
-            Method_stats[address].Num_bytes_transferred = get_transfer_size();
-            Method_stats[address].Num_blocks_allocated = Num_transfer_blocks;
+            // TODO should we also store how many bytes are actually transferred
+            // by the memory? Ask the Memory for the actual transfer size.
+            Method_stats[address].Num_method_bytes = Num_method_size;
+            Method_stats[address].Num_blocks_allocated = Num_allocate_blocks;
             
             // check method size against cache size.
-            if (Num_transfer_blocks == 0 || Num_transfer_blocks > Num_blocks)
+            if (Num_allocate_blocks == 0 || Num_allocate_blocks > Num_blocks)
             {
               simulation_exception_t::code_exceeded(address);
             }
 
             // throw other entries out of the cache if needed
-            while (Num_active_blocks + Num_transfer_blocks > Num_blocks ||
-                   Num_active_methods >= Num_max_methods)
+            while (Num_active_blocks + Num_allocate_blocks > Num_blocks ||
+                    Num_active_methods >= Num_max_methods)
             {
               assert(Num_active_methods > 0);
               Num_active_blocks -=
@@ -545,13 +543,13 @@ namespace patmos
             Num_active_methods++;
             Num_max_active_methods = std::max(Num_max_active_methods,
                                               Num_active_methods);
-            Num_active_blocks += Num_transfer_blocks;
-            Num_blocks_allocated += Num_transfer_blocks;
+            Num_active_blocks += Num_allocate_blocks;
+            Num_blocks_allocated += Num_allocate_blocks;
             Num_max_blocks_allocated = std::max(Num_max_blocks_allocated,
-                                                  Num_transfer_blocks);
-            Num_bytes_transferred += Num_transfer_bytes;
+                                                  Num_allocate_blocks);
+            Num_bytes_transferred += get_transfer_size();
             Num_max_bytes_transferred = std::max(Num_max_bytes_transferred,
-                                                  Num_transfer_bytes);
+                                                  get_transfer_size());
 
             // shift the remaining blocks
             byte_t *saved_instructions =
@@ -564,16 +562,14 @@ namespace patmos
 
             // insert the new entry at the head of the table
             Methods[Num_blocks - 1].update(saved_instructions, address,
-                                           Num_transfer_blocks,
-                                           Num_transfer_bytes);
+                                            Num_allocate_blocks,
+                                            Num_method_size);
 
             // proceed to next phase ... the size of the method has been fetched
             // from memory, now transfer the method's instructions.
             // NOTE: the next phase starts immediately.
             Phase = TRANSFER;
-          }
-          else
-          {
+          } else {
             // keep waiting until the size has been loaded.
             return false;
           }
@@ -582,13 +578,17 @@ namespace patmos
         // begin transfer from main memory to the method cache.
         case TRANSFER:
         {
-          assert(Num_transfer_blocks != 0 && Num_transfer_bytes != 0);
+          assert(Num_allocate_blocks != 0 && Num_method_size != 0);
 
-          if (Memory.read(address, Methods[Num_blocks - 1].Instructions,
+          if (Memory.read(get_transfer_start(address), Transfer_buffer,
                           get_transfer_size()))
           {
+            // Copy the instructions without the size word into the cache.
+            memcpy(Methods[Num_blocks - 1].Instructions, &Transfer_buffer[4], 
+                   Num_method_size);
+            
             // the transfer is done, go back to IDLE phase
-            Num_transfer_blocks = Num_transfer_bytes = 0;
+            Num_allocate_blocks = Num_method_size = 0;
             Phase = IDLE;
             return true;
           }
@@ -664,26 +664,30 @@ namespace patmos
       {
         bytes_utilized += Methods[j].get_utilized_bytes();
       }
+      // per cache miss, we load the size word, but do not store it in the cache
+      uword_t bytes_allocated = Num_bytes_transferred - Num_misses * 4;
       // Utilization = Bytes used / bytes allocated in cache
       float utilization = (float)bytes_utilized / 
                           (float)(Num_blocks_allocated * Num_block_bytes);
       // Fragmentation = Bytes loaded to cache / Bytes allocated in cache
-      float fragmentation = 1.0 - (float)Num_bytes_transferred / 
+      float fragmentation = 1.0 - (float)bytes_allocated / 
                           (float)(Num_blocks_allocated * Num_block_bytes);
       
       // instruction statistics
       os << boost::format("                            total        max.\n"
                           "   Blocks Allocated    : %1$10d  %2$10d\n"
                           "   Bytes Transferred   : %3$10d  %4$10d\n"
-                          "   Bytes Used          : %5$10d\n"
-                          "   Utilization         : %6$10.2f%%\n"
-                          "   Fragmentation       : %7$10.2f%%\n"
-                          "   Max Methods in Cache: %8$10d\n"
-                          "   Cache Hits          : %9$10d\n"
-                          "   Cache Misses        : %10$10d\n"
-                          "   Miss Stall Cycles   : %11$10d  %12$10.2f%%\n\n")
+                          "   Bytes Allocated     : %5$10d  %6$10d\n"
+                          "   Bytes Used          : %7$10d\n"
+                          "   Utilization         : %8$10.2f%%\n"
+                          "   Fragmentation       : %9$10.2f%%\n"
+                          "   Max Methods in Cache: %10$10d\n"
+                          "   Cache Hits          : %11$10d\n"
+                          "   Cache Misses        : %12$10d\n"
+                          "   Miss Stall Cycles   : %13$10d  %14$10.2f%%\n\n")
         % Num_blocks_allocated % Num_max_blocks_allocated
         % Num_bytes_transferred % Num_max_bytes_transferred
+        % bytes_allocated % (Num_max_bytes_transferred - 4)
         % bytes_utilized % (utilization * 100.0) % (fragmentation * 100.0)
         % Num_max_active_methods % Num_hits % Num_misses % Num_stall_cycles 
         % (100.0 * Num_stall_cycles / (float)s.Cycle);
@@ -697,13 +701,13 @@ namespace patmos
       }
 
       // print stats per method
-      os << "       Method:      #hits     #misses       bytes      blocks    min-util    max-util\n";
+      os << "       Method:      #hits     #misses  methodsize      blocks    min-util    max-util\n";
       for(method_stats_t::iterator i(Method_stats.begin()),
           ie(Method_stats.end()); i != ie; i++)
       {
         os << boost::format("   0x%1$08x: %2$10d  %3$10d  %4$10d  %5$10d %6$10.2f%% %7$10.2f%%    %8%\n")
            % i->first % i->second.Num_hits % i->second.Num_misses
-           % i->second.Num_bytes_transferred % i->second.Num_blocks_allocated
+           % i->second.Num_method_bytes % i->second.Num_blocks_allocated
            % (i->second.Min_utilization * 100.0)
            % (i->second.Max_utilization * 100.0)
            % s.Symbols.find(i->first);
@@ -736,6 +740,7 @@ namespace patmos
         delete[] Methods[i].Instructions;
 
       delete [] Methods;
+      delete [] Transfer_buffer;
     }
   };
 
