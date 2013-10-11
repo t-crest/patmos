@@ -286,6 +286,9 @@ namespace patmos
     // -------------------------- MW -------------------------------------------
     /// Discard instructions in MW stage (stalling).
     word_t MW_Discard;
+    
+    /// Keep track if this is the first cycle in the MW stage.
+    word_t MW_Initialized;
 
     // ------------------------ CONSTRUCTOR  -----------------------------------
 

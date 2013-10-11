@@ -48,6 +48,9 @@ namespace patmos
         uword_t ret_offs;
         uword_t caller_tos_stackcache;
         uword_t caller_tos_shadowstack;
+        
+        // Should we print statistics when returning from this function?
+        bool print_stats;
       };
 
       /// stack - Debug stack.

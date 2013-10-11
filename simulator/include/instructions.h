@@ -1503,7 +1503,7 @@ namespace patmos
     /// @param pred The predicate under which the instruction is executed.
     /// @param base The base address of the target method.
     /// @param address The target address.
-    /// @return returns true one single time when fetching completed.
+    /// @return returns true one single time when fetching is started.
     bool fetch_and_dispatch(simulator_t &s, instruction_data_t &ops,
                             bit_t pred, word_t base, word_t address) const
     {
@@ -1522,6 +1522,10 @@ namespace patmos
           // set the program counter and base
           s.BASE = base;
           s.nPC = address;
+        }
+        
+        if (!ops.MW_Initialized) {
+          ops.MW_Initialized = true;
           return true;
         }
       }
@@ -1536,7 +1540,7 @@ namespace patmos
     /// @param pred The predicate under which the instruction is executed.
     /// @param base The base address of the target method.
     /// @param address The target address.
-    /// @return returns true one single time when fetching completed.
+    /// @return returns true one single time when fetching is started.
     bool dispatch(simulator_t &s, instruction_data_t &ops, bit_t pred,
                   word_t base, word_t address) const
     {
@@ -1561,6 +1565,7 @@ namespace patmos
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.MW_Initialized = false;
     }
 
     // EX, MW implemented by sub-classes
@@ -1732,6 +1737,7 @@ namespace patmos
     {
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
       ops.DR_Rs1 = s.GPR.get(ops.OPS.CFLi.Rs);
+      ops.MW_Initialized = false;
     }
 
     /// Print the instruction to an output stream.
@@ -1858,6 +1864,7 @@ namespace patmos
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
       ops.DR_Base   = s.GPR.get(ops.OPS.CFLr.Rb);
       ops.DR_Offset = s.GPR.get(ops.OPS.CFLr.Ro);
+      ops.MW_Initialized = false;
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
