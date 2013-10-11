@@ -162,10 +162,10 @@ namespace patmos
   };
 
 
-  /// An associative, block-based data cache using an LRU replacement policy and
+  /// An associative, block-based data cache using LRU or FIF replacement policy and
   /// a write-through strategy with no write allocation.
-  template<unsigned int ASSOCIATIVITY>
-  class lru_data_cache_t : public ideal_data_cache_t
+  template<unsigned int ASSOCIATIVITY, bool LRU_REPLACEMENT>
+  class set_assoc_data_cache_t : public ideal_data_cache_t
   {
   private:
     /// Representation of the tag of a cache line.
@@ -186,7 +186,7 @@ namespace patmos
 
     /// Number of bytes per block.
     unsigned int Num_block_bytes;
-    
+
     /// The number of indexes.
     /// i.e., Num_blocks / ASSOCIATIVITY.
     unsigned int Num_indexes;
@@ -239,7 +239,7 @@ namespace patmos
     /// Construct a new data cache instance.
     /// @param memory The memory that is accessed through the cache.
     /// @param num_blocks The size of the cache in blocks.
-    lru_data_cache_t(memory_t &memory, unsigned int num_blocks, 
+    set_assoc_data_cache_t(memory_t &memory, unsigned int num_blocks, 
                      unsigned int num_block_bytes) :
         ideal_data_cache_t(memory), Num_blocks(num_blocks),
         Num_block_bytes(num_block_bytes),
@@ -294,17 +294,25 @@ namespace patmos
         }
       }
 
+      bool cache_hit = (tag_index < ASSOCIATIVITY);
+
       // update cache state and read data
-      if (tag_index != ASSOCIATIVITY || Memory.read(block_address, buf,
-                                                    Num_block_bytes))
+      if (cache_hit || Memory.read(block_address, buf, Num_block_bytes))
       {
         // update LRU ordering
-        unsigned int last_index_changed = tag_index;
-        if(last_index_changed == ASSOCIATIVITY)
+        unsigned int last_index_changed;
+        if (cache_hit)
+          last_index_changed = tag_index;
+        else
           last_index_changed = ASSOCIATIVITY-1;
-        for(unsigned int i = last_index_changed; i != 0; i--)
+
+        // no update on cache hit for FIFO
+        if (LRU_REPLACEMENT || ! cache_hit)
         {
-          tags[i] = tags[i -1];
+          for(unsigned int i = last_index_changed; i != 0; i--)
+          {
+            tags[i] = tags[i -1];
+          }
         }
 
         // set tag information
@@ -462,7 +470,7 @@ namespace patmos
         % write_reuse;
     }
 
-    virtual void reset_stats() 
+    virtual void reset_stats()
     {
       Num_read_hits = 0;
       Num_read_misses = 0;
@@ -473,9 +481,9 @@ namespace patmos
       Num_write_hit_bytes = 0;
       Num_write_miss_bytes = 0;
     }
-    
+
     /// free tag information.
-    ~lru_data_cache_t()
+    ~set_assoc_data_cache_t()
     {
       delete[] Content;
     }

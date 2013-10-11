@@ -80,11 +80,11 @@ static patmos::data_cache_t &create_data_cache(patmos::data_cache_e dck,
     case patmos::DC_NO:
       return *new patmos::no_data_cache_t(gm);
     case patmos::DC_LRU2:
-      return *new patmos::lru_data_cache_t<2>(gm, num_blocks, line_size);
+      return *new patmos::set_assoc_data_cache_t<2,true>(gm, num_blocks, line_size);
     case patmos::DC_LRU4:
-      return *new patmos::lru_data_cache_t<4>(gm, num_blocks, line_size);
+      return *new patmos::set_assoc_data_cache_t<4,true>(gm, num_blocks, line_size);
     case patmos::DC_LRU8:
-      return *new patmos::lru_data_cache_t<8>(gm, num_blocks, line_size);
+      return *new patmos::set_assoc_data_cache_t<8,true>(gm, num_blocks, line_size);
   };
 }
 
@@ -123,7 +123,7 @@ static patmos::instr_cache_t &create_iset_cache(patmos::iset_cache_e isck,
        patmos::memory_t &gm)
 {
   unsigned int num_blocks = ((size - 1)/line_size) + 1;
-      
+
   switch (isck) {
     case patmos::ISC_IDEAL:
       return *new patmos::i_cache_t<true>(new patmos::ideal_data_cache_t(gm));
@@ -131,26 +131,26 @@ static patmos::instr_cache_t &create_iset_cache(patmos::iset_cache_e isck,
       return *new patmos::i_cache_t<false>(&gm);
     case patmos::ISC_LRU2:
     {
-      patmos::memory_t *lru = 
-                    new patmos::lru_data_cache_t<2>(gm, num_blocks, line_size);
-                    
+      patmos::memory_t *lru =
+        new patmos::set_assoc_data_cache_t<2,true>(gm, num_blocks, line_size);
+
       return *new patmos::i_cache_t<true>(lru);
     }
     case patmos::ISC_LRU4:
     {
-      patmos::memory_t *lru = 
-                    new patmos::lru_data_cache_t<4>(gm, num_blocks, line_size);
-                    
+      patmos::memory_t *lru =
+        new patmos::set_assoc_data_cache_t<4,true>(gm, num_blocks, line_size);
+
       return *new patmos::i_cache_t<true>(lru);
     }
     case patmos::ISC_LRU8:
     {
-      patmos::memory_t *lru = 
-                    new patmos::lru_data_cache_t<8>(gm, num_blocks, line_size);
+      patmos::memory_t *lru =
+        new patmos::set_assoc_data_cache_t<8,true>(gm, num_blocks, line_size);
 
       return *new patmos::i_cache_t<true>(lru);
     }
-      
+
     default: abort();
   }
 }
