@@ -128,9 +128,6 @@ namespace patmos
     /// A vector containing instruction statistics.
     typedef std::vector<instruction_stat_t> instruction_stats_t;
 
-    /// Reset all statistics on the given program counter value.
-    uword_t Reset_stats_PC;
-    
   public:
     /// Cycle counter
     uint64_t Cycle;
@@ -300,9 +297,6 @@ namespace patmos
              uint64_t max_cycles = std::numeric_limits<uint64_t>::max(),
              bool collect_instr_stats = false);
 
-    /// Reset the statistics when the given program counter is executed.
-    void reset_stats_at(uword_t pc) { Reset_stats_PC = pc; }
-    
     /// Print the instructions and their operands in a pipeline stage
     /// @param os An output stream.
     /// @param debug_fmt The stage to print.

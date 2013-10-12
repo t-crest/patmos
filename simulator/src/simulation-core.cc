@@ -40,7 +40,7 @@ namespace patmos
                            instr_cache_t &instr_cache,
                            stack_cache_t &stack_cache, symbol_map_t &symbols,
                            interrupt_handler_t &interrupt_handler)
-    : Dbg_cnt_delay(0), Reset_stats_PC(std::numeric_limits<unsigned int>::max()),
+    : Dbg_cnt_delay(0), 
       Cycle(0), Memory(memory), Local_memory(local_memory),
       Data_cache(data_cache), Instr_cache(instr_cache),
       Stack_cache(stack_cache), Symbols(symbols), Dbg_stack(*this),
@@ -301,14 +301,6 @@ namespace patmos
         bool debug = (Cycle >= debug_cycle);
         bool debug_pipline = debug && (debug_fmt >= DF_LONG);
         
-        // Reset statistics if we hit the reset PC.
-        // TODO we might add a hit counter and print the stats (to a file)
-        // before we reset them. We should also be able to print them once
-        // we enter a function and once we exit from that function.
-        if (PC == Reset_stats_PC) {
-          reset_stats();
-        }
-
         // reset the stall counter.
         Stall = SXX;
 
@@ -624,6 +616,9 @@ namespace patmos
 
   void simulator_t::reset_stats()
   {
+    // TODO reset the statistics in the pipeline stages in the correct cycles.
+    // Send a control signal down the pipeline, resetting statistics on the way.
+    
     for(unsigned int i = 0; i < NUM_STAGES; i++)
     {
       Num_stall_cycles[i] = 0;

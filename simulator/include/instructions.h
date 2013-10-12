@@ -1893,8 +1893,8 @@ namespace patmos
       {
         if (fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Address))
         {
-          s.Dbg_stack.pop(ops.EX_Base, ops.EX_Offset);
           s.Profiling.leave(s.Cycle);
+          s.Dbg_stack.pop(ops.EX_Base, ops.EX_Offset);
         }
       }
     }

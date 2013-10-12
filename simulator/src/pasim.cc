@@ -229,7 +229,7 @@ int main(int argc, char **argv)
     ("debug", boost::program_options::value<unsigned int>()->implicit_value(0), "enable step-by-step debug tracing after cycle")
     ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), "format of the debug trace (short, trace, instr, blocks, calls, default, long, all)")
     ("debug-file", boost::program_options::value<std::string>()->default_value("-"), "output debug trace in file (stderr: -)")
-    ("reset-stats", boost::program_options::value<patmos::address_t>()->default_value(0), "reset statistics at the given PC")
+    ("print-stats", boost::program_options::value<patmos::address_t>(), "print statistics for a given function only.")
     ("slot-stats,a", "show instruction statistics per slot")
     ("instr-stats,i", "show more detailed statistics per instruction")
     ("quiet,q", "disable statistics output");
@@ -359,9 +359,11 @@ int main(int argc, char **argv)
                                        std::numeric_limits<unsigned int>::max();
   unsigned int max_cycle = vm["maxc"].as<unsigned int>();
 
-  bool reset_stats = vm.count("reset-stats");
-  // TODO allow to use a symbol name, resolve the symbol name here.
-  patmos::address_t reset_stats_PC = vm["reset-stats"].as<patmos::address_t>();
+  bool print_stats = vm.count("print-stats") > 0;
+  patmos::address_t print_stats_func;
+  if (print_stats) {
+    print_stats_func = vm["print-stats"].as<patmos::address_t>();
+  }
   
   unsigned int interrupt_enabled = vm["interrupt"].as<unsigned int>();
 
@@ -450,9 +452,9 @@ int main(int argc, char **argv)
     loader->load_to_memory(gm);
     
     // setup stats reset trigger
-    if (reset_stats) {
-      reset_stats_PC.parse(sym);
-      s.reset_stats_at(reset_stats_PC.value());
+    if (print_stats) {
+      print_stats_func.parse(sym);
+      s.Dbg_stack.print_function_stats(print_stats_func.value(), *out);
     }
     
     // start execution
@@ -469,7 +471,7 @@ int main(int argc, char **argv)
           // get the exit code
           exit_code = e.get_info();
 
-	  if (!vm.count("quiet")) {
+	  if (!vm.count("quiet") && !print_stats) {
             s.print_stats(*out, slot_stats, instr_stats);
 	  }
           break;

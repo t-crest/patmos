@@ -20,6 +20,7 @@
 #ifndef PATMOS_DBGSTACK_H
 #define PATMOS_DBGSTACK_H
 
+#include <limits>
 #include <ostream>
 #include <vector>
 
@@ -57,6 +58,10 @@ namespace patmos
       std::vector<dbgstack_frame_t> stack;
 
       simulator_t &sim;
+      
+      std::ostream *debug_out;
+      
+      uword_t print_function;
 
       /// print_stackframe - Print a single debug stack frame to the stream
       /// @param callee the stack frame of the callee, or null if not available
@@ -65,10 +70,13 @@ namespace patmos
                             const dbgstack_frame_t *callee) const;
     public:
       /// Constructor
-      dbgstack_t(simulator_t &s) : sim(s)
+      dbgstack_t(simulator_t &s) : sim(s), debug_out(0), 
+         print_function(std::numeric_limits<unsigned int>::max())
       {
       }
 
+      void print_function_stats(uword_t address, std::ostream &debug_out);
+      
       /// initialize - Initialize the debug stack.
       void initialize(uword_t entry);
 
