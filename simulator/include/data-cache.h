@@ -313,17 +313,19 @@ namespace patmos
           {
             tags[i] = tags[i -1];
           }
+          
+          // set tag information
+          tags[0].Is_valid = 1;
+          tags[0].Block_address = block_address;
         }
 
-        // set tag information
-        tags[0].Is_valid = 1;
-        tags[0].Block_address = block_address;
-
         // actually read data from memory without stalling
+        // TODO we should keep the data in the cache and read it from
+        // there to detect consistency problems with multi-cores.
         Memory.read_peek(address, value, size);
 
         // update statistics
-        if (tag_index != ASSOCIATIVITY)
+        if (cache_hit)
         {
           Num_read_hits++;
           Num_read_hit_bytes += size;
@@ -379,8 +381,10 @@ namespace patmos
         // but as the simulator implementation does not store contents in
         // the cache, we simply omit cache updates for the write-through D$
 
+        bool cache_hit = (tag_index < ASSOCIATIVITY);
+
         // update statistics
-        if (tag_index != ASSOCIATIVITY)
+        if (cache_hit)
         {
           Num_write_hits++;
           Num_write_hit_bytes += size;

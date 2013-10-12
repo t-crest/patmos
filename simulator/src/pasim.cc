@@ -85,6 +85,14 @@ static patmos::data_cache_t &create_data_cache(patmos::data_cache_e dck,
       return *new patmos::set_assoc_data_cache_t<4,true>(gm, num_blocks, line_size);
     case patmos::DC_LRU8:
       return *new patmos::set_assoc_data_cache_t<8,true>(gm, num_blocks, line_size);
+    case patmos::DC_FIFO2:
+      return *new patmos::set_assoc_data_cache_t<2,false>(gm, num_blocks, line_size);
+    case patmos::DC_FIFO4:
+      return *new patmos::set_assoc_data_cache_t<4,false>(gm, num_blocks, line_size);
+    case patmos::DC_FIFO8:
+      return *new patmos::set_assoc_data_cache_t<8,false>(gm, num_blocks, line_size);
+    case patmos::DC_FIFO16:
+      return *new patmos::set_assoc_data_cache_t<16,false>(gm, num_blocks, line_size);
   };
 }
 
@@ -118,45 +126,26 @@ static patmos::instr_cache_t &create_method_cache(patmos::method_cache_e mck,
   abort();
 }
 
-static patmos::instr_cache_t &create_iset_cache(patmos::iset_cache_e isck, 
+static patmos::instr_cache_t &create_iset_cache(patmos::data_cache_e isck, 
        unsigned int size, unsigned int line_size,
        patmos::memory_t &gm)
 {
   unsigned int num_blocks = ((size - 1)/line_size) + 1;
 
   switch (isck) {
-    case patmos::ISC_IDEAL:
-      return *new patmos::i_cache_t<true>(new patmos::ideal_data_cache_t(gm));
-    case patmos::ISC_NO:
+    case patmos::DC_NO:
       return *new patmos::i_cache_t<false>(&gm);
-    case patmos::ISC_LRU2:
+    default:
     {
-      patmos::memory_t *lru =
-        new patmos::set_assoc_data_cache_t<2,true>(gm, num_blocks, line_size);
+      patmos::memory_t &dc = create_data_cache(isck, size, line_size, gm);
 
-      return *new patmos::i_cache_t<true>(lru);
+      return *new patmos::i_cache_t<true>(&dc);
     }
-    case patmos::ISC_LRU4:
-    {
-      patmos::memory_t *lru =
-        new patmos::set_assoc_data_cache_t<4,true>(gm, num_blocks, line_size);
-
-      return *new patmos::i_cache_t<true>(lru);
-    }
-    case patmos::ISC_LRU8:
-    {
-      patmos::memory_t *lru =
-        new patmos::set_assoc_data_cache_t<8,true>(gm, num_blocks, line_size);
-
-      return *new patmos::i_cache_t<true>(lru);
-    }
-
-    default: abort();
   }
 }
 
 static patmos::instr_cache_t &create_instr_cache(patmos::instr_cache_e ick, 
-       patmos::iset_cache_e isck, patmos::method_cache_e mck,
+       patmos::data_cache_e isck, patmos::method_cache_e mck,
        unsigned int size, unsigned int line_size, unsigned int block_size,
        unsigned int mcmethods, patmos::memory_t &gm)
 {
@@ -248,9 +237,8 @@ int main(int argc, char **argv)
   boost::program_options::options_description memory_options("Memory options");
   memory_options.add_options()
     ("gsize,g",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_MEMORY_BYTES), "global memory size in bytes")
-    ("gtime,G",  boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES/4), "global memory transfer time per burst in cycles")
-    // Need to check with Stefan how this is applied - it shall be per burst
-    ("tdelay,t", boost::program_options::value<unsigned int>()->default_value(5), "read delay to global memory per request in cycles")
+    ("gtime,G",  boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES/4 + 5), "global memory transfer time per burst in cycles")
+    ("tdelay,t", boost::program_options::value<unsigned int>()->default_value(0), "read delay to global memory per request in cycles")
     ("bsize",  boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES), "burst size (and alignment) of the memory system.")
     ("posted,p", boost::program_options::value<unsigned int>()->default_value(0), "Enable posted writes (sets max queue size)")
     ("lsize,l",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_LOCAL_MEMORY_BYTES), "local memory size in bytes");
@@ -258,7 +246,7 @@ int main(int argc, char **argv)
   boost::program_options::options_description cache_options("Cache options");
   cache_options.add_options()
     ("dcsize,d", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_DATA_CACHE_BYTES), "data cache size in bytes")
-    ("dckind,D", boost::program_options::value<patmos::data_cache_e>()->default_value(patmos::DC_LRU2), "kind of data cache (ideal, no, lru2, lru4, lru8)")
+    ("dckind,D", boost::program_options::value<patmos::data_cache_e>()->default_value(patmos::DC_LRU2), "kind of data cache (ideal, no, lru2, lru4, lru8, fifo2, fifo4, fifo8, fifo16)")
     ("dlsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(0), "size of a data cache line in bytes, defaults to burst size if set to 0")
 
     ("scsize,s", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_STACK_CACHE_BYTES), "stack cache size in bytes")
@@ -266,7 +254,7 @@ int main(int argc, char **argv)
     ("sbsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_STACK_CACHE_BLOCK_BYTES), "stack cache block size in bytes")
 
     ("icache,C", boost::program_options::value<patmos::instr_cache_e>()->default_value(patmos::IC_MCACHE), "kind of instruction cache (mcache, icache)")
-    ("ickind,K", boost::program_options::value<patmos::iset_cache_e>()->default_value(patmos::ISC_IDEAL), "kind of set-associative I-cache (ideal, no. lru2, lru4, lru8)")
+    ("ickind,K", boost::program_options::value<patmos::data_cache_e>()->default_value(patmos::DC_LRU2), "kind of set-associative I-cache (ideal, no. lru2, lru4, lru8, fifo2, fifo4, fifo8, fifo16)")
     ("ilsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(0), "size of an I-cache line in bytes, defaults to burst size if set to 0")
      
     ("mcsize,m", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_METHOD_CACHE_BYTES), "method cache / instruction cache size in bytes")
@@ -277,9 +265,7 @@ int main(int argc, char **argv)
   boost::program_options::options_description sim_options("Simulator options");
   sim_options.add_options()
     ("cpuid", boost::program_options::value<unsigned int>()->default_value(0), "Set CPU ID in the simulator")
-// MS: maybe the default value should be a little bit lower for the simulator
-// needs to be checked with some timing measurements
-    ("freq",  boost::program_options::value<double>()->default_value(90.0), "Set CPU Frequency in Mhz")
+    ("freq",  boost::program_options::value<double>()->default_value(80.0), "Set CPU Frequency in Mhz")
     ("mmbase", boost::program_options::value<patmos::address_t>()->default_value(patmos::IOMAP_BASE_ADDRESS), "base address of the IO device map address range")
     ("mmhigh", boost::program_options::value<patmos::address_t>()->default_value(patmos::IOMAP_HIGH_ADDRESS), "highest address of the IO device map address range")
     ("cpuinfo_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::CPUINFO_OFFSET), "offset where the cpuinfo device is mapped")
@@ -365,7 +351,7 @@ int main(int argc, char **argv)
   patmos::stack_cache_e sck = vm["sckind"].as<patmos::stack_cache_e>();
   patmos::instr_cache_e ick = vm["icache"].as<patmos::instr_cache_e>();
   patmos::method_cache_e mck = vm["mckind"].as<patmos::method_cache_e>();
-  patmos::iset_cache_e isck = vm["ickind"].as<patmos::iset_cache_e>();
+  patmos::data_cache_e isck = vm["ickind"].as<patmos::data_cache_e>();
 
   patmos::debug_format_e debug_fmt= vm["debug-fmt"].as<patmos::debug_format_e>();
   unsigned int debug_cycle = vm.count("debug") ?

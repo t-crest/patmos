@@ -102,9 +102,17 @@ namespace patmos
       dck = DC_LRU4;
     else if(kind == "lru8")
       dck = DC_LRU8;
+    else if(kind == "fifo2")
+      dck = DC_LRU8;
+    else if(kind == "fifo4")
+      dck = DC_LRU8;
+    else if(kind == "fifo8")
+      dck = DC_LRU8;
+    else if(kind == "fifo16")
+      dck = DC_LRU8;
     else throw boost::program_options::validation_error(
                  boost::program_options::validation_error::invalid_option_value,
-                 "Unknown data cache kind: " + tmp);
+                 "Unknown cache kind: " + tmp);
 
     return in;
   }
@@ -123,6 +131,14 @@ namespace patmos
         os << "lru4"; break;
       case DC_LRU8:
         os << "lru8"; break;
+      case DC_FIFO2:
+        os << "fifo2"; break;
+      case DC_FIFO4:
+        os << "fifo4"; break;
+      case DC_FIFO8:
+        os << "fifo8"; break;
+      case DC_FIFO16:
+        os << "fifo16"; break;
     }
 
     return os;
@@ -160,50 +176,6 @@ namespace patmos
     return os;
   }
   
-  std::istream &operator >>(std::istream &in, iset_cache_e &ick)
-  {
-    std::string tmp, kind;
-    in >> tmp;
-
-    kind.resize(tmp.size());
-    std::transform(tmp.begin(), tmp.end(), kind.begin(), ::tolower);
-
-    if(kind == "ideal")
-      ick = ISC_IDEAL;
-    else if(kind == "no")
-      ick = ISC_NO;
-    else if(kind == "lru2")
-      ick = ISC_LRU2;
-    else if(kind == "lru4")
-      ick = ISC_LRU4;
-    else if(kind == "lru8")
-      ick = ISC_LRU8;
-    else throw boost::program_options::validation_error(
-                 boost::program_options::validation_error::invalid_option_value,
-                 "Unknown iset cache kind: " + tmp);
-
-    return in;
-  }
-
-  std::ostream &operator <<(std::ostream &os, iset_cache_e ick)
-  {
-    switch(ick)
-    {
-      case ISC_IDEAL:
-        os << "ideal"; break;
-      case ISC_NO:
-        os << "no"; break;
-      case ISC_LRU2:
-        os << "lru2"; break;
-      case ISC_LRU4:
-        os << "lru4"; break;
-      case ISC_LRU8:
-        os << "lru8"; break;
-    }
-
-    return os;
-  }
-    
   std::istream &operator >>(std::istream &in, method_cache_e &mck)
   {
     std::string tmp, kind;

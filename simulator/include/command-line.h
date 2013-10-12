@@ -59,7 +59,11 @@ namespace patmos
     DC_NO,
     DC_LRU2,
     DC_LRU4,
-    DC_LRU8
+    DC_LRU8,
+    DC_FIFO2,
+    DC_FIFO4,
+    DC_FIFO8,
+    DC_FIFO16
   };
 
   /// Parse a data cache kind from a string in a stream
@@ -89,30 +93,7 @@ namespace patmos
   /// @param os An output stream.
   /// @param mck The method cache kind.
   std::ostream &operator <<(std::ostream &os, instr_cache_e ick);
-  
-  
-  /// Parsing instruction cache kinds as command-line options.
-  enum iset_cache_e
-  {
-    ISC_IDEAL,
-    ISC_NO,
-    ISC_LRU2,
-    ISC_LRU4,
-    ISC_LRU8
-  };
-  
-  
-  /// Parse a set instruction cache kind from a string in a stream
-  /// @param in An input stream to read from.
-  /// @param mck The method cache kind.
-  std::istream &operator >>(std::istream &in, iset_cache_e &ick);
-
-  /// Write a set instruction cache kind as a string to an output stream.
-  /// @param os An output stream.
-  /// @param mck The method cache kind.
-  std::ostream &operator <<(std::ostream &os, iset_cache_e ick);
-
-  
+    
   /// Parsing method cache kinds as command-line options.
   enum method_cache_e
   {
