@@ -498,6 +498,7 @@ namespace patmos
         // Avoid peeking into memory while memory stage is still working by
         // not printing out operands in this case
         os << "stalling";
+        if (Disable_IF) os << ", IF disabled";
       } else {
         for(unsigned int i = 0; i < NUM_SLOTS; i++) {
           if (!Pipeline[stage][i].I) continue;
