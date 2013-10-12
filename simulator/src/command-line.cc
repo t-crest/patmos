@@ -84,45 +84,67 @@ namespace patmos
     return os;
   }
 
-  std::istream &operator >>(std::istream &in, data_cache_e &dck)
+  std::istream &operator >>(std::istream &in, set_assoc_cache_type &dck)
   {
     std::string tmp, kind;
+    std::string assoc = "1";
     in >> tmp;
 
     kind.resize(tmp.size());
     std::transform(tmp.begin(), tmp.end(), kind.begin(), ::tolower);
 
     if(kind == "ideal")
-      dck = DC_IDEAL;
+    {
+      dck.policy = SAC_IDEAL;
+    }
     else if(kind == "no")
-      dck = DC_NO;
-    else if(kind == "lru2")
-      dck = DC_LRU2;
-    else if(kind == "lru4")
-      dck = DC_LRU4;
-    else if(kind == "lru8")
-      dck = DC_LRU8;
-    else throw boost::program_options::validation_error(
-                 boost::program_options::validation_error::invalid_option_value,
-                 "Unknown data cache kind: " + tmp);
-
+    {
+      dck.policy = SAC_NO;
+    }
+    else if(kind.substr(0,3) == "lru")
+    {
+      dck.policy = SAC_LRU;
+      assoc = kind.substr(3,8);
+    }
+    else if(kind.substr(0,4) == "fifo")
+    {
+      dck.policy = SAC_FIFO;
+      assoc = kind.substr(4,8);
+    }
+    else
+    {
+      throw boost::program_options::validation_error(
+        boost::program_options::validation_error::invalid_option_value,
+        "Unknown set-associative cache kind: " + tmp);
+    }
+    std::istringstream is(assoc);
+    is >> dck.associativity;
+    const unsigned max_assoc = 256;
+    unsigned valid_assoc;
+    for (valid_assoc = 1; valid_assoc <= max_assoc; valid_assoc *= 2)
+    {
+      if (dck.associativity == valid_assoc)
+        break;
+    }
+    if (valid_assoc > max_assoc)
+      throw boost::program_options::validation_error(
+        boost::program_options::validation_error::invalid_option_value,
+        "Invalid associativity (power of two <= 256)" + tmp);
     return in;
   }
 
-  std::ostream &operator <<(std::ostream &os, data_cache_e dck)
+  std::ostream &operator <<(std::ostream &os, set_assoc_cache_type dck)
   {
-    switch(dck)
+    switch(dck.policy)
     {
-      case DC_IDEAL:
+      case SAC_IDEAL:
         os << "ideal"; break;
-      case DC_NO:
+      case SAC_NO:
         os << "no"; break;
-      case DC_LRU2:
-        os << "lru2"; break;
-      case DC_LRU4:
-        os << "lru4"; break;
-      case DC_LRU8:
-        os << "lru8"; break;
+      case SAC_LRU:
+        os << "lru" << dck.associativity; break;
+      case SAC_FIFO:
+        os << "fifo" << dck.associativity; break;
     }
 
     return os;
@@ -159,51 +181,7 @@ namespace patmos
 
     return os;
   }
-  
-  std::istream &operator >>(std::istream &in, iset_cache_e &ick)
-  {
-    std::string tmp, kind;
-    in >> tmp;
 
-    kind.resize(tmp.size());
-    std::transform(tmp.begin(), tmp.end(), kind.begin(), ::tolower);
-
-    if(kind == "ideal")
-      ick = ISC_IDEAL;
-    else if(kind == "no")
-      ick = ISC_NO;
-    else if(kind == "lru2")
-      ick = ISC_LRU2;
-    else if(kind == "lru4")
-      ick = ISC_LRU4;
-    else if(kind == "lru8")
-      ick = ISC_LRU8;
-    else throw boost::program_options::validation_error(
-                 boost::program_options::validation_error::invalid_option_value,
-                 "Unknown iset cache kind: " + tmp);
-
-    return in;
-  }
-
-  std::ostream &operator <<(std::ostream &os, iset_cache_e ick)
-  {
-    switch(ick)
-    {
-      case ISC_IDEAL:
-        os << "ideal"; break;
-      case ISC_NO:
-        os << "no"; break;
-      case ISC_LRU2:
-        os << "lru2"; break;
-      case ISC_LRU4:
-        os << "lru4"; break;
-      case ISC_LRU8:
-        os << "lru8"; break;
-    }
-
-    return os;
-  }
-    
   std::istream &operator >>(std::istream &in, method_cache_e &mck)
   {
     std::string tmp, kind;

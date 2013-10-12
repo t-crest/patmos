@@ -66,25 +66,23 @@ static patmos::memory_t &create_global_memory(unsigned int time,
 /// @param line_size The size of one cache line.
 /// @param gm Global memory accessed on a cache miss.
 /// @return An instance of a data cache.
-static patmos::data_cache_t &create_data_cache(patmos::data_cache_e dck,
+static patmos::data_cache_t &create_data_cache(patmos::set_assoc_cache_type dck,
                                                unsigned int size,
                                                unsigned int line_size,
                                                patmos::memory_t &gm)
 {
   unsigned int num_blocks = (size - 1)/line_size + 1;
 
-  switch (dck)
+  switch (dck.policy)
   {
-    case patmos::DC_IDEAL:
+    case patmos::SAC_IDEAL:
       return *new patmos::ideal_data_cache_t(gm);
-    case patmos::DC_NO:
+    case patmos::SAC_NO:
       return *new patmos::no_data_cache_t(gm);
-    case patmos::DC_LRU2:
-      return *new patmos::set_assoc_data_cache_t<2,true>(gm, num_blocks, line_size);
-    case patmos::DC_LRU4:
-      return *new patmos::set_assoc_data_cache_t<4,true>(gm, num_blocks, line_size);
-    case patmos::DC_LRU8:
-      return *new patmos::set_assoc_data_cache_t<8,true>(gm, num_blocks, line_size);
+    case patmos::SAC_LRU:
+      return *new patmos::set_assoc_data_cache_t<true>(gm, dck.associativity, num_blocks, line_size);
+    case patmos::SAC_FIFO:
+      return *new patmos::set_assoc_data_cache_t<false>(gm, dck.associativity, num_blocks, line_size);
   };
 }
 
@@ -118,37 +116,30 @@ static patmos::instr_cache_t &create_method_cache(patmos::method_cache_e mck,
   abort();
 }
 
-static patmos::instr_cache_t &create_iset_cache(patmos::iset_cache_e isck, 
+static patmos::instr_cache_t &create_iset_cache(patmos::set_assoc_cache_type isck,
        unsigned int size, unsigned int line_size,
        patmos::memory_t &gm)
 {
   unsigned int num_blocks = ((size - 1)/line_size) + 1;
 
-  switch (isck) {
-    case patmos::ISC_IDEAL:
+  switch (isck.policy) {
+    case patmos::SAC_IDEAL:
       return *new patmos::i_cache_t<true>(new patmos::ideal_data_cache_t(gm));
-    case patmos::ISC_NO:
+    case patmos::SAC_NO:
       return *new patmos::i_cache_t<false>(&gm);
-    case patmos::ISC_LRU2:
+    case patmos::SAC_LRU:
     {
       patmos::memory_t *lru =
-        new patmos::set_assoc_data_cache_t<2,true>(gm, num_blocks, line_size);
+        new patmos::set_assoc_data_cache_t<true>(gm, isck.associativity, num_blocks, line_size);
 
       return *new patmos::i_cache_t<true>(lru);
     }
-    case patmos::ISC_LRU4:
+    case patmos::SAC_FIFO:
     {
-      patmos::memory_t *lru =
-        new patmos::set_assoc_data_cache_t<4,true>(gm, num_blocks, line_size);
+      patmos::memory_t *fifo =
+        new patmos::set_assoc_data_cache_t<false>(gm, isck.associativity, num_blocks, line_size);
 
-      return *new patmos::i_cache_t<true>(lru);
-    }
-    case patmos::ISC_LRU8:
-    {
-      patmos::memory_t *lru =
-        new patmos::set_assoc_data_cache_t<8,true>(gm, num_blocks, line_size);
-
-      return *new patmos::i_cache_t<true>(lru);
+      return *new patmos::i_cache_t<true>(fifo);
     }
 
     default: abort();
@@ -156,12 +147,12 @@ static patmos::instr_cache_t &create_iset_cache(patmos::iset_cache_e isck,
 }
 
 static patmos::instr_cache_t &create_instr_cache(patmos::instr_cache_e ick, 
-       patmos::iset_cache_e isck, patmos::method_cache_e mck,
+       patmos::set_assoc_cache_type isck, patmos::method_cache_e mck,
        unsigned int size, unsigned int line_size, unsigned int block_size,
        unsigned int mcmethods, patmos::memory_t &gm)
 {
   switch (ick) {
-    case patmos::IC_MCACHE: 
+    case patmos::IC_MCACHE:
       return create_method_cache(mck, size, block_size, mcmethods, gm);
     case patmos::IC_ICACHE:
       return create_iset_cache(isck, size, line_size, gm);
@@ -258,7 +249,7 @@ int main(int argc, char **argv)
   boost::program_options::options_description cache_options("Cache options");
   cache_options.add_options()
     ("dcsize,d", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_DATA_CACHE_BYTES), "data cache size in bytes")
-    ("dckind,D", boost::program_options::value<patmos::data_cache_e>()->default_value(patmos::DC_LRU2), "kind of data cache (ideal, no, lru2, lru4, lru8)")
+    ("dckind,D", boost::program_options::value<patmos::set_assoc_cache_type>()->default_value(patmos::set_assoc_cache_type(patmos::SAC_LRU,2)), "kind of set-associative data cache, defaults to lru2 (ideal, no, lruN, fifoN)")
     ("dlsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(0), "size of a data cache line in bytes, defaults to burst size if set to 0")
 
     ("scsize,s", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_STACK_CACHE_BYTES), "stack cache size in bytes")
@@ -266,9 +257,9 @@ int main(int argc, char **argv)
     ("sbsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_STACK_CACHE_BLOCK_BYTES), "stack cache block size in bytes")
 
     ("icache,C", boost::program_options::value<patmos::instr_cache_e>()->default_value(patmos::IC_MCACHE), "kind of instruction cache (mcache, icache)")
-    ("ickind,K", boost::program_options::value<patmos::iset_cache_e>()->default_value(patmos::ISC_IDEAL), "kind of set-associative I-cache (ideal, no. lru2, lru4, lru8)")
+    ("ickind,K", boost::program_options::value<patmos::set_assoc_cache_type>()->default_value(patmos::set_assoc_cache_type(patmos::SAC_IDEAL,1)), "kind of set-associative I-cache (ideal, no, lruN, fifoN")
     ("ilsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(0), "size of an I-cache line in bytes, defaults to burst size if set to 0")
-     
+
     ("mcsize,m", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_METHOD_CACHE_BYTES), "method cache / instruction cache size in bytes")
     ("mckind,M", boost::program_options::value<patmos::method_cache_e>()->default_value(patmos::MC_IDEAL), "kind of method cache (ideal, lru, fifo)")
     ("mcmethods",boost::program_options::value<unsigned int>()->default_value(patmos::NUM_METHOD_CACHE_MAX_METHODS), "Maximum number of methods in the method cache, defaults to number of blocks if zero")
@@ -361,11 +352,11 @@ int main(int argc, char **argv)
   unsigned int posted = vm["posted"].as<unsigned int>();
   unsigned int tdelay = vm["tdelay"].as<unsigned int>();
 
-  patmos::data_cache_e dck = vm["dckind"].as<patmos::data_cache_e>();
+  patmos::set_assoc_cache_type dck = vm["dckind"].as<patmos::set_assoc_cache_type>();
   patmos::stack_cache_e sck = vm["sckind"].as<patmos::stack_cache_e>();
   patmos::instr_cache_e ick = vm["icache"].as<patmos::instr_cache_e>();
   patmos::method_cache_e mck = vm["mckind"].as<patmos::method_cache_e>();
-  patmos::iset_cache_e isck = vm["ickind"].as<patmos::iset_cache_e>();
+  patmos::set_assoc_cache_type isck = vm["ickind"].as<patmos::set_assoc_cache_type>();
 
   patmos::debug_format_e debug_fmt= vm["debug-fmt"].as<patmos::debug_format_e>();
   unsigned int debug_cycle = vm.count("debug") ?

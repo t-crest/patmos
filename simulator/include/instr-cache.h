@@ -112,7 +112,7 @@ namespace patmos
       // assume that the first word is already in the cache, provided that RET
       // ensures that returning to a PC fetches the block at that PC.
       // This requires all jump-targets to be 64bit aligned though.
-      
+
       for (int i = 0; i < NUM_SLOTS; i++) {
         bool status;
         uword_t addr = address + i * sizeof(word_t);
