@@ -141,8 +141,6 @@ static patmos::instr_cache_t &create_iset_cache(patmos::set_assoc_cache_type isc
 
       return *new patmos::i_cache_t<true>(fifo);
     }
-
-    default: abort();
   }
 }
 
@@ -231,7 +229,7 @@ int main(int argc, char **argv)
     ("debug", boost::program_options::value<unsigned int>()->implicit_value(0), "enable step-by-step debug tracing after cycle")
     ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), "format of the debug trace (short, trace, instr, blocks, calls, default, long, all)")
     ("debug-file", boost::program_options::value<std::string>()->default_value("-"), "output debug trace in file (stderr: -)")
-    ("reset-stats", boost::program_options::value<patmos::address_t>()->default_value(0), "reset statistics at the given PC")
+    ("print-stats", boost::program_options::value<patmos::address_t>(), "print statistics for a given function only.")
     ("slot-stats,a", "show instruction statistics per slot")
     ("instr-stats,i", "show more detailed statistics per instruction")
     ("quiet,q", "disable statistics output");
@@ -239,9 +237,8 @@ int main(int argc, char **argv)
   boost::program_options::options_description memory_options("Memory options");
   memory_options.add_options()
     ("gsize,g",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_MEMORY_BYTES), "global memory size in bytes")
-    ("gtime,G",  boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES/4), "global memory transfer time per burst in cycles")
-    // Need to check with Stefan how this is applied - it shall be per burst
-    ("tdelay,t", boost::program_options::value<unsigned int>()->default_value(5), "read delay to global memory per request in cycles")
+    ("gtime,G",  boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES/4 + 5), "global memory transfer time per burst in cycles")
+    ("tdelay,t", boost::program_options::value<unsigned int>()->default_value(0), "read delay to global memory per request in cycles")
     ("bsize",  boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES), "burst size (and alignment) of the memory system.")
     ("posted,p", boost::program_options::value<unsigned int>()->default_value(0), "Enable posted writes (sets max queue size)")
     ("lsize,l",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_LOCAL_MEMORY_BYTES), "local memory size in bytes");
@@ -268,9 +265,7 @@ int main(int argc, char **argv)
   boost::program_options::options_description sim_options("Simulator options");
   sim_options.add_options()
     ("cpuid", boost::program_options::value<unsigned int>()->default_value(0), "Set CPU ID in the simulator")
-// MS: maybe the default value should be a little bit lower for the simulator
-// needs to be checked with some timing measurements
-    ("freq",  boost::program_options::value<double>()->default_value(90.0), "Set CPU Frequency in Mhz")
+    ("freq",  boost::program_options::value<double>()->default_value(80.0), "Set CPU Frequency in Mhz")
     ("mmbase", boost::program_options::value<patmos::address_t>()->default_value(patmos::IOMAP_BASE_ADDRESS), "base address of the IO device map address range")
     ("mmhigh", boost::program_options::value<patmos::address_t>()->default_value(patmos::IOMAP_HIGH_ADDRESS), "highest address of the IO device map address range")
     ("cpuinfo_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::CPUINFO_OFFSET), "offset where the cpuinfo device is mapped")
@@ -364,9 +359,11 @@ int main(int argc, char **argv)
                                        std::numeric_limits<unsigned int>::max();
   unsigned int max_cycle = vm["maxc"].as<unsigned int>();
 
-  bool reset_stats = vm.count("reset-stats");
-  // TODO allow to use a symbol name, resolve the symbol name here.
-  patmos::address_t reset_stats_PC = vm["reset-stats"].as<patmos::address_t>();
+  bool print_stats = vm.count("print-stats") > 0;
+  patmos::address_t print_stats_func;
+  if (print_stats) {
+    print_stats_func = vm["print-stats"].as<patmos::address_t>();
+  }
   
   unsigned int interrupt_enabled = vm["interrupt"].as<unsigned int>();
 
@@ -455,9 +452,9 @@ int main(int argc, char **argv)
     loader->load_to_memory(gm);
     
     // setup stats reset trigger
-    if (reset_stats) {
-      reset_stats_PC.parse(sym);
-      s.reset_stats_at(reset_stats_PC.value());
+    if (print_stats) {
+      print_stats_func.parse(sym);
+      s.Dbg_stack.print_function_stats(print_stats_func.value(), *out);
     }
     
     // start execution
@@ -474,7 +471,7 @@ int main(int argc, char **argv)
           // get the exit code
           exit_code = e.get_info();
 
-	  if (!vm.count("quiet")) {
+	  if (!vm.count("quiet") && !print_stats) {
             s.print_stats(*out, slot_stats, instr_stats);
 	  }
           break;

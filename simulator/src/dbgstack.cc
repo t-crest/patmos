@@ -33,7 +33,8 @@ namespace patmos
 {
 
   dbgstack_t::dbgstack_frame_t::
-  dbgstack_frame_t(simulator_t &sim, uword_t func) : function(func)
+  dbgstack_frame_t(simulator_t &sim, uword_t func) 
+   : function(func), print_stats(false)
   {
     // We could use r30/r31 here ?!
     ret_base = sim.BASE;
@@ -47,6 +48,12 @@ namespace patmos
   }
 
 
+  void dbgstack_t::print_function_stats(uword_t address, std::ostream &dbg)
+  {
+    print_function = address;
+    debug_out = &dbg;
+  }
+  
   void dbgstack_t::initialize(uword_t entry)
   {
     push(entry);
@@ -92,6 +99,14 @@ namespace patmos
     }
     // Create a new stack frame
     stack.push_back( dbgstack_frame_t(sim, target) );
+    
+    if (target == print_function) {
+      // TODO this should be moved into a separate class, managing stats 
+      //      printing with multiple targets, ..
+      // TODO should we print the stats up to here?
+      sim.reset_stats();
+      stack.back().print_stats = true;
+    }
   }
 
 
@@ -102,8 +117,13 @@ namespace patmos
     // check if we are truly returning,
     // otherwise do not pop ... yet (if this is a longjmp)
     dbgstack_frame_t &frame = stack.back();
+    
     if (frame.ret_base == return_base &&
-        frame.ret_offs == return_offset) {
+        frame.ret_offs == return_offset) 
+    {
+      if (frame.print_stats) {
+        sim.print_stats(*debug_out, true, true);
+      }
       stack.pop_back();
     }
   }

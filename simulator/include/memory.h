@@ -135,22 +135,7 @@ namespace patmos
     /// Ensure that the content is initialize up to the given address.
     /// @param address The address that should be accessed.
     /// @param size The access size.
-    void check_initialize_content(uword_t address, uword_t size)
-    {
-      // check if the access exceeds the memory size
-      if((address > Memory_size) || (size > Memory_size - address))
-      {
-        simulation_exception_t::unmapped(address);
-      }
-
-      // initialize memory content
-      size = std::max(1024u, size);
-      for(; Initialized_offset < std::min(address + size, Memory_size);
-          Initialized_offset++)
-      {
-        Content[Initialized_offset] = 0;
-      }
-    }
+    void check_initialize_content(uword_t address, uword_t size);
   public:
     /// Construct a new memory instance.
     /// @param memory_size The size of the memory in bytes.
@@ -166,20 +151,7 @@ namespace patmos
     /// the memory.
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
-    virtual bool read(uword_t address, byte_t *value, uword_t size)
-    {
-      // check if the access exceeds the memory size and lazily initialize
-      // memory content
-      check_initialize_content(address, size);
-
-      // read the data from the memory
-      for(unsigned int i = 0; i < size; i++)
-      {
-        *value++ = Content[address++];
-      }
-
-      return true;
-    }
+    virtual bool read(uword_t address, byte_t *value, uword_t size);
 
     /// A simulated access to a write port.
     /// @param address The memory address to write to.
@@ -187,41 +159,20 @@ namespace patmos
     /// @param size The number of bytes to write.
     /// @return True when the data is written finally to the memory, false
     /// otherwise.
-    virtual bool write(uword_t address, byte_t *value, uword_t size)
-    {
-      // check if the access exceeds the memory size and lazily initialize
-      // memory content
-      check_initialize_content(address, size);
-
-      // write the data to the memory
-      for(unsigned int i = 0; i < size; i++)
-      {
-        Content[address++] = *value++;
-      }
-
-      return true;
-    }
+    virtual bool write(uword_t address, byte_t *value, uword_t size);
 
     /// Read some values from the memory -- DO NOT SIMULATE TIMING.
     /// @param address The memory address to read from.
     /// @param value A pointer to a destination to store the value read from
     /// the memory.
     /// @param size The number of bytes to read.
-    virtual void read_peek(uword_t address, byte_t *value, uword_t size)
-    {
-      bool result = read(address, value, size);
-      assert(result);
-    }
+    virtual void read_peek(uword_t address, byte_t *value, uword_t size);
 
     /// Write some values into the memory -- DO NOT SIMULATE TIMING, just write.
     /// @param address The memory address to write to.
     /// @param value The value to be written to the memory.
     /// @param size The number of bytes to write.
-    virtual void write_peek(uword_t address, byte_t *value, uword_t size)
-    {
-      bool result = write(address, value, size);
-      assert(result);
-    }
+    virtual void write_peek(uword_t address, byte_t *value, uword_t size);
 
     /// Check if the memory is busy handling some request.
     /// @return False in case the memory is currently handling some request,
@@ -347,24 +298,10 @@ namespace patmos
     /// Track number of requests per request size.
     request_size_map_t Num_requests_per_size;
     
-    uword_t get_aligned_size(uword_t address, uword_t size) {
-      uword_t start = (address/Num_bytes_per_block) * Num_bytes_per_block;
-      uword_t end   = (((address + size - 1)/Num_bytes_per_block) + 1) *
-                      Num_bytes_per_block;
-      return end - start;
-    }
+    uword_t get_aligned_size(uword_t address, uword_t size);
     
     unsigned int get_transfer_ticks(uword_t aligned_size, bool is_load, 
-                                    bool is_posted) 
-    {
-      unsigned int num_blocks = (((aligned_size-1) / Num_bytes_per_block) + 1); 
-      unsigned int num_ticks = Num_ticks_per_block * num_blocks;
-      
-      if (is_load || !is_posted) {
-        num_ticks += Num_read_delay_ticks;
-      }
-      return num_ticks;
-    }
+                                    bool is_posted);
     
     /// Find or create a request given an address, size, and load/store flag.
     /// @param address The address of the request.
@@ -375,60 +312,7 @@ namespace patmos
     /// \see request_info_t
     const request_info_t &find_or_create_request(uword_t address, uword_t size,
                                                  bool is_load, 
-                                                 bool is_posted = false)
-    {
-      // check if the access exceeds the memory size and lazily initialize
-      // memory content
-      check_initialize_content(address, size);
-
-      // see if the request already exists
-      for(requests_t::const_iterator i(Requests.begin()), ie(Requests.end());
-          i != ie; i++)
-      {
-        // found matching request?
-        if (i->Address == address && i->Size == size && i->Is_load == is_load)
-          return *i;
-      }
-
-      // no matching request found, create a new one
-      uword_t aligned_size = get_aligned_size(address, size);      
-      unsigned int num_ticks = get_transfer_ticks(aligned_size, is_load, 
-                                                  is_posted);
-      
-      request_info_t tmp = {address, size, is_load, is_posted, num_ticks};
-      Requests.push_back(tmp);
-
-      // Update statistics
-      Num_max_queue_size = std::max(Num_max_queue_size, (unsigned)Requests.size());
-      Num_busy_cycles += num_ticks;
-      if (is_load == Last_is_load && address == Last_address + 1) {
-        Num_consecutive_requests++;
-      }
-      if (is_load) {
-        Num_reads++;
-        Num_bytes_read += size;
-        Num_bytes_read_transferred += aligned_size;
-      } else {
-        Num_writes++;
-        Num_bytes_written += size;
-        Num_bytes_write_transferred += aligned_size;
-      }
-      Last_address = address + size;
-      Last_is_load = is_load;
-      
-      // calculate bucket for request size histogram
-      uword_t hist_size = (((size - 1) / 4) + 1) * 4;
-      request_size_map_t::iterator it = Num_requests_per_size.find(hist_size);
-      if (it == Num_requests_per_size.end()) {
-        Num_requests_per_size.insert(std::make_pair(hist_size, (uint64_t)1));
-      } else {
-        it->second++;
-      }
-      
-      
-      // return the newly created request
-      return Requests.back();
-    }
+                                                 bool is_posted = false);
     
   public:
     /// Construct a new memory instance.
@@ -463,33 +347,7 @@ namespace patmos
     /// the memory.
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
-    virtual bool read(uword_t address, byte_t *value, uword_t size)
-    {
-      // get the request info
-      const request_info_t &req(find_or_create_request(address, size, true));
-
-      // check if the request has finished
-      if(req.Num_ticks_remaining == 0)
-      {
-#ifndef NDEBUG
-        // check request
-        request_info_t &tmp(Requests.front());
-        assert(tmp.Address == req.Address && tmp.Size == req.Size &&
-               tmp.Is_load == req.Is_load);
-#endif
-
-        // clean-up the request
-        Requests.erase(Requests.begin());
-
-        // read the data
-        return ideal_memory_t::read(address, value, size);
-      }
-      else
-      {
-        // not yet finished
-        return false;
-      }
-    }
+    virtual bool read(uword_t address, byte_t *value, uword_t size);
 
     /// A simulated access to a write port.
     /// @param address The memory address to write to.
@@ -497,193 +355,38 @@ namespace patmos
     /// @param size The number of bytes to write.
     /// @return True when the data is written finally to the memory, false
     /// otherwise.
-    virtual bool write(uword_t address, byte_t *value, uword_t size)
-    {
-      // To avoid delaying reads until the write has been stored to the queue,
-      // we just add it to the queue and delay later until the queue is small 
-      // enough.
-      bool posted = (Num_posted_writes > 0);
-      
-      // get the request info
-      const request_info_t &req(find_or_create_request(address, size, false, 
-                                                       posted));
-
-      // check if the request has finished
-      if(req.Num_ticks_remaining == 0)
-      {
-#ifndef NDEBUG
-        // check request
-        request_info_t &tmp(Requests.front());
-        assert(tmp.Address == req.Address && tmp.Size == req.Size &&
-               tmp.Is_load == req.Is_load);
-#endif
-
-        // clean-up the request
-        Requests.erase(Requests.begin());
-
-        // write the data
-        return ideal_memory_t::write(address, value, size);
-      }
-      else if (posted) {
-        // delay only until the request queue size is small enough
-        return Requests.size() <= Num_posted_writes;
-      }
-      else
-      {
-        // not yet finished
-        return false;
-      }
-    }
+    virtual bool write(uword_t address, byte_t *value, uword_t size);
 
     /// Read some values from the memory -- DO NOT SIMULATE TIMING.
     /// @param address The memory address to read from.
     /// @param value A pointer to a destination to store the value read from
     /// the memory.
     /// @param size The number of bytes to read.
-    virtual void read_peek(uword_t address, byte_t *value, uword_t size)
-    {
-      bool result = ideal_memory_t::read(address, value, size);
-      assert(result);
-    }
+    virtual void read_peek(uword_t address, byte_t *value, uword_t size);
 
     /// Write some values into the memory -- DO NOT SIMULATE TIMING, just write.
     /// @param address The memory address to write to.
     /// @param value The value to be written to the memory.
     /// @param size The number of bytes to write.
-    virtual void write_peek(uword_t address, byte_t *value, uword_t size)
-    {
-      bool result = ideal_memory_t::write(address, value, size);
-      assert(result);
-    }
+    virtual void write_peek(uword_t address, byte_t *value, uword_t size);
 
     /// Check if the memory is busy handling some request.
     /// @return False in case the memory is currently handling some request,
     /// otherwise true.
-    virtual bool is_ready()
-    {
-      return Requests.empty();
-    }
+    virtual bool is_ready();
 
     /// Notify the memory that a cycle has passed.
-    virtual void tick()
-    {
-      // check if there are only posted writes in the queue, then there is
-      // no one waiting on any result and we are actually not stalling in this
-      // cycle
-      if (!Requests.empty() && Requests.size() <= Num_posted_writes) {
-        bool posted = true;
-        for (requests_t::iterator it = Requests.begin(), ie = Requests.end();
-             it != ie; it++)
-        {
-          if (!it->Is_posted) {
-            posted = false;
-            break;
-          }
-        }
-        if (posted) {
-          Num_posted_write_cycles++;
-        }
-      }
-
-      // update the request queue
-      if (!Requests.empty() && Requests.front().Num_ticks_remaining)
-      {
-        request_info_t &req = Requests.front();
-        req.Num_ticks_remaining--;
-        
-        if (req.Num_ticks_remaining == 0 && req.Is_posted) {
-          Requests.erase(Requests.begin());
-        }
-      }
-    }
+    virtual void tick();
 
     /// Print the internal state of the memory to an output stream.
     /// @param os The output stream to print to.
-    virtual void print(std::ostream &os) const
-    {
-      if (Requests.empty())
-      {
-        os << " IDLE\n";
-      }
-      else
-      {
-        for(requests_t::const_iterator i(Requests.begin()), ie(Requests.end());
-            i != ie; i++)
-        {
-          os << boost::format(" %1%: %2% (0x%3$08x %4%)\n")
-            % (i->Is_load ? "LOAD " : "STORE") % i->Num_ticks_remaining
-            % i->Address % i->Size;
-        }
-      }
-    }
+    virtual void print(std::ostream &os) const;
 
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
-    virtual void print_stats(const simulator_t &s, std::ostream &os)
-    {
-      uint64_t stall_cycles = Num_busy_cycles - Num_posted_write_cycles;
-      
-      float cycles = s.Cycle;
-      float stalls = (float)stall_cycles/cycles;
-      float hidden = (float)Num_posted_write_cycles/cycles;
-      uint64_t total_bytes = Num_bytes_read_transferred + 
-                             Num_bytes_write_transferred;
-      
-      os << boost::format("                                total  %% of cycles\n"
-                          "   Max Queue Size        : %1$10d\n"
-                          "   Consecutive Transfers : %2$10d\n"
-                          "   Requests              : %3$10d\n"
-                          "   Bursts transferred    : %4$10d\n"
-                          "   Bytes transferred     : %5$10d\n"
-                          "   Stall Cycles          : %6$10d %7$10.2f%%\n"
-                          "   Hidden Write Cycles   : %8$10d %9$10.2f%%\n\n")
-        % Num_max_queue_size 
-        % Num_consecutive_requests
-        % (Num_reads + Num_writes) 
-        % (total_bytes / Num_bytes_per_block)
-        % total_bytes
-        % stall_cycles % (stalls * 100.0)
-        % Num_posted_write_cycles % (hidden * 100.0);
-      
-      float read_pct = (float)Num_bytes_read / (float)total_bytes;
-      float write_pct = (float)Num_bytes_written / (float)total_bytes;
-      float read_trans_pct = (float)Num_bytes_read_transferred /
-                             (float)total_bytes;
-      float write_trans_pct = (float)Num_bytes_write_transferred / 
-                              (float)total_bytes;
-      
-      os << boost::format("                                 Read                  Write\n"
-                          "   Requests              : %1$10d             %2$10d\n"
-                          "   Bytes Requested       : %3$10d %4$10.2f%% %5$10d %6$10.2f%%\n"
-                          "   Bytes Transferred     : %7$10d %8$10.2f%% %9$10d %10$10.2f%%\n\n")
-        % Num_reads % Num_writes 
-        % Num_bytes_read % (read_pct * 100.0) 
-        % Num_bytes_written % (write_pct * 100.0)
-        % Num_bytes_read_transferred % (read_trans_pct * 100.0)
-        % Num_bytes_write_transferred % (write_trans_pct * 100.0);
-        
-      os << "Request size    #requests\n";
-      for (request_size_map_t::iterator it = Num_requests_per_size.begin(),
-           ie = Num_requests_per_size.end(); it != ie; it++)
-      {
-        os << boost::format("  %1$10d : %2$12d\n") % it->first % it->second;
-      }
-    }
+    virtual void print_stats(const simulator_t &s, std::ostream &os);
     
-    virtual void reset_stats() 
-    {
-      Num_max_queue_size = 0;
-      Num_consecutive_requests = 0;
-      Num_busy_cycles = 0;
-      Num_posted_write_cycles = 0;
-      Num_reads = 0;
-      Num_writes = 0;
-      Num_bytes_read = 0;
-      Num_bytes_written = 0;
-      Num_bytes_read_transferred = 0;
-      Num_bytes_write_transferred = 0;
-      Num_requests_per_size.clear();
-    }
+    virtual void reset_stats();
 
   };
 }
