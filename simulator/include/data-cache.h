@@ -388,7 +388,7 @@ namespace patmos
         // but as the simulator implementation does not store contents in
         // the cache, we simply omit cache updates for the write-through D$
 
-        bool cache_hit = (tag_index < ASSOCIATIVITY);
+        bool cache_hit = (tag_index < Associativity);
 
         // update statistics
         if (cache_hit)
