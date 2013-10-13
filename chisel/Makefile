@@ -37,9 +37,9 @@ SRC=$(shell find src -name '*.scala')
 # main class for Patmos
 MAIN=patmos.PatmosMain
 
-# config file for Patmos -- now yust in test mode
+# config file for Patmos -- now just frequency
 CONFIG=default
-CONFIGFILE=config/$(CONFIG).xml
+CONFIGFILE=$(BOOTBUILDROOT)/chisel/config/$(CONFIG).xml
 
 # build C++ and Verilog versions by default
 all: emulator verilog

@@ -117,7 +117,7 @@ hsim: $(BUILDDIR)/$(BOOTAPP).bin
 
 # C simulation of the Chisel version of Patmos
 csim:
-	$(MAKE) -C chisel test BOOTAPP=$(BOOTAPP)
+	$(MAKE) -C chisel test BOOTBUILDROOT=$(CURDIR) BOOTAPP=$(BOOTAPP)
 
 # Testing
 test:
