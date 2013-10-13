@@ -22,6 +22,8 @@
 
 #include "memory.h"
 
+#include <boost/format.hpp>
+
 namespace patmos
 {
   /// A data cache.

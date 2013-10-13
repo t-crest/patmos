@@ -92,18 +92,23 @@ void ideal_memory_t::write_peek(uword_t address, byte_t *value, uword_t size)
 }
 
 
-uword_t fixed_delay_memory_t::get_aligned_size(uword_t address, uword_t size) {
-  uword_t start = (address/Num_bytes_per_block) * Num_bytes_per_block;
-  uword_t end   = (((address + size - 1)/Num_bytes_per_block) + 1) *
-                  Num_bytes_per_block;
+uword_t fixed_delay_memory_t::get_aligned_size(uword_t address, uword_t size,
+                                               uword_t &aligned_address)
+{
+  uword_t start = (address/Num_bytes_per_burst) * Num_bytes_per_burst;
+  uword_t end   = (((address + size - 1)/Num_bytes_per_burst) + 1) *
+                  Num_bytes_per_burst;
+  aligned_address = start;
   return end - start;
 }
 
-unsigned int fixed_delay_memory_t::get_transfer_ticks(uword_t aligned_size, 
-                                bool is_load, bool is_posted) 
+unsigned int fixed_delay_memory_t::get_transfer_ticks(uword_t aligned_address,
+                                                      uword_t aligned_size, 
+                                                      bool is_load, 
+                                                      bool is_posted) 
 {
-  unsigned int num_blocks = (((aligned_size-1) / Num_bytes_per_block) + 1); 
-  unsigned int num_ticks = Num_ticks_per_block * num_blocks;
+  unsigned int num_blocks = (((aligned_size-1) / Num_bytes_per_burst) + 1); 
+  unsigned int num_ticks = Num_ticks_per_burst * num_blocks;
   
   if (is_load || !is_posted) {
     num_ticks += Num_read_delay_ticks;
@@ -129,9 +134,10 @@ const request_info_t &fixed_delay_memory_t::find_or_create_request(
   }
 
   // no matching request found, create a new one
-  uword_t aligned_size = get_aligned_size(address, size);      
-  unsigned int num_ticks = get_transfer_ticks(aligned_size, is_load, 
-                                              is_posted);
+  uword_t aligned_address;
+  uword_t aligned_size = get_aligned_size(address, size, aligned_address);
+  unsigned int num_ticks = get_transfer_ticks(aligned_address, aligned_size, 
+                                              is_load, is_posted);
   
   request_info_t tmp = {address, size, is_load, is_posted, num_ticks};
   Requests.push_back(tmp);
@@ -324,7 +330,7 @@ void fixed_delay_memory_t::print_stats(const simulator_t &s, std::ostream &os)
     % Num_max_queue_size 
     % Num_consecutive_requests
     % (Num_reads + Num_writes) 
-    % (total_bytes / Num_bytes_per_block)
+    % (total_bytes / Num_bytes_per_burst)
     % total_bytes
     % stall_cycles % (stalls * 100.0)
     % Num_posted_write_cycles % (hidden * 100.0);
@@ -367,4 +373,81 @@ void fixed_delay_memory_t::reset_stats()
   Num_bytes_read_transferred = 0;
   Num_bytes_write_transferred = 0;
   Num_requests_per_size.clear();
+}
+
+
+unsigned int variable_burst_memory_t::get_transfer_ticks(uword_t aligned_address,
+                                                         uword_t aligned_size, 
+                                                         bool is_load, 
+                                                         bool is_posted)
+{
+  unsigned int start_page = aligned_address / Num_bytes_per_page;
+  unsigned int end_page = (aligned_address + aligned_size - 1) / Num_bytes_per_page;
+  unsigned int num_pages = end_page - start_page + 1;
+  
+  // We assume that even variable sized requests are min_burst_length aligned, 
+  // simplifying the hardware (note that the hardware does not actually
+  // need to align anything though, it just needs to obey the timing requirements
+  // and potentially not overlap read/write burst and precharge/activate).
+  //
+  // We could also just word-align in get_aligned_size(), then we need
+  // the following to calculate the correct request length that accounts for 
+  // non-overlapping PRE and ACT:
+  /*
+  // We start at least min_burst bytes before the end of the first page
+  unsigned int start_address = std::min(aligned_address,
+                                        (start_page + 1) * Num_bytes_per_page -
+                                        Num_bytes_per_burst);
+  // We end at least min_burst bytes after the start of the last page
+  unsigned int end_address = std::max(aligned_address + aligned_size, 
+                                      end_page * Num_bytes_per_page +
+                                      Num_bytes_per_burst);
+  
+  // We transfer at least min_burst bytes if we do not span over multiple pages.
+  unsigned int length = std::min(end_address - start_address, 
+                                 Num_bytes_per_burst);
+  */
+  
+  unsigned int length = aligned_size;
+  
+  // Now, in every page, we transfer at least min_burst bytes, and have
+  // exactly once the cost for min_burst transfer.
+  // Note that if burst_size == page_size, this is the same as the fixed-delay
+  // memory.
+  unsigned num_ticks = num_pages * Num_ticks_per_burst;
+  length -= num_pages * Num_bytes_per_burst;
+  
+  // The rest of the bytes are transferred with one cycle per word.
+  num_ticks += length / 4;
+  
+  if (is_load || !is_posted) {
+    num_ticks += Num_read_delay_ticks;
+  }
+
+  return num_ticks;    
+}
+
+
+unsigned int tdm_memory_t::get_transfer_ticks(uword_t aligned_address,
+                                              uword_t aligned_size, 
+                                              bool is_load, bool is_posted)
+{
+  unsigned int num_blocks = (((aligned_size-1) / Num_bytes_per_burst) + 1); 
+  
+  unsigned int num_wait = (Round_counter < Round_start) ? Round_length : 0;
+  num_wait += Round_counter - Round_start;
+  num_wait = Round_length - 1;
+  unsigned int num_ticks = num_wait + Round_length * (num_blocks - 1) 
+                                    + Num_ticks_per_burst;
+  if (is_load || !is_posted) {
+    num_ticks += Num_read_delay_ticks;
+  }
+
+  return num_ticks;    
+}
+
+void tdm_memory_t::tick()
+{
+  Round_counter = (Round_counter + 1) % Round_length;
+  fixed_delay_memory_t::tick();
 }

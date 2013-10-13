@@ -20,17 +20,15 @@
 #ifndef PATMOS_MEMORY_H
 #define PATMOS_MEMORY_H
 
-#include "exception.h"
-#include "simulation-core.h"
+#include "basic-types.h"
 
-#include <boost/format.hpp>
-
-#include <cassert>
-#include <cmath>
-#include <algorithm>
+#include <map>
+#include <iostream>
 
 namespace patmos
 {
+  class simulator_t;
+  
   /// Basic interface to access main memory during simulation.
   class memory_t
   {
@@ -236,17 +234,17 @@ namespace patmos
   /// access delay (Num_ticks_per_block).
   class fixed_delay_memory_t : public ideal_memory_t
   {
-  private:
+  protected:
     /// Set of pending requests processed by the memory.
     typedef std::vector<request_info_t> requests_t;
 
     typedef std::map<uword_t, uint64_t> request_size_map_t;
     
     /// Memory access time per block in cycles.
-    unsigned int Num_ticks_per_block;
+    unsigned int Num_ticks_per_burst;
 
     /// Block transfer size
-    unsigned int Num_bytes_per_block;
+    unsigned int Num_bytes_per_burst;
     
     /// Enable posted writes.
     unsigned int Num_posted_writes;
@@ -257,6 +255,7 @@ namespace patmos
     /// Outstanding requests to the memory.
     requests_t Requests;
 
+  private:
     // -------------  Statistics -------------
     
     /// End address of last request
@@ -298,10 +297,13 @@ namespace patmos
     /// Track number of requests per request size.
     request_size_map_t Num_requests_per_size;
     
-    uword_t get_aligned_size(uword_t address, uword_t size);
+  protected:  
+    virtual uword_t get_aligned_size(uword_t address, uword_t size, 
+                                     uword_t &aligned_address);
     
-    unsigned int get_transfer_ticks(uword_t aligned_size, bool is_load, 
-                                    bool is_posted);
+    virtual unsigned int get_transfer_ticks(uword_t aligned_address,
+                                            uword_t aligned_size, bool is_load, 
+                                            bool is_posted);
     
     /// Find or create a request given an address, size, and load/store flag.
     /// @param address The address of the request.
@@ -317,21 +319,20 @@ namespace patmos
   public:
     /// Construct a new memory instance.
     /// @param memory_size The size of the memory in bytes.
-    /// @param num_ticks_per_block Memory access time per block in cycles.
-    /// @param num_bytes_per_block Memory block size.
+    /// @param num_bytes_per_burst Memory block size.
     /// @param num_posted_writes Enable posted writes, sets the max size 
     ///                          of the request queue.
+    /// @param num_ticks_per_burst Memory access time per block in cycles.
     /// @param Num_read_delay_ticks Number of ticks until a response to a 
     ///                             request is received
     fixed_delay_memory_t(unsigned int memory_size,
-                         unsigned int num_ticks_per_block, 
-                         unsigned int num_bytes_per_block,
+                         unsigned int num_bytes_per_burst,
                          unsigned int num_posted_writes,
-                         unsigned int num_read_delay_ticks
-                        ) :
-        ideal_memory_t(memory_size), Num_ticks_per_block(num_ticks_per_block),
-        Num_bytes_per_block(num_bytes_per_block), 
-        Num_posted_writes(num_posted_writes), 
+                         unsigned int num_ticks_per_burst, 
+                         unsigned int num_read_delay_ticks) :
+        ideal_memory_t(memory_size), Num_ticks_per_burst(num_ticks_per_burst),
+        Num_bytes_per_burst(num_bytes_per_burst),
+        Num_posted_writes(num_posted_writes),
         Num_read_delay_ticks(num_read_delay_ticks), Last_address(0), 
         Last_is_load(false), Num_max_queue_size(0),
         Num_reads(0), Num_writes(0), Num_bytes_read(0), Num_bytes_written(0),
@@ -388,6 +389,62 @@ namespace patmos
     
     virtual void reset_stats();
 
+  };
+
+  class variable_burst_memory_t : public fixed_delay_memory_t
+  {
+  private:
+    unsigned int Num_bytes_per_page;
+    
+  protected:
+    virtual unsigned int get_transfer_ticks(uword_t aligned_address,
+                                            uword_t aligned_size, bool is_load, 
+                                            bool is_posted);
+  public:
+    variable_burst_memory_t(unsigned int memory_size, 
+                        unsigned int num_min_bytes_per_burst,
+                        unsigned int num_bytes_per_page,
+                        unsigned int num_posted_writes,
+                        unsigned int num_min_ticks_per_burst,
+                        unsigned int num_read_delay_ticks)
+    : fixed_delay_memory_t(memory_size, num_min_bytes_per_burst, 
+                           num_posted_writes, 
+                           num_min_ticks_per_burst, num_read_delay_ticks),
+      Num_bytes_per_page(num_bytes_per_page)
+    {}
+
+  };
+  
+  class tdm_memory_t : public fixed_delay_memory_t 
+  {
+  private:
+    uword_t Round_length;
+    
+    uword_t Round_start;
+    
+    uword_t Round_counter;
+    
+  protected:
+    virtual unsigned int get_transfer_ticks(uword_t aligned_address,
+                                            uword_t aligned_size, bool is_load, 
+                                            bool is_posted);
+
+  public:
+    tdm_memory_t(unsigned int memory_size, unsigned int num_bytes_per_burst,
+                 unsigned int num_posted_writes,
+                 unsigned int num_cores,
+                 unsigned int cpu_id,
+                 unsigned int num_ticks_per_burst,
+                 unsigned int num_read_delay_ticks,
+                 unsigned int num_refresh_ticks_per_round)
+    : fixed_delay_memory_t(memory_size, num_bytes_per_burst, num_posted_writes,
+      num_ticks_per_burst, num_read_delay_ticks), Round_counter(0)
+    {
+      Round_length = num_cores * num_ticks_per_burst + num_refresh_ticks_per_round;
+      Round_start  = cpu_id * num_ticks_per_burst;
+    }
+    
+    virtual void tick();
   };
 }
 

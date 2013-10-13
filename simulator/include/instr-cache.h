@@ -22,6 +22,8 @@
 
 #include "memory.h"
 
+#include "simulation-core.h"
+
 namespace patmos
 {
 

@@ -43,21 +43,37 @@
 
 
 /// Construct a global memory for the simulation.
-/// @param time Access time in cycles for memory accesses.
+/// @param burst_time Access time in cycles for memory accesses.
 /// @param size The requested size of the memory in bytes.
 /// @return An instance of the requested memory.
-static patmos::memory_t &create_global_memory(unsigned int time,
+static patmos::memory_t &create_global_memory(unsigned int cores,
+                                              unsigned int cpu_id,
                                               unsigned int size,
                                               unsigned int burst_size,
+                                              unsigned int page_size,
                                               unsigned int posted,
-                                              unsigned int setup_time
-                                             )
+                                              unsigned int burst_time,
+                                              unsigned int read_delay,
+                                              unsigned int refresh_cycles)
 {
-  if (time == 0 && setup_time == 0)
-    return *new patmos::ideal_memory_t(size);
-  else
-    return *new patmos::fixed_delay_memory_t(size, time, burst_size, posted, 
-                                             setup_time);
+  if (cores > 1) {
+    return *new patmos::tdm_memory_t(size, burst_size, posted, cores, cpu_id,
+                                     burst_time, read_delay, refresh_cycles);    
+  } 
+  else if (cores == 1) {
+    if (burst_time == 0 && read_delay == 0)
+      return *new patmos::ideal_memory_t(size);
+    else if (page_size == 0)
+      return *new patmos::fixed_delay_memory_t(size, burst_size, posted, 
+                                              burst_time, read_delay);
+    else
+      return *new patmos::variable_burst_memory_t(size, burst_size, page_size,
+                                              posted, burst_time, read_delay);
+  } 
+  else {
+    std::cerr << "Invalid number of cores.\n";
+    abort();
+  }
 }
 
 /// Construct a data cache for the simulation.
@@ -239,7 +255,9 @@ int main(int argc, char **argv)
     ("gsize,g",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_MEMORY_BYTES), "global memory size in bytes")
     ("gtime,G",  boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES/4 + 5), "global memory transfer time per burst in cycles")
     ("tdelay,t", boost::program_options::value<unsigned int>()->default_value(0), "read delay to global memory per request in cycles")
-    ("bsize",  boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES), "burst size (and alignment) of the memory system.")
+    ("trefresh", boost::program_options::value<unsigned int>()->default_value(0), "refresh cycles per TDM round")
+    ("bsize",    boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES), "burst size (and alignment) of the memory system.")
+    ("psize",    boost::program_options::value<unsigned int>()->default_value(0), "Memory page size. Enables variable burst lengths for single-core.")
     ("posted,p", boost::program_options::value<unsigned int>()->default_value(0), "Enable posted writes (sets max queue size)")
     ("lsize,l",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_LOCAL_MEMORY_BYTES), "local memory size in bytes");
 
@@ -264,8 +282,9 @@ int main(int argc, char **argv)
 
   boost::program_options::options_description sim_options("Simulator options");
   sim_options.add_options()
-    ("cpuid", boost::program_options::value<unsigned int>()->default_value(0), "Set CPU ID in the simulator")
-    ("freq",  boost::program_options::value<double>()->default_value(80.0), "Set CPU Frequency in Mhz")
+    ("cpuid",  boost::program_options::value<unsigned int>()->default_value(0), "Set CPU ID in the simulator")
+    ("cores,N", boost::program_options::value<unsigned int>()->default_value(1), "Set number of CPUs (enables memory TDM)")
+    ("freq",   boost::program_options::value<double>()->default_value(80.0), "Set CPU Frequency in Mhz")
     ("mmbase", boost::program_options::value<patmos::address_t>()->default_value(patmos::IOMAP_BASE_ADDRESS), "base address of the IO device map address range")
     ("mmhigh", boost::program_options::value<patmos::address_t>()->default_value(patmos::IOMAP_HIGH_ADDRESS), "highest address of the IO device map address range")
     ("cpuinfo_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::CPUINFO_OFFSET), "offset where the cpuinfo device is mapped")
@@ -320,6 +339,7 @@ int main(int argc, char **argv)
 
   std::string debug_out(vm["debug-file"].as<std::string>());
 
+  unsigned int cores = vm["cores"].as<unsigned int>();
   unsigned int cpuid = vm["cpuid"].as<unsigned int>();
   double       freq = vm["freq"].as<double>();
   unsigned int mmbase = vm["mmbase"].as<patmos::address_t>().value();
@@ -344,8 +364,10 @@ int main(int argc, char **argv)
 
   unsigned int gtime = vm["gtime"].as<unsigned int>();
   unsigned int bsize = vm["bsize"].as<unsigned int>();
+  unsigned int psize = vm["psize"].as<unsigned int>();
   unsigned int posted = vm["posted"].as<unsigned int>();
   unsigned int tdelay = vm["tdelay"].as<unsigned int>();
+  unsigned int trefresh = vm["trefresh"].as<unsigned int>();
 
   patmos::set_assoc_cache_type dck = vm["dckind"].as<patmos::set_assoc_cache_type>();
   patmos::stack_cache_e sck = vm["sckind"].as<patmos::stack_cache_e>();
@@ -385,7 +407,8 @@ int main(int argc, char **argv)
   std::ostream *dout = NULL;
 
   // setup simulation framework
-  patmos::memory_t &gm = create_global_memory(gtime, gsize, bsize, posted, tdelay);
+  patmos::memory_t &gm = create_global_memory(cores, cpuid, gsize, bsize, psize,
+                                              posted, gtime, tdelay, trefresh);
   patmos::stack_cache_t &sc = create_stack_cache(sck, scsize, sbsize, gm);
   patmos::instr_cache_t &ic = create_instr_cache(ick, isck, mck, mcsize, 
                                                  ilsize ? ilsize : bsize, 
