@@ -63,6 +63,9 @@ import ocp._
  * The main (top-level) component of Patmos.
  */
 class Patmos(configFile: String, binFile: String, datFile: String) extends Component {
+
+  Config.conf = Config.load(configFile)
+
   val io = new Bundle {
     val dummy = Bits(OUTPUT, 32)
     val cpuId = Bits(INPUT, DATA_WIDTH)
@@ -73,8 +76,6 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Compo
     val sramPins = new RamOutPinsIO() 
     //val rfDebug = Vec(REG_COUNT) { Bits(OUTPUT, DATA_WIDTH) }
   }
-  
-//  Config.conf = Config.load(configFile)
   
   val ssram = new SsramBurstRW()
   val mcache = new MCache()
@@ -190,11 +191,11 @@ class PatmosTest(pat: Patmos) extends Tester(pat,
 object PatmosMain {
   def main(args: Array[String]): Unit = {
 
-    // Use first argument for the program name (.bin file)
-    val chiselArgs = args.slice(2, args.length)
+    val chiselArgs = args.slice(3, args.length)
     val configFile = args(0)
     val binFile = args(1)
     val datFile = args(2)
+
     chiselMainTest(chiselArgs, () => new Patmos(configFile, binFile, datFile)) { f => new PatmosTest(f) }
   }
 }
