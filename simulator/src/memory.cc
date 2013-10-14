@@ -116,6 +116,11 @@ unsigned int fixed_delay_memory_t::get_transfer_ticks(uword_t aligned_address,
   return num_ticks;
 }
 
+void fixed_delay_memory_t::tick_request(request_info_t &req)
+{
+  req.Num_ticks_remaining--;
+}
+
 const request_info_t &fixed_delay_memory_t::find_or_create_request(
                                               uword_t address, uword_t size,
                                               bool is_load, bool is_posted)
@@ -281,7 +286,7 @@ void fixed_delay_memory_t::tick()
   if (!Requests.empty() && Requests.front().Num_ticks_remaining)
   {
     request_info_t &req = Requests.front();
-    req.Num_ticks_remaining--;
+    tick_request(req);
     
     if (req.Num_ticks_remaining == 0 && req.Is_posted) {
       Requests.erase(Requests.begin());
@@ -428,26 +433,69 @@ unsigned int variable_burst_memory_t::get_transfer_ticks(uword_t aligned_address
 }
 
 
+
+tdm_memory_t::tdm_memory_t(unsigned int memory_size, 
+                           unsigned int num_bytes_per_burst,
+                           unsigned int num_posted_writes,
+                           unsigned int num_cores,
+                           unsigned int cpu_id,
+                           unsigned int num_ticks_per_burst,
+                           unsigned int num_read_delay_ticks,
+                           unsigned int num_refresh_ticks_per_round)
+: fixed_delay_memory_t(memory_size, num_bytes_per_burst, num_posted_writes,
+  num_ticks_per_burst, num_read_delay_ticks), Round_counter(0), 
+  Is_Transferring(false)
+{
+  Round_length = num_cores * num_ticks_per_burst + num_refresh_ticks_per_round;
+  Round_start  = cpu_id * num_ticks_per_burst;
+  
+  if (num_ticks_per_burst + num_read_delay_ticks >= Round_length) {
+    std::cerr << 
+           "Read delay too long; overlapping TDM requests are not supported.\n";
+    abort();
+  }
+}
+
 unsigned int tdm_memory_t::get_transfer_ticks(uword_t aligned_address,
                                               uword_t aligned_size, 
                                               bool is_load, bool is_posted)
 {
-  unsigned int num_blocks = (((aligned_size-1) / Num_bytes_per_burst) + 1); 
+  unsigned int num_blocks = ((aligned_size - 1) / Num_bytes_per_burst) + 1;
   
-  unsigned int num_wait = (Round_counter < Round_start) ? Round_length : 0;
-  num_wait += Round_counter - Round_start;
-  num_wait = Round_length - 1;
-  unsigned int num_ticks = num_wait + Round_length * (num_blocks - 1) 
-                                    + Num_ticks_per_burst;
-  if (is_load || !is_posted) {
-    num_ticks += Num_read_delay_ticks;
-  }
+  // We are counting down TDM slots at round end instead of actual ticks.
+  return num_blocks;
+}
 
-  return num_ticks;    
+void tdm_memory_t::tick_request(request_info_t &req)
+{
+  int round_end = Round_start + Num_ticks_per_burst;
+  if (!req.Is_posted) {
+    round_end += Num_read_delay_ticks;
+  }
+  if (round_end >= Round_length) {
+    round_end -= Round_length;
+  }
+  
+  // We are counting down TDM rounds
+  if (round_end == Round_counter) {
+    req.Num_ticks_remaining--;
+    Is_Transferring = false;
+  }
 }
 
 void tdm_memory_t::tick()
 {
+  // TODO can we start a transfer if it is requested in the same cycle the 
+  // TDM slot starts? If so, move the counter update at the end.
   Round_counter = (Round_counter + 1) % Round_length;
+  
+  // Check if we have outstanding requests at the beginning of a round
+  if (Round_counter == Round_start) {
+    // should have been sanity checked in constructor.
+    assert(!Is_Transferring && "Overlapping transfers are not supported");
+    
+    Is_Transferring = !Requests.empty();
+  }
+  
   fixed_delay_memory_t::tick();
 }

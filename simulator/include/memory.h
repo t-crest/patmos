@@ -305,6 +305,9 @@ namespace patmos
                                             uword_t aligned_size, bool is_load, 
                                             bool is_posted);
     
+    /// Let one tick pass for the given request.
+    virtual void tick_request(request_info_t &req);
+    
     /// Find or create a request given an address, size, and load/store flag.
     /// @param address The address of the request.
     /// @param size The number of bytes request by the access.
@@ -424,11 +427,16 @@ namespace patmos
     
     uword_t Round_counter;
     
+    /// True if we are currently sending a request over the NOC
+    bool Is_Transferring;
+    
   protected:
     virtual unsigned int get_transfer_ticks(uword_t aligned_address,
                                             uword_t aligned_size, bool is_load, 
                                             bool is_posted);
 
+    virtual void tick_request(request_info_t &req);
+    
   public:
     tdm_memory_t(unsigned int memory_size, unsigned int num_bytes_per_burst,
                  unsigned int num_posted_writes,
@@ -436,13 +444,7 @@ namespace patmos
                  unsigned int cpu_id,
                  unsigned int num_ticks_per_burst,
                  unsigned int num_read_delay_ticks,
-                 unsigned int num_refresh_ticks_per_round)
-    : fixed_delay_memory_t(memory_size, num_bytes_per_burst, num_posted_writes,
-      num_ticks_per_burst, num_read_delay_ticks), Round_counter(0)
-    {
-      Round_length = num_cores * num_ticks_per_burst + num_refresh_ticks_per_round;
-      Round_start  = cpu_id * num_ticks_per_burst;
-    }
+                 unsigned int num_refresh_ticks_per_round);
     
     virtual void tick();
   };
