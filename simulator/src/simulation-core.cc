@@ -155,15 +155,15 @@ namespace patmos
     {
       for(unsigned int j = 0; j < NUM_SLOTS; j++)
       {
-        if (Pipeline[NUM_STAGES-1][j].I && 
-            Pipeline[NUM_STAGES-1][j].I->ID >= 0)
+        instruction_data_t &ops = Pipeline[NUM_STAGES-1][j];
+        
+        if (ops.I && ops.I->ID >= 0)
         {
           // get instruction statistics
-          instruction_stat_t &stat(
-              Instruction_stats[j][Pipeline[NUM_STAGES-1][j].I->ID]);
+          instruction_stat_t &stat = Instruction_stats[j][ops.I->ID];
 
           // update instruction statistics
-          if (Pipeline[NUM_STAGES-1][j].DR_Pred)
+          if (ops.DR_Pred)
             stat.Num_retired++;
           else
             stat.Num_discarded++;
