@@ -103,12 +103,13 @@ namespace patmos
     // Create a new stack frame
     stack.push_back( dbgstack_frame_t(sim, target) );
     
-    if (target == print_function) {
+    if (target == print_function && !found_print_function) {
       // TODO this should be moved into a separate class, managing stats 
       //      printing with multiple targets, ..
       // TODO should we print the stats up to here?
       sim.reset_stats();
       stack.back().print_stats = true;
+      found_print_function = true;
     }
   }
 
@@ -126,6 +127,7 @@ namespace patmos
     {
       if (frame.print_stats) {
         sim.print_stats(*debug_out, true, true);
+        found_print_function = false;
       }
       stack.pop_back();
     }

@@ -62,6 +62,9 @@ namespace patmos
       std::ostream *debug_out;
       
       uword_t print_function;
+      
+      // True if we are currently collecting stats
+      bool found_print_function;
 
       /// print_stackframe - Print a single debug stack frame to the stream
       /// @param callee the stack frame of the callee, or null if not available
@@ -71,7 +74,8 @@ namespace patmos
     public:
       /// Constructor
       dbgstack_t(simulator_t &s) : sim(s), debug_out(0), 
-         print_function(std::numeric_limits<unsigned int>::max())
+         print_function(std::numeric_limits<unsigned int>::max()),
+         found_print_function(false)
       {
       }
 
