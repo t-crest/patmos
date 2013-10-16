@@ -23,7 +23,7 @@
 #include "stack-cache.h"
 #include "symbol.h"
 
-//#include <iostream>
+#include <iostream>
 #include <sstream>
 #include <boost/format.hpp>
 #include <climits>
@@ -67,6 +67,9 @@ namespace patmos
 
   bool dbgstack_t::is_active_frame(const dbgstack_frame_t &frame) const
   {
+    // TODO this might break if the stack pointers are modified in the delay
+    //      slots (?)
+    
     // check if the frame stack pointers are below the current pointers
     if (frame.caller_tos_shadowstack < sim.GPR.get(rsp).get()) {
       // we are currently further down the shadow stack

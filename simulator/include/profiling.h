@@ -49,18 +49,24 @@ namespace patmos
       /// entry - Top-level program entry point.
       uword_t entry;
 
+      typedef std::map<uword_t, prof_funcinfo_t> cycles_map_t;
+      
       /// cycles_map - Map of function addr -> cycle count.
-      std::map<uword_t, prof_funcinfo_t> cycles_map;
+      cycles_map_t cycles_map;
 
       /// stack - Call stack.
       std::vector<uword_t> stack;
 
       /// last_cycle - Value of the cycle counter on last update.
       uint64_t last_cycle;
+      
+      /// reset_cycle - Value of the cycle counter on last reset or 
+      ///               initialization.
+      uint64_t reset_cycle;
 
     public:
       /// Constructor
-      profiling_t() : last_cycle(0)
+      profiling_t() : last_cycle(0), reset_cycle(0)
       {
       }
 
@@ -83,7 +89,7 @@ namespace patmos
       /// given symbols.
       std::ostream &print(std::ostream &os, symbol_map_t &sym) const;
       
-      void reset_stats();
+      void reset_stats(uint64_t cycle);
   };
 
 } // end namespace patmos

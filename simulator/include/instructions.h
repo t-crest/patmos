@@ -1503,7 +1503,7 @@ namespace patmos
     /// @param pred The predicate under which the instruction is executed.
     /// @param base The base address of the target method.
     /// @param address The target address.
-    /// @return returns true one single time when fetching is started.
+    /// @return returns true when fetching is finished.
     bool fetch_and_dispatch(simulator_t &s, instruction_data_t &ops,
                             bit_t pred, word_t base, word_t address) const
     {
@@ -1522,12 +1522,8 @@ namespace patmos
           // set the program counter and base
           s.BASE = base;
           s.nPC = address;
-        }
-        
-        if (!ops.MW_Initialized) {
-          ops.MW_Initialized = true;
           return true;
-        }
+        }        
       }
       return false;
     }
@@ -1540,7 +1536,7 @@ namespace patmos
     /// @param pred The predicate under which the instruction is executed.
     /// @param base The base address of the target method.
     /// @param address The target address.
-    /// @return returns true one single time when fetching is started.
+    /// @return returns true when fetching is finished.
     bool dispatch(simulator_t &s, instruction_data_t &ops, bit_t pred,
                   word_t base, word_t address) const
     {
@@ -1557,6 +1553,30 @@ namespace patmos
       return false;
     }
     
+    void push_dbgstack(simulator_t &s, instruction_data_t &ops, bit_t pred,
+                        word_t callee) const 
+    {
+      // Enter the debug stack just once, and before we actually do the update
+      // to avoid any issues with timing and stalling.
+      if (pred && !ops.MW_Initialized) {
+        ops.MW_Initialized = true;
+        
+        s.Dbg_stack.push(callee);
+        s.Profiling.enter(callee, s.Cycle);
+      }
+    }
+                        
+    void pop_dbgstack(simulator_t &s, instruction_data_t &ops, bit_t pred,
+                      word_t base, word_t offset) const
+    {
+      if (pred && !ops.MW_Initialized) {
+        ops.MW_Initialized = true;
+        
+        s.Profiling.leave(s.Cycle);
+        s.Dbg_stack.pop(base, offset);
+      }
+    }
+                        
   public:
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
@@ -1608,11 +1628,10 @@ namespace patmos
     {
       store_return_address(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address, 
                            SMW, false);
-      if (fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address))
-      {
-        s.Dbg_stack.push(ops.EX_Address);
-        s.Profiling.enter(ops.EX_Address, s.Cycle);
-      }
+      
+      push_dbgstack(s, ops, ops.DR_Pred, ops.EX_Address);
+      
+      fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
     }
     
     virtual bool is_call() const {
@@ -1686,17 +1705,17 @@ namespace patmos
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
       ops.EX_Address = ops.OPS.CFLb.UImm*sizeof(word_t);
+      ops.MW_Initialized = false;
     }
     
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
       store_return_address(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address, 
                            SMW, true);
-      if (fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address))
-      {
-        s.Dbg_stack.push(ops.EX_Address);
-        s.Profiling.enter(ops.EX_Address, s.Cycle);
-      }
+      
+      push_dbgstack(s, ops, ops.DR_Pred, ops.EX_Address);
+
+      fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
     }
     
     virtual unsigned get_delay_slots() const {
@@ -1774,11 +1793,17 @@ namespace patmos
     {
       store_return_address(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address, 
                            SMW, false);
-      if (fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address))
-      {
+      
+      // Enter the debug stack just once, and before we actually do the update
+      // to avoid any issues with timing and stalling.
+      if (!ops.MW_Initialized && !ops.DR_Pred) {
+        ops.MW_Initialized = true;
+        
         s.Dbg_stack.push(ops.EX_Address);
         s.Profiling.enter(ops.EX_Address, s.Cycle);
       }
+
+      fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
     }
     
     virtual bool is_call() const { 
@@ -1891,11 +1916,9 @@ namespace patmos
       }
       else if (ops.DR_Pred)
       {
-        if (fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Address))
-        {
-          s.Profiling.leave(s.Cycle);
-          s.Dbg_stack.pop(ops.EX_Base, ops.EX_Offset);
-        }
+        pop_dbgstack(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Offset);
+        
+        fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Address);
       }
     }
 

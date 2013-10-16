@@ -548,7 +548,8 @@ namespace patmos
     }
     else if (debug_fmt == DF_CALLS) {
       if (Dbg_cnt_delay == 1) {
-
+        if (is_stalling(SMW)) return;
+        
         if (Dbg_is_call) {
           os << " args: " << boost::format("r3 = %1$08x, r4 = %2$08x, ") 
                 % read_GPR_post_EX(*this, r3) % read_GPR_post_EX(*this, r4);
@@ -563,7 +564,9 @@ namespace patmos
         Dbg_cnt_delay = 0;
       }
       else if (Dbg_cnt_delay > 1) {
-        Dbg_cnt_delay--;
+        if (!is_stalling(SMW)) {
+          Dbg_cnt_delay--;
+        }
       }
       else if (Pipeline[SMW][0].I && Pipeline[SMW][0].DR_Pred &&
                Pipeline[SMW][0].I->is_flow_control()) {
@@ -637,7 +640,7 @@ namespace patmos
     Data_cache.reset_stats();
     Stack_cache.reset_stats();
     Memory.reset_stats();
-    Profiling.reset_stats();
+    Profiling.reset_stats(Cycle);
   }
   
   void simulator_t::print_stats(std::ostream &os, bool slot_stats, bool instr_stats) const
