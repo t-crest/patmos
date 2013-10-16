@@ -17,10 +17,10 @@
 #define CORES 4
 #define SLAVES (CORES-1)
 
-#define DELAY 0
+#define DELAY 100
 
-#define ROWS  60
-#define COLS  80
+#define ROWS  240
+#define COLS  320
 
 #define FRAC_BITS 16
 #define FRAC_ONE  (1 << FRAC_BITS)
@@ -46,7 +46,7 @@ extern int _stack_cache_base, _shadow_stack_base;
 
 #define UART_STATUS *((volatile _SPM int *) 0xF0000800)
 #define UART_DATA   *((volatile _SPM int *) 0xF0000804)
-void write(const char *msg, int len) __attribute__((noinline));
+static void write(const char *msg, int len) __attribute__((noinline));
 #define WRITE(data,len) write(data,len)
 
 #define COMSPM_BASEPTR ((volatile _SPM int *) 0xE8000000)
@@ -86,7 +86,7 @@ int core_id;
 #include <assert.h>
 
 #ifdef __patmos__
-int main(int argc, char **argv) __attribute__((naked,used));
+int main(int argc, char **argv) __attribute__((naked,used,noreturn));
 #endif
 
 static void master(void);
@@ -225,16 +225,27 @@ struct mpb_master_t {
   struct mpb_t slave[SLAVES];
 } __attribute__ ((aligned (8)));
 
+#ifdef __patmos__
+
+static struct mpb_master_t _SPM *const shm_master_mpb =
+  (struct mpb_master_t _SPM *)COMSPM_BASEPTR;
+static struct mpb_t _SPM *const shm_slave_mpb[SLAVES] = {
+  (struct mpb_t _SPM *)COMSPM_BASEPTR,
+  (struct mpb_t _SPM *)COMSPM_BASEPTR,
+  (struct mpb_t _SPM *)COMSPM_BASEPTR
+};
+
+#else /* __patmos__ */
+
 static struct mpb_master_t _SPM *shm_master_mpb;
 static struct mpb_t _SPM *shm_slave_mpb[SLAVES];
+
+#endif /* __patmos__ */
 
 static void init_mpb() {
   unsigned i;
 #ifdef __patmos__
-  shm_master_mpb = (struct mpb_master_t _SPM *)COMSPM_BASEPTR;
-  for (i = 0; i < SLAVES; i++) {
-    shm_slave_mpb[i] = (struct mpb_t _SPM *)COMSPM_BASEPTR;
-  }
+  /* nothing to do */
 #else /* __patmos__ */
   shm_master_mpb = shm_alloc(SHM_MPB_KEY, sizeof(struct mpb_master_t), 0666);
   for (i = 0; i < SLAVES; i++) {
@@ -288,12 +299,12 @@ int main(int argc, char **argv) {
 				: : "r" (&_shadow_stack_base-16),
 				    "r" (&_stack_cache_base-16),
 				    "i" (&main));
+  // initialize network interface
+  init_ni();
 #else /* __patmos__ */
   core_id = strtol(argv[1], NULL, 0);
 #endif /* __patmos__ */
 
-  // initialize network interface
-  init_ni();
   // initialize MPBs
   init_mpb();
 
@@ -305,7 +316,12 @@ int main(int argc, char **argv) {
 
   clean_mpb();
 
+#ifdef __patmos__
+  /* freeze */
+  for(;;);
+#else /* __patmos__ */
   return 0;
+#endif /* __patmos__ */
 }
 
 static void master(void) {
@@ -525,7 +541,7 @@ static int fracmul(int x, int y) {
 }
 
 #ifdef __patmos__
-void write(const char* msg, int len) {
+static void write(const char* msg, int len) {
   unsigned i;
   for (i = 0; i < len; i++) {
     while ((UART_STATUS & 0x01) == 0);
