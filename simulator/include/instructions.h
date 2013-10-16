@@ -1932,6 +1932,8 @@ namespace patmos
     {
       printGPReg(os, "in: ", ops.OPS.CFLr.Rb, ops.EX_Base);
       printGPReg(os, ", "  , ops.OPS.CFLr.Ro, ops.EX_Offset);
+      os << boost::format(" addr: %1$08x ") % ops.EX_Address;
+      symbols.print(os, ops.EX_Address);
     }
     
     virtual unsigned get_delay_slots() const {
