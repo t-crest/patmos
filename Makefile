@@ -52,7 +52,6 @@ patsim:
 	cd $(SIMBUILDDIR) && make
 	-mkdir -p $(INSTALLDIR)
 	cp $(SIMBUILDDIR)/src/pa* $(INSTALLDIR)
-	rm -rf $(SIMBUILDDIR)
 
 # Build tool to transform elf to binary
 elf2bin:
@@ -61,7 +60,6 @@ elf2bin:
 	cd $(CTOOLSBUILDDIR) && make
 	-mkdir -p $(INSTALLDIR)
 	cp $(CTOOLSBUILDDIR)/src/elf2bin $(INSTALLDIR)
-	rm -rf $(CTOOLSBUILDDIR)
 
 # Build various Java tools
 javatools: java/lib/patmos-tools.jar
@@ -159,9 +157,13 @@ config_xilinx:
 # cleanup
 CLEANEXTENSIONS=rbf rpt sof pin summary ttf qdf dat wlf done qws
 
-clean:
-	-rm -rf $(BUILDDIR) $(INSTALLDIR)
-	-rm -rf java/classes java/lib
+mostlyclean:
+	-rm -rf $(SIMBUILDDIR) $(CTOOLSBUILDDIR) $(BUILDDIR)
+	-rm -rf java/classes
+
+clean: mostlyclean
+	-rm -rf $(INSTALLDIR)
+	-rm -rf java/lib
 	for ext in $(CLEANEXTENSIONS); do \
 		find `ls` -name \*.$$ext -print -exec rm -r -f {} \; ; \
 	done
