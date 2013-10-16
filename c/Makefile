@@ -9,6 +9,7 @@ CC=patmos-clang
 CFLAGS-BOOTABLE=-target patmos-unknown-unknown-elf \
 	-DBOOTROM \
 	-mpatmos-method-cache-size=0x8000 \
+	-mpatmos-subfunction-align=1 \
 	-mpatmos-disable-stack-cache \
 	-nodefaultlibs -nostdlib -nostartfiles \
 	-mpatmos-stack-base=0x80010700 -mpatmos-shadow-stack-base=0x80010800 \
@@ -24,6 +25,10 @@ CFLAGS=-target patmos-unknown-unknown-elf \
 	-mpatmos-stack-base=0x1f0000 -mpatmos-shadow-stack-base=0x200000 \
 	-nolibsyms \
 	-O2
+
+ # force rebuild of mandelbrot_par if init.h changes
+mandelbrot_par.c: init.h
+	touch $@
 
 compile: $(BUILDDIR)/$(APP).elf
 
