@@ -213,6 +213,9 @@ namespace patmos
     /// Delay decoder when an interrupt has been executed
     int Interrupt_handling_counter;
 
+    /// Flush caches when PC reaches this address.
+    uword_t Flush_Cache_PC;
+    
     /// Runtime statistics on all instructions, per pipeline
     instruction_stats_t Instruction_stats[NUM_SLOTS];
 
@@ -281,6 +284,9 @@ namespace patmos
     // Destroy an instance of a Patms-core simulator
     ~simulator_t();
 
+    /// Flush all data caches when reaching the given program counter.
+    void flush_caches_at(uword_t address) { Flush_Cache_PC = address; }
+    
     /// Run the simulator.
     /// @param entry Initialize the method cache, PC, etc. to start execution
     /// from this entry address.
@@ -314,6 +320,9 @@ namespace patmos
 
     /// Reset all simulation statistics.
     void reset_stats();
+    
+    /// Flush all caches.
+    void flush_caches();
   };
 
 

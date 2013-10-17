@@ -47,7 +47,8 @@ namespace patmos
       Interrupt_handler(interrupt_handler),
       BASE(0), PC(0), nPC(0),
       Stall(SXX), Disable_IF(false), Is_decoupled_load_active(false), 
-      Branch_counter(0), Halt(false), Interrupt_handling_counter(0)
+      Branch_counter(0), Halt(false), Interrupt_handling_counter(0),
+      Flush_Cache_PC(std::numeric_limits<unsigned int>::max())
   {
     // initialize one predicate register to be true, otherwise no instruction
     // will ever execute
@@ -351,6 +352,12 @@ namespace patmos
         // Update the Program counter. Either nPC was updated in the fetch stage
         // or it was overwritten by a CFL instruction in EX/MW stage.
         if (!is_stalling(SIF)) {
+          // As soon as we reach the flush PC, flush, so that we do not hit this
+          // again when we stall.
+          if (PC != nPC && nPC == Flush_Cache_PC) {
+            flush_caches();
+          }
+          
           PC = nPC;
           // We just inserted a bubble at SIF before, enable fetching for 
           // this new instruction.
@@ -617,6 +624,13 @@ namespace patmos
     }
   }
 
+  void simulator_t::flush_caches() 
+  {
+    Instr_cache.flush_cache();
+    Data_cache.flush_cache();
+    // TODO flush the stack cache
+  }
+  
   void simulator_t::reset_stats()
   {
     // TODO reset the statistics in the pipeline stages in the correct cycles.

@@ -140,22 +140,22 @@ static patmos::instr_cache_t &create_iset_cache(patmos::set_assoc_cache_type isc
 
   switch (isck.policy) {
     case patmos::SAC_IDEAL:
-      return *new patmos::i_cache_t<true>(new patmos::ideal_data_cache_t(gm));
+      return *new patmos::instr_cache_wrapper_t<true>(new patmos::ideal_data_cache_t(gm));
     case patmos::SAC_NO:
-      return *new patmos::i_cache_t<false>(&gm);
+      return *new patmos::no_instr_cache_t(gm);
     case patmos::SAC_LRU:
     {
-      patmos::memory_t *lru =
+      patmos::data_cache_t *lru =
         new patmos::set_assoc_data_cache_t<true>(gm, isck.associativity, num_blocks, line_size);
 
-      return *new patmos::i_cache_t<true>(lru);
+      return *new patmos::instr_cache_wrapper_t<true>(lru);
     }
     case patmos::SAC_FIFO:
     {
-      patmos::memory_t *fifo =
+      patmos::data_cache_t *fifo =
         new patmos::set_assoc_data_cache_t<false>(gm, isck.associativity, num_blocks, line_size);
 
-      return *new patmos::i_cache_t<true>(fifo);
+      return *new patmos::instr_cache_wrapper_t<true>(fifo);
     }
   }
 }
@@ -246,6 +246,7 @@ int main(int argc, char **argv)
     ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), "format of the debug trace (short, trace, instr, blocks, calls, default, long, all)")
     ("debug-file", boost::program_options::value<std::string>()->default_value("-"), "output debug trace in file (stderr: -)")
     ("print-stats", boost::program_options::value<patmos::address_t>(), "print statistics for a given function only.")
+    ("flush-caches", boost::program_options::value<patmos::address_t>(), "flush all caches when reaching the given address (can be a symbol name).")
     ("slot-stats,a", "show instruction statistics per slot")
     ("instr-stats,i", "show more detailed statistics per instruction")
     ("quiet,q", "disable statistics output");
@@ -386,6 +387,12 @@ int main(int argc, char **argv)
   if (print_stats) {
     print_stats_func = vm["print-stats"].as<patmos::address_t>();
   }
+
+  bool flush_caches = vm.count("flush-caches") > 0;
+  patmos::address_t flush_caches_addr;
+  if (flush_caches) {
+    flush_caches_addr = vm["flush-caches"].as<patmos::address_t>();
+  }
   
   unsigned int interrupt_enabled = vm["interrupt"].as<unsigned int>();
 
@@ -479,7 +486,12 @@ int main(int argc, char **argv)
       print_stats_func.parse(sym);
       s.Dbg_stack.print_function_stats(print_stats_func.value(), *out);
     }
-    
+   
+    if (flush_caches) {
+      flush_caches_addr.parse(sym);
+      s.flush_caches_at(flush_caches_addr.value());
+    }
+   
     // start execution
     try
     {

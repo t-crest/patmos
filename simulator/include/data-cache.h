@@ -31,6 +31,8 @@ namespace patmos
   {
   public:
     virtual ~data_cache_t() {}
+    
+    virtual void flush_cache() = 0;
   };
 
   /// An ideal data cache.
@@ -120,6 +122,8 @@ namespace patmos
     }
     
     virtual void reset_stats() {}
+    
+    virtual void flush_cache() {}
   };
 
   /// A data cache always accessing a memory.
@@ -493,6 +497,17 @@ namespace patmos
       Num_write_miss_bytes = 0;
     }
 
+    virtual void flush_cache() 
+    {
+      for(unsigned int i = 0; i < Num_indexes; i++) 
+      {
+        for(unsigned int j = 0; j < Associativity; j++)
+        {
+          Content[i][j].Is_valid = false;
+        }
+      }      
+    }
+    
     /// free tag information.
     ~set_assoc_data_cache_t()
     {
