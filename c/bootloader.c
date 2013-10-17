@@ -3,8 +3,7 @@
 
 int main() __attribute__((naked,used));
 
-#define _stack_cache_base 0x2f00
-#define _shadow_stack_base 0x3f00
+extern int _stack_cache_base, _shadow_stack_base;
 
 #define MEM         ((volatile int *) 0x0)
 #define SPM         ((volatile _SPM int *) 0x0)
@@ -25,11 +24,14 @@ int main() __attribute__((naked,used));
 
 int main()
 {
-	   // setup stack frame and stack cache.
-	    asm volatile ("mov $r29 = %0;" // initialize shadow stack pointer"
-	                "mts $ss  = %1;" // initialize the stack cache's spill pointer"
-	                "mts $st  = %1;" // initialize the stack cache's top pointer"
-	                 : : "r" (_shadow_stack_base), "r" (_stack_cache_base));
+    // setup stack frame and stack cache.
+    asm volatile ("mov $r29 = %0;" // initialize shadow stack pointer"
+                  "mts $ss  = %1;" // initialize the stack cache's spill pointer"
+                  "mts $st  = %1;" // initialize the stack cache's top pointer"
+                  "li $r30 = %2;" // initialize return base"
+                  : : "r" (_shadow_stack_base-16),
+                      "r" (_stack_cache_base-16),
+                      "i" (&main));
 
 	int entrypoint = 0;
 	int section_number = -1;
