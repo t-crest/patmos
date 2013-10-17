@@ -29,8 +29,8 @@
 #define XEND       (FRAC_ONE)
 #define YSTART     (-FRAC_ONE)
 #define YEND       (FRAC_ONE)
-#define XSTEP_SIZE ((XEND-XSTART)/COLS)
-#define YSTEP_SIZE ((YEND-YSTART)/ROWS)
+#define XSTEP_SIZE ((XEND-XSTART+COLS-1)/COLS)
+#define YSTEP_SIZE ((YEND-YSTART+ROWS-1)/ROWS)
 
 #define MAX_SQUARE (16*FRAC_ONE)
 #define MAX_ITER   64
