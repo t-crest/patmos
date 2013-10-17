@@ -1558,7 +1558,10 @@ namespace patmos
     {
       // Enter the debug stack just once, and before we actually do the update
       // to avoid any issues with timing and stalling.
-      if (pred && !ops.MW_Initialized) {
+      // We need to wait until any IF-stage stalling is complete, so that the
+      // debug stack reads out the correct stack pointer values if they are 
+      // modified in the delay slot.
+      if (pred && !ops.MW_Initialized && !s.is_stalling(SMW)) {
         ops.MW_Initialized = true;
         
         s.Dbg_stack.push(callee);
@@ -1569,7 +1572,7 @@ namespace patmos
     void pop_dbgstack(simulator_t &s, instruction_data_t &ops, bit_t pred,
                       word_t base, word_t offset) const
     {
-      if (pred && !ops.MW_Initialized) {
+      if (pred && !ops.MW_Initialized && !s.is_stalling(SMW)) {
         ops.MW_Initialized = true;
         
         s.Profiling.leave(s.Cycle);
