@@ -28,6 +28,7 @@
 #include <boost/format.hpp>
 #include <climits>
 
+#undef DEBUG
 
 namespace patmos
 {
@@ -72,14 +73,31 @@ namespace patmos
     
     // check if the frame stack pointers are below the current pointers
     if (frame.caller_tos_shadowstack < sim.GPR.get(rsp).get()) {
+#ifdef DEBUG
+      std::cerr << "Wrong stadowstack: " 
+                << frame.caller_tos_shadowstack << " < " 
+                << sim.GPR.get(rsp).get() << "\n";
+#endif
       // we are currently further down the shadow stack
       return false;
     }
     // Note that at the moment we store the size of the stack cache,
     // *not* the TOS address.
     if (frame.caller_tos_stackcache > sim.Stack_cache.size()) {
+#ifdef DEBUG
+      std::cerr << "Wrong stackcache: " << frame.caller_tos_stackcache 
+                << " > " << sim.Stack_cache.size() << "\n";
+#endif
       return false;
     }
+#if DEBUG
+    if (!(frame.function == sim.BASE ||
+              sim.Symbols.covers(frame.function, sim.BASE))) 
+    {
+      std::cerr << "Wrong function base: " << frame.function 
+                << ", base: " << sim.BASE << "\n";
+    }
+#endif
     // check if the function of the current frame contains
     // the current subfunction
     return frame.function == sim.BASE ||
@@ -93,6 +111,9 @@ namespace patmos
     if (!stack.empty()) {
       // Check if the call is coming from the TOS.
       if (!is_active_frame(stack.back())) {
+#ifdef DEBUG
+        std::cerr << "\nWRONG FRAME: Not active, clearing stack!\n";
+#endif
         // We are resuming after some longjmp or so..
         // For now, just nuke the whole stack
         while (!stack.empty()) {
