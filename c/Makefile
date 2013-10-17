@@ -23,10 +23,9 @@ CFLAGS=-target patmos-unknown-unknown-elf \
 	-Xgold -T../chisel/ram.t \
 	-mpatmos-method-cache-size=0x100 \
 	-mpatmos-stack-base=0x1f0000 -mpatmos-shadow-stack-base=0x200000 \
-	-nolibsyms \
 	-O2
 
- # force rebuild of mandelbrot_par if init.h changes
+# force rebuild of mandelbrot_par if init.h changes
 mandelbrot_par.c: init.h
 	touch $@
 
