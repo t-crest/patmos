@@ -3649,9 +3649,15 @@ The register usage conventions for the general purpose registers are as follows:
 \begin{itemize}
   \item \texttt{r0} is defined to be zero at all times.
   \item \texttt{r1} and \texttt{r2} are used to pass the return value on
-        function calls.
+        function calls. \\
+        The high part of a 64 bit result is stored in \texttt{r1},
+        the low part in \texttt{r2}.
   \item \texttt{r3} through \texttt{r8} are used to pass arguments on function
-        calls.
+        calls. \\
+        The high part of a 64 bit argument is stored first,
+        followed by the low part.\\ E.g., for a 64 bit argument passed in
+        \texttt{[r3,r4]}, the high part is in \texttt{r3}, the low part
+        in \texttt{r4}.
   \item \texttt{r27} is used as temp register.
   \item \texttt{r28} is defined as the frame pointer and \texttt{r29} is defined as the stack
         pointer for the \emph{shadow} stack in global memory. The use of a frame
