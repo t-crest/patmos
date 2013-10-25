@@ -2818,8 +2818,8 @@ A code sequence is either kept entirely in the method cache, or is entirely
 purged from the cache. It is not possible to keep code sequences partially in
 the cache.
 
-Code intended for caching has to be aligned in the global memory according to
-the cache's block size. Call and branch instructions do not encode the size of
+Code intended for caching should be aligned in the global memory according to
+the memory burst size. Call and branch instructions do not encode the size of
 the target code sequence. The size is thus encoded in units of bytes right in front of the first
 instruction of a code sequence that is intended for caching.
 Figure~\ref{fig:cacheable_code} illustrates this convention.
@@ -2827,8 +2827,8 @@ Figure~\ref{fig:cacheable_code} illustrates this convention.
 \begin{figure}
   \centering
   \begin{bytefield}{25}
-    \wordbox[tlr]{1}{length} \\
-    \wordbox[tlr]{1}{first instruction} \bitbox[]{1}{} \bitbox[t]{9}{block aligned} \\
+    \wordbox[tlr]{1}{length} \bitbox[]{1}{} \bitbox[t]{9}{burst aligned} \\
+    \wordbox[tlr]{1}{first instruction}  \\
     \wordbox[tlr]{1}{second instruction} \\
     \wordbox{1}{\dots} \\
   \end{bytefield}
@@ -2836,9 +2836,6 @@ Figure~\ref{fig:cacheable_code} illustrates this convention.
   \label{fig:cacheable_code}
 \end{figure}
 
- \martin{We need to check with Philipp, but it might make sense to align the length
-  word.}
-  
 The organization of the method cache implies some limitations:
 \begin{itemize}
   \item The size of a code sequence intended for caching is limited to the size
@@ -3650,11 +3647,12 @@ The register usage conventions for the general purpose registers are as follows:
   \item \texttt{r0} is defined to be zero at all times.
   \item \texttt{r1} and \texttt{r2} are used to pass the return value on
         function calls. \\
-        The high part of a 64 bit result is stored in \texttt{r1},
+        For 64 bit results, the high part is stored in \texttt{r1},
         the low part in \texttt{r2}.
+	32 bit results are returned using \texttt{r1} only.
   \item \texttt{r3} through \texttt{r8} are used to pass arguments on function
         calls. \\
-        The high part of a 64 bit argument is stored first,
+        For 64 bit arguments, the high part is stored first,
         followed by the low part.\\ E.g., for a 64 bit argument passed in
         \texttt{[r3,r4]}, the high part is in \texttt{r3}, the low part
         in \texttt{r4}.
