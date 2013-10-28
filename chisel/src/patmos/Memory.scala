@@ -113,24 +113,55 @@ class Memory() extends Component {
   
   // Path to memories and IO is combinatorial, registering happens in
   // the individual modules
-  val cmd = Mux(enable && io.ena_in,
-				Mux(io.exmem.mem.load, OcpCmd.RD,
-					Mux(io.exmem.mem.store, OcpCmd.WR,
-						OcpCmd.IDLE)),
-				OcpCmd.IDLE)
 
-  io.localInOut.M.Cmd := Mux(io.exmem.mem.typ === MTYPE_L, cmd, OcpCmd.IDLE)
-  io.localInOut.M.Addr := Cat(io.exmem.mem.addr(ADDR_WIDTH-1, 2), Bits("b00"))
-  io.localInOut.M.Data := Cat(wrData(3), wrData(2), wrData(1), wrData(0))
-  io.localInOut.M.ByteEn := byteEn
+  val wrDataReg = Reg(resetVal = Bits(0, width = DATA_WIDTH))
+  val byteEnReg = Reg(resetVal = Bits("b1111", width = BYTES_PER_WORD))
+  when (enable && io.ena_in) {
+    wrDataReg := Cat(wrData(3), wrData(2), wrData(1), wrData(0))
+    byteEnReg := byteEn
+  }
+  val cmdEnaReg = Reg(resetVal = Bits(1, width = 1))
+  when (io.ena_in) {
+    cmdEnaReg := enable
+  }
 
-  io.globalInOut.M.Cmd := Mux(io.exmem.mem.typ != MTYPE_L, cmd, OcpCmd.IDLE)
-  io.globalInOut.M.Addr := Cat(io.exmem.mem.addr(ADDR_WIDTH-1, 2), Bits("b00"))
-  io.globalInOut.M.Data := Cat(wrData(3), wrData(2), wrData(1), wrData(0))
-  io.globalInOut.M.ByteEn := byteEn
-  io.globalInOut.M.AddrSpace := Mux(io.exmem.mem.typ === MTYPE_S, OcpCache.STACK_CACHE,
-									Mux(io.exmem.mem.typ === MTYPE_C, OcpCache.DATA_CACHE,
-										OcpCache.UNCACHED))
+  val cmd = Mux(cmdEnaReg && io.ena_in,
+        			Mux(memReg.mem.load, OcpCmd.RD,
+        				Mux(memReg.mem.store, OcpCmd.WR,
+        					OcpCmd.IDLE)),
+        			OcpCmd.IDLE)
+
+  io.localInOut.M.Cmd := Mux(memReg.mem.typ === MTYPE_L, cmd, OcpCmd.IDLE)
+  io.localInOut.M.Addr := Cat(memReg.mem.addr(ADDR_WIDTH-1, 2), Bits("b00"))
+  io.localInOut.M.Data := wrDataReg
+  io.localInOut.M.ByteEn := byteEnReg
+
+  io.globalInOut.M.Cmd := Mux(memReg.mem.typ != MTYPE_L, cmd, OcpCmd.IDLE)
+  io.globalInOut.M.Addr := Cat(memReg.mem.addr(ADDR_WIDTH-1, 2), Bits("b00"))
+  io.globalInOut.M.Data := wrDataReg
+  io.globalInOut.M.ByteEn := byteEnReg
+  io.globalInOut.M.AddrSpace := Mux(memReg.mem.typ === MTYPE_S, OcpCache.STACK_CACHE,
+        								Mux(memReg.mem.typ === MTYPE_C, OcpCache.DATA_CACHE,
+        									OcpCache.UNCACHED))
+
+  // val cmd = Mux(enable && io.ena_in,
+  //       			Mux(io.exmem.mem.load, OcpCmd.RD,
+  //       				Mux(io.exmem.mem.store, OcpCmd.WR,
+  //       					OcpCmd.IDLE)),
+  //       			OcpCmd.IDLE)
+
+  // io.localInOut.M.Cmd := Mux(io.exmem.mem.typ === MTYPE_L, cmd, OcpCmd.IDLE)
+  // io.localInOut.M.Addr := Cat(io.exmem.mem.addr(ADDR_WIDTH-1, 2), Bits("b00"))
+  // io.localInOut.M.Data := Cat(wrData(3), wrData(2), wrData(1), wrData(0))
+  // io.localInOut.M.ByteEn := byteEn
+
+  // io.globalInOut.M.Cmd := Mux(io.exmem.mem.typ != MTYPE_L, cmd, OcpCmd.IDLE)
+  // io.globalInOut.M.Addr := Cat(io.exmem.mem.addr(ADDR_WIDTH-1, 2), Bits("b00"))
+  // io.globalInOut.M.Data := Cat(wrData(3), wrData(2), wrData(1), wrData(0))
+  // io.globalInOut.M.ByteEn := byteEn
+  // io.globalInOut.M.AddrSpace := Mux(io.exmem.mem.typ === MTYPE_S, OcpCache.STACK_CACHE,
+  //       								Mux(io.exmem.mem.typ === MTYPE_C, OcpCache.DATA_CACHE,
+  //       									OcpCache.UNCACHED))
 
   def splitData(word: Bits) = {
 	val retval = Vec(BYTES_PER_WORD) { Bits(width = BYTE_WIDTH) }
