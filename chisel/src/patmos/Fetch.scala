@@ -149,5 +149,7 @@ class Fetch(fileName : String) extends Component {
   //outputs to mcache
   io.femcache.address := Mux(io.ena, pc_next, pcReg)
   io.femcache.request := selMCache
+  io.femcache.doCallRet := io.memfe.doCallRet
+  io.femcache.callRetBase := io.memfe.callRetBase
 
 }

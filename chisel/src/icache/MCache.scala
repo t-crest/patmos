@@ -66,6 +66,8 @@ object MConstants {
 class FeMCache extends Bundle() {
   val address = Bits(width = ADDR_WIDTH) 
   val request = Bits(width = 1)
+  val doCallRet = Bool()
+  val callRetBase = UFix(width = ADDR_WIDTH)
 }
 class ExMCache() extends Bundle() {
   val doCallRet = Bool()

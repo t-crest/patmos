@@ -294,6 +294,9 @@ int main (int argc, char* argv[]) {
       // c->Patmos_mcache_mcacherepl__lru_list_next_1 = 0;
       // c->Patmos_mcache_mcacherepl__lru_list_next_2 = 1;
       // c->Patmos_mcache_mcacherepl__lru_list_next_3 = 2;
+      //init for icache
+      // c->Patmos_mcache_icacherepl__selICacheReg = 1;
+      // c->Patmos_fetch__pcReg = 0;
     }
     else {
       // pcReg for ispm starts at entry point - ispm base
@@ -301,18 +304,26 @@ int main (int argc, char* argv[]) {
       c->Patmos_mcache_mcacherepl__selIspmReg = 1;
       c->Patmos_fetch__relBaseReg = (entry - 0x10000) >> 2;
       c->Patmos_fetch__relocReg = 0x10000 >> 2;
+      //init for icache
+      // c->Patmos_mcache_icacherepl__selIspmReg = 1;
     }
     c->Patmos_mcache_mcachectrl__callRetBaseReg = (entry >> 2);
     c->Patmos_mcache_mcacherepl__callRetBaseReg = (entry >> 2);
+    //init for icache
+    // c->Patmos_mcache_icachectrl__callRetBaseReg = (entry >> 2);
+    // c->Patmos_mcache_icacherepl__callRetBaseReg = (entry >> 2);
   }
 
   // Main emulation loop
   bool halt = false;
+  uint cache_miss = 0;
+  uint exec_cycles = 0;
   for (int t = 0; lim < 0 || t < lim; t++) {
     dat_t<1> reset = LIT<1>(0);
 
     c->clock_lo(reset);
     c->clock_hi(reset);
+    exec_cycles++;
 
     extSsramSim(c);
 
@@ -340,6 +351,16 @@ int main (int argc, char* argv[]) {
 		&& c->Patmos_mcache_mcachectrl__callRetBaseReg.to_ulong() == 0) {
 	  halt = true;
 	}
+	//for icache
+	// if (c->Patmos_memory__memReg_mem_ret.to_bool()
+	// 	&& c->Patmos_mcache_icacherepl__callRetBaseReg.to_ulong() == 0) {
+	//   halt = true;
+	// }
+	
+	// if (c->Patmos_mcache_mcachectrl__mcachemem_w_tag.to_bool() == true) {
+	//   cache_miss++;
+	// }
+
   }
 
   // TODO: adapt comparison tool so this can be removed
