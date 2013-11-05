@@ -89,7 +89,7 @@ Errors : 0")
 test_asm(28 "Emitted: 64 bytes
 Errors : 0")
 
-test_asm(29 "Emitted: 24 bytes
+test_asm(29 "Emitted: 28 bytes
 Errors : 0")
 
 test_asm(30 "Emitted: 28 bytes
@@ -211,7 +211,7 @@ test_sim(28 "BASE: 00000004   PC : 00000048.*
 .*r1 : 00000026")
 
 test_sim(29 "PRR: 00000001.*
-.*r1 : 00000009")
+.*r1 : 00000009   r2 : 00000001")
 
 test_dsim(30 "r2 : 00000001")
 
