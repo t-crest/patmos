@@ -10,6 +10,8 @@ BOOTDAT?=$(BOOTBUILDDIR)/$(BOOTAPP).dat
 
 QPROJ?=altde2-70
 
+HWMODULEPREFIX?=
+
 # Building Patmos with Chisel without too much sbt/scala/... stuff
 #
 # sbt looks for default into a folder project/ for build.sdt and Build.scala
@@ -40,6 +42,13 @@ MAIN=patmos.PatmosMain
 # config file for Patmos -- now just frequency
 CONFIG=default
 CONFIGFILE=$(BOOTBUILDROOT)/chisel/config/$(CONFIG).xml
+
+# optionally pass module prefix when generating Verilog
+ifeq ($(HWMODULEPREFIX),)
+	HWMODULEPREFIXOPT=
+else
+	HWMODULEPREFIXOPT=--moduleNamePrefix $(HWMODULEPREFIX)
+endif
 
 # build C++ and Verilog versions by default
 all: emulator verilog
@@ -72,16 +81,16 @@ view:
 	gtkwave Patmos.vcd wave.gtkw
 
 # build the Verilog version
-verilog: $(CHISELBUILDDIR)/Patmos.v
+verilog: $(CHISELBUILDDIR)/$(HWMODULEPREFIX)Patmos.v
 
-$(CHISELBUILDDIR)/Patmos.v: $(VGEN)
-	if [ x`cat $(VGEN)` != x"$(BOOTBIN)+$(BOOTDAT)" ]; then \
+$(CHISELBUILDDIR)/$(HWMODULEPREFIX)Patmos.v: $(VGEN)
+	if [ x`cat $(VGEN)` != x"$(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX)" ]; then \
 		rm $(VGEN); $(MAKE) $(VGEN); \
 	fi
 
 $(VGEN): $(BOOTBIN) $(BOOTDAT) $(SRC)
-	$(SBT) "run-main $(MAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --targetDir $(CHISELBUILDDIR) --backend v"
-	echo $(BOOTBIN)+$(BOOTDAT) > $(VGEN)
+	$(SBT) "run-main $(MAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --targetDir $(CHISELBUILDDIR) --backend v $(HWMODULEPREFIXOPT)"
+	echo $(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX) > $(VGEN)
 
 # run Verilog simulation
 vsim: verilog
