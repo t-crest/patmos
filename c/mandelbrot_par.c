@@ -17,7 +17,7 @@
 #define CORES 4
 #define SLAVES (CORES-1)
 
-#define DELAY 100
+#define DELAY 50
 
 #define ROWS  240
 #define COLS  320

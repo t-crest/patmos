@@ -6,6 +6,8 @@
     Copyright: DTU, BSD License
 */
 
+#define DELAY 50
+
 #define ROWS  240
 #define COLS  320
 
@@ -144,6 +146,10 @@ static int do_iter(int cx, int cy,
 }
 
 static int fracmul(int x, int y) {
+  int i;
+  for (i = 0; i < DELAY; i++) {
+    asm volatile ("");
+  }
   return (long long)x*y >> FRAC_BITS;
 }
 
