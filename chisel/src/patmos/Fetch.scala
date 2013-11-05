@@ -72,10 +72,9 @@ class Fetch(fileName : String) extends Component {
   // relay on the optimization to recognize that those addresses are always even and odd
   // TODO: maybe make it explicit
 
-  val ispmSize = 1 << ISPM_BITS // in bytes
-  val ispmAddrBits = log2Up(ispmSize / 4 / 2)
-  val memEven = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
-  val memOdd = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
+  val ispmAddrBits = log2Up(ISPM_SIZE / 4 / 2)
+  val memEven = { Mem(ISPM_SIZE / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
+  val memOdd = { Mem(ISPM_SIZE / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
 
   // write from EX - use registers - ignore stall, as reply does not hurt
   val selWrite = (io.memfe.store & (io.memfe.addr(DATA_WIDTH-1, ISPM_ONE_BIT) === Bits(0x1)))

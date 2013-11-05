@@ -78,22 +78,16 @@ object Utility {
     v
   }
   
-  def testConfig(configFile: String): Unit = {
-    val config = util.Config.load(configFile)
-    println("Just a small test config:")
-    println(config)
-  }
-  
   def printConfig(configFile: String): Unit = {
     printf("\nPatmos configuration:\n")
     printf("\tFrequency: %d MHz\n", Constants.CLOCK_FREQ/1000000)
-    printf("\tMethod cache size: %d KB\n", Constants.MCACHE_SIZE/1024)
-    printf("\tInstruction SPM  size: %d KB\n", (1 << Constants.ISPM_BITS)/1024)
-    printf("\tData SPM size: %d KB\n", (1 << Constants.DSPM_BITS)/1024)
-    printf("\tBoot SPM size: %d KB\n", (1 << Constants.BOOTSPM_BITS)/1024)
+    printf("\tPipelines: %d\n", Constants.PIPE_COUNT)
+    printf("\tMethod cache: %d KB, %d methods\n", MCACHE_SIZE/1024, METHOD_COUNT)
+    printf("\tInstruction SPM: %d KB\n", ISPM_SIZE/1024)
+    printf("\tData SPM: %d KB\n", DSPM_SIZE/1024)
+    printf("\tBoot SPM: %d KB\n", BOOTSPM_SIZE/1024)
     printf("\n")
     
     println(util.Config.conf)
-    testConfig(configFile)
   }
 }

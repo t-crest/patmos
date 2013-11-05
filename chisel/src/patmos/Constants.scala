@@ -45,41 +45,35 @@ import Node._
 
 object Constants {
 
-  // TODO: this should come from some configuration file
-  // val CLOCK_FREQ = 80000000
   val CLOCK_FREQ = util.Config.conf.frequency
 
+  // IO-related configuration should come from config file too
   val UART_BAUD = 115200
   val LED_COUNT = 8
 
-  // MS: maybe better use sizes in bytes and use log2Up() to
-  // get the number of bits.
-  // XX_BITS might confuse as the ISPM is organized in words,
-  // even in 2 times words, which results in other number of
-  // bits.
-  val ISPM_BITS = 13
-  val DSPM_BITS = 11
+  val PIPE_COUNT = util.Config.conf.pipeCount
+
+  val ISPM_SIZE = util.Config.conf.ISPM.size
+  val DSPM_SIZE = util.Config.conf.DSPM.size
+  val BOOTSPM_SIZE = util.Config.conf.BootSPM.size
   
+  val MCACHE_SIZE = util.Config.conf.MCache.size
+  // maximum width between ISPM size and MCACHE size
+  val MAX_OFF_WIDTH = math.max(log2Up(MCACHE_SIZE / 4), log2Up(ISPM_SIZE / 4))
+  val METHOD_COUNT = util.Config.conf.MCache.blocks
+
   // we use a very simple decoding of ISPM at address 0x00010000
   val ISPM_ONE_BIT = 16
-
   // The boot ROM is at 0x80000000 and the boot SPM at 0x80010000,
   // both in the global address space
   val BOOTMEM_ONE_BIT = 16
-  val BOOTSPM_BITS = 11
-
-  val MCACHE_SIZE = 4096 //in bytes
-  val MAX_OFF_WIDTH = math.max(log2Up(MCACHE_SIZE / 4), log2Up(1 << ISPM_BITS-2)) //max width between SPM size and MCACHE size
-  val METHOD_COUNT = 16
 
   val EXTMEM_ADDR_WIDTH = 21
-  val BURST_LENGTH = 4 //for ssram on de2-70 board max. 4
+  val BURST_LENGTH = 4 // For SSRAM on DE2-70 board max. 4
 
   // The PC counts in words. 30 bits are enough for the 4 GB address space.
   // We might cut that down to what we actually really support (16 MB)
   val PC_SIZE = 30
-
-  val PIPE_COUNT = 2
 
   val REG_BITS = 5
   val REG_COUNT = 1 << REG_BITS

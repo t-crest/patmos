@@ -32,10 +32,6 @@
 
 package util
 
-// Ms: shall this really be in util?
-// I doubt, when this becomes central.
-
-
 /**
  * A tiny configuration tool for Patmos.
  * 
@@ -44,15 +40,22 @@ package util
 abstract class Config {
   val description: String
   val frequency: Int
-  
-  override def toString = description + " at " + (frequency/1000000).toString() + " MHz"
-  
-  def toXML =
-    <processor>
-      <description>{description}</description>
-      <frequency>{frequency}</frequency>  	
-    </processor>
+  val pipeCount: Int
 
+  case class MCacheConfig(size: Int, blocks: Int, repl: String)
+  val MCache: MCacheConfig
+  case class DCacheConfig(size: Int, assoc: Int, repl: String)
+  val DCache: DCacheConfig  
+  case class SCacheConfig(size: Int)
+  val SCache: SCacheConfig
+
+  case class SPMConfig(size: Int)
+  val ISPM: SPMConfig
+  val DSPM: SPMConfig
+  val BootSPM: SPMConfig
+
+  override def toString =
+    description + " at " + (frequency/1000000).toString() + " MHz"
 }
 
 object Config {
@@ -60,36 +63,45 @@ object Config {
   def fromXML(node: scala.xml.Node): Config =
     new Config {
       val description = (node \ "description").text
-      val frequency = (node \ "frequency").text.toInt
-  }
+      val frequency = ((node \ "frequency")(0) \ "@Hz").text.toInt
+      val dual = ((node \ "pipeline")(0) \ "@dual").text.toBoolean
+      val pipeCount = if (dual) 2 else 1
+      val MCacheNode = (node \ "MCache")(0)
+      val MCache =
+        new MCacheConfig((MCacheNode \ "@size").text.toInt,
+                         (MCacheNode \ "@blocks").text.toInt,
+                         (MCacheNode \ "@repl").text)
+      val DCacheNode = (node \ "DCache")(0)
+      val DCache =
+        new DCacheConfig((DCacheNode \ "@size").text.toInt,
+                         (DCacheNode \ "@assoc").text.toInt,
+                         (DCacheNode \ "@repl").text)
+      val SCacheNode = (node \ "SCache")(0)
+      val SCache =
+        new SCacheConfig((SCacheNode \ "@size").text.toInt)
+
+      val ISPM = new SPMConfig(((node \ "ISPM")(0) \ "@size").text.toInt)
+      val DSPM = new SPMConfig(((node \ "DSPM")(0) \ "@size").text.toInt)
+      val BootSPM = new SPMConfig(((node \ "BootSPM")(0) \ "@size").text.toInt)
+    }
   
   // This is probably not the best way to have the singleton
   // for the configuration available and around.
   // We also do not want this to be a var.
   var conf: Config = new Config {
-      val description = "dummy"
-      val frequency = 12345678
-    }
+    val description = "dummy"
+    val frequency = 0
+    val pipeCount = 0
+    val MCache = new MCacheConfig(0, 0, "")
+    val DCache = new DCacheConfig(0, 0, "")
+    val SCache = new SCacheConfig(0)
+    val ISPM = new SPMConfig(0)
+    val DSPM = new SPMConfig(0)
+    val BootSPM = new SPMConfig(0)
+  }
   
   def load(file: String): Config = {
     val node = xml.XML.loadFile(file)
     fromXML(node)
-  }
-  
-  /** Helper main to avoid writing an XML file by hand */ 
-  def main(args: Array[String]) = {
-    
-    val processor = new Config {
-      val description = "default configuration"
-      val frequency = 80000000
-    }
-    
-    println(processor.toString())
-    println(processor.toXML.toString)
-    scala.xml.XML.save("default.xml", processor.toXML)
-    
-    val config = load("default.xml")
-    
-    println(config)
   }
 }

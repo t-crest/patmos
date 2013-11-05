@@ -1,4 +1,15 @@
-<processor>
-      <description>default configuration</description>
-      <frequency>80000000</frequency>  	
-    </processor>
+<patmos>
+  <description>default configuration</description>
+
+  <frequency Hz="80000000" />
+  <pipeline dual="true" />
+
+  <MCache size="4096" blocks="16" repl="" />
+  <ISPM size="8192" />
+  <DSPM size="2048" />
+  <BootSPM size="2048" />
+
+  <!-- currently unused -->
+  <DCache size="0" assoc="0" repl="" />
+  <SCache size="0" />
+</patmos>

@@ -93,7 +93,7 @@ class InOut() extends Component {
   val ispmResp = Mux(ispmCmdReg === OcpCmd.IDLE, OcpResp.NULL, OcpResp.DVA)
 
   // The SPM
-  val spm = new Spm(1 << DSPM_BITS)
+  val spm = new Spm(DSPM_SIZE)
   spm.io.M := io.memInOut.M
   spm.io.M.Cmd := Mux(selSpm, io.memInOut.M.Cmd, OcpCmd.IDLE)
   val spmS = spm.io.S

@@ -70,7 +70,7 @@ class BootMem(fileName : String) extends Component {
   val romData = rom(romAddr(log2Up(rom.length)+1, 2))
 
   // The SPM
-  val spm = new Spm(1 << BOOTSPM_BITS)
+  val spm = new Spm(BOOTSPM_SIZE)
   spm.io.M := io.memInOut.M
   spm.io.M.Cmd := Mux(selSpm, io.memInOut.M.Cmd, OcpCmd.IDLE)
   val spmS = spm.io.S
