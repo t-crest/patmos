@@ -41,7 +41,7 @@ MAIN=patmos.PatmosMain
 
 # config file for Patmos -- now just frequency
 CONFIG=default
-CONFIGFILE=$(BOOTBUILDROOT)/chisel/config/$(CONFIG).xml
+CONFIGFILE?=$(BOOTBUILDROOT)/chisel/config/$(CONFIG).xml
 
 # optionally pass module prefix when generating Verilog
 ifeq ($(HWMODULEPREFIX),)
