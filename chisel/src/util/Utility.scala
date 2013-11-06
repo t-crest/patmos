@@ -72,22 +72,20 @@ object Utility {
         word <<= 8
         word += byteArray(i * bytesPerWord + j).toInt & 0xff
       }
-      printf("%08x\n", word)
+      // printf("%08x\n", word)
       v(i) = Bits(word, width = width)
     }
     v
   }
   
   def printConfig(configFile: String): Unit = {
-    printf("\nPatmos configuration:\n")
-    printf("\tFrequency: %d MHz\n", Constants.CLOCK_FREQ/1000000)
-    printf("\tPipelines: %d\n", Constants.PIPE_COUNT)
+    printf("\nPatmos configuration \"%s\"\n", util.Config.conf.description)
+    printf("\tFrequency: %d MHz\n", CLOCK_FREQ/1000000)
+    printf("\tPipelines: %d\n", PIPE_COUNT)
     printf("\tMethod cache: %d KB, %d methods\n", MCACHE_SIZE/1024, METHOD_COUNT)
     printf("\tInstruction SPM: %d KB\n", ISPM_SIZE/1024)
     printf("\tData SPM: %d KB\n", DSPM_SIZE/1024)
     printf("\tBoot SPM: %d KB\n", BOOTSPM_SIZE/1024)
     printf("\n")
-    
-    println(util.Config.conf)
   }
 }
