@@ -132,7 +132,7 @@ public class CompareChisel {
 					} else {
 						break outerloop;
 					}
-					if (cntNoChange>1000) {
+					if (cntNoChange>10000) {
 						System.out.println("No change in Chisel simulation");
 						System.exit(1);
 					}
