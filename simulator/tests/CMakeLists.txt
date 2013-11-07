@@ -121,6 +121,9 @@ Errors : 0")
 test_asm(39 "Emitted: 56 bytes
 Errors : 0")
 
+test_asm(40 "Emitted: 140 bytes
+Errors : 0")
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # SIMULATOR TESTS
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -184,7 +187,7 @@ test_sim(16 "Stack size exceeded at 00000014")
 
 test_sim(17 "Stack size exceeded at 00000018")
 
-test_sim(18 "Stack size exceeded at 00000014")
+test_sim(18 "Stack size exceeded at 00000010")
 
 test_sim(19 "r1 : 00000007")
 
@@ -231,4 +234,6 @@ test_sim(37 "r0 : 00000000   r1 : 0283f181   r2 : 0283f181   r3 : 003ffff0   r4 
 test_sim(38 "r1 : 00000001")
 
 test_sim(39 "r1 : 00000005   r2 : 00000008   r3 : 00000009   r4 : 00000001   r5 : 00000005   r6 : 00000009   r7 : 00000009")
+
+test_sim(40 "r8 : 00000210   r9 : 00000210   r10: 00000010   r11: 000000e0   r12: 000000e0   r13: 00000210   r14: 00000100")
 

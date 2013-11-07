@@ -101,7 +101,7 @@ namespace patmos
   {
     if (debug)
     {
-      debug_out << boost::format("%1% : ") % pst;
+      debug_out << pst << " : ";
     }
 
     // invoke simulation functions
@@ -126,6 +126,7 @@ namespace patmos
 
     if (debug)
     {
+      if (Stall == pst) debug_out << "            (stalling)";
       debug_out << "\n";
     }
   }
@@ -300,7 +301,7 @@ namespace patmos
       for(uint64_t cycle = 0; cycle < max_cycles; cycle++, Cycle++)
       {
         bool debug = (Cycle >= debug_cycle);
-        bool debug_pipline = debug && (debug_fmt >= DF_LONG);
+        bool debug_pipeline = debug && (debug_fmt >= DF_LONG);
         
         // reset the stall counter.
         Stall = SXX;
@@ -314,7 +315,7 @@ namespace patmos
         // simulate decoupled load
         Decoupled_load.dMW(*this);
 
-        if (debug_pipline)
+        if (debug_pipeline)
         {
           debug_out << "dMW: ";
           Decoupled_load.print(debug_out, Symbols);
@@ -322,12 +323,12 @@ namespace patmos
         }
 
         // invoke simulation functions
-        pipeline_invoke(SMW, &instruction_data_t::MW, debug_pipline);
-        pipeline_invoke(SEX, &instruction_data_t::EX, debug_pipline);
-        pipeline_invoke(SDR, &instruction_data_t::DR, debug_pipline);
+        pipeline_invoke(SMW, &instruction_data_t::MW, debug_pipeline);
+        pipeline_invoke(SEX, &instruction_data_t::EX, debug_pipeline);
+        pipeline_invoke(SDR, &instruction_data_t::DR, debug_pipeline);
         // invoke IF only for printing
-        pipeline_invoke(SIF, NULL, debug_pipline);
-
+        pipeline_invoke(SIF, NULL, debug_pipeline);
+        
         // print instructions in EX stage
         if (debug && debug_fmt == DF_INSTRUCTIONS)
         {
@@ -773,6 +774,10 @@ namespace patmos
 
   std::ostream &operator<<(std::ostream &os, Pipeline_t p)
   {
+    if (p == SXX) {
+      return os;
+    }
+    
     const static char* names[NUM_STAGES] = {"IF", "DR", "EX", "MW"};
     assert(names[p] != NULL);
 

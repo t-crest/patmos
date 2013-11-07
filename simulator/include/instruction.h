@@ -256,6 +256,9 @@ namespace patmos
     GPR_op_t DR_Offset;
 
     // -------------------------- EX -------------------------------------------
+
+    /// TODO make a union with mull/mulh, ss/st and base/offset/.. ?
+
     /// Result from EX stage.
     word_t EX_result;
 
@@ -265,6 +268,12 @@ namespace patmos
     /// Result of a multiplication
     word_t EX_mulh;
 
+    /// New stack spill pointer from EX stage.
+    word_t EX_Ss;
+    
+    /// New stack top pointer from EX stage.
+    word_t EX_St;
+    
     /// Result register operand from EX stage.
     GPR_by_pass_t GPR_EX_Rd;
 
