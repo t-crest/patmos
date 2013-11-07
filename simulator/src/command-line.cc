@@ -42,6 +42,8 @@ namespace patmos
       df = DF_TRACE;
     else if(kind == "instr")
       df = DF_INSTRUCTIONS;
+    else if (kind == "instr-nopc")
+      df = DF_INSTRUCTIONS_NOPC;
     else if (kind == "blocks")
       df = DF_BLOCKS;
     else if (kind == "calls")
@@ -69,6 +71,8 @@ namespace patmos
         os << "trace"; break;
       case DF_INSTRUCTIONS:
         os << "instr"; break;
+      case DF_INSTRUCTIONS_NOPC:
+        os << "instr-nopc"; break;
       case DF_BLOCKS:
 	os << "blocks"; break;
       case DF_CALLS:

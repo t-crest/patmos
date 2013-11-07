@@ -47,40 +47,47 @@ namespace patmos
   public:
     virtual ~stack_cache_t() {}
     
-    /// Reserve a given number of bytes, potentially spilling stack data to some
-    /// memory.
+    /// Prepare for reserveing a given number of bytes, and update the stack 
+    /// pointers.
     /// @param size The number of bytes to be reserved.
     /// @param stack_spill Reference to the current value of the stack spill 
     /// pointer (might be updated).
     /// @param stack_top Reference to the current value of the stack top
     /// pointer (might be updated).
+    /// @return the number of bytes to be spilled.
     virtual word_t prepare_reserve(uword_t size, 
                                    uword_t &stack_spill, uword_t &stack_top) = 0;
 
-    /// Free a given number of bytes on the stack.
+    /// Prepare for freeing a given number of bytes on the stack, and update
+    /// update the stack pointers.
     /// @param size The number of bytes to be freed.
     /// @param stack_spill Reference to the current value of the stack spill 
     /// pointer (might be updated).
     /// @param stack_top Reference to the current value of the stack top
     /// pointer (might be updated).
+    /// @return the number of bytes to be spilled or filled.
     virtual word_t prepare_free(uword_t size, 
                                 uword_t &stack_spill, uword_t &stack_top) = 0;
 
-    /// Ensure that a given number of bytes are actually on the stack.
+    /// Prepare for ensuring that a given number of bytes are actually 
+    /// on the stack, and update the stack pointers.
     /// @param size The number of bytes that have to be available.
     /// @param stack_spill Reference to the current value of the stack spill 
     /// pointer (might be updated).
     /// @param stack_top Reference to the current value of the stack top
     /// pointer (might be updated).
+    /// @return the number of bytes to be filled.
     virtual word_t prepare_ensure(uword_t size, 
                                   uword_t &stack_spill, uword_t &stack_top) = 0;
 
-    /// Spill the given number of bytes from the stack.
+    /// Prepare for spilling the given number of bytes from the stack, and 
+    /// update the stack pointers.
     /// @param size The number of bytes that have to be spilled.
     /// @param stack_spill Reference to the current value of the stack spill 
     /// pointer (might be updated).
     /// @param stack_top Reference to the current value of the stack top
     /// pointer (might be updated).
+    /// @return the number of bytes to be spilled.                                  
     virtual word_t prepare_spill(uword_t size, 
                                  uword_t &stack_spill, uword_t &stack_top) = 0;
 
@@ -88,10 +95,10 @@ namespace patmos
     /// Reserve a given number of bytes, potentially spilling stack data to some
     /// memory.
     /// @param size The number of bytes to be reserved.
-    /// @param stack_spill Reference to the current value of the stack spill 
-    /// pointer (might be updated).
-    /// @param stack_top Reference to the current value of the stack top
-    /// pointer (might be updated).
+    /// @param delta The value returned by prepare, i.e., the number of bytes to
+    /// be spilled.
+    /// @param new_spill The new value of the stack spill pointer.
+    /// @param new_top The new value of the stack top pointer.
     /// @return True when the stack space is actually reserved on the cache,
     /// false otherwise.
     virtual bool reserve(uword_t size, word_t delta,
@@ -99,10 +106,10 @@ namespace patmos
 
     /// Free a given number of bytes on the stack.
     /// @param size The number of bytes to be freed.
-    /// @param stack_spill Reference to the current value of the stack spill 
-    /// pointer (might be updated).
-    /// @param stack_top Reference to the current value of the stack top
-    /// pointer (might be updated).
+    /// @param delta The value returned by prepare, i.e., the number of bytes to
+    /// be spilled or filled.
+    /// @param new_spill The new value of the stack spill pointer.
+    /// @param new_top The new value of the stack top pointer.
     /// @return True when the stack space is actually freed in the cache, false
     /// otherwise.
     virtual bool free(uword_t size, word_t delta,
@@ -110,10 +117,10 @@ namespace patmos
 
     /// Ensure that a given number of bytes are actually on the stack.
     /// @param size The number of bytes that have to be available.
-    /// @param stack_spill Reference to the current value of the stack spill 
-    /// pointer (might be updated).
-    /// @param stack_top Reference to the current value of the stack top
-    /// pointer (might be updated).
+    /// @param delta The value returned by prepare, i.e., the number of bytes to
+    /// be filled.
+    /// @param new_spill The new value of the stack spill pointer.
+    /// @param new_top The new value of the stack top pointer.
     /// @return True when the requested data is actually in the cache, false
     /// otherwise.
     virtual bool ensure(uword_t size, word_t delta,
@@ -121,10 +128,10 @@ namespace patmos
 
     /// Spill the given number of bytes from the stack.
     /// @param size The number of bytes that have to be spilled.
-    /// @param stack_spill Reference to the current value of the stack spill 
-    /// pointer (might be updated).
-    /// @param stack_top Reference to the current value of the stack top
-    /// pointer (might be updated).
+    /// @param delta The value returned by prepare, i.e., the number of bytes to
+    /// be spilled.
+    /// @param new_spill The new value of the stack spill pointer.
+    /// @param new_top The new value of the stack top pointer.
     /// @return True when the requested data is actually in the cache, false
     /// otherwise.
     virtual bool spill(uword_t size, word_t delta,

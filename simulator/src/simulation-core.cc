@@ -330,9 +330,10 @@ namespace patmos
         pipeline_invoke(SIF, NULL, debug_pipeline);
         
         // print instructions in EX stage
-        if (debug && debug_fmt == DF_INSTRUCTIONS)
+        if (debug && 
+            (debug_fmt == DF_INSTRUCTIONS || debug_fmt == DF_INSTRUCTIONS_NOPC))
         {
-          print_instructions(debug_out, SEX);
+          print_instructions(debug_out, SEX, debug_fmt == DF_INSTRUCTIONS_NOPC);
         }
 
         track_retiring_instructions();
@@ -480,7 +481,9 @@ namespace patmos
     }
   }
 
-  void simulator_t::print_instructions(std::ostream &os, Pipeline_t stage) const {
+  void simulator_t::print_instructions(std::ostream &os, Pipeline_t stage, 
+                                       bool nopc) const 
+  {
       std::ostringstream oss;
       symbol_map_t emptymap;
       for(unsigned int i = 0; i < NUM_SLOTS; i++) {
@@ -491,8 +494,12 @@ namespace patmos
         oss << boost::format("%1% %|30t|") % instr.str();
       }
 
-      os << boost::format("%1$08x %2$9d %3% %|75t|") 
-                   % Pipeline[stage][0].Address % Cycle % oss.str();
+      if (nopc) {
+        os << boost::format("%1% %|75t|") % oss.str();
+      } else {
+        os << boost::format("%1$08x %2$9d %3% %|75t|") 
+                    % Pipeline[stage][0].Address % Cycle % oss.str();
+      }
 
       if (is_stalling(stage)) {
         // Avoid peeking into memory while memory stage is still working by
@@ -542,7 +549,8 @@ namespace patmos
       }
       return;
     }
-    else if (debug_fmt == DF_INSTRUCTIONS) {
+    else if (debug_fmt == DF_INSTRUCTIONS || debug_fmt == DF_INSTRUCTIONS_NOPC) 
+    {
       // already done before
       return;
     }

@@ -306,7 +306,8 @@ namespace patmos
     /// Print the instructions and their operands in a pipeline stage
     /// @param os An output stream.
     /// @param debug_fmt The stage to print.
-    void print_instructions(std::ostream &os, Pipeline_t stage) const;
+    /// @param nopc skip printing cycles and PC
+    void print_instructions(std::ostream &os, Pipeline_t stage, bool nopc) const;
 
     /// Print the internal state of the simulator to an output stream.
     /// @param os An output stream.
