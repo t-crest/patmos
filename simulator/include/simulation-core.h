@@ -232,7 +232,9 @@ namespace patmos
     /// (excluding memories and caches)
     /// @param os An output stream.
     /// @param debug_fmt The selected output format.
-    void print_registers(std::ostream &os, debug_format_e debug_fmt) const;
+    /// @param nopc skip printing cycles and PC
+    void print_registers(std::ostream &os, debug_format_e debug_fmt, 
+                         bool nopc = false) const;
 
     /// Perform a step of the simulation for a given pipeline.
     /// @param pst The pipeline stage.
@@ -293,13 +295,14 @@ namespace patmos
     /// @param debug_cycle Print debug trace starting at the given cycle.
     /// @param debug_fmt Format of the debug trace.
     /// @param debug_out Stream to print debug output.
+    /// @param debug_nopc skip printing cycles and PC
     /// @param max_cycles The maximum number of cycles to run the simulation.
     /// @param profiling Enable profiling in the simulation run.
     /// @param collect_instr_stats
     void run(word_t entry = 0,
              uint64_t debug_cycle = std::numeric_limits<uint64_t>::max(),
              debug_format_e debug_fmt = DF_DEFAULT,
-             std::ostream &debug_out = std::cerr,
+             std::ostream &debug_out = std::cerr, bool debug_nopc = false,
              uint64_t max_cycles = std::numeric_limits<uint64_t>::max(),
              bool collect_instr_stats = false);
 
@@ -312,7 +315,8 @@ namespace patmos
     /// Print the internal state of the simulator to an output stream.
     /// @param os An output stream.
     /// @param debug_fmt The selected output format.
-    void print(std::ostream &os, debug_format_e debug_fmt);
+    /// @param nopc skip printing cycles and PC
+    void print(std::ostream &os, debug_format_e debug_fmt, bool nopc);
 
     /// Print runtime statistics of the current simulation run to an output
     /// stream.

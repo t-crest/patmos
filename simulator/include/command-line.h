@@ -35,7 +35,6 @@ namespace patmos
     DF_SHORT,
     DF_TRACE,
     DF_INSTRUCTIONS,
-    DF_INSTRUCTIONS_NOPC,
     DF_BLOCKS,
     DF_CALLS,
     DF_DEFAULT,

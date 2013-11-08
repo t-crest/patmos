@@ -282,7 +282,7 @@ namespace patmos
 
   void simulator_t::run(word_t entry, uint64_t debug_cycle,
                         debug_format_e debug_fmt, std::ostream &debug_out,
-                        uint64_t max_cycles,
+                        bool debug_nopc, uint64_t max_cycles,
                         bool collect_instr_stats)
   {
 
@@ -330,10 +330,9 @@ namespace patmos
         pipeline_invoke(SIF, NULL, debug_pipeline);
         
         // print instructions in EX stage
-        if (debug && 
-            (debug_fmt == DF_INSTRUCTIONS || debug_fmt == DF_INSTRUCTIONS_NOPC))
+        if (debug && debug_fmt == DF_INSTRUCTIONS)
         {
-          print_instructions(debug_out, SEX, debug_fmt == DF_INSTRUCTIONS_NOPC);
+          print_instructions(debug_out, SEX, debug_nopc);
         }
 
         track_retiring_instructions();
@@ -387,7 +386,7 @@ namespace patmos
 
         if (debug)
         {
-          print(debug_out, debug_fmt);
+          print(debug_out, debug_fmt, debug_nopc);
         }
 
         // Collect stats for instructions
@@ -416,7 +415,7 @@ namespace patmos
   }
 
   void simulator_t::print_registers(std::ostream &os,
-                                    debug_format_e debug_fmt) const
+                                    debug_format_e debug_fmt, bool nopc) const
   {
     if (debug_fmt == DF_SHORT)
     {
@@ -428,7 +427,11 @@ namespace patmos
     }
     else
     {
-      os << boost::format("\nCyc : %1%\n PRR: ") % Cycle;
+      if (!nopc) {
+        os << boost::format("\nCyc : %1%\n PRR: ") % Cycle;
+      } else {
+        os << "PRR: ";
+      }
 
       // print values of predicate registers
       unsigned int sz_value = 0;
@@ -439,10 +442,12 @@ namespace patmos
         os << pred_value;
       }
 
-      os << boost::format("  BASE: %1$08x   PC : %2$08x   ")
-        % BASE % PC;
+      if (!nopc) {
+        os << boost::format("  BASE: %1$08x   PC : %2$08x   ")
+          % BASE % PC;
 
-      Symbols.print(os, PC);
+        Symbols.print(os, PC);
+      }
 
       os << "\n ";
 
@@ -531,7 +536,7 @@ namespace patmos
               s.GPR.get(reg))).get();
   }
 
-  void simulator_t::print(std::ostream &os, debug_format_e debug_fmt)
+  void simulator_t::print(std::ostream &os, debug_format_e debug_fmt, bool nopc)
   {
     if (debug_fmt == DF_TRACE)
     {
@@ -549,14 +554,16 @@ namespace patmos
       }
       return;
     }
-    else if (debug_fmt == DF_INSTRUCTIONS || debug_fmt == DF_INSTRUCTIONS_NOPC) 
+    else if (debug_fmt == DF_INSTRUCTIONS) 
     {
       // already done before
       return;
     }
     else if (debug_fmt == DF_BLOCKS) {
       if (!is_stalling(SIF) && !is_halting() && Symbols.contains(PC)) {
-	os << boost::format("%1$08x %2$9d ") % PC % Cycle;
+        if (!nopc) {
+          os << boost::format("%1$08x %2$9d ") % PC % Cycle;
+        }
 	Symbols.print(os, PC);
 	os << "\n";
       }
@@ -597,7 +604,9 @@ namespace patmos
           Dbg_is_call = true;
         }
         if (Dbg_cnt_delay) {
-          os << boost::format("%1$08x %2$9d ") % PC % Cycle;
+          if (!nopc) {
+            os << boost::format("%1$08x %2$9d ") % PC % Cycle;
+          }
           os << (Dbg_is_call ? "call from " : "return from ");
           Symbols.print(os, Pipeline[SMW][0].Address, true);
           os << " to ";
@@ -608,7 +617,7 @@ namespace patmos
     else
     {
       // print register values
-      print_registers(os, debug_fmt);
+      print_registers(os, debug_fmt, nopc);
 
       if (debug_fmt == DF_ALL)
       {

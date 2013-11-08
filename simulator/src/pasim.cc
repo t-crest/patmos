@@ -243,8 +243,9 @@ int main(int argc, char **argv)
     ("binary,b", boost::program_options::value<std::string>()->default_value("-"), "binary or elf-executable file (stdin: -)")
     ("output,o", boost::program_options::value<std::string>()->default_value("-"), "output execution trace in file (stdout: -)")
     ("debug", boost::program_options::value<unsigned int>()->implicit_value(0), "enable step-by-step debug tracing after cycle")
-    ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), "format of the debug trace (short, trace, instr, instr-nopc, blocks, calls, default, long, all)")
+    ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), "format of the debug trace (short, trace, instr, blocks, calls, default, long, all)")
     ("debug-file", boost::program_options::value<std::string>()->default_value("-"), "output debug trace in file (stderr: -)")
+    ("debug-nopc", "do not print PC and cycles counter in debug output")
     ("print-stats", boost::program_options::value<patmos::address_t>(), "print statistics for a given function only.")
     ("flush-caches", boost::program_options::value<patmos::address_t>(), "flush all caches when reaching the given address (can be a symbol name).")
     ("slot-stats,a", "show instruction statistics per slot")
@@ -377,6 +378,7 @@ int main(int argc, char **argv)
   patmos::set_assoc_cache_type isck = vm["ickind"].as<patmos::set_assoc_cache_type>();
 
   patmos::debug_format_e debug_fmt= vm["debug-fmt"].as<patmos::debug_format_e>();
+  bool debug_nopc = vm.count("debug-nopc") > 0;
   unsigned int debug_cycle = vm.count("debug") ?
                                        vm["debug"].as<unsigned int>() :
                                        std::numeric_limits<unsigned int>::max();
@@ -495,7 +497,8 @@ int main(int argc, char **argv)
     // start execution
     try
     {
-      s.run(entry, debug_cycle, debug_fmt, *dout, max_cycle, instr_stats);
+      s.run(entry, debug_cycle, debug_fmt, *dout, debug_nopc, 
+            max_cycle, instr_stats);
       s.print_stats(*out, slot_stats, instr_stats);
     }
     catch (patmos::simulation_exception_t e)
