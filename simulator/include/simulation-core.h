@@ -170,6 +170,9 @@ namespace patmos
 
     /// The next value for program counter register.
     uword_t nPC;
+    
+    /// Old value of the program counter, for debugging purposes only.
+    uword_t Debug_last_PC;
 
     /// The general purpose registers.
     GPR_t GPR;

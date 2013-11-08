@@ -45,7 +45,7 @@ namespace patmos
       Data_cache(data_cache), Instr_cache(instr_cache),
       Stack_cache(stack_cache), Symbols(symbols), Dbg_stack(*this),
       Interrupt_handler(interrupt_handler),
-      BASE(0), PC(0), nPC(0),
+      BASE(0), PC(0), nPC(0), Debug_last_PC(0),
       Stall(SXX), Disable_IF(false), Is_decoupled_load_active(false), 
       Branch_counter(0), Halt(false), Interrupt_handling_counter(0),
       Flush_Cache_PC(std::numeric_limits<unsigned int>::max())
@@ -560,12 +560,20 @@ namespace patmos
       return;
     }
     else if (debug_fmt == DF_BLOCKS) {
-      if (!is_stalling(SIF) && !is_halting() && Symbols.contains(PC)) {
-        if (!nopc) {
-          os << boost::format("%1$08x %2$9d ") % PC % Cycle;
+      if (!is_stalling(SIF) && !is_halting()) {
+        // Check if we either hit a new block, or if we did some jump or return
+        // somewhere into a block
+        if (Symbols.contains(PC) || 
+            PC < Debug_last_PC || PC > Debug_last_PC + NUM_SLOTS * 4)
+        {
+          if (!nopc) {
+            os << boost::format("%1$08x %2$9d ") % PC % Cycle;
+          }
+          Symbols.print(os, PC);
+          os << "\n";
         }
-	Symbols.print(os, PC);
-	os << "\n";
+        // Remember the current PC to check for jumps
+        Debug_last_PC = PC;
       }
       return;
     }
