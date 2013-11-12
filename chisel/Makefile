@@ -39,6 +39,10 @@ SRC=$(shell find src -name '*.scala')
 # main class for Patmos
 MAIN=patmos.PatmosMain
 
+# main classes for core and mamory controller
+COREMAIN=patmos.PatmosCoreMain
+MEMCTRLMAIN=patmos.SsramMain
+
 # config file for Patmos -- now just frequency
 CONFIG=default
 CONFIGFILE?=$(BOOTBUILDROOT)/chisel/config/$(CONFIG).xml
@@ -56,6 +60,7 @@ all: emulator verilog
 # Temporary files to remember the ROM we built into the C++ and Verilog versions
 CGEN=$(CHISELBUILDDIR)/.cgen
 VGEN=$(CHISELBUILDDIR)/.vgen
+VGENCORE=$(CHISELBUILDDIR)/.vgencore
 
 # build the C++ version
 emulator: $(CHISELBUILDDIR)/emulator
@@ -83,6 +88,10 @@ view:
 # build the Verilog version
 verilog: $(CHISELBUILDDIR)/$(HWMODULEPREFIX)Patmos.v
 
+modules: \
+	$(CHISELBUILDDIR)/$(HWMODULEPREFIX)PatmosCore.v \
+	$(CHISELBUILDDIR)/SsramBurstRW.v
+
 $(CHISELBUILDDIR)/$(HWMODULEPREFIX)Patmos.v: $(VGEN)
 	if [ x`cat $(VGEN)` != x"$(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX)" ]; then \
 		rm $(VGEN); $(MAKE) $(VGEN); \
@@ -91,6 +100,18 @@ $(CHISELBUILDDIR)/$(HWMODULEPREFIX)Patmos.v: $(VGEN)
 $(VGEN): $(BOOTBIN) $(BOOTDAT) $(SRC)
 	$(SBT) "run-main $(MAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --targetDir $(CHISELBUILDDIR) --backend v $(HWMODULEPREFIXOPT)"
 	echo $(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX) > $(VGEN)
+
+$(CHISELBUILDDIR)/$(HWMODULEPREFIX)PatmosCore.v: $(VGENCORE)
+	if [ x`cat $(VGENCORE)` != x"$(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX)" ]; then \
+		rm $(VGENCORE); $(MAKE) $(VGENCORE); \
+	fi
+
+$(VGENCORE): $(BOOTBIN) $(BOOTDAT) $(SRC)
+	$(SBT) "run-main $(COREMAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --targetDir $(CHISELBUILDDIR) --backend v $(HWMODULEPREFIXOPT)"
+	echo $(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX) > $(VGENCORE)
+
+$(CHISELBUILDDIR)/SsramBurstRW.v: $(SRC)
+	$(SBT) "run-main $(MEMCTRLMAIN) --targetDir $(CHISELBUILDDIR) --backend v"
 
 # run Verilog simulation
 vsim: verilog

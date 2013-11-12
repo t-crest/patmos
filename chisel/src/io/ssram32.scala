@@ -283,7 +283,7 @@ class ExtSsram(fileName : String) extends Component {
     }
     // generate some dummy data to fill the table and make Bit 31 test happy
     for (x <- byteArray.length / 4 until MCACHE_SIZE * 2)
-      ssram_extmem(Bits(x)) := Bits("h8000000000000000")
+      ssram_extmem(Bits(x)) := Bits("h80000000")
     ssram_extmem
   }
 

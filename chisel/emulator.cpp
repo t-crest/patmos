@@ -100,15 +100,15 @@ static val_t readelf(istream &is, Patmos_t *c)
 			 ((val_t)elfbuf[phdr.p_offset + k + 3] << 0));
 		  val_t addr = ((phdr.p_paddr + k) - (0x1 << OCMEM_ADDR_BITS)) >> 3;
 
-		  unsigned size = (sizeof(c->Patmos_fetch__memEven.contents) / 
-						   sizeof(c->Patmos_fetch__memEven.contents[0]));
+		  unsigned size = (sizeof(c->Patmos_core_fetch__memEven.contents) / 
+						   sizeof(c->Patmos_core_fetch__memEven.contents[0]));
 		  assert(addr < size && "Instructions mapped to ISPM exceed size");
 
 		  // Write to even or odd block
 		  if (((phdr.p_paddr + k) & 0x4) == 0) {
-			c->Patmos_fetch__memEven.put(addr, word);
+			c->Patmos_core_fetch__memEven.put(addr, word);
 		  } else {
-			c->Patmos_fetch__memOdd.put(addr, word);
+			c->Patmos_core_fetch__memOdd.put(addr, word);
 		  }
 		}
 
@@ -136,11 +136,11 @@ static val_t readelf(istream &is, Patmos_t *c)
 }
 
 static void print_state(Patmos_t *c) {
-	sval_t pc = c->Patmos_memory__io_memwb_pc.to_ulong();
+	sval_t pc = c->Patmos_core_memory__io_memwb_pc.to_ulong();
 	*out << (pc - 2) << " - ";
 
 	for (unsigned i = 0; i < 32; i++) {
-	  *out << c->Patmos_decode_rf__rf.get(i).to_ulong() << " ";
+	  *out << c->Patmos_core_decode_rf__rf.get(i).to_ulong() << " ";
 	}
 
 	*out << endl;
@@ -279,39 +279,39 @@ int main (int argc, char* argv[]) {
 
   if (entry != 0) {
     if (entry >= 0x20000) {
-      c->Patmos_fetch__pcReg = -1;
-      c->Patmos_mcache_mcacherepl__hitReg = 0;
-      c->Patmos_mcache_mcacherepl__selMCacheReg = 1;
-      c->Patmos_fetch__relBaseReg = 0;
-      c->Patmos_fetch__relocReg = (entry >> 2) - 1;
+      c->Patmos_core_fetch__pcReg = -1;
+      c->Patmos_core_mcache_mcacherepl__hitReg = 0;
+      c->Patmos_core_mcache_mcacherepl__selMCacheReg = 1;
+      c->Patmos_core_fetch__relBaseReg = 0;
+      c->Patmos_core_fetch__relocReg = (entry >> 2) - 1;
       //init linked list for lru replacement
-      // c->Patmos_mcache_mcachectrl__addrReg = 0;
-      // c->Patmos_mcache_mcacherepl__lru_list_prev_0 = 1;
-      // c->Patmos_mcache_mcacherepl__lru_list_prev_1 = 2;
-      // c->Patmos_mcache_mcacherepl__lru_list_prev_2 = 3;
-      // c->Patmos_mcache_mcacherepl__lru_list_prev_3 = 0;
-      // c->Patmos_mcache_mcacherepl__lru_list_next_0 = 3;
-      // c->Patmos_mcache_mcacherepl__lru_list_next_1 = 0;
-      // c->Patmos_mcache_mcacherepl__lru_list_next_2 = 1;
-      // c->Patmos_mcache_mcacherepl__lru_list_next_3 = 2;
+      // c->Patmos_core_mcache_mcachectrl__addrReg = 0;
+      // c->Patmos_core_mcache_mcacherepl__lru_list_prev_0 = 1;
+      // c->Patmos_core_mcache_mcacherepl__lru_list_prev_1 = 2;
+      // c->Patmos_core_mcache_mcacherepl__lru_list_prev_2 = 3;
+      // c->Patmos_core_mcache_mcacherepl__lru_list_prev_3 = 0;
+      // c->Patmos_core_mcache_mcacherepl__lru_list_next_0 = 3;
+      // c->Patmos_core_mcache_mcacherepl__lru_list_next_1 = 0;
+      // c->Patmos_core_mcache_mcacherepl__lru_list_next_2 = 1;
+      // c->Patmos_core_mcache_mcacherepl__lru_list_next_3 = 2;
       //init for icache
-      // c->Patmos_mcache_icacherepl__selICacheReg = 1;
-      // c->Patmos_fetch__pcReg = 0;
+      // c->Patmos_core_mcache_icacherepl__selICacheReg = 1;
+      // c->Patmos_core_fetch__pcReg = 0;
     }
     else {
       // pcReg for ispm starts at entry point - ispm base
-      c->Patmos_fetch__pcReg = ((entry - 0x10000) >> 2) - 1;
-      c->Patmos_mcache_mcacherepl__selIspmReg = 1;
-      c->Patmos_fetch__relBaseReg = (entry - 0x10000) >> 2;
-      c->Patmos_fetch__relocReg = 0x10000 >> 2;
+      c->Patmos_core_fetch__pcReg = ((entry - 0x10000) >> 2) - 1;
+      c->Patmos_core_mcache_mcacherepl__selIspmReg = 1;
+      c->Patmos_core_fetch__relBaseReg = (entry - 0x10000) >> 2;
+      c->Patmos_core_fetch__relocReg = 0x10000 >> 2;
       //init for icache
-      // c->Patmos_mcache_icacherepl__selIspmReg = 1;
+      // c->Patmos_core_mcache_icacherepl__selIspmReg = 1;
     }
-    c->Patmos_mcache_mcachectrl__callRetBaseReg = (entry >> 2);
-    c->Patmos_mcache_mcacherepl__callRetBaseReg = (entry >> 2);
+    c->Patmos_core_mcache_mcachectrl__callRetBaseReg = (entry >> 2);
+    c->Patmos_core_mcache_mcacherepl__callRetBaseReg = (entry >> 2);
     //init for icache
-    // c->Patmos_mcache_icachectrl__callRetBaseReg = (entry >> 2);
-    // c->Patmos_mcache_icacherepl__callRetBaseReg = (entry >> 2);
+    // c->Patmos_core_mcache_icachectrl__callRetBaseReg = (entry >> 2);
+    // c->Patmos_core_mcache_icacherepl__callRetBaseReg = (entry >> 2);
   }
 
   // Main emulation loop
@@ -333,9 +333,9 @@ int main (int argc, char* argv[]) {
 
 	if (uart) {
 	  // Pass on data from UART
-	  if (c->Patmos_iocomp_uart__io_ocp_M_Cmd.to_ulong() == 0x1
-	  	  && c->Patmos_iocomp_uart__io_ocp_M_Addr.to_ulong() == 0x04) {
-	  	*out << (char)c->Patmos_iocomp_uart__io_ocp_M_Data.to_ulong();
+	  if (c->Patmos_core_iocomp_uart__io_ocp_M_Cmd.to_ulong() == 0x1
+	  	  && c->Patmos_core_iocomp_uart__io_ocp_M_Addr.to_ulong() == 0x04) {
+	  	*out << (char)c->Patmos_core_iocomp_uart__io_ocp_M_Data.to_ulong();
 	  }
 	}
 
@@ -347,17 +347,17 @@ int main (int argc, char* argv[]) {
 	if (halt) {
 	  break;
 	}
-	if (c->Patmos_memory__memReg_mem_ret.to_bool()
-		&& c->Patmos_mcache_mcachectrl__callRetBaseReg.to_ulong() == 0) {
+	if (c->Patmos_core_memory__memReg_mem_ret.to_bool()
+		&& c->Patmos_core_mcache_mcachectrl__callRetBaseReg.to_ulong() == 0) {
 	  halt = true;
 	}
 	//for icache
-	// if (c->Patmos_memory__memReg_mem_ret.to_bool()
-	// 	&& c->Patmos_mcache_icacherepl__callRetBaseReg.to_ulong() == 0) {
+	// if (c->Patmos_core_memory__memReg_mem_ret.to_bool()
+	// 	&& c->Patmos_core_mcache_icacherepl__callRetBaseReg.to_ulong() == 0) {
 	//   halt = true;
 	// }
 	
-	// if (c->Patmos_mcache_mcachectrl__mcachemem_w_tag.to_bool() == true) {
+	// if (c->Patmos_core_mcache_mcachectrl__mcachemem_w_tag.to_bool() == true) {
 	//   cache_miss++;
 	// }
 
@@ -369,5 +369,5 @@ int main (int argc, char* argv[]) {
   }
 
   // Pass on return value from processor
-  return c->Patmos_decode_rf__rf.get(1).to_ulong();
+  return c->Patmos_core_decode_rf__rf.get(1).to_ulong();
 }
