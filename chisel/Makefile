@@ -39,9 +39,10 @@ SRC=$(shell find src -name '*.scala')
 # main class for Patmos
 MAIN=patmos.PatmosMain
 
-# main classes for core and mamory controller
+# main classes for core, memory controller and arbiter
 COREMAIN=patmos.PatmosCoreMain
 MEMCTRLMAIN=patmos.SsramMain
+ARBITERMAIN=ocp.ArbiterMain
 
 # config file for Patmos -- now just frequency
 CONFIG=default
@@ -112,6 +113,9 @@ $(VGENCORE): $(BOOTBIN) $(BOOTDAT) $(SRC)
 
 $(CHISELBUILDDIR)/SsramBurstRW.v: $(SRC)
 	$(SBT) "run-main $(MEMCTRLMAIN) --targetDir $(CHISELBUILDDIR) --backend v"
+
+$(CHISELBUILDDIR)/Arbiter.v: $(SRC)
+	$(SBT) "run-main $(ARBITERMAIN) $(ARBITERCNT) $(ARBITERADDRWIDTH) $(ARBITERDATAWIDTH) $(ARBITERBURSTLENGTH) --targetDir $(CHISELBUILDDIR) --backend v"
 
 # run Verilog simulation
 vsim: verilog

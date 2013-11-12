@@ -34,7 +34,7 @@ extern int _stack_cache_base, _shadow_stack_base;
 #define VALID_BIT 0x08000
 #define DONE_BIT 0x04000
 
-struct network_interface
+static const struct network_interface
 {
     volatile _SPM int *dma;
     volatile _SPM int *dma_p;
@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
         {
             while(*(ni.spm+2*k) == 0);
         }
-        
+
         // Send a hello world message
         const char *msg = "Hello world ";
         char cid[CORES];
@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
         WRITE(msg, strlen(msg));
         WRITE(cid,CORES-1);
         WRITE("\n",1);
-        
+
         // Blinkenlights
         int i, j;
         for (;;)
@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
             for (i=2000; i!=0; --i)
                 for (j=2000; j!=0; --j)
                     *led_ptr = 1;
-          
+
 
             UART_DATA = '0';
             for (i=2000; i!=0; --i)

@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -33,9 +33,9 @@
 /*
  * Arbiter for OCP burst slaves.
  * Pseudo round robin arbitration. Each turn for a non-requesting master costs 1 clock cycle.
- * 
+ *
  * Author: Martin Schoeberl (martin@jopdesign.com)
- * 
+ *
  */
 
 package ocp
@@ -45,16 +45,16 @@ import Node._
 
 import scala.collection.mutable.HashMap
 
-class Arbiter(cnt: Int, burstLength: Int) extends Component {
+class Arbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extends Component {
   // MS: I'm always confused from which direction the name shall be
   // probably the other way round...
   val io = new Bundle {
-    val master = Vec(cnt) { new OcpBurstSlavePort(32, 32, burstLength) }
-    val slave = new OcpBurstMasterPort(32, 32, burstLength)
+    val master = Vec(cnt) { new OcpBurstSlavePort(addrWidth, dataWidth, burstLen) }
+    val slave = new OcpBurstMasterPort(addrWidth, dataWidth, burstLen)
   }
 
   val turnReg = Reg(resetVal = UFix(0, log2Up(cnt)))
-  val burstCntReg = Reg(resetVal = UFix(0, log2Up(burstLength)))
+  val burstCntReg = Reg(resetVal = UFix(0, log2Up(burstLen)))
 
   val sIdle :: sRead :: sWrite :: Nil = Enum(3) { UFix() }
   val stateReg = Reg(resetVal = sIdle)
@@ -89,7 +89,7 @@ class Arbiter(cnt: Int, burstLength: Int) extends Component {
     // For read we have to count the DVAs
     when(slave.Resp === OcpResp.DVA) {
       burstCntReg := burstCntReg + UFix(1)
-      when(burstCntReg === UFix(burstLength) - UFix(1)) {
+      when(burstCntReg === UFix(burstLen) - UFix(1)) {
         turnReg := Mux(turnReg === UFix(cnt - 1), UFix(0), turnReg + UFix(1))
         stateReg := sIdle
       }
@@ -106,8 +106,21 @@ class Arbiter(cnt: Int, burstLength: Int) extends Component {
     io.master(i).S.Data := slave.Data
   }
   io.master(turnReg).S := slave
-  
+
   // The response of the SSRAM comes a little bit late
+}
+
+object ArbiterMain {
+  def main(args: Array[String]): Unit = {
+
+    val chiselArgs = args.slice(4, args.length)
+    val cnt = args(0)
+    val addrWidth = args(1)
+    val dataWidth = args(2)
+    val burstLen = args(3)
+
+    chiselMain(chiselArgs, () => new Arbiter(cnt.toInt,addrWidth.toInt,dataWidth.toInt,burstLen.toInt))
+  }
 }
 
 

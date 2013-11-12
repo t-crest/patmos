@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,9 @@
 
 /*
  * Start for OCP arbiter tests.
- * 
+ *
  * Author: Martin Schoeberl (martin@jopdesign.com)
- * 
+ *
  */
 
 package ocp.test
@@ -49,11 +49,11 @@ import scala.collection.mutable.HashMap
 
 
 class Master(nr: Int, burstLength: Int) extends Component {
-  
+
   val io = new Bundle {
     val port = new OcpBurstMasterPort(32, 32, burstLength)
   }
-  
+
   val cntReg = Reg(resetVal = UFix(0, width=8))
 
   io.port.M.Cmd := OcpCmd.IDLE
@@ -70,7 +70,7 @@ class Master(nr: Int, burstLength: Int) extends Component {
       }
     }
     is(UFix(2)) {
-      io.port.M.DataValid := Bits(1)      
+      io.port.M.DataValid := Bits(1)
     }
     is(UFix(3)) {
       io.port.M.DataValid := Bits(1)
@@ -85,28 +85,28 @@ class Master(nr: Int, burstLength: Int) extends Component {
     is(UFix(5)) { io.port.M.Cmd := OcpCmd.IDLE }
     is(UFix(6)) { io.port.M.Cmd := OcpCmd.RD }
   }
-  
+
   io.port.M.Addr := (UFix(nr * 256) + cntReg).toBits()
   io.port.M.Data := (UFix(nr * 256 * 16) + cntReg).toBits()
 }
 
 /** A top level to test the arbiter */
 class ArbiterTop() extends Component {
-  
+
   val io = new Bundle {
     val port = new OcpBurstMasterPort(32, 32, 4)
   }
   val CNT = 3
-  val arb = new ocp.Arbiter(CNT, 4)
+  val arb = new ocp.Arbiter(CNT, 32, 32, 4)
   val mem = new SsramBurstRW()
-  
+
   for (i <- 0 until CNT) {
     val m = new Master(i, 4)
     arb.io.master(i) <> m.io.port
   }
-  
+
   mem.io.ocp_port <> arb.io.slave
-  
+
   io.port.M <> arb.io.slave.M
 
 }

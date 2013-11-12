@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,10 +32,10 @@
 
 /*
  * Patmos top level component and test driver.
- * 
+ *
  * Authors: Martin Schoeberl (martin@jopdesign.com)
  *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
- * 
+ *
  */
 
 /*
@@ -68,7 +68,7 @@ class PatmosCore(binFile: String, datFile: String) extends Component {
     val cpuId = Bits(INPUT, DATA_WIDTH)
     val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
     val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
-    val memPort = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH) 
+    val memPort = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
     val led = Bits(OUTPUT, 9)
     val uartPins = new UartPinIO()
     //val rfDebug = Vec(REG_COUNT) { Bits(OUTPUT, DATA_WIDTH) }
@@ -174,10 +174,10 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Compo
     val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
     val led = Bits(OUTPUT, 9)
     val uartPins = new UartPinIO()
-    val sramPins = new RamOutPinsIO() 
+    val sramPins = new RamOutPinsIO()
     //val rfDebug = Vec(REG_COUNT) { Bits(OUTPUT, DATA_WIDTH) }
   }
-  
+
   // Instantiate core
   val core = new PatmosCore(binFile, datFile)
 
