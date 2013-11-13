@@ -218,7 +218,14 @@ class MCacheReplFifo() extends Component {
   val selIspmReg = Reg(resetVal = Bits(0, width = 1))
   val selMCacheReg = Reg(resetVal = Bits(0, width = 1))
 
-  //how is this done time effective, is the for loop building parallel elements right???
+  val hit = Bool()
+  hit := Bool(false)
+
+  val mergePosVec = { Vec(METHOD_COUNT) { Bits(width = MCACHE_SIZE_WIDTH) } }
+  for (i <- 0 until METHOD_COUNT) {
+    mergePosVec(i) := Bits(0)
+  }
+
   //read from tag memory on call/return to check if method is in the cache
   when (io.exmcache.doCallRet && io.ena_in) {
 
@@ -229,12 +236,17 @@ class MCacheReplFifo() extends Component {
 
     when (io.exmcache.callRetBase(DATA_WIDTH-1,15) >= Bits(0x1)) {
       hitReg := Bits(0)
-      posReg := next_replace_pos
       for (i <- 0 until METHOD_COUNT) {
-        when (io.exmcache.callRetBase === mcache_addr_vec(i) && mcache_valid_vec(i) === Bits(1)) {
-          hitReg := Bits(1)
-          posReg := mcache_pos_vec(i)
-        }
+        when (io.exmcache.callRetBase === mcache_addr_vec(i)
+              && mcache_valid_vec(i) === Bits(1)) {
+                hitReg := Bits(1)
+                hit := Bool(true)
+                mergePosVec(i) := mcache_pos_vec(i)
+              }
+      }
+      posReg := next_replace_pos
+      when (hit) {
+        posReg := mergePosVec.fold(Bits(0))(_|_)
       }
     }
   }
