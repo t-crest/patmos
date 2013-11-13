@@ -38,15 +38,6 @@
  *
  */
 
-/*
-
-Keep a TODO list here, right at the finger tips:
-
-- Look into ListLookup for instruction decoding
-
-
- */
-
 package patmos
 
 import Chisel._
@@ -57,6 +48,7 @@ import scala.collection.mutable.HashMap
 import Constants._
 
 import util._
+import datacache._
 import ocp._
 
 /**
@@ -82,6 +74,7 @@ class PatmosCore(binFile: String, datFile: String) extends Component {
   val memory = new Memory()
   val writeback = new WriteBack()
   val iocomp = new InOut()
+  val dcache = new DataCache()
 
   //io.rfDebug := decode.rf.io.rfDebug
 
@@ -117,12 +110,11 @@ class PatmosCore(binFile: String, datFile: String) extends Component {
   val bootMem = new BootMem(datFile)
   memory.io.globalInOut <> bootMem.io.memInOut
 
-  // Merge OCP ports from memory stage and method cache
-  val loadStoreBus = new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
-  val burstBus = new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+  dcache.io.master <> bootMem.io.extMem
 
-  val burstBridge = new OcpBurstBridge(bootMem.io.extMem, loadStoreBus.io.slave)
-  val burstJoin = new OcpBurstJoin(mcache.io.ocp_port, loadStoreBus.io.master,
+  // Merge OCP ports from data caches and method cache
+  val burstBus = new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+  val burstJoin = new OcpBurstJoin(mcache.io.ocp_port, dcache.io.slave,
                                    burstBus.io.slave)
 
   // Enable signal
@@ -131,13 +123,14 @@ class PatmosCore(binFile: String, datFile: String) extends Component {
   decode.io.ena := enable
   execute.io.ena := enable
   writeback.io.ena := enable
+  val enableReg = Reg(enable)
 
   // The inputs and outputs
   io.cpuId <> iocomp.io.cpuId
   io.comConf <> iocomp.io.comConf
   io.comSpm <> iocomp.io.comSpm
   io.memPort <> burstBus.io.master
-  io.led <> Cat(enable, iocomp.io.ledPins)
+  io.led <> Cat(enableReg, iocomp.io.ledPins)
   io.uartPins <> iocomp.io.uartPins
 
   // Dummy output, which is ignored in the top level VHDL code, to

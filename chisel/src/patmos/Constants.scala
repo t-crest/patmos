@@ -62,6 +62,8 @@ object Constants {
   val MAX_OFF_WIDTH = math.max(log2Up(MCACHE_SIZE / 4), log2Up(ISPM_SIZE / 4))
   val METHOD_COUNT = util.Config.conf.MCache.blocks
 
+  val DCACHE_SIZE = util.Config.conf.DCache.size
+
   // we use a very simple decoding of ISPM at address 0x00010000
   val ISPM_ONE_BIT = 16
   // The boot ROM is at 0x80000000 and the boot SPM at 0x80010000,

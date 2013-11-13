@@ -31,62 +31,57 @@
  */
 
 /*
- * Utility functions for Patmos.
- * 
- * Author: Martin Schoeberl (martin@jopdesign.com)
- * 
+ * The data cache unit for Patmos
+ *
+ * Author: Wolfgang Puffitsch (wpuffitsch@gmail.com)
  */
 
-package patmos
+package datacache
 
 import Chisel._
 import Node._
 
-import Constants._
+import patmos.Constants._
 
-object Utility {
+import ocp._
 
-  /**
-   * Read a binary file into the ROM vector
-   */
-  def readBin(fileName: String, width: Int): Vec[Bits] = {
-
-    val bytesPerWord = (width+7) / 8
-
-    println("Reading " + fileName)
-    // an encoding to read a binary file? Strange new world.
-    val source = scala.io.Source.fromFile(fileName)(scala.io.Codec.ISO8859)
-    val byteArray = source.map(_.toByte).toArray
-    source.close()
-
-    // using a vector for a ROM
-    val v = Vec(math.max(1, byteArray.length / bytesPerWord)) { Bits(width = width) }
-
-    if (byteArray.length == 0) {
-      v(0) = Bits(0, width = width)
-    }
-
-    for (i <- 0 until byteArray.length / bytesPerWord) {
-      var word = 0
-      for (j <- 0 until bytesPerWord) {
-        word <<= 8
-        word += byteArray(i * bytesPerWord + j).toInt & 0xff
-      }
-      // printf("%08x\n", word)
-      v(i) = Bits(word, width = width)
-    }
-    v
+class DataCache extends Component {
+  val io = new Bundle {
+	val master = new OcpCacheSlavePort(ADDR_WIDTH, DATA_WIDTH)
+	val slave = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
   }
-  
-  def printConfig(configFile: String): Unit = {
-    printf("\nPatmos configuration \"%s\"\n", util.Config.conf.description)
-    printf("\tFrequency: %d MHz\n", CLOCK_FREQ/1000000)
-    printf("\tPipelines: %d\n", PIPE_COUNT)
-    printf("\tMethod cache: %d KB, %d methods\n", MCACHE_SIZE/1024, METHOD_COUNT)
-    printf("\tData cache: %d KB, direct-mapped\n", DCACHE_SIZE/1024)
-    printf("\tInstruction SPM: %d KB\n", ISPM_SIZE/1024)
-    printf("\tData SPM: %d KB\n", DSPM_SIZE/1024)
-    printf("\tBoot SPM: %d KB\n", BOOTSPM_SIZE/1024)
-    printf("\n")
+
+  // Register selects
+  val selDC = io.master.M.AddrSpace === OcpCache.DATA_CACHE
+  val selDCReg = Reg(resetVal = Bool(false))
+  when(io.master.M.Cmd != OcpCmd.IDLE) {
+	selDCReg := selDC
   }
+
+  // Instantiate direct-mapped cache for regular data cache
+  val dm = new DirectMappedCache(DCACHE_SIZE, BURST_LENGTH*BYTES_PER_WORD)
+  dm.io.master.M := io.master.M
+  dm.io.master.M.Cmd := Mux(selDC, io.master.M.Cmd, OcpCmd.IDLE)
+  val dmS = dm.io.master.S
+
+  // Instantiate bridge for bypasses and writes
+  val bp = new OcpCacheBus(ADDR_WIDTH, DATA_WIDTH)
+  val bpBurst = new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+  val bpBridge = new OcpBurstBridge(bp.io.master, bpBurst.io.slave)
+  bp.io.slave.M := io.master.M
+  bp.io.slave.M.Cmd := Mux(!selDC || io.master.M.Cmd === OcpCmd.WR,
+						   io.master.M.Cmd, OcpCmd.IDLE)
+  val bpS = bp.io.slave.S
+
+  // Join requests
+  val burstBus = new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+  val burstJoin = new OcpBurstJoin(dm.io.slave, bpBurst.io.master, burstBus.io.slave)
+  io.slave <> burstBus.io.master
+
+  // Pass data to pipeline
+  io.master.S.Data := bpS.Data
+  when(selDCReg) { io.master.S.Data := dmS.Data }
+
+  // Merge responses
+  io.master.S.Resp := dmS.Resp | bpS.Resp
 }
