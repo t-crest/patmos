@@ -100,6 +100,16 @@ bootcomp: bin-$(BOOTAPP)
 bin-% $(BUILDDIR)/%.bin $(BUILDDIR)/%.dat: $(BUILDDIR)/%.elf
 	$(INSTALLDIR)/elf2bin $< $(BUILDDIR)/$*.bin $(BUILDDIR)/$*.dat
 
+# Convert elf file to flat memory image
+img: img-$(APP)
+img-% $(BUILDDIR)/%.img: $(BUILDDIR)/%.elf
+	$(INSTALLDIR)/elf2bin -f $< $(BUILDDIR)/$*.img
+
+# Convert binary memory image to decimal representation
+imgdat: imgdat-$(APP)
+imgdat-% $(BUILDDIR)/%.img.dat: $(BUILDDIR)/%.img
+	hexdump -v -e '"%d,"' -e '" // %08x\n"' $< > $(BUILDDIR)/$*.img.dat
+
 # Compile a program to an elf file
 comp: comp-$(APP)
 
