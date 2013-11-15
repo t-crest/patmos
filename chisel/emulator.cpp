@@ -148,9 +148,9 @@ static void print_state(Patmos_t *c) {
 }
 
 static void extSsramSim(Patmos_t *c) {
-  static int addr_cnt;
-  static int address;
-  static int counter;
+  static uint32_t addr_cnt;
+  static uint32_t address;
+  static uint32_t counter;
 
   // *out << "noe:" << c->Patmos__io_sramPins_ram_out_noe.to_ulong() 
   // 	   << " nadv: " << c->Patmos__io_sramPins_ram_out_nadv.to_ulong()
@@ -205,7 +205,11 @@ static void mcacheStat(Patmos_t *c, bool halt) {
     cache_miss++;
   }
   //everytime a method is called from the cache, todo: find a better way to measure hits
-  if (c->Patmos_core_fetch__io_memfe_doCallRet.to_bool() == true && c->Patmos_core_mcache_mcacherepl__io_mcache_replctrl_hit.to_bool() == true && c->Patmos_core_mcache_mcachectrl__mcache_state.to_ulong() == 1 && c->Patmos_core_mcache__io_ena_in.to_bool() == true && c->Patmos_core_mcache_mcachectrl__io_mcache_ctrlrepl_instr_stall.to_bool() == false) {
+  if (c->Patmos_core_fetch__io_memfe_doCallRet.to_bool() == true &&
+      c->Patmos_core_mcache_mcacherepl__io_mcache_replctrl_hit.to_bool() == true &&
+      c->Patmos_core_mcache_mcachectrl__mcache_state.to_ulong() == 1 &&
+      c->Patmos_core_mcache__io_ena_in.to_bool() == true &&
+      c->Patmos_core_mcache_mcachectrl__io_mcache_ctrlrepl_instr_stall.to_bool() == false) {
     cache_hits++;
   }
   //pipeline stalls caused by the mcache
@@ -214,9 +218,10 @@ static void mcacheStat(Patmos_t *c, bool halt) {
   }
   //program terminats, write to output
   if (halt == true) {
-    //cmiss.open("cache_misses.txt", ios::out | ios::app);
-    *out << "exec_cycles:" << exec_cycles << " cache_hits:" << cache_hits << " cache_misses:" << cache_miss <<  " cache_stall_cycles:" << cache_stall_cycles << "\n";
-    //cmiss.close();
+    *out << "exec_cycles:" << exec_cycles
+         << " cache_hits:" << cache_hits
+         << " cache_misses:" << cache_miss
+         <<  " cache_stall_cycles:" << cache_stall_cycles << "\n";
   }
 }
 
@@ -227,27 +232,31 @@ int main (int argc, char* argv[]) {
   int lim = -1;
   bool vcd = false;
   // MS: what it the usage of disabling the UART?
+  // WP: output from the UART can mess up trace and cause discrepancies with simulator
   bool uart = true;
   bool quiet = true;
   bool print_stat = false;
 
-  while ((opt = getopt(argc, argv, "qurnvlp:I:O:")) != -1) {
+  while ((opt = getopt(argc, argv, "qurnvpl:I:O:")) != -1) {
 	switch (opt) {
 	// MS: q and u should go away, but tests in bench need updates first
 	case 'q':
 	  quiet = true;
 	  break;
-	case 'u':
-	  uart = true;
-	  break;
 	case 'r':
 	  quiet = false;
+	  break;
+	case 'u':
+	  uart = true;
 	  break;
 	case 'n':
 	  uart = false;
 	  break;
 	case 'v':
 	  vcd = true;
+	  break;
+	case 'p':
+	  print_stat = true;
 	  break;
 	case 'l':
 	  lim = atoi(optarg);
@@ -274,12 +283,9 @@ int main (int argc, char* argv[]) {
 		}
 	  }
 	  break;
-	case 'p':
-	  print_stat = true;
-	  break;
 	default: /* '?' */
 	  cerr << "Usage: " << argv[0]
-		   << "[-q] [-u] [-v] [-l cycles] [-I file] [-O file] [file]" << endl;
+		   << " [-q|-r] [-u|-n] [-v] [-p] [-l cycles] [-I file] [-O file] [file]" << endl;
 	  exit(EXIT_FAILURE);
 	}
   }
@@ -369,7 +375,7 @@ int main (int argc, char* argv[]) {
 	  }
 	}
 
-	if (!quiet) {
+	if (!quiet && c->Patmos_core__enableReg.to_bool()) {
 	  print_state(c);
 	}
 	
