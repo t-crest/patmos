@@ -61,7 +61,7 @@ static void copy_segment(int infd, size_t src_pos, size_t src_size,
   }
 }
 
-static void elf2bin_exec(Elf *elf, int infd, int outfd)
+static void elf2bin_exec(Elf *elf, int infd, int outfd, int flat)
 {
   // get program headers
   size_t n, i;
@@ -77,7 +77,7 @@ static void elf2bin_exec(Elf *elf, int infd, int outfd)
     assert(phdrtmp);
 
     if (phdr.p_type == PT_LOAD
-		&& (phdr.p_flags & PF_X))
+		&& ((phdr.p_flags & PF_X) || flat))
     {
       // some assertions
       assert(phdr.p_vaddr == phdr.p_paddr);
@@ -170,40 +170,60 @@ static void elf2bin_data(Elf *elf, int infd, int outfd, unsigned displace)
   }
 }
 
+void usage(char *name) {
+  fprintf(stderr, "Usage: %s infile outfile1 outfile2 | %s -f infile outfile\n", name, name);
+}
+
 int main(int argc, char* argv[]) {
 
-	if (argc != 4) {
-	  fprintf(stderr, "Usage: %s infile outfile1 outfile2\n", argv[0]);
+	int opt;
+	int flat = 0;
+	while ((opt = getopt(argc, argv, "f")) != -1) {
+	  switch (opt) {
+	  case 'f':
+		flat = 1;
+		break;
+	  default:  /* '?' */
+		usage(argv[0]);
+		exit(-1);
+	  }
+	}
+
+	if ((!flat && (argc - optind) != 3) || (flat && (argc - optind) != 2)) {
+	    usage(argv[0]);
 		exit(-1);
 	}
 
-	int infd = open(argv[1], O_RDONLY, 0);
+	int infd = open(argv[optind], O_RDONLY, 0);
 	if (infd == -1) {
 	  perror("Cannot open input file:");
 	}
 
-	int outfd_exec = open(argv[2], O_CREAT | O_WRONLY | O_TRUNC, 0644);
+	int outfd_exec = open(argv[optind+1], O_CREAT | O_WRONLY | O_TRUNC, 0644);
 	if (outfd_exec == -1) {
 	  perror("Cannot open output file:");
 	}
 
-	int outfd_data = open(argv[3], O_CREAT | O_WRONLY | O_TRUNC, 0644);
-	if (outfd_data == -1) {
-	  perror("Cannot open output file:");
+	int outfd_data = -1;
+	if (!flat) {
+	  outfd_data = open(argv[optind+2], O_CREAT | O_WRONLY | O_TRUNC, 0644);
+	  if (outfd_data == -1) {
+		perror("Cannot open output file:");
+	  }
 	}
 
 	unsigned displace = 0x80000000;
 
 	Elf *elf = open_elf(infd);
 
-	elf2bin_exec(elf, infd, outfd_exec);
-	elf2bin_data(elf, infd, outfd_data, displace);
+	elf2bin_exec(elf, infd, outfd_exec, flat);
+	if (!flat) { elf2bin_data(elf, infd, outfd_data, displace); }
 	
 	elf_end(elf);
 
 	close(infd);
 	close(outfd_exec);
-	close(outfd_data);
+	if (!flat) { close(outfd_data); }
 	
 	return 0;
 }
