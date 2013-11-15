@@ -16,7 +16,7 @@ CFLAGS-BOOTABLE=-target patmos-unknown-unknown-elf \
 	-Xgold --section-start -Xgold .text=0x0 -e main \
 	-Xgold --section-start -Xgold .rodata=0x80000010 \
 	-Xgold --section-start -Xgold .data=0x80010000 \
-	-Os
+	-Os -mpatmos-disable-vliw=true
 
 # Flags for compiling normal applications
 CFLAGS=-target patmos-unknown-unknown-elf \

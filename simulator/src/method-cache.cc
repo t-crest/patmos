@@ -83,11 +83,10 @@ void ideal_method_cache_t::print_stats(const simulator_t &s, std::ostream &os)
     
 
 
-void lru_method_cache_t::method_info_t::update(byte_t *instructions, 
-                                               uword_t address, uword_t num_blocks,
+void lru_method_cache_t::method_info_t::update(uword_t address, 
+                                               uword_t num_blocks,
                                                uword_t num_bytes)
 {
-  Instructions = instructions;
   Address = address;
   Num_blocks = num_blocks;
   Num_bytes = num_bytes;
@@ -122,12 +121,11 @@ bool lru_method_cache_t::do_fetch(method_info_t &current_method, uword_t address
 
   // get instruction word from the method's instructions
   byte_t *iwp = reinterpret_cast<byte_t*>(&iw[0]);
-  for(unsigned int i = 0; i != sizeof(word_t)*NUM_SLOTS; i++, iwp++)
-  {
-    *iwp = current_method.Instructions[address + i -
-                                        current_method.Address];
-  }
   
+  // TODO read from Cache buffer, get read position(s) from method_info.
+  
+  Memory.read_peek(address, iwp, sizeof(word_t)*2);
+    
   for (unsigned int i = 0; i < NUM_SLOTS; i++) {
     unsigned int word = (address-current_method.Address)/sizeof(word_t) + i;
     current_method.Utilization[word] = true;
@@ -238,8 +236,9 @@ lru_method_cache_t::lru_method_cache_t(memory_t &memory,
   Num_max_methods = max_active_methods ? max_active_methods : num_blocks;
   Methods = new method_info_t[Num_blocks];
   for(unsigned int i = 0; i < Num_blocks; i++)
-    Methods[i] = method_info_t(new byte_t[Num_block_bytes * Num_blocks]);
-  Transfer_buffer = new byte_t[Num_block_bytes * Num_blocks + 4];
+    Methods[i] = method_info_t();
+  
+  Cache = new byte_t[Num_block_bytes * Num_blocks + 4];
 }
 
 void lru_method_cache_t::initialize(uword_t address)
@@ -255,10 +254,7 @@ void lru_method_cache_t::initialize(uword_t address)
   peek_function_size(address, &num_bytes);
   num_blocks = get_num_blocks_for_bytes(num_bytes);
 
-  Memory.read_peek(address, current_method.Instructions,
-      num_blocks * Num_block_bytes);
-  current_method.update(current_method.Instructions, address,
-      num_blocks, num_bytes);
+  current_method.update(address, num_blocks, num_bytes);
   Num_active_blocks = num_blocks;
 
   Num_active_methods = 1;
@@ -343,8 +339,6 @@ bool lru_method_cache_t::load_method(word_t address)
                                               get_transfer_size());
 
         // shift the remaining blocks
-        byte_t *saved_instructions =
-                      Methods[Num_blocks - Num_active_methods].Instructions;
         for(unsigned int j = Num_blocks - Num_active_methods;
             j < Num_blocks - 1; j++)
         {
@@ -352,9 +346,8 @@ bool lru_method_cache_t::load_method(word_t address)
         }
 
         // insert the new entry at the head of the table
-        Methods[Num_blocks - 1].update(saved_instructions, address,
-                                        Num_allocate_blocks,
-                                        Num_method_size);
+        Methods[Num_blocks - 1].update(address, Num_allocate_blocks,
+                                                Num_method_size);
 
         // proceed to next phase ... the size of the method has been fetched
         // from memory, now transfer the method's instructions.
@@ -371,13 +364,13 @@ bool lru_method_cache_t::load_method(word_t address)
     {
       assert(Num_allocate_blocks != 0 && Num_method_size != 0);
 
-      if (Memory.read(get_transfer_start(address), Transfer_buffer,
+      // TODO implement as actual cache, keep track of where to store
+      // methods to in the cache buffer, and keep pointers into the cache in
+      // the method_infos.
+
+      if (Memory.read(get_transfer_start(address), Cache,
                       get_transfer_size()))
-      {
-        // Copy the instructions without the size word into the cache.
-        memcpy(Methods[Num_blocks - 1].Instructions, &Transfer_buffer[4], 
-                Num_method_size);
-        
+      {        
         // the transfer is done, go back to IDLE phase
         Num_allocate_blocks = Num_method_size = 0;
         Phase = IDLE;
@@ -525,11 +518,8 @@ void lru_method_cache_t::flush_cache()
 /// free dynamically allocated cache memory.
 lru_method_cache_t::~lru_method_cache_t()
 {
-  for(unsigned int i = 0; i < Num_blocks; i++)
-    delete[] Methods[i].Instructions;
-
   delete [] Methods;
-  delete [] Transfer_buffer;
+  delete [] Cache;
 }
 
 
