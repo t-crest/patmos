@@ -143,9 +143,6 @@ namespace patmos
     class method_info_t
     {
     public:
-      /// Pointer to the instructions of the method.
-      byte_t *Instructions;
-
       /// The address of the method.
       uword_t Address;
 
@@ -159,17 +156,16 @@ namespace patmos
       
       /// Construct a method lru info object. All data is initialized to zero.
       /// @param instructions Pointer to the method's instructions.
-      method_info_t(byte_t *instructions = NULL): Instructions(instructions),
-          Address(0), Num_blocks(0), Num_bytes(0)
+      method_info_t() 
+      : Address(0), Num_blocks(0), Num_bytes(0)
       {
       }
 
       /// Update the internal data of the method lru info entry.
-      /// @param instructions Pointer to the method's instructions.
       /// @param address The new address of the entry.
       /// @param num_blocks The number of blocks occupied in the method cache.
       /// @param num_bytes The number of valid instruction bytes of the method.
-      void update(byte_t *instructions, uword_t address, uword_t num_blocks,
+      void update(uword_t address, uword_t num_blocks,
                   uword_t num_bytes);
       
       void reset_utilization();
@@ -204,8 +200,8 @@ namespace patmos
     /// The methods in the cache sorted by age.
     method_info_t *Methods;
 
-    /// Temporary transfer buffer
-    byte_t *Transfer_buffer;
+    /// Cache buffer.
+    byte_t *Cache;
 
     /// The number of methods currently in the cache.
     unsigned int Num_active_methods;
