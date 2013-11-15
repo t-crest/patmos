@@ -36,12 +36,14 @@ int main()
 	int entrypoint = 0;
 	int section_number = -1;
 	int section_count = 0;
+	int section_filesize = 0;
 	int section_offset = 0;
-	int section_size = 0;
+	int section_memsize = 0;
 	int integer = 0;
 	int section_byte_count = 0;
-	enum state {STATE_ENTRYPOINT, STATE_SECTION_NUMBER, STATE_SECTION_SIZE,
-		STATE_SECTION_OFFSET, STATE_SECTION_DATA};
+	enum state { STATE_ENTRYPOINT, STATE_SECTION_NUMBER, STATE_SECTION_DUMMY,
+                 STATE_SECTION_FILESIZE, STATE_SECTION_OFFSET, STATE_SECTION_MEMSIZE,
+                 STATE_SECTION_DATA };
 
 	enum state current_state = STATE_ENTRYPOINT;
 
@@ -96,10 +98,14 @@ int main()
 								entrypoint = integer;
 							else if (current_state == STATE_SECTION_NUMBER)
 								section_number = integer;
-							else if (current_state == STATE_SECTION_SIZE)
-								section_size = integer;
+							else if (current_state == STATE_SECTION_DUMMY)
+								/* dummy state */;
+							else if (current_state == STATE_SECTION_FILESIZE)
+								section_filesize = integer;
 							else if (current_state == STATE_SECTION_OFFSET)
 								section_offset = integer;
+							else if (current_state == STATE_SECTION_MEMSIZE)
+								section_memsize = integer;
 
 							section_byte_count = 0;
 							current_state++;
@@ -115,12 +121,23 @@ int main()
 						//Write to main memory
 						*(MEM+(section_offset+section_byte_count-1)/4) = integer;
 
-						if(section_byte_count == section_size)
+						if(section_byte_count == section_filesize)
 						{
-							//current_state = STATE_SECTION_START;
+						    // Align to next word boundary
+						    section_byte_count = (section_byte_count + 3) & ~3;
+						    // Fill up uninitialized areas with zeros
+						    while (section_byte_count < section_memsize)
+						    {
+						        if ((section_offset+section_byte_count) >> 16 == 0x01) {
+						          *(SPM+(section_offset+section_byte_count)/4) = 0;
+						        }
+						        *(MEM+(section_offset+section_byte_count)/4) = 0;
+						        section_byte_count += 4;
+							}
+							// Values for next segement
 							section_byte_count = 0;
 							section_count++;
-							current_state = STATE_SECTION_SIZE;
+							current_state = STATE_SECTION_FILESIZE;
 						}
 					}
 					if(section_byte_count%4 == 0)
