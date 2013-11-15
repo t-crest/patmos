@@ -118,7 +118,8 @@ namespace patmos
   enum stack_cache_e
   {
     SC_IDEAL,
-    SC_BLOCK
+    SC_BLOCK,
+    SC_DCACHE
   };
 
   /// Parse a stack cache kind from a string in a stream

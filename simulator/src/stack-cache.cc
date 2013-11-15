@@ -52,13 +52,6 @@ word_t ideal_stack_cache_t::prepare_reserve(uword_t size,
 word_t ideal_stack_cache_t::prepare_free(uword_t size, 
                             uword_t &stack_spill, uword_t &stack_top)
 {
-  // check if stack size is exceeded
-  if (Content.size() < size)
-  {
-    simulation_exception_t::stack_exceeded("Freeing more than the current "
-                                            "size of the stack cache.");
-  }
-
   stack_top += size;
   stack_spill = std::max(stack_spill, stack_top);
   return 0;
@@ -108,6 +101,13 @@ bool ideal_stack_cache_t::reserve(uword_t size, word_t delta,
 bool ideal_stack_cache_t::free(uword_t size, word_t delta,
                                uword_t new_spill, uword_t new_top)                               
 {
+  // check if stack size is exceeded
+  if (Content.size() < size)
+  {
+    simulation_exception_t::stack_exceeded("Freeing more than the current "
+                                            "size of the stack cache.");
+  }
+
   Content.resize(Content.size() - size);
   return true;
 }
@@ -204,6 +204,23 @@ void ideal_stack_cache_t::print(std::ostream &os) const
 uword_t ideal_stack_cache_t::size() const
 {
   return Content.size();
+}
+
+
+
+bool proxy_stack_cache_t::read(uword_t address, byte_t *value, uword_t size)
+{
+  return Memory.read(stack_top + address, value, size);
+}
+
+bool proxy_stack_cache_t::write(uword_t address, byte_t *value, uword_t size)
+{
+  return Memory.write(stack_top + address, value, size);
+}
+
+void proxy_stack_cache_t::read_peek(uword_t address, byte_t *value, uword_t size)
+{
+  return Memory.read_peek(stack_top + address, value, size);
 }
 
 

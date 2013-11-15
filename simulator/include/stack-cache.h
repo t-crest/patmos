@@ -201,6 +201,45 @@ namespace patmos
 
   };
 
+  /// A stack cache that sends all request directly through another memory
+  /// or cache.
+  class proxy_stack_cache_t : public ideal_stack_cache_t
+  {
+  private:
+    /// Remember the current value of the stack top pointer.
+    /// Note that this can be different from $st when $st is set explicitly
+    /// via MTS until the next STC instruction.
+    uword_t stack_top;
+    
+  public:
+    proxy_stack_cache_t(memory_t& memory) 
+    : ideal_stack_cache_t(memory), stack_top(0) 
+    {}
+    
+    virtual bool reserve(uword_t size, word_t delta,
+                         uword_t new_spill, uword_t new_top) 
+    { stack_top = new_top; return true; }
+
+    virtual bool free(uword_t size, word_t delta,
+                      uword_t new_spill, uword_t new_top)
+    { stack_top = new_top; return true; }
+
+    virtual bool ensure(uword_t size, word_t delta,
+                        uword_t new_spill, uword_t new_top)
+    { stack_top = new_top; return true; }
+
+    virtual bool spill(uword_t size, word_t delta,
+                       uword_t new_spill, uword_t new_top)
+    { stack_top = new_top; return true; }
+    
+    virtual bool read(uword_t address, byte_t *value, uword_t size);
+
+    virtual bool write(uword_t address, byte_t *value, uword_t size);
+
+    virtual void read_peek(uword_t address, byte_t *value, uword_t size);
+
+  };
+  
   /// A stack cache organized in blocks.
   /// The cache is organized in blocks (Num_blocks) each a fixed size in bytes
   /// Num_block_bytes. Spills and fills are performed automatically during the
