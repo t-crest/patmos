@@ -61,7 +61,8 @@ class DataCache extends Component {
   // Instantiate direct-mapped cache for regular data cache
   val dm = new DirectMappedCache(DCACHE_SIZE, BURST_LENGTH*BYTES_PER_WORD)
   dm.io.master.M := io.master.M
-  dm.io.master.M.Cmd := Mux(selDC, io.master.M.Cmd, OcpCmd.IDLE)
+  dm.io.master.M.Cmd := Mux(selDC || io.master.M.Cmd === OcpCmd.WR,
+							io.master.M.Cmd, OcpCmd.IDLE)
   val dmS = dm.io.master.S
 
   // Instantiate bridge for bypasses and writes
