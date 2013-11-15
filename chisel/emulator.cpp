@@ -10,6 +10,7 @@
 
 istream *in = &cin;
 ostream *out = &cout;
+ofstream cmiss;
 
 #define OCMEM_ADDR_BITS 16
 
@@ -192,6 +193,33 @@ static void extSsramSim(Patmos_t *c) {
 
 }
 
+static void mcacheStat(Patmos_t *c, bool halt) {
+  static uint cache_miss = 0;
+  static uint cache_hits = 0;
+  static uint exec_cycles = 0;
+  static uint cache_stall_cycles = 0;
+  //count all cycles till the program terminats
+  exec_cycles++;
+  //count everytime a new method is written to the cache
+  if (c->Patmos_core_mcache_mcachectrl__io_mcache_ctrlrepl_w_tag.to_bool() == true) {
+    cache_miss++;
+  }
+  //everytime a method is called from the cache, todo: find a better way to measure hits
+  if (c->Patmos_core_fetch__io_memfe_doCallRet.to_bool() == true && c->Patmos_core_mcache_mcacherepl__io_mcache_replctrl_hit.to_bool() == true && c->Patmos_core_mcache_mcachectrl__mcache_state.to_ulong() == 1 && c->Patmos_core_mcache__io_ena_in.to_bool() == true && c->Patmos_core_mcache_mcachectrl__io_mcache_ctrlrepl_instr_stall.to_bool() == false) {
+    cache_hits++;
+  }
+  //pipeline stalls caused by the mcache
+  if (c->Patmos_core_mcache__io_ena_out.to_bool() == false) {
+    cache_stall_cycles++;
+  }
+  //program terminats, write to output
+  if (halt == true) {
+    //cmiss.open("cache_misses.txt", ios::out | ios::app);
+    *out << "exec_cycles:" << exec_cycles << " cache_hits:" << cache_hits << " cache_misses:" << cache_miss <<  " cache_stall_cycles:" << cache_stall_cycles << "\n";
+    //cmiss.close();
+  }
+}
+
 int main (int argc, char* argv[]) {
   Patmos_t* c = new Patmos_t();
 
@@ -201,8 +229,9 @@ int main (int argc, char* argv[]) {
   // MS: what it the usage of disabling the UART?
   bool uart = true;
   bool quiet = true;
+  bool print_stat = false;
 
-  while ((opt = getopt(argc, argv, "qurnvl:I:O:")) != -1) {
+  while ((opt = getopt(argc, argv, "qurnvlp:I:O:")) != -1) {
 	switch (opt) {
 	// MS: q and u should go away, but tests in bench need updates first
 	case 'q':
@@ -244,6 +273,9 @@ int main (int argc, char* argv[]) {
 		  exit(EXIT_FAILURE);
 		}
 	  }
+	  break;
+	case 'p':
+	  print_stat = true;
 	  break;
 	default: /* '?' */
 	  cerr << "Usage: " << argv[0]
@@ -316,14 +348,12 @@ int main (int argc, char* argv[]) {
 
   // Main emulation loop
   bool halt = false;
-  uint cache_miss = 0;
-  uint exec_cycles = 0;
+
   for (int t = 0; lim < 0 || t < lim; t++) {
     dat_t<1> reset = LIT<1>(0);
 
     c->clock_lo(reset);
     c->clock_hi(reset);
-    exec_cycles++;
 
     extSsramSim(c);
 
@@ -356,10 +386,9 @@ int main (int argc, char* argv[]) {
 	// 	&& c->Patmos_core_mcache_icacherepl__callRetBaseReg.to_ulong() == 0) {
 	//   halt = true;
 	// }
-	
-	// if (c->Patmos_core_mcache_mcachectrl__mcachemem_w_tag.to_bool() == true) {
-	//   cache_miss++;
-	// }
+	if (print_stat == true) {
+	  mcacheStat(c, halt);
+	}
 
   }
 
