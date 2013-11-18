@@ -187,7 +187,7 @@ test_sim(16 "Stack size exceeded at 00000014")
 
 test_sim(17 "Stack size exceeded at 00000018")
 
-test_sim(18 "Stack size exceeded at 00000010")
+test_sim(18 "Stack size exceeded at 00000014")
 
 test_sim(19 "r1 : 00000007")
 
