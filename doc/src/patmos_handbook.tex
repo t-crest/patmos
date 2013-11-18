@@ -3630,7 +3630,20 @@ The LLVM compiler has been adapted to emit code for the Patmos ISA
 and support the special features, e.g., the stack cache~\cite{Seus13:compiler}.
 
 \martin{Daniel and Stefan shall add here an overview of the compiler and
-some words on source organization.}
+some words on source organization. But let's start with some notes.}
+
+The compiler and libraries can be built with \code{misc/build.sh}.
+This script also contains the default options, which should work on a
+standard Linux machine out of the box. Options can be overwritten by
+entries in a personal \code{misc/build.cfg}. The file {misc/build.dist.cfg}
+is just an example configuration file, generated from build.sh, and ignored
+by the build process.
+
+The LLVM compiler under OSX does not like \code{-Wno-narrowing},
+which is needed for newer versions of \code{gcc}. Therefore, following
+option is needed in the \code{build.cfg}: \code{GOLD\_CXXFLAGS=""}.
+
+
 
 \chapter{Application Binary Interface}
 \label{sec:abi}
