@@ -1,4 +1,4 @@
-# A simple linker script to put code and data into the SPMs
+# A simple linker script to put code and data into the external memory
 SECTIONS
 {
   . = SEGMENT_START(".rodata", 0x10);
