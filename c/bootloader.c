@@ -41,7 +41,7 @@ int main()
 	int section_memsize = 0;
 	int integer = 0;
 	int section_byte_count = 0;
-	enum state { STATE_ENTRYPOINT, STATE_SECTION_NUMBER, STATE_SECTION_DUMMY,
+	enum state { STATE_ENTRYPOINT, STATE_SECTION_NUMBER,
                  STATE_SECTION_FILESIZE, STATE_SECTION_OFFSET, STATE_SECTION_MEMSIZE,
                  STATE_SECTION_DATA };
 
@@ -60,6 +60,7 @@ int main()
 		LEDS = current_state;
 		if(UART_STATUS & 0x02)
 		{
+
 			int data = UART_DATA;
 			if(packet_size == 0)
 			{
@@ -71,7 +72,11 @@ int main()
 			}
 			else
 			{
-				if(packet_byte_count < packet_size)
+				if(packet_byte_count < CRC_LENGTH)
+				{
+					received_crc |= data << ((CRC_LENGTH-packet_byte_count-1)*8);
+				}
+				else if(packet_byte_count < packet_size+CRC_LENGTH)
 				{
 					calculated_crc = calculated_crc ^ data;
 					int i;
@@ -94,18 +99,26 @@ int main()
 					{
 						if(section_byte_count == 4)
 						{
-							if (current_state == STATE_ENTRYPOINT)
-								entrypoint = integer;
-							else if (current_state == STATE_SECTION_NUMBER)
-								section_number = integer;
-							else if (current_state == STATE_SECTION_DUMMY)
-								/* dummy state */;
-							else if (current_state == STATE_SECTION_FILESIZE)
-								section_filesize = integer;
-							else if (current_state == STATE_SECTION_OFFSET)
-								section_offset = integer;
-							else if (current_state == STATE_SECTION_MEMSIZE)
-								section_memsize = integer;
+						  switch(current_state)
+							{
+							case STATE_ENTRYPOINT:
+							  entrypoint = integer;
+							  break;
+							case STATE_SECTION_NUMBER:
+							  section_number = integer;
+							  break;
+							case STATE_SECTION_FILESIZE:
+							  section_filesize = integer;
+							  break;
+							case STATE_SECTION_OFFSET:
+							  section_offset = integer;
+							  break;
+							case STATE_SECTION_MEMSIZE:
+							  section_memsize = integer;
+							  break;
+							default:
+							  /* never happens */;
+							}
 
 							section_byte_count = 0;
 							current_state++;
@@ -134,7 +147,7 @@ int main()
 						        *(MEM+(section_offset+section_byte_count)/4) = 0;
 						        section_byte_count += 4;
 							}
-							// Values for next segement
+							// Values for next segment
 							section_byte_count = 0;
 							section_count++;
 							current_state = STATE_SECTION_FILESIZE;
@@ -144,12 +157,8 @@ int main()
 					{
 						integer = 0;
 					}
+				}
 
-				}
-				else if(packet_byte_count < packet_size+CRC_LENGTH)
-				{
-					received_crc |= data << ((packet_size+CRC_LENGTH-packet_byte_count-1)*8);
-				}
 				packet_byte_count++;
 				if(packet_byte_count == packet_size+CRC_LENGTH)
 				{

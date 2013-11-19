@@ -49,23 +49,21 @@ public class Transmitter
 	void send(InputStream stream, int length, ProgressMonitor monitor) throws IOException, InterruptedException
 	{
 		CRC32 CRC = new CRC32();
-		byte[] buffer = new byte[FRAME_SIZE_OFFSET+FRAME_SIZE+CRC_SIZE];
+		byte[] buffer = new byte[FRAME_SIZE_OFFSET+CRC_SIZE+FRAME_SIZE];
         int remaining = length;
 		while(remaining > 0) 
 		{
     		CRC.reset();
-    		int size = FRAME_SIZE;
-    		if(remaining < FRAME_SIZE)
-    		{
-    			//Some streams will read 0 after EOF
-    			size = remaining;
-    		}
-    		int read = stream.read(buffer,FRAME_SIZE_OFFSET,size);
-    		buffer[0] = (byte)read;
-    		CRC.update(buffer,FRAME_SIZE_OFFSET,read);
-    		ByteBuffer byteBuffer = ByteBuffer.wrap(buffer,FRAME_SIZE_OFFSET+read,CRC_SIZE);
+    		int size = remaining < FRAME_SIZE ? remaining : FRAME_SIZE;
+    		int read = stream.read(buffer,FRAME_SIZE_OFFSET+CRC_SIZE,size);
+    		CRC.update(buffer,FRAME_SIZE_OFFSET+CRC_SIZE,read);
+
+    		ByteBuffer byteBuffer = ByteBuffer.wrap(buffer);
+    		byteBuffer.put((byte)read);
             byteBuffer.putInt((int)CRC.getValue());
-            send(buffer,0,FRAME_SIZE_OFFSET+read+CRC_SIZE);
+
+            send(buffer,0,FRAME_SIZE_OFFSET+CRC_SIZE+read);
+
             remaining -= read;
             if (monitor != null) {
                 monitor.update(read);

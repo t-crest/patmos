@@ -81,45 +81,53 @@ public class Main
 
             Transmitter transmitter = new Transmitter(in_stream,out_stream);
             //Transmitter transmitter = new Transmitter(System.in, stream);
-            
-            final int HEADER_SIZE = 12;
+
+            final int HEADER_SIZE = 8;
+            final int SEGMENT_HEADER_SIZE = 12;
+
             ProgramHeader [] segments = elf.getProgramHeaders();
-            int byte_count = 0;
+            int byte_count = HEADER_SIZE;
             for (ProgramHeader segment: segments) {
-                byte_count += segment.getFileSize()+HEADER_SIZE;
+                byte_count += SEGMENT_HEADER_SIZE+segment.getFileSize();
             }
-            
-            
+
+            ProgressMonitor monitor = verbose ?
+                new ProgressMonitor(byte_count,print_stream) : null;
+
             byte[] header_bytes = new byte[HEADER_SIZE];
-            ProgressMonitor monitor = verbose ? new ProgressMonitor(byte_count+header_bytes.length,print_stream) : null;
     		ByteBuffer byte_buffer = ByteBuffer.wrap(header_bytes);
     		//buffer.order(ByteOrder.BIG_ENDIAN);
     		byte_buffer.putInt((int)header.getEntryPoint());
     		byte_buffer.putInt(segments.length);
-    		byte_buffer.putInt(0);
 
     		ByteArrayInputStream byte_stream = new ByteArrayInputStream(header_bytes);
     		//Send number of headers here
     		transmitter.send(byte_stream,header_bytes.length,monitor);
+
             for(ProgramHeader segment : segments)
             {
                 long segment_filesize = segment.getFileSize();
                 long segment_memsize = segment.getMemorySize();
                 long segment_file_offset = segment.getFileOffset();
                 long segment_offset = segment.getPhysicalAddress();
-                
-            	FileInputStream file_stream = new FileInputStream(file);
-                
-            	file_stream.skip(segment_file_offset);
-            	
+
+        		byte[] segment_header_bytes = new byte[SEGMENT_HEADER_SIZE];
             	//Adding the header size and offset as the first 12 bytes of the stream
-        		byte_buffer = ByteBuffer.wrap(header_bytes);
+        		byte_buffer = ByteBuffer.wrap(segment_header_bytes);
         		byte_buffer.putInt((int)segment_filesize);
         		byte_buffer.putInt((int)segment_offset);
         		byte_buffer.putInt((int)segment_memsize);
-        		byte_stream = new ByteArrayInputStream(header_bytes);
-        		SequenceInputStream merged_stream = new SequenceInputStream(byte_stream, file_stream);
-        		transmitter.send(merged_stream,(int)segment_filesize+header_bytes.length,monitor);
+        		byte_stream = new ByteArrayInputStream(segment_header_bytes);
+
+        		FileInputStream file_stream = new FileInputStream(file);                
+        		file_stream.skip(segment_file_offset);
+
+        		SequenceInputStream merged_stream =
+        		    new SequenceInputStream(byte_stream, file_stream);
+        		transmitter.send(merged_stream,
+        		                 segment_header_bytes.length+(int)segment_filesize,
+        		                 monitor);
+
         		file_stream.close();
             }
             if (verbose) {
