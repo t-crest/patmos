@@ -265,7 +265,7 @@ int main(int argc, char **argv)
     ("tdelay,t", boost::program_options::value<unsigned int>()->default_value(0), "read delay to global memory per request in cycles")
     ("trefresh", boost::program_options::value<unsigned int>()->default_value(0), "refresh cycles per TDM round")
     ("bsize",    boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES), "burst size (and alignment) of the memory system.")
-    ("psize",    boost::program_options::value<unsigned int>()->default_value(0), "Memory page size. Enables variable burst lengths for single-core.")
+    ("psize",    boost::program_options::value<patmos::byte_size_t>()->default_value(0), "Memory page size. Enables variable burst lengths for single-core.")
     ("posted,p", boost::program_options::value<unsigned int>()->default_value(0), "Enable posted writes (sets max queue size)")
     ("lsize,l",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_LOCAL_MEMORY_BYTES), "local memory size in bytes");
 
@@ -372,7 +372,7 @@ int main(int argc, char **argv)
 
   unsigned int gtime = vm["gtime"].as<unsigned int>();
   unsigned int bsize = vm["bsize"].as<unsigned int>();
-  unsigned int psize = vm["psize"].as<unsigned int>();
+  unsigned int psize = vm["psize"].as<patmos::byte_size_t>().value();
   unsigned int posted = vm["posted"].as<unsigned int>();
   unsigned int tdelay = vm["tdelay"].as<unsigned int>();
   unsigned int trefresh = vm["trefresh"].as<unsigned int>();
