@@ -47,6 +47,7 @@ ARBITERMAIN=ocp.ArbiterMain
 # config file for Patmos -- now just frequency
 CONFIG=default
 CONFIGFILE?=$(BOOTBUILDROOT)/chisel/config/$(CONFIG).xml
+SRC+=$(CONFIGFILE)
 
 # optionally pass module prefix when generating Verilog
 ifeq ($(HWMODULEPREFIX),)
@@ -70,13 +71,13 @@ $(CHISELBUILDDIR)/emulator: emulator.cpp $(CHISELBUILDDIR)/Patmos.cpp
 	$(CXX) $(CXXFLAGS) $(INC_EXTRA) -I $(CHISELBUILDDIR) -o $@ $^ -lelf
 
 $(CHISELBUILDDIR)/Patmos.cpp: $(CGEN)
-	if [ x`cat $(CGEN)` != x"$(BOOTBIN)+$(BOOTDAT)" ]; then \
+	if [ x`cat $(CGEN)` != x"$(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)" ]; then \
 		rm $(CGEN); $(MAKE) $(CGEN); \
 	fi
 
 $(CGEN): $(BOOTBIN) $(BOOTDAT) $(SRC)
 	$(SBT) "run-main $(MAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --vcd --targetDir $(CHISELBUILDDIR) --backend c"
-	echo $(BOOTBIN)+$(BOOTDAT) > $(CGEN)
+	echo $(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT) > $(CGEN)
 
 # run emulator
 test: emulator
@@ -94,22 +95,22 @@ modules: \
 	$(CHISELBUILDDIR)/SsramBurstRW.v
 
 $(CHISELBUILDDIR)/$(HWMODULEPREFIX)Patmos.v: $(VGEN)
-	if [ x`cat $(VGEN)` != x"$(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX)" ]; then \
+	if [ x`cat $(VGEN)` != x"$(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX)" ]; then \
 		rm $(VGEN); $(MAKE) $(VGEN); \
 	fi
 
 $(VGEN): $(BOOTBIN) $(BOOTDAT) $(SRC)
 	$(SBT) "run-main $(MAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --targetDir $(CHISELBUILDDIR) --backend v $(HWMODULEPREFIXOPT)"
-	echo $(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX) > $(VGEN)
+	echo $(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX) > $(VGEN)
 
 $(CHISELBUILDDIR)/$(HWMODULEPREFIX)PatmosCore.v: $(VGENCORE)
-	if [ x`cat $(VGENCORE)` != x"$(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX)" ]; then \
+	if [ x`cat $(VGENCORE)` != x"$(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX)" ]; then \
 		rm $(VGENCORE); $(MAKE) $(VGENCORE); \
 	fi
 
 $(VGENCORE): $(BOOTBIN) $(BOOTDAT) $(SRC)
 	$(SBT) "run-main $(COREMAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --targetDir $(CHISELBUILDDIR) --backend v $(HWMODULEPREFIXOPT)"
-	echo $(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX) > $(VGENCORE)
+	echo $(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX) > $(VGENCORE)
 
 $(CHISELBUILDDIR)/SsramBurstRW.v: $(SRC)
 	$(SBT) "run-main $(MEMCTRLMAIN) --targetDir $(CHISELBUILDDIR) --backend v"
