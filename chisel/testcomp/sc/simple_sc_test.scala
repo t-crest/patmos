@@ -68,7 +68,7 @@ class StackCacheTest() extends Component {
 	
     sc_simple.io.scCpuInOut.M.Addr := UFix(0)
 	sc_simple.io.scCpuInOut.M.Data := UFix(0)
-    sc_simple.io.scCpuInOut.M.ByteEn := Bits(0)
+    sc_simple.io.scCpuInOut.M.ByteEn := UFix(0)
     sc_simple.io.scCpuInOut.M.Cmd := OcpCmd.IDLE
     
     sc_simple.io.scMemInOut.S.Resp := mm.io.mmInOut.S.Resp
@@ -98,7 +98,7 @@ class StackCacheTest() extends Component {
 
 
     
-    val sc_ex 		= new SC_ex(256)
+    val sc_ex 		= new SC_ex(256, 512, 3075) // stack start in the main memory (one higher as stack area)
     
     sc_simple.io.spill	<> sc_ex.io.spill
 	sc_simple.io.fill <> sc_ex.io.fill
@@ -111,6 +111,7 @@ class StackCacheTest() extends Component {
 
     
     val func_gen	= Reg(resetVal = UFix(0, 5))
+    val reserve = Reg(resetVal = UFix(0, 1))
     
     sc_ex.io.stall <> sc_simple.io.stall
     
@@ -123,23 +124,36 @@ class StackCacheTest() extends Component {
 	sc_ex.io.imm				:= UFix(256) //none
     
 	val count	= Reg(resetVal = UFix(0, 4))
-	count := count + UFix(1)
-	when (count <= UFix(10) && sc_init === UFix(1)) { // store to stack cache
-		sc_simple.io.scCpuInOut.M.Addr := UFix(511) - count
-		sc_simple.io.scCpuInOut.M.Data := UFix(511) - count
-		sc_simple.io.scCpuInOut.M.ByteEn := Bits(15)
-		sc_simple.io.scCpuInOut.M.Cmd := OcpCmd.WR
+	when (reserve === UFix(1)) {
+	  count := count + UFix(1)
 	}
-	.otherwise {
-		sc_init := UFix(0)
-	}
+	
 
+	
 
-      when (func_gen === UFix(1)){ // first reserve
+      when (func_gen === UFix(0) && sc_init === UFix(1)){ // first reserve
 		  sc_ex.io.sc_func_type 	:= UFix(0)
 		  sc_ex.io.imm				:= UFix(256)
+		  reserve := UFix(1)
+		 
 		}
-		
+	  
+      val byteCounter	= Reg(resetVal = UFix(0, 6))
+      
+      when (count <= UFix(10) && reserve === UFix(1)) { // store to stack cache
+		sc_ex.io.sc_func_type 	:= UFix(3)
+        sc_simple.io.scCpuInOut.M.Addr := UFix(1020) - byteCounter
+		sc_simple.io.scCpuInOut.M.Data := UFix(1020) - byteCounter
+		sc_simple.io.scCpuInOut.M.ByteEn := UFix(15)
+		sc_simple.io.scCpuInOut.M.Cmd := OcpCmd.WR
+		byteCounter := byteCounter + UFix(4)
+      }
+      when (count === UFix(10) && reserve === UFix(1)) {
+         sc_ex.io.sc_func_type 	:= UFix(3)
+         sc_simple.io.scCpuInOut.M.ByteEn := UFix(0)
+    	 sc_init := UFix(0)
+    	 reserve := UFix(0)
+      }
       
       when (func_gen === UFix(2)){ // second reserve, spill
 		  sc_ex.io.sc_func_type 	:= UFix(0)
@@ -149,19 +163,19 @@ class StackCacheTest() extends Component {
       when (func_gen === UFix(3)){ // store to stack cache
 		  sc_ex.io.sc_func_type 	:= UFix(3)
 		  sc_ex.io.imm				:= UFix(10)
-		  sc_simple.io.scCpuInOut.M.Addr := UFix(503)
-		  sc_simple.io.scCpuInOut.M.Data := UFix(305)
-		  sc_simple.io.scCpuInOut.M.ByteEn := Bits(15)
+		  sc_simple.io.scCpuInOut.M.Addr := UFix(1008)
+		  sc_simple.io.scCpuInOut.M.Data := UFix(8001)
+		  sc_simple.io.scCpuInOut.M.ByteEn := UFix(15)
 		  sc_simple.io.scCpuInOut.M.Cmd := OcpCmd.WR
       }
 
       when (func_gen === UFix(4)) { // wait
-    	  sc_simple.io.scCpuInOut.M.ByteEn := Bits(0)
+    	  sc_simple.io.scCpuInOut.M.ByteEn := UFix(0)
     	  sc_simple.io.scCpuInOut.M.Cmd := OcpCmd.IDLE
       }
 
       when (func_gen === UFix(5)) { // load from stack cache
-    	  sc_simple.io.scCpuInOut.M.Addr := UFix(503)
+    	  sc_simple.io.scCpuInOut.M.Addr := UFix(1008)
     	  sc_simple.io.scCpuInOut.M.Cmd := OcpCmd.RD
       }
 	
@@ -172,7 +186,12 @@ class StackCacheTest() extends Component {
 		  sc_ex.io.imm				:= UFix(10)
 
       }
-	
+      
+//	  when (func_gen === UFix(4)) { // wait
+//    	  sc_simple.io.scCpuInOut.M.ByteEn := UFix(0)
+//    	  sc_simple.io.scCpuInOut.M.Cmd := OcpCmd.IDLE
+//      }
+      
 	  when (func_gen === UFix(7)){ // ensure 256 blocks
 		  sc_simple.io.scCpuInOut.M.Cmd := OcpCmd.IDLE
 		  
@@ -181,7 +200,7 @@ class StackCacheTest() extends Component {
 	  } 
 	
 	  when (func_gen === UFix(8)) { // load from stack cache
-    	  sc_simple.io.scCpuInOut.M.Addr := UFix(503)
+    	  sc_simple.io.scCpuInOut.M.Addr := UFix(1008)
     	  sc_simple.io.scCpuInOut.M.Cmd := OcpCmd.RD
       }
 	
@@ -196,5 +215,6 @@ object stackMain {
     chiselMain( args, () => new StackCacheTest())
   }
 }
+
 
 

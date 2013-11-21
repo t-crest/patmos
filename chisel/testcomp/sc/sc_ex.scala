@@ -47,30 +47,39 @@ import Node._
 //import scala.collection.mutable.HashMap
 //import scala.util.Random
 import scala.math
+import Constants._ 
 
-
-class SC_ex(sc_size: Int) extends Component {
+class SC_ex(sc_size: Int, mem_size: Int, scStart: Int) extends Component {
     val io = new Bundle {
     val sc_func_type 	= UFix(INPUT, 2) // 00: reserve, 01: ensure, 10: free
-    val imm				= UFix(INPUT, width = 32)
+    val imm				= UFix(INPUT, width = ADDR_WIDTH)
     val spill 			= UFix(OUTPUT, 1)
     val fill 			= UFix(OUTPUT, 1)
     val free			= UFix(OUTPUT, 1)
     val stall			= UFix(INPUT, 1)
-    val m_top			= UFix(INPUT, width = 32)
-    val n_spill			= UFix(OUTPUT, log2Up(sc_size))
-    val n_fill			= UFix(OUTPUT, log2Up(sc_size))
-    val sc_top			= UFix(OUTPUT, width = 32) 
+    val m_top			= UFix(INPUT, width = ADDR_WIDTH)
+    val n_spill			= Fix(OUTPUT, log2Up(sc_size))
+    val n_fill			= Fix(OUTPUT, log2Up(sc_size))
+    val sc_top			= UFix(OUTPUT, width = ADDR_WIDTH) 
   }
   	
-	val sc_top 			= Reg(resetVal = UFix(511, width = 32)) // 
-//	val spill	 		= Reg(resetVal = UFix(0, 1))
+    
+	val sc_top 			= Reg(resetVal = UFix(scStart, width = ADDR_WIDTH)) // 
+	
+	
+	val immToByte		= io.imm << UFix(2)
+	val scTopImmDiff	= sc_top - immToByte// sc_top - n
+	val scTopImmAdd		= sc_top + immToByte
+
 	
 	io.n_spill 			:= UFix(0) // reset value
 	io.n_fill 			:= UFix(0) // reset value
 	io.free				:= UFix(0)
-	val reserve_size 	= io.m_top - sc_top - (UFix(1)  << UFix(log2Up(sc_size))) + io.imm 
-	val ensure_size 	= io.imm - io.m_top + sc_top
+	val reserve_size 	= io.m_top - scTopImmDiff - (UFix(sc_size) << UFix(2)) //(UFix(1)  << UFix(log2Up(sc_size))) 
+	val ensure_size 	= scTopImmAdd - io.m_top 
+	
+	
+	
 	  
 	// res_diff 	<= signed(mem_top) - signed(sc_top) - sc_size + signed(decdout.imm);
 	//	ens_diff	<= signed(decdout.imm) - signed(mem_top) + signed(sc_top);  
@@ -83,11 +92,11 @@ class SC_ex(sc_size: Int) extends Component {
 
     when (stall === UFix(0)) {
 		  when (io.sc_func_type === UFix(0)){ // reserve
-		    sc_top 			:= sc_top - io.imm
-		    io.sc_top		:= sc_top - io.imm
+		    sc_top 			:= scTopImmDiff
+		    io.sc_top		:= scTopImmDiff
 		    when (reserve_size > UFix(0)){
 		      io.spill 		:= UFix(1)
-		      io.n_spill 	:= reserve_size		   
+		      io.n_spill 	:= reserve_size(ADDR_WIDTH - 1, 2)		   
 		    }
 		    .otherwise {
 		      io.spill 		:= UFix(0)
@@ -96,7 +105,7 @@ class SC_ex(sc_size: Int) extends Component {
 		  when (io.sc_func_type === UFix(1)){ // ensure
 		    when (ensure_size > UFix(0)){
 		      io.fill 		:= UFix(1)
-		      io.n_fill 	:= ensure_size
+		      io.n_fill 	:= ensure_size(ADDR_WIDTH - 1, 2)
 		    }
 		    .otherwise {
 		      io.fill 		:= UFix(0)
@@ -106,8 +115,8 @@ class SC_ex(sc_size: Int) extends Component {
 		    io.spill 		:= UFix(0)
 		    io.fill			:= UFix(0)
 		    io.free			:= UFix(1)
-		    sc_top 			:= sc_top + io.imm
-		    io.sc_top 		:= sc_top + io.imm
+		    sc_top 			:= scTopImmAdd
+		    io.sc_top 		:= scTopImmAdd
 		  }
 		  
 		  when (io.sc_func_type === UFix(3)) {
@@ -120,6 +129,7 @@ class SC_ex(sc_size: Int) extends Component {
 
 }
   
+
 
 
 
