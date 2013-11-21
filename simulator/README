@@ -171,7 +171,7 @@ it takes
 
   t_REQ(s,b) = t_DLY + Pages(s,b) * t_B + (b - Pages(s,b) * burst_size) / 4
 
-and for non-posted writes
+and for posted writes
 
   t_REQwp(b) = Pages(s,b) * t_B + (b - Pages(s,b) * burst_size) / 4
 
@@ -195,9 +195,8 @@ or ends very close to the beginning of a page.
 Options:
   --cores     N           Number of cores
   --cpuid     CPU-ID	  CPU ID, defines phase in TDM round
-  --bsize     burst_size  Bytes transferred per page access
-  --psize     page_size   Bytes per page
-  --gtime     t_TDM       Minimum cycles per accessed page
+  --bsize     burst_size  Bytes transferred per slot
+  --gtime     t_TDM       Cycles per slot
   --tdelay    t_DLY       Read delay per request in cycles
   --trefresh  t_Refresh   Cycles per round reserved for refresh
 
