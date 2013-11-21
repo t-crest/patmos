@@ -60,6 +60,16 @@ abstract class Config {
 
 object Config {
   
+  def parseSize(text: String): Integer = {
+	  val regex = """(\d+)([KMG]?)""".r	  
+	  val suffixMult = Map("" -> (1 << 0),
+						   "K" -> (1 << 10),
+						   "M" -> (1 << 20),
+						   "G" -> (1 << 30))
+	  val regex(num, suffix) = text.toUpperCase
+	  num.toInt * suffixMult.getOrElse(suffix, 0)
+  }
+
   def fromXML(node: scala.xml.Node): Config =
     new Config {
       val description = (node \ "description").text
@@ -68,21 +78,21 @@ object Config {
       val pipeCount = if (dual) 2 else 1
       val MCacheNode = (node \ "MCache")(0)
       val MCache =
-        new MCacheConfig((MCacheNode \ "@size").text.toInt,
+        new MCacheConfig(parseSize((MCacheNode \ "@size").text),
                          (MCacheNode \ "@blocks").text.toInt,
                          (MCacheNode \ "@repl").text)
       val DCacheNode = (node \ "DCache")(0)
       val DCache =
-        new DCacheConfig((DCacheNode \ "@size").text.toInt,
+        new DCacheConfig(parseSize((DCacheNode \ "@size").text),
                          (DCacheNode \ "@assoc").text.toInt,
                          (DCacheNode \ "@repl").text)
       val SCacheNode = (node \ "SCache")(0)
       val SCache =
-        new SCacheConfig((SCacheNode \ "@size").text.toInt)
+        new SCacheConfig(parseSize((SCacheNode \ "@size").text))
 
-      val ISPM = new SPMConfig(((node \ "ISPM")(0) \ "@size").text.toInt)
-      val DSPM = new SPMConfig(((node \ "DSPM")(0) \ "@size").text.toInt)
-      val BootSPM = new SPMConfig(((node \ "BootSPM")(0) \ "@size").text.toInt)
+      val ISPM = new SPMConfig(parseSize(((node \ "ISPM")(0) \ "@size").text))
+      val DSPM = new SPMConfig(parseSize(((node \ "DSPM")(0) \ "@size").text))
+      val BootSPM = new SPMConfig(parseSize(((node \ "BootSPM")(0) \ "@size").text))
     }
   
   // This is probably not the best way to have the singleton

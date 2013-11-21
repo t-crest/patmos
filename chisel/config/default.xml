@@ -4,11 +4,11 @@
   <frequency Hz="80000000" />
   <pipeline dual="true" />
 
-  <MCache size="4096" blocks="16" repl="" />
-  <DCache size="2048" assoc="1" repl="" />
-  <ISPM size="8192" />
-  <DSPM size="2048" />
-  <BootSPM size="2048" />
+  <MCache size="4k" blocks="16" repl="" />
+  <DCache size="2k" assoc="1" repl="" />
+  <ISPM size="8k" />
+  <DSPM size="2k" />
+  <BootSPM size="2k" />
 
   <!-- currently unused -->
   <SCache size="0" />
