@@ -113,10 +113,10 @@ $(VGENCORE): $(BOOTBIN) $(BOOTDAT) $(SRC)
 	echo $(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX) > $(VGENCORE)
 
 $(CHISELBUILDDIR)/SsramBurstRW.v: $(SRC)
-	$(SBT) "run-main $(MEMCTRLMAIN) --targetDir $(CHISELBUILDDIR) --backend v"
+	$(SBT) "run-main $(MEMCTRLMAIN) $(MEMCTRL_ADDR_WIDTH) --targetDir $(CHISELBUILDDIR) --backend v"
 
 $(CHISELBUILDDIR)/Arbiter.v: $(SRC)
-	$(SBT) "run-main $(ARBITERMAIN) $(ARBITERCNT) $(ARBITERADDRWIDTH) $(ARBITERDATAWIDTH) $(ARBITERBURSTLENGTH) --targetDir $(CHISELBUILDDIR) --backend v"
+	$(SBT) "run-main $(ARBITERMAIN) $(ARBITER_CNT) $(ARBITER_ADDR_WIDTH) $(ARBITER_DATA_WIDTH) $(ARBITER_BURST_LENGTH) --targetDir $(CHISELBUILDDIR) --backend v"
 
 # run Verilog simulation
 vsim: verilog

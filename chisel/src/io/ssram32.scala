@@ -56,8 +56,8 @@ import scala.collection.mutable.HashMap
 class RamInType extends Bundle() {
   val din = Bits(width = 32)
 }
-class RamOutType extends Bundle() {
-  val addr = Bits(width = EXTMEM_ADDR_WIDTH-2)
+class RamOutType(addrBits: Int) extends Bundle() {
+  val addr = Bits(width = addrBits)
   val dout_ena = Bits(width = 1) //needed to drive tristate in top level
   val nadsc = Bits(width = 1)
   val noe = Bits(width = 1)
@@ -71,18 +71,18 @@ class RamOutType extends Bundle() {
   val nadv = Bits(width = 1)
   val dout = Bits(width = 32)
 }
-class RamOutPinsIO extends Bundle() {
-  val ram_out = new RamOutType().asOutput
+class RamOutPinsIO(addrBits: Int) extends Bundle() {
+  val ram_out = new RamOutType(addrBits).asOutput
   val ram_in = new RamInType().asInput
 }
-class RamInPinsIO extends Bundle() {
-  val ram_out = new RamOutType().asInput
+class RamInPinsIO(addrBits: Int) extends Bundle() {
+  val ram_out = new RamOutType(addrBits).asInput
   val ram_in = new RamInType().asOutput
 }
 
-class SsramIOBurst extends Bundle() {
-  val ocp_port = new OcpBurstSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
-  val ram_out = new RamOutType().asOutput
+class SsramIOBurst(addrBits: Int) extends Bundle() {
+  val ocp_port = new OcpBurstSlavePort(addrBits, DATA_WIDTH, BURST_LENGTH)
+  val ram_out = new RamOutType(addrBits-2).asOutput
   val ram_in = new RamInType().asInput
 }
 /*
@@ -91,11 +91,12 @@ class SsramIOBurst extends Bundle() {
   >> setting the mode to 0 a linear burst is possible, setting mode to 1 a interleaved burst is done by the SSRAM
 */
 class SsramBurstRW (
+   addrBits : Int,
    ram_ws_rd : Int = 2,
    ram_ws_wr : Int = 0,
    burstLen : Int = 4
 ) extends Component {
-  val io = new SsramIOBurst()
+  val io = new SsramIOBurst(addrBits)
 
   val idle :: rd1 :: wr1 :: Nil = Enum(3){ UFix() }
   val ssram_state = Reg(resetVal = idle)
@@ -105,7 +106,7 @@ class SsramBurstRW (
   val rd_data = Reg(resetVal = Bits(0, width = 32))
   val resp = Reg(resetVal = Bits(0, width = 2))
   val ram_dout = Reg(resetVal = Bits(0, width = 32))
-  val address = Reg(resetVal = Bits(0, width = EXTMEM_ADDR_WIDTH-2))
+  val address = Reg(resetVal = Bits(0, width = addrBits-2))
   val dout_ena = Reg(resetVal = Bits(0, width = 1))
   val nadsc = Reg(resetVal = Bits(1, width = 1))
   val noe = Reg(resetVal = Bits(1, width = 1))
@@ -131,7 +132,7 @@ class SsramBurstRW (
 
   //catch inputs
   when (io.ocp_port.M.Cmd === OcpCmd.RD || io.ocp_port.M.Cmd === OcpCmd.WR) {
-    address := io.ocp_port.M.Addr(EXTMEM_ADDR_WIDTH-1, 2)
+    address := io.ocp_port.M.Addr(addrBits-1, 2)
     cmd_accept := Bits(1)
   }
 
@@ -213,7 +214,7 @@ class SsramBurstRW (
   io.ram_out.nbw := nbw
   io.ram_out.nadv := nadv
   io.ram_out.dout_ena := dout_ena
-  io.ram_out.addr := Cat(address(EXTMEM_ADDR_WIDTH-3, log2Up(burstLen)), burst_cnt)
+  io.ram_out.addr := Cat(address(addrBits-3, log2Up(burstLen)), burst_cnt)
   //output to master
   io.ocp_port.S.Resp := resp
   io.ocp_port.S.DataAccept := data_accept
@@ -249,7 +250,11 @@ class SsramTest(c: SsramBurstRW) extends Tester(c, Array(c.io)) {
  */
 object SsramMain {
   def main(args: Array[String]): Unit = {
-    chiselMainTest(args, () => new SsramBurstRW()) { f => new SsramTest(f) }
+
+    val chiselArgs = args.slice(1, args.length)
+    val addrBits = args(0).toInt
+
+    chiselMainTest(chiselArgs, () => new SsramBurstRW(addrBits)) { f => new SsramTest(f) }
   }
 }
 
@@ -259,8 +264,8 @@ object SsramMain {
 
  >>> This is handled by the emulator now! <<<
 */
-class ExtSsram(fileName : String) extends Component {
-  val io = new RamInPinsIO()
+class ExtSsram(addrBits : Int, fileName : String) extends Component {
+  val io = new RamInPinsIO(addrBits)
 
   //on chip memory instance
   val ssram_extmem = Mem(2 * MCACHE_SIZE) {Bits(width = 32)} //bus width = 32

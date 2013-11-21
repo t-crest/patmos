@@ -167,7 +167,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Compo
     val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
     val led = Bits(OUTPUT, 9)
     val uartPins = new UartPinIO()
-    val sramPins = new RamOutPinsIO()
+    val sramPins = new RamOutPinsIO(EXTMEM_ADDR_WIDTH-2)
     //val rfDebug = Vec(REG_COUNT) { Bits(OUTPUT, DATA_WIDTH) }
   }
 
@@ -182,7 +182,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Compo
   io.uartPins <> core.io.uartPins
 
   // Connect memory controller
-  val ssram = new SsramBurstRW()
+  val ssram = new SsramBurstRW(EXTMEM_ADDR_WIDTH)
   ssram.io.ocp_port <> core.io.memPort
   io.sramPins.ram_out <> ssram.io.ram_out
   io.sramPins.ram_in <> ssram.io.ram_in

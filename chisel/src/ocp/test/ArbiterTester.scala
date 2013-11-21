@@ -98,7 +98,7 @@ class ArbiterTop() extends Component {
   }
   val CNT = 3
   val arb = new ocp.Arbiter(CNT, 32, 32, 4)
-  val mem = new SsramBurstRW()
+  val mem = new SsramBurstRW(21)
 
   for (i <- 0 until CNT) {
     val m = new Master(i, 4)
