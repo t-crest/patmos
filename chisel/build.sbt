@@ -6,6 +6,8 @@ resolvers ++= Seq(
   "scct-github-repository" at "http://mtkopone.github.com/scct/maven-repo"
 )
 
-scalaSource in Compile := new File("src")
+scalacOptions ++= Seq("-unchecked", "-deprecation")
+
+scalaSource in Compile <<= baseDirectory(_ / "src")
 
 libraryDependencies += "edu.berkeley.cs" %% "chisel" % "1.0.8"
