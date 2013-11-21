@@ -245,7 +245,7 @@ int main(int argc, char **argv)
     " k, m, g, or kb, mb, gb");
   generic_options.add_options()
     ("help,h", "produce help message")
-    ("maxc,c", boost::program_options::value<unsigned int>()->default_value(std::numeric_limits<unsigned int>::max(), "inf."), "stop simulation after the given number of cycles")
+    ("maxc,c", boost::program_options::value<unsigned int>()->default_value(0, "inf."), "stop simulation after the given number of cycles")
     ("binary,b", boost::program_options::value<std::string>()->default_value("-"), "binary or elf-executable file (stdin: -)")
     ("output,o", boost::program_options::value<std::string>()->default_value("-"), "output execution trace in file (stdout: -)")
     ("debug", boost::program_options::value<unsigned int>()->implicit_value(0), "enable step-by-step debug tracing after cycle")
@@ -385,10 +385,13 @@ int main(int argc, char **argv)
 
   patmos::debug_format_e debug_fmt= vm["debug-fmt"].as<patmos::debug_format_e>();
   bool debug_nopc = vm.count("debug-nopc") > 0;
-  unsigned int debug_cycle = vm.count("debug") ?
-                                       vm["debug"].as<unsigned int>() :
-                                       std::numeric_limits<unsigned int>::max();
-  unsigned int max_cycle = vm["maxc"].as<unsigned int>();
+  uint64_t debug_cycle = vm.count("debug") ?
+                                vm["debug"].as<unsigned int>() :
+                                std::numeric_limits<uint64_t>::max();
+  uint64_t max_cycle = vm["maxc"].as<unsigned int>();
+  if (!max_cycle) {
+    max_cycle = std::numeric_limits<uint64_t>::max();
+  }
 
   bool print_stats = vm.count("print-stats") > 0;
   patmos::address_t print_stats_func;
