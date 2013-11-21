@@ -54,13 +54,16 @@ abstract class Config {
   val DSPM: SPMConfig
   val BootSPM: SPMConfig
 
+  case class ExtMemConfig(size: Int)
+  val ExtMem: ExtMemConfig
+
   override def toString =
     description + " at " + (frequency/1000000).toString() + " MHz"
 }
 
 object Config {
   
-  def parseSize(text: String): Integer = {
+  def parseSize(text: String): Int = {
 	  val regex = """(\d+)([KMG]?)""".r	  
 	  val suffixMult = Map("" -> (1 << 0),
 						   "K" -> (1 << 10),
@@ -93,6 +96,8 @@ object Config {
       val ISPM = new SPMConfig(parseSize(((node \ "ISPM")(0) \ "@size").text))
       val DSPM = new SPMConfig(parseSize(((node \ "DSPM")(0) \ "@size").text))
       val BootSPM = new SPMConfig(parseSize(((node \ "BootSPM")(0) \ "@size").text))
+
+      val ExtMem = new ExtMemConfig(parseSize(((node \ "ExtMem")(0) \ "@size").text))
     }
   
   // This is probably not the best way to have the singleton
@@ -108,6 +113,7 @@ object Config {
     val ISPM = new SPMConfig(0)
     val DSPM = new SPMConfig(0)
     val BootSPM = new SPMConfig(0)
+    val ExtMem = new ExtMemConfig(0)
   }
   
   def load(file: String): Config = {

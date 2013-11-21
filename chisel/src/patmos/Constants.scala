@@ -70,7 +70,7 @@ object Constants {
   // both in the global address space
   val BOOTMEM_ONE_BIT = 16
 
-  val EXTMEM_ADDR_WIDTH = 21
+  val EXTMEM_ADDR_WIDTH = log2Up(util.Config.conf.ExtMem.size)
   val BURST_LENGTH = 4 // For SSRAM on DE2-70 board max. 4
 
   // The PC counts in words. 30 bits are enough for the 4 GB address space.

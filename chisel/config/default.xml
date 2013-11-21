@@ -10,6 +10,8 @@
   <DSPM size="2k" />
   <BootSPM size="2k" />
 
+  <ExtMem size="2M" />
+
   <!-- currently unused -->
   <SCache size="0" />
 </patmos>

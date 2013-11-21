@@ -87,6 +87,8 @@ object Utility {
     printf("\tInstruction SPM: %d KB\n", ISPM_SIZE/1024)
     printf("\tData SPM: %d KB\n", DSPM_SIZE/1024)
     printf("\tBoot SPM: %d KB\n", BOOTSPM_SIZE/1024)
+    printf("\tAddressable external memory: %d MB\n",
+           util.Config.conf.ExtMem.size/1024/1024)
     printf("\n")
   }
 }
