@@ -48,14 +48,14 @@ import ocp._
 
 class DirectMappedCache(size: Int, lineSize: Int) extends Component {
   val io = new Bundle {
-	val master = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
-	val slave = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, lineSize/4)
+	val master = new OcpCoreSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
+	val slave = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, lineSize/4)
   }
 
   val addrBits = log2Up(size / BYTES_PER_WORD)
   val lineBits = log2Up(lineSize)
 
-  val tagWidth = ADDR_WIDTH - addrBits - 2
+  val tagWidth = EXTMEM_ADDR_WIDTH - addrBits - 2
   val tagCount = size / lineSize
 
   // Register signals from master
@@ -76,7 +76,7 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Component {
   val mem3 = { Mem(size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) } }
 
   val tag = tagMem(masterReg.Addr(addrBits + 1, lineBits))
-  val tagValid = tag === Cat(masterReg.Addr(ADDR_WIDTH-1, addrBits+2), Bits("b1"))
+  val tagValid = tag === Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, addrBits+2), Bits("b1"))
   val tagValidReg = Reg(tagValid)
 
   val fillReg = Reg(resetVal = Bool(false))
@@ -119,7 +119,7 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Component {
 
   // Default values
   io.slave.M.Cmd := OcpCmd.IDLE
-  io.slave.M.Addr := Cat(masterReg.Addr(ADDR_WIDTH-1, lineBits),
+  io.slave.M.Addr := Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, lineBits),
 						 Fill(Bits(0), lineBits))
   io.slave.M.Data := Bits(0)
   io.slave.M.DataValid := Bits(0)
@@ -130,7 +130,7 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Component {
   // Start handling a miss
   when(!tagValid && masterReg.Cmd === OcpCmd.RD) {
 	fillAddrReg := masterReg.Addr(addrBits + 1, lineBits)
-	tagMem(masterReg.Addr(addrBits + 1, lineBits)) := Cat(masterReg.Addr(ADDR_WIDTH-1, addrBits+2), Bits("b1"))
+	tagMem(masterReg.Addr(addrBits + 1, lineBits)) := Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, addrBits+2), Bits("b1"))
 	missIndexReg := masterReg.Addr(lineBits-1, 2).toUFix
 	io.slave.M.Cmd := OcpCmd.RD
 	stateReg := fill

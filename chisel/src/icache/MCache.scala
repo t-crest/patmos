@@ -64,15 +64,15 @@ object MConstants {
   Internal and external connections for the Method Cache
  */
 class FeMCache extends Bundle() {
-  val address = Bits(width = ADDR_WIDTH) 
+  val address = Bits(width = EXTMEM_ADDR_WIDTH) 
   val request = Bits(width = 1)
   val doCallRet = Bool()
-  val callRetBase = UFix(width = ADDR_WIDTH)
+  val callRetBase = UFix(width = EXTMEM_ADDR_WIDTH)
 }
 class ExMCache() extends Bundle() {
   val doCallRet = Bool()
-  val callRetBase = UFix(width = ADDR_WIDTH)
-  val callRetAddr = UFix(width = ADDR_WIDTH)
+  val callRetBase = UFix(width = EXTMEM_ADDR_WIDTH)
+  val callRetAddr = UFix(width = EXTMEM_ADDR_WIDTH)
 }
 class MCacheFe extends Bundle() {
   val instr_a = Bits(width = INSTR_WIDTH)
@@ -105,7 +105,7 @@ class MCacheCtrlIO extends Bundle() {
 class MCacheCtrlRepl extends Bundle() {
   val w_enable = Bits(width = 1)
   val w_data = Bits(width = INSTR_WIDTH)
-  val w_addr = Bits(width = ADDR_WIDTH)
+  val w_addr = Bits(width = EXTMEM_ADDR_WIDTH)
   val w_tag = Bits(width = 1)
   val address = Bits(width = MCACHE_SIZE_WIDTH)
   val instr_stall = Bits(width = 1)
@@ -200,7 +200,7 @@ class MCacheReplFifo() extends Component {
   val io = new MCacheReplIO()
 
   //tag field tables  for reading tag memory
-  val mcache_addr_vec = { Vec(METHOD_COUNT) { Reg(resetVal = Bits(0, width = ADDR_WIDTH)) } }
+  val mcache_addr_vec = { Vec(METHOD_COUNT) { Reg(resetVal = Bits(0, width = EXTMEM_ADDR_WIDTH)) } }
   val mcache_size_vec = { Vec(METHOD_COUNT) { Reg(resetVal = Bits(0, width = MCACHE_SIZE_WIDTH+1)) } }
   val mcache_valid_vec = { Vec(METHOD_COUNT) { Reg(resetVal = Bits(0, width = 1)) } }
   val mcache_pos_vec = { Vec(METHOD_COUNT) { Reg(resetVal = Bits(0, width = MCACHE_SIZE_WIDTH)) } }
@@ -231,10 +231,10 @@ class MCacheReplFifo() extends Component {
 
     callRetBaseReg := io.exmcache.callRetBase
     callAddrReg := io.exmcache.callRetAddr
-    selIspmReg := io.exmcache.callRetBase(DATA_WIDTH - 1,ISPM_ONE_BIT - 2) === Bits(0x1)
-    selMCacheReg := io.exmcache.callRetBase(DATA_WIDTH - 1,15) >= Bits(0x1)
+    selIspmReg := io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH - 1,ISPM_ONE_BIT - 2) === Bits(0x1)
+    selMCacheReg := io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH - 1,15) >= Bits(0x1)
 
-    when (io.exmcache.callRetBase(DATA_WIDTH-1,15) >= Bits(0x1)) {
+    when (io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH-1,15) >= Bits(0x1)) {
       hitReg := Bits(0)
       for (i <- 0 until METHOD_COUNT) {
         when (io.exmcache.callRetBase === mcache_addr_vec(i)
@@ -335,10 +335,10 @@ class MCacheCtrl() extends Component {
   val init_state :: idle_state :: size_state :: transfer_state :: restart_state :: Nil = Enum(5){ UFix() }
   val mcache_state = Reg(resetVal = init_state)
   //signals for method cache memory (mcache_repl)
-  val mcachemem_address = Bits(width = ADDR_WIDTH) //not needed here we are on relative addresses!
+  val mcachemem_address = Bits(width = EXTMEM_ADDR_WIDTH) //not needed here we are on relative addresses!
   val mcachemem_w_data = Bits(width = DATA_WIDTH)
   val mcachemem_w_tag = Bits(width = 1) //signalizes the transfer of begin of a write
-  val mcachemem_w_addr = Bits(width = ADDR_WIDTH)
+  val mcachemem_w_addr = Bits(width = EXTMEM_ADDR_WIDTH)
   val mcachemem_w_enable = Bits(width = 1)
   //signals for external memory
   val ext_mem_cmd = Bits(width = 3)
@@ -347,7 +347,7 @@ class MCacheCtrl() extends Component {
   val ext_mem_fcounter = Reg(resetVal = Bits(0, width = MCACHE_SIZE_WIDTH))
   val ext_mem_burst_cnt = Reg(resetVal = UFix(0, width = log2Up(BURST_LENGTH)))
   //input/output registers
-  val callRetBaseReg = Reg(resetVal = Bits(0, width = ADDR_WIDTH))
+  val callRetBaseReg = Reg(resetVal = Bits(0, width = EXTMEM_ADDR_WIDTH))
   val msize_addr = callRetBaseReg - Bits(1)
   val addrReg = Reg(resetVal = Bits(0))
   val wenaReg = Reg(resetVal = Bits(0))
@@ -381,7 +381,7 @@ class MCacheCtrl() extends Component {
     }
     //no hit... fetch from external memory
     .otherwise {
-      ext_mem_addr := Cat(msize_addr(31,2), Bits("b00")) //aligned read from ssram
+      ext_mem_addr := Cat(msize_addr(EXTMEM_ADDR_WIDTH-1,2), Bits("b00")) //aligned read from ssram
       ext_mem_cmd := OcpCmd.RD
       ext_mem_burst_cnt := UFix(0)
       mcache_state := size_state
