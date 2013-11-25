@@ -206,6 +206,9 @@ namespace patmos
     /// Tag information of all the data cache's content.
     cache_tags_t *Content;
 
+    /// Number of stall cycles caused by method cache misses.
+    unsigned int Num_stall_cycles;
+    
     /// Number of cache read hits
     unsigned int Num_read_hits;
 
@@ -254,6 +257,7 @@ namespace patmos
         Num_block_bytes(num_block_bytes),
         Associativity(associativity),
         Num_indexes(num_blocks / Associativity), Is_busy(false),
+        Num_stall_cycles(0),
         Num_read_hits(0), Num_read_misses(0), Num_read_hit_bytes(0),
         Num_read_miss_bytes(0), Num_write_hits(0), Num_write_misses(0),
         Num_write_hit_bytes(0), Num_write_miss_bytes(0)
@@ -352,6 +356,7 @@ namespace patmos
       }
 
       Is_busy = true;
+      Num_stall_cycles++;
       return false;
     }
 
@@ -413,6 +418,7 @@ namespace patmos
       }
       else {
         Is_busy = true;
+        Num_stall_cycles++;
         return false;
       }
     }
@@ -472,6 +478,9 @@ namespace patmos
       float        write_reuse = (float)total_write_bytes /
                                  (float)write_transfer_bytes;
 
+      os << boost::format("   Stall Cycles     : %1$10d\n\n") 
+        % Num_stall_cycles;
+        
       os << boost::format("                           total        hit      miss    miss-rate     reuse\n"
                           "   Reads            : %1$10d %2$10d %3$10d %4$10d%%\n"
                           "   Bytes Read       : %5$10d %6$10d %7$10d          - %8$10.2f\n"
@@ -487,6 +496,7 @@ namespace patmos
 
     virtual void reset_stats()
     {
+      Num_stall_cycles = 0;
       Num_read_hits = 0;
       Num_read_misses = 0;
       Num_read_hit_bytes = 0;

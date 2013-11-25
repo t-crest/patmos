@@ -154,7 +154,7 @@ namespace patmos
   protected:
     /// The backing cache.
     data_cache_t *Backing_cache;
-
+    
   public:
     /// Construct a new instruction cache instance.
     /// @param memory The memory that is accessed through the cache.
@@ -185,6 +185,9 @@ namespace patmos
       // ensures that returning to a PC fetches the block at that PC.
       // This requires all jump-targets to be 64bit aligned though.
 
+      // TODO we should at least assert on two misses, in case the hardware
+      // does not support this, so that we can debug alignment with pasim.
+      
       for (int i = 0; i < NUM_SLOTS; i++) {
         bool status;
         uword_t addr = address + i * sizeof(word_t);
