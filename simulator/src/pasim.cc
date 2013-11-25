@@ -252,7 +252,6 @@ int main(int argc, char **argv)
     ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), "format of the debug trace (short, trace, instr, blocks, calls, default, long, all)")
     ("debug-file", boost::program_options::value<std::string>()->default_value("-"), "output debug trace in file (stderr: -)")
     ("debug-nopc", "do not print PC and cycles counter in debug output")
-    ("print-options", "print out values of all (relevant) options")
     ("print-stats", boost::program_options::value<patmos::address_t>(), "print statistics for a given function only.")
     ("flush-caches", boost::program_options::value<patmos::address_t>(), "flush all caches when reaching the given address (can be a symbol name).")
     ("slot-stats,a", "show instruction statistics per slot")
@@ -519,8 +518,10 @@ int main(int argc, char **argv)
           // get the exit code
           exit_code = e.get_info();
 
-          if (vm.count("print-options")) {
-            *out << "\n";
+          if (!vm.count("quiet") && !print_stats) {
+            s.print_stats(*out, slot_stats, instr_stats);
+          }
+          if (!vm.count("quiet")) {
             *out << "Pasim options:";
             
             // TODO make this more generic.. somehow.
@@ -557,11 +558,8 @@ int main(int argc, char **argv)
             *out << " --mcsize=" << mcsize << " --mbsize=" << mbsize;
             *out << " --mcmethods=" << mcmethods;
             
-            *out << "\n";
+            *out << "\n\n";
           }
-	  if (!vm.count("quiet") && !print_stats) {
-            s.print_stats(*out, slot_stats, instr_stats);
-	  }
           break;
         default:
           std::cerr << e.to_string(sym);
