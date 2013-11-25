@@ -252,6 +252,7 @@ int main(int argc, char **argv)
     ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), "format of the debug trace (short, trace, instr, blocks, calls, default, long, all)")
     ("debug-file", boost::program_options::value<std::string>()->default_value("-"), "output debug trace in file (stderr: -)")
     ("debug-nopc", "do not print PC and cycles counter in debug output")
+    ("print-options", "print out values of all (relevant) options")
     ("print-stats", boost::program_options::value<patmos::address_t>(), "print statistics for a given function only.")
     ("flush-caches", boost::program_options::value<patmos::address_t>(), "flush all caches when reaching the given address (can be a symbol name).")
     ("slot-stats,a", "show instruction statistics per slot")
@@ -392,7 +393,7 @@ int main(int argc, char **argv)
   if (!max_cycle) {
     max_cycle = std::numeric_limits<uint64_t>::max();
   }
-
+  
   bool print_stats = vm.count("print-stats") > 0;
   patmos::address_t print_stats_func;
   if (print_stats) {
@@ -518,6 +519,46 @@ int main(int argc, char **argv)
           // get the exit code
           exit_code = e.get_info();
 
+          if (vm.count("print-options")) {
+            *out << "\n";
+            *out << "Pasim options:";
+            
+            // TODO make this more generic.. somehow.
+            
+            if (vm["maxc"].as<unsigned int>())
+              *out << " --maxc=" << max_cycle;
+            if (flush_caches)
+              *out << " --flush-caches=" << flush_caches_addr;
+            *out << " --cpuid=" << cpuid << " --cores=" << cores;
+            *out << " --freq=" << freq;
+            *out << " --mmbase=" << mmbase << " --mmhigh=" << mmhigh;
+            *out << " --cpuinfo_offset=" << cpuinfo_offset;
+            *out << " --excunit_offset=" << excunit_offset;
+            *out << " --timer_offset=" << timer_offset;
+            *out << " --uart_offset=" << uart_offset;
+            *out << " --led_offset=" << led_offset;
+            
+            *out << " --interrupt=" << interrupt_enabled;
+            
+            *out << " --gsize=" << gsize;
+            *out << " --gtime=" << gtime;
+            *out << " --tdelay=" << tdelay << " --trefresh=" << trefresh;
+            *out << " --bsize=" << bsize << " --psize=" << psize;
+            *out << " --posted=" << posted; 
+            *out << " --lsize=" << lsize;
+            
+            *out << " --dckind=" << dck;
+            *out << " --dcsize=" << dcsize << " --dlsize=" << dlsize;
+            *out << " --sckind=" << sck;
+            *out << " --scsize=" << scsize << " --sbsize=" << sbsize;
+            *out << " --icache=" << ick << " --ickind=" << isck;
+            *out << " --ilsize=" << ilsize;
+            *out << " --mckind=" << mck;
+            *out << " --mcsize=" << mcsize << " --mbsize=" << mbsize;
+            *out << " --mcmethods=" << mcmethods;
+            
+            *out << "\n";
+          }
 	  if (!vm.count("quiet") && !print_stats) {
             s.print_stats(*out, slot_stats, instr_stats);
 	  }
