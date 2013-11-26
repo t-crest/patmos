@@ -448,7 +448,7 @@ void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os)
                       (float)(Num_blocks_allocated * Num_block_bytes);
   
   // instruction statistics
-  os << boost::format("                            total        max.\n"
+  os << boost::format("                              total        max.\n"
                       "   Blocks Allocated    : %1$10d  %2$10d\n"
                       "   Bytes Transferred   : %3$10d  %4$10d\n"
                       "   Bytes Allocated     : %5$10d  %6$10d\n"
@@ -456,15 +456,17 @@ void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os)
                       "   Utilization         : %8$10.2f%%\n"
                       "   Fragmentation       : %9$10.2f%%\n"
                       "   Max Methods in Cache: %10$10d\n"
-                      "   Cache Hits          : %11$10d\n"
-                      "   Cache Misses        : %12$10d\n"
-                      "   Miss Stall Cycles   : %13$10d  %14$10.2f%%\n\n")
+                      "   Cache Hits          : %11$10d  %12$10.2f%%\n"
+                      "   Cache Misses        : %13$10d  %14$10.2f%%\n"
+                      "   Miss Stall Cycles   : %15$10d  %16$10.2f%%\n\n")
     % Num_blocks_allocated % Num_max_blocks_allocated
     % Num_bytes_transferred % Num_max_bytes_transferred
     % bytes_allocated % (Num_max_bytes_transferred - 4)
     % bytes_utilized % (utilization * 100.0) % (fragmentation * 100.0)
-    % Num_max_active_methods % Num_hits % Num_misses % Num_stall_cycles 
-    % (100.0 * Num_stall_cycles / (float)s.Cycle);
+    % Num_max_active_methods 
+    % Num_hits % (100.0 * Num_hits / (Num_hits + Num_misses))
+    % Num_misses % (100.0 * Num_misses / (Num_hits + Num_misses))
+    % Num_stall_cycles % (100.0 * Num_stall_cycles / (float)s.Cycle);
 
   // Update utilization stats for all methods not yet evicted.
   for(int i = Num_blocks - Num_active_methods; i < Num_blocks; i++)

@@ -261,7 +261,7 @@ int main(int argc, char **argv)
   boost::program_options::options_description memory_options("Memory options");
   memory_options.add_options()
     ("gsize,g",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_MEMORY_BYTES), "global memory size in bytes")
-    ("gtime,G",  boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES/4 + 5), "global memory transfer time per burst in cycles")
+    ("gtime,G",  boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES/4 + 3), "global memory transfer time per burst in cycles")
     ("tdelay,t", boost::program_options::value<unsigned int>()->default_value(0), "read delay to global memory per request in cycles")
     ("trefresh", boost::program_options::value<unsigned int>()->default_value(0), "refresh cycles per TDM round")
     ("bsize",    boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES), "burst size (and alignment) of the memory system.")
@@ -284,7 +284,7 @@ int main(int argc, char **argv)
     ("ilsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(0), "size of an I-cache line in bytes, defaults to burst size if set to 0")
 
     ("mcsize,m", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_METHOD_CACHE_BYTES), "method cache / instruction cache size in bytes")
-    ("mckind,M", boost::program_options::value<patmos::method_cache_e>()->default_value(patmos::MC_IDEAL), "kind of method cache (ideal, lru, fifo)")
+    ("mckind,M", boost::program_options::value<patmos::method_cache_e>()->default_value(patmos::MC_FIFO), "kind of method cache (ideal, lru, fifo)")
     ("mcmethods",boost::program_options::value<unsigned int>()->default_value(patmos::NUM_METHOD_CACHE_MAX_METHODS), "Maximum number of methods in the method cache, defaults to number of blocks if zero")
     ("mbsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_METHOD_CACHE_BLOCK_BYTES), "method cache block size in bytes, defaults to burst size if zero");
 
