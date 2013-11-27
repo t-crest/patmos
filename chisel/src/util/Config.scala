@@ -111,11 +111,25 @@ object Config {
 
       val ExtMem = new ExtMemConfig(parseSize(((node \ "ExtMem")(0) \ "@size").text))
 
-      // TODO: this list should come from the configuration file
-      val Devs = List(new DeviceConfig("CpuInfo", Map(), 0),
-                      new DeviceConfig("Timer", Map(), 2),
-                      new DeviceConfig("Leds", Map("ledCount" -> "9"), 9),
-                      new DeviceConfig("Uart", Map("baud_rate" -> "115200"), 8))
+      val DevList = ((node \ "IODevs")(0) \ "IODev")
+      val DevNodes = ((node \ "IOs")(0) \ "IO")
+      val Devs = DevNodes.map(devFromXML(_, DevList)).toList
+
+      def devFromXML(node: scala.xml.Node, devs: scala.xml.NodeSeq): DeviceConfig = {
+        val key = (node \ "@IODevTypeRef").text
+        val dev = (devs.filter(d => (d \ "@IODevType").text == key))(0)
+        val name = (dev \ "@entity").text
+        val paramsNode = (dev \ "params")
+        val params = if (paramsNode.isEmpty) {
+          Map[String,String]()
+        } else {
+          Map((paramsNode(0) \ "param").map(p => (p \ "@name").text -> 
+                                                 (p \ "@value").text) : _*)
+        }
+        val offset = (node \ "@offset").text.toInt
+        println("IO device "+key+": entity "+name+", offset "+offset+", params "+params)
+        new DeviceConfig(name, params, offset)
+      }
     }
 
   def createDevice(dev : Config#DeviceConfig) : CoreDevice = {
