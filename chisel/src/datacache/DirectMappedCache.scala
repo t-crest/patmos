@@ -69,14 +69,16 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Component {
   // val mem = Vec(4) { Mem(size, seqRead = true) { Bits(width = DATA_WIDTH) } }
 
   // ok, the dumb way
-  val tagMem = { Mem(tagCount, seqRead = true) { Bits(width = tagWidth+1) } }
-  val mem0 = { Mem(size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) } }
-  val mem1 = { Mem(size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) } }
-  val mem2 = { Mem(size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) } }
-  val mem3 = { Mem(size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) } }
+  val tagMem = Mem(tagCount, seqRead = true) { Bits(width = tagWidth) }
+  val tagVMem = Vec(tagCount) { Reg(resetVal = Bool(false)) }
+  val mem0 = Mem(size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) }
+  val mem1 = Mem(size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) }
+  val mem2 = Mem(size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) }
+  val mem3 = Mem(size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) }
 
   val tag = tagMem(masterReg.Addr(addrBits + 1, lineBits))
-  val tagValid = tag === Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, addrBits+2), Bits("b1"))
+  val tagV = tagVMem(masterReg.Addr(addrBits + 1, lineBits))
+  val tagValid = tagV && tag === Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, addrBits+2))
   val tagValidReg = Reg(tagValid)
 
   val fillReg = Reg(resetVal = Bool(false))
@@ -130,7 +132,8 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Component {
   // Start handling a miss
   when(!tagValid && masterReg.Cmd === OcpCmd.RD) {
 	fillAddrReg := masterReg.Addr(addrBits + 1, lineBits)
-	tagMem(masterReg.Addr(addrBits + 1, lineBits)) := Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, addrBits+2), Bits("b1"))
+	tagMem(masterReg.Addr(addrBits + 1, lineBits)) := Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, addrBits+2))
+	tagVMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(true)
 	missIndexReg := masterReg.Addr(lineBits-1, 2).toUFix
 	io.slave.M.Cmd := OcpCmd.RD
 	stateReg := fill
