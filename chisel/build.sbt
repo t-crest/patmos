@@ -8,6 +8,8 @@ resolvers ++= Seq(
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
+libraryDependencies <+= scalaVersion("org.scala-lang" % "scala-compiler" % _)
+
 scalaSource in Compile <<= baseDirectory(_ / "src")
 
 libraryDependencies += "edu.berkeley.cs" %% "chisel" % "1.0.8"

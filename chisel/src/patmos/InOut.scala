@@ -52,8 +52,10 @@ import io.Timer
 import io.UART
 import io.Leds
 
+import util._
+
 class InOut() extends Component {
-  val io = new InOutIO()
+  val io = Config.getInOutIO()
 
   // Compute selects
   val selIO = io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-4) === Bits("b1111")
@@ -127,18 +129,24 @@ class InOut() extends Component {
   val timerS = timer.io.ocp.S
 
   // The UART
-  val uart = new UART(CLOCK_FREQ, UART_BAUD)
-  uart.io.ocp.M := io.memInOut.M
-  uart.io.ocp.M.Cmd := Mux(selUart, io.memInOut.M.Cmd, OcpCmd.IDLE)
-  val uartS = uart.io.ocp.S
-  io.uartPins <> uart.io.pins
+  val uartS = OcpSlaveSignals.resetVal(DATA_WIDTH)
+  if (io.isInstanceOf[UartPins]) {
+    val uart = new UART(CLOCK_FREQ, UART_BAUD)
+    uart.io.ocp.M := io.memInOut.M
+    uart.io.ocp.M.Cmd := Mux(selUart, io.memInOut.M.Cmd, OcpCmd.IDLE)
+    uartS := uart.io.ocp.S
+    io.asInstanceOf[UartPins].uartPins <> uart.io.pins
+  }
 
   // The LEDs
-  val leds = new Leds(LED_COUNT)
-  leds.io.ocp.M := io.memInOut.M
-  leds.io.ocp.M.Cmd := Mux(selLed, io.memInOut.M.Cmd, OcpCmd.IDLE)
-  val ledsS = leds.io.ocp.S
-  io.ledPins <> leds.io.pins
+  val ledsS = OcpSlaveSignals.resetVal(DATA_WIDTH)
+  if (io.isInstanceOf[LedPins]) {
+    val leds = new Leds(LED_COUNT)
+    leds.io.ocp.M := io.memInOut.M
+    leds.io.ocp.M.Cmd := Mux(selLed, io.memInOut.M.Cmd, OcpCmd.IDLE)
+    ledsS := leds.io.ocp.S
+    io.asInstanceOf[LedPins].ledPins <> leds.io.pins
+  }
 
   // Return data to pipeline
   io.memInOut.S.Data := spmS.Data

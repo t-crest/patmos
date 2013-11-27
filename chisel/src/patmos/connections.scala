@@ -315,6 +315,10 @@ class UartIO() extends Bundle() {
   val pins = new UartPinIO()
 }
 
+trait UartPins {
+  val uartPins = new UartPinIO()
+}
+
 class LedPinIO() extends Bundle() {
   val led = Bits(OUTPUT, LED_COUNT)
 }
@@ -322,6 +326,10 @@ class LedPinIO() extends Bundle() {
 class LedIO() extends Bundle() {
   val ocp = new OcpCoreSlavePort(0, DATA_WIDTH)
   val pins = new LedPinIO()
+}
+
+trait LedPins {
+  val ledPins = new LedPinIO()
 }
 
 class TimerIO() extends Bundle() {
@@ -338,8 +346,6 @@ class InOutIO() extends Bundle() {
   val memInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
   val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
-  val uartPins = new UartPinIO()
-  val ledPins = new LedPinIO()
 }
 
 class BootMemIO() extends Bundle() {
@@ -368,4 +374,22 @@ class WriteBackIO() extends Bundle() {
   val rfWrite = Vec(PIPE_COUNT) { new Result().asOutput }
   // for result forwarding (register)
   val memResult =  Vec(PIPE_COUNT) { new Result().asOutput }
+}
+
+class PatmosCoreIO() extends Bundle() {
+  val dummy = Bits(OUTPUT, 32)
+  val cpuId = Bits(INPUT, DATA_WIDTH)
+  val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
+  val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
+  val memPort = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+  //val rfDebug = Vec(REG_COUNT) { Bits(OUTPUT, DATA_WIDTH) }
+}
+
+class PatmosIO() extends Bundle() {
+  val dummy = Bits(OUTPUT, 32)
+  val cpuId = Bits(INPUT, DATA_WIDTH)
+  val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
+  val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
+  val sramPins = new RamOutPinsIO(EXTMEM_ADDR_WIDTH-2)
+  //val rfDebug = Vec(REG_COUNT) { Bits(OUTPUT, DATA_WIDTH) }
 }

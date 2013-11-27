@@ -369,9 +369,9 @@ int main (int argc, char* argv[]) {
 
 	if (uart) {
 	  // Pass on data from UART
-	  if (c->Patmos_core_iocomp_uart__io_ocp_M_Cmd.to_ulong() == 0x1
-	  	  && c->Patmos_core_iocomp_uart__io_ocp_M_Addr.to_ulong() == 0x04) {
-	  	*out << (char)c->Patmos_core_iocomp_uart__io_ocp_M_Data.to_ulong();
+	  if (c->Patmos_core_iocomp_UART__io_ocp_M_Cmd.to_ulong() == 0x1
+	  	  && c->Patmos_core_iocomp_UART__io_ocp_M_Addr.to_ulong() == 0x04) {
+	  	*out << (char)c->Patmos_core_iocomp_UART__io_ocp_M_Data.to_ulong();
 	  }
 	}
 

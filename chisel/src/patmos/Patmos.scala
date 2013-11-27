@@ -55,16 +55,8 @@ import ocp._
  * Component for one Patmos core.
  */
 class PatmosCore(binFile: String, datFile: String) extends Component {
-  val io = new Bundle {
-    val dummy = Bits(OUTPUT, 32)
-    val cpuId = Bits(INPUT, DATA_WIDTH)
-    val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
-    val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
-    val memPort = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
-    val led = Bits(OUTPUT, 9)
-    val uartPins = new UartPinIO()
-    //val rfDebug = Vec(REG_COUNT) { Bits(OUTPUT, DATA_WIDTH) }
-  }
+
+  val io = Config.getPatmosCoreIO()
 
   val mcache = new MCache()
 
@@ -130,12 +122,11 @@ class PatmosCore(binFile: String, datFile: String) extends Component {
   io.comConf <> iocomp.io.comConf
   io.comSpm <> iocomp.io.comSpm
   io.memPort <> burstBus.io.master
-  io.led <> Cat(enableReg, iocomp.io.ledPins)
-  io.uartPins <> iocomp.io.uartPins
+  Config.connectIOPins(io, iocomp.io)
 
   // Dummy output, which is ignored in the top level VHDL code, to
   // force Chisel keep some unused signals alive
-  io.dummy := Reg(memory.io.memwb.pc) // | decode.rf.io.rfDebug.toBits)
+  io.dummy := Reg(memory.io.memwb.pc) | enableReg // | decode.rf.io.rfDebug.toBits)
 
 }
 
@@ -160,16 +151,7 @@ object PatmosCoreMain {
 class Patmos(configFile: String, binFile: String, datFile: String) extends Component {
   Config.conf = Config.load(configFile)
 
-  val io = new Bundle {
-    val dummy = Bits(OUTPUT, 32)
-    val cpuId = Bits(INPUT, DATA_WIDTH)
-    val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
-    val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
-    val led = Bits(OUTPUT, 9)
-    val uartPins = new UartPinIO()
-    val sramPins = new RamOutPinsIO(EXTMEM_ADDR_WIDTH-2)
-    //val rfDebug = Vec(REG_COUNT) { Bits(OUTPUT, DATA_WIDTH) }
-  }
+  val io = Config.getPatmosIO()
 
   // Instantiate core
   val core = new PatmosCore(binFile, datFile)
@@ -178,8 +160,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Compo
   io.cpuId <> core.io.cpuId
   io.comConf <> core.io.comConf
   io.comSpm <> core.io.comSpm
-  io.led <> core.io.led
-  io.uartPins <> core.io.uartPins
+  Config.connectIOPins(io, core.io)
 
   // Connect memory controller
   val ssram = new SsramBurstRW(EXTMEM_ADDR_WIDTH)

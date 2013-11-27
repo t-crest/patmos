@@ -49,7 +49,7 @@ object Constants {
 
   // IO-related configuration should come from config file too
   val UART_BAUD = 115200
-  val LED_COUNT = 8
+  val LED_COUNT = 9
 
   val PIPE_COUNT = util.Config.conf.pipeCount
 

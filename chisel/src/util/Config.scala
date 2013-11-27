@@ -32,6 +32,14 @@
 
 package util
 
+import scala.tools.nsc.interpreter._
+import scala.tools.nsc._
+
+import Chisel._
+import Node._
+
+import patmos._
+
 /**
  * A tiny configuration tool for Patmos.
  * 
@@ -99,6 +107,56 @@ object Config {
 
       val ExtMem = new ExtMemConfig(parseSize(((node \ "ExtMem")(0) \ "@size").text))
     }
+
+  // TODO: this list should come from the configuration file
+  val traitList = List("UartPins", "LedPins")
+
+  def connectIOPins(outer : Node, inner : Node) {
+    for (name <- traitList) {
+      // get class for pin trait
+      val clazz = Class.forName("patmos."+name)
+      if (clazz.isInstance(outer)) {
+        // get method to retrieve pin bundle
+        val methName = name(0).toLower + name.substring(1, name.length)
+        val meth = clazz.getMethods.find(_.getName == methName).get
+        // retrieve pin bundles
+        val outerPins = meth.invoke(clazz.cast(outer))
+        val innerPins = meth.invoke(clazz.cast(inner))
+        // actually connect pins
+        outerPins.asInstanceOf[Bundle] <> innerPins.asInstanceOf[Bundle]
+      }
+    }
+  }
+
+  def genTraitedClass[T](pack : String, base : String, list : List[String]) : T = {
+    // build class definition
+    val traitClass = list.foldLeft("Trait"+base)(_ + "_%s".format(_))
+    val traitClassDef = "class "+traitClass+" extends "+pack+"."+base
+    val classDef = list.foldLeft(traitClassDef)(_ + " with %s.%s".format(pack, _))
+
+    // fire up a new Scala interpreter/compiler
+    val settings = new Settings()
+    settings.embeddedDefaults(this.getClass.getClassLoader())
+    val interpreter = new IMain(settings)
+    // define the new class
+    interpreter.compileString(classDef)
+    // load the new class
+    val clazz = interpreter.classLoader.loadClass(traitClass)
+    // get an instance with the right type
+    clazz.newInstance().asInstanceOf[T] 
+  }
+
+  def getInOutIO() : InOutIO = {
+    genTraitedClass[InOutIO]("patmos", "InOutIO", traitList)
+  }
+
+  def getPatmosCoreIO() : PatmosCoreIO = {
+    genTraitedClass[PatmosCoreIO]("patmos", "PatmosCoreIO", traitList)
+  }
+
+  def getPatmosIO() : PatmosIO = {
+    genTraitedClass[PatmosIO]("patmos", "PatmosIO", traitList)
+  }
   
   // This is probably not the best way to have the singleton
   // for the configuration available and around.
