@@ -305,42 +305,6 @@ class ExecuteIO() extends Bundle() {
   val exfe = new ExFe().asOutput
 }
 
-class UartPinIO() extends Bundle() {
-  val tx = Bits(OUTPUT, 1)
-  val rx = Bits(INPUT, 1)  
-}
-
-class UartIO() extends Bundle() {
-  val ocp = new OcpCoreSlavePort(3, DATA_WIDTH)
-  val pins = new UartPinIO()
-}
-
-trait UartPins {
-  val uartPins = new UartPinIO()
-}
-
-class LedPinIO() extends Bundle() {
-  val led = Bits(OUTPUT, LED_COUNT)
-}
-
-class LedIO() extends Bundle() {
-  val ocp = new OcpCoreSlavePort(0, DATA_WIDTH)
-  val pins = new LedPinIO()
-}
-
-trait LedPins {
-  val ledPins = new LedPinIO()
-}
-
-class TimerIO() extends Bundle() {
-  val ocp = new OcpCoreSlavePort(4, DATA_WIDTH)
-}
-
-class CpuInfoIO() extends Bundle() {
-  val ocp = new OcpCoreSlavePort(4, DATA_WIDTH)
-  val id = Bits(INPUT, DATA_WIDTH)
-}
-
 class InOutIO() extends Bundle() {
   val cpuId = Bits(INPUT, DATA_WIDTH)
   val memInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)

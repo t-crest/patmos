@@ -43,13 +43,27 @@ package io
 import Chisel._
 import Node._
 
-import patmos.UartIO
-import patmos.UartPinIO
+import patmos.Constants._
 
 import ocp._
 
-class UART(clk_freq: Int, baud_rate: Int) extends Component {
-  	val io = new UartIO()
+object Uart {
+  def create(params: Map[String, String]) : Uart = {
+    val baud_rate = params.getOrElse("baud_rate", "0").toInt
+    new Uart(CLOCK_FREQ, baud_rate)
+  }
+
+  trait Pins {
+    val uartPins = new Bundle() {
+      val tx = Bits(OUTPUT, 1)
+      val rx = Bits(INPUT, 1)  
+    }
+  }
+}
+
+class Uart(clk_freq: Int, baud_rate: Int) extends CoreDevice() {
+
+  override val io = new CoreDeviceIO() with Uart.Pins
 
   	val c_tx_divider_val 	= clk_freq/baud_rate	
   	val tx_baud_counter 	= Reg(resetVal = UFix(0, log2Up(clk_freq/baud_rate)))
@@ -147,7 +161,7 @@ class UART(clk_freq: Int, baud_rate: Int) extends Component {
 	}
   	
 	// Connect TX pin
-	io.pins.tx := tx_reg
+	io.uartPins.tx := tx_reg
 	
 	
 	// UART RX clk
@@ -165,7 +179,7 @@ class UART(clk_freq: Int, baud_rate: Int) extends Component {
 
   	// Receive data
   	
-	rxd_reg0 				:= io.pins.rx;
+	rxd_reg0 				:= io.uartPins.rx;
 	rxd_reg1 				:= rxd_reg0;
 	rxd_reg2 				:= rxd_reg1
 	

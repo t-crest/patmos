@@ -43,13 +43,20 @@ package io
 import Chisel._
 import Node._
 
-import patmos.TimerIO
 import patmos.Constants._
 
 import ocp._
 
-class Timer(clk_freq: Int) extends Component {
-  val io = new TimerIO()
+object Timer {
+  def create(params: Map[String, String]) : Timer = {
+    new Timer(CLOCK_FREQ)
+  }
+
+  trait Pins {
+  }
+}
+
+class Timer(clk_freq: Int) extends CoreDevice() {
 
   val masterReg = Reg(io.ocp.M)
 

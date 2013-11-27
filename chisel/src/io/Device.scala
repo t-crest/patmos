@@ -31,62 +31,25 @@
  */
 
 /*
- * "I/O" module to access information about the CPU
+ * Common definitions for I/O devices
  * 
  * Authors: Wolfgang Puffitsch (wpuffitsch@gmail.com)
  * 
  */
-
 
 package io
 
 import Chisel._
 import Node._
 
-import patmos.Constants._
-
 import ocp._
 
-object CpuInfo {
-  def create(params: Map[String, String]) : CpuInfo = {
-    new CpuInfo()
-  }
+import patmos.Constants._
 
-  trait Pins {
-    val cpuInfoPins = new Bundle() {
-      val id = Bits(INPUT, DATA_WIDTH)
-    }
-  }
+class CoreDevice() extends Component() {
+  val io = new CoreDeviceIO();
 }
 
-class CpuInfo() extends CoreDevice() {
-
-  override val io = new CoreDeviceIO() with CpuInfo.Pins
-
-  val masterReg = Reg(io.ocp.M)
-
-  // Default response
-  val resp = Bits()
-  val data = Bits(width = DATA_WIDTH)
-  resp := OcpResp.NULL
-  data := Bits(0)
-
-  // Ignore writes
-  when(masterReg.Cmd === OcpCmd.WR) {
-	resp := OcpResp.DVA
-  }
-
-  // Read information
-  when(masterReg.Cmd === OcpCmd.RD) {
-	resp := OcpResp.DVA
-	when(masterReg.Addr(2) === Bits(0)) {
-      data := io.cpuInfoPins.id	  
-	} .otherwise {
-      data := Bits(CLOCK_FREQ)
-	}
-  }
-
-  // Connections to master
-  io.ocp.S.Resp := resp
-  io.ocp.S.Data := data
+class CoreDeviceIO() extends Bundle() {
+  val ocp = new OcpCoreSlavePort(0, DATA_WIDTH)
 }

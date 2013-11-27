@@ -46,12 +46,6 @@ import Node._
 import Constants._
 
 import ocp._
-
-import io.CpuInfo
-import io.Timer
-import io.UART
-import io.Leds
-
 import util._
 
 class InOut() extends Component {
@@ -67,27 +61,28 @@ class InOut() extends Component {
   val selComConf = selNI & io.memInOut.M.Addr(ADDR_WIDTH-5) === Bits("b0")
   val selComSpm  = selNI & io.memInOut.M.Addr(ADDR_WIDTH-5) === Bits("b1")
 
-  val selCpuInfo = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x0)
-  val selTimer = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x2)
-  val selUart = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x8)
-  val selLed = selIO & io.memInOut.M.Addr(11, 8) === Bits(0x9)
+  val MAX_IO_DEVICES = 0x10
+
+  val selDeviceVec = Vec(MAX_IO_DEVICES) { Bool() }
+  val deviceSVec = Vec(MAX_IO_DEVICES) { OcpSlaveSignals.resetVal(DATA_WIDTH) }
+  for (i <- 0 to MAX_IO_DEVICES-1) {
+    selDeviceVec(i) := selIO & io.memInOut.M.Addr(11, 8) === Bits(i)
+    deviceSVec(i) := OcpSlaveSignals.resetVal(DATA_WIDTH)
+  }
 
   // Register selects
   val selSpmReg = Reg(resetVal = Bits("b0"))
   val selComConfReg = Reg(resetVal = Bits("b0"))
   val selComSpmReg = Reg(resetVal = Bits("b0"))
-  val selCpuInfoReg = Reg(resetVal = Bits("b0"))
-  val selTimerReg = Reg(resetVal = Bits("b0"))
-  val selUartReg = Reg(resetVal = Bits("b0"))
-  val selLedReg = Reg(resetVal = Bits("b0"))
+
+  val selDeviceReg = Vec(MAX_IO_DEVICES) { Reg(Bool()) }
+
   when(io.memInOut.M.Cmd != OcpCmd.IDLE) {
 	selSpmReg := selSpm
 	selComConfReg := selComConf
 	selComSpmReg := selComSpm
-	selCpuInfoReg := selCpuInfo
-	selTimerReg := selTimer
-	selUartReg := selUart
-	selLedReg := selLed
+
+	selDeviceReg := selDeviceVec
   }
 
   // Dummy ISPM (create fake response)
@@ -115,50 +110,25 @@ class InOut() extends Component {
   io.comSpm.M.Cmd := Mux(selComSpm, io.memInOut.M.Cmd, OcpCmd.IDLE)
   val comSpmS = io.comSpm.S
 
-  // The CpuInfo device
-  val cpuInfo = new CpuInfo()
-  cpuInfo.io.id := io.cpuId
-  cpuInfo.io.ocp.M := io.memInOut.M
-  cpuInfo.io.ocp.M.Cmd := Mux(selCpuInfo, io.memInOut.M.Cmd, OcpCmd.IDLE)
-  val cpuInfoS = cpuInfo.io.ocp.S
-
-  // The Timer
-  val timer = new Timer(CLOCK_FREQ)
-  timer.io.ocp.M := io.memInOut.M
-  timer.io.ocp.M.Cmd := Mux(selTimer, io.memInOut.M.Cmd, OcpCmd.IDLE)
-  val timerS = timer.io.ocp.S
-
-  // The UART
-  val uartS = OcpSlaveSignals.resetVal(DATA_WIDTH)
-  if (io.isInstanceOf[UartPins]) {
-    val uart = new UART(CLOCK_FREQ, UART_BAUD)
-    uart.io.ocp.M := io.memInOut.M
-    uart.io.ocp.M.Cmd := Mux(selUart, io.memInOut.M.Cmd, OcpCmd.IDLE)
-    uartS := uart.io.ocp.S
-    io.asInstanceOf[UartPins].uartPins <> uart.io.pins
-  }
-
-  // The LEDs
-  val ledsS = OcpSlaveSignals.resetVal(DATA_WIDTH)
-  if (io.isInstanceOf[LedPins]) {
-    val leds = new Leds(LED_COUNT)
-    leds.io.ocp.M := io.memInOut.M
-    leds.io.ocp.M.Cmd := Mux(selLed, io.memInOut.M.Cmd, OcpCmd.IDLE)
-    ledsS := leds.io.ocp.S
-    io.asInstanceOf[LedPins].ledPins <> leds.io.pins
+  for (devConf <- Config.conf.Devs) {
+    val dev = Config.createDevice(devConf)
+    // connect ports
+    dev.io.ocp.M := io.memInOut.M
+    dev.io.ocp.M.Cmd := Mux(selDeviceVec(devConf.offset), io.memInOut.M.Cmd, OcpCmd.IDLE)
+    deviceSVec(devConf.offset) := dev.io.ocp.S
+    Config.connectIOPins(devConf.name, io, dev.io)
   }
 
   // Return data to pipeline
   io.memInOut.S.Data := spmS.Data
   when(selComConfReg) { io.memInOut.S.Data := comConfS.Data }
   when(selComSpmReg)  { io.memInOut.S.Data := comSpmS.Data }
-  when(selCpuInfoReg) { io.memInOut.S.Data := cpuInfoS.Data }
-  when(selTimerReg)   { io.memInOut.S.Data := timerS.Data }
-  when(selUartReg)    { io.memInOut.S.Data := uartS.Data }
-  when(selLedReg)     { io.memInOut.S.Data := ledsS.Data }
+  for (i <- 0 to MAX_IO_DEVICES-1) {
+    when(selDeviceReg(i)) { io.memInOut.S.Data := deviceSVec(i).Data }
+  }
 
   // Merge responses
   io.memInOut.S.Resp := ispmResp | spmS.Resp |
                         comConfS.Resp | comSpmS.Resp |
-                        cpuInfoS.Resp | timerS.Resp | uartS.Resp | ledsS.Resp
+                        deviceSVec.map(_.Resp).fold(OcpResp.NULL)(_|_)
 }

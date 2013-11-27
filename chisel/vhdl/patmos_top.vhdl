@@ -59,7 +59,7 @@ architecture rtl of patmos_top is
 			io_comSpm_S_Resp        : in std_logic_vector(1 downto 0);
 			io_comSpm_S_Data        : in std_logic_vector(31 downto 0);
 
-			io_ledPins_led  : out std_logic_vector(8 downto 0);
+			io_ledsPins_led : out std_logic_vector(8 downto 0);
 			io_uartPins_tx  : out std_logic;
 			io_uartPins_rx  : in  std_logic;
 

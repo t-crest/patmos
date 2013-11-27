@@ -47,10 +47,6 @@ object Constants {
 
   val CLOCK_FREQ = util.Config.conf.frequency
 
-  // IO-related configuration should come from config file too
-  val UART_BAUD = 115200
-  val LED_COUNT = 9
-
   val PIPE_COUNT = util.Config.conf.pipeCount
 
   val ISPM_SIZE = util.Config.conf.ISPM.size

@@ -122,7 +122,7 @@ class PatmosCore(binFile: String, datFile: String) extends Component {
   io.comConf <> iocomp.io.comConf
   io.comSpm <> iocomp.io.comSpm
   io.memPort <> burstBus.io.master
-  Config.connectIOPins(io, iocomp.io)
+  Config.connectAllIOPins(io, iocomp.io)
 
   // Dummy output, which is ignored in the top level VHDL code, to
   // force Chisel keep some unused signals alive
@@ -160,7 +160,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Compo
   io.cpuId <> core.io.cpuId
   io.comConf <> core.io.comConf
   io.comSpm <> core.io.comSpm
-  Config.connectIOPins(io, core.io)
+  Config.connectAllIOPins(io, core.io)
 
   // Connect memory controller
   val ssram = new SsramBurstRW(EXTMEM_ADDR_WIDTH)

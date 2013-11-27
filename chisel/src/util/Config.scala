@@ -32,13 +32,14 @@
 
 package util
 
-import scala.tools.nsc.interpreter._
-import scala.tools.nsc._
-
 import Chisel._
 import Node._
 
 import patmos._
+import io.CoreDevice
+
+import scala.tools.nsc.interpreter._
+import scala.tools.nsc._
 
 /**
  * A tiny configuration tool for Patmos.
@@ -64,6 +65,9 @@ abstract class Config {
 
   case class ExtMemConfig(size: Int)
   val ExtMem: ExtMemConfig
+
+  case class DeviceConfig(name : String, params : Map[String, String], offset : Int)
+  val Devs: List[DeviceConfig]
 
   override def toString =
     description + " at " + (frequency/1000000).toString() + " MHz"
@@ -106,33 +110,53 @@ object Config {
       val BootSPM = new SPMConfig(parseSize(((node \ "BootSPM")(0) \ "@size").text))
 
       val ExtMem = new ExtMemConfig(parseSize(((node \ "ExtMem")(0) \ "@size").text))
+
+      // TODO: this list should come from the configuration file
+      val Devs = List(new DeviceConfig("CpuInfo", Map(), 0),
+                      new DeviceConfig("Timer", Map(), 2),
+                      new DeviceConfig("Leds", Map("ledCount" -> "9"), 9),
+                      new DeviceConfig("Uart", Map("baud_rate" -> "115200"), 8))
     }
 
-  // TODO: this list should come from the configuration file
-  val traitList = List("UartPins", "LedPins")
+  def createDevice(dev : Config#DeviceConfig) : CoreDevice = {
+    // get class for device
+    val clazz = Class.forName("io."+dev.name)
+    // create device instance
+    val meth = clazz.getMethods.find(_.getName == "create").get
+    val rawDev = meth.invoke(null, dev.params)
+    rawDev.asInstanceOf[CoreDevice]
+  }
 
-  def connectIOPins(outer : Node, inner : Node) {
-    for (name <- traitList) {
+  def connectIOPins(name : String, outer : Node, inner : Node) = {
       // get class for pin trait
-      val clazz = Class.forName("patmos."+name)
+      val clazz = Class.forName("io."+name+"$Pins")
       if (clazz.isInstance(outer)) {
         // get method to retrieve pin bundle
-        val methName = name(0).toLower + name.substring(1, name.length)
-        val meth = clazz.getMethods.find(_.getName == methName).get
-        // retrieve pin bundles
-        val outerPins = meth.invoke(clazz.cast(outer))
-        val innerPins = meth.invoke(clazz.cast(inner))
-        // actually connect pins
-        outerPins.asInstanceOf[Bundle] <> innerPins.asInstanceOf[Bundle]
+        val methName = name(0).toLower + name.substring(1, name.length) + "Pins"
+        val meth = clazz.getMethods.find(_.getName == methName)
+        if (meth == None) {
+          println("No pins for device: "+clazz+"."+methName)
+        } else {
+          // retrieve pin bundles
+          val outerPins = meth.get.invoke(clazz.cast(outer))
+          val innerPins = meth.get.invoke(clazz.cast(inner))
+          // actually connect pins
+          outerPins.asInstanceOf[Bundle] <> innerPins.asInstanceOf[Bundle]
+        }
       }
+  }
+
+  def connectAllIOPins(outer : Node, inner : Node) {
+    for (name <- conf.Devs.map(_.name)) {
+	  connectIOPins(name, outer, inner)
     }
   }
 
-  def genTraitedClass[T](pack : String, base : String, list : List[String]) : T = {
+  def genTraitedClass[T](base : String, list : List[String]) : T = {
     // build class definition
-    val traitClass = list.foldLeft("Trait"+base)(_ + "_%s".format(_))
-    val traitClassDef = "class "+traitClass+" extends "+pack+"."+base
-    val classDef = list.foldLeft(traitClassDef)(_ + " with %s.%s".format(pack, _))
+    val traitClass = list.foldLeft("Trait"+base)(_+"_"+ _)
+    val traitClassDef = "class "+traitClass+" extends "+"patmos."+base
+    val classDef = list.foldLeft(traitClassDef)(_+" with io."+_+".Pins")
 
     // fire up a new Scala interpreter/compiler
     val settings = new Settings()
@@ -147,15 +171,15 @@ object Config {
   }
 
   def getInOutIO() : InOutIO = {
-    genTraitedClass[InOutIO]("patmos", "InOutIO", traitList)
+    genTraitedClass[InOutIO]("InOutIO", conf.Devs.map(_.name))
   }
 
   def getPatmosCoreIO() : PatmosCoreIO = {
-    genTraitedClass[PatmosCoreIO]("patmos", "PatmosCoreIO", traitList)
+    genTraitedClass[PatmosCoreIO]("PatmosCoreIO", conf.Devs.map(_.name))
   }
 
   def getPatmosIO() : PatmosIO = {
-    genTraitedClass[PatmosIO]("patmos", "PatmosIO", traitList)
+    genTraitedClass[PatmosIO]("PatmosIO", conf.Devs.map(_.name))
   }
   
   // This is probably not the best way to have the singleton
@@ -172,6 +196,7 @@ object Config {
     val DSPM = new SPMConfig(0)
     val BootSPM = new SPMConfig(0)
     val ExtMem = new ExtMemConfig(0)
+    val Devs = List()
   }
   
   def load(file: String): Config = {
