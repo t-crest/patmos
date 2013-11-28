@@ -118,7 +118,6 @@ class PatmosCore(binFile: String, datFile: String) extends Component {
   val enableReg = Reg(enable)
 
   // The inputs and outputs
-  io.cpuId <> iocomp.io.cpuId
   io.comConf <> iocomp.io.comConf
   io.comSpm <> iocomp.io.comSpm
   io.memPort <> burstBus.io.master
@@ -157,7 +156,6 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Compo
   val core = new PatmosCore(binFile, datFile)
 
   // Forward ports to/from core
-  io.cpuId <> core.io.cpuId
   io.comConf <> core.io.comConf
   io.comSpm <> core.io.comSpm
   Config.connectAllIOPins(io, core.io)

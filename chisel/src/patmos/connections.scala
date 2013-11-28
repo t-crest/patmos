@@ -306,7 +306,6 @@ class ExecuteIO() extends Bundle() {
 }
 
 class InOutIO() extends Bundle() {
-  val cpuId = Bits(INPUT, DATA_WIDTH)
   val memInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
   val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
@@ -342,7 +341,6 @@ class WriteBackIO() extends Bundle() {
 
 class PatmosCoreIO() extends Bundle() {
   val dummy = Bits(OUTPUT, 32)
-  val cpuId = Bits(INPUT, DATA_WIDTH)
   val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val memPort = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
@@ -351,7 +349,6 @@ class PatmosCoreIO() extends Bundle() {
 
 class PatmosIO() extends Bundle() {
   val dummy = Bits(OUTPUT, 32)
-  val cpuId = Bits(INPUT, DATA_WIDTH)
   val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val sramPins = new RamOutPinsIO(EXTMEM_ADDR_WIDTH-2)
