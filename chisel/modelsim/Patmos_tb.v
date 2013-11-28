@@ -3,6 +3,7 @@
 module Patmos_tb();
    Patmos patmos(.clk(clk), .reset(reset),
 				 .io_dummy(io_dummy),
+				 .io_cpuInfoPins_id(32'h00000000),
 				 .io_ledsPins_led(io_led),
 				 .io_uartPins_tx(io_uartPins_tx),
 				 .io_uartPins_rx(io_uartPins_rx),

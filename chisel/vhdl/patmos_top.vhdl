@@ -41,8 +41,6 @@ architecture rtl of patmos_top is
 			clk             : in  std_logic;
 			reset           : in  std_logic;
 
-			io_cpuId        : in  std_logic_vector(31 downto 0);
-            
 			io_comConf_M_Cmd        : out std_logic_vector(2 downto 0);
 			io_comConf_M_Addr       : out std_logic_vector(31 downto 0);
 			io_comConf_M_Data       : out std_logic_vector(31 downto 0);
@@ -59,6 +57,7 @@ architecture rtl of patmos_top is
 			io_comSpm_S_Resp        : in std_logic_vector(1 downto 0);
 			io_comSpm_S_Data        : in std_logic_vector(31 downto 0);
 
+			io_cpuInfoPins_id   : in  std_logic_vector(31 downto 0);            
 			io_ledsPins_led : out std_logic_vector(8 downto 0);
 			io_uartPins_tx  : out std_logic;
 			io_uartPins_rx  : in  std_logic;
@@ -158,10 +157,14 @@ begin
             end if;
 	end process;
 
-        comp : Patmos port map(clk_int, int_res, X"00000000",
+        comp : Patmos port map(clk_int, int_res,
                            open, open, open, open, open,
                            (others => '0'), (others => '0'), '0',
                            open, open, open, open,
-                           (others => '0'), (others => '0'), led, txd, rxd, oSRAM_A, sram_out_dout_ena, oSRAM_ADSC_N, oSRAM_OE_N, oSRAM_WE_N, oSRAM_BE_N, oSRAM_GW_N, oSRAM_CE1_N, oSRAM_CE2, oSRAM_CE3_N, oSRAM_ADSP_N, oSRAM_ADV_N, sram_out_dout, sram_in_din);
+                           (others => '0'), (others => '0'),
+                           X"00000000",
+                           led,
+                           txd, rxd,
+                           oSRAM_A, sram_out_dout_ena, oSRAM_ADSC_N, oSRAM_OE_N, oSRAM_WE_N, oSRAM_BE_N, oSRAM_GW_N, oSRAM_CE1_N, oSRAM_CE2, oSRAM_CE3_N, oSRAM_ADSP_N, oSRAM_ADV_N, sram_out_dout, sram_in_din);
 
 end architecture rtl;
