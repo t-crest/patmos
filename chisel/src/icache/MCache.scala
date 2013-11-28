@@ -258,7 +258,9 @@ class MCacheReplFifo() extends Component {
 
   val reloc = Mux(selMCacheReg,
                   callRetBaseReg - posReg.toUFix,
-                  UFix(1 << (ISPM_ONE_BIT - 2)))
+                  Mux(selIspmReg,
+                      UFix(1 << (ISPM_ONE_BIT - 2)),
+                      UFix(0)))
 
   //insert new tags when control unit requests
   when (io.mcache_ctrlrepl.w_tag) {
