@@ -88,48 +88,60 @@ object Config {
   def fromXML(node: scala.xml.Node): Config =
     new Config {
       val description = (node \ "description").text
-      val frequency = ((node \ "frequency")(0) \ "@Hz").text.toInt
-      val dual = ((node \ "pipeline")(0) \ "@dual").text.toBoolean
+      val frequency = find(find(node, "frequency"), "@Hz").text.toInt
+      val dual = find(find(node, "pipeline"), "@dual").text.toBoolean
       val pipeCount = if (dual) 2 else 1
-      val MCacheNode = (node \ "MCache")(0)
+      val MCacheNode = find(node, "MCache")
       val MCache =
-        new MCacheConfig(parseSize((MCacheNode \ "@size").text),
-                         (MCacheNode \ "@blocks").text.toInt,
-                         (MCacheNode \ "@repl").text)
-      val DCacheNode = (node \ "DCache")(0)
+        new MCacheConfig(parseSize(find(MCacheNode, "@size").text),
+                         find(MCacheNode, "@blocks").text.toInt,
+                         find(MCacheNode, "@repl").text)
+      val DCacheNode = find(node, "DCache")
       val DCache =
-        new DCacheConfig(parseSize((DCacheNode \ "@size").text),
-                         (DCacheNode \ "@assoc").text.toInt,
-                         (DCacheNode \ "@repl").text)
-      val SCacheNode = (node \ "SCache")(0)
+        new DCacheConfig(parseSize(find(DCacheNode, "@size").text),
+                         find(DCacheNode, "@assoc").text.toInt,
+                         find(DCacheNode, "@repl").text)
+      val SCacheNode = find(node, "SCache")
       val SCache =
-        new SCacheConfig(parseSize((SCacheNode \ "@size").text))
+        new SCacheConfig(parseSize(find(SCacheNode, "@size").text))
 
-      val ISPM = new SPMConfig(parseSize(((node \ "ISPM")(0) \ "@size").text))
-      val DSPM = new SPMConfig(parseSize(((node \ "DSPM")(0) \ "@size").text))
-      val BootSPM = new SPMConfig(parseSize(((node \ "BootSPM")(0) \ "@size").text))
+      val ISPM = new SPMConfig(parseSize(find(find(node, "ISPM"), "@size").text))
+      val DSPM = new SPMConfig(parseSize(find(find(node, "DSPM"), "@size").text))
+      val BootSPM = new SPMConfig(parseSize(find(find(node, "BootSPM"), "@size").text))
 
-      val ExtMem = new ExtMemConfig(parseSize(((node \ "ExtMem")(0) \ "@size").text))
+      val ExtMem = new ExtMemConfig(parseSize(find(find(node, "ExtMem"), "@size").text))
 
       val DevList = ((node \ "IODevs") \ "IODev")
       val DevNodes = ((node \ "IOs") \ "IO")
       val Devs = DevNodes.map(devFromXML(_, DevList)).toList
 
       def devFromXML(node: scala.xml.Node, devs: scala.xml.NodeSeq): DeviceConfig = {
-        val key = (node \ "@IODevTypeRef").text
-        val dev = (devs.filter(d => (d \ "@IODevType").text == key))(0)
-        val name = (dev \ "@entity").text
+        val key = find(node, "@IODevTypeRef").text
+        val devList = (devs.filter(d => (d \ "@IODevType").text == key))
+        if (devList.isEmpty) {
+          sys.error("No IODev specification found for "+node)
+        }
+        val dev = devList(0)
+        val name = find(dev, "@entity").text
         val paramsNode = (dev \ "params")
         val params = if (paramsNode.isEmpty) {
           Map[String,String]()
         } else {
-          Map((paramsNode \ "param").map(p => (p \ "@name").text -> 
-                                              (p \ "@value").text) : _*)
+          Map((paramsNode \ "param").map(p => find(p, "@name").text -> 
+                                              find(p, "@value").text) : _*)
         }
-        val offset = (node \ "@offset").text.toInt
+        val offset = find(node, "@offset").text.toInt
         println("IO device "+key+": entity "+name+", offset "+offset+", params "+params)
         new DeviceConfig(name, params, offset)
       }
+
+	  def find(node: scala.xml.Node, item: String): scala.xml.Node = {
+		val seq = node \ item
+		if (seq.isEmpty) {
+		  sys.error("Item "+item+" not found in node "+node)
+		}
+		seq(0)
+	  }
     }
 
   def createDevice(dev : Config#DeviceConfig) : CoreDevice = {
