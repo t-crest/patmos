@@ -47,7 +47,7 @@ import patmos.Constants._
 
 import ocp._
 
-object Timer {
+object Timer extends DeviceObject {
   def create(params: Map[String, String]) : Timer = {
     new Timer(CLOCK_FREQ)
   }

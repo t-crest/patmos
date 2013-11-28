@@ -46,11 +46,11 @@ import ocp._
 
 import patmos.Constants._
 
-object Leds {
+object Leds extends DeviceObject {
   var ledCount = -1
 
   def create(params: Map[String, String]) : Leds = {
-    ledCount = params.getOrElse("ledCount", "0").toInt
+    ledCount = getPosIntParam(params, "ledCount")
     new Leds(ledCount)
   }
 

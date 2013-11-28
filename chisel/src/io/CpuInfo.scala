@@ -47,7 +47,7 @@ import patmos.Constants._
 
 import ocp._
 
-object CpuInfo {
+object CpuInfo extends DeviceObject {
   def create(params: Map[String, String]) : CpuInfo = {
     new CpuInfo()
   }

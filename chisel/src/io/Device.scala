@@ -46,7 +46,41 @@ import ocp._
 
 import patmos.Constants._
 
-class CoreDevice() extends Component() {
+abstract class DeviceObject() {
+  // every device object must have a method "create" and a trait "Pins"
+  def create(params: Map[String, String]) : Device
+  trait Pins
+
+  // helper functions for parameter parsing
+
+  def getParam(params: Map[String, String], key: String) : String = {
+    val param = params.get(key)
+    if (param == None) {
+      throw new IllegalArgumentException("Parameter " + key + " not found")
+    }
+    param.get
+  }
+
+  def getIntParam(params: Map[String, String], key: String) : Int = {
+    val param = getParam(params, key)
+    try { param.toInt
+    } catch { case exc =>
+      throw new IllegalArgumentException("Parameter " + key + " must be an integer")      
+    }
+  }
+
+  def getPosIntParam(params: Map[String, String], key: String) : Int = {
+    val param = getIntParam(params, key)
+    if (param <= 0) {
+      throw new IllegalArgumentException("Parameter " + key + " must be a positive integer")
+    }
+	param
+  }
+}
+
+abstract class Device() extends Component()
+
+class CoreDevice() extends Device() {
   val io = new CoreDeviceIO();
 }
 

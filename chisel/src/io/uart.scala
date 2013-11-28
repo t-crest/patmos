@@ -47,10 +47,10 @@ import patmos.Constants._
 
 import ocp._
 
-object Uart {
+object Uart extends DeviceObject {
   def create(params: Map[String, String]) : Uart = {
-    val baud_rate = params.getOrElse("baud_rate", "0").toInt
-    new Uart(CLOCK_FREQ, baud_rate)
+    val baudRate = getPosIntParam(params, "baud_rate")
+    new Uart(CLOCK_FREQ, baudRate)
   }
 
   trait Pins {
