@@ -111,8 +111,8 @@ object Config {
 
       val ExtMem = new ExtMemConfig(parseSize(((node \ "ExtMem")(0) \ "@size").text))
 
-      val DevList = ((node \ "IODevs")(0) \ "IODev")
-      val DevNodes = ((node \ "IOs")(0) \ "IO")
+      val DevList = ((node \ "IODevs") \ "IODev")
+      val DevNodes = ((node \ "IOs") \ "IO")
       val Devs = DevNodes.map(devFromXML(_, DevList)).toList
 
       def devFromXML(node: scala.xml.Node, devs: scala.xml.NodeSeq): DeviceConfig = {
@@ -123,8 +123,8 @@ object Config {
         val params = if (paramsNode.isEmpty) {
           Map[String,String]()
         } else {
-          Map((paramsNode(0) \ "param").map(p => (p \ "@name").text -> 
-                                                 (p \ "@value").text) : _*)
+          Map((paramsNode \ "param").map(p => (p \ "@name").text -> 
+                                              (p \ "@value").text) : _*)
         }
         val offset = (node \ "@offset").text.toInt
         println("IO device "+key+": entity "+name+", offset "+offset+", params "+params)
