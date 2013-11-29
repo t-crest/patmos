@@ -9,6 +9,7 @@ CC=patmos-clang
 CFLAGS-BOOTABLE=-target patmos-unknown-unknown-elf \
 	-DBOOTROM \
 	-mpatmos-method-cache-size=0x8000 \
+	-mpatmos-preferred-subfunction-size=0 \
 	-mpatmos-subfunction-align=1 \
 	-mpatmos-disable-stack-cache \
 	-nodefaultlibs -nostdlib -nostartfiles \
@@ -21,7 +22,7 @@ CFLAGS-BOOTABLE=-target patmos-unknown-unknown-elf \
 # Flags for compiling normal applications
 CFLAGS=-target patmos-unknown-unknown-elf \
 	-Xgold -T../chisel/ram.t \
-	-mpatmos-method-cache-size=0x100 \
+	-mpatmos-method-cache-size=0x1000 \
 	-mpatmos-stack-base=0x1f0000 -mpatmos-shadow-stack-base=0x200000 \
 	-O2
 
