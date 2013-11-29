@@ -374,9 +374,9 @@ int main (int argc, char* argv[]) {
 	}
 
 	if (keys) {
-	  if ((rand() % 0x10000) == 0) {
-		c->Patmos__io_key = rand();
-	  }
+	  // if ((rand() % 0x10000) == 0) {
+	  // 	c->Patmos__io_key = rand();
+	  // }
 	}
 
 	if (uart) {
@@ -396,7 +396,7 @@ int main (int argc, char* argv[]) {
 	  break;
 	}
 	if ((c->Patmos_core_memory__memReg_mem_brcf.to_bool()
-		   || c->Patmos_core_memory__memReg_mem_ret.to_bool()
+		 || c->Patmos_core_memory__memReg_mem_ret.to_bool())
 		&& c->Patmos_core_mcache_mcachectrl__callRetBaseReg.to_ulong() == 0) {
 	  halt = true;
 	}

@@ -42,13 +42,35 @@ package io
 import Chisel._
 import Node._
 
-import patmos.KeyIO
-import patmos.KeyPinIO
+import patmos.Constants._
 
 import ocp._
 
-class Keys(keyCount : Int) extends Component {
-  val io = new KeyIO()
+object Keys extends DeviceObject {
+  var keyCount = -1
+
+  def init(params: Map[String, String]) = {
+    keyCount = getPosIntParam(params, "keyCount")
+  }
+
+  def create(params: Map[String, String]) : Keys = {
+    new Keys(keyCount)
+  }
+
+  trait Pins {
+    val keysPins = new Bundle() {
+      val key = Bits(INPUT, keyCount)
+    }
+  }
+
+  trait Intrs {
+	val keysIntrs = Vec(keyCount) { Bool(INPUT) }
+  }
+}
+
+class Keys(keyCount : Int) extends CoreDevice() {
+
+  override val io = new CoreDeviceIO() with Keys.Pins with Keys.Intrs
 
   val keySyncReg = Reg(resetVal = Bits(0, keyCount))
   val keyReg = Reg(resetVal = Bits(0, keyCount))
@@ -67,11 +89,11 @@ class Keys(keyCount : Int) extends Component {
   io.ocp.S.Data := keyReg
 
   // Connection to pins
-  keySyncReg := io.pins.keys
+  keySyncReg := io.keysPins.key
   keyReg := keySyncReg
 
   // Generate interrupts on falling edges
   for (i <- 0 until keyCount) {
-   	io.intrs(i) := keyReg(i) === Bits("b1") && keySyncReg(i) === Bits("b0")
+   	io.keysIntrs(i) := keyReg(i) === Bits("b1") && keySyncReg(i) === Bits("b0")
   }
 }

@@ -87,7 +87,7 @@ class Exceptions extends Component {
 	}
   }
 
-  when(masterReg.Cmd === OcpCmd.WRNP) {
+  when(masterReg.Cmd === OcpCmd.WR) {
 	io.ocp.S.Resp := OcpResp.DVA
 	switch(masterReg.Addr(EXC_ADDR_WIDTH-1, 2)) {
 	  is(Bits("b000000")) { status := masterReg.Data }

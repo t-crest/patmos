@@ -42,9 +42,11 @@ import scala.tools.nsc.interpreter._
 import scala.tools.nsc._
 
 /**
- * A tiny configuration tool for Patmos.
+ * The configuration tool for Patmos.
  * 
  * Authors: Martin Schoeberl (martin@jopdesign.com)
+ *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
+ * 
  */
 abstract class Config {
   val description: String
@@ -66,7 +68,7 @@ abstract class Config {
   case class ExtMemConfig(size: Int)
   val ExtMem: ExtMemConfig
 
-  case class DeviceConfig(name : String, params : Map[String, String], offset : Int)
+  case class DeviceConfig(name : String, params : Map[String, String], offset : Int, intrs : List[Int])
   val Devs: List[DeviceConfig]
 
   override def toString =
@@ -115,6 +117,9 @@ object Config {
       val DevNodes = ((node \ "IOs") \ "IO")
       val Devs = DevNodes.map(devFromXML(_, DevList)).toList
 
+      // Make sure static state of devices is initialized
+      for (d <- Devs) { initDevice(d) }
+
       def devFromXML(node: scala.xml.Node, devs: scala.xml.NodeSeq): DeviceConfig = {
         val key = find(node, "@IODevTypeRef").text
         val devList = (devs.filter(d => (d \ "@IODevType").text == key))
@@ -131,8 +136,18 @@ object Config {
                                               find(p, "@value").text) : _*)
         }
         val offset = find(node, "@offset").text.toInt
-        println("IO device "+key+": entity "+name+", offset "+offset+", params "+params)
-        new DeviceConfig(name, params, offset)
+        val intrsList = (node \ "@intrs").text
+        val intrs = if (intrsList.isEmpty) {
+          List[Int]()
+        } else {
+          intrsList.split(",").toList.map(_.trim.toInt)
+        }
+
+        print("IO device "+key+": entity "+name+", offset "+offset+", params "+params)
+        if (!intrs.isEmpty) { print(", interrupts: "+intrs) }
+        println()
+
+        new DeviceConfig(name, params, offset, intrs)
       }
 
 	  def find(node: scala.xml.Node, item: String): scala.xml.Node = {
@@ -143,6 +158,14 @@ object Config {
 		seq(0)
 	  }
     }
+
+  def initDevice(dev : Config#DeviceConfig) = {
+    // get class for device
+    val clazz = Class.forName("io."+dev.name)
+    // create device instance
+    val meth = clazz.getMethods.find(_.getName == "init").get
+    meth.invoke(null, dev.params)
+  }
 
   def createDevice(dev : Config#DeviceConfig) : CoreDevice = {
     // get class for device
@@ -175,6 +198,29 @@ object Config {
   def connectAllIOPins(outer : Node, inner : Node) {
     for (name <- conf.Devs.map(_.name)) {
 	  connectIOPins(name, outer, inner)
+    }
+  }
+
+  def connectIntrPins(dev : Config#DeviceConfig, outer : InOutIO, inner : Node) {
+    if (!dev.intrs.isEmpty) {
+      val name = dev.name
+      // get class for interrupt trait
+      val clazz = Class.forName("io."+name+"$Intrs")
+      // get method to retrieve interrupt bits
+      val methName = name(0).toLower + name.substring(1, name.length) + "Intrs"
+      val meth = clazz.getMethods.find(_.getName == methName)
+      if (meth == None) {
+        sys.error("Interrupt pins not found for device: "+clazz+"."+methName)
+      } else {
+        val intrPins = meth.get.invoke(clazz.cast(inner)).asInstanceOf[Vec[Bool]]
+        if (intrPins.length != dev.intrs.length) {
+          sys.error("Inconsistent interrupt counts for device: "+clazz+"."+methName)
+        } else {
+          for (i <- 0 until dev.intrs.length) {
+            outer.intrs(dev.intrs(i)) := intrPins(i)
+          }
+        }
+      }
     }
   }
 

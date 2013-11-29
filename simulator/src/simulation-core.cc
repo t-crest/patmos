@@ -187,7 +187,7 @@ namespace patmos
     if (Halt) {
       // When we are halting, just fill the pipeline with halt instructions
       // halt when we flushed the whole pipeline. 
-      instr_SIF[0] = instruction_data_t::mk_CFLb(*Instr_HALT, p0, 0, 0);
+      instr_SIF[0] = instruction_data_t::mk_CFLrt(*Instr_HALT, p0, r0, r0);
 
       for(unsigned int i = 1; i < NUM_SLOTS; i++)
       {

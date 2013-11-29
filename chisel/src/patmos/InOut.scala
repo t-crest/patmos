@@ -65,7 +65,7 @@ class InOut() extends Component {
 
   val selDeviceVec = Vec(MAX_IO_DEVICES) { Bool() }
   val deviceSVec = Vec(MAX_IO_DEVICES) { OcpSlaveSignals.resetVal(DATA_WIDTH) }
-  for (i <- 0 to MAX_IO_DEVICES-1) {
+  for (i <- 0 until MAX_IO_DEVICES) {
     selDeviceVec(i) := selIO & io.memInOut.M.Addr(11, 8) === Bits(i)
     deviceSVec(i) := OcpSlaveSignals.resetVal(DATA_WIDTH)
   }
@@ -85,10 +85,15 @@ class InOut() extends Component {
 	selDeviceReg := selDeviceVec
   }
 
+  // Default values for interrupt pins
+  for (i <- 0 until INTR_COUNT) {
+	io.intrs(i) := Bool(false)
+  }
+
   // Register for error response
   val errResp = Reg(resetVal = OcpResp.NULL)
   errResp := Mux(io.memInOut.M.Cmd != OcpCmd.IDLE &&
-                 selIO && !selDeviceVec.fold(Bools(false))(_|_),
+                 selIO && !selDeviceVec.fold(Bool(false))(_|_),
                  OcpResp.ERR, OcpResp.NULL)
 
   // Dummy ISPM (create fake response)
@@ -116,6 +121,7 @@ class InOut() extends Component {
   io.comSpm.M.Cmd := Mux(selComSpm, io.memInOut.M.Cmd, OcpCmd.IDLE)
   val comSpmS = io.comSpm.S
 
+  // The actual I/O devices
   for (devConf <- Config.conf.Devs) {
     val dev = Config.createDevice(devConf)
     // connect ports
@@ -123,34 +129,20 @@ class InOut() extends Component {
     dev.io.ocp.M.Cmd := Mux(selDeviceVec(devConf.offset), io.memInOut.M.Cmd, OcpCmd.IDLE)
     deviceSVec(devConf.offset) := dev.io.ocp.S
     Config.connectIOPins(devConf.name, io, dev.io)
+    Config.connectIntrPins(devConf, io, dev.io)
   }
 
-   // The Keys
-  val keys = new Keys(KEY_COUNT)
-  keys.io.ocp.M := io.memInOut.M
-  keys.io.ocp.M.Cmd := Mux(selKey, io.memInOut.M.Cmd, OcpCmd.IDLE)
-  val keysS = keys.io.ocp.S
-  io.keyPins <> keys.io.pins
-
-  // The exception unit is outside this unit
+  // The exception unit is special and outside this unit
   io.excInOut.M := io.memInOut.M
-  io.excInOut.M.Cmd := Mux(selExc, io.memInOut.M.Cmd, OcpCmd.IDLE)
-  val excS = io.excInOut.S
+  io.excInOut.M.Cmd := Mux(selDeviceVec(EXC_IO_OFFSET), io.memInOut.M.Cmd, OcpCmd.IDLE)
+  deviceSVec(EXC_IO_OFFSET) := io.excInOut.S
 
   // Return data to pipeline
   io.memInOut.S.Data := spmS.Data
 
-  // Connect interrupt lines
-  for (i <- 0 until INTR_COUNT) {
-   	io.intrs(i) := Bool(false)
-  }
-  for (i <- 0 until KEY_COUNT) {
-   	io.intrs(i) := keys.io.intrs(i)
-  }
-
   when(selComConfReg) { io.memInOut.S.Data := comConfS.Data }
   when(selComSpmReg)  { io.memInOut.S.Data := comSpmS.Data }
-  for (i <- 0 to MAX_IO_DEVICES-1) {
+  for (i <- 0 until MAX_IO_DEVICES) {
     when(selDeviceReg(i)) { io.memInOut.S.Data := deviceSVec(i).Data }
   }
 

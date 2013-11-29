@@ -17,6 +17,7 @@
 	<IO IODevTypeRef="Timer" offset="2"/>
 	<IO IODevTypeRef="Uart" offset="8"/>
 	<IO IODevTypeRef="Leds" offset="9"/>
+	<!-- <IO IODevTypeRef="Keys" offset="10" intrs="0,1,2,3"/> -->
   </IOs>
 
   <IODevs>
@@ -30,6 +31,11 @@
 	<IODev IODevType="Leds" entity="Leds" iface="OcpCore">
 	  <params>
 		<param name="ledCount" value="9"/>
+	  </params>
+	</IODev>
+	<IODev IODevType="Keys" entity="Keys" iface="OcpCore">
+	  <params>
+		<param name="keyCount" value="4"/>
 	  </params>
 	</IODev>
   </IODevs>

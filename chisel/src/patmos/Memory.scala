@@ -69,7 +69,6 @@ class Memory() extends Component {
   io.ena_out := enable
 
   // Register from execution stage
-  val memReg = Reg(new ExMem(), resetVal = ExMemResetVal)
   when(enable && io.ena_in) {
     memReg := io.exmem
     mayStallReg := io.exmem.mem.load || io.exmem.mem.store
@@ -186,7 +185,7 @@ class Memory() extends Component {
     }
   }
   
-  io.memwb.relPc := memReg.relPc
+  io.memwb.pc := memReg.relPc
   for (i <- 0 until PIPE_COUNT) {
 	io.memwb.rd(i).addr := memReg.rd(i).addr
 	io.memwb.rd(i).valid := memReg.rd(i).valid

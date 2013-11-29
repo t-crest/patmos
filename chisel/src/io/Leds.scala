@@ -44,13 +44,14 @@ import Node._
 
 import ocp._
 
-import patmos.Constants._
-
 object Leds extends DeviceObject {
   var ledCount = -1
 
-  def create(params: Map[String, String]) : Leds = {
+  def init(params: Map[String, String]) = {
     ledCount = getPosIntParam(params, "ledCount")
+  }
+
+  def create(params: Map[String, String]) : Leds = {
     new Leds(ledCount)
   }
 

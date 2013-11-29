@@ -154,7 +154,6 @@ class DecEx() extends Bundle() {
   val wrRd  = Vec(PIPE_COUNT) { Bool() }
 
   val callAddr = UFix(width = DATA_WIDTH)
-  val brcfAddr = UFix(width = DATA_WIDTH)
   val call = Bool()
   val ret = Bool()
   val brcf = Bool()
@@ -301,10 +300,8 @@ class FeEx() extends Bundle() {
 
 class MemWb() extends Bundle() {
   val rd = Vec(PIPE_COUNT) { new Result() }
-  // do we need this? probably not.
-  // maybe drop unused pc fields
-  // maybe nice for debugging?
-  val relPc = UFix(width = PC_SIZE)
+  // PC value for debugging
+  val pc = UFix(width = PC_SIZE)
 }
 
 class RegFileRead() extends Bundle() {
@@ -371,12 +368,22 @@ class InOutIO() extends Bundle() {
   val memInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
   val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
+  val excInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val intrs = Vec(INTR_COUNT) { Bool(OUTPUT) }
 }
 
 class BootMemIO() extends Bundle() {
   val memInOut = new OcpCacheSlavePort(ADDR_WIDTH, DATA_WIDTH)
   val extMem = new OcpCacheMasterPort(ADDR_WIDTH, DATA_WIDTH)
+}
+
+class MemExc() extends Bundle() {
+  val call = Bool()
+  val ret = Bool()
+  val src = Bits(width = EXC_SRC_BITS)
+
+  val exc = Bool()
+  val excAddr = UFix(width = PC_SIZE)
 }
 
 class MemoryIO() extends Bundle() {

@@ -70,6 +70,7 @@ object Constants {
   val BURST_LENGTH = 4 // For SSRAM on DE2-70 board max. 4
 
   // Exceptions/interrupts
+  val EXC_IO_OFFSET = 1
   val EXC_SRC_BITS = 5
   val EXC_COUNT  = 1 << EXC_SRC_BITS
   val INTR_COUNT = 16

@@ -48,6 +48,9 @@ import patmos.Constants._
 import ocp._
 
 object Uart extends DeviceObject {
+
+  def init(params: Map[String, String]) = { }
+
   def create(params: Map[String, String]) : Uart = {
     val baudRate = getPosIntParam(params, "baud_rate")
     new Uart(CLOCK_FREQ, baudRate)
