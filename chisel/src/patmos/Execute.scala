@@ -212,10 +212,12 @@ class Execute() extends Component {
 	mulHHReg := op1H.toUFix * op2H.toUFix
 
 	when(signed) {
-	  mulLLReg := (op1L.toUFix * op2L.toUFix).toUFix
-	  mulLHReg := (op1L.toUFix * op2H.toFix).toUFix
-	  mulHLReg := (op1H.toFix * op2L.toUFix).toUFix
-	  mulHHReg := (op1H.toFix * op2H.toFix).toUFix
+	  val op1HSigned = Cat(Fill(DATA_WIDTH/2, op1H(DATA_WIDTH/2-1)), op1H.toFix)
+	  val op2HSigned = Cat(Fill(DATA_WIDTH/2, op2H(DATA_WIDTH/2-1)), op2H.toFix)
+	  mulLLReg := (op1L.toUFix * op2L.toUFix).toUFix()(DATA_WIDTH-1, 0)
+	  mulLHReg := (op1L.toUFix * op2HSigned).toUFix()(DATA_WIDTH-1, 0)
+	  mulHLReg := (op1HSigned * op2L.toUFix).toUFix()(DATA_WIDTH-1, 0)
+	  mulHHReg := (op1HSigned * op2HSigned).toUFix()(DATA_WIDTH-1, 0)
 	}
 
 	val mulResult = (Cat(mulHHReg, mulLLReg)
@@ -247,12 +249,21 @@ class Execute() extends Component {
 	predReg(0) := Bool(true)
 
 	// stack register handling
-	when(exReg.aluOp(i).isSTC && doExecute(i) && io.ena) {
+	when(exReg.aluOp(i).isSTC && doExecute(i)) {
 	  io.exdec.sp := op(2*i+1).toUFix()
-	  stackTopReg := op(2*i+1).toUFix()
+	  when (io.ena) {
+		stackTopReg := op(2*i+1).toUFix()
+	  }
 	}
 
 	// special registers
+	when(exReg.aluOp(i).isMTS && doExecute(i)) {
+	  switch(exReg.aluOp(i).func) {
+		is(SPEC_ST) {
+		  io.exdec.sp := op(2*i).toUFix()
+		}
+	  }
+	}
 	when(exReg.aluOp(i).isMTS && doExecute(i) && io.ena) {
 	  switch(exReg.aluOp(i).func) {
 		is(SPEC_FL) {
@@ -266,7 +277,6 @@ class Execute() extends Component {
 		  mulHiReg := op(2*i).toUFix()
 		}
 		is(SPEC_ST) {
-		  io.exdec.sp := op(2*i).toUFix()
 		  stackTopReg := op(2*i).toUFix()
 		}
 		is(SPEC_SS) {

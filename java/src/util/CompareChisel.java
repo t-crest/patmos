@@ -58,9 +58,12 @@ public class CompareChisel {
 		Scanner hs = new Scanner(new FileInputStream(args[0]));
 		Scanner chisel = new Scanner(new FileInputStream(args[1]));
 
+		int line = 1;
+
 		// Read till the Chisel C based simulation provides useful output
 		while (chisel.hasNextLine()) {
 			String s = chisel.nextLine();
+			line++;
 			if (s.startsWith("Patmos start")) {
 				break;
 			}
@@ -128,11 +131,12 @@ public class CompareChisel {
 				} else {
 					++cntNoChange;
 					if (chisel.hasNextLine()) {
-						chisel.nextLine();						
+						chisel.nextLine();
+						line++;
 					} else {
 						break outerloop;
 					}
-					if (cntNoChange>1000) {
+					if (cntNoChange>10000) {
 						System.out.println("No change in Chisel simulation");
 						System.exit(1);
 					}
@@ -174,14 +178,15 @@ public class CompareChisel {
 			}
 			for (int i = 0; i < 32; ++i) {
 				if (csReg[i] != hsReg[i]) {
-					System.out.println("Difference at PC: " + pc);
+					System.out.println("Difference at PC: " + pc + " line: " + line);
 					System.out.println("Register " + i + " Chisel: " + csReg[i]
 							+ " patsim: " + hsReg[i]);
 					System.exit(1);
 				}
 			}
 			if (chisel.hasNextLine()) {
-				chisel.nextLine();						
+				chisel.nextLine();
+				line++;
 			} else {
 				break;
 			}

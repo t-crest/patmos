@@ -40,14 +40,15 @@ namespace patmos
                            instr_cache_t &instr_cache,
                            stack_cache_t &stack_cache, symbol_map_t &symbols,
                            interrupt_handler_t &interrupt_handler)
-    : Dbg_cnt_delay(0), Reset_stats_PC(std::numeric_limits<unsigned int>::max()),
+    : Dbg_cnt_delay(0), 
       Cycle(0), Memory(memory), Local_memory(local_memory),
       Data_cache(data_cache), Instr_cache(instr_cache),
       Stack_cache(stack_cache), Symbols(symbols), Dbg_stack(*this),
       Interrupt_handler(interrupt_handler),
-      BASE(0), PC(0), nPC(0),
+      BASE(0), PC(0), nPC(0), Debug_last_PC(0),
       Stall(SXX), Disable_IF(false), Is_decoupled_load_active(false), 
-      Branch_counter(0), Interrupt_handling_counter(0)
+      Branch_counter(0), Halt(false), Interrupt_handling_counter(0),
+      Flush_Cache_PC(std::numeric_limits<unsigned int>::max())
   {
     // initialize one predicate register to be true, otherwise no instruction
     // will ever execute
@@ -77,8 +78,12 @@ namespace patmos
 
     // Create the interrupt instruction
     Instr_INTR       = new i_intr_t();
-    Instr_INTR->ID   = patmos::decoder_t::get_num_instructions();
+    Instr_INTR->ID   = -1;
     Instr_INTR->Name = "intr";
+    
+    Instr_HALT       = new i_halt_t();
+    Instr_HALT->ID   = -2;
+    Instr_HALT->Name = "halt";
   }
 
 
@@ -86,6 +91,7 @@ namespace patmos
   simulator_t::~simulator_t()
   {
     delete Instr_INTR;
+    delete Instr_HALT;
   }
 
 
@@ -95,7 +101,7 @@ namespace patmos
   {
     if (debug)
     {
-      debug_out << boost::format("%1% : ") % pst;
+      debug_out << pst << " : ";
     }
 
     // invoke simulation functions
@@ -120,6 +126,7 @@ namespace patmos
 
     if (debug)
     {
+      if (Stall == pst) debug_out << "            (stalling)";
       debug_out << "\n";
     }
   }
@@ -134,20 +141,31 @@ namespace patmos
     return Stall >= pst;
   }
 
+  void simulator_t::halt() 
+  {
+    Halt = true;
+  }
+  
+  bool simulator_t::is_halting() const 
+  {
+    return Halt;
+  }
+  
   void simulator_t::track_retiring_instructions()
   {
     if (Stall != NUM_STAGES-1)
     {
       for(unsigned int j = 0; j < NUM_SLOTS; j++)
       {
-        if (Pipeline[NUM_STAGES-1][j].I)
+        instruction_data_t &ops = Pipeline[NUM_STAGES-1][j];
+        
+        if (ops.I && ops.I->ID >= 0)
         {
           // get instruction statistics
-          instruction_stat_t &stat(
-              Instruction_stats[j][Pipeline[NUM_STAGES-1][j].I->ID]);
+          instruction_stat_t &stat = Instruction_stats[j][ops.I->ID];
 
           // update instruction statistics
-          if (Pipeline[NUM_STAGES-1][j].DR_Pred)
+          if (ops.DR_Pred)
             stat.Num_retired++;
           else
             stat.Num_discarded++;
@@ -166,6 +184,19 @@ namespace patmos
     // reference
     instruction_data_t *instr_SIF = Pipeline[SIF];
 
+    if (Halt) {
+      // When we are halting, just fill the pipeline with halt instructions
+      // halt when we flushed the whole pipeline. 
+      instr_SIF[0] = instruction_data_t::mk_CFLb(*Instr_HALT, p0, 0, 0);
+
+      for(unsigned int i = 1; i < NUM_SLOTS; i++)
+      {
+        instr_SIF[i] = instruction_data_t();
+      }
+      
+      return;
+    }
+    
     // Fetch the instruction word from the method cache.
     // NB: We fetch in each cycle, as preparation for supporting a standard
     //     I-Cache in addition.
@@ -251,7 +282,7 @@ namespace patmos
 
   void simulator_t::run(word_t entry, uint64_t debug_cycle,
                         debug_format_e debug_fmt, std::ostream &debug_out,
-                        uint64_t max_cycles,
+                        bool debug_nopc, uint64_t max_cycles,
                         bool collect_instr_stats)
   {
 
@@ -259,7 +290,6 @@ namespace patmos
     if (Cycle == 0)
     {
       BASE = PC = nPC = entry;
-      lPC = ~0;
       Instr_cache.initialize(entry);
       Profiling.initialize(entry);
       Dbg_stack.initialize(entry);
@@ -271,16 +301,8 @@ namespace patmos
       for(uint64_t cycle = 0; cycle < max_cycles; cycle++, Cycle++)
       {
         bool debug = (Cycle >= debug_cycle);
-        bool debug_pipline = debug && (debug_fmt >= DF_LONG);
+        bool debug_pipeline = debug && (debug_fmt >= DF_LONG);
         
-        // Reset statistics if we hit the reset PC.
-        // TODO we might add a hit counter and print the stats (to a file)
-        // before we reset them. We should also be able to print them once
-        // we enter a function and once we exit from that function.
-        if (PC == Reset_stats_PC) {
-          reset_stats();
-        }
-
         // reset the stall counter.
         Stall = SXX;
 
@@ -293,7 +315,7 @@ namespace patmos
         // simulate decoupled load
         Decoupled_load.dMW(*this);
 
-        if (debug_pipline)
+        if (debug_pipeline)
         {
           debug_out << "dMW: ";
           Decoupled_load.print(debug_out, Symbols);
@@ -301,16 +323,16 @@ namespace patmos
         }
 
         // invoke simulation functions
-        pipeline_invoke(SMW, &instruction_data_t::MW, debug_pipline);
-        pipeline_invoke(SEX, &instruction_data_t::EX, debug_pipline);
-        pipeline_invoke(SDR, &instruction_data_t::DR, debug_pipline);
+        pipeline_invoke(SMW, &instruction_data_t::MW, debug_pipeline);
+        pipeline_invoke(SEX, &instruction_data_t::EX, debug_pipeline);
+        pipeline_invoke(SDR, &instruction_data_t::DR, debug_pipeline);
         // invoke IF only for printing
-        pipeline_invoke(SIF, NULL, debug_pipline);
-
+        pipeline_invoke(SIF, NULL, debug_pipeline);
+        
         // print instructions in EX stage
         if (debug && debug_fmt == DF_INSTRUCTIONS)
         {
-          print_instructions(debug_out, SEX);
+          print_instructions(debug_out, SEX, debug_nopc);
         }
 
         track_retiring_instructions();
@@ -331,6 +353,12 @@ namespace patmos
         // Update the Program counter. Either nPC was updated in the fetch stage
         // or it was overwritten by a CFL instruction in EX/MW stage.
         if (!is_stalling(SIF)) {
+          // As soon as we reach the flush PC, flush, so that we do not hit this
+          // again when we stall.
+          if (PC != nPC && nPC == Flush_Cache_PC) {
+            flush_caches();
+          }
+          
           PC = nPC;
           // We just inserted a bubble at SIF before, enable fetching for 
           // this new instruction.
@@ -358,21 +386,20 @@ namespace patmos
 
         if (debug)
         {
-          print(debug_out, debug_fmt);
+          print(debug_out, debug_fmt, debug_nopc);
         }
 
         // Collect stats for instructions
         if (collect_instr_stats) {
           for (unsigned int j = 0; j < NUM_SLOTS; j++)
           {
-            if (Pipeline[SMW][j].I) {
+            if (Pipeline[SMW][j].I && Pipeline[SMW][j].I->ID >= 0) {
               // I am too lazy now to remove all the const's..
               instruction_t &I(Decoder.get_instruction(Pipeline[SMW][j].I->ID));
               I.collect_stats(*this, Pipeline[SMW][j]);
             }
           }
         }
-        lPC = PC;
       } // end of simulation loop
     }
     catch (simulation_exception_t e)
@@ -388,7 +415,7 @@ namespace patmos
   }
 
   void simulator_t::print_registers(std::ostream &os,
-                                    debug_format_e debug_fmt) const
+                                    debug_format_e debug_fmt, bool nopc) const
   {
     if (debug_fmt == DF_SHORT)
     {
@@ -400,7 +427,11 @@ namespace patmos
     }
     else
     {
-      os << boost::format("\nCyc : %1%\n PRR: ") % Cycle;
+      if (!nopc) {
+        os << boost::format("\nCyc : %1%\n PRR: ") % Cycle;
+      } else {
+        os << "PRR: ";
+      }
 
       // print values of predicate registers
       unsigned int sz_value = 0;
@@ -411,10 +442,12 @@ namespace patmos
         os << pred_value;
       }
 
-      os << boost::format("  BASE: %1$08x   PC : %2$08x   ")
-        % BASE % PC;
+      if (!nopc) {
+        os << boost::format("  BASE: %1$08x   PC : %2$08x   ")
+          % BASE % PC;
 
-      Symbols.print(os, PC);
+        Symbols.print(os, PC);
+      }
 
       os << "\n ";
 
@@ -453,7 +486,9 @@ namespace patmos
     }
   }
 
-  void simulator_t::print_instructions(std::ostream &os, Pipeline_t stage) const {
+  void simulator_t::print_instructions(std::ostream &os, Pipeline_t stage, 
+                                       bool nopc) const 
+  {
       std::ostringstream oss;
       symbol_map_t emptymap;
       for(unsigned int i = 0; i < NUM_SLOTS; i++) {
@@ -464,13 +499,18 @@ namespace patmos
         oss << boost::format("%1% %|30t|") % instr.str();
       }
 
-      os << boost::format("%1$08x %2$9d %3% %|75t|") 
-                   % Pipeline[stage][0].Address % Cycle % oss.str();
+      if (nopc) {
+        os << boost::format("%1% %|75t|") % oss.str();
+      } else {
+        os << boost::format("%1$08x %2$9d %3% %|75t|") 
+                    % Pipeline[stage][0].Address % Cycle % oss.str();
+      }
 
       if (is_stalling(stage)) {
         // Avoid peeking into memory while memory stage is still working by
         // not printing out operands in this case
         os << "stalling";
+        if (Disable_IF) os << ", IF disabled";
       } else {
         for(unsigned int i = 0; i < NUM_SLOTS; i++) {
           if (!Pipeline[stage][i].I) continue;
@@ -496,13 +536,13 @@ namespace patmos
               s.GPR.get(reg))).get();
   }
 
-  void simulator_t::print(std::ostream &os, debug_format_e debug_fmt)
+  void simulator_t::print(std::ostream &os, debug_format_e debug_fmt, bool nopc)
   {
     if (debug_fmt == DF_TRACE)
     {
       // CAVEAT: this trace mode is used by platin's 'analyze-trace' module
       // do not change without adapting platin
-      if (PC != lPC)
+      if (!is_stalling(SIF) && !is_halting())
       {
         // Boost::format is unacceptably slow (adpcm.elf):
         //  => no debugging output:  1.6s
@@ -514,21 +554,33 @@ namespace patmos
       }
       return;
     }
-    else if (debug_fmt == DF_INSTRUCTIONS) {
+    else if (debug_fmt == DF_INSTRUCTIONS) 
+    {
       // already done before
       return;
     }
     else if (debug_fmt == DF_BLOCKS) {
-      if (PC != lPC && Symbols.contains(PC)) {
-	os << boost::format("%1$08x %2$9d ") % PC % Cycle;
-	Symbols.print(os, PC);
-	os << "\n";
+      if (!is_stalling(SIF) && !is_halting()) {
+        // Check if we either hit a new block, or if we did some jump or return
+        // somewhere into a block
+        if (Symbols.contains(PC) || 
+            PC < Debug_last_PC || PC > Debug_last_PC + NUM_SLOTS * 4)
+        {
+          if (!nopc) {
+            os << boost::format("%1$08x %2$9d ") % PC % Cycle;
+          }
+          Symbols.print(os, PC);
+          os << "\n";
+        }
+        // Remember the current PC to check for jumps
+        Debug_last_PC = PC;
       }
       return;
     }
     else if (debug_fmt == DF_CALLS) {
       if (Dbg_cnt_delay == 1) {
-
+        if (is_stalling(SMW)) return;
+        
         if (Dbg_is_call) {
           os << " args: " << boost::format("r3 = %1$08x, r4 = %2$08x, ") 
                 % read_GPR_post_EX(*this, r3) % read_GPR_post_EX(*this, r4);
@@ -543,7 +595,9 @@ namespace patmos
         Dbg_cnt_delay = 0;
       }
       else if (Dbg_cnt_delay > 1) {
-        Dbg_cnt_delay--;
+        if (!is_stalling(SMW)) {
+          Dbg_cnt_delay--;
+        }
       }
       else if (Pipeline[SMW][0].I && Pipeline[SMW][0].DR_Pred &&
                Pipeline[SMW][0].I->is_flow_control()) {
@@ -558,7 +612,9 @@ namespace patmos
           Dbg_is_call = true;
         }
         if (Dbg_cnt_delay) {
-          os << boost::format("%1$08x %2$9d ") % PC % Cycle;
+          if (!nopc) {
+            os << boost::format("%1$08x %2$9d ") % PC % Cycle;
+          }
           os << (Dbg_is_call ? "call from " : "return from ");
           Symbols.print(os, Pipeline[SMW][0].Address, true);
           os << " to ";
@@ -569,7 +625,7 @@ namespace patmos
     else
     {
       // print register values
-      print_registers(os, debug_fmt);
+      print_registers(os, debug_fmt, nopc);
 
       if (debug_fmt == DF_ALL)
       {
@@ -594,8 +650,18 @@ namespace patmos
     }
   }
 
+  void simulator_t::flush_caches() 
+  {
+    Instr_cache.flush_cache();
+    Data_cache.flush_cache();
+    // TODO flush the stack cache
+  }
+  
   void simulator_t::reset_stats()
   {
+    // TODO reset the statistics in the pipeline stages in the correct cycles.
+    // Send a control signal down the pipeline, resetting statistics on the way.
+    
     for(unsigned int i = 0; i < NUM_STAGES; i++)
     {
       Num_stall_cycles[i] = 0;
@@ -614,7 +680,7 @@ namespace patmos
     Data_cache.reset_stats();
     Stack_cache.reset_stats();
     Memory.reset_stats();
-    Profiling.reset_stats();
+    Profiling.reset_stats(Cycle);
   }
   
   void simulator_t::print_stats(std::ostream &os, bool slot_stats, bool instr_stats) const
@@ -733,6 +799,10 @@ namespace patmos
 
   std::ostream &operator<<(std::ostream &os, Pipeline_t p)
   {
+    if (p == SXX) {
+      return os;
+    }
+    
     const static char* names[NUM_STAGES] = {"IF", "DR", "EX", "MW"};
     assert(names[p] != NULL);
 

@@ -16,7 +16,7 @@ import java.util.concurrent.TimeoutException;
 
 import nl.lxtreme.binutils.elf.Elf;
 import nl.lxtreme.binutils.elf.ElfHeader;
-import nl.lxtreme.binutils.elf.Section;
+import nl.lxtreme.binutils.elf.ProgramHeader;
 import jssc.*;
 
 public class Main 
@@ -81,47 +81,53 @@ public class Main
 
             Transmitter transmitter = new Transmitter(in_stream,out_stream);
             //Transmitter transmitter = new Transmitter(System.in, stream);
-            
-            ArrayList<Section> sections = new ArrayList<Section>();
-            int byte_count = 0;
-            for (Section section : elf.getSections(Section.SHT_PROGBITS)) 
-            {
-            	if(section.getSize() > 0)
-                {
-            		sections.add(section);
-            		byte_count += section.getSize()+8; //Section + section header
-                }
-    		}
-            
-            
-            byte[] header_bytes = new byte[8];
-            ProgressMonitor monitor = verbose ? new ProgressMonitor(byte_count+header_bytes.length,print_stream) : null;
+
+            final int HEADER_SIZE = 8;
+            final int SEGMENT_HEADER_SIZE = 12;
+
+            ProgramHeader [] segments = elf.getProgramHeaders();
+            int byte_count = HEADER_SIZE;
+            for (ProgramHeader segment: segments) {
+                byte_count += SEGMENT_HEADER_SIZE+segment.getFileSize();
+            }
+
+            ProgressMonitor monitor = verbose ?
+                new ProgressMonitor(byte_count,print_stream) : null;
+
+            byte[] header_bytes = new byte[HEADER_SIZE];
     		ByteBuffer byte_buffer = ByteBuffer.wrap(header_bytes);
     		//buffer.order(ByteOrder.BIG_ENDIAN);
     		byte_buffer.putInt((int)header.getEntryPoint());
-    		byte_buffer.putInt((int)sections.size());
-    		//buffer.putInt(100);
+    		byte_buffer.putInt(segments.length);
+
     		ByteArrayInputStream byte_stream = new ByteArrayInputStream(header_bytes);
     		//Send number of headers here
     		transmitter.send(byte_stream,header_bytes.length,monitor);
-            for(Section section : sections)
+
+            for(ProgramHeader segment : segments)
             {
-                long section_size = section.getSize();
-                long section_file_offset = section.getFileOffset();
-                long section_offset = section.getAddress();
-                
-                
-            	FileInputStream file_stream = new FileInputStream(file);
-                
-            	file_stream.skip(section_file_offset);
-            	
-            	//Adding the header size and offset as the first 8 bytes of the stream
-        		byte_buffer = ByteBuffer.wrap(header_bytes);
-        		byte_buffer.putInt((int)section_size);
-        		byte_buffer.putInt((int)section_offset); //Offset 0 for now
-        		byte_stream = new ByteArrayInputStream(header_bytes);
-        		SequenceInputStream merged_stream = new SequenceInputStream(byte_stream, file_stream);
-        		transmitter.send(merged_stream,(int)section_size+header_bytes.length,monitor);
+                long segment_filesize = segment.getFileSize();
+                long segment_memsize = segment.getMemorySize();
+                long segment_file_offset = segment.getFileOffset();
+                long segment_offset = segment.getPhysicalAddress();
+
+        		byte[] segment_header_bytes = new byte[SEGMENT_HEADER_SIZE];
+            	//Adding the header size and offset as the first 12 bytes of the stream
+        		byte_buffer = ByteBuffer.wrap(segment_header_bytes);
+        		byte_buffer.putInt((int)segment_filesize);
+        		byte_buffer.putInt((int)segment_offset);
+        		byte_buffer.putInt((int)segment_memsize);
+        		byte_stream = new ByteArrayInputStream(segment_header_bytes);
+
+        		FileInputStream file_stream = new FileInputStream(file);                
+        		file_stream.skip(segment_file_offset);
+
+        		SequenceInputStream merged_stream =
+        		    new SequenceInputStream(byte_stream, file_stream);
+        		transmitter.send(merged_stream,
+        		                 segment_header_bytes.length+(int)segment_filesize,
+        		                 monitor);
+
         		file_stream.close();
             }
             if (verbose) {

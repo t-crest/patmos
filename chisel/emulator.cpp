@@ -10,11 +10,13 @@
 
 istream *in = &cin;
 ostream *out = &cout;
+ofstream cmiss;
 
 #define OCMEM_ADDR_BITS 16
 
 #define SRAM_ADDR_BITS 19 // 2MB
-static uint ssram_buf [1 << SRAM_ADDR_BITS];
+static uint32_t ssram_buf [1 << SRAM_ADDR_BITS];
+#define SRAM_CYCLES 3
   
 /// Read an elf executable image into the on-chip memories
 static val_t readelf(istream &is, Patmos_t *c)
@@ -99,15 +101,15 @@ static val_t readelf(istream &is, Patmos_t *c)
 			 ((val_t)elfbuf[phdr.p_offset + k + 3] << 0));
 		  val_t addr = ((phdr.p_paddr + k) - (0x1 << OCMEM_ADDR_BITS)) >> 3;
 
-		  unsigned size = (sizeof(c->Patmos_fetch__memEven.contents) / 
-						   sizeof(c->Patmos_fetch__memEven.contents[0]));
+		  unsigned size = (sizeof(c->Patmos_core_fetch__memEven.contents) / 
+						   sizeof(c->Patmos_core_fetch__memEven.contents[0]));
 		  assert(addr < size && "Instructions mapped to ISPM exceed size");
 
 		  // Write to even or odd block
 		  if (((phdr.p_paddr + k) & 0x4) == 0) {
-			c->Patmos_fetch__memEven.put(addr, word);
+			c->Patmos_core_fetch__memEven.put(addr, word);
 		  } else {
-			c->Patmos_fetch__memOdd.put(addr, word);
+			c->Patmos_core_fetch__memOdd.put(addr, word);
 		  }
 		}
 
@@ -122,26 +124,6 @@ static val_t readelf(istream &is, Patmos_t *c)
 		  val_t addr = ((phdr.p_paddr + k) >> 2);
 		  ssram_buf[addr] = word;
 		}
-
-		// TODO: this really writes to globmem and should go away
-		if (((phdr.p_paddr + k) >> OCMEM_ADDR_BITS) == 0x0) {
-		  // Address maps to data SPM
-		  val_t byte = k >= phdr.p_filesz ? 0 : elfbuf[phdr.p_offset + k];
-		  val_t addr = (phdr.p_paddr + k) >> 2;
-		  
-		  unsigned size = (sizeof(c->Patmos_globMem__mem0.contents) /
-						   sizeof(c->Patmos_globMem__mem0.contents[0]));
-
-		  assert (addr < size && "Data mapped to DSPM exceed size");
-
-		  switch ((phdr.p_paddr + k) & 0x3) {
-		  case 0: c->Patmos_globMem__mem3.put(addr, byte); break;
-		  case 1: c->Patmos_globMem__mem2.put(addr, byte); break;
-		  case 2: c->Patmos_globMem__mem1.put(addr, byte); break;
-		  case 3: c->Patmos_globMem__mem0.put(addr, byte); break;
-		  }
-		}
-
 	  }
     }
   }
@@ -155,24 +137,26 @@ static val_t readelf(istream &is, Patmos_t *c)
 }
 
 static void print_state(Patmos_t *c) {
-	sval_t pc = c->Patmos_memory__io_memwb_relPc.to_ulong();
+	sval_t pc = c->Patmos_core_memory__io_memwb_pc.to_ulong();
 	*out << (pc - 2) << " - ";
 
 	for (unsigned i = 0; i < 32; i++) {
-	  *out << c->Patmos_decode_rf__rf.get(i).to_ulong() << " ";
+	  *out << c->Patmos_core_decode_rf__rf.get(i).to_ulong() << " ";
 	}
 
 	*out << endl;
 }
 
 static void extSsramSim(Patmos_t *c) {
-  static int addr_cnt;
-  static int address;
-  static int counter;
+  static uint32_t addr_cnt;
+  static uint32_t address;
+  static uint32_t counter;
+
   // *out << "noe:" << c->Patmos__io_sramPins_ram_out_noe.to_ulong() 
   // 	   << " nadv: " << c->Patmos__io_sramPins_ram_out_nadv.to_ulong()
   // 	   << " nadsc:" << c->Patmos__io_sramPins_ram_out_nadsc.to_ulong()
   // 	   << " addr:" << c->Patmos__io_sramPins_ram_out_addr.to_ulong() << "\n";
+
   if (c->Patmos__io_sramPins_ram_out_nadsc.to_ulong() == 0) {
     address = c->Patmos__io_sramPins_ram_out_addr.to_ulong();
     addr_cnt = c->Patmos__io_sramPins_ram_out_addr.to_ulong();
@@ -183,12 +167,61 @@ static void extSsramSim(Patmos_t *c) {
   }
   if (c->Patmos__io_sramPins_ram_out_noe.to_ulong() == 0) {
     counter++;
-    if (counter >= 3) {
+    if (counter >= SRAM_CYCLES) {
       c->Patmos__io_sramPins_ram_in_din = ssram_buf[address];
       if (address <= addr_cnt) {
         address++;
       }
     }
+  }
+  if (c->Patmos__io_sramPins_ram_out_nbwe.to_ulong() == 0) {
+	uint32_t nbw = c->Patmos__io_sramPins_ram_out_nbw.to_ulong();
+	uint32_t mask = 0x00000000;
+	for (unsigned i = 0; i < 4; i++) {
+	  if ((nbw & (1 << i)) == 0) {
+		mask |= 0xff << (i*8);
+	  }
+	}
+
+	ssram_buf[address] &= ~mask;
+	ssram_buf[address] |= mask & c->Patmos__io_sramPins_ram_out_dout.to_ulong();
+
+	if (address <= addr_cnt) {
+	  address++;
+	}
+  }
+
+}
+
+static void mcacheStat(Patmos_t *c, bool halt) {
+  static uint cache_miss = 0;
+  static uint cache_hits = 0;
+  static uint exec_cycles = 0;
+  static uint cache_stall_cycles = 0;
+  //count all cycles till the program terminats
+  exec_cycles++;
+  //count everytime a new method is written to the cache
+  if (c->Patmos_core_mcache_mcachectrl__io_mcache_ctrlrepl_w_tag.to_bool() == true) {
+    cache_miss++;
+  }
+  //everytime a method is called from the cache, todo: find a better way to measure hits
+  if (c->Patmos_core_fetch__io_memfe_doCallRet.to_bool() == true &&
+      c->Patmos_core_mcache_mcacherepl__io_mcache_replctrl_hit.to_bool() == true &&
+      c->Patmos_core_mcache_mcachectrl__mcache_state.to_ulong() == 1 &&
+      c->Patmos_core_mcache__io_ena_in.to_bool() == true &&
+      c->Patmos_core_mcache_mcachectrl__io_mcache_ctrlrepl_instr_stall.to_bool() == false) {
+    cache_hits++;
+  }
+  //pipeline stalls caused by the mcache
+  if (c->Patmos_core_mcache__io_ena_out.to_bool() == false) {
+    cache_stall_cycles++;
+  }
+  //program terminats, write to output
+  if (halt == true) {
+    *out << "exec_cycles:" << exec_cycles
+         << " cache_hits:" << cache_hits
+         << " cache_misses:" << cache_miss
+         <<  " cache_stall_cycles:" << cache_stall_cycles << "\n";
   }
 }
 
@@ -198,23 +231,36 @@ int main (int argc, char* argv[]) {
   int opt;
   int lim = -1;
   bool vcd = false;
-  bool uart = false;
-  bool keys = false;
-  bool quiet = false;
 
-  while ((opt = getopt(argc, argv, "qukvl:I:O:")) != -1) {
+  // MS: what it the usage of disabling the UART?
+  // WP: output from the UART can mess up trace and cause discrepancies with simulator
+  bool uart = true;
+  bool keys = false;
+  bool quiet = true;
+  bool print_stat = false;
+
+  while ((opt = getopt(argc, argv, "qurnvpl:I:O:")) != -1) {
 	switch (opt) {
+	// MS: q and u should go away, but tests in bench need updates first
 	case 'q':
 	  quiet = true;
+	  break;
+	case 'r':
+	  quiet = false;
 	  break;
 	case 'u':
 	  uart = true;
 	  break;
 	case 'k':
 	  keys = true;
+	case 'n':
+	  uart = false;
 	  break;
 	case 'v':
 	  vcd = true;
+	  break;
+	case 'p':
+	  print_stat = true;
 	  break;
 	case 'l':
 	  lim = atoi(optarg);
@@ -243,7 +289,7 @@ int main (int argc, char* argv[]) {
 	  break;
 	default: /* '?' */
 	  cerr << "Usage: " << argv[0]
-		   << "[-q] [-u] [-v] [-l cycles] [-I file] [-O file] [file]" << endl;
+		   << " [-q|-r] [-u|-n] [-v] [-p] [-l cycles] [-I file] [-O file] [file]" << endl;
 	  exit(EXIT_FAILURE);
 	}
   }
@@ -277,38 +323,44 @@ int main (int argc, char* argv[]) {
 
   if (entry != 0) {
     if (entry >= 0x20000) {
-      // pcReg for method cache starts at 0
-      // TODO: 1 only for the moment change even odd to start from even
-      c->Patmos_fetch__pcReg = 1; //0 for lru
-      c->Patmos_mcache_mcacherepl__hitReg = 0;
-      c->Patmos_mcache_mcacherepl__selMCacheReg = 1;
-      c->Patmos_fetch__relBaseReg = 1; //0 for lru
-      c->Patmos_fetch__relocReg = (entry >> 2) - 1;
+      c->Patmos_core_fetch__pcReg = -1;
+      c->Patmos_core_mcache_mcacherepl__hitReg = 0;
+      c->Patmos_core_mcache_mcacherepl__selMCacheReg = 1;
+      c->Patmos_core_fetch__relBaseReg = 0;
+      c->Patmos_core_fetch__relocReg = (entry >> 2) - 1;
       //init linked list for lru replacement
-      // c->Patmos_mcache_mcachectrl__addrReg = 0;
-      // c->Patmos_mcache_mcacherepl__lru_list_prev_0 = 1;
-      // c->Patmos_mcache_mcacherepl__lru_list_prev_1 = 2;
-      // c->Patmos_mcache_mcacherepl__lru_list_prev_2 = 3;
-      // c->Patmos_mcache_mcacherepl__lru_list_prev_3 = 0;
-      // c->Patmos_mcache_mcacherepl__lru_list_next_0 = 3;
-      // c->Patmos_mcache_mcacherepl__lru_list_next_1 = 0;
-      // c->Patmos_mcache_mcacherepl__lru_list_next_2 = 1;
-      // c->Patmos_mcache_mcacherepl__lru_list_next_3 = 2;
+      // c->Patmos_core_mcache_mcachectrl__addrReg = 0;
+      // c->Patmos_core_mcache_mcacherepl__lru_list_prev_0 = 1;
+      // c->Patmos_core_mcache_mcacherepl__lru_list_prev_1 = 2;
+      // c->Patmos_core_mcache_mcacherepl__lru_list_prev_2 = 3;
+      // c->Patmos_core_mcache_mcacherepl__lru_list_prev_3 = 0;
+      // c->Patmos_core_mcache_mcacherepl__lru_list_next_0 = 3;
+      // c->Patmos_core_mcache_mcacherepl__lru_list_next_1 = 0;
+      // c->Patmos_core_mcache_mcacherepl__lru_list_next_2 = 1;
+      // c->Patmos_core_mcache_mcacherepl__lru_list_next_3 = 2;
+      //init for icache
+      // c->Patmos_core_mcache_icacherepl__selICacheReg = 1;
+      // c->Patmos_core_fetch__pcReg = 0;
     }
     else {
       // pcReg for ispm starts at entry point - ispm base
-      c->Patmos_fetch__pcReg = ((entry - 0x10000) >> 2) - 1;
-      c->Patmos_mcache_mcacherepl__selIspmReg = 1;
-      c->Patmos_fetch__relBaseReg = (entry - 0x10000) >> 2;
-      c->Patmos_fetch__relocReg = 0x10000 >> 2;
+      c->Patmos_core_fetch__pcReg = ((entry - 0x10000) >> 2) - 1;
+      c->Patmos_core_mcache_mcacherepl__selIspmReg = 1;
+      c->Patmos_core_fetch__relBaseReg = (entry - 0x10000) >> 2;
+      c->Patmos_core_fetch__relocReg = 0x10000 >> 2;
+      //init for icache
+      // c->Patmos_core_mcache_icacherepl__selIspmReg = 1;
     }
-    c->Patmos_execute__baseReg = entry;
-    c->Patmos_mcache_mcachectrl__callRetBaseReg = (entry >> 2);
-    c->Patmos_mcache_mcacherepl__callRetBaseReg = (entry >> 2);
+    c->Patmos_core_mcache_mcachectrl__callRetBaseReg = (entry >> 2);
+    c->Patmos_core_mcache_mcacherepl__callRetBaseReg = (entry >> 2);
+    //init for icache
+    // c->Patmos_core_mcache_icachectrl__callRetBaseReg = (entry >> 2);
+    // c->Patmos_core_mcache_icacherepl__callRetBaseReg = (entry >> 2);
   }
 
   // Main emulation loop
   bool halt = false;
+
   for (int t = 0; lim < 0 || t < lim; t++) {
     dat_t<1> reset = LIT<1>(0);
 
@@ -329,13 +381,13 @@ int main (int argc, char* argv[]) {
 
 	if (uart) {
 	  // Pass on data from UART
-	  if (c->Patmos_iocomp_uart__io_ocp_M_Cmd.to_ulong() == 0x5
-	  	  && c->Patmos_iocomp_uart__io_ocp_M_Addr.to_ulong() == 0x04) {
-	  	*out << (char)c->Patmos_iocomp_uart__io_ocp_M_Data.to_ulong();
+	  if (c->Patmos_core_iocomp_Uart__io_ocp_M_Cmd.to_ulong() == 0x1
+	  	  && c->Patmos_core_iocomp_Uart__io_ocp_M_Addr.to_ulong() == 0x04) {
+	  	*out << (char)c->Patmos_core_iocomp_Uart__io_ocp_M_Data.to_ulong();
 	  }
 	}
 
-	if (!quiet) {
+	if (!quiet && c->Patmos_core__enableReg.to_bool()) {
 	  print_state(c);
 	}
 	
@@ -343,11 +395,20 @@ int main (int argc, char* argv[]) {
 	if (halt) {
 	  break;
 	}
-	if ((c->Patmos_memory__memReg_mem_brcf.to_bool()
-		 || c->Patmos_memory__memReg_mem_ret.to_bool())
-		&& c->Patmos_mcache_mcachectrl__callRetBaseReg.to_ulong() == 0) {
+	if ((c->Patmos_core_memory__memReg_mem_brcf.to_bool()
+		   || c->Patmos_core_memory__memReg_mem_ret.to_bool()
+		&& c->Patmos_core_mcache_mcachectrl__callRetBaseReg.to_ulong() == 0) {
 	  halt = true;
 	}
+	//for icache
+	// if (c->Patmos_core_memory__memReg_mem_ret.to_bool()
+	// 	&& c->Patmos_core_mcache_icacherepl__callRetBaseReg.to_ulong() == 0) {
+	//   halt = true;
+	// }
+	if (print_stat == true) {
+	  mcacheStat(c, halt);
+	}
+
   }
 
   // TODO: adapt comparison tool so this can be removed
@@ -356,5 +417,5 @@ int main (int argc, char* argv[]) {
   }
 
   // Pass on return value from processor
-  return c->Patmos_decode_rf__rf.get(1).to_ulong();
+  return c->Patmos_core_decode_rf__rf.get(1).to_ulong();
 }

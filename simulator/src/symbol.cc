@@ -79,6 +79,17 @@ namespace patmos
     return ss.str();
   }
 
+  word_t symbol_map_t::find(std::string symbol) const
+  {
+    for (symbols_t::const_iterator i(Symbols.begin()), ie(Symbols.end());
+         i != ie; i++)
+    {
+      if (i->Name == symbol) 
+        return i->Address;
+    }
+    return -1;     
+  }
+  
   std::ostream &symbol_map_t::print(std::ostream &os, word_t address, bool func_only) const
   {
     assert(Is_sorted);

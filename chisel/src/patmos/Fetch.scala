@@ -44,6 +44,8 @@ import Node._
 
 import Constants._
 
+import util._
+
 class Fetch(fileName : String) extends Component {
   val io = new FetchIO()
 
@@ -51,7 +53,7 @@ class Fetch(fileName : String) extends Component {
   val addrEvenReg = Reg(resetVal = UFix(2, PC_SIZE))
   val addrOddReg = Reg(resetVal = UFix(1, PC_SIZE))
 
-  val rom = Utility.readBin(fileName)
+  val rom = Utility.readBin(fileName, INSTR_WIDTH)
   // Split the ROM into two blocks for dual fetch
   //  val len = rom.length / 2
   //  val rom_a = Vec(len) { Bits(width = INSTR_WIDTH) }
@@ -70,10 +72,9 @@ class Fetch(fileName : String) extends Component {
   // relay on the optimization to recognize that those addresses are always even and odd
   // TODO: maybe make it explicit
 
-  val ispmSize = 1 << ISPM_BITS // in bytes
-  val ispmAddrBits = log2Up(ispmSize / 4 / 2)
-  val memEven = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
-  val memOdd = { Mem(ispmSize / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
+  val ispmAddrBits = log2Up(ISPM_SIZE / 4 / 2)
+  val memEven = { Mem(ISPM_SIZE / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
+  val memOdd = { Mem(ISPM_SIZE / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
 
   // write from EX - use registers - ignore stall, as reply does not hurt
   val selWrite = (io.memfe.store & (io.memfe.addr(DATA_WIDTH-1, ISPM_ONE_BIT) === Bits(0x1)))
@@ -92,8 +93,8 @@ class Fetch(fileName : String) extends Component {
   val selMCache = Reg(io.mcachefe.mem_sel(0))
 
   //need to register these values to save them in  memory stage at call/return
-  val relBaseReg = Reg(resetVal = UFix(1, DATA_WIDTH))
-  val relocReg = Reg(resetVal = UFix(1, DATA_WIDTH))
+  val relBaseReg = Reg(resetVal = UFix(1, width = MAX_OFF_WIDTH))
+  val relocReg = Reg(resetVal = UFix(0, DATA_WIDTH))
   when(io.memfe.doCallRet && io.ena) {
     relBaseReg := io.mcachefe.relBase
     relocReg := io.mcachefe.reloc
@@ -146,7 +147,9 @@ class Fetch(fileName : String) extends Component {
   io.feex.pc := pc_cont - relBaseReg
 
   //outputs to mcache
-  io.femcache.address := pc_next
+  io.femcache.address := Mux(io.ena, pc_next, pcReg)
   io.femcache.request := selMCache
+  io.femcache.doCallRet := io.memfe.doCallRet
+  io.femcache.callRetBase := io.memfe.callRetBase
 
 }

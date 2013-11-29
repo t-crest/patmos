@@ -21,6 +21,8 @@
 #ifndef PATMOS_COMMAND_LINE_H
 #define PATMOS_COMMAND_LINE_H
 
+#include "symbol.h"
+
 #include <istream>
 #include <ostream>
 #include <boost/iterator/iterator_concepts.hpp>
@@ -50,25 +52,32 @@ namespace patmos
   /// @param df The debug format.
   std::ostream &operator <<(std::ostream &os, debug_format_e df);
 
-  /// Parsing data cache kinds as command-line options.
-  enum data_cache_e
+  /// Parsing set-associative cache kinds as command-line options.
+  enum set_assoc_policy_e
   {
-    DC_IDEAL,
-    DC_NO,
-    DC_LRU2,
-    DC_LRU4,
-    DC_LRU8
+    SAC_IDEAL,
+    SAC_NO,
+    SAC_LRU,
+    SAC_FIFO
+  };
+  struct set_assoc_cache_type
+  {
+    set_assoc_policy_e policy;
+    unsigned associativity;
+    set_assoc_cache_type() {};
+    set_assoc_cache_type(set_assoc_policy_e policy_, unsigned associativity_) :
+      policy(policy_), associativity(associativity_) {};
   };
 
-  /// Parse a data cache kind from a string in a stream
+  /// Parse a set-associative cache kind from a string in a stream
   /// @param in An input stream to read from.
-  /// @param dck The data cache kind.
-  std::istream &operator >>(std::istream &in, data_cache_e &dck);
+  /// @param dck The set-associative cache kind.
+  std::istream &operator >>(std::istream &in, set_assoc_cache_type &dck);
 
-  /// Write a data cache kind as a string to an output stream.
+  /// Write a set-associative cache kind as a string to an output stream.
   /// @param os An output stream.
-  /// @param mck The data cache kind.
-  std::ostream &operator <<(std::ostream &os, data_cache_e dck);
+  /// @param mck The set-associative cache kind.
+  std::ostream &operator <<(std::ostream &os, set_assoc_cache_type dck);
 
   /// Parsing instruction cache kinds as command-line options.
   enum instr_cache_e
@@ -76,8 +85,7 @@ namespace patmos
     IC_MCACHE,
     IC_ICACHE
   };
-  
-  
+
   /// Parse a instruction cache kind from a string in a stream
   /// @param in An input stream to read from.
   /// @param mck The method cache kind.
@@ -87,30 +95,7 @@ namespace patmos
   /// @param os An output stream.
   /// @param mck The method cache kind.
   std::ostream &operator <<(std::ostream &os, instr_cache_e ick);
-  
-  
-  /// Parsing instruction cache kinds as command-line options.
-  enum iset_cache_e
-  {
-    ISC_IDEAL,
-    ISC_NO,
-    ISC_LRU2,
-    ISC_LRU4,
-    ISC_LRU8
-  };
-  
-  
-  /// Parse a set instruction cache kind from a string in a stream
-  /// @param in An input stream to read from.
-  /// @param mck The method cache kind.
-  std::istream &operator >>(std::istream &in, iset_cache_e &ick);
 
-  /// Write a set instruction cache kind as a string to an output stream.
-  /// @param os An output stream.
-  /// @param mck The method cache kind.
-  std::ostream &operator <<(std::ostream &os, iset_cache_e ick);
-
-  
   /// Parsing method cache kinds as command-line options.
   enum method_cache_e
   {
@@ -133,7 +118,8 @@ namespace patmos
   enum stack_cache_e
   {
     SC_IDEAL,
-    SC_BLOCK
+    SC_BLOCK,
+    SC_DCACHE
   };
 
   /// Parse a stack cache kind from a string in a stream
@@ -185,6 +171,8 @@ namespace patmos
   {
     private:
       unsigned int V;
+      
+      std::string symbol;
 
     public:
       /// Construct a new byte address.
@@ -193,10 +181,21 @@ namespace patmos
       {
       }
 
+      void set_symbol(const std::string &sym) {
+        symbol = sym;
+      }
+      
       /// Return the value of the address object.
       /// @return The value of the address object.
       unsigned int value() const
       {
+        return V;
+      }
+      
+      unsigned int parse(symbol_map_t &symbols)
+      {
+        if (V) return V;
+        V = symbols.find(symbol);
         return V;
       }
   };

@@ -1,4 +1,4 @@
-# A simple linker script to put code and data into the SPMs
+# A simple linker script to put code into the SPM
 SECTIONS
 {
   . = SEGMENT_START(".rodata", 0x10);

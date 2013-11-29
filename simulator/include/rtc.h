@@ -65,17 +65,17 @@ namespace patmos
     virtual bool read(uword_t address, byte_t *value, uword_t size) {
 	  if (is_word_access(address, size, 0x00)) {
         // read latched high word of cycle counter
-        write_word(value, size, High_clock);
+        set_word(value, size, High_clock);
       }
       else if (is_word_access(address, size, 0x04)) {
         // read low word of cycle counter, latch high word
         uword_t low_clock = (uword_t)Simulator.Cycle;
         High_clock = (uword_t)(Simulator.Cycle >> 32);
-        write_word(value, size, low_clock);
+        set_word(value, size, low_clock);
       }
       else if (is_word_access(address, size, 0x08)) {
         // read latched high word of usec
-        write_word(value, size, High_usec);
+        set_word(value, size, High_usec);
       }
       else if (is_word_access(address, size, 0x0c)) {
         // read low word of usec, latch high word
@@ -83,15 +83,15 @@ namespace patmos
         uint64_t usec = (uint64_t)((double)Simulator.Cycle / Frequency);
         uword_t low_usec = (uword_t)usec;
         High_usec = (uword_t)(usec >> 32);
-        write_word(value, size, low_usec);
+        set_word(value, size, low_usec);
       }
       else if (is_word_access(address, size, 0x10)) {
         // read current interrupt interval counter
-        write_word(value, size, Interrupt_interval);
+        set_word(value, size, Interrupt_interval);
       }
       else if (is_word_access(address, size, 0x14)) {
         // read latched high word of usec
-        write_word(value, size, ISR);
+        set_word(value, size, ISR);
       }
       else {
         simulation_exception_t::unmapped(address);
@@ -101,10 +101,10 @@ namespace patmos
 
     virtual bool write(uword_t address, byte_t *value, uword_t size) {
       if (is_word_access(address, size, 0x10)) {
-        Interrupt_interval = read_word(value, size);
+        Interrupt_interval = get_word(value, size);
 	  } 
 	  else if (is_word_access(address, size, 0x14)) {
-        ISR = read_word(value, size);
+        ISR = get_word(value, size);
 	  }
       else {
         simulation_exception_t::unmapped(address);

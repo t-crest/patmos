@@ -42,6 +42,8 @@ package ocp
 import Chisel._
 import Node._
 
+// MS: I would like to follow the Scala/Java naming convention (instead of the OCP naming)
+
 // Burst masters provide handshake signals
 class OcpBurstMasterSignals(addrWidth : Int, dataWidth : Int)
   extends OcpMasterSignals(addrWidth, dataWidth) {
@@ -52,6 +54,24 @@ class OcpBurstMasterSignals(addrWidth : Int, dataWidth : Int)
   override def clone() = {
     val res = new OcpBurstMasterSignals(addrWidth, dataWidth)
   	res.asInstanceOf[this.type]
+  }
+
+  override def reset() = {
+	super.reset()
+	DataValid := Bits(0)
+	DataByteEn := Bits(0)
+  }
+}
+
+// Reset values for master signals
+object OcpBurstMasterSignals {
+  def resetVal[T <: OcpBurstMasterSignals](sig : T) : T = {
+	val res = sig.clone
+	res.reset()
+	res
+  }
+  def resetVal(addrWidth : Int, dataWidth : Int) : OcpBurstMasterSignals = {
+	resetVal(new OcpBurstMasterSignals(addrWidth, dataWidth))
   }
 }
 
@@ -66,10 +86,25 @@ class OcpBurstSlaveSignals(dataWidth : Int)
     val res = new OcpBurstSlaveSignals(dataWidth)
   	res.asInstanceOf[this.type]
   }
+
+  override def reset() = {
+	super.reset()
+	CmdAccept := Bits(0)
+	DataAccept := Bits(0)
+  }
 }
 
-// MS: Chisel has the flip method to change the direction of connections
-// shouldn't we use that one instead of defining additional classes?
+// Reset values for slave signals
+object OcpBurstSlaveSignals {
+  def resetVal[T <: OcpBurstSlaveSignals](sig : T) : T = {
+	val res = sig.clone
+	res.reset()
+	res
+  }
+  def resetVal(dataWidth : Int) : OcpBurstSlaveSignals = {
+	resetVal(new OcpBurstSlaveSignals(dataWidth))
+  }
+}
 
 // Master port
 class OcpBurstMasterPort(addrWidth : Int, dataWidth : Int, burstLen : Int) extends Bundle() {
@@ -85,48 +120,42 @@ class OcpBurstSlavePort(addrWidth : Int, dataWidth : Int, burstLen : Int) extend
   // Clk is implicit in Chisel
   val M = new OcpBurstMasterSignals(addrWidth, dataWidth).asInput
   val S = new OcpBurstSlaveSignals(dataWidth).asOutput
+
+  // This does not really clone, but Data.clone doesn't either
+  override def clone() = {
+    val res = new OcpBurstSlavePort(addrWidth, dataWidth, burstLen)
+  	res.asInstanceOf[this.type]
+  }
+
 }
 
 // Bridge between word-oriented port and burst port
-class OcpBurstBridge(master : OcpCoreMasterPort, slave : OcpBurstSlavePort) {
+class OcpBurstBridge(master : OcpCacheMasterPort, slave : OcpBurstSlavePort) {
   val addrWidth = master.M.Addr.width
   val dataWidth = master.M.Data.width
   val burstLength = slave.burstLength
   val burstAddrBits = log2Up(burstLength)
 
   // State of transmission
-  val idle :: read :: readResp :: write :: writeResp :: Nil = Enum(5){ Bits() }
+  val idle :: read :: readResp :: write :: Nil = Enum(4){ Bits() }
   val state = Reg(resetVal = idle)
   val burstCnt = Reg(resetVal = UFix(0, burstAddrBits))
   val cmdPos = Reg(resetVal = Bits(0, burstAddrBits))
 
   // Register signals that come from master
-  val masterReg = Reg(resetVal = OcpMasterSignals.resetVal(master.M))
+  val masterReg = Reg(resetVal = OcpCacheMasterSignals.resetVal(master.M))
 
   // Register to delay response
-  val slaveReg = Reg(resetVal = OcpSlaveSignals.resetVal(slave.S))
+  val slaveReg = Reg(resetVal = OcpSlaveSignals.resetVal(master.S))
 
-  when(masterReg.Cmd === OcpCmd.IDLE
-	   || slave.S.CmdAccept) {
-	masterReg.Cmd := master.M.Cmd
-	masterReg.Addr := master.M.Addr
-	masterReg.Data := master.M.Data
-	masterReg.ByteEn := master.M.ByteEn
+  when(state != write && (masterReg.Cmd === OcpCmd.IDLE || slave.S.CmdAccept)) {
+	masterReg := master.M
   }
 	
-  when(master.M.Cmd === OcpCmd.RD) {
-	state := read
-	cmdPos := master.M.Addr(burstAddrBits+log2Up(dataWidth/8)-1, log2Up(dataWidth/8))
-  }
-  when(master.M.Cmd === OcpCmd.WRNP) {
-	state := write
-	cmdPos := master.M.Addr(burstAddrBits+log2Up(dataWidth/8)-1, log2Up(dataWidth/8))
-  }
-
   // Default values
   slave.M.Cmd := masterReg.Cmd
   slave.M.Addr := Cat(masterReg.Addr(addrWidth-1, burstAddrBits+log2Up(dataWidth/8)),
-						 Fill(Bits(0), burstAddrBits+log2Up(dataWidth/8)))
+					  Fill(Bits(0), burstAddrBits+log2Up(dataWidth/8)))
   slave.M.Data := Bits(0)
   slave.M.DataByteEn := Bits(0)
   slave.M.DataValid := Bits(0)
@@ -153,6 +182,7 @@ class OcpBurstBridge(master : OcpCoreMasterPort, slave : OcpBurstSlavePort) {
   
   // Write burst
   when(state === write) {
+	masterReg.Cmd := OcpCmd.IDLE
 	slave.M.DataValid := Bits(1)
 	when(burstCnt === cmdPos) {
 	  slave.M.Data := masterReg.Data
@@ -166,4 +196,47 @@ class OcpBurstBridge(master : OcpCoreMasterPort, slave : OcpBurstSlavePort) {
 	}
   }
 
+  // Start new transaction
+  when(master.M.Cmd === OcpCmd.RD) {
+	state := read
+	cmdPos := master.M.Addr(burstAddrBits+log2Up(dataWidth/8)-1, log2Up(dataWidth/8))
+  }
+  when(master.M.Cmd === OcpCmd.WR) {
+	state := write
+	cmdPos := master.M.Addr(burstAddrBits+log2Up(dataWidth/8)-1, log2Up(dataWidth/8))
+  }
+}
+
+// Join two OcpBurst ports
+class OcpBurstJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort,
+                   joined : OcpBurstSlavePort) {
+
+  val selRightReg = Reg(resetVal = Bool(false))
+  val selRight = Mux(left.M.Cmd != OcpCmd.IDLE, Bool(false),
+                     Mux(right.M.Cmd != OcpCmd.IDLE, Bool(true),
+                         selRightReg))
+
+  joined.M := Mux(selRight, right.M, left.M)
+  joined.M.Cmd := right.M.Cmd | left.M.Cmd
+
+  right.S := joined.S
+  left.S := joined.S
+
+  when(selRight) {
+    left.S.Resp := OcpResp.NULL
+  }
+  .otherwise {
+    right.S.Resp := OcpResp.NULL
+  }
+
+  selRightReg := selRight
+}
+
+// Provide a "bus" with a master port and a slave port to simplify plumbing
+class OcpBurstBus(addrWidth : Int, dataWidth : Int, burstLen : Int) extends Component {
+  val io = new Bundle {
+    val slave = new OcpBurstSlavePort(addrWidth, dataWidth, burstLen)
+    val master = new OcpBurstMasterPort(addrWidth, dataWidth, burstLen)
+  }
+  io.master <> io.slave
 }

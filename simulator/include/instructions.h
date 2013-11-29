@@ -497,6 +497,8 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
+      // TODO send the operands to a separate MUL unit, simulate some delay
+
       // compute the result of the ALU instruction
       dword_t result = compute(read_GPR_EX(s, ops.DR_Rs1),
                                read_GPR_EX(s, ops.DR_Rs2));
@@ -923,7 +925,8 @@ namespace patmos
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
-      // read a value from the special register file or all predicate registers
+      // Read a value from the special register file or all predicate registers.
+      // Note that the stage simulation order implies forwarding from EX to DR.
       if (ops.OPS.SPCf.Ss == 0)
       {
         ops.DR_Ss = 0;
@@ -1347,8 +1350,116 @@ namespace patmos
   ST_INSTR(sbm, s.Memory, byte_t)
 
 
+  class i_stc_t : public i_pred_t
+  {
+  protected:
+    virtual word_t EX_cache(simulator_t &s, uword_t size,
+                            uword_t &stack_spill, uword_t &stack_top) const = 0;
+    
+    virtual bool MW_cache(simulator_t &s, uword_t size, word_t delta,
+                          uword_t stack_spill, uword_t stack_top) const = 0;
+
+    virtual uword_t read_size_EX(simulator_t &s, 
+                                 instruction_data_t &ops) const = 0;
+    
+  public:
+    
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      // Get the size argument
+      ops.EX_Rs = read_size_EX(s, ops);
+      
+      // Pointers that will be set to the new stack addresses
+      uword_t stack_spill = ops.DR_Ss;
+      uword_t stack_top = ops.DR_St;
+      
+      ops.EX_result = EX_cache(s, ops.EX_Rs, stack_spill, stack_top);
+
+      // Update the special registers already in EX.
+      ops.EX_Ss = stack_spill;
+      ops.EX_St = stack_top;
+      s.SPR.set(ss, stack_spill);
+      s.SPR.set(st, stack_top);      
+    }
+    
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
+    {
+      // Early exit if this instruction is disabled or already finished.
+      if (!ops.DR_Pred || ops.MW_Discard) 
+        return;
+      
+      if(!MW_cache(s, ops.EX_Rs, ops.EX_result, ops.EX_Ss, ops.EX_St)) {
+        s.pipeline_stall(SMW);
+      }
+      else {
+        ops.MW_Discard = 1;
+      }
+    }
+    
+  };
+  
+  class i_stci_t : public i_stc_t 
+  {
+  protected:
+    virtual uword_t read_size_EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      return ops.OPS.STCi.Imm * sizeof(word_t);
+    }
+    
+  public:
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.DR_Ss = s.SPR.get(ss).get();
+      ops.DR_St = s.SPR.get(st).get();
+      ops.MW_Discard = 0;
+    }
+    
+    virtual void print_operands(const simulator_t &s, std::ostream &os,
+                                const instruction_data_t &ops,
+                                const symbol_map_t &symbols) const
+    {
+      printSPReg(os, "out: ", ss, ops.EX_Ss);
+      printSPReg(os, ", "   , st, ops.EX_St);
+      printSPReg(os, " in: ", ss, ops.DR_Ss);
+      printSPReg(os, ", "   , st, ops.DR_St);
+      os << ", size: " << s.Stack_cache.size();
+    }
+  };
+
+  class i_stcr_t : public i_stc_t 
+  {
+  protected:
+    virtual uword_t read_size_EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      return read_GPR_EX(s, ops.DR_Rs1);
+    }
+
+  public:
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.DR_Ss = s.SPR.get(ss).get();
+      ops.DR_St = s.SPR.get(st).get();
+      ops.DR_Rs1 = s.GPR.get(ops.OPS.STCr.Rs);
+      ops.MW_Discard = 0;
+    }
+    
+    virtual void print_operands(const simulator_t &s, std::ostream &os,
+                       const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printSPReg(os, "out: ", ss, ops.EX_Ss);
+      printSPReg(os, ", "   , st, ops.EX_St);
+      printGPReg(os, " in: ", ops.OPS.STCr.Rs, ops.EX_Rs);
+      printSPReg(os, ", "   , ss, ops.DR_Ss);
+      printSPReg(os, ", "   , st, ops.DR_St);
+      os << ", size: " << s.Stack_cache.size();
+    }
+  };
+  
 #define STCi_INSTR(name, function) \
-  class i_ ## name ## _t : public i_pred_t \
+  class i_ ## name ## _t : public i_stci_t \
   { \
   public:\
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
@@ -1357,44 +1468,20 @@ namespace patmos
       printPred(os, ops.Pred); \
       os << #name << " " << ops.OPS.STCi.Imm; \
     } \
-    virtual void DR(simulator_t &s, instruction_data_t &ops) const \
+    virtual word_t EX_cache(simulator_t &s, uword_t size, \
+                            uword_t &stack_spill, uword_t &stack_top) const \
     { \
-      ops.DR_Pred = s.PRR.get(ops.Pred).get(); \
-      ops.DR_Ss = s.SPR.get(ss).get(); \
-      ops.DR_St = s.SPR.get(st).get(); \
-      ops.MW_Discard = 0; \
+      return s.Stack_cache.prepare_ ## function(size, stack_spill, stack_top); \
     } \
-    virtual void MW(simulator_t &s, instruction_data_t &ops) const \
+    virtual bool MW_cache(simulator_t &s, uword_t size, word_t delta, \
+                          uword_t stack_spill, uword_t stack_top) const \
     { \
-      if (ops.MW_Discard) return; \
-      uword_t stack_spill = ops.DR_Ss; \
-      uword_t stack_top = ops.DR_St; \
-      if(ops.DR_Pred && \
-         !s.Stack_cache.function(ops.OPS.STCi.Imm * sizeof(word_t), \
-                                 stack_spill, stack_top)) \
-      { \
-        s.pipeline_stall(SMW); \
-        ops.DR_Ss = stack_spill; \
-        ops.DR_St = stack_top; \
-      } \
-      else if (ops.DR_Pred) { \
-        s.SPR.set(ss, stack_spill); \
-        s.SPR.set(st, stack_top); \
-        ops.MW_Discard = 1; \
-      } \
-    } \
-    virtual void print_operands(const simulator_t &s, std::ostream &os, \
-                                const instruction_data_t &ops, \
-                                const symbol_map_t &symbols) const \
-    { \
-      printSPReg(os, "in: ", ss, ops.DR_Ss); \
-      printSPReg(os, ", "  , st, ops.DR_St); \
-      os << ", size: " << s.Stack_cache.size(); \
+      return s.Stack_cache.function(size, delta, stack_spill, stack_top); \
     } \
   };
 
 #define STCr_INSTR(name, function) \
-  class i_ ## name ## _t : public i_pred_t \
+  class i_ ## name ## _t : public i_stcr_t \
   { \
   public:\
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
@@ -1403,44 +1490,15 @@ namespace patmos
       printPred(os, ops.Pred); \
       os << #name << " r" << ops.OPS.STCr.Rs; \
     } \
-    virtual void DR(simulator_t &s, instruction_data_t &ops) const \
+    virtual word_t EX_cache(simulator_t &s, uword_t size, \
+                            uword_t &stack_spill, uword_t &stack_top) const \
     { \
-      ops.DR_Pred = s.PRR.get(ops.Pred).get(); \
-      ops.DR_Ss = s.SPR.get(ss).get(); \
-      ops.DR_St = s.SPR.get(st).get(); \
-      ops.DR_Rs1 = s.GPR.get(ops.OPS.STCr.Rs); \
-      ops.MW_Discard = 0; \
+      return s.Stack_cache.prepare_ ## function(size, stack_spill, stack_top); \
     } \
-    virtual void EX(simulator_t &s, instruction_data_t &ops) const \
+    virtual bool MW_cache(simulator_t &s, uword_t size, word_t delta, \
+                          uword_t stack_spill, uword_t stack_top) const \
     { \
-      ops.EX_Rs = read_GPR_EX(s, ops.DR_Rs1); \
-    } \
-    virtual void MW(simulator_t &s, instruction_data_t &ops) const \
-    { \
-      if (ops.MW_Discard) return; \
-      uword_t stack_spill = ops.DR_Ss; \
-      uword_t stack_top = ops.DR_St; \
-      if(ops.DR_Pred && !s.Stack_cache.function(ops.EX_Rs, \
-                                                stack_spill, stack_top)) \
-      { \
-        s.pipeline_stall(SMW); \
-        ops.DR_Ss = stack_spill; \
-        ops.DR_St = stack_top; \
-      } \
-      else if (ops.DR_Pred) { \
-        s.SPR.set(ss, stack_spill); \
-        s.SPR.set(st, stack_top); \
-        ops.MW_Discard = 1; \
-      } \
-    } \
-    virtual void print_operands(const simulator_t &s, std::ostream &os, \
-                       const instruction_data_t &ops, \
-                       const symbol_map_t &symbols) const \
-    { \
-      printGPReg(os, "in: ", ops.OPS.STCr.Rs, ops.EX_Rs); \
-      printSPReg(os, ", "  , ss, ops.DR_Ss); \
-      printSPReg(os, ", "  , st, ops.DR_St); \
-      os << ", size: " << s.Stack_cache.size(); \
+      return s.Stack_cache.function(size, delta, stack_spill, stack_top); \
     } \
   };
 
@@ -1495,7 +1553,7 @@ namespace patmos
     /// @param pred The predicate under which the instruction is executed.
     /// @param base The base address of the target method.
     /// @param address The target address.
-    /// @return returns true one single time when fetching completed.
+    /// @return returns true when fetching is finished.
     bool fetch_and_dispatch(simulator_t &s, instruction_data_t &ops,
                             bit_t pred, word_t base, word_t address) const
     {
@@ -1515,7 +1573,7 @@ namespace patmos
           s.BASE = base;
           s.nPC = address;
           return true;
-        }
+        }        
       }
       return false;
     }
@@ -1528,7 +1586,7 @@ namespace patmos
     /// @param pred The predicate under which the instruction is executed.
     /// @param base The base address of the target method.
     /// @param address The target address.
-    /// @return returns true one single time when fetching completed.
+    /// @return returns true when fetching is finished.
     bool dispatch(simulator_t &s, instruction_data_t &ops, bit_t pred,
                   word_t base, word_t address) const
     {
@@ -1545,6 +1603,33 @@ namespace patmos
       return false;
     }
     
+    void push_dbgstack(simulator_t &s, instruction_data_t &ops, bit_t pred,
+                        word_t callee) const 
+    {
+      // Enter the debug stack just once, and before we actually do the update
+      // to avoid any issues with timing and stalling.
+      // We need to wait until any IF-stage stalling is complete, so that the
+      // debug stack reads out the correct stack pointer values if they are 
+      // modified in the delay slot.
+      if (pred && !ops.MW_Initialized && !s.is_stalling(SMW)) {
+        ops.MW_Initialized = true;
+        
+        s.Dbg_stack.push(callee);
+        s.Profiling.enter(callee, s.Cycle);
+      }
+    }
+                        
+    void pop_dbgstack(simulator_t &s, instruction_data_t &ops, bit_t pred,
+                      word_t base, word_t offset) const
+    {
+      if (pred && !ops.MW_Initialized && !s.is_stalling(SMW)) {
+        ops.MW_Initialized = true;
+        
+        s.Profiling.leave(s.Cycle);
+        s.Dbg_stack.pop(base, offset);
+      }
+    }
+                        
   public:
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
@@ -1553,6 +1638,7 @@ namespace patmos
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.MW_Initialized = false;
     }
 
     // EX, MW implemented by sub-classes
@@ -1595,11 +1681,10 @@ namespace patmos
     {
       store_return_address(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address, 
                            SMW, false);
-      if (fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address))
-      {
-        s.Dbg_stack.push(ops.EX_Address);
-        s.Profiling.enter(ops.EX_Address, s.Cycle);
-      }
+      
+      push_dbgstack(s, ops, ops.DR_Pred, ops.EX_Address);
+      
+      fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
     }
     
     virtual bool is_call() const {
@@ -1673,17 +1758,37 @@ namespace patmos
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
       ops.EX_Address = ops.OPS.CFLi.UImm*sizeof(word_t);
+      ops.MW_Initialized = false;
     }
     
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
       store_return_address(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address, 
                            SMW, true);
-      if (fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address))
-      {
-        s.Dbg_stack.push(ops.EX_Address);
-        s.Profiling.enter(ops.EX_Address, s.Cycle);
-      }
+      
+      push_dbgstack(s, ops, ops.DR_Pred, ops.EX_Address);
+
+      fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+    }
+    
+    virtual unsigned get_delay_slots() const {
+      return 3;
+    }
+  };
+
+  class i_halt_t : public i_cfl_t
+  {
+  public:
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printPred(os, ops.Pred);
+      os << "halt";
+    }
+
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
+    {
+      simulation_exception_t::halt(s.GPR.get(GPR_EXIT_CODE_INDEX).get());
     }
     
     virtual unsigned get_delay_slots() const {
@@ -1703,6 +1808,7 @@ namespace patmos
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.MW_Initialized = false;
     }
 
     /// Print the instruction to an output stream.
@@ -1795,11 +1901,17 @@ namespace patmos
     {
       store_return_address(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address, 
                            SMW, false);
-      if (fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address))
-      {
+      
+      // Enter the debug stack just once, and before we actually do the update
+      // to avoid any issues with timing and stalling.
+      if (!ops.MW_Initialized && !ops.DR_Pred) {
+        ops.MW_Initialized = true;
+        
         s.Dbg_stack.push(ops.EX_Address);
         s.Profiling.enter(ops.EX_Address, s.Cycle);
       }
+
+      fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
     }
     
     virtual bool is_call() const { 
@@ -1898,6 +2010,7 @@ namespace patmos
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.MW_Initialized = false;
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
@@ -1920,23 +2033,13 @@ namespace patmos
       // returning to address 0? interpret this as a halt.
       if (ops.DR_Pred && ops.EX_Base == 0)
       {
-        // TODO this is one really ugly hack to let the simulator finish the
-        // other stages before we exit, so that the PC is updated and stuff.
-        // This should move into some simulator.halt(retvalue) call.
-        if (ops.EX_Offset == 0) {
-          ops.EX_Offset = 1;
-          s.pipeline_stall(SMW);
-        } else {
-          simulation_exception_t::halt(s.GPR.get(GPR_EXIT_CODE_INDEX).get());
-        }
+        s.halt();
       }
       else if (ops.DR_Pred)
       {
-        if (fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Address))
-        {
-          s.Dbg_stack.pop(ops.EX_Base, ops.EX_Offset);
-          s.Profiling.leave(s.Cycle);
-        }
+        pop_dbgstack(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Offset);
+        
+        fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Address);
       }
     }
 
@@ -1950,6 +2053,8 @@ namespace patmos
     {
       printSPReg(os, "in: ", srb, ops.EX_Base);
       printSPReg(os, ", "  , sro, ops.EX_Offset);
+      os << boost::format(" addr: %1$08x ") % ops.EX_Address;
+      symbols.print(os, ops.EX_Address);
     }
     
     virtual unsigned get_delay_slots() const {

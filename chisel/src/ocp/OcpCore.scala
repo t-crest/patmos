@@ -52,6 +52,23 @@ class OcpCoreMasterSignals(addrWidth : Int, dataWidth : Int)
     val res = new OcpCoreMasterSignals(addrWidth, dataWidth)
   	res.asInstanceOf[this.type]
   }
+
+  override def reset() = {
+	super.reset()
+	ByteEn := Bits(0)
+  }
+}
+
+// Reset values for master signals
+object OcpCoreMasterSignals {
+  def resetVal[T <: OcpCoreMasterSignals](sig : T) : T = {
+	val res = sig.clone
+	res.reset()
+	res
+  }
+  def resetVal(addrWidth : Int, dataWidth : Int) : OcpCoreMasterSignals = {
+	resetVal(new OcpCoreMasterSignals(addrWidth, dataWidth))
+  }
 }
 
 // Master port
@@ -66,4 +83,13 @@ class OcpCoreSlavePort(addrWidth : Int, dataWidth : Int) extends Bundle() {
   // Clk is implicit in Chisel
   val M = new OcpCoreMasterSignals(addrWidth, dataWidth).asInput
   val S = new OcpSlaveSignals(dataWidth).asOutput
+}
+
+// Provide a "bus" with a master port and a slave port to simplify plumbing
+class OcpCoreBus(addrWidth : Int, dataWidth : Int) extends Component {
+  val io = new Bundle {
+    val slave = new OcpCoreSlavePort(addrWidth, dataWidth)
+    val master = new OcpCoreMasterPort(addrWidth, dataWidth)
+  }
+  io.master <> io.slave
 }

@@ -22,6 +22,8 @@
 
 #include "memory.h"
 
+#include <boost/format.hpp>
+
 namespace patmos
 {
   /// A data cache.
@@ -29,6 +31,8 @@ namespace patmos
   {
   public:
     virtual ~data_cache_t() {}
+    
+    virtual void flush_cache() = 0;
   };
 
   /// An ideal data cache.
@@ -118,6 +122,8 @@ namespace patmos
     }
     
     virtual void reset_stats() {}
+    
+    virtual void flush_cache() {}
   };
 
   /// A data cache always accessing a memory.
@@ -162,10 +168,10 @@ namespace patmos
   };
 
 
-  /// An associative, block-based data cache using an LRU replacement policy and
+  /// An associative, block-based data cache using LRU or FIF replacement policy and
   /// a write-through strategy with no write allocation.
-  template<unsigned int ASSOCIATIVITY>
-  class lru_data_cache_t : public ideal_data_cache_t
+  template<bool LRU_REPLACEMENT>
+  class set_assoc_data_cache_t : public ideal_data_cache_t
   {
   private:
     /// Representation of the tag of a cache line.
@@ -178,17 +184,20 @@ namespace patmos
       unsigned int Block_address;
     };
 
-    /// Tags of the data cache.
-    typedef cache_tag_t cache_tags_t[ASSOCIATIVITY];
+    /// Array of cache tags
+    typedef cache_tag_t* cache_tags_t;
 
     /// The number of blocks in the cache.
     unsigned int Num_blocks;
 
     /// Number of bytes per block.
     unsigned int Num_block_bytes;
-    
+
+    /// Associativity of the cache
+    unsigned int Associativity;
+
     /// The number of indexes.
-    /// i.e., Num_blocks / ASSOCIATIVITY.
+    /// i.e., Num_blocks / Associativity.
     unsigned int Num_indexes;
 
     /// Flag indicating whether the cache is waiting for a pending request.
@@ -197,6 +206,9 @@ namespace patmos
     /// Tag information of all the data cache's content.
     cache_tags_t *Content;
 
+    /// Number of stall cycles caused by method cache misses.
+    unsigned int Num_stall_cycles;
+    
     /// Number of cache read hits
     unsigned int Num_read_hits;
 
@@ -239,22 +251,25 @@ namespace patmos
     /// Construct a new data cache instance.
     /// @param memory The memory that is accessed through the cache.
     /// @param num_blocks The size of the cache in blocks.
-    lru_data_cache_t(memory_t &memory, unsigned int num_blocks, 
+    set_assoc_data_cache_t(memory_t &memory, unsigned int associativity, unsigned int num_blocks,
                      unsigned int num_block_bytes) :
         ideal_data_cache_t(memory), Num_blocks(num_blocks),
         Num_block_bytes(num_block_bytes),
-        Num_indexes(num_blocks / ASSOCIATIVITY), Is_busy(false),
+        Associativity(associativity),
+        Num_indexes(num_blocks / Associativity), Is_busy(false),
+        Num_stall_cycles(0),
         Num_read_hits(0), Num_read_misses(0), Num_read_hit_bytes(0),
         Num_read_miss_bytes(0), Num_write_hits(0), Num_write_misses(0),
         Num_write_hit_bytes(0), Num_write_miss_bytes(0)
     {
-      assert(num_blocks % ASSOCIATIVITY == 0);
+      assert(num_blocks % Associativity == 0);
       Content = new cache_tags_t[Num_indexes];
 
       // initialize tags
       for(unsigned int i = 0; i < Num_indexes; i++)
       {
-        for(unsigned int j = 0; j < ASSOCIATIVITY; j++)
+        Content[i] = new cache_tag_t[Associativity];
+        for(unsigned int j = 0; j < Associativity; j++)
         {
           Content[i][j].Is_valid = false;
         }
@@ -280,9 +295,12 @@ namespace patmos
                                  % Num_indexes;
       cache_tags_t &tags(Content[entry_index]);
 
+      // tag_index corresponds to age of the cache block; we have
+      // (tag_index == Associativity) iff tag is not in the cache
+      unsigned int tag_index = Associativity;
+
       // check if content is in the cache
-      unsigned int tag_index = ASSOCIATIVITY - 1;
-      for(unsigned int i = 0; i < ASSOCIATIVITY; i++)
+      for(unsigned int i = 0; i < Associativity; i++)
       {
         if (tags[i].Is_valid && tags[i].Block_address == block_address)
         {
@@ -291,25 +309,38 @@ namespace patmos
         }
       }
 
+      bool cache_hit = (tag_index < Associativity);
+
       // update cache state and read data
-      if (tag_index != ASSOCIATIVITY - 1 || Memory.read(block_address, buf,
-                                                        Num_block_bytes))
+      if (cache_hit || Memory.read(block_address, buf, Num_block_bytes))
       {
         // update LRU ordering
-        for(unsigned int i = tag_index; i != 0; i--)
+        unsigned int last_index_changed;
+        if (cache_hit)
+          last_index_changed = tag_index;
+        else
+          last_index_changed = Associativity-1;
+
+        // no update on cache hit for FIFO
+        if (LRU_REPLACEMENT || ! cache_hit)
         {
-          tags[i] = tags[i -1];
+          for(unsigned int i = last_index_changed; i != 0; i--)
+          {
+            tags[i] = tags[i -1];
+          }
+
+          // set tag information
+          tags[0].Is_valid = 1;
+          tags[0].Block_address = block_address;
         }
 
-        // set tag information
-        tags[0].Is_valid = 1;
-        tags[0].Block_address = block_address;
-
         // actually read data from memory without stalling
+        // TODO we should keep the data in the cache and read it from
+        // there to detect consistency problems with multi-cores.
         Memory.read_peek(address, value, size);
 
         // update statistics
-        if (tag_index != ASSOCIATIVITY - 1)
+        if (cache_hit)
         {
           Num_read_hits++;
           Num_read_hit_bytes += size;
@@ -325,6 +356,7 @@ namespace patmos
       }
 
       Is_busy = true;
+      Num_stall_cycles++;
       return false;
     }
 
@@ -351,8 +383,8 @@ namespace patmos
         cache_tags_t &tags(Content[entry_index]);
 
         // check if content is in the cache
-        unsigned int tag_index = ASSOCIATIVITY - 1;
-        for(unsigned int i = 0; i < ASSOCIATIVITY; i++)
+        unsigned int tag_index = Associativity;
+        for(unsigned int i = 0; i < Associativity; i++)
         {
           if (tags[i].Is_valid && tags[i].Block_address == block_address)
           {
@@ -361,21 +393,14 @@ namespace patmos
           }
         }
 
-        // update the LRU ordering only when the data was in the cache
-        if (tag_index != ASSOCIATIVITY - 1)
-        {
-          for(unsigned int i = tag_index; i != 0; i--)
-          {
-            tags[i] = tags[i -1];
-          }
+        // No write allocate; contents of cache is updated on write-hit,
+        // but as the simulator implementation does not store contents in
+        // the cache, we simply omit cache updates for the write-through D$
 
-          // set tag information
-          tags[0].Is_valid = 1;
-          tags[0].Block_address = block_address;
-        }
+        bool cache_hit = (tag_index < Associativity);
 
         // update statistics
-        if (tag_index != ASSOCIATIVITY - 1)
+        if (cache_hit)
         {
           Num_write_hits++;
           Num_write_hit_bytes += size;
@@ -393,6 +418,7 @@ namespace patmos
       }
       else {
         Is_busy = true;
+        Num_stall_cycles++;
         return false;
       }
     }
@@ -412,7 +438,7 @@ namespace patmos
       for(unsigned int i = 0; i < Num_indexes; i++)
       {
         bool is_empty = true;
-        for(unsigned int j = 0; j < ASSOCIATIVITY; j++)
+        for(unsigned int j = 0; j < Associativity; j++)
         {
           if (Content[i][j].Is_valid)
           {
@@ -452,6 +478,9 @@ namespace patmos
       float        write_reuse = (float)total_write_bytes /
                                  (float)write_transfer_bytes;
 
+      os << boost::format("   Stall Cycles     : %1$10d\n\n") 
+        % Num_stall_cycles;
+        
       os << boost::format("                           total        hit      miss    miss-rate     reuse\n"
                           "   Reads            : %1$10d %2$10d %3$10d %4$10d%%\n"
                           "   Bytes Read       : %5$10d %6$10d %7$10d          - %8$10.2f\n"
@@ -465,8 +494,9 @@ namespace patmos
         % write_reuse;
     }
 
-    virtual void reset_stats() 
+    virtual void reset_stats()
     {
+      Num_stall_cycles = 0;
       Num_read_hits = 0;
       Num_read_misses = 0;
       Num_read_hit_bytes = 0;
@@ -476,9 +506,20 @@ namespace patmos
       Num_write_hit_bytes = 0;
       Num_write_miss_bytes = 0;
     }
+
+    virtual void flush_cache() 
+    {
+      for(unsigned int i = 0; i < Num_indexes; i++) 
+      {
+        for(unsigned int j = 0; j < Associativity; j++)
+        {
+          Content[i][j].Is_valid = false;
+        }
+      }      
+    }
     
     /// free tag information.
-    ~lru_data_cache_t()
+    ~set_assoc_data_cache_t()
     {
       delete[] Content;
     }

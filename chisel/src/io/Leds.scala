@@ -37,19 +37,33 @@
  * 
  */
 
-
 package io
 
 import Chisel._
 import Node._
 
-import patmos.LedIO
-import patmos.LedPinIO
-
 import ocp._
 
-class Leds(ledCount : Int) extends Component {
-  val io = new LedIO()
+import patmos.Constants._
+
+object Leds extends DeviceObject {
+  var ledCount = -1
+
+  def create(params: Map[String, String]) : Leds = {
+    ledCount = getPosIntParam(params, "ledCount")
+    new Leds(ledCount)
+  }
+
+  trait Pins {
+    val ledsPins = new Bundle() {
+      val led = Bits(OUTPUT, ledCount)
+    }
+  }
+}
+
+class Leds(ledCount : Int) extends CoreDevice() {
+
+  override val io = new CoreDeviceIO() with Leds.Pins
 
   val ledReg = Reg(resetVal = Bits(0, ledCount))
 
@@ -58,7 +72,7 @@ class Leds(ledCount : Int) extends Component {
   respReg := OcpResp.NULL
 
   // Write to LEDs
-  when(io.ocp.M.Cmd === OcpCmd.WRNP) {
+  when(io.ocp.M.Cmd === OcpCmd.WR) {
 	respReg := OcpResp.DVA
     ledReg := io.ocp.M.Data(ledCount-1, 0)
   }
@@ -73,5 +87,5 @@ class Leds(ledCount : Int) extends Component {
   io.ocp.S.Data := ledReg
 
   // Connection to pins
-  io.pins.led := ledReg
+  io.ledsPins.led := ledReg
 }

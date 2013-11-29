@@ -3,9 +3,12 @@
 module Patmos_tb();
    Patmos patmos(.clk(clk), .reset(reset),
 				 .io_dummy(io_dummy),
-				 .io_led(io_led),
+				 .io_cpuInfoPins_id(32'h00000000),
+				 .io_ledsPins_led(io_led),
 				 .io_uartPins_tx(io_uartPins_tx),
-				 .io_uartPins_rx(io_uartPins_rx));
+				 .io_uartPins_rx(io_uartPins_rx),
+				 .io_comConf_S_Resp(2'b00),
+				 .io_comSpm_S_Resp(2'b00));
 
    reg clk_reg;
    reg reset_reg;   
@@ -20,7 +23,7 @@ module Patmos_tb();
 		#100 reset_reg = 1'b0;
 	 end
    always
-	 #5 clk_reg = ~clk_reg;
+	 #6.25 clk_reg = ~clk_reg;
 
    reg [9:0] data;
    integer i;

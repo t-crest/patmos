@@ -45,7 +45,7 @@ import Node._
 import scala.collection.mutable.HashMap
 
 class OcpMaster() extends Component {
-  val io = new OcpCoreMasterPort(8, 32)
+  val io = new OcpCacheMasterPort(8, 32)
 
   val cnt = Reg(UFix(), resetVal = UFix(0))
   cnt := cnt + UFix(1, 32)
@@ -56,7 +56,7 @@ class OcpMaster() extends Component {
   io.M.ByteEn := cnt(7, 4)
 
   when(cnt(3, 0) === Bits("b1111")) {
-	io.M.Cmd := OcpCmd.WRNP
+	io.M.Cmd := OcpCmd.WR
   }
 }
 

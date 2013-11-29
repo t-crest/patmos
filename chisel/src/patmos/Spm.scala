@@ -64,7 +64,7 @@ class Spm(size: Int) extends Component {
   val masterReg = Reg(io.M)
 
   // Compute write enable
-  val stmsk = Mux(io.M.Cmd === OcpCmd.WRNP, io.M.ByteEn,  Bits("b0000"))
+  val stmsk = Mux(io.M.Cmd === OcpCmd.WR, io.M.ByteEn,  Bits("b0000"))
   val stmskReg = Reg(stmsk)
 
   // I would like to have a vector of memories.
@@ -95,11 +95,11 @@ class Spm(size: Int) extends Component {
 
   // Return data immediately
   io.S.Data := rdData
-  io.S.Resp := Mux(masterReg.Cmd === OcpCmd.WRNP || masterReg.Cmd === OcpCmd.RD,
+  io.S.Resp := Mux(masterReg.Cmd === OcpCmd.WR || masterReg.Cmd === OcpCmd.RD,
    				   OcpResp.DVA, OcpResp.NULL)
 
   // Delay result by one cycle to test stalling
   // io.S.Data := Reg(rdData)
-  // io.S.Resp := Reg(Mux(masterReg.Cmd === OcpCmd.WRNP || masterReg.Cmd === OcpCmd.RD,
+  // io.S.Resp := Reg(Mux(masterReg.Cmd === OcpCmd.WR || masterReg.Cmd === OcpCmd.RD,
   // 					   OcpResp.DVA, OcpResp.NULL))
 }

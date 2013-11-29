@@ -89,7 +89,7 @@ Errors : 0")
 test_asm(28 "Emitted: 64 bytes
 Errors : 0")
 
-test_asm(29 "Emitted: 24 bytes
+test_asm(29 "Emitted: 28 bytes
 Errors : 0")
 
 test_asm(30 "Emitted: 28 bytes
@@ -119,6 +119,9 @@ test_asm(38 "Emitted: 88 bytes
 Errors : 0")
 
 test_asm(39 "Emitted: 56 bytes
+Errors : 0")
+
+test_asm(40 "Emitted: 140 bytes
 Errors : 0")
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -167,13 +170,13 @@ test_sim(09 "r0 : 00000000   r1 : 0283f181   r2 : fffff181   r3 : fffffff1   r4 
 
 test_sim(10 "r0 : 00000000   r1 : 0283f181   r2 : 000000f0   r3 : 0283f181   r4 : f1810000   r5 : 81000000")
 
-test_sim(11a "BASE: 00000004   PC : 00000040.*
+test_sim(11a "BASE: 00000004   PC : 00000044.*
 .*r1 : 00000026")
 
-test_sim(11b "BASE: 00000004   PC : 00000044.*
+test_sim(11b "BASE: 00000004   PC : 00000048.*
 .*r1 : 00000029   r2 : 000000ff")
 
-test_sim(13 "BASE: 00000028   PC : 00000050.*
+test_sim(13 "BASE: 00000028   PC : 00000054.*
 .*r1 : 00000029   r2 : 00000000   r3 : 00000014")
 
 test_sim(14 "r0 : 00000000   r1 : 0283f181   r2 : 0283f181   r3 : 00000283   r4 : ffffff83   r5 : 00000283   r6 : 00000083")
@@ -190,7 +193,7 @@ test_sim(19 "r1 : 00000007")
 
 test_sim(20 "r1 : 0281fa81   r2 : 8281fa82")
 
-test_sim(21 "BASE: 00000004   PC : 00000050.*
+test_sim(21 "BASE: 00000004   PC : 00000054.*
 .*r1 : 0000003c")
 
 test_io_sim(22 "r1 : 000000fb")
@@ -207,11 +210,11 @@ test_sim(26 "Unaligned")
 
 test_sim(27 "Unaligned")
 
-test_sim(28 "BASE: 00000004   PC : 00000044.*
+test_sim(28 "BASE: 00000004   PC : 00000048.*
 .*r1 : 00000026")
 
 test_sim(29 "PRR: 00000001.*
-.*r1 : 00000009")
+.*r1 : 00000009   r2 : 00000001")
 
 test_dsim(30 "r2 : 00000001")
 
@@ -231,4 +234,6 @@ test_sim(37 "r0 : 00000000   r1 : 0283f181   r2 : 0283f181   r3 : 003ffff0   r4 
 test_sim(38 "r1 : 00000001")
 
 test_sim(39 "r1 : 00000005   r2 : 00000008   r3 : 00000009   r4 : 00000001   r5 : 00000005   r6 : 00000009   r7 : 00000009")
+
+test_sim(40 "r8 : 00000210   r9 : 00000210   r10: 00000010   r11: 000000e0   r12: 000000e0   r13: 00000210   r14: 00000100")
 

@@ -3,8 +3,7 @@
 
 int main() __attribute__((naked,used));
 
-#define _stack_cache_base 0x2f00
-#define _shadow_stack_base 0x3f00
+extern int _stack_cache_base, _shadow_stack_base;
 
 #define MEM         ((volatile int *) 0x0)
 #define SPM         ((volatile _SPM int *) 0x0)
@@ -25,21 +24,26 @@ int main() __attribute__((naked,used));
 
 int main()
 {
-	   // setup stack frame and stack cache.
-	    asm volatile ("mov $r29 = %0;" // initialize shadow stack pointer"
-	                "mts $ss  = %1;" // initialize the stack cache's spill pointer"
-	                "mts $st  = %1;" // initialize the stack cache's top pointer"
-	                 : : "r" (_shadow_stack_base), "r" (_stack_cache_base));
+    // setup stack frame and stack cache.
+    asm volatile ("mov $r29 = %0;" // initialize shadow stack pointer"
+                  "mts $ss  = %1;" // initialize the stack cache's spill pointer"
+                  "mts $st  = %1;" // initialize the stack cache's top pointer"
+                  "li $r30 = %2;" // initialize return base"
+                  : : "r" (_shadow_stack_base-16),
+                      "r" (_stack_cache_base-16),
+                      "i" (&main));
 
 	int entrypoint = 0;
 	int section_number = -1;
 	int section_count = 0;
+	int section_filesize = 0;
 	int section_offset = 0;
-	int section_size = 0;
+	int section_memsize = 0;
 	int integer = 0;
 	int section_byte_count = 0;
-	enum state {STATE_ENTRYPOINT, STATE_SECTION_NUMBER, STATE_SECTION_SIZE,
-		STATE_SECTION_OFFSET, STATE_SECTION_DATA};
+	enum state { STATE_ENTRYPOINT, STATE_SECTION_NUMBER,
+                 STATE_SECTION_FILESIZE, STATE_SECTION_OFFSET, STATE_SECTION_MEMSIZE,
+                 STATE_SECTION_DATA };
 
 	enum state current_state = STATE_ENTRYPOINT;
 
@@ -56,6 +60,7 @@ int main()
 		LEDS = current_state;
 		if(UART_STATUS & 0x02)
 		{
+
 			int data = UART_DATA;
 			if(packet_size == 0)
 			{
@@ -67,7 +72,11 @@ int main()
 			}
 			else
 			{
-				if(packet_byte_count < packet_size)
+				if(packet_byte_count < CRC_LENGTH)
+				{
+					received_crc |= data << ((CRC_LENGTH-packet_byte_count-1)*8);
+				}
+				else if(packet_byte_count < packet_size+CRC_LENGTH)
 				{
 					calculated_crc = calculated_crc ^ data;
 					int i;
@@ -90,14 +99,26 @@ int main()
 					{
 						if(section_byte_count == 4)
 						{
-							if (current_state == STATE_ENTRYPOINT)
-								entrypoint = integer;
-							else if (current_state == STATE_SECTION_NUMBER)
-								section_number = integer;
-							else if (current_state == STATE_SECTION_SIZE)
-								section_size = integer;
-							else if (current_state == STATE_SECTION_OFFSET)
-								section_offset = integer;
+						  switch(current_state)
+							{
+							case STATE_ENTRYPOINT:
+							  entrypoint = integer;
+							  break;
+							case STATE_SECTION_NUMBER:
+							  section_number = integer;
+							  break;
+							case STATE_SECTION_FILESIZE:
+							  section_filesize = integer;
+							  break;
+							case STATE_SECTION_OFFSET:
+							  section_offset = integer;
+							  break;
+							case STATE_SECTION_MEMSIZE:
+							  section_memsize = integer;
+							  break;
+							default:
+							  /* never happens */;
+							}
 
 							section_byte_count = 0;
 							current_state++;
@@ -110,29 +131,34 @@ int main()
 						if ((section_offset+section_byte_count-1) >> 16 == 0x01) {
 						  *(SPM+(section_offset+section_byte_count-1)/4) = integer;
 						}
-						//Write to "main memory"
-						if ((section_offset+section_byte_count-1) <= 0x10000) {
-						  *(MEM+(section_offset+section_byte_count-1)/4) = integer;
-						}
+						//Write to main memory
+						*(MEM+(section_offset+section_byte_count-1)/4) = integer;
 
-						if(section_byte_count == section_size)
+						if(section_byte_count == section_filesize)
 						{
-							//current_state = STATE_SECTION_START;
+						    // Align to next word boundary
+						    section_byte_count = (section_byte_count + 3) & ~3;
+						    // Fill up uninitialized areas with zeros
+						    while (section_byte_count < section_memsize)
+						    {
+						        if ((section_offset+section_byte_count) >> 16 == 0x01) {
+						          *(SPM+(section_offset+section_byte_count)/4) = 0;
+						        }
+						        *(MEM+(section_offset+section_byte_count)/4) = 0;
+						        section_byte_count += 4;
+							}
+							// Values for next segment
 							section_byte_count = 0;
 							section_count++;
-							current_state = STATE_SECTION_SIZE;
+							current_state = STATE_SECTION_FILESIZE;
 						}
 					}
 					if(section_byte_count%4 == 0)
 					{
 						integer = 0;
 					}
+				}
 
-				}
-				else if(packet_byte_count < packet_size+CRC_LENGTH)
-				{
-					received_crc |= data << ((packet_size+CRC_LENGTH-packet_byte_count-1)*8);
-				}
 				packet_byte_count++;
 				if(packet_byte_count == packet_size+CRC_LENGTH)
 				{

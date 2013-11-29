@@ -55,8 +55,25 @@ class OcpCacheMasterSignals(addrWidth : Int, dataWidth : Int)
 
   // This does not really clone, but Data.clone doesn't either
   override def clone() = {
-    val res = new OcpBurstMasterSignals(addrWidth, dataWidth)
+    val res = new OcpCacheMasterSignals(addrWidth, dataWidth)
   	res.asInstanceOf[this.type]
+  }
+
+  override def reset() = {
+	super.reset()
+	AddrSpace := OcpCache.UNCACHED
+  }
+}
+
+// Reset values for master signals
+object OcpCacheMasterSignals {
+  def resetVal[T <: OcpCacheMasterSignals](sig : T) : T = {
+	val res = sig.clone
+	res.reset()
+	res
+  }
+  def resetVal(addrWidth : Int, dataWidth : Int) : OcpCacheMasterSignals = {
+	resetVal(new OcpCacheMasterSignals(addrWidth, dataWidth))
   }
 }
 
@@ -72,4 +89,13 @@ class OcpCacheSlavePort(addrWidth : Int, dataWidth : Int) extends Bundle() {
   // Clk is implicit in Chisel
   val M = new OcpCacheMasterSignals(addrWidth, dataWidth).asInput
   val S = new OcpSlaveSignals(dataWidth).asOutput
+}
+
+// Provide a "bus" with a master port and a slave port to simplify plumbing
+class OcpCacheBus(addrWidth : Int, dataWidth : Int) extends Component {
+  val io = new Bundle {
+    val slave = new OcpCacheSlavePort(addrWidth, dataWidth)
+    val master = new OcpCacheMasterPort(addrWidth, dataWidth)
+  }
+  io.master <> io.slave
 }

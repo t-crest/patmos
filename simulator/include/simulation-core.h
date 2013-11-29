@@ -50,7 +50,7 @@ namespace patmos
 
   /// Define the number of bytes in a block transferred on an access to the 
   /// global main memory.
-  static const unsigned int NUM_MEMORY_BLOCK_BYTES = 8;
+  static const unsigned int NUM_MEMORY_BLOCK_BYTES = 16;
 
   /// Define the number of bytes used for the local memory.
   static const unsigned int NUM_LOCAL_MEMORY_BYTES = 0x800;
@@ -58,20 +58,20 @@ namespace patmos
   /// Define the number of bytes used for the data cache.
   static const unsigned int NUM_DATA_CACHE_BYTES = 0x800;
 
-  /// Define the number of bytes in a block of the data cache.
-  static const unsigned int NUM_DATA_CACHE_BLOCK_BYTES = 32;
-
   /// Define the number of bytes used for the stack cache.
   static const unsigned int NUM_STACK_CACHE_BYTES = 0x800;
 
   /// Define the number of bytes in a block of the stack cache.
-  static const unsigned int NUM_STACK_CACHE_BLOCK_BYTES = 4;
+  static const unsigned int NUM_STACK_CACHE_BLOCK_BYTES = 16;
 
   /// Define the number of bytes used for the method cache.
   static const unsigned int NUM_METHOD_CACHE_BYTES = 0x800;
 
+  /// Define the maximum number of methods that can be cached in the method cache.
+  static const unsigned int NUM_METHOD_CACHE_MAX_METHODS = 16;
+  
   /// Define the number of bytes in a block of the method cache.
-  static const unsigned int NUM_METHOD_CACHE_BLOCK_BYTES = 32;
+  static const unsigned int NUM_METHOD_CACHE_BLOCK_BYTES = 4;
 
   /// General-purpose register holding the program's exit code when terminating.
   static const GPR_e GPR_EXIT_CODE_INDEX = r1;
@@ -128,9 +128,6 @@ namespace patmos
     /// A vector containing instruction statistics.
     typedef std::vector<instruction_stat_t> instruction_stats_t;
 
-    /// Reset all statistics on the given program counter value.
-    uword_t Reset_stats_PC;
-    
   public:
     /// Cycle counter
     uint64_t Cycle;
@@ -173,9 +170,9 @@ namespace patmos
 
     /// The next value for program counter register.
     uword_t nPC;
-
-    /// The last value of the program counter register
-    uword_t lPC;
+    
+    /// Old value of the program counter, for debugging purposes only.
+    uword_t Debug_last_PC;
 
     /// The general purpose registers.
     GPR_t GPR;
@@ -194,6 +191,9 @@ namespace patmos
     
     /// Interrupt instruction
     instruction_t *Instr_INTR;
+    
+    /// Halt pseudo instruction.
+    instruction_t *Instr_HALT;
 
     /// Interrupt handler
     interrupt_handler_t interrupt_handler;
@@ -210,9 +210,15 @@ namespace patmos
     /// Keep track of current branch delay
     int Branch_counter;
     
+    /// If set to true, flush the pipeline and halt the simulation.
+    bool Halt;
+    
     /// Delay decoder when an interrupt has been executed
     int Interrupt_handling_counter;
 
+    /// Flush caches when PC reaches this address.
+    uword_t Flush_Cache_PC;
+    
     /// Runtime statistics on all instructions, per pipeline
     instruction_stats_t Instruction_stats[NUM_SLOTS];
 
@@ -229,7 +235,9 @@ namespace patmos
     /// (excluding memories and caches)
     /// @param os An output stream.
     /// @param debug_fmt The selected output format.
-    void print_registers(std::ostream &os, debug_format_e debug_fmt) const;
+    /// @param nopc skip printing cycles and PC
+    void print_registers(std::ostream &os, debug_format_e debug_fmt, 
+                         bool nopc = false) const;
 
     /// Perform a step of the simulation for a given pipeline.
     /// @param pst The pipeline stage.
@@ -250,6 +258,13 @@ namespace patmos
     /// itself or any following stage.
     bool is_stalling(Pipeline_t pst) const;
 
+    /// Halt the simulation. All instructions currently in flight will be 
+    /// completed first.
+    void halt();
+    
+    /// Check if the simulator has been requested to halt.
+    bool is_halting() const;
+    
     /// Track retiring instructions for stats.
     void track_retiring_instructions();
 
@@ -274,34 +289,37 @@ namespace patmos
     // Destroy an instance of a Patms-core simulator
     ~simulator_t();
 
+    /// Flush all data caches when reaching the given program counter.
+    void flush_caches_at(uword_t address) { Flush_Cache_PC = address; }
+    
     /// Run the simulator.
     /// @param entry Initialize the method cache, PC, etc. to start execution
     /// from this entry address.
     /// @param debug_cycle Print debug trace starting at the given cycle.
     /// @param debug_fmt Format of the debug trace.
     /// @param debug_out Stream to print debug output.
+    /// @param debug_nopc skip printing cycles and PC
     /// @param max_cycles The maximum number of cycles to run the simulation.
     /// @param profiling Enable profiling in the simulation run.
     /// @param collect_instr_stats
     void run(word_t entry = 0,
              uint64_t debug_cycle = std::numeric_limits<uint64_t>::max(),
              debug_format_e debug_fmt = DF_DEFAULT,
-             std::ostream &debug_out = std::cerr,
+             std::ostream &debug_out = std::cerr, bool debug_nopc = false,
              uint64_t max_cycles = std::numeric_limits<uint64_t>::max(),
              bool collect_instr_stats = false);
 
-    /// Reset the statistics when the given program counter is executed.
-    void reset_stats_at(uword_t pc) { Reset_stats_PC = pc; }
-    
     /// Print the instructions and their operands in a pipeline stage
     /// @param os An output stream.
     /// @param debug_fmt The stage to print.
-    void print_instructions(std::ostream &os, Pipeline_t stage) const;
+    /// @param nopc skip printing cycles and PC
+    void print_instructions(std::ostream &os, Pipeline_t stage, bool nopc) const;
 
     /// Print the internal state of the simulator to an output stream.
     /// @param os An output stream.
     /// @param debug_fmt The selected output format.
-    void print(std::ostream &os, debug_format_e debug_fmt);
+    /// @param nopc skip printing cycles and PC
+    void print(std::ostream &os, debug_format_e debug_fmt, bool nopc);
 
     /// Print runtime statistics of the current simulation run to an output
     /// stream.
@@ -310,6 +328,9 @@ namespace patmos
 
     /// Reset all simulation statistics.
     void reset_stats();
+    
+    /// Flush all caches.
+    void flush_caches();
   };
 
 

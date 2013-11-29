@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,19 +32,10 @@
 
 /*
  * Patmos top level component and test driver.
- * 
+ *
  * Authors: Martin Schoeberl (martin@jopdesign.com)
  *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
- * 
- */
-
-/*
-
-Keep a TODO list here, right at the finger tips:
-
-- Look into ListLookup for instruction decoding
-
-
+ *
  */
 
 package patmos
@@ -56,41 +47,36 @@ import scala.collection.mutable.HashMap
 
 import Constants._
 
-/**
- * The main (top-level) component of Patmos.
- */
-class Patmos(fileName: String) extends Component {
-  val io = new Bundle {
-    val dummy = Bits(OUTPUT, 32)
-    val led = Bits(OUTPUT, 9)
-    val key = Bits(INPUT, 4)
-    val uartPins = new UartPinIO()
-    val sramPins = new RamOutPinsIO() 
-    //val rfDebug = Vec(REG_COUNT) { Bits(OUTPUT, DATA_WIDTH) }
-  }
+import util._
+import datacache._
+import ocp._
 
-  val ssram = new SsramBurstRW()
+/**
+ * Component for one Patmos core.
+ */
+class PatmosCore(binFile: String, datFile: String) extends Component {
+
+  val io = Config.getPatmosCoreIO()
+
   val mcache = new MCache()
 
-  val fetch = new Fetch(fileName)
+  val fetch = new Fetch(binFile)
   val decode = new Decode()
   val execute = new Execute()
   val memory = new Memory()
   val writeback = new WriteBack()
   val exc = new Exceptions()
   val iocomp = new InOut()
+  val dcache = new DataCache()
 
   //io.rfDebug := decode.rf.io.rfDebug
-
-  ssram.io.ram_out <> io.sramPins.ram_out
-  ssram.io.ram_in <> io.sramPins.ram_in
 
   //connect mcache
   mcache.io.femcache <> fetch.io.femcache
   mcache.io.mcachefe <> fetch.io.mcachefe
   mcache.io.exmcache <> execute.io.exmcache
-  mcache.io.ocp_port <> ssram.io.ocp_port
-  mcache.io.ena <> memory.io.mc_ena  //feeds Hit/Miss signal to m-stage for a possible stall
+  mcache.io.ena_out <> memory.io.ena_in
+  mcache.io.ena_in <> memory.io.ena_out
 
   decode.io.fedec <> fetch.io.fedec
   execute.io.decex <> decode.io.decex
@@ -120,16 +106,24 @@ class Patmos(fileName: String) extends Component {
   exc.io.excdec <> decode.io.exc
   exc.io.memexc <> memory.io.exc
 
-  // TODO: to be replaced with a connection to external memory
-  val globMem = new Spm(1 << DSPM_BITS)
-  memory.io.globalInOut <> globMem.io
+  // The boot memories intercept accesses before they are translated to bursts
+  val bootMem = new BootMem(datFile)
+  memory.io.globalInOut <> bootMem.io.memInOut
+
+  dcache.io.master <> bootMem.io.extMem
+
+  // Merge OCP ports from data caches and method cache
+  val burstBus = new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+  val burstJoin = new OcpBurstJoin(mcache.io.ocp_port, dcache.io.slave,
+                                   burstBus.io.slave)
 
   // Enable signal
-  val enable = memory.io.ena //& mcache.io.ena //containts also the ena signal from mcache
+  val enable = memory.io.ena_out & mcache.io.ena_out
   fetch.io.ena := enable
   decode.io.ena := enable
   execute.io.ena := enable
   writeback.io.ena := enable
+  val enableReg = Reg(enable)
 
   // Flush signal
   val flush = memory.io.flush
@@ -137,21 +131,66 @@ class Patmos(fileName: String) extends Component {
   execute.io.flush := flush
 
   // The inputs and outputs
-  io.uartPins <> iocomp.io.uartPins
-  io.led <> Cat(memory.io.ena, iocomp.io.ledPins.led)
-  io.key <> iocomp.io.keyPins.keys
-
-  // ***** the following code is not really Patmos code ******
+  io.comConf <> iocomp.io.comConf
+  io.comSpm <> iocomp.io.comSpm
+  io.memPort <> burstBus.io.master
+  Config.connectAllIOPins(io, iocomp.io)
 
   // Dummy output, which is ignored in the top level VHDL code, to
-  // keep Chisel keep some unused signals alive
-  io.dummy := Reg(memory.io.memwb.relPc | decode.rf.io.rfDebug.toBits())
+  // force Chisel keep some unused signals alive
+  io.dummy := Reg(memory.io.memwb.pc) | enableReg // | decode.rf.io.rfDebug.toBits)
+
+}
+
+object PatmosCoreMain {
+  def main(args: Array[String]): Unit = {
+
+    val chiselArgs = args.slice(3, args.length)
+    val configFile = args(0)
+    val binFile = args(1)
+    val datFile = args(2)
+
+	Config.conf = Config.load(configFile)
+    chiselMain(chiselArgs, () => new PatmosCore(binFile, datFile))
+	// Print out the configuration
+	Utility.printConfig(configFile)
+  }
+}
+
+/**
+ * The main (top-level) component of Patmos.
+ */
+class Patmos(configFile: String, binFile: String, datFile: String) extends Component {
+  Config.conf = Config.load(configFile)
+
+  val io = Config.getPatmosIO()
+
+  // Instantiate core
+  val core = new PatmosCore(binFile, datFile)
+
+  // Forward ports to/from core
+  io.comConf <> core.io.comConf
+  io.comSpm <> core.io.comSpm
+  Config.connectAllIOPins(io, core.io)
+
+  // Connect memory controller
+  val ssram = new SsramBurstRW(EXTMEM_ADDR_WIDTH)
+  ssram.io.ocp_port <> core.io.memPort
+  io.sramPins.ram_out <> ssram.io.ram_out
+  io.sramPins.ram_in <> ssram.io.ram_in
+
+  // Dummy output, which is ignored in the top level VHDL code, to
+  // force Chisel keep some unused signals alive
+  io.dummy <> core.io.dummy
+
+  // Print out the configuration
+  Utility.printConfig(configFile)
 }
 
 // this testing and main file should go into it's own folder
 
 class PatmosTest(pat: Patmos) extends Tester(pat,
-  Array(pat.io, pat.decode.io, pat.decode.rf.io, pat.memory.io, pat.execute.io)
+  Array(pat.io, pat.core.decode.io, pat.core.decode.rf.io, pat.core.memory.io, pat.core.execute.io)
   ) {
 
   defTests {
@@ -165,18 +204,18 @@ class PatmosTest(pat: Patmos) extends Tester(pat,
       vars.clear
       step(vars, ovars, false) // false as third argument disables printout
       // The PC printout is a little off on a branch
-      val pc = ovars(pat.memory.io.memwb.relPc).litValue() - 2
+      val pc = ovars(pat.core.memory.io.memwb.pc).litValue() - 2
       // println(ovars(pat.io.led).litValue())
       print(pc + " - ")
       for (j <- 0 until 32)
-        print(ovars(pat.decode.rf.io.rfDebug(j)).litValue() + " ")
+        print(ovars(pat.core.decode.rf.io.rfDebug(j)).litValue() + " ")
       println()
       //      println("iter: " + i)
       //      println("ovars: " + ovars)
       //      println("led/litVal " + ovars(pat.io.led).litValue())
-      //      println("pc: " + ovars(pat.fetch.io.fedec.pc).litValue())
-      //      println("instr: " + ovars(pat.fetch.io.fedec.instr_a).litValue())
-      //      println("pc decode: " + ovars(pat.decode.io.decex.pc).litValue())
+      //      println("pc: " + ovars(pat.core.fetch.io.fedec.pc).litValue())
+      //      println("instr: " + ovars(pat.core.fetch.io.fedec.instr_a).litValue())
+      //      println("pc decode: " + ovars(pat.core.decode.io.decex.pc).litValue())
     }
     ret
   }
@@ -185,9 +224,11 @@ class PatmosTest(pat: Patmos) extends Tester(pat,
 object PatmosMain {
   def main(args: Array[String]): Unit = {
 
-    // Use first argument for the program name (.bin file)
-    val chiselArgs = args.slice(1, args.length)
-    val file = args(0)
-    chiselMainTest(chiselArgs, () => new Patmos(file)) { f => new PatmosTest(f) }
+    val chiselArgs = args.slice(3, args.length)
+    val configFile = args(0)
+    val binFile = args(1)
+    val datFile = args(2)
+
+    chiselMainTest(chiselArgs, () => new Patmos(configFile, binFile, datFile)) { f => new PatmosTest(f) }
   }
 }

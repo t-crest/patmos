@@ -66,10 +66,11 @@ class Memory() extends Component {
   val enable = Mux(mayStallReg, (io.localInOut.S.Resp != OcpResp.NULL
 								 || io.globalInOut.S.Resp != OcpResp.NULL),
 				   Bool(true))
-  io.ena := enable & io.mc_ena // stall = !enable
+  io.ena_out := enable
 
-  // Latch register
-  when(enable & io.mc_ena) {
+  // Register from execution stage
+  val memReg = Reg(new ExMem(), resetVal = ExMemResetVal)
+  when(enable && io.ena_in) {
     memReg := io.exmem
     mayStallReg := io.exmem.mem.load || io.exmem.mem.store
     when(flush) {
@@ -127,9 +128,9 @@ class Memory() extends Component {
   
   // Path to memories and IO is combinatorial, registering happens in
   // the individual modules
-  val cmd = Mux(enable && !flush,
+  val cmd = Mux(enable && io.ena_in && !flush,
 				Mux(io.exmem.mem.load, OcpCmd.RD,
-					Mux(io.exmem.mem.store, OcpCmd.WRNP,
+					Mux(io.exmem.mem.store, OcpCmd.WR,
 						OcpCmd.IDLE)),
 				OcpCmd.IDLE)
 
@@ -201,7 +202,7 @@ class Memory() extends Component {
   io.memfe.callRetBase := memReg.mem.callRetBase(DATA_WIDTH-1, 2)
 
   // ISPM write
-  io.memfe.store := io.localInOut.M.Cmd === OcpCmd.WRNP
+  io.memfe.store := io.localInOut.M.Cmd === OcpCmd.WR
   io.memfe.addr := io.exmem.mem.addr
   io.memfe.data := Cat(wrData(3), wrData(2), wrData(1), wrData(0))
 

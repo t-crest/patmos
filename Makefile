@@ -28,6 +28,8 @@ endif
 #QPROJ=bemicro
 QPROJ?=altde2-70
 
+# MS: why do we need all those symbols when
+# the various paths are fixed anyway?
 
 # Where to put elf files and binaries
 BUILDDIR?=$(CURDIR)/tmp
@@ -86,16 +88,27 @@ emulator:
 # Assemble a program
 asm: asm-$(BOOTAPP)
 
-asm-% $(BUILDDIR)/%.bin: asm/%.s
+asm-% $(BUILDDIR)/%.bin $(BUILDDIR)/%.dat: asm/%.s
 	-mkdir -p $(dir $(BUILDDIR)/$*)
 	$(INSTALLDIR)/paasm $< $(BUILDDIR)/$*.bin
+	touch $(BUILDDIR)/$*.dat
 
 # Compile a program with flags for booting
 bootcomp: bin-$(BOOTAPP)
 
 # Convert elf file to binary
-bin-% $(BUILDDIR)/%.bin: $(BUILDDIR)/%.elf
-	$(INSTALLDIR)/elf2bin $< $(BUILDDIR)/$*.bin
+bin-% $(BUILDDIR)/%.bin $(BUILDDIR)/%.dat: $(BUILDDIR)/%.elf
+	$(INSTALLDIR)/elf2bin $< $(BUILDDIR)/$*.bin $(BUILDDIR)/$*.dat
+
+# Convert elf file to flat memory image
+img: img-$(APP)
+img-% $(BUILDDIR)/%.img: $(BUILDDIR)/%.elf
+	$(INSTALLDIR)/elf2bin -f $< $(BUILDDIR)/$*.img
+
+# Convert binary memory image to decimal representation
+imgdat: imgdat-$(APP)
+imgdat-% $(BUILDDIR)/%.img.dat: $(BUILDDIR)/%.img
+	hexdump -v -e '"%d,"' -e '" // %08x\n"' $< > $(BUILDDIR)/$*.img.dat
 
 # Compile a program to an elf file
 comp: comp-$(APP)
@@ -112,7 +125,7 @@ hsim: $(BUILDDIR)/$(BOOTAPP).bin
 
 # C simulation of the Chisel version of Patmos
 csim:
-	$(MAKE) -C chisel test BOOTAPP=$(BOOTAPP)
+	$(MAKE) -C chisel test BOOTBUILDROOT=$(CURDIR) BOOTAPP=$(BOOTAPP)
 
 # Testing
 test:
@@ -154,9 +167,13 @@ config_xilinx:
 # cleanup
 CLEANEXTENSIONS=rbf rpt sof pin summary ttf qdf dat wlf done qws
 
-clean:
-	-rm -rf $(BUILDDIR) $(INSTALLDIR)
-	-rm -rf java/classes java/lib
+mostlyclean:
+	-rm -rf $(SIMBUILDDIR) $(CTOOLSBUILDDIR) $(BUILDDIR)
+	-rm -rf java/classes
+
+clean: mostlyclean
+	-rm -rf $(INSTALLDIR)
+	-rm -rf java/lib
 	for ext in $(CLEANEXTENSIONS); do \
 		find `ls` -name \*.$$ext -print -exec rm -r -f {} \; ; \
 	done
