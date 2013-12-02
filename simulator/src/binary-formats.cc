@@ -630,8 +630,8 @@ namespace patmos
   instruction_data_t cflrt_format_t::decode_operands(word_t iw,
                                                      word_t longimm) const
   {
-    GPR_e rs1 = extractG(iw,  7);
-    GPR_e rs2 = extractG(iw, 12);
+    GPR_e rs1 = extractG(iw, 12);
+    GPR_e rs2 = extractG(iw,  7);
     PRR_e pred = extractPN(iw, 27);
     return instruction_data_t::mk_CFLrt(Instruction, pred, rs1, rs2);
   }
@@ -644,8 +644,8 @@ namespace patmos
 
     insertV(iw, 0, 2, opcode);
     insertV(iw, 2, 2, BOOST_BINARY(10));
-    insertG(iw,  7, rs1);
-    insertG(iw, 12, rs2);
+    insertG(iw,  7, rs2);
+    insertG(iw, 12, rs1);
     insertV(iw, 22, 5, BOOST_BINARY(11000));
     insertPN(iw, 27, pred);
 
