@@ -23,7 +23,7 @@ SBT=java -Xmx1024M -Xss8M -XX:MaxPermSize=128M -jar sbt/sbt-launch.jar
 
 # C++ build flags
 CXX=g++
-CXXFLAGS=-O2 -g -fno-var-tracking-assignments
+CXXFLAGS=-O2
 
 # Quick fix for Mac OS X
 # How are include paths handled these days in *nix? CMake?
