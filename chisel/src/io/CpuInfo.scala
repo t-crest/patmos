@@ -49,7 +49,7 @@ import ocp._
 
 object CpuInfo extends DeviceObject {
   def create(params: Map[String, String]) : CpuInfo = {
-    new CpuInfo()
+    Module(new CpuInfo())
   }
 
   trait Pins {
@@ -63,7 +63,7 @@ class CpuInfo() extends CoreDevice() {
 
   override val io = new CoreDeviceIO() with CpuInfo.Pins
 
-  val masterReg = Reg(io.ocp.M)
+  val masterReg = Reg(next = io.ocp.M)
 
   // Default response
   val resp = Bits()

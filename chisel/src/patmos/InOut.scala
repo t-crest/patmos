@@ -48,7 +48,7 @@ import Constants._
 import ocp._
 import util._
 
-class InOut() extends Component {
+class InOut() extends Module {
   val io = Config.getInOutIO()
 
   // Compute selects
@@ -63,19 +63,19 @@ class InOut() extends Component {
 
   val MAX_IO_DEVICES = 0x10
 
-  val selDeviceVec = Vec(MAX_IO_DEVICES) { Bool() }
-  val deviceSVec = Vec(MAX_IO_DEVICES) { OcpSlaveSignals.resetVal(DATA_WIDTH) }
+  val selDeviceVec = Vec.fill(MAX_IO_DEVICES) { Bool() }
+  val deviceSVec = Vec.fill(MAX_IO_DEVICES) { OcpSlaveSignals.resetVal(DATA_WIDTH) }
   for (i <- 0 to MAX_IO_DEVICES-1) {
     selDeviceVec(i) := selIO & io.memInOut.M.Addr(11, 8) === Bits(i)
     deviceSVec(i) := OcpSlaveSignals.resetVal(DATA_WIDTH)
   }
 
   // Register selects
-  val selSpmReg = Reg(resetVal = Bits("b0"))
-  val selComConfReg = Reg(resetVal = Bits("b0"))
-  val selComSpmReg = Reg(resetVal = Bits("b0"))
+  val selSpmReg = Reg(init = Bool(false))
+  val selComConfReg = Reg(init = Bool(false))
+  val selComSpmReg = Reg(init = Bool(false))
 
-  val selDeviceReg = Vec(MAX_IO_DEVICES) { Reg(Bool()) }
+  val selDeviceReg = Vec.fill(MAX_IO_DEVICES) { Reg(Bool()) }
 
   when(io.memInOut.M.Cmd != OcpCmd.IDLE) {
 	selSpmReg := selSpm
@@ -86,21 +86,21 @@ class InOut() extends Component {
   }
 
   // Dummy ISPM (create fake response)
-  val ispmCmdReg = Reg(Mux(selISpm, io.memInOut.M.Cmd, OcpCmd.IDLE))
+  val ispmCmdReg = Reg(next = Mux(selISpm, io.memInOut.M.Cmd, OcpCmd.IDLE))
   val ispmResp = Mux(ispmCmdReg === OcpCmd.IDLE, OcpResp.NULL, OcpResp.DVA)
 
   // The SPM
-  val spm = new Spm(DSPM_SIZE)
+  val spm = Module(new Spm(DSPM_SIZE))
   spm.io.M := io.memInOut.M
   spm.io.M.Cmd := Mux(selSpm, io.memInOut.M.Cmd, OcpCmd.IDLE)
   val spmS = spm.io.S
 
   // The communication configuration, including bridge to OcpIO interface
-  val comConf = new OcpCoreBus(ADDR_WIDTH, DATA_WIDTH)
+  val comConf = Module(new OcpCoreBus(ADDR_WIDTH, DATA_WIDTH))
   comConf.io.slave.M := io.memInOut.M
   comConf.io.slave.M.Cmd := Mux(selComConf, io.memInOut.M.Cmd, OcpCmd.IDLE)
   val comConfS = comConf.io.slave.S
-  val comConfIO = new OcpIOBus(ADDR_WIDTH, DATA_WIDTH)
+  val comConfIO = Module(new OcpIOBus(ADDR_WIDTH, DATA_WIDTH))
   io.comConf.M := comConfIO.io.master.M
   comConfIO.io.master.S := io.comConf.S
   val comConfBridge = new OcpIOBridge(comConf.io.master, comConfIO.io.slave)

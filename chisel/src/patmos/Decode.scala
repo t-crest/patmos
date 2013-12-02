@@ -44,10 +44,10 @@ import Node._
 
 import Constants._
 
-class Decode() extends Component {
+class Decode() extends Module {
   val io = new DecodeIO()
 
-  val rf = new RegisterFile()
+  val rf = Module(new RegisterFile())
 
   // register file is connected with unregistered instruction word
   rf.io.rfRead.rsAddr(0) := io.fedec.instr_a(16, 12)
@@ -61,7 +61,7 @@ class Decode() extends Component {
   rf.io.rfWrite <> io.rfWrite
 
   // register input from fetch stage
-  val decReg = Reg(new FeDec(), resetVal = FeDecResetVal)
+  val decReg = Reg(new FeDec(), init = FeDecResetVal)
   when(io.ena) {
     decReg := io.fedec
   }
@@ -165,7 +165,7 @@ class Decode() extends Component {
 
   val isSTC   = Bool()
   val stcVal  = Bits(width = DATA_WIDTH)
-  val stcImm  = Cat(Bits(0), instr(17, 0), Bits("b00")).toUFix()
+  val stcImm  = Cat(Bits(0), instr(17, 0), Bits("b00")).toUInt()
 
   io.decex.jmpOp.branch := Bool(false)
   io.decex.memOp.load := Bool(false)
@@ -248,8 +248,8 @@ class Decode() extends Component {
     io.decex.ret := Bool(true)
   }
 
-  val shamt = UFix()
-  shamt := UFix(0)
+  val shamt = UInt()
+  shamt := UInt(0)
   // load
   when(opcode === OPCODE_LDT) {
     isMem := Bool(true)
@@ -257,17 +257,17 @@ class Decode() extends Component {
     io.decex.wrRd(0) := Bool(true)
     switch(ldsize) {
       is(MSIZE_W) {
-        shamt := UFix(2)
+        shamt := UInt(2)
       }
       is(MSIZE_H) {
-        shamt := UFix(1)
+        shamt := UInt(1)
         io.decex.memOp.hword := Bool(true)
       }
       is(MSIZE_B) {
         io.decex.memOp.byte := Bool(true)
       }
       is(MSIZE_HU) {
-        shamt := UFix(1)
+        shamt := UInt(1)
         io.decex.memOp.hword := Bool(true)
         io.decex.memOp.zext := Bool(true)
       }
@@ -288,10 +288,10 @@ class Decode() extends Component {
     io.decex.memOp.store := Bool(true)
     switch(stsize) {
       is(MSIZE_W) {
-        shamt := UFix(2)
+        shamt := UInt(2)
       }
       is(MSIZE_H) {
-        shamt := UFix(1)
+        shamt := UInt(1)
         io.decex.memOp.hword := Bool(true)
       }
       is(MSIZE_B) {
@@ -308,8 +308,8 @@ class Decode() extends Component {
   val addrImm = Bits()
   addrImm := Cat(Bits(0), instr(6, 0))
   switch(shamt) {
-    is(UFix(1)) { addrImm := Cat(Bits(0), instr(6, 0), Bits(0, width = 1)) }
-    is(UFix(2)) { addrImm := Cat(Bits(0), instr(6, 0), Bits(0, width = 2)) }
+    is(UInt(1)) { addrImm := Cat(Bits(0), instr(6, 0), Bits(0, width = 1)) }
+    is(UInt(2)) { addrImm := Cat(Bits(0), instr(6, 0), Bits(0, width = 2)) }
   }
 
   // Immediate value
@@ -321,7 +321,7 @@ class Decode() extends Component {
   // we could mux the imm / register here as well
   
   // Immediate for absolute calls
-  io.decex.callAddr := Cat(Bits(0), instr(21, 0), Bits("b00")).toUFix()
+  io.decex.callAddr := Cat(Bits(0), instr(21, 0), Bits("b00")).toUInt()
 
   // Immediate for branch is sign extended, not extended for call
   // PC-relative value is precomputed here
@@ -330,7 +330,7 @@ class Decode() extends Component {
 
   // PC-relative address for brcf
   // TODO: this goes away when we make brcf like calls
-  io.decex.brcfAddr := Cat(io.decex.jmpOp.target + decReg.reloc, Bits("b00").toUFix)
+  io.decex.brcfAddr := Cat(io.decex.jmpOp.target + decReg.reloc, Bits("b00").toUInt)
 
   // Pass on PC
   io.decex.pc := decReg.pc

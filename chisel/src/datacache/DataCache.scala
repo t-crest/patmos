@@ -45,7 +45,7 @@ import patmos.Constants._
 
 import ocp._
 
-class DataCache extends Component {
+class DataCache extends Module {
   val io = new Bundle {
 	val master = new OcpCacheSlavePort(ADDR_WIDTH, DATA_WIDTH)
 	val slave = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
@@ -53,21 +53,21 @@ class DataCache extends Component {
 
   // Register selects
   val selDC = io.master.M.AddrSpace === OcpCache.DATA_CACHE
-  val selDCReg = Reg(resetVal = Bool(false))
+  val selDCReg = Reg(init = Bool(false))
   when(io.master.M.Cmd != OcpCmd.IDLE) {
 	selDCReg := selDC
   }
 
   // Instantiate direct-mapped cache for regular data cache
-  val dm = new DirectMappedCache(DCACHE_SIZE, BURST_LENGTH*BYTES_PER_WORD)
+  val dm = Module(new DirectMappedCache(DCACHE_SIZE, BURST_LENGTH*BYTES_PER_WORD))
   dm.io.master.M := io.master.M
   dm.io.master.M.Cmd := Mux(selDC || io.master.M.Cmd === OcpCmd.WR,
 							io.master.M.Cmd, OcpCmd.IDLE)
   val dmS = dm.io.master.S
 
   // Instantiate bridge for bypasses and writes
-  val bp = new OcpCacheBus(ADDR_WIDTH, DATA_WIDTH)
-  val bpBurst = new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+  val bp = Module(new OcpCacheBus(ADDR_WIDTH, DATA_WIDTH))
+  val bpBurst = Module(new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
   val bpBridge = new OcpBurstBridge(bp.io.master, bpBurst.io.slave)
   bp.io.slave.M := io.master.M
   bp.io.slave.M.Cmd := Mux(!selDC || io.master.M.Cmd === OcpCmd.WR,
@@ -75,7 +75,7 @@ class DataCache extends Component {
   val bpS = bp.io.slave.S
 
   // Join requests
-  val burstBus = new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+  val burstBus = Module(new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
   val burstJoin = new OcpBurstJoin(dm.io.slave, bpBurst.io.master, burstBus.io.slave)
   io.slave <> burstBus.io.master
 

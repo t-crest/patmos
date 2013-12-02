@@ -56,26 +56,26 @@ import Constants._
 
 import ocp._
 
-class Spm(size: Int) extends Component {
+class Spm(size: Int) extends Module {
   val io = new OcpCoreSlavePort(log2Up(size), DATA_WIDTH)
 
   // Unconditional registers for the on-chip memory
   // All stall/enable handling has been done in the input with a MUX
-  val masterReg = Reg(io.M)
+  val masterReg = Reg(next = io.M)
 
   // Compute write enable
   val stmsk = Mux(io.M.Cmd === OcpCmd.WR, io.M.ByteEn,  Bits("b0000"))
-  val stmskReg = Reg(stmsk)
+  val stmskReg = Reg(next = stmsk)
 
   // I would like to have a vector of memories.
-  // val mem = Vec(4) { Mem(size, seqRead = true) { Bits(width = DATA_WIDTH) } }
+  // val mem = Vec(4) { Mem(Bits(width = DATA_WIDTH), size) }
 
   // ok, the dumb way
   val addrBits = log2Up(size / BYTES_PER_WORD)
-  val mem0 = { Mem(size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) } }
-  val mem1 = { Mem(size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) } }
-  val mem2 = { Mem(size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) } }
-  val mem3 = { Mem(size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) } }
+  val mem0 = Mem(Bits(width = BYTE_WIDTH), size / BYTES_PER_WORD)
+  val mem1 = Mem(Bits(width = BYTE_WIDTH), size / BYTES_PER_WORD)
+  val mem2 = Mem(Bits(width = BYTE_WIDTH), size / BYTES_PER_WORD)
+  val mem3 = Mem(Bits(width = BYTE_WIDTH), size / BYTES_PER_WORD)
 
   // store
   when(stmskReg(0)) { mem0(masterReg.Addr(addrBits + 1, 2)) :=
@@ -99,7 +99,7 @@ class Spm(size: Int) extends Component {
    				   OcpResp.DVA, OcpResp.NULL)
 
   // Delay result by one cycle to test stalling
-  // io.S.Data := Reg(rdData)
-  // io.S.Resp := Reg(Mux(masterReg.Cmd === OcpCmd.WR || masterReg.Cmd === OcpCmd.RD,
+  // io.S.Data := Reg(next = rdData)
+  // io.S.Resp := Reg(next = Mux(masterReg.Cmd === OcpCmd.WR || masterReg.Cmd === OcpCmd.RD,
   // 					   OcpResp.DVA, OcpResp.NULL))
 }

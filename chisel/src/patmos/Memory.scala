@@ -47,18 +47,18 @@ import Constants._
 
 import ocp._
 
-class Memory() extends Component {
+class Memory() extends Module {
   val io = new MemoryIO()
 
   // Stall logic
-  val mayStallReg = Reg(resetVal = Bool(false))
+  val mayStallReg = Reg(init = Bool(false))
   val enable = Mux(mayStallReg, (io.localInOut.S.Resp === OcpResp.DVA
                                  || io.globalInOut.S.Resp === OcpResp.DVA),
 				   Bool(true))
   io.ena_out := enable
 
   // Register from execution stage
-  val memReg = Reg(new ExMem(), resetVal = ExMemResetVal)
+  val memReg = Reg(new ExMem(), init = ExMemResetVal)
   when(enable && io.ena_in) {
     memReg := io.exmem
     mayStallReg := io.exmem.mem.load || io.exmem.mem.store
@@ -68,7 +68,7 @@ class Memory() extends Component {
   // Big endian, where MSB is at the lowest address
 
   // default is word store
-  val wrData = Vec(BYTES_PER_WORD) { Bits(width = BYTE_WIDTH) }
+  val wrData = Vec.fill(BYTES_PER_WORD) { Bits(width = BYTE_WIDTH) }
   for (i <- 0 until BYTES_PER_WORD) {
     wrData(i) := io.exmem.mem.data((i+1)*BYTE_WIDTH-1, i*BYTE_WIDTH)
   }
@@ -133,7 +133,7 @@ class Memory() extends Component {
 										OcpCache.UNCACHED))
 
   def splitData(word: Bits) = {
-	val retval = Vec(BYTES_PER_WORD) { Bits(width = BYTE_WIDTH) }
+	val retval = Vec.fill(BYTES_PER_WORD) { Bits(width = BYTE_WIDTH) }
 	for (i <- 0 until BYTES_PER_WORD) {
 	  retval(i) := word((i+1)*BYTE_WIDTH-1, i*BYTE_WIDTH)
 	}

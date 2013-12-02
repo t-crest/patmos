@@ -46,12 +46,12 @@ import Constants._
 
 import util._
 
-class Fetch(fileName : String) extends Component {
+class Fetch(fileName : String) extends Module {
   val io = new FetchIO()
 
-  val pcReg = Reg(resetVal = UFix(1, PC_SIZE))
-  val addrEvenReg = Reg(resetVal = UFix(2, PC_SIZE))
-  val addrOddReg = Reg(resetVal = UFix(1, PC_SIZE))
+  val pcReg = Reg(init = UInt(1, PC_SIZE))
+  val addrEvenReg = Reg(init = UInt(2, PC_SIZE))
+  val addrOddReg = Reg(init = UInt(1, PC_SIZE))
 
   val rom = Utility.readBin(fileName, INSTR_WIDTH)
   // Split the ROM into two blocks for dual fetch
@@ -63,7 +63,7 @@ class Fetch(fileName : String) extends Component {
   //    rom_b(i) = rom(i * 2 + 1)
   //    val a:Bits = rom_a(i)
   //    val b:Bits = rom_b(i)
-  //    println(i+" "+a.toUFix.litValue()+" "+b.toUFix.litValue())
+  //    println(i+" "+a.toUInt.litValue()+" "+b.toUInt.litValue())
   //  }
   //
   //  // addr_even and odd count in words. Shall this be optimized?
@@ -73,15 +73,15 @@ class Fetch(fileName : String) extends Component {
   // TODO: maybe make it explicit
 
   val ispmAddrBits = log2Up(ISPM_SIZE / 4 / 2)
-  val memEven = { Mem(ISPM_SIZE / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
-  val memOdd = { Mem(ISPM_SIZE / 4 / 2, seqRead = true) { Bits(width = INSTR_WIDTH) } }
+  val memEven = Mem(Bits(width = INSTR_WIDTH), ISPM_SIZE / 4 / 2)
+  val memOdd = Mem(Bits(width = INSTR_WIDTH), ISPM_SIZE / 4 / 2)
 
   // write from EX - use registers - ignore stall, as reply does not hurt
   val selWrite = (io.memfe.store & (io.memfe.addr(DATA_WIDTH-1, ISPM_ONE_BIT) === Bits(0x1)))
-  val wrEvenReg = Reg(selWrite & (io.memfe.addr(2) === Bits(0)))
-  val wrOddReg = Reg(selWrite & (io.memfe.addr(2) === Bits(1)))
-  val addrReg = Reg(io.memfe.addr)
-  val dataReg = Reg(io.memfe.data)
+  val wrEvenReg = Reg(next = selWrite & (io.memfe.addr(2) === Bits(0)))
+  val wrOddReg = Reg(next = selWrite & (io.memfe.addr(2) === Bits(1)))
+  val addrReg = Reg(next = io.memfe.addr)
+  val dataReg = Reg(next = io.memfe.data)
   when(wrEvenReg) { memEven(addrReg(ispmAddrBits + 3 - 1, 3)) := dataReg }
   when(wrOddReg) { memOdd(addrReg(ispmAddrBits + 3 - 1, 3)) := dataReg }
   // This would not work with asynchronous reset as the address
@@ -89,12 +89,12 @@ class Fetch(fileName : String) extends Component {
   // reset, which 'just' generates some more logic. And it looks
   // like the synthesize tool is able to duplicate the register.
 
-  val selIspm = Reg(io.mcachefe.mem_sel(1))
-  val selMCache = Reg(io.mcachefe.mem_sel(0))
+  val selIspm = Reg(next = io.mcachefe.mem_sel(1))
+  val selMCache = Reg(next = io.mcachefe.mem_sel(0))
 
   //need to register these values to save them in  memory stage at call/return
-  val relBaseReg = Reg(resetVal = UFix(1, width = MAX_OFF_WIDTH))
-  val relocReg = Reg(resetVal = UFix(0, DATA_WIDTH))
+  val relBaseReg = Reg(init = UInt(1, width = MAX_OFF_WIDTH))
+  val relocReg = Reg(init = UInt(0, DATA_WIDTH))
   when(io.memfe.doCallRet && io.ena) {
     relBaseReg := io.mcachefe.relBase
     relocReg := io.mcachefe.reloc
@@ -120,21 +120,21 @@ class Fetch(fileName : String) extends Component {
 
   val b_valid = instr_a(31) === Bits(1)
 
-  val pc_cont = Mux(b_valid, pcReg + UFix(2), pcReg + UFix(1))
+  val pc_cont = Mux(b_valid, pcReg + UInt(2), pcReg + UInt(1))
   val pc_next =
-    Mux(io.memfe.doCallRet, io.mcachefe.relPc.toUFix,
+    Mux(io.memfe.doCallRet, io.mcachefe.relPc.toUInt,
         	Mux(io.exfe.doBranch, io.exfe.branchPc,
         		pc_cont))
-  val pc_cont2 = Mux(b_valid, pcReg + UFix(4), pcReg + UFix(3))
+  val pc_cont2 = Mux(b_valid, pcReg + UInt(4), pcReg + UInt(3))
   val pc_next2 =
-    Mux(io.memfe.doCallRet, io.mcachefe.relPc.toUFix + UFix(2),
-		Mux(io.exfe.doBranch, io.exfe.branchPc + UFix(2),
+    Mux(io.memfe.doCallRet, io.mcachefe.relPc.toUInt + UInt(2),
+		Mux(io.exfe.doBranch, io.exfe.branchPc + UInt(2),
 			pc_cont2))
 
   val pc_inc = Mux(pc_next(0), pc_next2, pc_next)
   when(io.ena) {
-    addrEvenReg := Cat((pc_inc)(PC_SIZE - 1, 1), Bits(0)).toUFix
-    addrOddReg := Cat((pc_next)(PC_SIZE - 1, 1), Bits(1)).toUFix
+    addrEvenReg := Cat((pc_inc)(PC_SIZE - 1, 1), Bits(0)).toUInt
+    addrOddReg := Cat((pc_next)(PC_SIZE - 1, 1), Bits(1)).toUInt
     pcReg := pc_next
   }
 

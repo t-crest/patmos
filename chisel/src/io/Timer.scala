@@ -49,7 +49,7 @@ import ocp._
 
 object Timer extends DeviceObject {
   def create(params: Map[String, String]) : Timer = {
-    new Timer(CLOCK_FREQ)
+    Module(new Timer(CLOCK_FREQ))
   }
 
   trait Pins {
@@ -58,19 +58,19 @@ object Timer extends DeviceObject {
 
 class Timer(clk_freq: Int) extends CoreDevice() {
 
-  val masterReg = Reg(io.ocp.M)
+  val masterReg = Reg(next = io.ocp.M)
 
   // Register for cycle counter
-  val cycleReg   = Reg(resetVal = UFix(0, 2*DATA_WIDTH))
+  val cycleReg   = Reg(init = UInt(0, 2*DATA_WIDTH))
 
   // Registers for usec counter
-  val cycPerUSec = UFix(clk_freq/1000000)
-  val usecSubReg = Reg(resetVal = UFix(0))
-  val usecReg    = Reg(resetVal = UFix(0, 2*DATA_WIDTH))
+  val cycPerUSec = UInt(clk_freq/1000000)
+  val usecSubReg = Reg(init = UInt(0))
+  val usecReg    = Reg(init = UInt(0, 2*DATA_WIDTH))
 
   // Registers for data to read
-  val cycleHiReg = Reg(resetVal = Bits(0, DATA_WIDTH))
-  val usecHiReg  = Reg(resetVal = Bits(0, DATA_WIDTH))
+  val cycleHiReg = Reg(init = Bits(0, DATA_WIDTH))
+  val usecHiReg  = Reg(init = Bits(0, DATA_WIDTH))
 
   // Default response
   val resp = Bits()
@@ -108,11 +108,11 @@ class Timer(clk_freq: Int) extends CoreDevice() {
   io.ocp.S.Data := data
 
   // Increment cycle counter
-  cycleReg := cycleReg + UFix(1)
+  cycleReg := cycleReg + UInt(1)
   // Increment usec counter
-  usecSubReg := usecSubReg + UFix(1)
+  usecSubReg := usecSubReg + UInt(1)
   when(usecSubReg === cycPerUSec) {
-	usecSubReg := UFix(0)
-	usecReg := usecReg + UFix(1)
+	usecSubReg := UInt(0)
+	usecReg := usecReg + UInt(1)
   }
 }

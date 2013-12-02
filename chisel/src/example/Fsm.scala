@@ -44,14 +44,14 @@ import Node._
 
 import scala.collection.mutable.HashMap
 
-class FsmContainer() extends Component {
+class FsmContainer() extends Module {
   val io = new Bundle {
     val led = Bits(OUTPUT, 8)
   }
   
   var tck = new Tick();
   
-  val led = Reg(resetVal = Bits(1, 8))
+  val led = Reg(init = Bits(1, 8))
   val led_next = Cat(led(6, 0), led(7))
   
   when (tck.io.tick === Bits(1)) {
@@ -63,21 +63,21 @@ class FsmContainer() extends Component {
 /**
  * Generate a 2 Hz tick to drive the FSM input test bench.
  */
-class Tick() extends Component {
+class Tick() extends Module {
   val io = new Bundle {
     val tick = Bits(OUTPUT, 1)
   }
   // BeMicro has a 16 MHz clock
-  val CNT_MAX = UFix(16000000/2-1)
+  val CNT_MAX = UInt(16000000/2-1)
   
-  val r1 = Reg(resetVal = UFix(0, 25))
+  val r1 = Reg(init = UInt(0, 25))
   
   val limit = r1 === CNT_MAX
   val tick = limit
   
-  r1 := r1 + UFix(1)
+  r1 := r1 + UInt(1)
   when (limit) {
-    r1 := UFix(0)
+    r1 := UInt(0)
   }
   
   io.tick := tick

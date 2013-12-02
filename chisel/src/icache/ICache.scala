@@ -45,7 +45,7 @@ class ICacheIO extends Bundle() {
 }
 class ICacheCtrlIO extends Bundle() {
   val ena_in = Bool(INPUT)
-  val fetch_ena = Bits(OUTPUT, width = 1)
+  val fetch_ena = Bool(OUTPUT)
   val icache_ctrlrepl = new ICacheCtrlRepl().asOutput
   val icache_replctrl = new ICacheReplCtrl().asInput
   val feicache = new FeMCache().asInput
@@ -54,7 +54,7 @@ class ICacheCtrlIO extends Bundle() {
 }
 class ICacheReplIO extends Bundle() {
   val ena_in = Bool(INPUT)
-  val hit_ena = Bits(OUTPUT, width = 1)
+  val hit_ena = Bool(OUTPUT)
   val exicache = new ExMCache().asInput
   val icachefe = new MCacheFe().asOutput
   val icache_ctrlrepl = new ICacheCtrlRepl().asInput
@@ -67,19 +67,19 @@ class ICacheMemIO extends Bundle() {
   val icachemem_out = new ICacheMemOut().asOutput
 }
 class ICacheCtrlRepl extends Bundle() {
-  val w_enable = Bits(width = 1)
+  val w_enable = Bool()
   val w_data = Bits(width = INSTR_WIDTH)
   val w_addr = Bits(width = ADDR_WIDTH)
-  val w_tag = Bits(width = 1)
+  val w_tag = Bool()
   val address = Bits(width = 32)
-  val instr_stall = Bits(width = 1)
+  val instr_stall = Bool()
 }
 class ICacheReplCtrl extends Bundle() {
-  val hit_instr_a = Bits(width = 1)
-  val hit_instr_b = Bits(width = 1)
+  val hit_instr_a = Bool()
+  val hit_instr_b = Bool()
 }
 class ICacheMemIn extends Bundle() {
-  val w_ena = Bits(width = 1)
+  val w_ena = Bool()
   val w_data = Bits(width = DATA_WIDTH)
   val w_addr = Bits(width = INDEX_FIELD_SIZE + WORD_COUNT_WIDTH)
   val address = Bits(width = INDEX_FIELD_SIZE + WORD_COUNT_WIDTH)
@@ -93,7 +93,7 @@ class ICacheMemOut extends Bundle() {
 /*
  ICache: Top Level Class for the Instruction Cache
  */
-class ICache() extends Component {
+class ICache() extends Module {
   val io = new ICacheIO()
   //generate submodules of instruction cache
   val icachectrl = new ICacheCtrl()
@@ -121,16 +121,16 @@ class ICache() extends Component {
 /*
  ICacheMem Class: On-Chip Instruction Cache Memory
  */
-class ICacheMem extends Component {
+class ICacheMem extends Module {
   val io = new ICacheMemIO()
  
-  val ram_icache = Mem(ICACHE_WORD_SIZE, seqRead = true) {Bits(width = INSTR_WIDTH)}
+  val ram_icache = Mem(Bits(width = INSTR_WIDTH), ICACHE_WORD_SIZE)
 
   when (io.icachemem_in.w_ena) { 
     ram_icache(io.icachemem_in.w_addr) := io.icachemem_in.w_data 
   }
 
-  val addrReg = Reg(io.icachemem_in.address)
+  val addrReg = Reg(next = io.icachemem_in.address)
   io.icachemem_out.instr_a := ram_icache(addrReg)
   io.icachemem_out.instr_b := ram_icache(addrReg + Bits(1))
 
@@ -139,7 +139,7 @@ class ICacheMem extends Component {
 /*
  Least Recently Used Replacement Class
  */
-class ICacheReplLru extends Component {
+class ICacheReplLru extends Module {
   val io = new ICacheReplIO()
 
   /*
@@ -151,21 +151,21 @@ class ICacheReplLru extends Component {
 /*
  Direct Mapped Replacement Class
  */
-class ICacheReplDm() extends Component {
+class ICacheReplDm() extends Module {
   val io = new ICacheReplIO()
 
   //reserve memory for the instruction cache tag field containing valid bit and address tag
-  val icache_tag_mem = { Mem(BLOCK_COUNT, seqRead = true) { Bits(width = TAG_FIELD_SIZE + VALIDBIT_FIELD_SIZE) } }
-  val tout = Reg(resetVal = Bits(0, width = TAG_FIELD_SIZE + VALIDBIT_FIELD_SIZE))
-  val tout2 = Reg(resetVal = Bits(0, width = TAG_FIELD_SIZE + VALIDBIT_FIELD_SIZE))
+  val icache_tag_mem = Mem(Bits(width = TAG_FIELD_SIZE + VALIDBIT_FIELD_SIZE), BLOCK_COUNT)
+  val tout = Reg(init = Bits(0, width = TAG_FIELD_SIZE + VALIDBIT_FIELD_SIZE))
+  val tout2 = Reg(init = Bits(0, width = TAG_FIELD_SIZE + VALIDBIT_FIELD_SIZE))
 
   //variables when call/return occurs
-  val hit_instr_a = Bits(width = 1)
-  val hit_instr_b = Bits(width = 1)
-  val callRetBaseReg = Reg(resetVal = UFix(1, DATA_WIDTH))
-  val callAddrReg = Reg(resetVal = UFix(1, DATA_WIDTH))
-  val selIspmReg = Reg(resetVal = Bits(0, width = 1))
-  val selICacheReg = Reg(resetVal = Bits(0, width = 1))
+  val hit_instr_a = Bool()
+  val hit_instr_b = Bool()
+  val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
+  val callAddrReg = Reg(init = UInt(1, DATA_WIDTH))
+  val selIspmReg = Reg(init = Bool(false))
+  val selICacheReg = Reg(init = Bool(false))
 
   val addrIndex = io.icache_ctrlrepl.address(INDEX_FIELD_HIGH, INDEX_FIELD_LOW)
   val addrIndex2 = (io.icache_ctrlrepl.address + Bits(1))(INDEX_FIELD_HIGH, INDEX_FIELD_LOW)
@@ -174,13 +174,13 @@ class ICacheReplDm() extends Component {
 
   //we need to operate with absolute addresses in a conventional i-cache
   val relBase = Mux(selICacheReg,
-                    UFix(0),
+                    UInt(0),
                     callRetBaseReg(ISPM_ONE_BIT-3, 0))
   val relPc = callAddrReg + relBase
 
   val reloc = Mux(selICacheReg,
                   callRetBaseReg,
-                  UFix(1 << (ISPM_ONE_BIT - 2)))
+                  UInt(1 << (ISPM_ONE_BIT - 2)))
 
   when (io.exicache.doCallRet && io.ena_in) {
     callRetBaseReg := io.exicache.callRetBase
@@ -190,15 +190,15 @@ class ICacheReplDm() extends Component {
   }
 
   //check for a hit of both instructions of the address bundle
-  hit_instr_a := Bits(1)
-  hit_instr_b := Bits(1)
-  val addrTagReg = Reg(addrTag)
-  val addrTagReg2 = Reg(addrTag2)
+  hit_instr_a := Bool(true)
+  hit_instr_b := Bool(true)
+  val addrTagReg = Reg(next = addrTag)
+  val addrTagReg2 = Reg(next = addrTag2)
   when (tout(TAG_FIELD_SIZE,1) != addrTagReg || tout(0) != Bits(1)) {
-    hit_instr_a := Bits(0)
+    hit_instr_a := Bool(false)
   }
   when (tout2(TAG_FIELD_SIZE,1) != addrTagReg2 || tout2(0) != Bits(1)) {
-    hit_instr_b := Bits(0)
+    hit_instr_b := Bool(false)
   }
 
   val wrAddrTag = io.icache_ctrlrepl.w_addr(TAG_FIELD_HIGH,TAG_FIELD_LOW)
@@ -233,30 +233,30 @@ class ICacheReplDm() extends Component {
 /*
  Instruction Cache Control Class: handles block transfer from external Memory to the I-Cache
  */
-class ICacheCtrl() extends Component {
+class ICacheCtrl() extends Module {
   val io = new ICacheCtrlIO()
 
   //fsm state variables
-  val init_state :: idle_state :: fetch_state :: transfer_state :: Nil = Enum(5){ UFix() }
-  val icache_state = Reg(resetVal = init_state)
+  val init_state :: idle_state :: fetch_state :: transfer_state :: Nil = Enum(5){ UInt() }
+  val icache_state = Reg(init = init_state)
 
   //signal for replacement unit
   val icachemem_address = Bits(width = ADDR_WIDTH)
   val icachemem_w_data = Bits(width = DATA_WIDTH)
-  val icachemem_w_tag = Bits(width = 1) //signalizes the transfer of begin of a write
+  val icachemem_w_tag = Bool() //signalizes the transfer of begin of a write
   val icachemem_w_addr = Bits(width = ADDR_WIDTH)
-  val icachemem_w_enable = Bits(width = 1)
+  val icachemem_w_enable = Bool()
   //signals for external memory
   val ext_mem_cmd = Bits(width = 3)
   val ext_mem_addr = Bits(width = EXTMEM_ADDR_WIDTH)
-  val ext_mem_fcounter = Reg(resetVal = Bits(0, width = ICACHE_SIZE_WIDTH))
-  val ext_mem_burst_cnt = Reg(resetVal = UFix(0, width = log2Up(BURST_LENGTH)))
+  val ext_mem_fcounter = Reg(init = Bits(0, width = ICACHE_SIZE_WIDTH))
+  val ext_mem_burst_cnt = Reg(init = UInt(0, width = log2Up(BURST_LENGTH)))
 
   //input output registers
-  val addrReg = Reg(resetVal = Bits(0, width = 32))
-  val wenaReg = Reg(resetVal = Bits(0, width = 1))
-  val callRetBaseReg = Reg(resetVal = Bits(0, width = ADDR_WIDTH))
-  val ocpSlaveReg = Reg(io.ocp_port.S)
+  val addrReg = Reg(init = Bits(0, width = 32))
+  val wenaReg = Reg(init = Bool(false))
+  val callRetBaseReg = Reg(init = Bits(0, width = ADDR_WIDTH))
+  val ocpSlaveReg = Reg(next = io.ocp_port.S)
 
   //should not be needed instead a absolut pc should be used
   val absAddr = io.feicache.address + callRetBaseReg
@@ -267,8 +267,8 @@ class ICacheCtrl() extends Component {
   //init signals
   icachemem_address := absAddr
   icachemem_w_data := Bits(0)
-  icachemem_w_tag := Bits(0)
-  icachemem_w_enable := Bits(0)
+  icachemem_w_tag := Bool(false)
+  icachemem_w_enable := Bool(false)
   icachemem_w_addr := Bits(0)
   ext_mem_cmd := OcpCmd.IDLE
   ext_mem_addr := Bits(0)
@@ -288,7 +288,7 @@ class ICacheCtrl() extends Component {
       }
     }
     .otherwise {
-      wenaReg := Bits(1)
+      wenaReg := Bool(true)
       addrReg := Mux(io.icache_replctrl.hit_instr_b, io.feicache.address, io.feicache.address + Bits(1)) + callRetBaseReg
       icache_state := fetch_state
     }
@@ -297,36 +297,36 @@ class ICacheCtrl() extends Component {
   when (icache_state === fetch_state) {
     ext_mem_addr := absFetchAddr
     ext_mem_cmd := OcpCmd.RD
-    ext_mem_burst_cnt := UFix(0)
-    ext_mem_fcounter := UFix(0)
-    icachemem_w_tag := Bits(1)
+    ext_mem_burst_cnt := UInt(0)
+    ext_mem_fcounter := UInt(0)
+    icachemem_w_tag := Bool(true)
     icachemem_w_addr := absFetchAddr
     icache_state := transfer_state
   }
   //transfer/fetch cache block
   when (icache_state === transfer_state) {
-    when (ext_mem_fcounter < UFix(WORD_COUNT)) {
+    when (ext_mem_fcounter < UInt(WORD_COUNT)) {
       when (ocpSlaveReg.Resp === OcpResp.DVA) {
         ext_mem_fcounter := ext_mem_fcounter + Bits(1)
         ext_mem_burst_cnt := ext_mem_burst_cnt + Bits(1)
-        when(ext_mem_fcounter < UFix(WORD_COUNT-1)) {
+        when(ext_mem_fcounter < UInt(WORD_COUNT-1)) {
           //fetch next address from external memory
-          when (ext_mem_burst_cnt >= UFix(BURST_LENGTH - 1)) {
+          when (ext_mem_burst_cnt >= UInt(BURST_LENGTH - 1)) {
             ext_mem_cmd := OcpCmd.RD
             ext_mem_addr := Cat(addrReg(31,WORD_COUNT_WIDTH), Bits(0)(WORD_COUNT_WIDTH-1,0)) + ext_mem_fcounter + Bits(1)
-            ext_mem_burst_cnt := UFix(0)
+            ext_mem_burst_cnt := UInt(0)
           }
         }
         //write current address to icache memory
         icachemem_w_data := ocpSlaveReg.Data
-        icachemem_w_enable := Bits(1)
+        icachemem_w_enable := Bool(true)
       }
       icachemem_w_addr := Cat(addrReg(31,WORD_COUNT_WIDTH), Bits(0)(WORD_COUNT_WIDTH-1,0)) + ext_mem_fcounter
     }
     //restart to idle state
     .otherwise {
       icache_state := idle_state
-      wenaReg := Bits(0)
+      wenaReg := Bool(false)
     }
   }
   
@@ -337,7 +337,7 @@ class ICacheCtrl() extends Component {
   io.icache_ctrlrepl.w_addr := icachemem_w_addr
   io.icache_ctrlrepl.w_tag := icachemem_w_tag
 
-  io.fetch_ena := ~wenaReg
+  io.fetch_ena := !wenaReg
 
   //output to external memory
   io.ocp_port.M.Addr := Cat(ext_mem_addr, Bits("b00"))

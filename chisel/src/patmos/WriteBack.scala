@@ -44,7 +44,7 @@ import Node._
 
 import Constants._
 
-class WriteBack() extends Component {
+class WriteBack() extends Module {
   val io = new WriteBackIO()
   
   val wbReg = Reg(new MemWb())

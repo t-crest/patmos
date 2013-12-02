@@ -51,7 +51,7 @@ object Leds extends DeviceObject {
 
   def create(params: Map[String, String]) : Leds = {
     ledCount = getPosIntParam(params, "ledCount")
-    new Leds(ledCount)
+    Module(new Leds(ledCount))
   }
 
   trait Pins {
@@ -65,10 +65,10 @@ class Leds(ledCount : Int) extends CoreDevice() {
 
   override val io = new CoreDeviceIO() with Leds.Pins
 
-  val ledReg = Reg(resetVal = Bits(0, ledCount))
+  val ledReg = Reg(init = Bits(0, ledCount))
 
   // Default response
-  val respReg = Reg(resetVal = OcpResp.NULL)
+  val respReg = Reg(init = OcpResp.NULL)
   respReg := OcpResp.NULL
 
   // Write to LEDs

@@ -65,24 +65,24 @@ object MConstants {
  */
 class FeMCache extends Bundle() {
   val address = Bits(width = EXTMEM_ADDR_WIDTH) 
-  val request = Bits(width = 1)
+  val request = Bool()
   val doCallRet = Bool()
-  val callRetBase = UFix(width = EXTMEM_ADDR_WIDTH)
+  val callRetBase = UInt(width = EXTMEM_ADDR_WIDTH)
 }
 class ExMCache() extends Bundle() {
   val doCallRet = Bool()
-  val callRetBase = UFix(width = EXTMEM_ADDR_WIDTH)
-  val callRetAddr = UFix(width = EXTMEM_ADDR_WIDTH)
+  val callRetBase = UInt(width = EXTMEM_ADDR_WIDTH)
+  val callRetAddr = UInt(width = EXTMEM_ADDR_WIDTH)
 }
 class MCacheFe extends Bundle() {
   val instr_a = Bits(width = INSTR_WIDTH)
   val instr_b = Bits(width = INSTR_WIDTH)
   // relative base address
-  val relBase = UFix(width = MAX_OFF_WIDTH)
+  val relBase = UInt(width = MAX_OFF_WIDTH)
   // relative program counter
-  val relPc = UFix(width = MAX_OFF_WIDTH+1)
+  val relPc = UInt(width = MAX_OFF_WIDTH+1)
   // offset between relative and absolute program counter
-  val reloc = UFix(width = DATA_WIDTH)
+  val reloc = UInt(width = DATA_WIDTH)
   val mem_sel = Bits(width = 2)
 }
 class MCacheIO extends Bundle() {
@@ -95,7 +95,7 @@ class MCacheIO extends Bundle() {
 }
 class MCacheCtrlIO extends Bundle() {
   val ena_in = Bool(INPUT)
-  val fetch_ena = Bits(OUTPUT, width = 1)
+  val fetch_ena = Bool(OUTPUT)
   val mcache_ctrlrepl = new MCacheCtrlRepl().asOutput
   val mcache_replctrl = new MCacheReplCtrl().asInput
   val femcache = new FeMCache().asInput
@@ -103,20 +103,20 @@ class MCacheCtrlIO extends Bundle() {
   val ocp_port = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
 }
 class MCacheCtrlRepl extends Bundle() {
-  val w_enable = Bits(width = 1)
+  val w_enable = Bool()
   val w_data = Bits(width = INSTR_WIDTH)
   val w_addr = Bits(width = EXTMEM_ADDR_WIDTH)
-  val w_tag = Bits(width = 1)
+  val w_tag = Bool()
   val address = Bits(width = MCACHE_SIZE_WIDTH)
-  val instr_stall = Bits(width = 1)
+  val instr_stall = Bool()
 }
 class MCacheReplCtrl extends Bundle() {
-  val hit = Bits(width = 1)
+  val hit = Bool()
   val pos_offset = Bits(width = MAX_OFF_WIDTH)
 }
 class MCacheReplIO extends Bundle() {
   val ena_in = Bool(INPUT)
-  val hit_ena = Bits(OUTPUT, width = 1)
+  val hit_ena = Bool(OUTPUT)
   val exmcache = new ExMCache().asInput
   val mcachefe = new MCacheFe().asOutput
   val mcache_ctrlrepl = new MCacheCtrlRepl().asInput
@@ -125,8 +125,8 @@ class MCacheReplIO extends Bundle() {
   val mcachemem_out = new MCacheMemOut().asInput
 }
 class MCacheMemIn extends Bundle() {
-  val w_even = Bits(width = 1)
-  val w_odd = Bits(width = 1)
+  val w_even = Bool()
+  val w_odd = Bool()
   val w_data = Bits(width = DATA_WIDTH)
   val w_addr = Bits(width = (log2Up(MCACHE_WORD_SIZE / 2)))
   val addr_even = Bits(width = (log2Up(MCACHE_WORD_SIZE / 2)))
@@ -144,11 +144,11 @@ class MCacheMemIO extends Bundle() {
 /*
  MCache: Top Level Class for the Method Cache
  */
-class MCache() extends Component {
+class MCache() extends Module {
   val io = new MCacheIO()
-  val mcachectrl = new MCacheCtrl()
-  val mcacherepl = new MCacheReplFifo()
-  val mcachemem = new MCacheMem()
+  val mcachectrl = Module(new MCacheCtrl())
+  val mcacherepl = Module(new MCacheReplFifo())
+  val mcachemem = Module(new MCacheMem())
   //connect inputs to method cache ctrl unit
   mcachectrl.io.mcache_ctrlrepl <> mcacherepl.io.mcache_ctrlrepl
   mcachectrl.io.femcache <> io.femcache
@@ -171,11 +171,11 @@ class MCache() extends Component {
 /*
  MCacheMem: On-Chip Even/Odd Memory
  */
-class MCacheMem() extends Component {
+class MCacheMem() extends Module {
   val io = new MCacheMemIO()
 
-  val ram_mcache_even = { Mem(MCACHE_WORD_SIZE / 2, seqRead = true) {Bits(width = INSTR_WIDTH)} }
-  val ram_mcache_odd = { Mem(MCACHE_WORD_SIZE / 2, seqRead = true) {Bits(width = INSTR_WIDTH)} }
+  val ram_mcache_even = Mem(Bits(width = INSTR_WIDTH), MCACHE_WORD_SIZE / 2)
+  val ram_mcache_odd = Mem(Bits(width = INSTR_WIDTH), MCACHE_WORD_SIZE / 2)
 
   when (io.mcachemem_in.w_even) {
 	ram_mcache_even(io.mcachemem_in.w_addr) := io.mcachemem_in.w_data
@@ -184,8 +184,8 @@ class MCacheMem() extends Component {
 	ram_mcache_odd(io.mcachemem_in.w_addr) := io.mcachemem_in.w_data
   }
 
-  val addrEvenReg = Reg(io.mcachemem_in.addr_even)
-  val addrOddReg = Reg(io.mcachemem_in.addr_odd)
+  val addrEvenReg = Reg(next = io.mcachemem_in.addr_even)
+  val addrOddReg = Reg(next = io.mcachemem_in.addr_odd)
   io.mcachemem_out.instr_even := ram_mcache_even(addrEvenReg)
   io.mcachemem_out.instr_odd := ram_mcache_odd(addrOddReg)
 
@@ -196,32 +196,32 @@ class MCacheMem() extends Component {
  MCacheReplFifo: Class controlls a FIFO replacement strategie including tag-memory to keep history of methods in cache. 
  Note: A variable block size is used in this replacement
  */
-class MCacheReplFifo() extends Component {
+class MCacheReplFifo() extends Module {
   val io = new MCacheReplIO()
 
   //tag field tables  for reading tag memory
-  val mcache_addr_vec = { Vec(METHOD_COUNT) { Reg(resetVal = Bits(0, width = EXTMEM_ADDR_WIDTH)) } }
-  val mcache_size_vec = { Vec(METHOD_COUNT) { Reg(resetVal = Bits(0, width = MCACHE_SIZE_WIDTH+1)) } }
-  val mcache_valid_vec = { Vec(METHOD_COUNT) { Reg(resetVal = Bits(0, width = 1)) } }
-  val mcache_pos_vec = { Vec(METHOD_COUNT) { Reg(resetVal = Bits(0, width = MCACHE_SIZE_WIDTH)) } }
+  val mcache_addr_vec = { Vec.fill(METHOD_COUNT) { Reg(init = Bits(0, width = EXTMEM_ADDR_WIDTH)) } }
+  val mcache_size_vec = { Vec.fill(METHOD_COUNT) { Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH+1)) } }
+  val mcache_valid_vec = { Vec.fill(METHOD_COUNT) { Reg(init = Bool(false)) } }
+  val mcache_pos_vec = { Vec.fill(METHOD_COUNT) { Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH)) } }
   //registers to save current replacement status
-  val next_index_tag = Reg(resetVal = Bits(0, width = log2Up(METHOD_COUNT)))
-  val next_replace_tag = Reg(resetVal = Bits(0, width = log2Up(METHOD_COUNT)))
-  val next_replace_pos = Reg(resetVal = Bits(0, width = MCACHE_SIZE_WIDTH))
-  val free_space = Reg(resetVal = Fix(MCACHE_WORD_SIZE, width = MCACHE_SIZE_WIDTH+2))
+  val next_index_tag = Reg(init = Bits(0, width = log2Up(METHOD_COUNT)))
+  val next_replace_tag = Reg(init = Bits(0, width = log2Up(METHOD_COUNT)))
+  val next_replace_pos = Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH))
+  val free_space = Reg(init = SInt(MCACHE_WORD_SIZE, width = MCACHE_SIZE_WIDTH+2))
   //variables when call/return occurs to check tag field
-  val posReg = Reg(resetVal = Bits(0, width = MCACHE_SIZE_WIDTH))
-  val hitReg = Reg(resetVal = Bits(1, width = 1))
-  val wrPosReg = Reg(resetVal = Bits(0, width = MCACHE_SIZE_WIDTH))
-  val callRetBaseReg = Reg(resetVal = UFix(1, DATA_WIDTH))
-  val callAddrReg = Reg(resetVal = UFix(1, DATA_WIDTH))
-  val selIspmReg = Reg(resetVal = Bits(0, width = 1))
-  val selMCacheReg = Reg(resetVal = Bits(0, width = 1))
+  val posReg = Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH))
+  val hitReg = Reg(init = Bool(true))
+  val wrPosReg = Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH))
+  val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
+  val callAddrReg = Reg(init = UInt(1, DATA_WIDTH))
+  val selIspmReg = Reg(init = Bool(false))
+  val selMCacheReg = Reg(init = Bool(false))
 
   val hit = Bool()
   hit := Bool(false)
 
-  val mergePosVec = { Vec(METHOD_COUNT) { Bits(width = MCACHE_SIZE_WIDTH) } }
+  val mergePosVec = { Vec.fill(METHOD_COUNT) { Bits(width = MCACHE_SIZE_WIDTH) } }
   for (i <- 0 until METHOD_COUNT) {
     mergePosVec(i) := Bits(0)
   }
@@ -235,11 +235,11 @@ class MCacheReplFifo() extends Component {
     selMCacheReg := io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH - 1,15) >= Bits(0x1)
 
     when (io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH-1,15) >= Bits(0x1)) {
-      hitReg := Bits(0)
+      hitReg := Bool(false)
       for (i <- 0 until METHOD_COUNT) {
         when (io.exmcache.callRetBase === mcache_addr_vec(i)
-              && mcache_valid_vec(i) === Bits(1)) {
-                hitReg := Bits(1)
+              && mcache_valid_vec(i)) {
+                hitReg := Bool(true)
                 hit := Bool(true)
                 mergePosVec(i) := mcache_pos_vec(i)
               }
@@ -252,19 +252,19 @@ class MCacheReplFifo() extends Component {
   }
 
   val relBase = Mux(selMCacheReg,
-                    posReg.toUFix,
+                    posReg.toUInt,
                     callRetBaseReg(ISPM_ONE_BIT-3, 0))
   val relPc = callAddrReg + relBase
 
   val reloc = Mux(selMCacheReg,
-                  callRetBaseReg - posReg.toUFix,
+                  callRetBaseReg - posReg.toUInt,
                   Mux(selIspmReg,
-                      UFix(1 << (ISPM_ONE_BIT - 2)),
-                      UFix(0)))
+                      UInt(1 << (ISPM_ONE_BIT - 2)),
+                      UInt(0)))
 
   //insert new tags when control unit requests
   when (io.mcache_ctrlrepl.w_tag) {
-    hitReg := Bits(1) //start fetch, we have again a hit!
+    hitReg := Bool(true) //start fetch, we have again a hit!
     wrPosReg := posReg
     //update free space
     free_space := free_space - io.mcache_ctrlrepl.w_data(MCACHE_SIZE_WIDTH,0) + mcache_size_vec(next_index_tag)
@@ -272,7 +272,7 @@ class MCacheReplFifo() extends Component {
     mcache_pos_vec(next_index_tag) := next_replace_pos
     mcache_size_vec(next_index_tag) := io.mcache_ctrlrepl.w_data(MCACHE_SIZE_WIDTH, 0)
     mcache_addr_vec(next_index_tag) := io.mcache_ctrlrepl.w_addr
-    mcache_valid_vec(next_index_tag) := Bits(1)
+    mcache_valid_vec(next_index_tag) := Bool(true)
     //update pointers
     next_replace_pos := next_replace_pos + io.mcache_ctrlrepl.w_data(MCACHE_SIZE_WIDTH-1,0)
     val next_tag = Mux(next_index_tag === Bits(METHOD_COUNT - 1), Bits(0), next_index_tag + Bits(1))
@@ -282,11 +282,11 @@ class MCacheReplFifo() extends Component {
     }
   }
   //free new space if still needed -> invalidate next method
-  when (free_space < Fix(0)) {
+  when (free_space < SInt(0)) {
     free_space := free_space + mcache_size_vec(next_replace_tag)
     mcache_size_vec(next_replace_tag) := Bits(0)
     //mcache_addr_vec(next_replace_tag) := Bits(0)
-    mcache_valid_vec(next_replace_tag) := Bits(0)
+    mcache_valid_vec(next_replace_tag) := Bool(false)
     next_replace_tag := Mux(next_replace_tag === Bits(METHOD_COUNT - 1), Bits(0), next_replace_tag + Bits(1))
   }
 
@@ -296,20 +296,20 @@ class MCacheReplFifo() extends Component {
   val rd_parity = io.mcache_ctrlrepl.address(0)
   val mcachemem_in_address = (io.mcache_ctrlrepl.address)(MCACHE_SIZE_WIDTH-1,1)
   //remember parity for the next cycle
-  val addr_parity_reg = Reg(rd_parity)
+  val addr_parity_reg = Reg(next = rd_parity)
 
-  io.mcachemem_in.w_even := Mux(wr_parity, Bits(0), io.mcache_ctrlrepl.w_enable)
-  io.mcachemem_in.w_odd := Mux(wr_parity, io.mcache_ctrlrepl.w_enable, Bits(0))
+  io.mcachemem_in.w_even := Mux(wr_parity, Bool(false), io.mcache_ctrlrepl.w_enable)
+  io.mcachemem_in.w_odd := Mux(wr_parity, io.mcache_ctrlrepl.w_enable, Bool(false))
   io.mcachemem_in.w_data := io.mcache_ctrlrepl.w_data
   io.mcachemem_in.w_addr := mcachemem_w_address
   io.mcachemem_in.addr_even := Mux(rd_parity, mcachemem_in_address + Bits(1), mcachemem_in_address)
   io.mcachemem_in.addr_odd := mcachemem_in_address
 
-  val instr_aReg = Reg(resetVal = Bits(0, width = INSTR_WIDTH))
-  val instr_bReg = Reg(resetVal = Bits(0, width = INSTR_WIDTH))
+  val instr_aReg = Reg(init = Bits(0, width = INSTR_WIDTH))
+  val instr_bReg = Reg(init = Bits(0, width = INSTR_WIDTH))
   val instr_a = Mux(addr_parity_reg, io.mcachemem_out.instr_odd, io.mcachemem_out.instr_even)
   val instr_b = Mux(addr_parity_reg, io.mcachemem_out.instr_even, io.mcachemem_out.instr_odd)
-  when (io.mcache_ctrlrepl.instr_stall === Bits(0)) {
+  when (!io.mcache_ctrlrepl.instr_stall) {
     instr_aReg := io.mcachefe.instr_a
     instr_bReg := io.mcachefe.instr_b
   }
@@ -330,37 +330,37 @@ class MCacheReplFifo() extends Component {
 /*
  MCacheCtrl Class: Main Class of Method Cache, implements the State Machine and handles the R/W/Fetch of Cache and External Memory
  */
-class MCacheCtrl() extends Component {
+class MCacheCtrl() extends Module {
   val io = new MCacheCtrlIO()
 
   //fsm state variables
-  val init_state :: idle_state :: size_state :: transfer_state :: restart_state :: Nil = Enum(5){ UFix() }
-  val mcache_state = Reg(resetVal = init_state)
+  val init_state :: idle_state :: size_state :: transfer_state :: restart_state :: Nil = Enum(5){ UInt() }
+  val mcache_state = Reg(init = init_state)
   //signals for method cache memory (mcache_repl)
   val mcachemem_address = Bits(width = EXTMEM_ADDR_WIDTH) //not needed here we are on relative addresses!
   val mcachemem_w_data = Bits(width = DATA_WIDTH)
-  val mcachemem_w_tag = Bits(width = 1) //signalizes the transfer of begin of a write
+  val mcachemem_w_tag = Bool() //signalizes the transfer of begin of a write
   val mcachemem_w_addr = Bits(width = EXTMEM_ADDR_WIDTH)
-  val mcachemem_w_enable = Bits(width = 1)
+  val mcachemem_w_enable = Bool()
   //signals for external memory
   val ext_mem_cmd = Bits(width = 3)
   val ext_mem_addr = Bits(width = EXTMEM_ADDR_WIDTH)
-  val ext_mem_tsize = Reg(resetVal = Bits(0, width = MCACHE_SIZE_WIDTH))
-  val ext_mem_fcounter = Reg(resetVal = Bits(0, width = MCACHE_SIZE_WIDTH))
-  val ext_mem_burst_cnt = Reg(resetVal = UFix(0, width = log2Up(BURST_LENGTH)))
+  val ext_mem_tsize = Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH))
+  val ext_mem_fcounter = Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH))
+  val ext_mem_burst_cnt = Reg(init = UInt(0, width = log2Up(BURST_LENGTH)))
   //input/output registers
-  val callRetBaseReg = Reg(resetVal = Bits(0, width = EXTMEM_ADDR_WIDTH))
+  val callRetBaseReg = Reg(init = Bits(0, width = EXTMEM_ADDR_WIDTH))
   val msize_addr = callRetBaseReg - Bits(1)
-  val addrReg = Reg(resetVal = Bits(0))
-  val wenaReg = Reg(resetVal = Bits(0))
+  val addrReg = Reg(init = Bits(0))
+  val wenaReg = Reg(init = Bool(false))
 
-  val ocpSlaveReg = Reg(io.ocp_port.S)
+  val ocpSlaveReg = Reg(next = io.ocp_port.S)
 
   //init signals
   mcachemem_address := addrReg
   mcachemem_w_data := Bits(0)
-  mcachemem_w_tag := Bits(0)
-  mcachemem_w_enable := Bits(0)
+  mcachemem_w_tag := Bool(false)
+  mcachemem_w_enable := Bool(false)
   mcachemem_w_addr := Bits(0)
   ext_mem_cmd := OcpCmd.IDLE
   ext_mem_addr := Bits(0)
@@ -385,9 +385,9 @@ class MCacheCtrl() extends Component {
     .otherwise {
       ext_mem_addr := Cat(msize_addr(EXTMEM_ADDR_WIDTH-1,2), Bits("b00")) //aligned read from ssram
       ext_mem_cmd := OcpCmd.RD
-      ext_mem_burst_cnt := UFix(0)
+      ext_mem_burst_cnt := UInt(0)
       mcache_state := size_state
-      wenaReg := Bits(1)
+      wenaReg := Bool(true)
     }
   }
   //fetch size of the required method from external memory address - 1
@@ -399,13 +399,13 @@ class MCacheCtrl() extends Component {
         //init transfer from external memory
         ext_mem_tsize := size
         ext_mem_fcounter := Bits(0) //start to write to cache with offset 0
-        when (ext_mem_burst_cnt >= UFix(BURST_LENGTH - 1)) {
+        when (ext_mem_burst_cnt >= UInt(BURST_LENGTH - 1)) {
           ext_mem_addr := callRetBaseReg
           ext_mem_cmd := OcpCmd.RD
-          ext_mem_burst_cnt := UFix(0)
+          ext_mem_burst_cnt := UInt(0)
         }
         //init transfer to on-chip method cache memory
-        mcachemem_w_tag := Bits(1)
+        mcachemem_w_tag := Bool(true)
         //size rounded to next double-word
         mcachemem_w_data := size+size(0)
         //write base address to mcachemem for tagfield
@@ -423,22 +423,22 @@ class MCacheCtrl() extends Component {
         ext_mem_burst_cnt := ext_mem_burst_cnt + Bits(1)
         when(ext_mem_fcounter < ext_mem_tsize - Bits(1)) {
           //fetch next address from external memory
-          when (ext_mem_burst_cnt >= UFix(BURST_LENGTH - 1)) {
+          when (ext_mem_burst_cnt >= UInt(BURST_LENGTH - 1)) {
             ext_mem_cmd := OcpCmd.RD
             ext_mem_addr := callRetBaseReg + ext_mem_fcounter + Bits(1) //need +1 because start fetching with the size of method
-            ext_mem_burst_cnt := UFix(0)
+            ext_mem_burst_cnt := UInt(0)
           }
         }
         //write current address to mcache memory
         mcachemem_w_data := ocpSlaveReg.Data
-        mcachemem_w_enable := Bits(1)
+        mcachemem_w_enable := Bool(true)
       }
       mcachemem_w_addr := ext_mem_fcounter //+ io.mcache_replctrl.pos_offset
     }
     //restart to idle state
     .otherwise {
       mcache_state := restart_state //restart_state
-      wenaReg := Bits(0)
+      wenaReg := Bool(false)
     }
   }
   when (mcache_state === restart_state) {
@@ -452,9 +452,9 @@ class MCacheCtrl() extends Component {
   io.mcache_ctrlrepl.w_data := mcachemem_w_data
   io.mcache_ctrlrepl.w_addr := mcachemem_w_addr
   io.mcache_ctrlrepl.w_tag := mcachemem_w_tag
-  io.mcache_ctrlrepl.instr_stall := Mux(mcache_state === idle_state, Bits(0), Bits(1))
+  io.mcache_ctrlrepl.instr_stall := mcache_state != idle_state
 
-  io.fetch_ena := ~wenaReg
+  io.fetch_ena := !wenaReg
 
   //output to external memory
   io.ocp_port.M.Addr := Cat(ext_mem_addr, Bits("b00"))

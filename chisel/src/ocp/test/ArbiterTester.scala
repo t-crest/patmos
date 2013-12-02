@@ -48,50 +48,50 @@ import patmos._
 import scala.collection.mutable.HashMap
 
 
-class Master(nr: Int, burstLength: Int) extends Component {
+class Master(nr: Int, burstLength: Int) extends Module {
 
   val io = new Bundle {
     val port = new OcpBurstMasterPort(32, 32, burstLength)
   }
 
-  val cntReg = Reg(resetVal = UFix(0, width=8))
+  val cntReg = Reg(init = UInt(0, width=8))
 
   io.port.M.Cmd := OcpCmd.IDLE
   io.port.M.DataValid := Bits(0)
   io.port.M.DataByteEn := Bits(15)
 
-  cntReg := cntReg + UFix(1)
+  cntReg := cntReg + UInt(1)
   switch(cntReg) {
-    is(UFix(1)) {
+    is(UInt(1)) {
       io.port.M.Cmd := OcpCmd.WR
       io.port.M.DataValid := Bits(1)
       when (io.port.S.CmdAccept === Bits(0)) {
         cntReg := cntReg
       }
     }
-    is(UFix(2)) {
+    is(UInt(2)) {
       io.port.M.DataValid := Bits(1)
     }
-    is(UFix(3)) {
+    is(UInt(3)) {
       io.port.M.DataValid := Bits(1)
     }
     // now we should be on our last word - wait for DVA
-    is(UFix(4)) {
+    is(UInt(4)) {
       io.port.M.DataValid := Bits(1)
       when (io.port.S.Resp != OcpResp.DVA) {
         cntReg := cntReg
       }
     }
-    is(UFix(5)) { io.port.M.Cmd := OcpCmd.IDLE }
-    is(UFix(6)) { io.port.M.Cmd := OcpCmd.RD }
+    is(UInt(5)) { io.port.M.Cmd := OcpCmd.IDLE }
+    is(UInt(6)) { io.port.M.Cmd := OcpCmd.RD }
   }
 
-  io.port.M.Addr := (UFix(nr * 256) + cntReg).toBits()
-  io.port.M.Data := (UFix(nr * 256 * 16) + cntReg).toBits()
+  io.port.M.Addr := (UInt(nr * 256) + cntReg).toBits()
+  io.port.M.Data := (UInt(nr * 256 * 16) + cntReg).toBits()
 }
 
 /** A top level to test the arbiter */
-class ArbiterTop() extends Component {
+class ArbiterTop() extends Module {
 
   val io = new Bundle {
     val port = new OcpBurstMasterPort(32, 32, 4)

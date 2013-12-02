@@ -52,21 +52,21 @@ import datacache._
 import ocp._
 
 /**
- * Component for one Patmos core.
+ * Module for one Patmos core.
  */
-class PatmosCore(binFile: String, datFile: String) extends Component {
+class PatmosCore(binFile: String, datFile: String) extends Module {
 
   val io = Config.getPatmosCoreIO()
 
-  val mcache = new MCache()
+  val mcache = Module(new MCache())
 
-  val fetch = new Fetch(binFile)
-  val decode = new Decode()
-  val execute = new Execute()
-  val memory = new Memory()
-  val writeback = new WriteBack()
-  val iocomp = new InOut()
-  val dcache = new DataCache()
+  val fetch = Module(new Fetch(binFile))
+  val decode = Module(new Decode())
+  val execute = Module(new Execute())
+  val memory = Module(new Memory())
+  val writeback = Module(new WriteBack())
+  val iocomp = Module(new InOut())
+  val dcache = Module(new DataCache())
 
   //io.rfDebug := decode.rf.io.rfDebug
 
@@ -99,13 +99,13 @@ class PatmosCore(binFile: String, datFile: String) extends Component {
   memory.io.localInOut <> iocomp.io.memInOut
 
   // The boot memories intercept accesses before they are translated to bursts
-  val bootMem = new BootMem(datFile)
+  val bootMem = Module(new BootMem(datFile))
   memory.io.globalInOut <> bootMem.io.memInOut
 
   dcache.io.master <> bootMem.io.extMem
 
   // Merge OCP ports from data caches and method cache
-  val burstBus = new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+  val burstBus = Module(new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
   val burstJoin = new OcpBurstJoin(mcache.io.ocp_port, dcache.io.slave,
                                    burstBus.io.slave)
 
@@ -115,7 +115,7 @@ class PatmosCore(binFile: String, datFile: String) extends Component {
   decode.io.ena := enable
   execute.io.ena := enable
   writeback.io.ena := enable
-  val enableReg = Reg(enable)
+  val enableReg = Reg(next = enable)
 
   // The inputs and outputs
   io.comConf <> iocomp.io.comConf
@@ -125,7 +125,7 @@ class PatmosCore(binFile: String, datFile: String) extends Component {
 
   // Dummy output, which is ignored in the top level VHDL code, to
   // force Chisel keep some unused signals alive
-  io.dummy := Reg(memory.io.memwb.pc) | enableReg // | decode.rf.io.rfDebug.toBits)
+  io.dummy := Reg(next = memory.io.memwb.pc) | enableReg // | decode.rf.io.rfDebug.toBits)
 
 }
 
@@ -138,7 +138,7 @@ object PatmosCoreMain {
     val datFile = args(2)
 
 	Config.conf = Config.load(configFile)
-    chiselMain(chiselArgs, () => new PatmosCore(binFile, datFile))
+    chiselMain(chiselArgs, () => Module(new PatmosCore(binFile, datFile)))
 	// Print out the configuration
 	Utility.printConfig(configFile)
   }
@@ -147,13 +147,13 @@ object PatmosCoreMain {
 /**
  * The main (top-level) component of Patmos.
  */
-class Patmos(configFile: String, binFile: String, datFile: String) extends Component {
+class Patmos(configFile: String, binFile: String, datFile: String) extends Module {
   Config.conf = Config.load(configFile)
 
   val io = Config.getPatmosIO()
 
   // Instantiate core
-  val core = new PatmosCore(binFile, datFile)
+  val core = Module(new PatmosCore(binFile, datFile))
 
   // Forward ports to/from core
   io.comConf <> core.io.comConf
@@ -161,7 +161,7 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Compo
   Config.connectAllIOPins(io, core.io)
 
   // Connect memory controller
-  val ssram = new SsramBurstRW(EXTMEM_ADDR_WIDTH)
+  val ssram = Module(new SsramBurstRW(EXTMEM_ADDR_WIDTH))
   ssram.io.ocp_port <> core.io.memPort
   io.sramPins.ram_out <> ssram.io.ram_out
   io.sramPins.ram_in <> ssram.io.ram_in
@@ -216,6 +216,6 @@ object PatmosMain {
     val binFile = args(1)
     val datFile = args(2)
 
-    chiselMainTest(chiselArgs, () => new Patmos(configFile, binFile, datFile)) { f => new PatmosTest(f) }
+    chiselMainTest(chiselArgs, () => Module(new Patmos(configFile, binFile, datFile))) { f => new PatmosTest(f) }
   }
 }

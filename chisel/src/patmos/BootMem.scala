@@ -46,7 +46,7 @@ import Constants._
 
 import ocp._
 
-class BootMem(fileName : String) extends Component {
+class BootMem(fileName : String) extends Module {
   val io = new BootMemIO()
 
   // Compute selects
@@ -55,8 +55,8 @@ class BootMem(fileName : String) extends Component {
   val selSpm = !selExt & io.memInOut.M.Addr(BOOTMEM_ONE_BIT) === Bits(0x1)
 
   // Register selects
-  val selRomReg = Reg(resetVal = Bits("b0"))
-  val selSpmReg = Reg(resetVal = Bits("b0"))
+  val selRomReg = Reg(init = Bool(false))
+  val selSpmReg = Reg(init = Bool(false))
   when(io.memInOut.M.Cmd != OcpCmd.IDLE) {
 	selRomReg := selRom
 	selSpmReg := selSpm
@@ -64,13 +64,13 @@ class BootMem(fileName : String) extends Component {
 
   // The ROM
   val rom = Utility.readBin(fileName, DATA_WIDTH)
-  val romCmdReg = Reg(Mux(selRom, io.memInOut.M.Cmd, OcpCmd.IDLE))
-  val romAddr = Reg(io.memInOut.M.Addr)
+  val romCmdReg = Reg(next = Mux(selRom, io.memInOut.M.Cmd, OcpCmd.IDLE))
+  val romAddr = Reg(next = io.memInOut.M.Addr)
   val romResp = Mux(romCmdReg === OcpCmd.IDLE, OcpResp.NULL, OcpResp.DVA)
   val romData = rom(romAddr(log2Up(rom.length)+1, 2))
 
   // The SPM
-  val spm = new Spm(BOOTSPM_SIZE)
+  val spm = Module(new Spm(BOOTSPM_SIZE))
   spm.io.M := io.memInOut.M
   spm.io.M.Cmd := Mux(selSpm, io.memInOut.M.Cmd, OcpCmd.IDLE)
   val spmS = spm.io.S

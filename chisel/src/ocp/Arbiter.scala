@@ -45,19 +45,19 @@ import Node._
 
 import scala.collection.mutable.HashMap
 
-class Arbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extends Component {
+class Arbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extends Module {
   // MS: I'm always confused from which direction the name shall be
   // probably the other way round...
   val io = new Bundle {
-    val master = Vec(cnt) { new OcpBurstSlavePort(addrWidth, dataWidth, burstLen) }
+    val master = Vec.fill(cnt) { new OcpBurstSlavePort(addrWidth, dataWidth, burstLen) }
     val slave = new OcpBurstMasterPort(addrWidth, dataWidth, burstLen)
   }
 
-  val turnReg = Reg(resetVal = UFix(0, log2Up(cnt)))
-  val burstCntReg = Reg(resetVal = UFix(0, log2Up(burstLen)))
+  val turnReg = Reg(init = UInt(0, log2Up(cnt)))
+  val burstCntReg = Reg(init = UInt(0, log2Up(burstLen)))
 
-  val sIdle :: sRead :: sWrite :: Nil = Enum(3) { UFix() }
-  val stateReg = Reg(resetVal = sIdle)
+  val sIdle :: sRead :: sWrite :: Nil = Enum(3) { UInt() }
+  val stateReg = Reg(init = sIdle)
 
   // TODO def turn
 
@@ -71,26 +71,26 @@ class Arbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extend
       }
       when(master.Cmd === OcpCmd.WR) {
         stateReg := sWrite
-        burstCntReg := UFix(0)
+        burstCntReg := UInt(0)
       }
     }
       .otherwise {
-        turnReg := Mux(turnReg === UFix(cnt - 1), UFix(0), turnReg + UFix(1))
+        turnReg := Mux(turnReg === UInt(cnt - 1), UInt(0), turnReg + UInt(1))
       }
   }
   when(stateReg === sWrite) {
     // Just wait on the DVA after the write
     when(slave.Resp === OcpResp.DVA) {
-      turnReg := Mux(turnReg === UFix(cnt - 1), UFix(0), turnReg + UFix(1))
+      turnReg := Mux(turnReg === UInt(cnt - 1), UInt(0), turnReg + UInt(1))
       stateReg := sIdle
     }
   }
   when(stateReg === sRead) {
     // For read we have to count the DVAs
     when(slave.Resp === OcpResp.DVA) {
-      burstCntReg := burstCntReg + UFix(1)
-      when(burstCntReg === UFix(burstLen) - UFix(1)) {
-        turnReg := Mux(turnReg === UFix(cnt - 1), UFix(0), turnReg + UFix(1))
+      burstCntReg := burstCntReg + UInt(1)
+      when(burstCntReg === UInt(burstLen) - UInt(1)) {
+        turnReg := Mux(turnReg === UInt(cnt - 1), UInt(0), turnReg + UInt(1))
         stateReg := sIdle
       }
     }

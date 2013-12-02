@@ -46,7 +46,7 @@ import ocp._
 
 import scala.collection.mutable.HashMap
 
-class AComponent() extends Component {
+class AModule() extends Module {
   val io = new Bundle {
     val fromMaster = new OcpBurstSlavePort(32, 32, 4)
     val toSlave = new OcpBurstMasterPort(32, 32, 4)
@@ -55,7 +55,7 @@ class AComponent() extends Component {
   io.fromMaster <> io.toSlave
 }
 
-class OcpTester(dut: AComponent) extends Tester(dut, Array(dut.io)) {
+class OcpTester(dut: AModule) extends Tester(dut, Array(dut.io)) {
   defTests {
     val ret = true
     val vars = new HashMap[Node, Node]()
@@ -79,7 +79,7 @@ class OcpTester(dut: AComponent) extends Tester(dut, Array(dut.io)) {
 
 object OcpTester {
   def main(args: Array[String]): Unit = {
-    chiselMainTest(args, () => new AComponent()) {
+    chiselMainTest(args, () => new AModule()) {
       f => new OcpTester(f)
     }
 

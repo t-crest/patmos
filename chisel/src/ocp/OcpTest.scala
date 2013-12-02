@@ -44,11 +44,11 @@ import Node._
 
 import scala.collection.mutable.HashMap
 
-class OcpMaster() extends Component {
+class OcpMaster() extends Module {
   val io = new OcpCacheMasterPort(8, 32)
 
-  val cnt = Reg(UFix(), resetVal = UFix(0))
-  cnt := cnt + UFix(1, 32)
+  val cnt = Reg(UInt(), init = UInt(0))
+  cnt := cnt + UInt(1, 32)
 
   io.M.Cmd := OcpCmd.IDLE
   io.M.Addr := cnt(15, 8)
@@ -60,29 +60,29 @@ class OcpMaster() extends Component {
   }
 }
 
-class OcpSlave() extends Component {
+class OcpSlave() extends Module {
   val io = new OcpBurstSlavePort(8, 32, 4)
 
-  val M = Reg(io.M, resetVal = OcpMasterSignals.resetVal(io.M))
+  val M = Reg(next = io.M, init = OcpMasterSignals.resetVal(io.M))
 
-  val data = Reg(UFix(), resetVal = UFix(0))
-  data := data + UFix(1, 32)
+  val data = Reg(UInt(), init = UInt(0))
+  data := data + UInt(1, 32)
 
-  val cnt = Reg(UFix(), resetVal = UFix(0))
+  val cnt = Reg(UInt(), init = UInt(0))
 
   io.S.Resp := OcpResp.NULL
   io.S.Data := data
   when(M.Cmd != OcpCmd.IDLE) {
-	cnt := UFix(4)
+	cnt := UInt(4)
   }
 
-  when(cnt != UFix(0)) {
-	cnt := cnt - UFix(1)
+  when(cnt != UInt(0)) {
+	cnt := cnt - UInt(1)
 	io.S.Resp := OcpResp.DVA
   }
 }
 
-class Ocp() extends Component {
+class Ocp() extends Module {
   val io = new OcpBurstSlavePort(8, 32, 4)
 
   val master = new OcpMaster()

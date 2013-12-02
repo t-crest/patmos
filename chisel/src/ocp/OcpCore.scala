@@ -86,7 +86,7 @@ class OcpCoreSlavePort(addrWidth : Int, dataWidth : Int) extends Bundle() {
 }
 
 // Provide a "bus" with a master port and a slave port to simplify plumbing
-class OcpCoreBus(addrWidth : Int, dataWidth : Int) extends Component {
+class OcpCoreBus(addrWidth : Int, dataWidth : Int) extends Module {
   val io = new Bundle {
     val slave = new OcpCoreSlavePort(addrWidth, dataWidth)
     val master = new OcpCoreMasterPort(addrWidth, dataWidth)

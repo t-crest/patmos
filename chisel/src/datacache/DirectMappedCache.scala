@@ -46,7 +46,7 @@ import patmos.Constants._
 
 import ocp._
 
-class DirectMappedCache(size: Int, lineSize: Int) extends Component {
+class DirectMappedCache(size: Int, lineSize: Int) extends Module {
   val io = new Bundle {
 	val master = new OcpCoreSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
 	val slave = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, lineSize/4)
@@ -59,30 +59,30 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Component {
   val tagCount = size / lineSize
 
   // Register signals from master
-  val masterReg = Reg(io.master.M)
+  val masterReg = Reg(next = io.master.M)
 
   // Compute write enables
   val stmsk = Mux(masterReg.Cmd === OcpCmd.WR, masterReg.ByteEn,  Bits("b0000"))
-  val stmskReg = Reg(stmsk)
+  val stmskReg = Reg(next = stmsk)
 
   // I would like to have a vector of memories.
-  // val mem = Vec(4) { Mem(size, seqRead = true) { Bits(width = DATA_WIDTH) } }
+  // val mem = Vec(4) { Mem(Bits(width = DATA_WIDTH), size) }
 
   // ok, the dumb way
-  val tagMem = Mem(tagCount, seqRead = true) { Bits(width = tagWidth) }
-  val tagVMem = Vec(tagCount) { Reg(resetVal = Bool(false)) }
-  val mem0 = Mem(size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) }
-  val mem1 = Mem(size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) }
-  val mem2 = Mem(size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) }
-  val mem3 = Mem(size / BYTES_PER_WORD, seqRead = true) { Bits(width = BYTE_WIDTH) }
+  val tagMem = Mem(Bits(width = tagWidth), tagCount)
+  val tagVMem = Vec.fill(tagCount) { Reg(init = Bool(false)) }
+  val mem0 = Mem(Bits(width = BYTE_WIDTH), size / BYTES_PER_WORD)
+  val mem1 = Mem(Bits(width = BYTE_WIDTH), size / BYTES_PER_WORD)
+  val mem2 = Mem(Bits(width = BYTE_WIDTH), size / BYTES_PER_WORD)
+  val mem3 = Mem(Bits(width = BYTE_WIDTH), size / BYTES_PER_WORD)
 
   val tag = tagMem(masterReg.Addr(addrBits + 1, lineBits))
   val tagV = tagVMem(masterReg.Addr(addrBits + 1, lineBits))
   val tagValid = tagV && tag === Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, addrBits+2))
-  val tagValidReg = Reg(tagValid)
+  val tagValidReg = Reg(next = tagValid)
 
-  val fillReg = Reg(resetVal = Bool(false))
-  val fillAddrReg = Reg(resetVal = Bits(0, width = addrBits+2 - lineBits))
+  val fillReg = Reg(init = Bool(false))
+  val fillAddrReg = Reg(init = Bits(0, width = addrBits+2 - lineBits))
 
   val wrAddrReg = Reg(Bits(width = addrBits))
   val wrDataReg = Reg(Bits(width = DATA_WIDTH))
@@ -110,14 +110,14 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Component {
    						  OcpResp.DVA, OcpResp.NULL)
 
   // State machine for misses
-  val idle :: fill :: respond :: Nil = Enum(3){ UFix() }
-  val stateReg = Reg(resetVal = idle)
+  val idle :: fill :: respond :: Nil = Enum(3){ UInt() }
+  val stateReg = Reg(init = idle)
 
-  val missIndexReg = Reg(resetVal = UFix(0, lineBits-2))
-  val burstCntReg = Reg(resetVal = UFix(0, lineBits-2))
+  val missIndexReg = Reg(init = UInt(0, lineBits-2))
+  val burstCntReg = Reg(init = UInt(0, lineBits-2))
 
   // Register to delay response
-  val slaveReg = Reg(resetVal = OcpSlaveSignals.resetVal(io.master.S))
+  val slaveReg = Reg(init = OcpSlaveSignals.resetVal(io.master.S))
 
   // Default values
   io.slave.M.Cmd := OcpCmd.IDLE
@@ -134,7 +134,7 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Component {
 	fillAddrReg := masterReg.Addr(addrBits + 1, lineBits)
 	tagMem(masterReg.Addr(addrBits + 1, lineBits)) := Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, addrBits+2))
 	tagVMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(true)
-	missIndexReg := masterReg.Addr(lineBits-1, 2).toUFix
+	missIndexReg := masterReg.Addr(lineBits-1, 2).toUInt
 	io.slave.M.Cmd := OcpCmd.RD
 	stateReg := fill
   }
@@ -148,10 +148,10 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Component {
 	  when(burstCntReg === missIndexReg) {
 		slaveReg := io.slave.S
 	  }
-	  when(burstCntReg === UFix(lineSize/4-1)) {
+	  when(burstCntReg === UInt(lineSize/4-1)) {
 		stateReg := respond
 	  }
-	  burstCntReg := burstCntReg + UFix(1)
+	  burstCntReg := burstCntReg + UInt(1)
 	}
   }
   // Pass data to master

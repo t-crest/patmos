@@ -49,7 +49,7 @@ object Utility {
   /**
    * Read a binary file into the ROM vector
    */
-  def readBin(fileName: String, width: Int): Vec[Bits] = {
+  def readBin(fileName: String, width: Int): Vec[UInt] = {
 
     val bytesPerWord = (width+7) / 8
 
@@ -60,7 +60,7 @@ object Utility {
     source.close()
 
     // using a vector for a ROM
-    val v = Vec(math.max(1, byteArray.length / bytesPerWord)) { Bits(width = width) }
+    val v = Vec.fill(math.max(1, byteArray.length / bytesPerWord)) { Bits(width = width) }
 
     if (byteArray.length == 0) {
       v(0) = Bits(0, width = width)
@@ -72,7 +72,7 @@ object Utility {
         word <<= 8
         word += byteArray(i * bytesPerWord + j).toInt & 0xff
       }
-      // printf("%08x\n", word)
+      // printf("%08x\n", Bits(word))
       v(i) = Bits(word, width = width)
     }
     v

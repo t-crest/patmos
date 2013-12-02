@@ -64,7 +64,7 @@ abstract class DeviceObject() {
   def getIntParam(params: Map[String, String], key: String) : Int = {
     val param = getParam(params, key)
     try { param.toInt
-    } catch { case exc =>
+    } catch { case exc : Exception =>
       throw new IllegalArgumentException("Parameter " + key + " must be an integer")      
     }
   }
@@ -78,7 +78,7 @@ abstract class DeviceObject() {
   }
 }
 
-abstract class Device() extends Component()
+abstract class Device() extends Module()
 
 class CoreDevice() extends Device() {
   val io = new CoreDeviceIO();

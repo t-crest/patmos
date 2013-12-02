@@ -50,7 +50,7 @@ import ocp._
 object Uart extends DeviceObject {
   def create(params: Map[String, String]) : Uart = {
     val baudRate = getPosIntParam(params, "baud_rate")
-    new Uart(CLOCK_FREQ, baudRate)
+    Module(new Uart(CLOCK_FREQ, baudRate))
   }
 
   trait Pins {
@@ -66,37 +66,37 @@ class Uart(clk_freq: Int, baud_rate: Int) extends CoreDevice() {
   override val io = new CoreDeviceIO() with Uart.Pins
 
   	val c_tx_divider_val 	= clk_freq/baud_rate	
-  	val tx_baud_counter 	= Reg(resetVal = UFix(0, log2Up(clk_freq/baud_rate)))
-	val tx_baud_tick 		= Reg(resetVal = UFix(0, 1))
+  	val tx_baud_counter 	= Reg(init = UInt(0, log2Up(clk_freq/baud_rate)))
+	val tx_baud_tick 		= Reg(init = UInt(0, 1))
 	
-	val tx_idle :: tx_send :: Nil  = Enum(2){ UFix() } 
-	val tx_state 			= Reg(resetVal = tx_idle)
-	val tx_empty 			= Reg(resetVal = UFix(1, 1))
-	val tx_data 			= Reg(resetVal = Bits(0, 8))
-	val tx_buff 			= Reg(resetVal = Bits(0, 10))
-  	val tx_reg  			= Reg(resetVal = Bits(1, 1))
-  	val tx_counter 			= Reg(resetVal = UFix(0, 4))
+	val tx_idle :: tx_send :: Nil  = Enum(2){ UInt() } 
+	val tx_state 			= Reg(init = tx_idle)
+	val tx_empty 			= Reg(init = UInt(1, 1))
+	val tx_data 			= Reg(init = Bits(0, 8))
+	val tx_buff 			= Reg(init = Bits(0, 10))
+  	val tx_reg  			= Reg(init = Bits(1, 1))
+  	val tx_counter 			= Reg(init = UInt(0, 4))
 		
-	val rxd_reg0 			= Reg(resetVal = Bits(1, 1))
-	val rxd_reg1 			= Reg(resetVal = Bits(1, 1))
-	val rxd_reg2 			= Reg(resetVal = Bits(1, 1))
+	val rxd_reg0 			= Reg(init = Bits(1, 1))
+	val rxd_reg1 			= Reg(init = Bits(1, 1))
+	val rxd_reg2 			= Reg(init = Bits(1, 1))
 	
-	val rx_baud_counter 	= Reg(resetVal = UFix(0, log2Up(clk_freq/baud_rate)))
-	val rx_baud_tick 		= Reg(resetVal = UFix(0, 1))
-	val rx_enable	 		= Reg(resetVal = UFix(0, 1))
+	val rx_baud_counter 	= Reg(init = UInt(0, log2Up(clk_freq/baud_rate)))
+	val rx_baud_tick 		= Reg(init = UInt(0, 1))
+	val rx_enable	 		= Reg(init = Bool(false))
 	
-	val rx_data 			= Reg(resetVal = Bits(0, 8))	
-	val rx_buff 			= Reg(resetVal = Bits(0, 8))	
-	val rx_full 			= Reg(resetVal = UFix(0, 1))
-	val rx_counter			= Reg(resetVal = UFix(0, 3)) 	
-  	val rx_idle  :: rx_start :: rx_receive_data :: rx_stop_bit :: Nil  = Enum(4){ UFix() }
-	val rx_state 			= Reg(resetVal = rx_idle)
+	val rx_data 			= Reg(init = Bits(0, 8))	
+	val rx_buff 			= Reg(init = Bits(0, 8))	
+	val rx_full 			= Reg(init = UInt(0, 1))
+	val rx_counter			= Reg(init = UInt(0, 3)) 	
+  	val rx_idle  :: rx_start :: rx_receive_data :: rx_stop_bit :: Nil  = Enum(4){ UInt() }
+	val rx_state 			= Reg(init = rx_idle)
 
 	// Default response and data
-	val respReg = Reg(resetVal = OcpResp.NULL)
+	val respReg = Reg(init = OcpResp.NULL)
 	respReg := OcpResp.NULL
 
-	val rdDataReg = Reg(resetVal = Bits(0, width = 8))
+	val rdDataReg = Reg(init = Bits(0, width = 8))
 	rdDataReg := Mux(io.ocp.M.Addr(2) === Bits(0),
 					 Cat(Bits(0, width = 6), rx_full, tx_empty),
 					 rx_data)
@@ -105,13 +105,13 @@ class Uart(clk_freq: Int, baud_rate: Int) extends CoreDevice() {
 	when (io.ocp.M.Cmd === OcpCmd.WR) {
 	    respReg := OcpResp.DVA
 		tx_data := io.ocp.M.Data(7, 0)
-	    tx_empty := UFix(0)
+	    tx_empty := UInt(0)
 	}
 
 	// Read data
 	when(io.ocp.M.Cmd === OcpCmd.RD) {
 	    respReg := OcpResp.DVA
-		rx_full := Mux(io.ocp.M.Addr === Bits(0), rx_full, UFix(0))
+		rx_full := Mux(io.ocp.M.Addr === Bits(0), rx_full, UInt(0))
 	}
 
 	// Connections to master
@@ -119,41 +119,41 @@ class Uart(clk_freq: Int, baud_rate: Int) extends CoreDevice() {
 	io.ocp.S.Data := rdDataReg
 
 	// UART TX clk
-	when (tx_baud_counter === UFix(clk_freq/baud_rate)){
-  	  	tx_baud_counter		:= UFix(0)
-  	  	tx_baud_tick		:= UFix(1)
+	when (tx_baud_counter === UInt(clk_freq/baud_rate)){
+  	  	tx_baud_counter		:= UInt(0)
+  	  	tx_baud_tick		:= UInt(1)
   	}
   	.otherwise {
-  		tx_baud_counter		:= tx_baud_counter + UFix(1)
-  		tx_baud_tick		:= UFix(0)
+  		tx_baud_counter		:= tx_baud_counter + UInt(1)
+  		tx_baud_tick		:= UInt(0)
   	}
 
     // Send data	
   	
   	when (tx_state === tx_idle) {
-		when (tx_empty === UFix(0)) {
-		  tx_empty			:= UFix(1)
+		when (tx_empty === UInt(0)) {
+		  tx_empty			:= UInt(1)
 		  tx_buff			:= Cat(Bits(1), tx_data, Bits(0))
 		  tx_state			:= tx_send
 		}
 	}	
   	
 	when (tx_state === tx_send) {
-		when (tx_baud_tick === UFix(1)){
-			tx_buff			:= Cat (UFix(0), tx_buff (9, 1))
+		when (tx_baud_tick === UInt(1)){
+			tx_buff			:= Cat (UInt(0), tx_buff (9, 1))
 			tx_reg	  		:= tx_buff(0)
-			tx_counter 		:= Mux(tx_counter === UFix(10), UFix(0), tx_counter + UFix(1))
+			tx_counter 		:= Mux(tx_counter === UInt(10), UInt(0), tx_counter + UInt(1))
 
-		    when (tx_counter === UFix(10)) {
-			  when (tx_empty === UFix(0)) {
-				tx_empty		:= UFix(1)
+		    when (tx_counter === UInt(10)) {
+			  when (tx_empty === UInt(0)) {
+				tx_empty		:= UInt(1)
 				tx_buff			:= Cat(Bits(1), tx_data)
-				tx_reg  		:= UFix(0)
-				tx_counter		:= UFix(1)
+				tx_reg  		:= UInt(0)
+				tx_counter		:= UInt(1)
 			  }
 			  .otherwise {
-				tx_reg  		:= UFix(1)
-				tx_counter		:= UFix(0)
+				tx_reg  		:= UInt(1)
+				tx_counter		:= UInt(0)
 		  		tx_state 		:= tx_idle
 			  }
 			}
@@ -166,13 +166,13 @@ class Uart(clk_freq: Int, baud_rate: Int) extends CoreDevice() {
 	
 	// UART RX clk
 	when (rx_enable) {
-		when (rx_baud_counter === UFix(clk_freq/baud_rate)){
-  	  		rx_baud_counter		:= UFix(0)
-  	  		rx_baud_tick		:= UFix(1)
+		when (rx_baud_counter === UInt(clk_freq/baud_rate)){
+  	  		rx_baud_counter		:= UInt(0)
+  	  		rx_baud_tick		:= UInt(1)
 		}
 	  	.otherwise {
-	  		rx_baud_counter		:= rx_baud_counter + UFix(1)
-	  		rx_baud_tick		:= UFix(0)
+	  		rx_baud_counter		:= rx_baud_counter + UInt(1)
+	  		rx_baud_tick		:= UInt(0)
 	  	}
 	}
 	
@@ -186,16 +186,16 @@ class Uart(clk_freq: Int, baud_rate: Int) extends CoreDevice() {
 	
 	// RX shift in
 	when (rx_state === rx_idle) {
-  		when (rxd_reg2 === UFix(0)){
+  		when (rxd_reg2 === UInt(0)){
   		   rx_state 		:= rx_start
-  		   rx_baud_counter	:= UFix(clk_freq/baud_rate) / UFix(2)
-  		   rx_enable 		:= UFix(1)
+  		   rx_baud_counter	:= UInt(clk_freq/baud_rate) / UInt(2)
+  		   rx_enable 		:= Bool(true)
   		}
 	}
 	
 	when (rx_state === rx_start){
-		when (rx_baud_tick === UFix(1)) {
-			when (rxd_reg2 === UFix(0)) {
+		when (rx_baud_tick === UInt(1)) {
+			when (rxd_reg2 === UInt(0)) {
 				rx_state		:= rx_receive_data
 			}
 			.otherwise{
@@ -205,24 +205,24 @@ class Uart(clk_freq: Int, baud_rate: Int) extends CoreDevice() {
 	}
 	
 	when (rx_state === rx_receive_data) {
-		when (rx_baud_tick === UFix(1)){
-		  	rx_state := Mux(rx_counter === UFix(7), rx_stop_bit, rx_receive_data)
-		  	rx_counter := Mux(rx_counter === UFix(7), UFix(0), rx_counter + UFix(1))
+		when (rx_baud_tick === UInt(1)){
+		  	rx_state := Mux(rx_counter === UInt(7), rx_stop_bit, rx_receive_data)
+		  	rx_counter := Mux(rx_counter === UInt(7), UInt(0), rx_counter + UInt(1))
 			rx_buff :=  Cat(rxd_reg2, rx_buff(7, 1))
 		}
 	}
  	
 	when (rx_state === rx_stop_bit) {
-		when (rx_baud_tick === UFix(1)){
-			when (rxd_reg2 === UFix(1)) {
+		when (rx_baud_tick === UInt(1)){
+			when (rxd_reg2 === UInt(1)) {
 				rx_state 		:= rx_idle
-				rx_enable		:= UFix(0)
+				rx_enable		:= Bool(false)
 				rx_data 		:= rx_buff
-				rx_full			:= UFix(1)
+				rx_full			:= UInt(1)
 			}
 			.otherwise{
 				rx_state 		:= rx_idle
-				rx_enable		:= UFix(0)
+				rx_enable		:= Bool(false)
 			}
 		}
 	}

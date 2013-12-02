@@ -95,24 +95,24 @@ class SsramBurstRW (
    ram_ws_rd : Int = 2,
    ram_ws_wr : Int = 0,
    burstLen : Int = 4
-) extends Component {
+) extends Module {
   val io = new SsramIOBurst(addrBits)
 
-  val idle :: rd1 :: wr1 :: Nil = Enum(3){ UFix() }
-  val ssram_state = Reg(resetVal = idle)
-  val wait_state = Reg(resetVal = UFix(0, width = 4))
-  val burst_cnt = Reg(resetVal = UFix(0, width = log2Up(burstLen)))
-  val rd_data_ena = Reg(resetVal = Bits(0, width = 1))
-  val rd_data = Reg(resetVal = Bits(0, width = 32))
-  val resp = Reg(resetVal = Bits(0, width = 2))
-  val ram_dout = Reg(resetVal = Bits(0, width = 32))
-  val address = Reg(resetVal = Bits(0, width = addrBits-2))
-  val dout_ena = Reg(resetVal = Bits(0, width = 1))
-  val nadsc = Reg(resetVal = Bits(1, width = 1))
-  val noe = Reg(resetVal = Bits(1, width = 1))
-  val nbwe = Reg(resetVal = Bits(1, width = 1))
-  val nbw = Reg(resetVal = Bits("b1111", width = 4))
-  val nadv = Reg(resetVal = Bits(0, width = 1))
+  val idle :: rd1 :: wr1 :: Nil = Enum(3){ UInt() }
+  val ssram_state = Reg(init = idle)
+  val wait_state = Reg(init = UInt(0, width = 4))
+  val burst_cnt = Reg(init = UInt(0, width = log2Up(burstLen)))
+  val rd_data_ena = Reg(init = Bits(0, width = 1))
+  val rd_data = Reg(init = Bits(0, width = 32))
+  val resp = Reg(init = Bits(0, width = 2))
+  val ram_dout = Reg(init = Bits(0, width = 32))
+  val address = Reg(init = Bits(0, width = addrBits-2))
+  val dout_ena = Reg(init = Bits(0, width = 1))
+  val nadsc = Reg(init = Bits(1, width = 1))
+  val noe = Reg(init = Bits(1, width = 1))
+  val nbwe = Reg(init = Bits(1, width = 1))
+  val nbw = Reg(init = Bits("b1111", width = 4))
+  val nadv = Reg(init = Bits(0, width = 1))
   val cmd_accept = Bits(width = 1)
   val data_accept = Bits(width = 1)
 
@@ -126,7 +126,7 @@ class SsramBurstRW (
   nadv := Bits(1)
   resp := OcpResp.NULL
   ram_dout := io.ocp_port.M.Data
-  burst_cnt := UFix(0)
+  burst_cnt := UInt(0)
   cmd_accept := Bits(0)
   data_accept := Bits(0)
 
@@ -146,12 +146,12 @@ class SsramBurstRW (
   when (ssram_state === rd1) {
     noe := Bits(0)
     nadv := Bits(0)
-    when (wait_state <= UFix(1)) {
+    when (wait_state <= UInt(1)) {
       rd_data_ena := Bits(1)
-      burst_cnt := burst_cnt + UFix(1)
+      burst_cnt := burst_cnt + UInt(1)
       resp := OcpResp.DVA
-      when (burst_cnt === UFix(burstLen-1)) {
-        burst_cnt := UFix(0)
+      when (burst_cnt === UInt(burstLen-1)) {
+        burst_cnt := UInt(0)
         nadv := Bits(1)
         noe := Bits(1)
         ssram_state := idle
@@ -159,15 +159,15 @@ class SsramBurstRW (
     }
   }
   when (ssram_state === wr1) {
-    when (wait_state <= UFix(1)) {
-      when (burst_cnt === UFix(burstLen-1)) {
-        burst_cnt := UFix(0)
+    when (wait_state <= UInt(1)) {
+      when (burst_cnt === UInt(burstLen-1)) {
+        burst_cnt := UInt(0)
         resp := OcpResp.DVA
         ssram_state := idle
       }
       when (io.ocp_port.M.DataValid === Bits(1)) {
         data_accept := Bits(1)
-        burst_cnt := burst_cnt + UFix(1)
+        burst_cnt := burst_cnt + UInt(1)
         nadsc := Bits(0)
         nbwe := Bits(0)
         nbw := ~(io.ocp_port.M.DataByteEn)
@@ -191,15 +191,15 @@ class SsramBurstRW (
   }
 
   //counter till output is ready
-  when (wait_state != UFix(0)) {
-    wait_state := wait_state - UFix(1)
+  when (wait_state != UInt(0)) {
+    wait_state := wait_state - UInt(1)
   }
   //set wait state after incoming request
   when (io.ocp_port.M.Cmd === OcpCmd.RD) {
-    wait_state := UFix(ram_ws_rd + 1)
+    wait_state := UInt(ram_ws_rd + 1)
   }
   when (io.ocp_port.M.Cmd === OcpCmd.WR) {
-    wait_state := UFix(ram_ws_wr + 1)
+    wait_state := UInt(ram_ws_wr + 1)
   }
 
   io.ram_out.dout := io.ocp_port.M.Data
@@ -264,13 +264,13 @@ object SsramMain {
 
  >>> This is handled by the emulator now! <<<
 */
-class ExtSsram(addrBits : Int, fileName : String) extends Component {
+class ExtSsram(addrBits : Int, fileName : String) extends Module {
   val io = new RamInPinsIO(addrBits)
 
   //on chip memory instance
-  val ssram_extmem = Mem(2 * MCACHE_SIZE) {Bits(width = 32)} //bus width = 32
+  val ssram_extmem = Mem(Bits(width = 32), 2 * MCACHE_SIZE) //bus width = 32
 
-  def initSsram(fileName: String): Mem[Bits] = { 
+  def initSsram(fileName: String): Mem[UInt] = { 
     println("Reading " + fileName)
     // an encodig to read a binary file? Strange new world.
     val source = scala.io.Source.fromFile(fileName)(scala.io.Codec.ISO8859)
@@ -282,7 +282,7 @@ class ExtSsram(addrBits : Int, fileName : String) extends Component {
         word <<= 8
         word += byteArray(i * 4 + j).toInt & 0xff
       }
-      printf("%08x\n", word)
+      printf("%08x\n", Bits(word))
       // mmh, width is needed to keep bit 31
       ssram_extmem(Bits(i)) := Bits(word, width=32)
     }
@@ -293,9 +293,9 @@ class ExtSsram(addrBits : Int, fileName : String) extends Component {
   }
 
   //initSsram(fileName)
-  val address = Reg(resetVal = Bits(0, width = 19))
-  val dout = Reg(resetVal = Bits(0, width = 32))
-  val nadv = Reg(resetVal = Bits(0, width = 1))
+  val address = Reg(init = Bits(0, width = 19))
+  val dout = Reg(init = Bits(0, width = 32))
+  val nadv = Reg(init = Bits(0, width = 1))
 
   nadv := io.ram_out.nadv
   when (io.ram_out.nadsc === Bits(0)) {
