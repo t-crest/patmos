@@ -217,5 +217,5 @@ class Memory() extends Component {
   io.exc.src := Mux(memReg.mem.illOp, Bits(0),
 					Mux(illMem, Bits(1),
 						memReg.mem.xsrc))
-  io.exc.excAddr := Mux(memReg.mem.trap, memReg.pc + UFix(1), memReg.pc)
+  io.exc.excAddr := Mux(memReg.mem.trap, memReg.relPc + UFix(1), memReg.relPc)
 }

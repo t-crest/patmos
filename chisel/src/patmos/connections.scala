@@ -52,12 +52,14 @@ class FeDec() extends Bundle() {
   val instr_b = Bits(width = INSTR_WIDTH)
   val pc = UFix(width = PC_SIZE)
   val reloc = UFix(width = ADDR_WIDTH)
+  val relPc = UFix(width = PC_SIZE)
 
   def reset() = {
 	instr_a := Bits(0)
 	instr_b := Bits(0)
 	pc := UFix(0)
 	reloc := UFix(0)
+	relPc := UFix(0)
   }
 }
 
@@ -135,6 +137,7 @@ class MemOp() extends Bundle() {
 
 class DecEx() extends Bundle() {
   val pc = UFix(width = PC_SIZE)
+  val relPc = UFix(width = PC_SIZE)
   val pred =  Vec(PIPE_COUNT) { Bits(width = PRED_BITS+1) }
   val aluOp = Vec(PIPE_COUNT) { new AluOp() }
   val predOp = Vec(PIPE_COUNT) { new PredOp() }
@@ -164,6 +167,7 @@ class DecEx() extends Bundle() {
   
   def reset() = {
 	pc := UFix(0)
+	relPc := UFix(0)
 	pred := Vec(PIPE_COUNT) { Bits(0) }
 	for (i <- 0 until PIPE_COUNT) {
 	  aluOp(i).reset()
@@ -259,6 +263,7 @@ class ExMem() extends Bundle() {
   val rd = Vec(PIPE_COUNT) { new Result() }
   val mem = new MemIn()
   val pc = UFix(width = PC_SIZE)
+  val relPc = UFix(width = PC_SIZE)
 
   def reset() = {
 	for (i <- 0 until PIPE_COUNT) {
@@ -266,6 +271,7 @@ class ExMem() extends Bundle() {
 	}
 	mem.reset()
 	pc := UFix(0)
+	relPc := UFix(0)
   }
 }
 
