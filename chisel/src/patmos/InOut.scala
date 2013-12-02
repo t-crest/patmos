@@ -63,12 +63,15 @@ class InOut() extends Component {
 
   val MAX_IO_DEVICES = 0x10
 
+  val validDeviceVec = Vec(MAX_IO_DEVICES) { Bool() }
   val selDeviceVec = Vec(MAX_IO_DEVICES) { Bool() }
   val deviceSVec = Vec(MAX_IO_DEVICES) { OcpSlaveSignals.resetVal(DATA_WIDTH) }
   for (i <- 0 until MAX_IO_DEVICES) {
+    validDeviceVec(i) := Bool(false)
     selDeviceVec(i) := selIO & io.memInOut.M.Addr(11, 8) === Bits(i)
     deviceSVec(i) := OcpSlaveSignals.resetVal(DATA_WIDTH)
   }
+  validDeviceVec(EXC_IO_OFFSET) := Bool(true)
 
   // Register selects
   val selSpmReg = Reg(resetVal = Bits("b0"))
@@ -92,8 +95,10 @@ class InOut() extends Component {
 
   // Register for error response
   val errResp = Reg(resetVal = OcpResp.NULL)
-  errResp := Mux(io.memInOut.M.Cmd != OcpCmd.IDLE &&
-                 selIO && !selDeviceVec.fold(Bool(false))(_|_),
+  val validSelVec = selDeviceVec.zip(validDeviceVec).map{ case (x, y) => x && y }
+  val validSel = validSelVec.fold(Bool(false))(_|_)
+  errResp := Mux(io.memInOut.M.Cmd != OcpCmd.IDLE && 
+				 selIO && !validSel,
                  OcpResp.ERR, OcpResp.NULL)
 
   // Dummy ISPM (create fake response)
@@ -124,6 +129,7 @@ class InOut() extends Component {
   // The actual I/O devices
   for (devConf <- Config.conf.Devs) {
     val dev = Config.createDevice(devConf)
+    validDeviceVec(devConf.offset) := Bool(true)
     // connect ports
     dev.io.ocp.M := io.memInOut.M
     dev.io.ocp.M.Cmd := Mux(selDeviceVec(devConf.offset), io.memInOut.M.Cmd, OcpCmd.IDLE)
