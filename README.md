@@ -41,7 +41,7 @@ Therefore, take a cup of coffee and find some nice reading.
 After building the compiler add the path
 to the compiler executables into your .profile:
 
-    export PATH="/home/martin/t-crest/local/bin:$PATH"
+    export PATH=$PATH:$HOME/t-crest/local/bin
 
 Use an absolute path as LLVM cannot handle a path relative to the
 home directory (~).
