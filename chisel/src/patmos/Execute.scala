@@ -58,7 +58,7 @@ class Execute() extends Component {
     exReg := io.decex
     when(io.flush) {
       exReg.reset()
-      exReg.relPc := io.decex.relPc
+      exReg.pc := io.decex.pc
     }
   }
   // no access to io.decex after this point!!!
@@ -382,7 +382,7 @@ class Execute() extends Component {
   // exception return information
   when(exReg.xcall && doExecute(0) && io.ena) {
     excBaseReg := baseReg
-    excOffReg := Cat(exReg.relPc, Bits("b00").toUFix)
+    excOffReg := Cat(exReg.pc, Bits("b00").toUFix)
   }
   // remember base address
   when(doCallRet && io.ena) {
@@ -397,7 +397,7 @@ class Execute() extends Component {
   io.exfe.branchPc := target
   
   // pass on PC
-  io.exmem.relPc := exReg.relPc
+  io.exmem.pc := exReg.pc
 
   //call/return for mcache
   io.exmcache.doCallRet := doCallRet

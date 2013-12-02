@@ -185,7 +185,7 @@ class Memory() extends Component {
     }
   }
   
-  io.memwb.pc := memReg.relPc
+  io.memwb.pc := memReg.pc
   for (i <- 0 until PIPE_COUNT) {
 	io.memwb.rd(i).addr := memReg.rd(i).addr
 	io.memwb.rd(i).valid := memReg.rd(i).valid
@@ -217,5 +217,5 @@ class Memory() extends Component {
   io.exc.src := Mux(memReg.mem.illOp, Bits(0),
 					Mux(illMem, Bits(1),
 						memReg.mem.xsrc))
-  io.exc.excAddr := Mux(memReg.mem.trap, memReg.relPc + UFix(1), memReg.relPc)
+  io.exc.excAddr := Mux(memReg.mem.trap, memReg.pc + UFix(1), memReg.pc)
 }

@@ -66,7 +66,7 @@ class Decode() extends Component {
     decReg := io.fedec
     when(io.flush) {
       decReg.reset()
-      decReg.relPc := io.fedec.relPc
+      decReg.pc := io.fedec.pc
     }
   }
 
@@ -368,7 +368,7 @@ class Decode() extends Component {
   io.decex.jmpOp.reloc := decReg.reloc
 
   // Pass on PC
-  io.decex.relPc := decReg.relPc
+  io.decex.pc := decReg.pc
 
   // Set destination address
   io.decex.rdAddr(0) := dest
@@ -394,7 +394,7 @@ class Decode() extends Component {
     io.decex.xsrc := io.exc.src
     io.decex.callAddr := io.exc.addr
     io.decex.immOp(0) := Bool(true)
-    io.decex.relPc := Mux(io.exc.exc, io.exc.excAddr, decReg.relPc)
+    io.decex.pc := Mux(io.exc.exc, io.exc.excAddr, decReg.pc)
   }
 
   // Update delay slot information
