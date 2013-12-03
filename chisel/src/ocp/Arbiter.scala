@@ -56,7 +56,7 @@ class Arbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extend
   val turnReg = Reg(init = UInt(0, log2Up(cnt)))
   val burstCntReg = Reg(init = UInt(0, log2Up(burstLen)))
 
-  val sIdle :: sRead :: sWrite :: Nil = Enum(3) { UInt() }
+  val sIdle :: sRead :: sWrite :: Nil = Enum(UInt(), 3)
   val stateReg = Reg(init = sIdle)
 
   // TODO def turn

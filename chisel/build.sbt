@@ -12,4 +12,4 @@ libraryDependencies <+= scalaVersion("org.scala-lang" % "scala-compiler" % _)
 
 scalaSource in Compile <<= baseDirectory(_ / "src")
 
-libraryDependencies += "edu.berkeley.cs" %% "chisel" % "2.0"
+libraryDependencies += "edu.berkeley.cs" %% "chisel" % "2.0.4"

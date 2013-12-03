@@ -110,7 +110,7 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
    						  OcpResp.DVA, OcpResp.NULL)
 
   // State machine for misses
-  val idle :: fill :: respond :: Nil = Enum(3){ UInt() }
+  val idle :: fill :: respond :: Nil = Enum(UInt(), 3)
   val stateReg = Reg(init = idle)
 
   val missIndexReg = Reg(init = UInt(0, lineBits-2))

@@ -137,7 +137,7 @@ class OcpBurstBridge(master : OcpCacheMasterPort, slave : OcpBurstSlavePort) {
   val burstAddrBits = log2Up(burstLength)
 
   // State of transmission
-  val idle :: read :: readResp :: write :: Nil = Enum(4){ Bits() }
+  val idle :: read :: readResp :: write :: Nil = Enum(Bits(), 4)
   val state = Reg(init = idle)
   val burstCnt = Reg(init = UInt(0, burstAddrBits))
   val cmdPos = Reg(init = Bits(0, burstAddrBits))

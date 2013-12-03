@@ -69,7 +69,7 @@ class Uart(clk_freq: Int, baud_rate: Int) extends CoreDevice() {
   	val tx_baud_counter 	= Reg(init = UInt(0, log2Up(clk_freq/baud_rate)))
 	val tx_baud_tick 		= Reg(init = UInt(0, 1))
 	
-	val tx_idle :: tx_send :: Nil  = Enum(2){ UInt() } 
+	val tx_idle :: tx_send :: Nil  = Enum(UInt(), 2)
 	val tx_state 			= Reg(init = tx_idle)
 	val tx_empty 			= Reg(init = UInt(1, 1))
 	val tx_data 			= Reg(init = Bits(0, 8))
@@ -89,7 +89,7 @@ class Uart(clk_freq: Int, baud_rate: Int) extends CoreDevice() {
 	val rx_buff 			= Reg(init = Bits(0, 8))	
 	val rx_full 			= Reg(init = UInt(0, 1))
 	val rx_counter			= Reg(init = UInt(0, 3)) 	
-  	val rx_idle  :: rx_start :: rx_receive_data :: rx_stop_bit :: Nil  = Enum(4){ UInt() }
+  	val rx_idle  :: rx_start :: rx_receive_data :: rx_stop_bit :: Nil  = Enum(UInt(), 4)
 	val rx_state 			= Reg(init = rx_idle)
 
 	// Default response and data

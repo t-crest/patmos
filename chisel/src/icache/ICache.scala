@@ -237,7 +237,7 @@ class ICacheCtrl() extends Module {
   val io = new ICacheCtrlIO()
 
   //fsm state variables
-  val init_state :: idle_state :: fetch_state :: transfer_state :: Nil = Enum(5){ UInt() }
+  val init_state :: idle_state :: fetch_state :: transfer_state :: Nil = Enum(UInt(), 5)
   val icache_state = Reg(init = init_state)
 
   //signal for replacement unit

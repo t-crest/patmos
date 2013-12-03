@@ -98,7 +98,7 @@ class SsramBurstRW (
 ) extends Module {
   val io = new SsramIOBurst(addrBits)
 
-  val idle :: rd1 :: wr1 :: Nil = Enum(3){ UInt() }
+  val idle :: rd1 :: wr1 :: Nil = Enum(UInt(), 3)
   val ssram_state = Reg(init = idle)
   val wait_state = Reg(init = UInt(0, width = 4))
   val burst_cnt = Reg(init = UInt(0, width = log2Up(burstLen)))

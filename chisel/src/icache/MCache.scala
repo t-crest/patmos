@@ -334,7 +334,7 @@ class MCacheCtrl() extends Module {
   val io = new MCacheCtrlIO()
 
   //fsm state variables
-  val init_state :: idle_state :: size_state :: transfer_state :: restart_state :: Nil = Enum(5){ UInt() }
+  val init_state :: idle_state :: size_state :: transfer_state :: restart_state :: Nil = Enum(UInt(), 5)
   val mcache_state = Reg(init = init_state)
   //signals for method cache memory (mcache_repl)
   val mcachemem_address = Bits(width = EXTMEM_ADDR_WIDTH) //not needed here we are on relative addresses!
