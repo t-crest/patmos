@@ -262,7 +262,7 @@ int main(int argc, char **argv)
   memory_options.add_options()
     ("gsize,g",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_MEMORY_BYTES), "global memory size in bytes")
     ("gtime,G",  boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES/4 + 3), "global memory transfer time per burst in cycles")
-    ("tdelay,t", boost::program_options::value<unsigned int>()->default_value(0), "read delay to global memory per request in cycles")
+    ("tdelay,t", boost::program_options::value<int>()->default_value(0), "read delay to global memory per request in cycles")
     ("trefresh", boost::program_options::value<unsigned int>()->default_value(0), "refresh cycles per TDM round")
     ("bsize",    boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES), "burst size (and alignment) of the memory system.")
     ("psize",    boost::program_options::value<patmos::byte_size_t>()->default_value(0), "Memory page size. Enables variable burst lengths for single-core.")
@@ -276,11 +276,11 @@ int main(int argc, char **argv)
     ("dlsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(0), "size of a data cache line in bytes, defaults to burst size if set to 0")
 
     ("scsize,s", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_STACK_CACHE_BYTES), "stack cache size in bytes")
-    ("sckind,S", boost::program_options::value<patmos::stack_cache_e>()->default_value(patmos::SC_IDEAL), "kind of stack cache (ideal, block, dcache)")
-    ("sbsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_STACK_CACHE_BLOCK_BYTES), "stack cache block size in bytes")
+    ("sckind,S", boost::program_options::value<patmos::stack_cache_e>()->default_value(patmos::SC_BLOCK), "kind of stack cache (ideal, block, dcache)")
+    ("sbsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(0), "stack cache block size in bytes, defaults to burst size if set to 0")
 
     ("icache,C", boost::program_options::value<patmos::instr_cache_e>()->default_value(patmos::IC_MCACHE), "kind of instruction cache (mcache, icache)")
-    ("ickind,K", boost::program_options::value<patmos::set_assoc_cache_type>()->default_value(patmos::set_assoc_cache_type(patmos::SAC_IDEAL,1)), "kind of set-associative I-cache (ideal, no, lruN, fifoN")
+    ("ickind,K", boost::program_options::value<patmos::set_assoc_cache_type>()->default_value(patmos::set_assoc_cache_type(patmos::SAC_LRU,2)), "kind of set-associative I-cache (ideal, no, lruN, fifoN")
     ("ilsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(0), "size of an I-cache line in bytes, defaults to burst size if set to 0")
 
     ("mcsize,m", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_METHOD_CACHE_BYTES), "method cache / instruction cache size in bytes")
@@ -374,7 +374,7 @@ int main(int argc, char **argv)
   unsigned int bsize = vm["bsize"].as<unsigned int>();
   unsigned int psize = vm["psize"].as<patmos::byte_size_t>().value();
   unsigned int posted = vm["posted"].as<unsigned int>();
-  unsigned int tdelay = vm["tdelay"].as<unsigned int>();
+           int tdelay = vm["tdelay"].as<int>();
   unsigned int trefresh = vm["trefresh"].as<unsigned int>();
 
   patmos::set_assoc_cache_type dck = vm["dckind"].as<patmos::set_assoc_cache_type>();
@@ -411,6 +411,7 @@ int main(int argc, char **argv)
   bool instr_stats = (vm.count("instr-stats") != 0);
 
   if (!mbsize) mbsize = bsize;
+  if (!sbsize) sbsize = bsize;
   
   // the exit code, initialized by default to signal an error.
   int exit_code = -1;
