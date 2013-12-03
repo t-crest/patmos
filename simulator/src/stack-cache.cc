@@ -248,7 +248,7 @@ word_t block_stack_cache_t::prepare_reserve(uword_t size,
                                        uword_t &stack_spill, uword_t &stack_top)
 {
   // convert byte-level size to block size.
-  unsigned int size_blocks = (size - 1)/Num_block_bytes + 1;
+  unsigned int size_blocks = size ? (size - 1)/Num_block_bytes + 1 : 0;
 
   // ensure that the stack cache size is not exceeded
   if (size_blocks > Num_blocks)
@@ -295,7 +295,7 @@ bool block_stack_cache_t::reserve(uword_t size, word_t delta,
     case IDLE:
     {
       // convert byte-level size to block size.
-      unsigned int size_blocks = (size - 1) / Num_block_bytes + 1;
+      unsigned int size_blocks = size ? (size - 1) / Num_block_bytes + 1 : 0;
 
       // reserve stack space
       Content.resize(Content.size() + size_blocks * Num_block_bytes);
@@ -350,7 +350,7 @@ word_t block_stack_cache_t::prepare_free(uword_t size,
                                        uword_t &stack_spill, uword_t &stack_top)
 {
   // convert byte-level size to block size.
-  unsigned int size_blocks = (size - 1)/Num_block_bytes + 1;
+  unsigned int size_blocks = size ? (size - 1)/Num_block_bytes + 1 : 0;
   unsigned int reserved_blocks = get_num_reserved_blocks(stack_spill, stack_top);
   
   unsigned int freed_spilled_blocks = (size_blocks <= reserved_blocks) ? 0 :
@@ -387,7 +387,7 @@ bool block_stack_cache_t::free(uword_t size, word_t delta,
   assert(Phase == IDLE);
 
     // convert byte-level size to block size.
-  unsigned int size_blocks = (size - 1) / Num_block_bytes + 1;
+  unsigned int size_blocks = size ? (size - 1) / Num_block_bytes + 1 : 0;
   
   if (Content.size() <= size_blocks * Num_block_bytes) {
     Content.clear();
@@ -403,7 +403,7 @@ word_t block_stack_cache_t::prepare_ensure(uword_t size,
                                        uword_t &stack_spill, uword_t &stack_top)
 {
   // convert byte-level size to block size.
-  unsigned int size_blocks = (size - 1)/Num_block_bytes + 1;
+  unsigned int size_blocks = size ? (size - 1)/Num_block_bytes + 1 : 0;
 
   // ensure that the stack cache size is not exceeded
   if (size_blocks > Num_blocks)
@@ -476,7 +476,7 @@ word_t block_stack_cache_t::prepare_spill(uword_t size,
                                        uword_t &stack_spill, uword_t &stack_top)
 {
   // convert byte-level size to block size.
-  unsigned int size_blocks = (size - 1)/Num_block_bytes + 1;
+  unsigned int size_blocks = size ? (size - 1)/Num_block_bytes + 1 : 0;
 
   uword_t transfer_blocks = size_blocks;
 
