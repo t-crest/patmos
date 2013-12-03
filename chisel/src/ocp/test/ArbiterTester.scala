@@ -97,11 +97,11 @@ class ArbiterTop() extends Module {
     val port = new OcpBurstMasterPort(32, 32, 4)
   }
   val CNT = 3
-  val arb = new ocp.Arbiter(CNT, 32, 32, 4)
-  val mem = new SsramBurstRW(21)
+  val arb = Module(new ocp.Arbiter(CNT, 32, 32, 4))
+  val mem = Module(new SsramBurstRW(21))
 
   for (i <- 0 until CNT) {
-    val m = new Master(i, 4)
+    val m = Module(new Master(i, 4))
     arb.io.master(i) <> m.io.port
   }
 
@@ -138,7 +138,7 @@ class ArbiterTester(dut: ocp.test.ArbiterTop) extends Tester(dut, Array(dut.io))
 
 object ArbiterTester {
   def main(args: Array[String]): Unit = {
-    chiselMainTest(args, () => new ocp.test.ArbiterTop) {
+    chiselMainTest(args, () => Module(new ocp.test.ArbiterTop)) {
       f => new ArbiterTester(f)
     }
 

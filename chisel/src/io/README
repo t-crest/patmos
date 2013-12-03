@@ -19,7 +19,7 @@ object FooBar extends DeviceObject {
   def create(params: Map[String, String]) : FooBar = {
     val foo = ...
     val bar = ...
-    new FooBar(foo, bar) 
+    Module(new FooBar(foo, bar))
   }
   trait Pins {
     val fooBarPins = new Bundle() {

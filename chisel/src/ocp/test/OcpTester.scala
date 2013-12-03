@@ -68,7 +68,7 @@ class OcpTester(dut: AModule) extends Tester(dut, Array(dut.io)) {
       vars(dut.io.fromMaster.M.Cmd) = testVec(i)
 
       step(vars, ovars)
-      println("out cmd: " + ovars(dut.io.fromMaster.M.Cmd))
+//      println("out cmd: " + ovars(dut.io.fromMaster.M.Cmd))
       //      println("iter: "+i)
       //      println("vars: "+vars)
       //      println("ovars: "+ovars)
@@ -79,7 +79,7 @@ class OcpTester(dut: AModule) extends Tester(dut, Array(dut.io)) {
 
 object OcpTester {
   def main(args: Array[String]): Unit = {
-    chiselMainTest(args, () => new AModule()) {
+    chiselMainTest(args, () => Module(new AModule())) {
       f => new OcpTester(f)
     }
 

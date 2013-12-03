@@ -119,7 +119,7 @@ object ArbiterMain {
     val dataWidth = args(2)
     val burstLen = args(3)
 
-    chiselMain(chiselArgs, () => new Arbiter(cnt.toInt,addrWidth.toInt,dataWidth.toInt,burstLen.toInt))
+    chiselMain(chiselArgs, () => Module(new Arbiter(cnt.toInt,addrWidth.toInt,dataWidth.toInt,burstLen.toInt)))
   }
 }
 

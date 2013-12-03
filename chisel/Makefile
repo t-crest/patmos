@@ -134,12 +134,12 @@ $(BOOTBIN) $(BOOTDAT): .FORCE
 	$(MAKE) -C $(BOOTBUILDROOT) BUILDDIR=$(BOOTBUILDDIR) $(BOOTBIN) $(BOOTDAT)
 
 # for module tests
-MODUL=example.FsmMain
-MODUL=ocp.test.OcpTester
-MODUL=ocp.test.ArbiterTester
+MODULE=example.FsmMain
+MODULE=ocp.test.OcpTester
+MODULE=ocp.test.ArbiterTester
 modtest:
 #	-rm -rf generated
-	$(SBT) "run-main $(MODUL) --backend c --compile --vcd --test --genHarness --targetDir generated"
+	$(SBT) "run-main $(MODULE) --backend c --compile --vcd --test --genHarness --targetDir generated"
 
 .FORCE:
 

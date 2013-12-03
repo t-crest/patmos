@@ -85,8 +85,8 @@ class OcpSlave() extends Module {
 class Ocp() extends Module {
   val io = new OcpBurstSlavePort(8, 32, 4)
 
-  val master = new OcpMaster()
-  val slave = new OcpSlave()
+  val master = Module(new OcpMaster())
+  val slave = Module(new OcpSlave())
   val bridge = new OcpBurstBridge(master.io, slave.io)
 
   io <> slave.io
@@ -94,6 +94,6 @@ class Ocp() extends Module {
 
 object OcpTestMain {
   def main(args: Array[String]): Unit = {
-    chiselMain(args, () => new Ocp())
+    chiselMain(args, () => Module(new Ocp()))
   }
 }

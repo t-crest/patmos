@@ -254,7 +254,7 @@ object SsramMain {
     val chiselArgs = args.slice(1, args.length)
     val addrBits = args(0).toInt
 
-    chiselMainTest(chiselArgs, () => new SsramBurstRW(addrBits)) { f => new SsramTest(f) }
+    chiselMainTest(chiselArgs, () => Module(new SsramBurstRW(addrBits))) { f => new SsramTest(f) }
   }
 }
 

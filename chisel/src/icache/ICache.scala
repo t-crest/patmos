@@ -96,9 +96,9 @@ class ICacheMemOut extends Bundle() {
 class ICache() extends Module {
   val io = new ICacheIO()
   //generate submodules of instruction cache
-  val icachectrl = new ICacheCtrl()
-  val icacherepl = new ICacheReplDm()
-  val icachemem = new ICacheMem()
+  val icachectrl = Module(new ICacheCtrl())
+  val icacherepl = Module(new ICacheReplDm())
+  val icachemem = Module(new ICacheMem())
   //connect submodules of instruction cache
   icachectrl.io.icache_ctrlrepl <> icacherepl.io.icache_ctrlrepl
   icachectrl.io.feicache <> io.femcache

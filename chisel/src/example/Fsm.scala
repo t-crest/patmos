@@ -49,7 +49,7 @@ class FsmContainer() extends Module {
     val led = Bits(OUTPUT, 8)
   }
   
-  var tck = new Tick();
+  var tck = Module(new Tick());
   
   val led = Reg(init = Bits(1, 8))
   val led_next = Cat(led(6, 0), led(7))
@@ -128,9 +128,9 @@ class FsmTest(fsm: FsmContainer) extends Tester(fsm, Array(fsm.io)) {
 
 object FsmMain {
   def main(args: Array[String]): Unit = {
-    // chiselMain(args, () => new FsmContainer());
+    // chiselMain(args, () => Module(new FsmContainer()));
     // Looks like the MainTest is also fine for Verilog code generation
-    chiselMainTest(args, () => new FsmContainer()) {
+    chiselMainTest(args, () => Module(new FsmContainer())) {
       f => new FsmTest(f)
     }
 
