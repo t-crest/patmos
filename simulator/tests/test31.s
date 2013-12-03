@@ -2,18 +2,20 @@
 # Expected Result: r2 = 1
 #
 
-                .word   64;
-                lwc     r1 = [r0 + 11];
+                .word   68;
+                lwc     r1 = [r0 + 12];
                 nop;
                 nop;
-                brr     r1;
+                brcfr   r1;
                 nop;
                 nop;
                 halt;
                 nop;
                 nop;
-                .word   48;
+		nop;
+                .word   52;
                 add     r2 = r0, 1;
                 halt;
                 nop;
                 nop;
+		nop;

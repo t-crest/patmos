@@ -2,7 +2,7 @@
 # Expected Result: base = 0x00000004 & pc = 0x00000048 & r1 = 38 & r2 = 255
 #
 
-                .word    60;
+                .word    72;
                 addi     r1  = r0, 1;
                 br       x;
                 addi     r1  = r1, 2;
@@ -15,3 +15,6 @@ x:              addi     r1  = r1, 5;
                 addi     r1  = r1, 8;
                 addi     r1  = r1, 9;
                 halt;
+		nop;
+		nop;
+		nop;

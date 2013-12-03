@@ -2,7 +2,7 @@
 # Expected Result: base = 0x00000004 & pc = 0x00000054 & r1 = 60
 #
 
-                .word    72;
+                .word    96;
                 addi     r1  = r0, 1;
                 addi     r1  = r1, 2;
 		cmpneq	 p1 = r1, r2;
@@ -13,9 +13,15 @@
                 addi     r1  = r1, 6;
                 addi     r1  = r1, 7;
                 halt;
+		nop;
+		nop;
+		nop;
 next:           addi     r1  = r1, 8;
                 addi     r1  = r1, 9;
                 addi     r1  = r1, 10;
                 addi     r1  = r1, 11;
                 addi     r1  = r1, 12;
                 halt;
+		nop;
+		nop;
+		nop;
