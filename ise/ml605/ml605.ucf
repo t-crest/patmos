@@ -1,9 +1,0 @@
-Net clk TNM_NET = sys_clk_pin;
-TIMESPEC TS_sys_clk_pin = PERIOD sys_clk_pin 200000 kHz;
-Net clk LOC = J9  |  IOSTANDARD=LVCMOS25;
-
-# North GPIO LED
-Net led LOC = AH27  |  IOSTANDARD=LVCMOS25;
-
-Net txd LOC = J25 |IOSTANDARD=LVCMOS25;
-Net rxd LOC = J24 | IOSTANDARD=LVCMOS25;
