@@ -216,7 +216,10 @@ class OcpBurstJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort,
                      Mux(right.M.Cmd != OcpCmd.IDLE, Bool(true),
                          selRightReg))
 
-  joined.M := Mux(selRight, right.M, left.M)
+  joined.M := left.M
+  when (selRight) {
+    joined.M := right.M
+  }
   joined.M.Cmd := right.M.Cmd | left.M.Cmd
 
   right.S := joined.S
