@@ -33,5 +33,6 @@ open: $(DOC).pdf
 
 
 clean:
-	rm -fr *.aux *.bbl *.blg *.log
+	rm -fr *.aux *.bbl *.blg *.log *.lof *.lot *.toc *.gz *.pdf
+	rm -f fig/*.aux fig/*.log
 	rm -f $(TIKZFIGURES)
