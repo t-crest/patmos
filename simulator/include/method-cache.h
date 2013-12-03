@@ -223,6 +223,9 @@ namespace patmos
     /// method.
     unsigned int Num_max_bytes_transferred;
 
+    /// Number of bytes fetched from the cache.
+    unsigned int Num_bytes_fetched;
+    
     /// Maximum number of methods allocated in the cache.
     unsigned int Num_max_active_methods;
     

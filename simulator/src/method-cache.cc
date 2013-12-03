@@ -124,12 +124,15 @@ bool lru_method_cache_t::do_fetch(method_info_t &current_method, uword_t address
   
   // TODO read from Cache buffer, get read position(s) from method_info.
   
-  Memory.read_peek(address, iwp, sizeof(word_t)*2);
+  Memory.read_peek(address, iwp, sizeof(word_t)*NUM_SLOTS);
     
   for (unsigned int i = 0; i < NUM_SLOTS; i++) {
     unsigned int word = (address-current_method.Address)/sizeof(word_t) + i;
     current_method.Utilization[word] = true;
   }
+  
+  Num_bytes_fetched += sizeof(word_t) * NUM_SLOTS;
+  
   return true;
 }
 
@@ -230,7 +233,8 @@ lru_method_cache_t::lru_method_cache_t(memory_t &memory,
     Num_allocate_blocks(0), Num_method_size(0), Num_active_methods(0),
     Num_active_blocks(0), Num_blocks_allocated(0),
     Num_max_blocks_allocated(0), Num_bytes_transferred(0),
-    Num_max_bytes_transferred(0), Num_max_active_methods(0),
+    Num_max_bytes_transferred(0), Num_bytes_fetched(0), 
+    Num_max_active_methods(0),
     Num_hits(0), Num_misses(0), Num_stall_cycles(0), Num_bytes_utilized(0)
 {
   Num_max_methods = max_active_methods ? max_active_methods : num_blocks;
@@ -447,6 +451,9 @@ void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os)
   float fragmentation = 1.0 - (float)bytes_allocated / 
                       (float)(Num_blocks_allocated * Num_block_bytes);
   
+  // Ratio of bytes loaded from main memory to bytes fetched from the cache.
+  float transfer_ratio = (float)Num_bytes_transferred/(float)Num_bytes_fetched;
+                      
   // instruction statistics
   os << boost::format("                              total        max.\n"
                       "   Blocks Allocated    : %1$10d  %2$10d\n"
@@ -458,7 +465,8 @@ void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os)
                       "   Max Methods in Cache: %10$10d\n"
                       "   Cache Hits          : %11$10d  %12$10.2f%%\n"
                       "   Cache Misses        : %13$10d  %14$10.2f%%\n"
-                      "   Miss Stall Cycles   : %15$10d  %16$10.2f%%\n\n")
+                      "   Transfer Ratio      : %15$10.3f\n"
+                      "   Miss Stall Cycles   : %16$10d  %17$10.2f%%\n\n")
     % Num_blocks_allocated % Num_max_blocks_allocated
     % Num_bytes_transferred % Num_max_bytes_transferred
     % bytes_allocated % (Num_max_bytes_transferred - 4)
@@ -466,6 +474,7 @@ void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os)
     % Num_max_active_methods 
     % Num_hits % (100.0 * Num_hits / (Num_hits + Num_misses))
     % Num_misses % (100.0 * Num_misses / (Num_hits + Num_misses))
+    % transfer_ratio
     % Num_stall_cycles % (100.0 * Num_stall_cycles / (float)s.Cycle);
 
   // Update utilization stats for all methods not yet evicted.
@@ -496,6 +505,7 @@ void lru_method_cache_t::reset_stats()
   Num_max_blocks_allocated = 0;
   Num_bytes_transferred = 0;
   Num_max_blocks_allocated = 0;
+  Num_bytes_fetched = 0;
   Num_bytes_utilized = 0;
   Num_max_active_methods = 0;
   Num_hits = 0; 

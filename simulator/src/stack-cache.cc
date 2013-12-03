@@ -234,7 +234,7 @@ block_stack_cache_t::block_stack_cache_t(memory_t &memory, unsigned int num_bloc
     Max_blocks_reserved(0), Num_blocks_spilled(0), Max_blocks_spilled(0),
     Num_blocks_filled(0), Max_blocks_filled(0), Num_free_empty(0),
     Num_read_accesses(0), Num_bytes_read(0), Num_write_accesses(0),
-    Num_bytes_written(0)
+    Num_bytes_written(0), Num_stall_cycles(0)
 {
   Buffer = new byte_t[num_blocks * Num_block_bytes];
 }
@@ -332,6 +332,7 @@ bool block_stack_cache_t::reserve(uword_t size, word_t delta,
       }
       else {
         // keep waiting until the transfer is completed.
+        Num_stall_cycles++;
         return false;
       }
     }
@@ -438,16 +439,25 @@ bool block_stack_cache_t::ensure(uword_t size, word_t delta,
     // no, done.
     return true;
   }
-    
+
   Phase = FILL;
   
   // copy the data from memory into a temporary buffer
   if (Memory.read(new_spill - delta, Buffer, delta))
   {
+    // Ensure the size of the stack cache
+    if (Content.size() < size)
+    {
+      Content.insert(Content.begin(), size - Content.size(), 0);
+    }
+    
+    // get the offset of the old spill pointer in the content array
+    uword_t old_size = new_spill - delta - new_top;
+    
     // copy the data back into the stack cache
     for(unsigned int i = 0; i < delta; i++)
     {
-      Content.insert(Content.begin(), Buffer[i]);
+      Content[Content.size() - old_size - i - 1]  = Buffer[i];
     }
 
     // terminate transfer -- goto IDLE state
@@ -456,6 +466,7 @@ bool block_stack_cache_t::ensure(uword_t size, word_t delta,
   }
   else {
     // wait until the transfer from the memory is completed.
+    Num_stall_cycles++;
     return false;
   }
 }
@@ -510,6 +521,7 @@ bool block_stack_cache_t::spill(uword_t size, word_t delta,
       }
       else {
         // keep waiting until the transfer is completed.
+        Num_stall_cycles++;
         return false;
       }
     }
@@ -563,22 +575,34 @@ void block_stack_cache_t::print(std::ostream &os) const
 
 void block_stack_cache_t::print_stats(const simulator_t &s, std::ostream &os)
 {
+  unsigned int bytes_transferred = Num_blocks_filled * Num_block_bytes +
+                                   Num_blocks_spilled * Num_block_bytes;
+  float transfer_ratio = (float)bytes_transferred /
+                         (float)(Num_bytes_read + Num_bytes_written);
+  
   // stack cache statistics
-  os << boost::format("                           total        max.\n"
-                      "   Blocks Spilled   : %1$10d  %2$10d\n"
-                      "   Blocks Filled    : %3$10d  %4$10d\n"
-                      "   Blocks Reserved  : %5$10d  %6$10d\n"
-                      "   Reads            : %7$10d\n"
-                      "   Bytes Read       : %8$10d\n"
-                      "   Writes           : %9$10d\n"
-                      "   Bytes Written    : %10$10d\n"
-                      "   Emptying Frees   : %11$10d\n\n")
+  os << boost::format("                              total        max.\n"
+                      "   Blocks Spilled      : %1$10d  %2$10d\n"
+                      "   Blocks Filled       : %3$10d  %4$10d\n"
+                      "   Blocks Reserved     : %5$10d  %6$10d\n"
+                      "   Bytes Transferred   : %7$10d  %8$10d\n"
+                      "   Reads               : %9$10d\n"
+                      "   Bytes Read          : %10$10d\n"
+                      "   Writes              : %11$10d\n"
+                      "   Bytes Written       : %12$10d\n"
+                      "   Emptying Frees      : %13$10d\n"
+                      "   Transfer Ratio      : %14$10.3f\n"
+                      "   Miss Stall Cycles   : %15$10d  %16$10.2f%%\n\n")
     % Num_blocks_spilled % Max_blocks_spilled
     % Num_blocks_filled  % Max_blocks_filled
     % Num_blocks_reserved % Max_blocks_reserved
+    % bytes_transferred 
+    % (std::max(Max_blocks_filled, Max_blocks_spilled) * Num_block_bytes)
     % Num_read_accesses % Num_bytes_read
     % Num_write_accesses % Num_bytes_written
-    % Num_free_empty;
+    % Num_free_empty
+    % transfer_ratio
+    % Num_stall_cycles % (100.0 * (float)Num_stall_cycles/(float)s.Cycle);
 }
 
 void block_stack_cache_t::reset_stats() 
@@ -594,4 +618,5 @@ void block_stack_cache_t::reset_stats()
   Num_write_accesses = 0;
   Num_bytes_written = 0;
   Num_free_empty = 0;
+  Num_stall_cycles = 0;
 }
