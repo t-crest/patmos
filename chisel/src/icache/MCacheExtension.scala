@@ -73,7 +73,7 @@ class MCacheReplFifo2() extends Module {
       for (i <- 0 until METHOD_COUNT) {
         when (io.exmcache.callRetBase === mcache_addr_vec(i) && mcache_valid_vec(i)) {
           hitReg := Bool(true)
-          posReg := Bits(i << log2Up(METHOD_BLOCK_SIZE)) //makes no sence to start writing at odd position
+          posReg := Bits(i << log2Up(METHOD_BLOCK_SIZE))
         }
       }
     }
@@ -144,33 +144,35 @@ class MCacheReplFifo2() extends Module {
 /*
  MCacheReplLru: LRU replacement strategy for the method cache
  */
-class MCacheReplLru(method_count : Int = METHOD_COUNT) extends Module {
+class MCacheReplLru() extends Module {
   val io = new MCacheReplIO()
 
   //tag field and address translation table
-  val mcache_addr_vec = { Vec.fill(method_count) { Reg(init = Bits(0, width = ADDR_WIDTH)) } }
-  val mcache_mmu_vec = { Vec.fill(method_count * method_count) { Reg(init = Bits(0, width = log2Up(method_count))) } }
-  val mcache_mmu_size = { Vec.fill(method_count) { Reg(init = Bits(0, width = log2Up(method_count))) } }
+  val mcache_addr_vec = { Vec.fill(METHOD_COUNT) { Reg(init = Bits(0, width = ADDR_WIDTH)) } }
+
+  val mcache_mmu_vec = { Vec.fill(METHOD_COUNT*METHOD_COUNT) { Reg(init = Bits(0, width = log2Up(METHOD_COUNT))) } }
+  val mcache_mmu_size = { Vec.fill(METHOD_COUNT) { Reg(init = Bits(0, width = log2Up(METHOD_COUNT))) } }
   //linked list for lru replacement
-  val lru_list_prev = Vec.fill(method_count) { Reg(init = Bits(0, width = log2Up(method_count))) }
-  val lru_list_next = Vec.fill(method_count) { Reg(init = Bits(0, width = log2Up(method_count))) }
-  val lru_tag = Reg(init = Bits(0, width = log2Up(method_count)))
-  val mru_tag = Reg(init = Bits(method_count - 1, width = log2Up(method_count)))
+  val init_prev = Array(Reg(init = Bits(1)), Reg(init = Bits(2)), Reg(init = Bits(3)), Reg(init = Bits(0)))
+  val init_next = Array(Reg(init = Bits(3)), Reg(init = Bits(0)), Reg(init = Bits(1)), Reg(init = Bits(2)))
+  val lru_list_prev = Vec(init_prev)
+  val lru_list_next = Vec(init_next)
+  val lru_tag = Reg(init = Bits(0, width = log2Up(METHOD_COUNT)))
+  val mru_tag = Reg(init = Bits(METHOD_COUNT - 1, width = log2Up(METHOD_COUNT)))
   //val lru_pos = Reg(init = Bits(0, width = log2Up(method_count)))
   //registers for splitting up
   val split_msize_cnt = Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH))
-  val mmu_offset_cnt = Reg(init = Bits(0, width = log2Up(method_count)))
-  val update_cnt = Reg(init = Bits(0, width = log2Up(method_count)))
+  val mmu_offset_cnt = Reg(init = Bits(0, width = log2Up(METHOD_COUNT)))
+  val update_cnt = Reg(init = Bits(0, width = log2Up(METHOD_COUNT)))
   //variables when call/return occurs to check and set tag fields
+  val posReg = Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH))
   val hitReg = Reg(init = Bool(true))
-  val currPosReg = Reg(init = Bits(0, width = method_count))
-  val posReg = Reg(init = Bits(0, width = 32))
+  val wrPosReg = Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH))
+  val currPosReg = Reg(init = Bits(0, width = METHOD_COUNT))
   val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
   val callAddrReg = Reg(init = UInt(1, DATA_WIDTH))
   val selIspmReg = Reg(init = Bool(false))
   val selMCacheReg = Reg(init = Bool(false))
-  // val rdPosReg = Reg(init = Bits(0)) 
-  // val wrPosReg = Reg(init = Bits(0))
 
   def update_tag(tag : UInt) = {
     when (tag === lru_tag) {
@@ -189,25 +191,7 @@ class MCacheReplLru(method_count : Int = METHOD_COUNT) extends Module {
     }
   }
 
-  // def search_tag(tag : Bits) = {
-  //     for (i <- 0 until method_count) {
-  //       when (mcache_shift_tag === tag) {
-
-  //        }
-  //     }
-  // }
-  //implementation with shift registers
-  // val mcache_shift_tag = { Vec.fill(method_count) {Reg(init = Bits(0, width = log2Up(method_count)))} }
-  // def update_shift_tag(tag : Bits) = {
-  //   for (i <- 0 until method_count) {
-  //     when (mcache_shift_tag(i) != tag) {
-  //       mcache_shift_tag(i) := mcache_shift_tag(i)
-  //     }
-  //   }
-  //   mcache_shift_tag(0) := tag
-  // }
-
-  when (io.exmcache.doCallRet) {
+  when (io.exmcache.doCallRet && io.ena_in) {
 
     callRetBaseReg := io.exmcache.callRetBase
     callAddrReg := io.exmcache.callRetAddr
@@ -216,11 +200,12 @@ class MCacheReplLru(method_count : Int = METHOD_COUNT) extends Module {
 
     when (io.exmcache.callRetBase(DATA_WIDTH - 1,15) >= Bits(0x1)) {
       hitReg := Bool(false)
-      for (i <- 0 until method_count) {
+      posReg := (lru_tag << Bits(log2Up(METHOD_BLOCK_SIZE)))
+      for (i <- 0 until METHOD_COUNT) {
         when (io.exmcache.callRetBase === mcache_addr_vec(i)) {
           hitReg := Bool(true)
-          currPosReg := Bits(i << log2Up(method_count))
-          posReg:= Bits(i << (log2Up(method_count)+METHOD_BLOCK_SIZE_WIDTH))
+          currPosReg := Bits(i << log2Up(METHOD_COUNT)) //pos in mmu
+          posReg := Bits(i << log2Up(METHOD_BLOCK_SIZE)) //pos in cache
         }
       }
     }
@@ -238,40 +223,35 @@ class MCacheReplLru(method_count : Int = METHOD_COUNT) extends Module {
   //sequentially update of all connected blocks (maybe stall here, what happens when there is always a call/hit?!)
   val doCallRetReg = Reg(next = io.exmcache.doCallRet)
   when (doCallRetReg && hitReg) {
-    update_tag((currPosReg/Bits(4))(log2Up(method_count)-1,0))
-    //update_shift_tag((currPosReg/Bits(4))(log2Up(method_count)-1,0))
+    update_tag((currPosReg/Bits(4))(log2Up(METHOD_COUNT)-1,0))
     update_cnt := mcache_mmu_size(currPosReg/Bits(4))
   }
   when (update_cnt > Bits(0)) {
     update_cnt := update_cnt - Bits(1)
     update_tag(mcache_mmu_vec(currPosReg + update_cnt))
-    //update_shift_tag(mcache_mmu_vec(update_cnt))
   }
 
-  val address_in_pos = io.mcache_ctrlrepl.address(METHOD_BLOCK_SIZE_WIDTH*2+log2Up(method_count)-1,METHOD_BLOCK_SIZE_WIDTH)
-  val address_in_offset = io.mcache_ctrlrepl.address(METHOD_BLOCK_SIZE_WIDTH-1,0)
-  val w_address_pos = io.mcache_ctrlrepl.w_addr(METHOD_BLOCK_SIZE_WIDTH+log2Up(method_count),METHOD_BLOCK_SIZE_WIDTH)
-  val w_address_offset = io.mcache_ctrlrepl.w_addr(METHOD_BLOCK_SIZE_WIDTH-1,0)
-  //hmmm this one should be done in a second pipeline stage!
-  val rdPos = Cat(mcache_mmu_vec(address_in_pos), address_in_offset)
-  //also the write should be moved to a fix input write address without adding currPosReg > change MCacheCtrl
-  val wrPos = Cat(mcache_mmu_vec(w_address_pos + currPosReg), w_address_offset)
+  // val address_in_pos = io.mcache_ctrlrepl.address(METHOD_BLOCK_SIZE_WIDTH*2+log2Up(METHOD_COUNT)-1,METHOD_BLOCK_SIZE_WIDTH)
+  // val address_in_offset = io.mcache_ctrlrepl.address(METHOD_BLOCK_SIZE_WIDTH-1,0)
+  // val w_address_pos = io.mcache_ctrlrepl.w_addr(METHOD_BLOCK_SIZE_WIDTH+log2Up(METHOD_COUNT),METHOD_BLOCK_SIZE_WIDTH)
+  // val w_address_offset = io.mcache_ctrlrepl.w_addr(METHOD_BLOCK_SIZE_WIDTH-1,0)
+
+  //val rdPos = Cat(mcache_mmu_vec(address_in_pos), address_in_offset)
+
+  //val wrPos = Cat(mcache_mmu_vec(w_address_pos + currPosReg), w_address_offset)
 
   //insert new tags
   when (io.mcache_ctrlrepl.w_tag) {
-     //we have again a hit!
     hitReg := Bool(true)
+    wrPosReg := posReg
     //start splitting into more blocks if current method size > method block size
-    split_msize_cnt := io.mcache_ctrlrepl.w_data(METHOD_BLOCK_SIZE_WIDTH+log2Up(method_count), METHOD_BLOCK_SIZE_WIDTH)
+    split_msize_cnt := io.mcache_ctrlrepl.w_data(METHOD_BLOCK_SIZE_WIDTH+log2Up(METHOD_COUNT), METHOD_BLOCK_SIZE_WIDTH)
     mmu_offset_cnt := Bits(1)
-    //update lru tag field
-    currPosReg := (lru_tag << Bits(log2Up(method_count)))
-    posReg := (lru_tag << Bits(log2Up(method_count)+METHOD_BLOCK_SIZE_WIDTH))
+    currPosReg := (lru_tag << Bits(log2Up(METHOD_COUNT)))
     mcache_addr_vec(lru_tag) := io.mcache_ctrlrepl.w_addr
-    mcache_mmu_vec(lru_tag * Bits(method_count)) := lru_tag
-    mcache_mmu_size(lru_tag) := io.mcache_ctrlrepl.w_data(METHOD_BLOCK_SIZE_WIDTH+log2Up(method_count)-1, METHOD_BLOCK_SIZE_WIDTH)
+    mcache_mmu_vec(lru_tag * Bits(METHOD_COUNT)) := lru_tag
+    mcache_mmu_size(lru_tag) := io.mcache_ctrlrepl.w_data(METHOD_BLOCK_SIZE_WIDTH+log2Up(METHOD_COUNT)-1, METHOD_BLOCK_SIZE_WIDTH)
     update_tag(lru_tag)
-    //update_shift_tag(lru_tag)
   }
 
   when (split_msize_cnt > Bits(0)) {
@@ -280,37 +260,40 @@ class MCacheReplLru(method_count : Int = METHOD_COUNT) extends Module {
     mcache_addr_vec(lru_tag) := Bits(0) //invalidate field
     mcache_mmu_vec(currPosReg + mmu_offset_cnt) := lru_tag
     update_tag(lru_tag)
-    //update_shift_tag(lru_tag)
   }
 
-  val wr_parity = wrPos(0)
-  val mcachemem_w_address = (wrPos)(11,1)
-  val rd_parity = rdPos(0)
-  val mcachemem_in_address = (rdPos)(11,1)
-  val addr_parity_reg = Reg(next = rd_parity)
-  //save value till address translation found the right place where to write
-  // val wr_enaReg = Reg(io.mcache_ctrlrepl.w_enable)
-  // val wr_dataReg = Reg(io.mcache_ctrlrepl.w_data)
-  val wr_ena = io.mcache_ctrlrepl.w_enable
-  val wr_data = io.mcache_ctrlrepl.w_data
+  val wr_parity = io.mcache_ctrlrepl.w_addr(0)
+  val mcachemem_w_address = (wrPosReg + io.mcache_ctrlrepl.w_addr)(MCACHE_SIZE_WIDTH-1,1)
+  val rd_parity = io.mcache_ctrlrepl.address(0)
+  val mcachemem_in_address = (io.mcache_ctrlrepl.address)(MCACHE_SIZE_WIDTH-1,1)
+  val addr_parity_reg = Reg(rd_parity)
 
   //read/write to mcachemem
-  io.mcachemem_in.w_even := Mux(wr_parity, Bool(false), wr_ena)
-  io.mcachemem_in.w_odd := Mux(wr_parity, wr_ena, Bool(false))
-  io.mcachemem_in.w_data := wr_data
+  io.mcachemem_in.w_even := Mux(wr_parity, Bool(false), io.mcache_ctrlrepl.w_enable)
+  io.mcachemem_in.w_odd := Mux(wr_parity, io.mcache_ctrlrepl.w_enable, Bool(false))
+  io.mcachemem_in.w_data := io.mcache_ctrlrepl.w_data
   io.mcachemem_in.w_addr := mcachemem_w_address
   io.mcachemem_in.addr_even := Mux(rd_parity, mcachemem_in_address + Bits(1), mcachemem_in_address)
   io.mcachemem_in.addr_odd := mcachemem_in_address
+
+  val instr_aReg = Reg(init = Bits(0, width = INSTR_WIDTH))
+  val instr_bReg = Reg(init = Bits(0, width = INSTR_WIDTH))
+  val instr_a = Mux(addr_parity_reg, io.mcachemem_out.instr_odd, io.mcachemem_out.instr_even)
+  val instr_b = Mux(addr_parity_reg, io.mcachemem_out.instr_even, io.mcachemem_out.instr_odd)
+  when (io.mcache_ctrlrepl.instr_stall === Bits(0)) {
+    instr_aReg := io.mcachefe.instr_a
+    instr_bReg := io.mcachefe.instr_b
+  }
   //signals to fetch stage
-  io.mcachefe.instr_a := Mux(addr_parity_reg, io.mcachemem_out.instr_odd, io.mcachemem_out.instr_even)
-  io.mcachefe.instr_b := Mux(addr_parity_reg, io.mcachemem_out.instr_even, io.mcachemem_out.instr_odd)
+  io.mcachefe.instr_a := Mux(io.mcache_ctrlrepl.instr_stall, instr_aReg, instr_a)
+  io.mcachefe.instr_b := Mux(io.mcache_ctrlrepl.instr_stall, instr_bReg, instr_b)
   io.mcachefe.relBase := relBase
   io.mcachefe.relPc := relPc
   io.mcachefe.reloc := reloc
   io.mcachefe.mem_sel := Cat(selIspmReg, selMCacheReg)
   //signals to ctrl unit
   io.mcache_replctrl.hit := hitReg
-  io.mcache_replctrl.pos_offset := wrPos
+  io.mcache_replctrl.pos_offset := wrPosReg
   //hit/stall signal
   io.hit_ena := hitReg
 
