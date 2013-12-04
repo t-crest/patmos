@@ -1,5 +1,5 @@
-# Get the chisel build dir from the parent make
-CHISELBUILDDIR?=$(CURDIR)/build
+# Get the hardware build dir from the parent make
+HWBUILDDIR?=$(CURDIR)/build
 
 BOOTAPP?=basic
 
@@ -46,7 +46,7 @@ ARBITERMAIN=ocp.ArbiterMain
 
 # config file for Patmos -- now just frequency
 CONFIG=default
-CONFIGFILE?=$(BOOTBUILDROOT)/chisel/config/$(CONFIG).xml
+CONFIGFILE?=$(BOOTBUILDROOT)/hardware/config/$(CONFIG).xml
 SRC+=$(CONFIGFILE)
 
 # optionally pass module prefix when generating Verilog
@@ -60,63 +60,63 @@ endif
 all: emulator verilog
 
 # Temporary files to remember the ROM we built into the C++ and Verilog versions
-CGEN=$(CHISELBUILDDIR)/.cgen
-VGEN=$(CHISELBUILDDIR)/.vgen
-VGENCORE=$(CHISELBUILDDIR)/.vgencore
+CGEN=$(HWBUILDDIR)/.cgen
+VGEN=$(HWBUILDDIR)/.vgen
+VGENCORE=$(HWBUILDDIR)/.vgencore
 
 # build the C++ version
-emulator: $(CHISELBUILDDIR)/emulator
+emulator: $(HWBUILDDIR)/emulator
 
-$(CHISELBUILDDIR)/emulator: emulator.cpp $(CHISELBUILDDIR)/Patmos.cpp
-	$(CXX) $(CXXFLAGS) $(INC_EXTRA) -I $(CHISELBUILDDIR) -o $@ $^ -lelf
+$(HWBUILDDIR)/emulator: emulator.cpp $(HWBUILDDIR)/Patmos.cpp
+	$(CXX) $(CXXFLAGS) $(INC_EXTRA) -I $(HWBUILDDIR) -o $@ $^ -lelf
 
-$(CHISELBUILDDIR)/Patmos.cpp: $(CGEN)
+$(HWBUILDDIR)/Patmos.cpp: $(CGEN)
 	if [ x`cat $(CGEN)` != x"$(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)" ]; then \
 		rm $(CGEN); $(MAKE) $(CGEN); \
 	fi
 
 $(CGEN): $(BOOTBIN) $(BOOTDAT) $(SRC)
-	$(SBT) "run-main $(MAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --vcd --targetDir $(CHISELBUILDDIR) --backend c"
+	$(SBT) "run-main $(MAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --vcd --targetDir $(HWBUILDDIR) --backend c"
 	echo $(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT) > $(CGEN)
 
 # run emulator
 test: emulator
-	$(CHISELBUILDDIR)/emulator -r -n -v -l 1000000
+	$(HWBUILDDIR)/emulator -r -n -v -l 1000000
 
 # view detailed emulation results
 view:
 	gtkwave Patmos.vcd wave.gtkw
 
 # build the Verilog version
-verilog: $(CHISELBUILDDIR)/$(HWMODULEPREFIX)Patmos.v
+verilog: $(HWBUILDDIR)/$(HWMODULEPREFIX)Patmos.v
 
 modules: \
-	$(CHISELBUILDDIR)/$(HWMODULEPREFIX)PatmosCore.v \
-	$(CHISELBUILDDIR)/SsramBurstRW.v
+	$(HWBUILDDIR)/$(HWMODULEPREFIX)PatmosCore.v \
+	$(HWBUILDDIR)/SsramBurstRW.v
 
-$(CHISELBUILDDIR)/$(HWMODULEPREFIX)Patmos.v: $(VGEN)
+$(HWBUILDDIR)/$(HWMODULEPREFIX)Patmos.v: $(VGEN)
 	if [ x`cat $(VGEN)` != x"$(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX)" ]; then \
 		rm $(VGEN); $(MAKE) $(VGEN); \
 	fi
 
 $(VGEN): $(BOOTBIN) $(BOOTDAT) $(SRC)
-	$(SBT) "run-main $(MAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --targetDir $(CHISELBUILDDIR) --backend v $(HWMODULEPREFIXOPT)"
+	$(SBT) "run-main $(MAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --targetDir $(HWBUILDDIR) --backend v $(HWMODULEPREFIXOPT)"
 	echo $(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX) > $(VGEN)
 
-$(CHISELBUILDDIR)/$(HWMODULEPREFIX)PatmosCore.v: $(VGENCORE)
+$(HWBUILDDIR)/$(HWMODULEPREFIX)PatmosCore.v: $(VGENCORE)
 	if [ x`cat $(VGENCORE)` != x"$(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX)" ]; then \
 		rm $(VGENCORE); $(MAKE) $(VGENCORE); \
 	fi
 
 $(VGENCORE): $(BOOTBIN) $(BOOTDAT) $(SRC)
-	$(SBT) "run-main $(COREMAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --targetDir $(CHISELBUILDDIR) --backend v $(HWMODULEPREFIXOPT)"
+	$(SBT) "run-main $(COREMAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --targetDir $(HWBUILDDIR) --backend v $(HWMODULEPREFIXOPT)"
 	echo $(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX) > $(VGENCORE)
 
-$(CHISELBUILDDIR)/SsramBurstRW.v: $(SRC)
-	$(SBT) "run-main $(MEMCTRLMAIN) $(MEMCTRL_ADDR_WIDTH) --targetDir $(CHISELBUILDDIR) --backend v"
+$(HWBUILDDIR)/SsramBurstRW.v: $(SRC)
+	$(SBT) "run-main $(MEMCTRLMAIN) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --backend v"
 
-$(CHISELBUILDDIR)/Arbiter.v: $(SRC)
-	$(SBT) "run-main $(ARBITERMAIN) $(ARBITER_CNT) $(ARBITER_ADDR_WIDTH) $(ARBITER_DATA_WIDTH) $(ARBITER_BURST_LENGTH) --targetDir $(CHISELBUILDDIR) --backend v"
+$(HWBUILDDIR)/Arbiter.v: $(SRC)
+	$(SBT) "run-main $(ARBITERMAIN) $(ARBITER_CNT) $(ARBITER_ADDR_WIDTH) $(ARBITER_DATA_WIDTH) $(ARBITER_BURST_LENGTH) --targetDir $(HWBUILDDIR) --backend v"
 
 # run Verilog simulation
 vsim: verilog
