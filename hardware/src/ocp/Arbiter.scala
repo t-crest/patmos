@@ -62,7 +62,6 @@ class Arbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extend
   // TODO def turn
 
   val master = io.master(turnReg).M
-  val slave = io.slave.S
 
   when(stateReg === sIdle) {
     when(master.Cmd != OcpCmd.IDLE) {
@@ -80,14 +79,14 @@ class Arbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extend
   }
   when(stateReg === sWrite) {
     // Just wait on the DVA after the write
-    when(slave.Resp === OcpResp.DVA) {
+    when(io.slave.S.Resp === OcpResp.DVA) {
       turnReg := Mux(turnReg === UInt(cnt - 1), UInt(0), turnReg + UInt(1))
       stateReg := sIdle
     }
   }
   when(stateReg === sRead) {
     // For read we have to count the DVAs
-    when(slave.Resp === OcpResp.DVA) {
+    when(io.slave.S.Resp === OcpResp.DVA) {
       burstCntReg := burstCntReg + UInt(1)
       when(burstCntReg === UInt(burstLen) - UInt(1)) {
         turnReg := Mux(turnReg === UInt(cnt - 1), UInt(0), turnReg + UInt(1))
@@ -101,11 +100,11 @@ class Arbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extend
   for (i <- 0 to cnt - 1) {
     io.master(i).S.CmdAccept := Bits(0)
     io.master(i).S.DataAccept := Bits(0)
-    io.master(i).S.Resp := Bits(0)
+    io.master(i).S.Resp := OcpResp.NULL
     // we forward the data to all masters
-    io.master(i).S.Data := slave.Data
+    io.master(i).S.Data := io.slave.S.Data
   }
-  io.master(turnReg).S := slave
+  io.master(turnReg).S := io.slave.S
 
   // The response of the SSRAM comes a little bit late
 }
