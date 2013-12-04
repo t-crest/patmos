@@ -1,10 +1,10 @@
 [*]
-[*] GTKWave Analyzer v3.3.37 (w)1999-2012 BSI
-[*] Sat Oct  5 20:45:08 2013
+[*] GTKWave Analyzer v3.3.48 (w)1999-2013 BSI
+[*] Wed Dec  4 08:48:21 2013
 [*]
 [dumpfile] "/Users/martin/t-crest/patmos/chisel/ArbiterTop.vcd"
-[dumpfile_mtime] "Sat Oct  5 20:43:38 2013"
-[dumpfile_size] 7921
+[dumpfile_mtime] "Wed Dec  4 08:40:31 2013"
+[dumpfile_size] 16363
 [savefile] "/Users/martin/t-crest/patmos/chisel/arbit.gtkw"
 [timestart] 0
 [size] 1271 720
@@ -12,24 +12,11 @@
 *-1.601650 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] ArbiterTop.
 [sst_width] 211
-[signals_width] 214
+[signals_width] 262
 [sst_expanded] 1
 [sst_vpaned_height] 196
-@22
-ArbiterTop.Master.cntReg[7:0]
-ArbiterTop.Master.io_port_M_Addr[31:0]
-@28
-ArbiterTop.Master.io_port_M_Cmd[2:0]
-ArbiterTop.Master.io_port_M_DataValid
-@22
-ArbiterTop.Master.io_port_M_Data[31:0]
-@28
-ArbiterTop.Master.io_port_S_CmdAccept
-ArbiterTop.Master.io_port_S_Resp[1:0]
 @200
 -
-@22
-ArbiterTop.Arbiter.io_slave_M_Addr[31:0]
 @28
 ArbiterTop.Master_1.io_port_M_Cmd[2:0]
 ArbiterTop.Master_1.io_port_M_DataValid
@@ -37,27 +24,27 @@ ArbiterTop.Master_1.io_port_M_DataValid
 ArbiterTop.Master_1.io_port_M_Data[31:0]
 @28
 ArbiterTop.Master_1.io_port_S_CmdAccept
-@29
 ArbiterTop.Master_1.io_port_S_Resp[1:0]
 @200
 -
 @28
-ArbiterTop.Arbiter.io_slave_M_Cmd[2:0]
-ArbiterTop.Arbiter.io_slave_M_DataValid
+ArbiterTop.arb.io_master_0_M_Cmd[2:0]
 @22
-ArbiterTop.Arbiter.io_slave_M_Data[31:0]
+ArbiterTop.arb.io_master_0_M_Addr[31:0]
 @28
-ArbiterTop.Arbiter.io_slave_S_Resp[1:0]
-ArbiterTop.Arbiter.stateReg[1:0]
-ArbiterTop.Arbiter.turnReg[1:0]
-@200
--
+ArbiterTop.arb.io_master_0_S_CmdAccept
+ArbiterTop.arb.io_master_1_M_Cmd[2:0]
+@22
+ArbiterTop.arb.io_master_1_M_Addr[31:0]
 @28
-ArbiterTop.SsramBurstRW.ssram_state[1:0]
-ArbiterTop.SsramBurstRW.resp[1:0]
-ArbiterTop.SsramBurstRW.io_ocp_port_M_Cmd[2:0]
-ArbiterTop.SsramBurstRW.io_ocp_port_M_DataValid
-ArbiterTop.SsramBurstRW.io_ocp_port_S_CmdAccept
-ArbiterTop.SsramBurstRW.io_ocp_port_S_Resp[1:0]
+ArbiterTop.arb.io_master_1_S_CmdAccept
+ArbiterTop.arb.io_master_2_M_Cmd[2:0]
+@22
+ArbiterTop.arb.io_master_2_M_Addr[31:0]
+@28
+ArbiterTop.arb.io_master_2_S_CmdAccept
+ArbiterTop.arb.io_slave_M_Cmd[2:0]
+@23
+ArbiterTop.arb.io_slave_M_Addr[31:0]
 [pattern_trace] 1
 [pattern_trace] 0

@@ -40,6 +40,8 @@
 // MS: This should not be in package patmos (and then in folder io)
 // TODO: fix coding and file naming conventions
 
+// MS: hanging around in subfolder io cannot be pacackage io!
+// will fix later when Eclipse is responsible again
 package patmos
 
 import Chisel._
