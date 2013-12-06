@@ -36,11 +36,6 @@
  * Authors: Martin Schoeberl (martin@jopdesign.com)
  *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
  * 
- * Current Fmax on the DE2-70 is 84 MHz
- *   from forward address comparison to EXMEM register rd
- *   Removing the not so nice ALU instrcutions gives 96 MHz
- *   Drop just rotate: 90 MHz
- * 
  */
 
 package patmos
@@ -57,12 +52,14 @@ class Execute() extends Module {
   when(io.ena) {
     exReg := io.decex
   }
-  // no access to io.decex after this point!!!
 
   def alu(func: Bits, op1: UInt, op2: UInt): Bits = {
     val result = UInt(width = DATA_WIDTH)
-    val sum = op1 + op2
-    result := sum // some default 0 default biggest, fastest. sum default slower smallest
+    val scaledOp1 = op1 << Mux(func === FUNC_SHADD2, UInt(2),
+                               Mux(func === FUNC_SHADD, UInt(1),
+                                   UInt(0)))
+    val sum = scaledOp1 + op2
+    result := sum // some default
     val shamt = op2(4, 0).toUInt
     // This kind of decoding of the ALU op in the EX stage is not efficient,
     // but we keep it for now to get something going soon.
@@ -76,9 +73,8 @@ class Execute() extends Module {
       is(FUNC_OR)     { result := (op1 | op2).toUInt }
       is(FUNC_AND)    { result := (op1 & op2).toUInt }
       is(FUNC_NOR)    { result := (~(op1 | op2)).toUInt }
-      // TODO: shadd shift shall be in it's own operand MUX
-      is(FUNC_SHADD)  { result := (op1 << UInt(1)) + op2 }
-      is(FUNC_SHADD2) { result := (op1 << UInt(2)) + op2 }
+      is(FUNC_SHADD)  { result := sum }
+      is(FUNC_SHADD2) { result := sum }
     }
     result
   }
