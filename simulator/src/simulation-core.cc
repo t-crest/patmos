@@ -683,26 +683,24 @@ namespace patmos
     Profiling.reset_stats(Cycle);
   }
   
-  void simulator_t::print_stats(std::ostream &os, bool slot_stats, bool instr_stats) const
+  void simulator_t::print_stats(std::ostream &os, bool instr_stats) const
   {
     // print register values
     print_registers(os, DF_DEFAULT);
 
-    unsigned int num_total_fetched[NUM_SLOTS];
-    unsigned int num_total_retired[NUM_SLOTS];
-    unsigned int num_total_discarded[NUM_SLOTS];
-    unsigned int num_total_bubbles[NUM_SLOTS];
+    uint64_t num_total_fetched[NUM_SLOTS];
+    uint64_t num_total_retired[NUM_SLOTS];
+    uint64_t num_total_discarded[NUM_SLOTS];
+    uint64_t num_total_bubbles[NUM_SLOTS];
     
-    os << boost::format("\n\nInstruction Statistics:\n   %1$15s:") % "instruction";
+    os << boost::format("\n\nInstruction Statistics:\n   %1$15s:") % "operation";
     for (unsigned int i = 0; i < NUM_SLOTS; i++) {
       num_total_fetched[i] = num_total_retired[i] = num_total_discarded[i] = 0;
       num_total_bubbles[i] = 0;
-      num_total_bubbles[slot_stats ? i : 0] += Num_bubbles_retired[i];
+      num_total_bubbles[i] += Num_bubbles_retired[i];
     
-      if (!i || slot_stats) {
-        os << boost::format(" %1$10s %2$10s %3$10s")
-           % "#fetched" % "#retired" % "#discarded";
-      }
+      os << boost::format(" %1$10s %2$10s %3$10s")
+          % "#fetched" % "#retired" % "#discarded";
     }
     os << "\n";
           
@@ -713,18 +711,18 @@ namespace patmos
 
       os << boost::format("   %1$15s:") % I.Name;
       
-      unsigned int num_fetched[NUM_SLOTS];
-      unsigned int num_retired[NUM_SLOTS];
-      unsigned int num_discarded[NUM_SLOTS];
+      uint64_t num_fetched[NUM_SLOTS];
+      uint64_t num_retired[NUM_SLOTS];
+      uint64_t num_discarded[NUM_SLOTS];
       
       for (unsigned int j = 0; j < NUM_SLOTS; j++) {
         const instruction_stat_t &S(Instruction_stats[j][i]);
 
         num_fetched[j] = num_retired[j] = num_discarded[j] = 0;
         
-        num_fetched[slot_stats ? j : 0] += S.Num_fetched;
-        num_retired[slot_stats ? j : 0] += S.Num_retired;
-        num_discarded[slot_stats ? j : 0] += S.Num_discarded;
+        num_fetched[j] += S.Num_fetched;
+        num_retired[j] += S.Num_retired;
+        num_discarded[j] += S.Num_discarded;
 
         // If we reset the statistics counters, we might have some 
         // instructions that were in flight at the reset and thus are 
@@ -740,8 +738,6 @@ namespace patmos
         num_total_fetched[j] += num_fetched[j];
         num_total_retired[j] += num_retired[j];
         num_total_discarded[j] += num_discarded[j];
-        
-        if (!slot_stats) break;
       }
       
       if (instr_stats) {
@@ -757,23 +753,36 @@ namespace patmos
     for (unsigned int j = 0; j < NUM_SLOTS; j++) {
       os << boost::format(" %1$10d %2$10d %3$10d")
           % num_total_fetched[j] % num_total_retired[j] % num_total_discarded[j];
-      if (!slot_stats) break;
     }          
     os << "\n";
     os << boost::format("   %1$15s:") % "bubbles";
     for (unsigned int j = 0; j < NUM_SLOTS; j++) {
       os << boost::format(" %1$10s %2$10d %3$10s") % "-" % num_total_bubbles[j] % "-";
-      if (!slot_stats) break;
     }          
     os << "\n";
 
     // Cycle statistics
+    uint64_t num_operations = 0;
+    for (unsigned int j = 0; j < NUM_SLOTS; j++) {
+      num_operations += num_total_fetched[j];
+    }
+
+    // TODO maybe remove NOPs from #operations and #instructions?
+    // Should we count only retired instructions?
+    float cpo = (float)Cycle / (float)num_operations;
+    float cpi = (float)Cycle / (float)num_total_fetched[0];
+    
     os << "\nStall Cycles:\n";
     for (int i = SIF; i < NUM_STAGES; i++)
     {
       os << boost::format("   %1%: %2%\n")
          % (Pipeline_t)i % Num_stall_cycles[i];
     }
+    
+    os << "\nCycles per Instruction: " << cpi;
+    os << "\nCycles per Operation:   " << cpo;
+    
+
     // print statistics of method cache
     os << "\n\nInstruction Cache Statistics:\n";
     Instr_cache.print_stats(*this, os);
