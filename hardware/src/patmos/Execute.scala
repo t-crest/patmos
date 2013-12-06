@@ -86,17 +86,20 @@ class Execute() extends Module {
   def comp(func: Bits, op1: UInt, op2: UInt): Bool = {
     val op1s = op1.toSInt
     val op2s = op2.toSInt
-    val shamt = op2(4, 0).toUInt
+    val bitIdx = op2(4, 0).toUInt
     // Is this nicer than the switch?
     // Some of the comparison function (equ, subtract) could be shared
+    val eq = op1 === op2
+    val lt = op1s < op2s
+    val ult = op1 < op2
     MuxLookup(func.toUInt, Bool(false), Array(
-      (CFUNC_EQ,    (op1 === op2)),
-      (CFUNC_NEQ,   (op1 != op2)),
-      (CFUNC_LT,    (op1s < op2s)),
-      (CFUNC_LE,    (op1s <= op2s)),
-      (CFUNC_ULT,   (op1 < op2)),
-      (CFUNC_ULE,   (op1 <= op2)),
-      (CFUNC_BTEST, ((op1 & (Bits(1) << shamt)) != UInt(0)))))
+      (CFUNC_EQ,    eq),
+      (CFUNC_NEQ,   !eq),
+      (CFUNC_LT,    lt),
+      (CFUNC_LE,    lt | eq),
+      (CFUNC_ULT,   ult),
+      (CFUNC_ULE,   ult | eq),
+      (CFUNC_BTEST, op1(bitIdx))))
   }
 
   def pred(func: Bits, op1: Bool, op2: Bool): Bool = {
