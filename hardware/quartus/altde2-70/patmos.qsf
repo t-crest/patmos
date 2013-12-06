@@ -57,7 +57,6 @@ set_location_assignment PIN_AD15 -to clk
 set_location_assignment PIN_T29 -to out_rst
 set_location_assignment PIN_D21 -to rxd
 set_location_assignment PIN_E21 -to txd
-set_location_assignment PIN_AA24 -to led
 
 set_location_assignment PIN_AC14 -to led[8]
 set_location_assignment PIN_W27 -to led[0]
@@ -67,7 +66,7 @@ set_location_assignment PIN_Y27 -to led[3]
 set_location_assignment PIN_Y24 -to led[4]
 set_location_assignment PIN_Y23 -to led[5]
 set_location_assignment PIN_AA27 -to led[6]
-#set_location_assignment PIN_AA24 -to led[7]
+set_location_assignment PIN_AA24 -to led[7]
 
 set_location_assignment PIN_AG8 -to oSRAM_A[0]
 set_location_assignment PIN_AF8 -to oSRAM_A[1]
