@@ -688,12 +688,12 @@ namespace patmos
     // print register values
     print_registers(os, DF_DEFAULT);
 
-    unsigned int num_total_fetched[NUM_SLOTS];
-    unsigned int num_total_retired[NUM_SLOTS];
-    unsigned int num_total_discarded[NUM_SLOTS];
-    unsigned int num_total_bubbles[NUM_SLOTS];
+    uint64_t num_total_fetched[NUM_SLOTS];
+    uint64_t num_total_retired[NUM_SLOTS];
+    uint64_t num_total_discarded[NUM_SLOTS];
+    uint64_t num_total_bubbles[NUM_SLOTS];
     
-    os << boost::format("\n\nInstruction Statistics:\n   %1$15s:") % "instruction";
+    os << boost::format("\n\nInstruction Statistics:\n   %1$15s:") % "operation";
     for (unsigned int i = 0; i < NUM_SLOTS; i++) {
       num_total_fetched[i] = num_total_retired[i] = num_total_discarded[i] = 0;
       num_total_bubbles[i] = 0;
@@ -711,9 +711,9 @@ namespace patmos
 
       os << boost::format("   %1$15s:") % I.Name;
       
-      unsigned int num_fetched[NUM_SLOTS];
-      unsigned int num_retired[NUM_SLOTS];
-      unsigned int num_discarded[NUM_SLOTS];
+      uint64_t num_fetched[NUM_SLOTS];
+      uint64_t num_retired[NUM_SLOTS];
+      uint64_t num_discarded[NUM_SLOTS];
       
       for (unsigned int j = 0; j < NUM_SLOTS; j++) {
         const instruction_stat_t &S(Instruction_stats[j][i]);
@@ -762,12 +762,27 @@ namespace patmos
     os << "\n";
 
     // Cycle statistics
+    uint64_t num_operations = 0;
+    for (unsigned int j = 0; j < NUM_SLOTS; j++) {
+      num_operations += num_total_fetched[j];
+    }
+
+    // TODO maybe remove NOPs from #operations and #instructions?
+    // Should we count only retired instructions?
+    float cpo = (float)Cycle / (float)num_operations;
+    float cpi = (float)Cycle / (float)num_total_fetched[0];
+    
     os << "\nStall Cycles:\n";
     for (int i = SIF; i < NUM_STAGES; i++)
     {
       os << boost::format("   %1%: %2%\n")
          % (Pipeline_t)i % Num_stall_cycles[i];
     }
+    
+    os << "\nCycles per Instruction: " << cpi;
+    os << "\nCycles per Operation:   " << cpo;
+    
+
     // print statistics of method cache
     os << "\n\nInstruction Cache Statistics:\n";
     Instr_cache.print_stats(*this, os);
