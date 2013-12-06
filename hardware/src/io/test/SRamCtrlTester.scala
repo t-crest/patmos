@@ -41,12 +41,10 @@ package io.test
 
 import Chisel._
 import Node._
-
 import ocp._
-import patmos._
-
+import io._
 import scala.collection.mutable.HashMap
-import patmos.SsramBurstRW
+
 
 
 //class Master(nr: Int, burstLength: Int) extends Module {
@@ -95,13 +93,13 @@ import patmos.SsramBurstRW
 class SRamCtrlTop() extends Module {
 
   val io = new Bundle {
-    val port = new OcpBurstMasterPort(32, 32, 4)
+    val addr = Bits(OUTPUT, width=32)
   }
 
-  val mem = Module(new SsramBurstRW(21))
+  val mem = Module(new SRamCtrl())
   val master = Module(new ocp.test.Master(0, 4))
-  mem.io.ocp_port <> master.io.port
-
+  mem.io.ocpPort <> master.io.port
+  io.addr := mem.io.ramIO
 }
 
 
