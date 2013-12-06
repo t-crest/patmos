@@ -683,7 +683,7 @@ namespace patmos
     Profiling.reset_stats(Cycle);
   }
   
-  void simulator_t::print_stats(std::ostream &os, bool slot_stats, bool instr_stats) const
+  void simulator_t::print_stats(std::ostream &os, bool instr_stats) const
   {
     // print register values
     print_registers(os, DF_DEFAULT);
@@ -697,12 +697,10 @@ namespace patmos
     for (unsigned int i = 0; i < NUM_SLOTS; i++) {
       num_total_fetched[i] = num_total_retired[i] = num_total_discarded[i] = 0;
       num_total_bubbles[i] = 0;
-      num_total_bubbles[slot_stats ? i : 0] += Num_bubbles_retired[i];
+      num_total_bubbles[i] += Num_bubbles_retired[i];
     
-      if (!i || slot_stats) {
-        os << boost::format(" %1$10s %2$10s %3$10s")
-           % "#fetched" % "#retired" % "#discarded";
-      }
+      os << boost::format(" %1$10s %2$10s %3$10s")
+          % "#fetched" % "#retired" % "#discarded";
     }
     os << "\n";
           
@@ -722,9 +720,9 @@ namespace patmos
 
         num_fetched[j] = num_retired[j] = num_discarded[j] = 0;
         
-        num_fetched[slot_stats ? j : 0] += S.Num_fetched;
-        num_retired[slot_stats ? j : 0] += S.Num_retired;
-        num_discarded[slot_stats ? j : 0] += S.Num_discarded;
+        num_fetched[j] += S.Num_fetched;
+        num_retired[j] += S.Num_retired;
+        num_discarded[j] += S.Num_discarded;
 
         // If we reset the statistics counters, we might have some 
         // instructions that were in flight at the reset and thus are 
@@ -740,8 +738,6 @@ namespace patmos
         num_total_fetched[j] += num_fetched[j];
         num_total_retired[j] += num_retired[j];
         num_total_discarded[j] += num_discarded[j];
-        
-        if (!slot_stats) break;
       }
       
       if (instr_stats) {
@@ -757,13 +753,11 @@ namespace patmos
     for (unsigned int j = 0; j < NUM_SLOTS; j++) {
       os << boost::format(" %1$10d %2$10d %3$10d")
           % num_total_fetched[j] % num_total_retired[j] % num_total_discarded[j];
-      if (!slot_stats) break;
     }          
     os << "\n";
     os << boost::format("   %1$15s:") % "bubbles";
     for (unsigned int j = 0; j < NUM_SLOTS; j++) {
       os << boost::format(" %1$10s %2$10d %3$10s") % "-" % num_total_bubbles[j] % "-";
-      if (!slot_stats) break;
     }          
     os << "\n";
 
