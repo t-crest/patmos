@@ -267,7 +267,6 @@ class RegFileIO() extends Bundle() {
   val ena = Bool(INPUT)
   val rfRead = new RegFileRead()
   val rfWrite = Vec.fill(PIPE_COUNT) { new Result().asInput }
-  val rfDebug = Vec.fill(REG_COUNT) { Bits(OUTPUT, DATA_WIDTH) }
 }
 
 class FetchIO extends Bundle() {
@@ -344,7 +343,6 @@ class PatmosCoreIO() extends Bundle() {
   val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val memPort = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
-  //val rfDebug = Vec.fill(REG_COUNT) { Bits(OUTPUT, DATA_WIDTH) }
 }
 
 class PatmosIO() extends Bundle() {
@@ -352,5 +350,4 @@ class PatmosIO() extends Bundle() {
   val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val sramPins = new RamOutPinsIO(EXTMEM_ADDR_WIDTH-2)
-  //val rfDebug = Vec.fill(REG_COUNT) { Bits(OUTPUT, DATA_WIDTH) }
 }

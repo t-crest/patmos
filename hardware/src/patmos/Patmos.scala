@@ -68,8 +68,6 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   val iocomp = Module(new InOut())
   val dcache = Module(new DataCache())
 
-  //io.rfDebug := decode.rf.io.rfDebug
-
   //connect mcache
   mcache.io.femcache <> fetch.io.femcache
   mcache.io.mcachefe <> fetch.io.mcachefe
@@ -125,7 +123,7 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
 
   // Dummy output, which is ignored in the top level VHDL code, to
   // force Chisel keep some unused signals alive
-  io.dummy := Reg(next = memory.io.memwb.pc) | enableReg // | decode.rf.io.rfDebug.toBits)
+  io.dummy := Reg(next = memory.io.memwb.pc) | enableReg
 
 }
 
@@ -195,7 +193,7 @@ class PatmosTest(pat: Patmos) extends Tester(pat,
       // println(ovars(pat.io.led).litValue())
       print(pc + " - ")
       for (j <- 0 until 32)
-        print(ovars(pat.core.decode.rf.io.rfDebug(j)).litValue() + " ")
+        print(ovars(pat.core.decode.rf.rf(UInt(j))).litValue() + " ")
       println()
       //      println("iter: " + i)
       //      println("ovars: " + ovars)

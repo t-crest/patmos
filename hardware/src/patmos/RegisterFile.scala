@@ -96,8 +96,13 @@ class RegisterFile() extends Module {
 	}
   }
 
-  // Output for co-simulation with pasim
+  // Signal for debugging register values
+  val rfDebug = Vec.fill(REG_COUNT) { Reg(Bits(width = DATA_WIDTH)) }
   for(i <- 0 until REG_COUNT) {
-	io.rfDebug(i) := rf(Bits(i))
+    rfDebug(i) := rf(Bits(i))
+    if (Module.isVCD) {
+      // Keep signal alive
+      debug(rfDebug(i))
+    }
   }
 }
