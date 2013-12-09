@@ -54,23 +54,11 @@ class Fetch(fileName : String) extends Module {
   val addrOddReg = Reg(init = UInt(1, PC_SIZE))
 
   val rom = Utility.readBin(fileName, INSTR_WIDTH)
+  val romAddrBits = log2Up(rom.length / 2)
   // Split the ROM into two blocks for dual fetch
-  //  val len = rom.length / 2
-  //  val rom_a = Vec(len) { Bits(width = INSTR_WIDTH) }
-  //  val rom_b = Vec(len) { Bits(width = INSTR_WIDTH) }
-  //  for (i <- 0 until len) {
-  //    rom_a(i) = rom(i * 2)
-  //    rom_b(i) = rom(i * 2 + 1)
-  //    val a:Bits = rom_a(i)
-  //    val b:Bits = rom_b(i)
-  //    println(i+" "+a.toUInt.litValue()+" "+b.toUInt.litValue())
-  //  }
-  //
-  //  // addr_even and odd count in words. Shall this be optimized?
-  //  val data_even: Bits = rom_a(addr_even(PC_SIZE-1, 1))
-  //  val data_odd: Bits = rom_b(addr_odd(PC_SIZE-1, 1))
-  // relay on the optimization to recognize that those addresses are always even and odd
-  // TODO: maybe make it explicit
+  val romGroups = rom.iterator.grouped(2).withPadding(Bits(0)).toSeq
+  val romEven = Vec(romGroups.map(_(0)))
+  val romOdd  = Vec(romGroups.map(_(1)))
 
   val ispmAddrBits = log2Up(ISPM_SIZE / 4 / 2)
   val memEven = Mem(Bits(width = INSTR_WIDTH), ISPM_SIZE / 4 / 2)
@@ -107,8 +95,8 @@ class Fetch(fileName : String) extends Module {
   val instr_b_ispm = Mux(pcReg(0) === Bits(0), ispm_odd, ispm_even)
 
   //select even/odd from rom
-  val data_even = rom(addrEvenReg)
-  val data_odd = rom(addrOddReg)
+  val data_even = romEven(addrEvenReg(romAddrBits, 1))
+  val data_odd = romOdd(addrOddReg(romAddrBits, 1))
   val instr_a_rom = Mux(pcReg(0) === Bits(0), data_even, data_odd)
   val instr_b_rom = Mux(pcReg(0) === Bits(0), data_odd, data_even)
 
