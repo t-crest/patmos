@@ -50,8 +50,10 @@ class Fetch(fileName : String) extends Module {
   val io = new FetchIO()
 
   val pcReg = Reg(init = UInt(1, PC_SIZE))
-  val addrEvenReg = Reg(init = UInt(2, PC_SIZE))
-  val addrOddReg = Reg(init = UInt(1, PC_SIZE))
+  val addrEven = UInt()
+  val addrOdd = UInt()
+  val addrEvenReg = Reg(init = UInt(2, PC_SIZE), next = addrEven)
+  val addrOddReg = Reg(init = UInt(1, PC_SIZE), next = addrOdd)
 
   val rom = Utility.readBin(fileName, INSTR_WIDTH)
   val romAddrBits = log2Up(rom.length / 2)
@@ -95,8 +97,10 @@ class Fetch(fileName : String) extends Module {
   val instr_b_ispm = Mux(pcReg(0) === Bits(0), ispm_odd, ispm_even)
 
   //select even/odd from rom
-  val data_even = romEven(addrEvenReg(romAddrBits, 1))
-  val data_odd = romOdd(addrOddReg(romAddrBits, 1))
+  // For some weird reason, Quartus infers the ROM as memory block
+  // only if the output is registered
+  val data_even = Reg(next = romEven(addrEven(romAddrBits, 1)))
+  val data_odd = Reg(next = romOdd(addrOdd(romAddrBits, 1)))
   val instr_a_rom = Mux(pcReg(0) === Bits(0), data_even, data_odd)
   val instr_b_rom = Mux(pcReg(0) === Bits(0), data_odd, data_even)
 
@@ -120,9 +124,11 @@ class Fetch(fileName : String) extends Module {
 			pc_cont2))
 
   val pc_inc = Mux(pc_next(0), pc_next2, pc_next)
-  when(io.ena) {
-    addrEvenReg := Cat((pc_inc)(PC_SIZE - 1, 1), Bits(0)).toUInt
-    addrOddReg := Cat((pc_next)(PC_SIZE - 1, 1), Bits(1)).toUInt
+  addrEven := addrEvenReg
+  addrOdd := addrOddReg
+  when(io.ena && !reset) {
+    addrEven := Cat((pc_inc)(PC_SIZE - 1, 1), Bits(0)).toUInt
+    addrOdd := Cat((pc_next)(PC_SIZE - 1, 1), Bits(1)).toUInt
     pcReg := pc_next
   }
 
