@@ -88,6 +88,8 @@ static patmos::data_cache_t &create_data_cache(patmos::set_assoc_cache_type dck,
                                                patmos::memory_t &gm)
 {
   unsigned int num_blocks = (size - 1)/line_size + 1;
+  // Make it fully-associative?
+  unsigned int assoc = dck.associativity > 0 ? dck.associativity : num_blocks;
 
   switch (dck.policy)
   {
@@ -95,10 +97,13 @@ static patmos::data_cache_t &create_data_cache(patmos::set_assoc_cache_type dck,
       return *new patmos::ideal_data_cache_t(gm);
     case patmos::SAC_NO:
       return *new patmos::no_data_cache_t(gm);
+    case patmos::SAC_DM:
+      assert(dck.associativity == 1);
+      // Fallthrough to LRU with 1-way assoc to model direct mapped cache      
     case patmos::SAC_LRU:
-      return *new patmos::set_assoc_data_cache_t<true>(gm, dck.associativity, num_blocks, line_size);
+      return *new patmos::set_assoc_data_cache_t<true>(gm, assoc, num_blocks, line_size);
     case patmos::SAC_FIFO:
-      return *new patmos::set_assoc_data_cache_t<false>(gm, dck.associativity, num_blocks, line_size);
+      return *new patmos::set_assoc_data_cache_t<false>(gm, assoc, num_blocks, line_size);
   };
 }
 
@@ -137,23 +142,29 @@ static patmos::instr_cache_t &create_iset_cache(patmos::set_assoc_cache_type isc
        patmos::memory_t &gm)
 {
   unsigned int num_blocks = ((size - 1)/line_size) + 1;
+  // Make it fully-associative?
+  unsigned int assoc = isck.associativity > 0 ? isck.associativity : num_blocks;
 
+  
   switch (isck.policy) {
     case patmos::SAC_IDEAL:
       return *new patmos::instr_cache_wrapper_t<true>(new patmos::ideal_data_cache_t(gm));
     case patmos::SAC_NO:
       return *new patmos::no_instr_cache_t(gm);
+    case patmos::SAC_DM:
+      assert(isck.associativity == 1);
+      // Fallthrough to LRU with 1-way assoc to model direct mapped cache
     case patmos::SAC_LRU:
     {
       patmos::data_cache_t *lru =
-        new patmos::set_assoc_data_cache_t<true>(gm, isck.associativity, num_blocks, line_size);
+        new patmos::set_assoc_data_cache_t<true>(gm, assoc, num_blocks, line_size);
 
       return *new patmos::instr_cache_wrapper_t<true>(lru);
     }
     case patmos::SAC_FIFO:
     {
       patmos::data_cache_t *fifo =
-        new patmos::set_assoc_data_cache_t<false>(gm, isck.associativity, num_blocks, line_size);
+        new patmos::set_assoc_data_cache_t<false>(gm, assoc, num_blocks, line_size);
 
       return *new patmos::instr_cache_wrapper_t<true>(fifo);
     }
@@ -249,7 +260,8 @@ int main(int argc, char **argv)
     ("binary,b", boost::program_options::value<std::string>()->default_value("-"), "binary or elf-executable file (stdin: -)")
     ("output,o", boost::program_options::value<std::string>()->default_value("-"), "output execution trace in file (stdout: -)")
     ("debug", boost::program_options::value<unsigned int>()->implicit_value(0), "enable step-by-step debug tracing after cycle")
-    ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), "format of the debug trace (short, trace, instr, blocks, calls, default, long, all)")
+    ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), 
+                  "format of the debug trace (short, trace, instr, blocks, calls, default, long, all)")
     ("debug-file", boost::program_options::value<std::string>()->default_value("-"), "output debug trace in file (stderr: -)")
     ("debug-nopc", "do not print PC and cycles counter in debug output")
     ("print-stats", boost::program_options::value<patmos::address_t>(), "print statistics for a given function only.")
@@ -260,7 +272,8 @@ int main(int argc, char **argv)
   boost::program_options::options_description memory_options("Memory options");
   memory_options.add_options()
     ("gsize,g",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_MEMORY_BYTES), "global memory size in bytes")
-    ("gtime,G",  boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES/4 + 3), "global memory transfer time per burst in cycles")
+    ("gtime,G",  boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES/4 + 3), 
+                 "global memory transfer time per burst in cycles")
     ("tdelay,t", boost::program_options::value<int>()->default_value(0), "read delay to global memory per request in cycles")
     ("trefresh", boost::program_options::value<unsigned int>()->default_value(0), "refresh cycles per TDM round")
     ("bsize",    boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES), "burst size (and alignment) of the memory system.")
@@ -271,7 +284,8 @@ int main(int argc, char **argv)
   boost::program_options::options_description cache_options("Cache options");
   cache_options.add_options()
     ("dcsize,d", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_DATA_CACHE_BYTES), "data cache size in bytes")
-    ("dckind,D", boost::program_options::value<patmos::set_assoc_cache_type>()->default_value(patmos::set_assoc_cache_type(patmos::SAC_LRU,2)), "kind of set-associative data cache, defaults to lru2 (ideal, no, lruN, fifoN)")
+    ("dckind,D", boost::program_options::value<patmos::set_assoc_cache_type>()->default_value(patmos::set_assoc_cache_type(patmos::SAC_LRU,2)), 
+                 "kind of direct mapped/fully-/set-associative data cache, defaults to lru2 (ideal, no, dm, lru[N], fifo[N])")
     ("dlsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(0), "size of a data cache line in bytes, defaults to burst size if set to 0")
 
     ("scsize,s", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_STACK_CACHE_BYTES), "stack cache size in bytes")
@@ -279,13 +293,17 @@ int main(int argc, char **argv)
     ("sbsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(0), "stack cache block size in bytes, defaults to burst size if set to 0")
 
     ("icache,C", boost::program_options::value<patmos::instr_cache_e>()->default_value(patmos::IC_MCACHE), "kind of instruction cache (mcache, icache)")
-    ("ickind,K", boost::program_options::value<patmos::set_assoc_cache_type>()->default_value(patmos::set_assoc_cache_type(patmos::SAC_LRU,2)), "kind of set-associative I-cache (ideal, no, lruN, fifoN")
+    ("ickind,K", boost::program_options::value<patmos::set_assoc_cache_type>()->default_value(patmos::set_assoc_cache_type(patmos::SAC_LRU,2)), 
+                 "kind of direct mapped/fully-/set-associative I-cache (ideal, no, dm, lru[N], fifo[N]")
     ("ilsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(0), "size of an I-cache line in bytes, defaults to burst size if set to 0")
 
-    ("mcsize,m", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_METHOD_CACHE_BYTES), "method cache / instruction cache size in bytes")
+    ("mcsize,m", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_METHOD_CACHE_BYTES), 
+                 "method cache / instruction cache size in bytes")
     ("mckind,M", boost::program_options::value<patmos::method_cache_e>()->default_value(patmos::MC_FIFO), "kind of method cache (ideal, lru, fifo)")
-    ("mcmethods",boost::program_options::value<unsigned int>()->default_value(patmos::NUM_METHOD_CACHE_MAX_METHODS), "Maximum number of methods in the method cache, defaults to number of blocks if zero")
-    ("mbsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_METHOD_CACHE_BLOCK_BYTES), "method cache block size in bytes, defaults to burst size if zero");
+    ("mcmethods",boost::program_options::value<unsigned int>()->default_value(patmos::NUM_METHOD_CACHE_MAX_METHODS), 
+                 "Maximum number of methods in the method cache, defaults to number of blocks if zero")
+    ("mbsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_METHOD_CACHE_BLOCK_BYTES), 
+                 "method cache block size in bytes, defaults to burst size if zero");
 
   boost::program_options::options_description sim_options("Simulator options");
   sim_options.add_options()
