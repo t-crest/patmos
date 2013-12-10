@@ -196,7 +196,17 @@ Real-time systems need a time-predictable execution platform so that the worst-c
 
 We present the time-predictable processor Patmos as one approach to attack the complexity issue of WCET analysis. Patmos is a static scheduled, dual-issue RISC processor that is optimized for real-time systems.
 
+\martin{This report shall converge towards a real manual. At the moment it serves
+discussion well, but we shall keep this in mind. Here a starting list of TODOs:
 
+\begin{itemize}
+\item Send an email to all and ask about cleanup of some discussion points
+\item Convert some discussion text into readable sections and argue why we
+did what we did
+\item Get a nice introduction and a good architecture section written
+\end{itemize}
+
+}
 
 %\chapter{Related Work}
 %\label{sec:related}
@@ -212,426 +222,6 @@ rewritten to reflect the actual simulator and hardware implementation of Patmos.
 E.g. predicate registers are *not* read in the decode stage, but directly in EX.
 Reading in decode would mean a one cycle generate use delay.}
 
-\section{TODO}
-
-This report shall converge towards a real manual. At the moment it serves
-discussion well, but we shall keep this in mind. Here a starting list of TODOs:
-
-\begin{itemize}
-\item Send an email to all and ask about cleanup of some discussion points
-\item Convert some discussion text into readable sections and argue why we
-did what we did
-\item Get a nice introduction and a good architecture section written
-\end{itemize}
-
-\section{Pending Changes}
-
-This is a live and temporary section that lists pending changes of the ISA.
-This changes shall live in a remote branch (to be specified) and have a
-date when to be merged into the master branch.
-
-Currently we have following proposals for a change:
-
-\begin{itemize}
-\item bcopy instruction
-\item btest and bcopy with an immediate
-\item Automatic save of method base in a special register for a call
-\item Branch into subfunction
-\item Revised branch addressing modes
-\item Non-delayed branches
-\item Issue memory operations from any pipeline
-\item Interrupts
-\end{itemize}
-
-Remote branch: \texttt{isa\_rev}
-
-Merge date: 15 August 2013 (?)
-
-\subsection{\texttt{bcopy}/\texttt{btest}}
-
-Semantically, \texttt{bcopy} is the ``inverse'' to \texttt{btest}, such that it
-allows to copy the value of a predicate register to a position in a 32-bit
-register. This instruction should be used for
-\begin{enumerate}
-  \item \texttt{mov Rd $\leftarrow$ Ps \ldots{} bcopy Rd $\leftarrow$ Ps, r0}\\
-        Currently, LLVM generates a two-instruction sequence
-        \texttt{clr Rd; (Ps) li Rd $\leftarrow$ 1} for
-        for extending a 1 bit register to a 32 bit register.
-  \item Predicate register spilling.
-\end{enumerate}
-
-To avoid the requirement for an additional temporary 32-bit register,
-particularly for register spill/restore, variants of bcopy and btest with a
-5-bit immediate operand are beneficial.
-
-\subsection{Special Registers for Return Information}
-
-In order to support exceptions (see Section~\ref{sec:exc}), it is
-necessary that the base address of the current function is available
-\emph{at any time}. Otherwise, it could not be guaranteed that an
-interrupt handler is able to return to the correct
-function. Consequently, the \texttt{call} and \texttt{brcf} functions
-must store the base address in some hardware register. This makes the
-return-base information in register \texttt{r30} redundant and it
-could be replaced by an appropriate special return base register
-\texttt{sb} with minimal effort. One can then go even further and move
-the functionality of register \texttt{r31} to a special register
-\texttt{so} to free up another general-purpose register.
-
-\stefan{This is actually how we had it in the first ISA version, but Martin wanted to get rid of 
-the special registers.. ;) }
-
-\stefan{Note that we could still make this part of the ABI: we can simply require that \texttt{r30} is 
-never used for something else and must always contain the valid base address (this is the case at the moment 
-except for (sub)functions that do not have calls inside, can be changed easily). The bigger issue I see is
-that there are problems when the interrupt appears between the \texttt{call} and the \texttt{ldi} that sets 
-\texttt{r30} (they cannot be bundled), and a scheduler might further move the load around.}
-
-\wolf{The latter issue is exactly the problem. The hardware needs to
-  keep track of the base whenever a \texttt{call}, \texttt{brcf} or
-  \texttt{ret} is executed to be able to return from interrupts at any
-  time. The question is if we move the current base to a visible
-  register upon calls to serve as return base. It is not necessary,
-  but why keep track of the base both in hardware and in software?
-  Note that the hardware does not need to expose the current base,
-  only the return base would be made visible.}
-  
-\martin{Agree on that.}
-
-\stefan{And I was so happy not to have both \texttt{S0} and \texttt{SO} in the compiler anymore ;) I would suggest to call them 
-\texttt{srb} and \texttt{sro} instead (for return base and return offset, which they actually are).}
-
-\wolf{Agree for \texttt{srb} and \texttt{sro}.}
-
-\subsubsection{Costs and Benefits}
-
-For functions that call other functions, the change saves one
-instruction to set the base address, and adds two instructions to both
-the prologue and the epilogue. On the other hand, the change frees up
-two general-purpose registers, which can avoid spilling and lead to
-more efficient code.
-
-\stefan{It also saves some logic in the function splitter to calculate
-the code size increase due to the requirement to set the base address in all
-new sub-functions that contain a call.}
-
-\subsection{Branch into Subfunction Instruction}
-
-\stefan{In order to eliminate the current restriction of having only single-entry subfunctions, 
-I would suggest to make \texttt{brcf} indirect accept both an (absolute) base address, as well 
-as an offset. Using \texttt{r0} for the offset makes \texttt{brcf} behave similar to now. 
-
-At the moment we could also use \texttt{ret} for the same purpose, but this has two disadvantages:
-\texttt{call} and \texttt{ret} would no longer appear in pairs, making call graph reconstruction more complicated 
-(needs compiler support to tell the WCET analysis which \texttt{ret} is actually used as return), and it
-does not work nicely if we change \texttt{ret} to use special registers.}
-
-\wolf{If I understand correctly, indirect \texttt{brcf} would then do
-  exactly the same thing as \texttt{ret} does currently, except that
-  it gets a different opcode. I don't see a problem with that from the
-  hardware perspective.}
-
-\stefan{Correct. With moving return infos to special registers, \texttt{ret} would become different from \texttt{brcf} though as 
-\texttt{ret} would use \texttt{srb} and \texttt{sro}, I presume, while \texttt{brcf} always uses two GPRs.}
-
-\subsubsection{Costs and Benefits}
-
-Much of the complexity and restrictions of the function splitter are eliminated (jump tables
-still have to be handled carefully, though we in theory we could even support having jump table entries 
-anywhere in any region), without resorting to misuse \texttt{ret}. It works regardless of whether return information
-is stored in special registers or GPRs.
-
-To make use of this feature, the function splitter needs a major rewrite though. 
-Note that as long only \texttt{r0} is used for the offset, no changes to the compiler or the WCET analysis are required.
-
-\stefan{It also moves \texttt{brcf} from \texttt{CFLi} to \texttt{CFLr}, which makes the naming of the formats less intuitive 
-(although having \texttt{CFLi} for register operands is not good anyway, as we usually use \texttt{i} for immediate).}
-
-\wolf{I guess the naming of the formats is not our biggest concern ;-)}
-
-\subsection{Revised Branch Addressing Modes}
-
-\wolf{I propose to change the branch addressing modes as shown in
-  Table~\ref{tab:braddr}.}
-
-\begin{table}
-  \centering
-  \begin{tabular}{lllll}
-    \toprule
-    Instruction & Immediate             & Indirect                   & Cache fill & Link \\
-    \midrule
-    call        & absolute              & absolute                   & yes        & yes \\
-    br          & PC relative           & \color{red}{base relative} & no         & no \\
-    brcf        & \color{red}{absolute} & absolute                   & yes        & no \\
-    \bottomrule
-  \end{tabular}
-  \caption{Revised branch addressing modes}
-  \label{tab:braddr}
-\end{table}
-
-\subsubsection{Rationale}
-
-With a method cache, there are two distinct views of the program
-counter: the program counter to address the cache memory
-(PC$_{cache}$), and the address of the respective instruction in
-memory (PC$_{mem}$). When loading instructions from memory
-(\code{call}, \code{brcf}), PC$_{mem}$ is relevant, because it
-specifies from where data should be loaded. However, when execution
-remains within a function (\code{br}), only PC$_{cache}$ is taken into
-account.
-
-Listing~\ref{lst:call} shows the pseudo-code for a call (using special
-registers \texttt{sb} and \texttt{so} for the return
-information). First, it stores the return information, and remembers
-the new base address. Then, it retrieves the offset into the cache for
-the function to be called and if necessary copies the instructions
-into the cache. Finally, it updates the internal program counter and
-continues execution from there.
-
-\martin{I do not understand those listing fully. E.g. what those variables
-are: intern registers, special registers,... However, I very much appreciate
-this pseudo code. That should then go into the `normal' ISA description as
-well.}
-
-\begin{lstlisting}[language=C,mathescape=true,float=t,caption={Call\label{lst:call}}]
-call(addr) {
-  // Store return information
-  sb = base;
-  so = PC$_{cache}$;  
-  // Remember base address
-  base = addr;
-  // Cache look-up and load
-  coff = offset(addr);
-  if (!hit(base)) memcpy(cache[coff], mem[base], mem[base-4]);
-  // Update PC
-  PC$_{cache}$ = coff;
-}
-\end{lstlisting}
-
-Listing~\ref{lst:return} shows the pseudo-code for a return. It first
-retrieves the return base and does the appropriate cache handling. It
-then adds the cache offset and the return offset and assigns the sum
-to the internal program counter, from which execution continues.
-
-\begin{lstlisting}[language=C,mathescape=true,float=t,caption={Return\label{lst:return}}]
-ret() {
-  // Retrieve return base
-  base = sb;
-  // Cache look-up and load
-  coff = offset(sb);
-  if (!hit(base)) memcpy(cache[coff], mem[base], mem[base-4]);
-  // Update PC
-  PC$_{cache}$ = coff+so;
-}
-\end{lstlisting}
-
-The pseudo-code for a PC-relative \texttt{brcf} is shown in
-Listing~\ref{lst:brcfrel}. It is similar to the call, but does not
-store any return information. However, before being able to do any
-cache handling, it has to compute the actual address, given by
-\code{base-coff+PC$_{cache}$+off}. Even when precomputing
-\code{base-coff}, this includes two additions that increase the
-hardware overhead.
-
-\begin{lstlisting}[language=C,mathescape=true,float=t,caption={PC-relative \texttt{brcf}\label{lst:brcfrel}}]
-brcf(off) {
-  // Compute actual address
-  addr = base-coff+PC$_{cache}$+off;
-  // Remember base address
-  base = addr;
-  // Cache look-up and load
-  coff = offset(addr);
-  if (!hit(base)) memcpy(cache[coff], mem[base], mem[base-4]);
-  // Update PC
-  PC$_{cache}$ = coff;
-}
-\end{lstlisting}
-
-Listing~\ref{lst:brcfabs} shows the pseudo-code for \texttt{brcf} with
-absolute addressing. It avoids the address computation of the
-PC-relative \texttt{brcf} and thus reduces the hardware overhead.
-
-\begin{lstlisting}[language=C,mathescape=true,float=t,caption={Absolute \texttt{brcf}\label{lst:brcfabs}}]
-brcf(addr) {
-  // Cache look-up and load
-  base = addr;
-  coff = offset(addr);
-  if (!hit(base)) memcpy(cache[coff], mem[base], mem[base-4]);
-  // Update PC
-  PC$_{cache}$ = coff;
-}
-\end{lstlisting}
-
-The argument for base-relative indirect branches is more subtle. In
-any case, the instruction requires an addition or subtraction
-(absolute: \code{PC$_{cache}$ = addr-base+coff}, base-relative:
-\code{PC$_{cache}$ = addr+coff}, PC-relative: \code{PC$_{cache}$ =
-  PC$_{cache}$+addr}). The address information for indirect branches
-only becomes available in the execute stage, because the value might
-require forwarding. Keeping this addition as cheap as possible avoids
-putting stress on the timing of the path from the execute stage to the
-fetch stage. Of the three variants, the addition \code{addr+coff} is
-``cheapest'', because the lowest bits of \code{coff} are cleared due
-to the guaranteed alignment of functions to cache blocks in the method
-cache.
-
-\stefan{I am kind of OK-ish with changing brcf immediate to absolute, if it is absolutely necessary (assuming that we do not need to address
-code above 16MB, otherwise we cannot use an immediate absolute brcf!), though I do not really want to touch that code in the tool chain and 
-loose compatibility with a3 again (if someone else takes care of all that, feel free to go ahead though ;) ).}
-
-\wolf{Regarding the size limitation: If the code grows above 16MB, we
-  have to issue indirect calls as well. I don't see a real problem
-  with issuing indirect \texttt{brcfs} in that case (there is a
-  reserved scratch register somewhere, right?). The change in the tool
-  chain is -- unless I am missing something big -- roughly 5 lines of
-  code to give the instruction a different relocation type. Losing
-  compatibility with a3 is an issue, but my guess would be that the
-  changes on their side are similarly simple.}
-
-\stefan{The advantage of PC indirect brcf is that even if we have code above 16MB (the code does not need to be that large,
-it might just be a result of the address mapping), we might still simply assume not to have any single function larger than 
-8MB. In this case, we only need to take care of \texttt{call}, not of \texttt{brcf}. 
-
-From a compiler point of view, \texttt{br} and \texttt{brcf} really are the same. Any difference there just introduces some more complexity
-to the function splitter (as it needs to track code sizes and generated code carefully). Since we already have the absolute immediate
-relocation type though, the change is indeed not a big one (assuming no code above 16MB).}
-
-\stefan{However, I strongly oppose changing any of the indirect branches to anything else than absolute, it makes quite a mess 
-in the compiler backend and the linker (and probably the analysis). The problem here are jump tables, which are 
-kind of outside of the function and have no clear reference to the function, making the calculation of any base offset in the linker quite
-complicated (you need to introduce a new relocation type, change the relocation type of the jump table symbols depending on the way they are
-used, and calculate the symbol value in the linker by finding the (already relocated!) surrounding sub-function symbol).}
-
-\wolf{The base-relative address difference does not need ``real''
-  relocation, because basic blocks always have the same distance to
-  the function entry. Everything you need in the linker is already
-  there for the \texttt{.fsize} and \texttt{.size} directives. I am
-  not sure how much trouble it is to have LLVM emit the difference of
-  two symbols for jump tables, but it is definitely possible. That
-  being said, I could live with leaving indirect branches as they are,
-  I just don't think that it's the most efficient solution.}
-  
-\martin{I'm with Wolfgang on the timing issue of having two
-additions (one operand coming from the register forward path)
-going into the dual issue fetch stage is an issue.
-
-If we really want to avoid changing the br indirect right now,
-a work around would be to make it a two cycle stalling instruction.}
-
-\stefan{How about pre-calculating \code{coff-base} at \texttt{call}/\texttt{brcf}/\texttt{ret}? It costs one 32bit register (or
-30bit assuming alignment) and an additional op at those instructions, but saves the second subtract at \texttt{br} (note that we cannot 
-use the second ALU for a \texttt{call} and most likely never will use it for \texttt{brcf} as long as it has one cycle more than \texttt{br}
-since it is only introduced after the scheduler and replaces a \texttt{br}).} 
-
-\wolf{Precalculating is what we should anyway if we keep things as
-  they are. Still, all bits of the addend \code{coff-base} are
-  significant, while \texttt{coff} has its lowest bits
-  cleared. Imagine a method cache with 32KB and 128 functions. With
-  word addressing, PC$_{cache}$ and \texttt{coff} would be 13
-  bits. The lowest 6 bits of \texttt{coff} would be guaranteed zero
-  due to alignment. Consequently, the complexity of the addition is
-  almost cut in half (13 significant bits vs 7 significant bits).
-
-  What do you mean exactly with ``we cannot use the second ALU for a
-  \texttt{call}''?}
-
-\stefan{Due to the fixed size of the call delay slot, we are never allowed to issue anything in parallel with a call anyway, so from my
-naive point of view we should have the second ALU available to do the precalculation ;) }
-
-\wolf{I almost forgot about that restriction. I think it should be
-  dropped. The hardware can handle dual-issue bundles in the delay
-  slot, and the simulator should be okay with it too.}
-
-\stefan{Another reason apart from the linker issue is that debugging becomes harder, as
-the binary no longer contains absolute addresses at jump tables, but one has to know the base of the current sub-function (which is usually
-not obvious from just looking at the disassembly) and add the values to get the actual target addresses, and you cannot grep for the
-addresses in the disassembly easily. Debugging some jump table/method cache related bugs in the compiler backend is already quite painful as it is..}
-
-\wolf{As the actual implementation is different than what I expected,
-  I drop my request for base-relative indirect branches. My request
-  for making \code{brcf} with immediates absolute still stands.}
-
-\subsection{Non-delayed Branches}
-
-Delayed branches are a good means to hide the costs of branching.
-However, the compiler is not always able to fill the delay slots. In
-these cases, even a primitive strategy such as predict-not-taken
-provides better performance. Predict-not-taken has very little
-hardware overhead and can be modeled easily in an exact manner for
-WCET analysis. By introducing an \emph{additional} instruction for
-non-delayed immediate branches, Patmos can gain from the advantages of
-both delayed and non-delayed branches.
-
-Furthermore, having a non-delayed branch instructions enables research
-towards time-predictable branch-prediction schemes. Depending on our
-future findings, predict-not-taken could be replaced by
-predict-backward-taken or time-predictable forms of dynamic branch
-prediction to further improve both performance and WCET bounds.
-
-\stefan{But this would introduce the need to take care of exceptions in hardware that might
-arise due to a mis-predicted branch, e.g., due to a load at the beginning of
-the fallthrough target, right?}
-
-\wolf{Nope. A mispredicted branch is detected in the execute stage and
-  flushes the instructions that are currently in the fetch and the
-  decode stage. The flushed instructions never make it to the execute
-  stage, which would be the earliest place where any effect could
-  become visible.}
-  
-\martin{Very much in favor to this addition.}
-
-\stefan{Also agree, and I would like to have this for both \texttt{br} and \texttt{brcf} (function splitter ...). This could 
-at least save quite some code space and reduce the overestimations in the function splitter quite a lot.
-
-We should really get a proper scheduler though to support this properly, the current delay slot filler is getting more and more 
-scary..}
-
-\wolf{Non-delayed \texttt{brcf} should be okay, the stages that need
-  to be flushed are the same as for interrupts.}
-
-\subsection{Issue Memory Operations in any Pipeline}
-
-Allow stack cache accesses, maybe even any memory access in the second pipeline, as long as there is no memory access to the same 
-memory executed in the first pipeline.
-
-\begin{lstlisting}
-  { (p1) sws [1] = $r1  ; (!p1) sws [3] = $r2 }   # allowed, only one predicate is true
-  {      swc [r1] = $r4 ;       sws [2] = $r4 }   # allowed, different memories
-  {      br  -4         ;       swl [$r1] = $r2 } # could also be allowed
-  {      ret            ;       swc [$r1] = $r2 } # could also be allowed
-  {      sws [4] = $r1  ;       sws [5] = $r2  }  # not allowed
-\end{lstlisting}
-
-\subsubsection{Costs and Benefits}
-
-In contrast to the original plan, we do not need to have a double-clocked stack cache, but are still able to spill in the second
-pipeline while the first pipeline is either accessing main memory or doing control flow, and we can schedule if-converted code and
-single-path code more in parallel.
-
-While this does not improve the situation for blocks with large sequences of spills,
-e.g. at prologues and epilogues, it might improve the situation for code with lots of control-flow or if-converted code, even in
-situations where a double-clocked stack cache access alone does not help.
-
-\stefan{I frankly do not know how much this will actually gain since usually the code contains either
-main memory access or stack access, not so much a mixture of both, and we need a proper scheduler and play around with the if-converter first to
-see how much ILP we can get out of the code. 
-
-Martin promised to take a real serious look at it when we can get some figures showing a gain from the compiler.. ;) }
-
-\wolf{I oppose this change. It's quite a bit of hardware, and
-  performance gains are most likely negligible. There is not much else
-  to do in the prologue/epilogue, and stack accesses are relatively
-  rare elsewhere. If you can show a realistic example where
-  performance gains are significant, I might change my mind.
-
-  Note that we cannot mix XXc and XXm, because both might go to main
-  memory in case of a cache miss. Stack control and
-  \texttt{call}/\texttt{brcf} conflict with both XXc and XXm.}
-
-\subsection{Interrupts and Exceptions}
-
-See Section~\ref{sec:exc} for the proposed implementation and changes
-to the ISA to support interrupts and exceptions in Patmos.
 
 \chapter{The Architecture of Patmos}
 \label{sec:arch}
@@ -3849,6 +3439,417 @@ mts $s3 = $r23
 the return-base and return-offset from,..). Interrupt handlers in C are currently not supported, 
 the compiler does not restore all the special registers for normal functions.}
 
+
+
+
+\chapter{Pending Changes}
+
+This is a live and temporary section that lists pending changes of the ISA.
+This changes shall live in a remote branch (to be specified) and have a
+date when to be merged into the master branch.
+
+Currently we have following proposals for a change:
+
+\begin{itemize}
+\item bcopy instruction
+\item btest and bcopy with an immediate
+\item Automatic save of method base in a special register for a call
+\item Branch into subfunction
+\item Revised branch addressing modes
+\item Non-delayed branches
+\item Issue memory operations from any pipeline
+\item Interrupts
+\end{itemize}
+
+Remote branch: \texttt{isa\_rev}
+
+Merge date: 15 August 2013 (?)
+
+\subsection{\texttt{bcopy}/\texttt{btest}}
+
+Semantically, \texttt{bcopy} is the ``inverse'' to \texttt{btest}, such that it
+allows to copy the value of a predicate register to a position in a 32-bit
+register. This instruction should be used for
+\begin{enumerate}
+  \item \texttt{mov Rd $\leftarrow$ Ps \ldots{} bcopy Rd $\leftarrow$ Ps, r0}\\
+        Currently, LLVM generates a two-instruction sequence
+        \texttt{clr Rd; (Ps) li Rd $\leftarrow$ 1} for
+        for extending a 1 bit register to a 32 bit register.
+  \item Predicate register spilling.
+\end{enumerate}
+
+To avoid the requirement for an additional temporary 32-bit register,
+particularly for register spill/restore, variants of bcopy and btest with a
+5-bit immediate operand are beneficial.
+
+\subsection{Special Registers for Return Information}
+
+In order to support exceptions (see Section~\ref{sec:exc}), it is
+necessary that the base address of the current function is available
+\emph{at any time}. Otherwise, it could not be guaranteed that an
+interrupt handler is able to return to the correct
+function. Consequently, the \texttt{call} and \texttt{brcf} functions
+must store the base address in some hardware register. This makes the
+return-base information in register \texttt{r30} redundant and it
+could be replaced by an appropriate special return base register
+\texttt{sb} with minimal effort. One can then go even further and move
+the functionality of register \texttt{r31} to a special register
+\texttt{so} to free up another general-purpose register.
+
+\stefan{This is actually how we had it in the first ISA version, but Martin wanted to get rid of 
+the special registers.. ;) }
+
+\stefan{Note that we could still make this part of the ABI: we can simply require that \texttt{r30} is 
+never used for something else and must always contain the valid base address (this is the case at the moment 
+except for (sub)functions that do not have calls inside, can be changed easily). The bigger issue I see is
+that there are problems when the interrupt appears between the \texttt{call} and the \texttt{ldi} that sets 
+\texttt{r30} (they cannot be bundled), and a scheduler might further move the load around.}
+
+\wolf{The latter issue is exactly the problem. The hardware needs to
+  keep track of the base whenever a \texttt{call}, \texttt{brcf} or
+  \texttt{ret} is executed to be able to return from interrupts at any
+  time. The question is if we move the current base to a visible
+  register upon calls to serve as return base. It is not necessary,
+  but why keep track of the base both in hardware and in software?
+  Note that the hardware does not need to expose the current base,
+  only the return base would be made visible.}
+  
+\martin{Agree on that.}
+
+\stefan{And I was so happy not to have both \texttt{S0} and \texttt{SO} in the compiler anymore ;) I would suggest to call them 
+\texttt{srb} and \texttt{sro} instead (for return base and return offset, which they actually are).}
+
+\wolf{Agree for \texttt{srb} and \texttt{sro}.}
+
+\subsubsection{Costs and Benefits}
+
+For functions that call other functions, the change saves one
+instruction to set the base address, and adds two instructions to both
+the prologue and the epilogue. On the other hand, the change frees up
+two general-purpose registers, which can avoid spilling and lead to
+more efficient code.
+
+\stefan{It also saves some logic in the function splitter to calculate
+the code size increase due to the requirement to set the base address in all
+new sub-functions that contain a call.}
+
+\subsection{Branch into Subfunction Instruction}
+
+\stefan{In order to eliminate the current restriction of having only single-entry subfunctions, 
+I would suggest to make \texttt{brcf} indirect accept both an (absolute) base address, as well 
+as an offset. Using \texttt{r0} for the offset makes \texttt{brcf} behave similar to now. 
+
+At the moment we could also use \texttt{ret} for the same purpose, but this has two disadvantages:
+\texttt{call} and \texttt{ret} would no longer appear in pairs, making call graph reconstruction more complicated 
+(needs compiler support to tell the WCET analysis which \texttt{ret} is actually used as return), and it
+does not work nicely if we change \texttt{ret} to use special registers.}
+
+\wolf{If I understand correctly, indirect \texttt{brcf} would then do
+  exactly the same thing as \texttt{ret} does currently, except that
+  it gets a different opcode. I don't see a problem with that from the
+  hardware perspective.}
+
+\stefan{Correct. With moving return infos to special registers, \texttt{ret} would become different from \texttt{brcf} though as 
+\texttt{ret} would use \texttt{srb} and \texttt{sro}, I presume, while \texttt{brcf} always uses two GPRs.}
+
+\subsubsection{Costs and Benefits}
+
+Much of the complexity and restrictions of the function splitter are eliminated (jump tables
+still have to be handled carefully, though we in theory we could even support having jump table entries 
+anywhere in any region), without resorting to misuse \texttt{ret}. It works regardless of whether return information
+is stored in special registers or GPRs.
+
+To make use of this feature, the function splitter needs a major rewrite though. 
+Note that as long only \texttt{r0} is used for the offset, no changes to the compiler or the WCET analysis are required.
+
+\stefan{It also moves \texttt{brcf} from \texttt{CFLi} to \texttt{CFLr}, which makes the naming of the formats less intuitive 
+(although having \texttt{CFLi} for register operands is not good anyway, as we usually use \texttt{i} for immediate).}
+
+\wolf{I guess the naming of the formats is not our biggest concern ;-)}
+
+\subsection{Revised Branch Addressing Modes}
+
+\wolf{I propose to change the branch addressing modes as shown in
+  Table~\ref{tab:braddr}.}
+
+\begin{table}
+  \centering
+  \begin{tabular}{lllll}
+    \toprule
+    Instruction & Immediate             & Indirect                   & Cache fill & Link \\
+    \midrule
+    call        & absolute              & absolute                   & yes        & yes \\
+    br          & PC relative           & \color{red}{base relative} & no         & no \\
+    brcf        & \color{red}{absolute} & absolute                   & yes        & no \\
+    \bottomrule
+  \end{tabular}
+  \caption{Revised branch addressing modes}
+  \label{tab:braddr}
+\end{table}
+
+\subsubsection{Rationale}
+
+With a method cache, there are two distinct views of the program
+counter: the program counter to address the cache memory
+(PC$_{cache}$), and the address of the respective instruction in
+memory (PC$_{mem}$). When loading instructions from memory
+(\code{call}, \code{brcf}), PC$_{mem}$ is relevant, because it
+specifies from where data should be loaded. However, when execution
+remains within a function (\code{br}), only PC$_{cache}$ is taken into
+account.
+
+Listing~\ref{lst:call} shows the pseudo-code for a call (using special
+registers \texttt{sb} and \texttt{so} for the return
+information). First, it stores the return information, and remembers
+the new base address. Then, it retrieves the offset into the cache for
+the function to be called and if necessary copies the instructions
+into the cache. Finally, it updates the internal program counter and
+continues execution from there.
+
+\martin{I do not understand those listing fully. E.g. what those variables
+are: intern registers, special registers,... However, I very much appreciate
+this pseudo code. That should then go into the `normal' ISA description as
+well.}
+
+\begin{lstlisting}[language=C,mathescape=true,float=t,caption={Call\label{lst:call}}]
+call(addr) {
+  // Store return information
+  sb = base;
+  so = PC$_{cache}$;  
+  // Remember base address
+  base = addr;
+  // Cache look-up and load
+  coff = offset(addr);
+  if (!hit(base)) memcpy(cache[coff], mem[base], mem[base-4]);
+  // Update PC
+  PC$_{cache}$ = coff;
+}
+\end{lstlisting}
+
+Listing~\ref{lst:return} shows the pseudo-code for a return. It first
+retrieves the return base and does the appropriate cache handling. It
+then adds the cache offset and the return offset and assigns the sum
+to the internal program counter, from which execution continues.
+
+\begin{lstlisting}[language=C,mathescape=true,float=t,caption={Return\label{lst:return}}]
+ret() {
+  // Retrieve return base
+  base = sb;
+  // Cache look-up and load
+  coff = offset(sb);
+  if (!hit(base)) memcpy(cache[coff], mem[base], mem[base-4]);
+  // Update PC
+  PC$_{cache}$ = coff+so;
+}
+\end{lstlisting}
+
+The pseudo-code for a PC-relative \texttt{brcf} is shown in
+Listing~\ref{lst:brcfrel}. It is similar to the call, but does not
+store any return information. However, before being able to do any
+cache handling, it has to compute the actual address, given by
+\code{base-coff+PC$_{cache}$+off}. Even when precomputing
+\code{base-coff}, this includes two additions that increase the
+hardware overhead.
+
+\begin{lstlisting}[language=C,mathescape=true,float=t,caption={PC-relative \texttt{brcf}\label{lst:brcfrel}}]
+brcf(off) {
+  // Compute actual address
+  addr = base-coff+PC$_{cache}$+off;
+  // Remember base address
+  base = addr;
+  // Cache look-up and load
+  coff = offset(addr);
+  if (!hit(base)) memcpy(cache[coff], mem[base], mem[base-4]);
+  // Update PC
+  PC$_{cache}$ = coff;
+}
+\end{lstlisting}
+
+Listing~\ref{lst:brcfabs} shows the pseudo-code for \texttt{brcf} with
+absolute addressing. It avoids the address computation of the
+PC-relative \texttt{brcf} and thus reduces the hardware overhead.
+
+\begin{lstlisting}[language=C,mathescape=true,float=t,caption={Absolute \texttt{brcf}\label{lst:brcfabs}}]
+brcf(addr) {
+  // Cache look-up and load
+  base = addr;
+  coff = offset(addr);
+  if (!hit(base)) memcpy(cache[coff], mem[base], mem[base-4]);
+  // Update PC
+  PC$_{cache}$ = coff;
+}
+\end{lstlisting}
+
+The argument for base-relative indirect branches is more subtle. In
+any case, the instruction requires an addition or subtraction
+(absolute: \code{PC$_{cache}$ = addr-base+coff}, base-relative:
+\code{PC$_{cache}$ = addr+coff}, PC-relative: \code{PC$_{cache}$ =
+  PC$_{cache}$+addr}). The address information for indirect branches
+only becomes available in the execute stage, because the value might
+require forwarding. Keeping this addition as cheap as possible avoids
+putting stress on the timing of the path from the execute stage to the
+fetch stage. Of the three variants, the addition \code{addr+coff} is
+``cheapest'', because the lowest bits of \code{coff} are cleared due
+to the guaranteed alignment of functions to cache blocks in the method
+cache.
+
+\stefan{I am kind of OK-ish with changing brcf immediate to absolute, if it is absolutely necessary (assuming that we do not need to address
+code above 16MB, otherwise we cannot use an immediate absolute brcf!), though I do not really want to touch that code in the tool chain and 
+loose compatibility with a3 again (if someone else takes care of all that, feel free to go ahead though ;) ).}
+
+\wolf{Regarding the size limitation: If the code grows above 16MB, we
+  have to issue indirect calls as well. I don't see a real problem
+  with issuing indirect \texttt{brcfs} in that case (there is a
+  reserved scratch register somewhere, right?). The change in the tool
+  chain is -- unless I am missing something big -- roughly 5 lines of
+  code to give the instruction a different relocation type. Losing
+  compatibility with a3 is an issue, but my guess would be that the
+  changes on their side are similarly simple.}
+
+\stefan{The advantage of PC indirect brcf is that even if we have code above 16MB (the code does not need to be that large,
+it might just be a result of the address mapping), we might still simply assume not to have any single function larger than 
+8MB. In this case, we only need to take care of \texttt{call}, not of \texttt{brcf}. 
+
+From a compiler point of view, \texttt{br} and \texttt{brcf} really are the same. Any difference there just introduces some more complexity
+to the function splitter (as it needs to track code sizes and generated code carefully). Since we already have the absolute immediate
+relocation type though, the change is indeed not a big one (assuming no code above 16MB).}
+
+\stefan{However, I strongly oppose changing any of the indirect branches to anything else than absolute, it makes quite a mess 
+in the compiler backend and the linker (and probably the analysis). The problem here are jump tables, which are 
+kind of outside of the function and have no clear reference to the function, making the calculation of any base offset in the linker quite
+complicated (you need to introduce a new relocation type, change the relocation type of the jump table symbols depending on the way they are
+used, and calculate the symbol value in the linker by finding the (already relocated!) surrounding sub-function symbol).}
+
+\wolf{The base-relative address difference does not need ``real''
+  relocation, because basic blocks always have the same distance to
+  the function entry. Everything you need in the linker is already
+  there for the \texttt{.fsize} and \texttt{.size} directives. I am
+  not sure how much trouble it is to have LLVM emit the difference of
+  two symbols for jump tables, but it is definitely possible. That
+  being said, I could live with leaving indirect branches as they are,
+  I just don't think that it's the most efficient solution.}
+  
+\martin{I'm with Wolfgang on the timing issue of having two
+additions (one operand coming from the register forward path)
+going into the dual issue fetch stage is an issue.
+
+If we really want to avoid changing the br indirect right now,
+a work around would be to make it a two cycle stalling instruction.}
+
+\stefan{How about pre-calculating \code{coff-base} at \texttt{call}/\texttt{brcf}/\texttt{ret}? It costs one 32bit register (or
+30bit assuming alignment) and an additional op at those instructions, but saves the second subtract at \texttt{br} (note that we cannot 
+use the second ALU for a \texttt{call} and most likely never will use it for \texttt{brcf} as long as it has one cycle more than \texttt{br}
+since it is only introduced after the scheduler and replaces a \texttt{br}).} 
+
+\wolf{Precalculating is what we should anyway if we keep things as
+  they are. Still, all bits of the addend \code{coff-base} are
+  significant, while \texttt{coff} has its lowest bits
+  cleared. Imagine a method cache with 32KB and 128 functions. With
+  word addressing, PC$_{cache}$ and \texttt{coff} would be 13
+  bits. The lowest 6 bits of \texttt{coff} would be guaranteed zero
+  due to alignment. Consequently, the complexity of the addition is
+  almost cut in half (13 significant bits vs 7 significant bits).
+
+  What do you mean exactly with ``we cannot use the second ALU for a
+  \texttt{call}''?}
+
+\stefan{Due to the fixed size of the call delay slot, we are never allowed to issue anything in parallel with a call anyway, so from my
+naive point of view we should have the second ALU available to do the precalculation ;) }
+
+\wolf{I almost forgot about that restriction. I think it should be
+  dropped. The hardware can handle dual-issue bundles in the delay
+  slot, and the simulator should be okay with it too.}
+
+\stefan{Another reason apart from the linker issue is that debugging becomes harder, as
+the binary no longer contains absolute addresses at jump tables, but one has to know the base of the current sub-function (which is usually
+not obvious from just looking at the disassembly) and add the values to get the actual target addresses, and you cannot grep for the
+addresses in the disassembly easily. Debugging some jump table/method cache related bugs in the compiler backend is already quite painful as it is..}
+
+\wolf{As the actual implementation is different than what I expected,
+  I drop my request for base-relative indirect branches. My request
+  for making \code{brcf} with immediates absolute still stands.}
+
+\subsection{Non-delayed Branches}
+
+Delayed branches are a good means to hide the costs of branching.
+However, the compiler is not always able to fill the delay slots. In
+these cases, even a primitive strategy such as predict-not-taken
+provides better performance. Predict-not-taken has very little
+hardware overhead and can be modeled easily in an exact manner for
+WCET analysis. By introducing an \emph{additional} instruction for
+non-delayed immediate branches, Patmos can gain from the advantages of
+both delayed and non-delayed branches.
+
+Furthermore, having a non-delayed branch instructions enables research
+towards time-predictable branch-prediction schemes. Depending on our
+future findings, predict-not-taken could be replaced by
+predict-backward-taken or time-predictable forms of dynamic branch
+prediction to further improve both performance and WCET bounds.
+
+\stefan{But this would introduce the need to take care of exceptions in hardware that might
+arise due to a mis-predicted branch, e.g., due to a load at the beginning of
+the fallthrough target, right?}
+
+\wolf{Nope. A mispredicted branch is detected in the execute stage and
+  flushes the instructions that are currently in the fetch and the
+  decode stage. The flushed instructions never make it to the execute
+  stage, which would be the earliest place where any effect could
+  become visible.}
+  
+\martin{Very much in favor to this addition.}
+
+\stefan{Also agree, and I would like to have this for both \texttt{br} and \texttt{brcf} (function splitter ...). This could 
+at least save quite some code space and reduce the overestimations in the function splitter quite a lot.
+
+We should really get a proper scheduler though to support this properly, the current delay slot filler is getting more and more 
+scary..}
+
+\wolf{Non-delayed \texttt{brcf} should be okay, the stages that need
+  to be flushed are the same as for interrupts.}
+
+\subsection{Issue Memory Operations in any Pipeline}
+
+Allow stack cache accesses, maybe even any memory access in the second pipeline, as long as there is no memory access to the same 
+memory executed in the first pipeline.
+
+\begin{lstlisting}
+  { (p1) sws [1] = $r1  ; (!p1) sws [3] = $r2 }   # allowed, only one predicate is true
+  {      swc [r1] = $r4 ;       sws [2] = $r4 }   # allowed, different memories
+  {      br  -4         ;       swl [$r1] = $r2 } # could also be allowed
+  {      ret            ;       swc [$r1] = $r2 } # could also be allowed
+  {      sws [4] = $r1  ;       sws [5] = $r2  }  # not allowed
+\end{lstlisting}
+
+\subsubsection{Costs and Benefits}
+
+In contrast to the original plan, we do not need to have a double-clocked stack cache, but are still able to spill in the second
+pipeline while the first pipeline is either accessing main memory or doing control flow, and we can schedule if-converted code and
+single-path code more in parallel.
+
+While this does not improve the situation for blocks with large sequences of spills,
+e.g. at prologues and epilogues, it might improve the situation for code with lots of control-flow or if-converted code, even in
+situations where a double-clocked stack cache access alone does not help.
+
+\stefan{I frankly do not know how much this will actually gain since usually the code contains either
+main memory access or stack access, not so much a mixture of both, and we need a proper scheduler and play around with the if-converter first to
+see how much ILP we can get out of the code. 
+
+Martin promised to take a real serious look at it when we can get some figures showing a gain from the compiler.. ;) }
+
+\wolf{I oppose this change. It's quite a bit of hardware, and
+  performance gains are most likely negligible. There is not much else
+  to do in the prologue/epilogue, and stack accesses are relatively
+  rare elsewhere. If you can show a realistic example where
+  performance gains are significant, I might change my mind.
+
+  Note that we cannot mix XXc and XXm, because both might go to main
+  memory in case of a cache miss. Stack control and
+  \texttt{call}/\texttt{brcf} conflict with both XXc and XXm.}
+
+\subsection{Interrupts and Exceptions}
+
+See Section~\ref{sec:exc} for the proposed implementation and changes
+to the ISA to support interrupts and exceptions in Patmos.
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 \chapter{Potential Extensions}
