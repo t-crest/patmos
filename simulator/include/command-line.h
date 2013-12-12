@@ -57,6 +57,7 @@ namespace patmos
   {
     SAC_IDEAL,
     SAC_NO,
+    SAC_DM,
     SAC_LRU,
     SAC_FIFO
   };
