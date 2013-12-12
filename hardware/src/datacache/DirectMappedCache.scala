@@ -87,17 +87,17 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
   val wrAddrReg = Reg(Bits(width = addrBits))
   val wrDataReg = Reg(Bits(width = DATA_WIDTH))
 
-  wrAddrReg := masterReg.Addr(addrBits + 1, 2)
-  wrDataReg := masterReg.Data
+  wrAddrReg := io.master.M.Addr(addrBits + 1, 2)
+  wrDataReg := io.master.M.Data
 
   // Write to cache; store only updates what's already there
-  when(fillReg || (tagValidReg && stmskReg(0))) { mem0(wrAddrReg) :=
+  when(fillReg || (tagValid && stmsk(0))) { mem0(wrAddrReg) :=
 												 wrDataReg(BYTE_WIDTH-1, 0) }
-  when(fillReg || (tagValidReg && stmskReg(1))) { mem1(wrAddrReg) :=
+  when(fillReg || (tagValid && stmsk(1))) { mem1(wrAddrReg) :=
 												 wrDataReg(2*BYTE_WIDTH-1, BYTE_WIDTH) }
-  when(fillReg || (tagValidReg && stmskReg(2))) { mem2(wrAddrReg) :=
+  when(fillReg || (tagValid && stmsk(2))) { mem2(wrAddrReg) :=
 												 wrDataReg(3*BYTE_WIDTH-1, 2*BYTE_WIDTH) }
-  when(fillReg || (tagValidReg && stmskReg(3))) { mem3(wrAddrReg) :=
+  when(fillReg || (tagValid && stmsk(3))) { mem3(wrAddrReg) :=
 												 wrDataReg(DATA_WIDTH-1, 3*BYTE_WIDTH) }
 
   // Read from cache

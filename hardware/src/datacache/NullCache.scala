@@ -31,9 +31,9 @@
  */
 
 /*
- * The data cache unit for Patmos
+ * A no-op cache
  *
- * Author: Wolfgang Puffitsch (wpuffitsch@gmail.com)
+ * Authors: Wolfgang Puffitsch (wpuffitsch@gmail.com)
  */
 
 package datacache
@@ -45,47 +45,60 @@ import patmos.Constants._
 
 import ocp._
 
-class DataCache extends Module {
+class NullCache() extends Module {
   val io = new Bundle {
-	val master = new OcpCacheSlavePort(ADDR_WIDTH, DATA_WIDTH)
-	val slave = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+	val master = new OcpCoreSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
+	val slave = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
   }
 
-  // Register selects
-  val selDC = io.master.M.AddrSpace === OcpCache.DATA_CACHE
-  val selDCReg = Reg(init = Bool(false))
-  when(io.master.M.Cmd != OcpCmd.IDLE) {
-	selDCReg := selDC
+  val burstAddrBits = log2Up(BURST_LENGTH)
+  val byteAddrBits = log2Up(DATA_WIDTH/8)
+
+  // State machine for read bursts
+  val idle :: read :: readResp :: Nil = Enum(UInt(), 3)
+  val stateReg = Reg(init = idle)
+  val burstCntReg = Reg(init = UInt(0, burstAddrBits))
+  val posReg = Reg(init = Bits(0, burstAddrBits))
+
+  // Register for master signals
+  val masterReg = Reg(next = io.master.M)
+
+  // Register to delay response
+  val slaveReg = Reg(init = OcpSlaveSignals.resetVal(io.master.S))
+
+  // Default values
+  io.slave.M.Cmd := OcpCmd.IDLE
+  io.slave.M.Addr := Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, burstAddrBits+byteAddrBits),
+						 Fill(Bits(0), burstAddrBits+byteAddrBits))
+  io.slave.M.Data := Bits(0)
+  io.slave.M.DataValid := Bits(0)
+  io.slave.M.DataByteEn := Bits(0)
+
+  io.master.S.Resp := OcpResp.NULL
+  io.master.S.Data := Bits(0)
+
+  // Wait for response
+  when(stateReg === read) {
+	when(io.slave.S.Resp === OcpResp.DVA) {
+	  when(burstCntReg === posReg) {
+		slaveReg := io.slave.S
+	  }
+	  when(burstCntReg === UInt(BURST_LENGTH-1)) {
+		stateReg := readResp
+	  }
+	  burstCntReg := burstCntReg + UInt(1)
+	}
+  }
+  // Pass data to master
+  when(stateReg === readResp) {
+	io.master.S := slaveReg
+	stateReg := idle
   }
 
-  // Instantiate direct-mapped cache for regular data cache
-  val dm = Module(new DirectMappedCache(DCACHE_SIZE, BURST_LENGTH*BYTES_PER_WORD))
-  dm.io.master.M := io.master.M
-  dm.io.master.M.Cmd := Mux(selDC || io.master.M.Cmd === OcpCmd.WR,
-							io.master.M.Cmd, OcpCmd.IDLE)
-  val dmS = dm.io.master.S
-
-  // Instantiate bridge for bypasses and writes
-  val bp = Module(new NullCache())
-  bp.io.master.M := io.master.M
-  bp.io.master.M.Cmd := Mux(!selDC, io.master.M.Cmd, OcpCmd.IDLE)
-  val bpS = bp.io.master.S
-
-  // Join read requests
-  val burstReadBus = Module(new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
-  val burstReadJoin = new OcpBurstJoin(dm.io.slave, bp.io.slave, burstReadBus.io.slave)
-
-  // Combine writes
-  val wc = Module(new WriteCombineBuffer())
-  wc.io.readMaster <> burstReadBus.io.master
-  wc.io.writeMaster.M := io.master.M
-  val wcWriteS = wc.io.writeMaster.S
-  io.slave <> wc.io.slave
-
-  // Pass data to pipeline
-  io.master.S.Data := bpS.Data
-  when(selDCReg) { io.master.S.Data := dmS.Data }
-
-  // Merge responses
-  io.master.S.Resp := dmS.Resp | bpS.Resp | wcWriteS.Resp
+  // Start a read burst
+  when(masterReg.Cmd === OcpCmd.RD) {
+	io.slave.M.Cmd := OcpCmd.RD
+	stateReg := read
+	posReg := masterReg.Addr(burstAddrBits+byteAddrBits-1, byteAddrBits)
+  }
 }
