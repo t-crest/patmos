@@ -3033,6 +3033,8 @@ sudo apt-get install openjdk-7-jdk git gitk cmake make g++ texinfo flex bison \
   gtkwave
 \end{verbatim}
 
+\todo{Any additional packages needed for Aegean?}
+
 For the Quartus setup it is best to change the default shall to \code{/bin/bash}:
 
 \begin{verbatim}
@@ -3097,6 +3099,14 @@ tar xvf Quartus-web-xxx.tar
 
 The software installation is started with a plain \code{setup.sh}. Then add
 the bin directory of Quartus to your \$PATH.
+
+\section{Setup On Mac OS X}
+
+Several tools are needed, best installed with MacPorts. For Patmos simulator and assembler:
+\code{boost}, \code{libelf}.
+For simulation with ModelSim: \code{wine}
+For Poseidon: python33, py33-lxml. Make a link from python3 to python3.3 as this is the way it is invoked.
+\todo{Alex suggested a way to avoid this by querying how to invoke python.}
 
 \section{Hello World}
 
