@@ -220,11 +220,14 @@ namespace patmos
     instruction_stats_t Instruction_stats[NUM_SLOTS];
 
     /// Count number of pipeline bubbles retired.
-    unsigned int Num_bubbles_retired[NUM_SLOTS];
+    uint64_t Num_bubbles_retired[NUM_SLOTS];
 
     /// Number of stall cycles per pipeline stage
-    unsigned int Num_stall_cycles[NUM_STAGES];
+    uint64_t Num_stall_cycles[NUM_STAGES];
 
+    /// Number of NOPs executed
+    uint64_t Num_NOPs;
+    
     /// Profiling information for function profiling
     profiling_t Profiling;
 

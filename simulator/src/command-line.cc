@@ -101,6 +101,22 @@ namespace patmos
     {
       dck.policy = SAC_NO;
     }
+    else if(kind == "dm")
+    {
+      dck.policy = SAC_DM;
+    }
+    else if(kind == "lru")
+    {
+      dck.policy = SAC_LRU;
+      dck.associativity = 0;
+      return in;
+    }
+    else if(kind == "fifo")
+    {
+      dck.policy = SAC_FIFO;
+      dck.associativity = 0;
+      return in;
+    }
     else if(kind.substr(0,3) == "lru")
     {
       dck.policy = SAC_LRU;
@@ -141,10 +157,16 @@ namespace patmos
         os << "ideal"; break;
       case SAC_NO:
         os << "no"; break;
+      case SAC_DM:
+        os << "dm"; break;
       case SAC_LRU:
-        os << "lru" << dck.associativity; break;
+        os << "lru";
+        if (dck.associativity) os << dck.associativity; 
+        break;
       case SAC_FIFO:
-        os << "fifo" << dck.associativity; break;
+        os << "fifo";
+        if (dck.associativity) os << dck.associativity; 
+        break;
     }
 
     return os;
