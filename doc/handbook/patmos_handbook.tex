@@ -166,7 +166,7 @@ ISA design notes now.
 We would like to thank Tommy Thorn for the always intense and enjoyable
 discussions of the Patmos ISA and processor design in general.
 Jack Whitham offered his experience with RISC
-ISA design and trade-offs. 
+ISA design and trade-offs.
 Gernot Gebhard and Christoph Cullmann gave valuable feedback on the ISA
 relative to WCET analysis.
 Sahar Abbaspourseyedi is working on the stack
@@ -351,21 +351,21 @@ registers:
 \begin{itemize}
   \item The lower $8$ bits of \texttt{s0} can be used to save/restore
     \emph{all} predicate registers at once. The other bits of that
-    register are currently reserved, but not used. Setting the reserved 
+    register are currently reserved, but not used. Setting the reserved
 	bits has no effect.
   \item \texttt{s1} can also be accessed through the name \texttt{sm} and
     represents the result of a decoupled load operation. The value is
-    already sign-/zero-extended according to the load instruction. 
+    already sign-/zero-extended according to the load instruction.
   \item \texttt{s2} and \texttt{s3} can also be accessed through the names
     \texttt{sl} and \texttt{sh} and represent the lower and upper
-    32-bits a multiplication. 
-  \item \texttt{s5} can also be accessed through the name \texttt{ss} and 
-    represents the register pointing to the top of the saved stack 
+    32-bits a multiplication.
+  \item \texttt{s5} can also be accessed through the name \texttt{ss} and
+    represents the register pointing to the top of the saved stack
 	content in the main memory (i.e., the current stack spill pointer).
 	Updating \texttt{s5} does not change \texttt{s6} or spill the stack cache.
   \item \texttt{s6} can also be accessed through the name \texttt{st} and
     represents a pointer to the top-most element of the content of the
-    stack cache. 
+    stack cache.
 	Updating \texttt{s6} does not change \texttt{s5} or spill the stack cache.
 \end{itemize}
 
@@ -492,12 +492,12 @@ of the instruction format. Black fields are not used.
       \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{12}{Immediate} \\
     \end{bytefield}
   \item ALUl -- Long Immediate \\[2ex]
-    \begin{bytefield}{32} 
+    \begin{bytefield}{32}
       \bitheader{0-31} \\
       \bitbox{1}{1} & \bitbox{4}{Pred} & \bitbox{5}{11111} &
       \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{5}{\bitsunused} &
       \bitbox{3}{000} & \bitbox{4}{Func} \\
-      \bitheader{0-31} \\ 
+      \bitheader{0-31} \\
       \bitbox{32}{Long Immediate} \\
     \end{bytefield}
   \item ALU -- Arithmetic \\[2ex]
@@ -594,7 +594,7 @@ of the instruction format. Black fields are not used.
           %% \end{leftwordgroup} \\
           %% \begin{leftwordgroup}{\parbox{11em}{Unused}}
           %%   \bitheader{0-31} \\
-          %%   \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} & 
+          %%   \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} &
           %%   \bitbox{15}{\bitssubclass} &
           %%   \bitbox{3}{100} & \bitbox{4}{I/R/F}
           %% \end{leftwordgroup} \\
@@ -668,7 +668,7 @@ of the instruction format. Black fields are not used.
           \end{leftwordgroup} \\
           \begin{leftwordgroup}{\parbox{12em}{CFLi -- Call / Branch Indirect}}
             \bitheader{0-31} \\
-            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{111} & \bitbox{2}{00} & 
+            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{111} & \bitbox{2}{00} &
             \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{8}{\bitsunused} & \bitbox{4}{Op}
           \end{leftwordgroup} \\
           \begin{leftwordgroup}{\parbox{12em}{CFLr -- Return}}
@@ -721,9 +721,9 @@ upper half of that table are available.
     \begin{bytefield}{32}
       \bitheader{0-31} \\
       \bitbox{1}{1} & \bitbox{4}{Pred} & \bitbox{5}{11111} &
-      \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{5}{\bitsunused} & 
+      \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{5}{\bitsunused} &
       \bitbox{3}{000} & \bitbox{4}{Func} \\
-      \bitheader{0-31} \\ 
+      \bitheader{0-31} \\
       \bitbox{32}{Long Immediate} \\
    \end{bytefield}
 \end{itemize}
@@ -822,10 +822,10 @@ destination registers \texttt{sl} and \texttt{sh}.
 \paragraph{Note}
 
 Multiplications are pipelined, it is thus possible to issue one multiplication on
-every cycles. Multiplications can only be issued in the first slot. 
+every cycles. Multiplications can only be issued in the first slot.
 
-\stefan{Not yet final. 64bit support and the special registers for multiply might 
-vanish. Maybe merge mul and mulu into the ALU Func field somehow to kill off the ALUm format? 
+\stefan{Not yet final. 64bit support and the special registers for multiply might
+vanish. Maybe merge mul and mulu into the ALU Func field somehow to kill off the ALUm format?
 We could keep the special register to access the high word and write the low
 word into a GPR when using ALUl format, so we save one mfs per mul.
 (remove this comment when multiply ISA is (somewhat) finalized)}
@@ -963,11 +963,11 @@ a little bit more complex.}
 
 \paragraph{Note}
 The predicate register is read and written in the execute stage.
-All predicate combine instruction mnemonics (including pseudo instructions) are prefixed with \texttt{p}, 
+All predicate combine instruction mnemonics (including pseudo instructions) are prefixed with \texttt{p},
 all other instructions involving predicates are not prefixed (e.g., moving from register to predicate).
 
 \stefan{We have a mov with two registers (\texttt{add}), mov with two predicates (\texttt{por}), a mov from register to
-predicate (\texttt{cmpnez}), as well as mov from register bit to predicate (\texttt{btest}), but we are missing a 
+predicate (\texttt{cmpnez}), as well as mov from register bit to predicate (\texttt{btest}), but we are missing a
 mov from predicate to register (is now a predicated set and predicated clr), and mov from predicate to register bit (is now done with
 bitmasks).}
 
@@ -1129,7 +1129,7 @@ than writable.}
 \wolf{Saving \texttt{sm} can be faked by storing the contents of
   \texttt{sm} to a reserved memory location and loading from there to
   restore it. \texttt{sl} and \texttt{sh} should be writable though.}
-  
+
 \martin{\todo{We should document in which stage each special register
 is read and written.}}
 
@@ -1434,7 +1434,7 @@ spilling other stack frames to main memory. \texttt{sens} ensures that a stack
 frame is entirely loaded to the stack cache, or otherwise refills the stack
 cache as needed. \texttt{sfree} frees space on the stack frame (without any
 other side effect, i.e., no spill/fill is executed).
-\texttt{sspill} writes the tail of the stack cache to main memory and updates the 
+\texttt{sspill} writes the tail of the stack cache to main memory and updates the
 spill pointer.
 
 All immediate stack control operations are carried out assuming word
@@ -1532,20 +1532,20 @@ It is permissible to use several reserve, ensure, and free operations within the
 same function.
 
 
-\stefan{We only need sens and sspill with registers for context-switch. Should we allow a 
+\stefan{We only need sens and sspill with registers for context-switch. Should we allow a
 register version for sres and sfree as well nevertheless (I would say no)?}
 
-\stefan{At the moment, the way it is implemented in the simulator, we have a 1-cycle hazard between 
-any STC instruction and a mfs, and a 1-cycle hazard between any two STC instructions, since STC 
-modifies the special registers in the MW stage, while mfs reads in the EX stage. 
-Is this the same for the hardware? 
+\stefan{At the moment, the way it is implemented in the simulator, we have a 1-cycle hazard between
+any STC instruction and a mfs, and a 1-cycle hazard between any two STC instructions, since STC
+modifies the special registers in the MW stage, while mfs reads in the EX stage.
+Is this the same for the hardware?
 
 This (and all hazards for all other instructions) should be documented here in the TR explicitly, since it is a pain to debug!}
 
 \sahar{Special registers are written/read separately. Is this 1-cycle hazard necessary? What is the reason to add it?}
 
-\stefan{The reason for the hazards is primarily the current implementation of the the simulator, there the special registers 
-are updated separately from the internal stack pointers, which causes the hazards. We should define how the 
+\stefan{The reason for the hazards is primarily the current implementation of the the simulator, there the special registers
+are updated separately from the internal stack pointers, which causes the hazards. We should define how the
 hardware actually behaves, and then the simulator should be updated to reflect that behavior. However, the latter is not quite trivial, I will
 leave that to Florian ;) }
 
@@ -1576,17 +1576,17 @@ fetched to the cache in number of bytes at \textit{\textless base\textgreater-4}
 Immediate call and branch instructions interpret the operand as \emph{unsigned} for function calls, and as \emph{signed}
 for PC-relative branches (\texttt{br}, \texttt{brcf}).
 The target address of PC-relative branches is computed relative to the address of the branch instruction.
-All immediate values are interpreted in \emph{word size}. 
+All immediate values are interpreted in \emph{word size}.
 
 \martin{Is \texttt{brfc} now PC relative or method base relative?}
 
 Indirect call and branch instructions interpret the operand as \emph{unsigned} absolute addresses in \emph{byte size}.
 
-The link/return information provided by \texttt{call} in \texttt{r31} should only be 
-passed to \texttt{ret}. The unit and addressing mode (absolute or function relative) of 
+The link/return information provided by \texttt{call} in \texttt{r31} should only be
+passed to \texttt{ret}. The unit and addressing mode (absolute or function relative) of
 the returned value is implementation dependent (see description of \texttt{ret}).
 
-The following table gives an overview of the addressing modes of the available 
+The following table gives an overview of the addressing modes of the available
 call and branch instructions.
 
 \medskip
@@ -1603,11 +1603,11 @@ call and branch instructions.
 The instructions fetched in the meantime are \emph{not} aborted.
 This corresponds to a branch delay of 2 instructions for \texttt{br} and 3 instructions for \texttt{call}, \texttt{brcf} and \texttt{ret}, which has to be
 respected by the compiler or assembly programmer.
-If no other instructions are available, two single-cycle NOPs can be 
+If no other instructions are available, two single-cycle NOPs can be
 used to fill the delay slots.
 
 Size of the delay slots: The \texttt{call} instructions must have exactly one single-word instruction
-in each delay slot and it must not be bundled with another instruction. 
+in each delay slot and it must not be bundled with another instruction.
 All other control flow instructions (\texttt{br}, \texttt{brcf}, and \texttt{ret})
 can have any valid bundle in their delay slots and can be bundled.
 
@@ -1686,7 +1686,7 @@ for 64 MB code size. We don't need that big immediate for PC relative branches.}
 \paragraph{Behavior -- call, brcf, and system call}
 
 		     Store link information into R31. Method base
-		     is not stored to a visible register (this must be done by the caller, by convention using R30). 
+		     is not stored to a visible register (this must be done by the caller, by convention using R30).
                      Compute cache-relative program counter and update the PC.
 
 \paragraph{Behavior -- branch within cache}
@@ -1696,14 +1696,14 @@ for 64 MB code size. We don't need that big immediate for PC relative branches.}
 
 \paragraph{Implementation Note}
 
-The method cache keeps track of the base address of the current function, i.e., 
+The method cache keeps track of the base address of the current function, i.e.,
 the target/base address of the last \texttt{call}, \texttt{brcf} or \texttt{ret} instruction.
-\texttt{call} calculates the return offset as $\texttt{nextPC}_\texttt{EX} - \texttt{base}_\texttt{MC}$. 
+\texttt{call} calculates the return offset as $\texttt{nextPC}_\texttt{EX} - \texttt{base}_\texttt{MC}$.
 However, the application code must not rely on this.
 
 \stefan{This is just to clear things up for the WCET analysis. The actual value of the
 link register is intentionally left undefined, so that we could easily change it to an
-absolute address just in hardware with no changes to the compiler. If we do want to jump to 
+absolute address just in hardware with no changes to the compiler. If we do want to jump to
 some base + offset, we should define a separate branch instruction for this, as \texttt{ret}
 should only be used to jump back to a call site to make the analysis easier. However, we could
 also just define the link info to be an offset (in bytes!) and accept the slight overhead for I-caches that
@@ -1776,7 +1776,7 @@ but evil for a plain instruction cache.}
 \paragraph{Behavior -- call, branch, and system call}
 
 		     Store link information into R31. Method base
-		     is not stored to a visible register (this must be done by the caller, by convention using R30). 
+		     is not stored to a visible register (this must be done by the caller, by convention using R30).
                      Check method cache.
                      Compute cache-relative program counter.
 If needed, fill method cache and stall.
@@ -1832,7 +1832,7 @@ usually called a SW interrupt as well? Exceptions? Restartable exceptions?}
     \dots& \dots  & \dots \\
     1111 & ---   & unused \\
     \bottomrule
-  \end{tabular}  
+  \end{tabular}
   \caption{Return function encoding}
   \label{tab:retfunc}
 \end{table}
@@ -1841,7 +1841,7 @@ usually called a SW interrupt as well? Exceptions? Restartable exceptions?}
 
 
 The return function base address \texttt{Rb} is an absolute address in bytes. The return function base will typically
-be provided by the caller in \texttt{r30} (see Section~\ref{sec:function_calls}). 
+be provided by the caller in \texttt{r30} (see Section~\ref{sec:function_calls}).
 The return function offset \texttt{Ro} is provided by the \texttt{call} instruction in \texttt{r31}.
 Note that using \texttt{r30} and \texttt{r31} is a compiler convention.
 The unit and the addressing mode
@@ -1863,8 +1863,8 @@ discussion and evaluation with benchmarks. A minimal approach, as first
 step for the hardware implementation, is to have only ALU instructions
 available in the second pipelines (excluding predicate manipulation instructions).
 
-\stefan{From what I see in the code, it might also help a lot to allow SWS in the 
-second pipeline, as they are quite common. Predicate instructions are not that common 
+\stefan{From what I see in the code, it might also help a lot to allow SWS in the
+second pipeline, as they are quite common. Predicate instructions are not that common
 now but this will change with the new single-path passes.
 
 This section should also talk about hazards, i.e., can we predicate the second
@@ -1893,7 +1893,7 @@ A semi-colon \texttt{;} or a newline denotes the end of an instruction or operat
 in the bundle must be enclosed by curly brackets. Bundles do not need to be separated by newlines or semi-colons. For bundles consisting of
 only one operation, the curly brackets are optional. Labels that are prefixed by \texttt{.L} are local labels.
 
-All register names must be prefixed by \texttt{\$}. 
+All register names must be prefixed by \texttt{\$}.
 We use destination before source in the instructions, between destination and source a \texttt{=} character must be used instead of a comma.
 Immediate values are not prefixed for decimal notation, the usual 0 and 0x formats are accepted for octal and hexadecimal immediates.
 Comments start with the hash symbol \texttt{\#} and are considered to the end of the line. For memory operations, the syntax is
@@ -1909,7 +1909,7 @@ Example:
        # if p1 is true, jump to label_1
  ($p1) br label_1 ; nop; nop # then wait 2 cycles
        # Load the address of a symbol into r2
-       li $r2 = .L.str2 
+       li $r2 = .L.str2
        # perform a memory store and a pred op
        { swc [$r31 + 2] = $r3 ; or $p1 = !$p2, $p3 }
        ...
@@ -1917,16 +1917,16 @@ label_1:
        ...
 \end{verbatim}
 
-\stefan{TODO: some words about units of .align, .size, ..; describe .fstart; 
-I would like to move the assembly format description out into a public repo (patmos-misc) and merge 
+\stefan{TODO: some words about units of .align, .size, ..; describe .fstart;
+I would like to move the assembly format description out into a public repo (patmos-misc) and merge
 it with a compiler usage manual, ELF file format and backend description, though.}
 
 \subsection{Instruction Mnemonics}
 
 The LLVM assembler supports the instructions mnemonics as specified in this document, including all pseudo instructions.
 
-The \texttt{paasm} assembler and the \texttt{pasim} simulator use the same basic instruction mnemonic, but a \texttt{i} or 
-\texttt{l} suffix is appended for \emph{immediate} and \emph{long immediate} variants, while no suffix in general refers to 
+The \texttt{paasm} assembler and the \texttt{pasim} simulator use the same basic instruction mnemonic, but a \texttt{i} or
+\texttt{l} suffix is appended for \emph{immediate} and \emph{long immediate} variants, while no suffix in general refers to
 the register indirect variant of the instructions. As exception, the control flow instructions use a \texttt{r} suffix for the register
 indirect variants and no suffix for the immediate instructions.
 \stefan{This should be cleaned up, always use \texttt{i} suffix for immediates in pasim/paasm, including control flow.}
@@ -1934,7 +1934,7 @@ indirect variants and no suffix for the immediate instructions.
 \subsection{Inline Assembly}
 
 Inline assembly syntax is similar to GCC inline assembly. It uses \texttt{\%0}, \texttt{\%1}, \ldots as placeholders
-for operands. Accepted register constraints are: \texttt{r} or \texttt{R} for any general purpose register, or 
+for operands. Accepted register constraints are: \texttt{r} or \texttt{R} for any general purpose register, or
 \texttt{\{<registername>\}} to use a specific register.
 
 Example:
@@ -2046,13 +2046,13 @@ Address & Name & Description \\
 \end{table}
 
 
-\stefan{We discussed about making the stack cache memory mapped, like the SPM. The disadvantage is that 
-we need to reserve an additional register for the stack pointer of the stack cache. s5 (the stack cache spill pointer) must point into a main 
+\stefan{We discussed about making the stack cache memory mapped, like the SPM. The disadvantage is that
+we need to reserve an additional register for the stack pointer of the stack cache. s5 (the stack cache spill pointer) must point into a main
 memory address range. s6 (the stack top pointer) must point to the top of the stack cache in the cache address range and must be modifiable
-(for context switching). An additional s7 must either contain the size of the stack cache or the tail pointer of the stack cache. 
+(for context switching). An additional s7 must either contain the size of the stack cache or the tail pointer of the stack cache.
 
 The advantage is we can then pass typed pointers to functions, similar to SPM pointers, if the caller stack frame is not evicted, in a first
-step. As a second step, we can drop the typed loads and use the compiler to emit address range information to the WCET analysis. 
+step. As a second step, we can drop the typed loads and use the compiler to emit address range information to the WCET analysis.
 A pointer into the stack cache address range is always guaranteed to be a hit (accessing an address that has been evicted is an error). We
 can therefore get rid of function duplication depending on their pointer types. We basically move the information about the accessed memory from the
 memory instruction to the pointer value, which can be context-sensitive.}
@@ -2135,14 +2135,14 @@ also be used to represent several UARTs per core (e.g., stdout, stderr, user for
 \martin{The protocol shall be done in HW -- let's find a student for this.}
 
 On the PC side a small program is needed to dispatch/demultiplex the different
-data streams. 
+data streams.
 
 
 
 \stefan{Would be nice to be able to insert control bytes to flush the output as well, but that must be understood by the simulator as well (it
-must flush its output stream). 
+must flush its output stream).
 
-With multiple cores writing to the UART, we need to prevent mixing up control bytes and data bytes from different cores, so I assume adding 
+With multiple cores writing to the UART, we need to prevent mixing up control bytes and data bytes from different cores, so I assume adding
 the control bytes to is done by hardware? We could also designate one core to I/O and communicate over SPMs with the other cores, although it
 adds another layer of potential bugs to the debugging process.}
 
@@ -2176,7 +2176,7 @@ the memory spill and fill operations. In the C code following data structures ar
 \item[\code{mem}] is an array representing the main memory,
 \item[\code{sc}] is an array representing the stack cache,
 \item[\code{m\_top}] is the register pointing to the top of the saved stack content in the main memory, and
-\item[\code{sc\_top}] points to the top element in the stack cache. 
+\item[\code{sc\_top}] points to the top element in the stack cache.
 \end{description}
 
 The two pointers are full-length address registers. However,
@@ -2193,7 +2193,7 @@ the address that one higher as the stack area. \code{m\_top}
 points to the last spilled word in main memory.
 Similar, \code{sc\_top} points to the last slot in the stack
 frame (top of stack). Therefore, the number of currently valid
-elements in the stack cache is \code{m\_top} - \code{sc\_top}. 
+elements in the stack cache is \code{m\_top} - \code{sc\_top}.
 
 The compiler generates code to grow the stack downward,
 as it is common for many architectures. Growing the stack downwards
@@ -2225,9 +2225,9 @@ downwards.
 %
 % 	 \caption{Stack cache and main memory pointer definitions.}
 % 	 \label{fig:sc_mem_def}
-%\end{figure} 
+%\end{figure}
 
-\begin{figure} 
+\begin{figure}
 \begin{lstlisting}
 void reserve(int n) {
 
@@ -2238,7 +2238,7 @@ void reserve(int n) {
     for (i=0; i<nspill; ++i) {
        --m_top;
        mem[m_top] = sc[m_top & SC_MASK];
-    }   
+    }
 }
 	\end{lstlisting}
  	 \caption{The \code{reserve} instruction provides \code{n}
@@ -2266,8 +2266,8 @@ void free(int n) {
 
     sc_top += n;
     if (sc_top > m_top) {
-        m_top = sc_top; 
-    }       
+        m_top = sc_top;
+    }
 }
 \end{lstlisting}
 	\caption{The \code{free} instruction drops \code{n}
@@ -2281,7 +2281,7 @@ space on the stack. It does not fill previously spilled data back into the stack
 It just changes the top of the stack pointer and may change the top of the memory
 pointer, as shown in Figure~\ref{fig:free_iml}.
 
- 
+
 \begin{figure}
 \begin{lstlisting}
 void ensure(int n) {
@@ -2292,7 +2292,7 @@ void ensure(int n) {
     for (i=0; i<nfill; ++i) {
         sc[m_top & SC_MASK] = mem[m_top];
         ++m_top;
-    }       
+    }
 }
 \end{lstlisting}
 	\caption{The \code{ensure} instruction ensures that
@@ -2800,7 +2800,7 @@ slaves with OR.
   using single request bursts. Please check if you understand the spec
   the same way.}
 
-Note 4: 
+Note 4:
 Bursts are restricted to exactly four words (D1, D2, D3 and D4), or some other constant which is a power of 2.  The address must be aligned. Burst data must be provided in four consecutive cycles. SResp is active during these cycles. For a burst write the master may have to provide D1 for two or more cycles if SResp is not active in the first cycle of the transaction.
 
 \wolf{\code{SResp} is \emph{not} active during write bursts according
@@ -2811,7 +2811,7 @@ Bursts are restricted to exactly four words (D1, D2, D3 and D4), or some other c
 
 \martin{Burst: we said that we do not support pipelined requests in bust mode.
 So when the slave sets SResp we are not allowing the master to initiate the next
-request in the same cycle. Right?} 
+request in the same cycle. Right?}
 
 \martin{Are OCP addresses always in bytes? Even on the burst interface? I assume yes.
 We need to look this up. -- According to Wolfgang they are.}
@@ -3105,7 +3105,7 @@ the bin directory of Quartus to your \$PATH.
 Several tools are needed, best installed with MacPorts. For Patmos simulator and assembler:
 \code{boost}, \code{libelf}.
 For simulation with ModelSim: \code{wine}
-For Poseidon: python33, py33-lxml. Make a link from python3 to python3.3 as this is the way it is invoked.
+For Aegean: python33, py33-lxml. Make a link from python3 to python3.3 as this is the way it is invoked.
 \todo{Alex suggested a way to avoid this by querying how to invoke python.}
 
 \section{Hello World}
@@ -3175,7 +3175,7 @@ Here a list of the most important make targets:
 \item[tools] build of all tools, including the Patmos software simulator
 \item[asm] assemble source (from folder \code{asm})
 \item[emulator] build the Chisel based C++ emulator
-\item[csim] execute the Patmos emulator 
+\item[csim] execute the Patmos emulator
 \item[comp] compile a C program as loadable ELF binary
 \item[bootcomp] compile a C program as a bootable image
 \item[gen] generate the Verilog code
@@ -3270,8 +3270,8 @@ The register usage conventions for the general purpose registers are as follows:
   \item \texttt{r27} is used as temp register.
   \item \texttt{r28} is defined as the frame pointer and \texttt{r29} is defined as the stack
         pointer for the \emph{shadow} stack in global memory. The use of a frame
-        pointer is optional, the register can freely be used otherwise. 
-	\texttt{r29} is guaranteed to always hold the current stack pointer and is not used 
+        pointer is optional, the register can freely be used otherwise.
+	\texttt{r29} is guaranteed to always hold the current stack pointer and is not used
 	otherwise by the compiler.
   \item \texttt{r30} and \texttt{r31} are defined as the return function base
         and the return function offset.
@@ -3298,11 +3298,11 @@ What I'd like to have for single-path code is a guard predicate parameter for th
 separate calling convention for single-path-programming programs; in order to
 keep the conventions for the other programs sane.}
 
-\stefan{We would gain in most cases by making predicates caller-saved, since predicates are usually not 
-used across function calls, this saves up to 6 instructions per call. 
+\stefan{We would gain in most cases by making predicates caller-saved, since predicates are usually not
+used across function calls, this saves up to 6 instructions per call.
 Predicate live ranges over calls only happen with single-path and if-conversion. However, having only caller-saved predicates
 makes if-conversion of calls too costly (and too complex). A nicer solution would be to have p1-p4 caller-saved and
-p5-p7 callee saved. I got this to work (do not alias s0 with p1-p7 in RegInfo.td, mark s0 and p5-p7 as callee saved 
+p5-p7 callee saved. I got this to work (do not alias s0 with p1-p7 in RegInfo.td, mark s0 and p5-p7 as callee saved
 in RegInfo.cpp, and in processBeforeCalleeSavedScan set s0 as used when any of p5-p7 is used), but this would require the
 if-converter to use callee-saved predicates when converting calls, i.e., to change the predicate of the condition.
 Sounds easy, but is actually far from trivial to hack into the if-converter, and only works if the if-converter runs before the
@@ -3326,7 +3326,7 @@ instruction that automatically prefetches the target function to the method
 cache and stores the return information to the general-purpose register \texttt{r31}.
 At a function call, the callers base address has to be in \texttt{r30}.
 The callee is responsible to store/restore the callers function base and pass it as first
-operand to the return instruction. 
+operand to the return instruction.
 The \texttt{call} and \texttt{brcf} instructions neither use nor modify \texttt{r30}, the
 return function base is only used by \texttt{ret}.
 
@@ -3354,20 +3354,20 @@ Are we than redoing a stack (Java) processor?}
 When the return function base \texttt{r30} and the return offset \texttt{r31}
 needs to be saved to the stack, they have to be saved as the first elements
 of the function's stack frame, i.e., right after the stack frame of the
-calling function. Note that in contrast to \texttt{br} and \texttt{brcf} the 
-return offset refers to the next instruction after the \emph{delay slot} of the 
+calling function. Note that in contrast to \texttt{br} and \texttt{brcf} the
+return offset refers to the next instruction after the \emph{delay slot} of the
 corresponding \texttt{call} and can be implementation dependent (cf.\ the description
 of the \texttt{call} and \texttt{ret} instructions).
 
-\section{Sub-Functions} 
+\section{Sub-Functions}
 A function can be split into several sub-functions. The program is only allowed to use
 \texttt{br} to jump within the same sub-function. To enter a different sub-function,
-\texttt{brcf} must be used. It can only be used to jump to the first instruction of a 
+\texttt{brcf} must be used. It can only be used to jump to the first instruction of a
 sub-function.
 
 In contrast to \texttt{call}, \texttt{brcf} does not provide link information.
 Executing \texttt{ret} in a sub-function will therefore return to the last \texttt{call}, not to the last \texttt{brcf}.
-Function offsets however are relative to the \emph{sub-function} base, not to the surrounding function. 
+Function offsets however are relative to the \emph{sub-function} base, not to the surrounding function.
 The function base register \texttt{r30} must therefore be set to the base address
 of the current \emph{sub-function} for calls inside sub-functions.
 
@@ -3375,7 +3375,7 @@ A sub-function must be aligned and must be prefixed with a word containing the s
 like for a regular function. If a function is split into sub-functions, the first sub-function
 must also be prefixed with the size of the first sub-function, not with the size of the whole function.
 
-There are no calling conventions for jumps between sub-functions, for the compiler 
+There are no calling conventions for jumps between sub-functions, for the compiler
 this behaves just like a regular jump, except that the base register \texttt{r30} must
 be updated if the sub-function contains calls.
 
@@ -3409,7 +3409,7 @@ following the conventions declared in the previous subsection on function calls.
 \section{Interrupts and Context Switching}
 
 Interrupt handlers may use the shadow stack pointer \texttt{r29} to spill registers
-to the shadow stack. Interrupts must ensure that all special registers that might be in use 
+to the shadow stack. Interrupts must ensure that all special registers that might be in use
 when the interrupt occurs are saved and restored.
 
 Here is a simple example of storing and restoring the context for context switching.
@@ -3418,7 +3418,7 @@ sub $r29 = $r29, 40
 sws [$r29 + 0] = $r31
 sws [$r29 + 1] = $r30
 sws [$r29 + 2] = $r22  // free some registers
-sws [$r29 + 3] = $r23  
+sws [$r29 + 3] = $r23
 mfs $r22 = $s2  // by now any mul should be finished
 mfs $r23 = $s3
 sws [$r29 + 4] = $r22
@@ -3429,7 +3429,7 @@ sub $r22 = $r23, $r22
 sspill $r22   // spill the memory, s5 == s6 now
 sws [$r29 + 6] = $r22  // store the stack pointer
 sws [$r29 + 7] = $r23  // store stack size
-... 
+...
 // TODO store return base and offset
 
 // restore
@@ -3446,7 +3446,7 @@ mts $s3 = $r23
 \end{verbatim}
 
 \stefan{We need to define how to register interrupts, how to return from interrupts (where do we get
-the return-base and return-offset from,..). Interrupt handlers in C are currently not supported, 
+the return-base and return-offset from,..). Interrupt handlers in C are currently not supported,
 the compiler does not restore all the special registers for normal functions.}
 
 
@@ -3506,13 +3506,13 @@ could be replaced by an appropriate special return base register
 the functionality of register \texttt{r31} to a special register
 \texttt{so} to free up another general-purpose register.
 
-\stefan{This is actually how we had it in the first ISA version, but Martin wanted to get rid of 
+\stefan{This is actually how we had it in the first ISA version, but Martin wanted to get rid of
 the special registers.. ;) }
 
-\stefan{Note that we could still make this part of the ABI: we can simply require that \texttt{r30} is 
-never used for something else and must always contain the valid base address (this is the case at the moment 
+\stefan{Note that we could still make this part of the ABI: we can simply require that \texttt{r30} is
+never used for something else and must always contain the valid base address (this is the case at the moment
 except for (sub)functions that do not have calls inside, can be changed easily). The bigger issue I see is
-that there are problems when the interrupt appears between the \texttt{call} and the \texttt{ldi} that sets 
+that there are problems when the interrupt appears between the \texttt{call} and the \texttt{ldi} that sets
 \texttt{r30} (they cannot be bundled), and a scheduler might further move the load around.}
 
 \wolf{The latter issue is exactly the problem. The hardware needs to
@@ -3523,10 +3523,10 @@ that there are problems when the interrupt appears between the \texttt{call} and
   but why keep track of the base both in hardware and in software?
   Note that the hardware does not need to expose the current base,
   only the return base would be made visible.}
-  
+
 \martin{Agree on that.}
 
-\stefan{And I was so happy not to have both \texttt{S0} and \texttt{SO} in the compiler anymore ;) I would suggest to call them 
+\stefan{And I was so happy not to have both \texttt{S0} and \texttt{SO} in the compiler anymore ;) I would suggest to call them
 \texttt{srb} and \texttt{sro} instead (for return base and return offset, which they actually are).}
 
 \wolf{Agree for \texttt{srb} and \texttt{sro}.}
@@ -3545,12 +3545,12 @@ new sub-functions that contain a call.}
 
 \subsection{Branch into Subfunction Instruction}
 
-\stefan{In order to eliminate the current restriction of having only single-entry subfunctions, 
-I would suggest to make \texttt{brcf} indirect accept both an (absolute) base address, as well 
-as an offset. Using \texttt{r0} for the offset makes \texttt{brcf} behave similar to now. 
+\stefan{In order to eliminate the current restriction of having only single-entry subfunctions,
+I would suggest to make \texttt{brcf} indirect accept both an (absolute) base address, as well
+as an offset. Using \texttt{r0} for the offset makes \texttt{brcf} behave similar to now.
 
 At the moment we could also use \texttt{ret} for the same purpose, but this has two disadvantages:
-\texttt{call} and \texttt{ret} would no longer appear in pairs, making call graph reconstruction more complicated 
+\texttt{call} and \texttt{ret} would no longer appear in pairs, making call graph reconstruction more complicated
 (needs compiler support to tell the WCET analysis which \texttt{ret} is actually used as return), and it
 does not work nicely if we change \texttt{ret} to use special registers.}
 
@@ -3559,20 +3559,20 @@ does not work nicely if we change \texttt{ret} to use special registers.}
   it gets a different opcode. I don't see a problem with that from the
   hardware perspective.}
 
-\stefan{Correct. With moving return infos to special registers, \texttt{ret} would become different from \texttt{brcf} though as 
+\stefan{Correct. With moving return infos to special registers, \texttt{ret} would become different from \texttt{brcf} though as
 \texttt{ret} would use \texttt{srb} and \texttt{sro}, I presume, while \texttt{brcf} always uses two GPRs.}
 
 \subsubsection{Costs and Benefits}
 
 Much of the complexity and restrictions of the function splitter are eliminated (jump tables
-still have to be handled carefully, though we in theory we could even support having jump table entries 
+still have to be handled carefully, though we in theory we could even support having jump table entries
 anywhere in any region), without resorting to misuse \texttt{ret}. It works regardless of whether return information
 is stored in special registers or GPRs.
 
-To make use of this feature, the function splitter needs a major rewrite though. 
+To make use of this feature, the function splitter needs a major rewrite though.
 Note that as long only \texttt{r0} is used for the offset, no changes to the compiler or the WCET analysis are required.
 
-\stefan{It also moves \texttt{brcf} from \texttt{CFLi} to \texttt{CFLr}, which makes the naming of the formats less intuitive 
+\stefan{It also moves \texttt{brcf} from \texttt{CFLi} to \texttt{CFLr}, which makes the naming of the formats less intuitive
 (although having \texttt{CFLi} for register operands is not good anyway, as we usually use \texttt{i} for immediate).}
 
 \wolf{I guess the naming of the formats is not our biggest concern ;-)}
@@ -3625,7 +3625,7 @@ well.}
 call(addr) {
   // Store return information
   sb = base;
-  so = PC$_{cache}$;  
+  so = PC$_{cache}$;
   // Remember base address
   base = addr;
   // Cache look-up and load
@@ -3704,7 +3704,7 @@ to the guaranteed alignment of functions to cache blocks in the method
 cache.
 
 \stefan{I am kind of OK-ish with changing brcf immediate to absolute, if it is absolutely necessary (assuming that we do not need to address
-code above 16MB, otherwise we cannot use an immediate absolute brcf!), though I do not really want to touch that code in the tool chain and 
+code above 16MB, otherwise we cannot use an immediate absolute brcf!), though I do not really want to touch that code in the tool chain and
 loose compatibility with a3 again (if someone else takes care of all that, feel free to go ahead though ;) ).}
 
 \wolf{Regarding the size limitation: If the code grows above 16MB, we
@@ -3717,15 +3717,15 @@ loose compatibility with a3 again (if someone else takes care of all that, feel 
   changes on their side are similarly simple.}
 
 \stefan{The advantage of PC indirect brcf is that even if we have code above 16MB (the code does not need to be that large,
-it might just be a result of the address mapping), we might still simply assume not to have any single function larger than 
-8MB. In this case, we only need to take care of \texttt{call}, not of \texttt{brcf}. 
+it might just be a result of the address mapping), we might still simply assume not to have any single function larger than
+8MB. In this case, we only need to take care of \texttt{call}, not of \texttt{brcf}.
 
 From a compiler point of view, \texttt{br} and \texttt{brcf} really are the same. Any difference there just introduces some more complexity
 to the function splitter (as it needs to track code sizes and generated code carefully). Since we already have the absolute immediate
 relocation type though, the change is indeed not a big one (assuming no code above 16MB).}
 
-\stefan{However, I strongly oppose changing any of the indirect branches to anything else than absolute, it makes quite a mess 
-in the compiler backend and the linker (and probably the analysis). The problem here are jump tables, which are 
+\stefan{However, I strongly oppose changing any of the indirect branches to anything else than absolute, it makes quite a mess
+in the compiler backend and the linker (and probably the analysis). The problem here are jump tables, which are
 kind of outside of the function and have no clear reference to the function, making the calculation of any base offset in the linker quite
 complicated (you need to introduce a new relocation type, change the relocation type of the jump table symbols depending on the way they are
 used, and calculate the symbol value in the linker by finding the (already relocated!) surrounding sub-function symbol).}
@@ -3738,7 +3738,7 @@ used, and calculate the symbol value in the linker by finding the (already reloc
   two symbols for jump tables, but it is definitely possible. That
   being said, I could live with leaving indirect branches as they are,
   I just don't think that it's the most efficient solution.}
-  
+
 \martin{I'm with Wolfgang on the timing issue of having two
 additions (one operand coming from the register forward path)
 going into the dual issue fetch stage is an issue.
@@ -3747,9 +3747,9 @@ If we really want to avoid changing the br indirect right now,
 a work around would be to make it a two cycle stalling instruction.}
 
 \stefan{How about pre-calculating \code{coff-base} at \texttt{call}/\texttt{brcf}/\texttt{ret}? It costs one 32bit register (or
-30bit assuming alignment) and an additional op at those instructions, but saves the second subtract at \texttt{br} (note that we cannot 
+30bit assuming alignment) and an additional op at those instructions, but saves the second subtract at \texttt{br} (note that we cannot
 use the second ALU for a \texttt{call} and most likely never will use it for \texttt{brcf} as long as it has one cycle more than \texttt{br}
-since it is only introduced after the scheduler and replaces a \texttt{br}).} 
+since it is only introduced after the scheduler and replaces a \texttt{br}).}
 
 \wolf{Precalculating is what we should anyway if we keep things as
   they are. Still, all bits of the addend \code{coff-base} are
@@ -3805,13 +3805,13 @@ the fallthrough target, right?}
   decode stage. The flushed instructions never make it to the execute
   stage, which would be the earliest place where any effect could
   become visible.}
-  
+
 \martin{Very much in favor to this addition.}
 
-\stefan{Also agree, and I would like to have this for both \texttt{br} and \texttt{brcf} (function splitter ...). This could 
+\stefan{Also agree, and I would like to have this for both \texttt{br} and \texttt{brcf} (function splitter ...). This could
 at least save quite some code space and reduce the overestimations in the function splitter quite a lot.
 
-We should really get a proper scheduler though to support this properly, the current delay slot filler is getting more and more 
+We should really get a proper scheduler though to support this properly, the current delay slot filler is getting more and more
 scary..}
 
 \wolf{Non-delayed \texttt{brcf} should be okay, the stages that need
@@ -3819,7 +3819,7 @@ scary..}
 
 \subsection{Issue Memory Operations in any Pipeline}
 
-Allow stack cache accesses, maybe even any memory access in the second pipeline, as long as there is no memory access to the same 
+Allow stack cache accesses, maybe even any memory access in the second pipeline, as long as there is no memory access to the same
 memory executed in the first pipeline.
 
 \begin{lstlisting}
@@ -3842,7 +3842,7 @@ situations where a double-clocked stack cache access alone does not help.
 
 \stefan{I frankly do not know how much this will actually gain since usually the code contains either
 main memory access or stack access, not so much a mixture of both, and we need a proper scheduler and play around with the if-converter first to
-see how much ILP we can get out of the code. 
+see how much ILP we can get out of the code.
 
 Martin promised to take a real serious look at it when we can get some figures showing a gain from the compiler.. ;) }
 
@@ -3902,7 +3902,7 @@ the execution of the respective exception handler.
 
     \texttt{0xf?????0c} & \texttt{source} & Number of exception that
     is about to be served \\
-    
+
     \cmidrule{1-3}
 
     \texttt{0xf?????20} & \texttt{vec<0>} & Address of exception handler 0 \\
@@ -4146,7 +4146,7 @@ that all operations can potentially stall.}
 \stefan{Regarding having additional write ports for the register file: We could still disallow multiple parallel loads by stalling a load
 instruction until the last memory op is completed (else we would also need to take some special care of stores if loads and stores can be in progress at the same
 time), this would not be any worse than the current ISA (currently we cannot have multiple loads to main memory in parallel). If a load is
-ready, I guess we could just stall the pipeline for one cycle to write to the register. Again, this may still be better than the 
+ready, I guess we could just stall the pipeline for one cycle to write to the register. Again, this may still be better than the
 current ISA, since we do not need the code space for the additional move from special instruction, but it may cost one stall whereas the
 move-from-special could be scheduled in the second slot parallel to some other operation (ok, but then its not so RISC anymore..).}
 
@@ -4175,7 +4175,7 @@ the free, the combination would be easier to implement.
 
 \stefan{I doubt that merging those functions would actually gain something. It reduces the flexibility for the compiler to perform ensure
 only where needed, may limit the possibilities for passing data over the stack cache, and requires additional
-code to restore the special registers that are required to track the size of the stack. Only gain I see is when the word in front of the 
+code to restore the special registers that are required to track the size of the stack. Only gain I see is when the word in front of the
 method code that stores the size of the method is used to store the stack size as 16bit value, and limit the size of the method to a 16bit
 value. Then no additional data needs to be transferred. The stack control instructions would still be required to allow the compiler to
 allocate stack e.g. only in certain contexts.}
@@ -4216,7 +4216,7 @@ should be used in hard real-time code anyway, as it might introduce some slight 
 \section{Unified Memory Access}
 
 \stefan{All our memories (except the stack cache) use a unified address space, but due to the typed loads, references must include both address and
-type of the cache. Since the type is encoded in the code, any generated code can only use one type of cache or SPM. 
+type of the cache. Since the type is encoded in the code, any generated code can only use one type of cache or SPM.
 If we have a function with $m$ arguments and $n$ different caches or ways of accessing
 memory, in the worst case we would need $m^n$ copies of that function to handle all cases (increases instruction cache costs!). We also need to expose this to the programmer,
 either through having different names for the functions (very ugly and annoying to use, remember that this is transitive, you need to copy
@@ -4242,7 +4242,7 @@ thrashing the cache)
 
 \stefan{
 The idea behind the typed load is 1.~it makes analysis simpler by having guaranteed hit instructions, 2.~it makes the hardware
-simpler and faster (I assume), no need to read the address to determine the local memory to use. 
+simpler and faster (I assume), no need to read the address to determine the local memory to use.
 However, typed loads shift the analysis effort to the compiler, but while the analysis may make over-approximations about the accessed
 memory, the compiler must always know the correct memory type, which requires either a precise analysis or help from the programmer by
 additional annotations. An analysis can also be context-sensitive, but it is not possible for the compiler to generate ``context-sensitive
@@ -4323,7 +4323,7 @@ or not.}
 
 \stefan{The stack cache spill and fill ops are performed by dedicated instructions, so we do not need to support this in the ISA (but it
 will probably be handled by the DMA in the background). Do we also handle method cache fill by the DMA (probably yes)? Prefetching into the data cache
-(probably not)? 
+(probably not)?
 
 Accessing main memory over the data cache or with bypass will basically access words in more or less random locations. Stack cache fill and
 spill, method cache fill, and DMA transfers from main memory to scratchpad and back perform burst writes. Communication between scratchpads
@@ -4342,7 +4342,7 @@ I would not call it DMA.
 However, this might just be a naming convention issue. Maybe we are playing
 with architectures and naming conventions in a spectrum. E.g. instruction
 memory: plain I\$ -- I\$ with prefetch instructions -- method cache -- SPM with
-pointer redirect (address translation) -- plain SPM in its own address space.} 
+pointer redirect (address translation) -- plain SPM in its own address space.}
 
 \section{Data scratchpad}
 
@@ -4360,7 +4360,7 @@ pointer redirect (address translation) -- plain SPM in its own address space.}
 \end{itemize}
 
 \stefan{The compiler needs to generate typed loads for SPM access. How do we tell the compiler when to use SPM access, without causing too
-much pain to the programmer (we would need to annotate all variables, including function arguments and pointers to SPM allocated data). 
+much pain to the programmer (we would need to annotate all variables, including function arguments and pointers to SPM allocated data).
 Same problem here as with stack cache and second data cache due to typed access: Passing data to a function requires the function to know in which memory the
 data is stored. We need specialized functions for
 memory types of parameters, in all occurring combinations, this increases code size and method cache misses.}
