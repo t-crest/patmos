@@ -194,4 +194,7 @@ class Memory() extends Module {
 
   // extra port for forwarding
   io.exResult := io.exmem.rd
+
+  // Keep signal alive for debugging
+  debug(io.memwb.pc)
 }

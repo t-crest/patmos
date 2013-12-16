@@ -339,14 +339,12 @@ class WriteBackIO() extends Bundle() {
 }
 
 class PatmosCoreIO() extends Bundle() {
-  val dummy = Bits(OUTPUT, 32)
   val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val memPort = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
 }
 
 class PatmosIO() extends Bundle() {
-  val dummy = Bits(OUTPUT, 32)
   val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val sramPins = new RamOutPinsIO(EXTMEM_ADDR_WIDTH-2)

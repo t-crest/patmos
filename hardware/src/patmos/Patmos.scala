@@ -121,10 +121,8 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   io.memPort <> burstBus.io.master
   Config.connectAllIOPins(io, iocomp.io)
 
-  // Dummy output, which is ignored in the top level VHDL code, to
-  // force Chisel keep some unused signals alive
-  io.dummy := Reg(next = memory.io.memwb.pc) | enableReg
-
+  // Keep signal alive for debugging
+  debug(enableReg)
 }
 
 object PatmosCoreMain {
@@ -163,10 +161,6 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   ssram.io.ocp_port <> core.io.memPort
   io.sramPins.ram_out <> ssram.io.ram_out
   io.sramPins.ram_in <> ssram.io.ram_in
-
-  // Dummy output, which is ignored in the top level VHDL code, to
-  // force Chisel keep some unused signals alive
-  io.dummy <> core.io.dummy
 
   // Print out the configuration
   Utility.printConfig(configFile)
