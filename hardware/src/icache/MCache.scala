@@ -174,21 +174,17 @@ class MCache() extends Module {
 class MCacheMem() extends Module {
   val io = new MCacheMemIO()
 
-  val ram_mcache_even = Mem(Bits(width = INSTR_WIDTH), MCACHE_WORD_SIZE / 2)
-  val ram_mcache_odd = Mem(Bits(width = INSTR_WIDTH), MCACHE_WORD_SIZE / 2)
+  val ram_mcache_even = MemBlock(MCACHE_WORD_SIZE / 2, INSTR_WIDTH)
+  val ram_mcache_odd = MemBlock(MCACHE_WORD_SIZE / 2, INSTR_WIDTH)
 
-  when (io.mcachemem_in.w_even) {
-	ram_mcache_even(io.mcachemem_in.w_addr) := io.mcachemem_in.w_data
-  }
-  when (io.mcachemem_in.w_odd) {
-	ram_mcache_odd(io.mcachemem_in.w_addr) := io.mcachemem_in.w_data
-  }
+  ram_mcache_even.io <= (io.mcachemem_in.w_even, io.mcachemem_in.w_addr,
+                         io.mcachemem_in.w_data)
 
-  val addrEvenReg = Reg(next = io.mcachemem_in.addr_even)
-  val addrOddReg = Reg(next = io.mcachemem_in.addr_odd)
-  io.mcachemem_out.instr_even := ram_mcache_even(addrEvenReg)
-  io.mcachemem_out.instr_odd := ram_mcache_odd(addrOddReg)
+  ram_mcache_odd.io <= (io.mcachemem_in.w_odd, io.mcachemem_in.w_addr,
+                        io.mcachemem_in.w_data)
 
+  io.mcachemem_out.instr_even := ram_mcache_even.io(io.mcachemem_in.addr_even)
+  io.mcachemem_out.instr_odd := ram_mcache_odd.io(io.mcachemem_in.addr_odd)
 }
 
 

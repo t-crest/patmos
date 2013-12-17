@@ -43,6 +43,8 @@ import Chisel._
 import Node._
 
 import patmos.Constants._
+import patmos.MemBlock
+import patmos.MemBlockIO
 
 import ocp._
 
@@ -62,14 +64,14 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
   val masterReg = Reg(next = io.master.M)
 
   // Generate memories
-  val tagMem = Mem(Bits(width = tagWidth), tagCount)
+  val tagMem = MemBlock(tagCount, tagWidth)
   val tagVMem = Vec.fill(tagCount) { Reg(init = Bool(false)) }
-  val mem = new Array[Mem[Bits]](BYTES_PER_WORD)
+  val mem = new Array[MemBlockIO](BYTES_PER_WORD)
   for (i <- 0 until BYTES_PER_WORD) {
-    mem(i) = Mem(Bits(width = BYTE_WIDTH), size / BYTES_PER_WORD)
+    mem(i) = MemBlock(size / BYTES_PER_WORD, BYTE_WIDTH).io
   }
 
-  val tag = tagMem(masterReg.Addr(addrBits + 1, lineBits))
+  val tag = tagMem.io(io.master.M.Addr(addrBits + 1, lineBits))
   val tagV = tagVMem(masterReg.Addr(addrBits + 1, lineBits))
   val tagValid = tagV && tag === Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, addrBits+2))
 
@@ -85,13 +87,12 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
   // Write to cache; store only updates what's already there
   val stmsk = Mux(masterReg.Cmd === OcpCmd.WR, masterReg.ByteEn,  Bits("b0000"))
   for (i <- 0 until BYTES_PER_WORD) {
-    when(fillReg || (tagValid && stmsk(i))) { mem(i)(wrAddrReg) :=
-                                              wrDataReg(BYTE_WIDTH*(i+1)-1, BYTE_WIDTH*i) }
+    mem(i) <= (fillReg || (tagValid && stmsk(i)), wrAddrReg,
+               wrDataReg(BYTE_WIDTH*(i+1)-1, BYTE_WIDTH*i))
   }
 
   // Read from cache
-  val rdAddr = masterReg.Addr(addrBits + 1, 2)
-  val rdData = mem.map(_(rdAddr)).reduceLeft((x,y) => y ## x)
+  val rdData = mem.map(_(io.master.M.Addr(addrBits + 1, 2))).reduceLeft((x,y) => y ## x)
 
   // Return data on a hit
   io.master.S.Data := rdData
@@ -121,12 +122,14 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
   // Start handling a miss
   when(!tagValid && masterReg.Cmd === OcpCmd.RD) {
     fillAddrReg := masterReg.Addr(addrBits + 1, lineBits)
-    tagMem(masterReg.Addr(addrBits + 1, lineBits)) := Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, addrBits+2))
     tagVMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(true)
     missIndexReg := masterReg.Addr(lineBits-1, 2).toUInt
     io.slave.M.Cmd := OcpCmd.RD
     stateReg := fill
   }
+  tagMem.io <= (!tagValid && masterReg.Cmd === OcpCmd.RD,
+                masterReg.Addr(addrBits + 1, lineBits),
+                masterReg.Addr(EXTMEM_ADDR_WIDTH-1, addrBits+2))
   // Wait for response
   when(stateReg === fill) {
     wrAddrReg := Cat(fillAddrReg, burstCntReg)

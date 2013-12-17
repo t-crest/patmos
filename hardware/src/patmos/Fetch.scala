@@ -63,21 +63,15 @@ class Fetch(fileName : String) extends Module {
   val romOdd  = Vec(romGroups.map(_(1)))
 
   val ispmAddrBits = log2Up(ISPM_SIZE / 4 / 2)
-  val memEven = Mem(Bits(width = INSTR_WIDTH), ISPM_SIZE / 4 / 2)
-  val memOdd = Mem(Bits(width = INSTR_WIDTH), ISPM_SIZE / 4 / 2)
+  val memEven = MemBlock(ISPM_SIZE / 4 / 2, INSTR_WIDTH)
+  val memOdd = MemBlock(ISPM_SIZE / 4 / 2, INSTR_WIDTH)
 
   // write from EX - use registers - ignore stall, as reply does not hurt
   val selWrite = (io.memfe.store & (io.memfe.addr(DATA_WIDTH-1, ISPM_ONE_BIT) === Bits(0x1)))
-  val wrEvenReg = Reg(next = selWrite & (io.memfe.addr(2) === Bits(0)))
-  val wrOddReg = Reg(next = selWrite & (io.memfe.addr(2) === Bits(1)))
-  val addrReg = Reg(next = io.memfe.addr)
-  val dataReg = Reg(next = io.memfe.data)
-  when(wrEvenReg) { memEven(addrReg(ispmAddrBits + 3 - 1, 3)) := dataReg }
-  when(wrOddReg) { memOdd(addrReg(ispmAddrBits + 3 - 1, 3)) := dataReg }
-  // This would not work with asynchronous reset as the address
-  // registers are set on reset. However, chisel uses synchronous
-  // reset, which 'just' generates some more logic. And it looks
-  // like the synthesize tool is able to duplicate the register.
+  val wrEven = selWrite & (io.memfe.addr(2) === Bits(0))
+  val wrOdd = selWrite & (io.memfe.addr(2) === Bits(1))
+  memEven.io <= (wrEven, io.memfe.addr, io.memfe.data)
+  memOdd.io <= (wrOdd, io.memfe.addr, io.memfe.data)
 
   val selIspm = Reg(next = io.mcachefe.mem_sel(1))
   val selMCache = Reg(next = io.mcachefe.mem_sel(0))
@@ -91,8 +85,8 @@ class Fetch(fileName : String) extends Module {
   }
 
   //select even/odd from ispm
-  val ispm_even = memEven(addrEvenReg(ispmAddrBits, 1))
-  val ispm_odd = memOdd(addrOddReg(ispmAddrBits, 1))
+  val ispm_even = memEven.io(addrEven(ispmAddrBits, 1))
+  val ispm_odd = memOdd.io(addrOdd(ispmAddrBits, 1))
   val instr_a_ispm = Mux(pcReg(0) === Bits(0), ispm_even, ispm_odd)
   val instr_b_ispm = Mux(pcReg(0) === Bits(0), ispm_odd, ispm_even)
 

@@ -101,15 +101,15 @@ static val_t readelf(istream &is, Patmos_t *c)
 			 ((val_t)elfbuf[phdr.p_offset + k + 3] << 0));
 		  val_t addr = ((phdr.p_paddr + k) - (0x1 << OCMEM_ADDR_BITS)) >> 3;
 
-		  unsigned size = (sizeof(c->Patmos_core_fetch__memEven.contents) / 
-						   sizeof(c->Patmos_core_fetch__memEven.contents[0]));
+		  unsigned size = (sizeof(c->Patmos_core_fetch_memEven__mem.contents) / 
+						   sizeof(c->Patmos_core_fetch_memEven__mem.contents[0]));
 		  assert(addr < size && "Instructions mapped to ISPM exceed size");
 
 		  // Write to even or odd block
 		  if (((phdr.p_paddr + k) & 0x4) == 0) {
-			c->Patmos_core_fetch__memEven.put(addr, word);
+			c->Patmos_core_fetch_memEven__mem.put(addr, word);
 		  } else {
-			c->Patmos_core_fetch__memOdd.put(addr, word);
+			c->Patmos_core_fetch_memOdd__mem.put(addr, word);
 		  }
 		}
 
