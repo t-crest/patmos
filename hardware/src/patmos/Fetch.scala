@@ -134,7 +134,8 @@ class Fetch(fileName : String) extends Module {
   io.femem.pc := pc_cont - relBaseReg
 
   //outputs to mcache
-  io.femcache.address := Mux(io.ena, pc_next, pcReg)
+  io.femcache.address_even := Mux(io.ena, pc_inc, pcReg+pcReg(0))
+  io.femcache.address_odd := Mux(io.ena, pc_next, pcReg)
   io.femcache.request := selMCache
   io.femcache.doCallRet := io.memfe.doCallRet
   io.femcache.callRetBase := io.memfe.callRetBase

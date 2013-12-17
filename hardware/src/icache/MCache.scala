@@ -64,7 +64,8 @@ object MConstants {
   Internal and external connections for the Method Cache
  */
 class FeMCache extends Bundle() {
-  val address = Bits(width = EXTMEM_ADDR_WIDTH) 
+  val address_even = Bits(width = EXTMEM_ADDR_WIDTH) 
+  val address_odd = Bits(width = EXTMEM_ADDR_WIDTH) 
   val request = Bool()
   val doCallRet = Bool()
   val callRetBase = UInt(width = EXTMEM_ADDR_WIDTH)
@@ -107,7 +108,8 @@ class MCacheCtrlRepl extends Bundle() {
   val w_data = Bits(width = INSTR_WIDTH)
   val w_addr = Bits(width = EXTMEM_ADDR_WIDTH)
   val w_tag = Bool()
-  val address = Bits(width = MCACHE_SIZE_WIDTH)
+  val address_even = Bits(width = MCACHE_SIZE_WIDTH)
+  val address_odd = Bits(width = MCACHE_SIZE_WIDTH)
   val instr_stall = Bool()
 }
 class MCacheReplCtrl extends Bundle() {
@@ -289,17 +291,17 @@ class MCacheReplFifo() extends Module {
   val wr_parity = io.mcache_ctrlrepl.w_addr(0)
   //adder could be moved to ctrl. unit to operate with rel. addresses here
   val mcachemem_w_address = (wrPosReg + io.mcache_ctrlrepl.w_addr)(MCACHE_SIZE_WIDTH-1,1)
-  val rd_parity = io.mcache_ctrlrepl.address(0)
-  val mcachemem_in_address = (io.mcache_ctrlrepl.address)(MCACHE_SIZE_WIDTH-1,1)
+  val mcachemem_in_address_even = (io.mcache_ctrlrepl.address_even)(MCACHE_SIZE_WIDTH-1,1)
+  val mcachemem_in_address_odd = (io.mcache_ctrlrepl.address_odd)(MCACHE_SIZE_WIDTH-1,1)
   //remember parity for the next cycle
-  val addr_parity_reg = Reg(next = rd_parity)
+  val addr_parity_reg = Reg(next = io.mcache_ctrlrepl.address_odd(0))
 
   io.mcachemem_in.w_even := Mux(wr_parity, Bool(false), io.mcache_ctrlrepl.w_enable)
   io.mcachemem_in.w_odd := Mux(wr_parity, io.mcache_ctrlrepl.w_enable, Bool(false))
   io.mcachemem_in.w_data := io.mcache_ctrlrepl.w_data
   io.mcachemem_in.w_addr := mcachemem_w_address
-  io.mcachemem_in.addr_even := Mux(rd_parity, mcachemem_in_address + Bits(1), mcachemem_in_address)
-  io.mcachemem_in.addr_odd := mcachemem_in_address
+  io.mcachemem_in.addr_even := mcachemem_in_address_even
+  io.mcachemem_in.addr_odd := mcachemem_in_address_odd
 
   val instr_aReg = Reg(init = Bits(0, width = INSTR_WIDTH))
   val instr_bReg = Reg(init = Bits(0, width = INSTR_WIDTH))
@@ -333,7 +335,8 @@ class MCacheCtrl() extends Module {
   val init_state :: idle_state :: size_state :: transfer_state :: restart_state :: Nil = Enum(UInt(), 5)
   val mcache_state = Reg(init = init_state)
   //signals for method cache memory (mcache_repl)
-  val mcachemem_address = Bits(width = EXTMEM_ADDR_WIDTH) //not needed here we are on relative addresses!
+  val mcachemem_address_even = Bits(width = EXTMEM_ADDR_WIDTH) //not needed here we are on relative addresses!
+  val mcachemem_address_odd = Bits(width = EXTMEM_ADDR_WIDTH)
   val mcachemem_w_data = Bits(width = DATA_WIDTH)
   val mcachemem_w_tag = Bool() //signalizes the transfer of begin of a write
   val mcachemem_w_addr = Bits(width = EXTMEM_ADDR_WIDTH)
@@ -347,13 +350,15 @@ class MCacheCtrl() extends Module {
   //input/output registers
   val callRetBaseReg = Reg(init = Bits(0, width = EXTMEM_ADDR_WIDTH))
   val msize_addr = callRetBaseReg - Bits(1)
-  val addrReg = Reg(init = Bits(0))
+  val addrEvenReg = Reg(init = Bits(0))
+  val addrOddReg = Reg(init = Bits(0))
   val wenaReg = Reg(init = Bool(false))
 
   val ocpSlaveReg = Reg(next = io.ocp_port.S)
 
   //init signals
-  mcachemem_address := addrReg
+  mcachemem_address_even := addrEvenReg
+  mcachemem_address_odd := addrOddReg
   mcachemem_w_data := Bits(0)
   mcachemem_w_tag := Bool(false)
   mcachemem_w_enable := Bool(false)
@@ -363,7 +368,8 @@ class MCacheCtrl() extends Module {
 
   when (io.exmcache.doCallRet) {
     callRetBaseReg := io.exmcache.callRetBase // use callret to save base address for next cycle
-    addrReg := io.femcache.address
+    addrEvenReg := io.femcache.address_even
+    addrOddReg := io.femcache.address_odd
   }
 
   //init state needs to fetch at program counter - 1 the first size of method block
@@ -375,7 +381,8 @@ class MCacheCtrl() extends Module {
   //check if instruction is available
   when (mcache_state === idle_state) {
     when(io.mcache_replctrl.hit === Bits(1)) {
-      mcachemem_address := io.femcache.address
+      mcachemem_address_even := io.femcache.address_even
+      mcachemem_address_odd := io.femcache.address_odd
     }
     //no hit... fetch from external memory
     .otherwise {
@@ -438,12 +445,14 @@ class MCacheCtrl() extends Module {
     }
   }
   when (mcache_state === restart_state) {
-    mcachemem_address := io.femcache.address
+    mcachemem_address_even := io.femcache.address_even
+    mcachemem_address_odd := io.femcache.address_odd
     mcache_state := idle_state
   }
 
   //outputs to mcache memory
-  io.mcache_ctrlrepl.address := mcachemem_address
+  io.mcache_ctrlrepl.address_even := mcachemem_address_even
+  io.mcache_ctrlrepl.address_odd := mcachemem_address_odd
   io.mcache_ctrlrepl.w_enable := mcachemem_w_enable
   io.mcache_ctrlrepl.w_data := mcachemem_w_data
   io.mcache_ctrlrepl.w_addr := mcachemem_w_addr
