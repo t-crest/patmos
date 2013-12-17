@@ -131,7 +131,8 @@ class Fetch(fileName : String) extends Module {
   io.fedec.instr_a := instr_a
   io.fedec.instr_b := instr_b
 
-  io.femem.pc := pc_cont - relBaseReg
+  val relPc = pcReg - relBaseReg
+  io.femem.pc := Mux(b_valid, relPc + UInt(2), relPc + UInt(1))
 
   //outputs to mcache
   io.femcache.address_even := Mux(io.ena, pc_inc, pcReg+pcReg(0))
