@@ -107,16 +107,16 @@ class MCacheReplFifo2() extends Module {
 
   val wr_parity = io.mcache_ctrlrepl.w_addr(0)
   val mcachemem_w_address = (wrPosReg + io.mcache_ctrlrepl.w_addr)(MCACHE_SIZE_WIDTH-1,1)
-  val rd_parity = io.mcache_ctrlrepl.address(0)
-  val mcachemem_in_address = (io.mcache_ctrlrepl.address)(MCACHE_SIZE_WIDTH-1,1)
-  val addr_parity_reg = Reg(next = rd_parity)
+  val mcachemem_in_address_even = (io.mcache_ctrlrepl.address_even)(MCACHE_SIZE_WIDTH-1,1)
+  val mcachemem_in_address_odd = (io.mcache_ctrlrepl.address_odd)(MCACHE_SIZE_WIDTH-1,1)
+  val addr_parity_reg = Reg(next = io.mcache_ctrlrepl.address_odd(0))
 
   io.mcachemem_in.w_even := Mux(wr_parity, Bool(false), io.mcache_ctrlrepl.w_enable)
   io.mcachemem_in.w_odd := Mux(wr_parity, io.mcache_ctrlrepl.w_enable, Bool(false))
   io.mcachemem_in.w_data := io.mcache_ctrlrepl.w_data
   io.mcachemem_in.w_addr := mcachemem_w_address
-  io.mcachemem_in.addr_even := Mux(rd_parity, mcachemem_in_address + Bits(1), mcachemem_in_address)
-  io.mcachemem_in.addr_odd := mcachemem_in_address
+  io.mcachemem_in.addr_even := mcachemem_in_address_even
+  io.mcachemem_in.addr_odd := mcachemem_in_address_odd
 
   val instr_aReg = Reg(init = Bits(0, width = INSTR_WIDTH))
   val instr_bReg = Reg(init = Bits(0, width = INSTR_WIDTH))
@@ -264,17 +264,17 @@ class MCacheReplLru() extends Module {
 
   val wr_parity = io.mcache_ctrlrepl.w_addr(0)
   val mcachemem_w_address = (wrPosReg + io.mcache_ctrlrepl.w_addr)(MCACHE_SIZE_WIDTH-1,1)
-  val rd_parity = io.mcache_ctrlrepl.address(0)
-  val mcachemem_in_address = (io.mcache_ctrlrepl.address)(MCACHE_SIZE_WIDTH-1,1)
-  val addr_parity_reg = Reg(rd_parity)
+  val mcachemem_in_address_even = (io.mcache_ctrlrepl.address_even)(MCACHE_SIZE_WIDTH-1,1)
+  val mcachemem_in_address_odd = (io.mcache_ctrlrepl.address_odd)(MCACHE_SIZE_WIDTH-1,1)
+  val addr_parity_reg = Reg(next = io.mcache_ctrlrepl.address_odd(0))
 
   //read/write to mcachemem
   io.mcachemem_in.w_even := Mux(wr_parity, Bool(false), io.mcache_ctrlrepl.w_enable)
   io.mcachemem_in.w_odd := Mux(wr_parity, io.mcache_ctrlrepl.w_enable, Bool(false))
   io.mcachemem_in.w_data := io.mcache_ctrlrepl.w_data
   io.mcachemem_in.w_addr := mcachemem_w_address
-  io.mcachemem_in.addr_even := Mux(rd_parity, mcachemem_in_address + Bits(1), mcachemem_in_address)
-  io.mcachemem_in.addr_odd := mcachemem_in_address
+  io.mcachemem_in.addr_even := mcachemem_in_address_even
+  io.mcachemem_in.addr_odd := mcachemem_in_address_odd
 
   val instr_aReg = Reg(init = Bits(0, width = INSTR_WIDTH))
   val instr_bReg = Reg(init = Bits(0, width = INSTR_WIDTH))
