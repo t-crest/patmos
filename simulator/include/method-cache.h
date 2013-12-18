@@ -54,6 +54,7 @@ namespace patmos
     virtual void initialize(uword_t address);
 
     /// A simulated instruction fetch from the method cache.
+    /// @param base The current method's base address.
     /// @param address The memory address to fetch from.
     /// @param iw A pointer to store the fetched instruction word.
     /// @return True when the instruction word is available from the read port.
@@ -63,8 +64,9 @@ namespace patmos
     /// If it is not available yet, initiate a transfer,
     /// evicting other methods if needed.
     /// @param address The base address of the method.
+    /// @param offset Offset within the method where execution should continue.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool load_method(word_t address);
+    virtual bool load_method(word_t address, word_t offset);
 
     /// Check whether a method is in the method cache.
     /// @param address The base address of the method.
@@ -90,6 +92,11 @@ namespace patmos
     virtual void flush_cache() {}
   };
 
+  /// Cache statistics for a particular method and return offset. Map offsets
+  /// to number of cache hits/misses.
+  typedef std::map<word_t, std::pair<unsigned int, unsigned int> >
+                                                                 offset_stats_t;
+
   /// Cache statistics of a particular method.
   class method_stats_info_t
   {
@@ -101,10 +108,7 @@ namespace patmos
     unsigned int Num_blocks_allocated;
     
     /// Number of cache hits for the method.
-    unsigned int Num_hits;
-
-    /// Number of cache misses for the method.
-    unsigned int Num_misses;
+    offset_stats_t Accesses;
 
     /// Minimum utilization of the cache entry for this method in words.
     float Min_utilization;
@@ -114,7 +118,6 @@ namespace patmos
     
     /// Initialize the method statistics.
     method_stats_info_t() : Num_method_bytes(0), Num_blocks_allocated(0),
-      Num_hits(0), Num_misses(0),
       Min_utilization(std::numeric_limits<float>::max()), 
       Max_utilization(0)
     {
@@ -235,6 +238,9 @@ namespace patmos
     /// Number of cache misses.
     unsigned int Num_misses;
 
+    /// Number of cache misses on returns.
+    unsigned int Num_misses_ret;
+
     /// Number of stall cycles caused by method cache misses.
     unsigned int Num_stall_cycles;
 
@@ -285,6 +291,7 @@ namespace patmos
     virtual void initialize(uword_t address);
 
     /// A simulated instruction fetch from the method cache.
+    /// @param base The current method's base address.
     /// @param address The memory address to fetch from.
     /// @param iw A pointer to store the fetched instruction word.
     /// @return True when the instruction word is available from the read port.
@@ -294,8 +301,9 @@ namespace patmos
     /// If it is not available yet, initiate a transfer,
     /// evicting other methods if needed.
     /// @param address The base address of the method.
+    /// @param offset Offset within the method where execution should continue.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool load_method(word_t address);
+    virtual bool load_method(word_t address, word_t offset);
 
     /// Check whether a method is in the method cache.
     /// @param address The base address of the method.
@@ -359,12 +367,14 @@ namespace patmos
     /// If it is not available yet, initiate a transfer,
     /// evicting other methods if needed.
     /// @param address The base address of the method.
+    /// @param offset Offset within the method where execution should continue.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool load_method(word_t address);
+    virtual bool load_method(word_t address, word_t offset);
 
     virtual uword_t get_active_method_base();
 
     /// A simulated instruction fetch from the method cache.
+    /// @param base The current method's base address.
     /// @param address The memory address to fetch from.
     /// @param iw A pointer to store the fetched instruction word.
     /// @return True when the instruction word is available from the read port.
