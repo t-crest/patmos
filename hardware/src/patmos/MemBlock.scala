@@ -31,20 +31,10 @@
  */
 
 /*
- * An on-chip memory.
+ * A generic dual-ported (one read-, one write-port) memory block
  * 
- * Has input registers (without enable or reset).
- * Shall do byte enable.
- * Output multiplexing and bit filling at the moment also here.
- * That might move out again when more than one memory is involved.
+ * Author: Wolfgang Puffitsch (wpuffitsch@gmail.com)
  * 
- * Address decoding here. At the moment map to 0x00000000.
- * Only take care on a write.
- * 
- * Size is in bytes.
- *
- * Authors: Martin Schoeberl (martin@jopdesign.com)
- *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
  */
 
 package patmos
@@ -52,34 +42,53 @@ package patmos
 import Chisel._
 import Node._
 
-import Constants._
-
-import ocp._
-
-class Spm(size: Int) extends Module {
-  val io = new OcpCoreSlavePort(log2Up(size), DATA_WIDTH)
-
-  val addrBits = log2Up(size / BYTES_PER_WORD)
-
-  // generate byte memories
-  val mem = new Array[MemBlockIO](BYTES_PER_WORD)
-  for (i <- 0 until BYTES_PER_WORD) {
-    mem(i) = MemBlock(size / BYTES_PER_WORD, BYTE_WIDTH).io
+object MemBlock {
+  def apply(size : Int, width : Int) = {
+    Module(new MemBlock(size, width))
+    // Module(new BlackBlock(size, width))
   }
-
-  // store
-  val stmsk = Mux(io.M.Cmd === OcpCmd.WR, io.M.ByteEn,  Bits("b0000"))
-  for (i <- 0 until BYTES_PER_WORD) {
-    mem(i) <= (stmsk(i), io.M.Addr(addrBits + 1, 2),
-               io.M.Data(BYTE_WIDTH*(i+1)-1, BYTE_WIDTH*i))
-  }
-
-  // load
-  val rdData = mem.map(_(io.M.Addr(addrBits + 1, 2))).reduceLeft((x,y) => y ## x)
-
-  // Respond and return data
-  val cmdReg = Reg(next = io.M.Cmd)
-  io.S.Resp := Mux(cmdReg === OcpCmd.WR || cmdReg === OcpCmd.RD,
-                   OcpResp.DVA, OcpResp.NULL)
-  io.S.Data := rdData
 }
+
+class MemBlockIO(size : Int, width : Int) extends Bundle {
+  val rdAddr = Bits(INPUT, log2Up(size))
+  val rdData = Bits(OUTPUT, width)
+  val wrAddr = Bits(INPUT, log2Up(size))
+  val wrEna  = Bits(INPUT, 1)
+  val wrData = Bits(INPUT, width)
+  
+  def <= (ena : Bits, addr : Bits, data : Bits) = {
+	wrAddr := addr
+	wrEna := ena
+	wrData := data
+  }
+  
+  def apply(addr : Bits) : Bits = {
+	rdAddr := addr
+	rdData
+  }
+}
+
+class MemBlock(size : Int, width : Int) extends Module {
+  val io = new MemBlockIO(size, width)
+  val mem = Mem(Bits(width = width), size)
+  
+  // write and read
+  when(io.wrEna === Bits(1)) {
+	mem(io.wrAddr) := io.wrData
+  }
+  io.rdData := mem(Reg(next = io.rdAddr))
+}
+
+class BlackBlock(size : Int, width : Int) extends BlackBox {
+  val io = new MemBlockIO(size, width)
+
+  // Set entity name
+  setName("Ram"+size+"x"+width)
+  // Override port names as necessary
+  io.rdAddr.setName("RdA")
+  io.rdData.setName("Q")
+  io.wrAddr.setName("WrA")
+  io.wrEna.setName("WrEn")
+  io.wrData.setName("D")
+}
+

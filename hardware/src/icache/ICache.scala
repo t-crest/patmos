@@ -71,7 +71,8 @@ class ICacheCtrlRepl extends Bundle() {
   val w_data = Bits(width = INSTR_WIDTH)
   val w_addr = Bits(width = ADDR_WIDTH)
   val w_tag = Bool()
-  val address = Bits(width = 32)
+  val address_even = Bits(width = 32) //ICACHE_SIZE_WIDTH
+  val address_odd = Bits(width = 32)
   val instr_stall = Bool()
 }
 class ICacheReplCtrl extends Bundle() {
@@ -82,7 +83,7 @@ class ICacheMemIn extends Bundle() {
   val w_ena = Bool()
   val w_data = Bits(width = DATA_WIDTH)
   val w_addr = Bits(width = INDEX_FIELD_SIZE + WORD_COUNT_WIDTH)
-  val address = Bits(width = INDEX_FIELD_SIZE + WORD_COUNT_WIDTH)
+  val address_odd = Bits(width = INDEX_FIELD_SIZE + WORD_COUNT_WIDTH)
 }
 class ICacheMemOut extends Bundle() {
   val instr_a = Bits(width = INSTR_WIDTH)
@@ -130,7 +131,7 @@ class ICacheMem extends Module {
     ram_icache(io.icachemem_in.w_addr) := io.icachemem_in.w_data 
   }
 
-  val addrReg = Reg(next = io.icachemem_in.address)
+  val addrReg = Reg(next = io.icachemem_in.address_odd)
   io.icachemem_out.instr_a := ram_icache(addrReg)
   io.icachemem_out.instr_b := ram_icache(addrReg + Bits(1))
 
@@ -167,10 +168,10 @@ class ICacheReplDm() extends Module {
   val selIspmReg = Reg(init = Bool(false))
   val selICacheReg = Reg(init = Bool(false))
 
-  val addrIndex = io.icache_ctrlrepl.address(INDEX_FIELD_HIGH, INDEX_FIELD_LOW)
-  val addrIndex2 = (io.icache_ctrlrepl.address + Bits(1))(INDEX_FIELD_HIGH, INDEX_FIELD_LOW)
-  val addrTag = io.icache_ctrlrepl.address(TAG_FIELD_HIGH, TAG_FIELD_LOW)
-  val addrTag2 = (io.icache_ctrlrepl.address + Bits(1))(TAG_FIELD_HIGH, TAG_FIELD_LOW)
+  val addrIndex = io.icache_ctrlrepl.address_odd(INDEX_FIELD_HIGH, INDEX_FIELD_LOW)
+  val addrIndex2 = (io.icache_ctrlrepl.address_odd + Bits(1))(INDEX_FIELD_HIGH, INDEX_FIELD_LOW)
+  val addrTag = io.icache_ctrlrepl.address_odd(TAG_FIELD_HIGH, TAG_FIELD_LOW)
+  val addrTag2 = (io.icache_ctrlrepl.address_odd + Bits(1))(TAG_FIELD_HIGH, TAG_FIELD_LOW)
 
   //we need to operate with absolute addresses in a conventional i-cache
   val relBase = Mux(selICacheReg,
@@ -216,7 +217,7 @@ class ICacheReplDm() extends Module {
   io.icachemem_in.w_ena := io.icache_ctrlrepl.w_enable
   io.icachemem_in.w_data := io.icache_ctrlrepl.w_data
   io.icachemem_in.w_addr := (io.icache_ctrlrepl.w_addr)(ICACHE_SIZE_WIDTH-1,0) //??? INDEX_FIELD_HIGH?
-  io.icachemem_in.address := (io.icache_ctrlrepl.address)(ICACHE_SIZE_WIDTH-1,0) //??? INDEX_FIELD_HIGH?
+  io.icachemem_in.address_odd := (io.icache_ctrlrepl.address_odd)(ICACHE_SIZE_WIDTH-1,0) //??? INDEX_FIELD_HIGH?
   io.icachefe.instr_a := io.icachemem_out.instr_a
   io.icachefe.instr_b := io.icachemem_out.instr_b
   io.icachefe.relBase := relBase
@@ -259,8 +260,8 @@ class ICacheCtrl() extends Module {
   val ocpSlaveReg = Reg(next = io.ocp_port.S)
 
   //should not be needed instead a absolut pc should be used
-  val absAddr = io.feicache.address + callRetBaseReg
-  val absCallAddr = io.feicache.address + io.feicache.callRetBase
+  val absAddr = io.feicache.address_odd + callRetBaseReg
+  val absCallAddr = io.feicache.address_odd + io.feicache.callRetBase
   //address for the entire block
   val absFetchAddr = Cat(addrReg(31,WORD_COUNT_WIDTH), Bits(0)(WORD_COUNT_WIDTH-1,0))
 
@@ -289,7 +290,7 @@ class ICacheCtrl() extends Module {
     }
     .otherwise {
       wenaReg := Bool(true)
-      addrReg := Mux(io.icache_replctrl.hit_instr_b, io.feicache.address, io.feicache.address + Bits(1)) + callRetBaseReg
+      addrReg := Mux(io.icache_replctrl.hit_instr_b, io.feicache.address_odd, io.feicache.address_odd + Bits(1)) + callRetBaseReg
       icache_state := fetch_state
     }
   }
@@ -331,7 +332,7 @@ class ICacheCtrl() extends Module {
   }
   
   //outputs to instruction cache memory
-  io.icache_ctrlrepl.address := icachemem_address
+  io.icache_ctrlrepl.address_odd := icachemem_address
   io.icache_ctrlrepl.w_enable := icachemem_w_enable
   io.icache_ctrlrepl.w_data := icachemem_w_data
   io.icache_ctrlrepl.w_addr := icachemem_w_addr

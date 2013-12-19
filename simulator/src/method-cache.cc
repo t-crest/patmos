@@ -50,7 +50,7 @@ bool ideal_method_cache_t::fetch(uword_t base, uword_t address, word_t iw[2])
   return true;
 }
 
-bool ideal_method_cache_t::load_method(word_t address)
+bool ideal_method_cache_t::load_method(word_t address, word_t offset)
 {
   current_base = address;
   return true;
@@ -109,8 +109,8 @@ unsigned int lru_method_cache_t::method_info_t::get_utilized_bytes() {
 }
 
 
-bool lru_method_cache_t::do_fetch(method_info_t &current_method, uword_t address, 
-                                  word_t iw[2])
+bool lru_method_cache_t::do_fetch(method_info_t &current_method,
+                                  uword_t address, word_t iw[2])
 {
   if(Phase != IDLE ||
       address < current_method.Address ||
@@ -139,8 +139,7 @@ bool lru_method_cache_t::do_fetch(method_info_t &current_method, uword_t address
 bool lru_method_cache_t::lookup(uword_t address)
 {
   // check if the address is in the cache
-  for(int i = Num_blocks - 1; i >= (int)(Num_blocks - Num_active_methods);
-      i--)
+  for(int i = Num_blocks - 1; i >= (int)(Num_blocks - Num_active_methods); i--)
   {
     if (Methods[i].Address == address)
     {
@@ -167,14 +166,15 @@ bool lru_method_cache_t::lookup(uword_t address)
   return false;
 }
 
-void lru_method_cache_t::update_utilization_stats(method_info_t &method, uword_t utilized_bytes) 
+void lru_method_cache_t::update_utilization_stats(method_info_t &method,
+                                                  uword_t utilized_bytes)
 {
   
   float utilization = (float)utilized_bytes / (float)method.Num_bytes;
-  
+
   Method_stats[method.Address].Max_utilization = std::max(utilization, 
                               Method_stats[method.Address].Max_utilization);
-  Method_stats[method.Address].Min_utilization = std::min(utilization, 
+  Method_stats[method.Address].Min_utilization = std::min(utilization,
                               Method_stats[method.Address].Min_utilization);      
 }
 
@@ -195,7 +195,8 @@ bool lru_method_cache_t::read_function_size(word_t function_base,
   return peek_function_size(function_base, result_size);
 }
 
-bool lru_method_cache_t::peek_function_size(word_t function_base, uword_t *result_size)
+bool lru_method_cache_t::peek_function_size(word_t function_base,
+                                            uword_t *result_size)
 {
   uword_t num_bytes_big_endian;
   Memory.read_peek(function_base - sizeof(uword_t),
@@ -235,7 +236,8 @@ lru_method_cache_t::lru_method_cache_t(memory_t &memory,
     Num_max_blocks_allocated(0), Num_bytes_transferred(0),
     Num_max_bytes_transferred(0), Num_bytes_fetched(0), 
     Num_max_active_methods(0),
-    Num_hits(0), Num_misses(0), Num_stall_cycles(0), Num_bytes_utilized(0)
+    Num_hits(0), Num_misses(0), Num_misses_ret(0), Num_stall_cycles(0),
+    Num_bytes_utilized(0)
 {
   Num_max_methods = max_active_methods ? max_active_methods : num_blocks;
   Methods = new method_info_t[Num_blocks];
@@ -271,7 +273,7 @@ bool lru_method_cache_t::fetch(uword_t base, uword_t address, word_t iw[2])
   return do_fetch(Methods[Num_blocks - 1], address, iw);
 }
 
-bool lru_method_cache_t::load_method(word_t address)
+bool lru_method_cache_t::load_method(word_t address, word_t offset)
 {
   // check status of the method cache
   switch(Phase)
@@ -285,7 +287,7 @@ bool lru_method_cache_t::load_method(word_t address)
       {
         // method is in the cache ... done!
         Num_hits++;
-        Method_stats[address].Num_hits++;
+        Method_stats[address].Accesses[offset].first++;
         return true;
       }
       else
@@ -294,7 +296,9 @@ bool lru_method_cache_t::load_method(word_t address)
         // NOTE: the next phase starts immediately.
         Phase = SIZE;
         Num_misses++;
-        Method_stats[address].Num_misses++;
+        if (offset != 0)
+          Num_misses_ret++;
+        Method_stats[address].Accesses[offset].second++;
       }
     }
 
@@ -465,8 +469,9 @@ void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os)
                       "   Max Methods in Cache: %10$10d\n"
                       "   Cache Hits          : %11$10d  %12$10.2f%%\n"
                       "   Cache Misses        : %13$10d  %14$10.2f%%\n"
-                      "   Transfer Ratio      : %15$10.3f\n"
-                      "   Miss Stall Cycles   : %16$10d  %17$10.2f%%\n\n")
+                      "   Cache Misses Returns: %15$10d  %16$10.2f%%\n"
+                      "   Transfer Ratio      : %17$10.3f\n"
+                      "   Miss Stall Cycles   : %18$10d  %19$10.2f%%\n\n")
     % Num_blocks_allocated % Num_max_blocks_allocated
     % Num_bytes_transferred % Num_max_bytes_transferred
     % bytes_allocated % (Num_max_bytes_transferred - 4)
@@ -474,28 +479,54 @@ void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os)
     % Num_max_active_methods 
     % Num_hits % (100.0 * Num_hits / (Num_hits + Num_misses))
     % Num_misses % (100.0 * Num_misses / (Num_hits + Num_misses))
+    % Num_misses_ret % (100.0 * Num_misses_ret / Num_misses)
     % transfer_ratio
     % Num_stall_cycles % (100.0 * Num_stall_cycles / (float)s.Cycle);
 
   // Update utilization stats for all methods not yet evicted.
   for(int i = Num_blocks - Num_active_methods; i < Num_blocks; i++)
   {
-    // TODO we do not *actually* want to evict this method, use a diffent 
+    // TODO we do not *actually* want to evict this method, use a different
     //      method.
     evict(Methods[i]);
   }
 
   // print stats per method
-  os << "       Method:      #hits     #misses  methodsize      blocks    min-util    max-util\n";
+  os << "       Method:        #hits     #misses  methodsize      blocks    "
+        "min-util    max-util\n";
   for(method_stats_t::iterator i(Method_stats.begin()),
       ie(Method_stats.end()); i != ie; i++)
   {
-    os << boost::format("   0x%1$08x: %2$10d  %3$10d  %4$10d  %5$10d %6$10.2f%% %7$10.2f%%    %8%\n")
-        % i->first % i->second.Num_hits % i->second.Num_misses
+    unsigned int hits = 0;
+    unsigned int misses = 0;
+    for(offset_stats_t::iterator j(i->second.Accesses.begin()),
+        je(i->second.Accesses.end()); j != je; j++)
+    {
+      hits += j->second.first;
+      misses += j->second.second;
+    }
+
+    os << boost::format("   0x%1$08x:   %2$10d  %3$10d  %4$10d  %5$10d "
+                        "%6$10.2f%% %7$10.2f%%    %8%\n")
+        % i->first % hits % misses
         % i->second.Num_method_bytes % i->second.Num_blocks_allocated
         % (i->second.Min_utilization * 100.0)
         % (i->second.Max_utilization * 100.0)
         % s.Symbols.find(i->first);
+
+    // print hit/miss statistics per offset
+    if (i->second.Accesses.size() > 1)
+    {
+      for(offset_stats_t::iterator j(i->second.Accesses.begin()),
+          je(i->second.Accesses.end()); j != je; j++)
+      {
+        os << boost::format("     0x%1$08x: %2$10d  %3$10d %4%\n")
+            % (i->first + j->first)
+            % j->second.first
+            % j->second.second
+            % s.Symbols.find(i->first + j->first);
+      }
+    }
   }
 }
 
@@ -510,6 +541,7 @@ void lru_method_cache_t::reset_stats()
   Num_max_active_methods = 0;
   Num_hits = 0; 
   Num_misses = 0;
+  Num_misses_ret = 0;
   Num_stall_cycles = 0;
   Method_stats.clear();
   for(unsigned int j = Num_blocks - Num_active_methods; j < Num_blocks; j++)
@@ -541,10 +573,10 @@ bool fifo_method_cache_t::lookup(uword_t address)
   return base_t::is_available(address);
 }
 
-bool fifo_method_cache_t::load_method(word_t address)
+bool fifo_method_cache_t::load_method(word_t address, word_t offset)
 {
   // check if the address is in the cache
-  bool avail = base_t::load_method(address);
+  bool avail = base_t::load_method(address, offset);
 
   if (avail) {
     // update the active method pointer

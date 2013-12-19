@@ -43,13 +43,15 @@ import Chisel._
 import Node._
 
 import patmos.Constants._
+import patmos.MemBlock
+import patmos.MemBlockIO
 
 import ocp._
 
 class DirectMappedCache(size: Int, lineSize: Int) extends Module {
   val io = new Bundle {
-	val master = new OcpCoreSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
-	val slave = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, lineSize/4)
+    val master = new OcpCoreSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
+    val slave = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, lineSize/4)
   }
 
   val addrBits = log2Up(size / BYTES_PER_WORD)
@@ -61,25 +63,17 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
   // Register signals from master
   val masterReg = Reg(next = io.master.M)
 
-  // Compute write enables
-  val stmsk = Mux(masterReg.Cmd === OcpCmd.WR, masterReg.ByteEn,  Bits("b0000"))
-  val stmskReg = Reg(next = stmsk)
-
-  // I would like to have a vector of memories.
-  // val mem = Vec(4) { Mem(Bits(width = DATA_WIDTH), size) }
-
-  // ok, the dumb way
-  val tagMem = Mem(Bits(width = tagWidth), tagCount)
+  // Generate memories
+  val tagMem = MemBlock(tagCount, tagWidth)
   val tagVMem = Vec.fill(tagCount) { Reg(init = Bool(false)) }
-  val mem0 = Mem(Bits(width = BYTE_WIDTH), size / BYTES_PER_WORD)
-  val mem1 = Mem(Bits(width = BYTE_WIDTH), size / BYTES_PER_WORD)
-  val mem2 = Mem(Bits(width = BYTE_WIDTH), size / BYTES_PER_WORD)
-  val mem3 = Mem(Bits(width = BYTE_WIDTH), size / BYTES_PER_WORD)
+  val mem = new Array[MemBlockIO](BYTES_PER_WORD)
+  for (i <- 0 until BYTES_PER_WORD) {
+    mem(i) = MemBlock(size / BYTES_PER_WORD, BYTE_WIDTH).io
+  }
 
-  val tag = tagMem(masterReg.Addr(addrBits + 1, lineBits))
+  val tag = tagMem.io(io.master.M.Addr(addrBits + 1, lineBits))
   val tagV = tagVMem(masterReg.Addr(addrBits + 1, lineBits))
   val tagValid = tagV && tag === Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, addrBits+2))
-  val tagValidReg = Reg(next = tagValid)
 
   val fillReg = Reg(init = Bool(false))
   val fillAddrReg = Reg(init = Bits(0, width = addrBits+2 - lineBits))
@@ -91,23 +85,19 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
   wrDataReg := io.master.M.Data
 
   // Write to cache; store only updates what's already there
-  when(fillReg || (tagValid && stmsk(0))) { mem0(wrAddrReg) :=
-												 wrDataReg(BYTE_WIDTH-1, 0) }
-  when(fillReg || (tagValid && stmsk(1))) { mem1(wrAddrReg) :=
-												 wrDataReg(2*BYTE_WIDTH-1, BYTE_WIDTH) }
-  when(fillReg || (tagValid && stmsk(2))) { mem2(wrAddrReg) :=
-												 wrDataReg(3*BYTE_WIDTH-1, 2*BYTE_WIDTH) }
-  when(fillReg || (tagValid && stmsk(3))) { mem3(wrAddrReg) :=
-												 wrDataReg(DATA_WIDTH-1, 3*BYTE_WIDTH) }
+  val stmsk = Mux(masterReg.Cmd === OcpCmd.WR, masterReg.ByteEn,  Bits("b0000"))
+  for (i <- 0 until BYTES_PER_WORD) {
+    mem(i) <= (fillReg || (tagValid && stmsk(i)), wrAddrReg,
+               wrDataReg(BYTE_WIDTH*(i+1)-1, BYTE_WIDTH*i))
+  }
 
   // Read from cache
-  val rdAddr = masterReg.Addr(addrBits + 1, 2)
-  val rdData = Cat(mem3(rdAddr), mem2(rdAddr), mem1(rdAddr), mem0(rdAddr))
+  val rdData = mem.map(_(io.master.M.Addr(addrBits + 1, 2))).reduceLeft((x,y) => y ## x)
 
   // Return data on a hit
   io.master.S.Data := rdData
   io.master.S.Resp := Mux(tagValid && masterReg.Cmd === OcpCmd.RD,
-   						  OcpResp.DVA, OcpResp.NULL)
+                          OcpResp.DVA, OcpResp.NULL)
 
   // State machine for misses
   val idle :: fill :: respond :: Nil = Enum(UInt(), 3)
@@ -122,7 +112,7 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
   // Default values
   io.slave.M.Cmd := OcpCmd.IDLE
   io.slave.M.Addr := Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, lineBits),
-						 Fill(Bits(0), lineBits))
+                         Fill(Bits(0), lineBits))
   io.slave.M.Data := Bits(0)
   io.slave.M.DataValid := Bits(0)
   io.slave.M.DataByteEn := Bits(0)
@@ -131,33 +121,35 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
 
   // Start handling a miss
   when(!tagValid && masterReg.Cmd === OcpCmd.RD) {
-	fillAddrReg := masterReg.Addr(addrBits + 1, lineBits)
-	tagMem(masterReg.Addr(addrBits + 1, lineBits)) := Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, addrBits+2))
-	tagVMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(true)
-	missIndexReg := masterReg.Addr(lineBits-1, 2).toUInt
-	io.slave.M.Cmd := OcpCmd.RD
-	stateReg := fill
+    fillAddrReg := masterReg.Addr(addrBits + 1, lineBits)
+    tagVMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(true)
+    missIndexReg := masterReg.Addr(lineBits-1, 2).toUInt
+    io.slave.M.Cmd := OcpCmd.RD
+    stateReg := fill
   }
+  tagMem.io <= (!tagValid && masterReg.Cmd === OcpCmd.RD,
+                masterReg.Addr(addrBits + 1, lineBits),
+                masterReg.Addr(EXTMEM_ADDR_WIDTH-1, addrBits+2))
   // Wait for response
   when(stateReg === fill) {
-	wrAddrReg := Cat(fillAddrReg, burstCntReg)
+    wrAddrReg := Cat(fillAddrReg, burstCntReg)
 
-	when(io.slave.S.Resp === OcpResp.DVA) {
-	  fillReg := Bool(true)
-	  wrDataReg := io.slave.S.Data
-	  when(burstCntReg === missIndexReg) {
-		slaveReg := io.slave.S
-	  }
-	  when(burstCntReg === UInt(lineSize/4-1)) {
-		stateReg := respond
-	  }
-	  burstCntReg := burstCntReg + UInt(1)
-	}
+    when(io.slave.S.Resp === OcpResp.DVA) {
+      fillReg := Bool(true)
+      wrDataReg := io.slave.S.Data
+      when(burstCntReg === missIndexReg) {
+        slaveReg := io.slave.S
+      }
+      when(burstCntReg === UInt(lineSize/4-1)) {
+        stateReg := respond
+      }
+      burstCntReg := burstCntReg + UInt(1)
+    }
   }
   // Pass data to master
   when(stateReg === respond) {
-	io.master.S := slaveReg
-	stateReg := idle
+    io.master.S := slaveReg
+    stateReg := idle
   }
 
 }
