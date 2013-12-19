@@ -50,6 +50,8 @@ abstract class Config {
   val description: String
   val frequency: Int
   val pipeCount: Int
+  val burstLength: Int
+  val writeCombine: Boolean
 
   case class MCacheConfig(size: Int, blocks: Int, repl: String)
   val MCache: MCacheConfig
@@ -91,6 +93,9 @@ object Config {
       val frequency = find(find(node, "frequency"), "@Hz").text.toInt
       val dual = find(find(node, "pipeline"), "@dual").text.toBoolean
       val pipeCount = if (dual) 2 else 1
+      val burstLength = find(find(node, "bus"), "@burstLength").text.toInt
+      val writeCombine = find(find(node, "bus"), "@writeCombine").text.toBoolean
+
       val MCacheNode = find(node, "MCache")
       val MCache =
         new MCacheConfig(parseSize(find(MCacheNode, "@size").text),
@@ -215,6 +220,8 @@ object Config {
     val description = "dummy"
     val frequency = 0
     val pipeCount = 0
+    val burstLength = 0
+    val writeCombine = false
     val MCache = new MCacheConfig(0, 0, "")
     val DCache = new DCacheConfig(0, 0, "")
     val SCache = new SCacheConfig(0)

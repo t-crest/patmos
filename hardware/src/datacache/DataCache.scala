@@ -76,7 +76,7 @@ class DataCache extends Module {
   val burstReadJoin = new OcpBurstJoin(dm.io.slave, bp.io.slave, burstReadBus.io.slave)
 
   // Combine writes
-  val wc = Module(new WriteCombineBuffer())
+  val wc = Module(if (WRITE_COMBINE) new WriteCombineBuffer() else new WriteNoBuffer())
   wc.io.readMaster <> burstReadBus.io.master
   wc.io.writeMaster.M := io.master.M
   val wcWriteS = wc.io.writeMaster.S

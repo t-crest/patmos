@@ -3,6 +3,7 @@
 
   <frequency Hz="25600000" />
   <pipeline dual="true" />
+  <bus burstLength="4" writeCombine="false" />
 
   <MCache size="4k" blocks="16" repl="" />
   <DCache size="2k" assoc="1" repl="" />

@@ -67,7 +67,8 @@ object Constants {
   val BOOTMEM_ONE_BIT = 16
 
   val EXTMEM_ADDR_WIDTH = log2Up(util.Config.conf.ExtMem.size)
-  val BURST_LENGTH = 4 // For SSRAM on DE2-70 board max. 4
+  val BURST_LENGTH = util.Config.conf.burstLength // For SSRAM on DE2-70 board max. 4
+  val WRITE_COMBINE = util.Config.conf.writeCombine
 
   // The PC counts in words. 30 bits are enough for the 4 GB address space.
   // We might cut that down to what we actually really support (16 MB)
