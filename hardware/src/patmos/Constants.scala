@@ -54,11 +54,13 @@ object Constants {
   val BOOTSPM_SIZE = util.Config.conf.BootSPM.size
   
   val MCACHE_SIZE = util.Config.conf.MCache.size
-  // maximum width between ISPM size and MCACHE size
-  val MAX_OFF_WIDTH = math.max(log2Up(MCACHE_SIZE / 4), log2Up(ISPM_SIZE / 4))
   val METHOD_COUNT = util.Config.conf.MCache.blocks
 
   val DCACHE_SIZE = util.Config.conf.DCache.size
+
+  // maximum width between ISPM size, MCACHE size and boot ROM size
+  val MAX_OFF_WIDTH = List(log2Up(MCACHE_SIZE / 4), log2Up(ISPM_SIZE / 4),
+                           util.Config.minPcWidth).reduce(math.max)
 
   // we use a very simple decoding of ISPM at address 0x00010000
   val ISPM_ONE_BIT = 16

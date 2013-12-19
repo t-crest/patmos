@@ -222,6 +222,7 @@ object Config {
     val pipeCount = 0
     val burstLength = 0
     val writeCombine = false
+    val minPcWidth = 0
     val MCache = new MCacheConfig(0, 0, "")
     val DCache = new DCacheConfig(0, 0, "")
     val SCache = new SCacheConfig(0)
@@ -232,6 +233,8 @@ object Config {
     val Devs = List()
   }
   
+  var minPcWidth = 0
+
   def load(file: String): Config = {
     val node = xml.XML.loadFile(file)
     fromXML(node)

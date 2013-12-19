@@ -44,6 +44,7 @@ import Chisel._
 import Node._
 
 import scala.collection.mutable.HashMap
+import java.io.File
 
 import Constants._
 
@@ -134,6 +135,7 @@ object PatmosCoreMain {
     val datFile = args(2)
 
 	Config.conf = Config.load(configFile)
+    Config.minPcWidth = (new File(binFile)).length.toInt / 4
     chiselMain(chiselArgs, () => Module(new PatmosCore(binFile, datFile)))
 	// Print out the configuration
 	Utility.printConfig(configFile)
@@ -145,6 +147,7 @@ object PatmosCoreMain {
  */
 class Patmos(configFile: String, binFile: String, datFile: String) extends Module {
   Config.conf = Config.load(configFile)
+  Config.minPcWidth = log2Up((new File(binFile)).length.toInt / 4)
 
   val io = Config.getPatmosIO()
 
