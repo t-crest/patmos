@@ -225,6 +225,25 @@ static void mcacheStat(Patmos_t *c, bool halt) {
   }
 }
 
+static void usage(ostream &out, const char *name) {
+  out << "Usage: " << name
+      << " [-q|-r] [-u|-n] [-v] [-p] [-l cycles] [-I file] [-O file] [-h] [file]" << endl;
+}
+
+static void help(ostream &out) {
+  out << endl << "Options:" << endl
+      << "  -q            Do not print register values in each cycles" << endl
+      << "  -r            Print register values in each cycles" << endl
+      << "  -u            Print UART output" << endl
+      << "  -n            Do not print UART output" << endl
+      << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
+      << "  -p            Print method cache statistics" << endl
+      << "  -l <N>        Stop after <N> cycles" << endl
+      << "  -I <file>     Read input from file <file> [unused]" << endl
+      << "  -O <file>     Write output from file <file>" << endl
+      << "  -h            Print this help" << endl;
+}
+
 int main (int argc, char* argv[]) {
   Patmos_t* c = new Patmos_t();
 
@@ -237,7 +256,7 @@ int main (int argc, char* argv[]) {
   bool quiet = true;
   bool print_stat = false;
 
-  while ((opt = getopt(argc, argv, "qurnvpl:I:O:")) != -1) {
+  while ((opt = getopt(argc, argv, "qurnvpl:I:O:h")) != -1) {
 	switch (opt) {
 	// MS: q and u should go away, but tests in bench need updates first
 	case 'q':
@@ -283,9 +302,12 @@ int main (int argc, char* argv[]) {
 		}
 	  }
 	  break;
+	case 'h':
+	  usage(cout, argv[0]);
+	  help(cout);
+	  exit(EXIT_SUCCESS);
 	default: /* '?' */
-	  cerr << "Usage: " << argv[0]
-		   << " [-q|-r] [-u|-n] [-v] [-p] [-l cycles] [-I file] [-O file] [file]" << endl;
+	  usage(cerr, argv[0]);
 	  exit(EXIT_FAILURE);
 	}
   }
