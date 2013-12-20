@@ -97,6 +97,12 @@ namespace patmos
   typedef std::map<word_t, std::pair<unsigned int, unsigned int> >
                                                                  offset_stats_t;
 
+  // Cache statistics to keep track how often a given method was evicted by
+  // other methods due to the limited cache capacity (first) or limited number
+  // of tags (second).
+  typedef std::map<word_t, std::pair<unsigned int, unsigned int> >
+                                                               eviction_stats_t;
+
   /// Cache statistics of a particular method.
   class method_stats_info_t
   {
@@ -115,6 +121,9 @@ namespace patmos
     
     /// Maximum utilization of the cache entry for this method in words.
     float Max_utilization;
+
+    /// Keep track how often this method was evicted by some other method.
+    eviction_stats_t Evictions;
     
     /// Initialize the method statistics.
     method_stats_info_t() : Num_method_bytes(0), Num_blocks_allocated(0),
@@ -241,6 +250,12 @@ namespace patmos
     /// Number of cache misses on returns.
     unsigned int Num_misses_ret;
 
+    /// Number of cache evictions due to limited cache capacity.
+    unsigned int Num_evictions_capacity;
+
+    /// Number of cache evictions due to the limited number of tags.
+    unsigned int Num_evictions_tag;
+
     /// Number of stall cycles caused by method cache misses.
     unsigned int Num_stall_cycles;
 
@@ -263,11 +278,13 @@ namespace patmos
     virtual bool lookup(uword_t address);
 
     void update_utilization_stats(method_info_t &method, uword_t utilized_bytes);
-    
+
+    /// Evict a given method, updating the cache state, and various statics.
+    /// @param method The method to be evicted.
     void evict(method_info_t &method);
 
     bool read_function_size(word_t function_base, uword_t *result_size);
-    
+
     bool peek_function_size(word_t function_base, uword_t *result_size);
 
     uword_t get_num_blocks_for_bytes(uword_t num_bytes);

@@ -236,7 +236,8 @@ lru_method_cache_t::lru_method_cache_t(memory_t &memory,
     Num_max_blocks_allocated(0), Num_bytes_transferred(0),
     Num_max_bytes_transferred(0), Num_bytes_fetched(0), 
     Num_max_active_methods(0),
-    Num_hits(0), Num_misses(0), Num_misses_ret(0), Num_stall_cycles(0),
+    Num_hits(0), Num_misses(0), Num_misses_ret(0), Num_evictions_capacity(0),
+    Num_evictions_tag(0), Num_stall_cycles(0),
     Num_bytes_utilized(0)
 {
   Num_max_methods = max_active_methods ? max_active_methods : num_blocks;
@@ -328,9 +329,29 @@ bool lru_method_cache_t::load_method(word_t address, word_t offset)
                 Num_active_methods >= Num_max_methods)
         {
           assert(Num_active_methods > 0);
-          Num_active_blocks -=
-                        Methods[Num_blocks - Num_active_methods].Num_blocks;
-          evict(Methods[Num_blocks - Num_active_methods]);
+          method_info_t &method(Methods[Num_blocks - Num_active_methods]);
+
+          // update eviction statistics
+          // is this a cache miss due to the limited number of tag?
+          bool is_tag_capacity_miss = (Num_active_blocks +
+                                        Num_allocate_blocks <= Num_blocks);
+
+          std::pair<unsigned int, unsigned int> &eviction_stats(
+                               Method_stats[method.Address].Evictions[address]);
+          if (is_tag_capacity_miss)
+          {
+            eviction_stats.second++;
+            Num_evictions_tag++;
+          }
+          else
+          {
+            eviction_stats.first++;
+            Num_evictions_capacity++;
+          }
+
+          // evict the method from the cache
+          Num_active_blocks -= method.Num_blocks;
+          evict(method);
           Num_active_methods--;
         }
 
@@ -457,7 +478,7 @@ void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os)
   
   // Ratio of bytes loaded from main memory to bytes fetched from the cache.
   float transfer_ratio = (float)Num_bytes_transferred/(float)Num_bytes_fetched;
-                      
+
   // instruction statistics
   os << boost::format("                              total        max.\n"
                       "   Blocks Allocated    : %1$10d  %2$10d\n"
@@ -470,8 +491,10 @@ void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os)
                       "   Cache Hits          : %11$10d  %12$10.2f%%\n"
                       "   Cache Misses        : %13$10d  %14$10.2f%%\n"
                       "   Cache Misses Returns: %15$10d  %16$10.2f%%\n"
-                      "   Transfer Ratio      : %17$10.3f\n"
-                      "   Miss Stall Cycles   : %18$10d  %19$10.2f%%\n\n")
+                      "   Evictions Capacity  : %17$10d  %18$10.2f%%\n"
+                      "   Evictions Tag       : %19$10d  %20$10.2f%%\n"
+                      "   Transfer Ratio      : %21$10.3f\n"
+                      "   Miss Stall Cycles   : %22$10d  %23$10.2f%%\n\n")
     % Num_blocks_allocated % Num_max_blocks_allocated
     % Num_bytes_transferred % Num_max_bytes_transferred
     % bytes_allocated % (Num_max_bytes_transferred - 4)
@@ -480,6 +503,10 @@ void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os)
     % Num_hits % (100.0 * Num_hits / (Num_hits + Num_misses))
     % Num_misses % (100.0 * Num_misses / (Num_hits + Num_misses))
     % Num_misses_ret % (100.0 * Num_misses_ret / Num_misses)
+    % Num_evictions_capacity
+    % (100.0*Num_evictions_capacity/(Num_evictions_capacity+Num_evictions_tag))
+    % Num_evictions_tag
+    % (100.0 * Num_evictions_tag / (Num_evictions_capacity + Num_evictions_tag))
     % transfer_ratio
     % Num_stall_cycles % (100.0 * Num_stall_cycles / (float)s.Cycle);
 
@@ -528,6 +555,36 @@ void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os)
       }
     }
   }
+
+  // print Eviction statistics
+  os << "\n       Method:    #capacity        #tag          by\n";
+  for(method_stats_t::iterator i(Method_stats.begin()), ie(Method_stats.end());
+      i != ie; i++)
+  {
+    // count number of evictions
+    unsigned int num_capacity_evictions = 0;
+    unsigned int num_tag_evictions = 0;
+    for(eviction_stats_t::iterator j(i->second.Evictions.begin()),
+        je(i->second.Evictions.end()); j != je; j++)
+    {
+      num_capacity_evictions += j->second.first;
+      num_tag_evictions += j->second.second;
+    }
+
+    // print address and name of current method
+    os << boost::format("   0x%1$08x:   %2$10d  %3$10d          %4%\n")
+        % i->first % num_capacity_evictions % num_tag_evictions
+        % s.Symbols.find(i->first);
+
+    // print other methods who evicted this method
+    for(eviction_stats_t::iterator j(i->second.Evictions.begin()),
+        je(i->second.Evictions.end()); j != je; j++)
+    {
+      os << boost::format("                 %1$10d  %2$10d  0x%3$08x  %4%\n")
+          % j->second.first % j->second.second % j->first
+          % s.Symbols.find(j->first);
+    }
+  }
 }
 
 void lru_method_cache_t::reset_stats() 
@@ -542,6 +599,8 @@ void lru_method_cache_t::reset_stats()
   Num_hits = 0; 
   Num_misses = 0;
   Num_misses_ret = 0;
+  Num_evictions_capacity = 0;
+  Num_evictions_tag = 0;
   Num_stall_cycles = 0;
   Method_stats.clear();
   for(unsigned int j = Num_blocks - Num_active_methods; j < Num_blocks; j++)
