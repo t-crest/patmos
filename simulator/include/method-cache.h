@@ -85,7 +85,8 @@ namespace patmos
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void print_stats(const simulator_t &s, std::ostream &os);
+    virtual void print_stats(const simulator_t &s, std::ostream &os, 
+                             bool short_stats);
     
     virtual void reset_stats() {}
     
@@ -340,7 +341,8 @@ namespace patmos
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void print_stats(const simulator_t &s, std::ostream &os);
+    virtual void print_stats(const simulator_t &s, std::ostream &os, 
+                             bool short_stats);
 
     virtual void reset_stats();
     

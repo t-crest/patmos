@@ -592,7 +592,8 @@ void block_stack_cache_t::print(std::ostream &os) const
   ideal_stack_cache_t::print(os);
 }
 
-void block_stack_cache_t::print_stats(const simulator_t &s, std::ostream &os)
+void block_stack_cache_t::print_stats(const simulator_t &s, std::ostream &os, 
+                                      bool short_stats)
 {
   unsigned int bytes_transferred = Num_blocks_filled * Num_block_bytes +
                                    Num_blocks_spilled * Num_block_bytes;
