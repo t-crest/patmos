@@ -257,7 +257,8 @@ class OcpBurstPriorityJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort
     joined.M := left.M
   }
   //right port requests
-  .elsewhen (selRight || selCurrentReg === Bits(1)) {
+  //!=selBothReg is needed since a write request from D-Cache is stalled
+  .elsewhen ((selRight && !selBothReg) || selCurrentReg === Bits(1)) {
     selCurrentReg := Bits(1)
     joined.M := right.M
   }
@@ -265,7 +266,13 @@ class OcpBurstPriorityJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort
   when (selBothReg && enable) {
     selBothReg := Bool(false)
     selCurrentReg := Bits(1)
-    joined.M := masterReg
+    when (masterReg.Cmd === OcpCmd.RD) {
+      joined.M := masterReg
+    }
+    //why is a burst write stalling the byteEn signal and a read not?!
+    .otherwise {
+      joined.M := right.M
+    }
   }
   right.S := joined.S
   left.S := joined.S
