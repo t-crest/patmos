@@ -108,6 +108,12 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   val burstJoin = new OcpBurstJoin(mcache.io.ocp_port, dcache.io.slave,
                                    burstBus.io.slave)
 
+
+  //join class for I-Cache buffering the d-cache request
+  //use this burstJoin when I-Cache is used
+  // val burstJoin = new OcpBurstPriorityJoin(mcache.io.ocp_port, dcache.io.slave,
+  //                                  burstBus.io.slave, mcache.io.ena_out)
+
   // Enable signal
   val enable = memory.io.ena_out & mcache.io.ena_out
   fetch.io.ena := enable
