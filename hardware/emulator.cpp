@@ -17,6 +17,9 @@ ofstream cmiss;
 #define SRAM_ADDR_BITS 19 // 2MB
 static uint32_t ssram_buf [1 << SRAM_ADDR_BITS];
 #define SRAM_CYCLES 3
+
+//uncomment when i-cache is used
+#define MCACHE 1
   
 /// Read an elf executable image into the on-chip memories
 static val_t readelf(istream &is, Patmos_t *c)
@@ -200,6 +203,7 @@ static void mcacheStat(Patmos_t *c, bool halt) {
   static uint cache_stall_cycles = 0;
   //count all cycles till the program terminats
   exec_cycles++;
+  #ifdef MCACHE
   //count everytime a new method is written to the cache
   if (c->Patmos_core_mcache_mcachectrl__io_mcache_ctrlrepl_w_tag.to_bool() == true) {
     cache_miss++;
@@ -212,6 +216,9 @@ static void mcacheStat(Patmos_t *c, bool halt) {
       c->Patmos_core_mcache_mcachectrl__io_mcache_ctrlrepl_instr_stall.to_bool() == false) {
     cache_hits++;
   }
+  #else
+  //add stats for instruction cache measurements
+  #endif
   //pipeline stalls caused by the mcache
   if (c->Patmos_core_mcache__io_ena_out.to_bool() == false) {
     cache_stall_cycles++;
@@ -339,24 +346,18 @@ int main (int argc, char* argv[]) {
 
   if (entry != 0) {
     if (entry >= 0x20000) {
+      #ifdef MCACHE
+      //init for mcache
       c->Patmos_core_fetch__pcReg = -1;
       c->Patmos_core_mcache_mcacherepl__hitReg = 0;
       c->Patmos_core_mcache_mcacherepl__selMCacheReg = 1;
+      #else
+      //init for icache
+      c->Patmos_core_mcache_mcacherepl__selICacheReg = 1;
+      c->Patmos_core_fetch__pcReg = (entry >> 2);
+      #endif
       c->Patmos_core_fetch__relBaseReg = 0;
       c->Patmos_core_fetch__relocReg = (entry >> 2) - 1;
-      //init linked list for lru replacement
-      // c->Patmos_core_mcache_mcachectrl__addrReg = 0;
-      // c->Patmos_core_mcache_mcacherepl__lru_list_prev_0 = 1;
-      // c->Patmos_core_mcache_mcacherepl__lru_list_prev_1 = 2;
-      // c->Patmos_core_mcache_mcacherepl__lru_list_prev_2 = 3;
-      // c->Patmos_core_mcache_mcacherepl__lru_list_prev_3 = 0;
-      // c->Patmos_core_mcache_mcacherepl__lru_list_next_0 = 3;
-      // c->Patmos_core_mcache_mcacherepl__lru_list_next_1 = 0;
-      // c->Patmos_core_mcache_mcacherepl__lru_list_next_2 = 1;
-      // c->Patmos_core_mcache_mcacherepl__lru_list_next_3 = 2;
-      //init for icache
-      // c->Patmos_core_mcache_icacherepl__selICacheReg = 1;
-      // c->Patmos_core_fetch__pcReg = 0;
     }
     else {
       // pcReg for ispm starts at entry point - ispm base
@@ -367,11 +368,12 @@ int main (int argc, char* argv[]) {
       //init for icache
       // c->Patmos_core_mcache_icacherepl__selIspmReg = 1;
     }
-    c->Patmos_core_mcache_mcachectrl__callRetBaseReg = (entry >> 2);
     c->Patmos_core_mcache_mcacherepl__callRetBaseReg = (entry >> 2);
-    //init for icache
-    // c->Patmos_core_mcache_icachectrl__callRetBaseReg = (entry >> 2);
-    // c->Patmos_core_mcache_icacherepl__callRetBaseReg = (entry >> 2);
+    #ifdef MCACHE
+    c->Patmos_core_mcache_mcachectrl__callRetBaseReg = (entry >> 2);
+    #else
+    c->Patmos_core_fetch__relBaseReg = (entry >> 2);
+    #endif
   }
 
   // Main emulation loop
@@ -406,14 +408,10 @@ int main (int argc, char* argv[]) {
 	  break;
 	}
 	if (c->Patmos_core_memory__memReg_mem_ret.to_bool()
-		&& c->Patmos_core_mcache_mcachectrl__callRetBaseReg.to_ulong() == 0) {
+		&& c->Patmos_core_mcache_mcacherepl__callRetBaseReg.to_ulong() == 0) {
 	  halt = true;
 	}
-	//for icache
-	// if (c->Patmos_core_memory__memReg_mem_ret.to_bool()
-	// 	&& c->Patmos_core_mcache_icacherepl__callRetBaseReg.to_ulong() == 0) {
-	//   halt = true;
-	// }
+       
 	if (print_stat == true) {
 	  mcacheStat(c, halt);
 	}
