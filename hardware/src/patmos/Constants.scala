@@ -57,10 +57,12 @@ object Constants {
   val METHOD_COUNT = util.Config.conf.MCache.blocks
 
   val DCACHE_SIZE = util.Config.conf.DCache.size
+  //offset for to swicth rel address into absolut addr width, default = 0
+  val ICACHE_ADDR_OFFSET = 0 //log2Up(util.Config.conf.ExtMem.size)
 
   // maximum width between ISPM size, MCACHE size and boot ROM size
   val MAX_OFF_WIDTH = List(log2Up(MCACHE_SIZE / 4), log2Up(ISPM_SIZE / 4),
-                           util.Config.minPcWidth).reduce(math.max)
+                           util.Config.minPcWidth, ICACHE_ADDR_OFFSET).reduce(math.max)
 
   // we use a very simple decoding of ISPM at address 0x00010000
   val ISPM_ONE_BIT = 16
