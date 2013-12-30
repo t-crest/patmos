@@ -235,6 +235,48 @@ class OcpBurstJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort,
   selRightReg := selRight
 }
 
+// Join two OcpBurst ports, left port has priority in case of double request
+// the right request is buffered till enable is set to true
+class OcpBurstPriorityJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort,
+                   joined : OcpBurstSlavePort, enable : Bool) {
+
+  val selLeft = Mux(left.M.Cmd != OcpCmd.IDLE, Bool(true), Bool(false))
+  val selRight = Mux(right.M.Cmd != OcpCmd.IDLE, Bool(true), Bool(false)) 
+  val selBothReg = Reg(init = Bool(false))
+  val selCurrentReg = Reg(init = Bits(0))
+  val masterReg = Reg(init = OcpBurstMasterSignals.resetVal(right.M))
+
+  joined.M := left.M
+  //left port requests
+  when (selLeft) {
+    when (selRight) {
+      selBothReg := Bool(true)
+      masterReg := right.M
+    }
+    selCurrentReg := Bits(0)
+    joined.M := left.M
+  }
+  //right port requests
+  .elsewhen (selRight || selCurrentReg === Bits(1)) {
+    selCurrentReg := Bits(1)
+    joined.M := right.M
+  }
+  //switch to right
+  when (selBothReg && enable) {
+    selBothReg := Bool(false)
+    selCurrentReg := Bits(1)
+    joined.M := masterReg
+  }
+  right.S := joined.S
+  left.S := joined.S
+  when (selLeft || selCurrentReg === Bits(1)) {
+    left.S.Resp := OcpResp.NULL
+  }
+  .elsewhen (selRight || selCurrentReg === Bits(0)){
+    right.S.Resp := OcpResp.NULL
+  }
+}
+
 // Provide a "bus" with a master port and a slave port to simplify plumbing
 class OcpBurstBus(addrWidth : Int, dataWidth : Int, burstLen : Int) extends Module {
   val io = new Bundle {
