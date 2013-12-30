@@ -205,15 +205,15 @@ static void mcacheStat(Patmos_t *c, bool halt) {
   exec_cycles++;
   #ifdef MCACHE
   //count everytime a new method is written to the cache
-  if (c->Patmos_core_mcache_mcachectrl__io_mcache_ctrlrepl_w_tag.to_bool() == true) {
+  if (c->Patmos_core_mcache_mcachectrl__io_mcache_ctrlrepl_wTag.to_bool() == true) {
     cache_miss++;
   }
   //everytime a method is called from the cache, todo: find a better way to measure hits
   if (c->Patmos_core_fetch__io_memfe_doCallRet.to_bool() == true &&
       c->Patmos_core_mcache_mcacherepl__io_mcache_replctrl_hit.to_bool() == true &&
-      c->Patmos_core_mcache_mcachectrl__mcache_state.to_ulong() == 1 &&
+      c->Patmos_core_mcache_mcachectrl__mcacheState.to_ulong() == 1 &&
       c->Patmos_core_mcache__io_ena_in.to_bool() == true &&
-      c->Patmos_core_mcache_mcachectrl__io_mcache_ctrlrepl_instr_stall.to_bool() == false) {
+      c->Patmos_core_mcache_mcachectrl__io_mcache_ctrlrepl_instrStall.to_bool() == false) {
     cache_hits++;
   }
   #else

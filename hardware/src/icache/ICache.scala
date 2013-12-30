@@ -162,20 +162,17 @@ class ICache() extends Module {
 class ICacheMem extends Module {
   val io = new ICacheMemIO()
  
-  val icacheOdd = Mem(Bits(width = INSTR_WIDTH), ICACHE_WORD_SIZE / 2)
-  val icacheEven = Mem(Bits(width = INSTR_WIDTH), ICACHE_WORD_SIZE / 2)
+  val icacheEven = MemBlock(ICACHE_WORD_SIZE / 2, INSTR_WIDTH)
+  val icacheOdd = MemBlock(ICACHE_WORD_SIZE / 2, INSTR_WIDTH)
 
-  when (io.icachemem_in.wEven) { 
-    icacheEven(io.icachemem_in.wAddr) := io.icachemem_in.wData
-  }
-  when (io.icachemem_in.wOdd) { 
-    icacheOdd(io.icachemem_in.wAddr) := io.icachemem_in.wData 
-  }
+  icacheEven.io <= (io.icachemem_in.wEven, io.icachemem_in.wAddr,
+                         io.icachemem_in.wData)
 
-  val addrEvenReg = Reg(next = io.icachemem_in.addrEven)
-  val addrOddReg = Reg(next = io.icachemem_in.addrOdd)
-  io.icachemem_out.instrEven := icacheEven(addrEvenReg)
-  io.icachemem_out.instrOdd := icacheOdd(addrOddReg)
+  icacheOdd.io <= (io.icachemem_in.wOdd, io.icachemem_in.wAddr,
+                        io.icachemem_in.wData)
+
+  io.icachemem_out.instrEven := icacheEven.io(io.icachemem_in.addrEven)
+  io.icachemem_out.instrOdd := icacheOdd.io(io.icachemem_in.addrOdd)
 
 }
 
@@ -211,10 +208,10 @@ class ICacheReplDm() extends Module {
   val hitInstrEven = Bool()
   val hitInstrOdd = Bool()
 
-  val addrIndexEven = (io.feicache.address_even)(INDEX_FIELD_HIGH, INDEX_FIELD_LOW)
-  val addrIndexOdd = io.feicache.address_odd(INDEX_FIELD_HIGH, INDEX_FIELD_LOW)
-  val addrTagEven = (io.feicache.address_even)(TAG_FIELD_HIGH, TAG_FIELD_LOW)
-  val addrTagOdd = io.feicache.address_odd(TAG_FIELD_HIGH, TAG_FIELD_LOW)
+  val addrIndexEven = (io.feicache.addrEven)(INDEX_FIELD_HIGH, INDEX_FIELD_LOW)
+  val addrIndexOdd = io.feicache.addrOdd(INDEX_FIELD_HIGH, INDEX_FIELD_LOW)
+  val addrTagEven = (io.feicache.addrEven)(TAG_FIELD_HIGH, TAG_FIELD_LOW)
+  val addrTagOdd = io.feicache.addrOdd(TAG_FIELD_HIGH, TAG_FIELD_LOW)
 
   val relBase = Mux(selICacheReg,
                     callRetBaseReg(ICACHE_ADDR_OFFSET,0),
@@ -258,23 +255,23 @@ class ICacheReplDm() extends Module {
   }
 
   val wrParity = io.icache_ctrlrepl.wAddr(0)
-  val addrParityReg = Reg(next = io.feicache.address_odd(0))
+  val addrParityReg = Reg(next = io.feicache.addrOdd(0))
 
   //outputs to icache memory
   io.icachemem_in.wEven := Mux(wrParity, Bool(false), io.icache_ctrlrepl.wEna)
   io.icachemem_in.wOdd := Mux(wrParity, io.icache_ctrlrepl.wEna, Bool(false))
   io.icachemem_in.wData := io.icache_ctrlrepl.wData
   io.icachemem_in.wAddr := (io.icache_ctrlrepl.wAddr)(INDEX_FIELD_HIGH,1)
-  io.icachemem_in.addrOdd := (io.feicache.address_odd)(INDEX_FIELD_HIGH,1)
-  io.icachemem_in.addrEven := (io.feicache.address_even)(INDEX_FIELD_HIGH,1)
+  io.icachemem_in.addrOdd := (io.feicache.addrOdd)(INDEX_FIELD_HIGH,1)
+  io.icachemem_in.addrEven := (io.feicache.addrEven)(INDEX_FIELD_HIGH,1)
 
-  io.icachefe.instr_a := Mux(addrParityReg, io.icachemem_out.instrOdd, io.icachemem_out.instrEven)
-  io.icachefe.instr_b := Mux(addrParityReg, io.icachemem_out.instrEven, io.icachemem_out.instrOdd)
+  io.icachefe.instrA := Mux(addrParityReg, io.icachemem_out.instrOdd, io.icachemem_out.instrEven)
+  io.icachefe.instrB := Mux(addrParityReg, io.icachemem_out.instrEven, io.icachemem_out.instrOdd)
 
   io.icachefe.relBase := relBase
   io.icachefe.relPc := relPc
   io.icachefe.reloc := reloc
-  io.icachefe.mem_sel := Cat(selIspmReg, selICacheReg)
+  io.icachefe.memSel := Cat(selIspmReg, selICacheReg)
   //hit/miss return
   io.icache_replctrl.hitPos := hitInstrEven
   io.icache_replctrl.hitEna := (hitInstrEven && hitInstrOdd)
@@ -325,7 +322,7 @@ class ICacheCtrl() extends Module {
     when (!io.icache_replctrl.hitEna) {
       wEnaReg := Bool(true)
       //check which block of the bundle is missing
-      val addr = Mux(io.icache_replctrl.hitPos, io.feicache.address_odd, io.feicache.address_even)
+      val addr = Mux(io.icache_replctrl.hitPos, io.feicache.addrOdd, io.feicache.addrEven)
       addrReg := addr
       ocpAddr := Cat(addr(EXTMEM_ADDR_WIDTH-1,WORD_COUNT_WIDTH), Bits(0)(WORD_COUNT_WIDTH-1,0))
       ocpCmd := OcpCmd.RD
