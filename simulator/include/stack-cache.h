@@ -310,6 +310,9 @@ namespace patmos
     /// Number of bytes written to the stack cache.
     unsigned int Num_bytes_written;
 
+    /// Number of stall cycles caused by method cache misses.
+    unsigned int Num_stall_cycles;
+
     /// Return the number of blocks currently reserved.
     inline unsigned int get_num_reserved_blocks(uword_t spill, uword_t top) const
     {

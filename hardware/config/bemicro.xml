@@ -1,0 +1,40 @@
+<patmos>
+  <description>BeMicro</description>
+
+  <frequency Hz="25600000" />
+  <pipeline dual="true" />
+  <bus burstLength="4" writeCombine="false" />
+
+  <MCache size="4k" blocks="16" repl="" />
+  <DCache size="2k" assoc="1" repl="" />
+  <ISPM size="8k" />
+  <DSPM size="2k" />
+  <BootSPM size="2k" />
+
+  <ExtMem size="2M" />
+
+  <IOs>
+	<IO IODevTypeRef="CpuInfo" offset="0"/>
+	<IO IODevTypeRef="Timer" offset="2"/>
+	<IO IODevTypeRef="Uart" offset="8"/>
+	<IO IODevTypeRef="Leds" offset="9"/>
+  </IOs>
+
+  <IODevs>
+	<IODev IODevType="CpuInfo" entity="CpuInfo" iface="OcpCore" />
+	<IODev IODevType="Timer" entity="Timer" iface="OcpCore" />
+	<IODev IODevType="Uart" entity="Uart" iface="OcpCore">
+	  <params>
+		<param name="baud_rate" value="115200"/>
+	  </params>
+	</IODev>
+	<IODev IODevType="Leds" entity="Leds" iface="OcpCore">
+	  <params>
+		<param name="ledCount" value="9"/>
+	  </params>
+	</IODev>
+  </IODevs>
+
+  <!-- currently unused -->
+  <SCache size="0" />
+</patmos>

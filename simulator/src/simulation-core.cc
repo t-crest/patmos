@@ -48,7 +48,7 @@ namespace patmos
       BASE(0), PC(0), nPC(0), Debug_last_PC(0),
       Stall(SXX), Disable_IF(false), Is_decoupled_load_active(false), 
       Branch_counter(0), Halt(false), Interrupt_handling_counter(0),
-      Flush_Cache_PC(std::numeric_limits<unsigned int>::max())
+      Flush_Cache_PC(std::numeric_limits<unsigned int>::max()), Num_NOPs(0)
   {
     // initialize one predicate register to be true, otherwise no instruction
     // will ever execute
@@ -272,6 +272,11 @@ namespace patmos
             Instruction_stats[j][instr_SIF[j].I->ID].Num_fetched++;
         }
 
+        // Detect NOPs as "subi r0 = ...;"
+        if (Decoder.is_NOP(&instr_SIF[0]) && !instr_SIF[1].I) 
+        {
+          Num_NOPs++;
+        }
 
         // provide next program counter value (as incremented PC)
         nPC = PC + iw_size*4;
@@ -676,6 +681,8 @@ namespace patmos
       Num_bubbles_retired[j] = 0;
     }
     
+    Num_NOPs = 0;
+    
     Instr_cache.reset_stats();
     Data_cache.reset_stats();
     Stack_cache.reset_stats();
@@ -683,26 +690,27 @@ namespace patmos
     Profiling.reset_stats(Cycle);
   }
   
-  void simulator_t::print_stats(std::ostream &os, bool slot_stats, bool instr_stats) const
+  void simulator_t::print_stats(std::ostream &os, bool instr_stats) const
   {
     // print register values
     print_registers(os, DF_DEFAULT);
 
-    unsigned int num_total_fetched[NUM_SLOTS];
-    unsigned int num_total_retired[NUM_SLOTS];
-    unsigned int num_total_discarded[NUM_SLOTS];
-    unsigned int num_total_bubbles[NUM_SLOTS];
+    uint64_t num_total_fetched[NUM_SLOTS];
+    uint64_t num_total_retired[NUM_SLOTS];
+    uint64_t num_total_discarded[NUM_SLOTS];
+    uint64_t num_total_bubbles[NUM_SLOTS];
     
-    os << boost::format("\n\nInstruction Statistics:\n   %1$15s:") % "instruction";
+    uint64_t sum_fetched = 0;
+    uint64_t sum_discarded = 0;
+    
+    os << boost::format("\n\nInstruction Statistics:\n   %1$15s:") % "operation";
     for (unsigned int i = 0; i < NUM_SLOTS; i++) {
       num_total_fetched[i] = num_total_retired[i] = num_total_discarded[i] = 0;
       num_total_bubbles[i] = 0;
-      num_total_bubbles[slot_stats ? i : 0] += Num_bubbles_retired[i];
+      num_total_bubbles[i] += Num_bubbles_retired[i];
     
-      if (!i || slot_stats) {
-        os << boost::format(" %1$10s %2$10s %3$10s")
-           % "#fetched" % "#retired" % "#discarded";
-      }
+      os << boost::format(" %1$10s %2$10s %3$10s")
+          % "#fetched" % "#retired" % "#discarded";
     }
     os << "\n";
           
@@ -713,35 +721,21 @@ namespace patmos
 
       os << boost::format("   %1$15s:") % I.Name;
       
-      unsigned int num_fetched[NUM_SLOTS];
-      unsigned int num_retired[NUM_SLOTS];
-      unsigned int num_discarded[NUM_SLOTS];
-      
       for (unsigned int j = 0; j < NUM_SLOTS; j++) {
         const instruction_stat_t &S(Instruction_stats[j][i]);
-
-        num_fetched[j] = num_retired[j] = num_discarded[j] = 0;
-        
-        num_fetched[slot_stats ? j : 0] += S.Num_fetched;
-        num_retired[slot_stats ? j : 0] += S.Num_retired;
-        num_discarded[slot_stats ? j : 0] += S.Num_discarded;
 
         // If we reset the statistics counters, we might have some 
         // instructions that were in flight at the reset and thus are 
         // counted as discarded but not as fetched
         //assert(S.Num_fetched >= (S.Num_retired + S.Num_discarded));
-      }
-      
-      for (unsigned int j = 0; j < NUM_SLOTS; j++) {
+        
         os << boost::format(" %1$10d %2$10d %3$10d")
-          % num_fetched[j] % num_retired[j] % num_discarded[j];
+          % S.Num_fetched % S.Num_retired % S.Num_discarded;
 
         // collect summary
-        num_total_fetched[j] += num_fetched[j];
-        num_total_retired[j] += num_retired[j];
-        num_total_discarded[j] += num_discarded[j];
-        
-        if (!slot_stats) break;
+        num_total_fetched[j] += S.Num_fetched;
+        num_total_retired[j] += S.Num_retired;
+        num_total_discarded[j] += S.Num_discarded;
       }
       
       if (instr_stats) {
@@ -757,23 +751,77 @@ namespace patmos
     for (unsigned int j = 0; j < NUM_SLOTS; j++) {
       os << boost::format(" %1$10d %2$10d %3$10d")
           % num_total_fetched[j] % num_total_retired[j] % num_total_discarded[j];
-      if (!slot_stats) break;
-    }          
+          
+      sum_fetched += num_total_fetched[j];
+      sum_discarded += num_total_discarded[j];
+    }
     os << "\n";
     os << boost::format("   %1$15s:") % "bubbles";
     for (unsigned int j = 0; j < NUM_SLOTS; j++) {
       os << boost::format(" %1$10s %2$10d %3$10s") % "-" % num_total_bubbles[j] % "-";
-      if (!slot_stats) break;
     }          
     os << "\n";
 
-    // Cycle statistics
+    
+    uint64_t sum_stalls = 0;
+    
     os << "\nStall Cycles:\n";
     for (int i = SIF; i < NUM_STAGES; i++)
     {
       os << boost::format("   %1%: %2%\n")
          % (Pipeline_t)i % Num_stall_cycles[i];
+         
+      sum_stalls += Num_stall_cycles[i];
     }
+    
+    // Cycle statistics
+    
+    // Note that by definition of a NOP it is not bundled
+    uint64_t num_operations = sum_fetched - Num_NOPs;
+    uint64_t num_instructions = num_total_fetched[0] - Num_NOPs;
+
+    // Should we count only retired instructions?
+    float cpo_nops = (float)Cycle / (float)sum_fetched;
+    float cpi_nops = (float)Cycle / (float)num_total_fetched[0];
+    float cpo = (float)Cycle / (float)num_operations;
+    float cpi = (float)Cycle / (float)num_instructions;
+    
+    os << boost::format("\nCycles per Instruction (w/  NOPs): %1$8.4f"
+                        "\nCycles per Operation   (w/  NOPs): %2$8.4f"
+                        "\nCycles per Instruction (w/o NOPs): %3$8.4f"
+                        "\nCycles per Operation   (w/o NOPs): %4$8.4f")
+        % cpi_nops % cpo_nops % cpi % cpo;
+
+    os << "\n\n                   total     % cycles";
+    os << boost::format("\nInstructions: %1$10d  %2$10.2f%%"
+                        "\nNOPs:         %3$10d  %4$10.2f%%"
+                        "\nStalls:       %5$10d  %6$10.2f%%")
+          % num_instructions % (100.0 * (float)num_instructions / (float)Cycle)
+          % Num_NOPs % (100.0 * (float)Num_NOPs / (float)Cycle)
+          % sum_stalls % (100.0 * (float)sum_stalls / (float)Cycle);
+    
+    os << "\n\n                   total        % ops";
+    os << boost::format("\nOperations:   %1$10d  %2$10.2f%%"
+                        "\nNOPs:         %3$10d  %4$10.2f%%"
+                        "\nBundled:      %5$10d  %6$10.2f%%"
+                        "\nDiscarded:    %7$10d  %8$10.2f%%")
+          % num_operations % (100.0 * (float)num_operations / (float)sum_fetched)
+          % Num_NOPs % (100.0 * (float)Num_NOPs / (float)sum_fetched)
+          % (sum_fetched - num_total_fetched[0])
+                     % (100.0 * (float)(sum_fetched - num_total_fetched[0]) / 
+                                                            (float)sum_fetched)
+          % sum_discarded % (100.0 * (float)sum_discarded / (float)sum_fetched);
+
+    os << "\n\n                            ";
+    for (int i = 0; i < NUM_SLOTS; i++) {
+      os << "      slot " << i;
+    }
+    os << "\nSlot utilization (w/ NOPs): ";
+    for (int i = 0; i < NUM_SLOTS; i++) {
+      os << boost::format(" %1$10.2f%%") 
+         % (100.0 * (float)num_total_fetched[i] / (float)num_total_fetched[0] );
+    }
+          
     // print statistics of method cache
     os << "\n\nInstruction Cache Statistics:\n";
     Instr_cache.print_stats(*this, os);

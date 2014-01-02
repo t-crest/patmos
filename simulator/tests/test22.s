@@ -2,7 +2,7 @@
 # Expected Result: r1 = 0xfb
 #
 
-                .word   52;
+                .word   64;
                 add     r1  = r0, 0xF0000800;
                 addi    r2  = r0, 2;
                 lwl     r3  = [r1 + 0];
@@ -14,3 +14,6 @@
                 nop;
                 lwl     r1  = [r1 + 1];
                 halt;
+		nop;
+		nop;
+		nop;

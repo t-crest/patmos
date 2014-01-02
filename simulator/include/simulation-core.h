@@ -61,9 +61,6 @@ namespace patmos
   /// Define the number of bytes used for the stack cache.
   static const unsigned int NUM_STACK_CACHE_BYTES = 0x800;
 
-  /// Define the number of bytes in a block of the stack cache.
-  static const unsigned int NUM_STACK_CACHE_BLOCK_BYTES = 16;
-
   /// Define the number of bytes used for the method cache.
   static const unsigned int NUM_METHOD_CACHE_BYTES = 0x800;
 
@@ -71,7 +68,7 @@ namespace patmos
   static const unsigned int NUM_METHOD_CACHE_MAX_METHODS = 16;
   
   /// Define the number of bytes in a block of the method cache.
-  static const unsigned int NUM_METHOD_CACHE_BLOCK_BYTES = 4;
+  static const unsigned int NUM_METHOD_CACHE_BLOCK_BYTES = 8;
 
   /// General-purpose register holding the program's exit code when terminating.
   static const GPR_e GPR_EXIT_CODE_INDEX = r1;
@@ -223,11 +220,14 @@ namespace patmos
     instruction_stats_t Instruction_stats[NUM_SLOTS];
 
     /// Count number of pipeline bubbles retired.
-    unsigned int Num_bubbles_retired[NUM_SLOTS];
+    uint64_t Num_bubbles_retired[NUM_SLOTS];
 
     /// Number of stall cycles per pipeline stage
-    unsigned int Num_stall_cycles[NUM_STAGES];
+    uint64_t Num_stall_cycles[NUM_STAGES];
 
+    /// Number of NOPs executed
+    uint64_t Num_NOPs;
+    
     /// Profiling information for function profiling
     profiling_t Profiling;
 
@@ -324,7 +324,7 @@ namespace patmos
     /// Print runtime statistics of the current simulation run to an output
     /// stream.
     /// @param os An output stream.
-    void print_stats(std::ostream &os, bool slot_stats, bool instr_stats) const;
+    void print_stats(std::ostream &os, bool instr_stats) const;
 
     /// Reset all simulation statistics.
     void reset_stats();

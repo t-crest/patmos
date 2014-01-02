@@ -4,7 +4,7 @@
   Outputs a script for ed that results in an xpm image that is
   continuously updated during computations.
 
-  Usage: mandelbrot_par | ed foo.xpm  
+  Usage: mandelbrot_par | ed foo.xpm
 
   TODO: This is a mock-up that uses Unix shared memory for
   communication between N processes.
@@ -105,9 +105,9 @@ static void dma(int dst_id, volatile void _SPM *dst,
 #define STRFY(X) STR(X)
 #define STR(X) #X
 
-static const char *map = 
+static const char *map =
   " .',:;-~+=<>/\\!(){}[]it1lfIJ?L7VThYZCdbUOQGD2S5XFHKP9NAE38&RBWM#";
-static const char *hdr = 
+static const char *hdr =
   "/* XPM */\n"
   "static char *mandel[] = {\n"
   "\"" STRFY(COLS) " " STRFY(ROWS) " 64 1\",\n";
@@ -164,7 +164,7 @@ static void init_ni(){
     int i;
     for (i = 0; i < TIMESLOTS; ++i)
     {
-        *(ni.st+i) = 0x04 | init_array[core_id][0][i];
+        *(ni.st+i) = init_array[core_id][0][i];
     }
     for (i = 0; i < DMAS; ++i)
     {
@@ -353,15 +353,15 @@ static void master(void) {
 
   int row[SLAVES];
   int received_row;
-    
+
   /* send first packets to slaves */
   for (i = 0; i < SLAVES && i < ROWS; i++) {
-    row[i] = i*(ROWS/SLAVES);   
+    row[i] = i*(ROWS/SLAVES);
     shm_master_mpb->slave[i].packet.cmd    = row[i];
     shm_master_mpb->slave[i].packet.yval   = YSTART + row[i]*YSTEP_SIZE;
     shm_master_mpb->slave[i].packet.xstart = XSTART;
     shm_master_mpb->slave[i].packet.xend   = XEND;
-    shm_master_mpb->slave[i].packet.xstep  = XSTEP_SIZE;      
+    shm_master_mpb->slave[i].packet.xstep  = XSTEP_SIZE;
     dma(i+1, &(shm_slave_mpb[i]->packet),
         &(shm_master_mpb->slave[i].packet),
         sizeof(struct packet_t));
@@ -398,7 +398,7 @@ static void master(void) {
           shm_master_mpb->slave[i].packet.yval   = YSTART + row[i]*YSTEP_SIZE;
           shm_master_mpb->slave[i].packet.xstart = XSTART;
           shm_master_mpb->slave[i].packet.xend   = XEND;
-          shm_master_mpb->slave[i].packet.xstep  = XSTEP_SIZE;    
+          shm_master_mpb->slave[i].packet.xstep  = XSTEP_SIZE;
           dma(i+1, &(shm_slave_mpb[i]->packet),
               &(shm_master_mpb->slave[i].packet),
               sizeof(struct packet_t));
@@ -448,7 +448,7 @@ static void write_xpm_header(void) {
     WRITE("\"", 1);
     unsigned k;
     for (k = 0; k < COLS; k++) {
-      WRITE(" ", 1);      
+      WRITE(" ", 1);
     }
     WRITE("\",\n", 3);
   }
@@ -477,7 +477,7 @@ static void slave(void) {
   shm_slave_mpb[slave_id]->row.cmd = CMD_START;
   dma(0, &(shm_master_mpb->slave[slave_id].row),
       &(shm_slave_mpb[slave_id]->row),
-      sizeof(struct rowbuf_t)); 
+      sizeof(struct rowbuf_t));
 
   /* loop while new packets arrive */
   for (;;) {

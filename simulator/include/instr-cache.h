@@ -50,8 +50,9 @@ namespace patmos
     /// evicting other methods if needed.
     /// Has no effect on other caches.
     /// @param address The base address of the method.
+    /// @param offset Offset within the method where execution should continue.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool load_method(word_t address) = 0;
+    virtual bool load_method(word_t address, word_t offset) = 0;
 
     /// Check whether a method is in the method cache.
     /// @param address The base address of the method.
@@ -124,7 +125,7 @@ namespace patmos
       return true;
     }
 
-    virtual bool load_method(word_t address)
+    virtual bool load_method(word_t address, word_t offset)
     {
       return true;
     }
@@ -174,6 +175,7 @@ namespace patmos
     }
 
     /// A simulated instruction fetch from the method cache.
+    /// @param base The current method's base address.
     /// @param address The memory address to fetch from.
     /// @param iw A pointer to store the fetched instruction word.
     /// @return True when the instruction word is available from the read port.
@@ -202,8 +204,9 @@ namespace patmos
     /// If it is not available yet, initiate a transfer,
     /// evicting other methods if needed.
     /// @param address The base address of the method.
+    /// @param offset Offset within the method where execution should continue.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool load_method(word_t address)
+    virtual bool load_method(word_t address, word_t offset)
     {
       return true;
     }

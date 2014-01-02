@@ -18,7 +18,7 @@ project(patmos)
 
 cmake_minimum_required(VERSION 2.8)
 
-set(CMAKE_CXX_FLAGS "-O2 -g")
+set(CMAKE_CXX_FLAGS "-O2 -g -ftemplate-depth-1024")
 
 # Find boost library
 include(FindBoost)

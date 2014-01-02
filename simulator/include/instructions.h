@@ -251,7 +251,6 @@ namespace patmos
   /// Base class for ALUi or ALUl instructions.
   class i_aluil_t : public i_pred_t
   {
-    uint64_t cnt_nops;
     uint64_t cnt_short_imm;
     uint64_t cnt_short_loads;
   public:
@@ -315,7 +314,6 @@ namespace patmos
     }
     
     virtual void reset_stats() {
-      cnt_nops = 0;
       cnt_short_imm = 0;
       cnt_short_loads = 0;
     }
@@ -324,8 +322,9 @@ namespace patmos
                                const instruction_data_t &ops) {
       if (ops.OPS.ALUil.Rd == r0 && 
           ops.OPS.ALUil.Rs1 == r0 &&
-          ops.OPS.ALUil.Imm2 == 0) {
-        ++cnt_nops;
+          ops.OPS.ALUil.Imm2 == 0) 
+      {
+        // NOP
       }
       else if (ops.OPS.ALUil.Rs1 == r0 && ops.OPS.ALUil.Imm2 < (1<<12)) {
         ++cnt_short_loads;
@@ -338,12 +337,7 @@ namespace patmos
     virtual void print_stats(const simulator_t &s, std::ostream &os,
                              const symbol_map_t &symbols) const {
       bool printed = false;
-      if (cnt_nops) {
-        os << "NOPs: " << cnt_nops;
-        printed = true;
-      }
       if (cnt_short_loads) {
-        if (printed) os << ", ";
         os << "Short Load Imm: " << cnt_short_loads;
         printed = true;
       }
@@ -1561,7 +1555,7 @@ namespace patmos
       {
         // check if the target method is in the cache, otherwise stall until
         // it is loaded.
-        if (!s.Instr_cache.load_method(base))
+        if (!s.Instr_cache.load_method(base, address - base))
         {
           // stall the pipeline
           s.pipeline_stall(SMW);

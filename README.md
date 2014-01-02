@@ -5,7 +5,7 @@ Patmos is a time-predictable VLIW processor. Patmos is the processor for the T-C
 See also: http://www.t-crest.org/
 
 The Patmos [Handbook]
-(https://github.com/t-crest/patmos/blob/master/doc/patmos_handbook.pdf?raw=true)
+(http://patmos.compute.dtu.dk/patmos_handbook.pdf)
 is work in progress, but contains build instructions in Section 5.
 
 For questions and discussions join the Patmos mailing list at:
@@ -41,7 +41,7 @@ Therefore, take a cup of coffee and find some nice reading.
 After building the compiler add the path
 to the compiler executables into your .profile:
 
-    export PATH="/home/martin/t-crest/local/bin:$PATH"
+    export PATH=$PATH:$HOME/t-crest/local/bin
 
 Use an absolute path as LLVM cannot handle a path relative to the
 home directory (~).

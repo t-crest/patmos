@@ -147,7 +147,7 @@ namespace patmos
         frame.ret_offs == return_offset) 
     {
       if (frame.print_stats) {
-        sim.print_stats(*debug_out, true, true);
+        sim.print_stats(*debug_out, true);
         found_print_function = false;
       }
       stack.pop_back();
