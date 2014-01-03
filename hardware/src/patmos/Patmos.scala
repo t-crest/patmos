@@ -125,7 +125,8 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
 
   // Flush signal
   val flush = memory.io.flush
-  decode.io.flush := flush
+  val brflush = execute.io.brflush
+  decode.io.flush := flush || brflush
   execute.io.flush := flush
 
   // The inputs and outputs

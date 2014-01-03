@@ -249,6 +249,11 @@ namespace patmos
                          bool debug = false,
                          std::ostream &debug_out = std::cerr);
 
+    /// Flush the pipeline up to *not* including the given pipeline stage.
+    /// @param pst The pipeline stage up to which instructions should be
+    /// flushed.
+    void pipeline_flush(Pipeline_t pst);
+
     /// Stall the pipeline up to *not* including the given pipeline stage.
     /// @param pst The pipeline stage up to which instructions should be
     /// stalled.

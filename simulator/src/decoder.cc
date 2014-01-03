@@ -204,6 +204,14 @@ namespace patmos
     Instructions.push_back(boost::make_tuple(itmp, ftmp));                     \
   }
 
+#define MK_FINSTR(classname, name, format, opcode, flag)                       \
+  {                                                                            \
+    instruction_t *itmp = new i_ ## classname ## _t();                         \
+    itmp->ID = Instructions.size();                                            \
+    itmp->Name = #name;                                                        \
+    binary_format_t *ftmp = new format ## _format_t(*itmp, opcode, flag);      \
+    Instructions.push_back(boost::make_tuple(itmp, ftmp));                     \
+  }
 
     // ALUi:
     MK_NINSTR(addil , addi , alui, 0)
@@ -326,19 +334,27 @@ namespace patmos
     MK_INSTR(sspillr, stcr, 3)
 
     // CFLi
-    MK_INSTR(call, cfli, 4)
-    MK_INSTR(br  , cfli, 5)
-    MK_INSTR(brcf, cfli, 6)
+    MK_FINSTR(call, callnd, cfli, 0, 0)
+    MK_FINSTR(br  , brnd  , cfli, 1, 0)
+    MK_FINSTR(brcf, brcfnd, cfli, 2, 0)
+    // MK_FINSTR(trap, trap  , cfli, 3, 0)
+    MK_FINSTR(call, call  , cfli, 0, 1)
+    MK_FINSTR(br  , br    , cfli, 1, 1)
+    MK_FINSTR(brcf, brcf  , cfli, 2, 1)
 
     // CFLri
-    MK_INSTR(ret, cflri, 0)
+    MK_FINSTR(ret, retnd, cflri, 0, 0)
+    MK_FINSTR(ret, ret  , cflri, 0, 1)
 
     // CFLrs
-    MK_INSTR(callr, cflrs, 0)
-    MK_INSTR(brr  , cflrs, 1)
+    MK_FINSTR(callr, callrnd, cflrs, 0, 0)
+    MK_FINSTR(brr  , brrnd  , cflrs, 1, 0)
+    MK_FINSTR(callr, callr  , cflrs, 0, 1)
+    MK_FINSTR(brr  , brr    , cflrs, 1, 1)
 
     // CFLrt
-    MK_INSTR(brcfr, cflrt, 2)
+    MK_FINSTR(brcfr, brcfrnd, cflrt, 2, 0)
+    MK_FINSTR(brcfr, brcfr  , cflrt, 2, 1)
   }
 
   instruction_t &decoder_t::get_instruction(unsigned int ID)

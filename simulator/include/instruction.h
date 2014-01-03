@@ -70,7 +70,7 @@ namespace patmos
     virtual bool is_call() const { return false; }
     
     /// Returns the number of delay slot cycles of this instruction
-    virtual unsigned get_delay_slots() const = 0;
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const = 0;
     
     /// Reset all statistic counters.
     virtual void reset_stats() { }
@@ -206,21 +206,25 @@ namespace patmos
       /// Operands for an CFLi instruction.
       struct
       {
+        word_t D;
         word_t Imm;
         uword_t UImm;
       } CFLi;
       /// Operands for an CFLri instruction.
       struct
       {
+        word_t D;
       } CFLri;
       /// Operands for an CFLrs instruction.
       struct
       {
+        word_t D;
         GPR_e Rs;
       } CFLrs;
       /// Operands for an CFLrt instruction.
       struct
       {
+        word_t D;
         GPR_e Rs1;
         GPR_e Rs2;
       } CFLrt;
@@ -447,13 +451,14 @@ namespace patmos
     /// executed.
     /// @param imm The operand immediate.
     static instruction_data_t mk_CFLi(const instruction_t &i, PRR_e pred,
-                                      word_t imm, uword_t uimm);
+                                      word_t flag, word_t imm, uword_t uimm);
 
     /// Create an CFLr instruction with implicit operands.
     /// @param i The instruction.
     /// @param pred The predicate register under which the instruction is
     /// executed.
-    static instruction_data_t mk_CFLri(const instruction_t &i, PRR_e pred);
+    static instruction_data_t mk_CFLri(const instruction_t &i, PRR_e pred,
+                                       word_t flag);
 
     /// Create an CFLr instruction with a single register operand.
     /// @param i The instruction.
@@ -461,7 +466,7 @@ namespace patmos
     /// executed.
     /// @param rs The operand register.
     static instruction_data_t mk_CFLrs(const instruction_t &i, PRR_e pred,
-                                       GPR_e rs);
+                                       word_t flag, GPR_e rs);
 
     /// Create an CFLr instruction with two register operands.
     /// @param i The instruction.
@@ -470,7 +475,7 @@ namespace patmos
     /// @param rs1 The first operand register.
     /// @param rs2 The second operand register.
     static instruction_data_t mk_CFLrt(const instruction_t &i, PRR_e pred,
-                                       GPR_e rs1, GPR_e rs2);
+                                       word_t flag, GPR_e rs1, GPR_e rs2);
 
     /// Create an HLT instruction without operands.
     /// @param i The instruction.

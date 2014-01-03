@@ -71,7 +71,7 @@ namespace patmos
       return false;
     }
 
-    virtual unsigned get_delay_slots() const
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const
     {
       return 0;
     }
@@ -1662,7 +1662,7 @@ namespace patmos
                        const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << "call " << ops.OPS.CFLi.UImm;
+      os << "call" << (ops.OPS.CFLi.D ? " " : "nd ") << ops.OPS.CFLi.UImm;
       symbols.print(os, ops.EX_Address);
     }
     
@@ -1673,20 +1673,25 @@ namespace patmos
     
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
-      store_return_address(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address, 
-                           SMW, false);
+      store_return_address(s, ops, ops.DR_Pred, s.BASE,
+                           ops.OPS.CFLi.D ? s.nPC : s.Pipeline[SEX][0].Address,
+                           ops.EX_Address, SMW, false);
       
       push_dbgstack(s, ops, ops.DR_Pred, ops.EX_Address);
       
       fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+      if (!ops.OPS.CFLi.D && ops.DR_Pred && !s.is_stalling(SMW))
+      {
+        s.pipeline_flush(SMW);
+      }
     }
     
     virtual bool is_call() const {
       return true;
     }
     
-    virtual unsigned get_delay_slots() const {
-      return 3;
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
+      return ops.OPS.CFLi.D ? 3 : 0;
     }
   };
 
@@ -1697,7 +1702,7 @@ namespace patmos
                        const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << "br " << ops.OPS.CFLi.Imm;
+      os << "br" << (ops.OPS.CFLi.D ? " " : "nd ") << ops.OPS.CFLi.Imm;
       symbols.print(os, ops.EX_Address);
     }
     
@@ -1705,10 +1710,14 @@ namespace patmos
     {
       ops.EX_Address = ops.Address + ops.OPS.CFLi.Imm*sizeof(word_t);
       dispatch(s, ops, ops.DR_Pred, s.BASE, ops.EX_Address);
+      if (!ops.OPS.CFLi.D && ops.DR_Pred)
+      {
+        s.pipeline_flush(SEX);
+      }
     }
     
-    virtual unsigned get_delay_slots() const {
-      return 2;
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
+      return ops.OPS.CFLi.D ? 2 : 0;
     }
   };
 
@@ -1719,7 +1728,7 @@ namespace patmos
                         const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << "brcf " << ops.OPS.CFLi.Imm;
+      os << "brcf" << (ops.OPS.CFLi.D ? " " : "nd ") << ops.OPS.CFLi.Imm;
       symbols.print(os, ops.EX_Address);
     }
     
@@ -1731,10 +1740,14 @@ namespace patmos
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
       fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+      if (!ops.OPS.CFLi.D && ops.DR_Pred)
+      {
+        s.pipeline_flush(SMW);
+      }
     }
     
-    virtual unsigned get_delay_slots() const {
-      return 3;
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
+      return ops.OPS.CFLi.D ? 3 : 0;
     }   
   };
 
@@ -1765,7 +1778,7 @@ namespace patmos
       fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
     }
     
-    virtual unsigned get_delay_slots() const {
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
       return 3;
     }
   };
@@ -1785,7 +1798,7 @@ namespace patmos
       simulation_exception_t::halt(s.GPR.get(GPR_EXIT_CODE_INDEX).get());
     }
     
-    virtual unsigned get_delay_slots() const {
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
       return 3;
     }
   };
@@ -1882,7 +1895,7 @@ namespace patmos
                        const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << "callr r" << ops.OPS.CFLrs.Rs;
+      os << "callr" << (ops.OPS.CFLi.D ? " r" : "nd r") << ops.OPS.CFLrs.Rs;
       symbols.print(os, ops.EX_Address);
     }
     
@@ -1893,8 +1906,9 @@ namespace patmos
     
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
-      store_return_address(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address, 
-                           SMW, false);
+      store_return_address(s, ops, ops.DR_Pred, s.BASE,
+                           ops.OPS.CFLrs.D ? s.nPC : s.Pipeline[SEX][0].Address,
+                           ops.EX_Address, SMW, false);
       
       // Enter the debug stack just once, and before we actually do the update
       // to avoid any issues with timing and stalling.
@@ -1906,14 +1920,18 @@ namespace patmos
       }
 
       fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+      if (!ops.OPS.CFLrs.D && ops.DR_Pred && !s.is_stalling(SMW))
+      {
+        s.pipeline_flush(SMW);
+      }
     }
     
     virtual bool is_call() const { 
       return true;
     }
     
-    virtual unsigned get_delay_slots() const {
-      return 3;
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
+      return ops.OPS.CFLrs.D ? 3 : 0;
     }
   };
 
@@ -1924,7 +1942,7 @@ namespace patmos
                        const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << "brr r" << ops.OPS.CFLrs.Rs;
+      os << "brr" << (ops.OPS.CFLi.D ? " r" : "nd r") << ops.OPS.CFLrs.Rs;
       symbols.print(os, ops.EX_Address);
     }
     
@@ -1932,10 +1950,14 @@ namespace patmos
     {
       ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1);
       dispatch(s, ops, ops.DR_Pred, s.BASE, ops.EX_Address);
+      if (!ops.OPS.CFLrs.D && ops.DR_Pred)
+      {
+        s.pipeline_flush(SEX);
+      }
     }
     
-    virtual unsigned get_delay_slots() const {
-      return 2;
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
+      return ops.OPS.CFLrs.D ? 2 : 0;
     }
   };
 
@@ -1946,7 +1968,7 @@ namespace patmos
                        const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << "brcfr r" << ops.OPS.CFLrt.Rs1 << ", r" << ops.OPS.CFLrt.Rs2;
+      os << "brcfr" << (ops.OPS.CFLi.D ? " r" : "nd r") << ops.OPS.CFLrt.Rs1 << ", r" << ops.OPS.CFLrt.Rs2;
       symbols.print(os, ops.EX_Address);
     }
     
@@ -1973,11 +1995,15 @@ namespace patmos
       else
       {
         fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+        if (!ops.OPS.CFLrt.D && ops.DR_Pred)
+        {
+          s.pipeline_flush(SMW);
+        }
       }
     }
     
-    virtual unsigned get_delay_slots() const {
-      return 3;
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
+      return ops.OPS.CFLrt.D ? 3 : 0;
     }
   };
 
@@ -1994,7 +2020,7 @@ namespace patmos
                        const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << "ret";
+      os << "ret" << (ops.OPS.CFLi.D ? "" : "nd");
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
@@ -2034,6 +2060,10 @@ namespace patmos
         pop_dbgstack(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Offset);
         
         fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Address);
+        if (!ops.OPS.CFLri.D && ops.DR_Pred)
+        {
+          s.pipeline_flush(SMW);
+        }
       }
     }
 
@@ -2051,8 +2081,8 @@ namespace patmos
       symbols.print(os, ops.EX_Address);
     }
     
-    virtual unsigned get_delay_slots() const {
-      return 3;
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
+      return ops.OPS.CFLri.D ? 3 : 0;
     }    
   };
 }

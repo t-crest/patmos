@@ -190,7 +190,7 @@ namespace patmos
       rule_t STCi, STCr;
 
       /// Parse CFL opcodes.
-      rule_t CFLiopc, CFLriopc, CFLrsopc, CFLrtopc;
+      rule_t CFLiopc, CFLirelopc, CFLnd, CFLriopc, CFLrsopc, CFLrtopc;
 
       /// Parse CFL instructions.
       rule_t CFLi, CFLri, CFLrs, CFLrt;
@@ -308,7 +308,7 @@ namespace patmos
                                        boost::spirit::qi::_1)]                 |
                  boost::spirit::lit("halt")
                  [boost::phoenix::bind(&assembly_line_grammar_t::demit, this,
-                                       0x0600000A00400000)]                    |
+                                       0x0640000A00400000)]                    |
                  boost::spirit::lit("nop")
                  [boost::phoenix::bind(&assembly_line_grammar_t::emit, this,
                                        0x00400000)]                            |
@@ -657,42 +657,53 @@ namespace patmos
                                  stcr_format_t::encode, boost::spirit::qi::_1,
                                  boost::spirit::qi::_2, boost::spirit::qi::_3)];
 
-        // Parse CFLi instructions
-        CFLiopc = boost::spirit::lit("call") [boost::spirit::qi::_val = 4] |
-                  boost::spirit::lit("brcf") [boost::spirit::qi::_val = 6] ;
+        // Non-delayed marker for CFL instructions
+        CFLnd =
+          boost::spirit::lit("nd") [boost::spirit::qi::_val = 0] |
+          boost::spirit::lit("") [boost::spirit::qi::_val = 1];        
 
-        CFLi = ((Pred >> "br" >> ImmCFL_PCREL)
+        // Parse CFLi instructions
+        CFLirelopc =
+          boost::spirit::lit("br") [boost::spirit::qi::_val = 1];
+        CFLiopc =
+          boost::spirit::lit("call") [boost::spirit::qi::_val = 0] |
+          boost::spirit::lit("brcf") [boost::spirit::qi::_val = 2];
+
+        CFLi = ((Pred >> CFLirelopc >> CFLnd >> ImmCFL_PCREL)
                 [boost::spirit::qi::_val = boost::phoenix::bind(
                                cfli_format_t::encode, boost::spirit::qi::_1,
-                               5, boost::spirit::qi::_2)]) |
-               ((Pred >> CFLiopc >> ImmCFL_ABS)
+                               boost::spirit::qi::_2, boost::spirit::qi::_3,
+                               boost::spirit::qi::_4)]) |
+               ((Pred >> CFLiopc >> CFLnd >> ImmCFL_ABS)
                 [boost::spirit::qi::_val = boost::phoenix::bind(
                                 cfli_format_t::encode, boost::spirit::qi::_1,
-                                boost::spirit::qi::_2, boost::spirit::qi::_3)]);
+                                boost::spirit::qi::_2, boost::spirit::qi::_3,
+                                boost::spirit::qi::_4)]);
 
         // Parse CFLri instructions
         CFLriopc = boost::spirit::lit("ret")[boost::spirit::qi::_val = 0];
-        CFLri = (Pred >> CFLriopc)
+        CFLri = (Pred >> CFLriopc >> CFLnd)
               [boost::spirit::qi::_val = boost::phoenix::bind(
                                  cflri_format_t::encode, boost::spirit::qi::_1,
-                                 boost::spirit::qi::_2)];
+                                 boost::spirit::qi::_2, boost::spirit::qi::_3)];
 
         // Parse CFLrs instructions
         CFLrsopc = boost::spirit::lit("callr") [boost::spirit::qi::_val = 0] |
                    boost::spirit::lit("brr")   [boost::spirit::qi::_val = 1] ;
 
-        CFLrs = (Pred >> CFLrsopc >> GPR)
+        CFLrs = (Pred >> CFLrsopc >> CFLnd >> GPR)
               [boost::spirit::qi::_val = boost::phoenix::bind(
                                  cflrs_format_t::encode, boost::spirit::qi::_1,
-                                 boost::spirit::qi::_2, boost::spirit::qi::_3)];
+                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
+                                 boost::spirit::qi::_4)];
 
         // Parse CFLrt instructions
         CFLrtopc = boost::spirit::lit("brcfr")[boost::spirit::qi::_val = 2];
-        CFLrt = (Pred >> CFLrtopc >> GPR >> ',' >> GPR)
+        CFLrt = (Pred >> CFLrtopc >> CFLnd >> GPR >> ',' >> GPR)
               [boost::spirit::qi::_val = boost::phoenix::bind(
                                  cflrt_format_t::encode, boost::spirit::qi::_1,
                                  boost::spirit::qi::_2, boost::spirit::qi::_3,
-                                 boost::spirit::qi::_4)];
+                                 boost::spirit::qi::_4, boost::spirit::qi::_5)];
 
         // enable debugging of rules -- if BOOST_SPIRIT_DEBUG is defined
         BOOST_SPIRIT_DEBUG_NODE(Line);

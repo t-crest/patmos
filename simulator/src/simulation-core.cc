@@ -131,6 +131,17 @@ namespace patmos
     }
   }
 
+  void simulator_t::pipeline_flush(Pipeline_t pst)
+  {
+    for (unsigned int i = 0; i < pst; i++)
+    {
+      for(unsigned int j = 0; j < NUM_SLOTS; j++)
+      {
+        Pipeline[i][j] = instruction_data_t();
+      }
+    }
+  }
+
   void simulator_t::pipeline_stall(Pipeline_t pst)
   {
     Stall = std::max(Stall, pst);
@@ -187,7 +198,7 @@ namespace patmos
     if (Halt) {
       // When we are halting, just fill the pipeline with halt instructions
       // halt when we flushed the whole pipeline. 
-      instr_SIF[0] = instruction_data_t::mk_CFLrt(*Instr_HALT, p0, r0, r0);
+      instr_SIF[0] = instruction_data_t::mk_CFLrt(*Instr_HALT, p0, 1, r0, r0);
 
       for(unsigned int i = 1; i < NUM_SLOTS; i++)
       {
@@ -224,7 +235,7 @@ namespace patmos
         interrupt_t &interrupt = Interrupt_handler.get_interrupt();
 
         instr_SIF[0] = instruction_data_t::mk_CFLi(*Instr_INTR, p0,
-                                        interrupt.Address, interrupt.Address);
+                                                   interrupt.Address, interrupt.Address, 0);
 
         for(unsigned int i = 1; i < NUM_SLOTS; i++)
         {
@@ -257,7 +268,7 @@ namespace patmos
         }
 
         if(instr_SIF[0].I->is_flow_control())
-          Branch_counter = instr_SIF[0].I->get_delay_slots();
+          Branch_counter = instr_SIF[0].I->get_delay_slots(instr_SIF[0]);
         else if (Branch_counter)
           Branch_counter--;
 
@@ -553,8 +564,11 @@ namespace patmos
         //  => no debugging output:  1.6s
         //  => os with custom formatting: 2.4s
         //  => boost::format: 10.6s !!
-        os << std::hex << std::setw(8) << std::setfill('0') << PC << ' '
-           << std::dec << Cycle << '\n' << std::setfill(' ');
+        uword_t addr = Pipeline[SMW][0].Address;
+        if (addr) {
+          os << std::hex << std::setw(8) << std::setfill('0') << addr << ' '
+             << std::dec << Cycle << '\n' << std::setfill(' ');
+        }
         // os << boost::format("%1$08x %2%\n") % PC % Cycle;
       }
       return;

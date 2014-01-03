@@ -373,6 +373,7 @@ int main (int argc, char* argv[]) {
       //init for icache
       // c->Patmos_core_mcache_icacherepl__selIspmReg = 1;
     }
+    c->Patmos_core_execute__baseReg = entry;
     c->Patmos_core_mcache_mcachectrl__callRetBaseReg = (entry >> 2);
     c->Patmos_core_mcache_mcacherepl__callRetBaseReg = (entry >> 2);
     //init for icache

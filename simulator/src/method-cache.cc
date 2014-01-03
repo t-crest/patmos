@@ -95,7 +95,7 @@ void lru_method_cache_t::method_info_t::update(uword_t address,
     
 void lru_method_cache_t::method_info_t::reset_utilization() {
   Utilization.clear();
-  Utilization.resize(Num_bytes / sizeof(uword_t));        
+  Utilization.resize(Num_bytes / sizeof(uword_t) + 3);        
 }
 
 unsigned int lru_method_cache_t::method_info_t::get_utilized_bytes() {
@@ -114,7 +114,7 @@ bool lru_method_cache_t::do_fetch(method_info_t &current_method,
 {
   if(Phase != IDLE ||
       address < current_method.Address ||
-      current_method.Address + current_method.Num_bytes <= address)
+      current_method.Address + current_method.Num_bytes + sizeof(word_t) * NUM_SLOTS * 3 <= address)
   {
     simulation_exception_t::illegal_pc(current_method.Address);
   }

@@ -162,6 +162,7 @@ class DecEx() extends Bundle() {
   val xcall = Bool()
   val xret = Bool()
   val xsrc = Bits(width = EXC_SRC_BITS)
+  val nonDelayed = Bool()
 
   val illOp = Bool()
   
@@ -189,6 +190,7 @@ class DecEx() extends Bundle() {
 	xcall := Bool(false)
 	xret := Bool(false)
 	xsrc := Bits(0)
+	nonDelayed := Bool(false)
 	illOp := Bool(false)
   }
 }
@@ -232,6 +234,7 @@ class MemIn() extends Bundle() {
   val illOp = Bool()
   val callRetAddr = UInt(width = DATA_WIDTH)
   val callRetBase = UInt(width = DATA_WIDTH)
+  val nonDelayed = Bool()
 
   def reset() = {
 	load := Bool(false)
@@ -252,6 +255,7 @@ class MemIn() extends Bundle() {
 	illOp := Bool(false)
 	callRetAddr := UInt(0)
 	callRetBase := UInt(0)
+	nonDelayed := Bool(false)
   }
 }
 
@@ -355,6 +359,7 @@ class DecodeIO() extends Bundle() {
 class ExecuteIO() extends Bundle() {
   val ena = Bool(INPUT)
   val flush = Bool(INPUT)
+  val brflush = Bool(OUTPUT)
   val decex = new DecEx().asInput
   val exdec = new ExDec().asOutput
   val exmem = new ExMem().asOutput

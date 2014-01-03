@@ -245,22 +245,25 @@ class Decode() extends Module {
     io.decex.xsrc := instr(EXC_SRC_BITS-1, 0)
     decoded := Bool(true)
   }
-  when(opcode === OPCODE_CFL_CALL) {
+  when(opcode === OPCODE_CFL_CALL || opcode === OPCODE_CFL_CALLND) {
     io.decex.immOp(0) := Bool(true)
     io.decex.call := Bool(true)
+    io.decex.nonDelayed := opcode === OPCODE_CFL_CALLND
 	decoded := Bool(true)
   }
-  when(opcode === OPCODE_CFL_BR) {
+  when(opcode === OPCODE_CFL_BR || opcode === OPCODE_CFL_BRND) {
     io.decex.immOp(0) := Bool(true)
 	io.decex.jmpOp.branch := Bool(true)
+    io.decex.nonDelayed := opcode === OPCODE_CFL_BRND
 	decoded := Bool(true)
   }
-  when(opcode === OPCODE_CFL_BRCF) {
+  when(opcode === OPCODE_CFL_BRCF || opcode === OPCODE_CFL_BRCFND) {
     io.decex.immOp(0) := Bool(true)
     io.decex.brcf := Bool(true)
+    io.decex.nonDelayed := opcode === OPCODE_CFL_BRCFND
 	decoded := Bool(true)
   }
-  when(opcode === OPCODE_CFL_CFLR) {
+  when(opcode === OPCODE_CFL_CFLR || opcode === OPCODE_CFL_CFLRND) {
 	switch(func) {
 	  is(JFUNC_RET) {
 		io.decex.ret := Bool(true)
@@ -283,6 +286,7 @@ class Decode() extends Module {
 		decoded := Bool(true)
 	  }
 	}
+	io.decex.nonDelayed := opcode === OPCODE_CFL_CFLRND
   }
 
   val shamt = UInt()

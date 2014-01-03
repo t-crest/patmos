@@ -58,7 +58,10 @@ class Memory() extends Module {
                 io.globalInOut.S.Resp === OcpResp.ERR)
 
   // Flush logic
-  val flush = (memReg.mem.xcall || memReg.mem.trap || memReg.mem.illOp || illMem)
+  val flush = (memReg.mem.xcall || memReg.mem.trap ||
+               ((memReg.mem.call || memReg.mem.ret ||
+                 memReg.mem.brcf || memReg.mem.xret) && memReg.mem.nonDelayed) ||
+               memReg.mem.illOp || illMem)
   io.flush := flush
 
   // Stall logic

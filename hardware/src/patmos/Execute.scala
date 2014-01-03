@@ -51,7 +51,7 @@ class Execute() extends Module {
   val exReg = Reg(init = DecEx.resetVal)
   when(io.ena) {
     exReg := io.decex
-    when(io.flush) {
+    when(io.flush || io.brflush) {
       exReg.reset()
       exReg.relPc := io.decex.relPc
     }
@@ -175,6 +175,7 @@ class Execute() extends Module {
   val retBaseReg = Reg(init = UInt(0, DATA_WIDTH))
   val retOffReg = Reg(init = UInt(0, DATA_WIDTH))
   val saveRetOff = Reg(init = Bool(false))
+  val saveND = Reg(init = Bool(false))
 
   // exception return information
   val excBaseReg = Reg(init = UInt(0, DATA_WIDTH))
@@ -351,6 +352,7 @@ class Execute() extends Module {
   io.exmem.mem.xcall := exReg.xcall && doExecute(0)
   io.exmem.mem.xret := exReg.xret && doExecute(0)
   io.exmem.mem.xsrc := exReg.xsrc
+  io.exmem.mem.nonDelayed := exReg.nonDelayed
   io.exmem.mem.illOp := exReg.illOp
 
   val doCallRet = (exReg.call || exReg.ret || exReg.brcf ||
@@ -375,8 +377,9 @@ class Execute() extends Module {
   }
   // the offset is saved when the call is already in the MEM statge
   saveRetOff := exReg.call && doExecute(0) && io.ena
-  when(saveRetOff) {
-    retOffReg := Cat(io.feex.pc, Bits("b00").toUInt)
+  saveND := exReg.nonDelayed
+  when(saveRetOff) {    
+    retOffReg := Cat(Mux(saveND, exReg.relPc, io.feex.pc), Bits("b00").toUInt)
   }
   // exception return information
   when(exReg.xcall && doExecute(0) && io.ena) {
@@ -394,6 +397,7 @@ class Execute() extends Module {
 				   exReg.jmpOp.target,
 				   op(0)(DATA_WIDTH-1, 2).toUInt - exReg.jmpOp.reloc)
   io.exfe.branchPc := target
+  io.brflush := exReg.nonDelayed && exReg.jmpOp.branch && doExecute(0)
   
   // pass on PC
   io.exmem.pc := exReg.pc

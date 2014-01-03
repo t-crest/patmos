@@ -659,33 +659,33 @@ of the instruction format. Black fields are not used.
   \item CFLi -- Control Flow with Immediate \nopagebreak\\[2ex]
         \begin{bytefield}{32}
           \bitheader{0-31} \\
-          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{10} & \bitbox{1}{D} & \bitbox{2}{Op} &
+          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{10} & \bitbox{2}{Op} & \bitbox{1}{d} &
           \bitbox{22}{Immediate} \\
         \end{bytefield}
 
   \item CFLr -- Control Flow with Registers \\[2ex]
         \begin{bytefield}{32}
           \bitheader{0-31} \\
-          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{11} & \bitbox{1}{D} & \bitbox{2}{00} &
+          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{4}{1100} & \bitbox{1}{d} &
           \bitbox{18}{\bitssubclass} & \bitbox{2}{F} & \bitbox{2}{Op} \\
         \end{bytefield}
 
         \begin{bytefield}[leftcurly=.]{32}
           \begin{leftwordgroup}{\parbox{18em}{CFLri -- Control Flow with implicit registers}}
           \bitheader{0-31} \\
-          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{11} & \bitbox{1}{D} & \bitbox{2}{00} &
+          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{4}{1100} & \bitbox{1}{d} &
           \bitbox{18}{\bitsunused} &
           \bitbox{2}{00} & \bitbox{2}{Op}
           \end{leftwordgroup}\\
           \begin{leftwordgroup}{\parbox{18em}{CFLrs -- Control Flow with single register}}
           \bitheader{0-31} \\
-          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{11} & \bitbox{1}{D} & \bitbox{2}{00} &
+          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{4}{1100} & \bitbox{1}{d} &
           \bitbox{5}{\bitsunused} & \bitbox{5}{Rs} & \bitbox{8}{\bitsunused} &
           \bitbox{2}{01} & \bitbox{2}{Op}
           \end{leftwordgroup}\\
           \begin{leftwordgroup}{\parbox{18em}{CFLrt -- Control Flow with two registers}}
           \bitheader{0-31} \\
-          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{11} & \bitbox{1}{D} & \bitbox{2}{00} &
+          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{4}{1100} & \bitbox{1}{d} &
           \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} & \bitbox{3}{\bitsunused} &
           \bitbox{2}{10} & \bitbox{2}{Op}
           \end{leftwordgroup}
@@ -1666,7 +1666,7 @@ the same as other RISC processors, e.g. your mentioned SPARC.}
   \item CFLi -- Control Flow with Immediate \\[2ex]
     \begin{bytefield}{32}
       \bitheader{0-31} \\
-      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{10} & \bitbox{1}{D} & \bitbox{2}{Op} &
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{10} & \bitbox{2}{Op} & \bitbox{1}{d} &
       \bitbox{22}{Immediate} \\
     \end{bytefield}
 \end{itemize}
@@ -1758,7 +1758,7 @@ but evil for a plain instruction cache.}
   \item CFLr -- Control Flow with Registers \\[2ex]
     \begin{bytefield}{32}
       \bitheader{0-31} \\
-      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{11} & \bitbox{1}{D} & \bitbox{2}{00} &
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{11} & \bitbox{2}{00} & \bitbox{1}{d} &
       \bitbox{18}{\bitssubclass} & \bitbox{2}{F} & \bitbox{2}{Op} \\
     \end{bytefield}
 \end{itemize}
@@ -1823,7 +1823,7 @@ usually called a SW interrupt as well? Exceptions? Restartable exceptions?}
   \item CFLr -- Return \\[2ex]
     \begin{bytefield}{32}
       \bitheader{0-31} \\
-      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{11} & \bitbox{1}{D} & \bitbox{2}{00} &
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{11} & \bitbox{2}{00} & \bitbox{1}{d} &
       \bitbox{18}{\bitsunused} &
       \bitbox{2}{00} & \bitbox{2}{Op} \\
     \end{bytefield}
@@ -4015,7 +4015,7 @@ the status word appropriately.
 \begin{bytefield}[leftcurly=.]{32}
   \begin{leftwordgroup}{\parbox{12em}{CFLri -- \texttt{xret}}}
     \bitheader{0-31} \\
-    \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{11} & \bitbox{1}{D} & \bitbox{2}{00} &
+    \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{11} & \bitbox{2}{00} & \bitbox{1}{d} &
     \bitbox{18}{\bitsunused} & \bitbox{2}{00} & \bitbox{2}{01}
   \end{leftwordgroup} \\
 \end{bytefield}

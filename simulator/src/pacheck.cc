@@ -75,7 +75,7 @@ public:
         }
         is_branch_delayslot = true;
         is_call_delayslot = bundle[0].I->is_call();
-        delayslot = bundle[0].I->get_delay_slots() + 1;
+        delayslot = bundle[0].I->get_delay_slots(bundle[0]) + 1;
       }
       
     }
