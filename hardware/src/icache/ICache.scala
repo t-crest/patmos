@@ -51,8 +51,8 @@ object IConstants {
 
   //address encoding for icache address space (=0x20000)
   val ICACHE_ONE_BIT = 17
-  //default = 4KB I-Cache
-  val ICACHE_SIZE = 4096
+  //default = 2KB I-Cache
+  val ICACHE_SIZE = 2048
   //size of a block default = 16 words
   val WORD_COUNT = 16
   val ICACHE_WORD_SIZE = ICACHE_SIZE / 4
@@ -111,7 +111,7 @@ class ICacheCtrlRepl extends Bundle() {
 }
 class ICacheReplCtrl extends Bundle() {
   val hitEna = Bool()
-  val hitPos = Bool()
+  val fetchAddr = Bits(width = EXTMEM_ADDR_WIDTH)
 }
 class ICacheMemIn extends Bundle() {
   val wEven = Bool()
@@ -153,7 +153,7 @@ class ICache() extends Module {
   mcachectrl.io.ena_in <> io.ena_in
   mcacherepl.io.ena_in <> io.ena_in
   //output enable depending on hit/miss/fetch
-  io.ena_out := mcachectrl.io.fetch_ena & mcacherepl.io.hitEna
+  io.ena_out := mcachectrl.io.fetch_ena
 }
 
 /*
@@ -195,9 +195,9 @@ class ICacheReplDm() extends Module {
   val io = new ICacheReplIO()
 
   //reserve memory for the instruction cache tag field containing valid bit and address tag
-  val icacheTagMem = Mem(Bits(width = TAG_FIELD_SIZE + VALIDBIT_FIELD_SIZE), BLOCK_COUNT)
-  val toutEven = Reg(init = Bits(0, width = TAG_FIELD_SIZE + VALIDBIT_FIELD_SIZE))
-  val toutOdd = Reg(init = Bits(0, width = TAG_FIELD_SIZE + VALIDBIT_FIELD_SIZE))
+  val tagMemEven = MemBlock(BLOCK_COUNT / 2, TAG_FIELD_SIZE)
+  val tagMemOdd = MemBlock(BLOCK_COUNT / 2, TAG_FIELD_SIZE)
+  val validVec = Vec.fill(BLOCK_COUNT) { Reg(init = Bool(false))}
 
   //variables when call/return occurs
   val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
@@ -205,13 +205,9 @@ class ICacheReplDm() extends Module {
   val selIspmReg = Reg(init = Bool(false))
   val selICacheReg = Reg(init = Bool(false))
 
+  val fetchAddr = Bits(width = EXTMEM_ADDR_WIDTH)
   val hitInstrEven = Bool()
   val hitInstrOdd = Bool()
-
-  val addrIndexEven = (io.feicache.addrEven)(INDEX_FIELD_HIGH, INDEX_FIELD_LOW)
-  val addrIndexOdd = io.feicache.addrOdd(INDEX_FIELD_HIGH, INDEX_FIELD_LOW)
-  val addrTagEven = (io.feicache.addrEven)(TAG_FIELD_HIGH, TAG_FIELD_LOW)
-  val addrTagOdd = io.feicache.addrOdd(TAG_FIELD_HIGH, TAG_FIELD_LOW)
 
   val relBase = Mux(selICacheReg,
                     callRetBaseReg(ICACHE_ADDR_OFFSET,0),
@@ -231,27 +227,55 @@ class ICacheReplDm() extends Module {
     selICacheReg := io.exicache.callRetBase(EXTMEM_ADDR_WIDTH - 1,15) >= Bits(0x1)
   }
 
+  val addrIndexEven = (io.feicache.addrEven)(INDEX_FIELD_HIGH, INDEX_FIELD_LOW+1)
+  val addrIndexOdd = io.feicache.addrOdd(INDEX_FIELD_HIGH, INDEX_FIELD_LOW+1)
+  val addrTagEven = (io.feicache.addrEven)(TAG_FIELD_HIGH, TAG_FIELD_LOW)
+  val addrTagOdd = io.feicache.addrOdd(TAG_FIELD_HIGH, TAG_FIELD_LOW)
+  val blockParityEven = io.feicache.addrEven(INDEX_FIELD_LOW)
+  val blockParityOdd = io.feicache.addrOdd(INDEX_FIELD_LOW)
+
+  // Mux of tag memory input
+  val addrBlockEven = Mux(blockParityEven, addrIndexOdd, addrIndexEven)
+  val addrBlockOdd = Mux(blockParityEven, addrIndexEven, addrIndexOdd)
+  val addrEvenReg = Reg(next = io.feicache.addrEven)
+  val addrOddReg = Reg(next = io.feicache.addrOdd)
+  val blockParityEvenReg = addrEvenReg(INDEX_FIELD_LOW)
+  val blockParityOddReg = addrOddReg(INDEX_FIELD_LOW)
+  val addrTagEvenReg = addrEvenReg(TAG_FIELD_HIGH, TAG_FIELD_LOW)
+  val addrTagOddReg = addrOddReg(TAG_FIELD_HIGH, TAG_FIELD_LOW)
+
+  // Mux of tag memory output
+  val toutEven = Mux(blockParityEvenReg, tagMemOdd.io(addrIndexOdd), tagMemEven.io(addrIndexEven))
+  val toutOdd = Mux(blockParityOddReg, tagMemOdd.io(addrIndexOdd), tagMemEven.io(addrIndexEven))
+
+  val validEven = validVec(io.feicache.addrEven(INDEX_FIELD_HIGH, INDEX_FIELD_LOW))
+  val validOdd = validVec(io.feicache.addrOdd(INDEX_FIELD_HIGH, INDEX_FIELD_LOW))
+  val validTag = validEven && validOdd
+  val validTagReg = Reg(next = validTag)
+
   //check for a hit of both instructions of the address bundle
   hitInstrEven := Bool(true)
   hitInstrOdd := Bool(true)
-  val addrTagRegEven = Reg(next = addrTagEven)
-  val addrTagRegOdd = Reg(next = addrTagOdd)
-  when (toutEven(TAG_FIELD_SIZE,1) != addrTagRegEven || toutEven(0) != Bits(1)) {
+  when (toutEven != addrTagEvenReg) {
     hitInstrEven := Bool(false)
   }
-  when (toutOdd(TAG_FIELD_SIZE,1) != addrTagRegOdd || toutOdd(0) != Bits(1)) {
+  fetchAddr := addrEvenReg
+  when (toutOdd != addrTagOddReg) {
     hitInstrOdd := Bool(false)
+    fetchAddr := addrOddReg
   }
 
   val wrAddrTag = io.icache_ctrlrepl.wAddr(TAG_FIELD_HIGH,TAG_FIELD_LOW)
-  val wrAddrIndex = io.icache_ctrlrepl.wAddr(INDEX_FIELD_HIGH, INDEX_FIELD_LOW)
+  //index for valid field
+  val wrValidIndex = io.icache_ctrlrepl.wAddr(INDEX_FIELD_HIGH, INDEX_FIELD_LOW)
+  //index for tag field even/odd
+  val wrAddrIndex = io.icache_ctrlrepl.wAddr(INDEX_FIELD_HIGH, INDEX_FIELD_LOW+1)
+  val wrAddrParity = io.icache_ctrlrepl.wAddr(INDEX_FIELD_LOW)
   //update tag field when new write occurs
+  tagMemEven.io <= (io.icache_ctrlrepl.wTag && !wrAddrParity, wrAddrIndex, wrAddrTag)
+  tagMemOdd.io <= (io.icache_ctrlrepl.wTag && wrAddrParity, wrAddrIndex, wrAddrTag)
   when (io.icache_ctrlrepl.wTag) {
-    icacheTagMem(wrAddrIndex) := Cat(wrAddrTag, Bits(1))
-  }
-  .otherwise {
-    toutEven := icacheTagMem(addrIndexEven)
-    toutOdd := icacheTagMem(addrIndexOdd)
+    validVec(wrValidIndex) := Bool(true)
   }
 
   val wrParity = io.icache_ctrlrepl.wAddr(0)
@@ -273,9 +297,9 @@ class ICacheReplDm() extends Module {
   io.icachefe.reloc := reloc
   io.icachefe.memSel := Cat(selIspmReg, selICacheReg)
   //hit/miss return
-  io.icache_replctrl.hitPos := hitInstrEven
-  io.icache_replctrl.hitEna := (hitInstrEven && hitInstrOdd)
-  io.hitEna := (hitInstrEven && hitInstrOdd)
+  io.icache_replctrl.fetchAddr := fetchAddr
+  io.icache_replctrl.hitEna := (hitInstrEven && hitInstrOdd && validTagReg)
+  io.hitEna := (hitInstrEven && hitInstrOdd && validTagReg)
 
 }
 
@@ -298,9 +322,9 @@ class ICacheCtrl() extends Module {
   val ocpAddr = Bits(width = EXTMEM_ADDR_WIDTH)
   val fetchCnt = Reg(init = Bits(0, width = ICACHE_SIZE_WIDTH))
   val burstCnt = Reg(init = UInt(0, width = log2Up(BURST_LENGTH)))
+  val fetchEna = Bool()
   //input output registers
   val addrReg = Reg(init = Bits(0, width = 32))
-  val wEnaReg = Reg(init = Bool(false))
   val ocpSlaveReg = Reg(next = io.ocp_port.S)
   //address for the entire block
   val absFetchAddr = Cat(addrReg(EXTMEM_ADDR_WIDTH,WORD_COUNT_WIDTH), Bits(0)(WORD_COUNT_WIDTH-1,0))
@@ -312,29 +336,30 @@ class ICacheCtrl() extends Module {
   wAddr := Bits(0)
   ocpCmd := OcpCmd.IDLE
   ocpAddr := Bits(0)
+  fetchEna := Bool(true)
 
   when (icacheState === initState) {
+    fetchEna := Bool(false)
     when(io.feicache.request) {
       icacheState := idleState
     }
   }
   when (icacheState === idleState) {
     when (!io.icache_replctrl.hitEna) {
-      wEnaReg := Bool(true)
-      //check which block of the bundle is missing
-      val addr = Mux(io.icache_replctrl.hitPos, io.feicache.addrOdd, io.feicache.addrEven)
-      addrReg := addr
-      ocpAddr := Cat(addr(EXTMEM_ADDR_WIDTH-1,WORD_COUNT_WIDTH), Bits(0)(WORD_COUNT_WIDTH-1,0))
+      fetchEna := Bool(false)
+      addrReg := io.icache_replctrl.fetchAddr
+      ocpAddr := Cat(io.icache_replctrl.fetchAddr(EXTMEM_ADDR_WIDTH-1,WORD_COUNT_WIDTH), Bits(0)(WORD_COUNT_WIDTH-1,0))
       ocpCmd := OcpCmd.RD
       burstCnt := UInt(0)
       fetchCnt := UInt(0)
       wTag := Bool(true)
-      wAddr := Cat(addr(EXTMEM_ADDR_WIDTH-1,WORD_COUNT_WIDTH), Bits(0)(WORD_COUNT_WIDTH-1,0))
+      wAddr := Cat(io.icache_replctrl.fetchAddr(EXTMEM_ADDR_WIDTH-1,WORD_COUNT_WIDTH), Bits(0)(WORD_COUNT_WIDTH-1,0))
       icacheState := transferState
     }
   }
   //transfer/fetch cache block
   when (icacheState === transferState) {
+    fetchEna := Bool(false)
     when (fetchCnt < UInt(WORD_COUNT)) {
       when (ocpSlaveReg.Resp === OcpResp.DVA) {
         fetchCnt := fetchCnt + Bits(1)
@@ -356,7 +381,6 @@ class ICacheCtrl() extends Module {
     //restart to idle state
     .otherwise {
       icacheState := idleState
-      wEnaReg := Bool(false)
     }
   }
   
@@ -366,7 +390,7 @@ class ICacheCtrl() extends Module {
   io.icache_ctrlrepl.wAddr := wAddr
   io.icache_ctrlrepl.wTag := wTag
 
-  io.fetch_ena := !wEnaReg
+  io.fetch_ena := fetchEna
 
   //output to external memory
   io.ocp_port.M.Addr := Cat(ocpAddr, Bits("b00"))
