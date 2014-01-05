@@ -288,9 +288,9 @@ namespace patmos
 
   void simulator_t::run(word_t entry, uint64_t debug_cycle,
                         debug_format_e debug_fmt, std::ostream &debug_out,
-                        bool debug_nopc, uint64_t max_cycles,
-                        bool collect_instr_stats,
-                        const bool debug_gdb)
+                        bool debug_nopc, const bool debug_gdb, 
+                        uint64_t max_cycles,
+                        bool collect_instr_stats)
   {
     // do some initializations before executing the first instruction.
     if (Cycle == 0)
