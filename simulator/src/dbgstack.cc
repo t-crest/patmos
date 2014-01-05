@@ -23,17 +23,19 @@
 #include "stack-cache.h"
 #include "symbol.h"
 
-//#include <iostream>
+#include <iostream>
 #include <sstream>
 #include <boost/format.hpp>
 #include <climits>
 
+#undef DEBUG
 
 namespace patmos
 {
 
   dbgstack_t::dbgstack_frame_t::
-  dbgstack_frame_t(simulator_t &sim, uword_t func) : function(func)
+  dbgstack_frame_t(simulator_t &sim, uword_t func) 
+   : function(func), print_stats(false)
   {
     // We could use r30/r31 here ?!
     ret_base = sim.BASE;
@@ -47,6 +49,12 @@ namespace patmos
   }
 
 
+  void dbgstack_t::print_function_stats(uword_t address, std::ostream &dbg)
+  {
+    print_function = address;
+    debug_out = &dbg;
+  }
+  
   void dbgstack_t::initialize(uword_t entry)
   {
     push(entry);
@@ -60,16 +68,36 @@ namespace patmos
 
   bool dbgstack_t::is_active_frame(const dbgstack_frame_t &frame) const
   {
+    // TODO this might break if the stack pointers are modified in the delay
+    //      slots (?)
+    
     // check if the frame stack pointers are below the current pointers
     if (frame.caller_tos_shadowstack < sim.GPR.get(rsp).get()) {
+#ifdef DEBUG
+      std::cerr << "Wrong stadowstack: " 
+                << frame.caller_tos_shadowstack << " < " 
+                << sim.GPR.get(rsp).get() << "\n";
+#endif
       // we are currently further down the shadow stack
       return false;
     }
     // Note that at the moment we store the size of the stack cache,
     // *not* the TOS address.
     if (frame.caller_tos_stackcache > sim.Stack_cache.size()) {
+#ifdef DEBUG
+      std::cerr << "Wrong stackcache: " << frame.caller_tos_stackcache 
+                << " > " << sim.Stack_cache.size() << "\n";
+#endif
       return false;
     }
+#if DEBUG
+    if (!(frame.function == sim.BASE ||
+              sim.Symbols.covers(frame.function, sim.BASE))) 
+    {
+      std::cerr << "Wrong function base: " << frame.function 
+                << ", base: " << sim.BASE << "\n";
+    }
+#endif
     // check if the function of the current frame contains
     // the current subfunction
     return frame.function == sim.BASE ||
@@ -83,6 +111,9 @@ namespace patmos
     if (!stack.empty()) {
       // Check if the call is coming from the TOS.
       if (!is_active_frame(stack.back())) {
+#ifdef DEBUG
+        std::cerr << "\nWRONG FRAME: Not active, clearing stack!\n";
+#endif
         // We are resuming after some longjmp or so..
         // For now, just nuke the whole stack
         while (!stack.empty()) {
@@ -92,6 +123,15 @@ namespace patmos
     }
     // Create a new stack frame
     stack.push_back( dbgstack_frame_t(sim, target) );
+    
+    if (target == print_function && !found_print_function) {
+      // TODO this should be moved into a separate class, managing stats 
+      //      printing with multiple targets, ..
+      // TODO should we print the stats up to here?
+      sim.reset_stats();
+      stack.back().print_stats = true;
+      found_print_function = true;
+    }
   }
 
 
@@ -102,8 +142,14 @@ namespace patmos
     // check if we are truly returning,
     // otherwise do not pop ... yet (if this is a longjmp)
     dbgstack_frame_t &frame = stack.back();
+    
     if (frame.ret_base == return_base &&
-        frame.ret_offs == return_offset) {
+        frame.ret_offs == return_offset) 
+    {
+      if (frame.print_stats) {
+        sim.print_stats(*debug_out, true);
+        found_print_function = false;
+      }
       stack.pop_back();
     }
   }

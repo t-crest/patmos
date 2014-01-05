@@ -20,6 +20,7 @@
 #ifndef PATMOS_DBGSTACK_H
 #define PATMOS_DBGSTACK_H
 
+#include <limits>
 #include <ostream>
 #include <vector>
 
@@ -48,12 +49,22 @@ namespace patmos
         uword_t ret_offs;
         uword_t caller_tos_stackcache;
         uword_t caller_tos_shadowstack;
+        
+        // Should we print statistics when returning from this function?
+        bool print_stats;
       };
 
       /// stack - Debug stack.
       std::vector<dbgstack_frame_t> stack;
 
       simulator_t &sim;
+      
+      std::ostream *debug_out;
+      
+      uword_t print_function;
+      
+      // True if we are currently collecting stats
+      bool found_print_function;
 
       /// print_stackframe - Print a single debug stack frame to the stream
       /// @param callee the stack frame of the callee, or null if not available
@@ -62,10 +73,14 @@ namespace patmos
                             const dbgstack_frame_t *callee) const;
     public:
       /// Constructor
-      dbgstack_t(simulator_t &s) : sim(s)
+      dbgstack_t(simulator_t &s) : sim(s), debug_out(0), 
+         print_function(std::numeric_limits<unsigned int>::max()),
+         found_print_function(false)
       {
       }
 
+      void print_function_stats(uword_t address, std::ostream &debug_out);
+      
       /// initialize - Initialize the debug stack.
       void initialize(uword_t entry);
 

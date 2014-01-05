@@ -101,6 +101,10 @@ namespace patmos
     /// @return A string representing symbol information.
     std::string find(word_t address) const;
 
+    /// Find an address by symbol name.
+    /// @return -1 if not found, the address of the symbol otherwise.
+    word_t find(std::string symbol) const;
+    
     /// Print symbol information given a specific address to a stream.
     /// The symbol table is searched for the symbol covering the address and the
     /// name of the symbol is returned. In case labels of basic blocks within

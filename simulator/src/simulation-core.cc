@@ -41,14 +41,15 @@ namespace patmos
                            instr_cache_t &instr_cache,
                            stack_cache_t &stack_cache, symbol_map_t &symbols,
                            interrupt_handler_t &interrupt_handler)
-    : Dbg_cnt_delay(0), Reset_stats_PC(std::numeric_limits<unsigned int>::max()),
+    : Dbg_cnt_delay(0), 
       Cycle(0), Memory(memory), Local_memory(local_memory),
       Data_cache(data_cache), Instr_cache(instr_cache),
       Stack_cache(stack_cache), Symbols(symbols), Dbg_stack(*this),
       Interrupt_handler(interrupt_handler),
-      BASE(0), PC(0), nPC(0),
+      BASE(0), PC(0), nPC(0), Debug_last_PC(0),
       Stall(SXX), Disable_IF(false), Is_decoupled_load_active(false), 
-      Branch_counter(0), Halt(false), Interrupt_handling_counter(0)
+      Branch_counter(0), Halt(false), Interrupt_handling_counter(0),
+      Flush_Cache_PC(std::numeric_limits<unsigned int>::max()), Num_NOPs(0)
   {
     // initialize one predicate register to be true, otherwise no instruction
     // will ever execute
@@ -101,7 +102,7 @@ namespace patmos
   {
     if (debug)
     {
-      debug_out << boost::format("%1% : ") % pst;
+      debug_out << pst << " : ";
     }
 
     // invoke simulation functions
@@ -126,6 +127,7 @@ namespace patmos
 
     if (debug)
     {
+      if (Stall == pst) debug_out << "            (stalling)";
       debug_out << "\n";
     }
   }
@@ -145,21 +147,26 @@ namespace patmos
     Halt = true;
   }
   
+  bool simulator_t::is_halting() const 
+  {
+    return Halt;
+  }
+  
   void simulator_t::track_retiring_instructions()
   {
     if (Stall != NUM_STAGES-1)
     {
       for(unsigned int j = 0; j < NUM_SLOTS; j++)
       {
-        if (Pipeline[NUM_STAGES-1][j].I && 
-            Pipeline[NUM_STAGES-1][j].I->ID >= 0)
+        instruction_data_t &ops = Pipeline[NUM_STAGES-1][j];
+        
+        if (ops.I && ops.I->ID >= 0)
         {
           // get instruction statistics
-          instruction_stat_t &stat(
-              Instruction_stats[j][Pipeline[NUM_STAGES-1][j].I->ID]);
+          instruction_stat_t &stat = Instruction_stats[j][ops.I->ID];
 
           // update instruction statistics
-          if (Pipeline[NUM_STAGES-1][j].DR_Pred)
+          if (ops.DR_Pred)
             stat.Num_retired++;
           else
             stat.Num_discarded++;
@@ -266,6 +273,11 @@ namespace patmos
             Instruction_stats[j][instr_SIF[j].I->ID].Num_fetched++;
         }
 
+        // Detect NOPs as "subi r0 = ...;"
+        if (Decoder.is_NOP(&instr_SIF[0]) && !instr_SIF[1].I) 
+        {
+          Num_NOPs++;
+        }
 
         // provide next program counter value (as incremented PC)
         nPC = PC + iw_size*4;
@@ -276,7 +288,7 @@ namespace patmos
 
   void simulator_t::run(word_t entry, uint64_t debug_cycle,
                         debug_format_e debug_fmt, std::ostream &debug_out,
-                        uint64_t max_cycles,
+                        bool debug_nopc, uint64_t max_cycles,
                         bool collect_instr_stats,
                         const bool debug_gdb)
   {
@@ -284,7 +296,6 @@ namespace patmos
     if (Cycle == 0)
     {
       BASE = PC = nPC = entry;
-      lPC = ~0;
       Instr_cache.initialize(entry);
       Profiling.initialize(entry);
       Dbg_stack.initialize(entry);
@@ -302,20 +313,12 @@ namespace patmos
       for(uint64_t cycle = 0; cycle < max_cycles; cycle++, Cycle++)
       {
         bool debug = (Cycle >= debug_cycle);
-        bool debug_pipline = debug && (debug_fmt >= DF_LONG);
+        bool debug_pipeline = debug && (debug_fmt >= DF_LONG);
  
         if (debug_gdb)
         {
         }
         
-        // Reset statistics if we hit the reset PC.
-        // TODO we might add a hit counter and print the stats (to a file)
-        // before we reset them. We should also be able to print them once
-        // we enter a function and once we exit from that function.
-        if (PC == Reset_stats_PC) {
-          reset_stats();
-        }
-
         // reset the stall counter.
         Stall = SXX;
 
@@ -328,7 +331,7 @@ namespace patmos
         // simulate decoupled load
         Decoupled_load.dMW(*this);
 
-        if (debug_pipline)
+        if (debug_pipeline)
         {
           debug_out << "dMW: ";
           Decoupled_load.print(debug_out, Symbols);
@@ -336,16 +339,16 @@ namespace patmos
         }
 
         // invoke simulation functions
-        pipeline_invoke(SMW, &instruction_data_t::MW, debug_pipline);
-        pipeline_invoke(SEX, &instruction_data_t::EX, debug_pipline);
-        pipeline_invoke(SDR, &instruction_data_t::DR, debug_pipline);
+        pipeline_invoke(SMW, &instruction_data_t::MW, debug_pipeline);
+        pipeline_invoke(SEX, &instruction_data_t::EX, debug_pipeline);
+        pipeline_invoke(SDR, &instruction_data_t::DR, debug_pipeline);
         // invoke IF only for printing
-        pipeline_invoke(SIF, NULL, debug_pipline);
-
+        pipeline_invoke(SIF, NULL, debug_pipeline);
+        
         // print instructions in EX stage
         if (debug && debug_fmt == DF_INSTRUCTIONS)
         {
-          print_instructions(debug_out, SEX);
+          print_instructions(debug_out, SEX, debug_nopc);
         }
 
         track_retiring_instructions();
@@ -366,6 +369,12 @@ namespace patmos
         // Update the Program counter. Either nPC was updated in the fetch stage
         // or it was overwritten by a CFL instruction in EX/MW stage.
         if (!is_stalling(SIF)) {
+          // As soon as we reach the flush PC, flush, so that we do not hit this
+          // again when we stall.
+          if (PC != nPC && nPC == Flush_Cache_PC) {
+            flush_caches();
+          }
+          
           PC = nPC;
           // We just inserted a bubble at SIF before, enable fetching for 
           // this new instruction.
@@ -393,7 +402,7 @@ namespace patmos
 
         if (debug)
         {
-          print(debug_out, debug_fmt);
+          print(debug_out, debug_fmt, debug_nopc);
         }
 
         // Collect stats for instructions
@@ -407,7 +416,6 @@ namespace patmos
             }
           }
         }
-        lPC = PC;
       } // end of simulation loop
     }
     catch (simulation_exception_t e)
@@ -423,7 +431,7 @@ namespace patmos
   }
 
   void simulator_t::print_registers(std::ostream &os,
-                                    debug_format_e debug_fmt) const
+                                    debug_format_e debug_fmt, bool nopc) const
   {
     if (debug_fmt == DF_SHORT)
     {
@@ -435,7 +443,11 @@ namespace patmos
     }
     else
     {
-      os << boost::format("\nCyc : %1%\n PRR: ") % Cycle;
+      if (!nopc) {
+        os << boost::format("\nCyc : %1%\n PRR: ") % Cycle;
+      } else {
+        os << "PRR: ";
+      }
 
       // print values of predicate registers
       unsigned int sz_value = 0;
@@ -446,10 +458,12 @@ namespace patmos
         os << pred_value;
       }
 
-      os << boost::format("  BASE: %1$08x   PC : %2$08x   ")
-        % BASE % PC;
+      if (!nopc) {
+        os << boost::format("  BASE: %1$08x   PC : %2$08x   ")
+          % BASE % PC;
 
-      Symbols.print(os, PC);
+        Symbols.print(os, PC);
+      }
 
       os << "\n ";
 
@@ -488,7 +502,9 @@ namespace patmos
     }
   }
 
-  void simulator_t::print_instructions(std::ostream &os, Pipeline_t stage) const {
+  void simulator_t::print_instructions(std::ostream &os, Pipeline_t stage, 
+                                       bool nopc) const 
+  {
       std::ostringstream oss;
       symbol_map_t emptymap;
       for(unsigned int i = 0; i < NUM_SLOTS; i++) {
@@ -499,13 +515,18 @@ namespace patmos
         oss << boost::format("%1% %|30t|") % instr.str();
       }
 
-      os << boost::format("%1$08x %2$9d %3% %|75t|") 
-                   % Pipeline[stage][0].Address % Cycle % oss.str();
+      if (nopc) {
+        os << boost::format("%1% %|75t|") % oss.str();
+      } else {
+        os << boost::format("%1$08x %2$9d %3% %|75t|") 
+                    % Pipeline[stage][0].Address % Cycle % oss.str();
+      }
 
       if (is_stalling(stage)) {
         // Avoid peeking into memory while memory stage is still working by
         // not printing out operands in this case
         os << "stalling";
+        if (Disable_IF) os << ", IF disabled";
       } else {
         for(unsigned int i = 0; i < NUM_SLOTS; i++) {
           if (!Pipeline[stage][i].I) continue;
@@ -531,13 +552,13 @@ namespace patmos
               s.GPR.get(reg))).get();
   }
 
-  void simulator_t::print(std::ostream &os, debug_format_e debug_fmt)
+  void simulator_t::print(std::ostream &os, debug_format_e debug_fmt, bool nopc)
   {
     if (debug_fmt == DF_TRACE)
     {
       // CAVEAT: this trace mode is used by platin's 'analyze-trace' module
       // do not change without adapting platin
-      if (PC != lPC)
+      if (!is_stalling(SIF) && !is_halting())
       {
         // Boost::format is unacceptably slow (adpcm.elf):
         //  => no debugging output:  1.6s
@@ -549,21 +570,33 @@ namespace patmos
       }
       return;
     }
-    else if (debug_fmt == DF_INSTRUCTIONS) {
+    else if (debug_fmt == DF_INSTRUCTIONS) 
+    {
       // already done before
       return;
     }
     else if (debug_fmt == DF_BLOCKS) {
-      if (PC != lPC && Symbols.contains(PC)) {
-	os << boost::format("%1$08x %2$9d ") % PC % Cycle;
-	Symbols.print(os, PC);
-	os << "\n";
+      if (!is_stalling(SIF) && !is_halting()) {
+        // Check if we either hit a new block, or if we did some jump or return
+        // somewhere into a block
+        if (Symbols.contains(PC) || 
+            PC < Debug_last_PC || PC > Debug_last_PC + NUM_SLOTS * 4)
+        {
+          if (!nopc) {
+            os << boost::format("%1$08x %2$9d ") % PC % Cycle;
+          }
+          Symbols.print(os, PC);
+          os << "\n";
+        }
+        // Remember the current PC to check for jumps
+        Debug_last_PC = PC;
       }
       return;
     }
     else if (debug_fmt == DF_CALLS) {
       if (Dbg_cnt_delay == 1) {
-
+        if (is_stalling(SMW)) return;
+        
         if (Dbg_is_call) {
           os << " args: " << boost::format("r3 = %1$08x, r4 = %2$08x, ") 
                 % read_GPR_post_EX(*this, r3) % read_GPR_post_EX(*this, r4);
@@ -578,7 +611,9 @@ namespace patmos
         Dbg_cnt_delay = 0;
       }
       else if (Dbg_cnt_delay > 1) {
-        Dbg_cnt_delay--;
+        if (!is_stalling(SMW)) {
+          Dbg_cnt_delay--;
+        }
       }
       else if (Pipeline[SMW][0].I && Pipeline[SMW][0].DR_Pred &&
                Pipeline[SMW][0].I->is_flow_control()) {
@@ -593,7 +628,9 @@ namespace patmos
           Dbg_is_call = true;
         }
         if (Dbg_cnt_delay) {
-          os << boost::format("%1$08x %2$9d ") % PC % Cycle;
+          if (!nopc) {
+            os << boost::format("%1$08x %2$9d ") % PC % Cycle;
+          }
           os << (Dbg_is_call ? "call from " : "return from ");
           Symbols.print(os, Pipeline[SMW][0].Address, true);
           os << " to ";
@@ -604,7 +641,7 @@ namespace patmos
     else
     {
       // print register values
-      print_registers(os, debug_fmt);
+      print_registers(os, debug_fmt, nopc);
 
       if (debug_fmt == DF_ALL)
       {
@@ -629,8 +666,18 @@ namespace patmos
     }
   }
 
+  void simulator_t::flush_caches() 
+  {
+    Instr_cache.flush_cache();
+    Data_cache.flush_cache();
+    // TODO flush the stack cache
+  }
+  
   void simulator_t::reset_stats()
   {
+    // TODO reset the statistics in the pipeline stages in the correct cycles.
+    // Send a control signal down the pipeline, resetting statistics on the way.
+    
     for(unsigned int i = 0; i < NUM_STAGES; i++)
     {
       Num_stall_cycles[i] = 0;
@@ -645,33 +692,36 @@ namespace patmos
       Num_bubbles_retired[j] = 0;
     }
     
+    Num_NOPs = 0;
+    
     Instr_cache.reset_stats();
     Data_cache.reset_stats();
     Stack_cache.reset_stats();
     Memory.reset_stats();
-    Profiling.reset_stats();
+    Profiling.reset_stats(Cycle);
   }
   
-  void simulator_t::print_stats(std::ostream &os, bool slot_stats, bool instr_stats) const
+  void simulator_t::print_stats(std::ostream &os, bool instr_stats) const
   {
     // print register values
     print_registers(os, DF_DEFAULT);
 
-    unsigned int num_total_fetched[NUM_SLOTS];
-    unsigned int num_total_retired[NUM_SLOTS];
-    unsigned int num_total_discarded[NUM_SLOTS];
-    unsigned int num_total_bubbles[NUM_SLOTS];
+    uint64_t num_total_fetched[NUM_SLOTS];
+    uint64_t num_total_retired[NUM_SLOTS];
+    uint64_t num_total_discarded[NUM_SLOTS];
+    uint64_t num_total_bubbles[NUM_SLOTS];
     
-    os << boost::format("\n\nInstruction Statistics:\n   %1$15s:") % "instruction";
+    uint64_t sum_fetched = 0;
+    uint64_t sum_discarded = 0;
+    
+    os << boost::format("\n\nInstruction Statistics:\n   %1$15s:") % "operation";
     for (unsigned int i = 0; i < NUM_SLOTS; i++) {
       num_total_fetched[i] = num_total_retired[i] = num_total_discarded[i] = 0;
       num_total_bubbles[i] = 0;
-      num_total_bubbles[slot_stats ? i : 0] += Num_bubbles_retired[i];
+      num_total_bubbles[i] += Num_bubbles_retired[i];
     
-      if (!i || slot_stats) {
-        os << boost::format(" %1$10s %2$10s %3$10s")
-           % "#fetched" % "#retired" % "#discarded";
-      }
+      os << boost::format(" %1$10s %2$10s %3$10s")
+          % "#fetched" % "#retired" % "#discarded";
     }
     os << "\n";
           
@@ -682,35 +732,21 @@ namespace patmos
 
       os << boost::format("   %1$15s:") % I.Name;
       
-      unsigned int num_fetched[NUM_SLOTS];
-      unsigned int num_retired[NUM_SLOTS];
-      unsigned int num_discarded[NUM_SLOTS];
-      
       for (unsigned int j = 0; j < NUM_SLOTS; j++) {
         const instruction_stat_t &S(Instruction_stats[j][i]);
-
-        num_fetched[j] = num_retired[j] = num_discarded[j] = 0;
-        
-        num_fetched[slot_stats ? j : 0] += S.Num_fetched;
-        num_retired[slot_stats ? j : 0] += S.Num_retired;
-        num_discarded[slot_stats ? j : 0] += S.Num_discarded;
 
         // If we reset the statistics counters, we might have some 
         // instructions that were in flight at the reset and thus are 
         // counted as discarded but not as fetched
         //assert(S.Num_fetched >= (S.Num_retired + S.Num_discarded));
-      }
-      
-      for (unsigned int j = 0; j < NUM_SLOTS; j++) {
+        
         os << boost::format(" %1$10d %2$10d %3$10d")
-          % num_fetched[j] % num_retired[j] % num_discarded[j];
+          % S.Num_fetched % S.Num_retired % S.Num_discarded;
 
         // collect summary
-        num_total_fetched[j] += num_fetched[j];
-        num_total_retired[j] += num_retired[j];
-        num_total_discarded[j] += num_discarded[j];
-        
-        if (!slot_stats) break;
+        num_total_fetched[j] += S.Num_fetched;
+        num_total_retired[j] += S.Num_retired;
+        num_total_discarded[j] += S.Num_discarded;
       }
       
       if (instr_stats) {
@@ -726,23 +762,77 @@ namespace patmos
     for (unsigned int j = 0; j < NUM_SLOTS; j++) {
       os << boost::format(" %1$10d %2$10d %3$10d")
           % num_total_fetched[j] % num_total_retired[j] % num_total_discarded[j];
-      if (!slot_stats) break;
-    }          
+          
+      sum_fetched += num_total_fetched[j];
+      sum_discarded += num_total_discarded[j];
+    }
     os << "\n";
     os << boost::format("   %1$15s:") % "bubbles";
     for (unsigned int j = 0; j < NUM_SLOTS; j++) {
       os << boost::format(" %1$10s %2$10d %3$10s") % "-" % num_total_bubbles[j] % "-";
-      if (!slot_stats) break;
     }          
     os << "\n";
 
-    // Cycle statistics
+    
+    uint64_t sum_stalls = 0;
+    
     os << "\nStall Cycles:\n";
     for (int i = SIF; i < NUM_STAGES; i++)
     {
       os << boost::format("   %1%: %2%\n")
          % (Pipeline_t)i % Num_stall_cycles[i];
+         
+      sum_stalls += Num_stall_cycles[i];
     }
+    
+    // Cycle statistics
+    
+    // Note that by definition of a NOP it is not bundled
+    uint64_t num_operations = sum_fetched - Num_NOPs;
+    uint64_t num_instructions = num_total_fetched[0] - Num_NOPs;
+
+    // Should we count only retired instructions?
+    float cpo_nops = (float)Cycle / (float)sum_fetched;
+    float cpi_nops = (float)Cycle / (float)num_total_fetched[0];
+    float cpo = (float)Cycle / (float)num_operations;
+    float cpi = (float)Cycle / (float)num_instructions;
+    
+    os << boost::format("\nCycles per Instruction (w/  NOPs): %1$8.4f"
+                        "\nCycles per Operation   (w/  NOPs): %2$8.4f"
+                        "\nCycles per Instruction (w/o NOPs): %3$8.4f"
+                        "\nCycles per Operation   (w/o NOPs): %4$8.4f")
+        % cpi_nops % cpo_nops % cpi % cpo;
+
+    os << "\n\n                   total     % cycles";
+    os << boost::format("\nInstructions: %1$10d  %2$10.2f%%"
+                        "\nNOPs:         %3$10d  %4$10.2f%%"
+                        "\nStalls:       %5$10d  %6$10.2f%%")
+          % num_instructions % (100.0 * (float)num_instructions / (float)Cycle)
+          % Num_NOPs % (100.0 * (float)Num_NOPs / (float)Cycle)
+          % sum_stalls % (100.0 * (float)sum_stalls / (float)Cycle);
+    
+    os << "\n\n                   total        % ops";
+    os << boost::format("\nOperations:   %1$10d  %2$10.2f%%"
+                        "\nNOPs:         %3$10d  %4$10.2f%%"
+                        "\nBundled:      %5$10d  %6$10.2f%%"
+                        "\nDiscarded:    %7$10d  %8$10.2f%%")
+          % num_operations % (100.0 * (float)num_operations / (float)sum_fetched)
+          % Num_NOPs % (100.0 * (float)Num_NOPs / (float)sum_fetched)
+          % (sum_fetched - num_total_fetched[0])
+                     % (100.0 * (float)(sum_fetched - num_total_fetched[0]) / 
+                                                            (float)sum_fetched)
+          % sum_discarded % (100.0 * (float)sum_discarded / (float)sum_fetched);
+
+    os << "\n\n                            ";
+    for (int i = 0; i < NUM_SLOTS; i++) {
+      os << "      slot " << i;
+    }
+    os << "\nSlot utilization (w/ NOPs): ";
+    for (int i = 0; i < NUM_SLOTS; i++) {
+      os << boost::format(" %1$10.2f%%") 
+         % (100.0 * (float)num_total_fetched[i] / (float)num_total_fetched[0] );
+    }
+          
     // print statistics of method cache
     os << "\n\nInstruction Cache Statistics:\n";
     Instr_cache.print_stats(*this, os);
@@ -768,6 +858,10 @@ namespace patmos
 
   std::ostream &operator<<(std::ostream &os, Pipeline_t p)
   {
+    if (p == SXX) {
+      return os;
+    }
+    
     const static char* names[NUM_STAGES] = {"IF", "DR", "EX", "MW"};
     assert(names[p] != NULL);
 

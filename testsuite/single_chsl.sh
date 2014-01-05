@@ -13,15 +13,15 @@ mkdir -p "${LOG_DIR}"/`dirname ${TEST}`
 echo "${TEST}"
 
 # run chisel
-make csim BOOTAPP="${TEST}" 1> "${LOG_DIR}/${TEST}.cs.out" 2> "${LOG_DIR}/${TEST}.cs.err"
-echo "EXIT $?" >> "${LOG_DIR}/${TEST}.cs.out"
+make hwsim BOOTAPP="${TEST}" 1> "${LOG_DIR}/${TEST}.emu.out" 2> "${LOG_DIR}/${TEST}.emu.err"
+echo "EXIT $?" >> "${LOG_DIR}/${TEST}.emu.out"
 
 # run high-level simulator
-make hsim BOOTAPP="${TEST}" 1> "${LOG_DIR}/${TEST}.hs.out" 2> "${LOG_DIR}/${TEST}.hs.err"
-echo "EXIT $?" >> "${LOG_DIR}/${TEST}.hs.out"
+make swsim BOOTAPP="${TEST}" 1> "${LOG_DIR}/${TEST}.sim.out" 2> "${LOG_DIR}/${TEST}.sim.err"
+echo "EXIT $?" >> "${LOG_DIR}/${TEST}.sim.out"
 
 # compare output
-java -cp java/lib/patmos-tools.jar util.CompareChisel "${LOG_DIR}/${TEST}.hs.err" "${LOG_DIR}/${TEST}.cs.out" | \
+java -cp tools/java/lib/patmos-tools.jar util.CompareChisel "${LOG_DIR}/${TEST}.sim.err" "${LOG_DIR}/${TEST}.emu.out" | \
     tee "${LOG_DIR}/${TEST}.comptest.out" | sed -e 's/^\(\S\)/ \1/'
 
 # report failure or ok

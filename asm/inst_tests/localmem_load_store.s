@@ -1,8 +1,8 @@
 # Test case for local memory load and store
 # Initialization begin
 	.word	224;
-	add 	r1 = r0, 0xFF0FF000;
-	add 	r1 = r0, 0xFF0FF000;
+	add 	r1 = r0, 0xE0000000;
+	add 	r1 = r0, 0xE0000000;
 	addi	r2 = r0, 4;
 	swl		[r2 + 0] = r0;
 	swl		[r2 + 1] = r0;

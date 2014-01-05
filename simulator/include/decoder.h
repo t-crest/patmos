@@ -64,9 +64,12 @@ namespace patmos
     /// simulator.
     static instructions_t Instructions;
 
+    /// ID of the instruction used to encode NOPs
+    static unsigned int NOP_ID;
+    
     /// Initialize the simulation functions and binary formats.
     static void initialize_instructions();
-
+    
     /// Decode a binary encoded instruction.
     /// @param iw The instruction word to decode.
     /// @param imm The optional long immediate operand.
@@ -102,6 +105,12 @@ namespace patmos
     {
       return Instructions.size();
     }
+    
+    /// Test if an instruction is a NOP instruction.
+    bool is_NOP(instruction_data_t *data) const;
+    
+    /// @return the ID of the instruction used for NOPs, i.e., SUBi.
+    static unsigned int get_noop_id() { return NOP_ID; }
 
     /// Return instruction by ID.
     /// @return The instruction having the given ID.

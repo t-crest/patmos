@@ -30,6 +30,8 @@
 namespace patmos
 {
   decoder_t::instructions_t decoder_t::Instructions;
+  
+  unsigned int decoder_t::NOP_ID;
 
   decoder_t::decoder_t()
   {
@@ -164,6 +166,10 @@ namespace patmos
     return ret;
   }
 
+  bool decoder_t::is_NOP(instruction_data_t *data) const
+  {
+    return data && data->I->ID == NOP_ID && data->OPS.ALUil.Rd == patmos::r0;
+  }
 
   void decoder_t::initialize_instructions()
   {
@@ -202,6 +208,10 @@ namespace patmos
     // ALUi:
     MK_NINSTR(addil , addi , alui, 0)
     MK_NINSTR(subil , subi , alui, 1)
+    
+    // remember the ID of the SUBi instruction to detect NOPs
+    NOP_ID = Instructions.size() - 1;
+    
     MK_NINSTR(xoril , xori , alui, 2)
     MK_NINSTR(slil  , sli  , alui, 3)
     MK_NINSTR(sril  , sri  , alui, 4)

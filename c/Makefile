@@ -7,19 +7,28 @@ CC=patmos-clang
 
 # Flags for compiling to boot ROM
 CFLAGS-BOOTABLE=-target patmos-unknown-unknown-elf \
+	-DBOOTROM \
 	-mpatmos-method-cache-size=0x8000 \
+	-mpatmos-preferred-subfunction-size=0 \
+	-mpatmos-subfunction-align=1 \
 	-mpatmos-disable-stack-cache \
 	-nodefaultlibs -nostdlib -nostartfiles \
+	-mpatmos-stack-base=0x80010700 -mpatmos-shadow-stack-base=0x80010800 \
 	-Xgold --section-start -Xgold .text=0x0 -e main \
-	-Os
+	-Xgold --section-start -Xgold .rodata=0x80000010 \
+	-Xgold --section-start -Xgold .data=0x80010000 \
+	-Os -mpatmos-disable-vliw=true
 
 # Flags for compiling normal applications
 CFLAGS=-target patmos-unknown-unknown-elf \
-	-Xgold -T../chisel/spm.t \
-	-mpatmos-method-cache-size=0x8000 \
-	-mpatmos-stack-base=0x3000 -mpatmos-shadow-stack-base=0x4000 \
-	-nolibsyms \
+	-Xgold -T../hardware/ram.t \
+	-mpatmos-method-cache-size=0x1000 \
+	-mpatmos-stack-base=0x1f0000 -mpatmos-shadow-stack-base=0x200000 \
 	-O2
+
+# force rebuild of mandelbrot_par if init.h changes
+mandelbrot_par.c: init.h
+	touch $@
 
 compile: $(BUILDDIR)/$(APP).elf
 

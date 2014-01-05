@@ -6,7 +6,7 @@
 		nop;
 		nop;
 		nop;
-		.word   60;
+		.word   64;
 x:              addi    r1 = r0, 0;
 		addi    r30 = r0, 0;
 		addi    r31 = r0, 36;
