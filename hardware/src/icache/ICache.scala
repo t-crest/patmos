@@ -310,8 +310,8 @@ class ICacheCtrl() extends Module {
   val io = new ICacheCtrlIO()
 
   //fsm state variables
-  val initState :: idleState :: transferState :: Nil = Enum(UInt(), 3)
-  val icacheState = Reg(init = initState)
+  val idleState :: transferState :: Nil = Enum(UInt(), 2)
+  val icacheState = Reg(init = idleState)
   //signal for replacement unit
   val wData = Bits(width = DATA_WIDTH)
   val wTag = Bool()
@@ -338,12 +338,6 @@ class ICacheCtrl() extends Module {
   ocpAddr := Bits(0)
   fetchEna := Bool(true)
 
-  when (icacheState === initState) {
-    fetchEna := Bool(false)
-    when(io.feicache.request) {
-      icacheState := idleState
-    }
-  }
   when (icacheState === idleState) {
     when (!io.icache_replctrl.hitEna) {
       fetchEna := Bool(false)
