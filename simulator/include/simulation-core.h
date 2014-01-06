@@ -299,18 +299,18 @@ namespace patmos
     /// @param debug_fmt Format of the debug trace.
     /// @param debug_out Stream to print debug output.
     /// @param debug_nopc skip printing cycles and PC
+    /// @param debug_gdb enable the gdb debugging interface. use gdb's target
+    ///     remote to connect to the simulator and start debugging
     /// @param max_cycles The maximum number of cycles to run the simulation.
     /// @param profiling Enable profiling in the simulation run.
     /// @param collect_instr_stats
-    /// @param debug_gdb enable the gdb debugging interface. use gdb's target
-    ///     remote to connect to the simulator and start debugging
     void run(word_t entry = 0,
              uint64_t debug_cycle = std::numeric_limits<uint64_t>::max(),
              debug_format_e debug_fmt = DF_DEFAULT,
              std::ostream &debug_out = std::cerr, bool debug_nopc = false,
+             bool debug_gdb = false,
              uint64_t max_cycles = std::numeric_limits<uint64_t>::max(),
-             bool collect_instr_stats = false,
-             const bool debug_gdb = false);
+             bool collect_instr_stats = false);
 
     /// Print the instructions and their operands in a pipeline stage
     /// @param os An output stream.
