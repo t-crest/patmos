@@ -31,6 +31,9 @@ namespace
     virtual HostInfo GetHostInfo() const
     {
       HostInfo info;
+      info.cputype = 7;
+      info.endian = "big";
+      info.ptrsize = 4;
       return info;
     }
     virtual void SetDebugClient(DebugClient &debugClient)

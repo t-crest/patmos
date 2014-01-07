@@ -43,9 +43,16 @@ namespace
   const std::string setThreadMessage = "H";
   const std::string getCurrentThreadMessage = "qC";
   const std::string isAttachedMessage = "qAttached";
+  const std::string contSupportedMessage = "vCont?";
+
+  const std::string killMessage = "k";
+  
+  // lldb extensions:
   const std::string startNoAckModeMessage = "QStartNoAckMode";
   const std::string hostInfoMessage = "qHostInfo";
 
+
+  // standard response messages:
   const std::string okMessage = "OK";
   const std::string errorMessage = "E %02x";
   
@@ -53,7 +60,6 @@ namespace
   const std::string unsupportedFeatureMessage = "Unsupported Feature";
   const std::string threadSuffixSupportedMessage = "QThreadSuffixSupported";
   const std::string listThreadsInStopReplyMessage = "QListThreadsInStopReply";
-  const std::string contSupportedMessage = "vCont?";
   const std::string attachOrWaitSupportedMessage = "qVAttachOrWaitSupported";
 
   using namespace patmos;
@@ -215,8 +221,9 @@ namespace patmos
       DebugInterface &debugInterface,
       bool &targetContinue) const
     {
-      // currently we do not care about threads
-      messageHandler.SendGdbMessage(GetEmptyMessage());
+      // currently we do not care about threads.
+      // always return 0
+      messageHandler.SendGdbMessage(GdbResponseMessage("0"));
     };
 
     static bool CanHandle(std::string messageString)
@@ -252,6 +259,55 @@ namespace patmos
     };
   };
 
+  //////////////////////////////////////////////////////////////////
+  // vCont?
+  //////////////////////////////////////////////////////////////////
+  class GdbContSupportedMessage : public GdbMessage
+  {
+  public:
+    virtual std::string GetMessageString() const
+    {
+      return contSupportedMessage;
+    };
+
+    virtual void Handle(GdbMessageHandler &messageHandler,
+      DebugInterface &debugInterface,
+      bool &targetContinue) const
+    {
+      messageHandler.SendGdbMessage(GdbResponseMessage("vCont[;c;s;t]"));
+    };
+
+    static bool CanHandle(std::string messageString)
+    {
+      return messageString == contSupportedMessage;
+    };
+  };
+  
+  //////////////////////////////////////////////////////////////////
+  // k
+  //////////////////////////////////////////////////////////////////
+  class GdbKillMessage : public GdbMessage
+  {
+  public:
+    virtual std::string GetMessageString() const
+    {
+      return killMessage;
+    };
+
+    virtual void Handle(GdbMessageHandler &messageHandler,
+      DebugInterface &debugInterface,
+      bool &targetContinue) const
+    {
+      // TODO: change to a better target control
+      targetContinue = true;
+    };
+
+    static bool CanHandle(std::string messageString)
+    {
+      return messageString == killMessage;
+    };
+  };
+  
   //////////////////////////////////////////////////////////////////
   // (lldb extension) QStartNoAckMode
   //////////////////////////////////////////////////////////////////
@@ -310,7 +366,7 @@ namespace patmos
   };
   
   //////////////////////////////////////////////////////////////////
-  // (lldb extension) all unsupported features - reply empty msg
+  // all unsupported features - reply empty msg
   //////////////////////////////////////////////////////////////////
   class GdbUnsupportedFeatureMessage : public GdbMessage
   {
@@ -332,7 +388,6 @@ namespace patmos
       return (
         messageString == threadSuffixSupportedMessage ||
         messageString == listThreadsInStopReplyMessage ||
-        messageString == contSupportedMessage ||
         messageString == attachOrWaitSupportedMessage
       );
     };
@@ -401,6 +456,14 @@ namespace patmos
     else if (GdbIsAttachedMessage::CanHandle(packetContent))
     {
       return GdbMessagePtr(new GdbIsAttachedMessage());
+    }
+    else if (GdbContSupportedMessage::CanHandle(packetContent))
+    {
+      return GdbMessagePtr(new GdbContSupportedMessage());
+    }
+    else if (GdbKillMessage::CanHandle(packetContent))
+    {
+      return GdbMessagePtr(new GdbKillMessage());
     }
     else if (GdbStartNoAckModeMessage::CanHandle(packetContent))
     {
