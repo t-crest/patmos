@@ -394,15 +394,14 @@ we switch contexts.}
         \bitbox{32}{r14 (scratch)} \\ \bitbox{32}{r15 (scratch)} \\
         \bitbox{32}{r16 (scratch)} \\ \bitbox{32}{r17 (scratch)} \\
         \bitbox{32}{r18 (scratch)} \\ \bitbox{32}{r19 (scratch)} \\
-        \bitbox{32}{r20 (saved)} \\ \bitbox{32}{r21 (saved)} \\
+        \bitbox{32}{r20 (scratch)} \\ \bitbox{32}{r21 (saved)} \\
         \bitbox{32}{r22 (saved)} \\ \bitbox{32}{r23 (saved)} \\
         \bitbox{32}{r24 (saved)} \\ \bitbox{32}{r25 (saved)} \\
-        \bitbox{32}{r26 (saved)} \\
-        \bitbox{32}{r27 (temp.\ register, saved)} \\
-        \bitbox{32}{r28 (frame pointer, saved)} \\
-        \bitbox{32}{r29 (stack pointer, saved)} \\
-        \bitbox{32}{r30 (function base, saved)} \\
-        \bitbox{32}{r31 (function offset, saved)} \\
+        \bitbox{32}{r26 (saved)} \\ \bitbox{32}{r27 (saved)} \\
+        \bitbox{32}{r28 (saved)} \\
+        \bitbox{32}{r29 (temp.\ register, saved)} \\
+        \bitbox{32}{r30 (frame pointer, saved)} \\
+        \bitbox{32}{r31 (stack pointer, saved)} \\
       \end{bytefield}
     }
 
@@ -1515,7 +1514,6 @@ use an implicit stack pointer for addressing.}
 
 
 \paragraph{Behavior}
-~\newline
 
 \texttt{sres}: Check free space left in the stack cache. Update stack-cache registers.
 If needed, spill to global memory using \texttt{ss}.
@@ -1560,107 +1558,94 @@ leave that to Florian ;) }
 \clearpage
 \subsection{Control-Flow Instructions}
 
-\wolf{This section is to be updated for the upcoming ISA revision. Leave as-is for now.}
-
 Applies to CFLi and CFLr format only.
 Transfer control to another function or perform function-local branches.
-\texttt{br} performs a function-local, relative branch within the method cache.
-\martin{mmh, cache - explain better}
-\texttt{call} performs a function call, storing the program counter (or function offset) of
-the instruction to be fetched after returning in \texttt{r31}.
-The function base of the caller is not stored implicitly (see Section~\ref{sec:function_calls}).
-\martin{Still true? What happens at the moment in the simulator or compiler?}
-\texttt{brcf} behaves like \texttt{call}, except that it does not write return information
-to \texttt{r31}.
-\martin{What does it mean like a call when there is no save of the return address?
-What is meant is that this instruction loads method cache bits - with sizes... Is this
-explained at some point?}
+\texttt{br} performs a function-local branch.
+\texttt{call} performs a function call, storing the return information
+(i.e., where to resume execution when returning) in
+\texttt{srb}/\texttt{sro}.
+\texttt{brcf} (``branch with cache fill'') performs a global
+branch. With regard to addressing modes and caching, \texttt{brcf}
+behaves like a call, but it does not store any return information.
+\texttt{trap} performs a system call (see Section~\ref{sec:exc}).
+\texttt{ret} returns from a function, using the return information in
+\texttt{srb}/\texttt{sro}.
+\texttt{xret} is similar to \code{ret} but uses the return information
+in \texttt{sxb}/\texttt{sxo}, which are set by interrupts, exceptions,
+and traps.
 
-\texttt{call} and \texttt{brfc} may cause a cache miss and a subsequent
-cache refill to load the target code; they expect the size of the code block
-fetched to the cache in number of bytes at \textit{\textless base\textgreater-4}.
-\texttt{br} is assumed to be a cache hit.
+With a method cache, \texttt{call}, \texttt{brfc}, \texttt{trap},
+\texttt{ret}, and \texttt{xret} may cause a cache miss and a
+subsequent cache refill to load the target code; they expect the size
+of the code block fetched to the cache in number of bytes at
+\textit{<base>-4}. \texttt{br} is assumed to be a cache hit.
 
-Immediate call and branch instructions interpret the operand as \emph{unsigned} for function calls, and as \emph{signed}
-for PC-relative branches (\texttt{br}, \texttt{brcf}).
-The target address of PC-relative branches is computed relative to the address of the branch instruction.
-All immediate values are interpreted in \emph{word size}.
+Immediate call and branch instructions interpret the operand as
+\emph{unsigned} for \texttt{call} and \texttt{brcf}, and as
+\emph{signed} for PC-relative branches (\texttt{br}). These immediate
+values are interpreted in \emph{word size}. The target address of
+PC-relative branches is computed relative to the address of the branch
+instruction. The immediate value for \texttt{trap} is an index into an
+exception vector table (see Section~\ref{sec:exc}).
 
-\martin{Is \texttt{brfc} now PC relative or method base relative?}
+Indirect call and branch instructions interpret the operand as
+\emph{unsigned} absolute addresses in \emph{byte size}. Indirect
+\texttt{brcf} takes two operands: a base address and an offset. The
+base address is the address of the code block to be fetched; the
+effective branch target is \textit{<base>+<offset>}.
 
-Indirect call and branch instructions interpret the operand as \emph{unsigned} absolute addresses in \emph{byte size}.
+The return information provided by \texttt{call} in
+\texttt{srb}/\texttt{sro} should only be passed to
+\texttt{ret}. Likewise, the exception return information in
+\texttt{sxb}/\texttt{sxo} should only be passed to \texttt{xret}. The
+unit and addressing mode of these values is implementation
+dependent.\wolf{Should we keep it implementation dependent, or should
+  we enforce way it is in the current implementation?}
 
-The link/return information provided by \texttt{call} in \texttt{r31} should only be
-passed to \texttt{ret}. The unit and addressing mode (absolute or function relative) of
-the returned value is implementation dependent (see description of \texttt{ret}).
+All control-flow instructions (except \texttt{trap}) have a delayed
+and a non-delayed variant. For the delayed variant, $N$
+bundles following the control-flow instruction in the code are always
+executed. For the non-delayed variants, the control-flow change
+appears to happen immediately. However, non-delayed control-flow
+instructions may require more than one cycle to be executed. The
+precise timing behavior is specified along with the detailed
+description of the respective instructions.
 
-The following table gives an overview of the addressing modes of the available
-call and branch instructions.
+The mnemonic of an instruction's non-delayed instruction variant is
+suffixed with \texttt{nd}. For clarity, this document uses the
+unsuffixed name to mean both variants when describing the general
+properties of the respective instruction.
 
-\medskip
-\begin{tabular}{l|llll}
-  Instruction & Immediate   & Indirect & Cache fill & Link \\ \hline
-  call        & absolute    & absolute & yes        & yes \\
-  br          & PC relative & absolute & no         & no \\
-  brcf        & PC relative & absolute & yes        & no \\
-\end{tabular}
+\texttt{br} instructions are executed in the \texttt{EX} stage, while
+the other control-flow instructions are executed in the \texttt{MEM}
+stage. This corresponds to a branch delay of 2 bundles for \texttt{br}
+and 3 bundles for other control-flow instructions. In case there no
+other instructions available, NOP instructions can be used to fill the
+delay slots. There are no restrictions with regard to the size or type
+of instructions in the delay slot. The only exception is that
+executing control-flow instructions in a delay slot may lead to
+unspecified behavior.
 
-\medskip
-\texttt{br} instructions are executed in the \texttt{EX} stage, while \texttt{brcf}, \texttt{call} and \texttt{ret} instructions are executed in the
-\texttt{MEM} stage.
-The instructions fetched in the meantime are \emph{not} aborted.
-This corresponds to a branch delay of 2 instructions for \texttt{br} and 3 instructions for \texttt{call}, \texttt{brcf} and \texttt{ret}, which has to be
-respected by the compiler or assembly programmer.
-If no other instructions are available, two single-cycle NOPs can be
-used to fill the delay slots.
+\begin{table}[hb]
+  \centering
+  \begin{tabular}{llllll}
+    \toprule
+    Instruction & Immediate   & Indirect & Cache fill & Link & Delay Slots \\
+    \midrule
+    call        & absolute, words    & absolute, bytes        & yes        & yes  & 3 \\
+    br          & PC relative, words & absolute, bytes        & no         & no   & 2 \\
+    brcf        & absolute, words    & absolute+offset, bytes & yes        & no   & 3 \\
+    trap        & exception table index & ---                 & yes        & no   & -- \\
+    \cmidrule{1-6}
+    ret         & ---         & implementation dependent      & yes        & no   & 3 \\
+    xret        & ---         & implementation dependent      & yes        & no   & 3 \\
+    \bottomrule
+  \end{tabular}  
+  \caption{Addressing modes of control-flow instructions}
+  \label{tab:cfladdr}
+\end{table}
 
-Size of the delay slots: The \texttt{call} instructions must have exactly one single-word instruction
-in each delay slot and it must not be bundled with another instruction.
-All other control flow instructions (\texttt{br}, \texttt{brcf}, and \texttt{ret})
-can have any valid bundle in their delay slots and can be bundled.
-
-More details on the organization of the method cache is given in
-Section~\ref{sec:method-cache}.
-
-\fb{In contrast to the original Patmos design, it might be a good idea to push
-    the program counter update to the \texttt{EX} or even \texttt{DE} stage.
-    This depends on whether checking the method-cache can be done there and
-    whether reading the predicate registers can be done fast enough.}
-
-\jack{A branch delay of $3$ is unusually large in comparison to
-    other architectures. I think in many cases
-    those $3$ slots will not be useful. And they do take up a lot of
-    space (12 bytes minimum? or more?). To save space, could there be a form
-    of this instruction that either stalls the pipeline, or issues the
-    extra NOPs at the decode stage?}
-
-\gebhard{Please consider Section~\ref{subsec:load_typed}.
-Again, the instruction semantics should not depend on the instruction timing.
-Please correct if our interpretation of \emph{branch delay} is wrong.
-If delay means instructions (instead of cycles) we are perfectly fine.
-Otherwise, we raise the following objections:
-
-Defining delay slots in terms of cycles poses a problem to the binary decoder.
-What is the size of a delay slot, if the timing of an instruction inside the delay slot is not known (e.g., load from memory instruction \texttt{lwm})?
-For a static analysis, it is infeasible to have delay slots of arbitrary size, because we are unable to decide whether an instruction (bundle) following a branch or call instruction belongs to the originating or target block or routine respectively.
-
-In fact, architectures where the delay slot size depends on the instruction timing are -- at least to our knowledge -- unheard of.
-For example, SPARC architectures (ERC32, LEON2, LEON3) have a fixed delay slot size of 1 (instruction), the SHARC DSP has two-instruction delay slots, the C33 architecture features triple-instruction delay slots.
-Even though decoding of delay-slots is tricky, a fixed delay slot size ensures that the program semantics are implicitly obvious.
-This is not given for an architecture design where the delay slot size depends on instruction timing.
-Apart from that, this design makes code review (on the assembly level) practically impossible.}
-
-\fb{As with loads this should not be a timing related feature, i.e., your
-correct in claiming that we should measure this in instruction bundles following
-the branch (except for multi-cycle nops, where we want to avoid encoding nops
-explicitly). so far, I only see troubles with \emph{wait} instruction and
-decoupled loads (both may stall in the \texttt{DR} stage). Two simple solutions
-would be to either forbid those instructions in branch delay slots or make them
-stall with the branch in the \texttt{EX} stage. I'd opt for the latter solution.
-}
-
-\martin{To Gernot: those branch delay slots are instructions (instruction bundles),
-the same as other RISC processors, e.g. your mentioned SPARC.}
+\clearpage
 
 \begin{itemize}
   \item CFLi -- Control Flow with Immediate \\[2ex]
@@ -1673,190 +1658,221 @@ the same as other RISC processors, e.g. your mentioned SPARC.}
 
 \begin{table}[hb]
   \centering
-  \begin{tabular}{lll}
+  \begin{tabular}{llll}
     \toprule
-    Op & Name & Semantics \\
+    Op & d & Name & Semantics \\
     \midrule
-    00 & call & function call (absolute, with cache fill) \\
-    01 & br   & local branch (PC relative, always hit) \\
-    10 & brcf & branch (absolute, with cache fill) \\
-    11 & ---  & unused \\
+    00 & 0 & callnd & function call (absolute, with cache fill, non-delayed) \\
+    00 & 1 & call   & delayed function call (absolute, with cache fill, delayed) \\
+    01 & 0 & brnd   & local branch (PC-relative, always hit, non-delayed) \\
+    01 & 1 & br     & local branch (PC-relative, always hit, delayed) \\
+    10 & 0 & brcfnd & branch (absolute, with cache fill, non-delayed) \\
+    10 & 1 & brcf   & branch (absolute, with cache fill, delayed) \\
+    11 & 0 & trap   & system call (via exception table, with cache fill, non-delayed) \\
     \bottomrule
   \end{tabular}
-  \caption{Control-flow operations}
-  \label{tab:cflbops}
-\end{table}
-
-\martin{The 22 bit immediate is good for 16 MB code size. Maybe this is good enough
-for most embedded programs. With a little different encoding we could get two more bits
-for 64 MB code size. We don't need that big immediate for PC relative branches.}
-
-\paragraph{Behavior -- call, brcf, and system call}
-
-		     Store link information into R31. Method base
-		     is not stored to a visible register (this must be done by the caller, by convention using R30).
-                     Compute cache-relative program counter and update the PC.
-
-\paragraph{Behavior -- branch within cache}
-                     Compute new, cache-relative program counter value.
-                     Update program counter.
-
-
-\paragraph{Implementation Note}
-
-The method cache keeps track of the base address of the current function, i.e.,
-the target/base address of the last \texttt{call}, \texttt{brcf} or \texttt{ret} instruction.
-\texttt{call} calculates the return offset as $\texttt{nextPC}_\texttt{EX} - \texttt{base}_\texttt{MC}$.
-However, the application code must not rely on this.
-
-\stefan{This is just to clear things up for the WCET analysis. The actual value of the
-link register is intentionally left undefined, so that we could easily change it to an
-absolute address just in hardware with no changes to the compiler. If we do want to jump to
-some base + offset, we should define a separate branch instruction for this, as \texttt{ret}
-should only be used to jump back to a call site to make the analysis easier. However, we could
-also just define the link info to be an offset (in bytes!) and accept the slight overhead for I-caches that
-do not need a base address.}
-
-\paragraph{Note}
-
-All branch/call instructions can only be issued on the first position within a
-bundle.
-
-\gebhard{Shouldn't the target addresses be double-word-aligned to ensure that the processor is always able to fetch an instruction bundle?}
-
-\fb{As far as I can see there is no need for bundles to be align (in straight
-line code this will happen as well). Though it might be a useful compiler
-convention to align branch targets in order to avoid additional stalls. Martin
-should be able to clarify how the instruction fetch is going to work and what
-side constraints we need to observe from there.}
-
-\gebhard{I would propose to align instruction bundles to avoid cache misses in the middle of an instruction bundle.}
-
-\martin{This actually depends on the instruction cache we are using. If it is the M\$ then
-we are on the safe side and have no misses. Therefore, no need to align. With
-a standard cache I would arguer for alignment. Having possible two misses for
-a single bundle load is not nice.}
-
-\stefan{I would also say that double-word alignment should be decided by the compiler, even for non-method-cache caches. E.g., if we have four
-instructions that cannot all be packed into double-word bundles but are inside a basic block, there is no need to waste four words just for
-alignment. A miss that will also load the following (part of a) bundle, we do not loose anything because the next bundle will always be
-executed and be at least partially a guaranteed hit.}
-
-\martin{That's not only a compiler question. If you allow misaligned double words in a
-standard cache you need to provide support in the hardware so that a single instruction
-fetch (double word) can result in two requests for cache lines. So this is a HW decision. Similar to
-the old RISC restriction that words are not allowed to be misaligned (two memory accesses
-to get one 32-bit word). I would also argue to disallow this misalignment.}
-
-\stefan{Ok, I see.. So double-word instruction bundles must be double-word aligned, but two 32bit instruction bundles can be packed into one
-double-word. But does the target-address of a branch have to be double-word aligned, if the target is not a 64bit bundle?}
-\martin{Don't get this question. There is no difference between a double-word instruction (ALU long imm.) and two
-instructions that are a bundle from their fetch behavior. Unaligned two-word fetch is ok for the method cache,
-but evil for a plain instruction cache.}
-
-\begin{itemize}
-  \item CFLr -- Control Flow with Registers \\[2ex]
-    \begin{bytefield}{32}
-      \bitheader{0-31} \\
-      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{11} & \bitbox{2}{00} & \bitbox{1}{d} &
-      \bitbox{18}{\bitssubclass} & \bitbox{2}{F} & \bitbox{2}{Op} \\
-    \end{bytefield}
-\end{itemize}
-
-\begin{table}[hb]
-  \centering
-  \begin{tabular}{lll}
-    \toprule
-    Op & Name  & Semantics \\
-    \midrule
-    0000 & call  & function call (indirect, with cache fill) \\
-    0001 & br    & local branch (indirect, always hit) \\
-    0010 & brcf  & branch (indirect, with cache fill) \\
-    0011 & ---   & unused \\
-    \dots& \dots  & \dots \\
-    1111 & ---   & unused \\
-    \bottomrule
-  \end{tabular}
-  \caption{Indirect control-flow operations}
+  \caption{Control-flow operations with immediate}
   \label{tab:cfliops}
 \end{table}
 
-\paragraph{Behavior -- call, branch, and system call}
-
-		     Store link information into R31. Method base
-		     is not stored to a visible register (this must be done by the caller, by convention using R30).
-                     Check method cache.
-                     Compute cache-relative program counter.
-If needed, fill method cache and stall.
-                     Update program counter.
-
-
-\paragraph{Behavior -- branch within cache}
-                     Compute new, cache-relative program counter value.
-                     Update program counter.
-
-
-\paragraph{Note}
-
-All branch/call instructions can only be issued on the first position within a
-bundle.
-
-See also CFLi format notes.
-
-\clearpage
-\subsection{Return}
-
-Applies to CFLr format only. Transfer control to the function
-specified by function base and offset.  \texttt{ret} may cause a cache
-miss and a subsequent cache refill to load the target
-code. Table~\ref{tab:retfunc} shows the encoding of the \texttt{func}
-field.
-
-\daniel{(TODO return from an interrupt)}
-\martin{That might be covered by the ret itself. However, we have not
-agreed where the PC (and probably method base) are saved on an
-interrupt. Maybe just a `special' register, again ;-)}
-\martin{TODO: talk about interrupts in some section. Do we have what is
-usually called a SW interrupt as well? Exceptions? Restartable exceptions?}
-
 \begin{itemize}
-  \item CFLr -- Return \\[2ex]
+  \item CFLri -- Control Flow with implicit registers \\[2ex]
     \begin{bytefield}{32}
       \bitheader{0-31} \\
-      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{11} & \bitbox{2}{00} & \bitbox{1}{d} &
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{4}{1100} & \bitbox{1}{d} &
       \bitbox{18}{\bitsunused} &
       \bitbox{2}{00} & \bitbox{2}{Op} \\
     \end{bytefield}
 \end{itemize}
 
-% TODO: more formal semantics
 \begin{table}[hb]
   \centering
-  \begin{tabular}{lll}
+  \begin{tabular}{llll}
     \toprule
-    Op & Name  & Semantics \\
+    Op & d & Name & Semantics \\
     \midrule
-    0000 & ret   & Return from a function (with cache fill) \\
-    0001 & ---   & unused \\
-    \dots& \dots  & \dots \\
-    1111 & ---   & unused \\
+    00 & 0 & retnd  & return (with cache fill, non-delayed) \\
+    00 & 1 & ret    & return (with cache fill, delayed) \\
+    01 & 0 & xretnd & return from exception (with cache fill, non-delayed) \\
+    01 & 1 & xret   & return from exception (with cache fill, delayed) \\
     \bottomrule
   \end{tabular}
-  \caption{Return function encoding}
-  \label{tab:retfunc}
+  \caption{Control-flow operations with implicit register operands}
+  \label{tab:cflriops}
 \end{table}
 
-\paragraph{Behavior}
+\begin{itemize}
+  \item CFLrs -- Control Flow with single registers \\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{4}{1100} & \bitbox{1}{d} &
+      \bitbox{5}{\bitsunused} & \bitbox{5}{Rs} & \bitbox{8}{\bitsunused} &
+      \bitbox{2}{01} & \bitbox{2}{Op} \\
+    \end{bytefield}
+\end{itemize}
 
+\begin{table}[hb]
+  \centering
+  \begin{tabular}{llll}
+    \toprule
+    Op & d & Name & Semantics \\
+    \midrule
+    00 & 0 & callnd & function call (indirect, with cache fill, non-delayed) \\
+    00 & 1 & call   & function call (indirect, with cache fill, delayed) \\
+    01 & 0 & brnd   & local branch (indirect, always hit, non-delayed) \\
+    01 & 1 & br     & local branch (indirect, always hit, delayed) \\
+    \bottomrule
+  \end{tabular}
+  \caption{Control-flow operations with single register operand}
+  \label{tab:cflrsops}
+\end{table}
 
-The return function base address \texttt{Rb} is an absolute address in bytes. The return function base will typically
-be provided by the caller in \texttt{r30} (see Section~\ref{sec:function_calls}).
-The return function offset \texttt{Ro} is provided by the \texttt{call} instruction in \texttt{r31}.
-Note that using \texttt{r30} and \texttt{r31} is a compiler convention.
-The unit and the addressing mode
-of the function offset is hardware implementation dependent.
-\martin{What does the above mean?}
+\begin{itemize}
+  \item CFLrt -- Control Flow with two registers \\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{4}{1100} & \bitbox{1}{d} &
+      \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} & \bitbox{3}{\bitsunused} &
+      \bitbox{2}{10} & \bitbox{2}{Op} \\
+    \end{bytefield}
+\end{itemize}
 
+\begin{table}[ht]
+  \centering
+  \begin{tabular}{llll}
+    \toprule
+    Op & d & Name & Semantics \\
+    \midrule
+    10 & 0 & brcfnd & branch (indirect with offset, with cache fill, non-delayed) \\
+    10 & 1 & brcf   & branch (indirect with offset, with cache fill, delayed) \\
+    \bottomrule
+  \end{tabular}
+  \caption{Control-flow operations with two register operands}
+  \label{tab:cflrtops}
+\end{table}
+
+\paragraph{Behavior -- call}
+
+Perform a function call, filling the method cache if needed.
+
+Listing~\ref{lst:call} shows the pseudo-code for a call. The parameter
+\texttt{addr} is either an immediate value (for calls in the CFLi
+format), or comes from a general-purpose register (for indirect
+calls). The variables \texttt{\$srb} and \texttt{\$sro} denote the
+special registers \texttt{srb} and \texttt{sro}, respectively.
+
+First, it stores the return information, and remembers
+the new base address in an internal variable. Then, it retrieves the
+offset into the cache for the function to be called and if necessary
+copies the instructions into the cache. Finally, it updates the
+internal program counter and continues execution from there.
+
+\begin{lstlisting}[language=C,float=h,caption={Call\label{lst:call}}]
+call(addr) {
+  // Store return information
+  $srb = base;
+  $sro = PC;
+  // Remember base address
+  base = addr;
+  // Cache look-up and load
+  coff = offset(addr);
+  if (!hit(addr)) memcpy(cache[coff], mem[base], mem[base-4]);
+  // Update PC
+  PC = coff;
+}
+\end{lstlisting}
+
+The timing of a \texttt{callnd} instruction that is executed is
+equivalent to the timing of an istruction sequence \texttt{call; nop;
+  nop; nop}. The timing of a \texttt{callnd} instruction with a
+predicate that evaluates to \texttt{false} is equivalent to a single
+\texttt{nop} instruction.
+
+\paragraph{Behavior -- brcf}
+
+Perform a branch, filling the method cache if needed.
+
+The pseudo-code for a PC-relative \texttt{brcf} is shown in
+Listing~\ref{lst:brcf}. It is similar to the call, but does not store
+any return information. Additionally, an offset \texttt{off} may be
+specified for a \texttt{brcf} in the CFLrt format; this offset is 0
+for \texttt{brcf} in the CFLi format.
+
+\begin{lstlisting}[language=C,float=h,caption={Branch with cache fill\label{lst:brcf}}]
+call(addr, off) {
+  // Remember base address
+  base = addr;
+  // Cache look-up and load
+  coff = offset(addr);
+  if (!hit(addr)) memcpy(cache[coff], mem[base], mem[base-4]);
+  // Update PC
+  PC = coff+off;
+}
+\end{lstlisting}
+
+The timing of a \texttt{brcfnd} instruction that is executed is
+equivalent to the timing of an istruction sequence \texttt{brcf; nop;
+  nop; nop}. The timing of a \texttt{brcfnd} instruction with a
+predicate that evaluates to \texttt{false} is equivalent to a single
+\texttt{nop} instruction.
+
+\paragraph{Behavior -- trap}
+
+Perform a system call. Details are described in Section~\ref{sec:exc}.
+Like the \texttt{call}, \texttt{trap} stores return information, in
+special registers \texttt{sxb} and \texttt{sxo}.
+
+\paragraph{Behavior -- ret, xret}
+
+Return from function call. The \texttt{ret} instruction uses the
+return information in the special registers \texttt{srb}/\texttt{sro}
+to compute its target address. The \texttt{xret} instruction uses the
+registers \texttt{sxb}/\texttt{sxo}.
+
+Listing~\ref{lst:return} shows the pseudo-code for \texttt{ret}. It
+first retrieves the return base and does the appropriate cache
+handling. It then adds the cache offset and the return offset and
+assigns the sum to the internal program counter, from which execution
+continues.
+
+\begin{lstlisting}[language=C,float=h,caption={Return\label{lst:return}}]
+ret() {
+  // Retrieve return base
+  base = $srb;
+  // Cache look-up and load
+  coff = offset($srb);
+  if (!hit($srb)) memcpy(cache[coff], mem[base], mem[base-4]);
+  // Update PC
+  PC = coff+$sro;
+}
+\end{lstlisting}
+
+The timing of a \texttt{retnd}/\texttt{xretnd} instruction that is
+executed is equivalent to the timing of an istruction sequence
+\texttt{ret; nop; nop; nop}. The timing of a
+\texttt{retnd}/\texttt{xretnd} instruction with a predicate that
+evaluates to \texttt{false} is equivalent to a single \texttt{nop}
+instruction.
+
+\paragraph{Behavior -- br}
+
+Local branch, compute new program counter value and update program
+counter.
+
+The timing of a \texttt{brnd} instruction may be implementation
+defined. Implementations are allowed to use branch prediction for
+\texttt{brnd} instructions, if the underlying mechanism is documented
+in detail. Unless specified and documented otherwise, the timing of
+\texttt{brnd} must be according to ``predict-not-taken''. The timing
+of a \texttt{brnd} instruction that is executed is then equivalent to
+the timing of the sequence \texttt{br; nop; nop}, while the timing
+with a \texttt{false} predicate is equivalent to a single
+\texttt{nop}.
+
+\paragraph{Note}
+
+All control-flow instructions can only be issued on the first position
+within a bundle.
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 
@@ -3469,10 +3485,10 @@ Currently we have following proposals for a change:
 \begin{itemize}
 \item bcopy instruction
 \item btest and bcopy with an immediate
-\item Automatic save of method base in a special register for a call
-\item Branch into subfunction
-\item Revised branch addressing modes
-\item Non-delayed branches
+\item Automatic save of method base in a special register for a call: DONE
+\item Branch into subfunction: DONE
+\item Revised branch addressing modes: DONE
+\item Non-delayed branches: DONE
 \item Issue memory operations from any pipeline
 \item Interrupts
 \end{itemize}
@@ -3497,331 +3513,6 @@ register. This instruction should be used for
 To avoid the requirement for an additional temporary 32-bit register,
 particularly for register spill/restore, variants of bcopy and btest with a
 5-bit immediate operand are beneficial.
-
-\subsection{Special Registers for Return Information}
-
-In order to support exceptions (see Section~\ref{sec:exc}), it is
-necessary that the base address of the current function is available
-\emph{at any time}. Otherwise, it could not be guaranteed that an
-interrupt handler is able to return to the correct
-function. Consequently, the \texttt{call} and \texttt{brcf} functions
-must store the base address in some hardware register. This makes the
-return-base information in register \texttt{r30} redundant and it
-could be replaced by an appropriate special return base register
-\texttt{sb} with minimal effort. One can then go even further and move
-the functionality of register \texttt{r31} to a special register
-\texttt{so} to free up another general-purpose register.
-
-\stefan{This is actually how we had it in the first ISA version, but Martin wanted to get rid of
-the special registers.. ;) }
-
-\stefan{Note that we could still make this part of the ABI: we can simply require that \texttt{r30} is
-never used for something else and must always contain the valid base address (this is the case at the moment
-except for (sub)functions that do not have calls inside, can be changed easily). The bigger issue I see is
-that there are problems when the interrupt appears between the \texttt{call} and the \texttt{ldi} that sets
-\texttt{r30} (they cannot be bundled), and a scheduler might further move the load around.}
-
-\wolf{The latter issue is exactly the problem. The hardware needs to
-  keep track of the base whenever a \texttt{call}, \texttt{brcf} or
-  \texttt{ret} is executed to be able to return from interrupts at any
-  time. The question is if we move the current base to a visible
-  register upon calls to serve as return base. It is not necessary,
-  but why keep track of the base both in hardware and in software?
-  Note that the hardware does not need to expose the current base,
-  only the return base would be made visible.}
-
-\martin{Agree on that.}
-
-\stefan{And I was so happy not to have both \texttt{S0} and \texttt{SO} in the compiler anymore ;) I would suggest to call them
-\texttt{srb} and \texttt{sro} instead (for return base and return offset, which they actually are).}
-
-\wolf{Agree for \texttt{srb} and \texttt{sro}.}
-
-\subsubsection{Costs and Benefits}
-
-For functions that call other functions, the change saves one
-instruction to set the base address, and adds two instructions to both
-the prologue and the epilogue. On the other hand, the change frees up
-two general-purpose registers, which can avoid spilling and lead to
-more efficient code.
-
-\stefan{It also saves some logic in the function splitter to calculate
-the code size increase due to the requirement to set the base address in all
-new sub-functions that contain a call.}
-
-\subsection{Branch into Subfunction Instruction}
-
-\stefan{In order to eliminate the current restriction of having only single-entry subfunctions,
-I would suggest to make \texttt{brcf} indirect accept both an (absolute) base address, as well
-as an offset. Using \texttt{r0} for the offset makes \texttt{brcf} behave similar to now.
-
-At the moment we could also use \texttt{ret} for the same purpose, but this has two disadvantages:
-\texttt{call} and \texttt{ret} would no longer appear in pairs, making call graph reconstruction more complicated
-(needs compiler support to tell the WCET analysis which \texttt{ret} is actually used as return), and it
-does not work nicely if we change \texttt{ret} to use special registers.}
-
-\wolf{If I understand correctly, indirect \texttt{brcf} would then do
-  exactly the same thing as \texttt{ret} does currently, except that
-  it gets a different opcode. I don't see a problem with that from the
-  hardware perspective.}
-
-\stefan{Correct. With moving return infos to special registers, \texttt{ret} would become different from \texttt{brcf} though as
-\texttt{ret} would use \texttt{srb} and \texttt{sro}, I presume, while \texttt{brcf} always uses two GPRs.}
-
-\subsubsection{Costs and Benefits}
-
-Much of the complexity and restrictions of the function splitter are eliminated (jump tables
-still have to be handled carefully, though we in theory we could even support having jump table entries
-anywhere in any region), without resorting to misuse \texttt{ret}. It works regardless of whether return information
-is stored in special registers or GPRs.
-
-To make use of this feature, the function splitter needs a major rewrite though.
-Note that as long only \texttt{r0} is used for the offset, no changes to the compiler or the WCET analysis are required.
-
-\stefan{It also moves \texttt{brcf} from \texttt{CFLi} to \texttt{CFLr}, which makes the naming of the formats less intuitive
-(although having \texttt{CFLi} for register operands is not good anyway, as we usually use \texttt{i} for immediate).}
-
-\wolf{I guess the naming of the formats is not our biggest concern ;-)}
-
-\subsection{Revised Branch Addressing Modes}
-
-\wolf{I propose to change the branch addressing modes as shown in
-  Table~\ref{tab:braddr}.}
-
-\begin{table}
-  \centering
-  \begin{tabular}{lllll}
-    \toprule
-    Instruction & Immediate             & Indirect                   & Cache fill & Link \\
-    \midrule
-    call        & absolute              & absolute                   & yes        & yes \\
-    br          & PC relative           & \color{red}{base relative} & no         & no \\
-    brcf        & \color{red}{absolute} & absolute                   & yes        & no \\
-    \bottomrule
-  \end{tabular}
-  \caption{Revised branch addressing modes}
-  \label{tab:braddr}
-\end{table}
-
-\subsubsection{Rationale}
-
-With a method cache, there are two distinct views of the program
-counter: the program counter to address the cache memory
-(PC$_{cache}$), and the address of the respective instruction in
-memory (PC$_{mem}$). When loading instructions from memory
-(\code{call}, \code{brcf}), PC$_{mem}$ is relevant, because it
-specifies from where data should be loaded. However, when execution
-remains within a function (\code{br}), only PC$_{cache}$ is taken into
-account.
-
-Listing~\ref{lst:call} shows the pseudo-code for a call (using special
-registers \texttt{sb} and \texttt{so} for the return
-information). First, it stores the return information, and remembers
-the new base address. Then, it retrieves the offset into the cache for
-the function to be called and if necessary copies the instructions
-into the cache. Finally, it updates the internal program counter and
-continues execution from there.
-
-\martin{I do not understand those listing fully. E.g. what those variables
-are: intern registers, special registers,... However, I very much appreciate
-this pseudo code. That should then go into the `normal' ISA description as
-well.}
-
-\begin{lstlisting}[language=C,mathescape=true,float=t,caption={Call\label{lst:call}}]
-call(addr) {
-  // Store return information
-  sb = base;
-  so = PC$_{cache}$;
-  // Remember base address
-  base = addr;
-  // Cache look-up and load
-  coff = offset(addr);
-  if (!hit(base)) memcpy(cache[coff], mem[base], mem[base-4]);
-  // Update PC
-  PC$_{cache}$ = coff;
-}
-\end{lstlisting}
-
-Listing~\ref{lst:return} shows the pseudo-code for a return. It first
-retrieves the return base and does the appropriate cache handling. It
-then adds the cache offset and the return offset and assigns the sum
-to the internal program counter, from which execution continues.
-
-\begin{lstlisting}[language=C,mathescape=true,float=t,caption={Return\label{lst:return}}]
-ret() {
-  // Retrieve return base
-  base = sb;
-  // Cache look-up and load
-  coff = offset(sb);
-  if (!hit(base)) memcpy(cache[coff], mem[base], mem[base-4]);
-  // Update PC
-  PC$_{cache}$ = coff+so;
-}
-\end{lstlisting}
-
-The pseudo-code for a PC-relative \texttt{brcf} is shown in
-Listing~\ref{lst:brcfrel}. It is similar to the call, but does not
-store any return information. However, before being able to do any
-cache handling, it has to compute the actual address, given by
-\code{base-coff+PC$_{cache}$+off}. Even when precomputing
-\code{base-coff}, this includes two additions that increase the
-hardware overhead.
-
-\begin{lstlisting}[language=C,mathescape=true,float=t,caption={PC-relative \texttt{brcf}\label{lst:brcfrel}}]
-brcf(off) {
-  // Compute actual address
-  addr = base-coff+PC$_{cache}$+off;
-  // Remember base address
-  base = addr;
-  // Cache look-up and load
-  coff = offset(addr);
-  if (!hit(base)) memcpy(cache[coff], mem[base], mem[base-4]);
-  // Update PC
-  PC$_{cache}$ = coff;
-}
-\end{lstlisting}
-
-Listing~\ref{lst:brcfabs} shows the pseudo-code for \texttt{brcf} with
-absolute addressing. It avoids the address computation of the
-PC-relative \texttt{brcf} and thus reduces the hardware overhead.
-
-\begin{lstlisting}[language=C,mathescape=true,float=t,caption={Absolute \texttt{brcf}\label{lst:brcfabs}}]
-brcf(addr) {
-  // Cache look-up and load
-  base = addr;
-  coff = offset(addr);
-  if (!hit(base)) memcpy(cache[coff], mem[base], mem[base-4]);
-  // Update PC
-  PC$_{cache}$ = coff;
-}
-\end{lstlisting}
-
-The argument for base-relative indirect branches is more subtle. In
-any case, the instruction requires an addition or subtraction
-(absolute: \code{PC$_{cache}$ = addr-base+coff}, base-relative:
-\code{PC$_{cache}$ = addr+coff}, PC-relative: \code{PC$_{cache}$ =
-  PC$_{cache}$+addr}). The address information for indirect branches
-only becomes available in the execute stage, because the value might
-require forwarding. Keeping this addition as cheap as possible avoids
-putting stress on the timing of the path from the execute stage to the
-fetch stage. Of the three variants, the addition \code{addr+coff} is
-``cheapest'', because the lowest bits of \code{coff} are cleared due
-to the guaranteed alignment of functions to cache blocks in the method
-cache.
-
-\stefan{I am kind of OK-ish with changing brcf immediate to absolute, if it is absolutely necessary (assuming that we do not need to address
-code above 16MB, otherwise we cannot use an immediate absolute brcf!), though I do not really want to touch that code in the tool chain and
-loose compatibility with a3 again (if someone else takes care of all that, feel free to go ahead though ;) ).}
-
-\wolf{Regarding the size limitation: If the code grows above 16MB, we
-  have to issue indirect calls as well. I don't see a real problem
-  with issuing indirect \texttt{brcfs} in that case (there is a
-  reserved scratch register somewhere, right?). The change in the tool
-  chain is -- unless I am missing something big -- roughly 5 lines of
-  code to give the instruction a different relocation type. Losing
-  compatibility with a3 is an issue, but my guess would be that the
-  changes on their side are similarly simple.}
-
-\stefan{The advantage of PC indirect brcf is that even if we have code above 16MB (the code does not need to be that large,
-it might just be a result of the address mapping), we might still simply assume not to have any single function larger than
-8MB. In this case, we only need to take care of \texttt{call}, not of \texttt{brcf}.
-
-From a compiler point of view, \texttt{br} and \texttt{brcf} really are the same. Any difference there just introduces some more complexity
-to the function splitter (as it needs to track code sizes and generated code carefully). Since we already have the absolute immediate
-relocation type though, the change is indeed not a big one (assuming no code above 16MB).}
-
-\stefan{However, I strongly oppose changing any of the indirect branches to anything else than absolute, it makes quite a mess
-in the compiler backend and the linker (and probably the analysis). The problem here are jump tables, which are
-kind of outside of the function and have no clear reference to the function, making the calculation of any base offset in the linker quite
-complicated (you need to introduce a new relocation type, change the relocation type of the jump table symbols depending on the way they are
-used, and calculate the symbol value in the linker by finding the (already relocated!) surrounding sub-function symbol).}
-
-\wolf{The base-relative address difference does not need ``real''
-  relocation, because basic blocks always have the same distance to
-  the function entry. Everything you need in the linker is already
-  there for the \texttt{.fsize} and \texttt{.size} directives. I am
-  not sure how much trouble it is to have LLVM emit the difference of
-  two symbols for jump tables, but it is definitely possible. That
-  being said, I could live with leaving indirect branches as they are,
-  I just don't think that it's the most efficient solution.}
-
-\martin{I'm with Wolfgang on the timing issue of having two
-additions (one operand coming from the register forward path)
-going into the dual issue fetch stage is an issue.
-
-If we really want to avoid changing the br indirect right now,
-a work around would be to make it a two cycle stalling instruction.}
-
-\stefan{How about pre-calculating \code{coff-base} at \texttt{call}/\texttt{brcf}/\texttt{ret}? It costs one 32bit register (or
-30bit assuming alignment) and an additional op at those instructions, but saves the second subtract at \texttt{br} (note that we cannot
-use the second ALU for a \texttt{call} and most likely never will use it for \texttt{brcf} as long as it has one cycle more than \texttt{br}
-since it is only introduced after the scheduler and replaces a \texttt{br}).}
-
-\wolf{Precalculating is what we should anyway if we keep things as
-  they are. Still, all bits of the addend \code{coff-base} are
-  significant, while \texttt{coff} has its lowest bits
-  cleared. Imagine a method cache with 32KB and 128 functions. With
-  word addressing, PC$_{cache}$ and \texttt{coff} would be 13
-  bits. The lowest 6 bits of \texttt{coff} would be guaranteed zero
-  due to alignment. Consequently, the complexity of the addition is
-  almost cut in half (13 significant bits vs 7 significant bits).
-
-  What do you mean exactly with ``we cannot use the second ALU for a
-  \texttt{call}''?}
-
-\stefan{Due to the fixed size of the call delay slot, we are never allowed to issue anything in parallel with a call anyway, so from my
-naive point of view we should have the second ALU available to do the precalculation ;) }
-
-\wolf{I almost forgot about that restriction. I think it should be
-  dropped. The hardware can handle dual-issue bundles in the delay
-  slot, and the simulator should be okay with it too.}
-
-\stefan{Another reason apart from the linker issue is that debugging becomes harder, as
-the binary no longer contains absolute addresses at jump tables, but one has to know the base of the current sub-function (which is usually
-not obvious from just looking at the disassembly) and add the values to get the actual target addresses, and you cannot grep for the
-addresses in the disassembly easily. Debugging some jump table/method cache related bugs in the compiler backend is already quite painful as it is..}
-
-\wolf{As the actual implementation is different than what I expected,
-  I drop my request for base-relative indirect branches. My request
-  for making \code{brcf} with immediates absolute still stands.}
-
-\subsection{Non-delayed Branches}
-
-Delayed branches are a good means to hide the costs of branching.
-However, the compiler is not always able to fill the delay slots. In
-these cases, even a primitive strategy such as predict-not-taken
-provides better performance. Predict-not-taken has very little
-hardware overhead and can be modeled easily in an exact manner for
-WCET analysis. By introducing an \emph{additional} instruction for
-non-delayed immediate branches, Patmos can gain from the advantages of
-both delayed and non-delayed branches.
-
-Furthermore, having a non-delayed branch instructions enables research
-towards time-predictable branch-prediction schemes. Depending on our
-future findings, predict-not-taken could be replaced by
-predict-backward-taken or time-predictable forms of dynamic branch
-prediction to further improve both performance and WCET bounds.
-
-\stefan{But this would introduce the need to take care of exceptions in hardware that might
-arise due to a mis-predicted branch, e.g., due to a load at the beginning of
-the fallthrough target, right?}
-
-\wolf{Nope. A mispredicted branch is detected in the execute stage and
-  flushes the instructions that are currently in the fetch and the
-  decode stage. The flushed instructions never make it to the execute
-  stage, which would be the earliest place where any effect could
-  become visible.}
-
-\martin{Very much in favor to this addition.}
-
-\stefan{Also agree, and I would like to have this for both \texttt{br} and \texttt{brcf} (function splitter ...). This could
-at least save quite some code space and reduce the overestimations in the function splitter quite a lot.
-
-We should really get a proper scheduler though to support this properly, the current delay slot filler is getting more and more
-scary..}
-
-\wolf{Non-delayed \texttt{brcf} should be okay, the stages that need
-  to be flushed are the same as for interrupts.}
 
 \subsection{Issue Memory Operations in any Pipeline}
 
