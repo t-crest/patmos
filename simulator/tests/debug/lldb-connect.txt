@@ -1,0 +1,3 @@
+patmos-lldb
+
+(lldb) process connect --plugin gdb-remote connect://localhost:1234
