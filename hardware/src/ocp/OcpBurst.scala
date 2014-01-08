@@ -276,10 +276,10 @@ class OcpBurstPriorityJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort
   }
   right.S := joined.S
   left.S := joined.S
-  when (selLeft || selCurrentReg === Bits(1)) {
+  when (selCurrentReg === Bits(1)) {
     left.S.Resp := OcpResp.NULL
   }
-  .elsewhen (selRight || selCurrentReg === Bits(0)){
+  .otherwise {
     right.S.Resp := OcpResp.NULL
   }
 }
