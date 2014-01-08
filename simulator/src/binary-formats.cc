@@ -278,6 +278,41 @@ namespace patmos
     return iw;
   }
 
+  aluci_format_t::aluci_format_t(const instruction_t &instruction,
+                               word_t opcode) :
+      binary_format_t(instruction, 0x7C0007F, insert(0x2000060, 0, 4, opcode),
+                      3)
+  {
+  }
+
+  instruction_data_t aluci_format_t::decode_operands(word_t iw,
+                                                    word_t longimm) const
+  {
+    uword_t imm = extractG(iw, 7);
+    GPR_e rs1 = extractG(iw, 12);
+    PRR_e pd = extractP(iw, 17);
+    PRR_e pred = extractPN(iw, 27);
+    return instruction_data_t::mk_ALUci(Instruction, pred, pd, rs1, imm);
+  }
+
+  word_t aluci_format_t::encode(word_t pred, word_t opcode, word_t pd,
+                               word_t rs1, word_t imm)
+  {
+    word_t iw = 0;
+
+    assert(fitu(opcode, 4) && isPRR(pd) && isGPR(rs1) && fitu(imm, 5));
+
+    insertV(iw, 0, 4, opcode);
+    insertV(iw, 4, 3, BOOST_BINARY(110));
+    insertG(iw, 7, imm);
+    insertG(iw, 12, rs1);
+    insertP(iw, 17, pd);
+    insertV(iw, 22, 5, BOOST_BINARY(01000));
+    insertPN(iw, 27, pred);
+
+    return iw;
+  }
+
   alup_format_t::alup_format_t(const instruction_t &instruction,
                                word_t opcode) :
       binary_format_t(instruction, 0x7C0007F, insert(0x2000040, 0, 4, opcode),

@@ -155,6 +155,13 @@ namespace patmos
         GPR_e Rs1;
         GPR_e Rs2;
       } ALUc;
+      /// Operands for an ALUci instruction.
+      struct
+      {
+        PRR_e Pd;
+        GPR_e Rs1;
+        uword_t Imm;
+      } ALUci;
       /// Operands for an ALUp instruction.
       struct
       {
@@ -361,6 +368,17 @@ namespace patmos
     /// @param rs2 The second operand register.
     static instruction_data_t mk_ALUc(const instruction_t &i, PRR_e pred,
                                       PRR_e pd, GPR_e rs1, GPR_e rs2);
+
+    /// Create an ALUci instruction with a register and an immediate
+    /// operand and a predicate register destination.
+    /// @param i The instruction.
+    /// @param pred The predicate register under which the instruction is
+    /// executed.
+    /// @param pd The predicate destination register.
+    /// @param rs1 The operand register.
+    /// @param imm The immediate operand.
+    static instruction_data_t mk_ALUci(const instruction_t &i, PRR_e pred,
+                                       PRR_e pd, GPR_e rs1, uword_t imm);
 
     /// Create an ALUp instruction with two predicate register operands and a
     /// predicate register destination.

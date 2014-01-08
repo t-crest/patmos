@@ -74,6 +74,17 @@ namespace patmos
     return result;
   }
 
+  instruction_data_t instruction_data_t::mk_ALUci(const instruction_t &i,
+                                                 PRR_e pred, PRR_e pd,
+                                                 GPR_e rs1, uword_t imm)
+  {
+    instruction_data_t result(i, pred);
+    result.OPS.ALUci.Pd = pd;
+    result.OPS.ALUci.Rs1 = rs1;
+    result.OPS.ALUci.Imm = imm;
+    return result;
+  }
+
   instruction_data_t instruction_data_t::mk_ALUp(const instruction_t &i,
                                                  PRR_e pred, PRR_e pd,
                                                  PRR_e ps1, PRR_e ps2)

@@ -136,7 +136,7 @@ namespace patmos
       rule_t NegPRR;
 
       /// Parse immediate.
-      rule_t Imm, Imm4u, Imm12u, Imm22u, Imm22s, Imm7s;
+      rule_t Imm, Imm4u, Imm5u, Imm12u, Imm22u, Imm22s, Imm7s;
 
       /// Parse an immediate or label for ALUl and ALUi instructions.
       rule_t ImmALUL, ImmALUI;
@@ -163,7 +163,7 @@ namespace patmos
       drule_t ALUl;
 
       /// Parse ALU instructions.
-      rule_t ALUi, ALUr, ALUm, ALUc, ALUp;
+      rule_t ALUi, ALUr, ALUm, ALUc, ALUci, ALUp;
 
       /// Parse SPC opcodes.
       rule_t SPCwopc;
@@ -326,7 +326,7 @@ namespace patmos
                                        boost::spirit::qi::_1)]                 ;
 
         // All instructions except ALUl
-        Instruction1 %= ( ALUi | ALUr | ALUm | ALUc | ALUp |
+        Instruction1 %= ( ALUi | ALUr | ALUm | ALUc | ALUci | ALUp |
                           SPCn | SPCw | SPCt | SPCf |
                           LDT  | dLDT |
                           STT  |
@@ -334,7 +334,7 @@ namespace patmos
                           CFLri | CFLrs | CFLrt | CFLi);
 
         // All instructions except SPCn, SPNw, CFL, LDT, STT, and STC.
-        Instruction2 %= (ALUi | ALUr | ALUm | ALUc | ALUp |
+        Instruction2 %= (ALUi | ALUr | ALUm | ALUc | ALUci | ALUp |
                          SPCt | SPCf |
                          LDTs | STTs);
 
@@ -371,6 +371,11 @@ namespace patmos
         Imm4u = Imm[boost::spirit::_pass = boost::phoenix::bind(fitu,
                                                               boost::spirit::_1,
                                                               4)]
+                   [boost::spirit::_val = boost::spirit::_1];
+
+        Imm5u = Imm[boost::spirit::_pass = boost::phoenix::bind(fitu,
+                                                              boost::spirit::_1,
+                                                              5)]
                    [boost::spirit::_val = boost::spirit::_1];
 
         Imm12u = Imm[boost::spirit::_pass = boost::phoenix::bind(fitu,
@@ -510,6 +515,12 @@ namespace patmos
         ALUc = (Pred >> ALUcopc >> PRR >> '=' >> GPR >> ',' >> GPR)
                [boost::spirit::qi::_val = boost::phoenix::bind(
                                  aluc_format_t::encode, boost::spirit::qi::_1,
+                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
+                                 boost::spirit::qi::_4, boost::spirit::qi::_5)];
+
+        ALUci = (Pred >> ALUcopc >> PRR >> '=' >> GPR >> ',' >> Imm5u)
+               [boost::spirit::qi::_val = boost::phoenix::bind(
+                                 aluci_format_t::encode, boost::spirit::qi::_1,
                                  boost::spirit::qi::_2, boost::spirit::qi::_3,
                                  boost::spirit::qi::_4, boost::spirit::qi::_5)];
 
@@ -731,7 +742,7 @@ namespace patmos
         BOOST_SPIRIT_DEBUG_NODE(ALUi);        BOOST_SPIRIT_DEBUG_NODE(ALUl);
         BOOST_SPIRIT_DEBUG_NODE(ALUr);
         BOOST_SPIRIT_DEBUG_NODE(ALUm);        BOOST_SPIRIT_DEBUG_NODE(ALUc);
-        BOOST_SPIRIT_DEBUG_NODE(ALUp);
+        BOOST_SPIRIT_DEBUG_NODE(ALUci);       BOOST_SPIRIT_DEBUG_NODE(ALUp);
         BOOST_SPIRIT_DEBUG_NODE(SPCn);        BOOST_SPIRIT_DEBUG_NODE(SPCw);
         BOOST_SPIRIT_DEBUG_NODE(SPCt);        BOOST_SPIRIT_DEBUG_NODE(SPCf);
         BOOST_SPIRIT_DEBUG_NODE(LDT);         BOOST_SPIRIT_DEBUG_NODE(dLDT);

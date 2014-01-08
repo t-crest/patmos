@@ -669,7 +669,7 @@ namespace patmos
   ALUc_INSTR(cmplt , <)
   ALUc_INSTR(cmple , <=)
 
-  #define ALUcu_INSTR(name, operator) \
+#define ALUcu_INSTR(name, operator) \
   class i_ ## name ## _t : public i_aluc_t \
   { \
   public:\
@@ -689,6 +689,97 @@ namespace patmos
   ALUcu_INSTR(cmpult, <)
   ALUcu_INSTR(cmpule, <=)
 
+  /// Base class for ALUci instructions.
+  class i_aluci_t : public i_aluc_t
+  {
+  public:
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the DR pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.DR_Rs1 = s.GPR.get(ops.OPS.ALUci.Rs1);
+    }
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the EX pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      if (ops.DR_Pred)
+      {
+        // compute the result of the comparison instruction
+        bit_t result = compute(read_GPR_EX(s, ops.DR_Rs1),
+                               ops.OPS.ALUci.Imm);
+
+        // store the result by writing it into the register file.
+        s.PRR.set(ops.OPS.ALUci.Pd, result);
+        // store the negation as well
+        s.PRR.set( (PRR_e) (NUM_PRR + ops.OPS.ALUci.Pd), !result);
+      }
+    }
+
+    // MW inherited from NOP
+    
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void print_operands(const simulator_t &s, std::ostream &os, 
+		       const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printPPReg(os, "out: ", ops.OPS.ALUci.Pd, s);
+      printGPReg(os, ", in: ", ops.OPS.ALUci.Rs1, ops.DR_Rs1, s);
+      printSymbol(os, " imm", ops.OPS.ALUci.Imm, symbols);
+    }    
+  };
+
+#define ALUci_INSTR(name, operator) \
+  class i_ ## name ## _t : public i_aluci_t \
+  { \
+  public:\
+    virtual void print(std::ostream &os, const instruction_data_t &ops, \
+                       const symbol_map_t &symbols) const \
+    { \
+      printPred(os, ops.Pred); \
+      os << boost::format("%1% p%2% = r%3%, %4%") % #name \
+          % ops.OPS.ALUci.Pd % ops.OPS.ALUci.Rs1 % ops.OPS.ALUci.Imm; \
+    } \
+    virtual bit_t compute(word_t value1, word_t value2) const \
+    { \
+      return value1 operator value2; \
+    } \
+  };
+
+  ALUci_INSTR(cmpieq , ==)
+  ALUci_INSTR(cmpineq, !=)
+  ALUci_INSTR(cmpilt , <)
+  ALUci_INSTR(cmpile , <=)
+
+#define ALUciu_INSTR(name, operator) \
+  class i_ ## name ## _t : public i_aluci_t \
+  { \
+  public:\
+    virtual void print(std::ostream &os, const instruction_data_t &ops, \
+                       const symbol_map_t &symbols) const \
+    { \
+      printPred(os, ops.Pred); \
+      os << boost::format("%1% p%2% = r%3%, %4%") % #name \
+          % ops.OPS.ALUci.Pd % ops.OPS.ALUci.Rs1 % ops.OPS.ALUci.Imm; \
+    } \
+    virtual bit_t compute(word_t value1, word_t value2) const \
+    { \
+      return ((uword_t)value1) operator ((uword_t)value2); \
+    } \
+  };
+
+  ALUciu_INSTR(cmpiult, <)
+  ALUciu_INSTR(cmpiule, <=)
+
   class i_btest_t : public i_aluc_t
   {
   public:
@@ -702,6 +793,27 @@ namespace patmos
       printPred(os, ops.Pred);
       os << boost::format("btest p%1% = r%2%, r%3%")
           % ops.OPS.ALUc.Pd % ops.OPS.ALUc.Rs1 % ops.OPS.ALUc.Rs2;
+    }
+
+    virtual bit_t compute(word_t value1, word_t value2) const
+    {
+      return (((uword_t)value1) & (1 << ((uword_t)value2))) != 0;
+    }
+  };
+
+  class i_btesti_t : public i_aluci_t
+  {
+  public:
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printPred(os, ops.Pred);
+      os << boost::format("btesti p%1% = r%2%, %3%")
+          % ops.OPS.ALUci.Pd % ops.OPS.ALUci.Rs1 % ops.OPS.ALUci.Imm;
     }
 
     virtual bit_t compute(word_t value1, word_t value2) const

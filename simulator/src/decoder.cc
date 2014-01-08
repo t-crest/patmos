@@ -266,6 +266,15 @@ namespace patmos
     MK_INSTR(cmpule , aluc, 5)
     MK_INSTR(btest  , aluc, 6)
 
+    // ALUci
+    MK_INSTR(cmpieq  , aluci, 0)
+    MK_INSTR(cmpineq , aluci, 1)
+    MK_INSTR(cmpilt  , aluci, 2)
+    MK_INSTR(cmpile  , aluci, 3)
+    MK_INSTR(cmpiult , aluci, 4)
+    MK_INSTR(cmpiule , aluci, 5)
+    MK_INSTR(btesti  , aluci, 6)
+
     // ALUp
     MK_INSTR(por , alup,  6)
     MK_INSTR(pand, alup,  7)
