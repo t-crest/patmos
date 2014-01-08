@@ -139,7 +139,11 @@ MODULE=ocp.test.OcpTester
 MODULE=ocp.test.ArbiterTester
 modtest:
 #	-rm -rf generated
-	$(SBT) "run-main $(MODULE) --backend c --compile --vcd --test --genHarness --targetDir generated"
+	$(SBT) "run-main $(MODULE) --backend c --compile --vcd --test --genHarness --targetDir build"
+
+modcomp:
+#	-rm -rf generated
+	$(SBT) "run-main $(MODULE) --backend v --compile --vcd --targetDir build"
 
 .FORCE:
 

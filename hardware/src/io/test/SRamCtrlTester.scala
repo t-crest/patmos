@@ -99,7 +99,7 @@ class SRamCtrlTop() extends Module {
   val mem = Module(new SRamCtrl())
   val master = Module(new ocp.test.Master(0, 4))
   mem.io.ocpPort <> master.io.port
-  io.addr := mem.io.ramIO
+  io.addr := mem.io.ramOut.addr
 }
 
 
