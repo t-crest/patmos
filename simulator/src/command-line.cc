@@ -254,6 +254,8 @@ namespace patmos
       sck = SC_BLOCK;
     else if(kind == "dcache")
       sck = SC_DCACHE;
+    else if(kind == "lblock")
+      sck = SC_LBLOCK;
     else throw boost::program_options::validation_error(
                  boost::program_options::validation_error::invalid_option_value,
                  "Unknown stack cache kind: " + tmp);
@@ -271,6 +273,8 @@ namespace patmos
         os << "block"; break;
       case SC_DCACHE:
         os << "dcache"; break;
+      case SC_LBLOCK:
+        os << "lblock"; break;
     }
 
     return os;
