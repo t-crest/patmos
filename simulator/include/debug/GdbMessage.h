@@ -37,7 +37,6 @@ namespace patmos
   {
   public:
     virtual ~GdbMessage() {}
-    virtual std::string GetMessageString() const = 0;
     virtual void Handle(GdbMessageHandler &messageHandler,
         DebugInterface &debugInterface,
         bool &targetContinue) const = 0;

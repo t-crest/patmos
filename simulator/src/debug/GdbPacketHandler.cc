@@ -128,7 +128,7 @@ namespace patmos
   //////////////////////////////////////////////////////////////////
   
   GdbPacketHandler::GdbPacketHandler(const GdbConnection &con)
-    : m_con(con)
+    : m_con(con), m_useAck(true)
   {
   }
 
@@ -172,9 +172,12 @@ namespace patmos
 
       if (IsUsingAck() && !isValid)
         m_con.Write(failSeq);
+
     } while (IsUsingAck() && !isValid);
 
-    m_con.Write(ackSeq);
+    if (IsUsingAck())
+      m_con.Write(ackSeq);
+    
     return packet;
   }
 

@@ -28,42 +28,72 @@
 
 namespace
 {
+  const int maxPacketSize = 512; // random for now. After some testing,
+                                 // adjust this value to a more appropriate one
+  const int dummyProcessId = 1;
+  const int dummyThreadId = 1;
+  
   //////////////////////////////////////////////////////////////////
   // Message strings
   // Formatted strings have boost::format syntax
   //////////////////////////////////////////////////////////////////
- 
-  const int maxPacketSize = 512; // random for now. After some testing,
-                                 // adjust this value to a more appropriate one
 
   const std::string supportedMessage = "qSupported";
-  const std::string supportedMessage_response = "PacketSize=%x";
+  const std::string supportedResponse = "PacketSize=%x";
   const std::string getReasonMessage = "?";
-  const std::string getReasonMessage_response = "S%02x";
   const std::string setThreadMessage = "H";
   const std::string getCurrentThreadMessage = "qC";
   const std::string isAttachedMessage = "qAttached";
   const std::string contSupportedMessage = "vCont?";
+  const std::string contSupportedResponse = "vCont;c;s;t";
+  const std::string attachMessage = "vAttach;";
+  const std::string threadInfoStartMessage = "qfThreadInfo";
+  const std::string threadInfoStartResponse = "m1";
+  const std::string threadInfoNextMessage = "qsThreadInfo";
+  const std::string threadInfoNextResponse = "l";
 
   const std::string killMessage = "k";
   
   // lldb extensions:
   const std::string startNoAckModeMessage = "QStartNoAckMode";
   const std::string hostInfoMessage = "qHostInfo";
-
+  const std::string registerInfoMessage = "qRegisterInfo";
+  const std::string threadStopInfoMessage = "qThreadStopInfo";
 
   // standard response messages:
   const std::string okMessage = "OK";
   const std::string errorMessage = "E %02x";
+  const std::string stopReplyMessage = "T%02x";
   
   // unsupported features:
-  const std::string unsupportedFeatureMessage = "Unsupported Feature";
   const std::string threadSuffixSupportedMessage = "QThreadSuffixSupported";
   const std::string listThreadsInStopReplyMessage = "QListThreadsInStopReply";
   const std::string attachOrWaitSupportedMessage = "qVAttachOrWaitSupported";
+  const std::string processInfoMessage = "qProcessInfo";
 
   using namespace patmos;
 
+  class KeyValueStringBuilder
+  {
+  public:
+    template <class T>
+    void AddKeyValue(std::string key, T value)
+    {
+      m_ss << key << ":" << value << ";";
+    }
+
+    virtual std::string GetString() const
+    {
+      return m_ss.str();
+    }
+
+  private:
+    std::stringstream m_ss;
+  };
+
+  //////////////////////////////////////////////////////////////////
+  // Default Messages
+  //////////////////////////////////////////////////////////////////
   GdbResponseMessage GetOKMessage()
   {
     return GdbResponseMessage(okMessage);
@@ -79,26 +109,15 @@ namespace
     return GdbResponseMessage("");
   }
 
-}
-
-namespace patmos
-{
-
-  //////////////////////////////////////////////////////////////////
-  // Exceptions
-  //////////////////////////////////////////////////////////////////
-
-  GdbUnsupportedMessageException::GdbUnsupportedMessageException(
-      std::string packetContent)
+  GdbResponseMessage GetStopReplyMessage(int signalNumber)
   {
-    m_whatMessage = "Error: GdbServer: Tried to handle an unsupported message: " + packetContent;
-  }
-  GdbUnsupportedMessageException::~GdbUnsupportedMessageException() throw()
-  {
-  }
-  const char* GdbUnsupportedMessageException::what() const throw()
-  {
-    return m_whatMessage.c_str();
+    KeyValueStringBuilder params;
+    params.AddKeyValue<int>("thread", dummyThreadId);
+
+    std::stringstream ss; 
+    ss << (boost::format(stopReplyMessage) % signalNumber).str();
+    ss << params.GetString();
+    return GdbResponseMessage(ss.str());
   }
 
   //////////////////////////////////////////////////////////////////
@@ -116,16 +135,16 @@ namespace patmos
     template <class T>
     void AddKeyValue(std::string key, T value)
     {
-      m_ss << key << ":" << value << ";";
+      m_builder.AddKeyValue<T>(key, value);
     }
 
     virtual std::string GetMessageString() const
     {
-      return m_ss.str();
+      return m_builder.GetString();
     }
 
   private:
-    std::stringstream m_ss;
+    KeyValueStringBuilder m_builder;
   };
 
   //////////////////////////////////////////////////////////////////
@@ -134,17 +153,12 @@ namespace patmos
   class GdbSupportedMessage : public GdbMessage
   {
   public:
-    virtual std::string GetMessageString() const
-    {
-      return supportedMessage;
-    };
-
     virtual void Handle(GdbMessageHandler &messageHandler,
       DebugInterface &debugInterface,
       bool &targetContinue) const
     {
       const std::string response = 
-        (boost::format(supportedMessage_response) % maxPacketSize).str();
+        (boost::format(supportedResponse) % maxPacketSize).str();
       messageHandler.SendGdbMessage(GdbResponseMessage(response));
     };
 
@@ -160,19 +174,12 @@ namespace patmos
   class GdbGetReasonMessage : public GdbMessage
   {
   public:
-    virtual std::string GetMessageString() const
-    {
-      return getReasonMessage;
-    };
-  
     virtual void Handle(GdbMessageHandler &messageHandler,
       DebugInterface &debugInterface,
       bool &targetContinue) const
     {
-      const int signalNumber = 5;
-      const std::string response = 
-            (boost::format(getReasonMessage_response) % signalNumber).str();
-      messageHandler.SendGdbMessage(GdbResponseMessage(response));
+      const int signalNumber = 17;
+      messageHandler.SendGdbMessage(GetStopReplyMessage(signalNumber));
     };
 
     static bool CanHandle(std::string messageString)
@@ -187,11 +194,6 @@ namespace patmos
   class GdbSetThreadMessage : public GdbMessage
   {
   public:
-    virtual std::string GetMessageString() const
-    {
-      return setThreadMessage;
-    };
-
     virtual void Handle(GdbMessageHandler &messageHandler,
       DebugInterface &debugInterface,
       bool &targetContinue) const
@@ -212,18 +214,15 @@ namespace patmos
   class GdbGetCurrentThreadMessage : public GdbMessage
   {
   public:
-    virtual std::string GetMessageString() const
-    {
-      return getCurrentThreadMessage;
-    };
-
     virtual void Handle(GdbMessageHandler &messageHandler,
       DebugInterface &debugInterface,
       bool &targetContinue) const
     {
       // currently we do not care about threads.
-      // always return 0
-      messageHandler.SendGdbMessage(GdbResponseMessage("0"));
+      // Empty response means keep the previous thread:
+      //messageHandler.SendGdbMessage(GetEmptyMessage());
+      // OR return 1 to fake one thread:
+       messageHandler.SendGdbMessage(GdbResponseMessage("QC1"));
     };
 
     static bool CanHandle(std::string messageString)
@@ -238,11 +237,6 @@ namespace patmos
   class GdbIsAttachedMessage : public GdbMessage
   {
   public:
-    virtual std::string GetMessageString() const
-    {
-      return isAttachedMessage;
-    };
-
     virtual void Handle(GdbMessageHandler &messageHandler,
       DebugInterface &debugInterface,
       bool &targetContinue) const
@@ -265,16 +259,11 @@ namespace patmos
   class GdbContSupportedMessage : public GdbMessage
   {
   public:
-    virtual std::string GetMessageString() const
-    {
-      return contSupportedMessage;
-    };
-
     virtual void Handle(GdbMessageHandler &messageHandler,
       DebugInterface &debugInterface,
       bool &targetContinue) const
     {
-      messageHandler.SendGdbMessage(GdbResponseMessage("vCont[;c;s;t]"));
+      messageHandler.SendGdbMessage(GdbResponseMessage(contSupportedResponse));
     };
 
     static bool CanHandle(std::string messageString)
@@ -284,16 +273,69 @@ namespace patmos
   };
   
   //////////////////////////////////////////////////////////////////
+  // vAttach;<x>
+  //////////////////////////////////////////////////////////////////
+  class GdbAttachMessage : public GdbMessage
+  {
+  public:
+    virtual void Handle(GdbMessageHandler &messageHandler,
+      DebugInterface &debugInterface,
+      bool &targetContinue) const
+    {
+      const int signalNumber = 17;
+      messageHandler.SendGdbMessage(GetStopReplyMessage(signalNumber));
+    };
+
+    static bool CanHandle(std::string messageString)
+    {
+      return boost::starts_with(messageString, attachMessage);
+    };
+  };
+  
+  //////////////////////////////////////////////////////////////////
+  // qfThreadInfo
+  //////////////////////////////////////////////////////////////////
+  class GdbThreadInfoStartMessage : public GdbMessage
+  {
+  public:
+    virtual void Handle(GdbMessageHandler &messageHandler,
+      DebugInterface &debugInterface,
+      bool &targetContinue) const
+    {
+      messageHandler.SendGdbMessage(GdbResponseMessage(threadInfoStartResponse));
+    };
+
+    static bool CanHandle(std::string messageString)
+    {
+      return messageString == threadInfoStartMessage;
+    };
+  };
+  
+  //////////////////////////////////////////////////////////////////
+  // qsThreadInfo
+  //////////////////////////////////////////////////////////////////
+  class GdbThreadInfoNextMessage : public GdbMessage
+  {
+  public:
+    virtual void Handle(GdbMessageHandler &messageHandler,
+      DebugInterface &debugInterface,
+      bool &targetContinue) const
+    {
+      messageHandler.SendGdbMessage(GdbResponseMessage(threadInfoNextResponse));
+    };
+
+    static bool CanHandle(std::string messageString)
+    {
+      return messageString == threadInfoNextMessage;
+    };
+  };
+  
+  //////////////////////////////////////////////////////////////////
   // k
   //////////////////////////////////////////////////////////////////
   class GdbKillMessage : public GdbMessage
   {
   public:
-    virtual std::string GetMessageString() const
-    {
-      return killMessage;
-    };
-
     virtual void Handle(GdbMessageHandler &messageHandler,
       DebugInterface &debugInterface,
       bool &targetContinue) const
@@ -314,17 +356,12 @@ namespace patmos
   class GdbStartNoAckModeMessage : public GdbMessage
   {
   public:
-    virtual std::string GetMessageString() const
-    {
-      return startNoAckModeMessage;
-    };
-
     virtual void Handle(GdbMessageHandler &messageHandler,
       DebugInterface &debugInterface,
       bool &targetContinue) const
     {
-      messageHandler.SetUseAck(false);
       messageHandler.SendGdbMessage(GetOKMessage());
+      messageHandler.SetUseAck(false);
     };
 
     static bool CanHandle(std::string messageString)
@@ -339,21 +376,27 @@ namespace patmos
   class GdbHostInfoMessage : public GdbMessage
   {
   public:
-    virtual std::string GetMessageString() const
-    {
-      return hostInfoMessage;
-    };
-
     virtual void Handle(GdbMessageHandler &messageHandler,
       DebugInterface &debugInterface,
       bool &targetContinue) const
     {
       GdbKeyValueResponseMessage msg;
       HostInfo info = debugInterface.GetHostInfo();
-      msg.AddKeyValue<int>        ("cputype"    , info.cputype);
-      msg.AddKeyValue<int>        ("cpusubtype" , info.cpusubtype);
-      msg.AddKeyValue<std::string>("ostype"     , info.ostype);
-      msg.AddKeyValue<std::string>("vendor"     , info.vendor);
+
+      if (info.cputype > 0)
+        msg.AddKeyValue<int>        ("cputype"    , info.cputype);
+      
+      if (info.cpusubtype > 0)
+        msg.AddKeyValue<int>        ("cpusubtype" , info.cpusubtype);
+      
+      if (info.triple.size() > 0)
+        msg.AddKeyValue<std::string>("triple"     , "patmos--linux");
+      else
+      {
+        msg.AddKeyValue<std::string>("ostype"     , info.ostype);
+        msg.AddKeyValue<std::string>("vendor"     , info.vendor);
+      }
+
       msg.AddKeyValue<std::string>("endian"     , info.endian);
       msg.AddKeyValue<int>        ("ptrsize"    , info.ptrsize);
       messageHandler.SendGdbMessage(msg);
@@ -366,16 +409,130 @@ namespace patmos
   };
   
   //////////////////////////////////////////////////////////////////
+  // (lldb extension) qRegisterInfo
+  //////////////////////////////////////////////////////////////////
+  
+  const std::string registerEncodingStrings[] = {
+    "uint",
+    "sint",
+    "ieee754",
+    "vector"
+  };
+
+  const std::string registerFormatStrings[] = {
+    "binary",
+    "decimal",
+    "hex",
+    "float",
+    "vector_sint8",
+    "vector_uint8",
+    "vector_sint16",
+    "vector_uint16",
+    "vector_sint32",
+    "vector_uint32",
+    "vector_float32",
+    "vector_uint128"
+  };
+
+  const std::string registerTypeStrings[] = {
+    "",
+    "pc",   
+    "sp",   
+    "fp",   
+    "ra",   
+    "flags",
+    "arg1",
+    "arg2", 
+    "arg3",
+    "arg4",
+    "arg5",
+    "arg6",
+    "arg7",
+    "arg8",
+  };
+
+  class GdbRegisterInfoMessage : public GdbMessage
+  {
+  public:
+    GdbRegisterInfoMessage(std::string messageString)
+      : m_registerNumber(0)
+    {
+      const std::string::size_type pos = registerInfoMessage.size();
+      const std::string registerNumberString =
+        messageString.substr(pos);
+      std::stringstream ss(registerNumberString);
+      ss >> m_registerNumber;
+    };
+
+    virtual void Handle(GdbMessageHandler &messageHandler,
+      DebugInterface &debugInterface,
+      bool &targetContinue) const
+    {
+      GdbKeyValueResponseMessage msg;
+
+      const RegisterInfo info = debugInterface.GetRegisterInfo();
+      
+      // Check if there is a register with that number.
+      if (m_registerNumber < 0 | m_registerNumber >= info.regCount)
+      {
+        messageHandler.SendGdbMessage(GetEmptyMessage());
+        return;
+      }
+
+      // Register exists - lets report it's parameters
+      const RegisterInfoEntry reg = info.registers[m_registerNumber];
+      
+      msg.AddKeyValue<std::string>  ("name",     reg.name);
+      msg.AddKeyValue<int>          ("bitsize",  reg.bitsize);
+      msg.AddKeyValue<std::string>  ("encoding", registerEncodingStrings[reg.encoding]);
+      msg.AddKeyValue<std::string>  ("format",   registerFormatStrings[reg.format]);
+      msg.AddKeyValue<std::string>  ("set",      reg.setName);
+      msg.AddKeyValue<int>          ("dwarf",    reg.dwarfNumber);
+
+      if (reg.type > 0)
+      {
+        // only add generic type if available (otherwise omit this value)
+        msg.AddKeyValue<std::string>("generic", registerTypeStrings[reg.type]);
+      }
+
+      messageHandler.SendGdbMessage(msg);
+    };
+
+    static bool CanHandle(std::string messageString)
+    {
+      return boost::starts_with(messageString, registerInfoMessage);
+    };
+
+  private:
+    int m_registerNumber;
+  };
+  
+  //////////////////////////////////////////////////////////////////
+  // (lldb extension) qThreadStopInfo<x>
+  //////////////////////////////////////////////////////////////////
+  class GdbThreadStopInfoMessage : public GdbMessage
+  {
+  public:
+    virtual void Handle(GdbMessageHandler &messageHandler,
+      DebugInterface &debugInterface,
+      bool &targetContinue) const
+    {
+      const int signalNumber = 17;
+      messageHandler.SendGdbMessage(GetStopReplyMessage(signalNumber));
+    };
+
+    static bool CanHandle(std::string messageString)
+    {
+      return boost::starts_with(messageString, threadStopInfoMessage);
+    };
+  };
+  
+  //////////////////////////////////////////////////////////////////
   // all unsupported features - reply empty msg
   //////////////////////////////////////////////////////////////////
   class GdbUnsupportedFeatureMessage : public GdbMessage
   {
   public:
-    virtual std::string GetMessageString() const
-    {
-      return unsupportedFeatureMessage;
-    };
-
     virtual void Handle(GdbMessageHandler &messageHandler,
       DebugInterface &debugInterface,
       bool &targetContinue) const
@@ -388,7 +545,8 @@ namespace patmos
       return (
         messageString == threadSuffixSupportedMessage ||
         messageString == listThreadsInStopReplyMessage ||
-        messageString == attachOrWaitSupportedMessage
+        messageString == attachOrWaitSupportedMessage ||
+        messageString == processInfoMessage
       );
     };
   };
@@ -406,11 +564,6 @@ namespace patmos
     {
     };
 
-    virtual std::string GetMessageString() const
-    {
-      return "Unsupported Message: " + m_packetContent;
-    };
-
     virtual void Handle(GdbMessageHandler &messageHandler,
       DebugInterface &debugInterface,
       bool &targetContinue) const
@@ -421,7 +574,29 @@ namespace patmos
   private:
     std::string m_packetContent;
   };
-  
+
+} // unnamed namespace
+
+namespace patmos
+{
+
+  //////////////////////////////////////////////////////////////////
+  // Exceptions
+  //////////////////////////////////////////////////////////////////
+
+  GdbUnsupportedMessageException::GdbUnsupportedMessageException(
+      std::string packetContent)
+  {
+    m_whatMessage = "Error: GdbServer: Tried to handle an unsupported message: " + packetContent;
+  }
+  GdbUnsupportedMessageException::~GdbUnsupportedMessageException() throw()
+  {
+  }
+  const char* GdbUnsupportedMessageException::what() const throw()
+  {
+    return m_whatMessage.c_str();
+  }
+
   //////////////////////////////////////////////////////////////////
   // GdbMessageHandler implementation
   //////////////////////////////////////////////////////////////////
@@ -461,6 +636,18 @@ namespace patmos
     {
       return GdbMessagePtr(new GdbContSupportedMessage());
     }
+    else if (GdbAttachMessage::CanHandle(packetContent))
+    {
+      return GdbMessagePtr(new GdbAttachMessage());
+    }
+    else if (GdbThreadInfoStartMessage::CanHandle(packetContent))
+    {
+      return GdbMessagePtr(new GdbThreadInfoStartMessage());
+    }
+    else if (GdbThreadInfoNextMessage::CanHandle(packetContent))
+    {
+      return GdbMessagePtr(new GdbThreadInfoNextMessage());
+    }
     else if (GdbKillMessage::CanHandle(packetContent))
     {
       return GdbMessagePtr(new GdbKillMessage());
@@ -472,6 +659,14 @@ namespace patmos
     else if (GdbHostInfoMessage::CanHandle(packetContent))
     {
       return GdbMessagePtr(new GdbHostInfoMessage());
+    }
+    else if (GdbRegisterInfoMessage::CanHandle(packetContent))
+    {
+      return GdbMessagePtr(new GdbRegisterInfoMessage(packetContent));
+    }
+    else if (GdbThreadStopInfoMessage::CanHandle(packetContent))
+    {
+      return GdbMessagePtr(new GdbThreadStopInfoMessage());
     }
     else if (GdbUnsupportedFeatureMessage::CanHandle(packetContent))
     {

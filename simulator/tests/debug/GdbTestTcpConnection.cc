@@ -26,14 +26,62 @@ using namespace patmos;
 
 namespace
 {
+      RegisterInfoEntry registers[] = {
+        RegisterInfoEntry(
+            "r0",                         // name
+            32,                           // bitsize
+            en_uint,                      // RegisterEncoding
+            fo_hex,                       // RegisterFormat
+            "General Purpose Registers",  // setName
+            0,                            // dwarfNumber
+            ge_default                    // RegisterGenericType
+        ),
+        RegisterInfoEntry(
+            "r1",                         // name
+            32,                           // bitsize
+            en_uint,                      // RegisterEncoding
+            fo_hex,                       // RegisterFormat
+            "General Purpose Registers",  // setName
+            1,                            // dwarfNumber
+            ge_default                    // RegisterGenericType
+        ),
+        RegisterInfoEntry(
+            "r2",                         // name
+            32,                           // bitsize
+            en_uint,                      // RegisterEncoding
+            fo_hex,                       // RegisterFormat
+            "General Purpose Registers",  // setName
+            2,                            // dwarfNumber
+            ge_default                    // RegisterGenericType
+        ),
+        RegisterInfoEntry(
+            "r3",                         // name
+            32,                           // bitsize
+            en_uint,                      // RegisterEncoding
+            fo_hex,                       // RegisterFormat
+            "General Purpose Registers",  // setName
+            3,                            // dwarfNumber
+            ge_default                    // RegisterGenericType
+        )
+      };
+  
   class TestInterface : public DebugInterface
   {
     virtual HostInfo GetHostInfo() const
     {
       HostInfo info;
-      info.cputype = 7;
+      info.triple = "patmos--linux";
       info.endian = "big";
       info.ptrsize = 4;
+      return info;
+    }
+    virtual RegisterInfo GetRegisterInfo() const
+    {
+      RegisterInfo info;
+
+      info.registers = registers;
+      info.regCount = 4;
+
       return info;
     }
     virtual void SetDebugClient(DebugClient &debugClient)
