@@ -41,7 +41,8 @@ MAIN=patmos.PatmosMain
 
 # main classes for core, memory controller and arbiter
 COREMAIN=patmos.PatmosCoreMain
-MEMCTRLMAIN=patmos.SsramMain
+MEMCTRLMAIN32=patmos.SsramMain
+MEMCTRLMAIN16=io.SRamMain
 ARBITERMAIN=ocp.ArbiterMain
 
 # config file for Patmos -- now just frequency
@@ -113,7 +114,10 @@ $(VGENCORE): $(BOOTBIN) $(BOOTDAT) $(SRC)
 	echo $(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX) > $(VGENCORE)
 
 $(HWBUILDDIR)/SsramBurstRW.v: $(SRC)
-	$(SBT) "run-main $(MEMCTRLMAIN) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --backend v"
+	$(SBT) "run-main $(MEMCTRLMAIN32) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --backend v"
+
+$(HWBUILDDIR)/SRamCtrl.v: $(SRC)
+	$(SBT) "run-main $(MEMCTRLMAIN16) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --backend v"
 
 $(HWBUILDDIR)/Arbiter.v: $(SRC)
 	$(SBT) "run-main $(ARBITERMAIN) $(ARBITER_CNT) $(ARBITER_ADDR_WIDTH) $(ARBITER_DATA_WIDTH) $(ARBITER_BURST_LENGTH) --targetDir $(HWBUILDDIR) --backend v"
