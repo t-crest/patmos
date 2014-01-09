@@ -516,6 +516,12 @@ bool block_stack_cache_t::spill(uword_t size, word_t delta,
   {
     case IDLE:
     {
+      // do we need to spill?
+      if (!delta) {
+        // no, done.
+        return true;
+      }
+
       // copy data to a buffer to allow contiguous transfer to the memory.
       for(unsigned int i = 0; i < delta; i++)
       {
