@@ -24,12 +24,26 @@
 
 namespace patmos
 {
+
+  //////////////////////////////////////////////////////////////////
+  // gdb message
+  //////////////////////////////////////////////////////////////////
   
+  GdbMessage::GdbMessage(const std::string& messageString)
+    : m_messageString(messageString)
+  {
+  }
+
+  std::string GdbMessage::GetMessageString() const
+  {
+    return m_messageString;
+  }
+
   //////////////////////////////////////////////////////////////////
   // response message
   //////////////////////////////////////////////////////////////////
 
-  GdbResponseMessage::GdbResponseMessage(std::string response)
+  GdbResponseMessage::GdbResponseMessage(const std::string& response)
     : m_response(response)
   {
   }

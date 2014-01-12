@@ -36,17 +36,22 @@ namespace patmos
   class GdbMessage
   {
   public:
+    GdbMessage(const std::string& messageString);
     virtual ~GdbMessage() {}
     virtual void Handle(GdbMessageHandler &messageHandler,
         DebugInterface &debugInterface,
         bool &targetContinue) const = 0;
+    virtual bool CanHandle(const std::string& messageString) = 0;
+    std::string GetMessageString() const;
+  private:
+    std::string m_messageString;
   };
   typedef boost::shared_ptr<GdbMessage> GdbMessagePtr;
 
   class GdbResponseMessage
   {
   public:
-    GdbResponseMessage(std::string response);
+    GdbResponseMessage(const std::string& response);
     virtual std::string GetMessageString() const;
   private:
     std::string m_response;
