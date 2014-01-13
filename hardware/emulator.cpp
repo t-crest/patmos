@@ -20,7 +20,7 @@ static uint32_t ssram_buf [1 << SRAM_ADDR_BITS];
 
 //uncomment when i-cache is used
 #define MCACHE 1
-  
+
 /// Read an elf executable image into the on-chip memories
 static val_t readelf(istream &is, Patmos_t *c)
 {
@@ -67,7 +67,7 @@ static val_t readelf(istream &is, Patmos_t *c)
     cerr << "readelf: unsupported architecture: ELF file is not a Patmos ELF file.\n";
     exit(EXIT_FAILURE);
   }
-  
+
   // check class
   int ec = gelf_getclass(elf);
   if (ec != ELFCLASS32) {
@@ -94,7 +94,7 @@ static val_t readelf(istream &is, Patmos_t *c)
       // copy from the buffer into the on-chip memories
 	  for (size_t k = 0; k < phdr.p_memsz; k++) {
 
-		if (((phdr.p_paddr + k) >> OCMEM_ADDR_BITS) == 0x1 && 
+		if (((phdr.p_paddr + k) >> OCMEM_ADDR_BITS) == 0x1 &&
 			((phdr.p_paddr + k) & 0x3) == 0) {
 		  // Address maps to ISPM and is at a word boundary
 		  val_t word = k >= phdr.p_filesz ? 0 :
@@ -104,7 +104,7 @@ static val_t readelf(istream &is, Patmos_t *c)
 			 ((val_t)elfbuf[phdr.p_offset + k + 3] << 0));
 		  val_t addr = ((phdr.p_paddr + k) - (0x1 << OCMEM_ADDR_BITS)) >> 3;
 
-		  unsigned size = (sizeof(c->Patmos_core_fetch_memEven__mem.contents) / 
+		  unsigned size = (sizeof(c->Patmos_core_fetch_memEven__mem.contents) /
 						   sizeof(c->Patmos_core_fetch_memEven__mem.contents[0]));
 		  assert(addr < size && "Instructions mapped to ISPM exceed size");
 
@@ -155,30 +155,30 @@ static void extSsramSim(Patmos_t *c) {
   static uint32_t address;
   static uint32_t counter;
 
-  // *out << "noe:" << c->Patmos__io_sramPins_ram_out_noe.to_ulong() 
-  // 	   << " nadv: " << c->Patmos__io_sramPins_ram_out_nadv.to_ulong()
-  // 	   << " nadsc:" << c->Patmos__io_sramPins_ram_out_nadsc.to_ulong()
-  // 	   << " addr:" << c->Patmos__io_sramPins_ram_out_addr.to_ulong() << "\n";
+  // *out << "noe:" << c->Patmos__io_ssramBurstRWPins_ramOut_noe.to_ulong()
+  // 	   << " nadv: " << c->Patmos__io_ssramBurstRWPins_ramOut_nadv.to_ulong()
+  // 	   << " nadsc:" << c->Patmos__io_ssramBurstRWPins_ramOut_nadsc.to_ulong()
+  // 	   << " addr:" << c->Patmos__io_ssramBurstRWPins_ramOut_addr.to_ulong() << "\n";
 
-  if (c->Patmos__io_sramPins_ram_out_nadsc.to_ulong() == 0) {
-    address = c->Patmos__io_sramPins_ram_out_addr.to_ulong();
-    addr_cnt = c->Patmos__io_sramPins_ram_out_addr.to_ulong();
+  if (c->Patmos__io_ssramBurstRWPins_ramOut_nadsc.to_ulong() == 0) {
+    address = c->Patmos__io_ssramBurstRWPins_ramOut_addr.to_ulong();
+    addr_cnt = c->Patmos__io_ssramBurstRWPins_ramOut_addr.to_ulong();
     counter = 0;
   }
-  if (c->Patmos__io_sramPins_ram_out_nadv.to_ulong() == 0) {
+  if (c->Patmos__io_ssramBurstRWPins_ramOut_nadv.to_ulong() == 0) {
     addr_cnt++;
   }
-  if (c->Patmos__io_sramPins_ram_out_noe.to_ulong() == 0) {
+  if (c->Patmos__io_ssramBurstRWPins_ramOut_noe.to_ulong() == 0) {
     counter++;
     if (counter >= SRAM_CYCLES) {
-      c->Patmos__io_sramPins_ram_in_din = ssram_buf[address];
+      c->Patmos__io_ssramBurstRWPins_ramIn_din = ssram_buf[address];
       if (address <= addr_cnt) {
         address++;
       }
     }
   }
-  if (c->Patmos__io_sramPins_ram_out_nbwe.to_ulong() == 0) {
-	uint32_t nbw = c->Patmos__io_sramPins_ram_out_nbw.to_ulong();
+  if (c->Patmos__io_ssramBurstRWPins_ramOut_nbwe.to_ulong() == 0) {
+	uint32_t nbw = c->Patmos__io_ssramBurstRWPins_ramOut_nbw.to_ulong();
 	uint32_t mask = 0x00000000;
 	for (unsigned i = 0; i < 4; i++) {
 	  if ((nbw & (1 << i)) == 0) {
@@ -187,7 +187,7 @@ static void extSsramSim(Patmos_t *c) {
 	}
 
 	ssram_buf[address] &= ~mask;
-	ssram_buf[address] |= mask & c->Patmos__io_sramPins_ram_out_dout.to_ulong();
+	ssram_buf[address] |= mask & c->Patmos__io_ssramBurstRWPins_ramOut_dout.to_ulong();
 
 	if (address <= addr_cnt) {
 	  address++;
@@ -332,7 +332,7 @@ int main (int argc, char* argv[]) {
   }
 
   FILE *f = vcd ? fopen("Patmos.vcd", "w") : NULL;
-  
+
   if (!quiet) {
 	*out << "Patmos start" << endl;
   }
@@ -402,7 +402,7 @@ int main (int argc, char* argv[]) {
 	if (!quiet && c->Patmos_core__enableReg.to_bool()) {
 	  print_state(c);
 	}
-	
+
 	// Return to address 0 halts the execution after one more iteration
 	if (halt) {
 	  break;
@@ -411,7 +411,7 @@ int main (int argc, char* argv[]) {
 		&& c->Patmos_core_mcache_mcacherepl__callRetBaseReg.to_ulong() == 0) {
 	  halt = true;
 	}
-       
+
 	if (print_stat == true) {
 	  mcacheStat(c, halt);
 	}

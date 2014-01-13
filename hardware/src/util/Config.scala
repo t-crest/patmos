@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -37,13 +37,14 @@ import Node._
 
 import patmos._
 import io.CoreDevice
+import io.Device
 
 import scala.tools.nsc.interpreter._
 import scala.tools.nsc._
 
 /**
  * A tiny configuration tool for Patmos.
- * 
+ *
  * Authors: Martin Schoeberl (martin@jopdesign.com)
  */
 abstract class Config {
@@ -56,7 +57,7 @@ abstract class Config {
   case class MCacheConfig(size: Int, blocks: Int, repl: String)
   val MCache: MCacheConfig
   case class DCacheConfig(size: Int, assoc: Int, repl: String)
-  val DCache: DCacheConfig  
+  val DCache: DCacheConfig
   case class SCacheConfig(size: Int)
   val SCache: SCacheConfig
 
@@ -65,7 +66,7 @@ abstract class Config {
   val DSPM: SPMConfig
   val BootSPM: SPMConfig
 
-  case class ExtMemConfig(size: Int)
+  case class ExtMemConfig(size: Int, sram: DeviceConfig)
   val ExtMem: ExtMemConfig
 
   case class DeviceConfig(name : String, params : Map[String, String], offset : Int)
@@ -76,9 +77,9 @@ abstract class Config {
 }
 
 object Config {
-  
+
   def parseSize(text: String): Int = {
-	  val regex = """(\d+)([KMG]?)""".r	  
+	  val regex = """(\d+)([KMG]?)""".r
 	  val suffixMult = Map("" -> (1 << 0),
 						   "K" -> (1 << 10),
 						   "M" -> (1 << 20),
@@ -114,17 +115,31 @@ object Config {
       val DSPM = new SPMConfig(parseSize(find(find(node, "DSPM"), "@size").text))
       val BootSPM = new SPMConfig(parseSize(find(find(node, "BootSPM"), "@size").text))
 
-      val ExtMem = new ExtMemConfig(parseSize(find(find(node, "ExtMem"), "@size").text))
+      val DevList = ((node \ "Devs") \ "Dev")
 
-      val DevList = ((node \ "IODevs") \ "IODev")
+      val ExtMemNode = find(node, "ExtMem")
+      var ExtMemDev = new DeviceConfig("", Map(),-1)
+      if (exist(ExtMemNode,"@DevTypeRef")){
+        ExtMemDev = devFromXML(ExtMemNode,DevList,false)
+      }
+      val ExtMem = new ExtMemConfig(parseSize(find(ExtMemNode, "@size").text),
+                                    ExtMemDev)
+
+
       val DevNodes = ((node \ "IOs") \ "IO")
       val Devs = DevNodes.map(devFromXML(_, DevList)).toList
 
-      def devFromXML(node: scala.xml.Node, devs: scala.xml.NodeSeq): DeviceConfig = {
-        val key = find(node, "@IODevTypeRef").text
-        val devList = (devs.filter(d => (d \ "@IODevType").text == key))
+      // Make sure static state of devices is initialized
+      for (d <- Devs) { initDevice(d) }
+      if(ExtMem.sram.name != ""){
+        initDevice(ExtMem.sram)
+      }
+
+      def devFromXML(node: scala.xml.Node, devs: scala.xml.NodeSeq, needOffset: Boolean = true): DeviceConfig = {
+        val key = find(node, "@DevTypeRef").text
+        val devList = (devs.filter(d => (d \ "@DevType").text == key))
         if (devList.isEmpty) {
-          sys.error("No IODev specification found for "+node)
+          sys.error("No Dev specification found for "+node)
         }
         val dev = devList(0)
         val name = find(dev, "@entity").text
@@ -132,30 +147,50 @@ object Config {
         val params = if (paramsNode.isEmpty) {
           Map[String,String]()
         } else {
-          Map((paramsNode \ "param").map(p => find(p, "@name").text -> 
+          Map((paramsNode \ "param").map(p => find(p, "@name").text ->
                                               find(p, "@value").text) : _*)
         }
-        val offset = find(node, "@offset").text.toInt
+        val offset = if (needOffset) {
+          find(node, "@offset").text.toInt
+        } else {
+          -1
+        }
         println("IO device "+key+": entity "+name+", offset "+offset+", params "+params)
         new DeviceConfig(name, params, offset)
       }
 
-	  def find(node: scala.xml.Node, item: String): scala.xml.Node = {
-		val seq = node \ item
-		if (seq.isEmpty) {
-		  sys.error("Item "+item+" not found in node "+node)
-		}
-		seq(0)
-	  }
+  	  def find(node: scala.xml.Node, item: String): scala.xml.Node = {
+    		val seq = node \ item
+    		if (seq.isEmpty) {
+    		  sys.error("Item "+item+" not found in node "+node)
+    		}
+    		seq(0)
+  	  }
+
+      def exist(node: scala.xml.Node, item: String): Boolean = {
+        val seq = node \ item
+        if (seq.isEmpty) {
+          return false
+        }
+        return true
+      }
     }
 
-  def createDevice(dev : Config#DeviceConfig) : CoreDevice = {
+  def initDevice(dev : Config#DeviceConfig) = {
+    // get class for device
+    val clazz = Class.forName("io."+dev.name)
+    // create device instance
+    val meth = clazz.getMethods.find(_.getName == "init").get
+    meth.invoke(null, dev.params)
+  }
+
+  def createDevice(dev : Config#DeviceConfig) : Device = {
     // get class for device
     val clazz = Class.forName("io."+dev.name)
     // create device instance
     val meth = clazz.getMethods.find(_.getName == "create").get
     val rawDev = meth.invoke(null, dev.params)
-    rawDev.asInstanceOf[CoreDevice]
+    rawDev.asInstanceOf[Device]
   }
 
   def connectIOPins(name : String, outer : Node, inner : Node) = {
@@ -198,7 +233,7 @@ object Config {
     // load the new class
     val clazz = interpreter.classLoader.loadClass(traitClass)
     // get an instance with the right type
-    clazz.newInstance().asInstanceOf[T] 
+    clazz.newInstance().asInstanceOf[T]
   }
 
   def getInOutIO() : InOutIO = {
@@ -210,9 +245,9 @@ object Config {
   }
 
   def getPatmosIO() : PatmosIO = {
-    genTraitedClass[PatmosIO]("PatmosIO", conf.Devs.map(_.name))
+    genTraitedClass[PatmosIO]("PatmosIO", conf.ExtMem.sram.name :: conf.Devs.map(_.name))
   }
-  
+
   // This is probably not the best way to have the singleton
   // for the configuration available and around.
   // We also do not want this to be a var.
@@ -229,10 +264,10 @@ object Config {
     val ISPM = new SPMConfig(0)
     val DSPM = new SPMConfig(0)
     val BootSPM = new SPMConfig(0)
-    val ExtMem = new ExtMemConfig(0)
+    val ExtMem = new ExtMemConfig(0,new DeviceConfig("", Map(),-1))
     val Devs = List()
   }
-  
+
   var minPcWidth = 0
 
   def load(file: String): Config = {

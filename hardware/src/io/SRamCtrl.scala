@@ -49,43 +49,53 @@ import Node._
 
 import ocp._
 
-class Trans(bytesEnaWidth: Int, dataWidth: Int) extends Bundle {
-  val byteEna = Bits(width=bytesEnaWidth)
-  val data = Bits(width=dataWidth)
+import patmos.Constants._
 
-  // This does not really clone, but Data.clone doesn't either
-  override def clone() = {
-    val res = new Trans(bytesEnaWidth, dataWidth)
-    res.asInstanceOf[this.type]
+object SRamCtrl extends DeviceObject {
+  var sramAddrWidth = 20
+  var sramDataWidth = 16
+  var ocpAddrWidth = 21
+
+  def init(params: Map[String, String]) = {
+    sramAddrWidth = getPosIntParam(params, "sramAddrWidth")
+    sramDataWidth = getPosIntParam(params, "sramDataWidth")
+    ocpAddrWidth = getPosIntParam(params, "ocpAddrWidth")
+  }
+
+  def create(params: Map[String, String]) : SRamCtrl = {
+    Module(new SRamCtrl(ocpAddrWidth,sramAddrWidth=sramAddrWidth,sramDataWidth=sramDataWidth))
+  }
+
+  trait Pins {
+    val sRamCtrlPins = new Bundle {
+      val ramOut = new Bundle {
+        val addr = Bits(OUTPUT, width = sramAddrWidth)
+        val dout_ena = Bits(OUTPUT, width = 1)
+        val dout = Bits(OUTPUT, width = sramDataWidth)
+        val nce = Bits(OUTPUT, width = 1)
+        val noe = Bits(OUTPUT, width = 1)
+        val nwe = Bits(OUTPUT, width = 1)
+        val nlb = Bits(OUTPUT, width = 1)
+        val nub = Bits(OUTPUT, width = 1)
+      }
+      val ramIn = new Bundle {
+        val din = Bits(INPUT, width = sramDataWidth)
+      }
+    }
   }
 }
 
-class SRamCtrl(ocpAddrWidth     : Int=32,
-                ocpDataWidth    : Int=32,
+class SRamCtrl( ocpAddrWidth    : Int,
                 ocpBurstLen     : Int=4,
-                sramAddrWidth   : Int=19,
+                sramAddrWidth   : Int=20,
                 sramDataWidth   : Int=16,
                 singleCycleRead : Bool=Bool(false),
-                singleCycleWrite: Bool=Bool(false)) extends Module {
-  val io = new Bundle {
-    val ocpPort = new OcpBurstSlavePort(ocpAddrWidth, ocpDataWidth, ocpBurstLen)
-    val ramOut = new Bundle {
-      val addr = Bits(OUTPUT, width = sramAddrWidth)
-      val dout_ena = Bits(OUTPUT, width = 1)
-      val dout = Bits(OUTPUT, width = sramDataWidth)
-      val nce = Bits(OUTPUT, width = 1)
-      val noe = Bits(OUTPUT, width = 1)
-      val nwe = Bits(OUTPUT, width = 1)
-      val nlb = Bits(OUTPUT, width = 1)
-      val nub = Bits(OUTPUT, width = 1)
-    }
-    val ramIn = new Bundle {
-      val din = Bits(INPUT, width = sramDataWidth)
-    }
-  }
+                singleCycleWrite: Bool=Bool(false)) extends BurstDevice(ocpAddrWidth) {
+
+  override val io = new BurstDeviceIO(ocpAddrWidth) with SRamCtrl.Pins
 
   // Checks for input parameters
-  assert(Bool(ocpDataWidth % sramDataWidth != 0),"ocpDataWidth is not a multiple of sramDataWidth")
+  assert(Bool(DATA_WIDTH % sramDataWidth != 0),"DATA_WIDTH is not a multiple of sramDataWidth")
   assert(Bool(sramAddrWidth > ocpAddrWidth),"ocpAddrWidth cannot access the full sram")
   assert(Bool(!isPow2(sramDataWidth/8)),"number of bytes per transaction to sram is not a power of 2")
 
@@ -93,7 +103,7 @@ class SRamCtrl(ocpAddrWidth     : Int=32,
   // log2up is a standard function but log2up(1)=1 and it should be 0
   def log2upNew(in: Int) = ceil(log(in)/log(2)).toInt
   // Constants
-  val TransPerWord = ocpDataWidth/sramDataWidth
+  val TransPerWord = DATA_WIDTH/sramDataWidth
   val TransPerCmd = TransPerWord*ocpBurstLen
   val BytesPerTran = sramDataWidth/8
 
@@ -108,23 +118,23 @@ class SRamCtrl(ocpAddrWidth     : Int=32,
   // Output Registers
   val addr = Reg(init = Bits(0, width = sramAddrWidth))
   val dout_ena = Reg(init = Bits(0))
-  val dout = Reg(init = Bits(0, width = ocpDataWidth))
+  val dout = Reg(init = Bits(0, width = DATA_WIDTH))
   val nce = Reg(init = Bits(1))
   val noe = Reg(init = Bits(1))
   val nwe = Reg(init = Bits(1))
   val nlb = Reg(init = Bits(1))
   val nub = Reg(init = Bits(1))
 
-  // Default values for ocp io.ocpPort.S port
-  io.ocpPort.S.Resp := OcpResp.NULL
-  io.ocpPort.S.Data := Bits(0, width = ocpDataWidth)
-  io.ocpPort.S.CmdAccept := Bits(0)
-  io.ocpPort.S.DataAccept := Bits(0)
+  // Default values for ocp io.ocp.S port
+  io.ocp.S.Resp := OcpResp.NULL
+  io.ocp.S.Data := Bits(0, width = DATA_WIDTH)
+  io.ocp.S.CmdAccept := Bits(0)
+  io.ocp.S.DataAccept := Bits(0)
 
-  // Default values for ramOut port
-  addr := Bits(0, width = sramAddrWidth)
+  // Default values for sRamCtrlPins.ramOut port
+  //addr := Bits(0, width = sramAddrWidth)
   dout_ena := Bits(0)
-  dout := Bits(0, width = ocpDataWidth)
+  dout := Bits(0, width = DATA_WIDTH)
   nce := Bits(1)
   noe := Bits(1)
   nwe := Bits(1)
@@ -132,21 +142,27 @@ class SRamCtrl(ocpAddrWidth     : Int=32,
   nub := Bits(1)
 
   when(stateReg === sReady) {
-    when(io.ocpPort.M.Cmd != OcpCmd.IDLE) {
-      mAddr := io.ocpPort.M.Addr(sramAddrWidth+log2upNew(BytesPerTran)-1,log2upNew(BytesPerTran))
-      addr := io.ocpPort.M.Addr(sramAddrWidth+log2upNew(BytesPerTran)-1,log2upNew(BytesPerTran))
-      io.ocpPort.S.CmdAccept := Bits(1)
+    for( i <- 0 to TransPerCmd-1) {
+      buffer(i).byteEna := Bits(0)
+      buffer(i).data := Bits(0)
+    }
+    when(io.ocp.M.Cmd != OcpCmd.IDLE) {
+      mAddr := io.ocp.M.Addr(sramAddrWidth+log2upNew(BytesPerTran)-1,log2upNew(BytesPerTran))
+      addr := io.ocp.M.Addr(sramAddrWidth+log2upNew(BytesPerTran)-1,log2upNew(BytesPerTran))
+      io.ocp.S.CmdAccept := Bits(1)
       transCount := UInt(0)
-      when(io.ocpPort.M.Cmd === OcpCmd.RD) {
+      when(io.ocp.M.Cmd === OcpCmd.RD) {
         noe := Bits(0)
         nce := Bits(0)
+        nub := Bits(0)
+        nlb := Bits(0)
         stateReg := sReadExe
       }
-      when(io.ocpPort.M.Cmd === OcpCmd.WR) {
-        io.ocpPort.S.DataAccept := Bits(1)
+      when(io.ocp.M.Cmd === OcpCmd.WR) {
+        io.ocp.S.DataAccept := Bits(1)
         for(i <- 0 to TransPerWord-1) {
-          buffer(i).byteEna := io.ocpPort.M.DataByteEn((i+1)*BytesPerTran-1,i*BytesPerTran)
-          buffer(i).data := io.ocpPort.M.Data((i+1)*sramDataWidth-1,i*sramDataWidth)
+          buffer(i).byteEna := io.ocp.M.DataByteEn((i+1)*BytesPerTran-1,i*BytesPerTran)
+          buffer(i).data := io.ocp.M.Data((i+1)*sramDataWidth-1,i*sramDataWidth)
         }
         transCount := UInt(1) // Because the first ocp data word is stored in the buffer
         stateReg := sWriteRec
@@ -156,11 +172,13 @@ class SRamCtrl(ocpAddrWidth     : Int=32,
   when(stateReg === sReadExe) {
     noe := Bits(0)
     nce := Bits(0)
+    nub := Bits(0)
+    nlb := Bits(0)
     when(singleCycleRead){
       assert(singleCycleRead,"Something is wrong")
       addr := mAddr + UInt(1)
       mAddr := mAddr + UInt(1)
-      buffer(transCount).data := io.ramIn.din
+      buffer(transCount).data := io.sRamCtrlPins.ramIn.din
       transCount := transCount + UInt(1)
       stateReg := sReadExe
       when(transCount === UInt(TransPerCmd-1)){
@@ -174,9 +192,13 @@ class SRamCtrl(ocpAddrWidth     : Int=32,
   }
   when(stateReg === sReadExe2) {
     assert(!singleCycleRead,"If singleCycleRead is true this state should not be reached.")
+    noe := Bits(0)
+    nce := Bits(0)
+    nub := Bits(0)
+    nlb := Bits(0)
     addr := mAddr + UInt(1)
     mAddr := mAddr + UInt(1)
-    buffer(transCount).data := io.ramIn.din
+    buffer(transCount).data := io.sRamCtrlPins.ramIn.din
     transCount := transCount + UInt(1)
     stateReg := sReadExe
     when(transCount === UInt(TransPerCmd-1)){
@@ -185,20 +207,20 @@ class SRamCtrl(ocpAddrWidth     : Int=32,
     }
   }
   when(stateReg === sReadRet) {
-    io.ocpPort.S.Resp := OcpResp.DVA
-    io.ocpPort.S.Data := buffer(transCount).data
-    transCount := transCount + UInt(1)
-    when(transCount === UInt(ocpBurstLen-1)){
+    io.ocp.S.Resp := OcpResp.DVA
+    io.ocp.S.Data := Cat(buffer(transCount+UInt(1)).data,buffer(transCount).data)
+    transCount := transCount + UInt(2)
+    when(transCount === UInt(TransPerCmd-2)){
       stateReg := sReady
       transCount := UInt(0)
     }
   }
   when(stateReg === sWriteRec) {
-    when(io.ocpPort.M.DataValid === Bits(1)){
-      io.ocpPort.S.DataAccept := Bits(1)
+    when(io.ocp.M.DataValid === Bits(1)){
+      io.ocp.S.DataAccept := Bits(1)
       for(i <- 0 to TransPerWord-1) {
-        buffer(UInt(i)+transCount*UInt(TransPerWord)).byteEna := io.ocpPort.M.DataByteEn((i+1)*BytesPerTran-1,i*BytesPerTran)
-        buffer(UInt(i)+transCount*UInt(TransPerWord)).data := io.ocpPort.M.Data((i+1)*sramDataWidth-1,i*sramDataWidth)
+        buffer(UInt(i)+transCount*UInt(TransPerWord)).byteEna := io.ocp.M.DataByteEn((i+1)*BytesPerTran-1,i*BytesPerTran)
+        buffer(UInt(i)+transCount*UInt(TransPerWord)).data := io.ocp.M.Data((i+1)*sramDataWidth-1,i*sramDataWidth)
       }
       transCount := transCount + UInt(1)
       when(transCount === UInt(ocpBurstLen-1)){
@@ -237,19 +259,30 @@ class SRamCtrl(ocpAddrWidth     : Int=32,
     }
   }
   when(stateReg === sWriteRet) {
-    io.ocpPort.S.Resp := OcpResp.DVA
+    io.ocp.S.Resp := OcpResp.DVA
     stateReg := sReady
   }
 
-  io.ramOut.addr := addr
-  io.ramOut.dout_ena := dout_ena
-  io.ramOut.dout := dout
-  io.ramOut.nce := nce
-  io.ramOut.noe := noe
-  io.ramOut.nwe := nwe
-  io.ramOut.nlb := nlb
-  io.ramOut.nub := nub
+  io.sRamCtrlPins.ramOut.addr := addr
+  io.sRamCtrlPins.ramOut.dout_ena := dout_ena
+  io.sRamCtrlPins.ramOut.dout := dout
+  io.sRamCtrlPins.ramOut.nce := nce
+  io.sRamCtrlPins.ramOut.noe := noe
+  io.sRamCtrlPins.ramOut.nwe := nwe
+  io.sRamCtrlPins.ramOut.nlb := nlb
+  io.sRamCtrlPins.ramOut.nub := nub
 
+}
+
+class Trans(bytesEnaWidth: Int, dataWidth: Int) extends Bundle {
+  val byteEna = Bits(width=bytesEnaWidth)
+  val data = Bits(width=dataWidth)
+
+  // This does not really clone, but Data.clone doesn't either
+  override def clone() = {
+    val res = new Trans(bytesEnaWidth, dataWidth)
+    res.asInstanceOf[this.type]
+  }
 }
 
 /*
@@ -257,6 +290,8 @@ class SRamCtrl(ocpAddrWidth     : Int=32,
  */
 object SRamMain {
   def main(args: Array[String]): Unit = {
-    chiselMain(args, () => Module(new SRamCtrl()))
+    val chiselArgs = args.slice(1,args.length)
+    val ocpAddrWidth = args(0).toInt
+    chiselMain(args, () => Module(new SRamCtrl(ocpAddrWidth)))
   }
 }

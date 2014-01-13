@@ -41,7 +41,7 @@ MAIN=patmos.PatmosMain
 
 # main classes for core, memory controller and arbiter
 COREMAIN=patmos.PatmosCoreMain
-MEMCTRLMAIN32=patmos.SsramMain
+MEMCTRLMAIN32=io.SsramMain
 MEMCTRLMAIN16=io.SRamMain
 ARBITERMAIN=ocp.ArbiterMain
 
