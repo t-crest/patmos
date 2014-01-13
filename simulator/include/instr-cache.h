@@ -20,14 +20,15 @@
 #ifndef PATMOS_INSTR_CACHE_H
 #define PATMOS_INSTR_CACHE_H
 
+#include "memory.h"
 #include "data-cache.h"
 
 #include "simulation-core.h"
 
 namespace patmos
-{
+{ 
 
-    /// Basic interface for instruction-caches implementations.
+  /// Basic interface for instruction-caches implementations.
   class instr_cache_t
   {
   private:
@@ -91,61 +92,51 @@ namespace patmos
     /// Words fetched so far for the current fetch request.
     word_t Fetch_cache[NUM_SLOTS];
     
+    /// Was the current slot access a miss?
+    bool Is_miss[NUM_SLOTS];
+    
+    /// Number of fetch requests with only misses
+    uint64_t Num_all_miss;
+    
+    /// Number of fetch requests with a single miss in the first slot
+    uint64_t Num_first_miss;
+    
+    /// Number of fetch requests with a single miss not in the first slot
+    uint64_t Num_succ_miss;
+    
+    /// Number of fetch requests without misses
+    uint64_t Num_hits;
+    
   public:
     /// Construct a new instruction cache instance.
     /// The memory passed to this cache is not owned by this cache and must be
     /// managed externally.
     /// @param memory The memory that is accessed through the cache.
-    no_instr_cache_t(memory_t &memory) : Memory(&memory), Fetched(0)
+    no_instr_cache_t(memory_t &memory) 
+    : Memory(&memory), Fetched(0),
+      Num_all_miss(0), Num_first_miss(0), Num_succ_miss(0), Num_hits(0)
     {
+      for (int i = 0; i < NUM_SLOTS; i++) {
+        Is_miss[i] = false;
+      }
     }
     
     virtual void initialize(uword_t address) {}
 
-    virtual bool fetch(uword_t base, uword_t address, word_t iw[2])
-    {
-      // TODO In case of using a data cache, we should optionally assert on two 
-      // misses, in case the hardware does not support this, so that we can 
-      // debug alignment with pasim.
-      
-      for (; Fetched < NUM_SLOTS; Fetched++) {
-        
-        uword_t addr = address + Fetched * sizeof(word_t);
+    virtual bool fetch(uword_t base, uword_t address, word_t iw[NUM_SLOTS]);
 
-        bool status = Memory->read(addr, 
-                              reinterpret_cast<byte_t*>(&Fetch_cache[Fetched]),
-                              sizeof(word_t));
-        if (!status) return false;
-      }
-      
-      // all words have been fetched into the cache, copy to iw and finish.
-      for (int i = 0; i < NUM_SLOTS; i++) {
-        iw[i] = Fetch_cache[i];
-      }
-      
-      Fetched = 0;
-      
-      return true;
-    }
+    virtual bool load_method(word_t address, word_t offset);
 
-    virtual bool load_method(word_t address, word_t offset)
-    {
-      return true;
-    }
-
-    virtual bool is_available(word_t address)
-    {
-      return true;
-    }
+    virtual bool is_available(word_t address);
     
     virtual void tick() {}
 
     virtual void print(std::ostream &os) {}
 
     virtual void print_stats(const simulator_t &s, std::ostream &os,
-                             bool short_stats) {}
+                             bool short_stats);
     
-    virtual void reset_stats() {}
+    virtual void reset_stats();
     
     virtual void flush_cache() {}
   };
@@ -179,6 +170,8 @@ namespace patmos
       if (IS_OWNING_CACHE) {
         Backing_cache->tick();
       }
+      
+      no_instr_cache_t::tick();
     }
 
     /// Print debug information to an output stream.
@@ -187,7 +180,10 @@ namespace patmos
     {
       if (IS_OWNING_CACHE) {
         Backing_cache->print(os);
+        os << "\n";
       }
+      
+      no_instr_cache_t::print(os);;
     }
 
     /// Print statistics to an output stream.
@@ -197,13 +193,17 @@ namespace patmos
     {
       if (IS_OWNING_CACHE) {
         Backing_cache->print_stats(s, os, short_stats);
+        os << "\n";
       }
+
+      no_instr_cache_t::print_stats(s, os, short_stats);
     }
     
     virtual void reset_stats() {
       if (IS_OWNING_CACHE) {
         Backing_cache->reset_stats();
       }
+      no_instr_cache_t::reset_stats();
     }
     
     virtual void flush_cache() {
