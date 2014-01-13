@@ -2,7 +2,7 @@ About Patmos
 ============
 
 Patmos is a time-predictable VLIW processor. Patmos is the processor for the T-CREST project.
-See also: http://www.t-crest.org/
+See also: http://www.t-crest.org/ and http://patmos.compute.dtu.dk/
 
 The Patmos [Handbook]
 (http://patmos.compute.dtu.dk/patmos_handbook.pdf)
@@ -19,7 +19,7 @@ The following apt-get lists the packages that need to be
 installed:
 
     sudo apt-get install openjdk-7-jdk git cmake make g++ texinfo flex bison \
-      libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
+      subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
       gtkwave
 
 We assume that the T-CREST project will live in $HOME/t-crest.
