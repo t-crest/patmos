@@ -46,3 +46,5 @@ $(BUILDDIR)/bootable-%.s: %.c
 
 # application-specific additional dependencies
 $(BUILDDIR)/bootable-bootloader.elf: download.c boot.h
+$(BUILDDIR)/bootable-cmpmaster.elf: download.c boot.h cmpboot.h
+$(BUILDDIR)/bootable-cmpslave.elf: boot.h cmpboot.h
