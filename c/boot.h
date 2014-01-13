@@ -31,55 +31,39 @@
  */
 
 /*
- * Boot loader (for uniprocessor).
+ * Definitions for boot loaders.
  * 
  * Authors: Tórur Biskopstø Strøm (torur.strom@gmail.com)
  *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
- *
  */
 
-#include "boot.h"
+#ifndef _BOOT_H_
+#define _BOOT_H_
 
-int main(void) {
-  // setup stack frame and stack cache.
-  asm volatile ("mov $r29 = %0;" // initialize shadow stack pointer"
-                "mts $ss  = %1;" // initialize the stack cache's spill pointer"
-                "mts $st  = %1;" // initialize the stack cache's top pointer"
-                "li $r30 = %2;" // initialize return base"
-                : : "r" (&_shadow_stack_base),
-                  "r" (&_stack_cache_base),
-                  "i" (&main));
-  
-  // download application
-  volatile int (*entrypoint)() = download();
+#include <machine/patmos.h>
+#include <machine/spm.h>
 
-  // call the application's _start()
-  int retval = -1;
-  if (entrypoint != 0) {
-    retval = (*entrypoint)();
+#define UART_STATUS *((volatile _IODEV int *) 0xF0000800)
+#define UART_DATA   *((volatile _IODEV int *) 0xF0000804)
+#define LEDS        *((volatile _IODEV int *) 0xF0000900)
 
-    // Compensate off-by-one of return offset with NOP
-    // (internal base address is 0 after booting).
-    // Return may be "unclean" and leave registers clobbered.
-    asm volatile ("nop" : :
-                  : "$r2", "$r3", "$r4", "$r5",
-                    "$r6", "$r7", "$r8", "$r9",
-                    "$r10", "$r11", "$r12", "$r13",
-                    "$r14", "$r15", "$r16", "$r17",
-                    "$r18", "$r19", "$r20", "$r21",
-                    "$r22", "$r23", "$r24", "$r25",
-                    "$r26", "$r27", "$r28", "$r29");
-  }
+#define MEM         ((volatile _UNCACHED int *) 0x0)
+#define SPM         ((volatile _SPM int *) 0x0)
 
-  // Print exit magic and return code
-  static char msg[10];
-  msg[0] = '\0';
-  msg[1] = 'x';
-  msg[2] = retval & 0xff;
-  WRITE(msg, 3);
+#define XDIGIT(c) ((c) <= 9 ? '0' + (c) : 'a' + (c) - 10)
 
-  // loop back, TODO: replace with a real reset
-  main();
+#define WRITE(data,len) do { \
+  unsigned i; \
+  for (i = 0; i < (len); i++) {		   \
+    while ((UART_STATUS & 0x01) == 0); \
+    UART_DATA = (data)[i];			   \
+  } \
+} while(0)
 
-  return 0;
-}
+int main(void) __attribute__((naked,used));
+extern int _stack_cache_base, _shadow_stack_base;
+
+typedef volatile int (*entrypoint_t)(void);
+entrypoint_t download(void) __attribute__((noinline));
+
+#endif /* _BOOT_H_ */
