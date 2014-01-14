@@ -66,9 +66,6 @@ object MConstants {
 class FeMCache extends Bundle() {
   val addrEven = Bits(width = EXTMEM_ADDR_WIDTH) 
   val addrOdd = Bits(width = EXTMEM_ADDR_WIDTH) 
-  val request = Bool()
-  val doCallRet = Bool()
-  val callRetBase = UInt(width = EXTMEM_ADDR_WIDTH)
 }
 class ExMCache() extends Bundle() {
   val doCallRet = Bool()
@@ -114,7 +111,6 @@ class MCacheCtrlRepl extends Bundle() {
 }
 class MCacheReplCtrl extends Bundle() {
   val hit = Bool()
-  val posOffset = Bits(width = MAX_OFF_WIDTH)
 }
 class MCacheReplIO extends Bundle() {
   val ena_in = Bool(INPUT)
@@ -319,7 +315,6 @@ class MCacheReplFifo() extends Module {
   io.mcachefe.memSel := Cat(selIspmReg, selMCacheReg)
 
   io.mcache_replctrl.hit := hitReg
-  io.mcache_replctrl.posOffset := wrPosReg
 
   io.hitEna := hitReg
 }
@@ -332,8 +327,8 @@ class MCacheCtrl() extends Module {
   val io = new MCacheCtrlIO()
 
   //fsm state variables
-  val initState :: idleState :: sizeState :: transferState :: restartState :: Nil = Enum(UInt(), 5)
-  val mcacheState = Reg(init = initState)
+  val idleState :: sizeState :: transferState :: restartState :: Nil = Enum(UInt(), 4)
+  val mcacheState = Reg(init = idleState)
   //signals for method cache memory (mcache_repl)
   val addrEven = Bits(width = EXTMEM_ADDR_WIDTH)
   val addrOdd = Bits(width = EXTMEM_ADDR_WIDTH)
@@ -372,12 +367,6 @@ class MCacheCtrl() extends Module {
     addrOddReg := io.femcache.addrOdd
   }
 
-  //init state needs to fetch at program counter - 1 the first size of method block
-  when (mcacheState === initState) {
-    when(io.femcache.request) {
-      mcacheState := idleState
-    }
-  }
   //check if instruction is available
   when (mcacheState === idleState) {
     when(io.mcache_replctrl.hit === Bits(1)) {

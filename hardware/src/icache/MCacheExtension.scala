@@ -139,7 +139,6 @@ class MCacheReplFifo2() extends Module {
   io.mcachefe.memSel := Cat(selIspmReg, selMCacheReg)
 
   io.mcache_replctrl.hit := hitReg
-  io.mcache_replctrl.posOffset := wrPosReg
 
   io.hitEna := hitReg
 }
@@ -295,7 +294,6 @@ class MCacheReplLru() extends Module {
   io.mcachefe.memSel := Cat(selIspmReg, selMCacheReg)
   //signals to ctrl unit
   io.mcache_replctrl.hit := hitReg
-  io.mcache_replctrl.posOffset := wrPosReg
   //hit/stall signal
   io.hitEna := hitReg
 

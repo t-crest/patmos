@@ -211,14 +211,26 @@ static void mcacheStat(Patmos_t *c, bool halt) {
   //everytime a method is called from the cache, todo: find a better way to measure hits
   if (c->Patmos_core_fetch__io_memfe_doCallRet.to_bool() == true &&
       c->Patmos_core_mcache_mcacherepl__io_mcache_replctrl_hit.to_bool() == true &&
-      c->Patmos_core_mcache_mcachectrl__mcacheState.to_ulong() == 1 &&
+      c->Patmos_core_mcache_mcachectrl__mcacheState.to_ulong() == 0 &&
       c->Patmos_core_mcache__io_ena_in.to_bool() == true &&
       c->Patmos_core_mcache_mcachectrl__io_mcache_ctrlrepl_instrStall.to_bool() == false) {
     cache_hits++;
   }
   #else
   //add stats for instruction cache measurements
+  if (c->Patmos_core_mcache_mcachectrl__io_icache_ctrlrepl_wTag.to_bool() == true) {
+    cache_miss++;
+  }
+  if (c->Patmos_core_fetch__io_ena.to_bool() == true) {
+    if (c->Patmos_core_mcache_mcacherepl__hitInstrEven.to_bool() == true) {
+      cache_hits++;
+    }
+    if (c->Patmos_core_mcache_mcacherepl__hitInstrOdd.to_bool() == true) {
+      cache_hits++;
+    }
+  }
   #endif
+  
   //pipeline stalls caused by the mcache
   if (c->Patmos_core_mcache__io_ena_out.to_bool() == false) {
     cache_stall_cycles++;
