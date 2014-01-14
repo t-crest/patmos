@@ -279,7 +279,6 @@ class ICacheReplDm() extends Module {
   }
 
   val wrParity = io.icache_ctrlrepl.wAddr(0)
-  val addrParityReg = Reg(next = io.feicache.addrOdd(0))
 
   //outputs to icache memory
   io.icachemem_in.wEven := Mux(wrParity, Bool(false), io.icache_ctrlrepl.wEna)
@@ -289,8 +288,8 @@ class ICacheReplDm() extends Module {
   io.icachemem_in.addrOdd := (io.feicache.addrOdd)(INDEX_FIELD_HIGH,1)
   io.icachemem_in.addrEven := (io.feicache.addrEven)(INDEX_FIELD_HIGH,1)
 
-  io.icachefe.instrA := Mux(addrParityReg, io.icachemem_out.instrOdd, io.icachemem_out.instrEven)
-  io.icachefe.instrB := Mux(addrParityReg, io.icachemem_out.instrEven, io.icachemem_out.instrOdd)
+  io.icachefe.instrEven := io.icachemem_out.instrEven
+  io.icachefe.instrOdd := io.icachemem_out.instrOdd
 
   io.icachefe.relBase := relBase
   io.icachefe.relPc := relPc

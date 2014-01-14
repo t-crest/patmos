@@ -76,8 +76,8 @@ class ExMCache() extends Bundle() {
   val callRetAddr = UInt(width = EXTMEM_ADDR_WIDTH)
 }
 class MCacheFe extends Bundle() {
-  val instrA = Bits(width = INSTR_WIDTH)
-  val instrB = Bits(width = INSTR_WIDTH)
+  val instrEven = Bits(width = INSTR_WIDTH)
+  val instrOdd = Bits(width = INSTR_WIDTH)
   // relative base address
   val relBase = UInt(width = MAX_OFF_WIDTH)
   // relative program counter
@@ -295,8 +295,6 @@ class MCacheReplFifo() extends Module {
   val wAddr = (wrPosReg + io.mcache_ctrlrepl.wAddr)(MCACHE_SIZE_WIDTH-1,1)
   val addrEven = (io.mcache_ctrlrepl.addrEven)(MCACHE_SIZE_WIDTH-1,1)
   val addrOdd = (io.mcache_ctrlrepl.addrOdd)(MCACHE_SIZE_WIDTH-1,1)
-  //remember parity for the next cycle
-  val addrParityReg = Reg(next = io.mcache_ctrlrepl.addrOdd(0))
 
   io.mcachemem_in.wEven := Mux(wParity, Bool(false), io.mcache_ctrlrepl.wEna)
   io.mcachemem_in.wOdd := Mux(wParity, io.mcache_ctrlrepl.wEna, Bool(false))
@@ -305,16 +303,16 @@ class MCacheReplFifo() extends Module {
   io.mcachemem_in.addrEven := addrEven
   io.mcachemem_in.addrOdd := addrOdd
 
-  val instrAReg = Reg(init = Bits(0, width = INSTR_WIDTH))
-  val instrBReg = Reg(init = Bits(0, width = INSTR_WIDTH))
-  val instrA = Mux(addrParityReg, io.mcachemem_out.instrOdd, io.mcachemem_out.instrEven)
-  val instrB = Mux(addrParityReg, io.mcachemem_out.instrEven, io.mcachemem_out.instrOdd)
+  val instrEvenReg = Reg(init = Bits(0, width = INSTR_WIDTH))
+  val instrOddReg = Reg(init = Bits(0, width = INSTR_WIDTH))
+  val instrEven = io.mcachemem_out.instrEven
+  val instrOdd = io.mcachemem_out.instrOdd
   when (!io.mcache_ctrlrepl.instrStall) {
-    instrAReg := io.mcachefe.instrA
-    instrBReg := io.mcachefe.instrB
+    instrEvenReg := io.mcachefe.instrEven
+    instrOddReg := io.mcachefe.instrOdd
   }
-  io.mcachefe.instrA := Mux(io.mcache_ctrlrepl.instrStall, instrAReg, instrA)
-  io.mcachefe.instrB := Mux(io.mcache_ctrlrepl.instrStall, instrBReg, instrB)
+  io.mcachefe.instrEven := Mux(io.mcache_ctrlrepl.instrStall, instrEvenReg, instrEven)
+  io.mcachefe.instrOdd := Mux(io.mcache_ctrlrepl.instrStall, instrOddReg, instrOdd)
   io.mcachefe.relBase := relBase
   io.mcachefe.relPc := relPc
   io.mcachefe.reloc := reloc
