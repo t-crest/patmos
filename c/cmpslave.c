@@ -47,8 +47,8 @@ int main(void)
                 "mts $ss  = %1;" // initialize the stack cache's spill pointer"
                 "mts $st  = %1;" // initialize the stack cache's top pointer"
                 "li $r30 = %2;" // initialize return base"
-                : : "r" (_shadow_stack_base-16),
-                  "r" (_stack_cache_base-16),
+                : : "r" (&_shadow_stack_base),
+                  "r" (&_stack_cache_base),
                   "i" (&main));
 
   // overwrite any potential leftovers from previous runs

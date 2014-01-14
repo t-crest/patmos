@@ -47,8 +47,8 @@ int main(void)
                 "mts $ss  = %1;" // initialize the stack cache's spill pointer"
                 "mts $st  = %1;" // initialize the stack cache's top pointer"
                 "li $r30 = %2;" // initialize return base"
-                : : "r" (_shadow_stack_base-16),
-                  "r" (_stack_cache_base-16),
+                : : "r" (&_shadow_stack_base),
+                  "r" (&_stack_cache_base),
                   "i" (&main));
 
   unsigned i;
@@ -75,11 +75,24 @@ int main(void)
   // notify slaves that they can call _start()
   boot_info->master.status = STATUS_START;
 
-  WRITE("START\n", 5);
+  WRITE("START\n", 6);
     
+  static char msg[10];
+  msg[0] = XDIGIT(((int)boot_info->master.entrypoint >> 28) & 0xf);
+  msg[1] = XDIGIT(((int)boot_info->master.entrypoint >> 24) & 0xf);
+  msg[2] = XDIGIT(((int)boot_info->master.entrypoint >> 20) & 0xf);
+  msg[3] = XDIGIT(((int)boot_info->master.entrypoint >> 16) & 0xf);
+  msg[4] = XDIGIT(((int)boot_info->master.entrypoint >> 12) & 0xf);
+  msg[5] = XDIGIT(((int)boot_info->master.entrypoint >>  8) & 0xf);
+  msg[6] = XDIGIT(((int)boot_info->master.entrypoint >>  4) & 0xf);
+  msg[7] = XDIGIT(((int)boot_info->master.entrypoint >>  0) & 0xf);
+  msg[8] = '\n';
+  WRITE(msg, 9);
+
   // call the application's _start()
   int retval = -1;
-  if (boot_info->master.entrypoint != 0) {
+  if (boot_info->master.entrypoint != NULL) {
+
     retval = (*boot_info->master.entrypoint)();
 
     // Compensate off-by-one of return offset with NOP
@@ -97,8 +110,9 @@ int main(void)
 
   // TODO: wait for slaves to finish
 
+  WRITE("EXIT\n", 5);
+
   // Print exit magic and return code
-  static char msg[10];
   msg[0] = '\0';
   msg[1] = 'x';
   msg[2] = retval & 0xff;
