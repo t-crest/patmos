@@ -451,8 +451,14 @@ class MCacheCtrl() extends Module {
   io.fetch_ena := !wenaReg
 
   //output to external memory
-  io.ocp_port.M.Addr := Cat(ocpAddr, Bits("b00"))
-  io.ocp_port.M.Cmd := ocpCmd
+  val ocpCmdReg = Reg(init = OcpCmd.IDLE)
+  val ocpAddrReg = Reg(init = Bits(0))
+  when (ocpCmdReg === OcpCmd.IDLE || io.ocp_port.S.CmdAccept === Bits(1)) {
+    ocpCmdReg := ocpCmd
+    ocpAddrReg := ocpAddr
+  }
+  io.ocp_port.M.Addr := Cat(ocpAddrReg, Bits("b00"))
+  io.ocp_port.M.Cmd := ocpCmdReg
   io.ocp_port.M.Data := Bits(0)
   io.ocp_port.M.DataByteEn := Bits("b1111")
   io.ocp_port.M.DataValid := Bits(0)
