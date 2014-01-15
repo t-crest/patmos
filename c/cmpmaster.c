@@ -31,16 +31,17 @@
  */
 
 /*
- * Boot loader (for uniprocessor).
+ * Master for CMP boot loader.
  * 
- * Authors: Tórur Biskopstø Strøm (torur.strom@gmail.com)
- *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
+ * Author: Wolfgang Puffitsch (wpuffitsch@gmail.com)
  *
  */
 
 #include "boot.h"
+#include "cmpboot.h"
 
-int main(void) {
+int main(void)
+{
   // setup stack frame and stack cache.
   asm volatile ("mov $r29 = %0;" // initialize shadow stack pointer"
                 "mts $ss  = %1;" // initialize the stack cache's spill pointer"
@@ -49,14 +50,50 @@ int main(void) {
                 : : "r" (&_shadow_stack_base),
                   "r" (&_stack_cache_base),
                   "i" (&main));
-  
+
+  unsigned i;
+
+  WRITE("BOOT\n", 5);
+
+  // overwrite potential leftovers from previous runs
+  boot_info->master.status = STATUS_NULL;
+  boot_info->master.entrypoint = NULL;
+  for (i = 0; i < MAX_CORES; i++) {
+    boot_info->slave[i].status = STATUS_NULL;
+  }
+
+  // give the slaves some time to boot
+  for (i = 0; i < 0x10; i++) {
+    boot_info->master.status = STATUS_DOWNLOAD;
+  }
+
+  WRITE("DOWN\n", 5);
+
   // download application
-  volatile int (*entrypoint)() = download();
+  boot_info->master.entrypoint = download();
+
+  // notify slaves that they can call _start()
+  boot_info->master.status = STATUS_START;
+
+  WRITE("START\n", 6);
+    
+  static char msg[10];
+  msg[0] = XDIGIT(((int)boot_info->master.entrypoint >> 28) & 0xf);
+  msg[1] = XDIGIT(((int)boot_info->master.entrypoint >> 24) & 0xf);
+  msg[2] = XDIGIT(((int)boot_info->master.entrypoint >> 20) & 0xf);
+  msg[3] = XDIGIT(((int)boot_info->master.entrypoint >> 16) & 0xf);
+  msg[4] = XDIGIT(((int)boot_info->master.entrypoint >> 12) & 0xf);
+  msg[5] = XDIGIT(((int)boot_info->master.entrypoint >>  8) & 0xf);
+  msg[6] = XDIGIT(((int)boot_info->master.entrypoint >>  4) & 0xf);
+  msg[7] = XDIGIT(((int)boot_info->master.entrypoint >>  0) & 0xf);
+  msg[8] = '\n';
+  WRITE(msg, 9);
 
   // call the application's _start()
   int retval = -1;
-  if (entrypoint != 0) {
-    retval = (*entrypoint)();
+  if (boot_info->master.entrypoint != NULL) {
+
+    retval = (*boot_info->master.entrypoint)();
 
     // Compensate off-by-one of return offset with NOP
     // (internal base address is 0 after booting).
@@ -71,8 +108,11 @@ int main(void) {
                     "$r26", "$r27", "$r28", "$r29");
   }
 
+  // TODO: wait for slaves to finish
+
+  WRITE("EXIT\n", 5);
+
   // Print exit magic and return code
-  static char msg[10];
   msg[0] = '\0';
   msg[1] = 'x';
   msg[2] = retval & 0xff;

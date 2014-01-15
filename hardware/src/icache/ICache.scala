@@ -243,13 +243,17 @@ class ICacheReplDm() extends Module {
   val blockParityOddReg = addrOddReg(INDEX_FIELD_LOW)
   val addrTagEvenReg = addrEvenReg(TAG_FIELD_HIGH, TAG_FIELD_LOW)
   val addrTagOddReg = addrOddReg(TAG_FIELD_HIGH, TAG_FIELD_LOW)
+  val addrIndexEvenReg = addrEvenReg(INDEX_FIELD_HIGH, INDEX_FIELD_LOW)
+  val addrIndexOddReg = addrOddReg(INDEX_FIELD_HIGH, INDEX_FIELD_LOW)
+  val addrValidEven = io.feicache.addrEven(INDEX_FIELD_HIGH, INDEX_FIELD_LOW)
+  val addrValidOdd = io.feicache.addrOdd(INDEX_FIELD_HIGH, INDEX_FIELD_LOW)
 
   // Mux of tag memory output
   val toutEven = Mux(blockParityEvenReg, tagMemOdd.io(addrIndexOdd), tagMemEven.io(addrIndexEven))
   val toutOdd = Mux(blockParityOddReg, tagMemOdd.io(addrIndexOdd), tagMemEven.io(addrIndexEven))
 
-  val validEven = validVec(io.feicache.addrEven(INDEX_FIELD_HIGH, INDEX_FIELD_LOW))
-  val validOdd = validVec(io.feicache.addrOdd(INDEX_FIELD_HIGH, INDEX_FIELD_LOW))
+  val validEven = validVec(addrValidEven)
+  val validOdd = validVec(addrValidOdd)
   val validTag = validEven && validOdd
   val validTagReg = Reg(next = validTag)
 
@@ -265,6 +269,9 @@ class ICacheReplDm() extends Module {
     fetchAddr := addrOddReg
   }
 
+  debug(hitInstrEven)
+  debug(hitInstrOdd)
+
   val wrAddrTag = io.icache_ctrlrepl.wAddr(TAG_FIELD_HIGH,TAG_FIELD_LOW)
   //index for valid field
   val wrValidIndex = io.icache_ctrlrepl.wAddr(INDEX_FIELD_HIGH, INDEX_FIELD_LOW)
@@ -279,7 +286,6 @@ class ICacheReplDm() extends Module {
   }
 
   val wrParity = io.icache_ctrlrepl.wAddr(0)
-  val addrParityReg = Reg(next = io.feicache.addrOdd(0))
 
   //outputs to icache memory
   io.icachemem_in.wEven := Mux(wrParity, Bool(false), io.icache_ctrlrepl.wEna)
@@ -289,8 +295,8 @@ class ICacheReplDm() extends Module {
   io.icachemem_in.addrOdd := (io.feicache.addrOdd)(INDEX_FIELD_HIGH,1)
   io.icachemem_in.addrEven := (io.feicache.addrEven)(INDEX_FIELD_HIGH,1)
 
-  io.icachefe.instrA := Mux(addrParityReg, io.icachemem_out.instrOdd, io.icachemem_out.instrEven)
-  io.icachefe.instrB := Mux(addrParityReg, io.icachemem_out.instrEven, io.icachemem_out.instrOdd)
+  io.icachefe.instrEven := io.icachemem_out.instrEven
+  io.icachefe.instrOdd := io.icachemem_out.instrOdd
 
   io.icachefe.relBase := relBase
   io.icachefe.relPc := relPc
@@ -310,8 +316,8 @@ class ICacheCtrl() extends Module {
   val io = new ICacheCtrlIO()
 
   //fsm state variables
-  val initState :: idleState :: transferState :: Nil = Enum(UInt(), 3)
-  val icacheState = Reg(init = initState)
+  val idleState :: transferState :: Nil = Enum(UInt(), 2)
+  val icacheState = Reg(init = idleState)
   //signal for replacement unit
   val wData = Bits(width = DATA_WIDTH)
   val wTag = Bool()
@@ -338,12 +344,6 @@ class ICacheCtrl() extends Module {
   ocpAddr := Bits(0)
   fetchEna := Bool(true)
 
-  when (icacheState === initState) {
-    fetchEna := Bool(false)
-    when(io.feicache.request) {
-      icacheState := idleState
-    }
-  }
   when (icacheState === idleState) {
     when (!io.icache_replctrl.hitEna) {
       fetchEna := Bool(false)

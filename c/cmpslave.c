@@ -31,16 +31,17 @@
  */
 
 /*
- * Boot loader (for uniprocessor).
+ * Slave for CMP boot loader.
  * 
- * Authors: Tórur Biskopstø Strøm (torur.strom@gmail.com)
- *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
+ * Author: Wolfgang Puffitsch (wpuffitsch@gmail.com)
  *
  */
 
 #include "boot.h"
+#include "cmpboot.h"
 
-int main(void) {
+int main(void)
+{
   // setup stack frame and stack cache.
   asm volatile ("mov $r29 = %0;" // initialize shadow stack pointer"
                 "mts $ss  = %1;" // initialize the stack cache's spill pointer"
@@ -49,14 +50,29 @@ int main(void) {
                 : : "r" (&_shadow_stack_base),
                   "r" (&_stack_cache_base),
                   "i" (&main));
-  
-  // download application
-  volatile int (*entrypoint)() = download();
+
+  // overwrite any potential leftovers from previous runs
+  boot_info->master.status = STATUS_NULL;
+  boot_info->master.entrypoint = NULL;
+  boot_info->slave[core_id].status = STATUS_NULL;
+
+  do {
+    // make sure the own status is visible
+    boot_info->slave[core_id].status = STATUS_DOWNLOAD;
+    // until master has booted
+  } while (boot_info->master.status != STATUS_DOWNLOAD);
+
+  // wait until master has downloaded
+  while (boot_info->master.status != STATUS_START) {
+    /* spin */
+  }  
+  // acknowledge reception of start status
+  boot_info->slave[core_id].status = STATUS_START;
 
   // call the application's _start()
   int retval = -1;
-  if (entrypoint != 0) {
-    retval = (*entrypoint)();
+  if (boot_info->master.entrypoint != 0) {
+    retval = (*boot_info->master.entrypoint)();
 
     // Compensate off-by-one of return offset with NOP
     // (internal base address is 0 after booting).
@@ -70,13 +86,8 @@ int main(void) {
                     "$r22", "$r23", "$r24", "$r25",
                     "$r26", "$r27", "$r28", "$r29");
   }
-
-  // Print exit magic and return code
-  static char msg[10];
-  msg[0] = '\0';
-  msg[1] = 'x';
-  msg[2] = retval & 0xff;
-  WRITE(msg, 3);
+  
+  // TODO: report return value back to master
 
   // loop back, TODO: replace with a real reset
   main();

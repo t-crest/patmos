@@ -31,55 +31,40 @@
  */
 
 /*
- * Boot loader (for uniprocessor).
+ * Definitions for CMP boot loaders.
  * 
- * Authors: Tórur Biskopstø Strøm (torur.strom@gmail.com)
- *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
+ * Author: Wolfgang Puffitsch (wpuffitsch@gmail.com)
  *
  */
 
-#include "boot.h"
+#ifndef _CMPBOOT_H_
+#define _CMPBOOT_H_
 
-int main(void) {
-  // setup stack frame and stack cache.
-  asm volatile ("mov $r29 = %0;" // initialize shadow stack pointer"
-                "mts $ss  = %1;" // initialize the stack cache's spill pointer"
-                "mts $st  = %1;" // initialize the stack cache's top pointer"
-                "li $r30 = %2;" // initialize return base"
-                : : "r" (&_shadow_stack_base),
-                  "r" (&_stack_cache_base),
-                  "i" (&main));
-  
-  // download application
-  volatile int (*entrypoint)() = download();
+#include <machine/patmos.h>
 
-  // call the application's _start()
-  int retval = -1;
-  if (entrypoint != 0) {
-    retval = (*entrypoint)();
+#define MAX_CORES 64
+#define core_id *((volatile _IODEV int *) 0xF0000000)
 
-    // Compensate off-by-one of return offset with NOP
-    // (internal base address is 0 after booting).
-    // Return may be "unclean" and leave registers clobbered.
-    asm volatile ("nop" : :
-                  : "$r2", "$r3", "$r4", "$r5",
-                    "$r6", "$r7", "$r8", "$r9",
-                    "$r10", "$r11", "$r12", "$r13",
-                    "$r14", "$r15", "$r16", "$r17",
-                    "$r18", "$r19", "$r20", "$r21",
-                    "$r22", "$r23", "$r24", "$r25",
-                    "$r26", "$r27", "$r28", "$r29");
-  }
+#define STATUS_NULL     0
+#define STATUS_DOWNLOAD 1
+#define STATUS_START    2
 
-  // Print exit magic and return code
-  static char msg[10];
-  msg[0] = '\0';
-  msg[1] = 'x';
-  msg[2] = retval & 0xff;
-  WRITE(msg, 3);
+struct master_info_t {  
+  volatile entrypoint_t entrypoint;
+  volatile int status;
+};
 
-  // loop back, TODO: replace with a real reset
-  main();
+struct slave_info_t {
+  volatile int status;
+};
 
-  return 0;
-}
+struct boot_info_t {
+  struct master_info_t master;
+  struct slave_info_t slave[MAX_CORES];
+};
+
+/* Place boot info at the beginning of the memory. Nothing else may be
+   placed there. */
+#define boot_info ((_UNCACHED struct boot_info_t *)0x00000010)
+
+#endif /* _CMPBOOT_H_ */
