@@ -3226,6 +3226,20 @@ bin/emulator tmp/helloworld.elf
 
 \martin{Where is the make target to run the emulator with an ELF file?}
 
+\section{ModelSim license}
+In the case that you have a DTU Compute login you can access the license servers from outside the DTU network by setting up an SSH tunnel.
+An example of how such a tunnel can be set up follows, you need to insert you own username.
+
+\begin{verbatim}
+ssh -L 1717:angel2:1717 -L 1718:angel2:1718 ${USERNAME}@sshlogin.compute.dtu.dk
+\end{verbatim}
+
+When the SSH tunnel is setup the LM\_LICENSE\_FILE needs to be set to:
+\begin{verbatim}
+LM_LICENSE_FILE=1717@localhost
+\end{verbatim}
+
+This way of setting up an SSH tunnel might also work for other institutions.
 
 \chapter{The Patmos Compiler}
 \label{sec:compiler}
