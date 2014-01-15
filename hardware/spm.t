@@ -3,6 +3,8 @@ SECTIONS
 {
   . = SEGMENT_START(".rodata", 0x400);
   .rodata : { *(.rodata .rodata.*) }
+  .init_array : { *(SORT(.init_array.*) .init_array) }
+  .fini_array : { *(SORT(.fini_array.*) .fini_array) }
   .data : { *(.data) }
   .bss : { *(.bss) }
 
