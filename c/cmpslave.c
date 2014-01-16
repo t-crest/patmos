@@ -58,16 +58,16 @@ int main(void)
 
   do {
     // make sure the own status is visible
-    boot_info->slave[core_id].status = STATUS_DOWNLOAD;
+    boot_info->slave[core_id].status = STATUS_BOOT;
     // until master has booted
-  } while (boot_info->master.status != STATUS_DOWNLOAD);
+  } while (boot_info->master.status != STATUS_BOOT);
 
   // wait until master has downloaded
-  while (boot_info->master.status != STATUS_START) {
+  while (boot_info->master.status != STATUS_INIT) {
     /* spin */
   }  
   // acknowledge reception of start status
-  boot_info->slave[core_id].status = STATUS_START;
+  boot_info->slave[core_id].status = STATUS_INIT;
 
   // call the application's _start()
   int retval = -1;

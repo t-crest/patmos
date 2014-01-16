@@ -31,41 +31,53 @@
  */
 
 /*
- * Definitions for CMP boot loaders.
+ * Definitions for the NoC.
  * 
  * Author: Wolfgang Puffitsch (wpuffitsch@gmail.com)
  *
  */
 
-#ifndef _CMPBOOT_H_
-#define _CMPBOOT_H_
+#ifndef _NOC_H_
+#define _NOC_H
 
 #include <machine/patmos.h>
+#include <machine/spm.h>
 
-#define MAX_CORES 64
-#define core_id *((volatile _IODEV int *) 0xF0000000)
+// Definitions used for initialization of network interface
+extern const int NOC_CORES;
+extern const int NOC_MASTER;
+extern const int NOC_TABLES;
+extern const int NOC_TIMESLOTS;
+extern const int NOC_DMAS;
+extern const int noc_init_array [];
 
-#define STATUS_NULL     0
-#define STATUS_BOOT     1
-#define STATUS_INIT     2
-#define STATUS_INITDONE 3
+// Initialize notwork-on-chip and synchronize
+void noc_init(void) __attribute__((constructor,used));
 
-struct master_info_t {  
-  volatile entrypoint_t entrypoint;
-  volatile int status;
-};
+#ifdef NOC_INIT
+// Pull in initializer, even if nothing else from the library is used
+static const void * volatile __noc_include __attribute__((used)) = &noc_init;
+#endif
 
-struct slave_info_t {
-  volatile int status;
-};
+// Start a NoC transfer
+// The addresses and the size are in double-words and relative to the
+// communication SPM
+int noc_send(unsigned rcv_id, unsigned short write_ptr,
+             unsigned short read_ptr, unsigned short size);
 
-struct boot_info_t {
-  struct master_info_t master;
-  struct slave_info_t slave[MAX_CORES];
-};
+// Transfer data via the NoC
+// The addresses and the size are in bytes
+void noc_dma(int dst_id, volatile void _SPM *dst,
+             volatile void _SPM *src, size_t len);
 
-/* Place boot info at the beginning of the memory. Nothing else may be
-   placed there. */
-#define boot_info ((_UNCACHED struct boot_info_t *)0x00000010)
+// Definitions for setting up a transfer
+#define NOC_VALID_BIT 0x08000
+#define NOC_DONE_BIT 0x04000
 
-#endif /* _CMPBOOT_H_ */
+// Definitions for address mapping
+#define NOC_DMA_BASE    ((volatile int _IODEV *)0xE0000000)
+#define NOC_DMA_P_BASE  ((volatile int _IODEV *)0xE1000000)
+#define NOC_ST_BASE     ((volatile int _IODEV *)0xE2000000)
+#define NOC_SPM_BASE    ((volatile int _SPM   *)0xE8000000)
+
+#endif /* _NOC_H_ */
