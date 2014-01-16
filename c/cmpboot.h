@@ -46,8 +46,9 @@
 #define core_id *((volatile _IODEV int *) 0xF0000000)
 
 #define STATUS_NULL     0
-#define STATUS_DOWNLOAD 1
-#define STATUS_START    2
+#define STATUS_BOOT     1
+#define STATUS_INIT     2
+#define STATUS_INITDONE 3
 
 struct master_info_t {  
   volatile entrypoint_t entrypoint;

@@ -51,20 +51,18 @@ int main(void)
                   "r" (&_stack_cache_base),
                   "i" (&main));
 
-  unsigned i;
-
   WRITE("BOOT\n", 5);
 
   // overwrite potential leftovers from previous runs
   boot_info->master.status = STATUS_NULL;
   boot_info->master.entrypoint = NULL;
-  for (i = 0; i < MAX_CORES; i++) {
+  for (unsigned i = 0; i < MAX_CORES; i++) {
     boot_info->slave[i].status = STATUS_NULL;
   }
 
   // give the slaves some time to boot
-  for (i = 0; i < 0x10; i++) {
-    boot_info->master.status = STATUS_DOWNLOAD;
+  for (unsigned i = 0; i < 0x10; i++) {
+    boot_info->master.status = STATUS_BOOT;
   }
 
   WRITE("DOWN\n", 5);
@@ -73,7 +71,7 @@ int main(void)
   boot_info->master.entrypoint = download();
 
   // notify slaves that they can call _start()
-  boot_info->master.status = STATUS_START;
+  boot_info->master.status = STATUS_INIT;
 
   WRITE("START\n", 6);
     
