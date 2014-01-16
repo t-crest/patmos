@@ -33,9 +33,9 @@ $(BUILDDIR)/%.o: %.c
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) -c -o $@ $(filter %.c,$^)
 
-$(BUILDDIR)/%.elf: %.c
+$(BUILDDIR)/%.elf: %.c libnoc
 	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lnoc
 
 $(BUILDDIR)/%.s: %.c
 	mkdir -p $(BUILDDIR)/$(dir $*)
@@ -56,3 +56,9 @@ $(BUILDDIR)/bootable-cmpslave.elf: boot.h cmpboot.h
 
 $(BUILDDIR)/bootable-mandelbrot_par.elf: nocinit.c
 $(BUILDDIR)/mandelbrot_par.elf: nocinit.c
+
+# library for network-on-chip
+.PHONY: libnoc
+libnoc: $(BUILDDIR)/libnoc.a
+$(BUILDDIR)/libnoc.a: $(BUILDDIR)/libnoc/noc.o
+	ar r $@ $^
