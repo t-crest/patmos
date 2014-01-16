@@ -54,5 +54,5 @@ $(BUILDDIR)/bootable-bootloader.elf: download.c boot.h
 $(BUILDDIR)/bootable-cmpmaster.elf: download.c boot.h cmpboot.h
 $(BUILDDIR)/bootable-cmpslave.elf: boot.h cmpboot.h
 
-$(BUILDDIR)/bootable-mandelbrot_par.elf: init.h
-$(BUILDDIR)/mandelbrot_par.elf: init.h
+$(BUILDDIR)/bootable-mandelbrot_par.elf: nocinit.c
+$(BUILDDIR)/mandelbrot_par.elf: nocinit.c
