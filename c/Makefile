@@ -11,7 +11,8 @@ CFLAGS-BOOTABLE=-target patmos-unknown-unknown-elf -Os \
 	-mpatmos-disable-stack-cache \
 	-mpatmos-disable-vliw=true
 LDFLAGS-BOOTABLE= \
-	-mpatmos-method-cache-size=0x8000 -mpatmos-preferred-subfunction-size=0 \
+	-mpatmos-method-cache-size=0x8000 \
+	-mpatmos-max-subfunction-size=0 -mpatmos-preferred-subfunction-size=0 \
 	-mpatmos-subfunction-align=4 \
 	-mpatmos-stack-base=0x80010680 -mpatmos-shadow-stack-base=0x80010780 \
 	-nodefaultlibs -nostdlib -nostartfiles \
@@ -41,9 +42,9 @@ $(BUILDDIR)/%.s: %.c
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) -fpatmos-emit-asm -S -o $@ $(filter %.c,$^)
 
-$(BUILDDIR)/bootable-%.elf: %.c
+$(BUILDDIR)/bootable-%.elf: %.c libnoc
 	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^)
+	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lnoc
 
 $(BUILDDIR)/bootable-%.s: %.c
 	mkdir -p $(BUILDDIR)/$(dir $*)
@@ -54,8 +55,8 @@ $(BUILDDIR)/bootable-bootloader.elf: download.c boot.h
 $(BUILDDIR)/bootable-cmpmaster.elf: download.c boot.h cmpboot.h
 $(BUILDDIR)/bootable-cmpslave.elf: boot.h cmpboot.h
 
-$(BUILDDIR)/bootable-mandelbrot_par.elf: nocinit.c
-$(BUILDDIR)/mandelbrot_par.elf: nocinit.c
+$(BUILDDIR)/bootable-mandelbrot_par.elf: nocinit.c libnoc
+$(BUILDDIR)/mandelbrot_par.elf: nocinit.c libnoc
 
 # library for network-on-chip
 .PHONY: libnoc
