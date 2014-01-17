@@ -120,7 +120,8 @@ namespace patmos
   {
     SC_IDEAL,
     SC_BLOCK,
-    SC_DCACHE
+    SC_DCACHE,
+    SC_LBLOCK
   };
 
   /// Parse a stack cache kind from a string in a stream
