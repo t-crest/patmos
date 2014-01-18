@@ -51,6 +51,9 @@ extern const int NOC_TIMESLOTS;
 extern const int NOC_DMAS;
 extern const int noc_init_array [];
 
+// Configure network interface according to initialization information
+void noc_configure(void);
+
 // Initialize notwork-on-chip and synchronize
 void noc_init(void) __attribute__((constructor,used));
 

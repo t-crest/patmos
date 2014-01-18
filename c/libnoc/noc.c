@@ -56,8 +56,8 @@ static struct network_interface
   NOC_DMA_BASE, NOC_DMA_P_BASE, NOC_ST_BASE
 };
 
-// Configure NoC according to initialization information
-static void noc_configure(void) {
+// Configure network interface according to initialization information
+void noc_configure(void) {
   int row_size = NOC_TIMESLOTS > NOC_DMAS ? NOC_TIMESLOTS : NOC_DMAS;
   int core_idx = core_id * NOC_TABLES * row_size;
   for (unsigned i = 0; i < NOC_TIMESLOTS; ++i) {
@@ -101,11 +101,11 @@ static void noc_sync(void) {
 
 // Initialize the NoC
 void noc_init(void) {
-  if (core_id == NOC_MASTER) puts("noc_configure");
+  /* if (core_id == NOC_MASTER) puts("noc_configure"); */
   noc_configure();
-  if (core_id == NOC_MASTER) puts("noc_sync");
+  /* if (core_id == NOC_MASTER) puts("noc_sync"); */
   noc_sync();
-  if (core_id == NOC_MASTER) puts("noc_done");
+  /* if (core_id == NOC_MASTER) puts("noc_done"); */
 }
 
 // Start a NoC transfer
@@ -131,7 +131,7 @@ int noc_send(unsigned rcv_id,
 }
 
 // Convert from byte address or size to double-word address or size
-#define DW(X) ((X)+7/8)
+#define DW(X) (((X)+7)/8)
 
 // Transfer data via the NoC
 // The addresses and the size are in bytes
