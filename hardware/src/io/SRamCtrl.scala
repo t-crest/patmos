@@ -122,8 +122,8 @@ class SRamCtrl( ocpAddrWidth    : Int,
   val nce = Reg(init = Bits(1))
   val noe = Reg(init = Bits(1))
   val nwe = Reg(init = Bits(1))
-  val nlb = if (singleCycleWrite) { Reg(init = Bits(1)) } else { Bits(width=1) }
-  val nub = if (singleCycleWrite) { Reg(init = Bits(1)) } else { Bits(width=1) }
+  val nlb = if (singleCycleWrite) { Bits(width=1) } else { Reg(init = Bits(1)) }
+  val nub = if (singleCycleWrite) { Bits(width=1) } else { Reg(init = Bits(1)) }
 
 
   // Default values for ocp io.ocp.S port
@@ -306,6 +306,6 @@ object SRamMain {
   def main(args: Array[String]): Unit = {
     val chiselArgs = args.slice(1,args.length)
     val ocpAddrWidth = args(0).toInt
-    chiselMain(args, () => Module(new SRamCtrl(ocpAddrWidth)))
+    chiselMain(chiselArgs, () => Module(new SRamCtrl(ocpAddrWidth)))
   }
 }

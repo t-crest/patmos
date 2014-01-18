@@ -19,7 +19,7 @@ int main() {
 		}
 	}
 	if (error != 0){
-		WRITE("MEMORY uninitialized",20);
+		WRITE("MEMORY uninitialized\n",21);
 	}
 	error = 0;
 
@@ -41,9 +41,9 @@ int main() {
 		error = 0;
 	}
 	if (test != 0){
-		WRITE("Errors",6);
+		WRITE("Errors\n",7);
 	} else {
-		WRITE("Success",7);
+		WRITE("Success\n",8);
 	}
 
 	for (;;) { // Blink LEDS forever
