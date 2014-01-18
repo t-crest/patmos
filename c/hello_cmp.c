@@ -5,12 +5,23 @@
 #include <machine/spm.h>
 #include "boot.h"
 
-#define MEM_TEST 2000
+#define MEM_TEST 2
 
 int main() {
 	int i, j, k;
 	int error = 0;
 	int test = 0;
+
+	for (i=MEM_TEST; i!=0; --i){ // Read from main memory
+		j = *(MEM+i);
+		if (j != 0){	// If data is not what we expect write error
+			error++;
+		}
+	}
+	if (error != 0){
+		WRITE("MEMORY uninitialized",20);
+	}
+	error = 0;
 
 	for (k = 0; k < 10; k++) { // Test 10 times
 		for (i = MEM_TEST; i != 0; --i) // Write to main memory

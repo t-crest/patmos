@@ -89,8 +89,8 @@ class SRamCtrl( ocpAddrWidth    : Int,
                 ocpBurstLen     : Int=4,
                 sramAddrWidth   : Int=20,
                 sramDataWidth   : Int=16,
-                singleCycleRead : Bool=Bool(false),
-                singleCycleWrite: Bool=Bool(false)) extends BurstDevice(ocpAddrWidth) {
+                singleCycleRead : Boolean=false,
+                singleCycleWrite: Boolean=false) extends BurstDevice(ocpAddrWidth) {
 
   override val io = new BurstDeviceIO(ocpAddrWidth) with SRamCtrl.Pins
 
@@ -122,8 +122,9 @@ class SRamCtrl( ocpAddrWidth    : Int,
   val nce = Reg(init = Bits(1))
   val noe = Reg(init = Bits(1))
   val nwe = Reg(init = Bits(1))
-  val nlb = Reg(init = Bits(1))
-  val nub = Reg(init = Bits(1))
+  val nlb = if (singleCycleWrite) { Reg(init = Bits(1)) } else { Bits(width=1) }
+  val nub = if (singleCycleWrite) { Reg(init = Bits(1)) } else { Bits(width=1) }
+
 
   // Default values for ocp io.ocp.S port
   io.ocp.S.Resp := OcpResp.NULL
@@ -174,8 +175,8 @@ class SRamCtrl( ocpAddrWidth    : Int,
     nce := Bits(0)
     nub := Bits(0)
     nlb := Bits(0)
-    when(singleCycleRead){
-      assert(singleCycleRead,"Something is wrong")
+    if (singleCycleRead){
+      assert(Bool(singleCycleRead),"Something is wrong")
       addr := mAddr + UInt(1)
       mAddr := mAddr + UInt(1)
       buffer(transCount).data := io.sRamCtrlPins.ramIn.din
@@ -185,13 +186,13 @@ class SRamCtrl( ocpAddrWidth    : Int,
         stateReg := sReadRet
         transCount := UInt(0)
       }
-    } otherwise {
-      assert(!singleCycleRead,"Something is wrong")
+    } else {
+      assert(Bool(!singleCycleRead),"Something is wrong")
       stateReg := sReadExe2
     }
   }
   when(stateReg === sReadExe2) {
-    assert(!singleCycleRead,"If singleCycleRead is true this state should not be reached.")
+    assert(Bool(!singleCycleRead),"If singleCycleRead is true this state should not be reached.")
     noe := Bits(0)
     nce := Bits(0)
     nub := Bits(0)
@@ -240,9 +241,22 @@ class SRamCtrl( ocpAddrWidth    : Int,
     nwe := Bits(0)
     dout := buffer(transCount).data
     dout_ena := Bits(1)
-    nub := !buffer(transCount).byteEna(1)
-    nlb := !buffer(transCount).byteEna(0)
-    stateReg := sWriteExe2
+    if (singleCycleWrite){
+      nub := !buffer(transCount).byteEna(1)
+      nlb := !buffer(transCount).byteEna(0)
+      addr := mAddr + UInt(1)
+      mAddr := mAddr + UInt(1)
+      transCount := transCount + UInt(1)
+      stateReg := sWriteExe
+      when(transCount === UInt(TransPerCmd-1)){
+        stateReg := sWriteRet
+        transCount := UInt(0)
+      }
+    } else {
+      nub := !buffer(transCount).byteEna(1)
+      nlb := !buffer(transCount).byteEna(0)
+      stateReg := sWriteExe2
+    }
   }
   when(stateReg === sWriteExe2) {
     nce := Bits(0)

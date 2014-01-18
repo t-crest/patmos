@@ -6,15 +6,15 @@
 COM_PORT?=/dev/ttyUSB0
 
 # Application to be stored in boot ROM
-BOOTAPP?=basic
-#BOOTAPP=bootable-bootloader
+#BOOTAPP?=basic
+BOOTAPP=bootable-bootloader
 
 # Application to be downloaded
-APP?=hello
+APP?=hello_cmp
 
 # Altera FPGA configuration cables
 #BLASTER_TYPE=ByteBlasterMV
-#BLASTER_TYPE=Arrow-USB-Blaster 
+#BLASTER_TYPE=Arrow-USB-Blaster
 BLASTER_TYPE?=USB-Blaster
 
 # Path delimiter for Wdoz and others
@@ -25,8 +25,9 @@ else
 endif
 
 # The Quartus project
-#QPROJ=bemicro
-QPROJ?=altde2-70
+#BOARD=bemicro
+#BOARD?=altde2-70
+BOARD?=altde2-115
 
 # MS: why do we need all those symbols when
 # the various paths are fixed anyway?
@@ -143,15 +144,15 @@ else
 endif
 
 gen:
-	$(MAKE) -C hardware verilog BOOTAPP=$(BOOTAPP) QPROJ=$(QPROJ)
+	$(MAKE) -C hardware verilog BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
 
 synth: csynth
 
 csynth:
-	$(MAKE) -C hardware qsyn BOOTAPP=$(BOOTAPP) QPROJ=$(QPROJ)
+	$(MAKE) -C hardware qsyn BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
 
 config_byteblaster:
-	quartus_pgm -c $(BLASTER_TYPE) -m JTAG hardware/quartus/$(QPROJ)/patmos.cdf
+	quartus_pgm -c $(BLASTER_TYPE) -m JTAG hardware/quartus/$(BOARD)/patmos.cdf
 
 download: $(BUILDDIR)/$(APP).elf
 	java -Dverbose=true -cp tools/lib/*:tools/java/lib/* patserdow.Main $(COM_PORT) $<

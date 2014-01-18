@@ -53,24 +53,6 @@
             <outport name="io_ram_out_nadv" />
         </ports>
     </Dev>
-    <Dev DevType="Ssram16" entity="SRamCtrl" iface="OcpBurst">
-        <params>
-            <param name="ocpAddrWidth" value="21" />
-            <param name="sramAddrWidth" value="20" />
-            <param name="sramDataWidth" value="16" />
-        </params>
-        <ports>
-            <outport name="io_ramOut_addr" width="19" />
-            <outport name="io_ramOut_dout" width="16" />
-            <inport  name="io_ramIn_din" width="16" />
-            <outport name="io_ramOut_dout_ena" />
-            <outport name="io_ramOut_nce" />
-            <outport name="io_ramOut_noe" />
-            <outport name="io_ramOut_nwe" />
-            <outport name="io_ramOut_nlb" />
-            <outport name="io_ramOut_nub" />
-        </ports>
-    </Dev>
   </Devs>
 
   <!-- currently unused -->

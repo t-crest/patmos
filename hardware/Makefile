@@ -8,7 +8,7 @@ BOOTBUILDDIR?=$(BOOTBUILDROOT)/tmp
 BOOTBIN?=$(BOOTBUILDDIR)/$(BOOTAPP).bin
 BOOTDAT?=$(BOOTBUILDDIR)/$(BOOTAPP).dat
 
-QPROJ?=altde2-70
+BOARD?=altde2-70
 
 HWMODULEPREFIX?=
 
@@ -46,8 +46,8 @@ MEMCTRLMAIN16=io.SRamMain
 ARBITERMAIN=ocp.ArbiterMain
 
 # config file for Patmos -- now just frequency
-CONFIG=default
-CONFIGFILE?=$(BOOTBUILDROOT)/hardware/config/$(CONFIG).xml
+#CONFIG=default
+CONFIGFILE?=$(BOOTBUILDROOT)/hardware/config/$(BOARD).xml
 SRC+=$(CONFIGFILE)
 
 # optionally pass module prefix when generating Verilog
@@ -128,10 +128,10 @@ vsim: verilog
 
 # synthesize
 qsyn: verilog
-	quartus_map quartus/$(QPROJ)/patmos
-	quartus_fit quartus/$(QPROJ)/patmos
-	quartus_asm quartus/$(QPROJ)/patmos
-	quartus_sta quartus/$(QPROJ)/patmos
+	quartus_map quartus/$(BOARD)/patmos
+	quartus_fit quartus/$(BOARD)/patmos
+	quartus_asm quartus/$(BOARD)/patmos
+	quartus_sta quartus/$(BOARD)/patmos
 
 # build the boot binary
 $(BOOTBIN) $(BOOTDAT): .FORCE
