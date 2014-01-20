@@ -31,12 +31,13 @@
  */
 
 /*
- * SRAM controller.
+ * SRAM controller with OCP burst interface.
  *
- * First step get a hard-coded version running on DE1-115 or BeMicro
+ * Is running on DE1-115, MS shall test it on the BeMicro
  *
- * Author: Martin Schoeberl (martin@jopdesign.com)
- *         Rasmus Bo Soerensen (rasmus@rbscloud.dk)
+ * Author: Rasmus Bo Soerensen (rasmus@rbscloud.dk)
+ *         Martin Schoeberl (martin@jopdesign.com)
+ *         
  *
  */
 
@@ -112,6 +113,7 @@ class SRamCtrl( ocpAddrWidth    : Int,
   val stateReg = Reg(init = sReady)
 
   //
+  // MS: registers shall end with Reg, e.g. addrReg -- see coding.txt
   val mAddr = Reg(init = Bits(0,width = sramAddrWidth))
   val buffer = Vec.fill(TransPerCmd){Reg(init = new Trans(BytesPerTran,sramDataWidth))}
   val transCount = Reg(init = UInt(0,width=log2upNew(TransPerCmd)))
@@ -276,6 +278,25 @@ class SRamCtrl( ocpAddrWidth    : Int,
     io.ocp.S.Resp := OcpResp.DVA
     stateReg := sReady
   }
+  
+  // MS: try to use 'plain' registers for IO pins
+  // plain means no condition on them as most (or all?)
+  // FPGAs have special IO registers that are not near
+  // a LUT. To read your register state within the FPGA
+  // you can still have your internal 'additional' register:
+  // val addrReg = Reg(init = Bits(0, width = sramAddrWidth))
+  // val addrOutReg = Reg(init = Bits(0, width = sramAddrWidth))
+  // val addrNext
+  // do your combinational logic with addrNext and addrReg
+  // e.g.: addrNext := addrReg + UInt(1)
+  // keep the regs simple with an always assignment as:
+  // addrReg := addrNext
+  // addrOutReg := addrNext
+  // I see that this is almost waht you do with mAddr is what I call addrReg
+  //
+  // Naming could also be nce and nceReg
+  // Probably an error: we must go to one for the write and you should keep
+  // address and data stable
 
   io.sRamCtrlPins.ramOut.addr := addr
   io.sRamCtrlPins.ramOut.dout_ena := dout_ena
