@@ -1,0 +1,35 @@
+#! /bin/bash
+
+function usage() {
+    echo "Usage: $0 [-v] [-h] <port> <file>"
+}
+
+VERBOSE=false
+
+# Parse options
+while getopts "hv" arg; do
+    case $arg in
+        v)
+            VERBOSE=true
+            ;;
+        h)
+            usage
+            exit 0
+            ;;
+        *)
+            usage
+            exit 1
+            ;;
+    esac
+done
+
+# Check argument count
+shift $((OPTIND-1))
+if [ $# -ne 2 ]; then
+    usage
+    exit 1
+fi
+
+# Actual downloading
+BASEDIR=$(cd $(dirname "$0")/..; pwd)
+java -Dverbose=$VERBOSE -cp $BASEDIR/lib/java/\* patserdow.Main $1 $2
