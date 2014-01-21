@@ -46,7 +46,6 @@ package io
 
 import Chisel._
 import Node._
-//import MConstants._
 import patmos.Constants._
 import ocp._
 
@@ -142,13 +141,12 @@ class SsramBurstRW (
   resp := OcpResp.NULL
   ramDout := io.ocp.M.Data
   burstCnt := UInt(0)
-  cmdAccept := Bits(0)
   dataAccept := Bits(0)
+  cmdAccept := Bits(1)
 
   //catch inputs
   when (io.ocp.M.Cmd === OcpCmd.RD || io.ocp.M.Cmd === OcpCmd.WR) {
     address := io.ocp.M.Addr(addrBits-1, 2)
-    cmdAccept := Bits(1)
   }
 
   //following helps to output only when output data is valid
@@ -161,6 +159,7 @@ class SsramBurstRW (
   when (ssramState === rd1) {
     noe := Bits(0)
     nadv := Bits(0)
+    cmdAccept := Bits(0)
     when (waitState <= UInt(1)) {
       rdDataEna := Bits(1)
       burstCnt := burstCnt + UInt(1)
@@ -169,15 +168,18 @@ class SsramBurstRW (
         burstCnt := UInt(0)
         nadv := Bits(1)
         noe := Bits(1)
+        cmdAccept := Bits(1)
         ssramState := idle
       }
     }
   }
   when (ssramState === wr1) {
+    cmdAccept := Bits(0)
     when (waitState <= UInt(1)) {
       when (burstCnt === UInt(burstLen-1)) {
         burstCnt := UInt(0)
         resp := OcpResp.DVA
+        cmdAccept := Bits(1)
         ssramState := idle
       }
       when (io.ocp.M.DataValid === Bits(1)) {

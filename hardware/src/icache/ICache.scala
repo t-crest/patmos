@@ -248,9 +248,12 @@ class ICacheReplDm() extends Module {
   val addrValidEven = io.feicache.addrEven(INDEX_FIELD_HIGH, INDEX_FIELD_LOW)
   val addrValidOdd = io.feicache.addrOdd(INDEX_FIELD_HIGH, INDEX_FIELD_LOW)
 
+  //Mux at tag memory input
+  val toutEven = tagMemEven.io(addrBlockEven)
+  val toutOdd = tagMemOdd.io(addrBlockOdd)
   // Mux of tag memory output
-  val toutEven = Mux(blockParityEvenReg, tagMemOdd.io(addrIndexOdd), tagMemEven.io(addrIndexEven))
-  val toutOdd = Mux(blockParityOddReg, tagMemOdd.io(addrIndexOdd), tagMemEven.io(addrIndexEven))
+  val tagEven = Mux(blockParityEvenReg, toutOdd, toutEven)
+  val tagOdd = Mux(blockParityOddReg, toutOdd, toutEven)
 
   val validEven = validVec(addrValidEven)
   val validOdd = validVec(addrValidOdd)
@@ -260,11 +263,11 @@ class ICacheReplDm() extends Module {
   //check for a hit of both instructions of the address bundle
   hitInstrEven := Bool(true)
   hitInstrOdd := Bool(true)
-  when (toutEven != addrTagEvenReg) {
+  when (tagEven != addrTagEvenReg) {
     hitInstrEven := Bool(false)
   }
   fetchAddr := addrEvenReg
-  when (toutOdd != addrTagOddReg) {
+  when (tagOdd != addrTagOddReg) {
     hitInstrOdd := Bool(false)
     fetchAddr := addrOddReg
   }
@@ -316,7 +319,7 @@ class ICacheCtrl() extends Module {
   val io = new ICacheCtrlIO()
 
   //fsm state variables
-  val idleState :: transferState :: Nil = Enum(UInt(), 2)
+  val idleState :: transferState :: waitState :: Nil = Enum(UInt(), 3)
   val icacheState = Reg(init = idleState)
   //signal for replacement unit
   val wData = Bits(width = DATA_WIDTH)
@@ -348,13 +351,27 @@ class ICacheCtrl() extends Module {
     when (!io.icache_replctrl.hitEna) {
       fetchEna := Bool(false)
       addrReg := io.icache_replctrl.fetchAddr
-      ocpAddr := Cat(io.icache_replctrl.fetchAddr(EXTMEM_ADDR_WIDTH-1,WORD_COUNT_WIDTH), Bits(0)(WORD_COUNT_WIDTH-1,0))
-      ocpCmd := OcpCmd.RD
       burstCnt := UInt(0)
       fetchCnt := UInt(0)
+      //write new tag field memory
       wTag := Bool(true)
       wAddr := Cat(io.icache_replctrl.fetchAddr(EXTMEM_ADDR_WIDTH-1,WORD_COUNT_WIDTH), Bits(0)(WORD_COUNT_WIDTH-1,0))
-      icacheState := transferState
+      //check if command is accepted by the memory controller
+      when (io.ocp_port.S.CmdAccept === Bits(1)) {
+        ocpAddr := Cat(io.icache_replctrl.fetchAddr(EXTMEM_ADDR_WIDTH-1,WORD_COUNT_WIDTH), Bits(0)(WORD_COUNT_WIDTH-1,0))
+        ocpCmd := OcpCmd.RD
+        icacheState := transferState
+      }
+      .otherwise {
+        icacheState := waitState
+      }
+    }
+  }
+  when (icacheState === waitState) {
+    fetchEna := Bool(false)
+    when (io.ocp_port.S.CmdAccept === Bits(1)) {
+      ocpAddr := Cat(addrReg(EXTMEM_ADDR_WIDTH-1,WORD_COUNT_WIDTH), Bits(0)(WORD_COUNT_WIDTH-1,0))
+      ocpCmd := OcpCmd.RD
     }
   }
   //transfer/fetch cache block
