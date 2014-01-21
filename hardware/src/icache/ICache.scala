@@ -90,7 +90,6 @@ class ICacheCtrlIO extends Bundle() {
 }
 class ICacheReplIO extends Bundle() {
   val ena_in = Bool(INPUT)
-  val hitEna = Bool(OUTPUT)
   val exicache = new ExMCache().asInput
   val feicache = new FeMCache().asInput
   val icachefe = new MCacheFe().asOutput
@@ -112,6 +111,7 @@ class ICacheCtrlRepl extends Bundle() {
 class ICacheReplCtrl extends Bundle() {
   val hitEna = Bool()
   val fetchAddr = Bits(width = EXTMEM_ADDR_WIDTH)
+  val selICache = Bool()
 }
 class ICacheMemIn extends Bundle() {
   val wEven = Bool()
@@ -254,10 +254,8 @@ class ICacheReplDm() extends Module {
   // Mux of tag memory output
   val tagEven = Mux(blockParityEvenReg, toutOdd, toutEven)
   val tagOdd = Mux(blockParityOddReg, toutOdd, toutEven)
-
-  val validEven = validVec(addrValidEven)
-  val validOdd = validVec(addrValidOdd)
-  val validTag = validEven && validOdd
+  //valid tag
+  val validTag = validVec(addrValidEven) && validVec(addrValidOdd)
   val validTagReg = Reg(next = validTag)
 
   //check for a hit of both instructions of the address bundle
@@ -271,7 +269,7 @@ class ICacheReplDm() extends Module {
     hitInstrOdd := Bool(false)
     fetchAddr := addrOddReg
   }
-
+  //debug signals for emulator
   debug(hitInstrEven)
   debug(hitInstrOdd)
 
@@ -308,7 +306,7 @@ class ICacheReplDm() extends Module {
   //hit/miss return
   io.icache_replctrl.fetchAddr := fetchAddr
   io.icache_replctrl.hitEna := (hitInstrEven && hitInstrOdd && validTagReg)
-  io.hitEna := (hitInstrEven && hitInstrOdd && validTagReg)
+  io.icache_replctrl.selICache := selICacheReg
 
 }
 
@@ -319,7 +317,7 @@ class ICacheCtrl() extends Module {
   val io = new ICacheCtrlIO()
 
   //fsm state variables
-  val idleState :: transferState :: waitState :: Nil = Enum(UInt(), 3)
+  val initState :: idleState :: transferState :: waitState :: Nil = Enum(UInt(), 4)
   val icacheState = Reg(init = idleState)
   //signal for replacement unit
   val wData = Bits(width = DATA_WIDTH)
@@ -347,6 +345,12 @@ class ICacheCtrl() extends Module {
   ocpAddr := Bits(0)
   fetchEna := Bool(true)
 
+  //wait till ICache is the selected source
+  when (icacheState === initState) {
+    when (io.icache_replctrl.selICache) {
+      icacheState := idleState
+    }
+  } 
   when (icacheState === idleState) {
     when (!io.icache_replctrl.hitEna) {
       fetchEna := Bool(false)
