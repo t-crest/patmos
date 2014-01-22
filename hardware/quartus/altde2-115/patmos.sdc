@@ -1,5 +1,5 @@
 ###########################################################################
-# SDC files for DE2-70 board
+# SDC files for DE2-115 board
 ###########################################################################
 
 # Clock in input pin (50 MHz)
@@ -26,6 +26,3 @@ set_max_delay -from [get_ports *RAM*] -to [get_registers {*}] 3
 # Tco 3 ns
 set_max_delay -from [get_registers *] -to [get_ports {*RAM*}] 3
 
-# ssram clk derived from clk1 of pll_inst
-set_min_delay 0 -from [get_clocks {*pll:pll_inst*_clk1}] -to [get_ports {oSRAM_CLK}]
-set_max_delay 3 -from [get_clocks {*pll:pll_inst*_clk1}] -to [get_ports {oSRAM_CLK}]

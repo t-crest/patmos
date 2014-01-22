@@ -1,7 +1,9 @@
 #
 # Main make file for Patmos
 #
-
+##############################################################
+# Include user makefile for local configurations
+-include config.mk
 # COM port for downloader
 COM_PORT?=/dev/ttyUSB0
 

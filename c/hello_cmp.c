@@ -14,7 +14,9 @@ int main() {
 
 	for (i=MEM_TEST; i!=0; --i){ // Read from main memory
 		j = *(MEM+i);
-		if (j != 0){	// If data is not what we expect write error
+		if (j == 0){	// If data is not what we expect write error
+			error = error;
+		} else {
 			error++;
 		}
 	}

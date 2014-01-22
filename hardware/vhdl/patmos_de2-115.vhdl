@@ -58,7 +58,7 @@ architecture rtl of patmos_top is
 			io_uartPins_rx  : in  std_logic;
 
             io_sramCtrlPins_ramOut_addr : out std_logic_vector(19 downto 0);
-            io_sramCtrlPins_ramOut_dout_ena : out std_logic;
+            io_sramCtrlPins_ramOut_doutEna : out std_logic;
             io_sramCtrlPins_ramIn_din : in std_logic_vector(15 downto 0);
             io_sramCtrlPins_ramOut_dout : out std_logic_vector(15 downto 0);
             io_sramCtrlPins_ramOut_nce : out std_logic;
