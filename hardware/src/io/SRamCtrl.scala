@@ -115,7 +115,7 @@ class SRamCtrl( ocpAddrWidth    : Int,
   //
   // MS: registers shall end with Reg, e.g. addrReg -- see coding.txt
   val mAddrReg = Reg(init = Bits(0,width = sramAddrWidth))
-  val bufferReg = Vec.fill(TRANSPERCMD){Reg(init = new Trans(BYTESPERTRAN,sramDataWidth))}
+  val bufferReg = Vec.fill(TRANSPERCMD){Reg(new Trans(BYTESPERTRAN,sramDataWidth))}
   val transCountReg = Reg(init = UInt(0,width=log2upNew(TRANSPERCMD)))
   val waitCountReg = Reg(init = UInt(0,width=log2Up(writeWaitCycles+1)))
   // Output Registers
