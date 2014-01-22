@@ -31,7 +31,8 @@
  */
 
 /*
- Different Replacement Strategies for Method Cache as a possible extension instead of MCacheRepl class
+ Different Replacement Strategies for Method Cache as a possible extension instead of
+ MCacheRepl class 
  Author: Philipp Degasperi (philipp.degasperi@gmail.com)
  */
 
@@ -42,14 +43,16 @@ import Node._
 import MConstants._
 import Constants._
 import ocp._
+import MCacheReplLru._
 
 import scala.collection.mutable.HashMap
 import scala.util.Random
 import scala.math
 
 /*
- Fifo Replacement with blocks of a fixed size.
- Similar as it was orginially proposed and used in JOP
+ FIFO Replacement with blocks of a fixed size.  Similar as it was orginially proposed and
+ used in JOP This FIFO replacement uses fixed-block replacement and allows functions to
+ span over several blocks
  */
 class MCacheReplFifo2() extends Module {
   val io = new MCacheReplIO()
@@ -144,75 +147,85 @@ class MCacheReplFifo2() extends Module {
 }
 
 /*
- MCacheReplLru: LRU replacement strategy for the method cache
+  Tag field bundle for LRU replacement contains:
+  address tag, valid tag and position tag
+*/
+//PD: maybe there is a nicer way to implement such a tag field to implement it into a vector
+class TagField() extends Module {
+  val io = new Bundle {
+    val addrIn = Bits(INPUT, width = ADDR_WIDTH)
+    val addrOut = Bits(OUTPUT, width = ADDR_WIDTH)
+    val validIn = Bool(INPUT)
+    val validOut = Bool(OUTPUT)
+    val posIn = Bits(INPUT, width = log2Up(METHOD_COUNT))
+    val posOut = Bits(OUTPUT, width = log2Up(METHOD_COUNT))
+    val shiftEna = Bool(INPUT)
+  }
+  i+=1
+  val addr = Reg(init = Bits(0, width = ADDR_WIDTH))
+  val valid = Reg(init = Bool(false))
+  val blockPos = Reg(init = Bits(METHOD_COUNT-i, width = log2Up(METHOD_COUNT)))
+  when (io.shiftEna) {
+    addr := io.addrIn
+    blockPos := io.posIn
+    valid := io.validIn
+  }
+  io.addrOut := addr
+  io.posOut := blockPos
+  io.validOut := valid
+}
+
+object MCacheReplLru {
+  //variable for the initialization of lru tag field
+  var i = 0
+}
+
+/*
+  MCacheReplLru: LRU replacement strategy for the method cache This class implements a LRU
+  replacement and restrict functions to have at most the size of a cache block and does
+  not allow to span over several blocks
+  Use Function Splitter to cut down the maximal fucntion size to cache block size
+  LRU replacement is implemented with a shift registers
  */
 class MCacheReplLru() extends Module {
   val io = new MCacheReplIO()
 
-  //tag field and address translation table
-  val mcacheAddrVec = { Vec.fill(METHOD_COUNT) { Reg(init = Bits(0, width = ADDR_WIDTH)) } }
+  //a vector with n tag fields
+  val mcacheTagVec = { Vec.fill(METHOD_COUNT) { Module(new TagField()).io }}
 
-  val mcacheMmuVec = { Vec.fill(METHOD_COUNT*METHOD_COUNT) { Reg(init = Bits(0, width = log2Up(METHOD_COUNT))) } }
-  val mcacheMmuSize = { Vec.fill(METHOD_COUNT) { Reg(init = Bits(0, width = log2Up(METHOD_COUNT))) } }
-  //linked list for lru replacement
-  val initPrevReg = Array(Reg(init = Bits(1)), Reg(init = Bits(2)), Reg(init = Bits(3)), Reg(init = Bits(0)))
-  val initNextReg = Array(Reg(init = Bits(3)), Reg(init = Bits(0)), Reg(init = Bits(1)), Reg(init = Bits(2)))
-  val lruListPrev = Vec(initPrevReg)
-  val lruListNext = Vec(initNextReg)
-  val lruTagReg = Reg(init = Bits(0, width = log2Up(METHOD_COUNT)))
-  val mruTagReg = Reg(init = Bits(METHOD_COUNT - 1, width = log2Up(METHOD_COUNT)))
-  //val lru_pos = Reg(init = Bits(0, width = log2Up(method_count)))
-  //registers for splitting up
-  val splitCntReg = Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH))
-  val offsetCntReg = Reg(init = Bits(0, width = log2Up(METHOD_COUNT)))
-  val updateCntReg = Reg(init = Bits(0, width = log2Up(METHOD_COUNT)))
-  //variables when call/return occurs to check and set tag fields
   val posReg = Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH))
+  val currPosReg = Reg(init = Bits(0, width = log2Up(METHOD_COUNT)))
   val hitReg = Reg(init = Bool(true))
   val wrPosReg = Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH))
-  val currPosReg = Reg(init = Bits(0, width = METHOD_COUNT))
   val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
+  val doCallRetReg = Reg(init = Bool(false))
   val callAddrReg = Reg(init = UInt(1, DATA_WIDTH))
   val selIspmReg = Reg(init = Bool(false))
   val selMCacheReg = Reg(init = Bool(false))
 
-  def updateTag(tag : UInt) = {
-    when (tag === lruTagReg) {
-      lruTagReg := lruListPrev(tag)
-      mruTagReg := tag
-      lruListNext(tag) := mruTagReg
-      lruListPrev(mruTagReg) := tag
-      lruListPrev(tag) := tag //no previous any more because mru
-    }
-    .elsewhen (tag != mruTagReg) {
-      lruListNext(lruListPrev(tag)) := lruListNext(tag)
-      lruListPrev(lruListNext(tag)) := lruListPrev(tag)
-      lruListNext(tag) := mruTagReg
-      lruListPrev(mruTagReg) := tag
-      mruTagReg := tag
-    }
-  }
-
   when (io.exmcache.doCallRet && io.ena_in) {
-
+    //catch new call address
     callRetBaseReg := io.exmcache.callRetBase
     callAddrReg := io.exmcache.callRetAddr
-    selIspmReg := io.exmcache.callRetBase(DATA_WIDTH - 1,ISPM_ONE_BIT - 2) === Bits(0x1)
-    selMCacheReg := io.exmcache.callRetBase(DATA_WIDTH - 1,15) >= Bits(0x1)
-
-    when (io.exmcache.callRetBase(DATA_WIDTH - 1,15) >= Bits(0x1)) {
+    doCallRetReg := io.exmcache.doCallRet
+    selIspmReg := io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH - 1,ISPM_ONE_BIT - 2) === Bits(0x1)
+    selMCacheReg := io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH - 1,15) >= Bits(0x1)
+    //check for a hit
+    when (io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH - 1,15) >= Bits(0x1)) {
       hitReg := Bool(false)
-      posReg := (lruTagReg << Bits(log2Up(METHOD_BLOCK_SIZE)))
+      //position of LRU block in the cache
+      posReg := (mcacheTagVec(METHOD_COUNT-1).posOut << Bits(log2Up(METHOD_BLOCK_SIZE)))
       for (i <- 0 until METHOD_COUNT) {
-        when (io.exmcache.callRetBase === mcacheAddrVec(i)) {
+        when (io.exmcache.callRetBase === mcacheTagVec(i).addrOut && mcacheTagVec(i).validOut) {
           hitReg := Bool(true)
-          currPosReg := Bits(i << log2Up(METHOD_COUNT)) //pos in mmu
-          posReg := Bits(i << log2Up(METHOD_BLOCK_SIZE)) //pos in cache
+          currPosReg := Bits(i) //save position for shift
+          posReg := mcacheTagVec(i).posOut << Bits(log2Up(METHOD_BLOCK_SIZE)) //save position for new fetch
         }
       }
     }
   }
 
+  //calculate relative address signals
   val relBase = Mux(selMCacheReg,
     posReg.toUInt,
     callRetBaseReg(ISPM_ONE_BIT-3, 0))
@@ -222,80 +235,87 @@ class MCacheReplLru() extends Module {
                   callRetBaseReg - posReg.toUInt,
                   UInt(1 << (ISPM_ONE_BIT - 2)))
 
-  //sequentially update of all connected blocks (maybe stall here, what happens when there is always a call/hit?!)
-  val doCallRetReg = Reg(next = io.exmcache.doCallRet)
+  //signals for a new tag field
+  val lruAddr = Bits()
+  val lruValid = Bool()
+  val lruPos = Bits()
+  val insertPos = Bits() //shift position
+  lruValid := Bool(false)  
+  lruAddr := Bits(0)
+  lruPos := Bits(0)
+  insertPos := Bits(0)
+  //update the LRU tag field after a hit
   when (doCallRetReg && hitReg) {
-    updateTag((currPosReg/Bits(4))(log2Up(METHOD_COUNT)-1,0))
-    updateCntReg := mcacheMmuSize(currPosReg/Bits(4))
+    insertPos := currPosReg + Bits(1)
+    lruAddr :=  mcacheTagVec(currPosReg).addrOut
+    lruValid := mcacheTagVec(currPosReg).validOut
+    lruPos := mcacheTagVec(currPosReg).posOut
   }
-  when (updateCntReg > Bits(0)) {
-    updateCntReg := updateCntReg - Bits(1)
-    updateTag(mcacheMmuVec(currPosReg + updateCntReg))
-  }
-
-  // val address_in_pos = io.mcache_ctrlrepl.address(METHOD_BLOCK_SIZE_WIDTH*2+log2Up(METHOD_COUNT)-1,METHOD_BLOCK_SIZE_WIDTH)
-  // val address_in_offset = io.mcache_ctrlrepl.address(METHOD_BLOCK_SIZE_WIDTH-1,0)
-  // val w_address_pos = io.mcache_ctrlrepl.w_addr(METHOD_BLOCK_SIZE_WIDTH+log2Up(METHOD_COUNT),METHOD_BLOCK_SIZE_WIDTH)
-  // val w_address_offset = io.mcache_ctrlrepl.w_addr(METHOD_BLOCK_SIZE_WIDTH-1,0)
-
-  //val rdPos = Cat(mcache_mmu_vec(address_in_pos), address_in_offset)
-
-  //val wrPos = Cat(mcache_mmu_vec(w_address_pos + currPosReg), w_address_offset)
-
-  //insert new tags
+  //insert new tags after a miss
   when (io.mcache_ctrlrepl.wTag) {
-    hitReg := Bool(true)
+    hitReg := Bool(true) //we have a hit again
     wrPosReg := posReg
-    //start splitting into more blocks if current method size > method block size
-    splitCntReg := io.mcache_ctrlrepl.wData(METHOD_BLOCK_SIZE_WIDTH+log2Up(METHOD_COUNT), METHOD_BLOCK_SIZE_WIDTH)
-    offsetCntReg := Bits(1)
-    currPosReg := (lruTagReg << Bits(log2Up(METHOD_COUNT)))
-    mcacheAddrVec(lruTagReg) := io.mcache_ctrlrepl.wAddr
-    mcacheMmuVec(lruTagReg * Bits(METHOD_COUNT)) := lruTagReg
-    mcacheMmuSize(lruTagReg) := io.mcache_ctrlrepl.wData(METHOD_BLOCK_SIZE_WIDTH+log2Up(METHOD_COUNT)-1, METHOD_BLOCK_SIZE_WIDTH)
-    updateTag(lruTagReg)
+    lruAddr := io.mcache_ctrlrepl.wAddr
+    lruValid := Bool(true)
+    lruPos := mcacheTagVec(METHOD_COUNT-1).posOut
+    insertPos := Bits(METHOD_COUNT) //update all registers
   }
-
-  when (splitCntReg > Bits(0)) {
-    splitCntReg := splitCntReg - Bits(1)
-    offsetCntReg := offsetCntReg + Bits(1)
-    mcacheAddrVec(lruTagReg) := Bits(0) //invalidate field
-    mcacheMmuVec(currPosReg + offsetCntReg) := lruTagReg
-    updateTag(lruTagReg)
+  //shift LRU tag registers
+  //PD: maybe there is a more efficient way to implement a shift register in Chisel
+  //instead of this solution
+  for (i <- 0 until METHOD_COUNT) {
+    if (i != 0) {
+      mcacheTagVec(i).addrIn := mcacheTagVec(i-1).addrOut
+      mcacheTagVec(i).posIn := mcacheTagVec(i-1).posOut
+      mcacheTagVec(i).validIn := mcacheTagVec(i-1).validOut
+    }
+    //input for first register (MRU)
+    else {
+      mcacheTagVec(i).addrIn := lruAddr
+      mcacheTagVec(i).posIn := lruPos
+      mcacheTagVec(i).validIn := lruValid
+    }
+    //shift enable for all registers till current position
+    when (Bits(i) < insertPos) {
+      mcacheTagVec(i).shiftEna := Bool(true)
+    }
+    .otherwise{
+      mcacheTagVec(i).shiftEna := Bool(false)
+    }
   }
 
   val wParity = io.mcache_ctrlrepl.wAddr(0)
   val wAddr = (wrPosReg + io.mcache_ctrlrepl.wAddr)(MCACHE_SIZE_WIDTH-1,1)
   val addrEven = (io.mcache_ctrlrepl.addrEven)(MCACHE_SIZE_WIDTH-1,1)
   val addrOdd = (io.mcache_ctrlrepl.addrOdd)(MCACHE_SIZE_WIDTH-1,1)
-
-  //read/write to mcachemem
+  //output to on-chip memory
   io.mcachemem_in.wEven := Mux(wParity, Bool(false), io.mcache_ctrlrepl.wEna)
   io.mcachemem_in.wOdd := Mux(wParity, io.mcache_ctrlrepl.wEna, Bool(false))
   io.mcachemem_in.wData := io.mcache_ctrlrepl.wData
   io.mcachemem_in.wAddr := wAddr
   io.mcachemem_in.addrEven := addrEven
   io.mcachemem_in.addrOdd := addrOdd
-
   val instrEvenReg = Reg(init = Bits(0, width = INSTR_WIDTH))
   val instrOddReg = Reg(init = Bits(0, width = INSTR_WIDTH))
   val instrEven = io.mcachemem_out.instrEven
   val instrOdd = io.mcachemem_out.instrOdd
-  when (io.mcache_ctrlrepl.instrStall === Bits(0)) {
+  //save instrucitons in cache of a stall
+  when (!io.mcache_ctrlrepl.instrStall) {
     instrEvenReg := io.mcachefe.instrEven
     instrOddReg := io.mcachefe.instrOdd
   }
-  //signals to fetch stage
+  //output to fetch stage
   io.mcachefe.instrEven := Mux(io.mcache_ctrlrepl.instrStall, instrEvenReg, instrEven)
   io.mcachefe.instrOdd := Mux(io.mcache_ctrlrepl.instrStall, instrOddReg, instrOdd)
   io.mcachefe.relBase := relBase
   io.mcachefe.relPc := relPc
   io.mcachefe.reloc := reloc
   io.mcachefe.memSel := Cat(selIspmReg, selMCacheReg)
-  //signals to ctrl unit
+  //output to control module
   io.mcache_replctrl.hit := hitReg
-  //hit/stall signal
+  //output to mcache
   io.hitEna := hitReg
 
 }
+
 
