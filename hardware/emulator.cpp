@@ -201,17 +201,22 @@ static void mcacheStat(Patmos_t *c, bool halt) {
   static uint cache_hits = 0;
   static uint exec_cycles = 0;
   static uint cache_stall_cycles = 0;
+  static uint max_function_size = 0;
+  static float hit_rate = 0;
   //count all cycles till the program terminats
   exec_cycles++;
   #ifdef MCACHE
   //count everytime a new method is written to the cache
   if (c->Patmos_core_mcache_mcachectrl__io_mcache_ctrlrepl_wTag.to_bool() == true) {
     cache_miss++;
+    if (c->Patmos_core_mcache_mcachectrl__io_mcache_ctrlrepl_wData.to_ulong() > max_function_size) {
+      max_function_size = c->Patmos_core_mcache_mcachectrl__io_mcache_ctrlrepl_wData.to_ulong();
+    }
   }
   //everytime a method is called from the cache, todo: find a better way to measure hits
   if (c->Patmos_core_fetch__io_memfe_doCallRet.to_bool() == true &&
       c->Patmos_core_mcache_mcacherepl__io_mcache_replctrl_hit.to_bool() == true &&
-      c->Patmos_core_mcache_mcachectrl__mcacheState.to_ulong() == 0 &&
+     c->Patmos_core_mcache_mcachectrl__mcacheState.to_ulong() == 0 &&
       c->Patmos_core_mcache__io_ena_in.to_bool() == true &&
       c->Patmos_core_mcache_mcachectrl__io_mcache_ctrlrepl_instrStall.to_bool() == false) {
     cache_hits++;
@@ -237,10 +242,14 @@ static void mcacheStat(Patmos_t *c, bool halt) {
   }
   //program terminats, write to output
   if (halt == true) {
-    *out << "exec_cycles:" << exec_cycles
-         << " cache_hits:" << cache_hits
-         << " cache_misses:" << cache_miss
-         <<  " cache_stall_cycles:" << cache_stall_cycles << "\n";
+    hit_rate = (float)((float)cache_hits /  (float)(cache_hits + cache_miss))*(float)100;
+
+    *out << "exec_cycles: " << exec_cycles << "\n"
+         << "cache_hits: " << cache_hits << "\n"
+         << "cache_misses: " << cache_miss << "\n"
+         << "hit rate: " << hit_rate << "\n"
+         <<  "cache_stall_cycles: " << cache_stall_cycles << "\n"
+         << "max function size: " << max_function_size << "\n";
   }
 }
 
