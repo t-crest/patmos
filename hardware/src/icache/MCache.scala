@@ -377,9 +377,9 @@ class MCacheCtrl() extends Module {
     //no hit... fetch from external memory
     .otherwise {
       burstCntReg := UInt(0)
+      ocpAddr := Cat(msizeAddr(EXTMEM_ADDR_WIDTH-1,2), Bits("b00")) //aligned read from ssram
+      ocpCmd := OcpCmd.RD
       when (io.ocp_port.S.CmdAccept === Bits(1)) {
-        ocpAddr := Cat(msizeAddr(EXTMEM_ADDR_WIDTH-1,2), Bits("b00")) //aligned read from ssram
-        ocpCmd := OcpCmd.RD
         mcacheState := sizeState
       }
       .otherwise {
@@ -389,9 +389,9 @@ class MCacheCtrl() extends Module {
   }
   when (mcacheState === waitState) {
     fetchEna := Bool(false)
+    ocpAddr := Cat(msizeAddr(EXTMEM_ADDR_WIDTH-1,2), Bits("b00")) //aligned read from ssram
+    ocpCmd := OcpCmd.RD
     when (io.ocp_port.S.CmdAccept === Bits(1)) {
-      ocpAddr := Cat(msizeAddr(EXTMEM_ADDR_WIDTH-1,2), Bits("b00")) //aligned read from ssram
-      ocpCmd := OcpCmd.RD
       mcacheState := sizeState
     }
   }
