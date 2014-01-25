@@ -21,19 +21,20 @@
 #include "debug/GdbMessageHandler.h"
 #include "debug/GdbMessage.h"
 #include "debug/GdbPacketHandler.h"
+#include "debug/DebugInterface.h"
 
 #include <sstream>
+#include <stdint.h>
 #include <boost/format.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
 
 namespace
 {
   const int maxPacketSize = 512; // random for now. After some testing,
                                  // adjust this value to a more appropriate one
-  const int dummyProcessId = 1;
-  const int dummyThreadId = 1;
-  
   //////////////////////////////////////////////////////////////////
   // Message strings
   // Formatted strings have boost::format syntax
@@ -46,15 +47,20 @@ namespace
   const std::string getCurrentThreadMessage = "qC";
   const std::string isAttachedMessage = "qAttached";
   const std::string contSupportedMessage = "vCont?";
-  const std::string contSupportedResponse = "vCont;c;s;t";
+  const std::string contSupportedResponse = "vCont;c;s";
   const std::string attachMessage = "vAttach;";
   const std::string threadInfoStartMessage = "qfThreadInfo";
   const std::string threadInfoStartResponse = "m1";
   const std::string threadInfoNextMessage = "qsThreadInfo";
   const std::string threadInfoNextResponse = "l";
-
   const std::string killMessage = "k";
-  
+  const std::string continueMessage = "c";
+  const std::string readRegisterMessage = "p";
+  const std::string setBreakpointMessage = "Z0";
+  const std::string removeBreakpointMessage = "z0";
+  const std::string stepMessage = "vCont;s";
+  const std::string readMemoryMessage = "m";
+
   // lldb extensions:
   const std::string startNoAckModeMessage = "QStartNoAckMode";
   const std::string hostInfoMessage = "qHostInfo";
@@ -65,12 +71,18 @@ namespace
   const std::string okMessage = "OK";
   const std::string errorMessage = "E %02x";
   const std::string stopReplyMessage = "T%02x";
-  
+
   // unsupported features:
   const std::string threadSuffixSupportedMessage = "QThreadSuffixSupported";
   const std::string listThreadsInStopReplyMessage = "QListThreadsInStopReply";
   const std::string attachOrWaitSupportedMessage = "qVAttachOrWaitSupported";
   const std::string processInfoMessage = "qProcessInfo";
+  const std::string shlibInfoAddrMessage = "qShlibInfoAddr";
+  const std::string memoryRegionInfoMessage = "qMemoryRegionInfo";
+
+  const std::string messageListDelimiter = ",";
+  const std::string messageParameterDelimiter = ";";
+  const std::string messageParameterValueDelimiter = ":";
 
   using namespace patmos;
 
@@ -80,7 +92,7 @@ namespace
     template <class T>
     void AddKeyValue(const std::string& key, T value)
     {
-      m_ss << key << ":" << value << ";";
+      m_ss << key << messageParameterValueDelimiter << value << messageParameterDelimiter;
     }
 
     virtual std::string GetString() const
@@ -108,17 +120,6 @@ namespace
   GdbResponseMessage GetEmptyMessage()
   {
     return GdbResponseMessage("");
-  }
-
-  GdbResponseMessage GetStopReplyMessage(int signalNumber)
-  {
-    KeyValueStringBuilder params;
-    params.AddKeyValue<int>("thread", dummyThreadId);
-
-    std::stringstream ss; 
-    ss << (boost::format(stopReplyMessage) % signalNumber).str();
-    ss << params.GetString();
-    return GdbResponseMessage(ss.str());
   }
 
   //////////////////////////////////////////////////////////////////
@@ -167,7 +168,7 @@ namespace
       messageHandler.SendGdbMessage(GdbResponseMessage(response));
     };
 
-    virtual bool CanHandle(const std::string& messageString)
+    static bool CanHandle(const std::string& messageString)
     {
       return boost::starts_with(messageString, supportedMessage);
     };
@@ -187,13 +188,12 @@ namespace
       DebugInterface &debugInterface,
       bool &targetContinue) const
     {
-      const int signalNumber = 17;
-      messageHandler.SendGdbMessage(GetStopReplyMessage(signalNumber));
+      messageHandler.SendGdbMessage(GetStopReplyMessage());
     };
 
-    virtual bool CanHandle(const std::string& messageString)
+    static bool CanHandle(const std::string& messageString)
     {
-      return messageString == getReasonMessage;
+      return boost::starts_with(messageString, getReasonMessage);
     };
   };
   
@@ -211,11 +211,12 @@ namespace
       DebugInterface &debugInterface,
       bool &targetContinue) const
     {
-      // currently we do not care about threads
+      // Currently we do not care about threads.
+      // So all of these operations are ignored.
       messageHandler.SendGdbMessage(GetOKMessage());
     };
 
-    virtual bool CanHandle(const std::string& messageString)
+    static bool CanHandle(const std::string& messageString)
     {
       return boost::starts_with(messageString, setThreadMessage);
     };
@@ -242,9 +243,9 @@ namespace
        messageHandler.SendGdbMessage(GdbResponseMessage("QC1"));
     };
 
-    virtual bool CanHandle(const std::string& messageString)
+    static bool CanHandle(const std::string& messageString)
     {
-      return messageString == getCurrentThreadMessage;
+      return boost::starts_with(messageString, getCurrentThreadMessage);
     };
   };
 
@@ -268,9 +269,9 @@ namespace
       messageHandler.SendGdbMessage(GdbResponseMessage("0"));
     };
 
-    virtual bool CanHandle(const std::string& messageString)
+    static bool CanHandle(const std::string& messageString)
     {
-      return messageString == isAttachedMessage;
+      return boost::starts_with(messageString, isAttachedMessage);
     };
   };
 
@@ -291,9 +292,9 @@ namespace
       messageHandler.SendGdbMessage(GdbResponseMessage(contSupportedResponse));
     };
 
-    virtual bool CanHandle(const std::string& messageString)
+    static bool CanHandle(const std::string& messageString)
     {
-      return messageString == contSupportedMessage;
+      return boost::starts_with(messageString, contSupportedMessage);
     };
   };
   
@@ -311,11 +312,10 @@ namespace
       DebugInterface &debugInterface,
       bool &targetContinue) const
     {
-      const int signalNumber = 17;
-      messageHandler.SendGdbMessage(GetStopReplyMessage(signalNumber));
+      messageHandler.SendGdbMessage(GetStopReplyMessage());
     };
 
-    virtual bool CanHandle(const std::string& messageString)
+    static bool CanHandle(const std::string& messageString)
     {
       return boost::starts_with(messageString, attachMessage);
     };
@@ -338,9 +338,9 @@ namespace
       messageHandler.SendGdbMessage(GdbResponseMessage(threadInfoStartResponse));
     };
 
-    virtual bool CanHandle(const std::string& messageString)
+    static bool CanHandle(const std::string& messageString)
     {
-      return messageString == threadInfoStartMessage;
+      return boost::starts_with(messageString, threadInfoStartMessage);
     };
   };
   
@@ -361,9 +361,9 @@ namespace
       messageHandler.SendGdbMessage(GdbResponseMessage(threadInfoNextResponse));
     };
 
-    virtual bool CanHandle(const std::string& messageString)
+    static bool CanHandle(const std::string& messageString)
     {
-      return messageString == threadInfoNextMessage;
+      return boost::starts_with(messageString, threadInfoNextMessage);
     };
   };
   
@@ -385,10 +385,242 @@ namespace
       targetContinue = true;
     };
 
-    virtual bool CanHandle(const std::string& messageString)
+    static bool CanHandle(const std::string& messageString)
     {
-      return messageString == killMessage;
+      return boost::starts_with(messageString, killMessage);
     };
+  };
+  
+  //////////////////////////////////////////////////////////////////
+  // c
+  //////////////////////////////////////////////////////////////////
+  class GdbContinueMessage : public GdbMessage
+  {
+  public:
+    GdbContinueMessage(const std::string& messageString)
+      : GdbMessage(messageString)
+    { };
+
+    virtual void Handle(GdbMessageHandler &messageHandler,
+      DebugInterface &debugInterface,
+      bool &targetContinue) const
+    {
+      // TODO: change to a better target control
+      targetContinue = true;
+    };
+
+    static bool CanHandle(const std::string& messageString)
+    {
+      return boost::starts_with(messageString, continueMessage);
+    };
+  };
+  
+  //////////////////////////////////////////////////////////////////
+  // d
+  //////////////////////////////////////////////////////////////////
+  class GdbReadRegisterMessage : public GdbMessage
+  {
+  public:
+    GdbReadRegisterMessage(const std::string& messageString)
+      : GdbMessage(messageString)
+    {
+      const std::string::size_type pos = readRegisterMessage.size();
+      if (pos < messageString.size())
+      {
+        const std::string registerNumberString =
+          messageString.substr(pos);
+        std::stringstream ss(registerNumberString);
+        ss << std::hex;
+        ss >> m_registerNumber;
+      }
+    }
+
+    virtual void Handle(GdbMessageHandler &messageHandler,
+      DebugInterface &debugInterface,
+      bool &targetContinue) const
+    {
+      RegisterContent registerContent = 
+        debugInterface.GetRegisterContent(m_registerNumber);
+      messageHandler.SendGdbMessage(registerContent);
+    }
+
+    static bool CanHandle(const std::string& messageString)
+    {
+      return boost::starts_with(messageString, readRegisterMessage);
+    }
+
+  private:
+    int m_registerNumber;
+  };
+  
+  //////////////////////////////////////////////////////////////////
+  // Z0
+  // z0
+  //////////////////////////////////////////////////////////////////
+  
+  int ExtractBreakpointAddress(const std::string& messageString)
+  {
+    int breakpointAddress = 0;
+    typedef std::string::size_type size_type;
+
+    const size_type addressStart = 
+      messageString.find(messageListDelimiter) + 1;
+    if (addressStart < messageString.length())
+    {
+      const size_type addressEnd =
+        messageString.find(messageListDelimiter, addressStart) + 1;
+      if (addressEnd < messageString.length())
+      {
+        const size_type addressLength = addressEnd - addressStart;
+        std::stringstream ss(messageString.substr(addressStart, addressLength));
+        ss << std::hex;
+        ss >> breakpointAddress;
+      }
+    }
+
+    return breakpointAddress;
+  }
+  
+  class GdbSetBreakpointMessage : public GdbMessage
+  {
+  public:
+    GdbSetBreakpointMessage(const std::string& messageString)
+      : GdbMessage(messageString), 
+        m_breakpointAddress(ExtractBreakpointAddress(messageString))
+    {
+    }
+
+    virtual void Handle(GdbMessageHandler &messageHandler,
+      DebugInterface &debugInterface,
+      bool &targetContinue) const
+    {
+      Breakpoint bp(m_breakpointAddress);
+      if (debugInterface.AddBreakpoint(bp))
+        messageHandler.SendGdbMessage(GetOKMessage());
+      else
+        messageHandler.SendGdbMessage(GetErrorMessage(0));
+    }
+
+    static bool CanHandle(const std::string& messageString)
+    {
+      return boost::starts_with(messageString, setBreakpointMessage);
+    }
+
+  private:
+    int m_breakpointAddress;
+  };
+  
+  class GdbRemoveBreakpointMessage : public GdbMessage
+  {
+  public:
+    GdbRemoveBreakpointMessage(const std::string& messageString)
+      : GdbMessage(messageString), 
+        m_breakpointAddress(ExtractBreakpointAddress(messageString))
+    {
+    }
+
+    virtual void Handle(GdbMessageHandler &messageHandler,
+      DebugInterface &debugInterface,
+      bool &targetContinue) const
+    {
+      Breakpoint bp(m_breakpointAddress);
+      if (debugInterface.RemoveBreakpoint(bp))
+        messageHandler.SendGdbMessage(GetOKMessage());
+      else
+        messageHandler.SendGdbMessage(GetErrorMessage(0));
+    }
+
+    static bool CanHandle(const std::string& messageString)
+    {
+      return boost::starts_with(messageString, removeBreakpointMessage);
+    }
+
+  private:
+    int m_breakpointAddress;
+  };
+  
+  //////////////////////////////////////////////////////////////////
+  // vCont;s
+  //////////////////////////////////////////////////////////////////
+  class GdbStepMessage : public GdbMessage
+  {
+  public:
+    GdbStepMessage(const std::string& messageString)
+      : GdbMessage(messageString)
+    { };
+
+    virtual void Handle(GdbMessageHandler &messageHandler,
+      DebugInterface &debugInterface,
+      bool &targetContinue) const
+    {
+      debugInterface.SingleStep();
+      targetContinue = true;
+    };
+
+    static bool CanHandle(const std::string& messageString)
+    {
+      return boost::starts_with(messageString, stepMessage);
+    };
+  };
+  
+  //////////////////////////////////////////////////////////////////
+  // m
+  //////////////////////////////////////////////////////////////////
+  
+  void ExtractMemoryAddressAndLength(const std::string& messageString,
+      long& address, long& length)
+  {
+    std::vector<std::string> params;
+    boost::split(params, messageString, boost::is_any_of(messageListDelimiter));
+    
+    if (params.size() >= 1)
+    {
+      std::stringstream ss(params[0]);
+      ss << std::hex;
+      ss >> address;
+    }
+
+    if (params.size() >= 2)
+    {
+      std::stringstream ss(params[1]);
+      ss << std::hex;
+      ss >> length;
+    }
+  }
+  
+  class GdbReadMemoryMessage : public GdbMessage
+  {
+  public:
+    GdbReadMemoryMessage(const std::string& messageString)
+      : GdbMessage(messageString), m_address(0), m_length(0)
+    {
+      const std::string::size_type pos = readMemoryMessage.size();
+      if (pos < messageString.size())
+      {
+        const std::string paramString =  messageString.substr(pos);
+        ExtractMemoryAddressAndLength(paramString, m_address, m_length);
+      }
+    }
+
+    virtual void Handle(GdbMessageHandler &messageHandler,
+      DebugInterface &debugInterface,
+      bool &targetContinue) const
+    {
+      MemoryContent content = debugInterface.GetMemoryContent(m_address, m_length);
+      if (content.size() > 0)
+        messageHandler.SendGdbMessage(content);
+      else
+        messageHandler.SendGdbMessage(GetErrorMessage(0));
+    }
+
+    static bool CanHandle(const std::string& messageString)
+    {
+      return boost::starts_with(messageString, readMemoryMessage);
+    }
+
+  private:
+    long m_address;
+    long m_length;
   };
   
   //////////////////////////////////////////////////////////////////
@@ -409,9 +641,9 @@ namespace
       messageHandler.SetUseAck(false);
     };
 
-    virtual bool CanHandle(const std::string& messageString)
+    static bool CanHandle(const std::string& messageString)
     {
-      return messageString == startNoAckModeMessage;
+      return boost::starts_with(messageString, startNoAckModeMessage);
     };
   };
   
@@ -451,9 +683,9 @@ namespace
       messageHandler.SendGdbMessage(msg);
     };
 
-    virtual bool CanHandle(const std::string& messageString)
+    static bool CanHandle(const std::string& messageString)
     {
-      return messageString == hostInfoMessage;
+      return boost::starts_with(messageString, hostInfoMessage);
     };
   };
   
@@ -512,6 +744,7 @@ namespace
         const std::string registerNumberString =
           messageString.substr(pos);
         std::stringstream ss(registerNumberString);
+        ss << std::hex;
         ss >> m_registerNumber;
       }
     };
@@ -524,21 +757,24 @@ namespace
 
       const RegisterInfo info = debugInterface.GetRegisterInfo();
       // Check if there is a register with that number.
-      if (m_registerNumber < 0 || m_registerNumber >= info.regCount)
+      if (m_registerNumber < 0 || m_registerNumber >= info.size())
       {
         messageHandler.SendGdbMessage(GetEmptyMessage());
         return;
       }
 
       // Register exists - lets report it's parameters
-      const RegisterInfoEntry reg = info.registers[m_registerNumber];
+      const RegisterInfoEntry reg = info[m_registerNumber];
       
       msg.AddKeyValue<std::string>  ("name",     reg.name);
       msg.AddKeyValue<int>          ("bitsize",  reg.bitsize);
+      msg.AddKeyValue<int>          ("offset",   reg.offset);
       msg.AddKeyValue<std::string>  ("encoding", registerEncodingStrings[reg.encoding]);
       msg.AddKeyValue<std::string>  ("format",   registerFormatStrings[reg.format]);
       msg.AddKeyValue<std::string>  ("set",      reg.setName);
-      msg.AddKeyValue<int>          ("dwarf",    reg.dwarfNumber);
+
+      if (reg.dwarfNumber != noDwarf)
+        msg.AddKeyValue<int>        ("dwarf",    reg.dwarfNumber);
 
       if (reg.type > 0)
       {
@@ -549,7 +785,7 @@ namespace
       messageHandler.SendGdbMessage(msg);
     };
 
-    virtual bool CanHandle(const std::string& messageString)
+    static bool CanHandle(const std::string& messageString)
     {
       return boost::starts_with(messageString, registerInfoMessage);
     };
@@ -572,11 +808,10 @@ namespace
       DebugInterface &debugInterface,
       bool &targetContinue) const
     {
-      const int signalNumber = 17;
-      messageHandler.SendGdbMessage(GetStopReplyMessage(signalNumber));
+      messageHandler.SendGdbMessage(GetStopReplyMessage());
     };
 
-    virtual bool CanHandle(const std::string& messageString)
+    static bool CanHandle(const std::string& messageString)
     {
       return boost::starts_with(messageString, threadStopInfoMessage);
     };
@@ -599,13 +834,15 @@ namespace
       messageHandler.SendGdbMessage(GetEmptyMessage());
     };
 
-    virtual bool CanHandle(const std::string& messageString)
+    static bool CanHandle(const std::string& messageString)
     {
       return (
         messageString == threadSuffixSupportedMessage ||
         messageString == listThreadsInStopReplyMessage ||
         messageString == attachOrWaitSupportedMessage ||
-        messageString == processInfoMessage
+        messageString == processInfoMessage ||
+        messageString == shlibInfoAddrMessage ||
+        boost::starts_with(messageString, memoryRegionInfoMessage)
       );
     };
   };
@@ -629,7 +866,7 @@ namespace
     {
       throw GdbUnsupportedMessageException(GetMessageString());
     };
-    virtual bool CanHandle(const std::string& messageString)
+    static bool CanHandle(const std::string& messageString)
     {
       return true;
     };
@@ -654,8 +891,7 @@ namespace
   public:
     virtual bool CanCreate(const std::string& messageString)
     {
-      T dummy(messageString);
-      return dummy.CanHandle(messageString);
+      return T::CanHandle(messageString);
     };
 
     virtual GdbMessagePtr Create(const std::string& messageString)
@@ -727,6 +963,7 @@ namespace patmos
   GdbMessageHandler::GdbMessageHandler(GdbPacketHandler &packetHandler)
     : m_packetHandler(packetHandler)
   {
+    // standard GDB RSP messages
     GdbMessageFactory::Register<GdbSupportedMessage>();
     GdbMessageFactory::Register<GdbSetThreadMessage>();
     GdbMessageFactory::Register<GdbGetReasonMessage>();
@@ -737,6 +974,14 @@ namespace patmos
     GdbMessageFactory::Register<GdbThreadInfoStartMessage>();
     GdbMessageFactory::Register<GdbThreadInfoNextMessage>();
     GdbMessageFactory::Register<GdbKillMessage>();
+    GdbMessageFactory::Register<GdbContinueMessage>();
+    GdbMessageFactory::Register<GdbReadRegisterMessage>();
+    GdbMessageFactory::Register<GdbSetBreakpointMessage>();
+    GdbMessageFactory::Register<GdbRemoveBreakpointMessage>();
+    GdbMessageFactory::Register<GdbStepMessage>();
+    GdbMessageFactory::Register<GdbReadMemoryMessage>();
+
+    // lldb extensions
     GdbMessageFactory::Register<GdbStartNoAckModeMessage>();
     GdbMessageFactory::Register<GdbHostInfoMessage>();
     GdbMessageFactory::Register<GdbRegisterInfoMessage>();
@@ -761,6 +1006,19 @@ namespace patmos
   void GdbMessageHandler::SetUseAck(bool useAck)
   {
     m_packetHandler.SetUseAck(useAck);
+  }
+
+  GdbResponseMessage GetStopReplyMessage(std::string reason, int signalNumber,
+      int threadId)
+  {
+    KeyValueStringBuilder params;
+    params.AddKeyValue<int>         ("thread", threadId);
+    params.AddKeyValue<std::string> ("reason", reason);
+
+    std::stringstream ss; 
+    ss << (boost::format(stopReplyMessage) % signalNumber).str();
+    ss << params.GetString();
+    return GdbResponseMessage(ss.str());
   }
 
 }

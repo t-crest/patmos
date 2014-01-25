@@ -41,7 +41,6 @@ namespace patmos
     virtual void Handle(GdbMessageHandler &messageHandler,
         DebugInterface &debugInterface,
         bool &targetContinue) const = 0;
-    virtual bool CanHandle(const std::string& messageString) = 0;
     std::string GetMessageString() const;
   private:
     std::string m_messageString;

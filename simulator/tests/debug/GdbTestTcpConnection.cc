@@ -18,82 +18,191 @@
 //
 
 #include <iostream>
+#include <iomanip>
 #include "debug/GdbServer.h"
 #include "debug/TcpConnection.h"
 #include "debug/DebugInterface.h"
+#include "debug/PatmosRegisterInfo.h"
 
 using namespace patmos;
 
 namespace
 {
-      RegisterInfoEntry registers[] = {
-        RegisterInfoEntry(
-            "r0",                         // name
-            32,                           // bitsize
-            en_uint,                      // RegisterEncoding
-            fo_hex,                       // RegisterFormat
-            "General Purpose Registers",  // setName
-            0,                            // dwarfNumber
-            ge_default                    // RegisterGenericType
-        ),
-        RegisterInfoEntry(
-            "r1",                         // name
-            32,                           // bitsize
-            en_uint,                      // RegisterEncoding
-            fo_hex,                       // RegisterFormat
-            "General Purpose Registers",  // setName
-            1,                            // dwarfNumber
-            ge_default                    // RegisterGenericType
-        ),
-        RegisterInfoEntry(
-            "r2",                         // name
-            32,                           // bitsize
-            en_uint,                      // RegisterEncoding
-            fo_hex,                       // RegisterFormat
-            "General Purpose Registers",  // setName
-            2,                            // dwarfNumber
-            ge_default                    // RegisterGenericType
-        ),
-        RegisterInfoEntry(
-            "r3",                         // name
-            32,                           // bitsize
-            en_uint,                      // RegisterEncoding
-            fo_hex,                       // RegisterFormat
-            "General Purpose Registers",  // setName
-            3,                            // dwarfNumber
-            ge_default                    // RegisterGenericType
-        )
-      };
-  
-  class TestInterface : public DebugInterface
+
+  const std::string patmosTriple  = "patmos--";
+  const std::string patmosEndian  = "big";
+  const int         patmosPtrSize = 4;
+
+  const RegisterContent emptyRegister("");
+
+  class PatmosDebugInterface;
+
+  class PatmosSimulator
   {
+  public:
+    PatmosSimulator()
+    : m_programRuns(true), m_singleStep(false)
+    {
+    }
+
+    void SetDebugClient(DebugClient *debugClient)
+    {
+      m_debugClient = debugClient;
+    }
+
+    void Run()
+    {
+      std::cerr << "waiting for client connection..." << std::endl;
+      m_debugClient->Connect();
+
+      int pc = 0;
+      while (m_programRuns)
+      {
+        std::cerr << "pc=" << pc << std::endl;
+
+        DoDebugActions(pc);
+    
+        // simulate the processor here...
+        ++pc;
+    
+        // some terminate condition...
+        if (pc > 4400)
+          m_programRuns = false;
+      }
+    }
+
+  private:
+    void DoDebugActions(int pc)
+    {
+      if (WasSingleStep())
+      {
+        std::cerr << "single step" << std::endl;
+        m_debugClient->SingleStepDone();
+      }
+      else if (IsDebugBreakpointHit(pc))
+      {
+        std::cerr << "breakpoint hit" << std::endl;
+        m_debugClient->BreakpointHit(Breakpoint(pc));
+        // need to check what to do next, maybe have to skip this interation?
+      }
+
+    }
+    bool IsDebugBreakpointHit(int pc)
+    {
+      return (m_breakpoints.find(pc) != m_breakpoints.end());
+    }
+    bool WasSingleStep()
+    {
+      bool wasSingleStep = m_singleStep;
+      m_singleStep = false;
+      return wasSingleStep;
+    }
+
+    void PrepareSingleStep()
+    {
+      m_singleStep = true;
+    }
+    void AddDebugBreakpoint(const Breakpoint &bp)
+    {
+      m_breakpoints[bp.pc] = bp;
+    }
+
+    DebugClient *m_debugClient;
+    bool m_programRuns;
+
+    std::map<int, Breakpoint> m_breakpoints;
+    bool m_singleStep;
+    
+    friend class PatmosDebugInterface;
+  };
+
+  class PatmosDebugInterface : public DebugInterface
+  {
+  public:
+    PatmosDebugInterface(PatmosSimulator &simulator)
+      : m_simulator(simulator), m_registerInfo(CreatePatmosRegisterInfo())
+    {
+    }
+
     virtual HostInfo GetHostInfo() const
     {
       HostInfo info;
-      info.triple = "patmos--linux";
-      info.endian = "big";
-      info.ptrsize = 4;
+      info.triple = patmosTriple;
+      info.endian = patmosEndian;
+      info.ptrsize = patmosPtrSize;
       return info;
     }
     virtual RegisterInfo GetRegisterInfo() const
     {
-      RegisterInfo info;
+      return m_registerInfo;
+    }
 
-      info.registers = registers;
-      info.regCount = 4;
+    virtual RegisterContent GetRegisterContent(int registerNumber) const
+    {
+      if (registerNumber < 0 || 
+          registerNumber >= m_registerInfo.size())
+        return emptyRegister;
 
-      return info;
+      const RegisterInfoEntry registerInfo = m_registerInfo[registerNumber];
+      const int registerSize = registerInfo.bitsize;
+      const int byteSize = registerSize / 8;
+
+      unsigned int registerContent[4] = {
+        0, 0, 0, 0
+      };
+
+      registerContent[0] = registerNumber;
+
+      std::stringstream ss;
+      ss << std::hex << std::setfill('0');
+      for (int i = 0; i < byteSize; ++i)
+      {
+        ss << std::setw(2) << registerContent[i];
+      }
+
+      return RegisterContent(ss.str());
     }
-    virtual void SetDebugClient(DebugClient &debugClient)
+
+    virtual MemoryContent GetMemoryContent(long address, long width) const
     {
+      const int byteSize = 10;
+
+      unsigned int memoryContent[32] = {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+      };
+
+      std::stringstream ss;
+      ss << std::hex << std::setfill('0');
+      for (int i = 0; i < byteSize; ++i)
+      {
+        ss << std::setw(2) << memoryContent[i];
+      }
+
+      return MemoryContent(ss.str());
     }
-    virtual void AddBreakpoint(Breakpoint bp)
+
+    virtual bool AddBreakpoint(const Breakpoint &bp)
     {
+      m_simulator.AddDebugBreakpoint(bp);
+      return true;
     }
-    virtual void RemoveBreakpoint(Breakpoint bp)
+    
+    virtual bool RemoveBreakpoint(Breakpoint bp)
     {
+      return true;
     }
+
+    virtual void SingleStep()
+    {
+      m_simulator.PrepareSingleStep();
+    }
+
+  private:
+    PatmosSimulator &m_simulator;
+    RegisterInfo m_registerInfo;
   };
+  
 }
 
 int main(int argc, char **argv)
@@ -106,9 +215,14 @@ int main(int argc, char **argv)
   TcpConnection con(listenPort);
   std::cerr << " done." << std::endl;
 
-  TestInterface debugInterface;
-  GdbServer server(debugInterface, con);
+  PatmosSimulator simulator;
+  PatmosDebugInterface patmosDebugInterface(simulator);
+  DebugInterface &debugInterface = patmosDebugInterface;
+  
+  GdbServer gdbServer(debugInterface, con);
+  DebugClient &debugClient = gdbServer;
 
-  std::cerr << "starting gdb server" << std::endl;
-  server.Start();
+  simulator.SetDebugClient(&debugClient);
+  simulator.Run();
+
 }

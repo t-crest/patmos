@@ -53,10 +53,10 @@ namespace patmos
   {
   }
 
-  void GdbServer::Start()
+  void GdbServer::TransferControlToClient()
   {
-    // Get the first message from the gdb client.
-    // Everything else is now driven by the client.
+    // Everything is now driven by the client, until a message handler sets
+    // targetContinue to true, which gives back control to the target.
     // The server only responds to messages that are received from the client.
     // These respond messages are created and sent by the message's 
     // Handle function.
@@ -69,8 +69,29 @@ namespace patmos
     }
   }
 
-  // Implement DebugClient
+  void GdbServer::Connect()
+  {
+    TransferControlToClient();
+  }
+
   void GdbServer::BreakpointHit(const Breakpoint &bp)
   {
+    // Send the reason why we stopped.
+    m_messageHandler->SendGdbMessage(GetStopReplyMessage("breakpoint"));
+    
+    TransferControlToClient();
+  }
+
+  void GdbServer::SingleStepDone()
+  {
+    // Send the reason why we stopped.
+    m_messageHandler->SendGdbMessage(GetStopReplyMessage("trace"));
+  
+    TransferControlToClient();
+  }
+
+  void GdbServer::SetDebugMessages(bool debugMessages)
+  {
+    m_packetHandler->SetDebug(debugMessages);
   }
 }

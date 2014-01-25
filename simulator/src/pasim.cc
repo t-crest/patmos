@@ -30,6 +30,8 @@
 #include "uart.h"
 #include "rtc.h"
 #include "interrupts.h"
+#include "debug/TcpConnection.h"
+#include "debug/GdbServer.h"
 
 #include <unistd.h>
 #include <termios.h>
@@ -40,6 +42,7 @@
 #include <limits>
 
 #include <boost/program_options.hpp>
+#include <boost/scoped_ptr.hpp>
 
 
 /// Construct a global memory for the simulation.
@@ -262,7 +265,10 @@ int main(int argc, char **argv)
                   "format of the debug trace (short, trace, instr, blocks, calls, default, long, all)")
     ("debug-file", boost::program_options::value<std::string>()->default_value("-"), "output debug trace in file (stderr: -)")
     ("debug-nopc", "do not print PC and cycles counter in debug output")
-    ("debug-gdb", "enable gdb-debugging interface. use gdb's target remote to debug the program")
+    ("debug-gdb", "enable gdb-debugging interface. use gdb's \"target remote\" command or lldb's \"gdb-remote\" command to debug the program.")
+    ("debug-gdb-port", boost::program_options::value<unsigned int>()->default_value(1234), "TCP port to be used for gdb-debugging")
+    ("debug-gdb-actions", "print gdb debugging actions (such as setting breakpoints) to stdout")
+    ("debug-gdb-messages", "print gdb messages to stdout")
     ("print-stats", boost::program_options::value<patmos::address_t>(), "print statistics for a given function only.")
     ("flush-caches", boost::program_options::value<patmos::address_t>(), "flush all caches when reaching the given address (can be a symbol name).")
     ("instr-stats,i", "show more detailed statistics per instruction")
@@ -403,6 +409,13 @@ int main(int argc, char **argv)
                                 vm["debug"].as<unsigned int>() :
                                 std::numeric_limits<uint64_t>::max();
   bool debug_gdb = (vm.count("debug-gdb") != 0);
+  int debug_gdb_port = 1234;
+  if (debug_gdb) {
+    debug_gdb_port = vm["debug-gdb-port"].as<unsigned int>();
+  }
+  bool debug_gdb_actions = (vm.count("debug-gdb-actions") != 0);
+  bool debug_gdb_messages = (vm.count("debug-gdb-messages") != 0);
+  
   uint64_t max_cycle = vm["maxc"].as<unsigned int>();
   if (!max_cycle) {
     max_cycle = std::numeric_limits<uint64_t>::max();
@@ -515,6 +528,22 @@ int main(int argc, char **argv)
     if (flush_caches) {
       flush_caches_addr.parse(sym);
       s.flush_caches_at(flush_caches_addr.value());
+    }
+
+    // setup gdb debugging interface
+    boost::scoped_ptr<patmos::TcpConnection> gdbConnection;
+    boost::scoped_ptr<patmos::GdbServer> gdbServer;
+    if (debug_gdb)
+    {
+      std::cerr << "Starting gdb server, using port " << debug_gdb_port << " ... ";
+      gdbConnection.reset(new patmos::TcpConnection(debug_gdb_port));
+      std::cerr << " done." << std::endl;
+      
+      gdbServer.reset(new patmos::GdbServer(s.GetDebugInterface(), *gdbConnection));
+      gdbServer->SetDebugMessages(debug_gdb_messages);
+
+      s.SetDebugClient(gdbServer.get());
+      s.SetDebugActions(debug_gdb_actions);
     }
    
     // start execution

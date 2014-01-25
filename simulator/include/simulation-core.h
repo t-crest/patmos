@@ -27,6 +27,8 @@
 #include "exception.h"
 #include "profiling.h"
 #include "interrupts.h"
+#include "debug/PatmosDebugInterface.h"
+#include "debug/DebugClient.h"
 
 #include <limits>
 #include <iostream>
@@ -124,6 +126,11 @@ namespace patmos
 
     /// A vector containing instruction statistics.
     typedef std::vector<instruction_stat_t> instruction_stats_t;
+
+    // Debug interface, used for gdb debugging.
+    PatmosDebugInterface debug_interface;
+
+    DebugClient *debug_client;
 
   public:
     /// Cycle counter
@@ -270,6 +277,17 @@ namespace patmos
 
     /// Simulate the instruction fetch stage.
     void instruction_fetch();
+
+    /// Returns the debugging interface for the simulator
+    DebugInterface& GetDebugInterface();
+
+    // Sets the debug client that is connected to the simulator
+    void SetDebugClient(DebugClient *debugClient);
+    
+    // Prints all debug related actions to stdout
+    void SetDebugActions(bool debugActions);
+    
+    friend class PatmosDebugInterface;
 
   public:
     /// Construct a new instance of a Patmos-core simulator

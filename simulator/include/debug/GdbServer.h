@@ -52,18 +52,20 @@ namespace patmos
     GdbServer(DebugInterface &debugInterface,
         const GdbConnection &connection);
 
-    /*
-     * starts to listen on the connection given at construction time.
-     * this will block until the initial handshake with the gdb client
-     * program is done. Depending on gdb client commands, the program
-     * will then continue or not
-     */
-    void Start();
+    // Implement DebugClient
+    void Connect();
 
     // Implement DebugClient
     virtual void BreakpointHit(const Breakpoint &bp);
+
+    // Implement DebugClient
+    virtual void SingleStepDone();
+
+    void SetDebugMessages(bool debugMessages);
   
   private:
+    void TransferControlToClient();
+
     DebugInterface &m_debugInterface;
     const GdbConnection &m_connection;
     GdbPacketHandlerPtr m_packetHandler;

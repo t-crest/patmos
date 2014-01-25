@@ -16,4 +16,5 @@
 
 add_library(patmos-simulator-debug 
   TcpConnection.cc Pipe.cc GdbServer.cc GdbException.cc
-  GdbMessageHandler.cc GdbMessage.cc GdbPacketHandler.cc GdbPacket.cc)
+  GdbMessageHandler.cc GdbMessage.cc GdbPacketHandler.cc GdbPacket.cc
+  PatmosRegisterInfo.cc PatmosDebugInterface.cc)

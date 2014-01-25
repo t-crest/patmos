@@ -21,8 +21,6 @@
 #ifndef PATMOS_GDB_MESSAGE_HANDLER_H
 #define PATMOS_GDB_MESSAGE_HANDLER_H
 
-#include "debug/DebugInterface.h"
-
 #include <string>
 #include <boost/shared_ptr.hpp>
 
@@ -65,5 +63,14 @@ namespace patmos
     GdbPacketHandler &m_packetHandler;
   };
 
+  const int dummyProcessId = 1;
+  const int dummyThreadId = 1;
+  
+  const int defaultStopReplySignalNumber = 5; // SIGTRAP
+//    const int defaultStopReplySignalNumber = 17; // SIGSTOP
+  
+  GdbResponseMessage GetStopReplyMessage( std::string reason = "trap",
+      int signalNumber = defaultStopReplySignalNumber,
+      int threadId = dummyThreadId);
 }
 #endif // PATMOS_GDB_MESSAGE_HANDLER_H

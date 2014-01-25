@@ -32,9 +32,6 @@ namespace
   const std::string failSeq = "-";    // failure sequence / request retransmission
   const int maxRetransmissions = 10;  // maximum number of retransmissions
 
-  const bool debug = true;            // enable internal debugging
-                                      // print to std::cerr
-
   // helper functions
   
   using namespace patmos;
@@ -78,29 +75,23 @@ namespace
 
   void DebugWrite(const GdbPacket &packet)
   {
-    if (debug)
-    {
-      std::cerr << "GdbPacketHandler::WriteGdbPacket > " << 
-        packet.GetPacketString()<< std::endl;
-    }
+    std::cerr << "GdbPacketHandler::WriteGdbPacket > " << 
+      packet.GetPacketString()<< std::endl;
   }
 
   void DebugRead(const GdbPacket &packet, bool isValid)
   {
-    if (debug)
+    int checksum = packet.GetChecksum();
+    // if invalid, calc checksum of the given packet
+    if (!isValid)
     {
-      int checksum = packet.GetChecksum();
-      // if invalid, calc checksum of the given packet
-      if (!isValid)
-      {
-        GdbPacket checksumHelper = CreateGdbPacket(packet.GetContent());
-        checksum = checksumHelper.GetChecksum();
-      }
-      std::cerr << "GdbPacketHandler::ReadGdbPacket  < " << 
-        packet.GetPacketString() << "(" << packet.GetContent() <<
-        ", checksum: " << std::hex << std::setw(2) << checksum << 
-        ", is valid: " << isValid << ")" << std::endl;
+      GdbPacket checksumHelper = CreateGdbPacket(packet.GetContent());
+      checksum = checksumHelper.GetChecksum();
     }
+    std::cerr << "GdbPacketHandler::ReadGdbPacket  < " << 
+      packet.GetPacketString() << "(" << packet.GetContent() <<
+      ", checksum: " << std::hex << std::setw(2) << checksum << 
+      ", is valid: " << isValid << ")" << std::endl;
   }
 }
 
@@ -128,7 +119,7 @@ namespace patmos
   //////////////////////////////////////////////////////////////////
   
   GdbPacketHandler::GdbPacketHandler(const GdbConnection &con)
-    : m_con(con), m_useAck(true)
+    : m_con(con), m_useAck(true), m_debug(false)
   {
   }
 
@@ -140,7 +131,8 @@ namespace patmos
       if (r++ > maxRetransmissions)
         throw GdbMaxRetransmissionsException();
 
-      DebugWrite(packet);
+      if (m_debug)
+        DebugWrite(packet);
 
       m_con.Write(packet.GetPacketString());
     } while (IsUsingAck() && !GetAck(m_con));
@@ -168,7 +160,8 @@ namespace patmos
       packet = ParseGdbPacket(ss.str());
       isValid = packet.IsValid();
       
-      DebugRead(packet, isValid);
+      if (m_debug)
+        DebugRead(packet, isValid);
 
       if (IsUsingAck() && !isValid)
         m_con.Write(failSeq);
@@ -189,6 +182,11 @@ namespace patmos
   bool GdbPacketHandler::IsUsingAck() const
   {
     return m_useAck;
+  }
+
+  void GdbPacketHandler::SetDebug(bool debug)
+  {
+    m_debug = debug;
   }
 
 }

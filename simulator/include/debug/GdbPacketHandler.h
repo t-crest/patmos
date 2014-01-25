@@ -71,9 +71,12 @@ namespace patmos
      */
     bool IsUsingAck() const;
 
+    void SetDebug(bool debug);
+
   private:
     const GdbConnection &m_con;
     bool m_useAck;
+    bool m_debug;
   };
 }
 #endif // PATMOS_GDB_PACKET_HANDLER_H

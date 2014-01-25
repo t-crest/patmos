@@ -49,7 +49,8 @@ namespace patmos
       BASE(0), PC(0), nPC(0), Debug_last_PC(0),
       Stall(SXX), Disable_IF(false), Is_decoupled_load_active(false), 
       Branch_counter(0), Halt(false), Interrupt_handling_counter(0),
-      Flush_Cache_PC(std::numeric_limits<unsigned int>::max()), Num_NOPs(0)
+      Flush_Cache_PC(std::numeric_limits<unsigned int>::max()), Num_NOPs(0),
+      debug_interface(*this)
   {
     // initialize one predicate register to be true, otherwise no instruction
     // will ever execute
@@ -286,6 +287,21 @@ namespace patmos
     }
   }
 
+  DebugInterface& simulator_t::GetDebugInterface()
+  {
+    return debug_interface;
+  }
+
+  void simulator_t::SetDebugClient(DebugClient *debugClient)
+  {
+    debug_client = debugClient;
+  }
+
+  void simulator_t::SetDebugActions(bool debugActions)
+  {
+    debug_interface.SetDebugActions(debugActions);
+  }
+
   void simulator_t::run(word_t entry, uint64_t debug_cycle,
                         debug_format_e debug_fmt, std::ostream &debug_out,
                         bool debug_nopc, const bool debug_gdb, 
@@ -299,11 +315,9 @@ namespace patmos
       Instr_cache.initialize(entry);
       Profiling.initialize(entry);
       Dbg_stack.initialize(entry);
-      if (debug_gdb)
+      if (debug_gdb && debug_client)
       {
-        /*GdbServer *server = new GdbServer();
-        server->Init();
-        debugClient.reset(server);*/
+        debug_client->Connect();
       }
     }
 
@@ -312,13 +326,14 @@ namespace patmos
       // start of main simulation loop
       for(uint64_t cycle = 0; cycle < max_cycles; cycle++, Cycle++)
       {
+        if (debug_gdb)
+        {
+          debug_interface.TakeControl(PC);
+        }
+        
         bool debug = (Cycle >= debug_cycle);
         bool debug_pipeline = debug && (debug_fmt >= DF_LONG);
  
-        if (debug_gdb)
-        {
-        }
-        
         // reset the stall counter.
         Stall = SXX;
 

@@ -34,6 +34,6 @@ target_link_libraries(padasm patmos-simulator patmos-simulator-debug ${Boost_LIB
 
 add_executable(pacheck pacheck.cc)
 
-target_link_libraries(pacheck patmos-simulator ${Boost_LIBRARIES} ${ELF})
+target_link_libraries(pacheck patmos-simulator patmos-simulator-debug ${Boost_LIBRARIES} ${ELF})
 
 install(TARGETS pasim paasm padasm pacheck RUNTIME DESTINATION bin)

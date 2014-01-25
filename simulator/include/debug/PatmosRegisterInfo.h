@@ -14,33 +14,17 @@
 //  along with the Patmos Simulator. If not, see <http://www.gnu.org/licenses/>.
 //
 //
-//  debugging client interface - used for gdb debugging.
-//  implement this interface if you want to debug the simulator
+//  register information of the patmos processor for debugging purposes
 //
 
-#ifndef PATMOS_DEBUG_CLIENT_H
-#define PATMOS_DEBUG_CLIENT_H
+#ifndef PATMOS_PATMOS_REGISTER_INFO_H
+#define PATMOS_PATMOS_REGISTER_INFO_H
+
+#include "debug/RegisterInfo.h"
 
 namespace patmos
 {
-
-  class Breakpoint;
-  class DebugInterface;
-
-  /*
-   * Interface for debugging clients, i.e. programs that want to debug another
-   * program that implements DebugInterface
-   */
-  class DebugClient
-  {
-  public:
-    virtual ~DebugClient() {}
-
-    virtual void Connect() = 0;
-
-    virtual void BreakpointHit(const Breakpoint &bp) = 0;
-    virtual void SingleStepDone() = 0;
-  };
-
+  RegisterInfo CreatePatmosRegisterInfo();
 }
-#endif // PATMOS_DEBUG_CLIENT_H
+
+#endif // PATMOS_PATMOS_REGISTER_INFO_H
