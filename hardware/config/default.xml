@@ -1,7 +1,8 @@
 <patmos>
   <description>default configuration</description>
 
-  <frequency Hz="80000000" />
+  <!-- <frequency Hz="80000000" /> -->
+  <frequency Hz="100000000" />
   <pipeline dual="true" />
 
   <MCache size="4k" blocks="16" repl="" />

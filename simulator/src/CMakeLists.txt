@@ -20,9 +20,9 @@ add_library(patmos-simulator assembler.cc simulation-core.cc instruction.cc
                              dbgstack.cc loader.cc memory.cc method-cache.cc
 			     stack-cache.cc data-cache.cc)
 
-add_executable(pasim pasim.cc)
+#add_executable(pasim pasim.cc)
 
-target_link_libraries(pasim patmos-simulator ${Boost_LIBRARIES} ${ELF})
+#target_link_libraries(pasim patmos-simulator ${Boost_LIBRARIES} ${ELF})
 
 add_executable(paasm paasm.cc)
 
@@ -32,8 +32,8 @@ add_executable(padasm padasm.cc)
 
 target_link_libraries(padasm patmos-simulator ${Boost_LIBRARIES} ${ELF})
 
-add_executable(pacheck pacheck.cc)
+# add_executable(pacheck pacheck.cc)
 
-target_link_libraries(pacheck patmos-simulator ${Boost_LIBRARIES} ${ELF})
+# target_link_libraries(pacheck patmos-simulator ${Boost_LIBRARIES} ${ELF})
 
-install(TARGETS pasim paasm padasm pacheck RUNTIME DESTINATION bin)
+install(TARGETS paasm padasm RUNTIME DESTINATION bin)

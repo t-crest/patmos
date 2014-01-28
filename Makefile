@@ -6,7 +6,8 @@
 COM_PORT?=/dev/ttyUSB0
 
 # Application to be stored in boot ROM
-BOOTAPP?=basic
+#BOOTAPP?=york_loader
+BOOTAPP ?= ldst
 #BOOTAPP=bootable-bootloader
 
 # Application to be downloaded

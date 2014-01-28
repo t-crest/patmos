@@ -66,7 +66,7 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   val memory = Module(new Memory())
   val writeback = Module(new WriteBack())
   val iocomp = Module(new InOut())
-  val dcache = Module(new DataCache())
+//  val dcache = Module(new DataCache())
 
   //connect mcache
   mcache.io.femcache <> fetch.io.femcache
@@ -100,11 +100,14 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   val bootMem = Module(new BootMem(datFile))
   memory.io.globalInOut <> bootMem.io.memInOut
 
-  dcache.io.master <> bootMem.io.extMem
+//  dcache.io.master <> bootMem.io.extMem
+
+  val cacheToBurstBus = Module(new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
+  val cacheToBurst = new OcpBurstBridge(bootMem.io.extMem, cacheToBurstBus.io.slave)
 
   // Merge OCP ports from data caches and method cache
   val burstBus = Module(new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
-  val burstJoin = new OcpBurstJoin(mcache.io.ocp_port, dcache.io.slave,
+  val burstJoin = new OcpBurstJoin(mcache.io.ocp_port, cacheToBurstBus.io.master,
                                    burstBus.io.slave)
 
   // Enable signal
@@ -159,10 +162,11 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   Config.connectAllIOPins(io, core.io)
 
   // Connect memory controller
-  val ssram = Module(new SsramBurstRW(EXTMEM_ADDR_WIDTH))
-  ssram.io.ocp_port <> core.io.memPort
-  io.sramPins.ram_out <> ssram.io.ram_out
-  io.sramPins.ram_in <> ssram.io.ram_in
+//  val ssram = Module(new SsramBurstRW(EXTMEM_ADDR_WIDTH))
+  //ssram.io.ocp_port <> core.io.memPort
+  //io.sramPins.ram_out <> ssram.io.ram_out
+  //io.sramPins.ram_in <> ssram.io.ram_in
+  io.mem_interface <> core.io.memPort
 
   // Dummy output, which is ignored in the top level VHDL code, to
   // force Chisel keep some unused signals alive
