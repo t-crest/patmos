@@ -347,5 +347,5 @@ class PatmosCoreIO() extends Bundle() {
 class PatmosIO() extends Bundle() {
   val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
-  val mem_interface = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+  //val mem_interface = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
 }

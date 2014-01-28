@@ -170,11 +170,10 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   Config.connectAllIOPins(io, core.io)
 
   // Connect memory controller
-  io.mem_interface <> core.io.memPort
-
-  // Dummy output, which is ignored in the top level VHDL code, to
-  // force Chisel keep some unused signals alive
-  io.dummy <> core.io.dummy
+  //io.mem_interface <> core.io.memPort
+  val sramCtrl = Config.createDevice(Config.conf.ExtMem.sram).asInstanceOf[BurstDevice]
+  sramCtrl.io.ocp <> core.io.memPort
+  Config.connectIOPins(Config.conf.ExtMem.sram.name, io, sramCtrl.io)
 
   // Print out the configuration
   Utility.printConfig(configFile)
