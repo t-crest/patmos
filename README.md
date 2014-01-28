@@ -5,9 +5,9 @@ This version of the Patmos source tree is the one currently used by York within 
 project. It contains a few hacks to (badly) expose a plain OcpBurst interface from the top
 in order to connect it to the rest of the T-CREST platform.
 
-This version is not intended to be merged into the main Patmos repository, since there are also
-some miscallaneous changes to the build system (I don't have the dependencies for the simulator...)
-and the external interface of Patmos is no longer compatible with the canonical copy.
+Now that the source of this project has been cleaned up slightly, it may be possible to merge
+the changes back into the main Patmos repository, taking care to not trip over a couple of
+build system changes that have been made.
 
 About Patmos
 ============
