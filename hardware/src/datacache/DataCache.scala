@@ -66,23 +66,26 @@ class DataCache extends Module {
   val dmS = dm.io.master.S
 
   // Instantiate bridge for bypasses and writes
-  val bp = Module(new OcpCacheBus(ADDR_WIDTH, DATA_WIDTH))
-  val bpBurst = Module(new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
-  val bpBridge = new OcpBurstBridge(bp.io.master, bpBurst.io.slave)
-  bp.io.slave.M := io.master.M
-  bp.io.slave.M.Cmd := Mux(!selDC || io.master.M.Cmd === OcpCmd.WR,
-						   io.master.M.Cmd, OcpCmd.IDLE)
-  val bpS = bp.io.slave.S
+  val bp = Module(new NullCache())
+  bp.io.master.M := io.master.M
+  bp.io.master.M.Cmd := Mux(!selDC, io.master.M.Cmd, OcpCmd.IDLE)
+  val bpS = bp.io.master.S
 
-  // Join requests
-  val burstBus = Module(new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
-  val burstJoin = new OcpBurstJoin(dm.io.slave, bpBurst.io.master, burstBus.io.slave)
-  io.slave <> burstBus.io.master
+  // Join read requests
+  val burstReadBus = Module(new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
+  val burstReadJoin = new OcpBurstJoin(dm.io.slave, bp.io.slave, burstReadBus.io.slave)
+
+  // Combine writes
+  val wc = Module(if (WRITE_COMBINE) new WriteCombineBuffer() else new WriteNoBuffer())
+  wc.io.readMaster <> burstReadBus.io.master
+  wc.io.writeMaster.M := io.master.M
+  val wcWriteS = wc.io.writeMaster.S
+  io.slave <> wc.io.slave
 
   // Pass data to pipeline
   io.master.S.Data := bpS.Data
   when(selDCReg) { io.master.S.Data := dmS.Data }
 
   // Merge responses
-  io.master.S.Resp := dmS.Resp | bpS.Resp
+  io.master.S.Resp := dmS.Resp | bpS.Resp | wcWriteS.Resp
 }

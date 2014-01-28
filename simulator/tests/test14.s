@@ -14,7 +14,7 @@
                 lws     r2  = [r0 + 0];
                 lhs     r3  = [r0 + 0]  ||     lbs     r4  = [r0 + 1];
                 lhus    r5  = [r0 + 0]  ||     lbus    r6  = [r0 + 1];
-                sfree   1;
+                sfree   4;
                 halt;
 		nop;
 		nop;

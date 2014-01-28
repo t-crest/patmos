@@ -59,47 +59,27 @@ import ocp._
 class Spm(size: Int) extends Module {
   val io = new OcpCoreSlavePort(log2Up(size), DATA_WIDTH)
 
-  // Unconditional registers for the on-chip memory
-  // All stall/enable handling has been done in the input with a MUX
-  val masterReg = Reg(next = io.M)
-
-  // Compute write enable
-  val stmsk = Mux(io.M.Cmd === OcpCmd.WR, io.M.ByteEn,  Bits("b0000"))
-  val stmskReg = Reg(next = stmsk)
-
-  // I would like to have a vector of memories.
-  // val mem = Vec(4) { Mem(Bits(width = DATA_WIDTH), size) }
-
-  // ok, the dumb way
   val addrBits = log2Up(size / BYTES_PER_WORD)
-  val mem0 = Mem(Bits(width = BYTE_WIDTH), size / BYTES_PER_WORD)
-  val mem1 = Mem(Bits(width = BYTE_WIDTH), size / BYTES_PER_WORD)
-  val mem2 = Mem(Bits(width = BYTE_WIDTH), size / BYTES_PER_WORD)
-  val mem3 = Mem(Bits(width = BYTE_WIDTH), size / BYTES_PER_WORD)
+
+  // generate byte memories
+  val mem = new Array[MemBlockIO](BYTES_PER_WORD)
+  for (i <- 0 until BYTES_PER_WORD) {
+    mem(i) = MemBlock(size / BYTES_PER_WORD, BYTE_WIDTH).io
+  }
 
   // store
-  when(stmskReg(0)) { mem0(masterReg.Addr(addrBits + 1, 2)) :=
-					   masterReg.Data(BYTE_WIDTH-1, 0) }
-  when(stmskReg(1)) { mem1(masterReg.Addr(addrBits + 1, 2)) :=
-					   masterReg.Data(2*BYTE_WIDTH-1, BYTE_WIDTH) }
-  when(stmskReg(2)) { mem2(masterReg.Addr(addrBits + 1, 2)) :=
-					   masterReg.Data(3*BYTE_WIDTH-1, 2*BYTE_WIDTH) }
-  when(stmskReg(3)) { mem3(masterReg.Addr(addrBits + 1, 2)) :=
-					   masterReg.Data(DATA_WIDTH-1, 3*BYTE_WIDTH) }
+  val stmsk = Mux(io.M.Cmd === OcpCmd.WR, io.M.ByteEn,  Bits("b0000"))
+  for (i <- 0 until BYTES_PER_WORD) {
+    mem(i) <= (stmsk(i), io.M.Addr(addrBits + 1, 2),
+               io.M.Data(BYTE_WIDTH*(i+1)-1, BYTE_WIDTH*i))
+  }
 
   // load
-  val rdData = Cat(mem3(masterReg.Addr(addrBits + 1, 2)),
-				   mem2(masterReg.Addr(addrBits + 1, 2)),
-				   mem1(masterReg.Addr(addrBits + 1, 2)),
-				   mem0(masterReg.Addr(addrBits + 1, 2)))
+  val rdData = mem.map(_(io.M.Addr(addrBits + 1, 2))).reduceLeft((x,y) => y ## x)
 
-  // Return data immediately
+  // Respond and return data
+  val cmdReg = Reg(next = io.M.Cmd)
+  io.S.Resp := Mux(cmdReg === OcpCmd.WR || cmdReg === OcpCmd.RD,
+                   OcpResp.DVA, OcpResp.NULL)
   io.S.Data := rdData
-  io.S.Resp := Mux(masterReg.Cmd === OcpCmd.WR || masterReg.Cmd === OcpCmd.RD,
-   				   OcpResp.DVA, OcpResp.NULL)
-
-  // Delay result by one cycle to test stalling
-  // io.S.Data := Reg(next = rdData)
-  // io.S.Resp := Reg(next = Mux(masterReg.Cmd === OcpCmd.WR || masterReg.Cmd === OcpCmd.RD,
-  // 					   OcpResp.DVA, OcpResp.NULL))
 }

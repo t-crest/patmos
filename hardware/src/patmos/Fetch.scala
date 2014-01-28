@@ -63,24 +63,18 @@ class Fetch(fileName : String) extends Module {
   val romOdd  = Vec(romGroups.map(_(1)))
 
   val ispmAddrBits = log2Up(ISPM_SIZE / 4 / 2)
-  val memEven = Mem(Bits(width = INSTR_WIDTH), ISPM_SIZE / 4 / 2)
-  val memOdd = Mem(Bits(width = INSTR_WIDTH), ISPM_SIZE / 4 / 2)
+  val memEven = MemBlock(ISPM_SIZE / 4 / 2, INSTR_WIDTH)
+  val memOdd = MemBlock(ISPM_SIZE / 4 / 2, INSTR_WIDTH)
 
   // write from EX - use registers - ignore stall, as reply does not hurt
   val selWrite = (io.memfe.store & (io.memfe.addr(DATA_WIDTH-1, ISPM_ONE_BIT) === Bits(0x1)))
-  val wrEvenReg = Reg(next = selWrite & (io.memfe.addr(2) === Bits(0)))
-  val wrOddReg = Reg(next = selWrite & (io.memfe.addr(2) === Bits(1)))
-  val addrReg = Reg(next = io.memfe.addr)
-  val dataReg = Reg(next = io.memfe.data)
-  when(wrEvenReg) { memEven(addrReg(ispmAddrBits + 3 - 1, 3)) := dataReg }
-  when(wrOddReg) { memOdd(addrReg(ispmAddrBits + 3 - 1, 3)) := dataReg }
-  // This would not work with asynchronous reset as the address
-  // registers are set on reset. However, chisel uses synchronous
-  // reset, which 'just' generates some more logic. And it looks
-  // like the synthesize tool is able to duplicate the register.
+  val wrEven = selWrite & (io.memfe.addr(2) === Bits(0))
+  val wrOdd = selWrite & (io.memfe.addr(2) === Bits(1))
+  memEven.io <= (wrEven, io.memfe.addr, io.memfe.data)
+  memOdd.io <= (wrOdd, io.memfe.addr, io.memfe.data)
 
-  val selIspm = Reg(next = io.mcachefe.mem_sel(1))
-  val selMCache = Reg(next = io.mcachefe.mem_sel(0))
+  val selIspm = Reg(next = io.mcachefe.memSel(1))
+  val selMCache = Reg(next = io.mcachefe.memSel(0))
 
   //need to register these values to save them in  memory stage at call/return
   val relBaseReg = Reg(init = UInt(1, width = MAX_OFF_WIDTH))
@@ -91,8 +85,8 @@ class Fetch(fileName : String) extends Module {
   }
 
   //select even/odd from ispm
-  val ispm_even = memEven(addrEvenReg(ispmAddrBits, 1))
-  val ispm_odd = memOdd(addrOddReg(ispmAddrBits, 1))
+  val ispm_even = memEven.io(addrEven(ispmAddrBits, 1))
+  val ispm_odd = memOdd.io(addrOdd(ispmAddrBits, 1))
   val instr_a_ispm = Mux(pcReg(0) === Bits(0), ispm_even, ispm_odd)
   val instr_b_ispm = Mux(pcReg(0) === Bits(0), ispm_odd, ispm_even)
 
@@ -104,11 +98,15 @@ class Fetch(fileName : String) extends Module {
   val instr_a_rom = Mux(pcReg(0) === Bits(0), data_even, data_odd)
   val instr_b_rom = Mux(pcReg(0) === Bits(0), data_odd, data_even)
 
+  //select even/odd from method cache
+  val instr_a_cache = Mux(pcReg(0) === Bits(0), io.mcachefe.instrEven, io.mcachefe.instrOdd)
+  val instr_b_cache = Mux(pcReg(0) === Bits(0), io.mcachefe.instrOdd, io.mcachefe.instrEven)
+
   //MCache/ISPM/ROM Mux
   val instr_a = Mux(selIspm, instr_a_ispm,
-                    Mux(selMCache, io.mcachefe.instr_a, instr_a_rom))
+                    Mux(selMCache, instr_a_cache, instr_a_rom))
   val instr_b = Mux(selIspm, instr_b_ispm,
-                    Mux(selMCache, io.mcachefe.instr_b, instr_b_rom))
+                    Mux(selMCache, instr_b_cache, instr_b_rom))
 
   val b_valid = instr_a(31) === Bits(1)
 
@@ -137,12 +135,11 @@ class Fetch(fileName : String) extends Module {
   io.fedec.instr_a := instr_a
   io.fedec.instr_b := instr_b
 
-  io.femem.pc := pc_cont - relBaseReg
+  val relPc = pcReg - relBaseReg
+  io.femem.pc := Mux(b_valid, relPc + UInt(2), relPc + UInt(1))
 
   //outputs to mcache
-  io.femcache.address := Mux(io.ena, pc_next, pcReg)
-  io.femcache.request := selMCache
-  io.femcache.doCallRet := io.memfe.doCallRet
-  io.femcache.callRetBase := io.memfe.callRetBase
+  io.femcache.addrEven := addrEven
+  io.femcache.addrOdd := addrOdd
 
 }

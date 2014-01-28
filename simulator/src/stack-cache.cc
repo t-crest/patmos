@@ -256,6 +256,10 @@ word_t block_stack_cache_t::prepare_reserve(uword_t size,
     simulation_exception_t::stack_exceeded("Reserving more blocks than"
       "the number of blocks in the stack cache");
   }
+  if (size_blocks * Num_block_bytes != size) {
+    simulation_exception_t::stack_exceeded("Reserving a frame size that is not "
+      "a multiple of the stack block size.");
+  }
 
   if (stack_top < size_blocks * Num_block_bytes) {
     simulation_exception_t::stack_exceeded("Stack top pointer decreased beyond "
@@ -362,6 +366,10 @@ word_t block_stack_cache_t::prepare_free(uword_t size,
     simulation_exception_t::stack_exceeded("Freeing more blocks than"
       " the number of blocks in the stack cache");
   }
+  if (size_blocks * Num_block_bytes != size) {
+    simulation_exception_t::stack_exceeded("Freeing a frame size that is not "
+      "a multiple of the stack block size.");
+  }
 
   // also free space in memory?
   if (freed_spilled_blocks)
@@ -411,6 +419,11 @@ word_t block_stack_cache_t::prepare_ensure(uword_t size,
     simulation_exception_t::stack_exceeded("Ensuring more blocks than"
         " the number of blocks in the stack cache");
   }
+  if (size_blocks * Num_block_bytes != size) {
+    simulation_exception_t::stack_exceeded("Ensuring a frame size that is not "
+      "a multiple of the stack block size.");
+  }
+
 
   uword_t transfer_blocks = 0;
   
@@ -480,6 +493,12 @@ word_t block_stack_cache_t::prepare_spill(uword_t size,
 
   uword_t transfer_blocks = size_blocks;
 
+  if (size_blocks * Num_block_bytes != size) {
+    simulation_exception_t::stack_exceeded("Spilling a frame size that is not "
+      "a multiple of the stack block size.");
+  }
+
+  
   // update the stack top pointer of the processor 
   stack_spill -= transfer_blocks * Num_block_bytes;
 
@@ -497,6 +516,12 @@ bool block_stack_cache_t::spill(uword_t size, word_t delta,
   {
     case IDLE:
     {
+      // do we need to spill?
+      if (!delta) {
+        // no, done.
+        return true;
+      }
+
       // copy data to a buffer to allow contiguous transfer to the memory.
       for(unsigned int i = 0; i < delta; i++)
       {
@@ -573,7 +598,8 @@ void block_stack_cache_t::print(std::ostream &os) const
   ideal_stack_cache_t::print(os);
 }
 
-void block_stack_cache_t::print_stats(const simulator_t &s, std::ostream &os)
+void block_stack_cache_t::print_stats(const simulator_t &s, std::ostream &os, 
+                                      bool short_stats)
 {
   unsigned int bytes_transferred = Num_blocks_filled * Num_block_bytes +
                                    Num_blocks_spilled * Num_block_bytes;

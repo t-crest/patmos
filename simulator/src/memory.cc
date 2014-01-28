@@ -314,7 +314,8 @@ void fixed_delay_memory_t::print(std::ostream &os) const
   }
 }
 
-void fixed_delay_memory_t::print_stats(const simulator_t &s, std::ostream &os)
+void fixed_delay_memory_t::print_stats(const simulator_t &s, std::ostream &os, 
+                                       bool short_stats)
 {
   uint64_t stall_cycles = Num_busy_cycles - Num_posted_write_cycles;
   
@@ -357,6 +358,9 @@ void fixed_delay_memory_t::print_stats(const simulator_t &s, std::ostream &os)
     % Num_bytes_read_transferred % (read_trans_pct * 100.0)
     % Num_bytes_write_transferred % (write_trans_pct * 100.0);
     
+  if (short_stats) 
+    return;
+  
   os << "Request size    #requests\n";
   for (request_size_map_t::iterator it = Num_requests_per_size.begin(),
         ie = Num_requests_per_size.end(); it != ie; it++)

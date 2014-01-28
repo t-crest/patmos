@@ -1,8 +1,10 @@
 # A simple linker script to put code and data into the external memory
 SECTIONS
 {
-  . = SEGMENT_START(".rodata", 0x10);
+  . = SEGMENT_START(".rodata", 0x400);
   .rodata : { *(.rodata .rodata.*) }
+  .init_array : { *(SORT(.init_array.*) .init_array) }
+  .fini_array : { *(SORT(.fini_array.*) .fini_array) }
   .data : { *(.data) }
   .bss : { *(.bss) }
 

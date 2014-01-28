@@ -1,9 +1,9 @@
 <patmos>
-  <description>default configuration</description>
+  <description>Configuration for the ML605 board</description>
 
-  <!-- <frequency Hz="80000000" /> -->
   <frequency Hz="100000000" />
   <pipeline dual="true" />
+  <bus burstLength="4" writeCombine="false" />
 
   <MCache size="4k" blocks="16" repl="" />
   <DCache size="2k" assoc="1" repl="" />
@@ -11,7 +11,8 @@
   <DSPM size="2k" />
   <BootSPM size="2k" />
 
-  <ExtMem size="2M" />
+  <!-- DevTypeRef /should/ be ignored, but it's kept for 100% compatibility -->
+  <ExtMem size="2M" DevTypeRef="Ssram32" />
 
   <IOs>
 	<IO IODevTypeRef="CpuInfo" offset="0"/>
@@ -20,20 +21,20 @@
 	<IO IODevTypeRef="Leds" offset="9"/>
   </IOs>
 
-  <IODevs>
-	<IODev IODevType="CpuInfo" entity="CpuInfo" iface="OcpCore" />
-	<IODev IODevType="Timer" entity="Timer" iface="OcpCore" />
-	<IODev IODevType="Uart" entity="Uart" iface="OcpCore">
+  <Devs>
+	<Dev IODevType="CpuInfo" entity="CpuInfo" iface="OcpCore" />
+	<Dev IODevType="Timer" entity="Timer" iface="OcpCore" />
+	<Dev IODevType="Uart" entity="Uart" iface="OcpCore">
 	  <params>
 		<param name="baud_rate" value="115200"/>
 	  </params>
-	</IODev>
-	<IODev IODevType="Leds" entity="Leds" iface="OcpCore">
+	</Dev>
+	<Dev IODevType="Leds" entity="Leds" iface="OcpCore">
 	  <params>
 		<param name="ledCount" value="9"/>
 	  </params>
-	</IODev>
-  </IODevs>
+	</Dev>
+  </Devs>
 
   <!-- currently unused -->
   <SCache size="0" />

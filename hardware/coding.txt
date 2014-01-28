@@ -26,5 +26,8 @@ It is important in HW design to quickly distinguish between combinational
 circuits and registers. Therefore, all registers shall end with Reg
 (e.g., cntReg).
 
+Memory components, if in a larger context, should also be named with the
+postfix Mem (e.g., tagMem).
+
 For more info on common Scala coding conventions see:
 http://docs.scala-lang.org/style/

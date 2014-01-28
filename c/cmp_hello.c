@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
         WRITE(cid,CORES-1);
         WRITE("\n",1);
 
-        // Blinkenlights
+        // Blinking lights
         int i, j;
         for (;;)
         {
@@ -139,7 +139,7 @@ int send(int rcv_id, short read_ptr, short write_ptr, int size){
         return 0;
     }
 
-    // Ony send if previous transfer is done
+    // Only send if previous transfer is done
     if ((*(ni.dma+(rcv_id<<1)) & VALID_BIT) != 0
         && (*(ni.dma+(rcv_id<<1)) & DONE_BIT) == 0)
     {

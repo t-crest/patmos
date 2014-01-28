@@ -54,11 +54,15 @@ object Constants {
   val BOOTSPM_SIZE = util.Config.conf.BootSPM.size
   
   val MCACHE_SIZE = util.Config.conf.MCache.size
-  // maximum width between ISPM size and MCACHE size
-  val MAX_OFF_WIDTH = math.max(log2Up(MCACHE_SIZE / 4), log2Up(ISPM_SIZE / 4))
   val METHOD_COUNT = util.Config.conf.MCache.blocks
 
   val DCACHE_SIZE = util.Config.conf.DCache.size
+  //offset for to swicth rel address into absolut addr width, default = 0
+  val ICACHE_ADDR_OFFSET = 0 //log2Up(util.Config.conf.ExtMem.size)
+
+  // maximum width between ISPM size, MCACHE size and boot ROM size
+  val MAX_OFF_WIDTH = List(log2Up(MCACHE_SIZE / 4), log2Up(ISPM_SIZE / 4),
+                           util.Config.minPcWidth, ICACHE_ADDR_OFFSET).reduce(math.max)
 
   // we use a very simple decoding of ISPM at address 0x00010000
   val ISPM_ONE_BIT = 16
@@ -66,9 +70,14 @@ object Constants {
   // both in the global address space
   val BOOTMEM_ONE_BIT = 16
 
-  //val EXTMEM_ADDR_WIDTH = log2Up(util.Config.conf.ExtMem.size)
+  // We want to force this to 32-bit for our case, regardless of configuration. This is in order to 
+  // correctly create the output port (which is required to be 32-bit), even if the user configuration
+  // specifies a smaller memory.
+  // Consider changing this to a new configuration file later, but force to 32 for now.
   val EXTMEM_ADDR_WIDTH = 32
-  val BURST_LENGTH = 4 // For SSRAM on DE2-70 board max. 4
+//  val EXTMEM_ADDR_WIDTH = log2Up(util.Config.conf.ExtMem.size)
+  val BURST_LENGTH = util.Config.conf.burstLength // For SSRAM on DE2-70 board max. 4
+  val WRITE_COMBINE = util.Config.conf.writeCombine
 
   // The PC counts in words. 30 bits are enough for the 4 GB address space.
   // We might cut that down to what we actually really support (16 MB)

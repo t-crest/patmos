@@ -8,7 +8,7 @@ BOOTBUILDDIR?=$(BOOTBUILDROOT)/tmp
 BOOTBIN?=$(BOOTBUILDDIR)/$(BOOTAPP).bin
 BOOTDAT?=$(BOOTBUILDDIR)/$(BOOTAPP).dat
 
-QPROJ?=altde2-70
+BOARD?=altde2-70
 
 HWMODULEPREFIX?=
 
@@ -41,12 +41,13 @@ MAIN=patmos.PatmosMain
 
 # main classes for core, memory controller and arbiter
 COREMAIN=patmos.PatmosCoreMain
-MEMCTRLMAIN=patmos.SsramMain
+MEMCTRLMAIN32=io.SsramMain
+MEMCTRLMAIN16=io.SRamMain
 ARBITERMAIN=ocp.ArbiterMain
 
 # config file for Patmos -- now just frequency
-CONFIG=default
-CONFIGFILE?=$(BOOTBUILDROOT)/hardware/config/$(CONFIG).xml
+#CONFIG=default
+CONFIGFILE?=$(BOOTBUILDROOT)/hardware/config/$(BOARD).xml
 SRC+=$(CONFIGFILE)
 
 # optionally pass module prefix when generating Verilog
@@ -113,7 +114,10 @@ $(VGENCORE): $(BOOTBIN) $(BOOTDAT) $(SRC)
 	echo $(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX) > $(VGENCORE)
 
 $(HWBUILDDIR)/SsramBurstRW.v: $(SRC)
-	$(SBT) "run-main $(MEMCTRLMAIN) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --backend v"
+	$(SBT) "run-main $(MEMCTRLMAIN32) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --backend v"
+
+$(HWBUILDDIR)/SRamCtrl.v: $(SRC)
+	$(SBT) "run-main $(MEMCTRLMAIN16) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --backend v"
 
 $(HWBUILDDIR)/Arbiter.v: $(SRC)
 	$(SBT) "run-main $(ARBITERMAIN) $(ARBITER_CNT) $(ARBITER_ADDR_WIDTH) $(ARBITER_DATA_WIDTH) $(ARBITER_BURST_LENGTH) --targetDir $(HWBUILDDIR) --backend v"
@@ -124,10 +128,10 @@ vsim: verilog
 
 # synthesize
 qsyn: verilog
-	quartus_map quartus/$(QPROJ)/patmos
-	quartus_fit quartus/$(QPROJ)/patmos
-	quartus_asm quartus/$(QPROJ)/patmos
-	quartus_sta quartus/$(QPROJ)/patmos
+	quartus_map quartus/$(BOARD)/patmos
+	quartus_fit quartus/$(BOARD)/patmos
+	quartus_asm quartus/$(BOARD)/patmos
+	quartus_sta quartus/$(BOARD)/patmos
 
 # build the boot binary
 $(BOOTBIN) $(BOOTDAT): .FORCE
@@ -139,7 +143,11 @@ MODULE=ocp.test.OcpTester
 MODULE=ocp.test.ArbiterTester
 modtest:
 #	-rm -rf generated
-	$(SBT) "run-main $(MODULE) --backend c --compile --vcd --test --genHarness --targetDir generated"
+	$(SBT) "run-main $(MODULE) --backend c --compile --vcd --test --genHarness --targetDir build"
+
+modcomp:
+#	-rm -rf generated
+	$(SBT) "run-main $(MODULE) --backend v --compile --vcd --targetDir build"
 
 .FORCE:
 

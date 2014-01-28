@@ -1563,7 +1563,7 @@ namespace patmos
       {
         // check if the target method is in the cache, otherwise stall until
         // it is loaded.
-        if (!s.Instr_cache.load_method(base))
+        if (!s.Instr_cache.load_method(base, address - base))
         {
           // stall the pipeline
           s.pipeline_stall(SMW);

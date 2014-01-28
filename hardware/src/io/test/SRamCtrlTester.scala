@@ -93,17 +93,19 @@ import scala.collection.mutable.HashMap
 class SRamCtrlTop() extends Module {
 
   val io = new Bundle {
+    //val port = new OcpBurstMasterPort(32, 32, 4)
     val addr = Bits(OUTPUT, width=32)
   }
 
-  val mem = Module(new SRamCtrl())
+  val mem = Module(new SRamCtrl(21))
   val master = Module(new ocp.test.Master(0, 4))
-  mem.io.ocpPort <> master.io.port
-  io.addr := mem.io.ramIO
+  mem.io.ocp <> master.io.port
+  io.addr := mem.io.sRamCtrlPins.ramOut.addr
+  //io.port.M <> master.io.port.M
 }
 
 
-class SRamCtrlTester(dut: SRamCtrlTop) extends Tester(dut, Array(dut.io)) {
+class SRamCtrlTester(dut: io.test.SRamCtrlTop) extends Tester(dut, Array(dut.io)) {
   defTests {
     val ret = true
     val vars = new HashMap[Node, Node]()
@@ -113,15 +115,15 @@ class SRamCtrlTester(dut: SRamCtrlTop) extends Tester(dut, Array(dut.io)) {
 
     for (i <- 0 until 25) {
       vars.clear
-//      vars(dut.io.fromMaster.M.Cmd) = testVec(i)
+//      vars(dut.master.io.port.M.Cmd) = testVec(i)
 
-//      vars(dut.io.slave.S.CmdAccept) = Bits(1)
-//      vars(dut.io.slave.S.DataAccept) = Bits(1)
+//      vars(dut.mem.io.ocpPort.S.CmdAccept) = Bits(1)
+//      vars(dut.mem.io.ocpPort.S.DataAccept) = Bits(1)
       step(vars, ovars)
-//      println("out data: " + ovars(dut.io.slave))
-      //      println("iter: "+i)
-      //      println("vars: "+vars)
-      //      println("ovars: "+ovars)
+//      println("out data: " + ovars(dut.mem.io.ramOut.dout))
+//      println("iter: "+i)
+//      println("vars: "+vars)
+//      println("ovars: "+ovars)
     }
     ret
   }
@@ -129,7 +131,7 @@ class SRamCtrlTester(dut: SRamCtrlTop) extends Tester(dut, Array(dut.io)) {
 
 object SRamCtrlTester {
   def main(args: Array[String]): Unit = {
-    chiselMainTest(args, () => Module(new SRamCtrlTop)) {
+    chiselMainTest(args, () => Module(new io.test.SRamCtrlTop)) {
       f => new SRamCtrlTester(f)
     }
   }

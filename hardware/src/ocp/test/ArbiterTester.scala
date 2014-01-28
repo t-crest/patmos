@@ -44,7 +44,7 @@ import Node._
 import ocp._
 import patmos._
 import scala.collection.mutable.HashMap
-import patmos.SsramBurstRW
+import io.SsramBurstRW
 
 
 class Master(nr: Int, burstLength: Int) extends Module {
@@ -104,7 +104,7 @@ class ArbiterTop() extends Module {
     arb.io.master(i) <> m.io.port
   }
 
-  mem.io.ocp_port <> arb.io.slave
+  mem.io.ocp <> arb.io.slave
 
   io.port.M <> arb.io.slave.M
 
