@@ -70,12 +70,7 @@ object Constants {
   // both in the global address space
   val BOOTMEM_ONE_BIT = 16
 
-  // We want to force this to 32-bit for our case, regardless of configuration. This is in order to 
-  // correctly create the output port (which is required to be 32-bit), even if the user configuration
-  // specifies a smaller memory.
-  // Consider changing this to a new configuration file later, but force to 32 for now.
-  val EXTMEM_ADDR_WIDTH = 32
-//  val EXTMEM_ADDR_WIDTH = log2Up(util.Config.conf.ExtMem.size)
+  val EXTMEM_ADDR_WIDTH = log2Up(util.Config.conf.ExtMem.size)
   val BURST_LENGTH = util.Config.conf.burstLength // For SSRAM on DE2-70 board max. 4
   val WRITE_COMBINE = util.Config.conf.writeCombine
 
