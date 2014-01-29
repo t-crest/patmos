@@ -1,14 +1,3 @@
-About this pull
-============
-
-This version of the Patmos source tree is the one currently used by York within the T-CREST
-project. It contains a few hacks to (badly) expose a plain OcpBurst interface from the top
-in order to connect it to the rest of the T-CREST platform.
-
-Now that the source of this project has been cleaned up slightly, it may be possible to merge
-the changes back into the main Patmos repository, taking care to not trip over a couple of
-build system changes that have been made.
-
 About Patmos
 ============
 
