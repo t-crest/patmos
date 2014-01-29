@@ -66,7 +66,7 @@ abstract class Config {
   val DSPM: SPMConfig
   val BootSPM: SPMConfig
 
-  case class ExtMemConfig(size: Int, sram: DeviceConfig)
+  case class ExtMemConfig(size: Long, sram: DeviceConfig)
   val ExtMem: ExtMemConfig
 
   case class DeviceConfig(name : String, params : Map[String, String], offset : Int)
@@ -86,6 +86,16 @@ object Config {
 						   "G" -> (1 << 30))
 	  val regex(num, suffix) = text.toUpperCase
 	  num.toInt * suffixMult.getOrElse(suffix, 0)
+  }
+
+  def parseSizeLong(text: String): Long = {
+    val regex = """(\d+)([KMG]?)""".r
+    val suffixMult = Map("" -> (1 << 0),
+               "K" -> (1 << 10),
+               "M" -> (1 << 20),
+               "G" -> (1 << 30))
+    val regex(num, suffix) = text.toUpperCase
+    num.toLong * suffixMult.getOrElse(suffix, 0)
   }
 
   def fromXML(node: scala.xml.Node): Config =
@@ -122,7 +132,7 @@ object Config {
       if (exist(ExtMemNode,"@DevTypeRef")){
         ExtMemDev = devFromXML(ExtMemNode,DevList,false)
       }
-      val ExtMem = new ExtMemConfig(parseSize(find(ExtMemNode, "@size").text),
+      val ExtMem = new ExtMemConfig(parseSizeLong(find(ExtMemNode, "@size").text),
                                     ExtMemDev)
 
 
