@@ -134,7 +134,8 @@ qsyn: verilog
 	quartus_sta quartus/$(BOARD)/patmos
 
 # build the boot binary
-$(BOOTBIN) $(BOOTDAT): .FORCE
+$(BOOTDAT): $(BOOTBIN)
+$(BOOTBIN): .FORCE
 	$(MAKE) -C $(BOOTBUILDROOT) BUILDDIR=$(BOOTBUILDDIR) $(BOOTBIN) $(BOOTDAT)
 
 # for module tests
