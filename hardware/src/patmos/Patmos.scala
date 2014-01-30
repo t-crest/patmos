@@ -142,7 +142,7 @@ object PatmosCoreMain {
     val datFile = args(2)
 
 	Config.conf = Config.load(configFile)
-    Config.minPcWidth = (new File(binFile)).length.toInt / 4
+    Config.minPcWidth = log2Up((new File(binFile)).length.toInt / 4)
     chiselMain(chiselArgs, () => Module(new PatmosCore(binFile, datFile)))
 	// Print out the configuration
 	Utility.printConfig(configFile)
