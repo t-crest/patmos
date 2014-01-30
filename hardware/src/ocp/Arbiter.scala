@@ -52,50 +52,90 @@ class Arbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extend
     val master = Vec.fill(cnt) { new OcpBurstSlavePort(addrWidth, dataWidth, burstLen) }
     val slave = new OcpBurstMasterPort(addrWidth, dataWidth, burstLen)
   }
+  debug(io.master)
+  debug(io.slave)
 
-  val turnReg = Reg(init = UInt(0, log2Up(cnt)))
+  val cntReg = Reg(init = UInt(0, log2Up(cnt*(burstLen + 1))))
+  // slot length = burst size + 1
   val burstCntReg = Reg(init = UInt(0, log2Up(burstLen)))
+  val period = cnt * (burstLen + 1)
+  val slotLen = UInt(burstLen + 1)
+  val cpuTime = Vec.fill(cnt){Reg(init = UInt(0, log2Up(cnt*burstLen)))}
+  val cpuSlot = Vec.fill(cnt){Reg(init = UInt(0, width=1))}
 
   val sIdle :: sRead :: sWrite :: Nil = Enum(UInt(), 3)
-  val stateReg = Reg(init = sIdle)
+  val stateReg = Vec.fill(cnt){Reg(init = sIdle)}
 
-  // TODO def turn
+  debug(cntReg)
+  debug(cpuTime(1))
+  debug(cpuSlot(0))
+  debug(cpuSlot(1))
+  debug(cpuSlot(2))
+  debug(stateReg(0))
+  debug(stateReg(1))
+  debug(stateReg(2))
 
-  val master = io.master(turnReg).M
-
-  when(stateReg === sIdle) {
-    when(master.Cmd != OcpCmd.IDLE) {
-      when(master.Cmd === OcpCmd.RD) {
-        stateReg := sRead
-      }
-      when(master.Cmd === OcpCmd.WR) {
-        stateReg := sWrite
-        burstCntReg := UInt(0)
-      }
-    }
-      .otherwise {
-        turnReg := Mux(turnReg === UInt(cnt - 1), UInt(0), turnReg + UInt(1))
-      }
+  cntReg := Mux(cntReg === UInt(period - 1), UInt(0), cntReg + UInt(1))
+  
+  def slotTable(nodeID: Int) = { 
+    (cntReg === UInt(nodeID) * slotLen).toUInt
   }
-  when(stateReg === sWrite) {
-    // Just wait on the DVA after the write
-    when(io.slave.S.Resp === OcpResp.DVA) {
-      turnReg := Mux(turnReg === UInt(cnt - 1), UInt(0), turnReg + UInt(1))
-      stateReg := sIdle
-    }
-  }
-  when(stateReg === sRead) {
-    // For read we have to count the DVAs
-    when(io.slave.S.Resp === OcpResp.DVA) {
-      burstCntReg := burstCntReg + UInt(1)
-      when(burstCntReg === UInt(burstLen) - UInt(1)) {
-        turnReg := Mux(turnReg === UInt(cnt - 1), UInt(0), turnReg + UInt(1))
-        stateReg := sIdle
-      }
-    }
+  
+  // Calculate slot information
+  for (i <- 0 to cnt-1) {
+    cpuTime(i) := UInt(i+1) * UInt(burstLen + 1) 
   }
 
-  io.slave.M := master
+  for (i <- 0 to cnt-1) {
+    cpuSlot(i) := UInt(0)
+  }
+  
+  for(i <- 0 to cnt-1) {
+    cpuSlot(i) := slotTable(i) 
+  }
+
+   // Temporarily assigned to master 0
+   val masterID = Reg(init = UInt(0, log2Up(cnt)))
+   
+    for (i <- 0 to cnt-1) {
+
+      when (cpuSlot(i) === UInt(1)) {
+        val master = io.master(i).M
+        masterID := UInt(i)
+        debug(master)
+        
+        when (stateReg(i) === sIdle) {
+          when (master.Cmd != OcpCmd.IDLE){
+            when (master.Cmd === OcpCmd.RD) {
+              stateReg(i) := sRead
+            }
+          when (master.Cmd === OcpCmd.WR) {
+            stateReg(i) := sWrite
+            burstCntReg := UInt(0)
+          }
+        }
+      }
+     }
+
+       when (stateReg(i) === sWrite){
+         // Wait on DVA
+         when(io.slave.S.Resp === OcpResp.DVA){
+           stateReg(i) := sIdle
+         }
+       }
+     
+       when (stateReg(i) === sRead){
+         when (io.slave.S.Resp === OcpResp.DVA) {
+           burstCntReg := burstCntReg + UInt(1)
+             when (burstCntReg === UInt(burstLen) - UInt(1)) {
+               stateReg := sIdle
+             }
+           }
+        }      
+    } 
+  
+  io.slave.M := io.master(masterID).M 
+  debug(io.slave.M)
 
   for (i <- 0 to cnt - 1) {
     io.master(i).S.CmdAccept := Bits(0)
@@ -104,9 +144,8 @@ class Arbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extend
     // we forward the data to all masters
     io.master(i).S.Data := io.slave.S.Data
   }
-  io.master(turnReg).S := io.slave.S
+  io.master(masterID).S := io.slave.S
 
-  // The response of the SSRAM comes a little bit late
 }
 
 object ArbiterMain {
