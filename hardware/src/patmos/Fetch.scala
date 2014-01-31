@@ -73,8 +73,12 @@ class Fetch(fileName : String) extends Module {
   memEven.io <= (wrEven, io.memfe.addr, io.memfe.data)
   memOdd.io <= (wrOdd, io.memfe.addr, io.memfe.data)
 
-  val selIspm = Reg(next = io.mcachefe.memSel(1))
-  val selMCache = Reg(next = io.mcachefe.memSel(0))
+  val selIspm = Reg(init = Bool(false))
+  val selMCache = Reg(init = Bool(false))
+  when (io.ena) {
+    selIspm := io.mcachefe.memSel(1)
+    selMCache := io.mcachefe.memSel(0)
+  }
 
   //need to register these values to save them in  memory stage at call/return
   val relBaseReg = Reg(init = UInt(1, width = MAX_OFF_WIDTH))

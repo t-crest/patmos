@@ -327,7 +327,7 @@ class MCacheCtrl() extends Module {
   val io = new MCacheCtrlIO()
 
   //fsm state variables
-  val idleState :: sizeState :: waitState :: transferState :: restartState :: Nil = Enum(UInt(), 5)
+  val idleState :: sizeState :: transferState :: restartState :: Nil = Enum(UInt(), 4)
   val mcacheState = Reg(init = idleState)
   //signals for method cache memory (mcache_repl)
   val addrEven = Bits(width = EXTMEM_ADDR_WIDTH)
@@ -337,8 +337,8 @@ class MCacheCtrl() extends Module {
   val wAddr = Bits(width = EXTMEM_ADDR_WIDTH)
   val wEna = Bool()
   //signals for external memory
-  val ocpCmd = Bits(width = 3)
-  val ocpAddr = Bits(width = EXTMEM_ADDR_WIDTH)
+  val ocpCmdReg = Reg(init = OcpCmd.IDLE)
+  val ocpAddrReg = Reg(init = Bits(0, width = EXTMEM_ADDR_WIDTH))
   val fetchEna = Bool()
   val transferSizeReg = Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH))
   val fetchCntReg = Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH))
@@ -358,9 +358,19 @@ class MCacheCtrl() extends Module {
   wTag := Bool(false)
   wEna := Bool(false)
   wAddr := Bits(0)
-  ocpCmd := OcpCmd.IDLE
-  ocpAddr := Bits(0)
   fetchEna := Bool(true)
+
+  // reset command when accepted
+  when (io.ocp_port.S.CmdAccept === Bits(1)) {
+    ocpCmdReg := OcpCmd.IDLE
+  }
+
+  //output to external memory
+  io.ocp_port.M.Addr := Cat(ocpAddrReg, Bits("b00"))
+  io.ocp_port.M.Cmd := ocpCmdReg
+  io.ocp_port.M.Data := Bits(0)
+  io.ocp_port.M.DataByteEn := Bits("b1111")
+  io.ocp_port.M.DataValid := Bits(0)
 
   when (io.exmcache.doCallRet) {
     callRetBaseReg := io.exmcache.callRetBase // use callret to save base address for next cycle
@@ -377,23 +387,17 @@ class MCacheCtrl() extends Module {
     //no hit... fetch from external memory
     .otherwise {
       burstCntReg := UInt(0)
-      ocpAddr := Cat(msizeAddr(EXTMEM_ADDR_WIDTH-1,2), Bits("b00")) //aligned read from ssram
-      ocpCmd := OcpCmd.RD
-      when (io.ocp_port.S.CmdAccept === Bits(1)) {
-        mcacheState := sizeState
+
+      //aligned read from ssram
+      io.ocp_port.M.Cmd := OcpCmd.RD
+      when (io.ocp_port.S.CmdAccept === Bits(0)) {
+        ocpCmdReg := OcpCmd.RD
       }
-      .otherwise {
-        mcacheState := waitState
-      }
-    }      
-  }
-  when (mcacheState === waitState) {
-    fetchEna := Bool(false)
-    ocpAddr := Cat(msizeAddr(EXTMEM_ADDR_WIDTH-1,2), Bits("b00")) //aligned read from ssram
-    ocpCmd := OcpCmd.RD
-    when (io.ocp_port.S.CmdAccept === Bits(1)) {
+      io.ocp_port.M.Addr := Cat(msizeAddr(EXTMEM_ADDR_WIDTH-1,2), Bits("b0000"))
+      ocpAddrReg := Cat(msizeAddr(EXTMEM_ADDR_WIDTH-1,2), Bits("b00"))
+
       mcacheState := sizeState
-    }
+    }      
   }
   //fetch size of the required method from external memory address - 1
   when (mcacheState === sizeState) {
@@ -406,8 +410,12 @@ class MCacheCtrl() extends Module {
         transferSizeReg := size
         fetchCntReg := Bits(0) //start to write to cache with offset 0
         when (burstCntReg >= UInt(BURST_LENGTH - 1)) {
-          ocpAddr := callRetBaseReg
-          ocpCmd := OcpCmd.RD
+          io.ocp_port.M.Cmd := OcpCmd.RD
+          when (io.ocp_port.S.CmdAccept === Bits(0)) {
+            ocpCmdReg := OcpCmd.RD
+          }
+          io.ocp_port.M.Addr := Cat(callRetBaseReg, Bits("b00"))
+          ocpAddrReg := callRetBaseReg
           burstCntReg := UInt(0)
         }
         //init transfer to on-chip method cache memory
@@ -431,8 +439,12 @@ class MCacheCtrl() extends Module {
         when(fetchCntReg < transferSizeReg - Bits(1)) {
           //fetch next address from external memory
           when (burstCntReg >= UInt(BURST_LENGTH - 1)) {
-            ocpCmd := OcpCmd.RD
-            ocpAddr := callRetBaseReg + fetchCntReg + Bits(1) //need +1 because start fetching with the size of method
+            io.ocp_port.M.Cmd := OcpCmd.RD
+            when (io.ocp_port.S.CmdAccept === Bits(0)) {
+              ocpCmdReg := OcpCmd.RD
+            }
+            io.ocp_port.M.Addr := Cat(callRetBaseReg + fetchCntReg + Bits(1), Bits("b00"))
+            ocpAddrReg := callRetBaseReg + fetchCntReg + Bits(1) //need +1 because start fetching with the size of method
             burstCntReg := UInt(0)
           }
         }
@@ -463,13 +475,5 @@ class MCacheCtrl() extends Module {
   io.mcache_ctrlrepl.instrStall := mcacheState != idleState
 
   io.fetch_ena := fetchEna
-
-  //output to external memory
-  io.ocp_port.M.Addr := Cat(ocpAddr, Bits("b00"))
-  io.ocp_port.M.Cmd := ocpCmd
-  io.ocp_port.M.Data := Bits(0)
-  io.ocp_port.M.DataByteEn := Bits("b1111")
-  io.ocp_port.M.DataValid := Bits(0)
-
 }
 
