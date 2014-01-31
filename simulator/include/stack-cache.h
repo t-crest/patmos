@@ -372,6 +372,7 @@ namespace patmos
   {
     private: 
       uword_t lazy_pointer;
+      bool lp_pulldown;
 /// Possible transfers to/from the stack cache.
     enum phase_e
     {
@@ -401,6 +402,9 @@ namespace patmos
     // *************************************************************************
     // statistics
 
+    /// Total number of blocks not spilled due to the lazy pointer
+    unsigned int Num_blocks_not_spilled_lazy;
+    
     /// Total number of blocks reserved.
     unsigned int Num_blocks_reserved;
 
@@ -445,7 +449,7 @@ namespace patmos
 
     public:
 
-      /// Construct a lazy black-based stack cache.
+      /// Construct a lazy block-based stack cache.
       /// @param memory The memory to spill/fill.
       /// @param num_blocks Size of the stack cache in blocks.
       block_lazy_stack_cache_t(memory_t &memory, unsigned int num_blocks, 
@@ -456,7 +460,8 @@ namespace patmos
       virtual word_t prepare_reserve(uword_t size, 
                                    uword_t &stack_spill, uword_t &stack_top, uword_t &lazy_pointer, bool lp_pulldown);
       virtual word_t prepare_free(uword_t size,
-                                uword_t &stack_spill, uword_t &stack_top, uword_t &lazy_pointer);	
+                                uword_t &stack_spill, uword_t &stack_top, uword_t &lazy_pointer);
+      virtual bool write(uword_t address, byte_t *value, uword_t size, uword_t &stack_top, uword_t &lazy_pointer);
 
   };
 

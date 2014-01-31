@@ -215,7 +215,6 @@ bool proxy_stack_cache_t::read(uword_t address, byte_t *value, uword_t size)
 
 bool proxy_stack_cache_t::write(uword_t address, byte_t *value, uword_t size, uword_t &lazy_pointer)
 {
-  lazy_pointer = std::max(stack_top + address + size, lazy_pointer);
   return Memory.write(stack_top + address, value, size);
 }
 
@@ -686,9 +685,11 @@ word_t block_lazy_stack_cache_t::prepare_reserve(uword_t size,
   
   uword_t transfer_blocks = 0;
   
-  uword_t reserved_blocks = get_num_reserved_blocks(lazy_pointer, stack_top);
+  uword_t reserved_blocks = get_num_reserved_blocks(stack_spill, stack_top);
 
-  uword_t lazy_spilled = get_num_reserved_blocks(stack_spill, lazy_pointer);
+  uword_t lazy_transfer_blocks = 0;
+
+  uword_t lazy_reserved_blocks = get_num_reserved_blocks(lazy_pointer, lazy_pointer);
   
   uword_t non_spilled_blocks = 0;
   
@@ -696,17 +697,14 @@ word_t block_lazy_stack_cache_t::prepare_reserve(uword_t size,
   if (reserved_blocks > Num_blocks) {
     // yes? spill some blocks ...
     transfer_blocks = reserved_blocks - Num_blocks;
+    lazy_transfer_blocks = lazy_reserved_blocks - Num_blocks;
   }
  
-  uword_t non_transfer_blocks = transfer_blocks - lazy_spilled;
-
-  if (lazy_spilled < transfer_blocks) {
-    transfer_blocks = lazy_spilled;
-  }
+  uword_t non_transfer_blocks = transfer_blocks - lazy_transfer_blocks;
 
   
   // update the stack top pointer of the processor
-  stack_spill -= transfer_blocks * Num_block_bytes;
+  stack_spill -= lazy_transfer_blocks * Num_block_bytes;
   
   if (lp_pulldown) {
           // no need to spill uninitialized stack data
@@ -722,6 +720,7 @@ word_t block_lazy_stack_cache_t::prepare_reserve(uword_t size,
   Max_blocks_reserved = std::max(Max_blocks_reserved, size_blocks);
   Num_blocks_spilled += transfer_blocks;
   Max_blocks_spilled = std::max(Max_blocks_spilled, transfer_blocks);
+  Num_blocks_not_spilled_lazy = non_transfer_blocks;
 
   return transfer_blocks * Num_block_bytes;
 }
@@ -763,4 +762,9 @@ word_t block_lazy_stack_cache_t::prepare_free(uword_t size,
   return 0;
 }
 
+bool block_lazy_stack_cache_t::write(uword_t address, byte_t *value, uword_t size, uword_t &stack_top, uword_t &lazy_pointer)
+{
+	lazy_pointer = std::max(stack_top + address + size, lazy_pointer);
+	return block_stack_cache_t::write(address, value, size);
+}
 
