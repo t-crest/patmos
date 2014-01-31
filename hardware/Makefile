@@ -28,7 +28,7 @@ CXXFLAGS=-O2
 # Quick fix for Mac OS X
 # How are include paths handled these days in *nix? CMake?
 ifeq ($(TERM_PROGRAM),$(filter $(TERM_PROGRAM), Apple_Terminal iTerm.app))
-	INC_EXTRA=-I /opt/local/include -I /opt/local/include/libelf -L/opt/local/lib
+	INC_EXTRA=-I /opt/local/include -I /usr/local/include/libelf -I /opt/local/include/libelf -L/opt/local/lib
 else
 	INC_EXTRA=
 endif
