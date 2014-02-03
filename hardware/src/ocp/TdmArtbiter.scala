@@ -45,7 +45,7 @@ import Node._
 
 import scala.collection.mutable.HashMap
 
-class Arbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extends Module {
+class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extends Module {
   // MS: I'm always confused from which direction the name shall be
   // probably the other way round...
   val io = new Bundle {
@@ -148,7 +148,7 @@ class Arbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extend
 
 }
 
-object ArbiterMain {
+object TdmArbiterMain {
   def main(args: Array[String]): Unit = {
 
     val chiselArgs = args.slice(4, args.length)
@@ -157,7 +157,7 @@ object ArbiterMain {
     val dataWidth = args(2)
     val burstLen = args(3)
 
-    chiselMain(chiselArgs, () => Module(new Arbiter(cnt.toInt,addrWidth.toInt,dataWidth.toInt,burstLen.toInt)))
+    chiselMain(chiselArgs, () => Module(new TdmArbiter(cnt.toInt,addrWidth.toInt,dataWidth.toInt,burstLen.toInt)))
   }
 }
 
