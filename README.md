@@ -57,7 +57,7 @@ One might start with the standard, harmless looking Hello World:
 With the compiler installed it can be compiled to a Patmos executable
 and run with the simulator as follows:
 
-    patmos-clang hell.c
+    patmos-clang hello.c
     pasim a.out
 
 However, this innocent examples is quiet challenging for an embedded system.
