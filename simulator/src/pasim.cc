@@ -199,8 +199,10 @@ static patmos::stack_cache_t &create_stack_cache(patmos::stack_cache_e sck,
 {
   switch(sck)
   {
-    case patmos::SC_IDEAL:
+    case patmos::SC_IDEAL:{
+
       return *new patmos::ideal_stack_cache_t(gm);
+}
     case patmos::SC_BLOCK:
     {
       // The stack cache always uses a granularity of words for allocation
@@ -212,11 +214,12 @@ static patmos::stack_cache_t &create_stack_cache(patmos::stack_cache_e sck,
     {
       // convert size to number of blocks
       unsigned int num_blocks = (size - 1) / 4 + 1;
-
+	
       return *new patmos::block_lazy_stack_cache_t(gm, num_blocks, 4);
     }
     case patmos::SC_DCACHE:
     {
+
       return *new patmos::proxy_stack_cache_t(dc);
     }
   }
@@ -460,6 +463,7 @@ int main(int argc, char **argv)
     // open streams
     in = patmos::get_stream<std::ifstream>(binary, std::cin);
     out = patmos::get_stream<std::ofstream>(output, std::cout);
+
 
     uin = patmos::get_stream<std::ifstream>(uart_in, std::cin);
     uout = patmos::get_stream<std::ofstream>(uart_out, std::cout);

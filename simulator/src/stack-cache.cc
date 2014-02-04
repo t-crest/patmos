@@ -768,3 +768,55 @@ bool block_lazy_stack_cache_t::write(uword_t address, byte_t *value, uword_t siz
 	return block_stack_cache_t::write(address, value, size);
 }
 
+
+void block_lazy_stack_cache_t::print_stats(const simulator_t &s, std::ostream &os, 
+                                      bool short_stats)
+{
+  unsigned int bytes_transferred = Num_blocks_filled * Num_block_bytes +
+                                   Num_blocks_spilled * Num_block_bytes;
+  float transfer_ratio = (float)bytes_transferred /
+                         (float)(Num_bytes_read + Num_bytes_written);
+  
+  // stack cache statistics
+  os << boost::format("                              total        max.\n"
+                      "   Blocks Spilled      : %1$10d  %2$10d\n"
+                      "   Blocks Filled       : %3$10d  %4$10d\n"
+                      "   Blocks Reserved     : %5$10d  %6$10d\n"
+                      "   Bytes Transferred   : %7$10d  %8$10d\n"
+                      "   Reads               : %9$10d\n"
+                      "   Bytes Read          : %10$10d\n"
+                      "   Writes              : %11$10d\n"
+                      "   Bytes Written       : %12$10d\n"
+                      "   Emptying Frees      : %13$10d\n"
+                      "   Transfer Ratio      : %14$10.3f\n"
+                      "   Miss Stall Cycles   : %15$10d  %16$10.2f%%\n"
+			"   Blocks Non Spilled  : %17$10d  %18$10d\n\n")
+    % Num_blocks_spilled % Max_blocks_spilled
+    % Num_blocks_filled  % Max_blocks_filled
+    % Num_blocks_reserved % Max_blocks_reserved
+    % bytes_transferred 
+    % (std::max(Max_blocks_filled, Max_blocks_spilled) * Num_block_bytes)
+    % Num_read_accesses % Num_bytes_read
+    % Num_write_accesses % Num_bytes_written
+    % Num_free_empty
+    % transfer_ratio
+    % Num_stall_cycles % (100.0 * (float)Num_stall_cycles/(float)s.Cycle)
+   % Num_blocks_not_spilled_lazy % Max_blocks_spilled;
+}
+
+void block_lazy_stack_cache_t::reset_stats() 
+{
+  Num_blocks_spilled = 0;
+  Num_blocks_not_spilled_lazy = 0;
+  Max_blocks_spilled = 0;
+  Num_blocks_filled = 0;
+  Max_blocks_filled = 0;
+  Num_blocks_reserved = 0;
+  Max_blocks_reserved = 0;
+  Num_read_accesses = 0;
+  Num_bytes_read = 0;
+  Num_write_accesses = 0;
+  Num_bytes_written = 0;
+  Num_free_empty = 0;
+  Num_stall_cycles = 0;
+}

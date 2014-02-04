@@ -463,6 +463,11 @@ namespace patmos
                                 uword_t &stack_spill, uword_t &stack_top, uword_t &lazy_pointer);
       virtual bool write(uword_t address, byte_t *value, uword_t size, uword_t &stack_top, uword_t &lazy_pointer);
 
+     void print_stats(const simulator_t &s, std::ostream &os, 
+                             bool short_stats);
+
+     void reset_stats();
+
   };
 
   /// Operator to print the state of a stack cache to a stream
