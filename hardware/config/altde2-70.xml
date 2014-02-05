@@ -33,7 +33,7 @@
 		<param name="ledCount" value="9"/>
 	  </params>
 	</Dev>
-    <Dev DevType="Ssram32" entity="SsramBurstRW" iface="OcpBurst">
+    <Dev DevType="Ssram32" entity="SSRam32Ctrl" iface="OcpBurst">
         <params>
             <param name="ocpAddrWidth" value="21" />
         </params>

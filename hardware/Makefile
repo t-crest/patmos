@@ -41,7 +41,7 @@ MAIN=patmos.PatmosMain
 
 # main classes for core, memory controller and arbiter
 COREMAIN=patmos.PatmosCoreMain
-MEMCTRLMAIN32=io.SsramMain
+MEMCTRLMAIN32=io.SSRam32Main
 MEMCTRLMAIN16=io.SRamMain
 ARBITERMAIN=ocp.ArbiterMain
 
@@ -113,7 +113,7 @@ $(VGENCORE): $(BOOTBIN) $(BOOTDAT) $(SRC)
 	$(SBT) "run-main $(COREMAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --targetDir $(HWBUILDDIR) --backend v $(HWMODULEPREFIXOPT)"
 	echo $(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX) > $(VGENCORE)
 
-$(HWBUILDDIR)/SsramBurstRW.v: $(SRC)
+$(HWBUILDDIR)/SSRam32Ctrl.v: $(SRC)
 	$(SBT) "run-main $(MEMCTRLMAIN32) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --backend v"
 
 $(HWBUILDDIR)/SRamCtrl.v: $(SRC)

@@ -44,7 +44,7 @@ import Node._
 import ocp._
 import patmos._
 import scala.collection.mutable.HashMap
-import io.SsramBurstRW
+import io.SSRam32Ctrl
 
 
 class Master(nr: Int, burstLength: Int) extends Module {
@@ -97,7 +97,7 @@ class ArbiterTop() extends Module {
   }
   val CNT = 3
   val arb = Module(new ocp.Arbiter(CNT, 32, 32, 4))
-  val mem = Module(new SsramBurstRW(21))
+  val mem = Module(new SSRam32Ctrl(21))
 
   for (i <- 0 until CNT) {
     val m = Module(new Master(i, 4))

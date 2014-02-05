@@ -155,30 +155,30 @@ static void extSsramSim(Patmos_t *c) {
   static uint32_t address;
   static uint32_t counter;
 
-  // *out << "noe:" << c->Patmos__io_ssramBurstRWPins_ramOut_noe.to_ulong()
-  // 	   << " nadv: " << c->Patmos__io_ssramBurstRWPins_ramOut_nadv.to_ulong()
-  // 	   << " nadsc:" << c->Patmos__io_ssramBurstRWPins_ramOut_nadsc.to_ulong()
-  // 	   << " addr:" << c->Patmos__io_ssramBurstRWPins_ramOut_addr.to_ulong() << "\n";
+  // *out << "noe:" << c->Patmos__io_sSRam32CtrlPins_ramOut_noe.to_ulong()
+  // 	   << " nadv: " << c->Patmos__io_sSRam32CtrlPins_ramOut_nadv.to_ulong()
+  // 	   << " nadsc:" << c->Patmos__io_sSRam32CtrlPins_ramOut_nadsc.to_ulong()
+  // 	   << " addr:" << c->Patmos__io_sSRam32CtrlPins_ramOut_addr.to_ulong() << "\n";
 
-  if (c->Patmos__io_ssramBurstRWPins_ramOut_nadsc.to_ulong() == 0) {
-    address = c->Patmos__io_ssramBurstRWPins_ramOut_addr.to_ulong();
-    addr_cnt = c->Patmos__io_ssramBurstRWPins_ramOut_addr.to_ulong();
+  if (c->Patmos__io_sSRam32CtrlPins_ramOut_nadsc.to_ulong() == 0) {
+    address = c->Patmos__io_sSRam32CtrlPins_ramOut_addr.to_ulong();
+    addr_cnt = c->Patmos__io_sSRam32CtrlPins_ramOut_addr.to_ulong();
     counter = 0;
   }
-  if (c->Patmos__io_ssramBurstRWPins_ramOut_nadv.to_ulong() == 0) {
+  if (c->Patmos__io_sSRam32CtrlPins_ramOut_nadv.to_ulong() == 0) {
     addr_cnt++;
   }
-  if (c->Patmos__io_ssramBurstRWPins_ramOut_noe.to_ulong() == 0) {
+  if (c->Patmos__io_sSRam32CtrlPins_ramOut_noe.to_ulong() == 0) {
     counter++;
     if (counter >= SRAM_CYCLES) {
-      c->Patmos__io_ssramBurstRWPins_ramIn_din = ssram_buf[address];
+      c->Patmos__io_sSRam32CtrlPins_ramIn_din = ssram_buf[address];
       if (address <= addr_cnt) {
         address++;
       }
     }
   }
-  if (c->Patmos__io_ssramBurstRWPins_ramOut_nbwe.to_ulong() == 0) {
-	uint32_t nbw = c->Patmos__io_ssramBurstRWPins_ramOut_nbw.to_ulong();
+  if (c->Patmos__io_sSRam32CtrlPins_ramOut_nbwe.to_ulong() == 0) {
+	uint32_t nbw = c->Patmos__io_sSRam32CtrlPins_ramOut_nbw.to_ulong();
 	uint32_t mask = 0x00000000;
 	for (unsigned i = 0; i < 4; i++) {
 	  if ((nbw & (1 << i)) == 0) {
@@ -187,7 +187,7 @@ static void extSsramSim(Patmos_t *c) {
 	}
 
 	ssram_buf[address] &= ~mask;
-	ssram_buf[address] |= mask & c->Patmos__io_ssramBurstRWPins_ramOut_dout.to_ulong();
+	ssram_buf[address] |= mask & c->Patmos__io_sSRam32CtrlPins_ramOut_dout.to_ulong();
 
 	if (address <= addr_cnt) {
 	  address++;

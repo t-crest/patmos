@@ -37,11 +37,6 @@
  *
  */
 
-// MS: This should not be in package patmos (and then in folder io)
-// TODO: fix coding and file naming conventions
-
-// MS: hanging around in subfolder io cannot be pacackage io!
-// will fix later when Eclipse is responsible again
 package io
 
 import Chisel._
@@ -73,25 +68,19 @@ class RamOutType(addrBits: Int) extends Bundle() {
   val dout = Bits(width = 32)
 }
 
-class SsramIOBurst(addrBits: Int) extends Bundle() {
-  val ocp = new OcpBurstSlavePort(addrBits, DATA_WIDTH, BURST_LENGTH)
-  val ramOut = new RamOutType(addrBits-2).asOutput
-  val ramIn = new RamInType().asInput
-}
-
-object SsramBurstRW extends DeviceObject {
+object SSRam32Ctrl extends DeviceObject {
   var addrBits = -1
 
   def init(params: Map[String, String]) = {
     addrBits = getPosIntParam(params, "ocpAddrWidth")
   }
 
-  def create(params: Map[String, String]) : SsramBurstRW = {
-    Module(new SsramBurstRW(addrBits))
+  def create(params: Map[String, String]) : SSRam32Ctrl = {
+    Module(new SSRam32Ctrl(addrBits))
   }
 
   trait Pins {
-    val ssramBurstRWPins = new Bundle() {
+    val sSRam32CtrlPins = new Bundle() {
       val ramOut = new RamOutType(addrBits-2).asOutput
       val ramIn = new RamInType().asInput
     }
@@ -103,14 +92,13 @@ object SsramBurstRW extends DeviceObject {
   Notes: Burst addresses in the used SSRAM are generated internally only for max. 4 addresses (= max. burst length)
   >> setting the mode to 0 a linear burst is possible, setting mode to 1 a interleaved burst is done by the SSRAM
 */
-class SsramBurstRW (
+class SSRam32Ctrl (
    addrBits : Int,
    ramWsRd : Int = 2,
    ramWsWr : Int = 0,
    burstLen : Int = 4
 ) extends BurstDevice(addrBits) {
-  override val io = new BurstDeviceIO(addrBits) with SsramBurstRW.Pins
-  //val io = new SsramIOBurst(addrBits)
+  override val io = new BurstDeviceIO(addrBits) with SSRam32Ctrl.Pins
 
   val idle :: rd1 :: wr1 :: Nil = Enum(UInt(), 3)
   val ssramState = Reg(init = idle)
@@ -152,8 +140,8 @@ class SsramBurstRW (
   //following helps to output only when output data is valid
   io.ocp.S.Data := rdData
   when (rdDataEna === Bits(1)) {
-    io.ocp.S.Data := io.ssramBurstRWPins.ramIn.din
-    rdData := io.ssramBurstRWPins.ramIn.din //read data can be used depending how the top-level keeps register of input or not
+    io.ocp.S.Data := io.sSRam32CtrlPins.ramIn.din
+    rdData := io.sSRam32CtrlPins.ramIn.din //read data can be used depending how the top-level keeps register of input or not
   }
 
   when (ssramState === rd1) {
@@ -219,35 +207,35 @@ class SsramBurstRW (
     waitState := UInt(ramWsWr + 1)
   }
 
-  io.ssramBurstRWPins.ramOut.dout := io.ocp.M.Data
+  io.sSRam32CtrlPins.ramOut.dout := io.ocp.M.Data
   when (doutEna === Bits(1)) {
-    io.ssramBurstRWPins.ramOut.dout := ramDout
+    io.sSRam32CtrlPins.ramOut.dout := ramDout
   }
 
   //output registers
-  io.ssramBurstRWPins.ramOut.nadsc := nadsc
-  io.ssramBurstRWPins.ramOut.noe := noe
-  io.ssramBurstRWPins.ramOut.nbwe := nbwe
-  io.ssramBurstRWPins.ramOut.nbw := nbw
-  io.ssramBurstRWPins.ramOut.nadv := nadv
-  io.ssramBurstRWPins.ramOut.doutEna := doutEna
-  io.ssramBurstRWPins.ramOut.addr := Cat(address(addrBits-3, log2Up(burstLen)), burstCnt)
+  io.sSRam32CtrlPins.ramOut.nadsc := nadsc
+  io.sSRam32CtrlPins.ramOut.noe := noe
+  io.sSRam32CtrlPins.ramOut.nbwe := nbwe
+  io.sSRam32CtrlPins.ramOut.nbw := nbw
+  io.sSRam32CtrlPins.ramOut.nadv := nadv
+  io.sSRam32CtrlPins.ramOut.doutEna := doutEna
+  io.sSRam32CtrlPins.ramOut.addr := Cat(address(addrBits-3, log2Up(burstLen)), burstCnt)
   //output to master
   io.ocp.S.Resp := resp
   io.ocp.S.DataAccept := dataAccept
   io.ocp.S.CmdAccept := cmdAccept
   //output fixed signals
-  io.ssramBurstRWPins.ramOut.ngw := Bits(1)
-  io.ssramBurstRWPins.ramOut.nce1 := Bits(0)
-  io.ssramBurstRWPins.ramOut.ce2 := Bits(1)
-  io.ssramBurstRWPins.ramOut.nce3 := Bits(0)
-  io.ssramBurstRWPins.ramOut.nadsp := Bits(1)
+  io.sSRam32CtrlPins.ramOut.ngw := Bits(1)
+  io.sSRam32CtrlPins.ramOut.nce1 := Bits(0)
+  io.sSRam32CtrlPins.ramOut.ce2 := Bits(1)
+  io.sSRam32CtrlPins.ramOut.nce3 := Bits(0)
+  io.sSRam32CtrlPins.ramOut.nadsp := Bits(1)
 }
 
 /*
  Test Class for the SSRAM implementation
  */
-class SsramTest(c: SsramBurstRW) extends Tester(c, Array(c.io)) {
+class SsramTest(c: SSRam32Ctrl) extends Tester(c, Array(c.io)) {
   defTests {
     var allGood = true
     val vars = new HashMap[Node, Node]()
@@ -265,13 +253,13 @@ class SsramTest(c: SsramBurstRW) extends Tester(c, Array(c.io)) {
 /*
  Used to instantiate a single SSRAM control component
  */
-object SsramMain {
+object SSRam32Main {
   def main(args: Array[String]): Unit = {
 
     val chiselArgs = args.slice(1, args.length)
     val addrBits = args(0).toInt
 
-    chiselMainTest(chiselArgs, () => Module(new SsramBurstRW(addrBits))) { f => new SsramTest(f) }
+    chiselMainTest(chiselArgs, () => Module(new SSRam32Ctrl(addrBits))) { f => new SsramTest(f) }
   }
 }
 
