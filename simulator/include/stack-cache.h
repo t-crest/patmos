@@ -247,7 +247,7 @@ namespace patmos
   /// reserve and ensure instructions.
   class block_stack_cache_t : public ideal_stack_cache_t
   {
-  private:
+  protected:
     /// Possible transfers to/from the stack cache.
     enum phase_e
     {
@@ -373,79 +373,7 @@ namespace patmos
     private: 
       uword_t lazy_pointer;
       bool lp_pulldown;
-/// Possible transfers to/from the stack cache.
-    enum phase_e
-    {
-      /// No transfer ongoing.
-      IDLE,
-      /// Data is transferred from the stack cache to the memory.
-      SPILL,
-      /// Data is transferred from the memory to the stack cache.
-      FILL
-    };
-
-    /// Size of the stack cache in blocks.
-    unsigned int Num_blocks;
-
-    /// Size of blocks in bytes.
-    unsigned int Num_block_bytes;
-    
-    /// Store currently ongoing transfer.
-    phase_e Phase;
-
-    /// The memory to spill/fill.
-    memory_t &Memory;
-
-    /// Temporary buffer used during spill/fill.
-    byte_t *Buffer;
-
-    // *************************************************************************
-    // statistics
-
-    /// Total number of blocks not spilled due to the lazy pointer
-    unsigned int Num_blocks_not_spilled_lazy;
-    
-    /// Total number of blocks reserved.
-    unsigned int Num_blocks_reserved;
-
-    /// Maximal number of blocks reserved at once.
-    unsigned int Max_blocks_reserved;
-
-    /// Total number of blocks transferred to main (spill) memory.
-    unsigned int Num_blocks_spilled;
-
-    /// Maximal number of blocks transferred to main at once (spill) memory.
-    unsigned int Max_blocks_spilled;
-
-    /// Total number of blocks transferred from main (fill) memory.
-    unsigned int Num_blocks_filled;
-
-    /// Maximal number of blocks transferred from main at once (fill) memory.
-    unsigned int Max_blocks_filled;
-
-    /// Number of executed free instructions resulting in an entirely empty
-    /// stack cache.
-    unsigned int Num_free_empty;
-
-    /// Number of read accesses to the stack cache.
-    unsigned int Num_read_accesses;
-
-    /// Number of bytes read from the stack cache.
-    unsigned int Num_bytes_read;
-
-    /// Number of write accesses to the stack cache.
-    unsigned int Num_write_accesses;
-
-    /// Number of bytes written to the stack cache.
-    unsigned int Num_bytes_written;
-
-    /// Number of stall cycles caused by method cache misses.
-    unsigned int Num_stall_cycles;
-
-    inline unsigned int get_num_reserved_blocks(uword_t spill, uword_t top) const
-    {
-      return (spill - top) / Num_block_bytes;
-    }
+      unsigned int Num_blocks_not_spilled_lazy;
 
     public:
 
@@ -457,11 +385,11 @@ namespace patmos
 
       virtual ~block_lazy_stack_cache_t();	
 
-      virtual word_t prepare_reserve(uword_t size, 
-                                   uword_t &stack_spill, uword_t &stack_top, uword_t &lazy_pointer, bool lp_pulldown);
-      virtual word_t prepare_free(uword_t size,
-                                uword_t &stack_spill, uword_t &stack_top, uword_t &lazy_pointer);
-      virtual bool write(uword_t address, byte_t *value, uword_t size, uword_t &stack_top, uword_t &lazy_pointer);
+       word_t prepare_reserve(uword_t size, 
+                                   uword_t &stack_spill, uword_t &stack_top);
+       word_t prepare_free(uword_t size,
+                                uword_t &stack_spill, uword_t &stack_top);
+       bool write(uword_t address, byte_t *value, uword_t size, uword_t &stack_top);
 
      void print_stats(const simulator_t &s, std::ostream &os, 
                              bool short_stats);
