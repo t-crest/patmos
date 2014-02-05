@@ -141,6 +141,43 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
 
 }
 
+/* Mux for all arbiters' outputs */
+class memMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) extends Module {
+  val io = new Bundle {
+    val master = Vec.fill(nr){new OcpBurstSlavePort(addrWidth, dataWidth, burstLen)}
+    val slave = new OcpBurstMasterPort(addrWidth, dataWidth, burstLen)
+    val en = Vec.fill(nr){UInt(INPUT, 1)}
+  }
+    debug(io.master)
+    debug(io.slave)
+     
+    val node = Reg(init=UInt(0, log2Up(nr)))
+    
+    // Initialized to zero when not enabled
+    io.slave.M.Addr       := Bits(0)
+    io.slave.M.Cmd        := Bits(0)
+    io.slave.M.DataByteEn := Bits(0)
+    io.slave.M.DataValid  := Bits(0)
+    io.slave.M.Data       := Bits(0)
+    
+    for (i <- 0 until nr){
+      when (io.en(i) === UInt(1)) {
+        node := UInt(i)
+      }
+    }
+    
+    io.slave.M := io.master(node).M
+    
+    for (i <- 0 to nr - 1) {
+      io.master(i).S.CmdAccept := Bits(0)
+      io.master(i).S.DataAccept := Bits(0)
+      io.master(i).S.Resp := OcpResp.NULL
+      // we forward the data to all masters
+      io.master(i).S.Data := io.slave.S.Data
+    }
+    io.master(node).S := io.slave.S  
+}
+
 object NodeTdmArbiterMain {
   def main(args: Array[String]): Unit = {
 
