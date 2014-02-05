@@ -42,6 +42,7 @@ package ocp
 
 import Chisel._
 import Node._
+import scala.math._
 
 import scala.collection.mutable.HashMap
 
@@ -59,15 +60,14 @@ class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) ext
   // slot length = burst size + 1
   val burstCntReg = Reg(init = UInt(0, log2Up(burstLen)))
   val period = cnt * (burstLen + 1)
-  val slotLen = UInt(burstLen + 1)
-  val cpuTime = Vec.fill(cnt){Reg(init = UInt(0, log2Up(cnt*burstLen)))}
+  val slotLen = burstLen + 1
   val cpuSlot = Vec.fill(cnt){Reg(init = UInt(0, width=1))}
+  val slotTable = Vec.fill(cnt){Reg(init = Bits(0, width=period))}
 
   val sIdle :: sRead :: sWrite :: Nil = Enum(UInt(), 3)
   val stateReg = Vec.fill(cnt){Reg(init = sIdle)}
 
   debug(cntReg)
-  debug(cpuTime(1))
   debug(cpuSlot(0))
   debug(cpuSlot(1))
   debug(cpuSlot(2))
@@ -77,32 +77,37 @@ class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) ext
 
   cntReg := Mux(cntReg === UInt(period - 1), UInt(0), cntReg + UInt(1))
   
-  def slotTable(nodeID: Int) = { 
-    (cntReg === UInt(nodeID) * slotLen).toUInt
+  // Generater the slot Table for the whole period
+  def genTable(nodeID: Int) = {
+    val x = pow(2,nodeID*slotLen).toInt
+    val slot = UInt(x,width=period)
+    slot
   }
   
-  // Calculate slot information
-  for (i <- 0 to cnt-1) {
-    cpuTime(i) := UInt(i+1) * UInt(burstLen + 1) 
-  }
-
-  for (i <- 0 to cnt-1) {
-    cpuSlot(i) := UInt(0)
+  for (i <- 0 to cnt-1){
+    slotTable(i) := genTable(i).toBits
   }
   
   for(i <- 0 to cnt-1) {
-    cpuSlot(i) := slotTable(i) 
+    cpuSlot(i) := slotTable(i)(cntReg) 
   }
-
-   // Temporarily assigned to master 0
-   val masterID = Reg(init = UInt(0, log2Up(cnt)))
+  
+  // Initialize data to zero when cpuSlot is not enabled 
+  io.slave.M.Addr       := Bits(0)
+  io.slave.M.Cmd        := Bits(0)
+  io.slave.M.DataByteEn := Bits(0)
+  io.slave.M.DataValid  := Bits(0)
+  io.slave.M.Data       := Bits(0)
+   
+  // Temporarily assigned to master 0
+  val masterID = Reg(init = UInt(0, log2Up(cnt)))
    
     for (i <- 0 to cnt-1) {
 
       when (cpuSlot(i) === UInt(1)) {
         val master = io.master(i).M
         masterID := UInt(i)
-        debug(master)
+        io.slave.M := io.master(i).M
         
         when (stateReg(i) === sIdle) {
           when (master.Cmd != OcpCmd.IDLE){
@@ -118,6 +123,7 @@ class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) ext
      }
 
        when (stateReg(i) === sWrite){
+         io.slave.M := io.master(i).M
          // Wait on DVA
          when(io.slave.S.Resp === OcpResp.DVA){
            stateReg(i) := sIdle
@@ -125,6 +131,7 @@ class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) ext
        }
      
        when (stateReg(i) === sRead){
+         io.slave.M := io.master(i).M
          when (io.slave.S.Resp === OcpResp.DVA) {
            burstCntReg := burstCntReg + UInt(1)
              when (burstCntReg === UInt(burstLen) - UInt(1)) {
