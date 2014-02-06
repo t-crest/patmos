@@ -73,8 +73,12 @@ class Fetch(fileName : String) extends Module {
   memEven.io <= (wrEven, io.memfe.addr, io.memfe.data)
   memOdd.io <= (wrOdd, io.memfe.addr, io.memfe.data)
 
-  val selIspm = Reg(next = io.mcachefe.memSel(1))
-  val selMCache = Reg(next = io.mcachefe.memSel(0))
+  val selIspm = Reg(init = Bool(false))
+  val selMCache = Reg(init = Bool(false))
+  when (io.ena) {
+    selIspm := io.mcachefe.memSel(1)
+    selMCache := io.mcachefe.memSel(0)
+  }
 
   //need to register these values to save them in  memory stage at call/return
   val relBaseReg = Reg(init = UInt(1, width = MAX_OFF_WIDTH))
@@ -98,11 +102,15 @@ class Fetch(fileName : String) extends Module {
   val instr_a_rom = Mux(pcReg(0) === Bits(0), data_even, data_odd)
   val instr_b_rom = Mux(pcReg(0) === Bits(0), data_odd, data_even)
 
+  //select even/odd from method cache
+  val instr_a_cache = Mux(pcReg(0) === Bits(0), io.mcachefe.instrEven, io.mcachefe.instrOdd)
+  val instr_b_cache = Mux(pcReg(0) === Bits(0), io.mcachefe.instrOdd, io.mcachefe.instrEven)
+
   //MCache/ISPM/ROM Mux
   val instr_a = Mux(selIspm, instr_a_ispm,
-                    Mux(selMCache, io.mcachefe.instrA, instr_a_rom))
+                    Mux(selMCache, instr_a_cache, instr_a_rom))
   val instr_b = Mux(selIspm, instr_b_ispm,
-                    Mux(selMCache, io.mcachefe.instrB, instr_b_rom))
+                    Mux(selMCache, instr_b_cache, instr_b_rom))
 
   val b_valid = instr_a(31) === Bits(1)
 
@@ -135,10 +143,7 @@ class Fetch(fileName : String) extends Module {
   io.femem.pc := Mux(b_valid, relPc + UInt(2), relPc + UInt(1))
 
   //outputs to mcache
-  io.femcache.addrEven := Mux(io.ena, pc_inc, pcReg+pcReg(0))
-  io.femcache.addrOdd := Mux(io.ena, pc_next, pcReg)
-  io.femcache.request := selMCache
-  io.femcache.doCallRet := io.memfe.doCallRet
-  io.femcache.callRetBase := io.memfe.callRetBase
+  io.femcache.addrEven := addrEven
+  io.femcache.addrOdd := addrOdd
 
 }

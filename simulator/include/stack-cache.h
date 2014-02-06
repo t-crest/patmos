@@ -193,7 +193,8 @@ namespace patmos
     /// @param os The output stream to print to.
     virtual void print(std::ostream &os) const;
 
-    virtual void print_stats(const simulator_t &s, std::ostream &os) {}
+    virtual void print_stats(const simulator_t &s, std::ostream &os, 
+                             bool short_stats) {}
 
     virtual void reset_stats() {}
 
@@ -360,7 +361,8 @@ namespace patmos
     
     virtual void print(std::ostream &os) const;
 
-    virtual void print_stats(const simulator_t &s, std::ostream &os);
+    virtual void print_stats(const simulator_t &s, std::ostream &os, 
+                             bool short_stats);
 
     virtual void reset_stats();
     

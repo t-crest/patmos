@@ -70,17 +70,17 @@
 \newcommand{\rasmus}[1]{\comment{Rasmus}{#1}{Mahogany}}
 
 %% uncomment to get rid of comments
-%\renewcommand{\tommy}[1]{}
-%\renewcommand{\wolf}[1]{}
-%\renewcommand{\martin}[1]{}
-%\renewcommand{\stefan}[1]{}
-%\renewcommand{\daniel}[1]{}
-%\renewcommand{\cullmann}[1]{}
-%\renewcommand{\gebhard}[1]{}
-%\renewcommand{\fb}[1]{}
-%\renewcommand{\jack}[1]{}
-%\renewcommand{\sahar}[1]{}
-%\renewcommand{\rasmus}[1]{}
+\renewcommand{\tommy}[1]{}
+\renewcommand{\wolf}[1]{}
+\renewcommand{\martin}[1]{}
+\renewcommand{\stefan}[1]{}
+\renewcommand{\daniel}[1]{}
+\renewcommand{\cullmann}[1]{}
+\renewcommand{\gebhard}[1]{}
+\renewcommand{\fb}[1]{}
+\renewcommand{\jack}[1]{}
+\renewcommand{\sahar}[1]{}
+\renewcommand{\rasmus}[1]{}
 
 %
 % custom colors
@@ -157,9 +157,10 @@
 
 \chapter{Preface}
 
-This TR shall evolve to the documentation of Patmos. In the mean time
-it is intended to collect design notes and discussions.  Especially
-ISA design notes now.
+This handbook shall evolve to the documentation of the Patmos processor and the
+Patmos compiler.
+In the mean time it is intended to collect design notes and discussions.
+Especially ISA design notes now.
 
 \section*{Acknowledgment}
 
@@ -171,7 +172,7 @@ Gernot Gebhard and Christoph Cullmann gave valuable feedback on the ISA
 relative to WCET analysis.
 Sahar Abbaspourseyedi is working on the stack
 cache and verifies the ideas and concepts presented here. We thank
-Rasmus Bo Sørensen for fixing some documentation errors.
+Rasmus Bo S{\o}rensen for fixing some documentation errors.
 
 This work was partially funded under the
 European Union's 7th Framework Programme
@@ -3029,7 +3030,7 @@ when reading this document.}
 
 \begin{verbatim}
 sudo apt-get install openjdk-7-jdk git gitk cmake make g++ texinfo flex bison \
-  libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
+  subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
   gtkwave
 \end{verbatim}
 
@@ -3225,6 +3226,20 @@ bin/emulator tmp/helloworld.elf
 
 \martin{Where is the make target to run the emulator with an ELF file?}
 
+\section{ModelSim license}
+In the case that you have a DTU Compute login you can access the license servers from outside the DTU network by setting up an SSH tunnel.
+An example of how such a tunnel can be set up follows, you need to insert you own username.
+
+\begin{verbatim}
+ssh -L 1717:angel2:1717 -L 1718:angel2:1718 ${USERNAME}@sshlogin.compute.dtu.dk
+\end{verbatim}
+
+When the SSH tunnel is setup the LM\_LICENSE\_FILE needs to be set to:
+\begin{verbatim}
+LM_LICENSE_FILE=1717@localhost
+\end{verbatim}
+
+This way of setting up an SSH tunnel might also work for other institutions.
 
 \chapter{The Patmos Compiler}
 \label{sec:compiler}

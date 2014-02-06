@@ -1988,10 +1988,10 @@ BEGIN
         WHILE (not ENDFILE (mem_file)) LOOP
             READLINE (mem_file, buf);
 			READ (buf, val);
-			MemDataA(ind) := to_integer(unsigned(to_signed(val,32)(7 downto 0)));
-			MemDataB(ind) := to_integer(unsigned(to_signed(val,32)(15 downto 8)));
-			MemDataC(ind) := to_integer(unsigned(to_signed(val,32)(23 downto 16)));
-			MemDataD(ind) := to_integer(unsigned(to_signed(val,32)(31 downto 24)));
+			MemDataD(ind) := to_integer(unsigned(to_signed(val,32)(7 downto 0)));
+			MemDataC(ind) := to_integer(unsigned(to_signed(val,32)(15 downto 8)));
+			MemDataB(ind) := to_integer(unsigned(to_signed(val,32)(23 downto 16)));
+			MemDataA(ind) := to_integer(unsigned(to_signed(val,32)(31 downto 24)));
 			ind := ind + 1;
         END LOOP;
     END IF;

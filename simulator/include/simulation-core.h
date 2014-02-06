@@ -345,7 +345,7 @@ namespace patmos
     /// Print runtime statistics of the current simulation run to an output
     /// stream.
     /// @param os An output stream.
-    void print_stats(std::ostream &os, bool instr_stats) const;
+    void print_stats(std::ostream &os, bool short_stats, bool instr_stats) const;
 
     /// Reset all simulation statistics.
     void reset_stats();

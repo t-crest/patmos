@@ -716,10 +716,13 @@ namespace patmos
     Profiling.reset_stats(Cycle);
   }
   
-  void simulator_t::print_stats(std::ostream &os, bool instr_stats) const
+  void simulator_t::print_stats(std::ostream &os, bool short_stats,
+                                bool instr_stats) const
   {
     // print register values
-    print_registers(os, DF_DEFAULT);
+    if (!short_stats) {
+      print_registers(os, DF_DEFAULT);
+    }
 
     uint64_t num_total_fetched[NUM_SLOTS];
     uint64_t num_total_retired[NUM_SLOTS];
@@ -729,14 +732,19 @@ namespace patmos
     uint64_t sum_fetched = 0;
     uint64_t sum_discarded = 0;
     
-    os << boost::format("\n\nInstruction Statistics:\n   %1$15s:") % "operation";
+    if (!short_stats) {
+      os << boost::format("\n\nInstruction Statistics:\n   %1$15s:") % "operation";
+    }
+    
     for (unsigned int i = 0; i < NUM_SLOTS; i++) {
       num_total_fetched[i] = num_total_retired[i] = num_total_discarded[i] = 0;
       num_total_bubbles[i] = 0;
       num_total_bubbles[i] += Num_bubbles_retired[i];
     
-      os << boost::format(" %1$10s %2$10s %3$10s")
-          % "#fetched" % "#retired" % "#discarded";
+      if (!short_stats) {
+        os << boost::format(" %1$10s %2$10s %3$10s")
+            % "#fetched" % "#retired" % "#discarded";
+      }
     }
     os << "\n";
           
@@ -745,7 +753,9 @@ namespace patmos
       // get instruction and statistics on it
       const instruction_t &I(Decoder.get_instruction(i));
 
-      os << boost::format("   %1$15s:") % I.Name;
+      if (!short_stats) {
+        os << boost::format("   %1$15s:") % I.Name;
+      }
       
       for (unsigned int j = 0; j < NUM_SLOTS; j++) {
         const instruction_stat_t &S(Instruction_stats[j][i]);
@@ -754,9 +764,11 @@ namespace patmos
         // instructions that were in flight at the reset and thus are 
         // counted as discarded but not as fetched
         //assert(S.Num_fetched >= (S.Num_retired + S.Num_discarded));
-        
-        os << boost::format(" %1$10d %2$10d %3$10d")
-          % S.Num_fetched % S.Num_retired % S.Num_discarded;
+       
+        if (!short_stats) {
+          os << boost::format(" %1$10d %2$10d %3$10d")
+            % S.Num_fetched % S.Num_retired % S.Num_discarded;
+        }
 
         // collect summary
         num_total_fetched[j] += S.Num_fetched;
@@ -764,38 +776,50 @@ namespace patmos
         num_total_discarded[j] += S.Num_discarded;
       }
       
-      if (instr_stats) {
+      if (!short_stats && instr_stats) {
         os << "\t";
         I.print_stats(*this, os, Symbols);
       }
       
-      os << "\n";
+      if (!short_stats) {
+        os << "\n";
+      }
     }
 
     // summary over all instructions
-    os << boost::format("   %1$15s:") % "all";
+    if (!short_stats) {
+      os << boost::format("   %1$15s:") % "all";
+    }
     for (unsigned int j = 0; j < NUM_SLOTS; j++) {
-      os << boost::format(" %1$10d %2$10d %3$10d")
-          % num_total_fetched[j] % num_total_retired[j] % num_total_discarded[j];
+      if (!short_stats) {
+        os << boost::format(" %1$10d %2$10d %3$10d")
+         % num_total_fetched[j] % num_total_retired[j] % num_total_discarded[j];
+      }
           
       sum_fetched += num_total_fetched[j];
       sum_discarded += num_total_discarded[j];
     }
-    os << "\n";
-    os << boost::format("   %1$15s:") % "bubbles";
-    for (unsigned int j = 0; j < NUM_SLOTS; j++) {
-      os << boost::format(" %1$10s %2$10d %3$10s") % "-" % num_total_bubbles[j] % "-";
-    }          
-    os << "\n";
+    if (!short_stats) {
+      os << "\n";
+      os << boost::format("   %1$15s:") % "bubbles";
+      for (unsigned int j = 0; j < NUM_SLOTS; j++) {
+        os << boost::format(" %1$10s %2$10d %3$10s") % "-" % num_total_bubbles[j] % "-";
+      }          
+      os << "\n";
+    }
 
     
     uint64_t sum_stalls = 0;
     
-    os << "\nStall Cycles:\n";
+    if (!short_stats) {
+      os << "\nStall Cycles:\n";
+    }
     for (int i = SIF; i < NUM_STAGES; i++)
     {
-      os << boost::format("   %1%: %2%\n")
-         % (Pipeline_t)i % Num_stall_cycles[i];
+      if (!short_stats) {
+        os << boost::format("   %1%: %2%\n")
+          % (Pipeline_t)i % Num_stall_cycles[i];
+      }
          
       sum_stalls += Num_stall_cycles[i];
     }
@@ -819,6 +843,8 @@ namespace patmos
         % cpi_nops % cpo_nops % cpi % cpo;
 
     os << "\n\n                   total     % cycles";
+    os << boost::format("\nCycles:       %1$10d") 
+          % Cycle;
     os << boost::format("\nInstructions: %1$10d  %2$10.2f%%"
                         "\nNOPs:         %3$10d  %4$10.2f%%"
                         "\nStalls:       %5$10d  %6$10.2f%%")
@@ -850,22 +876,24 @@ namespace patmos
           
     // print statistics of method cache
     os << "\n\nInstruction Cache Statistics:\n";
-    Instr_cache.print_stats(*this, os);
+    Instr_cache.print_stats(*this, os, short_stats);
 
     // print statistics of data cache
     os << "\n\nData Cache Statistics:\n";
-    Data_cache.print_stats(*this, os);
+    Data_cache.print_stats(*this, os, short_stats);
 
     // print statistics of stack cache
     os << "\n\nStack Cache Statistics:\n";
-    Stack_cache.print_stats(*this, os);
+    Stack_cache.print_stats(*this, os, short_stats);
 
     // print statistics of main memory
     os << "\n\nMain Memory Statistics:\n";
-    Memory.print_stats(*this, os);
+    Memory.print_stats(*this, os, short_stats);
 
     // print profiling information
-    Profiling.print(os, Symbols);
+    if (!short_stats) {
+      Profiling.print(os, Symbols);
+    }
 
     os << "\n";
   }

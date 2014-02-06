@@ -8,7 +8,7 @@ BOOTBUILDDIR?=$(BOOTBUILDROOT)/tmp
 BOOTBIN?=$(BOOTBUILDDIR)/$(BOOTAPP).bin
 BOOTDAT?=$(BOOTBUILDDIR)/$(BOOTAPP).dat
 
-QPROJ?=altde2-70
+BOARD?=altde2-70
 
 HWMODULEPREFIX?=
 
@@ -28,7 +28,7 @@ CXXFLAGS=-O2
 # Quick fix for Mac OS X
 # How are include paths handled these days in *nix? CMake?
 ifeq ($(TERM_PROGRAM),$(filter $(TERM_PROGRAM), Apple_Terminal iTerm.app))
-	INC_EXTRA=-I /opt/local/include -I /opt/local/include/libelf -L/opt/local/lib
+	INC_EXTRA=-I /opt/local/include -I /usr/local/include/libelf -I /opt/local/include/libelf -L/opt/local/lib
 else
 	INC_EXTRA=
 endif
@@ -41,12 +41,13 @@ MAIN=patmos.PatmosMain
 
 # main classes for core, memory controller and arbiter
 COREMAIN=patmos.PatmosCoreMain
-MEMCTRLMAIN=patmos.SsramMain
+MEMCTRLMAIN32=io.SSRam32Main
+MEMCTRLMAIN16=io.SRamMain
 ARBITERMAIN=ocp.ArbiterMain
 
 # config file for Patmos -- now just frequency
-CONFIG=default
-CONFIGFILE?=$(BOOTBUILDROOT)/hardware/config/$(CONFIG).xml
+#CONFIG=default
+CONFIGFILE?=$(BOOTBUILDROOT)/hardware/config/$(BOARD).xml
 SRC+=$(CONFIGFILE)
 
 # optionally pass module prefix when generating Verilog
@@ -112,8 +113,11 @@ $(VGENCORE): $(BOOTBIN) $(BOOTDAT) $(SRC)
 	$(SBT) "run-main $(COREMAIN) $(CONFIGFILE) $(BOOTBIN) $(BOOTDAT) --targetDir $(HWBUILDDIR) --backend v $(HWMODULEPREFIXOPT)"
 	echo $(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)+$(HWMODULEPREFIX) > $(VGENCORE)
 
-$(HWBUILDDIR)/SsramBurstRW.v: $(SRC)
-	$(SBT) "run-main $(MEMCTRLMAIN) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --backend v"
+$(HWBUILDDIR)/SSRam32Ctrl.v: $(SRC)
+	$(SBT) "run-main $(MEMCTRLMAIN32) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --backend v"
+
+$(HWBUILDDIR)/SRamCtrl.v: $(SRC)
+	$(SBT) "run-main $(MEMCTRLMAIN16) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --backend v"
 
 $(HWBUILDDIR)/Arbiter.v: $(SRC)
 	$(SBT) "run-main $(ARBITERMAIN) $(ARBITER_CNT) $(ARBITER_ADDR_WIDTH) $(ARBITER_DATA_WIDTH) $(ARBITER_BURST_LENGTH) --targetDir $(HWBUILDDIR) --backend v"
@@ -124,22 +128,30 @@ vsim: verilog
 
 # synthesize
 qsyn: verilog
-	quartus_map quartus/$(QPROJ)/patmos
-	quartus_fit quartus/$(QPROJ)/patmos
-	quartus_asm quartus/$(QPROJ)/patmos
-	quartus_sta quartus/$(QPROJ)/patmos
+	quartus_map quartus/$(BOARD)/patmos
+	quartus_fit quartus/$(BOARD)/patmos
+	quartus_asm quartus/$(BOARD)/patmos
+	quartus_sta quartus/$(BOARD)/patmos
 
 # build the boot binary
-$(BOOTBIN) $(BOOTDAT): .FORCE
+$(BOOTDAT): $(BOOTBIN)
+$(BOOTBIN): .FORCE
 	$(MAKE) -C $(BOOTBUILDROOT) BUILDDIR=$(BOOTBUILDDIR) $(BOOTBIN) $(BOOTDAT)
 
 # for module tests
 MODULE=example.FsmMain
 MODULE=ocp.test.OcpTester
 MODULE=ocp.test.ArbiterTester
+#MODULE=ocp.test.NodeTdmArbiterTester
+#MODULE=ocp.test.TdmArbiterTester
+
 modtest:
 #	-rm -rf generated
-	$(SBT) "run-main $(MODULE) --backend c --compile --vcd --test --genHarness --targetDir generated"
+	$(SBT) "run-main $(MODULE) --backend c --compile --vcd --test --genHarness --targetDir build"
+
+modcomp:
+#	-rm -rf generated
+	$(SBT) "run-main $(MODULE) --backend v --compile --vcd --targetDir build"
 
 .FORCE:
 

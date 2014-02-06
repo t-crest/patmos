@@ -21,7 +21,7 @@ make swsim BOOTAPP="${TEST}" 1> "${LOG_DIR}/${TEST}.sim.out" 2> "${LOG_DIR}/${TE
 echo "EXIT $?" >> "${LOG_DIR}/${TEST}.sim.out"
 
 # compare output
-java -cp tools/java/lib/patmos-tools.jar util.CompareChisel "${LOG_DIR}/${TEST}.sim.err" "${LOG_DIR}/${TEST}.emu.out" | \
+java -cp install/lib/java/patmos-tools.jar util.CompareChisel "${LOG_DIR}/${TEST}.sim.err" "${LOG_DIR}/${TEST}.emu.out" | \
     tee "${LOG_DIR}/${TEST}.comptest.out" | sed -e 's/^\(\S\)/ \1/'
 
 # report failure or ok

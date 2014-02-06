@@ -272,6 +272,7 @@ int main(int argc, char **argv)
     ("print-stats", boost::program_options::value<patmos::address_t>(), "print statistics for a given function only.")
     ("flush-caches", boost::program_options::value<patmos::address_t>(), "flush all caches when reaching the given address (can be a symbol name).")
     ("instr-stats,i", "show more detailed statistics per instruction")
+    ("short,V", "short statistics output")
     ("quiet,q", "disable statistics output");
 
   boost::program_options::options_description memory_options("Memory options");
@@ -436,6 +437,7 @@ int main(int argc, char **argv)
   unsigned int interrupt_enabled = vm["interrupt"].as<unsigned int>();
 
   bool instr_stats = (vm.count("instr-stats") != 0);
+  bool short_stats = (vm.count("short") != 0);
 
   if (!mbsize) mbsize = bsize;
   
@@ -553,7 +555,7 @@ int main(int argc, char **argv)
     {
       s.run(entry, debug_cycle, debug_fmt, *dout, debug_nopc, 
             debug_gdb, max_cycle, instr_stats);
-      s.print_stats(*out, instr_stats);
+      s.print_stats(*out, short_stats, instr_stats);
     }
     catch (patmos::simulation_exception_t e)
     {
@@ -564,7 +566,7 @@ int main(int argc, char **argv)
           exit_code = e.get_info();
 
           if (!vm.count("quiet") && !print_stats) {
-            s.print_stats(*out, instr_stats);
+            s.print_stats(*out, short_stats, instr_stats);
           }
           if (!vm.count("quiet")) {
             *out << "Pasim options:";

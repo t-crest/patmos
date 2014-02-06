@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,10 +32,10 @@
 
 /*
  * IO component of Patmos.
- * 
+ *
  * Authors: Martin Schoeberl (martin@jopdesign.com)
  *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
- * 
+ *
  */
 
 package patmos
@@ -47,6 +47,7 @@ import Constants._
 
 import ocp._
 import util._
+import io.CoreDevice
 
 class InOut() extends Module {
   val io = Config.getInOutIO()
@@ -111,7 +112,7 @@ class InOut() extends Module {
   val comSpmS = io.comSpm.S
 
   for (devConf <- Config.conf.Devs) {
-    val dev = Config.createDevice(devConf)
+    val dev = Config.createDevice(devConf).asInstanceOf[CoreDevice]
     // connect ports
     dev.io.ocp.M := io.memInOut.M
     dev.io.ocp.M.Cmd := Mux(selDeviceVec(devConf.offset), io.memInOut.M.Cmd, OcpCmd.IDLE)
