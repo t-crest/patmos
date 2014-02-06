@@ -73,38 +73,43 @@ class OCRamCtrl(addrWidth : Int) extends BurstDevice(addrWidth) {
 
   val size = 1 << addrWidth
 
-  val dataReg = Reg(next = io.ocp.M.Data)
-  val dataByteEnReg = Reg(next = io.ocp.M.DataByteEn)
-
-  val ramAddrWidth = addrWidth - log2Up(BYTES_PER_WORD)
-  val addrReg = Reg(init = Bits(0, width = ramAddrWidth - log2Up(io.ocp.burstLength)))
-
-  val burstCntReg = Reg(init = UInt(0, width = log2Up(io.ocp.burstLength)))
-
   val idle :: read :: write :: Nil = Enum(UInt(), 3)
   val stateReg = Reg(init = idle)
 
-  burstCntReg := burstCntReg + UInt(1);
+  val ramAddrWidth = addrWidth - log2Up(BYTES_PER_WORD)
+  val addrReg = Reg(init = UInt(0, width = ramAddrWidth - log2Up(io.ocp.burstLength)))
+
+  val burstCntReg = Reg(init = UInt(0, width = log2Up(io.ocp.burstLength)))
+  val burstCntNext = burstCntReg + UInt(1);
+
+  val addr = UInt()
+  addr := addrReg ## burstCntNext
+  val wrEn = Bool()
+  wrEn := stateReg === write
+
+  burstCntReg := burstCntNext
   // end transaction after a burst
   when (burstCntReg === UInt(io.ocp.burstLength-1)) {
     stateReg := idle
+    wrEn := Bool(false)
   }
 
   // start a new transaction
   when (io.ocp.M.Cmd === OcpCmd.RD || io.ocp.M.Cmd === OcpCmd.WR) {
-    addrReg := io.ocp.M.Addr(addrWidth-1,
-                             log2Up(io.ocp.burstLength) + log2Up(BYTES_PER_WORD))
-    burstCntReg := Bits(0)
+    val ocpAddr = io.ocp.M.Addr(addrWidth-1,
+                                log2Up(io.ocp.burstLength) + log2Up(BYTES_PER_WORD))
+    addrReg := ocpAddr
+    burstCntReg := UInt(0)
+
+    addr := ocpAddr ## UInt(0, width = log2Up(io.ocp.burstLength))
   }
   when (io.ocp.M.Cmd === OcpCmd.RD) {
     stateReg := read
   }
   when (io.ocp.M.Cmd === OcpCmd.WR) {
     stateReg := write
+    wrEn := Bool(true)
   }
-
-  val addr = addrReg ## burstCntReg
-  val wrEn = stateReg === write
 
   // generate byte memories
   val mem = new Array[MemBlockIO](BYTES_PER_WORD)
@@ -113,9 +118,9 @@ class OCRamCtrl(addrWidth : Int) extends BurstDevice(addrWidth) {
   }
 
   // store
-  val stmsk = Mux(wrEn, dataByteEnReg, Bits("b0000"))
+  val stmsk = Mux(wrEn, io.ocp.M.DataByteEn, Bits(0))
   for (i <- 0 until BYTES_PER_WORD) {
-    mem(i) <= (stmsk(i), addr, dataReg(BYTE_WIDTH*(i+1)-1, BYTE_WIDTH*i))
+    mem(i) <= (stmsk(i), addr, io.ocp.M.Data(BYTE_WIDTH*(i+1)-1, BYTE_WIDTH*i))
   }
 
   // load
