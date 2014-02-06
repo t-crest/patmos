@@ -14,7 +14,7 @@
 //  along with the Patmos Simulator. If not, see <http://www.gnu.org/licenses/>.
 //
 //
-//  gdb server implementation, used for gdb debugging.
+//  gdb server implementation, used for gdb remote debugging.
 //
 
 #ifndef PATMOS_GDB_SERVER_H
@@ -35,35 +35,38 @@ namespace patmos
   typedef boost::scoped_ptr<GdbPacketHandler> GdbPacketHandlerPtr;
   typedef boost::scoped_ptr<GdbMessageHandler> GdbMessageHandlerPtr;
 
-  class GdbConnectionFailedException : public std::exception
-  {
-  public:
-    GdbConnectionFailedException();
-    ~GdbConnectionFailedException() throw();
-    virtual const char* what() const throw();
-  
-  private:
-    std::string m_whatMessage;
-  };
-
+  /// Provides a GDB RSP server acting as a DebugClient. Includes lldb
+  /// extensions to GDB's RSP. 
   class GdbServer : public DebugClient
   {
   public:
+    /// Standard constructor
+    /// @param debugInterface a reference to the debugging interface that will
+    /// be debugged.
+    /// @param connection a data connection to the debugging client (gdb or
+    ///   lldb)
     GdbServer(DebugInterface &debugInterface,
         const GdbConnection &connection);
 
-    // Implement DebugClient
+    /// Implement DebugClient
     void Connect();
 
-    // Implement DebugClient
+    /// Implement DebugClient
     virtual void BreakpointHit(const Breakpoint &bp);
 
-    // Implement DebugClient
+    /// Implement DebugClient
     virtual void SingleStepDone();
 
+    /// Enable/Disable internal debugging. If enabled, all GDB RSP messages will
+    /// be printed to stderr.
+    /// @param debugMessages if true, internal debugging will be enabled.
     void SetDebugMessages(bool debugMessages);
   
   private:
+    /// This will transfer the control of the debugging interface to the debug
+    /// client (gdb or lldb), i.e. after a call to this function, the user of
+    /// the debugger has control until he lets the target continue (e.g. with a
+    /// continue or step command)
     void TransferControlToClient();
 
     DebugInterface &m_debugInterface;

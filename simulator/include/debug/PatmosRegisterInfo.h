@@ -24,7 +24,7 @@
 
 namespace patmos
 {
-  RegisterInfo CreatePatmosRegisterInfo();
+  RegisterInfoVec CreatePatmosRegisterInfo();
 }
 
 #endif // PATMOS_PATMOS_REGISTER_INFO_H

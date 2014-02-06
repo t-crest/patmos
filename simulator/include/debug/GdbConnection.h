@@ -27,16 +27,24 @@
 namespace patmos
 {
 
-  /*
-   * Interface used for low-level communication with the gdb client. Provides 
-   * functions to read from the client and write to the client.
-   */
+  /// Interface used for low-level communication with the gdb client. Provides 
+  /// functions to read from and write to the other end of the communication.
   class GdbConnection
   {
   public:
     virtual ~GdbConnection() {}
+
+    /// Send a single character to the other end.
+    /// @param c the character to send.
     virtual void PutChar(char c) const = 0;
+
+    /// Get a single character from the other end.
+    /// Blocks until a character is available.
+    /// @return the character that was received
     virtual char GetChar() const = 0;
+
+    /// Send a string to the other end.
+    /// @param str the string to be sent.
     virtual void Write(const std::string &str) const = 0;
   };
 

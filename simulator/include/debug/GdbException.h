@@ -13,6 +13,9 @@
 //  You should have received a copy of the GNU General Public License
 //  along with the Patmos Simulator. If not, see <http://www.gnu.org/licenses/>.
 //
+//
+//  Generic gdb exception
+//
 
 #ifndef PATMOS_GDB_EXCEPTION_H
 #define PATMOS_GDB_EXCEPTION_H
@@ -22,7 +25,7 @@
 
 namespace patmos
 {
-
+  /// Generic exception used to throw gdb server exceptions
   class GdbException : public std::exception
   {
   public:

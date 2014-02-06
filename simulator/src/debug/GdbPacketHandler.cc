@@ -20,6 +20,7 @@
 
 #include "debug/GdbPacketHandler.h"
 #include "debug/GdbConnection.h"
+#include "debug/GdbException.h"
 
 #include <sstream>
 #include <algorithm>
@@ -99,22 +100,6 @@ namespace patmos
 {
 
   //////////////////////////////////////////////////////////////////
-  // Exceptions
-  //////////////////////////////////////////////////////////////////
-
-  GdbMaxRetransmissionsException::GdbMaxRetransmissionsException()
-    : m_whatMessage("Error: GdbServer: Transmitting a packet exceeded the maximum number of retransmissions.")
-  {
-  }
-  GdbMaxRetransmissionsException::~GdbMaxRetransmissionsException() throw()
-  {
-  }
-  const char* GdbMaxRetransmissionsException::what() const throw()
-  {
-    return m_whatMessage.c_str();
-  }
-
-  //////////////////////////////////////////////////////////////////
   // GdbPacketHandler implementation
   //////////////////////////////////////////////////////////////////
   
@@ -129,7 +114,7 @@ namespace patmos
     do
     {
       if (r++ > maxRetransmissions)
-        throw GdbMaxRetransmissionsException();
+        throw GdbException("Error: GdbServer: Transmitting a packet exceeded the maximum number of retransmissions.");
 
       if (m_debug)
         DebugWrite(packet);

@@ -53,7 +53,7 @@ namespace patmos
     info.ptrsize = patmosPtrSize;
     return info;
   }
-  RegisterInfo PatmosDebugInterface::GetRegisterInfo() const
+  RegisterInfoVec PatmosDebugInterface::GetRegisterInfo() const
   {
     return m_registerInfo;
   }
@@ -135,7 +135,11 @@ namespace patmos
       if (m_debugActions)
         std::cerr << "PatmosDebugInterface::TakeControl - Was single step" << std::endl;
       
+      m_singleStep = false;
       m_simulator.debug_client->SingleStepDone();
+      
+      if (m_debugActions)
+        std::cerr << "PatmosDebugInterface::TakeControl - Release Control (continue)" << std::endl;
     }
     else if (IsDebugBreakpointHit(pc))
     {
@@ -143,6 +147,9 @@ namespace patmos
         std::cerr << "PatmosDebugInterface::TakeControl - Breakpoint hit (" << pc << ")" << std::endl;
       
       m_simulator.debug_client->BreakpointHit(Breakpoint(pc));
+      
+      if (m_debugActions)
+        std::cerr << "PatmosDebugInterface::TakeControl - Release Control (continue)" << std::endl;
     }
   }
 
@@ -158,9 +165,7 @@ namespace patmos
 
   bool PatmosDebugInterface::WasSingleStep()
   {
-    bool wasSingleStep = m_singleStep;
-    m_singleStep = false;
-    return wasSingleStep;
+    return m_singleStep;
   }
 
   RegisterContent PatmosDebugInterface::GetPCContent() const

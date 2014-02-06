@@ -132,7 +132,7 @@ namespace
       info.ptrsize = patmosPtrSize;
       return info;
     }
-    virtual RegisterInfo GetRegisterInfo() const
+    virtual RegisterInfoVec GetRegisterInfo() const
     {
       return m_registerInfo;
     }
@@ -143,7 +143,7 @@ namespace
           registerNumber >= m_registerInfo.size())
         return emptyRegister;
 
-      const RegisterInfoEntry registerInfo = m_registerInfo[registerNumber];
+      const RegisterInfo registerInfo = m_registerInfo[registerNumber];
       const int registerSize = registerInfo.bitsize;
       const int byteSize = registerSize / 8;
 
@@ -200,7 +200,7 @@ namespace
 
   private:
     PatmosSimulator &m_simulator;
-    RegisterInfo m_registerInfo;
+    RegisterInfoVec m_registerInfo;
   };
   
 }

@@ -13,6 +13,7 @@
 //  You should have received a copy of the GNU General Public License
 //  along with the Patmos Simulator. If not, see <http://www.gnu.org/licenses/>.
 //
+//
 //  This represents the GDB RSP packet layer. It includes methods to send and 
 //  retrieve packets via a GdbConnection
 //
@@ -29,48 +30,32 @@ namespace patmos
 
   class GdbConnection;
 
-  class GdbMaxRetransmissionsException : public std::exception
-  {
-  public:
-    GdbMaxRetransmissionsException();
-    ~GdbMaxRetransmissionsException() throw();
-    virtual const char* what() const throw();
-  
-  private:
-    std::string m_whatMessage;
-  };
-
+  /// Provides functions to read and write GdbPackets over the connection given
+  /// at construction time.
   class GdbPacketHandler
   {
   public:
-    /*
-     * @param con gdb connection, must be open and ready for read/write
-     */
+    /// @param con gdb connection, must be open and ready for read/write
     GdbPacketHandler(const GdbConnection &con);
 
-    /*
-     * writes the given gdb packet out via the connection
-     * @param packet the packet that will be sent
-     */
+    /// Writes the given gdb packet out via the connection.
+    /// @param packet the packet that will be sent
     void WriteGdbPacket(const GdbPacket &packet) const;
 
-    /*
-     * @returns exactly one gdb packet read from the connection
-     */
+    /// @returns exactly one gdb packet read from the connection
     GdbPacket ReadGdbPacket() const;
 
-    /*
-     * @param useAck set to false to disable ack messages (useful for reliable
-     *  connection such as TCP or pipe)
-     */
+    /// @param useAck set to false to disable ack messages (useful for reliable
+    ///  connection such as TCP or pipe)
     void SetUseAck(bool useAck);
 
-    /*
-     * @returns true if this packet handler is currently using ack messages
-     *  to ensure correct transmission of messages
-     */
+    /// @returns true if this packet handler is currently using ack messages
+    ///  to ensure correct transmission of messages
     bool IsUsingAck() const;
 
+    /// Enable/Disable internal debugging. Will print packet contents and 
+    /// checksums to stderr.
+    /// @param debug if true, internal debugging will be enabled.
     void SetDebug(bool debug);
 
   private:

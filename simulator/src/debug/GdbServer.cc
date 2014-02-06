@@ -24,23 +24,6 @@ namespace patmos
 {
 
   //////////////////////////////////////////////////////////////////
-  // Exceptions
-  //////////////////////////////////////////////////////////////////
-
-  GdbConnectionFailedException::GdbConnectionFailedException()
-    : m_whatMessage("Error: GdbServer: Could not get a connection to the gdb client.")
-  {
-  }
-  GdbConnectionFailedException::~GdbConnectionFailedException() throw()
-  {
-  }
-  const char* GdbConnectionFailedException::what() const throw()
-  {
-    return m_whatMessage.c_str();
-  }
-  
-
-  //////////////////////////////////////////////////////////////////
   // GdbServer implementation
   //////////////////////////////////////////////////////////////////
   

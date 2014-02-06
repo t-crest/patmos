@@ -535,9 +535,11 @@ int main(int argc, char **argv)
     boost::scoped_ptr<patmos::GdbServer> gdbServer;
     if (debug_gdb)
     {
-      std::cerr << "Starting gdb server, using port " << debug_gdb_port << " ... ";
+      std::cerr << "Note: You started the simulator with gdb debugging enabled." << std::endl;
+      std::cerr << "Use a gdb-rsp compatible debugger (gdb or lldb) to connect to the simulator and start debugging." << std::endl;
+      std::cerr << "Starting gdb server, using port " << debug_gdb_port << ". Waiting for client connection... ";
       gdbConnection.reset(new patmos::TcpConnection(debug_gdb_port));
-      std::cerr << " done." << std::endl;
+      std::cerr << " client successfully connected." << std::endl;
       
       gdbServer.reset(new patmos::GdbServer(s.GetDebugInterface(), *gdbConnection));
       gdbServer->SetDebugMessages(debug_gdb_messages);

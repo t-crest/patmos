@@ -14,8 +14,7 @@
 //  along with the Patmos Simulator. If not, see <http://www.gnu.org/licenses/>.
 //
 //
-//  debugging client interface - used for gdb debugging.
-//  implement this interface if you want to debug the simulator
+//  Debugging client interface - used for gdb/lldb debugging.
 //
 
 #ifndef PATMOS_DEBUG_CLIENT_H
@@ -23,22 +22,36 @@
 
 namespace patmos
 {
-
   class Breakpoint;
   class DebugInterface;
 
-  /*
-   * Interface for debugging clients, i.e. programs that want to debug another
-   * program that implements DebugInterface
-   */
+  /// Interface for debugging clients (=debugger), i.e. programs that want to
+  /// debug another program that implements DebugInterface (=debuggee).
+  /// The debugging client (debugger) can (and will) take control over the
+  /// debugee and communicate with it via the DebugInterface interface.
+  /// Functions that transfer control to the debugging client are blocking, 
+  /// until the debugging client releases control again (usually via continue 
+  /// or step commands)
   class DebugClient
   {
   public:
     virtual ~DebugClient() {}
 
+    /// Establishes a connection to the debugging client. If the debugging 
+    /// client is remote (i.e. a gdb server that communcates to another machine) 
+    /// this might take a while and it will block, until the connection has been
+    /// established.
+    /// Transfers control to the debugging client as soon as a connection is
+    /// established.
     virtual void Connect() = 0;
 
+    /// Will be called by the debuggee if a previously added breakpoint is hit.
+    /// Transfers control to the debugging client.
+    /// @param bp the breakpoint that caused the hit.
     virtual void BreakpointHit(const Breakpoint &bp) = 0;
+
+    /// Will be called by the debuggee if a single step has been performed.
+    /// Transfers control to the debugging client.
     virtual void SingleStepDone() = 0;
   };
 

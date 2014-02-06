@@ -755,7 +755,7 @@ namespace
     {
       GdbKeyValueResponseMessage msg;
 
-      const RegisterInfo info = debugInterface.GetRegisterInfo();
+      const RegisterInfoVec info = debugInterface.GetRegisterInfo();
       // Check if there is a register with that number.
       if (m_registerNumber < 0 || m_registerNumber >= info.size())
       {
@@ -764,7 +764,7 @@ namespace
       }
 
       // Register exists - lets report it's parameters
-      const RegisterInfoEntry reg = info[m_registerNumber];
+      const RegisterInfo reg = info[m_registerNumber];
       
       msg.AddKeyValue<std::string>  ("name",     reg.name);
       msg.AddKeyValue<int>          ("bitsize",  reg.bitsize);
