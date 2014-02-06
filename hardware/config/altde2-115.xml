@@ -1,0 +1,58 @@
+<patmos>
+  <description>default configuration</description>
+
+  <frequency Hz="80000000" />
+  <pipeline dual="true" />
+  <bus burstLength="4" writeCombine="false" />
+
+  <MCache size="4k" blocks="16" repl="" />
+  <DCache size="2k" assoc="1" repl="" />
+  <ISPM size="8k" />
+  <DSPM size="2k" />
+  <BootSPM size="2k" />
+
+  <ExtMem size="2M" DevTypeRef="Ssram16" />
+
+  <IOs>
+	<IO DevTypeRef="CpuInfo" offset="0"/>
+	<IO DevTypeRef="Timer" offset="2"/>
+	<IO DevTypeRef="Uart" offset="8"/>
+	<IO DevTypeRef="Leds" offset="9"/>
+  </IOs>
+
+  <Devs>
+  	<Dev DevType="CpuInfo" entity="CpuInfo" iface="OcpCore" />
+  	<Dev DevType="Timer" entity="Timer" iface="OcpCore" />
+  	<Dev DevType="Uart" entity="Uart" iface="OcpCore">
+  	  <params>
+  		<param name="baud_rate" value="115200"/>
+  	  </params>
+  	</Dev>
+  	<Dev DevType="Leds" entity="Leds" iface="OcpCore">
+  	  <params>
+  		<param name="ledCount" value="9"/>
+  	  </params>
+  	</Dev>
+    <Dev DevType="Ssram16" entity="SRamCtrl" iface="OcpBurst">
+        <params>
+            <param name="ocpAddrWidth" value="21" />
+            <param name="sramAddrWidth" value="20" />
+            <param name="sramDataWidth" value="16" />
+        </params>
+        <ports>
+            <outport name="io_ramOut_addr" width="19" />
+            <outport name="io_ramOut_dout" width="16" />
+            <inport  name="io_ramIn_din" width="16" />
+            <outport name="io_ramOut_dout_ena" />
+            <outport name="io_ramOut_nce" />
+            <outport name="io_ramOut_noe" />
+            <outport name="io_ramOut_nwe" />
+            <outport name="io_ramOut_nlb" />
+            <outport name="io_ramOut_nub" />
+        </ports>
+    </Dev>
+  </Devs>
+
+  <!-- currently unused -->
+  <SCache size="0" />
+</patmos>

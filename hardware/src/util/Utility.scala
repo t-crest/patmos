@@ -41,8 +41,16 @@ package patmos
 
 import Chisel._
 import Node._
+import scala.math._
 
 import Constants._
+
+// Borrowed from the Chisel source tree.
+// Hacked to now support longs
+object log2Up
+{
+  def apply(in: Long): Int = if(in == 1) 1 else ceil(log(in)/log(2)).toInt
+}
 
 object Utility {
 

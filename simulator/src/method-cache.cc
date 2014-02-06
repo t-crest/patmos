@@ -76,7 +76,8 @@ void ideal_method_cache_t::print(std::ostream &os)
   // nothing to do here either, since the cache has no internal state.
 }
 
-void ideal_method_cache_t::print_stats(const simulator_t &s, std::ostream &os)
+void ideal_method_cache_t::print_stats(const simulator_t &s, std::ostream &os, 
+                                       bool short_stats)
 {
   // nothing to do here either, since the cache has no internal state.
 }
@@ -460,7 +461,8 @@ void lru_method_cache_t::print(std::ostream &os)
   os << '\n';
 }
 
-void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os)
+void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os, 
+                                     bool short_stats)
 {
   uword_t bytes_utilized = Num_bytes_utilized;
   for(unsigned int j = Num_blocks - Num_active_methods; j < Num_blocks; j++)
@@ -510,6 +512,9 @@ void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os)
     % transfer_ratio
     % Num_stall_cycles % (100.0 * Num_stall_cycles / (float)s.Cycle);
 
+  if (short_stats) 
+    return;
+  
   // Update utilization stats for all methods not yet evicted.
   for(int i = Num_blocks - Num_active_methods; i < Num_blocks; i++)
   {

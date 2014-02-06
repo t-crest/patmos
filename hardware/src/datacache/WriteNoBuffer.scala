@@ -99,11 +99,10 @@ class WriteNoBuffer() extends Module {
 	io.slave.M.DataValid := Bits(1)
 	io.slave.M.Data := writeMasterReg.Data
 	io.slave.M.DataByteEn := Bits(0)
-
+	when(cntReg === wrPos) {
+	  io.slave.M.DataByteEn := writeMasterReg.ByteEn
+	}
 	when(io.slave.S.DataAccept === Bits(1)) {
-	  when(cntReg === wrPos) {
-        io.slave.M.DataByteEn := writeMasterReg.ByteEn
-	  }
 	  cntReg := cntReg + UInt(1)
 	}
 	when(cntReg === UInt(burstLength - 1)) {

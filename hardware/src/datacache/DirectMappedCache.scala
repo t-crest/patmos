@@ -61,7 +61,8 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
   val tagCount = size / lineSize
 
   // Register signals from master
-  val masterReg = Reg(next = io.master.M)
+  val masterReg = Reg(init = OcpMasterSignals.resetVal(io.master.M))
+  masterReg := io.master.M
 
   // Generate memories
   val tagMem = MemBlock(tagCount, tagWidth)
@@ -100,7 +101,7 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
                           OcpResp.DVA, OcpResp.NULL)
 
   // State machine for misses
-  val idle :: fill :: respond :: Nil = Enum(UInt(), 3)
+  val idle :: hold :: fill :: respond :: Nil = Enum(UInt(), 4)
   val stateReg = Reg(init = idle)
 
   val missIndexReg = Reg(init = UInt(0, lineBits-2))
@@ -125,11 +126,29 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
     tagVMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(true)
     missIndexReg := masterReg.Addr(lineBits-1, 2).toUInt
     io.slave.M.Cmd := OcpCmd.RD
-    stateReg := fill
+    when(io.slave.S.CmdAccept === Bits(1)) {
+      stateReg := fill
+    }
+    .otherwise {
+      stateReg := hold
+      masterReg.Addr := masterReg.Addr
+    }
   }
   tagMem.io <= (!tagValid && masterReg.Cmd === OcpCmd.RD,
                 masterReg.Addr(addrBits + 1, lineBits),
                 masterReg.Addr(EXTMEM_ADDR_WIDTH-1, addrBits+2))
+
+  // Hold read command
+  when(stateReg === hold) {
+    io.slave.M.Cmd := OcpCmd.RD
+    when(io.slave.S.CmdAccept === Bits(1)) {
+      stateReg := fill
+    }
+    .otherwise {
+      stateReg := hold
+      masterReg.Addr := masterReg.Addr
+    }
+  }
   // Wait for response
   when(stateReg === fill) {
     wrAddrReg := Cat(fillAddrReg, burstCntReg)

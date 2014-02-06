@@ -61,10 +61,14 @@ class NullCache() extends Module {
   val posReg = Reg(init = Bits(0, burstAddrBits))
 
   // Register for master signals
-  val masterReg = Reg(next = io.master.M)
+  val masterReg = Reg(init = OcpMasterSignals.resetVal(io.master.M))
 
   // Register to delay response
   val slaveReg = Reg(init = OcpSlaveSignals.resetVal(io.master.S))
+
+  when(masterReg.Cmd != OcpCmd.RD || io.slave.S.CmdAccept === Bits(1)) {
+    masterReg := io.master.M
+  }
 
   // Default values
   io.slave.M.Cmd := OcpCmd.IDLE
@@ -98,7 +102,9 @@ class NullCache() extends Module {
   // Start a read burst
   when(masterReg.Cmd === OcpCmd.RD) {
 	io.slave.M.Cmd := OcpCmd.RD
-	stateReg := read
-	posReg := masterReg.Addr(burstAddrBits+byteAddrBits-1, byteAddrBits)
+    when(io.slave.S.CmdAccept === Bits(1)) {
+	  stateReg := read
+	  posReg := masterReg.Addr(burstAddrBits+byteAddrBits-1, byteAddrBits)
+    }
   }
 }

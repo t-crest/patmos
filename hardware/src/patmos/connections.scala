@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,10 +32,10 @@
 
 /*
  * Connection definitions for the pipe stages.
- * 
+ *
  * Authors: Martin Schoeberl (martin@jopdesign.com)
  *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
- * 
+ *
  */
 
 package patmos
@@ -347,5 +347,4 @@ class PatmosCoreIO() extends Bundle() {
 class PatmosIO() extends Bundle() {
   val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
-  val sramPins = new RamOutPinsIO(EXTMEM_ADDR_WIDTH-2)
 }
