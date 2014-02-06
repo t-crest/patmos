@@ -142,6 +142,9 @@ $(BOOTBIN): .FORCE
 MODULE=example.FsmMain
 MODULE=ocp.test.OcpTester
 MODULE=ocp.test.ArbiterTester
+#MODULE=ocp.test.NodeTdmArbiterTester
+#MODULE=ocp.test.TdmArbiterTester
+
 modtest:
 #	-rm -rf generated
 	$(SBT) "run-main $(MODULE) --backend c --compile --vcd --test --genHarness --targetDir build"
