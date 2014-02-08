@@ -35,6 +35,12 @@
  * 
  * Author: Martin Schoeberl (martin@jopdesign.com)
  * 
+ * TODO:
+ *   don't forget assembler directive
+ *   Predicates
+ *   Long immediate needs some special handling
+ *
+ * 
  */
 
 package tools
@@ -42,41 +48,140 @@ package tools
 import scala.io.Source
 import scala.collection.mutable.Map
 
-class PaAsm {
-
-}
-
 object InstrType extends Enumeration {
   //  type InstrType = Value
-  val ALU, ALUi = Value
+  val ALUr, ALUi, WORD = Value
 }
 
-class Instruction(mne: String, code: Int, isA: InstrType.Value) {
+class Instruction(s: String, c: Int, t: InstrType.Value) {
 
+  var mne: String = s
+  var code: Int = c
+  var isA: InstrType.Value = t
+    
   def getCode = { code }
+  def getType = (isA)
 }
+
+//class AluInstruction extends Instruction {
+//}
 
 object Instruction {
+
+  val funcMap = Map("add" -> 0,
+    "sub" -> 1,
+    "xor" -> 2,
+    "sl" -> 3,
+    "sr" -> 4,
+    "sra" -> 5,
+    "or" -> 6,
+    "and" -> 7,
+    "not" -> 11,
+    "shadd" -> 12,
+    "shadd2" -> 13)
 
   def getMap = {
     import InstrType._
     val map = Map.empty[String, Instruction]
-    map + ("add" -> new Instruction("add", 123, ALU))
-    map + ("addi" -> new Instruction("addi", 456, ALUi))
+    map += ("add" -> new Instruction("add", 0x02000000 + funcMap("add"), ALUr))
+    map += ("addi" -> new Instruction("addi", 456, ALUi))
+    map += (".word" -> new Instruction(".word", 0, WORD))
     map
   }
 }
 
-class Bundle {
-  var label = ""
-  //  var instrA 
+class ConcreteInstruction(typeOf: Instruction) {
+
+  var code = typeOf.getCode
 }
 
-object PaAsm {
+class Bundle {
+  var instrA: ConcreteInstruction = null
+  var instrB: ConcreteInstruction = null
+  var address = 0
+}
+
+class PaAsm(file: String) {
 
   val instrMap = Instruction.getMap
 
-  def doit(line: String) = {
+  val symbolMap = Map.empty[String, Int]
+  var pc = 0
+
+  for (line <- Source.fromFile(file).getLines()) {
+    parseLine(line, false)
+  }
+  val mem = new Array[Int](pc / 4)
+  pc = 0
+  for (line <- Source.fromFile(file).getLines()) {
+    val bundle = parseLine(line, true)
+    if (bundle != null) {
+      mem(bundle.address / 4) = bundle.instrA.code
+    }
+  }
+  for (cnt <- 0 to mem.length - 1) {
+    println(mem(cnt))
+  }
+
+  def regVal(s: String) = {
+    if (s(0) != 'r') error("Register expected")
+    val nr = s.substring(1).toInt
+    if (nr > 31) error("Impossible register number " + nr)
+    nr
+  }
+
+  def parseInstr(instrStr: String): ConcreteInstruction = {
+
+    if (instrStr == null) null
+
+    val split = instrStr.split(Array(' ', '\t', '=', ',')).toList
+    // remove this strange zero size string
+    val tokens = split.filter(s => s.length != 0)
+    if (tokens.length == 0) {
+      println("Empty instruction")
+      return null
+    }
+
+    if (!instrMap.contains(tokens(0))) {
+      println("unknown instr: " + tokens(0))
+      return null
+      //      error("Unknown instruction "+tokens(0))      
+    }
+
+    val instruction = instrMap(tokens(0))
+    val instr = new ConcreteInstruction(instruction)
+
+    import InstrType._
+    println(instruction.getType)
+
+    instruction.getType match {
+      case WORD => {
+        instr.code = tokens(1).toInt
+      }
+      case ALUr => {
+        regVal(tokens(1))
+        instr.code += (regVal(tokens(1)) << 17) +
+          (regVal(tokens(2)) << 12) + (regVal(tokens(3)) << 7)
+      }
+      case _ => {}
+    }
+
+    for (s <- tokens) {
+
+      print(":" + s + ":")
+      if (s.length() == 0) {
+        // looks like a zero sized String is at the end
+        printf("empty line")
+      } else {
+        printf("?")
+      }
+      println
+    }
+
+    instr
+  }
+
+  def parseLine(line: String, secondPath: Boolean) = {
 
     val bundle = new Bundle()
 
@@ -84,7 +189,7 @@ object PaAsm {
 
     // do dumb for case classes, but assembler syntax is easy to parse
     var clean = line
-    var second = ""
+    var second: String = null
     var pos = -1
     // cut off comment
     pos = line.indexOf('#')
@@ -92,52 +197,57 @@ object PaAsm {
       clean = line.substring(0, pos)
     }
     // remove unused ';' - assembler syntax uses end of line as delimiter
-    clean = clean.replace(";","")
+    clean = clean.replace(";", "")
+    clean = clean.replace("\n", "")
+    clean = clean.replace("\r", "")
     // consume label
-    println("Cleand up "+clean)
+    println("Cleand up " + clean)
     pos = clean.indexOf(":")
     if (pos != -1) {
-      bundle.label = clean.substring(0, pos)
-      println("Label " + bundle.label)
+      if (!secondPath) {
+        val s = clean.substring(0, pos)
+        if (symbolMap.contains(s)) {
+          error("Symbol " + s + " already defined")
+        }
+        symbolMap += (s -> pc)
+        println("Label: " + s)
+      }
       clean = clean.substring(pos + 1)
     }
     // bundle?
+    var first = clean
     pos = clean.indexOf("||")
     if (pos != -1) {
+      first = clean.substring(0, pos)
       second = clean.substring(pos + 2)
-      println("Second: "+second)
-    }
-    val tokens = clean.split(Array(' ', '\t'))
-    var stop = false
-    for (s <- tokens) {
-
-      if (!stop) {
-        print(":" + s + ":")
-        val pos = s.indexOf(":");
-        if (pos != -1) {
-          bundle.label = s.substring(0, pos)
-          printf("Label again" + bundle.label)
-        } else if (s.length() == 0) {
-          // looks like a zero sized String is at the end
-          // printf("empty line")
-        } else if (s(0) == '#') {
-          printf("Comment")
-          stop = true
-        } else {
-          printf("?")
-        }
-        println
-      }
     }
 
-    bundle
+    bundle.address = pc
+    bundle.instrA = parseInstr(first)
+    if (second != null) {
+      bundle.instrB = parseInstr(second)
+    }
+
+    if (bundle.instrA == null) {
+      println("Empty bundle")
+      null
+    } else {
+      pc = pc + 4
+      if (bundle.instrB != null) pc = pc + 4
+      bundle
+    }
   }
+
+  def error(s: String) {
+    println("Error: " + s)
+    System.exit(-1)
+  }
+}
+
+object PaAsm {
 
   def main(args: Array[String]) = {
     println("Hello, world!")
-    for (line <- Source.fromFile("/Users/martin/t-crest/patmos/asm/test_asm.s").getLines()) {
-      doit(line)
-
-    }
+    val assembler = new PaAsm("/Users/martin/t-crest/patmos/asm/test_asm.s")
   }
 }
