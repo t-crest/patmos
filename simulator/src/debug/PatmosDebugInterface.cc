@@ -98,8 +98,10 @@ namespace patmos
     // big endian - start with the most significat byte
     for (int i = width - 1; i >= 0; --i)
     {
-      ss << std::setw(2) << std::setfill('0') << static_cast<unsigned int>(buf[i]);
+      ss << std::setw(2) << std::setfill('0') 
+         << (0xff & static_cast<unsigned int>(buf[i]));
     }
+
     return MemoryContent(ss.str());
   }
 
