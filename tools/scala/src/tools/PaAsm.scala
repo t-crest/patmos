@@ -50,23 +50,14 @@ import scala.collection.mutable.Map
 
 object InstrType extends Enumeration {
   //  type InstrType = Value
-  val ALUr, ALUi, WORD = Value
+  val ALUr, ALUi, ASM = Value
 }
 
-class Instruction(s: String, c: Int, t: InstrType.Value) {
+class Instruction {
 
-  var mne: String = s
-  var code: Int = c
-  var isA: InstrType.Value = t
-    
-  def getCode = { code }
-  def getType = (isA)
-}
-
-//class AluInstruction extends Instruction {
-//}
-
-object Instruction {
+  var mne: String = ""
+  var code: Int = 0
+  var isA: InstrType.Value = InstrType.ALUr
 
   val funcMap = Map("add" -> 0,
     "sub" -> 1,
@@ -80,12 +71,65 @@ object Instruction {
     "shadd" -> 12,
     "shadd2" -> 13)
 
+  def regVal(s: String) = {
+    if (s(0) != 'r') error("Register expected")
+    val nr = s.substring(1).toInt
+    if (nr > 31) error("Impossible register number " + nr)
+    nr
+  }
+
+  def getCode = { code }
+  def getType = { isA }
+
+  def getCode(p1: String, p2: String, p3: String): Int = {
+    -1
+  }
+  def getCode(p1: String): Int = {
+    -1
+  }
+}
+
+class AluRInstruction(name: String) extends Instruction {
+
+  mne = name
+  code = 0x02000000 + funcMap(name)
+  isA = InstrType.ALUr
+
+  override def getCode(p1: String, p2: String, p3: String): Int = {
+    code + (regVal(p1) << 17) + (regVal(p2) << 12) + (regVal(p3) << 7)
+  }
+
+}
+
+class AluIInstruction(name: String) extends Instruction {
+
+  mne = name
+  val l = name.length
+  val func = name.substring(0, l - 1)
+  code = 0x00000000 + (funcMap(func) << 22)
+  isA = InstrType.ALUi
+
+}
+
+class AsmInstruction(name: String, n: Int) extends Instruction {
+
+  mne = name
+  code = n
+  isA = InstrType.ASM
+  
+  override def getCode(p1: String): Int = {
+    code + p1.toInt
+  }
+}
+
+object Instruction {
+
   def getMap = {
     import InstrType._
     val map = Map.empty[String, Instruction]
-    map += ("add" -> new Instruction("add", 0x02000000 + funcMap("add"), ALUr))
-    map += ("addi" -> new Instruction("addi", 456, ALUi))
-    map += (".word" -> new Instruction(".word", 0, WORD))
+    map += ("add" -> new AluRInstruction("add"))
+    map += ("addi" -> new AluIInstruction("addi"))
+    map += (".word" -> new AsmInstruction(".word", 0))
     map
   }
 }
@@ -93,6 +137,7 @@ object Instruction {
 class ConcreteInstruction(typeOf: Instruction) {
 
   var code = typeOf.getCode
+//  def getType = typeOf
 }
 
 class Bundle {
@@ -155,13 +200,11 @@ class PaAsm(file: String) {
     println(instruction.getType)
 
     instruction.getType match {
-      case WORD => {
-        instr.code = tokens(1).toInt
+      case ASM => {
+        instr.code = instruction.getCode(tokens(1))
       }
       case ALUr => {
-        regVal(tokens(1))
-        instr.code += (regVal(tokens(1)) << 17) +
-          (regVal(tokens(2)) << 12) + (regVal(tokens(3)) << 7)
+        instr.code = instruction.getCode(tokens(1), tokens(2), tokens(3))
       }
       case _ => {}
     }
