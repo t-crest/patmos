@@ -47,7 +47,7 @@ import scala.collection.mutable.HashMap
 import io.SSRam32Ctrl
 
 
-class Master(nr: Int, burstLength: Int) extends Module {
+/*class Master(nr: Int, burstLength: Int) extends Module {
 
   val io = new Bundle {
     val port = new OcpBurstMasterPort(32, 32, burstLength)
@@ -87,31 +87,36 @@ class Master(nr: Int, burstLength: Int) extends Module {
 
   io.port.M.Addr := (UInt(nr * 256) + cntReg).toBits()
   io.port.M.Data := (UInt(nr * 256 * 16) + cntReg).toBits()
-}
+} */
 
 /** A top level to test the arbiter */
-class ArbiterTop() extends Module {
+class NodeTdmArbiterTop() extends Module {
 
   val io = new Bundle {
-    val port = new OcpBurstMasterPort(32, 32, 4)
+    val port = Vec.fill(3){new OcpBurstMasterPort(32, 32, 4)}
   }
   val CNT = 3
-  val arb = Module(new ocp.Arbiter(CNT, 32, 32, 4))
+  //val arb = Module(new ocp.NodeTdmArbiter(CNT, 32, 32, 4))
   val mem = Module(new SSRam32Ctrl(21))
-
+  val memMux = Module(new memMuxIntf(3, 32, 32, 4))
+  
   for (i <- 0 until CNT) {
     val m = Module(new Master(i, 4))
-    arb.io.master(i) <> m.io.port
+    val arb = Module(new ocp.NodeTdmArbiter(CNT, 32, 32, 4, i))
+    arb.io.master <> m.io.port
+    
+    memMux.io.master(i) <> arb.io.slave
+    memMux.io.en(i) <> arb.io.slotEn
+   
+    io.port(i).M <> memMux.io.slave.M
   }
-
-  mem.io.ocp <> arb.io.slave
-
-  io.port.M <> arb.io.slave.M
+  
+  mem.io.ocp <> memMux.io.slave 
 
 }
 
 
-class ArbiterTester(dut: ocp.test.ArbiterTop) extends Tester(dut, Array(dut.io)) {
+class NodeTdmArbiterTester(dut: ocp.test.NodeTdmArbiterTop) extends Tester(dut, Array(dut.io)) {
   defTests {
     val ret = true
     val vars = new HashMap[Node, Node]()
@@ -135,10 +140,10 @@ class ArbiterTester(dut: ocp.test.ArbiterTop) extends Tester(dut, Array(dut.io))
   }
 }
 
-object ArbiterTester {
+object NodeTdmArbiterTester {
   def main(args: Array[String]): Unit = {
-    chiselMainTest(args, () => Module(new ocp.test.ArbiterTop)) {
-      f => new ArbiterTester(f)
+    chiselMainTest(args, () => Module(new ocp.test.NodeTdmArbiterTop)) {
+      f => new NodeTdmArbiterTester(f)
     }
 
   }

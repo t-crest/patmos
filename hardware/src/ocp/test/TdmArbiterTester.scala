@@ -47,7 +47,7 @@ import scala.collection.mutable.HashMap
 import io.SSRam32Ctrl
 
 
-class Master(nr: Int, burstLength: Int) extends Module {
+/*class Master(nr: Int, burstLength: Int) extends Module {
 
   val io = new Bundle {
     val port = new OcpBurstMasterPort(32, 32, burstLength)
@@ -87,16 +87,16 @@ class Master(nr: Int, burstLength: Int) extends Module {
 
   io.port.M.Addr := (UInt(nr * 256) + cntReg).toBits()
   io.port.M.Data := (UInt(nr * 256 * 16) + cntReg).toBits()
-}
+} */
 
 /** A top level to test the arbiter */
-class ArbiterTop() extends Module {
+class TdmArbiterTop() extends Module {
 
   val io = new Bundle {
     val port = new OcpBurstMasterPort(32, 32, 4)
   }
   val CNT = 3
-  val arb = Module(new ocp.Arbiter(CNT, 32, 32, 4))
+  val arb = Module(new ocp.TdmArbiter(CNT, 32, 32, 4))
   val mem = Module(new SSRam32Ctrl(21))
 
   for (i <- 0 until CNT) {
@@ -111,7 +111,7 @@ class ArbiterTop() extends Module {
 }
 
 
-class ArbiterTester(dut: ocp.test.ArbiterTop) extends Tester(dut, Array(dut.io)) {
+class TdmArbiterTester(dut: ocp.test.TdmArbiterTop) extends Tester(dut, Array(dut.io)) {
   defTests {
     val ret = true
     val vars = new HashMap[Node, Node]()
@@ -135,10 +135,10 @@ class ArbiterTester(dut: ocp.test.ArbiterTop) extends Tester(dut, Array(dut.io))
   }
 }
 
-object ArbiterTester {
+object TdmArbiterTester {
   def main(args: Array[String]): Unit = {
-    chiselMainTest(args, () => Module(new ocp.test.ArbiterTop)) {
-      f => new ArbiterTester(f)
+    chiselMainTest(args, () => Module(new ocp.test.TdmArbiterTop)) {
+      f => new TdmArbiterTester(f)
     }
 
   }

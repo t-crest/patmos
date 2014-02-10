@@ -40,6 +40,8 @@
 #include "boot.h"
 #include "cmpboot.h"
 
+// #define DEBUG
+
 int main(void)
 {
   // setup stack frame and stack cache.
@@ -51,7 +53,9 @@ int main(void)
                   "r" (&_stack_cache_base),
                   "i" (&main));
 
+#ifdef DEBUG
   WRITE("BOOT\n", 5);
+#endif
 
   // overwrite potential leftovers from previous runs
   boot_info->master.status = STATUS_NULL;
@@ -65,17 +69,27 @@ int main(void)
     boot_info->master.status = STATUS_BOOT;
   }
 
+#ifdef DEBUG
   WRITE("DOWN\n", 5);
+#endif
 
   // download application
   boot_info->master.entrypoint = download();
+#ifdef DEBUG
+  // force some valid address for debugging
+  if (boot_info->master.entrypoint == NULL) {
+    boot_info->master.entrypoint = 0x20004;
+  }
+#endif
 
   // notify slaves that they can call _start()
   boot_info->master.status = STATUS_INIT;
 
-  WRITE("START\n", 6);
-    
   static char msg[10];
+
+#ifdef DEBUG
+  WRITE("START ", 6);
+    
   msg[0] = XDIGIT(((int)boot_info->master.entrypoint >> 28) & 0xf);
   msg[1] = XDIGIT(((int)boot_info->master.entrypoint >> 24) & 0xf);
   msg[2] = XDIGIT(((int)boot_info->master.entrypoint >> 20) & 0xf);
@@ -86,11 +100,11 @@ int main(void)
   msg[7] = XDIGIT(((int)boot_info->master.entrypoint >>  0) & 0xf);
   msg[8] = '\n';
   WRITE(msg, 9);
+#endif
 
   // call the application's _start()
   int retval = -1;
   if (boot_info->master.entrypoint != NULL) {
-
     retval = (*boot_info->master.entrypoint)();
 
     // Compensate off-by-one of return offset with NOP
@@ -108,7 +122,9 @@ int main(void)
 
   // TODO: wait for slaves to finish
 
+#ifdef DEBUG
   WRITE("EXIT\n", 5);
+#endif
 
   // Print exit magic and return code
   msg[0] = '\0';

@@ -62,20 +62,20 @@ architecture rtl of patmos_top is
 			io_uartPins_tx  : out std_logic;
 			io_uartPins_rx  : in  std_logic;
 
-                        io_ssramBurstRWPins_ramOut_addr : out std_logic_vector(18 downto 0);
-                        io_ssramBurstRWPins_ramOut_doutEna : out std_logic;
-                        io_ssramBurstRWPins_ramOut_nadsc : out std_logic;
-                        io_ssramBurstRWPins_ramOut_noe : out std_logic;
-                        io_ssramBurstRWPins_ramOut_nbwe : out std_logic;
-                        io_ssramBurstRWPins_ramOut_nbw : out std_logic_vector(3 downto 0);
-                        io_ssramBurstRWPins_ramOut_ngw : out std_logic;
-                        io_ssramBurstRWPins_ramOut_nce1 : out std_logic;
-                        io_ssramBurstRWPins_ramOut_ce2 : out std_logic;
-                        io_ssramBurstRWPins_ramOut_nce3 : out std_logic;
-                        io_ssramBurstRWPins_ramOut_nadsp : out std_logic;
-                        io_ssramBurstRWPins_ramOut_nadv : out std_logic;
-                        io_ssramBurstRWPins_ramOut_dout : out std_logic_vector(31 downto 0);
-                        io_ssramBurstRWPins_ramIn_din : inout std_logic_vector(31 downto 0)
+                        io_sSRam32CtrlPins_ramOut_addr : out std_logic_vector(18 downto 0);
+                        io_sSRam32CtrlPins_ramOut_doutEna : out std_logic;
+                        io_sSRam32CtrlPins_ramOut_nadsc : out std_logic;
+                        io_sSRam32CtrlPins_ramOut_noe : out std_logic;
+                        io_sSRam32CtrlPins_ramOut_nbwe : out std_logic;
+                        io_sSRam32CtrlPins_ramOut_nbw : out std_logic_vector(3 downto 0);
+                        io_sSRam32CtrlPins_ramOut_ngw : out std_logic;
+                        io_sSRam32CtrlPins_ramOut_nce1 : out std_logic;
+                        io_sSRam32CtrlPins_ramOut_ce2 : out std_logic;
+                        io_sSRam32CtrlPins_ramOut_nce3 : out std_logic;
+                        io_sSRam32CtrlPins_ramOut_nadsp : out std_logic;
+                        io_sSRam32CtrlPins_ramOut_nadv : out std_logic;
+                        io_sSRam32CtrlPins_ramOut_dout : out std_logic_vector(31 downto 0);
+                        io_sSRam32CtrlPins_ramIn_din : inout std_logic_vector(31 downto 0)
 		);
 	end component;
 

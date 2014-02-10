@@ -72,7 +72,7 @@ int main(void) {
   }
 
   // Print exit magic and return code
-  static char msg[10];
+  static char msg[3];
   msg[0] = '\0';
   msg[1] = 'x';
   msg[2] = retval & 0xff;
