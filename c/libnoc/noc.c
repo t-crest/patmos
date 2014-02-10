@@ -111,7 +111,7 @@ void noc_init(void) {
 // Start a NoC transfer
 // The addresses and the size are in double-words and relative to the
 // communication SPM
-int noc_send(unsigned rcv_id,
+int noc_dma(unsigned rcv_id,
              unsigned short write_ptr,
              unsigned short read_ptr,
              unsigned short size) {
@@ -135,10 +135,10 @@ int noc_send(unsigned rcv_id,
 
 // Transfer data via the NoC
 // The addresses and the size are in bytes
-void noc_dma(int dst_id, volatile void _SPM *dst,
+void noc_send(int dst_id, volatile void _SPM *dst,
              volatile void _SPM *src, size_t len) {
 
   unsigned wp = (char *)dst - (char *)NOC_SPM_BASE;
   unsigned rp = (char *)src - (char *)NOC_SPM_BASE;
-  while(!noc_send(dst_id, DW(wp), DW(rp), DW(len)));
+  while(!noc_dma(dst_id, DW(wp), DW(rp), DW(len)));
 }

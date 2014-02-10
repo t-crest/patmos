@@ -45,8 +45,35 @@ static const struct network_interface
     (volatile _SPM int *) 0xE8000000
 };
 
+/* Writes the content of the com spm to the UART */
+void print_stat(){
+    char tmp[NOC_CORES*3];
+    int k;
+    for(k = 1; k < NOC_CORES*3; k++)
+    {
+        tmp[k-1] = *(ni.spm+2*k);
+        if(tmp[k-1] < 'A'){
+            tmp[k-1] = '@';
+        }
+    }
+    WRITE(tmp,NOC_CORES*3-1);
+    WRITE("\n",1);
+    return;
+}
+
+int wait(int amount){
+    int i = 0;
+    while(i <= amount){
+        i++;
+        char c[1];
+        c[0]=i;
+        WRITE(c,1);
+    }
+    return i;
+}
+
 int main(int argc, char **argv) {
-    WRITE("Hello world!\n",13);
+    //WRITE("Hello cmp world!\n",17);
 
     // setup stack frame and stack cache.
     asm volatile ("li $r29 = %0;" // initialize shadow stack pointer"
@@ -63,30 +90,34 @@ int main(int argc, char **argv) {
 
     volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0000900;
 
+    int k,l;
+    // Clear communication scratch pad
+    for(k = 0; k < NOC_CORES*4; k++)
+    {
+        *(ni.spm+k) = 0;
+    }
 
     if (CPU_ID == 0)
     {
-        WRITE("MASTER START\n", 13);
-        int k;
-        // Clear communication scratch pad
-        for(k = 0; k < 8; k++)
-        {
-            *(ni.spm+k) = 0;
-        }
+        //WRITE("MASTER START\n", 13);
+        
         // Wait for messages from NOC_cores
         for(k = 1; k < NOC_CORES; k++)
         {
-            while(*(ni.spm+2*k) == 0);
+            while(*(ni.spm+2*k) == 0){
+                print_stat();
+
+            }
         }
 
         // Send a hello world message
         const char *msg = "Hello world ";
+        WRITE(msg, strlen(msg));
         char cid[NOC_CORES];
         for(k = 1; k < NOC_CORES; k++)
         {
             cid[k-1] = *(ni.spm+2*k);
         }
-        WRITE(msg, strlen(msg));
         WRITE(cid,NOC_CORES-1);
         WRITE("\n",1);
 
@@ -109,13 +140,14 @@ int main(int argc, char **argv) {
     }
     else
     {
-        WRITE("SLAVES START\n", 13);
+        //WRITE("SLAVES START\n", 13);
         // Send the own id to processor 0
+        wait(CPU_ID*10);
         for (;;)
         {
             *(ni.spm) = CPU_ID+'A';
-            while(!noc_send(0, CPU_ID, 0, 1));
-            WRITE("SLAVES START\n", 13);
+            while(!noc_dma(0, CPU_ID, 0, 1));
+            //WRITE("SLAVES START\n", 13);
         }
     }
 
