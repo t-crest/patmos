@@ -34,7 +34,7 @@
  * Arbiter for OCP burst slaves.
  * Pseudo round robin arbitration. Each turn for a non-requesting master costs 1 clock cycle.
  *
- * Author: Martin Schoeberl (martin@jopdesign.com)
+ * Author: Martin Schoeberl (martin@jopdesign.com) David Chong (davidchong99@gmail.com)
  *
  */
 
@@ -78,7 +78,7 @@ class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) ext
   cntReg := Mux(cntReg === UInt(period - 1), UInt(0), cntReg + UInt(1))
   
   // Generater the slot Table for the whole period
-  def genTable(nodeID: Int) = {
+  def genTable(nodeID: Int): UInt = {
     val x = pow(2,nodeID*slotLen).toInt
     val slot = UInt(x,width=period)
     slot
@@ -100,13 +100,13 @@ class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) ext
   io.slave.M.Data       := Bits(0)
    
   // Temporarily assigned to master 0
-  val masterID = Reg(init = UInt(0, log2Up(cnt)))
+  val masterIdReg = Reg(init = UInt(0, log2Up(cnt)))
    
     for (i <- 0 to cnt-1) {
 
       when (cpuSlot(i) === UInt(1)) {
         val master = io.master(i).M
-        masterID := UInt(i)
+        masterIdReg := UInt(i)
         io.slave.M := io.master(i).M
         
         when (stateReg(i) === sIdle) {
@@ -141,7 +141,7 @@ class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) ext
         }      
     } 
   
-  io.slave.M := io.master(masterID).M 
+  io.slave.M := io.master(masterIdReg).M 
   debug(io.slave.M)
 
   for (i <- 0 to cnt - 1) {
@@ -151,7 +151,7 @@ class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) ext
     // we forward the data to all masters
     io.master(i).S.Data := io.slave.S.Data
   }
-  io.master(masterID).S := io.slave.S
+  io.master(masterIdReg).S := io.slave.S
 
 }
 
