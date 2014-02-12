@@ -43,6 +43,7 @@ MAIN=patmos.PatmosMain
 COREMAIN=patmos.PatmosCoreMain
 MEMCTRLMAIN32=io.SSRam32Main
 MEMCTRLMAIN16=io.SRamMain
+MEMCTRLMAINOC=io.OCRamMain
 ARBITERMAIN=ocp.ArbiterMain
 
 # config file for Patmos -- now just frequency
@@ -118,6 +119,9 @@ $(HWBUILDDIR)/SSRam32Ctrl.v: $(SRC)
 
 $(HWBUILDDIR)/SRamCtrl.v: $(SRC)
 	$(SBT) "run-main $(MEMCTRLMAIN16) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --backend v"
+
+$(HWBUILDDIR)/OCRamCtrl.v: $(SRC)
+	$(SBT) "run-main $(MEMCTRLMAINOC) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --backend v"
 
 $(HWBUILDDIR)/Arbiter.v: $(SRC)
 	$(SBT) "run-main $(ARBITERMAIN) $(ARBITER_CNT) $(ARBITER_ADDR_WIDTH) $(ARBITER_DATA_WIDTH) $(ARBITER_BURST_LENGTH) --targetDir $(HWBUILDDIR) --backend v"

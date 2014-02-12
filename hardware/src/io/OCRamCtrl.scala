@@ -46,6 +46,8 @@ import Node._
 
 import ocp._
 
+import patmos.Constants._
+
 import patmos.MemBlock
 import patmos.MemBlockIO
 
@@ -57,14 +59,14 @@ object OCRamCtrl extends DeviceObject {
   }
 
   def create(params: Map[String, String]) : OCRamCtrl = {
-    Module(new OCRamCtrl(addrWidth))
+    Module(new OCRamCtrl(addrWidth,BURST_LENGTH))
   }
 
   trait Pins {
   }
 }
 
-class OCRamCtrl(addrWidth : Int) extends BurstDevice(addrWidth) {
+class OCRamCtrl(addrWidth : Int, ocpBurstLen : Int=4) extends BurstDevice(addrWidth) {
 
   override val io = new BurstDeviceIO(addrWidth) with OCRamCtrl.Pins
 
@@ -77,9 +79,9 @@ class OCRamCtrl(addrWidth : Int) extends BurstDevice(addrWidth) {
   val stateReg = Reg(init = idle)
 
   val ramAddrWidth = addrWidth - log2Up(BYTES_PER_WORD)
-  val addrReg = Reg(init = UInt(0, width = ramAddrWidth - log2Up(io.ocp.burstLength)))
+  val addrReg = Reg(init = UInt(0, width = ramAddrWidth - log2Up(ocpBurstLen)))
 
-  val burstCntReg = Reg(init = UInt(0, width = log2Up(io.ocp.burstLength)))
+  val burstCntReg = Reg(init = UInt(0, width = log2Up(ocpBurstLen)))
   val burstCntNext = burstCntReg + UInt(1);
 
   val addr = UInt()
@@ -89,7 +91,7 @@ class OCRamCtrl(addrWidth : Int) extends BurstDevice(addrWidth) {
 
   burstCntReg := burstCntNext
   // end transaction after a burst
-  when (burstCntReg === UInt(io.ocp.burstLength-1)) {
+  when (burstCntReg === UInt(ocpBurstLen-1)) {
     stateReg := idle
     wrEn := Bool(false)
   }
@@ -97,11 +99,11 @@ class OCRamCtrl(addrWidth : Int) extends BurstDevice(addrWidth) {
   // start a new transaction
   when (io.ocp.M.Cmd === OcpCmd.RD || io.ocp.M.Cmd === OcpCmd.WR) {
     val ocpAddr = io.ocp.M.Addr(addrWidth-1,
-                                log2Up(io.ocp.burstLength) + log2Up(BYTES_PER_WORD))
+                                log2Up(ocpBurstLen) + log2Up(BYTES_PER_WORD))
     addrReg := ocpAddr
     burstCntReg := UInt(0)
 
-    addr := ocpAddr ## UInt(0, width = log2Up(io.ocp.burstLength))
+    addr := ocpAddr ## UInt(0, width = log2Up(ocpBurstLen))
   }
   when (io.ocp.M.Cmd === OcpCmd.RD) {
     stateReg := read
@@ -129,7 +131,7 @@ class OCRamCtrl(addrWidth : Int) extends BurstDevice(addrWidth) {
   // respond
   io.ocp.S.Resp := OcpResp.NULL
   when (stateReg === read ||
-        (stateReg === write && burstCntReg === UInt(io.ocp.burstLength-1))) {
+        (stateReg === write && burstCntReg === UInt(ocpBurstLen-1))) {
     io.ocp.S.Resp := OcpResp.DVA
   }
 
