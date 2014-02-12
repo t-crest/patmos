@@ -4,7 +4,7 @@
                 .word   36;
                 dlwm    sm  = [r31 + 1];
                 dlwm    sm  = [r31 + 2] ||      mfs    r1  = s1;
-                waitm                   ||      mfs    r2  = s1;
+                wait                    ||      mfs    r2  = s1;
                 halt;
 		nop;
 		nop;

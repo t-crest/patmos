@@ -22,6 +22,8 @@
 #include "binary-formats.h"
 #include "instructions.h"
 #include "util.h"
+#include "symbol.h"
+#include "assembler.h"
 
 #include "boost/utility/binary.hpp"
 
@@ -77,36 +79,36 @@ namespace patmos
     return in | (pattern << start);
   }
 
-  static void insertV(word_t &iw, unsigned int start, unsigned int width,
-                      word_t pattern)
+  static void insertV(uword_t &iw, unsigned int start, unsigned int width,
+                      uword_t pattern)
   {
     assert(fitu(pattern, width));
     iw = iw | (pattern << start);
   }
 
-  static void insertVs(word_t &iw, unsigned int start, unsigned int width,
-                       word_t pattern)
+  static void insertVs(uword_t &iw, unsigned int start, unsigned int width,
+                       uword_t pattern)
   {
     assert(fits(pattern, width));
     iw = iw | ( (pattern & ((1 << width) - 1)) << start);
   }
 
-  static void insertG(word_t &iw, unsigned int start, word_t pattern)
+  static void insertG(uword_t &iw, unsigned int start, uword_t pattern)
   {
     iw = insert(iw, start, 5, pattern);
   }
 
-  static void insertPN(word_t &iw, unsigned int start, word_t pattern)
+  static void insertPN(uword_t &iw, unsigned int start, uword_t pattern)
   {
     iw = insert(iw, start, 4, pattern);
   }
 
-  static void insertP(word_t &iw, unsigned int start, word_t pattern)
+  static void insertP(uword_t &iw, unsigned int start, uword_t pattern)
   {
     iw = insert(iw, start, 3, pattern);
   }
 
-  static void insertS(word_t &iw, unsigned int start, word_t pattern)
+  static void insertS(uword_t &iw, unsigned int start, uword_t pattern)
   {
     iw = insert(iw, start, 4, pattern);
   }
@@ -127,18 +129,44 @@ namespace patmos
     return instruction_data_t::mk_ALUil(Instruction, pred, rd, rs1, imm);
   }
 
-  word_t alui_format_t::encode(word_t pred, word_t opcode, word_t rd,
-                               word_t rs1, word_t imm)
+  bool alui_format_t::parse_operands(line_parser_t &parser, std::string mnemonic, 
+                                     instruction_data_t &instr, 
+                                     reloc_info_t &reloc) const
   {
-    word_t iw = 0;
+    if (!parser.parse_GPR(instr.OPS.ALUil.Rd)) return false;
+    if (!parser.match_token("=")) return false;
+    if (!parser.parse_GPR(instr.OPS.ALUil.Rs1)) return false;
+    if (!parser.match_token(",")) return false;
+    
+    // ensure that we are not parsing a register name as immediate symbol
+    GPR_e tmp;
+    if (parser.parse_GPR(tmp)) {
+      return false;
+    }
+    
+    reloc.set_format(12);
+    
+    if (!parser.parse_expression(instr.OPS.ALUil.Imm2, reloc, true)) return false;
+    
+    if (!fitu(instr.OPS.ALUil.Imm2, 12)) {
+      parser.set_error("immediate value too large.");
+      return false;
+    }
+    
+    return true;
+  }
+                                              
+  udword_t alui_format_t::encode(std::string mnemonic, 
+                               const instruction_data_t &instr) const
+  {
+    uword_t iw = Opcode;
 
-    assert(fitu(opcode, 3) && isGPR(rd) && isGPR(rs1) && fitu(imm, 12));
+    assert(fitu(instr.OPS.ALUil.Imm2, 12));
 
-    insertV(iw, 0, 12, imm);
-    insertG(iw, 12, rs1);
-    insertG(iw, 17, rd);
-    insertV(iw, 22, 3, opcode);
-    insertPN(iw, 27, pred);
+    insertV(iw, 0, 12, instr.OPS.ALUil.Imm2);
+    insertG(iw, 12, instr.OPS.ALUil.Rs1);
+    insertG(iw, 17, instr.OPS.ALUil.Rd);
+    insertPN(iw, 27, instr.Pred);
 
     return iw;
   }
@@ -159,21 +187,39 @@ namespace patmos
     return instruction_data_t::mk_ALUil(Instruction, pred, rd, rs1, longimm);
   }
 
-  dword_t alul_format_t::encode(word_t pred, word_t opcode, word_t rd,
-                               word_t rs1, word_t imm)
+  bool alul_format_t::parse_operands(line_parser_t &parser, std::string mnemonic, 
+                                     instruction_data_t &instr, 
+                                     reloc_info_t &reloc) const
   {
-    word_t iw = 0;
+    if (!parser.parse_GPR(instr.OPS.ALUil.Rd)) return false;
+    if (!parser.match_token("=")) return false;
+    if (!parser.parse_GPR(instr.OPS.ALUil.Rs1)) return false;
+    if (!parser.match_token(",")) return false;
 
-    assert(fitu(opcode, 4) && isGPR(rd) && isGPR(rs1));
+    // ensure that we are not parsing a register name as immediate symbol
+    GPR_e tmp;
+    if (parser.parse_GPR(tmp)) {
+      return false;
+    }
+    
+    reloc.set_format(32);
+    
+    if (!parser.parse_expression(instr.OPS.ALUil.Imm2, reloc, true)) return false;
+    return true;
+  }
+                                              
+  udword_t alul_format_t::encode(std::string mnemonic, 
+                                const instruction_data_t &instr) const
+  {
+    uword_t iw = Opcode;
 
-    insertV(iw, 0, 4, opcode);
-    insertG(iw, 12, rs1);
-    insertG(iw, 17, rd);
+    insertG(iw, 12, instr.OPS.ALUil.Rs1);
+    insertG(iw, 17, instr.OPS.ALUil.Rd);
     insertV(iw, 22, 5, BOOST_BINARY(11111));
-    insertPN(iw, 27, pred);
+    insertPN(iw, 27, instr.Pred);
     insertV(iw, 31, 1, 1);
 
-    return ((dword_t)iw) << 32 | (uword_t)imm;
+    return ((udword_t)iw << 32) | ((udword_t)instr.OPS.ALUil.Imm2 & ((1ULL<<32)-1));
   }
 
   alur_format_t::alur_format_t(const instruction_t &instruction,
@@ -193,19 +239,28 @@ namespace patmos
     return instruction_data_t::mk_ALUr(Instruction, pred, rd, rs1, rs2);
   }
 
-  word_t alur_format_t::encode(word_t pred, word_t opcode, word_t rd,
-                               word_t rs1, word_t rs2)
+  bool alur_format_t::parse_operands(line_parser_t &parser, std::string mnemonic, 
+                                     instruction_data_t &instr, 
+                                     reloc_info_t &reloc) const
   {
-    word_t iw = 0;
+    if (!parser.parse_GPR(instr.OPS.ALUr.Rd)) return false;
+    if (!parser.match_token("=")) return false;
+    if (!parser.parse_GPR(instr.OPS.ALUr.Rs1)) return false;
+    if (!parser.match_token(",")) return false;
+    if (!parser.parse_GPR(instr.OPS.ALUr.Rs2)) return false;
+    return true;
+  }
 
-    assert(fitu(opcode, 4) && isGPR(rd) && isGPR(rs1) && isGPR(rs2));
+  udword_t alur_format_t::encode(std::string mnemonic, 
+                               const instruction_data_t &instr) const
+  {
+    uword_t iw = Opcode;
 
-    insertV(iw, 0, 4, opcode);
-    insertG(iw, 7, rs2);
-    insertG(iw, 12, rs1);
-    insertG(iw, 17, rd);
+    insertG(iw, 7, instr.OPS.ALUr.Rs2);
+    insertG(iw, 12, instr.OPS.ALUr.Rs1);
+    insertG(iw, 17, instr.OPS.ALUr.Rd);
     insertV(iw, 22, 5, BOOST_BINARY(01000));
-    insertPN(iw, 27, pred);
+    insertPN(iw, 27, instr.Pred);
 
     return iw;
   }
@@ -225,20 +280,27 @@ namespace patmos
     PRR_e pred = extractPN(iw, 27);
     return instruction_data_t::mk_ALUm(Instruction, pred, rs1, rs2);
   }
-
-  word_t alum_format_t::encode(word_t pred, word_t opcode, word_t rs1,
-                               word_t rs2)
+  
+  bool alum_format_t::parse_operands(line_parser_t &parser, std::string mnemonic, 
+                                     instruction_data_t &instr, 
+                                     reloc_info_t &reloc) const
   {
-    word_t iw = 0;
+    if (!parser.parse_GPR(instr.OPS.ALUm.Rs1)) return false;
+    if (!parser.match_token(",")) return false;
+    if (!parser.parse_GPR(instr.OPS.ALUm.Rs2)) return false;
+    return true;
+  }
+                                              
+  udword_t alum_format_t::encode(std::string mnemonic, 
+                               const instruction_data_t &instr) const
+  {
+    uword_t iw = Opcode;
 
-    assert(fitu(opcode, 4) && isGPR(rs1) && isGPR(rs2));
-
-    insertV(iw, 0, 4, opcode);
     insertV(iw, 4, 3, BOOST_BINARY(010));
-    insertG(iw, 7, rs2);
-    insertG(iw, 12, rs1);
+    insertG(iw, 7, instr.OPS.ALUm.Rs2);
+    insertG(iw, 12, instr.OPS.ALUm.Rs1);
     insertV(iw, 22, 5, BOOST_BINARY(01000));
-    insertPN(iw, 27, pred);
+    insertPN(iw, 27, instr.Pred);
 
     return iw;
   }
@@ -260,20 +322,29 @@ namespace patmos
     return instruction_data_t::mk_ALUc(Instruction, pred, pd, rs1, rs2);
   }
 
-  word_t aluc_format_t::encode(word_t pred, word_t opcode, word_t pd,
-                               word_t rs1, word_t rs2)
+  bool aluc_format_t::parse_operands(line_parser_t &parser, std::string mnemonic, 
+                                     instruction_data_t &instr, 
+                                     reloc_info_t &reloc) const
   {
-    word_t iw = 0;
+    if (!parser.parse_PRR(instr.OPS.ALUc.Pd, false)) return false;
+    if (!parser.match_token("=")) return false;
+    if (!parser.parse_GPR(instr.OPS.ALUc.Rs1)) return false;
+    if (!parser.match_token(",")) return false;
+    if (!parser.parse_GPR(instr.OPS.ALUc.Rs2)) return false;
+    return true;
+  }
+                                              
+  udword_t aluc_format_t::encode(std::string mnemonic, 
+                               const instruction_data_t &instr) const
+  {
+    uword_t iw = Opcode;
 
-    assert(fitu(opcode, 4) && isPRR(pd) && isGPR(rs1) && isGPR(rs2));
-
-    insertV(iw, 0, 4, opcode);
     insertV(iw, 4, 3, BOOST_BINARY(011));
-    insertG(iw, 7, rs2);
-    insertG(iw, 12, rs1);
-    insertP(iw, 17, pd);
+    insertG(iw, 7, instr.OPS.ALUc.Rs2);
+    insertG(iw, 12, instr.OPS.ALUc.Rs1);
+    insertP(iw, 17, instr.OPS.ALUc.Pd);
     insertV(iw, 22, 5, BOOST_BINARY(01000));
-    insertPN(iw, 27, pred);
+    insertPN(iw, 27, instr.Pred);
 
     return iw;
   }
@@ -295,20 +366,29 @@ namespace patmos
     return instruction_data_t::mk_ALUp(Instruction, pred, pd, ps1, ps2);
   }
 
-  word_t alup_format_t::encode(word_t pred, word_t opcode, word_t pd,
-                               word_t ps1, word_t ps2)
+  bool alup_format_t::parse_operands(line_parser_t &parser, std::string mnemonic, 
+                                     instruction_data_t &instr, 
+                                     reloc_info_t &reloc) const
   {
-    word_t iw = 0;
+    if (!parser.parse_PRR(instr.OPS.ALUp.Pd, false)) return false;
+    if (!parser.match_token("=")) return false;
+    if (!parser.parse_PRR(instr.OPS.ALUp.Ps1, true)) return false;
+    if (!parser.match_token(",")) return false;
+    if (!parser.parse_PRR(instr.OPS.ALUp.Ps2, true)) return false;
+    return true;
+  }
+                                              
+  udword_t alup_format_t::encode(std::string mnemonic, 
+                               const instruction_data_t &instr) const
+  {
+    uword_t iw = Opcode;
 
-    assert(fitu(opcode, 4) && isPRR(pd) && isPRRn(ps1) && isPRRn(ps2));
-
-    insertV(iw, 0, 4, opcode);
     insertV(iw, 4, 3, BOOST_BINARY(100));
-    insertPN(iw, 7, ps2);
-    insertPN(iw, 12, ps1);
-    insertP(iw, 17, pd);
+    insertPN(iw, 7, instr.OPS.ALUp.Ps2);
+    insertPN(iw, 12, instr.OPS.ALUp.Ps1);
+    insertP(iw, 17, instr.OPS.ALUp.Pd);
     insertV(iw, 22, 5, BOOST_BINARY(01000));
-    insertPN(iw, 27, pred);
+    insertPN(iw, 27, instr.Pred);
 
     return iw;
   }
@@ -327,16 +407,21 @@ namespace patmos
     return instruction_data_t::mk_SPCw(Instruction, pred);
   }
 
-  word_t spcw_format_t::encode(word_t pred, word_t opcode)
+  bool spcw_format_t::parse_operands(line_parser_t &parser, std::string mnemonic, 
+                                     instruction_data_t &instr, 
+                                     reloc_info_t &reloc) const
+  {    
+    return true;
+  }
+                                              
+  udword_t spcw_format_t::encode(std::string mnemonic, 
+                               const instruction_data_t &instr) const
   {
-    word_t iw = 0;
+    uword_t iw = Opcode;
 
-    assert(fitu(opcode, 4) && opcode == 0);
-
-    insertV(iw, 0, 4, opcode);
     insertV(iw, 4, 3, BOOST_BINARY(001));
     insertV(iw, 22, 5, BOOST_BINARY(01001));
-    insertPN(iw, 27, pred);
+    insertPN(iw, 27, instr.Pred);
 
     return iw;
   }
@@ -356,17 +441,26 @@ namespace patmos
     return instruction_data_t::mk_SPCt(Instruction, pred, sd, rs);
   }
 
-  word_t spct_format_t::encode(word_t pred, word_t sd, word_t rs1)
+  bool spct_format_t::parse_operands(line_parser_t &parser, std::string mnemonic, 
+                                     instruction_data_t &instr, 
+                                     reloc_info_t &reloc) const
   {
-    word_t iw = 0;
+    if (!parser.parse_SPR(instr.OPS.SPCt.Sd)) return false;
+    if (!parser.match_token("=")) return false;
+    if (!parser.parse_GPR(instr.OPS.SPCt.Rs1)) return false;
+    return true;
+  }
+                                              
+  udword_t spct_format_t::encode(std::string mnemonic, 
+                               const instruction_data_t &instr) const
+  {
+    uword_t iw = Opcode;
 
-    assert(isSPR(sd) && isGPR(rs1));
-
-    insertS(iw, 0, sd);
+    insertS(iw, 0, instr.OPS.SPCt.Sd);
     insertV(iw, 4, 3, BOOST_BINARY(010));
-    insertG(iw, 12, rs1);
+    insertG(iw, 12, instr.OPS.SPCt.Rs1);
     insertV(iw, 22, 5, BOOST_BINARY(01001));
-    insertPN(iw, 27, pred);
+    insertPN(iw, 27, instr.Pred);
 
     return iw;
   }
@@ -386,17 +480,26 @@ namespace patmos
     return instruction_data_t::mk_SPCf(Instruction, pred, rd, ss);
   }
 
-  word_t spcf_format_t::encode(word_t pred, word_t rd, word_t ss)
+  bool spcf_format_t::parse_operands(line_parser_t &parser, std::string mnemonic, 
+                                     instruction_data_t &instr, 
+                                     reloc_info_t &reloc) const
   {
-    word_t iw = 0;
+    if (!parser.parse_GPR(instr.OPS.SPCf.Rd)) return false;
+    if (!parser.match_token("=")) return false;
+    if (!parser.parse_SPR(instr.OPS.SPCf.Ss)) return false;    
+    return true;
+  }
+                                              
+  udword_t spcf_format_t::encode(std::string mnemonic, 
+                               const instruction_data_t &instr) const
+  {
+    uword_t iw = Opcode;
 
-    assert(isGPR(rd) && isSPR(ss));
-
-    insertS(iw, 0, ss);
+    insertS(iw, 0, instr.OPS.SPCf.Ss);
     insertV(iw, 4, 3, BOOST_BINARY(011));
-    insertG(iw, 17, rd);
+    insertG(iw, 17, instr.OPS.SPCf.Rd);
     insertV(iw, 22, 5, BOOST_BINARY(01001));
-    insertPN(iw, 27, pred);
+    insertPN(iw, 27, instr.Pred);
 
     return iw;
   }
@@ -418,26 +521,87 @@ namespace patmos
     return instruction_data_t::mk_LDT(Instruction, pred, rd, ra, imm);
   }
 
-  word_t ldt_format_t::encode(word_t pred, word_t opcode, word_t rd, word_t ra,
-                              word_t imm)
+  bool ldt_format_t::parse_operands(line_parser_t &parser, std::string mnemonic, 
+                                    instruction_data_t &instr, 
+                                    reloc_info_t &reloc) const
   {
-    word_t iw = 0;
+    
+    bool decoupled = mnemonic[0] == 'd';
+    
+    if (decoupled) {
+      SPR_e tmp;
+      if (!parser.parse_SPR(tmp)) return false;
+      if (tmp != sm) {
+        parser.set_error("expected special register sm.");
+        return false;
+      }
+      
+      instr.OPS.LDT.Rd = r0;
+    } else {
+      if (!parser.parse_GPR(instr.OPS.LDT.Rd)) return false;
+    }
+    
+    if (!parser.match_token("=")) return false;
+    
+    if (!parser.match_token("[")) return false;
+    
+    bool has_imm = false;
+    bool negate = false;
+    
+    if (parser.get_lexer().is_name()) {
+      if (!parser.parse_GPR(instr.OPS.LDT.Ra)) return false;      
+    } else {
+      instr.OPS.LDT.Ra = r0;
+      has_imm = true;
+    }
+    
+    if (parser.match_token("+")) {
+      has_imm = true;
+    }
+    if (parser.match_token("-")) {
+      has_imm = true;
+      negate = true;
+    }
 
-    assert(fitu(opcode, 5) && isGPR(rd) && isGPR(ra) && fits(imm, 7));
+    unsigned type_idx = decoupled ? 2 : 1;
+    if (mnemonic[type_idx] == 'w') {
+      reloc.set_format(7, 0, 2);
+    } else if (mnemonic[type_idx] == 'h') {
+      reloc.set_format(7, 0, 1);
+    } else {
+      reloc.set_format(7);
+    }
+    
+    if (has_imm) {
+      if (!parser.parse_expression(instr.OPS.LDT.Imm, reloc, true)) return false;
+    } else {
+      instr.OPS.LDT.Imm = 0;
+    }
+    
+    if (!parser.match_token("]")) return false;
+    
+    if (!fits(instr.OPS.LDT.Imm, 7)) {
+      parser.set_error("immediate value too large.");
+      return false;
+    }
+    
+    return true;
+  }
+                                              
+  udword_t ldt_format_t::encode(std::string mnemonic, 
+                               const instruction_data_t &instr) const
+  {
+    uword_t iw = Opcode;
 
-    insertV(iw, 0, 7, imm);
-    insertV(iw, 7, 5, opcode);
-    insertG(iw, 12, ra);
-    insertG(iw, 17, rd);
+    assert(fits(instr.OPS.LDT.Imm, 7));
+
+    insertV(iw, 0, 7, instr.OPS.LDT.Imm);
+    insertG(iw, 12, instr.OPS.LDT.Ra);
+    insertG(iw, 17, instr.OPS.LDT.Rd);
     insertV(iw, 22, 5, BOOST_BINARY(01010));
-    insertPN(iw, 27, pred);
+    insertPN(iw, 27, instr.Pred);
 
     return iw;
-  }
-
-  word_t ldt_format_t::encode(word_t pred, word_t opcode, word_t ra, word_t imm)
-  {
-    return encode(pred, opcode, 0, ra, imm);
   }
 
   stt_format_t::stt_format_t(const instruction_t &instruction, word_t opcode,
@@ -457,19 +621,71 @@ namespace patmos
     return instruction_data_t::mk_STT(Instruction, pred, ra, rs, imm);
   }
 
-  word_t stt_format_t::encode(word_t pred, word_t opcode, word_t ra, word_t imm,
-                              word_t rs)
+  bool stt_format_t::parse_operands(line_parser_t &parser, std::string mnemonic, 
+                                    instruction_data_t &instr, 
+                                    reloc_info_t &reloc) const
   {
-    word_t iw = 0;
+    
+    if (!parser.match_token("[")) return false;
+    
+    bool has_imm = false;
+    bool negate = false;
+    
+    if (parser.get_lexer().is_name()) {
+      if (!parser.parse_GPR(instr.OPS.STT.Ra)) return false;      
+    } else {
+      instr.OPS.STT.Ra = r0;
+      has_imm = true;
+    }
+    
+    if (parser.match_token("+")) {
+      has_imm = true;
+    }
+    if (parser.match_token("-")) {
+      has_imm = true;
+      negate = true;
+    }
+    
+    if (mnemonic[1] == 'w') {
+      reloc.set_format(7, 0, 2);
+    } else if (mnemonic[1] == 'h') {
+      reloc.set_format(7, 0, 1);
+    } else {
+      reloc.set_format(7);
+    }
+    
+    if (has_imm) {
+      if (!parser.parse_expression(instr.OPS.STT.Imm2, reloc, true)) return false;
+    } else {
+      instr.OPS.STT.Imm2 = 0;
+    }
+    
+    if (!parser.match_token("]")) return false;
+    
+    if (!parser.match_token("=")) return false;
 
-    assert(fitu(opcode, 5) && isGPR(ra) && fits(imm, 7) && isGPR(rs));
+    if (!parser.parse_GPR(instr.OPS.STT.Rs1)) return false;
+    
+    if (!fits(instr.OPS.STT.Imm2, 7)) {
+      parser.set_error("immediate value too large.");
+      return false;
+    }
+    
+    return true;
+  }
+                                              
+  udword_t stt_format_t::encode(std::string mnemonic, 
+                              const instruction_data_t &instr) const
+  {
+    uword_t iw = Opcode;
 
-    insertV(iw, 0, 7, imm);
-    insertG(iw, 7, rs);
-    insertG(iw, 12, ra);
-    insertV(iw, 17, 5, opcode);
+    assert(fits(instr.OPS.STT.Imm2, 7));
+
+    insertV(iw, 0, 7, instr.OPS.STT.Imm2);
+    insertG(iw, 7, instr.OPS.STT.Rs1);
+    insertG(iw, 12, instr.OPS.STT.Ra);
     insertV(iw, 22, 5, BOOST_BINARY(01011));
-    insertPN(iw, 27, pred);
+    insertPN(iw, 27, instr.Pred);
 
     return iw;
   }
@@ -488,17 +704,33 @@ namespace patmos
     return instruction_data_t::mk_STCi(Instruction, pred, imm);
   }
 
-  word_t stci_format_t::encode(word_t pred, word_t opcode, word_t imm)
+  bool stci_format_t::parse_operands(line_parser_t &parser, std::string mnemonic, 
+                                     instruction_data_t &instr, 
+                                     reloc_info_t &reloc) const
   {
-    word_t iw = 0;
+    reloc.set_word_format(22);
+    
+    if (!parser.parse_expression(instr.OPS.STCi.Imm, reloc, true)) return false;    
+    
+    if (!fitu(instr.OPS.STCi.Imm, 22)) {
+      parser.set_error("immediate value too large.");
+      return false;
+    }
 
-    assert(fitu(opcode, 2) && fitu(imm, 22));
+    return true;
+  }
+                                              
+  udword_t stci_format_t::encode(std::string mnemonic, 
+                               const instruction_data_t &instr) const
+  {
+    uword_t iw = Opcode;
 
-    insertV(iw, 0, 18, imm);
+    assert(fitu(instr.OPS.STCi.Imm, 22));
+
+    insertV(iw, 0, 18, instr.OPS.STCi.Imm);
     insertV(iw, 18, 2, BOOST_BINARY(00));
-    insertV(iw, 20, 2, opcode);
     insertV(iw, 22, 5, BOOST_BINARY(01100));
-    insertPN(iw, 27, pred);
+    insertPN(iw, 27, instr.Pred);
 
     return iw;
   }
@@ -517,17 +749,23 @@ namespace patmos
     return instruction_data_t::mk_STCr(Instruction, pred, rs);
   }
 
-  word_t stcr_format_t::encode(word_t pred, word_t opcode, word_t rs)
+  bool stcr_format_t::parse_operands(line_parser_t &parser, std::string mnemonic, 
+                                     instruction_data_t &instr, 
+                                     reloc_info_t &reloc) const
   {
-    word_t iw = 0;
+    if (!parser.parse_GPR(instr.OPS.STCr.Rs)) return false;    
+    return true;
+  }
+                                              
+  udword_t stcr_format_t::encode(std::string mnemonic, 
+                               const instruction_data_t &instr) const
+  {
+    uword_t iw = Opcode;
 
-    assert(fitu(opcode, 2) && fitu(rs, 5));
-
-    insertG(iw, 12, rs);
+    insertG(iw, 12, instr.OPS.STCr.Rs);
     insertV(iw, 18, 2, BOOST_BINARY(01));
-    insertV(iw, 20, 2, opcode);
     insertV(iw, 22, 5, BOOST_BINARY(01100));
-    insertPN(iw, 27, pred);
+    insertPN(iw, 27, instr.Pred);
 
     return iw;
   }
@@ -548,16 +786,36 @@ namespace patmos
     return instruction_data_t::mk_CFLb(Instruction, pred, imm, uimm);
   }
 
-  word_t cflb_format_t::encode(word_t pred, word_t opcode, word_t imm)
+  bool cflb_format_t::parse_operands(line_parser_t &parser, std::string mnemonic, 
+                                     instruction_data_t &instr, 
+                                     reloc_info_t &reloc) const
   {
-    word_t iw = 0;
+    if (mnemonic == "br") {
+      reloc.set_PCRel_format(22);
+    } else {
+      reloc.set_word_format(22);
+    }
+    
+    if (!parser.parse_expression(instr.OPS.CFLb.Imm, reloc, true)) return false;
+    
+    if (!fits(instr.OPS.CFLb.Imm, 22)) {
+      parser.set_error("immediate value too large.");
+      return false;
+    }
+    
+    return true;
+  }
+                                              
+  udword_t cflb_format_t::encode(std::string mnemonic, 
+                               const instruction_data_t &instr) const
+  {
+    uword_t iw = Opcode;
 
-    assert(fitu(opcode, 2) && fits(imm, 22));
+    assert(fits(instr.OPS.CFLb.Imm, 22));
 
-    insertVs(iw, 0, 22, imm);
-    insertV(iw, 22, 2, opcode);
+    insertVs(iw, 0, 22, instr.OPS.CFLb.Imm);
     insertV(iw, 24, 3, BOOST_BINARY(110));
-    insertPN(iw, 27, pred);
+    insertPN(iw, 27, instr.Pred);
 
     return iw;
   }
@@ -577,16 +835,22 @@ namespace patmos
     return instruction_data_t::mk_CFLi(Instruction, pred, rs);
   }
 
-  word_t cfli_format_t::encode(word_t pred, word_t opcode, word_t rs1)
+  bool cfli_format_t::parse_operands(line_parser_t &parser, std::string mnemonic, 
+                                     instruction_data_t &instr, 
+                                     reloc_info_t &reloc) const
   {
-    word_t iw = 0;
+    if (!parser.parse_GPR(instr.OPS.CFLi.Rs)) return false;
+    return true;
+  }
+                                              
+  udword_t cfli_format_t::encode(std::string mnemonic, 
+                               const instruction_data_t &instr) const
+  {
+    uword_t iw = Opcode;
 
-    assert(fitu(opcode, 4) && isGPR(rs1));
-
-    insertV(iw, 0, 4, opcode);
-    insertG(iw, 12, rs1);
+    insertG(iw, 12, instr.OPS.CFLi.Rs);
     insertV(iw, 22, 5, BOOST_BINARY(11100));
-    insertPN(iw, 27, pred);
+    insertPN(iw, 27, instr.Pred);
 
     return iw;
   }
@@ -607,17 +871,25 @@ namespace patmos
     return instruction_data_t::mk_CFLr(Instruction, pred, rb, ro);
   }
 
-  word_t cflr_format_t::encode(word_t pred, word_t opcode, word_t rb, word_t ro)
+  bool cflr_format_t::parse_operands(line_parser_t &parser, std::string mnemonic, 
+                                     instruction_data_t &instr, 
+                                     reloc_info_t &reloc) const
   {
-    word_t iw = 0;
+    if (!parser.parse_GPR(instr.OPS.CFLr.Rb)) return false;
+    if (!parser.match_token(",")) return false;
+    if (!parser.parse_GPR(instr.OPS.CFLr.Ro)) return false;
+    return true;
+  }
+                                              
+  udword_t cflr_format_t::encode(std::string mnemonic, 
+                               const instruction_data_t &instr) const
+  {
+    uword_t iw = Opcode;
 
-    assert(fitu(opcode, 4));
-
-    insertV(iw, 0, 4, opcode);
-    insertG(iw,  7, ro);
-    insertG(iw, 12, rb);
+    insertG(iw,  7, instr.OPS.CFLr.Ro);
+    insertG(iw, 12, instr.OPS.CFLr.Rb);
     insertV(iw, 22, 5, BOOST_BINARY(11110));
-    insertPN(iw, 27, pred);
+    insertPN(iw, 27, instr.Pred);
 
     return iw;
   }

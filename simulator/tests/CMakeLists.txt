@@ -5,79 +5,79 @@ macro (test_asm num expr)
   SET_PROPERTY(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES test${num}.bin)
 endmacro (test_asm)
 
-test_asm(01 "Emitted: 32 bytes
+test_asm(01 "Emitted: 28 bytes
 Errors : 0")
 
-test_asm(02 "Emitted: 32 bytes
+test_asm(02 "Emitted: 28 bytes
 Errors : 0")
 
-test_asm(03 "Emitted: 40 bytes
+test_asm(03 "Emitted: 36 bytes
 Errors : 0")
 
-test_asm(04 "Emitted: 32 bytes
+test_asm(04 "Emitted: 28 bytes
 Errors : 0")
 
-test_asm(05 "Emitted: 48 bytes
+test_asm(05 "Emitted: 44 bytes
 Errors : 0")
 
-test_asm(06 "Emitted: 52 bytes
+test_asm(06 "Emitted: 48 bytes
 Errors : 0")
 
-test_asm(07 "Emitted: 36 bytes
+test_asm(07 "Emitted: 32 bytes
 Errors : 0")
 
-test_asm(08 "Emitted: 48 bytes
+test_asm(08 "Emitted: 44 bytes
 Errors : 0")
 
-test_asm(09 "Emitted: 44 bytes
+test_asm(09 "Emitted: 40 bytes
 Errors : 0")
 
-test_asm(10 "Emitted: 64 bytes
+test_asm(10 "Emitted: 60 bytes
 Errors : 0")
 
-test_asm(11a "Emitted: 72 bytes
+test_asm(11a "Emitted: 64 bytes
 Errors : 0")
 
-test_asm(11b "Emitted: 76 bytes
+test_asm(11b "Emitted: 68 bytes
 Errors : 0")
 
-test_asm(12 "Emitted: 88 bytes
+test_asm(12 "Emitted: 80 bytes
 Errors : 0")
 
-test_asm(13 "Emitted: 96 bytes
+test_asm(13 "Emitted: 92 bytes
 Errors : 0")
 
-test_asm(14 "Emitted: 80 bytes
+test_asm(14 "Emitted: 76 bytes
 Errors : 0")
 
-test_asm(15 "Emitted: 32 bytes
+test_asm(15 "Emitted: 28 bytes
 Errors : 0")
 
-test_asm(16 "Emitted: 44 bytes
+test_asm(16 "Emitted: 40 bytes
 Errors : 0")
 
-test_asm(17 "Emitted: 48 bytes
+test_asm(17 "Emitted: 44 bytes
 Errors : 0")
 
-test_asm(18 "Emitted: 32 bytes
+test_asm(18 "Emitted: 28 bytes
 Errors : 0")
 
-test_asm(19 "Emitted: 32 bytes
+test_asm(19 "Emitted: 28 bytes
 Errors : 0")
 
-test_asm(20 "Emitted: 44 bytes
+test_asm(20 "Emitted: 40 bytes
 Errors : 0")
 
-test_asm(21 "Emitted: 100 bytes
+test_asm(21 "Emitted: 92 bytes
 Errors : 0")
 
-test_asm(22 "Emitted: 68 bytes
+test_asm(22 "Emitted: 64 bytes
 Errors : 0")
 
-test_asm(23 "Emitted: 72 bytes
+test_asm(23 "Emitted: 68 bytes
 Errors : 0")
 
-test_asm(25 "Emitted: 40 bytes
+test_asm(25 "Emitted: 36 bytes
 Errors : 0")
 
 test_asm(26 "Emitted: 24 bytes
@@ -86,42 +86,42 @@ Errors : 0")
 test_asm(27 "Emitted: 24 bytes
 Errors : 0")
 
-test_asm(28 "Emitted: 88 bytes
+test_asm(28 "Emitted: 80 bytes
 Errors : 0")
 
-test_asm(29 "Emitted: 40 bytes
+test_asm(29 "Emitted: 36 bytes
 Errors : 0")
 
-test_asm(30 "Emitted: 32 bytes
+test_asm(30 "Emitted: 28 bytes
 Errors : 0")
 
-test_asm(31 "Emitted: 80 bytes
+test_asm(31 "Emitted: 72 bytes
 Errors : 0")
 
-test_asm(32 "Emitted: 80 bytes
+test_asm(32 "Emitted: 72 bytes
 Errors : 0")
 
-test_asm(33 "Emitted: 100 bytes
+test_asm(33 "Emitted: 96 bytes
 Errors : 0")
 
 test_asm(34 "Undefined Label: x")
 
-test_asm(35 "Emitted: 52 bytes
+test_asm(35 "Emitted: 48 bytes
 Errors : 0")
 
-test_asm(36 "Emitted: 52 bytes
+test_asm(36 "Emitted: 48 bytes
 Errors : 0")
 
-test_asm(37 "Emitted: 100 bytes
+test_asm(37 "Emitted: 96 bytes
 Errors : 0")
 
 test_asm(38 "Emitted: 88 bytes
 Errors : 0")
 
-test_asm(39 "Emitted: 68 bytes
+test_asm(39 "Emitted: 64 bytes
 Errors : 0")
 
-test_asm(40 "Emitted: 140 bytes
+test_asm(40 "Emitted: 136 bytes
 Errors : 0")
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -170,13 +170,13 @@ test_sim(09 "r0 : 00000000   r1 : 0283f181   r2 : fffff181   r3 : fffffff1   r4 
 
 test_sim(10 "r0 : 00000000   r1 : 0283f181   r2 : 000000f0   r3 : 0283f181   r4 : f1810000   r5 : 81000000")
 
-test_sim(11a "BASE: 00000004   PC : 00000044.*
+test_sim(11a "BASE: 00000004   PC : 00000040.*
 .*r1 : 00000026")
 
-test_sim(11b "BASE: 00000004   PC : 00000048.*
+test_sim(11b "BASE: 00000004   PC : 00000044.*
 .*r1 : 00000029   r2 : 000000ff")
 
-test_sim(13 "BASE: 00000034   PC : 00000060.*
+test_sim(13 "BASE: 00000030   PC : 0000005c.*
 .*r1 : 00000029   r2 : 00000000   r3 : 00000014")
 
 test_sim(14 "r0 : 00000000   r1 : 0283f181   r2 : 0283f181   r3 : 00000283   r4 : ffffff83   r5 : 00000283   r6 : 00000083")
@@ -193,7 +193,7 @@ test_sim(19 "r1 : 00000007")
 
 test_sim(20 "r1 : 0281fa81   r2 : 8281fa82")
 
-test_sim(21 "BASE: 00000004   PC : 00000060.*
+test_sim(21 "BASE: 00000004   PC : 0000005c.*
 .*r1 : 0000003c")
 
 test_io_sim(22 "r1 : 000000fb")
@@ -210,7 +210,7 @@ test_sim(26 "Unaligned")
 
 test_sim(27 "Unaligned")
 
-test_sim(28 "BASE: 00000004   PC : 00000054.*
+test_sim(28 "BASE: 00000004   PC : 00000050.*
 .*r1 : 00000026")
 
 test_sim(29 "PRR: 00000001.*
