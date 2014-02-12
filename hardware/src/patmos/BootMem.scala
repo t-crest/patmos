@@ -69,7 +69,7 @@ class BootMem(fileName : String) extends Module {
   val romResp = Mux(romCmdReg === OcpCmd.IDLE, OcpResp.NULL, OcpResp.DVA)
   val romData = rom(romAddr(log2Up(rom.length)+1, 2))
 
-  // The SPM - can be loaded for initialized read/write data - not used at the moment
+  // The SPM - used for stack of bootables, can be used for initialized read/write data
   val spm = Module(new Spm(BOOTSPM_SIZE))
   spm.io.M := io.memInOut.M
   spm.io.M.Cmd := Mux(selSpm, io.memInOut.M.Cmd, OcpCmd.IDLE)
