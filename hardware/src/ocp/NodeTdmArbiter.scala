@@ -34,7 +34,7 @@
  * Arbiter for OCP burst slaves.
  * Pseudo round robin arbitration. Each turn for a non-requesting master costs 1 clock cycle.
  *
- * Author: Martin Schoeberl (martin@jopdesign.com)
+ * Author: Martin Schoeberl (martin@jopdesign.com) David Chong (davidchong99@gmail.com)
  *
  */
 
@@ -77,7 +77,7 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
   cntReg := Mux(cntReg === UInt(period - 1), UInt(0), cntReg + UInt(1))
   
   // Generater the slot Table for the whole period
-  def genTable(nodeID: Int) = {
+  def genTable(nodeID: Int): UInt = {
     val x = pow(2,nodeID*slotLen).toInt
     val slot = UInt(x,width=period)
     slot
@@ -142,7 +142,7 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
 }
 
 /* Mux for all arbiters' outputs */
-class memMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) extends Module {
+class MemMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) extends Module {
   val io = new Bundle {
     val master = Vec.fill(nr){new OcpBurstSlavePort(addrWidth, dataWidth, burstLen)}
     val slave = new OcpBurstMasterPort(addrWidth, dataWidth, burstLen)
@@ -151,7 +151,7 @@ class memMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) exten
     debug(io.master)
     debug(io.slave)
      
-    val node = Reg(init=UInt(0, log2Up(nr)))
+    val nodeReg = Reg(init=UInt(0, log2Up(nr)))
     
     // Initialized to zero when not enabled
     io.slave.M.Addr       := Bits(0)
@@ -162,11 +162,11 @@ class memMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) exten
     
     for (i <- 0 until nr){
       when (io.en(i) === UInt(1)) {
-        node := UInt(i)
+        nodeReg := UInt(i)
       }
     }
     
-    io.slave.M := io.master(node).M
+    io.slave.M := io.master(nodeReg).M
     
     for (i <- 0 to nr - 1) {
       io.master(i).S.CmdAccept := Bits(0)
@@ -175,7 +175,7 @@ class memMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) exten
       // we forward the data to all masters
       io.master(i).S.Data := io.slave.S.Data
     }
-    io.master(node).S := io.slave.S  
+    io.master(nodeReg).S := io.slave.S  
 }
 
 object NodeTdmArbiterMain {
