@@ -148,6 +148,28 @@ namespace patmos
   : Lexer(line), Assembler(assembler)
   {}
  
+  bool line_parser_t::parse_register_number(const std::string &name, 
+                                            unsigned maxregs, 
+                                            unsigned &regno) const
+  {
+    unsigned length = name.size();
+    if (length < 2 || length > 3) return false;
+    if (!isdigit(name[1]) || (length == 3 && !isdigit(name[2]))) return false;
+    
+    // using scanf or atoi or strtol for a 2 digit number has quite some 
+    // overhead and the error handling code to reject stuff like 'r+1z' 
+    // as valid name would be larger than a simple switch over all names.
+    unsigned value = name[1] - '0';
+    if (length == 3) {
+      value = value * 10 + (name[2] - '0');
+    }
+    
+    regno = value;
+    
+    return value < maxregs;
+  }
+
+ 
   void line_parser_t::set_error(const std::string &msg) {
     Assembler.set_error(Lexer.pos(), msg);
   }
@@ -229,73 +251,27 @@ namespace patmos
   bool line_parser_t::parse_GPR(GPR_e &reg)
   {
     std::string name = Lexer.tok();
-    if (name == "r0") {
-      reg = r0;
-    } else if (name == "r1") {
-      reg = r1;
-    } else if (name == "r2") {
-      reg = r2;
-    } else if (name == "r3") {
-      reg = r3;
-    } else if (name == "r4") {
-      reg = r4;
-    } else if (name == "r5") {
-      reg = r5;
-    } else if (name == "r6") {
-      reg = r6;
-    } else if (name == "r7") {
-      reg = r7;
-    } else if (name == "r8") {
-      reg = r8;
-    } else if (name == "r9") {
-      reg = r9;
-    } else if (name == "r10") {
-      reg = r10;
-    } else if (name == "r11") {
-      reg = r11;
-    } else if (name == "r12") {
-      reg = r12;
-    } else if (name == "r13") {
-      reg = r13;
-    } else if (name == "r14") {
-      reg = r14;
-    } else if (name == "r15") {
-      reg = r15;
-    } else if (name == "r16") {
-      reg = r16;
-    } else if (name == "r17") {
-      reg = r17;
-    } else if (name == "r18") {
-      reg = r18;
-    } else if (name == "r19") {
-      reg = r19;
-    } else if (name == "r20") {
-      reg = r20;
-    } else if (name == "r21") {
-      reg = r21;
-    } else if (name == "r22") {
-      reg = r22;
-    } else if (name == "r23") {
-      reg = r23;
-    } else if (name == "r24") {
-      reg = r24;
-    } else if (name == "r25") {
-      reg = r25;
-    } else if (name == "r26") {
-      reg = r26;
-    } else if (name == "r27") {
-      reg = r27;
-    } else if (name == "r28") {
-      reg = r28;
-    } else if (name == "r29") {
-      reg = r29;
-    } else if (name == "r30") {
-      reg = r30;
-    } else if (name == "r31") {
-      reg = r31;
-    } else {
+    if (name.size() < 2 || name[0] != 'r') {
       set_error("invalid GPR register name.");
       return false;
+    }
+    if (name == "rtr") {
+      reg = r27;
+    } else if (name == "rfp") {
+      reg = r28;
+    } else if (name == "rsp") {
+      reg = r29;
+    } else if (name == "rfb") {
+      reg = r30;
+    } else if (name == "rfo") {
+      reg = r31;
+    } else {
+      unsigned regno;
+      if (!parse_register_number(name, 32, regno)) {
+        set_error("invalid GPR register name.");
+        return false;
+      }
+      reg = (GPR_e)regno;
     }
     Lexer.next();
     return true;
@@ -304,41 +280,27 @@ namespace patmos
   bool line_parser_t::parse_SPR(SPR_e &reg)
   {
     std::string name = Lexer.tok();
-    if (name == "s0") {
-      reg = s0;
-    } else if (name == "s1" || name == "sm") {
-      reg = s1;
-    } else if (name == "s2" || name == "sl") {
-      reg = s2;
-    } else if (name == "s3" || name == "sh") {
-      reg = s3;
-    } else if (name == "s4") {
-      reg = s4;
-    } else if (name == "s5" || name == "ss") {
-      reg = s5;
-    } else if (name == "s6" || name == "st") {
-      reg = s6;
-    } else if (name == "s7") {
-      reg = s7;
-    } else if (name == "s8") {
-      reg = s8;
-    } else if (name == "s9") {
-      reg = s9;
-    } else if (name == "s10") {
-      reg = s10;
-    } else if (name == "s11") {
-      reg = s11;
-    } else if (name == "s12") {
-      reg = s12;
-    } else if (name == "s13") {
-      reg = s13;
-    } else if (name == "s14") {
-      reg = s14;
-    } else if (name == "s15") {
-      reg = s15;
-    } else {
+    if (name.size() < 2 || name[0] != 's') {
       set_error("invalid SPR register name.");
       return false;
+    }
+    if (name == "sm") {
+      reg = s1;
+    } else if (name == "sl") {
+      reg = s2;
+    } else if (name == "sh") {
+      reg = s3;
+    } else if (name == "ss") {
+      reg = s5;
+    } else if (name == "st") {
+      reg = s6;
+    } else {
+      unsigned regno;
+      if (!parse_register_number(name, 16, regno)) {
+        set_error("invalid SPR register name.");
+        return false;
+      }
+      reg = (SPR_e)regno;
     }
     Lexer.next();
     return true;

@@ -89,6 +89,14 @@ namespace patmos
     
     // For error messages
     line_assembler_t &Assembler;
+
+    /// Parse the register number of a register name, ignoring the first character.
+    /// @param name the register name
+    /// @param maxregs the maximum number of registers (at most 100)
+    /// @param regno the result
+    /// @result true on success.
+    bool parse_register_number(const std::string &name, unsigned maxregs, 
+                               unsigned &regno) const;
     
   public:
     line_parser_t(line_assembler_t &assembler, std::string line);
