@@ -9,7 +9,7 @@
 		add	r2   = r0 , 65536; # dual issue from odd
 		add     r5 = r0, 100000; # dual issue from odd
 		addi    r4 = r0, 4;
-		add     r6 = r0, 200000; dual issue from even
+		add     r6 = r0, 200000; # dual issue from even
 		add     r7 = r0, 300000;
 		add	r8 = r0, 1;
 		add	r8 = r8, r7;
