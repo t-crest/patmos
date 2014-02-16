@@ -3151,7 +3151,13 @@ The whole build process of Patmos,%
 \footnote{Get the source from GitHub with: \code{git clone git@github.com:t-crest/patmos}}
 applications in assembler
 and in C, configuration of the FPGA, and downloading an application
-is \code{Makefile} based.
+is \code{Makefile} based. The build of Patmos is within the patmos folder,
+therefore, the following descriptions assumes you have changed to:
+
+\begin{verbatim}
+    t-crest/patmos
+\end{verbatim}
+
 
 The complete design flow (including the LLVM
 based C compiler) can execute in a Linux machine. The flow without
@@ -3161,20 +3167,19 @@ wine). For FPGA synthesis and configuration Windows XP within a VMWare
 virtual machine is a possible solution.
 
 On a Linux box with the installed LLVM compiler in your PATH,%
-\footnote{Installation and build is a simple two step approach:
-\code{git clone git@github.com:t-crest/patmos-misc.git misc}
-and build with:
-\code{./misc/build.sh}}
-the complete build processes is kicked of by:
+the complete build processes for the embedded version of
+Hello World (a blinking LED) is as follows:
+
+\todo{Need to commit this now as it looks like a restart is needed to get the
+build going again.}
 
 % make BOOTAPP=bootable-bootloader APP=helloworld tools synth comp config download
 \begin{verbatim}
-make BOOTAPP=bootable-bootloader APP=helloworld \
-   tools comp gen synth config download
+make BOOTAPP=hello_blinking \
+   tools comp gen synth config
 \end{verbatim}
 
 Here a list of the most important make targets:
-
 
 \begin{description}
 \item[tools] build of all tools, including the Patmos software simulator
@@ -3189,6 +3194,13 @@ Here a list of the most important make targets:
 
 
 \todo{Test and describe the ELF download flow.}
+
+% make BOOTAPP=bootable-bootloader APP=helloworld tools synth comp config download
+\begin{verbatim}
+make BOOTAPP=bootable-bootloader APP=helloworld \
+   tools comp gen synth config download
+\end{verbatim}
+
 
 The \code{Makefile} use following variables to configure the build process:
 \code{BOOTAPP} is an application that ends in the on-chip ROM. This may
