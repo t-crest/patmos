@@ -3016,7 +3016,8 @@ ALU operations: 3173 LCs, 91.91 MHz.
 
 \chapter{Build Instructions}
 
-In the following we present an example configuration on a Linux/Ubuntu system.
+In the following we present an example configuration on a Linux/Ubuntu
+system.\footnote{I used the 32-bit version to simplify Quartus installation.}
 Patmos and the compiler have also been successfully been installed on a Mac OSX
 system. The support of Windows is marginal, or basically not existent.
 
@@ -3029,7 +3030,7 @@ installed:\footnote{Some packages might be available in newer version
 when reading this document.}
 
 \begin{verbatim}
-sudo apt-get install openjdk-7-jdk git gitk cmake make g++ texinfo flex bison \
+sudo apt-get install git openjdk-7-jdk gitk cmake make g++ texinfo flex bison \
   subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
   ruby1.9.1-dev python zlib1g-dev gtkwave
 \end{verbatim}
@@ -3079,6 +3080,12 @@ export PATH=$PATH:$HOME/t-crest/local/bin
 A complete logout from Ubuntu is needed to take effect (just closing
 a terminal window is not enough).
 
+You can test your installation by checking if the compiler is available:
+
+\begin{verbatim}
+patmos-clang
+\end{verbatim}
+
 For correct correct signing of your changes set the username and
 email in git with:
 
@@ -3096,8 +3103,8 @@ installed as follows:\footnote{\url{http://www.altera.com/literature/manual/quar
 tar xvf Quartus-web-xxx.tar
 \end{verbatim}
 
-The software installation is started with a plain \code{setup.sh}. Then add
-the bin directory of Quartus to your \$PATH.
+The software installation is started with a plain \code{setup.sh}.\footnote{Or \code{bash steup.sh}}
+Then add the bin directory of Quartus to your \$PATH.
 
 \section{Setup On Mac OS X}
 
@@ -3109,8 +3116,9 @@ For Aegean: python33, py33-lxml. Make a link from python3 to python3.3 as this i
 
 \section{Hello World}
 
-One might start with the standard, harmless looking Hello World:
-
+We can start with the standard, harmless looking Hello
+World:\footnote{This example code is not part of the distribution, but
+can be put at any directory.}
 
 \begin{verbatim}
 main() {
@@ -3135,8 +3143,6 @@ have a serial line as well and a terminal program needs to run.
 
 Therefore, we might start with a minimal assembler program and execute
 that in the simulator and emulator.
-
-
 
 
 \section{Building Patmos}
