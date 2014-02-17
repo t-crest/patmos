@@ -12,7 +12,7 @@ BOOTAPP?=basic
 #BOOTAPP=bootable-bootloader
 
 # Application to be downloaded
-APP?=hello
+APP?=hello_puts
 
 # Altera FPGA configuration cables
 #BLASTER_TYPE=ByteBlasterMV

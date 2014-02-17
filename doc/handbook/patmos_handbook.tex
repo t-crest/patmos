@@ -70,17 +70,17 @@
 \newcommand{\rasmus}[1]{\comment{Rasmus}{#1}{Mahogany}}
 
 %% uncomment to get rid of comments
-\renewcommand{\tommy}[1]{}
-\renewcommand{\wolf}[1]{}
-\renewcommand{\martin}[1]{}
-\renewcommand{\stefan}[1]{}
-\renewcommand{\daniel}[1]{}
-\renewcommand{\cullmann}[1]{}
-\renewcommand{\gebhard}[1]{}
-\renewcommand{\fb}[1]{}
-\renewcommand{\jack}[1]{}
-\renewcommand{\sahar}[1]{}
-\renewcommand{\rasmus}[1]{}
+%\renewcommand{\tommy}[1]{}
+%\renewcommand{\wolf}[1]{}
+%\renewcommand{\martin}[1]{}
+%\renewcommand{\stefan}[1]{}
+%\renewcommand{\daniel}[1]{}
+%\renewcommand{\cullmann}[1]{}
+%\renewcommand{\gebhard}[1]{}
+%\renewcommand{\fb}[1]{}
+%\renewcommand{\jack}[1]{}
+%\renewcommand{\sahar}[1]{}
+%\renewcommand{\rasmus}[1]{}
 
 %
 % custom colors
@@ -3166,18 +3166,67 @@ Under Mac OS X all tools, except Quartus, are working (ModelSim under
 wine). For FPGA synthesis and configuration Windows XP within a VMWare
 virtual machine is a possible solution.
 
-On a Linux box with the installed LLVM compiler in your PATH,%
+On a Linux box with the installed LLVM compiler in your PATH,
 the complete build processes for the embedded version of
 Hello World (a blinking LED) is as follows:
 
-\todo{Need to commit this now as it looks like a restart is needed to get the
-build going again.}
+\todo{Test. I think I renamed helloworld.}
 
 % make BOOTAPP=bootable-bootloader APP=helloworld tools synth comp config download
 \begin{verbatim}
-make BOOTAPP=hello_blinking \
-   tools comp gen synth config
+make BOOTAPP=bootable-bootloader APP=helloworld \
+   tools comp gen synth config download
 \end{verbatim}
+
+However, this involves quite many steps. Therefore, we suggest to do some \emph{manual}
+buildup to explore the full build process and the possibilities.
+
+As a start we build some tools (e.g., the assembler, simulator, file conversion
+utility, and the boot loader). This has to be only once.
+
+\begin{verbatim}
+make tools
+\end{verbatim}
+
+\subsection{A Few Assembler Instructions}
+
+\todo{write}
+
+\subsection{We Can Blink in Assembler}
+
+\todo{write}
+
+\subsection{A C Based Blinking LED}
+
+As a first real example we build the embedded version of Hello World, the
+blinking LED, from a C program. You can find the C source in \code{c/hello\_blinking.c}.
+% make BOOTAPP=bootable-bootloader APP=helloworld tools synth comp config download
+
+\martin{The following leads to 162 KB .bin file, which is a little bit too big for on-chip. Why is this?
+
+make BOOTAPP=hello\_blinking comp gen synth config
+}
+
+\martin{But the following does the trick. Maybe we can simplify to two arguments: 
+one for a ROM program and one for download application. Differentiate with make
+targets and/or just if the symbols are set or not.}
+
+\todo{maybe rename to a shorter name.}
+
+\begin{verbatim}
+make BOOTAPP=bootable-hello_blinking comp gen synth config
+\end{verbatim}
+
+
+
+\martin{I'm still a little bit confused when to use the APP and the BOOTAPP
+thing. Tried BOOTAPP, but complained about something missing.}
+
+\martin{TODO: we need to streamline the make process a little bit.
+The targets might be a little bit confusing. Patmos is compiled two times.}
+
+
+\subsection{Make Targets}
 
 Here a list of the most important make targets:
 
@@ -3194,6 +3243,10 @@ Here a list of the most important make targets:
 
 
 \todo{Test and describe the ELF download flow.}
+
+On a Linux box with the installed LLVM compiler in your PATH,
+the complete build processes for the embedded version of
+Hello World (a blinking LED) is as follows:
 
 % make BOOTAPP=bootable-bootloader APP=helloworld tools synth comp config download
 \begin{verbatim}
