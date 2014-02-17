@@ -55,15 +55,15 @@ namespace patmos
 
     rtc_t(uword_t base_address, simulator_t &s, double frequency)
     : mapped_device_t(base_address, TIMER_MAP_SIZE),
-	  Simulator(s),
-	  Frequency(frequency), High_clock(0), High_usec(0),
+      Simulator(s),
+      Frequency(frequency), High_clock(0), High_usec(0),
       Interrupt_interval(0xffffffff)
-	{
-	  Simulator.Rtc = this;
-	}
+    {
+      Simulator.Rtc = this;
+    }
 
     virtual bool read(uword_t address, byte_t *value, uword_t size) {
-	  if (is_word_access(address, size, 0x00)) {
+      if (is_word_access(address, size, 0x00)) {
         // read latched high word of cycle counter
         set_word(value, size, High_clock);
       }
@@ -97,15 +97,15 @@ namespace patmos
         simulation_exception_t::unmapped(address);
       }
       return true;
-	}
+    }
 
     virtual bool write(uword_t address, byte_t *value, uword_t size) {
       if (is_word_access(address, size, 0x10)) {
         Interrupt_interval = get_word(value, size);
-	  } 
-	  else if (is_word_access(address, size, 0x14)) {
+      } 
+      else if (is_word_access(address, size, 0x14)) {
         ISR = get_word(value, size);
-	  }
+      }
       else {
         simulation_exception_t::unmapped(address);
       }
@@ -113,11 +113,11 @@ namespace patmos
     }
 
     virtual void tick() {
-	  Interrupt_interval--;
+      Interrupt_interval--;
       /// If interrupt interval reached 0 we fire an interrupt
       if (Interrupt_interval == 0) {
         Simulator.Interrupt_handler.fire_interrupt(interval, ISR);
-		Interrupt_interval = 0xffffffff;
+        Interrupt_interval = 0xffffffff;
       }
     }
   };

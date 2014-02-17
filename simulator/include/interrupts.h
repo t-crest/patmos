@@ -33,7 +33,7 @@ namespace patmos
   /// Enumeration for interrupt types
   enum interrupt_e
   {
-  	interval,
+    interval,
     NUM_INTERRUPTS
   };
 
@@ -44,9 +44,9 @@ namespace patmos
   /// to handle an interrupt
   struct interrupt_t {
     // interrupt identifier
-  	interrupt_e Type;
+    interrupt_e Type;
     // ISR address for the interrupt
-  	ISR_address	Address;
+    ISR_address	Address;
     // interrupt constructor
     interrupt_t(interrupt_e mType, ISR_address mAddress) : Type(mType), Address(mAddress)
     {
@@ -56,7 +56,7 @@ namespace patmos
   /// Class responsible for collecting fired interrupts
   class interrupt_handler_t 
   {
-  	private:
+    private:
 
       /// Static constant variables identifying interrupt activation state
       static const int INTERRUPT_ENABLED  = 1;
