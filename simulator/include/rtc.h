@@ -46,7 +46,7 @@ namespace patmos
     uword_t High_usec;
 
     /// Interrupt interval register value
-    uword_t Interrupt_interval;
+    udword_t Interrupt_interval;
 
     /// Interrupt interval register value
     uword_t ISR;
@@ -57,7 +57,7 @@ namespace patmos
     : mapped_device_t(base_address, TIMER_MAP_SIZE),
       Simulator(s),
       Frequency(frequency), High_clock(0), High_usec(0),
-      Interrupt_interval(0xffffffff)
+      Interrupt_interval(std::numeric_limits<udword_t>::max())
     {
       Simulator.Rtc = this;
     }
@@ -87,7 +87,7 @@ namespace patmos
       }
       else if (is_word_access(address, size, 0x10)) {
         // read current interrupt interval counter
-        set_word(value, size, Interrupt_interval);
+        set_word(value, size, (uword_t)Interrupt_interval);
       }
       else if (is_word_access(address, size, 0x14)) {
         // read latched high word of usec
@@ -117,7 +117,7 @@ namespace patmos
       /// If interrupt interval reached 0 we fire an interrupt
       if (Interrupt_interval == 0) {
         Simulator.Interrupt_handler.fire_interrupt(interval, ISR);
-        Interrupt_interval = 0xffffffff;
+        Interrupt_interval = std::numeric_limits<udword_t>::max();
       }
     }
   };

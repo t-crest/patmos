@@ -259,7 +259,7 @@ int main(int argc, char **argv)
     ("output,o", boost::program_options::value<std::string>()->default_value("-"), "output execution trace in file (stdout: -)")
     ("debug", boost::program_options::value<unsigned int>()->implicit_value(0), "enable step-by-step debug tracing after cycle")
     ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), 
-                  "format of the debug trace (short, trace, instr, blocks, calls, default, long, all)")
+                  "format of the debug trace (short, trace, instr, blocks, calls, calls-indent, default, long, all)")
     ("debug-file", boost::program_options::value<std::string>()->default_value("-"), "output debug trace in file (stderr: -)")
     ("debug-nopc", "do not print PC and cycles counter in debug output")
     ("print-stats", boost::program_options::value<patmos::address_t>(), "print statistics for a given function only.")

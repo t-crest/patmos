@@ -225,6 +225,7 @@ namespace patmos
 
         instr_SIF[0] = instruction_data_t::mk_CFLb(*Instr_INTR, p0,
                                         interrupt.Address, interrupt.Address);
+        instr_SIF[0].Address = PC;
 
         for(unsigned int i = 1; i < NUM_SLOTS; i++)
         {
@@ -582,11 +583,13 @@ namespace patmos
       }
       return;
     }
-    else if (debug_fmt == DF_CALLS) {
+    else if (debug_fmt == DF_CALLS || debug_fmt == DF_CALLS_INDENT) {
       if (Dbg_cnt_delay == 1) {
         if (is_stalling(SMW)) return;
         
-        if (Dbg_is_call) {
+        if (Dbg_is_intr) {
+          // Anything operands we can print for an interrupt call?
+        } else if (Dbg_is_call) {
           os << " args: " << boost::format("r3 = %1$08x, r4 = %2$08x, ") 
                 % read_GPR_post_EX(*this, r3) % read_GPR_post_EX(*this, r4);
           os << boost::format("r5 = %1$08x, r6 = %2$08x, r7 = %3$08x, r8 = %4$08x") 
@@ -608,6 +611,7 @@ namespace patmos
                Pipeline[SMW][0].I->is_flow_control()) {
         std::string name = Pipeline[SMW][0].I->Name;
         Dbg_cnt_delay = 0;
+        Dbg_is_intr = false;
         if (name == "ret") {
           Dbg_cnt_delay = 3;
           Dbg_is_call = false;
@@ -616,11 +620,22 @@ namespace patmos
           Dbg_cnt_delay = 3;
           Dbg_is_call = true;
         }
+        else if (name == "intr") {
+          Dbg_cnt_delay = 3;
+          Dbg_is_intr = true;
+        }
         if (Dbg_cnt_delay) {
           if (!nopc) {
             os << boost::format("%1$08x %2$9d ") % PC % Cycle;
           }
-          os << (Dbg_is_call ? "call from " : "return from ");
+          
+          if (debug_fmt == DF_CALLS_INDENT) {
+            for (unsigned i = 0; i < Dbg_stack.size(); i++) { 
+              os << "  ";
+            }
+          }
+          os << (Dbg_is_intr ? "interrupt" : (Dbg_is_call ? "call" : "return"));
+          os << " from ";
           Symbols.print(os, Pipeline[SMW][0].Address, true);
           os << " to ";
           Symbols.print(os, Pipeline[SMW][0].EX_Address, true);

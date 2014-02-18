@@ -46,6 +46,8 @@ namespace patmos
       df = DF_BLOCKS;
     else if (kind == "calls")
       df = DF_CALLS;
+    else if (kind == "calls-indent")
+      df = DF_CALLS_INDENT;
     else if(kind == "default")
       df = DF_DEFAULT;
     else if(kind == "long")
@@ -73,6 +75,8 @@ namespace patmos
 	os << "blocks"; break;
       case DF_CALLS:
         os << "calls"; break;
+      case DF_CALLS_INDENT:
+        os << "calls-indent"; break;
       case DF_DEFAULT:
         os << "default"; break;
       case DF_LONG:

@@ -121,6 +121,7 @@ namespace patmos
 
     /// Remember call / return status for 'calls' debug-fmt
     bool Dbg_is_call;
+    bool Dbg_is_intr;
 
     /// A vector containing instruction statistics.
     typedef std::vector<instruction_stat_t> instruction_stats_t;
