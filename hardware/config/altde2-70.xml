@@ -7,7 +7,7 @@
 
   <MCache size="4k" blocks="16" repl="" />
   <DCache size="2k" assoc="1" repl="" />
-  <ISPM size="8k" />
+  <ISPM size="1k" />
   <DSPM size="2k" />
   <BootSPM size="2k" />
 

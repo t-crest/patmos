@@ -28,8 +28,8 @@ endif
 
 # The Quartus project
 #BOARD=bemicro
-BOARD?=altde2-70
-#BOARD?=altde2-115
+#BOARD?=altde2-70
+BOARD?=altde2-115
 
 # MS: why do we need all those symbols when
 # the various paths are fixed anyway?
