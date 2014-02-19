@@ -1,12 +1,11 @@
 /*
-	This is a minmal C program executed on the FPGA version
-	of Patmos. A carefully written embedded hello world program.
+    This is a minimal C program executed on the FPGA version of Patmos.
+    An embedded Hello World program: a blinking LED.
 
-	Additional to the blinking LED we write to the UART 
-        '0' and '1' (if available).
+    Additional to the blinking LED we write to the UART '0' and '1' (if available).
 
-	Author: Martin Schoeberl
-	Copyright: DTU, BSD License
+    Author: Martin Schoeberl
+    Copyright: DTU, BSD License
 */
 
 #include <machine/spm.h>
