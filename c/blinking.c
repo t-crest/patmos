@@ -1,14 +1,9 @@
 /*
-	This is the first C based program executed on the FPGA version
+	This is a minmal C program executed on the FPGA version
 	of Patmos. A carefully written embedded hello world program.
 
-	The following is not true anymore. Why?
-	Additional to the blinking LED we write to the UART '0' and '1' (if available).
-
-	TODO: IO is defined via ld/st local, but the compiler generates
-	a different ld/st type here. We currently accept all ld/st types
-	for IO in the HW (not in pasim).
-	MS: the above is fixed by the _SPM, I assume.
+	Additional to the blinking LED we write to the UART 
+        '0' and '1' (if available).
 
 	Author: Martin Schoeberl
 	Copyright: DTU, BSD License
@@ -17,8 +12,6 @@
 #include <machine/spm.h>
 
 int main() {
-
-volatile int *dummy = (int *) 0x123;
 
 	volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0000900;
 	volatile _SPM int *uart_ptr = (volatile _SPM int *) 0xF0000804;

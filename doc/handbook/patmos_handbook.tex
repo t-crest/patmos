@@ -3108,6 +3108,20 @@ tar xvf Quartus-web-xxx.tar
 The software installation is started with a plain \code{setup.sh}.\footnote{Or \code{bash steup.sh}}
 Then add the bin directory of Quartus to your \$PATH.
 
+For  the USB Blaster following additional steps are needed:
+
+\begin{verbatim}
+# Add user to dialout group for the serial port access
+sudo usermod -a -G dialout user
+
+# Add permissions to access the Altera USB Blaster
+sudo su -
+echo "SUBSYSTEM==\"usb\", DRIVER==\"usb\", ATTR{idVendor}==\"09fb\", \
+ATTR{idProduct}==\"6001\", MODE=\"0666\"" > /etc/udev/rules.d/51-usbblaster.rules
+
+udevadm control --reload-rules
+\end{verbatim}
+
 \section{Setup On Mac OS X}
 
 Several tools are needed, best installed with MacPorts. For Patmos simulator and assembler:
@@ -3176,7 +3190,7 @@ Hello World (a blinking LED) is as follows:
 
 % make BOOTAPP=bootable-bootloader APP=helloworld tools synth comp config download
 \begin{verbatim}
-make BOOTAPP=bootable-bootloader APP=helloworld \
+make BOOTAPP=bootable-bootloader APP=hello_puts \
    tools comp gen synth config download
 \end{verbatim}
 
@@ -3202,22 +3216,17 @@ make tools
 
 As a first real example we build the embedded version of Hello World, the
 blinking LED, from a C program. You can find the C source in \code{c/hello\_blinking.c}.
-% make BOOTAPP=bootable-bootloader APP=helloworld tools synth comp config download
-
-\martin{The following leads to 162 KB .bin file, which is a little bit too big for on-chip. Why is this?
-
-make BOOTAPP=hello\_blinking comp gen synth config
-}
-
-\martin{But the following does the trick. Maybe we can simplify to two arguments: 
-one for a ROM program and one for download application. Differentiate with make
-targets and/or just if the symbols are set or not.}
 
 \todo{maybe rename to a shorter name.}
 
 \begin{verbatim}
-make BOOTAPP=bootable-hello_blinking comp gen synth config
+make BOOTAPP=bootable-blinking comp gen synth config
 \end{verbatim}
+
+Additionally to blinking an LED this program also writes alternating '0' and '1'
+to the serial port. Connect the FPGA board to your serial port,
+open a terminal of your choice, connect to the serial port,
+set the baud rate to 115200, no parity, and no handshaking.
 
 
 
