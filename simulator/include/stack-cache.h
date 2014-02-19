@@ -235,7 +235,7 @@ namespace patmos
     
     virtual bool read(uword_t address, byte_t *value, uword_t size);
 
-    virtual bool write(uword_t address, byte_t *value, uword_t size);
+    virtual bool write(uword_t address, byte_t *value, uword_t size, uword_t &lazy_pointer);
 
     virtual void read_peek(uword_t address, byte_t *value, uword_t size);
 
@@ -247,7 +247,7 @@ namespace patmos
   /// reserve and ensure instructions.
   class block_stack_cache_t : public ideal_stack_cache_t
   {
-  private:
+  protected:
     /// Possible transfers to/from the stack cache.
     enum phase_e
     {
@@ -368,6 +368,35 @@ namespace patmos
     
   };
 
+  class block_lazy_stack_cache_t : public block_stack_cache_t
+  {
+    private: 
+      uword_t lazy_pointer;
+      bool lp_pulldown;
+      unsigned int Num_blocks_not_spilled_lazy;
+
+    public:
+
+      /// Construct a lazy block-based stack cache.
+      /// @param memory The memory to spill/fill.
+      /// @param num_blocks Size of the stack cache in blocks.
+      block_lazy_stack_cache_t(memory_t &memory, unsigned int num_blocks, 
+                        unsigned int num_block_bytes);
+
+      virtual ~block_lazy_stack_cache_t();	
+
+       word_t prepare_reserve(uword_t size, 
+                                   uword_t &stack_spill, uword_t &stack_top);
+       word_t prepare_free(uword_t size,
+                                uword_t &stack_spill, uword_t &stack_top);
+       bool write(uword_t address, byte_t *value, uword_t size, uword_t &stack_top);
+
+     void print_stats(const simulator_t &s, std::ostream &os, 
+                             bool short_stats);
+
+     void reset_stats();
+
+  };
 
   /// Operator to print the state of a stack cache to a stream
   /// @param os The output stream to print to.

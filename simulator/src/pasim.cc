@@ -199,8 +199,10 @@ static patmos::stack_cache_t &create_stack_cache(patmos::stack_cache_e sck,
 {
   switch(sck)
   {
-    case patmos::SC_IDEAL:
+    case patmos::SC_IDEAL:{
+
       return *new patmos::ideal_stack_cache_t(gm);
+}
     case patmos::SC_BLOCK:
     {
       // The stack cache always uses a granularity of words for allocation
@@ -208,8 +210,16 @@ static patmos::stack_cache_t &create_stack_cache(patmos::stack_cache_e sck,
 
       return *new patmos::block_stack_cache_t(gm, num_blocks, 4);
     }
+    case patmos::SC_LBLOCK:
+    {
+      // convert size to number of blocks
+      unsigned int num_blocks = (size - 1) / 4 + 1;
+	
+      return *new patmos::block_lazy_stack_cache_t(gm, num_blocks, 4);
+    }
     case patmos::SC_DCACHE:
     {
+
       return *new patmos::proxy_stack_cache_t(dc);
     }
   }
@@ -287,7 +297,7 @@ int main(int argc, char **argv)
     ("dlsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(0), "size of a data cache line in bytes, defaults to burst size if set to 0")
 
     ("scsize,s", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_STACK_CACHE_BYTES), "stack cache size in bytes")
-    ("sckind,S", boost::program_options::value<patmos::stack_cache_e>()->default_value(patmos::SC_BLOCK), "kind of stack cache (ideal, block, dcache)")
+    ("sckind,S", boost::program_options::value<patmos::stack_cache_e>()->default_value(patmos::SC_BLOCK), "kind of stack cache (ideal, block, lblock, dcache)")
 
     ("icache,C", boost::program_options::value<patmos::instr_cache_e>()->default_value(patmos::IC_MCACHE), "kind of instruction cache (mcache, icache)")
     ("ickind,K", boost::program_options::value<patmos::set_assoc_cache_type>()->default_value(patmos::set_assoc_cache_type(patmos::SAC_LRU,2)), 
@@ -458,6 +468,7 @@ int main(int argc, char **argv)
     // open streams
     in = patmos::get_stream<std::ifstream>(binary, std::cin);
     out = patmos::get_stream<std::ofstream>(output, std::cout);
+
 
     uin = patmos::get_stream<std::ifstream>(uart_in, std::cin);
     uout = patmos::get_stream<std::ofstream>(uart_out, std::cout);
