@@ -69,18 +69,18 @@
 \newcommand{\sahar}[1]{\comment{Sahar}{#1}{Green}}
 \newcommand{\rasmus}[1]{\comment{Rasmus}{#1}{Mahogany}}
 
-%% uncomment to get rid of comments
-%\renewcommand{\tommy}[1]{}
-%\renewcommand{\wolf}[1]{}
-%\renewcommand{\martin}[1]{}
-%\renewcommand{\stefan}[1]{}
-%\renewcommand{\daniel}[1]{}
-%\renewcommand{\cullmann}[1]{}
-%\renewcommand{\gebhard}[1]{}
-%\renewcommand{\fb}[1]{}
-%\renewcommand{\jack}[1]{}
-%\renewcommand{\sahar}[1]{}
-%\renewcommand{\rasmus}[1]{}
+% uncomment to get rid of comments
+\renewcommand{\tommy}[1]{}
+\renewcommand{\wolf}[1]{}
+\renewcommand{\martin}[1]{}
+\renewcommand{\stefan}[1]{}
+\renewcommand{\daniel}[1]{}
+\renewcommand{\cullmann}[1]{}
+\renewcommand{\gebhard}[1]{}
+\renewcommand{\fb}[1]{}
+\renewcommand{\jack}[1]{}
+\renewcommand{\sahar}[1]{}
+\renewcommand{\rasmus}[1]{}
 
 %
 % custom colors
@@ -3019,7 +3019,7 @@ ALU operations: 3173 LCs, 91.91 MHz.
 \chapter{Build Instructions}
 
 In the following we present an example configuration on a Linux/Ubuntu
-system.\footnote{I used the 32-bit version to simplify Quartus installation.}
+system.\footnote{I used the 32-bit version of Ubuntu to simplify the Quartus installation.}
 Patmos and the compiler have also been successfully been installed on a Mac OSX
 system. The support of Windows is marginal, or basically not existent.
 
@@ -3107,7 +3107,7 @@ tar xvf Quartus-web-xxx.tar
 
 The software installation is started with a plain \code{setup.sh}.\footnote{Or \code{bash steup.sh}}
 Then add the bin directory of Quartus to your \$PATH.
-
+%
 For  the USB Blaster following additional steps are needed:
 
 \begin{verbatim}
@@ -3157,8 +3157,10 @@ by a tool and the individual sections downloaded, and finally a terminal (often
 a serial line) needs to be available on the target, and your test PC needs to
 have a serial line as well and a terminal program needs to run.
 
-Therefore, we might start with a minimal assembler program and execute
-that in the simulator and emulator.
+Therefore, we might start from a minimal assembler program and execute
+that in the simulator and emulator. From that base we can build up too
+a multi-core version of Patmos that executes in an FPGA and bootstraps
+with programs loaded via a serial port.
 
 
 \section{Building Patmos}
@@ -3204,7 +3206,38 @@ make tools
 
 \subsection{A Few Assembler Instructions}
 
-\todo{write}
+We start with a very small assembler program that moves a few values into registers
+(see \code{asm/basic.s}). With following make command the program is assembled
+and executed in the software simulator of Patmos.
+
+\begin{verbatim}
+make swsim BOOTAPP=basic
+\end{verbatim}
+
+The simulator options are set to write out the register contents after each instruction.
+The same program can be executed by the emulator (the Chisel based simulator)
+with following command:
+
+\begin{verbatim}
+make hwsim BOOTAPP=basic
+\end{verbatim}
+
+This command assembles the application, executes the Chisel based hardware
+construction during which the program is used to initialize the on-chip ROM,
+a C++ based emulator is generated, compiled, and executed. Again with options to
+show the register content after each instruction.
+
+Those two Patmos simulation, the software simulator and the Chisel based emulator,
+are used for a co-simulation based test. In this co-simulation all available assembler
+programs are executed in both simulations and the register out put is compared.
+The test can be started with:
+
+\begin{verbatim}
+make test
+\end{verbatim}
+
+
+\todo{ModelSim simulation}
 
 \subsection{We Can Blink in Assembler}
 
@@ -3213,9 +3246,7 @@ make tools
 \subsection{A C Based Blinking LED}
 
 As a first real example we build the embedded version of Hello World, the
-blinking LED, from a C program. You can find the C source in \code{c/hello\_blinking.c}.
-
-\todo{maybe rename to a shorter name.}
+blinking LED, from a C program. You can find the C source in \code{c/blinking.c}.
 
 \begin{verbatim}
 make BOOTAPP=bootable-blinking comp gen synth config
@@ -3226,6 +3257,11 @@ to the serial port. Connect the FPGA board to your serial port,
 open a terminal of your choice (e.g., \code{gtkterm}), connect to the serial port,
 set the baud rate to 115200, no parity, and no handshaking.
 You should see alternating `0' and `1' sent out synchronous to the blinking.
+
+Note that the program name (\code{blink}) is prefixed by \code{bootable-}.
+The marker selects the right compiler settings for a program that ends up in
+the Patmos on-chip ROM. As the on-chip memory is limited, only tiny programs
+are supported in this execution mode.
 
 Figure~\ref{fig:blink} shows the code for the embedded Hello World
 C program. Two constants (0xF0000900 and 0xF0000804) are the addresses
@@ -3287,16 +3323,23 @@ Here a list of the most important make targets:
 \begin{description}
 \item[tools] build of all tools, including the Patmos software simulator
 \item[asm] assemble source (from folder \code{asm})
+\item[swsim] execute the Patmos emulator
+\item[hwsim] execute the Patmos emulator
 \item[emulator] build the Chisel based C++ emulator
-\item[csim] execute the Patmos emulator
 \item[comp] compile a C program as loadable ELF binary
 \item[bootcomp] compile a C program as a bootable image
 \item[gen] generate the Verilog code
 \item[synth] synthesize for an FPGA
+\item[config] configure the FPGA
+\item[download] download an elf file into the main memory via the Patmos bootloader
+\item[test] run all assembler tests 
 \end{description}
 
+When an application shall be generated to be executed from the on-chip ROM,
+the name is set with the BOOTAPP variable.
 
-\todo{Test and describe the ELF download flow.}
+
+\todo{Describe the ELF download flow.}
 
 On a Linux box with the installed LLVM compiler in your PATH,
 the complete build processes for the embedded version of
@@ -3335,7 +3378,7 @@ possible to merge all steps into a single make (on Linux
 systems) or two steps when using a two operating
 systems (for compilation and synthesis).
 
-\paragraph{Emulator and elf file}
+\paragraph{Emulator and elf File}
 
 The emulator can read a standard ELF file. An example how to compile
 a small C program that uses part of the standard library and executing
@@ -3349,7 +3392,7 @@ bin/emulator tmp/helloworld.elf
 
 \martin{Where is the make target to run the emulator with an ELF file?}
 
-\section{ModelSim license}
+\section{ModelSim License}
 In the case that you have a DTU Compute login you can access the license servers from outside the DTU network by setting up an SSH tunnel.
 An example of how such a tunnel can be set up follows, you need to insert you own username.
 
@@ -3364,21 +3407,23 @@ LM_LICENSE_FILE=1717@localhost
 
 This way of setting up an SSH tunnel might also work for other institutions.
 
-\chapter{The Patmos Compiler}
-\label{sec:compiler}
-
-The LLVM compiler has been adapted to emit code for the Patmos ISA
-and support the special features, e.g., the stack cache~\cite{Seus13:compiler}.
-
-\martin{Daniel and Stefan shall add here an overview of the compiler and
-some words on source organization. But let's start with some notes.}
-
-The compiler and libraries can be built with \code{misc/build.sh}.
-This script also contains the default options, which should work on a
-standard Linux machine out of the box. Options can be overwritten by
-entries in a personal \code{misc/build.cfg}. The file {misc/build.dist.cfg}
-is just an example configuration file, generated from build.sh, and ignored
-by the build process.
+%% MS: there needs to be more content to have a chapter on the compiler.
+%
+%\chapter{The Patmos Compiler}
+%\label{sec:compiler}
+%
+%The LLVM compiler has been adapted to emit code for the Patmos ISA
+%and support the special features, e.g., the stack cache~\cite{Seus13:compiler}.
+%
+%\martin{Daniel and Stefan shall add here an overview of the compiler and
+%some words on source organization. But let's start with some notes.}
+%
+%The compiler and libraries can be built with \code{misc/build.sh}.
+%This script also contains the default options, which should work on a
+%standard Linux machine out of the box. Options can be overwritten by
+%entries in a personal \code{misc/build.cfg}. The file {misc/build.dist.cfg}
+%is just an example configuration file, generated from build.sh, and ignored
+%by the build process.
 
 
 \chapter{Application Binary Interface}

@@ -31,9 +31,6 @@ endif
 #BOARD?=altde2-70
 BOARD?=altde2-115
 
-# MS: why do we need all those symbols when
-# the various paths are fixed anyway?
-
 # Where to put elf files and binaries
 BUILDDIR?=$(CURDIR)/tmp
 # Build directories for various tools
@@ -46,6 +43,7 @@ INSTALLDIR?=$(CURDIR)/install
 HWINSTALLDIR?=$(INSTALLDIR)
 
 all: tools emulator patmos
+
 
 tools: patsim elf2bin javatools
 
@@ -133,7 +131,7 @@ comp-% $(BUILDDIR)/%.elf: .FORCE
 
 # High-level pasim simulation
 swsim: $(BUILDDIR)/$(BOOTAPP).bin
-	bin/pasim --debug --debug-fmt=short $(BUILDDIR)/$(BOOTAPP).bin
+	$(INSTALLDIR)/bin/pasim --debug --debug-fmt=short $(BUILDDIR)/$(BOOTAPP).bin
 
 # C simulation of the Chisel version of Patmos
 hwsim:
