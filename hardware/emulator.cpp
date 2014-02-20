@@ -94,7 +94,8 @@ static val_t readelf(istream &is, Patmos_t *c)
       // copy from the buffer into the on-chip memories
 	  for (size_t k = 0; k < phdr.p_memsz; k++) {
 
-		if (((phdr.p_paddr + k) >> OCMEM_ADDR_BITS) == 0x1 &&
+		if ((phdr.p_flags & PF_X) != 0 &&
+			((phdr.p_paddr + k) >> OCMEM_ADDR_BITS) == 0x1 &&
 			((phdr.p_paddr + k) & 0x3) == 0) {
 		  // Address maps to ISPM and is at a word boundary
 		  val_t word = k >= phdr.p_filesz ? 0 :
