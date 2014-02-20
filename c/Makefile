@@ -1,8 +1,5 @@
 BUILDDIR=../tmp
 
-#PATMOS_BASE=/project/flbr/jobs/install/patmos/bin/
-#CC=$(PATMOS_BASE)/clang
-
 CC=patmos-clang
 
 # Flags for compiling to boot ROM
