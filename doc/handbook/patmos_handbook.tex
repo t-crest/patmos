@@ -3018,9 +3018,9 @@ ALU operations: 3173 LCs, 91.91 MHz.
 
 \chapter{Build Instructions}
 
-In the following we present an example configuration on a Linux/Ubuntu
+In the following we present an  Patmos build instructions on a Linux/Ubuntu
 system.\footnote{I used the 32-bit version of Ubuntu to simplify the Quartus installation.}
-Patmos and the compiler have also been successfully been installed on a Mac OSX
+Patmos and the compiler have also been successfully installed on a Mac OSX
 system. The support of Windows is marginal, or basically not existent.
 
 
@@ -3184,11 +3184,9 @@ Under Mac OS X all tools, except Quartus, are working (ModelSim under
 wine). For FPGA synthesis and configuration Windows XP within a VMWare
 virtual machine is a possible solution.
 
-On a Linux box with the installed LLVM compiler in your PATH,
-the complete build processes for the embedded version of
-Hello World (a blinking LED) is as follows:
+On a Linux box with the installed LLVM compiler and Quartus in your PATH,
+the complete build processes for a Hello World is as follows:
 
-% make BOOTAPP=bootable-bootloader APP=helloworld tools synth comp config download
 \begin{verbatim}
 make BOOTAPP=bootable-bootloader APP=hello_puts \
    tools comp gen synth config download
