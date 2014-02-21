@@ -3122,6 +3122,10 @@ ATTR{idProduct}==\"6001\", MODE=\"0666\"" > /etc/udev/rules.d/51-usbblaster.rule
 udevadm control --reload-rules
 \end{verbatim}
 
+From Quartus~13.1 on the support of Cyclone~II devices has been dropped and therefore the
+(phased out) Altera DE2-70 board is not supported anymore. Version 13.0 supports Cyclone~II\
+till Cyclone~V devices and might be the best option at the moment.
+
 \section{Setup On Mac OS X}
 
 Several tools are needed, best installed with MacPorts. For Patmos simulator and assembler:
@@ -3336,12 +3340,10 @@ Here a list of the most important make targets:
 When an application shall be generated to be executed from the on-chip ROM,
 the name is set with the BOOTAPP variable.
 
+\subsection{Download of ELF Files}
 
-\todo{Describe the ELF download flow.}
-
-On a Linux box with the installed LLVM compiler in your PATH,
-the complete build processes for the embedded version of
-Hello World (a blinking LED) is as follows:
+On a Linux box with the installed LLVM compiler and Quartus in your PATH,
+the complete build processes for the Hello World is as follows:
 
 % make BOOTAPP=bootable-bootloader APP=helloworld tools synth comp config download
 \begin{verbatim}
@@ -3349,17 +3351,37 @@ make BOOTAPP=bootable-bootloader APP=helloworld \
    tools comp gen synth config download
 \end{verbatim}
 
+You should see the download information and then the greeting from Patmos:
+
+\begin{verbatim}
+/home/martin/t-crest/patmos/install/bin/patserdow -v /dev/ttyUSB0 /home/martin/t-crest/patmos/tmp/hello_puts.elf
+Port opened: true
+Params set: true
+Elf version is '1':true
+CPU type is:48875
+Instruction width is 32 bits:true
+Is Big Endian:true
+File is of type exe:true
+Entry point:131076
+
+[++++++++++] 49778/49778 bytes
+Hello, World!
+
+EXIT 0
+\end{verbatim}
 
 The \code{Makefile} use following variables to configure the build process:
 \code{BOOTAPP} is an application that ends in the on-chip ROM. This may
-be an assembler program or a simple C program that does not need any
-initialized data; most prominent the boot loader for ELF binaries.
+be an assembler program or a simple C program;
+most prominent the boot loader for ELF binaries.
 A C program that shall be compiled as ROM target needs to be prefixed
 with \code{bootable-}.
 \code{APP} is a C program resulting in an ELF binary that can be either
 loaded by the emulator or the boot loader when executing in an FPGA.
 % TODO: test and talk about patsim. Having a complete ELF in the FPGA
 % without the boot loader would be nice as well.
+
+\todo{Describe ELF download without building the FPGA}
 
 
 Here an example of the individual steps to build the blinking LED C
@@ -3389,6 +3411,21 @@ bin/emulator tmp/helloworld.elf
 \end{verbatim}
 
 \martin{Where is the make target to run the emulator with an ELF file?}
+
+\subsection{Supported FPGA Boards}
+
+At the time of this writing we have mainly focused on Altera FPGA based boards. Following boards
+are directly supported in the default build process:
+
+\begin{itemize}
+\item Altera DE2-70 (\code{altde2-70})
+\item Altera DE2-115 (\code{altde2-115})
+\item Altera/Farnell BeMicro (\code{bemicro})
+\end{itemize}
+
+The board is configured by setting the \code{BOARD} variable.
+Without changing the \code{Makefile} the default of the board (and any other build variables)
+can be overridden by providing a local \code{config.mk} that is included in the Makefile.
 
 \section{ModelSim License}
 In the case that you have a DTU Compute login you can access the license servers from outside the DTU network by setting up an SSH tunnel.
