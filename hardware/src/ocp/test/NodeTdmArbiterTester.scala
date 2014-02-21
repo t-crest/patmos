@@ -106,8 +106,6 @@ class NodeTdmArbiterTop() extends Module {
     arb.io.master <> m.io.port
     
     memMux.io.master(i) <> arb.io.slave
-    memMux.io.en(i) <> arb.io.slotEn
-   
     io.port(i).M <> memMux.io.slave.M
   }
   
@@ -124,7 +122,7 @@ class NodeTdmArbiterTester(dut: ocp.test.NodeTdmArbiterTop) extends Tester(dut, 
 
     val testVec = Array( OcpCmd.IDLE, OcpCmd.WR, OcpCmd.IDLE )
 
-    for (i <- 0 until 25) {
+    for (i <- 0 until 35) {
       vars.clear
 //      vars(dut.io.fromMaster.M.Cmd) = testVec(i)
 
