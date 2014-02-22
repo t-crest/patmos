@@ -3018,7 +3018,7 @@ ALU operations: 3173 LCs, 91.91 MHz.
 
 \chapter{Build Instructions}
 
-In the following we present an  Patmos build instructions on a Linux/Ubuntu
+In the following we present the Patmos build instructions on a Linux/Ubuntu
 system.\footnote{I used the 32-bit version of Ubuntu to simplify the Quartus installation.}
 Patmos and the compiler have also been successfully installed on a Mac OSX
 system. The support of Windows is marginal, or basically not existent.
@@ -3217,7 +3217,7 @@ make swsim BOOTAPP=basic
 \end{verbatim}
 
 The simulator options are set to write out the register contents after each instruction.
-The same program can be executed by the emulator (the Chisel based simulator)
+The emulator (the Chisel based simulator) can execute the same program
 with following command:
 
 \begin{verbatim}
@@ -3226,10 +3226,10 @@ make hwsim BOOTAPP=basic
 
 This command assembles the application, executes the Chisel based hardware
 construction during which the program is used to initialize the on-chip ROM,
-a C++ based emulator is generated, compiled, and executed. Again with options to
-show the register content after each instruction.
+generates a C++ based emulator, compiles that emulator, and executes it.
+The emulator show the register content after each instruction.
 
-Those two Patmos simulation, the software simulator and the Chisel based emulator,
+Those two Patmos simulations, the software simulator and the Chisel based emulator,
 are used for a co-simulation based test. In this co-simulation all available assembler
 programs are executed in both simulations and the register out put is compared.
 The test can be started with:
