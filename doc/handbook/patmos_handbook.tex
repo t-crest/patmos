@@ -3122,7 +3122,7 @@ ATTR{idProduct}==\"6001\", MODE=\"0666\"" > /etc/udev/rules.d/51-usbblaster.rule
 udevadm control --reload-rules
 \end{verbatim}
 
-From Quartus~13.1 on the support of Cyclone~II devices has been dropped and therefore the
+Quartus~13.1 droppes the support of Cyclone~II devices. Therefore, the
 (phased out) Altera DE2-70 board is not supported anymore. Version 13.0 supports Cyclone~II\
 till Cyclone~V devices and might be the best option at the moment.
 
@@ -3196,7 +3196,7 @@ make BOOTAPP=bootable-bootloader APP=hello_puts \
    tools comp gen synth config download
 \end{verbatim}
 
-However, this involves quite many steps. Therefore, we suggest to do some \emph{manual}
+However, this involves quite many steps. Therefore, we suggest doing some \emph{manual}
 buildup to explore the full build process and the possibilities.
 
 As a start we build some tools (e.g., the assembler, simulator, file conversion
@@ -3320,7 +3320,7 @@ The targets might be a little bit confusing. Patmos is compiled two times.}
 
 \subsection{Make Targets}
 
-Here a list of the most important make targets:
+A list of the most important make targets:
 
 \begin{description}
 \item[tools] build of all tools, including the Patmos software simulator
@@ -3337,8 +3337,8 @@ Here a list of the most important make targets:
 \item[test] run all assembler tests 
 \end{description}
 
-When an application shall be generated to be executed from the on-chip ROM,
-the name is set with the BOOTAPP variable.
+The name of an application that can execute from the on-chip ROM is set
+with the BOOTAPP variable.
 
 \subsection{Download of ELF Files}
 
@@ -3395,8 +3395,8 @@ make QPROJ=bemicro BLASTER_TYPE=Arrow-USB-Blaster config
 
 This split of the make commands is for demonstration. It is
 possible to merge all steps into a single make (on Linux
-systems) or two steps when using a two operating
-systems (for compilation and synthesis).
+systems) or two steps when using two operating
+systems (e.g., Mac OSX for compilation and Windows for synthesis).
 
 \paragraph{Emulator and elf File}
 
