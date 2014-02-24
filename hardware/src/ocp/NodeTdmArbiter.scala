@@ -46,15 +46,17 @@ import scala.math._
 
 import scala.collection.mutable.HashMap
 
-class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int, node : Int) extends Module {
+class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extends Module {
   // MS: I'm always confused from which direction the name shall be
   // probably the other way round...
   val io = new Bundle {
     val master = new OcpBurstSlavePort(addrWidth, dataWidth, burstLen) 
     val slave = new OcpBurstMasterPort(addrWidth, dataWidth, burstLen)
+    val node = UInt(INPUT, 6)
   }
   debug(io.master)
   debug(io.slave)
+  debug(io.node)
 
   val cntReg = Reg(init = UInt(0, log2Up(cnt*(burstLen + 1))))
   // slot length = burst size + 1 
@@ -115,7 +117,7 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
   
   // FSM for TDM Arbiter 
   when (stateReg === sIdle) {
-    when (cpuSlot(node) === UInt(1)) {
+    when (cpuSlot(io.node) === UInt(1)) {
       val master = io.master.M
       io.slave.M := master
       
@@ -264,14 +266,13 @@ class MemMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) exten
 object NodeTdmArbiterMain {
   def main(args: Array[String]): Unit = {
 
-    val chiselArgs = args.slice(5, args.length)
+    val chiselArgs = args.slice(4, args.length)
     val cnt = args(0)
     val addrWidth = args(1)
     val dataWidth = args(2)
     val burstLen = args(3)
-    val node = args(4)
 
-    chiselMain(chiselArgs, () => Module(new NodeTdmArbiter(cnt.toInt,addrWidth.toInt,dataWidth.toInt,burstLen.toInt,node.toInt)))
+    chiselMain(chiselArgs, () => Module(new NodeTdmArbiter(cnt.toInt,addrWidth.toInt,dataWidth.toInt,burstLen.toInt)))
   }
 }
 
