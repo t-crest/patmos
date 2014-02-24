@@ -50,7 +50,8 @@ class RegisterFile() extends Module {
   val io = new RegFileIO()
 
   // Using Mem (instead of Vec) leads to smaller HW for single-issue config
-  val rf = Mem(Bits(width = DATA_WIDTH), REG_COUNT)
+  //val rf = Mem(Bits(width = DATA_WIDTH), REG_COUNT)
+  val rf = Vec.fill(REG_COUNT) { Reg(Bits(width = DATA_WIDTH)) }
 
   // We are registering the inputs here, similar as it would
   // be with an on-chip memory for the register file
