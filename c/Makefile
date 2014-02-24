@@ -19,7 +19,8 @@ LDFLAGS-BOOTABLE= \
 
 # Flags for compiling normal applications
 CFLAGS=-target patmos-unknown-unknown-elf -O2 \
-	-I$(CURDIR)
+	-I$(CURDIR) \
+	-mpatmos-disable-vliw=true
 LDFLAGS= \
 	-mpatmos-method-cache-size=0x800 -mpatmos-preferred-subfunction-size=0 \
 	-mpatmos-stack-base=0x1f0000 -mpatmos-shadow-stack-base=0x200000 \
