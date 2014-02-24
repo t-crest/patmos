@@ -102,8 +102,10 @@ class NodeTdmArbiterTop() extends Module {
   
   for (i <- 0 until CNT) {
     val m = Module(new Master(i, 4))
-    val arb = Module(new ocp.NodeTdmArbiter(CNT, 32, 32, 4, i))
+    val nodeID = UInt(i, width=6)
+    val arb = Module(new ocp.NodeTdmArbiter(CNT, 32, 32, 4))
     arb.io.master <> m.io.port
+    arb.io.node := nodeID
     
     memMux.io.master(i) <> arb.io.slave
     io.port(i).M <> memMux.io.slave.M
