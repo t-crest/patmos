@@ -57,6 +57,7 @@ object Constants {
   val METHOD_COUNT = util.Config.conf.MCache.blocks
 
   val DCACHE_SIZE = util.Config.conf.DCache.size
+  val SCACHE_SIZE = util.Config.conf.SCache.size
   //offset for to swicth rel address into absolut addr width, default = 0
   val ICACHE_ADDR_OFFSET = 0 //log2Up(util.Config.conf.ExtMem.size)
 
