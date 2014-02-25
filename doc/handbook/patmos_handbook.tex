@@ -3122,7 +3122,7 @@ ATTR{idProduct}==\"6001\", MODE=\"0666\"" > /etc/udev/rules.d/51-usbblaster.rule
 udevadm control --reload-rules
 \end{verbatim}
 
-Quartus~13.1 droppes the support of Cyclone~II devices. Therefore, the
+Quartus~13.1 drops the support of Cyclone~II devices. Therefore, the
 (phased out) Altera DE2-70 board is not supported anymore. Version 13.0 supports Cyclone~II\
 till Cyclone~V devices and might be the best option at the moment.
 
@@ -3426,6 +3426,18 @@ are directly supported in the default build process:
 The board is configured by setting the \code{BOARD} variable.
 Without changing the \code{Makefile} the default of the board (and any other build variables)
 can be overridden by providing a local \code{config.mk} that is included in the Makefile.
+
+\subsection{Multicore Patmos}
+
+In directory \code{aegean} run:
+
+\begin{verbatim}
+make platform
+make synth
+\end{verbatim}
+
+to generate (and synthesize) the default project, which is the mandelbrot application on a 4 core
+version of Patmos for an Altera DE2-115 FPGA board.
 
 \section{ModelSim License}
 In the case that you have a DTU Compute login you can access the license servers from outside the DTU network by setting up an SSH tunnel.
