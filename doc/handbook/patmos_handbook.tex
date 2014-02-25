@@ -3345,9 +3345,9 @@ with the BOOTAPP variable.
 On a Linux box with the installed LLVM compiler and Quartus in your PATH,
 the complete build processes for the Hello World is as follows:
 
-% make BOOTAPP=bootable-bootloader APP=helloworld tools synth comp config download
+% make BOOTAPP=bootable-bootloader APP=hello_puts tools synth comp config download
 \begin{verbatim}
-make BOOTAPP=bootable-bootloader APP=helloworld \
+make BOOTAPP=bootable-bootloader APP=hello_puts \
    tools comp gen synth config download
 \end{verbatim}
 
@@ -3406,8 +3406,8 @@ it on the emulator is as follows:
 
 \begin{verbatim}
 make emulator
-make comp APP=helloworld
-bin/emulator tmp/helloworld.elf
+make comp APP=hello_puts
+hardware/build/emulator tmp/hello_puts.elf
 \end{verbatim}
 
 \martin{Where is the make target to run the emulator with an ELF file?}
