@@ -3425,19 +3425,59 @@ are directly supported in the default build process:
 
 The board is configured by setting the \code{BOARD} variable.
 Without changing the \code{Makefile} the default of the board (and any other build variables)
-can be overridden by providing a local \code{config.mk} that is included in the Makefile.
+can be overridden by providing a local \code{config.mk} that is included in the \code{Makefile}.
 
 \subsection{Multicore Patmos}
 
+A multicore Patmos with shared external memory and the network-on-chip Argo is configured via
+the Aegean framework. Aegean is a collection of Python scripts that read in XML based configuration
+description (e.g., topology, network connections, processor types,...). Aegean generates the Chisel based
+components (Partmos, memory arbitration tree, and memory controller), generates the VHDL top-level
+to connect them with the VHDL based NoC, synthesizes the hardware, compiles the application for the
+the individual cores, configures the FPGA, and downloads the application.
+
 In directory \code{aegean} run:
+
+\begin{verbatim}
+make platform AEGEAN_PLATFORM=mandelbrot_demo
+make synth config AEGEAN_PLATFORM=mandelbrot_demo
+\end{verbatim}
+
+to generate (and synthesize) the mandelbrot application on a 4 core
+version of Patmos for an Altera DE2-115 FPGA board. This application is compiled
+into the on-chip memories and therefore executing right after configuration of the
+FPGA. Have a terminal open and connected to the serial port (115200 baud, 1 stop bit,
+no handshake) during and after the FPGA configuration and you shall see the output of
+the mandelbrot calculation.
+
+However, the approach to have the application in on-chip memory works for tiny programs
+only. Furthermore, each software change needs a new synthesize run. A better approach is
+to build a platform that contains a bootloader (similar to the single core version) and some
+startup code to synchronize the program start with the other cores. This platform is the default
+configuration in Aegean and needs to be generated only once with:
 
 \begin{verbatim}
 make platform
 make synth
 \end{verbatim}
 
-to generate (and synthesize) the default project, which is the mandelbrot application on a 4 core
-version of Patmos for an Altera DE2-115 FPGA board.
+The FPGA is configured from within the \code{aegean} directory with:
+
+\begin{verbatim}
+make config
+\end{verbatim}
+
+The compilation and download of the application is then best done within
+the \code{patmos} directory with:
+
+\todo{Have a simple application and the compile/download command.}
+
+\begin{verbatim}
+make xxx
+\end{verbatim}
+
+\todo{We shall have here two simple hello world applications: (1) just plain shared memory 4 cores saying hello
+and (2) a simple NoC setup.}
 
 \section{ModelSim License}
 In the case that you have a DTU Compute login you can access the license servers from outside the DTU network by setting up an SSH tunnel.
