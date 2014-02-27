@@ -83,7 +83,7 @@ $(CGEN): $(BOOTBIN) $(BOOTDAT) $(SRC)
 
 # run emulator
 test: emulator
-	$(HWBUILDDIR)/emulator -r -n -v -l 1000000
+	$(HWBUILDDIR)/emulator -r -n -v -l 1000000; exit 0
 
 # view detailed emulation results
 view:
