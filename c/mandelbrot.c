@@ -29,8 +29,6 @@
 #include <machine/patmos.h>
 #include <machine/spm.h>
 
-extern int _stack_cache_base, _shadow_stack_base;
-
 #define UART_STATUS *((volatile _SPM int *) 0xF0000800)
 #define UART_DATA   *((volatile _SPM int *) 0xF0000804)
 static void write(const char *msg, int len) __attribute__((noinline));
@@ -46,7 +44,24 @@ static void write(const char *msg, int len) __attribute__((noinline));
 #include <string.h>
 
 #ifdef BOOTROM
-int main(int argc, char **argv) __attribute__((naked,used,noreturn));
+extern int _stack_cache_base, _shadow_stack_base;
+int main(int argc, char **argv);
+void _start(void) __attribute__((naked,used));
+
+void _start(void) {
+  // setup stack frame and stack cache.
+  asm volatile ("mov $r29 = %0;" // initialize shadow stack pointer"
+				"mts $ss  = %1;" // initialize the stack cache's spill pointer"
+				"mts $st  = %1;" // initialize the stack cache's top pointer"
+				"li $r30 = %2;" // initialize return base"
+				: : "r" (&_shadow_stack_base),
+				    "r" (&_stack_cache_base),
+				    "i" (&_start));
+  // call main()
+  main(0, NULL);
+  // freeze
+  for(;;);
+}
 #endif
 
 static void write_xpm_header(void);
@@ -65,17 +80,6 @@ static const char *hdr =
   "\"" STRFY(COLS) " " STRFY(ROWS) " 64 1\",\n";
 
 int main(int argc, char **argv) {
-#ifdef BOOTROM
-  // setup stack frame and stack cache.
-  asm volatile ("mov $r29 = %0;" // initialize shadow stack pointer"
-				"mts $ss  = %1;" // initialize the stack cache's spill pointer"
-				"mts $st  = %1;" // initialize the stack cache's top pointer"
-				"li $r30 = %2;" // initialize return base"
-				: : "r" (&_shadow_stack_base-16),
-				    "r" (&_stack_cache_base-16),
-				    "i" (&main));
-#endif
-
   write_xpm_header();
 
   int x, y;
@@ -89,11 +93,7 @@ int main(int argc, char **argv) {
   }
   WRITE("};\n", 3);
 
-#ifdef BOOTROM
-  for(;;);
-#else
   return 0;
-#endif
 }
 
 static void write_xpm_header(void) {

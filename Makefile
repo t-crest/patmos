@@ -131,7 +131,7 @@ comp-% $(BUILDDIR)/%.elf: .FORCE
 
 # High-level pasim simulation
 swsim: $(BUILDDIR)/$(BOOTAPP).bin
-	$(INSTALLDIR)/bin/pasim --debug --debug-fmt=short $(BUILDDIR)/$(BOOTAPP).bin
+	$(INSTALLDIR)/bin/pasim --debug --debug-fmt=short $(BUILDDIR)/$(BOOTAPP).bin; exit 0
 
 # C simulation of the Chisel version of Patmos
 hwsim:
