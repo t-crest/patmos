@@ -39,6 +39,7 @@
  */
 
 #include "boot.h"
+#include "patio.h"
 
 int main(void) {
   // setup stack frame and stack cache.

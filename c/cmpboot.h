@@ -41,9 +41,9 @@
 #define _CMPBOOT_H_
 
 #include <machine/patmos.h>
+#include "boot.h"
 
 #define MAX_CORES 64
-#define core_id *((volatile _IODEV int *) 0xF0000000)
 
 #define STATUS_NULL     0
 #define STATUS_BOOT     1
