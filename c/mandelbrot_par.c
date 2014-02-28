@@ -263,6 +263,7 @@ int main(int argc, char **argv) {
 #endif /* __patmos__ */
 
   return 0;
+
 }
 
 static void master(void) {

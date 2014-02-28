@@ -3037,6 +3037,8 @@ sudo apt-get install git openjdk-7-jdk gitk cmake make g++ texinfo flex bison \
   ruby1.9.1-dev python zlib1g-dev gtkwave gtkterm
 \end{verbatim}
 
+Optional package for documentation build: \code{doxygen}, which will install LaTeX as well.
+
 For the Quartus setup it is best to change the default shall to \code{/bin/bash}:
 
 \begin{verbatim}
@@ -3105,7 +3107,7 @@ installed as follows:\footnote{\url{http://www.altera.com/literature/manual/quar
 tar xvf Quartus-web-xxx.tar
 \end{verbatim}
 
-The software installation is started with a plain \code{setup.sh}.\footnote{Or \code{bash steup.sh}}
+The software installation is started with a plain \code{setup.sh}.\footnote{Or \code{bash setup.sh}}
 Then add the bin directory of Quartus to your \$PATH.
 %
 For  the USB Blaster following additional steps are needed:
@@ -3122,6 +3124,11 @@ ATTR{idProduct}==\"6001\", MODE=\"0666\"" > /etc/udev/rules.d/51-usbblaster.rule
 udevadm control --reload-rules
 \end{verbatim}
 
+After fixing the permissions for the USB Blaster open Quartus and test if the
+cable is found with the programmer. Select USB-Blaster in \emph{Hardware Setup}.
+When connected to an FPGA test the USB-Blaster with \emph{Auto Detect}
+(With the DE2-115, a question about shared JTAG ID pops up -- select EP4CE115).
+
 Quartus~13.1 drops the support of Cyclone~II devices. Therefore, the
 (phased out) Altera DE2-70 board is not supported anymore. Version 13.0 supports Cyclone~II\
 till Cyclone~V devices and might be the best option at the moment.
@@ -3131,7 +3138,7 @@ till Cyclone~V devices and might be the best option at the moment.
 Several tools are needed, best installed with MacPorts. For Patmos simulator and assembler:
 \code{boost}, \code{libelf}.
 For simulation with ModelSim: \code{wine}
-For Aegean: python33, py33-lxml. Make a link from python3 to python3.3 as this is the way it is invoked.
+For Aegean: \code{python33} and \code{py33-lxml}. Make a link from python3 to python3.3 as this is the way it is invoked.
 \todo{Alex suggested a way to avoid this by querying how to invoke python.}
 
 \section{Hello World}
@@ -3341,6 +3348,7 @@ The name of an application that can execute from the on-chip ROM is set
 with the BOOTAPP variable.
 
 \subsection{Download of ELF Files}
+\label{sec:elf:files}
 
 On a Linux box with the installed LLVM compiler and Quartus in your PATH,
 the complete build processes for the Hello World is as follows:
@@ -3354,7 +3362,8 @@ make BOOTAPP=bootable-bootloader APP=hello_puts \
 You should see the download information and then the greeting from Patmos:
 
 \begin{verbatim}
-/home/martin/t-crest/patmos/install/bin/patserdow -v /dev/ttyUSB0 /home/martin/t-crest/patmos/tmp/hello_puts.elf
+/home/martin/t-crest/patmos/install/bin/patserdow -v /dev/ttyUSB0 \
+   /home/martin/t-crest/patmos/tmp/hello_puts.elf
 Port opened: true
 Params set: true
 Elf version is '1':true
@@ -3378,27 +3387,31 @@ A C program that shall be compiled as ROM target needs to be prefixed
 with \code{bootable-}.
 \code{APP} is a C program resulting in an ELF binary that can be either
 loaded by the emulator or the boot loader when executing in an FPGA.
-% TODO: test and talk about patsim. Having a complete ELF in the FPGA
-% without the boot loader would be nice as well.
 
-\todo{Describe ELF download without building the FPGA}
+When developing software for Patmos and using the boot loader, the FPGA
+configuration needs only be synthesized once. We only need to compile
+the application, configure the FPGA, and download the application:
 
+\begin{verbatim}
+make APP=hello_puts config download
+\end{verbatim}
 
+\paragraph{A Variation of the Setup}
 Here an example of the individual steps to build the blinking LED C
-hello world (on a different FPGA board):
+hello world for a different FPGA board and splitting the process for
+a mixed OS setup:
+
 \begin{verbatim}
 make tools
 make BOOTAPP=bootable-echo bootcomp gen
-make BOOTAPP=bootable-echo QPROJ=bemicro synth
-make QPROJ=bemicro BLASTER_TYPE=Arrow-USB-Blaster config
+make BOOTAPP=bootable-echo BOARD=bemicro synth
+make BOARD=bemicro BLASTER_TYPE=Arrow-USB-Blaster config
 \end{verbatim}
 
-This split of the make commands is for demonstration. It is
-possible to merge all steps into a single make (on Linux
-systems) or two steps when using two operating
-systems (e.g., Mac OSX for compilation and Windows for synthesis).
+This split of the make commands is for demonstration of how to handle
+two two operating systems (e.g., Mac OSX for compilation and Windows for synthesis).
 
-\paragraph{Emulator and elf File}
+\paragraph{Emulator and ELF File}
 
 The emulator can read a standard ELF file. An example how to compile
 a small C program that uses part of the standard library and executing
@@ -3407,7 +3420,7 @@ it on the emulator is as follows:
 \begin{verbatim}
 make emulator
 make comp APP=hello_puts
-hardware/build/emulator tmp/hello_puts.elf
+install/bin/emulator tmp/hello_puts.elf
 \end{verbatim}
 
 \martin{Where is the make target to run the emulator with an ELF file?}
@@ -3425,19 +3438,87 @@ are directly supported in the default build process:
 
 The board is configured by setting the \code{BOARD} variable.
 Without changing the \code{Makefile} the default of the board (and any other build variables)
-can be overridden by providing a local \code{config.mk} that is included in the Makefile.
+can be overridden by providing a local \code{config.mk} that is included in the \code{Makefile}.
 
 \subsection{Multicore Patmos}
 
+A multicore Patmos with shared external memory and the network-on-chip Argo is configured via
+the Aegean framework. Aegean is a collection of Python scripts that read in XML based configuration
+description (e.g., topology, network connections, processor types,...). Aegean generates the Chisel based
+components (Partmos, memory arbitration tree, and memory controller), generates the VHDL top-level
+to connect them with the VHDL based NoC, synthesizes the hardware, compiles the application for the
+the individual cores, configures the FPGA, and downloads the application.
+
 In directory \code{aegean} run:
+
+\begin{verbatim}
+make platform AEGEAN_PLATFORM=mandelbrot_demo
+make synth config AEGEAN_PLATFORM=mandelbrot_demo
+\end{verbatim}
+
+to generate (and synthesize) the mandelbrot application on a 4 core
+version of Patmos for an Altera DE2-115 FPGA board. This application is compiled
+into the on-chip memories and therefore executing right after configuration of the
+FPGA. Have a terminal open and connected to the serial port (115200 baud, 1 stop bit,
+no handshake) during and after the FPGA configuration and you shall see the output of
+the mandelbrot calculation.
+
+However, the approach to have the application in on-chip memory works for tiny programs
+only. Furthermore, each software change needs a new synthesize run. A better approach is
+to build a platform that contains a boot loader (similar to the single core version) and some
+startup code to synchronize the program start with the other cores. This platform is the default
+configuration in Aegean and needs to be generated only once with:
 
 \begin{verbatim}
 make platform
 make synth
 \end{verbatim}
 
-to generate (and synthesize) the default project, which is the mandelbrot application on a 4 core
-version of Patmos for an Altera DE2-115 FPGA board.
+The FPGA is configured from within the \code{aegean} directory with:
+
+\begin{verbatim}
+make config
+\end{verbatim}
+
+The compilation and download of the application is then best done within
+the \code{patmos} directory with:
+
+\begin{verbatim}
+make make APP=hello_puts comp download
+\end{verbatim}
+
+This application is the some single core \emph{Hello World} application that
+we used in Section~\ref{sec:elf:files}. However, here we just compiled the
+application and downloaded it via the serial port. We synthesize and configure
+the FPGA from within the Aegean project.
+
+\todo{We shall have here three simple hello world applications: (1) just plain shared memory 4 cores saying hello - DONE -,
+(2) a CMP program that uses shared memory, and (3) a simple NoC setup.}
+
+\begin{figure}
+\begin{verbatim}
+/*
+    This is a minimal C program...
+    
+\end{verbatim}
+\caption{A CMP Hello World}
+\label{fig:cmp:hello}
+\end{figure}
+
+\section{The Xilinx ML605 Platform}
+
+For the evaluation within the T-CREST project the Xilinx ML605 FPGA board was chosen as the `standard'
+evaluation platform. The T-CREST platform contains, besides several Patmos' connected with the Argo NoC,
+a memory tree, called BlueTree, from UoY, and the time-predictable memory controller from TU/e. As the
+build of this platform needs some non-free tools and includes closed source code, we provide prebuilt
+configurations of the T-CREST platform as bit files available for download:
+
+\begin{itemize}
+\item A 4 core version: \url{http://patmos.compute.dtu.dk/t-crest-4core.bit}
+\item A 16 core version: 
+\end{itemize}
+ 
+
 
 \section{ModelSim License}
 In the case that you have a DTU Compute login you can access the license servers from outside the DTU network by setting up an SSH tunnel.

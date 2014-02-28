@@ -37,8 +37,8 @@
  *
  */
 
-#include "boot.h"
 #include "cmpboot.h"
+#include "patio.h"
 
 int main(void)
 {
@@ -54,11 +54,11 @@ int main(void)
   // overwrite any potential leftovers from previous runs
   boot_info->master.status = STATUS_NULL;
   boot_info->master.entrypoint = NULL;
-  boot_info->slave[core_id].status = STATUS_NULL;
+  boot_info->slave[CORE_ID].status = STATUS_NULL;
 
   do {
     // make sure the own status is visible
-    boot_info->slave[core_id].status = STATUS_BOOT;
+    boot_info->slave[CORE_ID].status = STATUS_BOOT;
     // until master has booted
   } while (boot_info->master.status != STATUS_BOOT);
 
@@ -67,7 +67,7 @@ int main(void)
     /* spin */
   }  
   // acknowledge reception of start status
-  boot_info->slave[core_id].status = STATUS_INIT;
+  boot_info->slave[CORE_ID].status = STATUS_INIT;
 
   // call the application's _start()
   int retval = -1;

@@ -37,8 +37,8 @@
  *
  */
 
-#include "boot.h"
 #include "cmpboot.h"
+#include "patio.h"
 
 // #define DEBUG
 
