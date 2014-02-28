@@ -68,6 +68,7 @@
 \newcommand{\jack}[1]{\comment{Jack}{#1}{Magenta}}
 \newcommand{\sahar}[1]{\comment{Sahar}{#1}{Green}}
 \newcommand{\rasmus}[1]{\comment{Rasmus}{#1}{Mahogany}}
+\newcommand{\eva}[1]{\comment{Evangelia}{#1}{Green}}
 
 % uncomment to get rid of comments
 %\renewcommand{\tommy}[1]{}
@@ -191,11 +192,26 @@ project (Hard Real-Time Embedded Multiprocessor Platform - RTEMP)
 \chapter{The Architecture of Argo}
 \label{sec:arch}
 
+
 \chapter{Memory address space and interface}
 The network interface (NI) of Argo has 2 OCP\cite{ocp:spec} interfaces.
 
 
 \section{Local and Global Address Space}
+
+\begin{enumeration}
+\item UART\_STATUS	0xF0000800
+\item UART\_DATA	0xF0000804
+\item LEDS   		0xF0000900
+
+\item NOC\_DMA\_BASE	0xE0000000
+\item NOC\_DMA\_P\_BASE	0xE1000000
+\item NOC\_ST\_BASE	0xE2000000
+\item NOC\_SPM\_BASE	0xE8000000
+\item NOC\_VALID\_BIT	0x08000
+\item NOC\_DONE\_BIT	0x04000
+\end{enumeration}
+
 
 
 \chapter{Build Instructions}
@@ -616,10 +632,12 @@ In directory \code{aegean} run:
 \begin{verbatim}
 make platform
 make synth
+make config???
 \end{verbatim}
 
 to generate (and synthesize) the default project, which is the mandelbrot application on a 4 core
 version of Patmos for an Altera DE2-115 FPGA board.
+\eva{is it the mandelbrot?}
 
 \section{ModelSim License}
 In the case that you have a DTU Compute login you can access the license servers from outside the DTU network by setting up an SSH tunnel.
@@ -657,6 +675,8 @@ This way of setting up an SSH tunnel might also work for other institutions.
 
 \chapter{Application Programming Interface}
 \label{sec:api}
+
+A number of variables and functions are provided in 
 
 
 \chapter{Pending Changes}

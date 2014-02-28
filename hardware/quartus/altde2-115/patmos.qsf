@@ -41,7 +41,7 @@ set_global_assignment -name DEVICE EP4CE115F29C7
 set_global_assignment -name TOP_LEVEL_ENTITY patmos_top
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION "11.0 SP1"
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "11:11:57  JUNE 19, 2012"
-set_global_assignment -name LAST_QUARTUS_VERSION 10.1
+set_global_assignment -name LAST_QUARTUS_VERSION 13.1
 
 
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0

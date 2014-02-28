@@ -59,6 +59,8 @@ $(BUILDDIR)/mandelbrot_par.elf: nocinit.c libnoc
 $(BUILDDIR)/bootable-cmp_hello.elf: nocinit.c libnoc
 $(BUILDDIR)/cmp_hello.elf: nocinit.c libnoc
 
+$(BUILDDIR)/hello_sum.elf: nocinit.c libnoc boot.h cmpboot.h
+
 # library for network-on-chip
 .PHONY: libnoc
 libnoc: $(BUILDDIR)/libnoc.a
