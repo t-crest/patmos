@@ -187,10 +187,39 @@ project (Hard Real-Time Embedded Multiprocessor Platform - RTEMP)
 
 \chapter{Introduction}
 
-
+\begin{itemize}
+\item The purpose of Argo - To increase core-2-core communication bandwidth
+\item How should the reader advance through the document
+\item Which assumptions har the authors made
+\end{itemize}
 
 \chapter{The Architecture of Argo}
 \label{sec:arch}
+
+Argo is a time-predictable Network-on-Chip (NOC). An Argo NOC is made up of two different components,
+network interfaces (NI) and routers.
+The functionality of the NOC is to enable message passing between processing cores.
+The NI is in charge of converting between the transaction based interface
+of a processor to a streaming interface suited for network communication.
+The router is routing the packets through the network.
+To make the network time-predictable the NI and the router uses static 
+time division multiplexing (TDM) to route communication through the network.
+Meaning that allocation of links between routers follow a static pre-defined schedule.
+A diagram of the architecture of Argo is shown in Figure~\ref{fig:diag}
+
+\begin{figure}
+\label{fig:diag}
+\centering
+%\includegraphics[width=\textwidth]{}
+\caption{The architecture of a single Argo tile.}
+\end{figure}
+
+The poseidon scheduler can generate static TDM schedules for Argo.
+\rasmus{I am not sure whether to reference the git repo or the techincal report.}
+
+To enable full utilization of the static TDM schedule,
+Argo has a direct memory access (DMA) channel per communication channel.
+To send a message through the network a DMA needs to be setup.
 
 
 \chapter{Memory address space and interface}
@@ -676,8 +705,8 @@ This way of setting up an SSH tunnel might also work for other institutions.
 \chapter{Application Programming Interface}
 \label{sec:api}
 
-A number of variables and functions are provided in 
-
+At the time of writing the only application programming interface is the libnoc.
+libnoc has two kinds of functionality, the first is to initialize the network interface (NI) and the second is the setup DMA transferes for send messages to other processing cores.
 
 \chapter{Pending Changes}
 
@@ -687,6 +716,7 @@ Currently we have following proposals for a change:
 
 \begin{itemize}
 \item DMA read
+\item Generate an interrupt when a complete DMA transfere has been received. 
 \end{itemize}
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
