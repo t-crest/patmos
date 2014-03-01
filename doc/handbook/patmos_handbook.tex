@@ -3037,8 +3037,6 @@ sudo apt-get install git openjdk-7-jdk gitk cmake make g++ texinfo flex bison \
   ruby1.9.1-dev python zlib1g-dev gtkwave gtkterm
 \end{verbatim}
 
-Optional package for documentation build: \code{doxygen}, which will install LaTeX as well.
-
 For the Quartus setup it is best to change the default shall to \code{/bin/bash}:
 
 \begin{verbatim}
@@ -3148,7 +3146,7 @@ till Cyclone~V devices and might be the best option at the moment.
 Several tools are needed, best installed with MacPorts. For Patmos simulator and assembler:
 \code{boost}, \code{libelf}.
 For simulation with ModelSim: \code{wine}
-For Aegean: \code{python33} and \code{py33-lxml}. Make a link from python3 to python3.3 as this is the way it is invoked.
+For Aegean: python33, py33-lxml. Make a link from python3 to python3.3 as this is the way it is invoked.
 \todo{Alex suggested a way to avoid this by querying how to invoke python.}
 
 \section{Hello World}
@@ -3358,7 +3356,6 @@ The name of an application that can execute from the on-chip ROM is set
 with the BOOTAPP variable.
 
 \subsection{Download of ELF Files}
-\label{sec:elf:files}
 
 On a Linux box with the installed LLVM compiler and Quartus in your PATH,
 the complete build processes for the Hello World is as follows:
@@ -3372,8 +3369,7 @@ make BOOTAPP=bootable-bootloader APP=hello_puts \
 You should see the download information and then the greeting from Patmos:
 
 \begin{verbatim}
-/home/martin/t-crest/patmos/install/bin/patserdow -v /dev/ttyUSB0 \
-   /home/martin/t-crest/patmos/tmp/hello_puts.elf
+/home/martin/t-crest/patmos/install/bin/patserdow -v /dev/ttyUSB0 /home/martin/t-crest/patmos/tmp/hello_puts.elf
 Port opened: true
 Params set: true
 Elf version is '1':true
@@ -3397,20 +3393,14 @@ A C program that shall be compiled as ROM target needs to be prefixed
 with \code{bootable-}.
 \code{APP} is a C program resulting in an ELF binary that can be either
 loaded by the emulator or the boot loader when executing in an FPGA.
+% TODO: test and talk about patsim. Having a complete ELF in the FPGA
+% without the boot loader would be nice as well.
 
-When developing software for Patmos and using the boot loader, the FPGA
-configuration needs only be synthesized once. We only need to compile
-the application, configure the FPGA, and download the application:
+\todo{Describe ELF download without building the FPGA}
 
-\begin{verbatim}
-make APP=hello_puts config download
-\end{verbatim}
 
-\paragraph{A Variation of the Setup}
 Here an example of the individual steps to build the blinking LED C
-hello world for a different FPGA board and splitting the process for
-a mixed OS setup:
-
+hello world (on a different FPGA board):
 \begin{verbatim}
 make tools
 make BOOTAPP=bootable-echo bootcomp gen
@@ -3418,10 +3408,12 @@ make BOOTAPP=bootable-echo BOARD=bemicro synth
 make BOARD=bemicro BLASTER_TYPE=Arrow-USB-Blaster config
 \end{verbatim}
 
-This split of the make commands is for demonstration of how to handle
-two two operating systems (e.g., Mac OSX for compilation and Windows for synthesis).
+This split of the make commands is for demonstration. It is
+possible to merge all steps into a single make (on Linux
+systems) or two steps when using two operating
+systems (e.g., Mac OSX for compilation and Windows for synthesis).
 
-\paragraph{Emulator and ELF File}
+\paragraph{Emulator and elf File}
 
 The emulator can read a standard ELF file. An example how to compile
 a small C program that uses part of the standard library and executing
@@ -3475,7 +3467,7 @@ the mandelbrot calculation.
 
 However, the approach to have the application in on-chip memory works for tiny programs
 only. Furthermore, each software change needs a new synthesize run. A better approach is
-to build a platform that contains a boot loader (similar to the single core version) and some
+to build a platform that contains a bootloader (similar to the single core version) and some
 startup code to synchronize the program start with the other cores. This platform is the default
 configuration in Aegean and needs to be generated only once with:
 
@@ -3505,16 +3497,6 @@ the FPGA from within the Aegean project for the multi-core version.
 \todo{We shall have here three simple hello world applications: (1) just plain shared memory 4 cores saying hello - DONE -,
 (2) a CMP program that uses shared memory, and (3) a simple NoC setup.}
 
-\begin{figure}
-\begin{verbatim}
-/*
-    This is a minimal C program...
-    
-\end{verbatim}
-\caption{A CMP Hello World}
-\label{fig:cmp:hello}
-\end{figure}
-
 
 %[2014-02-28 17:24:08 ] Stefan Hepp: #include <machine/patmos.h>
 %[2014-02-28 17:24:22 ] Stefan Hepp: zu finden in patmos-newlib/newlib/libc/machine/patmos/machine/patmos.h
@@ -3523,8 +3505,8 @@ the FPGA from within the Aegean project for the multi-core version.
 
 For the evaluation within the T-CREST project the Xilinx ML605 FPGA board was chosen as the `standard'
 evaluation platform. The T-CREST platform contains, besides several Patmos' connected with the Argo NoC,
-a memory tree, called BlueTree, from UoY, and the time-predictable memory controller from TU/e. As the
-build of this platform needs some non-free tools and includes closed source code, we provide prebuilt
+a memory tree, called BlueTree, from UoY and the time-predictable memory controller from TU/e. As the
+building this platform needs some non-free tools and including closed source code, we provide prebuilt
 configurations of the T-CREST platform as bit files available for download:
 
 \begin{itemize}
