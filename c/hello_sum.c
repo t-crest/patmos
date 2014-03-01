@@ -73,10 +73,10 @@ static void blink(int nblinks) {
 
 
 static void master(void) {
-	blink(6);
+	//blink(6);
 
 	volatile _SPM char *spm_base = (volatile _SPM char *) NOC_SPM_BASE;		//0
-	volatile _SPM char *spm_slave = spm_base+NOC_CORES*4*4; 			//64
+	volatile _SPM char *spm_slave = spm_base+NOC_CORES*16;	 			//64
 
 	// message to be send
         const char *msg = "Hello slaves sum_id:0";
@@ -89,7 +89,7 @@ static void master(void) {
 //	*(spm_base+i) = '\0';
 
 	// send message
-	noc_send(1, spm_slave, spm_base, 21); //12 bytes
+	noc_send(1, spm_slave, spm_base, 21); //21 bytes
 
 	WRITE("MASTER: message sent: ",22);
 	WRITE(spm_base, 21);
@@ -102,7 +102,7 @@ static void master(void) {
 
         // received message
 	WRITE("MASTER: message received: ",26);
-        WRITE(spm_slave, 21);//strlen(NOC_SPM_BASE+NOC_CORES*4));
+        WRITE(spm_slave, 21);
         WRITE("\n",1);
 
 	return;
@@ -111,7 +111,7 @@ static void master(void) {
 static void slave(void) {
 
 	volatile _SPM char *spm_base = (volatile _SPM char *) NOC_SPM_BASE; 			//0
-	volatile _SPM char *spm_slave = spm_base+NOC_CORES*4*4; 				//64
+	volatile _SPM char *spm_slave = spm_base+NOC_CORES*16;	 				//64
 
 	// wait and poll until message arrives
 	while(*(spm_slave+20) == 0) {;}
