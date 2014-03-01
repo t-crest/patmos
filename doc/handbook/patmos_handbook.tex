@@ -3019,12 +3019,12 @@ ALU operations: 3173 LCs, 91.91 MHz.
 \chapter{Build Instructions}
 
 In the following we present the Patmos build instructions on a Linux/Ubuntu
-system.\footnote{I used the 32-bit version of Ubuntu to simplify the Quartus installation.}
+system (13.10).\footnote{I used the 32-bit version of Ubuntu to simplify the Quartus installation.}
 Patmos and the compiler have also been successfully installed on a Mac OSX
 system. The support of Windows is marginal, or basically not existent.
 
 
-\section{Setup On Ubuntu 13.04}
+\section{Setup On Ubuntu 13.10}
 
 After a plain Ubuntu installation several packages need to be installed.
 The following apt-get lists the packages that need to be
@@ -3044,6 +3044,16 @@ For the Quartus setup it is best to change the default shall to \code{/bin/bash}
 \begin{verbatim}
 sudo rm /bin/sh
 sudo ln -s /bin/bash /bin/sh
+\end{verbatim}
+
+\paragraph{Ubuntu 12.04 LTS}
+
+We also tested the setup on long-term support release 12.04 LTS. The compiler
+(gcc) is recent enough for all T-CREST code. Only some additional packages need to
+be installed:
+
+\begin{verbatim}
+sudo apt-get install python3-lxml
 \end{verbatim}
 
 \subsection{Compiler and Patmos}
@@ -3110,7 +3120,7 @@ tar xvf Quartus-web-xxx.tar
 The software installation is started with a plain \code{setup.sh}.\footnote{Or \code{bash setup.sh}}
 Then add the bin directory of Quartus to your \$PATH.
 %
-For  the USB Blaster following additional steps are needed:
+For access to the serial port and access rights for the USB Blaster following additional steps are needed:
 
 \begin{verbatim}
 # Add user to dialout group for the serial port access
@@ -3484,13 +3494,13 @@ The compilation and download of the application is then best done within
 the \code{patmos} directory with:
 
 \begin{verbatim}
-make make APP=hello_puts comp download
+make APP=hello_puts comp download
 \end{verbatim}
 
-This application is the some single core \emph{Hello World} application that
+This application is the same single core \emph{Hello World} application that
 we used in Section~\ref{sec:elf:files}. However, here we just compiled the
-application and downloaded it via the serial port. We synthesize and configure
-the FPGA from within the Aegean project.
+application and downloaded it via the serial port. We synthesized and configured
+the FPGA from within the Aegean project for the multi-core version.
 
 \todo{We shall have here three simple hello world applications: (1) just plain shared memory 4 cores saying hello - DONE -,
 (2) a CMP program that uses shared memory, and (3) a simple NoC setup.}
@@ -3505,6 +3515,10 @@ the FPGA from within the Aegean project.
 \label{fig:cmp:hello}
 \end{figure}
 
+
+%[2014-02-28 17:24:08 ] Stefan Hepp: #include <machine/patmos.h>
+%[2014-02-28 17:24:22 ] Stefan Hepp: zu finden in patmos-newlib/newlib/libc/machine/patmos/machine/patmos.h
+
 \section{The Xilinx ML605 Platform}
 
 For the evaluation within the T-CREST project the Xilinx ML605 FPGA board was chosen as the `standard'
@@ -3517,7 +3531,15 @@ configurations of the T-CREST platform as bit files available for download:
 \item A 4 core version: \url{http://patmos.compute.dtu.dk/t-crest-4core.bit}
 \item A 16 core version: 
 \end{itemize}
- 
+
+To configure the FPGA use the IMPACT software from Xilinx, which is part of the Xilinx ISE package
+and needs no license (It is also available in a smaller Lab package). To compile an application and
+download it to the ML605 follow the exact same steps as for the Altera CMP version, e.g., from
+within the \code{patmos} directory:
+
+\begin{verbatim}
+make APP=hello_puts comp download
+\end{verbatim}
 
 
 \section{ModelSim License}
