@@ -68,6 +68,7 @@
 \newcommand{\jack}[1]{\comment{Jack}{#1}{Magenta}}
 \newcommand{\sahar}[1]{\comment{Sahar}{#1}{Green}}
 \newcommand{\rasmus}[1]{\comment{Rasmus}{#1}{Mahogany}}
+\newcommand{\eva}[1]{\comment{Evangelia}{#1}{Green}}
 
 % uncomment to get rid of comments
 %\renewcommand{\tommy}[1]{}
@@ -227,6 +228,7 @@ Argo has a direct memory access (DMA) channel per communication channel.
 To send a message through the network a DMA needs to be setup.
 
 
+<<<<<<< HEAD
 
 \chapter{Static time division multiplexing scheduler - Poseidon}
 The source of poseidon is placed at \url{https://github.com/t-crest/poseidon.git}.
@@ -235,11 +237,28 @@ The performance of poseidon is desrcibed in \cite{}.% Technical report on poseid
 
 
 
+=======
+>>>>>>> 335660eb7b2ffe4473f2b999d27ed73a84a400b5
 \chapter{Memory address space and interface}
 The network interface (NI) of Argo has 2 OCP\cite{ocp:spec} interfaces.
 
 
 \section{Local and Global Address Space}
+
+\eva{Just copied the addresses from the .h files}
+\begin{enumeration}
+\item UART\_STATUS	0xF0000800
+\item UART\_DATA	0xF0000804
+\item LEDS   		0xF0000900
+
+\item NOC\_DMA\_BASE	0xE0000000
+\item NOC\_DMA\_P\_BASE	0xE1000000
+\item NOC\_ST\_BASE	0xE2000000
+\item NOC\_SPM\_BASE	0xE8000000
+\item NOC\_VALID\_BIT	0x08000
+\item NOC\_DONE\_BIT	0x04000
+\end{enumeration}
+
 
 
 \chapter{Build Instructions}
@@ -660,10 +679,10 @@ In directory \code{aegean} run:
 \begin{verbatim}
 make platform
 make synth
+make config
 \end{verbatim}
 
-to generate (and synthesize) the default project, which is the mandelbrot application on a 4 core
-version of Patmos for an Altera DE2-115 FPGA board.
+to generate, synthesize and configure the bootloader application on the default platform on Altera DE2-115 FPGA board. The default platform is 4 cores of Patmos connected by Argo NOC.
 
 \section{ModelSim License}
 In the case that you have a DTU Compute login you can access the license servers from outside the DTU network by setting up an SSH tunnel.
@@ -699,11 +718,116 @@ This way of setting up an SSH tunnel might also work for other institutions.
 %by the build process.
 
 
-\chapter{Application Programming Interface}
+\chapter{Application Programming Guide}
+
+\section{Application Programming Interface}
 \label{sec:api}
 
-At the time of writing the only application programming interface is the libnoc.
-libnoc has two kinds of functionality, the first is to initialize the network interface (NI) and the second is the setup DMA transferes for send messages to other processing cores.
+At the time of writing the only application programming interface is the libnoc library. A number of functions and variable are provided through libnoc library. libnoc has two kinds of functionality, the first is to initialize the network interface (NI) and the second is the setup DMA transfers for send messages to other processing cores. 
+
+The variables defined in libnoc:
+\begin{description}
+\item[NOC\_CORES] The number of cores on the platform. 
+\item[NOC\_TABLES] The number of tables for Noc configuration. 
+\item[NOC\_TIMESLOTS] The number of timeslots in the schedule. 
+\item[NOC\_DMAS]	The number of DMAs in the configuration. 
+\item[noc\_init\_array] The array for initialization data. 
+\item[NOC\_MASTER] The master core, which governs booting and startup synchronization. 
+\end{description}
+
+
+The functions defined in libnoc:
+\begin{description}
+\item [noc\_configure] Configure network interface according to initialization information in noc\_init\_array.
+\item [noc\_init] Configure network-on-chip and synchronize all cores. 
+\item [noc\_dma] Starts a NoC transfer. 
+\item [noc\_send] Transfer data via the NoC. 
+\end{description}
+
+
+\section{Hello World multicore}
+
+To demonstrate the use of Argo, a multi-core Hello World application \textit{hello\_sum.c} is placed in /patmos/c. The application is written in C and can be compiled and downloaded on the FPGA board where the bootloader is initiating the execution. The application needs to be placed in /patmos/c and the compile and download of the application on the board is done with the following make commands:
+
+\begin{verbatim}
+make APP=hello_sum comp
+make APP=hello_sum download
+\end{verbatim}
+
+To develop an application that runs on T-CREST platform, memory access and communication should be handled explicitely. Argo noc is initialized automatically through aegean platform but the communication of data should be handled by application programmer. Specifically, in \textit{hello\_sum} application, a round trip hello message is sent from the master passing through all the cores. Each core is adding its id to the sum of the id and eventually the master will receive the sum of all core ids. To send data from one core to another the data should be explicitely placed in the local SPM of the core. Pointers to access SPM space are defined as:
+
+\begin{verbatim}
+volatile _SPM <type> *<name>
+\end{verbatim}
+
+The sending of the message is done using function noc\_send():
+
+\begin{verbatim}
+void noc_send (int rcv_id, volatile void _SPM *dst, volatile void _SPM *src, size_t size)
+\end{verbatim}
+
+The function returns when the message is sent from the local core.
+
+Currently, libnoc library doesn't support a receive message, therefore a receiver can know that the data has arrived through wait and polling to the specified address the data are axpected to arrive. Figure \ref{fig:hello_multi} shows the code executed in the slave cores. The code for the allocation of memory in the SPM, the polling and the sending of message appears in Figure \ref{fig:hello_multi}.
+
+\begin{figure}
+\begin{verbatim}
+
+volatile _SPM char *spm_base = (volatile _SPM char *) NOC_SPM_BASE;
+volatile _SPM char *spm_slave = spm_base+NOC_CORES*16;
+
+// wait and poll until message arrives
+while(*(spm_slave+20) == 0) {;}
+
+// PROCESS : add ID to sum_id
+*(spm_slave+20) = *(spm_slave+20) + CORE_ID;
+
+// send to next slave
+int rcv_id = (CORE_ID==3)? 0 : CORE_ID+1;
+noc_send(rcv_id, spm_slave, spm_slave, 21);
+
+\end{verbatim}
+\caption{A 2x2 Hello World application: Slave.}
+\label{fig:hello_multi}
+\end{figure}
+
+\eva{Maybe master code not really needed here.}
+Figure \ref{fig:hello_master} shows the code executed in the master core. The code for the explicit copying the data to the SPM space, the sending of message, the polling and the printing appears in  Figure \ref{fig:hello_master}.
+
+\begin{figure}
+\begin{verbatim}
+
+volatile _SPM char *spm_base = (volatile _SPM char *) NOC_SPM_BASE;
+volatile _SPM char *spm_slave = spm_base+NOC_CORES*16;
+
+// message to be send
+const char *msg = "Hello slaves sum_id:0";
+
+// put message to spm
+int i;
+for (i = 0; i < 21; i++) {
+	*(spm_base+i) = *(msg+i);
+}
+
+// send message
+noc_send(1, spm_slave, spm_base, 21); //21 bytes
+
+WRITE("MASTER: message sent: ",22);
+WRITE(spm_base, 21);
+WRITE("\n",1);
+
+// wait and poll
+while(*(spm_slave+20) == 0) {;}
+
+// received message
+WRITE("MASTER: message received: ",26);
+WRITE(spm_slave, 21);
+WRITE("\n",1);
+
+\end{verbatim}
+\caption{A 2x2 Hello World application: Master.}
+\label{fig:hello_master}
+\end{figure}
 
 \chapter{Pending Changes}
 
