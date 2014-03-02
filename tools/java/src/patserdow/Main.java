@@ -70,12 +70,12 @@ public class Main
             Elf elf = new Elf(file);
             ElfHeader header = elf.getHeader();
             if (verbose) {
-                print_stream.println("Elf version is '1':"+(header.getVersion()==1));
-                print_stream.println("CPU type is:"+header.getMachineType());
-                print_stream.println("Instruction width is 32 bits:"+(header.is32bit()));
-                print_stream.println("Is Big Endian:"+header.isBigEndian());
-                print_stream.println("File is of type exe:"+(header.getType()==ElfHeader.ET_EXEC));
-                print_stream.println("Entry point:"+header.getEntryPoint());
+                print_stream.println("Elf version is '1': "+(header.getVersion()==1));
+                print_stream.println("CPU type is: "+header.getMachineType());
+                print_stream.println("Instruction width is 32 bits: "+(header.is32bit()));
+                print_stream.println("Is Big Endian: "+header.isBigEndian());
+                print_stream.println("File is of type exe: "+(header.getType()==ElfHeader.ET_EXEC));
+                print_stream.println("Entry point: "+header.getEntryPoint());
                 print_stream.println();
             }
 
