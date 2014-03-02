@@ -186,24 +186,33 @@ project (Hard Real-Time Embedded Multiprocessor Platform - RTEMP)
 
 \chapter{Introduction}
 
+Argo is a time-predictable Network-on-Chip (NOC) designed to be used in hard real-time multi-core platforms.
+The main functiuonality of Argo is to provide time-predictable core-to-core communication in the form of message passing.
+Argo provides time-predictable message passing through its shared network of routers,
+by allocating resources such that it enforces a static time division multiplexing (TDM) schedule.
+
+The static TDM schedule can be constructed to fit an application by allocating different amounts of bandwidth to different communication channels.
+The poseidon scheduler \url{https://github.com/t-crest/poseidon.git} is part of the T-CREST tool chain and is used to generate static TDM schedules.
+
 \begin{itemize}
-\item The purpose of Argo - To increase core-2-core communication bandwidth
 \item How should the reader advance through the document
 \item Which assumptions har the authors made
 \end{itemize}
 
+In this report we assume that the reader is familiar with C and has skimmed through the \href{http://patmos.compute.dtu.dk/patmos_handbook.pdf}{Patmos handbook}.
+Another assumption is the the reader already has access to a hardware platform, either genereated by the reader or a pre-synthesized platform downloaded from the project webpage.
+
+
+
+
 \chapter{The Architecture of Argo}
 \label{sec:arch}
 
-Argo is a time-predictable Network-on-Chip (NOC). An Argo NOC is made up of two different components,
+The Argo NOC is made up of two different components,
 network interfaces (NI) and routers.
-The functionality of the NOC is to enable message passing between processing cores.
-The NI is in charge of converting between the transaction based interface
-of a processor to a streaming interface suited for network communication.
-The router is routing the packets through the network.
-To make the network time-predictable the NI and the router uses static 
-time division multiplexing (TDM) to route communication through the network.
-Meaning that allocation of links between routers follow a static pre-defined schedule.
+The NI converts the transaction based communication from the processor to
+stream based communication towards other processors in the network.
+The router is routing the packets through the network according the the static TDM schedule.
 A diagram of the architecture of Argo is shown in Figure~\ref{fig:diag}
 
 \begin{figure}
@@ -213,12 +222,16 @@ A diagram of the architecture of Argo is shown in Figure~\ref{fig:diag}
 \caption{The architecture of a single Argo tile.}
 \end{figure}
 
-The poseidon scheduler can generate static TDM schedules for Argo.
-\rasmus{I am not sure whether to reference the git repo or the techincal report.}
-
 To enable full utilization of the static TDM schedule,
 Argo has a direct memory access (DMA) channel per communication channel.
 To send a message through the network a DMA needs to be setup.
+
+
+
+\chapter{Static time division multiplexing scheduler - Poseidon}
+The source of poseidon is placed at \url{https://github.com/t-crest/poseidon.git}.
+The performance of poseidon is desrcibed in \cite{}.% Technical report on poseidon
+
 
 
 
