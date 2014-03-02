@@ -146,7 +146,7 @@
 %
 \begin{document}
 
-\title{Argo programming guide}
+\title{Argo Programming Guide}
 
 \author{Evangelia Kasapaki,  Rasmus Bo S{\o}rensen}
 
@@ -228,8 +228,6 @@ Argo has a direct memory access (DMA) channel per communication channel.
 To send a message through the network a DMA needs to be setup.
 
 
-<<<<<<< HEAD
-
 \chapter{Static time division multiplexing scheduler - Poseidon}
 The source of poseidon is placed at \url{https://github.com/t-crest/poseidon.git}.
 The performance of poseidon is desrcibed in \cite{}.% Technical report on poseidon
@@ -237,8 +235,7 @@ The performance of poseidon is desrcibed in \cite{}.% Technical report on poseid
 
 
 
-=======
->>>>>>> 335660eb7b2ffe4473f2b999d27ed73a84a400b5
+
 \chapter{Memory address space and interface}
 The network interface (NI) of Argo has 2 OCP\cite{ocp:spec} interfaces.
 
@@ -246,7 +243,7 @@ The network interface (NI) of Argo has 2 OCP\cite{ocp:spec} interfaces.
 \section{Local and Global Address Space}
 
 \eva{Just copied the addresses from the .h files}
-\begin{enumeration}
+\begin{enumerate}
 \item UART\_STATUS	0xF0000800
 \item UART\_DATA	0xF0000804
 \item LEDS   		0xF0000900
@@ -257,7 +254,7 @@ The network interface (NI) of Argo has 2 OCP\cite{ocp:spec} interfaces.
 \item NOC\_SPM\_BASE	0xE8000000
 \item NOC\_VALID\_BIT	0x08000
 \item NOC\_DONE\_BIT	0x04000
-\end{enumeration}
+\end{enumerate}
 
 
 
