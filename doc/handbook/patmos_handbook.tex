@@ -3356,6 +3356,7 @@ The name of an application that can execute from the on-chip ROM is set
 with the BOOTAPP variable.
 
 \subsection{Download of ELF Files}
+\label{sec:elf:files}
 
 On a Linux box with the installed LLVM compiler and Quartus in your PATH,
 the complete build processes for the Hello World is as follows:
@@ -3523,6 +3524,86 @@ within the \code{patmos} directory:
 make APP=hello_puts comp download
 \end{verbatim}
 
+\subsection{Getting the Xilinx Configuration Cable to Work}
+
+Xilinx does not support Ubuntu (at least the last few versions) directly. The following description
+is a summary of the help from Jamie.
+
+Copy some Xilinx cable specific files to \code{/usr/share} with:
+
+\begin{verbatim}
+sudo cp /opt/Xilinx/14.7/ISE_DS/ISE/bin/lin/install_script/install_drivers/\
+linux_drivers/pcusb/*.hex /usr/share
+\end{verbatim}
+ 
+Ensure that \code{fxload} is installed with:
+\begin{verbatim} 
+sudo apt-get install fxload
+\end{verbatim}
+
+Create \code{/etc/udev/rules.d/80-xusbdfw.rules} with following content:
+
+\begin{tiny}
+\begin{verbatim}
+# version 0003
+ATTR{idVendor}=="03fd", ATTR{idProduct}=="0008", MODE="666"
+SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="03fd", ATTR{idProduct}=="0007", RUN+="/sbin/fxload -v -t fx2 -I /usr/share/xusbdfwu.hex -D $tempnode"
+SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="03fd", ATTR{idProduct}=="0009", RUN+="/sbin/fxload -v -t fx2 -I /usr/share/xusb_xup.hex -D $tempnode"
+SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="03fd", ATTR{idProduct}=="000d", RUN+="/sbin/fxload -v -t fx2 -I /usr/share/xusb_emb.hex -D $tempnode"
+SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="03fd", ATTR{idProduct}=="000f", RUN+="/sbin/fxload -v -t fx2 -I /usr/share/xusb_xlp.hex -D $tempnode"
+SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="03fd", ATTR{idProduct}=="0013", RUN+="/sbin/fxload -v -t fx2 -I /usr/share/xusb_xp2.hex -D $tempnode"
+SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="03fd", ATTR{idProduct}=="0015", RUN+="/sbin/fxload -v -t fx2 -I /usr/share/xusb_xse.hex -D $tempnode"
+\end{verbatim}
+\end{tiny}
+
+Restart the udev service with:
+
+\begin{verbatim} 
+sudo udevadm control --reload-rules
+\end{verbatim}
+
+Make sure that libusb is installed (e.g., in \code{/lib/i386-linux-gnu}) and make a symbolic link with
+
+\begin{verbatim} 
+sudo ln -s libusb-1.0.so.0 libusb.so
+\end{verbatim}
+
+Best restart your machine and connect the USB cable again.
+
+\paragraph{Using iMPACT}
+
+Start impact from a terminal with 
+
+\begin{verbatim} 
+impact
+\end{verbatim}
+
+Impact pops up some dialog boxes:
+
+Do you want iMPACT to automatically load the last saved project for you? -- answer with \emph{No}.
+
+Do you want the system to automatically create and save a project file for you? -- answer \emph{Yes}.
+
+Next window click Ok. iMPACT should detect the JTAG chain with two devices. Answer the
+following dialog boxes wit \emph{No} and \emph{Cancel}.
+
+Right-click on the xc6vlx240t device and select \emph{Assign New Configuration File} and select
+the provided .bit file (e.g., \code{t-crest-4core.bit}). Answer the following question about attached
+Flash PROMs with \emph{No}.
+
+Right-click again on the FPGA symbol and select \emph{Program}. Select \emph{Ok} on the next
+dialog box and the FPGA shall be configured.
+
+Then compile and download an application as described above.
+
+\paragraph{Installing the Xilinx Tools}
+
+After extracting the tools with \code{tar} the install procedure is started within the
+\code{Xilinx\_*} directory with:
+
+\begin{verbatim}
+sudo ./xsetup
+\end{verbatim}
 
 \section{ModelSim License}
 In the case that you have a DTU Compute login you can access the license servers from outside the DTU network by setting up an SSH tunnel.
