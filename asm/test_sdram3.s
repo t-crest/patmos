@@ -17,7 +17,7 @@
 # r11==read/write test bound (address limit)
 # r12==memory read error count
 
-	.word	408;
+	.word	420;
 
 	addi	r0 = r0, 0;  # first instruction not executed         	#0
 begin: addi	r5 = r0, 15;                                          	#1
@@ -56,7 +56,7 @@ poll_stdin: lwl     r1 = [r5 + 0];                                     	#6
 	addi	r11 = r0, 1;	# r11 == test_limit                      	#14
 	sli	r11 = r11, 26;                                          	#15
 	addi	r12 = r0, 0; # r12==error count                       	#16
-	addi	r1= r0, 87; 'W'                                       	#17
+	addi	r1= r0, 87; # 'W'                                       	#17
 	swl     [r5 + 1] = r1;                                     	#18
 	subi	r9 = r0, 64;	# r9 == mask (not 63)                    	#19
 
@@ -97,7 +97,7 @@ skip_store: addi	r10 = r10, 4;                                         	#40
 
 
 #read_init:
-	addi	r1= r0, 82; 'R'                                       	#45
+	addi	r1= r0, 82; # 'R'                                       	#45
 	swl     [r5 + 1] = r1;                                     	#46
 	addi	r10 = r0, 0;	# addr_cnt <= 0                          	#47
 
@@ -128,7 +128,7 @@ skip_load: andi	r2  = r10, 63;  # offset                              	#61
 
 	cmpeq	p1 = r1, r2; # should be the same                    	#65
 	(p1)	br no_error;                                         	#66
-        (!p1)   addi    r1  = r0 , 69;  'E'                 	#67
+        (!p1)   addi    r1  = r0 , 69; # 'E'                 	#67
 	(!p1)	addi    r12 = r12, 1; #error_cnt++                   	#68
 	swl     [r5 + 1] = r1; # we write to UART without pooling for ready here,	#69
 
@@ -173,4 +173,7 @@ poll_stdout3: lwl     r1 = [r5 + 0];                                     	#86
 	br begin;                                                      	#97
 		addi    r0 = r0, 0;                                       	#98
 		addi    r0 = r0, 0;                                       	#99
-halt;                                                       	#100
+	halt;                                                       	#100
+	nop;
+	nop;
+	nop;

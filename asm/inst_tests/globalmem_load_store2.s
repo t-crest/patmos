@@ -1,5 +1,5 @@
 # Test case for global data memory load and store
-	.word	240;
+	.word	252;
 	add 	r1 = r0, 0xFF0FF000;
 	add 	r1 = r0, 0xFF0FF000;
 	addi	r2 = r0, 4;
@@ -57,3 +57,6 @@
 	lhum	r14 = [r2 + 0];
 	lhum	r15 = [r2 + 1];
 	halt;
+	nop;
+	nop;
+	nop;

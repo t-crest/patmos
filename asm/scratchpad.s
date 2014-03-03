@@ -2,7 +2,7 @@
 # Simple test of a SPM
 #
 
-	.word   76;
+	.word   88;
 	addi	r1 = r0, 255;  # first instruction maybe not executed
 	addi	r1 = r0, 32;
 	addi	r2 = r0, 5;
@@ -20,3 +20,6 @@
 	lwl	r6  = [r1 + 4];
 	lwl	r7  = [r1 + 8];
 	halt; 
+	nop;
+	nop;
+	nop;

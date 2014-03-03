@@ -4,7 +4,7 @@
 # Expected Result: echo entered characters
 # SA: this is the working version of echo.
 
-		.word   104;
+		.word   116;
 # Set up IO address
 x0:		addi	r0 = r0, 0;
 		add 	r5 = r0, 0xf0000800;
@@ -40,3 +40,6 @@ x2:		lwl     r10  = [r5 + 0];
 
 # Never reached
 		halt;
+		nop;
+		nop;
+		nop;

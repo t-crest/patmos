@@ -2,7 +2,7 @@
 # Test the multiplication pipeline
 #
 
-	.word   88;
+	.word   96;
 	addi	r1 = r0, 1;
 	addi	r2 = r0, 2;
 	addi	r3 = r0, 3;
@@ -19,3 +19,6 @@
 	mul r1, r7 || mfs r13 = s2;
 
 	halt;
+	nop;
+	nop;
+	nop;

@@ -1,7 +1,7 @@
 #
 # Basic load/store tests
 
-	.word   100;
+	.word   112;
 	addi	r0 = r0, 0;
 	addi	r1 = r0, 4;
 	add	r2 = r0, 0xabcd1234;
@@ -25,3 +25,6 @@
 	sbl	[r1 + 3] = r2;
 	lwl	r3 = [r1 + 0];
 	halt; 
+	nop;
+	nop;
+	nop;

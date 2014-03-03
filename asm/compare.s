@@ -2,7 +2,7 @@
 # Basic instructions test
 # 
 
-	.word   232;
+	.word   244;
 	addi	r1 = r0, 255;  # first instruction not executed 0
 	addi	r1 = r0, 2; #1 r1 = 2
 x0:	addi	r2 = r0, 2; #2 r2 = 2
@@ -64,5 +64,6 @@ x8:	cmplt   p2  = r1, r2;
 	addi	r23 = r0, 1;  	
 
 	halt; 
-
-
+	nop;
+	nop;
+	nop;

@@ -2,7 +2,7 @@
 # Just a few basic instructions to watch the pipeline going in ModelSim
 #
 
-	.word   32;
+	.word   40;
 	addi	r1 = r0, 255;
 
 	addi	r1 = r0, 15;
@@ -11,3 +11,6 @@
 	addi	r3 = r0, 3;
 	add	r4 = r2, r3;
 	halt;
+	nop;
+	nop;
+	nop;

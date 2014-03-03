@@ -1,4 +1,4 @@
-	.word   88;
+	.word   100;
 	addi	r1 = r0, 255;  # first instruction not executed
 	addi	r20 = r0, 15;
 	sli	r20 = r20, 28;
@@ -49,3 +49,6 @@
 # 		swm	[r20 + 1] = r5;
 
 	halt; 
+	nop;
+	nop;
+	nop;

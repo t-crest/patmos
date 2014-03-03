@@ -1,7 +1,7 @@
 #
 # Test predicates and branch
 #
-	.word   256;
+	.word   268;
 	addi	r0 = r0, 0;  # first instruction not executed
 	addi	r1 = r0, 2;
 	addi	r2 = r0, 2;
@@ -88,4 +88,6 @@ pb4:		subi	r1 = r1, 1;
 # Done
 #############
 	halt;
-
+	nop;
+	nop;
+	nop;

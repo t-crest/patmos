@@ -3,7 +3,7 @@
 #
 # Expected Result: echo entered characters
 #
-		.word   164;
+		.word   176;
 		addi	r0 = r0, 0;  # first instruction not executed
 		addi	r1 = r0, 1;
 		add	r2   = r0 , 65536; # dual issue from odd
@@ -35,4 +35,7 @@ x1:		addi    r5 = r5, 1;
 		nop;
 		nop;
 		addi    r13 = r13, 1;
-                halt;
+		halt;
+		nop;
+		nop;
+		nop;

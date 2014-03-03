@@ -2,7 +2,7 @@
 # Minimum program to test the new assembler
 #
 
-	.word   28;
+	.word   48;
 	addi	r1 = r0, 255;  # first instruction not executed
 
 label2:	addi	r1 = r0, 15;
@@ -12,3 +12,6 @@ label2:	addi	r1 = r0, 15;
 	add	r4 = r2, r3;
 	nor 	r6 = r1, r4		||	and 	r7 = r1, r5;
 	halt;
+	nop;
+	nop;
+	nop;

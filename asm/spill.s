@@ -1,7 +1,7 @@
 #
 # Expected Result: 
 #
-		.word   168;
+		.word   180;
 		addi	r5 = r0, 0;                
 		addi    r1 = r0, 0;
 		addi	r10 = r0, 64;
@@ -42,4 +42,7 @@ l2:		sws	[r16 + 0] = r14;
 		sens    64;
 		addi    r11 = r0, 1;# check if stall works in case of spill
 		addi    r12 = r0, 2;# check if stall works in case of spill
-                halt;
+		halt;
+		nop;
+		nop;
+		nop;

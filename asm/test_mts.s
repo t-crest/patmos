@@ -2,7 +2,7 @@
 # Testing hazard with mts
 #
 
-	.word   60;
+	.word   72;
 	addi	r0 = r0, 0;  # first instruction not executed
 	addi    r1 = r0, 1;
 	addi    r2 = r0, 5;
@@ -17,3 +17,6 @@
 	(!p1) swc [r2 + 2] = r1; # should not be executed, will cause unaligned access
 	mts     s0 = r1;       # sets p1 = false
 	halt;		       # r3 should be 7, r4 should be 9
+	nop;
+	nop;
+	nop;
