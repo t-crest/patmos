@@ -92,13 +92,7 @@
 \usepackage{listings}
 
 % general style for listings
-\lstset{basicstyle=\ttfamily,keywordstyle=\ttfamily}
-
-% listings style for Java
-\lstnewenvironment{Java} {\lstset{
-  xleftmargin=12pt,
-  language=Java
-}}{}
+\lstset{basicstyle=\ttfamily,language=C}
 
 \usepackage[endianness=big]{bytefield}
 
@@ -217,10 +211,10 @@ The router is routing the packets through the network according the the static T
 A diagram of the architecture of Argo is shown in Figure~\ref{fig:diag}
 
 \begin{figure}
-\label{fig:diag}
 \centering
 %\includegraphics[width=\textwidth]{}
 \caption{The architecture of a single Argo tile.}
+\label{fig:diag}
 \end{figure}
 
 To enable full utilization of the static TDM schedule,
@@ -243,18 +237,17 @@ The network interface (NI) of Argo has 2 OCP\cite{ocp:spec} interfaces.
 \section{Local and Global Address Space}
 
 \eva{Just copied the addresses from the .h files}
-\begin{enumerate}
-\item UART\_STATUS	0xF0000800
-\item UART\_DATA	0xF0000804
-\item LEDS   		0xF0000900
-
-\item NOC\_DMA\_BASE	0xE0000000
-\item NOC\_DMA\_P\_BASE	0xE1000000
-\item NOC\_ST\_BASE	0xE2000000
-\item NOC\_SPM\_BASE	0xE8000000
-\item NOC\_VALID\_BIT	0x08000
-\item NOC\_DONE\_BIT	0x04000
-\end{enumerate}
+\begin{description}
+\item[UART\_STATUS]      0xF0000800
+\item[UART\_DATA]        0xF0000804
+\item[LEDS]              0xF0000900
+\item[NOC\_DMA\_BASE]    0xE0000000
+\item[NOC\_DMA\_P\_BASE] 0xE1000000
+\item[NOC\_ST\_BASE]     0xE2000000
+\item[NOC\_SPM\_BASE]    0xE8000000
+\item[NOC\_VALID\_BIT]   0x08000
+\item[NOC\_DONE\_BIT]    0x04000
+\end{description}
 
 
 
@@ -507,7 +500,7 @@ The marker selects the right compiler settings for a program that ends up in
 the Patmos on-chip ROM. As the on-chip memory is limited, only tiny programs
 are supported in this execution mode.
 
-Figure~\ref{fig:blink} shows the code for the embedded Hello World
+Listing~\ref{lst:blink} shows the code for the embedded Hello World
 C program. Two constants (0xF0000900 and 0xF0000804) are the addresses
 of the IO devices LED and serial port. IO devices connected to Patmos are
 connected to the local, uncached memory area. This is the same memory
@@ -515,8 +508,7 @@ area where data SPM and NoC SPM are connected. Therefore, to access them
 one needs to use the local load/store instructions. With the attribute \code{\_SPM}
 the compiler is instructed to emit the correct load and store instructions.
 
-\begin{figure}
-\begin{verbatim}
+\begin{lstlisting}[float,caption={A blinking LED\label{lst:blink}}]
 /*
     This is a minimal C program executed on the FPGA version of Patmos.
     An embedded Hello World program: a blinking LED.
@@ -548,10 +540,8 @@ int main() {
                 *led_ptr = 0;
 
     }
-}\end{verbatim}
-\caption{A blinking LED}
-\label{fig:blink}
-\end{figure}
+}
+\end{lstlisting}
 
 \martin{I'm still a little bit confused when to use the APP and the BOOTAPP
 thing.}
@@ -688,6 +678,7 @@ An example of how such a tunnel can be set up follows, you need to insert you ow
 \begin{verbatim}
 ssh -L 1717:angel2:1717 -L 1718:angel2:1718 ${USERNAME}@sshlogin.compute.dtu.dk
 \end{verbatim}
+%%$ fake end of math mode
 
 When the SSH tunnel is setup the LM\_LICENSE\_FILE needs to be set to:
 \begin{verbatim}
@@ -752,24 +743,21 @@ make APP=hello_sum download
 \end{verbatim}
 
 To develop an application that runs on T-CREST platform, memory access and communication should be handled explicitely. Argo noc is initialized automatically through aegean platform but the communication of data should be handled by application programmer. Specifically, in \textit{hello\_sum} application, a round trip hello message is sent from the master passing through all the cores. Each core is adding its id to the sum of the id and eventually the master will receive the sum of all core ids. To send data from one core to another the data should be explicitely placed in the local SPM of the core. Pointers to access SPM space are defined as:
-
-\begin{verbatim}
+\begin{lstlisting}
 volatile _SPM <type> *<name>
-\end{verbatim}
+\end{lstlisting}
 
 The sending of the message is done using function noc\_send():
 
-\begin{verbatim}
+\begin{lstlisting}
 void noc_send (int rcv_id, volatile void _SPM *dst, volatile void _SPM *src, size_t size)
-\end{verbatim}
+\end{lstlisting}
 
 The function returns when the message is sent from the local core.
 
-Currently, libnoc library doesn't support a receive message, therefore a receiver can know that the data has arrived through wait and polling to the specified address the data are axpected to arrive. Figure \ref{fig:hello_multi} shows the code executed in the slave cores. The code for the allocation of memory in the SPM, the polling and the sending of message appears in Figure \ref{fig:hello_multi}.
+Currently, libnoc library doesn't support a receive message, therefore a receiver can know that the data has arrived through wait and polling to the specified address the data are axpected to arrive. Listing~\ref{lst:hello_multi} shows the code executed in the slave cores. The code for the allocation of memory in the SPM, the polling and the sending of message appears in Listing~\ref{lst:hello_multi}.
 
-\begin{figure}
-\begin{verbatim}
-
+\begin{lstlisting}[float,caption={A 2x2 Hello World application: Slave.\label{lst:hello_multi}}]
 volatile _SPM char *spm_base = (volatile _SPM char *) NOC_SPM_BASE;
 volatile _SPM char *spm_slave = spm_base+NOC_CORES*16;
 
@@ -782,18 +770,12 @@ while(*(spm_slave+20) == 0) {;}
 // send to next slave
 int rcv_id = (CORE_ID==3)? 0 : CORE_ID+1;
 noc_send(rcv_id, spm_slave, spm_slave, 21);
-
-\end{verbatim}
-\caption{A 2x2 Hello World application: Slave.}
-\label{fig:hello_multi}
-\end{figure}
+\end{lstlisting}
 
 \eva{Maybe master code not really needed here.}
-Figure \ref{fig:hello_master} shows the code executed in the master core. The code for the explicit copying the data to the SPM space, the sending of message, the polling and the printing appears in  Figure \ref{fig:hello_master}.
+Listing~\ref{lst:hello_master} shows the code executed in the master core. The code for the explicit copying the data to the SPM space, the sending of message, the polling and the printing appears in Listing~\ref{lst:hello_master}.
 
-\begin{figure}
-\begin{verbatim}
-
+\begin{lstlisting}[float,caption={A 2x2 Hello World application: Master.\label{lst:hello_master}}]
 volatile _SPM char *spm_base = (volatile _SPM char *) NOC_SPM_BASE;
 volatile _SPM char *spm_slave = spm_base+NOC_CORES*16;
 
@@ -820,11 +802,7 @@ while(*(spm_slave+20) == 0) {;}
 WRITE("MASTER: message received: ",26);
 WRITE(spm_slave, 21);
 WRITE("\n",1);
-
-\end{verbatim}
-\caption{A 2x2 Hello World application: Master.}
-\label{fig:hello_master}
-\end{figure}
+\end{lstlisting}
 
 \chapter{Pending Changes}
 
@@ -834,7 +812,7 @@ Currently we have following proposals for a change:
 
 \begin{itemize}
 \item DMA read
-\item Generate an interrupt when a complete DMA transfere has been received. 
+\item Generate an interrupt when a complete DMA transfer has been received. 
 \end{itemize}
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
