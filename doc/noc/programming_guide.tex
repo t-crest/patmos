@@ -261,6 +261,7 @@ The network interface (NI) of Argo has 2 OCP\cite{ocp:spec} interfaces.
 
 
 \chapter{Application Programming Guide}
+\label{chap:apg}
 
 \section{Application Programming Interface}
 \label{sec:api}
@@ -319,8 +320,8 @@ The function returns when the DMA transmitting the message is setup.
 Currently, libnoc library doesn't support a receive message,
 therefore a receiver can know that the data has arrived through wait
 and polling of the specified address where the data are expected to arrive.
-Figure \ref{fig:hello_multi} shows the code executed in the slave cores.
-The code for the allocation of memory in the SPM, the polling and the sending of message appears in Figure \ref{fig:hello_multi}.
+Figure \ref{lst:hello_multi} shows the code executed in the slave cores.
+The code for the allocation of memory in the SPM, the polling and the sending of message appears in Figure \ref{lst:hello_multi}.
 
 \begin{lstlisting}[float,caption={A 2x2 Hello World application: Slave.\label{lst:hello_multi}}]
 volatile _SPM char *spm_base = (volatile _SPM char *) NOC_SPM_BASE;
