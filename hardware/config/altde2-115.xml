@@ -12,7 +12,7 @@
   <DSPM size="2k" />
   <BootSPM size="2k" />
 
-  <ExtMem size="2M" DevTypeRef="Ssram16" />
+  <ExtMem size="2G" DevTypeRef="Ssram16" />
 
   <IOs>
 	<IO DevTypeRef="CpuInfo" offset="0"/>

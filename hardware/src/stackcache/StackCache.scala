@@ -66,7 +66,7 @@ class StackCache(SCACHE_SIZE: Int, burstLen: Int) extends Module {
   val scLdStAddr = UInt(width = ADDR_WIDTH)
   scLdStAddr := io.master.M.Addr
   val cpu_addr_masked = UInt(width = ADDR_WIDTH)
-  cpu_addr_masked := (scLdStAddr)(addrUFix + 1, 2)
+  cpu_addr_masked := (scLdStAddr)(addrUFix - 1, 2)
 
   val rdData = Reg(Bits())
 
