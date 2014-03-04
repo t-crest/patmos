@@ -188,7 +188,7 @@ by allocating resources such that it enforces a static time division multiplexin
 
 The static TDM schedule can be constructed to fit an application by allocating
 different amounts of bandwidth to different communication channels.
-The poseidon scheduler \url{https://github.com/t-crest/poseidon.git} is part of
+The Poseidon scheduler \url{https://github.com/t-crest/poseidon.git} is part of
 the T-CREST tool chain and is used to generate static TDM schedules.
 
 The steps to build the Patmos tools on a Linux/Ubuntu
@@ -227,10 +227,30 @@ Argo has a direct memory access (DMA) channel per communication channel.
 To send a message through the network a DMA needs to be setup.
 
 
-\chapter{Static time division multiplexing scheduler - Poseidon}
+\chapter{Static time division multiplexing scheduler}
 \label{chap:poseidon}
-The source of poseidon is placed at \url{https://github.com/t-crest/poseidon.git}.
-The performance of poseidon is desrcibed in \cite{}.% Technical report on poseidon
+The TDM scheduler used to generate schedules for Argo is called Poseidon.
+The source of Poseidon is placed at \url{https://github.com/t-crest/poseidon.git}.
+The performance of Poseidon is desrcibed in \cite{tcrest:poseidon}.% Technical report on poseidon
+
+Poseidon takes an XML file as input descriping the platform and the required communication pattern.
+The platform and communication tags can be given in two different XML files or on one.
+When the platform is generated from the Aegean platform generator, the input files for the scheduler are also generated.
+
+For the time beeing the scheduler is limited to schedule one package per communication channel in each period.
+This limitation is due to a limitation in the current hardware, not a limitation in the scheduler it self.
+When multiple packages per communication channel are supported the limitation can be removed by commenting out (in t-crest/poseidon/src/parser.cpp) the lines:
+
+\begin{verbatim}
+warn_if(bw != 1,"Bandwidth different from 1 is not supported by Argo, Bandwidth set to 1.");
+if (bw != 1) { bw = 1;  }
+\end{verbatim}
+
+\section{Input format}
+
+\section{Output format}
+
+\section{Conversion to C}
 
 
 
@@ -389,7 +409,7 @@ Ideas for extensions can be added in this chapter.
 
 
 \bibliographystyle{abbrv}
-\bibliography{../handbook/patbib.bib}
+\bibliography{../handbook/patbib.bib,noc.bib}
 
 \end{document}
 
