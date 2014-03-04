@@ -1547,7 +1547,7 @@ This (and all hazards for all other instructions) should be documented here in t
 
 \sahar{Special registers are written/read separately. Is this 1-cycle hazard necessary? What is the reason to add it?}
 
-\stefan{The reason for the hazards is primarily the current implementation of the the simulator, there the special registers
+\stefan{The reason for the hazards is primarily the current implementation of the simulator, there the special registers
 are updated separately from the internal stack pointers, which causes the hazards. We should define how the
 hardware actually behaves, and then the simulator should be updated to reflect that behavior. However, the latter is not quite trivial, I will
 leave that to Florian ;) }
@@ -3188,7 +3188,7 @@ The whole build process of Patmos,%
 \footnote{Get the source from GitHub with: \code{git clone git@github.com:t-crest/patmos}}
 applications in assembler
 and in C, configuration of the FPGA, and downloading an application
-is \code{Makefile} based. The build of Patmos is within the patmos folder,
+is \code{Makefile} based. The build of Patmos is within the \code{patmos} folder,
 therefore, the following descriptions assumes you have changed to:
 
 \begin{verbatim}
@@ -3242,7 +3242,7 @@ make hwsim BOOTAPP=basic
 This command assembles the application, executes the Chisel based hardware
 construction during which the program is used to initialize the on-chip ROM,
 generates a C++ based emulator, compiles that emulator, and executes it.
-The emulator show the register content after each instruction.
+The emulator shows the register content after each instruction.
 
 Those two Patmos simulations, the software simulator and the Chisel based emulator,
 are used for a co-simulation based test. In this co-simulation all available assembler
@@ -3450,7 +3450,7 @@ the Aegean framework. Aegean is a collection of Python scripts that read in XML 
 description (e.g., topology, network connections, processor types,...). Aegean generates the Chisel based
 components (Partmos, memory arbitration tree, and memory controller), generates the VHDL top-level
 to connect them with the VHDL based NoC, synthesizes the hardware, compiles the application for the
-the individual cores, configures the FPGA, and downloads the application.
+individual cores, configures the FPGA, and downloads the application.
 
 In directory \code{aegean} run:
 
