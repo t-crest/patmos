@@ -39,8 +39,10 @@ import patmos._
 import io.CoreDevice
 import io.Device
 
-import scala.tools.nsc.interpreter._
-import scala.tools.nsc._
+import scala.tools.nsc.interpreter.IMain
+import scala.tools.nsc.Settings
+import java.io.DataInputStream
+import ch.epfl.lamp.fjbg.{ FJBGContext, JClass }
 
 /**
  * A tiny configuration tool for Patmos.
@@ -165,7 +167,7 @@ object Config {
         } else {
           -1
         }
-        println("IO device "+key+": entity "+name+", offset "+offset+", params "+params)
+        ChiselError.info("IO device "+key+": entity "+name+", offset "+offset+", params "+params)
         new DeviceConfig(name, params, offset)
       }
 
@@ -209,9 +211,22 @@ object Config {
       if (clazz.isInstance(outer)) {
         // get method to retrieve pin bundle
         val methName = name(0).toLower + name.substring(1, name.length) + "Pins"
+        for (m <- clazz.getMethods) {
+          if (m.getName != methName && !m.getName.endsWith("_$eq")) {
+
+            val fileName = name+"$Pins.class"
+            val classStream = new DataInputStream(clazz.getResourceAsStream(fileName))
+            val jClass = new FJBGContext().JClass(classStream)
+
+            ChiselError.error("Pins trait for IO device "+name+
+                              " cannot have member "+m.getName+
+                              ", only member "+methName+" allowed"+
+                              " (file "+jClass.getSourceFileName+")", null)
+          }
+        }
         val meth = clazz.getMethods.find(_.getName == methName)
         if (meth == None) {
-          println("No pins for device: "+clazz+"."+methName)
+          ChiselError.info("No pins for IO device "+name)
         } else {
           // retrieve pin bundles
           val outerPins = meth.get.invoke(clazz.cast(outer))
