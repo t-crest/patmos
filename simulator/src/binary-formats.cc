@@ -824,7 +824,8 @@ namespace patmos
 
   cfli_format_t::cfli_format_t(const instruction_t &instruction,
                                word_t opcode, word_t flag) :
-      binary_format_t(instruction, 0x7800000, insert(0x4000000, 23, 2, opcode), 1)
+      binary_format_t(instruction, 0x7c00000,
+                      insert(insert(0x4000000, 23, 2, opcode), 22, 1, flag), 1)
   {
   }
 
@@ -882,7 +883,8 @@ namespace patmos
   cflri_format_t::cflri_format_t(const instruction_t &instruction,
                                  word_t opcode, word_t flag) :
 
-      binary_format_t(instruction, 0x780000F, insert(0x6000000, 0, 2, opcode), 1)
+      binary_format_t(instruction, 0x7c0000F,
+                      insert(insert(0x6000000, 0, 2, opcode), 22, 1, flag), 1)
   {
   }
 
@@ -922,7 +924,8 @@ namespace patmos
 
   cflrs_format_t::cflrs_format_t(const instruction_t &instruction,
                                  word_t opcode, word_t flag) :
-      binary_format_t(instruction, 0x780000F, insert(0x6000004, 0, 2, opcode), 1)
+      binary_format_t(instruction, 0x7c0000F,
+                      insert(insert(0x6000004, 0, 2, opcode), 22, 1, flag), 1)
   {
   }
 
@@ -965,7 +968,8 @@ namespace patmos
 
   cflrt_format_t::cflrt_format_t(const instruction_t &instruction,
                                  word_t opcode, word_t flag) :
-      binary_format_t(instruction, 0x780000F, insert(0x6000008, 0, 2, opcode), 1)
+      binary_format_t(instruction, 0x7c0000F,
+                      insert(insert(0x6000008, 0, 2, opcode), 22, 1, flag), 1)
   {
   }
 
