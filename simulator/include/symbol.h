@@ -28,6 +28,49 @@
 
 namespace patmos
 {
+  class symbol_map_t;
+  
+  struct reloc_info_t {
+    std::string SymA;
+    // If not empty, the result of the relocation is A - B.
+    std::string SymB;
+    // Additional constant added to the symbol values
+    word_t Addend;
+    // Size in bits of the relocation
+    unsigned Size;
+    // Offset in bits of the value
+    unsigned Offset;
+    // Shift the value of symbols to the right by the given amout of bits
+    unsigned Shift;
+    // Relative to PC?
+    bool Relative;
+    
+    reloc_info_t() : Addend(0), Size(0), Offset(0), Shift(0), Relative(false) {}
+    
+    void set_format(unsigned size, unsigned offset = 0, unsigned shift = 0, 
+                    bool relative = false)
+    {
+      Size = size; 
+      Offset = offset; 
+      Shift = shift; 
+      Relative = relative; 
+    }
+    
+    void set_PCRel_format(unsigned size) 
+    {
+      set_format(size, 0, 2, true);
+    }
+    
+    void set_word_format(unsigned size)
+    {
+      set_format(size, 0, 2, false);
+    }
+    
+    bool get_value(symbol_map_t &symbols, word_t &value, word_t PC = 0) const;
+  };
+  
+
+  
   /// Symbol information, start address, size
   struct symbol_info_t
   {
@@ -86,6 +129,11 @@ namespace patmos
     /// @return True if the map contains at least one symbol for that address.
     bool contains(word_t address) const;
 
+    /// Check if the map contains a symbol.
+    /// @param symbol the name of the symbol.
+    /// @return True if the map contains at least one symbol with that name.
+    bool contains(std::string symbol) const;
+    
     /// Check if a symbol at a given address covers the given address, i.e,
     /// if there is a symbol at address @symbol and @addess is in 
     /// [@symbol,@symbol+@symbol.size)

@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,10 +32,10 @@
 
 /*
  * Connection definitions for the pipe stages.
- * 
+ *
  * Authors: Martin Schoeberl (martin@jopdesign.com)
  *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
- * 
+ *
  */
 
 package patmos
@@ -133,6 +133,24 @@ class MemOp() extends Bundle() {
 	zext := Bool(false)
 	typ := Bits(0)
   }
+}
+
+class DecExSc() extends Bundle() {
+  val spill = Bits(width = 1)
+  val fill = Bits(width = 1)
+  val free = Bits(width = 1)
+  val nSpill = SInt(width = log2Up(SCACHE_SIZE))
+  val nFill = SInt(width = log2Up(SCACHE_SIZE))
+  val sp = UInt(width = DATA_WIDTH)
+}
+
+object DecExScResetVal extends DecExSc {
+  spill := Bits(0)
+  fill := Bits(0)
+  free := Bits(0)
+  nSpill := SInt(0)
+  nFill := SInt(0)
+  sp := UInt(0)
 }
 
 class DecEx() extends Bundle() {
@@ -263,6 +281,16 @@ class ExDec() extends Bundle() {
   val sp = UInt(width = DATA_WIDTH)
 }
 
+//stack cache
+class ExSc extends Bundle() {
+  val decexsc = new DecExSc()
+  val mTop = UInt(width = ADDR_WIDTH)
+}
+
+class MemDecSc() extends Bundle() {
+  val mTop = UInt(width = ADDR_WIDTH)
+}
+
 class ExMem() extends Bundle() {
   val rd = Vec.fill(PIPE_COUNT) { new Result() }
   val mem = new MemIn()
@@ -354,6 +382,9 @@ class DecodeIO() extends Bundle() {
   val exdec = new ExDec().asInput
   val rfWrite =  Vec.fill(PIPE_COUNT) { new Result().asInput }
   val exc = new ExcDec().asInput
+  // stack cache
+  val decexsc = new DecExSc().asOutput
+  val memdecsc = new MemDecSc().asInput 
 }
 
 class ExecuteIO() extends Bundle() {
@@ -370,6 +401,9 @@ class ExecuteIO() extends Bundle() {
   val memResult = Vec.fill(PIPE_COUNT) { new Result().asInput }
   // branch for FE
   val exfe = new ExFe().asOutput
+  //stack cache
+  val decexsc = new DecExSc().asInput
+  val exsc = new ExSc().asOutput
 }
 
 class InOutIO() extends Bundle() {
@@ -410,6 +444,14 @@ class MemoryIO() extends Bundle() {
   val exc = new MemExc().asOutput
 }
 
+//stack cache
+class StackCacheIO() extends Bundle() {
+  
+   val exsc = new ExSc().asInput
+   val memdecsc = new MemDecSc().asOutput // m_top
+   val stall = UInt(OUTPUT, width = 1)
+}
+
 class WriteBackIO() extends Bundle() {
   val ena = Bool(INPUT)
   val memwb = new MemWb().asInput
@@ -435,5 +477,4 @@ class PatmosCoreIO() extends Bundle() {
 class PatmosIO() extends Bundle() {
   val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
-  val sramPins = new RamOutPinsIO(EXTMEM_ADDR_WIDTH-2)
 }

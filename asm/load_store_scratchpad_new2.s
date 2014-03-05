@@ -2,7 +2,7 @@
 # Basic instructions test
 # different ld/st from/to scratchpad memory
 
-	.word   228;
+	.word   240;
 	addi	r1 = r0, 255;  # first instruction not executed
 	addi	r1 = r0, 256; # r1 = 256
 	addi	r2 = r0, 5;
@@ -65,3 +65,6 @@ x1:	shl	[r1 + 4] = r5; #
 	cmpneq  p1 = r31, r29;
 (p1)	br	x1; #r20 equals to all upper bits 1 
 	halt;
+	nop;
+	nop;
+	nop;

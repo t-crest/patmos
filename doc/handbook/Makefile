@@ -3,6 +3,7 @@ DOC?=patmos_handbook
 BIBS=patbib.bib
 OPEN=open # program for displaying the pdf
 
+TEX=$(wildcard *.tex)
 
 # include file to override e.g. OPEN
 # config.mk is ignored by svn
@@ -19,10 +20,10 @@ TIKZFIGURES=fig/timing_core.pdf fig/timing_io.pdf fig/timing_burst.pdf \
 fig/%.pdf: fig/%.tex
 	pdflatex --output-directory fig $^
 
-rubber: $(DOC).tex $(BIBS) $(TIKZFIGURES)
+rubber: $(TEX) $(BIBS) $(TIKZFIGURES)
 	rubber --short --warn all -d $(DOC).tex
 
-$(DOC).pdf: $(DOC).tex $(BIBS) $(TIKZFIGURES)
+$(DOC).pdf: $(TEX) $(BIBS) $(TIKZFIGURES)
 	pdflatex $(DOC)
 	bibtex $(DOC)
 	pdflatex $(DOC)

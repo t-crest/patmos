@@ -1,7 +1,9 @@
 #
 # Main make file for Patmos
 #
-
+##############################################################
+# Include user makefile for local configurations
+-include config.mk
 # COM port for downloader
 COM_PORT?=/dev/ttyUSB0
 
@@ -10,11 +12,11 @@ BOOTAPP?=basic
 #BOOTAPP=bootable-bootloader
 
 # Application to be downloaded
-APP?=hello
+APP?=hello_puts
 
 # Altera FPGA configuration cables
 #BLASTER_TYPE=ByteBlasterMV
-#BLASTER_TYPE=Arrow-USB-Blaster 
+#BLASTER_TYPE=Arrow-USB-Blaster
 BLASTER_TYPE?=USB-Blaster
 
 # Path delimiter for Wdoz and others
@@ -25,23 +27,23 @@ else
 endif
 
 # The Quartus project
-#QPROJ=bemicro
-QPROJ?=altde2-70
-
-# MS: why do we need all those symbols when
-# the various paths are fixed anyway?
+#BOARD=bemicro
+#BOARD?=altde2-70
+BOARD?=altde2-115
 
 # Where to put elf files and binaries
 BUILDDIR?=$(CURDIR)/tmp
 # Build directories for various tools
 SIMBUILDDIR?=$(CURDIR)/simulator/build
 CTOOLSBUILDDIR?=$(CURDIR)/tools/c/build
+JAVATOOLSBUILDDIR?=$(CURDIR)/tools/java/build
 HWBUILDDIR?=$(CURDIR)/hardware/build
 # Where to install tools
-INSTALLDIR?=$(CURDIR)/bin
+INSTALLDIR?=$(CURDIR)/install
 HWINSTALLDIR?=$(INSTALLDIR)
 
 all: tools emulator patmos
+
 
 tools: patsim elf2bin javatools
 
@@ -50,47 +52,55 @@ patsim:
 	-mkdir -p $(SIMBUILDDIR)
 	cd $(SIMBUILDDIR) && cmake ..
 	cd $(SIMBUILDDIR) && make
-	-mkdir -p $(INSTALLDIR)
-	cp $(SIMBUILDDIR)/src/pa* $(INSTALLDIR)
+	-mkdir -p $(INSTALLDIR)/bin
+	cp $(SIMBUILDDIR)/src/pa* $(INSTALLDIR)/bin
 
 # Build tool to transform elf to binary
 elf2bin:
 	-mkdir -p $(CTOOLSBUILDDIR)
 	cd $(CTOOLSBUILDDIR) && cmake ..
 	cd $(CTOOLSBUILDDIR) && make
-	-mkdir -p $(INSTALLDIR)
-	cp $(CTOOLSBUILDDIR)/src/elf2bin $(INSTALLDIR)
+	-mkdir -p $(INSTALLDIR)/bin
+	cp $(CTOOLSBUILDDIR)/src/elf2bin $(INSTALLDIR)/bin
 
 # Build various Java tools
-javatools: tools/java/lib/patmos-tools.jar
+javatools: $(JAVATOOLSBUILDDIR)/lib/patmos-tools.jar \
+		tools/lib/java-binutils-0.1.0.jar tools/lib/jssc.jar \
+		tools/scripts/patserdow
+	-mkdir -p $(INSTALLDIR)/lib/java
+	cp $(JAVATOOLSBUILDDIR)/lib/patmos-tools.jar $(INSTALLDIR)/lib/java
+	cp tools/lib/java-binutils-0.1.0.jar $(INSTALLDIR)/lib/java
+	cp tools/lib/jssc.jar $(INSTALLDIR)/lib/java
+	-mkdir -p $(INSTALLDIR)/bin
+	cp tools/scripts/patserdow $(INSTALLDIR)/bin
 
 PATSERDOW_SRC=$(shell find tools/java/src/patserdow/ -name *.java)
-PATSERDOW_CLASS=$(patsubst tools/java/src/%.java,tools/java/classes/%.class,$(PATSERDOW_SRC))
+PATSERDOW_CLASS=$(patsubst tools/java/src/%.java,$(JAVATOOLSBUILDDIR)/classes/%.class,$(PATSERDOW_SRC))
 JAVAUTIL_SRC=$(shell find tools/java/src/util/ -name *.java)
-JAVAUTIL_CLASS=$(patsubst tools/java/src/%.java,tools/java/classes/%.class,$(JAVAUTIL_SRC))
+JAVAUTIL_CLASS=$(patsubst tools/java/src/%.java,$(JAVATOOLSBUILDDIR)/classes/%.class,$(JAVAUTIL_SRC))
 
-tools/java/lib/patmos-tools.jar: $(PATSERDOW_CLASS) $(JAVAUTIL_CLASS)
-	-mkdir -p tools/java/lib
-	cd tools/java/classes && jar cf ../lib/patmos-tools.jar $(subst tools/java/classes/,,$^)
+$(JAVATOOLSBUILDDIR)/lib/patmos-tools.jar: $(PATSERDOW_CLASS) $(JAVAUTIL_CLASS)
+	-mkdir -p $(JAVATOOLSBUILDDIR)/lib
+	cd $(JAVATOOLSBUILDDIR)/classes && jar cf ../lib/patmos-tools.jar $(subst $(JAVATOOLSBUILDDIR)/classes/,,$^)
 
-tools/java/classes/%.class: tools/java/src/%.java
-	-mkdir -p tools/java/classes
+$(JAVATOOLSBUILDDIR)/classes/%.class: tools/java/src/%.java
+	-mkdir -p $(JAVATOOLSBUILDDIR)/classes
 	javac -classpath tools/lib/java-binutils-0.1.0.jar:tools/lib/jssc.jar \
-		-sourcepath tools/java/src -d tools/java/classes $<
+		-sourcepath tools/java/src -d $(JAVATOOLSBUILDDIR)/classes $<
 
 # Build the Chisel emulator
 emulator:
 	-mkdir -p $(HWBUILDDIR)
 	$(MAKE) -C hardware BOOTBUILDROOT=$(CURDIR) BOOTBUILDDIR=$(BUILDDIR) BOOTAPP=$(BOOTAPP) BOOTBIN=$(BUILDDIR)/$(BOOTAPP).bin emulator
-	-mkdir -p $(HWINSTALLDIR)
-	cp $(HWBUILDDIR)/emulator $(HWINSTALLDIR)
+	-mkdir -p $(HWINSTALLDIR)/bin
+	cp $(HWBUILDDIR)/emulator $(HWINSTALLDIR)/bin
 
 # Assemble a program
 asm: asm-$(BOOTAPP)
 
 asm-% $(BUILDDIR)/%.bin $(BUILDDIR)/%.dat: asm/%.s
 	-mkdir -p $(dir $(BUILDDIR)/$*)
-	$(INSTALLDIR)/paasm $< $(BUILDDIR)/$*.bin
+	$(INSTALLDIR)/bin/paasm $< $(BUILDDIR)/$*.bin
 	touch $(BUILDDIR)/$*.dat
 
 # Compile a program with flags for booting
@@ -98,12 +108,12 @@ bootcomp: bin-$(BOOTAPP)
 
 # Convert elf file to binary
 bin-% $(BUILDDIR)/%.bin $(BUILDDIR)/%.dat: $(BUILDDIR)/%.elf
-	$(INSTALLDIR)/elf2bin $< $(BUILDDIR)/$*.bin $(BUILDDIR)/$*.dat
+	$(INSTALLDIR)/bin/elf2bin $< $(BUILDDIR)/$*.bin $(BUILDDIR)/$*.dat
 
 # Convert elf file to flat memory image
 img: img-$(APP)
 img-% $(BUILDDIR)/%.img: $(BUILDDIR)/%.elf
-	$(INSTALLDIR)/elf2bin -f $< $(BUILDDIR)/$*.img
+	$(INSTALLDIR)/bin/elf2bin -f $< $(BUILDDIR)/$*.img
 
 # Convert binary memory image to decimal representation
 imgdat: imgdat-$(APP)
@@ -121,7 +131,7 @@ comp-% $(BUILDDIR)/%.elf: .FORCE
 
 # High-level pasim simulation
 swsim: $(BUILDDIR)/$(BOOTAPP).bin
-	bin/pasim --debug --debug-fmt=short $(BUILDDIR)/$(BOOTAPP).bin
+	$(INSTALLDIR)/bin/pasim --debug --debug-fmt=short $(BUILDDIR)/$(BOOTAPP).bin; exit 0
 
 # C simulation of the Chisel version of Patmos
 hwsim:
@@ -143,21 +153,21 @@ else
 endif
 
 gen:
-	$(MAKE) -C hardware verilog BOOTAPP=$(BOOTAPP) QPROJ=$(QPROJ)
+	$(MAKE) -C hardware verilog BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
 
 synth: csynth
 
 csynth:
-	$(MAKE) -C hardware qsyn BOOTAPP=$(BOOTAPP) QPROJ=$(QPROJ)
+	$(MAKE) -C hardware qsyn BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
 
 config_byteblaster:
-	quartus_pgm -c $(BLASTER_TYPE) -m JTAG hardware/quartus/$(QPROJ)/patmos.cdf
+	quartus_pgm -c $(BLASTER_TYPE) -m JTAG hardware/quartus/$(BOARD)/patmos.cdf
 
 download: $(BUILDDIR)/$(APP).elf
-	java -Dverbose=true -cp tools/lib/*:tools/java/lib/* patserdow.Main $(COM_PORT) $<
+	$(INSTALLDIR)/bin/patserdow -v $(COM_PORT) $<
 
 fpgaexec: $(BUILDDIR)/$(APP).elf
-	java -Dverbose=false -cp tools/lib/*:tools/java/lib/* patserdow.Main $(COM_PORT) $<
+	$(INSTALLDIR)/bin/patserdow $(COM_PORT) $<
 
 # TODO: no Xilinx Makefiles available yet
 config_xilinx:
@@ -169,11 +179,12 @@ CLEANEXTENSIONS=rbf rpt sof pin summary ttf qdf dat wlf done qws
 
 mostlyclean:
 	-rm -rf $(SIMBUILDDIR) $(CTOOLSBUILDDIR) $(BUILDDIR)
-	-rm -rf tools/java/classes
+	-rm -rf $(JAVATOOLSBUILDDIR)/classes
 
 clean: mostlyclean
-	-rm -rf $(INSTALLDIR)
-	-rm -rf tools/java/lib
+	-rm -rf $(INSTALLDIR)/bin
+	-rm -rf $(INSTALLDIR)/lib
+	-rm -rf $(JAVATOOLSBUILDDIR)/lib
 	for ext in $(CLEANEXTENSIONS); do \
 		find `ls` -name \*.$$ext -print -exec rm -r -f {} \; ; \
 	done

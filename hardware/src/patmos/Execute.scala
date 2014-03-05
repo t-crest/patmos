@@ -193,6 +193,9 @@ class Execute() extends Module {
   val mulHLReg    = Reg(init = UInt(0, DATA_WIDTH))
   val mulHHReg    = Reg(init = UInt(0, DATA_WIDTH))
 
+  val signLHReg = Reg(init = Bits(0))
+  val signHLReg = Reg(init = Bits(0))
+
   val mulPipeReg = Reg(init = Bool(false))
 
   // multiplication only in first pipeline
@@ -201,29 +204,27 @@ class Execute() extends Module {
 
 	val signed = exReg.aluOp(0).func === MFUNC_MUL
 
-	val op1H = op(0)(DATA_WIDTH-1, DATA_WIDTH/2)
-	val op1L = op(0)(DATA_WIDTH/2-1, 0)
-	val op2H = op(1)(DATA_WIDTH-1, DATA_WIDTH/2)
-	val op2L = op(1)(DATA_WIDTH/2-1, 0)
+	val op1H = Cat(Mux(signed, Fill(DATA_WIDTH/2, op(0)(DATA_WIDTH-1)), Bits(0)),
+                   op(0)(DATA_WIDTH-1, DATA_WIDTH/2))
+	val op1L = Cat(Bits(0, width = DATA_WIDTH/2),
+                   op(0)(DATA_WIDTH/2-1, 0))
+	val op2H = Cat(Mux(signed, Fill(DATA_WIDTH/2, op(1)(DATA_WIDTH-1)), Bits(0)),
+                   op(1)(DATA_WIDTH-1, DATA_WIDTH/2))
+	val op2L = Cat(Bits(0, width = DATA_WIDTH/2),
+                   op(1)(DATA_WIDTH/2-1, 0))
 
-	mulLLReg := op1L.toUInt * op2L.toUInt
-	mulLHReg := op1L.toUInt * op2H.toUInt
-	mulHLReg := op1H.toUInt * op2L.toUInt
-	mulHHReg := op1H.toUInt * op2H.toUInt
+	mulLLReg := op1L * op2L
+	mulLHReg := op1L * op2H
+	mulHLReg := op1H * op2L
+	mulHHReg := op1H * op2H
 
-	when(signed) {
-	  val op1HSigned = Cat(Fill(DATA_WIDTH/2, op1H(DATA_WIDTH/2-1)), op1H.toSInt)
-	  val op2HSigned = Cat(Fill(DATA_WIDTH/2, op2H(DATA_WIDTH/2-1)), op2H.toSInt)
-	  mulLLReg := (op1L.toUInt * op2L.toUInt).toUInt()(DATA_WIDTH-1, 0)
-	  mulLHReg := (op1L.toUInt * op2HSigned).toUInt()(DATA_WIDTH-1, 0)
-	  mulHLReg := (op1HSigned * op2L.toUInt).toUInt()(DATA_WIDTH-1, 0)
-	  mulHHReg := (op1HSigned * op2HSigned).toUInt()(DATA_WIDTH-1, 0)
-	}
+	signHLReg := op1H(DATA_WIDTH/2)
+ 	signLHReg := op2H(DATA_WIDTH/2)
 
 	val mulResult = (Cat(mulHHReg, mulLLReg)
-					 + Cat(Fill(DATA_WIDTH/2, mulHLReg(DATA_WIDTH-1)),
+					 + Cat(Fill(DATA_WIDTH/2, signHLReg),
 						   mulHLReg, UInt(0, width = DATA_WIDTH/2))
-					 + Cat(Fill(DATA_WIDTH/2, mulLHReg(DATA_WIDTH-1)),
+					 + Cat(Fill(DATA_WIDTH/2, signLHReg),
 						   mulLHReg, UInt(0, width = DATA_WIDTH/2)))
 
 	when(mulPipeReg) {

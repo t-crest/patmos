@@ -2022,15 +2022,8 @@ namespace patmos
                            ops.OPS.CFLrs.D ? s.nPC : s.Pipeline[SEX][0].Address,
                            ops.EX_Address, SMW, false);
       
-      // Enter the debug stack just once, and before we actually do the update
-      // to avoid any issues with timing and stalling.
-      if (!ops.MW_Initialized && !ops.DR_Pred) {
-        ops.MW_Initialized = true;
-        
-        s.Dbg_stack.push(ops.EX_Address);
-        s.Profiling.enter(ops.EX_Address, s.Cycle);
-      }
-
+      push_dbgstack(s, ops, ops.DR_Pred, ops.EX_Address);
+      
       fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
       if (!ops.OPS.CFLrs.D && ops.DR_Pred && !s.is_stalling(SMW))
       {

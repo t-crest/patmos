@@ -69,18 +69,18 @@
 \newcommand{\sahar}[1]{\comment{Sahar}{#1}{Green}}
 \newcommand{\rasmus}[1]{\comment{Rasmus}{#1}{Mahogany}}
 
-%% uncomment to get rid of comments
-%\renewcommand{\tommy}[1]{}
-%\renewcommand{\wolf}[1]{}
-%\renewcommand{\martin}[1]{}
-%\renewcommand{\stefan}[1]{}
-%\renewcommand{\daniel}[1]{}
-%\renewcommand{\cullmann}[1]{}
-%\renewcommand{\gebhard}[1]{}
-%\renewcommand{\fb}[1]{}
-%\renewcommand{\jack}[1]{}
-%\renewcommand{\sahar}[1]{}
-%\renewcommand{\rasmus}[1]{}
+% uncomment to get rid of comments
+\renewcommand{\tommy}[1]{}
+\renewcommand{\wolf}[1]{}
+\renewcommand{\martin}[1]{}
+\renewcommand{\stefan}[1]{}
+\renewcommand{\daniel}[1]{}
+\renewcommand{\cullmann}[1]{}
+\renewcommand{\gebhard}[1]{}
+\renewcommand{\fb}[1]{}
+\renewcommand{\jack}[1]{}
+\renewcommand{\sahar}[1]{}
+\renewcommand{\rasmus}[1]{}
 
 %
 % custom colors
@@ -157,9 +157,12 @@
 
 \chapter{Preface}
 
-This TR shall evolve to the documentation of Patmos. In the mean time
-it is intended to collect design notes and discussions.  Especially
-ISA design notes now.
+This handbook shall evolve to the documentation of the Patmos processor and the
+Patmos compiler. In the mean time it is intended to collect design notes and discussions.
+Especially ISA design notes now.
+
+The latest version of this handbook is contained as LaTeX source in the Patmos repository in directory
+\code{patmos/doc/handbook} and can be built with \code{make}.
 
 \section*{Acknowledgment}
 
@@ -171,7 +174,7 @@ Gernot Gebhard and Christoph Cullmann gave valuable feedback on the ISA
 relative to WCET analysis.
 Sahar Abbaspourseyedi is working on the stack
 cache and verifies the ideas and concepts presented here. We thank
-Rasmus Bo Sørensen for fixing some documentation errors.
+Rasmus Bo S{\o}rensen for fixing some documentation errors.
 
 This work was partially funded under the
 European Union's 7th Framework Programme
@@ -1550,7 +1553,7 @@ This (and all hazards for all other instructions) should be documented here in t
 
 \sahar{Special registers are written/read separately. Is this 1-cycle hazard necessary? What is the reason to add it?}
 
-\stefan{The reason for the hazards is primarily the current implementation of the the simulator, there the special registers
+\stefan{The reason for the hazards is primarily the current implementation of the simulator, there the special registers
 are updated separately from the internal stack pointers, which causes the hazards. We should define how the
 hardware actually behaves, and then the simulator should be updated to reflect that behavior. However, the latter is not quite trivial, I will
 leave that to Florian ;) }
@@ -3036,13 +3039,15 @@ for the DE2-70 is: 3415 LCs, 85.44 MHz. Dropping \code{rsub} and all unary
 ALU operations: 3173 LCs, 91.91 MHz.
 
 \chapter{Build Instructions}
+\label{ch:build_instructions}
 
-In the following we present an example configuration on a Linux/Ubuntu system.
-Patmos and the compiler have also been successfully been installed on a Mac OSX
+In the following we present the Patmos build instructions on a Linux/Ubuntu
+system (13.10).\footnote{I used the 32-bit version of Ubuntu to simplify the Quartus installation.}
+Patmos and the compiler have also been successfully installed on a Mac OSX
 system. The support of Windows is marginal, or basically not existent.
 
 
-\section{Setup On Ubuntu 13.04}
+\section{Setup On Ubuntu 13.10}
 
 After a plain Ubuntu installation several packages need to be installed.
 The following apt-get lists the packages that need to be
@@ -3050,12 +3055,10 @@ installed:\footnote{Some packages might be available in newer version
 when reading this document.}
 
 \begin{verbatim}
-sudo apt-get install openjdk-7-jdk git gitk cmake make g++ texinfo flex bison \
-  libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
-  gtkwave
+sudo apt-get install git openjdk-7-jdk gitk cmake make g++ texinfo flex bison \
+  subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
+  ruby1.9.1-dev python zlib1g-dev gtkwave gtkterm
 \end{verbatim}
-
-\todo{Any additional packages needed for Aegean?}
 
 For the Quartus setup it is best to change the default shall to \code{/bin/bash}:
 
@@ -3064,7 +3067,18 @@ sudo rm /bin/sh
 sudo ln -s /bin/bash /bin/sh
 \end{verbatim}
 
+\paragraph{Ubuntu 12.04 LTS}
+
+We also tested the setup on long-term support release 12.04 LTS. The compiler
+(gcc) is recent enough for all T-CREST code. Only some additional packages need to
+be installed:
+
+\begin{verbatim}
+sudo apt-get install python3-lxml
+\end{verbatim}
+
 \subsection{Compiler and Patmos}
+\label{sec:build:compiler}
 
 We assume that the T-CREST project will live in \code{\$HOME/t-crest}.
 Patmos and the compiler can be checked out from GitHub and built as follows:
@@ -3091,16 +3105,35 @@ the Patmos source, and benchmarks) and
 build the compiler, the Patmos simulator, and the test benches.
 Therefore, take a cup of coffee and find some nice reading.
 After building the compiler add the path
-to the compiler executables into your \code{.profile}:
+to the compiler executables into your \code{.bashrc}:
 \footnote{The path needs to be absolute. LLVM cannot handle
 a path relative to the home folder \textasciitilde{}, e.g., \code{\textasciitilde{}/t-crest/local/bin}.}
+\footnote{The initialization file name depends on your system and setup. \code{profile} files are only read by login
+terminals (remote terminals or at login), but your \code{.bashrc} or \code{.zshrc} (for interactive terminals within a
+session) might be set up to source \code{.profile} as well.}
+
+\stefan{Relative paths should actually work, but the \textasciitilde{} shortcut is shell-specific and may not work, but
+not sure about this.}
 
 \begin{verbatim}
 export PATH=$PATH:$HOME/t-crest/local/bin
 \end{verbatim}
 
-A complete logout from Ubuntu is needed to take effect (just closing
-a terminal window is not enough).
+Optionally, you may additionally add the \code{misc} checkout to your path, so that \code{build.sh} and the helper tools in 
+\code{misc} can be executed from everywhere.
+
+\begin{verbatim}
+export PATH=$PATH:$HOME/t-crest/misc
+\end{verbatim}
+
+A complete logout from Ubuntu might be needed to take effect (just closing
+a terminal window is not enough, depending on how you set up your profile files).
+
+You can test your installation by checking if the compiler is available:
+
+\begin{verbatim}
+patmos-clang --version
+\end{verbatim}
 
 For correct correct signing of your changes set the username and
 email in git with:
@@ -3119,8 +3152,31 @@ installed as follows:\footnote{\url{http://www.altera.com/literature/manual/quar
 tar xvf Quartus-web-xxx.tar
 \end{verbatim}
 
-The software installation is started with a plain \code{setup.sh}. Then add
-the bin directory of Quartus to your \$PATH.
+The software installation is started with a plain \code{setup.sh}.\footnote{Or \code{bash setup.sh}}
+Then add the bin directory of Quartus to your \$PATH.
+%
+For access to the serial port and access rights for the USB Blaster following additional steps are needed:
+
+\begin{verbatim}
+# Add user to dialout group for the serial port access
+sudo usermod -a -G dialout user
+
+# Add permissions to access the Altera USB Blaster
+sudo su -
+echo "SUBSYSTEM==\"usb\", DRIVER==\"usb\", ATTR{idVendor}==\"09fb\", \
+ATTR{idProduct}==\"6001\", MODE=\"0666\"" > /etc/udev/rules.d/51-usbblaster.rules
+
+udevadm control --reload-rules
+\end{verbatim}
+
+After fixing the permissions for the USB Blaster open Quartus and test if the
+cable is found with the programmer. Select USB-Blaster in \emph{Hardware Setup}.
+When connected to an FPGA test the USB-Blaster with \emph{Auto Detect}
+(With the DE2-115, a question about shared JTAG ID pops up -- select EP4CE115).
+
+Quartus~13.1 drops the support of Cyclone~II devices. Therefore, the
+(phased out) Altera DE2-70 board is not supported anymore. Version 13.0 supports Cyclone~II\
+till Cyclone~V devices and might be the best option at the moment.
 
 \section{Setup On Mac OS X}
 
@@ -3132,8 +3188,9 @@ For Aegean: python33, py33-lxml. Make a link from python3 to python3.3 as this i
 
 \section{Hello World}
 
-One might start with the standard, harmless looking Hello World:
-
+We can start with the standard, harmless looking Hello
+World:\footnote{This example code is not part of the distribution, but
+can be put at any directory.}
 
 \begin{verbatim}
 main() {
@@ -3156,10 +3213,10 @@ by a tool and the individual sections downloaded, and finally a terminal (often
 a serial line) needs to be available on the target, and your test PC needs to
 have a serial line as well and a terminal program needs to run.
 
-Therefore, we might start with a minimal assembler program and execute
-that in the simulator and emulator.
-
-
+Therefore, we might start from a minimal assembler program and execute
+that in the simulator and emulator. From that base we can build up too
+a multi-core version of Patmos that executes in an FPGA and bootstraps
+with programs loaded via a serial port.
 
 
 \section{Building Patmos}
@@ -3168,7 +3225,13 @@ The whole build process of Patmos,%
 \footnote{Get the source from GitHub with: \code{git clone git@github.com:t-crest/patmos}}
 applications in assembler
 and in C, configuration of the FPGA, and downloading an application
-is \code{Makefile} based.
+is \code{Makefile} based. The build of Patmos is within the \code{patmos} folder,
+therefore, the following descriptions assumes you have changed to:
+
+\begin{verbatim}
+    t-crest/patmos
+\end{verbatim}
+
 
 The complete design flow (including the LLVM
 based C compiler) can execute in a Linux machine. The flow without
@@ -3177,40 +3240,193 @@ Under Mac OS X all tools, except Quartus, are working (ModelSim under
 wine). For FPGA synthesis and configuration Windows XP within a VMWare
 virtual machine is a possible solution.
 
-On a Linux box with the installed LLVM compiler in your PATH,%
-\footnote{Installation and build is a simple two step approach:
-\code{git clone git@github.com:t-crest/patmos-misc.git misc}
-and build with:
-\code{./misc/build.sh}}
-the complete build processes is kicked of by:
+On a Linux box with the installed LLVM compiler and Quartus in your PATH,
+the complete build processes for a Hello World is as follows:
 
-% make BOOTAPP=bootable-bootloader APP=helloworld tools synth comp config download
 \begin{verbatim}
-make BOOTAPP=bootable-bootloader APP=helloworld \
+make BOOTAPP=bootable-bootloader APP=hello_puts \
    tools comp gen synth config download
 \end{verbatim}
 
-Here a list of the most important make targets:
+However, this involves quite many steps. Therefore, we suggest doing some \emph{manual}
+buildup to explore the full build process and the possibilities.
 
+As a start we build some tools (e.g., the assembler, simulator, file conversion
+utility, and the boot loader). This has to be done once only.
+
+\begin{verbatim}
+make tools
+\end{verbatim}
+
+\subsection{A Few Assembler Instructions}
+
+We start with a very small assembler program that moves a few values into registers
+(see \code{asm/basic.s}). With following make command the program is assembled
+and executed in the software simulator of Patmos.
+
+\begin{verbatim}
+make swsim BOOTAPP=basic
+\end{verbatim}
+
+The simulator options are set to write out the register contents after each instruction.
+The emulator (the Chisel based simulator) can execute the same program
+with following command:
+
+\begin{verbatim}
+make hwsim BOOTAPP=basic
+\end{verbatim}
+
+This command assembles the application, executes the Chisel based hardware
+construction during which the program is used to initialize the on-chip ROM,
+generates a C++ based emulator, compiles that emulator, and executes it.
+The emulator shows the register content after each instruction.
+
+Those two Patmos simulations, the software simulator and the Chisel based emulator,
+are used for a co-simulation based test. In this co-simulation all available assembler
+programs are executed in both simulations and the register out put is compared.
+The test can be started with:
+
+\begin{verbatim}
+make test
+\end{verbatim}
+
+
+\todo{ModelSim simulation}
+
+\subsection{We Can Blink in Assembler}
+
+\todo{write}
+
+\subsection{A C Based Blinking LED}
+
+As a first real example we build the embedded version of Hello World, the
+blinking LED, from a C program. You can find the C source in \code{c/blinking.c}.
+
+\begin{verbatim}
+make BOOTAPP=bootable-blinking comp gen synth config
+\end{verbatim}
+
+Additionally to blinking an LED this program also writes alternating `0' and `1'
+to the serial port. Connect the FPGA board to your serial port,
+open a terminal of your choice (e.g., \code{gtkterm}), connect to the serial port,
+set the baud rate to 115200, no parity, and no handshaking.
+You should see alternating `0' and `1' sent out synchronous to the blinking.
+
+Note that the program name (\code{blink}) is prefixed by \code{bootable-}.
+The marker selects the right compiler settings for a program that ends up in
+the Patmos on-chip ROM. As the on-chip memory is limited, only tiny programs
+are supported in this execution mode.
+
+Figure~\ref{fig:blink} shows the code for the embedded Hello World
+C program. Two constants (0xF0000900 and 0xF0000804) are the addresses
+of the IO devices LED and serial port. IO devices connected to Patmos are
+connected to the local, uncached memory area. This is the same memory
+area where data SPM and NoC SPM are connected. Therefore, to access them
+one needs to use the local load/store instructions. With the attribute \code{\_SPM}
+the compiler is instructed to emit the correct load and store instructions.
+
+\begin{figure}
+\begin{verbatim}
+/*
+    This is a minimal C program executed on the FPGA version of Patmos.
+    An embedded Hello World program: a blinking LED.
+
+    Additional to the blinking LED we write to the UART '0' and '1' (if available).
+
+    Author: Martin Schoeberl
+    Copyright: DTU, BSD License
+*/
+
+#include <machine/spm.h>
+
+int main() {
+
+    volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0000900;
+    volatile _SPM int *uart_ptr = (volatile _SPM int *) 0xF0000804;
+    int i, j;
+
+    for (;;) {
+        *uart_ptr = '1';
+        for (i=2000; i!=0; --i)
+            for (j=2000; j!=0; --j)
+                *led_ptr = 1;
+
+
+        *uart_ptr = '0';
+        for (i=2000; i!=0; --i)
+            for (j=2000; j!=0; --j)
+                *led_ptr = 0;
+
+    }
+}\end{verbatim}
+\caption{A blinking LED}
+\label{fig:blink}
+\end{figure}
+
+\martin{I'm still a little bit confused when to use the APP and the BOOTAPP
+thing.}
+
+\martin{TODO: we need to streamline the make process a little bit.
+The targets might be a little bit confusing. Patmos is compiled two times.}
+
+
+\subsection{Make Targets}
+
+A list of the most important make targets:
 
 \begin{description}
 \item[tools] build of all tools, including the Patmos software simulator
 \item[asm] assemble source (from folder \code{asm})
+\item[swsim] execute the Patmos simulator
+\item[hwsim] execute the Patmos emulator
 \item[emulator] build the Chisel based C++ emulator
-\item[csim] execute the Patmos emulator
 \item[comp] compile a C program as loadable ELF binary
 \item[bootcomp] compile a C program as a bootable image
 \item[gen] generate the Verilog code
 \item[synth] synthesize for an FPGA
+\item[config] configure the FPGA
+\item[download] download an elf file into the main memory via the Patmos bootloader
+\item[test] run all assembler tests 
 \end{description}
 
+The name of an application that can execute from the on-chip ROM is set
+with the BOOTAPP variable.
 
-\todo{Test and describe the ELF download flow.}
+\subsection{Download of ELF Files}
+\label{sec:elf:files}
+
+On a Linux box with the installed LLVM compiler and Quartus in your PATH,
+the complete build processes for the Hello World is as follows:
+
+% make BOOTAPP=bootable-bootloader APP=hello_puts tools synth comp config download
+\begin{verbatim}
+make BOOTAPP=bootable-bootloader APP=hello_puts \
+   tools comp gen synth config download
+\end{verbatim}
+
+You should see the download information and then the greeting from Patmos:
+
+\begin{verbatim}
+/home/martin/t-crest/patmos/install/bin/patserdow -v /dev/ttyUSB0 /home/martin/t-crest/patmos/tmp/hello_puts.elf
+Port opened: true
+Params set: true
+Elf version is '1':true
+CPU type is:48875
+Instruction width is 32 bits:true
+Is Big Endian:true
+File is of type exe:true
+Entry point:131076
+
+[++++++++++] 49778/49778 bytes
+Hello, World!
+
+EXIT 0
+\end{verbatim}
 
 The \code{Makefile} use following variables to configure the build process:
 \code{BOOTAPP} is an application that ends in the on-chip ROM. This may
-be an assembler program or a simple C program that does not need any
-initialized data; most prominent the boot loader for ELF binaries.
+be an assembler program or a simple C program;
+most prominent the boot loader for ELF binaries.
 A C program that shall be compiled as ROM target needs to be prefixed
 with \code{bootable-}.
 \code{APP} is a C program resulting in an ELF binary that can be either
@@ -3218,22 +3434,24 @@ loaded by the emulator or the boot loader when executing in an FPGA.
 % TODO: test and talk about patsim. Having a complete ELF in the FPGA
 % without the boot loader would be nice as well.
 
+\todo{Describe ELF download without building the FPGA}
+
 
 Here an example of the individual steps to build the blinking LED C
 hello world (on a different FPGA board):
 \begin{verbatim}
 make tools
 make BOOTAPP=bootable-echo bootcomp gen
-make BOOTAPP=bootable-echo QPROJ=bemicro synth
-make QPROJ=bemicro BLASTER_TYPE=Arrow-USB-Blaster config
+make BOOTAPP=bootable-echo BOARD=bemicro synth
+make BOARD=bemicro BLASTER_TYPE=Arrow-USB-Blaster config
 \end{verbatim}
 
 This split of the make commands is for demonstration. It is
 possible to merge all steps into a single make (on Linux
-systems) or two steps when using a two operating
-systems (for compilation and synthesis).
+systems) or two steps when using two operating
+systems (e.g., Mac OSX for compilation and Windows for synthesis).
 
-\paragraph{Emulator and elf file}
+\paragraph{Emulator and elf File}
 
 The emulator can read a standard ELF file. An example how to compile
 a small C program that uses part of the standard library and executing
@@ -3241,28 +3459,210 @@ it on the emulator is as follows:
 
 \begin{verbatim}
 make emulator
-make comp APP=helloworld
-bin/emulator tmp/helloworld.elf
+make comp APP=hello_puts
+install/bin/emulator tmp/hello_puts.elf
 \end{verbatim}
 
 \martin{Where is the make target to run the emulator with an ELF file?}
+
+\subsection{Supported FPGA Boards}
+
+At the time of this writing we have mainly focused on Altera FPGA based boards. Following boards
+are directly supported in the default build process:
+
+\begin{itemize}
+\item Altera DE2-70 (\code{altde2-70})
+\item Altera DE2-115 (\code{altde2-115})
+\item Altera/Farnell BeMicro (\code{bemicro})
+\end{itemize}
+
+The board is configured by setting the \code{BOARD} variable.
+Without changing the \code{Makefile} the default of the board (and any other build variables)
+can be overridden by providing a local \code{config.mk} that is included in the \code{Makefile}.
+
+\subsection{Multicore Patmos}
+
+A multicore Patmos with shared external memory and the network-on-chip Argo is configured via
+the Aegean framework. Aegean is a collection of Python scripts that read in XML based configuration
+description (e.g., topology, network connections, processor types,...). Aegean generates the Chisel based
+components (Partmos, memory arbitration tree, and memory controller), generates the VHDL top-level
+to connect them with the VHDL based NoC, synthesizes the hardware, compiles the application for the
+individual cores, configures the FPGA, and downloads the application.
+
+In directory \code{aegean} run:
+
+\begin{verbatim}
+make platform AEGEAN_PLATFORM=mandelbrot_demo
+make synth config AEGEAN_PLATFORM=mandelbrot_demo
+\end{verbatim}
+
+to generate (and synthesize) the mandelbrot application on a 4 core
+version of Patmos for an Altera DE2-115 FPGA board. This application is compiled
+into the on-chip memories and therefore executing right after configuration of the
+FPGA. Have a terminal open and connected to the serial port (115200 baud, 1 stop bit,
+no handshake) during and after the FPGA configuration and you shall see the output of
+the mandelbrot calculation.
+
+However, the approach to have the application in on-chip memory works for tiny programs
+only. Furthermore, each software change needs a new synthesize run. A better approach is
+to build a platform that contains a bootloader (similar to the single core version) and some
+startup code to synchronize the program start with the other cores. This platform is the default
+configuration in Aegean and needs to be generated only once with:
+
+\begin{verbatim}
+make platform
+make synth
+\end{verbatim}
+
+The FPGA is configured from within the \code{aegean} directory with:
+
+\begin{verbatim}
+make config
+\end{verbatim}
+
+The compilation and download of the application is then best done within
+the \code{patmos} directory with:
+
+\begin{verbatim}
+make APP=hello_puts comp download
+\end{verbatim}
+
+This application is the same single core \emph{Hello World} application that
+we used in Section~\ref{sec:elf:files}. However, here we just compiled the
+application and downloaded it via the serial port. We synthesized and configured
+the FPGA from within the Aegean project for the multi-core version.
+
+\todo{We shall have here three simple hello world applications: (1) just plain shared memory 4 cores saying hello - DONE -,
+(2) a CMP program that uses shared memory, and (3) a simple NoC setup.}
+
+
+%[2014-02-28 17:24:08 ] Stefan Hepp: #include <machine/patmos.h>
+%[2014-02-28 17:24:22 ] Stefan Hepp: zu finden in patmos-newlib/newlib/libc/machine/patmos/machine/patmos.h
+
+\section{The Xilinx ML605 Platform}
+
+For the evaluation within the T-CREST project the Xilinx ML605 FPGA board was chosen as the `standard'
+evaluation platform. The T-CREST platform contains, besides several Patmos' connected with the Argo NoC,
+a memory tree, called BlueTree, from UoY and the time-predictable memory controller from TU/e. As the
+building this platform needs some non-free tools and including closed source code, we provide prebuilt
+configurations of the T-CREST platform as bit files available for download:
+
+\begin{itemize}
+\item A 4 core version: \url{http://patmos.compute.dtu.dk/t-crest-4core.bit}
+\item A 16 core version: 
+\end{itemize}
+
+To configure the FPGA use the IMPACT software from Xilinx (command \code{impact}), which is part of the Xilinx ISE package
+and needs no license (It is also available in a smaller Lab package). To compile an application and
+download it to the ML605 follow the exact same steps as for the Altera CMP version, e.g., from
+within the \code{patmos} directory:
+
+\begin{verbatim}
+make APP=hello_puts comp download
+\end{verbatim}
+
+\subsection{Getting the Xilinx Configuration Cable to Work}
+
+Xilinx does not support Ubuntu (at least the last few versions) directly. The following description
+is a summary of the help from Jamie.
+
+Copy some Xilinx cable specific files to \code{/usr/share} with:
+
+\begin{verbatim}
+sudo cp /opt/Xilinx/14.7/ISE_DS/ISE/bin/lin/install_script/install_drivers/\
+linux_drivers/pcusb/*.hex /usr/share
+\end{verbatim}
+ 
+Ensure that \code{fxload} is installed with:
+\begin{verbatim} 
+sudo apt-get install fxload
+\end{verbatim}
+
+Create \code{/etc/udev/rules.d/80-xusbdfw.rules} with following content:
+
+\begin{tiny}
+\begin{verbatim}
+# version 0003
+ATTR{idVendor}=="03fd", ATTR{idProduct}=="0008", MODE="666"
+SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="03fd", ATTR{idProduct}=="0007", RUN+="/sbin/fxload -v -t fx2 -I /usr/share/xusbdfwu.hex -D $tempnode"
+SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="03fd", ATTR{idProduct}=="0009", RUN+="/sbin/fxload -v -t fx2 -I /usr/share/xusb_xup.hex -D $tempnode"
+SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="03fd", ATTR{idProduct}=="000d", RUN+="/sbin/fxload -v -t fx2 -I /usr/share/xusb_emb.hex -D $tempnode"
+SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="03fd", ATTR{idProduct}=="000f", RUN+="/sbin/fxload -v -t fx2 -I /usr/share/xusb_xlp.hex -D $tempnode"
+SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="03fd", ATTR{idProduct}=="0013", RUN+="/sbin/fxload -v -t fx2 -I /usr/share/xusb_xp2.hex -D $tempnode"
+SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="03fd", ATTR{idProduct}=="0015", RUN+="/sbin/fxload -v -t fx2 -I /usr/share/xusb_xse.hex -D $tempnode"
+\end{verbatim}
+\end{tiny}
+
+Restart the udev service with:
+
+\begin{verbatim} 
+sudo udevadm control --reload-rules
+\end{verbatim}
+
+Make sure that libusb is installed (e.g., in \code{/lib/i386-linux-gnu}) and make a symbolic link with
+
+\begin{verbatim} 
+sudo ln -s libusb-1.0.so.0 libusb.so
+\end{verbatim}
+
+Best restart your machine and connect the USB cable again.
+
+\paragraph{Using iMPACT}
+
+Start impact from a terminal with 
+
+\begin{verbatim} 
+impact
+\end{verbatim}
+
+Impact pops up some dialog boxes:
+
+Do you want iMPACT to automatically load the last saved project for you? -- answer with \emph{No}.
+
+Do you want the system to automatically create and save a project file for you? -- answer \emph{Yes}.
+
+Next window click Ok. iMPACT should detect the JTAG chain with two devices. Answer the
+following dialog boxes wit \emph{No} and \emph{Cancel}.
+
+Right-click on the xc6vlx240t device and select \emph{Assign New Configuration File} and select
+the provided .bit file (e.g., \code{t-crest-4core.bit}). Answer the following question about attached
+Flash PROMs with \emph{No}.
+
+Right-click again on the FPGA symbol and select \emph{Program}. Select \emph{Ok} on the next
+dialog box and the FPGA shall be configured.
+
+Then compile and download an application as described above.
+
+\paragraph{Installing the Xilinx Tools}
+
+After extracting the tools with \code{tar} the install procedure is started within the
+\code{Xilinx\_*} directory with:
+
+\begin{verbatim}
+sudo ./xsetup
+\end{verbatim}
+
+\section{ModelSim License}
+In the case that you have a DTU Compute login you can access the license servers from outside the DTU network by setting up an SSH tunnel.
+An example of how such a tunnel can be set up follows, you need to insert you own username.
+
+\begin{verbatim}
+ssh -L 1717:angel2:1717 -L 1718:angel2:1718 ${USERNAME}@sshlogin.compute.dtu.dk
+\end{verbatim}
+
+When the SSH tunnel is setup the LM\_LICENSE\_FILE needs to be set to:
+\begin{verbatim}
+LM_LICENSE_FILE=1717@localhost
+\end{verbatim}
+
+This way of setting up an SSH tunnel might also work for other institutions.
+
 
 
 \chapter{The Patmos Compiler}
 \label{sec:compiler}
 
-The LLVM compiler has been adapted to emit code for the Patmos ISA
-and support the special features, e.g., the stack cache~\cite{Seus13:compiler}.
-
-\martin{Daniel and Stefan shall add here an overview of the compiler and
-some words on source organization. But let's start with some notes.}
-
-The compiler and libraries can be built with \code{misc/build.sh}.
-This script also contains the default options, which should work on a
-standard Linux machine out of the box. Options can be overwritten by
-entries in a personal \code{misc/build.cfg}. The file {misc/build.dist.cfg}
-is just an example configuration file, generated from build.sh, and ignored
-by the build process.
+\input{toolchain}
 
 
 \chapter{Application Binary Interface}

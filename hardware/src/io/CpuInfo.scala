@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,9 @@
 
 /*
  * "I/O" module to access information about the CPU
- * 
+ *
  * Authors: Wolfgang Puffitsch (wpuffitsch@gmail.com)
- * 
+ *
  */
 
 
@@ -83,7 +83,7 @@ class CpuInfo() extends CoreDevice() {
   when(masterReg.Cmd === OcpCmd.RD) {
 	resp := OcpResp.DVA
 	when(masterReg.Addr(2) === Bits(0)) {
-      data := io.cpuInfoPins.id	  
+      data := io.cpuInfoPins.id
 	} .otherwise {
       data := Bits(CLOCK_FREQ)
 	}

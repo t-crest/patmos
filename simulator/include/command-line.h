@@ -37,6 +37,7 @@ namespace patmos
     DF_INSTRUCTIONS,
     DF_BLOCKS,
     DF_CALLS,
+    DF_CALLS_INDENT,
     DF_DEFAULT,
     DF_LONG,
     DF_ALL
@@ -120,7 +121,8 @@ namespace patmos
   {
     SC_IDEAL,
     SC_BLOCK,
-    SC_DCACHE
+    SC_DCACHE,
+    SC_LBLOCK
   };
 
   /// Parse a stack cache kind from a string in a stream

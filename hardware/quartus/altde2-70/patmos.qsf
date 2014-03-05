@@ -147,7 +147,7 @@ set_global_assignment -name RESERVE_ALL_UNUSED_PINS_NO_OUTPUT_GND "AS INPUT TRI-
 
 set_global_assignment -name VHDL_FILE ../../vhdl/altera/cyc2_pll.vhd
 set_global_assignment -name VERILOG_FILE ../../build/Patmos.v
-set_global_assignment -name VHDL_FILE ../../vhdl/patmos_top.vhdl
+set_global_assignment -name VHDL_FILE ../../vhdl/patmos_de2-70.vhdl
 set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS OFF
 set_global_assignment -name CYCLONEII_OPTIMIZATION_TECHNIQUE SPEED
 set_instance_assignment -name FAST_INPUT_REGISTER ON -to SRAM_DQ*

@@ -35,23 +35,14 @@ namespace patmos
     /// @param opcode The instruction's opcode.
     alui_format_t(const instruction_t &instruction, word_t opcode);
 
-    /// Decode the operands of the instruction and return a corresponding
-    /// instruction data instance.
-    /// @param iw The instruction word.
-    /// @param longimm A long immediate (exclusively for the ALUl format),
-    /// @return The resulting instruction data instance representing the
-    /// instruction and its operands.
     virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
 
-    /// Encode an instruction.
-    /// @param pred The instruction's predicate.
-    /// @param opcode The instruction opcode.
-    /// @param rd The destination register.
-    /// @param rs1 The source register operand.
-    /// @param imm The immediate operand.
-    /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t opcode, word_t rd, word_t rs1,
-                         word_t imm);
+    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
+                                instruction_data_t &instr,
+                                reloc_info_t &reloc) const;
+                                               
+    virtual udword_t encode(std::string mnemonic, 
+                          const instruction_data_t &instr) const;
   };
 
   /// The ALUl instruction format (see Patmos TR).
@@ -63,23 +54,14 @@ namespace patmos
     /// @param opcode The instruction's opcode.
     alul_format_t(const instruction_t &instruction, word_t opcode);
 
-    /// Decode the operands of the instruction and return a corresponding
-    /// instruction data instance.
-    /// @param iw The instruction word.
-    /// @param longimm A long immediate (exclusively for the ALUl format),
-    /// @return The resulting instruction data instance representing the
-    /// instruction and its operands.
     virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
 
-    /// Encode an instruction.
-    /// @param pred The instruction's predicate.
-    /// @param opcode The instruction opcode.
-    /// @param rd The destination register.
-    /// @param rs1 The source register operand.
-    /// @param imm The immediate operand.
-    /// @return An encoded instruction word.
-    static dword_t encode(word_t pred, word_t opcode, word_t rd, word_t rs1,
-                          word_t imm);
+    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
+                                instruction_data_t &instr,
+                                reloc_info_t &reloc) const;
+                                               
+    virtual udword_t encode(std::string mnemonic, 
+                          const instruction_data_t &instr) const;
   };
 
   /// The ALUr instruction format (see Patmos TR).
@@ -91,23 +73,14 @@ namespace patmos
     /// @param opcode The instruction's opcode.
     alur_format_t(const instruction_t &instruction, word_t opcode);
 
-    /// Decode the operands of the instruction and return a corresponding
-    /// instruction data instance.
-    /// @param iw The instruction word.
-    /// @param longimm A long immediate (exclusively for the ALUl format),
-    /// @return The resulting instruction data instance representing the
-    /// instruction and its operands.
     virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
 
-    /// Encode an instruction.
-    /// @param pred The instruction's predicate.
-    /// @param opcode The instruction opcode.
-    /// @param rd The destination register.
-    /// @param rs1 The first source register operand.
-    /// @param rs2 The second source register operand.
-    /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t opcode, word_t rd, word_t rs1,
-                         word_t rs2);
+    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
+                                instruction_data_t &instr,
+                                reloc_info_t &reloc) const;
+                                               
+    virtual udword_t encode(std::string mnemonic, 
+                          const instruction_data_t &instr) const;
   };
 
   /// The ALUm instruction format (see Patmos TR).
@@ -119,21 +92,14 @@ namespace patmos
     /// @param opcode The instruction's opcode.
     alum_format_t(const instruction_t &instruction, word_t opcode);
 
-    /// Decode the operands of the instruction and return a corresponding
-    /// instruction data instance.
-    /// @param iw The instruction word.
-    /// @param longimm A long immediate (exclusively for the ALUl format),
-    /// @return The resulting instruction data instance representing the
-    /// instruction and its operands.
     virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
 
-    /// Encode an instruction.
-    /// @param pred The instruction's predicate.
-    /// @param opcode The instruction opcode.
-    /// @param rs1 The first source register operand.
-    /// @param rs2 The second source register operand.
-    /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t opcode, word_t rs1, word_t rs2);
+    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
+                                instruction_data_t &instr,
+                                reloc_info_t &reloc) const;
+                                               
+    virtual udword_t encode(std::string mnemonic, 
+                          const instruction_data_t &instr) const;
   };
 
   /// The ALUc instruction format (see Patmos TR).
@@ -145,23 +111,14 @@ namespace patmos
     /// @param opcode The instruction's opcode.
     aluc_format_t(const instruction_t &instruction, word_t opcode);
 
-    /// Decode the operands of the instruction and return a corresponding
-    /// instruction data instance.
-    /// @param iw The instruction word.
-    /// @param longimm A long immediate (exclusively for the ALUl format),
-    /// @return The resulting instruction data instance representing the
-    /// instruction and its operands.
     virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
 
-    /// Encode an instruction.
-    /// @param pred The instruction's predicate.
-    /// @param opcode The instruction opcode.
-    /// @param pd The destination predicate register.
-    /// @param rs1 The first source register operand.
-    /// @param rs2 The second source register operand.
-    /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t opcode, word_t pd, word_t rs1,
-                         word_t rs2);
+    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
+                                instruction_data_t &instr,
+                                reloc_info_t &reloc) const;
+                                               
+    virtual udword_t encode(std::string mnemonic, 
+                          const instruction_data_t &instr) const;
   };
 
   /// The ALUci instruction format (see Patmos TR).
@@ -173,23 +130,14 @@ namespace patmos
     /// @param opcode The instruction's opcode.
     aluci_format_t(const instruction_t &instruction, word_t opcode);
 
-    /// Decode the operands of the instruction and return a corresponding
-    /// instruction data instance.
-    /// @param iw The instruction word.
-    /// @param longimm A long immediate (exclusively for the ALUl format),
-    /// @return The resulting instruction data instance representing the
-    /// instruction and its operands.
     virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
 
-    /// Encode an instruction.
-    /// @param pred The instruction's predicate.
-    /// @param opcode The instruction opcode.
-    /// @param pd The destination predicate register.
-    /// @param rs1 The first source register operand.
-    /// @param rs2 The second source register operand.
-    /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t opcode, word_t pd, word_t rs1,
-                         word_t imm);
+    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
+                                instruction_data_t &instr,
+                                reloc_info_t &reloc) const;
+                                               
+    virtual udword_t encode(std::string mnemonic, 
+                          const instruction_data_t &instr) const;
   };
 
   /// The ALUp instruction format (see Patmos TR).
@@ -201,23 +149,14 @@ namespace patmos
     /// @param opcode The instruction's opcode.
     alup_format_t(const instruction_t &instruction, word_t opcode);
 
-    /// Decode the operands of the instruction and return a corresponding
-    /// instruction data instance.
-    /// @param iw The instruction word.
-    /// @param longimm A long immediate (exclusively for the ALUl format),
-    /// @return The resulting instruction data instance representing the
-    /// instruction and its operands.
     virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
 
-    /// Encode an instruction.
-    /// @param pred The instruction's predicate.
-    /// @param opcode The instruction opcode.
-    /// @param pd The destination predicate register.
-    /// @param ps1 The first predicate register operand.
-    /// @param ps2 The second predicate register operand.
-    /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t opcode, word_t pd, word_t ps1,
-                         word_t ps2);
+    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
+                                instruction_data_t &instr,
+                                reloc_info_t &reloc) const;
+                                               
+    virtual udword_t encode(std::string mnemonic, 
+                          const instruction_data_t &instr) const;
   };
 
   /// The SPCw instruction format (see Patmos TR).
@@ -229,19 +168,14 @@ namespace patmos
     /// @param opcode The instruction's opcode.
     spcw_format_t(const instruction_t &instruction, word_t opcode);
 
-    /// Decode the operands of the instruction and return a corresponding
-    /// instruction data instance.
-    /// @param iw The instruction word.
-    /// @param longimm A long immediate (exclusively for the ALUl format),
-    /// @return The resulting instruction data instance representing the
-    /// instruction and its operands.
     virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
 
-    /// Encode an instruction.
-    /// @param pred The instruction's predicate.
-    /// @param opcode The instruction opcode.
-    /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t opcode);
+    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
+                                instruction_data_t &instr,
+                                reloc_info_t &reloc) const;
+                                               
+    virtual udword_t encode(std::string mnemonic, 
+                          const instruction_data_t &instr) const;
   };
 
   /// The SPCt instruction format (see Patmos TR).
@@ -253,20 +187,14 @@ namespace patmos
     /// @param opcode The instruction's opcode.
     spct_format_t(const instruction_t &instruction, word_t opcode);
 
-    /// Decode the operands of the instruction and return a corresponding
-    /// instruction data instance.
-    /// @param iw The instruction word.
-    /// @param longimm A long immediate (exclusively for the ALUl format),
-    /// @return The resulting instruction data instance representing the
-    /// instruction and its operands.
     virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
 
-    /// Encode an instruction.
-    /// @param pred The instruction's predicate.
-    /// @param sd The destination special register.
-    /// @param rs1 The source register operand.
-    /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t sd, word_t rs1);
+    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
+                                instruction_data_t &instr,
+                                reloc_info_t &reloc) const;
+                                               
+    virtual udword_t encode(std::string mnemonic, 
+                          const instruction_data_t &instr) const;
   };
 
   /// The SPCf instruction format (see Patmos TR).
@@ -278,20 +206,14 @@ namespace patmos
     /// @param opcode The instruction's opcode.
     spcf_format_t(const instruction_t &instruction, word_t opcode);
 
-    /// Decode the operands of the instruction and return a corresponding
-    /// instruction data instance.
-    /// @param iw The instruction word.
-    /// @param longimm A long immediate (exclusively for the ALUl format),
-    /// @return The resulting instruction data instance representing the
-    /// instruction and its operands.
     virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
 
-    /// Encode an instruction.
-    /// @param pred The instruction's predicate.
-    /// @param rd The destination register.
-    /// @param ss The source special register.
-    /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t rd, word_t ss);
+    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
+                                instruction_data_t &instr,
+                                reloc_info_t &reloc) const;
+                                               
+    virtual udword_t encode(std::string mnemonic, 
+                          const instruction_data_t &instr) const;
   };
 
   /// The LDT instruction format (see Patmos TR).
@@ -306,31 +228,14 @@ namespace patmos
     ldt_format_t(const instruction_t &instruction, word_t opcode,
                  bool is_stack = false);
 
-    /// Decode the operands of the instruction and return a corresponding
-    /// instruction data instance.
-    /// @param iw The instruction word.
-    /// @param longimm A long immediate (exclusively for the ALUl format),
-    /// @return The resulting instruction data instance representing the
-    /// instruction and its operands.
     virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
 
-    /// Encode an instruction.
-    /// @param pred The instruction's predicate.
-    /// @param opcode The instruction opcode.
-    /// @param rd The destination register.
-    /// @param ra The address register operand.
-    /// @param imm The immediate operand.
-    /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t opcode, word_t rd, word_t ra,
-                         word_t imm);
-
-    /// Encode an instruction.
-    /// @param pred The instruction's predicate.
-    /// @param opcode The instruction opcode.
-    /// @param ra The address register operand.
-    /// @param imm The immediate operand.
-    /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t opcode, word_t ra, word_t imm);
+    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
+                                instruction_data_t &instr,
+                                reloc_info_t &reloc) const;
+                                               
+    virtual udword_t encode(std::string mnemonic, 
+                          const instruction_data_t &instr) const;
   };
 
   /// The STT instruction format (see Patmos TR).
@@ -345,23 +250,14 @@ namespace patmos
     stt_format_t(const instruction_t &instruction, word_t opcode,
                  bool is_stack = false);
 
-    /// Decode the operands of the instruction and return a corresponding
-    /// instruction data instance.
-    /// @param iw The instruction word.
-    /// @param longimm A long immediate (exclusively for the ALUl format),
-    /// @return The resulting instruction data instance representing the
-    /// instruction and its operands.
     virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
 
-    /// Encode an instruction.
-    /// @param pred The instruction's predicate.
-    /// @param opcode The instruction opcode.
-    /// @param ra The address register operand.
-    /// @param imm The immediate operand.
-    /// @param rs The source register.
-    /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t opcode, word_t ra, word_t imm,
-                         word_t rs);
+    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
+                                instruction_data_t &instr,
+                                reloc_info_t &reloc) const;
+                                               
+    virtual udword_t encode(std::string mnemonic, 
+                          const instruction_data_t &instr) const;
   };
 
   /// The STCi instruction format (see Patmos TR).
@@ -373,20 +269,14 @@ namespace patmos
     /// @param opcode The instruction's opcode.
     stci_format_t(const instruction_t &instruction, word_t opcode);
 
-    /// Decode the operands of the instruction and return a corresponding
-    /// instruction data instance.
-    /// @param iw The instruction word.
-    /// @param longimm A long immediate (exclusively for the ALUl format),
-    /// @return The resulting instruction data instance representing the
-    /// instruction and its operands.
     virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
 
-    /// Encode an instruction.
-    /// @param pred The instruction's predicate.
-    /// @param opcode The instruction opcode.
-    /// @param imm The immediate operand.
-    /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t opcode, word_t imm);
+    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
+                                instruction_data_t &instr,
+                                reloc_info_t &reloc) const;
+                                               
+    virtual udword_t encode(std::string mnemonic, 
+                          const instruction_data_t &instr) const;
   };
 
   /// The STCr instruction format (see Patmos TR).
@@ -398,20 +288,14 @@ namespace patmos
     /// @param opcode The instruction's opcode.
     stcr_format_t(const instruction_t &instruction, word_t opcode);
 
-    /// Decode the operands of the instruction and return a corresponding
-    /// instruction data instance.
-    /// @param iw The instruction word.
-    /// @param longimm A long immediate (exclusively for the ALUl format),
-    /// @return The resulting instruction data instance representing the
-    /// instruction and its operands.
     virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
 
-    /// Encode an instruction.
-    /// @param pred The instruction's predicate.
-    /// @param opcode The instruction opcode.
-    /// @param rs The register operand.
-    /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t opcode, word_t rs);
+    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
+                                instruction_data_t &instr,
+                                reloc_info_t &reloc) const;
+                                               
+    virtual udword_t encode(std::string mnemonic, 
+                          const instruction_data_t &instr) const;
   };
 
   /// The CFLi instruction format (see Patmos TR).
@@ -423,20 +307,14 @@ namespace patmos
     /// @param opcode The instruction's opcode.
     cfli_format_t(const instruction_t &instruction, word_t opcode, word_t flag);
 
-    /// Decode the operands of the instruction and return a corresponding
-    /// instruction data instance.
-    /// @param iw The instruction word.
-    /// @param longimm A long immediate (exclusively for the ALUl format),
-    /// @return The resulting instruction data instance representing the
-    /// instruction and its operands.
     virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
 
-    /// Encode an instruction.
-    /// @param pred The instruction's predicate.
-    /// @param opcode The instruction opcode.
-    /// @param imm The immediate operand.
-    /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t opcode, word_t flag, word_t imm);
+    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
+                                instruction_data_t &instr,
+                                reloc_info_t &reloc) const;
+                                               
+    virtual udword_t encode(std::string mnemonic, 
+                          const instruction_data_t &instr) const;
   };
 
   /// The CFLri instruction format (see Patmos TR).
@@ -448,19 +326,14 @@ namespace patmos
     /// @param opcode The instruction's opcode.
     cflri_format_t(const instruction_t &instruction, word_t opcode, word_t flag);
 
-    /// Decode the operands of the instruction and return a corresponding
-    /// instruction data instance.
-    /// @param iw The instruction word.
-    /// @param longimm A long immediate (exclusively for the ALUl format),
-    /// @return The resulting instruction data instance representing the
-    /// instruction and its operands.
     virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
 
-    /// Encode an instruction.
-    /// @param pred The instruction's predicate.
-    /// @param opcode The instruction opcode.
-    /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t flag, word_t opcode);
+    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
+                                instruction_data_t &instr,
+                                reloc_info_t &reloc) const;
+                                               
+    virtual udword_t encode(std::string mnemonic, 
+                          const instruction_data_t &instr) const;
   };
 
   /// The CFLrs instruction format (see Patmos TR).
@@ -480,12 +353,12 @@ namespace patmos
     /// instruction and its operands.
     virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
 
-    /// Encode an instruction.
-    /// @param pred The instruction's predicate.
-    /// @param opcode The instruction opcode.
-    /// @param rs The register operand.
-    /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t flag, word_t opcode, word_t rs);
+    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
+                                instruction_data_t &instr,
+                                reloc_info_t &reloc) const;
+                                               
+    virtual udword_t encode(std::string mnemonic, 
+                          const instruction_data_t &instr) const;
   };
 
   /// The CFLrt instruction format (see Patmos TR).
@@ -497,21 +370,14 @@ namespace patmos
     /// @param opcode The instruction's opcode.
     cflrt_format_t(const instruction_t &instruction, word_t opcode, word_t flag);
 
-    /// Decode the operands of the instruction and return a corresponding
-    /// instruction data instance.
-    /// @param iw The instruction word.
-    /// @param longimm A long immediate (exclusively for the ALUl format),
-    /// @return The resulting instruction data instance representing the
-    /// instruction and its operands.
     virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
 
-    /// Encode an instruction.
-    /// @param pred The instruction's predicate.
-    /// @param opcode The instruction opcode.
-    /// @param rb The function base register operand.
-    /// @param ro The offset register operand.
-    /// @return An encoded instruction word.
-    static word_t encode(word_t pred, word_t flag, word_t opcode, word_t rs1, word_t rs2);
+    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
+                                instruction_data_t &instr,
+                                reloc_info_t &reloc) const;
+                                               
+    virtual udword_t encode(std::string mnemonic, 
+                          const instruction_data_t &instr) const;
   };
 
 }

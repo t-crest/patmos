@@ -46,6 +46,8 @@ namespace patmos
       df = DF_BLOCKS;
     else if (kind == "calls")
       df = DF_CALLS;
+    else if (kind == "calls-indent")
+      df = DF_CALLS_INDENT;
     else if(kind == "default")
       df = DF_DEFAULT;
     else if(kind == "long")
@@ -73,6 +75,8 @@ namespace patmos
 	os << "blocks"; break;
       case DF_CALLS:
         os << "calls"; break;
+      case DF_CALLS_INDENT:
+        os << "calls-indent"; break;
       case DF_DEFAULT:
         os << "default"; break;
       case DF_LONG:
@@ -254,6 +258,8 @@ namespace patmos
       sck = SC_BLOCK;
     else if(kind == "dcache")
       sck = SC_DCACHE;
+    else if(kind == "lblock")
+      sck = SC_LBLOCK;
     else throw boost::program_options::validation_error(
                  boost::program_options::validation_error::invalid_option_value,
                  "Unknown stack cache kind: " + tmp);
@@ -271,6 +277,8 @@ namespace patmos
         os << "block"; break;
       case SC_DCACHE:
         os << "dcache"; break;
+      case SC_LBLOCK:
+        os << "lblock"; break;
     }
 
     return os;

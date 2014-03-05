@@ -49,6 +49,7 @@ import java.io.File
 import Constants._
 
 import util._
+import io._
 import datacache._
 import ocp._
 
@@ -115,6 +116,12 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   val burstJoin = new OcpBurstJoin(mcache.io.ocp_port, dcache.io.slave,
                                    burstBus.io.slave)
 
+
+  //join class for I-Cache buffering the d-cache request
+  //use this burstJoin when I-Cache is used
+  // val burstJoin = new OcpBurstPriorityJoin(mcache.io.ocp_port, dcache.io.slave,
+  //                                  burstBus.io.slave, mcache.io.ena_out)
+
   // Enable signal
   val enable = memory.io.ena_out & mcache.io.ena_out
   fetch.io.ena := enable
@@ -148,7 +155,7 @@ object PatmosCoreMain {
     val datFile = args(2)
 
 	Config.conf = Config.load(configFile)
-    Config.minPcWidth = (new File(binFile)).length.toInt / 4
+    Config.minPcWidth = log2Up((new File(binFile)).length.toInt / 4)
     chiselMain(chiselArgs, () => Module(new PatmosCore(binFile, datFile)))
 	// Print out the configuration
 	Utility.printConfig(configFile)
@@ -173,10 +180,9 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   Config.connectAllIOPins(io, core.io)
 
   // Connect memory controller
-  val ssram = Module(new SsramBurstRW(EXTMEM_ADDR_WIDTH))
-  ssram.io.ocp_port <> core.io.memPort
-  io.sramPins.ram_out <> ssram.io.ram_out
-  io.sramPins.ram_in <> ssram.io.ram_in
+  val sramCtrl = Config.createDevice(Config.conf.ExtMem.sram).asInstanceOf[BurstDevice]
+  sramCtrl.io.ocp <> core.io.memPort
+  Config.connectIOPins(Config.conf.ExtMem.sram.name, io, sramCtrl.io)
 
   // Print out the configuration
   Utility.printConfig(configFile)

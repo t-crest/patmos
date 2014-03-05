@@ -2,7 +2,7 @@
 # Basic instructions test
 # long immediate instructions
 
-	.word   168;
+	.word   180;
 	addi	r1 = r0, 255;  # first instruction not executed 0
 	addi	r1 = r0, 2; # r1 = 2
 	add     r1  = r1, 65536; # r1 = 65538
@@ -29,5 +29,6 @@
 #	rr	r10 = r10, 2; # r10(31) = 1
 	sra	r10 = r10, 5; # fills in 5 upper bits with 1
 	halt; 
-
-
+	nop;
+	nop;
+	nop;

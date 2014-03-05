@@ -87,6 +87,8 @@ namespace patmos
       /// finalize - Finalize the debug stack
       void finalize(void);
 
+      unsigned size() const { return stack.size(); }
+      
       /// is_active_frame - Returns true if a given frame is currently active.
       /// @param frame the frame to check
       bool is_active_frame(const dbgstack_frame_t &frame) const;

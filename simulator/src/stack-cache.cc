@@ -213,7 +213,7 @@ bool proxy_stack_cache_t::read(uword_t address, byte_t *value, uword_t size)
   return Memory.read(stack_top + address, value, size);
 }
 
-bool proxy_stack_cache_t::write(uword_t address, byte_t *value, uword_t size)
+bool proxy_stack_cache_t::write(uword_t address, byte_t *value, uword_t size, uword_t &lazy_pointer)
 {
   return Memory.write(stack_top + address, value, size);
 }
@@ -263,7 +263,7 @@ word_t block_stack_cache_t::prepare_reserve(uword_t size,
 
   if (stack_top < size_blocks * Num_block_bytes) {
     simulation_exception_t::stack_exceeded("Stack top pointer decreased beyond "
-                                           "lowest possible adddress.");
+                                           "lowest possible address.");
   }
   
   // update stack_top first
@@ -516,6 +516,12 @@ bool block_stack_cache_t::spill(uword_t size, word_t delta,
   {
     case IDLE:
     {
+      // do we need to spill?
+      if (!delta) {
+        // no, done.
+        return true;
+      }
+
       // copy data to a buffer to allow contiguous transfer to the memory.
       for(unsigned int i = 0; i < delta; i++)
       {
@@ -592,7 +598,8 @@ void block_stack_cache_t::print(std::ostream &os) const
   ideal_stack_cache_t::print(os);
 }
 
-void block_stack_cache_t::print_stats(const simulator_t &s, std::ostream &os)
+void block_stack_cache_t::print_stats(const simulator_t &s, std::ostream &os, 
+                                      bool short_stats)
 {
   unsigned int bytes_transferred = Num_blocks_filled * Num_block_bytes +
                                    Num_blocks_spilled * Num_block_bytes;
@@ -627,6 +634,185 @@ void block_stack_cache_t::print_stats(const simulator_t &s, std::ostream &os)
 void block_stack_cache_t::reset_stats() 
 {
   Num_blocks_spilled = 0;
+  Max_blocks_spilled = 0;
+  Num_blocks_filled = 0;
+  Max_blocks_filled = 0;
+  Num_blocks_reserved = 0;
+  Max_blocks_reserved = 0;
+  Num_read_accesses = 0;
+  Num_bytes_read = 0;
+  Num_write_accesses = 0;
+  Num_bytes_written = 0;
+  Num_free_empty = 0;
+  Num_stall_cycles = 0;
+}
+
+block_lazy_stack_cache_t::block_lazy_stack_cache_t(memory_t &memory, unsigned int num_blocks, 
+                    unsigned int num_block_bytes) :
+    block_stack_cache_t(memory, num_blocks, num_block_bytes), Num_blocks_not_spilled_lazy(0), 
+    lp_pulldown(true), lazy_pointer(0)
+{
+ // Buffer = new byte_t[num_blocks * Num_block_bytes];
+}
+
+block_lazy_stack_cache_t::~block_lazy_stack_cache_t()
+{
+  
+}
+
+word_t block_lazy_stack_cache_t::prepare_reserve(uword_t size, 
+                                   uword_t &stack_spill, uword_t &stack_top)
+{
+ 
+   unsigned int size_blocks = size ? (size - 1)/Num_block_bytes + 1 : 0;
+
+  // ensure that the stack cache size is not exceeded
+  if (size_blocks > Num_blocks)
+  {
+    simulation_exception_t::stack_exceeded("Reserving more blocks than"
+      "the number of blocks in the stack cache");
+  }
+  if (size_blocks * Num_block_bytes != size) {
+    simulation_exception_t::stack_exceeded("Reserving a frame size that is not "
+      "a multiple of the stack block size.");
+  }
+
+  if (stack_top < size_blocks * Num_block_bytes) {
+    simulation_exception_t::stack_exceeded("Stack top pointer decreased beyond "
+                                           "lowest possible address.");
+  }
+  
+  lp_pulldown = (stack_top == lazy_pointer);
+
+  // update stack_top first
+  stack_top -= size_blocks * Num_block_bytes;
+  
+  uword_t transfer_blocks = 0;
+  
+  uword_t reserved_blocks = get_num_reserved_blocks(stack_spill, stack_top);
+
+  uword_t lazy_transfer_blocks = 0;
+
+  uword_t lazy_reserved_blocks = get_num_reserved_blocks(lazy_pointer, lazy_pointer);
+  
+  uword_t non_spilled_blocks = 0;
+  
+  // need to spill some blocks?
+  if (reserved_blocks > Num_blocks) {
+    // yes? spill some blocks ...
+    transfer_blocks = reserved_blocks - Num_blocks;
+    lazy_transfer_blocks = lazy_reserved_blocks - Num_blocks;
+  }
+
+ 
+  uword_t non_transfer_blocks = transfer_blocks - lazy_transfer_blocks;
+
+  
+  // update the stack top pointer of the processor
+  stack_spill -= lazy_transfer_blocks * Num_block_bytes;
+  
+  if (lp_pulldown) {
+          // no need to spill uninitialized stack data
+         lazy_pointer -= stack_top;
+  }
+  else if (lazy_pointer > stack_spill) {
+          // no need to spill stack data that is already spilled
+         lazy_pointer = stack_spill;
+   }
+
+  // update statistics
+  Num_blocks_reserved += size_blocks;
+  Max_blocks_reserved = std::max(Max_blocks_reserved, size_blocks);
+  Num_blocks_spilled += transfer_blocks;
+  Max_blocks_spilled = std::max(Max_blocks_spilled, transfer_blocks);
+  Num_blocks_not_spilled_lazy += 5;
+
+  return transfer_blocks * Num_block_bytes;
+}
+
+word_t block_lazy_stack_cache_t::prepare_free(uword_t size, 
+                                       uword_t &stack_spill, uword_t &stack_top)
+{
+  // convert byte-level size to block size.
+  unsigned int size_blocks = (size - 1)/Num_block_bytes + 1;
+  unsigned int reserved_blocks = get_num_reserved_blocks(stack_spill, stack_top);
+  
+  unsigned int freed_spilled_blocks = (size_blocks <= reserved_blocks) ? 0 :
+                                       size_blocks - reserved_blocks;
+
+  // ensure that the stack cache size is not exceeded
+  if(size_blocks > Num_blocks)
+  {
+    simulation_exception_t::stack_exceeded("Freeing more blocks than"
+      " the number of blocks in the stack cache");
+  }
+
+  // also free space in memory?
+  if (freed_spilled_blocks)
+  {
+    // update the stack top pointer of the processor
+    stack_spill += freed_spilled_blocks * Num_block_bytes;
+  }
+  
+  stack_top += size_blocks * Num_block_bytes;
+  if (stack_top > lazy_pointer) {
+	  lazy_pointer = stack_top;
+  }
+  
+  // update statistics
+  if (stack_top == stack_spill) {
+    Num_free_empty++;
+  }
+
+  return 0;
+}
+
+bool block_lazy_stack_cache_t::write(uword_t address, byte_t *value, uword_t size, uword_t &stack_top)
+{
+	lazy_pointer = std::max(stack_top + address + size, lazy_pointer);
+	return block_stack_cache_t::write(address, value, size);
+}
+
+
+void block_lazy_stack_cache_t::print_stats(const simulator_t &s, std::ostream &os, 
+                                      bool short_stats)
+{
+  unsigned int bytes_transferred = Num_blocks_filled * Num_block_bytes +
+                                   Num_blocks_spilled * Num_block_bytes;
+  float transfer_ratio = (float)bytes_transferred /
+                         (float)(Num_bytes_read + Num_bytes_written);
+  
+  // stack cache statistics
+  os << boost::format("                              total        max.\n"
+                      "   Blocks Spilled      : %1$10d  %2$10d\n"
+                      "   Blocks Filled       : %3$10d  %4$10d\n"
+                      "   Blocks Reserved     : %5$10d  %6$10d\n"
+                      "   Bytes Transferred   : %7$10d  %8$10d\n"
+                      "   Reads               : %9$10d\n"
+                      "   Bytes Read          : %10$10d\n"
+                      "   Writes              : %11$10d\n"
+                      "   Bytes Written       : %12$10d\n"
+                      "   Emptying Frees      : %13$10d\n"
+                      "   Transfer Ratio      : %14$10.3f\n"
+                      "   Miss Stall Cycles   : %15$10d  %16$10.2f%%\n"
+		      "   Blocks Non Spilled  : %17$10d  %18$10d\n\n")
+    % Num_blocks_spilled % Max_blocks_spilled
+    % Num_blocks_filled  % Max_blocks_filled
+    % Num_blocks_reserved % Max_blocks_reserved
+    % bytes_transferred 
+    % (std::max(Max_blocks_filled, Max_blocks_spilled) * Num_block_bytes)
+    % Num_read_accesses % Num_bytes_read
+    % Num_write_accesses % Num_bytes_written
+    % Num_free_empty
+    % transfer_ratio
+    % Num_stall_cycles % (100.0 * (float)Num_stall_cycles/(float)s.Cycle)
+    % Num_blocks_not_spilled_lazy % Max_blocks_spilled;
+}
+
+void block_lazy_stack_cache_t::reset_stats() 
+{
+  Num_blocks_spilled = 0;
+  Num_blocks_not_spilled_lazy = 0;
   Max_blocks_spilled = 0;
   Num_blocks_filled = 0;
   Max_blocks_filled = 0;

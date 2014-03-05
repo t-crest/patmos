@@ -199,8 +199,10 @@ static patmos::stack_cache_t &create_stack_cache(patmos::stack_cache_e sck,
 {
   switch(sck)
   {
-    case patmos::SC_IDEAL:
+    case patmos::SC_IDEAL:{
+
       return *new patmos::ideal_stack_cache_t(gm);
+}
     case patmos::SC_BLOCK:
     {
       // The stack cache always uses a granularity of words for allocation
@@ -208,8 +210,16 @@ static patmos::stack_cache_t &create_stack_cache(patmos::stack_cache_e sck,
 
       return *new patmos::block_stack_cache_t(gm, num_blocks, 4);
     }
+    case patmos::SC_LBLOCK:
+    {
+      // convert size to number of blocks
+      unsigned int num_blocks = (size - 1) / 4 + 1;
+	
+      return *new patmos::block_lazy_stack_cache_t(gm, num_blocks, 4);
+    }
     case patmos::SC_DCACHE:
     {
+
       return *new patmos::proxy_stack_cache_t(dc);
     }
   }
@@ -255,17 +265,17 @@ int main(int argc, char **argv)
   generic_options.add_options()
     ("help,h", "produce help message")
     ("maxc,c", boost::program_options::value<unsigned int>()->default_value(0, "inf."), "stop simulation after the given number of cycles")
-    ("binary,b", boost::program_options::value<std::string>()->default_value("-"), "binary or elf-executable file (stdin: -)")
+    ("binary,b", boost::program_options::value<std::string>(), "binary or elf-executable file (stdin: -)")
     ("output,o", boost::program_options::value<std::string>()->default_value("-"), "output execution trace in file (stdout: -)")
     ("debug", boost::program_options::value<unsigned int>()->implicit_value(0), "enable step-by-step debug tracing after cycle")
     ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), 
-                  "format of the debug trace (short, trace, instr, blocks, calls, default, long, all)")
+                  "format of the debug trace (short, trace, instr, blocks, calls, calls-indent, default, long, all)")
     ("debug-file", boost::program_options::value<std::string>()->default_value("-"), "output debug trace in file (stderr: -)")
     ("debug-nopc", "do not print PC and cycles counter in debug output")
     ("print-stats", boost::program_options::value<patmos::address_t>(), "print statistics for a given function only.")
     ("flush-caches", boost::program_options::value<patmos::address_t>(), "flush all caches when reaching the given address (can be a symbol name).")
-    ("instr-stats,i", "show more detailed statistics per instruction")
-    ("quiet,q", "disable statistics output");
+    ("full,V", "full statistics output")
+    ("verbose,v", "enable short statistics output");
 
   boost::program_options::options_description memory_options("Memory options");
   memory_options.add_options()
@@ -287,7 +297,7 @@ int main(int argc, char **argv)
     ("dlsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(0), "size of a data cache line in bytes, defaults to burst size if set to 0")
 
     ("scsize,s", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_STACK_CACHE_BYTES), "stack cache size in bytes")
-    ("sckind,S", boost::program_options::value<patmos::stack_cache_e>()->default_value(patmos::SC_BLOCK), "kind of stack cache (ideal, block, dcache)")
+    ("sckind,S", boost::program_options::value<patmos::stack_cache_e>()->default_value(patmos::SC_BLOCK), "kind of stack cache (ideal, block, lblock, dcache)")
 
     ("icache,C", boost::program_options::value<patmos::instr_cache_e>()->default_value(patmos::IC_MCACHE), "kind of instruction cache (mcache, icache)")
     ("ickind,K", boost::program_options::value<patmos::set_assoc_cache_type>()->default_value(patmos::set_assoc_cache_type(patmos::SAC_LRU,2)), 
@@ -353,7 +363,13 @@ int main(int argc, char **argv)
   }
 
   // get some command-line  options
-  std::string binary(vm["binary"].as<std::string>());
+  std::string binary;
+  if (vm.count("binary")) {
+    binary = (vm["binary"].as<std::string>());
+  } else {
+    std::cout << "No program to simulate specified. Use --help for more options.\n";
+    return 1;
+  }
   std::string output(vm["output"].as<std::string>());
 
   std::string uart_in(vm["in"].as<std::string>());
@@ -420,7 +436,8 @@ int main(int argc, char **argv)
   
   unsigned int interrupt_enabled = vm["interrupt"].as<unsigned int>();
 
-  bool instr_stats = (vm.count("instr-stats") != 0);
+  bool long_stats = (vm.count("full") != 0);
+  bool verbose = (vm.count("verbose") != 0) || long_stats;
 
   if (!mbsize) mbsize = bsize;
   
@@ -451,6 +468,7 @@ int main(int argc, char **argv)
     // open streams
     in = patmos::get_stream<std::ifstream>(binary, std::cin);
     out = patmos::get_stream<std::ofstream>(output, std::cout);
+
 
     uin = patmos::get_stream<std::ifstream>(uart_in, std::cin);
     uout = patmos::get_stream<std::ofstream>(uart_out, std::cout);
@@ -516,11 +534,12 @@ int main(int argc, char **argv)
     }
    
     // start execution
+    bool success = false;
     try
     {
       s.run(entry, debug_cycle, debug_fmt, *dout, debug_nopc, 
-            max_cycle, instr_stats);
-      s.print_stats(*out, instr_stats);
+            max_cycle, long_stats);
+      success = true;
     }
     catch (patmos::simulation_exception_t e)
     {
@@ -529,53 +548,61 @@ int main(int argc, char **argv)
         case patmos::simulation_exception_t::HALT:
           // get the exit code
           exit_code = e.get_info();
-
-          if (!vm.count("quiet") && !print_stats) {
-            s.print_stats(*out, instr_stats);
-          }
-          if (!vm.count("quiet")) {
-            *out << "Pasim options:";
-            
-            // TODO make this more generic.. somehow.
-            
-            if (vm["maxc"].as<unsigned int>())
-              *out << " --maxc=" << max_cycle;
-            if (flush_caches)
-              *out << " --flush-caches=" << flush_caches_addr;
-            *out << " --cpuid=" << cpuid << " --cores=" << cores;
-            *out << " --freq=" << freq;
-            *out << " --mmbase=" << mmbase << " --mmhigh=" << mmhigh;
-            *out << " --cpuinfo_offset=" << cpuinfo_offset;
-            *out << " --excunit_offset=" << excunit_offset;
-            *out << " --timer_offset=" << timer_offset;
-            *out << " --uart_offset=" << uart_offset;
-            *out << " --led_offset=" << led_offset;
-            
-            *out << " --interrupt=" << interrupt_enabled;
-            
-            *out << " --gsize=" << gsize;
-            *out << " --gtime=" << gtime;
-            *out << " --tdelay=" << tdelay << " --trefresh=" << trefresh;
-            *out << " --bsize=" << bsize << " --psize=" << psize;
-            *out << " --posted=" << posted; 
-            *out << " --lsize=" << lsize;
-            
-            *out << " --dckind=" << dck;
-            *out << " --dcsize=" << dcsize << " --dlsize=" << dlsize;
-            *out << " --sckind=" << sck;
-            *out << " --scsize=" << scsize;
-            *out << " --icache=" << ick << " --ickind=" << isck;
-            *out << " --ilsize=" << ilsize;
-            *out << " --mckind=" << mck;
-            *out << " --mcsize=" << mcsize << " --mbsize=" << mbsize;
-            *out << " --mcmethods=" << mcmethods;
-            
-            *out << "\n\n";
-          }
+          success = true;
           break;
         default:
           std::cerr << e.to_string(sym);
 	  std::cerr << s.Dbg_stack;
+      }
+    }
+    
+    if (success) {
+      if (verbose && !print_stats) {
+        s.print_stats(*out, !long_stats, long_stats);
+      }
+      if (verbose) {
+        *out << "Pasim options:\n  ";
+        
+        // TODO make this more generic.. somehow.
+        
+        if (vm["maxc"].as<unsigned int>())
+          *out << " --maxc=" << max_cycle;
+        if (flush_caches)
+          *out << " --flush-caches=" << flush_caches_addr;
+        *out << " --cpuid=" << cpuid << " --cores=" << cores;
+        *out << " --freq=" << freq;
+        *out << " --interrupt=" << interrupt_enabled;            
+
+        *out << "\n  ";
+        *out << " --mmbase=" << mmbase << " --mmhigh=" << mmhigh;
+        *out << " --cpuinfo_offset=" << cpuinfo_offset;
+        *out << " --excunit_offset=" << excunit_offset;
+        *out << " --timer_offset=" << timer_offset;
+        *out << " --uart_offset=" << uart_offset;
+        *out << " --led_offset=" << led_offset;
+        
+        *out << "\n  ";
+        *out << " --gsize=" << gsize;
+        *out << " --gtime=" << gtime;
+        *out << " --tdelay=" << tdelay << " --trefresh=" << trefresh;
+        *out << " --bsize=" << bsize << " --psize=" << psize;
+        *out << " --posted=" << posted; 
+        
+        *out << "\n  ";
+        *out << " --lsize=" << lsize;
+        *out << " --dckind=" << dck;
+        *out << " --dcsize=" << dcsize << " --dlsize=" << dlsize;
+        *out << " --sckind=" << sck;
+        *out << " --scsize=" << scsize;
+        
+        *out << "\n  ";
+        *out << " --icache=" << ick << " --ickind=" << isck;
+        *out << " --ilsize=" << ilsize;
+        *out << " --mckind=" << mck;
+        *out << " --mcsize=" << mcsize << " --mbsize=" << mbsize;
+        *out << " --mcmethods=" << mcmethods;
+        
+        *out << "\n\n";
       }
     }
   }

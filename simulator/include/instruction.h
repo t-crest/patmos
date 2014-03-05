@@ -160,7 +160,7 @@ namespace patmos
       {
         PRR_e Pd;
         GPR_e Rs1;
-        uword_t Imm;
+        word_t Imm;
       } ALUci;
       /// Operands for an ALUp instruction.
       struct

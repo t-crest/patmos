@@ -70,8 +70,8 @@ class WriteCombineBuffer() extends Module {
 
   // Registers for write combining
   val tagReg = Reg(init = Bits(0, width = tagWidth))
-  val dataBuffer = Vec.fill(burstLength) { Reg(Bits(0, width = dataWidth)) }
-  val byteEnBuffer = Vec.fill(burstLength) { Reg(Bits(0, width = byteEnWidth)) }
+  val dataBuffer = Vec.fill(burstLength) { Reg(init = Bits(0, width = dataWidth)) }
+  val byteEnBuffer = Vec.fill(burstLength) { Reg(init = Bits(0, width = byteEnWidth)) }
   val fillReadReg = Reg(init = Bool(false))
 
   // Temporary vector for combining

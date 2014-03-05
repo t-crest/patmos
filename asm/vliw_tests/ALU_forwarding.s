@@ -1,5 +1,5 @@
 # Test case for forwarding of ALU instructions
-	.word	124;
+	.word	136;
 	addi	r4 = r0, 0;
 	addi	r4 = r0, 0;
 	addi	r1 = r0, 2		||	addi	r1 = r0, 5;
@@ -18,3 +18,6 @@
 	sl		r16 = r10, r1	||	sr 		r17 = r10, r1;
 	sra		r19 = r12, r1	||	srai 	r18 = r12, 5;
 	halt;
+	nop;
+	nop;
+	nop;

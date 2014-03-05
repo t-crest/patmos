@@ -1,7 +1,7 @@
 #
 # Basic instructions test
 # different ld/st from/to scratchpad memory
-	.word   116;
+	.word   128;
 	addi    r1 = r0, 256;
 	sbl     [r1 + 4] = r0;
 	sbl     [r1 + 5] = r0;
@@ -32,3 +32,6 @@ x1:	sl	r31 = r31, r30;
 	cmpneq  p1 = r31, r29;
 (p1)	br	x1; #r20 equals to all upper bits 1 
 	halt;
+	nop;
+	nop;
+	nop;

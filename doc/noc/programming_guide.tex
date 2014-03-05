@@ -1,0 +1,419 @@
+\documentclass[a4paper,fontsize=10pt,twoside,DIV15,BCOR12mm,headinclude=true,footinclude=false,pagesize,bibtotoc]{scrbook}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+\usepackage{pslatex} % -- times instead of computer modern
+\usepackage[scaled=.84]{beramono} % a sane monospace font
+\usepackage{microtype}
+
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xspace}
+\usepackage[usenames,dvipsnames]{xcolor}
+\usepackage{colortbl}
+\usepackage{multicol}
+\usepackage{rotating}
+\usepackage{subfig}
+\usepackage{ulem}
+\usepackage{enumerate}
+
+% avoid clubs and widows
+\clubpenalty=10000
+\widowpenalty=10000
+
+% tweak float placement
+%% \renewcommand{\textfraction}{.15}
+\renewcommand{\topfraction}{.75}
+%% \renewcommand{\bottomfraction}{.7}
+\renewcommand{\floatpagefraction}{.75}
+%% \renewcommand{\dbltopfraction}{.66}
+%% \renewcommand{\dblfloatpagefraction}{.66}
+\setcounter{topnumber}{4}
+%% \setcounter{bottomnumber}{4}
+%% \setcounter{totalnumber}{16}
+%% \setcounter{dbltopnumber}{4}
+
+\newcommand{\code}[1]{{\texttt{#1}}}
+\newcommand{\codefoot}[1]{{\textsf{#1}}}
+\def\figref#1{Figure~\ref{fig:#1}}
+
+% ulem package, otherwise emphasized text becomes underlined
+\normalem
+
+
+\newcommand{\todo}[1]{{\emph{TODO: #1}}}
+%\renewcommand{\todo}[1]{}
+
+%
+% generic command to comment something
+%
+\newcommand{\comment}[3]{
+
+\textsf{\textbf{#1}} {\color{#3}#2}}
+
+%
+% commentators
+%
+\newcommand{\tommy}[1]{\comment{Tommy}{#1}{Red}}
+\newcommand{\wolf}[1]{\comment{Wolfgang}{#1}{OliveGreen}}
+\newcommand{\martin}[1]{\comment{Martin}{#1}{Blue}}
+\newcommand{\stefan}[1]{\comment{Stefan}{#1}{RoyalPurple}}
+\newcommand{\daniel}[1]{\comment{Daniel}{#1}{RoyalBlue}}
+\newcommand{\cullmann}[1]{\comment{Christoph}{#1}{Maroon}}
+\newcommand{\gebhard}[1]{\comment{Gernot}{#1}{RedOrange}}
+\newcommand{\fb}[1]{\comment{Florian}{#1}{Emerald}}
+\newcommand{\jack}[1]{\comment{Jack}{#1}{Magenta}}
+\newcommand{\sahar}[1]{\comment{Sahar}{#1}{Green}}
+\newcommand{\rasmus}[1]{\comment{Rasmus}{#1}{Mahogany}}
+\newcommand{\eva}[1]{\comment{Evangelia}{#1}{Green}}
+
+% uncomment to get rid of comments
+%\renewcommand{\tommy}[1]{}
+%\renewcommand{\wolf}[1]{}
+%\renewcommand{\martin}[1]{}
+%\renewcommand{\stefan}[1]{}
+%\renewcommand{\daniel}[1]{}
+%\renewcommand{\cullmann}[1]{}
+%\renewcommand{\gebhard}[1]{}
+%\renewcommand{\fb}[1]{}
+%\renewcommand{\jack}[1]{}
+%\renewcommand{\sahar}[1]{}
+%\renewcommand{\rasmus}[1]{}
+
+%
+% custom colors
+%
+\definecolor{lightgray}{gray}{0.8}
+\definecolor{gray}{gray}{0.5}
+
+\usepackage{listings}
+
+% general style for listings
+\lstset{basicstyle=\ttfamily,language=C}
+
+\usepackage[endianness=big]{bytefield}
+
+% long immediate in second slot
+\newcommand{\lconst}{\texttt{const}_{32}}
+% short immediate in ALU instruction
+\newcommand{\sconst}{\texttt{Constant}_{12}}
+% constant in Rs2 field
+\newcommand{\rconst}{\texttt{Constant}_{5}}
+
+% SH: to be used in text mode .. maybe we should change this to math mode?
+\newcommand{\XOR}{\textasciicircum\xspace}
+\newcommand{\OR}{\textbar\xspace}
+\newcommand{\AND}{\&\xspace}
+\newcommand{\NOT}{\texttildelow}
+\newcommand{\shl}{\textless$\!$\textless\xspace}
+\newcommand{\shr}{\textgreater$\!$\textgreater$\!$\textgreater\xspace}
+\newcommand{\ashr}{\textgreater$\!$\textgreater\xspace}
+
+\newcommand{\bitsunused}{\rule{\width}{\height}}
+\newcommand{\bitssubclass}{\color{lightgray}\rule{\width}{\height}}
+
+%
+% allow click-able links
+%
+\usepackage[open]{bookmark}
+\usepackage[all]{hypcap}
+
+%
+% hyperref setup (depends on bookmark/hyperref}
+%
+\hypersetup{
+    pdftitle = {Argo programming guide},
+    pdfsubject = {Technical Report},
+    colorlinks = {true},
+    citecolor = {black},
+    filecolor = {black},
+    linkcolor = {black},
+    urlcolor = {black},
+    final
+}
+
+%
+% document contents
+%
+\begin{document}
+
+\title{Argo Programming Guide}
+
+\author{Evangelia Kasapaki,  Rasmus Bo S{\o}rensen}
+
+\lowertitleback{\todo{Copyright and license terms come here.}}
+
+\frontmatter
+
+\maketitle
+
+\chapter{Preface}
+
+This guide describes how the Argo noc can be programmed through a description of the API and code examples.
+This document should evolve to be the documentation on writing multicore application for the T-CREST platform.
+
+The most recent version of this guide is contained as LaTeX source in the Patmos repository in directory
+\code{patmos/doc/noc} and can be built with \code{make}.
+
+\section*{Acknowledgment}
+This work was partially funded under the
+European Union's 7th Framework Programme
+under grant agreement no. 288008:
+Time-predictable Multi-Core Architecture for Embedded
+Systems (T-CREST).
+And partially funded by:
+The Danish Council for Independent Research | Technology and Production Sciences (FTP) 
+project (Hard Real-Time Embedded Multiprocessor Platform - RTEMP)
+
+\tableofcontents
+
+\begingroup
+\let\cleardoublepage\clearpage
+\listoffigures
+\listoftables
+%\lstlistoflistings
+\endgroup
+
+\mainmatter
+
+\chapter{Introduction}
+
+Argo is a time-predictable Network-on-Chip (NOC) designed to be used in hard real-time multi-core platforms.
+The main functionality of Argo is to provide time-predictable core-to-core communication in the form of message passing.
+Argo provides time-predictable message passing through its shared network of routers,
+by allocating resources such that it enforces a static time division multiplexing (TDM) schedule.
+
+The static TDM schedule can be constructed to fit an application by allocating
+different amounts of bandwidth to different communication channels.
+The Poseidon scheduler \url{https://github.com/t-crest/poseidon.git} is part of
+the T-CREST tool chain and is used to generate static TDM schedules.
+
+The steps to build the Patmos tools on a Linux/Ubuntu
+system is presented in the Patmos Handbook.
+In this report we assume that the reader is familiar with C and has skimmed
+through the \href{http://patmos.compute.dtu.dk/patmos_handbook.pdf}{Patmos handbook}.
+Another assumption is the the reader already has access to a hardware platform,
+either genereated by the reader or a pre-synthesized platform downloaded from the project webpage.
+
+The Argo Programming Guide contains a description of the Argo architecture in Chapter~\ref{chap:arch}.
+Chapter~\ref{chap:poseidon} describes how to generate a static TDM schedule.
+Chapter~\ref{chap:mem} describes the address space and interface of Argo.
+Chapter~\ref{chap:apg} guides the reader on how to program an application that uses the NOC.
+
+
+
+\chapter{The Architecture of Argo}
+\label{chap:arch}
+
+The Argo NOC is made up of two different components,
+network interfaces (NI) and routers.
+The NI converts the transaction based communication from the processor to
+stream based communication towards other processors in the network.
+The router is routing the packets through the network according the the static TDM schedule.
+A diagram of the architecture of Argo is shown in Figure~\ref{fig:diag}
+
+\begin{figure}
+\centering
+%\includegraphics[width=\textwidth]{}
+\caption{The architecture of a single Argo tile.}
+\label{fig:diag}
+\end{figure}
+
+To enable full utilization of the static TDM schedule,
+Argo has a direct memory access (DMA) channel per communication channel.
+To send a message through the network a DMA needs to be setup.
+
+
+\chapter{Static time division multiplexing scheduler}
+\label{chap:poseidon}
+The TDM scheduler used to generate schedules for Argo is called Poseidon.
+The source of Poseidon is placed at \url{https://github.com/t-crest/poseidon.git}.
+The performance of Poseidon is desrcibed in \cite{tcrest:poseidon}.% Technical report on poseidon
+
+Poseidon takes an XML file as input descriping the platform and the required communication pattern.
+The platform and communication tags can be given in two different XML files or on one.
+When the platform is generated from the Aegean platform generator, the input files for the scheduler are also generated.
+
+For the time beeing the scheduler is limited to schedule one package per communication channel in each period.
+This limitation is due to a limitation in the current hardware, not a limitation in the scheduler it self.
+When multiple packages per communication channel are supported the limitation can be removed by commenting out (in t-crest/poseidon/src/parser.cpp) the lines:
+
+\begin{verbatim}
+warn_if(bw != 1,"Bandwidth different from 1 is not supported by Argo, Bandwidth set to 1.");
+if (bw != 1) { bw = 1;  }
+\end{verbatim}
+
+\section{Input format}
+
+\section{Output format}
+
+\section{Conversion to C}
+
+
+
+
+
+\chapter{Memory address space and interface}
+\label{chap:mem}
+The network interface (NI) of Argo has 2 OCP\cite{ocp:spec} interfaces.
+
+
+\section{Local and Global Address Space}
+
+\eva{Just copied the addresses from the .h files}
+\begin{description}
+\item[UART\_STATUS]      0xF0000800
+\item[UART\_DATA]        0xF0000804
+\item[LEDS]              0xF0000900
+\item[NOC\_DMA\_BASE]    0xE0000000
+\item[NOC\_DMA\_P\_BASE] 0xE1000000
+\item[NOC\_ST\_BASE]     0xE2000000
+\item[NOC\_SPM\_BASE]    0xE8000000
+\item[NOC\_VALID\_BIT]   0x08000
+\item[NOC\_DONE\_BIT]    0x04000
+\end{description}
+
+
+
+
+
+\chapter{Application Programming Guide}
+\label{chap:apg}
+
+\section{Application Programming Interface}
+\label{sec:api}
+
+At the time of writing the only application programming interface is the libnoc library. A number of functions and variable are provided through libnoc library. libnoc has two kinds of functionality, the first is to initialize the network interface (NI) and the second is the setup DMA transfers for send messages to other processing cores. 
+
+The variables defined in libnoc:
+\begin{description}
+\item[NOC\_CORES] The number of cores on the platform. 
+\item[NOC\_TABLES] The number of tables for Noc configuration. 
+\item[NOC\_TIMESLOTS] The number of timeslots in the schedule. 
+\item[NOC\_DMAS]	The number of DMAs in the configuration. 
+\item[noc\_init\_array] The array for initialization data. 
+\item[NOC\_MASTER] The master core, which governs booting and startup synchronization. 
+\end{description}
+
+
+The functions defined in libnoc:
+\begin{description}
+\item [noc\_configure] Configure network interface according to initialization information in noc\_init\_array.
+\item [noc\_init] Configure network-on-chip and synchronize all cores. 
+\item [noc\_dma] Starts a NoC transfer. 
+\item [noc\_send] Transfer data via the NoC. 
+\end{description}
+
+
+\section{Hello World multicore}
+
+To demonstrate the use of Argo, a multi-core Hello World application \textit{hello\_sum.c} is placed in /patmos/c.
+The application is written in C and can be compiled and downloaded on the FPGA board where the bootloader is initiating the execution.
+The application needs to be placed in /patmos/c and the compile and download of the application on the board is done with the following make commands:
+
+\begin{verbatim}
+make APP=hello_sum comp
+make APP=hello_sum download
+\end{verbatim}
+
+To develop an application that runs on T-CREST platform, memory access and communication should be handled explicitely.
+Argo noc is initialized automatically through aegean platform but the communication of data should be handled by application programmer.
+Specifically, in \textit{hello\_sum} application, a round trip hello message is sent from the master passing through all the cores.
+Each core is adding its id to the sum of the id and eventually the master will receive the sum of all core ids.
+To send data from one core to another the data should be explicitely placed in the local SPM of the core. Pointers to access SPM space are defined as:
+
+\begin{lstlisting}
+volatile _SPM <type> *<name>
+\end{lstlisting}
+
+The sending of the message is done using function noc\_send():
+
+\begin{lstlisting}
+void noc_send (int rcv_id, volatile void _SPM *dst, volatile void _SPM *src, size_t size)
+\end{lstlisting}
+
+The function returns when the DMA transmitting the message is setup.
+
+Currently, libnoc library doesn't support a receive message,
+therefore a receiver can know that the data has arrived through wait
+and polling of the specified address where the data are expected to arrive.
+Figure \ref{lst:hello_multi} shows the code executed in the slave cores.
+The code for the allocation of memory in the SPM, the polling and the sending of message appears in Figure \ref{lst:hello_multi}.
+
+\begin{lstlisting}[float,caption={A 2x2 Hello World application: Slave.\label{lst:hello_multi}}]
+volatile _SPM char *spm_base = (volatile _SPM char *) NOC_SPM_BASE;
+volatile _SPM char *spm_slave = spm_base+NOC_CORES*16;
+
+// wait and poll until message arrives
+while(*(spm_slave+20) == 0) {;}
+
+// PROCESS : add ID to sum_id
+*(spm_slave+20) = *(spm_slave+20) + CORE_ID;
+
+// send to next slave
+int rcv_id = (CORE_ID==3)? 0 : CORE_ID+1;
+noc_send(rcv_id, spm_slave, spm_slave, 21);
+\end{lstlisting}
+
+\eva{Maybe master code not really needed here.}
+Listing~\ref{lst:hello_master} shows the code executed in the master core. The code for the explicit copying the data to the SPM space, the sending of message, the polling and the printing appears in Listing~\ref{lst:hello_master}.
+
+\begin{lstlisting}[float,caption={A 2x2 Hello World application: Master.\label{lst:hello_master}}]
+volatile _SPM char *spm_base = (volatile _SPM char *) NOC_SPM_BASE;
+volatile _SPM char *spm_slave = spm_base+NOC_CORES*16;
+
+// message to be send
+const char *msg = "Hello slaves sum_id:0";
+
+// put message to spm
+int i;
+for (i = 0; i < 21; i++) {
+	*(spm_base+i) = *(msg+i);
+}
+
+// send message
+noc_send(1, spm_slave, spm_base, 21); //21 bytes
+
+WRITE("MASTER: message sent: ",22);
+WRITE(spm_base, 21);
+WRITE("\n",1);
+
+// wait and poll
+while(*(spm_slave+20) == 0) {;}
+
+// received message
+WRITE("MASTER: message received: ",26);
+WRITE(spm_slave, 21);
+WRITE("\n",1);
+\end{lstlisting}
+
+\chapter{Pending Changes}
+
+This is a live and temporary section that lists pending changes of Argo.
+
+Currently we have following proposals for a change:
+
+\begin{itemize}
+\item DMA read
+\item Generate an interrupt when a complete DMA transfer has been received. 
+\end{itemize}
+
+% % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
+\chapter{Potential Extensions}
+\label{chap:ext}
+Ideas for extensions can be added in this chapter.
+
+
+
+\bibliographystyle{abbrv}
+\bibliography{../handbook/patbib.bib,noc.bib}
+
+\end{document}
+
+\appendix
+
+
+\end{document}

@@ -18,16 +18,13 @@
 //
 
 #include "interrupts.h"
-#include "simulation-core.h"
-#include "instruction.h"
-#include "memory.h"
-#include "method-cache.h"
+
 #include <stdio.h>
 
 namespace patmos
 {
 
-	interrupt_handler_t::interrupt_handler_t() : Interrupt_status(INTERRUPT_DISABLED)
+  interrupt_handler_t::interrupt_handler_t() : Interrupt_status(INTERRUPT_DISABLED)
   {
 
   }
@@ -46,20 +43,21 @@ namespace patmos
 
   void interrupt_handler_t::enable_interrupts() 
   {
-  	Interrupt_status 			= INTERRUPT_ENABLED;
+    Interrupt_status = INTERRUPT_ENABLED;
   }
 
   void interrupt_handler_t::disable_interrupts()
   {
-  	Interrupt_status 			= INTERRUPT_DISABLED;
+    Interrupt_status = INTERRUPT_DISABLED;
   }
 
-  void interrupt_handler_t::fire_interrupt(interrupt_e interrupt_type, ISR_address interrupt_address)
+  void interrupt_handler_t::fire_interrupt(interrupt_e interrupt_type, 
+                                           ISR_address interrupt_address)
   {
     if (Interrupt_status == INTERRUPT_DISABLED) return;
     // the address must be given in words not in bytes
-  	interrupt_t interrupt(interrupt_type, interrupt_address/4);
-  	Interrupt_vector.push_back(interrupt);
+    interrupt_t interrupt(interrupt_type, interrupt_address/4);
+    Interrupt_vector.push_back(interrupt);
   }
 
 }

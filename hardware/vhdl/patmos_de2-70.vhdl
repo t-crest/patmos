@@ -58,26 +58,26 @@ architecture rtl of patmos_top is
 			io_comSpm_S_Resp        : in std_logic_vector(1 downto 0);
 			io_comSpm_S_Data        : in std_logic_vector(31 downto 0);
 
-			io_cpuInfoPins_id   : in  std_logic_vector(31 downto 0);            
+			io_cpuInfoPins_id   : in  std_logic_vector(31 downto 0);
 			io_ledsPins_led : out std_logic_vector(8 downto 0);
 			--io_keysPins_key : out std_logic_vector(3 downto 0);
 			io_uartPins_tx  : out std_logic;
 			io_uartPins_rx  : in  std_logic;
 
-                        io_sramPins_ram_out_addr : out std_logic_vector(18 downto 0);
-                        io_sramPins_ram_out_dout_ena : out std_logic;
-                        io_sramPins_ram_out_nadsc : out std_logic;
-                        io_sramPins_ram_out_noe : out std_logic;
-                        io_sramPins_ram_out_nbwe : out std_logic;
-                        io_sramPins_ram_out_nbw : out std_logic_vector(3 downto 0);
-                        io_sramPins_ram_out_ngw : out std_logic;
-                        io_sramPins_ram_out_nce1 : out std_logic;
-                        io_sramPins_ram_out_ce2 : out std_logic;
-                        io_sramPins_ram_out_nce3 : out std_logic;
-                        io_sramPins_ram_out_nadsp : out std_logic;
-                        io_sramPins_ram_out_nadv : out std_logic;
-                        io_sramPins_ram_out_dout : out std_logic_vector(31 downto 0);
-                        io_sramPins_ram_in_din : inout std_logic_vector(31 downto 0)
+                        io_sSRam32CtrlPins_ramOut_addr : out std_logic_vector(18 downto 0);
+                        io_sSRam32CtrlPins_ramOut_doutEna : out std_logic;
+                        io_sSRam32CtrlPins_ramOut_nadsc : out std_logic;
+                        io_sSRam32CtrlPins_ramOut_noe : out std_logic;
+                        io_sSRam32CtrlPins_ramOut_nbwe : out std_logic;
+                        io_sSRam32CtrlPins_ramOut_nbw : out std_logic_vector(3 downto 0);
+                        io_sSRam32CtrlPins_ramOut_ngw : out std_logic;
+                        io_sSRam32CtrlPins_ramOut_nce1 : out std_logic;
+                        io_sSRam32CtrlPins_ramOut_ce2 : out std_logic;
+                        io_sSRam32CtrlPins_ramOut_nce3 : out std_logic;
+                        io_sSRam32CtrlPins_ramOut_nadsp : out std_logic;
+                        io_sSRam32CtrlPins_ramOut_nadv : out std_logic;
+                        io_sSRam32CtrlPins_ramOut_dout : out std_logic_vector(31 downto 0);
+                        io_sSRam32CtrlPins_ramIn_din : inout std_logic_vector(31 downto 0)
 		);
 	end component;
 
@@ -98,7 +98,7 @@ architecture rtl of patmos_top is
         signal sram_out_dout : std_logic_vector(31 downto 0);
         signal sram_in_din : std_logic_vector(31 downto 0);
         signal sram_in_din_reg : std_logic_vector(31 downto 0);
-        
+
 	attribute altera_attribute : string;
 	attribute altera_attribute of res_cnt : signal is "POWER_UP_LEVEL=LOW";
 

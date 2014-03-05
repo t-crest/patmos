@@ -1,46 +1,67 @@
 BUILDDIR=../tmp
 
-#PATMOS_BASE=/project/flbr/jobs/install/patmos/bin/
-#CC=$(PATMOS_BASE)/clang
-
 CC=patmos-clang
 
 # Flags for compiling to boot ROM
-CFLAGS-BOOTABLE=-target patmos-unknown-unknown-elf \
-	-DBOOTROM \
-	-mpatmos-method-cache-size=0x8000 \
-	-mpatmos-preferred-subfunction-size=0 \
-	-mpatmos-subfunction-align=1 \
+CFLAGS-BOOTABLE=-target patmos-unknown-unknown-elf -Os \
+	-I$(CURDIR) -DBOOTROM \
 	-mpatmos-disable-stack-cache \
+	-mpatmos-disable-vliw
+LDFLAGS-BOOTABLE= \
+	-mpatmos-method-cache-size=0x8000 \
+	-mpatmos-max-subfunction-size=0 -mpatmos-preferred-subfunction-size=0 \
+	-mpatmos-stack-base=0x80010680 -mpatmos-shadow-stack-base=0x80010780 \
 	-nodefaultlibs -nostdlib -nostartfiles \
-	-mpatmos-stack-base=0x80010700 -mpatmos-shadow-stack-base=0x80010800 \
 	-Xgold --section-start -Xgold .text=0x0 -e main \
 	-Xgold --section-start -Xgold .rodata=0x80000010 \
 	-Xgold --section-start -Xgold .data=0x80010000 \
-	-Os -mpatmos-disable-vliw=true
 
 # Flags for compiling normal applications
-CFLAGS=-target patmos-unknown-unknown-elf \
-	-Xgold -T../hardware/ram.t \
-	-mpatmos-method-cache-size=0x1000 \
+CFLAGS=-target patmos-unknown-unknown-elf -O2 \
+	-I$(CURDIR) \
+	-mpatmos-disable-vliw
+LDFLAGS= \
+	-mpatmos-method-cache-size=0x800 -mpatmos-preferred-subfunction-size=0 \
 	-mpatmos-stack-base=0x1f0000 -mpatmos-shadow-stack-base=0x200000 \
-	-O2
-
-# force rebuild of mandelbrot_par if init.h changes
-mandelbrot_par.c: init.h
-	touch $@
+	-Xgold -T../hardware/ram.t -Xgold -n
 
 compile: $(BUILDDIR)/$(APP).elf
 
-$(BUILDDIR)/%.elf: %.c
-	$(CC) $(CFLAGS) -o $@ $^
+$(BUILDDIR)/%.o: %.c
+	mkdir -p $(BUILDDIR)/$(dir $*)
+	$(CC) $(CFLAGS) -c -o $@ $(filter %.c,$^)
+
+$(BUILDDIR)/%.elf: %.c libnoc
+	mkdir -p $(BUILDDIR)/$(dir $*)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lnoc
 
 $(BUILDDIR)/%.s: %.c
-	$(CC) $(CFLAGS) -fpatmos-emit-asm -S -o $@ $^
+	mkdir -p $(BUILDDIR)/$(dir $*)
+	$(CC) $(CFLAGS) -fpatmos-emit-asm -S -o $@ $(filter %.c,$^)
 
-$(BUILDDIR)/bootable-%.elf: %.c
-	$(CC) $(CFLAGS-BOOTABLE) -o $@ $^
+$(BUILDDIR)/bootable-%.elf: %.c libnoc
+	mkdir -p $(BUILDDIR)/$(dir $*)
+	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lnoc
 
 $(BUILDDIR)/bootable-%.s: %.c
-	$(CC) $(CFLAGS-BOOTABLE) -fpatmos-emit-asm -S -o $@ $^
+	mkdir -p $(BUILDDIR)/$(dir $*)
+	$(CC) $(CFLAGS-BOOTABLE) -fpatmos-emit-asm -S -o $@ $(filter %.c,$^)
 
+# application-specific additional dependencies
+$(BUILDDIR)/bootable-bootloader.elf: download.c boot.h
+$(BUILDDIR)/bootable-cmpmaster.elf: download.c boot.h cmpboot.h
+$(BUILDDIR)/bootable-cmpslave.elf: boot.h cmpboot.h
+
+$(BUILDDIR)/bootable-mandelbrot_par.elf: nocinit.c libnoc
+$(BUILDDIR)/mandelbrot_par.elf: nocinit.c libnoc
+
+$(BUILDDIR)/bootable-cmp_hello.elf: nocinit.c libnoc
+$(BUILDDIR)/cmp_hello.elf: nocinit.c libnoc
+
+$(BUILDDIR)/hello_sum.elf: nocinit.c libnoc boot.h cmpboot.h
+
+# library for network-on-chip
+.PHONY: libnoc
+libnoc: $(BUILDDIR)/libnoc.a
+$(BUILDDIR)/libnoc.a: $(BUILDDIR)/libnoc/noc.o
+	ar r $@ $^

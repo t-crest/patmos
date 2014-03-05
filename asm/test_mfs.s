@@ -2,7 +2,7 @@
 # Testing hazard with mfs
 #
 
-	.word   72;
+	.word   84;
 	addi	r0 = r0, 0;  # first instruction not executed
 	addi    r1 = r0, 4;
 	addi    r2 = r0, 6;
@@ -24,3 +24,6 @@
 	mfs     r7 = s2;     # r7 should be 8
 	addi    r8 = r7, 0;  # r8 should be 8
 	halt;		      
+	nop;
+	nop;
+	nop;

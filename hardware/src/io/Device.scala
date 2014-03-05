@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,9 @@
 
 /*
  * Common definitions for I/O devices
- * 
+ *
  * Authors: Wolfgang Puffitsch (wpuffitsch@gmail.com)
- * 
+ *
  */
 
 package io
@@ -67,7 +67,7 @@ abstract class DeviceObject() {
     val param = getParam(params, key)
     try { param.toInt
     } catch { case exc : Exception =>
-      throw new IllegalArgumentException("Parameter " + key + " must be an integer")      
+      throw new IllegalArgumentException("Parameter " + key + " must be an integer")
     }
   }
 
@@ -87,5 +87,13 @@ class CoreDevice() extends Device() {
 }
 
 class CoreDeviceIO() extends Bundle() {
-  val ocp = new OcpCoreSlavePort(0, DATA_WIDTH)
+  val ocp = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+}
+
+class BurstDevice(addrBits: Int) extends Device() {
+  val io = new BurstDeviceIO(addrBits);
+}
+
+class BurstDeviceIO(addrBits: Int) extends Bundle() {
+  val ocp = new OcpBurstSlavePort(addrBits, DATA_WIDTH, BURST_LENGTH)
 }
