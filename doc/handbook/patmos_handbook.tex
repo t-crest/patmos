@@ -3017,6 +3017,7 @@ for the DE2-70 is: 3415 LCs, 85.44 MHz. Dropping \code{rsub} and all unary
 ALU operations: 3173 LCs, 91.91 MHz.
 
 \chapter{Build Instructions}
+\label{ch:build_instructions}
 
 In the following we present the Patmos build instructions on a Linux/Ubuntu
 system (13.10).\footnote{I used the 32-bit version of Ubuntu to simplify the Quartus installation.}
@@ -3055,6 +3056,7 @@ sudo apt-get install python3-lxml
 \end{verbatim}
 
 \subsection{Compiler and Patmos}
+\label{sec:build:compiler}
 
 We assume that the T-CREST project will live in \code{\$HOME/t-crest}.
 Patmos and the compiler can be checked out from GitHub and built as follows:
@@ -3081,21 +3083,34 @@ the Patmos source, and benchmarks) and
 build the compiler, the Patmos simulator, and the test benches.
 Therefore, take a cup of coffee and find some nice reading.
 After building the compiler add the path
-to the compiler executables into your \code{.profile}:
+to the compiler executables into your \code{.bashrc}:
 \footnote{The path needs to be absolute. LLVM cannot handle
 a path relative to the home folder \textasciitilde{}, e.g., \code{\textasciitilde{}/t-crest/local/bin}.}
+\footnote{The initialization file name depends on your system and setup. \code{profile} files are only read by login
+terminals (remote terminals or at login), but your \code{.bashrc} or \code{.zshrc} (for interactive terminals within a
+session) might be set up to source \code{.profile} as well.}
+
+\stefan{Relative paths should actually work, but the \textasciitilde{} shortcut is shell-specific and may not work, but
+not sure about this.}
 
 \begin{verbatim}
 export PATH=$PATH:$HOME/t-crest/local/bin
 \end{verbatim}
 
-A complete logout from Ubuntu is needed to take effect (just closing
-a terminal window is not enough).
+Optionally, you may additionally add the \code{misc} checkout to your path, so that \code{build.sh} and the helper tools in 
+\code{misc} can be executed from everywhere.
+
+\begin{verbatim}
+export PATH=$PATH:$HOME/t-crest/misc
+\end{verbatim}
+
+A complete logout from Ubuntu might be needed to take effect (just closing
+a terminal window is not enough, depending on how you set up your profile files).
 
 You can test your installation by checking if the compiler is available:
 
 \begin{verbatim}
-patmos-clang
+patmos-clang --version
 \end{verbatim}
 
 For correct correct signing of your changes set the username and
@@ -3620,23 +3635,12 @@ LM_LICENSE_FILE=1717@localhost
 
 This way of setting up an SSH tunnel might also work for other institutions.
 
-%% MS: there needs to be more content to have a chapter on the compiler.
-%
-%\chapter{The Patmos Compiler}
-%\label{sec:compiler}
-%
-%The LLVM compiler has been adapted to emit code for the Patmos ISA
-%and support the special features, e.g., the stack cache~\cite{Seus13:compiler}.
-%
-%\martin{Daniel and Stefan shall add here an overview of the compiler and
-%some words on source organization. But let's start with some notes.}
-%
-%The compiler and libraries can be built with \code{misc/build.sh}.
-%This script also contains the default options, which should work on a
-%standard Linux machine out of the box. Options can be overwritten by
-%entries in a personal \code{misc/build.cfg}. The file {misc/build.dist.cfg}
-%is just an example configuration file, generated from build.sh, and ignored
-%by the build process.
+
+
+\chapter{The Patmos Compiler}
+\label{sec:compiler}
+
+\input{toolchain}
 
 
 \chapter{Application Binary Interface}
