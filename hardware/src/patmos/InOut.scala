@@ -111,6 +111,7 @@ class InOut() extends Module {
   io.comSpm.M.Cmd := Mux(selComSpm, io.memInOut.M.Cmd, OcpCmd.IDLE)
   val comSpmS = io.comSpm.S
 
+  // Creation of IO devices
   for (devConf <- Config.conf.Devs) {
     val dev = Config.createDevice(devConf).asInstanceOf[CoreDevice]
     // connect ports
