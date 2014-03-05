@@ -94,6 +94,7 @@ object Utility {
     printf("\tPipelines: %d\n", PIPE_COUNT)
     printf("\tMethod cache: %d KB, %d methods\n", MCACHE_SIZE/1024, METHOD_COUNT)
     printf("\tData cache: %d KB, direct-mapped\n", DCACHE_SIZE/1024)
+    printf("\tStack cache: %d KB\n", SCACHE_SIZE/1024)
     printf("\tInstruction SPM: %d KB\n", ISPM_SIZE/1024)
     printf("\tData SPM: %d KB\n", DSPM_SIZE/1024)
     printf("\tBoot SPM: %d KB\n", BOOTSPM_SIZE/1024)
