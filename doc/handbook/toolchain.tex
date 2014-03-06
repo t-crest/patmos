@@ -1,12 +1,12 @@
-The LLVM compiler has been adapted to emit code for the Patmos ISA
-and support the special features, e.g., the stack cache~\cite{Seus13:compiler}.
+The LLVM compiler~\cite{Seus13:compiler} has been adapted to emit code for the Patmos ISA
+and support the special features, e.g., the stack cache~\cite{patmos:stack:seus}.
 
 The compiler and libraries can be built with \code{misc/build.sh} as described in Section~\ref{sec:build:compiler}.
 This script contains default options, which should work on a
 standard Linux machine out of the box. Options can be overwritten by
-entries in a personal \code{misc/build.cfg}. The file {misc/build.cfg.dist}
+entries in a personal \code{misc/build.cfg}. The file \code{misc/build.cfg.dist}
 is an example configuration file containing default values, which is
-generated from build.sh, and ignored by the build process.
+generated from \code{build.sh}, and ignored by the build process.
 To change any options for \code{misc/build.sh}, either start with an empty \code{misc/build.cfg} or
 copy \code{misc/build.cfg.dist} and modify the values to your need.
 
@@ -329,22 +329,31 @@ e_machine: EM_PATMOS = 0xBEEB
 \end{verbatim}
 
 \paragraph{ELF Relocation infos:}
+Table~\ref{tab:elfrelocs} shows the ELF relocation types.
 
-\begin{verbatim}
-Name                    Value   Description
-R_PATMOS_NONE           0
-R_PATMOS_CFLB_ABS       1       CFLb format (22 bit immediate), absolute (unsigned), in words
-R_PATMOS_CFLB_PCREL     2       CFLb format (22 bit immediate), PC relative (signed), in words
-R_PATMOS_ALUI_ABS       3       ALIi format (12 bit immediate), absolute (unsigned), in bytes
-R_PATMOS_ALUI_PCREL     4       ALUi format (12 bit immediate), PC relative (signed), in bytes
-R_PATMOS_ALUL_ABS       5       ALUl format (32 bti immediate), absolute (unsigned), in bytes
-R_PATMOS_ALUL_PCREL     6       ALUl format (32 bit immediate), PC relative (signed), in bytes
-R_PATMOS_MEMB_ABS       7       LDT or STT format (7 bit immediate), signed, in bytes
-R_PATMOS_MEMH_ABS       8       LDT or STT format (7 bit immediate), signed, in half-words
-R_PATMOS_MEMW_ABS       9       LDT or STT format (7 bit immediate), signed, in words
-R_PATMOS_ABS_32         10      32 bit word, absolute (unsigned), in bytes
-R_PATMOS_PCREL_32       11      32 bit word, PC relative (signed), in bytes
-\end{verbatim}
+\begin{table}
+  \centering
+  \begin{tabular}{lll}
+    \toprule
+    Name & Value & Description \\
+    \midrule
+\texttt{R\_PATMOS\_NONE}         & 0  & no relocation \\
+\texttt{R\_PATMOS\_CFLB\_ABS}    & 1  & CFLb format (22 bit immediate), absolute (unsigned), in words \\
+\texttt{R\_PATMOS\_CFLB\_PCREL}  & 2  & CFLb format (22 bit immediate), PC relative (signed), in words \\
+\texttt{R\_PATMOS\_ALUI\_ABS}    & 3  & ALIi format (12 bit immediate), absolute (unsigned), in bytes \\
+\texttt{R\_PATMOS\_ALUI\_PCREL}  & 4  & ALUi format (12 bit immediate), PC relative (signed), in bytes \\
+\texttt{R\_PATMOS\_ALUL\_ABS}    & 5  & ALUl format (32 bti immediate), absolute (unsigned), in bytes \\
+\texttt{R\_PATMOS\_ALUL\_PCREL}  & 6  & ALUl format (32 bit immediate), PC relative (signed), in bytes \\
+\texttt{R\_PATMOS\_MEMB\_ABS}    & 7  & LDT or STT format (7 bit immediate), signed, in bytes \\
+\texttt{R\_PATMOS\_MEMH\_ABS}    & 8  & LDT or STT format (7 bit immediate), signed, in half-words \\
+\texttt{R\_PATMOS\_MEMW\_ABS}    & 9  & LDT or STT format (7 bit immediate), signed, in words \\
+\texttt{R\_PATMOS\_ABS\_32}      & 10 & 32 bit word, absolute (unsigned), in bytes \\
+\texttt{R\_PATMOS\_PCREL\_32}    & 11 & 32 bit word, PC relative (signed), in bytes \\
+    \bottomrule    
+  \end{tabular}
+  \caption{ELF relocation types}
+  \label{tab:elfrelocs}
+\end{table}
 
 \stefan{make a table out of this}
 
@@ -458,6 +467,7 @@ foo:                                # start of foo function
     brcf .Ltmp1                     # Fallthrough to different subfunction is not allowed
     nop
     nop
+    nop
 .Ltmp0:                             # end of first subfunction of foo
 
     .type   .Ltmp1,@code
@@ -466,6 +476,7 @@ foo:                                # start of foo function
 .Ltmp1:                             # start of second subfunction of foo
     ...
     ret $r30, $r31                  # returns from foo, not from the subfunction
+    nop
     nop
     nop
 .Ltmp2:                             # end of (second subfunction of) foo
@@ -507,6 +518,16 @@ Used address spaces:
   \end{itemize}
 \end{itemize}
 
+\section{Newlib}
+
+The Patmos compiler contains a port of newlib, a C library intended for embedded systems. When  writing
+downloadable applications it is suggested to use newlib functions instead of the low-level functions provided
+by patmos specific IO functions.\footnote{Those functions are mainly used to write very small footprint programs,
+such as the bootloader itself.}
+
+Documentation of the provided newlib library and available functions is available at:
+
+\url{https://sourceware.org/newlib/}
 
 \section{Known Bugs, Restrictions and Common Issues}
 \label{sec:toolchain:knownbugs}

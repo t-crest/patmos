@@ -2,7 +2,8 @@
 	Author: Rasmus Bo Soerensen (rasmus@rbscloud.dk)
 	Copyright: DTU, BSD License
 */
-#include <stdio.h>
+#include "cmpboot.h"
+#include "patio.h"
 #include <machine/spm.h>
 #include <machine/patmos.h>
 
@@ -12,11 +13,19 @@ extern char _end;
 #define MEM ((volatile _UNCACHED int *) &_end)
 
 int main() {
+	asm volatile ("mov $r29 = %0;" // initialize shadow stack pointer"
+                "mts $ss  = %1;" // initialize the stack cache's spill pointer"
+                "mts $st  = %1;" // initialize the stack cache's top pointer"
+                "li $r30 = %2;" // initialize return base"
+                : : "r" (&_shadow_stack_base),
+                  "r" (&_stack_cache_base),
+                  "i" (&main));
+
 	int res;
 	int error = 0;
 	int test = 0;
 
-	if (get_cpuid() == 0){
+	if (CORE_ID == 0){
 		for (int i=0; i<=MEM_TEST; i++){ // Read from main memory
 			res = *(MEM+i);
 			if (res != 0){	// If data is not what we expect write error
@@ -24,45 +33,46 @@ int main() {
 			}
 		}
 		if (error != 0){
-			puts("MEMORY uninitialized\n");
+			WRITE("MEMORY uninitialized\n",21);
 		}
 		error = 0;
 
 		for (int k = 0; k < 10; k++) { // Test 10 times
+			WRITE("Test",4);
 			for (int i=0; i<=MEM_TEST; i++) // Write to main memory
 				*(MEM+i) = i;
 
 			for (int i=0; i<=MEM_TEST; i++){ // Read from main memory
 				res = *(MEM+i);
 				if (res != i){	// If data is not what we expect write error
-					puts("e");
+					WRITE("e",1);
 					error++;
 				}
 			}
 			if (error != 0){
 				test++;
-				puts("\n");
+				WRITE("\n",1);
 			}
 			error = 0;
 		}
 		if (test != 0){
-			puts("Errors\n");
+			WRITE("Errors\n",7);
 		} else {
-			puts("Success\n");
+			WRITE("Success\n",8);
 		}
 
 	} else {
-		for (int k = 0; k < 100; ++k)
-		{
-			for (int i=0; i<=MEM_TEST; i++){ // Read from main memory
-				res = *(MEM+i);
-				if (res == 0){	// If data is not what we expect write error
-					error = error;
-				} else {
-					error++;
-				}
-			}
-		}
+		//for (int k = 0; k < 100; ++k)
+		//{
+		//	for (int i=0; i<=MEM_TEST; i++){ // Read from main memory
+		//		res = *(MEM+i);
+		//		if (res == 0){	// If data is not what we expect write error
+		//			error = error;
+		//		} else {
+		//			error++;
+		//		}
+		//	}
+		//}
 	}
 
 	return 0;
