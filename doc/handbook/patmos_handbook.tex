@@ -1769,8 +1769,9 @@ predicate that evaluates to \texttt{false} is equivalent to a single
 \paragraph{Behavior -- trap}
 
 Perform a system call. Details are described in Section~\ref{sec:exc}.
-Like the \texttt{call}, \texttt{trap} stores return information, in
-special registers \texttt{sxb} and \texttt{sxo}.
+Like the \texttt{call}, \texttt{trap} stores return information, but
+it uses special registers \texttt{sxb} and \texttt{sxo} for that
+purpose.
 
 \paragraph{Behavior -- ret, xret}
 
@@ -1823,6 +1824,101 @@ with a \texttt{false} predicate is equivalent to a single
 
 All control-flow instructions can only be issued on the first position
 within a bundle.
+
+% % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
+
+\clearpage
+\section{Exceptions: Interrupts, Faults and Traps}
+\label{sec:exc}
+
+In the following, we use \emph{exception} to denote any kind of
+``abnormal'' transfer of control. \emph{Interrupts} are generated
+outside of the pipeline by I/O devices. \emph{Faults} are triggered by
+the pipeline for instructions that cannot be executed as expected
+(accesses to unmapped memory, undecodable instructions,
+etc.). \emph{Traps} are willfully generated exceptions, and are used
+to invoke operating system functions.
+
+An \emph{exception unit} that is mapped to the I/O space (see
+Chapter~\ref{chap:memsyst}) is responsible for managing exceptions. It
+includes the device registers shown in Table~\ref{tab:excioregs}. The
+general principle of operation is that the exception unit requests the
+execution of an exception from the pipeline, and the pipeline returns
+an acknowledges when it starts the execution of the respective
+exception handler.
+
+\begin{table}[b]
+  \centering
+  \begin{tabular}{llp{.6\textwidth}}
+    \toprule
+    Address             & Name             & Description \\
+    \midrule
+    \texttt{0xf0000100} & \texttt{status} & Interrupt-enable
+    flag. Left-shifted on start of exception handler, right-shifted
+    when returning. \\
+    \texttt{0xf0000104} & \texttt{mask} & Mask of enabled interrupts \\
+    \texttt{0xf0000108} & \texttt{pend} & Pending flags for interrupts \\
+    \texttt{0xf000010c} & \texttt{source} & Number of exception that
+    is about to be served \\
+    \cmidrule{1-3}
+    \texttt{0xf0000180} & \texttt{vec<0>} & Address of exception handler 0, illegal operation \\
+    \texttt{0xf0000184} & \texttt{vec<1>} & Address of exception handler 1, illegal memory access \\
+    \ldots & \ldots & \ldots \\
+    \texttt{0xf00001fc} & \texttt{vec<31>} & Address of exception handler 31 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Exception unit device registers}
+  \label{tab:excioregs}
+\end{table}
+
+\subsection{Traps}
+
+The instruction \texttt{trap <n>} triggers exception number $n$. In
+order to assimilate the handling of faults and traps in the pipeline,
+\texttt{trap} instructions never have a delay slot.
+
+\subsection{Return Information}
+
+The return information for exceptions must be stored in registers that
+are never used otherwise. Two special registers \texttt{sxb}
+(\texttt{s9}) and \texttt{sxo} (\texttt{s10}) provide the return base
+and return offset for exceptions.
+
+\subsection{Resuming Execution}
+
+The return information for interrupts is set such that \texttt{xret}
+returns to the bundle that was replaced by the interrupt
+instruction in the pipeline.
+
+For faults, the return information points to the bundle that triggered
+the fault. After a fault, resuming execution must either have fixed
+the cause of the fault and reexecute the whole bundle again, or
+emulate the effects of the whole bundle (including the triggering of
+further faults) and continue execution after the bundle. Due to the
+complexity of the second option, we consider faults where the
+respective instruction cannot be reexecuted \emph{fatal}, and advise
+developers to terminate execution instead of trying to resume.
+
+Resuming after a trap in principle has to take into account the same
+considerations as faults. However, the content of the bundle is under
+the control of the compiler. We require that a trap instruction is the
+only instruction in a bundle. The return address for traps points to
+the bundle after the one that contains the trap instruction.
+
+\subsection{Delayed Triggering of Interrupts}
+
+Instructions that stall the pipeline (loads, stores, calls, etc.)
+delay the triggering of interrupts until the pipeline resumes
+execution. Therefore, method cache fills or stack spills cannot be
+interrupted. Control-flow instructions delay the triggering of
+interrupts such that interrupts are never triggered inside a delay
+slot or while executing instructions speculatively. Multiplications
+delay the triggering of interrupts such that no multiplications are
+``in flight'' when an interrupt handler is entered. Outstanding
+delayed loads do not delay the triggering of interrupts. Interrupt
+handlers must ensure that the contents of the special register
+\texttt{sm} are saved and restored correctly.
+
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 
@@ -1922,6 +2018,7 @@ Example:
 \end{verbatim}
 
 \chapter{Memory and I/O Subsystem}
+\label{chap:memsyst}
 
 \section{Local and Global Address Space}
 
@@ -3819,381 +3916,8 @@ mts $s3 = $r23
 the return-base and return-offset from,..). Interrupt handlers in C are currently not supported,
 the compiler does not restore all the special registers for normal functions.}
 
-
-
-
-\chapter{Pending Changes}
-
-This is a live and temporary section that lists pending changes of the ISA.
-This changes shall live in a remote branch (to be specified) and have a
-date when to be merged into the master branch.
-
-Currently we have following proposals for a change:
-
-\begin{itemize}
-\item bcopy instruction
-\item btest and bcopy with an immediate
-\item Automatic save of method base in a special register for a call: DONE
-\item Branch into subfunction: DONE
-\item Revised branch addressing modes: DONE
-\item Non-delayed branches: DONE
-\item Issue memory operations from any pipeline
-\item Interrupts
-\end{itemize}
-
-Remote branch: \texttt{isa\_rev}
-
-Merge date: 15 August 2013 (?)
-
-\subsection{\texttt{bcopy}/\texttt{btest}}
-
-Semantically, \texttt{bcopy} is the ``inverse'' to \texttt{btest}, such that it
-allows to copy the value of a predicate register to a position in a 32-bit
-register. This instruction should be used for
-\begin{enumerate}
-  \item \texttt{mov Rd $\leftarrow$ Ps \ldots{} bcopy Rd $\leftarrow$ Ps, r0}\\
-        Currently, LLVM generates a two-instruction sequence
-        \texttt{clr Rd; (Ps) li Rd $\leftarrow$ 1} for
-        for extending a 1 bit register to a 32 bit register.
-  \item Predicate register spilling.
-\end{enumerate}
-
-To avoid the requirement for an additional temporary 32-bit register,
-particularly for register spill/restore, variants of bcopy and btest with a
-5-bit immediate operand are beneficial.
-
-\subsection{Issue Memory Operations in any Pipeline}
-
-Allow stack cache accesses, maybe even any memory access in the second pipeline, as long as there is no memory access to the same
-memory executed in the first pipeline.
-
-\begin{lstlisting}
-  { (p1) sws [1] = $r1  ; (!p1) sws [3] = $r2 }   # allowed, only one predicate is true
-  {      swc [r1] = $r4 ;       sws [2] = $r4 }   # allowed, different memories
-  {      br  -4         ;       swl [$r1] = $r2 } # could also be allowed
-  {      ret            ;       swc [$r1] = $r2 } # could also be allowed
-  {      sws [4] = $r1  ;       sws [5] = $r2  }  # not allowed
-\end{lstlisting}
-
-\subsubsection{Costs and Benefits}
-
-In contrast to the original plan, we do not need to have a double-clocked stack cache, but are still able to spill in the second
-pipeline while the first pipeline is either accessing main memory or doing control flow, and we can schedule if-converted code and
-single-path code more in parallel.
-
-While this does not improve the situation for blocks with large sequences of spills,
-e.g. at prologues and epilogues, it might improve the situation for code with lots of control-flow or if-converted code, even in
-situations where a double-clocked stack cache access alone does not help.
-
-\stefan{I frankly do not know how much this will actually gain since usually the code contains either
-main memory access or stack access, not so much a mixture of both, and we need a proper scheduler and play around with the if-converter first to
-see how much ILP we can get out of the code.
-
-Martin promised to take a real serious look at it when we can get some figures showing a gain from the compiler.. ;) }
-
-\wolf{I oppose this change. It's quite a bit of hardware, and
-  performance gains are most likely negligible. There is not much else
-  to do in the prologue/epilogue, and stack accesses are relatively
-  rare elsewhere. If you can show a realistic example where
-  performance gains are significant, I might change my mind.
-
-  Note that we cannot mix XXc and XXm, because both might go to main
-  memory in case of a cache miss. Stack control and
-  \texttt{call}/\texttt{brcf} conflict with both XXc and XXm.}
-
-\subsection{Interrupts and Exceptions}
-
-See Section~\ref{sec:exc} for the proposed implementation and changes
-to the ISA to support interrupts and exceptions in Patmos.
-
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 \chapter{Potential Extensions}
-
-\section{Exceptions: Interrupts, Faults and Traps}
-\label{sec:exc}
-
-\wolf{These is a first attempt to specify how we could/should
-  implement asynchronous transfer of control.}
-
-In the following, we use \emph{exception} to denote any kind of
-``abnormal'' transfer of control. \emph{Interrupts} are generated
-outside of the pipeline by I/O devices. \emph{Faults} are triggered by
-the pipeline for instructions that cannot be executed as expected
-(accesses to unmapped memory, undecodable instructions,
-etc.). \emph{Traps} are willfully generated exceptions, and are used
-to invoke operating system functions, which might require elevated
-privileges (see Section~\ref{sec:supervisor}).
-
-An \emph{exception unit} that is mapped to the I/O space is
-responsible for managing exceptions. It includes the device registers
-shown in Table~\ref{tab:excioregs}. The general principle of operation
-is that the exception unit requests the execution of an exception from
-the pipeline, and the pipeline returns an acknowledges when it starts
-the execution of the respective exception handler.
-
-\begin{table}
-  \centering
-  \begin{tabular}{llp{.6\textwidth}}
-    \toprule
-    Address             & Name             & Description \\
-
-    \texttt{0xf?????00} & \texttt{status} & Interrupt-enable flag,
-    possibly privilege bits. Left-shifted on start of exception
-    handler, right-shifted when returning. \\
-
-    \texttt{0xf?????04} & \texttt{mask} & Mask of enabled interrupts \\
-
-    \texttt{0xf?????08} & \texttt{pend} & Pending flags for interrupts \\
-
-    \texttt{0xf?????0c} & \texttt{source} & Number of exception that
-    is about to be served \\
-
-    \cmidrule{1-3}
-
-    \texttt{0xf?????80} & \texttt{vec<0>} & Address of exception handler 0, illegal operation \\
-    \texttt{0xf?????84} & \texttt{vec<1>} & Address of exception handler 1, illegal memory access \\
-    \ldots & \ldots & \ldots \\
-    \texttt{0xf?????fc} & \texttt{vec<31>} & Address of exception handler 31 \\
-
-    \bottomrule
-  \end{tabular}
-  \caption{Exception unit device registers}
-  \label{tab:excioregs}
-\end{table}
-
-Exceptions are injected into the pipeline in the decode stage. The
-decode stage was chosen to do this because
-\begin{enumerate}
-\item Interrupts must not be triggered inside branch delay slots. The
-  decode stage ``knows'' which instructions are executed and can
-  easily keep track of branch delay slots.
-\item Mechanisms for calls that are located in the execute stage can
-  be shared with exception handling.
-\end{enumerate}
-
-All exceptions that have their origin in the pipeline (faults and
-traps) are handled through signals from the memory stage to the
-exception unit. The memory stage is responsible for aborting the
-execution of any unfinished instructions (flushing the pipeline). The
-exception unit is responsible for demanding the injection of the
-correct exception from the decode stage.
-
-To be able to serve exceptions generated by the pipeline when an
-interrupt already has been injected, the acknowledgment from the
-pipeline to the exception unit is generated in the memory unit. Only
-at this point it is clear if the interrupt will be served or if the
-injected instruction has been flushed from the pipeline.
-
-The memory unit furthermore includes a signal to notify the exception
-unit of returns from exception handlers.
-
-\begin{table}
-  \centering
-  \begin{tabular}{llp{.6\textwidth}}
-    \toprule
-    Name & Stage & Description \\
-    \midrule
-    \texttt{exc}     & to Decode & Request injection of exception generated by pipeline \\
-    \texttt{excAddr} & to Decode & Return address for exception generated by pipeline \\
-    \texttt{intr}    & to Decode & Request injection of interrupt, must be ignored in delay slot \\
-    \texttt{addr}    & to Decode & Address of exception handler to be executed \\
-    \texttt{src}     & to Decode & Index of exception handler to be executed \\
-    \cmidrule{1-3}
-
-    \texttt{call}    & from Memory & Acknowledge execution of exception handler \\
-    \texttt{ret}     & from Memory & Notify exception unit of return from exception handler \\
-    \texttt{src}     & from Memory & Index of acknowledged or requested exception \\
-    \texttt{exc}     & from Memory & Request triggering of exception \\
-    \texttt{excAddr} & from Memory & Return address for requested exception \\
-    \bottomrule
-  \end{tabular}
-  \caption{Exception unit signals to pipeline}
-\end{table}
-
-\subsection{Changes to ISA}
-
-In order to support exceptions, it is necessary that the base address
-of the current function is available \emph{at any time}. Otherwise, it
-could not be guaranteed that an interrupt handler is able to return to
-the correct function. Consequently, the \texttt{call} and
-\texttt{brcf} functions must store the base address in some hardware
-register. This makes the return-base information in register
-\texttt{r30} redundant and it could be replaced by an appropriate
-special return base register \texttt{sb} with minimal effort.
-
-The return information for exceptions must be stored in registers that
-are not used otherwise. Two special registers \texttt{sxb} (\texttt{s9}) and
-\texttt{sxo} (\texttt{s10}) provide the return base and return offset for exceptions.
-
-Depending of on the exact implementation, delayed loads might require
-another special register to save the contents of the special register
-\texttt{sm} upon exceptions. Pipelined multiplications require special
-attention too.
-
-For traps, we introduce an instruction \texttt{trap <n>}, which
-triggers exception number $n$. In order to assimilate the handling of
-faults and traps, the \texttt{trap} instruction causes the memory unit
-to signal an exception to the exception unit, which then requests the
-injection of an exception from the decode unit. Consequently, traps do
-not have a delay slot despite altering the control flow.
-
-\bigskip
-\begin{bytefield}[leftcurly=.]{32}
-  \begin{leftwordgroup}{\parbox{12em}{CFLi -- Trap}}
-    \bitheader{0-31} \\
-    \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{10} & \bitbox{0}{1} & \bitbox{2}{11} &
-    \bitbox{17}{\bitsunused} & \bitbox{5}{Func}
-  \end{leftwordgroup} \\
-\end{bytefield}
-
-To signal the return from an exception handler, we introduce an
-instruction \texttt{xret}, which causes the exception unit to update
-the status word appropriately.
-
-\bigskip
-\begin{bytefield}[leftcurly=.]{32}
-  \begin{leftwordgroup}{\parbox{12em}{CFLri -- \texttt{xret}}}
-    \bitheader{0-31} \\
-    \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{11} & \bitbox{2}{00} & \bitbox{1}{d} &
-    \bitbox{18}{\bitsunused} & \bitbox{2}{00} & \bitbox{2}{01}
-  \end{leftwordgroup} \\
-\end{bytefield}
-
-\subsection{Resuming Execution}
-
-Resuming execution after an interrupt is straight-forward. The
-interrupt handler simply returns to the bundle that was replaced by
-the injected interrupt instruction.
-
-Resuming after a fault requires a bit more thought. In principle,
-execution could resume after the instruction that caused the fault, or
-retry execution of the instruction. Retrying execution would be
-suitable for faults like page faults, but would be inappropriate for
-faults like an accesses to an address that is not mapped to any memory
-or I/O device or undecodable instructions.
-
-The issue is further complicated by instructions in the other slot of
-a bundle, whose effects must be made visible when resuming
-execution. Consider the scenario that the instruction in the first
-slot is faulty. The instruction in the second slot may use a register
-that is modified by the instruction in the first slot. Emulating the
-first instruction and simply resuming with the second instruction is
-therefore not correct. If the instruction in the first slot uses a
-register that is modified be the instruction in the second slot,
-letting the instruction in the second slot continue to the write back
-stage before executing the exception handle would incorrect.
-
-As a consequence, resuming execution must either fix the cause of the
-fault and reexecute the whole bundle again, or emulate the effects of
-the whole bundle (including the triggering of further faults) and
-continue execution after the bundle. Due to the complexity of the
-second option, we consider faults where the respective instruction
-cannot be reexecuted \emph{fatal}, and advise developers to terminate
-execution instead of trying to resume. For faults, the return address
-points to the bundle that triggered the fault.
-
-Resuming after a trap in principle has to take into account the same
-considerations as faults. However, the content of the bundle is under
-the control of the compiler. We require that a trap instruction is the
-only instruction in a bundle. The return address for traps points to
-the bundle after the one that contains the trap instruction.
-
-\subsection{Older Comments}
-
-\emph{also delayed exceptions for speculative execution}
-
-\wolf{I don't think delayed exceptions are a good idea, given that
-  doing a clean restart after the exception would be even messier than
-  it is now.}
-
-\begin{itemize}
-  \item Enable/disable interrupts
-  \item Return from interrupt
-  \item Interrupt vector tables or something along these lines
-  \item What happens to ongoing memory accesses through the method cache, stack
-        cache or decoupled loads?
-\end{itemize}
-
-\martin{We need to be careful what happens in an interrupt in the
-branch delay slots -- Marco has fought this in the simulator, right?
-Also an issue for 64-bit atomic read of time register and some
-care to be taken for the multiply.}
-
-\clearpage
-\subsection{Timing Diagrams}
-
-\subsubsection{Interrupt}
-
-Figure~\ref{fig:timing_intr} shows the triggering of an interrupt.
-
-\begin{figure}[t!]
-  \centering
-  \includegraphics[scale=.95]{fig/intr}
-  \caption{Interrupt, delayed by branch delay slot}
-  \label{fig:timing_intr}
-\end{figure}
-
-\begin{enumerate}[A)]
-\item The decode stage decodes a branch instruction \texttt{BR}.
-\item As the previous instruction was a branch and the current bundle
-  is part of a branch delay slot, the signal \texttt{dec.indly} is
-  high.
-\item The exception unit requests an interrupt by asserting
-  \texttt{xu.intr}. As \texttt{dec.indly} is still high, the request
-  is ignored.
-\item The signal \texttt{xu.intr} is still asserted, but the current
-  instruction is not part of a branch-delay slot, so the decode stage
-  generates an interrupt instruction \texttt{INTR}.
-\item The interrupt has not been acknowledged, so signal
-  \texttt{xu.intr} is still asserted. As the decode stage is
-  technically in the delay slot of the previous interrupt instruction,
-  it ignores the request. The previous interrupt instruction reaches
-  the execute stage.
-\item The interrupt instruction reaches the memory stage, which
-  acknowledges the interrupt and flushes the pipeline.
-\item The fetch stage fetches the first instruction of the interrupt
-  handler, \texttt{OP$_9$}.
-\item The first instruction of the interrupt handler reaches the
-  decode stage.
-\item The first instruction of the interrupt handler reaches the
-  execute stage.
-\item The first instruction of the interrupt handler reaches the
-  memory stage.
-\end{enumerate}
-
-\subsubsection{Fault}
-
-Figure~\ref{fig:timing_exc} shows the triggering of a fault while an interrupt is requested.
-
-\begin{figure}
-  \centering
-  \includegraphics{fig/exc}
-  \caption{Fault while interrupt is requested}
-  \label{fig:timing_exc}
-\end{figure}
-
-\begin{enumerate}[A)]
-\item The exception unit requests an interrupt and the decode stage
-  generates an instruction \texttt{INTR}.
-\item While the interrupt instruction is in the execute stage,
-  instruction \texttt{OP$_2$} in the memory stage causes a fault. The
-  memory stage signals this to the exception unit and flushes the
-  pipeline.
-\item The exception unit now requests a (non-interrupt) exception and
-  an interrupt. As (non-interrupt) exceptions take precedence, the
-  decode stage generates an instruction \texttt{EXC}.
-\item Instruction \texttt{EXC} reaches the execute stage.
-\item Instruction \texttt{EXC} reaches the memory stage, which
-  acknowledges the exception and flushes the pipeline again.
-\item The fetch stage fetches the first instruction of the exception
-  handler, \texttt{OP$_8$}.
-\item The first instruction of the exception handler reaches the
-  decode stage.
-\item The first instruction of the exception handler reaches the
-  execute stage.
-\item The first instruction of the exception handler reaches the
-  memory stage.
-\end{enumerate}
 
 \section{Decoupled Loads / Multiply / Wait / Move from Special}
 
