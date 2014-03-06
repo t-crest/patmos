@@ -1,12 +1,12 @@
-The LLVM compiler has been adapted to emit code for the Patmos ISA
-and support the special features, e.g., the stack cache~\cite{Seus13:compiler}.
+The LLVM compiler~\cite{Seus13:compiler} has been adapted to emit code for the Patmos ISA
+and support the special features, e.g., the stack cache~\cite{patmos:stack:seus}.
 
 The compiler and libraries can be built with \code{misc/build.sh} as described in Section~\ref{sec:build:compiler}.
 This script contains default options, which should work on a
 standard Linux machine out of the box. Options can be overwritten by
-entries in a personal \code{misc/build.cfg}. The file {misc/build.cfg.dist}
+entries in a personal \code{misc/build.cfg}. The file \code{misc/build.cfg.dist}
 is an example configuration file containing default values, which is
-generated from build.sh, and ignored by the build process.
+generated from \code{build.sh}, and ignored by the build process.
 To change any options for \code{misc/build.sh}, either start with an empty \code{misc/build.cfg} or
 copy \code{misc/build.cfg.dist} and modify the values to your need.
 
@@ -507,6 +507,16 @@ Used address spaces:
   \end{itemize}
 \end{itemize}
 
+\section{Newlib}
+
+The Patmos compiler contains a port of newlib, a C library intended for embedded systems. When  writing
+downloadable applications it is suggested to use newlib functions instead of the low-level functions provided
+by patmos specific IO functions.\footnote{Those functions are mainly used to write very small footprint programs,
+such as the bootloader itself.}
+
+Documentation of the provided newlib library and available functions is available at:
+
+\url{https://sourceware.org/newlib/}
 
 \section{Known Bugs, Restrictions and Common Issues}
 \label{sec:toolchain:knownbugs}
