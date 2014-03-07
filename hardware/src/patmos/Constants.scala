@@ -125,6 +125,7 @@ object Constants {
   val OPC_ALUM  = Bits("b010")
   val OPC_ALUC  = Bits("b011")
   val OPC_ALUP  = Bits("b100")
+  val OPC_ALUB  = Bits("b101")
   val OPC_ALUCI = Bits("b110")
 
   val OPC_MTS = Bits("b010")

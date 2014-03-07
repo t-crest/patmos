@@ -150,6 +150,13 @@ class Decode() extends Module {
           io.decex.aluOp(i).isPred := isValid
           decoded := Bool(true)
         }
+        is(OPC_ALUB) {
+          io.decex.wrRd(i) := isValid
+          io.decex.aluOp(i).isBCpy := isValid
+          io.decex.immOp(i) := isValid
+          immVal := Cat(Bits(0), instr(11, 7))
+          decoded := Bool(true)
+        }
       }
     }
     // Special registers
