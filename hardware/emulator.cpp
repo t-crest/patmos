@@ -250,7 +250,7 @@ static void mcacheStat(Patmos_t *c, bool halt) {
   //everytime a method is called from the cache, todo: find a better way to measure hits
   if (c->Patmos_core_fetch__io_memfe_doCallRet.to_bool() == true &&
       c->Patmos_core_mcache_mcacherepl__io_mcache_replctrl_hit.to_bool() == true &&
-     c->Patmos_core_mcache_mcachectrl__mcacheState.to_ulong() == 0 &&
+      c->Patmos_core_mcache_mcachectrl__mcacheState.to_ulong() == 0 &&
       c->Patmos_core_mcache__io_ena_in.to_bool() == true &&
       c->Patmos_core_mcache_mcachectrl__io_mcache_ctrlrepl_instrStall.to_bool() == false) {
     cache_hits++;
@@ -414,18 +414,20 @@ int main (int argc, char* argv[]) {
       c->Patmos_core_mcache_mcacherepl__selMCacheReg = 1;
       #else
       //init for icache
-      c->Patmos_core_mcache_mcacherepl__selICacheReg = 1;
       c->Patmos_core_fetch__pcReg = (entry >> 2);
+      c->Patmos_core_mcache_mcacherepl__selICacheReg = 1;
       #endif
       c->Patmos_core_fetch__relBaseReg = 0;
       c->Patmos_core_fetch__relocReg = (entry >> 2) - 1;
+      c->Patmos_core_fetch__selMCache = 1;
     }
     else {
       // pcReg for ispm starts at entry point - ispm base
       c->Patmos_core_fetch__pcReg = ((entry - 0x10000) >> 2) - 1;
-      c->Patmos_core_mcache_mcacherepl__selIspmReg = 1;
       c->Patmos_core_fetch__relBaseReg = (entry - 0x10000) >> 2;
       c->Patmos_core_fetch__relocReg = 0x10000 >> 2;
+      c->Patmos_core_fetch__selIspm = 1;
+      c->Patmos_core_mcache_mcacherepl__selIspmReg = 1;
       //init for icache
       // c->Patmos_core_mcache_icacherepl__selIspmReg = 1;
     }
