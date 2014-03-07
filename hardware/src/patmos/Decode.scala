@@ -88,8 +88,10 @@ class Decode() extends Module {
     io.decex.rsData(3) := rf.io.rfRead.rsData(3)
   }
 
-  val decoded = Bool()
-  decoded := Bool(false)
+  val decoded = Vec.fill(PIPE_COUNT) { Bool() }
+  for (i <- 0 until PIPE_COUNT) {
+    decoded := Bool(false)
+  }
 
   // Decoding of dual-issue operations
   val dual = decReg.instr_a(INSTR_WIDTH - 1) && decReg.instr_a(26, 22) != OPCODE_ALUL;
@@ -119,43 +121,43 @@ class Decode() extends Module {
       io.decex.aluOp(i).func := Cat(Bits(0), instr(24, 22))
       io.decex.immOp(i) := isValid
       io.decex.wrRd(i) := isValid
-      decoded := Bool(true)
+      decoded(i) := Bool(true)
     }
     // Other ALU
     when(opcode === OPCODE_ALU) {
       switch(opc) {
         is(OPC_ALUR) {
           io.decex.wrRd(i) := isValid
-          decoded := Bool(true)
+          decoded(i) := Bool(true)
         }
         is(OPC_ALUU) {
           io.decex.wrRd(i) := isValid 
-          decoded := Bool(true)
+          decoded(i) := Bool(true)
         }
         is(OPC_ALUM) {
           io.decex.aluOp(i).isMul := isValid
-          decoded := Bool(true)
+          decoded(i) := Bool(true)
         }
         is(OPC_ALUC) {
           io.decex.aluOp(i).isCmp := isValid
-          decoded := Bool(true)
+          decoded(i) := Bool(true)
         }
         is(OPC_ALUCI) {
           io.decex.aluOp(i).isCmp := isValid
           io.decex.immOp(i) := isValid
           immVal := Cat(Bits(0), instr(11, 7))
-          decoded := Bool(true)
+          decoded(i) := Bool(true)
         }
         is(OPC_ALUP) {
           io.decex.aluOp(i).isPred := isValid
-          decoded := Bool(true)
+          decoded(i) := Bool(true)
         }
         is(OPC_ALUB) {
           io.decex.wrRd(i) := isValid
           io.decex.aluOp(i).isBCpy := isValid
           io.decex.immOp(i) := isValid
           immVal := Cat(Bits(0), instr(11, 7))
-          decoded := Bool(true)
+          decoded(i) := Bool(true)
         }
       }
     }
@@ -164,12 +166,12 @@ class Decode() extends Module {
       switch(opc) {
         is(OPC_MTS) {
           io.decex.aluOp(i).isMTS := isValid
-          decoded := Bool(true)
+          decoded(i) := Bool(true)
         }
         is(OPC_MFS) {
           io.decex.aluOp(i).isMFS := isValid
           io.decex.wrRd(i) := isValid
-          decoded := Bool(true)
+          decoded(i) := Bool(true)
         }
       }
     }
@@ -227,7 +229,7 @@ class Decode() extends Module {
     io.decex.immOp(0) := Bool(true)
     longImm := Bool(true)
     io.decex.wrRd(0) := Bool(true)
-    decoded := Bool(true)
+    decoded(0) := Bool(true)
   }
   // Stack control
   val reserveSize = io.memdecsc.mTop - io.exdec.sp + stcImm - (UInt(SCACHE_SIZE) << UInt(2))
@@ -242,12 +244,12 @@ class Decode() extends Module {
         stcVal := io.exdec.sp - stcImm
         io.decexsc.nSpill := reserveSize(ADDR_WIDTH - 1, 2)
         io.decexsc.spill := Mux(reserveSize > UInt(0), Bits(1), Bits(0))
-		decoded := Bool(true)
+		decoded(0) := Bool(true)
       }
       is(STC_SENS) {
         io.decexsc.nFill := ensureSize(ADDR_WIDTH - 1, 2)
         io.decexsc.fill := Mux(ensureSize > UInt(0), Bits(1), Bits(0))
-		decoded := Bool(true)
+		decoded(0) := Bool(true)
       }
       is(STC_SFREE) {
         io.decex.aluOp(0).isSTC := Bool(true)
@@ -255,19 +257,19 @@ class Decode() extends Module {
         io.decex.immOp(0) := Bool(true)
         stcVal := io.exdec.sp + stcImm
         io.decexsc.free := Bits(1)
-		decoded := Bool(true)
+		decoded(0) := Bool(true)
       }
 	  is(STC_SENSR) {
 		// TODO: ignored for now
-		decoded := Bool(true)
+		decoded(0) := Bool(true)
 	  }
 	  is(STC_SSPILL) {
 		// TODO: ignored for now
-		decoded := Bool(true)
+		decoded(0) := Bool(true)
 	  }
 	  is(STC_SSPILLR) {
 		// TODO: ignored for now
-		decoded := Bool(true)
+		decoded(0) := Bool(true)
 	  }
 	}
   }
@@ -275,47 +277,47 @@ class Decode() extends Module {
   when(opcode === OPCODE_CFL_TRAP) {
     io.decex.trap := Bool(true)
     io.decex.xsrc := instr(EXC_SRC_BITS-1, 0)
-    decoded := Bool(true)
+    decoded(0) := Bool(true)
   }
   when(opcode === OPCODE_CFL_CALL || opcode === OPCODE_CFL_CALLND) {
     io.decex.immOp(0) := Bool(true)
     io.decex.call := Bool(true)
     io.decex.nonDelayed := opcode === OPCODE_CFL_CALLND
-	decoded := Bool(true)
+	decoded(0) := Bool(true)
   }
   when(opcode === OPCODE_CFL_BR || opcode === OPCODE_CFL_BRND) {
     io.decex.immOp(0) := Bool(true)
 	io.decex.jmpOp.branch := Bool(true)
     io.decex.nonDelayed := opcode === OPCODE_CFL_BRND
-	decoded := Bool(true)
+	decoded(0) := Bool(true)
   }
   when(opcode === OPCODE_CFL_BRCF || opcode === OPCODE_CFL_BRCFND) {
     io.decex.immOp(0) := Bool(true)
     io.decex.brcf := Bool(true)
     io.decex.nonDelayed := opcode === OPCODE_CFL_BRCFND
-	decoded := Bool(true)
+	decoded(0) := Bool(true)
   }
   when(opcode === OPCODE_CFL_CFLR || opcode === OPCODE_CFL_CFLRND) {
 	switch(func) {
 	  is(JFUNC_RET) {
 		io.decex.ret := Bool(true)
-		decoded := Bool(true)
+		decoded(0) := Bool(true)
 	  }
 	  is(JFUNC_XRET) {
 		io.decex.xret := Bool(true)
-		decoded := Bool(true)
+		decoded(0) := Bool(true)
 	  }
 	  is(JFUNC_CALL) {
 		io.decex.call := Bool(true)
-		decoded := Bool(true)
+		decoded(0) := Bool(true)
 	  }
 	  is(JFUNC_BR) {
 		io.decex.jmpOp.branch := Bool(true)
-		decoded := Bool(true)
+		decoded(0) := Bool(true)
 	  }
 	  is(JFUNC_BRCF) {
 		io.decex.brcf := Bool(true)
-		decoded := Bool(true)
+		decoded(0) := Bool(true)
 	  }
 	}
 	io.decex.nonDelayed := opcode === OPCODE_CFL_CFLRND
@@ -354,7 +356,7 @@ class Decode() extends Module {
     when(ldtype === MTYPE_S) {
       isStack := Bool(true)
     }
-	decoded := Bool(true)
+	decoded(0) := Bool(true)
   }
   // store
   when(opcode === OPCODE_STT) {
@@ -376,7 +378,7 @@ class Decode() extends Module {
     when(sttype === MTYPE_S) {
       isStack := Bool(true)
     }
-	decoded := Bool(true)
+	decoded(0) := Bool(true)
   }
 
   // Offset for loads/stores
@@ -419,7 +421,7 @@ class Decode() extends Module {
   }
   
   // Illegal operation
-  io.decex.illOp := !decoded
+  io.decex.illOp := !Mux(dual, decoded(0) & decoded(1), decoded(0))
 
   // Trigger exceptions
   val inDelaySlot = Reg(UInt(width = 2))
