@@ -899,6 +899,84 @@ namespace patmos
   ALUp_INSTR(pand, 1, &)
   ALUp_INSTR(pxor, 1, ^)
 
+  /// Base class for ALUb instructions.
+  class i_alub_t : public i_pred_t
+  {
+  public:
+    /// Compute the result of an ALUp instruction.
+    /// @param value1 The value of the first operand.
+    /// @param value2 The value of the second operand.
+    virtual word_t compute(word_t value1, word_t value2, bit_t value3) const = 0;
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the DR pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.DR_Rs1 = s.GPR.get(ops.OPS.ALUb.Rs1);
+      ops.DR_Ps1 = s.PRR.get(ops.OPS.ALUb.Ps).get();
+    }
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the EX pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      if (ops.DR_Pred)
+      {
+        // compute the result of the instruction
+        ops.EX_result = compute(read_GPR_EX(s, ops.DR_Rs1),
+                                ops.OPS.ALUb.Imm,
+                                ops.DR_Ps1);
+
+        store_GPR_EX_result(s, ops, ops.OPS.ALUb.Rd, ops.EX_result);
+      }
+    }
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the MW pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
+    {
+      store_GPR_MW_result(s, ops, ops.OPS.ALUb.Rd, ops.EX_result);
+    }
+    
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void print_operands(const simulator_t &s, std::ostream &os, 
+                                const instruction_data_t &ops,
+                                const symbol_map_t &symbols) const
+    {
+      printGPReg(os, "out: ", ops.OPS.ALUb.Rd, ops.EX_result);
+      printGPReg(os, ", in: ", ops.OPS.ALUb.Rs1, ops.DR_Rs1, s);
+      printSymbol(os, " imm", ops.OPS.ALUb.Imm, symbols);
+      printPPReg(os, ", "  , ops.OPS.ALUb.Ps, ops.DR_Ps1);
+    }
+  };
+
+  class i_bcopy_t : public i_alub_t
+  {
+  public:
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printPred(os, ops.Pred);
+      os << boost::format("bcopy r%1% = r%2%, %3%, %4%")
+          % ops.OPS.ALUb.Rd % ops.OPS.ALUb.Rs1 % ops.OPS.ALUb.Imm % ops.OPS.ALUb.Ps;
+    }
+    virtual word_t compute(word_t value1, word_t value2, bit_t value3) const
+    {
+      return ((value1 & ~(1 << value2)) | ((word_t)value3 << value2));
+    }
+  };
+
+
   /// Wait for memory operations to complete.
   class i_spcw_t : public i_pred_t
   {

@@ -169,6 +169,14 @@ namespace patmos
         PRR_e Ps1;
         PRR_e Ps2;
       } ALUp;
+      /// Operands for an ALUn instruction.
+      struct
+      {
+        GPR_e Rd;
+        GPR_e Rs1;
+        word_t Imm;
+        PRR_e Ps;
+      } ALUb;
       /// Operands for an SPCn instruction.
       struct
       {
@@ -390,6 +398,18 @@ namespace patmos
     /// @param ps2 The second operand predicate register.
     static instruction_data_t mk_ALUp(const instruction_t &i, PRR_e pred,
                                       PRR_e pd, PRR_e ps1, PRR_e ps2);
+
+    /// Create an ALUb instruction with a register, an immediate, and
+    /// a predicate operand, and a register destination.
+    /// @param i The instruction.
+    /// @param pred The predicate register under which the instruction is
+    /// executed.
+    /// @param Rd The destination register.
+    /// @param rs1 The operand register.
+    /// @param imm The immediate operand.
+    /// @param ps The predicate operand.
+    static instruction_data_t mk_ALUb(const instruction_t &i, PRR_e pred,
+                                      GPR_e rd, GPR_e rs1, uword_t imm, PRR_e ps);
 
     /// Create an SPCn instruction with an immediate operand.
     /// @param i The instruction.

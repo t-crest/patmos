@@ -96,6 +96,18 @@ namespace patmos
     return result;
   }
 
+  instruction_data_t instruction_data_t::mk_ALUb(const instruction_t &i,
+                                                 PRR_e pred, GPR_e rd,
+                                                 GPR_e rs1, uword_t imm, PRR_e ps)
+  {
+    instruction_data_t result(i, pred);
+    result.OPS.ALUb.Rd = rd;
+    result.OPS.ALUb.Rs1 = rs1;
+    result.OPS.ALUb.Imm = imm;
+    result.OPS.ALUb.Ps = ps;
+    return result;
+  }
+
   instruction_data_t instruction_data_t::mk_SPCn(const instruction_t &i,
                                                  PRR_e pred, word_t imm)
   {

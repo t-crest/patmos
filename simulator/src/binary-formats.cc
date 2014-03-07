@@ -445,6 +445,63 @@ namespace patmos
     return iw;
   }
 
+  alub_format_t::alub_format_t(const instruction_t &instruction,
+                               word_t opcode) :
+      binary_format_t(instruction, 0x7C00070, 0x2000050,
+                      3)
+  {
+  }
+
+  instruction_data_t alub_format_t::decode_operands(word_t iw,
+                                                    word_t longimm) const
+  {
+    PRR_e ps = extractP(iw, 0);
+    uword_t imm = extractG(iw, 7);
+    GPR_e rs1 = extractG(iw, 12);
+    GPR_e rd = extractG(iw, 17);
+    PRR_e pred = extractPN(iw, 27);
+    return instruction_data_t::mk_ALUb(Instruction, pred, rd, rs1, imm, ps);
+  }
+
+  bool alub_format_t::parse_operands(line_parser_t &parser, std::string mnemonic, 
+                                      instruction_data_t &instr, 
+                                      reloc_info_t &reloc) const
+  {
+    if (!parser.parse_GPR(instr.OPS.ALUb.Rd)) return false;
+    if (!parser.match_token("=")) return false;
+    if (!parser.parse_GPR(instr.OPS.ALUb.Rs1)) return false;
+    if (!parser.match_token(",")) return false;
+    if (!parser.parse_expression(instr.OPS.ALUb.Imm, reloc, true)) return false;
+    
+    if (!fitu(instr.OPS.ALUb.Imm, 5)) {
+      parser.set_error("immediate value too large.");
+      return false;
+    }
+
+    if (!parser.match_token(",")) return false;
+    if (!parser.parse_PRR(instr.OPS.ALUb.Ps, true)) return false;
+
+    return true;
+  }
+
+  udword_t alub_format_t::encode(std::string mnemonic,
+                                  const instruction_data_t &instr) const
+  {
+    uword_t iw = Opcode;
+
+    assert(fitu(instr.OPS.ALUb.Imm, 5));
+
+    insertP(iw, 0, instr.OPS.ALUb.Ps);
+    insertV(iw, 4, 3, BOOST_BINARY(101));
+    insertG(iw, 7, instr.OPS.ALUb.Imm);
+    insertG(iw, 12, instr.OPS.ALUb.Rs1);
+    insertG(iw, 17, instr.OPS.ALUb.Rd);
+    insertV(iw, 22, 5, BOOST_BINARY(01000));
+    insertPN(iw, 27, instr.Pred);
+
+    return iw;
+  }
+
   spcw_format_t::spcw_format_t(const instruction_t &instruction,
                                word_t opcode) :
       binary_format_t(instruction, 0x7C0007F, insert(0x2400010, 0, 4, opcode),

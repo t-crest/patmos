@@ -159,6 +159,25 @@ namespace patmos
                           const instruction_data_t &instr) const;
   };
 
+  /// The ALUb instruction format (see Patmos TR).
+  class alub_format_t : public binary_format_t
+  {
+  public:
+    /// Construct a new binary format for the instruction using a given opcode.
+    /// @param instruction The instruction.
+    /// @param opcode The instruction's opcode.
+    alub_format_t(const instruction_t &instruction, word_t opcode);
+
+    virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
+
+    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
+                                instruction_data_t &instr,
+                                reloc_info_t &reloc) const;
+                                               
+    virtual udword_t encode(std::string mnemonic, 
+                          const instruction_data_t &instr) const;
+  };
+
   /// The SPCw instruction format (see Patmos TR).
   class spcw_format_t : public binary_format_t
   {

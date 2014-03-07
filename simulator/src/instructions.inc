@@ -78,6 +78,9 @@
     MK_INSTR(pand, alup,  7)
     MK_INSTR(pxor, alup, 10)
 
+    // ALUp
+    MK_INSTR(bcopy, alub, -1)
+
     // SPC
     MK_NINSTR(spcw, wait, spcw, 0)
     MK_NINSTR(spct, mts , spct, 0)
