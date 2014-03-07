@@ -222,7 +222,7 @@ class Decode() extends Module {
   dest := instr(21, 17)
 
   // ALU long immediate (Bit 31 is set as well)
-  when(opcode === OPCODE_ALUL) {
+  when(opcode === OPCODE_ALUL && instr(6, 4) === Bits(0)) {
     io.decex.aluOp(0).func := func
     io.decex.immOp(0) := Bool(true)
     longImm := Bool(true)
