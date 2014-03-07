@@ -260,13 +260,26 @@ object Config {
       val clazz = Class.forName("io."+name+"$Intrs")
       // get method to retrieve interrupt bits
       val methName = name(0).toLower + name.substring(1, name.length) + "Intrs"
+      for (m <- clazz.getMethods) {
+        if (m.getName != methName && !m.getName.endsWith("_$eq")) {
+
+          val fileName = name+"$Intrs.class"
+          val classStream = new DataInputStream(clazz.getResourceAsStream(fileName))
+          val jClass = new FJBGContext().JClass(classStream)
+
+          ChiselError.error("Intrs trait for IO device "+name+
+                            " cannot have member "+m.getName+
+                            ", only member "+methName+" allowed"+
+                            " (file "+jClass.getSourceFileName+")", null)
+        }
+      }
       val meth = clazz.getMethods.find(_.getName == methName)
       if (meth == None) {
-        sys.error("Interrupt pins not found for device: "+clazz+"."+methName)
+        ChiselError.error("Interrupt pins not found for device "+name)
       } else {
         val intrPins = meth.get.invoke(clazz.cast(inner)).asInstanceOf[Vec[Bool]]
         if (intrPins.length != dev.intrs.length) {
-          sys.error("Inconsistent interrupt counts for device: "+clazz+"."+methName)
+          ChiselError.error("Inconsistent interrupt counts for IO device "+name)
         } else {
           for (i <- 0 until dev.intrs.length) {
             outer.intrs(dev.intrs(i)) := intrPins(i)
