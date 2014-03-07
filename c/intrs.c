@@ -39,27 +39,27 @@ int main(void) {
   volatile unsigned ends = 0;
   volatile unsigned sent = 0;
 
-  for (unsigned k = 0; k < N; k++) {
-	starts++;
-	for (unsigned i = 0; i < 32; i++) {
-	  putchar('@'+i);
-	  sent+=i;
-	}
-	putchar('\n');
-	ends++;
+  /* for (unsigned k = 0; k < N; k++) { */
+  /*   starts++; */
+  /*   for (unsigned i = 0; i < 32; i++) { */
+  /*     putchar('@'+i); */
+  /*     sent+=i; */
+  /*   } */
+  /*   putchar('\n'); */
+  /*   ends++; */
 
-	if (sent != 496*(k+1) || starts != ends) {
-	  LEDS = 0x55;
-	  abort();
-	}
-  }
+  /*   if (sent != 496*(k+1) || starts != ends) { */
+  /*     LEDS = 0x55; */
+  /*     abort(); */
+  /*   } */
+  /* } */
 
   EXC_STATUS &= ~1;
   
   asm volatile("trap 8");
 
   // trigger illegal operation
-  asm volatile(".word 0x04000000"); // illegal operation
+  asm volatile(".word 0xffffffff"); // illegal operation
   // trigger illegal memory access
   (*((volatile _SPM unsigned *)0xffffffff)) = 0;
 
