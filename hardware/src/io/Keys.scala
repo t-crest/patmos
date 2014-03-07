@@ -54,7 +54,7 @@ object Keys extends DeviceObject {
   }
 
   def create(params: Map[String, String]) : Keys = {
-    new Keys(keyCount)
+    Module(new Keys(keyCount))
   }
 
   trait Pins {
@@ -64,7 +64,7 @@ object Keys extends DeviceObject {
   }
 
   trait Intrs {
-	val keysIntrs = Vec.fill(keyCount) { Bool(INPUT) }
+	val keysIntrs = Vec.fill(keyCount) { Bool(OUTPUT) }
   }
 }
 

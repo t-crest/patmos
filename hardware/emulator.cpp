@@ -298,6 +298,7 @@ static void help(ostream &out) {
       << "  -r            Print register values in each cycles" << endl
       << "  -u            Print UART output" << endl
       << "  -n            Do not print UART output" << endl
+      << "  -k            Simulate random input from keys" << endl
       << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
       << "  -p            Print method cache statistics" << endl
       << "  -l <N>        Stop after <N> cycles" << endl
@@ -320,7 +321,7 @@ int main (int argc, char* argv[]) {
   bool quiet = true;
   bool print_stat = false;
 
-  while ((opt = getopt(argc, argv, "qurnvpl:I:O:h")) != -1) {
+  while ((opt = getopt(argc, argv, "qrunkvpl:I:O:h")) != -1) {
 	switch (opt) {
 	// MS: q and u should go away, but tests in bench need updates first
 	case 'q':
@@ -334,6 +335,7 @@ int main (int argc, char* argv[]) {
 	  break;
 	case 'k':
 	  keys = true;
+	  break;
 	case 'n':
 	  uart = false;
 	  break;
@@ -456,9 +458,9 @@ int main (int argc, char* argv[]) {
 	}
 
 	if (keys) {
-	  // if ((rand() % 0x10000) == 0) {
-	  // 	c->Patmos__io_key = rand();
-	  // }
+	  if ((rand() % 0x10000) == 0) {
+		c->Patmos__io_keysPins_key = rand();
+	  }
 	}
 
 	if (uart) {
