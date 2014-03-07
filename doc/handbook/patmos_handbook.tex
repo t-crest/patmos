@@ -3628,6 +3628,16 @@ After extracting the tools with \code{tar} the install procedure is started with
 sudo ./xsetup
 \end{verbatim}
 
+\paragraph{Starting Xilinx ISE}
+
+In some setups it is needed to source a setup script, e.g.:
+
+\begin{verbatim}
+source /opt/Xilinx/14.7/ISE_DS/settings64.sh
+\end{verbatim}
+
+Then ISE can be started with \code{ise}.
+
 \section{ModelSim License}
 In the case that you have a DTU Compute login you can access the license servers from outside the DTU network by setting up an SSH tunnel.
 An example of how such a tunnel can be set up follows, you need to insert you own username.
@@ -3642,6 +3652,13 @@ LM_LICENSE_FILE=1717@localhost
 \end{verbatim}
 
 This way of setting up an SSH tunnel might also work for other institutions.
+
+\paragraph{License settings for ModelSim and Xilinx}
+
+\begin{verbatim}
+export LM_LICENSE_FILE=1717@angel1: 1717@angel2: 1717@angel3
+export XILINXD_LICENSE_FILE="2100@eda1.imm.dtu.dk"
+\end{verbatim}
 
 
 
