@@ -13,13 +13,12 @@ extern char _end;
 #define MEM ((volatile _UNCACHED int *) &_end)
 
 int main() {
-	asm volatile ("mov $r29 = %0;" // initialize shadow stack pointer"
+  // setup stack frame and stack cache.
+  asm volatile ("mov $r31 = %0;" // initialize shadow stack pointer"
                 "mts $ss  = %1;" // initialize the stack cache's spill pointer"
                 "mts $st  = %1;" // initialize the stack cache's top pointer"
-                "li $r30 = %2;" // initialize return base"
                 : : "r" (&_shadow_stack_base),
-                  "r" (&_stack_cache_base),
-                  "i" (&main));
+                  "r" (&_stack_cache_base));
 
 	int res;
 	int error = 0;
