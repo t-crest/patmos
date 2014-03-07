@@ -7,7 +7,7 @@
 #include <machine/spm.h>
 #include <machine/patmos.h>
 
-#define MEM_TEST 2000000
+#define MEM_TEST 2000
 
 extern char _end;
 #define MEM ((volatile _UNCACHED int *) &_end)
@@ -37,8 +37,8 @@ int main() {
 		}
 		error = 0;
 
-		for (int k = 0; k < 10; k++) { // Test 10 times
-			WRITE("Test",4);
+		for (int k = 0; k < 100; k++) { // Test 10 times
+			WRITE("Test\n",5);
 			for (int i=0; i<=MEM_TEST; i++) // Write to main memory
 				*(MEM+i) = i;
 
@@ -75,5 +75,5 @@ int main() {
 		//}
 	}
 
-	return 0;
+	for(;;);
 }
