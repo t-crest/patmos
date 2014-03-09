@@ -3086,17 +3086,19 @@ git clone git@github.com:t-crest/patmos-misc.git misc
 ./misc/build.sh
 \end{verbatim}
 
-This will checkout several other repositories (the compiler, library,
+This script (\code{build.sh}) will checkout several other repositories (the compiler, library,
 the Patmos source, and benchmarks) and
-build the compiler, the Patmos simulator, and the test benches.
+builds the compiler, the Patmos simulator, and the test benches.
 Therefore, take a cup of coffee and find some nice reading.
 After building the compiler add the path
-to the compiler executables into your \code{.bashrc}:
+to the compiler executables (e.g., into your \code{.bashrc} or \code{.profile}):
 \footnote{The path needs to be absolute. LLVM cannot handle
 a path relative to the home folder \textasciitilde{}, e.g., \code{\textasciitilde{}/t-crest/local/bin}.}
-\footnote{The initialization file name depends on your system and setup. \code{profile} files are only read by login
+\footnote{The initialization file name depends on your system and setup. \code{.profile} files are only read by login
 terminals (remote terminals or at login), but your \code{.bashrc} or \code{.zshrc} (for interactive terminals within a
 session) might be set up to source \code{.profile} as well.}
+
+\martin{In Mac OS X I have only .profile and I don't understand what the issue by 'only read by login terminals'.}
 
 \stefan{Relative paths should actually work, but the \textasciitilde{} shortcut is shell-specific and may not work, but
 not sure about this.}
@@ -3462,7 +3464,7 @@ are directly supported in the default build process:
 \item Altera/Farnell BeMicro (\code{bemicro})
 \end{itemize}
 
-The board is configured by setting the \code{BOARD} variable.
+Setting the \code{BOARD} variable configures the board that shall be used.
 Without changing the \code{Makefile} the default of the board (and any other build variables)
 can be overridden by providing a local \code{config.mk} that is included in the \code{Makefile}.
 
