@@ -13,27 +13,29 @@
 
 // Start the memory test some bytes above heap start
 // as stdio needs the heap for buffers (40000 bytes reserved)
+// Now hardcoded for merging with bootable
 extern char _end;
-#define MEM ((volatile _UNCACHED int *) (&_end)+10000)
+// #define TEST_START ((volatile _UNCACHED int *) (&_end)+10000)
+#define TEST_START ((volatile _UNCACHED int *) 250000)
 
 int main() {
 	int res;
 	int error = 0;
 	int test = 0;
 
-// printf("%d %d\n", (int) MEM, (int) &_end);
+ printf("%d %d\n", (int) TEST_START, (int) &_end);
 
 	if (get_cpuid() == 0) {
 		// MS: does the following reading from uninitialized memory
 		// make sense?
 //		for (int i=0; i<=LENGTH; i++){ // Read from main memory
-//			res = *(MEM+i);
+//			res = *(TEST_START+i);
 //			if (res != 0){	// If data is not what we expect write error
 //				error++;
 //			}
 //		}
 //		if (error != 0){
-//			puts("MEMORY uninitialized\n");
+//			puts("TEST_STARTORY uninitialized\n");
 //		}
 //		error = 0;
 
@@ -41,10 +43,10 @@ int main() {
 			putchar('.');
 			fflush(NULL);
 			for (int i=0; i<=LENGTH; i++) // Write to main memory
-				*(MEM+i) = i;
+				*(TEST_START+i) = i;
 
 			for (int i=0; i<=LENGTH; i++){ // Read from main memory
-				res = *(MEM+i);
+				res = *(TEST_START+i);
 				if (res != i){	// If data is not what we expect write error
 					puts("e");
 					error++;
@@ -67,7 +69,7 @@ int main() {
 		//for (int k = 0; k < 100; ++k)
 		//{
 		//	for (int i=0; i<=LENGTH; i++){ // Read from main memory
-		//		res = *(MEM+i);
+		//		res = *(TEST_START+i);
 		//		if (res == 0){	// If data is not what we expect write error
 		//			error = error;
 		//		} else {
