@@ -6,34 +6,47 @@
 #include <machine/spm.h>
 #include <machine/patmos.h>
 
-#define MEM_TEST 2000000
+// we assume 2 MB memory, less than 400 KB for program,
+// heap, and stack
+#define LENGTH (2000000-400000)/4
+#define CNT 10
 
+// Start the memory test some bytes above heap start
+// as stdio needs the heap for buffers (40000 bytes reserved)
+// Now hardcoded for merging with bootable
 extern char _end;
-#define MEM ((volatile _UNCACHED int *) &_end)
+// #define TEST_START ((volatile _UNCACHED int *) (&_end)+10000)
+#define TEST_START ((volatile _UNCACHED int *) 250000)
 
 int main() {
 	int res;
 	int error = 0;
 	int test = 0;
 
-	if (get_cpuid() == 0){
-		for (int i=0; i<=MEM_TEST; i++){ // Read from main memory
-			res = *(MEM+i);
-			if (res != 0){	// If data is not what we expect write error
-				error++;
-			}
-		}
-		if (error != 0){
-			puts("MEMORY uninitialized\n");
-		}
-		error = 0;
+ printf("%d %d\n", (int) TEST_START, (int) &_end);
 
-		for (int k = 0; k < 10; k++) { // Test 10 times
-			for (int i=0; i<=MEM_TEST; i++) // Write to main memory
-				*(MEM+i) = i;
+	if (get_cpuid() == 0) {
+		// MS: does the following reading from uninitialized memory
+		// make sense?
+//		for (int i=0; i<=LENGTH; i++){ // Read from main memory
+//			res = *(TEST_START+i);
+//			if (res != 0){	// If data is not what we expect write error
+//				error++;
+//			}
+//		}
+//		if (error != 0){
+//			puts("TEST_STARTORY uninitialized\n");
+//		}
+//		error = 0;
 
-			for (int i=0; i<=MEM_TEST; i++){ // Read from main memory
-				res = *(MEM+i);
+		for (int k = 0; k < CNT; k++) { 
+			putchar('.');
+			fflush(NULL);
+			for (int i=0; i<=LENGTH; i++) // Write to main memory
+				*(TEST_START+i) = i;
+
+			for (int i=0; i<=LENGTH; i++){ // Read from main memory
+				res = *(TEST_START+i);
 				if (res != i){	// If data is not what we expect write error
 					puts("e");
 					error++;
@@ -45,6 +58,7 @@ int main() {
 			}
 			error = 0;
 		}
+		puts("");
 		if (test != 0){
 			puts("Errors\n");
 		} else {
@@ -52,18 +66,20 @@ int main() {
 		}
 
 	} else {
-		for (int k = 0; k < 100; ++k)
-		{
-			for (int i=0; i<=MEM_TEST; i++){ // Read from main memory
-				res = *(MEM+i);
-				if (res == 0){	// If data is not what we expect write error
-					error = error;
-				} else {
-					error++;
-				}
-			}
-		}
+		//for (int k = 0; k < 100; ++k)
+		//{
+		//	for (int i=0; i<=LENGTH; i++){ // Read from main memory
+		//		res = *(TEST_START+i);
+		//		if (res == 0){	// If data is not what we expect write error
+		//			error = error;
+		//		} else {
+		//			error++;
+		//		}
+		//	}
+		//}
 	}
+
+	puts("Finished\n");
 
 	return 0;
 }

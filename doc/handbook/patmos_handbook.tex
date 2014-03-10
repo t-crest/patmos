@@ -3152,17 +3152,19 @@ git clone git@github.com:t-crest/patmos-misc.git misc
 ./misc/build.sh
 \end{verbatim}
 
-This will checkout several other repositories (the compiler, library,
+This script (\code{build.sh}) will checkout several other repositories (the compiler, library,
 the Patmos source, and benchmarks) and
-build the compiler, the Patmos simulator, and the test benches.
+builds the compiler, the Patmos simulator, and the test benches.
 Therefore, take a cup of coffee and find some nice reading.
 After building the compiler add the path
-to the compiler executables into your \code{.bashrc}:
+to the compiler executables (e.g., into your \code{.bashrc} or \code{.profile}):
 \footnote{The path needs to be absolute. LLVM cannot handle
 a path relative to the home folder \textasciitilde{}, e.g., \code{\textasciitilde{}/t-crest/local/bin}.}
-\footnote{The initialization file name depends on your system and setup. \code{profile} files are only read by login
+\footnote{The initialization file name depends on your system and setup. \code{.profile} files are only read by login
 terminals (remote terminals or at login), but your \code{.bashrc} or \code{.zshrc} (for interactive terminals within a
 session) might be set up to source \code{.profile} as well.}
+
+\martin{In Mac OS X I have only .profile and I don't understand what the issue by 'only read by login terminals'.}
 
 \stefan{Relative paths should actually work, but the \textasciitilde{} shortcut is shell-specific and may not work, but
 not sure about this.}
@@ -3528,7 +3530,7 @@ are directly supported in the default build process:
 \item Altera/Farnell BeMicro (\code{bemicro})
 \end{itemize}
 
-The board is configured by setting the \code{BOARD} variable.
+Setting the \code{BOARD} variable configures the board that shall be used.
 Without changing the \code{Makefile} the default of the board (and any other build variables)
 can be overridden by providing a local \code{config.mk} that is included in the \code{Makefile}.
 
@@ -3651,7 +3653,7 @@ Restart the udev service with:
 sudo udevadm control --reload-rules
 \end{verbatim}
 
-Make sure that libusb is installed (e.g., in \code{/lib/i386-linux-gnu}) and make a symbolic link with
+Make sure that libusb is installed (e.g., in \code{/lib/i386-linux-gnu} on a 32-bit Ubuntu) and make a symbolic link with
 
 \begin{verbatim} 
 sudo ln -s libusb-1.0.so.0 libusb.so
@@ -3694,6 +3696,16 @@ After extracting the tools with \code{tar} the install procedure is started with
 sudo ./xsetup
 \end{verbatim}
 
+\paragraph{Starting Xilinx ISE}
+
+In some setups it is needed to source a setup script, e.g.:
+
+\begin{verbatim}
+source /opt/Xilinx/14.7/ISE_DS/settings64.sh
+\end{verbatim}
+
+Then ISE can be started with \code{ise}.
+
 \section{ModelSim License}
 In the case that you have a DTU Compute login you can access the license servers from outside the DTU network by setting up an SSH tunnel.
 An example of how such a tunnel can be set up follows, you need to insert you own username.
@@ -3709,6 +3721,13 @@ LM_LICENSE_FILE=1717@localhost
 \end{verbatim}
 
 This way of setting up an SSH tunnel might also work for other institutions.
+
+\paragraph{License settings for ModelSim and Xilinx}
+
+\begin{verbatim}
+export LM_LICENSE_FILE=1717@angel1: 1717@angel2: 1717@angel3
+export XILINXD_LICENSE_FILE="2100@eda1.imm.dtu.dk"
+\end{verbatim}
 
 
 
