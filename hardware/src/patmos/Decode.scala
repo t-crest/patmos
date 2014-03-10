@@ -421,7 +421,7 @@ class Decode() extends Module {
   }
   
   // Illegal operation
-  io.decex.illOp := !Mux(dual, decoded(0) & decoded(1), decoded(0))
+  io.decex.illOp := !Mux(dual, decoded.reduce(_&_), decoded(0))
 
   // Trigger exceptions
   val inDelaySlot = Reg(UInt(width = 2))
