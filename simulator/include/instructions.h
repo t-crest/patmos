@@ -1934,15 +1934,7 @@ namespace patmos
       // brcf to address 0? interpret this as a halt.
       if (ops.DR_Pred && ops.EX_Base == 0)
       {
-        // TODO this is one really ugly hack to let the simulator finish the
-        // other stages before we exit, so that the PC is updated and stuff.
-        // This should move into some simulator.halt(retvalue) call.
-        if (ops.EX_Offset == 0) {
-          ops.EX_Offset = 1;
-          s.pipeline_stall(SMW);
-        } else {
-          simulation_exception_t::halt(s.GPR.get(GPR_EXIT_CODE_INDEX).get());
-        }
+        s.halt();
       }
       else
       {
@@ -2181,15 +2173,7 @@ namespace patmos
       // brcf to address 0? interpret this as a halt.
       if (ops.DR_Pred && ops.EX_Base == 0)
       {
-        // TODO this is one really ugly hack to let the simulator finish the
-        // other stages before we exit, so that the PC is updated and stuff.
-        // This should move into some simulator.halt(retvalue) call.
-        if (ops.EX_Offset == 0) {
-          ops.EX_Offset = 1;
-          s.pipeline_stall(SMW);
-        } else {
-          simulation_exception_t::halt(s.GPR.get(GPR_EXIT_CODE_INDEX).get());
-        }
+        s.halt();
       }
       else
       {
