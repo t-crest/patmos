@@ -17,7 +17,9 @@
 // Now hardcoded for merging with bootable
 extern char _end;
 // #define TEST_START ((volatile _UNCACHED int *) (&_end)+10000)
-#define TEST_START ((volatile _UNCACHED int *) 250000)
+// #define TEST_START ((volatile _UNCACHED int *) 250000)
+// MS: better test with cache
+#define TEST_START ((volatile int *) 250000)
 
 
 int main() {
