@@ -154,11 +154,11 @@ object PatmosCoreMain {
     val binFile = args(1)
     val datFile = args(2)
 
-	Config.conf = Config.load(configFile)
+    Config.conf = Config.load(configFile)
     Config.minPcWidth = log2Up((new File(binFile)).length.toInt / 4)
     chiselMain(chiselArgs, () => Module(new PatmosCore(binFile, datFile)))
-	// Print out the configuration
-	Utility.printConfig(configFile)
+    // Print out the configuration
+    Utility.printConfig(configFile)
   }
 }
 
@@ -199,7 +199,7 @@ class PatmosTest(pat: Patmos) extends Tester(pat,
     val vars = new HashMap[Node, Node]()
     val ovars = new HashMap[Node, Node]()
 
-	println("Patmos start")
+    println("Patmos start")
 
     for (i <- 0 until 100) {
       vars.clear

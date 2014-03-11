@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,15 +32,15 @@
 
 /*
  * An on-chip memory.
- * 
+ *
  * Has input registers (without enable or reset).
  * Shall do byte enable.
  * Output multiplexing and bit filling at the moment also here.
  * That might move out again when more than one memory is involved.
- * 
+ *
  * Address decoding here. At the moment map to 0x00000000.
  * Only take care on a write.
- * 
+ *
  * Size is in bytes.
  *
  * Authors: Martin Schoeberl (martin@jopdesign.com)

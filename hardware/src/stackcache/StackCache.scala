@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -31,10 +31,10 @@
  */
 
 /*
- * Stack cache memory 
- * 
+ * Stack cache memory
+ *
  * Author: Sahar Abbaspour (sabb@dtu.dk)
- * 
+ *
  */
 
 package stackcache
@@ -100,7 +100,7 @@ class StackCache(SCACHE_SIZE: Int, burstLen: Int) extends Module {
   when(scEn(3)) { sc3(stAddr) := stData(DATA_WIDTH - 1, 3 * BYTE_WIDTH) }
 
 }
-  
+
 
 
 

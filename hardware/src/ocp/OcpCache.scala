@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,9 @@
 
 /*
  * Definitions for OCP ports for split cache
- * 
+ *
  * Authors: Wolfgang Puffitsch (wpuffitsch@gmail.com)
- * 
+ *
  */
 
 package ocp
@@ -56,24 +56,24 @@ class OcpCacheMasterSignals(addrWidth : Int, dataWidth : Int)
   // This does not really clone, but Data.clone doesn't either
   override def clone() = {
     val res = new OcpCacheMasterSignals(addrWidth, dataWidth)
-  	res.asInstanceOf[this.type]
+    res.asInstanceOf[this.type]
   }
 
   override def reset() = {
-	super.reset()
-	AddrSpace := OcpCache.UNCACHED
+    super.reset()
+    AddrSpace := OcpCache.UNCACHED
   }
 }
 
 // Reset values for master signals
 object OcpCacheMasterSignals {
   def resetVal[T <: OcpCacheMasterSignals](sig : T) : T = {
-	val res = sig.clone
-	res.reset()
-	res
+    val res = sig.clone
+    res.reset()
+    res
   }
   def resetVal(addrWidth : Int, dataWidth : Int) : OcpCacheMasterSignals = {
-	resetVal(new OcpCacheMasterSignals(addrWidth, dataWidth))
+    resetVal(new OcpCacheMasterSignals(addrWidth, dataWidth))
   }
 }
 
@@ -81,7 +81,7 @@ object OcpCacheMasterSignals {
 class OcpCacheMasterPort(addrWidth : Int, dataWidth : Int) extends Bundle() {
   // Clk is implicit in Chisel
   val M = new OcpCacheMasterSignals(addrWidth, dataWidth).asOutput
-  val S = new OcpSlaveSignals(dataWidth).asInput 
+  val S = new OcpSlaveSignals(dataWidth).asInput
 }
 
 // Slave port is reverse of master port

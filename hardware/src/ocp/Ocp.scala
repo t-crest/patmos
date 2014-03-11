@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,9 @@
 
 /*
  * Generic definitions for OCP
- * 
+ *
  * Authors: Wolfgang Puffitsch (wpuffitsch@gmail.com)
- * 
+ *
  */
 
 package ocp
@@ -74,25 +74,25 @@ class OcpMasterSignals(addrWidth : Int, dataWidth : Int) extends Bundle() {
   // This does not really clone, but Data.clone doesn't either
   override def clone() = {
     val res = new OcpMasterSignals(addrWidth, dataWidth)
-  	res.asInstanceOf[this.type]
+    res.asInstanceOf[this.type]
   }
 
   def reset() = {
-	Cmd := OcpCmd.IDLE
-	Addr := Bits(0)
-	Data := Bits(0)
+    Cmd := OcpCmd.IDLE
+    Addr := Bits(0)
+    Data := Bits(0)
   }
 }
 
 // Reset values for master signals
 object OcpMasterSignals {
   def resetVal[T <: OcpMasterSignals](sig : T) : T = {
-	val res = sig.clone
-	res.reset()
-	res
+    val res = sig.clone
+    res.reset()
+    res
   }
   def resetVal(addrWidth : Int, dataWidth : Int) : OcpMasterSignals = {
-	resetVal(new OcpMasterSignals(addrWidth, dataWidth))
+    resetVal(new OcpMasterSignals(addrWidth, dataWidth))
   }
 }
 
@@ -104,23 +104,23 @@ class OcpSlaveSignals(dataWidth : Int) extends Bundle() {
   // This does not really clone, but Data.clone doesn't either
   override def clone() = {
     val res = new OcpSlaveSignals(dataWidth)
-  	res.asInstanceOf[this.type]
+    res.asInstanceOf[this.type]
   }
 
   def reset() = {
-	Resp := OcpResp.NULL
-	Data := Bits(0)
+    Resp := OcpResp.NULL
+    Data := Bits(0)
   }
 }
 
 // Reset values for slave signals
 object OcpSlaveSignals {
   def resetVal[T <: OcpSlaveSignals] (sig : T) : T = {
-	val res = sig.clone
-	res.reset()
-	res
+    val res = sig.clone
+    res.reset()
+    res
   }
   def resetVal(dataWidth : Int) : OcpSlaveSignals = {
-	resetVal(new OcpSlaveSignals(dataWidth))
+    resetVal(new OcpSlaveSignals(dataWidth))
   }
 }

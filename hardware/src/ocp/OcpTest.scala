@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,9 @@
 
 /*
  * Test for usability of OCP definitions
- * 
+ *
  * Authors: Wolfgang Puffitsch (wpuffitsch@gmail.com)
- * 
+ *
  */
 
 package ocp
@@ -56,7 +56,7 @@ class OcpMaster() extends Module {
   io.M.ByteEn := cnt(7, 4)
 
   when(cnt(3, 0) === Bits("b1111")) {
-	io.M.Cmd := OcpCmd.WR
+    io.M.Cmd := OcpCmd.WR
   }
 }
 
@@ -73,12 +73,12 @@ class OcpSlave() extends Module {
   io.S.Resp := OcpResp.NULL
   io.S.Data := data
   when(M.Cmd != OcpCmd.IDLE) {
-	cnt := UInt(4)
+    cnt := UInt(4)
   }
 
   when(cnt != UInt(0)) {
-	cnt := cnt - UInt(1)
-	io.S.Resp := OcpResp.DVA
+    cnt := cnt - UInt(1)
+    io.S.Resp := OcpResp.DVA
   }
 }
 

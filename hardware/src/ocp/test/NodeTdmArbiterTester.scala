@@ -99,19 +99,19 @@ class NodeTdmArbiterTop() extends Module {
   //val arb = Module(new ocp.NodeTdmArbiter(CNT, 32, 32, 4))
   val mem = Module(new SSRam32Ctrl(21))
   val memMux = Module(new MemMuxIntf(3, 32, 32, 4))
-  
+
   for (i <- 0 until CNT) {
     val m = Module(new Master(i, 4))
     val nodeID = UInt(i, width=6)
     val arb = Module(new ocp.NodeTdmArbiter(CNT, 32, 32, 4))
     arb.io.master <> m.io.port
     arb.io.node := nodeID
-    
+
     memMux.io.master(i) <> arb.io.slave
     io.port(i).M <> memMux.io.slave.M
   }
-  
-  mem.io.ocp <> memMux.io.slave 
+
+  mem.io.ocp <> memMux.io.slave
 
 }
 

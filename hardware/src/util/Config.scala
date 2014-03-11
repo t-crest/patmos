@@ -46,10 +46,10 @@ import ch.epfl.lamp.fjbg.{ FJBGContext, JClass }
 
 /**
  * The configuration tool for Patmos.
- * 
+ *
  * Authors: Martin Schoeberl (martin@jopdesign.com)
  *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
- * 
+ *
  */
 abstract class Config {
   val description: String
@@ -83,13 +83,13 @@ abstract class Config {
 object Config {
 
   def parseSize(text: String): Int = {
-	  val regex = """(\d+)([KMG]?)""".r
-	  val suffixMult = Map("" -> (1 << 0),
-						   "K" -> (1 << 10),
-						   "M" -> (1 << 20),
-						   "G" -> (1 << 30))
-	  val regex(num, suffix) = text.toUpperCase
-	  num.toInt * suffixMult.getOrElse(suffix, 0)
+      val regex = """(\d+)([KMG]?)""".r
+      val suffixMult = Map("" -> (1 << 0),
+                           "K" -> (1 << 10),
+                           "M" -> (1 << 20),
+                           "G" -> (1 << 30))
+      val regex(num, suffix) = text.toUpperCase
+      num.toInt * suffixMult.getOrElse(suffix, 0)
   }
 
   def parseSizeLong(text: String): Long = {
@@ -181,13 +181,13 @@ object Config {
         new DeviceConfig(name, params, offset, intrs)
       }
 
-  	  def find(node: scala.xml.Node, item: String): scala.xml.Node = {
-    		val seq = node \ item
-    		if (seq.isEmpty) {
-    		  sys.error("Item "+item+" not found in node "+node)
-    		}
-    		seq(0)
-  	  }
+      def find(node: scala.xml.Node, item: String): scala.xml.Node = {
+            val seq = node \ item
+            if (seq.isEmpty) {
+              sys.error("Item "+item+" not found in node "+node)
+            }
+            seq(0)
+      }
 
       def exist(node: scala.xml.Node, item: String): Boolean = {
         val seq = node \ item
@@ -249,7 +249,7 @@ object Config {
 
   def connectAllIOPins(outer : Node, inner : Node) {
     for (name <- conf.Devs.map(_.name)) {
-	  connectIOPins(name, outer, inner)
+      connectIOPins(name, outer, inner)
     }
   }
 

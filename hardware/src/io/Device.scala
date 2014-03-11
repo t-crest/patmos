@@ -76,7 +76,7 @@ abstract class DeviceObject() {
     if (param <= 0) {
       throw new IllegalArgumentException("Parameter " + key + " must be a positive integer")
     }
-	param
+    param
   }
 }
 

@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,9 @@
 
 /*
  * Utility functions for Patmos.
- * 
+ *
  * Author: Martin Schoeberl (martin@jopdesign.com)
- * 
+ *
  */
 
 package patmos
@@ -83,11 +83,11 @@ object Utility {
       // printf("%08x\n", Bits(word))
       arr(i) = Bits(word, width = width)
     }
-	
+
     // use vector to represent ROM
     Vec[Bits](arr)
   }
-  
+
   def printConfig(configFile: String): Unit = {
     printf("\nPatmos configuration \"%s\"\n", util.Config.conf.description)
     printf("\tFrequency: %d MHz\n", CLOCK_FREQ/1000000)

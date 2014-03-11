@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,10 +32,10 @@
 
 /*
  * Memory stage of Patmos.
- * 
+ *
  * Authors: Martin Schoeberl (martin@jopdesign.com)
  *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
- * 
+ *
  */
 
 package patmos
@@ -67,8 +67,8 @@ class Memory() extends Module {
   // Stall logic
   val mayStallReg = Reg(init = Bool(false))
   val enable = Mux(mayStallReg, (io.localInOut.S.Resp != OcpResp.NULL
-								 || io.globalInOut.S.Resp != OcpResp.NULL),
-				   Bool(true))
+                                 || io.globalInOut.S.Resp != OcpResp.NULL),
+                   Bool(true))
   io.ena_out := enable
 
   // Register from execution stage
@@ -77,7 +77,7 @@ class Memory() extends Module {
     mayStallReg := io.exmem.mem.load || io.exmem.mem.store
     when(flush) {
       memReg.reset()
-	  mayStallReg := Bool(false)
+      mayStallReg := Bool(false)
     }
   }
 
@@ -107,7 +107,7 @@ class Memory() extends Module {
     wrData(i) := io.exmem.mem.data((i+1)*BYTE_WIDTH-1, i*BYTE_WIDTH)
   }
   val byteEn = Bits(width = BYTES_PER_WORD)
-  byteEn := Bits("b1111")  
+  byteEn := Bits("b1111")
   // half-word stores
   when(io.exmem.mem.hword) {
     switch(io.exmem.mem.addr(1)) {
@@ -144,14 +144,14 @@ class Memory() extends Module {
       }
     }
   }
-  
+
   // Path to memories and IO is combinatorial, registering happens in
   // the individual modules
   val cmd = Mux(enable && io.ena_in && !flush,
-				Mux(io.exmem.mem.load, OcpCmd.RD,
-					Mux(io.exmem.mem.store, OcpCmd.WR,
-						OcpCmd.IDLE)),
-				OcpCmd.IDLE)
+                Mux(io.exmem.mem.load, OcpCmd.RD,
+                    Mux(io.exmem.mem.store, OcpCmd.WR,
+                        OcpCmd.IDLE)),
+                OcpCmd.IDLE)
 
   io.localInOut.M.Cmd := Mux(io.exmem.mem.typ === MTYPE_L, cmd, OcpCmd.IDLE)
   io.localInOut.M.Addr := Cat(io.exmem.mem.addr(ADDR_WIDTH-1, 2), Bits("b00"))
@@ -163,24 +163,24 @@ class Memory() extends Module {
   io.globalInOut.M.Data := Cat(wrData(3), wrData(2), wrData(1), wrData(0))
   io.globalInOut.M.ByteEn := byteEn
   io.globalInOut.M.AddrSpace := Mux(io.exmem.mem.typ === MTYPE_S, OcpCache.STACK_CACHE,
-									Mux(io.exmem.mem.typ === MTYPE_C, OcpCache.DATA_CACHE,
-										OcpCache.UNCACHED))
+                                    Mux(io.exmem.mem.typ === MTYPE_C, OcpCache.DATA_CACHE,
+                                        OcpCache.UNCACHED))
 
   def splitData(word: Bits) = {
-	val retval = Vec.fill(BYTES_PER_WORD) { Bits(width = BYTE_WIDTH) }
-	for (i <- 0 until BYTES_PER_WORD) {
-	  retval(i) := word((i+1)*BYTE_WIDTH-1, i*BYTE_WIDTH)
-	}
-	retval
+    val retval = Vec.fill(BYTES_PER_WORD) { Bits(width = BYTE_WIDTH) }
+    for (i <- 0 until BYTES_PER_WORD) {
+      retval(i) := word((i+1)*BYTE_WIDTH-1, i*BYTE_WIDTH)
+    }
+    retval
   }
 
   // Read data multiplexing and sign extensions if needed
   val rdData = splitData(Mux(memReg.mem.typ === MTYPE_L,
-							 io.localInOut.S.Data, io.globalInOut.S.Data))
+                             io.localInOut.S.Data, io.globalInOut.S.Data))
 
   //uncommend if I-Cache is used
   // val rdData = Mux(rdDataEnaReg, splitData(rdDataReg), splitData(Mux(memReg.mem.typ === MTYPE_L,
-  //       						 io.localInOut.S.Data, io.globalInOut.S.Data)))
+  //                             io.localInOut.S.Data, io.globalInOut.S.Data)))
 
   val dout = Bits(width = DATA_WIDTH)
   // default word read
@@ -208,12 +208,12 @@ class Memory() extends Module {
       dout := Cat(Bits(0, DATA_WIDTH-2*BYTE_WIDTH), hval)
     }
   }
-  
+
   io.memwb.pc := memReg.pc
   for (i <- 0 until PIPE_COUNT) {
-	io.memwb.rd(i).addr := memReg.rd(i).addr
-	io.memwb.rd(i).valid := memReg.rd(i).valid
-	io.memwb.rd(i).data := memReg.rd(i).data 
+    io.memwb.rd(i).addr := memReg.rd(i).addr
+    io.memwb.rd(i).valid := memReg.rd(i).valid
+    io.memwb.rd(i).data := memReg.rd(i).data
   }
   // Fill in data from loads
   io.memwb.rd(0).data := Mux(memReg.mem.load, dout, memReg.rd(0).data)
@@ -239,8 +239,8 @@ class Memory() extends Module {
   io.exc.exc := memReg.mem.trap || memReg.mem.illOp || illMem
 
   io.exc.src := Mux(memReg.mem.illOp, Bits(0),
-					Mux(illMem, Bits(1),
-						memReg.mem.xsrc))
+                    Mux(illMem, Bits(1),
+                        memReg.mem.xsrc))
   io.exc.excAddr := Mux(memReg.mem.trap, memReg.relPc + UInt(1), memReg.relPc)
 
   // Keep signal alive for debugging

@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -47,9 +47,9 @@ import ocp._
 
 class WriteNoBuffer() extends Module {
   val io = new Bundle {
-	val readMaster = new OcpBurstSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
-	val writeMaster = new OcpCacheSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
-	val slave = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+    val readMaster = new OcpBurstSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+    val writeMaster = new OcpCacheSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
+    val slave = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
   }
 
   val addrWidth = io.writeMaster.M.Addr.width
@@ -78,53 +78,53 @@ class WriteNoBuffer() extends Module {
 
   // Pass on reads
   when(state === read) {
-	io.readMaster.S.Resp := io.slave.S.Resp
-	when(io.slave.S.Resp === OcpResp.DVA) {
-	  when(cntReg === UInt(burstLength - 1)) {
-		state := idle
-	  }
-	  cntReg := cntReg + UInt(1)
-	}
+    io.readMaster.S.Resp := io.slave.S.Resp
+    when(io.slave.S.Resp === OcpResp.DVA) {
+      when(cntReg === UInt(burstLength - 1)) {
+        state := idle
+      }
+      cntReg := cntReg + UInt(1)
+    }
   }
 
   val wrPos = writeMasterReg.Addr(burstAddrBits+byteAddrBits-1, byteAddrBits)
 
   // Write burst
   when(state === write) {
-	when(cntReg === Bits(0)) {
-	  io.slave.M.Cmd := OcpCmd.WR
-	  io.slave.M.Addr := Cat(writeMasterReg.Addr(addrWidth-1, burstAddrBits+byteAddrBits),
+    when(cntReg === Bits(0)) {
+      io.slave.M.Cmd := OcpCmd.WR
+      io.slave.M.Addr := Cat(writeMasterReg.Addr(addrWidth-1, burstAddrBits+byteAddrBits),
                              Fill(Bits(0), burstAddrBits+byteAddrBits))
-	}
-	io.slave.M.DataValid := Bits(1)
-	io.slave.M.Data := writeMasterReg.Data
-	io.slave.M.DataByteEn := Bits(0)
-	when(cntReg === wrPos) {
-	  io.slave.M.DataByteEn := writeMasterReg.ByteEn
-	}
-	when(io.slave.S.DataAccept === Bits(1)) {
-	  cntReg := cntReg + UInt(1)
-	}
-	when(cntReg === UInt(burstLength - 1)) {
-	  state := writeResp
-	}
+    }
+    io.slave.M.DataValid := Bits(1)
+    io.slave.M.Data := writeMasterReg.Data
+    io.slave.M.DataByteEn := Bits(0)
+    when(cntReg === wrPos) {
+      io.slave.M.DataByteEn := writeMasterReg.ByteEn
+    }
+    when(io.slave.S.DataAccept === Bits(1)) {
+      cntReg := cntReg + UInt(1)
+    }
+    when(cntReg === UInt(burstLength - 1)) {
+      state := writeResp
+    }
   }
   when(state === writeResp) {
-	io.writeMaster.S.Resp := io.slave.S.Resp
-	when(io.slave.S.Resp === OcpResp.DVA) {
-	  state := idle
-	}
+    io.writeMaster.S.Resp := io.slave.S.Resp
+    when(io.slave.S.Resp === OcpResp.DVA) {
+      state := idle
+    }
   }
 
   // Start new read transaction
   when(io.readMaster.M.Cmd === OcpCmd.RD) {
-	state := read
-	io.slave.M := io.readMaster.M
+    state := read
+    io.slave.M := io.readMaster.M
   }
   // Start write transactions
   when(io.writeMaster.M.Cmd === OcpCmd.WR) {
-	writeMasterReg := io.writeMaster.M
-	state := write
-  }  
+    writeMasterReg := io.writeMaster.M
+    state := write
+  }
 }
 

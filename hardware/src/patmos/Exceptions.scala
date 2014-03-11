@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,9 @@
 
 /*
  * Exceptions for Patmos.
- * 
+ *
  * Author: Wolfgang Puffitsch (wpuffitsch@gmail.com)
- * 
+ *
  */
 
 package patmos
@@ -64,7 +64,7 @@ class Exceptions extends Module {
   val excPend     = Vec.fill(EXC_COUNT) { Bool() }
   val excPendReg  = Vec.fill(EXC_COUNT) { Reg(init = Bool(false)) }
   val intrPend    = Vec.fill(EXC_COUNT) { Bool() }
-  val intrPendReg = Vec.fill(EXC_COUNT) { Reg(init = Bool(false)) }  
+  val intrPendReg = Vec.fill(EXC_COUNT) { Reg(init = Bool(false)) }
   excPend := excPendReg
   intrPend := intrPendReg
 
@@ -74,61 +74,61 @@ class Exceptions extends Module {
 
   // Handle OCP reads and writes
   when(masterReg.Cmd === OcpCmd.RD) {
-	io.ocp.S.Resp := OcpResp.DVA
-	
-	switch(masterReg.Addr(EXC_ADDR_WIDTH-1, 2)) {
-	  is(Bits("b000000")) { io.ocp.S.Data := status }
-	  is(Bits("b000001")) { io.ocp.S.Data := mask }
-	  is(Bits("b000011")) { io.ocp.S.Data := source }
-	  is(Bits("b000010")) { io.ocp.S.Data := intrPendReg.toBits }
-	}
-	when(masterReg.Addr(EXC_ADDR_WIDTH-1) === Bits("b1")) {
-	  io.ocp.S.Data := vec(masterReg.Addr(EXC_ADDR_WIDTH-2, 2))
-	}
+    io.ocp.S.Resp := OcpResp.DVA
+
+    switch(masterReg.Addr(EXC_ADDR_WIDTH-1, 2)) {
+      is(Bits("b000000")) { io.ocp.S.Data := status }
+      is(Bits("b000001")) { io.ocp.S.Data := mask }
+      is(Bits("b000011")) { io.ocp.S.Data := source }
+      is(Bits("b000010")) { io.ocp.S.Data := intrPendReg.toBits }
+    }
+    when(masterReg.Addr(EXC_ADDR_WIDTH-1) === Bits("b1")) {
+      io.ocp.S.Data := vec(masterReg.Addr(EXC_ADDR_WIDTH-2, 2))
+    }
   }
 
   when(masterReg.Cmd === OcpCmd.WR) {
-	io.ocp.S.Resp := OcpResp.DVA
-	switch(masterReg.Addr(EXC_ADDR_WIDTH-1, 2)) {
-	  is(Bits("b000000")) { status := masterReg.Data }
-	  is(Bits("b000001")) { mask := masterReg.Data }
-	  is(Bits("b000011")) { source := masterReg.Data }
-	  is(Bits("b000010")) {
-		for(i <- 0 until EXC_COUNT) {
-		  intrPend(i) := intrPendReg(i) & masterReg.Data(i)
-		}
-	  }
-	}
-	when(masterReg.Addr(EXC_ADDR_WIDTH-1) === Bits("b1")) {
-	  vec(masterReg.Addr(EXC_ADDR_WIDTH-2, 2)) := masterReg.Data.toUInt
-	  vecDup(masterReg.Addr(EXC_ADDR_WIDTH-2, 2)) := masterReg.Data.toUInt
-	}
+    io.ocp.S.Resp := OcpResp.DVA
+    switch(masterReg.Addr(EXC_ADDR_WIDTH-1, 2)) {
+      is(Bits("b000000")) { status := masterReg.Data }
+      is(Bits("b000001")) { mask := masterReg.Data }
+      is(Bits("b000011")) { source := masterReg.Data }
+      is(Bits("b000010")) {
+        for(i <- 0 until EXC_COUNT) {
+          intrPend(i) := intrPendReg(i) & masterReg.Data(i)
+        }
+      }
+    }
+    when(masterReg.Addr(EXC_ADDR_WIDTH-1) === Bits("b1")) {
+      vec(masterReg.Addr(EXC_ADDR_WIDTH-2, 2)) := masterReg.Data.toUInt
+      vecDup(masterReg.Addr(EXC_ADDR_WIDTH-2, 2)) := masterReg.Data.toUInt
+    }
   }
 
   // Acknowledgement of exception
   when(io.memexc.call) {
-	excPend(io.memexc.src) := Bool(false)
-	intrPend(io.memexc.src) := Bool(false)
-	source := io.memexc.src
-	status := status << UInt(1)
+    excPend(io.memexc.src) := Bool(false)
+    intrPend(io.memexc.src) := Bool(false)
+    source := io.memexc.src
+    status := status << UInt(1)
   }
   // Return from exception
   when(io.memexc.ret) {
-	status := status >> UInt(1)
+    status := status >> UInt(1)
   }
 
   // Latch interrupt pins
   for (i <- 0 until INTR_COUNT) {
-	when(io.intrs(i)) {
-	  intrPend(16+i) := Bool(true)
-	}
+    when(io.intrs(i)) {
+      intrPend(16+i) := Bool(true)
+    }
   }
 
   // Trigger internal exceptions
   val excAddr = Reg(init = UInt(0, width = PC_SIZE))
   when(io.memexc.exc) {
-	excPend(io.memexc.src) := Bool(true)
-	excAddr := io.memexc.excAddr
+    excPend(io.memexc.src) := Bool(true)
+    excAddr := io.memexc.excAddr
   }
 
   // Latch new pending flags
@@ -140,10 +140,10 @@ class Exceptions extends Module {
   val srcReg = Reg(next = src)
   src := Bits(0)
   for (i <- 0 until EXC_COUNT) {
-	when(intrPend(i) && (mask(i) === Bits(1))) { src := Bits(i) }
+    when(intrPend(i) && (mask(i) === Bits(1))) { src := Bits(i) }
   }
   for (i <- 0 until EXC_COUNT) {
-	when(excPend(i)) { src := Bits(i) }
+    when(excPend(i)) { src := Bits(i) }
   }
 
   // Create signals to decode stage

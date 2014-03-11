@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
 
 /*
  * Decode stage of Patmos.
- * 
+ *
  * Authors: Martin Schoeberl (martin@jopdesign.com)
  *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
  */
@@ -131,7 +131,7 @@ class Decode() extends Module {
           decoded(i) := Bool(true)
         }
         is(OPC_ALUU) {
-          io.decex.wrRd(i) := isValid 
+          io.decex.wrRd(i) := isValid
           decoded(i) := Bool(true)
         }
         is(OPC_ALUM) {
@@ -236,7 +236,7 @@ class Decode() extends Module {
   val ensureSize = io.decexsc.sp + stcImm - io.memdecsc.mTop
   when(opcode === OPCODE_STC) {
     io.decexsc.sp := io.exdec.sp
-	switch(stcfun) {
+    switch(stcfun) {
       is(STC_SRES) {
         io.decex.aluOp(0).isSTC := Bool(true)
         isSTC := Bool(true)
@@ -244,12 +244,12 @@ class Decode() extends Module {
         stcVal := io.exdec.sp - stcImm
         io.decexsc.nSpill := reserveSize(ADDR_WIDTH - 1, 2)
         io.decexsc.spill := Mux(reserveSize > UInt(0), Bits(1), Bits(0))
-		decoded(0) := Bool(true)
+        decoded(0) := Bool(true)
       }
       is(STC_SENS) {
         io.decexsc.nFill := ensureSize(ADDR_WIDTH - 1, 2)
         io.decexsc.fill := Mux(ensureSize > UInt(0), Bits(1), Bits(0))
-		decoded(0) := Bool(true)
+        decoded(0) := Bool(true)
       }
       is(STC_SFREE) {
         io.decex.aluOp(0).isSTC := Bool(true)
@@ -257,21 +257,21 @@ class Decode() extends Module {
         io.decex.immOp(0) := Bool(true)
         stcVal := io.exdec.sp + stcImm
         io.decexsc.free := Bits(1)
-		decoded(0) := Bool(true)
+        decoded(0) := Bool(true)
       }
-	  is(STC_SENSR) {
-		// TODO: ignored for now
-		decoded(0) := Bool(true)
-	  }
-	  is(STC_SSPILL) {
-		// TODO: ignored for now
-		decoded(0) := Bool(true)
-	  }
-	  is(STC_SSPILLR) {
-		// TODO: ignored for now
-		decoded(0) := Bool(true)
-	  }
-	}
+      is(STC_SENSR) {
+        // TODO: ignored for now
+        decoded(0) := Bool(true)
+      }
+      is(STC_SSPILL) {
+        // TODO: ignored for now
+        decoded(0) := Bool(true)
+      }
+      is(STC_SSPILLR) {
+        // TODO: ignored for now
+        decoded(0) := Bool(true)
+      }
+    }
   }
   // Control-flow operations
   when(opcode === OPCODE_CFL_TRAP) {
@@ -283,44 +283,44 @@ class Decode() extends Module {
     io.decex.immOp(0) := Bool(true)
     io.decex.call := Bool(true)
     io.decex.nonDelayed := opcode === OPCODE_CFL_CALLND
-	decoded(0) := Bool(true)
+    decoded(0) := Bool(true)
   }
   when(opcode === OPCODE_CFL_BR || opcode === OPCODE_CFL_BRND) {
     io.decex.immOp(0) := Bool(true)
-	io.decex.jmpOp.branch := Bool(true)
+    io.decex.jmpOp.branch := Bool(true)
     io.decex.nonDelayed := opcode === OPCODE_CFL_BRND
-	decoded(0) := Bool(true)
+    decoded(0) := Bool(true)
   }
   when(opcode === OPCODE_CFL_BRCF || opcode === OPCODE_CFL_BRCFND) {
     io.decex.immOp(0) := Bool(true)
     io.decex.brcf := Bool(true)
     io.decex.nonDelayed := opcode === OPCODE_CFL_BRCFND
-	decoded(0) := Bool(true)
+    decoded(0) := Bool(true)
   }
   when(opcode === OPCODE_CFL_CFLR || opcode === OPCODE_CFL_CFLRND) {
-	switch(func) {
-	  is(JFUNC_RET) {
-		io.decex.ret := Bool(true)
-		decoded(0) := Bool(true)
-	  }
-	  is(JFUNC_XRET) {
-		io.decex.xret := Bool(true)
-		decoded(0) := Bool(true)
-	  }
-	  is(JFUNC_CALL) {
-		io.decex.call := Bool(true)
-		decoded(0) := Bool(true)
-	  }
-	  is(JFUNC_BR) {
-		io.decex.jmpOp.branch := Bool(true)
-		decoded(0) := Bool(true)
-	  }
-	  is(JFUNC_BRCF) {
-		io.decex.brcf := Bool(true)
-		decoded(0) := Bool(true)
-	  }
-	}
-	io.decex.nonDelayed := opcode === OPCODE_CFL_CFLRND
+    switch(func) {
+      is(JFUNC_RET) {
+        io.decex.ret := Bool(true)
+        decoded(0) := Bool(true)
+      }
+      is(JFUNC_XRET) {
+        io.decex.xret := Bool(true)
+        decoded(0) := Bool(true)
+      }
+      is(JFUNC_CALL) {
+        io.decex.call := Bool(true)
+        decoded(0) := Bool(true)
+      }
+      is(JFUNC_BR) {
+        io.decex.jmpOp.branch := Bool(true)
+        decoded(0) := Bool(true)
+      }
+      is(JFUNC_BRCF) {
+        io.decex.brcf := Bool(true)
+        decoded(0) := Bool(true)
+      }
+    }
+    io.decex.nonDelayed := opcode === OPCODE_CFL_CFLRND
   }
 
   val shamt = UInt()
@@ -356,7 +356,7 @@ class Decode() extends Module {
     when(ldtype === MTYPE_S) {
       isStack := Bool(true)
     }
-	decoded(0) := Bool(true)
+    decoded(0) := Bool(true)
   }
   // store
   when(opcode === OPCODE_STT) {
@@ -378,7 +378,7 @@ class Decode() extends Module {
     when(sttype === MTYPE_S) {
       isStack := Bool(true)
     }
-	decoded(0) := Bool(true)
+    decoded(0) := Bool(true)
   }
 
   // Offset for loads/stores
@@ -392,9 +392,9 @@ class Decode() extends Module {
   // Non-default immediate value
   when (isSTC || isStack || isMem || longImm) {
     io.decex.immVal(0) := Mux(isSTC, stcVal,
-							  Mux(isStack, addrImm + io.exdec.sp,
-								  Mux(isMem, addrImm,
-									  decReg.instr_b)))
+                              Mux(isStack, addrImm + io.exdec.sp,
+                                  Mux(isMem, addrImm,
+                                      decReg.instr_b)))
   }
   // we could mux the imm / register here as well
 
@@ -419,7 +419,7 @@ class Decode() extends Module {
       io.decex.wrRd(i) := Bool(false)
     }
   }
-  
+
   // Illegal operation
   io.decex.illOp := !Mux(dual, decoded.reduce(_&_), decoded(0))
 

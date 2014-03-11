@@ -82,24 +82,24 @@ class InOut() extends Module {
   val selDeviceReg = Vec.fill(MAX_IO_DEVICES) { Reg(Bool()) }
 
   when(io.memInOut.M.Cmd != OcpCmd.IDLE) {
-	selSpmReg := selSpm
-	selComConfReg := selComConf
-	selComSpmReg := selComSpm
+    selSpmReg := selSpm
+    selComConfReg := selComConf
+    selComSpmReg := selComSpm
 
-	selDeviceReg := selDeviceVec
+    selDeviceReg := selDeviceVec
   }
 
   // Default values for interrupt pins
   for (i <- 0 until INTR_COUNT) {
-	io.intrs(i) := Bool(false)
+    io.intrs(i) := Bool(false)
   }
 
   // Register for error response
   val errResp = Reg(init = OcpResp.NULL)
   val validSelVec = selDeviceVec.zip(validDeviceVec).map{ case (x, y) => x && y }
   val validSel = validSelVec.fold(Bool(false))(_|_)
-  errResp := Mux(io.memInOut.M.Cmd != OcpCmd.IDLE && 
-				 selIO && !validSel,
+  errResp := Mux(io.memInOut.M.Cmd != OcpCmd.IDLE &&
+                 selIO && !validSel,
                  OcpResp.ERR, OcpResp.NULL)
 
   // Dummy ISPM (create fake response)

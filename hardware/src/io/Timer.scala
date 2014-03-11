@@ -83,27 +83,27 @@ class Timer(clk_freq: Int) extends CoreDevice() {
 
   // Read current state of timer
   when(masterReg.Cmd === OcpCmd.RD) {
-	resp := OcpResp.DVA
+    resp := OcpResp.DVA
 
-	// Read cycle counter
-	// Must read word at higher address first!
-	when(masterReg.Addr(3, 2) === Bits("b01")) {
-	  data := cycleReg(DATA_WIDTH-1, 0)
-	  cycleHiReg := cycleReg(2*DATA_WIDTH-1, DATA_WIDTH)
-	}
-	when(masterReg.Addr(3, 2) === Bits("b00")) {
-	  data := cycleHiReg
-	}
+    // Read cycle counter
+    // Must read word at higher address first!
+    when(masterReg.Addr(3, 2) === Bits("b01")) {
+      data := cycleReg(DATA_WIDTH-1, 0)
+      cycleHiReg := cycleReg(2*DATA_WIDTH-1, DATA_WIDTH)
+    }
+    when(masterReg.Addr(3, 2) === Bits("b00")) {
+      data := cycleHiReg
+    }
 
-	// Read usec counter
-	// Must read word at higher address first!
-	when(masterReg.Addr(3, 2) === Bits("b11")) {
-	  data := usecReg(DATA_WIDTH-1, 0)
-	  usecHiReg := usecReg(2*DATA_WIDTH-1, DATA_WIDTH)
-	}
-	when(masterReg.Addr(3, 2) === Bits("b10")) {
-	  data := usecHiReg
-	}
+    // Read usec counter
+    // Must read word at higher address first!
+    when(masterReg.Addr(3, 2) === Bits("b11")) {
+      data := usecReg(DATA_WIDTH-1, 0)
+      usecHiReg := usecReg(2*DATA_WIDTH-1, DATA_WIDTH)
+    }
+    when(masterReg.Addr(3, 2) === Bits("b10")) {
+      data := usecHiReg
+    }
   }
 
   // Connections to master
@@ -115,7 +115,7 @@ class Timer(clk_freq: Int) extends CoreDevice() {
   // Increment usec counter
   usecSubReg := usecSubReg + UInt(1)
   when(usecSubReg === cycPerUSec) {
-	usecSubReg := UInt(0)
-	usecReg := usecReg + UInt(1)
+    usecSubReg := UInt(0)
+    usecReg := usecReg + UInt(1)
   }
 }

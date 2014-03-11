@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,9 @@
 
 /*
  * A connection to an external IO device
- * 
+ *
  * Authors: Rasmus Bo Soerensen (rasmus@rbscloud.dk)
- * 
+ *
  */
 
 package io
@@ -47,33 +47,33 @@ import ocp._
 import patmos.Constants._
 
 object ExtIODevice extends DeviceObject {
-	var extAddrWidth = 32
-	var dataWidth = 32
+    var extAddrWidth = 32
+    var dataWidth = 32
 
-	def init(params : Map[String, String]) = {
-		extAddrWidth = getPosIntParam(params, "extAddrWidth")
-		dataWidth = getPosIntParam(params, "dataWidth")
-	}
+    def init(params : Map[String, String]) = {
+        extAddrWidth = getPosIntParam(params, "extAddrWidth")
+        dataWidth = getPosIntParam(params, "dataWidth")
+    }
 
-	def create(params: Map[String, String]) : ExtIODevice = {
-		Module(new ExtIODevice(extAddrWidth=extAddrWidth, dataWidth=dataWidth))
-	}
+    def create(params: Map[String, String]) : ExtIODevice = {
+        Module(new ExtIODevice(extAddrWidth=extAddrWidth, dataWidth=dataWidth))
+    }
 
-	trait Pins {
-		val extIODevicePins = new Bundle() {
+    trait Pins {
+        val extIODevicePins = new Bundle() {
          val ocp = new OcpIOMasterPort(extAddrWidth, dataWidth)
       }
-	}
+    }
 }
 
 class ExtIODevice(extAddrWidth : Int = 32,
-				dataWidth : Int = 32) extends CoreDevice() {
-	override val io = new CoreDeviceIO() with ExtIODevice.Pins
+                dataWidth : Int = 32) extends CoreDevice() {
+    override val io = new CoreDeviceIO() with ExtIODevice.Pins
 
    val coreBus = Module(new OcpCoreBus(extAddrWidth,dataWidth))
    val ioBus = Module(new OcpIOBus(extAddrWidth,dataWidth))
    io.ocp <> coreBus.io.slave
    ioBus.io.master <> io.extIODevicePins.ocp
 
-	val bridge = new OcpIOBridge(coreBus.io.master,ioBus.io.slave)
+    val bridge = new OcpIOBridge(coreBus.io.master,ioBus.io.slave)
 }

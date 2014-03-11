@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,9 @@
 
 /*
  * Simple I/O module for Keys
- * 
+ *
  * Authors: Wolfgang Puffitsch (wpuffitsch@gmail.com)
- * 
+ *
  */
 
 package io
@@ -64,7 +64,7 @@ object Keys extends DeviceObject {
   }
 
   trait Intrs {
-	val keysIntrs = Vec.fill(keyCount) { Bool(OUTPUT) }
+    val keysIntrs = Vec.fill(keyCount) { Bool(OUTPUT) }
   }
 }
 
@@ -81,7 +81,7 @@ class Keys(keyCount : Int) extends CoreDevice() {
 
   // Read current state of keys
   when(io.ocp.M.Cmd === OcpCmd.RD) {
-	respReg := OcpResp.DVA
+    respReg := OcpResp.DVA
   }
 
   // Connections to master
@@ -94,6 +94,6 @@ class Keys(keyCount : Int) extends CoreDevice() {
 
   // Generate interrupts on falling edges
   for (i <- 0 until keyCount) {
-   	io.keysIntrs(i) := keyReg(i) === Bits("b1") && keySyncReg(i) === Bits("b0")
+    io.keysIntrs(i) := keyReg(i) === Bits("b1") && keySyncReg(i) === Bits("b0")
   }
 }

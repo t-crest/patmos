@@ -74,13 +74,13 @@ class Leds(ledCount : Int) extends CoreDevice() {
 
   // Write to LEDs
   when(io.ocp.M.Cmd === OcpCmd.WR) {
-	respReg := OcpResp.DVA
+    respReg := OcpResp.DVA
     ledReg := io.ocp.M.Data(ledCount-1, 0)
   }
 
   // Read current state of LEDs
   when(io.ocp.M.Cmd === OcpCmd.RD) {
-	respReg := OcpResp.DVA
+    respReg := OcpResp.DVA
   }
 
   // Connections to master
