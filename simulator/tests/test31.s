@@ -6,7 +6,7 @@
 f:              lwc     r1 = [r0 + x];
                 nop;
                 nop;
-                brcfr   r1;
+                brcfr   r1, r0;
                 nop;
                 nop;
                 halt;

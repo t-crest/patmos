@@ -22,7 +22,7 @@ x:              addi     r1  = r1, 5;
                 addi     r1  = r1, 9;
                 addi     r2  = r30, 0;
                 addi     r3  = r31, 0;
-                ret      r30, r31;
+                ret;
 		nop;
 		nop;
 		nop;

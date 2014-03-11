@@ -6,7 +6,7 @@
                 nop;
 		addi    r1 = r0, x;
                 nop;
-                brcfr   r1;
+                brcfr   r1, r0;
                 nop;
                 nop;
                 halt;

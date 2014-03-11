@@ -1853,7 +1853,7 @@ namespace patmos
     {
       printPred(os, ops.Pred);
       os << "call" << (ops.OPS.CFLi.D ? " " : "nd ") << ops.OPS.CFLi.UImm;
-      symbols.print(os, ops.EX_Address);
+      symbols.print(os, ops.OPS.CFLi.UImm * sizeof(word_t));
     }
     
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
@@ -1893,7 +1893,7 @@ namespace patmos
     {
       printPred(os, ops.Pred);
       os << "br" << (ops.OPS.CFLi.D ? " " : "nd ") << ops.OPS.CFLi.Imm;
-      symbols.print(os, ops.EX_Address);
+      symbols.print(os, ops.OPS.CFLi.UImm * sizeof(word_t));
     }
     
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
@@ -1919,20 +1919,38 @@ namespace patmos
     {
       printPred(os, ops.Pred);
       os << "brcf" << (ops.OPS.CFLi.D ? " " : "nd ") << ops.OPS.CFLi.Imm;
-      symbols.print(os, ops.EX_Address);
+      symbols.print(os, ops.OPS.CFLi.UImm * sizeof(word_t));
     }
     
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.EX_Address = ops.OPS.CFLi.UImm*sizeof(word_t);
+      ops.EX_Base    = ops.OPS.CFLi.UImm*sizeof(word_t);
+      ops.EX_Offset  = 0;
+      ops.EX_Address = get_PC(ops.EX_Base, ops.EX_Offset);
     }
     
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
-      fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
-      if (!ops.OPS.CFLi.D && ops.DR_Pred)
+      // brcf to address 0? interpret this as a halt.
+      if (ops.DR_Pred && ops.EX_Base == 0)
       {
-        s.pipeline_flush(SMW);
+        // TODO this is one really ugly hack to let the simulator finish the
+        // other stages before we exit, so that the PC is updated and stuff.
+        // This should move into some simulator.halt(retvalue) call.
+        if (ops.EX_Offset == 0) {
+          ops.EX_Offset = 1;
+          s.pipeline_stall(SMW);
+        } else {
+          simulation_exception_t::halt(s.GPR.get(GPR_EXIT_CODE_INDEX).get());
+        }
+      }
+      else
+      {
+        fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+        if (!ops.OPS.CFLi.D && ops.DR_Pred)
+        {
+          s.pipeline_flush(SMW);
+        }
       }
     }
     
@@ -1949,7 +1967,7 @@ namespace patmos
     {
       printPred(os, ops.Pred);
       os << "intr " << ops.OPS.CFLi.UImm;
-      symbols.print(os, ops.EX_Address);
+      symbols.print(os, ops.OPS.CFLi.UImm * sizeof(word_t));
     }
 
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
@@ -2071,10 +2089,9 @@ namespace patmos
                                 const instruction_data_t &ops,
                                 const symbol_map_t &symbols) const
     {
-      printGPReg(os, "in: ", ops.OPS.CFLrt.Rs1, ops.EX_Base);
-      printGPReg(os, ", "  , ops.OPS.CFLrt.Rs2, ops.EX_Offset);
+      printGPReg(os, "in: ", ops.OPS.CFLrt.Rs1, ops.EX_Address);
       os << " ";
-      symbols.print(os, ops.EX_Base);
+      symbols.print(os, ops.EX_Address);
     }
   };
 
@@ -2086,7 +2103,6 @@ namespace patmos
     {
       printPred(os, ops.Pred);
       os << "callr" << (ops.OPS.CFLi.D ? " r" : "nd r") << ops.OPS.CFLrs.Rs;
-      symbols.print(os, ops.EX_Address);
     }
     
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
@@ -2126,7 +2142,6 @@ namespace patmos
     {
       printPred(os, ops.Pred);
       os << "brr" << (ops.OPS.CFLi.D ? " r" : "nd r") << ops.OPS.CFLrs.Rs;
-      symbols.print(os, ops.EX_Address);
     }
     
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
@@ -2152,18 +2167,19 @@ namespace patmos
     {
       printPred(os, ops.Pred);
       os << "brcfr" << (ops.OPS.CFLi.D ? " r" : "nd r") << ops.OPS.CFLrt.Rs1 << ", r" << ops.OPS.CFLrt.Rs2;
-      symbols.print(os, ops.EX_Address);
     }
     
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1);
+      ops.EX_Base   = read_GPR_EX(s, ops.DR_Rs1);
+      ops.EX_Offset = read_GPR_EX(s, ops.DR_Rs2);;
+      ops.EX_Address = get_PC(ops.EX_Base, ops.EX_Offset);
     }
     
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
       // brcf to address 0? interpret this as a halt.
-      if (ops.DR_Pred && ops.EX_Address == 0)
+      if (ops.DR_Pred && ops.EX_Base == 0)
       {
         // TODO this is one really ugly hack to let the simulator finish the
         // other stages before we exit, so that the PC is updated and stuff.
@@ -2177,12 +2193,26 @@ namespace patmos
       }
       else
       {
-        fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+        fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Offset);
         if (!ops.OPS.CFLrt.D && ops.DR_Pred)
         {
           s.pipeline_flush(SMW);
         }
       }
+    }
+    
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void print_operands(const simulator_t &s, std::ostream &os,
+                                const instruction_data_t &ops,
+                                const symbol_map_t &symbols) const
+    {
+      printSPReg(os, "in: ", srb, ops.EX_Base);
+      printSPReg(os, ", "  , sro, ops.EX_Offset);
+      os << boost::format(" addr: %1$08x ") % ops.EX_Address;
+      symbols.print(os, ops.EX_Address);
     }
     
     virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
