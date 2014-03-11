@@ -139,8 +139,12 @@ hwsim:
 	$(MAKE) -C hardware test BOOTBUILDROOT=$(CURDIR) BOOTAPP=$(BOOTAPP)
 
 # Testing
-test:
+test: test_emu
+test_sim: patsim
+	cd $(SIMBUILDDIR) && make test
+test_emu:
 	testsuite/run.sh
+.PHONY: test test_sim test_emu
 
 # Compile Patmos and download
 patmos: gen synth config
