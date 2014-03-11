@@ -2177,7 +2177,7 @@ namespace patmos
       }
       else
       {
-        fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Offset);
+        fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Address);
         if (!ops.OPS.CFLrt.D && ops.DR_Pred)
         {
           s.pipeline_flush(SMW);
