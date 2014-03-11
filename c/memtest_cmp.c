@@ -9,14 +9,15 @@
 // we assume 2 MB memory, less than 400 KB for program,
 // heap, and stack
 #define LENGTH (2000000-400000)/4
-#define CNT 10
+#define CNT 20
 
 // Start the memory test some bytes above heap start
 // as stdio needs the heap for buffers (40000 bytes reserved)
 // Now hardcoded for merging with bootable
 extern char _end;
 // #define TEST_START ((volatile _UNCACHED int *) (&_end)+10000)
-#define TEST_START ((volatile _UNCACHED int *) 250000)
+// #define TEST_START ((volatile _UNCACHED int *) 250000)
+#define TEST_START ((volatile int *) 250000)
 
 int main() {
 	int res;
