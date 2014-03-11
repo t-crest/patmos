@@ -1,6 +1,6 @@
 #
-# Expected Result: base = 0x00000034 & pc = 0x00000060 &
-#                  r1 = 41 & r2 = 00000000 & r3 = 00000014
+# Expected Result: base = 0x00000004 & pc = 0x00000028 &
+#                  r1 = 45 & r2 = 00000004 & r3 = 00000014
 #
 
                 .word    44;
@@ -20,9 +20,9 @@ x:              addi     r1  = r1, 5;
                 addi     r1  = r1, 7;
                 addi     r1  = r1, 8;
                 addi     r1  = r1, 9;
-                addi     r2  = r30, 0;
-                addi     r3  = r31, 0;
-                ret;
+                mfs      r2  = srb;
+                mfs      r3  = sro;
+		ret;
 		nop;
 		nop;
 		nop;
