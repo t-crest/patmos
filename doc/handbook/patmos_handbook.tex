@@ -2276,10 +2276,10 @@ Address & I/O Device & read & write \\
 \midrule
 \code{0xf0000000} & cpuinfo & processor ID & -- \\
 \code{0xf0000004} & cpuinfo & clock frequency (Hz) & -- \\
-\code{0xf0000200} & timer & clock cycles (high word) & -- \\
-\code{0xf0000204} & timer & clock cycles (low word) & -- \\
-\code{0xf0000208} & timer & time in $\mu s$ (high word) & -- \\
-\code{0xf000020c} & timer & time in $\mu s$ (low word) & -- \\
+\code{0xf0000200} & timer & clock cycles (high word) & cycle interrupt time (high word) \\
+\code{0xf0000204} & timer & clock cycles (low word) & cycle interrupt time (low word) \\
+\code{0xf0000208} & timer & time in $\mu s$ (high word) & $\mu s$ interrupt time (high word) \\
+\code{0xf000020c} & timer & time in $\mu s$ (low word) &  $\mu s$ interrupt time (low word) \\
 \code{0xf0000800} & UART & status & control \\
 \code{0xf0000804} & UART & receive buffer & transmit buffer \\
 \code{0xf0000900} & LED & -- & output register \\
@@ -2289,6 +2289,20 @@ Address & I/O Device & read & write \\
 \caption{I/O devices and registers}
 \label{tab:iomap}
 \end{table}
+
+\subsection{Timer}
+
+The timer device provides a means to measure time as well as to
+trigger an interrupt at a certain point in time. It provides two
+64-bit counters. While the first counter is incremented every clock
+cycle, the second counter is incremented every microsecond.
+
+Interrupts can be triggered by storing a value in the ``cycle
+interrupt time'' and ``$\mu s$ interrupt time'' registers. The timer
+device will then trigger an interrupt when the respective counter
+reaches the value provided in that register. The ``cycle'' interrupt
+is tied to interrupt~0; the ``$\mu s$'' interrupt is tied to
+interrupt~1.
 
 \subsection{UART}
 

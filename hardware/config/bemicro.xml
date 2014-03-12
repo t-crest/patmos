@@ -16,7 +16,7 @@
 
   <IOs>
 	<IO IODevTypeRef="CpuInfo" offset="0"/>
-	<IO IODevTypeRef="Timer" offset="2"/>
+	<IO IODevTypeRef="Timer" offset="2" intrs="0,1"/>
 	<IO IODevTypeRef="Uart" offset="8"/>
 	<IO IODevTypeRef="Leds" offset="9"/>
   </IOs>

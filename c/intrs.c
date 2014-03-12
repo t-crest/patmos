@@ -6,13 +6,12 @@
 */
 
 #include <machine/patmos.h>
-#include <machine/spm.h>
 #include <machine/exceptions.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 
-#define LEDS (*((volatile _SPM unsigned *)0xf0000900))
+#define LEDS (*((volatile _IODEV unsigned *)0xf0000900))
 
 void fault_handler(void);
 void trap_handler(void) __attribute__((naked));
@@ -26,10 +25,10 @@ int main(void) {
 	exc_register(i, &fault_handler);
   }
   exc_register(8, &trap_handler);
-  exc_register(16, &intr_handler);
-  exc_register(17, &intr_handler);
   exc_register(18, &intr_handler);
   exc_register(19, &intr_handler);
+  exc_register(20, &intr_handler);
+  exc_register(21, &intr_handler);
 
   // unmask interrupts
   intr_unmask_all();
@@ -67,7 +66,7 @@ int main(void) {
   // trigger illegal operation fault
   asm volatile(".word 0xffffffff"); // illegal operation
   // trigger illegal memory access fault, never reached
-  (*((volatile _SPM unsigned *)0xffffffff)) = 0;
+  (*((volatile _IODEV unsigned *)0xffffffff)) = 0;
 
   return 0;
 }
