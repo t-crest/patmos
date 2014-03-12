@@ -91,13 +91,7 @@
 \usepackage{listings}
 
 % general style for listings
-\lstset{basicstyle=\ttfamily,keywordstyle=\ttfamily}
-
-% listings style for Java
-\lstnewenvironment{Java} {\lstset{
-  xleftmargin=12pt,
-  language=Java
-}}{}
+\lstset{basicstyle=\ttfamily,keywordstyle=\ttfamily,showstringspaces=false,language=C}
 
 \usepackage[endianness=big]{bytefield}
 
@@ -196,7 +190,7 @@ Systems (T-CREST).
 \let\cleardoublepage\clearpage
 \listoffigures
 \listoftables
-%\lstlistoflistings
+\lstlistoflistings
 \endgroup
 
 \mainmatter
@@ -2127,13 +2121,13 @@ for operands. Accepted register constraints are: \texttt{r} or \texttt{R} for an
 \texttt{\{<registername>\}} to use a specific register.
 
 Example:
-\begin{verbatim}
+\begin{lstlisting}
     int i, j, k;
     asm("mov  $r31 = %1  # copy i into r31\n\t"
         "add  %0 = $r5, %2"
         : "=r" (j)
         : "r" (i), "{r10}" (k));
-\end{verbatim}
+\end{lstlisting}
 
 \chapter{Memory and I/O Subsystem}
 \label{chap:memsyst}
@@ -3370,12 +3364,11 @@ For Aegean: python33, py33-lxml. Make a link from python3 to python3.3 as this i
 We can start with the standard, harmless looking Hello
 World:\footnote{This example code is not part of the distribution, but
 can be put at any directory.}
-
-\begin{verbatim}
-main() {
+\begin{lstlisting}
+int main() {
     printf("Hello Patmos!\n");
 }
-\end{verbatim}
+\end{lstlisting}
 
 With the compiler installed it can be compiled to a Patmos executable
 and run with the simulator as follows:
@@ -3504,8 +3497,7 @@ area where data SPM and NoC SPM are connected. Therefore, to access them
 one needs to use the local load/store instructions. With the attribute \code{\_SPM}
 the compiler is instructed to emit the correct load and store instructions.
 
-\begin{figure}
-\begin{verbatim}
+\begin{lstlisting}[float,caption={A blinking LED\label{fig:blink}}]
 /*
     This is a minimal C program executed on the FPGA version of Patmos.
     An embedded Hello World program: a blinking LED.
@@ -3537,10 +3529,8 @@ int main() {
                 *led_ptr = 0;
 
     }
-}\end{verbatim}
-\caption{A blinking LED}
-\label{fig:blink}
-\end{figure}
+}
+\end{lstlisting}
 
 \martin{I'm still a little bit confused when to use the APP and the BOOTAPP
 thing.}
