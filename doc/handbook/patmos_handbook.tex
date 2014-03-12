@@ -1544,7 +1544,7 @@ Immediate call and branch instructions interpret the operand as
 values are interpreted in \emph{word size}. The target address of
 PC-relative branches is computed relative to the address of the branch
 instruction. The immediate value for \texttt{trap} is an index into an
-exception vector table (see Section~\ref{sec:exc}).
+exception vector (see Section~\ref{sec:exc}).
 
 Indirect call and branch instructions interpret the operand as
 \emph{unsigned} absolute addresses in \emph{byte size}. Indirect
@@ -1593,7 +1593,7 @@ unspecified behavior.
     call        & absolute, words    & absolute, bytes        & yes        & yes  & 3 \\
     br          & PC relative, words & absolute, bytes        & no         & no   & 2 \\
     brcf        & absolute, words    & absolute+offset, bytes & yes        & no   & 3 \\
-    trap        & exception table index & ---                 & yes        & no   & -- \\
+    trap        & exception vector index & ---                & yes        & no   & -- \\
     \cmidrule{1-6}
     ret         & ---         & implementation dependent      & yes        & no   & 3 \\
     xret        & ---         & implementation dependent      & yes        & no   & 3 \\
@@ -1626,7 +1626,7 @@ unspecified behavior.
     01 & 1 & br     & local branch (PC-relative, always hit, delayed) \\
     10 & 0 & brcfnd & branch (absolute, with cache fill, non-delayed) \\
     10 & 1 & brcf   & branch (absolute, with cache fill, delayed) \\
-    11 & 0 & trap   & system call (via exception table, with cache fill, non-delayed) \\
+    11 & 0 & trap   & system call (via exception vector, with cache fill, non-delayed) \\
     \bottomrule
   \end{tabular}
   \caption{Control-flow operations with immediate}
@@ -1855,13 +1855,26 @@ execution of an exception from the pipeline, and the pipeline returns
 an acknowledges when it starts the execution of the respective
 exception handler.
 
-\subsection{Exception Vectors}
+The \texttt{status} register is 32 bits wide; bit 0 of that register
+determines whether interrupts are enabled. They are enabled if it is
+1, and they are disabled when it is zero. The \texttt{status} register
+is shifted left by one bit when an exception handler is triggered, and
+shifted right by one bit when returning from an exception handler via
+\texttt{xret}. Overflows of the status register (which might be caused
+by nested exception handlers) are silently ignored.
 
-The exception unit supports up to 32 exception vectors. Exception
-vectors 0 and 1 are reserved for the ``illegal operation'' and
-``illegal memory access'' faults. While exception vectors 2 to 15 can
-be used freely (e.g., by the operating system), exception vectors 16
-to 32 are attached to interrupts.
+Internally generated exceptions, i.e., faults and traps, always take
+precedence over interrupts. If more than one internal exception or
+interrupt is pending at the same time, the exception with the lower
+number takes precedence.
+
+\subsection{Exception Vector}
+
+The exception unit supports 32 exception vector entries, shown in the
+lower half of Table~\ref{tab:excioregs}. Exceptions 0
+and 1 are reserved for the ``illegal operation'' and ``illegal memory
+access'' faults. While exceptions 2 to 15 can be used freely (e.g., by
+the operating system), exceptions 16 to 32 are attached to interrupts.
 
 \begin{table}[b]
   \centering
@@ -1869,9 +1882,7 @@ to 32 are attached to interrupts.
     \toprule
     Address             & Name             & Description \\
     \midrule
-    \texttt{0xf0000100} & \texttt{status} & Interrupt-enable
-    flag. Left-shifted on start of exception handler, right-shifted
-    when returning. \\
+    \texttt{0xf0000100} & \texttt{status} & Interrupt-enable flag. \\
     \texttt{0xf0000104} & \texttt{mask} & Mask of enabled interrupts \\
     \texttt{0xf0000108} & \texttt{pend} & Pending flags for interrupts \\
     \texttt{0xf000010c} & \texttt{source} & Number of exception that
@@ -1965,6 +1976,15 @@ for exception number eight, and \texttt{intr\_handler} for exceptions
   exc_register(19, &intr_handler);
 \end{lstlisting}
 
+\begin{lstlisting}[float, caption={Interrupt enabling\label{lst:intrena}}]
+  // unmask interrupts
+  intr_unmask_all();
+  // clear pending flags
+  intr_clear_all_pending();
+  // enable interrupts
+  intr_enable();
+\end{lstlisting}
+
 Listing~\ref{lst:intrena} shows how to enable interrupts at the start
 of an application. First, all interrupts are unmasked. Then, all
 pending flags are cleared to avoid triggering any ``stale''
@@ -1978,15 +1998,6 @@ used to clear only a particular pending flag. Masking interrupts can
 be done through the \texttt{intr\_mask\_all} and \texttt{intr\_mask}
 functions. Disabling interrupt handling in general is done with the
 \texttt{intr\_disable} function.
-
-\begin{lstlisting}[float, caption={Interrupt enabling\label{lst:intrena}}]
-  // unmask interrupts
-  intr_unmask_all();
-  // clear pending flags
-  intr_clear_all_pending();
-  // enable interrupts
-  intr_enable();
-\end{lstlisting}
 
 Listing~\ref{lst:faulthandler} shows a basic fault handler. As Patmos
 cannot recover from faults, the handler does not use a special
