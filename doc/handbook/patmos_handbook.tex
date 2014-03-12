@@ -1973,11 +1973,11 @@ will call the respective interrupt handler when an interrupt occurs.
 
 To unmask only certain interrupts, \texttt{machine/exceptions.h}
 provides a function \texttt{intr\_unmask}, which takes an interrupt
-number as parameter. Similarly, \textt{intr\_clear\_pending} can be
+number as parameter. Similarly, \texttt{intr\_clear\_pending} can be
 used to clear only a particular pending flag. Masking interrupts can
 be done through the \texttt{intr\_mask\_all} and \texttt{intr\_mask}
 functions. Disabling interrupt handling in general is done with the
-\textt{intr\_disable} function.
+\texttt{intr\_disable} function.
 
 \begin{lstlisting}[float, caption={Interrupt enabling\label{lst:intrena}}]
   // unmask interrupts
