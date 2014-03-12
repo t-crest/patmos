@@ -1855,6 +1855,14 @@ execution of an exception from the pipeline, and the pipeline returns
 an acknowledges when it starts the execution of the respective
 exception handler.
 
+\subsection{Exception Vectors}
+
+The exception unit supports up to 32 exception vectors. Exception
+vectors 0 and 1 are reserved for the ``illegal operation'' and
+``illegal memory access'' faults. While exception vectors 2 to 15 can
+be used freely (e.g., by the operating system), exception vectors 16
+to 32 are attached to interrupts.
+
 \begin{table}[b]
   \centering
   \begin{tabular}{llp{.6\textwidth}}
@@ -1872,7 +1880,10 @@ exception handler.
     \texttt{0xf0000180} & \texttt{vec<0>} & Address of exception handler 0, illegal operation \\
     \texttt{0xf0000184} & \texttt{vec<1>} & Address of exception handler 1, illegal memory access \\
     \ldots & \ldots & \ldots \\
-    \texttt{0xf00001fc} & \texttt{vec<31>} & Address of exception handler 31 \\
+    \cmidrule{1-3}
+    \texttt{0xf00001c0} & \texttt{vec<16>} & Address of exception handler 16, interrupt 0 \\
+    \ldots & \ldots & \ldots \\
+    \texttt{0xf00001fc} & \texttt{vec<31>} & Address of exception handler 31, interrupt 15 \\
     \bottomrule
   \end{tabular}
   \caption{Exception unit device registers}
@@ -1883,14 +1894,19 @@ exception handler.
 
 The instruction \texttt{trap <n>} triggers exception number $n$. In
 order to assimilate the handling of faults and traps in the pipeline,
-\texttt{trap} instructions never have a delay slot.
+\texttt{trap} instructions never have a delay slot. Traps can in
+principle be called for any exception, e.g., to trigger an interrupt
+handler from software.
 
 \subsection{Return Information}
 
 The return information for exceptions must be stored in registers that
 are never used otherwise. Two special registers \texttt{sxb}
 (\texttt{s9}) and \texttt{sxo} (\texttt{s10}) provide the return base
-and return offset for exceptions.
+and return offset for exceptions. The instruction \texttt{xret}
+implicitly uses these registers, as opposed to the \texttt{ret}
+instruction, which uses special registers \texttt{srb} and
+\texttt{sro}.
 
 \subsection{Resuming Execution}
 
@@ -1927,6 +1943,89 @@ delayed loads do not delay the triggering of interrupts. Interrupt
 handlers must ensure that the contents of the special register
 \texttt{sm} are saved and restored correctly.
 
+\subsection{Examples}
+
+The API for exception and interrupt nadling for Patmos is provided by
+the include file \texttt{machine/exceptions.h}.
+
+Listing~\ref{lst:excreg} shows how to register exception handlers for
+specific exceptions. First, \texttt{fault\_handler} is registered as
+handler for all exceptions. Then, \texttt{trap\_handler} is registered
+for exception number eight, and \texttt{intr\_handler} for exceptions
+16 to 19, i.e., for interrupts 0 to 3.
+
+\begin{lstlisting}[float, caption={Exception handler registration\label{lst:excreg}}]
+  for (unsigned i = 0; i < 32; i++) {
+	exc_register(i, &fault_handler);
+  }
+  exc_register(8, &trap_handler);
+  exc_register(16, &intr_handler);
+  exc_register(17, &intr_handler);
+  exc_register(18, &intr_handler);
+  exc_register(19, &intr_handler);
+\end{lstlisting}
+
+Listing~\ref{lst:intrena} shows how to enable interrupts at the start
+of an application. First, all interrupts are unmasked. Then, all
+pending flags are cleared to avoid triggering any ``stale''
+interrupts. Finally, interrupts are enabled; after that point, Patmos
+will call the respective interrupt handler when an interrupt occurs.
+
+To unmask only certain interrupts, \texttt{machine/exceptions.h}
+provides a function \texttt{intr\_unmask}, which takes an interrupt
+number as parameter. Similarly, \textt{intr\_clear\_pending} can be
+used to clear only a particular pending flag. Masking interrupts can
+be done through the \texttt{intr\_mask\_all} and \texttt{intr\_mask}
+functions. Disabling interrupt handling in general is done with the
+\textt{intr\_disable} function.
+
+\begin{lstlisting}[float, caption={Interrupt enabling\label{lst:intrena}}]
+  // unmask interrupts
+  intr_unmask_all();
+  // clear pending flags
+  intr_clear_all_pending();
+  // enable interrupts
+  intr_enable();
+\end{lstlisting}
+
+Listing~\ref{lst:faulthandler} shows a basic fault handler. As Patmos
+cannot recover from faults, the handler does not use a special
+prologue, and calls \texttt{abort} at the end instead of returning. In
+the function body, the handler displays the exception source on the
+leds and prints a message corresponding to the type of fault that
+occurred.
+
+\begin{lstlisting}[float, caption={Fault handler example\label{lst:faulthandler}}]
+void fault_handler(void) {
+  unsigned source = exc_get_source();
+  LEDS = source;
+
+  const char *msg = "FAULT";
+  switch(source) {
+  case 0: msg = "Illegal operation"; break;
+  case 1: msg = "Illegal memory access"; break;
+  }
+  puts(msg);
+
+  // cannot recover from a fault
+  abort();
+}
+\end{lstlisting}
+
+Listing~\ref{lst:intrhandler} shows a minimal interrupt handler. It
+uses the macros \texttt{exc\_prologue} and \texttt{exc\_epilogue} to
+save and restore the processor state. The actual functionality is that
+the state of the LEDs is incremented according to the exception source.
+
+\begin{lstlisting}[float, caption={Interrupt handler example\label{lst:intrhandler}}]
+void intr_handler(void) {
+  exc_prologue();
+
+  LEDS += exc_get_source() & 0xf;
+
+  exc_epilogue();
+}
+\end{lstlisting}
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 
@@ -2173,7 +2272,7 @@ Address & I/O Device & read & write \\
 \code{0xf0000800} & UART & status & control \\
 \code{0xf0000804} & UART & receive buffer & transmit buffer \\
 \code{0xf0000900} & LED & -- & output register \\
-\code{0xf0000a00} & Keys & -- & input register \\
+\code{0xf0000a00} & Keys & input register & -- \\
 \bottomrule
 \end{tabular}
 \caption{I/O devices and registers}
