@@ -147,14 +147,16 @@
     MK_FINSTR(call, callnd, cfli, 0, 0)
     MK_FINSTR(br  , brnd  , cfli, 1, 0)
     MK_FINSTR(brcf, brcfnd, cfli, 2, 0)
-    // MK_FINSTR(trap, trap  , cfli, 3, 0)
+    MK_FINSTR(trap, trap  , cfli, 3, 0)
     MK_FINSTR(call, call  , cfli, 0, 1)
     MK_FINSTR(br  , br    , cfli, 1, 1)
     MK_FINSTR(brcf, brcf  , cfli, 2, 1)
 
     // CFLri
-    MK_FINSTR(ret, retnd, cflri, 0, 0)
-    MK_FINSTR(ret, ret  , cflri, 0, 1)
+    MK_FINSTR(ret,  retnd , cflri, 0, 0)
+    MK_FINSTR(ret,  ret   , cflri, 0, 1)
+    MK_FINSTR(xret, xretnd, cflri, 1, 0)
+    MK_FINSTR(xret, xret  , cflri, 1, 1)
 
     // CFLrs
     MK_FINSTR(callr, callrnd, cflrs, 0, 0)

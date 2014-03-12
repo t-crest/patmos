@@ -1893,7 +1893,7 @@ namespace patmos
     {
       printPred(os, ops.Pred);
       os << "br" << (ops.OPS.CFLi.D ? " " : "nd ") << ops.OPS.CFLi.Imm;
-      symbols.print(os, ops.OPS.CFLi.UImm * sizeof(word_t));
+      symbols.print(os, ops.Address + ops.OPS.CFLi.Imm * sizeof(word_t));
     }
     
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
@@ -1951,6 +1951,39 @@ namespace patmos
     }   
   };
 
+  class i_trap_t : public i_cfl_t {
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printPred(os, ops.Pred);
+      os << "trap " << ops.OPS.CFLi.UImm;
+    }
+
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      // TODO read out the target address based on the trap number
+      // ops.OPS.CFLi.UImm;
+      ops.EX_Address = 0;
+      
+      ops.MW_Initialized = false;
+      simulation_exception_t::illegal("trap function not yet implemented.");
+    }
+    
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
+    {
+      store_return_address(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address, 
+                           SMW, true);
+      
+      push_dbgstack(s, ops, ops.DR_Pred, ops.EX_Address);
+
+      fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+    }
+        
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
+      return 0;
+    }       
+  };
+  
   class i_intr_t : public i_cfl_t
   {
   public:
@@ -2017,17 +2050,6 @@ namespace patmos
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
       ops.MW_Initialized = false;
     }
-
-    /// Print the instruction to an output stream.
-    /// @param os The output stream to print to.
-    /// @param ops The operands of the instruction.
-    /// @param symbols A mapping of addresses to symbols.
-    virtual void print_operands(const simulator_t &s, std::ostream &os,
-                                const instruction_data_t &ops,
-                                const symbol_map_t &symbols) const
-    {
-      symbols.print(os, ops.EX_Address);
-    }
   };
 
   /// Control flow instructions with a single register operand.
@@ -2081,8 +2103,9 @@ namespace patmos
                                 const instruction_data_t &ops,
                                 const symbol_map_t &symbols) const
     {
-      printGPReg(os, "in: ", ops.OPS.CFLrt.Rs1, ops.EX_Address);
-      os << " ";
+      printGPReg(os, "in: ", ops.OPS.CFLrt.Rs1, ops.EX_Base);
+      printGPReg(os, ", "  , ops.OPS.CFLrt.Rs2, ops.EX_Offset);
+      os << boost::format(" addr: %1$08x ") % ops.EX_Address;
       symbols.print(os, ops.EX_Address);
     }
   };
@@ -2185,20 +2208,6 @@ namespace patmos
       }
     }
     
-    /// Print the instruction to an output stream.
-    /// @param os The output stream to print to.
-    /// @param ops The operands of the instruction.
-    /// @param symbols A mapping of addresses to symbols.
-    virtual void print_operands(const simulator_t &s, std::ostream &os,
-                                const instruction_data_t &ops,
-                                const symbol_map_t &symbols) const
-    {
-      printSPReg(os, "in: ", srb, ops.EX_Base);
-      printSPReg(os, ", "  , sro, ops.EX_Offset);
-      os << boost::format(" addr: %1$08x ") % ops.EX_Address;
-      symbols.print(os, ops.EX_Address);
-    }
-    
     virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
       return ops.OPS.CFLrt.D ? 3 : 0;
     }
@@ -2218,16 +2227,6 @@ namespace patmos
     {
       printPred(os, ops.Pred);
       os << "ret" << (ops.OPS.CFLi.D ? "" : "nd");
-    }
-
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the DR pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void DR(simulator_t &s, instruction_data_t &ops) const
-    {
-      ops.DR_Pred = s.PRR.get(ops.Pred).get();
-      ops.MW_Initialized = false;
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
@@ -2274,6 +2273,56 @@ namespace patmos
     {
       printSPReg(os, "in: ", srb, ops.EX_Base);
       printSPReg(os, ", "  , sro, ops.EX_Offset);
+      os << boost::format(" addr: %1$08x ") % ops.EX_Address;
+      symbols.print(os, ops.EX_Address);
+    }
+    
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
+      return ops.OPS.CFLri.D ? 3 : 0;
+    }    
+  };
+  
+  class i_xret_t : public i_cflri_t {
+  public:
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printPred(os, ops.Pred);
+      os << "xret" << (ops.OPS.CFLi.D ? "" : "nd");
+    }
+
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.EX_Base   = s.SPR.get(sxb).get();
+      ops.EX_Offset = s.SPR.get(sxo).get();
+      ops.EX_Address = get_PC(ops.EX_Base, ops.EX_Offset);
+    }
+
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
+    {
+      // returning to address 0? interpret this as an error
+      if (ops.DR_Pred && ops.EX_Address == 0)
+      {
+        simulation_exception_t::illegal_pc_msg("Returning from xret to address 0!");
+      }
+      else if (ops.DR_Pred)
+      {
+        pop_dbgstack(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Offset);
+        
+        fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Address);
+        if (!ops.OPS.CFLri.D && ops.DR_Pred)
+        {
+          s.pipeline_flush(SMW);
+        }
+      }
+    }
+
+    virtual void print_operands(const simulator_t &s, std::ostream &os,
+                                const instruction_data_t &ops,
+                                const symbol_map_t &symbols) const
+    {
+      printSPReg(os, "in: ", sxb, ops.EX_Base);
+      printSPReg(os, ", "  , sxo, ops.EX_Offset);
       os << boost::format(" addr: %1$08x ") % ops.EX_Address;
       symbols.print(os, ops.EX_Address);
     }
