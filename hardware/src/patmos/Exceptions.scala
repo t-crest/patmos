@@ -139,10 +139,10 @@ class Exceptions extends Module {
   val src = Bits(width = EXC_SRC_BITS)
   val srcReg = Reg(next = src)
   src := Bits(0)
-  for (i <- 0 until EXC_COUNT) {
+  for (i <- (0 until EXC_COUNT).reverse) {
     when(intrPend(i) && (mask(i) === Bits(1))) { src := Bits(i) }
   }
-  for (i <- 0 until EXC_COUNT) {
+  for (i <- (0 until EXC_COUNT).reverse) {
     when(excPend(i)) { src := Bits(i) }
   }
 
