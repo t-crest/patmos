@@ -45,6 +45,7 @@ MEMCTRLMAIN32=io.SSRam32Main
 MEMCTRLMAIN16=io.SRamMain
 MEMCTRLMAINOC=io.OCRamMain
 ARBITERMAIN=ocp.ArbiterMain
+TDMARBITERMAIN=ocp.TdmArbiterWrapperMain
 
 # config file for Patmos -- now just frequency
 #CONFIG=default
@@ -126,6 +127,9 @@ $(HWBUILDDIR)/OCRamCtrl.v: $(SRC)
 $(HWBUILDDIR)/Arbiter.v: $(SRC)
 	$(SBT) "run-main $(ARBITERMAIN) $(ARBITER_CNT) $(ARBITER_ADDR_WIDTH) $(ARBITER_DATA_WIDTH) $(ARBITER_BURST_LENGTH) --targetDir $(HWBUILDDIR) --backend v"
 
+$(HWBUILDDIR)/TdmArbiter.v: $(SRC)
+	$(SBT) "run-main $(TDMARBITERMAIN) $(ARBITER_CNT) $(ARBITER_ADDR_WIDTH) $(ARBITER_DATA_WIDTH) $(ARBITER_BURST_LENGTH) --targetDir $(HWBUILDDIR) --backend v"
+
 # run Verilog simulation
 vsim: verilog
 	$(MAKE) -C modelsim sim
@@ -146,7 +150,7 @@ $(BOOTBIN): .FORCE
 MODULE=example.FsmMain
 MODULE=ocp.test.OcpTester
 MODULE=ocp.test.ArbiterTester
-#MODULE=ocp.test.NodeTdmArbiterTester
+#MODULE=ocp.test.TdmArbiterWrapperTester
 #MODULE=ocp.test.TdmArbiterTester
 
 modtest:

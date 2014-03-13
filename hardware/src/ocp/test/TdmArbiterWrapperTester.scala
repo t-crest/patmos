@@ -31,9 +31,9 @@
  */
 
 /*
- * Start for OCP arbiter tests.
+ * Start for OCP TDM arbiter tests.
  *
- * Author: Martin Schoeberl (martin@jopdesign.com)
+ * Author: Martin Schoeberl (martin@jopdesign.com) David Chong (davidchong99@gmail.com)
  *
  */
 
@@ -54,6 +54,8 @@ import io.SSRam32Ctrl
   }
 
   val cntReg = Reg(init = UInt(0, width=8))
+  val cntRead = Reg(init = UInt(0, width=3))
+  debug(cntRead)
 
   io.port.M.Cmd := OcpCmd.IDLE
   io.port.M.DataValid := Bits(0)
@@ -82,41 +84,61 @@ import io.SSRam32Ctrl
       }
     }
     is(UInt(5)) { io.port.M.Cmd := OcpCmd.IDLE }
-    is(UInt(6)) { io.port.M.Cmd := OcpCmd.RD }
+    is(UInt(6)) { 
+      io.port.M.Cmd := OcpCmd.RD
+      when (io.port.S.CmdAccept === Bits(0)) {
+        cntReg := cntReg
+      } 
+    }
+    is(UInt(7)) { 
+      when (io.port.S.Resp === OcpResp.DVA) {
+        cntRead := cntRead + UInt(1)
+      }
+    }
+    is(UInt(8)) {
+      when (io.port.S.Resp === OcpResp.DVA) {
+        cntRead := cntRead + UInt(1)
+      }
+    } 
+    is(UInt(9)) {
+       when (io.port.S.Resp === OcpResp.DVA) {
+        cntRead := cntRead + UInt(1)
+      } 
+    }
+    is(UInt(10)){
+       when (io.port.S.Resp === OcpResp.DVA) {
+        cntRead := cntRead + UInt(1)
+      }
+    }
   }
 
   io.port.M.Addr := (UInt(nr * 256) + cntReg).toBits()
   io.port.M.Data := (UInt(nr * 256 * 16) + cntReg).toBits()
-} */
+}*/
 
 /** A top level to test the arbiter */
-class NodeTdmArbiterTop() extends Module {
+class TdmArbiterWrapperTop() extends Module {
 
   val io = new Bundle {
-    val port = Vec.fill(3){new OcpBurstMasterPort(32, 32, 4)}
+    val port = new OcpBurstMasterPort(32, 32, 4)
   }
-  val CNT = 3
-  //val arb = Module(new ocp.NodeTdmArbiter(CNT, 32, 32, 4))
+  val CNT = 4 
+  val arb = Module(new ocp.TdmArbiterWrapper(CNT, 32, 32, 4))
   val mem = Module(new SSRam32Ctrl(21))
-  val memMux = Module(new MemMuxIntf(3, 32, 32, 4))
 
   for (i <- 0 until CNT) {
     val m = Module(new Master(i, 4))
-    val nodeID = UInt(i, width=6)
-    val arb = Module(new ocp.NodeTdmArbiter(CNT, 32, 32, 4, 16))
-    arb.io.master <> m.io.port
-    arb.io.node := nodeID
-
-    memMux.io.master(i) <> arb.io.slave
-    io.port(i).M <> memMux.io.slave.M
+    arb.io.master(i) <> m.io.port
   }
 
-  mem.io.ocp <> memMux.io.slave
+  mem.io.ocp <> arb.io.slave
+
+  io.port.M <> arb.io.slave.M
 
 }
 
 
-class NodeTdmArbiterTester(dut: ocp.test.NodeTdmArbiterTop) extends Tester(dut, Array(dut.io)) {
+class TdmArbiterWrapperTester(dut: ocp.test.TdmArbiterWrapperTop) extends Tester(dut, Array(dut.io)) {
   defTests {
     val ret = true
     val vars = new HashMap[Node, Node]()
@@ -124,7 +146,7 @@ class NodeTdmArbiterTester(dut: ocp.test.NodeTdmArbiterTop) extends Tester(dut, 
 
     val testVec = Array( OcpCmd.IDLE, OcpCmd.WR, OcpCmd.IDLE )
 
-    for (i <- 0 until 35) {
+    for (i <- 0 until 100) {
       vars.clear
 //      vars(dut.io.fromMaster.M.Cmd) = testVec(i)
 
@@ -140,10 +162,10 @@ class NodeTdmArbiterTester(dut: ocp.test.NodeTdmArbiterTop) extends Tester(dut, 
   }
 }
 
-object NodeTdmArbiterTester {
+object TdmArbiterWrapperTester {
   def main(args: Array[String]): Unit = {
-    chiselMainTest(args, () => Module(new ocp.test.NodeTdmArbiterTop)) {
-      f => new NodeTdmArbiterTester(f)
+    chiselMainTest(args, () => Module(new ocp.test.TdmArbiterWrapperTop)) {
+      f => new TdmArbiterWrapperTester(f)
     }
 
   }
