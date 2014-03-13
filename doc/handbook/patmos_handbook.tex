@@ -2298,8 +2298,12 @@ reaches the value provided in that register. The ``cycle'' interrupt
 is tied to interrupt~0; the ``$\mu s$'' interrupt is tied to
 interrupt~1.
 
-To read out the current timer counter values, the low word must be read first, latching in the high word.
-%TODO how about writing them?
+To read out the 64-bit counter values consistently, the low word (at
+the higher address) must be read first. This latches the high word of
+the counter into an internal register, which is then returned when
+reading the high word (at the lower address). Similarly, the low word
+of the interrupt times must be written first. The write to the
+internal 64-bit register takes effect when the high word is written.
 
 \subsection{UART}
 
