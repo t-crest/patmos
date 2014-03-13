@@ -3279,9 +3279,9 @@ After building the compiler add the path
 to the compiler executables (e.g., into your \code{.bashrc} or \code{.profile}):
 \footnote{The path needs to be absolute. LLVM cannot handle
 a path relative to the home folder \textasciitilde{}, e.g., \code{\textasciitilde{}/t-crest/local/bin}.}
-\footnote{The initialization file name depends on your system and setup. \code{.profile} files are only read by login
-terminals (remote terminals or at login), but your \code{.bashrc} or \code{.zshrc} (for interactive terminals within a
-session) might be set up to source \code{.profile} as well.}
+%\footnote{The initialization file name depends on your system and setup. \code{.profile} files are only read by login
+%terminals (remote terminals or at login), but your \code{.bashrc} or \code{.zshrc} (for interactive terminals within a
+%session) might be set up to source \code{.profile} as well.}
 
 \martin{In Mac OS X I have only .profile and I don't understand what the issue by 'only read by login terminals'.}
 
@@ -3820,6 +3820,27 @@ source /opt/Xilinx/14.7/ISE_DS/settings64.sh
 \end{verbatim}
 
 Then ISE can be started with \code{ise}.
+
+\subsection{Updating the Patmos Cores with Aegean}
+
+The correct Verilog file for two version of Patmos (core 0 that downloads and application and the other cores)
+is built with the \emph{Aegean} tool. The 4 cores version are built with:
+
+\begin{verbatim}
+make platform AEGEAN_PLATFORM=ml605_4core
+make compile AEGEAN_PLATFORM=ml605_4core
+\end{verbatim}
+
+A 16 core version is available as well. The generated Verilog files are not different,
+but the schedule for the Argo network is different (which is copied to
+\code{t-crest/patmos/c/nocinit.c}).
+
+The configuration of T-CREST with Bluetree and the TU/e memory controller
+is available via a .zip file, exchanged via email to protect IP rights.
+Therefore, they are not integrated in Aegean and
+some manual code copying is needed.
+
+All generated file can be cleaned with \code{make cleanall}.
 
 \section{ModelSim License}
 In the case that you have a DTU Compute login you can access the license servers from outside the DTU network by setting up an SSH tunnel.
