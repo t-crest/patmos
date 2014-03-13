@@ -3823,24 +3823,29 @@ Then ISE can be started with \code{ise}.
 
 \subsection{Updating the Patmos Cores with Aegean}
 
-The correct Verilog file for two version of Patmos (core 0 that downloads and application and the other cores)
-is built with the \emph{Aegean} tool. The 4 cores version are built with:
+The correct Verilog file for the two version of Patmos (core 0 that downloads an application and the other cores)
+is built with the \emph{Aegean} tool. The 4 cores version is built with:
 
 \begin{verbatim}
 make platform AEGEAN_PLATFORM=ml605_4core
-make compile AEGEAN_PLATFORM=ml605_4core
 \end{verbatim}
 
-A 16 core version is available as well. The generated Verilog files are not different,
-but the schedule for the Argo network is different (which is copied to
+% make compile AEGEAN_PLATFORM=ml605_4core
+
+A 16 core version is available as well. The generated Verilog files are the same,
+but the schedule for the Argo NoC is different (which is copied to
 \code{t-crest/patmos/c/nocinit.c}).
 
-The configuration of T-CREST with Bluetree and the TU/e memory controller
-is available via a .zip file, exchanged via email to protect IP rights.
-Therefore, they are not integrated in Aegean and
-some manual code copying is needed.
-
 All generated file can be cleaned with \code{make cleanall}.
+
+The configuration of T-CREST with Bluetree and the TU/e memory controller
+is available via a .tgz file, exchanged via email to protect IP rights.
+Therefore, they are not integrated in Aegean and some manual code copying is needed.
+The \code{ml605.tgz} shall be extracted within the \code{t-crest} directory.
+Copy the Patmos Verilog files (\code{ml605mPatmosCore.v} and \code{ml605mPatmosCore.v})
+from the build directory (\code{t-crest/aegean/build/ml605\_4core}) into \code{t-crest/ml605}.
+
+
 
 \section{ModelSim License}
 In the case that you have a DTU Compute login you can access the license servers from outside the DTU network by setting up an SSH tunnel.
