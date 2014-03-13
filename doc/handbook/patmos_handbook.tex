@@ -2298,6 +2298,9 @@ reaches the value provided in that register. The ``cycle'' interrupt
 is tied to interrupt~0; the ``$\mu s$'' interrupt is tied to
 interrupt~1.
 
+To read out the current timer counter values, the low word must be read first, latching in the high word.
+%TODO how about writing them?
+
 \subsection{UART}
 
 The UART is a minimal IO device for \texttt{stdout} and \texttt{stdin}.
