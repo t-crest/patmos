@@ -32,7 +32,7 @@
 
 /*
  * Arbiter for OCP burst slaves.
- * Pseudo round robin arbitration. Each turn for a non-requesting master costs 1 clock cycle.
+ * TDM arbitration. Each turn for a non-requesting master costs 16+4+2 clock cycle.
  *
  * Author: Martin Schoeberl (martin@jopdesign.com) David Chong (davidchong99@gmail.com)
  *
@@ -46,7 +46,7 @@ import scala.math._
 
 import scala.collection.mutable.HashMap
 
-class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extends Module {
+class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int, ctrlDelay: Int) extends Module {
   // MS: I'm always confused from which direction the name shall be
   // probably the other way round...
   val io = new Bundle {
@@ -58,21 +58,20 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int)
   debug(io.slave)
   debug(io.node)
 
-  val cntReg = Reg(init = UInt(0, log2Up(cnt*(burstLen + 1))))
+  val cntReg = Reg(init = UInt(0, log2Up(cnt*(burstLen + ctrlDelay + 1))))
   // slot length = burst size + 1 
   val burstCntReg = Reg(init = UInt(0, log2Up(burstLen)))
-  val period = cnt * (burstLen + 1)
-  val slotLen = burstLen + 1
+  val period = cnt * (burstLen + ctrlDelay + 1)
+  val slotLen = burstLen + ctrlDelay + 1
   val numPipe = 2
   
-  val wrPipeDelay = burstLen + 2
+  val wrPipeDelay = burstLen + ctrlDelay + 2
   val wrCntReg = Reg(init = UInt(0, log2Up(wrPipeDelay)))
 
-  val rdPipeDelay = burstLen + 2
+  val rdPipeDelay = burstLen + ctrlDelay + 2
   val rdCntReg = Reg(init = UInt(0, log2Up(rdPipeDelay)))
  
   val cpuSlot = Vec.fill(cnt){Reg(init = UInt(0, width=1))}
-  val slotTable = Vec.fill(cnt){Reg(init = Bits(0, width=period))}
 
   val sIdle :: sRead :: sWrite :: Nil = Enum(UInt(), 3)
   val stateReg = Reg(init = sIdle)
@@ -87,19 +86,12 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int)
 
   cntReg := Mux(cntReg === UInt(period - 1), UInt(0), cntReg + UInt(1))
   
-  // Generater the slot Table for the whole period
-  def genTable(nodeID: Int): UInt = {
-    val x = pow(2,nodeID*slotLen).toInt
-    val slot = UInt(x,width=period)
-    slot
+  def slotTable(i: Int): UInt = {
+    (cntReg === UInt(i*slotLen)).toUInt
   }
   
-  for (i <- 0 to cnt-1){
-    slotTable(i) := genTable(i).toBits
-  }
-  
-  for(i <- 0 to cnt-1) {
-    cpuSlot(i) := slotTable(i)(cntReg) 
+  for (i <- 0 until cnt){
+    cpuSlot(i) := slotTable(i)
   }
   
   // Initialize master data to zero when cpuSlot is not enabled 
@@ -147,15 +139,19 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int)
       io.slave.M.Addr := Bits(0)
       io.slave.M.Data := Bits(0)
     }
+
+    // Turn off the DataValid after a burst of 4
+    when (wrCntReg >= UInt(burstLen-1)){
+      io.master.S.DataAccept := UInt(0)
+    }
     
     // Forward Rsp/DVA back to node 
-    when (wrCntReg === UInt(wrPipeDelay)) {
+    when (wrCntReg === UInt(wrPipeDelay-1)) {
       io.master.S.Resp := io.slave.S.Resp
     }
     // Wait on DVA 
     when(io.master.S.Resp === OcpResp.DVA){
       stateReg := sIdle
-      io.master.S.DataAccept := UInt(0)
     }
   }
      
@@ -266,13 +262,14 @@ class MemMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) exten
 object NodeTdmArbiterMain {
   def main(args: Array[String]): Unit = {
 
-    val chiselArgs = args.slice(4, args.length)
+    val chiselArgs = args.slice(5, args.length)
     val cnt = args(0)
     val addrWidth = args(1)
     val dataWidth = args(2)
     val burstLen = args(3)
+    val ctrlDelay = args(4)
 
-    chiselMain(chiselArgs, () => Module(new NodeTdmArbiter(cnt.toInt,addrWidth.toInt,dataWidth.toInt,burstLen.toInt)))
+    chiselMain(chiselArgs, () => Module(new NodeTdmArbiter(cnt.toInt,addrWidth.toInt,dataWidth.toInt,burstLen.toInt, ctrlDelay.toInt)))
   }
 }
 
