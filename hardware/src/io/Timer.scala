@@ -157,7 +157,7 @@ class Timer(clk_freq: Int) extends CoreDevice() {
   }
   // Increment usec counter
   usecSubReg := usecSubReg + UInt(1)
-  when(usecSubReg === cycPerUSec) {
+  when(usecSubReg === cycPerUSec - UInt(1)) {
     usecSubReg := UInt(0)
     usecReg := usecReg + UInt(1)
     // Trigger usec interrupt
