@@ -154,11 +154,13 @@ The compiler follows the C99 rules for inlining. See here for an explanation:
 %
 \url{http://www.greenend.org.uk/rjk/tech/inline.html}
 
-To mark functions as inline functions you can do one of the following:
+If a function is marked with \code{inline} only, it will not be emitted into the linked binary.
+Thus, to mark functions as inline functions you must do one of the following:
 
 \begin{itemize}
 \item If the function is only used within one module, mark it as \code{static inline}.
-The function will not be visible outside the module, like all static functions.
+The function will not be visible outside the module, like all static functions. The compiler will emit the 
+function into the module if it is used.
 
 \begin{verbatim}
 static inline void foo(int n) {
@@ -167,7 +169,7 @@ static inline void foo(int n) {
 \end{verbatim}
 
 \item If the function should be used in several functions, define it 'inline' everywhere,
-  and add one declaration with 'extern inline'.
+  and add a declaration or definition with 'extern inline' in exactly one module.
 
 \begin{verbatim}
 extern inline void foo(int n);
