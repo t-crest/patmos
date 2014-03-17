@@ -9,8 +9,9 @@
 
 // we assume 2 MB memory, less than 400 KB for program,
 // heap, and stack
-#define LENGTH (2000000-400000)/4
-#define CNT 10
+// #define LENGTH (2000000-400000)/4
+#define LENGTH 200000/4
+#define CNT 100
 
 // Start the memory test some bytes above heap start
 // as stdio needs the heap for buffers (40000 bytes reserved)
