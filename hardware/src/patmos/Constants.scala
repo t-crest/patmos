@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,10 +32,10 @@
 
 /*
  * Constants for Patmos.
- * 
+ *
  * Authors: Martin Schoeberl (martin@jopdesign.com)
  *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
- * 
+ *
  */
 
 package patmos
@@ -75,6 +75,12 @@ object Constants {
   val BURST_LENGTH = util.Config.conf.burstLength // For SSRAM on DE2-70 board max. 4
   val WRITE_COMBINE = util.Config.conf.writeCombine
 
+  // Exceptions/interrupts
+  val EXC_IO_OFFSET = 1
+  val EXC_SRC_BITS = 5
+  val EXC_COUNT  = 1 << EXC_SRC_BITS
+  val INTR_COUNT = 16
+
   // The PC counts in words. 30 bits are enough for the 4 GB address space.
   // We might cut that down to what we actually really support (16 MB)
   val PC_SIZE = 30
@@ -100,19 +106,27 @@ object Constants {
 
   val OPCODE_STC = Bits("b01100")
 
-  val OPCODE_CFL_CALL = Bits("b11000")
-  val OPCODE_CFL_BR = Bits("b11001")
-  val OPCODE_CFL_BRCF = Bits("b11010")
-  val OPCODE_CFL_CFLI = Bits("b11100")
-  val OPCODE_CFL_RET = Bits("b11110")
+  val OPCODE_CFL_CALLND = Bits("b10000")
+  val OPCODE_CFL_BRND   = Bits("b10010")
+  val OPCODE_CFL_BRCFND = Bits("b10100")
+  val OPCODE_CFL_TRAP   = Bits("b10110")
+
+  val OPCODE_CFL_CALL   = Bits("b10001")
+  val OPCODE_CFL_BR     = Bits("b10011")
+  val OPCODE_CFL_BRCF   = Bits("b10101")
+
+  val OPCODE_CFL_CFLRND = Bits("b11000")
+  val OPCODE_CFL_CFLR   = Bits("b11001")
 
   val OPCODE_ALUL = Bits("b11111")
 
-  val OPC_ALUR = Bits("b000")
-  val OPC_ALUU = Bits("b001")
-  val OPC_ALUM = Bits("b010")
-  val OPC_ALUC = Bits("b011")
-  val OPC_ALUP = Bits("b100")
+  val OPC_ALUR  = Bits("b000")
+  val OPC_ALUU  = Bits("b001")
+  val OPC_ALUM  = Bits("b010")
+  val OPC_ALUC  = Bits("b011")
+  val OPC_ALUP  = Bits("b100")
+  val OPC_ALUB  = Bits("b101")
+  val OPC_ALUCI = Bits("b110")
 
   val OPC_MTS = Bits("b010")
   val OPC_MFS = Bits("b011")
@@ -156,9 +170,11 @@ object Constants {
   val PFUNC_XOR = Bits("b10")
   val PFUNC_NOR = Bits("b11")
 
-  val JFUNC_CALL = Bits("b0000")
-  val JFUNC_BR = Bits("b0001")
-  val JFUNC_BRCF = Bits("b0010")
+  val JFUNC_RET   = Bits("b0000")
+  val JFUNC_XRET  = Bits("b0001")
+  val JFUNC_CALL  = Bits("b0100")
+  val JFUNC_BR    = Bits("b0101")
+  val JFUNC_BRCF  = Bits("b1010")
 
   val SPEC_FL = Bits("b0000")
   val SPEC_SL = Bits("b0010")
@@ -166,7 +182,16 @@ object Constants {
   val SPEC_SS = Bits("b0101")
   val SPEC_ST = Bits("b0110")
 
-  val STC_SRES = Bits("b0000")
-  val STC_SFREE = Bits("b1000")
-  val STC_SENS = Bits("b0100")
+  val SPEC_SRB = Bits("b0111")
+  val SPEC_SRO = Bits("b1000")
+  val SPEC_SXB = Bits("b1001")
+  val SPEC_SXO = Bits("b1010")
+
+  val STC_SRES   = Bits("b0000")
+  val STC_SENS   = Bits("b0100")
+  val STC_SFREE  = Bits("b1000")
+  val STC_SSPILL = Bits("b1100")
+
+  val STC_SENSR   = Bits("b0101")
+  val STC_SSPILLR = Bits("b1101")
 }

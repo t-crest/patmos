@@ -256,14 +256,10 @@ namespace patmos
       return false;
     }
     if (name == "rtr") {
-      reg = r27;
-    } else if (name == "rfp") {
-      reg = r28;
-    } else if (name == "rsp") {
       reg = r29;
-    } else if (name == "rfb") {
+    } else if (name == "rfp") {
       reg = r30;
-    } else if (name == "rfo") {
+    } else if (name == "rsp") {
       reg = r31;
     } else {
       unsigned regno;
@@ -294,6 +290,14 @@ namespace patmos
       reg = s5;
     } else if (name == "st") {
       reg = s6;
+    } else if (name == "srb") {
+      reg = s7;
+    } else if (name == "sro") {
+      reg = s8;
+    } else if (name == "sxb") {
+      reg = s9;
+    } else if (name == "sxo") {
+      reg = s10;
     } else {
       unsigned regno;
       if (!parse_register_number(name, 16, regno)) {
@@ -429,7 +433,16 @@ namespace patmos
   }
 #define MK_NINSTR_ALIAS(classname, name, format, opcode)                       \
     MK_NINSTR(classname, name, format, opcode)
-  
+
+#define MK_FINSTR(classname, name, format, opcode, flag)                       \
+  {                                                                            \
+    instruction_t *itmp = new i_ ## classname ## _t();                         \
+    itmp->ID = Instructions.size();                                            \
+    itmp->Name = #name;                                                        \
+    binary_format_t *ftmp = new format ## _format_t(*itmp, opcode, flag);      \
+    Instructions.insert(std::pair<std::string,binary_format_t*>(#name , ftmp));\
+  }
+
 #include "instructions.inc"
   }
   
@@ -489,9 +502,10 @@ namespace patmos
     } 
     else if (opcode == "halt") {
       skip_operands = true;
-      opcode = "ret";
-      instr.OPS.CFLr.Ro = r0;
-      instr.OPS.CFLr.Rb = r0;
+      opcode = "brcf";
+      instr.OPS.CFLrt.D = 1;
+      instr.OPS.CFLrt.Rs1 = r0;
+      instr.OPS.CFLrt.Rs2 = r0;
     }
     
     // get the instruction format, parse operands.

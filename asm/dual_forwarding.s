@@ -4,7 +4,7 @@
 #
 # Expected Result: 
 #
-		.word   140;
+		.word   152;
 		addi	r0 = r0, 0;  # first instruction not executed
 		addi	r1 = r0, 1;
 		add	r2   = r0 , 65536; 
@@ -38,4 +38,7 @@
 		add	r15 = r10, r11;
 		add	r16 = r10, r11;
 		add	r17 = r10, r11;
-                halt;
+		halt;
+		nop;
+		nop;
+		nop;

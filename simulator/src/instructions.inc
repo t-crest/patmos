@@ -25,7 +25,7 @@
     MK_INSTR (norl           , alul, 11)
     MK_INSTR (shaddl         , alul, 12)
     MK_INSTR (shadd2l        , alul, 13)
-    
+
     MK_NINSTR_ALIAS(addil  , add  , alul,  0)
     MK_NINSTR_ALIAS(subil  , sub  , alul,  1)
     MK_NINSTR_ALIAS(xoril  , xor  , alul,  2)
@@ -64,10 +64,22 @@
     MK_INSTR(cmpule , aluc, 5)
     MK_INSTR(btest  , aluc, 6)
 
+    // ALUci
+    MK_INSTR(cmpieq  , aluci, 0)
+    MK_INSTR(cmpineq , aluci, 1)
+    MK_INSTR(cmpilt  , aluci, 2)
+    MK_INSTR(cmpile  , aluci, 3)
+    MK_INSTR(cmpiult , aluci, 4)
+    MK_INSTR(cmpiule , aluci, 5)
+    MK_INSTR(btesti  , aluci, 6)
+
     // ALUp
     MK_INSTR(por , alup,  6)
     MK_INSTR(pand, alup,  7)
     MK_INSTR(pxor, alup, 10)
+
+    // ALUp
+    MK_INSTR(bcopy, alub, -1)
 
     // SPC
     MK_NINSTR(spcw, wait, spcw, 0)
@@ -131,15 +143,27 @@
     MK_INSTR(sensr  , stcr, 1)
     MK_INSTR(sspillr, stcr, 3)
 
-    // CFLb
-    MK_INSTR(call, cflb, 0)
-    MK_INSTR(br  , cflb, 1)
-    MK_INSTR(brcf, cflb, 2)
-
     // CFLi
-    MK_INSTR(callr, cfli, 0)
-    MK_INSTR(brr  , cfli, 1)
-    MK_INSTR(brcfr, cfli, 2)
+    MK_FINSTR(call, callnd, cfli, 0, 0)
+    MK_FINSTR(br  , brnd  , cfli, 1, 0)
+    MK_FINSTR(brcf, brcfnd, cfli, 2, 0)
+    MK_FINSTR(trap, trap  , cfli, 3, 0)
+    MK_FINSTR(call, call  , cfli, 0, 1)
+    MK_FINSTR(br  , br    , cfli, 1, 1)
+    MK_FINSTR(brcf, brcf  , cfli, 2, 1)
 
-    // CFLr
-    MK_INSTR(ret, cflr, 0)
+    // CFLri
+    MK_FINSTR(ret,  retnd , cflri, 0, 0)
+    MK_FINSTR(ret,  ret   , cflri, 0, 1)
+    MK_FINSTR(xret, xretnd, cflri, 1, 0)
+    MK_FINSTR(xret, xret  , cflri, 1, 1)
+
+    // CFLrs
+    MK_FINSTR(callr, callrnd, cflrs, 0, 0)
+    MK_FINSTR(brr  , brrnd  , cflrs, 1, 0)
+    MK_FINSTR(callr, callr  , cflrs, 0, 1)
+    MK_FINSTR(brr  , brr    , cflrs, 1, 1)
+
+    // CFLrt
+    MK_FINSTR(brcfr, brcfrnd, cflrt, 2, 0)
+    MK_FINSTR(brcfr, brcfr  , cflrt, 2, 1)

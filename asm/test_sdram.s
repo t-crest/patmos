@@ -13,7 +13,7 @@
 # r11==read/write test bound (address limit)
 # r12==memory read error count
 
-	.word	176;
+	.word	188;
 
 	addi	r0 = r0, 0;  # first instruction not executed         	#0
 begin:	addi	r12 = r0, 0; # r12==error count                       	#1
@@ -35,9 +35,9 @@ poll_stdin: lwl     r1 = [r5 + 0];                                     	#7
 
 	lwl     r1 = [r5 + 1];                                     	#14
 
-	addi    r21 = r0, 65; 'A'                                  	#15
+	addi    r21 = r0, 65; # 'A'                                  	#15
 	addi    r22 = r6, 0;                                       	#16
-	addi	r24 = r0, 80; 16 chars from 'A'                       	#17
+	addi	r24 = r0, 80; # 16 chars from 'A'                       	#17
 
 write_word: swl	[r22 + 0] = r21;                                       	#18
 	cmpneq	p1 = r21, r24;                                      	#19
@@ -71,4 +71,7 @@ poll_stdout: lwl     r1 = [r5 + 0];                                     	#27
 		addi r0 = r0, 0;                                          	#41
 		addi r0 = r0, 0;                                          	#42
 
-halt;                                                       	#43
+        halt;                                                       #43
+        nop;                                                       	#44
+        nop;                                                       	#45
+        nop;                                                       	#46

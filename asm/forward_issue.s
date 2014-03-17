@@ -2,7 +2,7 @@
 # This small test bench showed a former forwarding issue. Is fixed quite some time.
 #
 
-		.word   100;
+		.word   112;
 		addi	r0 = r0, 0;  # first instruction not executed
 
 		addi	r1 = r0, 1;
@@ -32,3 +32,6 @@
 		add	r17 = r10, r11;
 
 		halt;
+		nop;
+		nop;
+		nop;

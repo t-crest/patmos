@@ -50,13 +50,11 @@ void _start(void) __attribute__((naked,used));
 
 void _start(void) {
   // setup stack frame and stack cache.
-  asm volatile ("mov $r29 = %0;" // initialize shadow stack pointer"
-				"mts $ss  = %1;" // initialize the stack cache's spill pointer"
-				"mts $st  = %1;" // initialize the stack cache's top pointer"
-				"li $r30 = %2;" // initialize return base"
-				: : "r" (&_shadow_stack_base),
-				    "r" (&_stack_cache_base),
-				    "i" (&_start));
+  asm volatile ("mov $r31 = %0;" // initialize shadow stack pointer"
+                "mts $ss  = %1;" // initialize the stack cache's spill pointer"
+                "mts $st  = %1;" // initialize the stack cache's top pointer"
+                : : "r" (&_shadow_stack_base),
+                  "r" (&_stack_cache_base));
   // call main()
   main(0, NULL);
   // freeze

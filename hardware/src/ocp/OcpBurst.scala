@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,9 @@
 
 /*
  * Definitions for OCP ports that support Bursts
- * 
+ *
  * Authors: Wolfgang Puffitsch (wpuffitsch@gmail.com)
- * 
+ *
  */
 
 package ocp
@@ -53,25 +53,25 @@ class OcpBurstMasterSignals(addrWidth : Int, dataWidth : Int)
   // This does not really clone, but Data.clone doesn't either
   override def clone() = {
     val res = new OcpBurstMasterSignals(addrWidth, dataWidth)
-  	res.asInstanceOf[this.type]
+    res.asInstanceOf[this.type]
   }
 
   override def reset() = {
-	super.reset()
-	DataValid := Bits(0)
-	DataByteEn := Bits(0)
+    super.reset()
+    DataValid := Bits(0)
+    DataByteEn := Bits(0)
   }
 }
 
 // Reset values for master signals
 object OcpBurstMasterSignals {
   def resetVal[T <: OcpBurstMasterSignals](sig : T) : T = {
-	val res = sig.clone
-	res.reset()
-	res
+    val res = sig.clone
+    res.reset()
+    res
   }
   def resetVal(addrWidth : Int, dataWidth : Int) : OcpBurstMasterSignals = {
-	resetVal(new OcpBurstMasterSignals(addrWidth, dataWidth))
+    resetVal(new OcpBurstMasterSignals(addrWidth, dataWidth))
   }
 }
 
@@ -84,25 +84,25 @@ class OcpBurstSlaveSignals(dataWidth : Int)
   // This does not really clone, but Data.clone doesn't either
   override def clone() = {
     val res = new OcpBurstSlaveSignals(dataWidth)
-  	res.asInstanceOf[this.type]
+    res.asInstanceOf[this.type]
   }
 
   override def reset() = {
-	super.reset()
-	CmdAccept := Bits(0)
-	DataAccept := Bits(0)
+    super.reset()
+    CmdAccept := Bits(0)
+    DataAccept := Bits(0)
   }
 }
 
 // Reset values for slave signals
 object OcpBurstSlaveSignals {
   def resetVal[T <: OcpBurstSlaveSignals](sig : T) : T = {
-	val res = sig.clone
-	res.reset()
-	res
+    val res = sig.clone
+    res.reset()
+    res
   }
   def resetVal(dataWidth : Int) : OcpBurstSlaveSignals = {
-	resetVal(new OcpBurstSlaveSignals(dataWidth))
+    resetVal(new OcpBurstSlaveSignals(dataWidth))
   }
 }
 
@@ -111,7 +111,7 @@ class OcpBurstMasterPort(addrWidth : Int, dataWidth : Int, burstLen : Int) exten
   val burstLength = burstLen
   // Clk is implicit in Chisel
   val M = new OcpBurstMasterSignals(addrWidth, dataWidth).asOutput
-  val S = new OcpBurstSlaveSignals(dataWidth).asInput 
+  val S = new OcpBurstSlaveSignals(dataWidth).asInput
 }
 
 // Slave port is reverse of master port
@@ -124,7 +124,7 @@ class OcpBurstSlavePort(addrWidth : Int, dataWidth : Int, burstLen : Int) extend
   // This does not really clone, but Data.clone doesn't either
   override def clone() = {
     val res = new OcpBurstSlavePort(addrWidth, dataWidth, burstLen)
-  	res.asInstanceOf[this.type]
+    res.asInstanceOf[this.type]
   }
 
 }
@@ -149,61 +149,61 @@ class OcpBurstBridge(master : OcpCacheMasterPort, slave : OcpBurstSlavePort) {
   val slaveReg = Reg(init = OcpSlaveSignals.resetVal(master.S))
 
   when(state != write && (masterReg.Cmd === OcpCmd.IDLE || slave.S.CmdAccept === Bits(1))) {
-	masterReg := master.M
+    masterReg := master.M
   }
-	
+
   // Default values
   slave.M.Cmd := masterReg.Cmd
   slave.M.Addr := Cat(masterReg.Addr(addrWidth-1, burstAddrBits+log2Up(dataWidth/8)),
-					  Fill(Bits(0), burstAddrBits+log2Up(dataWidth/8)))
+                      Fill(Bits(0), burstAddrBits+log2Up(dataWidth/8)))
   slave.M.Data := Bits(0)
   slave.M.DataByteEn := Bits(0)
   slave.M.DataValid := Bits(0)
   master.S := slave.S
-  
+
   // Read burst
   when(state === read) {
-	when(slave.S.Resp === OcpResp.DVA) {
-	  when(burstCnt === cmdPos) {
-		slaveReg := slave.S
-	  }
-	  when(burstCnt === UInt(burstLength - 1)) {
-		state := readResp
-	  }
-	  burstCnt := burstCnt + UInt(1)
-	}
-	master.S.Resp := OcpResp.NULL
-	master.S.Data := Bits(0)
+    when(slave.S.Resp === OcpResp.DVA) {
+      when(burstCnt === cmdPos) {
+        slaveReg := slave.S
+      }
+      when(burstCnt === UInt(burstLength - 1)) {
+        state := readResp
+      }
+      burstCnt := burstCnt + UInt(1)
+    }
+    master.S.Resp := OcpResp.NULL
+    master.S.Data := Bits(0)
   }
   when(state === readResp) {
-	state := idle
-	master.S := slaveReg
+    state := idle
+    master.S := slaveReg
   }
-  
+
   // Write burst
   when(state === write) {
-	masterReg.Cmd := OcpCmd.IDLE
-	slave.M.DataValid := Bits(1)
-	when(burstCnt === cmdPos) {
-	  slave.M.Data := masterReg.Data
-	  slave.M.DataByteEn := masterReg.ByteEn
-	}
-	when(burstCnt === UInt(burstLength - 1)) {
-	  state := idle
-	}
-	when(slave.S.DataAccept === Bits(1)) {
-	  burstCnt := burstCnt + UInt(1)
-	}
+    masterReg.Cmd := OcpCmd.IDLE
+    slave.M.DataValid := Bits(1)
+    when(burstCnt === cmdPos) {
+      slave.M.Data := masterReg.Data
+      slave.M.DataByteEn := masterReg.ByteEn
+    }
+    when(burstCnt === UInt(burstLength - 1)) {
+      state := idle
+    }
+    when(slave.S.DataAccept === Bits(1)) {
+      burstCnt := burstCnt + UInt(1)
+    }
   }
 
   // Start new transaction
   when(master.M.Cmd === OcpCmd.RD) {
-	state := read
-	cmdPos := master.M.Addr(burstAddrBits+log2Up(dataWidth/8)-1, log2Up(dataWidth/8))
+    state := read
+    cmdPos := master.M.Addr(burstAddrBits+log2Up(dataWidth/8)-1, log2Up(dataWidth/8))
   }
   when(master.M.Cmd === OcpCmd.WR) {
-	state := write
-	cmdPos := master.M.Addr(burstAddrBits+log2Up(dataWidth/8)-1, log2Up(dataWidth/8))
+    state := write
+    cmdPos := master.M.Addr(burstAddrBits+log2Up(dataWidth/8)-1, log2Up(dataWidth/8))
   }
 }
 
@@ -241,7 +241,7 @@ class OcpBurstPriorityJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort
                    joined : OcpBurstSlavePort, enable : Bool) {
 
   val selLeft = Mux(left.M.Cmd != OcpCmd.IDLE, Bool(true), Bool(false))
-  val selRight = Mux(right.M.Cmd != OcpCmd.IDLE, Bool(true), Bool(false)) 
+  val selRight = Mux(right.M.Cmd != OcpCmd.IDLE, Bool(true), Bool(false))
   val selBothReg = Reg(init = Bool(false))
   val selCurrentReg = Reg(init = Bits(0))
   val masterReg = Reg(init = OcpBurstMasterSignals.resetVal(right.M))

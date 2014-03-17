@@ -22,7 +22,7 @@ x:              nop;
 		nop;
                 .word   20;
 y:              addi    r2 = r0, 1;
-                ret     r30, r31;
+                ret;
                 nop;
                 nop;
 		nop;

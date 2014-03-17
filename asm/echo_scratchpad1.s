@@ -4,7 +4,7 @@
 # Expected Result: just checking if echo works along with other instructions.
 #
 
-		.word   124;
+		.word   136;
 x0:		addi	r0 = r0, 0;  # first instruction not executed
 		addi	r5 = r0, 15;
 		sli	r5 = r5, 28;
@@ -41,4 +41,6 @@ x2:		lwl     r10  = [r5 + 0];
                 addi    r0  = r0 , 0;
                 addi    r0  = r0 , 0;
                 halt;
-
+		nop;
+		nop;
+		nop;

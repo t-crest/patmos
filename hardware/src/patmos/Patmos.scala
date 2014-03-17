@@ -61,12 +61,12 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   val io = Config.getPatmosCoreIO()
 
   val mcache = Module(new MCache())
-
   val fetch = Module(new Fetch(binFile))
   val decode = Module(new Decode())
   val execute = Module(new Execute())
   val memory = Module(new Memory())
   val writeback = Module(new WriteBack())
+  val exc = Module(new Exceptions())
   val iocomp = Module(new InOut())
   val dcache = Module(new DataCache())
 
@@ -94,9 +94,16 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   fetch.io.exfe <> execute.io.exfe
   // We call in MEM
   fetch.io.memfe <> memory.io.memfe
-  fetch.io.femem <> memory.io.femem
+  // We store the return base in EX (in cycle corresponding to MEM)
+  fetch.io.feex <> execute.io.feex
 
   memory.io.localInOut <> iocomp.io.memInOut
+
+  // Connect exception unit
+  exc.io.ocp <> iocomp.io.excInOut
+  exc.io.intrs <> iocomp.io.intrs
+  exc.io.excdec <> decode.io.exc
+  exc.io.memexc <> memory.io.exc
 
   // The boot memories intercept accesses before they are translated to bursts
   val bootMem = Module(new BootMem(datFile))
@@ -123,6 +130,12 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   writeback.io.ena := enable
   val enableReg = Reg(next = enable)
 
+  // Flush signal
+  val flush = memory.io.flush
+  val brflush = execute.io.brflush
+  decode.io.flush := flush || brflush
+  execute.io.flush := flush
+
   // The inputs and outputs
   io.comConf <> iocomp.io.comConf
   io.comSpm <> iocomp.io.comSpm
@@ -141,11 +154,11 @@ object PatmosCoreMain {
     val binFile = args(1)
     val datFile = args(2)
 
-	Config.conf = Config.load(configFile)
+    Config.conf = Config.load(configFile)
     Config.minPcWidth = log2Up((new File(binFile)).length.toInt / 4)
     chiselMain(chiselArgs, () => Module(new PatmosCore(binFile, datFile)))
-	// Print out the configuration
-	Utility.printConfig(configFile)
+    // Print out the configuration
+    Utility.printConfig(configFile)
   }
 }
 
@@ -186,7 +199,7 @@ class PatmosTest(pat: Patmos) extends Tester(pat,
     val vars = new HashMap[Node, Node]()
     val ovars = new HashMap[Node, Node]()
 
-	println("Patmos start")
+    println("Patmos start")
 
     for (i <- 0 until 100) {
       vars.clear

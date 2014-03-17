@@ -50,7 +50,7 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int)
   // MS: I'm always confused from which direction the name shall be
   // probably the other way round...
   val io = new Bundle {
-    val master = new OcpBurstSlavePort(addrWidth, dataWidth, burstLen) 
+    val master = new OcpBurstSlavePort(addrWidth, dataWidth, burstLen)
     val slave = new OcpBurstMasterPort(addrWidth, dataWidth, burstLen)
     val node = UInt(INPUT, 6)
   }
@@ -59,18 +59,18 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int)
   debug(io.node)
 
   val cntReg = Reg(init = UInt(0, log2Up(cnt*(burstLen + 1))))
-  // slot length = burst size + 1 
+  // slot length = burst size + 1
   val burstCntReg = Reg(init = UInt(0, log2Up(burstLen)))
   val period = cnt * (burstLen + 1)
   val slotLen = burstLen + 1
   val numPipe = 2
-  
+
   val wrPipeDelay = burstLen + 2
   val wrCntReg = Reg(init = UInt(0, log2Up(wrPipeDelay)))
 
   val rdPipeDelay = burstLen + 2
   val rdCntReg = Reg(init = UInt(0, log2Up(rdPipeDelay)))
- 
+
   val cpuSlot = Vec.fill(cnt){Reg(init = UInt(0, width=1))}
   val slotTable = Vec.fill(cnt){Reg(init = Bits(0, width=period))}
 
@@ -86,23 +86,23 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int)
   debug(rdCntReg)
 
   cntReg := Mux(cntReg === UInt(period - 1), UInt(0), cntReg + UInt(1))
-  
+
   // Generater the slot Table for the whole period
   def genTable(nodeID: Int): UInt = {
     val x = pow(2,nodeID*slotLen).toInt
     val slot = UInt(x,width=period)
     slot
   }
-  
+
   for (i <- 0 to cnt-1){
     slotTable(i) := genTable(i).toBits
   }
-  
+
   for(i <- 0 to cnt-1) {
-    cpuSlot(i) := slotTable(i)(cntReg) 
+    cpuSlot(i) := slotTable(i)(cntReg)
   }
-  
-  // Initialize master data to zero when cpuSlot is not enabled 
+
+  // Initialize master data to zero when cpuSlot is not enabled
   io.slave.M.Addr       := Bits(0)
   io.slave.M.Cmd        := Bits(0)
   io.slave.M.DataByteEn := Bits(0)
@@ -114,13 +114,13 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int)
   io.master.S.Resp       := OcpResp.NULL
   io.master.S.CmdAccept  := Bits(0)
   io.master.S.DataAccept := Bits(0)
-  
-  // FSM for TDM Arbiter 
+
+  // FSM for TDM Arbiter
   when (stateReg === sIdle) {
     when (cpuSlot(io.node) === UInt(1)) {
       val master = io.master.M
       io.slave.M := master
-      
+
       when (master.Cmd != OcpCmd.IDLE){
         when (master.Cmd === OcpCmd.RD) {
           stateReg := sRead
@@ -141,29 +141,29 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int)
     io.slave.M := io.master.M
     io.master.S.DataAccept := UInt(1)
     wrCntReg := Mux(wrCntReg === UInt(wrPipeDelay), UInt(0), wrCntReg + UInt(1))
-   
-    // Sends ZEROs after the burst is done 
+
+    // Sends ZEROs after the burst is done
     when (wrCntReg >= UInt(burstLen-1)) {
       io.slave.M.Addr := Bits(0)
       io.slave.M.Data := Bits(0)
     }
-    
-    // Forward Rsp/DVA back to node 
+
+    // Forward Rsp/DVA back to node
     when (wrCntReg === UInt(wrPipeDelay)) {
       io.master.S.Resp := io.slave.S.Resp
     }
-    // Wait on DVA 
+    // Wait on DVA
     when(io.master.S.Resp === OcpResp.DVA){
       stateReg := sIdle
       io.master.S.DataAccept := UInt(0)
     }
   }
-     
+
   when (stateReg === sRead){
     io.slave.M := io.master.M
     rdCntReg := Mux(rdCntReg === UInt(rdPipeDelay), UInt(0), rdCntReg + UInt(1))
-    
-    // Sends ZEROs after the burst is done 
+
+    // Sends ZEROs after the burst is done
     when (rdCntReg >= UInt(burstLen-1)) {
       io.slave.M.Addr := Bits(0)
     }
@@ -172,17 +172,17 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int)
       io.master.S.Data := io.slave.S.Data
       io.master.S.Resp := io.slave.S.Resp
     }
-  
+
     when (io.master.S.Resp === OcpResp.DVA) {
       burstCntReg := burstCntReg + UInt(1)
         when (burstCntReg === UInt(burstLen) - UInt(1)) {
           stateReg := sIdle
         }
      }
-  }      
-  
+  }
+
   debug(io.slave.M)
-  
+
   //io.master.S := io.slave.S
 
 }
@@ -195,25 +195,25 @@ class MemMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) exten
   }
     debug(io.master)
     debug(io.slave)
-    
-    // 1st stage pipeline registers for inputs 
+
+    // 1st stage pipeline registers for inputs
     val mCmd_p1_Reg         = Reg(init=UInt(0, width=3))
     val mAddr_p1_Reg        = Reg(init=UInt(0, width=addrWidth))
     val mData_p1_Reg        = Reg(init=UInt(0, width=dataWidth))
     val mDataByteEn_p1_Reg  = Reg(init=UInt(0, width=dataWidth/8))
     val mDataValid_p1_Reg   = Reg(init=UInt(0, width=1))
-    
+
     // Pipeline regiaters default to 0
     mCmd_p1_Reg         := Bits(0)
     mAddr_p1_Reg        := Bits(0)
     mData_p1_Reg        := Bits(0)
     mDataByteEn_p1_Reg  := Bits(0)
     mDataValid_p1_Reg   := Bits(0)
-    
+
     // OR gate of all inputs
     for (i <- 0 until nr) {
       when(io.master(i).M.Cmd != Bits(0)) {
-        mCmd_p1_Reg := io.master(i).M.Cmd 
+        mCmd_p1_Reg := io.master(i).M.Cmd
       }
     }
 
@@ -222,45 +222,45 @@ class MemMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) exten
         mAddr_p1_Reg := io.master(i).M.Addr
       }
     }
-    
+
     for (i <- 0 until nr) {
       when (io.master(i).M.Data != Bits(0)) {
         mData_p1_Reg := io.master(i).M.Data
       }
     }
-    
+
     for (i <- 0 until nr) {
       when (io.master(i).M.DataByteEn != Bits(0)) {
         mDataByteEn_p1_Reg := io.master(i).M.DataByteEn
       }
     }
-   
+
     for (i <- 0 until nr) {
       when (io.master(i).M.DataValid != Bits(0)) {
         mDataValid_p1_Reg := io.master(i).M.DataValid
       }
     }
-    
+
     // Transfer data from input pipeline registers to output
     io.slave.M.Addr       := mAddr_p1_Reg
     io.slave.M.Cmd        := mCmd_p1_Reg
     io.slave.M.DataByteEn := mDataByteEn_p1_Reg
     io.slave.M.DataValid  := mDataValid_p1_Reg
     io.slave.M.Data       := mData_p1_Reg
-   
+
     // 1st stage pipleline registers for output
     //val sCmdAccept_p1_Reg   = Reg(next=io.slave.S.CmdAccept)
     //val sDataAccept_p1_Reg  = Reg(next=io.slave.S.DataAccept)
     val sResp_p1_Reg        = Reg(next=io.slave.S.Resp)
     val sData_p1_Reg        = Reg(next=io.slave.S.Data)
 
-    
-    // Forward response to all arbiters  
+
+    // Forward response to all arbiters
     for (i <- 0 until nr) {
       io.master(i).S.Data := sData_p1_Reg
-      io.master(i).S.Resp := sResp_p1_Reg 
+      io.master(i).S.Resp := sResp_p1_Reg
     }
-    
+
 }
 
 object NodeTdmArbiterMain {

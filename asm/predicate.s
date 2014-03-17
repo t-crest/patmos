@@ -1,7 +1,7 @@
 #
 # Test predicates and branch
 #
-	.word   588;
+	.word   600;
 	addi	r0 = r0, 0;  # first instruction not executed
 	addi	r1 = r0, 2;
 	addi	r2 = r0, 2;
@@ -50,6 +50,10 @@
 	cmplt   p6 = r9, r3;
 (p6)	add     r15 = r9, r2;
 	halt;
+   	nop;
+	nop;
+	nop;
+
 # ALU instructions
 	addi    r3 = r0, 3;
 	addi    r1 = r0, 5;

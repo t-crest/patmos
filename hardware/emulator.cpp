@@ -250,7 +250,7 @@ static void mcacheStat(Patmos_t *c, bool halt) {
   //everytime a method is called from the cache, todo: find a better way to measure hits
   if (c->Patmos_core_fetch__io_memfe_doCallRet.to_bool() == true &&
       c->Patmos_core_mcache_mcacherepl__io_mcache_replctrl_hit.to_bool() == true &&
-     c->Patmos_core_mcache_mcachectrl__mcacheState.to_ulong() == 0 &&
+      c->Patmos_core_mcache_mcachectrl__mcacheState.to_ulong() == 0 &&
       c->Patmos_core_mcache__io_ena_in.to_bool() == true &&
       c->Patmos_core_mcache_mcachectrl__io_mcache_ctrlrepl_instrStall.to_bool() == false) {
     cache_hits++;
@@ -298,6 +298,7 @@ static void help(ostream &out) {
       << "  -r            Print register values in each cycles" << endl
       << "  -u            Print UART output" << endl
       << "  -n            Do not print UART output" << endl
+      << "  -k            Simulate random input from keys" << endl
       << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
       << "  -p            Print method cache statistics" << endl
       << "  -l <N>        Stop after <N> cycles" << endl
@@ -312,13 +313,15 @@ int main (int argc, char* argv[]) {
   int opt;
   int lim = -1;
   bool vcd = false;
+
   // MS: what it the usage of disabling the UART?
   // WP: output from the UART can mess up trace and cause discrepancies with simulator
   bool uart = true;
+  bool keys = false;
   bool quiet = true;
   bool print_stat = false;
 
-  while ((opt = getopt(argc, argv, "qurnvpl:I:O:h")) != -1) {
+  while ((opt = getopt(argc, argv, "qrunkvpl:I:O:h")) != -1) {
 	switch (opt) {
 	// MS: q and u should go away, but tests in bench need updates first
 	case 'q':
@@ -329,6 +332,9 @@ int main (int argc, char* argv[]) {
 	  break;
 	case 'u':
 	  uart = true;
+	  break;
+	case 'k':
+	  keys = true;
 	  break;
 	case 'n':
 	  uart = false;
@@ -376,6 +382,8 @@ int main (int argc, char* argv[]) {
 
   c->init();
 
+  srand(0);
+
   val_t entry = 0;
   if (optind < argc) {
 	ifstream *fs = new ifstream(argv[optind]);
@@ -408,21 +416,24 @@ int main (int argc, char* argv[]) {
       c->Patmos_core_mcache_mcacherepl__selMCacheReg = 1;
       #else
       //init for icache
-      c->Patmos_core_mcache_mcacherepl__selICacheReg = 1;
       c->Patmos_core_fetch__pcReg = (entry >> 2);
+      c->Patmos_core_mcache_mcacherepl__selICacheReg = 1;
       #endif
       c->Patmos_core_fetch__relBaseReg = 0;
       c->Patmos_core_fetch__relocReg = (entry >> 2) - 1;
+      c->Patmos_core_fetch__selMCache = 1;
     }
     else {
       // pcReg for ispm starts at entry point - ispm base
       c->Patmos_core_fetch__pcReg = ((entry - 0x10000) >> 2) - 1;
-      c->Patmos_core_mcache_mcacherepl__selIspmReg = 1;
       c->Patmos_core_fetch__relBaseReg = (entry - 0x10000) >> 2;
       c->Patmos_core_fetch__relocReg = 0x10000 >> 2;
+      c->Patmos_core_fetch__selIspm = 1;
+      c->Patmos_core_mcache_mcacherepl__selIspmReg = 1;
       //init for icache
       // c->Patmos_core_mcache_icacherepl__selIspmReg = 1;
     }
+    c->Patmos_core_execute__baseReg = entry;
     c->Patmos_core_mcache_mcacherepl__callRetBaseReg = (entry >> 2);
     #ifdef MCACHE
     c->Patmos_core_mcache_mcachectrl__callRetBaseReg = (entry >> 2);
@@ -446,6 +457,12 @@ int main (int argc, char* argv[]) {
 	  c->dump(f, t);
 	}
 
+	if (keys) {
+	  if ((rand() % 0x10000) == 0) {
+		c->Patmos__io_keysPins_key = rand();
+	  }
+	}
+
 	if (uart) {
 	  // Pass on data from UART
 	  if (c->Patmos_core_iocomp_Uart__io_ocp_M_Cmd.to_ulong() == 0x1
@@ -462,7 +479,8 @@ int main (int argc, char* argv[]) {
 	if (halt) {
 	  break;
 	}
-	if (c->Patmos_core_memory__memReg_mem_ret.to_bool()
+	if ((c->Patmos_core_memory__memReg_mem_brcf.to_bool()
+		 || c->Patmos_core_memory__memReg_mem_ret.to_bool())
 		&& c->Patmos_core_mcache_mcacherepl__callRetBaseReg.to_ulong() == 0) {
 	  halt = true;
 	}

@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -47,8 +47,8 @@ import ocp._
 
 class NullCache() extends Module {
   val io = new Bundle {
-	val master = new OcpCoreSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
-	val slave = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+    val master = new OcpCoreSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
+    val slave = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
   }
 
   val burstAddrBits = log2Up(BURST_LENGTH)
@@ -73,7 +73,7 @@ class NullCache() extends Module {
   // Default values
   io.slave.M.Cmd := OcpCmd.IDLE
   io.slave.M.Addr := Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, burstAddrBits+byteAddrBits),
-						 Fill(Bits(0), burstAddrBits+byteAddrBits))
+                         Fill(Bits(0), burstAddrBits+byteAddrBits))
   io.slave.M.Data := Bits(0)
   io.slave.M.DataValid := Bits(0)
   io.slave.M.DataByteEn := Bits(0)
@@ -83,28 +83,28 @@ class NullCache() extends Module {
 
   // Wait for response
   when(stateReg === read) {
-	when(io.slave.S.Resp === OcpResp.DVA) {
-	  when(burstCntReg === posReg) {
-		slaveReg := io.slave.S
-	  }
-	  when(burstCntReg === UInt(BURST_LENGTH-1)) {
-		stateReg := readResp
-	  }
-	  burstCntReg := burstCntReg + UInt(1)
-	}
+    when(io.slave.S.Resp === OcpResp.DVA) {
+      when(burstCntReg === posReg) {
+        slaveReg := io.slave.S
+      }
+      when(burstCntReg === UInt(BURST_LENGTH-1)) {
+        stateReg := readResp
+      }
+      burstCntReg := burstCntReg + UInt(1)
+    }
   }
   // Pass data to master
   when(stateReg === readResp) {
-	io.master.S := slaveReg
-	stateReg := idle
+    io.master.S := slaveReg
+    stateReg := idle
   }
 
   // Start a read burst
   when(masterReg.Cmd === OcpCmd.RD) {
-	io.slave.M.Cmd := OcpCmd.RD
+    io.slave.M.Cmd := OcpCmd.RD
     when(io.slave.S.CmdAccept === Bits(1)) {
-	  stateReg := read
-	  posReg := masterReg.Addr(burstAddrBits+byteAddrBits-1, byteAddrBits)
+      stateReg := read
+      posReg := masterReg.Addr(burstAddrBits+byteAddrBits-1, byteAddrBits)
     }
   }
 }

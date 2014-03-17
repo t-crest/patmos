@@ -6,21 +6,21 @@ CC=patmos-clang
 CFLAGS-BOOTABLE=-target patmos-unknown-unknown-elf -Os \
 	-I$(CURDIR) -DBOOTROM \
 	-mpatmos-disable-stack-cache \
-	-mpatmos-disable-vliw=true
+	-mpatmos-disable-vliw
 LDFLAGS-BOOTABLE= \
 	-mpatmos-method-cache-size=0x8000 \
 	-mpatmos-max-subfunction-size=0 -mpatmos-preferred-subfunction-size=0 \
-	-mpatmos-subfunction-align=4 \
 	-mpatmos-stack-base=0x80010680 -mpatmos-shadow-stack-base=0x80010780 \
 	-nodefaultlibs -nostdlib -nostartfiles \
 	-Xgold --section-start -Xgold .text=0x0 -e main \
 	-Xgold --section-start -Xgold .rodata=0x80000010 \
 	-Xgold --section-start -Xgold .data=0x80010000 \
+	-Xllc -disable-machine-licm
 
 # Flags for compiling normal applications
 CFLAGS=-target patmos-unknown-unknown-elf -O2 \
 	-I$(CURDIR) \
-	-mpatmos-disable-vliw=true
+	-mpatmos-disable-vliw
 LDFLAGS= \
 	-mpatmos-method-cache-size=0x800 -mpatmos-preferred-subfunction-size=0 \
 	-mpatmos-stack-base=0x1f0000 -mpatmos-shadow-stack-base=0x200000 \

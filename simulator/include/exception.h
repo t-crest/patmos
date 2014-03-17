@@ -196,6 +196,13 @@ namespace patmos
       throw simulation_exception_t(ILLEGAL, iw);
     }
 
+    /// Throw an illegal instruction simulation exception.
+    /// @param msg The error message
+    static void illegal(std::string msg) __attribute__ ((noreturn))
+    {
+      throw simulation_exception_t(ILLEGAL, msg);
+    }
+
     /// Throw an unmapped address simulation exception.
     /// @param address The unmapped address.
     static void unmapped(uword_t address) __attribute__ ((noreturn))

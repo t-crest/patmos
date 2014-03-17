@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -161,7 +161,7 @@ class ICache() extends Module {
  */
 class ICacheMem extends Module {
   val io = new ICacheMemIO()
- 
+
   val icacheEven = MemBlock(ICACHE_WORD_SIZE / 2, INSTR_WIDTH)
   val icacheOdd = MemBlock(ICACHE_WORD_SIZE / 2, INSTR_WIDTH)
 
@@ -183,7 +183,7 @@ class ICacheReplLru extends Module {
   val io = new ICacheReplIO()
 
   /*
-   add LRU replacement policy here 
+   add LRU replacement policy here
    */
 
 }
@@ -350,7 +350,7 @@ class ICacheCtrl() extends Module {
     when (io.icache_replctrl.selICache) {
       icacheState := idleState
     }
-  } 
+  }
   when (icacheState === idleState) {
     when (!io.icache_replctrl.hitEna) {
       fetchEna := Bool(false)
@@ -404,7 +404,7 @@ class ICacheCtrl() extends Module {
       icacheState := idleState
     }
   }
-  
+
   //outputs to instruction cache memory
   io.icache_ctrlrepl.wEna := wEna
   io.icache_ctrlrepl.wData := wData

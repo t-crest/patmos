@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,9 @@
 
 /*
  * Boot data memory (ROM and SPM) for Patmos.
- * 
+ *
  * Author: Wolfgang Puffitsch (wpuffitsch@gmail.com)
- * 
+ *
  */
 
 package patmos
@@ -58,8 +58,8 @@ class BootMem(fileName : String) extends Module {
   val selRomReg = Reg(init = Bool(false))
   val selSpmReg = Reg(init = Bool(false))
   when(io.memInOut.M.Cmd != OcpCmd.IDLE) {
-	  selRomReg := selRom
-	  selSpmReg := selSpm
+      selRomReg := selRom
+      selSpmReg := selSpm
   }
 
   // The data ROM for read only initialized data
@@ -81,7 +81,7 @@ class BootMem(fileName : String) extends Module {
 
   // Return data to pipeline
   io.memInOut.S.Data := Mux(selRomReg, romData,
-							Mux(selSpmReg, spmS.Data,
-								io.extMem.S.Data))
+                            Mux(selSpmReg, spmS.Data,
+                                io.extMem.S.Data))
   io.memInOut.S.Resp := romResp | spmS.Resp | io.extMem.S.Resp
 }

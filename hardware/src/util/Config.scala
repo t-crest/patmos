@@ -39,13 +39,17 @@ import patmos._
 import io.CoreDevice
 import io.Device
 
-import scala.tools.nsc.interpreter._
-import scala.tools.nsc._
+import scala.tools.nsc.interpreter.IMain
+import scala.tools.nsc.Settings
+import java.io.DataInputStream
+import ch.epfl.lamp.fjbg.{ FJBGContext, JClass }
 
 /**
- * A tiny configuration tool for Patmos.
+ * The configuration tool for Patmos.
  *
  * Authors: Martin Schoeberl (martin@jopdesign.com)
+ *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
+ *
  */
 abstract class Config {
   val description: String
@@ -69,7 +73,7 @@ abstract class Config {
   case class ExtMemConfig(size: Long, sram: DeviceConfig)
   val ExtMem: ExtMemConfig
 
-  case class DeviceConfig(name : String, params : Map[String, String], offset : Int)
+  case class DeviceConfig(name : String, params : Map[String, String], offset : Int, intrs : List[Int])
   val Devs: List[DeviceConfig]
 
   override def toString =
@@ -79,13 +83,13 @@ abstract class Config {
 object Config {
 
   def parseSize(text: String): Int = {
-	  val regex = """(\d+)([KMG]?)""".r
-	  val suffixMult = Map("" -> (1 << 0),
-						   "K" -> (1 << 10),
-						   "M" -> (1 << 20),
-						   "G" -> (1 << 30))
-	  val regex(num, suffix) = text.toUpperCase
-	  num.toInt * suffixMult.getOrElse(suffix, 0)
+      val regex = """(\d+)([KMG]?)""".r
+      val suffixMult = Map("" -> (1 << 0),
+                           "K" -> (1 << 10),
+                           "M" -> (1 << 20),
+                           "G" -> (1 << 30))
+      val regex(num, suffix) = text.toUpperCase
+      num.toInt * suffixMult.getOrElse(suffix, 0)
   }
 
   def parseSizeLong(text: String): Long = {
@@ -128,7 +132,7 @@ object Config {
       val DevList = ((node \ "Devs") \ "Dev")
 
       val ExtMemNode = find(node, "ExtMem")
-      var ExtMemDev = new DeviceConfig("", Map(),-1)
+      var ExtMemDev = new DeviceConfig("", Map(), -1, List[Int]())
       if (exist(ExtMemNode,"@DevTypeRef")){
         ExtMemDev = devFromXML(ExtMemNode,DevList,false)
       }
@@ -165,17 +169,25 @@ object Config {
         } else {
           -1
         }
-        println("IO device "+key+": entity "+name+", offset "+offset+", params "+params)
-        new DeviceConfig(name, params, offset)
+        val intrsList = (node \ "@intrs").text
+        val intrs = if (intrsList.isEmpty) {
+          List[Int]()
+        } else {
+          intrsList.split(",").toList.map(_.trim.toInt)
+        }
+        ChiselError.info("IO device "+key+": entity "+name+
+                         ", offset "+offset+", params "+params+
+                         (if (!intrs.isEmpty) ", interrupts: "+intrs else ""))
+        new DeviceConfig(name, params, offset, intrs)
       }
 
-  	  def find(node: scala.xml.Node, item: String): scala.xml.Node = {
-    		val seq = node \ item
-    		if (seq.isEmpty) {
-    		  sys.error("Item "+item+" not found in node "+node)
-    		}
-    		seq(0)
-  	  }
+      def find(node: scala.xml.Node, item: String): scala.xml.Node = {
+            val seq = node \ item
+            if (seq.isEmpty) {
+              sys.error("Item "+item+" not found in node "+node)
+            }
+            seq(0)
+      }
 
       def exist(node: scala.xml.Node, item: String): Boolean = {
         val seq = node \ item
@@ -209,9 +221,22 @@ object Config {
       if (clazz.isInstance(outer)) {
         // get method to retrieve pin bundle
         val methName = name(0).toLower + name.substring(1, name.length) + "Pins"
+        for (m <- clazz.getMethods) {
+          if (m.getName != methName && !m.getName.endsWith("_$eq")) {
+
+            val fileName = name+"$Pins.class"
+            val classStream = new DataInputStream(clazz.getResourceAsStream(fileName))
+            val jClass = new FJBGContext().JClass(classStream)
+
+            ChiselError.error("Pins trait for IO device "+name+
+                              " cannot have member "+m.getName+
+                              ", only member "+methName+" allowed"+
+                              " (file "+jClass.getSourceFileName+")", null)
+          }
+        }
         val meth = clazz.getMethods.find(_.getName == methName)
         if (meth == None) {
-          println("No pins for device: "+clazz+"."+methName)
+          ChiselError.info("No pins for IO device "+name)
         } else {
           // retrieve pin bundles
           val outerPins = meth.get.invoke(clazz.cast(outer))
@@ -224,7 +249,43 @@ object Config {
 
   def connectAllIOPins(outer : Node, inner : Node) {
     for (name <- conf.Devs.map(_.name)) {
-	  connectIOPins(name, outer, inner)
+      connectIOPins(name, outer, inner)
+    }
+  }
+
+  def connectIntrPins(dev : Config#DeviceConfig, outer : InOutIO, inner : Node) {
+    if (!dev.intrs.isEmpty) {
+      val name = dev.name
+      // get class for interrupt trait
+      val clazz = Class.forName("io."+name+"$Intrs")
+      // get method to retrieve interrupt bits
+      val methName = name(0).toLower + name.substring(1, name.length) + "Intrs"
+      for (m <- clazz.getMethods) {
+        if (m.getName != methName && !m.getName.endsWith("_$eq")) {
+
+          val fileName = name+"$Intrs.class"
+          val classStream = new DataInputStream(clazz.getResourceAsStream(fileName))
+          val jClass = new FJBGContext().JClass(classStream)
+
+          ChiselError.error("Intrs trait for IO device "+name+
+                            " cannot have member "+m.getName+
+                            ", only member "+methName+" allowed"+
+                            " (file "+jClass.getSourceFileName+")", null)
+        }
+      }
+      val meth = clazz.getMethods.find(_.getName == methName)
+      if (meth == None) {
+        ChiselError.error("Interrupt pins not found for device "+name)
+      } else {
+        val intrPins = meth.get.invoke(clazz.cast(inner)).asInstanceOf[Vec[Bool]]
+        if (intrPins.length != dev.intrs.length) {
+          ChiselError.error("Inconsistent interrupt counts for IO device "+name)
+        } else {
+          for (i <- 0 until dev.intrs.length) {
+            outer.intrs(dev.intrs(i)) := intrPins(i)
+          }
+        }
+      }
     }
   }
 
@@ -274,7 +335,7 @@ object Config {
     val ISPM = new SPMConfig(0)
     val DSPM = new SPMConfig(0)
     val BootSPM = new SPMConfig(0)
-    val ExtMem = new ExtMemConfig(0,new DeviceConfig("", Map(),-1))
+    val ExtMem = new ExtMemConfig(0,new DeviceConfig("", Map(), -1, List[Int]()))
     val Devs = List()
   }
 

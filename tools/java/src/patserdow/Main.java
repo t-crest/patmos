@@ -22,7 +22,21 @@ import jssc.*;
 public class Main 
 {
 	final private static int BAUD_RATE = 115200;
-	
+
+    private static SerialPort port = null;
+
+    private static class ShutDownHook extends Thread {
+        public void run() {
+            try {
+                if(port != null) {
+                    port.closePort();
+                }
+            } catch (Exception exc) {
+                System.err.println(exc);
+            }
+        }
+    }
+
     /**
      * @param args the command line arguments
      * @throws TimeoutException 
@@ -36,8 +50,9 @@ public class Main
         PrintStream print_stream = System.err;
         InputStream in_stream = null;
         OutputStream out_stream = null;
-        
-        SerialPort port = null;
+
+        Runtime.getRuntime().addShutdownHook(new ShutDownHook());
+
         try 
         {
             verbose = System.getProperty("verbose", "false").equals("true");
@@ -49,10 +64,10 @@ public class Main
                     port = new SerialPort(args[0]);
                     if (verbose) {
                         print_stream.println("Port opened: " + port.openPort());
-                        print_stream.println("Params set: " + port.setParams(BAUD_RATE, 8, 2, 0));
+                        print_stream.println("Params set: " + port.setParams(BAUD_RATE, 8, 1, 0));
                     } else {
                         port.openPort();
-                        port.setParams(BAUD_RATE, 8, 2, 0);
+                        port.setParams(BAUD_RATE, 8, 1, 0);
 				    }
                     in_stream = new UARTInputStream(port);
                     out_stream = new UARTOutputStream(port);
@@ -70,12 +85,12 @@ public class Main
             Elf elf = new Elf(file);
             ElfHeader header = elf.getHeader();
             if (verbose) {
-                print_stream.println("Elf version is '1':"+(header.getVersion()==1));
-                print_stream.println("CPU type is:"+header.getMachineType());
-                print_stream.println("Instruction width is 32 bits:"+(header.is32bit()));
-                print_stream.println("Is Big Endian:"+header.isBigEndian());
-                print_stream.println("File is of type exe:"+(header.getType()==ElfHeader.ET_EXEC));
-                print_stream.println("Entry point:"+header.getEntryPoint());
+                print_stream.println("Elf version is '1': "+(header.getVersion()==1));
+                print_stream.println("CPU type is: "+header.getMachineType());
+                print_stream.println("Instruction width is 32 bits: "+(header.is32bit()));
+                print_stream.println("Is Big Endian: "+header.isBigEndian());
+                print_stream.println("File is of type exe: "+(header.getType()==ElfHeader.ET_EXEC));
+                print_stream.println("Entry point: "+header.getEntryPoint());
                 print_stream.println();
             }
 
@@ -162,13 +177,6 @@ public class Main
         {
             print_stream.println(exc);
             error = true;
-        }
-        finally
-        {
-			if(port != null)
-        	{
-				port.closePort();
-        	}
         }
 
         if(error)

@@ -62,13 +62,12 @@ int wait(int amount){
 int main(int argc, char **argv) {
     //WRITE("Hello cmp world!\n",17);
 
-    // setup stack frame and stack cache.
-    asm volatile ("li $r29 = %0;" // initialize shadow stack pointer"
-                  "mts $ss  = %1;" // initialize the stack cache's spill pointer"
-                  "mts $st  = %1;" // initialize the stack cache's top pointer"
-                  "li $r30 = %2;" // initialize return base"
-                  : : "i" (&_shadow_stack_base), "r" (&_stack_cache_base), "i" (&main));
-
+  // setup stack frame and stack cache.
+  asm volatile ("mov $r31 = %0;" // initialize shadow stack pointer"
+                "mts $ss  = %1;" // initialize the stack cache's spill pointer"
+                "mts $st  = %1;" // initialize the stack cache's top pointer"
+                : : "r" (&_shadow_stack_base),
+                  "r" (&_stack_cache_base));
 
     // configure network interface
     noc_configure();

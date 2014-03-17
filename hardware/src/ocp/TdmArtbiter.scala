@@ -76,39 +76,39 @@ class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) ext
   debug(stateReg(2))
 
   cntReg := Mux(cntReg === UInt(period - 1), UInt(0), cntReg + UInt(1))
-  
+
   // Generater the slot Table for the whole period
   def genTable(nodeID: Int): UInt = {
     val x = pow(2,nodeID*slotLen).toInt
     val slot = UInt(x,width=period)
     slot
   }
-  
+
   for (i <- 0 to cnt-1){
     slotTable(i) := genTable(i).toBits
   }
-  
+
   for(i <- 0 to cnt-1) {
-    cpuSlot(i) := slotTable(i)(cntReg) 
+    cpuSlot(i) := slotTable(i)(cntReg)
   }
-  
-  // Initialize data to zero when cpuSlot is not enabled 
+
+  // Initialize data to zero when cpuSlot is not enabled
   io.slave.M.Addr       := Bits(0)
   io.slave.M.Cmd        := Bits(0)
   io.slave.M.DataByteEn := Bits(0)
   io.slave.M.DataValid  := Bits(0)
   io.slave.M.Data       := Bits(0)
-   
+
   // Temporarily assigned to master 0
   val masterIdReg = Reg(init = UInt(0, log2Up(cnt)))
-   
+
     for (i <- 0 to cnt-1) {
 
       when (cpuSlot(i) === UInt(1)) {
         val master = io.master(i).M
         masterIdReg := UInt(i)
         io.slave.M := io.master(i).M
-        
+
         when (stateReg(i) === sIdle) {
           when (master.Cmd != OcpCmd.IDLE){
             when (master.Cmd === OcpCmd.RD) {
@@ -129,7 +129,7 @@ class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) ext
            stateReg(i) := sIdle
          }
        }
-     
+
        when (stateReg(i) === sRead){
          io.slave.M := io.master(i).M
          when (io.slave.S.Resp === OcpResp.DVA) {
@@ -138,10 +138,10 @@ class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) ext
                stateReg := sIdle
              }
            }
-        }      
-    } 
-  
-  io.slave.M := io.master(masterIdReg).M 
+        }
+    }
+
+  io.slave.M := io.master(masterIdReg).M
   debug(io.slave.M)
 
   for (i <- 0 to cnt - 1) {

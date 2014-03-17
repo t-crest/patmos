@@ -1,7 +1,9 @@
 #
 # Expected Result: 
 #
-		.word   48;
+		.word   68;
+		addi    r3 = r0, 0x100;
+		mts     s6 = r3;
 		addi	r5 = r0, 5;                
 #		lwm     r1  = [r31 + 0];
                 sres     4;
@@ -16,4 +18,7 @@
 #                lhs     r3  = [r0 + 0]  ||     lbs     r4  = [r0 + 1];
 #               lhus    r4  = [r0 + 0]  ||     lbus    r6  = [r0 + 1];
 #                sfree   1;
-                halt;
+		halt;
+		nop;
+		nop;
+		nop;

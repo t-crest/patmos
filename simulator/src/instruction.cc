@@ -22,12 +22,12 @@
 
 namespace patmos
 {
-  instruction_data_t::instruction_data_t() : I(NULL)
+  instruction_data_t::instruction_data_t() : I(NULL), Pred(pn0), Address(0)
   {
   }
 
   instruction_data_t::instruction_data_t(const instruction_t &i, PRR_e pred) :
-      I(&i), Pred(pred)
+    I(&i), Pred(pred), Address(0)
   {
   }
 
@@ -74,6 +74,17 @@ namespace patmos
     return result;
   }
 
+  instruction_data_t instruction_data_t::mk_ALUci(const instruction_t &i,
+                                                 PRR_e pred, PRR_e pd,
+                                                 GPR_e rs1, uword_t imm)
+  {
+    instruction_data_t result(i, pred);
+    result.OPS.ALUci.Pd = pd;
+    result.OPS.ALUci.Rs1 = rs1;
+    result.OPS.ALUci.Imm = imm;
+    return result;
+  }
+
   instruction_data_t instruction_data_t::mk_ALUp(const instruction_t &i,
                                                  PRR_e pred, PRR_e pd,
                                                  PRR_e ps1, PRR_e ps2)
@@ -82,6 +93,18 @@ namespace patmos
     result.OPS.ALUp.Pd = pd;
     result.OPS.ALUp.Ps1 = ps1;
     result.OPS.ALUp.Ps2 = ps2;
+    return result;
+  }
+
+  instruction_data_t instruction_data_t::mk_ALUb(const instruction_t &i,
+                                                 PRR_e pred, GPR_e rd,
+                                                 GPR_e rs1, uword_t imm, PRR_e ps)
+  {
+    instruction_data_t result(i, pred);
+    result.OPS.ALUb.Rd = rd;
+    result.OPS.ALUb.Rs1 = rs1;
+    result.OPS.ALUb.Imm = imm;
+    result.OPS.ALUb.Ps = ps;
     return result;
   }
 
@@ -156,30 +179,43 @@ namespace patmos
     return result;
   }
 
-  instruction_data_t instruction_data_t::mk_CFLb(const instruction_t &i,
-                                                 PRR_e pred, word_t imm, uword_t uimm)
-  {
-    instruction_data_t result(i, pred);
-    result.OPS.CFLb.Imm = imm;
-    result.OPS.CFLb.UImm = uimm;
-    return result;
-  }
-
   instruction_data_t instruction_data_t::mk_CFLi(const instruction_t &i,
-                                                 PRR_e pred, GPR_e rs)
+                                                 PRR_e pred, word_t flag,
+                                                 word_t imm, uword_t uimm)
   {
     instruction_data_t result(i, pred);
-    result.OPS.CFLi.Rs = rs;
+    result.OPS.CFLi.D = flag;
+    result.OPS.CFLi.Imm = imm;
+    result.OPS.CFLi.UImm = uimm;
     return result;
   }
 
-  instruction_data_t instruction_data_t::mk_CFLr(const instruction_t &i,
-                                                 PRR_e pred,
-                                                 GPR_e rb, GPR_e ro)
+  instruction_data_t instruction_data_t::mk_CFLri(const instruction_t &i,
+                                                  PRR_e pred, word_t flag)
   {
     instruction_data_t result(i, pred);
-    result.OPS.CFLr.Rb = rb;
-    result.OPS.CFLr.Ro = ro;
+    result.OPS.CFLri.D = flag;
+    return result;
+  }
+
+  instruction_data_t instruction_data_t::mk_CFLrs(const instruction_t &i,
+                                                  PRR_e pred, word_t flag,
+                                                  GPR_e rs)
+  {
+    instruction_data_t result(i, pred);
+    result.OPS.CFLrs.D = flag;
+    result.OPS.CFLrs.Rs = rs;
+    return result;
+  }
+
+  instruction_data_t instruction_data_t::mk_CFLrt(const instruction_t &i,
+                                                  PRR_e pred, word_t flag,
+                                                  GPR_e rs1, GPR_e rs2)
+  {
+    instruction_data_t result(i, pred);
+    result.OPS.CFLrt.D = flag;
+    result.OPS.CFLrt.Rs1 = rs1;
+    result.OPS.CFLrt.Rs2 = rs2;
     return result;
   }
 

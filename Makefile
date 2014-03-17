@@ -76,12 +76,13 @@ javatools: $(JAVATOOLSBUILDDIR)/lib/patmos-tools.jar \
 
 PATSERDOW_SRC=$(shell find tools/java/src/patserdow/ -name *.java)
 PATSERDOW_CLASS=$(patsubst tools/java/src/%.java,$(JAVATOOLSBUILDDIR)/classes/%.class,$(PATSERDOW_SRC))
+PATSERDOW_EXTRACLASS=patserdow/Main'$$'ShutDownHook.class
 JAVAUTIL_SRC=$(shell find tools/java/src/util/ -name *.java)
 JAVAUTIL_CLASS=$(patsubst tools/java/src/%.java,$(JAVATOOLSBUILDDIR)/classes/%.class,$(JAVAUTIL_SRC))
 
 $(JAVATOOLSBUILDDIR)/lib/patmos-tools.jar: $(PATSERDOW_CLASS) $(JAVAUTIL_CLASS)
 	-mkdir -p $(JAVATOOLSBUILDDIR)/lib
-	cd $(JAVATOOLSBUILDDIR)/classes && jar cf ../lib/patmos-tools.jar $(subst $(JAVATOOLSBUILDDIR)/classes/,,$^)
+	cd $(JAVATOOLSBUILDDIR)/classes && jar cf ../lib/patmos-tools.jar $(subst $(JAVATOOLSBUILDDIR)/classes/,,$^) $(PATSERDOW_EXTRACLASS)
 
 $(JAVATOOLSBUILDDIR)/classes/%.class: tools/java/src/%.java
 	-mkdir -p $(JAVATOOLSBUILDDIR)/classes
@@ -138,8 +139,12 @@ hwsim:
 	$(MAKE) -C hardware test BOOTBUILDROOT=$(CURDIR) BOOTAPP=$(BOOTAPP)
 
 # Testing
-test:
+test: test_emu
+test_sim: patsim
+	cd $(SIMBUILDDIR) && make test
+test_emu:
 	testsuite/run.sh
+.PHONY: test test_sim test_emu
 
 # Compile Patmos and download
 patmos: gen synth config

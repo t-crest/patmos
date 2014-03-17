@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,9 @@
 
 /*
  * Decode stage of Patmos.
- * 
+ *
  * Author: Martin Schoeberl (martin@jopdesign.com)
- * 
+ *
  */
 
 package patmos
@@ -46,14 +46,14 @@ import Constants._
 
 class WriteBack() extends Module {
   val io = new WriteBackIO()
-  
+
   val wbReg = Reg(new MemWb())
   when (io.ena) {
     wbReg := io.memwb
   }
-  
+
   // The register file has input registers
-  io.rfWrite <> io.memwb.rd  
+  io.rfWrite <> io.memwb.rd
   // extra port for forwarding
   io.memResult := io.memwb.rd
 

@@ -70,7 +70,7 @@ namespace patmos
     virtual bool is_call() const { return false; }
     
     /// Returns the number of delay slot cycles of this instruction
-    virtual unsigned get_delay_slots() const = 0;
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const = 0;
     
     /// Reset all statistic counters.
     virtual void reset_stats() { }
@@ -155,6 +155,13 @@ namespace patmos
         GPR_e Rs1;
         GPR_e Rs2;
       } ALUc;
+      /// Operands for an ALUci instruction.
+      struct
+      {
+        PRR_e Pd;
+        GPR_e Rs1;
+        word_t Imm;
+      } ALUci;
       /// Operands for an ALUp instruction.
       struct
       {
@@ -162,6 +169,14 @@ namespace patmos
         PRR_e Ps1;
         PRR_e Ps2;
       } ALUp;
+      /// Operands for an ALUn instruction.
+      struct
+      {
+        GPR_e Rd;
+        GPR_e Rs1;
+        word_t Imm;
+        PRR_e Ps;
+      } ALUb;
       /// Operands for an SPCn instruction.
       struct
       {
@@ -203,23 +218,31 @@ namespace patmos
       {
         GPR_e Rs;
       } STCr;
-      /// Operands for an CFLb instruction.
-      struct
-      {
-        word_t Imm;
-        uword_t UImm;
-      } CFLb;
       /// Operands for an CFLi instruction.
       struct
       {
-        GPR_e Rs;
+        word_t D;
+        word_t Imm;
+        uword_t UImm;
       } CFLi;
-      /// Operands for an CFLr instruction.
+      /// Operands for an CFLri instruction.
       struct
       {
-        GPR_e Rb;
-        GPR_e Ro;
-      } CFLr;
+        word_t D;
+      } CFLri;
+      /// Operands for an CFLrs instruction.
+      struct
+      {
+        word_t D;
+        GPR_e Rs;
+      } CFLrs;
+      /// Operands for an CFLrt instruction.
+      struct
+      {
+        word_t D;
+        GPR_e Rs1;
+        GPR_e Rs2;
+      } CFLrt;
     } OPS;
 
 
@@ -354,6 +377,17 @@ namespace patmos
     static instruction_data_t mk_ALUc(const instruction_t &i, PRR_e pred,
                                       PRR_e pd, GPR_e rs1, GPR_e rs2);
 
+    /// Create an ALUci instruction with a register and an immediate
+    /// operand and a predicate register destination.
+    /// @param i The instruction.
+    /// @param pred The predicate register under which the instruction is
+    /// executed.
+    /// @param pd The predicate destination register.
+    /// @param rs1 The operand register.
+    /// @param imm The immediate operand.
+    static instruction_data_t mk_ALUci(const instruction_t &i, PRR_e pred,
+                                       PRR_e pd, GPR_e rs1, uword_t imm);
+
     /// Create an ALUp instruction with two predicate register operands and a
     /// predicate register destination.
     /// @param i The instruction.
@@ -364,6 +398,18 @@ namespace patmos
     /// @param ps2 The second operand predicate register.
     static instruction_data_t mk_ALUp(const instruction_t &i, PRR_e pred,
                                       PRR_e pd, PRR_e ps1, PRR_e ps2);
+
+    /// Create an ALUb instruction with a register, an immediate, and
+    /// a predicate operand, and a register destination.
+    /// @param i The instruction.
+    /// @param pred The predicate register under which the instruction is
+    /// executed.
+    /// @param Rd The destination register.
+    /// @param rs1 The operand register.
+    /// @param imm The immediate operand.
+    /// @param ps The predicate operand.
+    static instruction_data_t mk_ALUb(const instruction_t &i, PRR_e pred,
+                                      GPR_e rd, GPR_e rs1, uword_t imm, PRR_e ps);
 
     /// Create an SPCn instruction with an immediate operand.
     /// @param i The instruction.
@@ -437,30 +483,37 @@ namespace patmos
     static instruction_data_t mk_STCr(const instruction_t &i, PRR_e pred,
                                       GPR_e rs);
 
-    /// Create an CFLb instruction with an immediate operand.
+    /// Create an CFLi instruction with an immediate operand.
     /// @param i The instruction.
     /// @param pred The predicate register under which the instruction is
     /// executed.
     /// @param imm The operand immediate.
-    static instruction_data_t mk_CFLb(const instruction_t &i, PRR_e pred,
-                                      word_t imm, uword_t uimm);
+    static instruction_data_t mk_CFLi(const instruction_t &i, PRR_e pred,
+                                      word_t flag, word_t imm, uword_t uimm);
 
-    /// Create an CFLi instruction with an register operand.
+    /// Create an CFLr instruction with implicit operands.
+    /// @param i The instruction.
+    /// @param pred The predicate register under which the instruction is
+    /// executed.
+    static instruction_data_t mk_CFLri(const instruction_t &i, PRR_e pred,
+                                       word_t flag);
+
+    /// Create an CFLr instruction with a single register operand.
     /// @param i The instruction.
     /// @param pred The predicate register under which the instruction is
     /// executed.
     /// @param rs The operand register.
-    static instruction_data_t mk_CFLi(const instruction_t &i, PRR_e pred,
-                                      GPR_e rs);
+    static instruction_data_t mk_CFLrs(const instruction_t &i, PRR_e pred,
+                                       word_t flag, GPR_e rs);
 
-    /// Create an CFLr instruction without operands.
+    /// Create an CFLr instruction with two register operands.
     /// @param i The instruction.
     /// @param pred The predicate register under which the instruction is
     /// executed.
-    /// @param rb The register containing the return function base.
-    /// @param ro The register containing the return offset.
-    static instruction_data_t mk_CFLr(const instruction_t &i, PRR_e pred,
-                                      GPR_e rb, GPR_e ro);
+    /// @param rs1 The first operand register.
+    /// @param rs2 The second operand register.
+    static instruction_data_t mk_CFLrt(const instruction_t &i, PRR_e pred,
+                                       word_t flag, GPR_e rs1, GPR_e rs2);
 
     /// Create an HLT instruction without operands.
     /// @param i The instruction.

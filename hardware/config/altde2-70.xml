@@ -16,9 +16,10 @@
 
   <IOs>
 	<IO DevTypeRef="CpuInfo" offset="0"/>
-	<IO DevTypeRef="Timer" offset="2"/>
+	<IO DevTypeRef="Timer" offset="2" intrs="0,1"/>
 	<IO DevTypeRef="Uart" offset="8"/>
 	<IO DevTypeRef="Leds" offset="9"/>
+	<IO DevTypeRef="Keys" offset="10" intrs="2,3,4,5"/>
   </IOs>
 
   <Devs>
@@ -34,6 +35,11 @@
 		<param name="ledCount" value="9"/>
 	  </params>
 	</Dev>
+  	<Dev DevType="Keys" entity="Keys" iface="OcpCore">
+  	  <params>
+  		<param name="keyCount" value="4"/>
+  	  </params>
+  	</Dev>
     <Dev DevType="Ssram32" entity="SSRam32Ctrl" iface="OcpBurst">
         <params>
             <param name="ocpAddrWidth" value="21" />

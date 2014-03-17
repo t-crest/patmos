@@ -204,6 +204,15 @@ namespace patmos
   }
 #define MK_NINSTR_ALIAS(classname, name, format, opcode)
 
+#define MK_FINSTR(classname, name, format, opcode, flag)                       \
+  {                                                                            \
+    instruction_t *itmp = new i_ ## classname ## _t();                         \
+    itmp->ID = Instructions.size();                                            \
+    itmp->Name = #name;                                                        \
+    binary_format_t *ftmp = new format ## _format_t(*itmp, opcode, flag);      \
+    Instructions.push_back(boost::make_tuple(itmp, ftmp));                     \
+  }
+
 #include "instructions.inc"
   }
 

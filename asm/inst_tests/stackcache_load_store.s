@@ -1,6 +1,6 @@
 # Test case for stack cache load and store
 # Initialization begin
-	.word	236;
+	.word	248;
 	add 	r1 = r0, 0xFF0FF000;
 	add 	r1 = r0, 0xFF0FF000;
 	addi	r2 = r0, 4;
@@ -61,3 +61,6 @@
 	lhus	r5 = [r0 + 2];
 	lbus	r6 = [r0 + 2];
 	halt;
+	nop;
+	nop;
+	nop;

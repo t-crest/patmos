@@ -84,13 +84,13 @@ class Master(nr: Int, burstLength: Int) extends Module {
       }
     }
     is(UInt(5)) { io.port.M.Cmd := OcpCmd.IDLE }
-    is(UInt(6)) { 
+    is(UInt(6)) {
       io.port.M.Cmd := OcpCmd.RD
       when (io.port.S.CmdAccept === Bits(0)) {
         cntReg := cntReg
-      } 
+      }
     }
-    is(UInt(7)) { 
+    is(UInt(7)) {
       when (io.port.S.Resp === OcpResp.DVA) {
         cntRead := cntRead + UInt(1)
       }
@@ -99,11 +99,11 @@ class Master(nr: Int, burstLength: Int) extends Module {
       when (io.port.S.Resp === OcpResp.DVA) {
         cntRead := cntRead + UInt(1)
       }
-    } 
+    }
     is(UInt(9)) {
        when (io.port.S.Resp === OcpResp.DVA) {
         cntRead := cntRead + UInt(1)
-      } 
+      }
     }
     is(UInt(10)){
        when (io.port.S.Resp === OcpResp.DVA) {

@@ -121,6 +121,25 @@ namespace patmos
                           const instruction_data_t &instr) const;
   };
 
+  /// The ALUci instruction format (see Patmos TR).
+  class aluci_format_t : public binary_format_t
+  {
+  public:
+    /// Construct a new binary format for the instruction using a given opcode.
+    /// @param instruction The instruction.
+    /// @param opcode The instruction's opcode.
+    aluci_format_t(const instruction_t &instruction, word_t opcode);
+
+    virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
+
+    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
+                                instruction_data_t &instr,
+                                reloc_info_t &reloc) const;
+                                               
+    virtual udword_t encode(std::string mnemonic, 
+                          const instruction_data_t &instr) const;
+  };
+
   /// The ALUp instruction format (see Patmos TR).
   class alup_format_t : public binary_format_t
   {
@@ -129,6 +148,25 @@ namespace patmos
     /// @param instruction The instruction.
     /// @param opcode The instruction's opcode.
     alup_format_t(const instruction_t &instruction, word_t opcode);
+
+    virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
+
+    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
+                                instruction_data_t &instr,
+                                reloc_info_t &reloc) const;
+                                               
+    virtual udword_t encode(std::string mnemonic, 
+                          const instruction_data_t &instr) const;
+  };
+
+  /// The ALUb instruction format (see Patmos TR).
+  class alub_format_t : public binary_format_t
+  {
+  public:
+    /// Construct a new binary format for the instruction using a given opcode.
+    /// @param instruction The instruction.
+    /// @param opcode The instruction's opcode.
+    alub_format_t(const instruction_t &instruction, word_t opcode);
 
     virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
 
@@ -279,25 +317,6 @@ namespace patmos
                           const instruction_data_t &instr) const;
   };
 
-  /// The CFLb instruction format (see Patmos TR).
-  class cflb_format_t : public binary_format_t
-  {
-  public:
-    /// Construct a new binary format for the instruction using a given opcode.
-    /// @param instruction The instruction.
-    /// @param opcode The instruction's opcode.
-    cflb_format_t(const instruction_t &instruction, word_t opcode);
-
-    virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
-
-    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
-                                instruction_data_t &instr,
-                                reloc_info_t &reloc) const;
-                                               
-    virtual udword_t encode(std::string mnemonic, 
-                          const instruction_data_t &instr) const;
-  };
-
   /// The CFLi instruction format (see Patmos TR).
   class cfli_format_t : public binary_format_t
   {
@@ -305,7 +324,7 @@ namespace patmos
     /// Construct a new binary format for the instruction using a given opcode.
     /// @param instruction The instruction.
     /// @param opcode The instruction's opcode.
-    cfli_format_t(const instruction_t &instruction, word_t opcode);
+    cfli_format_t(const instruction_t &instruction, word_t opcode, word_t flag);
 
     virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
 
@@ -317,14 +336,58 @@ namespace patmos
                           const instruction_data_t &instr) const;
   };
 
-  /// The CFLr instruction format (see Patmos TR).
-  class cflr_format_t : public binary_format_t
+  /// The CFLri instruction format (see Patmos TR).
+  class cflri_format_t : public binary_format_t
   {
   public:
     /// Construct a new binary format for the instruction using a given opcode.
     /// @param instruction The instruction.
     /// @param opcode The instruction's opcode.
-    cflr_format_t(const instruction_t &instruction, word_t opcode);
+    cflri_format_t(const instruction_t &instruction, word_t opcode, word_t flag);
+
+    virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
+
+    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
+                                instruction_data_t &instr,
+                                reloc_info_t &reloc) const;
+                                               
+    virtual udword_t encode(std::string mnemonic, 
+                          const instruction_data_t &instr) const;
+  };
+
+  /// The CFLrs instruction format (see Patmos TR).
+  class cflrs_format_t : public binary_format_t
+  {
+  public:
+    /// Construct a new binary format for the instruction using a given opcode.
+    /// @param instruction The instruction.
+    /// @param opcode The instruction's opcode.
+    cflrs_format_t(const instruction_t &instruction, word_t opcode, word_t flag);
+
+    /// Decode the operands of the instruction and return a corresponding
+    /// instruction data instance.
+    /// @param iw The instruction word.
+    /// @param longimm A long immediate (exclusively for the ALUl format),
+    /// @return The resulting instruction data instance representing the
+    /// instruction and its operands.
+    virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
+
+    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
+                                instruction_data_t &instr,
+                                reloc_info_t &reloc) const;
+                                               
+    virtual udword_t encode(std::string mnemonic, 
+                          const instruction_data_t &instr) const;
+  };
+
+  /// The CFLrt instruction format (see Patmos TR).
+  class cflrt_format_t : public binary_format_t
+  {
+  public:
+    /// Construct a new binary format for the instruction using a given opcode.
+    /// @param instruction The instruction.
+    /// @param opcode The instruction's opcode.
+    cflrt_format_t(const instruction_t &instruction, word_t opcode, word_t flag);
 
     virtual instruction_data_t decode_operands(word_t iw, word_t longimm) const;
 
