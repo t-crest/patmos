@@ -6,9 +6,10 @@
 #include <machine/spm.h>
 #include <machine/patmos.h>
 
-// we assume 2 MB memory, less than 400 KB for program,
+// we assume 1 MB memory, less than 400 KB for program,
 // heap, and stack
-#define LENGTH (2000000-400000)/4
+//#define LENGTH (1000000-400000)/4
+#define LENGTH 200000/4
 #define CNT 20
 
 // Start the memory test some bytes above heap start
@@ -24,9 +25,9 @@ int main() {
 	int error = 0;
 	int test = 0;
 
- printf("%d %d\n", (int) TEST_START, (int) &_end);
 
 	if (get_cpuid() == 0) {
+printf("%d %d\n", (int) TEST_START, (int) &_end);
 		// MS: does the following reading from uninitialized memory
 		// make sense?
 //		for (int i=0; i<=LENGTH; i++){ // Read from main memory
@@ -65,6 +66,7 @@ int main() {
 		} else {
 			puts("Success\n");
 		}
+		puts("Finished\n");
 
 	} else {
 		//for (int k = 0; k < 100; ++k)
@@ -80,7 +82,6 @@ int main() {
 		//}
 	}
 
-	puts("Finished\n");
 
 	return 0;
 }
