@@ -25,6 +25,7 @@
 #include <cstdio>
 
 #include "memory-map.h"
+#include "excunit.h"
 
 namespace patmos
 {
@@ -126,9 +127,9 @@ namespace patmos
     /// @param in_stream Stream providing data read from the UART.
     /// @param istty Flag indicating whether the input stream is a TTY.
     /// @param out_stream Stream storing data written to the UART.
-    uart_t(uword_t base_address,
+    uart_t(excunit_t &excunit, uword_t base_address,
            std::istream &in_stream, bool istty, std::ostream &out_stream) :
-        mapped_device_t(base_address, 8),
+        mapped_device_t(excunit, base_address, 8),
         Status_address(base_address+0x00),
         Data_address(base_address+0x04),
         In_stream(in_stream), IsTTY(istty),
@@ -152,7 +153,8 @@ namespace patmos
       else if (address == Data_address && size == 4)
         return read_data(value+3);
       else
-        simulation_exception_t::unmapped(address);
+        Exception_handler.unmapped(address);
+      return true;
     }
 
     /// A simulated access to a read port. Does not update the device state or 
@@ -167,7 +169,7 @@ namespace patmos
       else if (address == Data_address && size == 4)
         peek_data(value+3);
       else
-        simulation_exception_t::unmapped(address);
+        Exception_handler.unmapped(address);
     }
 
     /// A simulated access to a write port.
@@ -183,7 +185,8 @@ namespace patmos
       else if (address == Data_address && size == 4)
         return write_data(value+3);
       else
-        simulation_exception_t::unmapped(address);
+        Exception_handler.unmapped(address);
+      return true;
     }
   };
 }

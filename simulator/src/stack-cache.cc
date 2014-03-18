@@ -522,6 +522,10 @@ bool block_stack_cache_t::spill(uword_t size, word_t delta,
         return true;
       }
 
+      if (Content.size() < delta) {
+        simulation_exception_t::stack_exceeded("Trying to spill more than the current size of the stack.");
+      }
+      
       // copy data to a buffer to allow contiguous transfer to the memory.
       for(unsigned int i = 0; i < delta; i++)
       {

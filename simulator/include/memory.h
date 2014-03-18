@@ -28,12 +28,16 @@
 namespace patmos
 {
   class simulator_t;
+  class excunit_t;
   
   /// Basic interface to access main memory during simulation.
   class memory_t
   {
   public:
     virtual ~memory_t() {}
+    
+    /// Get the exception unit for this memory device.
+    virtual excunit_t &get_exception_handler() = 0;
     
     /// A simulated access to a read port.
     /// @param address The memory address to read from.
@@ -122,6 +126,8 @@ namespace patmos
   class ideal_memory_t : public memory_t
   {
   protected:
+    excunit_t& Exception_handler;
+    
     /// The size of the memory in bytes.
     unsigned int Memory_size;
 
@@ -138,12 +144,15 @@ namespace patmos
   public:
     /// Construct a new memory instance.
     /// @param memory_size The size of the memory in bytes.
-    ideal_memory_t(unsigned int memory_size) :
-        Memory_size(memory_size), Initialized_offset(0)
+    ideal_memory_t(excunit_t &excunit, unsigned int memory_size) 
+    : Exception_handler(excunit), 
+      Memory_size(memory_size), Initialized_offset(0)
     {
       Content = new byte_t[memory_size];
     }
 
+    virtual excunit_t &get_exception_handler() { return Exception_handler; }
+    
     /// A simulated access to a read port.
     /// @param address The memory address to read from.
     /// @param value A pointer to a destination to store the value read from
@@ -330,12 +339,14 @@ namespace patmos
     /// @param num_ticks_per_burst Memory access time per block in cycles.
     /// @param Num_read_delay_ticks Number of ticks until a response to a 
     ///                             request is received
-    fixed_delay_memory_t(unsigned int memory_size,
+    fixed_delay_memory_t(excunit_t &excunit,
+                         unsigned int memory_size,
                          unsigned int num_bytes_per_burst,
                          unsigned int num_posted_writes,
                          unsigned int num_ticks_per_burst, 
                          unsigned int num_read_delay_ticks) :
-        ideal_memory_t(memory_size), Num_ticks_per_burst(num_ticks_per_burst),
+        ideal_memory_t(excunit, memory_size), 
+        Num_ticks_per_burst(num_ticks_per_burst),
         Num_bytes_per_burst(num_bytes_per_burst),
         Num_posted_writes(num_posted_writes),
         Num_read_delay_ticks(num_read_delay_ticks), Last_address(0), 
@@ -407,13 +418,14 @@ namespace patmos
                                             uword_t aligned_size, bool is_load, 
                                             bool is_posted);
   public:
-    variable_burst_memory_t(unsigned int memory_size, 
+    variable_burst_memory_t(excunit_t &excunit,
+                        unsigned int memory_size, 
                         unsigned int num_min_bytes_per_burst,
                         unsigned int num_bytes_per_page,
                         unsigned int num_posted_writes,
                         unsigned int num_min_ticks_per_burst,
                         unsigned int num_read_delay_ticks)
-    : fixed_delay_memory_t(memory_size, num_min_bytes_per_burst, 
+    : fixed_delay_memory_t(excunit, memory_size, num_min_bytes_per_burst, 
                            num_posted_writes, 
                            num_min_ticks_per_burst, num_read_delay_ticks),
       Num_bytes_per_page(num_bytes_per_page)
@@ -441,7 +453,8 @@ namespace patmos
     virtual void tick_request(request_info_t &req);
     
   public:
-    tdm_memory_t(unsigned int memory_size, unsigned int num_bytes_per_burst,
+    tdm_memory_t(excunit_t &excunit,
+                 unsigned int memory_size, unsigned int num_bytes_per_burst,
                  unsigned int num_posted_writes,
                  unsigned int num_cores,
                  unsigned int cpu_id,

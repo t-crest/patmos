@@ -49,6 +49,10 @@ namespace patmos
     {
     }
 
+    virtual excunit_t &get_exception_handler() { 
+      return Memory.get_exception_handler();
+    }
+    
     /// Initialize the cache before executing the first instruction.
     /// @param address Address to fetch initial instructions.
     virtual void initialize(uword_t address);
@@ -304,6 +308,10 @@ namespace patmos
                        unsigned int num_block_bytes, 
                        unsigned int max_active_methods = 0);
 
+    virtual excunit_t &get_exception_handler() {
+      return Memory.get_exception_handler();
+    }
+    
     /// Initialize the cache before executing the first instruction.
     /// @param address Address to fetch initial instructions.
     virtual void initialize(uword_t address);

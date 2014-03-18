@@ -47,6 +47,11 @@ namespace patmos
     {
     }
 
+    virtual excunit_t &get_exception_handler() 
+    { 
+      return Memory.get_exception_handler(); 
+    }
+    
     /// A simulated access to a read port.
     /// @param address The memory address to read from.
     /// @param value A pointer to a destination to store the value read from

@@ -236,7 +236,7 @@ namespace patmos
     }
 
     /// Thow a PC-outsize-method simulation exception.
-    static void illegal_pc_msg(std::string msg) __attribute__ ((noreturn))
+    static void illegal_pc(std::string msg) __attribute__ ((noreturn))
     {
       throw simulation_exception_t(ILLEGAL_PC, msg);
     }

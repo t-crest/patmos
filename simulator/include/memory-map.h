@@ -20,15 +20,16 @@
 #ifndef PATMOS_MEMORY_MAP_H
 #define PATMOS_MEMORY_MAP_H
 
+#include "memory.h"
+
 #include <ostream>
 #include <vector>
 
-#include "memory.h"
-#include "simulation-core.h"
-#include "endian-conversion.h"
-
 namespace patmos
 {
+  class simulator_t;
+  class excunit_t;
+  
   /// Default address of the UART status register.
   static const uword_t IOMAP_BASE_ADDRESS = 0xF0000000;
 
@@ -67,6 +68,7 @@ namespace patmos
   
   class mapped_device_t {
   protected:
+    excunit_t &Exception_handler;
     
     /// Base address of this device
     uword_t Base_address;
@@ -76,8 +78,8 @@ namespace patmos
     
   public:
     
-    mapped_device_t(uword_t base_address, uword_t mapped_bytes) 
-    : Base_address(base_address), Mapped_bytes(mapped_bytes)
+    mapped_device_t(excunit_t &excunit, uword_t base_address, uword_t mapped_bytes) 
+    : Exception_handler(excunit), Base_address(base_address), Mapped_bytes(mapped_bytes)
     {}
     
     virtual ~mapped_device_t() {}
@@ -86,28 +88,19 @@ namespace patmos
     /// @param address the memory address to check for a match.
     /// @param size the requested size of the access
     /// @param offset the offset to the base address to check with.
-    bool is_word_access(uword_t address, uword_t size, uword_t offset) {
-      // TODO optionally check for half/byte access (?)
-      return address == Base_address + offset && size == 4;
-    }
+    bool is_word_access(uword_t address, uword_t size, uword_t offset);
     
     /// Read a word from memory pointer
     /// @param value the pointer to the data to read
     /// @param size the size of the value to read in bytes
     /// @return the read value
-    uword_t get_word(byte_t *value, uword_t size) {
-      uword_t data = *((uword_t*)value);
-      return (uword_t)from_big_endian<big_uword_t>(data);
-    }
+    uword_t get_word(byte_t *value, uword_t size);
     
     /// Write a word to a memory pointer
     /// @param value the pointer to the data to write
     /// @param size the size of the value to write in bytes
     /// @param data the word to write
-    void set_word(byte_t *value, uword_t size, uword_t data) {
-      uword_t big_data = to_big_endian<big_uword_t>(data);
-      *((uword_t*)value) = big_data;
-    }
+    void set_word(byte_t *value, uword_t size, uword_t data);
     
     /// Get the base address of this device.
     virtual uword_t get_base_address() const { return Base_address; }
@@ -170,59 +163,19 @@ namespace patmos
   public:
     
     /// @param freq The CPU frequency in Mhz
-    cpuinfo_t(uword_t base_address, uword_t cpuid, double freq)
-    : mapped_device_t(base_address, CPUINFO_MAP_SIZE),
+    cpuinfo_t(excunit_t &excunit, uword_t base_address, uword_t cpuid, double freq)
+    : mapped_device_t(excunit, base_address, CPUINFO_MAP_SIZE),
       Cpu_id(cpuid),
       Cpu_freq(freq * 1000000)
     {}
     
-    // MS: why do we have this duplication of read and peek?
-    // Why could't one call the other
-    virtual bool read(uword_t address, byte_t *value, uword_t size) {
-      if (is_word_access(address, size, 0x00)) {
-        set_word(value, size, Cpu_id);
-      } else if (is_word_access(address, size, 0x04)) {
-        set_word(value, size, Cpu_freq);
-      } else {
-        simulation_exception_t::unmapped(address);
-      }
-      return true;
-    }
+    virtual bool read(uword_t address, byte_t *value, uword_t size);
 
-    virtual bool write(uword_t address, byte_t *value, uword_t size) {
-      simulation_exception_t::illegal_access(address);
-    }
+    virtual bool write(uword_t address, byte_t *value, uword_t size);
     
-    virtual void peek(uword_t address, byte_t *value, uword_t size) {
-      if (is_word_access(address, size, 0x00)) {
-        set_word(value, size, Cpu_id);
-      } else if (is_word_access(address, size, 0x04)) {
-        set_word(value, size, Cpu_freq);
-      } else {
-        mapped_device_t::peek(address, value, size);
-      }
-    }
+    virtual void peek(uword_t address, byte_t *value, uword_t size);
   };
   
-  class excunit_t : public mapped_device_t 
-  {
-  public:
-    excunit_t(uword_t base_address) 
-    : mapped_device_t(base_address, EXCUNIT_MAP_SIZE) {}
-
-    virtual bool read(uword_t address, byte_t *value, uword_t size) {
-      // simulation_exception_t::illegal_access(address);
-	  return true;
-    }
-    virtual void peek(uword_t address, byte_t *value, uword_t size) {
-      //simulation_exception_t::illegal_access(address);
-    }
-    virtual bool write(uword_t address, byte_t *value, uword_t size) {
-      // simulation_exception_t::illegal_access(address);
-	  return true;
-	}
-  };
-
   class led_t : public mapped_device_t 
   {
     /// Stream to write LED status to
@@ -230,45 +183,16 @@ namespace patmos
     
     uword_t Curr_state;
   public:
-    led_t(uword_t base_address, std::ostream &os)
-    : mapped_device_t(base_address, LED_MAP_SIZE), Out_stream(os),
+    led_t(excunit_t &excunit, uword_t base_address, std::ostream &os)
+    : mapped_device_t(excunit, base_address, LED_MAP_SIZE), Out_stream(os),
       Curr_state(0) {}
 
-    virtual bool read(uword_t address, byte_t *value, uword_t size) {
-      simulation_exception_t::illegal_access(address);
-    }
+    virtual bool read(uword_t address, byte_t *value, uword_t size);
 
-    virtual void peek(uword_t address, byte_t *value, uword_t size) {
-      simulation_exception_t::illegal_access(address);
-    }
-    
-    virtual bool write(uword_t address, byte_t *value, uword_t size) {
-      if (is_word_access(address, size, 0x00)) {
-        uword_t state = get_word(value, size);
-         
-        if (state == Curr_state) return true;
-        
-        Out_stream << "--- LEDs: [";
-        for ( int i = 0; i < 32; i++ ) {
-          if (i > 0) Out_stream << " ";
-          if (state & (1 << i)) {
-            Out_stream << "X";
-          } else {
-            Out_stream << "-";
-          }
-        }
-        Out_stream << "] ---\n";
-        
-        Curr_state = state;
-      }
-      else {
-        simulation_exception_t::unmapped(address);
-      }
-      return true;
-    }    
+    virtual bool write(uword_t address, byte_t *value, uword_t size);
   };
   
-  /// A simple UART implementation allowing memory-mapped I/O.
+  /// Map several devices into the address space of another memory device
   class memory_map_t : public memory_t
   {
   private:
@@ -288,17 +212,7 @@ namespace patmos
     uword_t High_address;
     
   protected:
-    mapped_device_t& find_device(uword_t address) 
-    {
-      for (AddressList::iterator it = Device_map.begin(), ie = Device_map.end();
-           it != ie; ++it)
-      {
-        if (address >= it->first && address <= it->second) {
-          return *Devices[it - Device_map.begin()];
-        }
-      }
-      simulation_exception_t::unmapped(address);
-    }
+    mapped_device_t& find_device(uword_t address);
     
   public:
     /// Construct a new memory map.
@@ -307,15 +221,13 @@ namespace patmos
     /// @param high_address The highest address of the mapped address range.
     memory_map_t(memory_t &memory, uword_t base_address, uword_t high_address) 
     : Memory(memory), Base_address(base_address), High_address(high_address) 
-    {
-    }
+    {}
 
-    void add_device(mapped_device_t &device) 
-    {
-      Devices.push_back(&device);
-      Device_map.push_back(std::make_pair(device.get_base_address(), 
-                                          device.get_base_address() + device.get_num_mapped_bytes() - 1));
+    virtual excunit_t &get_exception_handler() {
+      return Memory.get_exception_handler();
     }
+    
+    void add_device(mapped_device_t &device);
     
     /// A simulated access to a read port.
     /// @param address The memory address to read from.
@@ -323,14 +235,7 @@ namespace patmos
     /// the memory.
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
-    virtual bool read(uword_t address, byte_t *value, uword_t size)
-    {
-      if (address >= Base_address && address <= High_address) {
-        return find_device(address).read(address, value, size);
-      } else {
-        return Memory.read(address, value, size);
-      }
-    }
+    virtual bool read(uword_t address, byte_t *value, uword_t size);
 
     /// A simulated access to a write port.
     /// @param address The memory address to write to.
@@ -338,94 +243,39 @@ namespace patmos
     /// @param size The number of bytes to write.
     /// @return True when the data is written finally to the memory, false
     /// otherwise.
-    virtual bool write(uword_t address, byte_t *value, uword_t size)
-    {
-      if (address >= Base_address && address <= High_address) {
-        return find_device(address).write(address, value, size);
-      } else {
-        return Memory.write(address, value, size);
-      }
-    }
+    virtual bool write(uword_t address, byte_t *value, uword_t size);
 
     /// Read some values from the memory -- DO NOT SIMULATE TIMING.
     /// @param address The memory address to read from.
     /// @param value A pointer to a destination to store the value read from
     /// the memory.
     /// @param size The number of bytes to read.
-    virtual void read_peek(uword_t address, byte_t *value, uword_t size)
-    {
-      if (address >= Base_address && address <= High_address) {
-        find_device(address).peek(address, value, size);
-      } else {
-        Memory.read_peek(address, value, size);
-      }
-    }
+    virtual void read_peek(uword_t address, byte_t *value, uword_t size);
 
     /// Write some values into the memory -- DO NOT SIMULATE TIMING, just write.
     /// @param address The memory address to write to.
     /// @param value The value to be written to the memory.
     /// @param size The number of bytes to write.
-    virtual void write_peek(uword_t address, byte_t *value, uword_t size)
-    {
-      // TODO should we pass that to the mapped devices?
-      assert(address < Base_address || address > High_address);
-      Memory.write_peek(address, value, size);
-    }
+    virtual void write_peek(uword_t address, byte_t *value, uword_t size);
 
     /// Check if the memory is busy handling some request.
     /// @return False in case the memory is currently handling some request,
     /// otherwise true.
-    virtual bool is_ready()
-    {
-      // TODO should we pass that to the mapped devices?
-      return Memory.is_ready();
-    }
+    virtual bool is_ready();
 
     /// Notify the memory that a cycle has passed.
-    virtual void tick()
-    {
-      for (DeviceList::iterator it = Devices.begin(), ie = Devices.end();
-           it != ie; ++it) 
-      {
-        (*it)->tick();
-      }
-      Memory.tick();
-    }
+    virtual void tick();
 
     /// Print the internal state of the memory to an output stream.
     /// @param os The output stream to print to.
-    virtual void print(std::ostream &os) const
-    {
-      for (DeviceList::const_iterator it = Devices.begin(), ie = Devices.end();
-           it != ie; ++it) 
-      {
-        (*it)->print(os);
-      }      
-      Memory.print(os);
-    }
+    virtual void print(std::ostream &os) const;
 
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
     virtual void print_stats(const simulator_t &s, std::ostream &os, 
-                             bool short_stats)
-    {
-      for (DeviceList::const_iterator it = Devices.begin(), ie = Devices.end();
-           it != ie; ++it) 
-      {
-        (*it)->print_stats(s, os, short_stats);
-      }
-      Memory.print_stats(s, os, short_stats);
-    }
+                             bool short_stats);
     
-    virtual void reset_stats()
-    {
-      for (DeviceList::iterator it = Devices.begin(), ie = Devices.end();
-           it != ie; ++it) 
-      {
-        (*it)->reset_stats();
-      }      
-      Memory.reset_stats(); 
-    }
+    virtual void reset_stats();
   };
 }
 

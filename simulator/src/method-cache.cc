@@ -601,7 +601,7 @@ void lru_method_cache_t::reset_stats()
   Num_bytes_fetched = 0;
   Num_bytes_utilized = 0;
   Num_max_active_methods = 0;
-  Num_hits = 0; 
+  Num_hits = 0;
   Num_misses = 0;
   Num_misses_ret = 0;
   Num_evictions_capacity = 0;

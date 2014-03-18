@@ -24,7 +24,7 @@
 #include "method-cache.h"
 #include "stack-cache.h"
 #include "symbol.h"
-#include "interrupts.h"
+#include "excunit.h"
 #include "instructions.h"
 #include "rtc.h"
 
@@ -39,15 +39,15 @@ namespace patmos
                            data_cache_t &data_cache,
                            instr_cache_t &instr_cache,
                            stack_cache_t &stack_cache, symbol_map_t &symbols,
-                           interrupt_handler_t &interrupt_handler)
+                           excunit_t &excunit)
     : Dbg_cnt_delay(0), 
       Cycle(0), Memory(memory), Local_memory(local_memory),
       Data_cache(data_cache), Instr_cache(instr_cache),
       Stack_cache(stack_cache), Symbols(symbols), Dbg_stack(*this),
-      Interrupt_handler(interrupt_handler),
+      Exception_handler(excunit),
       BASE(0), PC(0), nPC(0), Debug_last_PC(0),
       Stall(SXX), Disable_IF(false), Is_decoupled_load_active(false), 
-      Branch_counter(0), Halt(false), Interrupt_handling_counter(0),
+      Branch_counter(0), Halt(false), Exception_handling_counter(0),
       Flush_Cache_PC(std::numeric_limits<unsigned int>::max()), Num_NOPs(0)
   {
     // initialize one predicate register to be true, otherwise no instruction
@@ -86,14 +86,11 @@ namespace patmos
     Instr_HALT->Name = "halt";
   }
 
-
-
   simulator_t::~simulator_t()
   {
     delete Instr_INTR;
     delete Instr_HALT;
   }
-
 
   void simulator_t::pipeline_invoke(Pipeline_t pst,
                                    void (instruction_data_t::*f)(simulator_t &),
@@ -228,14 +225,14 @@ namespace patmos
     if (Stall == SXX)
     {
 
-      if (Interrupt_handler.interrupt_pending() &&
+      if (Exception_handler.pending() &&
           Branch_counter == 0 &&
-          Interrupt_handling_counter == 0)
+          Exception_handling_counter == 0)
       {
-        interrupt_t &interrupt = Interrupt_handler.get_interrupt();
+        exception_t exception = Exception_handler.next();
 
         instr_SIF[0] = instruction_data_t::mk_CFLi(*Instr_INTR, p0, 0,
-                                                   interrupt.Address, interrupt.Address);
+                                                   exception.Address, exception.Address);
         instr_SIF[0].Address = PC;
 
         for(unsigned int i = 1; i < NUM_SLOTS; i++)
@@ -244,17 +241,17 @@ namespace patmos
         }
 
         // Handling interrupt, next CPU cycle no new instructions have to be decoded
-        Interrupt_handling_counter = 3;
+        Exception_handling_counter = 3;
 
       }
-      else if (Interrupt_handling_counter > 0)
+      else if (Exception_handling_counter > 0)
       {
         // Putting more empty instrutions after an interrupt
         for(unsigned int i = 0; i < NUM_SLOTS; i++)
         {
           instr_SIF[i] = instruction_data_t();
         }
-        Interrupt_handling_counter--;
+        Exception_handling_counter--;
 
       }
       else

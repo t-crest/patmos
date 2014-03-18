@@ -18,6 +18,7 @@
 //
 #include "memory.h"
 
+#include "excunit.h"
 #include "exception.h"
 #include "simulation-core.h"
 
@@ -37,7 +38,7 @@ void ideal_memory_t::check_initialize_content(uword_t address, uword_t size)
   // check if the access exceeds the memory size
   if((address > Memory_size) || (size > Memory_size - address))
   {
-    simulation_exception_t::unmapped(address);
+    Exception_handler.unmapped(address);
   }
 
   // initialize memory content
@@ -438,7 +439,8 @@ unsigned int variable_burst_memory_t::get_transfer_ticks(uword_t aligned_address
 
 
 
-tdm_memory_t::tdm_memory_t(unsigned int memory_size, 
+tdm_memory_t::tdm_memory_t(excunit_t &excunit,
+                           unsigned int memory_size, 
                            unsigned int num_bytes_per_burst,
                            unsigned int num_posted_writes,
                            unsigned int num_cores,
@@ -446,7 +448,7 @@ tdm_memory_t::tdm_memory_t(unsigned int memory_size,
                            unsigned int num_ticks_per_burst,
                            unsigned int num_read_delay_ticks,
                            unsigned int num_refresh_ticks_per_round)
-: fixed_delay_memory_t(memory_size, num_bytes_per_burst, num_posted_writes,
+: fixed_delay_memory_t(excunit, memory_size, num_bytes_per_burst, num_posted_writes,
   num_ticks_per_burst, num_read_delay_ticks), Round_counter(0), 
   Is_Transferring(false)
 {
