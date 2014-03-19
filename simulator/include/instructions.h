@@ -1989,7 +1989,7 @@ namespace patmos
 
       fetch_and_dispatch(s, ops, ops.EX_result, ops.EX_Address, ops.EX_Address);
       
-      if (ops.EX_result)
+      if (ops.EX_result && !s.is_stalling(SMW))
       {
         s.pipeline_flush(SMW);
       }
@@ -2026,7 +2026,7 @@ namespace patmos
 
       fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
       
-      if (ops.DR_Pred)
+      if (ops.DR_Pred && !s.is_stalling(SMW))
       {
         s.pipeline_flush(SMW);
       }
