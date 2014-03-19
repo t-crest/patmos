@@ -38,12 +38,12 @@ TODO merge this with usage.tex from D5.2 and update to the current state of the 
 \subsection{Compiling, Linking}
 
 C source files are compiled to bitcode objects by default (patmos-clang -c). To compile .c files
-to ELF objects, use patmos-clang -c -fpatmos-emit -obj.
+to ELF objects, use \code{patmos-clang -c -fpatmos-emit-reloc}.
 
 Assembly files are always compiled to ELF objects. Archive files (.a) can only contain bitcode objects
 or ELF objects, not a mixture of both. Shared libraries (either bitcode or ELF) are not supported.
 It is possible to link multiple bitcode files into a single bitcode file and link it like a static library
-(compile with patmos-clang --emit-llvm -o lib<name>.bc, link with -l<name>). Bitcode files are always
+(compile with \code{patmos-clang -fpatmos-link-object -o lib<name>.bc}, link with -l<name>). Bitcode files are always
 fully linked in, even if there is no usage of any of its symbols. Unused symbols are removed in a separate
 optimization step.
 
