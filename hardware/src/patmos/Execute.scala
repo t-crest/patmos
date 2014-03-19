@@ -218,8 +218,8 @@ class Execute() extends Module {
     mulHLReg := op1H * op2L
     mulHHReg := op1H * op2H
 
-    signHLReg := op1H(DATA_WIDTH/2)
-    signLHReg := op2H(DATA_WIDTH/2)
+    signHLReg := op1H(DATA_WIDTH/2) & (op(1) != Bits(0))
+    signLHReg := op2H(DATA_WIDTH/2) & (op(0) != Bits(0))
 
     val mulResult = (Cat(mulHHReg, mulLLReg)
                      + Cat(Fill(DATA_WIDTH/2, signHLReg),
