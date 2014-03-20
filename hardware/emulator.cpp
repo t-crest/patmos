@@ -289,14 +289,12 @@ static void mcacheStat(Patmos_t *c, bool halt) {
 
 static void usage(ostream &out, const char *name) {
   out << "Usage: " << name
-      << " [-q|-r] [-u|-n] [-v] [-p] [-l cycles] [-I file] [-O file] [-h] [file]" << endl;
+      << " [-r] [-n] [-v] [-p] [-l cycles] [-I file] [-O file] [-h] [file]" << endl;
 }
 
 static void help(ostream &out) {
   out << endl << "Options:" << endl
-      << "  -q            Do not print register values in each cycles" << endl
       << "  -r            Print register values in each cycles" << endl
-      << "  -u            Print UART output" << endl
       << "  -n            Do not print UART output" << endl
       << "  -k            Simulate random input from keys" << endl
       << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
@@ -314,24 +312,15 @@ int main (int argc, char* argv[]) {
   int lim = -1;
   bool vcd = false;
 
-  // MS: what it the usage of disabling the UART?
-  // WP: output from the UART can mess up trace and cause discrepancies with simulator
   bool uart = true;
   bool keys = false;
   bool quiet = true;
   bool print_stat = false;
 
-  while ((opt = getopt(argc, argv, "qrunkvpl:I:O:h")) != -1) {
+  while ((opt = getopt(argc, argv, "rnkvpl:I:O:h")) != -1) {
 	switch (opt) {
-	// MS: q and u should go away, but tests in bench need updates first
-	case 'q':
-	  quiet = true;
-	  break;
 	case 'r':
 	  quiet = false;
-	  break;
-	case 'u':
-	  uart = true;
 	  break;
 	case 'k':
 	  keys = true;
