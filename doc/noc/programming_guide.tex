@@ -94,8 +94,8 @@
 % general style for listings
 \lstset{basicstyle=\ttfamily,language=C}
 
-\usepackage[endianness=big]{bytefield}
-%\usepackage{bytefield}
+%\usepackage[endianness=big]{bytefield}
+\usepackage{bytefield}
 
 % long immediate in second slot
 \newcommand{\lconst}{\texttt{const}_{32}}
@@ -272,7 +272,7 @@ The network interface (NI) of Argo has 2 OCP\cite{ocp:spec} interfaces.
 
 \section{Local and Global Address Space}
 
-\eva{Just copied the addresses from the .h files}
+%\eva{Just copied the addresses from the .h files}
 \begin{description}
 \item[UART\_STATUS]      0xF0000800
 \item[UART\_DATA]        0xF0000804
@@ -293,16 +293,33 @@ The network interface (NI) of Argo has 2 OCP\cite{ocp:spec} interfaces.
 %Patmos and the compiler have also been successfully installed on a Mac OSX
 %system. The support of Windows is marginal, or basically not existent.
 In the following we present the build instructions on a Linux/Ubuntu system,
-for a 2x2 hardware platform, along with Aegean infrastructure support.
-The hardware platform includes 4 Patmos processors connected by Argo NOC
-and the memory tree giving access to the main memory.
+for a 2x2 Aegean platform. The default hardware platform includes 4 Patmos processors 
+connected by Argo NOC and memory arbiter giving access to the shared memory.
 
 
 \section{Patmos and compiler build instructions}
 
-Information on how to build one Patmos processor and the compiler can be found in \cite{patmos-handbook}.
-Additional information on how to checkout the source code, the required packages and the tool setup
-are also mentioned in \cite{patmos-handbook}.
+Information on how to build a Patmos processor and how to run the compiler and some application examples
+can be found in \cite{patmos-handbook}. 
+
+
+The platform can be checked out from GitHub as part of the T-CREST project.
+The T-CREST project will live in \code{\$HOME/t-crest} and the Aegean platform with Argo NOC
+can be checked out and build with the same commands as for Patmos and the compiler.%, as follows:
+
+%\begin{verbatim}
+%mkdir ~/t-crest
+%cd ~/t-crest
+%git clone https://github.com/t-crest/patmos-misc.git misc
+%./misc/build.sh
+%\end{verbatim}
+
+
+Several packages and tools need to be installed and setup. The list of packages 
+and detailed setup instructions can be found in \cite{patmos-handbook}.
+Additianally, \cite{patmos-handbook} describes a simpe Hello world application 
+to be run either by simulation or on FPGA board, for a single Patmos processor.
+
 
 %\section{Setup On Ubuntu 13.04}
 %
@@ -707,13 +724,13 @@ are also mentioned in \cite{patmos-handbook}.
 %Without changing the \code{Makefile} the default of the board (and any other build variables)
 %can be overridden by providing a local \code{config.mk} that is included in the Makefile.
 %
-\subsection{Multicore Patmos}
+\subsection{Aegean}
 
-The whole build process of a 2x2 platform
+The whole build process of a 2x2 Aegean platform,
 \footnote{Get the source from GitHub with: \code{git clone git@github.com:t-crest/aegean}} 
 applications %in assembler
 in C, configuration of the FPGA, and downloading an application
-is \code{Makefile} based. The build of the platform is within the aegean folder,
+is \code{Makefile} based. The build of the platform is done in the aegean folder,
 therefore, the following descriptions assumes you have changed to:
 
 \begin{verbatim}
@@ -728,12 +745,42 @@ make synth
 make config
 \end{verbatim}
 
-to generate, synthesize and configure the bootloader application on the default platform on Altera DE2-115 FPGA board. The default platform is 4 cores of Patmos connected by Argo NOC and a memory tree connecting to main memory.
+to generate, synthesize and configure the default platform with the bootloader application 
+on Altera DE2-115 FPGA board. The default platform is 4 cores of Patmos connected by Argo NOC 
+and a memory arbiter connecting to main memory.
+
+
+\section{Applications}
+
+Applications for the multicore platform can be developed in C code, either 
+compiled with the hardware platform, embedded in the the on-chip ROM
+or compiled in ELF binaries, bootable by the emulator or the bootloader on FPGA.
+The application is written in C and placed under /t-crest/patmos/c.
+In both cases the application is build through \code{Makefile}
+using the following variables:
+
+\begin{itemize}
+\item \code{BOOTAPP} for the built in on-chip ROM applications.
+\item \code{APP} for the ELF binary applications to be executed through bootloader.
+\end{itemize}
+
+%The \code{Makefile} use following variables to configure the build process:
+%\code{BOOTAPP} is an application that ends in the on-chip ROM. This may
+%be an assembler program or a simple C program;
+%most prominent the boot loader for ELF binaries.
+%A C program that shall be compiled as ROM target needs to be prefixed
+%with \code{bootable-}.
+%\code{APP} is a C program resulting in an ELF binary that can be either
+%loaded by the emulator or the boot loader when executing in an FPGA.
+%% TODO: test and talk about patsim. Having a complete ELF in the FPGA
+%% without the boot loader would be nice as well.
+%
 
 \section{Applications and download of ELF files}
 
 An application executed in the multicore platform can be compiled in an ELF file and downloaded on the FPGA.
-The application should be written in C and placed under /t-crest/patmos/c. The compilation and downloading
+%The application should be written in C and placed under /t-crest/patmos/c. 
+The compilation and downloading
 is make-based and is done in folder /t-crest/patmos/ with the following make commands:
 
 \begin{verbatim}
@@ -781,7 +828,7 @@ make APP=<app_name> download
 \section{Application Programming Interface}
 \label{sec:api}
 
-At the time of writing the only application programming interface is the libnoc library. A number of functions and variable are provided through libnoc library. libnoc has two kinds of functionality, the first is to initialize the network interface (NI) and the second is the setup DMA transfers for send messages to other processing cores. 
+At the time of writing the only application programming interface is the libnoc library. A number of functions and variables are provided through libnoc library. libnoc has two kinds of functionality, the first is to initialize the network interface (NI) and the second is the setup DMA transfers for send messages to other processing cores. 
 
 The variables defined in libnoc:
 \begin{description}
@@ -915,7 +962,7 @@ Ideas for extensions can be added in this chapter.
 
 \bibliographystyle{abbrv}
 % MS noc.bib is missing
-\bibliography{../handbook/patbib}
+\bibliography{argobib}
 
 \end{document}
 
