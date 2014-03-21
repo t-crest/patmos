@@ -1148,96 +1148,12 @@ progress, the pipeline will be stalled implicitly until the already running load
 is completed before the next memory access is issued. The value of the previous
 load can then be read from \texttt{sm} for (at least) one cycle.
 
-Regular loads incur a one cycle load-to-use latency that has
-to be respected by the compiler/programmer. The destination register of the load
-is guaranteed to be unmodified, i.e., a one-cycle load delay slot.
-
-\martin{There can be different approaches to handle the case where the destination register of load is used in the next clock cycle
-
-1) Ignore the issue, as the compiler will not generate this code. Therefore, we need to avoid this test case.
-
-2) Looking what the hardware does (assume the ALU result of the lws instruction is forwarded) and implementing this in the simulator.
-
-3) Disabling forwarding from the EX stage when the last instruction was a load, but enabling it again when the load instruction is in the MEM stage. That would mean that the 'old' value of the register is used.
-
-4) implement pipeline interlock with a partial stall (or bubble) to allow load/use without a delay slot (like MIPS II I think).
-
-}
-
-\fb{The easiest solution is to define the behavior as undefined.
-
-From the compiler side it might also make sense to implement 3) as
-the delay slot filler might exploit this (I would not consider this
-with high priority though).}
-
-\sahar{Pipeline stall is no different than the one slot delay from delay point of view, but the compiler does not have to take care of adding the delay slot.}
-
-\martin{When there is a NOP in the delay slot it is the same execution time as when the pipeline is (partially) stalled for one cycle.
-
-If the compiler can fill the delay slot, the solution with the delay slot is more efficient. If it cannot be filled, code size increases due to the NOPs. So this is a trade-off, and we do not (yet) know which is better.
-
-So we keep it as it is and say that using the load value in the delay slot leads to undefined behavior.}
-
-
-\gebhard{Does this imply that the semantics of the processor is dependent on the instruction timing?
-If this is actually the case, a static value analysis is \emph{unable} to compute precise data if it does not know the timing of the execution history!
-
-Consider the following instruction sequence.
-Each line denotes an instruction bundle.
-For the sake of simplicity we only consider simple bundles (i.e., only the first slot is used).
-
-\begin{tabular}{cl}
-\hline
-1 & \texttt{dlwm r3+0x00} \\
-2 & \texttt{nop}          \\
-3 & \texttt{mfs r2,sm}  \\
-\hline
-\end{tabular}
-
-Whether \texttt{sm} contains the memory contents once the third instruction is executed is statically unknown.
-Remember that the processor is part of a network, where data access timing depends on the load of the network.
-If the access completes after dispatch of the second instruction, we will be fine.
-According to the semantics (``one-cycle load delay slot''), the register \texttt{sm} will contain the expected value.
-But if the access takes longer...}
-
-\fb{
-The Processor ensures that the value in the destination register of a load keeps
-the old value for one more cycle (instruction bundle). In the case of regular
-loads, which stall, the register will have the value just loaded from memory
-after that cycle. For decoupled loads the value is \emph{undefined} until the
-worst-case latency of the load has passed. You have to use a \texttt{wait} or
-another decoupled load in order to be safe. The static analysis should/could
-issue a warning/error if such a code is encountered. If the \texttt{wait}
-instruction should be eliminated, the \texttt{mfs} has to respect the load's
-latency in the worst-case, which needs to be known anyways for the
-\texttt{wait}.
-}
-
-\gebhard{I am still not convinced of the benefit of decoupled loads.
-Why don't we implement loads (or stores) such that they block upon a register dependency?
-A load may then always run in parallel to other instructions, as long as the target register is not needed.
-
-By doing so, we would even safe code space.
-To ensure that a decoupled load gives us the expected result we currently need three instructions:
-The decoupled load instruction, a wait instruction, and a move from special register instruction.
-Using implicitly blocking loads we \emph{always} need \emph{exactly one} instruction to perform a load from memory.
-
-Please provide evidence why the current design leads to a (statically) predictable architecture.}
-
-\fb{
-There is a proposal in the extensions part that follows this idea. The main
-motivation for the current solution are hardware considerations. (1) We do not
-want to afford a 3rd write port to the register file, which would be needed if
-we want to handle a decoupled load that is about to finish concurrently with two
-ALU instructions. This is why decoupled loads go to the special registers. (2)
-We do not want every instruction with a register operand to stall, i.e., only
-very few classes of instructions should stall. Also note, that a separate
-\emph{wait} allows us to wait for a load without using a register. This might
-come handy for compiler optimizations, e.g., placement of \texttt{wait} after
-register allocation.
-}
-
-\gebhard{In my experience the gain from such optimizations is far less than the penalty induced by the increased code size.}
+Regular loads incur a load-to-use latency that has to be respected by
+the compiler/programmer. The result of the load is not available in
+the bundle immediately after the load, i.e., there must be one bundle
+between the load instruction and the first use of the destination
+register. The value of the destination register is undefined during
+this load delay slot.
 
 The displacement value (\code{Imm}) value is interpreted unsigned.
 
