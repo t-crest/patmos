@@ -294,7 +294,7 @@ int main(int argc, char **argv)
     ("psize",    boost::program_options::value<patmos::byte_size_t>()->default_value(0), "Memory page size. Enables variable burst lengths for single-core.")
     ("posted,p", boost::program_options::value<unsigned int>()->default_value(0), "Enable posted writes (sets max queue size)")
     ("lsize,l",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_LOCAL_MEMORY_BYTES), "local memory size in bytes")
-    ("chkreads", "Check for read accesses to uninitialized data");
+    ("chkreads", "Check for read accesses to uninitialized data (disables the data cache)");
 
   boost::program_options::options_description cache_options("Cache options");
   cache_options.add_options()
@@ -450,8 +450,10 @@ int main(int argc, char **argv)
 
   if (!mbsize) mbsize = bsize;
   
-  if (check_uninitialized && vm.count("dckind") > 0) {
-    // By default, disable the data cache with --chkreads
+  if (check_uninitialized) {
+    // Disable the data cache with --chkreads
+    // TODO should we warn about this / abort if the user sets -D .. but how
+    // can we check for this with boost if there is a default value set??
     dck.policy = patmos::SAC_NO;
   }
   
