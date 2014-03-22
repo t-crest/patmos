@@ -217,6 +217,13 @@ namespace patmos
       throw simulation_exception_t(ILLEGAL_ACCESS, address);
     }
     
+    /// Throw an illegal access simulation exception.
+    /// @param address The unmapped address.
+    static void illegal_access(std::string msg) __attribute__ ((noreturn))
+    {
+      throw simulation_exception_t(ILLEGAL_ACCESS, msg);
+    }
+    
     /// Throw a stack-cache-size-exceeded simulation exception.
     static void stack_exceeded(std::string msg)  __attribute__ ((noreturn))
     {

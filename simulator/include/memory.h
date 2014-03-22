@@ -136,19 +136,40 @@ namespace patmos
 
     /// The content of the memory.
     byte_t *Content;
+    
+    /// Optional vector of flags indicating whether a byte has been initialized.
+    byte_t *Init_vector;
 
+    bool Randomize;
+    
     /// Ensure that the content is initialize up to the given address.
     /// @param address The address that should be accessed.
     /// @param size The access size.
-    void check_initialize_content(uword_t address, uword_t size);
+    /// @param is_write Access is a write or a read
+    /// @param ignore_errors Do not throw any exceptions on access errors
+    void check_initialize_content(uword_t address, uword_t size, bool is_read, 
+                                  bool ignore_errors = false);
   public:
     /// Construct a new memory instance.
     /// @param memory_size The size of the memory in bytes.
-    ideal_memory_t(excunit_t &excunit, unsigned int memory_size) 
+    ideal_memory_t(excunit_t &excunit, unsigned int memory_size, bool randomize, 
+                   bool check_uninitialized) 
     : Exception_handler(excunit), 
-      Memory_size(memory_size), Initialized_offset(0)
+      Memory_size(memory_size), Initialized_offset(0), 
+      Randomize(randomize)
     {
       Content = new byte_t[memory_size];
+      
+      if (check_uninitialized) {
+        Init_vector = new byte_t[memory_size];
+      } else {
+        Init_vector = NULL;
+      }
+    }
+    
+    ~ideal_memory_t() {
+      if (Content) delete[] Content;
+      if (Init_vector) delete[] Init_vector;
     }
 
     virtual excunit_t &get_exception_handler() { return Exception_handler; }
@@ -214,11 +235,6 @@ namespace patmos
     
     virtual void reset_stats() {}
 
-    /// Destroy the memory instance and free its memory.
-    virtual ~ideal_memory_t()
-    {
-      delete[] Content;
-    }
   };
 
   /// Information about an outstanding memory request.
@@ -344,8 +360,9 @@ namespace patmos
                          unsigned int num_bytes_per_burst,
                          unsigned int num_posted_writes,
                          unsigned int num_ticks_per_burst, 
-                         unsigned int num_read_delay_ticks) :
-        ideal_memory_t(excunit, memory_size), 
+                         unsigned int num_read_delay_ticks,
+                         bool randomize, bool check_uninitialized) :
+        ideal_memory_t(excunit, memory_size, randomize, check_uninitialized), 
         Num_ticks_per_burst(num_ticks_per_burst),
         Num_bytes_per_burst(num_bytes_per_burst),
         Num_posted_writes(num_posted_writes),
@@ -373,19 +390,6 @@ namespace patmos
     /// @return True when the data is written finally to the memory, false
     /// otherwise.
     virtual bool write(uword_t address, byte_t *value, uword_t size);
-
-    /// Read some values from the memory -- DO NOT SIMULATE TIMING.
-    /// @param address The memory address to read from.
-    /// @param value A pointer to a destination to store the value read from
-    /// the memory.
-    /// @param size The number of bytes to read.
-    virtual void read_peek(uword_t address, byte_t *value, uword_t size);
-
-    /// Write some values into the memory -- DO NOT SIMULATE TIMING, just write.
-    /// @param address The memory address to write to.
-    /// @param value The value to be written to the memory.
-    /// @param size The number of bytes to write.
-    virtual void write_peek(uword_t address, byte_t *value, uword_t size);
 
     /// Check if the memory is busy handling some request.
     /// @return False in case the memory is currently handling some request,
@@ -424,10 +428,12 @@ namespace patmos
                         unsigned int num_bytes_per_page,
                         unsigned int num_posted_writes,
                         unsigned int num_min_ticks_per_burst,
-                        unsigned int num_read_delay_ticks)
+                        unsigned int num_read_delay_ticks,
+                        bool randomize, bool check_uninitialized)
     : fixed_delay_memory_t(excunit, memory_size, num_min_bytes_per_burst, 
                            num_posted_writes, 
-                           num_min_ticks_per_burst, num_read_delay_ticks),
+                           num_min_ticks_per_burst, num_read_delay_ticks,
+                           randomize, check_uninitialized),
       Num_bytes_per_page(num_bytes_per_page)
     {}
 
@@ -460,7 +466,8 @@ namespace patmos
                  unsigned int cpu_id,
                  unsigned int num_ticks_per_burst,
                  unsigned int num_read_delay_ticks,
-                 unsigned int num_refresh_ticks_per_round);
+                 unsigned int num_refresh_ticks_per_round, 
+                 bool randomize, bool check_uninitialized);
     
     virtual void tick();
   };
