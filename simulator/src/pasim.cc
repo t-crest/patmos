@@ -61,19 +61,19 @@ static patmos::memory_t &create_global_memory(patmos::excunit_t &excunit,
 {
   if (cores > 1) {
     return *new patmos::tdm_memory_t(excunit, size, burst_size, posted, cores, cpu_id,
-                                     burst_time, read_delay, refresh_cycles, true, 
+                                     burst_time, read_delay, refresh_cycles, false, 
                                      check_uninitialized);
   } 
   else if (cores == 1) {
     if (burst_time == 0 && read_delay == 0)
-      return *new patmos::ideal_memory_t(excunit, size, true, check_uninitialized);
+      return *new patmos::ideal_memory_t(excunit, size, false, check_uninitialized);
     else if (page_size == 0)
       return *new patmos::fixed_delay_memory_t(excunit, size, burst_size, posted, 
-                                              burst_time, read_delay, true,
+                                              burst_time, read_delay, false,
                                               check_uninitialized);
     else
       return *new patmos::variable_burst_memory_t(excunit, size, burst_size, page_size,
-                                              posted, burst_time, read_delay, true, 
+                                              posted, burst_time, read_delay, false,
                                               check_uninitialized);
   } 
   else {
