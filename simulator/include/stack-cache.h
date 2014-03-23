@@ -154,6 +154,9 @@ namespace patmos
   public:
     ideal_stack_cache_t(memory_t &memory) : Memory(memory) {}
 
+    virtual excunit_t &get_exception_handler() {
+      return Memory.get_exception_handler();
+    }
     
     virtual word_t prepare_reserve(uword_t size, 
                                    uword_t &stack_spill, uword_t &stack_top);

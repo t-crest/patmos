@@ -18,6 +18,7 @@
 //
 #include "memory.h"
 
+#include "excunit.h"
 #include "exception.h"
 #include "simulation-core.h"
 
@@ -26,26 +27,51 @@
 #include <cassert>
 #include <cmath>
 #include <algorithm>
+#include <cstdlib>
+#include <iostream>
 
 using namespace patmos;
 
-/// Ensure that the content is initialize up to the given address.
-/// @param address The address that should be accessed.
-/// @param size The access size.
-void ideal_memory_t::check_initialize_content(uword_t address, uword_t size)
+void ideal_memory_t::check_initialize_content(uword_t address, uword_t size, 
+                                              bool is_read, bool ignore_errors)
 {
   // check if the access exceeds the memory size
   if((address > Memory_size) || (size > Memory_size - address))
   {
+    // We cannot quite ignore this one .. 
     simulation_exception_t::unmapped(address);
   }
 
-  // initialize memory content
-  size = std::max(1024u, size);
-  for(; Initialized_offset < std::min(address + size, Memory_size);
-      Initialized_offset++)
-  {
-    Content[Initialized_offset] = 0;
+  if (Init_vector && is_read) {
+    // Read, check for uninitialized access
+    if (!ignore_errors) {
+      if ((address + size > Initialized_offset)) {
+        simulation_exception_t::illegal_access("Accessing uninitialized data");
+      }
+      for (uword_t i = address; i < address + size; i++) {
+        if (!Init_vector[i]) {
+          simulation_exception_t::illegal_access("Accessing uninitialized data");
+        }
+      }
+    }
+  } else if (Init_vector) {
+    // A write.. mark as initialized
+    for(; Initialized_offset < address; Initialized_offset++)
+    {
+      Init_vector[Initialized_offset] = 0;
+    }
+    for (uword_t i = address; i < address + size; i++) {
+      Init_vector[i] = 1;
+    }
+    Initialized_offset = std::max(Initialized_offset, address + size);
+  } else {
+    // initialize memory content
+    size = std::max(1024u, size);
+    for(; Initialized_offset < std::min(address + size, Memory_size);
+        Initialized_offset++)
+    {
+      Content[Initialized_offset] = Randomize ? rand() % 256 : 0;
+    }
   }
 }
 
@@ -53,7 +79,7 @@ bool ideal_memory_t::read(uword_t address, byte_t *value, uword_t size)
 {
   // check if the access exceeds the memory size and lazily initialize
   // memory content
-  check_initialize_content(address, size);
+  check_initialize_content(address, size, true);
 
   // read the data from the memory
   for(unsigned int i = 0; i < size; i++)
@@ -68,7 +94,7 @@ bool ideal_memory_t::write(uword_t address, byte_t *value, uword_t size)
 {
   // check if the access exceeds the memory size and lazily initialize
   // memory content
-  check_initialize_content(address, size);
+  check_initialize_content(address, size, false);
 
   // write the data to the memory
   for(unsigned int i = 0; i < size; i++)
@@ -81,14 +107,25 @@ bool ideal_memory_t::write(uword_t address, byte_t *value, uword_t size)
 
 void ideal_memory_t::read_peek(uword_t address, byte_t *value, uword_t size)
 {
-  bool result = read(address, value, size);
-  assert(result);
+  // Check, but ignore errors.
+  check_initialize_content(address, size, true, true);
+
+  // read the data from the memory
+  for(unsigned int i = 0; i < size; i++)
+  {
+    *value++ = Content[address++];
+  }
 }
 
 void ideal_memory_t::write_peek(uword_t address, byte_t *value, uword_t size)
 {
-  bool result = write(address, value, size);
-  assert(result);
+  check_initialize_content(address, size, false, true);
+
+  // write the data to the memory
+  for(unsigned int i = 0; i < size; i++)
+  {
+    Content[address++] = *value++;
+  }
 }
 
 
@@ -127,7 +164,7 @@ const request_info_t &fixed_delay_memory_t::find_or_create_request(
 {
   // check if the access exceeds the memory size and lazily initialize
   // memory content
-  check_initialize_content(address, size);
+  check_initialize_content(address, size, is_load);
 
   // see if the request already exists
   for(requests_t::const_iterator i(Requests.begin()), ie(Requests.end());
@@ -243,18 +280,6 @@ bool fixed_delay_memory_t::write(uword_t address, byte_t *value, uword_t size)
     // not yet finished
     return false;
   }
-}
-
-void fixed_delay_memory_t::read_peek(uword_t address, byte_t *value, uword_t size)
-{
-  bool result = ideal_memory_t::read(address, value, size);
-  assert(result);
-}
-
-void fixed_delay_memory_t::write_peek(uword_t address, byte_t *value, uword_t size)
-{
-  bool result = ideal_memory_t::write(address, value, size);
-  assert(result);
 }
 
 bool fixed_delay_memory_t::is_ready()
@@ -438,17 +463,19 @@ unsigned int variable_burst_memory_t::get_transfer_ticks(uword_t aligned_address
 
 
 
-tdm_memory_t::tdm_memory_t(unsigned int memory_size, 
+tdm_memory_t::tdm_memory_t(excunit_t &excunit,
+                           unsigned int memory_size, 
                            unsigned int num_bytes_per_burst,
                            unsigned int num_posted_writes,
                            unsigned int num_cores,
                            unsigned int cpu_id,
                            unsigned int num_ticks_per_burst,
                            unsigned int num_read_delay_ticks,
-                           unsigned int num_refresh_ticks_per_round)
-: fixed_delay_memory_t(memory_size, num_bytes_per_burst, num_posted_writes,
-  num_ticks_per_burst, num_read_delay_ticks), Round_counter(0), 
-  Is_Transferring(false)
+                           unsigned int num_refresh_ticks_per_round, 
+                           bool randomize, bool check_uninitialized)
+: fixed_delay_memory_t(excunit, memory_size, num_bytes_per_burst, num_posted_writes,
+  num_ticks_per_burst, num_read_delay_ticks, randomize, check_uninitialized),
+  Round_counter(0), Is_Transferring(false)
 {
   Round_length = num_cores * num_ticks_per_burst + num_refresh_ticks_per_round;
   Round_start  = cpu_id * num_ticks_per_burst;

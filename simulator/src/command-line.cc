@@ -87,7 +87,7 @@ namespace patmos
 
     return os;
   }
-
+  
   std::istream &operator >>(std::istream &in, set_assoc_cache_type &dck)
   {
     std::string tmp, kind;

@@ -26,7 +26,7 @@
 
 #include "memory-map.h"
 #include "endian-conversion.h"
-#include "interrupts.h"
+#include "excunit.h"
 
 namespace patmos
 {
@@ -45,23 +45,43 @@ namespace patmos
     /// Latched high word of usec counter
     uword_t High_usec;
 
-    /// Interrupt interval register value
-    udword_t Interrupt_interval;
+    /// Remember the last usec value to trigger only when it changed
+    uint64_t Last_usec;
+    
+    /// Latched low word of interrupt register value
+    uword_t Low_interrupt_clock;
+    
+    /// Latched low word of usec interrupt register value
+    uword_t Low_interrupt_usec;
+    
+    /// Cycle interrupt register value
+    uint64_t Interrupt_clock;
 
-    /// Interrupt interval register value
-    uword_t ISR;
-
+    /// usec interrupt register value
+    uint64_t Interrupt_usec;
+    
   public:
 
-    rtc_t(uword_t base_address, simulator_t &s, double frequency)
-    : mapped_device_t(base_address, TIMER_MAP_SIZE),
+    rtc_t(simulator_t &s, uword_t base_address, double frequency)
+    : mapped_device_t(s.Exception_handler, base_address, TIMER_MAP_SIZE),
       Simulator(s),
       Frequency(frequency), High_clock(0), High_usec(0),
-      Interrupt_interval(std::numeric_limits<udword_t>::max())
+      Last_usec(0), Low_interrupt_clock(0), Low_interrupt_usec(0),
+      Interrupt_clock(std::numeric_limits<uint64_t>::max()), 
+      Interrupt_usec(std::numeric_limits<uint64_t>::max())
     {
       Simulator.Rtc = this;
     }
 
+    uint64_t getCycle() {
+      return Simulator.Cycle;
+    }
+    
+    uint64_t getUSec() {
+      // TODO if Frequency == 0, use wall clock for usec
+      return (uint64_t)((double)Simulator.Cycle / Frequency);
+    }
+    
     virtual bool read(uword_t address, byte_t *value, uword_t size) {
       if (is_word_access(address, size, 0x00)) {
         // read latched high word of cycle counter
@@ -69,8 +89,9 @@ namespace patmos
       }
       else if (is_word_access(address, size, 0x04)) {
         // read low word of cycle counter, latch high word
-        uword_t low_clock = (uword_t)Simulator.Cycle;
-        High_clock = (uword_t)(Simulator.Cycle >> 32);
+        uint64_t cycle = getCycle();
+        uword_t low_clock = (uword_t)cycle;
+        High_clock = (uword_t)(cycle >> 32);
         set_word(value, size, low_clock);
       }
       else if (is_word_access(address, size, 0x08)) {
@@ -79,46 +100,51 @@ namespace patmos
       }
       else if (is_word_access(address, size, 0x0c)) {
         // read low word of usec, latch high word
-        // TODO if Frequency == 0, use wall clock for usec
-        uint64_t usec = (uint64_t)((double)Simulator.Cycle / Frequency);
+        uint64_t usec = getUSec();
         uword_t low_usec = (uword_t)usec;
         High_usec = (uword_t)(usec >> 32);
         set_word(value, size, low_usec);
       }
-      else if (is_word_access(address, size, 0x10)) {
-        // read current interrupt interval counter
-        set_word(value, size, (uword_t)Interrupt_interval);
-      }
-      else if (is_word_access(address, size, 0x14)) {
-        // read latched high word of usec
-        set_word(value, size, ISR);
-      }
       else {
-        simulation_exception_t::unmapped(address);
+        Exception_handler.unmapped(address);
       }
       return true;
     }
 
     virtual bool write(uword_t address, byte_t *value, uword_t size) {
-      if (is_word_access(address, size, 0x10)) {
-        Interrupt_interval = get_word(value, size);
-      } 
-      else if (is_word_access(address, size, 0x14)) {
-        ISR = get_word(value, size);
+      if (is_word_access(address, size, 0x00)) {
+        // set the clock interrupt timer
+        uword_t high_clock = get_word(value, size);
+        Interrupt_clock = ((uint64_t)high_clock)<<32 | Low_interrupt_clock;
+      }
+      else if (is_word_access(address, size, 0x04)) {
+        // latch the low word of the cycle counter
+        Low_interrupt_clock = get_word(value, size);
+      }
+      else if (is_word_access(address, size, 0x08)) {
+        // set the usec interrupt timer
+        uword_t high_usec = get_word(value, size);
+        Interrupt_usec = ((uint64_t)high_usec)<<32 | Low_interrupt_usec;
+      }
+      else if (is_word_access(address, size, 0x0c)) {
+        // latch the low word of the usec counter
+        Low_interrupt_usec = get_word(value, size);
       }
       else {
-        simulation_exception_t::unmapped(address);
+        Exception_handler.unmapped(address);
       }
       return true;
     }
 
     virtual void tick() {
-      Interrupt_interval--;
-      /// If interrupt interval reached 0 we fire an interrupt
-      if (Interrupt_interval == 0) {
-        Simulator.Interrupt_handler.fire_interrupt(interval, ISR);
-        Interrupt_interval = std::numeric_limits<udword_t>::max();
+      if (Interrupt_clock == getCycle()) {
+        Exception_handler.fire_exception(ET_INTR_CLOCK);
       }
+      uint64_t usec = getUSec();
+      if (Interrupt_usec == usec && usec != Last_usec) {
+        Exception_handler.fire_exception(ET_INTR_USEC);
+      }
+      Last_usec = usec;
     }
   };
 }

@@ -35,7 +35,4 @@
 	  </params>
 	</IODev>
   </IODevs>
-
-  <!-- currently unused -->
-  <SCache size="0" />
 </patmos>

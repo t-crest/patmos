@@ -28,6 +28,7 @@
 #include "simulation-core.h"
 #include "stack-cache.h"
 #include "symbol.h"
+#include "excunit.h"
 
 #include <ostream>
 #include <boost/format.hpp>
@@ -1959,24 +1960,39 @@ namespace patmos
       os << "trap " << ops.OPS.CFLi.UImm;
     }
 
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.MW_Initialized = false;
+    }
+    
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
-      // TODO read out the target address based on the trap number
-      // ops.OPS.CFLi.UImm;
-      ops.EX_Address = 0;
+      exception_e exc = (exception_e)ops.OPS.CFLi.UImm;
+      exception_t isr;
       
-      ops.MW_Initialized = false;
-      simulation_exception_t::illegal("trap function not yet implemented.");
+      // determine if the exception should be triggered by the trap instruction
+      ops.EX_result = ops.DR_Pred && s.Exception_handler.trap(exc, isr);
+      
+      ops.EX_Base    = isr.Address;
+      ops.EX_Offset  = 0;
+      ops.EX_Address = get_PC(ops.EX_Base, ops.EX_Offset);
     }
     
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
-      store_return_address(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address, 
+      store_return_address(s, ops, ops.EX_result, s.BASE, 
+                           s.Pipeline[SEX][0].Address, ops.EX_Address, 
                            SMW, true);
       
-      push_dbgstack(s, ops, ops.DR_Pred, ops.EX_Address);
+      push_dbgstack(s, ops, ops.EX_result, ops.EX_Address);
 
-      fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+      fetch_and_dispatch(s, ops, ops.EX_result, ops.EX_Address, ops.EX_Address);
+      
+      if (ops.EX_result && !s.is_stalling(SMW))
+      {
+        s.pipeline_flush(SMW);
+      }
     }
         
     virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
@@ -1997,22 +2013,27 @@ namespace patmos
 
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.EX_Address = ops.OPS.CFLi.UImm*sizeof(word_t);
+      ops.EX_Address = ops.OPS.CFLi.UImm;
       ops.MW_Initialized = false;
     }
     
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
-      store_return_address(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address, 
+      store_return_address(s, ops, ops.DR_Pred, s.BASE, ops.Address, ops.EX_Address, 
                            SMW, true);
       
       push_dbgstack(s, ops, ops.DR_Pred, ops.EX_Address);
 
       fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+      
+      if (ops.DR_Pred && !s.is_stalling(SMW))
+      {
+        s.pipeline_flush(SMW);
+      }
     }
     
     virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
-      return 3;
+      return 0;
     }
   };
 
@@ -2134,6 +2155,7 @@ namespace patmos
       push_dbgstack(s, ops, ops.DR_Pred, ops.EX_Address);
       
       fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+      
       if (!ops.OPS.CFLrs.D && ops.DR_Pred && !s.is_stalling(SMW))
       {
         s.pipeline_flush(SMW);
@@ -2256,6 +2278,7 @@ namespace patmos
         pop_dbgstack(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Offset);
         
         fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Address);
+
         if (!ops.OPS.CFLri.D && ops.DR_Pred)
         {
           s.pipeline_flush(SMW);
@@ -2303,13 +2326,23 @@ namespace patmos
       // returning to address 0? interpret this as an error
       if (ops.DR_Pred && ops.EX_Address == 0)
       {
-        simulation_exception_t::illegal_pc_msg("Returning from xret to address 0!");
+        simulation_exception_t::illegal_pc("Returning from xret to address 0!");
       }
       else if (ops.DR_Pred)
       {
         pop_dbgstack(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Offset);
+
+        // We re-enable interrupts *once*, and *before* we start fetching from
+        // M$, so that we can abort fetching if there is another interrupt pending
+        if (!ops.MW_Initialized) {
+          s.Exception_handler.resume();
+          ops.MW_Initialized = true;
+        }
         
+        // TODO maybe do not even fetch return function if there is an 
+        // interrupt pending
         fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Address);
+
         if (!ops.OPS.CFLri.D && ops.DR_Pred)
         {
           s.pipeline_flush(SMW);

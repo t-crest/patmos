@@ -27,6 +27,7 @@
 
 namespace patmos
 { 
+  class excunit_t;
 
   /// Basic interface for instruction-caches implementations.
   class instr_cache_t
@@ -35,6 +36,8 @@ namespace patmos
   public:
     virtual ~instr_cache_t() {}
 
+    virtual excunit_t &get_exception_handler() = 0;
+    
     /// Initialize the cache before executing the first instruction.
     /// @param address Address to fetch initial instructions.
     virtual void initialize(uword_t address) = 0;
@@ -119,6 +122,10 @@ namespace patmos
       for (int i = 0; i < NUM_SLOTS; i++) {
         Is_miss[i] = false;
       }
+    }
+    
+    virtual excunit_t& get_exception_handler() {
+      return Memory->get_exception_handler();
     }
     
     virtual void initialize(uword_t address) {}

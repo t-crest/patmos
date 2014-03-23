@@ -40,6 +40,9 @@
 #include "cmpboot.h"
 #include "patio.h"
 
+#define TIM TIMER_USLOW
+#define DELAY 1000*1
+
 // #define DEBUG
 
 int main(void)
@@ -54,6 +57,10 @@ int main(void)
 #ifdef DEBUG
   WRITE("BOOT\n", 5);
 #endif
+  // wait a little bit in case of the TU/e memory controller not being ready
+  int val = TIM+DELAY;
+  while (TIM-val < 0)
+    ;
 
   // overwrite potential leftovers from previous runs
   boot_info->master.status = STATUS_NULL;

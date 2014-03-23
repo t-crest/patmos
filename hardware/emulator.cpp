@@ -10,7 +10,6 @@
 
 istream *in = &cin;
 ostream *out = &cout;
-ofstream cmiss;
 
 #define OCMEM_ADDR_BITS 16
 
@@ -289,64 +288,58 @@ static void mcacheStat(Patmos_t *c, bool halt) {
 
 static void usage(ostream &out, const char *name) {
   out << "Usage: " << name
-      << " [-q|-r] [-u|-n] [-v] [-p] [-l cycles] [-I file] [-O file] [-h] [file]" << endl;
+      << " <options> [file]" << endl;
 }
 
 static void help(ostream &out) {
   out << endl << "Options:" << endl
-      << "  -q            Do not print register values in each cycles" << endl
-      << "  -r            Print register values in each cycles" << endl
-      << "  -u            Print UART output" << endl
-      << "  -n            Do not print UART output" << endl
+      << "  -h            Print this help" << endl
+      << "  -i            Initialize memory with random values" << endl
       << "  -k            Simulate random input from keys" << endl
-      << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
-      << "  -p            Print method cache statistics" << endl
       << "  -l <N>        Stop after <N> cycles" << endl
+      << "  -n            Do not print UART output" << endl
+      << "  -p            Print method cache statistics" << endl
+      << "  -r            Print register values in each cycle" << endl
+      << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
       << "  -I <file>     Read input from file <file> [unused]" << endl
-      << "  -O <file>     Write output from file <file>" << endl
-      << "  -h            Print this help" << endl;
+      << "  -O <file>     Write output from file <file>" << endl;
 }
 
 int main (int argc, char* argv[]) {
   Patmos_t* c = new Patmos_t();
 
   int opt;
-  int lim = -1;
+
+  bool random = false;
+  bool keys = false;
+  int  lim = -1;
+  bool uart = true;
+  bool print_stat = false;
+  bool quiet = true;
   bool vcd = false;
 
-  // MS: what it the usage of disabling the UART?
-  // WP: output from the UART can mess up trace and cause discrepancies with simulator
-  bool uart = true;
-  bool keys = false;
-  bool quiet = true;
-  bool print_stat = false;
-
-  while ((opt = getopt(argc, argv, "qrunkvpl:I:O:h")) != -1) {
+  while ((opt = getopt(argc, argv, "hikl:nprvI:O:")) != -1) {
 	switch (opt) {
-	// MS: q and u should go away, but tests in bench need updates first
-	case 'q':
-	  quiet = true;
-	  break;
-	case 'r':
-	  quiet = false;
-	  break;
-	case 'u':
-	  uart = true;
+	case 'i':
+	  random = true;
 	  break;
 	case 'k':
 	  keys = true;
 	  break;
+	case 'l':
+	  lim = atoi(optarg);
+	  break;
 	case 'n':
 	  uart = false;
-	  break;
-	case 'v':
-	  vcd = true;
 	  break;
 	case 'p':
 	  print_stat = true;
 	  break;
-	case 'l':
-	  lim = atoi(optarg);
+	case 'r':
+	  quiet = false;
+	  break;
+	case 'v':
+	  vcd = true;
 	  break;
 	case 'I':
 	  if (strcmp(optarg, "-") == 0) {
@@ -376,13 +369,21 @@ int main (int argc, char* argv[]) {
 	  exit(EXIT_SUCCESS);
 	default: /* '?' */
 	  usage(cerr, argv[0]);
+	  cerr << "Try '" << argv[0] << " -h' for more information" << endl;
 	  exit(EXIT_FAILURE);
 	}
   }
 
+  // TODO: Randomizing internal state seems to be broken
+  // c->init(random);
   c->init();
 
   srand(0);
+  if (random) {
+    for (int i = 0; i < 1 << SRAM_ADDR_BITS; i++) {
+      ssram_buf[i] = rand();
+    }
+  }
 
   val_t entry = 0;
   if (optind < argc) {

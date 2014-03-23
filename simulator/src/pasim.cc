@@ -29,12 +29,13 @@
 #include "memory-map.h"
 #include "uart.h"
 #include "rtc.h"
-#include "interrupts.h"
+#include "excunit.h"
 
 #include <unistd.h>
 #include <termios.h>
 #include <signal.h>
 
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <limits>
@@ -46,7 +47,8 @@
 /// @param burst_time Access time in cycles for memory accesses.
 /// @param size The requested size of the memory in bytes.
 /// @return An instance of the requested memory.
-static patmos::memory_t &create_global_memory(unsigned int cores,
+static patmos::memory_t &create_global_memory(patmos::excunit_t &excunit,
+                                              unsigned int cores,
                                               unsigned int cpu_id,
                                               unsigned int size,
                                               unsigned int burst_size,
@@ -54,21 +56,25 @@ static patmos::memory_t &create_global_memory(unsigned int cores,
                                               unsigned int posted,
                                               unsigned int burst_time,
                                               unsigned int read_delay,
-                                              unsigned int refresh_cycles)
+                                              unsigned int refresh_cycles,
+                                              bool check_uninitialized)
 {
   if (cores > 1) {
-    return *new patmos::tdm_memory_t(size, burst_size, posted, cores, cpu_id,
-                                     burst_time, read_delay, refresh_cycles);    
+    return *new patmos::tdm_memory_t(excunit, size, burst_size, posted, cores, cpu_id,
+                                     burst_time, read_delay, refresh_cycles, false, 
+                                     check_uninitialized);
   } 
   else if (cores == 1) {
     if (burst_time == 0 && read_delay == 0)
-      return *new patmos::ideal_memory_t(size);
+      return *new patmos::ideal_memory_t(excunit, size, false, check_uninitialized);
     else if (page_size == 0)
-      return *new patmos::fixed_delay_memory_t(size, burst_size, posted, 
-                                              burst_time, read_delay);
+      return *new patmos::fixed_delay_memory_t(excunit, size, burst_size, posted, 
+                                              burst_time, read_delay, false,
+                                              check_uninitialized);
     else
-      return *new patmos::variable_burst_memory_t(size, burst_size, page_size,
-                                              posted, burst_time, read_delay);
+      return *new patmos::variable_burst_memory_t(excunit, size, burst_size, page_size,
+                                              posted, burst_time, read_delay, false,
+                                              check_uninitialized);
   } 
   else {
     std::cerr << "Invalid number of cores.\n";
@@ -287,7 +293,8 @@ int main(int argc, char **argv)
     ("bsize",    boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES), "burst size (and alignment) of the memory system.")
     ("psize",    boost::program_options::value<patmos::byte_size_t>()->default_value(0), "Memory page size. Enables variable burst lengths for single-core.")
     ("posted,p", boost::program_options::value<unsigned int>()->default_value(0), "Enable posted writes (sets max queue size)")
-    ("lsize,l",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_LOCAL_MEMORY_BYTES), "local memory size in bytes");
+    ("lsize,l",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_LOCAL_MEMORY_BYTES), "local memory size in bytes")
+    ("chkreads", "Check for read accesses to uninitialized data (disables the data cache)");
 
   boost::program_options::options_description cache_options("Cache options");
   cache_options.add_options()
@@ -332,7 +339,7 @@ int main(int argc, char **argv)
 
   boost::program_options::options_description interrupt_options("Interrupt options");
   interrupt_options.add_options()
-    ("interrupt", boost::program_options::value<unsigned int>()->default_value(0), "enable interval interrupts");
+    ("interrupt", boost::program_options::value<int>()->default_value(1), "enable or disable exception unit");
 
   boost::program_options::positional_options_description pos;
   pos.add("binary", 1);
@@ -434,12 +441,21 @@ int main(int argc, char **argv)
     flush_caches_addr = vm["flush-caches"].as<patmos::address_t>();
   }
   
-  unsigned int interrupt_enabled = vm["interrupt"].as<unsigned int>();
+  bool excunit_enabled = vm["interrupt"].as<int>() > 0;
 
+  bool check_uninitialized = vm.count("chkreads") > 0;
+  
   bool long_stats = (vm.count("full") != 0);
   bool verbose = (vm.count("verbose") != 0) || long_stats;
 
   if (!mbsize) mbsize = bsize;
+  
+  if (check_uninitialized) {
+    // Disable the data cache with --chkreads
+    // TODO should we warn about this / abort if the user sets -D .. but how
+    // can we check for this with boost if there is a default value set??
+    dck.policy = patmos::SAC_NO;
+  }
   
   // the exit code, initialized by default to signal an error.
   int exit_code = -1;
@@ -453,9 +469,19 @@ int main(int argc, char **argv)
 
   std::ostream *dout = NULL;
 
+  // Seed rand with a fixed value so that every simulation run produces the same
+  // results.
+  srand(0);
+  
+  // setup exception unit
+  patmos::excunit_t excunit(mmbase+excunit_offset);
+  excunit.enable_exception_handler(excunit_enabled);
+
   // setup simulation framework
-  patmos::memory_t &gm = create_global_memory(cores, cpuid, gsize, bsize, psize,
-                                              posted, gtime, tdelay, trefresh);
+  patmos::memory_t &gm = create_global_memory(excunit, cores, cpuid, gsize, 
+                                              bsize, psize,
+                                              posted, gtime, tdelay, trefresh,
+                                              check_uninitialized);
   patmos::instr_cache_t &ic = create_instr_cache(ick, isck, mck, mcsize, 
                                                  ilsize ? ilsize : bsize, 
                                                  mbsize, mcmethods, gm);
@@ -481,26 +507,21 @@ int main(int argc, char **argv)
     assert(in && out && uin && uout && dout);
 
     // finalize simulation framework
-    patmos::ideal_memory_t lm(lsize);
+    // TODO initialize the SPM with random data as well?
+    patmos::ideal_memory_t lm(excunit, lsize, false, false);
     patmos::memory_map_t mm(lm, mmbase, mmhigh);
     
     patmos::symbol_map_t sym;
 
-    patmos::interrupt_handler_t interrupt_handler;
-
-    patmos::simulator_t s(gm, mm, dc, ic, sc, sym, interrupt_handler);
+    patmos::simulator_t s(gm, mm, dc, ic, sc, sym, excunit);
 
     // set up timer device
-    patmos::rtc_t rtc(mmbase+timer_offset, s, freq);
-    if (interrupt_enabled) {
-      interrupt_handler.enable_interrupts();
-    }
+    patmos::rtc_t rtc(s, mmbase+timer_offset, freq);
     
     // setup IO mapped devices
-    patmos::cpuinfo_t cpuinfo(mmbase+cpuinfo_offset, cpuid, freq);
-    patmos::excunit_t excunit(mmbase+excunit_offset);
-    patmos::uart_t uart(mmbase+uart_offset, *uin, uin_istty, *uout);
-    patmos::led_t leds(mmbase+led_offset, *uout);
+    patmos::cpuinfo_t cpuinfo(excunit, mmbase+cpuinfo_offset, cpuid, freq);
+    patmos::uart_t uart(excunit, mmbase+uart_offset, *uin, uin_istty, *uout);
+    patmos::led_t leds(excunit, mmbase+led_offset, *uout);
 
     mm.add_device(cpuinfo);
     mm.add_device(excunit);
@@ -571,7 +592,7 @@ int main(int argc, char **argv)
           *out << " --flush-caches=" << flush_caches_addr;
         *out << " --cpuid=" << cpuid << " --cores=" << cores;
         *out << " --freq=" << freq;
-        *out << " --interrupt=" << interrupt_enabled;            
+        *out << " --interrupt=" << excunit_enabled;            
 
         *out << "\n  ";
         *out << " --mmbase=" << mmbase << " --mmhigh=" << mmhigh;

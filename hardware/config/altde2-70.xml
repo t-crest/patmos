@@ -61,7 +61,4 @@
         </ports>
     </Dev>
   </Devs>
-
-  <!-- currently unused -->
-  <SCache size="0" />
 </patmos>
