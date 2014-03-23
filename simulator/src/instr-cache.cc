@@ -29,7 +29,7 @@
 
 using namespace patmos;
 
-bool no_instr_cache_t::fetch(uword_t base, uword_t address, word_t iw[NUM_SLOTS])
+bool no_instr_cache_t::fetch(simulator_t &s, uword_t base, uword_t address, word_t iw[NUM_SLOTS])
 {
   // TODO In case of using a data cache, we should optionally assert on two 
   // misses, in case the hardware does not support this, so that we can 
@@ -39,7 +39,7 @@ bool no_instr_cache_t::fetch(uword_t base, uword_t address, word_t iw[NUM_SLOTS]
     
     uword_t addr = address + Fetched * sizeof(word_t);
 
-    bool status = Memory->read(addr, 
+    bool status = Memory->read(s, addr, 
                                reinterpret_cast<byte_t*>(&Fetch_cache[Fetched]),
                                sizeof(word_t));
     if (!status) {
@@ -76,12 +76,12 @@ bool no_instr_cache_t::fetch(uword_t base, uword_t address, word_t iw[NUM_SLOTS]
   return true;
 }
 
-bool no_instr_cache_t::load_method(word_t address, word_t offset)
+bool no_instr_cache_t::load_method(simulator_t &s, word_t address, word_t offset)
 {
   return true;
 }
 
-bool no_instr_cache_t::is_available(word_t address)
+bool no_instr_cache_t::is_available(simulator_t &s, word_t address)
 {
   return true;
 }

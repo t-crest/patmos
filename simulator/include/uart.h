@@ -25,7 +25,7 @@
 #include <cstdio>
 
 #include "memory-map.h"
-#include "excunit.h"
+#include "exception.h"
 
 namespace patmos
 {
@@ -127,9 +127,9 @@ namespace patmos
     /// @param in_stream Stream providing data read from the UART.
     /// @param istty Flag indicating whether the input stream is a TTY.
     /// @param out_stream Stream storing data written to the UART.
-    uart_t(excunit_t &excunit, uword_t base_address,
+    uart_t(uword_t base_address,
            std::istream &in_stream, bool istty, std::ostream &out_stream) :
-        mapped_device_t(excunit, base_address, 8),
+        mapped_device_t(base_address, 8),
         Status_address(base_address+0x00),
         Data_address(base_address+0x04),
         In_stream(in_stream), IsTTY(istty),
@@ -146,14 +146,14 @@ namespace patmos
     /// the memory.
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
-    virtual bool read(uword_t address, byte_t *value, uword_t size)
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
     {
       if (address == Status_address && size == 4)
         return read_status(value+3);
       else if (address == Data_address && size == 4)
         return read_data(value+3);
       else
-        Exception_handler.unmapped(address);
+        simulation_exception_t::unmapped(address);
       return true;
     }
 
@@ -163,13 +163,13 @@ namespace patmos
     /// @param value A pointer to a destination to store the value read from
     /// the memory.
     /// @param size The number of bytes to read.
-    virtual void peek(uword_t address, byte_t *value, uword_t size) {
+    virtual void peek(simulator_t &s, uword_t address, byte_t *value, uword_t size) {
       if (address == Status_address && size == 4)
         read_status(value+3);
       else if (address == Data_address && size == 4)
         peek_data(value+3);
       else
-        Exception_handler.unmapped(address);
+        simulation_exception_t::unmapped(address);
     }
 
     /// A simulated access to a write port.
@@ -178,14 +178,14 @@ namespace patmos
     /// @param size The number of bytes to write.
     /// @return True when the data is written finally to the memory, false
     /// otherwise.
-    virtual bool write(uword_t address, byte_t *value, uword_t size)
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size)
     {
       if (address == Status_address && size == 4)
         return write_control(value+3);
       else if (address == Data_address && size == 4)
         return write_data(value+3);
       else
-        Exception_handler.unmapped(address);
+        simulation_exception_t::unmapped(address);
       return true;
     }
   };

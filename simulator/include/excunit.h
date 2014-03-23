@@ -90,8 +90,8 @@ namespace patmos
 
       static const uword_t NO_ISR_ADDR = ~0u;
       
-      // Enable interrupt unit
-      bool Enabled;
+      // Enable interrupts
+      bool Enable_interrupts;
       
       // Status flags for enabling interrupts
       uword_t Status;
@@ -113,10 +113,11 @@ namespace patmos
       /// Empty constructor, disables interrupts
       excunit_t(uword_t base_address);
 
-      /// Check if we should handle the exception via an ISR or throw an exception
+      /// Check if we should handle an interrupt or exception via an ISR.
       bool may_fire(exception_e exc);
       
       /// Check if an exception vector has been enabled, i.e. its mask bit is set.
+      /// Does not check if throwing interrupts has been disabled.
       bool enabled(exception_e exc);
       
       /// Returns true if an interrupt is pending
@@ -136,15 +137,15 @@ namespace patmos
       /// Get the ISR address for an exception entry. Does not modify the state
       exception_t get(exception_e exc) const;
       
-      virtual bool read(uword_t address, byte_t *value, uword_t size);
+      virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
       
-      virtual bool write(uword_t address, byte_t *value, uword_t size);
+      virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
       
       virtual void tick();
       
-      /// Enables the exception unit, handling exceptions through ISRs instead
-      /// of aborting.
-      void enable_exception_handler(bool enabled);
+      /// Enables firing of interupts and exception handler ISRs. Does not disable
+      /// traps.
+      void enable_interrupts(bool enabled);
       
       /// Make an exception pending. Never throws a simulator-exception directly.
       /// If the exception unit is disabled, the exception is effectively ignored.

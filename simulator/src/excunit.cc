@@ -29,8 +29,8 @@ namespace patmos
 {
 
   excunit_t::excunit_t(uword_t base_address) 
-  : mapped_device_t(*this, base_address, EXCUNIT_MAP_SIZE), 
-    Enabled(true), Status(0), Mask(0), Pending(0), Source(0) 
+  : mapped_device_t(base_address, EXCUNIT_MAP_SIZE), 
+    Enable_interrupts(true), Status(0), Mask(0), Pending(0), Source(0) 
   {
     for (int i = 0; i < NUM_EXCEPTIONS; i++) {
       Exception_vector[i] = NO_ISR_ADDR;
@@ -39,7 +39,7 @@ namespace patmos
 
   bool excunit_t::pending() 
   {
-    return Enabled && (Status & 0x1) && (Pending & Mask) != 0;
+    return Enable_interrupts && (Status & 0x1) && (Pending & Mask) != 0;
   }
 
   exception_t excunit_t::next() 
@@ -88,7 +88,7 @@ namespace patmos
     return intr;
   }
   
-  bool excunit_t::read(uword_t address, byte_t *value, uword_t size)
+  bool excunit_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
   {
     if (is_word_access(address, size, 0x00)) {
       set_word(value, size, Status);
@@ -105,19 +105,19 @@ namespace patmos
     else if (address >= Base_address+0x80 && address < Base_address+0x100) {
       int intr_addr = address & 0xFC;
       if (!is_word_access(address, size, intr_addr)) {
-        unaligned(address);
+        simulation_exception_t::unaligned(address);
       } else {
         int intr = (intr_addr - 0x80) >> 2;
         set_word(value, size, Exception_vector[intr]);
       }
     }
     else {
-      unmapped(address);
+      simulation_exception_t::unmapped(address);
     }
     return true;
   }
 
-  bool excunit_t::write(uword_t address, byte_t *value, uword_t size)
+  bool excunit_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size)
   {
     if (is_word_access(address, size, 0x00)) {
       Status = get_word(value, size);
@@ -129,19 +129,19 @@ namespace patmos
       Pending = get_word(value, size);
     }
     else if (is_word_access(address, size, 0x0c)) {
-      illegal_access(address);
+      simulation_exception_t::illegal_access(address);
     }
     else if (address >= Base_address+0x80 && address < Base_address+0x100) {
       int intr_addr = address & 0xFC;
       if (!is_word_access(address, size, intr_addr)) {
-        unaligned(address);
+        simulation_exception_t::unaligned(address);
       } else {
         int intr = (intr_addr - 0x80) >> 2;
         Exception_vector[intr] = get_word(value, size);
       }
     }
     else {
-      unmapped(address);
+      simulation_exception_t::unmapped(address);
     }
     return true;
   }
@@ -150,20 +150,20 @@ namespace patmos
   {
   }
   
-  void excunit_t::enable_exception_handler(bool enable) 
+  void excunit_t::enable_interrupts(bool enable) 
   {
-    Enabled = enable;
+    Enable_interrupts = enable;
   }
 
   bool excunit_t::may_fire(exception_e exctype)
   {
-    return Enabled && Exception_vector[(int)exctype] != NO_ISR_ADDR;
+    return Enable_interrupts && Exception_vector[(int)exctype] != NO_ISR_ADDR;
   }
   
   bool excunit_t::enabled(exception_e exctype)
   {
     // TODO check if an ISR has been installed as well?
-    return Enabled && ((1u<<(int)exctype) & Mask);
+    return ((1u<<(int)exctype) & Mask);
   }
   
   void excunit_t::fire_exception(exception_e exctype)

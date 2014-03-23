@@ -43,43 +43,42 @@ void mapped_device_t::set_word(byte_t *value, uword_t size, uword_t data) {
 }
 
 
-bool cpuinfo_t::read(uword_t address, byte_t *value, uword_t size) {
+bool cpuinfo_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size) {
   if (is_word_access(address, size, 0x00)) {
     set_word(value, size, Cpu_id);
   } else if (is_word_access(address, size, 0x04)) {
     set_word(value, size, Cpu_freq);
   } else {
-    Exception_handler.unmapped(address);
+    simulation_exception_t::unmapped(address);
   }
   return true;
 }
 
-bool cpuinfo_t::write(uword_t address, byte_t *value, uword_t size) {
-  Exception_handler.illegal_access(address);
-  return true;
+bool cpuinfo_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size) {
+  simulation_exception_t::illegal_access(address);
 }
 
-void cpuinfo_t::peek(uword_t address, byte_t *value, uword_t size) {
+void cpuinfo_t::peek(simulator_t &s, uword_t address, byte_t *value, uword_t size) {
   if (is_word_access(address, size, 0x00)) {
     set_word(value, size, Cpu_id);
   } else if (is_word_access(address, size, 0x04)) {
     set_word(value, size, Cpu_freq);
   } else {
-    mapped_device_t::peek(address, value, size);
+    mapped_device_t::peek(s, address, value, size);
   }
 }
 
-bool led_t::read(uword_t address, byte_t *value, uword_t size) {
+bool led_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size) {
   if (is_word_access(address, size, 0x00)) {
     set_word(value, size, Curr_state);
+    return true;
   }
   else {
-    Exception_handler.unmapped(address);
+    simulation_exception_t::unmapped(address);
   }
-  return true;
 }
 
-bool led_t::write(uword_t address, byte_t *value, uword_t size) {
+bool led_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size) {
   if (is_word_access(address, size, 0x00)) {
     uword_t state = get_word(value, size);
      
@@ -97,11 +96,11 @@ bool led_t::write(uword_t address, byte_t *value, uword_t size) {
     Out_stream << "] ---\n";
     
     Curr_state = state;
+    return true;
   }
   else {
-    Exception_handler.unmapped(address);
+    simulation_exception_t::unmapped(address);
   }
-  return true;
 }    
 
 
@@ -125,38 +124,38 @@ void memory_map_t::add_device(mapped_device_t &device)
 				      device.get_base_address() + device.get_num_mapped_bytes() - 1));
 }
 
-bool memory_map_t::read(uword_t address, byte_t *value, uword_t size)
+bool memory_map_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
   if (address >= Base_address && address <= High_address) {
-    return find_device(address).read(address, value, size);
+    return find_device(address).read(s, address, value, size);
   } else {
-    return Memory.read(address, value, size);
+    return Memory.read(s, address, value, size);
   }
 }
 
-bool memory_map_t::write(uword_t address, byte_t *value, uword_t size)
+bool memory_map_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
   if (address >= Base_address && address <= High_address) {
-    return find_device(address).write(address, value, size);
+    return find_device(address).write(s, address, value, size);
   } else {
-    return Memory.write(address, value, size);
+    return Memory.write(s, address, value, size);
   }
 }
 
-void memory_map_t::read_peek(uword_t address, byte_t *value, uword_t size)
+void memory_map_t::read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
   if (address >= Base_address && address <= High_address) {
-    find_device(address).peek(address, value, size);
+    find_device(address).peek(s, address, value, size);
   } else {
-    Memory.read_peek(address, value, size);
+    Memory.read_peek(s, address, value, size);
   }
 }
 
-void memory_map_t::write_peek(uword_t address, byte_t *value, uword_t size)
+void memory_map_t::write_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
   // TODO should we pass that to the mapped devices?
   assert(address < Base_address || address > High_address);
-  Memory.write_peek(address, value, size);
+  Memory.write_peek(s, address, value, size);
 }
 
 bool memory_map_t::is_ready()

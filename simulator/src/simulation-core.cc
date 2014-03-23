@@ -209,7 +209,7 @@ namespace patmos
     // NB: We fetch in each cycle, as preparation for supporting a standard
     //     I-Cache in addition.
     word_t iw[NUM_SLOTS];
-    if (!Instr_cache.fetch(BASE, PC, iw))
+    if (!Instr_cache.fetch(*this, BASE, PC, iw))
     {
       // Stall the whole pipeline
       pipeline_stall(SMW);
@@ -304,7 +304,7 @@ namespace patmos
     if (Cycle == 0)
     {
       BASE = PC = nPC = entry;
-      Instr_cache.initialize(entry);
+      Instr_cache.initialize(*this, entry);
       Profiling.initialize(entry);
       Dbg_stack.initialize(entry);
     }
