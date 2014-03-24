@@ -118,7 +118,7 @@ Errors : 0")
 test_asm(38 "Emitted: 88 bytes
 Errors : 0")
 
-test_asm(39 "Emitted: 64 bytes
+test_asm(39 "Emitted: 68 bytes
 Errors : 0")
 
 test_asm(40 "Emitted: 136 bytes
