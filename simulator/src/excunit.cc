@@ -131,6 +131,9 @@ namespace patmos
     else if (is_word_access(address, size, 0x0c)) {
       simulation_exception_t::illegal_access(address);
     }
+    else if (is_word_access(address, size, 0x10)) {
+      // ignore sleep mode
+    }
     else if (address >= Base_address+0x80 && address < Base_address+0x100) {
       int intr_addr = address & 0xFC;
       if (!is_word_access(address, size, intr_addr)) {

@@ -15,6 +15,7 @@
 #define LEDS (*((volatile _IODEV unsigned *)0xf0000900))
 #define TIMER_USEC_HI (*((volatile _IODEV unsigned *)0xf0000208))
 #define TIMER_USEC_LO (*((volatile _IODEV unsigned *)0xf000020c))
+#define SLEEP (*((volatile _IODEV unsigned *)0xf0000110))
 
 // the blinking frequency in microseconds
 #define PERIOD 1000000
@@ -57,7 +58,9 @@ int main(void) {
   putc('0', stderr);
 
   // loop forever
-  for(;;);
+  for(;;) {
+    SLEEP = 0;
+  }
 }
 
 // interrupt handler
