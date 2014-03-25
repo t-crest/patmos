@@ -14,6 +14,7 @@
 const int NOC_MASTER = 0;
 #include <string.h>
 #include <machine/spm.h>
+#include <stdio.h>
 #include "libnoc/noc.h"
 #include "patio.h"
 
@@ -79,31 +80,36 @@ static void master(void) {
 	volatile _SPM char *spm_slave = spm_base+NOC_CORES*16;	 			//64
 
 	// message to be send
-        const char *msg = "Hello slaves sum_id:0";
+        const char *msg_snd = "Hello slaves sum_id:0";
+	char msg_rcv[22];
 
 	// put message to spm
 	int i;
 	for (i = 0; i < 21; i++) {
-		*(spm_base+i) = *(msg+i);
+		*(spm_base+i) = *(msg_snd+i);
 	}
-//	*(spm_base+i) = '\0';
+	//*(spm_base+i) = '\0';
 
 	// send message
 	noc_send(1, spm_slave, spm_base, 21); //21 bytes
 
-	WRITE("MASTER: message sent: ",22);
-	WRITE(spm_base, 21);
-	WRITE("\n",1);
+	puts("MASTER: message sent: ");
+	puts(msg_snd);
+	puts("\n");
 
 	// wait and poll
 	while(*(spm_slave+20) == 0) {;}
 	blink(6);
-	WRITE("MASTER: finished polling\n",26);
+	puts("MASTER: finished polling\n");
 
         // received message
-	WRITE("MASTER: message received: ",26);
-        WRITE(spm_slave, 21);
-        WRITE("\n",1);
+	puts("MASTER: message received:");
+	// copy message to static location and print
+	for (i = 0; i < 21; i++) {
+		*(msg_rcv+i) = *(spm_slave+i);
+	}
+	*(msg_rcv+i) = '\0';
+	puts(msg_rcv);
 
 	return;
 }
