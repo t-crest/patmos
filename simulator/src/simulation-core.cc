@@ -282,7 +282,6 @@ namespace patmos
         {
           simulation_exception_t::illegal("Use of load result without delay slot!");
         }
-        Last_load_dst = i0->is_load() ? i0->get_dst_reg(instr_SIF[0]) : r0;
 
         for(unsigned int j = 0; j < NUM_SLOTS; j++)
         {
@@ -303,6 +302,10 @@ namespace patmos
         // provide next program counter value (as incremented PC)
         nPC = PC + iw_size*4;
       }
+
+      // Remember the last result register for the load hazard check
+      Last_load_dst = instr_SIF[0].I && instr_SIF[0].I->is_load() ? 
+                      instr_SIF[0].I->get_dst_reg(instr_SIF[0]) : r0;
 
     }
   }
