@@ -14,8 +14,7 @@ TEX=$(wildcard *.tex)
 
 all: open
 
-TIKZFIGURES=fig/timing_core.pdf fig/timing_io.pdf fig/timing_burst.pdf \
-	fig/intr.pdf fig/exc.pdf
+TIKZFIGURES=fig/timing_core.pdf fig/timing_io.pdf fig/timing_burst.pdf
 
 fig/%.pdf: fig/%.tex
 	pdflatex --output-directory fig $^
@@ -34,6 +33,6 @@ open: $(DOC).pdf
 
 
 clean:
-	rm -fr *.aux *.bbl *.blg *.log *.lof *.lot *.toc *.gz *.pdf
+	rm -fr *.aux *.bbl *.blg *.log *.lof *.lot *.toc *.gz *.pdf *.lol
 	rm -f fig/*.aux fig/*.log
 	rm -f $(TIKZFIGURES)
