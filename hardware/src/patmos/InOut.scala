@@ -128,7 +128,7 @@ class InOut() extends Module {
   val comSpmS = io.comSpm.S
 
   // Creation of IO devices
-  for (devConf <- Config.conf.Devs) {
+  for (devConf <- Config.getConfig.Devs) {
     val dev = Config.createDevice(devConf).asInstanceOf[CoreDevice]
     validDeviceVec(devConf.offset) := Bool(true)
     // connect ports

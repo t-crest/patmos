@@ -45,21 +45,21 @@ import Node._
 
 object Constants {
 
-  val CLOCK_FREQ = util.Config.conf.frequency
+  val CLOCK_FREQ = util.Config.getConfig.frequency
 
-  val PIPE_COUNT = util.Config.conf.pipeCount
+  val PIPE_COUNT = util.Config.getConfig.pipeCount
 
-  val ISPM_SIZE = util.Config.conf.ISPM.size
-  val DSPM_SIZE = util.Config.conf.DSPM.size
-  val BOOTSPM_SIZE = util.Config.conf.BootSPM.size
+  val ISPM_SIZE = util.Config.getConfig.ISPM.size
+  val DSPM_SIZE = util.Config.getConfig.DSPM.size
+  val BOOTSPM_SIZE = util.Config.getConfig.BootSPM.size
 
-  val MCACHE_SIZE = util.Config.conf.MCache.size
-  val METHOD_COUNT = util.Config.conf.MCache.blocks
+  val MCACHE_SIZE = util.Config.getConfig.MCache.size
+  val METHOD_COUNT = util.Config.getConfig.MCache.blocks
 
-  val DCACHE_SIZE = util.Config.conf.DCache.size
-  val SCACHE_SIZE = util.Config.conf.SCache.size
+  val DCACHE_SIZE = util.Config.getConfig.DCache.size
+  val SCACHE_SIZE = util.Config.getConfig.SCache.size
   // offset for switching from relative address to absolute address, default = 0
-  val ICACHE_ADDR_OFFSET = 0 //log2Up(util.Config.conf.ExtMem.size)
+  val ICACHE_ADDR_OFFSET = 0 //log2Up(util.Config.getConfig.ExtMem.size)
 
   // maximum width between ISPM size, MCACHE size and boot ROM size
   val MAX_OFF_WIDTH = List(log2Up(MCACHE_SIZE / 4), log2Up(ISPM_SIZE / 4),
@@ -71,9 +71,9 @@ object Constants {
   // both in the global address space
   val BOOTMEM_ONE_BIT = 16
 
-  val EXTMEM_ADDR_WIDTH = log2Up(util.Config.conf.ExtMem.size)
-  val BURST_LENGTH = util.Config.conf.burstLength // For SSRAM on DE2-70 board max. 4
-  val WRITE_COMBINE = util.Config.conf.writeCombine
+  val EXTMEM_ADDR_WIDTH = log2Up(util.Config.getConfig.ExtMem.size)
+  val BURST_LENGTH = util.Config.getConfig.burstLength // For SSRAM on DE2-70 board max. 4
+  val WRITE_COMBINE = util.Config.getConfig.writeCombine
 
   // Exceptions/interrupts
   val EXC_IO_OFFSET = 1

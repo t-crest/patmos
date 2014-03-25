@@ -60,6 +60,8 @@ class Exceptions extends Module {
   val vec    = Mem(UInt(width = DATA_WIDTH), EXC_COUNT)
   val vecDup = Mem(UInt(width = DATA_WIDTH), EXC_COUNT)
 
+  val sleepReg = Reg(init = Bool(false))
+
   // Latches for incoming exceptions and interrupts
   val excPend     = Vec.fill(EXC_COUNT) { Bool() }
   val excPendReg  = Vec.fill(EXC_COUNT) { Reg(init = Bool(false)) }
@@ -98,6 +100,9 @@ class Exceptions extends Module {
           intrPend(i) := intrPendReg(i) & masterReg.Data(i)
         }
       }
+      is(Bits("b000100")) { // Go to sleep
+                            io.ocp.S.Resp := OcpResp.NULL
+                            sleepReg := Bool(true) }
     }
     when(masterReg.Addr(EXC_ADDR_WIDTH-1) === Bits("b1")) {
       vec(masterReg.Addr(EXC_ADDR_WIDTH-2, 2)) := masterReg.Data.toUInt
@@ -156,4 +161,10 @@ class Exceptions extends Module {
   io.excdec.src  := srcReg
 
   io.excdec.excAddr := excAddr
+
+  // Wake up
+  when (sleepReg && (exc === Bits(1) || (intr && status(0) === Bits(1)))) {
+    io.ocp.S.Resp := OcpResp.DVA
+    sleepReg := Bool(false)
+  }
 }

@@ -27,8 +27,6 @@
 
 namespace patmos
 { 
-  class excunit_t;
-
   /// Basic interface for instruction-caches implementations.
   class instr_cache_t
   {
@@ -36,18 +34,16 @@ namespace patmos
   public:
     virtual ~instr_cache_t() {}
 
-    virtual excunit_t &get_exception_handler() = 0;
-    
     /// Initialize the cache before executing the first instruction.
     /// @param address Address to fetch initial instructions.
-    virtual void initialize(uword_t address) = 0;
+    virtual void initialize(simulator_t &s, uword_t address) = 0;
 
     /// A simulated instruction fetch from the instruction cache.
     /// @param base The current method base address.
     /// @param address The memory address to fetch from.
     /// @param iw A pointer to store the fetched instruction word.
     /// @return True when the instruction word is available from the read port.
-    virtual bool fetch(uword_t base, uword_t address, word_t iw[2]) = 0;
+    virtual bool fetch(simulator_t &s, uword_t base, uword_t address, word_t iw[2]) = 0;
 
     /// Ensure that the method is in the method cache.
     /// If it is not available yet, initiate a transfer,
@@ -56,12 +52,12 @@ namespace patmos
     /// @param address The base address of the method.
     /// @param offset Offset within the method where execution should continue.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool load_method(word_t address, word_t offset) = 0;
+    virtual bool load_method(simulator_t &s, word_t address, word_t offset) = 0;
 
     /// Check whether a method is in the method cache.
     /// @param address The base address of the method.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool is_available(word_t address) = 0;
+    virtual bool is_available(simulator_t &s, word_t address) = 0;
 
     /// Notify the cache that a cycle passed.
     virtual void tick() = 0;
@@ -124,17 +120,13 @@ namespace patmos
       }
     }
     
-    virtual excunit_t& get_exception_handler() {
-      return Memory->get_exception_handler();
-    }
-    
-    virtual void initialize(uword_t address) {}
+    virtual void initialize(simulator_t &s, uword_t address) {}
 
-    virtual bool fetch(uword_t base, uword_t address, word_t iw[NUM_SLOTS]);
+    virtual bool fetch(simulator_t &s, uword_t base, uword_t address, word_t iw[NUM_SLOTS]);
 
-    virtual bool load_method(word_t address, word_t offset);
+    virtual bool load_method(simulator_t &s, word_t address, word_t offset);
 
-    virtual bool is_available(word_t address);
+    virtual bool is_available(simulator_t &s, word_t address);
     
     virtual void tick() {}
 

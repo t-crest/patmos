@@ -38,25 +38,25 @@
 using namespace patmos;
 
 
-void ideal_method_cache_t::initialize(uword_t address)
+void ideal_method_cache_t::initialize(simulator_t &s, uword_t address)
 {
   current_base = address;
 }
 
-bool ideal_method_cache_t::fetch(uword_t base, uword_t address, word_t iw[2])
+bool ideal_method_cache_t::fetch(simulator_t &s, uword_t base, uword_t address, word_t iw[2])
 {
-  Memory.read_peek(address, reinterpret_cast<byte_t*>(&iw[0]),
+  Memory.read_peek(s, address, reinterpret_cast<byte_t*>(&iw[0]),
 		   sizeof(word_t)*2);
   return true;
 }
 
-bool ideal_method_cache_t::load_method(word_t address, word_t offset)
+bool ideal_method_cache_t::load_method(simulator_t &s, word_t address, word_t offset)
 {
   current_base = address;
   return true;
 }
 
-bool ideal_method_cache_t::is_available(word_t address)
+bool ideal_method_cache_t::is_available(simulator_t &s, word_t address)
 {
   return true;
 }
@@ -110,7 +110,7 @@ unsigned int lru_method_cache_t::method_info_t::get_utilized_bytes() {
 }
 
 
-bool lru_method_cache_t::do_fetch(method_info_t &current_method,
+bool lru_method_cache_t::do_fetch(simulator_t &s, method_info_t &current_method,
                                   uword_t address, word_t iw[2])
 {
   if(Phase != IDLE ||
@@ -125,7 +125,7 @@ bool lru_method_cache_t::do_fetch(method_info_t &current_method,
   
   // TODO read from Cache buffer, get read position(s) from method_info.
   
-  Memory.read_peek(address, iwp, sizeof(word_t)*NUM_SLOTS);
+  Memory.read_peek(s, address, iwp, sizeof(word_t)*NUM_SLOTS);
     
   for (unsigned int i = 0; i < NUM_SLOTS; i++) {
     unsigned int word = (address-current_method.Address)/sizeof(word_t) + i;
@@ -137,7 +137,7 @@ bool lru_method_cache_t::do_fetch(method_info_t &current_method,
   return true;
 }
 
-bool lru_method_cache_t::lookup(uword_t address)
+bool lru_method_cache_t::lookup(simulator_t &s, uword_t address)
 {
   // check if the address is in the cache
   for(int i = Num_blocks - 1; i >= (int)(Num_blocks - Num_active_methods); i--)
@@ -188,19 +188,21 @@ void lru_method_cache_t::evict(method_info_t &method)
   update_utilization_stats(method, utilized_bytes);
 }
 
-bool lru_method_cache_t::read_function_size(word_t function_base, 
+bool lru_method_cache_t::read_function_size(simulator_t &s, 
+                                            word_t function_base, 
                                             uword_t *result_size)
 {
   // We only peek at the size in the simulation, and load the method
   // together with the size word
-  return peek_function_size(function_base, result_size);
+  return peek_function_size(s, function_base, result_size);
 }
 
-bool lru_method_cache_t::peek_function_size(word_t function_base,
+bool lru_method_cache_t::peek_function_size(simulator_t &s, 
+                                            word_t function_base,
                                             uword_t *result_size)
 {
   uword_t num_bytes_big_endian;
-  Memory.read_peek(function_base - sizeof(uword_t),
+  Memory.read_peek(s, function_base - sizeof(uword_t),
       reinterpret_cast<byte_t*>(&num_bytes_big_endian),
       sizeof(uword_t));
   // convert method size to native endianess and compute size in
@@ -249,7 +251,7 @@ lru_method_cache_t::lru_method_cache_t(memory_t &memory,
   Cache = new byte_t[Num_block_bytes * Num_blocks + 4];
 }
 
-void lru_method_cache_t::initialize(uword_t address)
+void lru_method_cache_t::initialize(simulator_t &s, uword_t address)
 {
   assert(Num_active_blocks == 0 && Num_active_methods == 0);
 
@@ -259,7 +261,7 @@ void lru_method_cache_t::initialize(uword_t address)
   // we assume it is an ordinary function entry with size specification
   // (the word before) and copy it in the cache.
   uword_t num_bytes, num_blocks;
-  peek_function_size(address, &num_bytes);
+  peek_function_size(s, address, &num_bytes);
   num_blocks = get_num_blocks_for_bytes(num_bytes);
 
   current_method.update(address, num_blocks, num_bytes);
@@ -269,13 +271,13 @@ void lru_method_cache_t::initialize(uword_t address)
   Num_max_active_methods = std::max(Num_max_active_methods, 1U);
 }
 
-bool lru_method_cache_t::fetch(uword_t base, uword_t address, word_t iw[2])
+bool lru_method_cache_t::fetch(simulator_t &s, uword_t base, uword_t address, word_t iw[2])
 {
   // fetch from 'most-recent' method of the cache
-  return do_fetch(Methods[Num_blocks - 1], address, iw);
+  return do_fetch(s, Methods[Num_blocks - 1], address, iw);
 }
 
-bool lru_method_cache_t::load_method(word_t address, word_t offset)
+bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offset)
 {
   // check status of the method cache
   switch(Phase)
@@ -285,7 +287,7 @@ bool lru_method_cache_t::load_method(word_t address, word_t offset)
     {
       assert(Num_allocate_blocks == 0 && Num_method_size == 0);
 
-      if (lookup(address))
+      if (lookup(s, address))
       {
         // method is in the cache ... done!
         Num_hits++;
@@ -310,7 +312,7 @@ bool lru_method_cache_t::load_method(word_t address, word_t offset)
       assert(Num_allocate_blocks == 0 && Num_method_size == 0);
 
       // get the size of the method that should be loaded
-      if (peek_function_size(address, &Num_method_size)) {
+      if (peek_function_size(s, address, &Num_method_size)) {
         
         Num_allocate_blocks = get_num_blocks_for_bytes(Num_method_size);
 
@@ -398,7 +400,7 @@ bool lru_method_cache_t::load_method(word_t address, word_t offset)
       // methods to in the cache buffer, and keep pointers into the cache in
       // the method_infos.
 
-      if (Memory.read(get_transfer_start(address), Cache,
+      if (Memory.read(s, get_transfer_start(address), Cache,
                       get_transfer_size()))
       {        
         // the transfer is done, go back to IDLE phase
@@ -418,7 +420,7 @@ bool lru_method_cache_t::load_method(word_t address, word_t offset)
   abort();
 }
 
-bool lru_method_cache_t::is_available(word_t address)
+bool lru_method_cache_t::is_available(simulator_t &s, word_t address)
 {
   // check if the address is in the cache
   for(int i = Num_blocks - 1; i >= (int)(Num_blocks - Num_active_methods);
@@ -632,15 +634,15 @@ lru_method_cache_t::~lru_method_cache_t()
 
 
 
-bool fifo_method_cache_t::lookup(uword_t address)
+bool fifo_method_cache_t::lookup(simulator_t &s, uword_t address)
 {
-  return base_t::is_available(address);
+  return base_t::is_available(s, address);
 }
 
-bool fifo_method_cache_t::load_method(word_t address, word_t offset)
+bool fifo_method_cache_t::load_method(simulator_t &s, word_t address, word_t offset)
 {
   // check if the address is in the cache
-  bool avail = base_t::load_method(address, offset);
+  bool avail = base_t::load_method(s, address, offset);
 
   if (avail) {
     // update the active method pointer
@@ -662,10 +664,10 @@ uword_t fifo_method_cache_t::get_active_method_base()
   return base_t::Methods[active_method].Address;
 }
 
-bool fifo_method_cache_t::fetch(uword_t base, uword_t address, word_t iw[2])
+bool fifo_method_cache_t::fetch(simulator_t &s, uword_t base, uword_t address, word_t iw[2])
 {
   // fetch from the currently active method
-  return base_t::do_fetch(base_t::Methods[active_method], address, iw);
+  return base_t::do_fetch(s, base_t::Methods[active_method], address, iw);
 }
 
 void fifo_method_cache_t::flush_cache() 

@@ -161,7 +161,7 @@ void elf_loader_t::load_symbols(symbol_map_t &symbols, section_list_t &text)
   symbols.sort();
 }
     
-void elf_loader_t::load_to_memory(memory_t &m)
+void elf_loader_t::load_to_memory(simulator_t &s, memory_t &m)
 {
     // get program headers
   size_t n;
@@ -181,13 +181,13 @@ void elf_loader_t::load_to_memory(memory_t &m)
       assert(phdr.p_vaddr == phdr.p_paddr);
       assert(phdr.p_filesz <= phdr.p_memsz);
       // copy from the buffer into the main memory
-      m.write_peek(phdr.p_vaddr,
+      m.write_peek(s, phdr.p_vaddr,
                    reinterpret_cast<patmos::byte_t*>(&buf[phdr.p_offset]),
                    phdr.p_filesz);
       // Zero-initialize rest of segment
       byte_t zero = 0;
       for (int off = phdr.p_filesz; off < phdr.p_memsz; off++) {
-        m.write_peek(phdr.p_vaddr + off, &zero, 1);
+        m.write_peek(s, phdr.p_vaddr + off, &zero, 1);
       }
     }
   }
@@ -200,9 +200,9 @@ void bin_loader_t::load_symbols(symbol_map_t &sym, section_list_t &text)
   text.push_back(section_info_t(0, 0, buf.size()));
 }
     
-void bin_loader_t::load_to_memory(memory_t &m)
+void bin_loader_t::load_to_memory(simulator_t &s, memory_t &m)
 {
-  m.write_peek(0, reinterpret_cast<patmos::byte_t*>(&buf[0]), buf.size());
+  m.write_peek(s, 0, reinterpret_cast<patmos::byte_t*>(&buf[0]), buf.size());
 }
 
 

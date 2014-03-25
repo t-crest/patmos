@@ -1,0 +1,26 @@
+<patmos>
+  <description>default configuration</description>
+
+  <frequency Hz="1000000"/>
+  <pipeline dual="true" />
+  <bus burstLength="4" writeCombine="false" />
+
+  <MCache size="4k" blocks="16" repl="" />
+  <DCache size="2k" assoc="1" repl="" />
+  <SCache size="2k" />
+  <ISPM size="1k" />
+  <DSPM size="2k" />
+  <BootSPM size="2k" />
+
+  <ExtMem size="2M" />
+
+  <IOs>
+ 	<IO DevTypeRef="CpuInfo" offset="0"/>
+	<IO DevTypeRef="Timer" offset="2" intrs="0,1"/>
+  </IOs>
+
+  <Devs>
+  	<Dev DevType="CpuInfo" entity="CpuInfo" iface="OcpCore" />
+  	<Dev DevType="Timer" entity="Timer" iface="OcpCore" />
+  </Devs>
+</patmos>

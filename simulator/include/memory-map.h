@@ -28,7 +28,6 @@
 namespace patmos
 {
   class simulator_t;
-  class excunit_t;
   
   /// Default address of the UART status register.
   static const uword_t IOMAP_BASE_ADDRESS = 0xF0000000;
@@ -68,8 +67,6 @@ namespace patmos
   
   class mapped_device_t {
   protected:
-    excunit_t &Exception_handler;
-    
     /// Base address of this device
     uword_t Base_address;
     
@@ -78,8 +75,8 @@ namespace patmos
     
   public:
     
-    mapped_device_t(excunit_t &excunit, uword_t base_address, uword_t mapped_bytes) 
-    : Exception_handler(excunit), Base_address(base_address), Mapped_bytes(mapped_bytes)
+    mapped_device_t(uword_t base_address, uword_t mapped_bytes) 
+    : Base_address(base_address), Mapped_bytes(mapped_bytes)
     {}
     
     virtual ~mapped_device_t() {}
@@ -114,7 +111,7 @@ namespace patmos
     /// the memory.
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
-    virtual bool read(uword_t address, byte_t *value, uword_t size) = 0;
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size) = 0;
 
     /// A simulated access to a write port.
     /// @param address The memory address to write to.
@@ -122,7 +119,7 @@ namespace patmos
     /// @param size The number of bytes to write.
     /// @return True when the data is written finally to the memory, false
     /// otherwise.
-    virtual bool write(uword_t address, byte_t *value, uword_t size) = 0;
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size) = 0;
 
     /// A simulated access to a read port. Does not update the device state or 
     /// simulate timing, just reads the value.
@@ -130,7 +127,7 @@ namespace patmos
     /// @param value A pointer to a destination to store the value read from
     /// the memory.
     /// @param size The number of bytes to read.
-    virtual void peek(uword_t address, byte_t *value, uword_t size) {
+    virtual void peek(simulator_t &s, uword_t address, byte_t *value, uword_t size) {
       // By default, just return zero, this is primarily used for debugging and
       // should not assert if read is supported.
       set_word(value, size, 0);
@@ -163,17 +160,17 @@ namespace patmos
   public:
     
     /// @param freq The CPU frequency in Mhz
-    cpuinfo_t(excunit_t &excunit, uword_t base_address, uword_t cpuid, double freq)
-    : mapped_device_t(excunit, base_address, CPUINFO_MAP_SIZE),
+    cpuinfo_t(uword_t base_address, uword_t cpuid, double freq)
+    : mapped_device_t(base_address, CPUINFO_MAP_SIZE),
       Cpu_id(cpuid),
       Cpu_freq(freq * 1000000)
     {}
     
-    virtual bool read(uword_t address, byte_t *value, uword_t size);
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
-    virtual bool write(uword_t address, byte_t *value, uword_t size);
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
     
-    virtual void peek(uword_t address, byte_t *value, uword_t size);
+    virtual void peek(simulator_t &s, uword_t address, byte_t *value, uword_t size);
   };
   
   class led_t : public mapped_device_t 
@@ -183,13 +180,13 @@ namespace patmos
     
     uword_t Curr_state;
   public:
-    led_t(excunit_t &excunit, uword_t base_address, std::ostream &os)
-    : mapped_device_t(excunit, base_address, LED_MAP_SIZE), Out_stream(os),
+    led_t(uword_t base_address, std::ostream &os)
+    : mapped_device_t(base_address, LED_MAP_SIZE), Out_stream(os),
       Curr_state(0) {}
 
-    virtual bool read(uword_t address, byte_t *value, uword_t size);
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
-    virtual bool write(uword_t address, byte_t *value, uword_t size);
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
   };
   
   /// Map several devices into the address space of another memory device
@@ -223,10 +220,6 @@ namespace patmos
     : Memory(memory), Base_address(base_address), High_address(high_address) 
     {}
 
-    virtual excunit_t &get_exception_handler() {
-      return Memory.get_exception_handler();
-    }
-    
     void add_device(mapped_device_t &device);
     
     /// A simulated access to a read port.
@@ -235,7 +228,7 @@ namespace patmos
     /// the memory.
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
-    virtual bool read(uword_t address, byte_t *value, uword_t size);
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
     /// A simulated access to a write port.
     /// @param address The memory address to write to.
@@ -243,20 +236,20 @@ namespace patmos
     /// @param size The number of bytes to write.
     /// @return True when the data is written finally to the memory, false
     /// otherwise.
-    virtual bool write(uword_t address, byte_t *value, uword_t size);
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
     /// Read some values from the memory -- DO NOT SIMULATE TIMING.
     /// @param address The memory address to read from.
     /// @param value A pointer to a destination to store the value read from
     /// the memory.
     /// @param size The number of bytes to read.
-    virtual void read_peek(uword_t address, byte_t *value, uword_t size);
+    virtual void read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
     /// Write some values into the memory -- DO NOT SIMULATE TIMING, just write.
     /// @param address The memory address to write to.
     /// @param value The value to be written to the memory.
     /// @param size The number of bytes to write.
-    virtual void write_peek(uword_t address, byte_t *value, uword_t size);
+    virtual void write_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
     /// Check if the memory is busy handling some request.
     /// @return False in case the memory is currently handling some request,

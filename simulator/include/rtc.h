@@ -27,6 +27,7 @@
 #include "memory-map.h"
 #include "endian-conversion.h"
 #include "excunit.h"
+#include "exception.h"
 
 namespace patmos
 {
@@ -63,7 +64,7 @@ namespace patmos
   public:
 
     rtc_t(simulator_t &s, uword_t base_address, double frequency)
-    : mapped_device_t(s.Exception_handler, base_address, TIMER_MAP_SIZE),
+    : mapped_device_t(base_address, TIMER_MAP_SIZE),
       Simulator(s),
       Frequency(frequency), High_clock(0), High_usec(0),
       Last_usec(0), Low_interrupt_clock(0), Low_interrupt_usec(0),
@@ -82,7 +83,7 @@ namespace patmos
       return (uint64_t)((double)Simulator.Cycle / Frequency);
     }
     
-    virtual bool read(uword_t address, byte_t *value, uword_t size) {
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size) {
       if (is_word_access(address, size, 0x00)) {
         // read latched high word of cycle counter
         set_word(value, size, High_clock);
@@ -106,12 +107,12 @@ namespace patmos
         set_word(value, size, low_usec);
       }
       else {
-        Exception_handler.unmapped(address);
+        simulation_exception_t::unmapped(address);
       }
       return true;
     }
 
-    virtual bool write(uword_t address, byte_t *value, uword_t size) {
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size) {
       if (is_word_access(address, size, 0x00)) {
         // set the clock interrupt timer
         uword_t high_clock = get_word(value, size);
@@ -131,18 +132,18 @@ namespace patmos
         Low_interrupt_usec = get_word(value, size);
       }
       else {
-        Exception_handler.unmapped(address);
+        simulation_exception_t::unmapped(address);
       }
       return true;
     }
 
     virtual void tick() {
       if (Interrupt_clock == getCycle()) {
-        Exception_handler.fire_exception(ET_INTR_CLOCK);
+        Simulator.Exception_handler.fire_exception(ET_INTR_CLOCK);
       }
       uint64_t usec = getUSec();
       if (Interrupt_usec == usec && usec != Last_usec) {
-        Exception_handler.fire_exception(ET_INTR_USEC);
+        Simulator.Exception_handler.fire_exception(ET_INTR_USEC);
       }
       Last_usec = usec;
     }

@@ -257,6 +257,14 @@ namespace patmos
   public:
     i_aluil_t() { reset_stats(); }
     
+    virtual GPR_e get_dst_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.ALUil.Rd;
+    }
+
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.ALUil.Rs1;
+    }
+    
     /// Compute the result of an ALUi or ALUl instruction.
     /// @param value1 The value of the first operand.
     /// @param value2 The value of the second operand.
@@ -384,6 +392,18 @@ namespace patmos
   class i_alur_t : public i_pred_t
   {
   public:
+    virtual GPR_e get_dst_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.ALUr.Rd;
+    }
+
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.ALUr.Rs1;
+    }
+    
+    virtual GPR_e get_src2_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.ALUr.Rs2;
+    }
+    
     /// Compute the result of an ALUr instruction.
     /// @param value1 The value of the first operand.
     /// @param value2 The value of the second operand.
@@ -470,6 +490,14 @@ namespace patmos
   class i_alum_t : public i_pred_t
   {
   public:
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.ALUm.Rs1;
+    }
+    
+    virtual GPR_e get_src2_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.ALUm.Rs2;
+    }
+    
     /// Compute the result of an ALUr instruction.
     /// @param value1 The value of the first operand.
     /// @param value2 The value of the second operand.
@@ -562,6 +590,14 @@ namespace patmos
     uint64_t cnt_cmp_short_uimm;
   public:
     i_aluc_t() { reset_stats(); }
+    
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.ALUc.Rs1;
+    }
+    
+    virtual GPR_e get_src2_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.ALUc.Rs2;
+    }
     
     /// Compute the result of an ALUc instruction.
     /// @param value1 The value of the first operand.
@@ -694,6 +730,15 @@ namespace patmos
   class i_aluci_t : public i_aluc_t
   {
   public:
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.ALUci.Rs1;
+    }
+    
+    virtual GPR_e get_src2_reg(const instruction_data_t &ops) const { 
+      return r0;
+    }
+    
+
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
@@ -904,6 +949,14 @@ namespace patmos
   class i_alub_t : public i_pred_t
   {
   public:
+    virtual GPR_e get_dst_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.ALUb.Rd;
+    }
+
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.ALUb.Rs1;
+    }
+    
     /// Compute the result of an ALUp instruction.
     /// @param value1 The value of the first operand.
     /// @param value2 The value of the second operand.
@@ -1021,6 +1074,10 @@ namespace patmos
   class i_spct_t : public i_pred_t
   {
   public:
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.SPCt.Rs1;
+    }
+        
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
@@ -1091,6 +1148,10 @@ namespace patmos
   public:
     i_spcf_t() { reset_stats(); }
     
+    virtual GPR_e get_dst_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.SPCf.Rd;
+    }
+
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
@@ -1182,6 +1243,16 @@ namespace patmos
   class i_ldt_t : public i_pred_t
   {
   public:
+    virtual bool is_load() const { return true; }
+
+    virtual GPR_e get_dst_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.LDT.Rd;
+    }
+
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.LDT.Ra;
+    }
+
     /// load the value from memory.
     /// @param s The Patmos simulator executing the instruction.
     /// @param address The address of the memory access.
@@ -1276,14 +1347,14 @@ namespace patmos
       atype tmp=0; \
       if ((address & (sizeof(atype) - 1)) != 0) \
         simulation_exception_t::unaligned(address); \
-      bool is_available = base.read_fixed(address, tmp); \
+      bool is_available = base.read_fixed(s, address, tmp); \
       value = (ctype)from_big_endian<big_ ## atype>(tmp); \
       return is_available; \
     } \
     virtual word_t peek(simulator_t &s, word_t address) const \
     { \
       atype tmp=0; \
-      base.peek_fixed(address, tmp); \
+      base.peek_fixed(s, address, tmp); \
       return (ctype)from_big_endian<big_ ## atype>(tmp); \
     } \
   };
@@ -1321,6 +1392,12 @@ namespace patmos
   class i_dldt_t : public i_pred_t
   {
   public:
+    virtual bool is_load() const { return true; }
+    
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.LDT.Ra;
+    }
+
     /// load the value from memory.
     /// @param s The Patmos simulator executing the instruction.
     /// @param address The address of the memory access.
@@ -1413,7 +1490,7 @@ namespace patmos
       atype tmp; \
       if ((address & (sizeof(atype) - 1)) != 0) \
         simulation_exception_t::unaligned(address); \
-      bool is_available = base.read_fixed(address, tmp); \
+      bool is_available = base.read_fixed(s, address, tmp); \
       value = (ctype)from_big_endian<big_ ## atype>(tmp); \
       return is_available; \
     } \
@@ -1437,6 +1514,14 @@ namespace patmos
   class i_stt_t : public i_pred_t
   {
   public:
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.STT.Ra;
+    }
+    
+    virtual GPR_e get_src2_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.STT.Rs1;
+    }
+
     /// Store the value to memory.
     /// @param s The Patmos simulator executing the instruction.
     /// @param address The address of the memory access.
@@ -1514,7 +1599,7 @@ namespace patmos
       type big_value = to_big_endian<big_ ## type>((type)value); \
       if ((address & (sizeof(type) - 1)) != 0) \
         simulation_exception_t::unaligned(address); \
-      return base.write_fixed(address, big_value); \
+      return base.write_fixed(s, address, big_value); \
     } \
   };
 
@@ -1621,6 +1706,10 @@ namespace patmos
     }
 
   public:
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.STCr.Rs;
+    }
+    
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
@@ -1656,12 +1745,12 @@ namespace patmos
     virtual word_t EX_cache(simulator_t &s, uword_t size, \
                             uword_t &stack_spill, uword_t &stack_top) const \
     { \
-      return s.Stack_cache.prepare_ ## function(size, stack_spill, stack_top); \
+      return s.Stack_cache.prepare_ ## function(s, size, stack_spill, stack_top); \
     } \
     virtual bool MW_cache(simulator_t &s, uword_t size, word_t delta, \
                           uword_t stack_spill, uword_t stack_top) const \
     { \
-      return s.Stack_cache.function(size, delta, stack_spill, stack_top); \
+      return s.Stack_cache.function(s, size, delta, stack_spill, stack_top); \
     } \
   };
 
@@ -1678,12 +1767,12 @@ namespace patmos
     virtual word_t EX_cache(simulator_t &s, uword_t size, \
                             uword_t &stack_spill, uword_t &stack_top) const \
     { \
-      return s.Stack_cache.prepare_ ## function(size, stack_spill, stack_top); \
+      return s.Stack_cache.prepare_ ## function(s, size, stack_spill, stack_top); \
     } \
     virtual bool MW_cache(simulator_t &s, uword_t size, word_t delta, \
                           uword_t stack_spill, uword_t stack_top) const \
     { \
-      return s.Stack_cache.function(size, delta, stack_spill, stack_top); \
+      return s.Stack_cache.function(s, size, delta, stack_spill, stack_top); \
     } \
   };
 
@@ -1746,7 +1835,7 @@ namespace patmos
       {
         // check if the target method is in the cache, otherwise stall until
         // it is loaded.
-        if (!s.Instr_cache.load_method(base, address - base))
+        if (!s.Instr_cache.load_method(s, base, address - base))
         {
           // stall the pipeline
           s.pipeline_stall(SMW);
@@ -1778,7 +1867,7 @@ namespace patmos
       if (pred)
       {
         // assure that the target method is in the cache.
-        assert(s.Instr_cache.is_available(base));
+        assert(s.Instr_cache.is_available(s, base));
 
         // set the program counter and base
         s.BASE = base;
@@ -2077,6 +2166,10 @@ namespace patmos
   class i_cflrs_t : public i_cfl_t
   {
   public:
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.CFLrs.Rs;
+    }
+    
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
@@ -2105,6 +2198,14 @@ namespace patmos
   class i_cflrt_t : public i_cfl_t
   {
   public:
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.CFLrt.Rs1;
+    }
+    
+    virtual GPR_e get_src2_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.CFLrt.Rs2;
+    }
+    
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
     /// @param s The Patmos simulator executing the instruction.
