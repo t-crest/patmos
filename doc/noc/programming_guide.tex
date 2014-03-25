@@ -267,12 +267,19 @@ if (bw != 1) { bw = 1;  }
 
 \chapter{Memory address space and interface}
 \label{chap:mem}
-The network interface (NI) of Argo has 2 OCP\cite{ocp:spec} interfaces.
 
+The network interface (NI) of Argo has 2 OCP\cite{ocp:spec} interfaces. One is connected to SPM memory
+to access data and the other is connected to the processor core for configuration purposes.
 
-\section{Local and Global Address Space}
+The SPM, the DMA and the Slot Table of each processor lie in the local address space.
+They can be accessed by the processor through reads and writes 
+in the specified addresses that are mentioned below.
 
-%\eva{Just copied the addresses from the .h files}
+The UART and LEDS also lie in the local address space and can be accessed only by the master core
+at the specified addresses.
+
+\section{Local Address Space}
+
 \begin{description}
 \item[UART\_STATUS]      0xF0000800
 \item[UART\_DATA]        0xF0000804
@@ -864,6 +871,8 @@ The defines in libnoc"
 
 To demonstrate the use of Argo, a multi-core Hello World application \textit{hello\_sum.c} is placed in /patmos/c.
 The application is written in C and can be compiled and downloaded on the FPGA board where the bootloader is initiating the execution.
+
+\subsection{Compile and Run}
 The application needs to be placed in /patmos/c and the compile and download of the application on the board is done with the following make commands:
 
 \begin{verbatim}
@@ -871,16 +880,26 @@ make APP=hello_sum comp
 make APP=hello_sum download
 \end{verbatim}
 
-To develop an application that runs on T-CREST platform, memory access and communication should be handled explicitely.
-Argo noc is initialized automatically through aegean platform but the communication of data should be handled by application programmer.
-Specifically, in \textit{hello\_sum} application, a round trip hello message is sent from the master passing through all the cores.
-Each core is adding its id to the sum of the id and eventually the master will receive the sum of all core ids.
-To send data from one core to another the data should be explicitely placed in the local SPM of the core. Pointers to access SPM space are defined as:
+\subsection{SPM access}
+To develop an application that runs on T-CREST platform, memory access and 
+communication should be handled explicitely. Argo NOC is initialized automatically 
+through aegean platform but the communication of data should be handled by application programmer.
+Specifically, in \textit{hello\_sum} application, a round trip hello message is sent from the master
+passing through all the cores. Each core is adding its id to the sum of the id and 
+eventually the master will receive the sum of all core ids. To send data from one core to another 
+the data should be explicitely placed in the local SPM of the core. Pointers to access SPM space are defined as:
 
 \begin{lstlisting}
 volatile _SPM <type> *<name>
 \end{lstlisting}
 
+The copying of the message should be done manually, copying one-by-one character or integer.
+Copying of strings through string.h is not available. 
+
+%Listing~\ref{lst:hello_master} shows the code executed in the master core.
+%The code for the explicit copying the data to the SPM space, the sending of message,
+
+\subsection{Sending}
 The sending of the message is done using function noc\_send():
 
 \begin{lstlisting}
@@ -889,11 +908,54 @@ void noc_send (int rcv_id, volatile void _SPM *dst, volatile void _SPM *src, siz
 
 The function returns when the DMA transmitting the message is setup.
 
-Currently, libnoc library doesn't support a receive message,
+\begin{lstlisting}[float,caption={A 2x2 Hello World application: Master.\label{lst:hello_master}}]
+volatile _SPM char *spm_base = (volatile _SPM char *) NOC_SPM_BASE;
+volatile _SPM char *spm_slave = spm_base+NOC_CORES*16;
+
+// message to be send
+const char *msg_snd = "Hello slaves sum_id:0";
+char msg_rcv[22];
+
+// put message to spm
+int i;
+for (i = 0; i < 21; i++) {
+	*(spm_base+i) = *(msg+i);
+}
+
+// send message
+noc_send(1, spm_slave, spm_base, 21); //21 bytes
+
+puts("MASTER: message sent: ");
+puts(msg_snd);
+
+// wait and poll
+while(*(spm_slave+20) == 0) {;}
+
+// received message
+puts("MASTER: message received:");
+// copy message to static location and print
+for (i = 0; i < 21; i++) {
+	*(msg_rcv+i) = *(spm_slave+i);
+}
+*(msg_rcv+i) = '\0';
+puts(msg_rcv);
+
+\end{lstlisting}
+
+
+The explicit copying of data to the SPM space and the sending of message appears 
+in Listing~\ref{lst:hello_master}. Listing~\ref{lst:hello_master}
+shows the code executed in the master core.
+
+\subsection{Receiving}
+Currently, libnoc library does not support a receive message,
 therefore a receiver can know that the data has arrived through wait
 and polling of the specified address where the data are expected to arrive.
-Figure \ref{lst:hello_multi} shows the code executed in the slave cores.
-The code for the allocation of memory in the SPM, the polling and the sending of message appears in Figure \ref{lst:hello_multi}.
+Since data is transmitted in packets, to safely consider the reception completed
+the polling should be done on the last unit of data (char/ int/...) sent.
+Listing \ref{lst:hello_multi} shows the code executed in the slave cores.
+The code for the allocation of memory in the SPM, the polling and the sending of message 
+appears in Listing \ref{lst:hello_multi}.
 
 \begin{lstlisting}[float,caption={A 2x2 Hello World application: Slave.\label{lst:hello_multi}}]
 volatile _SPM char *spm_base = (volatile _SPM char *) NOC_SPM_BASE;
@@ -908,39 +970,16 @@ while(*(spm_slave+20) == 0) {;}
 // send to next slave
 int rcv_id = (CORE_ID==3)? 0 : CORE_ID+1;
 noc_send(rcv_id, spm_slave, spm_slave, 21);
+
 \end{lstlisting}
 
-\eva{Maybe master code not really needed here.}
-Listing~\ref{lst:hello_master} shows the code executed in the master core. The code for the explicit copying the data to the SPM space, the sending of message, the polling and the printing appears in Listing~\ref{lst:hello_master}.
+\subsection{Printing}
+To print a message, functions puts and printf can be used. Data can be print only
+by the master core and only if it is placed in the static memory of the core. Therefore,
+a data value that is placed in the SPM should be copied in static memory 
+and then print through puts or printf. Listing~\ref{lst:hello_master}
+shows how to print a static string and a message received in SPM through NOC.
 
-\begin{lstlisting}[float,caption={A 2x2 Hello World application: Master.\label{lst:hello_master}}]
-volatile _SPM char *spm_base = (volatile _SPM char *) NOC_SPM_BASE;
-volatile _SPM char *spm_slave = spm_base+NOC_CORES*16;
-
-// message to be send
-const char *msg = "Hello slaves sum_id:0";
-
-// put message to spm
-int i;
-for (i = 0; i < 21; i++) {
-	*(spm_base+i) = *(msg+i);
-}
-
-// send message
-noc_send(1, spm_slave, spm_base, 21); //21 bytes
-
-WRITE("MASTER: message sent: ",22);
-WRITE(spm_base, 21);
-WRITE("\n",1);
-
-// wait and poll
-while(*(spm_slave+20) == 0) {;}
-
-// received message
-WRITE("MASTER: message received: ",26);
-WRITE(spm_slave, 21);
-WRITE("\n",1);
-\end{lstlisting}
 
 \chapter{Pending Changes}
 
