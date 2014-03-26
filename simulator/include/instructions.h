@@ -1877,7 +1877,7 @@ namespace patmos
       return false;
     }
     
-    void push_dbgstack(simulator_t &s, instruction_data_t &ops, bit_t pred,
+    bool push_dbgstack(simulator_t &s, instruction_data_t &ops, bit_t pred,
                         word_t callee) const 
     {
       // Enter the debug stack just once, and before we actually do the update
@@ -1890,10 +1890,13 @@ namespace patmos
         
         s.Dbg_stack.push(callee);
         s.Profiling.enter(callee, s.Cycle);
+        
+        return true;
       }
+      return false;
     }
                         
-    void pop_dbgstack(simulator_t &s, instruction_data_t &ops, bit_t pred,
+    bool pop_dbgstack(simulator_t &s, instruction_data_t &ops, bit_t pred,
                       word_t base, word_t offset) const
     {
       if (pred && !ops.MW_Initialized && !s.is_stalling(SMW)) {
@@ -1901,7 +1904,10 @@ namespace patmos
         
         s.Profiling.leave(s.Cycle);
         s.Dbg_stack.pop(base, offset);
+        
+        return true;
       }
+      return false;
     }
                         
   public:
@@ -2178,6 +2184,7 @@ namespace patmos
     {
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
       ops.DR_Rs1 = s.GPR.get(ops.OPS.CFLrs.Rs);
+      ops.MW_Initialized = false;
     }
 
     /// Print the instruction to an output stream.
@@ -2215,6 +2222,7 @@ namespace patmos
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
       ops.DR_Rs1 = s.GPR.get(ops.OPS.CFLrt.Rs1);
       ops.DR_Rs2 = s.GPR.get(ops.OPS.CFLrt.Rs2);
+      ops.MW_Initialized = false;
     }
 
     /// Print the instruction to an output stream.
@@ -2431,15 +2439,13 @@ namespace patmos
       }
       else if (ops.DR_Pred)
       {
-        pop_dbgstack(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Offset);
-
         // We re-enable interrupts *once*, and *before* we start fetching from
         // M$, so that we can abort fetching if there is another interrupt pending
-        if (!ops.MW_Initialized) {
+        // TODO this is nasty that we use pop_dbgstack to check if this is the first call of MW
+        if (pop_dbgstack(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Offset)) {          
           s.Exception_handler.resume();
-          ops.MW_Initialized = true;
         }
-        
+
         // TODO maybe do not even fetch return function if there is an 
         // interrupt pending
         fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Address);

@@ -58,6 +58,9 @@ namespace patmos
     // Clear the pending flag for the interrupt
     Pending &= ~(1u << Source);
     
+    // Disable interrupts
+    Status <<= 1;
+    
     // Return the interrupt data
     return get((exception_e)Source);
   }
@@ -70,6 +73,9 @@ namespace patmos
     // Start executing the trap by setting Source to the trap and returning the
     // ISR address
     Source = exc;
+    
+    // Disable interrupts during trap handler
+    Status <<= 1;
     
     isr = get(exc);
     
