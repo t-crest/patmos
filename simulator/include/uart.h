@@ -25,6 +25,7 @@
 #include <cstdio>
 
 #include "memory-map.h"
+#include "exception.h"
 
 namespace patmos
 {
@@ -145,7 +146,7 @@ namespace patmos
     /// the memory.
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
-    virtual bool read(uword_t address, byte_t *value, uword_t size)
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
     {
       if (address == Status_address && size == 4)
         return read_status(value+3);
@@ -153,6 +154,7 @@ namespace patmos
         return read_data(value+3);
       else
         simulation_exception_t::unmapped(address);
+      return true;
     }
 
     /// A simulated access to a read port. Does not update the device state or 
@@ -161,7 +163,7 @@ namespace patmos
     /// @param value A pointer to a destination to store the value read from
     /// the memory.
     /// @param size The number of bytes to read.
-    virtual void peek(uword_t address, byte_t *value, uword_t size) {
+    virtual void peek(simulator_t &s, uword_t address, byte_t *value, uword_t size) {
       if (address == Status_address && size == 4)
         read_status(value+3);
       else if (address == Data_address && size == 4)
@@ -176,7 +178,7 @@ namespace patmos
     /// @param size The number of bytes to write.
     /// @return True when the data is written finally to the memory, false
     /// otherwise.
-    virtual bool write(uword_t address, byte_t *value, uword_t size)
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size)
     {
       if (address == Status_address && size == 4)
         return write_control(value+3);
@@ -184,6 +186,7 @@ namespace patmos
         return write_data(value+3);
       else
         simulation_exception_t::unmapped(address);
+      return true;
     }
   };
 }

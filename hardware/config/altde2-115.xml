@@ -1,30 +1,17 @@
-<patmos>
-  <description>default configuration</description>
+<patmos default="default.xml">
+  <description>default configuration for DE2-115 board</description>
 
-  <frequency Hz="80000000" />
-  <pipeline dual="true" />
-  <bus burstLength="4" writeCombine="false" />
-
-  <MCache size="4k" blocks="16" repl="" />
-  <DCache size="2k" assoc="1" repl="" />
-  <SCache size="2k" />
-  <ISPM size="1k" />
-  <DSPM size="2k" />
-  <BootSPM size="2k" />
+  <frequency Hz="80000000"/>
 
   <ExtMem size="2M" DevTypeRef="Ssram16" />
 
   <IOs>
-	<IO DevTypeRef="CpuInfo" offset="0"/>
-	<IO DevTypeRef="Timer" offset="2" intrs="0,1"/>
 	<IO DevTypeRef="Uart" offset="8"/>
 	<IO DevTypeRef="Leds" offset="9"/>
 	<IO DevTypeRef="Keys" offset="10" intrs="2,3,4,5"/>
   </IOs>
 
   <Devs>
-  	<Dev DevType="CpuInfo" entity="CpuInfo" iface="OcpCore" />
-  	<Dev DevType="Timer" entity="Timer" iface="OcpCore" />
   	<Dev DevType="Uart" entity="Uart" iface="OcpCore">
   	  <params>
   		<param name="baud_rate" value="115200"/>
@@ -59,7 +46,4 @@
         </ports>
     </Dev>
   </Devs>
-
-  <!-- currently unused -->
-  <SCache size="0" />
 </patmos>

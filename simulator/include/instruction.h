@@ -69,9 +69,26 @@ namespace patmos
 
     virtual bool is_call() const { return false; }
     
+    virtual bool is_load() const { return false; }
+    
     /// Returns the number of delay slot cycles of this instruction
     virtual unsigned get_delay_slots(const instruction_data_t &ops) const = 0;
     
+    /// Returns the destination register of the instruction, or r0 if no destination.
+    virtual GPR_e get_dst_reg(const instruction_data_t &ops) const { 
+      return r0;
+    }
+    
+    /// Returns the first source register, or r0 if no source registers.
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return r0;
+    }
+    
+    /// Return the second source register, or r0 if operation has less than two operands.
+    virtual GPR_e get_src2_reg(const instruction_data_t &ops) const { 
+      return r0;
+    }
+
     /// Reset all statistic counters.
     virtual void reset_stats() { }
 

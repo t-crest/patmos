@@ -1148,96 +1148,12 @@ progress, the pipeline will be stalled implicitly until the already running load
 is completed before the next memory access is issued. The value of the previous
 load can then be read from \texttt{sm} for (at least) one cycle.
 
-Regular loads incur a one cycle load-to-use latency that has
-to be respected by the compiler/programmer. The destination register of the load
-is guaranteed to be unmodified, i.e., a one-cycle load delay slot.
-
-\martin{There can be different approaches to handle the case where the destination register of load is used in the next clock cycle
-
-1) Ignore the issue, as the compiler will not generate this code. Therefore, we need to avoid this test case.
-
-2) Looking what the hardware does (assume the ALU result of the lws instruction is forwarded) and implementing this in the simulator.
-
-3) Disabling forwarding from the EX stage when the last instruction was a load, but enabling it again when the load instruction is in the MEM stage. That would mean that the 'old' value of the register is used.
-
-4) implement pipeline interlock with a partial stall (or bubble) to allow load/use without a delay slot (like MIPS II I think).
-
-}
-
-\fb{The easiest solution is to define the behavior as undefined.
-
-From the compiler side it might also make sense to implement 3) as
-the delay slot filler might exploit this (I would not consider this
-with high priority though).}
-
-\sahar{Pipeline stall is no different than the one slot delay from delay point of view, but the compiler does not have to take care of adding the delay slot.}
-
-\martin{When there is a NOP in the delay slot it is the same execution time as when the pipeline is (partially) stalled for one cycle.
-
-If the compiler can fill the delay slot, the solution with the delay slot is more efficient. If it cannot be filled, code size increases due to the NOPs. So this is a trade-off, and we do not (yet) know which is better.
-
-So we keep it as it is and say that using the load value in the delay slot leads to undefined behavior.}
-
-
-\gebhard{Does this imply that the semantics of the processor is dependent on the instruction timing?
-If this is actually the case, a static value analysis is \emph{unable} to compute precise data if it does not know the timing of the execution history!
-
-Consider the following instruction sequence.
-Each line denotes an instruction bundle.
-For the sake of simplicity we only consider simple bundles (i.e., only the first slot is used).
-
-\begin{tabular}{cl}
-\hline
-1 & \texttt{dlwm r3+0x00} \\
-2 & \texttt{nop}          \\
-3 & \texttt{mfs r2,sm}  \\
-\hline
-\end{tabular}
-
-Whether \texttt{sm} contains the memory contents once the third instruction is executed is statically unknown.
-Remember that the processor is part of a network, where data access timing depends on the load of the network.
-If the access completes after dispatch of the second instruction, we will be fine.
-According to the semantics (``one-cycle load delay slot''), the register \texttt{sm} will contain the expected value.
-But if the access takes longer...}
-
-\fb{
-The Processor ensures that the value in the destination register of a load keeps
-the old value for one more cycle (instruction bundle). In the case of regular
-loads, which stall, the register will have the value just loaded from memory
-after that cycle. For decoupled loads the value is \emph{undefined} until the
-worst-case latency of the load has passed. You have to use a \texttt{wait} or
-another decoupled load in order to be safe. The static analysis should/could
-issue a warning/error if such a code is encountered. If the \texttt{wait}
-instruction should be eliminated, the \texttt{mfs} has to respect the load's
-latency in the worst-case, which needs to be known anyways for the
-\texttt{wait}.
-}
-
-\gebhard{I am still not convinced of the benefit of decoupled loads.
-Why don't we implement loads (or stores) such that they block upon a register dependency?
-A load may then always run in parallel to other instructions, as long as the target register is not needed.
-
-By doing so, we would even safe code space.
-To ensure that a decoupled load gives us the expected result we currently need three instructions:
-The decoupled load instruction, a wait instruction, and a move from special register instruction.
-Using implicitly blocking loads we \emph{always} need \emph{exactly one} instruction to perform a load from memory.
-
-Please provide evidence why the current design leads to a (statically) predictable architecture.}
-
-\fb{
-There is a proposal in the extensions part that follows this idea. The main
-motivation for the current solution are hardware considerations. (1) We do not
-want to afford a 3rd write port to the register file, which would be needed if
-we want to handle a decoupled load that is about to finish concurrently with two
-ALU instructions. This is why decoupled loads go to the special registers. (2)
-We do not want every instruction with a register operand to stall, i.e., only
-very few classes of instructions should stall. Also note, that a separate
-\emph{wait} allows us to wait for a load without using a register. This might
-come handy for compiler optimizations, e.g., placement of \texttt{wait} after
-register allocation.
-}
-
-\gebhard{In my experience the gain from such optimizations is far less than the penalty induced by the increased code size.}
+Regular loads incur a load-to-use latency that has to be respected by
+the compiler/programmer. The result of the load is not available in
+the bundle immediately after the load, i.e., there must be one bundle
+between the load instruction and the first use of the destination
+register. The value of the destination register is undefined during
+this load delay slot.
 
 The displacement value (\code{Imm}) value is interpreted unsigned.
 
@@ -1876,11 +1792,12 @@ the operating system), exceptions 16 to 32 are attached to interrupts.
     \toprule
     Address             & Name             & Description \\
     \midrule
-    \texttt{0xf0000100} & \texttt{status} & Interrupt-enable flag. \\
+    \texttt{0xf0000100} & \texttt{status} & Interrupt-enable flag \\
     \texttt{0xf0000104} & \texttt{mask} & Mask of enabled interrupts \\
     \texttt{0xf0000108} & \texttt{pend} & Pending flags for interrupts \\
     \texttt{0xf000010c} & \texttt{source} & Number of exception that
     is about to be served \\
+    \texttt{0xf0000110} & \texttt{sleep} & Sleep mode (optional) \\
     \cmidrule{1-3}
     \texttt{0xf0000180} & \texttt{vec<0>} & Address of exception handler 0, illegal operation \\
     \texttt{0xf0000184} & \texttt{vec<1>} & Address of exception handler 1, illegal memory access \\
@@ -1948,9 +1865,24 @@ delayed loads do not delay the triggering of interrupts. Interrupt
 handlers must ensure that the contents of the special register
 \texttt{sm} are saved and restored correctly.
 
+\subsection{Sleep Mode}
+
+The exception unit provides support for putting the processor to
+sleep. Writes to the \texttt{sleep} register halt the pipeline until
+an interrupt (or other exception) occurs. After executing the
+respective exception handler, execution resumes after that
+write. Therefore, writes to the \texttt{sleep} register should be
+enclosed in a loop for continuous sleeping.
+
+Support for sleeping is optional. On implementations that do not
+support sleeping, writes to the \texttt{sleep} register are ignored
+and do not have any effect. Therefore, continuing execution after a
+write to the \texttt{sleep} register is not proof that an interrupt
+has occurred.
+
 \subsection{Examples}
 
-The API for exception and interrupt nadling for Patmos is provided by
+The API for exception and interrupt handling for Patmos is provided by
 the include file \texttt{machine/exceptions.h}.
 
 Listing~\ref{lst:excreg} shows how to register exception handlers for
@@ -3130,6 +3062,14 @@ immediately.
   \code{DVA}.
 \end{enumerate}
 
+
+% % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
+\chapter{Application Binary Interface}
+\label{sec:abi}
+
+\input{abi}
+
+
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 \chapter{Implementation}
 
@@ -3216,13 +3156,54 @@ Current version (4.4.2013) with all ALU operations and test case ALU.s
 for the DE2-70 is: 3415 LCs, 85.44 MHz. Dropping \code{rsub} and all unary
 ALU operations: 3173 LCs, 91.91 MHz.
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Build Instructions}
 \label{ch:build_instructions}
 
 In the following we present the Patmos build instructions on a Linux/Ubuntu
 system (13.10).\footnote{I used the 32-bit version of Ubuntu to simplify the Quartus installation.}
 Patmos and the compiler have also been successfully installed on a Mac OSX
-system. The support of Windows is marginal, or basically not existent.
+system.  The support of Windows is marginal, or basically not existent.
+
+
+% ------------------------------------------------------------------------------
+%\section{Prerequisites}
+%
+%In order to build all tools, the following programs and libraries are required:
+%
+%\begin{itemize}
+%\item[cmake, make] \hfill\\
+%The CMake (at least version 2.8) and \texttt{make} build systems are required to build the
+%various components of the tool chain, such as the \texttt{clang} compiler or the \texttt{compiler-rt} system library.
+%\medskip
+%
+%\item[gcc, g++] \hfill\\
+%A C and C++ compiler such as GCC is required to build \texttt{clang}, \texttt{llvm}
+%and \texttt{gold}. It is also possible to use a separate \texttt{clang} installation as
+%an alternative to GCC. Compiling with \texttt{clang} will result in shorter compile
+%times, but at least version 3.3 is required.
+%\medskip
+%
+%\item[flex, bison, texinfo] \hfill\\
+%These tools are required to build tools such as gold successfully.
+%\medskip
+%
+%\item[libelf] \hfill\\
+%The tools in the Patmos tool chain require the development headers of \texttt{libelf},
+%as this library is used to read and write ELF files.
+%\medskip
+%
+%\item[boost] \hfill\\
+%The simulator requires the program-options library from the \texttt{boost} C++ library
+%(at least version 1.46).
+%\medskip
+%
+%\item[git, subversion] \hfill\\
+%The version control system \texttt{git} and \texttt{svn} are required
+%to download the latest development versions of the tools and the benchmarks.
+%\end{itemize}
+%
 
 
 \section{Setup On Ubuntu 13.10}
@@ -3255,7 +3236,7 @@ be installed:
 sudo apt-get install python3-lxml
 \end{verbatim}
 
-\subsection{Compiler and Patmos}
+\subsection{Building Patmos and the Compiler Tool Chain}
 \label{sec:build:compiler}
 
 We assume that the T-CREST project will live in \code{\$HOME/t-crest}.
@@ -3282,6 +3263,14 @@ This script (\code{build.sh}) will checkout several other repositories (the comp
 the Patmos source, and benchmarks) and
 builds the compiler, the Patmos simulator, and the test benches.
 Therefore, take a cup of coffee and find some nice reading.
+
+The \code{build.sh} script contains default options, which should work out of the box. 
+The build settings can be changed by a customized \code{misc/build.cfg} file. The file \code{misc/build.cfg.dist}
+is an example configuration file containing default values. It is ignored by the build process and should not be edited.
+\footnote{It is autogenerated by \code{build.sh -e} from the values in \code{build.sh}.}
+To change any options for \code{misc/build.sh}, either start with an empty \code{misc/build.cfg} or
+copy \code{misc/build.cfg.dist} and modify the values to your need.
+
 After building the compiler add the path
 to the compiler executables (e.g., into your \code{.bashrc} or \code{.profile}):
 \footnote{The path needs to be absolute. LLVM cannot handle
@@ -3291,6 +3280,9 @@ a path relative to the home folder \textasciitilde{}, e.g., \code{\textasciitild
 %session) might be set up to source \code{.profile} as well.}
 
 \martin{In Mac OS X I have only .profile and I don't understand what the issue by 'only read by login terminals'.}
+\stefan{Login shells are only opened at logins. Interactive terminals are all terminals that are opened by your window manager or
+other means. This is why you need to reboot to have .profile take effect. There are slight differences between bash and zsh when which file is read, 
+and distribution further mix up the files in non-standard ways.}
 
 \stefan{Relative paths should actually work, but the \textasciitilde{} shortcut is shell-specific and may not work, but
 not sure about this.}
@@ -3308,6 +3300,8 @@ export PATH=$PATH:$HOME/t-crest/misc
 
 A complete logout from Ubuntu might be needed to take effect (just closing
 a terminal window is not enough, depending on how you set up your profile files).
+
+\stefan{Only if you do it wrong ;) }
 
 You can test your installation by checking if the compiler is available:
 
@@ -3884,212 +3878,6 @@ export XILINXD_LICENSE_FILE="2100@eda1.imm.dtu.dk"
 
 \input{toolchain}
 
-
-\chapter{Application Binary Interface}
-\label{sec:abi}
-
-\section{Data Representation}
-
-Data words in memories are stored using the big-endian data representation, this
-also includes the instruction representation.
-
-\section{Register Usage Conventions}
-
-The register usage conventions for the general purpose registers are as follows:
-\begin{itemize}
-  \item \texttt{r0} is defined to be zero at all times.
-  \item \texttt{r1} and \texttt{r2} are used to pass the return value on
-        function calls. \\
-        For 64 bit results, the high part is stored in \texttt{r1},
-        the low part in \texttt{r2}.
-	32 bit results are returned using \texttt{r1} only.
-  \item \texttt{r3} through \texttt{r8} are used to pass arguments on function
-        calls. \\
-        For 64 bit arguments, the high part is stored first,
-        followed by the low part.\\ E.g., for a 64 bit argument passed in
-        \texttt{[r3,r4]}, the high part is in \texttt{r3}, the low part
-        in \texttt{r4}.
-  \item \texttt{r27} is used as temp register.
-  \item \texttt{r28} is defined as the frame pointer and \texttt{r29} is defined as the stack
-        pointer for the \emph{shadow} stack in global memory. The use of a frame
-        pointer is optional, the register can freely be used otherwise.
-	\texttt{r29} is guaranteed to always hold the current stack pointer and is not used
-	otherwise by the compiler.
-  \item \texttt{r30} and \texttt{r31} are defined as the return function base
-        and the return function offset.
-        Usually, they are passed as operands to the \texttt{ret} instruction.
-  \item \texttt{r1} through \texttt{r19} are caller-saved \emph{scratch}
-        registers.
-  \item \texttt{r20} through \texttt{r31} are callee-saved \emph{saved}
-        registers.
-\end{itemize}
-
-The usage conventions of the predicate registers are as follows:
-\begin{itemize}
-  \item all predicate registers are callee-saved \emph{saved} registers.
-\end{itemize}
-
-\daniel{I have no educated opinion whether caller- or callee-saved.}
-\fb{This is rather easy to change in the compiler, and should be evaluated
-accordingly.}
-
-\daniel{
-What I'd like to have for single-path code is a guard predicate parameter for the called function, e.g., always passed in p1.
-}
-\fb{What would the guard predicate be good for? If need be we could define a
-separate calling convention for single-path-programming programs; in order to
-keep the conventions for the other programs sane.}
-
-\stefan{We would gain in most cases by making predicates caller-saved, since predicates are usually not
-used across function calls, this saves up to 6 instructions per call.
-Predicate live ranges over calls only happen with single-path and if-conversion. However, having only caller-saved predicates
-makes if-conversion of calls too costly (and too complex). A nicer solution would be to have p1-p4 caller-saved and
-p5-p7 callee saved. I got this to work (do not alias s0 with p1-p7 in RegInfo.td, mark s0 and p5-p7 as callee saved
-in RegInfo.cpp, and in processBeforeCalleeSavedScan set s0 as used when any of p5-p7 is used), but this would require the
-if-converter to use callee-saved predicates when converting calls, i.e., to change the predicate of the condition.
-Sounds easy, but is actually far from trivial to hack into the if-converter, and only works if the if-converter runs before the
-prologue-inserter, so we stay with callee saved registers for now and live with the costs of spilling s0 at nearly every call.}
-
-
-The usage conventions of the special registers are as follows:
-\begin{itemize}
-  \item The stack cache control registers \texttt{ss} and \texttt{st} are callee-saved
-        \emph{saved} register.
-  \item \texttt{s0}, representing the predicate registers, is a callee-saved \emph{saved} register.
-  \item All other special registers are caller-saved scratch registers and should not be used
-        across function calls.
-\end{itemize}
-
-\section{Function Calls}
-\label{sec:function_calls}
-
-Function calls have to be executed using the \texttt{call}
-instruction that automatically prefetches the target function to the method
-cache and stores the return information to the general-purpose register \texttt{r31}.
-At a function call, the callers base address has to be in \texttt{r30}.
-The callee is responsible to store/restore the callers function base and pass it as first
-operand to the return instruction.
-The \texttt{call} and \texttt{brcf} instructions neither use nor modify \texttt{r30}, the
-return function base is only used by \texttt{ret}.
-
-The register usage conventions of the previous section indicate which registers
-are preserved across function calls.
-
-The first $6$ arguments of integral data type are passed in registers, where
-64-bit integer and floating point types occupy two registers. All other
-arguments are passed on the \emph{shadow} stack via the global memory.
-
-\fb{We could pass arguments via the stack cache, however, this would work only
-for functions with a fixed number of arguments. The calling convention for
-variadic function would then differ from the standard conventions. We should
-probably also introduce a size limit on how many arguments should be passed via
-the stack cache. Thus, for a first shot I decided to keep the conventions
-simple.}
-\martin{I would like to see arguments passed via the stack cache. No
-reason to go via main memory (when the number is fixed.}
-
-\martin{BTW: an on-chip stack, with single cycle access, is not so different from
-a large register file. Maybe using a sliding window to keep the number of
-addressing bits down. Shall we merge the stack cache with the register file?
-Are we than redoing a stack (Java) processor?}
-
-When the return function base \texttt{r30} and the return offset \texttt{r31}
-needs to be saved to the stack, they have to be saved as the first elements
-of the function's stack frame, i.e., right after the stack frame of the
-calling function. Note that in contrast to \texttt{br} and \texttt{brcf} the
-return offset refers to the next instruction after the \emph{delay slot} of the
-corresponding \texttt{call} and can be implementation dependent (cf.\ the description
-of the \texttt{call} and \texttt{ret} instructions).
-
-\section{Sub-Functions}
-A function can be split into several sub-functions. The program is only allowed to use
-\texttt{br} to jump within the same sub-function. To enter a different sub-function,
-\texttt{brcf} must be used. It can only be used to jump to the first instruction of a
-sub-function.
-
-In contrast to \texttt{call}, \texttt{brcf} does not provide link information.
-Executing \texttt{ret} in a sub-function will therefore return to the last \texttt{call}, not to the last \texttt{brcf}.
-Function offsets however are relative to the \emph{sub-function} base, not to the surrounding function.
-The function base register \texttt{r30} must therefore be set to the base address
-of the current \emph{sub-function} for calls inside sub-functions.
-
-A sub-function must be aligned and must be prefixed with a word containing the size of the sub-function,
-like for a regular function. If a function is split into sub-functions, the first sub-function
-must also be prefixed with the size of the first sub-function, not with the size of the whole function.
-
-There are no calling conventions for jumps between sub-functions, for the compiler
-this behaves just like a regular jump, except that the base register \texttt{r30} must
-be updated if the sub-function contains calls.
-
-
-% TODO: examples
-
-\stefan{We need to define how the call and local branch with cache fill get the size of the code to load. A word
-containing the size at the target address, or prior to the target address? (including or excluding the size word?)}
-
-\jack{I'd store the code size at the target address and have the
-method itself start at an offset +4 or +8 from that place. I also
-suggest storing the stack size here too. Could fit into the same
-32-bit word (since I'd guess the local memory size limits us to
-$<64$k code and $<64$k stack in a single method anyway).}
-
-\martin{Agree for plain C code where there is no data structure
-further describing a function. In the JOP JVM I have the luxury
-to have those sizes as part of the virtual method dispatch table.
-One indirection is there needed anyway, so why not having those
-data there.}
-
-\section{Stack Layout}
-
-All stack data in the global memory, either managed by the stack cache or using
-a frame/stack pointer, grows from top-to-bottom. The use of a frame pointer is
-optional.
-
-Unwinding of the call stack is done on the stack-cache managed stack frame,
-following the conventions declared in the previous subsection on function calls.
-
-\section{Interrupts and Context Switching}
-
-Interrupt handlers may use the shadow stack pointer \texttt{r29} to spill registers
-to the shadow stack. Interrupts must ensure that all special registers that might be in use
-when the interrupt occurs are saved and restored.
-
-Here is a simple example of storing and restoring the context for context switching.
-\begin{verbatim}
-sub $r29 = $r29, 40
-sws [$r29 + 0] = $r31
-sws [$r29 + 1] = $r30
-sws [$r29 + 2] = $r22  // free some registers
-sws [$r29 + 3] = $r23
-mfs $r22 = $s2  // by now any mul should be finished
-mfs $r23 = $s3
-sws [$r29 + 4] = $r22
-sws [$r29 + 5] = $r23
-mfs $r22 = $r5  // read out cache pointers, spill
-mfs $r23 = $s6
-sub $r22 = $r23, $r22
-sspill $r22   // spill the memory, s5 == s6 now
-sws [$r29 + 6] = $r22  // store the stack pointer
-sws [$r29 + 7] = $r23  // store stack size
-...
-// TODO store return base and offset
-
-// restore
-lws $r23 = [$r29 + 7]
-lws $r22 = [$r29 + 6]
-mts $s5 = $r22   // restore the stack
-mts $s6 = $r22
-sens $r23
-lws $r23 = [$r29 + 5]
-lws $r22 = [$r29 + 4]
-mts $s2 = $r22
-mts $s3 = $r23
-....
-\end{verbatim}
-
-\stefan{We need to define how to register interrupts, how to return from interrupts (where do we get
-the return-base and return-offset from,..). Interrupt handlers in C are currently not supported,
-the compiler does not restore all the special registers for normal functions.}
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 \chapter{Potential Extensions}

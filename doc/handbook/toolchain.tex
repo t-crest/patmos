@@ -1,15 +1,6 @@
 The LLVM compiler~\cite{Seus13:compiler} has been adapted to emit code for the Patmos ISA
 and support the special features, e.g., the stack cache~\cite{patmos:stack:seus}.
 
-The compiler and libraries can be built with \code{misc/build.sh} as described in Section~\ref{sec:build:compiler}.
-This script contains default options, which should work on a
-standard Linux machine out of the box. Options can be overwritten by
-entries in a personal \code{misc/build.cfg}. The file \code{misc/build.cfg.dist}
-is an example configuration file containing default values, which is
-generated from \code{build.sh}, and ignored by the build process.
-To change any options for \code{misc/build.sh}, either start with an empty \code{misc/build.cfg} or
-copy \code{misc/build.cfg.dist} and modify the values to your need.
-
 The tool chain consists of the following components:
 
 \begin{itemize}
@@ -23,29 +14,31 @@ The tool chain consists of the following components:
 \item \code{patmos} The processor and the simulator.
 \end{itemize}
 
+The compiler and libraries can be built using \code{misc/build.sh} as described in Section~\ref{sec:build:compiler}. 
 Details on building the tool chain manually without the build script can be found in the \code{README.patmos}
 files provided in the various repositories.
 
 
 \section{Usage, Clang Driver}
 
-TODO this section needs some work. Describe the general flow of files, the build chain, the various ways to build
-and link binaries and bitcode files. Describe interaction with platin. Describe passing on of arguments.
+This section describes the usage of the \code{patmos-clang} C compiler.
 
-TODO merge this with usage.tex from D5.2 and update to the current state of the compiler.
+\subsection{Compiling and Linking C Programs}
 
-
-\subsection{Compiling, Linking}
-
-C source files are compiled to bitcode objects by default (patmos-clang -c). To compile .c files
-to ELF objects, use patmos-clang -c -fpatmos-emit -obj.
+C source files are by default compiled to bitcode objects (\code{patmos-clang -c}). To compile .c files
+to ELF objects, use \code{patmos-clang -c -fpatmos-emit-reloc}.
 
 Assembly files are always compiled to ELF objects. Archive files (.a) can only contain bitcode objects
 or ELF objects, not a mixture of both. Shared libraries (either bitcode or ELF) are not supported.
+
 It is possible to link multiple bitcode files into a single bitcode file and link it like a static library
-(compile with patmos-clang --emit-llvm -o lib<name>.bc, link with -l<name>). Bitcode files are always
+(compile with \code{patmos-clang -fpatmos-link-object -o lib<name>.bc}, link with -l<name>). Bitcode files are always
 fully linked in, even if there is no usage of any of its symbols. Unused symbols are removed in a separate
 optimization step.
+
+
+\stefan{TODO Make the following a subsection. Describe interaction with platin, install directories layout of newlib. Show typical
+compile commands using examples (compiling a single file, comiling a lib, compiling with platin,...}
 
 
 \paragraph{Compiling single files to objects (using patmos-clang -c|-S)}
@@ -95,11 +88,124 @@ Attention: Since bitcode inputs are linked first in a separate step, the linking
 
 \end{enumerate}
 
+\subsubsection{Driver Options}
+
+The \texttt{patmos-clang} driver can be used to generate bitcode files, to link bitcode files, or to 
+emit assembler code. The driver supports the following modes of operation:
+
+\begin{description}
+\item[\texttt{patmos-clang -c <inputs>}] \hfill\\
+  \begin{tabular}{ll}
+  Input:   & \texttt{.c} C source file \\
+  Output:  & \texttt{.o} or \texttt{.bc} bitcode files \\
+  Actions: & compile each input file to a bitcode file
+  \end{tabular}
+
+\item[\texttt{patmos-clang -S <inputs>}] \hfill\\
+  \begin{tabular}{ll}
+  Input:   & \texttt{.c} C source file \\
+  Output:  & \texttt{.s} or \texttt{.ll} human readable bitcode files \\
+  Actions: & compile each input file to a human readable bitcode file
+  \end{tabular}
+
+\item[\texttt{patmos-clang -fpatmos-emit-llvm <inputs>}] \hfill\\
+  \begin{tabular}{ll}
+  Input:   & \texttt{.c} C source file, \texttt{.bc} bitcode object file, \texttt{.a} bitcode files archive \\
+  Output:  & bitcode file \\
+  Actions: & compile to bitcode, link all input files, link with standard libraries and start code \\
+\end{tabular}
+
+\item[\texttt{patmos-clang -fpatmos-emit-reloc -c <inputs>}] \hfill\\
+  \begin{tabular}{ll}
+  Input:   & \texttt{.c} C source file \\
+  Output:  & \texttt{.o} Patmos relocatable ELF \\
+  Actions: & compile each input file to a Patmos relocatable ELF file
+  \end{tabular}
+
+\item[\texttt{patmos-clang -fpatmos-emit-asm -S <inputs>}] \hfill\\
+  \begin{tabular}{ll}
+  Input:   & \texttt{.c} C source file \\
+  Output:  & \texttt{.s} Patmos assembly file \\
+  Actions: & compile each input file to a Patmos assembly file
+  \end{tabular}
+
+\item[\texttt{patmos-clang -fpatmos-emit-reloc <inputs>}] \hfill\\
+  \begin{tabular}{ll}
+  Input:   & \texttt{.c} C source file, \texttt{.bc} bitcode object file, \texttt{.a} bitcode files archive \\
+  Output:  & \texttt{.o} Patmos relocatable ELF \\
+  Actions: & compile to bitcode, link all input files, link with standard libraries and start code, \\
+	   & compile to relocatable ELF
+\end{tabular}
+
+\item[\texttt{patmos-clang -fpatmos-emit-asm <inputs>}] \hfill\\
+  \begin{tabular}{ll}
+  Input:   & \texttt{.c} C source file, \texttt{.bc} bitcode object file, \texttt{.a} bitcode files archive \\
+  Output:  & \texttt{.o} Patmos assembly file \\
+  Actions: & compile to bitcode, link all input files, link with standard libraries and start code, \\
+	   & compile to Patmos assembly
+\end{tabular}
+
+\item[\texttt{patmos-clang -o <output> <inputs>}] \hfill\\
+  \begin{tabular}{ll}
+  Input:   & \texttt{.c} C source file, \texttt{.bc} bitcode object file, \texttt{.a} bitcode files archive \\
+  Output:  & Patmos executable ELF \\
+  Actions: & compile to bitcode, link with standard libraries and start code, \\
+           & compile to relocatable ELF, create Patmos executable ELF
+  \end{tabular}
+
+\end{description}
+
+The compiler accepts standard options such as \texttt{-I}, \texttt{-L} and \texttt{-l} to define additional
+lookup paths for header files and libraries and to link with (static) libraries.
+The behaviour of the linker can be controlled with additional options for \texttt{patmos-clang} 
+as shown in Table~\ref{tab:linker_options}.
+Refer to \code{patmos-clang --help-hidden} for a list of all available options that control the behaviour of
+the driver, and to \code{patmos-llc --help-hidden} for all options that control the generation of machine code from
+bitcode. Options can be passed from \code{patmos-clang} to \code{patmos-llc} and other tools using \code{-Xclang},
+\code{-Xopt}, \code{-Xllc}, \code{-Wl} and so on.
+To pass options to the internal LLVM backend of the clang compiler, use \code{patmos-clang -Xclang -mllvm -Xclang
+<option>}.
+
+\begin{table}
+\centering
+\begin{tabular}{ll}
+Option & Description \\ \hline
+\texttt{-mfloat-abi=none} & Do not use software floating point libraries when linking \\
+\texttt{-nostdlib} & Do not use standard libraries such as \texttt{libc} when linking \\
+\texttt{-nolibc} & Do not use \texttt{libc} when linking \\
+\texttt{-nodefaultlibs} & Do not use platform system libraries when linking\\
+\texttt{-nostartfiles} & Do not use the \texttt{crt0} start file when linking \\
+\texttt{-nolibsyms} & Do not use symbol definition files for runtime libraries when\\
+                    & linking. Those files prevent the linker from removing any \\
+		    & functions for which calls might be generated by the compiler \\
+		    & backend, such as software division or \texttt{memcpy} \\
+\texttt{-fpatmos-link-object} & Link as object, i.e., do not link in any libraries or start code 
+\end{tabular}
+\caption{Options for \texttt{patmos-clang} that control the default behaviour of the linker}
+\label{tab:linker_options}
+\end{table}
+
+\subsubsection{Libraries}
+
+The Patmos tool chain supports static libraries. Libraries are archives that contain
+either only bitcode files or ELF objects. The archives are created by using either the \texttt{ar}
+tool provided by the host system or by using \texttt{patmos-ar} from the \texttt{patmos-gold} binutils. The tool
+\texttt{patmos-llvm-nm} can be used to inspect the content of bitcode archives.
+
+\begin{verbatim}
+ar q libtest.a *.bc
+# show the contents of libtest.a
+patmos-llvm-nm libtest.a
+# compile and link with the created library
+patmos-clang -target patmos-unknown-elf -o app main.c -ltest
+\end{verbatim}
+
+
 \subsection{Disassembling}
 
-To disassemble .bc files, use either 'patmos-llvm-dis <file>.bc' or 'llvm-dis <file>.bc'.
+To disassemble .bc files, use \code{patmos-llvm-dis <file>.bc}.
 
-To disassemble .o ELF files, use patmos-llvm-objdump -d <file>. Add '-r' to show relocation symbols
+To disassemble .o ELF files, use \code{patmos-llvm-objdump -d <file>}. Add '-r' to show relocation symbols
 (for relocatable ELFs or executables generated with -Xgold -q).
 
 \subsection{Debugging}
@@ -270,9 +376,12 @@ Please see Section \ref{sec:toolchain:backend} for a description of the Patmos a
 You can mark functions as naked to prevent the generation of a prologue, epilogue or any spill code.
 In such functions, effectively only inline assembly is allowed. It is possible to use simple C code in naked 
 functions, as long as the compiler does not need to spill registers. Note that the amount of spills generated by
-the compiler depends on the optimization settings, in particular naked functions containing C code might not compile at
+the compiler depends on the optimization settings, i.e., naked functions containing C code might not compile at
 \code{-O0}. In particular, life ranges of variables must not extend over basic blocks, over calls or over
 inline assembly code.
+
+Note that the compiler might choose to inline functions into naked functions. To prevent this, put your C code into a
+separate function that is marked as \code{noinline}, and only call this function from the naked function.
 
 The the time of writing, the compiler automatically inserts a return instruction in naked functions. This behavior might be changed
 in the future, i.e., naked functions should either contain an explicit return statement or a \code{RET} instruction in
@@ -581,4 +690,5 @@ If you are using the build.sh script, set \code{GOLD\_CXXFLAGS="-Wno-narrowing"}
 
 \paragraph{Keeping relocations in the executable (-Xgold -q) and debugging info (-g) do not work together:}
 This seems to be a gold restriction.
+
 

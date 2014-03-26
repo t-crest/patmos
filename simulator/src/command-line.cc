@@ -87,6 +87,50 @@ namespace patmos
 
     return os;
   }
+  
+  std::istream &operator >>(std::istream &in, mem_check_e &mck)
+  {
+    std::string tmp, kind;
+    in >> tmp;
+
+    kind.resize(tmp.size());
+    std::transform(tmp.begin(), tmp.end(), kind.begin(), ::tolower);
+
+    if(kind == "none")
+      mck = MCK_NONE;
+    else if(kind == "warn")
+      mck = MCK_WARN;
+    else if(kind == "err" || kind == "error")
+      mck = MCK_ERROR;
+    else if (kind == "warn-addr")
+      mck = MCK_WARN_ADDR;
+    else if (kind == "err-addr" || kind == "error-addr")
+      mck = MCK_ERROR_ADDR;
+    else throw boost::program_options::validation_error(
+                  boost::program_options::validation_error::invalid_option_value,
+                  "Unknown mem-check option: " + tmp);
+
+    return in;
+  }
+
+  std::ostream &operator <<(std::ostream &os, mem_check_e mck)
+  {
+    switch(mck)
+    {
+      case MCK_NONE:
+        os << "none"; break;
+      case MCK_WARN:
+        os << "warn"; break;
+      case MCK_ERROR:
+        os << "err"; break;
+      case MCK_WARN_ADDR:
+        os << "warn-addr"; break;
+      case MCK_ERROR_ADDR:
+        os << "err-addr"; break;
+    }
+
+    return os;
+  }
 
   std::istream &operator >>(std::istream &in, set_assoc_cache_type &dck)
   {

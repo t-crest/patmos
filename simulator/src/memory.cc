@@ -18,6 +18,7 @@
 //
 #include "memory.h"
 
+#include "excunit.h"
 #include "exception.h"
 #include "simulation-core.h"
 
@@ -26,34 +27,74 @@
 #include <cassert>
 #include <cmath>
 #include <algorithm>
+#include <cstdlib>
+#include <iostream>
 
 using namespace patmos;
 
-/// Ensure that the content is initialize up to the given address.
-/// @param address The address that should be accessed.
-/// @param size The access size.
-void ideal_memory_t::check_initialize_content(uword_t address, uword_t size)
+void ideal_memory_t::check_initialize_content(simulator_t &s, uword_t address, uword_t size, 
+                                              bool is_read, bool ignore_errors)
 {
   // check if the access exceeds the memory size
   if((address > Memory_size) || (size > Memory_size - address))
   {
+    // We cannot quite ignore this one .. 
     simulation_exception_t::unmapped(address);
   }
 
   // initialize memory content
-  size = std::max(1024u, size);
-  for(; Initialized_offset < std::min(address + size, Memory_size);
-      Initialized_offset++)
+  uword_t init_size = std::min(address + std::max(1024u, size), Memory_size);
+  for(; Initialized_offset < init_size; Initialized_offset++)
   {
-    Content[Initialized_offset] = 0;
+    Content[Initialized_offset] = Randomize ? rand() % 256 : 0;
+    if (Init_vector) {
+      Init_vector[Initialized_offset] = 0;
+    }
+  }
+  
+  if (Init_vector && is_read) {
+    // Read, check for uninitialized access
+    if (!ignore_errors) {
+      uword_t top_addr = std::max(address, 
+                                  std::min(Initialized_offset, address + size));
+      uword_t cnt = Initialized_offset < address + size ? 
+                                         address + size - top_addr : 0;
+      for (uword_t i = address; i < top_addr; i++) {
+        if (!Init_vector[i]) {
+          cnt++;
+        }
+      }
+
+      bool chkaddr = (Mem_check == patmos::MCK_ERROR_ADDR || 
+                      Mem_check == patmos::MCK_WARN_ADDR);
+      bool warn = (Mem_check == patmos::MCK_WARN ||
+                   Mem_check == patmos::MCK_WARN_ADDR);
+      if ((chkaddr && cnt == size) || (!chkaddr && cnt > 0)) {
+        std::stringstream ss;
+        ss << "Read of address 0x" << std::hex << address << std::dec
+           << " of size " << size << " reads " << cnt << " uninitialized bytes";
+        if (warn) {
+          ss << " at PC: " << std::hex << s.PC << std::dec << ", Cycle: " << s.Cycle;
+          std::cerr << "\n*** Warning: " << ss.str() << "\n";
+          s.Dbg_stack.print(std::cerr);
+        } else {
+          simulation_exception_t::illegal_access(ss.str());
+        }
+      }
+    }
+  } else if (Init_vector) {
+    // A write.. mark as used
+    for (uword_t i = address; i < address + size; i++) {
+      Init_vector[i] = 1;
+    }
   }
 }
 
-bool ideal_memory_t::read(uword_t address, byte_t *value, uword_t size)
+bool ideal_memory_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
   // check if the access exceeds the memory size and lazily initialize
   // memory content
-  check_initialize_content(address, size);
+  check_initialize_content(s, address, size, true);
 
   // read the data from the memory
   for(unsigned int i = 0; i < size; i++)
@@ -64,11 +105,11 @@ bool ideal_memory_t::read(uword_t address, byte_t *value, uword_t size)
   return true;
 }
 
-bool ideal_memory_t::write(uword_t address, byte_t *value, uword_t size)
+bool ideal_memory_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
   // check if the access exceeds the memory size and lazily initialize
   // memory content
-  check_initialize_content(address, size);
+  check_initialize_content(s, address, size, false);
 
   // write the data to the memory
   for(unsigned int i = 0; i < size; i++)
@@ -79,16 +120,27 @@ bool ideal_memory_t::write(uword_t address, byte_t *value, uword_t size)
   return true;
 }
 
-void ideal_memory_t::read_peek(uword_t address, byte_t *value, uword_t size)
+void ideal_memory_t::read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
-  bool result = read(address, value, size);
-  assert(result);
+  // Check, but ignore errors.
+  check_initialize_content(s, address, size, true, true);
+
+  // read the data from the memory
+  for(unsigned int i = 0; i < size; i++)
+  {
+    *value++ = Content[address++];
+  }
 }
 
-void ideal_memory_t::write_peek(uword_t address, byte_t *value, uword_t size)
+void ideal_memory_t::write_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
-  bool result = write(address, value, size);
-  assert(result);
+  check_initialize_content(s, address, size, false, true);
+
+  // write the data to the memory
+  for(unsigned int i = 0; i < size; i++)
+  {
+    Content[address++] = *value++;
+  }
 }
 
 
@@ -121,13 +173,13 @@ void fixed_delay_memory_t::tick_request(request_info_t &req)
   req.Num_ticks_remaining--;
 }
 
-const request_info_t &fixed_delay_memory_t::find_or_create_request(
+const request_info_t &fixed_delay_memory_t::find_or_create_request(simulator_t &s,
                                               uword_t address, uword_t size,
                                               bool is_load, bool is_posted)
 {
   // check if the access exceeds the memory size and lazily initialize
   // memory content
-  check_initialize_content(address, size);
+  check_initialize_content(s, address, size, is_load);
 
   // see if the request already exists
   for(requests_t::const_iterator i(Requests.begin()), ie(Requests.end());
@@ -179,10 +231,10 @@ const request_info_t &fixed_delay_memory_t::find_or_create_request(
   return Requests.back();
 }
 
-bool fixed_delay_memory_t::read(uword_t address, byte_t *value, uword_t size)
+bool fixed_delay_memory_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
   // get the request info
-  const request_info_t &req(find_or_create_request(address, size, true));
+  const request_info_t &req(find_or_create_request(s, address, size, true));
 
   // check if the request has finished
   if(req.Num_ticks_remaining == 0)
@@ -198,7 +250,7 @@ bool fixed_delay_memory_t::read(uword_t address, byte_t *value, uword_t size)
     Requests.erase(Requests.begin());
 
     // read the data
-    return ideal_memory_t::read(address, value, size);
+    return ideal_memory_t::read(s, address, value, size);
   }
   else
   {
@@ -207,7 +259,7 @@ bool fixed_delay_memory_t::read(uword_t address, byte_t *value, uword_t size)
   }
 }
 
-bool fixed_delay_memory_t::write(uword_t address, byte_t *value, uword_t size)
+bool fixed_delay_memory_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
   // To avoid delaying reads until the write has been stored to the queue,
   // we just add it to the queue and delay later until the queue is small 
@@ -215,7 +267,7 @@ bool fixed_delay_memory_t::write(uword_t address, byte_t *value, uword_t size)
   bool posted = (Num_posted_writes > 0);
   
   // get the request info
-  const request_info_t &req(find_or_create_request(address, size, false, 
+  const request_info_t &req(find_or_create_request(s, address, size, false, 
                                                     posted));
 
   // check if the request has finished
@@ -232,7 +284,7 @@ bool fixed_delay_memory_t::write(uword_t address, byte_t *value, uword_t size)
     Requests.erase(Requests.begin());
 
     // write the data
-    return ideal_memory_t::write(address, value, size);
+    return ideal_memory_t::write(s, address, value, size);
   }
   else if (posted) {
     // delay only until the request queue size is small enough
@@ -243,18 +295,6 @@ bool fixed_delay_memory_t::write(uword_t address, byte_t *value, uword_t size)
     // not yet finished
     return false;
   }
-}
-
-void fixed_delay_memory_t::read_peek(uword_t address, byte_t *value, uword_t size)
-{
-  bool result = ideal_memory_t::read(address, value, size);
-  assert(result);
-}
-
-void fixed_delay_memory_t::write_peek(uword_t address, byte_t *value, uword_t size)
-{
-  bool result = ideal_memory_t::write(address, value, size);
-  assert(result);
 }
 
 bool fixed_delay_memory_t::is_ready()
@@ -445,10 +485,11 @@ tdm_memory_t::tdm_memory_t(unsigned int memory_size,
                            unsigned int cpu_id,
                            unsigned int num_ticks_per_burst,
                            unsigned int num_read_delay_ticks,
-                           unsigned int num_refresh_ticks_per_round)
+                           unsigned int num_refresh_ticks_per_round, 
+                           bool randomize, mem_check_e memchk)
 : fixed_delay_memory_t(memory_size, num_bytes_per_burst, num_posted_writes,
-  num_ticks_per_burst, num_read_delay_ticks), Round_counter(0), 
-  Is_Transferring(false)
+  num_ticks_per_burst, num_read_delay_ticks, randomize, memchk),
+  Round_counter(0), Is_Transferring(false)
 {
   Round_length = num_cores * num_ticks_per_burst + num_refresh_ticks_per_round;
   Round_start  = cpu_id * num_ticks_per_burst;

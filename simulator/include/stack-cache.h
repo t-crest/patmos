@@ -37,7 +37,7 @@ namespace patmos
     /// @param address The memory address to write to.
     /// @param value The value to be written to the memory.
     /// @param size The number of bytes to write.
-    virtual void write_peek(uword_t address, byte_t *value, uword_t size);
+    virtual void write_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size);
     
     /// Check if the memory is busy handling some request.
     /// @return False in case the memory is currently handling some request,
@@ -55,7 +55,7 @@ namespace patmos
     /// @param stack_top Reference to the current value of the stack top
     /// pointer (might be updated).
     /// @return the number of bytes to be spilled.
-    virtual word_t prepare_reserve(uword_t size, 
+    virtual word_t prepare_reserve(simulator_t &s, uword_t size, 
                                    uword_t &stack_spill, uword_t &stack_top) = 0;
 
     /// Prepare for freeing a given number of bytes on the stack, and update
@@ -66,7 +66,7 @@ namespace patmos
     /// @param stack_top Reference to the current value of the stack top
     /// pointer (might be updated).
     /// @return the number of bytes to be spilled or filled.
-    virtual word_t prepare_free(uword_t size, 
+    virtual word_t prepare_free(simulator_t &s, uword_t size, 
                                 uword_t &stack_spill, uword_t &stack_top) = 0;
 
     /// Prepare for ensuring that a given number of bytes are actually 
@@ -77,7 +77,7 @@ namespace patmos
     /// @param stack_top Reference to the current value of the stack top
     /// pointer (might be updated).
     /// @return the number of bytes to be filled.
-    virtual word_t prepare_ensure(uword_t size, 
+    virtual word_t prepare_ensure(simulator_t &s, uword_t size, 
                                   uword_t &stack_spill, uword_t &stack_top) = 0;
 
     /// Prepare for spilling the given number of bytes from the stack, and 
@@ -88,7 +88,7 @@ namespace patmos
     /// @param stack_top Reference to the current value of the stack top
     /// pointer (might be updated).
     /// @return the number of bytes to be spilled.                                  
-    virtual word_t prepare_spill(uword_t size, 
+    virtual word_t prepare_spill(simulator_t &s, uword_t size, 
                                  uword_t &stack_spill, uword_t &stack_top) = 0;
 
     
@@ -101,7 +101,7 @@ namespace patmos
     /// @param new_top The new value of the stack top pointer.
     /// @return True when the stack space is actually reserved on the cache,
     /// false otherwise.
-    virtual bool reserve(uword_t size, word_t delta,
+    virtual bool reserve(simulator_t &s, uword_t size, word_t delta,
                          uword_t new_spill, uword_t new_top) = 0;
 
     /// Free a given number of bytes on the stack.
@@ -112,7 +112,7 @@ namespace patmos
     /// @param new_top The new value of the stack top pointer.
     /// @return True when the stack space is actually freed in the cache, false
     /// otherwise.
-    virtual bool free(uword_t size, word_t delta,
+    virtual bool free(simulator_t &s, uword_t size, word_t delta,
                       uword_t new_spill, uword_t new_top) = 0;
 
     /// Ensure that a given number of bytes are actually on the stack.
@@ -123,7 +123,7 @@ namespace patmos
     /// @param new_top The new value of the stack top pointer.
     /// @return True when the requested data is actually in the cache, false
     /// otherwise.
-    virtual bool ensure(uword_t size, word_t delta,
+    virtual bool ensure(simulator_t &s, uword_t size, word_t delta,
                         uword_t new_spill, uword_t new_top) = 0;
 
     /// Spill the given number of bytes from the stack.
@@ -134,7 +134,7 @@ namespace patmos
     /// @param new_top The new value of the stack top pointer.
     /// @return True when the requested data is actually in the cache, false
     /// otherwise.
-    virtual bool spill(uword_t size, word_t delta,
+    virtual bool spill(simulator_t &s, uword_t size, word_t delta,
                        uword_t new_spill, uword_t new_top) = 0;
 
     /// Get the current size of the stack cache in bytes.
@@ -154,37 +154,36 @@ namespace patmos
   public:
     ideal_stack_cache_t(memory_t &memory) : Memory(memory) {}
 
-    
-    virtual word_t prepare_reserve(uword_t size, 
+    virtual word_t prepare_reserve(simulator_t &s, uword_t size, 
                                    uword_t &stack_spill, uword_t &stack_top);
   
-    virtual word_t prepare_free(uword_t size, 
+    virtual word_t prepare_free(simulator_t &s, uword_t size, 
                                 uword_t &stack_spill, uword_t &stack_top);
 
-    virtual word_t prepare_ensure(uword_t size, 
+    virtual word_t prepare_ensure(simulator_t &s, uword_t size, 
                                   uword_t &stack_spill, uword_t &stack_top);
 
-    virtual word_t prepare_spill(uword_t size, 
+    virtual word_t prepare_spill(simulator_t &s, uword_t size, 
                                  uword_t &stack_spill, uword_t &stack_top);
         
-    virtual bool reserve(uword_t size, word_t delta,
+    virtual bool reserve(simulator_t &s, uword_t size, word_t delta,
                          uword_t new_spill, uword_t new_top);
 
-    virtual bool free(uword_t size, word_t delta,
+    virtual bool free(simulator_t &s, uword_t size, word_t delta,
                       uword_t new_spill, uword_t new_top);
 
-    virtual bool ensure(uword_t size, word_t delta,
+    virtual bool ensure(simulator_t &s, uword_t size, word_t delta,
                         uword_t new_spill, uword_t new_top);
 
-    virtual bool spill(uword_t size, word_t delta,
+    virtual bool spill(simulator_t &s, uword_t size, word_t delta,
                        uword_t new_spill, uword_t new_top);
     
     
-    virtual bool read(uword_t address, byte_t *value, uword_t size);
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
-    virtual bool write(uword_t address, byte_t *value, uword_t size);
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
-    virtual void read_peek(uword_t address, byte_t *value, uword_t size);
+    virtual void read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
     virtual void tick() {}
 
@@ -217,27 +216,27 @@ namespace patmos
     : ideal_stack_cache_t(memory), stack_top(0) 
     {}
     
-    virtual bool reserve(uword_t size, word_t delta,
+    virtual bool reserve(simulator_t &s, uword_t size, word_t delta,
                          uword_t new_spill, uword_t new_top) 
     { stack_top = new_top; return true; }
 
-    virtual bool free(uword_t size, word_t delta,
+    virtual bool free(simulator_t &s, uword_t size, word_t delta,
                       uword_t new_spill, uword_t new_top)
     { stack_top = new_top; return true; }
 
-    virtual bool ensure(uword_t size, word_t delta,
+    virtual bool ensure(simulator_t &s, uword_t size, word_t delta,
                         uword_t new_spill, uword_t new_top)
     { stack_top = new_top; return true; }
 
-    virtual bool spill(uword_t size, word_t delta,
+    virtual bool spill(simulator_t &s, uword_t size, word_t delta,
                        uword_t new_spill, uword_t new_top)
     { stack_top = new_top; return true; }
     
-    virtual bool read(uword_t address, byte_t *value, uword_t size);
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
-    virtual bool write(uword_t address, byte_t *value, uword_t size, uword_t &lazy_pointer);
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size, uword_t &lazy_pointer);
 
-    virtual void read_peek(uword_t address, byte_t *value, uword_t size);
+    virtual void read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
   };
   
@@ -329,34 +328,34 @@ namespace patmos
     virtual ~block_stack_cache_t();
 
     
-    virtual word_t prepare_reserve(uword_t size, 
+    virtual word_t prepare_reserve(simulator_t &s, uword_t size, 
                                    uword_t &stack_spill, uword_t &stack_top);
   
-    virtual word_t prepare_free(uword_t size, 
+    virtual word_t prepare_free(simulator_t &s, uword_t size, 
                                 uword_t &stack_spill, uword_t &stack_top);
 
-    virtual word_t prepare_ensure(uword_t size, 
+    virtual word_t prepare_ensure(simulator_t &s, uword_t size, 
                                   uword_t &stack_spill, uword_t &stack_top);
 
-    virtual word_t prepare_spill(uword_t size, 
+    virtual word_t prepare_spill(simulator_t &s, uword_t size, 
                                  uword_t &stack_spill, uword_t &stack_top);
         
-    virtual bool reserve(uword_t size, word_t delta,
+    virtual bool reserve(simulator_t &s, uword_t size, word_t delta,
                          uword_t new_spill, uword_t new_top);
 
-    virtual bool free(uword_t size, word_t delta,
+    virtual bool free(simulator_t &s, uword_t size, word_t delta,
                       uword_t new_spill, uword_t new_top);
 
-    virtual bool ensure(uword_t size, word_t delta,
+    virtual bool ensure(simulator_t &s, uword_t size, word_t delta,
                         uword_t new_spill, uword_t new_top);
 
-    virtual bool spill(uword_t size, word_t delta,
+    virtual bool spill(simulator_t &s, uword_t size, word_t delta,
                        uword_t new_spill, uword_t new_top);
 
 
-    virtual bool read(uword_t address, byte_t *value, uword_t size);
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
-    virtual bool write(uword_t address, byte_t *value, uword_t size);
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
     
     virtual void print(std::ostream &os) const;
@@ -385,11 +384,11 @@ namespace patmos
 
       virtual ~block_lazy_stack_cache_t();	
 
-       word_t prepare_reserve(uword_t size, 
+       word_t prepare_reserve(simulator_t &s, uword_t size, 
                                    uword_t &stack_spill, uword_t &stack_top);
-       word_t prepare_free(uword_t size,
+       word_t prepare_free(simulator_t &s, uword_t size,
                                 uword_t &stack_spill, uword_t &stack_top);
-       bool write(uword_t address, byte_t *value, uword_t size, uword_t &stack_top);
+       bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size, uword_t &stack_top);
 
      void print_stats(const simulator_t &s, std::ostream &os, 
                              bool short_stats);

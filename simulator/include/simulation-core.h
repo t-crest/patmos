@@ -26,7 +26,6 @@
 #include "instruction.h"
 #include "exception.h"
 #include "profiling.h"
-#include "interrupts.h"
 
 #include <limits>
 #include <iostream>
@@ -41,6 +40,7 @@ namespace patmos
   class instr_cache_t;
   class binary_format_t;
   class rtc_t;
+  class excunit_t;
 
   /// Define the maximum number of slots in a bundle.
   static const unsigned int NUM_SLOTS = 2;
@@ -154,8 +154,8 @@ namespace patmos
     /// Real time clock
     rtc_t *Rtc;
 
-    /// Interrupt handler
-    interrupt_handler_t &Interrupt_handler;
+    /// Exception handler
+    excunit_t &Exception_handler;
 
     /// The decoder of the simulator.
     decoder_t Decoder;
@@ -193,9 +193,6 @@ namespace patmos
     /// Halt pseudo instruction.
     instruction_t *Instr_HALT;
 
-    /// Interrupt handler
-    interrupt_handler_t interrupt_handler;
-
     /// Active instructions in the pipeline stage.
     instruction_data_t Pipeline[NUM_STAGES][NUM_SLOTS];
 
@@ -208,11 +205,14 @@ namespace patmos
     /// Keep track of current branch delay
     int Branch_counter;
     
+    /// Destination register of the previous instruction if it was a load.
+    GPR_e Last_load_dst;
+    
     /// If set to true, flush the pipeline and halt the simulation.
     bool Halt;
     
     /// Delay decoder when an interrupt has been executed
-    int Interrupt_handling_counter;
+    int Exception_handling_counter;
 
     /// Flush caches when PC reaches this address.
     uword_t Flush_Cache_PC;
@@ -290,7 +290,7 @@ namespace patmos
     simulator_t(memory_t &memory, memory_t &local_memory,
                 data_cache_t &data_cache, instr_cache_t &instr_cache,
                 stack_cache_t &stack_cache, symbol_map_t &symbols,
-                interrupt_handler_t &interrupt_handler);
+                excunit_t &excunit);
 
     // Destroy an instance of a Patms-core simulator
     ~simulator_t();

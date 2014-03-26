@@ -29,7 +29,7 @@
 
 using namespace patmos;
 
-void stack_cache_t::write_peek(uword_t address, byte_t *value, uword_t size)
+void stack_cache_t::write_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
   assert(false);
   abort();
@@ -42,14 +42,14 @@ bool stack_cache_t::is_ready()
 }
 
 
-word_t ideal_stack_cache_t::prepare_reserve(uword_t size, 
+word_t ideal_stack_cache_t::prepare_reserve(simulator_t &s, uword_t size, 
                               uword_t &stack_spill, uword_t &stack_top)
 {
   stack_top -= size;
   return 0;
 }
 
-word_t ideal_stack_cache_t::prepare_free(uword_t size, 
+word_t ideal_stack_cache_t::prepare_free(simulator_t &s, uword_t size, 
                             uword_t &stack_spill, uword_t &stack_top)
 {
   stack_top += size;
@@ -57,7 +57,7 @@ word_t ideal_stack_cache_t::prepare_free(uword_t size,
   return 0;
 }
 
-word_t ideal_stack_cache_t::prepare_ensure(uword_t size, 
+word_t ideal_stack_cache_t::prepare_ensure(simulator_t &s, uword_t size, 
                               uword_t &stack_spill, uword_t &stack_top)
 {
   if (stack_spill < stack_top) {
@@ -74,7 +74,7 @@ word_t ideal_stack_cache_t::prepare_ensure(uword_t size,
   return delta;
 }
 
-word_t ideal_stack_cache_t::prepare_spill(uword_t size, 
+word_t ideal_stack_cache_t::prepare_spill(simulator_t &s, uword_t size, 
                             uword_t &stack_spill, uword_t &stack_top)
 {
   // check if stack size is exceeded
@@ -91,14 +91,14 @@ word_t ideal_stack_cache_t::prepare_spill(uword_t size,
   return size;
 }
 
-bool ideal_stack_cache_t::reserve(uword_t size, word_t delta,
+bool ideal_stack_cache_t::reserve(simulator_t &s, uword_t size, word_t delta,
                                   uword_t new_spill, uword_t new_top)
 {
   Content.resize(Content.size() + size);
   return true;
 }
 
-bool ideal_stack_cache_t::free(uword_t size, word_t delta,
+bool ideal_stack_cache_t::free(simulator_t &s, uword_t size, word_t delta,
                                uword_t new_spill, uword_t new_top)                               
 {
   // check if stack size is exceeded
@@ -112,7 +112,7 @@ bool ideal_stack_cache_t::free(uword_t size, word_t delta,
   return true;
 }
 
-bool ideal_stack_cache_t::ensure(uword_t size, word_t delta,
+bool ideal_stack_cache_t::ensure(simulator_t &s, uword_t size, word_t delta,
                                  uword_t new_spill, uword_t new_top)                                 
 {
   // check if stack size is exceeded
@@ -123,24 +123,24 @@ bool ideal_stack_cache_t::ensure(uword_t size, word_t delta,
   // fill back from memory
   for (int sp = new_spill - delta; sp < new_spill; sp++) {
     byte_t c;
-    Memory.read_peek(sp, &c, 1);
+    Memory.read_peek(s, sp, &c, 1);
     Content[Content.size() - (sp - new_top) - 1] = c;
   }
   return true;
 }
 
-bool ideal_stack_cache_t::spill(uword_t size, word_t delta,
+bool ideal_stack_cache_t::spill(simulator_t &s, uword_t size, word_t delta,
                                 uword_t new_spill, uword_t new_top)                                
 {
   // write back to memory
   for (int i = 0; i < delta; i++) {
     byte_t c = Content[Content.size() - (new_spill - new_top) - i - 1];
-    Memory.write_peek(new_spill + i, &c, 1);
+    Memory.write_peek(s, new_spill + i, &c, 1);
   }
   return true;
 }
 
-bool ideal_stack_cache_t::read(uword_t address, byte_t *value, uword_t size)
+bool ideal_stack_cache_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
   // if access exceeds the stack size
   if (Content.size() < address + size)
@@ -158,7 +158,7 @@ bool ideal_stack_cache_t::read(uword_t address, byte_t *value, uword_t size)
   return true;
 }
 
-bool ideal_stack_cache_t::write(uword_t address, byte_t *value, uword_t size)
+bool ideal_stack_cache_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
   // if access exceeds the stack size
   if (Content.size() < address + size)
@@ -176,10 +176,10 @@ bool ideal_stack_cache_t::write(uword_t address, byte_t *value, uword_t size)
   return true;
 }
 
-void ideal_stack_cache_t::read_peek(uword_t address, byte_t *value, uword_t size)
+void ideal_stack_cache_t::read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
   // we do not simulate timing here anyway..
-  read(address, value, size);
+  read(s, address, value, size);
 }
 
 void ideal_stack_cache_t::print(std::ostream &os) const
@@ -208,19 +208,19 @@ uword_t ideal_stack_cache_t::size() const
 
 
 
-bool proxy_stack_cache_t::read(uword_t address, byte_t *value, uword_t size)
+bool proxy_stack_cache_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
-  return Memory.read(stack_top + address, value, size);
+  return Memory.read(s, stack_top + address, value, size);
 }
 
-bool proxy_stack_cache_t::write(uword_t address, byte_t *value, uword_t size, uword_t &lazy_pointer)
+bool proxy_stack_cache_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size, uword_t &lazy_pointer)
 {
-  return Memory.write(stack_top + address, value, size);
+  return Memory.write(s, stack_top + address, value, size);
 }
 
-void proxy_stack_cache_t::read_peek(uword_t address, byte_t *value, uword_t size)
+void proxy_stack_cache_t::read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
-  return Memory.read_peek(stack_top + address, value, size);
+  return Memory.read_peek(s, stack_top + address, value, size);
 }
 
 
@@ -244,7 +244,7 @@ block_stack_cache_t::~block_stack_cache_t()
   delete[] Buffer;
 }
 
-word_t block_stack_cache_t::prepare_reserve(uword_t size, 
+word_t block_stack_cache_t::prepare_reserve(simulator_t &s, uword_t size, 
                                        uword_t &stack_spill, uword_t &stack_top)
 {
   // convert byte-level size to block size.
@@ -291,7 +291,7 @@ word_t block_stack_cache_t::prepare_reserve(uword_t size,
   return transfer_blocks * Num_block_bytes;
 }
 
-bool block_stack_cache_t::reserve(uword_t size, word_t delta,
+bool block_stack_cache_t::reserve(simulator_t &s, uword_t size, word_t delta,
                                   uword_t new_spill, uword_t new_top)                                  
 {
   switch (Phase)
@@ -328,7 +328,7 @@ bool block_stack_cache_t::reserve(uword_t size, word_t delta,
       assert(delta);
 
       // spill the content of the stack buffer to the memory.
-      if (Memory.write(new_spill, &Buffer[0], delta)) 
+      if (Memory.write(s, new_spill, &Buffer[0], delta)) 
       {
         // the transfer is done, go back to IDLE phase
         Phase = IDLE;
@@ -350,7 +350,7 @@ bool block_stack_cache_t::reserve(uword_t size, word_t delta,
 }
 
 
-word_t block_stack_cache_t::prepare_free(uword_t size, 
+word_t block_stack_cache_t::prepare_free(simulator_t &s, uword_t size, 
                                        uword_t &stack_spill, uword_t &stack_top)
 {
   // convert byte-level size to block size.
@@ -388,7 +388,7 @@ word_t block_stack_cache_t::prepare_free(uword_t size,
   return 0;
 }
 
-bool block_stack_cache_t::free(uword_t size, word_t delta,
+bool block_stack_cache_t::free(simulator_t &s, uword_t size, word_t delta,
                                uword_t new_spill, uword_t new_top)
 {
   // we do not expect any transfers at this point
@@ -407,7 +407,7 @@ bool block_stack_cache_t::free(uword_t size, word_t delta,
 }
 
 
-word_t block_stack_cache_t::prepare_ensure(uword_t size, 
+word_t block_stack_cache_t::prepare_ensure(simulator_t &s, uword_t size, 
                                        uword_t &stack_spill, uword_t &stack_top)
 {
   // convert byte-level size to block size.
@@ -444,7 +444,7 @@ word_t block_stack_cache_t::prepare_ensure(uword_t size,
   return transfer_blocks * Num_block_bytes;
 }
 
-bool block_stack_cache_t::ensure(uword_t size, word_t delta,
+bool block_stack_cache_t::ensure(simulator_t &s, uword_t size, word_t delta,
                                  uword_t new_spill, uword_t new_top)
 {
   // do we need to fill?
@@ -456,7 +456,7 @@ bool block_stack_cache_t::ensure(uword_t size, word_t delta,
   Phase = FILL;
   
   // copy the data from memory into a temporary buffer
-  if (Memory.read(new_spill - delta, Buffer, delta))
+  if (Memory.read(s, new_spill - delta, Buffer, delta))
   {
     // Ensure the size of the stack cache
     if (Content.size() < size)
@@ -485,7 +485,7 @@ bool block_stack_cache_t::ensure(uword_t size, word_t delta,
 }
 
 
-word_t block_stack_cache_t::prepare_spill(uword_t size, 
+word_t block_stack_cache_t::prepare_spill(simulator_t &s, uword_t size, 
                                        uword_t &stack_spill, uword_t &stack_top)
 {
   // convert byte-level size to block size.
@@ -509,7 +509,7 @@ word_t block_stack_cache_t::prepare_spill(uword_t size,
   return transfer_blocks * Num_block_bytes;
 }
 
-bool block_stack_cache_t::spill(uword_t size, word_t delta,
+bool block_stack_cache_t::spill(simulator_t &s, uword_t size, word_t delta,
                                 uword_t new_spill, uword_t new_top)
 {
   switch (Phase)
@@ -522,6 +522,10 @@ bool block_stack_cache_t::spill(uword_t size, word_t delta,
         return true;
       }
 
+      if (Content.size() < delta) {
+        simulation_exception_t::stack_exceeded("Trying to spill more than the current size of the stack.");
+      }
+      
       // copy data to a buffer to allow contiguous transfer to the memory.
       for(unsigned int i = 0; i < delta; i++)
       {
@@ -538,7 +542,7 @@ bool block_stack_cache_t::spill(uword_t size, word_t delta,
       assert(delta);
 
       // spill the content of the stack buffer to the memory.
-      if (Memory.write(new_spill, &Buffer[0], delta))
+      if (Memory.write(s, new_spill, &Buffer[0], delta))
       {
         // the transfer is done, go back to IDLE phase
         Phase = IDLE;
@@ -561,10 +565,10 @@ bool block_stack_cache_t::spill(uword_t size, word_t delta,
 }
 
 
-bool block_stack_cache_t::read(uword_t address, byte_t *value, uword_t size)
+bool block_stack_cache_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
   // read data
-  bool result = ideal_stack_cache_t::read(address, value, size);
+  bool result = ideal_stack_cache_t::read(s, address, value, size);
   assert(result);
 
   // update statistics
@@ -574,10 +578,10 @@ bool block_stack_cache_t::read(uword_t address, byte_t *value, uword_t size)
   return true;
 }
 
-bool block_stack_cache_t::write(uword_t address, byte_t *value, uword_t size)
+bool block_stack_cache_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
   // read data
-  bool result = ideal_stack_cache_t::write(address, value, size);
+  bool result = ideal_stack_cache_t::write(s, address, value, size);
   assert(result);
 
   // update statistics
@@ -660,7 +664,7 @@ block_lazy_stack_cache_t::~block_lazy_stack_cache_t()
   
 }
 
-word_t block_lazy_stack_cache_t::prepare_reserve(uword_t size, 
+word_t block_lazy_stack_cache_t::prepare_reserve(simulator_t &s, uword_t size, 
                                    uword_t &stack_spill, uword_t &stack_top)
 {
  
@@ -730,7 +734,7 @@ word_t block_lazy_stack_cache_t::prepare_reserve(uword_t size,
   return transfer_blocks * Num_block_bytes;
 }
 
-word_t block_lazy_stack_cache_t::prepare_free(uword_t size, 
+word_t block_lazy_stack_cache_t::prepare_free(simulator_t &s, uword_t size, 
                                        uword_t &stack_spill, uword_t &stack_top)
 {
   // convert byte-level size to block size.
@@ -767,10 +771,10 @@ word_t block_lazy_stack_cache_t::prepare_free(uword_t size,
   return 0;
 }
 
-bool block_lazy_stack_cache_t::write(uword_t address, byte_t *value, uword_t size, uword_t &stack_top)
+bool block_lazy_stack_cache_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size, uword_t &stack_top)
 {
 	lazy_pointer = std::max(stack_top + address + size, lazy_pointer);
-	return block_stack_cache_t::write(address, value, size);
+	return block_stack_cache_t::write(s, address, value, size);
 }
 
 

@@ -154,7 +154,7 @@ object PatmosCoreMain {
     val binFile = args(1)
     val datFile = args(2)
 
-    Config.conf = Config.load(configFile)
+    Config.loadConfig(configFile)
     Config.minPcWidth = log2Up((new File(binFile)).length.toInt / 4)
     chiselMain(chiselArgs, () => Module(new PatmosCore(binFile, datFile)))
     // Print out the configuration
@@ -166,7 +166,7 @@ object PatmosCoreMain {
  * The main (top-level) component of Patmos.
  */
 class Patmos(configFile: String, binFile: String, datFile: String) extends Module {
-  Config.conf = Config.load(configFile)
+  Config.loadConfig(configFile)
   Config.minPcWidth = log2Up((new File(binFile)).length.toInt / 4)
 
   val io = Config.getPatmosIO()
@@ -180,9 +180,10 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   Config.connectAllIOPins(io, core.io)
 
   // Connect memory controller
-  val sramCtrl = Config.createDevice(Config.conf.ExtMem.sram).asInstanceOf[BurstDevice]
+  val sramConf = Config.getConfig.ExtMem.sram
+  val sramCtrl = Config.createDevice(sramConf).asInstanceOf[BurstDevice]
   sramCtrl.io.ocp <> core.io.memPort
-  Config.connectIOPins(Config.conf.ExtMem.sram.name, io, sramCtrl.io)
+  Config.connectIOPins(sramConf.name, io, sramCtrl.io)
 
   // Print out the configuration
   Utility.printConfig(configFile)

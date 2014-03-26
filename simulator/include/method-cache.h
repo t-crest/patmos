@@ -51,14 +51,14 @@ namespace patmos
 
     /// Initialize the cache before executing the first instruction.
     /// @param address Address to fetch initial instructions.
-    virtual void initialize(uword_t address);
+    virtual void initialize(simulator_t &s, uword_t address);
 
     /// A simulated instruction fetch from the method cache.
     /// @param base The current method's base address.
     /// @param address The memory address to fetch from.
     /// @param iw A pointer to store the fetched instruction word.
     /// @return True when the instruction word is available from the read port.
-    virtual bool fetch(uword_t base, uword_t address, word_t iw[2]);
+    virtual bool fetch(simulator_t &s, uword_t base, uword_t address, word_t iw[2]);
 
     /// Assert that the method is in the method cache.
     /// If it is not available yet, initiate a transfer,
@@ -66,12 +66,12 @@ namespace patmos
     /// @param address The base address of the method.
     /// @param offset Offset within the method where execution should continue.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool load_method(word_t address, word_t offset);
+    virtual bool load_method(simulator_t &s, word_t address, word_t offset);
 
     /// Check whether a method is in the method cache.
     /// @param address The base address of the method.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool is_available(word_t address);
+    virtual bool is_available(simulator_t &s, word_t address);
 
     virtual uword_t get_active_method_base();
 
@@ -271,12 +271,12 @@ namespace patmos
     /// @param address The memory address to fetch from.
     /// @param iw A pointer to store the fetched instruction word.
     /// @return True when the instruction word is available from the read port.
-    bool do_fetch(method_info_t &current_method, uword_t address, word_t iw[2]);
+    bool do_fetch(simulator_t &s, method_info_t &current_method, uword_t address, word_t iw[2]);
 
     /// Check whether the method at the given address is in the method cache.
     /// @param address The method address.
     /// @return True in case the method is in the cache, false otherwise.
-    virtual bool lookup(uword_t address);
+    virtual bool lookup(simulator_t &s, uword_t address);
 
     void update_utilization_stats(method_info_t &method, uword_t utilized_bytes);
 
@@ -284,9 +284,9 @@ namespace patmos
     /// @param method The method to be evicted.
     void evict(method_info_t &method);
 
-    bool read_function_size(word_t function_base, uword_t *result_size);
+    bool read_function_size(simulator_t &s, word_t function_base, uword_t *result_size);
 
-    bool peek_function_size(word_t function_base, uword_t *result_size);
+    bool peek_function_size(simulator_t &s, word_t function_base, uword_t *result_size);
 
     uword_t get_num_blocks_for_bytes(uword_t num_bytes);
 
@@ -306,14 +306,14 @@ namespace patmos
 
     /// Initialize the cache before executing the first instruction.
     /// @param address Address to fetch initial instructions.
-    virtual void initialize(uword_t address);
+    virtual void initialize(simulator_t &s, uword_t address);
 
     /// A simulated instruction fetch from the method cache.
     /// @param base The current method's base address.
     /// @param address The memory address to fetch from.
     /// @param iw A pointer to store the fetched instruction word.
     /// @return True when the instruction word is available from the read port.
-    virtual bool fetch(uword_t base, uword_t address, word_t iw[2]);
+    virtual bool fetch(simulator_t &s, uword_t base, uword_t address, word_t iw[2]);
 
     /// Assert that the method is in the method cache.
     /// If it is not available yet, initiate a transfer,
@@ -321,12 +321,12 @@ namespace patmos
     /// @param address The base address of the method.
     /// @param offset Offset within the method where execution should continue.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool load_method(word_t address, word_t offset);
+    virtual bool load_method(simulator_t &s, word_t address, word_t offset);
 
     /// Check whether a method is in the method cache.
     /// @param address The base address of the method.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool is_available(word_t address);
+    virtual bool is_available(simulator_t &s, word_t address);
 
     virtual uword_t get_active_method_base();
 
@@ -364,7 +364,7 @@ namespace patmos
     /// Check whether the method at the given address is in the method cache.
     /// @param address The method address.
     /// @return True in case the method is in the cache, false otherwise.
-    virtual bool lookup(uword_t address);
+    virtual bool lookup(simulator_t &s, uword_t address);
 
   public:
 
@@ -388,7 +388,7 @@ namespace patmos
     /// @param address The base address of the method.
     /// @param offset Offset within the method where execution should continue.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool load_method(word_t address, word_t offset);
+    virtual bool load_method(simulator_t &s, word_t address, word_t offset);
 
     virtual uword_t get_active_method_base();
 
@@ -397,7 +397,7 @@ namespace patmos
     /// @param address The memory address to fetch from.
     /// @param iw A pointer to store the fetched instruction word.
     /// @return True when the instruction word is available from the read port.
-    virtual bool fetch(uword_t base, uword_t address, word_t iw[2]);
+    virtual bool fetch(simulator_t &s, uword_t base, uword_t address, word_t iw[2]);
 
     virtual void flush_cache();
     

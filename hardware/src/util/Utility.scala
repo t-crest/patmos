@@ -89,7 +89,7 @@ object Utility {
   }
 
   def printConfig(configFile: String): Unit = {
-    printf("\nPatmos configuration \"%s\"\n", util.Config.conf.description)
+    printf("\nPatmos configuration \"%s\"\n", util.Config.getConfig.description)
     printf("\tFrequency: %d MHz\n", CLOCK_FREQ/1000000)
     printf("\tPipelines: %d\n", PIPE_COUNT)
     printf("\tMethod cache: %d KB, %d methods\n", MCACHE_SIZE/1024, METHOD_COUNT)
@@ -99,7 +99,7 @@ object Utility {
     printf("\tData SPM: %d KB\n", DSPM_SIZE/1024)
     printf("\tBoot SPM: %d KB\n", BOOTSPM_SIZE/1024)
     printf("\tAddressable external memory: %d MB\n",
-           util.Config.conf.ExtMem.size/1024/1024)
+           util.Config.getConfig.ExtMem.size/1024/1024)
     printf("\n")
   }
 }

@@ -27,7 +27,7 @@ int main() {
 
 	if (get_cpuid() == 0) {
 
- printf("%d %d\n", (int) TEST_START, (int) &_end);
+printf("%d %d\n", (int) TEST_START, (int) &_end);
 		// MS: does the following reading from uninitialized memory
 		// make sense?
 //		for (int i=0; i<=LENGTH; i++){ // Read from main memory
@@ -66,6 +66,7 @@ int main() {
 		} else {
 			puts("Success\n");
 		}
+		puts("Finished\n");
 
 		puts("Finished\n");
 
