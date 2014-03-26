@@ -276,7 +276,7 @@ namespace patmos
           Branch_counter--;
 
         // Check for load hazards ..
-        if (Last_load_dst != r0 && 
+        if (Pipeline[SDR][0].I && Last_load_dst != r0 && 
             (i0->get_src1_reg(instr_SIF[0]) == Last_load_dst || 
              i0->get_src2_reg(instr_SIF[0]) == Last_load_dst))
         {
