@@ -68,8 +68,6 @@ printf("%d %d\n", (int) TEST_START, (int) &_end);
 		}
 		puts("Finished\n");
 
-		puts("Finished\n");
-
 	} else {
 		//for (int k = 0; k < 100; ++k)
 		//{
