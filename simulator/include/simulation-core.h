@@ -205,9 +205,6 @@ namespace patmos
     /// Keep track of current branch delay
     int Branch_counter;
     
-    /// Destination register of the previous instruction if it was a load.
-    GPR_e Last_load_dst;
-    
     /// If set to true, flush the pipeline and halt the simulation.
     bool Halt;
     

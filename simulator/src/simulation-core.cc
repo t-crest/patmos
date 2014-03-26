@@ -47,7 +47,7 @@ namespace patmos
       Exception_handler(excunit),
       BASE(0), PC(0), nPC(0), Debug_last_PC(0),
       Stall(SXX), Disable_IF(false), Is_decoupled_load_active(false), 
-      Branch_counter(0), Last_load_dst(r0), Halt(false), 
+      Branch_counter(0), Halt(false), 
       Exception_handling_counter(0),
       Flush_Cache_PC(std::numeric_limits<unsigned int>::max()), Num_NOPs(0)
   {
@@ -275,14 +275,6 @@ namespace patmos
         else if (Branch_counter)
           Branch_counter--;
 
-        // Check for load hazards ..
-        if (Pipeline[SDR][0].I && Last_load_dst != r0 && 
-            (i0->get_src1_reg(instr_SIF[0]) == Last_load_dst || 
-             i0->get_src2_reg(instr_SIF[0]) == Last_load_dst))
-        {
-          simulation_exception_t::illegal("Use of load result without delay slot!");
-        }
-
         for(unsigned int j = 0; j < NUM_SLOTS; j++)
         {
           // assign fetch address to new instructions
@@ -302,11 +294,6 @@ namespace patmos
         // provide next program counter value (as incremented PC)
         nPC = PC + iw_size*4;
       }
-
-      // Remember the last result register for the load hazard check
-      Last_load_dst = instr_SIF[0].I && instr_SIF[0].I->is_load() ? 
-                      instr_SIF[0].I->get_dst_reg(instr_SIF[0]) : r0;
-
     }
   }
 
@@ -367,6 +354,27 @@ namespace patmos
 
         track_retiring_instructions();
 
+        // Check for load hazards ..
+        if (!is_stalling(SMW)) {
+          const instruction_t *mem_instr = Pipeline[SMW][0].I;
+          
+          if (mem_instr && mem_instr->is_load()) {  
+            GPR_e dst = mem_instr->get_dst_reg(Pipeline[SMW][0]);
+            
+            if (dst != r0) {
+              for (unsigned int j = 0; j < NUM_SLOTS; j++) {
+                const instruction_t *ex_instr = Pipeline[SEX][j].I;
+                
+                if (ex_instr && (ex_instr->get_src1_reg(Pipeline[SEX][j]) == dst || 
+                                ex_instr->get_src2_reg(Pipeline[SEX][j]) == dst)) 
+                {
+                  simulation_exception_t::illegal("Use of load result without delay slot!");
+                }
+              }
+            }
+          }
+        }
+        
         // Move pipeline stages and insert bubbles after stalling stage.
         // If Stall == SXX, we do not stall, but a bubble is inserted in SIF,
         // which is later replaced by the fetched instruction.
