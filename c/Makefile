@@ -1,3 +1,6 @@
+# Include user makefile for local configurations
+-include config.mk
+
 BUILDDIR=../tmp
 
 CC=patmos-clang
@@ -21,7 +24,7 @@ LDFLAGS-BOOTABLE= \
 CFLAGS=-target patmos-unknown-unknown-elf -O2 \
 	-I$(CURDIR) \
 	-mpatmos-disable-vliw
-LDFLAGS= \
+LDFLAGS?= \
 	-mpatmos-method-cache-size=0x800 -mpatmos-preferred-subfunction-size=0 \
 	-mpatmos-stack-base=0x1f0000 -mpatmos-shadow-stack-base=0x200000 \
 	-Xgold -T../hardware/ram.t -Xgold -n

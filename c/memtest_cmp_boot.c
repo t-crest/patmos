@@ -7,10 +7,10 @@
 #include <machine/spm.h>
 #include <machine/patmos.h>
 
-// we assume 2 MB memory, less than 400 KB for program,
-// heap, and stack
-#define LENGTH (2000000-400000)/4
-#define CNT 10
+// we assume 1 MB memory, 512 KB for stack of 16 cores,
+// 250 K for program and minmal heap
+#define LENGTH (1024*1024-512*1024-250000)/4
+#define CNT 20
 
 // Start the memory test some bytes above heap start
 // as stdio needs the heap for buffers (40000 bytes reserved)
@@ -18,7 +18,6 @@
 extern char _end;
 // #define TEST_START ((volatile _UNCACHED int *) (&_end)+10000)
 // #define TEST_START ((volatile _UNCACHED int *) 250000)
-// MS: better test with cache
 #define TEST_START ((volatile int *) 250000)
 
 
@@ -33,8 +32,6 @@ int main() {
 	int res;
 	int error = 0;
 	int test = 0;
-
-// printf("%d %d\n", (int) TEST_START, (int) &_end);
 
 	if (CORE_ID == 0) {
 		// MS: does the following reading from uninitialized memory
@@ -75,6 +72,7 @@ int main() {
 			WRITE("Success\n", 8);
 		}
 
+		WRITE("Finished\n", 9);
 	} else {
 		//for (int k = 0; k < 100; ++k)
 		//{
@@ -89,7 +87,6 @@ int main() {
 		//}
 	}
 
-	WRITE("Finished\n", 9);
 
 	for (;;);
 	// return 0;
