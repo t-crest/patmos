@@ -438,7 +438,7 @@ class Decode() extends Module {
   }
 
   // Update delay slot information
-  when(io.ena && !io.flush) {
+  when(io.ena) {
     val decDelaySlot = inDelaySlot - UInt(1)
     inDelaySlot := Mux(io.decex.call || io.decex.ret || io.decex.brcf ||
                        io.decex.xcall || io.decex.xret, UInt(3),
