@@ -202,8 +202,8 @@ namespace patmos
     /// Flag indicating whether a decoupled load is active.
     bool Is_decoupled_load_active;
 
-    /// Keep track of current branch delay
-    int Branch_counter;
+    /// Keep track of delays for interrupt triggering
+    int Delay_counter;
     
     /// If set to true, flush the pipeline and halt the simulation.
     bool Halt;

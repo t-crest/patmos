@@ -70,9 +70,12 @@ namespace patmos
     virtual bool is_call() const { return false; }
     
     virtual bool is_load() const { return false; }
-    
+
     /// Returns the number of delay slot cycles of this instruction
     virtual unsigned get_delay_slots(const instruction_data_t &ops) const = 0;
+
+    /// Returns the number of delay slots for interrupt triggering
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const = 0;
     
     /// Returns the destination register of the instruction, or r0 if no destination.
     virtual GPR_e get_dst_reg(const instruction_data_t &ops) const { 

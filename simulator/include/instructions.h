@@ -76,6 +76,11 @@ namespace patmos
     {
       return 0;
     }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const
+    {
+      return 0;
+    }
     
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
@@ -558,6 +563,9 @@ namespace patmos
       printGPReg(os, ", "   , ops.OPS.ALUm.Rs2, ops.DR_Rs2, s);
     }
 
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
+      return 1;
+    }
   };
 
 #define ALUm_INSTR(name, type, stype) \
@@ -1979,6 +1987,10 @@ namespace patmos
     virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
       return ops.OPS.CFLi.D ? 3 : 0;
     }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
+      return 3;
+    }
   };
 
   class i_br_t : public i_cfl_t
@@ -2004,6 +2016,10 @@ namespace patmos
     
     virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
       return ops.OPS.CFLi.D ? 2 : 0;
+    }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
+      return 2;
     }
   };
 
@@ -2044,7 +2060,11 @@ namespace patmos
     
     virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
       return ops.OPS.CFLi.D ? 3 : 0;
-    }   
+    }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
+      return 3;
+    }
   };
 
   class i_trap_t : public i_cfl_t {
@@ -2092,7 +2112,11 @@ namespace patmos
         
     virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
       return 0;
-    }       
+    }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
+      return 3;
+    }
   };
   
   class i_intr_t : public i_cfl_t
@@ -2130,6 +2154,10 @@ namespace patmos
     virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
       return 0;
     }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
+      return 3;
+    }
   };
 
   class i_halt_t : public i_cfl_t
@@ -2148,6 +2176,10 @@ namespace patmos
     }
     
     virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
+      return 3;
+    }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
       return 3;
     }
   };
@@ -2278,6 +2310,10 @@ namespace patmos
     virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
       return ops.OPS.CFLrs.D ? 3 : 0;
     }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
+      return 3;
+    }
   };
 
   class i_brr_t : public i_cflrs_t
@@ -2302,6 +2338,10 @@ namespace patmos
     
     virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
       return ops.OPS.CFLrs.D ? 2 : 0;
+    }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
+      return 2;
     }
   };
 
@@ -2341,6 +2381,10 @@ namespace patmos
     
     virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
       return ops.OPS.CFLrt.D ? 3 : 0;
+    }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
+      return 3;
     }
   };
 
@@ -2411,7 +2455,11 @@ namespace patmos
     
     virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
       return ops.OPS.CFLri.D ? 3 : 0;
-    }    
+    }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
+      return 3;
+    }
   };
   
   class i_xret_t : public i_cflri_t {
@@ -2469,7 +2517,11 @@ namespace patmos
     
     virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
       return ops.OPS.CFLri.D ? 3 : 0;
-    }    
+    }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
+      return 3;
+    }
   };
 }
 

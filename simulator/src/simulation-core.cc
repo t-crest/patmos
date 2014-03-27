@@ -47,7 +47,7 @@ namespace patmos
       Exception_handler(excunit),
       BASE(0), PC(0), nPC(0), Debug_last_PC(0),
       Stall(SXX), Disable_IF(false), Is_decoupled_load_active(false), 
-      Branch_counter(0), Halt(false), 
+      Delay_counter(0), Halt(false), 
       Exception_handling_counter(0),
       Flush_Cache_PC(std::numeric_limits<unsigned int>::max()), Num_NOPs(0)
   {
@@ -227,7 +227,7 @@ namespace patmos
     {
 
       if (Exception_handler.pending() &&
-          Branch_counter == 0 &&
+          Delay_counter == 0 &&
           Exception_handling_counter == 0)
       {
         exception_t exception = Exception_handler.next();
@@ -270,10 +270,11 @@ namespace patmos
         const instruction_t *i0 = instr_SIF[0].I;
         
         // Track branch delay slots
-        if(i0->is_flow_control())
-          Branch_counter = i0->get_delay_slots(instr_SIF[0]);
-        else if (Branch_counter)
-          Branch_counter--;
+        unsigned intr_delay = i0->get_intr_delay_slots(instr_SIF[0]);
+        if(intr_delay >= Delay_counter)
+          Delay_counter = intr_delay;
+        else if (Delay_counter)
+          Delay_counter--;
 
         for(unsigned int j = 0; j < NUM_SLOTS; j++)
         {
