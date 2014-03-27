@@ -12,5 +12,6 @@ all: sim
 sim:
 	rm -rf work
 	$(WINE) vlib work
-	$(WINE) vlog -quiet ../build/Patmos.v Patmos_tb.v
+	$(WINE) vcom -quiet +acc gen_utils.vhd conversions.vhd sim_ssram_512x36.vhd
+	$(WINE) vlog -quiet +acc ../build/Patmos.v Patmos_tb.v
 	$(WINE) vsim -i -do sim.do Patmos_tb
