@@ -46,7 +46,7 @@ HWINSTALLDIR?=$(INSTALLDIR)
 all: tools emulator patmos
 
 
-tools: patsim elf2bin javatools
+tools: patsim elf2bin javatools scripttools
 
 # Build simulator and assembler
 patsim:
