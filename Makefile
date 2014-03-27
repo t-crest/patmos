@@ -37,6 +37,7 @@ BUILDDIR?=$(CURDIR)/tmp
 SIMBUILDDIR?=$(CURDIR)/simulator/build
 CTOOLSBUILDDIR?=$(CURDIR)/tools/c/build
 JAVATOOLSBUILDDIR?=$(CURDIR)/tools/java/build
+SCRIPTSBUILDDIR?=$(CURDIR)/tools/scripts/build
 HWBUILDDIR?=$(CURDIR)/hardware/build
 # Where to install tools
 INSTALLDIR?=$(CURDIR)/install
@@ -65,14 +66,20 @@ elf2bin:
 
 # Build various Java tools
 javatools: $(JAVATOOLSBUILDDIR)/lib/patmos-tools.jar \
-		tools/lib/java-binutils-0.1.0.jar tools/lib/jssc.jar \
-		tools/scripts/patserdow
+		tools/lib/java-binutils-0.1.0.jar tools/lib/jssc.jar
 	-mkdir -p $(INSTALLDIR)/lib/java
 	cp $(JAVATOOLSBUILDDIR)/lib/patmos-tools.jar $(INSTALLDIR)/lib/java
 	cp tools/lib/java-binutils-0.1.0.jar $(INSTALLDIR)/lib/java
 	cp tools/lib/jssc.jar $(INSTALLDIR)/lib/java
+
+# Patch and install scripts
+scripttools:
+	-mkdir -p $(SCRIPTSBUILDDIR)
+	make -C tools/scripts BUILDDIR=$(SCRIPTSBUILDDIR) \
+		PATMOS_HOME=$(CURDIR) COM_PORT=$(COM_PORT) all
 	-mkdir -p $(INSTALLDIR)/bin
-	cp tools/scripts/patserdow $(INSTALLDIR)/bin
+	cp $(SCRIPTSBUILDDIR)/patserdow $(INSTALLDIR)/bin
+	cp $(SCRIPTSBUILDDIR)/patex $(INSTALLDIR)/bin
 
 PATSERDOW_SRC=$(shell find tools/java/src/patserdow/ -name *.java)
 PATSERDOW_CLASS=$(patsubst tools/java/src/%.java,$(JAVATOOLSBUILDDIR)/classes/%.class,$(PATSERDOW_SRC))

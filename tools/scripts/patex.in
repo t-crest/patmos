@@ -1,0 +1,22 @@
+#! /bin/bash
+
+function error_exit
+{
+	echo "$1" 1>&2
+	exit -1
+}
+
+if [ -z "$PATMOS_HOME" ]; then
+    PATMOS_HOME=@PATMOS_HOME@
+fi
+if [ -z "$COM_PORT" ]; then
+    COM_PORT=@COM_PORT@
+fi
+
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 <file>"
+    exit 1
+fi
+
+make -C $PATMOS_HOME config &> /dev/null || error_exit "FPGA configuration failed"
+timeout 300 patserdow $COM_PORT $1
