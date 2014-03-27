@@ -30,7 +30,8 @@ namespace patmos
 
   excunit_t::excunit_t(uword_t base_address) 
   : mapped_device_t(base_address, EXCUNIT_MAP_SIZE), 
-    Enable_interrupts(true), Status(0), Mask(0), Pending(0), Source(0) 
+    Enable_interrupts(true), Enable_debug(false), 
+    Status(0), Mask(0), Pending(0), Source(0)
   {
     for (int i = 0; i < NUM_EXCEPTIONS; i++) {
       Exception_vector[i] = NO_ISR_ADDR;
@@ -61,6 +62,12 @@ namespace patmos
     // Disable interrupts
     Status <<= 1;
     
+    if (Enable_debug) {
+      std::cerr << "*** EXC: Execute ISR " << Source 
+                << " (status: 0x" << std::hex << Status
+                << ", pending: 0x" << Pending << std::dec << ")\n";
+    }
+    
     // Return the interrupt data
     return get((exception_e)Source);
   }
@@ -77,6 +84,12 @@ namespace patmos
     // Disable interrupts during trap handler
     Status <<= 1;
     
+    if (Enable_debug) {
+      std::cerr << "*** EXC: Execute trap " << exc 
+                << " (status: 0x" << std::hex << Status
+                << ", pending: 0x" << Pending << std::dec << ")\n";
+    }
+    
     isr = get(exc);
     
     return true;
@@ -86,6 +99,11 @@ namespace patmos
   {
     // TODO update Source?
     Status >>= 1;
+    
+    if (Enable_debug) {
+      std::cerr << "*** EXC: Return (status: 0x" << std::hex << Status
+                << ", pending: 0x" << Pending << std::dec << ")\n";
+    }
   }
   
   exception_t excunit_t::get(exception_e exc) const 
@@ -127,12 +145,24 @@ namespace patmos
   {
     if (is_word_access(address, size, 0x00)) {
       Status = get_word(value, size);
+      if (Enable_debug) {
+        std::cerr << "*** EXC: Write Status (status: 0x" << std::hex << Status
+                  << ", pending: 0x" << Pending << std::dec << ")\n";
+      }
     }
     else if (is_word_access(address, size, 0x04)) {
       Mask = get_word(value, size);
+      if (Enable_debug) {
+        std::cerr << "*** EXC: Write Mask (status: 0x" << std::hex << Status
+                  << ", pending: 0x" << Pending << std::dec << ")\n";
+      }
     }
     else if (is_word_access(address, size, 0x08)) {
       Pending = get_word(value, size);
+      if (Enable_debug) {
+        std::cerr << "*** EXC: Write Pending (status: 0x" << std::hex << Status
+                  << ", pending: 0x" << Pending << std::dec << ")\n";
+      }
     }
     else if (is_word_access(address, size, 0x0c)) {
       simulation_exception_t::illegal_access(address);
@@ -164,6 +194,11 @@ namespace patmos
     Enable_interrupts = enable;
   }
 
+  void excunit_t::enable_debug(bool debug) 
+  {
+    Enable_debug = debug;
+  }
+
   bool excunit_t::may_fire(exception_e exctype)
   {
     return Enable_interrupts && Exception_vector[(int)exctype] != NO_ISR_ADDR;
@@ -178,6 +213,11 @@ namespace patmos
   void excunit_t::fire_exception(exception_e exctype)
   {
     Pending |= (1u<<(int)exctype);
+    
+    if (Enable_debug) {
+      std::cerr << "*** EXC: Fire ISR " << exctype << " (status: 0x" << std::hex << Status
+                << ", pending: 0x" << Pending << std::dec << ")\n";
+    }
   }
   
   void excunit_t::illegal(uword_t iw)

@@ -93,6 +93,9 @@ namespace patmos
       // Enable interrupts
       bool Enable_interrupts;
       
+      // Print out status changes
+      bool Enable_debug;
+      
       // Status flags for enabling interrupts
       uword_t Status;
       
@@ -146,6 +149,9 @@ namespace patmos
       /// Enables firing of interupts and exception handler ISRs. Does not disable
       /// traps.
       void enable_interrupts(bool enabled);
+
+      /// Enable debug printing
+      void enable_debug(bool debug);
       
       /// Make an exception pending. Never throws a simulator-exception directly.
       /// If the exception unit is disabled, the exception is effectively ignored.

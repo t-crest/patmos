@@ -277,6 +277,7 @@ int main(int argc, char **argv)
     ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), 
                   "format of the debug trace (short, trace, instr, blocks, calls, calls-indent, default, long, all)")
     ("debug-file", boost::program_options::value<std::string>()->default_value("-"), "output debug trace in file (stderr: -)")
+    ("debug-intrs", "print out all status changes of the exception unit.")
     ("debug-nopc", "do not print PC and cycles counter in debug output")
     ("print-stats", boost::program_options::value<patmos::address_t>(), "print statistics for a given function only.")
     ("flush-caches", boost::program_options::value<patmos::address_t>(), "flush all caches when reaching the given address (can be a symbol name).")
@@ -423,6 +424,7 @@ int main(int argc, char **argv)
 
   patmos::debug_format_e debug_fmt= vm["debug-fmt"].as<patmos::debug_format_e>();
   bool debug_nopc = vm.count("debug-nopc") > 0;
+  bool debug_intrs = vm.count("debug-intrs") > 0;
   uint64_t debug_cycle = vm.count("debug") ?
                                 vm["debug"].as<unsigned int>() :
                                 std::numeric_limits<uint64_t>::max();
@@ -509,6 +511,7 @@ int main(int argc, char **argv)
     // setup exception unit
     patmos::excunit_t excunit(mmbase+excunit_offset);
     excunit.enable_interrupts(excunit_enabled);
+    excunit.enable_debug(debug_intrs);
 
     // TODO initialize the SPM with random data as well?
     patmos::ideal_memory_t lm(lsize, false, chkreads);
@@ -520,6 +523,7 @@ int main(int argc, char **argv)
 
     // set up timer device
     patmos::rtc_t rtc(s, mmbase+timer_offset, freq);
+    rtc.enable_debug(debug_intrs);
     
     // setup IO mapped devices
     patmos::cpuinfo_t cpuinfo(mmbase+cpuinfo_offset, cpuid, freq);

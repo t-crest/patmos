@@ -60,7 +60,9 @@ namespace patmos
 
     /// usec interrupt register value
     uint64_t Interrupt_usec;
-    
+   
+    /// Print debug messages
+    bool Enable_debug;
   public:
 
     rtc_t(simulator_t &s, uword_t base_address, double frequency)
@@ -69,11 +71,16 @@ namespace patmos
       Frequency(frequency), High_clock(0), High_usec(0),
       Last_usec(0), Low_interrupt_clock(0), Low_interrupt_usec(0),
       Interrupt_clock(std::numeric_limits<uint64_t>::max()), 
-      Interrupt_usec(std::numeric_limits<uint64_t>::max())
+      Interrupt_usec(std::numeric_limits<uint64_t>::max()),
+      Enable_debug(false)
     {
       Simulator.Rtc = this;
     }
 
+    void enable_debug(bool debug) {
+      Enable_debug = debug;
+    }
+    
     uint64_t getCycle() {
       return Simulator.Cycle;
     }
@@ -117,6 +124,11 @@ namespace patmos
         // set the clock interrupt timer
         uword_t high_clock = get_word(value, size);
         Interrupt_clock = ((uint64_t)high_clock)<<32 | Low_interrupt_clock;
+        
+        if (Enable_debug) {
+          std::cerr << "*** RTC: Set next cycle interrupt to " << Interrupt_clock 
+                    << ", current clock: " << getCycle() << "\n";
+        }
       }
       else if (is_word_access(address, size, 0x04)) {
         // latch the low word of the cycle counter
@@ -126,6 +138,11 @@ namespace patmos
         // set the usec interrupt timer
         uword_t high_usec = get_word(value, size);
         Interrupt_usec = ((uint64_t)high_usec)<<32 | Low_interrupt_usec;
+        
+        if (Enable_debug) {
+          std::cerr << "*** RTC: Set next usec interrupt to " << Interrupt_usec 
+                    << ", current usec: " << getUSec() << "\n";
+        }
       }
       else if (is_word_access(address, size, 0x0c)) {
         // latch the low word of the usec counter
