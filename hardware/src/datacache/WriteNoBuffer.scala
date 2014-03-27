@@ -60,7 +60,7 @@ class WriteNoBuffer() extends Module {
   val byteAddrBits = log2Up(dataWidth/8)
 
   // State of transmission
-  val idle :: read :: write :: writeResp :: writeComb :: Nil = Enum(Bits(), 5)
+  val idle :: write :: writeResp :: writeComb :: Nil = Enum(Bits(), 4)
   val state = Reg(init = idle)
   val cntReg = Reg(init = UInt(0, burstAddrBits))
 
@@ -69,28 +69,17 @@ class WriteNoBuffer() extends Module {
 
   // Default responses
   io.readMaster.S := io.slave.S
-  io.readMaster.S.Resp := OcpResp.NULL
   io.writeMaster.S := io.slave.S
   io.writeMaster.S.Resp := OcpResp.NULL
 
-  // Reads are the default towards the slave
+  // Read master requests are the default towards the slave
   io.slave.M := io.readMaster.M
-
-  // Pass on reads
-  when(state === read) {
-    io.readMaster.S.Resp := io.slave.S.Resp
-    when(io.slave.S.Resp === OcpResp.DVA) {
-      when(cntReg === UInt(burstLength - 1)) {
-        state := idle
-      }
-      cntReg := cntReg + UInt(1)
-    }
-  }
 
   val wrPos = writeMasterReg.Addr(burstAddrBits+byteAddrBits-1, byteAddrBits)
 
   // Write burst
   when(state === write) {
+    io.readMaster.S.Resp := OcpResp.NULL
     when(cntReg === Bits(0)) {
       io.slave.M.Cmd := OcpCmd.WR
       io.slave.M.Addr := Cat(writeMasterReg.Addr(addrWidth-1, burstAddrBits+byteAddrBits),
@@ -110,21 +99,16 @@ class WriteNoBuffer() extends Module {
     }
   }
   when(state === writeResp) {
+    io.readMaster.S.Resp := OcpResp.NULL
     io.writeMaster.S.Resp := io.slave.S.Resp
     when(io.slave.S.Resp === OcpResp.DVA) {
       state := idle
     }
   }
 
-  // Start new read transaction
-  when(io.readMaster.M.Cmd === OcpCmd.RD) {
-    state := read
-    io.slave.M := io.readMaster.M
-  }
   // Start write transactions
   when(io.writeMaster.M.Cmd === OcpCmd.WR) {
     writeMasterReg := io.writeMaster.M
     state := write
   }
 }
-
