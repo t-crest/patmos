@@ -47,7 +47,9 @@ public class Main
         boolean verbose = true;
         boolean error = false;
 
-        PrintStream print_stream = System.err;
+        PrintStream msg_stream = System.err;
+        InputStream host_in_stream = System.in;
+        OutputStream host_out_stream = System.out;
         InputStream in_stream = null;
         OutputStream out_stream = null;
 
@@ -63,8 +65,8 @@ public class Main
                 case 2:
                     port = new SerialPort(args[0]);
                     if (verbose) {
-                        print_stream.println("Port opened: " + port.openPort());
-                        print_stream.println("Params set: " + port.setParams(BAUD_RATE, 8, 1, 0));
+                        msg_stream.println("Port opened: " + port.openPort());
+                        msg_stream.println("Params set: " + port.setParams(BAUD_RATE, 8, 1, 0));
                     } else {
                         port.openPort();
                         port.setParams(BAUD_RATE, 8, 1, 0);
@@ -85,13 +87,13 @@ public class Main
             Elf elf = new Elf(file);
             ElfHeader header = elf.getHeader();
             if (verbose) {
-                print_stream.println("Elf version is '1': "+(header.getVersion()==1));
-                print_stream.println("CPU type is: "+header.getMachineType());
-                print_stream.println("Instruction width is 32 bits: "+(header.is32bit()));
-                print_stream.println("Is Big Endian: "+header.isBigEndian());
-                print_stream.println("File is of type exe: "+(header.getType()==ElfHeader.ET_EXEC));
-                print_stream.println("Entry point: "+header.getEntryPoint());
-                print_stream.println();
+                msg_stream.println("Elf version is '1': "+(header.getVersion()==1));
+                msg_stream.println("CPU type is: "+header.getMachineType());
+                msg_stream.println("Instruction width is 32 bits: "+(header.is32bit()));
+                msg_stream.println("Is Big Endian: "+header.isBigEndian());
+                msg_stream.println("File is of type exe: "+(header.getType()==ElfHeader.ET_EXEC));
+                msg_stream.println("Entry point: "+header.getEntryPoint());
+                msg_stream.println();
             }
 
             Transmitter transmitter = new Transmitter(in_stream,out_stream);
@@ -107,7 +109,7 @@ public class Main
             }
 
             ProgressMonitor monitor = verbose ?
-                new ProgressMonitor(byte_count,print_stream) : null;
+                new ProgressMonitor(byte_count,msg_stream) : null;
 
             byte[] header_bytes = new byte[HEADER_SIZE];
     		ByteBuffer byte_buffer = ByteBuffer.wrap(header_bytes);
@@ -146,36 +148,44 @@ public class Main
         		file_stream.close();
             }
             if (verbose) {
-                print_stream.println();
+                msg_stream.println();
             }
 
             while (true)
             {
-                int c = in_stream.read();
+                // Process data from target
+                while (in_stream.available() > 0) {
+                    int c = in_stream.read();
 
-                // We exit when seeing magic code "\0x"
-                // The byte after the magic is the return code
-                if (c == '\0') {
-                    c = in_stream.read();
-                    if (c == 'x') {
+                    // We exit when seeing magic code "\0x"
+                    // The byte after the magic is the return code
+                    if (c == '\0') {
                         c = in_stream.read();
-                        if (verbose) {
-                            print_stream.println();
-                            print_stream.println("EXIT "+c);
+                        if (c == 'x') {
+                            c = in_stream.read();
+                            if (verbose) {
+                                msg_stream.println();
+                                msg_stream.println("EXIT "+c);
+                            }
+                            System.exit(c);
+                        } else {
+                            host_out_stream.write('\0');
+                            host_out_stream.write(c);
                         }
-                        System.exit(c);
                     } else {
-                        print_stream.print('\0');
-                        print_stream.print((char)c);
+                        host_out_stream.write(c);
                     }
-                } else {
-                    print_stream.print((char)c);
+                }
+                // Write data to target
+                if (host_in_stream.available() > 0) {
+                    out_stream.write(host_in_stream.read());
+                    Thread.sleep(1); // slow down for slow apps
                 }
             }
         }
         catch (Exception exc)
         {
-            print_stream.println(exc);
+            msg_stream.println(exc);
             error = true;
         }
 
