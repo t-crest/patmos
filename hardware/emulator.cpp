@@ -3,12 +3,13 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <sys/poll.h>
 #include <gelf.h>
 #include <libelf.h>
 
 #include "Patmos.h"
 
-istream *in = &cin;
 ostream *out = &cout;
 
 #define OCMEM_ADDR_BITS 16
@@ -297,11 +298,10 @@ static void help(ostream &out) {
       << "  -i            Initialize memory with random values" << endl
       << "  -k            Simulate random input from keys" << endl
       << "  -l <N>        Stop after <N> cycles" << endl
-      << "  -n            Do not print UART output" << endl
       << "  -p            Print method cache statistics" << endl
       << "  -r            Print register values in each cycle" << endl
       << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
-      << "  -I <file>     Read input from file <file> [unused]" << endl
+      << "  -I <file>     Read input from file <file>" << endl
       << "  -O <file>     Write output from file <file>" << endl;
 }
 
@@ -313,10 +313,13 @@ int main (int argc, char* argv[]) {
   bool random = false;
   bool keys = false;
   int  lim = -1;
-  bool uart = true;
   bool print_stat = false;
   bool quiet = true;
   bool vcd = false;
+
+  int uart_in = STDIN_FILENO;
+  int uart_out = STDOUT_FILENO;
+  unsigned baud_counter = 0;
 
   while ((opt = getopt(argc, argv, "hikl:nprvI:O:")) != -1) {
 	switch (opt) {
@@ -329,9 +332,6 @@ int main (int argc, char* argv[]) {
 	case 'l':
 	  lim = atoi(optarg);
 	  break;
-	case 'n':
-	  uart = false;
-	  break;
 	case 'p':
 	  print_stat = true;
 	  break;
@@ -343,10 +343,10 @@ int main (int argc, char* argv[]) {
 	  break;
 	case 'I':
 	  if (strcmp(optarg, "-") == 0) {
-		in = &cin;
+		uart_in = STDIN_FILENO;
 	  } else {
-		in = new ifstream(optarg);
-		if (!in->good()) {
+		uart_in = open(optarg, O_RDONLY);
+		if (uart_in < 0) {
 		  cerr << argv[0] << "error: Cannot open input file " << optarg << endl;
 		  exit(EXIT_FAILURE);
 		}
@@ -354,10 +354,10 @@ int main (int argc, char* argv[]) {
 	  break;
 	case 'O':
 	  if (strcmp(optarg, "-") == 0) {
-		out = &cout;
+		uart_out = STDOUT_FILENO;
 	  } else {
-		out = new ofstream(optarg);
-		if (!out->good()) {
+		uart_out = open(optarg, O_WRONLY|O_CREAT|O_TRUNC, 0644);
+		if (uart_out < 0) {
 		  cerr << argv[0] << ": error: Cannot open output file " << optarg << endl;
 		  exit(EXIT_FAILURE);
 		}
@@ -464,11 +464,36 @@ int main (int argc, char* argv[]) {
 	  }
 	}
 
-	if (uart) {
-	  // Pass on data from UART
-	  if (c->Patmos_core_iocomp_Uart__io_ocp_M_Cmd.to_ulong() == 0x1
-	  	  && (c->Patmos_core_iocomp_Uart__io_ocp_M_Addr.to_ulong() & 0xff) == 0x04) {
-	  	*out << (char)c->Patmos_core_iocomp_Uart__io_ocp_M_Data.to_ulong();
+	// Pass on data from UART
+	if (c->Patmos_core_iocomp_Uart__io_ocp_M_Cmd.to_ulong() == 0x1
+		&& (c->Patmos_core_iocomp_Uart__io_ocp_M_Addr.to_ulong() & 0xff) == 0x04) {
+	  unsigned char d = c->Patmos_core_iocomp_Uart__io_ocp_M_Data.to_ulong();
+	  int w = write(uart_out, &d, 1);
+	  if (w != 1) {
+		cerr << argv[0] << ": error: Cannot write UART output" << endl;
+	  }
+	}
+
+	// Pass on data to UART
+	bool baud_tick = c->Patmos_core_iocomp_Uart__tx_baud_tick.to_bool();
+	if (baud_tick) {
+	  baud_counter = (baud_counter + 1) % 20; // slower than necessary, for slow apps
+	}
+	if (baud_tick && baud_counter == 0) {
+	  struct pollfd pfd;
+	  pfd.fd = uart_in;
+	  pfd.events = POLLIN;
+	  if (poll(&pfd, 1, 0) > 0) {
+		unsigned char d;
+		int r = read(uart_in, &d, 1);
+		if (r != 0) {
+		  if (r != 1) {
+			cerr << argv[0] << ": error: Cannot read UART input" << endl;
+		  } else {
+			c->Patmos_core_iocomp_Uart__rx_data = d;
+			c->Patmos_core_iocomp_Uart__rx_full = true;
+		  }
+		}
 	  }
 	}
 
