@@ -1,5 +1,9 @@
 #! /bin/bash
 
+function usage() {
+    echo "Usage: $0 [-I <file>] [-O <file] <file>"
+}
+
 function error_exit
 {
 	echo "$1" 1>&2
@@ -13,10 +17,45 @@ if [ -z "$COM_PORT" ]; then
     COM_PORT=@COM_PORT@
 fi
 
+INFILE="/dev/stdin"
+OUTFILE="/dev/stdout"
+
+# Parse options
+while getopts "hI:O:" arg; do
+    case $arg in
+        I)
+            INFILE=$OPTARG
+            ;;
+        O)
+            OUTFILE=$OPTARG
+            ;;
+        h)
+            usage
+            echo ""
+            echo "The FPGA is configured by calling 'make config' in the directory"
+            echo "specified in environment variable PATMOS_HOME."
+            echo "The environment variable COM_PORT sets the serial port for downloading."
+            exit 0
+            ;;
+        *)
+            usage
+            exit 1
+            ;;
+    esac
+done
+
+# Check argument count
+shift $((OPTIND-1))
 if [ $# -ne 1 ]; then
-    echo "Usage: $0 <file>"
+    usage
     exit 1
 fi
 
+# Configure FPGA
 make -C $PATMOS_HOME config &> /dev/null || error_exit "FPGA configuration failed"
-timeout 300 patserdow $COM_PORT $1
+
+# Download program to FPGA (with a little magic for killing with Ctrl-C)
+trap 'kill -INT -$pid' INT
+timeout 300 patserdow $COM_PORT $1 < $INFILE > $OUTFILE &
+pid=$!
+wait $pid
