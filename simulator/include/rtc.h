@@ -127,7 +127,7 @@ namespace patmos
         
         if (Enable_debug) {
           std::cerr << "*** RTC: Set next cycle interrupt to " << Interrupt_clock 
-                    << ", current clock: " << getCycle() << "\n";
+                    << ", current cycle: " << getCycle() << "\n";
         }
       }
       else if (is_word_access(address, size, 0x04)) {
@@ -141,7 +141,7 @@ namespace patmos
         
         if (Enable_debug) {
           std::cerr << "*** RTC: Set next usec interrupt to " << Interrupt_usec 
-                    << ", current usec: " << getUSec() << "\n";
+                    << ", current usec: " << getUSec() << ", cycle: " << getCycle() << "\n";
         }
       }
       else if (is_word_access(address, size, 0x0c)) {
