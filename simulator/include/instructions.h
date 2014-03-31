@@ -1875,7 +1875,7 @@ namespace patmos
       if (pred)
       {
         // assure that the target method is in the cache.
-        assert(s.Instr_cache.is_available(s, base));
+        assert(s.is_stalling(SMW) || s.Instr_cache.is_available(s, base));
 
         // set the program counter and base
         s.BASE = base;
