@@ -159,6 +159,9 @@ namespace patmos
       {
         // Found a BB symbol inside a function
         if (!func_only) {
+          if (bb && bb->Address == address) {
+            os << ":" << bb->Name;
+          }
           bb = &*i;
         }
       }
