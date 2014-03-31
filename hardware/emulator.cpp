@@ -301,8 +301,8 @@ static void help(ostream &out) {
       << "  -p            Print method cache statistics" << endl
       << "  -r            Print register values in each cycle" << endl
       << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
-      << "  -I <file>     Read input from file <file>" << endl
-      << "  -O <file>     Write output from file <file>" << endl;
+      << "  -I <file>     Read input for UART from file <file>" << endl
+      << "  -O <file>     Write output from UART to file <file>" << endl;
 }
 
 int main (int argc, char* argv[]) {

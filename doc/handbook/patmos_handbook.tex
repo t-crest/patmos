@@ -3871,7 +3871,274 @@ export LM_LICENSE_FILE=1717@angel1: 1717@angel2: 1717@angel3
 export XILINXD_LICENSE_FILE="2100@eda1.imm.dtu.dk"
 \end{verbatim}
 
+\chapter{Tools}
 
+Along with Patmos come several tools; this chapter describes these
+tools and how to use them.
+
+\section{Simulation, Emulation, and Execution}
+
+\subsection{pasim}
+
+The Patmos simulator \texttt{pasim} provides a high-level simulation
+of Patmos. It is useful for quick evaluations of different hardware
+configurations and for debugging applications. As it can provide
+detailed reports about the application behavior, it is particularly
+useful during the initial phases of application development.
+
+\paragraph{Usage} The general usage of \texttt{pasim} is \texttt{pasim
+  <file>}, where \texttt{<file>} may be a plain binary or an ELF
+file. Tables~\ref{tab:pasimopts_gen}, \ref{tab:pasimopts_mem},
+\ref{tab:pasimopts_cache}, and~\ref{tab:pasimopts_sim} show the
+various options of the simulator. For memory/cache sizes the following
+units are allowed: \texttt{k}, \texttt{m}, \texttt{g}, or \texttt{kb},
+\texttt{mb}, \texttt{gb}.
+
+\begin{table}[b!]
+  \centering
+  \caption{General options for \texttt{pasim}}
+  \label{tab:pasimopts_gen}
+  \begin{tabular}{>{\tt}l<{}p{.6\textwidth}}
+    \toprule
+    \multicolumn{1}{l}{Option} & Description \\
+    \midrule
+    -h [ ---help ]       & produce help message \\
+    -c [ ---maxc ] arg   & stop simulation after the given number of cycles (default: infinity) \\
+    -b [ ---binary ] arg & binary or elf-executable file (stdin: \texttt{-}) \\
+    -o [ ---output ] arg & output execution trace in file (stdout: \texttt{-}, default: stdout) \\
+    ---debug [=arg]      & enable step-by-step debug tracing after cycle, default: 0 \\
+    ---debug-fmt arg     & format of the debug trace (\texttt{short}, \texttt{trace}, \texttt{instr}, \texttt{blocks}, \texttt{calls}, \texttt{calls-indent}, \texttt{default}, \texttt{long}, \texttt{all}) \\
+    ---debug-file arg    & output debug trace in file (stderr: \texttt{-}, default: stderr) \\
+    ---debug-intrs       & print out all status changes of the exception unit. \\
+    ---debug-nopc        & do not print PC and cycles counter in debug output \\
+    ---print-stats arg   & print statistics for a given function only. \\
+    ---flush-caches arg  & flush all caches when reaching the given address (can be a symbol name). \\
+    -V [ ---full ]       & full statistics output \\
+    -v [ ---verbose ]    & enable short statistics output \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}
+  \centering
+  \caption{Memory Options for \texttt{pasim}}
+  \label{tab:pasimopts_mem}
+  \begin{tabular}{>{\tt}l<{}>{\tt}r<{}p{.6\textwidth}}
+    \toprule
+    \multicolumn{1}{l}{Option} & \multicolumn{1}{l}{Default} & Description \\
+    \midrule
+    -g [ --gsize ] arg  & 64m  & global memory size in bytes \\
+    -G [ --gtime ] arg  & 7    & global memory transfer time per burst in cycles \\
+    -t [ --tdelay ] arg & 0    & read delay to global memory per request in cycles \\
+    --trefresh arg      & 0    & refresh cycles per TDM round \\
+    --bsize arg         & 16   & burst size (and alignment) of the memory system. \\
+    --psize arg         & 0    & Memory page size. Enables variable burst lengths for single-core. \\
+    -p [ --posted ] arg & 0    & Enable posted writes (sets max queue size) \\
+    -l [ --lsize ] arg  & 2k   & local memory size in bytes \\
+    --mem-rand arg      & 0    & Initialize memories with random data \\
+    --chkreads arg      & none & Check for reads of uninitialized data, either per byte (\texttt{warn}, \texttt{err}) or per access (\texttt{warn-addr}, \texttt{err-addr}). Disables the data cache. \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}
+  \centering
+  \caption{Cache options for \texttt{pasim}}
+  \label{tab:pasimopts_cache}
+  \begin{tabular}{>{\tt}l<{}>{\tt}r<{}p{.6\textwidth}}
+    \toprule
+    \multicolumn{1}{l}{Option} & \multicolumn{1}{l}{Default} & Description \\
+    \midrule
+    -d [ --dcsize ] arg & 2k     & data cache size in bytes \\
+    -D [ --dckind ] arg & lru2   & kind of direct mapped/fully-/set-associative data cache (\texttt{ideal}, \texttt{no}, \texttt{dm}, \texttt{lru[N]}, \texttt{fifo[N]}) \\
+    --dlsize arg        & 0      & size of a data cache line in bytes, defaults to burst size if set to 0 \\
+    -s [ --scsize ] arg & 2k     & stack cache size in bytes \\
+    -S [ --sckind ] arg & block  & kind of stack cache (\texttt{ideal}, \texttt{block}, \texttt{lblock}, \texttt{dcache}) \\
+    -C [ --icache ] arg & mcache & kind of instruction cache (\texttt{mcache}, \texttt{icache}) \\
+    -K [ --ickind ] arg & lru2   & kind of direct mapped/fully-/set-associative I-cache (\texttt{ideal}, \texttt{no}, \texttt{dm}, \texttt{lru[N]}, \texttt{fifo[N]} \\
+    --ilsize arg        & 0      & size of an I-cache line in bytes, defaults to burst size if set to 0 \\
+    -m [ --mcsize ] arg & 2k     & method cache / instruction cache size in bytes \\
+    -M [ --mckind ] arg & fifo   & kind of method cache (\texttt{ideal}, \texttt{lru}, \texttt{fifo}) \\
+    --mcmethods arg     & 16     & Maximum number of methods in the method cache, defaults to number of blocks if zero \\
+    --mbsize arg        & 8      & method cache block size in bytes, defaults to burst size if zero \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}
+  \centering
+  \caption{Simulator options for \texttt{pasim}}
+  \label{tab:pasimopts_sim}
+  \begin{tabular}{>{\tt}l<{}>{\tt}r<{}p{.59\textwidth}}
+    \toprule
+    \multicolumn{1}{l}{Option} & \multicolumn{1}{l}{Default} & Description \\
+    \midrule
+   --cpuid arg           & 0          & Set CPU ID in the simulator \\
+   -N [ --cores ] arg    & 1          & Set number of CPUs (enables memory TDM) \\
+   --freq arg            & 80         & Set CPU Frequency in Mhz \\
+   --interrupt arg       & 1          & enable or disable interrupts \\
+   --mmbase arg          & 0xf0000000 & base address of the IO device map address range \\
+   --mmhigh arg          & 0xffffffff & highest address of the IO device map address range \\
+   --cpuinfo\_offset arg & 0x000      & offset where the cpuinfo device is mapped \\
+   --excunit\_offset arg & 0x100      & offset where the exception unit is mapped \\
+   --timer\_offset arg   & 0x200      & offset where the timer device is mapped \\
+   --uart\_offset arg    & 0x800      & offset where the UART device is mapped \\
+   --led\_offset arg     & 0x900      & offset where the LED device is mapped \\
+   -I [ --in ] arg       & -          & input file for UART simulation (stdin: \texttt{-}) \\
+   -O [ --out ] arg      & -          & output file for UART simulation (stdout: \texttt{-}) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{patmos-emulator}
+
+The tool \texttt{patmos-emulator} provides a C++-based simulator that
+is derived from the actual hardware description. While it is slower
+and less flexible than \texttt{pasim}, its behavior is identical to
+the behavior of actual hardware. It is therefore useful for
+investigating cases where the behavior of the simulator diverges from
+the behavior in the FPGA. The emulator can also generate wave form
+traces, which allow the investigation on a level similar to
+Verilog/VHDL-based simulations.
+
+\paragraph{Usage} 
+
+The general usage is \texttt{patmos-emulator [<file>]}. When invoked
+without argument, \texttt{patmos-emulator} executes the code in the
+boot ROM of the processor. When given an ELF file as argument, the
+emulator loads the file and executes it
+directly. Table~\ref{tab:emulopts} shows the command-line options for
+the emulator.
+
+\begin{table}
+  \centering
+  \caption{Options for \texttt{patmos-emulator}}
+  \label{tab:emulopts}
+  \begin{tabular}{>{\tt}l<{}p{.66\textwidth}}
+    \toprule
+    \multicolumn{1}{l}{Option} & Description \\
+    \midrule
+    -h            & Print help \\
+    -i            & Initialize memory with random values \\
+    -k            & Simulate random input from keys \\
+    -l <N>        & Stop after \texttt{<N>} cycles \\
+    -p            & Print method cache statistics \\
+    -r            & Print register values in each cycle \\
+    -v            & Dump wave forms file \texttt{Patmos.vcd} \\
+    -I <file>     & Read input for UART from file \texttt{<file>} (stdin: \texttt{-}, default: stdin) \\
+    -O <file>     & Write output from UART to file \texttt{<file>} (stdout: \texttt{-}, default: stdout) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{patserdow}
+
+The tool \texttt{patserdow} downloads an ELF file via a serial line to
+the FPGA and forwards output to and from the downloaded
+application. The download protocol uses CRC checksums to verify the
+integrity of the downloaded data. The \texttt{patserdow} tool
+terminates when the application on the FPGA terminates, with the same
+exit code as the application.
+
+\paragraph{Usage}
+
+The general usage is \texttt{patserdow [-v] [-h] <port> <file>}. The
+option \texttt{-h} prints a basic help. The option \texttt{-v} turns
+on a verbose mode, where information about the file to be downloaded
+and the progress of the downloading process is printed to
+stderr. Output from the application is written to stdout; input to the
+application is read from stdin. The argument \texttt{<port>} specifies
+the serial port to be used for downloading. The argument
+\texttt{<file>} specifies the ELF file to be downloaded.
+
+\subsection{patex}
+
+The tool \texttt{patex} combines FPGA configuration and application
+download such that ELF files can be executed on the FPGA without
+manual intervention. It can therefore act as a drop-in replacement for
+\texttt{pasim} and \texttt{patmos-emulator}. As \texttt{patex}
+executes the application on actual hardware, it is particularly useful
+for applications where simulation or emulation would be prohibitively
+slow.
+
+\paragraph{Usage}
+
+The general usage is \texttt{patex [-I <file>] [-O <file] <file>}. The
+argument for the option \texttt{-I} specifies where input to the UART
+should be read from. The argument for the option \texttt{-O} specifies
+where UART ouput should be written to.
+
+The FPGA is configured by calling \texttt{make config} in the
+directory specified in environment variable \texttt{PATMOS\_HOME}.
+When this variable is unset, \texttt{patex} uses the directory where
+it was installed from. The environment variable \texttt{COM\_PORT}
+sets the serial port for downloading. When this variable is unset,
+\texttt{patex} uses the \texttt{COM\_PORT} variable from the Makefile
+at the time of installation.
+
+\section{Patmos Developer Tools}
+
+This section describes tools that are useful when working on Patmos
+itself, but are of little interest when developing applications.
+
+\subsection{elf2bin}
+
+The \texttt{elf2bin} tool converts ELF files to binary files.
+
+\paragraph{Usage}
+
+The \texttt{elf2bin} tool has two modes. In default mode, its usage is
+\texttt{elf2bin <infile> <outfile1> <outfile2>} and it dumps
+executable segments to file \texttt{<outfile1>} and other segments to
+\texttt{<outfile2>}. For the non-executable segments, it uses a
+displacement of \texttt{0x80000000}, such that data that is mapped to
+address \texttt{<N>} is dumped to position \texttt{<N>-0x80000000} in
+the output file.
+
+The second mode of \texttt{elf2bin} is a ``flat'' mode, with the usage
+\texttt{elf2bin -f <infile> <outfile>}. In that mode, \texttt{elf2bin}
+generates a flat output file, without any displacement. This file can
+be post-processed (e.g., with \texttt{hexdump -v -e '"\%d,"' -e '" // \%08x\textbackslash n"'})
+to generate a representation of the data for Verilog/VHDL-based
+simulations of external memory.
+
+\subsection{pacheck}
+
+The tool \texttt{pacheck} performs a ``sanity'' check of binaries and
+ELF files. While not being complete, it detects common errors such as
+control-flow instruction inside branch delay slots.
+
+\paragraph{Usage}
+
+The usage of \texttt{pacheck} is \texttt{pacheck [-h|--help]
+  [-v|--verbose] [[-b|--binary] <input>]}. The option \texttt{-h}
+prints a help message. The option \texttt{-v} makes \texttt{pacheck}
+verbose. By default, \texttt{pacheck} reads from stdin; a file for
+checking can be given either as command-line argument or as argument
+to the option \texttt{-}.
+
+\subsection{paasm}
+
+The Patmos assembler \texttt{paasm} provides a basic assembler. It
+generates binary files and should be used only for writing very basic
+tests of Patmos. For developing applications in assembly, please use
+the assembler provided by the compiler, which is more complete and in
+particular supports the generation of ELF files.
+
+\paragraph{Usage}
+
+The usage of \texttt{paasm} is \texttt{paasm <input> <output>}.
+
+\subsection{padasm}
+
+The Patmos disassembler \texttt{padasm} is the counterpart of
+\texttt{paasm}, and similar restrictions apply. For general
+development, please use the \texttt{patmos-llvm-objdump} tool provided
+by the compiler.
+
+\paragraph{Usage}
+
+The usage of \texttt{padasm} is \texttt{padasm <input> <output>}.
 
 \chapter{The Patmos Compiler}
 \label{sec:compiler}
