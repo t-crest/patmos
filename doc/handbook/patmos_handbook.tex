@@ -3927,16 +3927,16 @@ units are allowed: \texttt{k}, \texttt{m}, \texttt{g}, or \texttt{kb},
     \toprule
     \multicolumn{1}{l}{Option} & \multicolumn{1}{l}{Default} & Description \\
     \midrule
-    -g [ --gsize ] arg  & 64m  & global memory size in bytes \\
-    -G [ --gtime ] arg  & 7    & global memory transfer time per burst in cycles \\
-    -t [ --tdelay ] arg & 0    & read delay to global memory per request in cycles \\
-    --trefresh arg      & 0    & refresh cycles per TDM round \\
-    --bsize arg         & 16   & burst size (and alignment) of the memory system. \\
-    --psize arg         & 0    & Memory page size. Enables variable burst lengths for single-core. \\
-    -p [ --posted ] arg & 0    & Enable posted writes (sets max queue size) \\
-    -l [ --lsize ] arg  & 2k   & local memory size in bytes \\
-    --mem-rand arg      & 0    & Initialize memories with random data \\
-    --chkreads arg      & none & Check for reads of uninitialized data, either per byte (\texttt{warn}, \texttt{err}) or per access (\texttt{warn-addr}, \texttt{err-addr}). Disables the data cache. \\
+    -g [ ---gsize ] arg  & 64m  & global memory size in bytes \\
+    -G [ ---gtime ] arg  & 7    & global memory transfer time per burst in cycles \\
+    -t [ ---tdelay ] arg & 0    & read delay to global memory per request in cycles \\
+    ---trefresh arg      & 0    & refresh cycles per TDM round \\
+    ---bsize arg         & 16   & burst size (and alignment) of the memory system. \\
+    ---psize arg         & 0    & Memory page size. Enables variable burst lengths for single-core. \\
+    -p [ ---posted ] arg & 0    & Enable posted writes (sets max queue size) \\
+    -l [ ---lsize ] arg  & 2k   & local memory size in bytes \\
+    ---mem-rand arg      & 0    & Initialize memories with random data \\
+    ---chkreads arg      & none & Check for reads of uninitialized data, either per byte (\texttt{warn}, \texttt{err}) or per access (\texttt{warn-addr}, \texttt{err-addr}). Disables the data cache. \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -3949,18 +3949,18 @@ units are allowed: \texttt{k}, \texttt{m}, \texttt{g}, or \texttt{kb},
     \toprule
     \multicolumn{1}{l}{Option} & \multicolumn{1}{l}{Default} & Description \\
     \midrule
-    -d [ --dcsize ] arg & 2k     & data cache size in bytes \\
-    -D [ --dckind ] arg & lru2   & kind of direct mapped/fully-/set-associative data cache (\texttt{ideal}, \texttt{no}, \texttt{dm}, \texttt{lru[N]}, \texttt{fifo[N]}) \\
-    --dlsize arg        & 0      & size of a data cache line in bytes, defaults to burst size if set to 0 \\
-    -s [ --scsize ] arg & 2k     & stack cache size in bytes \\
-    -S [ --sckind ] arg & block  & kind of stack cache (\texttt{ideal}, \texttt{block}, \texttt{lblock}, \texttt{dcache}) \\
-    -C [ --icache ] arg & mcache & kind of instruction cache (\texttt{mcache}, \texttt{icache}) \\
-    -K [ --ickind ] arg & lru2   & kind of direct mapped/fully-/set-associative I-cache (\texttt{ideal}, \texttt{no}, \texttt{dm}, \texttt{lru[N]}, \texttt{fifo[N]} \\
-    --ilsize arg        & 0      & size of an I-cache line in bytes, defaults to burst size if set to 0 \\
-    -m [ --mcsize ] arg & 2k     & method cache / instruction cache size in bytes \\
-    -M [ --mckind ] arg & fifo   & kind of method cache (\texttt{ideal}, \texttt{lru}, \texttt{fifo}) \\
-    --mcmethods arg     & 16     & Maximum number of methods in the method cache, defaults to number of blocks if zero \\
-    --mbsize arg        & 8      & method cache block size in bytes, defaults to burst size if zero \\
+    -d [ ---dcsize ] arg & 2k     & data cache size in bytes \\
+    -D [ ---dckind ] arg & lru2   & kind of direct mapped/fully-/set-associative data cache (\texttt{ideal}, \texttt{no}, \texttt{dm}, \texttt{lru[N]}, \texttt{fifo[N]}) \\
+    ---dlsize arg        & 0      & size of a data cache line in bytes, defaults to burst size if set to 0 \\
+    -s [ ---scsize ] arg & 2k     & stack cache size in bytes \\
+    -S [ ---sckind ] arg & block  & kind of stack cache (\texttt{ideal}, \texttt{block}, \texttt{lblock}, \texttt{dcache}) \\
+    -C [ ---icache ] arg & mcache & kind of instruction cache (\texttt{mcache}, \texttt{icache}) \\
+    -K [ ---ickind ] arg & lru2   & kind of direct mapped/fully-/set-associative I-cache (\texttt{ideal}, \texttt{no}, \texttt{dm}, \texttt{lru[N]}, \texttt{fifo[N]} \\
+    ---ilsize arg        & 0      & size of an I-cache line in bytes, defaults to burst size if set to 0 \\
+    -m [ ---mcsize ] arg & 2k     & method cache / instruction cache size in bytes \\
+    -M [ ---mckind ] arg & fifo   & kind of method cache (\texttt{ideal}, \texttt{lru}, \texttt{fifo}) \\
+    ---mcmethods arg     & 16     & Maximum number of methods in the method cache, defaults to number of blocks if zero \\
+    ---mbsize arg        & 8      & method cache block size in bytes, defaults to burst size if zero \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -3973,19 +3973,19 @@ units are allowed: \texttt{k}, \texttt{m}, \texttt{g}, or \texttt{kb},
     \toprule
     \multicolumn{1}{l}{Option} & \multicolumn{1}{l}{Default} & Description \\
     \midrule
-   --cpuid arg           & 0          & Set CPU ID in the simulator \\
-   -N [ --cores ] arg    & 1          & Set number of CPUs (enables memory TDM) \\
-   --freq arg            & 80         & Set CPU Frequency in Mhz \\
-   --interrupt arg       & 1          & enable or disable interrupts \\
-   --mmbase arg          & 0xf0000000 & base address of the IO device map address range \\
-   --mmhigh arg          & 0xffffffff & highest address of the IO device map address range \\
-   --cpuinfo\_offset arg & 0x000      & offset where the cpuinfo device is mapped \\
-   --excunit\_offset arg & 0x100      & offset where the exception unit is mapped \\
-   --timer\_offset arg   & 0x200      & offset where the timer device is mapped \\
-   --uart\_offset arg    & 0x800      & offset where the UART device is mapped \\
-   --led\_offset arg     & 0x900      & offset where the LED device is mapped \\
-   -I [ --in ] arg       & -          & input file for UART simulation (stdin: \texttt{-}) \\
-   -O [ --out ] arg      & -          & output file for UART simulation (stdout: \texttt{-}) \\
+   ---cpuid arg           & 0          & Set CPU ID in the simulator \\
+   -N [ ---cores ] arg    & 1          & Set number of CPUs (enables memory TDM) \\
+   ---freq arg            & 80         & Set CPU Frequency in Mhz \\
+   ---interrupt arg       & 1          & enable or disable interrupts \\
+   ---mmbase arg          & 0xf0000000 & base address of the IO device map address range \\
+   ---mmhigh arg          & 0xffffffff & highest address of the IO device map address range \\
+   ---cpuinfo\_offset arg & 0x000      & offset where the cpuinfo device is mapped \\
+   ---excunit\_offset arg & 0x100      & offset where the exception unit is mapped \\
+   ---timer\_offset arg   & 0x200      & offset where the timer device is mapped \\
+   ---uart\_offset arg    & 0x800      & offset where the UART device is mapped \\
+   ---led\_offset arg     & 0x900      & offset where the LED device is mapped \\
+   -I [ ---in ] arg       & -          & input file for UART simulation (stdin: \texttt{-}) \\
+   -O [ ---out ] arg      & -          & output file for UART simulation (stdout: \texttt{-}) \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -4110,8 +4110,8 @@ control-flow instruction inside branch delay slots.
 
 \paragraph{Usage}
 
-The usage of \texttt{pacheck} is \texttt{pacheck [-h|--help]
-  [-v|--verbose] [[-b|--binary] <input>]}. The option \texttt{-h}
+The usage of \texttt{pacheck} is \texttt{pacheck [-h|---help]
+  [-v|---verbose] [[-b|---binary] <input>]}. The option \texttt{-h}
 prints a help message. The option \texttt{-v} makes \texttt{pacheck}
 verbose. By default, \texttt{pacheck} reads from stdin; a file for
 checking can be given either as command-line argument or as argument
