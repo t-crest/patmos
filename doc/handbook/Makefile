@@ -12,7 +12,7 @@ TEX=$(wildcard *.tex)
 
 .PHONY: all clean
 
-all: open
+all: $(DOC).pdf
 
 TIKZFIGURES=fig/timing_core.pdf fig/timing_io.pdf fig/timing_burst.pdf
 

@@ -153,6 +153,11 @@ test_emu:
 	testsuite/run.sh
 .PHONY: test test_sim test_emu
 
+# Build documentation
+doc:
+	make -C doc all
+.PHONY: doc
+
 # Compile Patmos and download
 patmos: gen synth config
 

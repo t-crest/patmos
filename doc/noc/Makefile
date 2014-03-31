@@ -11,7 +11,7 @@ OPEN?=open # program for displaying the pdf
 
 .PHONY: all clean
 
-all: open
+all: $(DOC).pdf
 
 TIKZFIGURES=
 
