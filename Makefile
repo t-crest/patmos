@@ -83,7 +83,7 @@ scripttools:
 
 PATSERDOW_SRC=$(shell find tools/java/src/patserdow/ -name *.java)
 PATSERDOW_CLASS=$(patsubst tools/java/src/%.java,$(JAVATOOLSBUILDDIR)/classes/%.class,$(PATSERDOW_SRC))
-PATSERDOW_EXTRACLASS=patserdow/Main'$$'ShutDownHook.class
+PATSERDOW_EXTRACLASS=patserdow/Main'$$'ShutDownHook.class patserdow/Main'$$'InputThread.class
 JAVAUTIL_SRC=$(shell find tools/java/src/util/ -name *.java)
 JAVAUTIL_CLASS=$(patsubst tools/java/src/%.java,$(JAVATOOLSBUILDDIR)/classes/%.class,$(JAVAUTIL_SRC))
 

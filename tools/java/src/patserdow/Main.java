@@ -19,9 +19,9 @@ import nl.lxtreme.binutils.elf.ElfHeader;
 import nl.lxtreme.binutils.elf.ProgramHeader;
 import jssc.*;
 
-public class Main 
-{
-	final private static int BAUD_RATE = 115200;
+public class Main {
+
+    final private static int BAUD_RATE = 115200;
 
     private static SerialPort port = null;
 
@@ -37,13 +37,31 @@ public class Main
         }
     }
 
+    private static class InputThread extends Thread {
+        private InputStream hostInStream;
+        private OutputStream outStream;
+        public InputThread(InputStream hostInStream, OutputStream outStream) {
+            this.hostInStream = hostInStream;
+            this.outStream = outStream;
+        }
+        public void run() {
+            try {
+                while (true) {
+                    outStream.write(hostInStream.read());
+                    Thread.sleep(1); // slow down for slow apps
+                }
+            } catch (Exception exc) {
+                System.err.println(exc);
+            }
+        }
+    }
+
     /**
      * @param args the command line arguments
-     * @throws TimeoutException 
-     * @throws SerialPortTimeoutException 
+     * @throws TimeoutException
+     * @throws SerialPortTimeoutException
      */
-    public static void main(String[] args) throws IOException, InterruptedException, SerialPortException, TimeoutException, SerialPortTimeoutException
-    {
+    public static void main(String[] args) throws IOException, InterruptedException, SerialPortException, TimeoutException, SerialPortTimeoutException {
         boolean verbose = true;
         boolean error = false;
 
@@ -55,35 +73,33 @@ public class Main
 
         Runtime.getRuntime().addShutdownHook(new ShutDownHook());
 
-        try 
-        {
+        try {
             verbose = System.getProperty("verbose", "false").equals("true");
 
-        	File file = null;
-        	switch(args.length)
-            {
-                case 2:
-                    port = new SerialPort(args[0]);
-                    if (verbose) {
-                        msg_stream.println("Port opened: " + port.openPort());
-                        msg_stream.println("Params set: " + port.setParams(BAUD_RATE, 8, 1, 0));
-                    } else {
-                        port.openPort();
-                        port.setParams(BAUD_RATE, 8, 1, 0);
-				    }
-                    in_stream = new UARTInputStream(port);
-                    out_stream = new UARTOutputStream(port);
-                    file = new File(args[1]);
-                    break;
-                case 1:
-                	in_stream = System.in;
-                    out_stream = System.out;
-                    file = new File(args[0]);
-                    break;
-                default:
-                	throw new IllegalArgumentException("Usage: patserdow [COMPORT] FILENAME");
+            File file = null;
+            switch(args.length) {
+            case 2:
+                port = new SerialPort(args[0]);
+                if (verbose) {
+                    msg_stream.println("Port opened: " + port.openPort());
+                    msg_stream.println("Params set: " + port.setParams(BAUD_RATE, 8, 1, 0));
+                } else {
+                    port.openPort();
+                    port.setParams(BAUD_RATE, 8, 1, 0);
+                }
+                in_stream = new UARTInputStream(port);
+                out_stream = new UARTOutputStream(port);
+                file = new File(args[1]);
+                break;
+            case 1:
+                in_stream = System.in;
+                out_stream = System.out;
+                file = new File(args[0]);
+                break;
+            default:
+                throw new IllegalArgumentException("Usage: patserdow [COMPORT] FILENAME");
             }
-        	
+
             Elf elf = new Elf(file);
             ElfHeader header = elf.getHeader();
             if (verbose) {
@@ -112,85 +128,77 @@ public class Main
                 new ProgressMonitor(byte_count,msg_stream) : null;
 
             byte[] header_bytes = new byte[HEADER_SIZE];
-    		ByteBuffer byte_buffer = ByteBuffer.wrap(header_bytes);
-    		//buffer.order(ByteOrder.BIG_ENDIAN);
-    		byte_buffer.putInt((int)header.getEntryPoint());
-    		byte_buffer.putInt(segments.length);
+            ByteBuffer byte_buffer = ByteBuffer.wrap(header_bytes);
+            //buffer.order(ByteOrder.BIG_ENDIAN);
+            byte_buffer.putInt((int)header.getEntryPoint());
+            byte_buffer.putInt(segments.length);
 
-    		ByteArrayInputStream byte_stream = new ByteArrayInputStream(header_bytes);
-    		//Send number of headers here
-    		transmitter.send(byte_stream,header_bytes.length,monitor);
+            ByteArrayInputStream byte_stream = new ByteArrayInputStream(header_bytes);
+            //Send number of headers here
+            transmitter.send(byte_stream,header_bytes.length,monitor);
 
-            for(ProgramHeader segment : segments)
-            {
+            for(ProgramHeader segment : segments) {
                 long segment_filesize = segment.getFileSize();
                 long segment_memsize = segment.getMemorySize();
                 long segment_file_offset = segment.getFileOffset();
                 long segment_offset = segment.getPhysicalAddress();
 
-        		byte[] segment_header_bytes = new byte[SEGMENT_HEADER_SIZE];
-            	//Adding the header size and offset as the first 12 bytes of the stream
-        		byte_buffer = ByteBuffer.wrap(segment_header_bytes);
-        		byte_buffer.putInt((int)segment_filesize);
-        		byte_buffer.putInt((int)segment_offset);
-        		byte_buffer.putInt((int)segment_memsize);
-        		byte_stream = new ByteArrayInputStream(segment_header_bytes);
+                byte[] segment_header_bytes = new byte[SEGMENT_HEADER_SIZE];
+                //Adding the header size and offset as the first 12 bytes of the stream
+                byte_buffer = ByteBuffer.wrap(segment_header_bytes);
+                byte_buffer.putInt((int)segment_filesize);
+                byte_buffer.putInt((int)segment_offset);
+                byte_buffer.putInt((int)segment_memsize);
+                byte_stream = new ByteArrayInputStream(segment_header_bytes);
 
-        		FileInputStream file_stream = new FileInputStream(file);                
-        		file_stream.skip(segment_file_offset);
+                FileInputStream file_stream = new FileInputStream(file);
+                file_stream.skip(segment_file_offset);
 
-        		SequenceInputStream merged_stream =
-        		    new SequenceInputStream(byte_stream, file_stream);
-        		transmitter.send(merged_stream,
-        		                 segment_header_bytes.length+(int)segment_filesize,
-        		                 monitor);
+                SequenceInputStream merged_stream =
+                    new SequenceInputStream(byte_stream, file_stream);
+                transmitter.send(merged_stream,
+                                 segment_header_bytes.length+(int)segment_filesize,
+                                 monitor);
 
-        		file_stream.close();
+                file_stream.close();
             }
             if (verbose) {
                 msg_stream.println();
             }
 
-            while (true)
-            {
-                // Process data from target
-                while (in_stream.available() > 0) {
-                    int c = in_stream.read();
+            // Write data to target in separate thread
+            new InputThread(host_in_stream, out_stream).start();
 
-                    // We exit when seeing magic code "\0x"
-                    // The byte after the magic is the return code
-                    if (c == '\0') {
+            // Process data from target
+            while (true) {
+                int c = in_stream.read();
+
+                // We exit when seeing magic code "\0x"
+                // The byte after the magic is the return code
+                if (c == '\0') {
+                    c = in_stream.read();
+                    if (c == 'x') {
                         c = in_stream.read();
-                        if (c == 'x') {
-                            c = in_stream.read();
-                            if (verbose) {
-                                msg_stream.println();
-                                msg_stream.println("EXIT "+c);
-                            }
-                            System.exit(c);
-                        } else {
-                            host_out_stream.write('\0');
-                            host_out_stream.write(c);
+                        if (verbose) {
+                            msg_stream.println();
+                            msg_stream.println("EXIT "+c);
                         }
+                        System.exit(c);
                     } else {
+                        host_out_stream.write('\0');
                         host_out_stream.write(c);
                     }
-                }
-                // Write data to target
-                if (host_in_stream.available() > 0) {
-                    out_stream.write(host_in_stream.read());
-                    Thread.sleep(1); // slow down for slow apps
+                } else {
+                    host_out_stream.write(c);
                 }
             }
         }
-        catch (Exception exc)
-        {
+        catch (Exception exc) {
             msg_stream.println(exc);
             error = true;
         }
 
-        if(error)
-        {
+        if(error) {
             System.exit(-1);
         }
     }
