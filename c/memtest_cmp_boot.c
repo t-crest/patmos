@@ -33,19 +33,9 @@ int main() {
 	int error = 0;
 	int test = 0;
 
+	WRITE("*", 1);
+
 	if (CORE_ID == 0) {
-		// MS: does the following reading from uninitialized memory
-		// make sense?
-//		for (int i=0; i<=LENGTH; i++){ // Read from main memory
-//			res = *(TEST_START+i);
-//			if (res != 0){	// If data is not what we expect write error
-//				error++;
-//			}
-//		}
-//		if (error != 0){
-//			WRITE("TEST_STARTORY uninitialized\n", 21);
-//		}
-//		error = 0;
 
 		for (int k = 0; k < CNT; k++) { 
 			WRITE(".", 1);
@@ -74,20 +64,9 @@ int main() {
 
 		WRITE("Finished\n", 9);
 	} else {
-		//for (int k = 0; k < 100; ++k)
-		//{
-		//	for (int i=0; i<=LENGTH; i++){ // Read from main memory
-		//		res = *(TEST_START+i);
-		//		if (res == 0){	// If data is not what we expect write error
-		//			error = error;
-		//		} else {
-		//			error++;
-		//		}
-		//	}
-		//}
+		WRITE("-", 1);
 	}
 
-
+	// bootable don't return
 	for (;;);
-	// return 0;
 }

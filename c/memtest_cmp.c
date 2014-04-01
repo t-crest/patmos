@@ -26,20 +26,10 @@ int main() {
 
 
 	if (get_cpuid() == 0) {
+		putchar('*');
+		fflush(NULL);
 
 printf("%d %d\n", (int) TEST_START, (int) &_end);
-		// MS: does the following reading from uninitialized memory
-		// make sense?
-//		for (int i=0; i<=LENGTH; i++){ // Read from main memory
-//			res = *(TEST_START+i);
-//			if (res != 0){	// If data is not what we expect write error
-//				error++;
-//			}
-//		}
-//		if (error != 0){
-//			puts("TEST_STARTORY uninitialized\n");
-//		}
-//		error = 0;
 
 		for (int k = 0; k < CNT; k++) { 
 			putchar('.');
@@ -68,19 +58,12 @@ printf("%d %d\n", (int) TEST_START, (int) &_end);
 		}
 		puts("Finished\n");
 
+		return 0;
 	} else {
-		//for (int k = 0; k < 100; ++k)
-		//{
-		//	for (int i=0; i<=LENGTH; i++){ // Read from main memory
-		//		res = *(TEST_START+i);
-		//		if (res == 0){	// If data is not what we expect write error
-		//			error = error;
-		//		} else {
-		//			error++;
-		//		}
-		//	}
-		//}
+		// other cores do idle loop
+		for (;;) {
+		}
 	}
 
-	return 0;
+	return 2;
 }
