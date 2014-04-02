@@ -2868,6 +2868,9 @@ but might be restricted by the external memory and the external
 memory controller.
 \martin{I assume (hope) that the configurable burst length works.
 One could try varying with the SRAM memory.} 
+\wolf{Depends on how cleanly the code was written and on the
+  hardware. The synchronous SRAM only supports burst lengths $\leq$4
+  due to restrictions of the memory chip.}
 All other burst-related signals are
 tied off to their default values. This entails that the only sequence
 for burst addresses is \code{INCR}. Bursts always stat at an address
@@ -2901,6 +2904,9 @@ is received.
 \martin{Having a write response one cycle after the last data and not
 allowing a command in that cycle costs us one additional clock cycle
 (in the TDM slot). Maybe it doe not matter.}
+\wolf{The consensus was that it would not matter. We could change it
+  if we make sure all slaves comply, the restriction was basically just
+  put in to be on the safe side.}
 
 \begin{table}
   \centering
@@ -2932,39 +2938,22 @@ multiplexed to support multiple slaves. For handshaking via
 \code{SResp}, it is sufficient to combine the responses of different
 slaves with OR.
 
-\wolf{With \code{writeresp\_enable} we could also require a response
-  for ``normal'' writes.}
-
 \wolf{\code{OCPburst} currently allows neither pipelining nor
   same-cycle responses. If we want to, we can make it more like
   \code{OCPcore} or \code{OCPio}.}
 
-\wolf{I am pretty sure that we need to include \code{MDataValid} when
-  using single request bursts. Please check if you understand the spec
-  the same way.}
-
-Note 4: % where are notes 1--3?
-\martin{Why do we state so strongly that we want 4 words?}
-Bursts are restricted to exactly four words (D1, D2, D3 and D4), or
-some other constant which is a power of 2.  The address must be aligned.
+The burst length is restricted to a constant which is a power of 2.
+The address must be aligned.
 Burst data must be provided in four consecutive cycles. \code{SResp} is
 active during these cycles. For a burst write the master may have to provide
 D1 for two or more cycles if \code{SResp} is not active in the first cycle of
 the transaction.
 
-\wolf{\code{SResp} is \emph{not} active during write bursts according
-  to the OCP spec. If necessary, handshaking for write bursts is done
-  via \code{SCmdAccept} and/or \code{SDataAccept}.}
+\martin{Burst: Is it legal (in our OCP subset) that SCmdAccept comes earlier than SDataAccept?} \wolf{No. Masters can assume that both signals are asserted in the same cycle.}
 
-\martin{Bust: Is it legal (in our OCP subset) that SCmdAccept comes earlier than SDataAccept?}
-
-\martin{Burst: we said that we do not support pipelined requests in bust mode.
+\martin{Burst: we said that we do not support pipelined requests in burst mode.
 So when the slave sets SResp we are not allowing the master to initiate the next
-request in the same cycle. Right?}
-
-\martin{Are OCP addresses always in bytes? Even on the burst interface? I assume yes.
-We need to look this up. -- According to Wolfgang they are.}
-
+request in the same cycle. Right?} \wolf{Right.}
 
 \clearpage
 \subsection{Timing Diagrams}

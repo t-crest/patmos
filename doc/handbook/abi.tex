@@ -162,7 +162,7 @@ following the conventions declared in the previous subsection on function calls.
 
 Interrupt handlers may use the shadow stack pointer \texttt{r29} to spill registers
 to the shadow stack. Interrupt handlers must ensure that all special registers
-% that might be in use when the interrupt occurs % MS: there is probably no 'might'
+that might be in use when the interrupt occurs % MS: there is probably no 'might' WP: not all special registers are used, e.g., s11-s15
 are saved and restored.
 %
 Here is an example of storing and restoring the context for context switching.
