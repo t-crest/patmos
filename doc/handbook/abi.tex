@@ -161,10 +161,11 @@ following the conventions declared in the previous subsection on function calls.
 \section{Interrupts and Context Switching}
 
 Interrupt handlers may use the shadow stack pointer \texttt{r29} to spill registers
-to the shadow stack. Interrupts must ensure that all special registers that might be in use
-when the interrupt occurs are saved and restored.
-
-Here is a simple example of storing and restoring the context for context switching.
+to the shadow stack. Interrupt handlers must ensure that all special registers
+% that might be in use when the interrupt occurs % MS: there is probably no 'might'
+are saved and restored.
+%
+Here is an example of storing and restoring the context for context switching.
 \begin{verbatim}
 sub $r29 = $r29, 40
 sws [$r29 + 0] = $r31
@@ -175,7 +176,7 @@ mfs $r22 = $s2  // by now any mul should be finished
 mfs $r23 = $s3
 sws [$r29 + 4] = $r22
 sws [$r29 + 5] = $r23
-mfs $r22 = $r5  // read out cache pointers, spill
+mfs $r22 = $s5  // read out cache pointers, spill
 mfs $r23 = $s6
 sub $r22 = $r23, $r22
 sspill $r22   // spill the memory, s5 == s6 now
