@@ -27,6 +27,7 @@
 #include "exception.h"
 #include "profiling.h"
 
+#include <set>
 #include <limits>
 #include <iostream>
 
@@ -214,6 +215,9 @@ namespace patmos
     /// Flush caches when PC reaches this address.
     uword_t Flush_Cache_PC;
     
+    /// Debug accesses to those addresses.
+    std::set<uword_t> Debug_mem_address;
+    
     /// Runtime statistics on all instructions, per pipeline
     instruction_stats_t Instruction_stats[NUM_SLOTS];
 
@@ -294,6 +298,9 @@ namespace patmos
 
     /// Flush all data caches when reaching the given program counter.
     void flush_caches_at(uword_t address) { Flush_Cache_PC = address; }
+    
+    /// Print accesses to a 
+    void debug_mem_address(uword_t address) { Debug_mem_address.insert(address); }
     
     /// Run the simulator.
     /// @param entry Initialize the method cache, PC, etc. to start execution

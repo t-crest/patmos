@@ -70,7 +70,9 @@ namespace patmos
     virtual bool is_call() const { return false; }
     
     virtual bool is_load() const { return false; }
-
+    
+    virtual bool is_store() const { return false; }
+    
     /// Returns the number of delay slot cycles of this instruction
     virtual unsigned get_delay_slots(const instruction_data_t &ops) const = 0;
 

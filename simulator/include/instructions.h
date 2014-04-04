@@ -1304,6 +1304,19 @@ namespace patmos
         // the value is already available?
         if (is_available)
         {
+          
+          // TODO this is a very quick hack for now, should be moved to a 
+          //      Debug class (see stores).
+          if (!s.Debug_mem_address.empty() &&
+              s.Debug_mem_address.count(ops.EX_Address))
+          {
+            std::cerr << "*** Load: " << result 
+                      << " = [0x" << std::hex << ops.EX_Address << std::dec << " ";
+            s.Symbols.print(std::cerr, ops.EX_Address);
+            std::cerr << "] (PC: 0x" 
+                      << std::hex << s.PC << std::dec << ", cycle: " << s.Cycle << ")\n";
+          }
+          
           store_GPR_MW_result(s, ops, ops.OPS.LDT.Rd, result);
           ops.MW_Discard = 1;
         }
@@ -1450,6 +1463,18 @@ namespace patmos
       // the value is already available?
       if (is_available)
       {
+        // TODO this is a very quick hack for now, should be moved to a 
+        //      Debug class (see stores).
+        if (!s.Debug_mem_address.empty() &&
+            s.Debug_mem_address.count(ops.EX_Address))
+        {
+          std::cerr << "*** Load: " << result 
+                    << " = [0x" << std::hex << ops.EX_Address << std::dec << " ";
+          s.Symbols.print(std::cerr, ops.EX_Address);
+          std::cerr << "] (PC: 0x" 
+                    << std::hex << s.PC << std::dec << ", cycle: " << s.Cycle << ")\n";
+        }
+        
         // store the loaded value by writing it into a by-pass
         s.SPR.set(sm, result);
         s.Decoupled_load = instruction_data_t();
@@ -1522,6 +1547,8 @@ namespace patmos
   class i_stt_t : public i_pred_t
   {
   public:
+    virtual bool is_store() { return true; }
+    
     virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
       return ops.OPS.STT.Ra;
     }
@@ -1565,6 +1592,20 @@ namespace patmos
           // propagated down to the memory
           s.pipeline_stall(SMW);
         } else {
+          
+          // TODO this is a very quick hack for now, this should be moved to a
+          // s.Debug class, which properly prints out (or not) all the debug related
+          // stuff (including traces, RTC events, ..), like
+          // s.Debug.print_store(ops.EX_Address, ops.Ex_Rs);
+          if (!s.Debug_mem_address.empty() &&
+              s.Debug_mem_address.count(ops.EX_Address))
+          {
+            std::cerr << "*** Store: [0x" << std::hex << ops.EX_Address << std::dec << " ";
+            s.Symbols.print(std::cerr, ops.EX_Address);
+            std::cerr << "] = " << ops.EX_Rs
+            << " (PC: 0x" <<std::hex << s.PC << std::dec << ", cycle: " << s.Cycle << ")\n";
+          }
+          
           ops.MW_Discard = 1;
         }
       }

@@ -279,6 +279,7 @@ int main(int argc, char **argv)
     ("debug-file", boost::program_options::value<std::string>()->default_value("-"), "output debug trace in file (stderr: -)")
     ("debug-intrs", "print out all status changes of the exception unit.")
     ("debug-nopc", "do not print PC and cycles counter in debug output")
+    ("debug-access", boost::program_options::value<patmos::address_t>(), "print accesses to the given address or symbol.")
     ("print-stats", boost::program_options::value<patmos::address_t>(), "print statistics for a given function only.")
     ("flush-caches", boost::program_options::value<patmos::address_t>(), "flush all caches when reaching the given address (can be a symbol name).")
     ("full,V", "full statistics output")
@@ -433,6 +434,13 @@ int main(int argc, char **argv)
     max_cycle = std::numeric_limits<uint64_t>::max();
   }
   
+  // TODO make the option accept a list of addresses/symbol names
+  bool debug_accesses = vm.count("debug-access") > 0;
+  patmos::address_t debug_access_addr;
+  if (debug_accesses) {
+    debug_access_addr = vm["debug-access"].as<patmos::address_t>();
+  }
+  
   bool print_stats = vm.count("print-stats") > 0;
   patmos::address_t print_stats_func;
   if (print_stats) {
@@ -549,6 +557,11 @@ int main(int argc, char **argv)
     
     loader->load_symbols(sym, text);
     loader->load_to_memory(s, gm);
+    
+    if (debug_accesses) {
+      debug_access_addr.parse(sym);
+      s.Debug_mem_address.insert(debug_access_addr.value());
+    }
     
     // setup stats reset trigger
     if (print_stats) {
