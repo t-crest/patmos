@@ -66,11 +66,11 @@ namespace patmos
   /// The content of a register file.
   /// The template argument D represents the data type to represent the register
   /// files content, while I represents the data type to index into the register
-  /// file. S finally represents the size of the register file.
+  /// file. S represents the size of the register file.
   template<typename I, typename D, unsigned int S>
   class register_file_t
   {
-  private:
+  protected:
     /// The content of the register file.
     D *Content;
   public:
@@ -104,11 +104,7 @@ namespace patmos
     /// Set the value of a register in the register file.
     /// @param index The index of the register to be written.
     /// @param value The new value to be written.
-    void set(I index, D value)
-    {
-      assert(index < S);
-      Content[index] = value;
-    }
+    virtual void set(I index, D value) =0;
 
     /// Destruct the register file and free its content.
     ~register_file_t()
@@ -226,20 +222,60 @@ namespace patmos
   };
 
   /// A register file for the general purpose registers.
-  typedef register_file_t<GPR_e, word_t, NUM_GPR> GPR_t;
+  class GPR_t : public register_file_t<GPR_e, word_t, NUM_GPR>
+  {
+  public:
+    void set(GPR_e index, word_t value)
+    {
+      if (index == r0) return;
+      assert(index < NUM_GPR);
+      Content[index] = value;
+    }
+  };
 
   /// A register file for the predicate registers.
-  typedef register_file_t<PRR_e, bit_t, NUM_PRRn> PRR_t;
+  class PRR_t : public register_file_t<PRR_e, bit_t, NUM_PRRn>
+  {
+  public:
+    PRR_t() : register_file_t() 
+    {
+      Content[p0] = true;
+      Content[pn0] = false;
+      
+      // initialize the negative registers
+      for (unsigned int p = pn1; p < NUM_PRRn; p++) {
+        Content[p] = true;
+      }
+    }
+    
+    void set(PRR_e index, bit_t value)
+    {
+      if (index == p0 || index == pn0) return;
+      assert(index < NUM_PRRn);
+      Content[index] = value;
+      // update the negative value as well
+      if (index < NUM_PRR) {
+        Content[NUM_PRR + index] = !value;
+      } else {
+        Content[index - NUM_PRR] = !value;
+      }
+    }
+  };
 
   /// A register file for the special purpose registers.
-  typedef register_file_t<SPR_e, word_t, NUM_SPR> SPR_t;
+  class SPR_t : public register_file_t<SPR_e, word_t, NUM_SPR>
+  {
+  public:
+    void set(SPR_e index, word_t value)
+    {
+      assert(index < NUM_SPR);
+      Content[index] = value;
+    }
+  };
 
 
   /// A register by-pass for general purpose registers
   typedef by_pass_t<GPR_e, word_t> GPR_by_pass_t;
-
-  /// A register by-pass for predicate registers
-  typedef by_pass_t<PRR_e, bit_t> PRR_by_pass_t;
 
 
   /// A general purpose register operand.

@@ -51,14 +51,6 @@ namespace patmos
       Exception_handling_counter(0),
       Flush_Cache_PC(std::numeric_limits<unsigned int>::max()), Num_NOPs(0)
   {
-    // initialize one predicate register to be true, otherwise no instruction
-    // will ever execute
-    PRR.set(p0, true);
-    // initialize negated predicates
-    for (unsigned int p = pn1; p < NUM_PRRn; p++) {
-	PRR.set((PRR_e)p, true);
-    }
-
     // initialize the pipeline
     for(unsigned int i = 0; i < NUM_STAGES; i++)
     {
