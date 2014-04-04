@@ -35,7 +35,7 @@
 %% \setcounter{bottomnumber}{4}
 %% \setcounter{totalnumber}{16}
 %% \setcounter{dbltopnumber}{4}
-
+	
 \newcommand{\code}[1]{{\texttt{#1}}}
 \newcommand{\codefoot}[1]{{\textsf{#1}}}
 \def\figref#1{Figure~\ref{fig:#1}}
@@ -181,14 +181,18 @@ project (Hard Real-Time Embedded Multiprocessor Platform - RTEMP)
 
 \begingroup
 \let\cleardoublepage\clearpage
-\listoffigures
-\listoftables
+%\listoffigures
+%\listoftables
 %\lstlistoflistings
 \endgroup
 
 \mainmatter
 
-\chapter{Introduction}
+
+\chapter{Argo Programming Guide}
+
+%\chapter{Introduction}
+\section{Introduction}
 
 Argo is a time-predictable Network-on-Chip (NOC) designed to be used in hard real-time multi-core platforms.
 The main functionality of Argo is to provide time-predictable core-to-core communication in the form of message passing.
@@ -214,7 +218,8 @@ Chapter~\ref{chap:apg} guides the reader on how to program an application that u
 
 
 
-\chapter{The Architecture of Argo}
+%\chapter{The Architecture of Argo}
+\section{The Architecture of Argo}
 \label{chap:arch}
 
 The Argo NOC is made up of two different components,
@@ -236,7 +241,8 @@ Argo has a direct memory access (DMA) channel per communication channel.
 To send a message through the network a DMA needs to be setup.
 
 
-\chapter{Static time division multiplexing scheduler}
+%\chapter{Static time division multiplexing scheduler}
+\section{Static time division multiplexing scheduler}
 \label{chap:poseidon}
 The TDM scheduler used to generate schedules for Argo is called Poseidon.
 The source of Poseidon is placed at \url{https://github.com/t-crest/poseidon.git}.
@@ -255,17 +261,18 @@ warn_if(bw != 1,"Bandwidth different from 1 is not supported by Argo, Bandwidth 
 if (bw != 1) { bw = 1;  }
 \end{verbatim}
 
-\section{Input format}
+%\subsection{Input format}
 
-\section{Output format}
+%\subsection{Output format}
 
-\section{Conversion to C}
-
-
+%\subsection{Conversion to C}
 
 
 
-\chapter{Memory address space and interface}
+
+
+%\chapter{Memory address space and interface}
+\section{Memory address space and interface}
 \label{chap:mem}
 
 The network interface (NI) of Argo has 2 OCP\cite{ocp:spec} interfaces. One is connected to SPM memory
@@ -278,7 +285,7 @@ in the specified addresses that are mentioned below.
 The UART and LEDS also lie in the local address space and can be accessed only by the master core
 at the specified addresses.
 
-\section{Local Address Space}
+\subsection{Local Address Space}
 
 \begin{description}
 \item[UART\_STATUS]      0xF0000800
@@ -293,7 +300,8 @@ at the specified addresses.
 \end{description}
 
 
-\chapter{Build Instructions}
+%\chapter{Build Instructions}
+\section{Build Instructions}
 
 %In the following we present the Patmos build instructions on a Linux/Ubuntu
 %system.\footnote{I used the 32-bit version of Ubuntu to simplify the Quartus installation.}
@@ -304,7 +312,7 @@ for a 2x2 Aegean platform. The default hardware platform includes 4 Patmos proce
 connected by Argo NOC and memory arbiter giving access to the shared memory.
 
 
-\section{Patmos and compiler build instructions}
+\subsection{Patmos and compiler build instructions}
 
 Information on how to build a Patmos processor and how to run the compiler and some application examples
 can be found in \cite{patmos-handbook}. 
@@ -731,7 +739,7 @@ to be run either by simulation or on FPGA board, for a single Patmos processor.
 %Without changing the \code{Makefile} the default of the board (and any other build variables)
 %can be overridden by providing a local \code{config.mk} that is included in the Makefile.
 %
-\subsection{Aegean}
+\subsubsection{Aegean}
 
 The whole build process of a 2x2 Aegean platform,
 \footnote{Get the source from GitHub with: \code{git clone git@github.com:t-crest/aegean}} 
@@ -757,7 +765,7 @@ on Altera DE2-115 FPGA board. The default platform is 4 cores of Patmos connecte
 and a memory arbiter connecting to main memory.
 
 
-\section{Applications}
+\subsection{Applications}
 
 Applications for the multicore platform can be developed in C code, either 
 compiled with the hardware platform, embedded in the the on-chip ROM
@@ -783,7 +791,7 @@ using the following variables:
 %% without the boot loader would be nice as well.
 %
 
-\section{Applications and download of ELF files}
+\subsection{Applications and download of ELF files}
 
 An application executed in the multicore platform can be compiled in an ELF file and downloaded on the FPGA.
 %The application should be written in C and placed under /t-crest/patmos/c. 
@@ -829,10 +837,11 @@ make APP=<app_name> download
 %is just an example configuration file, generated from build.sh, and ignored
 %by the build process.
 
-\chapter{Application Programming Guide}
+%\chapter{Application Programming Guide}
+\section{Application Programming Guide}
 \label{chap:apg}
 
-\section{Application Programming Interface}
+\subsection{Application Programming Interface}
 \label{sec:api}
 
 At the time of writing the only application programming interface is the libnoc library. A number of functions and variables are provided through libnoc library. libnoc has two kinds of functionality, the first is to initialize the network interface (NI) and the second is the setup DMA transfers for send messages to other processing cores. 
@@ -867,12 +876,12 @@ The defines in libnoc"
 \item [NOC\_SPM\_BASE] The base address of the communication SPM.
 \end{description}
 
-\section{Hello World multicore}
+\subsection{Hello World multicore}
 
 To demonstrate the use of Argo, a multi-core Hello World application \textit{hello\_sum.c} is placed in /patmos/c.
 The application is written in C and can be compiled and downloaded on the FPGA board where the bootloader is initiating the execution.
 
-\subsection{Compile and Run}
+\subsubsection{Compile and Run}
 The application needs to be placed in /patmos/c and the compile and download of the application on the board is done with the following make commands:
 
 \begin{verbatim}
@@ -880,7 +889,7 @@ make APP=hello_sum comp
 make APP=hello_sum download
 \end{verbatim}
 
-\subsection{SPM access}
+\subsubsection{SPM access}
 To develop an application that runs on T-CREST platform, memory access and 
 communication should be handled explicitely. Argo NOC is initialized automatically 
 through aegean platform but the communication of data should be handled by application programmer.
@@ -899,7 +908,7 @@ Copying of strings through string.h is not available.
 %Listing~\ref{lst:hello_master} shows the code executed in the master core.
 %The code for the explicit copying the data to the SPM space, the sending of message,
 
-\subsection{Sending}
+\subsubsection{Sending}
 The sending of the message is done using function noc\_send():
 
 \begin{lstlisting}
@@ -947,7 +956,7 @@ The explicit copying of data to the SPM space and the sending of message appears
 in Listing~\ref{lst:hello_master}. Listing~\ref{lst:hello_master}
 shows the code executed in the master core.
 
-\subsection{Receiving}
+\subsubsection{Receiving}
 Currently, libnoc library does not support a receive message,
 therefore a receiver can know that the data has arrived through wait
 and polling of the specified address where the data are expected to arrive.
@@ -973,7 +982,7 @@ noc_send(rcv_id, spm_slave, spm_slave, 21);
 
 \end{lstlisting}
 
-\subsection{Printing}
+\subsubsection{Printing}
 To print a message, functions puts and printf can be used. Data can be print only
 by the master core and only if it is placed in the static memory of the core. Therefore,
 a data value that is placed in the SPM should be copied in static memory 
@@ -981,21 +990,23 @@ and then print through puts or printf. Listing~\ref{lst:hello_master}
 shows how to print a static string and a message received in SPM through NOC.
 
 
-\chapter{Pending Changes}
-
-This is a live and temporary section that lists pending changes of Argo.
-
-Currently we have following proposals for a change:
-
-\begin{itemize}
-\item DMA read
-\item Generate an interrupt when a complete DMA transfer has been received. 
-\end{itemize}
+%\chapter{Pending Changes}
+%\section{Pending Changes}
+%
+%This is a live and temporary section that lists pending changes of Argo.
+%
+%Currently we have following proposals for a change:
+%
+%\begin{itemize}
+%\item DMA read
+%\item Generate an interrupt when a complete DMA transfer has been received. 
+%\end{itemize}
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
-\chapter{Potential Extensions}
-\label{chap:ext}
-Ideas for extensions can be added in this chapter.
+%\chapter{Potential Extensions}
+%\section{Potential Extensions}
+%\label{chap:ext}
+%Ideas for extensions can be added in this chapter.
 
 
 
