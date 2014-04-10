@@ -11,7 +11,7 @@
 
 top:    add r15 = r0, 0x1000000;
     addi r16 = r0, 0;
-    addi r17 = r0, 2048;
+    add r17 = r0, 0x00040000;
     add r18 = r0, 0xF0000800;
     addi r19 = r0, 90;
     addi r22 = r0, 1;
@@ -29,7 +29,9 @@ ps1:  lwl r21 = [r18 + 0];
     swl [r18 + 1] = r19;
     
 writeloop:
+    swm [r15 + 0] = r0;
     swm [r15 + 0] = r16;
+    swm [r15 + 1] = r0;
     addi r16 = r16, 1;    # Increment counter
     addi r15 = r15, 4;    # Increment write address
     cmpneq p1 = r16, r17; # Have we done x writes yet?
@@ -40,7 +42,10 @@ writeloop:
 writeloop_end:  addi r16 = r0, 0; # Reset the counters...
     add r15 = r0, 0x1000000;
 
-readloop: lwm r20 = [r15 + 0];
+readloop:
+    lwm r1  = [r15 + 1];
+    lwm r20 = [r15 + 0];
+    lwm r1  = [r15 + 2];
     addi r0 = r0, 0;
     cmpneq p1 = r20, r16;
     (p1)   br fail;
