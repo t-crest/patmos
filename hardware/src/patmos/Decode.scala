@@ -440,11 +440,12 @@ class Decode() extends Module {
   // Update delay slot information
   when(io.ena) {
     val decDelaySlot = inDelaySlot - UInt(1)
-    inDelaySlot := Mux(io.decex.call || io.decex.ret || io.decex.brcf ||
-                       io.decex.xcall || io.decex.xret, UInt(3),
-                       Mux(io.decex.jmpOp.branch, UInt(2),
-                           Mux(io.decex.aluOp(0).isMul,
-                               Mux(inDelaySlot > UInt(1), decDelaySlot, UInt(1)),
-                               Mux(inDelaySlot != UInt(0), decDelaySlot, UInt(0)))))
+    inDelaySlot := Mux(io.flush, UInt(1),
+                       Mux(io.decex.call || io.decex.ret || io.decex.brcf ||
+                           io.decex.xcall || io.decex.xret, UInt(3),
+                           Mux(io.decex.jmpOp.branch, UInt(2),
+                               Mux(io.decex.aluOp(0).isMul,
+                                   Mux(inDelaySlot > UInt(1), decDelaySlot, UInt(1)),
+                                   Mux(inDelaySlot != UInt(0), decDelaySlot, UInt(0))))))
   }
 }
