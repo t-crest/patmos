@@ -201,49 +201,61 @@ by allocating resources such that it enforces a static time division multiplexin
 
 The static TDM schedule can be constructed to fit an application by allocating
 different amounts of bandwidth to different communication channels.
-The Poseidon scheduler \url{https://github.com/t-crest/poseidon.git} is part of
+The Poseidon scheduler available at \url{https://github.com/t-crest/poseidon.git} is part of
 the T-CREST tool chain and is used to generate static TDM schedules.
 
 The steps to build the Patmos tools on a Linux/Ubuntu
-system is presented in the Patmos Handbook.
+system are presented in the \href{http://patmos.compute.dtu.dk/patmos_handbook.pdf}{Patmos Handbook} 
+\cite{patmos-handbook}.
 In this report we assume that the reader is familiar with C and has skimmed
-through the \href{http://patmos.compute.dtu.dk/patmos_handbook.pdf}{Patmos handbook}.
-Another assumption is the the reader already has access to a hardware platform,
-either genereated by the reader or a pre-synthesized platform downloaded from the project webpage.
+through the \href{http://patmos.compute.dtu.dk/patmos_handbook.pdf}{Patmos Handbook}.
+%Another assumption is the the reader already has access to a hardware platform,
+%either genereated by the reader or a pre-synthesized platform downloaded from the project webpage.
 
-The Argo Programming Guide contains a description of the Argo architecture in Chapter~\ref{chap:arch}.
-Chapter~\ref{chap:poseidon} describes how to generate a static TDM schedule.
-Chapter~\ref{chap:mem} describes the address space and interface of Argo.
-Chapter~\ref{chap:apg} guides the reader on how to program an application that uses the NOC.
+The Argo Programming Guide contains a description of the Argo architecture in Section~\ref{sec:arch}.
+Section~\ref{sec:poseidon} describes how to generate a static TDM schedule.
+Section~\ref{sec:mem} describes the address space and interface of Argo.
+Section~\ref{sec:apg} guides the reader on how to program an application that uses the NOC.
 
 
 
 %\chapter{The Architecture of Argo}
 \section{The Architecture of Argo}
-\label{chap:arch}
+\label{sec:arch}
 
 The Argo NOC is made up of two different components,
 network interfaces (NI) and routers.
-The NI converts the transaction based communication from the processor to
-stream based communication towards other processors in the network.
-The router is routing the packets through the network according the the static TDM schedule.
-A diagram of the architecture of Argo is shown in Figure~\ref{fig:diag}
+The NI converts the transaction based communication from the processor core to
+stream based communication towards other processor cores in the network.
+The router is routing the stream of packets that are injected from the NIs
+through the network according to the static TDM schedule.
+The routers are connected in a 2D bi-torus structure.
+A diagram of the architecture of Argo is shown in Figure~\ref{fig:diag}(a).
 
 \begin{figure}
 \centering
-%\includegraphics[width=\textwidth]{}
+\includegraphics[scale=0.5]{fig/argo.pdf}
 \caption{The architecture of a single Argo tile.}
 \label{fig:diag}
 \end{figure}
 
+The communication that goes through the network is controlled by the TDM schedule.
+A direct memory access (DMA) that is placed in the NI, as seen in Figure~\ref{fig:diag}(b),
+is enforcing the TDM schedule.
 To enable full utilization of the static TDM schedule,
-Argo has a direct memory access (DMA) channel per communication channel.
-To send a message through the network a DMA needs to be setup.
+Argo has a DMA channel per communication channel. 
+The DMA is setup by the processor core to initiate a message send.
+DMAs are creating a direct
+channel from the local memory of the processor, i.e. the local scratchpad memory (SPM)
+to the network. Details of the architecture and implementation of the NI can be found in \cite{tdmna}.
+More details on the router design and the timing characteristics of the NOC can be found in
+\cite{noc-elasticity}.
+
 
 
 %\chapter{Static time division multiplexing scheduler}
-\section{Static time division multiplexing scheduler}
-\label{chap:poseidon}
+\section{Static Time Division Multiplexing Scheduler}
+\label{sec:poseidon}
 The TDM scheduler used to generate schedules for Argo is called Poseidon.
 The source of Poseidon is placed at \url{https://github.com/t-crest/poseidon.git}.
 The performance of Poseidon is desrcibed in \cite{tcrest:poseidon}.% Technical report on poseidon
@@ -273,17 +285,16 @@ if (bw != 1) { bw = 1;  }
 
 %\chapter{Memory address space and interface}
 \section{Memory address space and interface}
-\label{chap:mem}
+\label{sec:mem}
 
-The network interface (NI) of Argo has 2 OCP\cite{ocp:spec} interfaces. One is connected to SPM memory
-to access data and the other is connected to the processor core for configuration purposes.
+The network interface (NI) of Argo has 2 OCP \cite{ocp:spec} interfaces. One is connected to the SPM
+to access data, and the other is connected to the processor core for configuration purposes.
 
-The SPM, the DMA and the Slot Table of each processor lie in the local address space.
-They can be accessed by the processor through reads and writes 
-in the specified addresses that are mentioned below.
+The SPM, the DMA and the slot table of each processor are mapped in the local address space.
+They can be accessed by the processor through specific load and store instructions.
 
-The UART and LEDS also lie in the local address space and can be accessed only by the master core
-at the specified addresses.
+The UART and LEDS are also mapped in the local address space and can be accessed only by the master core
+at the specific addresses.
 
 \subsection{Local Address Space}
 
@@ -309,10 +320,10 @@ at the specified addresses.
 %system. The support of Windows is marginal, or basically not existent.
 In the following we present the build instructions on a Linux/Ubuntu system,
 for a 2x2 Aegean platform. The default hardware platform includes 4 Patmos processors 
-connected by Argo NOC and memory arbiter giving access to the shared memory.
+connected by the Argo NOC and memory arbiter giving access to the shared memory.
 
 
-\subsection{Patmos and compiler build instructions}
+\subsection{Patmos and Compiler Build Instructions}
 
 Information on how to build a Patmos processor and how to run the compiler and some application examples
 can be found in \cite{patmos-handbook}. 
@@ -752,17 +763,34 @@ therefore, the following descriptions assumes you have changed to:
 	t-crest/aegean
 \end{verbatim}
 
-In directory \code{aegean} run:
+The default platform is 4 Patmos cores connected by Argo NOC 
+and a memory arbiter connecting to main memory.
+The platform is generated by command:
 
 \begin{verbatim}
 make platform
+\end{verbatim}
+
+To synthesize the platform for the Altera DE2-115 FPGA board, along with the bootloader application run:
+
+\begin{verbatim}
 make synth
+\end{verbatim}
+
+The synthesized platform is configured on the FPGA with the command:
+
+\begin{verbatim}
 make config
 \end{verbatim}
 
-to generate, synthesize and configure the default platform with the bootloader application 
-on Altera DE2-115 FPGA board. The default platform is 4 cores of Patmos connected by Argo NOC 
-and a memory arbiter connecting to main memory.
+The default board is the Altera DE2-115 FPGA board. The target board can be changed by
+setting the \code{BOARD} variable in the above make commmands. The currently supported boards are:
+
+\begin{itemize}
+\item Altera DE2-70 (\code{altde2-70})
+\item Altera DE2-115 (\code{altde2-115})
+\item Altera/Farnell BeMicro (\code{bemicro})
+\end{itemize}
 
 
 \subsection{Applications}
@@ -839,12 +867,11 @@ make APP=<app_name> download
 
 %\chapter{Application Programming Guide}
 \section{Application Programming Guide}
-\label{chap:apg}
+\label{sec:apg}
 
 \subsection{Application Programming Interface}
-\label{sec:api}
 
-At the time of writing the only application programming interface is the libnoc library. A number of functions and variables are provided through libnoc library. libnoc has two kinds of functionality, the first is to initialize the network interface (NI) and the second is the setup DMA transfers for send messages to other processing cores. 
+Library libnoc is providing an application programming interface. A number of functions and variables are provided through libnoc library. libnoc offers two kinds of functionality, the first is to initialize the network interface (NI) and the second is the setup DMA transfers for sending messages to other processing cores. 
 
 The variables defined in libnoc:
 \begin{description}
@@ -865,9 +892,9 @@ The functions defined in libnoc:
 \item [noc\_send] Transfer data via the NoC. 
 \end{description}
 
-The defines in libnoc"
+The defines in libnoc:
 \begin{description}
-\item [NOC\_INIT] Define this before including noc.h to force the use of noc\_init as constructior. NOC\_INIT does not need to be defined if any functions from libnoc are used.
+\item [NOC\_INIT] Define this before including noc.h to force the use of noc\_init as constructor. NOC\_INIT does not need to be defined if any functions from libnoc are used.
 \item [NOC\_VALID\_BIT] The flag to mark a DMA entry as valid.
 \item [NOC\_DONE\_BIT] The flag to mark a DMA entry as done.
 \item [NOC\_DMA\_BASE] The base address for DMA entries.
@@ -876,23 +903,23 @@ The defines in libnoc"
 \item [NOC\_SPM\_BASE] The base address of the communication SPM.
 \end{description}
 
-\subsection{Hello World multicore}
+\subsection{Hello World Multicore}
 
-To demonstrate the use of Argo, a multi-core Hello World application \textit{hello\_sum.c} is placed in /patmos/c.
-The application is written in C and can be compiled and downloaded on the FPGA board where the bootloader is initiating the execution.
+To demonstrate the use of Argo, a multicore Hello World application \textit{hello\_sum.c} is placed in /patmos/c.
+The application is written in C and can be compiled and downloaded on the FPGA board.
 
 \subsubsection{Compile and Run}
-The application needs to be placed in /patmos/c and the compile and download of the application on the board is done with the following make commands:
+For any application to be compiled and run, it needs to be placed in /patmos/c. To compile and download \textit{hello\_sum} application on the board, the following make commands are used:
 
 \begin{verbatim}
 make APP=hello_sum comp
 make APP=hello_sum download
 \end{verbatim}
 
-\subsubsection{SPM access}
+\subsubsection{SPM Access}
 To develop an application that runs on T-CREST platform, memory access and 
-communication should be handled explicitely. Argo NOC is initialized automatically 
-through aegean platform but the communication of data should be handled by application programmer.
+communication should be handled explicitely by the programmer. Argo NOC is initialized automatically 
+through Aegean platform but the communication of data should be handled by the application programmer.
 Specifically, in \textit{hello\_sum} application, a round trip hello message is sent from the master
 passing through all the cores. Each core is adding its id to the sum of the id and 
 eventually the master will receive the sum of all core ids. To send data from one core to another 
@@ -909,13 +936,16 @@ Copying of strings through string.h is not available.
 %The code for the explicit copying the data to the SPM space, the sending of message,
 
 \subsubsection{Sending}
-The sending of the message is done using function noc\_send():
+A message is sent using function noc\_send():
 
 \begin{lstlisting}
 void noc_send (int rcv_id, volatile void _SPM *dst, volatile void _SPM *src, size_t size)
 \end{lstlisting}
 
-The function returns when the DMA transmitting the message is setup.
+The function returns when the DMA transmitting the message is setup. \code{rcv\_id}
+is the ID of the receiving core, \code{dst} the write address
+in the destination SPM, \code{src} the read address
+in the source SPM and \code{size} the size of the message to be transfered in bytes.
 
 \begin{lstlisting}[float,caption={A 2x2 Hello World application: Master.\label{lst:hello_master}}]
 volatile _SPM char *spm_base = (volatile _SPM char *) NOC_SPM_BASE;
@@ -957,21 +987,27 @@ in Listing~\ref{lst:hello_master}. Listing~\ref{lst:hello_master}
 shows the code executed in the master core.
 
 \subsubsection{Receiving}
-Currently, libnoc library does not support a receive message,
-therefore a receiver can know that the data has arrived through wait
-and polling of the specified address where the data are expected to arrive.
-Since data is transmitted in packets, to safely consider the reception completed
-the polling should be done on the last unit of data (char/ int/...) sent.
+Currently, libnoc library does not support a receive message function,
+therefore a receiver needs to wait and poll in order to know when the data has arrived.
+To do so, specified addresses where the data are expected to arrive are used by the
+application and the receiving application is polling this address to
+know if the data have arrived or not. 
+Since data is transmitted in packets, to safely consider the reception of the entire message
+completed, the polling should be done on the last unit of data (char/ int/...) of the message sent.
 Listing \ref{lst:hello_multi} shows the code executed in the slave cores.
 The code for the allocation of memory in the SPM, the polling and the sending of message 
-appears in Listing \ref{lst:hello_multi}.
+appears in Listing \ref{lst:hello_multi}. In the code, \begin{verbatim} spm_slave \end{verbatim}
+is the starting addres where the data is expected in the slave cores. 
+\begin{verbatim} spm_slave + 20 \end{verbatim} is the last char expected in the destination.
+Thus, when the last char arrives it is safe to assume that the entire message has arrived.
+
 
 \begin{lstlisting}[float,caption={A 2x2 Hello World application: Slave.\label{lst:hello_multi}}]
 volatile _SPM char *spm_base = (volatile _SPM char *) NOC_SPM_BASE;
-volatile _SPM char *spm_slave = spm_base+NOC_CORES*16;
+volatile _SPM char *spm_slave = spm_base + NOC_CORES*16;
 
 // wait and poll until message arrives
-while(*(spm_slave+20) == 0) {;}
+while(*(spm_slave + 20) == 0) {;}
 
 // PROCESS : add ID to sum_id
 *(spm_slave+20) = *(spm_slave+20) + CORE_ID;
@@ -983,10 +1019,10 @@ noc_send(rcv_id, spm_slave, spm_slave, 21);
 \end{lstlisting}
 
 \subsubsection{Printing}
-To print a message, functions puts and printf can be used. Data can be print only
-by the master core and only if it is placed in the static memory of the core. Therefore,
-a data value that is placed in the SPM should be copied in static memory 
-and then print through puts or printf. Listing~\ref{lst:hello_master}
+To print a message, functions \code{puts} and \code{printf} can be used. Data can be print only
+by the master core and only if it is placed in the static memory of the program. Therefore,
+a data value that is placed in the SPM should be copied in a static variable 
+and then print through \code{puts} or \code{printf}. Listing~\ref{lst:hello_master}
 shows how to print a static string and a message received in SPM through NOC.
 
 
