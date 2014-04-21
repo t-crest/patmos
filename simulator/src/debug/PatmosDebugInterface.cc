@@ -95,8 +95,8 @@ namespace patmos
     
     std::stringstream ss;
     ss << std::hex;
-    // big endian - start with the most significat byte
-    for (int i = width - 1; i >= 0; --i)
+
+    for (int i = 0; i < width; ++i)
     {
       ss << std::setw(2) << std::setfill('0') 
          << (0xff & static_cast<unsigned int>(buf[i]));
