@@ -17,7 +17,8 @@ use ieee.numeric_std.all;
 entity patmos_top is
 	port(
 		clk : in  std_logic;
-		oLedPins_led : out std_logic_vector(8 downto 0);
+		oLedsPins_led : out std_logic_vector(8 downto 0);
+		iKeysPins_key : in std_logic_vector(3 downto 0);
 		oUartPins_txd : out std_logic;
 		iUartPins_rxd : in  std_logic;
         oSRAM_A : out std_logic_vector(19 downto 0);
@@ -54,6 +55,7 @@ architecture rtl of patmos_top is
 
 			io_cpuInfoPins_id   : in  std_logic_vector(31 downto 0);
 			io_ledsPins_led : out std_logic_vector(8 downto 0);
+			io_keysPins_key : in  std_logic_vector(3 downto 0);
 			io_uartPins_tx  : out std_logic;
 			io_uartPins_rx  : in  std_logic;
 
@@ -134,7 +136,8 @@ begin
            open, open, open, open,
            (others => '0'), (others => '0'),
            X"00000000",
-           oLedPins_led,
+           oLedsPins_led,
+           iKeysPins_key,
            oUartPins_txd, iUartPins_rxd,
            oSRAM_A, sram_out_dout_ena, SRAM_DQ, sram_out_dout, oSRAM_CE_N, oSRAM_OE_N, oSRAM_WE_N, oSRAM_LB_N, oSRAM_UB_N);
 

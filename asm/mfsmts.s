@@ -2,7 +2,7 @@
 # Basic instructions test
 #
 
-	.word   44;
+	.word   56;
 	addi	r1 = r0, 255;  # first instruction not executed
 	addi	r1 = r0, 15; # r1 = 15
         mts     s6  = r1;
@@ -13,3 +13,6 @@
 	mts	s6 = r7;
 	mfs	r10 = s6;
 	halt; 
+	nop;
+	nop;
+	nop;

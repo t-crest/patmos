@@ -74,7 +74,7 @@ namespace patmos
     // check if the frame stack pointers are below the current pointers
     if (frame.caller_tos_shadowstack < sim.GPR.get(rsp).get()) {
 #ifdef DEBUG
-      std::cerr << "Wrong stadowstack: " 
+      std::cerr << "\nWrong stadowstack: " 
                 << frame.caller_tos_shadowstack << " < " 
                 << sim.GPR.get(rsp).get() << "\n";
 #endif
@@ -85,16 +85,20 @@ namespace patmos
     // *not* the TOS address.
     if (frame.caller_tos_stackcache > sim.Stack_cache.size()) {
 #ifdef DEBUG
-      std::cerr << "Wrong stackcache: " << frame.caller_tos_stackcache 
+      std::cerr << "\nWrong stackcache: " << frame.caller_tos_stackcache 
                 << " > " << sim.Stack_cache.size() << "\n";
 #endif
-      return false;
+      // At the moment we do not take a changed stack size as a hint for a
+      // change of the active frame, to support debugging of context switching
+      // interrupt handlers. This is more common than frame changes due to 
+      // longjmps.
+      //return false;
     }
 #if DEBUG
     if (!(frame.function == sim.BASE ||
               sim.Symbols.covers(frame.function, sim.BASE))) 
     {
-      std::cerr << "Wrong function base: " << frame.function 
+      std::cerr << "\nWrong function base: " << frame.function 
                 << ", base: " << sim.BASE << "\n";
     }
 #endif

@@ -1,5 +1,5 @@
 # This test case  tests the different instructions of the ALU
-	.word	116;
+	.word	128;
 	addi	r1 = r0, 10;
 	addi	r1 = r0, 10;
 	add 	r2 = r1, r0;
@@ -23,3 +23,6 @@
 	shadd	r8 = r1, 1; # r8 = 11
 	shadd2	r8 = r8, 1; # r8 = 23
 	halt;
+	nop;
+	nop;
+	nop;

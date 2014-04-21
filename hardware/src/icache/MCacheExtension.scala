@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
 
 /*
  Different Replacement Strategies for Method Cache as a possible extension instead of
- MCacheRepl class 
+ MCacheRepl class
  Author: Philipp Degasperi (philipp.degasperi@gmail.com)
  */
 
@@ -240,7 +240,7 @@ class MCacheReplLru() extends Module {
   val lruValid = Bool()
   val lruPos = Bits()
   val insertPos = Bits() //shift position
-  lruValid := Bool(false)  
+  lruValid := Bool(false)
   lruAddr := Bits(0)
   lruPos := Bits(0)
   insertPos := Bits(0)

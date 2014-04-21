@@ -64,12 +64,15 @@ class InOut() extends Module {
 
   val MAX_IO_DEVICES = 0x10
 
+  val validDeviceVec = Vec.fill(MAX_IO_DEVICES) { Bool() }
   val selDeviceVec = Vec.fill(MAX_IO_DEVICES) { Bool() }
   val deviceSVec = Vec.fill(MAX_IO_DEVICES) { OcpSlaveSignals.resetVal(DATA_WIDTH) }
-  for (i <- 0 to MAX_IO_DEVICES-1) {
+  for (i <- 0 until MAX_IO_DEVICES) {
+    validDeviceVec(i) := Bool(false)
     selDeviceVec(i) := selIO & io.memInOut.M.Addr(11, 8) === Bits(i)
     deviceSVec(i) := OcpSlaveSignals.resetVal(DATA_WIDTH)
   }
+  validDeviceVec(EXC_IO_OFFSET) := Bool(true)
 
   // Register selects
   val selSpmReg = Reg(init = Bool(false))
@@ -79,12 +82,25 @@ class InOut() extends Module {
   val selDeviceReg = Vec.fill(MAX_IO_DEVICES) { Reg(Bool()) }
 
   when(io.memInOut.M.Cmd != OcpCmd.IDLE) {
-	selSpmReg := selSpm
-	selComConfReg := selComConf
-	selComSpmReg := selComSpm
+    selSpmReg := selSpm
+    selComConfReg := selComConf
+    selComSpmReg := selComSpm
 
-	selDeviceReg := selDeviceVec
+    selDeviceReg := selDeviceVec
   }
+
+  // Default values for interrupt pins
+  for (i <- 0 until INTR_COUNT) {
+    io.intrs(i) := Bool(false)
+  }
+
+  // Register for error response
+  val errResp = Reg(init = OcpResp.NULL)
+  val validSelVec = selDeviceVec.zip(validDeviceVec).map{ case (x, y) => x && y }
+  val validSel = validSelVec.fold(Bool(false))(_|_)
+  errResp := Mux(io.memInOut.M.Cmd != OcpCmd.IDLE &&
+                 selIO && !validSel,
+                 OcpResp.ERR, OcpResp.NULL)
 
   // Dummy ISPM (create fake response)
   val ispmCmdReg = Reg(next = Mux(selISpm, io.memInOut.M.Cmd, OcpCmd.IDLE))
@@ -111,25 +127,35 @@ class InOut() extends Module {
   io.comSpm.M.Cmd := Mux(selComSpm, io.memInOut.M.Cmd, OcpCmd.IDLE)
   val comSpmS = io.comSpm.S
 
-  for (devConf <- Config.conf.Devs) {
+  // Creation of IO devices
+  for (devConf <- Config.getConfig.Devs) {
     val dev = Config.createDevice(devConf).asInstanceOf[CoreDevice]
+    validDeviceVec(devConf.offset) := Bool(true)
     // connect ports
     dev.io.ocp.M := io.memInOut.M
     dev.io.ocp.M.Cmd := Mux(selDeviceVec(devConf.offset), io.memInOut.M.Cmd, OcpCmd.IDLE)
     deviceSVec(devConf.offset) := dev.io.ocp.S
     Config.connectIOPins(devConf.name, io, dev.io)
+    Config.connectIntrPins(devConf, io, dev.io)
   }
+
+  // The exception unit is special and outside this unit
+  io.excInOut.M := io.memInOut.M
+  io.excInOut.M.Cmd := Mux(selDeviceVec(EXC_IO_OFFSET), io.memInOut.M.Cmd, OcpCmd.IDLE)
+  deviceSVec(EXC_IO_OFFSET) := io.excInOut.S
 
   // Return data to pipeline
   io.memInOut.S.Data := spmS.Data
+
   when(selComConfReg) { io.memInOut.S.Data := comConfS.Data }
   when(selComSpmReg)  { io.memInOut.S.Data := comSpmS.Data }
-  for (i <- 0 to MAX_IO_DEVICES-1) {
+  for (i <- 0 until MAX_IO_DEVICES) {
     when(selDeviceReg(i)) { io.memInOut.S.Data := deviceSVec(i).Data }
   }
 
   // Merge responses
-  io.memInOut.S.Resp := ispmResp | spmS.Resp |
+  io.memInOut.S.Resp := errResp |
+                        ispmResp | spmS.Resp |
                         comConfS.Resp | comSpmS.Resp |
                         deviceSVec.map(_.Resp).fold(OcpResp.NULL)(_|_)
 }

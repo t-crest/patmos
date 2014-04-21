@@ -54,7 +54,6 @@ set_global_assignment -name USE_CONFIGURATION_DEVICE ON
 set_global_assignment -name RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED"
 set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVCMOS"
 set_location_assignment PIN_AD15 -to clk
-set_location_assignment PIN_T29 -to out_rst
 set_location_assignment PIN_D21 -to rxd
 set_location_assignment PIN_E21 -to txd
 
@@ -67,6 +66,11 @@ set_location_assignment PIN_Y24 -to led[4]
 set_location_assignment PIN_Y23 -to led[5]
 set_location_assignment PIN_AA27 -to led[6]
 set_location_assignment PIN_AA24 -to led[7]
+
+set_location_assignment PIN_T29 -to key[0]
+set_location_assignment PIN_T28 -to key[1]
+set_location_assignment PIN_U30 -to key[2]
+set_location_assignment PIN_U29 -to key[3]
 
 set_location_assignment PIN_AG8 -to oSRAM_A[0]
 set_location_assignment PIN_AF8 -to oSRAM_A[1]

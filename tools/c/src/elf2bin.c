@@ -171,7 +171,7 @@ static void elf2bin_data(Elf *elf, int infd, int outfd, unsigned displace)
 }
 
 void usage(char *name) {
-  fprintf(stderr, "Usage: %s infile outfile1 outfile2 | %s -f infile outfile\n", name, name);
+  fprintf(stderr, "Usage: %s <infile> <outfile1> <outfile2> | %s -f <infile> <outfile>\n", name, name);
 }
 
 int main(int argc, char* argv[]) {

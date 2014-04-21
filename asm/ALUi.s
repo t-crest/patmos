@@ -2,7 +2,7 @@
 # Basic instructions test
 #
 
-	.word   44;
+	.word   56;
 	addi	r1 = r0, 255;  # first instruction not executed
 	addi	r1 = r0, 15; # r1 = 15
 	subi	r1 = r1, 5; # r1 = 10
@@ -13,3 +13,6 @@
 	andi	r1 = r1, 3; # r1 = 3
 	addi    r2 = r0, 24;# init r2
 	halt; 
+	nop;
+	nop;
+	nop;

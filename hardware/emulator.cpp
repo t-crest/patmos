@@ -3,14 +3,14 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <sys/poll.h>
 #include <gelf.h>
 #include <libelf.h>
 
 #include "Patmos.h"
 
-istream *in = &cin;
 ostream *out = &cout;
-ofstream cmiss;
 
 #define OCMEM_ADDR_BITS 16
 
@@ -94,7 +94,8 @@ static val_t readelf(istream &is, Patmos_t *c)
       // copy from the buffer into the on-chip memories
 	  for (size_t k = 0; k < phdr.p_memsz; k++) {
 
-		if (((phdr.p_paddr + k) >> OCMEM_ADDR_BITS) == 0x1 &&
+		if ((phdr.p_flags & PF_X) != 0 &&
+			((phdr.p_paddr + k) >> OCMEM_ADDR_BITS) == 0x1 &&
 			((phdr.p_paddr + k) & 0x3) == 0) {
 		  // Address maps to ISPM and is at a word boundary
 		  val_t word = k >= phdr.p_filesz ? 0 :
@@ -143,9 +144,42 @@ static void print_state(Patmos_t *c) {
 	sval_t pc = c->Patmos_core_memory__io_memwb_pc.to_ulong();
 	*out << (pc - 2) << " - ";
 
-	for (unsigned i = 0; i < 32; i++) {
-	  *out << c->Patmos_core_decode_rf__rf.get(i).to_ulong() << " ";
-	}
+	// for (unsigned i = 0; i < 32; i++) {
+	//   *out << c->Patmos_core_decode_rf__rf.get(i).to_ulong() << " ";
+	// }
+
+    *out << c->Patmos_core_decode_rf__rf_0.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_1.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_2.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_3.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_4.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_5.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_6.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_7.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_8.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_9.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_10.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_11.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_12.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_13.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_14.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_15.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_16.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_17.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_18.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_19.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_20.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_21.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_22.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_23.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_24.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_25.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_26.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_27.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_28.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_29.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_30.to_ulong() << " ";
+    *out << c->Patmos_core_decode_rf__rf_31.to_ulong() << " ";
 
 	*out << endl;
 }
@@ -216,7 +250,7 @@ static void mcacheStat(Patmos_t *c, bool halt) {
   //everytime a method is called from the cache, todo: find a better way to measure hits
   if (c->Patmos_core_fetch__io_memfe_doCallRet.to_bool() == true &&
       c->Patmos_core_mcache_mcacherepl__io_mcache_replctrl_hit.to_bool() == true &&
-     c->Patmos_core_mcache_mcachectrl__mcacheState.to_ulong() == 0 &&
+      c->Patmos_core_mcache_mcachectrl__mcacheState.to_ulong() == 0 &&
       c->Patmos_core_mcache__io_ena_in.to_bool() == true &&
       c->Patmos_core_mcache_mcachectrl__io_mcache_ctrlrepl_instrStall.to_bool() == false) {
     cache_hits++;
@@ -255,65 +289,64 @@ static void mcacheStat(Patmos_t *c, bool halt) {
 
 static void usage(ostream &out, const char *name) {
   out << "Usage: " << name
-      << " [-q|-r] [-u|-n] [-v] [-p] [-l cycles] [-I file] [-O file] [-h] [file]" << endl;
+      << " <options> [file]" << endl;
 }
 
 static void help(ostream &out) {
   out << endl << "Options:" << endl
-      << "  -q            Do not print register values in each cycles" << endl
-      << "  -r            Print register values in each cycles" << endl
-      << "  -u            Print UART output" << endl
-      << "  -n            Do not print UART output" << endl
-      << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
-      << "  -p            Print method cache statistics" << endl
+      << "  -h            Print this help" << endl
+      << "  -i            Initialize memory with random values" << endl
+      << "  -k            Simulate random input from keys" << endl
       << "  -l <N>        Stop after <N> cycles" << endl
-      << "  -I <file>     Read input from file <file> [unused]" << endl
-      << "  -O <file>     Write output from file <file>" << endl
-      << "  -h            Print this help" << endl;
+      << "  -p            Print method cache statistics" << endl
+      << "  -r            Print register values in each cycle" << endl
+      << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
+      << "  -I <file>     Read input for UART from file <file>" << endl
+      << "  -O <file>     Write output from UART to file <file>" << endl;
 }
 
 int main (int argc, char* argv[]) {
   Patmos_t* c = new Patmos_t();
 
   int opt;
-  int lim = -1;
-  bool vcd = false;
-  // MS: what it the usage of disabling the UART?
-  // WP: output from the UART can mess up trace and cause discrepancies with simulator
-  bool uart = true;
-  bool quiet = true;
-  bool print_stat = false;
 
-  while ((opt = getopt(argc, argv, "qurnvpl:I:O:h")) != -1) {
+  bool random = false;
+  bool keys = false;
+  int  lim = -1;
+  bool print_stat = false;
+  bool quiet = true;
+  bool vcd = false;
+
+  int uart_in = STDIN_FILENO;
+  int uart_out = STDOUT_FILENO;
+  unsigned baud_counter = 0;
+
+  while ((opt = getopt(argc, argv, "hikl:nprvI:O:")) != -1) {
 	switch (opt) {
-	// MS: q and u should go away, but tests in bench need updates first
-	case 'q':
-	  quiet = true;
+	case 'i':
+	  random = true;
 	  break;
-	case 'r':
-	  quiet = false;
-	  break;
-	case 'u':
-	  uart = true;
-	  break;
-	case 'n':
-	  uart = false;
-	  break;
-	case 'v':
-	  vcd = true;
-	  break;
-	case 'p':
-	  print_stat = true;
+	case 'k':
+	  keys = true;
 	  break;
 	case 'l':
 	  lim = atoi(optarg);
 	  break;
+	case 'p':
+	  print_stat = true;
+	  break;
+	case 'r':
+	  quiet = false;
+	  break;
+	case 'v':
+	  vcd = true;
+	  break;
 	case 'I':
 	  if (strcmp(optarg, "-") == 0) {
-		in = &cin;
+		uart_in = STDIN_FILENO;
 	  } else {
-		in = new ifstream(optarg);
-		if (!in->good()) {
+		uart_in = open(optarg, O_RDONLY);
+		if (uart_in < 0) {
 		  cerr << argv[0] << "error: Cannot open input file " << optarg << endl;
 		  exit(EXIT_FAILURE);
 		}
@@ -321,10 +354,10 @@ int main (int argc, char* argv[]) {
 	  break;
 	case 'O':
 	  if (strcmp(optarg, "-") == 0) {
-		out = &cout;
+		uart_out = STDOUT_FILENO;
 	  } else {
-		out = new ofstream(optarg);
-		if (!out->good()) {
+		uart_out = open(optarg, O_WRONLY|O_CREAT|O_TRUNC, 0644);
+		if (uart_out < 0) {
 		  cerr << argv[0] << ": error: Cannot open output file " << optarg << endl;
 		  exit(EXIT_FAILURE);
 		}
@@ -336,11 +369,21 @@ int main (int argc, char* argv[]) {
 	  exit(EXIT_SUCCESS);
 	default: /* '?' */
 	  usage(cerr, argv[0]);
+	  cerr << "Try '" << argv[0] << " -h' for more information" << endl;
 	  exit(EXIT_FAILURE);
 	}
   }
 
+  // TODO: Randomizing internal state seems to be broken
+  // c->init(random);
   c->init();
+
+  srand(0);
+  if (random) {
+    for (int i = 0; i < 1 << SRAM_ADDR_BITS; i++) {
+      ssram_buf[i] = rand();
+    }
+  }
 
   val_t entry = 0;
   if (optind < argc) {
@@ -374,21 +417,24 @@ int main (int argc, char* argv[]) {
       c->Patmos_core_mcache_mcacherepl__selMCacheReg = 1;
       #else
       //init for icache
-      c->Patmos_core_mcache_mcacherepl__selICacheReg = 1;
       c->Patmos_core_fetch__pcReg = (entry >> 2);
+      c->Patmos_core_mcache_mcacherepl__selICacheReg = 1;
       #endif
       c->Patmos_core_fetch__relBaseReg = 0;
       c->Patmos_core_fetch__relocReg = (entry >> 2) - 1;
+      c->Patmos_core_fetch__selMCache = 1;
     }
     else {
       // pcReg for ispm starts at entry point - ispm base
       c->Patmos_core_fetch__pcReg = ((entry - 0x10000) >> 2) - 1;
-      c->Patmos_core_mcache_mcacherepl__selIspmReg = 1;
       c->Patmos_core_fetch__relBaseReg = (entry - 0x10000) >> 2;
       c->Patmos_core_fetch__relocReg = 0x10000 >> 2;
+      c->Patmos_core_fetch__selIspm = 1;
+      c->Patmos_core_mcache_mcacherepl__selIspmReg = 1;
       //init for icache
       // c->Patmos_core_mcache_icacherepl__selIspmReg = 1;
     }
+    c->Patmos_core_execute__baseReg = entry;
     c->Patmos_core_mcache_mcacherepl__callRetBaseReg = (entry >> 2);
     #ifdef MCACHE
     c->Patmos_core_mcache_mcachectrl__callRetBaseReg = (entry >> 2);
@@ -412,11 +458,42 @@ int main (int argc, char* argv[]) {
 	  c->dump(f, t);
 	}
 
-	if (uart) {
-	  // Pass on data from UART
-	  if (c->Patmos_core_iocomp_Uart__io_ocp_M_Cmd.to_ulong() == 0x1
-	  	  && (c->Patmos_core_iocomp_Uart__io_ocp_M_Addr.to_ulong() & 0xff) == 0x04) {
-	  	*out << (char)c->Patmos_core_iocomp_Uart__io_ocp_M_Data.to_ulong();
+	if (keys) {
+	  if ((rand() % 0x10000) == 0) {
+		c->Patmos__io_keysPins_key = rand();
+	  }
+	}
+
+	// Pass on data from UART
+	if (c->Patmos_core_iocomp_Uart__io_ocp_M_Cmd.to_ulong() == 0x1
+		&& (c->Patmos_core_iocomp_Uart__io_ocp_M_Addr.to_ulong() & 0xff) == 0x04) {
+	  unsigned char d = c->Patmos_core_iocomp_Uart__io_ocp_M_Data.to_ulong();
+	  int w = write(uart_out, &d, 1);
+	  if (w != 1) {
+		cerr << argv[0] << ": error: Cannot write UART output" << endl;
+	  }
+	}
+
+	// Pass on data to UART
+	bool baud_tick = c->Patmos_core_iocomp_Uart__tx_baud_tick.to_bool();
+	if (baud_tick) {
+	  baud_counter = (baud_counter + 1) % 20; // slower than necessary, for slow apps
+	}
+	if (baud_tick && baud_counter == 0) {
+	  struct pollfd pfd;
+	  pfd.fd = uart_in;
+	  pfd.events = POLLIN;
+	  if (poll(&pfd, 1, 0) > 0) {
+		unsigned char d;
+		int r = read(uart_in, &d, 1);
+		if (r != 0) {
+		  if (r != 1) {
+			cerr << argv[0] << ": error: Cannot read UART input" << endl;
+		  } else {
+			c->Patmos_core_iocomp_Uart__rx_data = d;
+			c->Patmos_core_iocomp_Uart__rx_full = true;
+		  }
+		}
 	  }
 	}
 
@@ -428,7 +505,8 @@ int main (int argc, char* argv[]) {
 	if (halt) {
 	  break;
 	}
-	if (c->Patmos_core_memory__memReg_mem_ret.to_bool()
+	if ((c->Patmos_core_memory__memReg_mem_brcf.to_bool()
+		 || c->Patmos_core_memory__memReg_mem_ret.to_bool())
 		&& c->Patmos_core_mcache_mcacherepl__callRetBaseReg.to_ulong() == 0) {
 	  halt = true;
 	}
@@ -445,5 +523,6 @@ int main (int argc, char* argv[]) {
   }
 
   // Pass on return value from processor
-  return c->Patmos_core_decode_rf__rf.get(1).to_ulong();
+  // return c->Patmos_core_decode_rf__rf.get(1).to_ulong();
+  return c->Patmos_core_decode_rf__rf_1.to_ulong();
 }

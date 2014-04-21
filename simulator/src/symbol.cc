@@ -29,6 +29,42 @@
 
 namespace patmos
 {
+  bool reloc_info_t::get_value(symbol_map_t &symbols, word_t &value, 
+                               word_t PC) const 
+  {
+    word_t result = symbols.find(SymA);
+    
+    if (result == -1) {
+      return false;
+    }
+    
+    if (!SymB.empty()) {
+      word_t valueB = symbols.find(SymB);
+      if (valueB == -1) {
+        return false;
+      }
+      result -= valueB;
+    }
+
+    if (Relative) {
+      // PC is always in bytes!
+      result -= PC;
+    }
+    
+    // Shift to correct units of immediate
+    result = (result >> Shift);
+    
+    // Should we apply the shift to the addend as well?? For pure constants, we 
+    // do *not* shift. For expressions like 'x - 4' it may make sense to have
+    // them in bytes.. Now we have the addend in the unit of pure constants.
+    result += Addend;
+
+    value = Size < 32 ? (result & ((1 << Size)-1)) : result;
+    value <<= Offset;
+    
+    return true;
+  }
+  
   static bool operator <(const symbol_info_t &a, const symbol_info_t &b)
   {
     if (a.Address == b.Address)
@@ -56,6 +92,12 @@ namespace patmos
     return std::binary_search(Symbols.begin(), Symbols.end(), val);
   }
   
+  bool symbol_map_t::contains(std::string symbol) const 
+  {
+    return find(symbol) != -1;
+  }
+  
+
   bool symbol_map_t::covers(word_t symbol, word_t address) const 
   {
     if (address < symbol) return false;
@@ -117,6 +159,9 @@ namespace patmos
       {
         // Found a BB symbol inside a function
         if (!func_only) {
+          if (bb && bb->Address == address) {
+            os << ":" << bb->Name;
+          }
           bb = &*i;
         }
       }

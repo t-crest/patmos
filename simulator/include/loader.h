@@ -33,6 +33,8 @@
 
 namespace patmos
 {
+  class simulator_t;
+  
   struct section_info_t 
   {
     /// Offset in the binary of the section
@@ -78,7 +80,7 @@ namespace patmos
     virtual void load_symbols(symbol_map_t &sym, section_list_t &text) = 0;
     
     /// @param m The main memory to load to.
-    virtual void load_to_memory(memory_t &m) = 0;
+    virtual void load_to_memory(simulator_t &s, memory_t &m) = 0;
     
     /// Read a word from the binary and convert it to big-endian.
     /// @param offset the offset in the binary file to read from.
@@ -100,7 +102,7 @@ namespace patmos
     
     virtual void load_symbols(symbol_map_t &sym, section_list_t &text);
     
-    virtual void load_to_memory(memory_t &m);    
+    virtual void load_to_memory(simulator_t &s, memory_t &m);    
   };
   
   class bin_loader_t : public loader_t
@@ -112,7 +114,7 @@ namespace patmos
     
     virtual void load_symbols(symbol_map_t &sym, section_list_t &text);
     
-    virtual void load_to_memory(memory_t &m);
+    virtual void load_to_memory(simulator_t &s, memory_t &m);
   };
   
   bool is_elf(std::istream &is);

@@ -53,9 +53,9 @@ namespace patmos
     /// the memory.
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
-    virtual bool read(uword_t address, byte_t *value, uword_t size)
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
     {
-      Memory.read_peek(address, value, size);
+      Memory.read_peek(s, address, value, size);
       return true;
     }
 
@@ -65,9 +65,9 @@ namespace patmos
     /// @param size The number of bytes to write.
     /// @return True when the data is written finally to the memory, false
     /// otherwise.
-    virtual bool write(uword_t address, byte_t *value, uword_t size)
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size)
     {
-      Memory.write_peek(address, value, size);
+      Memory.write_peek(s, address, value, size);
       return true;
     }
 
@@ -76,18 +76,18 @@ namespace patmos
     /// @param value A pointer to a destination to store the value read from
     /// the memory.
     /// @param size The number of bytes to read.
-    virtual void read_peek(uword_t address, byte_t *value, uword_t size)
+    virtual void read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size)
     {
-      Memory.read_peek(address, value, size);
+      Memory.read_peek(s, address, value, size);
     }
 
     /// Write some values into the memory -- DO NOT SIMULATE TIMING, just write.
     /// @param address The memory address to write to.
     /// @param value The value to be written to the memory.
     /// @param size The number of bytes to write.
-    virtual void write_peek(uword_t address, byte_t *value, uword_t size)
+    virtual void write_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size)
     {
-      Memory.write_peek(address, value, size);
+      Memory.write_peek(s, address, value, size);
     }
 
     /// Check if the memory is busy handling some request.
@@ -141,9 +141,9 @@ namespace patmos
     /// the memory.
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
-    virtual bool read(uword_t address, byte_t *value, uword_t size)
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
     {
-      return Memory.read(address, value, size);
+      return Memory.read(s, address, value, size);
     }
 
     /// A simulated access to a write port.
@@ -152,9 +152,9 @@ namespace patmos
     /// @param size The number of bytes to write.
     /// @return True when the data is written finally to the memory, false
     /// otherwise.
-    virtual bool write(uword_t address, byte_t *value, uword_t size)
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size)
     {
-      return Memory.write(address, value, size);
+      return Memory.write(s, address, value, size);
     }
 
     /// Check if the memory is busy handling some request.
@@ -253,7 +253,7 @@ namespace patmos
     /// the memory.
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
-    virtual bool read(uword_t address, byte_t *value, uword_t size);
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
     /// A simulated access to a write port.
     /// @param address The memory address to write to.
@@ -261,7 +261,7 @@ namespace patmos
     /// @param size The number of bytes to write.
     /// @return True when the data is written finally to the memory, false
     /// otherwise.
-    virtual bool write(uword_t address, byte_t *value, uword_t size);
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
     /// Check if the memory is busy handling some request.
     /// @return False in case the memory is currently handling some request,

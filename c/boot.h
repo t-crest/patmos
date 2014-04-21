@@ -43,23 +43,6 @@
 #include <machine/patmos.h>
 #include <machine/spm.h>
 
-#define UART_STATUS *((volatile _IODEV int *) 0xF0000800)
-#define UART_DATA   *((volatile _IODEV int *) 0xF0000804)
-#define LEDS        *((volatile _IODEV int *) 0xF0000900)
-
-#define MEM         ((volatile _UNCACHED int *) 0x0)
-#define SPM         ((volatile _SPM int *) 0x0)
-
-#define XDIGIT(c) ((c) <= 9 ? '0' + (c) : 'a' + (c) - 10)
-
-#define WRITE(data,len) do { \
-  unsigned i; \
-  for (i = 0; i < (len); i++) {		   \
-    while ((UART_STATUS & 0x01) == 0); \
-    UART_DATA = (data)[i];			   \
-  } \
-} while(0)
-
 int main(void) __attribute__((naked,used));
 extern int _stack_cache_base, _shadow_stack_base;
 

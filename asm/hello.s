@@ -5,7 +5,6 @@
 #
 
 	.word   56;
-	addi	r0 = r0, 0;  # first instruction maybe not executed
 
         add     r7  = r0, 0xF0000900;
 	addi	r8 = r0, 1;

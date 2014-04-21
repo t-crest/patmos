@@ -44,7 +44,7 @@
 # Function calls
 # 
 
-		.word   120;
+		.word   132;
 		addi	r0 = r0, 0;
 
 add:	addi	r1 = r0, 5; 
@@ -402,3 +402,6 @@ cmpneq: cmpneq	p2 = r1, r3;
 # br exit; # Should jump to correct exit label, using halt or loop
 
 exit: 	halt;
+		nop;
+		nop;
+		nop;

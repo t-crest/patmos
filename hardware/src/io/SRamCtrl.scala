@@ -64,7 +64,7 @@ object SRamCtrl extends DeviceObject {
   }
 
   def create(params: Map[String, String]) : SRamCtrl = {
-    Module(new SRamCtrl(ocpAddrWidth,sramAddrWidth=sramAddrWidth,sramDataWidth=sramDataWidth))
+    Module(new SRamCtrl(ocpAddrWidth,ocpBurstLen=BURST_LENGTH,sramAddrWidth=sramAddrWidth,sramDataWidth=sramDataWidth))
   }
 
   trait Pins {

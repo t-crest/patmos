@@ -42,8 +42,8 @@
 #include <machine/patmos.h>
 #include <machine/spm.h>
 
-#include "boot.h"
 #include "cmpboot.h"
+#include "patio.h"
 #include "noc.h"
 
 // Structure to model the network interface
@@ -59,7 +59,7 @@ static struct network_interface
 // Configure network interface according to initialization information
 void noc_configure(void) {
   int row_size = NOC_TIMESLOTS > NOC_DMAS ? NOC_TIMESLOTS : NOC_DMAS;
-  int core_idx = core_id * NOC_TABLES * row_size;
+  int core_idx = CORE_ID * NOC_TABLES * row_size;
   for (unsigned i = 0; i < NOC_TIMESLOTS; ++i) {
     *(noc_interface.st+i) = noc_init_array[core_idx + i];
   }
@@ -71,7 +71,7 @@ void noc_configure(void) {
 // Synchronize start-up
 static void noc_sync(void) {
 
-  if (core_id == NOC_MASTER) {
+  if (CORE_ID == NOC_MASTER) {
     // Wait until all slaves have configured their network interface
     int done = 0;
     do {
@@ -91,7 +91,7 @@ static void noc_sync(void) {
 
   } else {
     // Notify master that network interface is configured
-    boot_info->slave[core_id].status = STATUS_INITDONE;
+    boot_info->slave[CORE_ID].status = STATUS_INITDONE;
     // Wait until master has started the network
     while (boot_info->master.status != STATUS_INITDONE) {
       /* spin */
@@ -101,17 +101,17 @@ static void noc_sync(void) {
 
 // Initialize the NoC
 void noc_init(void) {
-  /* if (core_id == NOC_MASTER) puts("noc_configure"); */
+  /* if (CORE_ID == NOC_MASTER) puts("noc_configure"); */
   noc_configure();
-  /* if (core_id == NOC_MASTER) puts("noc_sync"); */
+  /* if (CORE_ID == NOC_MASTER) puts("noc_sync"); */
   noc_sync();
-  /* if (core_id == NOC_MASTER) puts("noc_done"); */
+  /* if (CORE_ID == NOC_MASTER) puts("noc_done"); */
 }
 
 // Start a NoC transfer
 // The addresses and the size are in double-words and relative to the
 // communication SPM
-int noc_send(unsigned rcv_id,
+int noc_dma(unsigned rcv_id,
              unsigned short write_ptr,
              unsigned short read_ptr,
              unsigned short size) {
@@ -135,10 +135,10 @@ int noc_send(unsigned rcv_id,
 
 // Transfer data via the NoC
 // The addresses and the size are in bytes
-void noc_dma(int dst_id, volatile void _SPM *dst,
+void noc_send(int dst_id, volatile void _SPM *dst,
              volatile void _SPM *src, size_t len) {
 
   unsigned wp = (char *)dst - (char *)NOC_SPM_BASE;
   unsigned rp = (char *)src - (char *)NOC_SPM_BASE;
-  while(!noc_send(dst_id, DW(wp), DW(rp), DW(len)));
+  while(!noc_dma(dst_id, DW(wp), DW(rp), DW(len)));
 }

@@ -26,13 +26,16 @@
 
 #include <boost/limits.hpp>
 
+#include <string>
 #include <cassert>
 
 namespace patmos
 {
   // forward declarations
+  class reloc_info_t;
   class instruction_t;
   class instruction_data_t;
+  class line_parser_t;
 
   /// Interface to decode the binary representation of instructions.
   /// The format matches a representation when the instruction word matches
@@ -48,7 +51,7 @@ namespace patmos
     const word_t Bit_mask;
 
     /// A bit pattern that has to match in order for the format to match.
-    const word_t Bit_pattern;
+    const word_t Opcode;
 
     /// A bit mask indicating the valid slots, within a bundle, for the
     /// instruction.
@@ -66,11 +69,11 @@ namespace patmos
     /// @param is_long A flag indicating whether the format represents an ALUl
     /// instruction.
     binary_format_t(const instruction_t &instruction, word_t mask,
-                    word_t pattern, unsigned int slots, bool is_long = false) :
-        Instruction(instruction), Bit_mask(mask), Bit_pattern(pattern),
+                    word_t opcode, unsigned int slots, bool is_long = false) :
+        Instruction(instruction), Bit_mask(mask), Opcode(opcode),
         Slots(slots), Is_long(is_long)
     {
-      assert((pattern & mask) == pattern);
+      assert((opcode & mask) == opcode);
 
       assert(slots != 0 && slots <= 3);
       assert(!is_long || slots == 1);
@@ -85,6 +88,21 @@ namespace patmos
     virtual instruction_data_t decode_operands(word_t iw,
                                                word_t longimm) const = 0;
 
+    /// Parse the operands of an instruction.
+    /// @param opcode the parsed mnemonic of this instruction.
+    /// @param instr the instruction data to fill.
+    /// @param reloc relocation info for this instruction.
+    /// @return true if the instruction requires reolcation.                                              
+    virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
+                                instruction_data_t &instr,
+                                reloc_info_t &reloc) const = 0;
+                                               
+    /// Encode an instruction to its binary representation.
+    /// @param opcode the parsed mnemonic of this instruction.
+    /// @param instr the instruction data to encode.
+    virtual udword_t encode(std::string mnemonic, 
+                            const instruction_data_t &instr) const = 0;
+                                               
     /// Check whether the instruction word matches the instruction format, i.e.,
     /// check whether the format's bit pattern matches its bit mask.
     /// Furthermore, verify that the instruction appears on a legal position
@@ -99,7 +117,7 @@ namespace patmos
       assert(slot <= 2);
 
       // check the bit pattern against the mask and verify the slot position
-      return ((iw & Bit_mask) == Bit_pattern) &&
+      return ((iw & Bit_mask) == Opcode) &&
              (Slots & (1 << (slot & 1))) != 0;
     }
 

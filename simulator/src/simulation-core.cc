@@ -24,7 +24,7 @@
 #include "method-cache.h"
 #include "stack-cache.h"
 #include "symbol.h"
-#include "interrupts.h"
+#include "excunit.h"
 #include "instructions.h"
 #include "rtc.h"
 
@@ -40,26 +40,19 @@ namespace patmos
                            data_cache_t &data_cache,
                            instr_cache_t &instr_cache,
                            stack_cache_t &stack_cache, symbol_map_t &symbols,
-                           interrupt_handler_t &interrupt_handler)
+                           excunit_t &excunit)
     : Dbg_cnt_delay(0), 
       Cycle(0), Memory(memory), Local_memory(local_memory),
       Data_cache(data_cache), Instr_cache(instr_cache),
       Stack_cache(stack_cache), Symbols(symbols), Dbg_stack(*this),
-      Interrupt_handler(interrupt_handler),
+      Exception_handler(excunit),
       BASE(0), PC(0), nPC(0), Debug_last_PC(0),
       Stall(SXX), Disable_IF(false), Is_decoupled_load_active(false), 
-      Branch_counter(0), Halt(false), Interrupt_handling_counter(0),
+      Delay_counter(0), Halt(false), 
+      Exception_handling_counter(0),
       Flush_Cache_PC(std::numeric_limits<unsigned int>::max()), Num_NOPs(0),
       debug_interface(*this)
   {
-    // initialize one predicate register to be true, otherwise no instruction
-    // will ever execute
-    PRR.set(p0, true);
-    // initialize negated predicates
-    for (unsigned int p = pn1; p < NUM_PRRn; p++) {
-	PRR.set((PRR_e)p, true);
-    }
-
     // initialize the pipeline
     for(unsigned int i = 0; i < NUM_STAGES; i++)
     {
@@ -88,14 +81,11 @@ namespace patmos
     Instr_HALT->Name = "halt";
   }
 
-
-
   simulator_t::~simulator_t()
   {
     delete Instr_INTR;
     delete Instr_HALT;
   }
-
 
   void simulator_t::pipeline_invoke(Pipeline_t pst,
                                    void (instruction_data_t::*f)(simulator_t &),
@@ -130,6 +120,17 @@ namespace patmos
     {
       if (Stall == pst) debug_out << "            (stalling)";
       debug_out << "\n";
+    }
+  }
+
+  void simulator_t::pipeline_flush(Pipeline_t pst)
+  {
+    for (unsigned int i = 0; i < pst; i++)
+    {
+      for(unsigned int j = 0; j < NUM_SLOTS; j++)
+      {
+        Pipeline[i][j] = instruction_data_t();
+      }
     }
   }
 
@@ -189,7 +190,7 @@ namespace patmos
     if (Halt) {
       // When we are halting, just fill the pipeline with halt instructions
       // halt when we flushed the whole pipeline. 
-      instr_SIF[0] = instruction_data_t::mk_CFLb(*Instr_HALT, p0, 0, 0);
+      instr_SIF[0] = instruction_data_t::mk_CFLrt(*Instr_HALT, p0, 1, r0, r0);
 
       for(unsigned int i = 1; i < NUM_SLOTS; i++)
       {
@@ -203,7 +204,7 @@ namespace patmos
     // NB: We fetch in each cycle, as preparation for supporting a standard
     //     I-Cache in addition.
     word_t iw[NUM_SLOTS];
-    if (!Instr_cache.fetch(BASE, PC, iw))
+    if (!Instr_cache.fetch(*this, BASE, PC, iw))
     {
       // Stall the whole pipeline
       pipeline_stall(SMW);
@@ -219,14 +220,15 @@ namespace patmos
     if (Stall == SXX)
     {
 
-      if (Interrupt_handler.interrupt_pending() &&
-          Branch_counter == 0 &&
-          Interrupt_handling_counter == 0)
+      if (Exception_handler.pending() &&
+          Delay_counter == 0 &&
+          Exception_handling_counter == 0)
       {
-        interrupt_t &interrupt = Interrupt_handler.get_interrupt();
+        exception_t exception = Exception_handler.next();
 
-        instr_SIF[0] = instruction_data_t::mk_CFLb(*Instr_INTR, p0,
-                                        interrupt.Address, interrupt.Address);
+        instr_SIF[0] = instruction_data_t::mk_CFLi(*Instr_INTR, p0, 0,
+                                                   exception.Address, exception.Address);
+        instr_SIF[0].Address = PC;
 
         for(unsigned int i = 1; i < NUM_SLOTS; i++)
         {
@@ -234,17 +236,17 @@ namespace patmos
         }
 
         // Handling interrupt, next CPU cycle no new instructions have to be decoded
-        Interrupt_handling_counter = 3;
+        Exception_handling_counter = 3;
 
       }
-      else if (Interrupt_handling_counter > 0)
+      else if (Exception_handling_counter > 0)
       {
         // Putting more empty instrutions after an interrupt
         for(unsigned int i = 0; i < NUM_SLOTS; i++)
         {
           instr_SIF[i] = instruction_data_t();
         }
-        Interrupt_handling_counter--;
+        Exception_handling_counter--;
 
       }
       else
@@ -258,11 +260,15 @@ namespace patmos
           simulation_exception_t::illegal(from_big_endian<big_word_t>(iw[0]));
         }
 
-        if(instr_SIF[0].I->is_flow_control())
-          Branch_counter = instr_SIF[0].I->get_delay_slots();
-        else if (Branch_counter)
-          Branch_counter--;
-
+        // First pipeline is special.. handle branches and loads.
+        const instruction_t *i0 = instr_SIF[0].I;
+        
+        // Track branch delay slots
+        unsigned intr_delay = i0->get_intr_delay_slots(instr_SIF[0]);
+        if(intr_delay >= Delay_counter)
+          Delay_counter = intr_delay;
+        else if (Delay_counter)
+          Delay_counter--;
 
         for(unsigned int j = 0; j < NUM_SLOTS; j++)
         {
@@ -283,7 +289,6 @@ namespace patmos
         // provide next program counter value (as incremented PC)
         nPC = PC + iw_size*4;
       }
-
     }
   }
 
@@ -312,7 +317,7 @@ namespace patmos
     if (Cycle == 0)
     {
       BASE = PC = nPC = entry;
-      Instr_cache.initialize(entry);
+      Instr_cache.initialize(*this, entry);
       Profiling.initialize(entry);
       Dbg_stack.initialize(entry);
       if (debug_gdb && debug_client)
@@ -368,6 +373,27 @@ namespace patmos
 
         track_retiring_instructions();
 
+        // Check for load hazards ..
+        if (!is_stalling(SMW)) {
+          const instruction_t *mem_instr = Pipeline[SMW][0].I;
+          
+          if (mem_instr && mem_instr->is_load()) {  
+            GPR_e dst = mem_instr->get_dst_reg(Pipeline[SMW][0]);
+            
+            if (dst != r0) {
+              for (unsigned int j = 0; j < NUM_SLOTS; j++) {
+                const instruction_t *ex_instr = Pipeline[SEX][j].I;
+                
+                if (ex_instr && (ex_instr->get_src1_reg(Pipeline[SEX][j]) == dst || 
+                                ex_instr->get_src2_reg(Pipeline[SEX][j]) == dst)) 
+                {
+                  simulation_exception_t::illegal("Use of load result without delay slot!");
+                }
+              }
+            }
+          }
+        }
+        
         // Move pipeline stages and insert bubbles after stalling stage.
         // If Stall == SXX, we do not stall, but a bubble is inserted in SIF,
         // which is later replaced by the fetched instruction.
@@ -579,8 +605,11 @@ namespace patmos
         //  => no debugging output:  1.6s
         //  => os with custom formatting: 2.4s
         //  => boost::format: 10.6s !!
-        os << std::hex << std::setw(8) << std::setfill('0') << PC << ' '
-           << std::dec << Cycle << '\n' << std::setfill(' ');
+        uword_t addr = Pipeline[SMW][0].Address;
+        if (addr) {
+          os << std::hex << std::setw(8) << std::setfill('0') << addr << ' '
+             << std::dec << Cycle << '\n' << std::setfill(' ');
+        }
         // os << boost::format("%1$08x %2%\n") % PC % Cycle;
       }
       return;
@@ -608,11 +637,13 @@ namespace patmos
       }
       return;
     }
-    else if (debug_fmt == DF_CALLS) {
+    else if (debug_fmt == DF_CALLS || debug_fmt == DF_CALLS_INDENT) {
       if (Dbg_cnt_delay == 1) {
         if (is_stalling(SMW)) return;
         
-        if (Dbg_is_call) {
+        if (Dbg_is_intr) {
+          // Anything operands we can print for an interrupt call?
+        } else if (Dbg_is_call) {
           os << " args: " << boost::format("r3 = %1$08x, r4 = %2$08x, ") 
                 % read_GPR_post_EX(*this, r3) % read_GPR_post_EX(*this, r4);
           os << boost::format("r5 = %1$08x, r6 = %2$08x, r7 = %3$08x, r8 = %4$08x") 
@@ -634,6 +665,7 @@ namespace patmos
                Pipeline[SMW][0].I->is_flow_control()) {
         std::string name = Pipeline[SMW][0].I->Name;
         Dbg_cnt_delay = 0;
+        Dbg_is_intr = false;
         if (name == "ret") {
           Dbg_cnt_delay = 3;
           Dbg_is_call = false;
@@ -642,11 +674,22 @@ namespace patmos
           Dbg_cnt_delay = 3;
           Dbg_is_call = true;
         }
+        else if (name == "intr") {
+          Dbg_cnt_delay = 3;
+          Dbg_is_intr = true;
+        }
         if (Dbg_cnt_delay) {
           if (!nopc) {
             os << boost::format("%1$08x %2$9d ") % PC % Cycle;
           }
-          os << (Dbg_is_call ? "call from " : "return from ");
+          
+          if (debug_fmt == DF_CALLS_INDENT) {
+            for (unsigned i = 0; i < Dbg_stack.size(); i++) { 
+              os << "  ";
+            }
+          }
+          os << (Dbg_is_intr ? "interrupt" : (Dbg_is_call ? "call" : "return"));
+          os << " from ";
           Symbols.print(os, Pipeline[SMW][0].Address, true);
           os << " to ";
           Symbols.print(os, Pipeline[SMW][0].EX_Address, true);

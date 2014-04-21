@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -31,10 +31,10 @@
  */
 
 /*
- * Boot ROM and boot SPM for Patmos.
- * 
+ * Boot data memory (ROM and SPM) for Patmos.
+ *
  * Author: Wolfgang Puffitsch (wpuffitsch@gmail.com)
- * 
+ *
  */
 
 package patmos
@@ -58,18 +58,18 @@ class BootMem(fileName : String) extends Module {
   val selRomReg = Reg(init = Bool(false))
   val selSpmReg = Reg(init = Bool(false))
   when(io.memInOut.M.Cmd != OcpCmd.IDLE) {
-	selRomReg := selRom
-	selSpmReg := selSpm
+      selRomReg := selRom
+      selSpmReg := selSpm
   }
 
-  // The ROM
+  // The data ROM for read only initialized data
   val rom = Utility.readBin(fileName, DATA_WIDTH)
   val romCmdReg = Reg(next = Mux(selRom, io.memInOut.M.Cmd, OcpCmd.IDLE))
   val romAddr = Reg(next = io.memInOut.M.Addr)
   val romResp = Mux(romCmdReg === OcpCmd.IDLE, OcpResp.NULL, OcpResp.DVA)
   val romData = rom(romAddr(log2Up(rom.length)+1, 2))
 
-  // The SPM
+  // The SPM - used for stack of bootables, can be used for initialized read/write data
   val spm = Module(new Spm(BOOTSPM_SIZE))
   spm.io.M := io.memInOut.M
   spm.io.M.Cmd := Mux(selSpm, io.memInOut.M.Cmd, OcpCmd.IDLE)
@@ -81,7 +81,7 @@ class BootMem(fileName : String) extends Module {
 
   // Return data to pipeline
   io.memInOut.S.Data := Mux(selRomReg, romData,
-							Mux(selSpmReg, spmS.Data,
-								io.extMem.S.Data))
+                            Mux(selSpmReg, spmS.Data,
+                                io.extMem.S.Data))
   io.memInOut.S.Resp := romResp | spmS.Resp | io.extMem.S.Resp
 }

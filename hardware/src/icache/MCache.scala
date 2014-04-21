@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -51,7 +51,7 @@ import scala.math
   Method Cache Constants only used internally in MCache.scala
  */
 object MConstants {
- 
+
   val MCACHE_WORD_SIZE = MCACHE_SIZE / 4
   val METHOD_BLOCK_SIZE = MCACHE_WORD_SIZE / METHOD_COUNT
   val METHOD_COUNT_WIDTH = log2Up(METHOD_COUNT)
@@ -64,8 +64,8 @@ object MConstants {
   Internal and external connections for the Method Cache
  */
 class FeMCache extends Bundle() {
-  val addrEven = Bits(width = EXTMEM_ADDR_WIDTH) 
-  val addrOdd = Bits(width = EXTMEM_ADDR_WIDTH) 
+  val addrEven = Bits(width = EXTMEM_ADDR_WIDTH)
+  val addrOdd = Bits(width = EXTMEM_ADDR_WIDTH)
 }
 class ExMCache() extends Bundle() {
   val doCallRet = Bool()
@@ -189,8 +189,8 @@ class MCacheMem() extends Module {
 
 
 /*
- MCacheReplFifo: Class controlls a FIFO replacement strategy 
- including tag-memory to keep history of methods in cache. 
+ MCacheReplFifo: Class controlls a FIFO replacement strategy
+ including tag-memory to keep history of methods in cache.
  A variable block size is used in this replacement.
  */
 class MCacheReplFifo() extends Module {
@@ -228,10 +228,11 @@ class MCacheReplFifo() extends Module {
 
     callRetBaseReg := io.exmcache.callRetBase
     callAddrReg := io.exmcache.callRetAddr
-    selIspmReg := io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH - 1,ISPM_ONE_BIT - 2) === Bits(0x1)
-    selMCacheReg := io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH - 1,15) >= Bits(0x1)
+    selIspmReg := io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-2) === Bits(0x1)
+    val selMCache = io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-1) >= Bits(0x1)
+    selMCacheReg := selMCache
 
-    when (io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH-1,15) >= Bits(0x1)) {
+    when (selMCache) {
       hitReg := Bool(false)
       for (i <- 0 until METHOD_COUNT) {
         when (io.exmcache.callRetBase === mcacheAddrVec(i)
@@ -397,7 +398,7 @@ class MCacheCtrl() extends Module {
       ocpAddrReg := Cat(msizeAddr(EXTMEM_ADDR_WIDTH-1,2), Bits("b00"))
 
       mcacheState := sizeState
-    }      
+    }
   }
   //fetch size of the required method from external memory address - 1
   when (mcacheState === sizeState) {

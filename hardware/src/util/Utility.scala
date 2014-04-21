@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,9 @@
 
 /*
  * Utility functions for Patmos.
- * 
+ *
  * Author: Martin Schoeberl (martin@jopdesign.com)
- * 
+ *
  */
 
 package patmos
@@ -83,22 +83,23 @@ object Utility {
       // printf("%08x\n", Bits(word))
       arr(i) = Bits(word, width = width)
     }
-	
+
     // use vector to represent ROM
     Vec[Bits](arr)
   }
-  
+
   def printConfig(configFile: String): Unit = {
-    printf("\nPatmos configuration \"%s\"\n", util.Config.conf.description)
+    printf("\nPatmos configuration \"%s\"\n", util.Config.getConfig.description)
     printf("\tFrequency: %d MHz\n", CLOCK_FREQ/1000000)
     printf("\tPipelines: %d\n", PIPE_COUNT)
     printf("\tMethod cache: %d KB, %d methods\n", MCACHE_SIZE/1024, METHOD_COUNT)
     printf("\tData cache: %d KB, direct-mapped\n", DCACHE_SIZE/1024)
+    printf("\tStack cache: %d KB\n", SCACHE_SIZE/1024)
     printf("\tInstruction SPM: %d KB\n", ISPM_SIZE/1024)
     printf("\tData SPM: %d KB\n", DSPM_SIZE/1024)
     printf("\tBoot SPM: %d KB\n", BOOTSPM_SIZE/1024)
     printf("\tAddressable external memory: %d MB\n",
-           util.Config.conf.ExtMem.size/1024/1024)
+           util.Config.getConfig.ExtMem.size/1024/1024)
     printf("\n")
   }
 }

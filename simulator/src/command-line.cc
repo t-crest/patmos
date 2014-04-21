@@ -46,6 +46,8 @@ namespace patmos
       df = DF_BLOCKS;
     else if (kind == "calls")
       df = DF_CALLS;
+    else if (kind == "calls-indent")
+      df = DF_CALLS_INDENT;
     else if(kind == "default")
       df = DF_DEFAULT;
     else if(kind == "long")
@@ -73,12 +75,58 @@ namespace patmos
 	os << "blocks"; break;
       case DF_CALLS:
         os << "calls"; break;
+      case DF_CALLS_INDENT:
+        os << "calls-indent"; break;
       case DF_DEFAULT:
         os << "default"; break;
       case DF_LONG:
         os << "long"; break;
       case DF_ALL:
         os << "all"; break;
+    }
+
+    return os;
+  }
+  
+  std::istream &operator >>(std::istream &in, mem_check_e &mck)
+  {
+    std::string tmp, kind;
+    in >> tmp;
+
+    kind.resize(tmp.size());
+    std::transform(tmp.begin(), tmp.end(), kind.begin(), ::tolower);
+
+    if(kind == "none")
+      mck = MCK_NONE;
+    else if(kind == "warn")
+      mck = MCK_WARN;
+    else if(kind == "err" || kind == "error")
+      mck = MCK_ERROR;
+    else if (kind == "warn-addr")
+      mck = MCK_WARN_ADDR;
+    else if (kind == "err-addr" || kind == "error-addr")
+      mck = MCK_ERROR_ADDR;
+    else throw boost::program_options::validation_error(
+                  boost::program_options::validation_error::invalid_option_value,
+                  "Unknown mem-check option: " + tmp);
+
+    return in;
+  }
+
+  std::ostream &operator <<(std::ostream &os, mem_check_e mck)
+  {
+    switch(mck)
+    {
+      case MCK_NONE:
+        os << "none"; break;
+      case MCK_WARN:
+        os << "warn"; break;
+      case MCK_ERROR:
+        os << "err"; break;
+      case MCK_WARN_ADDR:
+        os << "warn-addr"; break;
+      case MCK_ERROR_ADDR:
+        os << "err-addr"; break;
     }
 
     return os;
@@ -254,6 +302,8 @@ namespace patmos
       sck = SC_BLOCK;
     else if(kind == "dcache")
       sck = SC_DCACHE;
+    else if(kind == "lblock")
+      sck = SC_LBLOCK;
     else throw boost::program_options::validation_error(
                  boost::program_options::validation_error::invalid_option_value,
                  "Unknown stack cache kind: " + tmp);
@@ -271,6 +321,8 @@ namespace patmos
         os << "block"; break;
       case SC_DCACHE:
         os << "dcache"; break;
+      case SC_LBLOCK:
+        os << "lblock"; break;
     }
 
     return os;

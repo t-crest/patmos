@@ -50,10 +50,6 @@ const int NOC_MASTER = 0;
 static void write(const char *msg, int len) __attribute__((noinline));
 #define WRITE(data,len) write(data,len)
 
-#ifdef BOOTROM
-extern int _stack_cache_base, _shadow_stack_base;
-#endif
-
 #else /* __patmos__ */
 
 #define _SPM
@@ -73,7 +69,24 @@ int core_id;
 #include <assert.h>
 
 #ifdef BOOTROM
-int main(int argc, char **argv) __attribute__((naked,used,noreturn));
+extern int _stack_cache_base, _shadow_stack_base;
+int main(int argc, char **argv);
+void _start(void) __attribute__((naked,used));
+
+void _start(void) {
+  // setup stack frame and stack cache.
+  asm volatile ("mov $r31 = %0;" // initialize shadow stack pointer"
+                "mts $ss  = %1;" // initialize the stack cache's spill pointer"
+                "mts $st  = %1;" // initialize the stack cache's top pointer"
+                : : "r" (&_shadow_stack_base),
+                  "r" (&_stack_cache_base));
+  // configure network interface
+  noc_configure();
+  // call main()
+  main(0, NULL);
+  // freeze
+  for(;;);
+}
 #endif /* BOOTROM */
 
 static void master(void);
@@ -86,7 +99,7 @@ static int do_iter(int cx, int cy, unsigned int max_square, int max_iter);
 static int fracmul(int x, int y) __attribute__((noinline));
 
 #ifdef __patmos__
-#define DMA noc_dma
+#define DMA noc_send
 #else /* __patmos__ */
 static void shm_dma(int dst_id, volatile void _SPM *dst,
                     volatile void _SPM *src,
@@ -228,22 +241,7 @@ static void shm_dma(int dst_id, volatile void _SPM *dst,
 int main(int argc, char **argv) {
 
 #ifdef __patmos__
-
-#ifdef BOOTROM
-  // setup stack frame and stack cache.
-  asm volatile ("mov $r29 = %0;" // initialize shadow stack pointer"
-				"mts $ss  = %1;" // initialize the stack cache's spill pointer"
-				"mts $st  = %1;" // initialize the stack cache's top pointer"
-				"li $r30 = %2;" // initialize return base"
-				: : "r" (&_shadow_stack_base-16),
-				    "r" (&_stack_cache_base-16),
-				    "i" (&main));
-  // configure network interface
-  noc_configure();
-#else /* BOOTROM */
-  // initialization happens automatically
-#endif /* BOOTROM */
-
+  // nothing special to initialize
 #else /* __patmos__ */
   core_id = strtol(argv[1], NULL, 0);
   // initialize MPBs
@@ -257,12 +255,13 @@ int main(int argc, char **argv) {
   }
 
 #ifdef __patmos__
-  /* freeze */
-  for(;;);
+  // nothing to clean up
 #else /* __patmos__ */
   shm_clean();
-  return 0;
 #endif /* __patmos__ */
+
+  return 0;
+
 }
 
 static void master(void) {

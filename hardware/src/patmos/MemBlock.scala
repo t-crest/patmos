@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,9 @@
 
 /*
  * A generic dual-ported (one read-, one write-port) memory block
- * 
+ *
  * Author: Wolfgang Puffitsch (wpuffitsch@gmail.com)
- * 
+ *
  */
 
 package patmos
@@ -55,26 +55,26 @@ class MemBlockIO(size : Int, width : Int) extends Bundle {
   val wrAddr = Bits(INPUT, log2Up(size))
   val wrEna  = Bits(INPUT, 1)
   val wrData = Bits(INPUT, width)
-  
+
   def <= (ena : Bits, addr : Bits, data : Bits) = {
-	wrAddr := addr
-	wrEna := ena
-	wrData := data
+    wrAddr := addr
+    wrEna := ena
+    wrData := data
   }
-  
+
   def apply(addr : Bits) : Bits = {
-	rdAddr := addr
-	rdData
+    rdAddr := addr
+    rdData
   }
 }
 
 class MemBlock(size : Int, width : Int) extends Module {
   val io = new MemBlockIO(size, width)
   val mem = Mem(Bits(width = width), size)
-  
+
   // write and read
   when(io.wrEna === Bits(1)) {
-	mem(io.wrAddr) := io.wrData
+    mem(io.wrAddr) := io.wrData
   }
   io.rdData := mem(Reg(next = io.rdAddr))
 }

@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,9 @@
 
 /*
  * Definitions for Patmos' OCP ports for general I/O
- * 
+ *
  * Authors: Wolfgang Puffitsch (wpuffitsch@gmail.com)
- * 
+ *
  */
 
 package ocp
@@ -50,7 +50,7 @@ class OcpIOMasterSignals(addrWidth : Int, dataWidth : Int)
   // This does not really clone, but Data.clone doesn't either
   override def clone() = {
     val res = new OcpIOMasterSignals(addrWidth, dataWidth)
-  	res.asInstanceOf[this.type]
+    res.asInstanceOf[this.type]
   }
 }
 
@@ -62,7 +62,7 @@ class OcpIOSlaveSignals(dataWidth : Int)
   // This does not really clone, but Data.clone doesn't either
   override def clone() = {
     val res = new OcpIOSlaveSignals(dataWidth)
-  	res.asInstanceOf[this.type]
+    res.asInstanceOf[this.type]
   }
 }
 
@@ -70,7 +70,7 @@ class OcpIOSlaveSignals(dataWidth : Int)
 class OcpIOMasterPort(addrWidth : Int, dataWidth : Int) extends Bundle() {
   // Clk is implicit in Chisel
   val M = new OcpIOMasterSignals(addrWidth, dataWidth).asOutput
-  val S = new OcpIOSlaveSignals(dataWidth).asInput 
+  val S = new OcpIOSlaveSignals(dataWidth).asInput
 }
 
 // Slave port is reverse of master port
@@ -85,7 +85,7 @@ class OcpIOBridge(master : OcpCoreMasterPort, slave : OcpIOSlavePort) {
   // Register signals that come from master
   val masterReg = Reg(init = OcpCoreMasterSignals.resetVal(master.M))
   when(masterReg.Cmd === OcpCmd.IDLE || slave.S.CmdAccept === Bits(1)) {
-	masterReg := master.M
+    masterReg := master.M
   }
   // Forward master signals to slave, always accept responses
   slave.M := masterReg

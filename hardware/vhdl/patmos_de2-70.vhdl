@@ -17,6 +17,7 @@ entity patmos_top is
 	port(
 		clk : in  std_logic;
 		led : out std_logic_vector(8 downto 0);
+		key : in  std_logic_vector(3 downto 0);
 		txd : out std_logic;
 		rxd : in  std_logic;
                 oSRAM_A : out std_logic_vector(18 downto 0);
@@ -59,6 +60,7 @@ architecture rtl of patmos_top is
 
 			io_cpuInfoPins_id   : in  std_logic_vector(31 downto 0);
 			io_ledsPins_led : out std_logic_vector(8 downto 0);
+			io_keysPins_key : in std_logic_vector(3 downto 0);
 			io_uartPins_tx  : out std_logic;
 			io_uartPins_rx  : in  std_logic;
 
@@ -164,6 +166,7 @@ begin
                            (others => '0'), (others => '0'),
                            X"00000000",
                            led,
+                           key,
                            txd, rxd,
                            oSRAM_A, sram_out_dout_ena, oSRAM_ADSC_N, oSRAM_OE_N, oSRAM_WE_N, oSRAM_BE_N, oSRAM_GW_N, oSRAM_CE1_N, oSRAM_CE2, oSRAM_CE3_N, oSRAM_ADSP_N, oSRAM_ADV_N, sram_out_dout, sram_in_din);
 

@@ -39,13 +39,18 @@ import patmos._
 import io.CoreDevice
 import io.Device
 
-import scala.tools.nsc.interpreter._
-import scala.tools.nsc._
+import scala.tools.nsc.interpreter.IMain
+import scala.tools.nsc.Settings
+import java.io.DataInputStream
+import ch.epfl.lamp.fjbg.{ FJBGContext, JClass }
+import java.io.File
 
 /**
- * A tiny configuration tool for Patmos.
+ * The configuration tool for Patmos.
  *
  * Authors: Martin Schoeberl (martin@jopdesign.com)
+ *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
+ *
  */
 abstract class Config {
   val description: String
@@ -69,8 +74,8 @@ abstract class Config {
   case class ExtMemConfig(size: Long, sram: DeviceConfig)
   val ExtMem: ExtMemConfig
 
-  case class DeviceConfig(name : String, params : Map[String, String], offset : Int)
-  val Devs: List[DeviceConfig]
+  case class DeviceConfig(name : String, params : Map[String, String], offset : Int, intrs : List[Int])
+  val Devs: List[Config#DeviceConfig]
 
   override def toString =
     description + " at " + (frequency/1000000).toString() + " MHz"
@@ -78,17 +83,17 @@ abstract class Config {
 
 object Config {
 
-  def parseSize(text: String): Int = {
-	  val regex = """(\d+)([KMG]?)""".r
-	  val suffixMult = Map("" -> (1 << 0),
-						   "K" -> (1 << 10),
-						   "M" -> (1 << 20),
-						   "G" -> (1 << 30))
-	  val regex(num, suffix) = text.toUpperCase
-	  num.toInt * suffixMult.getOrElse(suffix, 0)
+  private def parseSize(text: String): Int = {
+    val regex = """(\d+)([KMG]?)""".r
+    val suffixMult = Map("" -> (1 << 0),
+                         "K" -> (1 << 10),
+                         "M" -> (1 << 20),
+                         "G" -> (1 << 30))
+    val regex(num, suffix) = text.toUpperCase
+    num.toInt * suffixMult.getOrElse(suffix, 0)
   }
 
-  def parseSizeLong(text: String): Long = {
+  private def parseSizeLong(text: String): Long = {
     val regex = """(\d+)([KMG]?)""".r
     val suffixMult = Map("" -> (1 << 0),
                "K" -> (1 << 10),
@@ -98,38 +103,131 @@ object Config {
     num.toLong * suffixMult.getOrElse(suffix, 0)
   }
 
-  def fromXML(node: scala.xml.Node): Config =
+  private def getAttr(node: scala.xml.Node, elem: String, attr: String,
+                      optional: Boolean) = {
+    val seq = node \ elem
+    if (seq.isEmpty) {
+      if (!optional) {
+        sys.error("Element "+elem+" not found in node "+node)
+      } else {
+        None
+      }
+    } else {
+      val value = seq(0) \ attr
+      if (value.isEmpty) {
+        if (!optional) {
+          sys.error("Attribute "+attr+" not found in element "+elem+" in node "+node)
+        } else {
+          None
+        }
+      } else {
+        Option(value)
+      }
+    }
+  }
+
+  private def getIntAttr(node: scala.xml.Node, elem: String, attr: String,
+                 optional: Boolean, default: Int) = {
+
+    val value = getAttr(node, elem, attr, optional)
+    if (value == None) default else value.get.text.toInt
+  }
+
+  private def getBooleanAttr(node: scala.xml.Node, elem: String, attr: String,
+                     optional: Boolean, default: Boolean) = {
+
+    val value = getAttr(node, elem, attr, optional)
+    if (value == None) default else value.get.text.toBoolean
+  }
+
+  private def getSizeAttr(node: scala.xml.Node, elem: String, attr: String,
+                  optional: Boolean, default: Int) = {
+
+    val value = getAttr(node, elem, attr, optional)
+    if (value == None) default else parseSize(value.get.text)
+  }
+
+  private def getTextAttr(node: scala.xml.Node, elem: String, attr: String,
+                  optional: Boolean, default: String) = {
+
+    val value = getAttr(node, elem, attr, optional)
+    if (value == None) default else value.get.text
+  }
+
+  private def find(node: scala.xml.Node, item: String): scala.xml.Node = {
+    val seq = node \ item
+    if (seq.isEmpty) {
+      sys.error("Item "+item+" not found in node "+node)
+    }
+    seq(0)
+  }
+
+  private def resolveReference(base: File, name: String) = {
+    if (new File(name).isAbsolute) {
+      name
+    } else {
+      new File(base.getCanonicalFile.getParent, name).toString
+    }
+  }
+
+  private def fromXML(node: scala.xml.Node, file: File): Config = {
+
+    val parent = (node \ "@default")
+    val hasParent = !parent.isEmpty
+    val parentFile = resolveReference(file, parent.text)
+
+    val defaultConf = if (hasParent) load(parentFile) else nullConfig
+
     new Config {
       val description = (node \ "description").text
-      val frequency = find(find(node, "frequency"), "@Hz").text.toInt
-      val dual = find(find(node, "pipeline"), "@dual").text.toBoolean
+
+      val frequency = getIntAttr(node, "frequency", "@Hz",
+                                 hasParent, defaultConf.frequency)
+
+      val dual = getBooleanAttr(node, "pipeline", "@dual",
+                                hasParent, defaultConf.pipeCount > 1)
       val pipeCount = if (dual) 2 else 1
-      val burstLength = find(find(node, "bus"), "@burstLength").text.toInt
-      val writeCombine = find(find(node, "bus"), "@writeCombine").text.toBoolean
 
-      val MCacheNode = find(node, "MCache")
+      val burstLength  = getIntAttr(node, "bus", "@burstLength",
+                                    hasParent, defaultConf.burstLength)
+      val writeCombine = getBooleanAttr(node, "bus", "@writeCombine",
+                                        hasParent, defaultConf.writeCombine)
+
       val MCache =
-        new MCacheConfig(parseSize(find(MCacheNode, "@size").text),
-                         find(MCacheNode, "@blocks").text.toInt,
-                         find(MCacheNode, "@repl").text)
-      val DCacheNode = find(node, "DCache")
-      val DCache =
-        new DCacheConfig(parseSize(find(DCacheNode, "@size").text),
-                         find(DCacheNode, "@assoc").text.toInt,
-                         find(DCacheNode, "@repl").text)
-      val SCacheNode = find(node, "SCache")
-      val SCache =
-        new SCacheConfig(parseSize(find(SCacheNode, "@size").text))
+        new MCacheConfig(getSizeAttr(node, "MCache", "@size",
+                                     hasParent, defaultConf.MCache.size),
+                         getIntAttr(node,  "MCache", "@blocks",
+                                    hasParent, defaultConf.MCache.blocks),
+                         getTextAttr(node, "MCache", "@repl",
+                                     hasParent, defaultConf.MCache.repl))
 
-      val ISPM = new SPMConfig(parseSize(find(find(node, "ISPM"), "@size").text))
-      val DSPM = new SPMConfig(parseSize(find(find(node, "DSPM"), "@size").text))
-      val BootSPM = new SPMConfig(parseSize(find(find(node, "BootSPM"), "@size").text))
+      val DCache =
+        new DCacheConfig(getSizeAttr(node, "DCache", "@size",
+                                     hasParent, defaultConf.DCache.size),
+                         getIntAttr(node,  "DCache", "@assoc",
+                                    hasParent, defaultConf.DCache.assoc),
+                         getTextAttr(node, "DCache", "@repl",
+                                     hasParent, defaultConf.DCache.repl))
+
+      val SCache =
+        new SCacheConfig(getSizeAttr(node, "SCache", "@size",
+                                     hasParent, defaultConf.SCache.size))
+
+      val ISPM =
+        new SPMConfig(getSizeAttr(node, "ISPM", "@size",
+                                  hasParent, defaultConf.ISPM.size))
+      val DSPM =
+        new SPMConfig(getSizeAttr(node, "DSPM", "@size",
+                                  hasParent, defaultConf.DSPM.size))
+      val BootSPM =
+        new SPMConfig(getSizeAttr(node, "BootSPM", "@size",
+                                  hasParent, defaultConf.BootSPM.size))
 
       val DevList = ((node \ "Devs") \ "Dev")
 
       val ExtMemNode = find(node, "ExtMem")
-      var ExtMemDev = new DeviceConfig("", Map(),-1)
-      if (exist(ExtMemNode,"@DevTypeRef")){
+      var ExtMemDev = new DeviceConfig("", Map(), -1, List[Int]())
+      if (!(ExtMemNode \ "@DevTypeRef").isEmpty){
         ExtMemDev = devFromXML(ExtMemNode,DevList,false)
       }
       val ExtMem = new ExtMemConfig(parseSizeLong(find(ExtMemNode, "@size").text),
@@ -137,7 +235,8 @@ object Config {
 
 
       val DevNodes = ((node \ "IOs") \ "IO")
-      val Devs = DevNodes.map(devFromXML(_, DevList)).toList
+      val Devs : List[Config#DeviceConfig] =
+        DevNodes.map(devFromXML(_, DevList)).toList ++ defaultConf.Devs
 
       // Make sure static state of devices is initialized
       for (d <- Devs) { initDevice(d) }
@@ -145,7 +244,8 @@ object Config {
         initDevice(ExtMem.sram)
       }
 
-      def devFromXML(node: scala.xml.Node, devs: scala.xml.NodeSeq, needOffset: Boolean = true): DeviceConfig = {
+      private def devFromXML(node: scala.xml.Node, devs: scala.xml.NodeSeq,
+                             needOffset: Boolean = true): DeviceConfig = {
         val key = find(node, "@DevTypeRef").text
         val devList = (devs.filter(d => (d \ "@DevType").text == key))
         if (devList.isEmpty) {
@@ -165,26 +265,53 @@ object Config {
         } else {
           -1
         }
-        println("IO device "+key+": entity "+name+", offset "+offset+", params "+params)
-        new DeviceConfig(name, params, offset)
-      }
-
-  	  def find(node: scala.xml.Node, item: String): scala.xml.Node = {
-    		val seq = node \ item
-    		if (seq.isEmpty) {
-    		  sys.error("Item "+item+" not found in node "+node)
-    		}
-    		seq(0)
-  	  }
-
-      def exist(node: scala.xml.Node, item: String): Boolean = {
-        val seq = node \ item
-        if (seq.isEmpty) {
-          return false
+        val intrsList = (node \ "@intrs").text
+        val intrs = if (intrsList.isEmpty) {
+          List[Int]()
+        } else {
+          intrsList.split(",").toList.map(_.trim.toInt)
         }
-        return true
+        ChiselError.info("IO device "+key+": entity "+name+
+                         ", offset "+offset+", params "+params+
+                         (if (!intrs.isEmpty) ", interrupts: "+intrs else ""))
+        new DeviceConfig(name, params, offset, intrs)
       }
     }
+  }
+
+
+  // Baseline config with invalid values
+  val nullConfig = new Config {
+    val description = "dummy"
+    val frequency = 0
+    val pipeCount = 0
+    val burstLength = 0
+    val writeCombine = false
+    val minPcWidth = 0
+    val MCache = new MCacheConfig(0, 0, "")
+    val DCache = new DCacheConfig(0, 0, "")
+    val SCache = new SCacheConfig(0)
+    val ISPM = new SPMConfig(0)
+    val DSPM = new SPMConfig(0)
+    val BootSPM = new SPMConfig(0)
+    val ExtMem = new ExtMemConfig(0,new DeviceConfig("", Map(), -1, List[Int]()))
+    val Devs = List[DeviceConfig]()
+  }
+
+  private var conf: Config = nullConfig
+  def getConfig = conf
+
+  private def load(file: String) = {
+    val f = new File(file)
+    val node = xml.XML.loadFile(f)
+    fromXML(node, f)
+  }
+  def loadConfig(file: String) = {
+    conf = load(file)
+  }
+
+  // This should not be a public variable
+  var minPcWidth = 0
 
   def initDevice(dev : Config#DeviceConfig) = {
     // get class for device
@@ -209,9 +336,22 @@ object Config {
       if (clazz.isInstance(outer)) {
         // get method to retrieve pin bundle
         val methName = name(0).toLower + name.substring(1, name.length) + "Pins"
+        for (m <- clazz.getMethods) {
+          if (m.getName != methName && !m.getName.endsWith("_$eq")) {
+
+            val fileName = name+"$Pins.class"
+            val classStream = new DataInputStream(clazz.getResourceAsStream(fileName))
+            val jClass = new FJBGContext().JClass(classStream)
+
+            ChiselError.error("Pins trait for IO device "+name+
+                              " cannot have member "+m.getName+
+                              ", only member "+methName+" allowed"+
+                              " (file "+jClass.getSourceFileName+")", null)
+          }
+        }
         val meth = clazz.getMethods.find(_.getName == methName)
         if (meth == None) {
-          println("No pins for device: "+clazz+"."+methName)
+          ChiselError.info("No pins for IO device "+name)
         } else {
           // retrieve pin bundles
           val outerPins = meth.get.invoke(clazz.cast(outer))
@@ -224,11 +364,47 @@ object Config {
 
   def connectAllIOPins(outer : Node, inner : Node) {
     for (name <- conf.Devs.map(_.name)) {
-	  connectIOPins(name, outer, inner)
+      connectIOPins(name, outer, inner)
     }
   }
 
-  def genTraitedClass[T](base : String, list : List[String]) : T = {
+  def connectIntrPins(dev : Config#DeviceConfig, outer : InOutIO, inner : Node) {
+    if (!dev.intrs.isEmpty) {
+      val name = dev.name
+      // get class for interrupt trait
+      val clazz = Class.forName("io."+name+"$Intrs")
+      // get method to retrieve interrupt bits
+      val methName = name(0).toLower + name.substring(1, name.length) + "Intrs"
+      for (m <- clazz.getMethods) {
+        if (m.getName != methName && !m.getName.endsWith("_$eq")) {
+
+          val fileName = name+"$Intrs.class"
+          val classStream = new DataInputStream(clazz.getResourceAsStream(fileName))
+          val jClass = new FJBGContext().JClass(classStream)
+
+          ChiselError.error("Intrs trait for IO device "+name+
+                            " cannot have member "+m.getName+
+                            ", only member "+methName+" allowed"+
+                            " (file "+jClass.getSourceFileName+")", null)
+        }
+      }
+      val meth = clazz.getMethods.find(_.getName == methName)
+      if (meth == None) {
+        ChiselError.error("Interrupt pins not found for device "+name)
+      } else {
+        val intrPins = meth.get.invoke(clazz.cast(inner)).asInstanceOf[Vec[Bool]]
+        if (intrPins.length != dev.intrs.length) {
+          ChiselError.error("Inconsistent interrupt counts for IO device "+name)
+        } else {
+          for (i <- 0 until dev.intrs.length) {
+            outer.intrs(dev.intrs(i)) := intrPins(i)
+          }
+        }
+      }
+    }
+  }
+
+  private def genTraitedClass[T](base : String, list : List[String]) : T = {
     // build class definition
     val traitClass = list.foldLeft("Trait"+base)(_+"_"+ _)
     val traitClassDef = "class "+traitClass+" extends "+"patmos."+base
@@ -256,32 +432,5 @@ object Config {
 
   def getPatmosIO() : PatmosIO = {
     genTraitedClass[PatmosIO]("PatmosIO", conf.ExtMem.sram.name :: conf.Devs.map(_.name))
-  }
-
-  // This is probably not the best way to have the singleton
-  // for the configuration available and around.
-  // We also do not want this to be a var.
-  var conf: Config = new Config {
-    val description = "dummy"
-    val frequency = 0
-    val pipeCount = 0
-    val burstLength = 0
-    val writeCombine = false
-    val minPcWidth = 0
-    val MCache = new MCacheConfig(0, 0, "")
-    val DCache = new DCacheConfig(0, 0, "")
-    val SCache = new SCacheConfig(0)
-    val ISPM = new SPMConfig(0)
-    val DSPM = new SPMConfig(0)
-    val BootSPM = new SPMConfig(0)
-    val ExtMem = new ExtMemConfig(0,new DeviceConfig("", Map(),-1))
-    val Devs = List()
-  }
-
-  var minPcWidth = 0
-
-  def load(file: String): Config = {
-    val node = xml.XML.loadFile(file)
-    fromXML(node)
   }
 }

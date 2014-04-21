@@ -4,7 +4,7 @@
 # Expected Result: '0'
 # Current output: '1'
 
-	.word	80;
+	.word	84;
 x0:		addi	r0 = r0, 0;  # first instruction not executed
 		addi	r5 = r0, 15;
 		sli	r5 = r5, 28;

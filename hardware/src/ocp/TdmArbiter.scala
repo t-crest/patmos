@@ -34,7 +34,7 @@
  * Arbiter for OCP burst slaves.
  * Pseudo round robin arbitration. Each turn for a non-requesting master costs 1 clock cycle.
  *
- * Author: Martin Schoeberl (martin@jopdesign.com)
+ * Author: Martin Schoeberl (martin@jopdesign.com) David Chong (davidchong99@gmail.com)
  *
  */
 
@@ -56,13 +56,12 @@ class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) ext
   debug(io.master)
   debug(io.slave)
 
-  val cntReg = Reg(init = UInt(0, log2Up(cnt*(burstLen + 1))))
-  // slot length = burst size + 1
+  val cntReg = Reg(init = UInt(0, log2Up(cnt*(burstLen + 2))))
+  // slot length = burst size + 2 
   val burstCntReg = Reg(init = UInt(0, log2Up(burstLen)))
-  val period = cnt * (burstLen + 1)
-  val slotLen = burstLen + 1
+  val period = cnt * (burstLen + 2)
+  val slotLen = burstLen + 2
   val cpuSlot = Vec.fill(cnt){Reg(init = UInt(0, width=1))}
-  val slotTable = Vec.fill(cnt){Reg(init = Bits(0, width=period))}
 
   val sIdle :: sRead :: sWrite :: Nil = Enum(UInt(), 3)
   val stateReg = Vec.fill(cnt){Reg(init = sIdle)}
@@ -76,82 +75,78 @@ class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) ext
   debug(stateReg(2))
 
   cntReg := Mux(cntReg === UInt(period - 1), UInt(0), cntReg + UInt(1))
-  
+
   // Generater the slot Table for the whole period
-  def genTable(nodeID: Int) = {
-    val x = pow(2,nodeID*slotLen).toInt
-    val slot = UInt(x,width=period)
-    slot
+  def slotTable(i: Int): UInt = {
+    (cntReg === UInt(i*slotLen)).toUInt
   }
-  
-  for (i <- 0 to cnt-1){
-    slotTable(i) := genTable(i).toBits
+
+  for(i <- 0 until cnt) {
+    cpuSlot(i) := slotTable(i)
   }
-  
-  for(i <- 0 to cnt-1) {
-    cpuSlot(i) := slotTable(i)(cntReg) 
-  }
-  
-  // Initialize data to zero when cpuSlot is not enabled 
+
+  // Initialize data to zero when cpuSlot is not enabled
   io.slave.M.Addr       := Bits(0)
   io.slave.M.Cmd        := Bits(0)
   io.slave.M.DataByteEn := Bits(0)
   io.slave.M.DataValid  := Bits(0)
   io.slave.M.Data       := Bits(0)
-   
+  
+  // Initialize slave data to zero
+  for (i <- 0 to cnt - 1) {
+    io.master(i).S.CmdAccept := Bits(0)
+    io.master(i).S.DataAccept := Bits(0)
+    io.master(i).S.Resp := OcpResp.NULL
+    io.master(i).S.Data := Bits(0) 
+  }
+    
   // Temporarily assigned to master 0
-  val masterID = Reg(init = UInt(0, log2Up(cnt)))
-   
+  //val masterIdReg = Reg(init = UInt(0, log2Up(cnt)))
+
     for (i <- 0 to cnt-1) {
 
-      when (cpuSlot(i) === UInt(1)) {
-        val master = io.master(i).M
-        masterID := UInt(i)
-        io.slave.M := io.master(i).M
-        
-        when (stateReg(i) === sIdle) {
-          when (master.Cmd != OcpCmd.IDLE){
-            when (master.Cmd === OcpCmd.RD) {
+      when (stateReg(i) === sIdle) {
+        when (cpuSlot(i) === UInt(1)) {
+          
+          when (io.master(i).M.Cmd != OcpCmd.IDLE){
+            when (io.master(i).M.Cmd === OcpCmd.RD) {
+              io.slave.M := io.master(i).M
+              io.master(i).S := io.slave.S
               stateReg(i) := sRead
             }
-          when (master.Cmd === OcpCmd.WR) {
-            stateReg(i) := sWrite
-            burstCntReg := UInt(0)
+            when (io.master(i).M.Cmd === OcpCmd.WR) {
+              io.slave.M := io.master(i).M
+              io.master(i).S := io.slave.S
+              stateReg(i) := sWrite
+              burstCntReg := UInt(0)
+            }
           }
         }
       }
-     }
 
        when (stateReg(i) === sWrite){
          io.slave.M := io.master(i).M
+         io.master(i).S := io.slave.S 
          // Wait on DVA
          when(io.slave.S.Resp === OcpResp.DVA){
            stateReg(i) := sIdle
          }
        }
-     
+
        when (stateReg(i) === sRead){
          io.slave.M := io.master(i).M
+         io.master(i).S := io.slave.S
          when (io.slave.S.Resp === OcpResp.DVA) {
            burstCntReg := burstCntReg + UInt(1)
              when (burstCntReg === UInt(burstLen) - UInt(1)) {
                stateReg := sIdle
              }
            }
-        }      
+        }
     } 
-  
-  io.slave.M := io.master(masterID).M 
-  debug(io.slave.M)
 
-  for (i <- 0 to cnt - 1) {
-    io.master(i).S.CmdAccept := Bits(0)
-    io.master(i).S.DataAccept := Bits(0)
-    io.master(i).S.Resp := OcpResp.NULL
-    // we forward the data to all masters
-    io.master(i).S.Data := io.slave.S.Data
-  }
-  io.master(masterID).S := io.slave.S
+  //io.slave.M := io.master(masterIdReg).M
+  debug(io.slave.M)
 
 }
 

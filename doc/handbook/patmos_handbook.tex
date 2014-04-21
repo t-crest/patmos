@@ -69,7 +69,7 @@
 \newcommand{\sahar}[1]{\comment{Sahar}{#1}{Green}}
 \newcommand{\rasmus}[1]{\comment{Rasmus}{#1}{Mahogany}}
 
-%% uncomment to get rid of comments
+% uncomment to get rid of comments
 \renewcommand{\tommy}[1]{}
 \renewcommand{\wolf}[1]{}
 \renewcommand{\martin}[1]{}
@@ -91,13 +91,7 @@
 \usepackage{listings}
 
 % general style for listings
-\lstset{basicstyle=\ttfamily,keywordstyle=\ttfamily}
-
-% listings style for Java
-\lstnewenvironment{Java} {\lstset{
-  xleftmargin=12pt,
-  language=Java
-}}{}
+\lstset{basicstyle=\ttfamily,keywordstyle=\ttfamily,showstringspaces=false,language=C}
 
 \usepackage[endianness=big]{bytefield}
 
@@ -149,7 +143,15 @@
 
 \author{Martin Schoeberl, Florian Brandner, Stefan Hepp,\\Wolfgang Puffitsch, Daniel Prokesch}
 
-\lowertitleback{\todo{Copyright and license terms come here.}}
+\lowertitleback{Copyright \copyright{} 2014 Technical University of Denmark
+  \medskip\\
+  \begin{tabular}{lp{.8\textwidth}}
+    \raisebox{-12pt}{\includegraphics[height=18pt]{fig/cc_by_sa}} &
+     This work is licensed under a Creative Commons Attribution-ShareAlike
+     4.0 International License.
+     \url{http://creativecommons.org/licenses/by-sa/4.0/}\\
+  \end{tabular}
+}
 
 \frontmatter
 
@@ -158,9 +160,11 @@
 \chapter{Preface}
 
 This handbook shall evolve to the documentation of the Patmos processor and the
-Patmos compiler.
-In the mean time it is intended to collect design notes and discussions.
+Patmos compiler. In the mean time it is intended to collect design notes and discussions.
 Especially ISA design notes now.
+
+The latest version of this handbook is contained as LaTeX source in the Patmos repository in directory
+\code{patmos/doc/handbook} and can be built with \code{make}.
 
 \section*{Acknowledgment}
 
@@ -186,7 +190,7 @@ Systems (T-CREST).
 \let\cleardoublepage\clearpage
 \listoffigures
 \listoftables
-%\lstlistoflistings
+\lstlistoflistings
 \endgroup
 
 \mainmatter
@@ -395,15 +399,14 @@ we switch contexts.}
         \bitbox{32}{r14 (scratch)} \\ \bitbox{32}{r15 (scratch)} \\
         \bitbox{32}{r16 (scratch)} \\ \bitbox{32}{r17 (scratch)} \\
         \bitbox{32}{r18 (scratch)} \\ \bitbox{32}{r19 (scratch)} \\
-        \bitbox{32}{r20 (saved)} \\ \bitbox{32}{r21 (saved)} \\
+        \bitbox{32}{r20 (scratch)} \\ \bitbox{32}{r21 (saved)} \\
         \bitbox{32}{r22 (saved)} \\ \bitbox{32}{r23 (saved)} \\
         \bitbox{32}{r24 (saved)} \\ \bitbox{32}{r25 (saved)} \\
-        \bitbox{32}{r26 (saved)} \\
-        \bitbox{32}{r27 (temp.\ register, saved)} \\
-        \bitbox{32}{r28 (frame pointer, saved)} \\
-        \bitbox{32}{r29 (stack pointer, saved)} \\
-        \bitbox{32}{r30 (function base, saved)} \\
-        \bitbox{32}{r31 (function offset, saved)} \\
+        \bitbox{32}{r26 (saved)} \\ \bitbox{32}{r27 (saved)} \\
+        \bitbox{32}{r28 (saved)} \\
+        \bitbox{32}{r29 (temp.\ register, saved)} \\
+        \bitbox{32}{r30 (frame pointer, saved)} \\
+        \bitbox{32}{r31 (stack pointer, saved)} \\
       \end{bytefield}
     }
 
@@ -436,8 +439,11 @@ we switch contexts.}
         \bitbox{32}{s4} \\
         \bitbox{32}{ss (spill pointer)} \bitbox[]{4}{s5} \\
         \bitbox{32}{st (stack pointer)} \bitbox[]{4}{s6} \\
-        \bitbox{32}{s7} \\ \bitbox{32}{s8} \\
-        \bitbox{32}{s9} \\ \bitbox{32}{s10} \\ \bitbox{32}{s11} \\
+        \bitbox{32}{srb (return base)} \bitbox[]{4}{s7} \\
+        \bitbox{32}{sro (return offset)} \bitbox[]{4}{s8} \\
+        \bitbox{32}{sxb (exception return base)} \bitbox[]{4}{s9} \\
+        \bitbox{32}{sxo (exception return offset)} \bitbox[]{4}{s10} \\
+        \bitbox{32}{s11} \\
         \bitbox{32}{s12} \\ \bitbox{32}{s13} \\ \bitbox{32}{s14} \\ \bitbox{32}{s15} \\
       \end{bytefield}
     }
@@ -528,29 +534,23 @@ of the instruction format. Black fields are not used.
             \bitbox{2}{\bitsunused} & \bitbox{3}{Pd} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
             \bitbox{3}{011} & \bitbox{4}{Func}
           \end{leftwordgroup} \\
-          \begin{leftwordgroup}{\parbox{8em}{ALUci -- Compare immediate}}
-            \bitheader{0-31} \\
-            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
-            \bitbox{2}{\bitsunused} & \bitbox{3}{Pd} & \bitbox{5}{Rs1} & \bitbox{5}{Imm} &
-            \bitbox{3}{110} & \bitbox{4}{Func}
-          \end{leftwordgroup} \\
           \begin{leftwordgroup}{\parbox{8em}{ALUp -- Predicate}}
             \bitheader{0-31} \\
             \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
             \bitbox{2}{\bitsunused} & \bitbox{3}{Pd} & \bitbox{1}{\bitsunused} & \bitbox{4}{Ps1} & \bitbox{1}{\bitsunused} & \bitbox{4}{Ps2} &
             \bitbox{3}{100} & \bitbox{4}{Func}
           \end{leftwordgroup} \\
-          \begin{leftwordgroup}{\parbox{8em}{ALUb -- Bitmove}}
+          \begin{leftwordgroup}{\parbox{8em}{ALUb -- Bitcopy}}
             \bitheader{0-31} \\
             \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
-            \bitbox{5}{Rd} & \bitbox{1}{\bitsunused} & \bitbox{4}{Ps1} & \bitbox{5}{Rs2} &
-            \bitbox{3}{001} & \bitbox{4}{Func}
+            \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{5}{Imm} &
+            \bitbox{3}{101} & \bitbox{4}{Ps}
           \end{leftwordgroup} \\
-          \begin{leftwordgroup}{\parbox{8em}{ALUbi -- Bitmove immediate}}
+          \begin{leftwordgroup}{\parbox{8em}{ALUci -- Compare immediate}}
             \bitheader{0-31} \\
             \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
-            \bitbox{5}{Rd} & \bitbox{1}{\bitsunused} & \bitbox{4}{Ps1} & \bitbox{5}{Imm} &
-            \bitbox{3}{101} & \bitbox{4}{Func}
+            \bitbox{2}{\bitsunused} & \bitbox{3}{Pd} & \bitbox{5}{Rs1} & \bitbox{5}{Imm} &
+            \bitbox{3}{110} & \bitbox{4}{Func}
           \end{leftwordgroup} \\
           %% \begin{leftwordgroup}{\parbox{8em}{Unused}}
           %%   \bitheader{0-31} \\
@@ -654,34 +654,39 @@ of the instruction format. Black fields are not used.
           \end{leftwordgroup}
         \end{bytefield}
 
-  \item CFL -- Control Flow \\[2ex]
+  \item CFLi -- Control Flow with Immediate \nopagebreak\\[2ex]
         \begin{bytefield}{32}
           \bitheader{0-31} \\
-          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{11x} & \bitbox{2}{Op} &
-          \bitbox{22}{\bitssubclass} \\
+          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{10} & \bitbox{2}{Op} & \bitbox{1}{d} &
+          \bitbox{22}{Immediate} \\
+        \end{bytefield}
+
+  \item CFLr -- Control Flow with Registers \\[2ex]
+        \begin{bytefield}{32}
+          \bitheader{0-31} \\
+          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{4}{1100} & \bitbox{1}{d} &
+          \bitbox{18}{\bitssubclass} & \bitbox{2}{F} & \bitbox{2}{Op} \\
         \end{bytefield}
 
         \begin{bytefield}[leftcurly=.]{32}
-          \begin{leftwordgroup}{\parbox{12em}{CFLb -- Call / Branch}}
-            \bitheader{0-31} \\
-            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{110} & \bitbox{2}{Op} &
-            \bitbox{22}{Immediate}
-          \end{leftwordgroup} \\
-          \begin{leftwordgroup}{\parbox{12em}{CFLi -- Call / Branch Indirect}}
-            \bitheader{0-31} \\
-            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{111} & \bitbox{2}{00} &
-            \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{8}{\bitsunused} & \bitbox{4}{Op}
-          \end{leftwordgroup} \\
-          \begin{leftwordgroup}{\parbox{12em}{CFLr -- Return}}
-            \bitheader{0-31} \\
-            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{111} & \bitbox{2}{10} &
-            \bitbox{5}{\bitsunused} & \bitbox{5}{Rb} & \bitbox{5}{Ro} & \bitbox{3}{\bitsunused} &\bitbox{4}{Op}
-          \end{leftwordgroup} \\
-          \begin{leftwordgroup}{\parbox{12em}{Reserved}}
-            \bitheader{0-31} \\
-            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{111} & \bitbox{2}{11} &
-            \bitbox{22}{\bitssubclass}
-          \end{leftwordgroup} \\
+          \begin{leftwordgroup}{\parbox{18em}{CFLri -- Control Flow with implicit registers}}
+          \bitheader{0-31} \\
+          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{4}{1100} & \bitbox{1}{d} &
+          \bitbox{18}{\bitsunused} &
+          \bitbox{2}{00} & \bitbox{2}{Op}
+          \end{leftwordgroup}\\
+          \begin{leftwordgroup}{\parbox{18em}{CFLrs -- Control Flow with single register}}
+          \bitheader{0-31} \\
+          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{4}{1100} & \bitbox{1}{d} &
+          \bitbox{5}{\bitsunused} & \bitbox{5}{Rs} & \bitbox{8}{\bitsunused} &
+          \bitbox{2}{01} & \bitbox{2}{Op}
+          \end{leftwordgroup}\\
+          \begin{leftwordgroup}{\parbox{18em}{CFLrt -- Control Flow with two registers}}
+          \bitheader{0-31} \\
+          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{4}{1100} & \bitbox{1}{d} &
+          \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} & \bitbox{3}{\bitsunused} &
+          \bitbox{2}{10} & \bitbox{2}{Op}
+          \end{leftwordgroup}
         \end{bytefield}
 \end{itemize}
 
@@ -834,9 +839,10 @@ word into a GPR when using ALUl format, so we save one mfs per mul.
 \clearpage
 \subsection{Compare}
 
-Applies to the ALUc and ALUci formats only. Tables~\ref{tab:cmpfunc} and
-\ref{tab:cmpifunc} show the encoding of the \texttt{func} field for the ALUc
-and ALUci formats, respectively.
+Applies to the ALUc and ALUci formats only. Operand \texttt{Op2}
+denotes either the \texttt{Rs2}, or the \texttt{Imm}
+operand. Tables~\ref{tab:cmpfunc} show the encoding of the
+\texttt{func} field for the ALUc and ALUci formats.
 
 \begin{itemize}
   \item ALUc -- Compare \\[2ex]
@@ -861,13 +867,13 @@ and ALUci formats, respectively.
     \toprule
     Func & Name   & Semantics \\
     \midrule
-    0000 & cmpeq  & \texttt{Pd = Rs1 ==  Rs2} \\
-    0001 & cmpneq & \texttt{Pd = Rs1 !=  Rs2} \\
-    0010 & cmplt  & \texttt{Pd = Rs1 \textless\ Rs2} \\
-    0011 & cmple  & \texttt{Pd = Rs1 \textless= Rs2} \\
-    0100 & cmpult & \texttt{Pd = Rs1 \textless\ Rs2, unsigned} \\
-    0101 & cmpule & \texttt{Pd = Rs1 \textless= Rs2, unsigned} \\
-    0110 & btest  & \texttt{Pd = (Rs1 \AND (1 \shl Rs2)) != 0} \\
+    0000 & cmpeq  & \texttt{Pd = Rs1 ==  Op2} \\
+    0001 & cmpneq & \texttt{Pd = Rs1 !=  Op2} \\
+    0010 & cmplt  & \texttt{Pd = Rs1 \textless\ Op2} \\
+    0011 & cmple  & \texttt{Pd = Rs1 \textless= Op2} \\
+    0100 & cmpult & \texttt{Pd = Rs1 \textless\ Op2, unsigned} \\
+    0101 & cmpule & \texttt{Pd = Rs1 \textless= Op2, unsigned} \\
+    0110 & btest  & \texttt{Pd = (Rs1 \AND (1 \shl Op2)) != 0} \\
     0111 & ---    & unused \\
     \dots& \dots  & \dots \\
     1111 & ---    & unused \\
@@ -875,25 +881,6 @@ and ALUci formats, respectively.
   \end{tabular}
   \caption{Compare functions}
   \label{tab:cmpfunc}
-\end{table}
-
-\begin{table}[hb]
-  \centering
-  \begin{tabular}{lll}
-    \toprule
-    Func & Name   & Semantics \\
-    \midrule
-    0000 & ---    & unused \\
-    \dots& \dots  & \dots \\
-    0101 & ---    & unused \\
-    0110 & btest  & \texttt{Pd = (Rs1 \AND (1 \shl Imm)) != 0} \\
-    0111 & ---    & unused \\
-    \dots& \dots  & \dots \\
-    1111 & ---    & unused \\
-    \bottomrule
-  \end{tabular}
-  \caption{Compare immediate functions}
-  \label{tab:cmpifunc}
 \end{table}
 
 \paragraph{Pseudo Instructions}
@@ -1001,59 +988,30 @@ bitmasks).}
 
 
 \clearpage
-\subsection{Bitmove}
+\subsection{Bitcopy}
 
-Applies to the ALUb, ALUbi formats only.
-Table~\ref{tab:bitmvfunc} shows the encoding of the
-\texttt{func} field for the ALUb and ALUbi formats.
-
+Applies to the ALUb format only. The only instruction with this
+encoding is \texttt{bcopy}, which is the ``inverse'' of the
+\code{btest} instruction. It has the following semantics: \texttt{Rd =
+  (Rs1 \AND \NOT (1 \shl Imm)) \OR (Ps \shl Imm)}
 
 \begin{itemize}
-  \item ALUb -- Bitmove \\[2ex]
+  \item ALUb -- Bitcopy \\[2ex]
     \begin{bytefield}{32}
       \bitheader{0-31} \\
       \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
-      \bitbox{5}{Rd} & \bitbox{1}{\bitsunused} & \bitbox{4}{Ps1} & \bitbox{5}{Rs2} &
-      \bitbox{3}{001} & \bitbox{4}{Func} \\
-    \end{bytefield}
-  \item ALUbi -- Bitmove immediate \\[2ex]
-    \begin{bytefield}{32}
-      \bitheader{0-31} \\
-      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
-      \bitbox{5}{Rd} & \bitbox{1}{\bitsunused} & \bitbox{4}{Ps1} & \bitbox{5}{Imm} &
-      \bitbox{3}{101} & \bitbox{4}{Func} \\
+      \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{5}{Imm} &
+      \bitbox{3}{101} & \bitbox{4}{Ps} \\
     \end{bytefield}
 \end{itemize}
-
-\begin{table}[hb]
-  \centering
-  \begin{tabular}{lll}
-    \toprule
-    Func & Name   & Semantics \\
-    \midrule
-    0000 & bcopy  & \texttt{Rd[Rs2] = Ps1} \\
-         &        & \texttt{Rd[Imm] = Ps1} \\
-    0001 & ---    & unused \\
-    \dots& \dots  & \dots \\
-    1111 & ---    & unused \\
-    \bottomrule
-  \end{tabular}
-  \caption{Bitmove functions}
-  \label{tab:bitmvfunc}
-\end{table}
 
 \paragraph{Pseudo Instructions}
 \begin{itemize}
-  \item \texttt{mov Rd = Ps}~\dots~\texttt{bcopy Rd = Pd, r0}
+  \item \texttt{mov Rd = Ps}~\dots~\texttt{bcopy Rd = r0, 0, Ps}
 \end{itemize}
 
 \paragraph{Note}
-\texttt{bcopy} sets a single bit in the destination register
-\texttt{Rd} to the value in \texttt{Ps1}.
-The position of the bit is specified by the lowest 5 bits of \texttt{Rs2}
-or by \texttt{Imm}, respectively.
-All other bits in \texttt{Rd} remain unchanged.
-
+The predicate register is read in the execute stage.
 
 \clearpage
 \subsection{Wait}
@@ -1190,96 +1148,12 @@ progress, the pipeline will be stalled implicitly until the already running load
 is completed before the next memory access is issued. The value of the previous
 load can then be read from \texttt{sm} for (at least) one cycle.
 
-Regular loads incur a one cycle load-to-use latency that has
-to be respected by the compiler/programmer. The destination register of the load
-is guaranteed to be unmodified, i.e., a one-cycle load delay slot.
-
-\martin{There can be different approaches to handle the case where the destination register of load is used in the next clock cycle
-
-1) Ignore the issue, as the compiler will not generate this code. Therefore, we need to avoid this test case.
-
-2) Looking what the hardware does (assume the ALU result of the lws instruction is forwarded) and implementing this in the simulator.
-
-3) Disabling forwarding from the EX stage when the last instruction was a load, but enabling it again when the load instruction is in the MEM stage. That would mean that the 'old' value of the register is used.
-
-4) implement pipeline interlock with a partial stall (or bubble) to allow load/use without a delay slot (like MIPS II I think).
-
-}
-
-\fb{The easiest solution is to define the behavior as undefined.
-
-From the compiler side it might also make sense to implement 3) as
-the delay slot filler might exploit this (I would not consider this
-with high priority though).}
-
-\sahar{Pipeline stall is no different than the one slot delay from delay point of view, but the compiler does not have to take care of adding the delay slot.}
-
-\martin{When there is a NOP in the delay slot it is the same execution time as when the pipeline is (partially) stalled for one cycle.
-
-If the compiler can fill the delay slot, the solution with the delay slot is more efficient. If it cannot be filled, code size increases due to the NOPs. So this is a trade-off, and we do not (yet) know which is better.
-
-So we keep it as it is and say that using the load value in the delay slot leads to undefined behavior.}
-
-
-\gebhard{Does this imply that the semantics of the processor is dependent on the instruction timing?
-If this is actually the case, a static value analysis is \emph{unable} to compute precise data if it does not know the timing of the execution history!
-
-Consider the following instruction sequence.
-Each line denotes an instruction bundle.
-For the sake of simplicity we only consider simple bundles (i.e., only the first slot is used).
-
-\begin{tabular}{cl}
-\hline
-1 & \texttt{dlwm r3+0x00} \\
-2 & \texttt{nop}          \\
-3 & \texttt{mfs r2,sm}  \\
-\hline
-\end{tabular}
-
-Whether \texttt{sm} contains the memory contents once the third instruction is executed is statically unknown.
-Remember that the processor is part of a network, where data access timing depends on the load of the network.
-If the access completes after dispatch of the second instruction, we will be fine.
-According to the semantics (``one-cycle load delay slot''), the register \texttt{sm} will contain the expected value.
-But if the access takes longer...}
-
-\fb{
-The Processor ensures that the value in the destination register of a load keeps
-the old value for one more cycle (instruction bundle). In the case of regular
-loads, which stall, the register will have the value just loaded from memory
-after that cycle. For decoupled loads the value is \emph{undefined} until the
-worst-case latency of the load has passed. You have to use a \texttt{wait} or
-another decoupled load in order to be safe. The static analysis should/could
-issue a warning/error if such a code is encountered. If the \texttt{wait}
-instruction should be eliminated, the \texttt{mfs} has to respect the load's
-latency in the worst-case, which needs to be known anyways for the
-\texttt{wait}.
-}
-
-\gebhard{I am still not convinced of the benefit of decoupled loads.
-Why don't we implement loads (or stores) such that they block upon a register dependency?
-A load may then always run in parallel to other instructions, as long as the target register is not needed.
-
-By doing so, we would even safe code space.
-To ensure that a decoupled load gives us the expected result we currently need three instructions:
-The decoupled load instruction, a wait instruction, and a move from special register instruction.
-Using implicitly blocking loads we \emph{always} need \emph{exactly one} instruction to perform a load from memory.
-
-Please provide evidence why the current design leads to a (statically) predictable architecture.}
-
-\fb{
-There is a proposal in the extensions part that follows this idea. The main
-motivation for the current solution are hardware considerations. (1) We do not
-want to afford a 3rd write port to the register file, which would be needed if
-we want to handle a decoupled load that is about to finish concurrently with two
-ALU instructions. This is why decoupled loads go to the special registers. (2)
-We do not want every instruction with a register operand to stall, i.e., only
-very few classes of instructions should stall. Also note, that a separate
-\emph{wait} allows us to wait for a load without using a register. This might
-come handy for compiler optimizations, e.g., placement of \texttt{wait} after
-register allocation.
-}
-
-\gebhard{In my experience the gain from such optimizations is far less than the penalty induced by the increased code size.}
+Regular loads incur a load-to-use latency that has to be respected by
+the compiler/programmer. The result of the load is not available in
+the bundle immediately after the load, i.e., there must be one bundle
+between the load instruction and the first use of the destination
+register. The value of the destination register is undefined during
+this load delay slot.
 
 The displacement value (\code{Imm}) value is interpreted unsigned.
 
@@ -1508,7 +1382,6 @@ use an implicit stack pointer for addressing.}
 
 
 \paragraph{Behavior}
-~\newline
 
 \texttt{sres}: Check free space left in the stack cache. Update stack-cache registers.
 If needed, spill to global memory using \texttt{ss}.
@@ -1545,7 +1418,7 @@ This (and all hazards for all other instructions) should be documented here in t
 
 \sahar{Special registers are written/read separately. Is this 1-cycle hazard necessary? What is the reason to add it?}
 
-\stefan{The reason for the hazards is primarily the current implementation of the the simulator, there the special registers
+\stefan{The reason for the hazards is primarily the current implementation of the simulator, there the special registers
 are updated separately from the internal stack pointers, which causes the hazards. We should define how the
 hardware actually behaves, and then the simulator should be updated to reflect that behavior. However, the latter is not quite trivial, I will
 leave that to Florian ;) }
@@ -1553,302 +1426,543 @@ leave that to Florian ;) }
 \clearpage
 \subsection{Control-Flow Instructions}
 
-\wolf{This section is to be updated for the upcoming ISA revision. Leave as-is for now.}
-
-Applies to CFLb and CFLi format only.
+Applies to CFLi and CFLr format only.
 Transfer control to another function or perform function-local branches.
-\texttt{br} performs a function-local, relative branch within the method cache.
-\martin{mmh, cache - explain better}
-\texttt{call} performs a function call, storing the program counter (or function offset) of
-the instruction to be fetched after returning in \texttt{r31}.
-The function base of the caller is not stored implicitly (see Section~\ref{sec:function_calls}).
-\martin{Still true? What happens at the moment in the simulator or compiler?}
-\texttt{brcf} behaves like \texttt{call}, except that it does not write return information
-to \texttt{r31}.
-\martin{What does it mean like a call when there is no save of the return address?
-What is meant is that this instruction loads method cache bits - with sizes... Is this
-explained at some point?}
+\texttt{br} performs a function-local branch.
+\texttt{call} performs a function call, storing the return information
+(i.e., where to resume execution when returning) in
+\texttt{srb}/\texttt{sro}.
+\texttt{brcf} (``branch with cache fill'') performs a global
+branch. With regard to addressing modes and caching, \texttt{brcf}
+behaves like a call, but it does not store any return information.
+\texttt{trap} performs a system call (see Section~\ref{sec:exc}).
+\texttt{ret} returns from a function, using the return information in
+\texttt{srb}/\texttt{sro}.
+\texttt{xret} is similar to \code{ret} but uses the return information
+in \texttt{sxb}/\texttt{sxo}, which are set by interrupts, exceptions,
+and traps.
 
-\texttt{call} and \texttt{brfc} may cause a cache miss and a subsequent
-cache refill to load the target code; they expect the size of the code block
-fetched to the cache in number of bytes at \textit{\textless base\textgreater-4}.
-\texttt{br} is assumed to be a cache hit.
+With a method cache, \texttt{call}, \texttt{brfc}, \texttt{trap},
+\texttt{ret}, and \texttt{xret} may cause a cache miss and a
+subsequent cache refill to load the target code; they expect the size
+of the code block fetched to the cache in number of bytes at
+\textit{<base>-4}. \texttt{br} is assumed to be a cache hit.
 
-Immediate call and branch instructions interpret the operand as \emph{unsigned} for function calls, and as \emph{signed}
-for PC-relative branches (\texttt{br}, \texttt{brcf}).
-The target address of PC-relative branches is computed relative to the address of the branch instruction.
-All immediate values are interpreted in \emph{word size}.
+Immediate call and branch instructions interpret the operand as
+\emph{unsigned} for \texttt{call} and \texttt{brcf}, and as
+\emph{signed} for PC-relative branches (\texttt{br}). These immediate
+values are interpreted in \emph{word size}. The target address of
+PC-relative branches is computed relative to the address of the branch
+instruction. The immediate value for \texttt{trap} is an index into an
+exception vector (see Section~\ref{sec:exc}).
 
-\martin{Is \texttt{brfc} now PC relative or method base relative?}
+Indirect call and branch instructions interpret the operand as
+\emph{unsigned} absolute addresses in \emph{byte size}. Indirect
+\texttt{brcf} takes two operands: a base address and an offset. The
+base address is the address of the code block to be fetched; the
+effective branch target is \textit{<base>+<offset>}.
 
-Indirect call and branch instructions interpret the operand as \emph{unsigned} absolute addresses in \emph{byte size}.
+The return information provided by \texttt{call} in
+\texttt{srb}/\texttt{sro} should only be passed to
+\texttt{ret}. Likewise, the exception return information in
+\texttt{sxb}/\texttt{sxo} should only be passed to \texttt{xret}. The
+unit and addressing mode of these values is implementation
+dependent.\wolf{Should we keep it implementation dependent, or should
+  we enforce way it is in the current implementation?}
 
-The link/return information provided by \texttt{call} in \texttt{r31} should only be
-passed to \texttt{ret}. The unit and addressing mode (absolute or function relative) of
-the returned value is implementation dependent (see description of \texttt{ret}).
+All control-flow instructions (except \texttt{trap}) have a delayed
+and a non-delayed variant. For the delayed variant, $N$
+bundles following the control-flow instruction in the code are always
+executed. For the non-delayed variants, the control-flow change
+appears to happen immediately. However, non-delayed control-flow
+instructions may require more than one cycle to be executed. The
+precise timing behavior is specified along with the detailed
+description of the respective instructions.
 
-The following table gives an overview of the addressing modes of the available
-call and branch instructions.
+The mnemonic of an instruction's non-delayed instruction variant is
+suffixed with \texttt{nd}. For clarity, this document uses the
+unsuffixed name to mean both variants when describing the general
+properties of the respective instruction.
 
-\medskip
-\begin{tabular}{l|llll}
-  Instruction & Immediate   & Indirect & Cache fill & Link \\ \hline
-  call        & absolute    & absolute & yes        & yes \\
-  br          & PC relative & absolute & no         & no \\
-  brcf        & PC relative & absolute & yes        & no \\
-\end{tabular}
+\texttt{br} instructions are executed in the \texttt{EX} stage, while
+the other control-flow instructions are executed in the \texttt{MEM}
+stage. This corresponds to a branch delay of 2 bundles for \texttt{br}
+and 3 bundles for other control-flow instructions. In case there no
+other instructions available, NOP instructions can be used to fill the
+delay slots. There are no restrictions with regard to the size or type
+of instructions in the delay slot. The only exception is that
+executing control-flow instructions in a delay slot may lead to
+unspecified behavior.
 
-\medskip
-\texttt{br} instructions are executed in the \texttt{EX} stage, while \texttt{brcf}, \texttt{call} and \texttt{ret} instructions are executed in the
-\texttt{MEM} stage.
-The instructions fetched in the meantime are \emph{not} aborted.
-This corresponds to a branch delay of 2 instructions for \texttt{br} and 3 instructions for \texttt{call}, \texttt{brcf} and \texttt{ret}, which has to be
-respected by the compiler or assembly programmer.
-If no other instructions are available, two single-cycle NOPs can be
-used to fill the delay slots.
+\begin{table}[hb]
+  \centering
+  \begin{tabular}{llllll}
+    \toprule
+    Instruction & Immediate   & Indirect & Cache fill & Link & Delay Slots \\
+    \midrule
+    call        & absolute, words    & absolute, bytes        & yes        & yes  & 3 \\
+    br          & PC relative, words & absolute, bytes        & no         & no   & 2 \\
+    brcf        & absolute, words    & absolute+offset, bytes & yes        & no   & 3 \\
+    trap        & exception vector index & ---                & yes        & no   & -- \\
+    \cmidrule{1-6}
+    ret         & ---         & implementation dependent      & yes        & no   & 3 \\
+    xret        & ---         & implementation dependent      & yes        & no   & 3 \\
+    \bottomrule
+  \end{tabular}  
+  \caption{Addressing modes of control-flow instructions}
+  \label{tab:cfladdr}
+\end{table}
 
-Size of the delay slots: The \texttt{call} instructions must have exactly one single-word instruction
-in each delay slot and it must not be bundled with another instruction.
-All other control flow instructions (\texttt{br}, \texttt{brcf}, and \texttt{ret})
-can have any valid bundle in their delay slots and can be bundled.
-
-More details on the organization of the method cache is given in
-Section~\ref{sec:method-cache}.
-
-\fb{In contrast to the original Patmos design, it might be a good idea to push
-    the program counter update to the \texttt{EX} or even \texttt{DE} stage.
-    This depends on whether checking the method-cache can be done there and
-    whether reading the predicate registers can be done fast enough.}
-
-\jack{A branch delay of $3$ is unusually large in comparison to
-    other architectures. I think in many cases
-    those $3$ slots will not be useful. And they do take up a lot of
-    space (12 bytes minimum? or more?). To save space, could there be a form
-    of this instruction that either stalls the pipeline, or issues the
-    extra NOPs at the decode stage?}
-
-\gebhard{Please consider Section~\ref{subsec:load_typed}.
-Again, the instruction semantics should not depend on the instruction timing.
-Please correct if our interpretation of \emph{branch delay} is wrong.
-If delay means instructions (instead of cycles) we are perfectly fine.
-Otherwise, we raise the following objections:
-
-Defining delay slots in terms of cycles poses a problem to the binary decoder.
-What is the size of a delay slot, if the timing of an instruction inside the delay slot is not known (e.g., load from memory instruction \texttt{lwm})?
-For a static analysis, it is infeasible to have delay slots of arbitrary size, because we are unable to decide whether an instruction (bundle) following a branch or call instruction belongs to the originating or target block or routine respectively.
-
-In fact, architectures where the delay slot size depends on the instruction timing are -- at least to our knowledge -- unheard of.
-For example, SPARC architectures (ERC32, LEON2, LEON3) have a fixed delay slot size of 1 (instruction), the SHARC DSP has two-instruction delay slots, the C33 architecture features triple-instruction delay slots.
-Even though decoding of delay-slots is tricky, a fixed delay slot size ensures that the program semantics are implicitly obvious.
-This is not given for an architecture design where the delay slot size depends on instruction timing.
-Apart from that, this design makes code review (on the assembly level) practically impossible.}
-
-\fb{As with loads this should not be a timing related feature, i.e., your
-correct in claiming that we should measure this in instruction bundles following
-the branch (except for multi-cycle nops, where we want to avoid encoding nops
-explicitly). so far, I only see troubles with \emph{wait} instruction and
-decoupled loads (both may stall in the \texttt{DR} stage). Two simple solutions
-would be to either forbid those instructions in branch delay slots or make them
-stall with the branch in the \texttt{EX} stage. I'd opt for the latter solution.
-}
-
-\martin{To Gernot: those branch delay slots are instructions (instruction bundles),
-the same as other RISC processors, e.g. your mentioned SPARC.}
+\clearpage
 
 \begin{itemize}
-  \item CFLb -- Call / Branch \\[2ex]
+  \item CFLi -- Control Flow with Immediate \\[2ex]
     \begin{bytefield}{32}
       \bitheader{0-31} \\
-      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{110} & \bitbox{2}{Op} &
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{10} & \bitbox{2}{Op} & \bitbox{1}{d} &
       \bitbox{22}{Immediate} \\
     \end{bytefield}
 \end{itemize}
 
 \begin{table}[hb]
   \centering
-  \begin{tabular}{lll}
+  \begin{tabular}{llll}
     \toprule
-    Op & Name & Semantics \\
+    Op & d & Name & Semantics \\
     \midrule
-    00 & call & function call (absolute, with cache fill) \\
-    01 & br   & local branch (PC relative, always hit) \\
-    10 & brcf & local branch (PC relative, with cache fill) \\
-    11 & ---  & unused \\
+    00 & 0 & callnd & function call (absolute, with cache fill, non-delayed) \\
+    00 & 1 & call   & delayed function call (absolute, with cache fill, delayed) \\
+    01 & 0 & brnd   & local branch (PC-relative, always hit, non-delayed) \\
+    01 & 1 & br     & local branch (PC-relative, always hit, delayed) \\
+    10 & 0 & brcfnd & branch (absolute, with cache fill, non-delayed) \\
+    10 & 1 & brcf   & branch (absolute, with cache fill, delayed) \\
+    11 & 0 & trap   & system call (via exception vector, with cache fill, non-delayed) \\
     \bottomrule
   \end{tabular}
-  \caption{Control-flow operations}
-  \label{tab:cflbops}
-\end{table}
-
-\martin{The 22 bit immediate is good for 16 MB code size. Maybe this is good enough
-for most embedded programs. With a little different encoding we could get two more bits
-for 64 MB code size. We don't need that big immediate for PC relative branches.}
-
-\paragraph{Behavior -- call, brcf, and system call}
-
-		     Store link information into R31. Method base
-		     is not stored to a visible register (this must be done by the caller, by convention using R30).
-                     Compute cache-relative program counter and update the PC.
-
-\paragraph{Behavior -- branch within cache}
-                     Compute new, cache-relative program counter value.
-                     Update program counter.
-
-
-\paragraph{Implementation Note}
-
-The method cache keeps track of the base address of the current function, i.e.,
-the target/base address of the last \texttt{call}, \texttt{brcf} or \texttt{ret} instruction.
-\texttt{call} calculates the return offset as $\texttt{nextPC}_\texttt{EX} - \texttt{base}_\texttt{MC}$.
-However, the application code must not rely on this.
-
-\stefan{This is just to clear things up for the WCET analysis. The actual value of the
-link register is intentionally left undefined, so that we could easily change it to an
-absolute address just in hardware with no changes to the compiler. If we do want to jump to
-some base + offset, we should define a separate branch instruction for this, as \texttt{ret}
-should only be used to jump back to a call site to make the analysis easier. However, we could
-also just define the link info to be an offset (in bytes!) and accept the slight overhead for I-caches that
-do not need a base address.}
-
-\paragraph{Note}
-
-All branch/call instructions can only be issued on the first position within a
-bundle.
-
-\gebhard{Shouldn't the target addresses be double-word-aligned to ensure that the processor is always able to fetch an instruction bundle?}
-
-\fb{As far as I can see there is no need for bundles to be align (in straight
-line code this will happen as well). Though it might be a useful compiler
-convention to align branch targets in order to avoid additional stalls. Martin
-should be able to clarify how the instruction fetch is going to work and what
-side constraints we need to observe from there.}
-
-\gebhard{I would propose to align instruction bundles to avoid cache misses in the middle of an instruction bundle.}
-
-\martin{This actually depends on the instruction cache we are using. If it is the M\$ then
-we are on the safe side and have no misses. Therefore, no need to align. With
-a standard cache I would arguer for alignment. Having possible two misses for
-a single bundle load is not nice.}
-
-\stefan{I would also say that double-word alignment should be decided by the compiler, even for non-method-cache caches. E.g., if we have four
-instructions that cannot all be packed into double-word bundles but are inside a basic block, there is no need to waste four words just for
-alignment. A miss that will also load the following (part of a) bundle, we do not loose anything because the next bundle will always be
-executed and be at least partially a guaranteed hit.}
-
-\martin{That's not only a compiler question. If you allow misaligned double words in a
-standard cache you need to provide support in the hardware so that a single instruction
-fetch (double word) can result in two requests for cache lines. So this is a HW decision. Similar to
-the old RISC restriction that words are not allowed to be misaligned (two memory accesses
-to get one 32-bit word). I would also argue to disallow this misalignment.}
-
-\stefan{Ok, I see.. So double-word instruction bundles must be double-word aligned, but two 32bit instruction bundles can be packed into one
-double-word. But does the target-address of a branch have to be double-word aligned, if the target is not a 64bit bundle?}
-\martin{Don't get this question. There is no difference between a double-word instruction (ALU long imm.) and two
-instructions that are a bundle from their fetch behavior. Unaligned two-word fetch is ok for the method cache,
-but evil for a plain instruction cache.}
-
-\begin{itemize}
-  \item CFLi -- Call / Branch Indirect \\[2ex]
-    \begin{bytefield}{32}
-      \bitheader{0-31} \\
-      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{111} & \bitbox{2}{00} &
-      \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{8}{\bitsunused} & \bitbox{4}{Op} \\
-    \end{bytefield}
-\end{itemize}
-
-\begin{table}[hb]
-  \centering
-  \begin{tabular}{lll}
-    \toprule
-    Op & Name  & Semantics \\
-    \midrule
-    0000 & call  & function call (indirect, with cache fill) \\
-    0001 & br    & local branch (indirect, always hit) \\
-    0010 & brcf  & local branch (indirect, with cache fill) \\
-    0011 & ---   & unused \\
-    \dots& \dots  & \dots \\
-    1111 & ---   & unused \\
-    \bottomrule
-  \end{tabular}
-  \caption{Indirect control-flow operations}
+  \caption{Control-flow operations with immediate}
   \label{tab:cfliops}
 \end{table}
 
-\paragraph{Behavior -- call, branch, and system call}
-
-		     Store link information into R31. Method base
-		     is not stored to a visible register (this must be done by the caller, by convention using R30).
-                     Check method cache.
-                     Compute cache-relative program counter.
-If needed, fill method cache and stall.
-                     Update program counter.
-
-
-\paragraph{Behavior -- branch within cache}
-                     Compute new, cache-relative program counter value.
-                     Update program counter.
-
-
-\paragraph{Note}
-
-All branch/call instructions can only be issued on the first position within a
-bundle.
-
-See also CFLi format notes.
-
-\clearpage
-\subsection{Return}
-
-Applies to CFLr format only. Transfer control to the function
-specified by function base and offset.  \texttt{ret} may cause a cache
-miss and a subsequent cache refill to load the target
-code. Table~\ref{tab:retfunc} shows the encoding of the \texttt{func}
-field.
-
-\daniel{(TODO return from an interrupt)}
-\martin{That might be covered by the ret itself. However, we have not
-agreed where the PC (and probably method base) are saved on an
-interrupt. Maybe just a `special' register, again ;-)}
-\martin{TODO: talk about interrupts in some section. Do we have what is
-usually called a SW interrupt as well? Exceptions? Restartable exceptions?}
-
 \begin{itemize}
-  \item CFLr -- Return \\[2ex]
+  \item CFLri -- Control Flow with implicit registers \\[2ex]
     \begin{bytefield}{32}
       \bitheader{0-31} \\
-      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{3}{111} & \bitbox{2}{10} &
-      \bitbox{5}{\bitsunused} & \bitbox{5}{Rb} & \bitbox{5}{Ro} & \bitbox{3}{\bitsunused} &\bitbox{4}{Op} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{4}{1100} & \bitbox{1}{d} &
+      \bitbox{18}{\bitsunused} &
+      \bitbox{2}{00} & \bitbox{2}{Op} \\
     \end{bytefield}
 \end{itemize}
 
-% TODO: more formal semantics
 \begin{table}[hb]
   \centering
-  \begin{tabular}{lll}
+  \begin{tabular}{llll}
     \toprule
-    Op & Name  & Semantics \\
+    Op & d & Name & Semantics \\
     \midrule
-    0000 & ret   & Return from a function (with cache fill) \\
-    0001 & ---   & unused \\
-    \dots& \dots  & \dots \\
-    1111 & ---   & unused \\
+    00 & 0 & retnd  & return (with cache fill, non-delayed) \\
+    00 & 1 & ret    & return (with cache fill, delayed) \\
+    01 & 0 & xretnd & return from exception (with cache fill, non-delayed) \\
+    01 & 1 & xret   & return from exception (with cache fill, delayed) \\
     \bottomrule
   \end{tabular}
-  \caption{Return function encoding}
-  \label{tab:retfunc}
+  \caption{Control-flow operations with implicit register operands}
+  \label{tab:cflriops}
 \end{table}
 
-\paragraph{Behavior}
+\begin{itemize}
+  \item CFLrs -- Control Flow with single registers \\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{4}{1100} & \bitbox{1}{d} &
+      \bitbox{5}{\bitsunused} & \bitbox{5}{Rs} & \bitbox{8}{\bitsunused} &
+      \bitbox{2}{01} & \bitbox{2}{Op} \\
+    \end{bytefield}
+\end{itemize}
 
+\begin{table}[hb]
+  \centering
+  \begin{tabular}{llll}
+    \toprule
+    Op & d & Name & Semantics \\
+    \midrule
+    00 & 0 & callnd & function call (indirect, with cache fill, non-delayed) \\
+    00 & 1 & call   & function call (indirect, with cache fill, delayed) \\
+    01 & 0 & brnd   & local branch (indirect, always hit, non-delayed) \\
+    01 & 1 & br     & local branch (indirect, always hit, delayed) \\
+    \bottomrule
+  \end{tabular}
+  \caption{Control-flow operations with single register operand}
+  \label{tab:cflrsops}
+\end{table}
 
-The return function base address \texttt{Rb} is an absolute address in bytes. The return function base will typically
-be provided by the caller in \texttt{r30} (see Section~\ref{sec:function_calls}).
-The return function offset \texttt{Ro} is provided by the \texttt{call} instruction in \texttt{r31}.
-Note that using \texttt{r30} and \texttt{r31} is a compiler convention.
-The unit and the addressing mode
-of the function offset is hardware implementation dependent.
-\martin{What does the above mean?}
+\begin{itemize}
+  \item CFLrt -- Control Flow with two registers \\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{4}{1100} & \bitbox{1}{d} &
+      \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} & \bitbox{3}{\bitsunused} &
+      \bitbox{2}{10} & \bitbox{2}{Op} \\
+    \end{bytefield}
+\end{itemize}
 
+\begin{table}[ht]
+  \centering
+  \begin{tabular}{llll}
+    \toprule
+    Op & d & Name & Semantics \\
+    \midrule
+    10 & 0 & brcfnd & branch (indirect with offset, with cache fill, non-delayed) \\
+    10 & 1 & brcf   & branch (indirect with offset, with cache fill, delayed) \\
+    \bottomrule
+  \end{tabular}
+  \caption{Control-flow operations with two register operands}
+  \label{tab:cflrtops}
+\end{table}
+
+\paragraph{Behavior -- call}
+
+Perform a function call, filling the method cache if needed.
+
+Listing~\ref{lst:call} shows the pseudo-code for a call. The parameter
+\texttt{addr} is either an immediate value (for calls in the CFLi
+format), or comes from a general-purpose register (for indirect
+calls). The variables \texttt{\$srb} and \texttt{\$sro} denote the
+special registers \texttt{srb} and \texttt{sro}, respectively.
+
+First, it stores the return information, and remembers
+the new base address in an internal variable. Then, it retrieves the
+offset into the cache for the function to be called and if necessary
+copies the instructions into the cache. Finally, it updates the
+internal program counter and continues execution from there.
+
+\begin{lstlisting}[language=C,float=h,caption={Call\label{lst:call}}]
+call(addr) {
+  // Store return information
+  $srb = base;
+  $sro = PC;
+  // Remember base address
+  base = addr;
+  // Cache look-up and load
+  coff = offset(addr);
+  if (!hit(addr)) memcpy(cache[coff], mem[base], mem[base-4]);
+  // Update PC
+  PC = coff;
+}
+\end{lstlisting}
+
+The timing of a \texttt{callnd} instruction that is executed is
+equivalent to the timing of an istruction sequence \texttt{call; nop;
+  nop; nop}. The timing of a \texttt{callnd} instruction with a
+predicate that evaluates to \texttt{false} is equivalent to a single
+\texttt{nop} instruction.
+
+\paragraph{Behavior -- brcf}
+
+Perform a branch, filling the method cache if needed.
+
+The pseudo-code for a PC-relative \texttt{brcf} is shown in
+Listing~\ref{lst:brcf}. It is similar to the call, but does not store
+any return information. Additionally, an offset \texttt{off} may be
+specified for a \texttt{brcf} in the CFLrt format; this offset is 0
+for \texttt{brcf} in the CFLi format.
+
+\begin{lstlisting}[language=C,float=h,caption={Branch with cache fill\label{lst:brcf}}]
+call(addr, off) {
+  // Remember base address
+  base = addr;
+  // Cache look-up and load
+  coff = offset(addr);
+  if (!hit(addr)) memcpy(cache[coff], mem[base], mem[base-4]);
+  // Update PC
+  PC = coff+off;
+}
+\end{lstlisting}
+
+The timing of a \texttt{brcfnd} instruction that is executed is
+equivalent to the timing of an istruction sequence \texttt{brcf; nop;
+  nop; nop}. The timing of a \texttt{brcfnd} instruction with a
+predicate that evaluates to \texttt{false} is equivalent to a single
+\texttt{nop} instruction.
+
+\paragraph{Behavior -- trap}
+
+Perform a system call. Details are described in Section~\ref{sec:exc}.
+Like the \texttt{call}, \texttt{trap} stores return information, but
+it uses special registers \texttt{sxb} and \texttt{sxo} for that
+purpose.
+
+\paragraph{Behavior -- ret, xret}
+
+Return from function call. The \texttt{ret} instruction uses the
+return information in the special registers \texttt{srb}/\texttt{sro}
+to compute its target address. The \texttt{xret} instruction uses the
+registers \texttt{sxb}/\texttt{sxo}.
+
+Listing~\ref{lst:return} shows the pseudo-code for \texttt{ret}. It
+first retrieves the return base and does the appropriate cache
+handling. It then adds the cache offset and the return offset and
+assigns the sum to the internal program counter, from which execution
+continues.
+
+\begin{lstlisting}[language=C,float=h,caption={Return\label{lst:return}}]
+ret() {
+  // Retrieve return base
+  base = $srb;
+  // Cache look-up and load
+  coff = offset($srb);
+  if (!hit($srb)) memcpy(cache[coff], mem[base], mem[base-4]);
+  // Update PC
+  PC = coff+$sro;
+}
+\end{lstlisting}
+
+The timing of a \texttt{retnd}/\texttt{xretnd} instruction that is
+executed is equivalent to the timing of an istruction sequence
+\texttt{ret; nop; nop; nop}. The timing of a
+\texttt{retnd}/\texttt{xretnd} instruction with a predicate that
+evaluates to \texttt{false} is equivalent to a single \texttt{nop}
+instruction.
+
+\paragraph{Behavior -- br}
+
+Local branch, compute new program counter value and update program
+counter.
+
+The timing of a \texttt{brnd} instruction may be implementation
+defined. Implementations are allowed to use branch prediction for
+\texttt{brnd} instructions, if the underlying mechanism is documented
+in detail. Unless specified and documented otherwise, the timing of
+\texttt{brnd} must be according to ``predict-not-taken''. The timing
+of a \texttt{brnd} instruction that is executed is then equivalent to
+the timing of the sequence \texttt{br; nop; nop}, while the timing
+with a \texttt{false} predicate is equivalent to a single
+\texttt{nop}.
+
+\paragraph{Note}
+
+All control-flow instructions can only be issued on the first position
+within a bundle.
+
+% % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
+
+\clearpage
+\section{Exceptions: Interrupts, Faults and Traps}
+\label{sec:exc}
+
+In the following, we use \emph{exception} to denote any kind of
+``abnormal'' transfer of control. \emph{Interrupts} are generated
+outside of the pipeline by I/O devices. \emph{Faults} are triggered by
+the pipeline for instructions that cannot be executed as expected
+(accesses to unmapped memory, undecodable instructions,
+etc.). \emph{Traps} are willfully generated exceptions, and are used
+to invoke operating system functions.
+
+An \emph{exception unit} that is mapped to the I/O space (see
+Chapter~\ref{chap:memsyst}) is responsible for managing exceptions. It
+includes the device registers shown in Table~\ref{tab:excioregs}. The
+general principle of operation is that the exception unit requests the
+execution of an exception from the pipeline, and the pipeline returns
+an acknowledges when it starts the execution of the respective
+exception handler.
+
+The \texttt{status} register is 32 bits wide; bit 0 of that register
+determines whether interrupts are enabled. They are enabled if it is
+1, and they are disabled when it is zero. The \texttt{status} register
+is shifted left by one bit when an exception handler is triggered, and
+shifted right by one bit when returning from an exception handler via
+\texttt{xret}. Overflows of the status register (which might be caused
+by nested exception handlers) are silently ignored.
+
+Internally generated exceptions, i.e., faults and traps, always take
+precedence over interrupts. If more than one internal exception or
+interrupt is pending at the same time, the exception with the lower
+number takes precedence.
+
+\subsection{Exception Vector}
+
+The exception unit supports 32 exception vector entries, shown in the
+lower half of Table~\ref{tab:excioregs}. Exceptions 0
+and 1 are reserved for the ``illegal operation'' and ``illegal memory
+access'' faults. While exceptions 2 to 15 can be used freely (e.g., by
+the operating system), exceptions 16 to 32 are attached to interrupts.
+
+\begin{table}[b]
+  \centering
+  \begin{tabular}{llp{.6\textwidth}}
+    \toprule
+    Address             & Name             & Description \\
+    \midrule
+    \texttt{0xf0000100} & \texttt{status} & Interrupt-enable flag \\
+    \texttt{0xf0000104} & \texttt{mask} & Mask of enabled interrupts \\
+    \texttt{0xf0000108} & \texttt{pend} & Pending flags for interrupts \\
+    \texttt{0xf000010c} & \texttt{source} & Number of exception that
+    is about to be served \\
+    \texttt{0xf0000110} & \texttt{sleep} & Sleep mode (optional) \\
+    \cmidrule{1-3}
+    \texttt{0xf0000180} & \texttt{vec<0>} & Address of exception handler 0, illegal operation \\
+    \texttt{0xf0000184} & \texttt{vec<1>} & Address of exception handler 1, illegal memory access \\
+    \ldots & \ldots & \ldots \\
+    \cmidrule{1-3}
+    \texttt{0xf00001c0} & \texttt{vec<16>} & Address of exception handler 16, interrupt 0 \\
+    \ldots & \ldots & \ldots \\
+    \texttt{0xf00001fc} & \texttt{vec<31>} & Address of exception handler 31, interrupt 15 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Exception unit device registers}
+  \label{tab:excioregs}
+\end{table}
+
+\subsection{Traps}
+
+The instruction \texttt{trap <n>} triggers exception number $n$. In
+order to assimilate the handling of faults and traps in the pipeline,
+\texttt{trap} instructions never have a delay slot. Traps can in
+principle be called for any exception, e.g., to trigger an interrupt
+handler from software.
+
+\subsection{Return Information}
+
+The return information for exceptions must be stored in registers that
+are never used otherwise. Two special registers \texttt{sxb}
+(\texttt{s9}) and \texttt{sxo} (\texttt{s10}) provide the return base
+and return offset for exceptions. The instruction \texttt{xret}
+implicitly uses these registers, as opposed to the \texttt{ret}
+instruction, which uses special registers \texttt{srb} and
+\texttt{sro}.
+
+\subsection{Resuming Execution}
+
+The return information for interrupts is set such that \texttt{xret}
+returns to the bundle that was replaced by the interrupt
+instruction in the pipeline.
+
+For faults, the return information points to the bundle that triggered
+the fault. After a fault, resuming execution must either have fixed
+the cause of the fault and reexecute the whole bundle again, or
+emulate the effects of the whole bundle (including the triggering of
+further faults) and continue execution after the bundle. Due to the
+complexity of the second option, we consider faults where the
+respective instruction cannot be reexecuted \emph{fatal}, and advise
+developers to terminate execution instead of trying to resume.
+
+Resuming after a trap in principle has to take into account the same
+considerations as faults. However, the content of the bundle is under
+the control of the compiler. We require that a trap instruction is the
+only instruction in a bundle. The return address for traps points to
+the bundle after the one that contains the trap instruction.
+
+\subsection{Delayed Triggering of Interrupts}
+
+Instructions that stall the pipeline (loads, stores, calls, etc.)
+delay the triggering of interrupts until the pipeline resumes
+execution. Therefore, method cache fills or stack spills cannot be
+interrupted. Control-flow instructions delay the triggering of
+interrupts such that interrupts are never triggered inside a delay
+slot or while executing instructions speculatively. Multiplications
+delay the triggering of interrupts such that no multiplications are
+``in flight'' when an interrupt handler is entered. Outstanding
+delayed loads do not delay the triggering of interrupts. Interrupt
+handlers must ensure that the contents of the special register
+\texttt{sm} are saved and restored correctly.
+
+\subsection{Sleep Mode}
+
+The exception unit provides support for putting the processor to
+sleep. Writes to the \texttt{sleep} register halt the pipeline until
+an interrupt (or other exception) occurs. After executing the
+respective exception handler, execution resumes after that
+write. Therefore, writes to the \texttt{sleep} register should be
+enclosed in a loop for continuous sleeping.
+
+Support for sleeping is optional. On implementations that do not
+support sleeping, writes to the \texttt{sleep} register are ignored
+and do not have any effect. Therefore, continuing execution after a
+write to the \texttt{sleep} register is not proof that an interrupt
+has occurred.
+
+\subsection{Examples}
+
+The API for exception and interrupt handling for Patmos is provided by
+the include file \texttt{machine/exceptions.h}.
+
+Listing~\ref{lst:excreg} shows how to register exception handlers for
+specific exceptions. First, \texttt{fault\_handler} is registered as
+handler for all exceptions. Then, \texttt{trap\_handler} is registered
+for exception number eight, and \texttt{intr\_handler} for exceptions
+16 to 19, i.e., for interrupts 0 to 3.
+
+\begin{lstlisting}[float, caption={Exception handler registration\label{lst:excreg}}]
+  for (unsigned i = 0; i < 32; i++) {
+	exc_register(i, &fault_handler);
+  }
+  exc_register(8, &trap_handler);
+  exc_register(16, &intr_handler);
+  exc_register(17, &intr_handler);
+  exc_register(18, &intr_handler);
+  exc_register(19, &intr_handler);
+\end{lstlisting}
+
+\begin{lstlisting}[float, caption={Interrupt enabling\label{lst:intrena}}]
+  // unmask interrupts
+  intr_unmask_all();
+  // clear pending flags
+  intr_clear_all_pending();
+  // enable interrupts
+  intr_enable();
+\end{lstlisting}
+
+Listing~\ref{lst:intrena} shows how to enable interrupts at the start
+of an application. First, all interrupts are unmasked. Then, all
+pending flags are cleared to avoid triggering any ``stale''
+interrupts. Finally, interrupts are enabled; after that point, Patmos
+will call the respective interrupt handler when an interrupt occurs.
+
+To unmask only certain interrupts, \texttt{machine/exceptions.h}
+provides a function \texttt{intr\_unmask}, which takes an interrupt
+number as parameter. Similarly, \texttt{intr\_clear\_pending} can be
+used to clear only a particular pending flag. Masking interrupts can
+be done through the \texttt{intr\_mask\_all} and \texttt{intr\_mask}
+functions. Disabling interrupt handling in general is done with the
+\texttt{intr\_disable} function.
+
+Listing~\ref{lst:faulthandler} shows a basic fault handler. As Patmos
+cannot recover from faults, the handler does not use a special
+prologue, and calls \texttt{abort} at the end instead of returning. In
+the function body, the handler displays the exception source on the
+leds and prints a message corresponding to the type of fault that
+occurred.
+
+\begin{lstlisting}[float, caption={Fault handler example\label{lst:faulthandler}}]
+void fault_handler(void) {
+  unsigned source = exc_get_source();
+  LEDS = source;
+
+  const char *msg = "FAULT";
+  switch(source) {
+  case 0: msg = "Illegal operation"; break;
+  case 1: msg = "Illegal memory access"; break;
+  }
+  puts(msg);
+
+  // cannot recover from a fault
+  abort();
+}
+\end{lstlisting}
+
+Listing~\ref{lst:intrhandler} shows a minimal interrupt handler. It
+uses the macros \texttt{exc\_prologue} and \texttt{exc\_epilogue} to
+save and restore the processor state. The actual functionality is that
+the state of the LEDs is incremented according to the exception source.
+
+\begin{lstlisting}[float, caption={Interrupt handler example\label{lst:intrhandler}}]
+void intr_handler(void) {
+  exc_prologue();
+
+  LEDS += exc_get_source() & 0xf;
+
+  exc_epilogue();
+}
+\end{lstlisting}
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 
@@ -1939,15 +2053,16 @@ for operands. Accepted register constraints are: \texttt{r} or \texttt{R} for an
 \texttt{\{<registername>\}} to use a specific register.
 
 Example:
-\begin{verbatim}
+\begin{lstlisting}
     int i, j, k;
     asm("mov  $r31 = %1  # copy i into r31\n\t"
         "add  %0 = $r5, %2"
         : "=r" (j)
         : "r" (i), "{r10}" (k));
-\end{verbatim}
+\end{lstlisting}
 
 \chapter{Memory and I/O Subsystem}
+\label{chap:memsyst}
 
 \section{Local and Global Address Space}
 
@@ -2087,18 +2202,40 @@ Address & I/O Device & read & write \\
 \midrule
 \code{0xf0000000} & cpuinfo & processor ID & -- \\
 \code{0xf0000004} & cpuinfo & clock frequency (Hz) & -- \\
-\code{0xf0000200} & timer & clock cycles (high word) & -- \\
-\code{0xf0000204} & timer & clock cycles (low word) & -- \\
-\code{0xf0000208} & timer & time in $\mu s$ (high word) & -- \\
-\code{0xf000020c} & timer & time in $\mu s$ (low word) & -- \\
+\code{0xf0000200} & timer & clock cycles (high word) & cycle interrupt time (high word) \\
+\code{0xf0000204} & timer & clock cycles (low word) & cycle interrupt time (low word) \\
+\code{0xf0000208} & timer & time in $\mu s$ (high word) & $\mu s$ interrupt time (high word) \\
+\code{0xf000020c} & timer & time in $\mu s$ (low word) &  $\mu s$ interrupt time (low word) \\
 \code{0xf0000800} & UART & status & control \\
 \code{0xf0000804} & UART & receive buffer & transmit buffer \\
 \code{0xf0000900} & LED & -- & output register \\
+\code{0xf0000a00} & Keys & input register & -- \\
 \bottomrule
 \end{tabular}
 \caption{I/O devices and registers}
 \label{tab:iomap}
 \end{table}
+
+\subsection{Timer}
+
+The timer device provides a means to measure time as well as to
+trigger an interrupt at a certain point in time. It provides two
+64-bit counters. While the first counter is incremented every clock
+cycle, the second counter is incremented every microsecond.
+
+Interrupts can be triggered by storing a value in the ``cycle
+interrupt time'' and ``$\mu s$ interrupt time'' registers. The timer
+device will then trigger an interrupt when the respective counter
+reaches the value provided in that register. The ``cycle'' interrupt
+is tied to interrupt~0; the ``$\mu s$'' interrupt is tied to
+interrupt~1.
+
+To read out the 64-bit counter values consistently, the low word (at
+the higher address) must be read first. This latches the high word of
+the counter into an internal register, which is then returned when
+reading the high word (at the lower address). Similarly, the low word
+of the interrupt times must be written first. The write to the
+internal 64-bit register takes effect when the high word is written.
 
 \subsection{UART}
 
@@ -2137,8 +2274,6 @@ also be used to represent several UARTs per core (e.g., stdout, stderr, user for
 
 On the PC side a small program is needed to dispatch/demultiplex the different
 data streams.
-
-
 
 \stefan{Would be nice to be able to insert control bytes to flush the output as well, but that must be understood by the simulator as well (it
 must flush its output stream).
@@ -2301,7 +2436,6 @@ void ensure(int n) {
 	It may need to fill data from main memory.}
  	\label{fig:ens_iml}
 \end{figure}
-
 
 \paragraph{Ensure} Returning into a function needs to ensure that the stack
 frame of this function is available in the stack cache. The \code{ensure} instruction,
@@ -2729,7 +2863,15 @@ Table~\ref{tab:burstsignals} shows the signals of the \code{OCPburst}
 interface. The tie-off value for \code{MBurstLength} is 4, and
 \code{MBurstSingleReq} is tied off to 1. This means that the master
 supplies four data words for each write command, and the slave returns
-four words for each read command. All other burst-related signals are
+four words for each read command. The burst length is configurable,
+but might be restricted by the external memory and the external
+memory controller.
+\martin{I assume (hope) that the configurable burst length works.
+One could try varying with the SRAM memory.} 
+\wolf{Depends on how cleanly the code was written and on the
+  hardware. The synchronous SRAM only supports burst lengths $\leq$4
+  due to restrictions of the memory chip.}
+All other burst-related signals are
 tied off to their default values. This entails that the only sequence
 for burst addresses is \code{INCR}. Bursts always stat at an address
 that is aligned to the burst size
@@ -2759,6 +2901,12 @@ the command. The response to a write command may be given earliest in
 the cycle after the last data word was sent. Commands may be issued
 earliest in the cycle after the last response from an earlier command
 is received.
+\martin{Having a write response one cycle after the last data and not
+allowing a command in that cycle costs us one additional clock cycle
+(in the TDM slot). Maybe it doe not matter.}
+\wolf{The consensus was that it would not matter. We could change it
+  if we make sure all slaves comply, the restriction was basically just
+  put in to be on the safe side.}
 
 \begin{table}
   \centering
@@ -2790,33 +2938,22 @@ multiplexed to support multiple slaves. For handshaking via
 \code{SResp}, it is sufficient to combine the responses of different
 slaves with OR.
 
-\wolf{With \code{writeresp\_enable} we could also require a response
-  for ``normal'' writes.}
-
 \wolf{\code{OCPburst} currently allows neither pipelining nor
   same-cycle responses. If we want to, we can make it more like
   \code{OCPcore} or \code{OCPio}.}
 
-\wolf{I am pretty sure that we need to include \code{MDataValid} when
-  using single request bursts. Please check if you understand the spec
-  the same way.}
+The burst length is restricted to a constant which is a power of 2.
+The address must be aligned.
+Burst data must be provided in four consecutive cycles. \code{SResp} is
+active during these cycles. For a burst write the master may have to provide
+D1 for two or more cycles if \code{SResp} is not active in the first cycle of
+the transaction.
 
-Note 4:
-Bursts are restricted to exactly four words (D1, D2, D3 and D4), or some other constant which is a power of 2.  The address must be aligned. Burst data must be provided in four consecutive cycles. SResp is active during these cycles. For a burst write the master may have to provide D1 for two or more cycles if SResp is not active in the first cycle of the transaction.
+\martin{Burst: Is it legal (in our OCP subset) that SCmdAccept comes earlier than SDataAccept?} \wolf{No. Masters can assume that both signals are asserted in the same cycle.}
 
-\wolf{\code{SResp} is \emph{not} active during write bursts according
-  to the OCP spec. If necessary, handshaking for write bursts is done
-  via \code{SCmdAccept} and/or \code{SDataAccept}.}
-
-\martin{Bust: Is it legal (in our OCP subset) that SCmdAccept comes earlier than SDataAccept?}
-
-\martin{Burst: we said that we do not support pipelined requests in bust mode.
+\martin{Burst: we said that we do not support pipelined requests in burst mode.
 So when the slave sets SResp we are not allowing the master to initiate the next
-request in the same cycle. Right?}
-
-\martin{Are OCP addresses always in bytes? Even on the burst interface? I assume yes.
-We need to look this up. -- According to Wolfgang they are.}
-
+request in the same cycle. Right?} \wolf{Right.}
 
 \clearpage
 \subsection{Timing Diagrams}
@@ -2928,6 +3065,14 @@ immediately.
   \code{DVA}.
 \end{enumerate}
 
+
+% % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
+\chapter{Application Binary Interface}
+\label{sec:abi}
+
+\input{abi}
+
+
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 \chapter{Implementation}
 
@@ -3014,14 +3159,57 @@ Current version (4.4.2013) with all ALU operations and test case ALU.s
 for the DE2-70 is: 3415 LCs, 85.44 MHz. Dropping \code{rsub} and all unary
 ALU operations: 3173 LCs, 91.91 MHz.
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Build Instructions}
+\label{ch:build_instructions}
 
-In the following we present an example configuration on a Linux/Ubuntu system.
-Patmos and the compiler have also been successfully been installed on a Mac OSX
-system. The support of Windows is marginal, or basically not existent.
+In the following we present the Patmos build instructions on a Linux/Ubuntu
+system (13.10).\footnote{I used the 32-bit version of Ubuntu to simplify the Quartus installation.}
+Patmos and the compiler have also been successfully installed on a Mac OSX
+system.  The support of Windows is marginal, or basically not existent.
 
 
-\section{Setup On Ubuntu 13.04}
+% ------------------------------------------------------------------------------
+%\section{Prerequisites}
+%
+%In order to build all tools, the following programs and libraries are required:
+%
+%\begin{itemize}
+%\item[cmake, make] \hfill\\
+%The CMake (at least version 2.8) and \texttt{make} build systems are required to build the
+%various components of the tool chain, such as the \texttt{clang} compiler or the \texttt{compiler-rt} system library.
+%\medskip
+%
+%\item[gcc, g++] \hfill\\
+%A C and C++ compiler such as GCC is required to build \texttt{clang}, \texttt{llvm}
+%and \texttt{gold}. It is also possible to use a separate \texttt{clang} installation as
+%an alternative to GCC. Compiling with \texttt{clang} will result in shorter compile
+%times, but at least version 3.3 is required.
+%\medskip
+%
+%\item[flex, bison, texinfo] \hfill\\
+%These tools are required to build tools such as gold successfully.
+%\medskip
+%
+%\item[libelf] \hfill\\
+%The tools in the Patmos tool chain require the development headers of \texttt{libelf},
+%as this library is used to read and write ELF files.
+%\medskip
+%
+%\item[boost] \hfill\\
+%The simulator requires the program-options library from the \texttt{boost} C++ library
+%(at least version 1.46).
+%\medskip
+%
+%\item[git, subversion] \hfill\\
+%The version control system \texttt{git} and \texttt{svn} are required
+%to download the latest development versions of the tools and the benchmarks.
+%\end{itemize}
+%
+
+
+\section{Setup On Ubuntu 13.10}
 
 After a plain Ubuntu installation several packages need to be installed.
 The following apt-get lists the packages that need to be
@@ -3029,12 +3217,10 @@ installed:\footnote{Some packages might be available in newer version
 when reading this document.}
 
 \begin{verbatim}
-sudo apt-get install openjdk-7-jdk git gitk cmake make g++ texinfo flex bison \
+sudo apt-get install git openjdk-7-jdk gitk cmake make g++ texinfo flex bison \
   subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
-  gtkwave
+  ruby1.9.1-dev python zlib1g-dev gtkwave gtkterm
 \end{verbatim}
-
-\todo{Any additional packages needed for Aegean?}
 
 For the Quartus setup it is best to change the default shall to \code{/bin/bash}:
 
@@ -3043,7 +3229,18 @@ sudo rm /bin/sh
 sudo ln -s /bin/bash /bin/sh
 \end{verbatim}
 
-\subsection{Compiler and Patmos}
+\paragraph{Ubuntu 12.04 LTS}
+
+We also tested the setup on long-term support release 12.04 LTS. The compiler
+(gcc) is recent enough for all T-CREST code. Only some additional packages need to
+be installed:
+
+\begin{verbatim}
+sudo apt-get install python3-lxml
+\end{verbatim}
+
+\subsection{Building Patmos and the Compiler Tool Chain}
+\label{sec:build:compiler}
 
 We assume that the T-CREST project will live in \code{\$HOME/t-crest}.
 Patmos and the compiler can be checked out from GitHub and built as follows:
@@ -3065,21 +3262,55 @@ git clone git@github.com:t-crest/patmos-misc.git misc
 ./misc/build.sh
 \end{verbatim}
 
-This will checkout several other repositories (the compiler, library,
+This script (\code{build.sh}) will checkout several other repositories (the compiler, library,
 the Patmos source, and benchmarks) and
-build the compiler, the Patmos simulator, and the test benches.
+builds the compiler, the Patmos simulator, and the test benches.
 Therefore, take a cup of coffee and find some nice reading.
+
+The \code{build.sh} script contains default options, which should work out of the box. 
+The build settings can be changed by a customized \code{misc/build.cfg} file. The file \code{misc/build.cfg.dist}
+is an example configuration file containing default values. It is ignored by the build process and should not be edited.
+\footnote{It is autogenerated by \code{build.sh -e} from the values in \code{build.sh}.}
+To change any options for \code{misc/build.sh}, either start with an empty \code{misc/build.cfg} or
+copy \code{misc/build.cfg.dist} and modify the values to your need.
+
 After building the compiler add the path
-to the compiler executables into your \code{.profile}:
+to the compiler executables (e.g., into your \code{.bashrc} or \code{.profile}):
 \footnote{The path needs to be absolute. LLVM cannot handle
 a path relative to the home folder \textasciitilde{}, e.g., \code{\textasciitilde{}/t-crest/local/bin}.}
+%\footnote{The initialization file name depends on your system and setup. \code{.profile} files are only read by login
+%terminals (remote terminals or at login), but your \code{.bashrc} or \code{.zshrc} (for interactive terminals within a
+%session) might be set up to source \code{.profile} as well.}
+
+\martin{In Mac OS X I have only .profile and I don't understand what the issue by 'only read by login terminals'.}
+\stefan{Login shells are only opened at logins. Interactive terminals are all terminals that are opened by your window manager or
+other means. This is why you need to reboot to have .profile take effect. There are slight differences between bash and zsh when which file is read, 
+and distribution further mix up the files in non-standard ways.}
+
+\stefan{Relative paths should actually work, but the \textasciitilde{} shortcut is shell-specific and may not work, but
+not sure about this.}
 
 \begin{verbatim}
 export PATH=$PATH:$HOME/t-crest/local/bin
 \end{verbatim}
 
-A complete logout from Ubuntu is needed to take effect (just closing
-a terminal window is not enough).
+Optionally, you may additionally add the \code{misc} checkout to your path, so that \code{build.sh} and the helper tools in 
+\code{misc} can be executed from everywhere.
+
+\begin{verbatim}
+export PATH=$PATH:$HOME/t-crest/misc
+\end{verbatim}
+
+A complete logout from Ubuntu might be needed to take effect (just closing
+a terminal window is not enough, depending on how you set up your profile files).
+
+\stefan{Only if you do it wrong ;) }
+
+You can test your installation by checking if the compiler is available:
+
+\begin{verbatim}
+patmos-clang --version
+\end{verbatim}
 
 For correct correct signing of your changes set the username and
 email in git with:
@@ -3098,8 +3329,31 @@ installed as follows:\footnote{\url{http://www.altera.com/literature/manual/quar
 tar xvf Quartus-web-xxx.tar
 \end{verbatim}
 
-The software installation is started with a plain \code{setup.sh}. Then add
-the bin directory of Quartus to your \$PATH.
+The software installation is started with a plain \code{setup.sh}.\footnote{Or \code{bash setup.sh}}
+Then add the bin directory of Quartus to your \$PATH.
+%
+For access to the serial port and access rights for the USB Blaster following additional steps are needed:
+
+\begin{verbatim}
+# Add user to dialout group for the serial port access
+sudo usermod -a -G dialout user
+
+# Add permissions to access the Altera USB Blaster
+sudo su -
+echo "SUBSYSTEM==\"usb\", DRIVER==\"usb\", ATTR{idVendor}==\"09fb\", \
+ATTR{idProduct}==\"6001\", MODE=\"0666\"" > /etc/udev/rules.d/51-usbblaster.rules
+
+udevadm control --reload-rules
+\end{verbatim}
+
+After fixing the permissions for the USB Blaster open Quartus and test if the
+cable is found with the programmer. Select USB-Blaster in \emph{Hardware Setup}.
+When connected to an FPGA test the USB-Blaster with \emph{Auto Detect}
+(With the DE2-115, a question about shared JTAG ID pops up -- select EP4CE115).
+
+Quartus~13.1 drops the support of Cyclone~II devices. Therefore, the
+(phased out) Altera DE2-70 board is not supported anymore. Version 13.0 supports Cyclone~II\
+till Cyclone~V devices and might be the best option at the moment.
 
 \section{Setup On Mac OS X}
 
@@ -3111,14 +3365,14 @@ For Aegean: python33, py33-lxml. Make a link from python3 to python3.3 as this i
 
 \section{Hello World}
 
-One might start with the standard, harmless looking Hello World:
-
-
-\begin{verbatim}
-main() {
+We can start with the standard, harmless looking Hello
+World:\footnote{This example code is not part of the distribution, but
+can be put at any directory.}
+\begin{lstlisting}
+int main() {
     printf("Hello Patmos!\n");
 }
-\end{verbatim}
+\end{lstlisting}
 
 With the compiler installed it can be compiled to a Patmos executable
 and run with the simulator as follows:
@@ -3135,10 +3389,10 @@ by a tool and the individual sections downloaded, and finally a terminal (often
 a serial line) needs to be available on the target, and your test PC needs to
 have a serial line as well and a terminal program needs to run.
 
-Therefore, we might start with a minimal assembler program and execute
-that in the simulator and emulator.
-
-
+Therefore, we might start from a minimal assembler program and execute
+that in the simulator and emulator. From that base we can build up too
+a multi-core version of Patmos that executes in an FPGA and bootstraps
+with programs loaded via a serial port.
 
 
 \section{Building Patmos}
@@ -3147,7 +3401,13 @@ The whole build process of Patmos,%
 \footnote{Get the source from GitHub with: \code{git clone git@github.com:t-crest/patmos}}
 applications in assembler
 and in C, configuration of the FPGA, and downloading an application
-is \code{Makefile} based.
+is \code{Makefile} based. The build of Patmos is within the \code{patmos} folder,
+therefore, the following descriptions assumes you have changed to:
+
+\begin{verbatim}
+    t-crest/patmos
+\end{verbatim}
+
 
 The complete design flow (including the LLVM
 based C compiler) can execute in a Linux machine. The flow without
@@ -3156,40 +3416,190 @@ Under Mac OS X all tools, except Quartus, are working (ModelSim under
 wine). For FPGA synthesis and configuration Windows XP within a VMWare
 virtual machine is a possible solution.
 
-On a Linux box with the installed LLVM compiler in your PATH,%
-\footnote{Installation and build is a simple two step approach:
-\code{git clone git@github.com:t-crest/patmos-misc.git misc}
-and build with:
-\code{./misc/build.sh}}
-the complete build processes is kicked of by:
+On a Linux box with the installed LLVM compiler and Quartus in your PATH,
+the complete build processes for a Hello World is as follows:
 
-% make BOOTAPP=bootable-bootloader APP=helloworld tools synth comp config download
 \begin{verbatim}
-make BOOTAPP=bootable-bootloader APP=helloworld \
+make BOOTAPP=bootable-bootloader APP=hello_puts \
    tools comp gen synth config download
 \end{verbatim}
 
-Here a list of the most important make targets:
+However, this involves quite many steps. Therefore, we suggest doing some \emph{manual}
+buildup to explore the full build process and the possibilities.
 
+As a start we build some tools (e.g., the assembler, simulator, file conversion
+utility, and the boot loader). This has to be done once only.
+
+\begin{verbatim}
+make tools
+\end{verbatim}
+
+\subsection{A Few Assembler Instructions}
+
+We start with a very small assembler program that moves a few values into registers
+(see \code{asm/basic.s}). With following make command the program is assembled
+and executed in the software simulator of Patmos.
+
+\begin{verbatim}
+make swsim BOOTAPP=basic
+\end{verbatim}
+
+The simulator options are set to write out the register contents after each instruction.
+The emulator (the Chisel based simulator) can execute the same program
+with following command:
+
+\begin{verbatim}
+make hwsim BOOTAPP=basic
+\end{verbatim}
+
+This command assembles the application, executes the Chisel based hardware
+construction during which the program is used to initialize the on-chip ROM,
+generates a C++ based emulator, compiles that emulator, and executes it.
+The emulator shows the register content after each instruction.
+
+Those two Patmos simulations, the software simulator and the Chisel based emulator,
+are used for a co-simulation based test. In this co-simulation all available assembler
+programs are executed in both simulations and the register out put is compared.
+The test can be started with:
+
+\begin{verbatim}
+make test
+\end{verbatim}
+
+
+\todo{ModelSim simulation}
+
+\subsection{We Can Blink in Assembler}
+
+\todo{write}
+
+\subsection{A C Based Blinking LED}
+
+As a first real example we build the embedded version of Hello World, the
+blinking LED, from a C program. You can find the C source in \code{c/blinking.c}.
+
+\begin{verbatim}
+make BOOTAPP=bootable-blinking comp gen synth config
+\end{verbatim}
+
+Additionally to blinking an LED this program also writes alternating `0' and `1'
+to the serial port. Connect the FPGA board to your serial port,
+open a terminal of your choice (e.g., \code{gtkterm}), connect to the serial port,
+set the baud rate to 115200, no parity, and no handshaking.
+You should see alternating `0' and `1' sent out synchronous to the blinking.
+
+Note that the program name (\code{blink}) is prefixed by \code{bootable-}.
+The marker selects the right compiler settings for a program that ends up in
+the Patmos on-chip ROM. As the on-chip memory is limited, only tiny programs
+are supported in this execution mode.
+
+Figure~\ref{fig:blink} shows the code for the embedded Hello World
+C program. Two constants (0xF0000900 and 0xF0000804) are the addresses
+of the IO devices LED and serial port. IO devices connected to Patmos are
+connected to the local, uncached memory area. This is the same memory
+area where data SPM and NoC SPM are connected. Therefore, to access them
+one needs to use the local load/store instructions. With the attribute \code{\_SPM}
+the compiler is instructed to emit the correct load and store instructions.
+
+\begin{lstlisting}[float,caption={A blinking LED\label{fig:blink}}]
+/*
+    This is a minimal C program executed on the FPGA version of Patmos.
+    An embedded Hello World program: a blinking LED.
+
+    Additional to the blinking LED we write to the UART '0' and '1' (if available).
+
+    Author: Martin Schoeberl
+    Copyright: DTU, BSD License
+*/
+
+#include <machine/spm.h>
+
+int main() {
+
+    volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0000900;
+    volatile _SPM int *uart_ptr = (volatile _SPM int *) 0xF0000804;
+    int i, j;
+
+    for (;;) {
+        *uart_ptr = '1';
+        for (i=2000; i!=0; --i)
+            for (j=2000; j!=0; --j)
+                *led_ptr = 1;
+
+
+        *uart_ptr = '0';
+        for (i=2000; i!=0; --i)
+            for (j=2000; j!=0; --j)
+                *led_ptr = 0;
+
+    }
+}
+\end{lstlisting}
+
+\martin{I'm still a little bit confused when to use the APP and the BOOTAPP
+thing.}
+
+\martin{TODO: we need to streamline the make process a little bit.
+The targets might be a little bit confusing. Patmos is compiled two times.}
+
+
+\subsection{Make Targets}
+
+A list of the most important make targets:
 
 \begin{description}
 \item[tools] build of all tools, including the Patmos software simulator
 \item[asm] assemble source (from folder \code{asm})
+\item[swsim] execute the Patmos simulator
+\item[hwsim] execute the Patmos emulator
 \item[emulator] build the Chisel based C++ emulator
-\item[csim] execute the Patmos emulator
 \item[comp] compile a C program as loadable ELF binary
 \item[bootcomp] compile a C program as a bootable image
 \item[gen] generate the Verilog code
 \item[synth] synthesize for an FPGA
+\item[config] configure the FPGA
+\item[download] download an elf file into the main memory via the Patmos bootloader
+\item[test] run all assembler tests 
 \end{description}
 
+The name of an application that can execute from the on-chip ROM is set
+with the BOOTAPP variable.
 
-\todo{Test and describe the ELF download flow.}
+\subsection{Download of ELF Files}
+\label{sec:elf:files}
+
+On a Linux box with the installed LLVM compiler and Quartus in your PATH,
+the complete build processes for the Hello World is as follows:
+
+% make BOOTAPP=bootable-bootloader APP=hello_puts tools synth comp config download
+\begin{verbatim}
+make BOOTAPP=bootable-bootloader APP=hello_puts \
+   tools comp gen synth config download
+\end{verbatim}
+
+You should see the download information and then the greeting from Patmos:
+
+\begin{verbatim}
+/home/martin/t-crest/patmos/install/bin/patserdow -v /dev/ttyUSB0 /home/martin/t-crest/patmos/tmp/hello_puts.elf
+Port opened: true
+Params set: true
+Elf version is '1':true
+CPU type is:48875
+Instruction width is 32 bits:true
+Is Big Endian:true
+File is of type exe:true
+Entry point:131076
+
+[++++++++++] 49778/49778 bytes
+Hello, World!
+
+EXIT 0
+\end{verbatim}
 
 The \code{Makefile} use following variables to configure the build process:
 \code{BOOTAPP} is an application that ends in the on-chip ROM. This may
-be an assembler program or a simple C program that does not need any
-initialized data; most prominent the boot loader for ELF binaries.
+be an assembler program or a simple C program;
+most prominent the boot loader for ELF binaries.
 A C program that shall be compiled as ROM target needs to be prefixed
 with \code{bootable-}.
 \code{APP} is a C program resulting in an ELF binary that can be either
@@ -3197,22 +3607,24 @@ loaded by the emulator or the boot loader when executing in an FPGA.
 % TODO: test and talk about patsim. Having a complete ELF in the FPGA
 % without the boot loader would be nice as well.
 
+\todo{Describe ELF download without building the FPGA}
+
 
 Here an example of the individual steps to build the blinking LED C
 hello world (on a different FPGA board):
 \begin{verbatim}
 make tools
 make BOOTAPP=bootable-echo bootcomp gen
-make BOOTAPP=bootable-echo QPROJ=bemicro synth
-make QPROJ=bemicro BLASTER_TYPE=Arrow-USB-Blaster config
+make BOOTAPP=bootable-echo BOARD=bemicro synth
+make BOARD=bemicro BLASTER_TYPE=Arrow-USB-Blaster config
 \end{verbatim}
 
 This split of the make commands is for demonstration. It is
 possible to merge all steps into a single make (on Linux
-systems) or two steps when using a two operating
-systems (for compilation and synthesis).
+systems) or two steps when using two operating
+systems (e.g., Mac OSX for compilation and Windows for synthesis).
 
-\paragraph{Emulator and elf file}
+\paragraph{Emulator and elf File}
 
 The emulator can read a standard ELF file. An example how to compile
 a small C program that uses part of the standard library and executing
@@ -3220,19 +3632,233 @@ it on the emulator is as follows:
 
 \begin{verbatim}
 make emulator
-make comp APP=helloworld
-bin/emulator tmp/helloworld.elf
+make comp APP=hello_puts
+install/bin/emulator tmp/hello_puts.elf
 \end{verbatim}
 
 \martin{Where is the make target to run the emulator with an ELF file?}
 
-\section{ModelSim license}
+\subsection{Supported FPGA Boards}
+
+At the time of this writing we have mainly focused on Altera FPGA based boards. Following boards
+are directly supported in the default build process:
+
+\begin{itemize}
+\item Altera DE2-70 (\code{altde2-70})
+\item Altera DE2-115 (\code{altde2-115})
+\item Altera/Farnell BeMicro (\code{bemicro})
+\end{itemize}
+
+Setting the \code{BOARD} variable configures the board that shall be used.
+Without changing the \code{Makefile} the default of the board (and any other build variables)
+can be overridden by providing a local \code{config.mk} that is included in the \code{Makefile}.
+
+\subsection{Multicore Patmos}
+
+A multicore Patmos with shared external memory and the network-on-chip Argo is configured via
+the Aegean framework. Aegean is a collection of Python scripts that read in XML based configuration
+description (e.g., topology, network connections, processor types,...). Aegean generates the Chisel based
+components (Partmos, memory arbitration tree, and memory controller), generates the VHDL top-level
+to connect them with the VHDL based NoC, synthesizes the hardware, compiles the application for the
+individual cores, configures the FPGA, and downloads the application.
+
+In directory \code{aegean} run:
+
+\begin{verbatim}
+make platform AEGEAN_PLATFORM=mandelbrot_demo
+make synth config AEGEAN_PLATFORM=mandelbrot_demo
+\end{verbatim}
+
+to generate (and synthesize) the mandelbrot application on a 4 core
+version of Patmos for an Altera DE2-115 FPGA board. This application is compiled
+into the on-chip memories and therefore executing right after configuration of the
+FPGA. Have a terminal open and connected to the serial port (115200 baud, 1 stop bit,
+no handshake) during and after the FPGA configuration and you shall see the output of
+the mandelbrot calculation.
+
+However, the approach to have the application in on-chip memory works for tiny programs
+only. Furthermore, each software change needs a new synthesize run. A better approach is
+to build a platform that contains a bootloader (similar to the single core version) and some
+startup code to synchronize the program start with the other cores. This platform is the default
+configuration in Aegean and needs to be generated only once with:
+
+\begin{verbatim}
+make platform
+make synth
+\end{verbatim}
+
+The FPGA is configured from within the \code{aegean} directory with:
+
+\begin{verbatim}
+make config
+\end{verbatim}
+
+The compilation and download of the application is then best done within
+the \code{patmos} directory with:
+
+\begin{verbatim}
+make APP=hello_puts comp download
+\end{verbatim}
+
+This application is the same single core \emph{Hello World} application that
+we used in Section~\ref{sec:elf:files}. However, here we just compiled the
+application and downloaded it via the serial port. We synthesized and configured
+the FPGA from within the Aegean project for the multi-core version.
+
+\todo{We shall have here three simple hello world applications: (1) just plain shared memory 4 cores saying hello - DONE -,
+(2) a CMP program that uses shared memory, and (3) a simple NoC setup.}
+
+
+%[2014-02-28 17:24:08 ] Stefan Hepp: #include <machine/patmos.h>
+%[2014-02-28 17:24:22 ] Stefan Hepp: zu finden in patmos-newlib/newlib/libc/machine/patmos/machine/patmos.h
+
+\section{The Xilinx ML605 Platform}
+
+For the evaluation within the T-CREST project the Xilinx ML605 FPGA board was chosen as the `standard'
+evaluation platform. The T-CREST platform contains, besides several Patmos' connected with the Argo NoC,
+a memory tree, called BlueTree, from UoY and the time-predictable memory controller from TU/e. As the
+building this platform needs some non-free tools and including closed source code, we provide prebuilt
+configurations of the T-CREST platform as bit files available for download:
+
+\begin{itemize}
+\item A 4 core version: \url{http://patmos.compute.dtu.dk/t-crest-4core.bit}
+\item A 16 core version: 
+\end{itemize}
+
+To configure the FPGA use the IMPACT software from Xilinx (command \code{impact}), which is part of the Xilinx ISE package
+and needs no license (It is also available in a smaller Lab package). To compile an application and
+download it to the ML605 follow the exact same steps as for the Altera CMP version, e.g., from
+within the \code{patmos} directory:
+
+\begin{verbatim}
+make APP=hello_puts comp download
+\end{verbatim}
+
+\subsection{Getting the Xilinx Configuration Cable to Work}
+
+Xilinx does not support Ubuntu (at least the last few versions) directly. The following description
+is a summary of the help from Jamie.
+
+Copy some Xilinx cable specific files to \code{/usr/share} with:
+
+\begin{verbatim}
+sudo cp /opt/Xilinx/14.7/ISE_DS/ISE/bin/lin/install_script/install_drivers/\
+linux_drivers/pcusb/*.hex /usr/share
+\end{verbatim}
+ 
+Ensure that \code{fxload} is installed with:
+\begin{verbatim} 
+sudo apt-get install fxload
+\end{verbatim}
+
+Create \code{/etc/udev/rules.d/80-xusbdfw.rules} with following content:
+
+\begin{tiny}
+\begin{verbatim}
+# version 0003
+ATTR{idVendor}=="03fd", ATTR{idProduct}=="0008", MODE="666"
+SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="03fd", ATTR{idProduct}=="0007", RUN+="/sbin/fxload -v -t fx2 -I /usr/share/xusbdfwu.hex -D $tempnode"
+SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="03fd", ATTR{idProduct}=="0009", RUN+="/sbin/fxload -v -t fx2 -I /usr/share/xusb_xup.hex -D $tempnode"
+SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="03fd", ATTR{idProduct}=="000d", RUN+="/sbin/fxload -v -t fx2 -I /usr/share/xusb_emb.hex -D $tempnode"
+SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="03fd", ATTR{idProduct}=="000f", RUN+="/sbin/fxload -v -t fx2 -I /usr/share/xusb_xlp.hex -D $tempnode"
+SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="03fd", ATTR{idProduct}=="0013", RUN+="/sbin/fxload -v -t fx2 -I /usr/share/xusb_xp2.hex -D $tempnode"
+SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="03fd", ATTR{idProduct}=="0015", RUN+="/sbin/fxload -v -t fx2 -I /usr/share/xusb_xse.hex -D $tempnode"
+\end{verbatim}
+\end{tiny}
+
+Restart the udev service with:
+
+\begin{verbatim} 
+sudo udevadm control --reload-rules
+\end{verbatim}
+
+Make sure that libusb is installed (e.g., in \code{/lib/i386-linux-gnu} on a 32-bit Ubuntu) and make a symbolic link with
+
+\begin{verbatim} 
+sudo ln -s libusb-1.0.so.0 libusb.so
+\end{verbatim}
+
+Best restart your machine and connect the USB cable again.
+
+\paragraph{Using iMPACT}
+
+Start impact from a terminal with 
+
+\begin{verbatim} 
+impact
+\end{verbatim}
+
+Impact pops up some dialog boxes:
+
+Do you want iMPACT to automatically load the last saved project for you? -- answer with \emph{No}.
+
+Do you want the system to automatically create and save a project file for you? -- answer \emph{Yes}.
+
+Next window click Ok. iMPACT should detect the JTAG chain with two devices. Answer the
+following dialog boxes wit \emph{No} and \emph{Cancel}.
+
+Right-click on the xc6vlx240t device and select \emph{Assign New Configuration File} and select
+the provided .bit file (e.g., \code{t-crest-4core.bit}). Answer the following question about attached
+Flash PROMs with \emph{No}.
+
+Right-click again on the FPGA symbol and select \emph{Program}. Select \emph{Ok} on the next
+dialog box and the FPGA shall be configured.
+
+Then compile and download an application as described above.
+
+\paragraph{Installing the Xilinx Tools}
+
+After extracting the tools with \code{tar} the install procedure is started within the
+\code{Xilinx\_*} directory with:
+
+\begin{verbatim}
+sudo ./xsetup
+\end{verbatim}
+
+\paragraph{Starting Xilinx ISE}
+
+In some setups it is needed to source a setup script, e.g.:
+
+\begin{verbatim}
+source /opt/Xilinx/14.7/ISE_DS/settings64.sh
+\end{verbatim}
+
+Then ISE can be started with \code{ise}.
+
+\subsection{Updating the Patmos Cores with Aegean}
+
+The correct Verilog file for the two version of Patmos (core 0 that downloads an application and the other cores)
+is built with the \emph{Aegean} tool. The 4 cores version is built with:
+
+\begin{verbatim}
+make platform AEGEAN_PLATFORM=ml605_4core
+\end{verbatim}
+
+% make compile AEGEAN_PLATFORM=ml605_4core
+
+A 16 core version is available as well. The generated Verilog files are the same,
+but the schedule for the Argo NoC is different (which is copied to
+\code{t-crest/patmos/c/nocinit.c}).
+
+All generated file can be cleaned with \code{make cleanall}.
+
+The configuration of T-CREST with Bluetree and the TU/e memory controller
+is available via a .tgz file, exchanged via email to protect IP rights.
+Therefore, they are not integrated in Aegean and some manual code copying is needed.
+The \code{ml605.tgz} shall be extracted within the \code{t-crest} directory.
+Copy the Patmos Verilog files (\code{ml605mPatmosCore.v} and \code{ml605mPatmosCore.v})
+from the build directory (\code{t-crest/aegean/build/ml605\_4core}) into \code{t-crest/ml605}.
+
+
+
+\section{ModelSim License}
 In the case that you have a DTU Compute login you can access the license servers from outside the DTU network by setting up an SSH tunnel.
 An example of how such a tunnel can be set up follows, you need to insert you own username.
 
 \begin{verbatim}
 ssh -L 1717:angel2:1717 -L 1718:angel2:1718 ${USERNAME}@sshlogin.compute.dtu.dk
 \end{verbatim}
+%% $
 
 When the SSH tunnel is setup the LM\_LICENSE\_FILE needs to be set to:
 \begin{verbatim}
@@ -3241,901 +3867,292 @@ LM_LICENSE_FILE=1717@localhost
 
 This way of setting up an SSH tunnel might also work for other institutions.
 
+\paragraph{License settings for ModelSim and Xilinx}
+
+\begin{verbatim}
+export LM_LICENSE_FILE=1717@angel1: 1717@angel2: 1717@angel3
+export XILINXD_LICENSE_FILE="2100@eda1.imm.dtu.dk"
+\end{verbatim}
+
+\chapter{Tools}
+
+Along with Patmos come several tools; this chapter describes these
+tools and how to use them.
+
+\section{Simulation, Emulation, and Execution}
+
+\subsection{pasim}
+
+The Patmos simulator \texttt{pasim} provides a high-level simulation
+of Patmos. It is useful for quick evaluations of different hardware
+configurations and for debugging applications. As it can provide
+detailed reports about the application behavior, it is particularly
+useful during the initial phases of application development.
+
+\paragraph{Usage} The general usage of \texttt{pasim} is \texttt{pasim
+  <file>}, where \texttt{<file>} may be a plain binary or an ELF
+file. Tables~\ref{tab:pasimopts_gen}, \ref{tab:pasimopts_mem},
+\ref{tab:pasimopts_cache}, and~\ref{tab:pasimopts_sim} show the
+various options of the simulator. For memory/cache sizes the following
+units are allowed: \texttt{k}, \texttt{m}, \texttt{g}, or \texttt{kb},
+\texttt{mb}, \texttt{gb}.
+
+\begin{table}[b!]
+  \centering
+  \caption{General options for \texttt{pasim}}
+  \label{tab:pasimopts_gen}
+  \begin{tabular}{>{\tt}l<{}p{.6\textwidth}}
+    \toprule
+    \multicolumn{1}{l}{Option} & Description \\
+    \midrule
+    -h [ ---help ]       & produce help message \\
+    -c [ ---maxc ] arg   & stop simulation after the given number of cycles (default: infinity) \\
+    -b [ ---binary ] arg & binary or elf-executable file (stdin: \texttt{-}) \\
+    -o [ ---output ] arg & output execution trace in file (stdout: \texttt{-}, default: stdout) \\
+    ---debug [=arg]      & enable step-by-step debug tracing after cycle, default: 0 \\
+    ---debug-fmt arg     & format of the debug trace (\texttt{short}, \texttt{trace}, \texttt{instr}, \texttt{blocks}, \texttt{calls}, \texttt{calls-indent}, \texttt{default}, \texttt{long}, \texttt{all}) \\
+    ---debug-file arg    & output debug trace in file (stderr: \texttt{-}, default: stderr) \\
+    ---debug-intrs       & print out all status changes of the exception unit. \\
+    ---debug-nopc        & do not print PC and cycles counter in debug output \\
+    ---print-stats arg   & print statistics for a given function only. \\
+    ---flush-caches arg  & flush all caches when reaching the given address (can be a symbol name). \\
+    -V [ ---full ]       & full statistics output \\
+    -v [ ---verbose ]    & enable short statistics output \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}
+  \centering
+  \caption{Memory Options for \texttt{pasim}}
+  \label{tab:pasimopts_mem}
+  \begin{tabular}{>{\tt}l<{}>{\tt}r<{}p{.6\textwidth}}
+    \toprule
+    \multicolumn{1}{l}{Option} & \multicolumn{1}{l}{Default} & Description \\
+    \midrule
+    -g [ ---gsize ] arg  & 64m  & global memory size in bytes \\
+    -G [ ---gtime ] arg  & 7    & global memory transfer time per burst in cycles \\
+    -t [ ---tdelay ] arg & 0    & read delay to global memory per request in cycles \\
+    ---trefresh arg      & 0    & refresh cycles per TDM round \\
+    ---bsize arg         & 16   & burst size (and alignment) of the memory system. \\
+    ---psize arg         & 0    & Memory page size. Enables variable burst lengths for single-core. \\
+    -p [ ---posted ] arg & 0    & Enable posted writes (sets max queue size) \\
+    -l [ ---lsize ] arg  & 2k   & local memory size in bytes \\
+    ---mem-rand arg      & 0    & Initialize memories with random data \\
+    ---chkreads arg      & none & Check for reads of uninitialized data, either per byte (\texttt{warn}, \texttt{err}) or per access (\texttt{warn-addr}, \texttt{err-addr}). Disables the data cache. \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}
+  \centering
+  \caption{Cache options for \texttt{pasim}}
+  \label{tab:pasimopts_cache}
+  \begin{tabular}{>{\tt}l<{}>{\tt}r<{}p{.6\textwidth}}
+    \toprule
+    \multicolumn{1}{l}{Option} & \multicolumn{1}{l}{Default} & Description \\
+    \midrule
+    -d [ ---dcsize ] arg & 2k     & data cache size in bytes \\
+    -D [ ---dckind ] arg & lru2   & kind of direct mapped/fully-/set-associative data cache (\texttt{ideal}, \texttt{no}, \texttt{dm}, \texttt{lru[N]}, \texttt{fifo[N]}) \\
+    ---dlsize arg        & 0      & size of a data cache line in bytes, defaults to burst size if set to 0 \\
+    -s [ ---scsize ] arg & 2k     & stack cache size in bytes \\
+    -S [ ---sckind ] arg & block  & kind of stack cache (\texttt{ideal}, \texttt{block}, \texttt{lblock}, \texttt{dcache}) \\
+    -C [ ---icache ] arg & mcache & kind of instruction cache (\texttt{mcache}, \texttt{icache}) \\
+    -K [ ---ickind ] arg & lru2   & kind of direct mapped/fully-/set-associative I-cache (\texttt{ideal}, \texttt{no}, \texttt{dm}, \texttt{lru[N]}, \texttt{fifo[N]} \\
+    ---ilsize arg        & 0      & size of an I-cache line in bytes, defaults to burst size if set to 0 \\
+    -m [ ---mcsize ] arg & 2k     & method cache / instruction cache size in bytes \\
+    -M [ ---mckind ] arg & fifo   & kind of method cache (\texttt{ideal}, \texttt{lru}, \texttt{fifo}) \\
+    ---mcmethods arg     & 16     & Maximum number of methods in the method cache, defaults to number of blocks if zero \\
+    ---mbsize arg        & 8      & method cache block size in bytes, defaults to burst size if zero \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}
+  \centering
+  \caption{Simulator options for \texttt{pasim}}
+  \label{tab:pasimopts_sim}
+  \begin{tabular}{>{\tt}l<{}>{\tt}r<{}p{.59\textwidth}}
+    \toprule
+    \multicolumn{1}{l}{Option} & \multicolumn{1}{l}{Default} & Description \\
+    \midrule
+   ---cpuid arg           & 0          & Set CPU ID in the simulator \\
+   -N [ ---cores ] arg    & 1          & Set number of CPUs (enables memory TDM) \\
+   ---freq arg            & 80         & Set CPU Frequency in Mhz \\
+   ---interrupt arg       & 1          & enable or disable interrupts \\
+   ---mmbase arg          & 0xf0000000 & base address of the IO device map address range \\
+   ---mmhigh arg          & 0xffffffff & highest address of the IO device map address range \\
+   ---cpuinfo\_offset arg & 0x000      & offset where the cpuinfo device is mapped \\
+   ---excunit\_offset arg & 0x100      & offset where the exception unit is mapped \\
+   ---timer\_offset arg   & 0x200      & offset where the timer device is mapped \\
+   ---uart\_offset arg    & 0x800      & offset where the UART device is mapped \\
+   ---led\_offset arg     & 0x900      & offset where the LED device is mapped \\
+   -I [ ---in ] arg       & -          & input file for UART simulation (stdin: \texttt{-}) \\
+   -O [ ---out ] arg      & -          & output file for UART simulation (stdout: \texttt{-}) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{patmos-emulator}
+
+The tool \texttt{patmos-emulator} provides a C++-based simulator that
+is derived from the actual hardware description. While it is slower
+and less flexible than \texttt{pasim}, its behavior is identical to
+the behavior of actual hardware. It is therefore useful for
+investigating cases where the behavior of the simulator diverges from
+the behavior in the FPGA. The emulator can also generate wave form
+traces, which allow the investigation on a level similar to
+Verilog/VHDL-based simulations.
+
+\paragraph{Usage} 
+
+The general usage is \texttt{patmos-emulator [<file>]}. When invoked
+without argument, \texttt{patmos-emulator} executes the code in the
+boot ROM of the processor. When given an ELF file as argument, the
+emulator loads the file and executes it
+directly. Table~\ref{tab:emulopts} shows the command-line options for
+the emulator.
+
+\begin{table}
+  \centering
+  \caption{Options for \texttt{patmos-emulator}}
+  \label{tab:emulopts}
+  \begin{tabular}{>{\tt}l<{}p{.66\textwidth}}
+    \toprule
+    \multicolumn{1}{l}{Option} & Description \\
+    \midrule
+    -h            & Print help \\
+    -i            & Initialize memory with random values \\
+    -k            & Simulate random input from keys \\
+    -l <N>        & Stop after \texttt{<N>} cycles \\
+    -p            & Print method cache statistics \\
+    -r            & Print register values in each cycle \\
+    -v            & Dump wave forms file \texttt{Patmos.vcd} \\
+    -I <file>     & Read input for UART from file \texttt{<file>} (stdin: \texttt{-}, default: stdin) \\
+    -O <file>     & Write output from UART to file \texttt{<file>} (stdout: \texttt{-}, default: stdout) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{patserdow}
+
+The tool \texttt{patserdow} downloads an ELF file via a serial line to
+the FPGA and forwards output to and from the downloaded
+application. The download protocol uses CRC checksums to verify the
+integrity of the downloaded data. The \texttt{patserdow} tool
+terminates when the application on the FPGA terminates, with the same
+exit code as the application.
+
+\paragraph{Usage}
+
+The general usage is \texttt{patserdow [-v] [-h] <port> <file>}. The
+option \texttt{-h} prints a basic help. The option \texttt{-v} turns
+on a verbose mode, where information about the file to be downloaded
+and the progress of the downloading process is printed to
+stderr. Output from the application is written to stdout; input to the
+application is read from stdin. The argument \texttt{<port>} specifies
+the serial port to be used for downloading. The argument
+\texttt{<file>} specifies the ELF file to be downloaded.
+
+\subsection{patex}
+
+The tool \texttt{patex} combines FPGA configuration and application
+download such that ELF files can be executed on the FPGA without
+manual intervention. It can therefore act as a drop-in replacement for
+\texttt{pasim} and \texttt{patmos-emulator}. As \texttt{patex}
+executes the application on actual hardware, it is particularly useful
+for applications where simulation or emulation would be prohibitively
+slow.
+
+\paragraph{Usage}
+
+The general usage is \texttt{patex [-I <file>] [-O <file] <file>}. The
+argument for the option \texttt{-I} specifies where input to the UART
+should be read from. The argument for the option \texttt{-O} specifies
+where UART ouput should be written to.
+
+The FPGA is configured by calling \texttt{make config} in the
+directory specified in environment variable \texttt{PATMOS\_HOME}.
+When this variable is unset, \texttt{patex} uses the directory where
+it was installed from. The environment variable \texttt{COM\_PORT}
+sets the serial port for downloading. When this variable is unset,
+\texttt{patex} uses the \texttt{COM\_PORT} variable from the Makefile
+at the time of installation. The environment variable \texttt{TIMEOUT}
+sets a timeout in seconds. By default, \texttt{patex} terminates
+download and execution after 300 seconds.
+
+\section{Patmos Developer Tools}
+
+This section describes tools that are useful when working on Patmos
+itself, but are of little interest when developing applications.
+
+\subsection{elf2bin}
+
+The \texttt{elf2bin} tool converts ELF files to binary files.
+
+\paragraph{Usage}
+
+The \texttt{elf2bin} tool has two modes. In default mode, its usage is
+\texttt{elf2bin <infile> <outfile1> <outfile2>} and it dumps
+executable segments to file \texttt{<outfile1>} and other segments to
+\texttt{<outfile2>}. For the non-executable segments, it uses a
+displacement of \texttt{0x80000000}, such that data that is mapped to
+address \texttt{<N>} is dumped to position \texttt{<N>-0x80000000} in
+the output file.
+
+The second mode of \texttt{elf2bin} is a ``flat'' mode, with the usage
+\texttt{elf2bin -f <infile> <outfile>}. In that mode, \texttt{elf2bin}
+generates a flat output file, without any displacement. This file can
+be post-processed (e.g., with \texttt{hexdump -v -e '"\%d,"' -e '" // \%08x\textbackslash n"'})
+to generate a representation of the data for Verilog/VHDL-based
+simulations of external memory.
+
+\subsection{pacheck}
+
+The tool \texttt{pacheck} performs a ``sanity'' check of binaries and
+ELF files. While not being complete, it detects common errors such as
+control-flow instruction inside branch delay slots.
+
+\paragraph{Usage}
+
+The usage of \texttt{pacheck} is \texttt{pacheck [-h|---help]
+  [-v|---verbose] [[-b|---binary] <input>]}. The option \texttt{-h}
+prints a help message. The option \texttt{-v} makes \texttt{pacheck}
+verbose. By default, \texttt{pacheck} reads from stdin; a file for
+checking can be given either as command-line argument or as argument
+to the option \texttt{-}.
+
+\subsection{paasm}
+
+The Patmos assembler \texttt{paasm} provides a basic assembler. It
+generates binary files and should be used only for writing very basic
+tests of Patmos. For developing applications in assembly, please use
+the assembler provided by the compiler, which is more complete and in
+particular supports the generation of ELF files.
+
+\paragraph{Usage}
+
+The usage of \texttt{paasm} is \texttt{paasm <input> <output>}.
+
+\subsection{padasm}
+
+The Patmos disassembler \texttt{padasm} is the counterpart of
+\texttt{paasm}, and similar restrictions apply. For general
+development, please use the \texttt{patmos-llvm-objdump} tool provided
+by the compiler.
+
+\paragraph{Usage}
+
+The usage of \texttt{padasm} is \texttt{padasm <input> <output>}.
+
 \chapter{The Patmos Compiler}
 \label{sec:compiler}
 
-The LLVM compiler has been adapted to emit code for the Patmos ISA
-and support the special features, e.g., the stack cache~\cite{Seus13:compiler}.
+\input{toolchain}
 
-\martin{Daniel and Stefan shall add here an overview of the compiler and
-some words on source organization. But let's start with some notes.}
-
-The compiler and libraries can be built with \code{misc/build.sh}.
-This script also contains the default options, which should work on a
-standard Linux machine out of the box. Options can be overwritten by
-entries in a personal \code{misc/build.cfg}. The file {misc/build.dist.cfg}
-is just an example configuration file, generated from build.sh, and ignored
-by the build process.
-
-
-\chapter{Application Binary Interface}
-\label{sec:abi}
-
-\section{Data Representation}
-
-Data words in memories are stored using the big-endian data representation, this
-also includes the instruction representation.
-
-\section{Register Usage Conventions}
-
-The register usage conventions for the general purpose registers are as follows:
-\begin{itemize}
-  \item \texttt{r0} is defined to be zero at all times.
-  \item \texttt{r1} and \texttt{r2} are used to pass the return value on
-        function calls. \\
-        For 64 bit results, the high part is stored in \texttt{r1},
-        the low part in \texttt{r2}.
-	32 bit results are returned using \texttt{r1} only.
-  \item \texttt{r3} through \texttt{r8} are used to pass arguments on function
-        calls. \\
-        For 64 bit arguments, the high part is stored first,
-        followed by the low part.\\ E.g., for a 64 bit argument passed in
-        \texttt{[r3,r4]}, the high part is in \texttt{r3}, the low part
-        in \texttt{r4}.
-  \item \texttt{r27} is used as temp register.
-  \item \texttt{r28} is defined as the frame pointer and \texttt{r29} is defined as the stack
-        pointer for the \emph{shadow} stack in global memory. The use of a frame
-        pointer is optional, the register can freely be used otherwise.
-	\texttt{r29} is guaranteed to always hold the current stack pointer and is not used
-	otherwise by the compiler.
-  \item \texttt{r30} and \texttt{r31} are defined as the return function base
-        and the return function offset.
-        Usually, they are passed as operands to the \texttt{ret} instruction.
-  \item \texttt{r1} through \texttt{r19} are caller-saved \emph{scratch}
-        registers.
-  \item \texttt{r20} through \texttt{r31} are callee-saved \emph{saved}
-        registers.
-\end{itemize}
-
-The usage conventions of the predicate registers are as follows:
-\begin{itemize}
-  \item all predicate registers are callee-saved \emph{saved} registers.
-\end{itemize}
-
-\daniel{I have no educated opinion whether caller- or callee-saved.}
-\fb{This is rather easy to change in the compiler, and should be evaluated
-accordingly.}
-
-\daniel{
-What I'd like to have for single-path code is a guard predicate parameter for the called function, e.g., always passed in p1.
-}
-\fb{What would the guard predicate be good for? If need be we could define a
-separate calling convention for single-path-programming programs; in order to
-keep the conventions for the other programs sane.}
-
-\stefan{We would gain in most cases by making predicates caller-saved, since predicates are usually not
-used across function calls, this saves up to 6 instructions per call.
-Predicate live ranges over calls only happen with single-path and if-conversion. However, having only caller-saved predicates
-makes if-conversion of calls too costly (and too complex). A nicer solution would be to have p1-p4 caller-saved and
-p5-p7 callee saved. I got this to work (do not alias s0 with p1-p7 in RegInfo.td, mark s0 and p5-p7 as callee saved
-in RegInfo.cpp, and in processBeforeCalleeSavedScan set s0 as used when any of p5-p7 is used), but this would require the
-if-converter to use callee-saved predicates when converting calls, i.e., to change the predicate of the condition.
-Sounds easy, but is actually far from trivial to hack into the if-converter, and only works if the if-converter runs before the
-prologue-inserter, so we stay with callee saved registers for now and live with the costs of spilling s0 at nearly every call.}
-
-
-The usage conventions of the special registers are as follows:
-\begin{itemize}
-  \item The stack cache control registers \texttt{ss} and \texttt{st} are callee-saved
-        \emph{saved} register.
-  \item \texttt{s0}, representing the predicate registers, is a callee-saved \emph{saved} register.
-  \item All other special registers are caller-saved scratch registers and should not be used
-        across function calls.
-\end{itemize}
-
-\section{Function Calls}
-\label{sec:function_calls}
-
-Function calls have to be executed using the \texttt{call}
-instruction that automatically prefetches the target function to the method
-cache and stores the return information to the general-purpose register \texttt{r31}.
-At a function call, the callers base address has to be in \texttt{r30}.
-The callee is responsible to store/restore the callers function base and pass it as first
-operand to the return instruction.
-The \texttt{call} and \texttt{brcf} instructions neither use nor modify \texttt{r30}, the
-return function base is only used by \texttt{ret}.
-
-The register usage conventions of the previous section indicate which registers
-are preserved across function calls.
-
-The first $6$ arguments of integral data type are passed in registers, where
-64-bit integer and floating point types occupy two registers. All other
-arguments are passed on the \emph{shadow} stack via the global memory.
-
-\fb{We could pass arguments via the stack cache, however, this would work only
-for functions with a fixed number of arguments. The calling convention for
-variadic function would then differ from the standard conventions. We should
-probably also introduce a size limit on how many arguments should be passed via
-the stack cache. Thus, for a first shot I decided to keep the conventions
-simple.}
-\martin{I would like to see arguments passed via the stack cache. No
-reason to go via main memory (when the number is fixed.}
-
-\martin{BTW: an on-chip stack, with single cycle access, is not so different from
-a large register file. Maybe using a sliding window to keep the number of
-addressing bits down. Shall we merge the stack cache with the register file?
-Are we than redoing a stack (Java) processor?}
-
-When the return function base \texttt{r30} and the return offset \texttt{r31}
-needs to be saved to the stack, they have to be saved as the first elements
-of the function's stack frame, i.e., right after the stack frame of the
-calling function. Note that in contrast to \texttt{br} and \texttt{brcf} the
-return offset refers to the next instruction after the \emph{delay slot} of the
-corresponding \texttt{call} and can be implementation dependent (cf.\ the description
-of the \texttt{call} and \texttt{ret} instructions).
-
-\section{Sub-Functions}
-A function can be split into several sub-functions. The program is only allowed to use
-\texttt{br} to jump within the same sub-function. To enter a different sub-function,
-\texttt{brcf} must be used. It can only be used to jump to the first instruction of a
-sub-function.
-
-In contrast to \texttt{call}, \texttt{brcf} does not provide link information.
-Executing \texttt{ret} in a sub-function will therefore return to the last \texttt{call}, not to the last \texttt{brcf}.
-Function offsets however are relative to the \emph{sub-function} base, not to the surrounding function.
-The function base register \texttt{r30} must therefore be set to the base address
-of the current \emph{sub-function} for calls inside sub-functions.
-
-A sub-function must be aligned and must be prefixed with a word containing the size of the sub-function,
-like for a regular function. If a function is split into sub-functions, the first sub-function
-must also be prefixed with the size of the first sub-function, not with the size of the whole function.
-
-There are no calling conventions for jumps between sub-functions, for the compiler
-this behaves just like a regular jump, except that the base register \texttt{r30} must
-be updated if the sub-function contains calls.
-
-
-% TODO: examples
-
-\stefan{We need to define how the call and local branch with cache fill get the size of the code to load. A word
-containing the size at the target address, or prior to the target address? (including or excluding the size word?)}
-
-\jack{I'd store the code size at the target address and have the
-method itself start at an offset +4 or +8 from that place. I also
-suggest storing the stack size here too. Could fit into the same
-32-bit word (since I'd guess the local memory size limits us to
-$<64$k code and $<64$k stack in a single method anyway).}
-
-\martin{Agree for plain C code where there is no data structure
-further describing a function. In the JOP JVM I have the luxury
-to have those sizes as part of the virtual method dispatch table.
-One indirection is there needed anyway, so why not having those
-data there.}
-
-\section{Stack Layout}
-
-All stack data in the global memory, either managed by the stack cache or using
-a frame/stack pointer, grows from top-to-bottom. The use of a frame pointer is
-optional.
-
-Unwinding of the call stack is done on the stack-cache managed stack frame,
-following the conventions declared in the previous subsection on function calls.
-
-\section{Interrupts and Context Switching}
-
-Interrupt handlers may use the shadow stack pointer \texttt{r29} to spill registers
-to the shadow stack. Interrupts must ensure that all special registers that might be in use
-when the interrupt occurs are saved and restored.
-
-Here is a simple example of storing and restoring the context for context switching.
-\begin{verbatim}
-sub $r29 = $r29, 40
-sws [$r29 + 0] = $r31
-sws [$r29 + 1] = $r30
-sws [$r29 + 2] = $r22  // free some registers
-sws [$r29 + 3] = $r23
-mfs $r22 = $s2  // by now any mul should be finished
-mfs $r23 = $s3
-sws [$r29 + 4] = $r22
-sws [$r29 + 5] = $r23
-mfs $r22 = $r5  // read out cache pointers, spill
-mfs $r23 = $s6
-sub $r22 = $r23, $r22
-sspill $r22   // spill the memory, s5 == s6 now
-sws [$r29 + 6] = $r22  // store the stack pointer
-sws [$r29 + 7] = $r23  // store stack size
-...
-// TODO store return base and offset
-
-// restore
-lws $r23 = [$r29 + 7]
-lws $r22 = [$r29 + 6]
-mts $s5 = $r22   // restore the stack
-mts $s6 = $r22
-sens $r23
-lws $r23 = [$r29 + 5]
-lws $r22 = [$r29 + 4]
-mts $s2 = $r22
-mts $s3 = $r23
-....
-\end{verbatim}
-
-\stefan{We need to define how to register interrupts, how to return from interrupts (where do we get
-the return-base and return-offset from,..). Interrupt handlers in C are currently not supported,
-the compiler does not restore all the special registers for normal functions.}
-
-
-
-
-\chapter{Pending Changes}
-
-This is a live and temporary section that lists pending changes of the ISA.
-This changes shall live in a remote branch (to be specified) and have a
-date when to be merged into the master branch.
-
-Currently we have following proposals for a change:
-
-\begin{itemize}
-\item bcopy instruction
-\item btest and bcopy with an immediate
-\item Automatic save of method base in a special register for a call
-\item Branch into subfunction
-\item Revised branch addressing modes
-\item Non-delayed branches
-\item Issue memory operations from any pipeline
-\item Interrupts
-\end{itemize}
-
-Remote branch: \texttt{isa\_rev}
-
-Merge date: 15 August 2013 (?)
-
-\subsection{\texttt{bcopy}/\texttt{btest}}
-
-Semantically, \texttt{bcopy} is the ``inverse'' to \texttt{btest}, such that it
-allows to copy the value of a predicate register to a position in a 32-bit
-register. This instruction should be used for
-\begin{enumerate}
-  \item \texttt{mov Rd $\leftarrow$ Ps \ldots{} bcopy Rd $\leftarrow$ Ps, r0}\\
-        Currently, LLVM generates a two-instruction sequence
-        \texttt{clr Rd; (Ps) li Rd $\leftarrow$ 1} for
-        for extending a 1 bit register to a 32 bit register.
-  \item Predicate register spilling.
-\end{enumerate}
-
-To avoid the requirement for an additional temporary 32-bit register,
-particularly for register spill/restore, variants of bcopy and btest with a
-5-bit immediate operand are beneficial.
-
-\subsection{Special Registers for Return Information}
-
-In order to support exceptions (see Section~\ref{sec:exc}), it is
-necessary that the base address of the current function is available
-\emph{at any time}. Otherwise, it could not be guaranteed that an
-interrupt handler is able to return to the correct
-function. Consequently, the \texttt{call} and \texttt{brcf} functions
-must store the base address in some hardware register. This makes the
-return-base information in register \texttt{r30} redundant and it
-could be replaced by an appropriate special return base register
-\texttt{sb} with minimal effort. One can then go even further and move
-the functionality of register \texttt{r31} to a special register
-\texttt{so} to free up another general-purpose register.
-
-\stefan{This is actually how we had it in the first ISA version, but Martin wanted to get rid of
-the special registers.. ;) }
-
-\stefan{Note that we could still make this part of the ABI: we can simply require that \texttt{r30} is
-never used for something else and must always contain the valid base address (this is the case at the moment
-except for (sub)functions that do not have calls inside, can be changed easily). The bigger issue I see is
-that there are problems when the interrupt appears between the \texttt{call} and the \texttt{ldi} that sets
-\texttt{r30} (they cannot be bundled), and a scheduler might further move the load around.}
-
-\wolf{The latter issue is exactly the problem. The hardware needs to
-  keep track of the base whenever a \texttt{call}, \texttt{brcf} or
-  \texttt{ret} is executed to be able to return from interrupts at any
-  time. The question is if we move the current base to a visible
-  register upon calls to serve as return base. It is not necessary,
-  but why keep track of the base both in hardware and in software?
-  Note that the hardware does not need to expose the current base,
-  only the return base would be made visible.}
-
-\martin{Agree on that.}
-
-\stefan{And I was so happy not to have both \texttt{S0} and \texttt{SO} in the compiler anymore ;) I would suggest to call them
-\texttt{srb} and \texttt{sro} instead (for return base and return offset, which they actually are).}
-
-\wolf{Agree for \texttt{srb} and \texttt{sro}.}
-
-\subsubsection{Costs and Benefits}
-
-For functions that call other functions, the change saves one
-instruction to set the base address, and adds two instructions to both
-the prologue and the epilogue. On the other hand, the change frees up
-two general-purpose registers, which can avoid spilling and lead to
-more efficient code.
-
-\stefan{It also saves some logic in the function splitter to calculate
-the code size increase due to the requirement to set the base address in all
-new sub-functions that contain a call.}
-
-\subsection{Branch into Subfunction Instruction}
-
-\stefan{In order to eliminate the current restriction of having only single-entry subfunctions,
-I would suggest to make \texttt{brcf} indirect accept both an (absolute) base address, as well
-as an offset. Using \texttt{r0} for the offset makes \texttt{brcf} behave similar to now.
-
-At the moment we could also use \texttt{ret} for the same purpose, but this has two disadvantages:
-\texttt{call} and \texttt{ret} would no longer appear in pairs, making call graph reconstruction more complicated
-(needs compiler support to tell the WCET analysis which \texttt{ret} is actually used as return), and it
-does not work nicely if we change \texttt{ret} to use special registers.}
-
-\wolf{If I understand correctly, indirect \texttt{brcf} would then do
-  exactly the same thing as \texttt{ret} does currently, except that
-  it gets a different opcode. I don't see a problem with that from the
-  hardware perspective.}
-
-\stefan{Correct. With moving return infos to special registers, \texttt{ret} would become different from \texttt{brcf} though as
-\texttt{ret} would use \texttt{srb} and \texttt{sro}, I presume, while \texttt{brcf} always uses two GPRs.}
-
-\subsubsection{Costs and Benefits}
-
-Much of the complexity and restrictions of the function splitter are eliminated (jump tables
-still have to be handled carefully, though we in theory we could even support having jump table entries
-anywhere in any region), without resorting to misuse \texttt{ret}. It works regardless of whether return information
-is stored in special registers or GPRs.
-
-To make use of this feature, the function splitter needs a major rewrite though.
-Note that as long only \texttt{r0} is used for the offset, no changes to the compiler or the WCET analysis are required.
-
-\stefan{It also moves \texttt{brcf} from \texttt{CFLi} to \texttt{CFLr}, which makes the naming of the formats less intuitive
-(although having \texttt{CFLi} for register operands is not good anyway, as we usually use \texttt{i} for immediate).}
-
-\wolf{I guess the naming of the formats is not our biggest concern ;-)}
-
-\subsection{Revised Branch Addressing Modes}
-
-\wolf{I propose to change the branch addressing modes as shown in
-  Table~\ref{tab:braddr}.}
-
-\begin{table}
-  \centering
-  \begin{tabular}{lllll}
-    \toprule
-    Instruction & Immediate             & Indirect                   & Cache fill & Link \\
-    \midrule
-    call        & absolute              & absolute                   & yes        & yes \\
-    br          & PC relative           & \color{red}{base relative} & no         & no \\
-    brcf        & \color{red}{absolute} & absolute                   & yes        & no \\
-    \bottomrule
-  \end{tabular}
-  \caption{Revised branch addressing modes}
-  \label{tab:braddr}
-\end{table}
-
-\subsubsection{Rationale}
-
-With a method cache, there are two distinct views of the program
-counter: the program counter to address the cache memory
-(PC$_{cache}$), and the address of the respective instruction in
-memory (PC$_{mem}$). When loading instructions from memory
-(\code{call}, \code{brcf}), PC$_{mem}$ is relevant, because it
-specifies from where data should be loaded. However, when execution
-remains within a function (\code{br}), only PC$_{cache}$ is taken into
-account.
-
-Listing~\ref{lst:call} shows the pseudo-code for a call (using special
-registers \texttt{sb} and \texttt{so} for the return
-information). First, it stores the return information, and remembers
-the new base address. Then, it retrieves the offset into the cache for
-the function to be called and if necessary copies the instructions
-into the cache. Finally, it updates the internal program counter and
-continues execution from there.
-
-\martin{I do not understand those listing fully. E.g. what those variables
-are: intern registers, special registers,... However, I very much appreciate
-this pseudo code. That should then go into the `normal' ISA description as
-well.}
-
-\begin{lstlisting}[language=C,mathescape=true,float=t,caption={Call\label{lst:call}}]
-call(addr) {
-  // Store return information
-  sb = base;
-  so = PC$_{cache}$;
-  // Remember base address
-  base = addr;
-  // Cache look-up and load
-  coff = offset(addr);
-  if (!hit(base)) memcpy(cache[coff], mem[base], mem[base-4]);
-  // Update PC
-  PC$_{cache}$ = coff;
-}
-\end{lstlisting}
-
-Listing~\ref{lst:return} shows the pseudo-code for a return. It first
-retrieves the return base and does the appropriate cache handling. It
-then adds the cache offset and the return offset and assigns the sum
-to the internal program counter, from which execution continues.
-
-\begin{lstlisting}[language=C,mathescape=true,float=t,caption={Return\label{lst:return}}]
-ret() {
-  // Retrieve return base
-  base = sb;
-  // Cache look-up and load
-  coff = offset(sb);
-  if (!hit(base)) memcpy(cache[coff], mem[base], mem[base-4]);
-  // Update PC
-  PC$_{cache}$ = coff+so;
-}
-\end{lstlisting}
-
-The pseudo-code for a PC-relative \texttt{brcf} is shown in
-Listing~\ref{lst:brcfrel}. It is similar to the call, but does not
-store any return information. However, before being able to do any
-cache handling, it has to compute the actual address, given by
-\code{base-coff+PC$_{cache}$+off}. Even when precomputing
-\code{base-coff}, this includes two additions that increase the
-hardware overhead.
-
-\begin{lstlisting}[language=C,mathescape=true,float=t,caption={PC-relative \texttt{brcf}\label{lst:brcfrel}}]
-brcf(off) {
-  // Compute actual address
-  addr = base-coff+PC$_{cache}$+off;
-  // Remember base address
-  base = addr;
-  // Cache look-up and load
-  coff = offset(addr);
-  if (!hit(base)) memcpy(cache[coff], mem[base], mem[base-4]);
-  // Update PC
-  PC$_{cache}$ = coff;
-}
-\end{lstlisting}
-
-Listing~\ref{lst:brcfabs} shows the pseudo-code for \texttt{brcf} with
-absolute addressing. It avoids the address computation of the
-PC-relative \texttt{brcf} and thus reduces the hardware overhead.
-
-\begin{lstlisting}[language=C,mathescape=true,float=t,caption={Absolute \texttt{brcf}\label{lst:brcfabs}}]
-brcf(addr) {
-  // Cache look-up and load
-  base = addr;
-  coff = offset(addr);
-  if (!hit(base)) memcpy(cache[coff], mem[base], mem[base-4]);
-  // Update PC
-  PC$_{cache}$ = coff;
-}
-\end{lstlisting}
-
-The argument for base-relative indirect branches is more subtle. In
-any case, the instruction requires an addition or subtraction
-(absolute: \code{PC$_{cache}$ = addr-base+coff}, base-relative:
-\code{PC$_{cache}$ = addr+coff}, PC-relative: \code{PC$_{cache}$ =
-  PC$_{cache}$+addr}). The address information for indirect branches
-only becomes available in the execute stage, because the value might
-require forwarding. Keeping this addition as cheap as possible avoids
-putting stress on the timing of the path from the execute stage to the
-fetch stage. Of the three variants, the addition \code{addr+coff} is
-``cheapest'', because the lowest bits of \code{coff} are cleared due
-to the guaranteed alignment of functions to cache blocks in the method
-cache.
-
-\stefan{I am kind of OK-ish with changing brcf immediate to absolute, if it is absolutely necessary (assuming that we do not need to address
-code above 16MB, otherwise we cannot use an immediate absolute brcf!), though I do not really want to touch that code in the tool chain and
-loose compatibility with a3 again (if someone else takes care of all that, feel free to go ahead though ;) ).}
-
-\wolf{Regarding the size limitation: If the code grows above 16MB, we
-  have to issue indirect calls as well. I don't see a real problem
-  with issuing indirect \texttt{brcfs} in that case (there is a
-  reserved scratch register somewhere, right?). The change in the tool
-  chain is -- unless I am missing something big -- roughly 5 lines of
-  code to give the instruction a different relocation type. Losing
-  compatibility with a3 is an issue, but my guess would be that the
-  changes on their side are similarly simple.}
-
-\stefan{The advantage of PC indirect brcf is that even if we have code above 16MB (the code does not need to be that large,
-it might just be a result of the address mapping), we might still simply assume not to have any single function larger than
-8MB. In this case, we only need to take care of \texttt{call}, not of \texttt{brcf}.
-
-From a compiler point of view, \texttt{br} and \texttt{brcf} really are the same. Any difference there just introduces some more complexity
-to the function splitter (as it needs to track code sizes and generated code carefully). Since we already have the absolute immediate
-relocation type though, the change is indeed not a big one (assuming no code above 16MB).}
-
-\stefan{However, I strongly oppose changing any of the indirect branches to anything else than absolute, it makes quite a mess
-in the compiler backend and the linker (and probably the analysis). The problem here are jump tables, which are
-kind of outside of the function and have no clear reference to the function, making the calculation of any base offset in the linker quite
-complicated (you need to introduce a new relocation type, change the relocation type of the jump table symbols depending on the way they are
-used, and calculate the symbol value in the linker by finding the (already relocated!) surrounding sub-function symbol).}
-
-\wolf{The base-relative address difference does not need ``real''
-  relocation, because basic blocks always have the same distance to
-  the function entry. Everything you need in the linker is already
-  there for the \texttt{.fsize} and \texttt{.size} directives. I am
-  not sure how much trouble it is to have LLVM emit the difference of
-  two symbols for jump tables, but it is definitely possible. That
-  being said, I could live with leaving indirect branches as they are,
-  I just don't think that it's the most efficient solution.}
-
-\martin{I'm with Wolfgang on the timing issue of having two
-additions (one operand coming from the register forward path)
-going into the dual issue fetch stage is an issue.
-
-If we really want to avoid changing the br indirect right now,
-a work around would be to make it a two cycle stalling instruction.}
-
-\stefan{How about pre-calculating \code{coff-base} at \texttt{call}/\texttt{brcf}/\texttt{ret}? It costs one 32bit register (or
-30bit assuming alignment) and an additional op at those instructions, but saves the second subtract at \texttt{br} (note that we cannot
-use the second ALU for a \texttt{call} and most likely never will use it for \texttt{brcf} as long as it has one cycle more than \texttt{br}
-since it is only introduced after the scheduler and replaces a \texttt{br}).}
-
-\wolf{Precalculating is what we should anyway if we keep things as
-  they are. Still, all bits of the addend \code{coff-base} are
-  significant, while \texttt{coff} has its lowest bits
-  cleared. Imagine a method cache with 32KB and 128 functions. With
-  word addressing, PC$_{cache}$ and \texttt{coff} would be 13
-  bits. The lowest 6 bits of \texttt{coff} would be guaranteed zero
-  due to alignment. Consequently, the complexity of the addition is
-  almost cut in half (13 significant bits vs 7 significant bits).
-
-  What do you mean exactly with ``we cannot use the second ALU for a
-  \texttt{call}''?}
-
-\stefan{Due to the fixed size of the call delay slot, we are never allowed to issue anything in parallel with a call anyway, so from my
-naive point of view we should have the second ALU available to do the precalculation ;) }
-
-\wolf{I almost forgot about that restriction. I think it should be
-  dropped. The hardware can handle dual-issue bundles in the delay
-  slot, and the simulator should be okay with it too.}
-
-\stefan{Another reason apart from the linker issue is that debugging becomes harder, as
-the binary no longer contains absolute addresses at jump tables, but one has to know the base of the current sub-function (which is usually
-not obvious from just looking at the disassembly) and add the values to get the actual target addresses, and you cannot grep for the
-addresses in the disassembly easily. Debugging some jump table/method cache related bugs in the compiler backend is already quite painful as it is..}
-
-\wolf{As the actual implementation is different than what I expected,
-  I drop my request for base-relative indirect branches. My request
-  for making \code{brcf} with immediates absolute still stands.}
-
-\subsection{Non-delayed Branches}
-
-Delayed branches are a good means to hide the costs of branching.
-However, the compiler is not always able to fill the delay slots. In
-these cases, even a primitive strategy such as predict-not-taken
-provides better performance. Predict-not-taken has very little
-hardware overhead and can be modeled easily in an exact manner for
-WCET analysis. By introducing an \emph{additional} instruction for
-non-delayed immediate branches, Patmos can gain from the advantages of
-both delayed and non-delayed branches.
-
-Furthermore, having a non-delayed branch instructions enables research
-towards time-predictable branch-prediction schemes. Depending on our
-future findings, predict-not-taken could be replaced by
-predict-backward-taken or time-predictable forms of dynamic branch
-prediction to further improve both performance and WCET bounds.
-
-\stefan{But this would introduce the need to take care of exceptions in hardware that might
-arise due to a mis-predicted branch, e.g., due to a load at the beginning of
-the fallthrough target, right?}
-
-\wolf{Nope. A mispredicted branch is detected in the execute stage and
-  flushes the instructions that are currently in the fetch and the
-  decode stage. The flushed instructions never make it to the execute
-  stage, which would be the earliest place where any effect could
-  become visible.}
-
-\martin{Very much in favor to this addition.}
-
-\stefan{Also agree, and I would like to have this for both \texttt{br} and \texttt{brcf} (function splitter ...). This could
-at least save quite some code space and reduce the overestimations in the function splitter quite a lot.
-
-We should really get a proper scheduler though to support this properly, the current delay slot filler is getting more and more
-scary..}
-
-\wolf{Non-delayed \texttt{brcf} should be okay, the stages that need
-  to be flushed are the same as for interrupts.}
-
-\subsection{Issue Memory Operations in any Pipeline}
-
-Allow stack cache accesses, maybe even any memory access in the second pipeline, as long as there is no memory access to the same
-memory executed in the first pipeline.
-
-\begin{lstlisting}
-  { (p1) sws [1] = $r1  ; (!p1) sws [3] = $r2 }   # allowed, only one predicate is true
-  {      swc [r1] = $r4 ;       sws [2] = $r4 }   # allowed, different memories
-  {      br  -4         ;       swl [$r1] = $r2 } # could also be allowed
-  {      ret            ;       swc [$r1] = $r2 } # could also be allowed
-  {      sws [4] = $r1  ;       sws [5] = $r2  }  # not allowed
-\end{lstlisting}
-
-\subsubsection{Costs and Benefits}
-
-In contrast to the original plan, we do not need to have a double-clocked stack cache, but are still able to spill in the second
-pipeline while the first pipeline is either accessing main memory or doing control flow, and we can schedule if-converted code and
-single-path code more in parallel.
-
-While this does not improve the situation for blocks with large sequences of spills,
-e.g. at prologues and epilogues, it might improve the situation for code with lots of control-flow or if-converted code, even in
-situations where a double-clocked stack cache access alone does not help.
-
-\stefan{I frankly do not know how much this will actually gain since usually the code contains either
-main memory access or stack access, not so much a mixture of both, and we need a proper scheduler and play around with the if-converter first to
-see how much ILP we can get out of the code.
-
-Martin promised to take a real serious look at it when we can get some figures showing a gain from the compiler.. ;) }
-
-\wolf{I oppose this change. It's quite a bit of hardware, and
-  performance gains are most likely negligible. There is not much else
-  to do in the prologue/epilogue, and stack accesses are relatively
-  rare elsewhere. If you can show a realistic example where
-  performance gains are significant, I might change my mind.
-
-  Note that we cannot mix XXc and XXm, because both might go to main
-  memory in case of a cache miss. Stack control and
-  \texttt{call}/\texttt{brcf} conflict with both XXc and XXm.}
-
-\subsection{Interrupts and Exceptions}
-
-See Section~\ref{sec:exc} for the proposed implementation and changes
-to the ISA to support interrupts and exceptions in Patmos.
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 \chapter{Potential Extensions}
-
-\section{Exceptions: Interrupts, Faults and Traps}
-\label{sec:exc}
-
-\wolf{These is a first attempt to specify how we could/should
-  implement asynchronous transfer of control.}
-
-In the following, we use \emph{exception} to denote any kind of
-``abnormal'' transfer of control. \emph{Interrupts} are generated
-outside of the pipeline by I/O devices. \emph{Faults} are triggered by
-the pipeline for instructions that cannot be executed as expected
-(accesses to unmapped memory, undecodable instructions,
-etc.). \emph{Traps} are willfully generated exceptions, and are used
-to invoke operating system functions, which might require elevated
-privileges (see Section~\ref{sec:supervisor}).
-
-An \emph{exception unit} that is mapped to the I/O space is
-responsible for managing exceptions. It includes the device registers
-shown in Table~\ref{tab:excioregs}. The general principle of operation
-is that the exception unit requests the execution of an exception from
-the pipeline, and the pipeline returns an acknowledges when it starts
-the execution of the respective exception handler.
-
-\begin{table}
-  \centering
-  \begin{tabular}{llp{.6\textwidth}}
-    \toprule
-    Address             & Name             & Description \\
-
-    \texttt{0xf?????00} & \texttt{status} & Interrupt-enable flag,
-    possibly privilege bits. Left-shifted on start of exception
-    handler, right-shifted when returning. \\
-
-    \texttt{0xf?????04} & \texttt{mask} & Mask of enabled interrupts \\
-
-    \texttt{0xf?????08} & \texttt{pend} & Pending flags for interrupts \\
-
-    \texttt{0xf?????0c} & \texttt{source} & Number of exception that
-    is about to be served \\
-
-    \cmidrule{1-3}
-
-    \texttt{0xf?????20} & \texttt{vec<0>} & Address of exception handler 0 \\
-    \texttt{0xf?????24} & \texttt{vec<7>} & Address of exception handler 1 \\
-    \ldots & \ldots & \ldots \\
-
-    \bottomrule
-  \end{tabular}
-  \caption{Exception unit device registers}
-  \label{tab:excioregs}
-\end{table}
-
-Exceptions are injected into the pipeline in the decode stage. The
-decode stage was chosen to do this because
-\begin{enumerate}
-\item Interrupts must not be triggered inside branch delay slots. The
-  decode stage ``knows'' which instructions are executed and can
-  easily keep track of branch delay slots.
-\item Mechanisms for calls that are located in the execute stage can
-  be shared with exception handling.
-\end{enumerate}
-
-All exceptions that have their origin in the pipeline (faults and
-traps) are handled through signals from the memory stage to the
-exception unit. The memory stage is responsible for aborting the
-execution of any unfinished instructions (flushing the pipeline). The
-exception unit is responsible for demanding the injection of the
-correct exception from the decode stage.
-
-To be able to serve exceptions generated by the pipeline when an
-interrupt already has been injected, the acknowledgment from the
-pipeline to the exception unit is generated in the memory unit. Only
-at this point it is clear if the interrupt will be served or if the
-injected instruction has been flushed from the pipeline.
-
-The memory unit furthermore includes a signal to notify the exception
-unit of returns from exception handlers.
-
-\begin{table}
-  \centering
-  \begin{tabular}{llp{.6\textwidth}}
-    \toprule
-    Name & Stage & Description \\
-    \midrule
-    \texttt{intr}    & to Decode & Request injection of interrupt, must be ignored in delay slot \\
-    \texttt{exc}     & to Decode & Request injection of other exception, cannot be ignored \\
-    \texttt{excaddr} & to Decode & Address of exception handler to be executed \\
-    \texttt{exccall} & from Memory & Acknowledge execution of exception handler \\
-    \texttt{excret}  & from Memory & Notify exception unit of return from exception handler \\
-    \bottomrule
-  \end{tabular}
-  \caption{Exception unit signals to pipeline}
-\end{table}
-
-\subsection{Changes to ISA}
-
-In order to support exceptions, it is necessary that the base address
-of the current function is available \emph{at any time}. Otherwise, it
-could not be guaranteed that an interrupt handler is able to return to
-the correct function. Consequently, the \texttt{call} and
-\texttt{brcf} functions must store the base address in some hardware
-register. This makes the return-base information in register
-\texttt{r30} redundant and it could be replaced by an appropriate
-special return base register \texttt{sb} with minimal effort.
-
-The return information for exceptions must be stored in registers that
-are not used otherwise. Two special registers \texttt{sxb} and
-\texttt{sxo} provide the return base and return offset for exceptions.
-
-Depending of on the exact implementation, delayed loads might require
-another special register to save the contents of the special register
-\texttt{sm} upon exceptions.
-
-For traps, we introduce an instruction \texttt{trap <n>}, which
-triggers exception number $n$. In order to assimilate the handling of
-faults and traps, the \texttt{trap} instruction causes the memory unit
-to signal an exception to the exception unit, which then requests the
-injection of an exception from the decode unit. Consequently, traps do
-not have a delay slot despite altering the control flow.
-
-To signal the return from an exception handler, we introduce an
-instruction \texttt{xret}, which causes the exception unit to update
-the status word appropriately.
-
-\subsection{Resuming Execution}
-
-Resuming execution after an interrupt is straight-forward. The
-interrupt handler simply returns to the bundle that was replaced by
-the injected interrupt instruction.
-
-Resuming after a fault requires a bit more thought. In principle,
-execution could resume after the instruction that caused the fault, or
-retry execution of the instruction. Retrying execution would be
-suitable for faults like page faults, but would be inappropriate for
-faults like an accesses to an address that is not mapped to any memory
-or I/O device or undecodable instructions.
-
-The issue is further complicated by instructions in the other slot of
-a bundle, whose effects must be made visible when resuming
-execution. Consider the scenario that the instruction in the first
-slot is faulty. The instruction in the second slot may use a register
-that is modified by the instruction in the first slot. Emulating the
-first instruction and simply resuming with the second instruction is
-therefore not correct. If the instruction in the first slot uses a
-register that is modified be the instruction in the second slot,
-letting the instruction in the second slot continue to the write back
-stage before executing the exception handle would incorrect.
-
-As a consequence, resuming execution must either fix the cause of the
-fault and reexecute the whole bundle again, or emulate the effects of
-the whole bundle (including the triggering of further faults) and
-continue execution after the bundle. Due to the complexity of the
-second option, we consider faults where the respective instruction
-cannot be reexecuted \emph{fatal}, and advise developers to terminate
-execution instead of trying to resume. For faults, the return address
-points to the bundle that triggered the fault.
-
-Resuming after a trap in principle has to take into account the same
-considerations as faults. However, the content of the bundle is under
-the control of the compiler. We require that a trap instruction is the
-only instruction in a bundle. The return address for traps points to
-the bundle after the one that contains the trap instruction.
-
-\subsection{Older Comments}
-
-\emph{also delayed exceptions for speculative execution}
-
-\wolf{I don't think delayed exceptions are a good idea, given that
-  doing a clean restart after the exception would be even messier than
-  it is now.}
-
-\begin{itemize}
-  \item Enable/disable interrupts
-  \item Return from interrupt
-  \item Interrupt vector tables or something along these lines
-  \item What happens to ongoing memory accesses through the method cache, stack
-        cache or decoupled loads?
-\end{itemize}
-
-\martin{We need to be careful what happens in an interrupt in the
-branch delay slots -- Marco has fought this in the simulator, right?
-Also an issue for 64-bit atomic read of time register and some
-care to be taken for the multiply.}
-
-\clearpage
-\subsection{Timing Diagrams}
-
-\subsubsection{Interrupt}
-
-Figure~\ref{fig:timing_intr} shows the triggering of an interrupt.
-
-\begin{figure}[t!]
-  \centering
-  \includegraphics[scale=.95]{fig/intr}
-  \caption{Interrupt, delayed by branch delay slot}
-  \label{fig:timing_intr}
-\end{figure}
-
-\begin{enumerate}[A)]
-\item The decode stage decodes a branch instruction \texttt{BR}.
-\item As the previous instruction was a branch and the current bundle
-  is part of a branch delay slot, the signal \texttt{dec.indly} is
-  high.
-\item The exception unit requests an interrupt by asserting
-  \texttt{xu.intr}. As \texttt{dec.indly} is still high, the request
-  is ignored.
-\item The signal \texttt{xu.intr} is still asserted, but the current
-  instruction is not part of a branch-delay slot, so the decode stage
-  generates an interrupt instruction \texttt{INTR}.
-\item The interrupt has not been acknowledged, so signal
-  \texttt{xu.intr} is still asserted and the decode stage generates
-  another interrupt instruction. The previous interrupt instruction
-  reaches the execute stage.
-\item The interrupt instruction reaches the memory stage, which
-  acknowledges the interrupt and flushes the pipeline.
-\item The fetch stage fetches the first instruction of the interrupt
-  handler, \texttt{OP$_9$}.
-\item The first instruction of the interrupt handler reaches the
-  decode stage.
-\item The first instruction of the interrupt handler reaches the
-  execute stage.
-\item The first instruction of the interrupt handler reaches the
-  memory stage.
-\end{enumerate}
-
-\subsubsection{Fault}
-
-Figure~\ref{fig:timing_exc} shows the triggering of a fault while an interrupt is requested.
-
-\begin{figure}
-  \centering
-  \includegraphics{fig/exc}
-  \caption{Fault while interrupt is requested}
-  \label{fig:timing_exc}
-\end{figure}
-
-\begin{enumerate}[A)]
-\item The exception unit requests an interrupt and the decode stage
-  generates an instruction \texttt{INTR}.
-\item While the interrupt instruction is in the execute stage,
-  instruction \texttt{OP$_2$} in the memory stage causes a fault. The
-  memory stage signals this to the exception unit and flushes the
-  pipeline.
-\item The exception unit now requests a (non-interrupt) exception and
-  an interrupt. As (non-interrupt) exceptions take precedence, the
-  decode stage generates an instruction \texttt{EXC}.
-\item Instruction \texttt{EXC} reaches the execute stage.
-\item Instruction \texttt{EXC} reaches the memory stage, which
-  acknowledges the exception and flushes the pipeline again.
-\item The fetch stage fetches the first instruction of the exception
-  handler, \texttt{OP$_8$}.
-\item The first instruction of the exception handler reaches the
-  decode stage.
-\item The first instruction of the exception handler reaches the
-  execute stage.
-\item The first instruction of the exception handler reaches the
-  memory stage.
-\end{enumerate}
 
 \section{Decoupled Loads / Multiply / Wait / Move from Special}
 

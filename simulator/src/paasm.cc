@@ -21,7 +21,9 @@
 #include "streams.h"
 
 #include <boost/format.hpp>
+#include <boost/concept_check.hpp>
 
+#include <string>
 #include <fstream>
 #include <iostream>
 
@@ -59,11 +61,26 @@ int main(int argc, char **argv)
         continue;
       }
 
+      // strip comments
+      size_t pos = line.find("#");
+      if (pos != std::string::npos) {
+        line = line.substr(0, pos);
+      }
+      
+      // replace tabs with spaces to make error outputs match
+      // TODO ugly, but sufficient for now, and I want to minimize boost deps
+      for (int i = 0; i < line.size(); i++) {
+        if (line[i] != '\t') continue;
+        line = line.replace(i, 1, 8, ' ');
+        i += 7;
+      }
+      
       // parse the assembly line
       if (!paasm.parse_line(line, iw))
       {
-        std::cerr << boost::format("Invalid Patmos assembly line:\n%1%: '%2%'\n")
+        std::cerr << boost::format("Invalid Patmos assembly line:\n%1$5d: '%2%'\n")
                   % num_lines % line;
+        paasm.print_error(std::cerr, 8);
 
         num_errors++;
       }

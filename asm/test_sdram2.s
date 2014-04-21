@@ -14,7 +14,7 @@
 # r11==read/write test bound (address limit)
 # r12==memory read error count
 
-	.word	336;
+	.word	348;
 
 	addi	r0 = r0, 0;  # first instruction not executed         	#0
 begin:	addi	r5 = r0, 15;                                          	#1
@@ -52,7 +52,7 @@ poll_stdin: lwl     r1 = [r5 + 0];                                     	#6
 	addi	r11 = r0, 1;	# r11 == test_limit                      	#14
 	sli	r11 = r11, 20;                                         	#15
 	addi	r12 = r0, 0; # r12==error count                       	#16
-	addi	r1= r0, 87; 'W'                                       	#17
+	addi	r1= r0, 87; # 'W'                                       	#17
 	swl     [r5 + 1] = r1;                                     	#18
 
 #	Set the value in the cache line (we don't care if it is loaded as we just use one word)
@@ -80,7 +80,7 @@ poll_sdram_ready: lwl     r1  = [r6 + 17]; # sdram.status                    	#2
                 addi    r0  = r0 , 0;                       	#34
                 addi    r0  = r0 , 0;                       	#35
 
-#read_init: addi	r1= r0, 82; 'R'                                       	#36
+#read_init: addi	r1= r0, 82; # 'R'                                       	#36
 	swl     [r5 + 1] = r1;                                     	#37
 	addi	r10 = r0, 0;	# addr_cnt <= 0                          	#38
 #	 r10 should have the value from before
@@ -102,7 +102,7 @@ poll_sdram_ready2: lwl     r1  = [r6 + 17]; # sdram.status                    	#
 	addi    r1  = r10 , 1;  # val = addr+1 (use the same mod as during write)	#49
 	cmpeq  p1 = r1, r2; # should be the same                   	#50
 	(p1)	br no_error; #l:+3                                         	#51
-        (!p1)   addi    r1  = r0 , 69;  'E'                 	#52
+        (!p1)   addi    r1  = r0 , 69; # 'E'                 	#52
 	(!p1)	addi    r12 = r12, 1; #error_cnt++                   	#53
 		swl     [r5 + 1] = r1; # we write to UART without pooling for ready here,	#54
 
@@ -148,4 +148,7 @@ poll_stdout2: lwl     r1 = [r5 + 0];                                     	#71
 	br begin;                                                      	#91
 		addi    r0 = r0, 0;                                       	#92
 		addi    r0 = r0, 0;                                       	#93
-halt;                                                       	#94
+	halt;                                                       	#94
+	nop;
+	nop;
+	nop;

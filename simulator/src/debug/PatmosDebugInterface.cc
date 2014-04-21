@@ -91,7 +91,7 @@ namespace patmos
       std::cerr << "PatmosDebugInterface::GetMemoryContent (addr:" << address << ", width=" << width << ")" << std::endl;
     
     boost::scoped_array<byte_t> buf(new byte_t[width]);
-    m_simulator.Memory.read_peek(address, buf.get(), width);
+    m_simulator.Memory.read_peek(m_simulator, address, buf.get(), width);
     
     std::stringstream ss;
     ss << std::hex;

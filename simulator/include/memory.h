@@ -21,6 +21,7 @@
 #define PATMOS_MEMORY_H
 
 #include "basic-types.h"
+#include "command-line.h"
 
 #include <map>
 #include <iostream>
@@ -36,55 +37,61 @@ namespace patmos
     virtual ~memory_t() {}
     
     /// A simulated access to a read port.
+    /// @param s The core performing the access
     /// @param address The memory address to read from.
     /// @param value A pointer to a destination to store the value read from
     /// the memory.
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
-    virtual bool read(uword_t address, byte_t *value, uword_t size) = 0;
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size) = 0;
 
     /// A simulated access to a write port.
+    /// @param s The core performing the access
     /// @param address The memory address to write to.
     /// @param value The value to be written to the memory.
     /// @param size The number of bytes to write.
     /// @return True when the data is written finally to the memory, false
     /// otherwise.
-    virtual bool write(uword_t address, byte_t *value, uword_t size) = 0;
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size) = 0;
 
     /// A simulated access to a read port to read a fixed size.
+    /// @param s The core performing the access
     /// @param address The memory address to read from.
     /// @param value A pointer to a destination to store the value read from
     /// the memory.
     /// @return True when the data is available from the read port.
     template<typename T>
-    inline bool read_fixed(uword_t address, T &value)
+    inline bool read_fixed(simulator_t &s, uword_t address, T &value)
     {
-      return read(address, (byte_t*)&value, sizeof(T));
+      return read(s, address, (byte_t*)&value, sizeof(T));
     }
 
     /// A simulated access to a write port a fixed size.
     /// @param address The memory address to write to.
+    /// @param s The core performing the access
     /// @param value The value to be written to the memory.
     /// @return True when the data is written finally to the memory, false
     /// otherwise.
     template<typename T>
-    bool write_fixed(uword_t address, T &value)
+    bool write_fixed(simulator_t &s, uword_t address, T &value)
     {
-      return write(address, (byte_t*)&value, sizeof(T));
+      return write(s, address, (byte_t*)&value, sizeof(T));
     }
 
     /// Read some values from the memory -- DO NOT SIMULATE TIMING, just read.
+    /// @param s The core performing the access
     /// @param address The memory address to read from.
     /// @param value A pointer to a destination to store the value read from
     /// the memory.
     /// @param size The number of bytes to read.
-    virtual void read_peek(uword_t address, byte_t *value, uword_t size) = 0;
+    virtual void read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size) = 0;
 
     /// Write some values into the memory -- DO NOT SIMULATE TIMING, just write.
+    /// @param s The core performing the access
     /// @param address The memory address to write to.
     /// @param value The value to be written to the memory.
     /// @param size The number of bytes to write.
-    virtual void write_peek(uword_t address, byte_t *value, uword_t size) = 0;
+    virtual void write_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size) = 0;
 
     
     /// Read some values of a fixed size from the memory -- DO NOT SIMULATE TIMING, just read.
@@ -92,9 +99,9 @@ namespace patmos
     /// @param value A pointer to a destination to store the value read from
     /// the memory.
     template<typename T>
-    inline void peek_fixed(uword_t address, T &value)
+    inline void peek_fixed(simulator_t &s, uword_t address, T &value)
     {
-      read_peek(address, (byte_t*)&value, sizeof(T));
+      read_peek(s, address, (byte_t*)&value, sizeof(T));
     }
 
     /// Check if the memory is busy handling some request.
@@ -130,18 +137,42 @@ namespace patmos
 
     /// The content of the memory.
     byte_t *Content;
+    
+    /// Optional vector of flags indicating whether a byte has been initialized.
+    byte_t *Init_vector;
 
+    bool Randomize;
+    
+    mem_check_e Mem_check;
+    
     /// Ensure that the content is initialize up to the given address.
     /// @param address The address that should be accessed.
     /// @param size The access size.
-    void check_initialize_content(uword_t address, uword_t size);
+    /// @param is_write Access is a write or a read
+    /// @param ignore_errors Do not throw any exceptions on access errors
+    void check_initialize_content(simulator_t &s, uword_t address, uword_t size, 
+                                  bool is_read, bool ignore_errors = false);
+    
   public:
     /// Construct a new memory instance.
     /// @param memory_size The size of the memory in bytes.
-    ideal_memory_t(unsigned int memory_size) :
-        Memory_size(memory_size), Initialized_offset(0)
+    ideal_memory_t(unsigned int memory_size, bool randomize, 
+                   mem_check_e memchk) 
+    : Memory_size(memory_size), Initialized_offset(0), 
+      Randomize(randomize), Mem_check(memchk)
     {
       Content = new byte_t[memory_size];
+      
+      if (memchk != MCK_NONE) {
+        Init_vector = new byte_t[memory_size];
+      } else {
+        Init_vector = NULL;
+      }
+    }
+    
+    ~ideal_memory_t() {
+      if (Content) delete[] Content;
+      if (Init_vector) delete[] Init_vector;
     }
 
     /// A simulated access to a read port.
@@ -150,7 +181,7 @@ namespace patmos
     /// the memory.
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
-    virtual bool read(uword_t address, byte_t *value, uword_t size);
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
     /// A simulated access to a write port.
     /// @param address The memory address to write to.
@@ -158,20 +189,20 @@ namespace patmos
     /// @param size The number of bytes to write.
     /// @return True when the data is written finally to the memory, false
     /// otherwise.
-    virtual bool write(uword_t address, byte_t *value, uword_t size);
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
     /// Read some values from the memory -- DO NOT SIMULATE TIMING.
     /// @param address The memory address to read from.
     /// @param value A pointer to a destination to store the value read from
     /// the memory.
     /// @param size The number of bytes to read.
-    virtual void read_peek(uword_t address, byte_t *value, uword_t size);
+    virtual void read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
     /// Write some values into the memory -- DO NOT SIMULATE TIMING, just write.
     /// @param address The memory address to write to.
     /// @param value The value to be written to the memory.
     /// @param size The number of bytes to write.
-    virtual void write_peek(uword_t address, byte_t *value, uword_t size);
+    virtual void write_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
     /// Check if the memory is busy handling some request.
     /// @return False in case the memory is currently handling some request,
@@ -205,11 +236,6 @@ namespace patmos
     
     virtual void reset_stats() {}
 
-    /// Destroy the memory instance and free its memory.
-    virtual ~ideal_memory_t()
-    {
-      delete[] Content;
-    }
   };
 
   /// Information about an outstanding memory request.
@@ -317,7 +343,8 @@ namespace patmos
     /// @param is_posted A flag indicating whether the store is posted or not.
     /// @return An existing or newly created request info object.
     /// \see request_info_t
-    const request_info_t &find_or_create_request(uword_t address, uword_t size,
+    const request_info_t &find_or_create_request(simulator_t &s, 
+                                                 uword_t address, uword_t size,
                                                  bool is_load, 
                                                  bool is_posted = false);
     
@@ -334,8 +361,10 @@ namespace patmos
                          unsigned int num_bytes_per_burst,
                          unsigned int num_posted_writes,
                          unsigned int num_ticks_per_burst, 
-                         unsigned int num_read_delay_ticks) :
-        ideal_memory_t(memory_size), Num_ticks_per_burst(num_ticks_per_burst),
+                         unsigned int num_read_delay_ticks,
+                         bool randomize, mem_check_e memchk) :
+        ideal_memory_t(memory_size, randomize, memchk),
+        Num_ticks_per_burst(num_ticks_per_burst),
         Num_bytes_per_burst(num_bytes_per_burst),
         Num_posted_writes(num_posted_writes),
         Num_read_delay_ticks(num_read_delay_ticks), Last_address(0), 
@@ -353,7 +382,7 @@ namespace patmos
     /// the memory.
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
-    virtual bool read(uword_t address, byte_t *value, uword_t size);
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
     /// A simulated access to a write port.
     /// @param address The memory address to write to.
@@ -361,20 +390,7 @@ namespace patmos
     /// @param size The number of bytes to write.
     /// @return True when the data is written finally to the memory, false
     /// otherwise.
-    virtual bool write(uword_t address, byte_t *value, uword_t size);
-
-    /// Read some values from the memory -- DO NOT SIMULATE TIMING.
-    /// @param address The memory address to read from.
-    /// @param value A pointer to a destination to store the value read from
-    /// the memory.
-    /// @param size The number of bytes to read.
-    virtual void read_peek(uword_t address, byte_t *value, uword_t size);
-
-    /// Write some values into the memory -- DO NOT SIMULATE TIMING, just write.
-    /// @param address The memory address to write to.
-    /// @param value The value to be written to the memory.
-    /// @param size The number of bytes to write.
-    virtual void write_peek(uword_t address, byte_t *value, uword_t size);
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
     /// Check if the memory is busy handling some request.
     /// @return False in case the memory is currently handling some request,
@@ -412,10 +428,12 @@ namespace patmos
                         unsigned int num_bytes_per_page,
                         unsigned int num_posted_writes,
                         unsigned int num_min_ticks_per_burst,
-                        unsigned int num_read_delay_ticks)
+                        unsigned int num_read_delay_ticks,
+                        bool randomize, mem_check_e memchk)
     : fixed_delay_memory_t(memory_size, num_min_bytes_per_burst, 
                            num_posted_writes, 
-                           num_min_ticks_per_burst, num_read_delay_ticks),
+                           num_min_ticks_per_burst, num_read_delay_ticks,
+                           randomize, memchk),
       Num_bytes_per_page(num_bytes_per_page)
     {}
 
@@ -447,7 +465,8 @@ namespace patmos
                  unsigned int cpu_id,
                  unsigned int num_ticks_per_burst,
                  unsigned int num_read_delay_ticks,
-                 unsigned int num_refresh_ticks_per_round);
+                 unsigned int num_refresh_ticks_per_round, 
+                 bool randomize, mem_check_e memchk);
     
     virtual void tick();
   };

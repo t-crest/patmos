@@ -21,7 +21,7 @@ installed on a Ubuntu Linux:
 
     sudo apt-get install openjdk-7-jdk git cmake make g++ texinfo flex bison \
       subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
-      ruby1.9.1-dev python zlib1g-dev gtkwave
+      ruby1.9.1-dev python zlib1g-dev gtkwave gtkterm
 
 We assume that the T-CREST project will live in $HOME/t-crest.
 Patmos and the compiler can be checked out from GitHub and are built as follows:
@@ -48,7 +48,8 @@ to the compiler executables into your .profile:
 Use an absolute path as LLVM cannot handle a path relative to the
 home directory (~).
 
-One might start with the standard, harmless looking Hello World:
+We can start with the standard, harmless looking Hello
+World:
 
     main() {
         printf("Hello Patmos!\n");

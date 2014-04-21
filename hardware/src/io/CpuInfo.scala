@@ -48,9 +48,8 @@ import patmos.Constants._
 import ocp._
 
 object CpuInfo extends DeviceObject {
-  def init(params: Map[String, String]) = {
 
-  }
+  def init(params: Map[String, String]) = { }
 
   def create(params: Map[String, String]) : CpuInfo = {
     Module(new CpuInfo())
@@ -77,17 +76,17 @@ class CpuInfo() extends CoreDevice() {
 
   // Ignore writes
   when(masterReg.Cmd === OcpCmd.WR) {
-	resp := OcpResp.DVA
+    resp := OcpResp.DVA
   }
 
   // Read information
   when(masterReg.Cmd === OcpCmd.RD) {
-	resp := OcpResp.DVA
-	when(masterReg.Addr(2) === Bits(0)) {
+    resp := OcpResp.DVA
+    when(masterReg.Addr(2) === Bits(0)) {
       data := io.cpuInfoPins.id
-	} .otherwise {
+    } .otherwise {
       data := Bits(CLOCK_FREQ)
-	}
+    }
   }
 
   // Connections to master

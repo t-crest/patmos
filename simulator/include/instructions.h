@@ -28,6 +28,7 @@
 #include "simulation-core.h"
 #include "stack-cache.h"
 #include "symbol.h"
+#include "excunit.h"
 
 #include <ostream>
 #include <boost/format.hpp>
@@ -65,13 +66,18 @@ namespace patmos
                        const symbol_map_t &symbols) const
     { }
 
-    /// Returs false, nop is not a flow control instruction
+    /// Returns false, nop is not a flow control instruction
     virtual bool is_flow_control() const
     {
       return false;
     }
 
-    virtual unsigned get_delay_slots() const
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const
+    {
+      return 0;
+    }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const
     {
       return 0;
     }
@@ -142,7 +148,7 @@ namespace patmos
                                            instruction_data_t &ops,
                                            GPR_e reg, word_t value)
     {
-      if (ops.DR_Pred)
+      if (ops.DR_Pred && reg != r0)
       {
         // store the result by writing it into a by-pass
         ops.GPR_EX_Rd.set(reg, value);
@@ -154,7 +160,7 @@ namespace patmos
                                            instruction_data_t &ops,
                                            GPR_e reg, word_t value)
     {
-      if (ops.DR_Pred)
+      if (ops.DR_Pred && reg != r0)
       {
         // Store to register file
         s.GPR.set(reg, value);
@@ -255,6 +261,14 @@ namespace patmos
     uint64_t cnt_short_loads;
   public:
     i_aluil_t() { reset_stats(); }
+    
+    virtual GPR_e get_dst_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.ALUil.Rd;
+    }
+
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.ALUil.Rs1;
+    }
     
     /// Compute the result of an ALUi or ALUl instruction.
     /// @param value1 The value of the first operand.
@@ -383,6 +397,18 @@ namespace patmos
   class i_alur_t : public i_pred_t
   {
   public:
+    virtual GPR_e get_dst_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.ALUr.Rd;
+    }
+
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.ALUr.Rs1;
+    }
+    
+    virtual GPR_e get_src2_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.ALUr.Rs2;
+    }
+    
     /// Compute the result of an ALUr instruction.
     /// @param value1 The value of the first operand.
     /// @param value2 The value of the second operand.
@@ -469,6 +495,14 @@ namespace patmos
   class i_alum_t : public i_pred_t
   {
   public:
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.ALUm.Rs1;
+    }
+    
+    virtual GPR_e get_src2_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.ALUm.Rs2;
+    }
+    
     /// Compute the result of an ALUr instruction.
     /// @param value1 The value of the first operand.
     /// @param value2 The value of the second operand.
@@ -529,6 +563,9 @@ namespace patmos
       printGPReg(os, ", "   , ops.OPS.ALUm.Rs2, ops.DR_Rs2, s);
     }
 
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
+      return 1;
+    }
   };
 
 #define ALUm_INSTR(name, type, stype) \
@@ -562,6 +599,14 @@ namespace patmos
   public:
     i_aluc_t() { reset_stats(); }
     
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.ALUc.Rs1;
+    }
+    
+    virtual GPR_e get_src2_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.ALUc.Rs2;
+    }
+    
     /// Compute the result of an ALUc instruction.
     /// @param value1 The value of the first operand.
     /// @param value2 The value of the second operand.
@@ -592,8 +637,6 @@ namespace patmos
 
         // store the result by writing it into the register file.
         s.PRR.set(ops.OPS.ALUc.Pd, result);
-        // store the negation as well
-        s.PRR.set( (PRR_e) (NUM_PRR + ops.OPS.ALUc.Pd), !result);
       }
     }
 
@@ -669,7 +712,7 @@ namespace patmos
   ALUc_INSTR(cmplt , <)
   ALUc_INSTR(cmple , <=)
 
-  #define ALUcu_INSTR(name, operator) \
+#define ALUcu_INSTR(name, operator) \
   class i_ ## name ## _t : public i_aluc_t \
   { \
   public:\
@@ -689,6 +732,104 @@ namespace patmos
   ALUcu_INSTR(cmpult, <)
   ALUcu_INSTR(cmpule, <=)
 
+  /// Base class for ALUci instructions.
+  class i_aluci_t : public i_aluc_t
+  {
+  public:
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.ALUci.Rs1;
+    }
+    
+    virtual GPR_e get_src2_reg(const instruction_data_t &ops) const { 
+      return r0;
+    }
+    
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the DR pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.DR_Rs1 = s.GPR.get(ops.OPS.ALUci.Rs1);
+    }
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the EX pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      if (ops.DR_Pred)
+      {
+        // compute the result of the comparison instruction
+        bit_t result = compute(read_GPR_EX(s, ops.DR_Rs1),
+                               ops.OPS.ALUci.Imm);
+
+        // store the result by writing it into the register file.
+        s.PRR.set(ops.OPS.ALUci.Pd, result);
+      }
+    }
+
+    // MW inherited from NOP
+    
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void print_operands(const simulator_t &s, std::ostream &os, 
+		       const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printPPReg(os, "out: ", ops.OPS.ALUci.Pd, s);
+      printGPReg(os, ", in: ", ops.OPS.ALUci.Rs1, ops.DR_Rs1, s);
+      printSymbol(os, " imm", ops.OPS.ALUci.Imm, symbols);
+    }    
+  };
+
+#define ALUci_INSTR(name, operator) \
+  class i_ ## name ## _t : public i_aluci_t \
+  { \
+  public:\
+    virtual void print(std::ostream &os, const instruction_data_t &ops, \
+                       const symbol_map_t &symbols) const \
+    { \
+      printPred(os, ops.Pred); \
+      os << boost::format("%1% p%2% = r%3%, %4%") % #name \
+          % ops.OPS.ALUci.Pd % ops.OPS.ALUci.Rs1 % ops.OPS.ALUci.Imm; \
+    } \
+    virtual bit_t compute(word_t value1, word_t value2) const \
+    { \
+      return value1 operator value2; \
+    } \
+  };
+
+  ALUci_INSTR(cmpieq , ==)
+  ALUci_INSTR(cmpineq, !=)
+  ALUci_INSTR(cmpilt , <)
+  ALUci_INSTR(cmpile , <=)
+
+#define ALUciu_INSTR(name, operator) \
+  class i_ ## name ## _t : public i_aluci_t \
+  { \
+  public:\
+    virtual void print(std::ostream &os, const instruction_data_t &ops, \
+                       const symbol_map_t &symbols) const \
+    { \
+      printPred(os, ops.Pred); \
+      os << boost::format("%1% p%2% = r%3%, %4%") % #name \
+          % ops.OPS.ALUci.Pd % ops.OPS.ALUci.Rs1 % ops.OPS.ALUci.Imm; \
+    } \
+    virtual bit_t compute(word_t value1, word_t value2) const \
+    { \
+      return ((uword_t)value1) operator ((uword_t)value2); \
+    } \
+  };
+
+  ALUciu_INSTR(cmpiult, <)
+  ALUciu_INSTR(cmpiule, <=)
+
   class i_btest_t : public i_aluc_t
   {
   public:
@@ -702,6 +843,27 @@ namespace patmos
       printPred(os, ops.Pred);
       os << boost::format("btest p%1% = r%2%, r%3%")
           % ops.OPS.ALUc.Pd % ops.OPS.ALUc.Rs1 % ops.OPS.ALUc.Rs2;
+    }
+
+    virtual bit_t compute(word_t value1, word_t value2) const
+    {
+      return (((uword_t)value1) & (1 << ((uword_t)value2))) != 0;
+    }
+  };
+
+  class i_btesti_t : public i_aluci_t
+  {
+  public:
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printPred(os, ops.Pred);
+      os << boost::format("btesti p%1% = r%2%, %3%")
+          % ops.OPS.ALUci.Pd % ops.OPS.ALUci.Rs1 % ops.OPS.ALUci.Imm;
     }
 
     virtual bit_t compute(word_t value1, word_t value2) const
@@ -743,8 +905,6 @@ namespace patmos
 
         // store the result by writing it into the register file.
         s.PRR.set(ops.OPS.ALUp.Pd, result);
-        // store the negation as well
-        s.PRR.set( (PRR_e) (NUM_PRR + ops.OPS.ALUp.Pd), !result);
       }
     }
 
@@ -786,6 +946,92 @@ namespace patmos
   ALUp_INSTR(por , 1, |)
   ALUp_INSTR(pand, 1, &)
   ALUp_INSTR(pxor, 1, ^)
+
+  /// Base class for ALUb instructions.
+  class i_alub_t : public i_pred_t
+  {
+  public:
+    virtual GPR_e get_dst_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.ALUb.Rd;
+    }
+
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.ALUb.Rs1;
+    }
+    
+    /// Compute the result of an ALUp instruction.
+    /// @param value1 The value of the first operand.
+    /// @param value2 The value of the second operand.
+    virtual word_t compute(word_t value1, word_t value2, bit_t value3) const = 0;
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the DR pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.DR_Rs1 = s.GPR.get(ops.OPS.ALUb.Rs1);
+      ops.DR_Ps1 = s.PRR.get(ops.OPS.ALUb.Ps).get();
+    }
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the EX pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      if (ops.DR_Pred)
+      {
+        // compute the result of the instruction
+        ops.EX_result = compute(read_GPR_EX(s, ops.DR_Rs1),
+                                ops.OPS.ALUb.Imm,
+                                ops.DR_Ps1);
+
+        store_GPR_EX_result(s, ops, ops.OPS.ALUb.Rd, ops.EX_result);
+      }
+    }
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the MW pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
+    {
+      store_GPR_MW_result(s, ops, ops.OPS.ALUb.Rd, ops.EX_result);
+    }
+    
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void print_operands(const simulator_t &s, std::ostream &os, 
+                                const instruction_data_t &ops,
+                                const symbol_map_t &symbols) const
+    {
+      printGPReg(os, "out: ", ops.OPS.ALUb.Rd, ops.EX_result);
+      printGPReg(os, ", in: ", ops.OPS.ALUb.Rs1, ops.DR_Rs1, s);
+      printSymbol(os, " imm", ops.OPS.ALUb.Imm, symbols);
+      printPPReg(os, ", "  , ops.OPS.ALUb.Ps, ops.DR_Ps1);
+    }
+  };
+
+  class i_bcopy_t : public i_alub_t
+  {
+  public:
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printPred(os, ops.Pred);
+      os << boost::format("bcopy r%1% = r%2%, %3%, %4%")
+          % ops.OPS.ALUb.Rd % ops.OPS.ALUb.Rs1 % ops.OPS.ALUb.Imm % ops.OPS.ALUb.Ps;
+    }
+    virtual word_t compute(word_t value1, word_t value2, bit_t value3) const
+    {
+      return ((value1 & ~(1 << value2)) | ((word_t)value3 << value2));
+    }
+  };
+
 
   /// Wait for memory operations to complete.
   class i_spcw_t : public i_pred_t
@@ -830,6 +1076,10 @@ namespace patmos
   class i_spct_t : public i_pred_t
   {
   public:
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.SPCt.Rs1;
+    }
+        
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
@@ -869,7 +1119,6 @@ namespace patmos
           // p0 is always 1, so skip it
           for(unsigned int i = 1; i < NUM_PRR; i++) {
             s.PRR.set ((PRR_e)i, ((result >> i) & 1) == 1);
-            s.PRR.set ((PRR_e)(NUM_PRR+i), ((result >> i) & 1) == 0);
           }
         }
         else
@@ -900,6 +1149,10 @@ namespace patmos
   public:
     i_spcf_t() { reset_stats(); }
     
+    virtual GPR_e get_dst_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.SPCf.Rd;
+    }
+
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
@@ -991,6 +1244,16 @@ namespace patmos
   class i_ldt_t : public i_pred_t
   {
   public:
+    virtual bool is_load() const { return true; }
+
+    virtual GPR_e get_dst_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.LDT.Rd;
+    }
+
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.LDT.Ra;
+    }
+
     /// load the value from memory.
     /// @param s The Patmos simulator executing the instruction.
     /// @param address The address of the memory access.
@@ -1034,6 +1297,19 @@ namespace patmos
         // the value is already available?
         if (is_available)
         {
+          
+          // TODO this is a very quick hack for now, should be moved to a 
+          //      Debug class (see stores).
+          if (!s.Debug_mem_address.empty() &&
+              s.Debug_mem_address.count(ops.EX_Address))
+          {
+            std::cerr << "*** Load: " << result 
+                      << " = [0x" << std::hex << ops.EX_Address << std::dec << " ";
+            s.Symbols.print(std::cerr, ops.EX_Address);
+            std::cerr << "] (PC: 0x" 
+                      << std::hex << s.PC << std::dec << ", cycle: " << s.Cycle << ")\n";
+          }
+          
           store_GPR_MW_result(s, ops, ops.OPS.LDT.Rd, result);
           ops.MW_Discard = 1;
         }
@@ -1085,14 +1361,14 @@ namespace patmos
       atype tmp=0; \
       if ((address & (sizeof(atype) - 1)) != 0) \
         simulation_exception_t::unaligned(address); \
-      bool is_available = base.read_fixed(address, tmp); \
+      bool is_available = base.read_fixed(s, address, tmp); \
       value = (ctype)from_big_endian<big_ ## atype>(tmp); \
       return is_available; \
     } \
     virtual word_t peek(simulator_t &s, word_t address) const \
     { \
       atype tmp=0; \
-      base.peek_fixed(address, tmp); \
+      base.peek_fixed(s, address, tmp); \
       return (ctype)from_big_endian<big_ ## atype>(tmp); \
     } \
   };
@@ -1130,6 +1406,12 @@ namespace patmos
   class i_dldt_t : public i_pred_t
   {
   public:
+    virtual bool is_load() const { return true; }
+    
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.LDT.Ra;
+    }
+
     /// load the value from memory.
     /// @param s The Patmos simulator executing the instruction.
     /// @param address The address of the memory access.
@@ -1174,6 +1456,18 @@ namespace patmos
       // the value is already available?
       if (is_available)
       {
+        // TODO this is a very quick hack for now, should be moved to a 
+        //      Debug class (see stores).
+        if (!s.Debug_mem_address.empty() &&
+            s.Debug_mem_address.count(ops.EX_Address))
+        {
+          std::cerr << "*** Load: " << result 
+                    << " = [0x" << std::hex << ops.EX_Address << std::dec << " ";
+          s.Symbols.print(std::cerr, ops.EX_Address);
+          std::cerr << "] (PC: 0x" 
+                    << std::hex << s.PC << std::dec << ", cycle: " << s.Cycle << ")\n";
+        }
+        
         // store the loaded value by writing it into a by-pass
         s.SPR.set(sm, result);
         s.Decoupled_load = instruction_data_t();
@@ -1222,7 +1516,7 @@ namespace patmos
       atype tmp; \
       if ((address & (sizeof(atype) - 1)) != 0) \
         simulation_exception_t::unaligned(address); \
-      bool is_available = base.read_fixed(address, tmp); \
+      bool is_available = base.read_fixed(s, address, tmp); \
       value = (ctype)from_big_endian<big_ ## atype>(tmp); \
       return is_available; \
     } \
@@ -1246,6 +1540,16 @@ namespace patmos
   class i_stt_t : public i_pred_t
   {
   public:
+    virtual bool is_store() { return true; }
+    
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.STT.Ra;
+    }
+    
+    virtual GPR_e get_src2_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.STT.Rs1;
+    }
+
     /// Store the value to memory.
     /// @param s The Patmos simulator executing the instruction.
     /// @param address The address of the memory access.
@@ -1281,6 +1585,20 @@ namespace patmos
           // propagated down to the memory
           s.pipeline_stall(SMW);
         } else {
+          
+          // TODO this is a very quick hack for now, this should be moved to a
+          // s.Debug class, which properly prints out (or not) all the debug related
+          // stuff (including traces, RTC events, ..), like
+          // s.Debug.print_store(ops.EX_Address, ops.Ex_Rs);
+          if (!s.Debug_mem_address.empty() &&
+              s.Debug_mem_address.count(ops.EX_Address))
+          {
+            std::cerr << "*** Store: [0x" << std::hex << ops.EX_Address << std::dec << " ";
+            s.Symbols.print(std::cerr, ops.EX_Address);
+            std::cerr << "] = " << ops.EX_Rs
+            << " (PC: 0x" <<std::hex << s.PC << std::dec << ", cycle: " << s.Cycle << ")\n";
+          }
+          
           ops.MW_Discard = 1;
         }
       }
@@ -1323,7 +1641,7 @@ namespace patmos
       type big_value = to_big_endian<big_ ## type>((type)value); \
       if ((address & (sizeof(type) - 1)) != 0) \
         simulation_exception_t::unaligned(address); \
-      return base.write_fixed(address, big_value); \
+      return base.write_fixed(s, address, big_value); \
     } \
   };
 
@@ -1430,6 +1748,10 @@ namespace patmos
     }
 
   public:
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.STCr.Rs;
+    }
+    
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
@@ -1465,12 +1787,12 @@ namespace patmos
     virtual word_t EX_cache(simulator_t &s, uword_t size, \
                             uword_t &stack_spill, uword_t &stack_top) const \
     { \
-      return s.Stack_cache.prepare_ ## function(size, stack_spill, stack_top); \
+      return s.Stack_cache.prepare_ ## function(s, size, stack_spill, stack_top); \
     } \
     virtual bool MW_cache(simulator_t &s, uword_t size, word_t delta, \
                           uword_t stack_spill, uword_t stack_top) const \
     { \
-      return s.Stack_cache.function(size, delta, stack_spill, stack_top); \
+      return s.Stack_cache.function(s, size, delta, stack_spill, stack_top); \
     } \
   };
 
@@ -1487,12 +1809,12 @@ namespace patmos
     virtual word_t EX_cache(simulator_t &s, uword_t size, \
                             uword_t &stack_spill, uword_t &stack_top) const \
     { \
-      return s.Stack_cache.prepare_ ## function(size, stack_spill, stack_top); \
+      return s.Stack_cache.prepare_ ## function(s, size, stack_spill, stack_top); \
     } \
     virtual bool MW_cache(simulator_t &s, uword_t size, word_t delta, \
                           uword_t stack_spill, uword_t stack_top) const \
     { \
-      return s.Stack_cache.function(size, delta, stack_spill, stack_top); \
+      return s.Stack_cache.function(s, size, delta, stack_spill, stack_top); \
     } \
   };
 
@@ -1532,14 +1854,6 @@ namespace patmos
       if (pred && !s.is_stalling(stage))
       {
         assert(base <= pc);
-
-        if (!is_interrupt) {
-          // store the return function offset (return PC) into
-          // a general purpose register
-          // function base is compiler/programmer managed,
-          // i.e., not stored implicitly
-          s.GPR.set(rfo, get_offset(base, pc));
-        }
         
         // store return info to special registers
         s.SPR.set(is_interrupt ? sxb : srb, base);
@@ -1563,7 +1877,7 @@ namespace patmos
       {
         // check if the target method is in the cache, otherwise stall until
         // it is loaded.
-        if (!s.Instr_cache.load_method(base, address - base))
+        if (!s.Instr_cache.load_method(s, base, address - base))
         {
           // stall the pipeline
           s.pipeline_stall(SMW);
@@ -1595,7 +1909,7 @@ namespace patmos
       if (pred)
       {
         // assure that the target method is in the cache.
-        assert(s.Instr_cache.is_available(base));
+        assert(s.is_stalling(SMW) || s.Instr_cache.is_available(s, base));
 
         // set the program counter and base
         s.BASE = base;
@@ -1605,7 +1919,7 @@ namespace patmos
       return false;
     }
     
-    void push_dbgstack(simulator_t &s, instruction_data_t &ops, bit_t pred,
+    bool push_dbgstack(simulator_t &s, instruction_data_t &ops, bit_t pred,
                         word_t callee) const 
     {
       // Enter the debug stack just once, and before we actually do the update
@@ -1618,10 +1932,13 @@ namespace patmos
         
         s.Dbg_stack.push(callee);
         s.Profiling.enter(callee, s.Cycle);
+        
+        return true;
       }
+      return false;
     }
                         
-    void pop_dbgstack(simulator_t &s, instruction_data_t &ops, bit_t pred,
+    bool pop_dbgstack(simulator_t &s, instruction_data_t &ops, bit_t pred,
                       word_t base, word_t offset) const
     {
       if (pred && !ops.MW_Initialized && !s.is_stalling(SMW)) {
@@ -1629,7 +1946,10 @@ namespace patmos
         
         s.Profiling.leave(s.Cycle);
         s.Dbg_stack.pop(base, offset);
+        
+        return true;
       }
+      return false;
     }
                         
   public:
@@ -1670,30 +1990,39 @@ namespace patmos
                        const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << "call " << ops.OPS.CFLb.UImm;
-      symbols.print(os, ops.EX_Address);
+      os << "call" << (ops.OPS.CFLi.D ? " " : "nd ") << ops.OPS.CFLi.UImm;
+      symbols.print(os, ops.OPS.CFLi.UImm * sizeof(word_t));
     }
     
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.EX_Address = ops.OPS.CFLb.UImm*sizeof(word_t);
+      ops.EX_Address = ops.OPS.CFLi.UImm*sizeof(word_t);
     }
     
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
-      store_return_address(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address, 
-                           SMW, false);
+      store_return_address(s, ops, ops.DR_Pred, s.BASE,
+                           ops.OPS.CFLi.D ? s.nPC : s.Pipeline[SEX][0].Address,
+                           ops.EX_Address, SMW, false);
       
       push_dbgstack(s, ops, ops.DR_Pred, ops.EX_Address);
       
       fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+      if (!ops.OPS.CFLi.D && ops.DR_Pred && !s.is_stalling(SMW))
+      {
+        s.pipeline_flush(SMW);
+      }
     }
     
     virtual bool is_call() const {
       return true;
     }
     
-    virtual unsigned get_delay_slots() const {
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
+      return ops.OPS.CFLi.D ? 3 : 0;
+    }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
       return 3;
     }
   };
@@ -1705,17 +2034,25 @@ namespace patmos
                        const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << "br " << ops.OPS.CFLb.Imm;
-      symbols.print(os, ops.EX_Address);
+      os << "br" << (ops.OPS.CFLi.D ? " " : "nd ") << ops.OPS.CFLi.Imm;
+      symbols.print(os, ops.Address + ops.OPS.CFLi.Imm * sizeof(word_t));
     }
     
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.EX_Address = ops.Address + ops.OPS.CFLb.Imm*sizeof(word_t);
+      ops.EX_Address = ops.Address + ops.OPS.CFLi.Imm*sizeof(word_t);
       dispatch(s, ops, ops.DR_Pred, s.BASE, ops.EX_Address);
+      if (!ops.OPS.CFLi.D && ops.DR_Pred)
+      {
+        s.pipeline_flush(SEX);
+      }
     }
     
-    virtual unsigned get_delay_slots() const {
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
+      return ops.OPS.CFLi.D ? 2 : 0;
+    }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
       return 2;
     }
   };
@@ -1727,25 +2064,95 @@ namespace patmos
                         const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << "brcf " << ops.OPS.CFLb.Imm;
-      symbols.print(os, ops.EX_Address);
+      os << "brcf" << (ops.OPS.CFLi.D ? " " : "nd ") << ops.OPS.CFLi.Imm;
+      symbols.print(os, ops.OPS.CFLi.UImm * sizeof(word_t));
     }
     
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.EX_Address = ops.Address + ops.OPS.CFLb.Imm*sizeof(word_t);
+      ops.EX_Base    = ops.OPS.CFLi.UImm*sizeof(word_t);
+      ops.EX_Offset  = 0;
+      ops.EX_Address = get_PC(ops.EX_Base, ops.EX_Offset);
     }
     
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
-      fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+      // brcf to address 0? interpret this as a halt.
+      if (ops.DR_Pred && ops.EX_Base == 0)
+      {
+        s.halt();
+      }
+      else
+      {
+        fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+        if (!ops.OPS.CFLi.D && ops.DR_Pred)
+        {
+          s.pipeline_flush(SMW);
+        }
+      }
     }
     
-    virtual unsigned get_delay_slots() const {
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
+      return ops.OPS.CFLi.D ? 3 : 0;
+    }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
       return 3;
-    }   
+    }
   };
 
+  class i_trap_t : public i_cfl_t {
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printPred(os, ops.Pred);
+      os << "trap " << ops.OPS.CFLi.UImm;
+    }
+
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.MW_Initialized = false;
+    }
+    
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      exception_e exc = (exception_e)ops.OPS.CFLi.UImm;
+      exception_t isr;
+      
+      // determine if the exception should be triggered by the trap instruction
+      ops.EX_result = ops.DR_Pred && s.Exception_handler.trap(exc, isr);
+      
+      ops.EX_Base    = isr.Address;
+      ops.EX_Offset  = 0;
+      ops.EX_Address = get_PC(ops.EX_Base, ops.EX_Offset);
+    }
+    
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
+    {
+      store_return_address(s, ops, ops.EX_result, s.BASE, 
+                           s.Pipeline[SEX][0].Address, ops.EX_Address, 
+                           SMW, true);
+      
+      push_dbgstack(s, ops, ops.EX_result, ops.EX_Address);
+
+      fetch_and_dispatch(s, ops, ops.EX_result, ops.EX_Address, ops.EX_Address);
+      
+      if (ops.EX_result && !s.is_stalling(SMW))
+      {
+        s.pipeline_flush(SMW);
+      }
+    }
+        
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
+      return 0;
+    }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
+      return 3;
+    }
+  };
+  
   class i_intr_t : public i_cfl_t
   {
   public:
@@ -1753,27 +2160,36 @@ namespace patmos
                        const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << "intr " << ops.OPS.CFLb.UImm;
-      symbols.print(os, ops.EX_Address);
+      os << "intr " << ops.OPS.CFLi.UImm;
+      symbols.print(os, ops.OPS.CFLi.UImm * sizeof(word_t));
     }
 
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.EX_Address = ops.OPS.CFLb.UImm*sizeof(word_t);
+      ops.EX_Address = ops.OPS.CFLi.UImm;
       ops.MW_Initialized = false;
     }
     
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
-      store_return_address(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address, 
+      store_return_address(s, ops, ops.DR_Pred, s.BASE, ops.Address, ops.EX_Address, 
                            SMW, true);
       
       push_dbgstack(s, ops, ops.DR_Pred, ops.EX_Address);
 
       fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+      
+      if (ops.DR_Pred && !s.is_stalling(SMW))
+      {
+        s.pipeline_flush(SMW);
+      }
     }
     
-    virtual unsigned get_delay_slots() const {
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
+      return 0;
+    }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
       return 3;
     }
   };
@@ -1793,14 +2209,18 @@ namespace patmos
       simulation_exception_t::halt(s.GPR.get(GPR_EXIT_CODE_INDEX).get());
     }
     
-    virtual unsigned get_delay_slots() const {
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
+      return 3;
+    }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
       return 3;
     }
   };
 
   
-  /// Branch and call instructions with a register operand.
-  class i_cfli_t : public i_cfl_t
+  /// Control flow instructions with implicit register operands.
+  class i_cflri_t : public i_cfl_t
   {
   public:
     /// Pipeline function to simulate the behavior of the instruction in
@@ -1810,7 +2230,26 @@ namespace patmos
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
-      ops.DR_Rs1 = s.GPR.get(ops.OPS.CFLi.Rs);
+      ops.MW_Initialized = false;
+    }
+  };
+
+  /// Control flow instructions with a single register operand.
+  class i_cflrs_t : public i_cfl_t
+  {
+  public:
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.CFLrs.Rs;
+    }
+    
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the DR pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.DR_Rs1 = s.GPR.get(ops.OPS.CFLrs.Rs);
       ops.MW_Initialized = false;
     }
 
@@ -1819,24 +2258,62 @@ namespace patmos
     /// @param ops The operands of the instruction.
     /// @param symbols A mapping of addresses to symbols.
     virtual void print_operands(const simulator_t &s, std::ostream &os,
-		       const instruction_data_t &ops,
-                       const symbol_map_t &symbols) const
+                                const instruction_data_t &ops,
+                                const symbol_map_t &symbols) const
     {
-      printGPReg(os, "in: ", ops.OPS.CFLi.Rs, ops.EX_Address);
+      printGPReg(os, "in: ", ops.OPS.CFLrs.Rs, ops.EX_Address);
       os << " ";
       symbols.print(os, ops.EX_Address);
     }
   };
 
-  class i_callr_t : public i_cfli_t
+  /// Control flow instructions with two register operands.
+  class i_cflrt_t : public i_cfl_t
+  {
+  public:
+    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.CFLrt.Rs1;
+    }
+    
+    virtual GPR_e get_src2_reg(const instruction_data_t &ops) const { 
+      return ops.OPS.CFLrt.Rs2;
+    }
+    
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the DR pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.DR_Rs1 = s.GPR.get(ops.OPS.CFLrt.Rs1);
+      ops.DR_Rs2 = s.GPR.get(ops.OPS.CFLrt.Rs2);
+      ops.MW_Initialized = false;
+    }
+
+    /// Print the instruction to an output stream.
+    /// @param os The output stream to print to.
+    /// @param ops The operands of the instruction.
+    /// @param symbols A mapping of addresses to symbols.
+    virtual void print_operands(const simulator_t &s, std::ostream &os,
+                                const instruction_data_t &ops,
+                                const symbol_map_t &symbols) const
+    {
+      printGPReg(os, "in: ", ops.OPS.CFLrt.Rs1, ops.EX_Base);
+      printGPReg(os, ", "  , ops.OPS.CFLrt.Rs2, ops.EX_Offset);
+      os << boost::format(" addr: %1$08x ") % ops.EX_Address;
+      symbols.print(os, ops.EX_Address);
+    }
+  };
+
+  class i_callr_t : public i_cflrs_t
   {
   public:
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << "callr r" << ops.OPS.CFLi.Rs;
-      symbols.print(os, ops.EX_Address);
+      os << "callr" << (ops.OPS.CFLi.D ? " r" : "nd r") << ops.OPS.CFLrs.Rs;
     }
     
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
@@ -1846,81 +2323,108 @@ namespace patmos
     
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
-      store_return_address(s, ops, ops.DR_Pred, s.BASE, s.nPC, ops.EX_Address, 
-                           SMW, false);
+      store_return_address(s, ops, ops.DR_Pred, s.BASE,
+                           ops.OPS.CFLrs.D ? s.nPC : s.Pipeline[SEX][0].Address,
+                           ops.EX_Address, SMW, false);
       
-      // Enter the debug stack just once, and before we actually do the update
-      // to avoid any issues with timing and stalling.
-      if (!ops.MW_Initialized && !ops.DR_Pred) {
-        ops.MW_Initialized = true;
-        
-        s.Dbg_stack.push(ops.EX_Address);
-        s.Profiling.enter(ops.EX_Address, s.Cycle);
-      }
-
+      push_dbgstack(s, ops, ops.DR_Pred, ops.EX_Address);
+      
       fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+      
+      if (!ops.OPS.CFLrs.D && ops.DR_Pred && !s.is_stalling(SMW))
+      {
+        s.pipeline_flush(SMW);
+      }
     }
     
     virtual bool is_call() const { 
       return true;
     }
     
-    virtual unsigned get_delay_slots() const {
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
+      return ops.OPS.CFLrs.D ? 3 : 0;
+    }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
       return 3;
     }
   };
 
-  class i_brr_t : public i_cfli_t
+  class i_brr_t : public i_cflrs_t
   {
   public:
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << "brr r" << ops.OPS.CFLi.Rs;
-      symbols.print(os, ops.EX_Address);
+      os << "brr" << (ops.OPS.CFLi.D ? " r" : "nd r") << ops.OPS.CFLrs.Rs;
     }
     
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
       ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1);
       dispatch(s, ops, ops.DR_Pred, s.BASE, ops.EX_Address);
+      if (!ops.OPS.CFLrs.D && ops.DR_Pred)
+      {
+        s.pipeline_flush(SEX);
+      }
     }
     
-    virtual unsigned get_delay_slots() const {
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
+      return ops.OPS.CFLrs.D ? 2 : 0;
+    }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
       return 2;
     }
   };
 
-  class i_brcfr_t : public i_cfli_t
+  class i_brcfr_t : public i_cflrt_t
   {
   public:
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << "brcfr r" << ops.OPS.CFLi.Rs;
-      symbols.print(os, ops.EX_Address);
+      os << "brcfr" << (ops.OPS.CFLi.D ? " r" : "nd r") << ops.OPS.CFLrt.Rs1 << ", r" << ops.OPS.CFLrt.Rs2;
     }
     
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1);
+      ops.EX_Base   = read_GPR_EX(s, ops.DR_Rs1);
+      ops.EX_Offset = read_GPR_EX(s, ops.DR_Rs2);;
+      ops.EX_Address = get_PC(ops.EX_Base, ops.EX_Offset);
     }
     
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
-      fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+      // brcf to address 0? interpret this as a halt.
+      if (ops.DR_Pred && ops.EX_Base == 0)
+      {
+        s.halt();
+      }
+      else
+      {
+        fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Address);
+        if (!ops.OPS.CFLrt.D && ops.DR_Pred)
+        {
+          s.pipeline_flush(SMW);
+        }
+      }
     }
     
-    virtual unsigned get_delay_slots() const {
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
+      return ops.OPS.CFLrt.D ? 3 : 0;
+    }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
       return 3;
     }
   };
 
 
   /// An instruction for returning from function calls.
-  class i_ret_t : public i_cfl_t
+  class i_ret_t : public i_cflri_t
   {
   public:
     /// Print the instruction to an output stream.
@@ -1931,20 +2435,7 @@ namespace patmos
                        const symbol_map_t &symbols) const
     {
       printPred(os, ops.Pred);
-      os << boost::format("ret r%1%, r%2%")
-                          % ops.OPS.CFLr.Rb % ops.OPS.CFLr.Ro;
-    }
-
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the DR pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void DR(simulator_t &s, instruction_data_t &ops) const
-    {
-      ops.DR_Pred = s.PRR.get(ops.Pred).get();
-      ops.DR_Base   = s.GPR.get(ops.OPS.CFLr.Rb);
-      ops.DR_Offset = s.GPR.get(ops.OPS.CFLr.Ro);
-      ops.MW_Initialized = false;
+      os << "ret" << (ops.OPS.CFLi.D ? "" : "nd");
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
@@ -1953,8 +2444,8 @@ namespace patmos
     /// @param ops The operands of the instruction.
     virtual void EX(simulator_t &s, instruction_data_t &ops) const
     {
-      ops.EX_Base   = read_GPR_EX(s, ops.DR_Base);
-      ops.EX_Offset = read_GPR_EX(s, ops.DR_Offset);
+      ops.EX_Base   = s.SPR.get(srb).get();
+      ops.EX_Offset = s.SPR.get(sro).get();
       ops.EX_Address = get_PC(ops.EX_Base, ops.EX_Offset);
     }
 
@@ -1974,6 +2465,11 @@ namespace patmos
         pop_dbgstack(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Offset);
         
         fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Address);
+
+        if (!ops.OPS.CFLri.D && ops.DR_Pred)
+        {
+          s.pipeline_flush(SMW);
+        }
       }
     }
 
@@ -1982,18 +2478,84 @@ namespace patmos
     /// @param ops The operands of the instruction.
     /// @param symbols A mapping of addresses to symbols.
     virtual void print_operands(const simulator_t &s, std::ostream &os,
-		       const instruction_data_t &ops,
-                       const symbol_map_t &symbols) const
+                                const instruction_data_t &ops,
+                                const symbol_map_t &symbols) const
     {
-      printGPReg(os, "in: ", ops.OPS.CFLr.Rb, ops.EX_Base);
-      printGPReg(os, ", "  , ops.OPS.CFLr.Ro, ops.EX_Offset);
+      printSPReg(os, "in: ", srb, ops.EX_Base);
+      printSPReg(os, ", "  , sro, ops.EX_Offset);
       os << boost::format(" addr: %1$08x ") % ops.EX_Address;
       symbols.print(os, ops.EX_Address);
     }
     
-    virtual unsigned get_delay_slots() const {
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
+      return ops.OPS.CFLri.D ? 3 : 0;
+    }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
       return 3;
-    }    
+    }
+  };
+  
+  class i_xret_t : public i_cflri_t {
+  public:
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printPred(os, ops.Pred);
+      os << "xret" << (ops.OPS.CFLi.D ? "" : "nd");
+    }
+
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.EX_Base   = s.SPR.get(sxb).get();
+      ops.EX_Offset = s.SPR.get(sxo).get();
+      ops.EX_Address = get_PC(ops.EX_Base, ops.EX_Offset);
+    }
+
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
+    {
+      // returning to address 0? interpret this as an error
+      if (ops.DR_Pred && ops.EX_Address == 0)
+      {
+        simulation_exception_t::illegal_pc("Returning from xret to address 0!");
+      }
+      else if (ops.DR_Pred)
+      {
+        // We re-enable interrupts *once*, and *before* we start fetching from
+        // M$, so that we can abort fetching if there is another interrupt pending
+        // TODO this is nasty that we use pop_dbgstack to check if this is the first call of MW
+        if (pop_dbgstack(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Offset)) {          
+          s.Exception_handler.resume();
+        }
+
+        // TODO maybe do not even fetch return function if there is an 
+        // interrupt pending
+        fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Base, ops.EX_Address);
+
+        if (!ops.OPS.CFLri.D && ops.DR_Pred)
+        {
+          s.pipeline_flush(SMW);
+        }
+      }
+    }
+
+    virtual void print_operands(const simulator_t &s, std::ostream &os,
+                                const instruction_data_t &ops,
+                                const symbol_map_t &symbols) const
+    {
+      printSPReg(os, "in: ", sxb, ops.EX_Base);
+      printSPReg(os, ", "  , sxo, ops.EX_Offset);
+      os << boost::format(" addr: %1$08x ") % ops.EX_Address;
+      symbols.print(os, ops.EX_Address);
+    }
+    
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
+      return ops.OPS.CFLri.D ? 3 : 0;
+    }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
+      return 3;
+    }
   };
 }
 

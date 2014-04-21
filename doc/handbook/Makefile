@@ -3,6 +3,7 @@ DOC?=patmos_handbook
 BIBS=patbib.bib
 OPEN=open # program for displaying the pdf
 
+TEX=$(wildcard *.tex)
 
 # include file to override e.g. OPEN
 # config.mk is ignored by svn
@@ -11,18 +12,17 @@ OPEN=open # program for displaying the pdf
 
 .PHONY: all clean
 
-all: open
+all: $(DOC).pdf
 
-TIKZFIGURES=fig/timing_core.pdf fig/timing_io.pdf fig/timing_burst.pdf \
-	fig/intr.pdf fig/exc.pdf
+TIKZFIGURES=fig/timing_core.pdf fig/timing_io.pdf fig/timing_burst.pdf
 
 fig/%.pdf: fig/%.tex
 	pdflatex --output-directory fig $^
 
-rubber: $(DOC).tex $(BIBS) $(TIKZFIGURES)
+rubber: $(TEX) $(BIBS) $(TIKZFIGURES)
 	rubber --short --warn all -d $(DOC).tex
 
-$(DOC).pdf: $(DOC).tex $(BIBS) $(TIKZFIGURES)
+$(DOC).pdf: $(TEX) $(BIBS) $(TIKZFIGURES)
 	pdflatex $(DOC)
 	bibtex $(DOC)
 	pdflatex $(DOC)
@@ -33,6 +33,6 @@ open: $(DOC).pdf
 
 
 clean:
-	rm -fr *.aux *.bbl *.blg *.log *.lof *.lot *.toc *.gz *.pdf
+	rm -fr *.aux *.bbl *.blg *.log *.lof *.lot *.toc *.gz *.pdf *.lol
 	rm -f fig/*.aux fig/*.log
 	rm -f $(TIKZFIGURES)

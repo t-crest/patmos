@@ -39,19 +39,47 @@
  */
 
 #include "boot.h"
+#include "patio.h"
+
+// #define DEBUG
 
 int main(void) {
   // setup stack frame and stack cache.
-  asm volatile ("mov $r29 = %0;" // initialize shadow stack pointer"
+  asm volatile ("mov $r31 = %0;" // initialize shadow stack pointer"
                 "mts $ss  = %1;" // initialize the stack cache's spill pointer"
                 "mts $st  = %1;" // initialize the stack cache's top pointer"
-                "li $r30 = %2;" // initialize return base"
                 : : "r" (&_shadow_stack_base),
-                  "r" (&_stack_cache_base),
-                  "i" (&main));
+                  "r" (&_stack_cache_base));
   
+#ifdef DEBUG
+  WRITE("DOWN\n", 5);
+#endif
+
   // download application
   volatile int (*entrypoint)() = download();
+#ifdef DEBUG
+  // force some valid address for debugging
+  if (entrypoint == NULL) {
+    entrypoint = 0x20004;
+  }
+#endif
+
+  static char msg[10];
+
+#ifdef DEBUG
+  WRITE("START ", 6);
+    
+  msg[0] = XDIGIT(((int)entrypoint >> 28) & 0xf);
+  msg[1] = XDIGIT(((int)entrypoint >> 24) & 0xf);
+  msg[2] = XDIGIT(((int)entrypoint >> 20) & 0xf);
+  msg[3] = XDIGIT(((int)entrypoint >> 16) & 0xf);
+  msg[4] = XDIGIT(((int)entrypoint >> 12) & 0xf);
+  msg[5] = XDIGIT(((int)entrypoint >>  8) & 0xf);
+  msg[6] = XDIGIT(((int)entrypoint >>  4) & 0xf);
+  msg[7] = XDIGIT(((int)entrypoint >>  0) & 0xf);
+  msg[8] = '\n';
+  WRITE(msg, 9);
+#endif
 
   // call the application's _start()
   int retval = -1;
@@ -68,11 +96,15 @@ int main(void) {
                     "$r14", "$r15", "$r16", "$r17",
                     "$r18", "$r19", "$r20", "$r21",
                     "$r22", "$r23", "$r24", "$r25",
-                    "$r26", "$r27", "$r28", "$r29");
+                    "$r26", "$r27", "$r28", "$r29",
+                    "$r30", "$r31");
   }
 
+#ifdef DEBUG
+  WRITE("EXIT\n", 5);
+#endif
+
   // Print exit magic and return code
-  static char msg[3];
   msg[0] = '\0';
   msg[1] = 'x';
   msg[2] = retval & 0xff;

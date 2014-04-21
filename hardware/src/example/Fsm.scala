@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,9 @@
 
 /*
  * Just a minimal 'hello world' Chisel example.
- * 
+ *
  * Author: Martin Schoeberl (martin@jopdesign.com)
- * 
+ *
  */
 
 package example
@@ -48,12 +48,12 @@ class FsmContainer() extends Module {
   val io = new Bundle {
     val led = Bits(OUTPUT, 8)
   }
-  
+
   var tck = Module(new Tick());
-  
+
   val led = Reg(init = Bits(1, 8))
   val led_next = Cat(led(6, 0), led(7))
-  
+
   when (tck.io.tick === Bits(1)) {
     led := led_next
   }
@@ -69,25 +69,25 @@ class Tick() extends Module {
   }
   // BeMicro has a 16 MHz clock
   val CNT_MAX = UInt(16000000/2-1)
-  
+
   val r1 = Reg(init = UInt(0, 25))
-  
+
   val limit = r1 === CNT_MAX
   val tick = limit
-  
+
   r1 := r1 + UInt(1)
   when (limit) {
     r1 := UInt(0)
   }
-  
+
   io.tick := tick
 
   // **** uninteresting stuff below ****
-  
+
 // the following does not work - example in package error
 //  val ticka = when(limit) { Bits(0) } .otherwise { Bits(1) }
 //  val tickb = when(limit) { Bits(1) } .otherwise { Bits(0) }
-  
+
 // this is a very verbose version
 //  val ticka = Bits(width=1)
 //  ticka := Bits(0)
@@ -95,10 +95,10 @@ class Tick() extends Module {
 //  val tickb = Bits(width=1)
 //  tickb := Bits(0)
 //  when (limit) { tickb := Bits(1, 1) } .otherwise{ tickb := Bits(0, 1) }
-    
-  // That's the MUX version. Do we know which is which? True first? 0 first? 
+
+  // That's the MUX version. Do we know which is which? True first? 0 first?
   // val ticka = Mux(limit, Bits(1), Bits(0))
-  
+
   // no if in Chisel
   // val ticka = if (limit) then Bits(1) else Bits(0)
 

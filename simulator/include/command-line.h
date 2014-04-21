@@ -37,6 +37,7 @@ namespace patmos
     DF_INSTRUCTIONS,
     DF_BLOCKS,
     DF_CALLS,
+    DF_CALLS_INDENT,
     DF_DEFAULT,
     DF_LONG,
     DF_ALL
@@ -52,6 +53,26 @@ namespace patmos
   /// @param df The debug format.
   std::ostream &operator <<(std::ostream &os, debug_format_e df);
 
+  /// Parsing debug output format options from the command-line.
+  enum mem_check_e
+  {
+    MCK_NONE,
+    MCK_WARN,
+    MCK_ERROR,
+    MCK_WARN_ADDR,
+    MCK_ERROR_ADDR
+  };
+
+  /// Parse a memory check type from a string in a stream
+  /// @param in An input stream to read from.
+  /// @param df The check type.
+  std::istream &operator >>(std::istream &in, mem_check_e &mck);
+
+  /// Write a memory check option as a string to an output stream.
+  /// @param os An output stream.
+  /// @param df The check type.
+  std::ostream &operator <<(std::ostream &os, mem_check_e mck);
+  
   /// Parsing set-associative cache kinds as command-line options.
   enum set_assoc_policy_e
   {
@@ -120,7 +141,8 @@ namespace patmos
   {
     SC_IDEAL,
     SC_BLOCK,
-    SC_DCACHE
+    SC_DCACHE,
+    SC_LBLOCK
   };
 
   /// Parse a stack cache kind from a string in a stream

@@ -23,7 +23,7 @@ SBT=java -Xmx1024M -Xss8M -XX:MaxPermSize=128M -jar sbt/sbt-launch.jar
 
 # C++ build flags
 CXX=g++
-CXXFLAGS=-O2
+CXXFLAGS=-O1
 
 # Quick fix for Mac OS X
 # How are include paths handled these days in *nix? CMake?
@@ -43,7 +43,9 @@ MAIN=patmos.PatmosMain
 COREMAIN=patmos.PatmosCoreMain
 MEMCTRLMAIN32=io.SSRam32Main
 MEMCTRLMAIN16=io.SRamMain
+MEMCTRLMAINOC=io.OCRamMain
 ARBITERMAIN=ocp.ArbiterMain
+TDMARBITERMAIN=ocp.TdmArbiterWrapperMain
 
 # config file for Patmos -- now just frequency
 #CONFIG=default
@@ -82,7 +84,7 @@ $(CGEN): $(BOOTBIN) $(BOOTDAT) $(SRC)
 
 # run emulator
 test: emulator
-	$(HWBUILDDIR)/emulator -r -n -v -l 1000000
+	$(HWBUILDDIR)/emulator -r -i -l 1000000 -O /dev/null; exit 0
 
 # view detailed emulation results
 view:
@@ -119,8 +121,14 @@ $(HWBUILDDIR)/SSRam32Ctrl.v: $(SRC)
 $(HWBUILDDIR)/SRamCtrl.v: $(SRC)
 	$(SBT) "run-main $(MEMCTRLMAIN16) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --backend v"
 
+$(HWBUILDDIR)/OCRamCtrl.v: $(SRC)
+	$(SBT) "run-main $(MEMCTRLMAINOC) $(MEMCTRL_ADDR_WIDTH) --targetDir $(HWBUILDDIR) --backend v"
+
 $(HWBUILDDIR)/Arbiter.v: $(SRC)
 	$(SBT) "run-main $(ARBITERMAIN) $(ARBITER_CNT) $(ARBITER_ADDR_WIDTH) $(ARBITER_DATA_WIDTH) $(ARBITER_BURST_LENGTH) --targetDir $(HWBUILDDIR) --backend v"
+
+$(HWBUILDDIR)/TdmArbiter.v: $(SRC)
+	$(SBT) "run-main $(TDMARBITERMAIN) $(ARBITER_CNT) $(ARBITER_ADDR_WIDTH) $(ARBITER_DATA_WIDTH) $(ARBITER_BURST_LENGTH) --targetDir $(HWBUILDDIR) --backend v"
 
 # run Verilog simulation
 vsim: verilog
@@ -142,7 +150,7 @@ $(BOOTBIN): .FORCE
 MODULE=example.FsmMain
 MODULE=ocp.test.OcpTester
 MODULE=ocp.test.ArbiterTester
-#MODULE=ocp.test.NodeTdmArbiterTester
+#MODULE=ocp.test.TdmArbiterWrapperTester
 #MODULE=ocp.test.TdmArbiterTester
 
 modtest:

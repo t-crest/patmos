@@ -5,7 +5,7 @@
 # SA: this test predicated ld/st which was a bug
 #
 
-		.word   224;
+		.word   236;
 		addi	r0 = r0, 0;  # first instruction not executed
 		addi	r22 = r0, 0;
 		addi    r8 = r0, 0;
@@ -67,5 +67,7 @@ x5:		lwl     r10  = [r5 + 0];
 		br      x0;
 		addi	r8 = r0, 0;
 		addi    r22 = r0, 0;		
-                halt;
-
+		halt;
+		nop;
+		nop;
+		nop;

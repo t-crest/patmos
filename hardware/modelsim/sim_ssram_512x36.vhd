@@ -23,6 +23,21 @@
 --   Description: 512K 36 Pipelined SRAM
 --------------------------------------------------------------------------------
 
+LIBRARY IEEE;   USE IEEE.vital_timing.ALL;
+                USE IEEE.vital_primitives.ALL;
+
+PACKAGE default_timings is
+
+    CONSTANT Default_tipd : VitalDelayType01 := (3.0 ns, 3.0 ns);
+    CONSTANT Default_tpd : VitalDelayType01Z := (others => 3.1 ns);
+    CONSTANT Default_tpw : VitalDelayType := 2.0 ns;
+    CONSTANT Default_period : VitalDelayType := 5.0 ns;
+    CONSTANT Default_tsetup : VitalDelayType := 1.4 ns;
+    CONSTANT Default_thold : VitalDelayType := 0.4 ns;
+
+END default_timings;
+
+
 LIBRARY IEEE;   USE IEEE.std_logic_1164.ALL;
                 USE IEEE.numeric_std.ALL;
                 USE STD.textio.ALL;
@@ -31,6 +46,7 @@ LIBRARY IEEE;   USE IEEE.std_logic_1164.ALL;
 
 USE work.gen_utils.ALL;
 USE work.conversions.ALL;
+use work.default_timings.all;
 
 --------------------------------------------------------------------------------
 -- ENTITY DECLARATION
@@ -38,99 +54,99 @@ USE work.conversions.ALL;
 ENTITY memory IS
     GENERIC (
         -- tipd delays: interconnect path delays
-        tipd_A0                  : VitalDelayType01 := VitalZeroDelay01;
-        tipd_A1                  : VitalDelayType01 := VitalZeroDelay01;
-        tipd_A2                  : VitalDelayType01 := VitalZeroDelay01;
-        tipd_A3                  : VitalDelayType01 := VitalZeroDelay01;
-        tipd_A4                  : VitalDelayType01 := VitalZeroDelay01;
-        tipd_A5                  : VitalDelayType01 := VitalZeroDelay01;
-        tipd_A6                  : VitalDelayType01 := VitalZeroDelay01;
-        tipd_A7                  : VitalDelayType01 := VitalZeroDelay01;
-        tipd_A8                  : VitalDelayType01 := VitalZeroDelay01;
-        tipd_A9                  : VitalDelayType01 := VitalZeroDelay01;
-        tipd_A10                 : VitalDelayType01 := VitalZeroDelay01;
-        tipd_A11                 : VitalDelayType01 := VitalZeroDelay01;
-        tipd_A12                 : VitalDelayType01 := VitalZeroDelay01;
-        tipd_A13                 : VitalDelayType01 := VitalZeroDelay01;
-        tipd_A14                 : VitalDelayType01 := VitalZeroDelay01;
-        tipd_A15                 : VitalDelayType01 := VitalZeroDelay01;
-        tipd_A16                 : VitalDelayType01 := VitalZeroDelay01;
-        tipd_A17                 : VitalDelayType01 := VitalZeroDelay01;
-        tipd_A18                 : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQA0                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQA1                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQA2                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQA3                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQA4                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQA5                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQA6                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQA7                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DPA                 : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQB0                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQB1                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQB2                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQB3                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQB4                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQB5                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQB6                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQB7                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DPB                 : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQC0                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQC1                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQC2                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQC3                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQC4                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQC5                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQC6                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQC7                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DPC                 : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQD0                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQD1                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQD2                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQD3                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQD4                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQD5                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQD6                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DQD7                : VitalDelayType01 := VitalZeroDelay01;
-        tipd_DPD                 : VitalDelayType01 := VitalZeroDelay01;
-        tipd_BWANeg              : VitalDelayType01 := VitalZeroDelay01;
-        tipd_BWBNeg              : VitalDelayType01 := VitalZeroDelay01;
-        tipd_BWCNeg              : VitalDelayType01 := VitalZeroDelay01;
-        tipd_BWDNeg              : VitalDelayType01 := VitalZeroDelay01;
-        tipd_GWNeg               : VitalDelayType01 := VitalZeroDelay01;
-        tipd_BWENeg              : VitalDelayType01 := VitalZeroDelay01;
-        tipd_CLK                 : VitalDelayType01 := VitalZeroDelay01;
-        tipd_CE1Neg              : VitalDelayType01 := VitalZeroDelay01;
-        tipd_CE2                 : VitalDelayType01 := VitalZeroDelay01;
-        tipd_CE3Neg              : VitalDelayType01 := VitalZeroDelay01;
-        tipd_OENeg               : VitalDelayType01 := VitalZeroDelay01;
-        tipd_ADVNeg              : VitalDelayType01 := VitalZeroDelay01;
-        tipd_ADSPNeg             : VitalDelayType01 := VitalZeroDelay01;
-        tipd_ADSCNeg             : VitalDelayType01 := VitalZeroDelay01;
+        tipd_A0                  : VitalDelayType01 := Default_tipd;
+        tipd_A1                  : VitalDelayType01 := Default_tipd;
+        tipd_A2                  : VitalDelayType01 := Default_tipd;
+        tipd_A3                  : VitalDelayType01 := Default_tipd;
+        tipd_A4                  : VitalDelayType01 := Default_tipd;
+        tipd_A5                  : VitalDelayType01 := Default_tipd;
+        tipd_A6                  : VitalDelayType01 := Default_tipd;
+        tipd_A7                  : VitalDelayType01 := Default_tipd;
+        tipd_A8                  : VitalDelayType01 := Default_tipd;
+        tipd_A9                  : VitalDelayType01 := Default_tipd;
+        tipd_A10                 : VitalDelayType01 := Default_tipd;
+        tipd_A11                 : VitalDelayType01 := Default_tipd;
+        tipd_A12                 : VitalDelayType01 := Default_tipd;
+        tipd_A13                 : VitalDelayType01 := Default_tipd;
+        tipd_A14                 : VitalDelayType01 := Default_tipd;
+        tipd_A15                 : VitalDelayType01 := Default_tipd;
+        tipd_A16                 : VitalDelayType01 := Default_tipd;
+        tipd_A17                 : VitalDelayType01 := Default_tipd;
+        tipd_A18                 : VitalDelayType01 := Default_tipd;
+        tipd_DQA0                : VitalDelayType01 := Default_tipd;
+        tipd_DQA1                : VitalDelayType01 := Default_tipd;
+        tipd_DQA2                : VitalDelayType01 := Default_tipd;
+        tipd_DQA3                : VitalDelayType01 := Default_tipd;
+        tipd_DQA4                : VitalDelayType01 := Default_tipd;
+        tipd_DQA5                : VitalDelayType01 := Default_tipd;
+        tipd_DQA6                : VitalDelayType01 := Default_tipd;
+        tipd_DQA7                : VitalDelayType01 := Default_tipd;
+        tipd_DPA                 : VitalDelayType01 := Default_tipd;
+        tipd_DQB0                : VitalDelayType01 := Default_tipd;
+        tipd_DQB1                : VitalDelayType01 := Default_tipd;
+        tipd_DQB2                : VitalDelayType01 := Default_tipd;
+        tipd_DQB3                : VitalDelayType01 := Default_tipd;
+        tipd_DQB4                : VitalDelayType01 := Default_tipd;
+        tipd_DQB5                : VitalDelayType01 := Default_tipd;
+        tipd_DQB6                : VitalDelayType01 := Default_tipd;
+        tipd_DQB7                : VitalDelayType01 := Default_tipd;
+        tipd_DPB                 : VitalDelayType01 := Default_tipd;
+        tipd_DQC0                : VitalDelayType01 := Default_tipd;
+        tipd_DQC1                : VitalDelayType01 := Default_tipd;
+        tipd_DQC2                : VitalDelayType01 := Default_tipd;
+        tipd_DQC3                : VitalDelayType01 := Default_tipd;
+        tipd_DQC4                : VitalDelayType01 := Default_tipd;
+        tipd_DQC5                : VitalDelayType01 := Default_tipd;
+        tipd_DQC6                : VitalDelayType01 := Default_tipd;
+        tipd_DQC7                : VitalDelayType01 := Default_tipd;
+        tipd_DPC                 : VitalDelayType01 := Default_tipd;
+        tipd_DQD0                : VitalDelayType01 := Default_tipd;
+        tipd_DQD1                : VitalDelayType01 := Default_tipd;
+        tipd_DQD2                : VitalDelayType01 := Default_tipd;
+        tipd_DQD3                : VitalDelayType01 := Default_tipd;
+        tipd_DQD4                : VitalDelayType01 := Default_tipd;
+        tipd_DQD5                : VitalDelayType01 := Default_tipd;
+        tipd_DQD6                : VitalDelayType01 := Default_tipd;
+        tipd_DQD7                : VitalDelayType01 := Default_tipd;
+        tipd_DPD                 : VitalDelayType01 := Default_tipd;
+        tipd_BWANeg              : VitalDelayType01 := Default_tipd;
+        tipd_BWBNeg              : VitalDelayType01 := Default_tipd;
+        tipd_BWCNeg              : VitalDelayType01 := Default_tipd;
+        tipd_BWDNeg              : VitalDelayType01 := Default_tipd;
+        tipd_GWNeg               : VitalDelayType01 := Default_tipd;
+        tipd_BWENeg              : VitalDelayType01 := Default_tipd;
+        tipd_CLK                 : VitalDelayType01 := Default_tipd;
+        tipd_CE1Neg              : VitalDelayType01 := Default_tipd;
+        tipd_CE2                 : VitalDelayType01 := Default_tipd;
+        tipd_CE3Neg              : VitalDelayType01 := Default_tipd;
+        tipd_OENeg               : VitalDelayType01 := Default_tipd;
+        tipd_ADVNeg              : VitalDelayType01 := Default_tipd;
+        tipd_ADSPNeg             : VitalDelayType01 := Default_tipd;
+        tipd_ADSCNeg             : VitalDelayType01 := Default_tipd;
         tipd_MODE                : VitalDelayType01 := VitalZeroDelay01;
         tipd_ZZ                  : VitalDelayType01 := VitalZeroDelay01;
         -- tpd delays
-        tpd_CLK_DQA0             : VitalDelayType01Z := UnitDelay01Z;
-        tpd_OENeg_DQA0           : VitalDelayType01Z := UnitDelay01Z;
+        tpd_CLK_DQA0             : VitalDelayType01Z := Default_tpd;
+        tpd_OENeg_DQA0           : VitalDelayType01Z := Default_tpd;
         -- tpw values: pulse widths
-        tpw_CLK_posedge        : VitalDelayType := UnitDelay;
-        tpw_CLK_negedge        : VitalDelayType := UnitDelay;
+        tpw_CLK_posedge        : VitalDelayType := Default_tpw;
+        tpw_CLK_negedge        : VitalDelayType := Default_tpw;
         -- tperiod min (calculated as 1/max freq)
-        tperiod_CLK_posedge    : VitalDelayType := UnitDelay;
+        tperiod_CLK_posedge    : VitalDelayType := Default_period;
         -- tsetup values: setup times
-        tsetup_A0_CLK           : VitalDelayType := UnitDelay;
-        tsetup_DQA0_CLK         : VitalDelayType := UnitDelay;
-        tsetup_ADVNeg_CLK       : VitalDelayType := UnitDelay;
-        tsetup_ADSCNeg_CLK      : VitalDelayType := UnitDelay;
-        tsetup_CE2_CLK          : VitalDelayType := UnitDelay;
-        tsetup_BWANeg_CLK       : VitalDelayType := UnitDelay;
+        tsetup_A0_CLK           : VitalDelayType := Default_tsetup;
+        tsetup_DQA0_CLK         : VitalDelayType := Default_tsetup;
+        tsetup_ADVNeg_CLK       : VitalDelayType := Default_tsetup;
+        tsetup_ADSCNeg_CLK      : VitalDelayType := Default_tsetup;
+        tsetup_CE2_CLK          : VitalDelayType := Default_tsetup;
+        tsetup_BWANeg_CLK       : VitalDelayType := Default_tsetup;
         -- thold values: hold times
-        thold_A0_CLK            : VitalDelayType := UnitDelay;
-        thold_DQA0_CLK          : VitalDelayType := UnitDelay;
-        thold_ADVNeg_CLK        : VitalDelayType := UnitDelay;
-        thold_ADSCNeg_CLK       : VitalDelayType := UnitDelay;
-        thold_CE2_CLK           : VitalDelayType := UnitDelay;
-        thold_BWANeg_CLK        : VitalDelayType := UnitDelay;
+        thold_A0_CLK            : VitalDelayType := Default_thold;
+        thold_DQA0_CLK          : VitalDelayType := Default_thold;
+        thold_ADVNeg_CLK        : VitalDelayType := Default_thold;
+        thold_ADSCNeg_CLK       : VitalDelayType := Default_thold;
+        thold_CE2_CLK           : VitalDelayType := Default_thold;
+        thold_BWANeg_CLK        : VitalDelayType := Default_thold;
         thold_ADSCNeg_ZZ        : VitalDelayType := UnitDelay;
         -- generic control parameters
         InstancePath        : STRING    := DefaultInstancePath;

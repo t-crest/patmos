@@ -26,10 +26,10 @@
 #include "instruction.h"
 #include "exception.h"
 #include "profiling.h"
-#include "interrupts.h"
 #include "debug/PatmosDebugInterface.h"
 #include "debug/DebugClient.h"
 
+#include <set>
 #include <limits>
 #include <iostream>
 
@@ -43,6 +43,7 @@ namespace patmos
   class instr_cache_t;
   class binary_format_t;
   class rtc_t;
+  class excunit_t;
 
   /// Define the maximum number of slots in a bundle.
   static const unsigned int NUM_SLOTS = 2;
@@ -123,6 +124,7 @@ namespace patmos
 
     /// Remember call / return status for 'calls' debug-fmt
     bool Dbg_is_call;
+    bool Dbg_is_intr;
 
     /// A vector containing instruction statistics.
     typedef std::vector<instruction_stat_t> instruction_stats_t;
@@ -160,8 +162,8 @@ namespace patmos
     /// Real time clock
     rtc_t *Rtc;
 
-    /// Interrupt handler
-    interrupt_handler_t &Interrupt_handler;
+    /// Exception handler
+    excunit_t &Exception_handler;
 
     /// The decoder of the simulator.
     decoder_t Decoder;
@@ -199,9 +201,6 @@ namespace patmos
     /// Halt pseudo instruction.
     instruction_t *Instr_HALT;
 
-    /// Interrupt handler
-    interrupt_handler_t interrupt_handler;
-
     /// Active instructions in the pipeline stage.
     instruction_data_t Pipeline[NUM_STAGES][NUM_SLOTS];
 
@@ -211,17 +210,20 @@ namespace patmos
     /// Flag indicating whether a decoupled load is active.
     bool Is_decoupled_load_active;
 
-    /// Keep track of current branch delay
-    int Branch_counter;
+    /// Keep track of delays for interrupt triggering
+    int Delay_counter;
     
     /// If set to true, flush the pipeline and halt the simulation.
     bool Halt;
     
     /// Delay decoder when an interrupt has been executed
-    int Interrupt_handling_counter;
+    int Exception_handling_counter;
 
     /// Flush caches when PC reaches this address.
     uword_t Flush_Cache_PC;
+    
+    /// Debug accesses to those addresses.
+    std::set<uword_t> Debug_mem_address;
     
     /// Runtime statistics on all instructions, per pipeline
     instruction_stats_t Instruction_stats[NUM_SLOTS];
@@ -255,6 +257,11 @@ namespace patmos
                          void (instruction_data_t::*f)(simulator_t &),
                          bool debug = false,
                          std::ostream &debug_out = std::cerr);
+
+    /// Flush the pipeline up to *not* including the given pipeline stage.
+    /// @param pst The pipeline stage up to which instructions should be
+    /// flushed.
+    void pipeline_flush(Pipeline_t pst);
 
     /// Stall the pipeline up to *not* including the given pipeline stage.
     /// @param pst The pipeline stage up to which instructions should be
@@ -302,13 +309,16 @@ namespace patmos
     simulator_t(memory_t &memory, memory_t &local_memory,
                 data_cache_t &data_cache, instr_cache_t &instr_cache,
                 stack_cache_t &stack_cache, symbol_map_t &symbols,
-                interrupt_handler_t &interrupt_handler);
+                excunit_t &excunit);
 
     // Destroy an instance of a Patms-core simulator
     ~simulator_t();
 
     /// Flush all data caches when reaching the given program counter.
     void flush_caches_at(uword_t address) { Flush_Cache_PC = address; }
+    
+    /// Print accesses to a 
+    void debug_mem_address(uword_t address) { Debug_mem_address.insert(address); }
     
     /// Run the simulator.
     /// @param entry Initialize the method cache, PC, etc. to start execution

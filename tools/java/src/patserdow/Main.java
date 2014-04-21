@@ -19,64 +19,97 @@ import nl.lxtreme.binutils.elf.ElfHeader;
 import nl.lxtreme.binutils.elf.ProgramHeader;
 import jssc.*;
 
-public class Main 
-{
-	final private static int BAUD_RATE = 115200;
-	
+public class Main {
+
+    final private static int BAUD_RATE = 115200;
+
+    private static SerialPort port = null;
+
+    private static class ShutDownHook extends Thread {
+        public void run() {
+            try {
+                if(port != null) {
+                    port.closePort();
+                }
+            } catch (Exception exc) {
+                System.err.println(exc);
+            }
+        }
+    }
+
+    private static class InputThread extends Thread {
+        private InputStream hostInStream;
+        private OutputStream outStream;
+        public InputThread(InputStream hostInStream, OutputStream outStream) {
+            this.hostInStream = hostInStream;
+            this.outStream = outStream;
+        }
+        public void run() {
+            try {
+                while (true) {
+                    outStream.write(hostInStream.read());
+                    Thread.sleep(1); // slow down for slow apps
+                }
+            } catch (Exception exc) {
+                System.err.println(exc);
+            }
+        }
+    }
+
     /**
      * @param args the command line arguments
-     * @throws TimeoutException 
-     * @throws SerialPortTimeoutException 
+     * @throws TimeoutException
+     * @throws SerialPortTimeoutException
      */
-    public static void main(String[] args) throws IOException, InterruptedException, SerialPortException, TimeoutException, SerialPortTimeoutException
-    {
+    public static void main(String[] args) throws IOException, InterruptedException, SerialPortException, TimeoutException, SerialPortTimeoutException {
         boolean verbose = true;
         boolean error = false;
 
-        PrintStream print_stream = System.err;
+        PrintStream msg_stream = System.err;
+        InputStream host_in_stream = System.in;
+        OutputStream host_out_stream = System.out;
         InputStream in_stream = null;
         OutputStream out_stream = null;
-        
-        SerialPort port = null;
-        try 
-        {
+
+        Runtime.getRuntime().addShutdownHook(new ShutDownHook());
+
+        try {
             verbose = System.getProperty("verbose", "false").equals("true");
 
-        	File file = null;
-        	switch(args.length)
-            {
-                case 2:
-                    port = new SerialPort(args[0]);
-                    if (verbose) {
-                        print_stream.println("Port opened: " + port.openPort());
-                        print_stream.println("Params set: " + port.setParams(BAUD_RATE, 8, 2, 0));
-                    } else {
-                        port.openPort();
-                        port.setParams(BAUD_RATE, 8, 2, 0);
-				    }
-                    in_stream = new UARTInputStream(port);
-                    out_stream = new UARTOutputStream(port);
-                    file = new File(args[1]);
-                    break;
-                case 1:
-                	in_stream = System.in;
-                    out_stream = System.out;
-                    file = new File(args[0]);
-                    break;
-                default:
-                	throw new IllegalArgumentException("Usage: patserdow [COMPORT] FILENAME");
+            File file = null;
+            switch(args.length) {
+            case 2:
+                port = new SerialPort(args[0]);
+                if (verbose) {
+                    msg_stream.println("Port opened: " + port.openPort());
+                    msg_stream.println("Params set: " + port.setParams(BAUD_RATE, 8, 1, 0));
+                } else {
+                    port.openPort();
+                    port.setParams(BAUD_RATE, 8, 1, 0);
+                }
+                in_stream = new UARTInputStream(port);
+                out_stream = new UARTOutputStream(port);
+                file = new File(args[1]);
+                break;
+            case 1:
+                in_stream = System.in;
+                out_stream = System.out;
+                file = new File(args[0]);
+                break;
+            default:
+                throw new IllegalArgumentException("Usage: patserdow [COMPORT] FILENAME");
             }
-        	
+
             Elf elf = new Elf(file);
             ElfHeader header = elf.getHeader();
             if (verbose) {
-                print_stream.println("Elf version is '1':"+(header.getVersion()==1));
-                print_stream.println("CPU type is:"+header.getMachineType());
-                print_stream.println("Instruction width is 32 bits:"+(header.is32bit()));
-                print_stream.println("Is Big Endian:"+header.isBigEndian());
-                print_stream.println("File is of type exe:"+(header.getType()==ElfHeader.ET_EXEC));
-                print_stream.println("Entry point:"+header.getEntryPoint());
-                print_stream.println();
+                msg_stream.println("Elf version is '1': "+(header.getVersion()==1));
+                msg_stream.println("CPU type is: "+header.getMachineType());
+                msg_stream.println("Instruction width is 32 bits: "+(header.is32bit()));
+                msg_stream.println("Is Big Endian: "+header.isBigEndian());
+                msg_stream.println("File is of type exe: "+(header.getType()==ElfHeader.ET_EXEC));
+                msg_stream.println("Entry point: "+header.getEntryPoint());
+                msg_stream.println();
             }
 
             Transmitter transmitter = new Transmitter(in_stream,out_stream);
@@ -92,50 +125,52 @@ public class Main
             }
 
             ProgressMonitor monitor = verbose ?
-                new ProgressMonitor(byte_count,print_stream) : null;
+                new ProgressMonitor(byte_count,msg_stream) : null;
 
             byte[] header_bytes = new byte[HEADER_SIZE];
-    		ByteBuffer byte_buffer = ByteBuffer.wrap(header_bytes);
-    		//buffer.order(ByteOrder.BIG_ENDIAN);
-    		byte_buffer.putInt((int)header.getEntryPoint());
-    		byte_buffer.putInt(segments.length);
+            ByteBuffer byte_buffer = ByteBuffer.wrap(header_bytes);
+            //buffer.order(ByteOrder.BIG_ENDIAN);
+            byte_buffer.putInt((int)header.getEntryPoint());
+            byte_buffer.putInt(segments.length);
 
-    		ByteArrayInputStream byte_stream = new ByteArrayInputStream(header_bytes);
-    		//Send number of headers here
-    		transmitter.send(byte_stream,header_bytes.length,monitor);
+            ByteArrayInputStream byte_stream = new ByteArrayInputStream(header_bytes);
+            //Send number of headers here
+            transmitter.send(byte_stream,header_bytes.length,monitor);
 
-            for(ProgramHeader segment : segments)
-            {
+            for(ProgramHeader segment : segments) {
                 long segment_filesize = segment.getFileSize();
                 long segment_memsize = segment.getMemorySize();
                 long segment_file_offset = segment.getFileOffset();
                 long segment_offset = segment.getPhysicalAddress();
 
-        		byte[] segment_header_bytes = new byte[SEGMENT_HEADER_SIZE];
-            	//Adding the header size and offset as the first 12 bytes of the stream
-        		byte_buffer = ByteBuffer.wrap(segment_header_bytes);
-        		byte_buffer.putInt((int)segment_filesize);
-        		byte_buffer.putInt((int)segment_offset);
-        		byte_buffer.putInt((int)segment_memsize);
-        		byte_stream = new ByteArrayInputStream(segment_header_bytes);
+                byte[] segment_header_bytes = new byte[SEGMENT_HEADER_SIZE];
+                //Adding the header size and offset as the first 12 bytes of the stream
+                byte_buffer = ByteBuffer.wrap(segment_header_bytes);
+                byte_buffer.putInt((int)segment_filesize);
+                byte_buffer.putInt((int)segment_offset);
+                byte_buffer.putInt((int)segment_memsize);
+                byte_stream = new ByteArrayInputStream(segment_header_bytes);
 
-        		FileInputStream file_stream = new FileInputStream(file);                
-        		file_stream.skip(segment_file_offset);
+                FileInputStream file_stream = new FileInputStream(file);
+                file_stream.skip(segment_file_offset);
 
-        		SequenceInputStream merged_stream =
-        		    new SequenceInputStream(byte_stream, file_stream);
-        		transmitter.send(merged_stream,
-        		                 segment_header_bytes.length+(int)segment_filesize,
-        		                 monitor);
+                SequenceInputStream merged_stream =
+                    new SequenceInputStream(byte_stream, file_stream);
+                transmitter.send(merged_stream,
+                                 segment_header_bytes.length+(int)segment_filesize,
+                                 monitor);
 
-        		file_stream.close();
+                file_stream.close();
             }
             if (verbose) {
-                print_stream.println();
+                msg_stream.println();
             }
 
-            while (true)
-            {
+            // Write data to target in separate thread
+            new InputThread(host_in_stream, out_stream).start();
+
+            // Process data from target
+            while (true) {
                 int c = in_stream.read();
 
                 // We exit when seeing magic code "\0x"
@@ -145,34 +180,25 @@ public class Main
                     if (c == 'x') {
                         c = in_stream.read();
                         if (verbose) {
-                            print_stream.println();
-                            print_stream.println("EXIT "+c);
+                            msg_stream.println();
+                            msg_stream.println("EXIT "+c);
                         }
                         System.exit(c);
                     } else {
-                        print_stream.print('\0');
-                        print_stream.print((char)c);
+                        host_out_stream.write('\0');
+                        host_out_stream.write(c);
                     }
                 } else {
-                    print_stream.print((char)c);
+                    host_out_stream.write(c);
                 }
             }
         }
-        catch (Exception exc)
-        {
-            print_stream.println(exc);
+        catch (Exception exc) {
+            msg_stream.println(exc);
             error = true;
         }
-        finally
-        {
-			if(port != null)
-        	{
-				port.closePort();
-        	}
-        }
 
-        if(error)
-        {
+        if(error) {
             System.exit(-1);
         }
     }

@@ -98,20 +98,20 @@ class NodeTdmArbiterTop() extends Module {
   val CNT = 3
   //val arb = Module(new ocp.NodeTdmArbiter(CNT, 32, 32, 4))
   val mem = Module(new SSRam32Ctrl(21))
-  val memMux = Module(new memMuxIntf(3, 32, 32, 4))
-  
+  val memMux = Module(new MemMuxIntf(3, 32, 32, 4))
+
   for (i <- 0 until CNT) {
     val m = Module(new Master(i, 4))
-    val arb = Module(new ocp.NodeTdmArbiter(CNT, 32, 32, 4, i))
+    val nodeID = UInt(i, width=6)
+    val arb = Module(new ocp.NodeTdmArbiter(CNT, 32, 32, 4, 16))
     arb.io.master <> m.io.port
-    
+    arb.io.node := nodeID
+
     memMux.io.master(i) <> arb.io.slave
-    memMux.io.en(i) <> arb.io.slotEn
-   
     io.port(i).M <> memMux.io.slave.M
   }
-  
-  mem.io.ocp <> memMux.io.slave 
+
+  mem.io.ocp <> memMux.io.slave
 
 }
 
@@ -124,7 +124,7 @@ class NodeTdmArbiterTester(dut: ocp.test.NodeTdmArbiterTop) extends Tester(dut, 
 
     val testVec = Array( OcpCmd.IDLE, OcpCmd.WR, OcpCmd.IDLE )
 
-    for (i <- 0 until 25) {
+    for (i <- 0 until 35) {
       vars.clear
 //      vars(dut.io.fromMaster.M.Cmd) = testVec(i)
 

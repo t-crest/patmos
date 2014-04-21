@@ -37,28 +37,33 @@
  *
  */
 
-#include "boot.h"
 #include "cmpboot.h"
+#include "patio.h"
+
+#define TIM TIMER_USLOW
+#define DELAY 1000*1
 
 int main(void)
 {
   // setup stack frame and stack cache.
-  asm volatile ("mov $r29 = %0;" // initialize shadow stack pointer"
+  asm volatile ("mov $r31 = %0;" // initialize shadow stack pointer"
                 "mts $ss  = %1;" // initialize the stack cache's spill pointer"
                 "mts $st  = %1;" // initialize the stack cache's top pointer"
-                "li $r30 = %2;" // initialize return base"
                 : : "r" (&_shadow_stack_base),
-                  "r" (&_stack_cache_base),
-                  "i" (&main));
+                  "r" (&_stack_cache_base));
 
+  // wait a little bit in case of the TU/e memory controller not being ready
+  int val = TIM+DELAY;
+  while (TIM-val < 0)
+    ;
   // overwrite any potential leftovers from previous runs
   boot_info->master.status = STATUS_NULL;
   boot_info->master.entrypoint = NULL;
-  boot_info->slave[core_id].status = STATUS_NULL;
+  boot_info->slave[CORE_ID].status = STATUS_NULL;
 
   do {
     // make sure the own status is visible
-    boot_info->slave[core_id].status = STATUS_BOOT;
+    boot_info->slave[CORE_ID].status = STATUS_BOOT;
     // until master has booted
   } while (boot_info->master.status != STATUS_BOOT);
 
@@ -67,7 +72,7 @@ int main(void)
     /* spin */
   }  
   // acknowledge reception of start status
-  boot_info->slave[core_id].status = STATUS_INIT;
+  boot_info->slave[CORE_ID].status = STATUS_INIT;
 
   // call the application's _start()
   int retval = -1;
@@ -84,7 +89,8 @@ int main(void)
                     "$r14", "$r15", "$r16", "$r17",
                     "$r18", "$r19", "$r20", "$r21",
                     "$r22", "$r23", "$r24", "$r25",
-                    "$r26", "$r27", "$r28", "$r29");
+                    "$r26", "$r27", "$r28", "$r29",
+                    "$r30", "$r31");
   }
   
   // TODO: report return value back to master

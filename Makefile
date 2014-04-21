@@ -12,7 +12,7 @@ BOOTAPP?=basic
 #BOOTAPP=bootable-bootloader
 
 # Application to be downloaded
-APP?=hello
+APP?=hello_puts
 
 # Altera FPGA configuration cables
 #BLASTER_TYPE=ByteBlasterMV
@@ -28,11 +28,8 @@ endif
 
 # The Quartus project
 #BOARD=bemicro
-BOARD?=altde2-70
-#BOARD?=altde2-115
-
-# MS: why do we need all those symbols when
-# the various paths are fixed anyway?
+#BOARD?=altde2-70
+BOARD?=altde2-115
 
 # Where to put elf files and binaries
 BUILDDIR?=$(CURDIR)/tmp
@@ -40,6 +37,7 @@ BUILDDIR?=$(CURDIR)/tmp
 SIMBUILDDIR?=$(CURDIR)/simulator/build
 CTOOLSBUILDDIR?=$(CURDIR)/tools/c/build
 JAVATOOLSBUILDDIR?=$(CURDIR)/tools/java/build
+SCRIPTSBUILDDIR?=$(CURDIR)/tools/scripts/build
 HWBUILDDIR?=$(CURDIR)/hardware/build
 # Where to install tools
 INSTALLDIR?=$(CURDIR)/install
@@ -47,7 +45,8 @@ HWINSTALLDIR?=$(INSTALLDIR)
 
 all: tools emulator patmos
 
-tools: patsim elf2bin javatools
+
+tools: patsim elf2bin javatools scripttools
 
 # Build simulator and assembler
 patsim:
@@ -67,23 +66,30 @@ elf2bin:
 
 # Build various Java tools
 javatools: $(JAVATOOLSBUILDDIR)/lib/patmos-tools.jar \
-		tools/lib/java-binutils-0.1.0.jar tools/lib/jssc.jar \
-		tools/scripts/patserdow
+		tools/lib/java-binutils-0.1.0.jar tools/lib/jssc.jar
 	-mkdir -p $(INSTALLDIR)/lib/java
 	cp $(JAVATOOLSBUILDDIR)/lib/patmos-tools.jar $(INSTALLDIR)/lib/java
 	cp tools/lib/java-binutils-0.1.0.jar $(INSTALLDIR)/lib/java
 	cp tools/lib/jssc.jar $(INSTALLDIR)/lib/java
+
+# Patch and install scripts
+scripttools:
+	-mkdir -p $(SCRIPTSBUILDDIR)
+	make -C tools/scripts BUILDDIR=$(SCRIPTSBUILDDIR) \
+		PATMOS_HOME=$(CURDIR) COM_PORT=$(COM_PORT) all
 	-mkdir -p $(INSTALLDIR)/bin
-	cp tools/scripts/patserdow $(INSTALLDIR)/bin
+	cp $(SCRIPTSBUILDDIR)/patserdow $(INSTALLDIR)/bin
+	cp $(SCRIPTSBUILDDIR)/patex $(INSTALLDIR)/bin
 
 PATSERDOW_SRC=$(shell find tools/java/src/patserdow/ -name *.java)
 PATSERDOW_CLASS=$(patsubst tools/java/src/%.java,$(JAVATOOLSBUILDDIR)/classes/%.class,$(PATSERDOW_SRC))
+PATSERDOW_EXTRACLASS=patserdow/Main'$$'ShutDownHook.class patserdow/Main'$$'InputThread.class
 JAVAUTIL_SRC=$(shell find tools/java/src/util/ -name *.java)
 JAVAUTIL_CLASS=$(patsubst tools/java/src/%.java,$(JAVATOOLSBUILDDIR)/classes/%.class,$(JAVAUTIL_SRC))
 
 $(JAVATOOLSBUILDDIR)/lib/patmos-tools.jar: $(PATSERDOW_CLASS) $(JAVAUTIL_CLASS)
 	-mkdir -p $(JAVATOOLSBUILDDIR)/lib
-	cd $(JAVATOOLSBUILDDIR)/classes && jar cf ../lib/patmos-tools.jar $(subst $(JAVATOOLSBUILDDIR)/classes/,,$^)
+	cd $(JAVATOOLSBUILDDIR)/classes && jar cf ../lib/patmos-tools.jar $(subst $(JAVATOOLSBUILDDIR)/classes/,,$^) $(PATSERDOW_EXTRACLASS)
 
 $(JAVATOOLSBUILDDIR)/classes/%.class: tools/java/src/%.java
 	-mkdir -p $(JAVATOOLSBUILDDIR)/classes
@@ -133,15 +139,24 @@ comp-% $(BUILDDIR)/%.elf: .FORCE
 
 # High-level pasim simulation
 swsim: $(BUILDDIR)/$(BOOTAPP).bin
-	bin/pasim --debug --debug-fmt=short $(BUILDDIR)/$(BOOTAPP).bin
+	$(INSTALLDIR)/bin/pasim --debug --debug-fmt=short $(BUILDDIR)/$(BOOTAPP).bin; exit 0
 
 # C simulation of the Chisel version of Patmos
 hwsim:
 	$(MAKE) -C hardware test BOOTBUILDROOT=$(CURDIR) BOOTAPP=$(BOOTAPP)
 
 # Testing
-test:
+test: test_emu
+test_sim: patsim
+	cd $(SIMBUILDDIR) && make test
+test_emu:
 	testsuite/run.sh
+.PHONY: test test_sim test_emu
+
+# Build documentation
+doc:
+	make -C doc all
+.PHONY: doc
 
 # Compile Patmos and download
 patmos: gen synth config

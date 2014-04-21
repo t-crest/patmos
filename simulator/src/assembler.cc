@@ -22,798 +22,657 @@
 
 #include "assembler.h"
 #include "binary-formats.h"
+#include "instruction.h"
+#include "instructions.h"
 #include "util.h"
 
-#include <boost/spirit/include/karma_generate.hpp>
-#include <boost/spirit/include/karma_binary.hpp>
-#include <boost/spirit/include/phoenix_bind.hpp>
-#include <boost/spirit/include/phoenix_operator.hpp>
-#include <boost/spirit/include/qi.hpp>
-
+#include <cstring>
+#include <string>
 #include <iterator>
 #include <iostream>
 #include <map>
+#include <boost/concept_check.hpp>
 
 namespace patmos
 {
-  /// Instructions of a program (host encoding)
-  typedef std::vector<word_t> program_t;
-
-  /// Mapping of names to name IDs
-  typedef std::map<std::string, unsigned int> names_t;
-
-  /// Mapping of symbols (name IDs to addresses)
-  typedef std::map<unsigned, word_t> symbols_t;
-
-  /// Relocation kinds
-  enum relocation_kind_e
+  lexer_t::lexer_t(std::string& line) : Line(line)
   {
-    /// relocation of absolute addresses for ALUl instructions
-    ALUL_ABS,
-    /// relocation of absolute addresses for ALUi instructions
-    ALUI_ABS,
-    /// relocation of absolute addresses for CFL instructions
-    CFLB_ABS,
-    /// relocation of relative addresses for CFL instructions
-    CFLB_PCREL,
-    /// relocation of relative addresses for CFL instructions
-    CFLB_FREL
-  };
-
-  /// Relocation information
-  struct relocation_t
-  {
-    /// Kind of the relocation.
-    relocation_kind_e Kind;
-
-    /// Symbol whose address has to be patched.
-    unsigned int Symbol;
-
-    /// Address of the last .fstart directive seen in the program.
-    unsigned int Last_fstart;
-  };
-
-  /// Map program addresses to relocations.
-  typedef std::map<word_t, relocation_t> relocations_t;
-
-  /// Base class for parsing assembly code lines.
-  class assembly_line_grammar_t : public boost::spirit::qi::grammar<
-                                               std::string::const_iterator,
-                                               void(),
-                                               boost::spirit::ascii::space_type>
-  {
-    friend class line_assembler_t;
-    private:
-      typedef boost::spirit::qi::rule<std::string::const_iterator, word_t(),
-                                      boost::spirit::ascii::space_type> rule_t;
-
-      typedef boost::spirit::qi::rule<std::string::const_iterator, dword_t(),
-                                      boost::spirit::ascii::space_type> drule_t;
-
-      typedef boost::spirit::qi::rule<std::string::const_iterator, void(),
-                                      boost::spirit::ascii::space_type> nrule_t;
-
-      /// The currently parsed program.
-      program_t P;
-
-      /// Names appearing the program.
-      names_t Names;
-
-      /// Symbol definitions appearing the program (labels).
-      symbols_t Symbols;
-
-      /// Relocations appearing in the program.
-      relocations_t Relocations;
-
-      /// Keep track of last .fstart.
-      unsigned int Last_fstart;
-
-      /// Main rule.
-      nrule_t Line;
-
-      /// Parse a symbol name - return name ID.
-      rule_t Name;
-
-      /// Parse a label - return symbol ID.
-      nrule_t Label;
-
-      /// Parse a bundle.
-      nrule_t Bundle;
-
-      /// Parse any 32-bit instruction for either slot 1 and 2.
-      rule_t Instruction1, Instruction2;
-
-      /// Parse general purpose registers.
-      rule_t GPR;
-
-      /// Parse general purpose registers.
-      rule_t SPR;
-
-      /// Parse predicate registers.
-      rule_t PRR;
-
-      /// Parse predicate registers with negate.
-      rule_t NegPRR;
-
-      /// Parse immediate.
-      rule_t Imm, Imm4u, Imm12u, Imm22u, Imm22s, Imm7s;
-
-      /// Parse an immediate or label for ALUl and ALUi instructions.
-      rule_t ImmALUL, ImmALUI;
-
-      /// Parse an immediate or label for CFL instructions.
-      rule_t ImmCFL_ABS, ImmCFL_FREL, ImmCFL_PCREL;
-
-      /// Parse an arbitrary data word.
-      rule_t Data_Word;
-
-      /// Parse an .fstart directive
-      rule_t Fstart;
-
-      /// Parse an instruction predicate.
-      rule_t Pred;
-
-      /// Parse an addressing mode.
-      rule_t Addresse;
-
-      /// Parse ALU opcodes.
-      rule_t ALUiopc, ALUlropc, ALUmopc, ALUcopc, ALUpopc;
-
-      /// Parse long ALU instructions.
-      drule_t ALUl;
-
-      /// Parse ALU instructions.
-      rule_t ALUi, ALUr, ALUm, ALUc, ALUp;
-
-      /// Parse SPC opcodes.
-      rule_t SPCwopc;
-
-      /// Parse SPC instructions.
-      rule_t SPCn, SPCw, SPCt, SPCf;
-
-      /// Parse LDT opcodes.
-      rule_t LDTopc, LDTsopc, dLDTopc;
-
-      /// Parse LDT instructions.
-      rule_t LDT, LDTs, dLDT;
-
-      /// Parse STT opcodes.
-      rule_t STTopc, STTsopc;
-
-      /// Parse STT instructions.
-      rule_t STT, STTs;
-
-      /// Parse STC opcodes.
-      rule_t STCiopc, STCropc;
-
-      /// Parse STC instructions.
-      rule_t STCi, STCr;
-
-      /// Parse CFL opcodes.
-      rule_t CFLbopc, CFLiopc, CFLropc;
-
-      /// Parse CFL instructions.
-      rule_t CFLb, CFLi, CFLr;
-
-      /// Emit an instruction word to the program.
-      /// \param iw the instruction word.
-      inline void emit(word_t iw)
-      {
-        P.push_back(iw);
-      }
-
-      /// Emit the second instruction of a bundle to the program, updating the
-      /// stop-bit of the previous instruction word.
-      /// \param iw2 the second instruction word.
-      inline void emit2(word_t iw2)
-      {
-        P.back() |= (1ul << (sizeof(word_t)*8 - 1));
-        P.push_back(iw2);
-      }
-
-      /// Emit a bundle.
-      /// \param diw A bundle consisting of two instruction words.
-      inline void demit(dword_t diw)
-      {
-        word_t iw1 = diw >> (sizeof(word_t) * 8);
-        word_t iw2 = diw;
-        P.push_back(iw1);
-        P.push_back(iw2);
-      }
-
-      /// Append a name to the name list.
-      /// \param c The first character of the name.
-      /// \param t The other characters of the name.
-      /// \return A unique ID for the name.
-      inline unsigned int make_name(char h, const std::vector<char> &t)
-      {
-        std::string name(1, h);
-        name.append(t.begin(), t.end());
-        if (Names.find(name) == Names.end())
-          Names[name] = Names.size() + 1;
-
-        return Names[name];
-      }
-
-      /// Append a symbol to the symbol list, assign the symbol the address of 
-      /// the current program location.
-      /// \param symbol The name ID of the symbol to be created.
-      /// \return False in case the label was redefined (causes parsing error).
-      inline bool make_label(unsigned int symbol)
-      {
-        if (Symbols.find(symbol) == Symbols.end())
-        {
-          Symbols[symbol] = P.size() * sizeof(word_t);
-          return true;
-        }
-        else
-          return false;
-      }
-
-      /// Create a new relocation at the current program location.
-      /// \param kind The relocation kind (instruction type, etc.)
-      /// \param symbol The symbol whose address should be patched.
-      /// \return Zero to supply a valid value for the parser semantic action.
-      inline unsigned int make_relocation(relocation_kind_e kind, unsigned int symbol)
-      {
-        relocation_t tmp;
-        tmp.Kind = kind;
-        tmp.Symbol = symbol;
-        tmp.Last_fstart = Last_fstart;
-        Relocations[P.size()] = tmp;
-
-        return 0;
-      }
-
-      /// Keep track of methods for the method cache.
-      /// \param size
-      inline word_t make_fstart(unsigned int size)
-      {
-        // align for method cache block size (32 for now)
-        while((P.size() % 8) != 7)
-          P.push_back(0);
-
-        Last_fstart = (P.size() + 1) * 4;
-
-        return size;
-      }
-
-    public:
-      /// Construct a parser for instruction path patterns.
-      explicit assembly_line_grammar_t() :
-          assembly_line_grammar_t::base_type(Line), Last_fstart(0)
-      {
-        Line = Label >> ((Bundle >> ';') | boost::spirit::eol);
-
-        // parse a name, e.g. for labels
-        Name = boost::spirit::lexeme[(boost::spirit::ascii::char_("_a-zA-Z") >>
-                *boost::spirit::ascii::char_("_0-9a-zA-Z"))
-               [boost::spirit::qi::_val = boost::phoenix::bind(
-                                            &assembly_line_grammar_t::make_name,
-                                            this, boost::spirit::qi::_1,
-                                            boost::spirit::qi::_2)]];
-
-        // parse an optional label:
-        Label = (Name >> ":")
-                [boost::spirit::qi::_pass = boost::phoenix::bind(
-                                           &assembly_line_grammar_t::make_label,
-                                           this, boost::spirit::qi::_1)] |
-                boost::spirit::eps;
-
-        // parse a bundle, i.e., 1 or 2 instructions -- special care is taken
-        // for ALUl instructions and the special HLT instruction of the
-        // simulator.
-        Bundle = ALUl
-                 [boost::phoenix::bind(&assembly_line_grammar_t::demit, this,
-                                       boost::spirit::qi::_1)]                 |
-                 boost::spirit::lit("halt")
-                 [boost::phoenix::bind(&assembly_line_grammar_t::demit, this,
-                                       0x0780000000400000)]                    |
-                 boost::spirit::lit("nop")
-                 [boost::phoenix::bind(&assembly_line_grammar_t::emit, this,
-                                       0x00400000)]                            |
-                 (Instruction1
-                  [boost::phoenix::bind(&assembly_line_grammar_t::emit, this,
-                                        boost::spirit::qi::_1)] >>
-                   -("||" >> Instruction2
-                          [boost::phoenix::bind(&assembly_line_grammar_t::emit2,
-                                                this, boost::spirit::qi::_1)]))|
-                 Data_Word
-                 [boost::phoenix::bind(&assembly_line_grammar_t::emit, this,
-                                       boost::spirit::qi::_1)]                 |
-                 Fstart
-                 [boost::phoenix::bind(&assembly_line_grammar_t::emit, this,
-                                       boost::spirit::qi::_1)]                 ;
-
-        // All instructions except ALUl
-        Instruction1 %= ( ALUi | ALUr | ALUm | ALUc | ALUp |
-                          SPCn | SPCw | SPCt | SPCf |
-                          LDT  | dLDT |
-                          STT  |
-                          STCi | STCr |
-                          CFLi | CFLb | CFLr);
-
-        // All instructions except SPCn, SPNw, CFL, LDT, STT, and STC.
-        Instruction2 %= (ALUi | ALUr | ALUm | ALUc | ALUp |
-                         SPCt | SPCf |
-                         LDTs | STTs);
-
-        // Parse general purpose registers.
-        GPR = 'r' >> boost::spirit::uint_
-              [boost::spirit::qi::_pass = boost::phoenix::bind(isGPR,
-                                                         boost::spirit::qi::_1)]
-              [boost::spirit::qi::_val = boost::spirit::qi::_1];
-
-        // Parse general purpose registers.
-        SPR = 's' >> boost::spirit::uint_
-              [boost::spirit::qi::_pass = boost::phoenix::bind(isSPR,
-                                                         boost::spirit::qi::_1)]
-              [boost::spirit::qi::_val = boost::spirit::qi::_1];
-
-        // Parse predicate registers.
-        PRR = 'p' >> boost::spirit::uint_
-              [boost::spirit::qi::_pass = boost::phoenix::bind(isPRR,
-                                                         boost::spirit::qi::_1)]
-              [boost::spirit::qi::_val = boost::spirit::qi::_1];
-
-        // Parse predicate registers with negate.
-        NegPRR = (boost::spirit::lit('!') >> PRR [
-                    boost::spirit::qi::_val = boost::spirit::qi::_1 + (unsigned int)NUM_PRR]) |
-                 PRR[boost::spirit::qi::_val = boost::spirit::qi::_1];
-
-
-        // Parse immediate.
-        Imm %= ("0x" >> boost::spirit::hex) |
-               ("0b" >> boost::spirit::bin) |
-               ('0' >> boost::spirit::oct)  |
-               (boost::spirit::int_)        ;
-
-        Imm4u = Imm[boost::spirit::_pass = boost::phoenix::bind(fitu,
-                                                              boost::spirit::_1,
-                                                              4)]
-                   [boost::spirit::_val = boost::spirit::_1];
-
-        Imm12u = Imm[boost::spirit::_pass = boost::phoenix::bind(fitu,
-                                                              boost::spirit::_1,
-                                                              12)]
-                   [boost::spirit::_val = boost::spirit::_1];
-
-        Imm22u = Imm[boost::spirit::_pass = boost::phoenix::bind(fitu,
-                                                              boost::spirit::_1,
-                                                              22)]
-                   [boost::spirit::_val = boost::spirit::_1];
-
-        Imm22s = Imm[boost::spirit::_pass = boost::phoenix::bind(fits,
-                                                              boost::spirit::_1,
-                                                              22)]
-                   [boost::spirit::_val = boost::spirit::_1];
-
-        Imm7s = Imm[boost::spirit::_pass = boost::phoenix::bind(fits,
-                                                              boost::spirit::_1,
-                                                              7)]
-                   [boost::spirit::_val = boost::spirit::_1];
-
-        ImmALUL = Imm [boost::spirit::_val = boost::spirit::_1]                |
-                  (Name - GPR) [boost::spirit::_val = boost::phoenix::bind(
-                                      &assembly_line_grammar_t::make_relocation,
-                                      this, ALUL_ABS, boost::spirit::_1)];
-
-        ImmALUI = Imm12u [boost::spirit::_val = boost::spirit::_1]                |
-                  Name [boost::spirit::_val = boost::phoenix::bind(
-                                      &assembly_line_grammar_t::make_relocation,
-                                      this, ALUI_ABS, boost::spirit::_1)];
-
-        ImmCFL_ABS = Imm22s [boost::spirit::_val = boost::spirit::_1]         |
-                     Name [boost::spirit::_val = boost::phoenix::bind(
-                                      &assembly_line_grammar_t::make_relocation,
-                                      this, CFLB_ABS, boost::spirit::_1)];
-
-        ImmCFL_FREL = Imm22s [boost::spirit::_val = boost::spirit::_1]        |
-                      Name [boost::spirit::_val = boost::phoenix::bind(
-                                      &assembly_line_grammar_t::make_relocation,
-                                      this, CFLB_FREL, boost::spirit::_1)];
-
-        ImmCFL_PCREL = Imm22s [boost::spirit::_val = boost::spirit::_1]        |
-                       Name [boost::spirit::_val = boost::phoenix::bind(
-                                      &assembly_line_grammar_t::make_relocation,
-                                      this, CFLB_PCREL, boost::spirit::_1)];
-
-        // parse some arbitrary word-sized data
-        Data_Word = (".word" >> Imm)
-                    [boost::spirit::_pass = boost::phoenix::bind(fits,
-                                                              boost::spirit::_1,
-                                                              32)]
-                    [boost::spirit::_val = boost::spirit::_1];
-
-        Fstart = (".fstart" >> Imm)
-                    [boost::spirit::_pass = boost::phoenix::bind(fitu,
-                                                              boost::spirit::_1,
-                                                              32)]
-                    [boost::spirit::_val = boost::phoenix::bind(
-                                          &assembly_line_grammar_t::make_fstart,
-                                          this, boost::spirit::_1)];
-
-        // Parse an (optional) instruction predicate.
-        Pred = ('(' >> NegPRR >> ')')
-               [boost::spirit::qi::_val = boost::spirit::qi::_1] |
-               boost::spirit::eps
-               [boost::spirit::qi::_val = (unsigned int) p0];
-
-        // Parse an addressing mode.
-        Addresse = ('+' >> Imm7s)
-                   [boost::spirit::qi::_val = boost::spirit::qi::_1] |
-                   ('-' >> Imm7s)
-                   [boost::spirit::qi::_val = -boost::spirit::qi::_1];
-
-        // Parse ALUi instructions
-        ALUiopc = boost::spirit::lit("addi")  [boost::spirit::qi::_val = 0] |
-                  boost::spirit::lit("subi")  [boost::spirit::qi::_val = 1] |
-                  boost::spirit::lit("xori")  [boost::spirit::qi::_val = 2] |
-                  boost::spirit::lit("sli")   [boost::spirit::qi::_val = 3] |
-                  boost::spirit::lit("sri")   [boost::spirit::qi::_val = 4] |
-                  boost::spirit::lit("srai")  [boost::spirit::qi::_val = 5] |
-                  boost::spirit::lit("ori")   [boost::spirit::qi::_val = 6] |
-                  boost::spirit::lit("andi")  [boost::spirit::qi::_val = 7] ;
-
-        ALUi = (Pred >> ALUiopc >> GPR >> '=' >> GPR >> ',' >> ImmALUI)
-               [boost::spirit::qi::_val = boost::phoenix::bind(
-                                 alui_format_t::encode, boost::spirit::qi::_1,
-                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
-                                 boost::spirit::qi::_4, boost::spirit::qi::_5)];
-
-        // Parse ALUl and ALUr opcodes
-        ALUlropc = boost::spirit::lit("add")    [boost::spirit::qi::_val =  0] |
-                   boost::spirit::lit("sub")    [boost::spirit::qi::_val =  1] |
-                   boost::spirit::lit("xor")    [boost::spirit::qi::_val =  2] |
-                   boost::spirit::lit("sl")     [boost::spirit::qi::_val =  3] |
-                   boost::spirit::lit("sra")    [boost::spirit::qi::_val =  5] |
-                   boost::spirit::lit("sr")     [boost::spirit::qi::_val =  4] |
-                   boost::spirit::lit("or")     [boost::spirit::qi::_val =  6] |
-                   boost::spirit::lit("and")    [boost::spirit::qi::_val =  7] |
-                   boost::spirit::lit("nor")    [boost::spirit::qi::_val = 11] |
-                   boost::spirit::lit("shadd2") [boost::spirit::qi::_val = 13] |
-                   boost::spirit::lit("shadd")  [boost::spirit::qi::_val = 12] ;
-
-        // Parse ALUl instructions
-        ALUl = (Pred >> ALUlropc >> GPR >> '=' >> GPR >> ',' >> ImmALUL)
-               [boost::spirit::qi::_val = boost::phoenix::bind(
-                                 alul_format_t::encode, boost::spirit::qi::_1,
-                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
-                                 boost::spirit::qi::_4, boost::spirit::qi::_5)];
-
-        // Parse ALUr instructions
-        ALUr = (Pred >> ALUlropc >> GPR >> '=' >> GPR >> ',' >> GPR)
-               [boost::spirit::qi::_val = boost::phoenix::bind(
-                                 alur_format_t::encode, boost::spirit::qi::_1,
-                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
-                                 boost::spirit::qi::_4, boost::spirit::qi::_5)];
-
-        // Parse ALUm instructions
-        ALUmopc = boost::spirit::lit("mulu")  [boost::spirit::qi::_val = 1] |
-                  boost::spirit::lit("mul")   [boost::spirit::qi::_val = 0] ;
-
-        ALUm = (Pred >> ALUmopc >> GPR >> ',' >> GPR)
-               [boost::spirit::qi::_val = boost::phoenix::bind(
-                                   alum_format_t::encode, boost::spirit::qi::_1,
-                                   boost::spirit::qi::_2, boost::spirit::qi::_3,
-                                   boost::spirit::qi::_4)];
-
-        // Parse ALUc instructions
-        ALUcopc = boost::spirit::lit("cmpeq")  [boost::spirit::qi::_val = 0] |
-                  boost::spirit::lit("cmpneq") [boost::spirit::qi::_val = 1] |
-                  boost::spirit::lit("cmplt")  [boost::spirit::qi::_val = 2] |
-                  boost::spirit::lit("cmple")  [boost::spirit::qi::_val = 3] |
-                  boost::spirit::lit("cmpult") [boost::spirit::qi::_val = 4] |
-                  boost::spirit::lit("cmpule") [boost::spirit::qi::_val = 5] |
-                  boost::spirit::lit("btest")  [boost::spirit::qi::_val = 6] ;
-
-        ALUc = (Pred >> ALUcopc >> PRR >> '=' >> GPR >> ',' >> GPR)
-               [boost::spirit::qi::_val = boost::phoenix::bind(
-                                 aluc_format_t::encode, boost::spirit::qi::_1,
-                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
-                                 boost::spirit::qi::_4, boost::spirit::qi::_5)];
-
-        // Parse ALUp instructions
-        ALUpopc = boost::spirit::lit("por")   [boost::spirit::qi::_val =  6] |
-                  boost::spirit::lit("pand")  [boost::spirit::qi::_val =  7] |
-                  boost::spirit::lit("pxor")  [boost::spirit::qi::_val = 10];
-
-        ALUp = (Pred >> ALUpopc >> PRR >> '=' >> NegPRR >> ',' >> NegPRR)
-               [boost::spirit::qi::_val = boost::phoenix::bind(
-                                 alup_format_t::encode, boost::spirit::qi::_1,
-                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
-                                 boost::spirit::qi::_4, boost::spirit::qi::_5)];
-
-        // Parse SPCw instructions
-        SPCwopc = boost::spirit::lit("waitm")  [boost::spirit::qi::_val = 0];
-
-        SPCw = (Pred >> SPCwopc)
-               [boost::spirit::qi::_val = boost::phoenix::bind(
-                                   spcw_format_t::encode, boost::spirit::qi::_1,
-                                   boost::spirit::qi::_2)];
-
-        // Parse SPCt instructions
-        SPCt = (Pred >> "mts" >> SPR >> '=' >> GPR)
-               [boost::spirit::qi::_val = boost::phoenix::bind(
-                                 spct_format_t::encode, boost::spirit::qi::_1,
-                                 boost::spirit::qi::_2, boost::spirit::qi::_3)];
-
-        // Parse SPCf instructions
-        SPCf = (Pred >> "mfs" >> GPR >> '=' >> SPR)
-               [boost::spirit::qi::_val = boost::phoenix::bind(
-                                 spcf_format_t::encode, boost::spirit::qi::_1,
-                                 boost::spirit::qi::_2, boost::spirit::qi::_3)];
-
-        // Parse LDT instructions
-        LDTopc = boost::spirit::lit("lws")    [boost::spirit::qi::_val =  0] |
-                 boost::spirit::lit("lwl")    [boost::spirit::qi::_val =  1] |
-                 boost::spirit::lit("lwc")    [boost::spirit::qi::_val =  2] |
-                 boost::spirit::lit("lwm")    [boost::spirit::qi::_val =  3] |
-                 boost::spirit::lit("lhs")    [boost::spirit::qi::_val =  4] |
-                 boost::spirit::lit("lhl")    [boost::spirit::qi::_val =  5] |
-                 boost::spirit::lit("lhc")    [boost::spirit::qi::_val =  6] |
-                 boost::spirit::lit("lhm")    [boost::spirit::qi::_val =  7] |
-                 boost::spirit::lit("lbs")    [boost::spirit::qi::_val =  8] |
-                 boost::spirit::lit("lbl")    [boost::spirit::qi::_val =  9] |
-                 boost::spirit::lit("lbc")    [boost::spirit::qi::_val = 10] |
-                 boost::spirit::lit("lbm")    [boost::spirit::qi::_val = 11] |
-                 boost::spirit::lit("lhus")   [boost::spirit::qi::_val = 12] |
-                 boost::spirit::lit("lhul")   [boost::spirit::qi::_val = 13] |
-                 boost::spirit::lit("lhuc")   [boost::spirit::qi::_val = 14] |
-                 boost::spirit::lit("lhum")   [boost::spirit::qi::_val = 15] |
-                 boost::spirit::lit("lbus")   [boost::spirit::qi::_val = 16] |
-                 boost::spirit::lit("lbul")   [boost::spirit::qi::_val = 17] |
-                 boost::spirit::lit("lbuc")   [boost::spirit::qi::_val = 18] |
-                 boost::spirit::lit("lbum")   [boost::spirit::qi::_val = 19] ;
-
-        // Parse LDTs instructions
-        LDTsopc = boost::spirit::lit("lws")    [boost::spirit::qi::_val =  0] |
-                  boost::spirit::lit("lhs")    [boost::spirit::qi::_val =  4] |
-                  boost::spirit::lit("lbs")    [boost::spirit::qi::_val =  8] |
-                  boost::spirit::lit("lhus")   [boost::spirit::qi::_val = 12] |
-                  boost::spirit::lit("lbus")   [boost::spirit::qi::_val = 16] ;
-
-        dLDTopc = boost::spirit::lit("dlwc")  [boost::spirit::qi::_val = 20] |
-                  boost::spirit::lit("dlwm")  [boost::spirit::qi::_val = 21] |
-                  boost::spirit::lit("dlhc")  [boost::spirit::qi::_val = 22] |
-                  boost::spirit::lit("dlhm")  [boost::spirit::qi::_val = 23] |
-                  boost::spirit::lit("dlbc")  [boost::spirit::qi::_val = 24] |
-                  boost::spirit::lit("dlbm")  [boost::spirit::qi::_val = 25] |
-                  boost::spirit::lit("dlhuc") [boost::spirit::qi::_val = 26] |
-                  boost::spirit::lit("dlhum") [boost::spirit::qi::_val = 27] |
-                  boost::spirit::lit("dlbuc") [boost::spirit::qi::_val = 28] |
-                  boost::spirit::lit("dlbum") [boost::spirit::qi::_val = 29] ;
-
-        LDT = (Pred >> LDTopc >> GPR >> '='
-                >> '[' >> GPR >> Addresse >> ']')
-              [boost::spirit::qi::_val = boost::phoenix::bind(
-                                 ldt_format_t::encode, boost::spirit::qi::_1,
-                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
-                                 boost::spirit::qi::_4, boost::spirit::qi::_5)];
-
-        LDTs = (Pred >> LDTsopc >> GPR >> '='
-                >> '[' >> GPR >> Addresse >> ']')
-              [boost::spirit::qi::_val = boost::phoenix::bind(
-                                 ldt_format_t::encode, boost::spirit::qi::_1,
-                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
-                                 boost::spirit::qi::_4, boost::spirit::qi::_5)];
-
-        dLDT = (Pred >> dLDTopc >> "sm" >> '='
-                >> '[' >> GPR >> Addresse >> ']')
-              [boost::spirit::qi::_val = boost::phoenix::bind(
-                                 ldt_format_t::encode, boost::spirit::qi::_1,
-                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
-                                 boost::spirit::qi::_4)];
-
-        // Parse STT instructions
-        STTopc = boost::spirit::lit("sws")   [boost::spirit::qi::_val =  0] |
-                 boost::spirit::lit("swl")   [boost::spirit::qi::_val =  1] |
-                 boost::spirit::lit("swc")   [boost::spirit::qi::_val =  2] |
-                 boost::spirit::lit("swm")   [boost::spirit::qi::_val =  3] |
-                 boost::spirit::lit("shs")   [boost::spirit::qi::_val =  4] |
-                 boost::spirit::lit("shl")   [boost::spirit::qi::_val =  5] |
-                 boost::spirit::lit("shc")   [boost::spirit::qi::_val =  6] |
-                 boost::spirit::lit("shm")   [boost::spirit::qi::_val =  7] |
-                 boost::spirit::lit("sbs")   [boost::spirit::qi::_val =  8] |
-                 boost::spirit::lit("sbl")   [boost::spirit::qi::_val =  9] |
-                 boost::spirit::lit("sbc")   [boost::spirit::qi::_val = 10] |
-                 boost::spirit::lit("sbm")   [boost::spirit::qi::_val = 11] ;
-
-        STTsopc = boost::spirit::lit("sws")   [boost::spirit::qi::_val =  0] |
-                  boost::spirit::lit("shs")   [boost::spirit::qi::_val =  4] |
-                  boost::spirit::lit("sbs")   [boost::spirit::qi::_val =  8] ;
-
-        STT = (Pred >> STTopc >> '[' >> GPR >> Addresse >> ']'
-                >> '=' >> GPR)
-              [boost::spirit::qi::_val = boost::phoenix::bind(
-                                 stt_format_t::encode, boost::spirit::qi::_1,
-                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
-                                 boost::spirit::qi::_4, boost::spirit::qi::_5)];
-
-        STTs = (Pred >> STTsopc >> '[' >> GPR >> Addresse >> ']'
-                >> '=' >> GPR)
-              [boost::spirit::qi::_val = boost::phoenix::bind(
-                                 stt_format_t::encode, boost::spirit::qi::_1,
-                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
-                                 boost::spirit::qi::_4, boost::spirit::qi::_5)];
-
-        // Parse STCi instructions
-        STCiopc = boost::spirit::lit("sres")    [boost::spirit::qi::_val = 0] |
-                  boost::spirit::lit("sens")    [boost::spirit::qi::_val = 1] |
-                  boost::spirit::lit("sfree")   [boost::spirit::qi::_val = 2] |
-                  boost::spirit::lit("sspill")  [boost::spirit::qi::_val = 3] ;
-
-        STCi = (Pred >> STCiopc >> Imm22u)
-               [boost::spirit::qi::_val = boost::phoenix::bind(
-                                 stci_format_t::encode, boost::spirit::qi::_1,
-                                 boost::spirit::qi::_2, boost::spirit::qi::_3)];
-
-        // Parse STCr instructions
-        STCropc = boost::spirit::lit("sensr")    [boost::spirit::qi::_val = 1] |
-                  boost::spirit::lit("sspillr")  [boost::spirit::qi::_val = 3] ;
-
-        STCr = (Pred >> STCropc >> GPR)
-               [boost::spirit::qi::_val = boost::phoenix::bind(
-                                 stcr_format_t::encode, boost::spirit::qi::_1,
-                                 boost::spirit::qi::_2, boost::spirit::qi::_3)];
-
-        // Parse CFLb instructions
-        CFLbopc = boost::spirit::lit("brcf") [boost::spirit::qi::_val = 2] |
-                  boost::spirit::lit("br")   [boost::spirit::qi::_val = 1] ;
-
-        CFLb = ((Pred >> "call" >> ImmCFL_ABS)
-                [boost::spirit::qi::_val = boost::phoenix::bind(
-                               cflb_format_t::encode, boost::spirit::qi::_1,
-                               0, boost::spirit::qi::_2)]) |
-               ((Pred >> CFLbopc >> ImmCFL_PCREL)
-                [boost::spirit::qi::_val = boost::phoenix::bind(
-                                cflb_format_t::encode, boost::spirit::qi::_1,
-                                boost::spirit::qi::_2, boost::spirit::qi::_3)]);
-
-        // Parse CFLi instructions
-        CFLiopc = boost::spirit::lit("callr") [boost::spirit::qi::_val = 0] |
-                  boost::spirit::lit("brcfr") [boost::spirit::qi::_val = 2] |
-                  boost::spirit::lit("brr")   [boost::spirit::qi::_val = 1] ;
-
-        CFLi = (Pred >> CFLiopc >> GPR)
-              [boost::spirit::qi::_val = boost::phoenix::bind(
-                                 cfli_format_t::encode, boost::spirit::qi::_1,
-                                 boost::spirit::qi::_2, boost::spirit::qi::_3)];
-
-        // Parse CFLr instructions
-        CFLropc = boost::spirit::lit("ret")[boost::spirit::qi::_val = 0];
-        CFLr = (Pred >> CFLropc >> GPR >> ',' >> GPR)
-              [boost::spirit::qi::_val = boost::phoenix::bind(
-                                 cflr_format_t::encode, boost::spirit::qi::_1,
-                                 boost::spirit::qi::_2, boost::spirit::qi::_3,
-                                 boost::spirit::qi::_4)];
-
-        // enable debugging of rules -- if BOOST_SPIRIT_DEBUG is defined
-        BOOST_SPIRIT_DEBUG_NODE(Line);
-        BOOST_SPIRIT_DEBUG_NODE(Bundle);
-        BOOST_SPIRIT_DEBUG_NODE(Name);        BOOST_SPIRIT_DEBUG_NODE(Label);
-        BOOST_SPIRIT_DEBUG_NODE(Instruction1);
-        BOOST_SPIRIT_DEBUG_NODE(Instruction2);
-        BOOST_SPIRIT_DEBUG_NODE(GPR);         BOOST_SPIRIT_DEBUG_NODE(SPR);
-        BOOST_SPIRIT_DEBUG_NODE(PRR);         BOOST_SPIRIT_DEBUG_NODE(NegPRR);
-        BOOST_SPIRIT_DEBUG_NODE(Imm);
-        BOOST_SPIRIT_DEBUG_NODE(Imm4u);       BOOST_SPIRIT_DEBUG_NODE(Imm12u);
-        BOOST_SPIRIT_DEBUG_NODE(Imm22s);      BOOST_SPIRIT_DEBUG_NODE(Imm7s);
-        BOOST_SPIRIT_DEBUG_NODE(Imm22u);      BOOST_SPIRIT_DEBUG_NODE(ImmALUL);
-        BOOST_SPIRIT_DEBUG_NODE(ImmCFL_ABS);  BOOST_SPIRIT_DEBUG_NODE(ImmALUI);
-        BOOST_SPIRIT_DEBUG_NODE(ImmCFL_FREL);
-        BOOST_SPIRIT_DEBUG_NODE(Pred);
-        BOOST_SPIRIT_DEBUG_NODE(ALUiopc);     BOOST_SPIRIT_DEBUG_NODE(ALUlropc);
-        BOOST_SPIRIT_DEBUG_NODE(ALUcopc);     BOOST_SPIRIT_DEBUG_NODE(ALUpopc);
-        BOOST_SPIRIT_DEBUG_NODE(SPCwopc);
-        BOOST_SPIRIT_DEBUG_NODE(LDTopc);      BOOST_SPIRIT_DEBUG_NODE(dLDTopc);
-        BOOST_SPIRIT_DEBUG_NODE(STTopc);
-        BOOST_SPIRIT_DEBUG_NODE(STCiopc);     BOOST_SPIRIT_DEBUG_NODE(STCropc);
-        BOOST_SPIRIT_DEBUG_NODE(CFLbopc);     BOOST_SPIRIT_DEBUG_NODE(CFLiopc);
-        BOOST_SPIRIT_DEBUG_NODE(CFLropc);
-        BOOST_SPIRIT_DEBUG_NODE(ALUi);        BOOST_SPIRIT_DEBUG_NODE(ALUl);
-        BOOST_SPIRIT_DEBUG_NODE(ALUr);
-        BOOST_SPIRIT_DEBUG_NODE(ALUm);        BOOST_SPIRIT_DEBUG_NODE(ALUc);
-        BOOST_SPIRIT_DEBUG_NODE(ALUp);
-        BOOST_SPIRIT_DEBUG_NODE(SPCn);        BOOST_SPIRIT_DEBUG_NODE(SPCw);
-        BOOST_SPIRIT_DEBUG_NODE(SPCt);        BOOST_SPIRIT_DEBUG_NODE(SPCf);
-        BOOST_SPIRIT_DEBUG_NODE(LDT);         BOOST_SPIRIT_DEBUG_NODE(dLDT);
-        BOOST_SPIRIT_DEBUG_NODE(STT);
-        BOOST_SPIRIT_DEBUG_NODE(STCi);        BOOST_SPIRIT_DEBUG_NODE(STCr);
-        BOOST_SPIRIT_DEBUG_NODE(CFLb);        BOOST_SPIRIT_DEBUG_NODE(CFLi);
-        BOOST_SPIRIT_DEBUG_NODE(CFLr);
-      }
-  };
-
-
-  line_assembler_t::line_assembler_t() :
-      Line_parser(* new assembly_line_grammar_t())
-  {
+    reset();
   }
-
-  line_assembler_t::~line_assembler_t()
-  {
-    delete &Line_parser;
+  
+  unsigned lexer_t::skip_space(unsigned position) {
+    unsigned pos = position;
+    while (pos < Line.size() && isspace(Line[pos])) {
+      pos++;
+    }
+    return pos;
   }
-
-  bool line_assembler_t::parse_line(const std::string &line, dword_t &iw) const
-  {
-    return boost::spirit::qi::phrase_parse(line.begin(), line.end(),
-                                  Line_parser, boost::spirit::ascii::space, iw);
+  
+  void lexer_t::reset() {
+    Positions.clear();
+    Positions.push_back(skip_space(0));
+    Token = "";
+    
   }
+      
+  size_t lexer_t::pos() const {
+    if (Positions.size() < 2) {
+      return 0;
+    } else {
+      return Positions[Positions.size() - 2];
+    }
+  }
+  
+  bool lexer_t::get_value(word_t &value, bool negate) const {
+    if (!is_digit()) return false;
 
-  bool line_assembler_t::write_program(std::ostream &out,
-                                       unsigned int &size) const
-  {
-    std::ostream_iterator<char> out_iterator(out);
-
-    // emit program
-    for(unsigned int i = 0; i < Line_parser.P.size(); i++)
-    {
-      // get instruction word
-      word_t iw = Line_parser.P[i];
-
-      // apply relocation, if needed
-      relocations_t::const_iterator r(Line_parser.Relocations.find(i));
-      if (r != Line_parser.Relocations.end())
-      {
-        // see if label was defined somewhere
-        if (Line_parser.Symbols.find(r->second.Symbol) ==
-            Line_parser.Symbols.end())
-        {
-          for(names_t::const_iterator j(Line_parser.Names.begin()),
-              je(Line_parser.Names.end()); j != je; j++)
-          {
-            if (j->second == r->second.Symbol)
-            {
-              std::cerr << "Undefined Label: " << j->first << "\n";
-              return false;
-            }
-          }
-
-          std::cerr << "Undefined Label.\n";
-          return false;
-        }
-
-        word_t address = Line_parser.Symbols[r->second.Symbol];
-        if ( (address & 0x3) != 0) {
-          std::cerr << "Unaligned address: " << address << "\n";
-          return false;
-        }
-
-        switch(r->second.Kind)
-        {
-          case ALUL_ABS:
-            // fix-up next word.
-            Line_parser.P[i + 1] = address;
-            break;
-          case ALUI_ABS:
-            // patch ALUi instruction -- byte addressing
-            iw = (iw & ~0xFFF) | (address & 0xFFF);
-            break;
-          case CFLB_ABS:
-            // patch branch -- word addressing
-            iw = (iw & ~0x3FFFFF) | ((address >> 2) & 0x3FFFFF);
-            break;
-          case CFLB_PCREL:
-            // patch branch -- word addressing
-            iw = (iw & ~0x3FFFFF) | (((address >> 2) - i) & 0x3FFFFF);
-            break;
-          case CFLB_FREL:
-            // patch branch -- word addressing
-            iw = (iw & ~0x3FFFFF) | (((address - r->second.Last_fstart) >> 2) &
-                                     0x3FFFFF);
-            break;
-        }
-      }
-
-      // write as big endian
-      boost::spirit::karma::generate(out_iterator,
-                                     boost::spirit::big_dword(iw));
+    char *nptr;
+    value = strtol(Token.c_str(), &nptr, 0);
+      
+    if (*nptr != '\0') {
+      return false;
+    }
+      
+    if (negate) {
+      value = -value;
     }
 
-    size = Line_parser.P.size();
     return true;
   }
-}
+  
+  bool lexer_t::is_name() const {
+    return !Token.empty() && is_name_start(Token[0]);
+  }
+    
+  bool lexer_t::is_digit() const {
+    return !Token.empty() && isdigit(Token[0]);
+  }
+    
+  bool lexer_t::push_back(unsigned count) {    
+    for (unsigned i = 0; i < count; i++) { 
+      Positions.pop_back();
+    }
+    Positions.pop_back();
+    if (Positions.empty()) {
+      reset();
+    } else {
+      next();
+    }
+    return true;
+  }
+    
+  bool lexer_t::next() 
+  {
+    if (end()) {
+      return false;
+    } else if (last()) {
+      // Eat an EOL token..
+      Token = "";
+      Positions.push_back(-1);
+      return false;
+    }
+    
+    unsigned pos = Positions.back();
+    
+    size_t first = pos;
+    size_t last = pos;
+    
+    // Eat a full word
+    while (last < Line.size()) {
+      char c = Line[last];
+      
+      // TODO we could check here if we are parsing a name or a digit and 
+      // throw an error on malformed numbers
+      if (isalnum(c) || c == '.' || c == '_') {
+        last++;
+      } else {
+        break;
+      }
+    }
+    
+    // include at least one (special) character in the next token
+    if (last == first) last++;
+    // special handling of || separator as one token
+    if (Line[first] == '|' && last < Line.size() && Line[last] == '|') last++;
+    
+    // go to the beginning of the next token
+    Positions.push_back(skip_space(last));
+    
+    Token = Line.substr(first, last - first);
+    
+    return true;
+  }
+ 
 
+  line_parser_t::line_parser_t(line_assembler_t &assembler, std::string line)
+  : Lexer(line), Assembler(assembler)
+  {}
+ 
+  bool line_parser_t::parse_register_number(const std::string &name, 
+                                            unsigned maxregs, 
+                                            unsigned &regno) const
+  {
+    unsigned length = name.size();
+    if (length < 2 || length > 3) return false;
+    if (!isdigit(name[1]) || (length == 3 && !isdigit(name[2]))) return false;
+    
+    // using scanf or atoi or strtol for a 2 digit number has quite some 
+    // overhead and the error handling code to reject stuff like 'r+1z' 
+    // as valid name would be larger than a simple switch over all names.
+    unsigned value = name[1] - '0';
+    if (length == 3) {
+      value = value * 10 + (name[2] - '0');
+    }
+    
+    regno = value;
+    
+    return value < maxregs;
+  }
+
+ 
+  void line_parser_t::set_error(const std::string &msg) {
+    Assembler.set_error(Lexer.pos(), msg);
+  }
+  
+  bool line_parser_t::parse_expression(word_t &value, reloc_info_t &reloc, 
+                                       bool require_paren)
+  {
+    bool has_paren = false;
+    if (Lexer.tok() == "(") {
+      has_paren = true;
+      if (!Lexer.next()) {
+        set_error("missing expression.");
+        return false;
+      }
+    }
+    
+    if (Lexer.is_name()) {      
+      reloc.SymA = Lexer.tok();
+      value = 0;
+    } else {
+      bool negate = match_token("-");
+      
+      if (!Lexer.get_value(value, false)) {
+        set_error("Error parsing number.");
+        return false;
+      }
+    }
+
+    if (!Lexer.next()) {
+      if (has_paren) {
+        set_error("missing ')'.");
+      }
+      return !has_paren;
+    }
+    
+    if (!reloc.SymA.empty()) {
+      // TODO allow for 'SymA - SymB +|- Addend', 'SymA +|- Addend'
+      
+      if (Lexer.tok() == "-") {
+        if (require_paren && !has_paren) {
+          set_error("parenthesis required for expressions.");
+          return false;
+        }
+        
+        if (!Lexer.next()) {
+          set_error("missing symbol or value.");
+          return false;
+        }
+        if (Lexer.is_name()) {
+          reloc.SymB = Lexer.tok();
+        } else if (!Lexer.get_value(reloc.Addend, true)) {
+          set_error("Error parsing number.");
+          return false;
+        }
+        if (!Lexer.next()) {
+          // missing closing parenthesis
+          if (has_paren) {
+            set_error("missing ')'.");
+          }
+          return !has_paren;
+        }
+      }
+    }
+    
+    if (has_paren) {
+      if (Lexer.tok() == ")") {
+        Lexer.next();
+      } else {
+        if (has_paren) {
+          set_error("missing ')'.");
+        }
+        return false;
+      }
+    }
+    
+    return true;
+  }
+   
+  bool line_parser_t::parse_GPR(GPR_e &reg)
+  {
+    std::string name = Lexer.tok();
+    if (name.size() < 2 || name[0] != 'r') {
+      set_error("invalid GPR register name.");
+      return false;
+    }
+    if (name == "rtr") {
+      reg = r29;
+    } else if (name == "rfp") {
+      reg = r30;
+    } else if (name == "rsp") {
+      reg = r31;
+    } else {
+      unsigned regno;
+      if (!parse_register_number(name, 32, regno)) {
+        set_error("invalid GPR register name.");
+        return false;
+      }
+      reg = (GPR_e)regno;
+    }
+    Lexer.next();
+    return true;
+  }
+  
+  bool line_parser_t::parse_SPR(SPR_e &reg)
+  {
+    std::string name = Lexer.tok();
+    if (name.size() < 2 || name[0] != 's') {
+      set_error("invalid SPR register name.");
+      return false;
+    }
+    if (name == "sm") {
+      reg = s1;
+    } else if (name == "sl") {
+      reg = s2;
+    } else if (name == "sh") {
+      reg = s3;
+    } else if (name == "ss") {
+      reg = s5;
+    } else if (name == "st") {
+      reg = s6;
+    } else if (name == "srb") {
+      reg = s7;
+    } else if (name == "sro") {
+      reg = s8;
+    } else if (name == "sxb") {
+      reg = s9;
+    } else if (name == "sxo") {
+      reg = s10;
+    } else {
+      unsigned regno;
+      if (!parse_register_number(name, 16, regno)) {
+        set_error("invalid SPR register name.");
+        return false;
+      }
+      reg = (SPR_e)regno;
+    }
+    Lexer.next();
+    return true;
+  }
+  
+  bool line_parser_t::parse_PRR(PRR_e &pred, bool may_negate)
+  {
+    bool negated = false;
+    if (may_negate && Lexer.tok() == "!") {
+      negated = true;
+      if (!Lexer.next()) {
+        set_error("predicate name expected.");
+        return false;
+      }
+    }
+    std::string reg = Lexer.tok();
+    if (reg == "p0") {
+      pred = negated ? pn0 : p0;
+    } else if (reg == "p1") {
+      pred = negated ? pn1 : p1;
+    } else if (reg == "p2") {
+      pred = negated ? pn2 : p2;
+    } else if (reg == "p3") {
+      pred = negated ? pn3 : p3;
+    } else if (reg == "p4") {
+      pred = negated ? pn4 : p4;
+    } else if (reg == "p5") {
+      pred = negated ? pn5 : p5;
+    } else if (reg == "p6") {
+      pred = negated ? pn6 : p6;
+    } else if (reg == "p7") {
+      pred = negated ? pn7 : p7;
+    } else {
+      if (Lexer.tok() == "!") {
+        set_error("predicate can not be negated here.");
+      } else {
+        set_error("Invalid predicate name.");
+      }
+      return false;
+    }
+    Lexer.next();
+    return true;
+  }
+  
+  bool line_parser_t::match_token(const std::string &tok)
+  {
+    if (Lexer.tok() == tok) {
+      Lexer.next();
+      return true;
+    }
+    set_error(std::string("expected token '") + tok + "'");
+    return false;
+  }
+  
+  bool line_parser_t::match_stmt_end()
+  {
+    // skip semicolon
+    if (Lexer.tok() == ";") {
+      Lexer.next();
+      return true;
+    } else {
+      // stmt must have parsed past the last token if there is no semicolon
+      if (Lexer.end()) return true;
+    }
+    set_error("end of statement expected.");
+    return false;
+  }
+
+   
+   
+  line_assembler_t::line_assembler_t() : NOP_ID(0), Error_pos(-1)
+  {
+      initialize();
+  }
+  
+  line_assembler_t::~line_assembler_t() 
+  {
+  }
+
+  void line_assembler_t::set_error(size_t pos, const std::string &msg) {
+    Error_pos = pos;
+    Error_msg = msg;
+  }
+  
+  void line_assembler_t::print_error(std::ostream &out, unsigned offset) 
+  {
+    if (Error_pos < 0) return;
+    
+    for (unsigned i = 0; i < offset + Error_pos; i++) {
+      out << " ";
+    }
+    out << "^ " << Error_msg << "\n";
+  }
+  
+  void line_assembler_t::initialize() 
+  {  
+    // initialization already done?
+    if (!Instructions.empty())
+      return;
+
+#define MK_INSTR(name, format, opcode)                                         \
+  {                                                                            \
+    instruction_t *itmp = new i_ ## name ## _t();                              \
+    itmp->ID = Instructions.size();                                            \
+    itmp->Name = #name;                                                        \
+    binary_format_t *ftmp = new format ## _format_t(*itmp, opcode);            \
+    Instructions.insert(std::pair<std::string,binary_format_t*>(#name , ftmp));\
+  }
+
+#define MK_NINSTR(classname, name, format, opcode)                             \
+  {                                                                            \
+    instruction_t *itmp = new i_ ## classname ## _t();                         \
+    itmp->ID = Instructions.size();                                            \
+    itmp->Name = #name;                                                        \
+    binary_format_t *ftmp = new format ## _format_t(*itmp, opcode);            \
+    Instructions.insert(std::pair<std::string,binary_format_t*>(#name , ftmp));\
+  }
+
+#define MK_SINSTR(name, format, opcode)                                        \
+  {                                                                            \
+    instruction_t *itmp = new i_ ## name ## _t();                              \
+    itmp->ID = Instructions.size();                                            \
+    itmp->Name = #name;                                                        \
+    binary_format_t *ftmp = new format ## _format_t(*itmp, opcode, true);      \
+    Instructions.insert(std::pair<std::string,binary_format_t*>(#name , ftmp));\
+  }
+#define MK_NINSTR_ALIAS(classname, name, format, opcode)                       \
+    MK_NINSTR(classname, name, format, opcode)
+
+#define MK_FINSTR(classname, name, format, opcode, flag)                       \
+  {                                                                            \
+    instruction_t *itmp = new i_ ## classname ## _t();                         \
+    itmp->ID = Instructions.size();                                            \
+    itmp->Name = #name;                                                        \
+    binary_format_t *ftmp = new format ## _format_t(*itmp, opcode, flag);      \
+    Instructions.insert(std::pair<std::string,binary_format_t*>(#name , ftmp));\
+  }
+
+#include "instructions.inc"
+  }
+  
+  void line_assembler_t::add_relocation(unsigned index, reloc_info_t &reloc)
+  {
+    if (reloc.SymA.empty()) {
+      return;
+    }
+    Relocations.push_back(std::pair<unsigned,reloc_info_t>(index, reloc));
+  }
+  
+  bool line_assembler_t::parse_instruction(line_parser_t &parser, 
+                                           udword_t &encoded, 
+                                           reloc_info_t &reloc, bool &is_long) 
+  {
+    lexer_t &lexer = parser.get_lexer();
+    
+    instruction_data_t instr;
+    instr.Address = Code.size() * 4;
+    instr.Pred = p0;
+    
+    // parse guard
+    // [ '(' ['!'] <pred> ')' ]
+    if (lexer.tok() == "(") {
+      if (!lexer.next()) {
+        parser.set_error("missing guard name.");
+        return false;
+      }
+      if (!parser.parse_PRR(instr.Pred, true)) {        
+        return false;
+      }
+      if (lexer.tok() != ")") {
+        parser.set_error("missing ')'.");
+        return false;
+      }
+      if (!lexer.next()) {
+        parser.set_error("instruction expected.");
+        return false;
+      }
+    }
+    
+    // parse instruction
+    if (!lexer.is_name()) {
+      parser.set_error("expect instruction opcode.");
+      return false;
+    }
+    std::string opcode = lexer.tok();
+
+    // Match pseudo instructions
+    bool skip_operands = false;
+    if (opcode == "nop") {
+      skip_operands = true;
+      opcode = "subi";
+      instr.OPS.ALUil.Rd = r0;
+      instr.OPS.ALUil.Rs1 = r0;
+      instr.OPS.ALUil.Imm2 = 0;
+    } 
+    else if (opcode == "halt") {
+      skip_operands = true;
+      opcode = "brcf";
+      instr.OPS.CFLrt.D = 1;
+      instr.OPS.CFLrt.Rs1 = r0;
+      instr.OPS.CFLrt.Rs2 = r0;
+    }
+    
+    // get the instruction format, parse operands.
+    instructions_t::iterator it = Instructions.find(opcode);
+    if (it == Instructions.end()) {
+      parser.set_error("unknown opcode.");
+      return false;
+    }
+    
+    lexer.next();
+    
+    unsigned tokens = lexer.tokens();
+    
+    // iterate over all instruction formats for the same mnemonic
+    while (it != Instructions.end() && it->first == opcode) {
+      binary_format_t *bfmt = it->second;
+          
+      if (!skip_operands) {
+        if (!bfmt->parse_operands(parser, opcode, instr, reloc)) {
+          // reset the lexer
+          lexer.push_back(lexer.tokens() - tokens);
+          // try the next binary format
+          it++;
+          continue;
+        }
+      }
+    
+      is_long = bfmt->is_long();
+      
+      encoded = bfmt->encode(opcode, instr);
+      
+      return true;
+    }
+    return false;
+  }
+  
+  bool line_assembler_t::parse_line(const std::string &line, dword_t &iw)
+  {
+    // [<label>:] [ .word <expr> | '('[!]<pred>')' <opcode> <operands> ]
+    
+    // Tokenize
+    line_parser_t parser(*this, line);
+    lexer_t &lexer = parser.get_lexer();
+    if (lexer.end()) return true;
+
+    lexer.next();
+    
+    // [ <label> ':' ]
+    std::string label = lexer.tok();
+    
+    if (lexer.is_name() && !lexer.last()) {
+      lexer.next();
+      if (parser.match_token(":")) {
+        
+        // we got a label, emit it
+        symbol_info_t symbol(Code.size() * 4, 0, false, label);
+        
+        SymTab.add(symbol);
+        
+        // continue with the next token or return if no more tokens
+        if (lexer.end()) {
+          return true;
+        }
+      } else {
+        // go back to the first token, start over 
+        lexer.push_back();
+      }
+    }
+    
+    // Check directives
+    // .word <symbol> [ '-' <symbol> ]
+    if (lexer.tok() == ".word") {
+      if (!lexer.next()) {
+        parser.set_error("missing value.");
+        return false;
+      }
+      
+      word_t value; 
+      reloc_info_t reloc;
+      reloc.set_format(32);
+      if (!parser.parse_expression(value, reloc, false)) {
+        return false;
+      }
+      
+      // Emit a word with a relocation
+      add_relocation(Code.size(), reloc);
+      Code.push_back(value);
+      
+      if (!parser.match_stmt_end()) {
+        return false;
+      }
+    }
+
+    while (!lexer.end()) {
+      
+      reloc_info_t reloc;
+      bool is_long = false;
+      udword_t encoded;
+
+      if (!parse_instruction(parser, encoded, reloc, is_long)) {
+        return false;
+      }
+      
+      // handle bundles
+      if (lexer.tok() == "||") {
+        
+        // TODO check if the last instruction had the bundle bit set as well
+        if (is_long) {
+          parser.set_error("ALUl instruction cannot be bundled.");
+          return false;
+        }
+        
+        // set bundle bit
+        encoded |= ((udword_t)1<<31);
+        
+        lexer.next();
+      } else if (!parser.match_stmt_end()) {
+        return false;
+      }
+   
+      // add the instruction and the relocation
+      if (is_long) {
+        Code.push_back( (uword_t)(encoded >> 32) );
+      }
+      add_relocation(Code.size(), reloc);
+      Code.push_back((uword_t)encoded);
+    }
+    
+    return true;
+  }
+
+  bool line_assembler_t::write_program(std::ostream &out, unsigned int &size)
+  {
+    // Patch all relocations.
+    for (relocations_t::iterator it=Relocations.begin(),
+          ie=Relocations.end(); it != ie; it++) 
+    {
+      unsigned index = it->first;
+      reloc_info_t &reloc = it->second;
+      
+      word_t value;
+      if (reloc.get_value(SymTab, value, index*4)) {        
+        Code[index] = Code[index] | value;
+      } 
+      else {
+        if (!reloc.SymA.empty() && !SymTab.contains(reloc.SymA)) {
+          std::cout << "Undefined Label: " << reloc.SymA << "\n";
+        }
+        if (!reloc.SymB.empty() && !SymTab.contains(reloc.SymB)) {
+          std::cout << "Undefined Label: " << reloc.SymB << "\n";
+        }
+      }
+    }
+
+    // Write program.
+    for (int i = 0; i < Code.size(); i++) {
+        uword_t instr = Code[i];
+        
+        out << (char)(instr >> 24);
+        out << (char)(instr >> 16);
+        out << (char)(instr >>  8);
+        out << (char)(instr);
+    }
+    
+    size = Code.size();
+    
+    return true;
+  }
+
+}

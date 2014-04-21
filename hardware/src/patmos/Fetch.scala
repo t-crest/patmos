@@ -1,7 +1,7 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute. 
+   Copyright 2013 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,9 @@
 
 /*
  * Fetch stage of Patmos.
- * 
+ *
  * Author: Martin Schoeberl (martin@jopdesign.com)
- * 
+ *
  */
 
 package patmos
@@ -117,13 +117,13 @@ class Fetch(fileName : String) extends Module {
   val pc_cont = Mux(b_valid, pcReg + UInt(2), pcReg + UInt(1))
   val pc_next =
     Mux(io.memfe.doCallRet, io.mcachefe.relPc.toUInt,
-        	Mux(io.exfe.doBranch, io.exfe.branchPc,
-        		pc_cont))
+            Mux(io.exfe.doBranch, io.exfe.branchPc,
+                pc_cont))
   val pc_cont2 = Mux(b_valid, pcReg + UInt(4), pcReg + UInt(3))
   val pc_next2 =
     Mux(io.memfe.doCallRet, io.mcachefe.relPc.toUInt + UInt(2),
-		Mux(io.exfe.doBranch, io.exfe.branchPc + UInt(2),
-			pc_cont2))
+        Mux(io.exfe.doBranch, io.exfe.branchPc + UInt(2),
+            pc_cont2))
 
   val pc_inc = Mux(pc_next(0), pc_next2, pc_next)
   addrEven := addrEvenReg
@@ -136,11 +136,12 @@ class Fetch(fileName : String) extends Module {
 
   io.fedec.pc := pcReg
   io.fedec.reloc := relocReg
+  io.fedec.relPc := pcReg - relBaseReg
   io.fedec.instr_a := instr_a
   io.fedec.instr_b := instr_b
 
   val relPc = pcReg - relBaseReg
-  io.femem.pc := Mux(b_valid, relPc + UInt(2), relPc + UInt(1))
+  io.feex.pc := Mux(b_valid, relPc + UInt(2), relPc + UInt(1))
 
   //outputs to mcache
   io.femcache.addrEven := addrEven

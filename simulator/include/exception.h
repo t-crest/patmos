@@ -196,6 +196,13 @@ namespace patmos
       throw simulation_exception_t(ILLEGAL, iw);
     }
 
+    /// Throw an illegal instruction simulation exception.
+    /// @param msg The error message
+    static void illegal(std::string msg) __attribute__ ((noreturn))
+    {
+      throw simulation_exception_t(ILLEGAL, msg);
+    }
+
     /// Throw an unmapped address simulation exception.
     /// @param address The unmapped address.
     static void unmapped(uword_t address) __attribute__ ((noreturn))
@@ -208,6 +215,13 @@ namespace patmos
     static void illegal_access(uword_t address) __attribute__ ((noreturn))
     {
       throw simulation_exception_t(ILLEGAL_ACCESS, address);
+    }
+    
+    /// Throw an illegal access simulation exception.
+    /// @param address The unmapped address.
+    static void illegal_access(std::string msg) __attribute__ ((noreturn))
+    {
+      throw simulation_exception_t(ILLEGAL_ACCESS, msg);
     }
     
     /// Throw a stack-cache-size-exceeded simulation exception.
@@ -229,7 +243,7 @@ namespace patmos
     }
 
     /// Thow a PC-outsize-method simulation exception.
-    static void illegal_pc_msg(std::string msg) __attribute__ ((noreturn))
+    static void illegal_pc(std::string msg) __attribute__ ((noreturn))
     {
       throw simulation_exception_t(ILLEGAL_PC, msg);
     }
