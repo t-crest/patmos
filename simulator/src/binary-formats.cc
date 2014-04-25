@@ -455,7 +455,7 @@ namespace patmos
   instruction_data_t alub_format_t::decode_operands(word_t iw,
                                                     word_t longimm) const
   {
-    PRR_e ps = extractP(iw, 0);
+    PRR_e ps = extractPN(iw, 0);
     uword_t imm = extractG(iw, 7);
     GPR_e rs1 = extractG(iw, 12);
     GPR_e rd = extractG(iw, 17);
