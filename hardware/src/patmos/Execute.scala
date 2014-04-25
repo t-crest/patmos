@@ -240,7 +240,7 @@ class Execute() extends Module {
     val compResult = comp(exReg.aluOp(i).func, op(2*i), op(2*i+1))
 
     val bcpyPs = predReg(exReg.aluOp(i).func(PRED_BITS-1, 0)) ^ exReg.aluOp(i).func(PRED_BITS);
-    val bcpyResult = (op(2*i) & ~(UInt(1) << op(2*i+1))) | (bcpyPs << op(2*i+1))
+    val bcpyResult = (op(2*i) & ~(UInt(1, width = DATA_WIDTH) << op(2*i+1))) | (bcpyPs << op(2*i+1))
 
     // predicate operations
     val ps1 = predReg(exReg.predOp(i).s1Addr(PRED_BITS-1,0)) ^ exReg.predOp(i).s1Addr(PRED_BITS)
