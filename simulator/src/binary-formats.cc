@@ -491,7 +491,7 @@ namespace patmos
 
     assert(fitu(instr.OPS.ALUb.Imm, 5));
 
-    insertP(iw, 0, instr.OPS.ALUb.Ps);
+    insertPN(iw, 0, instr.OPS.ALUb.Ps);
     insertV(iw, 4, 3, BOOST_BINARY(101));
     insertG(iw, 7, instr.OPS.ALUb.Imm);
     insertG(iw, 12, instr.OPS.ALUb.Rs1);
