@@ -135,23 +135,23 @@ namespace patmos
     if (WasSingleStep())
     {
       if (m_debugActions)
-        std::cerr << "PatmosDebugInterface::TakeControl - Was single step" << std::endl;
+        std::cerr << "PatmosDebugInterface::TakeControl(" << pc << ") - Was single step" << std::endl;
       
       m_singleStep = false;
       m_simulator.debug_client->SingleStepDone();
       
       if (m_debugActions)
-        std::cerr << "PatmosDebugInterface::TakeControl - Release Control (continue)" << std::endl;
+        std::cerr << "PatmosDebugInterface::TakeControl(" << pc << ") - Release Control (continue)" << std::endl;
     }
     else if (IsDebugBreakpointHit(pc))
     {
       if (m_debugActions)
-        std::cerr << "PatmosDebugInterface::TakeControl - Breakpoint hit (" << pc << ")" << std::endl;
+        std::cerr << "PatmosDebugInterface::TakeControl(" << pc << ") - Breakpoint hit (" << pc << ")" << std::endl;
       
       m_simulator.debug_client->BreakpointHit(Breakpoint(pc));
       
       if (m_debugActions)
-        std::cerr << "PatmosDebugInterface::TakeControl - Release Control (continue)" << std::endl;
+        std::cerr << "PatmosDebugInterface::TakeControl(" << pc << ") - Release Control (continue)" << std::endl;
     }
   }
 
