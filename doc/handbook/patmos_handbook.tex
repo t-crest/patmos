@@ -993,7 +993,9 @@ bitmasks).}
 Applies to the ALUb format only. The only instruction with this
 encoding is \texttt{bcopy}, which is the ``inverse'' of the
 \code{btest} instruction. It has the following semantics: \texttt{Rd =
-  (Rs1 \AND \NOT (1 \shl Imm)) \OR (Ps \shl Imm)}
+  (Rs1 \AND \NOT (1 \shl Imm)) \OR (Ps \shl Imm)}\\
+Note that operand \texttt{Ps}, like the source operands in the ALUp format,
+can be inverted.
 
 \begin{itemize}
   \item ALUb -- Bitcopy \\[2ex]

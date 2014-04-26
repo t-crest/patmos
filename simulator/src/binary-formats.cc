@@ -455,7 +455,7 @@ namespace patmos
   instruction_data_t alub_format_t::decode_operands(word_t iw,
                                                     word_t longimm) const
   {
-    PRR_e ps = extractP(iw, 0);
+    PRR_e ps = extractPN(iw, 0);
     uword_t imm = extractG(iw, 7);
     GPR_e rs1 = extractG(iw, 12);
     GPR_e rd = extractG(iw, 17);
@@ -491,7 +491,7 @@ namespace patmos
 
     assert(fitu(instr.OPS.ALUb.Imm, 5));
 
-    insertP(iw, 0, instr.OPS.ALUb.Ps);
+    insertPN(iw, 0, instr.OPS.ALUb.Ps);
     insertV(iw, 4, 3, BOOST_BINARY(101));
     insertG(iw, 7, instr.OPS.ALUb.Imm);
     insertG(iw, 12, instr.OPS.ALUb.Rs1);

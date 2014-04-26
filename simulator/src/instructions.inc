@@ -78,7 +78,7 @@
     MK_INSTR(pand, alup,  7)
     MK_INSTR(pxor, alup, 10)
 
-    // ALUp
+    // ALUb
     MK_INSTR(bcopy, alub, -1)
 
     // SPC
