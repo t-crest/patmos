@@ -189,20 +189,33 @@ project (Hard Real-Time Embedded Multiprocessor Platform - RTEMP)
 \mainmatter
 
 
-\chapter{Argo Programming Guide}
+%\chapter{Argo Programming Guide}
 
-%\chapter{Introduction}
-\section{Introduction}
+\chapter{Introduction}
+
+%\section{Introduction}
 
 Argo is a time-predictable Network-on-Chip (NOC) designed to be used in hard real-time multi-core platforms.
 The main functionality of Argo is to provide time-predictable core-to-core communication in the form of message passing.
-Argo provides time-predictable message passing through its shared network of routers,
-by allocating resources such that it enforces a static time division multiplexing (TDM) schedule.
-
-The static TDM schedule can be constructed to fit an application by allocating
+Argo provides time-predictable message passing using Virtual Circuits. Virtual Circuits (point-to-point communication channels)
+are implemented using time-division-multiplexing (TDM). According to TDM,
+shared resources are allocated to Virtual Circuits based on a static TDM schedule.
+The static TDM schedule can be constructed to fit an application requirements by allocating
 different amounts of bandwidth to different communication channels.
-The Poseidon scheduler available at \url{https://github.com/t-crest/poseidon.git} is part of
-the T-CREST tool chain and is used to generate static TDM schedules.
+
+
+%The current report assumes that the reader is familiar with C and has skimmed
+%through the \href{http://patmos.compute.dtu.dk/patmos_handbook.pdf}{Patmos Handbook} \cite{patmos-handbook}
+%on how to build a Patmos processor and Patmos tools.
+
+%The current Argo Programming Guide contains a short description of the Argo architecture in Section~\ref{sec:arch}.
+%and a short description of the TDM scheduling in Section~\ref{sec:poseidon}.
+%Section~\ref{sec:mem} describes the address space and interface of Argo.
+%Chapter~\ref{chap:program} guides the programmer application on how to program an application using Argo 
+%(application programming level).
+
+%The Poseidon scheduler available at \url{https://github.com/t-crest/poseidon.git} is part of
+%the T-CREST tool chain and is used to generate static TDM schedules.
 
 The steps to build the Patmos tools on a Linux/Ubuntu
 system are presented in the \href{http://patmos.compute.dtu.dk/patmos_handbook.pdf}{Patmos Handbook} 
@@ -212,16 +225,19 @@ through the \href{http://patmos.compute.dtu.dk/patmos_handbook.pdf}{Patmos Handb
 %Another assumption is the the reader already has access to a hardware platform,
 %either genereated by the reader or a pre-synthesized platform downloaded from the project webpage.
 
-The Argo Programming Guide contains a description of the Argo architecture in Section~\ref{sec:arch}.
-Section~\ref{sec:poseidon} describes how to generate a static TDM schedule.
-Section~\ref{sec:mem} describes the address space and interface of Argo.
-Section~\ref{sec:apg} guides the reader on how to program an application that uses the NOC.
 
 
 
-%\chapter{The Architecture of Argo}
 \section{The Architecture of Argo}
 \label{sec:arch}
+
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.45]{fig/argo.pdf}
+\caption{The architecture of a single Argo tile.}
+\label{fig:diag}
+\end{figure}
 
 The Argo NOC is made up of two different components,
 network interfaces (NI) and routers.
@@ -232,46 +248,47 @@ through the network according to the static TDM schedule.
 The routers are connected in a 2D bi-torus structure.
 A diagram of the architecture of Argo is shown in Figure~\ref{fig:diag}(a).
 
-\begin{figure}
-\centering
-\includegraphics[scale=0.5]{fig/argo.pdf}
-\caption{The architecture of a single Argo tile.}
-\label{fig:diag}
-\end{figure}
 
 The communication that goes through the network is controlled by the TDM schedule.
 A direct memory access (DMA) that is placed in the NI, as seen in Figure~\ref{fig:diag}(b),
-is enforcing the TDM schedule.
-To enable full utilization of the static TDM schedule,
-Argo has a DMA channel per communication channel. 
-The DMA is setup by the processor core to initiate a message send.
-DMAs are creating a direct
-channel from the local memory of the processor, i.e. the local scratchpad memory (SPM)
-to the network. Details of the architecture and implementation of the NI can be found in \cite{tdmna}.
+is controlling the communication from that NI, enforcing the TDM schedule.
+There is one DMA controller per communication channel.
+The TDM schedule divides time in time-slots and during one time-slot one 
+communication channel, i.e. one DMA, is active.
+
+The NI of Argo has two OCP \cite{ocp:spec} interfaces. The first is a 32-bit interface,
+connected to the processor core for configuring of TDM schedule and DMA controllers.
+The second is 64-bit interface, connected to the local memory of the processor, i.e. scratchpad memory (SPM),
+for accessing the data. The DMA and the SPM of each processor are mapped in the local address space and
+can be accessed by the processor through specific load and store instructions.
+The DMA is setup by the processor core to initiate a message transmission,
+creating a direct connection from the local SPM of one processor to the local SPM of a remote processor. 
+
+Details of the architecture and implementation of the NI can be found in \cite{tdmna}.
 More details on the router design and the timing characteristics of the NOC can be found in
 \cite{noc-elasticity}.
 
 
 
-%\chapter{Static time division multiplexing scheduler}
 \section{Static Time Division Multiplexing Scheduler}
 \label{sec:poseidon}
-The TDM scheduler used to generate schedules for Argo is called Poseidon.
-The source of Poseidon is placed at \url{https://github.com/t-crest/poseidon.git}.
-The performance of Poseidon is desrcibed in \cite{tcrest:poseidon}.% Technical report on poseidon
 
-Poseidon takes an XML file as input descriping the platform and the required communication pattern.
-The platform and communication tags can be given in two different XML files or on one.
-When the platform is generated from the Aegean platform generator, the input files for the scheduler are also generated.
-
-For the time beeing the scheduler is limited to schedule one package per communication channel in each period.
-This limitation is due to a limitation in the current hardware, not a limitation in the scheduler it self.
-When multiple packages per communication channel are supported the limitation can be removed by commenting out (in t-crest/poseidon/src/parser.cpp) the lines:
-
-\begin{verbatim}
-warn_if(bw != 1,"Bandwidth different from 1 is not supported by Argo, Bandwidth set to 1.");
-if (bw != 1) { bw = 1;  }
-\end{verbatim}
+%The TDM scheduler used to generate schedules for Argo is called Poseidon.
+%The source of Poseidon is placed at \url{https://github.com/t-crest/poseidon.git}.
+%The performance of Poseidon is desrcibed in \cite{tcrest:poseidon}.% Technical report on poseidon
+%
+%Poseidon takes an XML file as input descriping the platform and the required communication pattern.
+%The platform and communication tags can be given in two different XML files or on one.
+%When the platform is generated from the Aegean platform generator, the input files for the scheduler are also generated.
+%
+%For the time beeing the scheduler is limited to schedule one package per communication channel in each period.
+%This limitation is due to a limitation in the current hardware, not a limitation in the scheduler it self.
+%When multiple packages per communication channel are supported the limitation can be removed by commenting out (in t-crest/poseidon/src/parser.cpp) the lines:
+%
+%\begin{verbatim}
+%warn_if(bw != 1,"Bandwidth different from 1 is not supported by Argo, Bandwidth set to 1.");
+%if (bw != 1) { bw = 1;  }
+%\end{verbatim}
 
 %\subsection{Input format}
 
@@ -279,8 +296,88 @@ if (bw != 1) { bw = 1;  }
 
 %\subsection{Conversion to C}
 
+The TDM scheduler used to generate schedules for Argo is called Poseidon.
+The source of Poseidon is placed at \url{https://github.com/t-crest/poseidon.git} and
+it is described in \cite{scheduler-report}.
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.4]{fig/flow.pdf}
+\caption{ Mapping of an application onto a multi-processor platform: (a) Task graph for application, (b) core communication graph, 
+(c) multi-processor platform, and (d) details of a node in the platform (router (R), links, network interface (NI), processor and local memory).}
+\label{fig:flow}
+\end{figure}
 
 
+The scheduler is mapping an application onto an application-independent multi-processor platform with the following steps, as illustrated in Figure~\ref{fig:flow}.
+An application is modeled as a {\em  task graph} where nodes represent tasks and edges represent communication channels (end-to-end circuits).
+The first step is to assign tasks to processors and as part of this to decide which tasks will share a processor.
+The result of this is a {\em core communication graph} where the nodes represent processors and the edges represent communication flows and their required bandwidth between the processors.
+The second step is the binding of processors to specific processor cores in the platform. %This usually aims at minimizing the total number of router-to-router hops for traffic. 
+%The first and second steps are not specific for TDM-based NOCs and they are well studied in the literature. Early works include \cite{Murali2004}.
+The third step is to generate the TDM schedule for Argo.
+
+
+\section{Argo Usage}
+
+Argo can be used in three different levels. In the first level (application programing level)
+a standard platform and a static predefined schedule are provided. The platform is an NxM platform,% with up to 64 nodes, 
+operating on an all-to-all schedule with the same bandwidth assigned to every channel. The details 
+on platform initialization, TDM schedule creation and channel configuration are hidden from an
+application programmer. Instead, library tools are provided for sending messages from
+processing cores to remote processing cores. The current report focuses on this level of usage.
+
+At a second level (task scheduling level) a fixed platform is provided but a different schedule 
+can be produced based on the task graph and the communication requirements. The details of the schedule
+production are not presented in the current documentation.
+
+At a third level (platform configuration level) the user can configure a different hardware platform.
+The configured parameters that can be defined for the platform can be the size of the NOC in an NxM structure,
+the connecting topology (bi-torus/mesh) and the sizes of memories used (main memory, SPM, cache).
+The details on different platform configurations are not presented in the current documentation.
+
+
+%The current Argo Programming Guide contains a description of the Argo architecture in Section~\ref{sec:arch}.
+%Section~\ref{sec:poseidon} describes how to generate a static TDM schedule.
+%Section~\ref{sec:mem} describes the address space and interface of Argo.
+%Section~\ref{sec:apg} guides the reader on how to program an application that uses the NOC.
+
+
+\chapter{Argo Programming Guide}
+\label{chap:program}
+
+This chapter refers to the use of Argo on application programing level
+
+\section{Operation of Argo}
+\label{sec:oper}
+
+Argo implements message passing functionality. A processor can push data 
+to a remote processor, i.e. a task running on a processor
+can send messages to a task running on a remote processor.
+Each processor has an SPM which is mapped belongs to its local address space.
+The data to be sent should be placed in the SPM of the local processor.
+From there the data is sent through the network and placed in a 
+specified address in the remote SPM. 
+
+The sending is controlled by the DMA controller and based on the TDM schedule.
+The initialization of the TDM schedule is done automatically through initialization 
+of the Aegean platform. The configuration of the DMA is done by the processor.
+The details of this operation are hidden from the application. However,
+the application programmer is offered a library, \textit{libnoc} library,
+with the necesary variables and functions. 
+The full list of variables in libnoc can be seen in Section~\ref{sec:apg}.
+
+While the initialization of SPM and configuration of DMA are not transparent to the programmer,
+the programmer is responsible for the explicit handling of data and the communication in terms of
+source and destination cores and SPM addresses.
+Thus, the programmer should explicitely placed data to an address in the local SPM.
+A sending function is offered in \textit{libnoc} where the programmer should specify 
+the destination core as well as the SPM address at the destination SPM. The path information
+and routing through the network as well as details of the sending operation are hidden from the programmer.
+
+%Argo is initialized with the initialization of the Aegean platform. Variables such as
+%\code{NOC\_CORES} and \code{CORE\_ID} are initialized automatically with the configuration
+%of Aegean. The full list of variables in libnoc can be seen in Section~\ref{sec:apg}.
 
 
 %\chapter{Memory address space and interface}
