@@ -573,8 +573,14 @@ purposes.
 
 \subsection{Hello World Multicore}
 
+An application running on T-CREST multicore platform consists of a main function that is running on all cores.
+Each core is assigned a \code{CORE\_ID} through the initialization process. The distribution of the workload is done
+in the main function by checking the \code{CORE\_ID} and executing the corresponding function with the workload that is assigned to a core.
+In T-CREST platform one of the cores has the role of the master, which is the only one that has access to IO.
+
 To demonstrate the use of Argo, a multicore Hello World application \textit{hello\_sum.c} is placed in /patmos/c.
 The application is written in C and can be compiled and downloaded on the FPGA board.
+%An application running on T-CREST multicore platform conists of a main funtion and depending
 In \textit{hello\_sum} application, a round trip "hello" message is sent from the master core
 passing through all the slave cores. Each core is adding its ID to the sum of the IDs and 
 eventually the master will receive the sum of all core IDs.
@@ -595,8 +601,13 @@ To develop an application that runs on T-CREST platform, data memory and communi
 Argo NOC and the TDM schedule are initialized automatically through Aegean platform but the communication should be handled by the application programmer.
 An application is provided access to the main memory (shared), to a number of local SPMs as well as to a communication SPM.
 In the current report, when SPM is mentioned, it refers to the communication SPM used by Argo NOC.
-To send data from one core to another, the data should be explicitly placed in the local SPM of the core.
-The base address of the communication SPM is \code{NOC\_SPM\_BASE} as defined in the libnoc library and pointers to access SPM space are defined as:
+
+To send data from one core to another, the sending application should specify an address in the local SPM of the sending core and place the data there.
+To receive data from another core, the receiving application should specify an address in the local SPM where the data are expected. Thus, the 
+destination address in the receiving SPM should be known by both sending and receiving applications.
+The base address of the communication SPM is \code{NOC\_SPM\_BASE} as defined in the libnoc library 
+and any address of the SPM can be used for either sending or receiving purposes or even for directly processing data.
+Pointers to access SPM space are defined as:
 
 \begin{lstlisting}
 volatile _SPM <type> *<name>
