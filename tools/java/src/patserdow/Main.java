@@ -187,9 +187,11 @@ public class Main {
                     } else {
                         host_out_stream.write('\0');
                         host_out_stream.write(c);
+                        host_out_stream.flush();
                     }
                 } else {
                     host_out_stream.write(c);
+                    host_out_stream.flush();
                 }
             }
         }
