@@ -72,11 +72,20 @@ class MemBlock(size : Int, width : Int) extends Module {
   val io = new MemBlockIO(size, width)
   val mem = Mem(Bits(width = width), size)
 
-  // write and read
+  // write
   when(io.wrEna === Bits(1)) {
     mem(io.wrAddr) := io.wrData
   }
-  io.rdData := mem(Reg(next = io.rdAddr))
+
+  // read
+  val rdAddrReg = Reg(next = io.rdAddr)
+  io.rdData := mem(rdAddrReg)
+
+  // force read during write behavior
+  when (Reg(next = io.wrEna) === Bits(1) &&
+        Reg(next = io.wrAddr) === rdAddrReg) {
+    io.rdData := Reg(next = io.wrData)
+  }
 }
 
 class BlackBlock(size : Int, width : Int) extends BlackBox {
