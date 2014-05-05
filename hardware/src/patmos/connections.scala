@@ -80,6 +80,7 @@ class AluOp() extends Bundle() {
   val isMTS = Bool()
   val isMFS = Bool()
   val isSTC = Bool()
+  val isSENS = Bool()
 
   def reset() = {
     func := Bits(0)
@@ -90,6 +91,7 @@ class AluOp() extends Bundle() {
     isMTS := Bool(false)
     isMFS := Bool(false)
     isSTC := Bool(false)
+    isSENS := Bool(false)
   }
 }
 
@@ -141,20 +143,32 @@ class DecExSc() extends Bundle() {
   val spill = Bits(width = 1)
   val fill = Bits(width = 1)
   val free = Bits(width = 1)
-  val nSpill = SInt(width = log2Up(SCACHE_SIZE))
-  val nFill = SInt(width = log2Up(SCACHE_SIZE))
-  val sp = UInt(width = DATA_WIDTH)
+  val nSpill = Bits(width = log2Up(SCACHE_SIZE))
+  val nFill = Bits(width = log2Up(SCACHE_SIZE))
+  val sp = Bits(width = DATA_WIDTH)
+  val mTop = Bits(width = EXTMEM_ADDR_WIDTH)
+  val lp = Bits(width = EXTMEM_ADDR_WIDTH)
 }
 
 object DecExScResetVal extends DecExSc {
   spill := Bits(0)
   fill := Bits(0)
   free := Bits(0)
-  nSpill := SInt(0)
-  nFill := SInt(0)
-  sp := UInt(0)
+  nSpill := Bits(0)
+  nFill := Bits(0)
+  sp := Bits(0)
+  mTop := Bits(0)
+  lp := Bits(0)
 }
 
+class ScEx() extends Bundle() {
+  val mTop = Bits(width = EXTMEM_ADDR_WIDTH)
+}
+
+object ScExResetVal extends ScEx {
+  mTop := Bits(0)
+}
+  
 class DecEx() extends Bundle() {
   val pc = UInt(width = PC_SIZE)
   val relPc = UInt(width = PC_SIZE)
@@ -280,17 +294,9 @@ class MemIn() extends Bundle() {
 }
 
 class ExDec() extends Bundle() {
-  val sp = UInt(width = DATA_WIDTH)
-}
-
-//stack cache
-class ExSc extends Bundle() {
-  val decexsc = new DecExSc()
-  val mTop = UInt(width = ADDR_WIDTH)
-}
-
-class MemDecSc() extends Bundle() {
-  val mTop = UInt(width = ADDR_WIDTH)
+  val sp = Bits(width = DATA_WIDTH)
+  val mTop = Bits(width = EXTMEM_ADDR_WIDTH)
+  val lp = Bits(width = EXTMEM_ADDR_WIDTH)
 }
 
 class ExMem() extends Bundle() {
@@ -386,7 +392,6 @@ class DecodeIO() extends Bundle() {
   val exc = new ExcDec().asInput
   // stack cache
   val decexsc = new DecExSc().asOutput
-  val memdecsc = new MemDecSc().asInput
 }
 
 class ExecuteIO() extends Bundle() {
@@ -405,7 +410,8 @@ class ExecuteIO() extends Bundle() {
   val exfe = new ExFe().asOutput
   //stack cache
   val decexsc = new DecExSc().asInput
-  val exsc = new ExSc().asOutput
+  val scex = new ScEx().asInput
+  val exsc = new DecExSc().asOutput 
 }
 
 class InOutIO() extends Bundle() {
@@ -448,10 +454,10 @@ class MemoryIO() extends Bundle() {
 
 //stack cache
 class StackCacheIO() extends Bundle() {
-
-   val exsc = new ExSc().asInput
-   val memdecsc = new MemDecSc().asOutput // m_top
-   val stall = UInt(OUTPUT, width = 1)
+  
+   val exsc = new DecExSc().asInput
+   val scex = new ScEx().asOutput
+   val stall = Bits(OUTPUT, width = 1)
 }
 
 class WriteBackIO() extends Bundle() {
