@@ -108,11 +108,11 @@ class Decode() extends Module {
     io.decexsc.spill := Bits(0)
     io.decexsc.fill := Bits(0)
     io.decexsc.free := Bits(0)
-    io.decexsc.nSpill := Bits(0)
-    io.decexsc.nFill := Bits(0)
-    io.decexsc.sp := Bits(0)
-    io.decexsc.mTop := io.exdec.mTop
-    io.decexsc.lp := io.exdec.lp
+    io.decexsc.nSpill := SInt(1)
+    io.decexsc.nFill := SInt(1)
+    io.decexsc.sp := UInt(0)
+    io.memdecsc.mTop := UInt(0)
+
    // ALU register
     io.decex.aluOp(i).func := instr(3, 0)
 
@@ -232,36 +232,27 @@ class Decode() extends Module {
     decoded(0) := Bool(true)
   }
   // Stack control
-  
-  
-  val lpReserveSize = io.exdec.lp - io.exdec.sp + Cat(Bits(0, width = DATA_WIDTH - 23),(stcImm)) - Bits(SCACHE_SIZE, width = DATA_WIDTH)
-  val reserveSize = io.exdec.mTop - io.exdec.sp + Cat(Bits(0, width = DATA_WIDTH - 23),(stcImm)) - Bits(SCACHE_SIZE, width = DATA_WIDTH)
-  val ensureSize = io.exdec.sp + Cat(Bits(0, width = DATA_WIDTH - 23),(stcImm)) - io.exdec.mTop
+  val reserveSize = io.memdecsc.mTop - io.exdec.sp + stcImm - (UInt(SCACHE_SIZE) << UInt(2))
+  val ensureSize = io.decexsc.sp + stcImm - io.memdecsc.mTop
   when(opcode === OPCODE_STC) {
+    io.decexsc.sp := io.exdec.sp
     switch(stcfun) {
       is(STC_SRES) {
-        when (io.exdec.lp === io.exdec.sp ) {io.decexsc.lp := io.exdec.sp - stcImm}
-        .elsewhen (io.exdec.lp > io.exdec.mTop) {io.decexsc.lp := io.exdec.mTop}
         io.decex.aluOp(0).isSTC := Bool(true)
-        io.decex.aluOp(0).isSENS := Bool(false)
         isSTC := Bool(true)
         io.decex.immOp(0) := Bool(true)
         stcVal := io.exdec.sp - stcImm
-        io.decexsc.nSpill := lpReserveSize(ADDR_WIDTH - 1, 2)
-        io.decexsc.spill := Mux(lpReserveSize.toSInt > SInt(0), Bits(1), Bits(0))
+        io.decexsc.nSpill := reserveSize(ADDR_WIDTH - 1, 2)
+        io.decexsc.spill := Mux(reserveSize > UInt(0), Bits(1), Bits(0))
         decoded(0) := Bool(true)
       }
       is(STC_SENS) {
-        io.decex.aluOp(0).isSTC := Bool(true)
-        io.decex.aluOp(0).isSENS := Bool(true)
         io.decexsc.nFill := ensureSize(ADDR_WIDTH - 1, 2)
-        io.decexsc.fill := Mux(ensureSize.toSInt > SInt(0), Bits(1), Bits(0))
+        io.decexsc.fill := Mux(ensureSize > UInt(0), Bits(1), Bits(0))
         decoded(0) := Bool(true)
       }
       is(STC_SFREE) {
-        when ((io.exdec.sp + stcImm) > io.exdec.sp) {io.decexsc.lp := io.exdec.sp + stcImm}
         io.decex.aluOp(0).isSTC := Bool(true)
-        io.decex.aluOp(0).isSENS := Bool(false)
         isSTC := Bool(true)
         io.decex.immOp(0) := Bool(true)
         stcVal := io.exdec.sp + stcImm

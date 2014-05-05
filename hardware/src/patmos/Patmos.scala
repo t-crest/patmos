@@ -110,11 +110,7 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   memory.io.globalInOut <> bootMem.io.memInOut
 
   dcache.io.master <> bootMem.io.extMem
-  decode.io.decexsc <> execute.io.decexsc
-  
-  dcache.io.scIO.exsc <> execute.io.exsc
-  dcache.io.scIO.scex <> execute.io.scex
-  
+
   // Merge OCP ports from data caches and method cache
   val burstBus = Module(new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
   val burstJoin = new OcpBurstJoin(mcache.io.ocp_port, dcache.io.slave,
@@ -127,7 +123,7 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   //                                  burstBus.io.slave, mcache.io.ena_out)
 
   // Enable signal
-  val enable = memory.io.ena_out & mcache.io.ena_out & dcache.io.scIO.stall
+  val enable = memory.io.ena_out & mcache.io.ena_out
   fetch.io.ena := enable
   decode.io.ena := enable
   execute.io.ena := enable
