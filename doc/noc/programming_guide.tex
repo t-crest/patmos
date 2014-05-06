@@ -573,10 +573,12 @@ purposes.
 
 \subsection{Hello World Multicore}
 
-An application running on T-CREST multicore platform consists of a main function that is running on all cores.
-Each core is assigned a \code{CORE\_ID} through the initialization process. The distribution of the workload is done
-in the main function by checking the \code{CORE\_ID} and executing the corresponding function with the workload that is assigned to a core.
-In T-CREST platform one of the cores has the role of the master, which is the only one that has access to IO.
+An application running on the T-CREST multicore platform consists of a main function that is running on all cores.
+Each core is assigned a \code{CORE\_ID} through the initialization process. The distribution of the workload is 
+decided by the programmer defining a function with the workload for each specific core. The corresponding function
+is called through main by checking the \code{CORE\_ID}. In the T-CREST platform one of the cores has the role of the master
+which is the only one that has access to IO. Thus, it can be used as the point of synchronizing and collecting overall data,
+as well as outputing the data for viewing purposes.
 
 To demonstrate the use of Argo, a multicore Hello World application \textit{hello\_sum.c} is placed in /patmos/c.
 The application is written in C and can be compiled and downloaded on the FPGA board.
