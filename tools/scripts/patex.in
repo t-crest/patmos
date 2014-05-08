@@ -1,7 +1,7 @@
 #! /bin/bash
 
 function usage() {
-    echo "Usage: $0 [-I <file>] [-O <file] <file>"
+    echo "Usage: $0 [-I <file>] [-O <file>] [-a <file>|-x <file>] <file>"
 }
 
 function error_exit
@@ -20,11 +20,14 @@ if [ -z "$TIMEOUT" ]; then
     TIMEOUT=300
 fi
 
+CONFIG=Make
+CONFIGFILE=
+
 INFILE="/dev/stdin"
 OUTFILE="/dev/stdout"
 
 # Parse options
-while getopts "hI:O:" arg; do
+while getopts "hI:O:a:x:" arg; do
     case $arg in
         I)
             INFILE=$OPTARG
@@ -32,11 +35,23 @@ while getopts "hI:O:" arg; do
         O)
             OUTFILE=$OPTARG
             ;;
+        a)
+            CONFIG=Altera
+            CONFIGFILE=$OPTARG
+            ;;
+        x)
+            CONFIG=Xilinx
+            CONFIGFILE=$OPTARG
+            ;;
         h)
             usage
             echo ""
-            echo "The FPGA is configured by calling 'make config' in the directory"
-            echo "specified in environment variable PATMOS_HOME."
+            echo "-a <file> specifies a .cdf file to use for configuration of Altera FPGA"
+            echo "-x <file> specifies a .bit file to use for configuration of Xilinx FPGA"
+            echo "Without either '-a' or '-x', the FPGA is configured by calling"
+            echo "'make config' in the directory specified in environment variable"
+            echo "PATMOS_HOME."
+            echo ""
             echo "The environment variable COM_PORT sets the serial port for downloading."
             echo "The environment variable TIMEOUT sets a timeout in seconds (default: 300)"
             exit 0
@@ -56,7 +71,17 @@ if [ $# -ne 1 ]; then
 fi
 
 # Configure FPGA
-make -C $PATMOS_HOME config &> /dev/null || error_exit "FPGA configuration failed"
+case $CONFIG in
+    Altera)
+        config_altera $CONFIGFILE
+        ;;
+    Xilinx)
+        config_xilinx $CONFIGFILE
+        ;;
+    Make)
+        make -C $PATMOS_HOME config
+        ;;
+esac &> /dev/null || error_exit "FPGA configuration failed"
 
 # Download program to FPGA
 BASEDIR=$(cd $(dirname "$0")/..; pwd)

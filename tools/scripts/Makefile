@@ -1,10 +1,12 @@
 BUILDDIR?=$(CURDIR)/build
 
-all: $(BUILDDIR)/patserdow $(BUILDDIR)/patex
+all: $(BUILDDIR)/config_altera $(BUILDDIR)/config_xilinx \
+	$(BUILDDIR)/patserdow $(BUILDDIR)/patex
 
-$(BUILDDIR)/patserdow: patserdow
+$(BUILDDIR)/%: %
 	cp $< $@
 
 $(BUILDDIR)/patex: patex.in
 	sed "s#@PATMOS_HOME@#\"$(PATMOS_HOME)\"#; s#@COM_PORT@#\"$(COM_PORT)\"#" $< > $@
 	chmod a+x $@
+

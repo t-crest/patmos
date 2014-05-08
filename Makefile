@@ -78,6 +78,8 @@ scripttools:
 	make -C tools/scripts BUILDDIR=$(SCRIPTSBUILDDIR) \
 		PATMOS_HOME=$(CURDIR) COM_PORT=$(COM_PORT) all
 	-mkdir -p $(INSTALLDIR)/bin
+	cp $(SCRIPTSBUILDDIR)/config_altera $(INSTALLDIR)/bin
+	cp $(SCRIPTSBUILDDIR)/config_xilinx $(INSTALLDIR)/bin
 	cp $(SCRIPTSBUILDDIR)/patserdow $(INSTALLDIR)/bin
 	cp $(SCRIPTSBUILDDIR)/patex $(INSTALLDIR)/bin
 
@@ -164,9 +166,9 @@ patmos: gen synth config
 # configure the FPGA
 config:
 ifeq ($(XFPGA),true)
-	make config_xilinx
+	$(INSTALLDIR)/bin/config_xilinx hardware/ise/$(BOARD)/patmos.bit
 else
-	make config_byteblaster
+	BLASTER_TYPE=$(BLASTER_TYPE) $(INSTALLDIR)/bin/config_altera hardware/quartus/$(BOARD)/patmos.cdf
 endif
 
 gen:
@@ -177,19 +179,11 @@ synth: csynth
 csynth:
 	$(MAKE) -C hardware qsyn BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
 
-config_byteblaster:
-	quartus_pgm -c $(BLASTER_TYPE) -m JTAG hardware/quartus/$(BOARD)/patmos.cdf
-
 download: $(BUILDDIR)/$(APP).elf
 	$(INSTALLDIR)/bin/patserdow -v $(COM_PORT) $<
 
 fpgaexec: $(BUILDDIR)/$(APP).elf
 	$(INSTALLDIR)/bin/patserdow $(COM_PORT) $<
-
-# TODO: no Xilinx Makefiles available yet
-config_xilinx:
-	echo "No Xilinx Makefile"
-#	$(MAKE) -C xilinx/$(XPROJ) config
 
 # cleanup
 CLEANEXTENSIONS=rbf rpt sof pin summary ttf qdf dat wlf done qws
