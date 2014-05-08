@@ -24,7 +24,7 @@ if [ $# -ne 1 ]; then
     exit 1
 fi
 
-impact -batch < <<EOF
+impact -batch <<EOF
 setMode -bs
 setCable -p auto
 setcablespeed -speed 12000000
