@@ -168,7 +168,7 @@ config:
 ifeq ($(XFPGA),true)
 	$(INSTALLDIR)/bin/config_xilinx hardware/ise/$(BOARD)/patmos.bit
 else
-	BLASTER_TYPE=$(BLASTER_TYPE) $(INSTALLDIR)/bin/config_altera hardware/quartus/$(BOARD)/patmos.cdf
+	$(INSTALLDIR)/bin/config_altera -b $(BLASTER_TYPE) hardware/quartus/$(BOARD)/patmos.sof
 endif
 
 gen:

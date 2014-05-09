@@ -1,32 +1,34 @@
 #! /bin/bash
 
 function usage() {
-    echo "Usage: $0 <file>"
+    echo "Usage: $0 [-b <blaster>] [-h] <file>"
 }
 
-if [ -z "$BLASTER_TYPE" ]; then
-    BLASTER_TYPE=USB-Blaster
-fi
+BLASTER_TYPE=USB-Blaster
 
 # Parse options
-while getopts "h" arg; do
+while getopts "hb:" arg; do
     case $arg in
+        b)
+            BLASTER_TYPE="$OPTARG"
+            ;;
         h)
             usage
-            echo ""
-            echo "The environment variable BLASTER_TYPE sets the configuration cable type."
             exit 0
             ;;
         *)
-            usage
+            usage 1>&2
             exit 1
             ;;
     esac
 done
 
+# Check argument count
+shift $((OPTIND-1))
 if [ $# -ne 1 ]; then
-    usage
+    usage 1>&2
     exit 1
 fi
 
-quartus_pgm -c $BLASTER_TYPE -m JTAG $1
+# Configure FPGA
+quartus_pgm -c "$BLASTER_TYPE" -m JTAG -o "P;$1"
