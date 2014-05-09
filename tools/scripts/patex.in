@@ -10,6 +10,8 @@ function error_exit
 	exit -1
 }
 
+TMPDIR=/tmp
+
 if [ -z "$PATMOS_HOME" ]; then
     PATMOS_HOME=@PATMOS_HOME@
 fi
@@ -76,6 +78,18 @@ if [ $# -ne 1 ]; then
     exit 1
 fi
 
+# Download configuration file if necessary
+case "$PATEX_CONFIGFILE" in
+    http://*|https://*|ftp://*)
+        wget -P $TMPDIR -x -nv -N $PATEX_CONFIGFILE
+        CONFIGFILE=$TMPDIR/`echo "$PATEX_CONFIGFILE" | sed 's#^.*://\(.*\)$#\1#'`
+        ;;
+    *)
+        CONFIGFILE="$PATEX_CONFIGFILE"
+        ;;
+esac
+
+# Turn on/off output from FPGA configuration
 if [ "$VERBOSE" = "true" ]; then
     CONFOUT=/dev/stderr
 else
@@ -85,10 +99,10 @@ fi
 # Configure FPGA
 case "$PATEX_CONFIG" in
     Altera)
-        config_altera $BLASTER_OPTION "$PATEX_CONFIGFILE" &> $CONFOUT
+        config_altera $BLASTER_OPTION "$CONFIGFILE" &> $CONFOUT
         ;;
     Xilinx)
-        config_xilinx "$PATEX_CONFIGFILE" &> $CONFOUT
+        config_xilinx "$CONFIGFILE" &> $CONFOUT
         ;;
     Make)
         make -C "$PATMOS_HOME" config &> $CONFOUT
