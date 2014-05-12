@@ -477,7 +477,7 @@ int main (int argc, char* argv[]) {
 	// Pass on data to UART
 	bool baud_tick = c->Patmos_core_iocomp_Uart__tx_baud_tick.to_bool();
 	if (baud_tick) {
-	  baud_counter = (baud_counter + 1) % 20; // slower than necessary, for slow apps
+	  baud_counter = (baud_counter + 1) % 10;
 	}
 	if (baud_tick && baud_counter == 0) {
 	  struct pollfd pfd;
@@ -490,8 +490,8 @@ int main (int argc, char* argv[]) {
 		  if (r != 1) {
 			cerr << argv[0] << ": error: Cannot read UART input" << endl;
 		  } else {
-			c->Patmos_core_iocomp_Uart__rx_data = d;
-			c->Patmos_core_iocomp_Uart__rx_full = true;
+			c->Patmos_core_iocomp_Uart_rxQueue__io_enq_bits = d;
+			c->Patmos_core_iocomp_Uart_rxQueue__io_enq_valid = true;
 		  }
 		}
 	  }

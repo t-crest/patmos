@@ -11,7 +11,8 @@
   <IODevs>
 	<IODev IODevType="Uart" entity="Uart" iface="OcpCore">
 	  <params>
-		<param name="baud_rate" value="115200"/>
+		<param name="baudRate" value="115200"/>
+  		<param name="fifoDepth" value="16"/>
 	  </params>
 	</IODev>
 	<IODev IODevType="Leds" entity="Leds" iface="OcpCore">
