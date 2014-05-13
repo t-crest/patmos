@@ -247,7 +247,7 @@ class Execute() extends Module {
     val ps2 = predReg(exReg.predOp(i).s2Addr(PRED_BITS-1,0)) ^ exReg.predOp(i).s2Addr(PRED_BITS)
     val predResult = pred(exReg.predOp(i).func, ps1, ps2)
 
-    when((exReg.aluOp(i).isCmp || exReg.aluOp(i).isPred) && doExecute(i) && io.ena) {
+    when((exReg.aluOp(i).isCmp || exReg.aluOp(i).isPred) && doExecute(i)) {
       predReg(exReg.predOp(i).dest) := Mux(exReg.aluOp(i).isCmp, compResult, predResult)
     }
     predReg(0) := Bool(true)
@@ -255,9 +255,7 @@ class Execute() extends Module {
     // stack register handling
     when(exReg.aluOp(i).isSTC && doExecute(i)) {
       io.exdec.sp := op(2*i+1).toUInt()
-      when (io.ena) {
-        stackTopReg := op(2*i+1).toUInt()
-      }
+      stackTopReg := op(2*i+1).toUInt()
     }
 
     // special registers
@@ -268,7 +266,7 @@ class Execute() extends Module {
         }
       }
     }
-    when(exReg.aluOp(i).isMTS && doExecute(i) && io.ena) {
+    when(exReg.aluOp(i).isMTS && doExecute(i)) {
       switch(exReg.aluOp(i).func) {
         is(SPEC_FL) {
           predReg := op(2*i)(PRED_COUNT-1, 0).toBits()
@@ -378,17 +376,15 @@ class Execute() extends Module {
 
   // return information
   val baseReg = Reg(init = UInt(4, DATA_WIDTH))
-  when(exReg.call && doExecute(0) && io.ena) {
+  when(exReg.call && doExecute(0)) {
     retBaseReg := baseReg
   }
   // the offset is saved when the call is already in the MEM statge
   saveRetOff := exReg.call && doExecute(0) && io.ena
   saveND := exReg.nonDelayed
-  when(saveRetOff) {
-    retOffReg := Cat(Mux(saveND, exReg.relPc, io.feex.pc), Bits("b00").toUInt)
-  }
+
   // exception return information
-  when(exReg.xcall && doExecute(0) && io.ena) {
+  when(exReg.xcall && doExecute(0)) {
     excBaseReg := baseReg
     excOffReg := Cat(exReg.relPc, Bits("b00").toUInt)
   }
@@ -414,4 +410,21 @@ class Execute() extends Module {
   io.exmcache.callRetBase := io.exmem.mem.callRetBase(31,2)
   io.exmcache.callRetAddr := io.exmem.mem.callRetAddr(31,2)
 
+  // suppress writes to special registers
+  when(!io.ena) {
+    predReg := predReg
+    mulLoReg := mulLoReg
+    mulHiReg := mulHiReg
+    stackTopReg := stackTopReg
+    stackSpillReg := stackSpillReg
+    retBaseReg := retBaseReg
+    retOffReg := retOffReg
+    excBaseReg := excBaseReg
+    excOffReg := excOffReg
+  }
+
+  // saveRetOff overrides io.ena for writes to retOffReg
+  when(saveRetOff) {
+    retOffReg := Cat(Mux(saveND, exReg.relPc, io.feex.pc), Bits("b00").toUInt)
+  }
 }
