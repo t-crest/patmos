@@ -64,6 +64,7 @@ $(BUILDDIR)/bootable-cmp_hello.elf: nocinit.c libnoc
 $(BUILDDIR)/cmp_hello.elf: nocinit.c libnoc
 
 $(BUILDDIR)/hello_sum.elf: nocinit.c libnoc boot.h cmpboot.h
+$(BUILDDIR)/matrix_mult.elf: nocinit.c libnoc boot.h cmpboot.h
 
 # library for network-on-chip
 .PHONY: libnoc
