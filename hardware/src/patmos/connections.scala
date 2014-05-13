@@ -464,6 +464,7 @@ class WriteBackIO() extends Bundle() {
 }
 
 class ExcIO() extends Bundle() {
+  val ena = Bool(INPUT)
   val ocp = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
   val intrs = Vec.fill(INTR_COUNT) { Bool(INPUT) }
   val excdec = new ExcDec().asOutput

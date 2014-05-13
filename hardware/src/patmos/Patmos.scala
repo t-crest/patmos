@@ -128,6 +128,7 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   decode.io.ena := enable
   execute.io.ena := enable
   writeback.io.ena := enable
+  exc.io.ena := enable
   val enableReg = Reg(next = enable)
 
   // Flush signal

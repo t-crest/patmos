@@ -233,8 +233,8 @@ class Memory() extends Module {
   io.exResult := io.exmem.rd
 
   // acknowledge exception
-  io.exc.call := memReg.mem.xcall && enable && io.ena_in
-  io.exc.ret := memReg.mem.xret && enable && io.ena_in
+  io.exc.call := memReg.mem.xcall
+  io.exc.ret := memReg.mem.xret
   // trigger exception
   io.exc.exc := memReg.mem.trap || memReg.mem.illOp || illMem
 
