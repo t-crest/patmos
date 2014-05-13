@@ -1,0 +1,38 @@
+#! /bin/bash
+
+function usage() {
+    echo "Usage: $0 [-h] <file>"
+}
+
+# Parse options
+while getopts "h" arg; do
+    case $arg in
+        h)
+            usage
+            exit 0
+            ;;
+        *)
+            usage 1>&2
+            exit 1
+            ;;
+    esac
+done
+
+# Check argument count
+shift $((OPTIND-1))
+if [ $# -ne 1 ]; then
+    usage 1>&2
+    exit 1
+fi
+
+# Configure FPGA
+impact -batch <<EOF
+cleancablelock
+setMode -bs
+setCable -p auto
+setcablespeed -speed 12000000
+identify
+assignFile -p 2 -file "$1"
+program -p 2
+quit
+EOF

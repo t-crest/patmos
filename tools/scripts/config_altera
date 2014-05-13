@@ -1,0 +1,34 @@
+#! /bin/bash
+
+function usage() {
+    echo "Usage: $0 [-b <blaster>] [-h] <file>"
+}
+
+BLASTER_TYPE=USB-Blaster
+
+# Parse options
+while getopts "hb:" arg; do
+    case $arg in
+        b)
+            BLASTER_TYPE="$OPTARG"
+            ;;
+        h)
+            usage
+            exit 0
+            ;;
+        *)
+            usage 1>&2
+            exit 1
+            ;;
+    esac
+done
+
+# Check argument count
+shift $((OPTIND-1))
+if [ $# -ne 1 ]; then
+    usage 1>&2
+    exit 1
+fi
+
+# Configure FPGA
+quartus_pgm -c "$BLASTER_TYPE" -m JTAG -o "P;$1"
