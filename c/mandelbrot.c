@@ -29,6 +29,8 @@
 #include <machine/patmos.h>
 #include <machine/spm.h>
 
+#include "bootable.h"
+
 #define UART_STATUS *((volatile _SPM int *) 0xF0000800)
 #define UART_DATA   *((volatile _SPM int *) 0xF0000804)
 static void write(const char *msg, int len) __attribute__((noinline));
@@ -42,25 +44,6 @@ static void write(const char *msg, int len) __attribute__((noinline));
 #endif /* __patmos__ */
 
 #include <string.h>
-
-#ifdef BOOTROM
-extern int _stack_cache_base, _shadow_stack_base;
-int main(int argc, char **argv);
-void _start(void) __attribute__((naked,used));
-
-void _start(void) {
-  // setup stack frame and stack cache.
-  asm volatile ("mov $r31 = %0;" // initialize shadow stack pointer"
-                "mts $ss  = %1;" // initialize the stack cache's spill pointer"
-                "mts $st  = %1;" // initialize the stack cache's top pointer"
-                : : "r" (&_shadow_stack_base),
-                  "r" (&_stack_cache_base));
-  // call main()
-  main(0, NULL);
-  // freeze
-  for(;;);
-}
-#endif
 
 static void write_xpm_header(void);
 static char to_color(int v) __attribute__((noinline));

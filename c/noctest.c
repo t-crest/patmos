@@ -12,26 +12,7 @@ const int NOC_MASTER = 0;
 #include "libnoc/noc.h"
 #include "patio.h"
 
-#ifdef BOOTROM
-extern int _stack_cache_base, _shadow_stack_base;
-int main(int argc, char **argv);
-void _start(void) __attribute__((naked,used));
-
-void _start(void) {
-  // setup stack frame and stack cache.
-  asm volatile ("mov $r31 = %0;" // initialize shadow stack pointer"
-                "mts $ss  = %1;" // initialize the stack cache's spill pointer"
-                "mts $st  = %1;" // initialize the stack cache's top pointer"
-                : : "r" (&_shadow_stack_base),
-                  "r" (&_stack_cache_base));
-  // configure network interface
-  noc_configure();
-  // call main()
-  main(0, NULL);
-  // freeze
-  for(;;);
-}
-#endif
+#include "bootable.h"
 
 static void master(void);
 

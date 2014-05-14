@@ -9,15 +9,15 @@ CC=patmos-clang
 CFLAGS-BOOTABLE=-target patmos-unknown-unknown-elf -Os \
 	-I$(CURDIR) -DBOOTROM \
 	-mpatmos-disable-stack-cache \
+	-mpatmos-disable-function-splitter \
 	-mpatmos-disable-vliw
 LDFLAGS-BOOTABLE= \
-	-mpatmos-method-cache-size=0x8000 \
-	-mpatmos-max-subfunction-size=0 -mpatmos-preferred-subfunction-size=0 \
-	-mpatmos-stack-base=0x80010680 -mpatmos-shadow-stack-base=0x80010780 \
+	-mpatmos-stack-base=0x80010700 -mpatmos-shadow-stack-base=0x80010800 \
 	-nodefaultlibs -nostdlib -nostartfiles \
 	-Xgold --section-start -Xgold .text=0x0 -e main \
 	-Xgold --section-start -Xgold .rodata=0x80000010 \
 	-Xgold --section-start -Xgold .data=0x80010000 \
+	-Xllc -mpatmos-subfunction-align=0 \
 	-Xllc -disable-machine-licm
 
 # Flags for compiling normal applications
@@ -53,18 +53,27 @@ $(BUILDDIR)/bootable-%.s: %.c
 	$(CC) $(CFLAGS-BOOTABLE) -fpatmos-emit-asm -S -o $@ $(filter %.c,$^)
 
 # application-specific additional dependencies
-$(BUILDDIR)/bootable-bootloader.elf: download.c boot.h
-$(BUILDDIR)/bootable-cmpmaster.elf: download.c boot.h cmpboot.h
-$(BUILDDIR)/bootable-cmpslave.elf: boot.h cmpboot.h
+$(BUILDDIR)/bootable-bootloader.elf: download.c boot.h bootable.h
+$(BUILDDIR)/bootable-cmpmaster.elf: download.c boot.h cmpboot.h bootable.h
+$(BUILDDIR)/bootable-cmpslave.elf: boot.h cmpboot.h bootable.h
 
-$(BUILDDIR)/bootable-mandelbrot_par.elf: nocinit.c libnoc
-$(BUILDDIR)/mandelbrot_par.elf: nocinit.c libnoc
+$(BUILDDIR)/bootable-mandelbrot.elf: bootable.h
+$(BUILDDIR)/mandelbrot.elf: bootable.h
 
-$(BUILDDIR)/bootable-cmp_hello.elf: nocinit.c libnoc
-$(BUILDDIR)/cmp_hello.elf: nocinit.c libnoc
+$(BUILDDIR)/bootable-mandelbrot_par.elf: nocinit.c libnoc bootable.h
+$(BUILDDIR)/mandelbrot_par.elf: nocinit.c libnoc bootable.h
 
-$(BUILDDIR)/hello_sum.elf: nocinit.c libnoc boot.h cmpboot.h
-$(BUILDDIR)/matrix_mult.elf: nocinit.c libnoc boot.h cmpboot.h
+$(BUILDDIR)/bootable-cmp_hello.elf: nocinit.c libnoc bootable.h
+$(BUILDDIR)/cmp_hello.elf: nocinit.c libnoc bootable.h
+
+$(BUILDDIR)/bootable-noctest.elf: nocinit.c libnoc bootable.h
+$(BUILDDIR)/noctest.elf: nocinit.c libnoc bootable.h
+
+$(BUILDDIR)/bootable-extdev_test.elf: bootable.h
+$(BUILDDIR)/extdev_test.elf: bootable.h
+
+$(BUILDDIR)/hello_sum.elf: nocinit.c libnoc
+$(BUILDDIR)/matrix_mult.elf: nocinit.c libnoc
 
 # library for network-on-chip
 .PHONY: libnoc

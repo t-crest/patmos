@@ -31,42 +31,39 @@
  */
 
 /*
- * Macros for patmos io
+ * Create entry point when being compiled for boot ROM. To be included
+ * at the beginning of the application. Configures NoC before calling
+ * main if included after libnoc/noc.h.
  * 
- * Author: Rasmus Bo Soerensen (rasmus@rbscloud.dk)
- *
+ * Author: Wolfgang Puffitsch (wpuffitsch@gmail.com)
  */
 
+#ifndef _BOOTABLE_H_
+#define _BOOTABLE_H_
 
-#ifndef _PATIO_H_
-#define _PATIO_H_
+#ifdef BOOTROM
+extern int _stack_cache_base, _shadow_stack_base;
+int main(void);
+void _start(void) __attribute__((naked,used));
 
-#ifndef BOOTROM
-#warning "patio.h" should only be used in programs compiled for the boot ROM
+void _start(void) {
+  // setup stack frame and stack cache.
+  asm volatile ("mov $r31 = %0;" // initialize shadow stack pointer"
+                "mts $ss  = %1;" // initialize the stack cache's spill pointer"
+                "mts $st  = %1;" // initialize the stack cache's top pointer"
+                : : "r" (&_shadow_stack_base),
+                  "r" (&_stack_cache_base));
+
+#ifdef _NOC_H_
+  // configure network interface
+  noc_configure();
+#endif /* _NOC_H_ */
+
+  // call main()
+  main();
+  // freeze
+  for(;;);
+}
 #endif
 
-#include <machine/patmos.h>
-
-#define CORE_ID *((volatile _IODEV int *) 0xF0000000)
-
-#define TIMER_CLKLOW *((volatile _IODEV int *) 0xF0000204)
-#define TIMER_USLOW *((volatile _IODEV int *) 0xF000020c)
-
-#define UART_STATUS *((volatile _IODEV int *) 0xF0000800)
-#define UART_DATA   *((volatile _IODEV int *) 0xF0000804)
-#define LEDS        *((volatile _IODEV int *) 0xF0000900)
-
-#define MEM         ((volatile _UNCACHED int *) 0x0)
-#define SPM         ((volatile _SPM int *) 0x0)
-
-#define XDIGIT(c) ((c) <= 9 ? '0' + (c) : 'a' + (c) - 10)
-
-#define WRITE(data,len) do { \
-  unsigned i; \
-  for (i = 0; i < (len); i++) {        \
-    while ((UART_STATUS & 0x01) == 0); \
-    UART_DATA = (data)[i];          \
-  } \
-} while(0)
-
-#endif /* _PATIO_H_ */
+#endif /* _BOOTABLE_H_ */

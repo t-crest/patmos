@@ -41,16 +41,12 @@
 #include "boot.h"
 #include "patio.h"
 
+#include "bootable.h"
+
 // #define DEBUG
 
 int main(void) {
-  // setup stack frame and stack cache.
-  asm volatile ("mov $r31 = %0;" // initialize shadow stack pointer"
-                "mts $ss  = %1;" // initialize the stack cache's spill pointer"
-                "mts $st  = %1;" // initialize the stack cache's top pointer"
-                : : "r" (&_shadow_stack_base),
-                  "r" (&_stack_cache_base));
-  
+
 #ifdef DEBUG
   WRITE("DOWN\n", 5);
 #endif
@@ -86,10 +82,8 @@ int main(void) {
   if (entrypoint != 0) {
     retval = (*entrypoint)();
 
-    // Compensate off-by-one of return offset with NOP
-    // (internal base address is 0 after booting).
     // Return may be "unclean" and leave registers clobbered.
-    asm volatile ("nop" : :
+    asm volatile ("" : :
                   : "$r2", "$r3", "$r4", "$r5",
                     "$r6", "$r7", "$r8", "$r9",
                     "$r10", "$r11", "$r12", "$r13",

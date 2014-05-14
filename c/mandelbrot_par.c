@@ -43,6 +43,8 @@
 const int NOC_MASTER = 0;
 #include "libnoc/noc.h"
 
+#include "bootable.h"
+
 #define core_id *((volatile _SPM int *) 0xF0000000)
 
 #define UART_STATUS *((volatile _SPM int *) 0xF0000800)
@@ -67,27 +69,6 @@ int core_id;
 #include <stdint.h>
 #include <errno.h>
 #include <assert.h>
-
-#ifdef BOOTROM
-extern int _stack_cache_base, _shadow_stack_base;
-int main(int argc, char **argv);
-void _start(void) __attribute__((naked,used));
-
-void _start(void) {
-  // setup stack frame and stack cache.
-  asm volatile ("mov $r31 = %0;" // initialize shadow stack pointer"
-                "mts $ss  = %1;" // initialize the stack cache's spill pointer"
-                "mts $st  = %1;" // initialize the stack cache's top pointer"
-                : : "r" (&_shadow_stack_base),
-                  "r" (&_stack_cache_base));
-  // configure network interface
-  noc_configure();
-  // call main()
-  main(0, NULL);
-  // freeze
-  for(;;);
-}
-#endif /* BOOTROM */
 
 static void master(void);
 static void write_xpm_header(void);

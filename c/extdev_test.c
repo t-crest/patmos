@@ -37,27 +37,20 @@
  *
  */
 
-#include "cmpboot.h"
-#include "patio.h"
+#include <machine/patmos.h>
+
+#include "bootable.h"
 
 #define EXTIODEV *((volatile _IODEV int *) 0xF0000300)
 
 int main(void)
 {
-  // setup stack frame and stack cache.
-  asm volatile ("mov $r31 = %0;" // initialize shadow stack pointer"
-                "mts $ss  = %1;" // initialize the stack cache's spill pointer"
-                "mts $st  = %1;" // initialize the stack cache's top pointer"
-                : : "r" (&_shadow_stack_base),
-                  "r" (&_stack_cache_base));
-
   if (EXTIODEV == 0)
   {
     EXTIODEV = 1;
   } else {
     EXTIODEV = 2;
-  }
-  
+  }  
 
   return 0;
 }

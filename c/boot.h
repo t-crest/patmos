@@ -43,10 +43,11 @@
 #include <machine/patmos.h>
 #include <machine/spm.h>
 
-int main(void) __attribute__((naked,used));
-extern int _stack_cache_base, _shadow_stack_base;
-
+#ifndef __ENTRYPOINT_T
 typedef volatile int (*entrypoint_t)(void);
+#define __ENTRYPOINT_T
+#endif
+
 entrypoint_t download(void) __attribute__((noinline));
 
 #endif /* _BOOT_H_ */

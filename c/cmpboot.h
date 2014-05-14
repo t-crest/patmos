@@ -41,7 +41,6 @@
 #define _CMPBOOT_H_
 
 #include <machine/patmos.h>
-#include "boot.h"
 
 #define MAX_CORES 64
 
@@ -49,6 +48,11 @@
 #define STATUS_BOOT     1
 #define STATUS_INIT     2
 #define STATUS_INITDONE 3
+
+#ifndef __ENTRYPOINT_T
+typedef volatile int (*entrypoint_t)(void);
+#define __ENTRYPOINT_T
+#endif
 
 struct master_info_t {  
   volatile entrypoint_t entrypoint;

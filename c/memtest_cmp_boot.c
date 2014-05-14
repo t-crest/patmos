@@ -2,10 +2,11 @@
 	Author: Rasmus Bo Soerensen (rasmus@rbscloud.dk)
 	Copyright: DTU, BSD License
 */
-#include "cmpboot.h"
 #include "patio.h"
 #include <machine/spm.h>
 #include <machine/patmos.h>
+
+#include "bootable.h"
 
 // we assume 1 MB memory, 512 KB for stack of 16 cores,
 // 250 K for program and minmal heap
@@ -22,12 +23,6 @@ extern char _end;
 
 
 int main() {
-  // setup stack frame and stack cache.
-  asm volatile ("mov $r31 = %0;" // initialize shadow stack pointer"
-                "mts $ss  = %1;" // initialize the stack cache's spill pointer"
-                "mts $st  = %1;" // initialize the stack cache's top pointer"
-                : : "r" (&_shadow_stack_base),
-                  "r" (&_stack_cache_base));
 
 	int res;
 	int error = 0;
@@ -67,6 +62,4 @@ int main() {
 		WRITE("-", 1);
 	}
 
-	// bootable don't return
-	for (;;);
 }

@@ -37,8 +37,11 @@
  *
  */
 
+#include "boot.h"
 #include "cmpboot.h"
 #include "patio.h"
+
+#include "bootable.h"
 
 #define TIM TIMER_USLOW
 #define DELAY 1000*1
@@ -47,16 +50,11 @@
 
 int main(void)
 {
-  // setup stack frame and stack cache.
-  asm volatile ("mov $r31 = %0;" // initialize shadow stack pointer"
-                "mts $ss  = %1;" // initialize the stack cache's spill pointer"
-                "mts $st  = %1;" // initialize the stack cache's top pointer"
-                : : "r" (&_shadow_stack_base),
-                  "r" (&_stack_cache_base));
 
 #ifdef DEBUG
   WRITE("BOOT\n", 5);
 #endif
+
   // wait a little bit in case of the TU/e memory controller not being ready
   int val = TIM+DELAY;
   while (TIM-val < 0)
@@ -112,10 +110,8 @@ int main(void)
   if (boot_info->master.entrypoint != NULL) {
     retval = (*boot_info->master.entrypoint)();
 
-    // Compensate off-by-one of return offset with NOP
-    // (internal base address is 0 after booting).
     // Return may be "unclean" and leave registers clobbered.
-    asm volatile ("nop" : :
+    asm volatile ("" : :
                   : "$r2", "$r3", "$r4", "$r5",
                     "$r6", "$r7", "$r8", "$r9",
                     "$r10", "$r11", "$r12", "$r13",

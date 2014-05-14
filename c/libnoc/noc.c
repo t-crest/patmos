@@ -43,7 +43,6 @@
 #include <machine/spm.h>
 
 #include "cmpboot.h"
-#include "patio.h"
 #include "noc.h"
 
 // Structure to model the network interface
@@ -59,7 +58,7 @@ static struct network_interface
 // Configure network interface according to initialization information
 void noc_configure(void) {
   int row_size = NOC_TIMESLOTS > NOC_DMAS ? NOC_TIMESLOTS : NOC_DMAS;
-  int core_idx = CORE_ID * NOC_TABLES * row_size;
+  int core_idx = get_cpuid() * NOC_TABLES * row_size;
   for (unsigned i = 0; i < NOC_TIMESLOTS; ++i) {
     *(noc_interface.st+i) = noc_init_array[core_idx + i];
   }
@@ -71,7 +70,7 @@ void noc_configure(void) {
 // Synchronize start-up
 static void noc_sync(void) {
 
-  if (CORE_ID == NOC_MASTER) {
+  if (get_cpuid() == NOC_MASTER) {
     // Wait until all slaves have configured their network interface
     int done = 0;
     do {
@@ -91,7 +90,7 @@ static void noc_sync(void) {
 
   } else {
     // Notify master that network interface is configured
-    boot_info->slave[CORE_ID].status = STATUS_INITDONE;
+    boot_info->slave[get_cpuid()].status = STATUS_INITDONE;
     // Wait until master has started the network
     while (boot_info->master.status != STATUS_INITDONE) {
       /* spin */
@@ -101,11 +100,11 @@ static void noc_sync(void) {
 
 // Initialize the NoC
 void noc_init(void) {
-  /* if (CORE_ID == NOC_MASTER) puts("noc_configure"); */
+  /* if (get_cpuid() == NOC_MASTER) puts("noc_configure"); */
   noc_configure();
-  /* if (CORE_ID == NOC_MASTER) puts("noc_sync"); */
+  /* if (get_cpuid() == NOC_MASTER) puts("noc_sync"); */
   noc_sync();
-  /* if (CORE_ID == NOC_MASTER) puts("noc_done"); */
+  /* if (get_cpuid() == NOC_MASTER) puts("noc_done"); */
 }
 
 // Start a NoC transfer

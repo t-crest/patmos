@@ -15,10 +15,7 @@ const int NOC_MASTER = 0;
                   // https://github.com/t-crest/poseidon.git
 #include "patio.h"
 
-
-int main(int argc, char **argv) __attribute__((naked,used));
-
-extern int _stack_cache_base, _shadow_stack_base;
+#include "bootable.h"
 
 static const struct network_interface
 {
@@ -61,16 +58,6 @@ int wait(int amount){
 
 int main(int argc, char **argv) {
     //WRITE("Hello cmp world!\n",17);
-
-  // setup stack frame and stack cache.
-  asm volatile ("mov $r31 = %0;" // initialize shadow stack pointer"
-                "mts $ss  = %1;" // initialize the stack cache's spill pointer"
-                "mts $st  = %1;" // initialize the stack cache's top pointer"
-                : : "r" (&_shadow_stack_base),
-                  "r" (&_stack_cache_base));
-
-    // configure network interface
-    noc_configure();
 
     volatile int *dummy = (int *) 0x123;
 
