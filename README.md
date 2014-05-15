@@ -21,7 +21,7 @@ installed on a Ubuntu Linux:
 
     sudo apt-get install openjdk-7-jdk git cmake make g++ texinfo flex bison \
       subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
-      ruby1.9.1-dev python zlib1g-dev gtkwave gtkterm
+      ruby1.9.1-dev python zlib1g-dev gtkwave gtkterm scala
 
 We assume that the T-CREST project will live in $HOME/t-crest.
 Patmos and the compiler can be checked out from GitHub and are built as follows:

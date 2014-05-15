@@ -117,10 +117,8 @@ set_location_assignment PIN_M21 -to iKeysPins_key[1]
 set_location_assignment PIN_M23 -to iKeysPins_key[0]
 
 
-set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS OFF
+set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS ON
 set_global_assignment -name CYCLONEII_OPTIMIZATION_TECHNIQUE SPEED
-set_instance_assignment -name FAST_INPUT_REGISTER ON -to SRAM_DQ*
-set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to "Patmos:comp|io_sramPins_ram_out_dout_ena"
 set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
 set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 set_global_assignment -name DEVICE_FILTER_PACKAGE FBGA
@@ -128,4 +126,65 @@ set_global_assignment -name VHDL_FILE "../../vhdl/patmos_de2-115.vhdl"
 set_global_assignment -name VHDL_FILE ../../vhdl/altera/cyc2_pll.vhd
 set_global_assignment -name VERILOG_FILE ../../build/Patmos.v
 
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_WE_N
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[8]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[9]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[10]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[11]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[12]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[13]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[14]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[15]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[16]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[17]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[18]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_A[19]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_CE_N
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_LB_N
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_OE_N
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oSRAM_UB_N
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[8]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[7]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[6]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[5]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[4]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[3]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[2]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[1]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to oLedsPins_led[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to oUartPins_txd
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[15]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[14]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[13]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[12]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[11]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[10]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[9]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[8]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SRAM_DQ[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to iUartPins_rxd
+set_instance_assignment -name IO_STANDARD "2.5 V" -to iKeysPins_key[3]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to iKeysPins_key[2]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to iKeysPins_key[1]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to iKeysPins_key[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to clk
+
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:sramCtrl|addrReg"
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to "Patmos:comp|SRamCtrl:sramCtrl|doutReg"
+set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to "Patmos:comp|SRamCtrl:sramCtrl|doutEnaReg"
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
