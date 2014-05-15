@@ -21,8 +21,8 @@ set_max_delay -from [all_registers] -to [all_outputs] 10
 set_min_delay -from [all_registers] -to [all_outputs] 0
 
 # Use FPGA-centric constraints (SRAM pins)
-# Tsu 3 ns
-set_max_delay -from [get_ports *RAM*] -to [get_registers {*}] 3
-# Tco 3 ns
-set_max_delay -from [get_registers *] -to [get_ports {*RAM*}] 3
+# Tsu 3.5 ns
+set_max_delay -from [get_ports *RAM*] -to [get_registers {*}] 3.5
+# Tco 5.5 ns
+set_max_delay -from [get_registers *] -to [get_ports {*RAM*}] 5.5
 
