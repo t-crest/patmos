@@ -146,7 +146,7 @@ class SRamCtrl( ocpAddrWidth    : Int,
   // Default values for sRamCtrlPins.ramOut port
   //addr := Bits(0, width = sramAddrWidth)
   doutEnaNext := Bits(0)
-  doutNext := Bits(0, width = DATA_WIDTH)
+  doutNext := bufferReg(0).data
   nceNext := Bits(0)
   noeNext := Bits(1)
   nweNext := Bits(1)
@@ -158,9 +158,9 @@ class SRamCtrl( ocpAddrWidth    : Int,
   waitCountReg := UInt(0)
 
   when(stateReg === sReady) {
-    for( i <- 0 to TRANSPERCMD-1) {
-      bufferReg(i).byteEna := Bits(0)
-      bufferReg(i).data := Bits(0)
+    for( i <- 0 until TRANSPERWORD) {
+      bufferReg(i).byteEna := io.ocp.M.DataByteEn((i+1)*BYTESPERTRAN-1,i*BYTESPERTRAN)
+      bufferReg(i).data := io.ocp.M.Data((i+1)*sramDataWidth-1,i*sramDataWidth)
     }
     when(io.ocp.M.Cmd != OcpCmd.IDLE) {
       mAddrReg := io.ocp.M.Addr(sramAddrWidth+log2upNew(BYTESPERTRAN)-1,log2upNew(BYTESPERTRAN))
@@ -175,10 +175,6 @@ class SRamCtrl( ocpAddrWidth    : Int,
       }
       when(io.ocp.M.Cmd === OcpCmd.WR) {
         io.ocp.S.DataAccept := Bits(1)
-        for(i <- 0 to TRANSPERWORD-1) {
-          bufferReg(i).byteEna := io.ocp.M.DataByteEn((i+1)*BYTESPERTRAN-1,i*BYTESPERTRAN)
-          bufferReg(i).data := io.ocp.M.Data((i+1)*sramDataWidth-1,i*sramDataWidth)
-        }
         transCountReg := UInt(1) // Because the first ocp data word is stored in the bufferReg
         stateReg := sWriteRec
       }
@@ -228,12 +224,14 @@ class SRamCtrl( ocpAddrWidth    : Int,
     }
   }
   when(stateReg === sWriteRec) {
+    for(i <- 0 until TRANSPERWORD) {
+      bufferReg(UInt(i)+transCountReg*UInt(TRANSPERWORD)).byteEna := io.ocp.M.DataByteEn((i+1)*BYTESPERTRAN-1,i*BYTESPERTRAN)
+      bufferReg(UInt(i)+transCountReg*UInt(TRANSPERWORD)).data := io.ocp.M.Data((i+1)*sramDataWidth-1,i*sramDataWidth)
+    }
+    doutNext := bufferReg(0).data
+    doutEnaNext := Bits(1)
     when(io.ocp.M.DataValid === Bits(1)){
       io.ocp.S.DataAccept := Bits(1)
-      for(i <- 0 to TRANSPERWORD-1) {
-        bufferReg(UInt(i)+transCountReg*UInt(TRANSPERWORD)).byteEna := io.ocp.M.DataByteEn((i+1)*BYTESPERTRAN-1,i*BYTESPERTRAN)
-        bufferReg(UInt(i)+transCountReg*UInt(TRANSPERWORD)).data := io.ocp.M.Data((i+1)*sramDataWidth-1,i*sramDataWidth)
-      }
       transCountReg := transCountReg + UInt(1)
       when(transCountReg === UInt(ocpBurstLen-1)){
         stateReg := sWriteExe
@@ -242,8 +240,6 @@ class SRamCtrl( ocpAddrWidth    : Int,
         nweNext := Bits(0)
         nubNext := !bufferReg(0).byteEna(1)
         nlbNext := !bufferReg(0).byteEna(0)
-        doutNext := bufferReg(0).data
-        doutEnaNext := Bits(1)
         waitCountReg := UInt(1)
       }
     } otherwise {
@@ -271,9 +267,9 @@ class SRamCtrl( ocpAddrWidth    : Int,
     when(transCountReg < UInt(TRANSPERCMD-1)){
       nceNext := Bits(0)
       nweNext := Bits(0)
-      doutNext := bufferReg(transCountReg+UInt(1)).data
       nubNext := !bufferReg(transCountReg+UInt(1)).byteEna(1)
       nlbNext := !bufferReg(transCountReg+UInt(1)).byteEna(0)
+      doutNext := bufferReg(transCountReg+UInt(1)).data
       doutEnaNext := Bits(1)
       addrNext := mAddrReg + UInt(1)
       mAddrReg := mAddrReg + UInt(1)

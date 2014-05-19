@@ -105,10 +105,12 @@ class WriteNoBuffer() extends Module {
       state := idle
     }
   }
+  when(state != write) {
+    writeMasterReg := io.writeMaster.M
+  }
 
   // Start write transactions
   when(io.writeMaster.M.Cmd === OcpCmd.WR) {
-    writeMasterReg := io.writeMaster.M
     state := write
   }
 }
