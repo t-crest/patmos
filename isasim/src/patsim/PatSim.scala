@@ -45,37 +45,30 @@ package patsim
 import scala.io.Source
 import scala.collection.mutable.Map
 
+class PatSim(instructions: Array[Int]) {
 
-class PatSim(file: String) {
-
-  println(file)
-  
-  val instructions = Array(1, 4, 5)
-  
   var pc = 0
   var reg = new Array[Int](32)
   reg(0) = 0
+
+  def tick() = {
+    val instr = instructions(pc)
+    val op = instr & 0x1f
+    op match {
+      case 1 => println("one")
+      case _ => {
+        println("the rest")
+      }
+    }
+    log
+    pc += 1
+  }
 
   def error(s: String) {
     println("Error: " + s)
     System.exit(-1)
   }
-  
-  def run() = {
-    while (pc < 3) {
-      val instr = instructions(pc)
-      val op = instr & 0x1f
-      op match {
-        case 1 => println("one")
-        case _ => {
-          println("the rest")
-        }
-      }
-      log
-      pc += 1
-    }
-  }
-  
+
   def log() = {
     println(pc + ": " + "r1 = " + reg(1))
   }
@@ -84,8 +77,45 @@ class PatSim(file: String) {
 object PatSim {
 
   def main(args: Array[String]) = {
-    println("Hello, from the Patmos ISA simulator")
-    val simulator = new PatSim("/Users/martin/t-crest/patmos/tmp/basic.bin")
-    simulator.run()
+    println("Simulating Patmos")
+    if (args.length != 1)
+      throw new Error("Wrong Arguments, usage: PatSim file")
+    val instr = readBin(args(0))
+    val simulator = new PatSim(instr)
+    for (i <- 1 to 3) {
+      simulator.tick()
+    }
+  }
+
+  /**
+   * Read a binary file into an Array
+   */
+  def readBin(fileName: String): Array[Int] = {
+
+    println("Reading " + fileName)
+    // an encoding to read a binary file? Strange new world.
+    val source = scala.io.Source.fromFile(fileName)(scala.io.Codec.ISO8859)
+    val byteArray = source.map(_.toByte).toArray
+    source.close()
+
+    // binary file is multiple of 4 bytes, so this length/4 is ok
+    val arr = new Array[Int](math.max(1, byteArray.length / 4))
+
+    if (byteArray.length == 0) {
+      arr(0) = 0
+    }
+
+    for (i <- 0 until byteArray.length / 4) {
+      var word = 0
+      for (j <- 0 until 4) {
+        word <<= 8
+        word += byteArray(i * 4 + j).toInt & 0xff
+      }
+      printf("%08x\n", word)
+      arr(i) = word
+    }
+
+    // return the array
+    arr
   }
 }
