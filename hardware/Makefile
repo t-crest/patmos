@@ -134,12 +134,16 @@ $(HWBUILDDIR)/TdmArbiter.v: $(SRC)
 vsim: verilog
 	$(MAKE) -C modelsim sim
 
-# synthesize
-qsyn: verilog
+# synthesize with Quartus
+synth_quartus: verilog
 	quartus_map quartus/$(BOARD)/patmos
 	quartus_fit quartus/$(BOARD)/patmos
 	quartus_asm quartus/$(BOARD)/patmos
 	quartus_sta quartus/$(BOARD)/patmos
+
+# synthesize with ISE
+synth_ise: verilog
+	echo "project open ise/$(BOARD)/patmos.xise; process run \"Generate Programming File\" -force rerun_all" | xtclsh -
 
 # build the boot binary
 $(BOOTDAT): $(BOOTBIN)

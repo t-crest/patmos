@@ -26,7 +26,12 @@ else
 	S=\;
 endif
 
-# The Quartus project
+# The FPGA vendor (Altera, Xilinx)
+#VENDOR?=Xilinx
+VENDOR?=Altera
+
+# The Quartus/ISE project
+#BOARD=ml605oc
 #BOARD=bemicro
 #BOARD?=altde2-70
 BOARD?=altde2-115
@@ -165,8 +170,8 @@ patmos: gen synth config
 
 # configure the FPGA
 config:
-ifeq ($(XFPGA),true)
-	$(INSTALLDIR)/bin/config_xilinx hardware/ise/$(BOARD)/patmos.bit
+ifeq ($(VENDOR),Xilinx)
+	$(INSTALLDIR)/bin/config_xilinx hardware/ise/$(BOARD)/patmos_top.bit
 else
 	$(INSTALLDIR)/bin/config_altera -b $(BLASTER_TYPE) hardware/quartus/$(BOARD)/patmos.sof
 endif
@@ -174,10 +179,12 @@ endif
 gen:
 	$(MAKE) -C hardware verilog BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
 
-synth: csynth
-
-csynth:
-	$(MAKE) -C hardware qsyn BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
+synth:
+ifeq ($(VENDOR),Xilinx)
+	$(MAKE) -C hardware synth_ise BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
+else
+	$(MAKE) -C hardware synth_quartus BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
+endif
 
 download: $(BUILDDIR)/$(APP).elf
 	$(INSTALLDIR)/bin/patserdow -v $(COM_PORT) $<
