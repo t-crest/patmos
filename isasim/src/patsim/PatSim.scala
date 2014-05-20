@@ -45,23 +45,124 @@ package patsim
 import scala.io.Source
 import scala.collection.mutable.Map
 
+import Constants._
+
 class PatSim(instructions: Array[Int]) {
 
-  var pc = 0
+  var pc = 1 // method length at address 0
   var reg = new Array[Int](32)
   reg(0) = 0
 
+  var halt = false
+
+  val NOP = 0 // Using R0 as destination is a noop
+
   def tick() = {
-    val instr = instructions(pc)
-    val op = instr & 0x1f
-    op match {
-      case 1 => println("one")
-      case _ => {
-        println("the rest")
+    val instrA = instructions(pc)
+    val dualFetch = (instrA & 0x80000000) != 0
+    val longImmInstr = (((instrA >> 22) & 0x1f) == 0x1f)
+    val dualIssue = dualFetch && !longImmInstr
+
+    val instrB = if (dualFetch) {
+      instructions(pc + 2)
+    } else {
+      NOP
+    }
+    execute(instrA)
+    if (dualIssue) execute(instrB)
+    if (dualFetch) pc += 2 else pc += 1
+  }
+
+  def alu(func: Int, op1: Int, op2: Int): Int = {
+
+    val scale = if (func == FUNC_SHADD) {
+      1
+    } else if (func == FUNC_SHADD2) {
+      2
+    } else {
+      0
+    }
+    val scaledOp1 = op1 << scale
+
+    val sum = scaledOp1 + op2
+    var result = sum // some default
+    val shamt = op2 & 0x1f
+    // is there a more functional approach for this?
+    func match {
+      case FUNC_ADD => result = sum
+      case FUNC_SUB => result = op1 - op2
+      case FUNC_XOR => result = op1 ^ op2
+      case FUNC_SL => result = op1 << shamt
+      case FUNC_SR => result = op1 >>> shamt
+      case FUNC_SRA => result = op1 >> shamt
+      case FUNC_OR => result = op1 | op2
+      case FUNC_AND => result = op1 & op2
+      case FUNC_NOR => result = ~(op1 | op2)
+      case FUNC_SHADD => result = sum
+      case FUNC_SHADD2 => result = sum
+      case _ => result = sum
+    }
+    result
+  }
+
+  def execute(instr: Int) = {
+
+    val pred = (instr >> 27) & 0x0f
+    val opcode = (instr >> 22) & 0x1f
+    val rd = (instr >> 17) & 0x1f
+    val rs1 = (instr >> 12) & 0x1f
+    val rs2 = (instr >> 7) & 0x1f
+    val opc = (instr >> 4) & 0x07
+    val aluImm = (opcode >> 3) == 0
+    val func = if (aluImm) {
+      opcode & 0x7
+    } else {
+      instr & 0xf
+    }
+
+    val op1 = reg(rs1)
+    val op2 = if (aluImm) {
+      // always sign extend?
+      (instr << 20) >> 20
+    } else {
+      reg(rs2)
+    }
+    val aluResult = alu(func, op1, op2)
+    val doExecute = rd != 0 // add predicates, but R0 only on ops with rd
+
+    // default, which is ok for ALU immediate as well
+    var result = aluResult
+
+    if (aluImm) {
+      result = aluResult
+    } else if (opcode < OPCODE_CFL_LOW) {
+      opcode match {
+        case OPCODE_ALU => {
+          opc match {
+            case OPC_ALUR => result = aluResult
+            case _ => println(opc + " not implemented (opc)")
+          }
+        }
+        case _ => println(opcode + " not implemented")
+      }
+    } else {
+      if (((opcode >> 1) == CFLOP_BRCF) && ((instr & 0x3ffff) == 00)) {
+        // 'halt' instruction
+        halt = true
+      } else {
+        println("Unimplemented control flow " + opcode + " " + (opcode >> 1))
       }
     }
+    // write result back
+    // -- need to distinguish between doExecute, write back, R0...
+    if (doExecute) {
+      reg(rd) = result
+    }
     log
-    pc += 1
+  }
+
+  def executeLong(instr: Int, imm: Int) {
+
   }
 
   def error(s: String) {
@@ -70,7 +171,11 @@ class PatSim(instructions: Array[Int]) {
   }
 
   def log() = {
-    println(pc + ": " + "r1 = " + reg(1))
+    print(pc + ":")
+    for (i <- 0 to 8) {
+      print(" r" + i + " = " + reg(i))
+    }
+    println
   }
 }
 
@@ -82,8 +187,10 @@ object PatSim {
       throw new Error("Wrong Arguments, usage: PatSim file")
     val instr = readBin(args(0))
     val simulator = new PatSim(instr)
-    for (i <- 1 to 3) {
+    var cnt = 1;
+    while (!simulator.halt && cnt < instr.length) {
       simulator.tick()
+      cnt += 1
     }
   }
 

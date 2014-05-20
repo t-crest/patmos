@@ -743,9 +743,9 @@ upper half of that table are available.
     0000 & add    & \texttt{Rd = Rs1 + Op2} \\
     0001 & sub    & \texttt{Rd = Rs1 - Op2} \\
     0010 & xor    & \texttt{Rd = Rs1 \XOR Op2} \\
-    0011 & sl     & \texttt{Rd = Rs1 \shl Op2$_{[0:4]}$} \\
-    0100 & sr     & \texttt{Rd = Rs1 \shr Op2$_{[0:4]}$} \\
-    0101 & sra    & \texttt{Rd = Rs1 \ashr Op2$_{[0:4]}$} \\
+    0011 & sl     & \texttt{Rd = Rs1 \shl Op2$_{(4:0)}$} \\
+    0100 & sr     & \texttt{Rd = Rs1 \shr Op2$_{(4:0)}$} \\
+    0101 & sra    & \texttt{Rd = Rs1 \ashr Op2$_{(4:0)}$} \\
     0110 & or     & \texttt{Rd = Rs1 \OR Op2} \\
     0111 & and    & \texttt{Rd = Rs1 \AND Op2} \\
     \cmidrule{1-3}
