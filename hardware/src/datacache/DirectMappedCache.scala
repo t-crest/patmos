@@ -73,7 +73,7 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
   }
 
   val tag = tagMem.io(io.master.M.Addr(addrBits + 1, lineBits))
-  val tagV = tagVMem(masterReg.Addr(addrBits + 1, lineBits))
+  val tagV = Reg(next = tagVMem(io.master.M.Addr(addrBits + 1, lineBits)))
   val tagValid = tagV && tag === Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, addrBits+2))
 
   val fillReg = Reg(init = Bool(false))
