@@ -1,5 +1,5 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute.
+   Copyright 2014 Technical University of Denmark, DTU Compute.
    All rights reserved.
 
    This file is part of the time-predictable VLIW processor Patmos.
@@ -31,7 +31,7 @@
  */
 
 /*
- * A direct-mapped cache
+ * A two-way set associative cache with LRU replacement
  *
  * Authors: Martin Schoeberl (martin@jopdesign.com)
  *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
