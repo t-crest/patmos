@@ -63,12 +63,12 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
   val burstCntReg = Reg(init = UInt(0, log2Up(burstLen)))
   val period = cnt * (burstLen + ctrlDelay + 1)
   val slotLen = burstLen + ctrlDelay + 1
-  val numPipe = 2
+  val numPipe = 3 
   
-  val wrPipeDelay = burstLen + ctrlDelay + 2
+  val wrPipeDelay = burstLen + ctrlDelay + numPipe 
   val wrCntReg = Reg(init = UInt(0, log2Up(wrPipeDelay)))
 
-  val rdPipeDelay = burstLen + ctrlDelay + 2
+  val rdPipeDelay = burstLen + ctrlDelay + numPipe 
   val rdCntReg = Reg(init = UInt(0, log2Up(rdPipeDelay)))
  
   val cpuSlot = Vec.fill(cnt){Reg(init = UInt(0, width=1))}
@@ -193,11 +193,18 @@ class MemMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) exten
     debug(io.slave)
     
     // 1st stage pipeline registers for inputs 
-    val mCmd_p1_Reg         = Reg(init=UInt(0, width=3))
-    val mAddr_p1_Reg        = Reg(init=UInt(0, width=addrWidth))
-    val mData_p1_Reg        = Reg(init=UInt(0, width=dataWidth))
-    val mDataByteEn_p1_Reg  = Reg(init=UInt(0, width=dataWidth/8))
-    val mDataValid_p1_Reg   = Reg(init=UInt(0, width=1))
+    val mCmd_p1_Reg         = Vec.fill(nr){Reg(init=UInt(0, width=3))}
+    val mAddr_p1_Reg        = Vec.fill(nr){Reg(init=UInt(0, width=addrWidth))}
+    val mData_p1_Reg        = Vec.fill(nr){Reg(init=UInt(0, width=dataWidth))}
+    val mDataByteEn_p1_Reg  = Vec.fill(nr){Reg(init=UInt(0, width=dataWidth/8))}
+    val mDataValid_p1_Reg   = Vec.fill(nr){Reg(init=UInt(0, width=1))}
+
+    // 2st stage pipeline registers for inputs 
+    val mCmd_p2_Reg         = Reg(init=UInt(0, width=3))
+    val mAddr_p2_Reg        = Reg(init=UInt(0, width=addrWidth))
+    val mData_p2_Reg        = Reg(init=UInt(0, width=dataWidth))
+    val mDataByteEn_p2_Reg  = Reg(init=UInt(0, width=dataWidth/8))
+    val mDataValid_p2_Reg   = Reg(init=UInt(0, width=1))
     
     // Pipeline regiaters default to 0
     mCmd_p1_Reg         := Bits(0)
@@ -205,44 +212,72 @@ class MemMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) exten
     mData_p1_Reg        := Bits(0)
     mDataByteEn_p1_Reg  := Bits(0)
     mDataValid_p1_Reg   := Bits(0)
-    
-    // OR gate of all inputs
-    for (i <- 0 until nr) {
-      when(io.master(i).M.Cmd != Bits(0)) {
-        mCmd_p1_Reg := io.master(i).M.Cmd 
-      }
-    }
 
-    for (i <- 0 until nr) {
-      when (io.master(i).M.Addr != Bits(0)) {
-        mAddr_p1_Reg := io.master(i).M.Addr
-      }
+    // Wires for cascading OR gate
+    val mCmd_res = Vec.fill(nr-1){UInt(width=3)}
+    val mAddr_res = Vec.fill(nr-1){UInt(width=addrWidth)}
+    val mData_res = Vec.fill(nr-1){UInt(width=dataWidth)}
+    val mDataByteEn_res = Vec.fill(nr-1){UInt(width=dataWidth/8)}
+    val mDataValid_res = Vec.fill(nr-1){UInt(width=1)} 
+    
+    // 1st stage pipeline of the input
+    for (i <- 0 until nr){
+      mCmd_p1_Reg(i) := io.master(i).M.Cmd
     }
     
-    for (i <- 0 until nr) {
-      when (io.master(i).M.Data != Bits(0)) {
-        mData_p1_Reg := io.master(i).M.Data
-      }
+    for (i <- 0 until nr){
+      mAddr_p1_Reg(i) := io.master(i).M.Addr
     }
     
-    for (i <- 0 until nr) {
-      when (io.master(i).M.DataByteEn != Bits(0)) {
-        mDataByteEn_p1_Reg := io.master(i).M.DataByteEn
-      }
+    for (i <- 0 until nr){
+      mData_p1_Reg(i) := io.master(i).M.Data
     }
+    
+    for (i <- 0 until nr){
+      mDataByteEn_p1_Reg(i) := io.master(i).M.DataByteEn
+    }
+    
+    for (i <- 0 until nr){
+      mDataValid_p1_Reg(i) := io.master(i).M.DataValid
+    }
+     
+    // OR gate of all inputs (2nd stage pipeline)
+    mCmd_res(0) := mCmd_p1_Reg(0) | mCmd_p1_Reg(1)
+    for (i <- 1 until nr-1){
+      mCmd_res(i) := mCmd_res(i-1) | mCmd_p1_Reg(i+1) 
+    }
+    mCmd_p2_Reg := mCmd_res(nr-2)
+
+    mAddr_res(0) := mAddr_p1_Reg(0) | mAddr_p1_Reg(1)
+    for (i <- 1 until nr-1){
+      mAddr_res(i) := mAddr_res(i-1) | mAddr_p1_Reg(i+1)
+    }
+    mAddr_p2_Reg := mAddr_res(nr-2)
+    
+    mData_res(0) := mData_p1_Reg(0) | mData_p1_Reg(1)
+    for (i <- 1 until nr-1){
+      mData_res(i) := mData_res(i-1) | mData_p1_Reg(i+1)
+    }
+    mData_p2_Reg := mData_res(nr-2)
+    
+    mDataByteEn_res(0) := mDataByteEn_p1_Reg(0) | mDataByteEn_p1_Reg(1)
+    for (i <- 1 until nr-1){
+      mDataByteEn_res(i) := mDataByteEn_res(i-1) | mDataByteEn_p1_Reg(i+1)
+    }
+    mDataByteEn_p2_Reg := mDataByteEn_res(nr-2)
    
-    for (i <- 0 until nr) {
-      when (io.master(i).M.DataValid != Bits(0)) {
-        mDataValid_p1_Reg := io.master(i).M.DataValid
-      }
+    mDataValid_res(0) := mDataValid_p1_Reg(0) | mDataValid_p1_Reg(1)
+    for (i <- 1 until nr-1){
+      mDataValid_res(i) := mDataValid_res(i-1) | mDataValid_p1_Reg(i+1)
     }
+    mDataValid_p2_Reg := mDataValid_res(nr-2)
     
     // Transfer data from input pipeline registers to output
-    io.slave.M.Addr       := mAddr_p1_Reg
-    io.slave.M.Cmd        := mCmd_p1_Reg
-    io.slave.M.DataByteEn := mDataByteEn_p1_Reg
-    io.slave.M.DataValid  := mDataValid_p1_Reg
-    io.slave.M.Data       := mData_p1_Reg
+    io.slave.M.Addr       := mAddr_p2_Reg
+    io.slave.M.Cmd        := mCmd_p2_Reg
+    io.slave.M.DataByteEn := mDataByteEn_p2_Reg
+    io.slave.M.DataValid  := mDataValid_p2_Reg
+    io.slave.M.Data       := mData_p2_Reg
    
     // 1st stage pipleline registers for output
     //val sCmdAccept_p1_Reg   = Reg(next=io.slave.S.CmdAccept)
