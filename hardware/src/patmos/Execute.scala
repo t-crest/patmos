@@ -118,19 +118,23 @@ class Execute() extends Module {
   val op = Vec.fill(2*PIPE_COUNT) { Bits(width = 32) }
 
   // precompute forwarding
-  when (io.ena) {
-    for (i <- 0 until 2*PIPE_COUNT) {
-      for (k <- 0 until PIPE_COUNT) {
-        fwMemReg(i)(k) := Bool(false)
-        when(io.decex.rsAddr(i) === io.memResult(k).addr && io.memResult(k).valid) {
-          fwMemReg(i)(k) := Bool(true)
-        }
-        fwExReg(i)(k) := Bool(false)
-        when(io.decex.rsAddr(i) === io.exResult(k).addr && io.exResult(k).valid) {
-          fwExReg(i)(k) := Bool(true)
-        }
+  for (i <- 0 until 2*PIPE_COUNT) {
+    for (k <- 0 until PIPE_COUNT) {
+      fwMemReg(i)(k) := Bool(false)
+      when(io.decex.rsAddr(i) === io.memResult(k).addr && io.memResult(k).valid) {
+        fwMemReg(i)(k) := Bool(true)
+      }
+      fwExReg(i)(k) := Bool(false)
+      when(io.decex.rsAddr(i) === io.exResult(k).addr && io.exResult(k).valid) {
+        fwExReg(i)(k) := Bool(true)
       }
     }
+  }
+  when (!io.ena) {
+    fwExReg := fwExReg
+    fwMemReg := fwMemReg
+  }
+  when (io.ena) {
     for (k <- 0 until PIPE_COUNT) {
       memResultDataReg(k) := io.memResult(k).data
       exResultDataReg(k) := io.exResult(k).data

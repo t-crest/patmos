@@ -83,10 +83,10 @@ class NullCache() extends Module {
 
   // Wait for response
   when(stateReg === read) {
+    when(burstCntReg === posReg) {
+      slaveReg := io.slave.S
+    }
     when(io.slave.S.Resp === OcpResp.DVA) {
-      when(burstCntReg === posReg) {
-        slaveReg := io.slave.S
-      }
       when(burstCntReg === UInt(BURST_LENGTH-1)) {
         stateReg := readResp
       }
