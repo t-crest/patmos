@@ -190,10 +190,8 @@ class DecEx() extends Bundle() {
     pc := UInt(0)
     relPc := UInt(0)
     pred := Vec.fill(PIPE_COUNT) { Bits(0) }
-    for (i <- 0 until PIPE_COUNT) {
-      aluOp(i).reset()
-      predOp(i).reset()
-    }
+    aluOp.map(_.reset())
+    predOp.map(_.reset())
     jmpOp.reset()
     memOp.reset()
     rsAddr := Vec.fill(2*PIPE_COUNT) { Bits(0) }
@@ -300,9 +298,7 @@ class ExMem() extends Bundle() {
   val relPc = UInt(width = PC_SIZE)
 
   def reset() = {
-    for (i <- 0 until PIPE_COUNT) {
-      rd(i).reset()
-    }
+    rd.map(_.reset())
     mem.reset()
     pc := UInt(0)
     relPc := UInt(0)

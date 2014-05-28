@@ -135,10 +135,8 @@ class Execute() extends Module {
     fwMemReg := fwMemReg
   }
   when (io.ena) {
-    for (k <- 0 until PIPE_COUNT) {
-      memResultDataReg(k) := io.memResult(k).data
-      exResultDataReg(k) := io.exResult(k).data
-    }
+    memResultDataReg := io.memResult.map(_.data)
+    exResultDataReg := io.exResult.map(_.data)
   }
   // forwarding multiplexers
   for (i <- 0 until 2*PIPE_COUNT) {

@@ -63,12 +63,8 @@ class RegisterFile() extends Module {
   //   additional register and a MUX feeding the old value into
   //   the registers
   when (io.ena) {
-    for (i <- 0 until 2*PIPE_COUNT) {
-      addrReg(i) := io.rfRead.rsAddr(i).toUInt
-    }
-    for (k <- 0 until PIPE_COUNT) {
-      wrReg(k) := io.rfWrite(k)
-    }
+    addrReg := io.rfRead.rsAddr
+    wrReg := io.rfWrite
     for (i <- 0 until 2*PIPE_COUNT) {
       for (k <- 0 until PIPE_COUNT) {
         fwReg(i)(k) := io.rfRead.rsAddr(i) === io.rfWrite(k).addr && io.rfWrite(k).valid
