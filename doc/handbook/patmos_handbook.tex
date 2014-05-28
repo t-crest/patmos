@@ -3224,6 +3224,10 @@ sudo apt-get install git openjdk-7-jdk gitk cmake make g++ texinfo flex bison \
   ruby1.9.1-dev liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala
 \end{verbatim}
 
+\emph{The following gem install might not be needed as with the correct
+packages (liblpsolve55-dev) the setup script shall do it automatically.
+Needs to be checked on a fresh Ubuntu machine.}
+
 From within \code{llvm/tools/platin} install:
 
 \begin{verbatim}
@@ -3296,9 +3300,6 @@ After building the compiler add the path
 to the compiler executables (e.g., into your \code{.bashrc} or \code{.profile}):
 \footnote{The path needs to be absolute. LLVM cannot handle
 a path relative to the home folder \textasciitilde{}, e.g., \code{\textasciitilde{}/t-crest/local/bin}.}
-%\footnote{The initialization file name depends on your system and setup. \code{.profile} files are only read by login
-%terminals (remote terminals or at login), but your \code{.bashrc} or \code{.zshrc} (for interactive terminals within a
-%session) might be set up to source \code{.profile} as well.}
 
 \martin{In Mac OS X I have only .profile and I don't understand what the issue by 'only read by login terminals'.}
 \stefan{Login shells are only opened at logins. Interactive terminals are all terminals that are opened by your window manager or
@@ -3321,9 +3322,6 @@ export PATH=$PATH:$HOME/t-crest/misc
 
 A complete logout from Ubuntu might be needed to take effect (just closing
 a terminal window is not enough, depending on how you set up your profile files).
-
-\stefan{Only if you do it wrong ;) }
-
 You can test your installation by checking if the compiler is available:
 
 \begin{verbatim}
