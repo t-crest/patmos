@@ -3221,7 +3221,27 @@ when reading this document.}
 \begin{verbatim}
 sudo apt-get install git openjdk-7-jdk gitk cmake make g++ texinfo flex bison \
   subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
-  ruby1.9.1-dev python zlib1g-dev gtkwave gtkterm scala
+  ruby1.9.1-dev liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala
+\end{verbatim}
+
+\emph{The following gem install might not be needed as with the correct
+packages (liblpsolve55-dev) the setup script shall do it automatically.
+Needs to be checked on a fresh Ubuntu machine.}
+
+From within \code{llvm/tools/platin} install:
+
+\begin{verbatim}
+sudo gem1.9.1 install lpsolve --pre
+sudo gem1.9.1 install ext/lpsolve-5.5.10.j.gem
+\end{verbatim}
+
+Install \code{sbt} with:
+
+\begin{verbatim}
+wget http://dl.bintray.com/sbt/debian/sbt-0.13.2.deb
+sudo dpkg -i sbt-0.13.2.deb
+sudo apt-get update
+sudo apt-get install sbt
 \end{verbatim}
 
 For the Quartus setup it is best to change the default shall to \code{/bin/bash}:
@@ -3280,9 +3300,6 @@ After building the compiler add the path
 to the compiler executables (e.g., into your \code{.bashrc} or \code{.profile}):
 \footnote{The path needs to be absolute. LLVM cannot handle
 a path relative to the home folder \textasciitilde{}, e.g., \code{\textasciitilde{}/t-crest/local/bin}.}
-%\footnote{The initialization file name depends on your system and setup. \code{.profile} files are only read by login
-%terminals (remote terminals or at login), but your \code{.bashrc} or \code{.zshrc} (for interactive terminals within a
-%session) might be set up to source \code{.profile} as well.}
 
 \martin{In Mac OS X I have only .profile and I don't understand what the issue by 'only read by login terminals'.}
 \stefan{Login shells are only opened at logins. Interactive terminals are all terminals that are opened by your window manager or
@@ -3305,9 +3322,6 @@ export PATH=$PATH:$HOME/t-crest/misc
 
 A complete logout from Ubuntu might be needed to take effect (just closing
 a terminal window is not enough, depending on how you set up your profile files).
-
-\stefan{Only if you do it wrong ;) }
-
 You can test your installation by checking if the compiler is available:
 
 \begin{verbatim}
@@ -3852,6 +3866,16 @@ Copy the Patmos Verilog files (\code{ml605mPatmosCore.v} and \code{ml605mPatmosC
 from the build directory (\code{t-crest/aegean/build/ml605\_4core}) into \code{t-crest/ml605}.
 
 
+\section{Worst-Case Execution Time Analysis}
+
+The aiT WCET analysis tool supports Patmos as target. The benchmark collection
+of T-CREST (in folder \code{bench}) includes targets for WCET analysis.
+
+When the aiT version for Patmos (\code{a3patmos}) is in the path, the build of
+the benchmarks includes WCET analysis tasks, where appropriate.
+
+In \code{bench/build/Malardaln/src} start the tests including Platin WCET analysis with \code{ctest}.
+
 
 \section{ModelSim License}
 In the case that you have a DTU Compute login you can access the license servers from outside the DTU network by setting up an SSH tunnel.
@@ -3872,9 +3896,13 @@ This way of setting up an SSH tunnel might also work for other institutions.
 \paragraph{License settings for ModelSim and Xilinx}
 
 \begin{verbatim}
-export LM_LICENSE_FILE=1717@angel1: 1717@angel2: 1717@angel3
+export LM_LICENSE_FILE=1717@angel1:1717@angel2:1717@angel3
 export XILINXD_LICENSE_FILE="2100@eda1.imm.dtu.dk"
 \end{verbatim}
+
+
+
+
 
 \chapter{Tools}
 

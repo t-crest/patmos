@@ -57,6 +57,8 @@ object Constants {
   val METHOD_COUNT = util.Config.getConfig.MCache.blocks
 
   val DCACHE_SIZE = util.Config.getConfig.DCache.size
+  val DCACHE_ASSOC = util.Config.getConfig.DCache.assoc
+  val DCACHE_REPL = util.Config.getConfig.DCache.repl
   val SCACHE_SIZE = util.Config.getConfig.SCache.size
   // offset for switching from relative address to absolute address, default = 0
   val ICACHE_ADDR_OFFSET = 0 //log2Up(util.Config.getConfig.ExtMem.size)

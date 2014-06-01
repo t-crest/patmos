@@ -89,9 +89,7 @@ class Decode() extends Module {
   }
 
   val decoded = Vec.fill(PIPE_COUNT) { Bool() }
-  for (i <- 0 until PIPE_COUNT) {
-    decoded := Bool(false)
-  }
+  decoded.map(_ := Bool(false))
 
   // Decoding of dual-issue operations
   val dual = decReg.instr_a(INSTR_WIDTH - 1) && decReg.instr_a(26, 22) != OPCODE_ALUL;

@@ -66,7 +66,18 @@ class DataCache extends Module {
   }
 
   // Instantiate direct-mapped cache for regular data cache
-  val dm = Module(new DirectMappedCache(DCACHE_SIZE, BURST_LENGTH*BYTES_PER_WORD))
+  val dm = 
+    if (DCACHE_ASSOC == 1)
+      Module(new DirectMappedCache(DCACHE_SIZE, BURST_LENGTH*BYTES_PER_WORD))
+    else if (DCACHE_ASSOC == 2 && DCACHE_REPL == "lru")
+      Module(new TwoWaySetAssociativeCache(DCACHE_SIZE, BURST_LENGTH*BYTES_PER_WORD))
+    else {
+      ChiselError.error("Unsupported data cache configuration: "+
+                        "associativity "+DCACHE_ASSOC+
+                        " with replacement policy \""+DCACHE_REPL+"\"")
+      Module(new NullCache()) // return at least a dummy cache
+    }
+
   dm.io.master.M := io.master.M
   dm.io.master.M.Cmd := Mux(selDC || io.master.M.Cmd === OcpCmd.WR,
                             io.master.M.Cmd, OcpCmd.IDLE)

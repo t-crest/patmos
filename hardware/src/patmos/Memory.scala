@@ -210,11 +210,7 @@ class Memory() extends Module {
   }
 
   io.memwb.pc := memReg.pc
-  for (i <- 0 until PIPE_COUNT) {
-    io.memwb.rd(i).addr := memReg.rd(i).addr
-    io.memwb.rd(i).valid := memReg.rd(i).valid
-    io.memwb.rd(i).data := memReg.rd(i).data
-  }
+  io.memwb.rd := memReg.rd
   // Fill in data from loads
   io.memwb.rd(0).data := Mux(memReg.mem.load, dout, memReg.rd(0).data)
 
