@@ -47,54 +47,54 @@ int main() {
 
 static void master(void) {
 
-    // reset sum
-    spm_out->sum = 0;
-    // the message is ready
-    spm_out->ready = 1;
+  // reset sum
+  spm_out->sum = 0;
+  // the message is ready
+  spm_out->ready = 1;
 
-	// send message to core 1
-	noc_send(get_cpuid()+1, spm_in, spm_out, sizeof(struct msg_t));
+  // send message to core 1
+  noc_send(get_cpuid()+1, spm_in, spm_out, sizeof(struct msg_t));
 
-    WRITE("SENT\n", 5);
+  WRITE("SENT\n", 5);
 
-	// wait and poll
-	while(!spm_in->ready) {
-      /* spin */
-    }
+  // wait and poll
+  while(!spm_in->ready) {
+    /* spin */
+  }
 
-    WRITE("RCVD ", 5);
+  WRITE("RCVD ", 5);
 
-    static char msg[10];
-    msg[0] = XDIGIT((spm_in->sum >> 28) & 0xf);
-    msg[1] = XDIGIT((spm_in->sum >> 24) & 0xf);
-    msg[2] = XDIGIT((spm_in->sum >> 20) & 0xf);
-    msg[3] = XDIGIT((spm_in->sum >> 16) & 0xf);
-    msg[4] = XDIGIT((spm_in->sum >> 12) & 0xf);
-    msg[5] = XDIGIT((spm_in->sum >>  8) & 0xf);
-    msg[6] = XDIGIT((spm_in->sum >>  4) & 0xf);
-    msg[7] = XDIGIT((spm_in->sum >>  0) & 0xf);
-    msg[8] = '\n';
-    WRITE(msg, 9);
+  static char msg[10];
+  msg[0] = XDIGIT((spm_in->sum >> 28) & 0xf);
+  msg[1] = XDIGIT((spm_in->sum >> 24) & 0xf);
+  msg[2] = XDIGIT((spm_in->sum >> 20) & 0xf);
+  msg[3] = XDIGIT((spm_in->sum >> 16) & 0xf);
+  msg[4] = XDIGIT((spm_in->sum >> 12) & 0xf);
+  msg[5] = XDIGIT((spm_in->sum >>  8) & 0xf);
+  msg[6] = XDIGIT((spm_in->sum >>  4) & 0xf);
+  msg[7] = XDIGIT((spm_in->sum >>  0) & 0xf);
+  msg[8] = '\n';
+  WRITE(msg, 9);
 
-	return;
+  return;
 }
 
 static void slave(void) {
 
-	// wait and poll until message arrives
-	while(!spm_in->ready) {
-      /* spin */
-    }
+  // wait and poll until message arrives
+  while(!spm_in->ready) {
+    /* spin */
+  }
 
-	// PROCESS: add ID to sum_id
-	spm_out->sum = spm_in->sum + get_cpuid();
-    spm_out->ready = 1;
+  // PROCESS: add ID to sum_id
+  spm_out->sum = spm_in->sum + get_cpuid();
+  spm_out->ready = 1;
 
-	// send to next slave
-	int rcv_id = (get_cpuid()==(NOC_CORES-1)) ? 0 : get_cpuid()+1;
-	noc_send(rcv_id, spm_in, spm_out, sizeof(struct msg_t));
+  // send to next slave
+  int rcv_id = (get_cpuid()==(NOC_CORES-1)) ? 0 : get_cpuid()+1;
+  noc_send(rcv_id, spm_in, spm_out, sizeof(struct msg_t));
 
-	return;
+  return;
 }
 
 
