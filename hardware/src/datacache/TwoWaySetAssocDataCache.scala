@@ -80,11 +80,11 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends Module {
 
   val tag1 = tagMem1.io(io.master.M.Addr(addrBits + 1, lineBits))
   val tag2 = tagMem2.io(io.master.M.Addr(addrBits + 1, lineBits))
-  val tagV1 = tagVMem1(masterReg.Addr(addrBits + 1, lineBits))
-  val tagV2 = tagVMem2(masterReg.Addr(addrBits + 1, lineBits))
+  val tagV1 = Reg(next = tagVMem1(io.master.M.Addr(addrBits + 1, lineBits)))
+  val tagV2 = Reg(next = tagVMem2(io.master.M.Addr(addrBits + 1, lineBits)))
   val tagValid1 = tagV1 && tag1 === Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH - 1, addrBits + 2))
   val tagValid2 = tagV2 && tag2 === Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH - 1, addrBits + 2))
-  val lru = lruMem(masterReg.Addr(addrBits + 1, 2))
+  val lru = Reg(next = lruMem(io.master.M.Addr(addrBits + 1, lineBits)))
 
   val fillReg = Reg(init = Bool(false))
   val fillAddrReg = Reg(init = Bits(0, width = addrBits + 2 - lineBits))
@@ -95,9 +95,8 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends Module {
 
   wrAddrReg := io.master.M.Addr(addrBits + 1, 2)
   wrDataReg := io.master.M.Data
- // lruReg := lru
 
-// Write to cache; store only updates what's already there
+  // Write to cache; store only updates what's already there
   val stmsk = Mux(masterReg.Cmd === OcpCmd.WR, masterReg.ByteEn,  Bits("b0000"))
    
   for (i <- 0 until BYTES_PER_WORD) {
@@ -192,7 +191,6 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends Module {
     wrAddrReg := Cat(fillAddrReg, burstCntReg)    
     
     when(io.slave.S.Resp === OcpResp.DVA) {
-    //  lruMem(Cat(fillAddrReg, burstCntReg)) := !lru
       fillReg := Bool(true)
       wrDataReg := io.slave.S.Data
       when(burstCntReg === missIndexReg) {
