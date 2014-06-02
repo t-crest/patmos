@@ -490,8 +490,10 @@ int main (int argc, char* argv[]) {
 		  if (r != 1) {
 			cerr << argv[0] << ": error: Cannot read UART input" << endl;
 		  } else {
-			c->Patmos_core_iocomp_Uart_rxQueue__io_enq_bits = d;
-			c->Patmos_core_iocomp_Uart_rxQueue__io_enq_valid = true;
+			c->Patmos_core_iocomp_Uart__rx_state = 0x3; // rx_stop_bit
+			c->Patmos_core_iocomp_Uart__rx_baud_tick = 1;
+			c->Patmos_core_iocomp_Uart__rxd_reg2 = 1;
+			c->Patmos_core_iocomp_Uart__rx_buff = d;
 		  }
 		}
 	  }
