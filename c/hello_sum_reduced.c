@@ -1,46 +1,24 @@
 /*
     A small demo program demostrating the use of argo noc for communication between patmos processors
-    Master core initiates a message that is sent from one core to the next (based on CORE_ID). 
+    Master core initiates a message that is sent from one core to the next (based on CORE_ID).
     Each core adds its ID to the sum of ids and forwards the message to the next core,
-    until it reches the master again.
+    until it reaches the master again.
 
-    Author: Evangelia Kasapaki
+    Reduced version that can be compiled into boot ROM.
+
+    Author: Evangelia Kasapaki, Ioannis Kotleas, Wolfgang Puffitsch
     Copyright: DTU, BSD License
-
 */
 
-#define CORES 4
+#include <machine/spm.h>
 
 const int NOC_MASTER = 0;
-//#include <string.h>
-#include <machine/spm.h>
-//#include <stdio.h>
 #include "libnoc/noc.h"
 #include "patio.h"
 
-#ifdef BOOTROM
-extern int _stack_cache_base, _shadow_stack_base;
-int main(int argc, char **argv);
-void _start(void) __attribute__((naked,used));
-
-void _start(void) {
-  // setup stack frame and stack cache.
-  asm volatile ("mov $r31 = %0;" // initialize shadow stack pointer"
-                "mts $ss  = %1;" // initialize the stack cache's spill pointer"
-                "mts $st  = %1;" // initialize the stack cache's top pointer"
-                : : "r" (&_shadow_stack_base),
-                  "r" (&_stack_cache_base));
-  // configure network interface
-  noc_configure();
-  // call main()
-  main(0, NULL);
-  // freeze
-  for(;;);
-}
-#endif
+#include "bootable.h"
 
 static void master(void);
-
 static void slave(void);
 
 /*/////////////////////////////////////////////////////////////////////////
@@ -49,96 +27,82 @@ static void slave(void);
 
 int main() {
 
+  // Clear scratch pad in all cores
+  // 16+16 integers
+  int i;
+  for(i = 0; i < NOC_CORES*4; i++) {
+    *(NOC_SPM_BASE+i) = 0;
+    *(NOC_SPM_BASE+NOC_CORES*4+i) = 0;
+  }
 
-    	// Clear scratch pad in all cores
-	// 16+16 integers
-	int i;
-    	for(i = 0; i < NOC_CORES*4; i++) {
-        	*(NOC_SPM_BASE+i) = 0;
-		*(NOC_SPM_BASE+NOC_CORES*4+i) = 0;
-    	}
+  if(get_cpuid() == 0) {
+    master();
+  } else {
+    slave();
+  }
 
-	//if (CPU_ID == 0) {
-	if(CORE_ID == 0) {
-    		master();
-  	} else {
-    		slave();
-  	}
-
-  	return 0;
+  return 0;
 }
 
 static void master(void) {
-	//blink(6);
 
-	volatile _SPM char *spm_base = (volatile _SPM char *) NOC_SPM_BASE;		//0
-	volatile _SPM char *spm_slave = spm_base+NOC_CORES*16;	 			//64
+  volatile _SPM char *spm_base = (volatile _SPM char *) NOC_SPM_BASE; // 0
+  volatile _SPM char *spm_slave = spm_base+NOC_CORES*16;              // 64
 
-	// message to be send
-        const char *msg_snd = "Hello slaves sum_id:0";
-	char msg_rcv[22];
+  // message to be sent
+  const char *msg_snd = "Hello slaves sum_id:0";
+  char msg_rcv[22];
 
-	// put message to spm
-	int i;
-	for (i = 0; i < 21; i++) {
-		*(spm_base+i) = *(msg_snd+i);
-	}
-	//*(spm_base+i) = '\0';
+  // put message to spm
+  int i;
+  for (i = 0; i < 21; i++) {
+    *(spm_base+i) = *(msg_snd+i);
+  }
 
-	// send message
-	noc_send(1, spm_slave, spm_base, 21); //21 bytes
+  // send message
+  noc_send(1, spm_slave, spm_base, 21); //21 bytes
 
-	//puts("MASTER: message sent: ");
-	//puts(msg_snd);
-	//puts("\n");
-	WRITE("MASTER: message sent: ", 22);
-	WRITE(msg_snd, 21);
-	WRITE("\n", 1);
+  WRITE("MASTER: message sent: ", 22);
+  WRITE(msg_snd, 21);
+  WRITE("\n", 1);
 
-	// wait and poll
-	while(*(spm_slave+20) == 0) {;}
-	//puts("MASTER: finished polling\n");
+  // wait and poll
+  while(*(spm_slave+20) == 0) {;}
 
-        // received message
-	//puts("MASTER: message received:");
-	WRITE("MASTER: finished polling", 24);
-	WRITE("\n", 1);
-	WRITE("MASTER: message received: ", 26);
-	// copy message to static location and print
-	for (i = 0; i < 21; i++) {
-		*(msg_rcv+i) = *(spm_slave+i);
-	}
-	*(msg_rcv+i) = '\0';
-	//puts(msg_rcv);
-	WRITE(msg_rcv,21);
-	WRITE("\n", 1);
+  // received message
+  WRITE("MASTER: finished polling\n", 25);
+  WRITE("MASTER: message received: ", 26);
+  // copy message to static location and print
+  for (i = 0; i < 21; i++) {
+    *(msg_rcv+i) = *(spm_slave+i);
+  }
+  WRITE(msg_rcv,21);
+  WRITE("\n", 1);
 
-	return;
+  return;
 }
 
 static void slave(void) {
 
-	volatile _SPM char *spm_base = (volatile _SPM char *) NOC_SPM_BASE; 			//0
-	volatile _SPM char *spm_slave = spm_base+NOC_CORES*16;	 				//64
+  volatile _SPM char *spm_base = (volatile _SPM char *) NOC_SPM_BASE; // 0
+  volatile _SPM char *spm_slave = spm_base+NOC_CORES*16;              // 64
 
-	// wait and poll until message arrives
-	while(*(spm_slave+20) == 0) {;}
+  // wait and poll until message arrives
+  while(*(spm_slave+20) == 0) {;}
 
-	// put message for master to spm
-        const char *msg = "Hello master ";
-	int i;
-	for (i = 6; i < 12; i++) {
-		*(spm_slave+i) = *(msg+i);
-	}
+  // put message for master to spm
+  const char *msg = "Hello master ";
+  int i;
+  for (i = 6; i < 12; i++) {
+    *(spm_slave+i) = *(msg+i);
+  }
 
-	// PROCESS : add ID to sum_id
-	*(spm_slave+20) = *(spm_slave+20) + CORE_ID;
+  // PROCESS : add ID to sum_id
+  *(spm_slave+20) = *(spm_slave+20) + get_cpuid();
 
-	// send to next slave
-	int rcv_id = (CORE_ID==3)? 0 : CORE_ID+1;
-	noc_send(rcv_id, spm_slave, spm_slave, 21);
+  // send to next slave
+  int rcv_id = (get_cpuid()==3)? 0 : get_cpuid()+1;
+  noc_send(rcv_id, spm_slave, spm_slave, 21);
 
-	return;
+  return;
 }
-
-

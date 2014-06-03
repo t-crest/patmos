@@ -39,7 +39,6 @@ $(BUILDDIR)/%.o: %.c
 $(BUILDDIR)/%.elf: %.c libnoc
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lnoc
-
 $(BUILDDIR)/%.s: %.c
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) -fpatmos-emit-asm -S -o $@ $(filter %.c,$^)
@@ -73,7 +72,7 @@ $(BUILDDIR)/bootable-extdev_test.elf: bootable.h
 $(BUILDDIR)/extdev_test.elf: bootable.h
 
 $(BUILDDIR)/hello_sum.elf: nocinit.c libnoc
-$(BUILDDIR)/bootable-hello_sum_reduced.elf: nocinit.c libnoc boot.h cmpboot.h
+$(BUILDDIR)/bootable-hello_sum_reduced.elf: nocinit.c libnoc bootable.h
 $(BUILDDIR)/matrix_mult.elf: nocinit.c libnoc
 
 # library for network-on-chip
