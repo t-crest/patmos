@@ -421,7 +421,7 @@ namespace patmos
         }
 
         // Collect stats for instructions
-        if (collect_instr_stats) {
+        if (collect_instr_stats && !is_stalling(SMW)) {
           for (unsigned int j = 0; j < NUM_SLOTS; j++)
           {
             if (Pipeline[SMW][j].I && Pipeline[SMW][j].I->ID >= 0) {
