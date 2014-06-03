@@ -234,7 +234,7 @@ namespace patmos
     
     virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
-    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size, uword_t &lazy_pointer);
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
     virtual void read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 

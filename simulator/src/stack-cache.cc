@@ -213,7 +213,7 @@ bool proxy_stack_cache_t::read(simulator_t &s, uword_t address, byte_t *value, u
   return Memory.read(s, stack_top + address, value, size);
 }
 
-bool proxy_stack_cache_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size, uword_t &lazy_pointer)
+bool proxy_stack_cache_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
   return Memory.write(s, stack_top + address, value, size);
 }
