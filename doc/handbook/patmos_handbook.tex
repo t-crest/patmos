@@ -2758,9 +2758,11 @@ a small set of prefetch buffers may benefit from spacial locality.
 For the connection of Patmos to a memory controller, I/O devices, the
 core-to-core network on chip, and/or the memory arbiter an interface
 standard needs to be specified. Several standards are available.  We
-decided to base the interface on
-OCP\footnote{\url{http://www.ocpip.org/}}~\cite{ocp:spec} and subset
-the standard as we need it.
+decided to base the interface on OCP\footnote{The OCP specification is
+  available at \url{http://www.accellera.org/downloads/standards/ocp/ocp_3.0/}}~\cite{ocp:spec}
+and subset the standard as we need it. While we use OCP as basis for
+the hardware interface of Patmos, we expressly do not claim
+compliance with the OCP specification.
 
 \subsection{Description}
 
