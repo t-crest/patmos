@@ -1,10 +1,15 @@
-The LLVM compiler~\cite{Seus13:compiler} has been adapted to emit code for the Patmos ISA
-and support the special features, e.g., the stack cache~\cite{patmos:stack:seus}.
+%\chapter{The Patmos Compiler}
+%\label{sec:compiler}
 
-The tool chain consists of the following components:
+
+The Patmos compiler is an adaptation of the LLVM compiler~\cite{llvm:2004} to
+target the Patmos processor ISA and to provide a tighter integration with WCET
+analysis~\cite{Seus13:compiler}.
+
+The compilation tool chain consists of the following components:
 
 \begin{itemize}
-\item \code{patmos-llvm} The compiler itself, including various compiler tools, objdump and an assembler (patmos-llvm-mc).
+\item \code{patmos-llvm} The compiler, including \code{platin} and various compiler tools, objdump and an assembler (patmos-llvm-mc).
 \item \code{patmos-clang} The C frontend and the compiler/linker driver. Compiled together with patmos-llvm.
 \item \code{patmos-gold} The \code{patmos-ld} ELF linker for Patmos.
 \item \code{patmos-compiler-rt} The runtime library, defining software implementations of div and floats.
@@ -14,12 +19,62 @@ The tool chain consists of the following components:
 \item \code{patmos} The processor and the simulator.
 \end{itemize}
 
-The compiler and libraries can be built using \code{misc/build.sh} as described in Section~\ref{sec:build:compiler}. 
-Details on building the tool chain manually without the build script can be found in the \code{README.patmos}
+The compiler and libraries can be built using \code{misc/build.sh} as described
+in Section~\ref{sec:build:compiler}.  Details on building the tool chain
+manually without the build script can be found in the \code{README.patmos}
 files provided in the various repositories.
 
 
-\section{Usage, Clang Driver}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Overview}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.5\textwidth]{fig/compiler_overview}
+\caption{Compiler Tool Chain Overview}
+\label{fig:compiler_overview}
+\end{figure}
+
+
+Figure~\ref{fig:compiler_overview} gives an overview of the compiler tool
+chain.
+The compilation process starts with the translation of each C source file and
+libraries to the LLVM intermediate language (\emph{bitcode}) by the C frontend
+\code{clang}. At this level, the user application code and static standard
+and support libraries are linked by the \code{llvm-link} tool.
+An advantage of linking on bitcode level is that subsequent analysis and
+optimisation passes, and the code generation backend have a complete view of
+the whole program. The \code{opt} optimiser performs generic,
+target independent optimisations, such as common sub-expression elimination,
+constant propagation, etc.
+
+The \code{llc} tool constitutes the backend, translating LLVM bitcode into
+machine code for the Patmos ISA, and addressing the target-specific features
+for time predictability.  The backend produces a relocatable ELF binary
+containing symbolic address information, which is processed by \code{gold}%
+%
+\footnote{gold is part of the GNU binutils, see
+\url{http://sourceware.org/binutils/}}, defining the final data and memory
+layout, and resolving symbol relocations.
+
+In addition to the machine code, the backend exports supplementary information
+for WCET analysis and optimisation purposes in form of a \emph{Patmos Metainfo
+File}.  This information contains, among others, flow information (in form of
+loop bounds provided by symbolic analysis on bitcode level), structural
+information (targets of indirect branches), and information on memory accesses
+(memory areas accessed by individual load/store instructions).
+%
+This information can be further processed by the \code{platin} toolkit, by
+enhancing it (e.g., by a hardware model), translating it (e.g., to the input
+format for annotations of the timing analysis tool \code{aiT}, as used in the
+T-CREST project), or performing other analyses on it.
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Compiling with the \code{patmos-clang} Driver}
 
 This section describes the usage of the \code{patmos-clang} C compiler.
 
@@ -250,6 +305,135 @@ patmos-llvm-objdump -r -d <binary> | less
 
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{\code{platin} -- The Portable LLVM Annotation and Timing Toolkit}
+\label{sec:toolchain:platin}
+
+The \code{platin} toolkit provides a set of useful tools to process the
+information exported by the compiler in the PML format, with respect to
+timing analysis integration.
+
+
+The usage of \code{platin} is:
+
+\begin{verbatim}
+  platin <tool> <tool-options>
+\end{verbatim}
+
+You can get help on a particular tool with either of
+
+\begin{verbatim}
+  platin <tool> --help
+  platin help <tool>
+\end{verbatim}
+
+
+Below we present a list of the most useful tools.
+
+\begin{description}
+
+  \item[pml2ais] \hfill\\
+    Translates information of a PML file relevant to timing analysis to
+    the AIS annotation format.
+
+  \item[extract-symbols] \hfill\\
+    The compiler exports program information at a stage where the final memory
+    layout is not yet defined. This tool reads the final executable and
+    enhances the PML file with information on the final addresses of
+    instructions and data.
+
+  \item[analyze-trace] \hfill\\
+    Based on the structural information of a program in the PML file,
+    the trace analysis tool is capable of extracting flow fact hypotheses
+    based on a simulation run. These are context-sensitive and include,
+    e.g.\ observed loop bounds and function call targets.
+
+  \item[transform] \hfill\\
+    Transforms flow facts from bitcode to machine code level
+    or simplifies a set of flow facts.
+
+  \item[tool-config] \hfill\\
+    Given a hardware model (in PML format), this tool outputs consistent
+    hardware configuration options/parameters for use during compilation,
+    simulation and WCET analysis.
+
+  \item[pml] \hfill\\
+    Provides validation, inspection and merge facilities for PML files.
+
+  \item[visualize] \hfill\\
+    Visualises structural information of the program in the different program
+    representations.
+
+  \item[wcet] \hfill\\
+    A driver that starts WCET analysis from the command line.
+
+\end{description}
+
+
+In addition to the platin tools, another command-line utility,
+\texttt{patmos-clang-wcet}, is provided. This tool invokes the compiler
+(\texttt{patmos-clang}), timing analysis, and the compiler a second time
+(with intermediate calls to platin tools as necessary) for WCET-guided
+optimisations based on timing-analysis feedback.
+\daniel{TBD}
+
+
+\subsection{Exporting PML Metainfo During Compilation}
+
+To obtain PML files, the \code{patmos-clang} driver needs to be invoked with
+
+
+\begin{verbatim}
+  patmos-clang -mserialize=<pml-file> [-mserialize-roots=<functions>] ...
+\end{verbatim}
+
+The option argument \code{<pml-file>} is the filename of the PML file that is
+generated.
+
+The option argument \code{<functions>} is a comma-separated list of function
+names to which the exporting of Metainformation should be restricted.
+Note that inlining should be prevented for the functions (see
+Section~\ref{sec:toolchain:frontend}) specified, otherwise they might not exist
+separately anymore.
+By default, information for all functions is exported, which might result
+in a huge PML file being generated.
+
+
+\subsection{Obtaining AIS Annotations}
+
+The \code{aiT} timing analysis tool supports annotations in the form of
+AIS files.
+To generate a AIS annotation file from a PML metainfo file, the
+\code{platin pml2ais} tool is used:
+
+\begin{verbatim}
+  platin pml2ais  --ais <output.ais>  <input.pml>
+\end{verbatim}
+
+
+\subsection{Exporting Loop Bounds}
+
+Loop bounds obtained by the \emph{LLVM scalar evolution (SCEV)} analysis
+on bitcode are exported as meta information.
+%
+To be usable as flow facts for WCET analysis, they must be resolved and
+transformed to machine-code level:
+
+\begin{verbatim}
+  platin transform --transform-action=down --flow-fact-output=<name> \
+            --analysis-entry=<func> -i <input.pml> -o <output.pml>
+\end{verbatim}
+
+where \code{<name>} is a name for the newly generated flow facts
+\code{<func>} is the entry function enclosing the program points referred by
+the flow facts (\emph{main} by default).
+%
+\code{<output.pml>} and \code{<input.pml>} can be identical.
+
+
+\daniel{TODO: other tools and useful usage examples}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Patmos-clang C Frontend}
 \label{sec:toolchain:frontend}
 
@@ -437,6 +621,7 @@ wait for the copy transaction to complete.
 
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Patmos Compiler Backend}
 \label{sec:toolchain:backend}
 
@@ -638,6 +823,7 @@ Used address spaces:
   \end{itemize}
 \end{itemize}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Newlib}
 
 The Patmos compiler contains a port of newlib, a C library intended for embedded systems. When  writing
@@ -649,6 +835,7 @@ Documentation of the provided newlib library and available functions is availabl
 
 \url{https://sourceware.org/newlib/}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Known Bugs, Restrictions and Common Issues}
 \label{sec:toolchain:knownbugs}
 
