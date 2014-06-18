@@ -9,8 +9,6 @@
 
 */
 
-#define CORES 4
-
 const int NOC_MASTER = 0;
 #include <string.h>
 #include <machine/spm.h>
@@ -133,7 +131,7 @@ static void slave(void) {
 	*(spm_slave+20) = *(spm_slave+20) + CORE_ID;
 
 	// send to next slave
-	int rcv_id = (CORE_ID==3)? 0 : CORE_ID+1;
+	int rcv_id = (CORE_ID==(NOC_CORES-1))? 0 : CORE_ID+1;
 	noc_send(rcv_id, spm_slave, spm_slave, 21);
 
 	return;

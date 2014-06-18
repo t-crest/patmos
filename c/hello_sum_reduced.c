@@ -101,7 +101,7 @@ static void slave(void) {
   *(spm_slave+20) = *(spm_slave+20) + get_cpuid();
 
   // send to next slave
-  int rcv_id = (get_cpuid()==3)? 0 : get_cpuid()+1;
+  int rcv_id = (get_cpuid()==(NOC_CORES-1))? 0 : get_cpuid()+1;
   noc_send(rcv_id, spm_slave, spm_slave, 21);
 
   return;
