@@ -156,41 +156,73 @@ following the conventions declared in the previous subsection on function calls.
 
 \daniel{TODO update}
 
-Interrupt handlers may use the shadow stack pointer \texttt{r29} to spill registers
+Interrupt handlers may use the shadow stack pointer \texttt{r31} to spill registers
 to the shadow stack. Interrupt handlers must ensure that all special registers
 that might be in use when the interrupt occurs % MS: there is probably no 'might' WP: not all special registers are used, e.g., s11-s15
 are saved and restored.
 %
 Here is an example of storing and restoring the context for context switching.
 \begin{verbatim}
-sub $r29 = $r29, 40
-sws [$r29 + 0] = $r31
-sws [$r29 + 1] = $r30
-sws [$r29 + 2] = $r22  // free some registers
-sws [$r29 + 3] = $r23
-mfs $r22 = $s2  // by now any mul should be finished
-mfs $r23 = $s3
-sws [$r29 + 4] = $r22
-sws [$r29 + 5] = $r23
-mfs $r22 = $s5  // read out cache pointers, spill
-mfs $r23 = $s6
+sub $r31 = $r31, 56
+swc [$r31 + 0] = $r20  // free some registers
+swc [$r31 + 1] = $r21
+swc [$r31 + 2] = $r22
+swc [$r31 + 3] = $r23
+mfs $r20 = $s0
+mfs $r21 = $sm
+mfs $r22 = $sl  // by now any mul should be finished
+mfs $r23 = $sh
+swc [$r31 + 4] = $r20
+swc [$r31 + 5] = $r21
+swc [$r31 + 6] = $r22
+swc [$r31 + 7] = $r23
+mfs $r22 = $ss  // read out cache pointers, spill
+mfs $r23 = $st
 sub $r22 = $r23, $r22
 sspill $r22   // spill the memory, s5 == s6 now
-sws [$r29 + 6] = $r22  // store the stack pointer
-sws [$r29 + 7] = $r23  // store stack size
+swc [$r31 + 8] = $r22  // store the stack pointer
+swc [$r31 + 9] = $r23  // store stack size
+mfs $r20 = $srb  // store return info
+mfs $r21 = $sro
+mfs $r22 = $sxb
+mfs $r23 = $sxo
+swc [$r31 + 10] = $r20
+swc [$r31 + 11] = $r21
+swc [$r31 + 12] = $r22
+swc [$r31 + 13] = $r23
+swc [$r31 + 14] = $r30 // store frame pointer
 ...
-// TODO store return base and offset
 
 // restore
-lws $r23 = [$r29 + 7]
-lws $r22 = [$r29 + 6]
-mts $s5 = $r22   // restore the stack
-mts $s6 = $r22
-sens $r23
-lws $r23 = [$r29 + 5]
-lws $r22 = [$r29 + 4]
-mts $s2 = $r22
-mts $s3 = $r23
-....
+lwc $r20 = [$r31 + 4]
+lwc $r21 = [$r31 + 5]
+lwc $r22 = [$r31 + 6]
+lwc $r23 = [$r31 + 7]
+mts $s0 = $r20
+mts $sm = $r21
+mts $sl = $r22
+mts $sh = $r23
+lwc $r22 = [$r31 + 8] // restore the stack
+lwc $r23 = [$r31 + 9]
+mts $ss = $r23
+mts $st = $r23   // set top = spill and fill from memory
+sens $r22
+lwc $r20 = [$r31 + 10] // restore return registers
+lwc $r21 = [$r31 + 11]
+lwc $r22 = [$r31 + 12]
+lwc $r23 = [$r31 + 13]
+mts $srb = $r20  // restore return infos and registers
+mts $sro = $r21
+mts $sxb = $r22
+mts $sxo = $r23
+lwc $r20 = [$r31 + 0]
+lwc $r21 = [$r31 + 1]
+lwc $r22 = [$r31 + 2]
+lwc $r23 = [$r31 + 3]
+lwc $r30 = [$r31 + 14]
+xret
+add $r31 = $r31, 52
+nop
+nop
 \end{verbatim}
 
