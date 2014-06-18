@@ -19,15 +19,14 @@ The register usage conventions for the general purpose registers are as follows:
         followed by the low part.\\ E.g., for a 64 bit argument passed in
         \texttt{[r3,r4]}, the high part is in \texttt{r3}, the low part
         in \texttt{r4}.
-  \item \texttt{r27} is used as temp register.
-  \item \texttt{r28} is defined as the frame pointer and \texttt{r29} is defined as the stack
-        pointer for the \emph{shadow} stack in global memory. The use of a frame
-        pointer is optional, the register can freely be used otherwise.
-	\texttt{r29} is guaranteed to always hold the current stack pointer and is not used
-	otherwise by the compiler.
-  \item \texttt{r30} and \texttt{r31} are defined as the return function base
-        and the return function offset.
-        Usually, they are passed as operands to the \texttt{ret} instruction.
+  \item \texttt{r29} is used as temp register.
+  \item \texttt{r30} is defined as the frame pointer and
+        \texttt{r31} is defined as the stack pointer for the \emph{shadow}
+        stack in global memory.
+        The use of a frame pointer is optional, the register can freely be
+        used otherwise.
+	\texttt{r31} is guaranteed to always hold the current stack pointer and
+        is not used otherwise by the compiler.
   \item \texttt{r1} through \texttt{r19} are caller-saved \emph{scratch}
         registers.
   \item \texttt{r20} through \texttt{r31} are callee-saved \emph{saved}
@@ -39,16 +38,6 @@ The usage conventions of the predicate registers are as follows:
   \item all predicate registers are callee-saved \emph{saved} registers.
 \end{itemize}
 
-\daniel{I have no educated opinion whether caller- or callee-saved.}
-\fb{This is rather easy to change in the compiler, and should be evaluated
-accordingly.}
-
-\daniel{
-What I'd like to have for single-path code is a guard predicate parameter for the called function, e.g., always passed in p1.
-}
-\fb{What would the guard predicate be good for? If need be we could define a
-separate calling convention for single-path-programming programs; in order to
-keep the conventions for the other programs sane.}
 
 \stefan{We would gain in most cases by making predicates caller-saved, since predicates are usually not
 used across function calls, this saves up to 6 instructions per call.
@@ -59,28 +48,30 @@ in RegInfo.cpp, and in processBeforeCalleeSavedScan set s0 as used when any of p
 if-converter to use callee-saved predicates when converting calls, i.e., to change the predicate of the condition.
 Sounds easy, but is actually far from trivial to hack into the if-converter, and only works if the if-converter runs before the
 prologue-inserter, so we stay with callee saved registers for now and live with the costs of spilling s0 at nearly every call.}
-
+\daniel{It would also break the single-path conversion pass.}
 
 The usage conventions of the special registers are as follows:
 \begin{itemize}
-  \item The stack cache control registers \texttt{ss} and \texttt{st} are callee-saved
+  \item \texttt{s0}, representing the predicate registers, is a callee-saved
         \emph{saved} register.
-  \item \texttt{s0}, representing the predicate registers, is a callee-saved \emph{saved} register.
-  \item All other special registers are caller-saved scratch registers and should not be used
-        across function calls.
+  \item The stack cache control registers \texttt{ss} and \texttt{st} are
+        callee-saved \emph{saved} registers.
+  \item The return information registers \texttt{s7-s10} (\texttt{srb},
+        \texttt{sro}, \texttt{sxb}, \texttt{sxo}) are callee-saved
+        \emph{saved} registers.
+  \item All other special registers are caller-saved scratch registers and
+        should not be used across function calls.
 \end{itemize}
+
+
 
 \section{Function Calls}
 \label{sec:function_calls}
 
 Function calls have to be executed using the \texttt{call}
 instruction that automatically prefetches the target function to the method
-cache and stores the return information to the general-purpose register \texttt{r31}.
-At a function call, the callers base address has to be in \texttt{r30}.
-The callee is responsible to store/restore the callers function base and pass it as first
-operand to the return instruction.
-The \texttt{call} and \texttt{brcf} instructions neither use nor modify \texttt{r30}, the
-return function base is only used by \texttt{ret}.
+cache and stores the return information in the special registers \texttt{srb}
+and \texttt{sro}.
 
 The register usage conventions of the previous section indicate which registers
 are preserved across function calls.
@@ -103,13 +94,15 @@ a large register file. Maybe using a sliding window to keep the number of
 addressing bits down. Shall we merge the stack cache with the register file?
 Are we than redoing a stack (Java) processor?}
 
-When the return function base \texttt{r30} and the return offset \texttt{r31}
-needs to be saved to the stack, they have to be saved as the first elements
-of the function's stack frame, i.e., right after the stack frame of the
-calling function. Note that in contrast to \texttt{br} and \texttt{brcf} the
-return offset refers to the next instruction after the \emph{delay slot} of the
-corresponding \texttt{call} and can be implementation dependent (cf.\ the description
-of the \texttt{call} and \texttt{ret} instructions).
+When the return function base \texttt{srb} and the return offset \texttt{sro}
+needs to be saved to the stack, they have to be saved as the first elements of
+the function's stack frame, i.e., right after the stack frame of the calling
+function.
+%
+Note that in contrast to \texttt{br} and \texttt{brcf} the return offset refers
+to the next instruction after the \emph{delay slot} of the corresponding
+\texttt{call} and can be implementation dependent (cf.\ the description of the
+\texttt{call} and \texttt{ret} instructions).
 
 \section{Sub-Functions}
 A function can be split into several sub-functions. The program is only allowed to use
@@ -128,8 +121,9 @@ like for a regular function. If a function is split into sub-functions, the firs
 must also be prefixed with the size of the first sub-function, not with the size of the whole function.
 
 There are no calling conventions for jumps between sub-functions, for the compiler
-this behaves just like a regular jump, except that the base register \texttt{r30} must
-be updated if the sub-function contains calls.
+this behaves just like a regular jump.
+% except that the base register texttt{srb} must be updated if the
+% sub-function contains calls.
 
 
 % TODO: examples
@@ -159,6 +153,8 @@ Unwinding of the call stack is done on the stack-cache managed stack frame,
 following the conventions declared in the previous subsection on function calls.
 
 \section{Interrupts and Context Switching}
+
+\daniel{TODO update}
 
 Interrupt handlers may use the shadow stack pointer \texttt{r29} to spill registers
 to the shadow stack. Interrupt handlers must ensure that all special registers
