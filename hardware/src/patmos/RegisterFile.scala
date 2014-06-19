@@ -50,8 +50,7 @@ class RegisterFile() extends Module {
   val io = new RegFileIO()
 
   // Using Mem (instead of Vec) leads to smaller HW for single-issue config
-  //val rf = Mem(Bits(width = DATA_WIDTH), REG_COUNT)
-  val rf = Vec.fill(REG_COUNT) { Reg(Bits(width = DATA_WIDTH)) }
+  val rf = Mem(Bits(width = DATA_WIDTH), REG_COUNT)
 
   // We are registering the inputs here, similar as it would
   // be with an on-chip memory for the register file
@@ -59,9 +58,6 @@ class RegisterFile() extends Module {
   val wrReg   = Vec.fill(PIPE_COUNT)   { Reg(new Result()) }
   val fwReg   = Vec.fill(2*PIPE_COUNT) { Vec.fill(PIPE_COUNT) { Reg(Bool()) } }
 
-  // With an on-chip RAM enable would need for implementation:
-  //   additional register and a MUX feeding the old value into
-  //   the registers
   when (io.ena) {
     addrReg := io.rfRead.rsAddr
     wrReg := io.rfWrite
@@ -87,9 +83,9 @@ class RegisterFile() extends Module {
 
   // Don't care about R0 here: reads return zero and writes to
   // register R0 are disabled in decode stage anyway
-  for (k <- 0 until PIPE_COUNT) {
-    when(wrReg(k).valid) {
-      rf(wrReg(k).addr.toUInt) := wrReg(k).data
+  for (k <- (0 until PIPE_COUNT).reverse) {
+    when(io.ena && io.rfWrite(k).valid) {
+      rf(io.rfWrite(k).addr.toUInt) := io.rfWrite(k).data
     }
   }
 

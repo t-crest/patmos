@@ -141,47 +141,14 @@ static val_t readelf(istream &is, Patmos_t *c)
 }
 
 static void print_state(Patmos_t *c) {
-	sval_t pc = c->Patmos_core_memory__io_memwb_pc.to_ulong();
-	*out << (pc - 2) << " - ";
+  sval_t pc = c->Patmos_core_memory__io_memwb_pc.to_ulong();
+  *out << (pc - 2) << " - ";
 
-	// for (unsigned i = 0; i < 32; i++) {
-	//   *out << c->Patmos_core_decode_rf__rf.get(i).to_ulong() << " ";
-	// }
+  for (unsigned i = 0; i < 32; i++) {
+    *out << c->Patmos_core_decode_rf__rf.get(i).to_ulong() << " ";
+  }
 
-    *out << c->Patmos_core_decode_rf__rf_0.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_1.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_2.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_3.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_4.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_5.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_6.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_7.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_8.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_9.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_10.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_11.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_12.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_13.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_14.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_15.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_16.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_17.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_18.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_19.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_20.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_21.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_22.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_23.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_24.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_25.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_26.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_27.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_28.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_29.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_30.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_31.to_ulong() << " ";
-
-	*out << endl;
+  *out << endl;
 }
 
 static void extSsramSim(Patmos_t *c) {
@@ -525,6 +492,5 @@ int main (int argc, char* argv[]) {
   }
 
   // Pass on return value from processor
-  // return c->Patmos_core_decode_rf__rf.get(1).to_ulong();
-  return c->Patmos_core_decode_rf__rf_1.to_ulong();
+  return c->Patmos_core_decode_rf__rf.get(1).to_ulong();
 }
