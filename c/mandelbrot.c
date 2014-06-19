@@ -60,7 +60,12 @@ static const char *hdr =
   "static char *mandel[] = {\n"
   "\"" STRFY(COLS) " " STRFY(ROWS) " 64 1\",\n";
 
+#ifdef __patmos__
+int main(void) {
+#else
 int main(int argc, char **argv) {
+#endif
+
   write_xpm_header();
 
   int x, y;

@@ -219,7 +219,11 @@ static void shm_dma(int dst_id, volatile void _SPM *dst,
 // Main application
 /////////////////////////////////////////////////////////////////////////*/
 
+#ifdef __patmos__
+int main(void) {
+#else
 int main(int argc, char **argv) {
+#endif
 
 #ifdef __patmos__
   // nothing special to initialize
