@@ -59,9 +59,16 @@ class Arbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extend
   val sIdle :: sRead :: sWrite :: Nil = Enum(UInt(), 3)
   val stateReg = Reg(init = sIdle)
 
-  // TODO def turn
+  // buffer signals from master to cut critical paths
+  val masterBuffer = Vec(io.master.map { m =>
+    val port = new OcpBurstSlavePort(addrWidth, dataWidth, burstLen)
+    val bus = Module(new OcpBurstBus(addrWidth, dataWidth, burstLen))
+    m <> bus.io.slave
+    new OcpBurstBuffer(bus.io.master, port)
+    port
+  })
 
-  val master = io.master(turnReg).M
+  val master = masterBuffer(turnReg).M
 
   when(stateReg === sIdle) {
     when(master.Cmd != OcpCmd.IDLE) {
@@ -98,13 +105,13 @@ class Arbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extend
   io.slave.M := master
 
   for (i <- 0 to cnt - 1) {
-    io.master(i).S.CmdAccept := Bits(0)
-    io.master(i).S.DataAccept := Bits(0)
-    io.master(i).S.Resp := OcpResp.NULL
+    masterBuffer(i).S.CmdAccept := Bits(0)
+    masterBuffer(i).S.DataAccept := Bits(0)
+    masterBuffer(i).S.Resp := OcpResp.NULL
     // we forward the data to all masters
-    io.master(i).S.Data := io.slave.S.Data
+    masterBuffer(i).S.Data := io.slave.S.Data
   }
-  io.master(turnReg).S := io.slave.S
+  masterBuffer(turnReg).S := io.slave.S
 
   // The response of the SSRAM comes a little bit late
 }
