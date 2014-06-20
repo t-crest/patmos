@@ -263,13 +263,6 @@ class Execute() extends Module {
     // special registers
     when(exReg.aluOp(i).isMTS && doExecute(i)) {
       switch(exReg.aluOp(i).func) {
-        is(SPEC_ST) {
-          io.exdec.sp := op(2*i).toUInt()
-        }
-      }
-    }
-    when(exReg.aluOp(i).isMTS && doExecute(i)) {
-      switch(exReg.aluOp(i).func) {
         is(SPEC_FL) {
           predReg := op(2*i)(PRED_COUNT-1, 0).toBits()
           predReg(0) := Bool(true)
@@ -281,6 +274,7 @@ class Execute() extends Module {
           mulHiReg := op(2*i).toUInt()
         }
         is(SPEC_ST) {
+          io.exdec.sp := op(2*i).toUInt()
           stackTopReg := op(2*i).toUInt()
         }
         is(SPEC_SS) {
