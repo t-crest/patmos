@@ -1,0 +1,16 @@
+#
+# pin constraints
+#
+NET "iUartPins_rxd" LOC = J24;
+NET "iUartPins_rxd" IOSTANDARD = LVCMOS25;
+NET "oUartPins_txd" LOC = W1;
+NET "oUartPins_txd" IOSTANDARD = LVCMOS25;
+NET "clk" LOC = AE14;
+NET "clk" IOSTANDARD = LVCMOS25;
+
+NET "clk" TNM_NET = "ext_clk";
+TIMESPEC ts_ext_clk = PERIOD "ext_clk" 15 ns HIGH 50 %;
+
+# PlanAhead Generated physical constraints 
+
+NET "iUartPins_rxd" LOC = W2;

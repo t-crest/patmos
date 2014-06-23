@@ -1,0 +1,31 @@
+<patmos default="default.xml">
+  <description>Configuration for the ML401 board</description>
+
+  <frequency Hz="50000000" />
+
+  <ExtMem size="64K" DevTypeRef="OCRam" />
+
+  <IOs>
+	<IO DevTypeRef="Uart" offset="8"/>
+	<IO DevTypeRef="Leds" offset="9"/>
+  </IOs>
+
+  <Devs>
+	<Dev DevType="Uart" entity="Uart" iface="OcpCore">
+	  <params>
+            <param name="baudRate" value="115200"/>
+            <param name="fifoDepth" value="16"/>
+	  </params>
+	</Dev>
+	<Dev DevType="Leds" entity="Leds" iface="OcpCore">
+	  <params>
+		<param name="ledCount" value="9"/>
+	  </params>
+	</Dev>
+	<Dev DevType="OCRam" entity="OCRamCtrl" iface="OcpBurst">
+      	  <params>
+            <param name="addrWidth" value="16" />
+          </params>
+        </Dev>
+  </Devs>
+</patmos>
