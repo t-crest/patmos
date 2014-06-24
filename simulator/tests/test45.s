@@ -1,14 +1,16 @@
 #
-# Expected Result: only 2 blocks spilled instead of 8
+# Expected Result: only 2 blocks spilled instead of 510
 #
 
-                .word   160;
+                .word   104;
 # initialize the stack cache registers: stack top and mem top
-                addi    r1  = r0, 0x900;
+                addi    r1  = r0, 0x999;
+                addi    r1  = r1, 0x999;
+                addi    r1  = r1, 0x999;
                 mts     s5 = r1;
                 mts     s6 = r1;
-# reserve some space on the stack cache
-                sres    10;
+# reserve the entire stack cache
+                sres    512;
                 nop;
                 nop;
                 nop;

@@ -370,10 +370,25 @@ namespace patmos
   class block_lazy_stack_cache_t : public block_stack_cache_t
   {
     private: 
-      uword_t lazy_pointer;
-      bool lp_pulldown;
-      unsigned int Num_blocks_not_spilled_lazy;
-
+      /// Pointer relative to stack top stack tracking data that has been 
+      /// modified.
+      uword_t Lazy_pointer;
+      
+      /// Updated next value of the Lazy_pointer.
+      /// \see Lazy_pointer
+      uword_t Next_Lazy_pointer;
+      
+      /// Number of blocks that should be evicted but not spilled by the next 
+      /// reserve
+      uword_t Num_blocks_to_evict;
+      
+      /// Statistic counter, measuring the number of blocks that were not 
+      /// spilled due to lazy spilling.
+      unsigned int Num_blocks_not_spilled;
+      
+      /// Statistic counter, measuring the maximum number of blocks that were 
+      /// not spilled due to lazy spilling.
+      unsigned int Max_blocks_not_spilled;      
     public:
 
       /// Construct a lazy block-based stack cache.
@@ -382,19 +397,43 @@ namespace patmos
       block_lazy_stack_cache_t(memory_t &memory, unsigned int num_blocks, 
                         unsigned int num_block_bytes);
 
-      virtual ~block_lazy_stack_cache_t();	
+      virtual word_t prepare_reserve(simulator_t &s, uword_t size, uword_t &stack_spill, 
+                                     uword_t &stack_top);
+      
+      virtual word_t prepare_free(simulator_t &s, uword_t size, uword_t &stack_spill, 
+                                  uword_t &stack_top);
 
-       word_t prepare_reserve(simulator_t &s, uword_t size, 
-                                   uword_t &stack_spill, uword_t &stack_top);
-       word_t prepare_free(simulator_t &s, uword_t size,
-                                uword_t &stack_spill, uword_t &stack_top);
-       bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size, uword_t &stack_top);
+      /// Free a given number of bytes on the stack.
+      /// @param size The number of bytes to be freed.
+      /// @param delta The value returned by prepare, i.e., the number of bytes 
+      /// to be spilled or filled.
+      /// @param new_spill The new value of the stack spill pointer.
+      /// @param new_top The new value of the stack top pointer.
+      /// @return True when the stack space is actually freed in the cache, 
+      /// false otherwise.
+      virtual bool free(simulator_t &s, uword_t size, word_t delta,
+                        uword_t new_spill, uword_t new_top);
 
-     void print_stats(const simulator_t &s, std::ostream &os, 
-                             bool short_stats);
+      /// Reserve a given number of bytes, potentially spilling stack data to some
+      /// memory.
+      /// @param size The number of bytes to be reserved.
+      /// @param delta The value returned by prepare, i.e., the number of bytes to
+      /// be spilled.
+      /// @param new_spill The new value of the stack spill pointer.
+      /// @param new_top The new value of the stack top pointer.
+      /// @return True when the stack space is actually reserved on the cache,
+      /// false otherwise.
+      virtual bool reserve(simulator_t &s, uword_t size, word_t delta,
+                           uword_t new_spill, uword_t new_top);
 
-     void reset_stats();
+      virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
+      virtual void print(std::ostream &os) const;
+
+      virtual void print_stats(const simulator_t &s, std::ostream &os, 
+                                bool short_stats);
+
+      void reset_stats();
   };
 
   /// Operator to print the state of a stack cache to a stream

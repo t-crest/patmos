@@ -1,5 +1,5 @@
 #
-# Expected Result: only 2 blocks spilled instead of 8
+# Expected Result: no blocks spilled instead of 2
 #
 
                 .word   160;
@@ -13,14 +13,14 @@
                 nop;
                 nop;
 # see if lazy pointer moves as it should
-                shs     [r0 + 0] = r0;
-                shs     [r0 + 1] = r0;
-                shs     [r0 + 7] = r0;
+                sws     [r0 + 0] = r0;
+                sws     [r0 + 1] = r0;
+                sws     [r0 + 7] = r0;
                 nop;
                 nop;
                 nop;
-# free only data below the lazy pointer
-                sfree   2;
+# free also data above the lazy pointer
+                sfree   8;
                 nop;
                 nop;
                 nop;
