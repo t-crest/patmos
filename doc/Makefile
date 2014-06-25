@@ -7,4 +7,4 @@ noc:
 libnoc:
 	make -C libnoc all
 
-.PHONY: handbbok noc libnoc
+.PHONY: handbook noc libnoc
