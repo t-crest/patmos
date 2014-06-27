@@ -52,6 +52,10 @@ static void master(void) {
   // the message is ready
   spm_out->ready = 1;
 
+  // The first message must be delayed until all slaves have cleared
+  // their SPM! Writing something does the trick.
+  WRITE("INIT\n", 5);
+
   // send message to core 1
   noc_send(get_cpuid()+1, spm_in, spm_out, sizeof(struct msg_t));
 

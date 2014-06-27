@@ -88,6 +88,8 @@ static void master(void) {
 	}
 	//*(spm_base+i) = '\0';
 
+	puts("MASTER: sending\n");
+
 	// send message
 	noc_send(1, spm_slave, spm_base, 21); //21 bytes
 
