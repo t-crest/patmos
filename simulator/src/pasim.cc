@@ -272,7 +272,6 @@ int main(int argc, char **argv)
     ("help,h", "produce help message")
     ("maxc,c", boost::program_options::value<unsigned int>()->default_value(0, "inf."), "stop simulation after the given number of cycles")
     ("binary,b", boost::program_options::value<std::string>(), "binary or elf-executable file (stdin: -)")
-    ("output,o", boost::program_options::value<std::string>()->default_value("-"), "output execution trace in file (stdout: -)")
     ("debug", boost::program_options::value<unsigned int>()->implicit_value(0), "enable step-by-step debug tracing after cycle")
     ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), 
                   "format of the debug trace (short, trace, instr, blocks, calls, calls-indent, default, long, all)")
@@ -280,6 +279,7 @@ int main(int argc, char **argv)
     ("debug-intrs", "print out all status changes of the exception unit.")
     ("debug-nopc", "do not print PC and cycles counter in debug output")
     ("debug-access", boost::program_options::value<patmos::address_t>(), "print accesses to the given address or symbol.")
+    ("stats-file,o", boost::program_options::value<std::string>()->default_value("-"), "write statistics to a file (stderr: -)")
     ("print-stats", boost::program_options::value<patmos::address_t>(), "print statistics for a given function only.")
     ("flush-caches", boost::program_options::value<patmos::address_t>(), "flush all caches when reaching the given address (can be a symbol name).")
     ("full,V", "full statistics output")
@@ -381,7 +381,7 @@ int main(int argc, char **argv)
     std::cout << "No program to simulate specified. Use --help for more options.\n";
     return 1;
   }
-  std::string output(vm["output"].as<std::string>());
+  std::string stats_out(vm["stats-file"].as<std::string>());
 
   std::string uart_in(vm["in"].as<std::string>());
   std::string uart_out(vm["out"].as<std::string>());
@@ -477,7 +477,7 @@ int main(int argc, char **argv)
   std::istream *in = NULL;
   std::istream *uin = NULL;
 
-  std::ostream *out = NULL;
+  std::ostream *sout = NULL;
   std::ostream *uout = NULL;
 
   std::ostream *dout = NULL;
@@ -502,18 +502,18 @@ int main(int argc, char **argv)
   {
     // open streams
     in = patmos::get_stream<std::ifstream>(binary, std::cin);
-    out = patmos::get_stream<std::ofstream>(output, std::cout);
-
 
     uin = patmos::get_stream<std::ifstream>(uart_in, std::cin);
     uout = patmos::get_stream<std::ofstream>(uart_out, std::cout);
 
     dout = patmos::get_stream<std::ofstream>(debug_out, std::cerr);
+    sout = patmos::get_stream<std::ofstream>(stats_out, std::cerr);
+
 
     // check if the uart input stream is a tty.
     bool uin_istty = (uin == &std::cin) && isatty(STDIN_FILENO);
 
-    assert(in && out && uin && uout && dout);
+    assert(in && sout && uin && uout && dout);
 
     // finalize simulation framework
     // setup exception unit
@@ -566,7 +566,7 @@ int main(int argc, char **argv)
     // setup stats reset trigger
     if (print_stats) {
       print_stats_func.parse(sym);
-      s.Dbg_stack.print_function_stats(print_stats_func.value(), *out);
+      s.Dbg_stack.print_function_stats(print_stats_func.value(), *sout);
     }
    
     if (flush_caches) {
@@ -599,51 +599,51 @@ int main(int argc, char **argv)
     
     if (success) {
       if (verbose && !print_stats) {
-        s.print_stats(*out, !long_stats, long_stats);
+        s.print_stats(*sout, !long_stats, long_stats);
       }
       if (verbose) {
-        *out << "Pasim options:\n  ";
+        *sout << "Pasim options:\n  ";
         
         // TODO make this more generic.. somehow.
         
         if (vm["maxc"].as<unsigned int>())
-          *out << " --maxc=" << max_cycle;
+          *sout << " --maxc=" << max_cycle;
         if (flush_caches)
-          *out << " --flush-caches=" << flush_caches_addr;
-        *out << " --cpuid=" << cpuid << " --cores=" << cores;
-        *out << " --freq=" << freq;
-        *out << " --interrupt=" << excunit_enabled;            
+          *sout << " --flush-caches=" << flush_caches_addr;
+        *sout << " --cpuid=" << cpuid << " --cores=" << cores;
+        *sout << " --freq=" << freq;
+        *sout << " --interrupt=" << excunit_enabled;            
 
-        *out << "\n  ";
-        *out << " --mmbase=" << mmbase << " --mmhigh=" << mmhigh;
-        *out << " --cpuinfo_offset=" << cpuinfo_offset;
-        *out << " --excunit_offset=" << excunit_offset;
-        *out << " --timer_offset=" << timer_offset;
-        *out << " --uart_offset=" << uart_offset;
-        *out << " --led_offset=" << led_offset;
+        *sout << "\n  ";
+        *sout << " --mmbase=" << mmbase << " --mmhigh=" << mmhigh;
+        *sout << " --cpuinfo_offset=" << cpuinfo_offset;
+        *sout << " --excunit_offset=" << excunit_offset;
+        *sout << " --timer_offset=" << timer_offset;
+        *sout << " --uart_offset=" << uart_offset;
+        *sout << " --led_offset=" << led_offset;
         
-        *out << "\n  ";
-        *out << " --gsize=" << gsize;
-        *out << " --gtime=" << gtime;
-        *out << " --tdelay=" << tdelay << " --trefresh=" << trefresh;
-        *out << " --bsize=" << bsize << " --psize=" << psize;
-        *out << " --posted=" << posted; 
+        *sout << "\n  ";
+        *sout << " --gsize=" << gsize;
+        *sout << " --gtime=" << gtime;
+        *sout << " --tdelay=" << tdelay << " --trefresh=" << trefresh;
+        *sout << " --bsize=" << bsize << " --psize=" << psize;
+        *sout << " --posted=" << posted; 
         
-        *out << "\n  ";
-        *out << " --lsize=" << lsize;
-        *out << " --dckind=" << dck;
-        *out << " --dcsize=" << dcsize << " --dlsize=" << dlsize;
-        *out << " --sckind=" << sck;
-        *out << " --scsize=" << scsize;
+        *sout << "\n  ";
+        *sout << " --lsize=" << lsize;
+        *sout << " --dckind=" << dck;
+        *sout << " --dcsize=" << dcsize << " --dlsize=" << dlsize;
+        *sout << " --sckind=" << sck;
+        *sout << " --scsize=" << scsize;
         
-        *out << "\n  ";
-        *out << " --icache=" << ick << " --ickind=" << isck;
-        *out << " --ilsize=" << ilsize;
-        *out << " --mckind=" << mck;
-        *out << " --mcsize=" << mcsize << " --mbsize=" << mbsize;
-        *out << " --mcmethods=" << mcmethods;
+        *sout << "\n  ";
+        *sout << " --icache=" << ick << " --ickind=" << isck;
+        *sout << " --ilsize=" << ilsize;
+        *sout << " --mckind=" << mck;
+        *sout << " --mcsize=" << mcsize << " --mbsize=" << mbsize;
+        *sout << " --mcmethods=" << mcmethods;
         
-        *out << "\n\n";
+        *sout << "\n\n";
       }
     }
   }
@@ -661,12 +661,12 @@ int main(int argc, char **argv)
 
   // free streams
   patmos::free_stream(in, std::cin);
-  patmos::free_stream(out, std::cout);
 
   patmos::free_stream(uin, std::cin);
   patmos::free_stream(uout, std::cout);
 
   patmos::free_stream(dout, std::cerr);
+  patmos::free_stream(sout, std::cerr);
 
   return exit_code;
 }
