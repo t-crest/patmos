@@ -97,8 +97,8 @@ int main(int argc, char **argv)
               % (code_size * 4) % num_errors;
 
     // free streams
-    patmos::free_stream(&in, std::cin);
-    patmos::free_stream(&out, std::cout);
+    patmos::free_stream(&in);
+    patmos::free_stream(&out);
   }
   catch(std::ios_base::failure f)
   {

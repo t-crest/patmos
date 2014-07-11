@@ -105,8 +105,8 @@ int main(int argc, char **argv)
     delete loader;
               
     // free streams
-    patmos::free_stream(&in, std::cin);
-    patmos::free_stream(&out, std::cout);
+    patmos::free_stream(&in);
+    patmos::free_stream(&out);
   }
   catch(std::ios_base::failure f)
   {

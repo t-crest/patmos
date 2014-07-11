@@ -151,7 +151,7 @@ Errors : 0")
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 macro (test_sim num expr)
-  ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim -V --maxc 20000 ${CMAKE_CURRENT_BINARY_DIR}/test${num}.bin)
+  ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim -V --maxc 20000 -o - ${CMAKE_CURRENT_BINARY_DIR}/test${num}.bin)
   SET_TESTS_PROPERTIES(sim-test-${num} PROPERTIES PASS_REGULAR_EXPRESSION ${expr} DEPENDS asm-test-${num})
 endmacro (test_sim)
 
