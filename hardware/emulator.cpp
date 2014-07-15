@@ -298,6 +298,7 @@ static void help(ostream &out) {
       << "  -l <N>        Stop after <N> cycles" << endl
       << "  -p            Print method cache statistics" << endl
       << "  -r            Print register values in each cycle" << endl
+      << "  -s            Trace stack cache spilling/filling" << endl
       << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
       << "  -I <file>     Read input for UART from file <file>" << endl
       << "  -O <file>     Write output from UART to file <file>" << endl;
@@ -314,12 +315,13 @@ int main (int argc, char* argv[]) {
   bool print_stat = false;
   bool quiet = true;
   bool vcd = false;
+  bool sc_trace = false;
 
   int uart_in = STDIN_FILENO;
   int uart_out = STDOUT_FILENO;
   unsigned baud_counter = 0;
 
-  while ((opt = getopt(argc, argv, "hikl:nprvI:O:")) != -1) {
+  while ((opt = getopt(argc, argv, "hikl:nprsvI:O:")) != -1) {
 	switch (opt) {
 	case 'i':
 	  random = true;
@@ -333,9 +335,12 @@ int main (int argc, char* argv[]) {
 	case 'p':
 	  print_stat = true;
 	  break;
-	case 'r':
-	  quiet = false;
-	  break;
+        case 'r':
+          quiet = false;
+          break;
+        case 's':
+          sc_trace = false;
+          break;
 	case 'v':
 	  vcd = true;
 	  break;
@@ -505,7 +510,9 @@ int main (int argc, char* argv[]) {
 	if (!quiet && c->Patmos_core__enableReg.to_bool()) {
 	  print_state(c);
 	}
-        print_sc_state(c);
+	if (sc_trace) {
+          print_sc_state(c);
+        }
 
 	// Return to address 0 halts the execution after one more iteration
 	if (halt) {
