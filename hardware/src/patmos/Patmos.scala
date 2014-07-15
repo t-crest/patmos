@@ -137,6 +137,9 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   writeback.io.ena := enable
   exc.io.ena := enable
   val enableReg = Reg(next = enable)
+  val counterReg = Reg(init = Bits(0, width = 32))
+
+  counterReg := counterReg + UInt(1)
 
   // Flush signal
   val flush = memory.io.flush
@@ -152,6 +155,7 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
 
   // Keep signal alive for debugging
   debug(enableReg)
+  debug(counterReg)
 }
 
 object PatmosCoreMain {
