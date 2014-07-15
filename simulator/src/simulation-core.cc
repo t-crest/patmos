@@ -450,11 +450,15 @@ namespace patmos
   {
     if (debug_fmt == DF_SHORT)
     {
-      for(unsigned int r = r0; r < NUM_GPR; r++)
+      if (!is_stalling(SIF)) 
       {
-        os << boost::format(" r%1$-2d: %2$08x") % r % GPR.get((GPR_e)r).get();
+        os << PC << " - ";
+        for(unsigned int r = r0; r < NUM_GPR; r++)
+        {
+          os << (unsigned int)GPR.get((GPR_e)r).get() << " ";
+        }
+        os << "\n";
       }
-      os << "\n";
     }
     else
     {
