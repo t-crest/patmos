@@ -462,6 +462,11 @@ int main (int argc, char* argv[]) {
 	  }
 	}
 
+	// reset UART TX queue to avoid slow (and faithful) simulation of UART
+        c->Patmos_core_iocomp_Uart_txQueue__enq_ptr = 0;
+        c->Patmos_core_iocomp_Uart_txQueue__deq_ptr = 0;
+        c->Patmos_core_iocomp_Uart_txQueue__maybe_full = 0;
+	
 	// Pass on data from UART
 	if (c->Patmos_core_iocomp_Uart__io_ocp_M_Cmd.to_ulong() == 0x1
 		&& (c->Patmos_core_iocomp_Uart__io_ocp_M_Addr.to_ulong() & 0xff) == 0x04) {
