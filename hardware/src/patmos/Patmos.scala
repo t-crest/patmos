@@ -74,12 +74,10 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   mcache.io.femcache <> fetch.io.femcache
   mcache.io.mcachefe <> fetch.io.mcachefe
   mcache.io.exmcache <> execute.io.exmcache
-  mcache.io.ena_out <> memory.io.ena_in
   mcache.io.ena_in <> memory.io.ena_out
 
   decode.io.fedec <> fetch.io.fedec
   execute.io.decex <> decode.io.decex
-  decode.io.exdec <> execute.io.exdec
   memory.io.exmem <> execute.io.exmem
   writeback.io.memwb <> memory.io.memwb
   // RF write connection
@@ -89,6 +87,12 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   // Take care that it is the plain register
   execute.io.exResult <> memory.io.exResult
   execute.io.memResult <> writeback.io.memResult
+
+  // Connect stack cache
+  execute.io.exsc <> dcache.io.scIO.exsc
+  dcache.io.scIO.scex <> execute.io.scex
+  // TODO: check if this is right -- e.g., what happens when the D$ stalls?
+  dcache.io.scIO.ena_in <> mcache.io.ena_out
 
   // We branch in EX
   fetch.io.exfe <> execute.io.exfe
@@ -122,8 +126,11 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   // val burstJoin = new OcpBurstPriorityJoin(mcache.io.ocp_port, dcache.io.slave,
   //                                  burstBus.io.slave, mcache.io.ena_out)
 
+  // Enable signal for memory
+  memory.io.ena_in := mcache.io.ena_out && !dcache.io.scIO.stall
+
   // Enable signal
-  val enable = memory.io.ena_out & mcache.io.ena_out
+  val enable = memory.io.ena_out & mcache.io.ena_out & !dcache.io.scIO.stall
   fetch.io.ena := enable
   decode.io.ena := enable
   execute.io.ena := enable
