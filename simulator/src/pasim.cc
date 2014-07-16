@@ -275,11 +275,11 @@ int main(int argc, char **argv)
     ("debug", boost::program_options::value<unsigned int>()->implicit_value(0), "enable step-by-step debug tracing after cycle")
     ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), 
                   "format of the debug trace (short, trace, instr, blocks, calls, calls-indent, default, long, all)")
-    ("debug-file", boost::program_options::value<std::string>()->default_value("-"), "output debug trace in file (stderr: -)")
+    ("debug-file", boost::program_options::value<std::string>()->default_value(""), "output debug trace in file (stdout: -)")
     ("debug-intrs", "print out all status changes of the exception unit.")
     ("debug-nopc", "do not print PC and cycles counter in debug output")
     ("debug-access", boost::program_options::value<patmos::address_t>(), "print accesses to the given address or symbol.")
-    ("stats-file,o", boost::program_options::value<std::string>()->default_value("-"), "write statistics to a file (stderr: -)")
+    ("stats-file,o", boost::program_options::value<std::string>()->default_value(""), "write statistics to a file (stdout: -)")
     ("print-stats", boost::program_options::value<patmos::address_t>(), "print statistics for a given function only.")
     ("flush-caches", boost::program_options::value<patmos::address_t>(), "flush all caches when reaching the given address (can be a symbol name).")
     ("full,V", "full statistics output")
@@ -660,13 +660,13 @@ int main(int argc, char **argv)
   delete &sc;
 
   // free streams
-  patmos::free_stream(in, std::cin);
+  patmos::free_stream(in);
 
-  patmos::free_stream(uin, std::cin);
-  patmos::free_stream(uout, std::cout);
+  patmos::free_stream(uin);
+  patmos::free_stream(uout);
 
-  patmos::free_stream(dout, std::cerr);
-  patmos::free_stream(sout, std::cerr);
+  patmos::free_stream(dout);
+  patmos::free_stream(sout);
 
   return exit_code;
 }

@@ -21,9 +21,37 @@
 #define PATMOS_STREAMS_H
 
 #include <ios>
+#include <iostream>
 
 namespace patmos
 {
+  
+  template< class T >
+  struct StandardStream
+  {
+  };
+
+  template<>
+  struct StandardStream< std::basic_istream<char> >
+  {
+    static std::istream *stream() { return &std::cin; }
+    
+    static bool isIOStream(std::basic_istream<char> *stream) {
+      return stream == &std::cin;
+    }
+  };
+  
+  template<>
+  struct StandardStream< std::basic_ostream<char> >
+  {
+    static std::ostream *stream() { return &std::cout; }
+
+    static bool isIOStream(std::basic_ostream<char> *stream) {
+      return stream == &std::cout || stream == &std::cerr;
+    }
+  };
+
+    
   /// Open a file stream, or use the given default.
   /// @param str File name or "-".
   /// @param default_stream A default stream.
@@ -32,8 +60,10 @@ namespace patmos
   template<typename T, typename D>
   D *get_stream(const std::string &str, D &default_stream)
   {
-    if (str == "-")
+    if (str == "")
       return &default_stream;
+    else if (str == "-") 
+      return StandardStream<D>::stream();
     else
     {
       T *result = new T(str.c_str());
@@ -49,14 +79,13 @@ namespace patmos
   }
 
   /// Free a stream, e.g., previously opened using get_stream, unless it refers
-  /// to the default stream.
+  /// to an IO stream.
   /// \see get_stream
   /// \param stream The stream to close.
-  /// \param default_stream The default stream.
-  template<typename T, typename D>
-  void free_stream(T *stream, D &default_stream)
+  template<typename T>
+  void free_stream(T *stream)
   {
-    if (stream && stream != &default_stream)
+    if (stream && !StandardStream<T>::isIOStream(stream))
       delete stream;
   }
 }
