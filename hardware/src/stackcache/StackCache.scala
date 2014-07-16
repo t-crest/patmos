@@ -68,7 +68,7 @@ class StackCache() extends Module {
   val scSizeBits = Chisel.log2Up(SCACHE_SIZE / BYTES_PER_WORD)
 
   // state machine to manage spilling and filling
-  val idleState :: fillState :: waitFillState :: spillState :: waitSpillState :: Nil = Enum(UInt(), 5)
+  val idleState :: fillState :: waitFillState :: spillState :: holdSpillState :: waitSpillState :: Nil = Enum(UInt(), 6)
   val state = Reg(init = idleState)
 
   // stack top pointer
@@ -157,7 +157,7 @@ class StackCache() extends Module {
 
           // check if spilling is actually needed
           val needsSpill = (memTopReg - nextStackTop) > UInt(SCACHE_SIZE)
-          state := Mux(needsSpill, spillState, idleState)
+          state := Mux(needsSpill, holdSpillState, idleState)
         }
         is(opSENS) {
           // compute required mem top pointer, and check if filling is needed
@@ -192,12 +192,9 @@ class StackCache() extends Module {
     // // // // // // // // // // // // // // // // // // // // // // // // //
     // SPILLING
     // // // // // // // // // // // // // // // // // // // // // // // // //
-    is(spillState) {
+    is (holdSpillState) {
       // stall the pipeline
       io.stall := Bool(true)
-
-      // TODO: do some magic with io.ena_in
-      // TODO: correctly handle CmdAccept
 
       val nextTransferAddr = transferAddr + UInt(BYTES_PER_WORD)
 
@@ -206,12 +203,43 @@ class StackCache() extends Module {
                         (transferAddr < memTopReg)
 
       // generate an OCP write request
-      when(burstCounter === UInt(0)) {
-        // send request
+      when(io.ena_in) {
         io.toMemory.M.Cmd := OcpCmd.WR
         io.toMemory.M.Addr := transferAddr
+        io.toMemory.M.Data := mb_rdData
+        io.toMemory.M.DataValid := UInt(1)
+        io.toMemory.M.DataByteEn := Fill(4, writeEnable)
       }
+
+      // check if command has been accepted
+      val accepted = io.toMemory.S.CmdAccept === UInt(1)
+
+      // read next data element once accepted, otherwise hold
+      mb_rdAddr := Mux(accepted, nextTransferAddr.apply(scSizeBits + wordBits - 1, 
+                                                        wordBits), 
+                                 memoryBlock0.rdAddrReg)
+
+      // increment transfer address if accepted
+      transferAddr := Mux(accepted, nextTransferAddr, transferAddr)
+
+      // advance state if accepted
+      state := Mux(accepted, spillState, holdSpillState)
+    }
+
+    is(spillState) {
+      // stall the pipeline
+      io.stall := Bool(true)
+
+      val nextTransferAddr = transferAddr + UInt(BYTES_PER_WORD)
+
+      // only write the data that actually needs spilling
+      val writeEnable = ((stackTopReg + UInt(SCACHE_SIZE)) <= transferAddr) & 
+                        (transferAddr < memTopReg)
+
+      // read next data element from the stack cache's memory
       mb_rdAddr := nextTransferAddr.apply(scSizeBits + wordBits - 1, wordBits)
+
+      // hand current data element over to the OCP bus
       io.toMemory.M.Data := mb_rdData
       io.toMemory.M.DataValid := UInt(1)
       io.toMemory.M.DataByteEn := Fill(4, writeEnable)
@@ -232,7 +260,7 @@ class StackCache() extends Module {
       // wait for a response from the memory, if all data has been transfered
       // return to the IDLE state
       state := Mux(io.toMemory.S.Resp === OcpResp.DVA, 
-                   Mux(spillingDone, idleState, spillState), 
+                   Mux(spillingDone, idleState, holdSpillState), 
                    waitSpillState)
 
       // done? finally compute the new memory top pointer
@@ -309,7 +337,6 @@ class StackCache() extends Module {
                                                          wordBits)
 
     // generate response that indicates that the write has completed 
-    // TODO: check if this is needed
     responseToCPU := OcpResp.DVA
   }
   .elsewhen(io.fromCPU.M.Cmd === OcpCmd.RD) {
@@ -318,7 +345,6 @@ class StackCache() extends Module {
                                                          wordBits)
 
     // generate response that indicates that the write has completed 
-    // TODO: check if this is needed
     responseToCPU := OcpResp.DVA
   }
 
