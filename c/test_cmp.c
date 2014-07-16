@@ -13,6 +13,8 @@ const int NOC_MASTER = 0;
 #define MINADDR (512*1024)
 #define TEST_START ((volatile _UNCACHED unsigned int *) MINADDR + 0)
 
+#define CPU_FREQ ((volatile _SPM int *) 0xF0000004)
+
 #define ABORT_IF_FAIL(X,Y) if (X<0){puts(Y); abort();}
 
 void prefix(int size, char* buf){
@@ -96,7 +98,14 @@ int test_mem_size_spm(volatile int _SPM * mem_addr){
 	return -1;
 }
 
-int main_mem_test() {
+void print_core_info() {
+  puts("CPU info:");
+  printf("\tCPU ID: %d\n",get_cpuid());
+  printf("\tOperating frequency: %d MHz\n",(*CPU_FREQ) >> 20);
+  return;
+}
+
+void main_mem_test() {
 	fputs("Testing MAINMEM...",stdout);
 	ABORT_IF_FAIL(mem_area_test_uncached(TEST_START,0x1000),"FAIL");
 	puts("OK");
@@ -107,10 +116,10 @@ int main_mem_test() {
 	char buf[11];
 	prefix(size,buf);
 	puts(buf);
-	return 0;
+	return;
 }
 
-int com_spm_test() {
+void com_spm_test() {
 	fputs("Testing COM SPM...",stdout);
 	ABORT_IF_FAIL(mem_area_test_spm(NOC_SPM_BASE,0x8000),"FAIL 0x8000");
 	ABORT_IF_FAIL(mem_area_test_spm(NOC_SPM_BASE,0x8001),"FAIL 0x8001");
@@ -124,12 +133,12 @@ int com_spm_test() {
 	char buf[11];
 	prefix(size,buf);
 	puts(buf);
-	return 0;
+	return;
 }
 
 int main() {
   if (get_cpuid() == 0) {
-		puts("Core 0 running.");
+    print_core_info();
 		com_spm_test();
 		main_mem_test();
     return 0;

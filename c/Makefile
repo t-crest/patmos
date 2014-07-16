@@ -21,13 +21,13 @@ LDFLAGS-BOOTABLE= \
 	-Xllc -disable-machine-licm
 
 # Flags for compiling normal applications
-# Now with assumed 1 MB memory for the ml605 on-chip tests
+# Assuming 2 MB of main memory
 CFLAGS=-target patmos-unknown-unknown-elf -O2 \
 	-I$(CURDIR) \
 	-mpatmos-disable-vliw
 LDFLAGS?= \
 	-mpatmos-method-cache-size=0x800 -mpatmos-preferred-subfunction-size=0 \
-	-mpatmos-stack-base=0x0f0000 -mpatmos-shadow-stack-base=0x100000 \
+	-mpatmos-stack-base=0x200000 -mpatmos-shadow-stack-base=0x1f8000 \
 	-Xgold -T../hardware/ram.t -Xgold -n
 
 compile: $(BUILDDIR)/$(APP).elf
