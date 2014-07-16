@@ -75,6 +75,8 @@ $(BUILDDIR)/hello_sum.elf: nocinit.c libnoc
 $(BUILDDIR)/bootable-hello_sum_reduced.elf: nocinit.c libnoc bootable.h
 $(BUILDDIR)/matrix_mult.elf: nocinit.c libnoc
 
+$(BUILDDIR)/test_cmp.elf: nocinit.c libnoc
+
 # library for network-on-chip
 .PHONY: libnoc
 libnoc: $(BUILDDIR)/libnoc.a
