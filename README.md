@@ -27,7 +27,7 @@ Install sbt with:
 
     wget http://dl.bintray.com/sbt/debian/sbt-0.13.2.deb
     sudo dpkg -i sbt-0.13.2.deb
-    sudo apt-get upda
+    sudo apt-get update
     sudo apt-get install sbt
 
 We assume that the T-CREST project will live in $HOME/t-crest.

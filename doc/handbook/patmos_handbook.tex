@@ -3940,12 +3940,12 @@ units are allowed: \texttt{k}, \texttt{m}, \texttt{g}, or \texttt{kb},
     -h [ ---help ]       & produce help message \\
     -c [ ---maxc ] arg   & stop simulation after the given number of cycles (default: infinity) \\
     -b [ ---binary ] arg & binary or elf-executable file (stdin: \texttt{-}) \\
-    -o [ ---output ] arg & output execution trace in file (stdout: \texttt{-}, default: stdout) \\
     ---debug [=arg]      & enable step-by-step debug tracing after cycle, default: 0 \\
     ---debug-fmt arg     & format of the debug trace (\texttt{short}, \texttt{trace}, \texttt{instr}, \texttt{blocks}, \texttt{calls}, \texttt{calls-indent}, \texttt{default}, \texttt{long}, \texttt{all}) \\
-    ---debug-file arg    & output debug trace in file (stderr: \texttt{-}, default: stderr) \\
+    ---debug-file arg    & output debug trace in file (stdout: \texttt{-}, default: stderr) \\
     ---debug-intrs       & print out all status changes of the exception unit. \\
     ---debug-nopc        & do not print PC and cycles counter in debug output \\
+    -o [ ---stats-out ] arg & write statistics to a file (stdout: \texttt{-}, default: stderr) \\
     ---print-stats arg   & print statistics for a given function only. \\
     ---flush-caches arg  & flush all caches when reaching the given address (can be a symbol name). \\
     -V [ ---full ]       & full statistics output \\

@@ -237,17 +237,17 @@ namespace patmos
   class PRR_t : public register_file_t<PRR_e, bit_t, NUM_PRRn>
   {
   public:
-    PRR_t() : register_file_t() 
+    PRR_t() : register_file_t<PRR_e, bit_t, NUM_PRRn>()
     {
       Content[p0] = true;
       Content[pn0] = false;
-      
+
       // initialize the negative registers
       for (unsigned int p = pn1; p < NUM_PRRn; p++) {
         Content[p] = true;
       }
     }
-    
+
     void set(PRR_e index, bit_t value)
     {
       if (index == p0 || index == pn0) return;

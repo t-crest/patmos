@@ -145,7 +145,7 @@ int main(int argc, char **argv)
     loader->load_symbols(sym, text);
 
     // free streams
-    free_stream(in, std::cin);
+    free_stream(in);
 
     decoder_t decoder;
     instruction_checker_t instruction_checker;
