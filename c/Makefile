@@ -27,8 +27,7 @@ CFLAGS=-target patmos-unknown-unknown-elf -O2 \
 	-mpatmos-disable-vliw
 LDFLAGS?= \
 	-mpatmos-method-cache-size=0x800 -mpatmos-preferred-subfunction-size=0 \
-	-mpatmos-stack-base=0x200000 -mpatmos-shadow-stack-base=0x1f8000 \
-	-Xgold -T../hardware/ram.t -Xgold -n
+	-mpatmos-stack-base=0x200000 -mpatmos-shadow-stack-base=0x1f8000
 
 compile: $(BUILDDIR)/$(APP).elf
 
