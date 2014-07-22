@@ -9,7 +9,6 @@
 #include <stdio.h>
 #include "patio.h"
 
-#define TIM TIMER_USLOW
 #define DELAY 1000000*1
 
 int main() {
@@ -21,20 +20,20 @@ int main() {
   int val;
 
 for (int i=0; i<10; ++i) {
-printf("%d\n", TIM);
+printf("%d\n", TIMER_US_LOW);
 }
 
   *uart_ptr = '0';
-  val = TIM+DELAY;
-  while (TIM-val < 0)
+  val = TIMER_US_LOW+DELAY;
+  while (TIMER_US_LOW-val < 0)
     ;
   *uart_ptr = '1';
-  val = TIM+DELAY;
-  while (TIM-val < 0)
+  val = TIMER_US_LOW+DELAY;
+  while (TIMER_US_LOW-val < 0)
     ;
   *uart_ptr = '2';
-  val = TIM+DELAY;
-  while (TIM-val < 0)
+  val = TIMER_US_LOW+DELAY;
+  while (TIMER_US_LOW-val < 0)
     ;
   *uart_ptr = 'X';
 puts("hello");
