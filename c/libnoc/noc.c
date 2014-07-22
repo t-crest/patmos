@@ -132,12 +132,22 @@ int noc_dma(unsigned rcv_id,
 // Convert from byte address or size to double-word address or size
 #define DW(X) (((X)+7)/8)
 
-// Transfer data via the NoC
+// Attempt to transfer data via the NoC
 // The addresses and the size are in bytes
-void noc_send(int dst_id, volatile void _SPM *dst,
-             volatile void _SPM *src, size_t len) {
+int noc_nbsend(int dst_id, volatile void _SPM *dst,
+               volatile void _SPM *src, size_t len) {
 
   unsigned wp = (char *)dst - (char *)NOC_SPM_BASE;
   unsigned rp = (char *)src - (char *)NOC_SPM_BASE;
-  while(!noc_dma(dst_id, DW(wp), DW(rp), DW(len)));
+  return noc_dma(dst_id, DW(wp), DW(rp), DW(len));
 }
+
+// Transfer data via the NoC
+// The addresses and the size are in bytes
+void noc_send(int dst_id, volatile void _SPM *dst,
+              volatile void _SPM *src, size_t len) {
+
+  while(!noc_nbsend(dst_id, dst, src, len));
+}
+
+
