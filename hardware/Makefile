@@ -127,7 +127,7 @@ $(HWBUILDDIR)/OCRamCtrl.v: $(SRC)
 $(HWBUILDDIR)/Arbiter.v: $(SRC)
 	$(SBT) "run-main $(ARBITERMAIN) $(ARBITER_CNT) $(ARBITER_ADDR_WIDTH) $(ARBITER_DATA_WIDTH) $(ARBITER_BURST_LENGTH) --targetDir $(HWBUILDDIR) --backend v"
 
-$(HWBUILDDIR)/TdmArbiter.v: $(SRC)
+$(HWBUILDDIR)/TdmArbiterWrapper.v: $(SRC)
 	$(SBT) "run-main $(TDMARBITERMAIN) $(ARBITER_CNT) $(ARBITER_ADDR_WIDTH) $(ARBITER_DATA_WIDTH) $(ARBITER_BURST_LENGTH) --targetDir $(HWBUILDDIR) --backend v"
 
 # run Verilog simulation
