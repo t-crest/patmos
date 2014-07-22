@@ -36,16 +36,16 @@ $(BUILDDIR)/%.o: %.c
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) -c -o $@ $(filter %.c,$^)
 
-$(BUILDDIR)/%.elf: %.c libnoc
+$(BUILDDIR)/%.elf: %.c libnoc libmp
 	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lnoc
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc 
 $(BUILDDIR)/%.s: %.c
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) -fpatmos-emit-asm -S -o $@ $(filter %.c,$^)
 
 $(BUILDDIR)/bootable-%.elf: %.c libnoc
 	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lnoc
+	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc
 
 $(BUILDDIR)/bootable-%.s: %.c
 	mkdir -p $(BUILDDIR)/$(dir $*)
@@ -77,8 +77,17 @@ $(BUILDDIR)/matrix_mult.elf: nocinit.c libnoc
 
 $(BUILDDIR)/test_cmp.elf: nocinit.c libnoc
 
+$(BUILDDIR)/bootable-mp_test.elf: nocinit.c libnoc libmp bootable.h
+$(BUILDDIR)/mp_test.elf: nocinit.c libmp
+
 # library for network-on-chip
 .PHONY: libnoc
 libnoc: $(BUILDDIR)/libnoc.a
 $(BUILDDIR)/libnoc.a: $(BUILDDIR)/libnoc/noc.o
+	ar r $@ $^
+
+# library for message passing
+.PHONY: libmp
+libmp: libnoc $(BUILDDIR)/libmp.a
+$(BUILDDIR)/libmp.a: $(BUILDDIR)/libmp/mp.o
 	ar r $@ $^
