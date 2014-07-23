@@ -2,6 +2,8 @@
 -include config.mk
 
 BUILDDIR=../tmp
+LIBNOC=$(BUILDDIR)/libnoc.a
+LIBMP=$(BUILDDIR)/libmp.a
 
 CC=patmos-clang
 
@@ -35,14 +37,14 @@ $(BUILDDIR)/%.o: %.c
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) -c -o $@ $(filter %.c,$^)
 
-$(BUILDDIR)/%.elf: %.c libnoc libmp
+$(BUILDDIR)/%.elf: %.c $(LIBNOC) $(LIBMP)
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc 
 $(BUILDDIR)/%.s: %.c
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) -fpatmos-emit-asm -S -o $@ $(filter %.c,$^)
 
-$(BUILDDIR)/bootable-%.elf: %.c libnoc libmp
+$(BUILDDIR)/bootable-%.elf: %.c $(LIBNOC) $(LIBMP)
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc
 
@@ -58,35 +60,35 @@ $(BUILDDIR)/bootable-cmpslave.elf: boot.h cmpboot.h bootable.h
 $(BUILDDIR)/bootable-mandelbrot.elf: bootable.h
 $(BUILDDIR)/mandelbrot.elf: bootable.h
 
-$(BUILDDIR)/bootable-mandelbrot_par.elf: nocinit.c libnoc bootable.h
-$(BUILDDIR)/mandelbrot_par.elf: nocinit.c libnoc bootable.h
+$(BUILDDIR)/bootable-mandelbrot_par.elf: nocinit.c bootable.h
+$(BUILDDIR)/mandelbrot_par.elf: nocinit.c bootable.h
 
-$(BUILDDIR)/bootable-cmp_hello.elf: nocinit.c libnoc bootable.h
-$(BUILDDIR)/cmp_hello.elf: nocinit.c libnoc bootable.h
+$(BUILDDIR)/bootable-cmp_hello.elf: nocinit.c bootable.h
+$(BUILDDIR)/cmp_hello.elf: nocinit.c bootable.h
 
-$(BUILDDIR)/bootable-noctest.elf: nocinit.c libnoc bootable.h
-$(BUILDDIR)/noctest.elf: nocinit.c libnoc bootable.h
+$(BUILDDIR)/bootable-noctest.elf: nocinit.c bootable.h
+$(BUILDDIR)/noctest.elf: nocinit.c bootable.h
 
 $(BUILDDIR)/bootable-extdev_test.elf: bootable.h
 $(BUILDDIR)/extdev_test.elf: bootable.h
 
-$(BUILDDIR)/hello_sum.elf: nocinit.c libnoc
-$(BUILDDIR)/bootable-hello_sum_reduced.elf: nocinit.c libnoc bootable.h
-$(BUILDDIR)/matrix_mult.elf: nocinit.c libnoc
+$(BUILDDIR)/hello_sum.elf: nocinit.c
+$(BUILDDIR)/bootable-hello_sum_reduced.elf: nocinit.c bootable.h
+$(BUILDDIR)/matrix_mult.elf: nocinit.c
 
-$(BUILDDIR)/test_cmp.elf: nocinit.c libnoc
+$(BUILDDIR)/test_cmp.elf: nocinit.c
 
-$(BUILDDIR)/bootable-mp_test.elf: nocinit.c libnoc libmp bootable.h
-$(BUILDDIR)/mp_test.elf: nocinit.c libmp
+$(BUILDDIR)/bootable-mp_test.elf: nocinit.c bootable.h
+$(BUILDDIR)/mp_test.elf: nocinit.c
 
 # library for network-on-chip
 .PHONY: libnoc
-libnoc: $(BUILDDIR)/libnoc.a
-$(BUILDDIR)/libnoc.a: $(BUILDDIR)/libnoc/noc.o
+libnoc: $(LIBNOC)
+$(LIBNOC): $(BUILDDIR)/libnoc/noc.o
 	ar r $@ $^
 
 # library for message passing
 .PHONY: libmp
-libmp: libnoc $(BUILDDIR)/libmp.a
-$(BUILDDIR)/libmp.a: $(BUILDDIR)/libmp/mp.o
+libmp: libnoc $(LIBMP)
+$(LIBMP): $(BUILDDIR)/libmp/mp.o
 	ar r $@ $^
