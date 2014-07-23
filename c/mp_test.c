@@ -14,8 +14,8 @@ const int NOC_MASTER = 0;
 int main() {
   if (get_cpuid() == 0) {
     WRITE("Core 0\n",7);
-    MP_T send_buf;
-    MP_T rcv_buf;
+    mp_t send_buf;
+    mp_t rcv_buf;
     char send_data[] = "Hell";
     char rcv_data[5];
     mp_send_init(&send_buf,1,NOC_SPM_BASE,NOC_SPM_BASE,8,2);
@@ -37,8 +37,8 @@ int main() {
 
   } else if(get_cpuid() == 1) {
     WRITE("Core 1\n",7);
-    MP_T send_buf;
-    MP_T rcv_buf;
+    mp_t send_buf;
+    mp_t rcv_buf;
     mp_rcv_init(&rcv_buf,0,NOC_SPM_BASE,NOC_SPM_BASE,8,2);
     mp_send_init(&send_buf,0,NOC_SPM_BASE+16,NOC_SPM_BASE+16,8,2);
     WRITE("Initialized buffers\n",20);

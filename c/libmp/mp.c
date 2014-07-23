@@ -49,7 +49,7 @@
 // Functions for initializing the message passing API
 ////////////////////////////////////////////////////////////////////////////
 
-void mp_send_init(MP_T* mp_ptr, int rcv_id, volatile void _SPM *remote_addr,
+void mp_send_init(mp_t* mp_ptr, int rcv_id, volatile void _SPM *remote_addr,
           volatile void _SPM *local_addr, size_t buf_size, size_t num_buf){
   mp_ptr->remote_addr = remote_addr;
   mp_ptr->local_addr = local_addr;
@@ -65,7 +65,7 @@ void mp_send_init(MP_T* mp_ptr, int rcv_id, volatile void _SPM *remote_addr,
   return;  
 }
 
-void mp_rcv_init(MP_T* mp_ptr, int send_id, volatile void _SPM *remote_addr, volatile void _SPM *local_addr, size_t buf_size, size_t num_buf){
+void mp_rcv_init(mp_t* mp_ptr, int send_id, volatile void _SPM *remote_addr, volatile void _SPM *local_addr, size_t buf_size, size_t num_buf){
   mp_ptr->remote_addr = remote_addr;
   mp_ptr->local_addr = local_addr;
   mp_ptr->buf_size = buf_size + 8; // 2 words in bytes for the message complete flag
@@ -86,28 +86,38 @@ void mp_rcv_init(MP_T* mp_ptr, int send_id, volatile void _SPM *remote_addr, vol
 // Functions for transmitting data
 ////////////////////////////////////////////////////////////////////////////
 
-void mp_send(MP_T* mp_ptr){
+void mp_send(mp_t* mp_ptr){
   // Calc addresses based on the status registers
-  volatile void _SPM * calc_rmt_addr = &mp_ptr->remote_addr[mp_ptr->buf_size*((mp_ptr->sent_count) & 0x00000001)];
+  volatile void _SPM * calc_rmt_addr = &mp_ptr->remote_addr[mp_ptr->buf_size*mp_ptr->sent_count];
   while((mp_ptr->sent_count) - *(mp_ptr->rcv_count) == mp_ptr->num_buf);
   /* spin until there is room in receiving buffer*/
   noc_send(mp_ptr->rcv_id,calc_rmt_addr,mp_ptr->local_addr,mp_ptr->buf_size); // The size is including the last word which is -1
-  mp_ptr->sent_count++;
+  if (mp_ptr->sent_count == mp_ptr->num_buf-1)
+  {
+    mp_ptr->sent_count = 0;
+  } else {
+    mp_ptr->sent_count++;  
+  }
   return;
 }
 
-void mp_rcv(MP_T* mp_ptr){
-  volatile void _SPM * calc_locl_addr = &mp_ptr->local_addr[mp_ptr->buf_size*((*(size_t*)mp_ptr->rcv_count) & 0x00000001)];
+void mp_rcv(mp_t* mp_ptr){
+  volatile void _SPM * calc_locl_addr = &mp_ptr->local_addr[mp_ptr->buf_size*(*mp_ptr->rcv_count)];
   while(*((volatile int _SPM *)((char*)calc_locl_addr + mp_ptr->buf_size - 8)) != -1){ // Spin until message is received
     /* spin */
   }
-  (*(size_t*)mp_ptr->rcv_count)++;
+  if ((*mp_ptr->rcv_count) == mp_ptr->num_buf-1)
+  {
+    (*mp_ptr->rcv_count) = 0;
+  } else {
+    (*mp_ptr->rcv_count)++;  
+  }
   *((volatile int _SPM *)((char*)calc_locl_addr + mp_ptr->buf_size - 8)) = 0; // Set the reception flag to 0
   return;
 }
 
 
-void mp_ack(MP_T* mp_ptr){
+void mp_ack(mp_t* mp_ptr){
   noc_send(mp_ptr->send_id,mp_ptr->remote_rcv_count,mp_ptr->rcv_count,8);
   return;
 }

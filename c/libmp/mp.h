@@ -62,10 +62,10 @@ typedef struct {
     };
     struct {
       int send_id;                  /**< The ID of the sender, only present at the receiver */
-      volatile void _SPM * remote_rcv_count; /**< The address of the rcv_count at the sender, only present at the receiver */
+      volatile size_t _SPM * remote_rcv_count; /**< The address of the rcv_count at the sender, only present at the receiver */
     };
   };
-} MP_T;
+} mp_t;
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for initializing the message passing API
@@ -81,7 +81,7 @@ typedef struct {
 /// buffer structure should start. The size of the buffer structure is the
 /// message buffer size multiplied by the number of buffers plus 16 bytes.
 /// \param size The size of the message buffer
-void mp_send_init(MP_T* mp_ptr, int rcv_id, volatile void _SPM *remote_addr,
+void mp_send_init(mp_t* mp_ptr, int rcv_id, volatile void _SPM *remote_addr,
               volatile void _SPM *local_addr, size_t size, size_t num_buf);
 
 /// \brief Initialize the state of the receive function
@@ -94,7 +94,7 @@ void mp_send_init(MP_T* mp_ptr, int rcv_id, volatile void _SPM *remote_addr,
 /// buffer structure should start. The size of the buffer structure is the
 /// message buffer size multiplied by the number of buffers plus 16 bytes.
 /// \param size The size of the message buffer
-void mp_rcv_init(MP_T* mp_ptr, int send_id, volatile void _SPM *remote_addr,
+void mp_rcv_init(mp_t* mp_ptr, int send_id, volatile void _SPM *remote_addr,
               volatile void _SPM *local_addr, size_t size, size_t num_buf);
 
 ////////////////////////////////////////////////////////////////////////////
@@ -108,7 +108,7 @@ void mp_rcv_init(MP_T* mp_ptr, int send_id, volatile void _SPM *remote_addr,
 ///
 /// \param mp_ptr A pointer to the message passing data structure
 /// for the given message passing channel.
-void mp_send(MP_T* mp_ptr) __attribute__((noinline));
+void mp_send(mp_t* mp_ptr);
 
 /// \brief A function for receiving a message from a remote processor under
 /// flow control. The data that is received is placed in a message buffer
@@ -118,7 +118,7 @@ void mp_send(MP_T* mp_ptr) __attribute__((noinline));
 ///
 /// \param mp_ptr A pointer to the message passing data structure
 /// for the given message passing channel.
-void mp_rcv(MP_T* mp_ptr);
+void mp_rcv(mp_t* mp_ptr);
 
 /// \brief A function for acknowledging the reception of a message.
 /// This function shall be called to release space in the receiving
@@ -129,6 +129,6 @@ void mp_rcv(MP_T* mp_ptr);
 ///
 /// \param mp_ptr A pointer to the message passing data structure
 /// for the given message passing channel.
-void mp_ack(MP_T* mp_ptr);
+void mp_ack(mp_t* mp_ptr);
 
 #endif /* _MP_H_ */
