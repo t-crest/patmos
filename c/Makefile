@@ -31,24 +31,25 @@ LDFLAGS?= \
 	-mpatmos-method-cache-size=0x800 -mpatmos-preferred-subfunction-size=0 \
 	-mpatmos-stack-base=0x200000 -mpatmos-shadow-stack-base=0x1f8000
 
+.PHONY: compile
 compile: $(BUILDDIR)/$(APP).elf
 
-$(BUILDDIR)/%.o: %.c
+$(BUILDDIR)/%.o: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) -c -o $@ $(filter %.c,$^)
 
-$(BUILDDIR)/%.elf: %.c $(LIBNOC) $(LIBMP)
+$(BUILDDIR)/%.elf: %.c $(LIBNOC) $(LIBMP) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc 
-$(BUILDDIR)/%.s: %.c
+$(BUILDDIR)/%.s: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) -fpatmos-emit-asm -S -o $@ $(filter %.c,$^)
 
-$(BUILDDIR)/bootable-%.elf: %.c $(LIBNOC) $(LIBMP)
+$(BUILDDIR)/bootable-%.elf: %.c $(LIBNOC) $(LIBMP) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc
 
-$(BUILDDIR)/bootable-%.s: %.c
+$(BUILDDIR)/bootable-%.s: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS-BOOTABLE) -fpatmos-emit-asm -S -o $@ $(filter %.c,$^)
 
