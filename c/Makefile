@@ -42,7 +42,7 @@ $(BUILDDIR)/%.s: %.c
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) -fpatmos-emit-asm -S -o $@ $(filter %.c,$^)
 
-$(BUILDDIR)/bootable-%.elf: %.c libnoc
+$(BUILDDIR)/bootable-%.elf: %.c libnoc libmp
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc
 
