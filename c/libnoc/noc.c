@@ -73,11 +73,15 @@ static void noc_sync(void) {
   if (get_cpuid() == NOC_MASTER) {
     // Wait until all slaves have configured their network interface
     int done = 0;
+    if (boot_info->master.status == STATUS_INITDONE) {
+      puts("master.status = STATUS_INITDONE");
+    }
     do {
       done = 1;
       for (unsigned i = 0; i < MAX_CORES; i++) {
         if (boot_info->slave[i].status != STATUS_NULL &&
-            boot_info->slave[i].status != STATUS_INITDONE) {
+            boot_info->slave[i].status != STATUS_INITDONE && 
+            i != NOC_MASTER) {
           done = 0;
         }
       }
@@ -100,11 +104,11 @@ static void noc_sync(void) {
 
 // Initialize the NoC
 void noc_init(void) {
-  /* if (get_cpuid() == NOC_MASTER) puts("noc_configure"); */
+  //if (get_cpuid() == NOC_MASTER) puts("noc_configure");
   noc_configure();
-  /* if (get_cpuid() == NOC_MASTER) puts("noc_sync"); */
+  //if (get_cpuid() == NOC_MASTER) puts("noc_sync");
   noc_sync();
-  /* if (get_cpuid() == NOC_MASTER) puts("noc_done"); */
+  //if (get_cpuid() == NOC_MASTER) puts("noc_done");
 }
 
 // Start a NoC transfer

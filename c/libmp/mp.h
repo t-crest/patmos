@@ -49,23 +49,45 @@
 // of the message passing channels
 ////////////////////////////////////////////////////////////////////////////
 
+/// \brief Message passing descriptor
+///
+/// The struct is used to store the data describing the massage passing channel
 typedef struct {
-  volatile void _SPM * remote_addr; /**< The address of the remote buffer structure */
-  volatile void _SPM * local_addr;  /**< The address of the local buffer structure */
-  size_t buf_size;                  /**< The size of a buffer in bytes */
-  size_t num_buf;                   /**< The number of buffers at the receiver */
-  volatile size_t _SPM * rcv_count;   /**< The number of messages received by the receiver */
+  volatile void _SPM * remote_addr;
+  /**< The address of the remote buffer structure */
+  volatile void _SPM * local_addr; 
+  /**< The address of the local buffer structure */
+  size_t buf_size;
+  /**< The size of a buffer in bytes */
+  size_t num_buf;
+  /**< The number of buffers at the receiver */
+  volatile size_t _SPM * recv_count;
+  /**< The number of messages received by the receiver */
   union {
-    struct {
-      int rcv_id;                   /**< The ID of the receiver, only present at the sender */
-      size_t sent_count;            /**< The number of messages sent by the sender, only present at the sender */
+    struct { /**< Data items for a sender */
+      int recv_id;
+      /**< The ID of the receiver, only present at the sender */
+      size_t send_count;
+      /**< The number of messages sent by the sender, only present at the sender */
+      size_t send_ptr;
+      /**< A pointer to the tail of the receiving queue */
+      volatile void _SPM * write_buf;
+      /**< A pointer to the free write buffer, only present at the sender*/
+      volatile void _SPM * shadow_write_buf;
+      /**< A pointer to the used write buffer, only present at the sender*/
     };
-    struct {
-      int send_id;                  /**< The ID of the sender, only present at the receiver */
-      volatile size_t _SPM * remote_rcv_count; /**< The address of the rcv_count at the sender, only present at the receiver */
+    struct {  /**< Data items for a receiver */
+      int send_id;
+      /**< The ID of the sender, only present at the receiver */
+      size_t recv_ptr;
+      /**< A pointer to the head of the receiving queue */
+      volatile size_t _SPM * remote_recv_count;
+      /**< The address of the recv_count at the sender, only present at the receiver */
+      volatile void _SPM * read_buf;
+      /**< A pointer to the currently free read buffer, only present at the receiver */
     };
   };
-} mp_t;
+} mpd_t;
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for initializing the message passing API
@@ -73,7 +95,7 @@ typedef struct {
 
 /// \brief Initialize the state of the send function
 ///
-/// \param rcv_id The core id of the receiving processor
+/// \param recv_id The core id of the receiving processor
 /// \param remote_addr A pointer to the remote address, where the receiving
 /// buffer structure should start. The size of the buffer structure is the
 /// message buffer size multiplied by the number of buffers plus 16 bytes.
@@ -81,7 +103,7 @@ typedef struct {
 /// buffer structure should start. The size of the buffer structure is the
 /// message buffer size multiplied by the number of buffers plus 16 bytes.
 /// \param size The size of the message buffer
-void mp_send_init(mp_t* mp_ptr, int rcv_id, volatile void _SPM *remote_addr,
+void mp_send_init(mpd_t* mp_ptr, int recv_id, volatile void _SPM *remote_addr,
               volatile void _SPM *local_addr, size_t size, size_t num_buf);
 
 /// \brief Initialize the state of the receive function
@@ -94,7 +116,7 @@ void mp_send_init(mp_t* mp_ptr, int rcv_id, volatile void _SPM *remote_addr,
 /// buffer structure should start. The size of the buffer structure is the
 /// message buffer size multiplied by the number of buffers plus 16 bytes.
 /// \param size The size of the message buffer
-void mp_rcv_init(mp_t* mp_ptr, int send_id, volatile void _SPM *remote_addr,
+void mp_recv_init(mpd_t* mp_ptr, int send_id, volatile void _SPM *remote_addr,
               volatile void _SPM *local_addr, size_t size, size_t num_buf);
 
 ////////////////////////////////////////////////////////////////////////////
@@ -108,7 +130,7 @@ void mp_rcv_init(mp_t* mp_ptr, int send_id, volatile void _SPM *remote_addr,
 ///
 /// \param mp_ptr A pointer to the message passing data structure
 /// for the given message passing channel.
-void mp_send(mp_t* mp_ptr);
+void mp_send(mpd_t* mp_ptr);
 
 /// \brief A function for receiving a message from a remote processor under
 /// flow control. The data that is received is placed in a message buffer
@@ -118,17 +140,17 @@ void mp_send(mp_t* mp_ptr);
 ///
 /// \param mp_ptr A pointer to the message passing data structure
 /// for the given message passing channel.
-void mp_rcv(mp_t* mp_ptr);
+void mp_recv(mpd_t* mp_ptr);
 
 /// \brief A function for acknowledging the reception of a message.
 /// This function shall be called to release space in the receiving
 /// buffer when the received data is no longer used.
-/// It is not necessary to call #mp_ack() after each #mp_rcv() call.
+/// It is not necessary to call #mp_ack() after each #mp_recv() call.
 /// It is possible to work on 2 or more incomming messages at the same
 /// time with out them being overwritten.
 ///
 /// \param mp_ptr A pointer to the message passing data structure
 /// for the given message passing channel.
-void mp_ack(mp_t* mp_ptr);
+void mp_ack(mpd_t* mp_ptr);
 
 #endif /* _MP_H_ */
