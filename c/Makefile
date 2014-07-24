@@ -14,7 +14,7 @@ CFLAGS-BOOTABLE=-target patmos-unknown-unknown-elf -Os \
 	-mpatmos-disable-function-splitter \
 	-mpatmos-disable-vliw
 LDFLAGS-BOOTABLE= \
-	-mpatmos-stack-base=0x80010700 -mpatmos-shadow-stack-base=0x80010800 \
+	-mpatmos-stack-base=0x80010800 -mpatmos-shadow-stack-base=0x80010700 \
 	-nodefaultlibs -nostdlib -nostartfiles \
 	-Xgold --section-start -Xgold .text=0x0 -e main \
 	-Xgold --section-start -Xgold .rodata=0x80000010 \
@@ -30,6 +30,9 @@ CFLAGS=-target patmos-unknown-unknown-elf -O2 \
 LDFLAGS?= \
 	-mpatmos-method-cache-size=0x800 -mpatmos-preferred-subfunction-size=0 \
 	-mpatmos-stack-base=0x200000 -mpatmos-shadow-stack-base=0x1f8000
+
+# 32KB stacks for 256MB external memory
+# -mpatmos-stack-base=0x10000000 -mpatmos-shadow-stack-base=0x0fff8000
 
 .PHONY: compile
 compile: $(BUILDDIR)/$(APP).elf
