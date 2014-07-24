@@ -140,9 +140,40 @@ static val_t readelf(istream &is, Patmos_t *c)
   return entry;
 }
 
+static void print_sc_state(Patmos_t *c) {
+  // fill
+  if ((c->Patmos_core_dcache_sc__state.to_ulong() == 1) ||
+      (c->Patmos_core_dcache_sc__state.to_ulong() == 2)) {
+    if(c->Patmos_core_dcache_sc__mb_wrEna.to_ulong())
+    {
+      for (unsigned int i = 0; i < 4; i++)
+      {
+        std::cerr << "f:" << (c->Patmos_core_dcache_sc__transferAddr.to_ulong() + i - 4)
+                  << " > " << (((c->Patmos_core_dcache_sc__mb_wrData.to_ulong() << (i*8)) >> 24) & 0xFF) 
+                  << "\n";
+      }
+    }
+  }
+  // spill
+  else if ((c->Patmos_core_dcache_sc__state.to_ulong() == 3) ||
+           (c->Patmos_core_dcache_sc__state.to_ulong() == 4)) {
+    if(c->Patmos_core_dcache_sc__io_toMemory_M_DataValid.to_ulong() && 
+       c->Patmos_core_dcache_sc__io_toMemory_M_DataByteEn.to_ulong())
+    {
+      for (unsigned int i = 0; i < 4; i++)
+      {
+        std::cerr << "s:" << (c->Patmos_core_dcache_sc__transferAddr.to_ulong() + i - 4)
+                  << " < " << (((c->Patmos_core_dcache_sc__mb_rdData.to_ulong() << (i*8)) >> 24) & 0xFF)
+                  << "\n";
+      }
+    }
+  }
+}
+
 static void print_state(Patmos_t *c) {
-  sval_t pc = c->Patmos_core_memory__io_memwb_pc.to_ulong();
-  *out << (pc - 2) << " - ";
+  static unsigned int baseReg = 0;
+  *out << (baseReg + c->Patmos_core_fetch__pcReg.to_ulong() * 4 - c->Patmos_core_fetch__relBaseReg.to_ulong() * 4) << " - ";
+  baseReg = c->Patmos_core_execute__baseReg.to_ulong();
 
   for (unsigned i = 0; i < 32; i++) {
     *out << c->Patmos_core_decode_rf__rf.get(i).to_ulong() << " ";
@@ -267,6 +298,7 @@ static void help(ostream &out) {
       << "  -l <N>        Stop after <N> cycles" << endl
       << "  -p            Print method cache statistics" << endl
       << "  -r            Print register values in each cycle" << endl
+      << "  -s            Trace stack cache spilling/filling" << endl
       << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
       << "  -I <file>     Read input for UART from file <file>" << endl
       << "  -O <file>     Write output from UART to file <file>" << endl;
@@ -283,12 +315,13 @@ int main (int argc, char* argv[]) {
   bool print_stat = false;
   bool quiet = true;
   bool vcd = false;
+  bool sc_trace = false;
 
   int uart_in = STDIN_FILENO;
   int uart_out = STDOUT_FILENO;
   unsigned baud_counter = 0;
 
-  while ((opt = getopt(argc, argv, "hikl:nprvI:O:")) != -1) {
+  while ((opt = getopt(argc, argv, "hikl:nprsvI:O:")) != -1) {
 	switch (opt) {
 	case 'i':
 	  random = true;
@@ -302,9 +335,12 @@ int main (int argc, char* argv[]) {
 	case 'p':
 	  print_stat = true;
 	  break;
-	case 'r':
-	  quiet = false;
-	  break;
+        case 'r':
+          quiet = false;
+          break;
+        case 's':
+          sc_trace = false;
+          break;
 	case 'v':
 	  vcd = true;
 	  break;
@@ -431,6 +467,11 @@ int main (int argc, char* argv[]) {
 	  }
 	}
 
+	// reset UART TX queue to avoid slow (and faithful) simulation of UART
+        c->Patmos_core_iocomp_Uart_txQueue__enq_ptr = 0;
+        c->Patmos_core_iocomp_Uart_txQueue__deq_ptr = 0;
+        c->Patmos_core_iocomp_Uart_txQueue__maybe_full = 0;
+	
 	// Pass on data from UART
 	if (c->Patmos_core_iocomp_Uart__io_ocp_M_Cmd.to_ulong() == 0x1
 		&& (c->Patmos_core_iocomp_Uart__io_ocp_M_Addr.to_ulong() & 0xff) == 0x04) {
@@ -469,6 +510,9 @@ int main (int argc, char* argv[]) {
 	if (!quiet && c->Patmos_core__enableReg.to_bool()) {
 	  print_state(c);
 	}
+	if (sc_trace) {
+          print_sc_state(c);
+        }
 
 	// Return to address 0 halts the execution after one more iteration
 	if (halt) {
@@ -494,3 +538,4 @@ int main (int argc, char* argv[]) {
   // Pass on return value from processor
   return c->Patmos_core_decode_rf__rf.get(1).to_ulong();
 }
+

@@ -331,6 +331,13 @@ bool block_stack_cache_t::reserve(simulator_t &s, uword_t size, word_t delta,
       // spill the content of the stack buffer to the memory.
       if (Memory.write(s, new_spill, &Buffer[0], delta)) 
       {
+        for(unsigned int i = 0; i < delta; i++) 
+        {
+          std::cerr << "s:" << new_spill + i
+                    << " < " << (unsigned int)(Buffer[i] & 0xff)
+                    << "\n";
+        }
+
         // the transfer is done, go back to IDLE phase
         Phase = IDLE;
         return true;
@@ -459,6 +466,13 @@ bool block_stack_cache_t::ensure(simulator_t &s, uword_t size, word_t delta,
   // copy the data from memory into a temporary buffer
   if (Memory.read(s, new_spill - delta, Buffer, delta))
   {
+    for(unsigned int i = 0; i < delta; i++) 
+    {
+      std::cerr << "f:" << new_spill - delta + i
+                << " > " << (unsigned int) (Buffer[i] & 0xff)
+                << "\n";
+    }
+
     // Ensure the size of the stack cache
     if (Content.size() < size)
     {
@@ -833,3 +847,4 @@ void block_lazy_stack_cache_t::reset_stats()
   Num_blocks_not_spilled = 0;
   Max_blocks_not_spilled = 0;
 }
+

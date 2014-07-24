@@ -168,11 +168,6 @@ class Execute() extends Module {
                         predReg(exReg.pred(i)(PRED_BITS-1, 0)) ^ exReg.pred(i)(PRED_BITS))
   }
 
-  // stack registers
-  val stackTopReg = Reg(init = UInt(0, DATA_WIDTH))
-  val stackSpillReg = Reg(init = UInt(0, DATA_WIDTH))
-  io.exdec.sp := stackTopReg
-
   // return information
   val retBaseReg = Reg(init = UInt(0, DATA_WIDTH))
   val retOffReg = Reg(init = UInt(0, DATA_WIDTH))
@@ -235,6 +230,26 @@ class Execute() extends Module {
     }
   }
 
+  // interface to the stack cache
+  io.exsc.op := opNone
+  io.exsc.opData := UInt(0)
+
+  // stack control instructions
+  when(io.ena && !io.brflush && doExecute(0)) {
+    when(exReg.isSRES) {
+      io.exsc.op := opSRES
+      io.exsc.opData := exReg.immVal(0)
+    }
+    .elsewhen(exReg.isSENS) {
+      io.exsc.op := opSENS
+      io.exsc.opData := exReg.immVal(0)
+    }
+    .elsewhen(exReg.isSFREE) {
+      io.exsc.op := opSFREE
+      io.exsc.opData := exReg.immVal(0)
+    }
+  }
+
   // dual-issue operations
   for (i <- 0 until PIPE_COUNT) {
 
@@ -254,12 +269,6 @@ class Execute() extends Module {
     }
     predReg(0) := Bool(true)
 
-    // stack register handling
-    when(exReg.aluOp(i).isSTC && doExecute(i)) {
-      io.exdec.sp := op(2*i+1).toUInt()
-      stackTopReg := op(2*i+1).toUInt()
-    }
-
     // special registers
     when(exReg.aluOp(i).isMTS && doExecute(i)) {
       switch(exReg.aluOp(i).func) {
@@ -274,11 +283,12 @@ class Execute() extends Module {
           mulHiReg := op(2*i).toUInt()
         }
         is(SPEC_ST) {
-          io.exdec.sp := op(2*i).toUInt()
-          stackTopReg := op(2*i).toUInt()
+          io.exsc.op := opSetStackTop
+          io.exsc.opData := op(2*i).toUInt()
         }
         is(SPEC_SS) {
-          stackSpillReg := op(2*i).toUInt()
+          io.exsc.op := opSetMemTop
+          io.exsc.opData := op(2*i).toUInt()
         }
         is(SPEC_SRB) {
           retBaseReg := op(2*i).toUInt()
@@ -307,10 +317,10 @@ class Execute() extends Module {
         mfsResult := mulHiReg
       }
       is(SPEC_ST) {
-        mfsResult := stackTopReg
+        mfsResult := io.scex.stackTop
       }
       is(SPEC_SS) {
-        mfsResult := stackSpillReg
+        mfsResult := io.scex.memTop
       }
       is(SPEC_SRB) {
         mfsResult := retBaseReg
@@ -411,8 +421,6 @@ class Execute() extends Module {
     predReg := predReg
     mulLoReg := mulLoReg
     mulHiReg := mulHiReg
-    stackTopReg := stackTopReg
-    stackSpillReg := stackSpillReg
     retBaseReg := retBaseReg
     retOffReg := retOffReg
     excBaseReg := excBaseReg
@@ -424,3 +432,4 @@ class Execute() extends Module {
     retOffReg := Cat(Mux(saveND, exReg.relPc, io.feex.pc), Bits("b00").toUInt)
   }
 }
+
