@@ -44,6 +44,17 @@
 #include <machine/spm.h>
 #include "libnoc/noc.h"
 
+ 
+#define ALIGN(X) ((((X)+7)>>3)<<3)
+#define FLAG_SIZE ALIGN(8)  // The flag at the end of a message buffer is 8 bytes
+                            // Th flag size should be aligned to double words
+
+// Possible Flag types
+#define FLAG_VALID 0xFFFFFFFF
+#define FLAG_INVALID 0x00000000
+
+#define NUM_WRITE_BUF 2
+
 ////////////////////////////////////////////////////////////////////////////
 // Data structures for storing state information
 // of the message passing channels
