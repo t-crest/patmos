@@ -124,8 +124,8 @@ void print_processor_info() {
   //printf("Operating frequency: %d MHz\n",(*CPU_FREQ) >> 20);
   printf("Operating frequency: %d MHz\n",(*CPU_FREQ)/1000000);
   int i = 0;
-  int cores = 0;
-  for(i = 0; i < MAX_CORES; i++){
+  int cores = 1;
+  for(i = 1; i < MAX_CORES; i++){
     if(boot_info->slave[i].status != STATUS_NULL){
       cores++;
     }
