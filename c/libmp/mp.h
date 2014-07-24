@@ -30,10 +30,30 @@
    policies, either expressed or implied, of the copyright holder.
  */
 
+
 /**
  * \file mp.h Definitions for libmp.
  * 
  * \author Rasmus Bo Soerensen <rasmus@rbscloud.dk>
+ *
+ * \brief Message passing library for the T-CREST platform
+ *
+ * It is up to the programmer to allocate buffering space in the communication
+ * scratch pads. The allocation is specified in the mp_send_init() and
+ * mp_recv_init() functions.
+ *
+ * The size of the message passing buffer structure in the commuincation
+ * scratch pads are:
+ *
+ * Sender side:
+ *       2 * (buf_size + FLAG_SIZE) + sizeof(recv_count)(Aligned to DW)
+ *
+ * Receiver side:
+ *       num_buf * (buf_size + FLAG_SIZE) + sizeof(remote_recv_count)
+ *                                                       (Aligned to DW)
+ *
+ * The local and remote addresses set in mp_send_init() and mp_recv_init()
+ * have to be choosen such that they do not overlap.
  *
  */
 
@@ -44,7 +64,7 @@
 #include <machine/spm.h>
 #include "libnoc/noc.h"
 
- 
+
 #define ALIGN(X) ((((X)+7)>>3)<<3)
 #define FLAG_SIZE ALIGN(8)  // The flag at the end of a message buffer is 8 bytes
                             // Th flag size should be aligned to double words
@@ -75,7 +95,7 @@ typedef struct {
   volatile size_t _SPM * recv_count;
   /**< The number of messages received by the receiver */
   union {
-    struct { /**< Data items for a sender */
+    struct {
       int recv_id;
       /**< The ID of the receiver, only present at the sender */
       size_t send_count;
@@ -87,7 +107,7 @@ typedef struct {
       volatile void _SPM * shadow_write_buf;
       /**< A pointer to the used write buffer, only present at the sender*/
     };
-    struct {  /**< Data items for a receiver */
+    struct {
       int send_id;
       /**< The ID of the sender, only present at the receiver */
       size_t recv_ptr;
@@ -115,7 +135,7 @@ typedef struct {
 /// message buffer size multiplied by the number of buffers plus 16 bytes.
 /// \param size The size of the message buffer
 void mp_send_init(mpd_t* mp_ptr, int recv_id, volatile void _SPM *remote_addr,
-              volatile void _SPM *local_addr, size_t size, size_t num_buf);
+              volatile void _SPM *local_addr, size_t buf_size, size_t num_buf);
 
 /// \brief Initialize the state of the receive function
 ///
@@ -128,7 +148,7 @@ void mp_send_init(mpd_t* mp_ptr, int recv_id, volatile void _SPM *remote_addr,
 /// message buffer size multiplied by the number of buffers plus 16 bytes.
 /// \param size The size of the message buffer
 void mp_recv_init(mpd_t* mp_ptr, int send_id, volatile void _SPM *remote_addr,
-              volatile void _SPM *local_addr, size_t size, size_t num_buf);
+              volatile void _SPM *local_addr, size_t buf_size, size_t num_buf);
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for transmitting data

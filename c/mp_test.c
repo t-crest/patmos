@@ -1,3 +1,34 @@
+/**
+* PROGRAM DESCRIPTION:
+*
+* This is an example program for using the libmp (message passing library).
+*
+* The program will send the string "Hello World!, Sending messages is cool!"
+* from core 0 to core 1 and then back to core 0 and print it to the console.
+*
+* The string will be sent from core 0 in messages of 8 bytes at the time.
+* Core 1 will receive the messages, acknowledge them and send them back in one
+* message.
+*
+* It is up to the programmer to allocate buffering space in the communication
+* scratch pads. The allocation is specified in the mp_send_init() and
+* mp_recv_init() functions.
+*
+* The size of the message passing buffer structure in the commuincation
+* scratch pads are:
+*
+* Sender side:
+*       2 * (buf_size + FLAG_SIZE) + sizeof(recv_count)(Aligned to DW)
+*
+* Receiver side:
+*       num_buf * (buf_size + FLAG_SIZE) + sizeof(remote_recv_count)
+*                                                       (Aligned to DW)
+*
+* The local and remote addresses set in mp_send_init() and mp_recv_init()
+* have to be choosen such that they do not overlap.
+*
+*/
+
 /*
 	Author: Rasmus Bo Soerensen (rasmus@rbscloud.dk)
 	Copyright: DTU, BSD License
