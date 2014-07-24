@@ -45,7 +45,7 @@
 
 #define DELAY 1000*1
 
-// #define DEBUG
+#define DEBUG
 
 int main(void)
 {
@@ -64,6 +64,7 @@ int main(void)
   boot_info->master.entrypoint = NULL;
   for (unsigned i = 0; i < MAX_CORES; i++) {
     boot_info->slave[i].status = STATUS_NULL;
+    boot_info->slave[i].return_val = -1;
   }
 
   // give the slaves some time to boot
@@ -122,16 +123,38 @@ int main(void)
   }
 
   // TODO: wait for slaves to finish
+  WRITE("RETURN\n", 7);
+  for (unsigned i = 1; i < MAX_CORES; i++) {
+    WRITE("CHECK", 5);
+    if (boot_info->slave[i].status != STATUS_NULL) {
+	    WRITE("ING\n", 4);
+      while(boot_info->slave[i].status != STATUS_RETURN){
+        /* spin */
+        val = TIMER_US_LOW+(DELAY*1000);
+        while (TIMER_US_LOW-val < 0)
+          ;
+        char resp[1];
+        resp[0] = XDIGIT((int)boot_info->slave[i].status);
+        WRITE(resp,1);
+      }
+	    WRITE("...OK\n", 6);
+      // TODO: check return value
+      // boot_info->slave[i].return_val
+    }
+  }
 
 #ifdef DEBUG
   WRITE("EXIT\n", 5);
 #endif
-
+  
   // Print exit magic and return code
   msg[0] = '\0';
   msg[1] = 'x';
   msg[2] = retval & 0xff;
   WRITE(msg, 3);
+  
+  // notify slaves that they can loop back
+  boot_info->master.status = STATUS_RETURN;
 
   // loop back, TODO: replace with a real reset
   main();

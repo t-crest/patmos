@@ -56,6 +56,7 @@ int main(void)
   boot_info->master.status = STATUS_NULL;
   boot_info->master.entrypoint = NULL;
   boot_info->slave[CORE_ID].status = STATUS_NULL;
+  boot_info->slave[CORE_ID].return_val = -1;
 
   do {
     // make sure the own status is visible
@@ -74,6 +75,7 @@ int main(void)
   int retval = -1;
   if (boot_info->master.entrypoint != 0) {
     retval = (*boot_info->master.entrypoint)();
+    boot_info->slave[CORE_ID].return_val = retval;
 
     // Return may be "unclean" and leave registers clobbered.
     asm volatile ("" : :
@@ -86,6 +88,15 @@ int main(void)
                     "$r26", "$r27", "$r28", "$r29",
                     "$r30", "$r31");
   }
+  
+  // notify master that application has returned
+  boot_info->slave[CORE_ID].status = STATUS_RETURN;
+  
+  // wait until master application has returned
+  while (boot_info->master.status != STATUS_RETURN) {
+    boot_info->slave[CORE_ID].status = STATUS_RETURN;
+    /* spin */
+  }  
   
   // TODO: report return value back to master
 
