@@ -28,10 +28,10 @@ int main() {
 	int error = 0;
 	int test = 0;
 
-	WRITE("*", 1);
+	
 
 	if (CORE_ID == 0) {
-
+        WRITE("*", 1);
 		for (int k = 0; k < CNT; k++) { 
 			WRITE(".", 1);
 			for (int i=0; i<=LENGTH; i++) // Write to main memory
@@ -59,7 +59,8 @@ int main() {
 
 		WRITE("Finished\n", 9);
 	} else {
-		WRITE("-", 1);
+		//WRITE("-", 1);
+		for(;;){}
 	}
 
 }
