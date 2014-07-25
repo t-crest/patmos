@@ -43,127 +43,144 @@
 // Functions for initializing the message passing API
 ////////////////////////////////////////////////////////////////////////////
 
-void mp_send_init(mpd_t* mp_ptr, int recv_id, volatile void _SPM *remote_addr,
+int mp_send_init(mpd_t* mpd_ptr, int recv_id, volatile void _SPM *remote_addr,
           volatile void _SPM *local_addr, size_t buf_size, size_t num_buf) {
 
-  
-  mp_ptr->remote_addr = remote_addr;
-  mp_ptr->local_addr = local_addr;
+  // Check if the remote and local addresses are double word aligned
+  if ((volatile void _SPM *)DWALIGN(remote_addr) != remote_addr ||
+    (volatile void _SPM *)DWALIGN(local_addr) != local_addr) {
+    return 0;
+  }
+  mpd_ptr->remote_addr = remote_addr;
+  mpd_ptr->local_addr = local_addr;
   // Align the buffer size to double words and add the flag size
-  mp_ptr->buf_size = ALIGN(buf_size) + FLAG_SIZE;
-  mp_ptr->num_buf = num_buf;
-  int recv_count_offset = mp_ptr->buf_size * NUM_WRITE_BUF;
-  mp_ptr->recv_count = (volatile size_t _SPM *)((char*)local_addr + recv_count_offset);
-  mp_ptr->recv_id = recv_id;
+  mpd_ptr->buf_size = DWALIGN(buf_size);
+  mpd_ptr->num_buf = num_buf;
+  int recv_count_offset = (mpd_ptr->buf_size + FLAG_SIZE) * NUM_WRITE_BUF;
+  mpd_ptr->recv_count = (volatile size_t _SPM *)((char*)local_addr + recv_count_offset);
+  mpd_ptr->recv_id = recv_id;
 
   // Initialize send count to 0 and recv count to 0.
-  mp_ptr->send_count = 0;
-  mp_ptr->send_ptr = 0;
-  mp_ptr->write_buf = local_addr;
-  mp_ptr->shadow_write_buf = (volatile void _SPM *)((char*)local_addr + mp_ptr->buf_size);
-  *(mp_ptr->recv_count) = 0;
+  mpd_ptr->send_count = 0;
+  mpd_ptr->send_ptr = 0;
+  mpd_ptr->write_buf = local_addr;
+  mpd_ptr->shadow_write_buf = (volatile void _SPM *)((char*)local_addr + (mpd_ptr->buf_size + FLAG_SIZE));
+  *(mpd_ptr->recv_count) = 0;
 
   // Initialize last word in buffers to FLAG_VALID.
-  *(volatile int _SPM *)((char*)mp_ptr->local_addr + ALIGN(buf_size)) = FLAG_VALID;
-  *(volatile int _SPM *)((char*)mp_ptr->local_addr + mp_ptr->buf_size + ALIGN(buf_size)) = FLAG_VALID;
+  *(volatile int _SPM *)((char*)mpd_ptr->local_addr + mpd_ptr->buf_size) = FLAG_VALID;
+  *(volatile int _SPM *)((char*)mpd_ptr->local_addr + (mpd_ptr->buf_size + FLAG_SIZE) + mpd_ptr->buf_size) = FLAG_VALID;
   
-  return;  
+  return 1;  
 }
 
-void mp_recv_init(mpd_t* mp_ptr, int send_id, volatile void _SPM *remote_addr,
+int mp_recv_init(mpd_t* mpd_ptr, int send_id, volatile void _SPM *remote_addr,
             volatile void _SPM *local_addr, size_t buf_size, size_t num_buf) {
 
-  mp_ptr->remote_addr = remote_addr;
-  mp_ptr->local_addr = local_addr;
+  // Check if the remote and local addresses are double word aligned
+  if ((volatile void _SPM *)DWALIGN(remote_addr) != remote_addr ||
+    (volatile void _SPM *)DWALIGN(local_addr) != local_addr) {
+    return 0;
+  }
+
+  mpd_ptr->remote_addr = remote_addr;
+  mpd_ptr->local_addr = local_addr;
   // Align the buffer size to double words and add the flag size
-  mp_ptr->buf_size = ALIGN(buf_size) + FLAG_SIZE;
-  mp_ptr->num_buf = num_buf;
-  int recv_count_offset = mp_ptr->buf_size * num_buf;
-  mp_ptr->recv_count = (volatile size_t _SPM *)((char*)local_addr + recv_count_offset);
-  mp_ptr->send_id = send_id;
-  int rmt_recv_count_offset = (ALIGN(buf_size) + FLAG_SIZE) * NUM_WRITE_BUF;
-  mp_ptr->remote_recv_count = (volatile size_t _SPM *)((char*)remote_addr + rmt_recv_count_offset);
-  mp_ptr->read_buf = local_addr;
+  mpd_ptr->buf_size = DWALIGN(buf_size);
+  mpd_ptr->num_buf = num_buf;
+  int recv_count_offset = (mpd_ptr->buf_size + FLAG_SIZE) * num_buf;
+  mpd_ptr->recv_count = (volatile size_t _SPM *)((char*)local_addr + recv_count_offset);
+  mpd_ptr->send_id = send_id;
+  int rmt_recv_count_offset = (mpd_ptr->buf_size + FLAG_SIZE) * NUM_WRITE_BUF;
+  mpd_ptr->remote_recv_count = (volatile size_t _SPM *)((char*)remote_addr + rmt_recv_count_offset);
+  mpd_ptr->read_buf = local_addr;
 
   // Initialize recv count to 0.
-  *(volatile int _SPM *)(mp_ptr->recv_count) = 0;
-  mp_ptr->recv_ptr = 0;
+  *(volatile int _SPM *)(mpd_ptr->recv_count) = 0;
+  mpd_ptr->recv_ptr = 0;
 
   // Initialize last word in each buffer to FLAG_INVALID
   for (int i = 1; i <= num_buf; i++) {
-    *(volatile int _SPM *)((char*)mp_ptr->local_addr + ALIGN(buf_size) * i) = FLAG_INVALID;
+    *(volatile int _SPM *)((char*)mpd_ptr->local_addr + mpd_ptr->buf_size * i) = FLAG_INVALID;
   }
-  return;
+  return 1;
 }
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for transmitting data
 ////////////////////////////////////////////////////////////////////////////
 
-void mp_send(mpd_t* mp_ptr) {
+void mp_send(mpd_t* mpd_ptr) {
 
   // Calculate the address of the remote receiving buffer
-  int rmt_addr_offset = mp_ptr->buf_size * mp_ptr->send_ptr;
-  volatile void _SPM * calc_rmt_addr = &mp_ptr->remote_addr[rmt_addr_offset];
+  int rmt_addr_offset = (mpd_ptr->buf_size + FLAG_SIZE) * mpd_ptr->send_ptr;
+  volatile void _SPM * calc_rmt_addr = &mpd_ptr->remote_addr[rmt_addr_offset];
 
-  while((mp_ptr->send_count) - *(mp_ptr->recv_count) == mp_ptr->num_buf) {
+  while((mpd_ptr->send_count) - *(mpd_ptr->recv_count) == mpd_ptr->num_buf) {
     /* spin until there is room in receiving buffer*/
   }
-  noc_send(mp_ptr->recv_id,calc_rmt_addr,mp_ptr->write_buf,mp_ptr->buf_size); 
+  noc_send(mpd_ptr->recv_id,calc_rmt_addr,mpd_ptr->write_buf,mpd_ptr->buf_size + FLAG_SIZE); 
 
   // Increment the send counter
-  mp_ptr->send_count++;
+  mpd_ptr->send_count++;
 
   // Move the send pointer
-  if (mp_ptr->send_ptr == mp_ptr->num_buf-1) {
-    mp_ptr->send_ptr = 0;
+  if (mpd_ptr->send_ptr == mpd_ptr->num_buf-1) {
+    mpd_ptr->send_ptr = 0;
   } else {
-    mp_ptr->send_ptr++;  
+    mpd_ptr->send_ptr++;  
   }
 
   // Swap write_buf and shadow_write_buf
-  volatile void _SPM * tmp = mp_ptr->write_buf;
-  mp_ptr->write_buf = mp_ptr->shadow_write_buf;
-  mp_ptr->shadow_write_buf = tmp;
+  volatile void _SPM * tmp = mpd_ptr->write_buf;
+  mpd_ptr->write_buf = mpd_ptr->shadow_write_buf;
+  mpd_ptr->shadow_write_buf = tmp;
 
   return;
 }
 
-void mp_recv(mpd_t* mp_ptr) {
+void mp_recv(mpd_t* mpd_ptr) {
 
   // Calculate the address of the local receiving buffer
-  int locl_addr_offset = mp_ptr->buf_size * mp_ptr->recv_ptr;
-  volatile void _SPM * calc_locl_addr = &mp_ptr->local_addr[locl_addr_offset];
+  int locl_addr_offset = (mpd_ptr->buf_size + FLAG_SIZE) * mpd_ptr->recv_ptr;
+  volatile void _SPM * calc_locl_addr = &mpd_ptr->local_addr[locl_addr_offset];
 
-  volatile int _SPM * recv_flag = (volatile int _SPM *)((char*)calc_locl_addr + mp_ptr->buf_size - FLAG_SIZE);
+  volatile int _SPM * recv_flag = (volatile int _SPM *)((char*)calc_locl_addr + mpd_ptr->buf_size);
 
   while(*recv_flag == FLAG_INVALID) {
     /* Spin until message is received */
   }
 
   // Increment the receive counter
-  (*mp_ptr->recv_count)++;
+  (*mpd_ptr->recv_count)++;
 
   // Move the receive pointer 
-  if (mp_ptr->recv_ptr == mp_ptr->num_buf - 1) {
-    mp_ptr->recv_ptr = 0;
+  if (mpd_ptr->recv_ptr == mpd_ptr->num_buf - 1) {
+    mpd_ptr->recv_ptr = 0;
   } else {
-    mp_ptr->recv_ptr++;  
+    mpd_ptr->recv_ptr++;  
   }
 
   // Set the reception flag of the received message to FLAG_INVALID
   *recv_flag = FLAG_INVALID; 
 
   // Set the new read buffer pointer
-  mp_ptr->read_buf = calc_locl_addr;
+  mpd_ptr->read_buf = calc_locl_addr;
 
   return;
 }
 
 
-void mp_ack(mpd_t* mp_ptr){
+void mp_ack(mpd_t* mpd_ptr){
   // Update the remote receive count
-  noc_send(mp_ptr->send_id,mp_ptr->remote_recv_count,mp_ptr->recv_count,8);
+  noc_send(mpd_ptr->send_id,mpd_ptr->remote_recv_count,mpd_ptr->recv_count,8);
   return;
 }
 
+////////////////////////////////////////////////////////////////////////////
+// Help functions 
+////////////////////////////////////////////////////////////////////////////
+
+int mp_spm_alloc_size(mpd_t* mpd_ptr) {
+  return 0;
+}
