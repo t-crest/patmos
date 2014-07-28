@@ -140,9 +140,40 @@ static val_t readelf(istream &is, Patmos_t *c)
   return entry;
 }
 
+static void print_sc_state(Patmos_t *c) {
+  // fill
+  if ((c->Patmos_core_dcache_sc__state.to_ulong() == 1) ||
+      (c->Patmos_core_dcache_sc__state.to_ulong() == 2)) {
+    if(c->Patmos_core_dcache_sc__mb_wrEna.to_ulong())
+    {
+      for (unsigned int i = 0; i < 4; i++)
+      {
+        std::cerr << "f:" << (c->Patmos_core_dcache_sc__transferAddr.to_ulong() + i - 4)
+                  << " > " << (((c->Patmos_core_dcache_sc__mb_wrData.to_ulong() << (i*8)) >> 24) & 0xFF)
+                  << "\n";
+      }
+    }
+  }
+  // spill
+  else if ((c->Patmos_core_dcache_sc__state.to_ulong() == 3) ||
+           (c->Patmos_core_dcache_sc__state.to_ulong() == 4)) {
+    if(c->Patmos_core_dcache_sc__io_toMemory_M_DataValid.to_ulong() &&
+       c->Patmos_core_dcache_sc__io_toMemory_M_DataByteEn.to_ulong())
+    {
+      for (unsigned int i = 0; i < 4; i++)
+      {
+        std::cerr << "s:" << (c->Patmos_core_dcache_sc__transferAddr.to_ulong() + i - 4)
+                  << " < " << (((c->Patmos_core_dcache_sc__mb_rdData.to_ulong() << (i*8)) >> 24) & 0xFF)
+                  << "\n";
+      }
+    }
+  }
+}
+
 static void print_state(Patmos_t *c) {
-  sval_t pc = c->Patmos_core_memory__io_memwb_pc.to_ulong();
-  *out << (pc - 2) << " - ";
+  static unsigned int baseReg = 0;
+  *out << (baseReg + c->Patmos_core_fetch__pcReg.to_ulong() * 4 - c->Patmos_core_fetch__relBaseReg.to_ulong() * 4) << " - ";
+  baseReg = c->Patmos_core_execute__baseReg.to_ulong();
 
   for (unsigned i = 0; i < 32; i++) {
     *out << c->Patmos_core_decode_rf__rf.get(i).to_ulong() << " ";
@@ -469,6 +500,7 @@ int main (int argc, char* argv[]) {
 	if (!quiet && c->Patmos_core__enableReg.to_bool()) {
 	  print_state(c);
 	}
+        print_sc_state(c);
 
 	// Return to address 0 halts the execution after one more iteration
 	if (halt) {

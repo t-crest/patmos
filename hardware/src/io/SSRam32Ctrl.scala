@@ -208,13 +208,6 @@ class SSRam32Ctrl (
     //counter till output is ready
     waitState := waitState - UInt(1)
   }
-  //set wait state after incoming request
-  when (io.ocp.M.Cmd === OcpCmd.RD) {
-    waitState := UInt(ramWsRd + 1)
-  }
-  when (io.ocp.M.Cmd === OcpCmd.WR) {
-    waitState := UInt(ramWsWr + 1)
-  }
 
   io.sSRam32CtrlPins.ramOut.dout := io.ocp.M.Data
   when (doutEna === Bits(1)) {
@@ -326,5 +319,4 @@ class ExtSsram(addrBits : Int, fileName : String) extends Module {
   }
   io.ramIn.din := dout
 }
-
 
