@@ -43,15 +43,14 @@
 
 #include "bootable.h"
 
-#define TIM TIMER_USLOW
 #define DELAY 1000*1
 
 int main(void)
 {
 
   // wait a little bit in case of the TU/e memory controller not being ready
-  int val = TIM+DELAY;
-  while (TIM-val < 0)
+  int val = TIMER_US_LOW+DELAY;
+  while (TIMER_US_LOW-val < 0)
     ;
   // overwrite any potential leftovers from previous runs
   boot_info->master.status = STATUS_NULL;

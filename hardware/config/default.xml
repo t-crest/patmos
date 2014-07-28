@@ -12,7 +12,7 @@
   <DSPM size="2k" />
   <BootSPM size="2k" />
 
-  <ExtMem size="2M" />
+  <ExtMem size="64M" />
 
   <IOs>
  	<IO DevTypeRef="CpuInfo" offset="0"/>
@@ -24,3 +24,4 @@
   	<Dev DevType="Timer" entity="Timer" iface="OcpCore" />
   </Devs>
 </patmos>
+

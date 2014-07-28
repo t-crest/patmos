@@ -319,3 +319,4 @@ class OcpBurstBuffer(master : OcpBurstMasterPort, slave : OcpBurstSlavePort) {
   master.S.CmdAccept := free
   master.S.DataAccept := free
 }
+

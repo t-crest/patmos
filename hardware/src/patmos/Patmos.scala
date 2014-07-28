@@ -246,3 +246,4 @@ object PatmosMain {
     chiselMainTest(chiselArgs, () => Module(new Patmos(configFile, binFile, datFile))) { f => new PatmosTest(f) }
   }
 }
+

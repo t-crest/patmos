@@ -480,3 +480,4 @@ class MCacheCtrl() extends Module {
   io.fetch_ena := fetchEna
 }
 
+

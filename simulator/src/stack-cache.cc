@@ -847,3 +847,4 @@ void block_lazy_stack_cache_t::reset_stats()
   Num_blocks_not_spilled = 0;
   Max_blocks_not_spilled = 0;
 }
+

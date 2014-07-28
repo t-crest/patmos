@@ -117,7 +117,18 @@ static const void * volatile __noc_include __attribute__((used)) = &noc_init;
 int noc_dma(unsigned rcv_id, unsigned short write_ptr,
             unsigned short read_ptr, unsigned short size);
 
-/// \brief Transfer data via the NoC.
+/// \brief Attempt to transfer data via the NoC (non-blocking).
+///
+/// The addresses and the size are absolute and in bytes.
+/// \param rcv_id The core id of the receiver.
+/// \param dst A pointer to the destination of the transfer.
+/// \param src A pointer to the source of the transfer.
+/// \param size The size of data to be transferred, in bytes.
+/// \returns 1 if sending was successful, 0 otherwise.
+int noc_nbsend(int rcv_id, volatile void _SPM *dst,
+               volatile void _SPM *src, size_t size);
+
+/// \brief Transfer data via the NoC (blocking).
 ///
 /// The addresses and the size are absolute and in bytes.
 /// \param rcv_id The core id of the receiver.

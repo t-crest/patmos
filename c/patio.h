@@ -49,8 +49,8 @@
 
 #define CORE_ID *((volatile _IODEV int *) 0xF0000000)
 
-#define TIMER_CLKLOW *((volatile _IODEV int *) 0xF0000204)
-#define TIMER_USLOW *((volatile _IODEV int *) 0xF000020c)
+#define TIMER_CLK_LOW *((volatile _IODEV int *) 0xF0000204)
+#define TIMER_US_LOW *((volatile _IODEV int *) 0xF000020c)
 
 #define UART_STATUS *((volatile _IODEV int *) 0xF0000800)
 #define UART_DATA   *((volatile _IODEV int *) 0xF0000804)

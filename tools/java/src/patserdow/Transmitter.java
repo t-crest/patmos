@@ -33,7 +33,7 @@ public class Transmitter
 			{
 				break;
 			}
-			if(System.currentTimeMillis() - timeout > 1000)
+			if(System.currentTimeMillis() - timeout > 10000)
 			{
 				throw new java.io.IOException("Timeout!");
 			}

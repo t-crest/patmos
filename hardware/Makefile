@@ -23,7 +23,7 @@ SBT=java -Xmx1024M -Xss8M -XX:MaxPermSize=128M -jar sbt/sbt-launch.jar
 
 # C++ build flags
 CXX=g++
-CXXFLAGS=-O1
+CXXFLAGS=-O1 -g
 
 # Quick fix for Mac OS X
 # How are include paths handled these days in *nix? CMake?
@@ -127,7 +127,7 @@ $(HWBUILDDIR)/OCRamCtrl.v: $(SRC)
 $(HWBUILDDIR)/Arbiter.v: $(SRC)
 	$(SBT) "run-main $(ARBITERMAIN) $(ARBITER_CNT) $(ARBITER_ADDR_WIDTH) $(ARBITER_DATA_WIDTH) $(ARBITER_BURST_LENGTH) --targetDir $(HWBUILDDIR) --backend v"
 
-$(HWBUILDDIR)/TdmArbiter.v: $(SRC)
+$(HWBUILDDIR)/TdmArbiterWrapper.v: $(SRC)
 	$(SBT) "run-main $(TDMARBITERMAIN) $(ARBITER_CNT) $(ARBITER_ADDR_WIDTH) $(ARBITER_DATA_WIDTH) $(ARBITER_BURST_LENGTH) --targetDir $(HWBUILDDIR) --backend v"
 
 # run Verilog simulation

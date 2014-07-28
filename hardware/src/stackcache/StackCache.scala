@@ -95,6 +95,9 @@ class StackCache() extends Module {
   val mb_wrAddr = UInt(width=ADDR_WIDTH)
   val mb_wrEna = UInt(width=BYTE_WIDTH)
   val mb_wrData = UInt(width=DATA_WIDTH)
+  
+  // register addr for MemBlock
+  val rdAddrReg = Reg(next = memoryBlock0.io.rdAddr)
 
   // response to CPU for read/write requests
   val responseToCPU = Reg(init = OcpResp.NULL)
@@ -217,7 +220,8 @@ class StackCache() extends Module {
       // read next data element once accepted, otherwise hold
       mb_rdAddr := Mux(accepted, nextTransferAddr.apply(scSizeBits + wordBits - 1, 
                                                         wordBits), 
-                                 memoryBlock0.rdAddrReg)
+
+                                 rdAddrReg)
 
       // increment transfer address if accepted
       transferAddr := Mux(accepted, nextTransferAddr, transferAddr)
@@ -267,7 +271,8 @@ class StackCache() extends Module {
       memTopReg := Mux(spillingDone, stackTopReg + UInt(SCACHE_SIZE), memTopReg)
 
       // if more spilling is needed preserve the stack cache's read address
-      mb_rdAddr := Mux(spillingDone, UInt(0), memoryBlock0.rdAddrReg)
+      mb_rdAddr := Mux(spillingDone, UInt(0), rdAddrReg)
+
     }
 
     // // // // // // // // // // // // // // // // // // // // // // // // //
@@ -383,6 +388,7 @@ class StackCache() extends Module {
   debug(mb_wrData)
   debug(mb_wrEna)
 }
+
 
 
 

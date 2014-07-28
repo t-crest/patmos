@@ -934,3 +934,4 @@ namespace patmos
     return os;
   }
 }
+

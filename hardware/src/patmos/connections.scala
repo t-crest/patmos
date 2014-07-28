@@ -473,3 +473,4 @@ class PatmosIO() extends Bundle() {
   val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
 }
+

@@ -435,3 +435,4 @@ class Decode() extends Module {
                                    Mux(inDelaySlot != UInt(0), decDelaySlot, UInt(0))))))
   }
 }
+

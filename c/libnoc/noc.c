@@ -73,11 +73,15 @@ static void noc_sync(void) {
   if (get_cpuid() == NOC_MASTER) {
     // Wait until all slaves have configured their network interface
     int done = 0;
+    if (boot_info->master.status == STATUS_INITDONE) {
+      puts("master.status = STATUS_INITDONE");
+    }
     do {
       done = 1;
       for (unsigned i = 0; i < MAX_CORES; i++) {
         if (boot_info->slave[i].status != STATUS_NULL &&
-            boot_info->slave[i].status != STATUS_INITDONE) {
+            boot_info->slave[i].status != STATUS_INITDONE && 
+            i != NOC_MASTER) {
           done = 0;
         }
       }
@@ -100,11 +104,11 @@ static void noc_sync(void) {
 
 // Initialize the NoC
 void noc_init(void) {
-  /* if (get_cpuid() == NOC_MASTER) puts("noc_configure"); */
+  //if (get_cpuid() == NOC_MASTER) puts("noc_configure");
   noc_configure();
-  /* if (get_cpuid() == NOC_MASTER) puts("noc_sync"); */
+  //if (get_cpuid() == NOC_MASTER) puts("noc_sync");
   noc_sync();
-  /* if (get_cpuid() == NOC_MASTER) puts("noc_done"); */
+  //if (get_cpuid() == NOC_MASTER) puts("noc_done");
 }
 
 // Start a NoC transfer
@@ -132,12 +136,22 @@ int noc_dma(unsigned rcv_id,
 // Convert from byte address or size to double-word address or size
 #define DW(X) (((X)+7)/8)
 
-// Transfer data via the NoC
+// Attempt to transfer data via the NoC
 // The addresses and the size are in bytes
-void noc_send(int dst_id, volatile void _SPM *dst,
-             volatile void _SPM *src, size_t len) {
+int noc_nbsend(int dst_id, volatile void _SPM *dst,
+               volatile void _SPM *src, size_t len) {
 
   unsigned wp = (char *)dst - (char *)NOC_SPM_BASE;
   unsigned rp = (char *)src - (char *)NOC_SPM_BASE;
-  while(!noc_dma(dst_id, DW(wp), DW(rp), DW(len)));
+  return noc_dma(dst_id, DW(wp), DW(rp), DW(len));
 }
+
+// Transfer data via the NoC
+// The addresses and the size are in bytes
+void noc_send(int dst_id, volatile void _SPM *dst,
+              volatile void _SPM *src, size_t len) {
+
+  while(!noc_nbsend(dst_id, dst, src, len));
+}
+
+
