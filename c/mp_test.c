@@ -162,7 +162,7 @@ int main() {
     mp_send(&send_chan);
     return 0;
   } else {
-    for (; ; ) { }
+    //for (; ; ) { }
     return 0;
   }
 

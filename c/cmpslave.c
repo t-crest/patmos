@@ -73,30 +73,27 @@ int main(void)
 
   // call the application's _start()
   int retval = -1;
-  if (boot_info->master.entrypoint != 0) {
+  if (boot_info->master.entrypoint != NULL) {
     retval = (*boot_info->master.entrypoint)();
-    boot_info->slave[CORE_ID].return_val = retval;
-
-    // Return may be "unclean" and leave registers clobbered.
-    asm volatile ("" : :
-                  : "$r2", "$r3", "$r4", "$r5",
-                    "$r6", "$r7", "$r8", "$r9",
-                    "$r10", "$r11", "$r12", "$r13",
-                    "$r14", "$r15", "$r16", "$r17",
-                    "$r18", "$r19", "$r20", "$r21",
-                    "$r22", "$r23", "$r24", "$r25",
-                    "$r26", "$r27", "$r28", "$r29",
-                    "$r30", "$r31");
   }
-  
-  // notify master that application has returned
-  boot_info->slave[CORE_ID].status = STATUS_RETURN;
+  // Return may be "unclean" and leave registers clobbered.
+  asm volatile ("" : :
+                : "$r2", "$r3", "$r4", "$r5",
+                  "$r6", "$r7", "$r8", "$r9",
+                  "$r10", "$r11", "$r12", "$r13",
+                  "$r14", "$r15", "$r16", "$r17",
+                  "$r18", "$r19", "$r20", "$r21",
+                  "$r22", "$r23", "$r24", "$r25",
+                  "$r26", "$r27", "$r28", "$r29",
+                  "$r30", "$r31");
+
+  boot_info->slave[CORE_ID].return_val = retval;
   
   // wait until master application has returned
-  while (boot_info->master.status != STATUS_RETURN) {
+  do {
+    // notify master that application has returned
     boot_info->slave[CORE_ID].status = STATUS_RETURN;
-    /* spin */
-  }  
+  } while (boot_info->master.status != STATUS_RETURN); 
   
   // TODO: report return value back to master
 
