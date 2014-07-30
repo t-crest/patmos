@@ -246,6 +246,9 @@ class Execute() extends Module {
     .elsewhen(exReg.isSFREE) {
       io.exsc.op := sc_OP_FREE
     }
+    .elsewhen (exReg.isSPILL) {
+      io.exsc.op := sc_OP_SPILL
+    }
   }
 
   // dual-issue operations

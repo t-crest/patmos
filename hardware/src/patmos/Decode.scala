@@ -206,6 +206,7 @@ class Decode() extends Module {
   // no STC instruction is active and the stack top pointer is not modified
   io.decex.isSRES := Bool(false)
   io.decex.isSENS := Bool(false)
+  io.decex.isSPILL := Bool(false)
 
   // Load/stores and stack control operations set this
   isMem := Bool(false)
@@ -250,11 +251,13 @@ class Decode() extends Module {
         decoded(0) := Bool(true)
       }
       is(STC_SSPILL) {
-        // TODO: ignored for now
+        isSTC := Bool(true)
+        io.decex.isSPILL := Bool(true)
         decoded(0) := Bool(true)
       }
       is(STC_SSPILLR) {
-        // TODO: ignored for now
+        isSTC := Bool(true)
+        io.decex.isSPILL := Bool(true)
         decoded(0) := Bool(true)
       }
     }

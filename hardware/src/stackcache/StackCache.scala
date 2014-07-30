@@ -146,7 +146,7 @@ class StackCache() extends Module {
             // assign the operation's operand to the mem top pointer
             memTopReg := io.exsc.opData
           }
-          is(sc_OP_RES) {
+          is(sc_OP_RES | sc_OP_SPILL) {
             // decrement the stack top pointer
             val nextStackTop = stackTopReg - io.exsc.opOff
             stackTopReg := nextStackTop
