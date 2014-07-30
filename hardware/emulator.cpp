@@ -298,6 +298,7 @@ static void help(ostream &out) {
       << "  -l <N>        Stop after <N> cycles" << endl
       << "  -p            Print method cache statistics" << endl
       << "  -r            Print register values in each cycle" << endl
+      << "  -s            Trace stack cache spilling/filling" << endl
       << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
       << "  -I <file>     Read input for UART from file <file>" << endl
       << "  -O <file>     Write output from UART to file <file>" << endl;
@@ -314,6 +315,7 @@ int main (int argc, char* argv[]) {
   bool print_stat = false;
   bool quiet = true;
   bool vcd = false;
+  bool sc_trace = false;
 
   int uart_in = STDIN_FILENO;
   int uart_out = STDOUT_FILENO;
@@ -335,6 +337,9 @@ int main (int argc, char* argv[]) {
 	  break;
 	case 'r':
 	  quiet = false;
+	  break;
+	case 's':
+	  sc_trace = true;
 	  break;
 	case 'v':
 	  vcd = true;
@@ -500,7 +505,9 @@ int main (int argc, char* argv[]) {
 	if (!quiet && c->Patmos_core__enableReg.to_bool()) {
 	  print_state(c);
 	}
-        print_sc_state(c);
+	if (sc_trace) {
+	  print_sc_state(c);
+	}
 
 	// Return to address 0 halts the execution after one more iteration
 	if (halt) {
@@ -512,7 +519,7 @@ int main (int argc, char* argv[]) {
 	  halt = true;
 	}
 
-	if (print_stat == true) {
+	if (print_stat) {
 	  mcacheStat(c, halt);
 	}
 
