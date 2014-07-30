@@ -324,7 +324,7 @@ class StackCache() extends Module {
   // handle read/write requests from CPU
   when(io.fromCPU.M.Cmd === OcpCmd.WR) {
     // write to the stack cache's memory
-    mb_wrEna := UInt("b1111") // io.fromCPU.M.ByteEn
+    mb_wrEna := io.fromCPU.M.ByteEn
     mb_wrData := io.fromCPU.M.Data
     mb_wrAddr := (io.fromCPU.M.Addr + stackTopReg).apply(scSizeBits + wordBits - 1,
       wordBits)
