@@ -20,7 +20,7 @@ LDFLAGS-BOOTABLE= \
 	-Xgold --section-start -Xgold .rodata=0x80000010 \
 	-Xgold --section-start -Xgold .data=0x80010000 \
 	-Xllc -mpatmos-subfunction-align=0 \
-	-Xllc -disable-machine-licm
+	-Xllc -disable-machine-licm -Xllc -disable-machine-cse
 
 # Flags for compiling normal applications
 # Assuming 2 MB of main memory

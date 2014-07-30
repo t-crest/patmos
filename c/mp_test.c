@@ -18,7 +18,8 @@
 * scratch pads are:
 *
 * Sender side:
-*       2 * (buf_size + FLAG_SIZE) + sizeof(recv_count)(Aligned to DW)
+*       NUM_WRITE_BUF * (buf_size + FLAG_SIZE) + sizeof(recv_count)
+*                                                       (Aligned to DW)
 *
 * Receiver side:
 *       num_buf * (buf_size + FLAG_SIZE) + sizeof(remote_recv_count)
@@ -41,6 +42,24 @@ const int NOC_MASTER = 0;
 //#include "bootable.h"
 //#include "patio.h"
 
+// The starting address of the message passing structure for channel 1
+#define MP_CHAN_1 NOC_SPM_BASE
+#define MP_CHAN_1_NUM_BUF 2
+#define MP_CHAN_1_BUF_SIZE 8
+// The size of the message passing structure for channel 1
+#define MP_CHAN_1_SIZE (MP_CHAN_1_NUM_BUF * (MP_CHAN_1_BUF_SIZE \
+                                         + FLAG_SIZE) + DWALIGN(sizeof(size_t)))
+
+// The starting address of the message passing structure for channel 2
+// This starting address is offset by the size of message pasing structure 1
+#define MP_CHAN_2 NOC_SPM_BASE + MP_CHAN_1_SIZE
+#define MP_CHAN_2_NUM_BUF 2
+#define MP_CHAN_2_BUF_SIZE 40
+// The size of the message passing structure for channel 1
+#define MP_CHAN_2_SIZE (MP_CHAN_2_NUM_BUF * (MP_CHAN_2_BUF_SIZE \
+                                         + FLAG_SIZE) + DWALIGN(sizeof(size_t)))
+
+
 int main() {
   if (get_cpuid() == 0) {
     puts("Core 0");
@@ -51,8 +70,24 @@ int main() {
     char recv_data[40];
 
     // Initialization of message passing buffers
-    mp_send_init(&send_chan,1,NOC_SPM_BASE,NOC_SPM_BASE,8,2);
-    mp_recv_init(&recv_chan,1,NOC_SPM_BASE+16,NOC_SPM_BASE+16,40,2);
+    // mp_send_init() and mp_recv_init() return false if local and remote
+    // addresses are not aligned to double words
+    if (!mp_send_init(&send_chan,
+        1,
+        MP_CHAN_1,
+        MP_CHAN_1,
+        MP_CHAN_1_BUF_SIZE,
+        MP_CHAN_1_NUM_BUF)) {
+        abort();
+    }
+    if (!mp_recv_init(&recv_chan,
+        1,
+        MP_CHAN_2,
+        MP_CHAN_2,
+        MP_CHAN_2_BUF_SIZE,
+        MP_CHAN_2_NUM_BUF)) {
+        abort();
+    }
     // +16 is equal to 64 bytes
 
     puts("Initialized buffers");
@@ -61,9 +96,9 @@ int main() {
     while(i < sizeof(send_data)) {
         int chunk = 0;
 
-        if ( sizeof(send_data)-i >= send_chan.buf_size - FLAG_SIZE) {
+        if ( sizeof(send_data)-i >= send_chan.buf_size) {
             // If the remaining data is more than the size of the buffer
-            chunk = send_chan.buf_size - FLAG_SIZE;   
+            chunk = send_chan.buf_size;   
         } else {
             // The remaining data all fits in a buffer
             chunk = sizeof(send_data)-i;
@@ -95,14 +130,30 @@ int main() {
     mpd_t send_chan;
     mpd_t recv_chan;
     // Initialize the message passing buffers
-    mp_recv_init(&recv_chan,0,NOC_SPM_BASE,NOC_SPM_BASE,8,2);
-    mp_send_init(&send_chan,0,NOC_SPM_BASE+16,NOC_SPM_BASE+16,40,2);
+    mp_recv_init(&recv_chan,
+        0,
+        MP_CHAN_1,
+        MP_CHAN_1,
+        MP_CHAN_1_BUF_SIZE,
+        MP_CHAN_1_NUM_BUF);
+    mp_send_init(&send_chan,
+        0,
+        MP_CHAN_2,
+        MP_CHAN_2,
+        MP_CHAN_2_BUF_SIZE,
+        MP_CHAN_2_NUM_BUF);
     // For each of the messages that is received
     for (int i = 0; i < 5; ++i) {
         mp_recv(&recv_chan);
-        for(int j = 0; j < 8; j++){
+        for(int j = 0; j < recv_chan.buf_size; j++){
             // Copy the received data to the send buffer
-            *((volatile char _SPM *)send_chan.write_buf + i * 8 + j ) = *((volatile char _SPM *)recv_chan.read_buf + j);
+            int to_offset = i * recv_chan.buf_size + j;
+            volatile char _SPM * copy_to;
+            volatile char _SPM * copy_from;
+            copy_to = (volatile char _SPM *)send_chan.write_buf + to_offset;
+            
+            copy_from = (volatile char _SPM *)recv_chan.read_buf + j;
+            *copy_to = *copy_from;
         }
         // Acknowledge the received data.
         mp_ack(&recv_chan);
