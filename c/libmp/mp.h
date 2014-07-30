@@ -64,26 +64,39 @@
 #include <machine/spm.h>
 #include "libnoc/noc.h"
 
+/*! \def DWALIGN
+ * Alignes X to double word size
+ */
+#define DWALIGN(X) (((((int)X)+7)>>3)<<3)
 
-#define DWALIGN(X) (((((int)X)+7)>>3)<<3) // Double word alignment
-#define FLAG_SIZE DWALIGN(8)  // The flag at the end of a message buffer is 8 bytes
-                            // Th flag size should be aligned to double words
+/*! \def FLAG_SIZE
+ * The size of the flag used to detect completion of a received message.
+ * This flag is placed at the end of the message to be send.
+ * The flag size is aligned to double words.
+ */
+#define FLAG_SIZE DWALIGN(8)
 
 // Possible Flag types
 #define FLAG_VALID 0xFFFFFFFF
 #define FLAG_INVALID 0x00000000
 
-#define NUM_WRITE_BUF 2 // DO NOT CHANGE! The number of write pointers is not 
-                        // defined in a way that is can be changed
+/*! \def NUM_WRITE_BUF
+ * DO NOT CHANGE! The number of write pointers is not 
+ * defined in a way that is can be changed
+ */
+#define NUM_WRITE_BUF 2 
 
 ////////////////////////////////////////////////////////////////////////////
 // Data structures for storing state information
 // of the message passing channels
 ////////////////////////////////////////////////////////////////////////////
 
-/// \brief Message passing descriptor
+/// \struct mpd_t
+/// \brief Message passing descriptor.
 ///
-/// The struct is used to store the data describing the massage passing channel
+/// The struct is used to store the data describing the massage passing channel.
+/// This struct is used to describe both the sending and receiving ends of a
+/// communication channel.
 typedef struct {
   /** The address of the remote buffer structure */
   volatile void _SPM * remote_addr;
@@ -135,6 +148,9 @@ typedef struct {
 /// buffer structure should start. The size of the buffer structure is the
 /// message buffer size multiplied by the number of buffers plus 16 bytes.
 /// \param size The size of the message buffer
+///
+/// \retval 0 The local or remote addresses were not aligned to double words.
+/// \retval 1 The initialization of the send channel succeeded.
 int mp_send_init(mpd_t* mpd_ptr, int recv_id, volatile void _SPM *remote_addr,
               volatile void _SPM *local_addr, size_t buf_size, size_t num_buf);
 
@@ -148,12 +164,28 @@ int mp_send_init(mpd_t* mpd_ptr, int recv_id, volatile void _SPM *remote_addr,
 /// buffer structure should start. The size of the buffer structure is the
 /// message buffer size multiplied by the number of buffers plus 16 bytes.
 /// \param size The size of the message buffer
+/// 
+/// \retval 0 The local or remote addresses were not aligned to double words.
+/// \retval 1 The initialization of the receive channel succeeded.
 int mp_recv_init(mpd_t* mpd_ptr, int send_id, volatile void _SPM *remote_addr,
               volatile void _SPM *local_addr, size_t buf_size, size_t num_buf);
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for transmitting data
 ////////////////////////////////////////////////////////////////////////////
+
+/// \brief Non-blocking function for passing a message to a remote processor
+/// under flow control. The data to be passed by the function should be in the
+/// local buffer in the communication scratch pad before the function
+/// is called.
+///
+/// \param mpd_ptr A pointer to the message passing data structure
+/// for the given message passing channel.
+///
+/// \retval 0 The send did not succeed, either there was no space in the
+/// receiving buffer or there was no free DMA to start a transfere
+/// \retval 1 The send succeeded.
+int mp_nbsend(mpd_t* mpd_ptr);
 
 /// \brief A function for passing a message to a remote processor under
 /// flow control. The data to be passed by the function should be in the
@@ -162,7 +194,23 @@ int mp_recv_init(mpd_t* mpd_ptr, int send_id, volatile void _SPM *remote_addr,
 ///
 /// \param mpd_ptr A pointer to the message passing data structure
 /// for the given message passing channel.
+///
+/// \returns The function returns when the send has succeeded.
 void mp_send(mpd_t* mpd_ptr);
+
+/// \brief Non-blocking function for receiving a message from a remote processor
+/// under flow control. The data that is received is placed in a message buffer
+/// in the communication scratch pad, when the received message is no
+/// longer used the reception of the message should be acknowledged with
+/// the #mp_ack()
+///
+/// \param mpd_ptr A pointer to the message passing data structure
+/// for the given message passing channel.
+///
+/// \retval 0 No message has been received yet.
+/// \retval 1 A message has been received and dequeued. The call has to be
+/// followed by a call to #mp_ack() when the data is no longer used.
+int mp_nbrecv(mpd_t* mpd_ptr);
 
 /// \brief A function for receiving a message from a remote processor under
 /// flow control. The data that is received is placed in a message buffer
@@ -172,7 +220,25 @@ void mp_send(mpd_t* mpd_ptr);
 ///
 /// \param mpd_ptr A pointer to the message passing data structure
 /// for the given message passing channel.
+///
+/// \returns The function returns when a message is received.
 void mp_recv(mpd_t* mpd_ptr);
+
+/// \brief Non-blocking function for acknowledging the reception of a message.
+/// This function should be used with extra care, if no acknowledgement is sent
+/// the communication channel will be blocked until an acknowledgement is sent.
+/// This function shall be called to release space in the receiving
+/// buffer when the received data is no longer used.
+/// It is not necessary to call #mp_ack() after each #mp_recv() call.
+/// It is possible to work on 2 or more incomming messages at the same
+/// time with out them being overwritten.
+///
+/// \param mpd_ptr A pointer to the message passing data structure
+/// for the given message passing channel.
+///
+/// \retval 0 No acknowledgement has been sent.
+/// \retval 1 An acknowledgement has been sent.
+int mp_nback(mpd_t* mpd_ptr);
 
 /// \brief A function for acknowledging the reception of a message.
 /// This function shall be called to release space in the receiving
@@ -183,10 +249,16 @@ void mp_recv(mpd_t* mpd_ptr);
 ///
 /// \param mpd_ptr A pointer to the message passing data structure
 /// for the given message passing channel.
+///
+/// \returns The function returns when an acknowledgement has been sent.
 void mp_ack(mpd_t* mpd_ptr);
 
 /// \brief A function for returning the amount of data that the channel is
-/// alocating in the spm.
-int mp_spm_alloc_size(mpd_t* mpd_ptr);
+/// alocating in the sending spm.
+int mp_send_alloc_size(mpd_t* mpd_ptr);
+
+/// \brief A function for returning the amount of data that the channel is
+/// alocating in the receiving spm.
+int mp_recv_alloc_size(mpd_t* mpd_ptr);
 
 #endif /* _MP_H_ */

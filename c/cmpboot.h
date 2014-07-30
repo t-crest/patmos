@@ -48,6 +48,7 @@
 #define STATUS_BOOT     1
 #define STATUS_INIT     2
 #define STATUS_INITDONE 3
+#define STATUS_RETURN   4
 
 #ifndef __ENTRYPOINT_T
 typedef volatile int (*entrypoint_t)(void);
@@ -60,6 +61,7 @@ struct master_info_t {
 };
 
 struct slave_info_t {
+  volatile int return_val;
   volatile int status;
 };
 
