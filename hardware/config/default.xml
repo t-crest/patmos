@@ -7,12 +7,12 @@
 
   <MCache size="4k" blocks="16" repl="" />
   <DCache size="2k" assoc="1" repl="" />
-  <SCache size="128" />
+  <SCache size="2k" />
   <ISPM size="1k" />
   <DSPM size="2k" />
   <BootSPM size="2k" />
 
-  <ExtMem size="64M" />
+  <ExtMem size="2M" />
 
   <IOs>
  	<IO DevTypeRef="CpuInfo" offset="0"/>
