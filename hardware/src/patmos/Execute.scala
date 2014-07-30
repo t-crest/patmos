@@ -231,22 +231,20 @@ class Execute() extends Module {
   }
 
   // interface to the stack cache
-  io.exsc.op := opNone
+  io.exsc.op := sc_OP_NONE
   io.exsc.opData := UInt(0)
+  io.exsc.opOff := op(1)
 
   // stack control instructions
   when(io.ena && !io.brflush && doExecute(0)) {
     when(exReg.isSRES) {
-      io.exsc.op := opSRES
-      io.exsc.opData := exReg.immVal(0)
+      io.exsc.op := sc_OP_RES
     }
     .elsewhen(exReg.isSENS) {
-      io.exsc.op := opSENS
-      io.exsc.opData := exReg.immVal(0)
+      io.exsc.op := sc_OP_ENS
     }
     .elsewhen(exReg.isSFREE) {
-      io.exsc.op := opSFREE
-      io.exsc.opData := exReg.immVal(0)
+      io.exsc.op := sc_OP_FREE
     }
   }
 
@@ -271,6 +269,8 @@ class Execute() extends Module {
 
     // special registers
     when(exReg.aluOp(i).isMTS && doExecute(i)) {
+      io.exsc.opData := op(2*i).toUInt()
+
       switch(exReg.aluOp(i).func) {
         is(SPEC_FL) {
           predReg := op(2*i)(PRED_COUNT-1, 0).toBits()
@@ -283,12 +283,10 @@ class Execute() extends Module {
           mulHiReg := op(2*i).toUInt()
         }
         is(SPEC_ST) {
-          io.exsc.op := opSetStackTop
-          io.exsc.opData := op(2*i).toUInt()
+          io.exsc.op := sc_OP_SET_ST
         }
         is(SPEC_SS) {
-          io.exsc.op := opSetMemTop
-          io.exsc.opData := op(2*i).toUInt()
+          io.exsc.op := sc_OP_SET_MT
         }
         is(SPEC_SRB) {
           retBaseReg := op(2*i).toUInt()

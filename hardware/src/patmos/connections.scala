@@ -271,10 +271,11 @@ class ExSc extends Bundle() {
   // indicate which stack-cache operation is performed
   val op = UInt(width = 3)
 
-  // operand of the stack-cache operation
-  //   - opSetStackTop, opSetMemTop: the new value of stackTop or memtTop
-  //   - opSRES, opSENS, opSFREE   : the operand of the instructions
+  // operands of the stack-cache operation
+  //   - opSetStackTop, opSetMemTop: the new value of stackTop or memTop
   val opData = UInt(width = ADDR_WIDTH)
+  //   - opSRES, opSENS, opSFREE   : the operand of the instructions
+  val opOff  = UInt(width = ADDR_WIDTH)
 }
 
 class ScEx extends Bundle() {

@@ -245,7 +245,8 @@ class Decode() extends Module {
         decoded(0) := Bool(true)
       }
       is(STC_SENSR) {
-        // TODO: ignored for now
+        isSTC := Bool(true)
+        io.decex.isSENS := Bool(true)
         decoded(0) := Bool(true)
       }
       is(STC_SSPILL) {

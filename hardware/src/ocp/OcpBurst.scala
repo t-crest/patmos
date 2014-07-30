@@ -212,11 +212,9 @@ class OcpBurstJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort,
                    joined : OcpBurstSlavePort) {
 
   val selRightReg = Reg(init = Bool(false))
-  // if no commands are accepted at the moment, do not switch betwen left/right.
-  val selRight = Mux(joined.S.CmdAccept === UInt(0), selRightReg,
-                     Mux(left.M.Cmd != OcpCmd.IDLE, Bool(false),
-                         Mux(right.M.Cmd != OcpCmd.IDLE, Bool(true),
-                             selRightReg)))
+  val selRight = Mux(left.M.Cmd != OcpCmd.IDLE, Bool(false),
+                     Mux(right.M.Cmd != OcpCmd.IDLE, Bool(true),
+                         selRightReg))
 
   joined.M := left.M
   when (selRight) {
@@ -229,11 +227,9 @@ class OcpBurstJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort,
 
   when(selRight) {
     left.S.Resp := OcpResp.NULL
-    left.S.CmdAccept := UInt(0)
   }
   .otherwise {
     right.S.Resp := OcpResp.NULL
-    right.S.CmdAccept := UInt(0)
   }
 
   selRightReg := selRight
@@ -319,4 +315,3 @@ class OcpBurstBuffer(master : OcpBurstMasterPort, slave : OcpBurstSlavePort) {
   master.S.CmdAccept := free
   master.S.DataAccept := free
 }
-

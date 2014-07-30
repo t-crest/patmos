@@ -102,7 +102,7 @@ class StackCache() extends Module {
   val responseToCPU = Reg(init = OcpResp.NULL)
 
   // default OCP "request"
-  io.stall := Bool(false)
+  io.stall := state != idleState
   io.toMemory.M.Cmd := OcpCmd.IDLE
   io.toMemory.M.Addr := UInt(0)
   io.toMemory.M.Data := UInt(0)
@@ -114,6 +114,10 @@ class StackCache() extends Module {
   mb_wrAddr := UInt(0)
   mb_wrEna := UInt(0)
   mb_wrData := UInt(0)
+
+  // signals to execute stage
+  io.scex.stackTop := stackTopReg
+  io.scex.memTop := memTopReg
 
   // extract current burst counter
   val burstCounter = transferAddr.apply(burstBits - 1, wordBits)
@@ -129,63 +133,65 @@ class StackCache() extends Module {
       // perform operation requested by pipeline
       state := idleState
 
-      switch(io.exsc.op) {
-        is(opNone) {
-          // don't do anything
-        }
-        is(opSetStackTop) {
-          // assign the operation's operand to the stack top pointer
-          stackTopReg := io.exsc.opData
-        }
-        is(opSetMemTop) {
-          // assign the operation's operand to the mem top pointer
-          memTopReg := io.exsc.opData
-        }
-        is(opSRES) {
-          // decrement the stack top pointer
-          val nextStackTop = stackTopReg - io.exsc.opData
-          stackTopReg := nextStackTop
+      when (io.ena_in) {
+        switch(io.exsc.op) {
+          is(sc_OP_NONE) {
+            // don't do anything
+          }
+          is(sc_OP_SET_ST) {
+            // assign the operation's operand to the stack top pointer
+            stackTopReg := io.exsc.opData
+          }
+          is(sc_OP_SET_MT) {
+            // assign the operation's operand to the mem top pointer
+            memTopReg := io.exsc.opData
+          }
+          is(sc_OP_RES) {
+            // decrement the stack top pointer
+            val nextStackTop = stackTopReg - io.exsc.opOff
+            stackTopReg := nextStackTop
 
-          // start transfer from the current stack pointer + SCACHE_SIZE on
-          val nextTransferAddr = (nextStackTop + UInt(SCACHE_SIZE)).apply(
-            ADDR_WIDTH - 1,
-            burstBits) ## Fill(burstBits, UInt("b0"))
+            // start transfer from the current stack pointer + SCACHE_SIZE on
+            val nextTransferAddr = (nextStackTop + UInt(SCACHE_SIZE)).apply(
+              ADDR_WIDTH - 1,
+              burstBits) ## Fill(burstBits, UInt("b0"))
 
-          // start reading from the stack cache's memory
-          mb_rdAddr := nextTransferAddr.apply(scSizeBits + wordBits - 1, wordBits)
+            // start reading from the stack cache's memory
+            mb_rdAddr := nextTransferAddr.apply(scSizeBits + wordBits - 1, wordBits)
 
-          // store transfer address in a register
-          transferAddr := nextTransferAddr
+            // store transfer address in a register
+            transferAddr := nextTransferAddr
 
-          // check if spilling is actually needed
-          val needsSpill = (memTopReg - nextStackTop) > UInt(SCACHE_SIZE)
-          state := Mux(needsSpill, holdSpillState, idleState)
-        }
-        is(opSENS) {
-          // compute required mem top pointer, and check if filling is needed
-          val nextRequiredMemTop = stackTopReg + io.exsc.opData
+            // check if spilling is actually needed
+            val needsSpill = (memTopReg - nextStackTop) > UInt(SCACHE_SIZE)
+            state := Mux(needsSpill, holdSpillState, idleState)
+          }
+          is(sc_OP_ENS) {
+            // compute required mem top pointer, and check if filling is needed
+            val nextRequiredMemTop = stackTopReg + io.exsc.opOff
 
-          // start transfer from the current memory top pointer on
-          transferAddr := memTopReg.apply(ADDR_WIDTH - 1, burstBits) ##
-            Fill(burstBits, UInt("b0"))
+            // start transfer from the current memory top pointer on
+            transferAddr := memTopReg.apply(ADDR_WIDTH - 1, burstBits) ##
+              Fill(burstBits, UInt("b0"))
 
-          // check if filling is needed
-          val needsFill = memTopReg < nextRequiredMemTop
+            // check if filling is needed
+            val needsFill = memTopReg < nextRequiredMemTop
 
-          // update memory top pointer if needed
-          requiredMemTop := nextRequiredMemTop
+            // update memory top pointer if needed
+            requiredMemTop := nextRequiredMemTop
 
-          // start actual filling if needed
-          state := Mux(needsFill, fillState, idleState)
-        }
-        is(opSFREE) {
-          // move stack top pointer upwards
-          val nextStackTop = stackTopReg + io.exsc.opData
-          stackTopReg := nextStackTop
+            // start actual filling if needed
+            state := Mux(needsFill, fillState, idleState)
+          }
+          is(sc_OP_FREE) {
+            // move stack top pointer upwards
+            val nextStackTop = stackTopReg + io.exsc.opOff
+            stackTopReg := nextStackTop
 
-          // ensure that mem top pointer is above stack top
-          when(nextStackTop > memTopReg) {
-            memTopReg := nextStackTop
+            // ensure that mem top pointer is above stack top
+            when(nextStackTop > memTopReg) {
+              memTopReg := nextStackTop
+            }
           }
         }
       }
@@ -195,8 +201,6 @@ class StackCache() extends Module {
     // SPILLING
     // // // // // // // // // // // // // // // // // // // // // // // // //
     is(holdSpillState) {
-      // stall the pipeline
-      io.stall := Bool(true)
 
       val nextTransferAddr = transferAddr + UInt(BYTES_PER_WORD)
 
@@ -205,13 +209,11 @@ class StackCache() extends Module {
         (transferAddr < memTopReg)
 
       // generate an OCP write request
-      when(io.ena_in) {
-        io.toMemory.M.Cmd := OcpCmd.WR
-        io.toMemory.M.Addr := transferAddr
-        io.toMemory.M.Data := mb_rdData
-        io.toMemory.M.DataValid := UInt(1)
-        io.toMemory.M.DataByteEn := Fill(4, writeEnable)
-      }
+      io.toMemory.M.Cmd := OcpCmd.WR
+      io.toMemory.M.Addr := transferAddr
+      io.toMemory.M.Data := mb_rdData
+      io.toMemory.M.DataValid := UInt(1)
+      io.toMemory.M.DataByteEn := Fill(4, writeEnable)
 
       // check if command has been accepted
       val accepted = io.toMemory.S.CmdAccept === UInt(1)
@@ -230,9 +232,6 @@ class StackCache() extends Module {
     }
 
     is(spillState) {
-      // stall the pipeline
-      io.stall := Bool(true)
-
       val nextTransferAddr = transferAddr + UInt(BYTES_PER_WORD)
 
       // only write the data that actually needs spilling
@@ -255,8 +254,6 @@ class StackCache() extends Module {
     }
 
     is(waitSpillState) {
-      io.stall := Bool(true)
-
       // check whether all data has been spilled
       val spillingDone = memTopReg <= transferAddr
 
@@ -278,22 +275,16 @@ class StackCache() extends Module {
     // FILLING
     // // // // // // // // // // // // // // // // // // // // // // // // //
     is(fillState) {
-      // stall the pipeline
-      io.stall := Bool(true)
+      // generate an OCP read request and wait that it is accepted
+      io.toMemory.M.Cmd := OcpCmd.RD
+      io.toMemory.M.Addr := transferAddr
 
-      when(io.ena_in) {
-        // generate an OCP read request and wait that it is accepted
-        io.toMemory.M.Cmd := OcpCmd.RD
-        io.toMemory.M.Addr := transferAddr
-
-        // go to next state
-        state := Mux(io.toMemory.S.CmdAccept === Bits(1),
-          waitFillState, fillState)
-      }
+      // go to next state
+      state := Mux(io.toMemory.S.CmdAccept === Bits(1),
+      waitFillState, fillState)
     }
 
     is(waitFillState) {
-      io.stall := Bool(true)
       io.toMemory.M.Addr := transferAddr
 
       when(io.toMemory.S.Resp === OcpResp.DVA) {

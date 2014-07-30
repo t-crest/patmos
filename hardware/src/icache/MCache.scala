@@ -322,7 +322,7 @@ class MCacheCtrl() extends Module {
   val io = new MCacheCtrlIO()
 
   //fsm state variables
-  val idleState :: holdState :: sizeState :: transferState :: restartState :: Nil = Enum(UInt(), 5)
+  val idleState :: sizeState :: transferState :: restartState :: Nil = Enum(UInt(), 4)
   val mcacheState = Reg(init = idleState)
   //signals for method cache memory (mcache_repl)
   val addrEven = Bits(width = EXTMEM_ADDR_WIDTH)
@@ -385,20 +385,12 @@ class MCacheCtrl() extends Module {
 
       //aligned read from ssram
       io.ocp_port.M.Cmd := OcpCmd.RD
-      io.ocp_port.M.Addr := Cat(msizeAddr(EXTMEM_ADDR_WIDTH-1,2), Bits("b0000"))
-      ocpAddrReg := Cat(msizeAddr(EXTMEM_ADDR_WIDTH-1,2), Bits("b00"))
       when (io.ocp_port.S.CmdAccept === Bits(0)) {
         ocpCmdReg := OcpCmd.RD
-        mcacheState := holdState
       }
-      .otherwise {
-        mcacheState := sizeState
-      }
-    }
-  }
-  //fetch size of the required method from external memory address - 1
-  when (mcacheState === holdState) {
-    when (io.ocp_port.S.CmdAccept === Bits(1)) {
+      io.ocp_port.M.Addr := Cat(msizeAddr(EXTMEM_ADDR_WIDTH-1,2), Bits("b0000"))
+      ocpAddrReg := Cat(msizeAddr(EXTMEM_ADDR_WIDTH-1,2), Bits("b00"))
+
       mcacheState := sizeState
     }
   }
@@ -479,5 +471,4 @@ class MCacheCtrl() extends Module {
 
   io.fetch_ena := fetchEna
 }
-
 

@@ -197,11 +197,5 @@ object Constants {
   val STC_SENSR   = Bits("b0101")
   val STC_SSPILLR = Bits("b1101")
 
-  // enum makes Chisel compiler crash here?!?
-  val opNone = UInt(0)
-  val opSetStackTop = UInt(1)
-  val opSetMemTop = UInt(2)
-  val opSRES = UInt(3)
-  val opSENS = UInt(4)
-  val opSFREE = UInt(5)
+  val sc_OP_NONE :: sc_OP_SET_ST :: sc_OP_SET_MT :: sc_OP_RES :: sc_OP_ENS :: sc_OP_FREE :: Nil = Enum(UInt(), 6)
 }
