@@ -110,16 +110,18 @@ int mp_recv_init(mpd_t* mpd_ptr, int send_id, volatile void _SPM *remote_addr,
 // Functions for transmitting data
 ////////////////////////////////////////////////////////////////////////////
 
-void mp_send(mpd_t* mpd_ptr) {
+int mp_nbsend(mpd_t* mpd_ptr) {
 
   // Calculate the address of the remote receiving buffer
   int rmt_addr_offset = (mpd_ptr->buf_size + FLAG_SIZE) * mpd_ptr->send_ptr;
   volatile void _SPM * calc_rmt_addr = &mpd_ptr->remote_addr[rmt_addr_offset];
 
-  while((mpd_ptr->send_count) - *(mpd_ptr->recv_count) == mpd_ptr->num_buf) {
-    /* spin until there is room in receiving buffer*/
+  if ((mpd_ptr->send_count) - *(mpd_ptr->recv_count) == mpd_ptr->num_buf) {
+    return 0;
   }
-  noc_send(mpd_ptr->recv_id,calc_rmt_addr,mpd_ptr->write_buf,mpd_ptr->buf_size + FLAG_SIZE); 
+  if (!noc_nbsend(mpd_ptr->recv_id,calc_rmt_addr,mpd_ptr->write_buf,mpd_ptr->buf_size + FLAG_SIZE)) {
+    return 0;
+  }
 
   // Increment the send counter
   mpd_ptr->send_count++;
@@ -136,10 +138,14 @@ void mp_send(mpd_t* mpd_ptr) {
   mpd_ptr->write_buf = mpd_ptr->shadow_write_buf;
   mpd_ptr->shadow_write_buf = tmp;
 
-  return;
+  return 1;
 }
 
-void mp_recv(mpd_t* mpd_ptr) {
+void mp_send(mpd_t* mpd_ptr) {
+  while(!mp_nbsend(mpd_ptr));
+}
+
+int mp_nbrecv(mpd_t* mpd_ptr) {
 
   // Calculate the address of the local receiving buffer
   int locl_addr_offset = (mpd_ptr->buf_size + FLAG_SIZE) * mpd_ptr->recv_ptr;
@@ -147,8 +153,8 @@ void mp_recv(mpd_t* mpd_ptr) {
 
   volatile int _SPM * recv_flag = (volatile int _SPM *)((char*)calc_locl_addr + mpd_ptr->buf_size);
 
-  while(*recv_flag == FLAG_INVALID) {
-    /* Spin until message is received */
+  if (*recv_flag == FLAG_INVALID) {
+    return 0;
   }
 
   // Increment the receive counter
@@ -167,13 +173,22 @@ void mp_recv(mpd_t* mpd_ptr) {
   // Set the new read buffer pointer
   mpd_ptr->read_buf = calc_locl_addr;
 
-  return;
+  return 1;
+}
+
+void mp_recv(mpd_t* mpd_ptr) {
+  while(!mp_nbrecv(mpd_ptr));
 }
 
 
+int mp_nback(mpd_t* mpd_ptr){
+  // Update the remote receive count
+  return noc_nbsend(mpd_ptr->send_id,mpd_ptr->remote_recv_count,mpd_ptr->recv_count,8);
+}
+
 void mp_ack(mpd_t* mpd_ptr){
   // Update the remote receive count
-  noc_send(mpd_ptr->send_id,mpd_ptr->remote_recv_count,mpd_ptr->recv_count,8);
+  while(!mp_nback(mpd_ptr));
   return;
 }
 
@@ -181,6 +196,12 @@ void mp_ack(mpd_t* mpd_ptr){
 // Help functions 
 ////////////////////////////////////////////////////////////////////////////
 
-int mp_spm_alloc_size(mpd_t* mpd_ptr) {
-  return 0;
+int mp_send_alloc_size(mpd_t* mpd_ptr) {
+  int send_size = (mpd_ptr->buf_size + FLAG_SIZE) * NUM_WRITE_BUF + DWALIGN(sizeof(*(mpd_ptr->recv_count)));
+  return send_size;
+}
+
+int mp_recv_alloc_size(mpd_t* mpd_ptr) {
+  int recv_size = (mpd_ptr->buf_size + FLAG_SIZE) * mpd_ptr->num_buf + DWALIGN(sizeof(*(mpd_ptr->recv_count)));
+  return recv_size;
 }
