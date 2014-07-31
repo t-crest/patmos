@@ -149,35 +149,6 @@ class StackCache() extends Module {
             // assign the operation's operand to the mem top pointer
             memTopReg := io.exsc.opData
           }
-          is(sc_OP_RES | sc_OP_SPILL) {
-            // register type of instruction
-            val resSpillOp = Mux(io.exsc.op === sc_OP_RES, Bool(false), Bool(true))
-            resSpillOpReg := resSpillOp
-            
-            // start address of spilling for sspill
-            val spillAddress = memTopReg - io.exsc.opOff
-            
-            // decrement the stack top pointer
-            val nextStackTop = stackTopReg - io.exsc.opOff
-            stackTopReg := Mux(resSpillOp, stackTopReg, nextStackTop)
-
-            // start transfer from the current stack pointer + SCACHE_SIZE on
-            val nextTransferAddr = Mux(resSpillOp, (nextStackTop + UInt(SCACHE_SIZE)).apply(
-              ADDR_WIDTH - 1,
-              burstBits) ## Fill(burstBits, UInt("b0")), spillAddress.apply(
-              ADDR_WIDTH - 1,
-              burstBits) ## Fill(burstBits, UInt("b0")))
-
-            // start reading from the stack cache's memory
-            mb_rdAddr := nextTransferAddr.apply(scSizeBits + wordBits - 1, wordBits)
-
-            // store transfer address in a register
-            transferAddr := nextTransferAddr
-
-            // check if spilling is actually needed
-            val needsSpill = Mux(resSpillOp, (memTopReg - nextStackTop) > UInt(SCACHE_SIZE), Bool(true))
-            state := Mux(needsSpill, holdSpillState, idleState)
-          }
           is(sc_OP_ENS) {
             // compute required mem top pointer, and check if filling is needed
             val nextRequiredMemTop = stackTopReg + io.exsc.opOff
@@ -205,6 +176,35 @@ class StackCache() extends Module {
               memTopReg := nextStackTop
             }
           }
+        }
+        
+        when(io.exsc.op === sc_OP_RES || io.exsc.op === sc_OP_SPILL) {
+          // register type of instruction
+          val resSpillOp = Mux(io.exsc.op === sc_OP_RES, Bool(false), Bool(true))
+          resSpillOpReg := resSpillOp
+            
+          // start address of spilling for sspill
+          val spillAddress = memTopReg - io.exsc.opOff
+            
+          // decrement the stack top pointer
+          val nextStackTop = stackTopReg - io.exsc.opOff
+          stackTopReg := Mux(resSpillOp, stackTopReg, nextStackTop)
+
+          // start transfer from the current stack pointer + SCACHE_SIZE on
+          val nextTransferAddr =
+            Mux(resSpillOp,
+                (nextStackTop + UInt(SCACHE_SIZE))(ADDR_WIDTH - 1, burstBits),
+                spillAddress(ADDR_WIDTH - 1, burstBits)) ## Fill(burstBits, UInt("b0"))
+
+          // start reading from the stack cache's memory
+          mb_rdAddr := nextTransferAddr.apply(scSizeBits + wordBits - 1, wordBits)
+
+          // store transfer address in a register
+          transferAddr := nextTransferAddr
+
+          // check if spilling is actually needed
+          val needsSpill = Mux(resSpillOp, (memTopReg - nextStackTop) > UInt(SCACHE_SIZE), Bool(true))
+          state := Mux(needsSpill, holdSpillState, idleState)
         }
       }
     }
