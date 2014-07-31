@@ -88,11 +88,13 @@ $(BUILDDIR)/mp_test.elf: nocinit.c
 # library for network-on-chip
 .PHONY: libnoc
 libnoc: $(LIBNOC)
+$(BUILDDIR)/libnoc/noc.o: libnoc/noc.h
 $(LIBNOC): $(BUILDDIR)/libnoc/noc.o
 	ar r $@ $^
 
 # library for message passing
 .PHONY: libmp
 libmp: libnoc $(LIBMP)
+$(BUILDDIR)/libmp/mp.o: libmp/mp.h
 $(LIBMP): $(BUILDDIR)/libmp/mp.o
 	ar r $@ $^
