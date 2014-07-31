@@ -37,7 +37,6 @@
  *
  */
 
-#include <stdio.h>
 
 #include <machine/patmos.h>
 #include <machine/spm.h>
@@ -73,9 +72,6 @@ static void noc_sync(void) {
   if (get_cpuid() == NOC_MASTER) {
     // Wait until all slaves have configured their network interface
     int done = 0;
-    if (boot_info->master.status == STATUS_INITDONE) {
-      puts("master.status = STATUS_INITDONE");
-    }
     do {
       done = 1;
       for (unsigned i = 0; i < MAX_CORES; i++) {
