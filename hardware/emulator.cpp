@@ -142,27 +142,27 @@ static val_t readelf(istream &is, Patmos_t *c)
 
 static void print_sc_state(Patmos_t *c) {
   // fill
-  if ((c->Patmos_core_dcache_sc__state.to_ulong() == 1) ||
-      (c->Patmos_core_dcache_sc__state.to_ulong() == 2)) {
+  if ((c->Patmos_core_dcache_sc__stateReg.to_ulong() == 1) ||
+      (c->Patmos_core_dcache_sc__stateReg.to_ulong() == 2)) {
     if(c->Patmos_core_dcache_sc__mb_wrEna.to_ulong())
     {
       for (unsigned int i = 0; i < 4; i++)
       {
-        std::cerr << "f:" << (c->Patmos_core_dcache_sc__transferAddr.to_ulong() + i - 4)
+        std::cerr << "f:" << (c->Patmos_core_dcache_sc__transferAddrReg.to_ulong() + i - 4)
                   << " > " << (((c->Patmos_core_dcache_sc__mb_wrData.to_ulong() << (i*8)) >> 24) & 0xFF) 
                   << "\n";
       }
     }
   }
   // spill
-  else if ((c->Patmos_core_dcache_sc__state.to_ulong() == 3) ||
-           (c->Patmos_core_dcache_sc__state.to_ulong() == 4)) {
+  else if ((c->Patmos_core_dcache_sc__stateReg.to_ulong() == 3) ||
+           (c->Patmos_core_dcache_sc__stateReg.to_ulong() == 4)) {
     if(c->Patmos_core_dcache_sc__io_toMemory_M_DataValid.to_ulong() && 
        c->Patmos_core_dcache_sc__io_toMemory_M_DataByteEn.to_ulong())
     {
       for (unsigned int i = 0; i < 4; i++)
       {
-        std::cerr << "s:" << (c->Patmos_core_dcache_sc__transferAddr.to_ulong() + i - 4)
+        std::cerr << "s:" << (c->Patmos_core_dcache_sc__transferAddrReg.to_ulong() + i - 4)
                   << " < " << (((c->Patmos_core_dcache_sc__mb_rdData.to_ulong() << (i*8)) >> 24) & 0xFF)
                   << "\n";
       }
