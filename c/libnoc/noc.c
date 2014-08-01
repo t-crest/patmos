@@ -43,6 +43,7 @@
 
 #include "cmpboot.h"
 #include "noc.h"
+#include "coreset.h"
 
 // Structure to model the network interface
 static struct network_interface
@@ -56,8 +57,8 @@ static struct network_interface
 
 // Configure network interface according to initialization information
 void noc_configure(void) {
-  int row_size = NOC_TIMESLOTS > NOC_DMAS ? NOC_TIMESLOTS : NOC_DMAS;
-  int core_idx = get_cpuid() * NOC_TABLES * row_size;
+  unsigned row_size = NOC_TIMESLOTS > NOC_DMAS ? NOC_TIMESLOTS : NOC_DMAS;
+  unsigned core_idx = get_cpuid() * NOC_TABLES * row_size;
   for (unsigned i = 0; i < NOC_TIMESLOTS; ++i) {
     *(noc_interface.st+i) = noc_init_array[core_idx + i];
   }
@@ -111,9 +112,9 @@ void noc_init(void) {
 // The addresses and the size are in double-words and relative to the
 // communication SPM
 int noc_dma(unsigned rcv_id,
-             unsigned short write_ptr,
-             unsigned short read_ptr,
-             unsigned short size) {
+            unsigned short write_ptr,
+            unsigned short read_ptr,
+            unsigned short size) {
 
     // Ony send if previous transfer is done
     unsigned status = *(noc_interface.dma+(rcv_id<<1));
@@ -134,20 +135,42 @@ int noc_dma(unsigned rcv_id,
 
 // Attempt to transfer data via the NoC
 // The addresses and the size are in bytes
-int noc_nbsend(int dst_id, volatile void _SPM *dst,
+int noc_nbsend(unsigned rcv_id, volatile void _SPM *dst,
                volatile void _SPM *src, size_t len) {
 
   unsigned wp = (char *)dst - (char *)NOC_SPM_BASE;
   unsigned rp = (char *)src - (char *)NOC_SPM_BASE;
-  return noc_dma(dst_id, DW(wp), DW(rp), DW(len));
+  return noc_dma(rcv_id, DW(wp), DW(rp), DW(len));
 }
 
 // Transfer data via the NoC
 // The addresses and the size are in bytes
-void noc_send(int dst_id, volatile void _SPM *dst,
+void noc_send(unsigned rcv_id, volatile void _SPM *dst,
               volatile void _SPM *src, size_t len) {
 
-  while(!noc_nbsend(dst_id, dst, src, len));
+  while(!noc_nbsend(rcv_id, dst, src, len));
+}
+
+// Multicast transfer of data via the NoC
+// The addresses and the size are in bytes
+void noc_multisend(unsigned cnt, unsigned rcv_id [], volatile void _SPM *dst [],
+                   volatile void _SPM *src, size_t len) {
+
+  int done;
+  coreset_t sent;
+  coreset_clearall(&sent);
+  do {
+    done = 1;
+    for (unsigned i = 0; i < cnt; i++) {
+      if (!coreset_contains(rcv_id[i], &sent)) {
+        if (noc_nbsend(rcv_id[i], dst[i], src, len)) {
+          coreset_add(rcv_id[i], &sent);
+        } else {
+          done = 0;
+        }
+      }
+    }
+  } while(!done);
 }
 
 

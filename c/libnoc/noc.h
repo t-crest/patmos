@@ -88,7 +88,7 @@ void noc_init(void) __attribute__((constructor,used));
 
 #ifdef DOXYGEN
 /// \brief Define this before including noc.h to force the use
-/// of #noc_init as constructior. NOC_INIT does not need to be defined
+/// of #noc_init as constructor. NOC_INIT does not need to be defined
 /// if any functions from libnoc are used.
 #define NOC_INIT
 #endif
@@ -125,7 +125,7 @@ int noc_dma(unsigned rcv_id, unsigned short write_ptr,
 /// \param src A pointer to the source of the transfer.
 /// \param size The size of data to be transferred, in bytes.
 /// \returns 1 if sending was successful, 0 otherwise.
-int noc_nbsend(int rcv_id, volatile void _SPM *dst,
+int noc_nbsend(unsigned rcv_id, volatile void _SPM *dst,
                volatile void _SPM *src, size_t size);
 
 /// \brief Transfer data via the NoC (blocking).
@@ -135,8 +135,19 @@ int noc_nbsend(int rcv_id, volatile void _SPM *dst,
 /// \param dst A pointer to the destination of the transfer.
 /// \param src A pointer to the source of the transfer.
 /// \param size The size of data to be transferred, in bytes.
-void noc_send(int rcv_id, volatile void _SPM *dst,
+void noc_send(unsigned rcv_id, volatile void _SPM *dst,
               volatile void _SPM *src, size_t size);
+
+/// \brief Multi-cast transfer of data via the NoC (blocking).
+///
+/// The addresses and the size are absolute and in bytes.
+/// \param cnt The number of receivers.
+/// \param rcv_id An array with the core ids of the receivers.
+/// \param dst An array with pointers to the destinations of the transfer.
+/// \param src A pointer to the source of the transfer.
+/// \param size The size of data to be transferred, in bytes.
+void noc_multisend(unsigned cnt, unsigned rcv_id [], volatile void _SPM *dst [],
+                   volatile void _SPM *src, size_t size) __attribute__((used));
 
 ////////////////////////////////////////////////////////////////////////////
 // Definitions for setting up a transfer

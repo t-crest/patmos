@@ -88,7 +88,7 @@ $(BUILDDIR)/mp_test.elf: nocinit.c
 # library for network-on-chip
 .PHONY: libnoc
 libnoc: $(LIBNOC)
-$(BUILDDIR)/libnoc/noc.o: libnoc/noc.h
+$(BUILDDIR)/libnoc/noc.o: libnoc/noc.h libnoc/coreset.h
 $(LIBNOC): $(BUILDDIR)/libnoc/noc.o
 	ar r $@ $^
 
