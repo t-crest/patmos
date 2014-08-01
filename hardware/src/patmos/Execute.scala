@@ -249,6 +249,10 @@ class Execute() extends Module {
     .elsewhen (exReg.isSPILL) {
       io.exsc.op := sc_OP_SPILL
     }
+    .elsewhen (exReg.isSPILLR) {
+      io.exsc.op := sc_OP_SPILL
+      io.exsc.opData := op(0).toUInt()
+    }
   }
 
   // dual-issue operations

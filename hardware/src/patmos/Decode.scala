@@ -253,14 +253,13 @@ class Decode() extends Module {
       is(STC_SSPILL) {
         isSTC := Bool(true)
         io.decex.isSPILL := Bool(true)
+        io.decex.immOp(0) := Bool(true)
         decoded(0) := Bool(true)
-        stcImm := rf.io.rfRead.rsData(0)
       }
       is(STC_SSPILLR) {
         isSTC := Bool(true)
         io.decex.isSPILL := Bool(true)
         decoded(0) := Bool(true)
-        stcImm := rf.io.rfRead.rsData(0)
       }
     }
   }
