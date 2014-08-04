@@ -31,7 +31,8 @@
  */
 
 /*
- * 
+ * Reads ethernet frames and prints them to the console 
+ * (including binary data).
  * 
  * Author: Torur Biskopsto Strom (torur.strom@gmail.com)
  *
@@ -65,7 +66,6 @@ int main(void)
 		putchar('\n');
 		i = 0;
 	  }
-	  
 	}
   }
   return 0;

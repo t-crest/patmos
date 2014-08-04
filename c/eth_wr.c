@@ -31,7 +31,10 @@
  */
 
 /*
- * 
+ * Sends a UDP broadcast message containing some text and ASCII art
+ * every 5 seconds. 
+ * Destination 255.255.255.255:5000 (MAC:ff:ff:ff:ff:ff:ff)
+ * Source 169.254.51.36:64814 (MAC:64:ee:75:01:62:b6)
  * 
  * Author: Torur Biskopsto Strom (torur.strom@gmail.com)
  *
