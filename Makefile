@@ -122,12 +122,12 @@ asm-% $(BUILDDIR)/%.bin $(BUILDDIR)/%.dat: asm/%.s
 bootcomp: bin-$(BOOTAPP)
 
 # Convert elf file to binary
-bin-% $(BUILDDIR)/%.bin $(BUILDDIR)/%.dat: $(BUILDDIR)/%.elf
+bin-% $(BUILDDIR)/%.bin $(BUILDDIR)/%.dat: $(BUILDDIR)/%.elf elf2bin
 	$(INSTALLDIR)/bin/elf2bin $< $(BUILDDIR)/$*.bin $(BUILDDIR)/$*.dat
 
 # Convert elf file to flat memory image
 img: img-$(APP)
-img-% $(BUILDDIR)/%.img: $(BUILDDIR)/%.elf
+img-% $(BUILDDIR)/%.img: $(BUILDDIR)/%.elf elf2bin
 	$(INSTALLDIR)/bin/elf2bin -f $< $(BUILDDIR)/$*.img
 
 # Convert binary memory image to decimal representation

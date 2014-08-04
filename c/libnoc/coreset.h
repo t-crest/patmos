@@ -30,43 +30,58 @@
    policies, either expressed or implied, of the copyright holder.
  */
 
-/*
- * Macros for patmos io
+/**
+ * \file coreset.h Definitions for sets of cores as used by libnoc.
  * 
- * Author: Rasmus Bo Soerensen (rasmus@rbscloud.dk)
+ * \author Wolfgang Puffitsch <wpuffitsch@gmail.com>
  *
  */
 
+#ifndef _CORESET_H_
+#define _CORESET_H_
 
-#ifndef _PATIO_H_
-#define _PATIO_H_
-
-#ifndef BOOTROM
-#warning "patio.h" should only be used in programs compiled for the boot ROM
+/// \brief The maximum number of cores supported by the library. May
+/// be changed by defining it before including coreset.h. Should be a
+/// power of 2.
+#ifndef CORESET_SIZE
+#define CORESET_SIZE 64
 #endif
 
-#include <machine/patmos.h>
+typedef unsigned long int __core_mask;
+#define __ELEMBITS (8 * sizeof (__core_mask))
+#define __ELEMCNT  ((CORESET_SIZE) / __ELEMBITS)
 
-#define CORE_ID *((volatile _IODEV int *) 0xF0000000)
+/// \brief A type to describe a set of cores.
+typedef struct {
+  __core_mask __bits[__ELEMCNT];
+} coreset_t;
 
-#define TIMER_CLK_LOW *((volatile _IODEV int *) 0xF0000204)
-#define TIMER_US_LOW *((volatile _IODEV int *) 0xF000020c)
+/// \brief Remove all cores from the set.
+/// \param set A set of cores.
+static inline void coreset_clearall(coreset_t *set) {
+  for (unsigned i = 0; i < __ELEMCNT; i++) {
+    set->__bits[i] = 0;
+  }
+}
+/// \brief Add a core to the set.
+/// \param core A core number.
+/// \param set A set of cores.
+static inline void coreset_add(unsigned core, coreset_t *set) {
+  set->__bits[core / __ELEMBITS] |= (1 << (core % __ELEMBITS));
+}
+/// \brief Remove a core from the set.
+/// \param core A core number.
+/// \param set A set of cores.
+static inline void coreset_remove(unsigned core, coreset_t *set) {
+  set->__bits[core / __ELEMBITS] &= ~(1 << (core % __ELEMBITS));
+}
 
-#define UART_STATUS *((volatile _IODEV int *) 0xF0000800)
-#define UART_DATA   *((volatile _IODEV int *) 0xF0000804)
-#define LEDS        *((volatile _IODEV int *) 0xF0000900)
+/// \brief Remove a core from the set.
+/// \param core A core number.
+/// \param set A set of cores.
+/// \returns Non-zero if a core is in the set, zero otherwise.
+static inline int coreset_contains(unsigned core, const coreset_t *set) {
+  return set->__bits[core / __ELEMBITS] & (1 << (core % __ELEMBITS));
+}
 
-#define MEM         ((volatile _UNCACHED int *) 0x0)
-#define SPM         ((volatile _SPM int *) 0x0)
-
-#define XDIGIT(c) ((c) <= 9 ? '0' + (c) : 'a' + (c) - 10)
-
-#define WRITE(data,len) do { \
-  unsigned i; \
-  for (i = 0; i < (len); i++) {        \
-    while ((UART_STATUS & 0x01) == 0); \
-    UART_DATA = (data)[i];          \
-  } \
-} while(0)
-
-#endif /* _PATIO_H_ */
+#endif /* _CORESET_H_ */

@@ -43,7 +43,6 @@
 
 #include "bootable.h"
 
-#define TIM TIMER_USLOW
 #define DELAY 1000*1
 
 // #define DEBUG
@@ -51,13 +50,14 @@
 int main(void)
 {
 
-#ifdef DEBUG
+  // wait a little bit in case of the TU/e memory controller not being ready
+  int val = TIMER_US_LOW+DELAY;
+#ifdef DEBUG // Interleaving the writing of "BOOT" with the waiting.
+             // This should make the timing behaviour for DEBUG and 
+             // not DEBUG more alike 
   WRITE("BOOT\n", 5);
 #endif
-
-  // wait a little bit in case of the TU/e memory controller not being ready
-  int val = TIM+DELAY;
-  while (TIM-val < 0)
+  while (TIMER_US_LOW-val < 0)
     ;
 
   // overwrite potential leftovers from previous runs
@@ -65,6 +65,7 @@ int main(void)
   boot_info->master.entrypoint = NULL;
   for (unsigned i = 0; i < MAX_CORES; i++) {
     boot_info->slave[i].status = STATUS_NULL;
+    boot_info->slave[i].return_val = -1;
   }
 
   // give the slaves some time to boot
@@ -81,12 +82,9 @@ int main(void)
 #ifdef DEBUG
   // force some valid address for debugging
   if (boot_info->master.entrypoint == NULL) {
-    boot_info->master.entrypoint = 0x20004;
+    boot_info->master.entrypoint = 0x20084;
   }
 #endif
-
-  // notify slaves that they can call _start()
-  boot_info->master.status = STATUS_INIT;
 
   static char msg[10];
 
@@ -105,6 +103,9 @@ int main(void)
   WRITE(msg, 9);
 #endif
 
+  // notify slaves that they can call _start()
+  boot_info->master.status = STATUS_INIT;
+
   // call the application's _start()
   int retval = -1;
   if (boot_info->master.entrypoint != NULL) {
@@ -122,17 +123,33 @@ int main(void)
                     "$r30", "$r31");
   }
 
-  // TODO: wait for slaves to finish
-
-#ifdef DEBUG
-  WRITE("EXIT\n", 5);
-#endif
+  
+  #ifdef DEBUG
+  WRITE("RETURN\n", 7);
+  #endif
+  // Wait for slaves to finish
+  for (unsigned i = 1; i < MAX_CORES; i++) {
+    if (boot_info->slave[i].status != STATUS_NULL) {
+      while(boot_info->slave[i].status != STATUS_RETURN){
+        /* spin */
+      }
+      // TODO: check return value
+      // boot_info->slave[i].return_val
+    }
+  }
 
   // Print exit magic and return code
   msg[0] = '\0';
   msg[1] = 'x';
   msg[2] = retval & 0xff;
   WRITE(msg, 3);
+  
+  // notify slaves that they can loop back
+  boot_info->master.status = STATUS_RETURN;
+
+  #ifdef DEBUG
+  WRITE("EXIT\n", 5);
+  #endif
 
   // loop back, TODO: replace with a real reset
   main();
