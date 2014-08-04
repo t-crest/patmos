@@ -191,10 +191,11 @@ class StackCache() extends Module {
           stackTopReg := Mux(resSpillOp, stackTopReg, nextStackTop)
 
           // start transfer from the current stack pointer + SCACHE_SIZE on
-          val nextTransferAddr =
-            Mux(resSpillOp,
-                (nextStackTop + UInt(SCACHE_SIZE))(ADDR_WIDTH - 1, burstBits),
-                spillAddress(ADDR_WIDTH - 1, burstBits)) ## Fill(burstBits, UInt("b0"))
+          val nextTransferAddr = Mux(resSpillOp, (nextStackTop + UInt(SCACHE_SIZE)).apply(
+                                       ADDR_WIDTH-1, 
+                                       burstBits) ## Fill(burstBits, UInt("b0")),
+                                       spillAddress(ADDR_WIDTH - 1, burstBits) ## Fill(burstBits, UInt("b0")))      
+                
 
           // start reading from the stack cache's memory
           mb_rdAddr := nextTransferAddr.apply(scSizeBits + wordBits - 1, wordBits)
@@ -217,8 +218,8 @@ class StackCache() extends Module {
       val nextTransferAddr = transferAddrReg + UInt(BYTES_PER_WORD)
 
       // only write the data that actually needs spilling
-      val writeEnable = Mux(resSpillOpReg, ((stackTopReg + UInt(SCACHE_SIZE)) <= transferAddrReg) &
-        (transferAddrReg < memTopReg), (transferAddrReg < memTopReg))
+      val writeEnable = Mux(resSpillOpReg, (transferAddrReg < memTopReg), ((stackTopReg + UInt(SCACHE_SIZE)) <= transferAddrReg) &
+        (transferAddrReg < memTopReg))
 
       // generate an OCP write request
       io.toMemory.M.Cmd := OcpCmd.WR
@@ -247,8 +248,9 @@ class StackCache() extends Module {
       val nextTransferAddr = transferAddrReg + UInt(BYTES_PER_WORD)
 
       // only write the data that actually needs spilling
-      val writeEnable = Mux(resSpillOpReg, ((stackTopReg + UInt(SCACHE_SIZE)) <= transferAddrReg) &
-        (transferAddrReg < memTopReg), transferAddrReg < memTopReg)
+      val writeEnable = Mux(resSpillOpReg, transferAddrReg < memTopReg, 
+          ((stackTopReg + UInt(SCACHE_SIZE)) <= transferAddrReg) &
+        (transferAddrReg < memTopReg))
 
       // read next data element from the stack cache's memory
       mb_rdAddr := nextTransferAddr.apply(scSizeBits + wordBits - 1, wordBits)
@@ -276,7 +278,7 @@ class StackCache() extends Module {
         waitSpillState)
 
       // done? finally compute the new memory top pointer
-      memTopReg := Mux(resSpillOpReg, Mux(spillingDone, stackTopReg + UInt(SCACHE_SIZE), memTopReg),  Mux(spillingDone, transferAddrReg, memTopReg))
+      memTopReg := Mux(resSpillOpReg,  Mux(spillingDone, transferAddrReg, memTopReg), Mux(spillingDone, stackTopReg + UInt(SCACHE_SIZE), memTopReg))
 
       // if more spilling is needed preserve the stack cache's read address
       mb_rdAddr := Mux(spillingDone, UInt(0), rdAddrReg)
