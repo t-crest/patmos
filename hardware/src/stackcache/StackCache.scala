@@ -204,7 +204,7 @@ class StackCache() extends Module {
           transferAddrReg := nextTransferAddr
 
           // check if spilling is actually needed
-          val needsSpill = Mux(resSpillOp, (memTopReg - nextStackTop) > UInt(SCACHE_SIZE), Bool(true))
+          val needsSpill = Mux(resSpillOp, Bool(true), (memTopReg - nextStackTop) > UInt(SCACHE_SIZE))
           stateReg := Mux(needsSpill, holdSpillState, idleState)
         }
       }
