@@ -55,33 +55,24 @@ class AModule() extends Module {
   io.fromMaster <> io.toSlave
 }
 
-class OcpTester(dut: AModule) extends Tester(dut, Array(dut.io)) {
-  defTests {
-    val ret = true
-    val vars = new HashMap[Node, Node]()
-    val ovars = new HashMap[Node, Node]()
+/*
+class OcpTester(dut: AModule) extends Tester(dut) {
+  val testVec = Array( OcpCmd.IDLE, OcpCmd.WR, OcpCmd.IDLE )
 
-    val testVec = Array( OcpCmd.IDLE, OcpCmd.WR, OcpCmd.IDLE )
+  for (i <- 0 until testVec.length) {
+    poke(dut.io.fromMaster.M.Cmd,testVec(i))
 
-    for (i <- 0 until testVec.length) {
-      vars.clear
-      vars(dut.io.fromMaster.M.Cmd) = testVec(i)
-
-      step(vars, ovars)
+    step(1)
 //      println("out cmd: " + ovars(dut.io.fromMaster.M.Cmd))
-      //      println("iter: "+i)
-      //      println("vars: "+vars)
-      //      println("ovars: "+ovars)
-    }
-    ret
+    //      println("iter: "+i)
+    //      println("vars: "+vars)
+    //      println("ovars: "+ovars)
   }
-}
+}*/
 
 object OcpTester {
   def main(args: Array[String]): Unit = {
-    chiselMainTest(args, () => Module(new AModule())) {
-      f => new OcpTester(f)
-    }
+    chiselMain(args, () => Module(new AModule()))
 
   }
 }

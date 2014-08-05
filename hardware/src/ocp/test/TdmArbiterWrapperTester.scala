@@ -138,27 +138,19 @@ class TdmArbiterWrapperTop() extends Module {
 }
 
 
-class TdmArbiterWrapperTester(dut: ocp.test.TdmArbiterWrapperTop) extends Tester(dut, Array(dut.io)) {
-  defTests {
-    val ret = true
-    val vars = new HashMap[Node, Node]()
-    val ovars = new HashMap[Node, Node]()
+class TdmArbiterWrapperTester(dut: ocp.test.TdmArbiterWrapperTop) extends Tester(dut) {
+  val testVec = Array( OcpCmd.IDLE, OcpCmd.WR, OcpCmd.IDLE )
 
-    val testVec = Array( OcpCmd.IDLE, OcpCmd.WR, OcpCmd.IDLE )
-
-    for (i <- 0 until 100) {
-      vars.clear
+  for (i <- 0 until 100) {
 //      vars(dut.io.fromMaster.M.Cmd) = testVec(i)
 
 //      vars(dut.io.slave.S.CmdAccept) = Bits(1)
 //      vars(dut.io.slave.S.DataAccept) = Bits(1)
-      step(vars, ovars)
+    step(1)
 //      println("out data: " + ovars(dut.io.slave))
-      //      println("iter: "+i)
-      //      println("vars: "+vars)
-      //      println("ovars: "+ovars)
-    }
-    ret
+    //      println("iter: "+i)
+    //      println("vars: "+vars)
+    //      println("ovars: "+ovars)
   }
 }
 

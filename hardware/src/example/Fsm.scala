@@ -104,26 +104,28 @@ class Tick() extends Module {
 
 }
 
-class FsmTest(fsm: FsmContainer) extends Tester(fsm, Array(fsm.io)) {
-  defTests {
-    val ret = true
-    val vars = new HashMap[Node, Node]()
-    val ovars = new HashMap[Node, Node]()
-
-    for (i <- 0 until 10) {
-      vars.clear
-      step(vars, ovars)
-      println("iter: "+i)
-      println("ovars: "+ovars)
-      // where does the 'c' come from? Why does this work?
-      println("led/litVal "+ovars(c.io.led).litValue())
-//      println("led/litVal "+ovars(io.led).litValue())
-      println("led/litVal "+ovars(fsm.io.led).litValue())
-      // the following does not compile
-//      println("led/litVal "+ovars(xyz.io.led).litValue())
-    }
-    ret
+class FsmTest(fsm: FsmContainer) extends Tester(fsm) {
+  //val ret = true
+  //val vars = new HashMap[Node, Node]()
+  //val ovars = new HashMap[Node, Node]()
+  var test = 1;
+  step(16000000/2-1)
+  for (i <- 0 until 7) {
+    expect(c.io.led, (~test)&0x00FF)
+    step(16000000/2-1)
+    test = test << 1
+//    vars.clear
+//    step(vars, ovars)
+//    println("iter: "+i)
+//    println("ovars: "+ovars)
+//    // where does the 'c' come from? Why does this work?
+//    println("led/litVal "+ovars(c.io.led).litValue())
+////      println("led/litVal "+ovars(io.led).litValue())
+//    println("led/litVal "+ovars(fsm.io.led).litValue())
+//    // the following does not compile
+////      println("led/litVal "+ovars(xyz.io.led).litValue())
   }
+  expect(c.io.led, (~test)&0x00FF)
 }
 
 object FsmMain {
