@@ -10,7 +10,7 @@ tools/scripts/build
 tmp/
 simulator/build
 install/
-doc/lipmp/doc
+doc/libmp/doc
 
 hardware/quartus/altde2-115/db
 hardware/quartus/altde2-115/incremental_db
