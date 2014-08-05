@@ -35,6 +35,7 @@
  *
  * Author: Sahar Abbaspour (sabb@dtu.dk)
  *         Florian Brandner (florian.brandner@ensta-paristech.fr)
+ *         Wolfgang Puffitsch (wpuffitsch@gmail.com)
  *
  */
 
@@ -80,8 +81,8 @@ class StackCache() extends Module {
   // temporary address used during filling/spilling 
   val transferAddrReg = Reg(init = UInt(0, DATA_WIDTH))
 
-  // temporary address used during filling
-  val requiredMemTopReg = Reg(init = UInt(0, DATA_WIDTH))
+  // temporary address used during filling/spilling
+  val newMemTopReg = Reg(init = UInt(0, DATA_WIDTH))
 
   // the actual memory of the stack cache
   val memoryBlock = new Array[MemBlockIO](BYTES_PER_WORD)
@@ -151,16 +152,16 @@ class StackCache() extends Module {
           }
           is(sc_OP_ENS) {
             // compute required mem top pointer, and check if filling is needed
-            val nextRequiredMemTop = stackTopReg + io.exsc.opOff
+            val newMemTop = stackTopReg + io.exsc.opOff
 
             // start transfer from the current memory top pointer on
             transferAddrReg := memTopReg(ADDR_WIDTH - 1, burstBits) ## Fill(burstBits, UInt("b0"))
 
             // check if filling is needed
-            val needsFill = memTopReg < nextRequiredMemTop
+            val needsFill = memTopReg < newMemTop
 
             // update memory top pointer if needed
-            requiredMemTopReg := nextRequiredMemTop
+            newMemTopReg := newMemTop
 
             // start actual filling if needed
             stateReg := Mux(needsFill, fillState, idleState)
@@ -195,13 +196,16 @@ class StackCache() extends Module {
           is (sc_OP_SPILL) {
             // register type of instruction
             isReserveReg := Bool(false)
-            // start transfer from the current mem top - offset on
+            // start transfer from the current mem top - offset
+            val nextNewMemTop = memTopReg - io.exsc.opOff
             val nextTransferAddr = 
-              (memTopReg - io.exsc.opOff)(ADDR_WIDTH-1, burstBits) ## Fill(burstBits, UInt("b0"))
+              nextNewMemTop(ADDR_WIDTH-1, burstBits) ## Fill(burstBits, UInt("b0"))
             // start reading from the stack cache's memory
             mb_rdAddr := nextTransferAddr(scSizeBits + wordBits - 1, wordBits)
             // store transfer address in a register
             transferAddrReg := nextTransferAddr
+            // remember new value of memTop
+            newMemTopReg := nextNewMemTop
             // start spilling
             stateReg := holdSpillState
           }
@@ -281,7 +285,7 @@ class StackCache() extends Module {
       memTopReg := Mux(spillingDone,
                        Mux(isReserveReg,
                            stackTopReg + UInt(SCACHE_SIZE),
-                           transferAddrReg),
+                           newMemTopReg),
                        memTopReg)
 
       // if more spilling is needed preserve the stack cache's read address
@@ -306,7 +310,7 @@ class StackCache() extends Module {
 
       when(io.toMemory.S.Resp === OcpResp.DVA) {
         // check whether all data has been filled
-        val fillingDone = requiredMemTopReg <= transferAddrReg
+        val fillingDone = newMemTopReg <= transferAddrReg
 
         // check whether data should be written to the stack cache's memory
         val writeEnable = !fillingDone && memTopReg <= transferAddrReg
@@ -325,7 +329,7 @@ class StackCache() extends Module {
           waitFillState)
 
         // done? finally compute the new memory top pointer
-        memTopReg := Mux(fillingDone, requiredMemTopReg, memTopReg)
+        memTopReg := Mux(fillingDone, newMemTopReg, memTopReg)
       }
     }
   }
