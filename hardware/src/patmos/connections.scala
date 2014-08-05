@@ -171,7 +171,6 @@ class DecEx() extends Bundle() {
   val isSENS = Bool()
   val isSFREE = Bool()
   val isSPILL = Bool()
-  val isSPILLR = Bool()
 
   def reset() = {
     pc := UInt(0)
@@ -202,7 +201,6 @@ class DecEx() extends Bundle() {
     isSENS := Bool(false)
     isSFREE := Bool(false)
     isSPILL := Bool(false)
-    isSPILLR := Bool(false)
   }
 }
 

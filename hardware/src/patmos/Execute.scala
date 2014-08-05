@@ -233,10 +233,10 @@ class Execute() extends Module {
   // interface to the stack cache
   io.exsc.op := sc_OP_NONE
   io.exsc.opData := UInt(0)
-  io.exsc.opOff := op(1)
+  io.exsc.opOff := Mux(exReg.immOp(0), exReg.immVal(0), op(0))
 
   // stack control instructions
-  when(io.ena && !io.brflush && doExecute(0)) {
+  when(!io.brflush && doExecute(0)) {
     when(exReg.isSRES) {
       io.exsc.op := sc_OP_RES
     }
@@ -248,10 +248,6 @@ class Execute() extends Module {
     }
     .elsewhen (exReg.isSPILL) {
       io.exsc.op := sc_OP_SPILL
-    }
-    .elsewhen (exReg.isSPILLR) {
-      io.exsc.op := sc_OP_SPILL
-      io.exsc.opData := op(0).toUInt()
     }
   }
 
