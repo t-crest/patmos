@@ -136,7 +136,7 @@ vsim: verilog
 
 # synthesize with Quartus
 synth_quartus: verilog
-	quartus_map quartus/$(BOARD)/patmos --verilog_macro="SYNTHESIS"
+	quartus_map quartus/$(BOARD)/patmos
 	quartus_fit quartus/$(BOARD)/patmos
 	quartus_asm quartus/$(BOARD)/patmos
 	quartus_sta quartus/$(BOARD)/patmos
