@@ -8,7 +8,7 @@ const int NOC_MASTER = 0;
 #include <machine/spm.h>
 #include <stdio.h>
 #include "libnoc/noc.h"
-#include "patio.h"
+#include "include/patio.h"
 #ifdef BOOTROM
 extern int _stack_cache_base, _shadow_stack_base;
 int main(int argc, char **argv);

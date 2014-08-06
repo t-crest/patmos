@@ -31,32 +31,58 @@
  */
 
 /*
- * Boot loader (for uniprocessor).
+ * Master for CMP boot loader.
  * 
- * Authors: Tórur Biskopstø Strøm (torur.strom@gmail.com)
- *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
+ * Author: Wolfgang Puffitsch (wpuffitsch@gmail.com)
  *
  */
 
 #include "boot.h"
-#include "patio.h"
+#include "cmpboot.h"
+#include "include/patio.h"
 
-#include "bootable.h"
+#include "include/bootable.h"
+
+#define DELAY 1000*1
 
 // #define DEBUG
 
-int main(void) {
+int main(void)
+{
+
+  // wait a little bit in case of the TU/e memory controller not being ready
+  int val = TIMER_US_LOW+DELAY;
+#ifdef DEBUG // Interleaving the writing of "BOOT" with the waiting.
+             // This should make the timing behaviour for DEBUG and 
+             // not DEBUG more alike 
+  WRITE("BOOT\n", 5);
+#endif
+  while (TIMER_US_LOW-val < 0)
+    ;
+
+  // overwrite potential leftovers from previous runs
+  boot_info->master.status = STATUS_NULL;
+  boot_info->master.entrypoint = NULL;
+  for (unsigned i = 0; i < MAX_CORES; i++) {
+    boot_info->slave[i].status = STATUS_NULL;
+    boot_info->slave[i].return_val = -1;
+  }
+
+  // give the slaves some time to boot
+  for (unsigned i = 0; i < 0x10; i++) {
+    boot_info->master.status = STATUS_BOOT;
+  }
 
 #ifdef DEBUG
   WRITE("DOWN\n", 5);
 #endif
 
   // download application
-  volatile int (*entrypoint)() = download();
+  boot_info->master.entrypoint = download();
 #ifdef DEBUG
   // force some valid address for debugging
-  if (entrypoint == NULL) {
-    entrypoint = 0x20004;
+  if (boot_info->master.entrypoint == NULL) {
+    boot_info->master.entrypoint = 0x20084;
   }
 #endif
 
@@ -65,22 +91,25 @@ int main(void) {
 #ifdef DEBUG
   WRITE("START ", 6);
     
-  msg[0] = XDIGIT(((int)entrypoint >> 28) & 0xf);
-  msg[1] = XDIGIT(((int)entrypoint >> 24) & 0xf);
-  msg[2] = XDIGIT(((int)entrypoint >> 20) & 0xf);
-  msg[3] = XDIGIT(((int)entrypoint >> 16) & 0xf);
-  msg[4] = XDIGIT(((int)entrypoint >> 12) & 0xf);
-  msg[5] = XDIGIT(((int)entrypoint >>  8) & 0xf);
-  msg[6] = XDIGIT(((int)entrypoint >>  4) & 0xf);
-  msg[7] = XDIGIT(((int)entrypoint >>  0) & 0xf);
+  msg[0] = XDIGIT(((int)boot_info->master.entrypoint >> 28) & 0xf);
+  msg[1] = XDIGIT(((int)boot_info->master.entrypoint >> 24) & 0xf);
+  msg[2] = XDIGIT(((int)boot_info->master.entrypoint >> 20) & 0xf);
+  msg[3] = XDIGIT(((int)boot_info->master.entrypoint >> 16) & 0xf);
+  msg[4] = XDIGIT(((int)boot_info->master.entrypoint >> 12) & 0xf);
+  msg[5] = XDIGIT(((int)boot_info->master.entrypoint >>  8) & 0xf);
+  msg[6] = XDIGIT(((int)boot_info->master.entrypoint >>  4) & 0xf);
+  msg[7] = XDIGIT(((int)boot_info->master.entrypoint >>  0) & 0xf);
   msg[8] = '\n';
   WRITE(msg, 9);
 #endif
 
+  // notify slaves that they can call _start()
+  boot_info->master.status = STATUS_INIT;
+
   // call the application's _start()
   int retval = -1;
-  if (entrypoint != 0) {
-    retval = (*entrypoint)();
+  if (boot_info->master.entrypoint != NULL) {
+    retval = (*boot_info->master.entrypoint)();
 
     // Return may be "unclean" and leave registers clobbered.
     asm volatile ("" : :
@@ -94,15 +123,33 @@ int main(void) {
                     "$r30", "$r31");
   }
 
-#ifdef DEBUG
-  WRITE("EXIT\n", 5);
-#endif
+  
+  #ifdef DEBUG
+  WRITE("RETURN\n", 7);
+  #endif
+  // Wait for slaves to finish
+  for (unsigned i = 1; i < MAX_CORES; i++) {
+    if (boot_info->slave[i].status != STATUS_NULL) {
+      while(boot_info->slave[i].status != STATUS_RETURN){
+        /* spin */
+      }
+      // TODO: check return value
+      // boot_info->slave[i].return_val
+    }
+  }
 
   // Print exit magic and return code
   msg[0] = '\0';
   msg[1] = 'x';
   msg[2] = retval & 0xff;
   WRITE(msg, 3);
+  
+  // notify slaves that they can loop back
+  boot_info->master.status = STATUS_RETURN;
+
+  #ifdef DEBUG
+  WRITE("EXIT\n", 5);
+  #endif
 
   // loop back, TODO: replace with a real reset
   main();

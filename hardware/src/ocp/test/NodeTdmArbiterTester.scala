@@ -120,15 +120,7 @@ class NodeTdmArbiterTester(dut: ocp.test.NodeTdmArbiterTop) extends Tester(dut) 
   val testVec = Array( OcpCmd.IDLE, OcpCmd.WR, OcpCmd.IDLE )
 
   for (i <- 0 until 35) {
-//      vars(dut.io.fromMaster.M.Cmd) = testVec(i)
-
-//      vars(dut.io.slave.S.CmdAccept) = Bits(1)
-//      vars(dut.io.slave.S.DataAccept) = Bits(1)
     step(1)
-//      println("out data: " + ovars(dut.io.slave))
-    //      println("iter: "+i)
-    //      println("vars: "+vars)
-    //      println("ovars: "+ovars)
   }
 }
 
