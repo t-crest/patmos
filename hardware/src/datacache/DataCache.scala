@@ -52,13 +52,13 @@ class DataCache extends Module {
   val io = new Bundle {
     val master = new OcpCacheSlavePort(ADDR_WIDTH, DATA_WIDTH)
     val slave = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
-//  val scIO = new StackCacheIO()
+    val scIO = new StackCacheIO() 
   }
 
   // Register selects
   val selDC = io.master.M.AddrSpace === OcpCache.DATA_CACHE
   val selDCReg = Reg(init = Bool(false))
-  val selSC = Bool(false) // io.master.M.AddrSpace === OcpCache.STACK_CACHE
+  val selSC = io.master.M.AddrSpace === OcpCache.STACK_CACHE
   val selSCReg = Reg(init = Bool(false))
   when(io.master.M.Cmd != OcpCmd.IDLE) {
     selDCReg := selDC
@@ -84,15 +84,14 @@ class DataCache extends Module {
   val dmS = dm.io.master.S
 
   // Instantiate stack cache
-  val sc = Module(new StackCache(SCACHE_SIZE, BURST_LENGTH))
-  sc.io.master.M := io.master.M
-  sc.io.master.M.Cmd := Mux(selSC,
-                            io.master.M.Cmd, OcpCmd.IDLE)
-  val scS = sc.io.master.S
+  val sc = Module(new StackCache())
+  io.scIO <> sc.io
 
- // io.scIO.exsc.decscex <> sc.io.scIO.exsc.decscex
-  //io.scIO.memscdec <> sc.io.scIO.memscdec
-  //io.scIO.stall <> sc.io.scIO.stall
+  // connect the stack cache to the Patmos core
+  sc.io.fromCPU.M := io.master.M
+  sc.io.fromCPU.M.Cmd := Mux(selSC, io.master.M.Cmd, OcpCmd.IDLE)
+  val scS = sc.io.fromCPU.S
+
   // Instantiate bridge for bypasses and writes
   val bp = Module(new NullCache())
   bp.io.master.M := io.master.M
@@ -104,7 +103,7 @@ class DataCache extends Module {
   val burstReadJoin1 = new OcpBurstJoin(dm.io.slave, bp.io.slave, burstReadBus1.io.slave)
 
   val burstReadBus2 = Module(new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
-  val burstReadJoin2 = new OcpBurstJoin(sc.io.slave, burstReadBus1.io.master, burstReadBus2.io.slave)
+  val burstReadJoin2 = new OcpBurstJoin(sc.io.toMemory, burstReadBus1.io.master, burstReadBus2.io.slave)
 
   // Combine writes
   val wc = Module(if (WRITE_COMBINE) new WriteCombineBuffer() else new WriteNoBuffer())
@@ -117,10 +116,11 @@ class DataCache extends Module {
   // Pass data to pipeline
   io.master.S.Data := bpS.Data
   when(selDCReg) { io.master.S.Data := dmS.Data }
-  when(selSCReg) {io.master.S.Data := scS.Data}
+  when(selSCReg) { io.master.S.Data := scS.Data }
 
   // Merge responses
   io.master.S.Resp := dmS.Resp | scS.Resp | bpS.Resp | wcWriteS.Resp
 }
+
 
 
