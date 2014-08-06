@@ -206,17 +206,10 @@ class PatmosTest(pat: Patmos) extends Tester(pat) {
     step(1) // false as third argument disables printout
     // The PC printout is a little off on a branch
     val pc = peek(pat.core.memory.io.memwb.pc) - 2
-    // println(ovars(pat.io.led).litValue())
     print(pc + " - ")
     for (j <- 0 until 32)
       print(peek(pat.core.decode.rf.rf(UInt(j))) + " ")
     println()
-    //      println("iter: " + i)
-    //      println("ovars: " + ovars)
-    //      println("led/litVal " + ovars(pat.io.led).litValue())
-    //      println("pc: " + ovars(pat.core.fetch.io.fedec.pc).litValue())
-    //      println("instr: " + ovars(pat.core.fetch.io.fedec.instr_a).litValue())
-    //      println("pc decode: " + ovars(pat.core.decode.io.decex.pc).litValue())
   }
 }
 

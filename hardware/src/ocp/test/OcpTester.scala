@@ -63,10 +63,6 @@ class OcpTester(dut: AModule) extends Tester(dut) {
     poke(dut.io.fromMaster.M.Cmd,testVec(i))
 
     step(1)
-//      println("out cmd: " + ovars(dut.io.fromMaster.M.Cmd))
-    //      println("iter: "+i)
-    //      println("vars: "+vars)
-    //      println("ovars: "+ovars)
   }
 }*/
 
