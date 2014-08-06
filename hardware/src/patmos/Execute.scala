@@ -237,18 +237,7 @@ class Execute() extends Module {
 
   // stack control instructions
   when(!io.brflush && doExecute(0)) {
-    when(exReg.isSRES) {
-      io.exsc.op := sc_OP_RES
-    }
-    .elsewhen(exReg.isSENS) {
-      io.exsc.op := sc_OP_ENS
-    }
-    .elsewhen(exReg.isSFREE) {
-      io.exsc.op := sc_OP_FREE
-    }
-    .elsewhen (exReg.isSPILL) {
-      io.exsc.op := sc_OP_SPILL
-    }
+    io.exsc.op := exReg.stackOp
   }
 
   // dual-issue operations
