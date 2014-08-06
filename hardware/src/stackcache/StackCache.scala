@@ -72,6 +72,9 @@ class StackCache() extends Module {
   val idleState :: fillState :: waitFillState :: spillState :: holdSpillState :: waitSpillState :: Nil = Enum(UInt(), 6)
   val stateReg = Reg(init = idleState)
 
+  // chose between sres and sspill
+  val isReserveReg = Reg(init = Bool(false))
+
   // stack top pointer
   val stackTopReg = Reg(init = UInt(0, DATA_WIDTH))
 
@@ -102,13 +105,18 @@ class StackCache() extends Module {
   // response to CPU for read/write requests
   val responseToCPUReg = Reg(init = OcpResp.NULL)
 
+  // write enable for data that actually needs spilling
+  val writeEnable = Mux(isReserveReg,
+                        ((stackTopReg + UInt(SCACHE_SIZE)) <= transferAddrReg) && (transferAddrReg < memTopReg),
+                        (newMemTopReg <= transferAddrReg) && (transferAddrReg < memTopReg))
+
   // default OCP "request"
   io.stall := stateReg != idleState
   io.toMemory.M.Cmd := OcpCmd.IDLE
   io.toMemory.M.Addr := transferAddrReg
   io.toMemory.M.Data := mb_rdData
   io.toMemory.M.DataValid := UInt(0)
-  io.toMemory.M.DataByteEn := UInt("b1111")
+  io.toMemory.M.DataByteEn := Fill(BYTES_PER_WORD, writeEnable)
 
   // default signals for the stack cache's memory
   val relAddr = (io.fromCPU.M.Addr + stackTopReg)(scSizeBits + wordBits - 1, wordBits)
@@ -127,9 +135,6 @@ class StackCache() extends Module {
   // reset response to CPU
   responseToCPUReg := OcpResp.NULL
   
-  // chose between sres and sspill
-  val isReserveReg = Reg(init = Bool(false))
-
   /*
    * Stack Control Interface (mfs, sres, sens, sfree)
    */
@@ -218,18 +223,11 @@ class StackCache() extends Module {
      * SPILLING
      */
     is(holdSpillState) {
-
       val nextTransferAddr = transferAddrReg + UInt(BYTES_PER_WORD)
-
-      // only write the data that actually needs spilling
-      val writeEnable = Mux(isReserveReg,
-                            ((stackTopReg + UInt(SCACHE_SIZE)) <= transferAddrReg) && (transferAddrReg < memTopReg),
-                            transferAddrReg < memTopReg)
 
       // generate an OCP write request
       io.toMemory.M.Cmd := OcpCmd.WR
       io.toMemory.M.DataValid := UInt(1)
-      io.toMemory.M.DataByteEn := Fill(BYTES_PER_WORD, writeEnable)
 
       // check if command has been accepted
       val accepted = io.toMemory.S.CmdAccept === UInt(1)
@@ -247,17 +245,11 @@ class StackCache() extends Module {
     is(spillState) {
       val nextTransferAddr = transferAddrReg + UInt(BYTES_PER_WORD)
 
-      // only write the data that actually needs spilling
-      val writeEnable = Mux(isReserveReg,
-                            ((stackTopReg + UInt(SCACHE_SIZE)) <= transferAddrReg) && (transferAddrReg < memTopReg),
-                            transferAddrReg < memTopReg)
-
       // read next data element from the stack cache's memory
       mb_rdAddr := nextTransferAddr(scSizeBits + wordBits - 1, wordBits)
 
       // hand current data element over to the OCP bus
       io.toMemory.M.DataValid := UInt(1)
-      io.toMemory.M.DataByteEn := Fill(BYTES_PER_WORD, writeEnable)
 
       // increment transfer address and advance stateReg
       transferAddrReg := nextTransferAddr
