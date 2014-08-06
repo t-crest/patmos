@@ -10,21 +10,16 @@
 */
 
 #include <machine/spm.h>
+#include <stdio.h>
 
 int main() {
 
 	volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0000900;
-	volatile _SPM int *uart_status = (volatile _SPM int *) 0xF0000800;
-	volatile _SPM int *uart_data = (volatile _SPM int *) 0xF0000804;
-	int status;
-	int val;
+	char val;
 
 	for (;;) {
-		status = *uart_status;
-		if (status & 0x02) {
-			val = *uart_data;
-			*uart_data = val;
-			*led_ptr = ~val;
-		}
+		val = getchar();
+		putchar(val);
+		*led_ptr = ~val;
 	}
 }

@@ -39,7 +39,7 @@
  */
 
 #include "boot.h"
-#include "patio.h"
+#include "include/patio.h"
 
 entrypoint_t download(void) {
 

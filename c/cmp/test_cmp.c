@@ -9,12 +9,11 @@ const int NOC_MASTER = 0;
 #include <machine/patmos.h>
 #include <machine/exceptions.h>
 #include "libnoc/noc.h"
-#include "cmpboot.h"
+#include "bootloader/cmpboot.h"
 
 #define MINADDR (512*1024)
 #define TEST_START ((volatile _UNCACHED unsigned int *) MINADDR + 0)
 
-#define CPU_FREQ ((volatile _SPM int *) 0xF0000004)
 
 #define ABORT_IF_FAIL(X,Y) if (X<0){puts(Y); abort();}
 
@@ -121,8 +120,8 @@ int test_mem_size_spm(volatile int _SPM * mem_addr){
 void print_processor_info() {
   //puts("CPU info:");
   printf("CPU ID: %d\n",get_cpuid());
-  //printf("Operating frequency: %d MHz\n",(*CPU_FREQ) >> 20);
-  printf("Operating frequency: %d MHz\n",(*CPU_FREQ)/1000000);
+  //printf("Operating frequency: %d MHz\n",(get_cpu_freq()) >> 20);
+  printf("Operating frequency: %d MHz\n",(get_cpu_freq())/1000000);
   int i = 0;
   int cores = 1;
   for(i = 1; i < MAX_CORES; i++){
@@ -174,8 +173,8 @@ int main() {
   if (get_cpuid() == 0) {
     print_processor_info();
     print_noc_info();
-		com_spm_test();
-		main_mem_test();
+	com_spm_test();
+	main_mem_test();
     return 0;
 
   } else {
