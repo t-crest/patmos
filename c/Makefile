@@ -37,6 +37,8 @@ LDFLAGS?= \
 .PHONY: compile
 compile: $(BUILDDIR)/$(APP).elf
 
+VPATH = .:bootable:bootloader:cmp:dhry:include
+
 $(BUILDDIR)/%.o: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) -c -o $@ $(filter %.c,$^)

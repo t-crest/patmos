@@ -39,9 +39,9 @@
  */
 
 #include "boot.h"
-#include "patio.h"
+#include "include/patio.h"
 
-#include "bootable.h"
+#include "include/bootable.h"
 
 // #define DEBUG
 

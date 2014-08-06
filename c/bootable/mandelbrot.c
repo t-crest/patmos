@@ -29,7 +29,7 @@
 #include <machine/patmos.h>
 #include <machine/spm.h>
 
-#include "bootable.h"
+#include "include/bootable.h"
 
 #define UART_STATUS *((volatile _SPM int *) 0xF0000800)
 #define UART_DATA   *((volatile _SPM int *) 0xF0000804)
