@@ -27,6 +27,7 @@
 #include "streams.h"
 #include "symbol.h"
 #include "memory-map.h"
+#include "noc.h"
 #include "uart.h"
 #include "rtc.h"
 #include "excunit.h"
@@ -300,6 +301,14 @@ int main(int argc, char **argv)
     ("chkreads", boost::program_options::value<patmos::mem_check_e>()->default_value(patmos::MCK_NONE), 
                  "Check for reads of uninitialized data, either per byte (warn, err) or per access (warn-addr, err-addr). Disables the data cache.");
 
+  boost::program_options::options_description noc_options("Network-on-chip options");
+  noc_options.add_options()
+    ("nocbase",          boost::program_options::value<patmos::address_t>()->default_value(patmos::NOC_BASE_ADDRESS), "base address of the NOC device map address range")
+    ("noc_route_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::NOC_DMA_P_OFFSET), "offset of the NOC routing information device map")
+    ("noc_st_offset",    boost::program_options::value<patmos::address_t>()->default_value(patmos::NOC_DMA_ST_OFFSET), "offset of the NOC slot table device map")
+    ("noc_spm_offset",   boost::program_options::value<patmos::address_t>()->default_value(patmos::NOC_SPM_OFFSET), "offset of the NOC SPM")
+    ("nocsize",          boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NOC_SPM_SIZE),   "size of the NOC SPM");
+    
   boost::program_options::options_description cache_options("Cache options");
   cache_options.add_options()
     ("dcsize,d", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_DATA_CACHE_BYTES), "data cache size in bytes")
@@ -350,7 +359,8 @@ int main(int argc, char **argv)
 
   boost::program_options::options_description cmdline_options;
   cmdline_options.add(generic_options).add(memory_options).add(cache_options)
-                 .add(sim_options).add(uart_options).add(interrupt_options);
+                 .add(noc_options).add(sim_options).add(uart_options)
+                 .add(interrupt_options);
 
   // process command-line options
   boost::program_options::variables_map vm;
@@ -393,6 +403,12 @@ int main(int argc, char **argv)
   double       freq = vm["freq"].as<double>();
   unsigned int mmbase = vm["mmbase"].as<patmos::address_t>().value();
   unsigned int mmhigh = vm["mmhigh"].as<patmos::address_t>().value();
+  
+  unsigned int nocbase = vm["nocbase"].as<patmos::address_t>().value();
+  unsigned int noc_route_offset = vm["noc_route_offset"].as<patmos::address_t>().value();
+  unsigned int noc_st_offset = vm["noc_st_offset"].as<patmos::address_t>().value();
+  unsigned int noc_spm_offset = vm["noc_spm_offset"].as<patmos::address_t>().value();
+  unsigned int nocsize = vm["nocsize"].as<patmos::byte_size_t>().value();
   
   unsigned int cpuinfo_offset = vm["cpuinfo_offset"].as<patmos::address_t>().value();
   unsigned int excunit_offset = vm["excunit_offset"].as<patmos::address_t>().value();
@@ -523,7 +539,8 @@ int main(int argc, char **argv)
 
     // TODO initialize the SPM with random data as well?
     patmos::ideal_memory_t lm(lsize, false, chkreads);
-    patmos::memory_map_t mm(lm, mmbase, mmhigh);
+    patmos::ideal_memory_t nm(nocsize, false, patmos::MCK_NONE);
+    patmos::memory_map_t mm(lm, std::min(mmbase,nocbase), mmhigh);
     
     patmos::symbol_map_t sym;
 
@@ -537,12 +554,15 @@ int main(int argc, char **argv)
     patmos::cpuinfo_t cpuinfo(mmbase+cpuinfo_offset, cpuid, freq);
     patmos::uart_t uart(mmbase+uart_offset, *uin, uin_istty, *uout);
     patmos::led_t leds(mmbase+led_offset, *uout);
+    patmos::noc_t noc(nocbase, nocbase+noc_route_offset, nocbase+noc_st_offset,
+                      nocbase+noc_spm_offset, nocsize, nm);
 
     mm.add_device(cpuinfo);
     mm.add_device(excunit);
     mm.add_device(uart);
     mm.add_device(leds);
     mm.add_device(rtc);
+    mm.add_device(noc);
 
     // load input program
     patmos::section_list_t text;
@@ -646,6 +666,13 @@ int main(int argc, char **argv)
         *sout << " --tdelay=" << tdelay << " --trefresh=" << trefresh;
         *sout << " --bsize=" << bsize << " --psize=" << psize;
         *sout << " --posted=" << posted; 
+        
+        *sout << "\n  ";
+        *sout << " --nocbase=" << nocbase;
+        *sout << " --noc_route_offset=" << noc_route_offset;
+        *sout << " --noc_st_offset=" << noc_st_offset;
+        *sout << " --noc_spm_offset=" << noc_spm_offset;
+        *sout << " --nocsize=" << nocsize;
         
         *sout << "\n  ";
         *sout << " --lsize=" << lsize;
