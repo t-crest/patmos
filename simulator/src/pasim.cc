@@ -554,9 +554,27 @@ int main(int argc, char **argv)
       std::cerr << boost::format("Loaded: %1% bytes\n") 
                    % loader->get_binary_size();
     }
-    
-    loader->load_symbols(sym, text);
-    loader->load_to_memory(s, gm);
+
+    try
+    {
+      loader->load_symbols(sym, text);
+      loader->load_to_memory(s, gm);
+    }
+    catch (patmos::simulation_exception_t e) 
+    {
+      switch(e.get_kind()) {
+        case patmos::simulation_exception_t::UNMAPPED:
+          // Unmapped access during loading of code
+          if (e.get_cycle() == 0) {
+            std::cerr << boost::format("Unmapped access to 0x%x while loading program.\n") % e.get_info();
+            break;
+          }
+          // intended fallthrough to default
+        default:
+          std::cerr << e.to_string(sym);
+      }
+      goto _cleanup;
+    }
     
     if (debug_accesses) {
       debug_access_addr.parse(sym);
@@ -568,12 +586,12 @@ int main(int argc, char **argv)
       print_stats_func.parse(sym);
       s.Dbg_stack.print_function_stats(print_stats_func.value(), *sout);
     }
-   
+  
     if (flush_caches) {
       flush_caches_addr.parse(sym);
       s.flush_caches_at(flush_caches_addr.value());
     }
-   
+  
     // start execution
     bool success = false;
     try
@@ -652,6 +670,7 @@ int main(int argc, char **argv)
     std::cerr << f.what() << "\n";
   }
 
+_cleanup:
   // free memory/cache instances
   // note: no need to free the local memory here.
   delete &gm;
