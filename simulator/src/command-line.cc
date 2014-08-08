@@ -302,6 +302,8 @@ namespace patmos
       sck = SC_BLOCK;
     else if(kind == "dcache")
       sck = SC_DCACHE;
+    else if(kind == "ablock")
+      sck = SC_ABLOCK;
     else if(kind == "lblock")
       sck = SC_LBLOCK;
     else throw boost::program_options::validation_error(
@@ -321,6 +323,8 @@ namespace patmos
         os << "block"; break;
       case SC_DCACHE:
         os << "dcache"; break;
+      case SC_ABLOCK:
+        os << "ablock"; break;
       case SC_LBLOCK:
         os << "lblock"; break;
     }

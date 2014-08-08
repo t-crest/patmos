@@ -142,6 +142,7 @@ namespace patmos
     SC_IDEAL,
     SC_BLOCK,
     SC_DCACHE,
+    SC_ABLOCK,
     SC_LBLOCK
   };
 

@@ -196,11 +196,13 @@ static patmos::instr_cache_t &create_instr_cache(patmos::instr_cache_e ick,
 /// Construct a stack cache for the simulation.
 /// @param sck The kind of the stack cache requested.
 /// @param size The requested size of the stack cache in bytes.
+/// @param bsize The size of burst transfers in bytes.
 /// @param gm Global memory accessed on stack cache fills/spills.
 /// @param dc Data cache to use if the stack cache type is dcache.
 /// @return An instance of the requested stack cache kind.
 static patmos::stack_cache_t &create_stack_cache(patmos::stack_cache_e sck,
                                                  unsigned int size,
+                                                 unsigned int bsize,
                                                  patmos::memory_t &gm, 
                                                  patmos::memory_t &dc)
 {
@@ -217,11 +219,18 @@ static patmos::stack_cache_t &create_stack_cache(patmos::stack_cache_e sck,
 
       return *new patmos::block_stack_cache_t(gm, num_blocks, 4);
     }
+    case patmos::SC_ABLOCK:
+    {
+      // convert size to number of blocks
+      unsigned int num_blocks = (size - 1) / bsize + 1;
+        
+      return *new patmos::block_aligned_stack_cache_t(gm, num_blocks, bsize);
+    }
     case patmos::SC_LBLOCK:
     {
       // convert size to number of blocks
       unsigned int num_blocks = (size - 1) / 4 + 1;
-	
+        
       return *new patmos::block_lazy_stack_cache_t(gm, num_blocks, 4);
     }
     case patmos::SC_DCACHE:
@@ -317,7 +326,7 @@ int main(int argc, char **argv)
     ("dlsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(0), "size of a data cache line in bytes, defaults to burst size if set to 0")
 
     ("scsize,s", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_STACK_CACHE_BYTES), "stack cache size in bytes")
-    ("sckind,S", boost::program_options::value<patmos::stack_cache_e>()->default_value(patmos::SC_BLOCK), "kind of stack cache (ideal, block, lblock, dcache)")
+    ("sckind,S", boost::program_options::value<patmos::stack_cache_e>()->default_value(patmos::SC_BLOCK), "kind of stack cache (ideal, block, ablock, lblock, dcache)")
 
     ("icache,C", boost::program_options::value<patmos::instr_cache_e>()->default_value(patmos::IC_MCACHE), "kind of instruction cache (mcache, icache)")
     ("ickind,K", boost::program_options::value<patmos::set_assoc_cache_type>()->default_value(patmos::set_assoc_cache_type(patmos::SAC_LRU,2)), 
@@ -512,7 +521,7 @@ int main(int argc, char **argv)
                                                  mbsize, mcmethods, gm);
   patmos::data_cache_t &dc = create_data_cache(dck, dcsize, 
                                                dlsize ? dlsize : bsize, gm);
-  patmos::stack_cache_t &sc = create_stack_cache(sck, scsize, gm, dc);
+  patmos::stack_cache_t &sc = create_stack_cache(sck, scsize, bsize, gm, dc);
 
   try
   {
