@@ -37,34 +37,34 @@ namespace patmos
 
   /// Default address of the NOC slot table.
   static const uword_t NOC_DMA_ST_OFFSET = 0x02000000;
-  
+
   /// Default address of the NOC SPM.
   static const uword_t NOC_SPM_OFFSET    = 0x08000000;
 
-  /// Default address of the NOC routing info.
+  /// Default size of the NOC SPM.
   static const uword_t NOC_SPM_SIZE      = 0x01000000;
 
-  
+
   /// A simple NOC implementation.
   class noc_t : public mapped_device_t
   {
   private:
     memory_t &SPM;
-    
+
     uword_t Base_address;
     uword_t Route_address;
     uword_t Slot_table_address;
     uword_t SPM_address;
-    
+
   protected:
-    
+
   public:
     /// Construct a new memory-mapped NOC.
     /// @param base_address The address of the NOC device
     /// @param in_stream Stream providing data read from the NOC.
     /// @param istty Flag indicating whether the input stream is a TTY.
     /// @param out_stream Stream storing data written to the NOC.
-    noc_t(uword_t base_address, uword_t route_address, uword_t st_address, 
+    noc_t(uword_t base_address, uword_t route_address, uword_t st_address,
            uword_t spm_address, uword_t spmsize, memory_t &spm) :
         mapped_device_t(base_address, spm_address+spmsize-base_address),
         Base_address(base_address), Route_address(route_address),
@@ -95,7 +95,8 @@ namespace patmos
     /// @param value A pointer to a destination to store the value read from
     /// the memory.
     /// @param size The number of bytes to read.
-    virtual void peek(simulator_t &s, uword_t address, byte_t *value, uword_t size) {
+    virtual void peek(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+    {
       // TODO catch reads to DMA addresses
       if (address >= SPM_address)
         SPM.read_peek(s, address - SPM_address, value, size);
