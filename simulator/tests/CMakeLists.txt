@@ -181,7 +181,7 @@ endmacro (test_sim_lp)
 macro (test_sim_scba num expr)
   ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim -V -S ablock --maxc 20000 ${CMAKE_CURRENT_BINARY_DIR}/test${num}.bin)
   SET_TESTS_PROPERTIES(sim-test-${num} PROPERTIES PASS_REGULAR_EXPRESSION ${expr})
-endmacro (test_sim_lp)
+endmacro (test_sim_scba)
 
 test_sim(01 "r1 : 00000005   r2 : 0000000a")
 
