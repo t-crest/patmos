@@ -27,6 +27,7 @@
 #include "streams.h"
 #include "symbol.h"
 #include "memory-map.h"
+#include "noc.h"
 #include "uart.h"
 #include "rtc.h"
 #include "excunit.h"
@@ -195,11 +196,13 @@ static patmos::instr_cache_t &create_instr_cache(patmos::instr_cache_e ick,
 /// Construct a stack cache for the simulation.
 /// @param sck The kind of the stack cache requested.
 /// @param size The requested size of the stack cache in bytes.
+/// @param bsize The size of burst transfers in bytes.
 /// @param gm Global memory accessed on stack cache fills/spills.
 /// @param dc Data cache to use if the stack cache type is dcache.
 /// @return An instance of the requested stack cache kind.
 static patmos::stack_cache_t &create_stack_cache(patmos::stack_cache_e sck,
                                                  unsigned int size,
+                                                 unsigned int bsize,
                                                  patmos::memory_t &gm, 
                                                  patmos::memory_t &dc)
 {
@@ -216,11 +219,18 @@ static patmos::stack_cache_t &create_stack_cache(patmos::stack_cache_e sck,
 
       return *new patmos::block_stack_cache_t(gm, num_blocks, 4);
     }
+    case patmos::SC_ABLOCK:
+    {
+      // convert size to number of blocks
+      unsigned int num_blocks = (size - 1) / bsize + 1;
+        
+      return *new patmos::block_aligned_stack_cache_t(gm, num_blocks, bsize);
+    }
     case patmos::SC_LBLOCK:
     {
       // convert size to number of blocks
       unsigned int num_blocks = (size - 1) / 4 + 1;
-	
+        
       return *new patmos::block_lazy_stack_cache_t(gm, num_blocks, 4);
     }
     case patmos::SC_DCACHE:
@@ -300,6 +310,14 @@ int main(int argc, char **argv)
     ("chkreads", boost::program_options::value<patmos::mem_check_e>()->default_value(patmos::MCK_NONE), 
                  "Check for reads of uninitialized data, either per byte (warn, err) or per access (warn-addr, err-addr). Disables the data cache.");
 
+  boost::program_options::options_description noc_options("Network-on-chip options");
+  noc_options.add_options()
+    ("nocbase",          boost::program_options::value<patmos::address_t>()->default_value(patmos::NOC_BASE_ADDRESS), "base address of the NOC device map address range")
+    ("noc_route_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::NOC_DMA_P_OFFSET), "offset of the NOC routing information device map")
+    ("noc_st_offset",    boost::program_options::value<patmos::address_t>()->default_value(patmos::NOC_DMA_ST_OFFSET), "offset of the NOC slot table device map")
+    ("noc_spm_offset",   boost::program_options::value<patmos::address_t>()->default_value(patmos::NOC_SPM_OFFSET), "offset of the NOC SPM")
+    ("nocsize",          boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NOC_SPM_SIZE),   "size of the NOC SPM");
+    
   boost::program_options::options_description cache_options("Cache options");
   cache_options.add_options()
     ("dcsize,d", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_DATA_CACHE_BYTES), "data cache size in bytes")
@@ -308,7 +326,7 @@ int main(int argc, char **argv)
     ("dlsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(0), "size of a data cache line in bytes, defaults to burst size if set to 0")
 
     ("scsize,s", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_STACK_CACHE_BYTES), "stack cache size in bytes")
-    ("sckind,S", boost::program_options::value<patmos::stack_cache_e>()->default_value(patmos::SC_BLOCK), "kind of stack cache (ideal, block, lblock, dcache)")
+    ("sckind,S", boost::program_options::value<patmos::stack_cache_e>()->default_value(patmos::SC_BLOCK), "kind of stack cache (ideal, block, ablock, lblock, dcache)")
 
     ("icache,C", boost::program_options::value<patmos::instr_cache_e>()->default_value(patmos::IC_MCACHE), "kind of instruction cache (mcache, icache)")
     ("ickind,K", boost::program_options::value<patmos::set_assoc_cache_type>()->default_value(patmos::set_assoc_cache_type(patmos::SAC_LRU,2)), 
@@ -350,7 +368,8 @@ int main(int argc, char **argv)
 
   boost::program_options::options_description cmdline_options;
   cmdline_options.add(generic_options).add(memory_options).add(cache_options)
-                 .add(sim_options).add(uart_options).add(interrupt_options);
+                 .add(noc_options).add(sim_options).add(uart_options)
+                 .add(interrupt_options);
 
   // process command-line options
   boost::program_options::variables_map vm;
@@ -393,6 +412,12 @@ int main(int argc, char **argv)
   double       freq = vm["freq"].as<double>();
   unsigned int mmbase = vm["mmbase"].as<patmos::address_t>().value();
   unsigned int mmhigh = vm["mmhigh"].as<patmos::address_t>().value();
+  
+  unsigned int nocbase = vm["nocbase"].as<patmos::address_t>().value();
+  unsigned int noc_route_offset = vm["noc_route_offset"].as<patmos::address_t>().value();
+  unsigned int noc_st_offset = vm["noc_st_offset"].as<patmos::address_t>().value();
+  unsigned int noc_spm_offset = vm["noc_spm_offset"].as<patmos::address_t>().value();
+  unsigned int nocsize = vm["nocsize"].as<patmos::byte_size_t>().value();
   
   unsigned int cpuinfo_offset = vm["cpuinfo_offset"].as<patmos::address_t>().value();
   unsigned int excunit_offset = vm["excunit_offset"].as<patmos::address_t>().value();
@@ -496,7 +521,7 @@ int main(int argc, char **argv)
                                                  mbsize, mcmethods, gm);
   patmos::data_cache_t &dc = create_data_cache(dck, dcsize, 
                                                dlsize ? dlsize : bsize, gm);
-  patmos::stack_cache_t &sc = create_stack_cache(sck, scsize, gm, dc);
+  patmos::stack_cache_t &sc = create_stack_cache(sck, scsize, bsize, gm, dc);
 
   try
   {
@@ -523,7 +548,8 @@ int main(int argc, char **argv)
 
     // TODO initialize the SPM with random data as well?
     patmos::ideal_memory_t lm(lsize, false, chkreads);
-    patmos::memory_map_t mm(lm, mmbase, mmhigh);
+    patmos::ideal_memory_t nm(nocsize, false, patmos::MCK_NONE);
+    patmos::memory_map_t mm(lm, std::min(mmbase,nocbase), mmhigh);
     
     patmos::symbol_map_t sym;
 
@@ -537,12 +563,15 @@ int main(int argc, char **argv)
     patmos::cpuinfo_t cpuinfo(mmbase+cpuinfo_offset, cpuid, freq);
     patmos::uart_t uart(mmbase+uart_offset, *uin, uin_istty, *uout);
     patmos::led_t leds(mmbase+led_offset, *uout);
+    patmos::noc_t noc(nocbase, nocbase+noc_route_offset, nocbase+noc_st_offset,
+                      nocbase+noc_spm_offset, nocsize, nm);
 
     mm.add_device(cpuinfo);
     mm.add_device(excunit);
     mm.add_device(uart);
     mm.add_device(leds);
     mm.add_device(rtc);
+    mm.add_device(noc);
 
     // load input program
     patmos::section_list_t text;
@@ -554,9 +583,27 @@ int main(int argc, char **argv)
       std::cerr << boost::format("Loaded: %1% bytes\n") 
                    % loader->get_binary_size();
     }
-    
-    loader->load_symbols(sym, text);
-    loader->load_to_memory(s, gm);
+
+    try
+    {
+      loader->load_symbols(sym, text);
+      loader->load_to_memory(s, gm);
+    }
+    catch (patmos::simulation_exception_t e) 
+    {
+      switch(e.get_kind()) {
+        case patmos::simulation_exception_t::UNMAPPED:
+          // Unmapped access during loading of code
+          if (e.get_cycle() == 0) {
+            std::cerr << boost::format("Unmapped access to 0x%x while loading program.\n") % e.get_info();
+            break;
+          }
+          // intended fallthrough to default
+        default:
+          std::cerr << e.to_string(sym);
+      }
+      goto _cleanup;
+    }
     
     if (debug_accesses) {
       debug_access_addr.parse(sym);
@@ -568,12 +615,12 @@ int main(int argc, char **argv)
       print_stats_func.parse(sym);
       s.Dbg_stack.print_function_stats(print_stats_func.value(), *sout);
     }
-   
+  
     if (flush_caches) {
       flush_caches_addr.parse(sym);
       s.flush_caches_at(flush_caches_addr.value());
     }
-   
+  
     // start execution
     bool success = false;
     try
@@ -630,6 +677,13 @@ int main(int argc, char **argv)
         *sout << " --posted=" << posted; 
         
         *sout << "\n  ";
+        *sout << " --nocbase=" << nocbase;
+        *sout << " --noc_route_offset=" << noc_route_offset;
+        *sout << " --noc_st_offset=" << noc_st_offset;
+        *sout << " --noc_spm_offset=" << noc_spm_offset;
+        *sout << " --nocsize=" << nocsize;
+        
+        *sout << "\n  ";
         *sout << " --lsize=" << lsize;
         *sout << " --dckind=" << dck;
         *sout << " --dcsize=" << dcsize << " --dlsize=" << dlsize;
@@ -652,6 +706,7 @@ int main(int argc, char **argv)
     std::cerr << f.what() << "\n";
   }
 
+_cleanup:
   // free memory/cache instances
   // note: no need to free the local memory here.
   delete &gm;

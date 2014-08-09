@@ -72,6 +72,9 @@ class StackCache() extends Module {
   val idleState :: fillState :: waitFillState :: spillState :: holdSpillState :: waitSpillState :: Nil = Enum(UInt(), 6)
   val stateReg = Reg(init = idleState)
 
+  // chose between sres and sspill
+  val isReserveReg = Reg(init = Bool(false))
+
   // stack top pointer
   val stackTopReg = Reg(init = UInt(0, DATA_WIDTH))
 
@@ -79,7 +82,7 @@ class StackCache() extends Module {
   val memTopReg = Reg(init = UInt(0, DATA_WIDTH))
 
   // temporary address used during filling/spilling 
-  val transferAddrReg = Reg(init = UInt(0, DATA_WIDTH))
+  val transferAddrReg = Reg(init = UInt(0, EXTMEM_ADDR_WIDTH))
 
   // temporary address used during filling/spilling
   val newMemTopReg = Reg(init = UInt(0, DATA_WIDTH))
@@ -90,10 +93,10 @@ class StackCache() extends Module {
     memoryBlock(i) = MemBlock(SCACHE_SIZE / BYTES_PER_WORD, BYTE_WIDTH).io
   }
 
-  val mb_rdAddr = UInt(width = ADDR_WIDTH)
-  val mb_rdData = memoryBlock(3).rdData ## memoryBlock(2).rdData ## memoryBlock(1).rdData ## memoryBlock(0).rdData
-  val mb_wrAddr = UInt(width = ADDR_WIDTH)
-  val mb_wrEna = UInt(width = BYTE_WIDTH)
+  val mb_rdAddr = UInt(width = scSizeBits)
+  val mb_rdData = memoryBlock.map(_.rdData).reduceLeft((x,y) => y ## x)
+  val mb_wrAddr = UInt(width = scSizeBits)
+  val mb_wrEna = UInt(width = BYTES_PER_WORD)
   val mb_wrData = UInt(width = DATA_WIDTH)
 
   // register addr for MemBlock
@@ -102,33 +105,36 @@ class StackCache() extends Module {
   // response to CPU for read/write requests
   val responseToCPUReg = Reg(init = OcpResp.NULL)
 
+  // write enable for data that actually needs spilling
+  val writeEnable = Mux(isReserveReg,
+                        ((stackTopReg + UInt(SCACHE_SIZE)) <= transferAddrReg) && (transferAddrReg < memTopReg),
+                        (newMemTopReg <= transferAddrReg) && (transferAddrReg < memTopReg))
+
   // default OCP "request"
   io.stall := stateReg != idleState
   io.toMemory.M.Cmd := OcpCmd.IDLE
-  io.toMemory.M.Addr := UInt(0)
-  io.toMemory.M.Data := UInt(0)
+  io.toMemory.M.Addr := transferAddrReg
+  io.toMemory.M.Data := mb_rdData
   io.toMemory.M.DataValid := UInt(0)
-  io.toMemory.M.DataByteEn := UInt("b1111")
+  io.toMemory.M.DataByteEn := Fill(BYTES_PER_WORD, writeEnable)
 
   // default signals for the stack cache's memory
-  mb_rdAddr := UInt(0)
-  mb_wrAddr := UInt(0)
-  mb_wrEna := UInt(0)
-  mb_wrData := UInt(0)
+  val relAddr = (io.fromCPU.M.Addr + stackTopReg)(scSizeBits + wordBits - 1, wordBits)
+  mb_rdAddr := relAddr
+  mb_wrAddr := relAddr
+  mb_wrEna  := UInt(0)
+  mb_wrData := io.fromCPU.M.Data
 
   // signals to execute stage
   io.scex.stackTop := stackTopReg
   io.scex.memTop := memTopReg
 
   // extract current burst counter
-  val burstCounter = transferAddrReg.apply(burstBits - 1, wordBits)
+  val burstCounter = transferAddrReg(burstBits - 1, wordBits)
 
   // reset response to CPU
   responseToCPUReg := OcpResp.NULL
   
-  // chose between sres and sspill
-  val isReserveReg = Reg(init = Bool(false))
-
   /*
    * Stack Control Interface (mfs, sres, sens, sfree)
    */
@@ -155,7 +161,7 @@ class StackCache() extends Module {
             val newMemTop = stackTopReg + io.exsc.opOff
 
             // start transfer from the current memory top pointer on
-            transferAddrReg := memTopReg(ADDR_WIDTH - 1, burstBits) ## Fill(burstBits, UInt("b0"))
+            transferAddrReg := memTopReg(EXTMEM_ADDR_WIDTH - 1, burstBits) ## Fill(burstBits, UInt("b0"))
 
             // check if filling is needed
             val needsFill = memTopReg < newMemTop
@@ -184,7 +190,7 @@ class StackCache() extends Module {
             stackTopReg := nextStackTop
             // start transfer from the current stack pointer + SCACHE_SIZE
             val nextTransferAddr =
-              (nextStackTop + UInt(SCACHE_SIZE))(ADDR_WIDTH-1, burstBits) ## Fill(burstBits, UInt("b0"))
+              (nextStackTop + UInt(SCACHE_SIZE))(EXTMEM_ADDR_WIDTH-1, burstBits) ## Fill(burstBits, UInt("b0"))
             // start reading from the stack cache's memory
             mb_rdAddr := nextTransferAddr(scSizeBits + wordBits - 1, wordBits)
             // store transfer address in a register
@@ -199,7 +205,7 @@ class StackCache() extends Module {
             // start transfer from the current mem top - offset
             val nextNewMemTop = memTopReg - io.exsc.opOff
             val nextTransferAddr = 
-              nextNewMemTop(ADDR_WIDTH-1, burstBits) ## Fill(burstBits, UInt("b0"))
+              nextNewMemTop(EXTMEM_ADDR_WIDTH-1, burstBits) ## Fill(burstBits, UInt("b0"))
             // start reading from the stack cache's memory
             mb_rdAddr := nextTransferAddr(scSizeBits + wordBits - 1, wordBits)
             // store transfer address in a register
@@ -217,29 +223,17 @@ class StackCache() extends Module {
      * SPILLING
      */
     is(holdSpillState) {
-
       val nextTransferAddr = transferAddrReg + UInt(BYTES_PER_WORD)
-
-      // only write the data that actually needs spilling
-      val writeEnable = Mux(isReserveReg,
-                            ((stackTopReg + UInt(SCACHE_SIZE)) <= transferAddrReg) && (transferAddrReg < memTopReg),
-                            transferAddrReg < memTopReg)
 
       // generate an OCP write request
       io.toMemory.M.Cmd := OcpCmd.WR
-      io.toMemory.M.Addr := transferAddrReg
-      io.toMemory.M.Data := mb_rdData
       io.toMemory.M.DataValid := UInt(1)
-      io.toMemory.M.DataByteEn := Fill(4, writeEnable)
 
       // check if command has been accepted
       val accepted = io.toMemory.S.CmdAccept === UInt(1)
 
       // read next data element once accepted, otherwise hold
-      mb_rdAddr := Mux(accepted, nextTransferAddr.apply(scSizeBits + wordBits - 1,
-        wordBits),
-
-        rdAddrReg)
+      mb_rdAddr := Mux(accepted, nextTransferAddr(scSizeBits + wordBits - 1, wordBits), rdAddrReg)
 
       // increment transfer address if accepted
       transferAddrReg := Mux(accepted, nextTransferAddr, transferAddrReg)
@@ -251,18 +245,11 @@ class StackCache() extends Module {
     is(spillState) {
       val nextTransferAddr = transferAddrReg + UInt(BYTES_PER_WORD)
 
-      // only write the data that actually needs spilling
-      val writeEnable = Mux(isReserveReg,
-                            ((stackTopReg + UInt(SCACHE_SIZE)) <= transferAddrReg) && (transferAddrReg < memTopReg),
-                            transferAddrReg < memTopReg)
-
       // read next data element from the stack cache's memory
-      mb_rdAddr := nextTransferAddr.apply(scSizeBits + wordBits - 1, wordBits)
+      mb_rdAddr := nextTransferAddr(scSizeBits + wordBits - 1, wordBits)
 
       // hand current data element over to the OCP bus
-      io.toMemory.M.Data := mb_rdData
       io.toMemory.M.DataValid := UInt(1)
-      io.toMemory.M.DataByteEn := Fill(4, writeEnable)
 
       // increment transfer address and advance stateReg
       transferAddrReg := nextTransferAddr
@@ -289,7 +276,7 @@ class StackCache() extends Module {
                        memTopReg)
 
       // if more spilling is needed preserve the stack cache's read address
-      mb_rdAddr := Mux(spillingDone, UInt(0), rdAddrReg)
+      mb_rdAddr := rdAddrReg
     }
 
     /*
@@ -298,7 +285,6 @@ class StackCache() extends Module {
     is(fillState) {
       // generate an OCP read request and wait that it is accepted
       io.toMemory.M.Cmd := OcpCmd.RD
-      io.toMemory.M.Addr := transferAddrReg
 
       // go to next stateReg
       stateReg := Mux(io.toMemory.S.CmdAccept === Bits(1),
@@ -306,7 +292,6 @@ class StackCache() extends Module {
     }
 
     is(waitFillState) {
-      io.toMemory.M.Addr := transferAddrReg
 
       when(io.toMemory.S.Resp === OcpResp.DVA) {
         // check whether all data has been filled
@@ -316,7 +301,7 @@ class StackCache() extends Module {
         val writeEnable = !fillingDone && memTopReg <= transferAddrReg
 
         // write to the stack cache's memory
-        mb_wrEna := Fill(4, writeEnable)
+        mb_wrEna := Fill(BYTES_PER_WORD, writeEnable)
         mb_wrData := io.toMemory.S.Data
         mb_wrAddr := transferAddrReg.apply(scSizeBits + wordBits - 1, wordBits)
 
@@ -346,16 +331,11 @@ class StackCache() extends Module {
   when(io.fromCPU.M.Cmd === OcpCmd.WR) {
     // write to the stack cache's memory
     mb_wrEna := io.fromCPU.M.ByteEn
-    mb_wrData := io.fromCPU.M.Data
-    mb_wrAddr := (io.fromCPU.M.Addr + stackTopReg)(scSizeBits + wordBits - 1, wordBits)
 
     // generate response that indicates that the write has completed 
     responseToCPUReg := OcpResp.DVA
   }
   .elsewhen(io.fromCPU.M.Cmd === OcpCmd.RD) {
-    // Read from the stack cache's memory
-    mb_rdAddr := (io.fromCPU.M.Addr + stackTopReg)(scSizeBits + wordBits - 1, wordBits)
-
     // generate response that indicates that the write has completed 
     responseToCPUReg := OcpResp.DVA
   }
@@ -365,7 +345,7 @@ class StackCache() extends Module {
    */
 
   for (i <- 0 until BYTES_PER_WORD) {
-    memoryBlock(i) <= (mb_wrEna.apply(i), mb_wrAddr,
+    memoryBlock(i) <= (mb_wrEna(i), mb_wrAddr,
       mb_wrData(BYTE_WIDTH * (i + 1) - 1, BYTE_WIDTH * i))
     memoryBlock(i).rdAddr := mb_rdAddr
   }
@@ -380,11 +360,3 @@ class StackCache() extends Module {
   debug(mb_wrData)
   debug(mb_wrEna)
 }
-
-
-
-
-
-
-
-

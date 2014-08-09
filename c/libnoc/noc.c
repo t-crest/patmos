@@ -41,7 +41,7 @@
 #include <machine/patmos.h>
 #include <machine/spm.h>
 
-#include "cmpboot.h"
+#include "bootloader/cmpboot.h"
 #include "noc.h"
 #include "coreset.h"
 

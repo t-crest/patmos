@@ -1,6 +1,6 @@
 /*
     A small demo program demostrating the use of argo noc for communication between patmos processors
-    Master core initiates a message that is sent from one core to the next (based on CORE_ID). 
+    Master core initiates a message that is sent from one core to the next (based on get_cpuid()). 
     Each core adds its ID to the sum of ids and forwards the message to the next core,
     until it reches the master again.
 
@@ -14,7 +14,7 @@ const int NOC_MASTER = 0;
 #include <machine/spm.h>
 #include <stdio.h>
 #include "libnoc/noc.h"
-#include "patio.h"
+#include "include/patio.h"
 
 static void blink(int nblinks);
 
@@ -29,7 +29,7 @@ static void slave(void);
 int main() {
 
 
-    	// Clear scratch pad in all cores
+  	// Clear scratch pad in all cores
 	// 16+16 integers
 	int i;
     	for(i = 0; i < NOC_CORES*4; i++) {
@@ -37,8 +37,7 @@ int main() {
 		*(NOC_SPM_BASE+NOC_CORES*4+i) = 0;
     	}
 
-	//if (CPU_ID == 0) {
-	if(CORE_ID == 0) {
+	if(get_cpuid() == 0) {
     		master();
   	} else {
     		slave();
@@ -130,10 +129,10 @@ static void slave(void) {
 	}
 
 	// PROCESS : add ID to sum_id
-	*(spm_slave+20) = *(spm_slave+20) + CORE_ID;
+	*(spm_slave+20) = *(spm_slave+20) + get_cpuid();
 
 	// send to next slave
-	int rcv_id = (CORE_ID==(NOC_CORES-1))? 0 : CORE_ID+1;
+	int rcv_id = (get_cpuid()==(NOC_CORES-1))? 0 : get_cpuid()+1;
 	noc_send(rcv_id, spm_slave, spm_slave, 21);
 
 	return;

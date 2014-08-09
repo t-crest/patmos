@@ -652,6 +652,169 @@ void block_stack_cache_t::reset_stats()
   Num_stall_cycles = 0;
 }
 
+block_aligned_stack_cache_t::block_aligned_stack_cache_t(memory_t &memory, 
+                          unsigned int num_blocks, unsigned int num_block_bytes)
+  : block_stack_cache_t(memory, (num_blocks*num_block_bytes)/4, 4), 
+    Num_transfer_block_bytes(num_block_bytes),
+    Num_words_spilled(0), Max_words_spilled(0),
+    Num_words_filled(0), Max_words_filled(0),
+    Num_words_free_filled(0), Max_words_free_filled(0)
+{
+}
+
+word_t block_aligned_stack_cache_t::prepare_reserve(simulator_t &s, 
+                                                    uword_t size,
+                                                    uword_t &stack_spill,
+                                                    uword_t &stack_top)
+{
+  // ensure that the reserved space does not exceed the stack cache's size minus
+  // one block.
+  assert(size <= Num_block_bytes * Num_blocks);
+
+  // pre-compute required spilling
+  word_t retval = block_stack_cache_t::prepare_reserve(s, size, stack_spill, 
+                                                       stack_top);
+
+  // round stack spill down to transfer block size
+  uword_t alignment_fixup = stack_spill % Num_transfer_block_bytes;
+  stack_spill -= alignment_fixup;
+
+  // update stats
+  Num_words_spilled += alignment_fixup / 4;
+  Max_words_spilled = std::max(Max_words_spilled, alignment_fixup / 4);
+
+  // increment number of blocks to be actually spilled
+  return retval + alignment_fixup;
+}
+
+word_t block_aligned_stack_cache_t::prepare_ensure(simulator_t &s, uword_t size,
+                                                   uword_t &stack_spill,
+                                                   uword_t &stack_top)
+{
+  // ensure that the reserved space does not exceed the stack cache's size minus
+  // one block.
+  assert(size <= Num_block_bytes * Num_blocks);
+
+  // pre-compute required filling
+  word_t retval = block_stack_cache_t::prepare_ensure(s, size, stack_spill, 
+                                                      stack_top);
+
+  // was the transfer alligned?
+  uword_t alignment_fixup = stack_spill % Num_transfer_block_bytes;
+  if (alignment_fixup != 0) 
+  {
+    // compute actual fixup
+    alignment_fixup = Num_transfer_block_bytes - alignment_fixup;
+
+    // round stack spill up to transfer block size
+    stack_spill +=  alignment_fixup;
+
+    // update stats
+    Num_words_filled += alignment_fixup / 4;
+    Max_words_filled = std::max(Max_words_filled, alignment_fixup / 4);
+  }
+
+  // increment number of blocks to be actually filled
+  return retval + alignment_fixup;
+}
+
+word_t block_aligned_stack_cache_t::prepare_free(simulator_t &s, uword_t size, 
+                                                 uword_t &stack_spill, 
+                                                 uword_t &stack_top)
+{
+  // ensure that the reserved space does not exceed the stack cache's size minus
+  // one block.
+  assert(size <= Num_block_bytes * Num_blocks);
+
+  // pre-compute required spilling
+  word_t retval = block_stack_cache_t::prepare_free(s, size, stack_spill, 
+                                                    stack_top);
+  assert(retval == 0);
+
+  // was the transfer alligned?
+  uword_t alignment_fixup = stack_spill % Num_transfer_block_bytes;
+  if (alignment_fixup != 0) 
+  {
+    // compute actual fixup
+    alignment_fixup = Num_transfer_block_bytes - alignment_fixup;
+
+    // round stack spill up to transfer block size
+    stack_spill +=  alignment_fixup;
+
+    // update stats
+    Num_words_free_filled += Num_transfer_block_bytes / 4;
+    Max_words_free_filled = std::max(Max_words_filled, 
+                                     Num_transfer_block_bytes / 4);
+
+    return Num_transfer_block_bytes;
+  }
+  else 
+  {
+    return 0;
+  }
+}
+
+bool block_aligned_stack_cache_t::free(simulator_t &s, uword_t size, 
+                                       word_t delta, uword_t new_spill, 
+                                       uword_t new_top)
+{
+  // no transfer needed
+  if (delta == 0)
+    return true;
+
+  // ensure that a single block is to be filled
+  assert(delta == Num_transfer_block_bytes);
+
+  // only perform this the first time the function gets called
+  if(Phase == IDLE)
+  {
+    // first, clear the stack cache content ...
+    Content.clear();
+  }
+
+  //  ... then execute a one-block fill, if needed ...
+  bool retval = ensure(s, delta, delta, new_spill, new_spill - delta);
+
+  // ... then make sure that the content matches the actual number of blocks 
+  // reserved in the cache.
+  if (retval) 
+  {
+    Content.resize(get_num_reserved_blocks(new_spill, new_top)*4);
+  }
+
+  return retval;
+}
+
+void block_aligned_stack_cache_t::print_stats(const simulator_t &s, 
+                                              std::ostream &os, 
+                                              bool short_stats)
+{
+  // print generic stack cache statistics
+  block_stack_cache_t::print_stats(s, os, short_stats);
+
+  // print stack cache statistics related to lazy pointer
+  os << boost::format("   Align trans. (spill): %1$10d  %2$10d\n"
+                      "   Align trans. (fill) : %3$10d  %4$10d\n"
+                      "   Align trans. (free) : %5$10d  %6$10d\n")
+    % Num_words_spilled % Max_words_spilled
+    % Num_words_filled % Max_words_filled
+    % Num_words_free_filled % Max_words_free_filled;
+}
+
+void block_aligned_stack_cache_t::reset_stats() 
+{
+  block_stack_cache_t::reset_stats();
+
+  Num_words_spilled = 0;
+  Max_words_spilled = 0;
+
+  Num_words_filled = 0;
+  Max_words_filled = 0;
+
+  Num_words_free_filled = 0;
+  Max_words_free_filled = 0;
+}
+
 block_lazy_stack_cache_t::block_lazy_stack_cache_t(memory_t &memory, 
                                                  unsigned int num_blocks, 
                                                  unsigned int num_block_bytes) :

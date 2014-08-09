@@ -43,7 +43,7 @@
 const int NOC_MASTER = 0;
 #include "libnoc/noc.h"
 
-#include "bootable.h"
+#include "include/bootable.h"
 
 #define core_id *((volatile _SPM int *) 0xF0000000)
 

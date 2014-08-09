@@ -197,5 +197,6 @@ object Constants {
   val STC_SENSR   = Bits("b0101")
   val STC_SSPILLR = Bits("b1101")
 
+  val SC_OP_BITS = 3
   val sc_OP_NONE :: sc_OP_SET_ST :: sc_OP_SET_MT :: sc_OP_RES :: sc_OP_ENS :: sc_OP_FREE :: sc_OP_SPILL :: Nil = Enum(UInt(), 7)
 }

@@ -143,6 +143,7 @@ class DecEx() extends Bundle() {
   val predOp = Vec.fill(PIPE_COUNT) { new PredOp() }
   val jmpOp = new JmpOp()
   val memOp = new MemOp()
+  val stackOp = UInt(width = SC_OP_BITS)
 
   // the register fields are very similar to RegFileRead
   // maybe join the structures
@@ -166,12 +167,6 @@ class DecEx() extends Bundle() {
 
   val illOp = Bool()
 
-  // is a stack-control instruction executed?
-  val isSRES = Bool()
-  val isSENS = Bool()
-  val isSFREE = Bool()
-  val isSPILL = Bool()
-
   def reset() = {
     pc := UInt(0)
     relPc := UInt(0)
@@ -180,6 +175,7 @@ class DecEx() extends Bundle() {
     predOp.map(_.reset())
     jmpOp.reset()
     memOp.reset()
+    stackOp := sc_OP_NONE
     rsAddr := Vec.fill(2*PIPE_COUNT) { Bits(0) }
     rsData := Vec.fill(2*PIPE_COUNT) { Bits(0) }
     rdAddr := Vec.fill(PIPE_COUNT) { Bits(0) }
@@ -196,11 +192,6 @@ class DecEx() extends Bundle() {
     xsrc := Bits(0)
     nonDelayed := Bool(false)
     illOp := Bool(false)
-    
-    isSRES := Bool(false)
-    isSENS := Bool(false)
-    isSFREE := Bool(false)
-    isSPILL := Bool(false)
   }
 }
 
@@ -275,9 +266,9 @@ class ExSc extends Bundle() {
 
   // operands of the stack-cache operation
   //   - opSetStackTop, opSetMemTop: the new value of stackTop or memTop
-  val opData = UInt(width = ADDR_WIDTH)
+  val opData = UInt(width = DATA_WIDTH)
   //   - opSRES, opSENS, opSFREE   : the operand of the instructions
-  val opOff  = UInt(width = ADDR_WIDTH)
+  val opOff  = UInt(width = EXTMEM_ADDR_WIDTH)
 }
 
 class ScEx extends Bundle() {

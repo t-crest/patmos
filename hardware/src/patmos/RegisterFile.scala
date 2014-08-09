@@ -93,9 +93,7 @@ class RegisterFile() extends Module {
   val rfDebug = Vec.fill(REG_COUNT) { Reg(Bits(width = DATA_WIDTH)) }
   for(i <- 0 until REG_COUNT) {
     rfDebug(i) := rf(Bits(i))
-    if (Module.isVCD) {
-      // Keep signal alive
-      debug(rfDebug(i))
-    }
+    // Keep signal alive
+    debug(rfDebug(i))
   }
 }

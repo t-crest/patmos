@@ -70,7 +70,7 @@ namespace patmos
   
   /// Define the number of bytes in a block of the method cache.
   static const unsigned int NUM_METHOD_CACHE_BLOCK_BYTES = 8;
-
+  
   /// General-purpose register holding the program's exit code when terminating.
   static const GPR_e GPR_EXIT_CODE_INDEX = r1;
 
