@@ -151,8 +151,8 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
     }
     
     // Forward Rsp/DVA back to node 
-    when (wrCntReg === UInt(wrPipeDelay-1)) {
-      io.master.S.Resp := io.slave.S.Resp
+    when (wrCntReg === UInt(4)) {
+      io.master.S.Resp := OcpResp.DVA
     }
     // Wait on DVA 
     when(io.master.S.Resp === OcpResp.DVA){
