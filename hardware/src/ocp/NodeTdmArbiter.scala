@@ -138,8 +138,11 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
    
     // Sends ZEROs after the burst is done 
     when (wrCntReg >= UInt(burstLen-1)) {
+      io.slave.M.Cmd  := Bits(0)
       io.slave.M.Addr := Bits(0)
       io.slave.M.Data := Bits(0)
+      io.slave.M.DataValid := Bits(0)
+      io.slave.M.DataByteEn := Bits(0)
     }
 
     // Turn off the DataValid after a burst of 4
@@ -159,14 +162,19 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
      
   when (stateReg === sRead){
     io.slave.M := io.master.M
-    rdCntReg := Mux(rdCntReg === UInt(rdPipeDelay), UInt(0), rdCntReg + UInt(1))
+    rdCntReg := Mux(rdCntReg === UInt(rdPipeDelay + burstLen), UInt(0), rdCntReg + UInt(1))
     
     // Sends ZEROs after the burst is done 
     when (rdCntReg >= UInt(burstLen-1)) {
+      io.slave.M.Cmd  := Bits(0)
       io.slave.M.Addr := Bits(0)
+      io.slave.M.Data := Bits(0)
+      io.slave.M.DataValid := Bits(0)
+      io.slave.M.DataByteEn := Bits(0) 
     }
-
-    when (rdCntReg >= UInt(numPipe)) {
+    
+    // rdCntReg starts 1 clock cycle after the arrival of the 1st data
+    when (rdCntReg >= UInt(ctrlDelay + numPipe)) {
       io.master.S.Data := io.slave.S.Data
       io.master.S.Resp := io.slave.S.Resp
     }
