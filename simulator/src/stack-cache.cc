@@ -459,18 +459,19 @@ bool block_stack_cache_t::ensure(simulator_t &s, uword_t size, word_t delta,
   // copy the data from memory into a temporary buffer
   if (Memory.read(s, new_spill - delta, Buffer, delta))
   {
-    // Ensure the size of the stack cache
-    if (Content.size() < size)
-    {
-      Content.insert(Content.begin(), size - Content.size(), 0);
-    }
-    
     // get the offset of the old spill pointer in the content array
-    uword_t old_size = new_spill - delta - new_top;
+    uword_t old_size = Content.size();
+    assert(old_size == new_spill - delta - new_top);
+    
+    // Ensure the size of the stack cache is larger than the block that needs to 
+    // be loaded
+    Content.insert(Content.begin(), delta, 0);
     
     // copy the data back into the stack cache
     for(unsigned int i = 0; i < delta; i++)
     {
+      assert(Content.size() - old_size - i - 1 >= 0);
+      assert(Content.size() - old_size - i - 1 < Content.size());
       Content[Content.size() - old_size - i - 1]  = Buffer[i];
     }
 
@@ -760,7 +761,7 @@ bool block_aligned_stack_cache_t::free(simulator_t &s, uword_t size,
 {
   // no transfer needed
   if (delta == 0)
-    return true;
+    return block_stack_cache_t::free(s, size, delta, new_spill, new_top);
 
   // ensure that a single block is to be filled
   assert(delta == Num_transfer_block_bytes);
