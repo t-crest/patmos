@@ -57,6 +57,8 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
   debug(io.master)
   debug(io.slave)
   debug(io.node)
+  
+  // MS: have all generated constants at one place
 
   val cntReg = Reg(init = UInt(0, log2Up(cnt*(burstLen + ctrlDelay + 1))))
   // slot length = burst size + 1 
@@ -70,6 +72,8 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
 
   val rdPipeDelay = burstLen + ctrlDelay + numPipe 
   val rdCntReg = Reg(init = UInt(0, log2Up(rdPipeDelay)))
+  
+  // MS: merge rdCntReg and wrCntReg and let it count till slot length
  
   val cpuSlot = Vec.fill(cnt){Reg(init = UInt(0, width=1))}
 
@@ -134,6 +138,8 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
   when (stateReg === sWrite){
     io.slave.M := io.master.M
     io.master.S.DataAccept := UInt(1)
+    // MS: why not counting just up to the slot length
+    // Then we can avoid >= and use =
     wrCntReg := Mux(wrCntReg === UInt(wrPipeDelay), UInt(0), wrCntReg + UInt(1))
    
     // Sends ZEROs after the burst is done 
@@ -151,6 +157,7 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
     }
     
     // Forward Rsp/DVA back to node 
+    // Ms: not hard coded constants in the source
     when (wrCntReg === UInt(4)) {
       io.master.S.Resp := OcpResp.DVA
     }
@@ -165,6 +172,7 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
     rdCntReg := Mux(rdCntReg === UInt(rdPipeDelay + burstLen), UInt(0), rdCntReg + UInt(1))
     
     // Sends ZEROs after the burst is done 
+    // MS: This should also (as in write) be just the slot length.
     when (rdCntReg >= UInt(burstLen-1)) {
       io.slave.M.Cmd  := Bits(0)
       io.slave.M.Addr := Bits(0)
@@ -174,6 +182,8 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
     }
     
     // rdCntReg starts 1 clock cycle after the arrival of the 1st data
+    // MS: rdCntReg is used for two different purposes -- fix it
+    // The following shall also include number of pipeline stages on the return path
     when (rdCntReg >= UInt(ctrlDelay + numPipe)) {
       io.master.S.Data := io.slave.S.Data
       io.master.S.Resp := io.slave.S.Resp
@@ -202,6 +212,8 @@ class MemMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) exten
     debug(io.master)
     debug(io.slave)
     
+    // MS: would like pipeline number configurable
+    
     // 1st stage pipeline registers for inputs 
     val mCmd_p1_Reg         = Vec.fill(nr){Reg(init=UInt(0, width=3))}
     val mAddr_p1_Reg        = Vec.fill(nr){Reg(init=UInt(0, width=addrWidth))}
@@ -209,26 +221,21 @@ class MemMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) exten
     val mDataByteEn_p1_Reg  = Vec.fill(nr){Reg(init=UInt(0, width=dataWidth/8))}
     val mDataValid_p1_Reg   = Vec.fill(nr){Reg(init=UInt(0, width=1))}
 
-    // 2st stage pipeline registers for inputs 
+    // 2st stage pipeline registers for inputs
+    // MS: what about using the whole bundle as a single signal?
+    // val mMasterReg = Reg(init=OcpBurstMasterSignals(...))
     val mCmd_p2_Reg         = Reg(init=UInt(0, width=3))
     val mAddr_p2_Reg        = Reg(init=UInt(0, width=addrWidth))
     val mData_p2_Reg        = Reg(init=UInt(0, width=dataWidth))
     val mDataByteEn_p2_Reg  = Reg(init=UInt(0, width=dataWidth/8))
     val mDataValid_p2_Reg   = Reg(init=UInt(0, width=1))
     
-    // Pipeline regiaters default to 0
+    // Pipeline registers default to 0
     mCmd_p1_Reg         := Bits(0)
     mAddr_p1_Reg        := Bits(0)
     mData_p1_Reg        := Bits(0)
     mDataByteEn_p1_Reg  := Bits(0)
     mDataValid_p1_Reg   := Bits(0)
-
-    // Wires for cascading OR gate
-    //val mCmd_res = Vec.fill(nr-1){UInt(width=3)}
-    //val mAddr_res = Vec.fill(nr-1){UInt(width=addrWidth)}
-    //val mData_res = Vec.fill(nr-1){UInt(width=dataWidth)}
-    //val mDataByteEn_res = Vec.fill(nr-1){UInt(width=dataWidth/8)}
-    //val mDataValid_res = Vec.fill(nr-1){UInt(width=1)} 
     
     // 1st stage pipeline of the input
     for (i <- 0 until nr){
@@ -252,39 +259,11 @@ class MemMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) exten
     }
      
     // OR gate of all inputs (2nd stage pipeline)
-    //mCmd_res(0) := mCmd_p1_Reg(0) | mCmd_p1_Reg(1)
-    //for (i <- 1 until nr-1){
-    //  mCmd_res(i) := mCmd_res(i-1) | mCmd_p1_Reg(i+1) 
-    //}
-    //mCmd_p2_Reg := mCmd_res(nr-2)
+    
     mCmd_p2_Reg := mCmd_p1_Reg.reduce(_|_)
-
-    //mAddr_res(0) := mAddr_p1_Reg(0) | mAddr_p1_Reg(1)
-    //for (i <- 1 until nr-1){
-    //  mAddr_res(i) := mAddr_res(i-1) | mAddr_p1_Reg(i+1)
-    //}
-    //mAddr_p2_Reg := mAddr_res(nr-2)
     mAddr_p2_Reg := mAddr_p1_Reg.reduce(_|_)
-    
-    //mData_res(0) := mData_p1_Reg(0) | mData_p1_Reg(1)
-    //for (i <- 1 until nr-1){
-    //  mData_res(i) := mData_res(i-1) | mData_p1_Reg(i+1)
-    //}
-    //mData_p2_Reg := mData_res(nr-2)
     mData_p2_Reg := mData_p1_Reg.reduce(_|_)
-    
-    //mDataByteEn_res(0) := mDataByteEn_p1_Reg(0) | mDataByteEn_p1_Reg(1)
-    //for (i <- 1 until nr-1){
-    //  mDataByteEn_res(i) := mDataByteEn_res(i-1) | mDataByteEn_p1_Reg(i+1)
-    //}
-    //mDataByteEn_p2_Reg := mDataByteEn_res(nr-2)
     mDataByteEn_p2_Reg := mDataByteEn_p1_Reg.reduce(_|_)
-   
-    //mDataValid_res(0) := mDataValid_p1_Reg(0) | mDataValid_p1_Reg(1)
-    //for (i <- 1 until nr-1){
-    //  mDataValid_res(i) := mDataValid_res(i-1) | mDataValid_p1_Reg(i+1)
-    //}
-    //mDataValid_p2_Reg := mDataValid_res(nr-2)
     mDataValid_p2_Reg := mDataValid_p1_Reg.reduce(_|_)
     
     // Transfer data from input pipeline registers to output
@@ -294,9 +273,7 @@ class MemMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) exten
     io.slave.M.DataValid  := mDataValid_p2_Reg
     io.slave.M.Data       := mData_p2_Reg
    
-    // 1st stage pipleline registers for output
-    //val sCmdAccept_p1_Reg   = Reg(next=io.slave.S.CmdAccept)
-    //val sDataAccept_p1_Reg  = Reg(next=io.slave.S.DataAccept)
+    // 1st stage pipeline registers for output
     val sResp_p1_Reg        = Reg(next=io.slave.S.Resp)
     val sData_p1_Reg        = Reg(next=io.slave.S.Data)
 
