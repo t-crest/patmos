@@ -76,12 +76,25 @@ static inline void coreset_remove(unsigned core, coreset_t *set) {
   set->__bits[core / __ELEMBITS] &= ~(1 << (core % __ELEMBITS));
 }
 
-/// \brief Remove a core from the set.
+/// \brief Determins whether the set contains the core.
 /// \param core A core number.
 /// \param set A set of cores.
 /// \returns Non-zero if a core is in the set, zero otherwise.
 static inline int coreset_contains(unsigned core, const coreset_t *set) {
   return set->__bits[core / __ELEMBITS] & (1 << (core % __ELEMBITS));
+}
+
+/// \brief Determins whether the set is empty.
+/// \param set A set of cores.
+/// \returns Non-zero if the coreset is empty, zero otherwise.
+static inline int coreset_empty(const coreset_t* set) {
+  int is_empty = 1;
+  for (int i = 0; i < __ELEMCNT; ++i) {
+    if(set->__bits[i] != 0) {
+      is_empty = 0;
+    }
+  }
+  return is_empty;
 }
 
 #endif /* _CORESET_H_ */

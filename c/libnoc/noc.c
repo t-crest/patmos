@@ -41,9 +41,9 @@
 #include <machine/patmos.h>
 #include <machine/spm.h>
 
+#include <stdio.h>
 #include "bootloader/cmpboot.h"
 #include "noc.h"
-#include "coreset.h"
 
 // Structure to model the network interface
 static struct network_interface
@@ -154,7 +154,7 @@ void noc_send(unsigned rcv_id, volatile void _SPM *dst,
 // Multicast transfer of data via the NoC
 // The addresses and the size are in bytes
 void noc_multisend(unsigned cnt, unsigned rcv_id [], volatile void _SPM *dst [],
-                   volatile void _SPM *src, size_t len) {
+              volatile void _SPM *src, size_t len) {
 
   int done;
   coreset_t sent;
@@ -173,4 +173,39 @@ void noc_multisend(unsigned cnt, unsigned rcv_id [], volatile void _SPM *dst [],
   } while(!done);
 }
 
+// Multicast transfer of data via the NoC
+// The addresses and the size are in bytes
+// The receivers are defined in a coreset
+void noc_multisend_cs(unsigned cnt, coreset_t receivers,
+              volatile void _SPM *dst, volatile void _SPM *src, size_t len) {
+  coreset_remove(get_cpuid(),&receivers);
+  while(!coreset_empty(&receivers)) {
+    for (int i = 0; i < CORESET_SIZE; ++i) {
+      if (coreset_contains(i,&receivers)){
+        if (noc_nbsend(i, dst, src, len)) {
+          coreset_remove(i, &receivers);
+        }
+      }
+    }    
+  }
+}
+
+
+// Multicast transfer of data via the NoC
+// The addresses and the size are in bytes
+// The receivers are defined in a coreset
+void noc_multisend_cs_debug(unsigned cnt, coreset_t receivers,
+              volatile void _SPM *dst, volatile void _SPM *src, size_t len) {
+  coreset_remove(get_cpuid(),&receivers);
+  while(!coreset_empty(&receivers)) {
+    for (int i = 0; i < CORESET_SIZE; ++i) {
+      if (coreset_contains(i,&receivers)){
+        if (noc_nbsend(i, dst, src, len)) {
+          puts("Noc send done");
+          coreset_remove(i, &receivers);
+        }
+      }
+    }    
+  }
+}
 

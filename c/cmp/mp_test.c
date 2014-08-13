@@ -60,6 +60,13 @@ const int NOC_MASTER = 0;
                                          + FLAG_SIZE) + DWALIGN(sizeof(size_t)))
 
 
+// The starting address of the barrier
+#define MP_BARRIER_ADDR NOC_SPM_BASE + MP_CHAN_1_SIZE + MP_CHAN_2_SIZE
+#define MP_BARRIER_SIZE NOC_CORES * DWALIGN(sizeof(int))
+#define MP_ALLCORES
+
+static const unsigned cpuids[] = {0,1,2,3};
+
 int main() {
   if (get_cpuid() == 0) {
     puts("Core 0");
@@ -68,6 +75,8 @@ int main() {
     mpd_t recv_chan;
     char send_data[] = "Hello World!, Sending messages is cool!";
     char recv_data[40];
+
+    communicator_t barrier;
 
     // Initialization of message passing buffers
     // mp_send_init() and mp_recv_init() return false if local and remote
@@ -88,7 +97,9 @@ int main() {
         MP_CHAN_2_NUM_BUF)) {
         abort();
     }
-    // +16 is equal to 64 bytes
+    if (!mp_barrier_init(&barrier,NOC_CORES,cpuids,MP_BARRIER_ADDR)) {
+        abort();
+    }
 
     puts("Initialized buffers");
     int i = 0;
@@ -124,11 +135,14 @@ int main() {
 
     recv_data[39] = '\0';
     puts(recv_data);
+    mp_barrier_debug(&barrier);
+    puts("Barrier reached");
     return 0;
 
   } else if(get_cpuid() == 1) {
     mpd_t send_chan;
     mpd_t recv_chan;
+    communicator_t barrier;
     // Initialize the message passing buffers
     mp_recv_init(&recv_chan,
         0,
@@ -142,6 +156,9 @@ int main() {
         MP_CHAN_2,
         MP_CHAN_2_BUF_SIZE,
         MP_CHAN_2_NUM_BUF);
+    if (!mp_barrier_init(&barrier,NOC_CORES,cpuids,MP_BARRIER_ADDR)) {
+        abort();
+    }
     // For each of the messages that is received
     for (int i = 0; i < 5; ++i) {
         mp_recv(&recv_chan);
@@ -160,9 +177,15 @@ int main() {
     }
     
     mp_send(&send_chan);
+    mp_barrier(&barrier);
     return 0;
   } else {
     //for (; ; ) { }
+    communicator_t barrier;
+    if (!mp_barrier_init(&barrier,NOC_CORES,cpuids,MP_BARRIER_ADDR)) {
+        abort();
+    }
+    mp_barrier(&barrier);
     return 0;
   }
 

@@ -63,6 +63,7 @@
 #include <machine/patmos.h>
 #include <machine/spm.h>
 #include "libnoc/noc.h"
+#include "libnoc/coreset.h"
 
 /*! \def DWALIGN
  * Alignes X to double word size
@@ -79,6 +80,15 @@
 // Possible Flag types
 #define FLAG_VALID 0xFFFFFFFF
 #define FLAG_INVALID 0x00000000
+
+/*! \def BARRIER_SIZE
+ * The size of the barrier flag for each core.
+ */
+#define BARRIER_SIZE DWALIGN(8)
+
+// Possible Barrier states
+#define BARRIER_REACHED 0xFFFFFFFF
+#define BARRIER_INITIALIZED 0x00000000
 
 /*! \def NUM_WRITE_BUF
  * DO NOT CHANGE! The number of write pointers is not 
@@ -134,12 +144,24 @@ typedef struct {
   };
 } mpd_t;
 
+/// \struct communicator_t
+/// \brief Describes at set of communicating processors.
+///
+/// The struct is used to store all necessary information on the set of
+/// communicating processors.
+typedef struct {
+  coreset_t barrier_set;
+  volatile void _SPM * addr;
+  int count;
+} communicator_t;
+
 ////////////////////////////////////////////////////////////////////////////
 // Functions for initializing the message passing API
 ////////////////////////////////////////////////////////////////////////////
 
 /// \brief Initialize the state of the send function
 ///
+/// \param mpd_ptr A pointer the the message passing descriptor
 /// \param recv_id The core id of the receiving processor
 /// \param remote_addr A pointer to the remote address, where the receiving
 /// buffer structure should start. The size of the buffer structure is the
@@ -156,6 +178,7 @@ int mp_send_init(mpd_t* mpd_ptr, int recv_id, volatile void _SPM *remote_addr,
 
 /// \brief Initialize the state of the receive function
 ///
+/// \param mpd_ptr A pointer the the message passing descriptor
 /// \param send_id The core id of the sending processor
 /// \param remote_addr A pointer to the remote address, where the receiving
 /// buffer structure should start. The size of the buffer structure is the
@@ -169,6 +192,17 @@ int mp_send_init(mpd_t* mpd_ptr, int recv_id, volatile void _SPM *remote_addr,
 /// \retval 1 The initialization of the receive channel succeeded.
 int mp_recv_init(mpd_t* mpd_ptr, int send_id, volatile void _SPM *remote_addr,
               volatile void _SPM *local_addr, size_t buf_size, size_t num_buf);
+
+/// \brief Initialize the communicator
+///
+/// \param comm A pointer to the communicator structure
+/// \param member_ids An array of member ids.
+/// \param member_addrs An array of COM SPM addresses for the members.
+///
+/// \retval 0 The address is not aligned  to double words.
+/// \retval 1 The initialization of the communicator_t succeeded.
+int mp_barrier_init(communicator_t* comm, unsigned count,
+              const unsigned member_ids [], volatile void _SPM * addr );
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for transmitting data
@@ -260,5 +294,12 @@ int mp_send_alloc_size(mpd_t* mpd_ptr);
 /// \brief A function for returning the amount of data that the channel is
 /// alocating in the receiving spm.
 int mp_recv_alloc_size(mpd_t* mpd_ptr);
+
+/// \brief A function to syncronize the cores described in the communicator
+/// to a barrier.
+///
+/// \param comm A pointer to a communicator structure.
+void mp_barrier(communicator_t* comm);
+void mp_barrier_debug(communicator_t* comm);
 
 #endif /* _MP_H_ */

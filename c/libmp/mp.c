@@ -39,6 +39,8 @@
 
 #include "mp.h"
 
+#include <stdio.h>
+
 ////////////////////////////////////////////////////////////////////////////
 // Functions for initializing the message passing API
 ////////////////////////////////////////////////////////////////////////////
@@ -102,6 +104,23 @@ int mp_recv_init(mpd_t* mpd_ptr, int send_id, volatile void _SPM *remote_addr,
   // Initialize last word in each buffer to FLAG_INVALID
   for (int i = 1; i <= num_buf; i++) {
     *(volatile int _SPM *)((char*)mpd_ptr->local_addr + mpd_ptr->buf_size * i) = FLAG_INVALID;
+  }
+  return 1;
+}
+
+int mp_barrier_init(communicator_t* comm, unsigned count,
+              const unsigned member_ids [], volatile void _SPM * addr) {
+  // Check that the address is double word aligned
+  if ((volatile void _SPM *)DWALIGN(addr) != addr) {
+    return 0;
+  }
+  comm->count = count;
+  comm->addr = addr;
+  for (int i = 0; i < count; ++i) {
+    coreset_add(member_ids[i],&comm->barrier_set);
+  }
+  for (int i = 0; i < CORESET_SIZE; ++i) {
+    *((volatile int _SPM *)((unsigned)comm->addr + (i*BARRIER_SIZE))) = BARRIER_INITIALIZED;
   }
   return 1;
 }
@@ -189,6 +208,66 @@ int mp_nback(mpd_t* mpd_ptr){
 void mp_ack(mpd_t* mpd_ptr){
   // Update the remote receive count
   while(!mp_nback(mpd_ptr));
+  return;
+}
+
+void mp_barrier(communicator_t* comm){
+  volatile int _SPM * addr = (volatile int _SPM *)((unsigned)comm->addr +
+                               get_cpuid()*BARRIER_SIZE);
+  *addr = BARRIER_REACHED;
+  noc_multisend_cs(comm->count,comm->barrier_set,addr,addr,BARRIER_SIZE);
+  int done;
+  coreset_t recv;
+  coreset_clearall(&recv);
+  do {
+    done = 1;
+    for (unsigned cpu_id = 0; cpu_id < CORESET_SIZE; ++cpu_id){
+      if (coreset_contains(cpu_id,&comm->barrier_set) &&
+          !coreset_contains(cpu_id,&recv)) {
+        if (*(volatile int _SPM *)((unsigned)comm->addr + cpu_id*BARRIER_SIZE)
+              == BARRIER_REACHED) {
+          coreset_add(cpu_id,&recv);
+        } else {
+          done = 0;
+        }
+      }
+    }
+  } while(!done);
+  for (int i = 0; i < CORESET_SIZE; ++i) {
+    *((volatile int _SPM *)((unsigned)comm->addr + (i*BARRIER_SIZE))) = BARRIER_INITIALIZED;
+  }
+  return;
+}
+
+void mp_barrier_debug(communicator_t* comm){
+  volatile int _SPM * addr = (volatile int _SPM *)((unsigned)comm->addr +
+                               get_cpuid()*BARRIER_SIZE);
+
+  *addr = BARRIER_REACHED;
+  puts("Entering noc multisend");
+  noc_multisend_cs_debug(comm->count,comm->barrier_set,addr,addr,BARRIER_SIZE);
+  puts("Noc multi send returned");
+  int done;
+  coreset_t recv;
+  coreset_clearall(&recv);
+  do {
+    done = 1;
+    for (unsigned cpu_id = 0; cpu_id < CORESET_SIZE; ++cpu_id){
+      if (coreset_contains(cpu_id,&comm->barrier_set) &&
+          !coreset_contains(cpu_id,&recv)) {
+        if (*(volatile int _SPM *)((unsigned)comm->addr + cpu_id*BARRIER_SIZE)
+              == BARRIER_REACHED) {
+          puts("One barrier reached");
+          coreset_add(cpu_id,&recv);
+        } else {
+          done = 0;
+        }
+      }
+    }
+  } while(!done);
+  for (int i = 0; i < CORESET_SIZE; ++i) {
+    *((volatile int _SPM *)((unsigned)comm->addr + (i*BARRIER_SIZE))) = BARRIER_INITIALIZED;
+  }
   return;
 }
 

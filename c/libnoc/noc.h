@@ -42,6 +42,7 @@
 
 #include <machine/patmos.h>
 #include <machine/spm.h>
+#include "coreset.h"
 
 ////////////////////////////////////////////////////////////////////////////
 // Definitions used for initialization of network interface
@@ -147,7 +148,22 @@ void noc_send(unsigned rcv_id, volatile void _SPM *dst,
 /// \param src A pointer to the source of the transfer.
 /// \param size The size of data to be transferred, in bytes.
 void noc_multisend(unsigned cnt, unsigned rcv_id [], volatile void _SPM *dst [],
-                   volatile void _SPM *src, size_t size) __attribute__((used));
+                   volatile void _SPM *src, size_t size);
+
+/// \brief Multi-cast transfer of data like #noc_multisend(), but with coreset
+/// and a single destination addr.
+///
+/// The addresses and the size are absolute and in bytes.
+/// \param cnt The number of receivers.
+/// \param rcv_id An array with the core ids of the receivers.
+/// \param dst An array with pointers to the destinations of the transfer.
+/// \param src A pointer to the source of the transfer.
+/// \param size The size of data to be transferred, in bytes.
+void noc_multisend_cs(unsigned cnt, coreset_t receivers, volatile void _SPM *dst,
+                     volatile void _SPM *src, size_t len);
+
+void noc_multisend_cs_debug(unsigned cnt, coreset_t receivers, volatile void _SPM *dst,
+                     volatile void _SPM *src, size_t len);
 
 ////////////////////////////////////////////////////////////////////////////
 // Definitions for setting up a transfer
