@@ -132,6 +132,9 @@ $(HWBUILDDIR)/TdmArbiterWrapper.v: $(SRC)
 
 # run Verilog simulation
 vsim: verilog
+	echo '`timescale 1 ns / 100 ps' > $(HWBUILDDIR)/Patmos.v.tmp
+	cat $(HWBUILDDIR)/Patmos.v >> $(HWBUILDDIR)/Patmos.v.tmp
+	mv $(HWBUILDDIR)/Patmos.v.tmp $(HWBUILDDIR)/Patmos.v
 	$(MAKE) -C modelsim sim
 
 # synthesize with Quartus
