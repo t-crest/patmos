@@ -187,10 +187,10 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   Config.connectAllIOPins(io, core.io)
 
   // Connect memory controller
-  val sramConf = Config.getConfig.ExtMem.sram
-  val sramCtrl = Config.createDevice(sramConf).asInstanceOf[BurstDevice]
-  sramCtrl.io.ocp <> core.io.memPort
-  Config.connectIOPins(sramConf.name, io, sramCtrl.io)
+  val ramConf = Config.getConfig.ExtMem.ram
+  val ramCtrl = Config.createDevice(ramConf).asInstanceOf[BurstDevice]
+  ramCtrl.io.ocp <> core.io.memPort
+  Config.connectIOPins(ramConf.name, io, ramCtrl.io)
 
   // Print out the configuration
   Utility.printConfig(configFile)
