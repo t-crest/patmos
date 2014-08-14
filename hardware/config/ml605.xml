@@ -25,19 +25,6 @@
 	</Dev>
 
     <Dev DevType="MemBridge" entity="MemBridge" iface="OcpBurst">
-      <ports>
-        <!-- Expose plain OCPBurst pins -->
-        <outport name="io_meminterface_M_Cmd" width="3" />
-        <outport name="io_meminterface_M_Addr" width="32" />
-        <outport name="io_meminterface_M_Data" width="32" />
-        <outport name="io_meminterface_M_DataValid" />
-        <outport name="io_meminterface_M_DataByteEn" width="4" />
-        
-        <inport  name="io_meminterface_S_Resp" width="2" />
-        <inport  name="io_meminterface_S_Data" width="32" />
-        <inport  name="io_meminterface_S_CmdAccept" />
-        <inport  name="io_meminterface_S_DataAccept" />
-      </ports>
     </Dev>
   </Devs>
 </patmos>
