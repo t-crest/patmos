@@ -151,7 +151,9 @@ int main(void)
   WRITE("EXIT\n", 5);
   #endif
 
-  // loop back, TODO: replace with a real reset
+  // clear caches and loop back
+  inval_dcache();
+  inval_mcache();
   main();
 
   return 0;

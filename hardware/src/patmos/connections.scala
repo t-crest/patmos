@@ -455,6 +455,8 @@ class ExcIO() extends Bundle() {
   val intrs = Vec.fill(INTR_COUNT) { Bool(INPUT) }
   val excdec = new ExcDec().asOutput
   val memexc = new MemExc().asInput
+  val invalMCache = Bool(OUTPUT)
+  val invalDCache = Bool(OUTPUT)
 }
 
 class PatmosCoreIO() extends Bundle() {

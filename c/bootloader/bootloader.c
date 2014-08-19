@@ -104,7 +104,9 @@ int main(void) {
   msg[2] = retval & 0xff;
   WRITE(msg, 3);
 
-  // loop back, TODO: replace with a real reset
+  // clear caches and loop back
+  inval_dcache();
+  inval_mcache();
   main();
 
   return 0;

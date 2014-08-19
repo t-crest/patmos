@@ -143,6 +143,10 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   decode.io.flush := flush || brflush
   execute.io.flush := flush
 
+  // Software resets
+  mcache.io.invalidate := exc.io.invalMCache
+  dcache.io.invalDCache := exc.io.invalDCache
+
   // The inputs and outputs
   io.comConf <> iocomp.io.comConf
   io.comSpm <> iocomp.io.comSpm
