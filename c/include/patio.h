@@ -47,8 +47,6 @@
 
 #include <machine/patmos.h>
 
-#define CORE_ID *((volatile _IODEV int *) 0xF0000000)
-
 #define TIMER_CLK_LOW *((volatile _IODEV int *) 0xF0000204)
 #define TIMER_US_LOW *((volatile _IODEV int *) 0xF000020c)
 

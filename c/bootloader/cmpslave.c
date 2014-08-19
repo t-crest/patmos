@@ -55,12 +55,12 @@ int main(void)
   // overwrite any potential leftovers from previous runs
   boot_info->master.status = STATUS_NULL;
   boot_info->master.entrypoint = NULL;
-  boot_info->slave[CORE_ID].status = STATUS_NULL;
-  boot_info->slave[CORE_ID].return_val = -1;
+  boot_info->slave[get_cpuid()].status = STATUS_NULL;
+  boot_info->slave[get_cpuid()].return_val = -1;
 
   do {
     // make sure the own status is visible
-    boot_info->slave[CORE_ID].status = STATUS_BOOT;
+    boot_info->slave[get_cpuid()].status = STATUS_BOOT;
     // until master has booted
   } while (boot_info->master.status != STATUS_BOOT);
 
@@ -69,7 +69,7 @@ int main(void)
     /* spin */
   }  
   // acknowledge reception of start status
-  boot_info->slave[CORE_ID].status = STATUS_INIT;
+  boot_info->slave[get_cpuid()].status = STATUS_INIT;
 
   // call the application's _start()
   int retval = -1;
@@ -87,12 +87,12 @@ int main(void)
                   "$r26", "$r27", "$r28", "$r29",
                   "$r30", "$r31");
 
-  boot_info->slave[CORE_ID].return_val = retval;
+  boot_info->slave[get_cpuid()].return_val = retval;
   
   // wait until master application has returned
   do {
     // notify master that application has returned
-    boot_info->slave[CORE_ID].status = STATUS_RETURN;
+    boot_info->slave[get_cpuid()].status = STATUS_RETURN;
   } while (boot_info->master.status != STATUS_RETURN); 
   
   // TODO: report return value back to master
