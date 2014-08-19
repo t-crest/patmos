@@ -86,6 +86,7 @@ class MCacheFe extends Bundle() {
 class MCacheIO extends Bundle() {
   val ena_out = Bool(OUTPUT)
   val ena_in = Bool(INPUT)
+  val invalidate = Bool(INPUT)
   val femcache = new FeMCache().asInput
   val exmcache = new ExMCache().asInput
   val mcachefe = new MCacheFe().asOutput
@@ -114,6 +115,7 @@ class MCacheReplCtrl extends Bundle() {
 }
 class MCacheReplIO extends Bundle() {
   val ena_in = Bool(INPUT)
+  val invalidate = Bool(INPUT)
   val hitEna = Bool(OUTPUT)
   val exmcache = new ExMCache().asInput
   val mcachefe = new MCacheFe().asOutput
@@ -166,6 +168,8 @@ class MCache() extends Module {
   mcacherepl.io.ena_in <> io.ena_in
   //output enable depending on hit/miss/fetch
   io.ena_out := mcachectrl.io.fetch_ena & mcacherepl.io.hitEna
+  //connect invalidate signal
+  mcacherepl.io.invalidate := io.invalidate
 }
 
 /*
@@ -312,6 +316,11 @@ class MCacheReplFifo() extends Module {
   io.mcache_replctrl.hit := hitReg
 
   io.hitEna := hitReg
+  
+  // reset valid bits
+  when (io.invalidate) {
+    mcacheValidVec.map(_ := Bool(false))
+  }
 }
 
 

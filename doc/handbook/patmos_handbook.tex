@@ -1800,6 +1800,7 @@ the operating system), exceptions 16 to 32 are attached to interrupts.
     \texttt{0xf000010c} & \texttt{source} & Number of exception that
     is about to be served \\
     \texttt{0xf0000110} & \texttt{sleep} & Sleep mode (optional) \\
+    \texttt{0xf0000114} & \texttt{cachectrl} & Cache control \\
     \cmidrule{1-3}
     \texttt{0xf0000180} & \texttt{vec<0>} & Address of exception handler 0, illegal operation \\
     \texttt{0xf0000184} & \texttt{vec<1>} & Address of exception handler 1, illegal memory access \\
@@ -1881,6 +1882,13 @@ support sleeping, writes to the \texttt{sleep} register are ignored
 and do not have any effect. Therefore, continuing execution after a
 write to the \texttt{sleep} register is not proof that an interrupt
 has occurred.
+
+\subsection{Cache Control}
+
+The \texttt{cachectrl} register provides an interface for cache
+control. Writing a value with bit 0 set invalidates the contents of
+the data cache. Writing a value with bit 1 set invalidates the
+contents of the method cache.
 
 \subsection{Examples}
 
@@ -4309,16 +4317,6 @@ It is questionable whether this would actually buy us anything. Most
 \texttt{sres} instructions will be followed by a store to the stack cache
 (spill of saved registers). It might be more profitable for \texttt{sens}
 instructions.
-
-\section{Purge Cache Content}
-\begin{itemize}
-  \item dynamic code generation, self-modifying code, etc.
-  \item help cache analysis?
-\end{itemize}
-
-\stefan{Might not gain much: for LRU caches there is no need to purge, we might need to purge the stack cache on context switches anyway,
-and for the method cache, purging the cache might also not gain much (depending on the used analysis). I do not think that Self-modifying
-should be used in hard real-time code anyway, as it might introduce some slight problems to the WCET analysis ;) }
 
 \section{Freeze Cache Content}
 

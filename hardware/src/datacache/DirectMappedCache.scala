@@ -52,6 +52,7 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
   val io = new Bundle {
     val master = new OcpCoreSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
     val slave = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, lineSize/4)
+    val invalidate = Bool(INPUT)
   }
 
   val addrBits = log2Up(size / BYTES_PER_WORD)
@@ -171,4 +172,8 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
     stateReg := idle
   }
 
+  // reset valid bits
+  when (io.invalidate) {
+    tagVMem.map(_ := Bool(false))
+  }
 }

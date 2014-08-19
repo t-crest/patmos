@@ -21,6 +21,8 @@
 
 #include "simulation-core.h"
 #include "exception.h"
+#include "data-cache.h"
+#include "instr-cache.h"
 
 #include <cassert>
 #include <iostream>
@@ -169,6 +171,15 @@ namespace patmos
     }
     else if (is_word_access(address, size, 0x10)) {
       // ignore sleep mode
+    }
+    else if (is_word_access(address, size, 0x14)) {
+      word_t Flags = get_word(value, size);
+      if (Flags & 0x01) {
+        s.Data_cache.flush_cache();
+      }
+      if (Flags & 0x02) {
+        s.Instr_cache.flush_cache();
+      }
     }
     else if (address >= Base_address+0x80 && address < Base_address+0x100) {
       int intr_addr = address & 0xFC;
