@@ -53,6 +53,7 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends Module {
   val io = new Bundle {
     val master = new OcpCoreSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
     val slave = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, lineSize / 4)
+    val invalidate = Bool(INPUT)
   }
 
   val addrBits = log2Up((size / 2) / BYTES_PER_WORD)
@@ -209,4 +210,9 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends Module {
     stateReg := idle
   }
 
+  // reset valid bits
+  when (io.invalidate) {
+    tagVMem1.map(_ := Bool(false))
+    tagVMem2.map(_ := Bool(false))
+  }
 }

@@ -74,6 +74,7 @@ object IConstants {
 class ICacheIO extends Bundle() {
   val ena_out = Bool(OUTPUT)
   val ena_in = Bool(INPUT)
+  val invalidate = Bool(INPUT)
   val femcache = new FeMCache().asInput
   val exmcache = new ExMCache().asInput
   val mcachefe = new MCacheFe().asOutput
@@ -90,6 +91,7 @@ class ICacheCtrlIO extends Bundle() {
 }
 class ICacheReplIO extends Bundle() {
   val ena_in = Bool(INPUT)
+  val invalidate = Bool(INPUT)
   val exicache = new ExMCache().asInput
   val feicache = new FeMCache().asInput
   val icachefe = new MCacheFe().asOutput
@@ -154,6 +156,8 @@ class ICache() extends Module {
   mcacherepl.io.ena_in <> io.ena_in
   //output enable depending on hit/miss/fetch
   io.ena_out := mcachectrl.io.fetch_ena
+  //connect invalidate signal
+  mcacherepl.io.invalidate := io.invalidate
 }
 
 /*
@@ -308,6 +312,9 @@ class ICacheReplDm() extends Module {
   io.icache_replctrl.hitEna := (hitInstrEven && hitInstrOdd && validTagReg)
   io.icache_replctrl.selICache := selICacheReg
 
+  when (io.invalidate) {
+    validVec.map(_ := Bool(false))
+  }
 }
 
 /*

@@ -52,7 +52,8 @@ class DataCache extends Module {
   val io = new Bundle {
     val master = new OcpCacheSlavePort(ADDR_WIDTH, DATA_WIDTH)
     val slave = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
-    val scIO = new StackCacheIO() 
+    val scIO = new StackCacheIO()
+    val invalDCache = Bool(INPUT)
   }
 
   // Register selects
@@ -81,6 +82,7 @@ class DataCache extends Module {
   dm.io.master.M := io.master.M
   dm.io.master.M.Cmd := Mux(selDC || io.master.M.Cmd === OcpCmd.WR,
                             io.master.M.Cmd, OcpCmd.IDLE)
+  dm.io.invalidate := io.invalDCache
   val dmS = dm.io.master.S
 
   // Instantiate stack cache

@@ -455,24 +455,23 @@ bool block_stack_cache_t::ensure(simulator_t &s, uword_t size, word_t delta,
   }
 
   Phase = FILL;
-  
+
   // copy the data from memory into a temporary buffer
   if (Memory.read(s, new_spill - delta, Buffer, delta))
   {
-    // get the offset of the old spill pointer in the content array
-    uword_t old_size = Content.size();
-    assert(old_size == new_spill - delta - new_top);
-    
     // Ensure the size of the stack cache is larger than the block that needs to 
     // be loaded
-    Content.insert(Content.begin(), delta, 0);
+    uword_t new_size = new_spill > new_top ? new_spill - new_top : 0;
+    Content.insert(Content.begin(), 
+                   new_size > Content.size() ? new_size - Content.size() : 0, 
+                   0);
     
     // copy the data back into the stack cache
     for(unsigned int i = 0; i < delta; i++)
     {
-      assert(Content.size() - old_size - i - 1 >= 0);
-      assert(Content.size() - old_size - i - 1 < Content.size());
-      Content[Content.size() - old_size - i - 1]  = Buffer[i];
+      assert(delta - i - 1 >= 0);
+      assert(delta - i - 1 < Content.size());
+      Content[delta - i - 1]  = Buffer[i];
     }
 
     // terminate transfer -- goto IDLE state

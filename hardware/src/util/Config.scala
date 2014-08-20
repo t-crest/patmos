@@ -71,7 +71,7 @@ abstract class Config {
   val DSPM: SPMConfig
   val BootSPM: SPMConfig
 
-  case class ExtMemConfig(size: Long, sram: DeviceConfig)
+  case class ExtMemConfig(size: Long, ram: DeviceConfig)
   val ExtMem: ExtMemConfig
 
   case class DeviceConfig(name : String, params : Map[String, String], offset : Int, intrs : List[Int])
@@ -240,8 +240,8 @@ object Config {
 
       // Make sure static state of devices is initialized
       for (d <- Devs) { initDevice(d) }
-      if(ExtMem.sram.name != ""){
-        initDevice(ExtMem.sram)
+      if(ExtMem.ram.name != ""){
+        initDevice(ExtMem.ram)
       }
 
       private def devFromXML(node: scala.xml.Node, devs: scala.xml.NodeSeq,
@@ -441,6 +441,6 @@ object Config {
   }
 
   def getPatmosIO() : PatmosIO = {
-    genTraitedClass[PatmosIO]("PatmosIO", conf.ExtMem.sram.name :: conf.Devs.map(_.name))
+    genTraitedClass[PatmosIO]("PatmosIO", conf.ExtMem.ram.name :: conf.Devs.map(_.name))
   }
 }

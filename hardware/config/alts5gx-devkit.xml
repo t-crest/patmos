@@ -3,7 +3,7 @@
 
   <frequency Hz="80000000"/>
 
-  <ExtMem size="2M" DevTypeRef="Ssram16" />
+  <ExtMem size="2M" DevTypeRef="QdrMem" />
 
   <IOs>
 	<IO DevTypeRef="Uart" offset="8"/>
@@ -28,11 +28,11 @@
   		<param name="keyCount" value="4"/>
   	  </params>
   	</Dev>
-    <Dev DevType="Ssram16" entity="SRamCtrl" iface="OcpBurst">
+    <Dev DevType="QdrMem" entity="QdrIIplusCtrl" iface="OcpBurst">
         <params>
-            <param name="ocpAddrWidth" value="21" />
-            <param name="sramAddrWidth" value="20" />
-            <param name="sramDataWidth" value="16" />
+            <param name="ocpAddrWidth" value="22" />
+            <param name="ramAddrWidth" value="19" />
+            <param name="ramDataWidth" value="16" />
         </params>
     </Dev>
   </Devs>
