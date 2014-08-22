@@ -19,7 +19,6 @@ hardware/quartus/altde2-115/incremental_db
 *_usage.xml
 *_pn.xml
 
-
 *.bld
 *.cmd_log
 *.ncd
@@ -45,3 +44,15 @@ hardware/quartus/altde2-115/incremental_db
 *.pin
 *.rpt
 *.smsg
+
+# Ignore LaTeX temp files
+doc/**/*.aux
+doc/**/*.toc
+doc/**/*.bbl
+doc/**/*.blg
+doc/**/*.lof
+doc/**/*.lot
+doc/**/*.lol
+
+# Ignore KDevelop project files
+*.kdev4
