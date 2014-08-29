@@ -63,7 +63,7 @@ namespace patmos
   static const unsigned int NUM_STACK_CACHE_BYTES = 0x800;
 
   /// Define the number of bytes used for the method cache.
-  static const unsigned int NUM_METHOD_CACHE_BYTES = 0x800;
+  static const unsigned int NUM_METHOD_CACHE_BYTES = 0x1000;
 
   /// Define the maximum number of methods that can be cached in the method cache.
   static const unsigned int NUM_METHOD_CACHE_MAX_METHODS = 16;
