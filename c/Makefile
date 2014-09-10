@@ -1,19 +1,21 @@
+CC=patmos-clang # variable CC is "magic", so we define it here to a sane default
+
 # Include user makefile for local configurations
 -include config.mk
 
-BUILDDIR=../tmp
+BUILDDIR?=../tmp
 LIBNOC=$(BUILDDIR)/libnoc.a
 LIBMP=$(BUILDDIR)/libmp.a
 
-CC=patmos-clang
+NOCINIT?=nocinit.c
 
 # Flags for compiling to boot ROM
-CFLAGS-BOOTABLE=-target patmos-unknown-unknown-elf -Os \
+CFLAGS-BOOTABLE?=-target patmos-unknown-unknown-elf -Os \
 	-I$(CURDIR) -DBOOTROM \
 	-mpatmos-disable-stack-cache \
 	-mpatmos-disable-function-splitter \
 	-mpatmos-disable-vliw
-LDFLAGS-BOOTABLE= \
+LDFLAGS-BOOTABLE?= \
 	-mpatmos-stack-base=0x80010800 -mpatmos-shadow-stack-base=0x80010700 \
 	-nodefaultlibs -nostdlib -nostartfiles \
 	-Xgold --section-start -Xgold .text=0x0 -e main \
@@ -24,7 +26,7 @@ LDFLAGS-BOOTABLE= \
 
 # Flags for compiling normal applications
 # Assuming 2 MB of main memory
-CFLAGS=-target patmos-unknown-unknown-elf -O2 \
+CFLAGS?=-target patmos-unknown-unknown-elf -O2 \
 	-I$(CURDIR) \
 	-mpatmos-disable-vliw
 LDFLAGS?= \
@@ -66,26 +68,26 @@ $(BUILDDIR)/bootable-cmpslave.elf: boot.h cmpboot.h bootable.h
 $(BUILDDIR)/bootable-mandelbrot.elf: bootable.h
 $(BUILDDIR)/mandelbrot.elf: bootable.h
 
-$(BUILDDIR)/bootable-mandelbrot_par.elf: nocinit.c bootable.h
-$(BUILDDIR)/mandelbrot_par.elf: nocinit.c bootable.h
+$(BUILDDIR)/bootable-mandelbrot_par.elf: $(NOCINIT) bootable.h
+$(BUILDDIR)/mandelbrot_par.elf: $(NOCINIT) bootable.h
 
-$(BUILDDIR)/bootable-cmp_hello.elf: nocinit.c bootable.h
-$(BUILDDIR)/cmp_hello.elf: nocinit.c bootable.h
+$(BUILDDIR)/bootable-cmp_hello.elf: $(NOCINIT) bootable.h
+$(BUILDDIR)/cmp_hello.elf: $(NOCINIT) bootable.h
 
-$(BUILDDIR)/bootable-noctest.elf: nocinit.c bootable.h
-$(BUILDDIR)/noctest.elf: nocinit.c bootable.h
+$(BUILDDIR)/bootable-noctest.elf: $(NOCINIT) bootable.h
+$(BUILDDIR)/noctest.elf: $(NOCINIT) bootable.h
 
 $(BUILDDIR)/bootable-extdev_test.elf: bootable.h
 $(BUILDDIR)/extdev_test.elf: bootable.h
 
-$(BUILDDIR)/hello_sum.elf: nocinit.c
-$(BUILDDIR)/bootable-hello_sum_reduced.elf: nocinit.c bootable.h
-$(BUILDDIR)/matrix_mult.elf: nocinit.c
+$(BUILDDIR)/hello_sum.elf: $(NOCINIT)
+$(BUILDDIR)/bootable-hello_sum_reduced.elf: $(NOCINIT) bootable.h
+$(BUILDDIR)/matrix_mult.elf: $(NOCINIT)
 
-$(BUILDDIR)/test_cmp.elf: nocinit.c
+$(BUILDDIR)/test_cmp.elf: $(NOCINIT)
 
-$(BUILDDIR)/bootable-mp_test.elf: nocinit.c bootable.h
-$(BUILDDIR)/mp_test.elf: nocinit.c
+$(BUILDDIR)/bootable-mp_test.elf: $(NOCINIT) bootable.h
+$(BUILDDIR)/mp_test.elf: $(NOCINIT)
 
 # library for network-on-chip
 .PHONY: libnoc
