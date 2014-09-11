@@ -94,6 +94,8 @@ class RegisterFile() extends Module {
   for(i <- 0 until REG_COUNT) {
     rfDebug(i) := rf(Bits(i))
     // Keep signal alive
-    debug(rfDebug(i))
+    if(Driver.isVCD){
+     debug(rfDebug(i))
+    }
   }
 }

@@ -15,7 +15,7 @@ const int NOC_MASTER = 0;
 #define TEST_START ((volatile _UNCACHED unsigned int *) MINADDR + 0)
 
 
-#define ABORT_IF_FAIL(X,Y) if (X<0){puts(Y); abort();}
+#define ABORT_IF_FAIL(X,Y) if (X){puts(Y); abort();}
 
 //int core_com[64];
 
@@ -139,13 +139,13 @@ void print_noc_info(){
 }
 
 void main_mem_test() {
-	fputs("Testing MAINMEM...",stdout);
-	ABORT_IF_FAIL(mem_area_test_uncached(TEST_START,0x1000),"FAIL");
-	puts("OK");
-	fputs("Testing MAINMEM size: ",stdout);
+	printf("Testing MAINMEM...");
+	ABORT_IF_FAIL(mem_area_test_uncached(TEST_START,0x1000)<0,"FAIL");
+	printf("OK\n");
+	printf("Testing MAINMEM size: ");
 	int size = 0;
 	size = test_mem_size_uncached(TEST_START);
-	ABORT_IF_FAIL(size,"Size could not be retrieved");
+	ABORT_IF_FAIL(size<0,"Size could not be retrieved");
 	char buf[11];
 	prefix(size,buf);
 	puts(buf);
@@ -153,16 +153,16 @@ void main_mem_test() {
 }
 
 void com_spm_test() {
-	fputs("Testing COM SPM...",stdout);
-	ABORT_IF_FAIL(mem_area_test_spm(NOC_SPM_BASE,0x8000),"FAIL 0x8000");
-	ABORT_IF_FAIL(mem_area_test_spm(NOC_SPM_BASE,0x8001),"FAIL 0x8001");
-	ABORT_IF_FAIL(mem_area_test_spm(NOC_SPM_BASE,0x80001),"FAIL 0x80001");
-	puts("OK");
-	fputs("Testing COM SPM size: ",stdout);	
+	printf("Testing COM SPM...");
+	ABORT_IF_FAIL(mem_area_test_spm(NOC_SPM_BASE,0x8000)<0,"FAIL 0x8000");
+	ABORT_IF_FAIL(mem_area_test_spm(NOC_SPM_BASE,0x8001)<0,"FAIL 0x8001");
+	ABORT_IF_FAIL(mem_area_test_spm(NOC_SPM_BASE,0x80001)<0,"FAIL 0x80001");
+	printf("OK\n");
+	printf("Testing COM SPM size: ");	
 	fflush(stdout);
 	int size = 0;
 	size = test_mem_size_spm(NOC_SPM_BASE);
-	ABORT_IF_FAIL(size,"Size could not be retrieved");
+	ABORT_IF_FAIL(size<0,"Size could not be retrieved");
 	char buf[11];
 	prefix(size,buf);
 	puts(buf);
