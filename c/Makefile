@@ -45,14 +45,14 @@ $(BUILDDIR)/%.o: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) -c -o $@ $(filter %.c,$^)
 
-$(BUILDDIR)/%.elf: %.c $(LIBNOC) $(LIBMP) Makefile
+$(BUILDDIR)/%.elf: %.c $(NOCINIT) $(LIBNOC) $(LIBMP) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc 
 $(BUILDDIR)/%.s: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) -fpatmos-emit-asm -S -o $@ $(filter %.c,$^)
 
-$(BUILDDIR)/bootable-%.elf: %.c $(LIBNOC) $(LIBMP) Makefile
+$(BUILDDIR)/bootable-%.elf: %.c $(NOCINIT) $(LIBNOC) $(LIBMP) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc
 
@@ -68,26 +68,21 @@ $(BUILDDIR)/bootable-cmpslave.elf: boot.h cmpboot.h bootable.h
 $(BUILDDIR)/bootable-mandelbrot.elf: bootable.h
 $(BUILDDIR)/mandelbrot.elf: bootable.h
 
-$(BUILDDIR)/bootable-mandelbrot_par.elf: $(NOCINIT) bootable.h
-$(BUILDDIR)/mandelbrot_par.elf: $(NOCINIT) bootable.h
+$(BUILDDIR)/bootable-mandelbrot_par.elf: bootable.h
+$(BUILDDIR)/mandelbrot_par.elf: bootable.h
 
-$(BUILDDIR)/bootable-cmp_hello.elf: $(NOCINIT) bootable.h
-$(BUILDDIR)/cmp_hello.elf: $(NOCINIT) bootable.h
+$(BUILDDIR)/bootable-cmp_hello.elf: bootable.h
+$(BUILDDIR)/cmp_hello.elf: bootable.h
 
-$(BUILDDIR)/bootable-noctest.elf: $(NOCINIT) bootable.h
-$(BUILDDIR)/noctest.elf: $(NOCINIT) bootable.h
+$(BUILDDIR)/bootable-noctest.elf: bootable.h
+$(BUILDDIR)/noctest.elf: bootable.h
 
 $(BUILDDIR)/bootable-extdev_test.elf: bootable.h
 $(BUILDDIR)/extdev_test.elf: bootable.h
 
-$(BUILDDIR)/hello_sum.elf: $(NOCINIT)
-$(BUILDDIR)/bootable-hello_sum_reduced.elf: $(NOCINIT) bootable.h
-$(BUILDDIR)/matrix_mult.elf: $(NOCINIT)
+$(BUILDDIR)/bootable-hello_sum_reduced.elf: bootable.h
 
-$(BUILDDIR)/test_cmp.elf: $(NOCINIT)
-
-$(BUILDDIR)/bootable-mp_test.elf: $(NOCINIT) bootable.h
-$(BUILDDIR)/mp_test.elf: $(NOCINIT)
+$(BUILDDIR)/bootable-mp_test.elf: bootable.h
 
 # library for network-on-chip
 .PHONY: libnoc
