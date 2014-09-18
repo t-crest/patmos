@@ -609,7 +609,12 @@ _SPM unsigned int *spm_data = (_SPM unsigned int*) 0x1234;
 
 You can use the \code{spm\_copy\_from\_ext} and \code{spm\_copy\_to\_ext} functions
 to copy data from global memory to SPM and back. Use \code{spm\_wait()} to
-wait for the copy transaction to complete.
+wait for the copy transaction to complete.\footnote{At the moment memory copy is
+performed by the processor and is a blocking function. In future versions of Patmos
+this might be delegated to a DMA and then the wait function might be needed.}
+
+\martin{However, the way as it is used in \code{spm\_memmove} with one wait
+for several copies will not work. Not more than one outstanding copy.}
 
 
 \stefan{TODO more on SPM? Refer to examples}
