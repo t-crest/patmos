@@ -8,15 +8,19 @@ const int NOC_MASTER = 0;
 #include <string.h>
 #include <machine/patmos.h>
 #include <machine/exceptions.h>
+#include <machine/rtc.h>
 #include "libnoc/noc.h"
 #include "bootloader/cmpboot.h"
 
 #define MINADDR (512*1024)
 #define TEST_START ((volatile _UNCACHED unsigned int *) MINADDR + 0)
+#define TEST_START_CACHED ((unsigned int *) MINADDR + 0)
 
 
-#define ABORT_IF_FAIL(X,Y) if (X<0){puts(Y); abort();}
+#define ABORT_IF_FAIL(X,Y) if (X){puts(Y); abort();}
 
+int main_mem_size = 0;
+int core_count = 0;
 //int core_com[64];
 
 void prefix(int size, char* buf){
@@ -44,51 +48,39 @@ void prefix(int size, char* buf){
 	return;
 }
 
-int mem_area_test_uncached(volatile _UNCACHED unsigned int * mem_addr,int mem_size) {
-	int i,tmp;
-	for(i = 0; i < mem_size; i++){
-    tmp = *(mem_addr+i); // Store the temporary data
-		*(mem_addr+i) = 0;
-		if(*(mem_addr+i) != 0){
-      *(mem_addr+i) = tmp; // Restore the temporary data
-      return -1;
-    }
-		*(mem_addr+i) = i;
-		if(*(mem_addr+i) != i){
-      *(mem_addr+i) = tmp; // Restore the temporary data
-      return -1;
-    }
-		*(mem_addr+i) = tmp; // Restore the temporary data
-	}
+#define MEM_AREA_TEST(addr,size)\
+	int i,tmp; \
+	for(i = 0; i < size; i++){ \
+    tmp = *(addr+i); \
+		*(addr+i) = 0; \
+		if(*(addr+i) != 0){ \
+      *(addr+i) = tmp; \
+      return -1; \
+    } \
+		*(addr+i) = i; \
+		if(*(addr+i) != i){ \
+      *(addr+i) = tmp; \
+      return -1; \
+    } \
+		*(addr+i) = tmp; \
+	} \
 	return 0;
+
+int mem_area_test_uncached(volatile _UNCACHED unsigned int * mem_addr,int mem_size) {
+	MEM_AREA_TEST(mem_addr,mem_size);
 }
 
 int mem_area_test_spm(volatile int _SPM * mem_addr,int mem_size) {
-	int i,tmp;
-	for(i = 0; i < mem_size; i++){
-    tmp = *(mem_addr+i); // Store the temporary data
-		*(mem_addr+i) = 0;
-		if(*(mem_addr+i) != 0){
-      *(mem_addr+i) = tmp; // Restore the temporary data
-      return -1;
-    }
-		*(mem_addr+i) = i;
-		if(*(mem_addr+i) != i){
-      *(mem_addr+i) = tmp; // Restore the temporary data
-      return -1;
-    }
-    *(mem_addr+i) = tmp; // Restore the temporary data
-	}
-	return 0;
+	MEM_AREA_TEST(mem_addr,mem_size);
 }
 
-#define MEM_TEST(addr)\
+#define TEST_MEM_SIZE(addr)\
   int init = *(addr); \
   int tmp; \
   *(addr) = 0xFFEEDDCC; \
   int i = 2; \
   int j = 0; \
-  for(j = 0; j < 32; j++) { \
+  for(j = 0; j < 28; j++) { \
     tmp = *(addr+i); \
     *(addr+i) = 0; \
     if (*(addr) == 0) { \
@@ -104,20 +96,29 @@ int mem_area_test_spm(volatile int _SPM * mem_addr,int mem_size) {
     } \
     *(addr+i) = tmp; \
   } \
-  *(addr) = init;
+  *(addr) = init; \
+  return -1;
   
 
+int test_mem_size_cached(unsigned int * mem_addr){
+  TEST_MEM_SIZE(mem_addr);
+}
+
 int test_mem_size_uncached(volatile _UNCACHED unsigned int * mem_addr){
-  MEM_TEST(mem_addr);
-  return -1;
+  TEST_MEM_SIZE(mem_addr);
 }
 
 int test_mem_size_spm(volatile int _SPM * mem_addr){
-  MEM_TEST(mem_addr);
-	return -1;
+  TEST_MEM_SIZE(mem_addr);
 }
 
-void print_processor_info() {
+int print_noc_info(){
+  printf("NoC scheduler generated for %d cores\n",NOC_CORES);
+  printf("NoC scheduler contains %d timeslots\n",NOC_TIMESLOTS);
+  return NOC_CORES;
+}
+
+int print_processor_info() {
   //puts("CPU info:");
   printf("CPU ID: %d\n",get_cpuid());
   //printf("Operating frequency: %d MHz\n",(get_cpu_freq()) >> 20);
@@ -130,56 +131,79 @@ void print_processor_info() {
     }
   }
   printf("Number of cores booted: %d\n",cores);
-  return;
+  int noc_cores = print_noc_info();
+  ABORT_IF_FAIL(cores!=noc_cores,"An incorrect noc schedule is used");
+  return cores;
 }
 
-void print_noc_info(){
-  printf("NoC scheduler generated for %d cores\n",NOC_CORES);
-  printf("NoC scheduler contains %d timeslots\n",NOC_TIMESLOTS);
-}
-
-void main_mem_test() {
-	fputs("Testing MAINMEM...",stdout);
-	ABORT_IF_FAIL(mem_area_test_uncached(TEST_START,0x1000),"FAIL");
-	puts("OK");
-	fputs("Testing MAINMEM size: ",stdout);
+int main_mem_test() {
+	printf("Testing MAINMEM...");
+	ABORT_IF_FAIL(mem_area_test_uncached(TEST_START,0x1000)<0,"FAIL");
+	printf("OK\n");
+	printf("Testing MAINMEM size: ");
 	int size = 0;
+	int cached_size = 0;
 	size = test_mem_size_uncached(TEST_START);
-	ABORT_IF_FAIL(size,"Size could not be retrieved");
+	ABORT_IF_FAIL(size<0,"Size could not be retrieved");
 	char buf[11];
 	prefix(size,buf);
 	puts(buf);
-	return;
+	cached_size = test_mem_size_cached(TEST_START_CACHED);
+	ABORT_IF_FAIL(cached_size<0,"Size could not be retrieved");
+	prefix(cached_size,buf);
+	puts(buf);
+	ABORT_IF_FAIL(size!=cached_size,"Cachedsize does not match uncached size");
+	return size;
 }
 
 void com_spm_test() {
-	fputs("Testing COM SPM...",stdout);
-	ABORT_IF_FAIL(mem_area_test_spm(NOC_SPM_BASE,0x8000),"FAIL 0x8000");
-	ABORT_IF_FAIL(mem_area_test_spm(NOC_SPM_BASE,0x8001),"FAIL 0x8001");
-	ABORT_IF_FAIL(mem_area_test_spm(NOC_SPM_BASE,0x80001),"FAIL 0x80001");
-	puts("OK");
-	fputs("Testing COM SPM size: ",stdout);	
+	printf("Testing COM SPM...");
+	ABORT_IF_FAIL(mem_area_test_spm(NOC_SPM_BASE,0x8000)<0,"FAIL 0x8000");
+	ABORT_IF_FAIL(mem_area_test_spm(NOC_SPM_BASE,0x8001)<0,"FAIL 0x8001");
+	ABORT_IF_FAIL(mem_area_test_spm(NOC_SPM_BASE,0x80001)<0,"FAIL 0x80001");
+	printf("OK\n");
+	printf("Testing COM SPM size: ");	
 	fflush(stdout);
 	int size = 0;
 	size = test_mem_size_spm(NOC_SPM_BASE);
-	ABORT_IF_FAIL(size,"Size could not be retrieved");
+	ABORT_IF_FAIL(size<0,"Size could not be retrieved");
 	char buf[11];
 	prefix(size,buf);
 	puts(buf);
 	return;
+}
+
+void noc_test_master() {
+
+}
+
+void noc_test_slave() {
+
+}
+
+void mem_load_test() {
+	int size = (main_mem_size-MINADDR)/core_count; 
+	volatile _UNCACHED unsigned int *addr = TEST_START + get_cpuid()*size;
+	for(unsigned int start_time = get_cpu_usecs(); get_cpu_usecs() - start_time < 2000 ;) {
+		mem_area_test_uncached(addr,size);
+	}
 }
 
 int main() {
   if (get_cpuid() == 0) {
-    print_processor_info();
-    print_noc_info();
+    core_count = print_processor_info();
 	com_spm_test();
-	main_mem_test();
+	main_mem_size = main_mem_test();
+	noc_test_master();
+	printf("Performing main mem load test...");
+	fflush(stdout);
+	mem_load_test();
+	printf("OK\n");
     return 0;
 
   } else {
-    // other cores do idle loop
-    //for (;;) { }
+  	noc_test_slave();
+  	mem_load_test();
     return 0;
   }
   return -1;

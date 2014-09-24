@@ -107,7 +107,7 @@ int main(void) {
   // clear caches and loop back
   inval_dcache();
   inval_mcache();
-  main();
+  _start();
 
   return 0;
 }
