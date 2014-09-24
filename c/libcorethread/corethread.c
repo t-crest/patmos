@@ -48,42 +48,52 @@
 // Functions for initializing the workers
 ////////////////////////////////////////////////////////////////////////////
 
-void corethread_worker() {
-   if (get_cpuid() == 0) {
-      return;
-   }
-   boot_info->slave[get_cpuid()].status = STATUS_RETURN;
-   volatile void _SPM *return_addr;
-   // Wait for corethread_create request or application exit
-   while(boot_info->master.status != STATUS_RETURN) {
-      // As long as the master is still executing wait for at corethread to
-      // be created and then execute it.
-      if (/* Check recv flag */) {
-         // Setup the return channel
-         return_addr = (*work_recv.read_buf+12);
-         (*work_recv.read_buf)((void*)*(work_recv.read_buf+4)); //(*start_routine)(arg);
-      }
+void corethread_worker(void) {
+   if (get_cpuid() != 0) {
       boot_info->slave[get_cpuid()].status = STATUS_RETURN;
+      
+      // Wait for corethread_create request or application exit
+      while(boot_info->master.status != STATUS_RETURN) {
+         // As long as the master is still executing wait for at corethread to
+         // be created and then execute it.
+         if (boot_info->slave[get_cpuid()].funcpoint != NULL) {
+            boot_info->slave[get_cpuid()].status = STATUS_INIT;   
+            (*boot_info->slave[get_cpuid()].funcpoint)((void*)boot_info->slave[get_cpuid()].param);
+            boot_info->slave[get_cpuid()].funcpoint = NULL;
+         }
+         boot_info->slave[get_cpuid()].status = STATUS_RETURN;
+      }
+
+      exit(0);
    }
-
-   exit(0);
-}
-
-int corethread_init(volatile corethread_t _SPM *corethread_ptr, int recv_id,
-                                          volatile void _SPM *ret_addr) {
-
-   volatile void _SPM *remote_addr = NOC_SPM_BASE;
 }
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for creating and destroying corethreads
 ////////////////////////////////////////////////////////////////////////////
 
-int corethread_create(volatile corethread_t _SPM *corethread_ptr,
-      const corethread_attr_t *attr, void *(*start_routine)(void*), void *arg) {
-   // Copy the function pointer, arg pointer and attributes to the COM SPM
-   // Send the copied 
-   //noc_send();
+int corethread_create(corethread_t *thread, const corethread_attr_t *attr,
+                                    void (*start_routine)(void*), void *arg) {
+   if(boot_info->slave[*thread].status == STATUS_RETURN &&
+      boot_info->slave[*thread].funcpoint == NULL ) {
+      boot_info->slave[*thread].param = arg;
+      boot_info->slave[*thread].funcpoint = (_UNCACHED void*) start_routine;
+      return 0;
+   } else {
+      return EAGAIN;
+   }
+   // TODO: use attribute
+}
+
+void corethread_exit(void *retval) {
+   boot_info->slave[get_cpuid()].return_val = (int) retval;
+}
+
+int corethread_join(corethread_t thread, void **retval) {
+   while(boot_info->slave[thread].status != STATUS_RETURN) {
+      /* spin */
+   }
+   *retval = (void *) boot_info->slave[thread].return_val;
    return 0;
 }
 

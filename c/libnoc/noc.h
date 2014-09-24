@@ -85,7 +85,7 @@ void noc_configure(void);
 /// \brief Configure network-on-chip and synchronize all cores.
 ///
 /// #noc_init is a static constructor and not intended to be called directly.
-void noc_init(void) __attribute__((constructor,used));
+void noc_init(void) __attribute__((constructor(101),used));
 
 #ifdef DOXYGEN
 /// \brief Define this before including noc.h to force the use

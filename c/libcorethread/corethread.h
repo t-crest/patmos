@@ -45,10 +45,7 @@
 #include <machine/patmos.h>
 #include <machine/spm.h>
 #include <stdlib.h>
-#include "libmp/mp.h"
 #include "bootloader/cmpboot.h"
-#include "libnoc/noc.h"
-#include "libnoc/coreset.h"
 
 #define EAGAIN 1
 #define EINVAL 2
@@ -62,16 +59,11 @@
 ////////////////////////////////////////////////////////////////////////////
 
 typedef enum {
-   POLLING,
-   SLEEPING
+   joinable,
+   detached
 } corethread_attr_t;
 
-typedef struct {
-   void (* start)(void*);
-   void* arg;
-   corethread_attr_t attr;
-   volatile void _SPM *ret_addr;
-} corethread_t;
+typedef size_t corethread_t;
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -80,14 +72,9 @@ typedef struct {
 
 /// \brief Make the slave cores wait for a corethread to be started on that
 /// core.
-// void corethread_worker(void) __attribute__((constructor(10000)));
+void corethread_worker(void) __attribute__ ((constructor(110)));
 // Leave out constructor for initial testing
-void corethread_worker(void);
-
-/// \brief Initialize the communication channel from the master to the
-/// corethread. The pointers in the receiver are set statically.
-int corethread_init(volatile corethread_t _SPM *corethread_ptr, int recv_id,
-                                          volatile void _SPM *ret_addr);
+//void corethread_worker(void);
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for creating and destroying corethreads
@@ -105,14 +92,14 @@ int corethread_init(volatile corethread_t _SPM *corethread_ptr, int recv_id,
 /// \retval EINVAL The attribute value is invalid 
 /// \retval EPERM The caller does not have appropriate permissions the set
 /// the required scheduling parameters or scheduling policy
-int corethread_create(volatile corethread_t _SPM *corethread_ptr,
-      const corethread_attr_t *attr, void *(*start_routine)(void*), void *arg);
+int corethread_create(corethread_t *thread, const corethread_attr_t *attr,
+                                    void (*start_routine)(void*), void *arg);
 
 /// \brief corethread termination
 /// 
 /// The running corethread terminates with the given returnvalue
 /// \param retval_ptr
-void corethread_exit(void *retval_ptr);
+void corethread_exit(void *retval);
 
 /// \brief wait for corethread termination
 /// \param mpd_ptr
@@ -122,6 +109,6 @@ void corethread_exit(void *retval_ptr);
 /// \retval ESRCH  No corethread exist with the specified corethread ID.
 /// \retval EDEADLK A deadlock was detected or the specified corethread is
 /// the calling thread
-int corethread_join(corethread_t* corethread_ptr, void **retval_ptr);
+int corethread_join(corethread_t thread, void **retval);
 
 #endif /* _CORETHREAD_H_ */

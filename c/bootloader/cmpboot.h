@@ -55,12 +55,19 @@ typedef volatile int (*entrypoint_t)(void);
 #define __ENTRYPOINT_T
 #endif
 
+#ifndef __FUNCPOINT_T
+typedef volatile void (*funcpoint_t)(void*);
+#define __FUNCPOINT_T
+#endif
+
 struct master_info_t {  
   volatile entrypoint_t entrypoint;
   volatile int status;
 };
 
 struct slave_info_t {
+  volatile funcpoint_t funcpoint;
+  volatile void* param;
   volatile int return_val;
   volatile int status;
 };

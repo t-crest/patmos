@@ -6,6 +6,7 @@ CC=patmos-clang # variable CC is "magic", so we define it here to a sane default
 BUILDDIR?=../tmp
 LIBNOC=$(BUILDDIR)/libnoc.a
 LIBMP=$(BUILDDIR)/libmp.a
+LIBCORETHREAD=$(BUILDDIR)/libcorethread.a
 
 NOCINIT?=nocinit.c
 
@@ -45,16 +46,16 @@ $(BUILDDIR)/%.o: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) -c -o $@ $(filter %.c,$^)
 
-$(BUILDDIR)/%.elf: %.c $(NOCINIT) $(LIBNOC) $(LIBMP) Makefile
+$(BUILDDIR)/%.elf: %.c $(NOCINIT) $(LIBNOC) $(LIBMP) $(LIBCORETHREAD) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc 
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread
 $(BUILDDIR)/%.s: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) -fpatmos-emit-asm -S -o $@ $(filter %.c,$^)
 
-$(BUILDDIR)/bootable-%.elf: %.c $(NOCINIT) $(LIBNOC) $(LIBMP) Makefile
+$(BUILDDIR)/bootable-%.elf: %.c $(NOCINIT) $(LIBNOC) $(LIBMP) $(LIBCORETHREAD) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc
+	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread
 
 $(BUILDDIR)/bootable-%.s: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
@@ -96,4 +97,11 @@ $(LIBNOC): $(BUILDDIR)/libnoc/noc.o
 libmp: libnoc $(LIBMP)
 $(BUILDDIR)/libmp/mp.o: libmp/mp.h
 $(LIBMP): $(BUILDDIR)/libmp/mp.o
+	ar r $@ $^
+
+# library for corethreads
+.PHONY: libcorethread
+libcorethread: cmpboot.h $(LIBCORETHREAD)
+$(BUILDDIR)/libcorethread/corethread.o: libcorethread/corethread.h
+$(LIBCORETHREAD): $(BUILDDIR)/libcorethread/corethread.o
 	ar r $@ $^
