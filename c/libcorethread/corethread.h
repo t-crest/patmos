@@ -45,6 +45,7 @@
 #include <machine/patmos.h>
 #include <machine/spm.h>
 #include <stdlib.h>
+#include <machine/rtc.h>
 #include "bootloader/cmpboot.h"
 
 #define EAGAIN 1

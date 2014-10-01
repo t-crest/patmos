@@ -148,11 +148,6 @@ int main_mem_test() {
 	char buf[11];
 	prefix(size,buf);
 	puts(buf);
-	cached_size = test_mem_size_cached(TEST_START_CACHED);
-	ABORT_IF_FAIL(cached_size<0,"Size could not be retrieved");
-	prefix(cached_size,buf);
-	puts(buf);
-	ABORT_IF_FAIL(size!=cached_size,"Cachedsize does not match uncached size");
 	return size;
 }
 

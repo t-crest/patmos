@@ -42,86 +42,154 @@
 #include <stdio.h>
 
 ////////////////////////////////////////////////////////////////////////////
+// Functions for library initialization and memory management
+////////////////////////////////////////////////////////////////////////////
+
+void mp_init() {
+  // Initializing the array of pointers to the beginning of the SPMs
+  for (int i = 0; i < MAX_CORES; ++i) {
+    spm_alloc_array[i] = (volatile char* _UNCACHED) NOC_SPM_BASE;
+  }
+  int _SPM * spm_zero = (int _SPM *) mp_alloc(NOC_MASTER,sizeof(int _SPM *));
+  *spm_zero = 0;
+  return;
+}
+
+size_t mp_send_alloc_size(mpd_t* mpd_ptr) {
+  size_t send_size = (mpd_ptr->buf_size + FLAG_SIZE) * NUM_WRITE_BUF
+                                  + DWALIGN(sizeof(*(mpd_ptr->send_recv_count)));
+  return send_size;
+}
+
+size_t mp_recv_alloc_size(mpd_t* mpd_ptr) {
+  size_t recv_size = (mpd_ptr->buf_size + FLAG_SIZE) * mpd_ptr->num_buf
+                                  + DWALIGN(sizeof(*(mpd_ptr->recv_count)));
+  return recv_size;
+}
+
+void _SPM * mp_alloc(coreid_t id, unsigned size) {
+  if (get_cpuid() != NOC_MASTER) {
+    return NULL;
+  }
+  unsigned dw_size = DWALIGN(size);
+  void _SPM * mem_ptr = (void _SPM *) spm_alloc_array[id];
+  spm_alloc_array[id] = spm_alloc_array[id] + dw_size;
+  DEBUGGER("mp_alloc: core id %u, dw size %u, allocated addr %x\n",id,dw_size,(int)mem_ptr);
+  // TODO: Check if SPM size is larger than new pointer value
+  return mem_ptr;
+}
+
+
+////////////////////////////////////////////////////////////////////////////
 // Functions for initializing the message passing API
 ////////////////////////////////////////////////////////////////////////////
 
-int mp_send_init(mpd_t* mpd_ptr, int recv_id, volatile void _SPM *remote_addr,
-          volatile void _SPM *local_addr, size_t buf_size, size_t num_buf) {
+int mp_chan_init(mpd_t* mpd_ptr, coreid_t sender, coreid_t receiver,
+          unsigned buf_size, unsigned num_buf) {
 
-  // Check if the remote and local addresses are double word aligned
-  if ((volatile void _SPM *)DWALIGN(remote_addr) != remote_addr ||
-    (volatile void _SPM *)DWALIGN(local_addr) != local_addr) {
+  if (get_cpuid() != NOC_MASTER) {
     return 0;
   }
-  mpd_ptr->remote_addr = remote_addr;
-  mpd_ptr->local_addr = local_addr;
+  
+  /* COMMON INITIALIZATION */
+
   // Align the buffer size to double words and add the flag size
   mpd_ptr->buf_size = DWALIGN(buf_size);
   mpd_ptr->num_buf = num_buf;
-  int recv_count_offset = (mpd_ptr->buf_size + FLAG_SIZE) * NUM_WRITE_BUF;
-  mpd_ptr->recv_count = (volatile size_t _SPM *)((char*)local_addr + recv_count_offset);
-  mpd_ptr->recv_id = recv_id;
+  
+  mpd_ptr->recv_id = receiver;
+  mpd_ptr->send_id = sender;
 
+  mpd_ptr->send_addr = mp_alloc(sender,mp_send_alloc_size(mpd_ptr));
+  mpd_ptr->recv_addr = mp_alloc(receiver,mp_recv_alloc_size(mpd_ptr));
+
+  if (mpd_ptr->send_addr == NULL || mpd_ptr->recv_addr == NULL) {
+    return 0;
+  }
+
+
+  /* SENDER INITIALIZATION */
+
+
+  int send_recv_count_offset = (mpd_ptr->buf_size + FLAG_SIZE) * NUM_WRITE_BUF;
+  mpd_ptr->send_recv_count = (volatile unsigned _SPM *)((char*)mpd_ptr->send_addr + send_recv_count_offset);
+  // TODO: sender_recv_count must be initialized through the NoC
+  if (get_cpuid() == mpd_ptr->send_id) {
+    *(mpd_ptr->send_recv_count) = 0;
+  } else {
+    noc_send(mpd_ptr->send_id,mpd_ptr->send_recv_count,NOC_SPM_BASE,4);
+  }
+  DEBUGGER("Initialization at sender done.\n");
   // Initialize send count to 0 and recv count to 0.
   mpd_ptr->send_count = 0;
   mpd_ptr->send_ptr = 0;
-  mpd_ptr->write_buf = local_addr;
-  mpd_ptr->shadow_write_buf = (volatile void _SPM *)((char*)local_addr + (mpd_ptr->buf_size + FLAG_SIZE));
-  *(mpd_ptr->recv_count) = 0;
-
-  // Initialize last word in buffers to FLAG_VALID.
-  *(volatile int _SPM *)((char*)mpd_ptr->local_addr + mpd_ptr->buf_size) = FLAG_VALID;
-  *(volatile int _SPM *)((char*)mpd_ptr->local_addr + (mpd_ptr->buf_size + FLAG_SIZE) + mpd_ptr->buf_size) = FLAG_VALID;
   
-  return 1;  
-}
+  mpd_ptr->write_buf = mpd_ptr->send_addr;
+  mpd_ptr->shadow_write_buf = (volatile void _SPM *)((char*)mpd_ptr->send_addr + (mpd_ptr->buf_size + FLAG_SIZE));
 
-int mp_recv_init(mpd_t* mpd_ptr, int send_id, volatile void _SPM *remote_addr,
-            volatile void _SPM *local_addr, size_t buf_size, size_t num_buf) {
 
-  // Check if the remote and local addresses are double word aligned
-  if ((volatile void _SPM *)DWALIGN(remote_addr) != remote_addr ||
-    (volatile void _SPM *)DWALIGN(local_addr) != local_addr) {
-    return 0;
-  }
+  /* RECEIVER INITIALIZATION */
 
-  mpd_ptr->remote_addr = remote_addr;
-  mpd_ptr->local_addr = local_addr;
-  // Align the buffer size to double words and add the flag size
-  mpd_ptr->buf_size = DWALIGN(buf_size);
-  mpd_ptr->num_buf = num_buf;
-  int recv_count_offset = (mpd_ptr->buf_size + FLAG_SIZE) * num_buf;
-  mpd_ptr->recv_count = (volatile size_t _SPM *)((char*)local_addr + recv_count_offset);
-  mpd_ptr->send_id = send_id;
-  int rmt_recv_count_offset = (mpd_ptr->buf_size + FLAG_SIZE) * NUM_WRITE_BUF;
-  mpd_ptr->remote_recv_count = (volatile size_t _SPM *)((char*)remote_addr + rmt_recv_count_offset);
-  mpd_ptr->read_buf = local_addr;
-
-  // Initialize recv count to 0.
-  *(volatile int _SPM *)(mpd_ptr->recv_count) = 0;
+  mpd_ptr->read_buf = mpd_ptr->recv_addr;
   mpd_ptr->recv_ptr = 0;
 
-  // Initialize last word in each buffer to FLAG_INVALID
-  for (int i = 1; i <= num_buf; i++) {
-    *(volatile int _SPM *)((char*)mpd_ptr->local_addr + mpd_ptr->buf_size * i) = FLAG_INVALID;
+  int recv_count_offset = (mpd_ptr->buf_size + FLAG_SIZE) * num_buf;
+  mpd_ptr->recv_count = (volatile unsigned _SPM *)((char*)mpd_ptr->recv_addr + recv_count_offset);
+  
+  // TODO: must be initialized through the NoC
+  if (get_cpuid() == mpd_ptr->recv_id) {
+    *(mpd_ptr->recv_count) = 0;
+  } else {
+    noc_send(mpd_ptr->recv_id,mpd_ptr->recv_count,NOC_SPM_BASE,4);
   }
+  
+  
+  
+  // Initialize last word in each buffer to FLAG_INVALID
+  for (int i = 0; i < mpd_ptr->num_buf; i++) {
+    // TODO: calculate address and do write with a noc_send()
+    // Calculate the address of the local receiving buffer
+    int locl_addr_offset = (mpd_ptr->buf_size + FLAG_SIZE) * i;
+    volatile void _SPM * calc_locl_addr = &mpd_ptr->recv_addr[locl_addr_offset];
+
+    volatile int _SPM * flag_addr = (volatile int _SPM *)((char*)calc_locl_addr + mpd_ptr->buf_size);
+
+    if (get_cpuid() == mpd_ptr->recv_id) {
+      *(flag_addr) = 0;
+    } else {
+      noc_send(mpd_ptr->recv_id,flag_addr,NOC_SPM_BASE,4);
+    }
+    
+  }
+
+  DEBUGGER("Initialization at receiver done.\n");
+
   return 1;
 }
 
 int mp_barrier_init(communicator_t* comm, unsigned count,
-              const unsigned member_ids [], volatile void _SPM * addr) {
-  // Check that the address is double word aligned
-  if ((volatile void _SPM *)DWALIGN(addr) != addr) {
+              const coreid_t member_ids []) {
+  if (get_cpuid() != NOC_MASTER) {
     return 0;
   }
   comm->count = count;
-  comm->addr = addr;
+  comm->addr = (volatile void _SPM **) malloc(sizeof(void*)*count);
+
+  DEBUGGER("Barrier init: malloc size %lu\n",sizeof(void*)*count);
+  
   for (int i = 0; i < count; ++i) {
     coreset_add(member_ids[i],&comm->barrier_set);
+    comm->addr[i] = (volatile void _SPM *) mp_alloc(member_ids[i],count*BARRIER_SIZE);
+
+    for (int i = 0; i < count; ++i) {
+      if (get_cpuid() == member_ids[i]) {
+        *((volatile int _SPM *)((unsigned)comm->addr[i] + (i*BARRIER_SIZE))) = BARRIER_INITIALIZED;
+      } else {      
+        noc_send(member_ids[i],(volatile int _SPM *)((unsigned)comm->addr[i] + (i*BARRIER_SIZE)),NOC_SPM_BASE,4);
+      }
+    }  
   }
-  for (int i = 0; i < CORESET_SIZE; ++i) {
-    *((volatile int _SPM *)((unsigned)comm->addr + (i*BARRIER_SIZE))) = BARRIER_INITIALIZED;
-  }
+  
   return 1;
 }
 
@@ -133,12 +201,15 @@ int mp_nbsend(mpd_t* mpd_ptr) {
 
   // Calculate the address of the remote receiving buffer
   int rmt_addr_offset = (mpd_ptr->buf_size + FLAG_SIZE) * mpd_ptr->send_ptr;
-  volatile void _SPM * calc_rmt_addr = &mpd_ptr->remote_addr[rmt_addr_offset];
+  volatile void _SPM * calc_rmt_addr = &mpd_ptr->recv_addr[rmt_addr_offset];
+  *(volatile int _SPM *)((char*)mpd_ptr->write_buf + mpd_ptr->buf_size) = FLAG_VALID;
 
-  if ((mpd_ptr->send_count) - *(mpd_ptr->recv_count) == mpd_ptr->num_buf) {
+  if ((mpd_ptr->send_count) - *(mpd_ptr->send_recv_count) == mpd_ptr->num_buf) {
+    DEBUGGER("NO room in queue\n");
     return 0;
   }
   if (!noc_nbsend(mpd_ptr->recv_id,calc_rmt_addr,mpd_ptr->write_buf,mpd_ptr->buf_size + FLAG_SIZE)) {
+    DEBUGGER("NO DMA free\n");
     return 0;
   }
 
@@ -168,7 +239,7 @@ int mp_nbrecv(mpd_t* mpd_ptr) {
 
   // Calculate the address of the local receiving buffer
   int locl_addr_offset = (mpd_ptr->buf_size + FLAG_SIZE) * mpd_ptr->recv_ptr;
-  volatile void _SPM * calc_locl_addr = &mpd_ptr->local_addr[locl_addr_offset];
+  volatile void _SPM * calc_locl_addr = &mpd_ptr->recv_addr[locl_addr_offset];
 
   volatile int _SPM * recv_flag = (volatile int _SPM *)((char*)calc_locl_addr + mpd_ptr->buf_size);
 
@@ -202,7 +273,7 @@ void mp_recv(mpd_t* mpd_ptr) {
 
 int mp_nback(mpd_t* mpd_ptr){
   // Update the remote receive count
-  return noc_nbsend(mpd_ptr->send_id,mpd_ptr->remote_recv_count,mpd_ptr->recv_count,8);
+  return noc_nbsend(mpd_ptr->send_id,mpd_ptr->send_recv_count,mpd_ptr->recv_count,8);
 }
 
 void mp_ack(mpd_t* mpd_ptr){
@@ -211,76 +282,46 @@ void mp_ack(mpd_t* mpd_ptr){
   return;
 }
 
+
 void mp_barrier(communicator_t* comm){
-  volatile int _SPM * addr = (volatile int _SPM *)((unsigned)comm->addr +
-                               get_cpuid()*BARRIER_SIZE);
+  DEBUG_CORECHECK(!coreset_contains(get_cpuid(),&comm->barrier_set));
+  // Something bad happens if mp_barrier() is called by a core
+  // that is not in the communicator.
+  unsigned index = 0;
+  for (unsigned i = 0; i < CORESET_SIZE; ++i) {
+    if(coreset_contains(i,&comm->barrier_set) && i < get_cpuid()) {
+      index++;
+    }
+  }
+  DEBUGGER("Barrier: index %d\n",index);
+  volatile int _SPM * addr = (volatile int _SPM *)((unsigned)comm->addr[index] +
+                               index*BARRIER_SIZE);
+
   *addr = BARRIER_REACHED;
-  noc_multisend_cs(comm->count,comm->barrier_set,addr,addr,BARRIER_SIZE);
+  noc_multisend_cs(comm->barrier_set,comm->addr,index*BARRIER_SIZE,addr,BARRIER_SIZE);
   int done;
   coreset_t recv;
   coreset_clearall(&recv);
   do {
     done = 1;
-    for (unsigned cpu_id = 0; cpu_id < CORESET_SIZE; ++cpu_id){
+    unsigned cpu_index = 0;
+    for (unsigned cpu_id = 0; cpu_id < CORESET_SIZE; ++cpu_id) {
       if (coreset_contains(cpu_id,&comm->barrier_set) &&
           !coreset_contains(cpu_id,&recv)) {
-        if (*(volatile int _SPM *)((unsigned)comm->addr + cpu_id*BARRIER_SIZE)
+        DEBUGGER("Barrier: looking at cpuid %u at address %x\n",cpu_id,(unsigned)comm->addr[index] + cpu_index*BARRIER_SIZE);
+        if (*(volatile int _SPM *)((unsigned)comm->addr[index] + cpu_index*BARRIER_SIZE)
               == BARRIER_REACHED) {
+          DEBUGGER("Barrier: cpuid %u reached barrier\n",cpu_id);
           coreset_add(cpu_id,&recv);
         } else {
           done = 0;
         }
+        cpu_index++;
       }
     }
   } while(!done);
   for (int i = 0; i < CORESET_SIZE; ++i) {
-    *((volatile int _SPM *)((unsigned)comm->addr + (i*BARRIER_SIZE))) = BARRIER_INITIALIZED;
+    *((volatile int _SPM *)((unsigned)comm->addr[index] + (i*BARRIER_SIZE))) = BARRIER_INITIALIZED;
   }
   return;
-}
-
-void mp_barrier_debug(communicator_t* comm){
-  volatile int _SPM * addr = (volatile int _SPM *)((unsigned)comm->addr +
-                               get_cpuid()*BARRIER_SIZE);
-
-  *addr = BARRIER_REACHED;
-  puts("Entering noc multisend");
-  noc_multisend_cs_debug(comm->count,comm->barrier_set,addr,addr,BARRIER_SIZE);
-  puts("Noc multi send returned");
-  int done;
-  coreset_t recv;
-  coreset_clearall(&recv);
-  do {
-    done = 1;
-    for (unsigned cpu_id = 0; cpu_id < CORESET_SIZE; ++cpu_id){
-      if (coreset_contains(cpu_id,&comm->barrier_set) &&
-          !coreset_contains(cpu_id,&recv)) {
-        if (*(volatile int _SPM *)((unsigned)comm->addr + cpu_id*BARRIER_SIZE)
-              == BARRIER_REACHED) {
-          puts("One barrier reached");
-          coreset_add(cpu_id,&recv);
-        } else {
-          done = 0;
-        }
-      }
-    }
-  } while(!done);
-  for (int i = 0; i < CORESET_SIZE; ++i) {
-    *((volatile int _SPM *)((unsigned)comm->addr + (i*BARRIER_SIZE))) = BARRIER_INITIALIZED;
-  }
-  return;
-}
-
-////////////////////////////////////////////////////////////////////////////
-// Help functions 
-////////////////////////////////////////////////////////////////////////////
-
-int mp_send_alloc_size(mpd_t* mpd_ptr) {
-  int send_size = (mpd_ptr->buf_size + FLAG_SIZE) * NUM_WRITE_BUF + DWALIGN(sizeof(*(mpd_ptr->recv_count)));
-  return send_size;
-}
-
-int mp_recv_alloc_size(mpd_t* mpd_ptr) {
-  int recv_size = (mpd_ptr->buf_size + FLAG_SIZE) * mpd_ptr->num_buf + DWALIGN(sizeof(*(mpd_ptr->recv_count)));
-  return recv_size;
 }

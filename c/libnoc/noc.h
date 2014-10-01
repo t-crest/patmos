@@ -44,6 +44,24 @@
 #include <machine/spm.h>
 #include "coreset.h"
 
+//#define DEBUG
+
+#ifdef DEBUG
+
+#define DEBUGGER(...)  if(get_cpuid() == NOC_MASTER) { \
+                        printf(__VA_ARGS__); \
+                     }
+
+#define DEBUG_CORECHECK(x) if(x) { \
+                              abort(); \
+                            }
+
+#else
+#define DEBUGGER(...)
+#define DEBUG_CORECHECK(x)
+#endif
+
+
 ////////////////////////////////////////////////////////////////////////////
 // Definitions used for initialization of network interface
 ////////////////////////////////////////////////////////////////////////////
@@ -159,11 +177,8 @@ void noc_multisend(unsigned cnt, unsigned rcv_id [], volatile void _SPM *dst [],
 /// \param dst An array with pointers to the destinations of the transfer.
 /// \param src A pointer to the source of the transfer.
 /// \param size The size of data to be transferred, in bytes.
-void noc_multisend_cs(unsigned cnt, coreset_t receivers, volatile void _SPM *dst,
-                     volatile void _SPM *src, size_t len);
-
-void noc_multisend_cs_debug(unsigned cnt, coreset_t receivers, volatile void _SPM *dst,
-                     volatile void _SPM *src, size_t len);
+void noc_multisend_cs(coreset_t receivers, volatile void _SPM *dst[],
+                     unsigned offset, volatile void _SPM *src, unsigned len);
 
 ////////////////////////////////////////////////////////////////////////////
 // Definitions for setting up a transfer

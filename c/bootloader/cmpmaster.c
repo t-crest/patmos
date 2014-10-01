@@ -157,6 +157,13 @@ int main(void)
   // notify slaves that they can loop back
   boot_info->master.status = STATUS_RETURN;
 
+  // Wait for slaves to finish
+  for (unsigned i = 1; i < MAX_CORES; i++) {
+    while(boot_info->slave[i].status == STATUS_RETURN){
+      /* spin */
+    }
+  }
+
   #ifdef DEBUG
   WRITE("EXIT\n", 5);
   #endif

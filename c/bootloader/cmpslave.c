@@ -97,7 +97,7 @@ int main(void)
     boot_info->slave[get_cpuid()].status = STATUS_RETURN;
   } while (boot_info->master.status != STATUS_RETURN); 
   
-  // TODO: report return value back to master
+  boot_info->slave[get_cpuid()].status = STATUS_NULL;
 
   // clear caches and loop back
   inval_dcache();

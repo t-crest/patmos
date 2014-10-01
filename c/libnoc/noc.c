@@ -176,36 +176,19 @@ void noc_multisend(unsigned cnt, unsigned rcv_id [], volatile void _SPM *dst [],
 // Multicast transfer of data via the NoC
 // The addresses and the size are in bytes
 // The receivers are defined in a coreset
-void noc_multisend_cs(unsigned cnt, coreset_t receivers,
-              volatile void _SPM *dst, volatile void _SPM *src, size_t len) {
-  coreset_remove(get_cpuid(),&receivers);
-  while(!coreset_empty(&receivers)) {
-    for (int i = 0; i < CORESET_SIZE; ++i) {
-      if (coreset_contains(i,&receivers)){
-        if (noc_nbsend(i, dst, src, len)) {
-          coreset_remove(i, &receivers);
-        }
-      }
-    }    
-  }
-}
+// the coreset must not contain the calling core.
+void noc_multisend_cs(coreset_t receivers, volatile void _SPM *dst[],
+                                unsigned offset, volatile void _SPM *src, unsigned len) {
+  int index = 0;
+  for (unsigned i = 0; i < CORESET_SIZE; ++i) {
+    if (coreset_contains(i,&receivers)){
+      if (i != get_cpuid()) {
+        noc_send(i, (volatile void _SPM *)((unsigned)dst[index]+offset), src, len);
 
-
-// Multicast transfer of data via the NoC
-// The addresses and the size are in bytes
-// The receivers are defined in a coreset
-void noc_multisend_cs_debug(unsigned cnt, coreset_t receivers,
-              volatile void _SPM *dst, volatile void _SPM *src, size_t len) {
-  coreset_remove(get_cpuid(),&receivers);
-  while(!coreset_empty(&receivers)) {
-    for (int i = 0; i < CORESET_SIZE; ++i) {
-      if (coreset_contains(i,&receivers)){
-        if (noc_nbsend(i, dst, src, len)) {
-          puts("Noc send done");
-          coreset_remove(i, &receivers);
-        }
       }
-    }    
+      DEBUGGER("Transmission address: %x+%x at core %i\n",(unsigned)dst[index],offset,i);
+      index++;
+    }
   }
 }
 

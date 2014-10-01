@@ -40,9 +40,6 @@
 #include "corethread.h"
 
 #include <stdio.h>
-//#include <stdlib.h>
-//#include "libmp/mp.h"
-//#include "bootloader/cmpboot.h"
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for initializing the workers
@@ -50,11 +47,12 @@
 
 void corethread_worker(void) {
    if (get_cpuid() != 0) {
+      unsigned long long time;
       boot_info->slave[get_cpuid()].status = STATUS_RETURN;
       
       // Wait for corethread_create request or application exit
       while(boot_info->master.status != STATUS_RETURN) {
-         // As long as the master is still executing wait for at corethread to
+         // As long as the master is still executing, wait for a corethread to
          // be created and then execute it.
          if (boot_info->slave[get_cpuid()].funcpoint != NULL) {
             boot_info->slave[get_cpuid()].status = STATUS_INIT;   
@@ -62,8 +60,11 @@ void corethread_worker(void) {
             boot_info->slave[get_cpuid()].funcpoint = NULL;
          }
          boot_info->slave[get_cpuid()].status = STATUS_RETURN;
+         time = get_cpu_usecs();
+         while(get_cpu_usecs() < time+1) {
+         
+         }
       }
-
       exit(0);
    }
 }
@@ -87,11 +88,18 @@ int corethread_create(corethread_t *thread, const corethread_attr_t *attr,
 
 void corethread_exit(void *retval) {
    boot_info->slave[get_cpuid()].return_val = (int) retval;
+   //boot_info->slave[get_cpuid()].funcpoint = NULL;
+   //boot_info->slave[get_cpuid()].status = STATUS_RETURN;
 }
 
 int corethread_join(corethread_t thread, void **retval) {
-   while(boot_info->slave[thread].status != STATUS_RETURN) {
-      /* spin */
+   unsigned long long time;
+   while(boot_info->slave[thread].status != STATUS_RETURN 
+          && boot_info->slave[thread].funcpoint != NULL) {
+      time = get_cpu_usecs();
+      while(get_cpu_usecs() < time+100) {
+      
+      }
    }
    *retval = (void *) boot_info->slave[thread].return_val;
    return 0;
