@@ -55,7 +55,8 @@ void corethread_worker(void) {
          // As long as the master is still executing, wait for a corethread to
          // be created and then execute it.
          if (boot_info->slave[get_cpuid()].funcpoint != NULL) {
-            boot_info->slave[get_cpuid()].status = STATUS_INIT;   
+            boot_info->slave[get_cpuid()].status = STATUS_INIT;
+            boot_info->slave[get_cpuid()].return_val = -1;
             (*boot_info->slave[get_cpuid()].funcpoint)((void*)boot_info->slave[get_cpuid()].param);
             boot_info->slave[get_cpuid()].funcpoint = NULL;
          }
@@ -95,7 +96,7 @@ void corethread_exit(void *retval) {
 int corethread_join(corethread_t thread, void **retval) {
    unsigned long long time;
    while(boot_info->slave[thread].status != STATUS_RETURN 
-          && boot_info->slave[thread].funcpoint != NULL) {
+          || boot_info->slave[thread].funcpoint != NULL) {
       time = get_cpu_usecs();
       while(get_cpu_usecs() < time+100) {
       

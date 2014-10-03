@@ -165,7 +165,8 @@ typedef struct {
 typedef struct {
   coreset_t barrier_set;
   volatile void _SPM ** addr;
-  int count;
+  unsigned count;
+  unsigned msg_size;
 } communicator_t;
 
 
@@ -215,8 +216,8 @@ int mp_chan_init(mpd_t* mpd_ptr, coreid_t sender, coreid_t receiver,
 ///
 /// \retval 0 The address is not aligned  to double words.
 /// \retval 1 The initialization of the communicator_t succeeded.
-int mp_barrier_init(communicator_t* comm, unsigned count,
-              const coreid_t member_ids []);
+int mp_communicator_init(communicator_t* comm, unsigned count,
+              const coreid_t member_ids [], unsigned msg_size);
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for transmitting data
@@ -306,5 +307,9 @@ void mp_ack(mpd_t* mpd_ptr);
 ///
 /// \param comm A pointer to a communicator structure.
 void mp_barrier(communicator_t* comm);
+
+/// \brief A function for broadcasting a message to all members of
+/// a communicator
+void mp_broadcast(communicator_t* comm, coreid_t root);
 
 #endif /* _MP_H_ */

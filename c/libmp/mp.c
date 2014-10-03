@@ -74,7 +74,7 @@ void _SPM * mp_alloc(coreid_t id, unsigned size) {
   unsigned dw_size = DWALIGN(size);
   void _SPM * mem_ptr = (void _SPM *) spm_alloc_array[id];
   spm_alloc_array[id] = spm_alloc_array[id] + dw_size;
-  DEBUGGER("mp_alloc: core id %u, dw size %u, allocated addr %x\n",id,dw_size,(int)mem_ptr);
+  DEBUGGER("mp_alloc(): core id %u, dw size %u, allocated addr %x\n",id,dw_size,(int)mem_ptr);
   // TODO: Check if SPM size is larger than new pointer value
   return mem_ptr;
 }
@@ -88,6 +88,7 @@ int mp_chan_init(mpd_t* mpd_ptr, coreid_t sender, coreid_t receiver,
           unsigned buf_size, unsigned num_buf) {
 
   if (get_cpuid() != NOC_MASTER) {
+    DEBUGGER("mp_chan_init(): called by non-master");
     return 0;
   }
   
@@ -104,6 +105,7 @@ int mp_chan_init(mpd_t* mpd_ptr, coreid_t sender, coreid_t receiver,
   mpd_ptr->recv_addr = mp_alloc(receiver,mp_recv_alloc_size(mpd_ptr));
 
   if (mpd_ptr->send_addr == NULL || mpd_ptr->recv_addr == NULL) {
+    DEBUGGER("mp_chan_init(): SPM allocation failed");
     return 0;
   }
 
@@ -119,7 +121,7 @@ int mp_chan_init(mpd_t* mpd_ptr, coreid_t sender, coreid_t receiver,
   } else {
     noc_send(mpd_ptr->send_id,mpd_ptr->send_recv_count,NOC_SPM_BASE,4);
   }
-  DEBUGGER("Initialization at sender done.\n");
+  DEBUGGER("mp_chan_init(): Initialization at sender done.\n");
   // Initialize send count to 0 and recv count to 0.
   mpd_ptr->send_count = 0;
   mpd_ptr->send_ptr = 0;
@@ -162,31 +164,43 @@ int mp_chan_init(mpd_t* mpd_ptr, coreid_t sender, coreid_t receiver,
     
   }
 
-  DEBUGGER("Initialization at receiver done.\n");
+  DEBUGGER("mp_chan_init(): Initialization at receiver done.\n");
 
   return 1;
 }
 
-int mp_barrier_init(communicator_t* comm, unsigned count,
-              const coreid_t member_ids []) {
+int mp_communicator_init(communicator_t* comm, unsigned count,
+              const coreid_t member_ids [], unsigned msg_size) {
   if (get_cpuid() != NOC_MASTER) {
     return 0;
   }
   comm->count = count;
+  comm->msg_size = msg_size;
   comm->addr = (volatile void _SPM **) malloc(sizeof(void*)*count);
 
-  DEBUGGER("Barrier init: malloc size %lu\n",sizeof(void*)*count);
+  DEBUGGER("mp_communicator_init(): malloc size %lu\n",sizeof(void*)*count);
   
   for (int i = 0; i < count; ++i) {
     coreset_add(member_ids[i],&comm->barrier_set);
-    comm->addr[i] = (volatile void _SPM *) mp_alloc(member_ids[i],count*BARRIER_SIZE);
+    comm->addr[i] = (volatile void _SPM *) mp_alloc(member_ids[i],count*BARRIER_SIZE+msg_size+FLAG_SIZE);
 
-    for (int i = 0; i < count; ++i) {
-      if (get_cpuid() == member_ids[i]) {
-        *((volatile int _SPM *)((unsigned)comm->addr[i] + (i*BARRIER_SIZE))) = BARRIER_INITIALIZED;
-      } else {      
-        noc_send(member_ids[i],(volatile int _SPM *)((unsigned)comm->addr[i] + (i*BARRIER_SIZE)),NOC_SPM_BASE,4);
+
+    if (get_cpuid() == member_ids[i]) {
+      for (int j = 0; j < count; ++j) {
+        *((volatile int _SPM *)((unsigned)comm->addr[i] + (j*BARRIER_SIZE))) = BARRIER_INITIALIZED;
       }
+      *((volatile int _SPM *)((unsigned)comm->addr[i] + (count*BARRIER_SIZE) + msg_size)) = BARRIER_INITIALIZED;
+    } else {      
+      for (int j = 0; j < count; ++j) {
+        noc_send(member_ids[i],
+                (volatile int _SPM *)((unsigned)comm->addr[i] + (j*BARRIER_SIZE)),
+                NOC_SPM_BASE,
+                4);
+      }
+      noc_send(member_ids[i],
+              (volatile int _SPM *)((unsigned)comm->addr[i] + (count*BARRIER_SIZE) + msg_size),
+              NOC_SPM_BASE,
+              4);
     }  
   }
   
@@ -205,11 +219,11 @@ int mp_nbsend(mpd_t* mpd_ptr) {
   *(volatile int _SPM *)((char*)mpd_ptr->write_buf + mpd_ptr->buf_size) = FLAG_VALID;
 
   if ((mpd_ptr->send_count) - *(mpd_ptr->send_recv_count) == mpd_ptr->num_buf) {
-    DEBUGGER("NO room in queue\n");
+    DEBUGGER("mp_nbsend(): NO room in queue\n");
     return 0;
   }
   if (!noc_nbsend(mpd_ptr->recv_id,calc_rmt_addr,mpd_ptr->write_buf,mpd_ptr->buf_size + FLAG_SIZE)) {
-    DEBUGGER("NO DMA free\n");
+    DEBUGGER("mp_nbsend(): NO DMA free\n");
     return 0;
   }
 
@@ -244,6 +258,7 @@ int mp_nbrecv(mpd_t* mpd_ptr) {
   volatile int _SPM * recv_flag = (volatile int _SPM *)((char*)calc_locl_addr + mpd_ptr->buf_size);
 
   if (*recv_flag == FLAG_INVALID) {
+    DEBUGGER("mp_nbrecv(): Recv flag %x\n",*recv_flag);
     return 0;
   }
 
@@ -293,7 +308,7 @@ void mp_barrier(communicator_t* comm){
       index++;
     }
   }
-  DEBUGGER("Barrier: index %d\n",index);
+  DEBUGGER("mp_barrier(): index %d\n",index);
   volatile int _SPM * addr = (volatile int _SPM *)((unsigned)comm->addr[index] +
                                index*BARRIER_SIZE);
 
@@ -308,10 +323,10 @@ void mp_barrier(communicator_t* comm){
     for (unsigned cpu_id = 0; cpu_id < CORESET_SIZE; ++cpu_id) {
       if (coreset_contains(cpu_id,&comm->barrier_set) &&
           !coreset_contains(cpu_id,&recv)) {
-        DEBUGGER("Barrier: looking at cpuid %u at address %x\n",cpu_id,(unsigned)comm->addr[index] + cpu_index*BARRIER_SIZE);
+        DEBUGGER("mp_barrier(): looking at cpuid %u at address %x\n",cpu_id,(unsigned)comm->addr[index] + cpu_index*BARRIER_SIZE);
         if (*(volatile int _SPM *)((unsigned)comm->addr[index] + cpu_index*BARRIER_SIZE)
               == BARRIER_REACHED) {
-          DEBUGGER("Barrier: cpuid %u reached barrier\n",cpu_id);
+          DEBUGGER("mp_barrier(): cpuid %u reached barrier\n",cpu_id);
           coreset_add(cpu_id,&recv);
         } else {
           done = 0;
@@ -320,8 +335,36 @@ void mp_barrier(communicator_t* comm){
       }
     }
   } while(!done);
-  for (int i = 0; i < CORESET_SIZE; ++i) {
+  for (int i = 0; i < comm->count; ++i) {
     *((volatile int _SPM *)((unsigned)comm->addr[index] + (i*BARRIER_SIZE))) = BARRIER_INITIALIZED;
   }
+  return;
+}
+
+
+void mp_broadcast(communicator_t* comm, coreid_t root) {
+  if (comm->msg_size == 0) {
+    DEBUGGER("mp_broadcast(): msg_size is 0;");
+    return;
+  }
+  mp_barrier(comm);
+  if (get_cpuid() == root) {
+    noc_multisend_cs(comm->barrier_set,
+                     comm->addr,
+                     comm->count*BARRIER_SIZE,
+                     (volatile void _SPM*)((unsigned)comm->addr[root]+comm->count*BARRIER_SIZE),
+                     comm->msg_size);
+  } else {
+    volatile int _SPM * flag_addr = (volatile int _SPM*)(
+                                    (unsigned)comm->addr[get_cpuid()]
+                                             +comm->count*BARRIER_SIZE
+                                             +comm->msg_size);
+    while((*flag_addr) != BARRIER_REACHED) {
+      /* Spin */
+    }
+    *flag_addr = BARRIER_INITIALIZED;    
+  }
+  mp_barrier(comm);
+
   return;
 }

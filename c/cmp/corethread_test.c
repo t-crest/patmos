@@ -16,8 +16,6 @@ const int NOC_MASTER = 0;
 #include <machine/patmos.h>
 #include "libcorethread/corethread.h"
 #include "libmp/mp.h"
-//#include "bootable.h"
-//#include "patio.h"
 
 #define MP_CHAN_1_NUM_BUF 2
 #define MP_CHAN_1_BUF_SIZE 8
@@ -88,9 +86,10 @@ int main() {
   }
   puts("Initialized buffers");
   
-  if (!mp_barrier_init(&comm,
+  if (!mp_communicator_init(&comm,
       2,
-      cores)) {
+      cores,
+      0)) {
     abort();
   }
   puts("Initialized barrier");
