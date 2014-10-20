@@ -95,13 +95,20 @@ static inline unsigned dw_align(unsigned x){
 #define FLAG_INVALID 0x00000000
 
 // Possible Barrier states
+#define BARRIER_T unsigned long long
+#define BARRIER_INITIALIZED (BARRIER_T)0x0000000000000000
+#define BARRIER_PHASE_0 (BARRIER_T)0x0000000000000000
+#define BARRIER_PHASE_1 (BARRIER_T)0x00000000FFFFFFFF
+#define BARRIER_PHASE_2 (BARRIER_T)0xFFFFFFFFFFFFFFFF
+#define BARRIER_PHASE_3 (BARRIER_T)0xFFFFFFFF00000000
+
 #define BARRIER_REACHED 0xFFFFFFFF
-#define BARRIER_INITIALIZED 0x00000000
+
 
  /*! \def BARRIER_SIZE
  * The size of the barrier flag for each core.
  */
-#define BARRIER_SIZE DWALIGN(8)
+#define BARRIER_SIZE DWALIGN(sizeof(BARRIER_T))
 
 /*! \def NUM_WRITE_BUF
  * DO NOT CHANGE! The number of write pointers is not 
@@ -171,7 +178,16 @@ typedef struct {
 
 
 // This array is only used by mp_alloc, it should not be cached.
-static volatile char* _UNCACHED spm_alloc_array[MAX_CORES];
+static volatile unsigned* _UNCACHED spm_alloc_array[MAX_CORES];
+
+////////////////////////////////////////////////////////////////////////////
+// Utilitiles for a shared memory barrier
+////////////////////////////////////////////////////////////////////////////
+
+static volatile unsigned long long _UNCACHED barrier_status[MAX_CORES];
+
+void mp_barrier_shm(communicator_t* comm);
+
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for memory management in the communication SPM
@@ -181,11 +197,11 @@ void mp_init(void) __attribute__((constructor(120),used));
 
 /// \brief A function for returning the amount of data that the channel is
 /// alocating in the sending spm.
-size_t mp_send_alloc_size(mpd_t* mpd_ptr);
+//size_t mp_send_alloc_size(mpd_t* mpd_ptr);
 
 /// \brief A function for returning the amount of data that the channel is
 /// alocating in the receiving spm.
-size_t mp_recv_alloc_size(mpd_t* mpd_ptr);
+//size_t mp_recv_alloc_size(mpd_t* mpd_ptr);
 
 /// \brief Static memory allocation on the communication scratchpad.
 /// No mp_free function

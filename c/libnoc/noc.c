@@ -108,6 +108,14 @@ void noc_init(void) {
   //if (get_cpuid() == NOC_MASTER) puts("noc_done");
 }
 
+int noc_done(unsigned rcv_id) {
+  unsigned status = *(noc_interface.dma+(rcv_id<<1));
+  if ((status & NOC_VALID_BIT) != 0 && (status & NOC_DONE_BIT) == 0) {
+      return 0;
+  }
+  return 1;
+}
+
 // Start a NoC transfer
 // The addresses and the size are in double-words and relative to the
 // communication SPM
@@ -186,9 +194,41 @@ void noc_multisend_cs(coreset_t receivers, volatile void _SPM *dst[],
         noc_send(i, (volatile void _SPM *)((unsigned)dst[index]+offset), src, len);
 
       }
-      DEBUGGER("Transmission address: %x+%x at core %i\n",(unsigned)dst[index],offset,i);
+      //DEBUGGER("Transmission address: %x+%x at core %i\n",(unsigned)dst[index],offset,i);
       index++;
     }
   }
 }
+//void noc_multisend_cs(coreset_t receivers, volatile void _SPM *dst[],
+//                                unsigned offset, volatile void _SPM *src, unsigned len) {
+//  int index;
+//  int done;
+//  coreset_t sent;
+//  coreset_clearall(&sent);
+//  do {
+//    done = 1;
+//    index = 0;
+//    for(unsigned i = 0; i < CORESET_SIZE; i++) {
+//      if(coreset_contains(i,&receivers) != 0) {
+//        if(i != get_cpuid() && coreset_contains(i,&sent) == 0) {
+//          if(noc_nbsend(i, (volatile void _SPM *)((unsigned)dst[index]+offset), src, len)) {
+//            coreset_add(i,&sent);
+//            DEBUGGER("Transmission address: %x+%x at core %i\n",(unsigned)dst[index],offset,i);
+//          }
+//        }
+//        index++;
+//      }
+//    }
+//  } while(!done);
+//}
 
+void noc_wait_dma(coreset_t receivers) {
+  int index = 0;
+  for (unsigned i = 0; i < CORESET_SIZE; ++i) {
+    if (coreset_contains(i,&receivers)){
+      if (i != get_cpuid()) {
+        while(!noc_done(i));
+      }
+    }
+  } 
+}

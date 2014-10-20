@@ -180,6 +180,8 @@ void noc_multisend(unsigned cnt, unsigned rcv_id [], volatile void _SPM *dst [],
 void noc_multisend_cs(coreset_t receivers, volatile void _SPM *dst[],
                      unsigned offset, volatile void _SPM *src, unsigned len);
 
+void noc_wait_dma(coreset_t receivers);
+
 ////////////////////////////////////////////////////////////////////////////
 // Definitions for setting up a transfer
 ////////////////////////////////////////////////////////////////////////////

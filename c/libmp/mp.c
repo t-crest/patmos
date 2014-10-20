@@ -48,10 +48,10 @@
 void mp_init() {
   // Initializing the array of pointers to the beginning of the SPMs
   for (int i = 0; i < MAX_CORES; ++i) {
-    spm_alloc_array[i] = (volatile char* _UNCACHED) NOC_SPM_BASE;
+    spm_alloc_array[i] = (volatile unsigned* _UNCACHED) NOC_SPM_BASE;
   }
-  int _SPM * spm_zero = (int _SPM *) mp_alloc(NOC_MASTER,sizeof(int _SPM *));
-  *spm_zero = 0;
+  unsigned long long  _SPM * spm_zero = (unsigned long long _SPM *) mp_alloc(NOC_MASTER,sizeof(unsigned long long _SPM));
+  *spm_zero = BARRIER_INITIALIZED;
   return;
 }
 
@@ -180,6 +180,7 @@ int mp_communicator_init(communicator_t* comm, unsigned count,
 
   DEBUGGER("mp_communicator_init(): malloc size %lu\n",sizeof(void*)*count);
   
+  coreset_clearall(&comm->barrier_set);
   for (int i = 0; i < count; ++i) {
     coreset_add(member_ids[i],&comm->barrier_set);
     comm->addr[i] = (volatile void _SPM *) mp_alloc(member_ids[i],count*BARRIER_SIZE+msg_size+FLAG_SIZE);
@@ -187,21 +188,31 @@ int mp_communicator_init(communicator_t* comm, unsigned count,
 
     if (get_cpuid() == member_ids[i]) {
       for (int j = 0; j < count; ++j) {
-        *((volatile int _SPM *)((unsigned)comm->addr[i] + (j*BARRIER_SIZE))) = BARRIER_INITIALIZED;
+        *((volatile unsigned long long _SPM *)((unsigned)comm->addr[i] + (j*BARRIER_SIZE))) = BARRIER_INITIALIZED;
       }
-      *((volatile int _SPM *)((unsigned)comm->addr[i] + (count*BARRIER_SIZE) + msg_size)) = BARRIER_INITIALIZED;
+      *((volatile unsigned long long _SPM *)((unsigned)comm->addr[i] + (count*BARRIER_SIZE) + msg_size)) = FLAG_INVALID;
     } else {      
       for (int j = 0; j < count; ++j) {
         noc_send(member_ids[i],
                 (volatile int _SPM *)((unsigned)comm->addr[i] + (j*BARRIER_SIZE)),
                 NOC_SPM_BASE,
-                4);
+                BARRIER_SIZE);
       }
       noc_send(member_ids[i],
               (volatile int _SPM *)((unsigned)comm->addr[i] + (count*BARRIER_SIZE) + msg_size),
               NOC_SPM_BASE,
-              4);
+              BARRIER_SIZE);
     }  
+  }
+  //printf("mp_communicator_init(): { ");
+  //for (int j = 0; j < (count+1)*2; ++j) {
+  //  printf("%x, ",*((volatile int _SPM *)((unsigned)comm->addr[get_cpuid()] + j*4)));
+  //}
+  //printf("}\n");
+
+  // Only for testing the shared memory barrier;
+  for (int i = 0; i < MAX_CORES; ++i) {
+    barrier_status[i] = BARRIER_INITIALIZED;
   }
   
   return 1;
@@ -299,72 +310,224 @@ void mp_ack(mpd_t* mpd_ptr){
 
 
 void mp_barrier(communicator_t* comm){
-  DEBUG_CORECHECK(!coreset_contains(get_cpuid(),&comm->barrier_set));
+  //if(coreset_contains(get_cpuid(),&comm->barrier_set) == 0) {
+  //  if(get_cpuid() == 0) {
+  //    printf("mp_barrier(): Bad barrier call!!");
+  //  }
+  //}
+  //DEBUG_CORECHECK(coreset_contains(get_cpuid(),&comm->barrier_set) != 0);
   // Something bad happens if mp_barrier() is called by a core
   // that is not in the communicator.
   unsigned index = 0;
   for (unsigned i = 0; i < CORESET_SIZE; ++i) {
-    if(coreset_contains(i,&comm->barrier_set) && i < get_cpuid()) {
+    if(i >= get_cpuid()) {
+      break;
+    }
+    if(coreset_contains(i,&comm->barrier_set) != 0) {
       index++;
     }
   }
-  DEBUGGER("mp_barrier(): index %d\n",index);
-  volatile int _SPM * addr = (volatile int _SPM *)((unsigned)comm->addr[index] +
+  DEBUGGER("mp_barrier():\n\tIndex\t%d\n",index);
+  volatile BARRIER_T _SPM * addr = (volatile BARRIER_T _SPM *)((unsigned)comm->addr[index] +
                                index*BARRIER_SIZE);
-
-  *addr = BARRIER_REACHED;
+  unsigned phase;
+  switch(*addr){
+    case BARRIER_PHASE_0:
+      *addr = BARRIER_PHASE_1;
+      phase = 1;
+      break;
+    case BARRIER_PHASE_1:
+      *addr = BARRIER_PHASE_2;
+      phase = 2;
+      break;
+    case BARRIER_PHASE_2:
+      *addr = BARRIER_PHASE_3;
+      phase = 3;
+      break;
+    case BARRIER_PHASE_3:
+      *addr = BARRIER_PHASE_0;
+      phase = 0;
+      break;
+  }
+  unsigned local_val = (unsigned)addr + (phase & 1)*sizeof(unsigned);
+  DEBUGGER("\tBarrier phase\t%016llx\n\tPhase\t%d\n\tLocal val\t%08x@%08x\n",
+            *addr,
+            phase,
+            *(volatile unsigned _SPM *)local_val,
+            local_val);
   noc_multisend_cs(comm->barrier_set,comm->addr,index*BARRIER_SIZE,addr,BARRIER_SIZE);
-  int done;
-  coreset_t recv;
-  coreset_clearall(&recv);
-  do {
-    done = 1;
-    unsigned cpu_index = 0;
-    for (unsigned cpu_id = 0; cpu_id < CORESET_SIZE; ++cpu_id) {
-      if (coreset_contains(cpu_id,&comm->barrier_set) &&
-          !coreset_contains(cpu_id,&recv)) {
-        DEBUGGER("mp_barrier(): looking at cpuid %u at address %x\n",cpu_id,(unsigned)comm->addr[index] + cpu_index*BARRIER_SIZE);
-        if (*(volatile int _SPM *)((unsigned)comm->addr[index] + cpu_index*BARRIER_SIZE)
-              == BARRIER_REACHED) {
-          DEBUGGER("mp_barrier(): cpuid %u reached barrier\n",cpu_id);
-          coreset_add(cpu_id,&recv);
-        } else {
-          done = 0;
-        }
-        cpu_index++;
-      }
+  //unsigned cpu_index = 0;
+  for(unsigned cpu_index = 0; cpu_index < comm->count; cpu_index++) {
+    unsigned remote_val = (unsigned)comm->addr[index] + cpu_index*BARRIER_SIZE+ (phase & 1)*sizeof(unsigned);
+    DEBUGGER("\t--------\n\tCPUIDX\t%u\n\tRemote val\t%08x@%08x\n",
+              cpu_index,
+              *(volatile unsigned _SPM *)remote_val,
+              remote_val);
+    unsigned comp = *(volatile unsigned _SPM *)local_val;
+    while (!(*(volatile unsigned _SPM *)remote_val == comp)) {
     }
-  } while(!done);
-  for (int i = 0; i < comm->count; ++i) {
-    *((volatile int _SPM *)((unsigned)comm->addr[index] + (i*BARRIER_SIZE))) = BARRIER_INITIALIZED;
+    DEBUGGER("\tBarrier reached\n");
+    
+  }
+  return;
+}
+
+void mp_barrier_int(communicator_t* comm, unsigned index){
+  //if(coreset_contains(get_cpuid(),&comm->barrier_set) == 0) {
+  //  if(get_cpuid() == 0) {
+  //    printf("mp_barrier(): Bad barrier call!!");
+  //  }
+  //}
+  //DEBUG_CORECHECK(coreset_contains(get_cpuid(),&comm->barrier_set) != 0);
+  // Something bad happens if mp_barrier() is called by a core
+  // that is not in the communicator.
+//  DEBUGGER("mp_barrier():\n\tIndex\t%d\n",index);
+  volatile BARRIER_T _SPM * addr = (volatile BARRIER_T _SPM *)((unsigned)comm->addr[index] +
+                               index*BARRIER_SIZE);
+  unsigned phase;
+  switch(*addr){
+    case BARRIER_PHASE_0:
+      *addr = BARRIER_PHASE_1;
+      phase = 1;
+      break;
+    case BARRIER_PHASE_1:
+      *addr = BARRIER_PHASE_2;
+      phase = 2;
+      break;
+    case BARRIER_PHASE_2:
+      *addr = BARRIER_PHASE_3;
+      phase = 3;
+      break;
+    case BARRIER_PHASE_3:
+      *addr = BARRIER_PHASE_0;
+      phase = 0;
+      break;
+  }
+  unsigned local_val = (unsigned)addr + (phase & 1)*sizeof(unsigned);
+//  DEBUGGER("\tBarrier phase\t%016llx\n\tPhase\t%d\n\tLocal val\t%08x@%08x\n",
+//            *addr,
+//            phase,
+//            *(volatile unsigned _SPM *)local_val,
+//            local_val);
+  noc_multisend_cs(comm->barrier_set,comm->addr,index*BARRIER_SIZE,addr,BARRIER_SIZE);
+  //unsigned cpu_index = 0;
+  for(unsigned cpu_index = 0; cpu_index < comm->count; cpu_index++) {
+    unsigned remote_val = (unsigned)comm->addr[index] + cpu_index*BARRIER_SIZE+ (phase & 1)*sizeof(unsigned);
+//    DEBUGGER("\t--------\n\tCPUIDX\t%u\n\tRemote val\t%08x@%08x\n",
+//              cpu_index,
+//              *(volatile unsigned _SPM *)remote_val,
+//              remote_val);
+    unsigned comp = *(volatile unsigned _SPM *)local_val;
+    while (!(*(volatile unsigned _SPM *)remote_val == comp)) {
+    }
+//    DEBUGGER("\tBarrier reached\n");
+    
+  }
+  return;
+}
+
+void mp_barrier_shm(communicator_t* comm){
+  // Something bad happens if mp_barrier_shm() is called by a core
+  // that is not in the communicator.
+  unsigned index = 0;
+  for (unsigned i = 0; i < CORESET_SIZE; ++i) {
+    if(i >= get_cpuid()) {
+      break;
+    }
+    if(coreset_contains(i,&comm->barrier_set) != 0) {
+      index++;
+    }
+  }
+  
+  unsigned phase;
+  switch(barrier_status[index]){
+    case BARRIER_PHASE_0:
+      barrier_status[index] = BARRIER_PHASE_1;
+      phase = 1;
+      break;
+    case BARRIER_PHASE_1:
+      barrier_status[index] = BARRIER_PHASE_2;
+      phase = 2;
+      break;
+    case BARRIER_PHASE_2:
+      barrier_status[index] = BARRIER_PHASE_3;
+      phase = 3;
+      break;
+    case BARRIER_PHASE_3:
+      barrier_status[index] = BARRIER_PHASE_0;
+      phase = 0;
+      break;
+  }
+
+  unsigned *local_val = (unsigned*)((unsigned)&barrier_status[index] + (phase & 1)*sizeof(unsigned));
+  DEBUGGER("mp_barrier_shm():\n\tindex\t%d\n\tBarrier phase\t%016llx\n\tphase\t%d\n\tLocal val\t%08x@%08x\n",
+            index,
+            barrier_status[index],
+            phase,
+            *local_val,
+            (unsigned)local_val);
+  for(unsigned cpu_index = 0; cpu_index < comm->count; cpu_index++) {
+    volatile unsigned _UNCACHED *remote_val = (unsigned _UNCACHED*)((unsigned)&barrier_status[cpu_index] + (phase & 1)*sizeof(unsigned));
+    DEBUGGER("\t--------\n\tCPUIDX\t%u\n\tRemote val\t%08x@%08x\n",
+              cpu_index,
+              *remote_val,
+              (unsigned)remote_val);
+    unsigned comp = *local_val;
+    while (!(*remote_val == comp)) {
+    }
+    DEBUGGER("\tBarrier reached\n"); 
   }
   return;
 }
 
 
 void mp_broadcast(communicator_t* comm, coreid_t root) {
-  if (comm->msg_size == 0) {
-    DEBUGGER("mp_broadcast(): msg_size is 0;");
-    return;
+//  if (comm->msg_size == 0) {
+//    DEBUGGER("mp_broadcast(): msg_size is 0;");
+//    return;
+//  }
+  unsigned index = 0;
+  for (unsigned i = 0; i < CORESET_SIZE; ++i) {
+    if(i >= get_cpuid()) {
+      break;
+    }
+    if(coreset_contains(i,&comm->barrier_set) != 0) {
+      index++;
+    }
   }
-  mp_barrier(comm);
+  //*flag_addr = FLAG_INVALID;
+  mp_barrier_int(comm,index);
+  
+
+  volatile unsigned _SPM * flag_addr = (volatile unsigned _SPM*)(
+                                  (unsigned)comm->addr[index]
+                                           +comm->count*BARRIER_SIZE
+                                           +comm->msg_size);
+
+  //DEBUGGER("m\n");
+  DEBUGGER("mp_broadcast():\n\tindex\t%d\n",index);
+  //DEBUGGER("\tflag_addr\t%x\n",(unsigned)flag_addr);
+  
   if (get_cpuid() == root) {
+    *flag_addr = FLAG_VALID;
+    volatile unsigned _SPM * src_addr = (volatile unsigned _SPM*)(
+                                  (unsigned)comm->addr[index]
+                                           +comm->count*BARRIER_SIZE);
+//    DEBUGGER("\tsrc addr\t%08x\n\tflag val\t%08x\n",(unsigned)src_addr,(unsigned)(*flag_addr));
     noc_multisend_cs(comm->barrier_set,
                      comm->addr,
                      comm->count*BARRIER_SIZE,
-                     (volatile void _SPM*)((unsigned)comm->addr[root]+comm->count*BARRIER_SIZE),
-                     comm->msg_size);
+                     (volatile void _SPM *)src_addr,
+                     comm->msg_size+BARRIER_SIZE);
+    noc_wait_dma(comm->barrier_set);
   } else {
-    volatile int _SPM * flag_addr = (volatile int _SPM*)(
-                                    (unsigned)comm->addr[get_cpuid()]
-                                             +comm->count*BARRIER_SIZE
-                                             +comm->msg_size);
-    while((*flag_addr) != BARRIER_REACHED) {
+    
+    while(!(*flag_addr == FLAG_VALID)) {
       /* Spin */
+      DEBUGGER("\tflag value %08x\n",(unsigned)*flag_addr);
     }
-    *flag_addr = BARRIER_INITIALIZED;    
   }
-  mp_barrier(comm);
-
+  //mp_barrier_int(comm,index);
+  *flag_addr = FLAG_INVALID;
   return;
 }
