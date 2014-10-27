@@ -1,27 +1,14 @@
 #include <stdio.h>
 
 int main(int argc, char** argv) {
-    printf("Hello World: %d\n", argc);
-    int i = 0;
-    int j = 0;
 
-    i = i + 1;
-    printf("i=%d, j=%d\n", i, j);
-    
-    j = i + 1;
-    printf("i=%d, j=%d\n", i, j);
+    printf("Hello World!\n");
 
-    i = i + 1;
-    printf("i=%d, j=%d\n", i, j);
-    
-    j = i + 1;
-    printf("i=%d, j=%d\n", i, j);
+    int i = 3;
+    int j = 8;
+    int m = i * j;
 
-    i = i + 1;
-    printf("i=%d, j=%d\n", i, j);
-    
-    j = i + 1;
-    printf("i=%d, j=%d\n", i, j);
+    printf("The product of %d and %d is: %d\n", i, j, m);
 
     return 0;
 }
