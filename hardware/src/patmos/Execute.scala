@@ -118,23 +118,25 @@ class Execute() extends Module {
   val op = Vec.fill(2*PIPE_COUNT) { Bits(width = 32) }
 
   // precompute forwarding
-  when (io.ena) {
-    for (i <- 0 until 2*PIPE_COUNT) {
-      for (k <- 0 until PIPE_COUNT) {
-        fwMemReg(i)(k) := Bool(false)
-        when(io.decex.rsAddr(i) === io.memResult(k).addr && io.memResult(k).valid) {
-          fwMemReg(i)(k) := Bool(true)
-        }
-        fwExReg(i)(k) := Bool(false)
-        when(io.decex.rsAddr(i) === io.exResult(k).addr && io.exResult(k).valid) {
-          fwExReg(i)(k) := Bool(true)
-        }
+  for (i <- 0 until 2*PIPE_COUNT) {
+    for (k <- 0 until PIPE_COUNT) {
+      fwMemReg(i)(k) := Bool(false)
+      when(io.decex.rsAddr(i) === io.memResult(k).addr && io.memResult(k).valid) {
+        fwMemReg(i)(k) := Bool(true)
+      }
+      fwExReg(i)(k) := Bool(false)
+      when(io.decex.rsAddr(i) === io.exResult(k).addr && io.exResult(k).valid) {
+        fwExReg(i)(k) := Bool(true)
       }
     }
-    for (k <- 0 until PIPE_COUNT) {
-      memResultDataReg(k) := io.memResult(k).data
-      exResultDataReg(k) := io.exResult(k).data
-    }
+  }
+  when (!io.ena) {
+    fwExReg := fwExReg
+    fwMemReg := fwMemReg
+  }
+  when (io.ena) {
+    memResultDataReg := io.memResult.map(_.data)
+    exResultDataReg := io.exResult.map(_.data)
   }
   // forwarding multiplexers
   for (i <- 0 until 2*PIPE_COUNT) {
@@ -165,11 +167,6 @@ class Execute() extends Module {
     doExecute(i) := Mux(io.flush, Bool(false),
                         predReg(exReg.pred(i)(PRED_BITS-1, 0)) ^ exReg.pred(i)(PRED_BITS))
   }
-
-  // stack registers
-  val stackTopReg = Reg(init = UInt(0, DATA_WIDTH))
-  val stackSpillReg = Reg(init = UInt(0, DATA_WIDTH))
-  io.exdec.sp := stackTopReg
 
   // return information
   val retBaseReg = Reg(init = UInt(0, DATA_WIDTH))
@@ -233,6 +230,16 @@ class Execute() extends Module {
     }
   }
 
+  // interface to the stack cache
+  io.exsc.op := sc_OP_NONE
+  io.exsc.opData := UInt(0)
+  io.exsc.opOff := Mux(exReg.immOp(0), exReg.immVal(0), op(0))
+
+  // stack control instructions
+  when(!io.brflush && doExecute(0)) {
+    io.exsc.op := exReg.stackOp
+  }
+
   // dual-issue operations
   for (i <- 0 until PIPE_COUNT) {
 
@@ -240,35 +247,24 @@ class Execute() extends Module {
     val compResult = comp(exReg.aluOp(i).func, op(2*i), op(2*i+1))
 
     val bcpyPs = predReg(exReg.aluOp(i).func(PRED_BITS-1, 0)) ^ exReg.aluOp(i).func(PRED_BITS);
-    val bcpyResult = (op(2*i) & ~(UInt(1, width = DATA_WIDTH) << op(2*i+1))) | (bcpyPs << op(2*i+1))
+    val shiftedPs = (UInt(0, DATA_WIDTH-1) ## bcpyPs) << op(2*i+1)
+    val maskedOp = op(2*i) & ~(UInt(1, width = DATA_WIDTH) << op(2*i+1))
+    val bcpyResult = maskedOp | shiftedPs
 
     // predicate operations
     val ps1 = predReg(exReg.predOp(i).s1Addr(PRED_BITS-1,0)) ^ exReg.predOp(i).s1Addr(PRED_BITS)
     val ps2 = predReg(exReg.predOp(i).s2Addr(PRED_BITS-1,0)) ^ exReg.predOp(i).s2Addr(PRED_BITS)
     val predResult = pred(exReg.predOp(i).func, ps1, ps2)
 
-    when((exReg.aluOp(i).isCmp || exReg.aluOp(i).isPred) && doExecute(i) && io.ena) {
+    when((exReg.aluOp(i).isCmp || exReg.aluOp(i).isPred) && doExecute(i)) {
       predReg(exReg.predOp(i).dest) := Mux(exReg.aluOp(i).isCmp, compResult, predResult)
     }
     predReg(0) := Bool(true)
 
-    // stack register handling
-    when(exReg.aluOp(i).isSTC && doExecute(i)) {
-      io.exdec.sp := op(2*i+1).toUInt()
-      when (io.ena) {
-        stackTopReg := op(2*i+1).toUInt()
-      }
-    }
-
     // special registers
     when(exReg.aluOp(i).isMTS && doExecute(i)) {
-      switch(exReg.aluOp(i).func) {
-        is(SPEC_ST) {
-          io.exdec.sp := op(2*i).toUInt()
-        }
-      }
-    }
-    when(exReg.aluOp(i).isMTS && doExecute(i) && io.ena) {
+      io.exsc.opData := op(2*i).toUInt()
+
       switch(exReg.aluOp(i).func) {
         is(SPEC_FL) {
           predReg := op(2*i)(PRED_COUNT-1, 0).toBits()
@@ -281,10 +277,10 @@ class Execute() extends Module {
           mulHiReg := op(2*i).toUInt()
         }
         is(SPEC_ST) {
-          stackTopReg := op(2*i).toUInt()
+          io.exsc.op := sc_OP_SET_ST
         }
         is(SPEC_SS) {
-          stackSpillReg := op(2*i).toUInt()
+          io.exsc.op := sc_OP_SET_MT
         }
         is(SPEC_SRB) {
           retBaseReg := op(2*i).toUInt()
@@ -313,10 +309,10 @@ class Execute() extends Module {
         mfsResult := mulHiReg
       }
       is(SPEC_ST) {
-        mfsResult := stackTopReg
+        mfsResult := io.scex.stackTop
       }
       is(SPEC_SS) {
-        mfsResult := stackSpillReg
+        mfsResult := io.scex.memTop
       }
       is(SPEC_SRB) {
         mfsResult := retBaseReg
@@ -378,17 +374,15 @@ class Execute() extends Module {
 
   // return information
   val baseReg = Reg(init = UInt(4, DATA_WIDTH))
-  when(exReg.call && doExecute(0) && io.ena) {
+  when(exReg.call && doExecute(0)) {
     retBaseReg := baseReg
   }
   // the offset is saved when the call is already in the MEM statge
   saveRetOff := exReg.call && doExecute(0) && io.ena
   saveND := exReg.nonDelayed
-  when(saveRetOff) {
-    retOffReg := Cat(Mux(saveND, exReg.relPc, io.feex.pc), Bits("b00").toUInt)
-  }
+
   // exception return information
-  when(exReg.xcall && doExecute(0) && io.ena) {
+  when(exReg.xcall && doExecute(0)) {
     excBaseReg := baseReg
     excOffReg := Cat(exReg.relPc, Bits("b00").toUInt)
   }
@@ -414,4 +408,20 @@ class Execute() extends Module {
   io.exmcache.callRetBase := io.exmem.mem.callRetBase(31,2)
   io.exmcache.callRetAddr := io.exmem.mem.callRetAddr(31,2)
 
+  // suppress writes to special registers
+  when(!io.ena) {
+    predReg := predReg
+    mulLoReg := mulLoReg
+    mulHiReg := mulHiReg
+    retBaseReg := retBaseReg
+    retOffReg := retOffReg
+    excBaseReg := excBaseReg
+    excOffReg := excOffReg
+  }
+
+  // saveRetOff overrides io.ena for writes to retOffReg
+  when(saveRetOff) {
+    retOffReg := Cat(Mux(saveND, exReg.relPc, io.feex.pc), Bits("b00").toUInt)
+  }
 }
+

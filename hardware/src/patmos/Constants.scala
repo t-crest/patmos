@@ -57,6 +57,8 @@ object Constants {
   val METHOD_COUNT = util.Config.getConfig.MCache.blocks
 
   val DCACHE_SIZE = util.Config.getConfig.DCache.size
+  val DCACHE_ASSOC = util.Config.getConfig.DCache.assoc
+  val DCACHE_REPL = util.Config.getConfig.DCache.repl
   val SCACHE_SIZE = util.Config.getConfig.SCache.size
   // offset for switching from relative address to absolute address, default = 0
   val ICACHE_ADDR_OFFSET = 0 //log2Up(util.Config.getConfig.ExtMem.size)
@@ -194,4 +196,7 @@ object Constants {
 
   val STC_SENSR   = Bits("b0101")
   val STC_SSPILLR = Bits("b1101")
+
+  val SC_OP_BITS = 3
+  val sc_OP_NONE :: sc_OP_SET_ST :: sc_OP_SET_MT :: sc_OP_RES :: sc_OP_ENS :: sc_OP_FREE :: sc_OP_SPILL :: Nil = Enum(UInt(), 7)
 }

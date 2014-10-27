@@ -53,9 +53,9 @@ class Exceptions extends Module {
 
   val masterReg = Reg(next = io.ocp.M)
 
-  val status = Reg(init = Bits(0, width = DATA_WIDTH))
-  val mask   = Reg(init = Bits(0, width = DATA_WIDTH))
-  val source = Reg(init = Bits(0, width = DATA_WIDTH))
+  val statusReg = Reg(init = Bits(0, width = DATA_WIDTH))
+  val maskReg   = Reg(init = Bits(0, width = DATA_WIDTH))
+  val sourceReg = Reg(init = Bits(0, width = DATA_WIDTH))
 
   val vec    = Mem(UInt(width = DATA_WIDTH), EXC_COUNT)
   val vecDup = Mem(UInt(width = DATA_WIDTH), EXC_COUNT)
@@ -74,14 +74,18 @@ class Exceptions extends Module {
   io.ocp.S.Resp := OcpResp.NULL
   io.ocp.S.Data := Bits(0, width = DATA_WIDTH)
 
+  // No resetting by default
+  io.invalMCache := Bool(false)
+  io.invalDCache := Bool(false)
+
   // Handle OCP reads and writes
   when(masterReg.Cmd === OcpCmd.RD) {
     io.ocp.S.Resp := OcpResp.DVA
 
     switch(masterReg.Addr(EXC_ADDR_WIDTH-1, 2)) {
-      is(Bits("b000000")) { io.ocp.S.Data := status }
-      is(Bits("b000001")) { io.ocp.S.Data := mask }
-      is(Bits("b000011")) { io.ocp.S.Data := source }
+      is(Bits("b000000")) { io.ocp.S.Data := statusReg }
+      is(Bits("b000001")) { io.ocp.S.Data := maskReg }
+      is(Bits("b000011")) { io.ocp.S.Data := sourceReg }
       is(Bits("b000010")) { io.ocp.S.Data := intrPendReg.toBits }
     }
     when(masterReg.Addr(EXC_ADDR_WIDTH-1) === Bits("b1")) {
@@ -92,9 +96,9 @@ class Exceptions extends Module {
   when(masterReg.Cmd === OcpCmd.WR) {
     io.ocp.S.Resp := OcpResp.DVA
     switch(masterReg.Addr(EXC_ADDR_WIDTH-1, 2)) {
-      is(Bits("b000000")) { status := masterReg.Data }
-      is(Bits("b000001")) { mask := masterReg.Data }
-      is(Bits("b000011")) { source := masterReg.Data }
+      is(Bits("b000000")) { statusReg := masterReg.Data }
+      is(Bits("b000001")) { maskReg := masterReg.Data }
+      is(Bits("b000011")) { sourceReg := masterReg.Data }
       is(Bits("b000010")) {
         for(i <- 0 until EXC_COUNT) {
           intrPend(i) := intrPendReg(i) & masterReg.Data(i)
@@ -103,6 +107,8 @@ class Exceptions extends Module {
       is(Bits("b000100")) { // Go to sleep
                             io.ocp.S.Resp := OcpResp.NULL
                             sleepReg := Bool(true) }
+      is(Bits("b000101")) { io.invalDCache := masterReg.Data(0)
+                            io.invalMCache := masterReg.Data(1) }
     }
     when(masterReg.Addr(EXC_ADDR_WIDTH-1) === Bits("b1")) {
       vec(masterReg.Addr(EXC_ADDR_WIDTH-2, 2)) := masterReg.Data.toUInt
@@ -114,26 +120,32 @@ class Exceptions extends Module {
   when(io.memexc.call) {
     excPend(io.memexc.src) := Bool(false)
     intrPend(io.memexc.src) := Bool(false)
-    source := io.memexc.src
-    status := status << UInt(1)
+    when(io.ena) {
+      sourceReg := io.memexc.src
+      statusReg := statusReg << UInt(1)
+    }
   }
   // Return from exception
   when(io.memexc.ret) {
-    status := status >> UInt(1)
+    when(io.ena) {
+      statusReg := statusReg >> UInt(1)
+    }
   }
 
   // Latch interrupt pins
   for (i <- 0 until INTR_COUNT) {
-    when(io.intrs(i)) {
+    when(Reg(next = io.intrs(i))) {
       intrPend(16+i) := Bool(true)
     }
   }
 
   // Trigger internal exceptions
-  val excAddr = Reg(init = UInt(0, width = PC_SIZE))
+  val excAddrReg = Reg(init = UInt(0, width = PC_SIZE))
   when(io.memexc.exc) {
     excPend(io.memexc.src) := Bool(true)
-    excAddr := io.memexc.excAddr
+    when(io.ena) {
+      excAddrReg := io.memexc.excAddr
+    }
   }
 
   // Latch new pending flags
@@ -145,7 +157,7 @@ class Exceptions extends Module {
   val srcReg = Reg(next = src)
   src := Bits(0)
   for (i <- (0 until EXC_COUNT).reverse) {
-    when(intrPend(i) && (mask(i) === Bits(1))) { src := Bits(i) }
+    when(intrPend(i) && (maskReg(i) === Bits(1))) { src := Bits(i) }
   }
   for (i <- (0 until EXC_COUNT).reverse) {
     when(excPend(i)) { src := Bits(i) }
@@ -153,17 +165,17 @@ class Exceptions extends Module {
 
   // Create signals to decode stage
   val exc = Reg(next = excPend.toBits != Bits(0))
-  val intr = Reg(next = (intrPend.toBits & mask) != Bits(0))
+  val intr = Reg(next = (intrPend.toBits & maskReg) != Bits(0))
 
   io.excdec.exc  := exc
-  io.excdec.intr := intr && status(0) === Bits(1)
+  io.excdec.intr := intr && statusReg(0) === Bits(1)
   io.excdec.addr := vecDup(srcReg)
   io.excdec.src  := srcReg
 
-  io.excdec.excAddr := excAddr
+  io.excdec.excAddr := excAddrReg
 
   // Wake up
-  when (sleepReg && (exc === Bits(1) || (intr && status(0) === Bits(1)))) {
+  when (sleepReg && (exc === Bits(1) || (intr && statusReg(0) === Bits(1)))) {
     io.ocp.S.Resp := OcpResp.DVA
     sleepReg := Bool(false)
   }

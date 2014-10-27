@@ -210,11 +210,7 @@ class Memory() extends Module {
   }
 
   io.memwb.pc := memReg.pc
-  for (i <- 0 until PIPE_COUNT) {
-    io.memwb.rd(i).addr := memReg.rd(i).addr
-    io.memwb.rd(i).valid := memReg.rd(i).valid
-    io.memwb.rd(i).data := memReg.rd(i).data
-  }
+  io.memwb.rd := memReg.rd
   // Fill in data from loads
   io.memwb.rd(0).data := Mux(memReg.mem.load, dout, memReg.rd(0).data)
 
@@ -233,8 +229,8 @@ class Memory() extends Module {
   io.exResult := io.exmem.rd
 
   // acknowledge exception
-  io.exc.call := memReg.mem.xcall && enable && io.ena_in
-  io.exc.ret := memReg.mem.xret && enable && io.ena_in
+  io.exc.call := memReg.mem.xcall
+  io.exc.ret := memReg.mem.xret
   // trigger exception
   io.exc.exc := memReg.mem.trap || memReg.mem.illOp || illMem
 

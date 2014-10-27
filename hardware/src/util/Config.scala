@@ -71,7 +71,7 @@ abstract class Config {
   val DSPM: SPMConfig
   val BootSPM: SPMConfig
 
-  case class ExtMemConfig(size: Long, sram: DeviceConfig)
+  case class ExtMemConfig(size: Long, ram: DeviceConfig)
   val ExtMem: ExtMemConfig
 
   case class DeviceConfig(name : String, params : Map[String, String], offset : Int, intrs : List[Int])
@@ -240,8 +240,8 @@ object Config {
 
       // Make sure static state of devices is initialized
       for (d <- Devs) { initDevice(d) }
-      if(ExtMem.sram.name != ""){
-        initDevice(ExtMem.sram)
+      if(ExtMem.ram.name != ""){
+        initDevice(ExtMem.ram)
       }
 
       private def devFromXML(node: scala.xml.Node, devs: scala.xml.NodeSeq,
@@ -339,14 +339,19 @@ object Config {
         for (m <- clazz.getMethods) {
           if (m.getName != methName && !m.getName.endsWith("_$eq")) {
 
-            val fileName = name+"$Pins.class"
-            val classStream = new DataInputStream(clazz.getResourceAsStream(fileName))
-            val jClass = new FJBGContext().JClass(classStream)
+            val isInherited = clazz.getInterfaces().foldLeft(false)(
+              _ || _.getMethods.map(_.getName).contains(m.getName))
 
-            ChiselError.error("Pins trait for IO device "+name+
-                              " cannot have member "+m.getName+
-                              ", only member "+methName+" allowed"+
-                              " (file "+jClass.getSourceFileName+")", null)
+            if (!isInherited) {
+              val fileName = name+"$Pins.class"
+              val classStream = new DataInputStream(clazz.getResourceAsStream(fileName))
+              val jClass = new FJBGContext().JClass(classStream)
+
+              ChiselError.error("Pins trait for IO device "+name+
+                                " cannot declare non-inherited member "+m.getName+
+                                ", only member "+methName+" allowed"+
+                                " (file "+jClass.getSourceFileName+")")
+            }
           }
         }
         val meth = clazz.getMethods.find(_.getName == methName)
@@ -378,14 +383,19 @@ object Config {
       for (m <- clazz.getMethods) {
         if (m.getName != methName && !m.getName.endsWith("_$eq")) {
 
-          val fileName = name+"$Intrs.class"
-          val classStream = new DataInputStream(clazz.getResourceAsStream(fileName))
-          val jClass = new FJBGContext().JClass(classStream)
+          val isInherited = clazz.getInterfaces().foldLeft(false)(
+            _ || _.getMethods.map(_.getName).contains(m.getName))
 
-          ChiselError.error("Intrs trait for IO device "+name+
-                            " cannot have member "+m.getName+
-                            ", only member "+methName+" allowed"+
-                            " (file "+jClass.getSourceFileName+")", null)
+          if (!isInherited) {
+            val fileName = name+"$Intrs.class"
+            val classStream = new DataInputStream(clazz.getResourceAsStream(fileName))
+            val jClass = new FJBGContext().JClass(classStream)
+
+            ChiselError.error("Intrs trait for IO device "+name+
+                              " cannot declare non-inherited member "+m.getName+
+                              ", only member "+methName+" allowed"+
+                              " (file "+jClass.getSourceFileName+")", null)
+          }
         }
       }
       val meth = clazz.getMethods.find(_.getName == methName)
@@ -431,6 +441,6 @@ object Config {
   }
 
   def getPatmosIO() : PatmosIO = {
-    genTraitedClass[PatmosIO]("PatmosIO", conf.ExtMem.sram.name :: conf.Devs.map(_.name))
+    genTraitedClass[PatmosIO]("PatmosIO", conf.ExtMem.ram.name :: conf.Devs.map(_.name))
   }
 }

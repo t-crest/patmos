@@ -37,14 +37,13 @@
  *
  */
 
-#include <stdio.h>
 
 #include <machine/patmos.h>
 #include <machine/spm.h>
 
-#include "cmpboot.h"
-#include "patio.h"
+#include "bootloader/cmpboot.h"
 #include "noc.h"
+#include "coreset.h"
 
 // Structure to model the network interface
 static struct network_interface
@@ -58,8 +57,8 @@ static struct network_interface
 
 // Configure network interface according to initialization information
 void noc_configure(void) {
-  int row_size = NOC_TIMESLOTS > NOC_DMAS ? NOC_TIMESLOTS : NOC_DMAS;
-  int core_idx = CORE_ID * NOC_TABLES * row_size;
+  unsigned row_size = NOC_TIMESLOTS > NOC_DMAS ? NOC_TIMESLOTS : NOC_DMAS;
+  unsigned core_idx = get_cpuid() * NOC_TABLES * row_size;
   for (unsigned i = 0; i < NOC_TIMESLOTS; ++i) {
     *(noc_interface.st+i) = noc_init_array[core_idx + i];
   }
@@ -71,14 +70,15 @@ void noc_configure(void) {
 // Synchronize start-up
 static void noc_sync(void) {
 
-  if (CORE_ID == NOC_MASTER) {
+  if (get_cpuid() == NOC_MASTER) {
     // Wait until all slaves have configured their network interface
     int done = 0;
     do {
       done = 1;
       for (unsigned i = 0; i < MAX_CORES; i++) {
         if (boot_info->slave[i].status != STATUS_NULL &&
-            boot_info->slave[i].status != STATUS_INITDONE) {
+            boot_info->slave[i].status != STATUS_INITDONE && 
+            i != NOC_MASTER) {
           done = 0;
         }
       }
@@ -91,7 +91,7 @@ static void noc_sync(void) {
 
   } else {
     // Notify master that network interface is configured
-    boot_info->slave[CORE_ID].status = STATUS_INITDONE;
+    boot_info->slave[get_cpuid()].status = STATUS_INITDONE;
     // Wait until master has started the network
     while (boot_info->master.status != STATUS_INITDONE) {
       /* spin */
@@ -101,20 +101,20 @@ static void noc_sync(void) {
 
 // Initialize the NoC
 void noc_init(void) {
-  /* if (CORE_ID == NOC_MASTER) puts("noc_configure"); */
+  //if (get_cpuid() == NOC_MASTER) puts("noc_configure");
   noc_configure();
-  /* if (CORE_ID == NOC_MASTER) puts("noc_sync"); */
+  //if (get_cpuid() == NOC_MASTER) puts("noc_sync");
   noc_sync();
-  /* if (CORE_ID == NOC_MASTER) puts("noc_done"); */
+  //if (get_cpuid() == NOC_MASTER) puts("noc_done");
 }
 
 // Start a NoC transfer
 // The addresses and the size are in double-words and relative to the
 // communication SPM
 int noc_dma(unsigned rcv_id,
-             unsigned short write_ptr,
-             unsigned short read_ptr,
-             unsigned short size) {
+            unsigned short write_ptr,
+            unsigned short read_ptr,
+            unsigned short size) {
 
     // Ony send if previous transfer is done
     unsigned status = *(noc_interface.dma+(rcv_id<<1));
@@ -133,12 +133,44 @@ int noc_dma(unsigned rcv_id,
 // Convert from byte address or size to double-word address or size
 #define DW(X) (((X)+7)/8)
 
-// Transfer data via the NoC
+// Attempt to transfer data via the NoC
 // The addresses and the size are in bytes
-void noc_send(int dst_id, volatile void _SPM *dst,
-             volatile void _SPM *src, size_t len) {
+int noc_nbsend(unsigned rcv_id, volatile void _SPM *dst,
+               volatile void _SPM *src, size_t len) {
 
   unsigned wp = (char *)dst - (char *)NOC_SPM_BASE;
   unsigned rp = (char *)src - (char *)NOC_SPM_BASE;
-  while(!noc_dma(dst_id, DW(wp), DW(rp), DW(len)));
+  return noc_dma(rcv_id, DW(wp), DW(rp), DW(len));
 }
+
+// Transfer data via the NoC
+// The addresses and the size are in bytes
+void noc_send(unsigned rcv_id, volatile void _SPM *dst,
+              volatile void _SPM *src, size_t len) {
+
+  while(!noc_nbsend(rcv_id, dst, src, len));
+}
+
+// Multicast transfer of data via the NoC
+// The addresses and the size are in bytes
+void noc_multisend(unsigned cnt, unsigned rcv_id [], volatile void _SPM *dst [],
+                   volatile void _SPM *src, size_t len) {
+
+  int done;
+  coreset_t sent;
+  coreset_clearall(&sent);
+  do {
+    done = 1;
+    for (unsigned i = 0; i < cnt; i++) {
+      if (!coreset_contains(rcv_id[i], &sent)) {
+        if (noc_nbsend(rcv_id[i], dst[i], src, len)) {
+          coreset_add(rcv_id[i], &sent);
+        } else {
+          done = 0;
+        }
+      }
+    }
+  } while(!done);
+}
+
+

@@ -48,7 +48,6 @@ public class Main {
             try {
                 while (true) {
                     outStream.write(hostInStream.read());
-                    Thread.sleep(1); // slow down for slow apps
                 }
             } catch (Exception exc) {
                 System.err.println(exc);
@@ -187,9 +186,11 @@ public class Main {
                     } else {
                         host_out_stream.write('\0');
                         host_out_stream.write(c);
+                        host_out_stream.flush();
                     }
                 } else {
                     host_out_stream.write(c);
+                    host_out_stream.flush();
                 }
             }
         }

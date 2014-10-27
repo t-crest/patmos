@@ -5,7 +5,7 @@ Patmos is a time-predictable VLIW processor.
 Patmos is the processor for the T-CREST project.
 See also: http://www.t-crest.org/ and http://patmos.compute.dtu.dk/
 
-The Patmos [Handbook]
+The Patmos [Reference Handbook]
 (http://patmos.compute.dtu.dk/patmos_handbook.pdf)
 is work in progress, but contains build instructions in Section 5.
 
@@ -21,7 +21,14 @@ installed on a Ubuntu Linux:
 
     sudo apt-get install openjdk-7-jdk git cmake make g++ texinfo flex bison \
       subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
-      ruby1.9.1-dev python zlib1g-dev gtkwave gtkterm
+      ruby1.9.1-dev python zlib1g-dev gtkwave gtkterm scala
+
+Install sbt with:
+
+    wget http://dl.bintray.com/sbt/debian/sbt-0.13.2.deb
+    sudo dpkg -i sbt-0.13.2.deb
+    sudo apt-get update
+    sudo apt-get install sbt
 
 We assume that the T-CREST project will live in $HOME/t-crest.
 Patmos and the compiler can be checked out from GitHub and are built as follows:
@@ -39,7 +46,7 @@ build.sh will checkout several other repositories (the compiler, library,
 the Patmos source, and benchmarks) and
 build the compiler, the Patmos simulator, and the test benches.
 Therefore, take a cup of coffee and find some nice reading
-(e.g., the [Patmos Handbook] (http://patmos.compute.dtu.dk/patmos_handbook.pdf)).
+(e.g., the [Patmos Reference Handbook] (http://patmos.compute.dtu.dk/patmos_handbook.pdf)).
 After building the compiler, add the path
 to the compiler executables into your .profile:
 
@@ -63,4 +70,4 @@ and run with the simulator as follows:
 
 However, this innocent examples is quiet challenging for an embedded system.
 For further details and how to build Patmos for an FPGA see:
-[Patmos Handbook] (http://patmos.compute.dtu.dk/patmos_handbook.pdf).
+[Patmos Reference Handbook] (http://patmos.compute.dtu.dk/patmos_handbook.pdf).

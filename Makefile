@@ -19,6 +19,9 @@ APP?=hello_puts
 #BLASTER_TYPE=Arrow-USB-Blaster
 BLASTER_TYPE?=USB-Blaster
 
+# File that contains NoC initialization data
+NOCINIT?=nocinit.c
+
 # Path delimiter for Wdoz and others
 ifeq ($(WINDIR),)
 	S=:
@@ -26,7 +29,12 @@ else
 	S=\;
 endif
 
-# The Quartus project
+# The FPGA vendor (Altera, Xilinx)
+#VENDOR?=Xilinx
+VENDOR?=Altera
+
+# The Quartus/ISE project
+#BOARD=ml605oc
 #BOARD=bemicro
 #BOARD?=altde2-70
 BOARD?=altde2-115
@@ -78,6 +86,8 @@ scripttools:
 	make -C tools/scripts BUILDDIR=$(SCRIPTSBUILDDIR) \
 		PATMOS_HOME=$(CURDIR) COM_PORT=$(COM_PORT) all
 	-mkdir -p $(INSTALLDIR)/bin
+	cp $(SCRIPTSBUILDDIR)/config_altera $(INSTALLDIR)/bin
+	cp $(SCRIPTSBUILDDIR)/config_xilinx $(INSTALLDIR)/bin
 	cp $(SCRIPTSBUILDDIR)/patserdow $(INSTALLDIR)/bin
 	cp $(SCRIPTSBUILDDIR)/patex $(INSTALLDIR)/bin
 
@@ -115,12 +125,12 @@ asm-% $(BUILDDIR)/%.bin $(BUILDDIR)/%.dat: asm/%.s
 bootcomp: bin-$(BOOTAPP)
 
 # Convert elf file to binary
-bin-% $(BUILDDIR)/%.bin $(BUILDDIR)/%.dat: $(BUILDDIR)/%.elf
+bin-% $(BUILDDIR)/%.bin $(BUILDDIR)/%.dat: $(BUILDDIR)/%.elf elf2bin
 	$(INSTALLDIR)/bin/elf2bin $< $(BUILDDIR)/$*.bin $(BUILDDIR)/$*.dat
 
 # Convert elf file to flat memory image
 img: img-$(APP)
-img-% $(BUILDDIR)/%.img: $(BUILDDIR)/%.elf
+img-% $(BUILDDIR)/%.img: $(BUILDDIR)/%.elf elf2bin
 	$(INSTALLDIR)/bin/elf2bin -f $< $(BUILDDIR)/$*.img
 
 # Convert binary memory image to decimal representation
@@ -133,7 +143,7 @@ comp: comp-$(APP)
 
 comp-% $(BUILDDIR)/%.elf: .FORCE
 	-mkdir -p $(dir $@)
-	$(MAKE) -C c BUILDDIR=$(BUILDDIR) APP=$* compile
+	$(MAKE) -C c BUILDDIR=$(BUILDDIR) NOCINIT=$(NOCINIT) APP=$* compile
 
 .PRECIOUS: $(BUILDDIR)/%.elf
 
@@ -163,33 +173,27 @@ patmos: gen synth config
 
 # configure the FPGA
 config:
-ifeq ($(XFPGA),true)
-	make config_xilinx
+ifeq ($(VENDOR),Xilinx)
+	$(INSTALLDIR)/bin/config_xilinx hardware/ise/$(BOARD)/patmos_top.bit
 else
-	make config_byteblaster
+	$(INSTALLDIR)/bin/config_altera -b $(BLASTER_TYPE) hardware/quartus/$(BOARD)/patmos.sof
 endif
 
 gen:
 	$(MAKE) -C hardware verilog BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
 
-synth: csynth
-
-csynth:
-	$(MAKE) -C hardware qsyn BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
-
-config_byteblaster:
-	quartus_pgm -c $(BLASTER_TYPE) -m JTAG hardware/quartus/$(BOARD)/patmos.cdf
+synth:
+ifeq ($(VENDOR),Xilinx)
+	$(MAKE) -C hardware synth_ise BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
+else
+	$(MAKE) -C hardware synth_quartus BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
+endif
 
 download: $(BUILDDIR)/$(APP).elf
 	$(INSTALLDIR)/bin/patserdow -v $(COM_PORT) $<
 
 fpgaexec: $(BUILDDIR)/$(APP).elf
 	$(INSTALLDIR)/bin/patserdow $(COM_PORT) $<
-
-# TODO: no Xilinx Makefiles available yet
-config_xilinx:
-	echo "No Xilinx Makefile"
-#	$(MAKE) -C xilinx/$(XPROJ) config
 
 # cleanup
 CLEANEXTENSIONS=rbf rpt sof pin summary ttf qdf dat wlf done qws

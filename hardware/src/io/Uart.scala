@@ -49,13 +49,15 @@ import ocp._
 
 object Uart extends DeviceObject {
   var baudRate = -1
+  var fifoDepth = -1
 
   def init(params: Map[String, String]) = {
-    baudRate = getPosIntParam(params, "baud_rate")
+    baudRate = getPosIntParam(params, "baudRate")
+    fifoDepth = getPosIntParam(params, "fifoDepth")
   }
 
   def create(params: Map[String, String]) : Uart = {
-    Module(new Uart(CLOCK_FREQ, baudRate))
+    Module(new Uart(CLOCK_FREQ, baudRate, fifoDepth))
   }
 
   trait Pins {
@@ -66,7 +68,7 @@ object Uart extends DeviceObject {
   }
 }
 
-class Uart(clk_freq: Int, baud_rate: Int) extends CoreDevice() {
+class Uart(clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends CoreDevice() {
 
   override val io = new CoreDeviceIO() with Uart.Pins
 
@@ -76,11 +78,14 @@ class Uart(clk_freq: Int, baud_rate: Int) extends CoreDevice() {
 
     val tx_idle :: tx_send :: Nil  = Enum(UInt(), 2)
     val tx_state            = Reg(init = tx_idle)
-    val tx_empty            = Reg(init = UInt(1, 1))
-    val tx_data             = Reg(init = Bits(0, 8))
     val tx_buff             = Reg(init = Bits(0, 10))
     val tx_reg              = Reg(init = Bits(1, 1))
     val tx_counter          = Reg(init = UInt(0, 4))
+
+    val txQueue = Module(new Queue(Bits(width = 8), fifoDepth))
+    txQueue.io.enq.bits     := io.ocp.M.Data(7, 0)
+    txQueue.io.enq.valid    := Bool(false)
+    txQueue.io.deq.ready    := Bool(false)
 
     val rxd_reg0            = Reg(init = Bits(1, 1))
     val rxd_reg1            = Reg(init = Bits(1, 1))
@@ -90,12 +95,15 @@ class Uart(clk_freq: Int, baud_rate: Int) extends CoreDevice() {
     val rx_baud_tick        = Reg(init = UInt(0, 1))
     val rx_enable           = Reg(init = Bool(false))
 
-    val rx_data             = Reg(init = Bits(0, 8))
     val rx_buff             = Reg(init = Bits(0, 8))
-    val rx_full             = Reg(init = UInt(0, 1))
     val rx_counter          = Reg(init = UInt(0, 3))
     val rx_idle  :: rx_start :: rx_receive_data :: rx_stop_bit :: Nil  = Enum(UInt(), 4)
     val rx_state            = Reg(init = rx_idle)
+
+    val rxQueue = Module(new Queue(Bits(width = 8), fifoDepth))
+    rxQueue.io.enq.bits     := rx_buff
+    rxQueue.io.enq.valid    := Bool(false)
+    rxQueue.io.deq.ready    := Bool(false)
 
     // Default response and data
     val respReg = Reg(init = OcpResp.NULL)
@@ -103,20 +111,20 @@ class Uart(clk_freq: Int, baud_rate: Int) extends CoreDevice() {
 
     val rdDataReg = Reg(init = Bits(0, width = 8))
     rdDataReg := Mux(io.ocp.M.Addr(2) === Bits(0),
-                     Cat(Bits(0, width = 6), rx_full, tx_empty),
-                     rx_data)
+                     Cat(Bits(0, width = 6), rxQueue.io.deq.valid, txQueue.io.enq.ready),
+                     rxQueue.io.deq.bits)
 
     // Write to UART
     when (io.ocp.M.Cmd === OcpCmd.WR) {
         respReg := OcpResp.DVA
-        tx_data := io.ocp.M.Data(7, 0)
-        tx_empty := UInt(0)
+        txQueue.io.enq.bits := io.ocp.M.Data(7, 0)
+        txQueue.io.enq.valid := Bool(true)
     }
 
     // Read data
     when(io.ocp.M.Cmd === OcpCmd.RD) {
         respReg := OcpResp.DVA
-        rx_full := Mux(io.ocp.M.Addr === Bits(0), rx_full, UInt(0))
+        rxQueue.io.deq.ready := io.ocp.M.Addr(2) != Bits(0)
     }
 
     // Connections to master
@@ -136,10 +144,10 @@ class Uart(clk_freq: Int, baud_rate: Int) extends CoreDevice() {
     // Send data
 
     when (tx_state === tx_idle) {
-        when (tx_empty === UInt(0)) {
-          tx_empty          := UInt(1)
-          tx_buff           := Cat(Bits(1), tx_data, Bits(0))
-          tx_state          := tx_send
+        when (txQueue.io.deq.valid) {
+          txQueue.io.deq.ready := Bool(true)
+          tx_buff              := Cat(Bits(1), txQueue.io.deq.bits, Bits(0))
+          tx_state             := tx_send
         }
     }
 
@@ -150,11 +158,11 @@ class Uart(clk_freq: Int, baud_rate: Int) extends CoreDevice() {
             tx_counter      := Mux(tx_counter === UInt(10), UInt(0), tx_counter + UInt(1))
 
             when (tx_counter === UInt(10)) {
-              when (tx_empty === UInt(0)) {
-                tx_empty        := UInt(1)
-                tx_buff         := Cat(Bits(1), tx_data)
-                tx_reg          := UInt(0)
-                tx_counter      := UInt(1)
+              when (txQueue.io.deq.valid) {
+                txQueue.io.deq.ready := Bool(true)
+                tx_buff              := Cat(Bits(1), txQueue.io.deq.bits)
+                tx_reg               := UInt(0)
+                tx_counter           := UInt(1)
               }
               .otherwise {
                 tx_reg          := UInt(1)
@@ -222,8 +230,8 @@ class Uart(clk_freq: Int, baud_rate: Int) extends CoreDevice() {
             when (rxd_reg2 === UInt(1)) {
                 rx_state        := rx_idle
                 rx_enable       := Bool(false)
-                rx_data         := rx_buff
-                rx_full         := UInt(1)
+                rxQueue.io.enq.bits  := rx_buff
+                rxQueue.io.enq.valid := Bool(true)
             }
             .otherwise{
                 rx_state        := rx_idle

@@ -9,21 +9,22 @@
 */
 
 #include <machine/spm.h>
+#include <stdio.h>
 
 int main() {
 
 	volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0000900;
-	volatile _SPM int *uart_ptr = (volatile _SPM int *) 0xF0000804;
 	int i, j;
 
 	for (;;) {
-		*uart_ptr = '1';
+		putchar('1');
+		fflush(stdout);
 		for (i=2000; i!=0; --i)
 			for (j=2000; j!=0; --j)
 				*led_ptr = 1;
 
-
-		*uart_ptr = '0';
+		putchar('0');
+		fflush(stdout);
 		for (i=2000; i!=0; --i)
 			for (j=2000; j!=0; --j)
 				*led_ptr = 0;

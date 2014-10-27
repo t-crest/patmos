@@ -18,7 +18,13 @@ project(patmos)
 
 cmake_minimum_required(VERSION 2.8)
 
-set(CMAKE_CXX_FLAGS "-O2 -g -ftemplate-depth-1024")
+# Build release with debug by default
+if (NOT CMAKE_BUILD_TYPE)
+  message(STATUS "No build type selected, defaulting to RelWithDebInfo")
+  set(CMAKE_BUILD_TYPE "RelWithDebInfo")
+else()
+  message(STATUS "Build type set to: ${CMAKE_BUILD_TYPE}")
+endif()
 
 # Find boost library
 include(FindBoost)
@@ -37,6 +43,9 @@ if (NOT ELF_INCLUDE_DIRS)
 endif()
 
 include_directories(include ${Boost_INCLUDE_DIRS} ${ELF_INCLUDE_DIRS})
+
+# make sure the boost templates compile
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth-1024")
 
 # enable testing using ctest
 enable_testing()

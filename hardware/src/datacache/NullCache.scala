@@ -49,6 +49,7 @@ class NullCache() extends Module {
   val io = new Bundle {
     val master = new OcpCoreSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
     val slave = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+    val invalidate = Bool(INPUT)
   }
 
   val burstAddrBits = log2Up(BURST_LENGTH)
@@ -83,10 +84,10 @@ class NullCache() extends Module {
 
   // Wait for response
   when(stateReg === read) {
+    when(burstCntReg === posReg) {
+      slaveReg := io.slave.S
+    }
     when(io.slave.S.Resp === OcpResp.DVA) {
-      when(burstCntReg === posReg) {
-        slaveReg := io.slave.S
-      }
       when(burstCntReg === UInt(BURST_LENGTH-1)) {
         stateReg := readResp
       }

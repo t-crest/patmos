@@ -37,6 +37,12 @@
  *
  */
 
+/*
+ * Switching between different arbiters in Aegean:
+ * Change 'Arbiter' in aegeanGen.py and in aegeanCode.py to 'TdmArbiterWrapper'.
+ * Three places all together.
+ */
+
 package ocp
 
 import Chisel._

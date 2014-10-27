@@ -89,9 +89,7 @@ class Decode() extends Module {
   }
 
   val decoded = Vec.fill(PIPE_COUNT) { Bool() }
-  for (i <- 0 until PIPE_COUNT) {
-    decoded := Bool(false)
-  }
+  decoded.map(_ := Bool(false))
 
   // Decoding of dual-issue operations
   val dual = decReg.instr_a(INSTR_WIDTH - 1) && decReg.instr_a(26, 22) != OPCODE_ALUL;
@@ -104,14 +102,6 @@ class Decode() extends Module {
     val immVal = Bits()
     // Default value for immediates
     immVal := Cat(Bits(0), instr(11, 0))
-
-    io.decexsc.spill := Bits(0)
-    io.decexsc.fill := Bits(0)
-    io.decexsc.free := Bits(0)
-    io.decexsc.nSpill := SInt(1)
-    io.decexsc.nFill := SInt(1)
-    io.decexsc.sp := UInt(0)
-    io.memdecsc.mTop := UInt(0)
 
    // ALU register
     io.decex.aluOp(i).func := instr(3, 0)
@@ -208,7 +198,6 @@ class Decode() extends Module {
   val isStack = Bool()
 
   val isSTC = Bool()
-  val stcVal = Bits(width = DATA_WIDTH)
   val stcImm = Cat(Bits(0), instr(17, 0), Bits("b00")).toUInt()
 
   // Long immediates set this
@@ -218,7 +207,6 @@ class Decode() extends Module {
   isMem := Bool(false)
   isStack := Bool(false)
   isSTC := Bool(false)
-  stcVal := io.exdec.sp
 
   // Everything except calls uses the default
   dest := instr(21, 17)
@@ -232,47 +220,45 @@ class Decode() extends Module {
     decoded(0) := Bool(true)
   }
   // Stack control
-  val reserveSize = io.memdecsc.mTop - io.exdec.sp + stcImm - (UInt(SCACHE_SIZE) << UInt(2))
-  val ensureSize = io.decexsc.sp + stcImm - io.memdecsc.mTop
   when(opcode === OPCODE_STC) {
-    io.decexsc.sp := io.exdec.sp
     switch(stcfun) {
       is(STC_SRES) {
-        io.decex.aluOp(0).isSTC := Bool(true)
         isSTC := Bool(true)
+        io.decex.stackOp := sc_OP_RES
         io.decex.immOp(0) := Bool(true)
-        stcVal := io.exdec.sp - stcImm
-        io.decexsc.nSpill := reserveSize(ADDR_WIDTH - 1, 2)
-        io.decexsc.spill := Mux(reserveSize > UInt(0), Bits(1), Bits(0))
         decoded(0) := Bool(true)
       }
       is(STC_SENS) {
-        io.decexsc.nFill := ensureSize(ADDR_WIDTH - 1, 2)
-        io.decexsc.fill := Mux(ensureSize > UInt(0), Bits(1), Bits(0))
-        decoded(0) := Bool(true)
-      }
-      is(STC_SFREE) {
-        io.decex.aluOp(0).isSTC := Bool(true)
         isSTC := Bool(true)
+        io.decex.stackOp := sc_OP_ENS
         io.decex.immOp(0) := Bool(true)
-        stcVal := io.exdec.sp + stcImm
-        io.decexsc.free := Bits(1)
         decoded(0) := Bool(true)
       }
       is(STC_SENSR) {
-        // TODO: ignored for now
+        isSTC := Bool(true)
+        io.decex.stackOp := sc_OP_ENS
+        decoded(0) := Bool(true)
+      }
+      is(STC_SFREE) {
+        isSTC := Bool(true)
+        io.decex.stackOp := sc_OP_FREE
+        io.decex.immOp(0) := Bool(true)
         decoded(0) := Bool(true)
       }
       is(STC_SSPILL) {
-        // TODO: ignored for now
+        isSTC := Bool(true)
+        io.decex.stackOp := sc_OP_SPILL
+        io.decex.immOp(0) := Bool(true)
         decoded(0) := Bool(true)
       }
       is(STC_SSPILLR) {
-        // TODO: ignored for now
+        isSTC := Bool(true)
+        io.decex.stackOp := sc_OP_SPILL
         decoded(0) := Bool(true)
       }
     }
   }
+  
   // Control-flow operations
   when(opcode === OPCODE_CFL_TRAP) {
     io.decex.trap := Bool(true)
@@ -391,8 +377,8 @@ class Decode() extends Module {
 
   // Non-default immediate value
   when (isSTC || isStack || isMem || longImm) {
-    io.decex.immVal(0) := Mux(isSTC, stcVal,
-                              Mux(isStack, addrImm + io.exdec.sp,
+    io.decex.immVal(0) := Mux(isSTC, stcImm,
+                              Mux(isStack, addrImm,
                                   Mux(isMem, addrImm,
                                       decReg.instr_b)))
   }
@@ -449,3 +435,4 @@ class Decode() extends Module {
                                    Mux(inDelaySlot != UInt(0), decDelaySlot, UInt(0))))))
   }
 }
+

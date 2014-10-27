@@ -173,7 +173,7 @@ discussions of the Patmos ISA and processor design in general.
 Jack Whitham offered his experience with RISC
 ISA design and trade-offs.
 Gernot Gebhard and Christoph Cullmann gave valuable feedback on the ISA
-relative to WCET analysis.
+related to WCET analysis.
 Sahar Abbaspourseyedi is working on the stack
 cache and verifies the ideas and concepts presented here. We thank
 Rasmus Bo S{\o}rensen for fixing some documentation errors.
@@ -1800,6 +1800,7 @@ the operating system), exceptions 16 to 32 are attached to interrupts.
     \texttt{0xf000010c} & \texttt{source} & Number of exception that
     is about to be served \\
     \texttt{0xf0000110} & \texttt{sleep} & Sleep mode (optional) \\
+    \texttt{0xf0000114} & \texttt{cachectrl} & Cache control \\
     \cmidrule{1-3}
     \texttt{0xf0000180} & \texttt{vec<0>} & Address of exception handler 0, illegal operation \\
     \texttt{0xf0000184} & \texttt{vec<1>} & Address of exception handler 1, illegal memory access \\
@@ -1881,6 +1882,13 @@ support sleeping, writes to the \texttt{sleep} register are ignored
 and do not have any effect. Therefore, continuing execution after a
 write to the \texttt{sleep} register is not proof that an interrupt
 has occurred.
+
+\subsection{Cache Control}
+
+The \texttt{cachectrl} register provides an interface for cache
+control. Writing a value with bit 0 set invalidates the contents of
+the data cache. Writing a value with bit 1 set invalidates the
+contents of the method cache.
 
 \subsection{Examples}
 
@@ -2204,6 +2212,9 @@ Address & I/O Device & read & write \\
 \midrule
 \code{0xf0000000} & cpuinfo & processor ID & -- \\
 \code{0xf0000004} & cpuinfo & clock frequency (Hz) & -- \\
+\code{0xf0000100} & excunit & &  \\
+$\cdots$          & excunit & \multicolumn{2}{c}{Exception unit and cache control (see Section~\ref{sec:exc}}) \\
+\code{0xf00001ff} & excunit & & \\
 \code{0xf0000200} & timer & clock cycles (high word) & cycle interrupt time (high word) \\
 \code{0xf0000204} & timer & clock cycles (low word) & cycle interrupt time (low word) \\
 \code{0xf0000208} & timer & time in $\mu s$ (high word) & $\mu s$ interrupt time (high word) \\
@@ -2758,9 +2769,11 @@ a small set of prefetch buffers may benefit from spacial locality.
 For the connection of Patmos to a memory controller, I/O devices, the
 core-to-core network on chip, and/or the memory arbiter an interface
 standard needs to be specified. Several standards are available.  We
-decided to base the interface on
-OCP\footnote{\url{http://www.ocpip.org/}}~\cite{ocp:spec} and subset
-the standard as we need it.
+decided to base the interface on OCP\footnote{The OCP specification is
+  available at \url{http://www.accellera.org/downloads/standards/ocp/ocp_3.0/}}~\cite{ocp:spec}
+and subset the standard as we need it. While we use OCP as basis for
+the hardware interface of Patmos, we expressly do not claim
+compliance with the OCP specification.
 
 \subsection{Description}
 
@@ -3221,7 +3234,27 @@ when reading this document.}
 \begin{verbatim}
 sudo apt-get install git openjdk-7-jdk gitk cmake make g++ texinfo flex bison \
   subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
-  ruby1.9.1-dev python zlib1g-dev gtkwave gtkterm
+  ruby1.9.1-dev liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala
+\end{verbatim}
+
+\emph{The following gem install might not be needed as with the correct
+packages (liblpsolve55-dev) the setup script shall do it automatically.
+Needs to be checked on a fresh Ubuntu machine.}
+
+From within \code{llvm/tools/platin} install:
+
+\begin{verbatim}
+sudo gem1.9.1 install lpsolve --pre
+sudo gem1.9.1 install ext/lpsolve-5.5.10.j.gem
+\end{verbatim}
+
+Install \code{sbt} with:
+
+\begin{verbatim}
+wget http://dl.bintray.com/sbt/debian/sbt-0.13.2.deb
+sudo dpkg -i sbt-0.13.2.deb
+sudo apt-get update
+sudo apt-get install sbt
 \end{verbatim}
 
 For the Quartus setup it is best to change the default shall to \code{/bin/bash}:
@@ -3280,9 +3313,6 @@ After building the compiler add the path
 to the compiler executables (e.g., into your \code{.bashrc} or \code{.profile}):
 \footnote{The path needs to be absolute. LLVM cannot handle
 a path relative to the home folder \textasciitilde{}, e.g., \code{\textasciitilde{}/t-crest/local/bin}.}
-%\footnote{The initialization file name depends on your system and setup. \code{.profile} files are only read by login
-%terminals (remote terminals or at login), but your \code{.bashrc} or \code{.zshrc} (for interactive terminals within a
-%session) might be set up to source \code{.profile} as well.}
 
 \martin{In Mac OS X I have only .profile and I don't understand what the issue by 'only read by login terminals'.}
 \stefan{Login shells are only opened at logins. Interactive terminals are all terminals that are opened by your window manager or
@@ -3305,9 +3335,6 @@ export PATH=$PATH:$HOME/t-crest/misc
 
 A complete logout from Ubuntu might be needed to take effect (just closing
 a terminal window is not enough, depending on how you set up your profile files).
-
-\stefan{Only if you do it wrong ;) }
-
 You can test your installation by checking if the compiler is available:
 
 \begin{verbatim}
@@ -3852,6 +3879,16 @@ Copy the Patmos Verilog files (\code{ml605mPatmosCore.v} and \code{ml605mPatmosC
 from the build directory (\code{t-crest/aegean/build/ml605\_4core}) into \code{t-crest/ml605}.
 
 
+\section{Worst-Case Execution Time Analysis}
+
+The aiT WCET analysis tool supports Patmos as target. The benchmark collection
+of T-CREST (in folder \code{bench}) includes targets for WCET analysis.
+
+When the aiT version for Patmos (\code{a3patmos}) is in the path, the build of
+the benchmarks includes WCET analysis tasks, where appropriate.
+
+In \code{bench/build/Malardaln/src} start the tests including Platin WCET analysis with \code{ctest}.
+
 
 \section{ModelSim License}
 In the case that you have a DTU Compute login you can access the license servers from outside the DTU network by setting up an SSH tunnel.
@@ -3872,9 +3909,13 @@ This way of setting up an SSH tunnel might also work for other institutions.
 \paragraph{License settings for ModelSim and Xilinx}
 
 \begin{verbatim}
-export LM_LICENSE_FILE=1717@angel1: 1717@angel2: 1717@angel3
+export LM_LICENSE_FILE=1717@angel1:1717@angel2:1717@angel3
 export XILINXD_LICENSE_FILE="2100@eda1.imm.dtu.dk"
 \end{verbatim}
+
+
+
+
 
 \chapter{Tools}
 
@@ -3903,19 +3944,19 @@ units are allowed: \texttt{k}, \texttt{m}, \texttt{g}, or \texttt{kb},
   \centering
   \caption{General options for \texttt{pasim}}
   \label{tab:pasimopts_gen}
-  \begin{tabular}{>{\tt}l<{}p{.6\textwidth}}
+  \begin{tabular}{>{\ttfamily}l<{}p{.6\textwidth}}
     \toprule
     \multicolumn{1}{l}{Option} & Description \\
     \midrule
     -h [ ---help ]       & produce help message \\
     -c [ ---maxc ] arg   & stop simulation after the given number of cycles (default: infinity) \\
     -b [ ---binary ] arg & binary or elf-executable file (stdin: \texttt{-}) \\
-    -o [ ---output ] arg & output execution trace in file (stdout: \texttt{-}, default: stdout) \\
     ---debug [=arg]      & enable step-by-step debug tracing after cycle, default: 0 \\
     ---debug-fmt arg     & format of the debug trace (\texttt{short}, \texttt{trace}, \texttt{instr}, \texttt{blocks}, \texttt{calls}, \texttt{calls-indent}, \texttt{default}, \texttt{long}, \texttt{all}) \\
-    ---debug-file arg    & output debug trace in file (stderr: \texttt{-}, default: stderr) \\
+    ---debug-file arg    & output debug trace in file (stdout: \texttt{-}, default: stderr) \\
     ---debug-intrs       & print out all status changes of the exception unit. \\
     ---debug-nopc        & do not print PC and cycles counter in debug output \\
+    -o [ ---stats-out ] arg & write statistics to a file (stdout: \texttt{-}, default: stderr) \\
     ---print-stats arg   & print statistics for a given function only. \\
     ---flush-caches arg  & flush all caches when reaching the given address (can be a symbol name). \\
     -V [ ---full ]       & full statistics output \\
@@ -3928,7 +3969,7 @@ units are allowed: \texttt{k}, \texttt{m}, \texttt{g}, or \texttt{kb},
   \centering
   \caption{Memory Options for \texttt{pasim}}
   \label{tab:pasimopts_mem}
-  \begin{tabular}{>{\tt}l<{}>{\tt}r<{}p{.6\textwidth}}
+  \begin{tabular}{>{\ttfamily}l<{}>{\ttfamily}r<{}p{.6\textwidth}}
     \toprule
     \multicolumn{1}{l}{Option} & \multicolumn{1}{l}{Default} & Description \\
     \midrule
@@ -3950,7 +3991,7 @@ units are allowed: \texttt{k}, \texttt{m}, \texttt{g}, or \texttt{kb},
   \centering
   \caption{Cache options for \texttt{pasim}}
   \label{tab:pasimopts_cache}
-  \begin{tabular}{>{\tt}l<{}>{\tt}r<{}p{.6\textwidth}}
+  \begin{tabular}{>{\ttfamily}l<{}>{\ttfamily}r<{}p{.6\textwidth}}
     \toprule
     \multicolumn{1}{l}{Option} & \multicolumn{1}{l}{Default} & Description \\
     \midrule
@@ -3974,7 +4015,7 @@ units are allowed: \texttt{k}, \texttt{m}, \texttt{g}, or \texttt{kb},
   \centering
   \caption{Simulator options for \texttt{pasim}}
   \label{tab:pasimopts_sim}
-  \begin{tabular}{>{\tt}l<{}>{\tt}r<{}p{.59\textwidth}}
+  \begin{tabular}{>{\ttfamily}l<{}>{\ttfamily}r<{}p{.54\textwidth}}
     \toprule
     \multicolumn{1}{l}{Option} & \multicolumn{1}{l}{Default} & Description \\
     \midrule
@@ -4019,7 +4060,7 @@ the emulator.
   \centering
   \caption{Options for \texttt{patmos-emulator}}
   \label{tab:emulopts}
-  \begin{tabular}{>{\tt}l<{}p{.66\textwidth}}
+  \begin{tabular}{>{\ttfamily}l<{}p{.66\textwidth}}
     \toprule
     \multicolumn{1}{l}{Option} & Description \\
     \midrule
@@ -4036,6 +4077,32 @@ the emulator.
   \end{tabular}
 \end{table}
 
+\subsection{config\_altera}
+
+The script \texttt{config\_altera} configures an Altera FPGA using the
+tool \texttt{quartus\_pgm} provided by Altera.
+
+\paragraph{Usage}
+
+The usage of the script is \texttt{config\_altera [-b <blaster>] [-h]
+  <file>}. The option \texttt{-h} prints a basic help. The option
+\texttt{-b} specifies the blaster type for FPGA configuration; by
+default, the blaster type is \texttt{USB-Blaster}. The argument
+\texttt{<file>} specifies a \texttt{.sof} file with the bit stream for
+FPGA configuration.
+
+\subsection{config\_xilinx}
+
+The script \texttt{config\_xilinx} configures a Xilinx FPGA using the
+tool \texttt{impact} provided by Xilinx.
+
+\paragraph{Usage}
+
+The usage of the script is \texttt{config\_xilinx [-h] <file>}. The
+option \texttt{-h} prints a basic help. The argument \texttt{<file>}
+specifies a \texttt{.bit} file with the bit stream for FPGA
+configuration.
+
 \subsection{patserdow}
 
 The tool \texttt{patserdow} downloads an ELF file via a serial line to
@@ -4047,11 +4114,12 @@ exit code as the application.
 
 \paragraph{Usage}
 
-The general usage is \texttt{patserdow [-v] [-h] <port> <file>}. The
+The general usage is \texttt{patserdow [-v] [-t <time>] [-h] <port> <file>}. The
 option \texttt{-h} prints a basic help. The option \texttt{-v} turns
 on a verbose mode, where information about the file to be downloaded
 and the progress of the downloading process is printed to
-stderr. Output from the application is written to stdout; input to the
+stderr. The option \texttt{-t} specifies a time out after which execution is terminated.
+Output from the application is written to stdout; input to the
 application is read from stdin. The argument \texttt{<port>} specifies
 the serial port to be used for downloading. The argument
 \texttt{<file>} specifies the ELF file to be downloaded.
@@ -4073,15 +4141,34 @@ argument for the option \texttt{-I} specifies where input to the UART
 should be read from. The argument for the option \texttt{-O} specifies
 where UART ouput should be written to.
 
-The FPGA is configured by calling \texttt{make config} in the
-directory specified in environment variable \texttt{PATMOS\_HOME}.
-When this variable is unset, \texttt{patex} uses the directory where
-it was installed from. The environment variable \texttt{COM\_PORT}
-sets the serial port for downloading. When this variable is unset,
-\texttt{patex} uses the \texttt{COM\_PORT} variable from the Makefile
-at the time of installation. The environment variable \texttt{TIMEOUT}
-sets a timeout in seconds. By default, \texttt{patex} terminates
-download and execution after 300 seconds.
+The environment variable \texttt{PATEX\_CONFIG} determines how the
+FPGA is configured. Permissible values are: \texttt{Make} (the default
+value), \texttt{Altera}, or \texttt{Xilinx}.
+\begin{itemize}
+\item \texttt{Make} means that the FPGA is configured by calling
+  \texttt{make config} in the directory specified in environment
+  variable \texttt{PATMOS\_HOME}. When this variable is unset,
+  \texttt{patex} uses the directory where it was installed from.
+\item \texttt{Altera} means that the FPGA is configured by calling
+  \texttt{config\_altera} with the file specified in environment
+  variable \texttt{PATEX\_CONFIGFILE}. If the environment variable
+  \texttt{BLASTER\_TYPE} is set, it is used as the blaster type.
+\item \texttt{Xilinx} means that the FPGA is configured by calling
+  \texttt{config\_xilinx} with the file specified in environment
+  variable \texttt{PATEX\_CONFIGFILE}.
+\end{itemize}
+
+\texttt{patex} recognizes URLs for \texttt{PATEX\_CONFIGFILE} and
+downloads the file using \texttt{wget} if necessary. The protocols
+\texttt{http}, \texttt{https}, and \texttt{ftp} are supported.
+
+The environment variable \texttt{COM\_PORT} sets the serial port for
+downloading. When this variable is unset, \texttt{patex} uses the
+\texttt{COM\_PORT} variable from the Makefile at the time of
+installation. The environment variable \texttt{TIMEOUT} sets a timeout
+in seconds. By default, \texttt{patex} terminates download and
+execution after 300 seconds. Setting the environment variable
+\texttt{VERBOSE} to \texttt{true} turns on verbose output.
 
 \section{Patmos Developer Tools}
 
@@ -4147,10 +4234,15 @@ by the compiler.
 
 The usage of \texttt{padasm} is \texttt{padasm <input> <output>}.
 
+
+
+
+
+% % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 \chapter{The Patmos Compiler}
 \label{sec:compiler}
 
-\input{toolchain}
+\input{compiler}
 
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
@@ -4228,16 +4320,6 @@ It is questionable whether this would actually buy us anything. Most
 \texttt{sres} instructions will be followed by a store to the stack cache
 (spill of saved registers). It might be more profitable for \texttt{sens}
 instructions.
-
-\section{Purge Cache Content}
-\begin{itemize}
-  \item dynamic code generation, self-modifying code, etc.
-  \item help cache analysis?
-\end{itemize}
-
-\stefan{Might not gain much: for LRU caches there is no need to purge, we might need to purge the stack cache on context switches anyway,
-and for the method cache, purging the cache might also not gain much (depending on the used analysis). I do not think that Self-modifying
-should be used in hard real-time code anyway, as it might introduce some slight problems to the WCET analysis ;) }
 
 \section{Freeze Cache Content}
 

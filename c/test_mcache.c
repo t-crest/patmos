@@ -10,7 +10,7 @@ void fibonacci(int numbers[]);
 */
 
 __attribute__((noreturn)) void exit(int r) {
-  asm("ret $r0, $r0");
+  asm("brcf $r0");
   for(;;);
   }
 

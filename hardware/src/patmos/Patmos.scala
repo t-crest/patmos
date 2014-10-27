@@ -74,12 +74,9 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   mcache.io.femcache <> fetch.io.femcache
   mcache.io.mcachefe <> fetch.io.mcachefe
   mcache.io.exmcache <> execute.io.exmcache
-  mcache.io.ena_out <> memory.io.ena_in
-  mcache.io.ena_in <> memory.io.ena_out
 
   decode.io.fedec <> fetch.io.fedec
   execute.io.decex <> decode.io.decex
-  decode.io.exdec <> execute.io.exdec
   memory.io.exmem <> execute.io.exmem
   writeback.io.memwb <> memory.io.memwb
   // RF write connection
@@ -89,6 +86,10 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   // Take care that it is the plain register
   execute.io.exResult <> memory.io.exResult
   execute.io.memResult <> writeback.io.memResult
+
+  // Connect stack cache
+  execute.io.exsc <> dcache.io.scIO.exsc
+  dcache.io.scIO.scex <> execute.io.scex
 
   // We branch in EX
   fetch.io.exfe <> execute.io.exfe
@@ -122,12 +123,18 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   // val burstJoin = new OcpBurstPriorityJoin(mcache.io.ocp_port, dcache.io.slave,
   //                                  burstBus.io.slave, mcache.io.ena_out)
 
+  // Enable signals for memory stage, method cache and stack cache
+  memory.io.ena_in      := mcache.io.ena_out && !dcache.io.scIO.stall
+  mcache.io.ena_in      := memory.io.ena_out && !dcache.io.scIO.stall
+  dcache.io.scIO.ena_in := memory.io.ena_out && mcache.io.ena_out
+
   // Enable signal
-  val enable = memory.io.ena_out & mcache.io.ena_out
+  val enable = memory.io.ena_out & mcache.io.ena_out & !dcache.io.scIO.stall
   fetch.io.ena := enable
   decode.io.ena := enable
   execute.io.ena := enable
   writeback.io.ena := enable
+  exc.io.ena := enable
   val enableReg = Reg(next = enable)
 
   // Flush signal
@@ -135,6 +142,10 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   val brflush = execute.io.brflush
   decode.io.flush := flush || brflush
   execute.io.flush := flush
+
+  // Software resets
+  mcache.io.invalidate := exc.io.invalMCache
+  dcache.io.invalDCache := exc.io.invalDCache
 
   // The inputs and outputs
   io.comConf <> iocomp.io.comConf
@@ -180,10 +191,10 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   Config.connectAllIOPins(io, core.io)
 
   // Connect memory controller
-  val sramConf = Config.getConfig.ExtMem.sram
-  val sramCtrl = Config.createDevice(sramConf).asInstanceOf[BurstDevice]
-  sramCtrl.io.ocp <> core.io.memPort
-  Config.connectIOPins(sramConf.name, io, sramCtrl.io)
+  val ramConf = Config.getConfig.ExtMem.ram
+  val ramCtrl = Config.createDevice(ramConf).asInstanceOf[BurstDevice]
+  ramCtrl.io.ocp <> core.io.memPort
+  Config.connectIOPins(ramConf.name, io, ramCtrl.io)
 
   // Print out the configuration
   Utility.printConfig(configFile)
@@ -191,35 +202,18 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
 // this testing and main file should go into it's own folder
 
-class PatmosTest(pat: Patmos) extends Tester(pat,
-  Array(pat.io, pat.core.decode.io, pat.core.decode.rf.io, pat.core.memory.io, pat.core.execute.io)
-  ) {
+class PatmosTest(pat: Patmos) extends Tester(pat) {
 
-  defTests {
-    val ret = true
-    val vars = new HashMap[Node, Node]()
-    val ovars = new HashMap[Node, Node]()
+  println("Patmos start")
 
-    println("Patmos start")
-
-    for (i <- 0 until 100) {
-      vars.clear
-      step(vars, ovars, false) // false as third argument disables printout
-      // The PC printout is a little off on a branch
-      val pc = ovars(pat.core.memory.io.memwb.pc).litValue() - 2
-      // println(ovars(pat.io.led).litValue())
-      print(pc + " - ")
-      for (j <- 0 until 32)
-        print(ovars(pat.core.decode.rf.rf(UInt(j))).litValue() + " ")
-      println()
-      //      println("iter: " + i)
-      //      println("ovars: " + ovars)
-      //      println("led/litVal " + ovars(pat.io.led).litValue())
-      //      println("pc: " + ovars(pat.core.fetch.io.fedec.pc).litValue())
-      //      println("instr: " + ovars(pat.core.fetch.io.fedec.instr_a).litValue())
-      //      println("pc decode: " + ovars(pat.core.decode.io.decex.pc).litValue())
-    }
-    ret
+  for (i <- 0 until 100) {
+    step(1) // false as third argument disables printout
+    // The PC printout is a little off on a branch
+    val pc = peek(pat.core.memory.io.memwb.pc) - 2
+    print(pc + " - ")
+    for (j <- 0 until 32)
+      print(peek(pat.core.decode.rf.rf(UInt(j))) + " ")
+    println()
   }
 }
 

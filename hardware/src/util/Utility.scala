@@ -93,7 +93,12 @@ object Utility {
     printf("\tFrequency: %d MHz\n", CLOCK_FREQ/1000000)
     printf("\tPipelines: %d\n", PIPE_COUNT)
     printf("\tMethod cache: %d KB, %d methods\n", MCACHE_SIZE/1024, METHOD_COUNT)
-    printf("\tData cache: %d KB, direct-mapped\n", DCACHE_SIZE/1024)
+    printf("\tData cache: %d KB", DCACHE_SIZE/1024)
+    if (DCACHE_ASSOC == 1) {
+      printf(", direct-mapped\n")
+    } else {
+      printf(", %d-way set associative with %s replacement\n", DCACHE_ASSOC, DCACHE_REPL)
+    }
     printf("\tStack cache: %d KB\n", SCACHE_SIZE/1024)
     printf("\tInstruction SPM: %d KB\n", ISPM_SIZE/1024)
     printf("\tData SPM: %d KB\n", DSPM_SIZE/1024)

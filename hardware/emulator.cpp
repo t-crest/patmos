@@ -140,48 +140,46 @@ static val_t readelf(istream &is, Patmos_t *c)
   return entry;
 }
 
+static void print_sc_state(Patmos_t *c) {
+  // fill
+  if ((c->Patmos_core_dcache_sc__stateReg.to_ulong() == 1) ||
+      (c->Patmos_core_dcache_sc__stateReg.to_ulong() == 2)) {
+    if(c->Patmos_core_dcache_sc__mb_wrEna.to_ulong())
+    {
+      for (unsigned int i = 0; i < 4; i++)
+      {
+        std::cerr << "f:" << (c->Patmos_core_dcache_sc__transferAddrReg.to_ulong() + i - 4)
+                  << " > " << (((c->Patmos_core_dcache_sc__mb_wrData.to_ulong() << (i*8)) >> 24) & 0xFF) 
+                  << "\n";
+      }
+    }
+  }
+  // spill
+  else if ((c->Patmos_core_dcache_sc__stateReg.to_ulong() == 3) ||
+           (c->Patmos_core_dcache_sc__stateReg.to_ulong() == 4)) {
+    if(c->Patmos_core_dcache_sc__io_toMemory_M_DataValid.to_ulong() && 
+       c->Patmos_core_dcache_sc__io_toMemory_M_DataByteEn.to_ulong())
+    {
+      for (unsigned int i = 0; i < 4; i++)
+      {
+        std::cerr << "s:" << (c->Patmos_core_dcache_sc__transferAddrReg.to_ulong() + i - 4)
+                  << " < " << (((c->Patmos_core_dcache_sc__mb_rdData.to_ulong() << (i*8)) >> 24) & 0xFF)
+                  << "\n";
+      }
+    }
+  }
+}
+
 static void print_state(Patmos_t *c) {
-	sval_t pc = c->Patmos_core_memory__io_memwb_pc.to_ulong();
-	*out << (pc - 2) << " - ";
+  static unsigned int baseReg = 0;
+  *out << (baseReg + c->Patmos_core_fetch__pcReg.to_ulong() * 4 - c->Patmos_core_fetch__relBaseReg.to_ulong() * 4) << " - ";
+  baseReg = c->Patmos_core_execute__baseReg.to_ulong();
 
-	// for (unsigned i = 0; i < 32; i++) {
-	//   *out << c->Patmos_core_decode_rf__rf.get(i).to_ulong() << " ";
-	// }
+  for (unsigned i = 0; i < 32; i++) {
+    *out << c->Patmos_core_decode_rf__rf.get(i).to_ulong() << " ";
+  }
 
-    *out << c->Patmos_core_decode_rf__rf_0.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_1.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_2.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_3.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_4.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_5.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_6.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_7.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_8.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_9.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_10.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_11.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_12.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_13.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_14.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_15.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_16.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_17.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_18.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_19.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_20.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_21.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_22.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_23.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_24.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_25.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_26.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_27.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_28.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_29.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_30.to_ulong() << " ";
-    *out << c->Patmos_core_decode_rf__rf_31.to_ulong() << " ";
-
-	*out << endl;
+  *out << endl;
 }
 
 static void extSsramSim(Patmos_t *c) {
@@ -300,6 +298,7 @@ static void help(ostream &out) {
       << "  -l <N>        Stop after <N> cycles" << endl
       << "  -p            Print method cache statistics" << endl
       << "  -r            Print register values in each cycle" << endl
+      << "  -s            Trace stack cache spilling/filling" << endl
       << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
       << "  -I <file>     Read input for UART from file <file>" << endl
       << "  -O <file>     Write output from UART to file <file>" << endl;
@@ -316,6 +315,7 @@ int main (int argc, char* argv[]) {
   bool print_stat = false;
   bool quiet = true;
   bool vcd = false;
+  bool sc_trace = false;
 
   int uart_in = STDIN_FILENO;
   int uart_out = STDOUT_FILENO;
@@ -337,6 +337,9 @@ int main (int argc, char* argv[]) {
 	  break;
 	case 'r':
 	  quiet = false;
+	  break;
+	case 's':
+	  sc_trace = true;
 	  break;
 	case 'v':
 	  vcd = true;
@@ -477,7 +480,7 @@ int main (int argc, char* argv[]) {
 	// Pass on data to UART
 	bool baud_tick = c->Patmos_core_iocomp_Uart__tx_baud_tick.to_bool();
 	if (baud_tick) {
-	  baud_counter = (baud_counter + 1) % 20; // slower than necessary, for slow apps
+	  baud_counter = (baud_counter + 1) % 10;
 	}
 	if (baud_tick && baud_counter == 0) {
 	  struct pollfd pfd;
@@ -490,8 +493,10 @@ int main (int argc, char* argv[]) {
 		  if (r != 1) {
 			cerr << argv[0] << ": error: Cannot read UART input" << endl;
 		  } else {
-			c->Patmos_core_iocomp_Uart__rx_data = d;
-			c->Patmos_core_iocomp_Uart__rx_full = true;
+			c->Patmos_core_iocomp_Uart__rx_state = 0x3; // rx_stop_bit
+			c->Patmos_core_iocomp_Uart__rx_baud_tick = 1;
+			c->Patmos_core_iocomp_Uart__rxd_reg2 = 1;
+			c->Patmos_core_iocomp_Uart__rx_buff = d;
 		  }
 		}
 	  }
@@ -499,6 +504,9 @@ int main (int argc, char* argv[]) {
 
 	if (!quiet && c->Patmos_core__enableReg.to_bool()) {
 	  print_state(c);
+	}
+	if (sc_trace) {
+	  print_sc_state(c);
 	}
 
 	// Return to address 0 halts the execution after one more iteration
@@ -511,7 +519,7 @@ int main (int argc, char* argv[]) {
 	  halt = true;
 	}
 
-	if (print_stat == true) {
+	if (print_stat) {
 	  mcacheStat(c, halt);
 	}
 
@@ -523,6 +531,5 @@ int main (int argc, char* argv[]) {
   }
 
   // Pass on return value from processor
-  // return c->Patmos_core_decode_rf__rf.get(1).to_ulong();
-  return c->Patmos_core_decode_rf__rf_1.to_ulong();
+  return c->Patmos_core_decode_rf__rf.get(1).to_ulong();
 }

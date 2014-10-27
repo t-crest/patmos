@@ -287,8 +287,31 @@ class OcpBurstPriorityJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort
 // Provide a "bus" with a master port and a slave port to simplify plumbing
 class OcpBurstBus(addrWidth : Int, dataWidth : Int, burstLen : Int) extends Module {
   val io = new Bundle {
-    val slave = new OcpBurstSlavePort(addrWidth, dataWidth, burstLen)
     val master = new OcpBurstMasterPort(addrWidth, dataWidth, burstLen)
+    val slave = new OcpBurstSlavePort(addrWidth, dataWidth, burstLen)
   }
   io.master <> io.slave
+}
+
+// Buffer a burst for pipelining
+class OcpBurstBuffer(master : OcpBurstMasterPort, slave : OcpBurstSlavePort) {
+
+  val MBuffer = Vec.fill(master.burstLength) {
+    Reg(init = OcpBurstMasterSignals.resetVal(master.M))
+  }
+  val free = MBuffer(0).Cmd === OcpCmd.IDLE
+  when (free || slave.S.CmdAccept === Bits(1)) {
+    for (i <- 0 until master.burstLength-1) {
+      MBuffer(i) := MBuffer(i+1)
+    }
+    MBuffer(master.burstLength-1) := master.M
+  }
+  slave.M := MBuffer(0)
+
+  val SBuffer = Reg(init = OcpBurstSlaveSignals.resetVal(slave.S))
+  SBuffer := slave.S
+  master.S := SBuffer
+
+  master.S.CmdAccept := free
+  master.S.DataAccept := free
 }

@@ -124,18 +124,37 @@ Errors : 0")
 test_asm(40 "Emitted: 136 bytes
 Errors : 0")
 
+test_asm(41 "Emitted: 76 bytes
+Errors : 0")
+
+test_asm(42 "Emitted: 92 bytes
+Errors : 0")
+
 test_asm(43 "Emitted: 40 bytes
 Errors : 0")
 
 test_asm(44 "Emitted: 32 bytes
 Errors : 0")
 
+test_asm(45 "Emitted: 100 bytes
+Errors : 0")
+
+test_asm(48 "Emitted: 92 bytes
+Errors : 0")
+
+test_asm(49 "Emitted: 232 bytes
+Errors : 0")
+
+test_asm(50 "Emitted: 216 bytes
+Errors : 0")
+
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # SIMULATOR TESTS
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 macro (test_sim num expr)
-  ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim -V --maxc 20000 ${CMAKE_CURRENT_BINARY_DIR}/test${num}.bin)
+  ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim -V --maxc 20000 -o - ${CMAKE_CURRENT_BINARY_DIR}/test${num}.bin)
   SET_TESTS_PROPERTIES(sim-test-${num} PROPERTIES PASS_REGULAR_EXPRESSION ${expr} DEPENDS asm-test-${num})
 endmacro (test_sim)
 
@@ -153,6 +172,16 @@ macro (test_elf_io_sim num expr)
   ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim -V --maxc 20000 --in ${PROJECT_SOURCE_DIR}/tests/test${num}.in ${PROJECT_SOURCE_DIR}/tests/test${num}.elf)
   SET_TESTS_PROPERTIES(sim-test-${num} PROPERTIES PASS_REGULAR_EXPRESSION ${expr})
 endmacro (test_elf_io_sim)
+
+macro (test_sim_lp num expr)
+  ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim -V -S lblock --maxc 20000 ${CMAKE_CURRENT_BINARY_DIR}/test${num}.bin)
+  SET_TESTS_PROPERTIES(sim-test-${num} PROPERTIES PASS_REGULAR_EXPRESSION ${expr})
+endmacro (test_sim_lp)
+
+macro (test_sim_scba num expr)
+  ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim -V -S ablock --maxc 20000 ${CMAKE_CURRENT_BINARY_DIR}/test${num}.bin)
+  SET_TESTS_PROPERTIES(sim-test-${num} PROPERTIES PASS_REGULAR_EXPRESSION ${expr})
+endmacro (test_sim_scba)
 
 test_sim(01 "r1 : 00000005   r2 : 0000000a")
 
@@ -243,8 +272,26 @@ test_sim(39 "r1 : 00000005   r2 : 00000008   r3 : 00000009   r4 : 00000001   r5 
 
 test_sim(40 "r8 : 00000210   r9 : 00000210   r10: 00000010   r11: 000000e0   r12: 000000e0   r13: 00000210   r14: 00000100")
 
+test_sim_lp(41 "   Blocks Not Spilled  :          8           8")
+
+test_sim_lp(42 "   Blocks Not Spilled  :          6           6")
+
 test_sim(43 "r0 : 00000000   r1 : 00000001   r2 : 00000005")
 
 
 test_sim(44 "PRR: 00000011.*
 .*r1 : 00000008   r2 : 0000000c")
+
+test_sim_lp(45 "   Blocks Not Spilled  :        508         508")
+
+test_sim_lp(48 "   Blocks Not Spilled  :          2           2")
+
+test_sim_lp(49 "r1 : 00000007.*
+   Blocks Spilled      :         10          10.*
+   Blocks Not Spilled  :         10          10
+")
+
+test_sim_scba(50 "Align .*spill.*:          2           2
+   Align .*fill.*:          0           0
+   Align .*free.*:          4           4")
+

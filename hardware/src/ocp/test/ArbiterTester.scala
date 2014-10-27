@@ -53,7 +53,8 @@ class Master(nr: Int, burstLength: Int) extends Module {
     val port = new OcpBurstMasterPort(32, 32, burstLength)
   }
 
-  val cntReg = Reg(init = UInt(0, width=8))
+  val cntReg = Reg(init = UInt(0, width=32))
+  val dataReg = Reg(init = UInt(0, width=32))
   val cntRead = Reg(init = UInt(0, width=3))
   debug(cntRead)
 
@@ -82,6 +83,7 @@ class Master(nr: Int, burstLength: Int) extends Module {
       when (io.port.S.Resp != OcpResp.DVA) {
         cntReg := cntReg
       }
+      dataReg := io.port.S.Data
     }
     is(UInt(5)) { io.port.M.Cmd := OcpCmd.IDLE }
     is(UInt(6)) {
@@ -113,6 +115,7 @@ class Master(nr: Int, burstLength: Int) extends Module {
   }
 
   io.port.M.Addr := (UInt(nr * 256) + cntReg).toBits()
+//  io.port.M.Addr := (dataReg).toBits()
   io.port.M.Data := (UInt(nr * 256 * 16) + cntReg).toBits()
 }
 
@@ -138,27 +141,11 @@ class ArbiterTop() extends Module {
 }
 
 
-class ArbiterTester(dut: ocp.test.ArbiterTop) extends Tester(dut, Array(dut.io)) {
-  defTests {
-    val ret = true
-    val vars = new HashMap[Node, Node]()
-    val ovars = new HashMap[Node, Node]()
+class ArbiterTester(dut: ocp.test.ArbiterTop) extends Tester(dut) {
+  val testVec = Array( OcpCmd.IDLE, OcpCmd.WR, OcpCmd.IDLE )
 
-    val testVec = Array( OcpCmd.IDLE, OcpCmd.WR, OcpCmd.IDLE )
-
-    for (i <- 0 until 30) {
-      vars.clear
-//      vars(dut.io.fromMaster.M.Cmd) = testVec(i)
-
-//      vars(dut.io.slave.S.CmdAccept) = Bits(1)
-//      vars(dut.io.slave.S.DataAccept) = Bits(1)
-      step(vars, ovars)
-//      println("out data: " + ovars(dut.io.slave))
-      //      println("iter: "+i)
-      //      println("vars: "+vars)
-      //      println("ovars: "+ovars)
-    }
-    ret
+  for (i <- 0 until 30) {
+    step(1)
   }
 }
 

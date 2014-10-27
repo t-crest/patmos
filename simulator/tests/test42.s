@@ -1,43 +1,32 @@
 #
-# Lazy pointer
-# lp_pulldown == false
+# Expected Result: only 2 blocks spilled instead of 8
 #
 
-                .word    160;
-		add      r2 = r0, 0x400000;
-		add      r3 = r0, 0x500000;
-		mts      s5 = r2;
-		mts      s6 = r2;
-		addi     r30 = r0, 4;
-		addi     r15 = r0, 15;
-x:              sres     4;
-                sws      [r0 + 0] = r2;
-		sws      [r0 + 1] = r3;
-		addi     r10  = r0 , 10;
-loop:		lws      r4 = [r0 + 0];
-		lws      r5 = [r0 + 1];
-		subi     r10 = r10 , 1;
-		call 	 foo;
- 		nop;
+                .word   160;
+# initialize the stack cache registers: stack top and mem top
+                addi    r1  = r0, 0x900;
+                mts     s5 = r1;
+                mts     s6 = r1;
+# reserve some space on the stack cache
+                sres    10;
                 nop;
-		nop;
-		sens     4;
-		cmpeq    p1  = r10 , r0;
-          (!p1) br       loop;
-		nop;
-		nop;
-		sfree    4;
+                nop;
+                nop;
+# see if lazy pointer moves as it should
+                shs     [r0 + 0] = r0;
+                shs     [r0 + 1] = r0;
+                shs     [r0 + 7] = r0;
+                nop;
+                nop;
+                nop;
+# free only data below the lazy pointer
+                sfree   2;
+                nop;
+                nop;
+                nop;
+# spill all stack cache content
+                sres    512;
                 halt;
-		nop;
-		nop;
-		nop;
-		.word   28; 
-foo:		sres     64;
-                sws      [r0 + 3] = r2;
-		sws      [r0 + 4] = r3;
-#		sws      [r0 + 1] = r15; #write to the spilled blocks
-		ret     r30, r31;
-		nop;
-		nop;
-		nop;
-
+                nop;
+                nop;
+                nop;

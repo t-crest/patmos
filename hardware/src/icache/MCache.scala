@@ -86,6 +86,7 @@ class MCacheFe extends Bundle() {
 class MCacheIO extends Bundle() {
   val ena_out = Bool(OUTPUT)
   val ena_in = Bool(INPUT)
+  val invalidate = Bool(INPUT)
   val femcache = new FeMCache().asInput
   val exmcache = new ExMCache().asInput
   val mcachefe = new MCacheFe().asOutput
@@ -114,6 +115,7 @@ class MCacheReplCtrl extends Bundle() {
 }
 class MCacheReplIO extends Bundle() {
   val ena_in = Bool(INPUT)
+  val invalidate = Bool(INPUT)
   val hitEna = Bool(OUTPUT)
   val exmcache = new ExMCache().asInput
   val mcachefe = new MCacheFe().asOutput
@@ -166,6 +168,8 @@ class MCache() extends Module {
   mcacherepl.io.ena_in <> io.ena_in
   //output enable depending on hit/miss/fetch
   io.ena_out := mcachectrl.io.fetch_ena & mcacherepl.io.hitEna
+  //connect invalidate signal
+  mcacherepl.io.invalidate := io.invalidate
 }
 
 /*
@@ -215,13 +219,19 @@ class MCacheReplFifo() extends Module {
   val selIspmReg = Reg(init = Bool(false))
   val selMCacheReg = Reg(init = Bool(false))
 
+  // hit detection
   val hit = Bool()
-  hit := Bool(false)
-
   val mergePosVec = { Vec.fill(METHOD_COUNT) { Bits(width = MCACHE_SIZE_WIDTH) } }
+  hit := Bool(false)
   for (i <- 0 until METHOD_COUNT) {
     mergePosVec(i) := Bits(0)
-  }
+    when (io.exmcache.callRetBase === mcacheAddrVec(i)
+          && mcacheValidVec(i)) {
+            hit := Bool(true)
+            mergePosVec(i) := mcachePosVec(i)
+          }
+  }  
+  val pos = Mux(hit, mergePosVec.fold(Bits(0))(_|_), nextPosReg)
 
   //read from tag memory on call/return to check if method is in the cache
   when (io.exmcache.doCallRet && io.ena_in) {
@@ -231,21 +241,9 @@ class MCacheReplFifo() extends Module {
     selIspmReg := io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-2) === Bits(0x1)
     val selMCache = io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-1) >= Bits(0x1)
     selMCacheReg := selMCache
-
     when (selMCache) {
-      hitReg := Bool(false)
-      for (i <- 0 until METHOD_COUNT) {
-        when (io.exmcache.callRetBase === mcacheAddrVec(i)
-              && mcacheValidVec(i)) {
-                hitReg := Bool(true)
-                hit := Bool(true)
-                mergePosVec(i) := mcachePosVec(i)
-              }
-      }
-      posReg := nextPosReg
-      when (hit) {
-        posReg := mergePosVec.fold(Bits(0))(_|_)
-      }
+      hitReg := hit
+      posReg := pos
     }
   }
 
@@ -318,6 +316,11 @@ class MCacheReplFifo() extends Module {
   io.mcache_replctrl.hit := hitReg
 
   io.hitEna := hitReg
+  
+  // reset valid bits
+  when (io.invalidate) {
+    mcacheValidVec.map(_ := Bool(false))
+  }
 }
 
 
