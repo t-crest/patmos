@@ -76,7 +76,7 @@ object SSRam32Ctrl extends DeviceObject {
   }
 
   def create(params: Map[String, String]) : SSRam32Ctrl = {
-    Module(new SSRam32Ctrl(addrBits))
+    Module(new SSRam32Ctrl(addrBits = addrBits, burstLen = BURST_LENGTH))
   }
 
   trait Pins {

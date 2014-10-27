@@ -112,7 +112,7 @@ class TestDev(obj : TestDevObject) extends CoreDevice() {
   // Write to device
   when(io.ocp.M.Cmd === OcpCmd.WR) {
     respReg := OcpResp.DVA
-    dataOutReg := io.ocp.M.Data(io.testDevPins.dataOut.width-1, 0)
+    dataOutReg := io.ocp.M.Data(io.testDevPins.dataOut.getWidth()-1, 0)
   }
 
   // Read current state of device
