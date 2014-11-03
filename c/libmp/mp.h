@@ -187,6 +187,21 @@ static volatile unsigned* _UNCACHED spm_alloc_array[MAX_CORES];
 static volatile unsigned long long _UNCACHED barrier_status[MAX_CORES];
 
 void mp_barrier_shm(communicator_t* comm);
+void mp_barrier_shm_int(communicator_t* comm, unsigned index);
+
+typedef struct {
+  coreset_t barrier_set;
+  unsigned n;
+  unsigned logn;
+  unsigned short * answers;
+  unsigned * opponent;
+} tournament_t;
+
+int mp_init_tournament_barrier(tournament_t* tour, unsigned count,
+              const coreid_t member_ids []);
+
+void mp_barrier_tournament(tournament_t* tour);
+
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -323,9 +338,12 @@ void mp_ack(mpd_t* mpd_ptr);
 ///
 /// \param comm A pointer to a communicator structure.
 void mp_barrier(communicator_t* comm);
+void mp_barrier_int(communicator_t* comm, unsigned index);
 
 /// \brief A function for broadcasting a message to all members of
 /// a communicator
 void mp_broadcast(communicator_t* comm, coreid_t root);
+
+void mp_broadcast_shm(communicator_t* comm, coreid_t root);
 
 #endif /* _MP_H_ */

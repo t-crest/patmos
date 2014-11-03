@@ -44,8 +44,10 @@
 /// be changed by defining it before including coreset.h. Should be a
 /// power of 2.
 #ifndef CORESET_SIZE
-#define CORESET_SIZE 64
+#define CORESET_SIZE 32
 #endif
+
+#if CORESET_SIZE > 32
 
 typedef unsigned long int __core_mask;
 #define __ELEMBITS (8 * sizeof (__core_mask))
@@ -96,5 +98,55 @@ static inline int coreset_empty(const coreset_t* set) {
   }
   return is_empty;
 }
+
+#elif CORESET_SIZE == 32
+
+typedef unsigned long int __core_mask;
+#define __ELEMBITS (8 * sizeof (__core_mask))
+#define __ELEMCNT  ((CORESET_SIZE) / __ELEMBITS)
+
+/// \brief A type to describe a set of cores.
+typedef struct {
+  __core_mask __bits;
+} coreset_t;
+
+/// \brief Remove all cores from the set.
+/// \param set A set of cores.
+static inline void coreset_clearall(coreset_t *set) {
+  set->__bits = 0;
+}
+/// \brief Add a core to the set.
+/// \param core A core number.
+/// \param set A set of cores.
+static inline void coreset_add(unsigned core, coreset_t *set) {
+  set->__bits |= (1 << (core % __ELEMBITS));
+}
+/// \brief Remove a core from the set.
+/// \param core A core number.
+/// \param set A set of cores.
+static inline void coreset_remove(unsigned core, coreset_t *set) {
+  set->__bits &= ~(1 << (core % __ELEMBITS));
+}
+
+/// \brief Determins whether the set contains the core.
+/// \param core A core number.
+/// \param set A set of cores.
+/// \returns Non-zero if a core is in the set, zero otherwise.
+static inline int coreset_contains(unsigned core, const coreset_t *set) {
+  return set->__bits & (1 << (core % __ELEMBITS));
+}
+
+/// \brief Determins whether the set is empty.
+/// \param set A set of cores.
+/// \returns Non-zero if the coreset is empty, zero otherwise.
+static inline int coreset_empty(const coreset_t* set) {
+  int is_empty = 1;
+  if(set->__bits != 0) {
+    is_empty = 0;
+  }
+  return is_empty;
+}
+
+#endif
 
 #endif /* _CORESET_H_ */

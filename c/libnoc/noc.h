@@ -177,7 +177,7 @@ void noc_multisend(unsigned cnt, unsigned rcv_id [], volatile void _SPM *dst [],
 /// \param dst An array with pointers to the destinations of the transfer.
 /// \param src A pointer to the source of the transfer.
 /// \param size The size of data to be transferred, in bytes.
-void noc_multisend_cs(coreset_t receivers, volatile void _SPM *dst[],
+void noc_multisend_cs(coreset_t *receivers, volatile void _SPM *dst[],
                      unsigned offset, volatile void _SPM *src, unsigned len);
 
 void noc_wait_dma(coreset_t receivers);
