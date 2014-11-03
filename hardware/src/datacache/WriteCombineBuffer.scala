@@ -52,9 +52,9 @@ class WriteCombineBuffer() extends Module {
     val slave = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
   }
 
-  val addrWidth = io.writeMaster.M.Addr.width
-  val dataWidth = io.writeMaster.M.Data.width
-  val byteEnWidth = io.writeMaster.M.ByteEn.width
+  val addrWidth = io.writeMaster.M.Addr.getWidth()
+  val dataWidth = io.writeMaster.M.Data.getWidth()
+  val byteEnWidth = io.writeMaster.M.ByteEn.getWidth()
   val burstLength = io.readMaster.burstLength
   val burstAddrBits = log2Up(burstLength)
   val byteAddrBits = log2Up(dataWidth/8)
