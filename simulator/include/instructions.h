@@ -122,14 +122,6 @@ namespace patmos
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
     }
-
-    /// Pipeline function to simulate the behavior of a decoupled 
-    /// instruction running in parallel to the pipeline.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void dMW(simulator_t &s, instruction_data_t &ops) const
-    {
-    }
   };
 
   /// Abstract base class of predicated instructions, i.e., all instructions
@@ -1110,44 +1102,6 @@ namespace patmos
   };
 
 
-  /// Wait for memory operations to complete.
-  class i_spcw_t : public i_pred_t
-  {
-  public:
-    /// Print the instruction to an output stream.
-    /// @param os The output stream to print to.
-    /// @param ops The operands of the instruction.
-    /// @param symbols A mapping of addresses to symbols.
-    virtual void print(std::ostream &os, const instruction_data_t &ops,
-                       const symbol_map_t &symbols) const
-    {
-      printPred(os, ops.Pred);
-      os << "waitm";
-    }
-
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the DR pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void DR(simulator_t &s, instruction_data_t &ops) const
-    {
-      bit_t Pred = s.PRR.get(ops.Pred).get();
-
-      if (Pred)
-      {
-        if (s.Is_decoupled_load_active)
-        {
-          // stall the pipeline
-          s.pipeline_stall(SDR);
-        }
-      }
-    }
-
-    // EX inherited from NOP
-
-    // MW inherited from NOP
-  };
-
   /// Move a value from a general purpose register to a special purpose
   /// register.
   class i_spct_t : public i_pred_t
@@ -1503,141 +1457,6 @@ namespace patmos
   LD_INSTR(lwum, s.Memory, uword_t, uword_t)
   LD_INSTR(lhum, s.Memory, uhword_t, uword_t)
   LD_INSTR(lbum, s.Memory, ubyte_t, uword_t)
-
-
-  /// Base class for memory load instructions.
-  class i_dldt_t : public i_pred_t
-  {
-  public:
-    virtual bool is_load() const { return true; }
-    
-    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
-      return ops.OPS.LDT.Ra;
-    }
-
-    /// load the value from memory.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param address The address of the memory access.
-    /// @param value If the function returns true, the loaded value is returned
-    /// here.
-    /// @return True if the value was loaded, false if the value is not yet
-    /// available and stalling is needed.
-    virtual bool load(simulator_t &s, word_t address, word_t &value) const = 0;
-
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the DR pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void DR(simulator_t &s, instruction_data_t &ops) const
-    {
-      ops.DR_Pred = s.PRR.get(ops.Pred).get();
-      ops.DR_Rs1 = s.GPR.get(ops.OPS.LDT.Ra);
-
-      if (ops.DR_Pred && s.Is_decoupled_load_active)
-      {
-        // stall the pipeline
-        s.pipeline_stall(SDR);
-      }
-    }
-
-    // EX implemented by base class
-
-    // MW inherited from NOP
-
-    /// Pipeline function to simulate the behavior of a decoupled load
-    /// instruction running in parallel to the pipeline.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void dMW(simulator_t &s, instruction_data_t &ops) const
-    {
-      assert(s.Is_decoupled_load_active);
-
-      // load from memory
-      word_t result;
-      bool is_available = load(s, ops.EX_Address, result);
-
-      // the value is already available?
-      if (is_available)
-      {
-        // TODO this is a very quick hack for now, should be moved to a 
-        //      Debug class (see stores).
-        if (!s.Debug_mem_address.empty() &&
-            s.Debug_mem_address.count(ops.EX_Address))
-        {
-          std::cerr << "*** Load: " << result 
-                    << " = [0x" << std::hex << ops.EX_Address << std::dec << " ";
-          s.Symbols.print(std::cerr, ops.EX_Address);
-          std::cerr << "] (PC: 0x" 
-                    << std::hex << s.PC << std::dec << ", cycle: " << s.Cycle << ")\n";
-        }
-        
-        // store the loaded value by writing it into a by-pass
-        s.SPR.set(sm, result);
-        s.Decoupled_load = instruction_data_t();
-        s.Is_decoupled_load_active = false;
-      }
-    }
-
-    /// Print the instruction to an output stream.
-    /// @param os The output stream to print to.
-    /// @param ops The operands of the instruction.
-    /// @param symbols A mapping of addresses to symbols.
-    virtual void print_operands(const simulator_t &s, std::ostream &os, 
-		       const instruction_data_t &ops,
-                       const symbol_map_t &symbols) const
-    {
-      printGPReg(os, "in: " , ops.OPS.LDT.Ra, ops.DR_Rs1, s);
-      os << boost::format(" addr: %1$08x ") % ops.EX_Address;
-      symbols.print(os, ops.EX_Address);
-    }    
-  };
-
-#define DLD_INSTR(name, base, atype, ctype) \
-  class i_ ## name ## _t : public i_dldt_t \
-  { \
-  public:\
-    virtual void print(std::ostream &os, const instruction_data_t &ops, \
-                       const symbol_map_t &symbols) const \
-    { \
-      printPred(os, ops.Pred); \
-      os << boost::format("%1% sm = [r%2% + %3%]") % #name \
-          % ops.OPS.LDT.Ra % ops.OPS.LDT.Imm; \
-      symbols.print(os, ops.EX_Address); \
-    } \
-    virtual void EX(simulator_t &s, instruction_data_t &ops) const \
-    { \
-      ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1) + ops.OPS.LDT.Imm*sizeof(atype); \
-      if (ops.DR_Pred) \
-      { \
-        assert(!s.Is_decoupled_load_active); \
-        s.Decoupled_load = ops; \
-        s.Is_decoupled_load_active = true; \
-      } \
-    } \
-    virtual bool load(simulator_t &s, word_t address, word_t &value) const \
-    { \
-      atype tmp; \
-      if ((address & (sizeof(atype) - 1)) != 0) \
-        simulation_exception_t::unaligned(address); \
-      bool is_available = base.read_fixed(s, address, tmp); \
-      value = (ctype)from_big_endian<big_ ## atype>(tmp); \
-      return is_available; \
-    } \
-  };
-
-  DLD_INSTR(dlwc , s.Data_cache, word_t, word_t)
-  DLD_INSTR(dlhc , s.Data_cache, hword_t, word_t)
-  DLD_INSTR(dlbc , s.Data_cache, byte_t, word_t)
-  DLD_INSTR(dlwuc, s.Data_cache, uword_t, uword_t)
-  DLD_INSTR(dlhuc, s.Data_cache, uhword_t, uword_t)
-  DLD_INSTR(dlbuc, s.Data_cache, ubyte_t, uword_t)
-
-  DLD_INSTR(dlwm , s.Memory, word_t, word_t)
-  DLD_INSTR(dlhm , s.Memory, hword_t, word_t)
-  DLD_INSTR(dlbm , s.Memory, byte_t, word_t)
-  DLD_INSTR(dlwum, s.Memory, uword_t, uword_t)
-  DLD_INSTR(dlhum, s.Memory, uhword_t, uword_t)
-  DLD_INSTR(dlbum, s.Memory, ubyte_t, uword_t)
 
   /// Base class for memory store instructions.
   class i_stt_t : public i_pred_t

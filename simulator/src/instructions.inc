@@ -82,7 +82,6 @@
     MK_INSTR(bcopy, alub, -1)
 
     // SPC
-    MK_NINSTR(spcw, wait, spcw, 0)
     MK_NINSTR(spct, mts , spct, 0)
     MK_NINSTR(spcf, mfs , spcf, 0)
 
@@ -107,17 +106,6 @@
     MK_INSTR(lbul , ldt, 17)
     MK_INSTR(lbuc , ldt, 18)
     MK_INSTR(lbum , ldt, 19)
-
-    MK_INSTR(dlwc , ldt, 20)
-    MK_INSTR(dlwm , ldt, 21)
-    MK_INSTR(dlhc , ldt, 22)
-    MK_INSTR(dlhm , ldt, 23)
-    MK_INSTR(dlbc , ldt, 24)
-    MK_INSTR(dlbm , ldt, 25)
-    MK_INSTR(dlhuc, ldt, 26)
-    MK_INSTR(dlhum, ldt, 27)
-    MK_INSTR(dlbuc, ldt, 28)
-    MK_INSTR(dlbum, ldt, 29)
 
     // STT
     MK_SINSTR(sws, stt,  0)

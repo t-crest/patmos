@@ -65,9 +65,6 @@ Errors : 0")
 test_asm(19 "Emitted: 28 bytes
 Errors : 0")
 
-test_asm(20 "Emitted: 40 bytes
-Errors : 0")
-
 test_asm(21 "Emitted: 92 bytes
 Errors : 0")
 
@@ -225,8 +222,6 @@ test_sim(17 "Stack size exceeded at 00000024")
 test_sim(18 "Stack size exceeded at 0000000c")
 
 test_sim(19 "r1 : 00000007")
-
-test_sim(20 "r1 : 0281fa81   r2 : 8281fa82")
 
 test_sim(21 "BASE: 00000004   PC : 0000005c.*
 .*r1 : 0000003c")

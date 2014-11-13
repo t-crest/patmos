@@ -143,12 +143,6 @@ namespace patmos
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
     virtual void MW(simulator_t &s, instruction_data_t &ops) const = 0;
-
-    /// Pipeline function to simulate the behavior of a decoupled load
-    /// instruction running in parallel to the pipeline.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void dMW(simulator_t &s, instruction_data_t &ops) const = 0;
   };
 
   /// Data structure to keep data of instructions while executing.
@@ -455,12 +449,6 @@ namespace patmos
     static instruction_data_t mk_SPCn(const instruction_t &i, PRR_e pred,
                                       word_t imm);
 
-    /// Create an SPCw instruction without operands.
-    /// @param i The instruction.
-    /// @param pred The predicate register under which the instruction is
-    /// executed.
-    static instruction_data_t mk_SPCw(const instruction_t &i, PRR_e pred);
-
     /// Create an SPCt instruction with a register operand and a special
     /// register destination.
     /// @param i The instruction.
@@ -608,14 +596,6 @@ namespace patmos
     {
       if (I)
         I->MW(s, *this);
-    }
-
-    /// Invoke the dMW simulation function.
-    /// @param s The Patmos simulator executing the instruction.
-    void dMW(simulator_t &s)
-    {
-      if (I)
-        I->dMW(s, *this);
     }
   };
 }

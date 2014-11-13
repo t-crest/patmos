@@ -63,7 +63,7 @@ namespace patmos
       Stack_cache(stack_cache), Symbols(symbols), Dbg_stack(*this),
       Exception_handler(excunit),
       BASE(0), PC(0), nPC(0), Debug_last_PC(0),
-      Stall(SXX), Disable_IF(false), Is_decoupled_load_active(false), 
+      Stall(SXX), Disable_IF(false),
       Delay_counter(0), Halt(false), 
       Exception_handling_counter(0),
       Flush_Cache_PC(std::numeric_limits<unsigned int>::max()), Num_NOPs(0)
@@ -337,16 +337,6 @@ namespace patmos
         // MW stage might need the nPC from instruction fetch for return info.
         if (!Disable_IF) {
           instruction_fetch();
-        }
-
-        // simulate decoupled load
-        Decoupled_load.dMW(*this);
-
-        if (debug_pipeline)
-        {
-          debug_out << "dMW: ";
-          Decoupled_load.print(debug_out, Symbols);
-          debug_out << "\n";
         }
 
         // invoke simulation functions

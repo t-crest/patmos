@@ -299,11 +299,11 @@ bypass the data cache.
 The register files available in Patmos are depicted by
 Figure~\ref{fig:registers}. In short, Patmos offers:
 \begin{itemize}
-  \item 32, 32-bit general-purpose registers (\texttt{R}) : \texttt{r0}, \ldots, \texttt{r31} \\
+  \item 32, 32-bit general-purpose registers (\texttt{R}) : \texttt{r0}, \dots, \texttt{r31} \\
     \texttt{r0} is read-only, set to zero (\texttt{0}).
-  \item 8, single-bit predicate registers (\texttt{P}): \texttt{p0}, \ldots, \texttt{p7}, \\
+  \item 8, single-bit predicate registers (\texttt{P}): \texttt{p0}, \dots, \texttt{p7}, \\
     \texttt{p0} is read-only, set to \texttt{true} (\texttt{1}).
-  \item 16, 32-bit special-purpose registers (\texttt{S}): \texttt{s0}, \ldots, \texttt{s15}
+  \item 16, 32-bit special-purpose registers (\texttt{S}): \texttt{s0}, \dots, \texttt{s15}
 \end{itemize}
 
 The general-purpose registers \texttt{R} are read in the \code{DEC} stage
@@ -358,9 +358,6 @@ registers:
     \emph{all} predicate registers at once. The other bits of that
     register are currently reserved, but not used. Setting the reserved
 	bits has no effect.
-  \item \texttt{s1} can also be accessed through the name \texttt{sm} and
-    represents the result of a decoupled load operation. The value is
-    already sign-/zero-extended according to the load instruction.
   \item \texttt{s2} and \texttt{s3} can also be accessed through the names
     \texttt{sl} and \texttt{sh} and represent the lower and upper
     32-bits a multiplication.
@@ -433,7 +430,7 @@ we switch contexts.}
       \begin{bytefield}[bitwidth=.59em]{32}
         \bitheader{0-31} \\
         \bitbox{24}{reserved} \bitbox{8}{p7 \dots p0} \bitbox[]{4}{s0} \\
-        \bitbox{32}{sm (load result)} \bitbox[]{4}{s1} \\
+        \bitbox{32}{s1} \\
         \bitbox{32}{sl (mul low)} \bitbox[]{4}{s2} \\
         \bitbox{32}{sh (mul high)} \bitbox[]{4}{s3} \\
         \bitbox{32}{s4} \\
@@ -569,12 +566,6 @@ of the instruction format. Black fields are not used.
         \end{bytefield}
 
         \begin{bytefield}[leftcurly=.]{32}
-          \begin{leftwordgroup}{\parbox{11em}{SPCw -- Wait}}
-            \bitheader{0-31} \\
-            \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} &
-            \bitbox{15}{\bitsunused} &
-            \bitbox{3}{001} & \bitbox{4}{Func}
-          \end{leftwordgroup} \\
           \begin{leftwordgroup}{\parbox{11em}{SPCt -- Move To Special}}
             \bitheader{0-31} \\
             \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} &
@@ -959,34 +950,6 @@ predicate (\texttt{cmpnez}), as well as mov from register bit to predicate (\tex
 mov from predicate to register (is now a predicated set and predicated clr), and mov from predicate to register bit (is now done with
 bitmasks).}
 
-%Applies to the SPCn format only. Issue \texttt{Imm} NOP
-%operations to the pipeline. The main idea is to save code size, however, the
-%multi-cycle NOP might also be used to enforce certain timing constraints, e.g.,
-%wait for a certain amount of time, ensure a minimal execution time, et cetera.
-%
-%\begin{itemize}
-%  \item SPCn -- NOP \\[2ex]
-%        \begin{bytefield}{32} \bitheader{0-31}\\ \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} & \bitbox{15}{\bitsunused} & \bitbox{3}{000} & \bitbox{4}{Imm} \end{bytefield}\\
-%\end{itemize}
-%
-%\paragraph{Behavior}
-%\begin{itemize}
-%  \item[\texttt{IF}] --
-%  \item[\texttt{DR}] Read register operands \texttt{Pred}.\\
-%                     \texttt{tmp} = \texttt{Pred} ? \texttt{Imm} : 0. \\
-%                     while (\texttt{tmp}-\,- != 0) \{ stall \texttt{DR}; next cycle; \}
-%  \item[\texttt{EX}] --
-%  \item[\texttt{MW}] --
-%\end{itemize}
-%
-%\paragraph{Note}
-%
-%A NOP can only be issued at the first position within a bundle. This does in no
-%way restrict the use of the NOP. It can always be scheduled in the next/previous
-%bundle, while incrementing/decrementing the number of NOP cycles accordingly;
-%the code size is in both cases not increased.
-
-
 \clearpage
 \subsection{Bitcopy}
 
@@ -1016,47 +979,6 @@ can be inverted.
 The predicate register is read in the execute stage.
 
 \clearpage
-\subsection{Wait}
-
-Applies to the SPCw format only. Wait for a multiplication or memory
-operation to complete by stalling the
-pipeline. Table~\ref{tab:waitfunc} shows the encoding of the
-\code{func} field.
-
-\begin{itemize}
-  \item SPCw -- Wait \\[2ex]
-    \begin{bytefield}{32}
-      \bitheader{0-31} \\
-      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01001} &
-      \bitbox{15}{\bitsunused} &
-      \bitbox{3}{001} & \bitbox{4}{Func} \\
-    \end{bytefield}
-\end{itemize}
-
-\begin{table}[hb]
-  \centering
-  \begin{tabular}{lll}
-    \toprule
-    Func & Name     & Semantics \\
-    \midrule
-    0000 & wait.mem & Wait for a memory access \\
-    0001 & ---    & unused \\
-    \dots& \dots  & \dots \\
-    1111 & ---    & unused \\
-    \bottomrule
-  \end{tabular}
-  \caption{Wait function encoding}
-  \label{tab:waitfunc}
-\end{table}
-
-\paragraph{Note}
-
-A Wait can only be issued at the first position within a bundle.
-This instruction is not (yet) implemented in hardware as we do not
-(yet) support split loads. \martin{And maybe we will never do as
-the gain is not worth the effort.}
-
-\clearpage
 \subsection{Move To Special}
 
 Applies to the SPCt format only. Copy the value of a general-purpose
@@ -1078,29 +1000,8 @@ register to a special-purpose register. The only instruction is
 
 \paragraph{Note}
 
-
-
-Special registers \texttt{sm}, \texttt{sl}, \texttt{sh} are read-only, writing
-to those registers may result in undefined behavior.
-
-\stefan{What should we do in case of a context switch? We would either need to restart the last load and multiply, or restore all special registers..}
-\martin{Restart sounds problematic. I would say the special registers are part of the context and need to be saved and
-than writable.}
-
-\wolf{Saving \texttt{sm} can be faked by storing the contents of
-  \texttt{sm} to a reserved memory location and loading from there to
-  restore it. \texttt{sl} and \texttt{sh} should be writable though.}
-
 \martin{\todo{We should document in which stage each special register
 is read and written.}}
-
-%\martin{But I don't think we need a 64-bit result in the
-%multiplication. No direct support in C. If we do want to support more fancy
-%DSP stuff I would actually go for a MAC operation. But not for now...}
-%
-%\wolf{The 64-bit result is already implemented in the hardware, so I guess we can keep it...}
-%
-%\martin{Yes. Thanks.} -- Text can be removed after reading
 
 \clearpage
 \subsection{Move From Special}
@@ -1120,15 +1021,6 @@ to general-purpose register \texttt{Rd}.
     \end{bytefield}
 \end{itemize}
 
-\fb{It would make sense to merge the \texttt{wait} instructions with this
-    instruction?!? This could also simplify the definition of decoupled loads.}
-
-\stefan{This would be a good thing.
-On the other hand, if this also means that this instruction can only be issued as first operation, according to the definition of wait
-above, then we cannot read the result of a split load and start the next load in the same cycle.
-
-Are we able to issue two \texttt{mfs} ops in one cycle (e.g., read return base and return offset in the same cycle)?}
-
 \clearpage
 \subsection{Load Typed}
 \label{subsec:load_typed}
@@ -1136,21 +1028,10 @@ Are we able to issue two \texttt{mfs} ops in one cycle (e.g., read return base a
 Applies to the LDT format only. Load from a memory or
 cache. In the table accesses to the stack cache are denoted by \texttt{sc}, to
 the local scratchpad memory by \texttt{lm}, to the date cache by \texttt{dc},
-and to the global shared memory by \texttt{gm}. By default all load variants are
-considered with an implicit \texttt{wait} -- which causes the load to stall
-until the memory access is completed.
+and to the global shared memory by \texttt{gm}. All load variants are
+considered to stall until the memory access is completed.
 
-In addition, \emph{decoupled} loads are provided that do \emph{not wait} for the
-memory access to be completed. The result is then loaded into the special
-register \texttt{sm}. A dedicated \texttt{wait.mem} instruction can be used to
-stall the pipeline explicitly until the load is completed.
-
-If a decoupled load is executed while another decoupled load is still in
-progress, the pipeline will be stalled implicitly until the already running load
-is completed before the next memory access is issued. The value of the previous
-load can then be read from \texttt{sm} for (at least) one cycle.
-
-Regular loads incur a load-to-use latency that has to be respected by
+Loads incur a load-to-use latency that has to be respected by
 the compiler/programmer. The result of the load is not available in
 the bundle immediately after the load, i.e., there must be one bundle
 between the load instruction and the first use of the destination
@@ -1195,19 +1076,9 @@ The displacement value (\code{Imm}) value is interpreted unsigned.
   100 \textbar~10 & lbuc   & \texttt{Rd=(uint32\_t)dc[Ra+Imm]$_{8}$} \\
   100 \textbar~11 & lbum   & \texttt{Rd=(uint32\_t)gm[Ra+Imm]$_{8}$} \\
   \cmidrule{1-3}
-  1010 \textbar~0 & dlwc   & \texttt{sm=dc[Ra+(Imm \shl 2)]$_{32}$} \\
-  1010 \textbar~1 & dlwm   & \texttt{sm=gm[Ra+(Imm \shl 2)]$_{32}$} \\
-  1011 \textbar~0 & dlhc   & \texttt{sm=(int32\_t)dc[Ra+(Imm \shl 1)]$_{16}$} \\
-  1011 \textbar~1 & dlhm   & \texttt{sm=(int32\_t)gm[Ra+(Imm \shl 1)]$_{16}$} \\
-  1100 \textbar~0 & dlbc   & \texttt{sm=(int32\_t)dc[Ra+Imm]$_{8}$} \\
-  1100 \textbar~1 & dlbm   & \texttt{sm=(int32\_t)gm[Ra+Imm]$_{8}$} \\
-  1101 \textbar~0 & dlhuc  & \texttt{sm=(uint32\_t)dc[Ra+(Imm \shl 1)]$_{16}$} \\
-  1101 \textbar~1 & dlhum  & \texttt{sm=(uint32\_t)gm[Ra+(Imm \shl 1)]$_{16}$} \\
-  1110 \textbar~0 & dlbuc  & \texttt{sm=(uint32\_t)dc[Ra+Imm]$_{8}$} \\
-  1110 \textbar~1 & dlbum  & \texttt{sm=(uint32\_t)gm[Ra+Imm]$_{8}$} \\
-  \cmidrule{1-3}
-  11110 & ---    & unused \\
-  11111 & ---    & unused \\
+  101 \textbar~00 & --- & unused \\
+  \dots & \dots & \dots \\
+  111 \textbar~11 & --- & unused \\
   \bottomrule
 \end{tabular}
 \caption{Typed loads}
@@ -1229,15 +1100,6 @@ Therefore, we shall not read when the predicate is false.}
 \paragraph{Note}
 
 All loads can only be issued on the first slot.
-
-Two successive decoupled loads can be used in the following manner without the
-use of an additional \texttt{wait} instruction:
-
-\texttt{~~dlwc   [\$r1 + 5]}
-
-\texttt{~~...}
-
-\texttt{\{ dlwc   [\$r2 + 7]   ;   mfs  \$r2 = \$sm \}}
 
 \clearpage
 \subsection{Store Typed} Applies to the STT format only. Store to a memory or
@@ -1804,10 +1666,10 @@ the operating system), exceptions 16 to 32 are attached to interrupts.
     \cmidrule{1-3}
     \texttt{0xf0000180} & \texttt{vec<0>} & Address of exception handler 0, illegal operation \\
     \texttt{0xf0000184} & \texttt{vec<1>} & Address of exception handler 1, illegal memory access \\
-    \ldots & \ldots & \ldots \\
+    \dots & \dots & \dots \\
     \cmidrule{1-3}
     \texttt{0xf00001c0} & \texttt{vec<16>} & Address of exception handler 16, interrupt 0 \\
-    \ldots & \ldots & \ldots \\
+    \dots & \dots & \dots \\
     \texttt{0xf00001fc} & \texttt{vec<31>} & Address of exception handler 31, interrupt 15 \\
     \bottomrule
   \end{tabular}
@@ -2058,7 +1920,7 @@ indirect variants and no suffix for the immediate instructions.
 
 \subsection{Inline Assembly}
 
-Inline assembly syntax is similar to GCC inline assembly. It uses \texttt{\%0}, \texttt{\%1}, \ldots as placeholders
+Inline assembly syntax is similar to GCC inline assembly. It uses \texttt{\%0}, \texttt{\%1}, \dots as placeholders
 for operands. Accepted register constraints are: \texttt{r} or \texttt{R} for any general purpose register, or
 \texttt{\{<registername>\}} to use a specific register.
 
@@ -4248,7 +4110,7 @@ The usage of \texttt{padasm} is \texttt{padasm <input> <output>}.
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 \chapter{Potential Extensions}
 
-\section{Decoupled Loads / Multiply / Wait / Move from Special}
+\section{Multiply / Wait / Move from Special}
 
 \begin{itemize}
   \item Attaching a ready flag with all special registers.
@@ -4642,671 +4504,5 @@ Patmos is the next cool thing in the dry world of real-time systems.
 
 \bibliographystyle{abbrv}
 \bibliography{patbib.bib}
-
-\end{document}
-
-\appendix
-
-
-\chapter{Archived Discussions}
-
-\begin{itemize}
-
-\item ALU immediate (add, or, and, xor), the function is indicated with \emph{ff}: \\
-
-\begin{bytefield}{32}
-\bitheader{0-31}\\
-\bitbox{1}{x} & \bitbox{3}{000} & \bitbox{2}{ff} &
-\bitbox{4}{Pred} & \bitbox{5}{Rd} & \bitbox{5}{Rs1} &
-\bitbox{12}{Constant}\end{bytefield}\\
-
-\begin{tabular}{lll}
-ff & Name & Semantics \\ \hline
-00 & add & Rd = Rs1 + $\sconst$ \\
-01 & or  & Rd = Rs1 \OR $\sconst$ \\
-10 & and & Rd = Rs1 \AND $\sconst$ \\
-11 & xor & Rd = Rs1 \XOR $\sconst$
-\end{tabular}
-
-\stefan{Is Constant sign extended? We have the long immediate ALU instruction anyway, so we do not
-need sign extension here, but then we cannot use this short form for subtraction.}
-\martin{Yes, it is sign extension.}
-\cullmann{Question: for the add, sign extension makes sense, but for the logic stuff, I see no real reason to sign extend, beside that you then only can use 1 bit less of the constant.}
-\fb{Might be a good idea to spend some more bits on \texttt{ff} here -- to merge
-    the \emph{ALU very short immediate} format introduced by Stefan (except for
-    \texttt{rl}). Merge with \texttt{ldi}. \texttt{xor} might not be that
-    relevant here, we could replace it with \texttt{sub} and then consider the
-    constant to be unsigned.}
-
-
-\item ALU function: \\
-
-\begin{bytefield}{32}
-\bitheader{0-31}\\
-\bitbox{1}{x} & \bitbox{5}{00101} &
-\bitbox{4}{Pred} & \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
-\bitbox{7}{0~\textbar~Func}\end{bytefield}\\
-
-\begin{tabular}{lll}
-Function & Name & Semantics \\ \hline
-0000000 & add  & Rd = Rs1 + Rs2 \\
-0000001 & or   & Rd = Rs1 \OR Rs2 \\
-0000010 & and  & Rd = Rs1 \AND Rs2 \\
-0000011 & xor  & Rd = Rs1 \XOR Rs2 \\
-0000100 & sub  & Rd = Rs1 - Rs2 \\
-0000110 & nor  & Rd = \NOT (Rs1 \OR Rs2) \\
-
-0001000 & sl   & Rd = Rs1 \shl Rs2 \\
-0001001 & sr   & Rd = Rs1 \shr Rs2 \\
-0001010 & sra  & Rd = Rs1 \ashr Rs2 \\
-0001011 & rl   & Rd = (Rs1 \shl Rs2) \OR \\
-        &      & \phantom{Rd = }(Rs1 \shr (32-Rs2)) \\
-
-0010000 & carr & Rd = ((uint64\_t)Rs1 + \\
-        &      & \phantom{Rd = }(uint64\_t)Rs2) \shr 32 \\
-0010001 & borr & Rd = ((uint64\_t)Rs1 - \\
-        &      & \phantom{Rd = }(uint64\_t)Rs2) \shr 32 \\
-
-??????? & shadd  & Rd = Rs1 + Rs2 \shl 1 \\
-??????? & shadd2 & Rd = Rs1 + Rs2 \shl 2 \\
-\end{tabular}
-
-\fb{What is the semantic of shifts when \texttt{R2} \textgreater~32 or
-    \texttt{R2} \textless~0? I would suggest to consider the lower 5 bits only.}
-
-\stefan{Wolfgang will probably recognize a lot of this.. I shamelessly copied most of the arithmetic
-and condition stuff from the Lemberg ISA, so that Martin can copy the implementation and I can copy the compiler ;) }
-\martin{Is an ISA under copyright ;-) I'm not sure if I really want all of that, but lets see...}
-
-\stefan{Do we want to have compare instructions that store the result in registers? We could use the same Function code as
-for the compare-to-predicate instruction, including compare with immediate value..}
-\martin{Compare instructions set a predicate.}
-
-\cullmann{Can't we just allow all ALU functions that take 2 arguments in both ways? e.g. one with R and imm, one with R1 and R2. Would make the ISA for ALU instructions more regular.}
-
-
-\item Compare (constant could be Rs2 field). It is predicated and has a
-destination predicate field: \\
-
-\begin{bytefield}{32}
-\bitheader{0-31}\\
-\bitbox{1}{x} & \bitbox{5}{01000} &
-\bitbox{4}{Pred} & \bitbox{2}{\bitsunused} & \bitbox{3}{Pd} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
-\bitbox{7}{Function}\end{bytefield}\\
-
-\begin{tabular}{lll}
-Function & Name & Semantics \\ \hline
-??????? & cmpz  & Pd = Rs1 ==  0 \\
-??????? & cmpnz  & Pd = Rs1 !=  0 \\
-0100000 & cmpeq  & Pd = Rs1 ==  Rs2 \\
-0100001 & cmpne  & Pd = Rs1 != Rs2 \\
-0100010 & cmplt  & Pd = Rs1 \textless Rs2 \\
-0100011 & cmple  & Pd = Rs1 \textless= Rs2 \\
-0100100 & cmpult & Pd = Rs1 \textless Rs2, unsigned \\
-0100101 & cmpule & Pd = Rs1 \textless= Rs2, unsigned \\
-0100110 & btest  & Pd = (Rs1 \AND (1 \shl Rs2)) != 0 \\
-\end{tabular}
-
-If the MSB in the Function field is set, use Rs2 as immediate value.
-
-\stefan{We could use bits 3-4 to define wired-AND/OR combination operation, like
-
-\begin{tabular}{lll}
-Function & Name & Semantics \\ \hline
-0100xxx & uncond & Pd = (Rs1 op Rs2) \\
-0101xxx & and    & Pd \AND= (Rs1 op Rs2) \\
-0110xxx & or     & Pd \OR= (Rs1 op Rs2) \\
-\end{tabular}
-}
-
-\daniel{The idea of this was that one can compute a predicate for an expression like
-the following by implementing the definition type with wired semantics,
-i.e. with wired-AND, 0 is only written to Pd if (Rs1 op Rs2) evaluates to false,
-whereas if it evaluates to true, Pd remains untouched by the operation.
-}
-\begin{verbatim}
-  if (a<b && b<c) { ..
-
-the boolean expr becomes ($p1 needs to be
-initialized somewhere previously)
-
-  cmplt_AND $p1, a, b
-  cmplt_AND $p1, b, c
-  ;;
-\end{verbatim}
-
-\daniel{Likewise with OR that does not write 0 but only 1 if the comparison evals to true.\\
-To make it complete, we'd need also complement variants, i.e. a NAND that
-only writes 0 to the Pd if the comparison evaluates to true (likewise NOR).\\
-Maybe we could abuse bit 20 or 21 for this? Could make cmpne superfluous.
-}
-\fb{The \texttt{\&=} and \texttt{\textbar=} variants would require an additional
-    register port for the predicate register file -- not sure it the overhead is
-    negligible.}
-
-\daniel{For single-path code generation (and if-conversion in general), an additional variant for predicate definition
-(\texttt{cmpXX}) is useful. The standard semantics is \texttt{if Pred then Pd := Rs1 op Rs2}. In a block guarded by Pred,
-if we compute predicates for an if-statement, the predicate \texttt{Pd} for the then-block would be \texttt{Pred $\wedge$ (Rs1 op Rs2)} and for the
-else-block \texttt{Pred $\wedge$ $\neg$(Rs1 op Rs2)}. Note that with the semantics above, \texttt{Pd} needs to be initialised to false.
-Directly $\wedge$-ing the Pred and comparison result to define Pd could avoid explicit initialisation.
-Ideally, the compare instruction would accept two \texttt{Pd}s, one for $\wedge$-ing Pred with the comparison result and one for $\wedge$-ing Pred
-with the negation of the comparison result, but I guess this is infeasible to encode and implement in hardware,
-and we'll need to use predicate combination for that purpose.
-}
-
-\stefan{
-In case we run out of opcodes, we could consider to use only 3 bits for \texttt{Pred}, allow only \texttt{if (Pd)} predicate, use the
-bit for opcode or \texttt{Func}/\texttt{Offset} instead, and use either bit 20 or bit 3 to negate the result of the comparison, i.e.,
-do \texttt{Pd = !(Rs1 op Rs2)} if that bit is set, instead of \texttt{cmpnez} and \texttt{cmpne}.}
-
-
-\item Multicycle NOP: \\
-
-\begin{bytefield}{32}
-\bitheader{0-31}\\
-\bitbox{1}{x} & \bitbox{5}{01010} &
-\bitbox{4}{Pred} & \bitbox{5}{\bitsunused} & \bitbox{5}{\bitsunused} & \bitbox{5}{count} &
-\bitbox{7}{\bitsunused} \end{bytefield}\\
-
-\stefan{Predicated multicycle nop? Creepy.. However, it might actually make sense to
-issue the nop together with another operation (like a branch), so we could do stuff like
-
-  \begin{tabular}{ll}
-    Pipeline A & Pipeline B \\
-    \hline
-    \texttt{if (c1) br addrA} & \texttt{if (c1) nop 5} \\
-    \ldots & \\
-    \texttt{if (c2) mul r1, r2} & \texttt{if (c2) nop 3} \\
-    \texttt{if (c2) ldx r3, \$mul}
-  \end{tabular}
-
-Therefore it would be nice to be able to issue the nop in both pipelines.
-}
-
-\cullmann{For timing analysis, I see no benefit in specifying a time for the nop.}
-\stefan{It should save a lot of code size though, since most instructions are not intended to stall or to detect hazards (branch, mul, call,
-..).}
-
-
-\item Wait instruction: \\
-
-\begin{bytefield}{32}
-\bitheader{0-31}\\
-\bitbox{1}{x} & \bitbox{5}{01110} &
-\bitbox{4}{Pred} &
-\bitbox{22}{\bitsunused} \end{bytefield}\\
-
-Wait for the current memory transaction to finish.
-
-\cullmann{For our analysis and in practice, blocking loads would be in my eyes more interesting than explicit waits.
-It is true that if you know that e.g. it will be a cache hit you might save to emit the wait, but with blocking loads, you will never need them.
-}
-\stefan{I agree that we do want to have blocking loads in our ISA. However, the advantage of split loads is that in case of a cache miss, we
-can hide some other instructions, therefore I would argue that we would like to have both in the ISA (if starting a load should wait for the
-previous memory transaction to finish is a different question though, since in case of a cache hit we would not need to wait for a store to
-complete, but having to insert a wait between each store and load explicitly maybe hurts even more due to instruction cache miss costs..
-should be evaluated). In any case, we still need a generic 'wait for memory' instruction, since we need it to
-\begin{itemize}
-\item wait for scratchpad load / store, instruction cache loads, ..
-\item wait for all memory transactions to finish at the end of basic blocks /.. to make the timing of the next blocks independent from the
-previous block (as much as possible), so that we can estimate the WCET of some code in the compiler during optimization more easily.. On the
-other hand, we should just try to get our ISA free of timing anomalies.
-\end{itemize}
-}
-
-\item Multiply: \\
-
-\begin{bytefield}{32}
-\bitheader{0-31}\\
-\bitbox{1}{x} & \bitbox{5}{01101} &
-\bitbox{4}{Pred} & \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
-\bitbox{7}{\bitsunused} \end{bytefield}\\
-
-Start multiplication of Rs1 * Rs2. Result is stored to a special register after a fixed number of cycles.
-
-\cullmann{For the analysis, it makes no difference, but for later use, would a blocking multiply not be more easy?}
-
-
-\item Load with a memory type: \\
-
-\begin{bytefield}{32}
-\bitheader{0-31}\\
-\bitbox{1}{x} & \bitbox{5}{01001} &
-\bitbox{4}{Pred} & \bitbox{5}{Rd} & \bitbox{5}{Ra} &
-\bitbox{5}{Type} & \bitbox{7}{Offset}\end{bytefield}\\
-
-\medskip
-
-\begin{tabular}{lll}
-Type  & Mnemonic   & Operation \\ \hline
-xx100 & ldm.bypass & Bypass caches, load from  \\
-      &            & main memory to Rd, impl.\ wait \\
-xx101 & ldm.dm     & Direct-mapped cache, load from \\
-      &            & main memory, impl.\ wait on miss \\
-xx110 & ldm.fa     & Fully-assoc.\ cache, load from \\
-      &            & main memory, impl.\ wait on miss \\
-xx010 & ldm.sc     & Stack cache, always hit (no wait) \\
-xx001 & ldm.sp     & Scratchpad, always hit (no wait) \\
-00xxx &            & Load word \\
-01xxx &            & Load half-word \\
-10xxx &            & Load byte \\
-11100 & ldm.split  & Start Split-load from main-memory, \\
-      &            & aligned, implicit wait \\
-\end{tabular}
-
-Address register Ra counts in bytes, Offset counts in natural word length (4 bytes for a word).
-
-ldm.sp can be issued in both pipelines, the others only in the first pipeline.
-
-\daniel{If offset is in word length, what do load word/half-word/byte mean?
-Only from starting at byte 0?  MIPS offers st/ld for word, half-word, byte as
-well, with byte offset addressing.
-I see two solutions: offset in bytes (range -64 to 63 as +/-16 words, ouch), or,
-we could, to be consistent with the \texttt{ldx} instruction, offer an extract
-instruction that extracts half-word/byte from a register with an offset. Not as
-much code bloat as shift/and.  }
-\daniel{Okay, one can use byte offsets from Ra, but this somehow destroys the concept of base address\ldots}
-
-
-
-
-\item Store with a memory type: \\
-
-\begin{bytefield}{32}
-\bitheader{0-31}\\
-\bitbox{1}{x} & \bitbox{5}{01010} &
-\bitbox{4}{Pred} & \bitbox{5}{Type} & \bitbox{5}{Ra} & \bitbox{5}{Rs} &
-\bitbox{7}{Offset} \end{bytefield}\\
-
-Address register Ra counts in bytes, Offset counts in natural word length (4 bytes for a word).
-
-\begin{tabular}{lll}
-Type  & Mnemonic & Operation \\ \hline
-xx111 & st.mem   & Store to memory, update caches \\
-      &          & which contain the word \\
-xx001 & st.sc    & Stack cache, no write through to \\
-      &          & main memory, never wait \\
-xx010 & st.sp    & Scratchpad, no write through to \\
-      &          & main memory, never wait \\
-00xxx &          & Store word \\
-01xxx &          & Store half-word \\
-10xxx &          & Store byte
-\end{tabular}
-
-\texttt{st.mem} always writes through to memory and stalls at the start of the operation if the memory bus is not ready.
-Storing is performed in two stages:
-\begin{enumerate}
-\item cache update; within one cycle (or a fixed number of cycles)
-\item write to memory
-\end{enumerate}
-For \texttt{st.sp, st.sc} stage 2 is omitted -- hence no interaction with memory bus, never has to wait.  \texttt{st.sc}
-can be issued in both pipelines.
-
-\cullmann{
-Would loads that implicitly wait not make the life easier for the compiler? For the analysis, in any way, we will need to keep track of the load to implement wait.
-For the "good" cases which hit the cache or SPM, an implicit waiting load would have no penalty, but for the "normal" cached main memory access, you would only need one instruction and not up to three (load, wait, move result).
-Beside, it will avoid possible semantic errors which are hard to detect. e.g. you can miss to insert a wait and it will work ok as long as you hit the cache but if by accident, you miss it, you get wrong behavior.
-To create such timing sensitive code would be impossible with stalling loads.
-Beside, I see no benefit in performance and predictability with the split load approach. With blocking loads, you will save instructions, which should increase performance, and for the analysis, we need to implement the waiting anyway.
-}
-
-\daniel{We have reworked the load instructions to offer both a stalling and a split load. We can use a split load whenever we know we will miss the cache.}
-
-%\item xxx: \\
-%
-%\begin{bytefield}{32}
-%\bitheader{0-31}\\
-%\bitbox{1}{x} & \bitbox{5}{00---} &
-%\bitbox{4}{Pred} & \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
-%\bitbox{7}{Function}%\end{bytefield}\\
-
-\end{itemize}
-
-\bigskip
-
-\todo{The above should be generated from a common definition of the ISA (which is used by all parts of the project).}
-
-Some more instructions to be defined: branch and link, load method cache, interrupt handling -- we will support multithreading, therefore the full processor context needs to be save- and restorable,...
-
-\martin{Do we need exceptions? The only two I can think of are null pointer and divide by zero. Is it worth implementing (exact) exceptions for this or do we just leave it to the compiler?}
-
-\wolf{I do not think that we need exceptions besides null pointer and division by zero (and even those could be raised explicitly). But we have to think about the handling of interrupts: What do we do if we get an interrupt between issuing a memory load or the start of a multiplication and retrieving the result? Disable interrupts in between? Make result registers writable so we can restore the original state?}
-
-\wolf{We also need to think about the handling of exceptions on the higher-language level. Can we support Java-style exceptions efficiently?}
-
-
-\cullmann{
-For aiT, we definitely want to have call/return instructions. (they should perhaps even do stuff like save/restore the registers which need to be restored/saved)
-For avionics software, which uses a lot of floating point computations, is any FPU in the todo?
-General: If you lower the bits reserved for predicates, you could use more bits for immediate constants.
-}
-
-
-\section{Memory Accesses}
-
-\wolf{There are (at least) two ways to split memory loads. Explicit wait and
-load: \texttt{ldm addr; wait; dest = ldx \$mem}, or implicit wait:
-\texttt{ldm addr; dest = ldx \$mem}. Depending on the available units,
-the former may allow pipelined memory accesses:
-
-\medskip
-\begin{tabular}{ll}
-  Pipeline A & Pipeline B \\
-  \hline
-  \texttt{ldm addrA} & \\
-  \texttt{wait for rdycnt<=1} & \texttt{ldm addrB} \\
-  \texttt{destA = ldx \$mem} & \\
-  \texttt{ldm addrC} & \texttt{wait for rdycnt<=1} \\
-                     & \texttt{destB = ldx \$mem} \\
-  \texttt{wait for rdycnt<=1} & \\
-  \texttt{destC = ldx \$mem} & \\
-\end{tabular}
-
-\medskip
-Also, the \texttt{ldx} part of the loads can go through the ALU, which
-\emph{might} reduce multiplexing in the forwarding logic (only the
-ALUs ever produce results). The \texttt{wait} could maybe be omitted
-for stack and scratchpad memory accesses.
-
-On the other hand, implicit waiting clearly wins in terms of code size
-and instructions to be executed (more free slots for other stuff).  I
-think that implicit waiting is more profitable for Patmos, but
-educated guesses (or facts\ldots) would be very welcome.}
-
-\martin{I would argue that split loads are only for the main memory and
-caches that \emph{might} miss. Access to stack cache and SPM should
-be a guaranteed hit. BTW: normal memory loads can only be scheduled
-in the first instruction slot -- we have only one l/s unit. However, Florian
-convinced me that double ld/st to the stack can be beneficial for register
-spill and fill. So the plan is to allow stack ld/st (we just need word here....)
-in both slots.}
-
-\wolf{Fast access to the stack is a good idea, the following only
-  applies to ``normal'' memory accesses. Loading the results of all
-  loads via the ALUs would be a cheap way to free the first slot for
-  issuing loads/stores and jumps. There is no real need to put that
-  into the memory unit (is there?). Do you assume that waiting is
-  handled in the l/s unit? In my opinion, a separate stall unit that
-  is accessible from both pipelines would be nice (forwarding does not
-  get more complicated). With implicit waiting, three consecutive
-  accesses could look like this:
-
-  \medskip
-  \begin{tabular}{ll}
-    Pipeline A & Pipeline B \\
-    \hline
-    \texttt{ldm addrA} & \\
-    \texttt{ldm addrB} & \texttt{destA = ldx \$mem} \\
-    \texttt{ldm addrC} & \texttt{destB = ldx \$mem} \\
-                       & \texttt{destC = ldx \$mem} \\
-  \end{tabular}
-}
-
-\section{General Discussion}
-
-\tommy{Martin (jokingly?) told me that Patmos aims to
-beat YARI. I'm all for it as I've been trying to do the same for a long
-time. However I've found it very difficult to beat a simple single-
-issue RISC. Although I think I have the answer, it's a very
-different path from Patmos and I'll not push it here.}
-
-\martin{Partially a joke, partially I really would like to beat it ;-)
-Serious, Patmos will be optimized for WCET and not average
-case performance. On the other side it should no be too slow.}
-
-\tommy{In YARI, fMAX (AKA 1/cycle-time) is strongly correlated to the
- width of the widest mux in any stage. Another way to say this,
- the more things a register depends on, the slower it gets.}
-
-\martin{Yes, I'm a little bit afraid of the forwarding muxes from the
-two pipelines. We have not yet implemented that part.
-
-I know that Sven wants to pipeline the forwarding. This
-costs one cycle latency and we don't know if this can be
-compensated by clever instruction scheduling in the
-compiler.}
-
-\wolf{In my hobby design I use registers that do nothing but feed the
-forwarding. This lets the synthesis place the registers freely and
-makes forwarding less painful by reducing the interconnect delay. Of
-course, if the synthesis is clever, it can duplicate registers to
-achieve the same thing, but doing it explicitly helped at least in my
-design.}
-
-\tommy{Ways to improve this in order of effectiveness:
-
- 1) Change the ISA
-
- 2) Whenever possible, share sources for a register, fx. to copy a
-    value consider adding it to zero rather than having a separate
-    mux input, and, failing everything else,
-
- 3) move logic up to an earlier stage (unfortunately this usually
-    implies increasing latencies).}
-
- \tommy{A consequence of this fact was to not use interlocking in the
- pipeline at all, but to restart the pipeline whenever a hazard
- was violated. This way there's only one source for the
- instruction for every stage in the pipeline (along with a valid
- bit which is cleared by restart and checked only by logic that
- would commit state).}
-
-\martin{We also plan to not use interlocking, but no pipeline restarting.
-All instructions (except one) do not stall at all. (This is similar
-to the JOP pipeline).}
-
-\tommy{Replace my use of interlocking with stalling. The ability to
-  stall the pipeline is expensive. Restarting the pipeline (and
-  replaying the original instruction) achieves the same effect with
-  less cycle-time impact at the cost of potentially higher resume
-  latency compared to true stalling. (Powerwise, stalling is better).}
-
-\martin{The intention of Patmos is to have no stalls at all -- with one
-exception. So no stalling, no restart. The single exception is main
-memory access. In that case we use a split load and an explicit wait
-for the result. That wait is somehow \emph{pipeline stalling}. Perhaps
-we do it the JOP way and fill the pipeline with wait instructions that
-do nothing and only one stage needs to check the memory ready.
-BTW: this is also the reason for the ready counter in SimpCon we
-discussed some long time ago. It is used to restart the pipeline a
-few cycles earlier so the load instruction is in EX stage when the actual
-data arrives.}
-
- \tommy{One very real example I struggled with load latency. MIPS
- defines a one-cycle load latency. Violating this in YARI would
- cause a pipeline restart, originally a five cycle penalty.
- Unfortunately, the JIT we were using (CACAO) has a pretty
- naive code generator and even making it emit a nop for the
- load was non-trivial.}
-
- \martin{We have more freedom with the VLIW approach to
- expose latencies and the compiler should be smart ;-)}
-
-\tommy{I tried quite a lot of alternatives:
- 0. simply completing the load in one cycle (really hurt fMAX)
- 1. moving the EX stage down to the 2nd half of the load (now
-    the hazard is on loads whose address register isn't ready
-    two cycles ahead of the load),
- 2. A hybrid, where only 8- and 16-bit loads suffer the additional
-   latency.}
-
-\tommy{ Without measurements I couldn't predict which would win, but
- real-life results were counter-intuitive and in the end I got the
- best result with
-
- 3. keeping it was, but reducing the hazard penalty to two
-  cycles (IIRC).}
-
-\tommy{After much mux optimization
-  (cf.~http://portal.acm.org/citation.cfm?id=968291 and
-  http://portal.acm.org/citation.cfm?id=1065692)
- the bypass network and register file ended up being the critical
- path and the only way to I know to improve that would be at
- the cost of more hazards (eg.~restart on unsupported forwards).}
-
-
-\tommy{How does this apply to Patmos?
-* Unlike YARI, Patmos doesn't implement an existing ISA, so to
- me an architectural simulator is even more critical. Developing
- the compiler against an evolving SystemC implementation
- seems somewhat wanting.}
-
-\tommy{* Many design decision in the paper strikes me as somewhat
- premature in the absence of measurements, but I guess I
- shouldn't worry about that.}
-
-\martin{You're right. However, we even would need WCET analysis instead
-of measurements to judge the decisions. Even harder to do at this
-stage. So we can only perform educated guesses.}
-
-\tommy{* Assuming (optimistically) that the compiler can extract an avg. IPC
- of 1.6, Patmos would need an fMAX of 56 MHz just to be at parity
- with YARI and that's not accounting for the overhead of the two-
- instruction loads. I'm concerned that the bypass network may not
- be able to go that fast.}
-
-\martin{Something to be evaluated....}
-
-
-\section{More on load/store}
-
-\tommy{Sign extended loads hurts FPGA implementations much more than real
-silicon because muxes are very expensive here. I strongly recommend
-making all loads zero extending and provide explicit sext8 and sext16
-instructions. (This matches the RISC philosophy of exposing the real
-cost of operations).
-
-(Caution: The Alpha route of providing only word-level accesses proved to be a mistake (I/O
-problems and more) and they had to provide byte and short level accesses
-in the second version of the architecture.)}
-
-\tommy{
-Load and store offset of 7 bits is too small. Assuming it's signed
-(right?) that's just [-64; 63]. Even if scaled by four for word
-accesses that's still just [-256; 248]. Luckily, there are bits that can
-be recovered}
-
-\martin{to be explored}
-
-\tommy{ Merge "ALU function" and "Compare" -> save one bit
-
-- Load/Store to use natural scaling of offset.
-
- It's very rare in practice for the offset not to be naturally
- aligned, so we can save some redundant bits at the cost of more
- muxing in the address computation.}
-
- \martin{agree on both, although compare has an additional field for
- the predicate destination.}
-
-\stefan{Instructions for atomic access like load-and-link or read-modify-write?}
-
-\stefan{As far as I can see, we will have the following?
-\begin{itemize}
-\item load bypass: load directly from memory, do not modify cache.
-\item stack-cache: direct mapped, explicit write-back, write allocate. Should we make loading to the stack cache also explicit?
-  Then the stack-cache would actually become something like a stack-SPM.
-\item D-caches: direct-mapped, write-through, for memory ops with known addresses, and a 'small, highly associative', write-through cache for
-everything else. What about write allocation?
-\item D-SPM: to be defined..
-\end{itemize}
-
-Stack-cache, SPM and instruction cache will probably always load and write-back larger blocks of data. Is there an advantage in having
-instructions that load more than a single word (i.e., an instruction to start a memory transfer of n bytes from/to address A using cache X)
-in terms of performance (e.g., by transferring larger packages than one word over the NoC..)? We will need something like this for the
-method cache anyway. However, such an instruction will block the memory bus for quite some time in the worst-case, which may be problematic with
-preemption..
-
-Where do we want to wait?
-\begin{itemize}
-\item Access to a cache with guaranteed 'cache hit' by design (D-SPM, stack-cache): no need to wait, no split-load.
-\item Explicit data load or write back (D-SPM, stack-cache, method cache, bypass, store): guaranteed memory transfer, needs to wait for previous
-memory transfer to complete.
-\item Load from D-cache that is always-hit: no need to wait for other memory transfers (method-cache preload, stack write-back, SPM),
-no need for a split load. However, if the D-caches do not use write-allocation and if there is a store or write-back in progress, we still need to wait
-for the store to complete if the compiler cannot prove that they go to different memory locations.
-\item Load from D-cache that may be a cache-miss: since we are interested in WCET, we will probably just wait for any previous memory op to
-complete.
-\item Fetching the result of a split-load: If we do not know that the load is a guaranteed hit, we always need to wait before accessing
-\$mem. If we know that the load is always-miss, there is no advantage in using a split-load.
-\end{itemize}
-}
-
-
-\jack{Also we want to be able to wait for a DMA operation to complete~- I
-see you already mentioned waiting for the {\it previous} DMA to finish,
-but we probably also want to wait for the current DMA to finish,
-e.g.~if the next instruction depends on something being loaded.}
-
-
-\section{Stack Cache Discussion}
-
-In order to allow two parallel load/store operations the memory of the stack
-cache might be operated with a doubled clock frequency.
-
-\fb{This might also allow to define a precise definition of the result of
-    concurrent, overlapping stores on the stack cache.}
-\martin{Double clocking of the S\$ is conditional and depending on
-the critical path with the rather large multiplexer for the memory stage.}
-
-\gebhard{Where is the benefit of the stack cache, if we additionally need to maintain a shadow stack in main memory?
-This complicates a static stack/value analysis.
-For C/C++ programs using pointers the compiler would often have to allocate local variables on the shadow stack.
-Consider the following program:
-
-\begin{tabular}{l}
-\texttt{int main (void) \{} \\
-\texttt{  int c;} \\
-\texttt{  void compute (\&c);} \\
-\texttt{\}} \\
-\end{tabular}
-
-Obviously, the variable \texttt{c} cannot be put onto the stack cache.
-The function \texttt{compute} cannot know that its parameter references an object in the stack cache.
-A similar problem would occur with 3rd party library routines that have pointer parameters.
-In general, we thus cannot benefit from discerning between references on the stack and references on the heap on the instruction level.
-This does actually not correspond to the C/C++ memory model.
-
-Why don't we use a dedicated memory for the stack?
-This could be a fast scratchpad memory that is allocated to a dedicated address range.
-Similarly, we could implement the stack cache as a separate data cache that only caches words from a dedicated memory region.
-As we cannot discern between types of references on the instruction level, we can do so by means of the target address of a memory access.}
-
-\fb{We will find out ... Some things might be interesting though: stack accesses
-through the cache do not pollute the data cache and do not interfere with the
-analysis of the other caches in the system. All stack accesses can be predicted
-nicely. The compiler can place the stack control instructions depending on the
-WCET. Most C functions should be easily handled with the stack cache. It becomes
-easier to judge how spill code generated during register allocation impacts the
-WCET. .... }
-
-\gebhard{This benefit of not polluting the data cache is also given in my design.
-The stack scratchpad memory would be dedicated to a certain address range that is \emph{not} cached.
-Hence, we would have the same benefit with less effort (i.e., in terms of instructions and processor logic).}
-
-\cullmann{An additional problem is: the timing of a task relies then on the exact fill level of the stack cache at task start.
-This causes additional interference of multiple tasks, if the stack cache is already filled to some amount, the new started task will need to evict the stuff to memory.
-Or is the stack cache cleared before a new task is started to decouple the tasks again?}
-
-\cullmann{What happens on preemptions or interrupts btw.? Is the stack then saved and restored somehow?}
-
-\fb{This is actually a nice property of the stack cache. You can reestablish the
-state of the stack cache -- as far as WCET analysis is concerned -- after a task
-switch. You clear the cache with a \texttt{reserve} of the stack cache size, you
-switch to another task, when you activate the original task all you need to do
-is a \texttt{free} of the stack cache size and an \texttt{ensure} of either
-the stack cache size or the actual size of the data that was in the cache before
-the last task switch. Other schemes might also be possible.}
-
-%\stefan{Currently all the stack control operations use immediates, so \texttt{ensure} using the actual size will be .. tricky. This may
-%actually cause problems, since after a context switch there might be more data in the stack cache than before, which can cause the following
-%\texttt{reserve} ops to spill, i.e., they take longer than without the context switch (assuming the hardware does not keep track of dirty
-%cache lines). If might also be a good idea to avoid spilling/filling above the stack origin, else we would need to have an unused memory block of
-%the size of the stack cache above every stack to support context switches (this requires telling the hardware about the stack origin address).
-%However, we do not even know as of yet how/when/if we want to do
-%context switches and interrupts anyway in this project (only at preemption points?, handling of dma transfers/loads/method cache fills,..).}
-%\martin{I think stack spill and fill on a context switch is a reasonable option.
-%One has to consider this in preemption cache cost analysis anyway.
-%Why not simply make it explicit?}
 
 \end{document}

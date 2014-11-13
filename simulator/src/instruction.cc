@@ -133,12 +133,6 @@ namespace patmos
     return result;
   }
 
-  instruction_data_t instruction_data_t::mk_SPCw(const instruction_t &i,
-                                                 PRR_e pred)
-  {
-    return instruction_data_t(i, pred);
-  }
-
   instruction_data_t instruction_data_t::mk_SPCt(const instruction_t &i,
                                                  PRR_e pred, SPR_e sd,
                                                  GPR_e rs1)
