@@ -1933,6 +1933,37 @@ Example:
         : "r" (i), "{r10}" (k));
 \end{lstlisting}
 
+\section{Configuration and Default Setup}
+
+Various parameters of the Patmos processor can be configured to trade
+space for performance. Furthermore, IO devices and memory controllers
+are usually specific to FPGA boards. Those configurations are specified in
+XML files and can be found at \code{patmos/hardware/config}. The base
+configuration is defined in \code{default.xml}. Board specific configurations,
+e.g., \code{altde2-115.xml} for the default FPGA board DE2-115 from Altera,
+are specified in individual XML files.
+
+Tabl~\ref{tab:defaults} lists the default settings for the configuration of Patmos
+and the tools. \todo{Compiler and simulator settings settings are not yet updated!}
+
+\begin{table}
+\centering
+\begin{tabular}{ll}
+\toprule
+Parameter & Default setting \\
+\midrule
+Main memory & 2 MB \\
+Burst length & 4 words \\
+Dual issue & true for uniprocessor, false for multi-processor and compiler setting \\
+Method cache & 4 KB, 16 blocks \\
+Data cache & 2 KB, direct mapped, write through \\
+Stack cache & 2 KB \\
+\bottomrule
+\end{tabular}
+\caption{Default settings for the Patmos hardware, the emulator, the simulator, and the compiler.}
+\label{tab:defaults}
+\end{table}
+
 \chapter{Memory and I/O Subsystem}
 \label{chap:memsyst}
 
