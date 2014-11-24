@@ -65,6 +65,8 @@ bool cpuinfo_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t siz
     set_word(value, size, Cpu_id);
   } else if (is_word_access(address, size, 0x04)) {
     set_word(value, size, Cpu_freq);
+  } else if (is_word_access(address, size, 0x08)) {
+    set_word(value, size, Cpu_cnt);
   } else {
     simulation_exception_t::unmapped(address);
   }
@@ -80,6 +82,8 @@ void cpuinfo_t::peek(simulator_t &s, uword_t address, byte_t *value, uword_t siz
     set_word(value, size, Cpu_id);
   } else if (is_word_access(address, size, 0x04)) {
     set_word(value, size, Cpu_freq);
+  } else if (is_word_access(address, size, 0x08)) {
+    set_word(value, size, Cpu_cnt);
   } else {
     mapped_device_t::peek(s, address, value, size);
   }

@@ -58,6 +58,7 @@ object CpuInfo extends DeviceObject {
   trait Pins {
     val cpuInfoPins = new Bundle() {
       val id = Bits(INPUT, DATA_WIDTH)
+      val cnt = Bits(INPUT, DATA_WIDTH)
     }
   }
 }
@@ -80,13 +81,13 @@ class CpuInfo() extends CoreDevice() {
   }
 
   // Read information
+  switch(masterReg.Addr(3,2)) {
+    is(Bits("b00")) { data := io.cpuInfoPins.id }
+    is(Bits("b01")) { data := Bits(CLOCK_FREQ) }
+    is(Bits("b10")) { data := io.cpuInfoPins.cnt }
+  }
   when(masterReg.Cmd === OcpCmd.RD) {
     resp := OcpResp.DVA
-    when(masterReg.Addr(2) === Bits(0)) {
-      data := io.cpuInfoPins.id
-    } .otherwise {
-      data := Bits(CLOCK_FREQ)
-    }
   }
 
   // Connections to master

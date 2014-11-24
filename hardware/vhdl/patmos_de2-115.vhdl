@@ -54,6 +54,7 @@ architecture rtl of patmos_top is
 			io_comSpm_S_Data        : in std_logic_vector(31 downto 0);
 
 			io_cpuInfoPins_id   : in  std_logic_vector(31 downto 0);
+			io_cpuInfoPins_cnt  : in  std_logic_vector(31 downto 0);
 			io_ledsPins_led : out std_logic_vector(8 downto 0);
 			io_keysPins_key : in  std_logic_vector(3 downto 0);
 			io_uartPins_tx  : out std_logic;
@@ -135,7 +136,7 @@ begin
            (others => '0'), (others => '0'), '0',
            open, open, open, open,
            (others => '0'), (others => '0'),
-           X"00000000",
+           X"00000000", X"00000001",
            oLedsPins_led,
            iKeysPins_key,
            oUartPins_txd, iUartPins_rxd,

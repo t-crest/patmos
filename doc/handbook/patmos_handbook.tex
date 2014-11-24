@@ -2105,8 +2105,9 @@ Address & I/O Device & read & write \\
 \midrule
 \code{0xf0000000} & cpuinfo & processor ID & -- \\
 \code{0xf0000004} & cpuinfo & clock frequency (Hz) & -- \\
+\code{0xf0000008} & cpuinfo & processor count & -- \\
 \code{0xf0000100} & excunit & &  \\
-$\cdots$          & excunit & \multicolumn{2}{c}{Exception unit and cache control (see Section~\ref{sec:exc}}) \\
+$\cdots$          & excunit & \multicolumn{2}{c}{Exception unit and cache control (see Section~\ref{sec:exc})} \\
 \code{0xf00001ff} & excunit & & \\
 \code{0xf0000200} & timer & clock cycles (high word) & cycle interrupt time (high word) \\
 \code{0xf0000204} & timer & clock cycles (low word) & cycle interrupt time (low word) \\

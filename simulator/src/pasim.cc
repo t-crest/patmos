@@ -577,7 +577,7 @@ int main(int argc, char **argv)
     rtc.enable_debug(debug_intrs);
     
     // setup IO mapped devices
-    patmos::cpuinfo_t cpuinfo(mmbase+cpuinfo_offset, cpuid, freq);
+    patmos::cpuinfo_t cpuinfo(mmbase+cpuinfo_offset, cpuid, freq, cores);
     patmos::uart_t uart(mmbase+uart_offset, *uin, uin_istty, *uout);
     patmos::led_t leds(mmbase+led_offset, *uout);
     patmos::noc_t noc(nocbase, nocbase+noc_route_offset, nocbase+noc_st_offset,
