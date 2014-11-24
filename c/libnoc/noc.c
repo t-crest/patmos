@@ -124,7 +124,7 @@ int noc_dma(unsigned rcv_id,
             unsigned short read_ptr,
             unsigned short size) {
 
-    // Ony send if previous transfer is done
+    // Only send if previous transfer is done
     unsigned status = *(noc_interface.dma+(rcv_id<<1));
     if ((status & NOC_VALID_BIT) != 0 && (status & NOC_DONE_BIT) == 0) {
         return 0;
@@ -194,7 +194,6 @@ void noc_multisend_cs(coreset_t *receivers, volatile void _SPM *dst[],
     if (coreset_contains(i,receivers)){
       if (i != cpuid) {
         noc_send(i, (volatile void _SPM *)((unsigned)dst[index]+offset), src, len);
-
       }
       //DEBUGGER("Transmission address: %x+%x at core %i\n",(unsigned)dst[index],offset,i);
       index++;

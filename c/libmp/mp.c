@@ -304,9 +304,41 @@ int mp_nbsend(mpd_t* mpd_ptr) {
   return 1;
 }
 
+//void __attribute__ ((noinline)) mp_send(mpd_t* mpd_ptr) {
+//  _Pragma("loopbound min 1 max 1")
+//  while(!mp_nbsend(mpd_ptr));
+//}
+
 void mp_send(mpd_t* mpd_ptr) {
-  while(!mp_nbsend(mpd_ptr));
+  
+  // Calculate the address of the remote receiving buffer
+  int rmt_addr_offset = (mpd_ptr->buf_size + FLAG_SIZE) * mpd_ptr->send_ptr;
+  volatile void _SPM * calc_rmt_addr = &mpd_ptr->recv_addr[rmt_addr_offset];
+  *(volatile int _SPM *)((char*)mpd_ptr->write_buf + mpd_ptr->buf_size) = FLAG_VALID;
+
+  _Pragma("loopbound min 1 max 1")
+  while ((mpd_ptr->send_count) - *(mpd_ptr->send_recv_count) == mpd_ptr->num_buf) {
+    DEBUGGER("mp_nbsend(): NO room in queue\n");
+  }
+  noc_send(mpd_ptr->recv_id,calc_rmt_addr,mpd_ptr->write_buf,mpd_ptr->buf_size + FLAG_SIZE);
+
+  // Increment the send counter
+  mpd_ptr->send_count++;
+
+  // Move the send pointer
+  if (mpd_ptr->send_ptr == mpd_ptr->num_buf-1) {
+    mpd_ptr->send_ptr = 0;
+  } else {
+    mpd_ptr->send_ptr++;
+  }
+
+  // Swap write_buf and shadow_write_buf
+  volatile void _SPM * tmp = mpd_ptr->write_buf;
+  mpd_ptr->write_buf = mpd_ptr->shadow_write_buf;
+  mpd_ptr->shadow_write_buf = tmp;
+
 }
+
 
 int mp_nbrecv(mpd_t* mpd_ptr) {
 
@@ -324,15 +356,15 @@ int mp_nbrecv(mpd_t* mpd_ptr) {
   // Increment the receive counter
   (*mpd_ptr->recv_count)++;
 
-  // Move the receive pointer 
+  // Move the receive pointer
   if (mpd_ptr->recv_ptr == mpd_ptr->num_buf - 1) {
     mpd_ptr->recv_ptr = 0;
   } else {
-    mpd_ptr->recv_ptr++;  
+    mpd_ptr->recv_ptr++;
   }
 
   // Set the reception flag of the received message to FLAG_INVALID
-  *recv_flag = FLAG_INVALID; 
+  *recv_flag = FLAG_INVALID;
 
   // Set the new read buffer pointer
   mpd_ptr->read_buf = calc_locl_addr;
@@ -340,10 +372,38 @@ int mp_nbrecv(mpd_t* mpd_ptr) {
   return 1;
 }
 
-void mp_recv(mpd_t* mpd_ptr) {
-  while(!mp_nbrecv(mpd_ptr));
-}
+//void mp_recv(mpd_t* mpd_ptr) {
+//  while(!mp_nbrecv(mpd_ptr));
+//}
 
+void mp_recv(mpd_t* mpd_ptr) {
+
+  // Calculate the address of the local receiving buffer
+  int locl_addr_offset = (mpd_ptr->buf_size + FLAG_SIZE) * mpd_ptr->recv_ptr;
+  volatile void _SPM * calc_locl_addr = &mpd_ptr->recv_addr[locl_addr_offset];
+
+  volatile int _SPM * recv_flag = (volatile int _SPM *)((char*)calc_locl_addr + mpd_ptr->buf_size);
+
+  while (*recv_flag == FLAG_INVALID) {
+    DEBUGGER("mp_nbrecv(): Recv flag %x\n",*recv_flag);
+  }
+
+  // Increment the receive counter
+  (*mpd_ptr->recv_count)++;
+
+  // Move the receive pointer
+  if (mpd_ptr->recv_ptr == mpd_ptr->num_buf - 1) {
+    mpd_ptr->recv_ptr = 0;
+  } else {
+    mpd_ptr->recv_ptr++;
+  }
+
+  // Set the reception flag of the received message to FLAG_INVALID
+  *recv_flag = FLAG_INVALID;
+
+  // Set the new read buffer pointer
+  mpd_ptr->read_buf = calc_locl_addr;
+}
 
 int mp_nback(mpd_t* mpd_ptr){
   // Update the remote receive count
@@ -352,7 +412,7 @@ int mp_nback(mpd_t* mpd_ptr){
 
 void mp_ack(mpd_t* mpd_ptr){
   // Update the remote receive count
-  while(!mp_nback(mpd_ptr));
+  noc_send(mpd_ptr->send_id,mpd_ptr->send_recv_count,mpd_ptr->recv_count,8);
   return;
 }
 
@@ -376,7 +436,7 @@ void __attribute__ ((noinline)) mp_barrier(communicator_t* comm){
     //if(i >= cpuid) {
     //  break;
     //}
-    if(coreset_contains(i,&barrier_set) != 0 && i >= cpuid) {
+    if(coreset_contains(i,&barrier_set) != 0 && i < cpuid) {
       index++;
     }
   }
@@ -387,7 +447,9 @@ void __attribute__ ((noinline)) mp_barrier(communicator_t* comm){
 
 void mp_barrier_int(communicator_t* comm, unsigned index){
   coreset_t barrier_set = comm->barrier_set;
-  unsigned local_addr = (unsigned)comm->addr[index];
+  //unsigned local_addr = (unsigned)comm->addr[index];
+  volatile void _SPM **addr_arr = (volatile void _SPM **)&comm->addr[0];
+  unsigned local_addr = (unsigned)addr_arr[index];
   unsigned count = comm->count;
   volatile BARRIER_T _SPM * addr = (volatile BARRIER_T _SPM *)(local_addr +
                                index*BARRIER_SIZE);
@@ -411,29 +473,30 @@ void mp_barrier_int(communicator_t* comm, unsigned index){
       break;
   }
   unsigned local_val = (unsigned)addr + (phase & 1)*sizeof(unsigned);
-//  DEBUGGER("\tBarrier phase\t%016llx\n\tPhase\t%d\n\tLocal val\t%08x@%08x\n",
-//            *addr,
-//            phase,
-//            *(volatile unsigned _SPM *)local_val,
-//            local_val);
-  
-  noc_multisend_cs(&barrier_set,comm->addr,index*BARRIER_SIZE,addr,BARRIER_SIZE);
+  DEBUGGER("\tBarrier phase\t%016llx\n\tPhase\t%d\n\tLocal val\t%08x@%08x\n",
+            *addr,
+            phase,
+            *(volatile unsigned _SPM *)local_val,
+            local_val);
+  //noc_multisend_cs(&barrier_set,comm->addr,index*BARRIER_SIZE,addr,BARRIER_SIZE);
+  noc_multisend_cs(&barrier_set,addr_arr,index*BARRIER_SIZE,addr,BARRIER_SIZE);
   //unsigned cpu_index = 0;
   
   void * addr_a = (void*)local_addr;
   _Pragma("loopbound min 0 max 9")
   for(unsigned cpu_index = 0; cpu_index < count; cpu_index++) {
     unsigned remote_val = (unsigned)addr_a + cpu_index*BARRIER_SIZE+ (phase & 1)*sizeof(unsigned);
-//    DEBUGGER("\t--------\n\tCPUIDX\t%u\n\tRemote val\t%08x@%08x\n",
-//              cpu_index,
-//              *(volatile unsigned _SPM *)remote_val,
-//              remote_val);
+    DEBUGGER("\t--------\n\tCPUIDX\t%u\n\tRemote val\t%08x@%08x\n",
+              cpu_index,
+              *(volatile unsigned _SPM *)remote_val,
+              remote_val);
     unsigned comp = *(volatile unsigned _SPM *)local_val;
 
     //#pragma loopbound min 1 max 1
     _Pragma("loopbound min 1 max 1")
     while (!(*(volatile unsigned _SPM *)remote_val == comp)) {
     }
+
 //    DEBUGGER("\tBarrier reached\n");
     
   }
@@ -447,10 +510,10 @@ void __attribute__ ((noinline)) mp_broadcast(communicator_t* comm, coreid_t root
 //  }
   unsigned index = 0;
   for (unsigned i = 0; i < NOC_CORES; ++i) {
-    if(i >= get_cpuid()) {
-      break;
-    }
-    if(coreset_contains(i,&comm->barrier_set) != 0) {
+    //if(i >= get_cpuid()) {
+    //  break;
+    //}
+    if(coreset_contains(i,&comm->barrier_set) != 0 && i < get_cpuid()) {
       index++;
     }
   }
@@ -474,7 +537,7 @@ void __attribute__ ((noinline)) mp_broadcast(communicator_t* comm, coreid_t root
                                            +comm->count*BARRIER_SIZE);
 //    DEBUGGER("\tsrc addr\t%08x\n\tflag val\t%08x\n",(unsigned)src_addr,(unsigned)(*flag_addr));
     noc_multisend_cs(&comm->barrier_set,
-                     comm->addr,
+                     (volatile void _SPM **)comm->addr,
                      comm->count*BARRIER_SIZE,
                      (volatile void _SPM *)src_addr,
                      comm->msg_size+BARRIER_SIZE);
@@ -498,10 +561,10 @@ void __attribute__ ((noinline)) mp_broadcast_shm(communicator_t* comm, coreid_t 
 //  }
   unsigned index = 0;
   for (unsigned i = 0; i < NOC_CORES; ++i) {
-    if(i >= get_cpuid()) {
-      break;
-    }
-    if(coreset_contains(i,&comm->barrier_set) != 0) {
+    //if(i >= get_cpuid()) {
+    //  break;
+    //}
+    if(coreset_contains(i,&comm->barrier_set) != 0 && i < get_cpuid()) {
       index++;
     }
   }
@@ -525,7 +588,7 @@ void __attribute__ ((noinline)) mp_broadcast_shm(communicator_t* comm, coreid_t 
                                            +comm->count*BARRIER_SIZE);
 //    DEBUGGER("\tsrc addr\t%08x\n\tflag val\t%08x\n",(unsigned)src_addr,(unsigned)(*flag_addr));
     noc_multisend_cs(&comm->barrier_set,
-                     comm->addr,
+                     (volatile void _SPM **)comm->addr,
                      comm->count*BARRIER_SIZE,
                      (volatile void _SPM *)src_addr,
                      comm->msg_size+BARRIER_SIZE);
@@ -549,7 +612,7 @@ void __attribute__ ((noinline)) mp_barrier_shm(communicator_t* comm){
   unsigned cpuid = get_cpuid();
   coreset_t barrier_set = comm->barrier_set;
   for (unsigned i = 0; i < NOC_CORES; ++i) {
-    if(coreset_contains(i,&barrier_set) != 0 && i >= cpuid) {
+    if(coreset_contains(i,&barrier_set) != 0 && i < cpuid) {
       index++;
     }
   }
@@ -604,15 +667,18 @@ void mp_barrier_shm_int(communicator_t* comm, unsigned index){
 
 void __attribute__ ((noinline)) mp_barrier_tournament(tournament_t* tour){
   unsigned index = 0;
+  coreset_t barrier_set = tour->barrier_set;
+  unsigned short * answers = tour->answers;
+  unsigned n = tour->n;
   for (unsigned i = 0; i < NOC_CORES; ++i) {
-    if(coreset_contains(i,&tour->barrier_set) != 0 && i >= get_cpuid()) {
+    if(coreset_contains(i,&barrier_set) != 0 && i < get_cpuid()) {
       index++;
     }
   }
 
   unsigned phase;
   unsigned short barrier_phase;
-  switch(tour->answers[index]){
+  switch(answers[index]){
     case 0x0000: // BARRIER_PHASE_0
       barrier_phase = 0x00FF; // BARRIER_PHASE_1
       phase = 1;
@@ -637,7 +703,7 @@ void __attribute__ ((noinline)) mp_barrier_tournament(tournament_t* tour){
 
   //DEBUGGER("mp_barrier_tournament():\n\tindex\t%d\n\tBarrier phase\t%hx\n\tphase\t%d\n\tLocal val\t%hx@%08x\n",
   //          index,
-  //          tour->answers[index],
+  //          answers[index],
   //          phase,
   //          local_val & 0xff,
   //          (unsigned)&local_val);
@@ -645,19 +711,19 @@ void __attribute__ ((noinline)) mp_barrier_tournament(tournament_t* tour){
   _Pragma("loopbound min 0 max 3")
   for (unsigned i = 0; i < tour->logn; ++i) {
     //DEBUGGER("\tinstance\t%d\n",i);
-    unsigned opponent = tour->opponent[index+(i*tour->n)];
+    unsigned opponent = tour->opponent[index+(i*n)];
     if ((index & ((1<<i)-1) ) != 0) { /* index mod 2^î != 0 */
       //DEBUGGER("\tno more activity\n");
       break;
     }
     if(index > opponent) {
-      tour->answers[index] = barrier_phase;
+      answers[index] = barrier_phase;
       //DEBUGGER("\tloser\n");
-    } else if (opponent >= tour->n) {
+    } else if (opponent >= n) {
       //DEBUGGER("\tno opponent default win, opponent:\t%d\n",opponent);
     } else {
       //DEBUGGER("\twinner\n");
-      volatile char _UNCACHED *addr = (char _UNCACHED*)((unsigned)&tour->answers[opponent] + (phase & 1)*sizeof(char));
+      volatile char _UNCACHED *addr = (char _UNCACHED*)((unsigned)&answers[opponent] + (phase & 1)*sizeof(char));
       //DEBUGGER("\topponent address\t%08x\n",addr);
       _Pragma("loopbound min 1 max 1")
       while(*addr != local_val) {
@@ -668,9 +734,9 @@ void __attribute__ ((noinline)) mp_barrier_tournament(tournament_t* tour){
   }
 
   if(index == 0) { /* If champion of tournament*/
-    tour->answers[index] = barrier_phase;
+    answers[index] = barrier_phase;
   } else {
-    volatile char _UNCACHED *champion_val = (char _UNCACHED*)((unsigned)&tour->answers[0] + (phase & 1)*sizeof(char));
+    volatile char _UNCACHED *champion_val = (char _UNCACHED*)((unsigned)&answers[0] + (phase & 1)*sizeof(char));
     _Pragma("loopbound min 1 max 1")
     while(*champion_val != local_val) {
     }

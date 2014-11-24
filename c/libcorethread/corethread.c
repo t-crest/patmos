@@ -64,10 +64,10 @@ void corethread_worker(void) {
 
             }
          }
-         //time = get_cpu_usecs();
-         //while(get_cpu_usecs() < time+1) {
-         //
-         //}
+         time = get_cpu_usecs();
+         while(get_cpu_usecs() < time+10) {
+         
+         }
       }
       boot_info->slave[get_cpuid()].status = STATUS_RETURN;
       exit(0);
@@ -112,10 +112,10 @@ int corethread_join(corethread_t thread, void **retval) {
    //      printf("Status of master is %i\n",boot_info->master.status);
    //   }
       //inval_dcache();
-      //time = get_cpu_usecs();
-      //while(get_cpu_usecs() < time+10) {
-      //
-      //}
+      time = get_cpu_usecs();
+      while(get_cpu_usecs() < time+10) {
+      
+      }
    }
    *retval = (void *) boot_info->slave[thread].return_val;
    boot_info->slave[thread].funcpoint = NULL;

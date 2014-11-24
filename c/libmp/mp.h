@@ -114,7 +114,9 @@ static inline unsigned dw_align(unsigned x){
  * DO NOT CHANGE! The number of write pointers is not 
  * defined in a way that is can be changed
  */
-#define NUM_WRITE_BUF 2 
+#define NUM_WRITE_BUF 2
+
+#define BARRIER_CORES 9
 
 typedef unsigned coreid_t;
 
@@ -162,7 +164,7 @@ typedef struct {
   /** A pointer to the currently free read buffer */
   volatile void _SPM * read_buf;
 
-} mpd_t;
+} mpd_t __attribute__((aligned(16)));
 
 /// \struct communicator_t
 /// \brief Describes at set of communicating processors.
@@ -171,10 +173,10 @@ typedef struct {
 /// communicating processors.
 typedef struct {
   coreset_t barrier_set;
-  volatile void _SPM ** addr;
   unsigned count;
   unsigned msg_size;
-} communicator_t;
+  volatile void _SPM ** addr;
+} communicator_t __attribute__((aligned(16)));
 
 
 // This array is only used by mp_alloc, it should not be cached.
@@ -195,7 +197,7 @@ typedef struct {
   unsigned logn;
   unsigned short * answers;
   unsigned * opponent;
-} tournament_t;
+} tournament_t __attribute__((aligned(16)));
 
 int mp_init_tournament_barrier(tournament_t* tour, unsigned count,
               const coreid_t member_ids []);
