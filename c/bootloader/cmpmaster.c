@@ -63,7 +63,7 @@ int main(void)
   // overwrite potential leftovers from previous runs
   boot_info->master.status = STATUS_NULL;
   boot_info->master.entrypoint = NULL;
-  for (unsigned i = 0; i < MAX_CORES; i++) {
+  for (unsigned i = 0; i < get_cpucnt(); i++) {
     boot_info->slave[i].status = STATUS_NULL;
     boot_info->slave[i].return_val = -1;
   }
@@ -128,7 +128,7 @@ int main(void)
   WRITE("RETURN\n", 7);
   #endif
   // Wait for slaves to finish
-  for (unsigned i = 1; i < MAX_CORES; i++) {
+  for (unsigned i = 1; i < get_cpucnt(); i++) {
     if (boot_info->slave[i].status != STATUS_NULL) {
       while(boot_info->slave[i].status != STATUS_RETURN){
         /* spin */
