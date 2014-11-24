@@ -1,5 +1,5 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute.
+   Copyright 2014 Technical University of Denmark, DTU Compute.
    All rights reserved.
 
    This file is part of the time-predictable VLIW processor Patmos.
@@ -31,60 +31,44 @@
  */
 
 /*
- * An on-chip memory.
- *
- * Has input registers (without enable or reset).
- * Shall do byte enable.
- * Output multiplexing and bit filling at the moment also here.
- * That might move out again when more than one memory is involved.
- *
- * Address decoding here. At the moment map to 0x00000000.
- * Only take care on a write.
- *
- * Size is in bytes.
- *
- * Authors: Martin Schoeberl (martin@jopdesign.com)
- *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
+ * Method cache without actual functionality
+ * 
+ * Authors: Wolfgang Puffitsch (wpuffitsch@gmail.com)
+ *        Philipp Degasperi (philipp.degasperi@gmail.com)
  */
 
 package patmos
 
 import Chisel._
 import Node._
-
 import Constants._
-
 import ocp._
 
-class Spm(size: Int) extends Module {
-  val io = new OcpCoreSlavePort(log2Up(size), DATA_WIDTH)
+class NullMCache() extends Module {
+  val io = new MCacheIO()
 
-  val addrBits = log2Up(size / BYTES_PER_WORD)
+  val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
+  val callAddrReg = Reg(init = UInt(1, DATA_WIDTH))
+  val selIspmReg = Reg(init = Bool(false))
 
-  // respond and return (dummy) data
-  val cmdReg = Reg(next = io.M.Cmd)
-  io.S.Resp := Mux(cmdReg === OcpCmd.WR || cmdReg === OcpCmd.RD,
-                   OcpResp.DVA, OcpResp.NULL)
-  io.S.Data := Bits(0)
+  io.ena_out := Bool(true)
 
-  if (size > 0) {
-    // generate byte memories
-    val mem = new Array[MemBlockIO](BYTES_PER_WORD)
-    for (i <- 0 until BYTES_PER_WORD) {
-      mem(i) = MemBlock(size / BYTES_PER_WORD, BYTE_WIDTH).io
-    }
-
-    // store
-    val stmsk = Mux(io.M.Cmd === OcpCmd.WR, io.M.ByteEn,  Bits("b0000"))
-    for (i <- 0 until BYTES_PER_WORD) {
-      mem(i) <= (stmsk(i), io.M.Addr(addrBits + 1, 2),
-                 io.M.Data(BYTE_WIDTH*(i+1)-1, BYTE_WIDTH*i))
-    }
-
-    // load
-    val rdData = mem.map(_(io.M.Addr(addrBits + 1, 2))).reduceLeft((x,y) => y ## x)
-
-    // return actual data
-    io.S.Data := rdData
+  when (io.exmcache.doCallRet && io.ena_in) {
+    callRetBaseReg := io.exmcache.callRetBase
+    callAddrReg := io.exmcache.callRetAddr
+    selIspmReg := io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-2) === Bits(0x1)
   }
+
+  io.mcachefe.instrEven := Bits(0)
+  io.mcachefe.instrOdd := Bits(0)
+  io.mcachefe.relBase := callRetBaseReg(ISPM_ONE_BIT-3, 0)
+  io.mcachefe.relPc := callAddrReg + callRetBaseReg(ISPM_ONE_BIT-3, 0)
+  io.mcachefe.reloc := Mux(selIspmReg, UInt(1 << (ISPM_ONE_BIT - 2)), UInt(0))
+  io.mcachefe.memSel := Cat(selIspmReg, Bits(0))
+
+  io.ocp_port.M.Cmd := OcpCmd.IDLE
+  io.ocp_port.M.Addr := Bits(0)
+  io.ocp_port.M.Data := Bits(0)
+  io.ocp_port.M.DataValid := Bits(0)
+  io.ocp_port.M.DataByteEn := Bits(0)
 }

@@ -57,7 +57,7 @@ class DataCache extends Module {
   }
 
   // Register selects
-  val selDC = io.master.M.AddrSpace === OcpCache.DATA_CACHE
+  val selDC = Bool(DCACHE_SIZE > 0) && io.master.M.AddrSpace === OcpCache.DATA_CACHE
   val selDCReg = Reg(init = Bool(false))
   val selSC = io.master.M.AddrSpace === OcpCache.STACK_CACHE
   val selSCReg = Reg(init = Bool(false))
@@ -68,7 +68,9 @@ class DataCache extends Module {
 
   // Instantiate direct-mapped cache for regular data cache
   val dm = 
-    if (DCACHE_ASSOC == 1)
+    if (DCACHE_SIZE <= 0)
+      Module(new NullCache())
+    else if (DCACHE_ASSOC == 1)
       Module(new DirectMappedCache(DCACHE_SIZE, BURST_LENGTH*BYTES_PER_WORD))
     else if (DCACHE_ASSOC == 2 && DCACHE_REPL == "lru")
       Module(new TwoWaySetAssociativeCache(DCACHE_SIZE, BURST_LENGTH*BYTES_PER_WORD))
@@ -80,13 +82,14 @@ class DataCache extends Module {
     }
 
   dm.io.master.M := io.master.M
-  dm.io.master.M.Cmd := Mux(selDC || io.master.M.Cmd === OcpCmd.WR,
+  dm.io.master.M.Cmd := Mux(selDC ||
+                            (Bool(DCACHE_SIZE > 0) && io.master.M.Cmd === OcpCmd.WR),
                             io.master.M.Cmd, OcpCmd.IDLE)
   dm.io.invalidate := io.invalDCache
   val dmS = dm.io.master.S
 
   // Instantiate stack cache
-  val sc = Module(new StackCache())
+  val sc = Module(if (SCACHE_SIZE <= 0) new NullStackCache() else new StackCache())
   io.scIO <> sc.io
 
   // connect the stack cache to the Patmos core
