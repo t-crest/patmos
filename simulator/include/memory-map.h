@@ -56,7 +56,7 @@ namespace patmos
   static const uword_t CPUINFO_OFFSET = 0x0000;
   
   /// Number of bytes mapped to the CPU Info.
-  static const uword_t CPUINFO_MAP_SIZE = 0x0008;
+  static const uword_t CPUINFO_MAP_SIZE = 0x000C;
   
   /// Offset from IO base address for the exception unit.
   static const uword_t EXCUNIT_OFFSET = 0x0100;
@@ -169,18 +169,23 @@ namespace patmos
   
   class cpuinfo_t : public mapped_device_t 
   {
+    // The CPU ID
     uword_t Cpu_id;
     
     // The CPU frequency (Hz)
     uword_t Cpu_freq;
        
+    // The number of cores
+    uword_t Cpu_cnt;
+
   public:
     
     /// @param freq The CPU frequency in Mhz
-    cpuinfo_t(uword_t base_address, uword_t cpuid, double freq)
+  cpuinfo_t(uword_t base_address, uword_t cpuid, double freq, uword_t cpucnt)
     : mapped_device_t(base_address, CPUINFO_MAP_SIZE),
       Cpu_id(cpuid),
-      Cpu_freq(freq * 1000000)
+      Cpu_freq(freq * 1000000),
+      Cpu_cnt(cpucnt)
     {}
     
     virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);

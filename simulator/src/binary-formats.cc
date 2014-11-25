@@ -519,38 +519,6 @@ namespace patmos
     return iw;
   }
 
-  spcw_format_t::spcw_format_t(const instruction_t &instruction,
-                               word_t opcode) :
-      binary_format_t(instruction, 0x7C0007F, insert(0x2400010, 0, 4, opcode),
-                      1)
-  {
-  }
-
-  instruction_data_t spcw_format_t::decode_operands(word_t iw,
-                                                    word_t longimm) const
-  {
-    PRR_e pred = extractPN(iw, 27);
-    return instruction_data_t::mk_SPCw(Instruction, pred);
-  }
-
-  bool spcw_format_t::parse_operands(line_parser_t &parser, std::string mnemonic, 
-                                     instruction_data_t &instr, 
-                                     reloc_info_t &reloc) const
-  {    
-    return true;
-  }
-                                              
-  udword_t spcw_format_t::encode(std::string mnemonic, 
-                               const instruction_data_t &instr) const
-  {
-    uword_t iw = Opcode;
-
-    insertV(iw, 4, 3, BOOST_BINARY(001));
-    insertV(iw, 22, 5, BOOST_BINARY(01001));
-    insertPN(iw, 27, instr.Pred);
-
-    return iw;
-  }
 
   spct_format_t::spct_format_t(const instruction_t &instruction,
                                word_t opcode) :
@@ -652,20 +620,7 @@ namespace patmos
                                     reloc_info_t &reloc) const
   {
     
-    bool decoupled = mnemonic[0] == 'd';
-    
-    if (decoupled) {
-      SPR_e tmp;
-      if (!parser.parse_SPR(tmp)) return false;
-      if (tmp != sm) {
-        parser.set_error("expected special register sm.");
-        return false;
-      }
-      
-      instr.OPS.LDT.Rd = r0;
-    } else {
-      if (!parser.parse_GPR(instr.OPS.LDT.Rd)) return false;
-    }
+    if (!parser.parse_GPR(instr.OPS.LDT.Rd)) return false;
     
     if (!parser.match_token("=")) return false;
     
@@ -689,7 +644,7 @@ namespace patmos
       negate = true;
     }
 
-    unsigned type_idx = decoupled ? 2 : 1;
+    unsigned type_idx = 1;
     if (mnemonic[type_idx] == 'w') {
       reloc.set_format(7, 0, 2);
     } else if (mnemonic[type_idx] == 'h') {

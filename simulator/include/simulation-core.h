@@ -214,12 +214,6 @@ namespace patmos
     /// Active instructions in the pipeline stage.
     instruction_data_t Pipeline[NUM_STAGES][NUM_SLOTS];
 
-    /// Active decoupled load running in parallel to the pipeline.
-    instruction_data_t Decoupled_load;
-
-    /// Flag indicating whether a decoupled load is active.
-    bool Is_decoupled_load_active;
-
     /// Keep track of delays for interrupt triggering
     int Delay_counter;
     

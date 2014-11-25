@@ -60,7 +60,7 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
 
   val io = Config.getPatmosCoreIO()
 
-  val mcache = Module(new MCache())
+  val mcache = Module(if (MCACHE_SIZE <= 0) new NullMCache() else new MCache())
   val fetch = Module(new Fetch(binFile))
   val decode = Module(new Decode())
   val execute = Module(new Execute())

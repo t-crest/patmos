@@ -336,7 +336,6 @@ class Decode() extends Module {
         io.decex.memOp.byte := Bool(true)
         io.decex.memOp.zext := Bool(true)
       }
-      // ignore split load for now
     }
     io.decex.memOp.typ := ldtype;
     when(ldtype === MTYPE_S) {

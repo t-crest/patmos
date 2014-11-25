@@ -75,7 +75,7 @@ static void noc_sync(void) {
     int done = 0;
     do {
       done = 1;
-      for (unsigned i = 0; i < MAX_CORES; i++) {
+      for (unsigned i = 0; i < get_cpucnt(); i++) {
         if (boot_info->slave[i].status != STATUS_NULL &&
             boot_info->slave[i].status != STATUS_INITDONE && 
             i != NOC_MASTER) {

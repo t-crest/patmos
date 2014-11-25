@@ -297,9 +297,7 @@ namespace patmos
       set_error("invalid SPR register name.");
       return false;
     }
-    if (name == "sm") {
-      reg = s1;
-    } else if (name == "sl") {
+    if (name == "sl") {
       reg = s2;
     } else if (name == "sh") {
       reg = s3;

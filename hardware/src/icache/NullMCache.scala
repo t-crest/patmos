@@ -1,5 +1,5 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute.
+   Copyright 2014 Technical University of Denmark, DTU Compute.
    All rights reserved.
 
    This file is part of the time-predictable VLIW processor Patmos.
@@ -31,66 +31,44 @@
  */
 
 /*
- * "I/O" module to access information about the CPU
- *
+ * Method cache without actual functionality
+ * 
  * Authors: Wolfgang Puffitsch (wpuffitsch@gmail.com)
- *
+ *        Philipp Degasperi (philipp.degasperi@gmail.com)
  */
 
-
-package io
+package patmos
 
 import Chisel._
 import Node._
-
-import patmos.Constants._
-
+import Constants._
 import ocp._
 
-object CpuInfo extends DeviceObject {
+class NullMCache() extends Module {
+  val io = new MCacheIO()
 
-  def init(params: Map[String, String]) = { }
+  val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
+  val callAddrReg = Reg(init = UInt(1, DATA_WIDTH))
+  val selIspmReg = Reg(init = Bool(false))
 
-  def create(params: Map[String, String]) : CpuInfo = {
-    Module(new CpuInfo())
+  io.ena_out := Bool(true)
+
+  when (io.exmcache.doCallRet && io.ena_in) {
+    callRetBaseReg := io.exmcache.callRetBase
+    callAddrReg := io.exmcache.callRetAddr
+    selIspmReg := io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-2) === Bits(0x1)
   }
 
-  trait Pins {
-    val cpuInfoPins = new Bundle() {
-      val id = Bits(INPUT, DATA_WIDTH)
-      val cnt = Bits(INPUT, DATA_WIDTH)
-    }
-  }
-}
+  io.mcachefe.instrEven := Bits(0)
+  io.mcachefe.instrOdd := Bits(0)
+  io.mcachefe.relBase := callRetBaseReg(ISPM_ONE_BIT-3, 0)
+  io.mcachefe.relPc := callAddrReg + callRetBaseReg(ISPM_ONE_BIT-3, 0)
+  io.mcachefe.reloc := Mux(selIspmReg, UInt(1 << (ISPM_ONE_BIT - 2)), UInt(0))
+  io.mcachefe.memSel := Cat(selIspmReg, Bits(0))
 
-class CpuInfo() extends CoreDevice() {
-
-  override val io = new CoreDeviceIO() with CpuInfo.Pins
-
-  val masterReg = Reg(next = io.ocp.M)
-
-  // Default response
-  val resp = Bits()
-  val data = Bits(width = DATA_WIDTH)
-  resp := OcpResp.NULL
-  data := Bits(0)
-
-  // Ignore writes
-  when(masterReg.Cmd === OcpCmd.WR) {
-    resp := OcpResp.DVA
-  }
-
-  // Read information
-  switch(masterReg.Addr(3,2)) {
-    is(Bits("b00")) { data := io.cpuInfoPins.id }
-    is(Bits("b01")) { data := Bits(CLOCK_FREQ) }
-    is(Bits("b10")) { data := io.cpuInfoPins.cnt }
-  }
-  when(masterReg.Cmd === OcpCmd.RD) {
-    resp := OcpResp.DVA
-  }
-
-  // Connections to master
-  io.ocp.S.Resp := resp
-  io.ocp.S.Data := data
+  io.ocp_port.M.Cmd := OcpCmd.IDLE
+  io.ocp_port.M.Addr := Bits(0)
+  io.ocp_port.M.Data := Bits(0)
+  io.ocp_port.M.DataValid := Bits(0)
+  io.ocp_port.M.DataByteEn := Bits(0)
 }

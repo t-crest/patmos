@@ -125,7 +125,7 @@ int print_processor_info() {
   printf("Operating frequency: %d MHz\n",(get_cpu_freq())/1000000);
   int i = 0;
   int cores = 1;
-  for(i = 1; i < MAX_CORES; i++){
+  for(i = 1; i < get_cpucnt(); i++){
     if(boot_info->slave[i].status != STATUS_NULL){
       cores++;
     }
