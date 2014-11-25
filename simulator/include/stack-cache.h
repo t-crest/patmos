@@ -1,18 +1,35 @@
-//
-//  This file is part of the Patmos Simulator.
-//  The Patmos Simulator is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
-//  the Free Software Foundation, either version 3 of the License, or
-//  (at your option) any later version.
-//
-//  The Patmos Simulator is distributed in the hope that it will be useful,
-//  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
-//
-//  You should have received a copy of the GNU General Public License
-//  along with the Patmos Simulator. If not, see <http://www.gnu.org/licenses/>.
-//
+/*
+   Copyright 2012 Technical University of Denmark, DTU Compute.
+   All rights reserved.
+
+   This file is part of the Patmos simulator.
+
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions are met:
+
+      1. Redistributions of source code must retain the above copyright notice,
+         this list of conditions and the following disclaimer.
+
+      2. Redistributions in binary form must reproduce the above copyright
+         notice, this list of conditions and the following disclaimer in the
+         documentation and/or other materials provided with the distribution.
+
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
+   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
+   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+   The views and conclusions contained in the software and documentation are
+   those of the authors and should not be interpreted as representing official
+   policies, either expressed or implied, of the copyright holder.
+ */
+
 //
 // Basic definitions of interfaces to simulate the stack cache of Patmos.
 //
@@ -46,7 +63,7 @@ namespace patmos
     
   public:
     virtual ~stack_cache_t() {}
-    
+
     /// Prepare for reserveing a given number of bytes, and update the stack 
     /// pointers.
     /// @param size The number of bytes to be reserved.
@@ -234,7 +251,7 @@ namespace patmos
     
     virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
-    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size, uword_t &lazy_pointer);
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
     virtual void read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
@@ -319,7 +336,7 @@ namespace patmos
       return (spill - top) / Num_block_bytes;
     }
   public:
-    /// Construct a black-based stack cache.
+    /// Construct a block-based stack cache.
     /// @param memory The memory to spill/fill.
     /// @param num_blocks Size of the stack cache in blocks.
     block_stack_cache_t(memory_t &memory, unsigned int num_blocks, 
@@ -357,23 +374,111 @@ namespace patmos
 
     virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
-    
+
     virtual void print(std::ostream &os) const;
 
     virtual void print_stats(const simulator_t &s, std::ostream &os, 
                              bool short_stats);
 
     virtual void reset_stats();
-    
+  };
+
+  /// A stack cache generating only aligned memory transfers, given a 
+  /// pre-defined block size, while preserving the impression that the stack 
+  /// cache operates on blocks of 4 bytes (words) for the instruction set 
+  /// architecture.
+  /// 
+  /// The main idea is to reserve one block of the stack cache as a sort of 
+  /// alignment buffer, reducing the effective size of the maximal reservable 
+  /// space (which has to be respected by the compiler). This allows the stack 
+  /// cache to spill/fill entire blocks that are properly aligned.
+  /// 
+  /// In addition, free instructions need some special care. Whenever the free
+  /// empties the stack cache a single block needs to be filled in order to 
+  /// ensure proper alignment of the memory top pointer and matching content of 
+  /// the stack cache.
+  class block_aligned_stack_cache_t : public block_stack_cache_t
+  {
+    private:
+      /// Number of bytes transferred as a block during filling/spilling.
+      uword_t Num_transfer_block_bytes;
+
+      /// Total number of words additionally transferred to main (spill) memory.
+      unsigned int Num_words_spilled;
+
+      /// Maximal number of blocks additionally transferred to main at once 
+      /// (spill) memory.
+      unsigned int Max_words_spilled;
+
+      /// Total number of words additionally transferred from main (fill) 
+      /// memory.
+      unsigned int Num_words_filled;
+
+      /// Maximal number of blocks additionally transferred from main at once 
+      /// (fill) memory.
+      unsigned int Max_words_filled;
+
+      /// Total number of words additionally transferred from main (free) 
+      /// memory.
+      unsigned int Num_words_free_filled;
+
+      /// Maximal number of blocks additionally transferred from main at once 
+      /// (fill) memory.
+      unsigned int Max_words_free_filled;
+    public:
+      /// Construct an aligned block-based stack cache.
+      /// @param memory The memory to spill/fill.
+      /// @param num_blocks Size of the stack cache in blocks.
+      block_aligned_stack_cache_t(memory_t &memory, unsigned int num_blocks, 
+                                  unsigned int num_block_bytes);
+
+      /// Override the original prepare reserve function and align the stack 
+      /// spill pointer / transfer size.
+      virtual word_t prepare_reserve(simulator_t &s, uword_t size, 
+                                     uword_t &stack_spill, uword_t &stack_top);
+
+      // Override the original prepare ensure function and align the stack spill
+      // pointer / transfer size.
+      virtual word_t prepare_ensure(simulator_t &s, uword_t size, 
+                                    uword_t &stack_spill, uword_t &stack_top);
+
+      // Override the original prepare free function and align the stack spill
+      // pointer and potentially trigger a one-block fill.
+      virtual word_t prepare_free(simulator_t &s, uword_t size, 
+                                  uword_t &stack_spill, uword_t &stack_top);
+
+      // Behave as a normal free, but if needed execute a one-block fill.
+      virtual bool free(simulator_t &s, uword_t size, word_t delta,
+                        uword_t new_spill, uword_t new_top);
+
+      virtual void print_stats(const simulator_t &s, std::ostream &os, 
+                               bool short_stats);
+
+      void reset_stats();
   };
 
   class block_lazy_stack_cache_t : public block_stack_cache_t
   {
     private: 
-      uword_t lazy_pointer;
-      bool lp_pulldown;
-      unsigned int Num_blocks_not_spilled_lazy;
+      /// Pointer relative to stack top stack tracking data that has been 
+      /// modified.
+      uword_t Lazy_pointer;
 
+      /// Updated next value of the Lazy_pointer.
+      /// \see Lazy_pointer
+      uword_t Next_Lazy_pointer;
+      
+      /// Number of blocks that should be evicted but not spilled by the next 
+      /// reserve
+      uword_t Num_blocks_to_evict;
+      
+      /// Statistic counter, measuring the number of blocks that were not 
+      /// spilled due to lazy spilling.
+      unsigned int Num_blocks_not_spilled;
+      
+      /// Statistic counter, measuring the maximum number of blocks that were 
+      /// not spilled due to lazy spilling.
+      unsigned int Max_blocks_not_spilled;      
     public:
 
       /// Construct a lazy block-based stack cache.
@@ -382,19 +487,43 @@ namespace patmos
       block_lazy_stack_cache_t(memory_t &memory, unsigned int num_blocks, 
                         unsigned int num_block_bytes);
 
-      virtual ~block_lazy_stack_cache_t();	
+      virtual word_t prepare_reserve(simulator_t &s, uword_t size, uword_t &stack_spill, 
+                                     uword_t &stack_top);
+      
+      virtual word_t prepare_free(simulator_t &s, uword_t size, uword_t &stack_spill, 
+                                  uword_t &stack_top);
 
-       word_t prepare_reserve(simulator_t &s, uword_t size, 
-                                   uword_t &stack_spill, uword_t &stack_top);
-       word_t prepare_free(simulator_t &s, uword_t size,
-                                uword_t &stack_spill, uword_t &stack_top);
-       bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size, uword_t &stack_top);
+      /// Free a given number of bytes on the stack.
+      /// @param size The number of bytes to be freed.
+      /// @param delta The value returned by prepare, i.e., the number of bytes 
+      /// to be spilled or filled.
+      /// @param new_spill The new value of the stack spill pointer.
+      /// @param new_top The new value of the stack top pointer.
+      /// @return True when the stack space is actually freed in the cache, 
+      /// false otherwise.
+      virtual bool free(simulator_t &s, uword_t size, word_t delta,
+                        uword_t new_spill, uword_t new_top);
 
-     void print_stats(const simulator_t &s, std::ostream &os, 
-                             bool short_stats);
+      /// Reserve a given number of bytes, potentially spilling stack data to some
+      /// memory.
+      /// @param size The number of bytes to be reserved.
+      /// @param delta The value returned by prepare, i.e., the number of bytes to
+      /// be spilled.
+      /// @param new_spill The new value of the stack spill pointer.
+      /// @param new_top The new value of the stack top pointer.
+      /// @return True when the stack space is actually reserved on the cache,
+      /// false otherwise.
+      virtual bool reserve(simulator_t &s, uword_t size, word_t delta,
+                           uword_t new_spill, uword_t new_top);
 
-     void reset_stats();
+      virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
+      virtual void print(std::ostream &os) const;
+
+      virtual void print_stats(const simulator_t &s, std::ostream &os, 
+                                bool short_stats);
+
+      void reset_stats();
   };
 
   /// Operator to print the state of a stack cache to a stream

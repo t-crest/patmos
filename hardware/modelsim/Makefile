@@ -14,4 +14,5 @@ sim:
 	$(WINE) vlib work
 	$(WINE) vcom -quiet +acc gen_utils.vhd conversions.vhd sim_ssram_512x36.vhd
 	$(WINE) vlog -quiet +acc ../build/Patmos.v Patmos_tb.v
+#	$(WINE) vlog -quiet +acc CY7C2263KV18/CY7C2263KV18.v ../build/Patmos.v Patmos_Qdr_tb.v
 	$(WINE) vsim -i -do sim.do Patmos_tb

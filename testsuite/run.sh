@@ -19,7 +19,7 @@ for td in ${test_dirs}; do
 done
 cd ..
 
-tests="basic minimal simple ALU ALUi ALUl compare dual_forwarding fetch_double dual_even_odd_address forward_issue ldst load_use load_store_stackcache spill load_store_data_cache load_store_scratchpad load_store_scratchpad_new load_store_scratchpad_new2 scratchpad predication branch predicate predicated_predicate pred_issue call callr mulpipe mfsmts test test_asm test_case_plan test_mfs test_mts"
+tests="basic minimal simple ALU ALUi ALUl compare dual_forwarding fetch_double dual_even_odd_address forward_issue ldst load_use load_store_stackcache spill sspill load_store_data_cache load_store_scratchpad load_store_scratchpad_new load_store_scratchpad_new2 scratchpad predication branch predicate predicated_predicate pred_issue call callr mulpipe mfsmts test test_asm test_case_plan test_mfs test_mts test_datacache"
 tests+=${test_disc}
 
 not_working_chsl="none"

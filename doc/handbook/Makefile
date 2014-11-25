@@ -3,10 +3,12 @@ DOC?=patmos_handbook
 BIBS=patbib.bib
 OPEN=open # program for displaying the pdf
 
+PDFLATEX = pdflatex -interaction=nonstopmode -halt-on-error
+
 TEX=$(wildcard *.tex)
 
 # include file to override e.g. OPEN
-# config.mk is ignored by svn
+# config.mk is in .gitignore
 -include config.mk
 
 
@@ -17,16 +19,16 @@ all: $(DOC).pdf
 TIKZFIGURES=fig/timing_core.pdf fig/timing_io.pdf fig/timing_burst.pdf
 
 fig/%.pdf: fig/%.tex
-	pdflatex --output-directory fig $^
+	$(PDFLATEX) --output-directory fig $^
 
 rubber: $(TEX) $(BIBS) $(TIKZFIGURES)
 	rubber --short --warn all -d $(DOC).tex
 
 $(DOC).pdf: $(TEX) $(BIBS) $(TIKZFIGURES)
-	pdflatex $(DOC)
+	$(PDFLATEX) $(DOC)
 	bibtex $(DOC)
-	pdflatex $(DOC)
-	pdflatex $(DOC)
+	$(PDFLATEX) $(DOC)
+	$(PDFLATEX) $(DOC)
 
 open: $(DOC).pdf
 	$(OPEN) $<

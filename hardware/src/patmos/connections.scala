@@ -79,7 +79,6 @@ class AluOp() extends Bundle() {
   val isBCpy = Bool()
   val isMTS = Bool()
   val isMFS = Bool()
-  val isSTC = Bool()
 
   def reset() = {
     func := Bits(0)
@@ -89,7 +88,6 @@ class AluOp() extends Bundle() {
     isBCpy := Bool(false)
     isMTS := Bool(false)
     isMFS := Bool(false)
-    isSTC := Bool(false)
   }
 }
 
@@ -137,24 +135,6 @@ class MemOp() extends Bundle() {
   }
 }
 
-class DecExSc() extends Bundle() {
-  val spill = Bits(width = 1)
-  val fill = Bits(width = 1)
-  val free = Bits(width = 1)
-  val nSpill = SInt(width = log2Up(SCACHE_SIZE))
-  val nFill = SInt(width = log2Up(SCACHE_SIZE))
-  val sp = UInt(width = DATA_WIDTH)
-}
-
-object DecExScResetVal extends DecExSc {
-  spill := Bits(0)
-  fill := Bits(0)
-  free := Bits(0)
-  nSpill := SInt(0)
-  nFill := SInt(0)
-  sp := UInt(0)
-}
-
 class DecEx() extends Bundle() {
   val pc = UInt(width = PC_SIZE)
   val relPc = UInt(width = PC_SIZE)
@@ -163,6 +143,7 @@ class DecEx() extends Bundle() {
   val predOp = Vec.fill(PIPE_COUNT) { new PredOp() }
   val jmpOp = new JmpOp()
   val memOp = new MemOp()
+  val stackOp = UInt(width = SC_OP_BITS)
 
   // the register fields are very similar to RegFileRead
   // maybe join the structures
@@ -190,12 +171,11 @@ class DecEx() extends Bundle() {
     pc := UInt(0)
     relPc := UInt(0)
     pred := Vec.fill(PIPE_COUNT) { Bits(0) }
-    for (i <- 0 until PIPE_COUNT) {
-      aluOp(i).reset()
-      predOp(i).reset()
-    }
+    aluOp.map(_.reset())
+    predOp.map(_.reset())
     jmpOp.reset()
     memOp.reset()
+    stackOp := sc_OP_NONE
     rsAddr := Vec.fill(2*PIPE_COUNT) { Bits(0) }
     rsData := Vec.fill(2*PIPE_COUNT) { Bits(0) }
     rdAddr := Vec.fill(PIPE_COUNT) { Bits(0) }
@@ -279,18 +259,24 @@ class MemIn() extends Bundle() {
   }
 }
 
-class ExDec() extends Bundle() {
-  val sp = UInt(width = DATA_WIDTH)
-}
-
-//stack cache
+// interface between the EX stage and the stack cache
 class ExSc extends Bundle() {
-  val decexsc = new DecExSc()
-  val mTop = UInt(width = ADDR_WIDTH)
+  // indicate which stack-cache operation is performed
+  val op = UInt(width = 3)
+
+  // operands of the stack-cache operation
+  //   - opSetStackTop, opSetMemTop: the new value of stackTop or memTop
+  val opData = UInt(width = DATA_WIDTH)
+  //   - opSRES, opSENS, opSFREE   : the operand of the instructions
+  val opOff  = UInt(width = EXTMEM_ADDR_WIDTH)
 }
 
-class MemDecSc() extends Bundle() {
-  val mTop = UInt(width = ADDR_WIDTH)
+class ScEx extends Bundle() {
+  // the current value of the stack top pointer
+  val stackTop = UInt(width = ADDR_WIDTH)
+  
+  // the current value of the mem top pointer
+  val memTop = UInt(width = ADDR_WIDTH)
 }
 
 class ExMem() extends Bundle() {
@@ -300,9 +286,7 @@ class ExMem() extends Bundle() {
   val relPc = UInt(width = PC_SIZE)
 
   def reset() = {
-    for (i <- 0 until PIPE_COUNT) {
-      rd(i).reset()
-    }
+    rd.map(_.reset())
     mem.reset()
     pc := UInt(0)
     relPc := UInt(0)
@@ -381,12 +365,8 @@ class DecodeIO() extends Bundle() {
   val flush = Bool(INPUT)
   val fedec = new FeDec().asInput
   val decex = new DecEx().asOutput
-  val exdec = new ExDec().asInput
   val rfWrite =  Vec.fill(PIPE_COUNT) { new Result().asInput }
   val exc = new ExcDec().asInput
-  // stack cache
-  val decexsc = new DecExSc().asOutput
-  val memdecsc = new MemDecSc().asInput
 }
 
 class ExecuteIO() extends Bundle() {
@@ -394,7 +374,6 @@ class ExecuteIO() extends Bundle() {
   val flush = Bool(INPUT)
   val brflush = Bool(OUTPUT)
   val decex = new DecEx().asInput
-  val exdec = new ExDec().asOutput
   val exmem = new ExMem().asOutput
   val exmcache = new ExMCache().asOutput
   val feex = new FeEx().asInput
@@ -404,8 +383,8 @@ class ExecuteIO() extends Bundle() {
   // branch for FE
   val exfe = new ExFe().asOutput
   //stack cache
-  val decexsc = new DecExSc().asInput
   val exsc = new ExSc().asOutput
+  val scex = new ScEx().asInput
 }
 
 class InOutIO() extends Bundle() {
@@ -448,10 +427,17 @@ class MemoryIO() extends Bundle() {
 
 //stack cache
 class StackCacheIO() extends Bundle() {
+  // check if another transfer is active
+  val ena_in = Bool(INPUT)
 
-   val exsc = new ExSc().asInput
-   val memdecsc = new MemDecSc().asOutput // m_top
-   val stall = UInt(OUTPUT, width = 1)
+  // signals from EX stage to stack cache
+  val exsc = new ExSc().asInput
+
+  // signals from stack cache back to the EX stage
+  val scex = new ScEx().asOutput
+
+  // indicate a stall
+  val stall = Bool(OUTPUT)
 }
 
 class WriteBackIO() extends Bundle() {
@@ -469,6 +455,8 @@ class ExcIO() extends Bundle() {
   val intrs = Vec.fill(INTR_COUNT) { Bool(INPUT) }
   val excdec = new ExcDec().asOutput
   val memexc = new MemExc().asInput
+  val invalMCache = Bool(OUTPUT)
+  val invalDCache = Bool(OUTPUT)
 }
 
 class PatmosCoreIO() extends Bundle() {
@@ -481,3 +469,4 @@ class PatmosIO() extends Bundle() {
   val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
 }
+

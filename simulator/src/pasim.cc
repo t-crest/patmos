@@ -1,18 +1,35 @@
-//
-//  This file is part of the Patmos Simulator.
-//  The Patmos Simulator is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
-//  the Free Software Foundation, either version 3 of the License, or
-//  (at your option) any later version.
-//
-//  The Patmos Simulator is distributed in the hope that it will be useful,
-//  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
-//
-//  You should have received a copy of the GNU General Public License
-//  along with the Patmos Simulator. If not, see <http://www.gnu.org/licenses/>.
-//
+/*
+   Copyright 2012 Technical University of Denmark, DTU Compute.
+   All rights reserved.
+
+   This file is part of the Patmos simulator.
+
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions are met:
+
+      1. Redistributions of source code must retain the above copyright notice,
+         this list of conditions and the following disclaimer.
+
+      2. Redistributions in binary form must reproduce the above copyright
+         notice, this list of conditions and the following disclaimer in the
+         documentation and/or other materials provided with the distribution.
+
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
+   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
+   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+   The views and conclusions contained in the software and documentation are
+   those of the authors and should not be interpreted as representing official
+   policies, either expressed or implied, of the copyright holder.
+ */
+
 //
 // Main file of the Patmos Simulator.
 //
@@ -27,6 +44,7 @@
 #include "streams.h"
 #include "symbol.h"
 #include "memory-map.h"
+#include "noc.h"
 #include "uart.h"
 #include "rtc.h"
 #include "excunit.h"
@@ -195,11 +213,13 @@ static patmos::instr_cache_t &create_instr_cache(patmos::instr_cache_e ick,
 /// Construct a stack cache for the simulation.
 /// @param sck The kind of the stack cache requested.
 /// @param size The requested size of the stack cache in bytes.
+/// @param bsize The size of burst transfers in bytes.
 /// @param gm Global memory accessed on stack cache fills/spills.
 /// @param dc Data cache to use if the stack cache type is dcache.
 /// @return An instance of the requested stack cache kind.
 static patmos::stack_cache_t &create_stack_cache(patmos::stack_cache_e sck,
                                                  unsigned int size,
+                                                 unsigned int bsize,
                                                  patmos::memory_t &gm, 
                                                  patmos::memory_t &dc)
 {
@@ -216,11 +236,18 @@ static patmos::stack_cache_t &create_stack_cache(patmos::stack_cache_e sck,
 
       return *new patmos::block_stack_cache_t(gm, num_blocks, 4);
     }
+    case patmos::SC_ABLOCK:
+    {
+      // convert size to number of blocks
+      unsigned int num_blocks = (size - 1) / bsize + 1;
+        
+      return *new patmos::block_aligned_stack_cache_t(gm, num_blocks, bsize);
+    }
     case patmos::SC_LBLOCK:
     {
       // convert size to number of blocks
       unsigned int num_blocks = (size - 1) / 4 + 1;
-	
+        
       return *new patmos::block_lazy_stack_cache_t(gm, num_blocks, 4);
     }
     case patmos::SC_DCACHE:
@@ -272,14 +299,14 @@ int main(int argc, char **argv)
     ("help,h", "produce help message")
     ("maxc,c", boost::program_options::value<unsigned int>()->default_value(0, "inf."), "stop simulation after the given number of cycles")
     ("binary,b", boost::program_options::value<std::string>(), "binary or elf-executable file (stdin: -)")
-    ("output,o", boost::program_options::value<std::string>()->default_value("-"), "output execution trace in file (stdout: -)")
     ("debug", boost::program_options::value<unsigned int>()->implicit_value(0), "enable step-by-step debug tracing after cycle")
     ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), 
                   "format of the debug trace (short, trace, instr, blocks, calls, calls-indent, default, long, all)")
-    ("debug-file", boost::program_options::value<std::string>()->default_value("-"), "output debug trace in file (stderr: -)")
+    ("debug-file", boost::program_options::value<std::string>()->default_value(""), "output debug trace in file (stdout: -)")
     ("debug-intrs", "print out all status changes of the exception unit.")
     ("debug-nopc", "do not print PC and cycles counter in debug output")
     ("debug-access", boost::program_options::value<patmos::address_t>(), "print accesses to the given address or symbol.")
+    ("stats-file,o", boost::program_options::value<std::string>()->default_value(""), "write statistics to a file (stdout: -)")
     ("print-stats", boost::program_options::value<patmos::address_t>(), "print statistics for a given function only.")
     ("flush-caches", boost::program_options::value<patmos::address_t>(), "flush all caches when reaching the given address (can be a symbol name).")
     ("full,V", "full statistics output")
@@ -300,6 +327,14 @@ int main(int argc, char **argv)
     ("chkreads", boost::program_options::value<patmos::mem_check_e>()->default_value(patmos::MCK_NONE), 
                  "Check for reads of uninitialized data, either per byte (warn, err) or per access (warn-addr, err-addr). Disables the data cache.");
 
+  boost::program_options::options_description noc_options("Network-on-chip options");
+  noc_options.add_options()
+    ("nocbase",          boost::program_options::value<patmos::address_t>()->default_value(patmos::NOC_BASE_ADDRESS), "base address of the NOC device map address range")
+    ("noc_route_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::NOC_DMA_P_OFFSET), "offset of the NOC routing information device map")
+    ("noc_st_offset",    boost::program_options::value<patmos::address_t>()->default_value(patmos::NOC_DMA_ST_OFFSET), "offset of the NOC slot table device map")
+    ("noc_spm_offset",   boost::program_options::value<patmos::address_t>()->default_value(patmos::NOC_SPM_OFFSET), "offset of the NOC SPM")
+    ("nocsize",          boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NOC_SPM_SIZE),   "size of the NOC SPM");
+    
   boost::program_options::options_description cache_options("Cache options");
   cache_options.add_options()
     ("dcsize,d", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_DATA_CACHE_BYTES), "data cache size in bytes")
@@ -308,7 +343,7 @@ int main(int argc, char **argv)
     ("dlsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(0), "size of a data cache line in bytes, defaults to burst size if set to 0")
 
     ("scsize,s", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_STACK_CACHE_BYTES), "stack cache size in bytes")
-    ("sckind,S", boost::program_options::value<patmos::stack_cache_e>()->default_value(patmos::SC_BLOCK), "kind of stack cache (ideal, block, lblock, dcache)")
+    ("sckind,S", boost::program_options::value<patmos::stack_cache_e>()->default_value(patmos::SC_BLOCK), "kind of stack cache (ideal, block, ablock, lblock, dcache)")
 
     ("icache,C", boost::program_options::value<patmos::instr_cache_e>()->default_value(patmos::IC_MCACHE), "kind of instruction cache (mcache, icache)")
     ("ickind,K", boost::program_options::value<patmos::set_assoc_cache_type>()->default_value(patmos::set_assoc_cache_type(patmos::SAC_LRU,2)), 
@@ -350,7 +385,8 @@ int main(int argc, char **argv)
 
   boost::program_options::options_description cmdline_options;
   cmdline_options.add(generic_options).add(memory_options).add(cache_options)
-                 .add(sim_options).add(uart_options).add(interrupt_options);
+                 .add(noc_options).add(sim_options).add(uart_options)
+                 .add(interrupt_options);
 
   // process command-line options
   boost::program_options::variables_map vm;
@@ -381,7 +417,7 @@ int main(int argc, char **argv)
     std::cout << "No program to simulate specified. Use --help for more options.\n";
     return 1;
   }
-  std::string output(vm["output"].as<std::string>());
+  std::string stats_out(vm["stats-file"].as<std::string>());
 
   std::string uart_in(vm["in"].as<std::string>());
   std::string uart_out(vm["out"].as<std::string>());
@@ -393,6 +429,12 @@ int main(int argc, char **argv)
   double       freq = vm["freq"].as<double>();
   unsigned int mmbase = vm["mmbase"].as<patmos::address_t>().value();
   unsigned int mmhigh = vm["mmhigh"].as<patmos::address_t>().value();
+  
+  unsigned int nocbase = vm["nocbase"].as<patmos::address_t>().value();
+  unsigned int noc_route_offset = vm["noc_route_offset"].as<patmos::address_t>().value();
+  unsigned int noc_st_offset = vm["noc_st_offset"].as<patmos::address_t>().value();
+  unsigned int noc_spm_offset = vm["noc_spm_offset"].as<patmos::address_t>().value();
+  unsigned int nocsize = vm["nocsize"].as<patmos::byte_size_t>().value();
   
   unsigned int cpuinfo_offset = vm["cpuinfo_offset"].as<patmos::address_t>().value();
   unsigned int excunit_offset = vm["excunit_offset"].as<patmos::address_t>().value();
@@ -477,7 +519,7 @@ int main(int argc, char **argv)
   std::istream *in = NULL;
   std::istream *uin = NULL;
 
-  std::ostream *out = NULL;
+  std::ostream *sout = NULL;
   std::ostream *uout = NULL;
 
   std::ostream *dout = NULL;
@@ -496,24 +538,24 @@ int main(int argc, char **argv)
                                                  mbsize, mcmethods, gm);
   patmos::data_cache_t &dc = create_data_cache(dck, dcsize, 
                                                dlsize ? dlsize : bsize, gm);
-  patmos::stack_cache_t &sc = create_stack_cache(sck, scsize, gm, dc);
+  patmos::stack_cache_t &sc = create_stack_cache(sck, scsize, bsize, gm, dc);
 
   try
   {
     // open streams
     in = patmos::get_stream<std::ifstream>(binary, std::cin);
-    out = patmos::get_stream<std::ofstream>(output, std::cout);
-
 
     uin = patmos::get_stream<std::ifstream>(uart_in, std::cin);
     uout = patmos::get_stream<std::ofstream>(uart_out, std::cout);
 
     dout = patmos::get_stream<std::ofstream>(debug_out, std::cerr);
+    sout = patmos::get_stream<std::ofstream>(stats_out, std::cerr);
+
 
     // check if the uart input stream is a tty.
     bool uin_istty = (uin == &std::cin) && isatty(STDIN_FILENO);
 
-    assert(in && out && uin && uout && dout);
+    assert(in && sout && uin && uout && dout);
 
     // finalize simulation framework
     // setup exception unit
@@ -523,7 +565,8 @@ int main(int argc, char **argv)
 
     // TODO initialize the SPM with random data as well?
     patmos::ideal_memory_t lm(lsize, false, chkreads);
-    patmos::memory_map_t mm(lm, mmbase, mmhigh);
+    patmos::ideal_memory_t nm(nocsize, false, patmos::MCK_NONE);
+    patmos::memory_map_t mm(lm, std::min(mmbase,nocbase), mmhigh);
     
     patmos::symbol_map_t sym;
 
@@ -534,15 +577,18 @@ int main(int argc, char **argv)
     rtc.enable_debug(debug_intrs);
     
     // setup IO mapped devices
-    patmos::cpuinfo_t cpuinfo(mmbase+cpuinfo_offset, cpuid, freq);
+    patmos::cpuinfo_t cpuinfo(mmbase+cpuinfo_offset, cpuid, freq, cores);
     patmos::uart_t uart(mmbase+uart_offset, *uin, uin_istty, *uout);
     patmos::led_t leds(mmbase+led_offset, *uout);
+    patmos::noc_t noc(nocbase, nocbase+noc_route_offset, nocbase+noc_st_offset,
+                      nocbase+noc_spm_offset, nocsize, nm);
 
     mm.add_device(cpuinfo);
     mm.add_device(excunit);
     mm.add_device(uart);
     mm.add_device(leds);
     mm.add_device(rtc);
+    mm.add_device(noc);
 
     // load input program
     patmos::section_list_t text;
@@ -554,9 +600,27 @@ int main(int argc, char **argv)
       std::cerr << boost::format("Loaded: %1% bytes\n") 
                    % loader->get_binary_size();
     }
-    
-    loader->load_symbols(sym, text);
-    loader->load_to_memory(s, gm);
+
+    try
+    {
+      loader->load_symbols(sym, text);
+      loader->load_to_memory(s, gm);
+    }
+    catch (patmos::simulation_exception_t e) 
+    {
+      switch(e.get_kind()) {
+        case patmos::simulation_exception_t::UNMAPPED:
+          // Unmapped access during loading of code
+          if (e.get_cycle() == 0) {
+            std::cerr << boost::format("Unmapped access to 0x%x while loading program.\n") % e.get_info();
+            break;
+          }
+          // intended fallthrough to default
+        default:
+          std::cerr << e.to_string(sym);
+      }
+      goto _cleanup;
+    }
     
     if (debug_accesses) {
       debug_access_addr.parse(sym);
@@ -566,14 +630,14 @@ int main(int argc, char **argv)
     // setup stats reset trigger
     if (print_stats) {
       print_stats_func.parse(sym);
-      s.Dbg_stack.print_function_stats(print_stats_func.value(), *out);
+      s.Dbg_stack.print_function_stats(print_stats_func.value(), *sout);
     }
-   
+  
     if (flush_caches) {
       flush_caches_addr.parse(sym);
       s.flush_caches_at(flush_caches_addr.value());
     }
-   
+  
     // start execution
     bool success = false;
     try
@@ -599,51 +663,58 @@ int main(int argc, char **argv)
     
     if (success) {
       if (verbose && !print_stats) {
-        s.print_stats(*out, !long_stats, long_stats);
+        s.print_stats(*sout, !long_stats, long_stats);
       }
       if (verbose) {
-        *out << "Pasim options:\n  ";
+        *sout << "Pasim options:\n  ";
         
         // TODO make this more generic.. somehow.
         
         if (vm["maxc"].as<unsigned int>())
-          *out << " --maxc=" << max_cycle;
+          *sout << " --maxc=" << max_cycle;
         if (flush_caches)
-          *out << " --flush-caches=" << flush_caches_addr;
-        *out << " --cpuid=" << cpuid << " --cores=" << cores;
-        *out << " --freq=" << freq;
-        *out << " --interrupt=" << excunit_enabled;            
+          *sout << " --flush-caches=" << flush_caches_addr;
+        *sout << " --cpuid=" << cpuid << " --cores=" << cores;
+        *sout << " --freq=" << freq;
+        *sout << " --interrupt=" << excunit_enabled;            
 
-        *out << "\n  ";
-        *out << " --mmbase=" << mmbase << " --mmhigh=" << mmhigh;
-        *out << " --cpuinfo_offset=" << cpuinfo_offset;
-        *out << " --excunit_offset=" << excunit_offset;
-        *out << " --timer_offset=" << timer_offset;
-        *out << " --uart_offset=" << uart_offset;
-        *out << " --led_offset=" << led_offset;
+        *sout << "\n  ";
+        *sout << " --mmbase=" << mmbase << " --mmhigh=" << mmhigh;
+        *sout << " --cpuinfo_offset=" << cpuinfo_offset;
+        *sout << " --excunit_offset=" << excunit_offset;
+        *sout << " --timer_offset=" << timer_offset;
+        *sout << " --uart_offset=" << uart_offset;
+        *sout << " --led_offset=" << led_offset;
         
-        *out << "\n  ";
-        *out << " --gsize=" << gsize;
-        *out << " --gtime=" << gtime;
-        *out << " --tdelay=" << tdelay << " --trefresh=" << trefresh;
-        *out << " --bsize=" << bsize << " --psize=" << psize;
-        *out << " --posted=" << posted; 
+        *sout << "\n  ";
+        *sout << " --gsize=" << gsize;
+        *sout << " --gtime=" << gtime;
+        *sout << " --tdelay=" << tdelay << " --trefresh=" << trefresh;
+        *sout << " --bsize=" << bsize << " --psize=" << psize;
+        *sout << " --posted=" << posted; 
         
-        *out << "\n  ";
-        *out << " --lsize=" << lsize;
-        *out << " --dckind=" << dck;
-        *out << " --dcsize=" << dcsize << " --dlsize=" << dlsize;
-        *out << " --sckind=" << sck;
-        *out << " --scsize=" << scsize;
+        *sout << "\n  ";
+        *sout << " --nocbase=" << nocbase;
+        *sout << " --noc_route_offset=" << noc_route_offset;
+        *sout << " --noc_st_offset=" << noc_st_offset;
+        *sout << " --noc_spm_offset=" << noc_spm_offset;
+        *sout << " --nocsize=" << nocsize;
         
-        *out << "\n  ";
-        *out << " --icache=" << ick << " --ickind=" << isck;
-        *out << " --ilsize=" << ilsize;
-        *out << " --mckind=" << mck;
-        *out << " --mcsize=" << mcsize << " --mbsize=" << mbsize;
-        *out << " --mcmethods=" << mcmethods;
+        *sout << "\n  ";
+        *sout << " --lsize=" << lsize;
+        *sout << " --dckind=" << dck;
+        *sout << " --dcsize=" << dcsize << " --dlsize=" << dlsize;
+        *sout << " --sckind=" << sck;
+        *sout << " --scsize=" << scsize;
         
-        *out << "\n\n";
+        *sout << "\n  ";
+        *sout << " --icache=" << ick << " --ickind=" << isck;
+        *sout << " --ilsize=" << ilsize;
+        *sout << " --mckind=" << mck;
+        *sout << " --mcsize=" << mcsize << " --mbsize=" << mbsize;
+        *sout << " --mcmethods=" << mcmethods;
+        
+        *sout << "\n\n";
       }
     }
   }
@@ -652,6 +723,7 @@ int main(int argc, char **argv)
     std::cerr << f.what() << "\n";
   }
 
+_cleanup:
   // free memory/cache instances
   // note: no need to free the local memory here.
   delete &gm;
@@ -660,13 +732,13 @@ int main(int argc, char **argv)
   delete &sc;
 
   // free streams
-  patmos::free_stream(in, std::cin);
-  patmos::free_stream(out, std::cout);
+  patmos::free_stream(in);
 
-  patmos::free_stream(uin, std::cin);
-  patmos::free_stream(uout, std::cout);
+  patmos::free_stream(uin);
+  patmos::free_stream(uout);
 
-  patmos::free_stream(dout, std::cerr);
+  patmos::free_stream(dout);
+  patmos::free_stream(sout);
 
   return exit_code;
 }

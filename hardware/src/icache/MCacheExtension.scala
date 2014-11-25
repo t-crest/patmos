@@ -144,6 +144,11 @@ class MCacheReplFifo2() extends Module {
   io.mcache_replctrl.hit := hitReg
 
   io.hitEna := hitReg
+
+  // reset valid bits
+  when (io.invalidate) {
+    mcacheValidVec.map(_ := Bool(false))
+  }
 }
 
 /*

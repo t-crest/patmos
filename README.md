@@ -23,6 +23,13 @@ installed on a Ubuntu Linux:
       subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
       ruby1.9.1-dev python zlib1g-dev gtkwave gtkterm scala
 
+Install sbt with:
+
+    wget http://dl.bintray.com/sbt/debian/sbt-0.13.2.deb
+    sudo dpkg -i sbt-0.13.2.deb
+    sudo apt-get update
+    sudo apt-get install sbt
+
 We assume that the T-CREST project will live in $HOME/t-crest.
 Patmos and the compiler can be checked out from GitHub and are built as follows:
 

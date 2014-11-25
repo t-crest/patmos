@@ -52,27 +52,30 @@ class WriteCombineBuffer() extends Module {
     val slave = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
   }
 
-  val addrWidth = io.writeMaster.M.Addr.width
-  val dataWidth = io.writeMaster.M.Data.width
-  val byteEnWidth = io.writeMaster.M.ByteEn.width
+  val addrWidth = io.writeMaster.M.Addr.getWidth()
+  val dataWidth = io.writeMaster.M.Data.getWidth()
+  val byteEnWidth = io.writeMaster.M.ByteEn.getWidth()
   val burstLength = io.readMaster.burstLength
   val burstAddrBits = log2Up(burstLength)
   val byteAddrBits = log2Up(dataWidth/8)
   val tagWidth = addrWidth - burstAddrBits - byteAddrBits
 
   // State of transmission
-  val idle :: read :: write :: writeResp :: writeComb :: Nil = Enum(Bits(), 5)
+  val idle :: read :: write :: writeResp :: writeComb :: writeSnoop :: Nil = Enum(Bits(), 6)
   val state = Reg(init = idle)
   val cntReg = Reg(init = UInt(0, burstAddrBits))
 
   // Register signals that come from write master
   val writeMasterReg = Reg(init = OcpCacheMasterSignals.resetVal(io.writeMaster.M))
 
+  // Register signals that come from read master
+  val readMasterReg = Reg(next = io.readMaster.M)
+
   // Registers for write combining
   val tagReg = Reg(init = Bits(0, width = tagWidth))
   val dataBuffer = Vec.fill(burstLength) { Reg(init = Bits(0, width = dataWidth)) }
   val byteEnBuffer = Vec.fill(burstLength) { Reg(init = Bits(0, width = byteEnWidth)) }
-  val fillReadReg = Reg(init = Bool(false))
+  val hitReg = Reg(init = Bool(false))
 
   // Temporary vector for combining
   val comb = Vec.fill(byteEnWidth) { Bits(width = 8) }
@@ -82,7 +85,6 @@ class WriteCombineBuffer() extends Module {
 
   // Default responses
   io.readMaster.S := io.slave.S
-  io.readMaster.S.Resp := OcpResp.NULL
   io.writeMaster.S := io.slave.S
   io.writeMaster.S.Resp := OcpResp.NULL
 
@@ -92,7 +94,7 @@ class WriteCombineBuffer() extends Module {
   // Pass on reads, fill in buffered data if necessary
   when(state === read) {
     io.readMaster.S.Resp := io.slave.S.Resp
-    when(fillReadReg) {
+    when(hitReg) {
       for (i <- 0 until byteEnWidth) {
         comb(i) := Mux(byteEnBuffer(cntReg)(i) === Bits(1),
                        dataBuffer(cntReg)(8*i+7, 8*i),
@@ -112,6 +114,7 @@ class WriteCombineBuffer() extends Module {
 
   // Write burst
   when(state === write) {
+    io.readMaster.S.Resp := OcpResp.NULL
     when(cntReg === Bits(0)) {
       io.slave.M.Cmd := OcpCmd.WR
       io.slave.M.Addr := Cat(tagReg, Fill(Bits(0), burstAddrBits+byteAddrBits))
@@ -134,6 +137,7 @@ class WriteCombineBuffer() extends Module {
     }
   }
   when(state === writeResp) {
+    io.readMaster.S.Resp := OcpResp.NULL
     io.writeMaster.S.Resp := io.slave.S.Resp
     when(io.slave.S.Resp === OcpResp.DVA) {
       state := idle
@@ -153,11 +157,31 @@ class WriteCombineBuffer() extends Module {
     state := idle
   }
 
+  // Snoop writes from readMaster
+  val dataAcceptReg = Reg(next = io.slave.S.DataAccept)
+  when(state === writeSnoop) {
+    when(dataAcceptReg === Bits(1)) {
+      when (hitReg) {
+        for (i <- 0 until byteEnWidth) {
+          comb(i) := Mux(readMasterReg.DataByteEn(i) === Bits(1),
+                         readMasterReg.Data(8*i+7, 8*i),
+                         dataBuffer(cntReg)(8*i+7, 8*i))
+        }
+        dataBuffer(cntReg) := comb.reduceLeft((x,y) => y##x)
+        byteEnBuffer(cntReg) := byteEnBuffer(cntReg) | readMasterReg.DataByteEn
+      }
+      cntReg := cntReg + UInt(1)
+    }
+    when(cntReg === UInt(burstLength - 1)) {
+      state := idle
+    }
+  }
+
   // Start new read transaction
   when(io.readMaster.M.Cmd === OcpCmd.RD) {
     state := read
     io.slave.M := io.readMaster.M
-    fillReadReg := tagReg === io.readMaster.M.Addr(addrWidth-1, burstAddrBits+byteAddrBits)
+    hitReg := tagReg === io.readMaster.M.Addr(addrWidth-1, burstAddrBits+byteAddrBits)
   }
   // Start write transactions
   when(io.writeMaster.M.Cmd === OcpCmd.WR) {
@@ -166,6 +190,11 @@ class WriteCombineBuffer() extends Module {
     when (tagReg === io.writeMaster.M.Addr(addrWidth-1, burstAddrBits+byteAddrBits)) {
       state := writeComb
     }
+  }
+  // Snoop writes from readMaster
+  when(io.readMaster.M.Cmd === OcpCmd.WR) {
+    state := writeSnoop
+    hitReg := tagReg === io.readMaster.M.Addr(addrWidth-1, burstAddrBits+byteAddrBits)
   }
 
 }

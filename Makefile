@@ -19,6 +19,9 @@ APP?=hello_puts
 #BLASTER_TYPE=Arrow-USB-Blaster
 BLASTER_TYPE?=USB-Blaster
 
+# File that contains NoC initialization data
+NOCINIT?=nocinit.c
+
 # Path delimiter for Wdoz and others
 ifeq ($(WINDIR),)
 	S=:
@@ -26,7 +29,12 @@ else
 	S=\;
 endif
 
-# The Quartus project
+# The FPGA vendor (Altera, Xilinx)
+#VENDOR?=Xilinx
+VENDOR?=Altera
+
+# The Quartus/ISE project
+#BOARD=ml605oc
 #BOARD=bemicro
 #BOARD?=altde2-70
 BOARD?=altde2-115
@@ -117,12 +125,12 @@ asm-% $(BUILDDIR)/%.bin $(BUILDDIR)/%.dat: asm/%.s
 bootcomp: bin-$(BOOTAPP)
 
 # Convert elf file to binary
-bin-% $(BUILDDIR)/%.bin $(BUILDDIR)/%.dat: $(BUILDDIR)/%.elf
+bin-% $(BUILDDIR)/%.bin $(BUILDDIR)/%.dat: $(BUILDDIR)/%.elf elf2bin
 	$(INSTALLDIR)/bin/elf2bin $< $(BUILDDIR)/$*.bin $(BUILDDIR)/$*.dat
 
 # Convert elf file to flat memory image
 img: img-$(APP)
-img-% $(BUILDDIR)/%.img: $(BUILDDIR)/%.elf
+img-% $(BUILDDIR)/%.img: $(BUILDDIR)/%.elf elf2bin
 	$(INSTALLDIR)/bin/elf2bin -f $< $(BUILDDIR)/$*.img
 
 # Convert binary memory image to decimal representation
@@ -135,7 +143,7 @@ comp: comp-$(APP)
 
 comp-% $(BUILDDIR)/%.elf: .FORCE
 	-mkdir -p $(dir $@)
-	$(MAKE) -C c BUILDDIR=$(BUILDDIR) APP=$* compile
+	$(MAKE) -C c BUILDDIR=$(BUILDDIR) NOCINIT=$(NOCINIT) APP=$* compile
 
 .PRECIOUS: $(BUILDDIR)/%.elf
 
@@ -165,8 +173,8 @@ patmos: gen synth config
 
 # configure the FPGA
 config:
-ifeq ($(XFPGA),true)
-	$(INSTALLDIR)/bin/config_xilinx hardware/ise/$(BOARD)/patmos.bit
+ifeq ($(VENDOR),Xilinx)
+	$(INSTALLDIR)/bin/config_xilinx hardware/ise/$(BOARD)/patmos_top.bit
 else
 	$(INSTALLDIR)/bin/config_altera -b $(BLASTER_TYPE) hardware/quartus/$(BOARD)/patmos.sof
 endif
@@ -174,10 +182,12 @@ endif
 gen:
 	$(MAKE) -C hardware verilog BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
 
-synth: csynth
-
-csynth:
-	$(MAKE) -C hardware qsyn BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
+synth:
+ifeq ($(VENDOR),Xilinx)
+	$(MAKE) -C hardware synth_ise BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
+else
+	$(MAKE) -C hardware synth_quartus BOOTAPP=$(BOOTAPP) BOARD=$(BOARD)
+endif
 
 download: $(BUILDDIR)/$(APP).elf
 	$(INSTALLDIR)/bin/patserdow -v $(COM_PORT) $<

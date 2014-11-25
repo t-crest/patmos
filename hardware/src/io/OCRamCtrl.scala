@@ -71,7 +71,7 @@ class OCRamCtrl(addrWidth : Int, ocpBurstLen : Int=4) extends BurstDevice(addrWi
   override val io = new BurstDeviceIO(addrWidth) with OCRamCtrl.Pins
 
   val BYTE_WIDTH = 8
-  val BYTES_PER_WORD = io.ocp.M.Data.width / BYTE_WIDTH
+  val BYTES_PER_WORD = io.ocp.M.Data.getWidth() / BYTE_WIDTH
 
   val size = 1 << addrWidth
 

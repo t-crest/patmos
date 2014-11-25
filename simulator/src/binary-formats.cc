@@ -1,18 +1,35 @@
-//
-//  This file is part of the Patmos Simulator.
-//  The Patmos Simulator is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
-//  the Free Software Foundation, either version 3 of the License, or
-//  (at your option) any later version.
-//
-//  The Patmos Simulator is distributed in the hope that it will be useful,
-//  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
-//
-//  You should have received a copy of the GNU General Public License
-//  along with the Patmos Simulator. If not, see <http://www.gnu.org/licenses/>.
-//
+/*
+   Copyright 2012 Technical University of Denmark, DTU Compute.
+   All rights reserved.
+
+   This file is part of the Patmos simulator.
+
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions are met:
+
+      1. Redistributions of source code must retain the above copyright notice,
+         this list of conditions and the following disclaimer.
+
+      2. Redistributions in binary form must reproduce the above copyright
+         notice, this list of conditions and the following disclaimer in the
+         documentation and/or other materials provided with the distribution.
+
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
+   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
+   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+   The views and conclusions contained in the software and documentation are
+   those of the authors and should not be interpreted as representing official
+   policies, either expressed or implied, of the copyright holder.
+ */
+
 //
 // Concrete definition of instruction formats, defining the binary encoding of
 // concrete instructions.
@@ -502,38 +519,6 @@ namespace patmos
     return iw;
   }
 
-  spcw_format_t::spcw_format_t(const instruction_t &instruction,
-                               word_t opcode) :
-      binary_format_t(instruction, 0x7C0007F, insert(0x2400010, 0, 4, opcode),
-                      1)
-  {
-  }
-
-  instruction_data_t spcw_format_t::decode_operands(word_t iw,
-                                                    word_t longimm) const
-  {
-    PRR_e pred = extractPN(iw, 27);
-    return instruction_data_t::mk_SPCw(Instruction, pred);
-  }
-
-  bool spcw_format_t::parse_operands(line_parser_t &parser, std::string mnemonic, 
-                                     instruction_data_t &instr, 
-                                     reloc_info_t &reloc) const
-  {    
-    return true;
-  }
-                                              
-  udword_t spcw_format_t::encode(std::string mnemonic, 
-                               const instruction_data_t &instr) const
-  {
-    uword_t iw = Opcode;
-
-    insertV(iw, 4, 3, BOOST_BINARY(001));
-    insertV(iw, 22, 5, BOOST_BINARY(01001));
-    insertPN(iw, 27, instr.Pred);
-
-    return iw;
-  }
 
   spct_format_t::spct_format_t(const instruction_t &instruction,
                                word_t opcode) :
@@ -635,20 +620,7 @@ namespace patmos
                                     reloc_info_t &reloc) const
   {
     
-    bool decoupled = mnemonic[0] == 'd';
-    
-    if (decoupled) {
-      SPR_e tmp;
-      if (!parser.parse_SPR(tmp)) return false;
-      if (tmp != sm) {
-        parser.set_error("expected special register sm.");
-        return false;
-      }
-      
-      instr.OPS.LDT.Rd = r0;
-    } else {
-      if (!parser.parse_GPR(instr.OPS.LDT.Rd)) return false;
-    }
+    if (!parser.parse_GPR(instr.OPS.LDT.Rd)) return false;
     
     if (!parser.match_token("=")) return false;
     
@@ -672,7 +644,7 @@ namespace patmos
       negate = true;
     }
 
-    unsigned type_idx = decoupled ? 2 : 1;
+    unsigned type_idx = 1;
     if (mnemonic[type_idx] == 'w') {
       reloc.set_format(7, 0, 2);
     } else if (mnemonic[type_idx] == 'h') {

@@ -1,18 +1,35 @@
-//
-//  This file is part of the Patmos Simulator.
-//  The Patmos Simulator is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
-//  the Free Software Foundation, either version 3 of the License, or
-//  (at your option) any later version.
-//
-//  The Patmos Simulator is distributed in the hope that it will be useful,
-//  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
-//
-//  You should have received a copy of the GNU General Public License
-//  along with the Patmos Simulator. If not, see <http://www.gnu.org/licenses/>.
-//
+/*
+   Copyright 2012 Technical University of Denmark, DTU Compute.
+   All rights reserved.
+
+   This file is part of the Patmos simulator.
+
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions are met:
+
+      1. Redistributions of source code must retain the above copyright notice,
+         this list of conditions and the following disclaimer.
+
+      2. Redistributions in binary form must reproduce the above copyright
+         notice, this list of conditions and the following disclaimer in the
+         documentation and/or other materials provided with the distribution.
+
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
+   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
+   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+   The views and conclusions contained in the software and documentation are
+   those of the authors and should not be interpreted as representing official
+   policies, either expressed or implied, of the copyright holder.
+ */
+
 //
 // Definition of simulation functions for every Patmos instruction.
 //
@@ -103,14 +120,6 @@ namespace patmos
     /// @param s The Patmos simulator executing the instruction.
     /// @param ops The operands of the instruction.
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
-    {
-    }
-
-    /// Pipeline function to simulate the behavior of a decoupled 
-    /// instruction running in parallel to the pipeline.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void dMW(simulator_t &s, instruction_data_t &ops) const
     {
     }
   };
@@ -259,6 +268,12 @@ namespace patmos
   {
     uint64_t cnt_short_imm;
     uint64_t cnt_short_loads;
+    uint64_t cnt_nops;
+    uint64_t cnt_inplace_imm5;
+    uint64_t cnt_imm5_loads;
+    uint64_t cnt_inplace_imm4;
+    uint64_t cnt_imm4_loads;
+    uint64_t cnt_zero;
   public:
     i_aluil_t() { reset_stats(); }
     
@@ -330,6 +345,12 @@ namespace patmos
     virtual void reset_stats() {
       cnt_short_imm = 0;
       cnt_short_loads = 0;
+      cnt_nops = 0;
+      cnt_imm5_loads = 0;
+      cnt_inplace_imm5 = 0;
+      cnt_imm4_loads = 0;
+      cnt_inplace_imm4 = 0;
+      cnt_zero = 0;
     }
     
     virtual void collect_stats(const simulator_t &s, 
@@ -338,10 +359,29 @@ namespace patmos
           ops.OPS.ALUil.Rs1 == r0 &&
           ops.OPS.ALUil.Imm2 == 0) 
       {
-        // NOP
+        ++cnt_nops;
+      }
+      else if (ops.OPS.ALUil.Rs1 == r0 && ops.OPS.ALUil.Imm2 < (1<<4)) {
+        ++cnt_imm4_loads;
+      }
+      else if (ops.OPS.ALUil.Rs1 == ops.OPS.ALUil.Rd &&
+               ops.OPS.ALUil.Imm2 < (1<<4)) 
+      {
+        ++cnt_inplace_imm4;
+      }
+      else if (ops.OPS.ALUil.Rs1 == r0 && ops.OPS.ALUil.Imm2 < (1<<5)) {
+        ++cnt_imm5_loads;
+      }
+      else if (ops.OPS.ALUil.Rs1 == ops.OPS.ALUil.Rd &&
+               ops.OPS.ALUil.Imm2 < (1<<5)) 
+      {
+        ++cnt_inplace_imm5;
       }
       else if (ops.OPS.ALUil.Rs1 == r0 && ops.OPS.ALUil.Imm2 < (1<<12)) {
         ++cnt_short_loads;
+      }
+      else if (ops.OPS.ALUil.Imm2 == 0) {
+        ++cnt_zero;
       }
       else if (ops.OPS.ALUil.Imm2 < (1<<12)) {
         ++cnt_short_imm;
@@ -351,13 +391,22 @@ namespace patmos
     virtual void print_stats(const simulator_t &s, std::ostream &os,
                              const symbol_map_t &symbols) const {
       bool printed = false;
-      if (cnt_short_loads) {
-        os << "Short Load Imm: " << cnt_short_loads;
+      if (cnt_nops) {
+        os << "NOPs: " << cnt_nops;
         printed = true;
       }
-      if (cnt_short_imm) {
+      if (cnt_inplace_imm5 || cnt_imm5_loads || 
+          cnt_inplace_imm4 || cnt_imm4_loads ||
+          cnt_short_loads || cnt_zero || cnt_short_imm) 
+      {
         if (printed) os << ", ";
-        os << "Short Imm: " << cnt_short_imm;
+        os <<   "Inplace Imm4: " << cnt_inplace_imm4;
+        os << ", Load Imm4: " << cnt_imm4_loads;
+        os << ", Inplace Imm5: " << cnt_inplace_imm5;
+        os << ", Load Imm5: " << cnt_imm5_loads;
+        os << ", Short Load Imm: " << cnt_short_loads;
+        os << ", Zero Imm: " << cnt_zero;
+        os << ", Short Imm: " << cnt_short_imm;
       }
     }
   };
@@ -591,6 +640,7 @@ namespace patmos
   /// Base class for ALUc instructions.
   class i_aluc_t : public i_pred_t
   {
+  protected:
     uint64_t cnt_cmp_r0;
     uint64_t cnt_cmp_zero;
     uint64_t cnt_cmp_short_negimm;
@@ -786,6 +836,25 @@ namespace patmos
       printGPReg(os, ", in: ", ops.OPS.ALUci.Rs1, ops.DR_Rs1, s);
       printSymbol(os, " imm", ops.OPS.ALUci.Imm, symbols);
     }    
+    
+    virtual void collect_stats(const simulator_t &s, 
+                               const instruction_data_t &ops) {
+      if (ops.OPS.ALUci.Rs1 == r0) {
+        cnt_cmp_r0++;
+      } else {
+        word_t value = ops.OPS.ALUci.Imm;
+        
+        if (value == 0) {
+          cnt_cmp_zero++;
+        } else if (value < 0 && -value < (1<<5)) {
+          cnt_cmp_short_negimm++;
+        } else if (value > 0 && value < (1<<5)) {
+          cnt_cmp_short_imm++;
+        } else if (value > 0 && value < (1<<6)) {
+          cnt_cmp_short_uimm++;
+        }
+      }
+    }
   };
 
 #define ALUci_INSTR(name, operator) \
@@ -1033,44 +1102,6 @@ namespace patmos
   };
 
 
-  /// Wait for memory operations to complete.
-  class i_spcw_t : public i_pred_t
-  {
-  public:
-    /// Print the instruction to an output stream.
-    /// @param os The output stream to print to.
-    /// @param ops The operands of the instruction.
-    /// @param symbols A mapping of addresses to symbols.
-    virtual void print(std::ostream &os, const instruction_data_t &ops,
-                       const symbol_map_t &symbols) const
-    {
-      printPred(os, ops.Pred);
-      os << "waitm";
-    }
-
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the DR pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void DR(simulator_t &s, instruction_data_t &ops) const
-    {
-      bit_t Pred = s.PRR.get(ops.Pred).get();
-
-      if (Pred)
-      {
-        if (s.Is_decoupled_load_active)
-        {
-          // stall the pipeline
-          s.pipeline_stall(SDR);
-        }
-      }
-    }
-
-    // EX inherited from NOP
-
-    // MW inherited from NOP
-  };
-
   /// Move a value from a general purpose register to a special purpose
   /// register.
   class i_spct_t : public i_pred_t
@@ -1243,7 +1274,12 @@ namespace patmos
   /// Base class for memory load instructions.
   class i_ldt_t : public i_pred_t
   {
+  private:
+    uint64_t cnt_zero_offset;
+    uint64_t cnt_imm5_offset;
   public:
+    i_ldt_t() { reset_stats(); }
+    
     virtual bool is_load() const { return true; }
 
     virtual GPR_e get_dst_reg(const instruction_data_t &ops) const { 
@@ -1337,7 +1373,28 @@ namespace patmos
       printGPReg(os, " in: ", ops.OPS.LDT.Ra, ops.DR_Rs1, s);
       os << boost::format(" addr: %1$08x ") % ops.EX_Address;
       symbols.print(os, ops.EX_Address);
-    }    
+    }
+    
+    virtual void reset_stats() {
+      cnt_zero_offset = 0;
+      cnt_imm5_offset = 0;
+    }
+    
+    virtual void collect_stats(const simulator_t &s, 
+                               const instruction_data_t &ops) {
+      if (ops.OPS.LDT.Ra == r0 && ops.OPS.LDT.Imm < (1<<5)) {
+        ++cnt_imm5_offset;
+      }
+      else if (ops.OPS.LDT.Imm == 0) {
+        ++cnt_zero_offset;
+      }
+    }
+    
+    virtual void print_stats(const simulator_t &s, std::ostream &os,
+                             const symbol_map_t &symbols) const {
+      os << boost::format("imm5: %d, zero: %d") 
+         % cnt_imm5_offset % cnt_zero_offset;
+    }
   };
 
 #define LD_INSTR(name, base, atype, ctype) \
@@ -1401,145 +1458,15 @@ namespace patmos
   LD_INSTR(lhum, s.Memory, uhword_t, uword_t)
   LD_INSTR(lbum, s.Memory, ubyte_t, uword_t)
 
-
-  /// Base class for memory load instructions.
-  class i_dldt_t : public i_pred_t
-  {
-  public:
-    virtual bool is_load() const { return true; }
-    
-    virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
-      return ops.OPS.LDT.Ra;
-    }
-
-    /// load the value from memory.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param address The address of the memory access.
-    /// @param value If the function returns true, the loaded value is returned
-    /// here.
-    /// @return True if the value was loaded, false if the value is not yet
-    /// available and stalling is needed.
-    virtual bool load(simulator_t &s, word_t address, word_t &value) const = 0;
-
-    /// Pipeline function to simulate the behavior of the instruction in
-    /// the DR pipeline stage.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void DR(simulator_t &s, instruction_data_t &ops) const
-    {
-      ops.DR_Pred = s.PRR.get(ops.Pred).get();
-      ops.DR_Rs1 = s.GPR.get(ops.OPS.LDT.Ra);
-
-      if (ops.DR_Pred && s.Is_decoupled_load_active)
-      {
-        // stall the pipeline
-        s.pipeline_stall(SDR);
-      }
-    }
-
-    // EX implemented by base class
-
-    // MW inherited from NOP
-
-    /// Pipeline function to simulate the behavior of a decoupled load
-    /// instruction running in parallel to the pipeline.
-    /// @param s The Patmos simulator executing the instruction.
-    /// @param ops The operands of the instruction.
-    virtual void dMW(simulator_t &s, instruction_data_t &ops) const
-    {
-      assert(s.Is_decoupled_load_active);
-
-      // load from memory
-      word_t result;
-      bool is_available = load(s, ops.EX_Address, result);
-
-      // the value is already available?
-      if (is_available)
-      {
-        // TODO this is a very quick hack for now, should be moved to a 
-        //      Debug class (see stores).
-        if (!s.Debug_mem_address.empty() &&
-            s.Debug_mem_address.count(ops.EX_Address))
-        {
-          std::cerr << "*** Load: " << result 
-                    << " = [0x" << std::hex << ops.EX_Address << std::dec << " ";
-          s.Symbols.print(std::cerr, ops.EX_Address);
-          std::cerr << "] (PC: 0x" 
-                    << std::hex << s.PC << std::dec << ", cycle: " << s.Cycle << ")\n";
-        }
-        
-        // store the loaded value by writing it into a by-pass
-        s.SPR.set(sm, result);
-        s.Decoupled_load = instruction_data_t();
-        s.Is_decoupled_load_active = false;
-      }
-    }
-
-    /// Print the instruction to an output stream.
-    /// @param os The output stream to print to.
-    /// @param ops The operands of the instruction.
-    /// @param symbols A mapping of addresses to symbols.
-    virtual void print_operands(const simulator_t &s, std::ostream &os, 
-		       const instruction_data_t &ops,
-                       const symbol_map_t &symbols) const
-    {
-      printGPReg(os, "in: " , ops.OPS.LDT.Ra, ops.DR_Rs1, s);
-      os << boost::format(" addr: %1$08x ") % ops.EX_Address;
-      symbols.print(os, ops.EX_Address);
-    }    
-  };
-
-#define DLD_INSTR(name, base, atype, ctype) \
-  class i_ ## name ## _t : public i_dldt_t \
-  { \
-  public:\
-    virtual void print(std::ostream &os, const instruction_data_t &ops, \
-                       const symbol_map_t &symbols) const \
-    { \
-      printPred(os, ops.Pred); \
-      os << boost::format("%1% sm = [r%2% + %3%]") % #name \
-          % ops.OPS.LDT.Ra % ops.OPS.LDT.Imm; \
-      symbols.print(os, ops.EX_Address); \
-    } \
-    virtual void EX(simulator_t &s, instruction_data_t &ops) const \
-    { \
-      ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1) + ops.OPS.LDT.Imm*sizeof(atype); \
-      if (ops.DR_Pred) \
-      { \
-        assert(!s.Is_decoupled_load_active); \
-        s.Decoupled_load = ops; \
-        s.Is_decoupled_load_active = true; \
-      } \
-    } \
-    virtual bool load(simulator_t &s, word_t address, word_t &value) const \
-    { \
-      atype tmp; \
-      if ((address & (sizeof(atype) - 1)) != 0) \
-        simulation_exception_t::unaligned(address); \
-      bool is_available = base.read_fixed(s, address, tmp); \
-      value = (ctype)from_big_endian<big_ ## atype>(tmp); \
-      return is_available; \
-    } \
-  };
-
-  DLD_INSTR(dlwc , s.Data_cache, word_t, word_t)
-  DLD_INSTR(dlhc , s.Data_cache, hword_t, word_t)
-  DLD_INSTR(dlbc , s.Data_cache, byte_t, word_t)
-  DLD_INSTR(dlwuc, s.Data_cache, uword_t, uword_t)
-  DLD_INSTR(dlhuc, s.Data_cache, uhword_t, uword_t)
-  DLD_INSTR(dlbuc, s.Data_cache, ubyte_t, uword_t)
-
-  DLD_INSTR(dlwm , s.Memory, word_t, word_t)
-  DLD_INSTR(dlhm , s.Memory, hword_t, word_t)
-  DLD_INSTR(dlbm , s.Memory, byte_t, word_t)
-  DLD_INSTR(dlwum, s.Memory, uword_t, uword_t)
-  DLD_INSTR(dlhum, s.Memory, uhword_t, uword_t)
-  DLD_INSTR(dlbum, s.Memory, ubyte_t, uword_t)
-
   /// Base class for memory store instructions.
   class i_stt_t : public i_pred_t
   {
+  private:
+    uint64_t cnt_zero_offset;
+    uint64_t cnt_imm5_offset;
   public:
+    i_stt_t() { reset_stats(); }
+
     virtual bool is_store() { return true; }
     
     virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
@@ -1616,7 +1543,28 @@ namespace patmos
       printGPReg(os, ", "   , ops.OPS.STT.Rs1, ops.EX_Rs);
       os << boost::format(" addr: %1$08x ") % ops.EX_Address;
       symbols.print(os, ops.EX_Address);
-    }    
+    }
+    
+    virtual void reset_stats() {
+      cnt_zero_offset = 0;
+      cnt_imm5_offset = 0;
+    }
+    
+    virtual void collect_stats(const simulator_t &s, 
+                               const instruction_data_t &ops) {
+      if (ops.OPS.STT.Ra == r0 && ops.OPS.STT.Imm2 < (1<<5)) {
+        ++cnt_imm5_offset;
+      }
+      else if (ops.OPS.STT.Imm2 == 0) {
+        ++cnt_zero_offset;
+      }
+    }
+    
+    virtual void print_stats(const simulator_t &s, std::ostream &os,
+                             const symbol_map_t &symbols) const {
+      os << boost::format("imm5: %d, zero: %d") 
+         % cnt_imm5_offset % cnt_zero_offset;
+    }
   };
 
 #define ST_INSTR(name, base, type) \
@@ -1712,6 +1660,8 @@ namespace patmos
   
   class i_stci_t : public i_stc_t 
   {
+  private:
+    uint64_t cnt_imm8_offset;
   protected:
     virtual uword_t read_size_EX(simulator_t &s, instruction_data_t &ops) const
     {
@@ -1719,6 +1669,8 @@ namespace patmos
     }
     
   public:
+    i_stci_t() { reset_stats(); }
+    
     virtual void DR(simulator_t &s, instruction_data_t &ops) const
     {
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
@@ -1737,6 +1689,24 @@ namespace patmos
       printSPReg(os, ", "   , st, ops.DR_St);
       os << ", size: " << s.Stack_cache.size();
     }
+    
+    virtual void reset_stats() {
+      cnt_imm8_offset = 0;
+    }
+    
+    virtual void collect_stats(const simulator_t &s, 
+                               const instruction_data_t &ops) {
+      if (ops.OPS.STCi.Imm < (1<<8)) {
+        ++cnt_imm8_offset;
+      }
+    }
+    
+    virtual void print_stats(const simulator_t &s, std::ostream &os,
+                             const symbol_map_t &symbols) const {
+      os << boost::format("imm8: %d") 
+         % cnt_imm8_offset;
+    }
+    
   };
 
   class i_stcr_t : public i_stc_t 
@@ -2029,7 +1999,11 @@ namespace patmos
 
   class i_br_t : public i_cfl_t
   {
+  private:
+    uint64_t cnt_imm8_jump;
   public:
+    i_br_t() { reset_stats(); }
+    
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {
@@ -2055,11 +2029,32 @@ namespace patmos
     virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
       return 2;
     }
+    
+    virtual void reset_stats() {
+      cnt_imm8_jump = 0;
+    }
+    
+    virtual void collect_stats(const simulator_t &s, 
+                               const instruction_data_t &ops) {
+      if (ops.OPS.CFLi.UImm < (1<<8) && ops.Pred == p0) {
+        ++cnt_imm8_jump;
+      }
+    }
+    
+    virtual void print_stats(const simulator_t &s, std::ostream &os,
+                             const symbol_map_t &symbols) const {
+      os << boost::format("imm8 jump: %d") 
+         % cnt_imm8_jump;
+    }    
   };
 
   class i_brcf_t : public i_cfl_t
   {
+  private:
+    uint64_t cnt_imm8_jump;
   public:
+    i_brcf_t() { reset_stats(); }
+    
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                         const symbol_map_t &symbols) const
     {
@@ -2099,6 +2094,23 @@ namespace patmos
     virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
       return 3;
     }
+    
+    virtual void reset_stats() {
+      cnt_imm8_jump = 0;
+    }
+    
+    virtual void collect_stats(const simulator_t &s, 
+                               const instruction_data_t &ops) {
+      if (ops.OPS.CFLi.UImm < (1<<8) && ops.Pred == p0) {
+        ++cnt_imm8_jump;
+      }
+    }
+    
+    virtual void print_stats(const simulator_t &s, std::ostream &os,
+                             const symbol_map_t &symbols) const {
+      os << boost::format("imm8 jump: %d") 
+         % cnt_imm8_jump;
+    }        
   };
 
   class i_trap_t : public i_cfl_t {

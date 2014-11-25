@@ -2,7 +2,7 @@
 # Basic instructions test
 # test if memory works fine
 
-	.word   72;
+	.word   80;
 	addi	r1 = r0, 255;  # first instruction not executed
 	addi	r1 = r0, 256; # r1 = 256
 	addi    r29 = r0, 10;
@@ -17,6 +17,8 @@ x1:	swm	[r1 + 1] = r2;
 	subi    r29 = r29, 1;
 	cmpneq  p1 = r0, r29;
 (p1)	br	x1; #
+	nop;
+	nop;
 	halt; 
 	nop;
 	nop;

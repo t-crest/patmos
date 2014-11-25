@@ -62,16 +62,33 @@ class Fetch(fileName : String) extends Module {
   val romEven = Vec(romGroups.map(_(0)))
   val romOdd  = Vec(romGroups.map(_(1)))
 
-  val ispmAddrBits = log2Up(ISPM_SIZE / 4 / 2)
-  val memEven = MemBlock(ISPM_SIZE / 4 / 2, INSTR_WIDTH)
-  val memOdd = MemBlock(ISPM_SIZE / 4 / 2, INSTR_WIDTH)
+  val instr_a_ispm = Bits()
+  val instr_b_ispm = Bits()
+  instr_a_ispm := Bits(0)
+  instr_b_ispm := Bits(0)
+  
+  if (ISPM_SIZE > 0) {
+    val ispmAddrBits = log2Up(ISPM_SIZE / 4 / 2)
+    val memEven = MemBlock(ISPM_SIZE / 4 / 2, INSTR_WIDTH)
+    val memOdd = MemBlock(ISPM_SIZE / 4 / 2, INSTR_WIDTH)
 
-  // write from EX - use registers - ignore stall, as reply does not hurt
-  val selWrite = (io.memfe.store & (io.memfe.addr(DATA_WIDTH-1, ISPM_ONE_BIT) === Bits(0x1)))
-  val wrEven = selWrite & (io.memfe.addr(2) === Bits(0))
-  val wrOdd = selWrite & (io.memfe.addr(2) === Bits(1))
-  memEven.io <= (wrEven, io.memfe.addr, io.memfe.data)
-  memOdd.io <= (wrOdd, io.memfe.addr, io.memfe.data)
+    // write from EX - use registers - ignore stall, as reply does not hurt
+    val selWrite = (io.memfe.store & (io.memfe.addr(DATA_WIDTH-1, ISPM_ONE_BIT) === Bits(0x1)))
+    val wrEven = selWrite & (io.memfe.addr(2) === Bits(0))
+    val wrOdd = selWrite & (io.memfe.addr(2) === Bits(1))
+    memEven.io <= (wrEven, io.memfe.addr, io.memfe.data)
+    memOdd.io <= (wrOdd, io.memfe.addr, io.memfe.data)
+
+    //select even/odd from ispm
+    val ispm_even = memEven.io(addrEven(ispmAddrBits, 1))
+    val ispm_odd = memOdd.io(addrOdd(ispmAddrBits, 1))
+    instr_a_ispm := Mux(pcReg(0) === Bits(0), ispm_even, ispm_odd)
+    instr_b_ispm := Mux(pcReg(0) === Bits(0), ispm_odd, ispm_even)
+  } else {
+    // dummy blocks to keep the emulator happy
+    val memEven = MemBlock(1, INSTR_WIDTH)
+    val memOdd = MemBlock(1, INSTR_WIDTH)
+  }
 
   val selIspm = Reg(init = Bool(false))
   val selMCache = Reg(init = Bool(false))
@@ -87,12 +104,6 @@ class Fetch(fileName : String) extends Module {
     relBaseReg := io.mcachefe.relBase
     relocReg := io.mcachefe.reloc
   }
-
-  //select even/odd from ispm
-  val ispm_even = memEven.io(addrEven(ispmAddrBits, 1))
-  val ispm_odd = memOdd.io(addrOdd(ispmAddrBits, 1))
-  val instr_a_ispm = Mux(pcReg(0) === Bits(0), ispm_even, ispm_odd)
-  val instr_b_ispm = Mux(pcReg(0) === Bits(0), ispm_odd, ispm_even)
 
   //select even/odd from rom
   // For some weird reason, Quartus infers the ROM as memory block

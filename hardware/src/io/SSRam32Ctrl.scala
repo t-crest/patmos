@@ -76,7 +76,7 @@ object SSRam32Ctrl extends DeviceObject {
   }
 
   def create(params: Map[String, String]) : SSRam32Ctrl = {
-    Module(new SSRam32Ctrl(addrBits))
+    Module(new SSRam32Ctrl(addrBits = addrBits, burstLen = BURST_LENGTH))
   }
 
   trait Pins {
@@ -234,21 +234,14 @@ class SSRam32Ctrl (
 
 /*
  Test Class for the SSRAM implementation
- */
-class SsramTest(c: SSRam32Ctrl) extends Tester(c, Array(c.io)) {
-  defTests {
-    var allGood = true
-    val vars = new HashMap[Node, Node]()
-    val ovars = new HashMap[Node, Node]()
-    vars.clear()
-    ovars.clear()
-    println("RUN")
-    for (i <- 0 until 100) {
-      allGood = step(vars, ovars) && allGood
-    }
-    allGood
+
+class SsramTest(c: SSRam32Ctrl) extends Tester(c) {
+  println("RUN")
+  for (i <- 0 until 100) {
+    step(1)
   }
 }
+ */
 
 /*
  Used to instantiate a single SSRAM control component
@@ -259,7 +252,7 @@ object SSRam32Main {
     val chiselArgs = args.slice(1, args.length)
     val addrBits = args(0).toInt
 
-    chiselMainTest(chiselArgs, () => Module(new SSRam32Ctrl(addrBits))) { f => new SsramTest(f) }
+    chiselMain(chiselArgs, () => Module(new SSRam32Ctrl(addrBits)))
   }
 }
 
