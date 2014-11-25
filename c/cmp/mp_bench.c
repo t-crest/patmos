@@ -37,7 +37,7 @@ static unsigned long long hidden_time = 0;
  * flush = 6 all the time except between sizes
  * flush = 7 all the time
  */
-int flush = 4;
+int flush = 0;
 #define FLUSH_BETWEEN_SIZES 1<<0
 #define FLUSH_BETWEEN_REPEATS 1<<1
 #define FLUSH_BETWEEN_ITERATIONS 1<<2

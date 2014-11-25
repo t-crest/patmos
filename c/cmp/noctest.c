@@ -10,13 +10,14 @@
 const int NOC_MASTER = 0;
 #include <machine/spm.h>
 #include "libnoc/noc.h"
-#include "patio.h"
+#include "include/patio.h"
 
-#include "bootable.h"
+//#include "bootable.h"
+#include "libcorethread/corethread.h"
 
 static void master(void);
 
-static void slave(void);
+static void slave(void* param);
 
 struct msg_t {
   int sum;
@@ -35,14 +36,26 @@ int main() {
     ((volatile _SPM char *)spm_out)[i] = 0;
   }
 
-  // dispatch on core ID
-  if(get_cpuid() == 0) {
-    master();
-  } else {
-    slave();
-  }
+  corethread_attr_t slave_attr = joinable; // For now this does nothing
+    int slave_param = 1;
 
-  return 0;
+    for(int i = 0; i < get_cpucnt(); i++) {
+        if (i != NOC_MASTER) {
+            corethread_t ct = (corethread_t) i;
+            if(corethread_create(&ct,&slave_attr,&slave,(void*)slave_param) != 0){
+                
+            }
+        }
+    }
+
+    master();
+
+    int* ret;
+    for (int i = 0; i < get_cpucnt(); ++i) {
+        if (i != NOC_MASTER) {
+            corethread_join((corethread_t)i,(void**)&ret);
+        }
+    }
 }
 
 static void master(void) {
@@ -83,7 +96,13 @@ static void master(void) {
   return;
 }
 
-static void slave(void) {
+static void slave(void* param) {
+  // clear communication areas
+  // cannot use memset() for _SPM pointers!
+  for(int i = 0; i < sizeof(struct msg_t); i++) {
+    ((volatile _SPM char *)spm_in)[i] = 0;
+    ((volatile _SPM char *)spm_out)[i] = 0;
+  }
 
   // wait and poll until message arrives
   while(!spm_in->ready) {
@@ -95,7 +114,7 @@ static void slave(void) {
   spm_out->ready = 1;
 
   // send to next slave
-  int rcv_id = (get_cpuid()==(NOC_CORES-1)) ? 0 : get_cpuid()+1;
+  int rcv_id = (get_cpuid()==(get_cpucnt()-1)) ? 0 : get_cpuid()+1;
   noc_send(rcv_id, spm_in, spm_out, sizeof(struct msg_t));
 
   return;

@@ -24,46 +24,37 @@ int main() {
 	int error = 0;
 	int test = 0;
 
+	putchar('*');
+	fflush(NULL);
 
-	if (get_cpuid() == 0) {
-		putchar('*');
+	printf("%d %d\n", (int) TEST_START, (int) &_end);
+
+	for (int k = 0; k < CNT; k++) { 
+		putchar('.');
 		fflush(NULL);
+		for (int i=0; i<=LENGTH; i++) // Write to main memory
+			*(TEST_START+i) = i;
 
-printf("%d %d\n", (int) TEST_START, (int) &_end);
-
-		for (int k = 0; k < CNT; k++) { 
-			putchar('.');
-			fflush(NULL);
-			for (int i=0; i<=LENGTH; i++) // Write to main memory
-				*(TEST_START+i) = i;
-
-			for (int i=0; i<=LENGTH; i++){ // Read from main memory
-				res = *(TEST_START+i);
-				if (res != i){	// If data is not what we expect write error
-					puts("e");
-					error++;
-				}
+		for (int i=0; i<=LENGTH; i++){ // Read from main memory
+			res = *(TEST_START+i);
+			if (res != i){	// If data is not what we expect write error
+				puts("e");
+				error++;
 			}
-			if (error != 0){
-				test++;
-				puts("\n");
-			}
-			error = 0;
 		}
-		puts("");
-		if (test != 0){
-			puts("Errors\n");
-		} else {
-			puts("Success\n");
+		if (error != 0){
+			test++;
+			puts("\n");
 		}
-		puts("Finished\n");
-
-		return 0;
-	} else {
-		// other cores do idle loop
-		for (;;) {
-		}
+		error = 0;
 	}
+	puts("");
+	if (test != 0){
+		puts("Errors\n");
+	} else {
+		puts("Success\n");
+	}
+	puts("Finished\n");
 
-	return 2;
+	return 0;
 }

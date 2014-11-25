@@ -432,7 +432,7 @@ void __attribute__ ((noinline)) mp_barrier(communicator_t* comm){
   unsigned index = 0;
   unsigned cpuid = get_cpuid();
   coreset_t barrier_set = comm->barrier_set;
-  for (unsigned i = 0; i < NOC_CORES; ++i) {
+  for (unsigned i = 0; i < get_cpucnt(); ++i) {
     //if(i >= cpuid) {
     //  break;
     //}
@@ -509,7 +509,7 @@ void __attribute__ ((noinline)) mp_broadcast(communicator_t* comm, coreid_t root
 //    return;
 //  }
   unsigned index = 0;
-  for (unsigned i = 0; i < NOC_CORES; ++i) {
+  for (unsigned i = 0; i < get_cpucnt(); ++i) {
     //if(i >= get_cpuid()) {
     //  break;
     //}
@@ -560,7 +560,7 @@ void __attribute__ ((noinline)) mp_broadcast_shm(communicator_t* comm, coreid_t 
 //    return;
 //  }
   unsigned index = 0;
-  for (unsigned i = 0; i < NOC_CORES; ++i) {
+  for (unsigned i = 0; i < get_cpucnt(); ++i) {
     //if(i >= get_cpuid()) {
     //  break;
     //}
@@ -611,7 +611,7 @@ void __attribute__ ((noinline)) mp_barrier_shm(communicator_t* comm){
   unsigned index = 0;
   unsigned cpuid = get_cpuid();
   coreset_t barrier_set = comm->barrier_set;
-  for (unsigned i = 0; i < NOC_CORES; ++i) {
+  for (unsigned i = 0; i < get_cpucnt(); ++i) {
     if(coreset_contains(i,&barrier_set) != 0 && i < cpuid) {
       index++;
     }
@@ -670,7 +670,7 @@ void __attribute__ ((noinline)) mp_barrier_tournament(tournament_t* tour){
   coreset_t barrier_set = tour->barrier_set;
   unsigned short * answers = tour->answers;
   unsigned n = tour->n;
-  for (unsigned i = 0; i < NOC_CORES; ++i) {
+  for (unsigned i = 0; i < get_cpucnt(); ++i) {
     if(coreset_contains(i,&barrier_set) != 0 && i < get_cpuid()) {
       index++;
     }

@@ -11,6 +11,8 @@ const int NOC_MASTER = 0;
 #include <machine/rtc.h>
 #include "libnoc/noc.h"
 #include "bootloader/cmpboot.h"
+#include "libmp/mp.h"
+#include "libcorethread/corethread.h"
 
 #define MINADDR (512*1024)
 #define TEST_START ((volatile _UNCACHED unsigned int *) MINADDR + 0)
@@ -51,17 +53,17 @@ void prefix(int size, char* buf){
 #define MEM_AREA_TEST(addr,size)\
 	int i,tmp; \
 	for(i = 0; i < size; i++){ \
-    tmp = *(addr+i); \
+		tmp = *(addr+i); \
 		*(addr+i) = 0; \
 		if(*(addr+i) != 0){ \
-      *(addr+i) = tmp; \
-      return -1; \
-    } \
+			*(addr+i) = tmp; \
+			return -1; \
+		} \
 		*(addr+i) = i; \
 		if(*(addr+i) != i){ \
-      *(addr+i) = tmp; \
-      return -1; \
-    } \
+			*(addr+i) = tmp; \
+			return -1; \
+		} \
 		*(addr+i) = tmp; \
 	} \
 	return 0;
@@ -113,14 +115,16 @@ int test_mem_size_spm(volatile int _SPM * mem_addr){
 }
 
 int print_noc_info(){
-  printf("NoC scheduler generated for %d cores\n",NOC_CORES);
-  printf("NoC scheduler contains %d timeslots\n",NOC_TIMESLOTS);
+  printf("NoC schedule generated for %d cores\n",NOC_CORES);
+  printf("NoC schedule contains %d timeslots\n",NOC_TIMESLOTS);
   return NOC_CORES;
 }
 
 int print_processor_info() {
   //puts("CPU info:");
   printf("CPU ID: %d\n",get_cpuid());
+  int platform_cores = get_cpucnt();
+  printf("Number of cores: %d\n",platform_cores);
   //printf("Operating frequency: %d MHz\n",(get_cpu_freq()) >> 20);
   printf("Operating frequency: %d MHz\n",(get_cpu_freq())/1000000);
   int i = 0;
@@ -132,7 +136,8 @@ int print_processor_info() {
   }
   printf("Number of cores booted: %d\n",cores);
   int noc_cores = print_noc_info();
-  ABORT_IF_FAIL(cores!=noc_cores,"An incorrect noc schedule is used");
+  ABORT_IF_FAIL(platform_cores!=noc_cores,"An incorrect noc schedule is used");
+  ABORT_IF_FAIL(platform_cores!=cores,"Not all cores booted");
   return cores;
 }
 
@@ -177,30 +182,47 @@ void noc_test_slave() {
 }
 
 void mem_load_test() {
-	int size = (main_mem_size-MINADDR)/core_count; 
+	int size = (main_mem_size-MINADDR)/get_cpucnt(); 
 	volatile _UNCACHED unsigned int *addr = TEST_START + get_cpuid()*size;
 	for(unsigned int start_time = get_cpu_usecs(); get_cpu_usecs() - start_time < 2000 ;) {
-		mem_area_test_uncached(addr,size);
+		ABORT_IF_FAIL(mem_area_test_uncached(addr,size)<0,"FAIL");
 	}
 }
 
+void slave_tester (void* arg) {
+	noc_test_slave();
+  	//mem_load_test();
+	int ret = 0;
+	corethread_exit(&ret);
+	return;
+}
+
 int main() {
-  if (get_cpuid() == 0) {
-    core_count = print_processor_info();
+	corethread_attr_t slave_attr = joinable;
+	core_count = print_processor_info();
 	com_spm_test();
 	main_mem_size = main_mem_test();
 	noc_test_master();
+	int param = 0;
+	for(int i = 0; i < get_cpucnt(); i++) {
+		if (i != NOC_MASTER) {
+			corethread_t ct = (corethread_t) i;
+			if(corethread_create(&ct,&slave_attr,&slave_tester,(void*)param) != 0){
+				printf("Corethread %d not created\n",i);
+			}
+		}
+	}
 	printf("Performing main mem load test...");
 	fflush(stdout);
 	mem_load_test();
 	printf("OK\n");
-    return 0;
-
-  } else {
-  	noc_test_slave();
-  	mem_load_test();
-    return 0;
-  }
-  return -1;
+	int* ret;
+	for (int i = 0; i < get_cpucnt(); ++i) {
+		if (i != NOC_MASTER) {
+			corethread_join((corethread_t)i,(void**)&ret);
+		}
+	}
+	printf("Joined with other cores\n");
+	return 0;
 }
 

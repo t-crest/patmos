@@ -42,7 +42,7 @@ void func_worker_1(void* arg) {
           copy_to = (volatile char _SPM *)chan2.write_buf + to_offset;
           
           copy_from = (volatile char _SPM *)chan1.read_buf + j;
-          // Like a Cesar code, shifting the asci alphabet
+          // Like a Cesar code, shifting the ascii alphabet
           *copy_to = (*copy_from)+(char)worker_1_param;
       }
       // Acknowledge the received data.
