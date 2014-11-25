@@ -297,7 +297,7 @@ static void help(ostream &out) {
       << "  -l <N>        Stop after <N> cycles" << endl
       << "  -p            Print method cache statistics" << endl
       << "  -r            Print register values in each cycle" << endl
-      << "  -s            Trace stack cache spilling/filling" << endl
+//      << "  -s            Trace stack cache spilling/filling" << endl
       << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
       << "  -I <file>     Read input for UART from file <file>" << endl
       << "  -O <file>     Write output from UART to file <file>" << endl;
