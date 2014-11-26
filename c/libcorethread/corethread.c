@@ -46,21 +46,22 @@
 ////////////////////////////////////////////////////////////////////////////
 
 void corethread_worker(void) {
-   if (get_cpuid() != 0) {
+   unsigned id = get_cpuid();
+   if (id != 0) {
       unsigned long long time;
-      boot_info->slave[get_cpuid()].status = STATUS_RETURN;
+      boot_info->slave[id].status = STATUS_RETURN;
       
       // Wait for corethread_create request or application exit
       while(boot_info->master.status != STATUS_RETURN) {
          // As long as the master is still executing, wait for a corethread to
          // be created and then execute it.
-         if (boot_info->slave[get_cpuid()].funcpoint != NULL) {
-            funcpoint_t funcpoint = boot_info->slave[get_cpuid()].funcpoint;
-            boot_info->slave[get_cpuid()].return_val = -1;
-            boot_info->slave[get_cpuid()].status = STATUS_INITDONE;
-            (*funcpoint)((void*)boot_info->slave[get_cpuid()].param);
-            boot_info->slave[get_cpuid()].status = STATUS_RETURN;
-            while(boot_info->slave[get_cpuid()].funcpoint != NULL) {
+         if (boot_info->slave[id].funcpoint != NULL) {
+            funcpoint_t funcpoint = boot_info->slave[id].funcpoint;
+            boot_info->slave[id].return_val = -1;
+            boot_info->slave[id].status = STATUS_INITDONE;
+            (*funcpoint)((void*)boot_info->slave[id].param);
+            boot_info->slave[id].status = STATUS_RETURN;
+            while(boot_info->slave[id].funcpoint != NULL) {
 
             }
          }
@@ -69,7 +70,7 @@ void corethread_worker(void) {
          
          }
       }
-      boot_info->slave[get_cpuid()].status = STATUS_RETURN;
+      boot_info->slave[id].status = STATUS_RETURN;
       exit(0);
    }
    return;
@@ -96,9 +97,10 @@ int corethread_create(corethread_t *thread, const corethread_attr_t *attr,
 }
 
 void corethread_exit(void *retval) {
-   boot_info->slave[get_cpuid()].return_val = (int) retval;
+   unsigned id = get_cpuid();
+   boot_info->slave[id].return_val = (int) retval;
    //boot_info->slave[get_cpuid()].funcpoint = NULL;
-   boot_info->slave[get_cpuid()].status = STATUS_RETURN;
+   boot_info->slave[id].status = STATUS_RETURN;
    return;
 }
 
