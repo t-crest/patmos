@@ -10,7 +10,7 @@ The Patmos [Reference Handbook]
 is work in progress, but contains build instructions in Section 5.
 
 For questions and discussions join the Patmos mailing list at:
-http://tech.groups.yahoo.com/group/patmos-processor/
+https://groups.yahoo.com/group/patmos-processor/
 
 Getting Started
 ===============
