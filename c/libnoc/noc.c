@@ -108,14 +108,6 @@ void noc_init(void) {
   //if (get_cpuid() == NOC_MASTER) puts("noc_done");
 }
 
-int noc_done(unsigned rcv_id) {
-  unsigned status = *(noc_interface.dma+(rcv_id<<1));
-  if ((status & NOC_VALID_BIT) != 0 && (status & NOC_DONE_BIT) == 0) {
-      return 0;
-  }
-  return 1;
-}
-
 // Start a NoC transfer
 // The addresses and the size are in double-words and relative to the
 // communication SPM
@@ -125,9 +117,8 @@ int noc_dma(unsigned rcv_id,
             unsigned short size) {
 
     // Only send if previous transfer is done
-    unsigned status = *(noc_interface.dma+(rcv_id<<1));
-    if ((status & NOC_VALID_BIT) != 0 && (status & NOC_DONE_BIT) == 0) {
-        return 0;
+    if (!noc_done(rcv_id)) {
+      return 0;
     }
 
     // Read pointer and write pointer in the dma table
@@ -136,6 +127,15 @@ int noc_dma(unsigned rcv_id,
     *(noc_interface.dma+(rcv_id<<1)) = (size | NOC_VALID_BIT) & ~NOC_DONE_BIT;
 
     return 1;
+}
+
+// Check if a NoC transfer has finished
+int noc_done(unsigned rcv_id) {
+  unsigned status = *(noc_interface.dma+(rcv_id<<1));
+  if ((status & NOC_VALID_BIT) != 0 && (status & NOC_DONE_BIT) == 0) {
+      return 0;
+  }
+  return 1;
 }
 
 // Convert from byte address or size to double-word address or size
