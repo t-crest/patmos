@@ -388,9 +388,6 @@ void mp_recv(mpd_t* mpd_ptr) {
     DEBUGGER("mp_nbrecv(): Recv flag %x\n",*recv_flag);
   }
 
-  // Increment the receive counter
-  (*mpd_ptr->recv_count)++;
-
   // Move the receive pointer
   if (mpd_ptr->recv_ptr == mpd_ptr->num_buf - 1) {
     mpd_ptr->recv_ptr = 0;
@@ -406,11 +403,19 @@ void mp_recv(mpd_t* mpd_ptr) {
 }
 
 int mp_nback(mpd_t* mpd_ptr){
+  // Check previous acknowledgement transfer before updating counter in SPM
+  if (!noc_done(mpd_ptr->send_id)) { return 0; }
+  // Increment the receive counter
+  (*mpd_ptr->recv_count)++;
   // Update the remote receive count
   return noc_nbsend(mpd_ptr->send_id,mpd_ptr->send_recv_count,mpd_ptr->recv_count,8);
 }
 
 void mp_ack(mpd_t* mpd_ptr){
+  // Await previous acknowledgement transfer before updating counter in SPM
+  while (!noc_done(mpd_ptr->send_id)) { /* spin */ }
+  // Increment the receive counter
+  (*mpd_ptr->recv_count)++;
   // Update the remote receive count
   noc_send(mpd_ptr->send_id,mpd_ptr->send_recv_count,mpd_ptr->recv_count,8);
   return;
