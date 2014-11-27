@@ -36,26 +36,25 @@ int main() {
     ((volatile _SPM char *)spm_out)[i] = 0;
   }
 
-  corethread_attr_t slave_attr = joinable; // For now this does nothing
-    int slave_param = 1;
+  int slave_param = 1;
 
-    for(int i = 0; i < get_cpucnt(); i++) {
-        if (i != NOC_MASTER) {
-            corethread_t ct = (corethread_t) i;
-            if(corethread_create(&ct,&slave_attr,&slave,(void*)slave_param) != 0){
-                
-            }
-        }
+  for(int i = 0; i < get_cpucnt(); i++) {
+    if (i != NOC_MASTER) {
+      corethread_t ct = (corethread_t) i;
+      if(corethread_create(&ct,&slave,(void*)slave_param) != 0){
+          
+      }
     }
+  }
 
-    master();
+  master();
 
-    int* ret;
-    for (int i = 0; i < get_cpucnt(); ++i) {
-        if (i != NOC_MASTER) {
-            corethread_join((corethread_t)i,(void**)&ret);
-        }
+  int* ret;
+  for (int i = 0; i < get_cpucnt(); ++i) {
+    if (i != NOC_MASTER) {
+      corethread_join((corethread_t)i,(void**)&ret);
     }
+  }
 }
 
 static void master(void) {

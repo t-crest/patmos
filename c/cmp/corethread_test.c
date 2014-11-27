@@ -61,7 +61,6 @@ int main() {
 
   puts("Master");
   corethread_t worker_1 = 2; // For now the core ID
-  corethread_attr_t worker_1_attr = joinable; // For now this does nothing
   int worker_1_param = 1;
 
   char send_data[] = "Hello World!, Sending messages is cool!";
@@ -95,7 +94,7 @@ int main() {
   puts("Initialized barrier");
   
   
-  corethread_create(&worker_1,&worker_1_attr,&func_worker_1,(void*)&worker_1_param);
+  corethread_create(&worker_1,&func_worker_1,(void*)&worker_1_param);
 
   int i = 0;
   // While there is still data to be sent

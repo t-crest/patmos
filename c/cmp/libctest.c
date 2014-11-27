@@ -18,15 +18,17 @@ void alloc_test(void* param) {
 
 int main(int argc, char **argv)
 {
-  corethread_attr_t slave_attr = joinable; // For now this does nothing
   int slave_param = 1;
 
   for(int i = 0; i < get_cpucnt(); i++) {
     if (i != get_cpuid()) {
       corethread_t ct = (corethread_t)i;
-      if(corethread_create(&ct,&slave_attr,&alloc_test,(void*)slave_param) != 0){
+      //printf("Corethread %d ",i);
+      if(corethread_create(&ct,&alloc_test,(void*)slave_param) != 0){
+        //printf("not ");
         printf("Corethread %d not created\n",i);
       }
+      //printf("created\n");
     }
   }
 

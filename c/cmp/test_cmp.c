@@ -1,6 +1,6 @@
 /*
-	Author: Rasmus Bo Soerensen (rasmus@rbscloud.dk)
-	Copyright: DTU, BSD License
+  Author: Rasmus Bo Soerensen (rasmus@rbscloud.dk)
+  Copyright: DTU, BSD License
 */
 const int NOC_MASTER = 0;
 #include <stdio.h>
@@ -26,54 +26,54 @@ int core_count = 0;
 //int core_com[64];
 
 void prefix(int size, char* buf){
-	int pref = 0;
-	while (size > 1024){
-		size = size >> 10;
-		pref++;
-	}
-	char* format;
-	switch(pref){
-		case 0:
-			format = "%d B";
-			break;
-		case 1:
-			format = "%d KB";
-			break;
-		case 2:
-			format = "%d MB";
-			break;
-		case 3:
-			format = "%d GB";
-			break;
-	}
-	snprintf(buf,11,format,size);
-	return;
+  int pref = 0;
+  while (size > 1024){
+    size = size >> 10;
+    pref++;
+  }
+  char* format;
+  switch(pref){
+    case 0:
+      format = "%d B";
+      break;
+    case 1:
+      format = "%d KB";
+      break;
+    case 2:
+      format = "%d MB";
+      break;
+    case 3:
+      format = "%d GB";
+      break;
+  }
+  snprintf(buf,11,format,size);
+  return;
 }
 
 #define MEM_AREA_TEST(addr,size)\
-	int i,tmp; \
-	for(i = 0; i < size; i++){ \
-		tmp = *(addr+i); \
-		*(addr+i) = 0; \
-		if(*(addr+i) != 0){ \
-			*(addr+i) = tmp; \
-			return -1; \
-		} \
-		*(addr+i) = i; \
-		if(*(addr+i) != i){ \
-			*(addr+i) = tmp; \
-			return -1; \
-		} \
-		*(addr+i) = tmp; \
-	} \
-	return 0;
+  int i,tmp; \
+  for(i = 0; i < size; i++){ \
+    tmp = *(addr+i); \
+    *(addr+i) = 0; \
+    if(*(addr+i) != 0){ \
+      *(addr+i) = tmp; \
+      return -1; \
+    } \
+    *(addr+i) = i; \
+    if(*(addr+i) != i){ \
+      *(addr+i) = tmp; \
+      return -1; \
+    } \
+    *(addr+i) = tmp; \
+  } \
+  return 0;
 
 int mem_area_test_uncached(volatile _UNCACHED unsigned int * mem_addr,int mem_size) {
-	MEM_AREA_TEST(mem_addr,mem_size);
+  MEM_AREA_TEST(mem_addr,mem_size);
 }
 
 int mem_area_test_spm(volatile int _SPM * mem_addr,int mem_size) {
-	MEM_AREA_TEST(mem_addr,mem_size);
+  MEM_AREA_TEST(mem_addr,mem_size);
 }
 
 #define TEST_MEM_SIZE(addr)\
@@ -142,35 +142,35 @@ int print_processor_info() {
 }
 
 int main_mem_test() {
-	printf("Testing MAINMEM...");
-	ABORT_IF_FAIL(mem_area_test_uncached(TEST_START,0x1000)<0,"FAIL");
-	printf("OK\n");
-	printf("Testing MAINMEM size: ");
-	int size = 0;
-	int cached_size = 0;
-	size = test_mem_size_uncached(TEST_START);
-	ABORT_IF_FAIL(size<0,"Size could not be retrieved");
-	char buf[11];
-	prefix(size,buf);
-	puts(buf);
-	return size;
+  printf("Testing MAINMEM...");
+  ABORT_IF_FAIL(mem_area_test_uncached(TEST_START,0x1000)<0,"FAIL");
+  printf("OK\n");
+  printf("Testing MAINMEM size: ");
+  int size = 0;
+  int cached_size = 0;
+  size = test_mem_size_uncached(TEST_START);
+  ABORT_IF_FAIL(size<0,"Size could not be retrieved");
+  char buf[11];
+  prefix(size,buf);
+  puts(buf);
+  return size;
 }
 
 void com_spm_test() {
-	printf("Testing COM SPM...");
-	ABORT_IF_FAIL(mem_area_test_spm(NOC_SPM_BASE,0x8000)<0,"FAIL 0x8000");
-	ABORT_IF_FAIL(mem_area_test_spm(NOC_SPM_BASE,0x8001)<0,"FAIL 0x8001");
-	ABORT_IF_FAIL(mem_area_test_spm(NOC_SPM_BASE,0x80001)<0,"FAIL 0x80001");
-	printf("OK\n");
-	printf("Testing COM SPM size: ");	
-	fflush(stdout);
-	int size = 0;
-	size = test_mem_size_spm(NOC_SPM_BASE);
-	ABORT_IF_FAIL(size<0,"Size could not be retrieved");
-	char buf[11];
-	prefix(size,buf);
-	puts(buf);
-	return;
+  printf("Testing COM SPM...");
+  ABORT_IF_FAIL(mem_area_test_spm(NOC_SPM_BASE,0x8000)<0,"FAIL 0x8000");
+  ABORT_IF_FAIL(mem_area_test_spm(NOC_SPM_BASE,0x8001)<0,"FAIL 0x8001");
+  ABORT_IF_FAIL(mem_area_test_spm(NOC_SPM_BASE,0x80001)<0,"FAIL 0x80001");
+  printf("OK\n");
+  printf("Testing COM SPM size: "); 
+  fflush(stdout);
+  int size = 0;
+  size = test_mem_size_spm(NOC_SPM_BASE);
+  ABORT_IF_FAIL(size<0,"Size could not be retrieved");
+  char buf[11];
+  prefix(size,buf);
+  puts(buf);
+  return;
 }
 
 void noc_test_master() {
@@ -182,47 +182,46 @@ void noc_test_slave() {
 }
 
 void mem_load_test() {
-	int size = (main_mem_size-MINADDR)/get_cpucnt(); 
-	volatile _UNCACHED unsigned int *addr = TEST_START + get_cpuid()*size;
-	for(unsigned int start_time = get_cpu_usecs(); get_cpu_usecs() - start_time < 2000 ;) {
-		ABORT_IF_FAIL(mem_area_test_uncached(addr,size)<0,"FAIL");
-	}
+  int size = (main_mem_size-MINADDR)/get_cpucnt(); 
+  volatile _UNCACHED unsigned int *addr = TEST_START + get_cpuid()*size;
+  for(unsigned int start_time = get_cpu_usecs(); get_cpu_usecs() - start_time < 2000 ;) {
+    ABORT_IF_FAIL(mem_area_test_uncached(addr,size)<0,"FAIL");
+  }
 }
 
 void slave_tester (void* arg) {
-	noc_test_slave();
-  	//mem_load_test();
-	int ret = 0;
-	corethread_exit(&ret);
-	return;
+  noc_test_slave();
+    //mem_load_test();
+  int ret = 0;
+  corethread_exit(&ret);
+  return;
 }
 
 int main() {
-	corethread_attr_t slave_attr = joinable;
-	core_count = print_processor_info();
-	com_spm_test();
-	main_mem_size = main_mem_test();
-	noc_test_master();
-	int param = 0;
-	for(int i = 0; i < get_cpucnt(); i++) {
-		if (i != NOC_MASTER) {
-			corethread_t ct = (corethread_t) i;
-			if(corethread_create(&ct,&slave_attr,&slave_tester,(void*)param) != 0){
-				printf("Corethread %d not created\n",i);
-			}
-		}
-	}
-	printf("Performing main mem load test...");
-	fflush(stdout);
-	mem_load_test();
-	printf("OK\n");
-	int* ret;
-	for (int i = 0; i < get_cpucnt(); ++i) {
-		if (i != NOC_MASTER) {
-			corethread_join((corethread_t)i,(void**)&ret);
-		}
-	}
-	printf("Joined with other cores\n");
-	return 0;
+  core_count = print_processor_info();
+  com_spm_test();
+  main_mem_size = main_mem_test();
+  noc_test_master();
+  int param = 0;
+  for(int i = 0; i < get_cpucnt(); i++) {
+    if (i != NOC_MASTER) {
+      corethread_t ct = (corethread_t) i;
+      if(corethread_create(&ct,&slave_tester,(void*)param) != 0){
+        printf("Corethread %d not created\n",i);
+      }
+    }
+  }
+  printf("Performing main mem load test...");
+  fflush(stdout);
+  mem_load_test();
+  printf("OK\n");
+  int* ret;
+  for (int i = 0; i < get_cpucnt(); ++i) {
+    if (i != NOC_MASTER) {
+      corethread_join((corethread_t)i,(void**)&ret);
+    }
+  }
+  printf("Joined with other cores\n");
+  return 0;
 }
 

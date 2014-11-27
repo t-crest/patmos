@@ -100,7 +100,7 @@ static void noc_sync(void) {
 }
 
 // Initialize the NoC
-void noc_init(void) {
+static void noc_init(void) {
   //if (get_cpuid() == NOC_MASTER) puts("noc_configure");
   noc_configure();
   //if (get_cpuid() == NOC_MASTER) puts("noc_sync");

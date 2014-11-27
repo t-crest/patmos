@@ -58,12 +58,6 @@
 // Data structures for storing state information
 // of the corethreads
 ////////////////////////////////////////////////////////////////////////////
-
-typedef enum {
-   joinable,
-   detached
-} corethread_attr_t;
-
 typedef size_t corethread_t;
 
 
@@ -73,9 +67,7 @@ typedef size_t corethread_t;
 
 /// \brief Make the slave cores wait for a corethread to be started on that
 /// core.
-void corethread_worker(void) __attribute__ ((constructor(110)));
-// Leave out constructor for initial testing
-//void corethread_worker(void);
+static void corethread_worker(void) __attribute__ ((constructor(110)));
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for creating and destroying corethreads
@@ -84,7 +76,6 @@ void corethread_worker(void) __attribute__ ((constructor(110)));
 /// \brief corethread creation
 ///
 /// \param mpd_ptr
-/// \param attr The attributes of the corethread to be created
 /// \param start_routine
 /// \param arg
 ///
@@ -93,8 +84,8 @@ void corethread_worker(void) __attribute__ ((constructor(110)));
 /// \retval EINVAL The attribute value is invalid 
 /// \retval EPERM The caller does not have appropriate permissions the set
 /// the required scheduling parameters or scheduling policy
-int corethread_create(corethread_t *thread, const corethread_attr_t *attr,
-                                    void (*start_routine)(void*), void *arg);
+int corethread_create(corethread_t *thread, void (*start_routine)(void*),
+                                                                    void *arg);
 
 /// \brief corethread termination
 /// 

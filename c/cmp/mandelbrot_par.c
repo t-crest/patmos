@@ -235,13 +235,12 @@ int main(int argc, char **argv) {
 #endif /* __patmos__ */
 
 #if defined(__patmos__) && !defined(BOOTROM)
-  corethread_attr_t slave_attr = joinable; // For now this does nothing
   int slave_param = 1;
 
   for(int i = 0; i < CORES; i++) {
     if (i != NOC_MASTER) {
       corethread_t ct = i;
-      if(corethread_create(&ct,&slave_attr,&slave,(void*)slave_param) != 0){
+      if(corethread_create(&ct,&slave,(void*)slave_param) != 0){
       }
     }
   }

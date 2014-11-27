@@ -54,7 +54,6 @@ mpd_t s2m;
 
 communicator_t comm;
 communicator_t comm_world;
-tournament_t tour_world;
 
 #define BUFFER_SIZE 64
 int sizes[1] = {BUFFER_SIZE};
@@ -325,42 +324,6 @@ int broadcast_slave(int cnt, int bytes)
 
 }
 
-int broadcast_shm_master(int cnt, int bytes)
-{
-  int i;
-  unsigned long long total = 0;
-
-  TIMER_START;
-  for (i=0; i<cnt; i++) {
-    if (flush & FLUSH_BETWEEN_ITERATIONS) {
-      inval_dcache();
-      inval_mcache();
-    }
-    mp_broadcast_shm(&comm_world, 1);
-  }
-  TIMER_STOP;
-  total = TIMER_ELAPSED;
-  total -= calibrate_cache_flush(cnt);
-  return(((unsigned long long)cnt*bytes*1000000)/(total*1024.0)); /* KB/sec */
-}
-
-
-int broadcast_shm_slave(int cnt, int bytes)
-{
-  int i;
-
-  for (i=0; i<cnt; i++) {
-    if (flush & FLUSH_BETWEEN_ITERATIONS) {
-      inval_dcache();
-      inval_mcache();
-    }
-    mp_broadcast_shm(&comm_world, 1);
-  }
-  return 0;
-
-}
-
-
 int barrier_master(int cnt, int bytes)
 {
   int i;
@@ -391,77 +354,6 @@ int barrier_slave(int cnt, int bytes)
       //inval_mcache();
     }
     mp_barrier(&comm_world);
-  }
-  return 0;
-
-}
-
-int barrier_shm_master(int cnt, int bytes)
-{
-  int i;
-  int total = 0;
-
-  TIMER_START;
-  for (i=0; i<cnt; i++) {
-    if (flush & FLUSH_BETWEEN_ITERATIONS) {
-      inval_dcache();
-      //inval_mcache();
-    }
-    mp_barrier_shm(&comm_world);
-  }
-  TIMER_STOP;
-  total = TIMER_ELAPSED;
-  total -= calibrate_cache_flush(cnt);
-  return(total/cnt); /* usec */
-}
-
-
-int barrier_shm_slave(int cnt, int bytes)
-{
-  int i;
-
-  for (i=0; i<cnt; i++) {
-    if (flush & FLUSH_BETWEEN_ITERATIONS) {
-      inval_dcache();
-      //inval_mcache();
-    }
-    mp_barrier_shm(&comm_world);
-  }
-  return 0;
-
-}
-
-
-int barrier_tour_master(int cnt, int bytes)
-{
-  int i;
-  int total = 0;
-
-  TIMER_START;
-  for (i=0; i<cnt; i++) {
-    if (flush & FLUSH_BETWEEN_ITERATIONS) {
-      inval_dcache();
-      //inval_mcache();
-    }
-    mp_barrier_tournament(&tour_world);
-  }
-  TIMER_STOP;
-  total = TIMER_ELAPSED;
-  total -= calibrate_cache_flush(cnt);
-  return(total/cnt); /* usec */
-}
-
-
-int barrier_tour_slave(int cnt, int bytes)
-{
-  int i;
-
-  for (i=0; i<cnt; i++) {
-    if (flush & FLUSH_BETWEEN_ITERATIONS) {
-      inval_dcache();
-      //inval_mcache();
-    }
-    mp_barrier_tournament(&tour_world);
   }
   return 0;
 
@@ -535,7 +427,6 @@ int main() {
   corethread_t slave7 = 7;
   corethread_t slave8 = 8;
 
-  corethread_attr_t slave_attr = joinable;
   if (!mp_chan_init(&m2s,
       get_cpuid(),
       slave4,
@@ -562,58 +453,51 @@ int main() {
       BUFFER_SIZE)) {
     abort();
   }
-  //sizeof(cores_world)/sizeof(cores_world[0])
-
-  if (!mp_init_tournament_barrier(&tour_world,
-      sizeof(cores_world)/sizeof(cores_world[0]),
-      cores_world)) {
-    abort();
-  }
 
   int* ret;
   /* set up the run */
-  //corethread_create(&slave,&slave_attr,&loop,(void*)roundtrip_slave);
+  //corethread_create(&slave,&loop,(void*)roundtrip_slave);
 
   /* run appropriate test */
 //  // TEST_LATENCY
 //  puts("Latency (usecs)");
-//  corethread_create(&slave4,&slave_attr,&loop,(void*)latency_slave);
+//  corethread_create(&slave4,&loop,(void*)latency_slave);
 //  loop(latency_master);
 //  corethread_join(slave4,(void**)&ret);
 //
 //  // TEST_ROUNDTRIP
 //  puts("Roundtrip (Transactions/sec)");
-//  corethread_create(&slave4,&slave_attr,&loop,(void*)roundtrip_slave);
+//  corethread_create(&slave4,&loop,(void*)roundtrip_slave);
 //  loop(roundtrip_master);
 //  corethread_join(slave4,(void**)&ret);
 //
 //  // TEST_BANDWIDTH
 //  puts("Bandwidth (KB/sec)");
-//  corethread_create(&slave4,&slave_attr,&loop,(void*)bandwidth_slave);
+//  corethread_create(&slave4,&loop,(void*)bandwidth_slave);
 //  loop(bandwidth_master);
 //  corethread_join(slave4,(void**)&ret);
 
 //  // TEST_BIBANDWIDTH
 //  puts("Bibandwidth");
-//  corethread_create(&slave4,&slave_attr,&loop,(void*)bibandwidth_slave);
+//  corethread_create(&slave4,&loop,(void*)bibandwidth_slave);
 //  loop(bibandwidth_master);
 //  corethread_join(slave4,(void**)&ret);
 //
 //  // TEST_REDUCE
 //  puts("Reduce");
-//  corethread_create(&slave4,&slave_attr,&loop,(void*)reduce_slave);
+//  corethread_create(&slave4,&loop,(void*)reduce_slave);
 //  loop(reduce_master);
 //  corethread_join(slave4,(void**)&ret);
 //
 //  // TEST_ALLREDUCE
 //  puts("Allreduce");
-//  corethread_create(&slave4,&slave_attr,&loop,(void*)allreduce_slave);
+//  corethread_create(&slave4,&loop,(void*)allreduce_slave);
 //  loop(allreduce_master);
 //  corethread_join(slave4,(void**)&ret);
 //
 //  // TEST_ALLTOALL
 //  puts("Alltoall");
-//  corethread_create(&slave4,&slave_attr,&loop,(void*)alltoall_slave);
+//  corethread_create(&slave4,&loop,(void*)alltoall_slave);
 //  loop(alltoall_master);
 //  corethread_join(slave4,(void**)&ret);
 
@@ -623,7 +507,7 @@ int main() {
   puts("Barrier (usecs)");
   for(int i = 0; i < sizeof(cores_world)/sizeof(cores_world[0]); i++) {
     if (i != NOC_MASTER) {
-      if(corethread_create((corethread_t*)&cores_world[i],&slave_attr,&loop,(void*)barrier_slave) != 0){
+      if(corethread_create((corethread_t*)&cores_world[i],&loop,(void*)barrier_slave) != 0){
         printf("Corethread %d not created\n",i);
       }
     }
@@ -637,45 +521,7 @@ int main() {
     }
   }
 
-  /////////////////////////////////////////////////////////////////////////////
-  // TEST_BARRIER_SHM
-  /////////////////////////////////////////////////////////////////////////////
-  puts("Barrier_shm (usecs)");
-  for(int i = 0; i < sizeof(cores_world)/sizeof(cores_world[0]); i++) {
-    if (i != NOC_MASTER) {
-      if(corethread_create((corethread_t*)&cores_world[i],&slave_attr,&loop,(void*)barrier_shm_slave) != 0){
-        printf("Corethread %d not created\n",i);
-      }
-    }
-  }
-  loop(barrier_shm_master);
-  //puts("Master finished");
-  for (int i = 0; i < sizeof(cores_world)/sizeof(cores_world[0]); ++i) {
-    if (i != NOC_MASTER) {
-      corethread_join((corethread_t)cores_world[i],(void**)&ret);
-      //printf("Slave %d joined\n",i);
-    }
-  }
 
-  /////////////////////////////////////////////////////////////////////////////
-  // TEST_BARRIER_TOUR
-  /////////////////////////////////////////////////////////////////////////////
-  puts("Barrier_tour (usecs)");
-  for(int i = 0; i < sizeof(cores_world)/sizeof(cores_world[0]); i++) {
-    if (i != NOC_MASTER) {
-      if(corethread_create((corethread_t*)&cores_world[i],&slave_attr,&loop,(void*)barrier_tour_slave) != 0){
-        printf("Corethread %d not created\n",i);
-      }
-    }
-  }
-  loop(barrier_tour_master);
-  //puts("Master finished");
-  for (int i = 0; i < sizeof(cores_world)/sizeof(cores_world[0]); ++i) {
-    if (i != NOC_MASTER) {
-      corethread_join((corethread_t)cores_world[i],(void**)&ret);
-      //printf("Slave %d joined\n",i);
-    }
-  }
 
 //  /////////////////////////////////////////////////////////////////////////////
 //  // TEST_BROADCAST
@@ -683,7 +529,7 @@ int main() {
 //  puts("Broadcast (KB/sec)");
 //  for(int i = 0; i < sizeof(cores_world)/sizeof(cores_world[0]); i++) {
 //    if (i != NOC_MASTER) {
-//      if(corethread_create((corethread_t*)&cores_world[i],&slave_attr,&loop,(void*)broadcast_slave) != 0){
+//      if(corethread_create((corethread_t*)&cores_world[i],&loop,(void*)broadcast_slave) != 0){
 //        printf("Corethread %d not created\n",i);
 //      }
 //    }
@@ -696,27 +542,6 @@ int main() {
 //      //printf("Slave %d joined\n",i);
 //    }
 //  }
-//  
-//  /////////////////////////////////////////////////////////////////////////////
-//  // TEST_BROADCAST_SHM
-//  /////////////////////////////////////////////////////////////////////////////
-//  puts("Broadcast_shm (KB/sec)");
-//  for(int i = 0; i < sizeof(cores_world)/sizeof(cores_world[0]); i++) {
-//    if (i != NOC_MASTER) {
-//      if(corethread_create((corethread_t*)&cores_world[i],&slave_attr,&loop,(void*)broadcast_shm_slave) != 0){
-//        printf("Corethread %d not created\n",i);
-//      }
-//    }
-//  }
-//  loop(broadcast_shm_master);
-//  //puts("Master finished");
-//  for (int i = 0; i < sizeof(cores_world)/sizeof(cores_world[0]); ++i) {
-//    if (i != NOC_MASTER) {
-//      corethread_join((corethread_t)cores_world[i],(void**)&ret);
-//      //printf("Slave %d joined\n",i);
-//    }
-//  }
-  
 
   exit(0);
 }

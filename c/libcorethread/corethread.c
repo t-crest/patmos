@@ -45,86 +45,73 @@
 // Functions for initializing the workers
 ////////////////////////////////////////////////////////////////////////////
 
-void corethread_worker(void) {
-   unsigned id = get_cpuid();
-   if (id != 0) {
-      unsigned long long time;
-      boot_info->slave[id].status = STATUS_RETURN;
+static void corethread_worker(void) {
+  unsigned id = get_cpuid();
+  if (id != 0) { // Core zero should proceed to execute main
+    unsigned long long time;
+    boot_info->slave[id].status = STATUS_RETURN;
       
-      // Wait for corethread_create request or application exit
-      while(boot_info->master.status != STATUS_RETURN) {
-         // As long as the master is still executing, wait for a corethread to
-         // be created and then execute it.
-         if (boot_info->slave[id].funcpoint != NULL) {
-            funcpoint_t funcpoint = boot_info->slave[id].funcpoint;
-            boot_info->slave[id].return_val = -1;
-            boot_info->slave[id].status = STATUS_INITDONE;
-            (*funcpoint)((void*)boot_info->slave[id].param);
-            boot_info->slave[id].status = STATUS_RETURN;
-            while(boot_info->slave[id].funcpoint != NULL) {
+    // Wait for corethread_create request or application exit
+    while(boot_info->master.status != STATUS_RETURN) {
+      // As long as the master is still executing, wait for a corethread to
+      // be created and then execute it.
+      if (boot_info->slave[id].funcpoint != NULL) {
+        funcpoint_t funcpoint = boot_info->slave[id].funcpoint;
+        boot_info->slave[id].return_val = -1;
+        boot_info->slave[id].status = STATUS_INITDONE;
+        (*funcpoint)((void*)boot_info->slave[id].param);
+        boot_info->slave[id].status = STATUS_RETURN;
+        while(boot_info->slave[id].funcpoint != NULL) {
 
-            }
-         }
-         time = get_cpu_usecs();
-         while(get_cpu_usecs() < time+10) {
-         
-         }
+        }
       }
-      boot_info->slave[id].status = STATUS_RETURN;
-      exit(0);
-   }
-   return;
+      time = get_cpu_usecs();
+      while(get_cpu_usecs() < time+10) {
+        // Wait for 10 micro seconds before checking again
+      }
+    }
+    boot_info->slave[id].status = STATUS_RETURN;
+    exit(0);
+  }
+  return;
 }
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for creating and destroying corethreads
 ////////////////////////////////////////////////////////////////////////////
 
-int corethread_create(corethread_t *thread, const corethread_attr_t *attr,
-                                    void (*start_routine)(void*), void *arg) {
-   if(boot_info->slave[*thread].status == STATUS_RETURN &&
-      boot_info->slave[*thread].funcpoint == NULL ) {
-      boot_info->slave[*thread].param = arg;
-      boot_info->slave[*thread].funcpoint = (funcpoint_t) start_routine;
-      while(boot_info->slave[*thread].status != STATUS_INITDONE) {
-
-      }
-      return 0;
-   } else {
-      return EAGAIN;
-   }
-   // TODO: use attribute
+int corethread_create(corethread_t *thread, void (*start_routine)(void*),
+                                                                    void *arg) {
+  if(boot_info->slave[*thread].status != STATUS_INITDONE &&
+                                boot_info->slave[*thread].funcpoint == NULL ) {
+    boot_info->slave[*thread].param = arg;
+    boot_info->slave[*thread].funcpoint = (funcpoint_t) start_routine;
+    while(boot_info->slave[*thread].status != STATUS_INITDONE) {
+      // Wait for corethread to respond
+    }
+    return 0;
+  } else {
+    // Corethread is not available
+    return EAGAIN;
+  }
 }
 
 void corethread_exit(void *retval) {
-   unsigned id = get_cpuid();
-   boot_info->slave[id].return_val = (int) retval;
-   //boot_info->slave[get_cpuid()].funcpoint = NULL;
-   boot_info->slave[id].status = STATUS_RETURN;
-   return;
+  unsigned id = get_cpuid();
+  boot_info->slave[id].return_val = (int) retval;
+  boot_info->slave[id].status = STATUS_RETURN;
+  return;
 }
 
 int corethread_join(corethread_t thread, void **retval) {
-   //inval_dcache();
-   unsigned long long time;
-   while(boot_info->slave[thread].status != STATUS_RETURN) {
-      //inval_dcache();
-   //   if (get_cpuid() == 0) {
-   //      printf("Status of thread %zu is %i funcpoint: %x\n",thread,boot_info->slave[thread].status,boot_info->slave[thread].funcpoint);
-   //      printf("Status of master is %i\n",boot_info->master.status);
-   //   }
-      //inval_dcache();
-      time = get_cpu_usecs();
-      while(get_cpu_usecs() < time+10) {
-      
-      }
-   }
-   *retval = (void *) boot_info->slave[thread].return_val;
-   boot_info->slave[thread].funcpoint = NULL;
-   return 0;
+  unsigned long long time;
+  while(boot_info->slave[thread].status != STATUS_RETURN) {
+    time = get_cpu_usecs();
+    while(get_cpu_usecs() < time+10) {
+      // Wait for 10 microseconds before checking again
+    }
+  }
+  *retval = (void *) boot_info->slave[thread].return_val;
+  boot_info->slave[thread].funcpoint = NULL;
+  return 0;
 }
-
-////////////////////////////////////////////////////////////////////////////
-// Help functions 
-////////////////////////////////////////////////////////////////////////////
-
