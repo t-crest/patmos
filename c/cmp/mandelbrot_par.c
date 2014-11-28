@@ -42,6 +42,7 @@
 
 const int NOC_MASTER = 0;
 #include "libnoc/noc.h"
+#include "libcorethread/corethread.h"
 
 #include "include/bootable.h"
 
@@ -233,11 +234,33 @@ int main(int argc, char **argv) {
   shm_init();
 #endif /* __patmos__ */
 
+#if defined(__patmos__) && !defined(BOOTROM)
+  int slave_param = 1;
+
+  for(int i = 0; i < CORES; i++) {
+    if (i != NOC_MASTER) {
+      corethread_t ct = i;
+      if(corethread_create(&ct,&slave,(void*)slave_param) != 0){
+      }
+    }
+  }
+
+  master();
+
+  int* ret;
+  for (int i = 0; i < CORES; ++i) {
+    if (i != NOC_MASTER) {
+      corethread_join((corethread_t)i,(void**)&ret);
+    }
+  }
+
+#else
   if (core_id == 0) {
     master();
   } else {
     slave();
   }
+#endif
 
 #ifdef __patmos__
   // nothing to clean up

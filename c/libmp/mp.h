@@ -60,14 +60,28 @@
 #ifndef _MP_H_
 #define _MP_H_
 
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 #include <machine/patmos.h>
 #include <machine/spm.h>
 #include "libnoc/noc.h"
+#include "libnoc/coreset.h"
+#include "bootloader/cmpboot.h"
 
 /*! \def DWALIGN
  * Alignes X to double word size
  */
-#define DWALIGN(X) (((((int)X)+7)>>3)<<3)
+
+#define DWALIGN(X) dw_align(X)
+
+static inline unsigned dw_align(unsigned x){
+  if ((x & 7) != 0) {
+    x = ((x>>3)+1)<<3;
+  }
+  return x;
+}
+
 
 /*! \def FLAG_SIZE
  * The size of the flag used to detect completion of a received message.
@@ -80,11 +94,31 @@
 #define FLAG_VALID 0xFFFFFFFF
 #define FLAG_INVALID 0x00000000
 
+// Possible Barrier states
+#define BARRIER_T unsigned long long
+#define BARRIER_INITIALIZED (BARRIER_T)0x0000000000000000
+#define BARRIER_PHASE_0 (BARRIER_T)0x0000000000000000
+#define BARRIER_PHASE_1 (BARRIER_T)0x00000000FFFFFFFF
+#define BARRIER_PHASE_2 (BARRIER_T)0xFFFFFFFFFFFFFFFF
+#define BARRIER_PHASE_3 (BARRIER_T)0xFFFFFFFF00000000
+
+#define BARRIER_REACHED 0xFFFFFFFF
+
+
+ /*! \def BARRIER_SIZE
+ * The size of the barrier flag for each core.
+ */
+#define BARRIER_SIZE DWALIGN(sizeof(BARRIER_T))
+
 /*! \def NUM_WRITE_BUF
  * DO NOT CHANGE! The number of write pointers is not 
  * defined in a way that is can be changed
  */
-#define NUM_WRITE_BUF 2 
+#define NUM_WRITE_BUF 2
+
+#define BARRIER_CORES 9
+
+typedef unsigned coreid_t;
 
 ////////////////////////////////////////////////////////////////////////////
 // Data structures for storing state information
@@ -98,77 +132,101 @@
 /// This struct is used to describe both the sending and receiving ends of a
 /// communication channel.
 typedef struct {
-  /** The address of the remote buffer structure */
-  volatile void _SPM * remote_addr;
-  /** The address of the local buffer structure */
-  volatile void _SPM * local_addr; 
+  /*-- Shared variables --*/
+  /** The ID of the sender */
+  coreid_t send_id;
+  /** The address of the sender buffer structure */
+  volatile void _SPM * send_addr;
+  /** The ID of the receiver */
+  coreid_t recv_id;
+  /** The address of the receiver buffer structure */
+  volatile void _SPM * recv_addr; 
   /** The size of a buffer in bytes */
-  size_t buf_size;
+  unsigned buf_size;
   /** The number of buffers at the receiver */
-  size_t num_buf;
+  unsigned num_buf;
+
+  /*-- Sender/receiver specific variables --*/
   /** The number of messages received by the receiver */
-  volatile size_t _SPM * recv_count;
-  union {
-    struct {
-      /** The ID of the receiver, only present at the sender */
-      int recv_id;
-      /** The number of messages sent by the sender, only present at the sender */
-      size_t send_count;
-      /** A pointer to the tail of the receiving queue */
-      size_t send_ptr;
-      /** A pointer to the free write buffer, only present at the sender*/
-      volatile void _SPM * write_buf;
-      /** A pointer to the used write buffer, only present at the sender*/
-      volatile void _SPM * shadow_write_buf;
-    };
-    struct {
-      /** The ID of the sender, only present at the receiver */
-      int send_id;
-      /** A pointer to the head of the receiving queue */
-      size_t recv_ptr;
-      /** The address of the recv_count at the sender, only present at the receiver */
-      volatile size_t _SPM * remote_recv_count;
-      /** A pointer to the currently free read buffer, only present at the receiver */
-      volatile void _SPM * read_buf;
-    };
-  };
-} mpd_t;
+  volatile unsigned _SPM * recv_count;
+  /** The address of the recv_count at the sender */
+  volatile unsigned _SPM * send_recv_count;
+  /** The number of messages sent by the sender */
+  unsigned send_count;
+  /** A pointer to the tail of the receiving queue */
+  unsigned send_ptr;
+  /** A pointer to the head of the receiving queue */
+  unsigned recv_ptr;
+  /** A pointer to the free write buffer */
+  volatile void _SPM * write_buf;
+  /** A pointer to the used write buffer */
+  volatile void _SPM * shadow_write_buf;
+  /** A pointer to the currently free read buffer */
+  volatile void _SPM * read_buf;
+
+} mpd_t __attribute__((aligned(16)));
+
+/// \struct communicator_t
+/// \brief Describes at set of communicating processors.
+///
+/// The struct is used to store all necessary information on the set of
+/// communicating processors.
+typedef struct {
+  coreset_t barrier_set;
+  unsigned count;
+  unsigned msg_size;
+  volatile void _SPM ** addr;
+} communicator_t __attribute__((aligned(16)));
+
+
+// This array is only used by mp_alloc, it should not be cached.
+static volatile unsigned* _UNCACHED spm_alloc_array[MAX_CORES];
+
+////////////////////////////////////////////////////////////////////////////
+// Functions for memory management in the communication SPM
+////////////////////////////////////////////////////////////////////////////
+
+static void mp_init(void) __attribute__((constructor(120),used));
+
+/// \brief A function for returning the amount of data that the channel is
+/// alocating in the sending spm.
+//size_t mp_send_alloc_size(mpd_t* mpd_ptr);
+
+/// \brief A function for returning the amount of data that the channel is
+/// alocating in the receiving spm.
+//size_t mp_recv_alloc_size(mpd_t* mpd_ptr);
+
+/// \brief Static memory allocation on the communication scratchpad.
+/// No mp_free function
+void _SPM * mp_alloc(coreid_t id, unsigned size);
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for initializing the message passing API
 ////////////////////////////////////////////////////////////////////////////
 
-/// \brief Initialize the state of the send function
+/// \brief Initialize the state of a communication channel
 ///
-/// \param recv_id The core id of the receiving processor
-/// \param remote_addr A pointer to the remote address, where the receiving
-/// buffer structure should start. The size of the buffer structure is the
-/// message buffer size multiplied by the number of buffers plus 16 bytes.
-/// \param local_addr A pointer to the local address, where the sending
-/// buffer structure should start. The size of the buffer structure is the
-/// message buffer size multiplied by the number of buffers plus 16 bytes.
-/// \param size The size of the message buffer
+/// \param mpd_ptr A pointer the the message passing descriptor
+/// \param sender The core id of the sending processor
+/// \param receiver The core id of the receiving processor
+/// \param buf_size The size of the message buffer
+/// \param num_buf The number of buffers in the receiving scratchpad
 ///
 /// \retval 0 The local or remote addresses were not aligned to double words.
 /// \retval 1 The initialization of the send channel succeeded.
-int mp_send_init(mpd_t* mpd_ptr, int recv_id, volatile void _SPM *remote_addr,
-              volatile void _SPM *local_addr, size_t buf_size, size_t num_buf);
+int mp_chan_init(mpd_t* mpd_ptr, coreid_t sender, coreid_t receiver,
+              unsigned buf_size, unsigned num_buf);
 
-/// \brief Initialize the state of the receive function
+/// \brief Initialize the communicator
 ///
-/// \param send_id The core id of the sending processor
-/// \param remote_addr A pointer to the remote address, where the receiving
-/// buffer structure should start. The size of the buffer structure is the
-/// message buffer size multiplied by the number of buffers plus 16 bytes.
-/// \param local_addr A pointer to the local address, where the sending
-/// buffer structure should start. The size of the buffer structure is the
-/// message buffer size multiplied by the number of buffers plus 16 bytes.
-/// \param size The size of the message buffer
-/// 
-/// \retval 0 The local or remote addresses were not aligned to double words.
-/// \retval 1 The initialization of the receive channel succeeded.
-int mp_recv_init(mpd_t* mpd_ptr, int send_id, volatile void _SPM *remote_addr,
-              volatile void _SPM *local_addr, size_t buf_size, size_t num_buf);
+/// \param comm A pointer to the communicator structure
+/// \param member_ids An array of member ids.
+/// \param member_addrs An array of COM SPM addresses for the members.
+///
+/// \retval 0 The address is not aligned  to double words.
+/// \retval 1 The initialization of the communicator_t succeeded.
+int mp_communicator_init(communicator_t* comm, unsigned count,
+              const coreid_t member_ids [], unsigned msg_size);
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for transmitting data
@@ -253,12 +311,15 @@ int mp_nback(mpd_t* mpd_ptr);
 /// \returns The function returns when an acknowledgement has been sent.
 void mp_ack(mpd_t* mpd_ptr);
 
-/// \brief A function for returning the amount of data that the channel is
-/// alocating in the sending spm.
-int mp_send_alloc_size(mpd_t* mpd_ptr);
+/// \brief A function to syncronize the cores described in the communicator
+/// to a barrier.
+///
+/// \param comm A pointer to a communicator structure.
+void mp_barrier(communicator_t* comm);
+static void mp_barrier_int(communicator_t* comm, unsigned index);
 
-/// \brief A function for returning the amount of data that the channel is
-/// alocating in the receiving spm.
-int mp_recv_alloc_size(mpd_t* mpd_ptr);
+/// \brief A function for broadcasting a message to all members of
+/// a communicator
+void mp_broadcast(communicator_t* comm, coreid_t root);
 
 #endif /* _MP_H_ */

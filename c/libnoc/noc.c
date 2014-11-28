@@ -41,9 +41,9 @@
 #include <machine/patmos.h>
 #include <machine/spm.h>
 
+#include <stdio.h>
 #include "bootloader/cmpboot.h"
 #include "noc.h"
-#include "coreset.h"
 
 // Structure to model the network interface
 static struct network_interface
@@ -100,7 +100,7 @@ static void noc_sync(void) {
 }
 
 // Initialize the NoC
-void noc_init(void) {
+static void noc_init(void) {
   //if (get_cpuid() == NOC_MASTER) puts("noc_configure");
   noc_configure();
   //if (get_cpuid() == NOC_MASTER) puts("noc_sync");
@@ -116,10 +116,9 @@ int noc_dma(unsigned rcv_id,
             unsigned short read_ptr,
             unsigned short size) {
 
-    // Ony send if previous transfer is done
-    unsigned status = *(noc_interface.dma+(rcv_id<<1));
-    if ((status & NOC_VALID_BIT) != 0 && (status & NOC_DONE_BIT) == 0) {
-        return 0;
+    // Only send if previous transfer is done
+    if (!noc_done(rcv_id)) {
+      return 0;
     }
 
     // Read pointer and write pointer in the dma table
@@ -128,6 +127,15 @@ int noc_dma(unsigned rcv_id,
     *(noc_interface.dma+(rcv_id<<1)) = (size | NOC_VALID_BIT) & ~NOC_DONE_BIT;
 
     return 1;
+}
+
+// Check if a NoC transfer has finished
+int noc_done(unsigned rcv_id) {
+  unsigned status = *(noc_interface.dma+(rcv_id<<1));
+  if ((status & NOC_VALID_BIT) != 0 && (status & NOC_DONE_BIT) == 0) {
+      return 0;
+  }
+  return 1;
 }
 
 // Convert from byte address or size to double-word address or size
@@ -147,14 +155,14 @@ int noc_nbsend(unsigned rcv_id, volatile void _SPM *dst,
 // The addresses and the size are in bytes
 void noc_send(unsigned rcv_id, volatile void _SPM *dst,
               volatile void _SPM *src, size_t len) {
-
+  _Pragma("loopbound min 1 max 1")
   while(!noc_nbsend(rcv_id, dst, src, len));
 }
 
 // Multicast transfer of data via the NoC
 // The addresses and the size are in bytes
 void noc_multisend(unsigned cnt, unsigned rcv_id [], volatile void _SPM *dst [],
-                   volatile void _SPM *src, size_t len) {
+              volatile void _SPM *src, size_t len) {
 
   int done;
   coreset_t sent;
@@ -173,4 +181,55 @@ void noc_multisend(unsigned cnt, unsigned rcv_id [], volatile void _SPM *dst [],
   } while(!done);
 }
 
+// Multicast transfer of data via the NoC
+// The addresses and the size are in bytes
+// The receivers are defined in a coreset
+// the coreset must not contain the calling core.
+void noc_multisend_cs(coreset_t *receivers, volatile void _SPM *dst[],
+                                unsigned offset, volatile void _SPM *src, unsigned len) {
+  int index = 0;
+  unsigned cpuid = get_cpuid();
+//  for (unsigned i = 0; i < CORESET_SIZE; ++i) {
+  for (unsigned i = 0; i < NOC_CORES; ++i) {
+    if (coreset_contains(i,receivers)){
+      if (i != cpuid) {
+        noc_send(i, (volatile void _SPM *)((unsigned)dst[index]+offset), src, len);
+      }
+      //DEBUGGER("Transmission address: %x+%x at core %i\n",(unsigned)dst[index],offset,i);
+      index++;
+    }
+  }
+}
+//void noc_multisend_cs(coreset_t receivers, volatile void _SPM *dst[],
+//                                unsigned offset, volatile void _SPM *src, unsigned len) {
+//  int index;
+//  int done;
+//  coreset_t sent;
+//  coreset_clearall(&sent);
+//  do {
+//    done = 1;
+//    index = 0;
+//    for(unsigned i = 0; i < CORESET_SIZE; i++) {
+//      if(coreset_contains(i,&receivers) != 0) {
+//        if(i != get_cpuid() && coreset_contains(i,&sent) == 0) {
+//          if(noc_nbsend(i, (volatile void _SPM *)((unsigned)dst[index]+offset), src, len)) {
+//            coreset_add(i,&sent);
+//            DEBUGGER("Transmission address: %x+%x at core %i\n",(unsigned)dst[index],offset,i);
+//          }
+//        }
+//        index++;
+//      }
+//    }
+//  } while(!done);
+//}
 
+void noc_wait_dma(coreset_t receivers) {
+  int index = 0;
+  for (unsigned i = 0; i < NOC_CORES; ++i) {
+    if (coreset_contains(i,&receivers)){
+      if (i != get_cpuid()) {
+        while(!noc_done(i));
+      }
+    }
+  } 
+}

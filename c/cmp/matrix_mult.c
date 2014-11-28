@@ -9,6 +9,8 @@ const int NOC_MASTER = 0;
 #include <stdio.h>
 #include "libnoc/noc.h"
 #include "include/patio.h"
+#include "libcorethread/corethread.h"
+
 #ifdef BOOTROM
 extern int _stack_cache_base, _shadow_stack_base;
 int main(int argc, char **argv);
@@ -29,7 +31,7 @@ void _start(void) {
 }
 #endif
 static void master(void);
-static void slave(void);
+static void slave(void* param);
 int first_matrix[3][2] = { {0, 1},
                             {2, 3}, 
                             {4, 5}};
@@ -44,25 +46,38 @@ struct matrix {
     int result_matrix[3][3]; 
     int ready; // flag at end so it is transmitted last
 };
+
 volatile _SPM struct matrix *spm_in = (volatile _SPM struct matrix *)NOC_SPM_BASE;
 volatile _SPM struct matrix *spm_out = (volatile _SPM struct matrix *)NOC_SPM_BASE+1;
+
 int main() {
-    if (get_cpuid() == 0) {
     printf("main\n");
-    }
         // clear communication areas
         // cannot use memset() for _SPM pointers!
     for (int i = 0; i < sizeof(struct matrix); i++) {
         ((volatile _SPM char *)spm_in)[i] = 0;
         ((volatile _SPM char *)spm_out)[i] = 0;
     }
-            
-        
-    // dispatch on core ID
-    if(get_cpuid() == 0) {
-        master();
-    } else {
-        slave();
+
+    int slave_param = 1;
+
+    for(int i = 0; i < get_cpucnt(); i++) {
+        if (i != NOC_MASTER) {
+            corethread_t ct = (corethread_t)i;
+            if(corethread_create(&ct,&slave,(void*)slave_param) != 0){
+                printf("Corethread %d not created\n",i);
+            }
+        }
+    }
+
+    master();
+
+    int* ret;
+    for (int i = 0; i < get_cpucnt(); ++i) {
+        if (i != NOC_MASTER) {
+            corethread_join((corethread_t)i,(void**)&ret);
+            //printf("Slave %d joined\n",i);
+        }
     }
     
     return 0;
@@ -134,7 +149,11 @@ void calculate_matrix(volatile _SPM struct matrix * matrix_in, int core) {
     } 
 
 }
-static void slave(void) {
+static void slave(void* param) {
+    for (int i = 0; i < sizeof(struct matrix); i++) {
+        ((volatile _SPM char *)spm_in)[i] = 0;
+        ((volatile _SPM char *)spm_out)[i] = 0;
+    }
     // wait and poll until message arrives
     while (!spm_in->ready) {
         /* spin */
@@ -155,7 +174,7 @@ static void slave(void) {
     calculate_matrix(spm_in, get_cpuid());
     spm_out->ready = 1;
     // send to next slave
-    int rcv_id = (get_cpuid() == (NOC_CORES - 1)) ? 0 : get_cpuid() + 1;
+    int rcv_id = (get_cpuid() == (get_cpucnt() - 1)) ? 0 : get_cpuid() + 1;
     noc_send(rcv_id, spm_in, spm_out, sizeof(struct matrix));
     return;
 }

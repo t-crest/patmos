@@ -42,6 +42,25 @@
 
 #include <machine/patmos.h>
 #include <machine/spm.h>
+#include "coreset.h"
+
+//#define DEBUG
+
+#ifdef DEBUG
+
+#define DEBUGGER(...)  if(get_cpuid() == NOC_MASTER) { \
+                        printf(__VA_ARGS__); \
+                     }
+
+#define DEBUG_CORECHECK(x) if(x) { \
+                              abort(); \
+                            }
+
+#else
+#define DEBUGGER(...)
+#define DEBUG_CORECHECK(x)
+#endif
+
 
 ////////////////////////////////////////////////////////////////////////////
 // Definitions used for initialization of network interface
@@ -84,7 +103,7 @@ void noc_configure(void);
 /// \brief Configure network-on-chip and synchronize all cores.
 ///
 /// #noc_init is a static constructor and not intended to be called directly.
-void noc_init(void) __attribute__((constructor,used));
+static void noc_init(void) __attribute__((constructor(101),used));
 
 #ifdef DOXYGEN
 /// \brief Define this before including noc.h to force the use
@@ -117,6 +136,12 @@ static const void * volatile __noc_include __attribute__((used)) = &noc_init;
 int noc_dma(unsigned rcv_id, unsigned short write_ptr,
             unsigned short read_ptr, unsigned short size);
 
+/// \brief Check if a NoC transfer has finished.
+///
+/// \param rcv_id The core id of the receiver.
+/// \returns 1 if the transfer has finished, 0 otherwise.
+int noc_done(unsigned rcv_id);
+
 /// \brief Attempt to transfer data via the NoC (non-blocking).
 ///
 /// The addresses and the size are absolute and in bytes.
@@ -147,7 +172,21 @@ void noc_send(unsigned rcv_id, volatile void _SPM *dst,
 /// \param src A pointer to the source of the transfer.
 /// \param size The size of data to be transferred, in bytes.
 void noc_multisend(unsigned cnt, unsigned rcv_id [], volatile void _SPM *dst [],
-                   volatile void _SPM *src, size_t size) __attribute__((used));
+                   volatile void _SPM *src, size_t size);
+
+/// \brief Multi-cast transfer of data like #noc_multisend(), but with coreset
+/// and a single destination addr.
+///
+/// The addresses and the size are absolute and in bytes.
+/// \param cnt The number of receivers.
+/// \param rcv_id An array with the core ids of the receivers.
+/// \param dst An array with pointers to the destinations of the transfer.
+/// \param src A pointer to the source of the transfer.
+/// \param size The size of data to be transferred, in bytes.
+void noc_multisend_cs(coreset_t *receivers, volatile void _SPM *dst[],
+                     unsigned offset, volatile void _SPM *src, unsigned len);
+
+void noc_wait_dma(coreset_t receivers);
 
 ////////////////////////////////////////////////////////////////////////////
 // Definitions for setting up a transfer

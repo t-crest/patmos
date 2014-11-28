@@ -57,6 +57,8 @@ int main(void)
   boot_info->master.entrypoint = NULL;
   boot_info->slave[get_cpuid()].status = STATUS_NULL;
   boot_info->slave[get_cpuid()].return_val = -1;
+  boot_info->slave[get_cpuid()].param = NULL;
+  boot_info->slave[get_cpuid()].funcpoint = NULL;
 
   do {
     // make sure the own status is visible
@@ -95,7 +97,7 @@ int main(void)
     boot_info->slave[get_cpuid()].status = STATUS_RETURN;
   } while (boot_info->master.status != STATUS_RETURN); 
   
-  // TODO: report return value back to master
+  boot_info->slave[get_cpuid()].status = STATUS_NULL;
 
   // clear caches and loop back
   inval_dcache();

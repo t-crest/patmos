@@ -55,7 +55,6 @@ swc [%3] = %7;\
 }
 
 int main() {
-  if (get_cpuid() == 0) {
 
     test_st(0, 1, 2, 3);
     test_st(0x1000+0, 0x1000+1, 0x1000+2, 0x1000+3);
@@ -70,9 +69,4 @@ int main() {
 
     return 0;
 
-  } else {
-    // other cores do idle loop
-    for (;;) { }
-  }
-  return -1;
 }

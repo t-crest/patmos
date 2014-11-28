@@ -6,6 +6,7 @@ CC=patmos-clang # variable CC is "magic", so we define it here to a sane default
 BUILDDIR?=../tmp
 LIBNOC=$(BUILDDIR)/libnoc.a
 LIBMP=$(BUILDDIR)/libmp.a
+LIBCORETHREAD=$(BUILDDIR)/libcorethread.a
 
 NOCINIT?=nocinit.c
 
@@ -30,7 +31,7 @@ CFLAGS?=-target patmos-unknown-unknown-elf -O2 \
 	-I$(CURDIR) \
 	-mpatmos-disable-vliw
 LDFLAGS?= \
-	-mpatmos-method-cache-size=0x800 -mpatmos-preferred-subfunction-size=0 \
+	-mpatmos-method-cache-size=0x2000 -mpatmos-preferred-subfunction-size=0 \
 	-mpatmos-stack-base=0x200000 -mpatmos-shadow-stack-base=0x1f8000
 
 # 32KB stacks for 256MB external memory
@@ -45,16 +46,16 @@ $(BUILDDIR)/%.o: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) -c -o $@ $(filter %.c,$^)
 
-$(BUILDDIR)/%.elf: %.c $(NOCINIT) $(LIBNOC) $(LIBMP) Makefile
+$(BUILDDIR)/%.elf: %.c $(NOCINIT) $(LIBNOC) $(LIBMP) $(LIBCORETHREAD) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc 
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread
 $(BUILDDIR)/%.s: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) -fpatmos-emit-asm -S -o $@ $(filter %.c,$^)
 
-$(BUILDDIR)/bootable-%.elf: %.c $(NOCINIT) $(LIBNOC) $(LIBMP) Makefile
+$(BUILDDIR)/bootable-%.elf: %.c $(NOCINIT) $(LIBNOC) $(LIBMP) $(LIBCORETHREAD) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc
+	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread
 
 $(BUILDDIR)/bootable-%.s: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
@@ -94,6 +95,13 @@ $(LIBNOC): $(BUILDDIR)/libnoc/noc.o
 # library for message passing
 .PHONY: libmp
 libmp: libnoc $(LIBMP)
-$(BUILDDIR)/libmp/mp.o: libmp/mp.h
+$(BUILDDIR)/libmp/mp.o: libmp/mp.h libnoc/noc.h libnoc/coreset.h bootloader/cmpboot.h
 $(LIBMP): $(BUILDDIR)/libmp/mp.o
+	ar r $@ $^
+
+# library for corethreads
+.PHONY: libcorethread
+libcorethread: cmpboot.h $(LIBCORETHREAD)
+$(BUILDDIR)/libcorethread/corethread.o: libcorethread/corethread.h bootloader/cmpboot.h
+$(LIBCORETHREAD): $(BUILDDIR)/libcorethread/corethread.o
 	ar r $@ $^

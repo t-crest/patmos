@@ -46,6 +46,7 @@
 #define DELAY 1000*1
 
 // #define DEBUG
+// #define HEAVY_DEBUG
 
 int main(void)
 {
@@ -66,6 +67,8 @@ int main(void)
   for (unsigned i = 0; i < get_cpucnt(); i++) {
     boot_info->slave[i].status = STATUS_NULL;
     boot_info->slave[i].return_val = -1;
+    boot_info->slave[i].param = NULL;
+    boot_info->slave[i].funcpoint = NULL;
   }
 
   // give the slaves some time to boot
@@ -130,11 +133,18 @@ int main(void)
   // Wait for slaves to finish
   for (unsigned i = 1; i < get_cpucnt(); i++) {
     if (boot_info->slave[i].status != STATUS_NULL) {
+        #ifdef HEAVY_DEBUG
+        WRITE("CORE_RETURN\n", 12);
+        #endif
       while(boot_info->slave[i].status != STATUS_RETURN){
         /* spin */
       }
       // TODO: check return value
       // boot_info->slave[i].return_val
+    } else {
+      #ifdef HEAVY_DEBUG
+      WRITE("CORE_NULL\n", 10);
+      #endif
     }
   }
 
@@ -146,6 +156,13 @@ int main(void)
   
   // notify slaves that they can loop back
   boot_info->master.status = STATUS_RETURN;
+
+  // Wait for slaves to finish
+  for (unsigned i = 1; i < MAX_CORES; i++) {
+    while(boot_info->slave[i].status == STATUS_RETURN){
+      /* spin */
+    }
+  }
 
   #ifdef DEBUG
   WRITE("EXIT\n", 5);
