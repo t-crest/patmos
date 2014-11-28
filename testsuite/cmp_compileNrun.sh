@@ -11,7 +11,7 @@ numnotcomp=0
 notcomp=""
 numexclude=0
 
-exclude_app="memtest_cmp memtest_cmp2 nocinit16 nocinit4"
+exclude_app="memtest_cmp memtest_cmp2 nocinit16 nocinit9 nocinit4 nocinit"
 
 echo "==> Configuring FPGA";
 echo
