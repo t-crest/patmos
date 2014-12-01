@@ -83,7 +83,7 @@ class OcpIOSlavePort(addrWidth : Int, dataWidth : Int) extends Bundle() {
 // Bridge between ports that do/do not support CmdAccept
 class OcpIOBridge(master : OcpCoreMasterPort, slave : OcpIOSlavePort) {
   // Register signals that come from master
-  val masterReg = Reg(init = OcpCoreMasterSignals.resetVal(master.M))
+  val masterReg = Reg(init = master.M)
   when(masterReg.Cmd === OcpCmd.IDLE || slave.S.CmdAccept === Bits(1)) {
     masterReg := master.M
   }

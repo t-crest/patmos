@@ -80,12 +80,12 @@ class Timer(clk_freq: Int) extends CoreDevice() {
   val usecIntrReg = Reg(init = UInt(0, 2*DATA_WIDTH))
 
   // Registers for data to read
-  val cycleHiReg  = Reg(init = Bits(0, DATA_WIDTH))
-  val usecHiReg   = Reg(init = Bits(0, DATA_WIDTH))
+  val cycleHiReg  = Reg(Bits(width = DATA_WIDTH))
+  val usecHiReg   = Reg(Bits(width = DATA_WIDTH))
 
   // Registers for writing data
-  val cycleLoReg  = Reg(init = Bits(0, DATA_WIDTH))
-  val usecLoReg   = Reg(init = Bits(0, DATA_WIDTH))
+  val cycleLoReg  = Reg(Bits(width = DATA_WIDTH))
+  val usecLoReg   = Reg(Bits(width = DATA_WIDTH))
 
   // Default response
   val resp = Bits()

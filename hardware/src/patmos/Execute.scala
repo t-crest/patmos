@@ -48,11 +48,11 @@ import Constants._
 class Execute() extends Module {
   val io = new ExecuteIO()
 
-  val exReg = Reg(init = DecEx.resetVal)
+  val exReg = Reg(new DecEx())
   when(io.ena) {
     exReg := io.decex
     when(io.flush || io.brflush) {
-      exReg.reset()
+      exReg.flush()
       exReg.relPc := io.decex.relPc
     }
   }
@@ -111,11 +111,11 @@ class Execute() extends Module {
   }
 
   // data forwarding
-  val fwMemReg = Vec.fill(2*PIPE_COUNT) { Vec.fill(PIPE_COUNT) { Reg(init = Bool(false)) } }
-  val fwExReg  = Vec.fill(2*PIPE_COUNT) { Vec.fill(PIPE_COUNT) { Reg(init = Bool(false)) } }
+  val fwMemReg = Vec.fill(2*PIPE_COUNT) { Vec.fill(PIPE_COUNT) { Reg(Bool()) } }
+  val fwExReg  = Vec.fill(2*PIPE_COUNT) { Vec.fill(PIPE_COUNT) { Reg(Bool()) } }
   val memResultDataReg = Vec.fill(PIPE_COUNT) { Reg(Bits(width = DATA_WIDTH)) }
   val exResultDataReg  = Vec.fill(PIPE_COUNT) { Reg(Bits(width = DATA_WIDTH)) }
-  val op = Vec.fill(2*PIPE_COUNT) { Bits(width = 32) }
+  val op = Vec.fill(2*PIPE_COUNT) { Bits(width = DATA_WIDTH) }
 
   // precompute forwarding
   for (i <- 0 until 2*PIPE_COUNT) {
@@ -160,7 +160,7 @@ class Execute() extends Module {
   }
 
   // predicates
-  val predReg = Vec.fill(PRED_COUNT) { Reg(init = Bool(false)) }
+  val predReg = Vec.fill(PRED_COUNT) { Reg(Bool()) }
 
   val doExecute = Vec.fill(PIPE_COUNT) { Bool() }
   for (i <- 0 until PIPE_COUNT) {
@@ -169,31 +169,31 @@ class Execute() extends Module {
   }
 
   // return information
-  val retBaseReg = Reg(init = UInt(0, DATA_WIDTH))
-  val retOffReg = Reg(init = UInt(0, DATA_WIDTH))
-  val saveRetOff = Reg(init = Bool(false))
-  val saveND = Reg(init = Bool(false))
+  val retBaseReg = Reg(UInt(width = DATA_WIDTH))
+  val retOffReg = Reg(UInt(width = DATA_WIDTH))
+  val saveRetOff = Reg(Bool())
+  val saveND = Reg(Bool())
 
   // exception return information
-  val excBaseReg = Reg(init = UInt(0, DATA_WIDTH))
-  val excOffReg = Reg(init = UInt(0, DATA_WIDTH))
+  val excBaseReg = Reg(UInt(width = DATA_WIDTH))
+  val excOffReg = Reg(UInt(width = DATA_WIDTH))
 
   // MS: maybe the multiplication should be in a local component?
 
   // multiplication result registers
-  val mulLoReg = Reg(init = UInt(0, DATA_WIDTH))
-  val mulHiReg = Reg(init = UInt(0, DATA_WIDTH))
+  val mulLoReg = Reg(UInt(width = DATA_WIDTH))
+  val mulHiReg = Reg(UInt(width = DATA_WIDTH))
 
   // multiplication pipeline registers
-  val mulLLReg    = Reg(init = UInt(0, DATA_WIDTH))
-  val mulLHReg    = Reg(init = UInt(0, DATA_WIDTH))
-  val mulHLReg    = Reg(init = UInt(0, DATA_WIDTH))
-  val mulHHReg    = Reg(init = UInt(0, DATA_WIDTH))
+  val mulLLReg    = Reg(UInt(width = DATA_WIDTH))
+  val mulLHReg    = Reg(UInt(width = DATA_WIDTH))
+  val mulHLReg    = Reg(UInt(width = DATA_WIDTH))
+  val mulHHReg    = Reg(UInt(width = DATA_WIDTH))
 
-  val signLHReg = Reg(init = Bits(0))
-  val signHLReg = Reg(init = Bits(0))
+  val signLHReg = Reg(Bits(width = 1))
+  val signHLReg = Reg(Bits(width = 1))
 
-  val mulPipeReg = Reg(init = Bool(false))
+  val mulPipeReg = Reg(Bool())
 
   // multiplication only in first pipeline
   when(io.ena) {
@@ -423,5 +423,7 @@ class Execute() extends Module {
   when(saveRetOff) {
     retOffReg := Cat(Mux(saveND, exReg.relPc, io.feex.pc), Bits("b00").toUInt)
   }
-}
 
+  // reset at end to override any computations
+  when(reset) { exReg.flush() }
+}

@@ -59,13 +59,13 @@ class NullCache() extends Module {
   val idle :: read :: readResp :: Nil = Enum(UInt(), 3)
   val stateReg = Reg(init = idle)
   val burstCntReg = Reg(init = UInt(0, burstAddrBits))
-  val posReg = Reg(init = Bits(0, burstAddrBits))
+  val posReg = Reg(Bits(width = burstAddrBits))
 
   // Register for master signals
-  val masterReg = Reg(init = OcpMasterSignals.resetVal(io.master.M))
+  val masterReg = Reg(io.master.M)
 
   // Register to delay response
-  val slaveReg = Reg(init = OcpSlaveSignals.resetVal(io.master.S))
+  val slaveReg = Reg(io.master.S)
 
   when(masterReg.Cmd != OcpCmd.RD || io.slave.S.CmdAccept === Bits(1)) {
     masterReg := io.master.M

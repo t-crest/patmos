@@ -66,16 +66,16 @@ class WriteCombineBuffer() extends Module {
   val cntReg = Reg(init = UInt(0, burstAddrBits))
 
   // Register signals that come from write master
-  val writeMasterReg = Reg(init = OcpCacheMasterSignals.resetVal(io.writeMaster.M))
+  val writeMasterReg = Reg(io.writeMaster.M)
 
   // Register signals that come from read master
   val readMasterReg = Reg(next = io.readMaster.M)
 
   // Registers for write combining
   val tagReg = Reg(init = Bits(0, width = tagWidth))
-  val dataBuffer = Vec.fill(burstLength) { Reg(init = Bits(0, width = dataWidth)) }
+  val dataBuffer = Vec.fill(burstLength) { Reg(Bits(width = dataWidth)) }
   val byteEnBuffer = Vec.fill(burstLength) { Reg(init = Bits(0, width = byteEnWidth)) }
-  val hitReg = Reg(init = Bool(false))
+  val hitReg = Reg(Bool())
 
   // Temporary vector for combining
   val comb = Vec.fill(byteEnWidth) { Bits(width = 8) }

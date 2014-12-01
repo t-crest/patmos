@@ -66,18 +66,19 @@ class InOut() extends Module {
 
   val validDeviceVec = Vec.fill(MAX_IO_DEVICES) { Bool() }
   val selDeviceVec = Vec.fill(MAX_IO_DEVICES) { Bool() }
-  val deviceSVec = Vec.fill(MAX_IO_DEVICES) { OcpSlaveSignals.resetVal(DATA_WIDTH) }
+  val deviceSVec = Vec.fill(MAX_IO_DEVICES) { new OcpSlaveSignals(DATA_WIDTH) }
   for (i <- 0 until MAX_IO_DEVICES) {
     validDeviceVec(i) := Bool(false)
     selDeviceVec(i) := selIO & io.memInOut.M.Addr(11, 8) === Bits(i)
-    deviceSVec(i) := OcpSlaveSignals.resetVal(DATA_WIDTH)
+    deviceSVec(i).Resp := OcpResp.NULL
+    deviceSVec(i).Data := Bits(0)
   }
   validDeviceVec(EXC_IO_OFFSET) := Bool(true)
 
   // Register selects
-  val selSpmReg = Reg(init = Bool(false))
-  val selComConfReg = Reg(init = Bool(false))
-  val selComSpmReg = Reg(init = Bool(false))
+  val selSpmReg = Reg(Bool())
+  val selComConfReg = Reg(Bool())
+  val selComSpmReg = Reg(Bool())
 
   val selDeviceReg = Vec.fill(MAX_IO_DEVICES) { Reg(Bool()) }
 

@@ -63,7 +63,7 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends Module {
   val tagCount = (size / 2) / lineSize
 
   // Register signals from master
-  val masterReg = Reg(init = OcpMasterSignals.resetVal(io.master.M))
+  val masterReg = Reg(io.master.M)
   masterReg := io.master.M
 
   // Generate memories
@@ -87,12 +87,12 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends Module {
   val tagValid2 = tagV2 && tag2 === Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH - 1, addrBits + 2))
   val lru = Reg(next = lruMem(io.master.M.Addr(addrBits + 1, lineBits)))
 
-  val fillReg = Reg(init = Bool(false))
-  val fillAddrReg = Reg(init = Bits(0, width = addrBits + 2 - lineBits))
+  val fillReg = Reg(Bool())
+  val fillAddrReg = Reg(Bits(width = addrBits + 2 - lineBits))
 
   val wrAddrReg = Reg(Bits(width = addrBits))
   val wrDataReg = Reg(Bits(width = DATA_WIDTH))
-  val lruReg = Reg(init = Bool(false))
+  val lruReg = Reg(Bool())
 
   wrAddrReg := io.master.M.Addr(addrBits + 1, 2)
   wrDataReg := io.master.M.Data
@@ -129,11 +129,11 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends Module {
   val idle :: hold :: fill :: respond :: Nil = Enum(UInt(), 4)
   val stateReg = Reg(init = idle)
 
-  val missIndexReg = Reg(init = UInt(0, lineBits-2))
   val burstCntReg = Reg(init = UInt(0, lineBits-2))
+  val missIndexReg = Reg(UInt(lineBits-2))
 
   // Register to delay response
-  val slaveReg = Reg(init = OcpSlaveSignals.resetVal(io.master.S))
+  val slaveReg = Reg(io.master.S)
 
   // Default values
   io.slave.M.Cmd := OcpCmd.IDLE

@@ -65,7 +65,7 @@ class WriteNoBuffer() extends Module {
   val cntReg = Reg(init = UInt(0, burstAddrBits))
 
   // Register signals that come from write master
-  val writeMasterReg = Reg(init = OcpCacheMasterSignals.resetVal(io.writeMaster.M))
+  val writeMasterReg = Reg(io.writeMaster.M)
 
   // Default responses
   io.readMaster.S := io.slave.S

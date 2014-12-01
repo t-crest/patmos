@@ -72,8 +72,8 @@ class Keys(keyCount : Int) extends CoreDevice() {
 
   override val io = new CoreDeviceIO() with Keys.Pins with Keys.Intrs
 
-  val keySyncReg = Reg(init = Bits(0, keyCount))
-  val keyReg = Reg(init = Bits(0, keyCount))
+  val keySyncReg = Reg(Bits(width = keyCount))
+  val keyReg = Reg(Bits(width = keyCount))
 
   // Default response
   val respReg = Reg(init = OcpResp.NULL)

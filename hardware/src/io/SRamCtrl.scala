@@ -113,21 +113,21 @@ class SRamCtrl( ocpAddrWidth    : Int,
   val stateReg = Reg(init = sReady)
 
   // Internal Registers
-  val mAddrReg = Reg(init = Bits(0,width = sramAddrWidth))
+  val mAddrReg = Reg(Bits(width = sramAddrWidth))
   val rdBufferReg = Vec.fill(TRANSPERCMD){Reg(Bits(width=sramDataWidth))}
   val wrBufferReg = Vec.fill(TRANSPERCMD){Reg(new Trans(BYTESPERTRAN,sramDataWidth))}
   val transCountReg = Reg(init = UInt(0,width=log2upNew(TRANSPERCMD)))
   val wordCountReg = Reg(init = UInt(0,width=log2upNew(ocpBurstLen)))
   val waitCountReg = Reg(init = UInt(0,width=log2upNew(writeWaitCycles+1)))
   // Output Registers
-  val addrReg = Reg(init = Bits(0, width = sramAddrWidth))
-  val doutEnaReg = Reg(init = Bits(0))
-  val doutReg = Reg(init = Bits(0, width = DATA_WIDTH))
-  val nceReg = Reg(init = Bits(1))
-  val noeReg = Reg(init = Bits(1))
-  val nweReg = Reg(init = Bits(1))
-  val nlbReg = Reg(init = Bits(1))
-  val nubReg = Reg(init = Bits(1))
+  val addrReg = Reg(Bits(width = sramAddrWidth))
+  val doutEnaReg = Reg(Bits())
+  val doutReg = Reg(Bits(width = DATA_WIDTH))
+  val nceReg = Reg(Bits())
+  val noeReg = Reg(Bits())
+  val nweReg = Reg(Bits())
+  val nlbReg = Reg(Bits())
+  val nubReg = Reg(Bits())
 
   // Default values for ocp io.ocp.S port
   io.ocp.S.Resp := OcpResp.NULL

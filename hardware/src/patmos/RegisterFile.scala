@@ -84,7 +84,7 @@ class RegisterFile() extends Module {
   // Don't care about R0 here: reads return zero and writes to
   // register R0 are disabled in decode stage anyway
   for (k <- (0 until PIPE_COUNT).reverse) {
-    when(io.ena && io.rfWrite(k).valid) {
+    when(io.rfWrite(k).valid) {
       rf(io.rfWrite(k).addr.toUInt) := io.rfWrite(k).data
     }
   }

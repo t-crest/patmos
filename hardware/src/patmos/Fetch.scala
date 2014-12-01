@@ -69,8 +69,8 @@ class Fetch(fileName : String) extends Module {
   
   if (ISPM_SIZE > 0) {
     val ispmAddrBits = log2Up(ISPM_SIZE / 4 / 2)
-    val memEven = MemBlock(ISPM_SIZE / 4 / 2, INSTR_WIDTH)
-    val memOdd = MemBlock(ISPM_SIZE / 4 / 2, INSTR_WIDTH)
+    val memEven = MemBlock(ISPM_SIZE / 4 / 2, INSTR_WIDTH, bypass = false)
+    val memOdd = MemBlock(ISPM_SIZE / 4 / 2, INSTR_WIDTH, bypass = false)
 
     // write from EX - use registers - ignore stall, as reply does not hurt
     val selWrite = (io.memfe.store & (io.memfe.addr(DATA_WIDTH-1, ISPM_ONE_BIT) === Bits(0x1)))
@@ -86,12 +86,12 @@ class Fetch(fileName : String) extends Module {
     instr_b_ispm := Mux(pcReg(0) === Bits(0), ispm_odd, ispm_even)
   } else {
     // dummy blocks to keep the emulator happy
-    val memEven = MemBlock(1, INSTR_WIDTH)
-    val memOdd = MemBlock(1, INSTR_WIDTH)
+    val memEven = MemBlock(1, INSTR_WIDTH, bypass = false)
+    val memOdd = MemBlock(1, INSTR_WIDTH, bypass = false)
   }
 
-  val selIspm = Reg(init = Bool(false))
-  val selMCache = Reg(init = Bool(false))
+  val selIspm = Reg(Bool())
+  val selMCache = Reg(Bool())
   when (io.ena) {
     selIspm := io.mcachefe.memSel(1)
     selMCache := io.mcachefe.memSel(0)
