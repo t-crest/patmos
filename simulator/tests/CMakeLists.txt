@@ -145,6 +145,17 @@ Errors : 0")
 test_asm(50 "Emitted: 216 bytes
 Errors : 0")
 
+test_asm(51 "Emitted: 96 bytes
+Errors : 0")
+
+test_asm(52 "Emitted: 96 bytes
+Errors : 0")
+
+test_asm(53 "Emitted: 100 bytes
+Errors : 0")
+
+test_asm(54 "Emitted: 100 bytes
+Errors : 0")
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # SIMULATOR TESTS
@@ -290,3 +301,10 @@ test_sim_scba(50 "Align .*spill.*:          2           2
    Align .*fill.*:          0           0
    Align .*free.*:          4           4")
 
+test_sim(51 "r1 : 0000002d   r2 : 0000001c   r3 : 00000000")
+
+test_sim(52 "r1 : 0000002d   r2 : 00000010   r3 : 00000000")
+
+test_sim(53 "r1 : 0000002d   r2 : 00000020   r3 : 00000000")
+
+test_sim(54 "r1 : 0000002d   r2 : 00000014   r3 : 00000000")

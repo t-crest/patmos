@@ -276,6 +276,11 @@ namespace patmos
         GPR_e Rs1;
         GPR_e Rs2;
       } CFLrt;
+      /// Operands for an CFLsi instruction.
+      struct
+      {
+        uword_t UImm5;
+      } CFLsi;
     } OPS;
 
 
@@ -538,6 +543,14 @@ namespace patmos
     /// @param rs2 The second operand register.
     static instruction_data_t mk_CFLrt(const instruction_t &i, PRR_e pred,
                                        word_t flag, GPR_e rs1, GPR_e rs2);
+
+    /// Create an CFLsi instruction with immediate operand.
+    /// @param i The instruction.
+    /// @param pred The predicate register under which the instruction is
+    /// executed.
+    /// @param Imm The operand immediate.
+    static instruction_data_t mk_CFLsi(const instruction_t &i, PRR_e pred,
+                                       uword_t Imm);
 
     /// Create an HLT instruction without operands.
     /// @param i The instruction.

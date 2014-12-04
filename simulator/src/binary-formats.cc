@@ -878,7 +878,7 @@ namespace patmos
       reloc.set_word_format(22);
     }
 
-    if (mnemonic == "trap" || mnemonic.rfind("nd") == mnemonic.size()-2) {
+    if (mnemonic.rfind("nd") == mnemonic.size()-2) {
       instr.OPS.CFLi.D = 0;
     } else {
       instr.OPS.CFLi.D = 1;
@@ -1042,5 +1042,51 @@ namespace patmos
 
     return iw;
   }
+
+  cflsi_format_t::cflsi_format_t(const instruction_t &instruction,
+                               word_t opcode, word_t flag) :
+    	      binary_format_t(instruction, 0x7c0000F,
+    	                      insert(insert(0x6000000, 0, 2, opcode), 22, 1, flag), 1)
+  {
+  }
+
+  instruction_data_t cflsi_format_t::decode_operands(word_t iw,
+                                                     word_t longimm) const
+  {
+    uword_t flag = extract(iw, 22, 1);
+    PRR_e pred = extractPN(iw, 27);
+    return instruction_data_t::mk_CFLsi(Instruction, pred, flag);
+  }
+
+
+
+  bool cflsi_format_t::parse_operands(line_parser_t &parser, std::string mnemonic,
+                                      instruction_data_t &instr,
+                                      reloc_info_t &reloc) const
+  {
+
+    if (!fitu(instr.OPS.CFLsi.UImm5, 5)) {
+      parser.set_error("immediate value too large.");
+      return false;
+    }
+
+    return true;
+  }
+
+  udword_t cflsi_format_t::encode(std::string mnemonic,
+                               const instruction_data_t &instr) const
+  {
+    uword_t iw = Opcode;
+
+    assert(fitu(instr.OPS.CFLsi.UImm5, 5));
+
+    insertV(iw,  2, 2, BOOST_BINARY(11));
+    insertG(iw,  7, instr.OPS.CFLsi.UImm5);
+    insertV(iw, 23, 4, BOOST_BINARY(1100));
+    insertPN(iw, 27, instr.Pred);
+
+    return iw;
+  }
+
 
 }

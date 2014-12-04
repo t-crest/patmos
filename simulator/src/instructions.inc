@@ -132,13 +132,14 @@
     MK_INSTR(sspillr, stcr, 3)
 
     // CFLi
-    MK_FINSTR(call, callnd, cfli, 0, 0)
-    MK_FINSTR(br  , brnd  , cfli, 1, 0)
-    MK_FINSTR(brcf, brcfnd, cfli, 2, 0)
-    MK_FINSTR(trap, trap  , cfli, 3, 0)
-    MK_FINSTR(call, call  , cfli, 0, 1)
-    MK_FINSTR(br  , br    , cfli, 1, 1)
-    MK_FINSTR(brcf, brcf  , cfli, 2, 1)
+    MK_FINSTR(call  , callnd  , cfli, 0, 0)
+    MK_FINSTR(br    , brnd    , cfli, 1, 0)
+    MK_FINSTR(brcf  , brcfnd  , cfli, 2, 0)
+    MK_FINSTR(callsb, callsbnd, cfli, 3, 0)
+    MK_FINSTR(call  , call    , cfli, 0, 1)
+    MK_FINSTR(br    , br      , cfli, 1, 1)
+    MK_FINSTR(brcf  , brcf    , cfli, 2, 1)
+    MK_FINSTR(callsb, callsb  , cfli, 3, 1)
 
     // CFLri
     MK_FINSTR(ret,  retnd , cflri, 0, 0)
@@ -147,11 +148,16 @@
     MK_FINSTR(xret, xret  , cflri, 1, 1)
 
     // CFLrs
-    MK_FINSTR(callr, callrnd, cflrs, 0, 0)
-    MK_FINSTR(brr  , brrnd  , cflrs, 1, 0)
-    MK_FINSTR(callr, callr  , cflrs, 0, 1)
-    MK_FINSTR(brr  , brr    , cflrs, 1, 1)
+    MK_FINSTR(callr  , callrnd  , cflrs, 0, 0)
+    MK_FINSTR(brr    , brrnd    , cflrs, 1, 0)
+    MK_FINSTR(callsbr, callsbrnd, cflrs, 3, 0)
+    MK_FINSTR(callr  , callr    , cflrs, 0, 1)
+    MK_FINSTR(brr    , brr      , cflrs, 1, 1)
+    MK_FINSTR(callsbr, callsbr  , cflrs, 3, 1)
 
     // CFLrt
     MK_FINSTR(brcfr, brcfrnd, cflrt, 2, 0)
     MK_FINSTR(brcfr, brcfr  , cflrt, 2, 1)
+    
+    // CFLsi
+    MK_TINSTR(trap, trap, cflsi)

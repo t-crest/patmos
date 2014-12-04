@@ -1997,6 +1997,51 @@ namespace patmos
     }
   };
 
+  class i_callsb_t : public i_cfl_t
+  {
+  public:
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printPred(os, ops.Pred);
+      os << "callsb" << (ops.OPS.CFLi.D ? " " : "nd ") << ops.OPS.CFLi.UImm;
+      symbols.print(os, ops.OPS.CFLi.UImm * sizeof(word_t));
+    }
+
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.EX_Address = ops.OPS.CFLi.UImm*sizeof(word_t);
+    }
+
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
+    {
+      uword_t base = (ops.OPS.CFLi.D ? s.nPC : s.Pipeline[SEX][0].Address) + 4;
+
+      store_return_address(s, ops, ops.DR_Pred, base,
+                           base, ops.EX_Address, SMW, false);
+
+      push_dbgstack(s, ops, ops.DR_Pred, ops.EX_Address);
+
+      fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+      if (!ops.OPS.CFLi.D && ops.DR_Pred && !s.is_stalling(SMW))
+      {
+        s.pipeline_flush(SMW);
+      }
+    }
+
+    virtual bool is_call() const {
+      return true;
+    }
+
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
+      return ops.OPS.CFLi.D ? 3 : 0;
+    }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
+      return 3;
+    }
+  };
+
   class i_br_t : public i_cfl_t
   {
   private:
@@ -2111,58 +2156,6 @@ namespace patmos
       os << boost::format("imm8 jump: %d") 
          % cnt_imm8_jump;
     }        
-  };
-
-  class i_trap_t : public i_cfl_t {
-    virtual void print(std::ostream &os, const instruction_data_t &ops,
-                       const symbol_map_t &symbols) const
-    {
-      printPred(os, ops.Pred);
-      os << "trap " << ops.OPS.CFLi.UImm;
-    }
-
-    virtual void DR(simulator_t &s, instruction_data_t &ops) const
-    {
-      ops.DR_Pred = s.PRR.get(ops.Pred).get();
-      ops.MW_Initialized = false;
-    }
-    
-    virtual void EX(simulator_t &s, instruction_data_t &ops) const
-    {
-      exception_e exc = (exception_e)ops.OPS.CFLi.UImm;
-      exception_t isr;
-      
-      // determine if the exception should be triggered by the trap instruction
-      ops.EX_result = ops.DR_Pred && s.Exception_handler.trap(exc, isr);
-      
-      ops.EX_Base    = isr.Address;
-      ops.EX_Offset  = 0;
-      ops.EX_Address = get_PC(ops.EX_Base, ops.EX_Offset);
-    }
-    
-    virtual void MW(simulator_t &s, instruction_data_t &ops) const
-    {
-      store_return_address(s, ops, ops.EX_result, s.BASE, 
-                           s.Pipeline[SEX][0].Address, ops.EX_Address, 
-                           SMW, true);
-      
-      push_dbgstack(s, ops, ops.EX_result, ops.EX_Address);
-
-      fetch_and_dispatch(s, ops, ops.EX_result, ops.EX_Address, ops.EX_Address);
-      
-      if (ops.EX_result && !s.is_stalling(SMW))
-      {
-        s.pipeline_flush(SMW);
-      }
-    }
-        
-    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
-      return 0;
-    }
-
-    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
-      return 3;
-    }
   };
   
   class i_intr_t : public i_cfl_t
@@ -2353,6 +2346,51 @@ namespace patmos
       return true;
     }
     
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
+      return ops.OPS.CFLrs.D ? 3 : 0;
+    }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
+      return 3;
+    }
+  };
+
+  class i_callsbr_t : public i_cflrs_t
+  {
+  public:
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printPred(os, ops.Pred);
+      os << "callsbr" << (ops.OPS.CFLrs.D ? " r" : "nd r") << ops.OPS.CFLrs.Rs;
+    }
+
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1);
+    }
+
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
+    {
+      uword_t base = (ops.OPS.CFLrs.D ? s.nPC : s.Pipeline[SEX][0].Address) + 4;
+
+      store_return_address(s, ops, ops.DR_Pred, base,
+    		               base, ops.EX_Address, SMW, false);
+
+      push_dbgstack(s, ops, ops.DR_Pred, ops.EX_Address);
+
+      fetch_and_dispatch(s, ops, ops.DR_Pred, ops.EX_Address, ops.EX_Address);
+
+      if (!ops.OPS.CFLrs.D && ops.DR_Pred && !s.is_stalling(SMW))
+      {
+        s.pipeline_flush(SMW);
+      }
+    }
+
+    virtual bool is_call() const {
+      return true;
+    }
+
     virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
       return ops.OPS.CFLrs.D ? 3 : 0;
     }
@@ -2563,6 +2601,62 @@ namespace patmos
     
     virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
       return ops.OPS.CFLri.D ? 3 : 0;
+    }
+
+    virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {
+      return 3;
+    }
+  };
+
+  class i_trap_t : public i_cfl_t {
+    virtual void print(std::ostream &os, const instruction_data_t &ops,
+                       const symbol_map_t &symbols) const
+    {
+      printPred(os, ops.Pred);
+      os << "trap " << ops.OPS.CFLsi.UImm5;
+    }
+
+    /// Pipeline function to simulate the behavior of the instruction in
+    /// the DR pipeline stage.
+    /// @param s The Patmos simulator executing the instruction.
+    /// @param ops The operands of the instruction.
+    virtual void DR(simulator_t &s, instruction_data_t &ops) const
+    {
+      ops.DR_Pred = s.PRR.get(ops.Pred).get();
+      ops.MW_Initialized = false;
+    }
+
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const
+    {
+      exception_e exc = (exception_e)ops.OPS.CFLsi.UImm5;
+      exception_t isr;
+
+      // determine if the exception should be triggered by the trap instruction
+      ops.EX_result = ops.DR_Pred && s.Exception_handler.trap(exc, isr);
+
+      ops.EX_Base    = isr.Address;
+      ops.EX_Offset  = 0;
+      ops.EX_Address = get_PC(ops.EX_Base, ops.EX_Offset);
+    }
+
+    virtual void MW(simulator_t &s, instruction_data_t &ops) const
+    {
+      store_return_address(s, ops, ops.EX_result, s.BASE,
+                           s.Pipeline[SEX][0].Address, ops.EX_Address,
+                           SMW, true);
+
+      push_dbgstack(s, ops, ops.EX_result, ops.EX_Address);
+
+      fetch_and_dispatch(s, ops, ops.EX_result, ops.EX_Address, ops.EX_Address);
+
+      if (ops.EX_result && !s.is_stalling(SMW))
+      {
+        s.pipeline_flush(SMW);
+      }
+    }
+
+    virtual unsigned get_delay_slots(const instruction_data_t &ops) const {
+      return 0;
     }
 
     virtual unsigned get_intr_delay_slots(const instruction_data_t &ops) const {

@@ -230,6 +230,14 @@ namespace patmos
     return result;
   }
 
+  instruction_data_t instruction_data_t::mk_CFLsi(const instruction_t &i,
+                                                  PRR_e pred, uword_t imm)
+  {
+    instruction_data_t result(i, pred);
+    result.OPS.CFLsi.UImm5 = imm;
+    return result;
+  }
+
   instruction_data_t instruction_data_t::mk_HLT(const instruction_t &i)
   {
     return instruction_data_t(i, p0);

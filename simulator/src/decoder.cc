@@ -230,6 +230,15 @@ namespace patmos
     Instructions.push_back(boost::make_tuple(itmp, ftmp));                     \
   }
 
+#define MK_TINSTR(classname, name, format)                                     \
+  {                                                                            \
+    instruction_t *itmp = new i_ ## classname ## _t();                         \
+    itmp->ID = Instructions.size();                                            \
+    itmp->Name = #name;                                                        \
+    binary_format_t *ftmp = new format ## _format_t(*itmp, 0, 0);              \
+    Instructions.push_back(boost::make_tuple(itmp, ftmp));                     \
+  }
+
 #include "instructions.inc"
   }
 
