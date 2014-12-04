@@ -47,7 +47,7 @@
 
 static void corethread_worker(void) {
   unsigned id = get_cpuid();
-  if (id != 0) { // Core zero should proceed to execute main
+  if (id != NOC_MASTER) { // Core zero should proceed to execute main
     unsigned long long time;
     boot_info->slave[id].status = STATUS_RETURN;
       

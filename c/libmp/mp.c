@@ -79,6 +79,18 @@ void _SPM * mp_alloc(coreid_t id, unsigned size) {
   return mem_ptr;
 }
 
+void mp_mem_init(coreid_t id, void _SPM* spm_addr) {
+  int cpuid = get_cpuid();
+  if (cpuid != NOC_MASTER) {
+    return;
+  }
+  if (cpuid == id) {
+    *((int _SPM*)spm_addr) = 0;
+  } else {
+    noc_send(id,spm_addr,NOC_SPM_BASE,8);
+  }
+}
+
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for initializing the message passing API

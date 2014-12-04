@@ -54,6 +54,8 @@
 #define ESRCH 4
 #define EDEADLK 5
 
+extern const int NOC_MASTER;
+
 ////////////////////////////////////////////////////////////////////////////
 // Data structures for storing state information
 // of the corethreads

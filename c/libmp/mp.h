@@ -200,6 +200,9 @@ static void mp_init(void) __attribute__((constructor(120),used));
 /// No mp_free function
 void _SPM * mp_alloc(coreid_t id, unsigned size);
 
+/// \brief Function for initializing SPM memory in other cores.
+void mp_mem_init(coreid_t id, void _SPM* spm_addr);
+
 ////////////////////////////////////////////////////////////////////////////
 // Functions for initializing the message passing API
 ////////////////////////////////////////////////////////////////////////////
