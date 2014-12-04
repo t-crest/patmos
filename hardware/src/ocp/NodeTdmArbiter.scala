@@ -216,19 +216,19 @@ class MemMuxIntf(nr: Int, addrWidth : Int, dataWidth : Int, burstLen: Int) exten
     
     // 1st stage pipeline registers for inputs 
     val mCmd_p1_Reg         = Vec.fill(nr){Reg(init=UInt(0, width=3))}
-    val mAddr_p1_Reg        = Vec.fill(nr){Reg(init=UInt(0, width=addrWidth))}
-    val mData_p1_Reg        = Vec.fill(nr){Reg(init=UInt(0, width=dataWidth))}
-    val mDataByteEn_p1_Reg  = Vec.fill(nr){Reg(init=UInt(0, width=dataWidth/8))}
-    val mDataValid_p1_Reg   = Vec.fill(nr){Reg(init=UInt(0, width=1))}
+    val mAddr_p1_Reg        = Vec.fill(nr){Reg(UInt(width=addrWidth))}
+    val mData_p1_Reg        = Vec.fill(nr){Reg(UInt(width=dataWidth))}
+    val mDataByteEn_p1_Reg  = Vec.fill(nr){Reg(UInt(width=dataWidth/8))}
+    val mDataValid_p1_Reg   = Vec.fill(nr){Reg(UInt(width=1))}
 
     // 2st stage pipeline registers for inputs
     // MS: what about using the whole bundle as a single signal?
     // val mMasterReg = Reg(init=OcpBurstMasterSignals(...))
     val mCmd_p2_Reg         = Reg(init=UInt(0, width=3))
-    val mAddr_p2_Reg        = Reg(init=UInt(0, width=addrWidth))
-    val mData_p2_Reg        = Reg(init=UInt(0, width=dataWidth))
-    val mDataByteEn_p2_Reg  = Reg(init=UInt(0, width=dataWidth/8))
-    val mDataValid_p2_Reg   = Reg(init=UInt(0, width=1))
+    val mAddr_p2_Reg        = Reg(UInt(width=addrWidth))
+    val mData_p2_Reg        = Reg(UInt(width=dataWidth))
+    val mDataByteEn_p2_Reg  = Reg(UInt(width=dataWidth/8))
+    val mDataValid_p2_Reg   = Reg(UInt(width=1))
     
     // Pipeline registers default to 0
     mCmd_p1_Reg         := Bits(0)

@@ -54,20 +54,12 @@ class FeDec() extends Bundle() {
   val reloc = UInt(width = ADDR_WIDTH)
   val relPc = UInt(width = PC_SIZE)
 
-  def reset() = {
-    instr_a := Bits(0)
-    instr_b := Bits(0)
-    pc := UInt(0)
-    reloc := UInt(0)
-    relPc := UInt(0)
-  }
-}
-
-object FeDec {
-  def resetVal() = {
-    val res = new FeDec()
-    res.reset()
-    res
+  def flush() = {
+    // flush only necessary parts of instruction
+    instr_a(30, 27) := PRED_IFFALSE
+    instr_a(26, 25) := OPCODE_ALUI
+    instr_b(30, 27) := PRED_IFFALSE
+    instr_b(26, 25) := OPCODE_ALUI
   }
 }
 
@@ -80,7 +72,7 @@ class AluOp() extends Bundle() {
   val isMTS = Bool()
   val isMFS = Bool()
 
-  def reset() = {
+  def defaults() = {
     func := Bits(0)
     isMul := Bool(false)
     isCmp := Bool(false)
@@ -97,7 +89,7 @@ class PredOp() extends Bundle() {
   val s1Addr = Bits(width = PRED_BITS+1)
   val s2Addr = Bits(width = PRED_BITS+1)
 
-  def reset() = {
+  def defaults() = {
     func := Bits(0)
     dest := Bits(0)
     s1Addr := Bits(0)
@@ -110,7 +102,7 @@ class JmpOp() extends Bundle() {
   val target = UInt(width = PC_SIZE)
   val reloc = UInt(width = ADDR_WIDTH)
 
-  def reset() = {
+  def defaults() = {
     branch := Bool(false)
     target := UInt(0)
     reloc := UInt(0)
@@ -125,7 +117,7 @@ class MemOp() extends Bundle() {
   val zext = Bool()
   val typ  = Bits(width = 2)
 
-  def reset() = {
+  def defaults() = {
     load := Bool(false)
     store := Bool(false)
     hword := Bool(false)
@@ -167,14 +159,19 @@ class DecEx() extends Bundle() {
 
   val illOp = Bool()
 
-  def reset() = {
+  def flush() = {
+    pred := Vec.fill(PIPE_COUNT) { PRED_IFFALSE }
+    illOp := Bool(false)
+  }
+
+  def defaults() = {
     pc := UInt(0)
     relPc := UInt(0)
-    pred := Vec.fill(PIPE_COUNT) { Bits(0) }
-    aluOp.map(_.reset())
-    predOp.map(_.reset())
-    jmpOp.reset()
-    memOp.reset()
+    pred := Vec.fill(PIPE_COUNT) { PRED_IFFALSE }
+    aluOp.map(_.defaults())
+    predOp.map(_.defaults())
+    jmpOp.defaults()
+    memOp.defaults()
     stackOp := sc_OP_NONE
     rsAddr := Vec.fill(2*PIPE_COUNT) { Bits(0) }
     rsData := Vec.fill(2*PIPE_COUNT) { Bits(0) }
@@ -195,22 +192,12 @@ class DecEx() extends Bundle() {
   }
 }
 
-object DecEx {
-  def resetVal = {
-    val res = new DecEx()
-    res.reset()
-    res
-  }
-}
-
 class Result() extends Bundle() {
   val addr = Bits(width = REG_BITS)
   val data = Bits(width = DATA_WIDTH)
   val valid = Bool()
 
-  def reset() = {
-    addr := Bits(0)
-    data := Bits(0)
+  def flush() = {
     valid := Bool(false)
   }
 }
@@ -236,26 +223,16 @@ class MemIn() extends Bundle() {
   val callRetBase = UInt(width = DATA_WIDTH)
   val nonDelayed = Bool()
 
-  def reset() = {
+  def flush() = {
     load := Bool(false)
     store := Bool(false)
-    hword := Bool(false)
-    byte := Bool(false)
-    zext := Bool(false)
-    typ := Bits(0)
-    addr := Bits(0)
-    data := Bits(0)
     call := Bool(false)
     ret := Bool(false)
     brcf := Bool(false)
     trap := Bool(false)
     xcall := Bool(false)
     xret := Bool(false)
-    xsrc := Bits(0)
     illOp := Bool(false)
-    callRetAddr := UInt(0)
-    callRetBase := UInt(0)
-    nonDelayed := Bool(false)
   }
 }
 
@@ -285,19 +262,9 @@ class ExMem() extends Bundle() {
   val pc = UInt(width = PC_SIZE)
   val relPc = UInt(width = PC_SIZE)
 
-  def reset() = {
-    rd.map(_.reset())
-    mem.reset()
-    pc := UInt(0)
-    relPc := UInt(0)
-  }
-}
-
-object ExMem {
-  def resetVal() = {
-    val res = new ExMem();
-    res.reset
-    res
+  def flush() = {
+    rd.map(_.flush())
+    mem.flush()
   }
 }
 

@@ -51,7 +51,7 @@ class Memory() extends Module {
   val io = new MemoryIO()
 
   // Register from execution stage
-  val memReg = Reg(init = ExMem.resetVal)
+  val memReg = Reg(new ExMem())
 
   // React on error responses
   val illMem = (io.localInOut.S.Resp === OcpResp.ERR ||
@@ -76,7 +76,7 @@ class Memory() extends Module {
     memReg := io.exmem
     mayStallReg := io.exmem.mem.load || io.exmem.mem.store
     when(flush) {
-      memReg.reset()
+      memReg.flush()
       mayStallReg := Bool(false)
     }
   }
@@ -148,9 +148,7 @@ class Memory() extends Module {
   // Path to memories and IO is combinatorial, registering happens in
   // the individual modules
   val cmd = Mux(enable && io.ena_in && !flush,
-                Mux(io.exmem.mem.load, OcpCmd.RD,
-                    Mux(io.exmem.mem.store, OcpCmd.WR,
-                        OcpCmd.IDLE)),
+                Bits("b0") ## io.exmem.mem.load ## io.exmem.mem.store,
                 OcpCmd.IDLE)
 
   io.localInOut.M.Cmd := Mux(io.exmem.mem.typ === MTYPE_L, cmd, OcpCmd.IDLE)
@@ -241,4 +239,7 @@ class Memory() extends Module {
 
   // Keep signal alive for debugging
   debug(io.memwb.pc)
+
+  // reset at end to override any computations
+  when(reset) { memReg.flush() }
 }

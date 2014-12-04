@@ -52,23 +52,6 @@ class OcpCoreMasterSignals(addrWidth : Int, dataWidth : Int)
     val res = new OcpCoreMasterSignals(addrWidth, dataWidth)
     res.asInstanceOf[this.type]
   }
-
-  override def reset() = {
-    super.reset()
-    ByteEn := Bits(0)
-  }
-}
-
-// Reset values for master signals
-object OcpCoreMasterSignals {
-  def resetVal[T <: OcpCoreMasterSignals](sig : T) : T = {
-    val res = sig.clone
-    res.reset()
-    res
-  }
-  def resetVal(addrWidth : Int, dataWidth : Int) : OcpCoreMasterSignals = {
-    resetVal(new OcpCoreMasterSignals(addrWidth, dataWidth))
-  }
 }
 
 // Master port

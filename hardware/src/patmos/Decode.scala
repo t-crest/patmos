@@ -61,17 +61,17 @@ class Decode() extends Module {
   rf.io.rfWrite <> io.rfWrite
 
   // register input from fetch stage
-  val decReg = Reg(init = FeDec.resetVal)
+  val decReg = Reg(new FeDec())
   when(io.ena) {
     decReg := io.fedec
     when(io.flush) {
-      decReg.reset()
+      decReg.flush()
       decReg.relPc := io.fedec.relPc
     }
   }
 
   // default values
-  io.decex.reset()
+  io.decex.defaults()
 
   // forward RF addresses and data
   io.decex.rsAddr(0) := decReg.instr_a(16, 12)
@@ -413,7 +413,7 @@ class Decode() extends Module {
 
   when(io.exc.exc ||
        (io.exc.intr && inDelaySlot === UInt(0))) {
-    io.decex.reset()
+    io.decex.defaults()
     io.decex.pred(0) := Bits(0)
     io.decex.xcall := Bool(true)
     io.decex.xsrc := io.exc.src
@@ -433,5 +433,7 @@ class Decode() extends Module {
                                    Mux(inDelaySlot > UInt(1), decDelaySlot, UInt(1)),
                                    Mux(inDelaySlot != UInt(0), decDelaySlot, UInt(0))))))
   }
-}
 
+  // reset at end to override any computations
+  when(reset) { decReg.flush() }
+}

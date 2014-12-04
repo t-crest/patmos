@@ -50,13 +50,13 @@ class BootMem(fileName : String) extends Module {
   val io = new BootMemIO()
 
   // Compute selects
-  val selExt = io.memInOut.M.Addr(ADDR_WIDTH-1, ADDR_WIDTH-1) === Bits("b0")
+  val selExt = io.memInOut.M.Addr(ADDR_WIDTH-1) === Bits("b0")
   val selRom = !selExt & io.memInOut.M.Addr(BOOTMEM_ONE_BIT) === Bits(0x0)
   val selSpm = !selExt & io.memInOut.M.Addr(BOOTMEM_ONE_BIT) === Bits(0x1)
 
   // Register selects
-  val selRomReg = Reg(init = Bool(false))
-  val selSpmReg = Reg(init = Bool(false))
+  val selRomReg = Reg(Bool())
+  val selSpmReg = Reg(Bool())
   when(io.memInOut.M.Cmd != OcpCmd.IDLE) {
       selRomReg := selRom
       selSpmReg := selSpm

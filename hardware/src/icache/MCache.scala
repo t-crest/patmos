@@ -182,10 +182,10 @@ class MCacheMem() extends Module {
   val mcacheOdd = MemBlock(MCACHE_WORD_SIZE / 2, INSTR_WIDTH)
 
   mcacheEven.io <= (io.mcachemem_in.wEven, io.mcachemem_in.wAddr,
-                         io.mcachemem_in.wData)
+                    io.mcachemem_in.wData)
 
   mcacheOdd.io <= (io.mcachemem_in.wOdd, io.mcachemem_in.wAddr,
-                        io.mcachemem_in.wData)
+                   io.mcachemem_in.wData)
 
   io.mcachemem_out.instrEven := mcacheEven.io(io.mcachemem_in.addrEven)
   io.mcachemem_out.instrOdd := mcacheOdd.io(io.mcachemem_in.addrOdd)
@@ -201,10 +201,10 @@ class MCacheReplFifo() extends Module {
   val io = new MCacheReplIO()
 
   //tag field tables  for reading tag memory
-  val mcacheAddrVec = { Vec.fill(METHOD_COUNT) { Reg(init = Bits(0, width = EXTMEM_ADDR_WIDTH)) }}
+  val mcacheAddrVec = { Vec.fill(METHOD_COUNT) { Reg(Bits(width = EXTMEM_ADDR_WIDTH)) }}
   val mcacheSizeVec = { Vec.fill(METHOD_COUNT) { Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH+1)) }}
   val mcacheValidVec = { Vec.fill(METHOD_COUNT) { Reg(init = Bool(false)) }}
-  val mcachePosVec = { Vec.fill(METHOD_COUNT) { Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH)) }}
+  val mcachePosVec = { Vec.fill(METHOD_COUNT) { Reg(Bits(width = MCACHE_SIZE_WIDTH)) }}
   //registers to save current replacement status
   val nextIndexReg = Reg(init = Bits(0, width = log2Up(METHOD_COUNT)))
   val nextTagReg = Reg(init = Bits(0, width = log2Up(METHOD_COUNT)))
@@ -298,8 +298,8 @@ class MCacheReplFifo() extends Module {
   io.mcachemem_in.addrEven := addrEven
   io.mcachemem_in.addrOdd := addrOdd
 
-  val instrEvenReg = Reg(init = Bits(0, width = INSTR_WIDTH))
-  val instrOddReg = Reg(init = Bits(0, width = INSTR_WIDTH))
+  val instrEvenReg = Reg(Bits(width = INSTR_WIDTH))
+  val instrOddReg = Reg(Bits(width = INSTR_WIDTH))
   val instrEven = io.mcachemem_out.instrEven
   val instrOdd = io.mcachemem_out.instrOdd
   when (!io.mcache_ctrlrepl.instrStall) {
@@ -342,16 +342,16 @@ class MCacheCtrl() extends Module {
   val wEna = Bool()
   //signals for external memory
   val ocpCmdReg = Reg(init = OcpCmd.IDLE)
-  val ocpAddrReg = Reg(init = Bits(0, width = EXTMEM_ADDR_WIDTH))
+  val ocpAddrReg = Reg(Bits(width = EXTMEM_ADDR_WIDTH))
   val fetchEna = Bool()
-  val transferSizeReg = Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH))
-  val fetchCntReg = Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH))
-  val burstCntReg = Reg(init = UInt(0, width = log2Up(BURST_LENGTH)))
+  val transferSizeReg = Reg(Bits(width = MCACHE_SIZE_WIDTH))
+  val fetchCntReg = Reg(Bits(width = MCACHE_SIZE_WIDTH))
+  val burstCntReg = Reg(UInt(width = log2Up(BURST_LENGTH)))
   //input/output registers
-  val callRetBaseReg = Reg(init = Bits(0, width = EXTMEM_ADDR_WIDTH))
+  val callRetBaseReg = Reg(Bits(width = EXTMEM_ADDR_WIDTH))
   val msizeAddr = callRetBaseReg - Bits(1)
-  val addrEvenReg = Reg(init = Bits(0))
-  val addrOddReg = Reg(init = Bits(0))
+  val addrEvenReg = Reg(Bits())
+  val addrOddReg = Reg(Bits())
 
   val ocpSlaveReg = Reg(next = io.ocp_port.S)
 

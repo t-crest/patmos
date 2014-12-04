@@ -54,8 +54,8 @@ class Exceptions extends Module {
   val masterReg = Reg(next = io.ocp.M)
 
   val statusReg = Reg(init = Bits(0, width = DATA_WIDTH))
-  val maskReg   = Reg(init = Bits(0, width = DATA_WIDTH))
-  val sourceReg = Reg(init = Bits(0, width = DATA_WIDTH))
+  val maskReg   = Reg(Bits(width = DATA_WIDTH))
+  val sourceReg = Reg(Bits(width = DATA_WIDTH))
 
   val vec    = Mem(UInt(width = DATA_WIDTH), EXC_COUNT)
   val vecDup = Mem(UInt(width = DATA_WIDTH), EXC_COUNT)
@@ -140,7 +140,7 @@ class Exceptions extends Module {
   }
 
   // Trigger internal exceptions
-  val excAddrReg = Reg(init = UInt(0, width = PC_SIZE))
+  val excAddrReg = Reg(UInt(width = PC_SIZE))
   when(io.memexc.exc) {
     excPend(io.memexc.src) := Bool(true)
     when(io.ena) {

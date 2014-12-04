@@ -460,6 +460,9 @@ int main (int argc, char* argv[]) {
 	  c->dump(f, t);
 	}
 
+	c->Patmos__io_cpuInfoPins_id = 0;
+	c->Patmos__io_cpuInfoPins_cnt = 1;
+
 	if (keys) {
 	  if ((rand() % 0x10000) == 0) {
 		c->Patmos__io_keysPins_key = rand();

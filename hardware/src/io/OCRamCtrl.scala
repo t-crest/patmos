@@ -116,7 +116,7 @@ class OCRamCtrl(addrWidth : Int, ocpBurstLen : Int=4) extends BurstDevice(addrWi
   // generate byte memories
   val mem = new Array[MemBlockIO](BYTES_PER_WORD)
   for (i <- 0 until BYTES_PER_WORD) {
-    mem(i) = MemBlock(size / BYTES_PER_WORD, BYTE_WIDTH).io
+    mem(i) = MemBlock(size / BYTES_PER_WORD, BYTE_WIDTH, bypass = false).io
   }
 
   // store

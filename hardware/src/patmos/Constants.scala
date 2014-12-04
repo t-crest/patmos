@@ -92,6 +92,7 @@ object Constants {
 
   val PRED_BITS = 3
   val PRED_COUNT = 1 << PRED_BITS
+  val PRED_IFFALSE = Bits("b1") ## Bits(0, width = PRED_BITS)
 
   val INSTR_WIDTH = 32
   val DATA_WIDTH = 32

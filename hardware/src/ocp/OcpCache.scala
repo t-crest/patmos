@@ -58,23 +58,6 @@ class OcpCacheMasterSignals(addrWidth : Int, dataWidth : Int)
     val res = new OcpCacheMasterSignals(addrWidth, dataWidth)
     res.asInstanceOf[this.type]
   }
-
-  override def reset() = {
-    super.reset()
-    AddrSpace := OcpCache.UNCACHED
-  }
-}
-
-// Reset values for master signals
-object OcpCacheMasterSignals {
-  def resetVal[T <: OcpCacheMasterSignals](sig : T) : T = {
-    val res = sig.clone
-    res.reset()
-    res
-  }
-  def resetVal(addrWidth : Int, dataWidth : Int) : OcpCacheMasterSignals = {
-    resetVal(new OcpCacheMasterSignals(addrWidth, dataWidth))
-  }
 }
 
 // Master port

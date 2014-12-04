@@ -63,7 +63,7 @@ class OcpMaster() extends Module {
 class OcpSlave() extends Module {
   val io = new OcpBurstSlavePort(8, 32, 4)
 
-  val M = Reg(next = io.M, init = OcpMasterSignals.resetVal(io.M))
+  val M = Reg(next = io.M)
 
   val data = Reg(UInt(), init = UInt(0))
   data := data + UInt(1, 32)

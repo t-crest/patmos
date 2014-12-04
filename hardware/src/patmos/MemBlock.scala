@@ -43,8 +43,8 @@ import Chisel._
 import Node._
 
 object MemBlock {
-  def apply(size : Int, width : Int) = {
-    Module(new MemBlock(size, width))
+  def apply(size : Int, width : Int, bypass : Boolean = true) = {
+    Module(new MemBlock(size, width, bypass))
     // Module(new BlackBlock(size, width))
   }
 }
@@ -68,7 +68,7 @@ class MemBlockIO(size : Int, width : Int) extends Bundle {
   }
 }
 
-class MemBlock(size : Int, width : Int) extends Module {
+class MemBlock(size : Int, width : Int, bypass : Boolean = true) extends Module {
   val io = new MemBlockIO(size, width)
   val mem = Mem(Bits(width = width), size)
 
@@ -81,10 +81,12 @@ class MemBlock(size : Int, width : Int) extends Module {
   val rdAddrReg = Reg(next = io.rdAddr)
   io.rdData := mem(rdAddrReg)
 
-  // force read during write behavior
-  when (Reg(next = io.wrEna) === Bits(1) &&
-        Reg(next = io.wrAddr) === rdAddrReg) {
-    io.rdData := Reg(next = io.wrData)
+  if (bypass) {
+    // force read during write behavior
+    when (Reg(next = io.wrEna) === Bits(1) &&
+          Reg(next = io.wrAddr) === rdAddrReg) {
+            io.rdData := Reg(next = io.wrData)
+          }
   }
 }
 
