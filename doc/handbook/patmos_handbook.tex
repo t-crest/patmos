@@ -652,7 +652,7 @@ of the instruction format. Black fields are not used.
           \bitbox{22}{Immediate} \\
         \end{bytefield}
 
-  \item CFLr -- Control Flow with Registers \\[2ex]
+  \item CFLr -- Control Flow with Registers or Short Immediate \\[2ex]
         \begin{bytefield}{32}
           \bitheader{0-31} \\
           \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{4}{1100} & \bitbox{1}{d} &
@@ -678,7 +678,13 @@ of the instruction format. Black fields are not used.
           \bitbox{5}{\bitsunused} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} & \bitbox{3}{\bitsunused} &
           \bitbox{2}{10} & \bitbox{2}{Op}
           \end{leftwordgroup}
-        \end{bytefield}
+          \begin{leftwordgroup}{\parbox{18em}{CFLsi -- Control Flow with single short immediate}}
+          \bitheader{0-31} \\
+          \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{4}{1100} & \bitbox{1}{d} &
+          \bitbox{10}{\bitsunused} & \bitbox{5}{Imm} & \bitbox{3}{\bitsunused} &
+          \bitbox{2}{11} & \bitbox{2}{Op}
+          \end{leftwordgroup}
+         \end{bytefield}
 \end{itemize}
 
 \clearpage
@@ -1334,6 +1340,17 @@ unit and addressing mode of these values is implementation
 dependent.\wolf{Should we keep it implementation dependent, or should
   we enforce way it is in the current implementation?}
 
+The variant \texttt{callsb} (call-and-split-block) of \texttt{call} sets the return information
+so that the callee returns into a new subfunction after the call site.
+It requires the new subfunction to be placed
+\emph{immediately} after the delay slots of the \texttt{callsb} instruction,
+i.e., the return subfunction needs to \emph{aligned to $4$ bytes}.
+All other subfunctions can have arbitrary alignment, but should be
+aligned to the burst size (typically $16$ bytes) for optimal performance.
+\stefan{Maybe we fix the alignment for callsb to 16 bytes as well, but 
+it should be independent of the burst size. Otherwise we need to know
+and compile for the exact burst size in the compiler and adapt all .S files!}
+
 All control-flow instructions (except \texttt{trap}) have a delayed
 and a non-delayed variant. For the delayed variant, $N$
 bundles following the control-flow instruction in the code are always
@@ -1400,7 +1417,8 @@ unspecified behavior.
     01 & 1 & br     & local branch (PC-relative, always hit, delayed) \\
     10 & 0 & brcfnd & branch (absolute, with cache fill, non-delayed) \\
     10 & 1 & brcf   & branch (absolute, with cache fill, delayed) \\
-    11 & 0 & trap   & system call (via exception vector, with cache fill, non-delayed) \\
+    11 & 0 & callsbnd & function call (absolute, with cache fill, non-delayed) \\
+    11 & 1 & callsb   & delayed function call (absolute, with cache fill, delayed) \\
     \bottomrule
   \end{tabular}
   \caption{Control-flow operations with immediate}
@@ -1453,6 +1471,8 @@ unspecified behavior.
     00 & 1 & call   & function call (indirect, with cache fill, delayed) \\
     01 & 0 & brnd   & local branch (indirect, always hit, non-delayed) \\
     01 & 1 & br     & local branch (indirect, always hit, delayed) \\
+    11 & 0 & callsbnd & function call (indirect, with cache fill, non-delayed) \\
+    11 & 1 & callsb   & function call (indirect, with cache fill, delayed) \\
     \bottomrule
   \end{tabular}
   \caption{Control-flow operations with single register operand}
@@ -1482,6 +1502,33 @@ unspecified behavior.
   \caption{Control-flow operations with two register operands}
   \label{tab:cflrtops}
 \end{table}
+
+\begin{itemize}
+  \item CFLsi -- Control Flow with single short immediate \\[2ex]
+    \begin{bytefield}{32}
+      \bitheader{0-31} \\
+      \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{4}{1100} & \bitbox{1}{d} &
+      \bitbox{10}{\bitsunused} & \bitbox{5}{Imm} & \bitbox{3}{\bitsunused} &
+      \bitbox{2}{11} & \bitbox{2}{Op} \\
+    \end{bytefield}
+\end{itemize}
+
+\begin{table}[hb]
+  \centering
+  \begin{tabular}{llll}
+    \toprule
+    Op & d & Name & Semantics \\
+    \midrule
+    00 & 0 & trap   & system call (via exception vector, with cache fill, non-delayed) \\
+    \bottomrule
+  \end{tabular}
+  \caption{Control-flow operations with single register operand}
+  \label{tab:cflrsops}
+\end{table}
+
+\stefan{I am not overly happy myself about making the CFLsi instruction a subformat
+of CFLr, but it is the closest fit, and CFLri is already taken and CFLrsi seems like
+a misnomer.}
 
 \paragraph{Behavior -- call}
 
@@ -1519,6 +1566,19 @@ equivalent to the timing of an istruction sequence \texttt{call; nop;
   nop; nop}. The timing of a \texttt{callnd} instruction with a
 predicate that evaluates to \texttt{false} is equivalent to a single
 \texttt{nop} instruction.
+
+\paragraph{Behavior -- callsb}
+
+Perform a function call, filling the method cache if needed, and return
+into a new subfunction.
+
+The behavior and pseudo code of \texttt{callsb} and \texttt{callsbnd}
+is similar to \texttt{call} and \texttt{callnd} respectively, except
+that \texttt{\$srb} is set to $\texttt{PC} + 4$ and \texttt{\$sro}
+is set to $0$.
+
+\stefan{In case we would want to align the return subfunction, we would need
+to set \texttt{srb} to $((\texttt{PC} + 0x10) \& ~0xF) + 4$.}
 
 \paragraph{Behavior -- brcf}
 
