@@ -1046,7 +1046,7 @@ namespace patmos
   cflsi_format_t::cflsi_format_t(const instruction_t &instruction,
                                word_t opcode, word_t flag) :
     	      binary_format_t(instruction, 0x7c0000F,
-    	                      insert(insert(0x6000000, 0, 2, opcode), 22, 1, flag), 1)
+    	                      insert(insert(0x600000c, 0, 2, opcode), 22, 1, flag), 1)
   {
   }
 
