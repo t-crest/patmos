@@ -244,6 +244,10 @@ namespace patmos
     /// Profiling information for function profiling
     profiling_t Profiling;
 
+    /// Get the next possible method base address for the given PC address.
+    /// @param pc the address after the last instrunction of the current method.
+    uword_t get_next_method_base(uword_t pc);
+
     /// Print the internal register state of the simulator to an output stream 
     /// (excluding memories and caches)
     /// @param os An output stream.

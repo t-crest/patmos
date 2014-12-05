@@ -48,21 +48,32 @@
 
 namespace patmos
 {
-  /// An ideal method cache, i.e., all methods are always in the cache --
-  /// magically.
-  class ideal_method_cache_t : public instr_cache_t
+  class method_cache_t : public instr_cache_t
   {
-  private:
+  protected:
     /// The backing memory to fetch instructions from.
     memory_t &Memory;
 
+  public:    
+    /// Construct an ideal method cache that always hits.
+    /// @param memory The memory to fetch instructions from.
+    method_cache_t(memory_t &memory) : Memory(memory)
+    {
+    }
+  };
+  
+  /// An ideal method cache, i.e., all methods are always in the cache --
+  /// magically.
+  class ideal_method_cache_t : public method_cache_t
+  {
+  private:
     /// Keeping track of the most recenty loaded method
     uword_t current_base;
 
   public:
     /// Construct an ideal method cache that always hits.
     /// @param memory The memory to fetch instructions from.
-    ideal_method_cache_t(memory_t &memory) : Memory(memory)
+    ideal_method_cache_t(memory_t &memory) : method_cache_t(memory)
     {
     }
 
@@ -154,7 +165,7 @@ namespace patmos
   /// A direct-mapped method cache using LRU replacement on methods.
   /// The cache is organized in blocks (Num_blocks) each of a fixed size
   /// (Num_block_bytes) in bytes.
-  class lru_method_cache_t : public instr_cache_t
+  class lru_method_cache_t : public method_cache_t
   {
   protected:
     /// Phases of fetching a method from memory.
@@ -205,9 +216,6 @@ namespace patmos
 
     /// Map addresses to cache statistics of individual methods.
     typedef std::map<word_t, method_stats_info_t> method_stats_t;
-
-    /// The backing memory to fetch instructions from.
-    memory_t &Memory;
 
     /// Number of blocks in the method cache.
     unsigned int Num_blocks;

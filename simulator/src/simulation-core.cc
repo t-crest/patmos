@@ -102,6 +102,14 @@ namespace patmos
     delete Instr_HALT;
   }
 
+  uword_t simulator_t::get_next_method_base(uword_t pc)
+  {
+    //return ((pc + 15)/16)*16 + 4;
+    
+    // No alignment, just skip size word.
+    return pc + 4;
+  }
+  
   void simulator_t::pipeline_invoke(Pipeline_t pst,
                                    void (instruction_data_t::*f)(simulator_t &),
                                    bool debug, std::ostream &debug_out)

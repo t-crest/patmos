@@ -54,7 +54,6 @@
 
 using namespace patmos;
 
-
 void ideal_method_cache_t::initialize(simulator_t &s, uword_t address)
 {
   current_base = address;
@@ -130,13 +129,33 @@ unsigned int lru_method_cache_t::method_info_t::get_utilized_bytes() {
 bool lru_method_cache_t::do_fetch(simulator_t &s, method_info_t &current_method,
                                   uword_t address, word_t iw[2])
 {
+  uword_t end_address = current_method.Address + current_method.Num_bytes;
+  
   if(Phase != IDLE ||
       address < current_method.Address ||
-      current_method.Address + current_method.Num_bytes + sizeof(word_t) * NUM_SLOTS * 3 <= address)
+      end_address + sizeof(word_t) * NUM_SLOTS * 3 <= address)
   {
     simulation_exception_t::illegal_pc(current_method.Address);
   }
 
+  // Automagically fall though to the next block by inserting a BRCF instruction
+  // on the fly when we read beyond the last instruction.
+#ifdef MC_AUTO_FALLTHROUGH
+  if (address == end_address) {
+
+    // TODO use the Instructions array and binary-fmt class to get the 
+    //      instruction encodings
+    
+    // BRCFND <next block address>
+    uword_t imm = s.get_next_method_base(address) >> 2;
+    iw[0] = to_big_endian<big_uword_t,uword_t>(0x05000000 | imm);
+    // NOP
+    iw[1] = to_big_endian<big_uword_t,uword_t>(0x00400000);
+    
+    return true;
+  }
+#endif
+  
   // get instruction word from the method's instructions
   byte_t *iwp = reinterpret_cast<byte_t*>(&iw[0]);
   
@@ -225,6 +244,10 @@ bool lru_method_cache_t::peek_function_size(simulator_t &s,
   // convert method size to native endianess and compute size in
   // blocks
   *result_size = from_big_endian<big_uword_t>(num_bytes_big_endian);
+  
+  // TODO Ignore dispose flag for now
+  *result_size &= ~(0x10000);
+  
   return true;
 }
 
@@ -249,7 +272,7 @@ lru_method_cache_t::lru_method_cache_t(memory_t &memory,
                     unsigned int num_blocks, 
                     unsigned int num_block_bytes, 
                     unsigned int max_active_methods) :
-    Memory(memory), Num_blocks(num_blocks), 
+    method_cache_t(memory), Num_blocks(num_blocks), 
     Num_block_bytes(num_block_bytes), Phase(IDLE),
     Num_allocate_blocks(0), Num_method_size(0), Num_active_methods(0),
     Num_active_blocks(0), Num_blocks_allocated(0),

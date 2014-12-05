@@ -2015,7 +2015,8 @@ namespace patmos
 
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
-      uword_t base = (ops.OPS.CFLi.D ? s.nPC : s.Pipeline[SEX][0].Address) + 4;
+      uword_t pc = (ops.OPS.CFLi.D ? s.nPC : s.Pipeline[SEX][0].Address);
+      uword_t base = s.get_next_method_base(pc);
 
       store_return_address(s, ops, ops.DR_Pred, base,
                            base, ops.EX_Address, SMW, false);
@@ -2372,8 +2373,9 @@ namespace patmos
 
     virtual void MW(simulator_t &s, instruction_data_t &ops) const
     {
-      uword_t base = (ops.OPS.CFLrs.D ? s.nPC : s.Pipeline[SEX][0].Address) + 4;
-
+      uword_t pc = (ops.OPS.CFLrs.D ? s.nPC : s.Pipeline[SEX][0].Address);
+      uword_t base = s.get_next_method_base(pc);
+      
       store_return_address(s, ops, ops.DR_Pred, base,
     		               base, ops.EX_Address, SMW, false);
 
