@@ -655,12 +655,24 @@ namespace patmos
         std::string name = Pipeline[SMW][0].I->Name;
         Dbg_cnt_delay = 0;
         Dbg_is_intr = false;
-        if (name == "ret") {
+        if (name == "ret" || name == "xret") {
           Dbg_cnt_delay = 3;
           Dbg_is_call = false;
         }
-        else if (name == "call" || name == "callr") {
+        if (name == "retnd" || name == "xretnd") {
+          Dbg_cnt_delay = 1;
+          Dbg_is_call = false;
+        }
+        else if (name == "call" || name == "callr" || 
+                 name == "callsb" || name == "callrsb") 
+        {
           Dbg_cnt_delay = 3;
+          Dbg_is_call = true;
+        }
+        else if (name == "callnd" || name == "callrnd" || 
+                 name == "callsbnd" || name == "callrsbnd") 
+        {
+          Dbg_cnt_delay = 1;
           Dbg_is_call = true;
         }
         else if (name == "intr") {
