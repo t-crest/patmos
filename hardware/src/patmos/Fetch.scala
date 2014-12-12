@@ -59,8 +59,8 @@ class Fetch(fileName : String) extends Module {
   val romAddrBits = log2Up(rom.length / 2)
   // Split the ROM into two blocks for dual fetch
   val romGroups = rom.iterator.grouped(2).withPadding(Bits(0)).toSeq
-  val romEven = Vec(romGroups.map(_(0)))
-  val romOdd  = Vec(romGroups.map(_(1)))
+  val romEven = Vec(romGroups.map(_(0)).padTo(1 << romAddrBits, Bits(0)))
+  val romOdd  = Vec(romGroups.map(_(1)).padTo(1 << romAddrBits, Bits(0)))
 
   val instr_a_ispm = Bits()
   val instr_b_ispm = Bits()
