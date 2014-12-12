@@ -21,7 +21,9 @@ public class UARTInputStream extends InputStream
 	{
 		try 
 		{
-			port.readString();
+			for (long i = 0; i < n; i++) {
+				port.readBytes(1);
+			}
 			return 0;
 		} 
 		catch (SerialPortException e) 

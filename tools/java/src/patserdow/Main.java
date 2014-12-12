@@ -57,11 +57,10 @@ public class Main {
 
     /**
      * @param args the command line arguments
-     * @throws TimeoutException
-     * @throws SerialPortTimeoutException
      */
-    public static void main(String[] args) throws IOException, InterruptedException, SerialPortException, TimeoutException, SerialPortTimeoutException {
+    public static void main(String[] args) {
         boolean verbose = true;
+        boolean compress = true;
         boolean error = false;
 
         PrintStream msg_stream = System.err;
@@ -74,6 +73,7 @@ public class Main {
 
         try {
             verbose = System.getProperty("verbose", "false").equals("true");
+            compress = System.getProperty("compress", "true").equals("true");
 
             File file = null;
             switch(args.length) {
@@ -98,7 +98,7 @@ public class Main {
             default:
                 throw new IllegalArgumentException("Usage: patserdow [COMPORT] FILENAME");
             }
-
+            
             Elf elf = new Elf(file);
             ElfHeader header = elf.getHeader();
             if (verbose) {
@@ -111,8 +111,14 @@ public class Main {
                 msg_stream.println();
             }
 
+            if (verbose) {
+                msg_stream.println("Download compression enabled: " + compress);
+                msg_stream.println();
+            }
+            if (compress) {
+                out_stream = new CompressionOutputStream(out_stream);
+            }
             Transmitter transmitter = new Transmitter(in_stream,out_stream);
-            //Transmitter transmitter = new Transmitter(System.in, stream);
 
             final int HEADER_SIZE = 8;
             final int SEGMENT_HEADER_SIZE = 12;
@@ -161,9 +167,25 @@ public class Main {
 
                 file_stream.close();
             }
+
             if (verbose) {
                 msg_stream.println();
+
+                if (out_stream instanceof CompressionOutputStream) {
+                    CompressionOutputStream compressionStream =
+                        (CompressionOutputStream)out_stream;
+                    long textSize = compressionStream.getTextSize();
+                    long codeSize = compressionStream.getCodeSize();
+
+                    msg_stream.println("sent " + textSize + " raw bytes "+
+                                       "compressed to " + codeSize + " bytes "+
+                                       "(" +  ((codeSize * 100) / textSize) + "%)");
+                }
             }
+
+            // Make sure everything is sent
+            transmitter.finish();
+
 
             // Write data to target in separate thread
             new InputThread(host_in_stream, out_stream).start();

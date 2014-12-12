@@ -45,6 +45,8 @@
 
 // #define DEBUG
 
+int main(void) __attribute__((noreturn));
+
 int main(void) {
 
 #ifdef DEBUG
@@ -109,5 +111,5 @@ int main(void) {
   inval_mcache();
   _start();
 
-  return 0;
+  for(;;);
 }
