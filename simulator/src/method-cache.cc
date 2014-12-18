@@ -146,6 +146,9 @@ bool lru_method_cache_t::do_fetch(simulator_t &s, method_info_t &current_method,
     
   for (unsigned int i = 0; i < NUM_SLOTS; i++) {
     unsigned int word = (address-current_method.Address)/sizeof(word_t) + i;
+    if (word >= current_method.Num_bytes/sizeof(word_t)) {
+      break;
+    }
     current_method.Utilization[word] = true;
   }
   
