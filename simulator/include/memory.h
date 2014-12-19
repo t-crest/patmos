@@ -46,6 +46,7 @@
 namespace patmos
 {
   class simulator_t;
+  struct stats_options_t;
   
   /// Basic interface to access main memory during simulation.
   class memory_t
@@ -136,7 +137,7 @@ namespace patmos
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
     virtual void print_stats(const simulator_t &s, std::ostream &os,
-                             bool short_stats) = 0;
+                             const stats_options_t& options) = 0;
     
     /// Reset statistics.
     virtual void reset_stats() = 0;
@@ -246,7 +247,7 @@ namespace patmos
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
     virtual void print_stats(const simulator_t &s, std::ostream &os, 
-                             bool short_stats)
+                             const stats_options_t& options)
     {
       // nothing to be done here
     }
@@ -424,7 +425,7 @@ namespace patmos
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
     virtual void print_stats(const simulator_t &s, std::ostream &os, 
-                             bool short_stats);
+                             const stats_options_t& options);
     
     virtual void reset_stats();
 

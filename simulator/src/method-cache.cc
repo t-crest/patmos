@@ -94,7 +94,7 @@ void ideal_method_cache_t::print(std::ostream &os)
 }
 
 void ideal_method_cache_t::print_stats(const simulator_t &s, std::ostream &os, 
-                                       bool short_stats)
+                                       const stats_options_t& options)
 {
   // nothing to do here either, since the cache has no internal state.
 }
@@ -484,7 +484,7 @@ void lru_method_cache_t::print(std::ostream &os)
 }
 
 void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os, 
-                                     bool short_stats)
+                                     const stats_options_t& options)
 {
   uword_t bytes_utilized = Num_bytes_utilized;
   for(unsigned int j = Num_blocks - Num_active_methods; j < Num_blocks; j++)
@@ -534,7 +534,7 @@ void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os,
     % transfer_ratio
     % Num_stall_cycles % (100.0 * Num_stall_cycles / (float)s.Cycle);
 
-  if (short_stats) 
+  if (options.short_stats) 
     return;
   
   // Update utilization stats for all methods not yet evicted.
@@ -569,7 +569,7 @@ void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os,
         % s.Symbols.find(i->first);
 
     // print hit/miss statistics per offset
-    if (i->second.Accesses.size() > 1)
+    if (options.hitmiss_stats)
     {
       for(offset_stats_t::iterator j(i->second.Accesses.begin()),
           je(i->second.Accesses.end()); j != je; j++)
@@ -584,32 +584,34 @@ void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os,
   }
 
   // print Eviction statistics
-  os << "\n       Method:    #capacity        #tag          by\n";
-  for(method_stats_t::iterator i(Method_stats.begin()), ie(Method_stats.end());
-      i != ie; i++)
-  {
-    // count number of evictions
-    unsigned int num_capacity_evictions = 0;
-    unsigned int num_tag_evictions = 0;
-    for(eviction_stats_t::iterator j(i->second.Evictions.begin()),
-        je(i->second.Evictions.end()); j != je; j++)
+  if (options.hitmiss_stats) {
+    os << "\n       Method:    #capacity        #tag          by\n";
+    for(method_stats_t::iterator i(Method_stats.begin()), ie(Method_stats.end());
+        i != ie; i++)
     {
-      num_capacity_evictions += j->second.first;
-      num_tag_evictions += j->second.second;
-    }
+      // count number of evictions
+      unsigned int num_capacity_evictions = 0;
+      unsigned int num_tag_evictions = 0;
+      for(eviction_stats_t::iterator j(i->second.Evictions.begin()),
+          je(i->second.Evictions.end()); j != je; j++)
+      {
+        num_capacity_evictions += j->second.first;
+        num_tag_evictions += j->second.second;
+      }
 
-    // print address and name of current method
-    os << boost::format("   0x%1$08x:   %2$10d  %3$10d          %4%\n")
-        % i->first % num_capacity_evictions % num_tag_evictions
-        % s.Symbols.find(i->first);
+      // print address and name of current method
+      os << boost::format("   0x%1$08x:   %2$10d  %3$10d          %4%\n")
+          % i->first % num_capacity_evictions % num_tag_evictions
+          % s.Symbols.find(i->first);
 
-    // print other methods who evicted this method
-    for(eviction_stats_t::iterator j(i->second.Evictions.begin()),
-        je(i->second.Evictions.end()); j != je; j++)
-    {
-      os << boost::format("                 %1$10d  %2$10d  0x%3$08x  %4%\n")
-          % j->second.first % j->second.second % j->first
-          % s.Symbols.find(j->first);
+      // print other methods who evicted this method
+      for(eviction_stats_t::iterator j(i->second.Evictions.begin()),
+          je(i->second.Evictions.end()); j != je; j++)
+      {
+        os << boost::format("                 %1$10d  %2$10d  0x%3$08x  %4%\n")
+            % j->second.first % j->second.second % j->first
+            % s.Symbols.find(j->first);
+      }
     }
   }
 }

@@ -210,7 +210,7 @@ namespace patmos
     virtual void print(std::ostream &os) const;
 
     virtual void print_stats(const simulator_t &s, std::ostream &os, 
-                             bool short_stats) {}
+                             const stats_options_t& options) {}
 
     virtual void reset_stats() {}
 
@@ -378,7 +378,7 @@ namespace patmos
     virtual void print(std::ostream &os) const;
 
     virtual void print_stats(const simulator_t &s, std::ostream &os, 
-                             bool short_stats);
+                             const stats_options_t& options);
 
     virtual void reset_stats();
   };
@@ -452,7 +452,7 @@ namespace patmos
                         uword_t new_spill, uword_t new_top);
 
       virtual void print_stats(const simulator_t &s, std::ostream &os, 
-                               bool short_stats);
+                               const stats_options_t& options);
 
       void reset_stats();
   };
@@ -521,7 +521,7 @@ namespace patmos
       virtual void print(std::ostream &os) const;
 
       virtual void print_stats(const simulator_t &s, std::ostream &os, 
-                                bool short_stats);
+                               const stats_options_t& options);
 
       void reset_stats();
   };

@@ -49,7 +49,16 @@ namespace patmos
   /// forward defs
   class simulator_t;
 
-
+  /// Stats printing options container
+  struct stats_options_t
+  {
+    bool short_stats;
+    bool instruction_stats;
+    bool profiling_stats;
+    bool hitmiss_stats;
+  };
+  
+  
   /// Profiling information for functions.
   class dbgstack_t
   {
@@ -78,9 +87,13 @@ namespace patmos
       
       std::ostream *debug_out;
       
+      /// Address of function to print stats for, or UINT_MAX.
       uword_t print_function;
       
-      // True if we are currently collecting stats
+      /// Options for statistics output
+      stats_options_t stats_options;
+      
+      /// True if we are currently collecting stats
       bool found_print_function;
 
       /// print_stackframe - Print a single debug stack frame to the stream
@@ -96,6 +109,10 @@ namespace patmos
       {
       }
 
+      stats_options_t& get_stats_options() { return stats_options; }
+      
+      const stats_options_t& get_stats_options() const { return stats_options; }
+      
       void print_function_stats(uword_t address, std::ostream &debug_out);
       
       /// initialize - Initialize the debug stack.
