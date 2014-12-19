@@ -288,6 +288,12 @@ namespace patmos
     /// Number of bytes used in evicted methods.
     unsigned int Num_bytes_utilized;
     
+    /// Total Number of blocks evicted but not immediately allocated.
+    unsigned int Num_blocks_freed;
+    
+    /// Maximum number of blocks evicted but not immediately allocated.
+    unsigned int Max_blocks_freed;
+    
     /// Cache statistics of individual method.
     method_stats_t Method_stats;
 
