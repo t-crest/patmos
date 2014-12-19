@@ -218,8 +218,25 @@ void lru_method_cache_t::update_utilization_stats(method_info_t &method,
                               Method_stats[method.Address].Min_utilization);      
 }
 
-void lru_method_cache_t::evict(method_info_t &method)
+void lru_method_cache_t::update_evict_stats(method_info_t &method, 
+                                            uword_t new_method, 
+                                            eviction_type_e type)
 {
+  if (type != EVICT_FLUSH) {
+    std::pair<unsigned int, unsigned int> &eviction_stats(
+                          Method_stats[method.Address].Evictions[new_method]);
+    if (type == EVICT_TAG)
+    {
+      eviction_stats.second++;
+      Num_evictions_tag++;
+    }
+    else if (type == EVICT_CAPACITY)
+    {
+      eviction_stats.first++;
+      Num_evictions_capacity++;
+    }
+  }
+
   unsigned int utilized_bytes = method.get_utilized_bytes();
   
   Num_bytes_utilized += utilized_bytes;
@@ -382,22 +399,11 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
           bool is_tag_capacity_miss = (Num_active_blocks +
                                         Num_allocate_blocks <= Num_blocks);
 
-          std::pair<unsigned int, unsigned int> &eviction_stats(
-                               Method_stats[method.Address].Evictions[address]);
-          if (is_tag_capacity_miss)
-          {
-            eviction_stats.second++;
-            Num_evictions_tag++;
-          }
-          else
-          {
-            eviction_stats.first++;
-            Num_evictions_capacity++;
-          }
-
+          update_evict_stats(method, address, is_tag_capacity_miss ? EVICT_TAG 
+                                                              : EVICT_CAPACITY);
+          
           // evict the method from the cache
           Num_active_blocks -= method.Num_blocks;
-          evict(method);
           Num_active_methods--;
         }
 
@@ -512,8 +518,13 @@ void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os,
   uword_t bytes_utilized = Num_bytes_utilized;
   for(unsigned int j = Num_blocks - Num_active_methods; j < Num_blocks; j++)
   {
-    bytes_utilized += Methods[j].get_utilized_bytes();
+    uword_t ub = Methods[j].get_utilized_bytes();
+    
+    bytes_utilized += ub;
+    
+    update_utilization_stats(Methods[j], ub);
   }
+
   // per cache miss, we load the size word, but do not store it in the cache
   uword_t bytes_allocated = Num_bytes_transferred - Num_misses * 4;
   // Utilization = Bytes used / bytes allocated in cache
@@ -560,14 +571,6 @@ void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os,
   if (options.short_stats) 
     return;
   
-  // Update utilization stats for all methods not yet evicted.
-  for(int i = Num_blocks - Num_active_methods; i < Num_blocks; i++)
-  {
-    // TODO we do not *actually* want to evict this method, use a different
-    //      method.
-    evict(Methods[i]);
-  }
-
   // print stats per method
   os << "       Method:        #hits     #misses  methodsize      blocks    "
         "min-util    max-util\n";
@@ -583,6 +586,11 @@ void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os,
       misses += j->second.second;
     }
 
+    // Skip all stats entries that are never accessed since the last stats reset
+    if (hits+misses == 0) {
+      continue;
+    }
+    
     os << boost::format("   0x%1$08x:   %2$10d  %3$10d  %4$10d  %5$10d "
                         "%6$10.2f%% %7$10.2f%%    %8%\n")
         % i->first % hits % misses
@@ -659,12 +667,18 @@ void lru_method_cache_t::reset_stats()
   {
     Methods[j].reset_utilization();
   }
-
 }
 
 void lru_method_cache_t::flush_cache() 
 {
   if (Num_active_methods < 2) return;
+  
+  uword_t current_base = Methods[Num_blocks - 1].Address;
+    
+  for(unsigned int j = Num_blocks - Num_active_methods; j < Num_blocks - 1; j++)
+  {
+    update_evict_stats(Methods[j], current_base, EVICT_FLUSH);
+  }
   
   Num_active_methods = 1;
   Num_active_blocks = Methods[Num_blocks - 1].Num_blocks;
@@ -726,6 +740,11 @@ void fifo_method_cache_t::flush_cache()
   
   active_method = Num_blocks - 1;
   
+  for(unsigned int j = Num_blocks - Num_active_methods; j < Num_blocks - 1; j++)
+  {
+    update_evict_stats(Methods[j], active.Address, EVICT_FLUSH);
+  }
+    
   Num_active_methods = 1;
   Num_active_blocks = Methods[Num_blocks - 1].Num_blocks;
 }
