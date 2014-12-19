@@ -68,7 +68,8 @@ namespace patmos
       class dbgstack_frame_t {
       public:
         // constructor
-        dbgstack_frame_t(simulator_t &sim, uword_t func);
+        dbgstack_frame_t(simulator_t &sim, uword_t ret_base, uword_t ret_offset, 
+                         uword_t function);
 
         uword_t function;
         uword_t ret_base;
@@ -129,7 +130,7 @@ namespace patmos
 
       /// push - Push the current state as a stack frame on the debug stack.
       /// Only used for debugging.
-      void push(uword_t target);
+      void push(uword_t base, uword_t offset, uword_t target);
 
       /// pop - Pop the top stack frame from the debug stack,
       /// if the given return info matches.

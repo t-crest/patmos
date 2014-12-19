@@ -51,13 +51,11 @@ namespace patmos
 {
 
   dbgstack_t::dbgstack_frame_t::
-  dbgstack_frame_t(simulator_t &sim, uword_t func) 
-   : function(func), print_stats(false)
+  dbgstack_frame_t(simulator_t &sim, uword_t ret_base, uword_t ret_offset, 
+                   uword_t func) 
+   : ret_base(ret_base), ret_offs(ret_offset), function(func), 
+     print_stats(false)
   {
-    // We could use r30/r31 here ?!
-    ret_base = sim.BASE;
-    ret_offs = sim.nPC-sim.BASE;
-
     // if rsp has not been set yet, use int_max for now
     uword_t sp = sim.GPR.get(rsp).get();
     caller_tos_shadowstack = sp ? sp : INT_MAX;
@@ -74,7 +72,7 @@ namespace patmos
   
   void dbgstack_t::initialize(uword_t entry)
   {
-    push(entry);
+    push(0, 0, entry);
   }
 
 
@@ -111,12 +109,12 @@ namespace patmos
       // longjmps.
       //return false;
     }
-#if DEBUG
+#ifdef DEBUG
     if (!(frame.function == sim.BASE ||
               sim.Symbols.covers(frame.function, sim.BASE))) 
     {
-      std::cerr << "\nWrong function base: " << frame.function 
-                << ", base: " << sim.BASE << "\n";
+      std::cerr << "\nWrong function base: " << std::hex << frame.function 
+                << ", base: " << sim.BASE << std::dec << "\n";
     }
 #endif
     // check if the function of the current frame contains
@@ -127,7 +125,7 @@ namespace patmos
 
 
 
-  void dbgstack_t::push(uword_t target)
+  void dbgstack_t::push(uword_t base, uword_t offset, uword_t target)
   {
     if (!stack.empty()) {
       // Check if the call is coming from the TOS.
@@ -143,7 +141,7 @@ namespace patmos
       }
     }
     // Create a new stack frame
-    stack.push_back( dbgstack_frame_t(sim, target) );
+    stack.push_back( dbgstack_frame_t(sim, base, offset, target) );
     
     if (target == print_function && !found_print_function) {
       // TODO this should be moved into a separate class, managing stats 
@@ -172,6 +170,12 @@ namespace patmos
         found_print_function = false;
       }
       stack.pop_back();
+    } else {
+#ifdef DEBUG
+      std::cerr << "\nWRONG RETURN FRAME: base " << std::hex << frame.ret_base 
+                << " != " << return_base << " or offset " << frame.ret_offs
+                << " != " << return_offset << std::dec << "\n";
+#endif
     }
   }
 
@@ -223,7 +227,7 @@ namespace patmos
     os << "Stacktrace:\n";
 
     if (stack.empty()) {
-      print_stackframe(os, 0, dbgstack_frame_t(sim, sim.BASE), 0);
+      print_stackframe(os, 0, dbgstack_frame_t(sim, 0, 0, sim.BASE), 0);
       return os;
     }
 
