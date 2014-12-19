@@ -86,7 +86,7 @@ namespace patmos
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
     virtual void print_stats(const simulator_t &s, std::ostream &os, 
-                             bool short_stats) = 0;
+                             const stats_options_t& options) = 0;
     
     /// Reset statistics.
     virtual void reset_stats() = 0;
@@ -150,7 +150,7 @@ namespace patmos
     virtual void print(std::ostream &os) {}
 
     virtual void print_stats(const simulator_t &s, std::ostream &os,
-                             bool short_stats);
+                             const stats_options_t& options);
     
     virtual void reset_stats();
     
@@ -205,14 +205,14 @@ namespace patmos
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
     virtual void print_stats(const simulator_t &s, std::ostream &os, 
-                             bool short_stats)
+                             const stats_options_t& options)
     {
       if (IS_OWNING_CACHE) {
-        Backing_cache->print_stats(s, os, short_stats);
+        Backing_cache->print_stats(s, os, options);
         os << "\n";
       }
 
-      no_instr_cache_t::print_stats(s, os, short_stats);
+      no_instr_cache_t::print_stats(s, os, options);
     }
     
     virtual void reset_stats() {

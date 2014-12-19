@@ -206,14 +206,14 @@ void memory_map_t::print(std::ostream &os) const
 }
 
 void memory_map_t::print_stats(const simulator_t &s, std::ostream &os, 
-			 bool short_stats)
+			 const stats_options_t& options)
 {
   for (DeviceList::const_iterator it = Devices.begin(), ie = Devices.end();
        it != ie; ++it) 
   {
-    (*it)->print_stats(s, os, short_stats);
+    (*it)->print_stats(s, os, options);
   }
-  Memory.print_stats(s, os, short_stats);
+  Memory.print_stats(s, os, options);
 }
 
 void memory_map_t::reset_stats()

@@ -659,7 +659,7 @@ namespace patmos
           Dbg_cnt_delay = 3;
           Dbg_is_call = false;
         }
-        if (name == "retnd" || name == "xretnd") {
+        else if (name == "retnd" || name == "xretnd") {
           Dbg_cnt_delay = 1;
           Dbg_is_call = false;
         }
@@ -690,6 +690,7 @@ namespace patmos
             }
           }
           os << (Dbg_is_intr ? "interrupt" : (Dbg_is_call ? "call" : "return"));
+          if (Dbg_cnt_delay == 1) os << " (nd)";
           os << " from ";
           Symbols.print(os, Pipeline[SMW][0].Address, true);
           os << " to ";
@@ -760,11 +761,16 @@ namespace patmos
     Profiling.reset_stats(Cycle);
   }
   
-  void simulator_t::print_stats(std::ostream &os, bool short_stats,
-                                bool instr_stats) const
+  void simulator_t::print_stats(std::ostream &os) const
+  {
+    print_stats(os, Dbg_stack.get_stats_options());
+  }
+  
+  void simulator_t::print_stats(std::ostream &os, 
+                                const stats_options_t &options) const
   {
     // print register values
-    if (!short_stats) {
+    if (!options.short_stats) {
       print_registers(os, DF_DEFAULT);
     }
 
@@ -776,7 +782,7 @@ namespace patmos
     uint64_t sum_fetched = 0;
     uint64_t sum_discarded = 0;
     
-    if (!short_stats) {
+    if (!options.short_stats) {
       os << boost::format("\n\nInstruction Statistics:\n   %1$15s:") % "operation";
     }
     
@@ -785,7 +791,7 @@ namespace patmos
       num_total_bubbles[i] = 0;
       num_total_bubbles[i] += Num_bubbles_retired[i];
     
-      if (!short_stats) {
+      if (!options.short_stats) {
         os << boost::format(" %1$10s %2$10s %3$10s")
             % "#fetched" % "#retired" % "#discarded";
       }
@@ -797,7 +803,7 @@ namespace patmos
       // get instruction and statistics on it
       const instruction_t &I(Decoder.get_instruction(i));
 
-      if (!short_stats) {
+      if (!options.short_stats) {
         os << boost::format("   %1$15s:") % I.Name;
       }
       
@@ -809,7 +815,7 @@ namespace patmos
         // counted as discarded but not as fetched
         //assert(S.Num_fetched >= (S.Num_retired + S.Num_discarded));
        
-        if (!short_stats) {
+        if (!options.short_stats) {
           os << boost::format(" %1$10d %2$10d %3$10d")
             % S.Num_fetched % S.Num_retired % S.Num_discarded;
         }
@@ -820,22 +826,22 @@ namespace patmos
         num_total_discarded[j] += S.Num_discarded;
       }
       
-      if (!short_stats && instr_stats) {
+      if (!options.short_stats && options.instruction_stats) {
         os << "\t";
         I.print_stats(*this, os, Symbols);
       }
       
-      if (!short_stats) {
+      if (!options.short_stats) {
         os << "\n";
       }
     }
 
     // summary over all instructions
-    if (!short_stats) {
+    if (!options.short_stats) {
       os << boost::format("   %1$15s:") % "all";
     }
     for (unsigned int j = 0; j < NUM_SLOTS; j++) {
-      if (!short_stats) {
+      if (!options.short_stats) {
         os << boost::format(" %1$10d %2$10d %3$10d")
          % num_total_fetched[j] % num_total_retired[j] % num_total_discarded[j];
       }
@@ -843,7 +849,7 @@ namespace patmos
       sum_fetched += num_total_fetched[j];
       sum_discarded += num_total_discarded[j];
     }
-    if (!short_stats) {
+    if (!options.short_stats) {
       os << "\n";
       os << boost::format("   %1$15s:") % "bubbles";
       for (unsigned int j = 0; j < NUM_SLOTS; j++) {
@@ -855,12 +861,12 @@ namespace patmos
     
     uint64_t sum_stalls = 0;
     
-    if (!short_stats) {
+    if (!options.short_stats) {
       os << "\nStall Cycles:\n";
     }
     for (int i = SIF; i < NUM_STAGES; i++)
     {
-      if (!short_stats) {
+      if (!options.short_stats) {
         os << boost::format("   %1%: %2%\n")
           % (Pipeline_t)i % Num_stall_cycles[i];
       }
@@ -920,23 +926,23 @@ namespace patmos
           
     // print statistics of method cache
     os << "\n\nInstruction Cache Statistics:\n";
-    Instr_cache.print_stats(*this, os, short_stats);
+    Instr_cache.print_stats(*this, os, options);
 
     // print statistics of data cache
     os << "\n\nData Cache Statistics:\n";
-    Data_cache.print_stats(*this, os, short_stats);
+    Data_cache.print_stats(*this, os, options);
 
     // print statistics of stack cache
     os << "\n\nStack Cache Statistics:\n";
-    Stack_cache.print_stats(*this, os, short_stats);
+    Stack_cache.print_stats(*this, os, options);
 
     // print statistics of main memory
     os << "\n\nMain Memory Statistics:\n";
-    Memory.print_stats(*this, os, short_stats);
+    Memory.print_stats(*this, os, options);
 
     // print profiling information
-    if (!short_stats) {
-      Profiling.print(os, Symbols);
+    if (options.profiling_stats) {
+      Profiling.print(os, Symbols, options);
     }
 
     os << "\n";

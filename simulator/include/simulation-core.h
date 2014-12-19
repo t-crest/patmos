@@ -347,9 +347,14 @@ namespace patmos
     void print(std::ostream &os, debug_format_e debug_fmt, bool nopc);
 
     /// Print runtime statistics of the current simulation run to an output
+    /// stream, using the current debug stack stats options.
+    /// @param os An output stream.
+    void print_stats(std::ostream &os) const;
+
+    /// Print runtime statistics of the current simulation run to an output
     /// stream.
     /// @param os An output stream.
-    void print_stats(std::ostream &os, bool short_stats, bool instr_stats) const;
+    void print_stats(std::ostream &os, const stats_options_t& options) const;
 
     /// Reset all simulation statistics.
     void reset_stats();

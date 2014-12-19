@@ -88,5 +88,5 @@ class Leds(ledCount : Int) extends CoreDevice() {
   io.ocp.S.Data := ledReg
 
   // Connection to pins
-  io.ledsPins.led := ledReg
+  io.ledsPins.led := Reg(next = ledReg)
 }

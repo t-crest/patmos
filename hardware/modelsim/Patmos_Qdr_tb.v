@@ -16,7 +16,7 @@ module Patmos_tb();
    wire [17:0] ram_din;
    wire [15:0] ram_dout_0, ram_dout_1;
    reg  [17:0] ram_dout;
-   wire        ram_odt, ram_ndoff;
+   wire        ram_qvld, ram_ndoff;
    wire        ram_cq, ram_ncq;
    // JTAG signals for QDR-II+ memory
    reg         ram_tck, ram_tms, ram_tdi;
@@ -41,9 +41,7 @@ module Patmos_tb();
                  .io_qdrIIplusCtrlPins_dout_1(ram_dout_1),
                  .io_qdrIIplusCtrlPins_din_0(ram_din_0),
                  .io_qdrIIplusCtrlPins_din_1(ram_din_1),
-                 .io_qdrIIplusCtrlPins_odt(ram_odt),
                  .io_qdrIIplusCtrlPins_ndoff(ram_ndoff),
-                 .io_qdrIIplusCtrlPins_qvld(ram_qvld),
 
                  .io_comConf_S_Resp(2'b00),
                  .io_comSpm_S_Resp(2'b00));
@@ -52,7 +50,7 @@ module Patmos_tb();
                  ram_dout, ram_din, ram_addr,
                  ram_clk, ~ram_clk,
                  ram_nrps, ram_nwps, ram_nbws[0], ram_nbws[1],
-                 ram_cq, ram_ncq, 1'b1, ram_ndoff, ram_qvld, ram_odt);
+                 ram_cq, ram_ncq, 1'b1, ram_ndoff, ram_qvld, 1'b1);
 
    // Clock and reset handling
    reg clk_reg;

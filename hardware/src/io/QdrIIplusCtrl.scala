@@ -82,9 +82,7 @@ object QdrIIplusCtrl extends DeviceObject {
       val din   = Vec.fill(2) { Bits(INPUT, width = ramDataWidth) }
       val dout  = Vec.fill(2) { Bits(OUTPUT, width = ramDataWidth) }
 
-      val odt   = Bits(OUTPUT, width = 1)
       val ndoff = Bits(OUTPUT, width = 1)
-      val qvld  = Bits(INPUT, width = 1)
     }
   }
 }
@@ -93,7 +91,7 @@ class QdrIIplusCtrl(ocpAddrWidth   : Int,
                     ocpBurstLen    : Int = BURST_LENGTH,
                     ramAddrWidth   : Int = 19,
                     ramDataWidth   : Int = 16,
-                    readWaitCycles : Int = 3) extends BurstDevice(ocpAddrWidth) {
+                    readWaitCycles : Int = 5) extends BurstDevice(ocpAddrWidth) {
 
   override val io = new BurstDeviceIO(ocpAddrWidth) with QdrIIplusCtrl.Pins
 
@@ -254,7 +252,6 @@ class QdrIIplusCtrl(ocpAddrWidth   : Int,
   io.qdrIIplusCtrlPins.nbws := nbwsReg
 
   // Hard-wired pins
-  io.qdrIIplusCtrlPins.odt := Bits(1)
   io.qdrIIplusCtrlPins.ndoff := Bits(1)
 
   class Trans(bytesEnaWidth: Int, dataWidth: Int) extends Bundle {

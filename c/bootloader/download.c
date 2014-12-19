@@ -41,16 +41,38 @@
 #include "boot.h"
 #include "include/patio.h"
 
+#define COMPRESSION
+
+#ifdef COMPRESSION
+void decompress_init(void);
+int decompress_get_byte(void);
+#endif
+
+int uart_read(void) {
+  while ((UART_STATUS & 0x02) == 0) {
+    /* wait for data */
+  }
+  return UART_DATA;
+}
+
+static int get_byte() {
+#ifdef COMPRESSION
+  return decompress_get_byte();
+#else
+  return uart_read();
+#endif
+}
+
 entrypoint_t download(void) {
 
-  int entrypoint = 0;
-  int section_number = -1;
-  int section_count = 0;
-  int section_filesize = 0;
-  int section_offset = 0;
-  int section_memsize = 0;
-  int integer = 0;
-  int section_byte_count = 0;
+  unsigned int entrypoint = 0;
+  unsigned int section_number = -1;
+  unsigned int section_count = 0;
+  unsigned int section_filesize = 0;
+  unsigned int section_offset = 0;
+  unsigned int section_memsize = 0;
+  unsigned int section_byte_count = 0;
+  unsigned int integer = 0;
   enum state { STATE_ENTRYPOINT, STATE_SECTION_NUMBER,
                STATE_SECTION_FILESIZE, STATE_SECTION_OFFSET, STATE_SECTION_MEMSIZE,
                STATE_SECTION_DATA };
@@ -58,117 +80,116 @@ entrypoint_t download(void) {
   enum state current_state = STATE_ENTRYPOINT;
 
   //Packet stuff
-  int CRC_LENGTH = 4;
-  int packet_byte_count = 0;
-  int packet_size = 0;
+  unsigned int CRC_LENGTH = 4;
+  unsigned int packet_byte_count = 0;
+  unsigned int packet_size = 0;
   unsigned int calculated_crc = 0;
   unsigned int received_crc = 0xFFFFFFFF; //Flipped initial value
   unsigned int poly = 0xEDB88320; //Reversed polynomial
 
+#ifdef COMPRESSION
+  decompress_init();
+#endif
+
   for (;;) {
     LEDS = current_state;
-    if (UART_STATUS & 0x02) {
+    int data = get_byte();
 
-      int data = UART_DATA;
-      if (packet_size == 0) {
-        //First received byte sets the packet size
-        packet_size = data;
-        packet_byte_count = 0;
-        calculated_crc  = 0xFFFFFFFF;
-        received_crc = 0;
+    if (packet_size == 0) {
+      //First received byte sets the packet size
+      packet_size = data;
+      packet_byte_count = 0;
+      calculated_crc = 0xFFFFFFFF;
+      received_crc = 0;
 
-      } else {
-        if (packet_byte_count < CRC_LENGTH) {
-          received_crc |= data << ((CRC_LENGTH-packet_byte_count-1)*8);
-
-        } else if (packet_byte_count < packet_size+CRC_LENGTH) {
-          calculated_crc = calculated_crc ^ data;
-          int i;
-          for (i = 0; i < 8; ++i) {
-            if ((calculated_crc & 1) > 0) {
-              calculated_crc = (calculated_crc >> 1) ^ poly;
-            } else {
-              calculated_crc = (calculated_crc >> 1);
-            }
-          }
-
-          integer |= data << ((3-(section_byte_count%4))*8);
-          section_byte_count++;
-
-          if (current_state < STATE_SECTION_DATA) {
-            if (section_byte_count == 4) {
-              switch(current_state) {
-              case STATE_ENTRYPOINT:
-                entrypoint = integer;
-                break;
-              case STATE_SECTION_NUMBER:
-                section_number = integer;
-                break;
-              case STATE_SECTION_FILESIZE:
-                section_filesize = integer;
-                break;
-              case STATE_SECTION_OFFSET:
-                section_offset = integer;
-                break;
-              case STATE_SECTION_MEMSIZE:
-                section_memsize = integer;
-                break;
-              default:
-                /* never happens */;
-              }
-
-              section_byte_count = 0;
-              current_state++;
-            }
+    } else {
+      if (packet_byte_count < CRC_LENGTH) {
+        received_crc <<= 8;
+        received_crc |= data;
+      } else if (packet_byte_count < packet_size+CRC_LENGTH) {
+        calculated_crc = calculated_crc ^ data;
+        for (int i = 0; i < 8; ++i) {
+          if ((calculated_crc & 1) > 0) {
+            calculated_crc = (calculated_crc >> 1) ^ poly;
           } else {
-            //In case of data less than 4 bytes write everytime
-            //Write to ISPM
-            if ((section_offset+section_byte_count-1) >> 16 == 0x01) {
-              *(SPM+(section_offset+section_byte_count-1)/4) = integer;
+            calculated_crc = (calculated_crc >> 1);
+          }
+        }
+
+        integer |= data << ((3-(section_byte_count%4))*8);
+        section_byte_count++;
+
+        if (current_state < STATE_SECTION_DATA) {
+          if (section_byte_count == 4) {
+            switch(current_state) {
+            case STATE_ENTRYPOINT:
+              entrypoint = integer;
+              break;
+            case STATE_SECTION_NUMBER:
+              section_number = integer;
+              break;
+            case STATE_SECTION_FILESIZE:
+              section_filesize = integer;
+              break;
+            case STATE_SECTION_OFFSET:
+              section_offset = integer;
+              break;
+            case STATE_SECTION_MEMSIZE:
+              section_memsize = integer;
+              break;
+            default:
+              /* never happens */;
             }
-            //Write to main memory
-            *(MEM+(section_offset+section_byte_count-1)/4) = integer;
+
+            section_byte_count = 0;
+            current_state++;
+          }
+        } else {
+          //In case of data less than 4 bytes write everytime
+          //Write to ISPM
+          if ((section_offset+section_byte_count-1) >> 16 == 0x01) {
+            *(SPM+(section_offset+section_byte_count-1)/4) = integer;
+          }
+          //Write to main memory
+          *(MEM+(section_offset+section_byte_count-1)/4) = integer;
             
-            if (section_byte_count == section_filesize) {
-              // Align to next word boundary
-              section_byte_count = (section_byte_count + 3) & ~3;
-              // Fill up uninitialized areas with zeros
-              while (section_byte_count < section_memsize) {
-                if ((section_offset+section_byte_count) >> 16 == 0x01) {
-                  *(SPM+(section_offset+section_byte_count)/4) = 0;
-                }
-                *(MEM+(section_offset+section_byte_count)/4) = 0;
-                section_byte_count += 4;
+          if (section_byte_count == section_filesize) {
+            // Align to next word boundary
+            section_byte_count = (section_byte_count + 3) & ~3;
+            // Fill up uninitialized areas with zeros
+            while (section_byte_count < section_memsize) {
+              if ((section_offset+section_byte_count) >> 16 == 0x01) {
+                *(SPM+(section_offset+section_byte_count)/4) = 0;
               }
-              // Values for next segment
-              section_byte_count = 0;
-              section_count++;
-              current_state = STATE_SECTION_FILESIZE;
+              *(MEM+(section_offset+section_byte_count)/4) = 0;
+              section_byte_count += 4;
             }
-          }
-          if (section_byte_count%4 == 0) {
-            integer = 0;
+            // Values for next segment
+            section_byte_count = 0;
+            section_count++;
+            current_state = STATE_SECTION_FILESIZE;
           }
         }
-
-        packet_byte_count++;
-        if (packet_byte_count == packet_size+CRC_LENGTH) {
-          calculated_crc = calculated_crc ^ 0xFFFFFFFF; //Flipped final value
-
-          if (calculated_crc == received_crc) {
-            UART_DATA = 'o';
-            if (section_count == section_number) {
-              //End of program transmission
-              //Jump to program execution
-              return (volatile int (*)())entrypoint;
-            }
-          } else {
-            UART_DATA = 'r';
-            return NULL;
-          }
-
-          packet_size = 0;
+        if (section_byte_count%4 == 0) {
+          integer = 0;
         }
+      }
+
+      packet_byte_count++;
+      if (packet_byte_count == packet_size+CRC_LENGTH) {
+        calculated_crc = calculated_crc ^ 0xFFFFFFFF; //Flipped final value
+
+        UART_DATA = calculated_crc;
+
+        if (calculated_crc != received_crc) {
+          return NULL;
+        }
+        if (section_count == section_number) {
+          //End of program transmission
+          return (volatile int (*)())entrypoint;
+        }
+
+        packet_size = 0;
       }
     }
   }

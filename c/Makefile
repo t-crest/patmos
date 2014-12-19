@@ -62,8 +62,8 @@ $(BUILDDIR)/bootable-%.s: %.c Makefile
 	$(CC) $(CFLAGS-BOOTABLE) -fpatmos-emit-asm -S -o $@ $(filter %.c,$^)
 
 # application-specific additional dependencies
-$(BUILDDIR)/bootable-bootloader.elf: download.c boot.h bootable.h
-$(BUILDDIR)/bootable-cmpmaster.elf: download.c boot.h cmpboot.h bootable.h
+$(BUILDDIR)/bootable-bootloader.elf: download.c decompress.c boot.h bootable.h
+$(BUILDDIR)/bootable-cmpmaster.elf: download.c decompress.c boot.h cmpboot.h bootable.h
 $(BUILDDIR)/bootable-cmpslave.elf: boot.h cmpboot.h bootable.h
 
 $(BUILDDIR)/bootable-mandelbrot.elf: bootable.h

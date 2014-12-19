@@ -1,3 +1,43 @@
+/*
+   Copyright 2014 Technical University of Denmark, DTU Compute.
+   All rights reserved.
+
+   This file is part of the time-predictable VLIW processor Patmos.
+
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions are met:
+
+      1. Redistributions of source code must retain the above copyright notice,
+         this list of conditions and the following disclaimer.
+
+      2. Redistributions in binary form must reproduce the above copyright
+         notice, this list of conditions and the following disclaimer in the
+         documentation and/or other materials provided with the distribution.
+
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER ``AS IS'' AND ANY EXPRESS
+   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+   NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
+   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+   The views and conclusions contained in the software and documentation are
+   those of the authors and should not be interpreted as representing official
+   policies, either expressed or implied, of the copyright holder.
+ */
+
+/*
+ * A program to download applications to Patmos via a serial line
+ *
+ * Authors: Tórur Biskopstø Strøm (torur.strom@gmail.com)
+ *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
+ *
+ */
+
 package patserdow;
 
 import java.io.ByteArrayInputStream;
@@ -57,11 +97,10 @@ public class Main {
 
     /**
      * @param args the command line arguments
-     * @throws TimeoutException
-     * @throws SerialPortTimeoutException
      */
-    public static void main(String[] args) throws IOException, InterruptedException, SerialPortException, TimeoutException, SerialPortTimeoutException {
+    public static void main(String[] args) {
         boolean verbose = true;
+        boolean compress = true;
         boolean error = false;
 
         PrintStream msg_stream = System.err;
@@ -74,6 +113,7 @@ public class Main {
 
         try {
             verbose = System.getProperty("verbose", "false").equals("true");
+            compress = System.getProperty("compress", "true").equals("true");
 
             File file = null;
             switch(args.length) {
@@ -98,7 +138,7 @@ public class Main {
             default:
                 throw new IllegalArgumentException("Usage: patserdow [COMPORT] FILENAME");
             }
-
+            
             Elf elf = new Elf(file);
             ElfHeader header = elf.getHeader();
             if (verbose) {
@@ -111,8 +151,14 @@ public class Main {
                 msg_stream.println();
             }
 
+            if (verbose) {
+                msg_stream.println("Download compression enabled: " + compress);
+                msg_stream.println();
+            }
+            if (compress) {
+                out_stream = new CompressionOutputStream(out_stream);
+            }
             Transmitter transmitter = new Transmitter(in_stream,out_stream);
-            //Transmitter transmitter = new Transmitter(System.in, stream);
 
             final int HEADER_SIZE = 8;
             final int SEGMENT_HEADER_SIZE = 12;
@@ -161,9 +207,25 @@ public class Main {
 
                 file_stream.close();
             }
+
             if (verbose) {
                 msg_stream.println();
+
+                if (out_stream instanceof CompressionOutputStream) {
+                    CompressionOutputStream compressionStream =
+                        (CompressionOutputStream)out_stream;
+                    long textSize = compressionStream.getTextSize();
+                    long codeSize = compressionStream.getCodeSize();
+
+                    msg_stream.println("sent " + textSize + " raw bytes "+
+                                       "compressed to " + codeSize + " bytes "+
+                                       "(" +  ((codeSize * 100) / textSize) + "%)");
+                }
             }
+
+            // Make sure everything is sent
+            transmitter.finish();
+
 
             // Write data to target in separate thread
             new InputThread(host_in_stream, out_stream).start();

@@ -45,7 +45,8 @@
 
 namespace patmos
 {
-
+  struct stats_options_t;
+  
   /// Profiling information for functions.
   class profiling_t
   {
@@ -104,7 +105,8 @@ namespace patmos
 
       /// print - Print profiling information to a given stream, using
       /// given symbols.
-      std::ostream &print(std::ostream &os, symbol_map_t &sym) const;
+      std::ostream &print(std::ostream &os, symbol_map_t &sym, 
+                          const stats_options_t& options) const;
       
       void reset_stats(uint64_t cycle);
   };

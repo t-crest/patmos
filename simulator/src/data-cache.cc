@@ -269,7 +269,8 @@ void set_assoc_data_cache_t<LRU_REPLACEMENT>::
 
 template<bool LRU_REPLACEMENT>
 void set_assoc_data_cache_t<LRU_REPLACEMENT>::
-     print_stats(const simulator_t &s, std::ostream &os, bool short_stats)
+     print_stats(const simulator_t &s, std::ostream &os, 
+                 const stats_options_t& options)
 {
   // data cache statistics
   unsigned int total_reads = Num_read_hits + Num_read_misses;
