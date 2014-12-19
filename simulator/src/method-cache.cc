@@ -278,7 +278,7 @@ lru_method_cache_t::lru_method_cache_t(memory_t &memory,
     Num_max_active_methods(0),
     Num_hits(0), Num_misses(0), Num_misses_ret(0), Num_evictions_capacity(0),
     Num_evictions_tag(0), Num_stall_cycles(0),
-    Num_bytes_utilized(0)
+    Num_bytes_utilized(0), Num_blocks_freed(0), Max_blocks_freed(0)
 {
   Num_max_methods = max_active_methods ? max_active_methods : num_blocks;
   Methods = new method_info_t[Num_blocks];
@@ -364,6 +364,8 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
           simulation_exception_t::code_exceeded(address);
         }
 
+        uword_t evicted_blocks = 0;
+        
         // throw other entries out of the cache if needed
         while (Num_active_blocks + Num_allocate_blocks > Num_blocks ||
                 Num_active_methods >= Num_max_methods)
@@ -372,6 +374,8 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
           method_info_t &method(Methods[Num_blocks - Num_active_methods]);
 
           // update eviction statistics
+          evicted_blocks += method.Num_blocks;
+          
           // is this a cache miss due to the limited number of tag?
           bool is_tag_capacity_miss = (Num_active_blocks +
                                         Num_allocate_blocks <= Num_blocks);
@@ -383,6 +387,12 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
           Num_active_blocks -= method.Num_blocks;
           Num_active_methods--;
         }
+        
+        uword_t blocks_freed = evicted_blocks > Num_allocate_blocks ? 
+                               evicted_blocks - Num_allocate_blocks : 0;
+        
+        Num_blocks_freed += blocks_freed;
+        Max_blocks_freed = std::max(Max_blocks_freed, blocks_freed);
 
         // update counters
         Num_active_methods++;
@@ -507,10 +517,14 @@ void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os,
   // Utilization = Bytes used / bytes allocated in cache
   float utilization = (float)bytes_utilized / 
                       (float)(Num_blocks_allocated * Num_block_bytes);
-  // Fragmentation = Bytes loaded to cache / Bytes allocated in cache
+  // Internal fragmentation = Bytes loaded to cache / Bytes allocated in cache
   float fragmentation = 1.0 - (float)bytes_allocated / 
                       (float)(Num_blocks_allocated * Num_block_bytes);
   
+  // External fragmentation = Blocks evicted but not allocated / Blocks allocated
+  float ext_fragmentation = (float)Num_blocks_freed / 
+                            (float)Num_blocks_allocated;
+                      
   // Ratio of bytes loaded from main memory to bytes fetched from the cache.
   float transfer_ratio = (float)Num_bytes_transferred/(float)Num_bytes_fetched;
 
@@ -520,20 +534,25 @@ void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os,
                       "   Bytes Transferred   : %3$10d  %4$10d\n"
                       "   Bytes Allocated     : %5$10d  %6$10d\n"
                       "   Bytes Used          : %7$10d\n"
-                      "   Utilization         : %8$10.2f%%\n"
-                      "   Fragmentation       : %9$10.2f%%\n"
-                      "   Max Methods in Cache: %10$10d\n"
-                      "   Cache Hits          : %11$10d  %12$10.2f%%\n"
-                      "   Cache Misses        : %13$10d  %14$10.2f%%\n"
-                      "   Cache Misses Returns: %15$10d  %16$10.2f%%\n"
-                      "   Evictions Capacity  : %17$10d  %18$10.2f%%\n"
-                      "   Evictions Tag       : %19$10d  %20$10.2f%%\n"
-                      "   Transfer Ratio      : %21$10.3f\n"
-                      "   Miss Stall Cycles   : %22$10d  %23$10.2f%%\n\n")
+                      "   Block Utilization   : %8$10.2f%%\n"
+                      "   Int. Fragmentation  : %9$10.2f%%\n"
+                      "   Bytes Freed         : %10$10d  %11$10d\n"
+                      "   Ext. Fragmentation  : %12$10.2f%%\n"
+                      "   Max Methods in Cache: %13$10d\n"
+                      "   Cache Hits          : %14$10d  %15$10.2f%%\n"
+                      "   Cache Misses        : %16$10d  %17$10.2f%%\n"
+                      "   Cache Misses Returns: %18$10d  %19$10.2f%%\n"
+                      "   Evictions Capacity  : %20$10d  %21$10.2f%%\n"
+                      "   Evictions Tag       : %22$10d  %23$10.2f%%\n"
+                      "   Transfer Ratio      : %24$10.3f\n"
+                      "   Miss Stall Cycles   : %25$10d  %26$10.2f%%\n\n")
     % Num_blocks_allocated % Num_max_blocks_allocated
     % Num_bytes_transferred % Num_max_bytes_transferred
     % bytes_allocated % (Num_max_bytes_transferred - 4)
     % bytes_utilized % (utilization * 100.0) % (fragmentation * 100.0)
+    % (Num_blocks_freed * Num_block_bytes) 
+    % (Max_blocks_freed * Num_block_bytes) 
+    % (ext_fragmentation * 100.0)
     % Num_max_active_methods 
     % Num_hits % (100.0 * Num_hits / (Num_hits + Num_misses))
     % Num_misses % (100.0 * Num_misses / (Num_hits + Num_misses))
@@ -639,6 +658,8 @@ void lru_method_cache_t::reset_stats()
   Num_evictions_capacity = 0;
   Num_evictions_tag = 0;
   Num_stall_cycles = 0;
+  Num_blocks_freed = 0;
+  Max_blocks_freed = 0;
   Method_stats.clear();
   for(unsigned int j = Num_blocks - Num_active_methods; j < Num_blocks; j++)
   {
