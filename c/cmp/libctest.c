@@ -1,3 +1,4 @@
+const int NOC_MASTER = 0;
 #include <stdio.h>
 #include <stdlib.h>
 #include <machine/patmos.h>
