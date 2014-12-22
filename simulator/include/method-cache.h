@@ -103,7 +103,7 @@ namespace patmos
     /// @param os The output stream to print to.
     /// @param symbols A mapping of addresses to symbols.
     virtual void print_stats(const simulator_t &s, std::ostream &os, 
-                             bool short_stats);
+                             const stats_options_t& options);
     
     virtual void reset_stats() {}
     
@@ -280,6 +280,12 @@ namespace patmos
     /// Number of bytes used in evicted methods.
     unsigned int Num_bytes_utilized;
     
+    /// Total Number of blocks evicted but not immediately allocated.
+    unsigned int Num_blocks_freed;
+    
+    /// Maximum number of blocks evicted but not immediately allocated.
+    unsigned int Max_blocks_freed;
+    
     /// Cache statistics of individual method.
     method_stats_t Method_stats;
 
@@ -297,9 +303,15 @@ namespace patmos
 
     void update_utilization_stats(method_info_t &method, uword_t utilized_bytes);
 
+    enum eviction_type_e { EVICT_CAPACITY, EVICT_TAG, EVICT_FLUSH };
+    
     /// Evict a given method, updating the cache state, and various statics.
+    /// Also updates the utilization stats.
     /// @param method The method to be evicted.
-    void evict(method_info_t &method);
+    /// @param new_method the address of the new method causing the eviction
+    /// @param capacity_miss true if the method is evicted due to a capacity miss
+    void update_evict_stats(method_info_t &method, uword_t new_method, 
+                                 eviction_type_e type);
 
     bool read_function_size(simulator_t &s, word_t function_base, uword_t *result_size);
 
@@ -359,7 +371,7 @@ namespace patmos
     /// @param os The output stream to print to.
     /// @param symbols A mapping of addresses to symbols.
     virtual void print_stats(const simulator_t &s, std::ostream &os, 
-                             bool short_stats);
+                             const stats_options_t& options);
 
     virtual void reset_stats();
     

@@ -105,7 +105,7 @@ bool no_instr_cache_t::is_available(simulator_t &s, word_t address)
 
 
 void no_instr_cache_t::print_stats(const simulator_t &s, std::ostream &os, 
-                                   bool short_stats)
+                                   const stats_options_t& options)
 {
   uint64_t total = Num_hits + Num_all_miss + Num_first_miss + Num_succ_miss;
   

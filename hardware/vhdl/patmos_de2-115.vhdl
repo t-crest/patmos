@@ -75,8 +75,9 @@ architecture rtl of patmos_top is
 
 	-- DE2-70: 50 MHz clock => 80 MHz
 	-- BeMicro: 16 MHz clock => 25.6 MHz
-	constant pll_mult : natural := 8;
-	constant pll_div  : natural := 5;
+	constant pll_infreq : real    := 50.0;
+	constant pll_mult   : natural := 8;
+	constant pll_div    : natural := 5;
 
 	signal clk_int : std_logic;
 
@@ -94,6 +95,7 @@ architecture rtl of patmos_top is
 
 begin
 	pll_inst : entity work.pll generic map(
+			input_freq  => pll_infreq,
 			multiply_by => pll_mult,
 			divide_by   => pll_div
 		)

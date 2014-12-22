@@ -160,7 +160,8 @@ namespace patmos
   }
 
 
-  std::ostream &profiling_t::print(std::ostream &os, symbol_map_t &sym) const
+  std::ostream &profiling_t::print(std::ostream &os, symbol_map_t &sym,
+                                   const stats_options_t& options) const
   {
     uint64_t total = cycles_map.at(entry).total;
 

@@ -621,7 +621,7 @@ void block_stack_cache_t::print(std::ostream &os) const
 }
 
 void block_stack_cache_t::print_stats(const simulator_t &s, std::ostream &os, 
-                                      bool short_stats)
+                                      const stats_options_t& options)
 {
   unsigned int bytes_transferred = Num_blocks_filled * Num_block_bytes +
                                    Num_blocks_spilled * Num_block_bytes;
@@ -804,10 +804,10 @@ bool block_aligned_stack_cache_t::free(simulator_t &s, uword_t size,
 
 void block_aligned_stack_cache_t::print_stats(const simulator_t &s, 
                                               std::ostream &os, 
-                                              bool short_stats)
+                                              const stats_options_t& options)
 {
   // print generic stack cache statistics
-  block_stack_cache_t::print_stats(s, os, short_stats);
+  block_stack_cache_t::print_stats(s, os, options);
 
   // print stack cache statistics related to lazy pointer
   os << boost::format("   Align trans. (spill): %1$10d  %2$10d\n"
@@ -997,10 +997,11 @@ void block_lazy_stack_cache_t::print(std::ostream &os) const
 }
 
 void block_lazy_stack_cache_t::print_stats(const simulator_t &s, 
-                                           std::ostream &os, bool short_stats)
+                                           std::ostream &os,
+                                           const stats_options_t& options)
 {
   // print generic stack cache statistics
-  block_stack_cache_t::print_stats(s, os, short_stats);
+  block_stack_cache_t::print_stats(s, os, options);
  
   // print stack cache statistics related to lazy pointer
   os << boost::format("   Blocks Not Spilled  : %1$10d  %2$10d\n")

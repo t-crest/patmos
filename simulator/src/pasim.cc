@@ -36,6 +36,7 @@
 
 #include "command-line.h"
 #include "loader.h"
+#include "dbgstack.h"
 #include "data-cache.h"
 #include "instruction.h"
 #include "method-cache.h"
@@ -309,6 +310,7 @@ int main(int argc, char **argv)
     ("stats-file,o", boost::program_options::value<std::string>()->default_value(""), "write statistics to a file (stdout: -)")
     ("print-stats", boost::program_options::value<patmos::address_t>(), "print statistics for a given function only.")
     ("flush-caches", boost::program_options::value<patmos::address_t>(), "flush all caches when reaching the given address (can be a symbol name).")
+    ("hitmiss-stats", "Print hit/miss cache accesses (requires '--full')")
     ("full,V", "full statistics output")
     ("verbose,v", "enable short statistics output");
 
@@ -500,6 +502,7 @@ int main(int argc, char **argv)
   bool randomize_mem = vm["mem-rand"].as<unsigned int>() > 0;
   patmos::mem_check_e chkreads = vm["chkreads"].as<patmos::mem_check_e>();
   
+  bool hitmiss_stats = (vm.count("hitmiss-stats") != 0);
   bool long_stats = (vm.count("full") != 0);
   bool verbose = (vm.count("verbose") != 0) || long_stats;
 
@@ -572,6 +575,13 @@ int main(int argc, char **argv)
 
     patmos::simulator_t s(gm, mm, dc, ic, sc, sym, excunit);
 
+    // setup statistics printing
+    patmos::stats_options_t &stats_options = s.Dbg_stack.get_stats_options();
+    stats_options.short_stats = !long_stats;
+    stats_options.instruction_stats = long_stats;
+    stats_options.profiling_stats = long_stats;
+    stats_options.hitmiss_stats = hitmiss_stats;
+    
     // set up timer device
     patmos::rtc_t rtc(s, mmbase+timer_offset, freq);
     rtc.enable_debug(debug_intrs);
@@ -663,7 +673,7 @@ int main(int argc, char **argv)
     
     if (success) {
       if (verbose && !print_stats) {
-        s.print_stats(*sout, !long_stats, long_stats);
+        s.print_stats(*sout);
       }
       if (verbose) {
         *sout << "Pasim options:\n  ";
