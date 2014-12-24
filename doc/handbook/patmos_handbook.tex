@@ -3056,12 +3056,12 @@ and concrete implementation experiments with Chisel. All size and frequency
 numbers are from the Chisel implementation. A comparison between VHDL
 and Chisel would be of great interest.
 
-LoC, excluding the copyright header at 6.4.2013:
-Chisel: 996
-VHDL: 3020
+For a comparison between Chisel and VHDL we take a snapshot when both
+versions where about at the same functionality: LoC, excluding the copyright
+header at 6.4.2013: Chisel: 996 VHDL: 3020. However, the VHDL code was
+written quite verbatim and more usage of \code{record} would probably result
+in about 2000 L0C. Still Chisel is more compact and probably easier readable.
 
-The current version of Patmos uses Chisel version 1.0.8, but we will soon
-migrate ti Chisel 2.x.
 
 \section{Component Organization and Pipeline Structure}
 
@@ -3121,12 +3121,15 @@ ALU pipeline (forwarding). Is dual issue configurable?}
 \section{ALU Discussion}
 
 The large multiplexers and the forwarding limit the maximum frequency.
-We have already removed the expensive rotate instructions. Maybe more
-can go (e.g. \code{abs}).
+We have already removed the expensive rotate instructions and the
+\code{abs} instruction.
 
 Current version (4.4.2013) with all ALU operations and test case ALU.s
 for the DE2-70 is: 3415 LCs, 85.44 MHz. Dropping \code{rsub} and all unary
 ALU operations: 3173 LCs, 91.91 MHz.
+
+\todo{This should be updated. Maybe even with some statistics how the size
+(and performance ?) changed over time.}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
