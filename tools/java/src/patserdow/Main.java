@@ -210,7 +210,12 @@ public class Main {
 
             if (verbose) {
                 msg_stream.println();
+            }
 
+            // Make sure everything is sent
+            transmitter.finish();
+
+            if (verbose) {
                 if (out_stream instanceof CompressionOutputStream) {
                     CompressionOutputStream compressionStream =
                         (CompressionOutputStream)out_stream;
@@ -222,10 +227,6 @@ public class Main {
                                        "(" +  ((codeSize * 100) / textSize) + "%)");
                 }
             }
-
-            // Make sure everything is sent
-            transmitter.finish();
-
 
             // Write data to target in separate thread
             new InputThread(host_in_stream, out_stream).start();
