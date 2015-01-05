@@ -19,7 +19,7 @@ CFLAGS-BOOTABLE?=-target patmos-unknown-unknown-elf -Os \
 LDFLAGS-BOOTABLE?= \
 	-mpatmos-stack-base=0x80010800 -mpatmos-shadow-stack-base=0x80010700 \
 	-nodefaultlibs -nostdlib -nostartfiles \
-	-Xgold --section-start -Xgold .text=0x0 -e main \
+	-Xgold --section-start -Xgold .text=0x0 -e _start \
 	-Xgold --section-start -Xgold .rodata=0x80000010 \
 	-Xgold --section-start -Xgold .data=0x80010000 \
 	-Xllc -mpatmos-subfunction-align=0 \
