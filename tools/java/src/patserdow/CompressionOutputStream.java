@@ -187,6 +187,10 @@ public class CompressionOutputStream extends FilterOutputStream
     }
 
     private void encode() throws IOException {
+        /* nothing to encode really */
+        if (currLen == 0) {
+            return;
+        }
         /* match_length may be spuriously long near the end of text. */
         if (matchLength > currLen) {
             matchLength = currLen;
