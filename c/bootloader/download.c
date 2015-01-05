@@ -152,24 +152,26 @@ entrypoint_t download(void) {
           }
           //Write to main memory
           *(MEM+(section_offset+section_byte_count-1)/4) = integer;
-            
-          if (section_byte_count == section_filesize) {
-            // Align to next word boundary
-            section_byte_count = (section_byte_count + 3) & ~3;
-            // Fill up uninitialized areas with zeros
-            while (section_byte_count < section_memsize) {
-              if ((section_offset+section_byte_count) >> 16 == 0x01) {
-                *(SPM+(section_offset+section_byte_count)/4) = 0;
-              }
-              *(MEM+(section_offset+section_byte_count)/4) = 0;
-              section_byte_count += 4;
-            }
-            // Values for next segment
-            section_byte_count = 0;
-            section_count++;
-            current_state = STATE_SECTION_FILESIZE;
-          }
         }
+
+        if (current_state == STATE_SECTION_DATA &&
+            section_byte_count == section_filesize) {
+          // Align to next word boundary
+          section_byte_count = (section_byte_count + 3) & ~3;
+          // Fill up uninitialized areas with zeros
+          while (section_byte_count < section_memsize) {
+            if ((section_offset+section_byte_count) >> 16 == 0x01) {
+              *(SPM+(section_offset+section_byte_count)/4) = 0;
+            }
+            *(MEM+(section_offset+section_byte_count)/4) = 0;
+            section_byte_count += 4;
+          }
+          // Values for next segment
+          section_byte_count = 0;
+          section_count++;
+          current_state = STATE_SECTION_FILESIZE;
+        }
+
         if (section_byte_count%4 == 0) {
           integer = 0;
         }
