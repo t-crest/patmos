@@ -30,6 +30,9 @@
    policies, either expressed or implied, of the copyright holder.
  */
 
+/** \addtogroup libmp
+ *  @{
+ */
 
 /**
  * \file mp.h Definitions for libmp.
@@ -39,8 +42,7 @@
  * \brief Message passing library for the T-CREST platform
  *
  * It is up to the programmer to allocate buffering space in the communication
- * scratch pads. The allocation is specified in the mp_send_init() and
- * mp_recv_init() functions.
+ * scratch pads. The allocation is done by calling the function mp_chan_init().
  *
  * The size of the message passing buffer structure in the commuincation
  * scratch pads are:
@@ -51,9 +53,6 @@
  * Receiver side:
  *       num_buf * (buf_size + FLAG_SIZE) + sizeof(remote_recv_count)
  *                                                       (Aligned to DW)
- *
- * The local and remote addresses set in mp_send_init() and mp_recv_init()
- * have to be choosen such that they do not overlap.
  *
  */
 
@@ -115,8 +114,6 @@ static inline unsigned dw_align(unsigned x){
  * defined in a way that is can be changed
  */
 #define NUM_WRITE_BUF 2
-
-#define BARRIER_CORES 9
 
 typedef unsigned coreid_t;
 
@@ -326,3 +323,5 @@ static void mp_barrier_int(communicator_t* comm, unsigned index);
 void mp_broadcast(communicator_t* comm, coreid_t root);
 
 #endif /* _MP_H_ */
+
+/** @}*/

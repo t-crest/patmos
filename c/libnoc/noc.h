@@ -30,6 +30,10 @@
    policies, either expressed or implied, of the copyright holder.
  */
 
+/** \addtogroup libnoc
+ *  @{
+ */
+
 /**
  * \file noc.h Definitions for libnoc.
  * 
@@ -211,3 +215,4 @@ void noc_wait_dma(coreset_t receivers);
 #define NOC_SPM_BASE    ((volatile int _SPM   *)0xE8000000)
 
 #endif /* _NOC_H_ */
+/** @}*/

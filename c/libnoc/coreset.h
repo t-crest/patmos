@@ -30,6 +30,10 @@
    policies, either expressed or implied, of the copyright holder.
  */
 
+/** \addtogroup coreset
+ *  @{
+ */
+
 /**
  * \file coreset.h Definitions for sets of cores as used by libnoc.
  * 
@@ -150,3 +154,4 @@ static inline int coreset_empty(const coreset_t* set) {
 #endif
 
 #endif /* _CORESET_H_ */
+/** @}*/
