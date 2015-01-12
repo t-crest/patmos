@@ -30,6 +30,9 @@
    policies, either expressed or implied, of the copyright holder.
  */
 
+/** \addtogroup libcorethread
+ *  @{
+ */
 
 /**
  * \file corethread.h Definitions for libcorethread.
@@ -47,6 +50,7 @@
 #include <stdlib.h>
 #include <machine/rtc.h>
 #include "bootloader/cmpboot.h"
+
 
 #define EAGAIN 1
 #define EINVAL 2
@@ -67,19 +71,23 @@ typedef size_t corethread_t;
 // Functions for initializing the corethreads
 ////////////////////////////////////////////////////////////////////////////
 
-/// \brief Make the slave cores wait for a corethread to be started on that
-/// core.
+/// \brief A contructor that makes the slave cores wait for a corethread to
+/// be created on that core and the master core continue to execute main().
 static void corethread_worker(void) __attribute__ ((constructor(110)));
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for creating and destroying corethreads
 ////////////////////////////////////////////////////////////////////////////
 
-/// \brief corethread creation
+/// \brief Creates a corethread on the core with the COREID equal to the
+/// id specified by thread
 ///
-/// \param mpd_ptr
-/// \param start_routine
-/// \param arg
+/// \param thread A pointer to the corethread_t specifying the thread to
+/// start
+/// \param start_routine A function pointer to the function that the created
+/// thread should start executing
+/// \param arg A pointer to the argument to pass to the start_routine
+/// function
 ///
 /// \retval 0 The thread was created
 /// \retval EAGAIN The corethread is already allocated 
@@ -89,15 +97,18 @@ static void corethread_worker(void) __attribute__ ((constructor(110)));
 int corethread_create(corethread_t *thread, void (*start_routine)(void*),
                                                                     void *arg);
 
-/// \brief corethread termination
+/// \brief The last function to be called by a terminating thread
 /// 
 /// The running corethread terminates with the given returnvalue
-/// \param retval_ptr
+/// \param retval A pointer to the return value that the calling
+/// thread shall return.
 void corethread_exit(void *retval);
 
-/// \brief wait for corethread termination
-/// \param mpd_ptr
-/// \param retcal_ptr
+/// \brief The caller waits for the corethread, specified by thread, to
+/// write a return value and terminate exection.
+/// \param thread The thread struct belonging to the terminating corethread.
+/// \param retval A pointer to the pointer that is to point to the return
+/// value of the terminating thread.
 ///
 /// \retval 0 The specified thread was joined.
 /// \retval EINVAL The given corethread can not be joined.
@@ -107,3 +118,5 @@ void corethread_exit(void *retval);
 int corethread_join(corethread_t thread, void **retval);
 
 #endif /* _CORETHREAD_H_ */
+
+/** @}*/
