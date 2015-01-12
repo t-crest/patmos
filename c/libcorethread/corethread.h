@@ -81,7 +81,7 @@ static void corethread_worker(void) __attribute__ ((constructor(110)));
 /// \param start_routine
 /// \param arg
 ///
-/// \retval 0 the function call was successful
+/// \retval 0 The thread was created
 /// \retval EAGAIN The corethread is already allocated 
 /// \retval EINVAL The attribute value is invalid 
 /// \retval EPERM The caller does not have appropriate permissions the set
@@ -99,6 +99,7 @@ void corethread_exit(void *retval);
 /// \param mpd_ptr
 /// \param retcal_ptr
 ///
+/// \retval 0 The specified thread was joined.
 /// \retval EINVAL The given corethread can not be joined.
 /// \retval ESRCH  No corethread exist with the specified corethread ID.
 /// \retval EDEADLK A deadlock was detected or the specified corethread is
