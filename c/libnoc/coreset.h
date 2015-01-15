@@ -39,6 +39,7 @@
  * 
  * \author Wolfgang Puffitsch <wpuffitsch@gmail.com>
  *
+ * \brief Functions to manipulate sets of cores.
  */
 
 #ifndef _CORESET_H_
@@ -51,31 +52,40 @@
 #define CORESET_SIZE 32
 #endif
 
-#if CORESET_SIZE > 32
-
+/// \cond PRIVATE
 typedef unsigned long int __core_mask;
 #define __ELEMBITS (8 * sizeof (__core_mask))
 #define __ELEMCNT  ((CORESET_SIZE) / __ELEMBITS)
+/// \endcond
 
-/// \brief A type to describe a set of cores.
+#if CORESET_SIZE > 32 /* CORESET_SIZE > __ELEMBITS */
+
+/// \brief An opaque type to describe a set of cores.
 typedef struct {
+  /// \cond PRIVATE
   __core_mask __bits[__ELEMCNT];
+  /// \endcond
 } coreset_t;
 
 /// \brief Remove all cores from the set.
+///
 /// \param set A set of cores.
 static inline void coreset_clearall(coreset_t *set) {
   for (unsigned i = 0; i < __ELEMCNT; i++) {
     set->__bits[i] = 0;
   }
 }
+
 /// \brief Add a core to the set.
+///
 /// \param core A core number.
 /// \param set A set of cores.
 static inline void coreset_add(unsigned core, coreset_t *set) {
   set->__bits[core / __ELEMBITS] |= (1 << (core % __ELEMBITS));
 }
+
 /// \brief Remove a core from the set.
+///
 /// \param core A core number.
 /// \param set A set of cores.
 static inline void coreset_remove(unsigned core, coreset_t *set) {
@@ -83,6 +93,7 @@ static inline void coreset_remove(unsigned core, coreset_t *set) {
 }
 
 /// \brief Determins whether the set contains the core.
+///
 /// \param core A core number.
 /// \param set A set of cores.
 /// \returns Non-zero if a core is in the set, zero otherwise.
@@ -91,6 +102,7 @@ static inline int coreset_contains(unsigned core, const coreset_t *set) {
 }
 
 /// \brief Determins whether the set is empty.
+///
 /// \param set A set of cores.
 /// \returns Non-zero if the coreset is empty, zero otherwise.
 static inline int coreset_empty(const coreset_t* set) {
@@ -103,29 +115,32 @@ static inline int coreset_empty(const coreset_t* set) {
   return is_empty;
 }
 
-#elif CORESET_SIZE == 32
+#else
 
-typedef unsigned long int __core_mask;
-#define __ELEMBITS (8 * sizeof (__core_mask))
-#define __ELEMCNT  ((CORESET_SIZE) / __ELEMBITS)
-
-/// \brief A type to describe a set of cores.
+/// \brief An opaque type to describe a set of cores.
 typedef struct {
+  /// \cond PRIVATE
   __core_mask __bits;
+  /// \endcond
 } coreset_t;
 
 /// \brief Remove all cores from the set.
+///
 /// \param set A set of cores.
 static inline void coreset_clearall(coreset_t *set) {
   set->__bits = 0;
 }
+
 /// \brief Add a core to the set.
+///
 /// \param core A core number.
 /// \param set A set of cores.
 static inline void coreset_add(unsigned core, coreset_t *set) {
   set->__bits |= (1 << (core % __ELEMBITS));
 }
+
 /// \brief Remove a core from the set.
+///
 /// \param core A core number.
 /// \param set A set of cores.
 static inline void coreset_remove(unsigned core, coreset_t *set) {
@@ -133,6 +148,7 @@ static inline void coreset_remove(unsigned core, coreset_t *set) {
 }
 
 /// \brief Determins whether the set contains the core.
+///
 /// \param core A core number.
 /// \param set A set of cores.
 /// \returns Non-zero if a core is in the set, zero otherwise.
@@ -141,6 +157,7 @@ static inline int coreset_contains(unsigned core, const coreset_t *set) {
 }
 
 /// \brief Determins whether the set is empty.
+///
 /// \param set A set of cores.
 /// \returns Non-zero if the coreset is empty, zero otherwise.
 static inline int coreset_empty(const coreset_t* set) {

@@ -39,6 +39,7 @@
  * 
  * \author Wolfgang Puffitsch <wpuffitsch@gmail.com>
  *
+ * \brief Low-level NoC communication library for the T-CREST platform.
  */
 
 #ifndef _NOC_H_
@@ -52,16 +53,26 @@
 
 #ifdef DEBUG
 
-#define DEBUGGER(...)  if(get_cpuid() == NOC_MASTER) { \
-                        printf(__VA_ARGS__); \
-                     }
+/// \brief Print message if (a) DEBUG is defined and (b) executing on master core.
+#define DEBUGGER(...)                           \
+  do {                                          \
+    if (get_cpuid() == NOC_MASTER) {            \
+      printf(__VA_ARGS__);                      \
+    }                                           \
+  } while(0)
 
-#define DEBUG_CORECHECK(x) if(x) { \
-                              abort(); \
-                            }
+/// \brief Abort if (a) DEBUG is defined and (b) condition X evaluates to true.
+#define DEBUG_CORECHECK(X)                      \
+  do {                                          \
+    if(X) {                                     \
+      abort();                                  \
+    }                                           \
+  } while(0)
 
 #else
+/// \brief Print message if (a) DEBUG is defined and (b) executing on master core.
 #define DEBUGGER(...)
+/// \brief Abort if (a) DEBUG is defined and (b) condition is true.
 #define DEBUG_CORECHECK(x)
 #endif
 
@@ -118,7 +129,9 @@ static void noc_init(void) __attribute__((constructor(101),used));
 
 #ifdef NOC_INIT
 // Pull in initializer, even if nothing else from the library is used
+/// \cond PRIVATE
 static const void * volatile __noc_include __attribute__((used)) = &noc_init;
+/// \endcond
 #endif
 
 
@@ -136,14 +149,16 @@ static const void * volatile __noc_include __attribute__((used)) = &noc_init;
 /// \param read_ptr The address in the sender's communication SPM, in
 /// double-words, relative to #NOC_SPM_BASE.
 /// \param size The size of data to be transferred, in double-words.
-/// \returns 1 if sending was successful, 0 otherwise.
+/// \retval 1 Sending was successful.
+/// \retval 0 Otherwise.
 int noc_dma(unsigned rcv_id, unsigned short write_ptr,
             unsigned short read_ptr, unsigned short size);
 
 /// \brief Check if a NoC transfer has finished.
 ///
 /// \param rcv_id The core id of the receiver.
-/// \returns 1 if the transfer has finished, 0 otherwise.
+/// \retval 1 The transfer has finished.
+/// \retval 0 Otherwise.
 int noc_done(unsigned rcv_id);
 
 /// \brief Attempt to transfer data via the NoC (non-blocking).
@@ -153,7 +168,8 @@ int noc_done(unsigned rcv_id);
 /// \param dst A pointer to the destination of the transfer.
 /// \param src A pointer to the source of the transfer.
 /// \param size The size of data to be transferred, in bytes.
-/// \returns 1 if sending was successful, 0 otherwise.
+/// \retval 1 Sending was successful.
+/// \retval 0 Otherwise.
 int noc_nbsend(unsigned rcv_id, volatile void _SPM *dst,
                volatile void _SPM *src, size_t size);
 
@@ -179,17 +195,20 @@ void noc_multisend(unsigned cnt, unsigned rcv_id [], volatile void _SPM *dst [],
                    volatile void _SPM *src, size_t size);
 
 /// \brief Multi-cast transfer of data like #noc_multisend(), but with coreset
-/// and a single destination addr.
+/// and a single destination address.
 ///
 /// The addresses and the size are absolute and in bytes.
-/// \param cnt The number of receivers.
-/// \param rcv_id An array with the core ids of the receivers.
+/// \param receivers The set of receivers.
 /// \param dst An array with pointers to the destinations of the transfer.
+/// \param offset Common offset for the destination addresses.
 /// \param src A pointer to the source of the transfer.
 /// \param size The size of data to be transferred, in bytes.
 void noc_multisend_cs(coreset_t *receivers, volatile void _SPM *dst[],
-                     unsigned offset, volatile void _SPM *src, unsigned len);
+                      unsigned offset, volatile void _SPM *src, size_t size);
 
+/// \brief Wait until all transfers to a set of receivers have finished.
+///
+/// \param receivers The set of receivers.
 void noc_wait_dma(coreset_t receivers);
 
 ////////////////////////////////////////////////////////////////////////////
