@@ -45,6 +45,9 @@
 // Functions for library initialization and memory management
 ////////////////////////////////////////////////////////////////////////////
 
+// This array is only used by mp_alloc, it should not be cached.
+static volatile unsigned* _UNCACHED spm_alloc_array[MAX_CORES];
+
 static void mp_init() {
   // Initializing the array of pointers to the beginning of the SPMs
   for (int i = 0; i < MAX_CORES; ++i) {
@@ -319,34 +322,12 @@ void mp_ack(mpd_t* mpd_ptr){
 // Functions for collective behaviour
 ////////////////////////////////////////////////////////////////////////////
 
-void mp_barrier(communicator_t* comm){
-  //if(coreset_contains(get_cpuid(),&comm->barrier_set) == 0) {
-  //  if(get_cpuid() == 0) {
-  //    printf("mp_barrier(): Bad barrier call!!");
-  //  }
-  //}
-  //DEBUG_CORECHECK(coreset_contains(get_cpuid(),&comm->barrier_set) != 0);
-  // Something bad happens if mp_barrier() is called by a core
-  // that is not in the communicator.
-  unsigned index = 0;
-  unsigned cpuid = get_cpuid();
-  coreset_t barrier_set = comm->barrier_set;
-  for (unsigned i = 0; i < get_cpucnt(); ++i) {
-    if(coreset_contains(i,&barrier_set) != 0 && i < cpuid) {
-      index++;
-    }
-  }
-  DEBUGGER("mp_barrier():\n\tIndex\t%d\n",index);
-  mp_barrier_int(comm,index);
-  return;
-}
-
 static void mp_barrier_int(communicator_t* comm, unsigned index){
   coreset_t barrier_set = comm->barrier_set;
   volatile void _SPM **addr_arr = (volatile void _SPM **)&comm->addr[0];
   unsigned local_addr = (unsigned)addr_arr[index];
   unsigned count = comm->count;
-  volatile BARRIER_T _SPM * addr = (volatile BARRIER_T _SPM *)(local_addr +
+  volatile barrier_t _SPM * addr = (volatile barrier_t _SPM *)(local_addr +
                                index*BARRIER_SIZE);
   unsigned phase;
   switch(*addr){
@@ -391,6 +372,28 @@ static void mp_barrier_int(communicator_t* comm, unsigned index){
     DEBUGGER("\tBarrier reached\n");
     
   }
+  return;
+}
+
+void mp_barrier(communicator_t* comm){
+  //if(coreset_contains(get_cpuid(),&comm->barrier_set) == 0) {
+  //  if(get_cpuid() == 0) {
+  //    printf("mp_barrier(): Bad barrier call!!");
+  //  }
+  //}
+  //DEBUG_CORECHECK(coreset_contains(get_cpuid(),&comm->barrier_set) != 0);
+  // Something bad happens if mp_barrier() is called by a core
+  // that is not in the communicator.
+  unsigned index = 0;
+  unsigned cpuid = get_cpuid();
+  coreset_t barrier_set = comm->barrier_set;
+  for (unsigned i = 0; i < get_cpucnt(); ++i) {
+    if(coreset_contains(i,&barrier_set) != 0 && i < cpuid) {
+      index++;
+    }
+  }
+  DEBUGGER("mp_barrier():\n\tIndex\t%d\n",index);
+  mp_barrier_int(comm,index);
   return;
 }
 

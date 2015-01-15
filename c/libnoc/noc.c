@@ -144,25 +144,25 @@ int noc_done(unsigned rcv_id) {
 // Attempt to transfer data via the NoC
 // The addresses and the size are in bytes
 int noc_nbsend(unsigned rcv_id, volatile void _SPM *dst,
-               volatile void _SPM *src, size_t len) {
+               volatile void _SPM *src, size_t size) {
 
   unsigned wp = (char *)dst - (char *)NOC_SPM_BASE;
   unsigned rp = (char *)src - (char *)NOC_SPM_BASE;
-  return noc_dma(rcv_id, DW(wp), DW(rp), DW(len));
+  return noc_dma(rcv_id, DW(wp), DW(rp), DW(size));
 }
 
 // Transfer data via the NoC
 // The addresses and the size are in bytes
 void noc_send(unsigned rcv_id, volatile void _SPM *dst,
-              volatile void _SPM *src, size_t len) {
+              volatile void _SPM *src, size_t size) {
   _Pragma("loopbound min 1 max 1")
-  while(!noc_nbsend(rcv_id, dst, src, len));
+  while(!noc_nbsend(rcv_id, dst, src, size));
 }
 
 // Multicast transfer of data via the NoC
 // The addresses and the size are in bytes
 void noc_multisend(unsigned cnt, unsigned rcv_id [], volatile void _SPM *dst [],
-              volatile void _SPM *src, size_t len) {
+              volatile void _SPM *src, size_t size) {
 
   int done;
   coreset_t sent;
@@ -171,7 +171,7 @@ void noc_multisend(unsigned cnt, unsigned rcv_id [], volatile void _SPM *dst [],
     done = 1;
     for (unsigned i = 0; i < cnt; i++) {
       if (!coreset_contains(rcv_id[i], &sent)) {
-        if (noc_nbsend(rcv_id[i], dst[i], src, len)) {
+        if (noc_nbsend(rcv_id[i], dst[i], src, size)) {
           coreset_add(rcv_id[i], &sent);
         } else {
           done = 0;
@@ -186,14 +186,14 @@ void noc_multisend(unsigned cnt, unsigned rcv_id [], volatile void _SPM *dst [],
 // The receivers are defined in a coreset
 // the coreset must not contain the calling core.
 void noc_multisend_cs(coreset_t *receivers, volatile void _SPM *dst[],
-                                unsigned offset, volatile void _SPM *src, unsigned len) {
+                      unsigned offset, volatile void _SPM *src, size_t size) {
   int index = 0;
   unsigned cpuid = get_cpuid();
 //  for (unsigned i = 0; i < CORESET_SIZE; ++i) {
   for (unsigned i = 0; i < NOC_CORES; ++i) {
     if (coreset_contains(i,receivers)){
       if (i != cpuid) {
-        noc_send(i, (volatile void _SPM *)((unsigned)dst[index]+offset), src, len);
+        noc_send(i, (volatile void _SPM *)((unsigned)dst[index]+offset), src, size);
       }
       //DEBUGGER("Transmission address: %x+%x at core %i\n",(unsigned)dst[index],offset,i);
       index++;
@@ -201,7 +201,7 @@ void noc_multisend_cs(coreset_t *receivers, volatile void _SPM *dst[],
   }
 }
 //void noc_multisend_cs(coreset_t receivers, volatile void _SPM *dst[],
-//                                unsigned offset, volatile void _SPM *src, unsigned len) {
+//                                unsigned offset, volatile void _SPM *src, size_t size) {
 //  int index;
 //  int done;
 //  coreset_t sent;
@@ -212,7 +212,7 @@ void noc_multisend_cs(coreset_t *receivers, volatile void _SPM *dst[],
 //    for(unsigned i = 0; i < CORESET_SIZE; i++) {
 //      if(coreset_contains(i,&receivers) != 0) {
 //        if(i != get_cpuid() && coreset_contains(i,&sent) == 0) {
-//          if(noc_nbsend(i, (volatile void _SPM *)((unsigned)dst[index]+offset), src, len)) {
+//          if(noc_nbsend(i, (volatile void _SPM *)((unsigned)dst[index]+offset), src, size)) {
 //            coreset_add(i,&sent);
 //            DEBUGGER("Transmission address: %x+%x at core %i\n",(unsigned)dst[index],offset,i);
 //          }

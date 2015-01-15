@@ -68,53 +68,49 @@
 #include "libnoc/coreset.h"
 #include "bootloader/cmpboot.h"
 
-/*! \def DWALIGN
- * Alignes X to double word size
- */
-
-#define DWALIGN(X) dw_align(X)
-
-static inline unsigned dw_align(unsigned x){
-  if ((x & 7) != 0) {
-    x = ((x>>3)+1)<<3;
-  }
-  return x;
-}
-
+/// \brief Aligns X to double word size
+#define DWALIGN(X) (((X)+0x7) & ~0x7)
 
 /*! \def FLAG_SIZE
- * The size of the flag used to detect completion of a received message.
+ * \brief The size of the flag used to detect completion of a received message.
+ *
  * This flag is placed at the end of the message to be send.
  * The flag size is aligned to double words.
  */
-#define FLAG_SIZE DWALIGN(8)
+#define FLAG_SIZE DWALIGN(sizeof(unsigned int))
 
+/// \cond PRIVATE
 // Possible Flag types
-#define FLAG_VALID 0xFFFFFFFF
+#define FLAG_VALID   0xFFFFFFFF
 #define FLAG_INVALID 0x00000000
+/// \endcond
 
+/// \brief The type of the synchronization flag of a barrier.
+typedef unsigned long long barrier_t;
+
+/// \cond PRIVATE
 // Possible Barrier states
-#define BARRIER_T unsigned long long
-#define BARRIER_INITIALIZED (BARRIER_T)0x0000000000000000
-#define BARRIER_PHASE_0 (BARRIER_T)0x0000000000000000
-#define BARRIER_PHASE_1 (BARRIER_T)0x00000000FFFFFFFF
-#define BARRIER_PHASE_2 (BARRIER_T)0xFFFFFFFFFFFFFFFF
-#define BARRIER_PHASE_3 (BARRIER_T)0xFFFFFFFF00000000
+#define BARRIER_INITIALIZED (barrier_t)0x0000000000000000
+#define BARRIER_PHASE_0 (barrier_t)0x0000000000000000
+#define BARRIER_PHASE_1 (barrier_t)0x00000000FFFFFFFF
+#define BARRIER_PHASE_2 (barrier_t)0xFFFFFFFFFFFFFFFF
+#define BARRIER_PHASE_3 (barrier_t)0xFFFFFFFF00000000
 
 #define BARRIER_REACHED 0xFFFFFFFF
+/// \endcond
 
+/// \brief The size of the barrier flag for each core.
+#define BARRIER_SIZE DWALIGN(sizeof(barrier_t))
 
- /*! \def BARRIER_SIZE
- * The size of the barrier flag for each core.
- */
-#define BARRIER_SIZE DWALIGN(sizeof(BARRIER_T))
-
+/// \cond PRIVATE
 /*! \def NUM_WRITE_BUF
  * DO NOT CHANGE! The number of write pointers is not 
  * defined in a way that is can be changed
  */
 #define NUM_WRITE_BUF 2
+/// \endcond
 
+/// \brief A type to identify a core.
 typedef unsigned coreid_t;
 
 ////////////////////////////////////////////////////////////////////////////
@@ -176,13 +172,13 @@ typedef struct {
 } communicator_t __attribute__((aligned(16)));
 
 
-// This array is only used by mp_alloc, it should not be cached.
-static volatile unsigned* _UNCACHED spm_alloc_array[MAX_CORES];
-
 ////////////////////////////////////////////////////////////////////////////
 // Functions for memory management in the communication SPM
 ////////////////////////////////////////////////////////////////////////////
 
+/// \brief Initialize message passing library.
+///
+/// #mp_init is a static constructor and not intended to be called directly.
 static void mp_init(void) __attribute__((constructor(120),used));
 
 /// \brief A function for returning the amount of data that the channel is
@@ -316,7 +312,6 @@ void mp_ack(mpd_t* mpd_ptr);
 ///
 /// \param comm A pointer to a communicator structure.
 void mp_barrier(communicator_t* comm);
-static void mp_barrier_int(communicator_t* comm, unsigned index);
 
 /// \brief A function for broadcasting a message to all members of
 /// a communicator

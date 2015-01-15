@@ -4,6 +4,7 @@ handbook:
 	make -C handbook all
 noc:
 	make -C noc all
+
 source: doxygen c_doc.pdf
 
 doxygen:
@@ -14,6 +15,5 @@ latexdoc:
 
 c_doc.pdf: latexdoc
 	cp c_doc/latex/refman.pdf c_doc.pdf
-
 
 .PHONY: handbook noc libcorethread libnoc libmp

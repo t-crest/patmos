@@ -52,18 +52,26 @@
 #include "bootloader/cmpboot.h"
 
 
+/// \brief Resource unavailable.
 #define EAGAIN 1
+/// \brief Invalid argument.
 #define EINVAL 2
+/// \brief Operation not permitted.
 #define EPERM 3
+/// \brief No such resource.
 #define ESRCH 4
+/// \brief Resource deadlock avoided.
 #define EDEADLK 5
 
+/// \brief The master core, which governs booting and startup synchronization.
 extern const int NOC_MASTER;
 
 ////////////////////////////////////////////////////////////////////////////
 // Data structures for storing state information
 // of the corethreads
 ////////////////////////////////////////////////////////////////////////////
+
+/// \brief An type to describe a corethread.
 typedef size_t corethread_t;
 
 
