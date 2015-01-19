@@ -3136,7 +3136,7 @@ ALU operations: 3173 LCs, 91.91 MHz.
 \chapter{Build Instructions}
 \label{ch:build_instructions}
 
-In the following we present the Patmos build instructions on a 64-bit Linux/Ubuntu
+In the following we present the Patmos build instructions on a 32-bit Linux/Ubuntu
 system (14.04 LTS).%\footnote{I used the 32-bit version of Ubuntu to simplify the Quartus installation.}
 The installation instructions might also be valid on different Ubuntu versions.
 Patmos and the compiler have also been successfully installed on a Mac OSX
@@ -3223,15 +3223,6 @@ sudo rm /bin/sh
 sudo ln -s /bin/bash /bin/sh
 \end{verbatim}
 
-\paragraph{Ubuntu 12.04 LTS}
-
-We also tested the setup on long-term support release 12.04 LTS. The compiler
-(gcc) is recent enough for all T-CREST code. Only some additional packages need to
-be installed:
-
-\begin{verbatim}
-sudo apt-get install python3-lxml
-\end{verbatim}
 
 \subsection{Building Patmos and the Compiler Tool Chain}
 \label{sec:build:compiler}
@@ -3310,7 +3301,9 @@ git config --global user.email "joe.someone@domain.com"
 
 \subsection{Quartus}
 
-Download the free web edition of Quartus from Altera. The Linux version is
+Download the free web edition of Quartus from Altera.\footnote{For a 32-bit Linux you need to
+use Quartus 13.x as 32-bit support has been dropped from Quartus 14.x.}
+The Linux version is
 installed as follows:\footnote{\url{http://www.altera.com/literature/manual/quartus_install.pdf}}
 
 \begin{verbatim}
@@ -3330,13 +3323,30 @@ For access to the serial port and access rights for the USB Blaster following ad
 \begin{verbatim}
 # Add user to dialout group for the serial port access
 sudo usermod -a -G dialout user
+\end{verbatim}
 
-# Add permissions to access the Altera USB Blaster
-sudo su -
-echo "SUBSYSTEM==\"usb\", DRIVER==\"usb\", ATTR{idVendor}==\"09fb\", \
-ATTR{idProduct}==\"6001\", MODE=\"0666\"" > /etc/udev/rules.d/51-usbblaster.rules
+Add permissions to access the Altera USB Blaster by creating or editing \code{/etc/udev/rules.d/51-usbblaster.rules}:
+%sudo su -
+%echo "SUBSYSTEM==\"usb\", DRIVER==\"usb\", ATTR{idVendor}==\"09fb\", \
+%ATTR{idProduct}==\"6001\", MODE=\"0666\"" > /etc/udev/rules.d/51-usbblaster.rules
 
-udevadm control --reload-rules
+\begin{verbatim}
+# From the 32-bit installation:
+SUBSYSTEM=="usb", DRIVER=="usb", ATTR{idVendor}=="09fb", ATTR{idProduct}=="6001", MODE="0666"
+
+# USB-Blaster
+BUS=="usb", SYSFS{idVendor}=="09fb", SYSFS{idProduct}=="6001", MODE="0666"
+BUS=="usb", SYSFS{idVendor}=="09fb", SYSFS{idProduct}=="6002", MODE="0666"
+BUS=="usb", SYSFS{idVendor}=="09fb", SYSFS{idProduct}=="6003", MODE="0666"
+
+# USB-Blaster II
+BUS=="usb", SYSFS{idVendor}=="09fb", SYSFS{idProduct}=="6010", MODE="0666"
+BUS=="usb", SYSFS{idVendor}=="09fb", SYSFS{idProduct}=="6810", MODE="0666"
+\end{verbatim}
+
+Reload the rules:
+\begin{verbatim}
+sudo udevadm control --reload-rules
 \end{verbatim}
 
 After fixing the permissions for the USB Blaster open Quartus and test if the
@@ -3353,7 +3363,7 @@ till Cyclone~V devices and might be the best option at the moment.
 Several tools are needed, best installed with MacPorts. For Patmos simulator and assembler:
 \code{boost}, \code{libelf}.
 For simulation with ModelSim: \code{wine}
-For Aegean: python33, py33-lxml. Make a link from python3 to python3.3 as this is the way it is invoked.
+For Aegean: \code{python33}, \code{py33-lxml}. Make a link from \code{python3} to \code{python3.3} as this is the way it is invoked.
 \todo{Alex suggested a way to avoid this by querying how to invoke python.}
 
 \section{Hello World}
