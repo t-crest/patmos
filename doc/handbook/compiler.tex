@@ -377,6 +377,251 @@ In addition to the platin tools, another command-line utility,
 optimisations based on timing-analysis feedback.
 \daniel{TBD}
 
+\subsection{The PML File Format}
+
+\code{platin} stores all internal information and configuration in \emph{Platin Metainformation Language} (PML) files.
+PML files are \emph{YAML} files that adhere to the PML schema. The schema file can be found in
+
+\begin{verbatim}
+patmos-llvm/tools/platin/lib/core/pml.yml
+\end{verbatim}
+
+\stefan{There is a tool to generate a HTML document out of it..}
+
+Many \code{platin} tools accept multiple PML input files. Multiple PML files can also be merged using
+the \code{pml} tool.
+
+\subsection{PML Architecture- and Tool Configuration}
+
+PML configuration files are used to set up tools such as the \code{pasim} or the
+\code{clang} compiler via the \code{tool-config} tool, and provides timing and cache information to the WCET analyses.
+
+Typically, the configuration is stored in a separate PML file that is passed to the \code{platin} tools as
+additional input file using the \code{-i} option. Sample configuration files can be found in
+
+\begin{verbatim}
+patmos-llvm/tools/platin/etc/
+\end{verbatim}
+\stefan{Maybe we will install those files somewhere along with the .rb files.}
+
+
+
+
+There are three configuration sections: 
+\begin{itemize}
+\item \code{machine-configuration}: The machine configuration defines memory size and timings, caches and memory areas.
+  If no machine configuration is present, a default configuration will be used.
+\item \code{tool-configurations}: This section contains additional tool configurations and options.
+\item \code{analysis-configurations}: The analysis section sets up one or more WCET analyses. This section is currently work in progress.
+\end{itemize}
+
+\paragraph{The \code{machine-configuration} Section}
+
+
+% TODO make this a figure or something. Maybe shorten?
+\begin{verbatim}
+---
+format: pml-0.1
+triple: patmos-unknown-unknown-elf
+machine-configuration:
+  memories:
+    - name: "main"
+      size: 0x200000
+      transfer-size: 16
+      read-latency: 3
+      read-transfer-time: 4
+      write-latency: 3
+      write-transfer-time: 4
+    - name: "local"
+      size: 2048
+      transfer-size: 4
+      read-latency: 0
+      read-transfer-time: 0
+      write-latency: 0
+      write-transfer-time: 0
+  caches:
+    - name: "data-cache"
+      block-size: 16
+      associativity: 1
+      size: 2048
+      policy: "lru"
+      type: "set-associative"
+    - name: "method-cache"
+      block-size: 8
+      associativity: 16
+      size: 4096
+      policy: "fifo"
+      type: "method-cache"
+    - name: "stack-cache"
+      block-size: 4
+      size: 2048
+      type: "stack-cache"
+  memory-areas:
+    - name: "code"
+      type: "code"
+      memory: "main"
+      cache: "method-cache"
+      address-range:
+        min: 0
+        max: 0x200000
+    - name: "data"
+      type: "data"
+      memory: "main"
+      cache: "data-cache"
+      address-range:
+        min: 0
+        max: 0x200000
+      attributes:
+        - key: "heap-end"
+          value: 0x100000
+        - key: "stack-base"
+          value: 0x200000
+        - key: "shadow-stack-base"
+          value: 0x1f8000
+\end{verbatim}
+
+
+The machine configuration consists of three sections:
+\begin{itemize}
+\item \code{memories}: This section specifies the available memories and their timings. Each entry must define
+  the following properties of the memory:
+
+  \begin{itemize}
+  \item \code{name}: The (unique) name of the memory.
+  \item \code{size}: The size of the memory in bytes. Can be a hexadecimal value.
+  \item \code{transfer-size}: The size of a single beat in bytes.
+
+  \stefan{This should actually be more like the bus width and in bits, but this has historic reasons..}
+
+  \item \code{min-burst-size}: The minimum size of a single burst in bytes. Defaults to \code{transfer-size}.
+  \item \code{max-burst-size}: The maximum size of a single burst in bytes. Defaults to \code{min-burst-size}.
+  
+  \item \code{read-latency}: The latency per read \emph{request} in cycles.
+  \item \code{read-transfer-time}: The number of cycles to read a single beat of size \code{transfer-size}.
+  \item \code{write-latency}: The latency per write \emph{request} in cycles.
+  \item \code{write-transfer-time}: The number of cycles to write a single beat of size \code{transfer-size}.
+  \end{itemize}
+
+  The number of cycles for a single, \code{max-burst-size}-aligned read or write request of $B$ bytes is 
+  \[
+  t_{req} = \left\lceil \frac{\max(B, \texttt{min-burst-size})}{\texttt{max-burst-size}}\right\rceil \cdot \texttt{latency} +
+            \left\lceil \frac{\max(B, \texttt{min-burst-size})}{\texttt{transfer-size}}\right\rceil \cdot \texttt{transfer-time}
+  \]
+  For unaligned requests that span over a single burst, the transfer time can increase by up to $\texttt{latency} + \texttt{transfer-time}$.
+
+  \textbf{Ideal memory:} A memory is \emph{ideal}, if all latency and transfer time delays are set to zero.
+
+  \begin{framed}
+  \textbf{Patmos:} For a Patmos machine configuration, there must be exactly one memory named \texttt{main}. This memory configuration is used to setup
+    the global memory. If \texttt{main} does not exist, an ideal memory is assumed.
+
+    The memory configuration named \texttt{local} is used to setup the local scratchpad memory. Currently, the local memory must be
+    an ideal memory.
+
+    All other memory configurations are \emph{ignored}.
+  \end{framed}
+
+\item \code{caches}: This section defines all caches of the core. Each entry must define the following properties:
+  
+  \begin{itemize}
+  \item \code{name}: The (unique) name of the cache.
+  \item \code{type}: The cache type. Supported values are \code{set-associative}, \code{method-cache} and \code{stack-cache}.
+  \item \code{policy}: The replacement policy of the cache. Supported values are \code{ideal}, \code{lru} and
+    \code{fifo} for a method cache or a set-associative cache. For set-associative caches, the policy \code{dm} (direct
+    mapped) is also supported. For a stack cache, supported values are \code{ideal}, \code{block}, \code{lblock} and
+    \code{ablock}.
+    An ideal cache will always hit.
+  \item \code{associativity}: Defines the associativity of a \code{lru} or \code{fifo} set-associative cache, or the 
+    tag memory size for a method cache. Ignored for all other types of caches.
+  \item \code{size}: The size of the cache in bytes. Ignored for ideal caches.
+  \item \code{block-size}: The size of a cache line for set-associative caches, or the internal alignment of cache
+    blocks for stack caches and method caches, in bytes. If the block size of $4$ (or less) corresponds to a
+    variable-sized method cache. A block size of $\texttt{size}/\texttt{associativity}$ corresponds to a fixed-size
+    method cache.
+  \item \code{attributes}: A list of additional attributes as \code{key} and \code{value} pairs.
+  \end{itemize}
+
+  \begin{framed}
+  \textbf{Patmos:} Patmos supports the following three cache names: \code{data-cache}, \code{stack-cache} and 
+    \code{instr-cache}. All other caches are \emph{ignored}. 
+    
+    The \code{data-cache} must be a set-associative cache.
+    The \code{stack-cache} must be of type \code{stack-cache}. If a data cache but no stack cache is configured,
+    requests to the stack cache will be handled through the data cache.
+    The \code{instr-cache} must be either a set-associative cache or a method cache.
+
+    \emph{Attention:} If an ideal data cache is configured, all stores through the data cache also have a zero-cycle latency.
+    Bypass loads and stores only have a zero-cycle latency if the \code{main} memory is configured as ideal memory.
+  \end{framed}
+
+\item \code{memory-areas}: The memory areas set up a mapping of address ranges to memories
+  and define the caches that are used for those address ranges and access types. Each mapping must define the following
+  properties:
+
+  \begin{itemize}
+  \item \code{name}: The (unique) name of the cache.
+  \item \code{type}: The type of the contained data, must be one of \code{code} or \code{data}.
+  \item \code{cache}: The name of the cache that is used for this address range and type of data.
+  \item \code{memory}: The name of the memory of this address range is mapped to.
+  \item \code{address-range}: The start (inclusive) and the end (exclusive) of the address range as property \code{min} and \code{max}.
+    Defaults to $0$ to the size of the backing memory if omitted.
+  \item \code{address-space}: The name of the address space. Defaults to \code{global}.
+  \item \code{attributes}: A list of additional attributes as \code{key} and \code{value} pairs.
+  \end{itemize}
+  
+  \begin{framed}
+  \textbf{Patmos:} The address space must be either \code{global} or \code{local}. Local address space entries must not
+  use a cache, and must use an ideal memory.
+
+  Currently there may be at most one global data address space entry. It must use the \code{main} memory and the
+  \code{data-cache} if configured.
+
+  There may be at most one global code address space entry that refers to \code{main} memory. It must use the
+  \code{instr-cache} if configured. All other code memory areas must refer to an ideal memory without using a cache.
+
+  \stefan{How about the instruction scratchpad? May it have a non-zero latency? In this case we need to extend the
+  simulator.}
+  
+  The following attributes are supported: \code{heap-end} sets the heap end pointer, \code{stack-base} sets the stack
+  base pointer, and \code{shadow-stack-base} sets the shadow stack base pointer. Those attributes can be defined in
+  any memory area, but must be defined at most once.
+  \end{framed}
+
+\end{itemize}
+
+
+\paragraph{The \code{tool-configurations} Section}
+
+This section can be used to specify additional command line options or configuration values for various tools.
+
+\begin{verbatim}
+tool-configurations:
+  - name: "clang"
+    options: ["-mpatmos-disable-vliw"]
+\end{verbatim}
+
+The section contains a list of tool configurations, consisting of the following entries:
+\begin{itemize}
+\item \code{name} (required): The name of the tool to configure. Corresponds to \code{tool-config -t}. Currently supported
+  tools are \code{clang}, \code{pasim} and \code{ait}. 
+  % See the tool-config section .. if there would be anything interesting there.
+\item \code{options}: A list of command line options that should be passed to the tool when configured via \code{tool-config} or 
+  when called internally. Note that if you want to pass multiple options, the options must be specified as a YAML list, not as a 
+  single string, in order to be quoted correctly.
+\item \code{configuration}: A list of entries with \code{key} and \code{value}, specifying additional tool configuration values.
+  The names of the keys are tool dependent. 
+  Currently this is not used by any tool.
+\end{itemize}
+
+\paragraph{The \code{analysis-configurations} Section}
+
+The analysis configuration is intended to set up one or more WCET analysis variants, either for 
+multiple analysis targets, or for analysing with multiple scenarios or analysis configurations.
+For each named analysis, a program entry point, a (WCET) analysis entry point, as well as additional tool configurations
+per analysis can be specified.
+
+\emph{Attention:} This section is currently work in progress and is only used to configure clang, but not the WCET analyses.
+
 
 \subsection{Exporting PML Metainfo During Compilation}
 
