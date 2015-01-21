@@ -121,10 +121,34 @@ namespace patmos
     virtual void flush_cache() {}
   };
 
+  // Method cache access statistics. It counts the total number of hits, misses
+  // and hits that could have been obtained if a disposable method weren't
+  // immediately evicted after leaving the code region.
+  typedef struct{
+    // Number of hits.
+    unsigned int hits;
+    // Number of misses.
+    unsigned int misses;
+    // Number of misses due to the disposable method eviction semantic.
+    unsigned int avoidable_misses;
+  }access_stats_t;
+
+  // The method availability status in the cache.
+  typedef enum {
+    // The UNINIT status is relevant for the IDLE and SIZE method cache phases.
+    UNINIT         = 0,
+    // The disposable method is available in the cache.
+    AVAIL_DISP     = 1,
+    // The non-disposable method is available in the cache.
+    AVAIL_NON_DISP = 2,
+    // The method is unavailable in the cache regardless of being disposable
+    // or non-disposable.
+    UNAVAIL        = 3
+  }availability_status_t;
+
   /// Cache statistics for a particular method and return offset. Map offsets
   /// to number of cache hits/misses.
-  typedef std::map<word_t, std::pair<unsigned int, unsigned int> >
-                                                                 offset_stats_t;
+  typedef std::map<word_t, access_stats_t > offset_stats_t;
 
   // Cache statistics to keep track how often a given method was evicted by
   // other methods due to the limited cache capacity (first) or limited number
@@ -142,6 +166,9 @@ namespace patmos
     /// Number of blocks required for this method.
     unsigned int Num_blocks_allocated;
     
+    /// The disposable flag.
+    bool Is_disposable;
+
     /// Number of cache hits for the method.
     offset_stats_t Accesses;
 
@@ -156,7 +183,7 @@ namespace patmos
     
     /// Initialize the method statistics.
     method_stats_info_t() : Num_method_bytes(0), Num_blocks_allocated(0),
-      Min_utilization(std::numeric_limits<float>::max()), 
+      Is_disposable(false), Min_utilization(std::numeric_limits<float>::max()),
       Max_utilization(0)
     {
     }
@@ -193,12 +220,17 @@ namespace patmos
       /// The size of the method in bytes.
       uword_t Num_bytes;
 
+      // The disposable flag of the method. If this flag is set, the disposable
+      // method is immediately evicted from the method cache once another code
+      // region is accessed.
+      bool Is_disposable;
+
       std::vector<bool> Utilization;
       
       /// Construct a method lru info object. All data is initialized to zero.
       /// @param instructions Pointer to the method's instructions.
       method_info_t() 
-      : Address(0), Num_blocks(0), Num_bytes(0)
+      : Address(0), Num_blocks(0), Num_bytes(0), Is_disposable(0)
       {
       }
 
@@ -206,8 +238,9 @@ namespace patmos
       /// @param address The new address of the entry.
       /// @param num_blocks The number of blocks occupied in the method cache.
       /// @param num_bytes The number of valid instruction bytes of the method.
+      /// @param is_disposable The flag indicating whether the method is disposable.
       void update(uword_t address, uword_t num_blocks,
-                  uword_t num_bytes);
+                  uword_t num_bytes, bool  is_disposable);
       
       void reset_utilization();
       
@@ -235,8 +268,14 @@ namespace patmos
     /// Number of bytes of the currently pending transfer, if any.
     uword_t Num_method_size;
 
+    /// Disposable flag of a method while being transfered to cache.
+    bool Is_method_disposable;
+
     /// The methods in the cache sorted by age.
     method_info_t *Methods;
+
+    /// The index of the active method.
+    size_t Active_method;
 
     /// Cache buffer.
     byte_t *Cache;
@@ -267,11 +306,18 @@ namespace patmos
     /// Maximum number of methods allocated in the cache.
     unsigned int Num_max_active_methods;
     
+    /// The number of disposable methods currently in the cache.
+    unsigned int Num_disposable_methods;
+
     /// Number of cache hits.
     unsigned int Num_hits;
 
     /// Number of cache misses.
     unsigned int Num_misses;
+
+    /// Number of cache misses that could have been avoided due to the disposable
+    /// method eviction semantic.
+    unsigned int Avoidable_misses;
 
     /// Number of cache misses on returns.
     unsigned int Num_misses_ret;
@@ -307,11 +353,11 @@ namespace patmos
     /// Check whether the method at the given address is in the method cache.
     /// @param address The method address.
     /// @return True in case the method is in the cache, false otherwise.
-    virtual bool lookup(simulator_t &s, uword_t address);
+    virtual availability_status_t lookup(simulator_t &s, uword_t address);
 
     void update_utilization_stats(method_info_t &method, uword_t utilized_bytes);
 
-    enum eviction_type_e { EVICT_CAPACITY, EVICT_TAG, EVICT_FLUSH };
+    enum eviction_type_e { EVICT_CAPACITY, EVICT_TAG, EVICT_FLUSH, EVICT_DISP };
     
     /// Evict a given method, updating the cache state, and various statics.
     /// Also updates the utilization stats.
@@ -321,9 +367,19 @@ namespace patmos
     void update_evict_stats(method_info_t &method, uword_t new_method, 
                                  eviction_type_e type);
 
-    bool read_function_size(simulator_t &s, word_t function_base, uword_t *result_size);
+    /// Extract the size of a method and its disposable flag from the size word.
+    /// @param function_base The method's base address.
+    /// @param result_size The extracted size.
+    /// @param disposable_flag The extracted disposable flag.
+    /// @return always returns True (TODO: Then why do we need a return value ?)
+    bool peek_function_size(simulator_t &s, word_t function_base,
+                            uword_t &result_size, bool &disposable_flag);
 
-    bool peek_function_size(simulator_t &s, word_t function_base, uword_t *result_size);
+    /// Determine some useful info for the method cache rearrangement
+    /// @param insert The index where the method should be put in the method cache.
+    /// @param current The index of the current method if it exists in the cache.
+    void find_replacement_info(simulator_t &s, word_t address,
+                               unsigned int &insert, unsigned int &current);
 
     uword_t get_num_blocks_for_bytes(uword_t num_bytes);
 
@@ -365,6 +421,12 @@ namespace patmos
     /// @return True when the method is available in the cache, false otherwise.
     virtual bool is_available(simulator_t &s, word_t address);
 
+    /// Get the index of a method in the method cache.
+    /// @param address The base address of the method.
+    /// @param index The index of the method if found.
+    /// @return The index of the method if found, -1 otherwise.
+    virtual int getIndex(simulator_t &s, word_t address);
+
     virtual uword_t get_active_method_base();
 
     /// Notify the cache that a cycle passed -- i.e., if there is an ongoing
@@ -396,12 +458,10 @@ namespace patmos
   private:
     typedef lru_method_cache_t base_t;
 
-    size_t active_method;
-
     /// Check whether the method at the given address is in the method cache.
     /// @param address The method address.
     /// @return True in case the method is in the cache, false otherwise.
-    virtual bool lookup(simulator_t &s, uword_t address);
+    virtual availability_status_t lookup(simulator_t &s, uword_t address);
 
   public:
 
@@ -416,28 +476,9 @@ namespace patmos
         lru_method_cache_t(memory, num_blocks, num_block_bytes, 
                            max_active_methods)
     {
-	active_method = base_t::Num_blocks - 1;
     }
 
-    /// Assert that the method is in the method cache.
-    /// If it is not available yet, initiate a transfer,
-    /// evicting other methods if needed.
-    /// @param address The base address of the method.
-    /// @param offset Offset within the method where execution should continue.
-    /// @return True when the method is available in the cache, false otherwise.
-    virtual bool load_method(simulator_t &s, word_t address, word_t offset);
-
-    virtual uword_t get_active_method_base();
-
-    /// A simulated instruction fetch from the method cache.
-    /// @param base The current method's base address.
-    /// @param address The memory address to fetch from.
-    /// @param iw A pointer to store the fetched instruction word.
-    /// @return True when the instruction word is available from the read port.
-    virtual bool fetch(simulator_t &s, uword_t base, uword_t address, word_t iw[2]);
-
     virtual void flush_cache();
-    
   };
 }
 

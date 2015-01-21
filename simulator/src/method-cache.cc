@@ -59,14 +59,16 @@ void ideal_method_cache_t::initialize(simulator_t &s, uword_t address)
   current_base = address;
 }
 
-bool ideal_method_cache_t::fetch(simulator_t &s, uword_t base, uword_t address, word_t iw[2])
+bool ideal_method_cache_t::fetch(simulator_t &s, uword_t base, uword_t address,
+				 word_t iw[2])
 {
   Memory.read_peek(s, address, reinterpret_cast<byte_t*>(&iw[0]),
 		   sizeof(word_t)*2);
   return true;
 }
 
-bool ideal_method_cache_t::load_method(simulator_t &s, word_t address, word_t offset)
+bool ideal_method_cache_t::load_method(simulator_t &s, word_t address,
+				       word_t offset)
 {
   current_base = address;
   return true;
@@ -102,11 +104,13 @@ void ideal_method_cache_t::print_stats(const simulator_t &s, std::ostream &os,
 
 void lru_method_cache_t::method_info_t::update(uword_t address, 
                                                uword_t num_blocks,
-                                               uword_t num_bytes)
+                                               uword_t num_bytes,
+                                               bool    is_disposable)
 {
   Address = address;
   Num_blocks = num_blocks;
   Num_bytes = num_bytes;
+  Is_disposable = is_disposable;
   reset_utilization();
 }
     
@@ -176,34 +180,40 @@ bool lru_method_cache_t::do_fetch(simulator_t &s, method_info_t &current_method,
   return true;
 }
 
-bool lru_method_cache_t::lookup(simulator_t &s, uword_t address)
+availability_status_t lru_method_cache_t::lookup(simulator_t &s, uword_t address)
 {
+  int index = getIndex(s, address);
+
   // check if the address is in the cache
-  for(int i = Num_blocks - 1; i >= (int)(Num_blocks - Num_active_methods); i--)
-  {
-    if (Methods[i].Address == address)
-    {
-      // update the ordering of the methods to match LRU.
+  if(0 <= index){
 
-      // store the currently accessed entry
-      method_info_t tmp = Methods[i];
-
-      // shift all methods between the location of the currently accessed
-      // entry and the previously most recently used entry.
-      for(unsigned int j = i; j < Num_blocks - 1; j++)
-      {
-        Methods[j] = Methods[j + 1];
-      }
-
-      // reinsert the current entry at the head of the table
-      Methods[Num_blocks - 1] = tmp;
-
-      return true;
+    if (Methods[index].Is_disposable){
+      return AVAIL_DISP;
     }
+
+    // update the ordering of the methods to match LRU.
+
+    // store the currently accessed entry
+    method_info_t tmp = Methods[index];
+
+    // shift all methods between the location of the currently accessed
+    // entry and the previously most recently used entry.
+    for(unsigned int j = index; j < Num_blocks - 1; j++)
+    {
+      Methods[j] = Methods[j + 1];
+    }
+
+    // reinsert the current entry at the head of the table and update the
+    // current method pointer
+    Methods[Num_blocks - 1] = tmp;
+
+    Active_method = Num_blocks - 1;
+    return AVAIL_NON_DISP;
+
   }
 
   // No entry matches the given address.
-  return false;
+  return UNAVAIL;
 }
 
 void lru_method_cache_t::update_utilization_stats(method_info_t &method,
@@ -244,33 +254,47 @@ void lru_method_cache_t::update_evict_stats(method_info_t &method,
   update_utilization_stats(method, utilized_bytes);
 }
 
-bool lru_method_cache_t::read_function_size(simulator_t &s, 
-                                            word_t function_base, 
-                                            uword_t *result_size)
-{
-  // We only peek at the size in the simulation, and load the method
-  // together with the size word
-  return peek_function_size(s, function_base, result_size);
-}
-
 bool lru_method_cache_t::peek_function_size(simulator_t &s, 
                                             word_t function_base,
-                                            uword_t *result_size)
+                                            uword_t &result_size,
+                                            bool &disposable_flag)
 {
   uword_t num_bytes_big_endian;
   Memory.read_peek(s, function_base - sizeof(uword_t),
       reinterpret_cast<byte_t*>(&num_bytes_big_endian),
       sizeof(uword_t));
-  // convert method size to native endianess and compute size in
-  // blocks
-  *result_size = from_big_endian<big_uword_t>(num_bytes_big_endian);
+
+  // convert method size to native endianess and compute size in blocks
+  result_size = from_big_endian<big_uword_t>(num_bytes_big_endian);
   
-  // TODO Ignore dispose flag for now
-  *result_size &= ~(0x10000);
+  // Extract the disposable flag that is located in bit 0 of the high half-word.
+  disposable_flag = result_size & (0x10000);
+  // Apply a mask to extract the size as well.
+  result_size &= ~(0x10000);
   
   return true;
 }
 
+
+void lru_method_cache_t::find_replacement_info(simulator_t &s, word_t address,
+				       unsigned int &insert, unsigned int &current)
+{
+  // Get the index of the method if it exists in the cache.
+  int index = getIndex(s, address);
+
+  // Regardless of the replacement policy:
+  // The Head of the cache data structure is located at the index [Num_blocks - 1].
+  // The non-disposable methods are stored starting from the Head while the
+  // disposable methods are inserted just bellow them.
+
+  insert = (unsigned int)( (!Is_method_disposable) ?
+			   (Num_blocks - 1)
+			  :(Num_blocks - (Num_active_methods - Num_disposable_methods) - 1) );
+
+  current = (unsigned int)( (0 <= index) ?
+			    (index)
+			   :(Num_blocks - Num_active_methods) );
+}
 
 uword_t lru_method_cache_t::get_num_blocks_for_bytes(uword_t num_bytes)
 {
@@ -295,7 +319,8 @@ lru_method_cache_t::lru_method_cache_t(memory_t &memory,
     method_cache_t(memory), Num_blocks(num_blocks), 
     Num_block_bytes(num_block_bytes), Phase(IDLE),
     Num_allocate_blocks(0), Num_method_size(0), Num_active_methods(0),
-    Num_active_blocks(0), Num_blocks_allocated(0),
+    Num_active_blocks(0), Num_blocks_allocated(0), Num_disposable_methods(0),
+    Is_method_disposable(false), Active_method(Num_blocks - 1),
     Num_max_blocks_allocated(0), Num_bytes_transferred(0),
     Num_max_bytes_transferred(0), Num_bytes_fetched(0), 
     Num_max_active_methods(0),
@@ -317,14 +342,17 @@ void lru_method_cache_t::initialize(simulator_t &s, uword_t address)
 
   // get 'most-recent' method of the cache
   method_info_t &current_method = Methods[Num_blocks - 1];
+  Active_method = Num_blocks - 1;
 
   // we assume it is an ordinary function entry with size specification
   // (the word before) and copy it in the cache.
   uword_t num_bytes, num_blocks;
-  peek_function_size(s, address, &num_bytes);
+  bool    isDisposable;
+  peek_function_size(s, address, num_bytes, isDisposable);
   num_blocks = get_num_blocks_for_bytes(num_bytes);
+  isDisposable = 0;
 
-  current_method.update(address, num_blocks, num_bytes);
+  current_method.update(address, num_blocks, num_bytes, isDisposable);
   Num_active_blocks = num_blocks;
 
   Num_active_methods = 1;
@@ -334,60 +362,88 @@ void lru_method_cache_t::initialize(simulator_t &s, uword_t address)
 bool lru_method_cache_t::fetch(simulator_t &s, uword_t base, uword_t address, word_t iw[2])
 {
   // fetch from 'most-recent' method of the cache
-  return do_fetch(s, Methods[Num_blocks - 1], address, iw);
+  return do_fetch(s, Methods[Active_method], address, iw);
 }
 
 bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offset)
 {
+  // Set the availability to UNINIT to avoid falling into the SIZE phase before
+  // having passed by the IDLE phase.
+  availability_status_t availability = UNINIT;
+
   // check status of the method cache
   switch(Phase)
   {
     // a new request has to be started.
     case IDLE:
     {
+      availability = lookup(s, address);
+
       assert(Num_allocate_blocks == 0 && Num_method_size == 0);
 
-      if (lookup(s, address))
+      if (availability == AVAIL_NON_DISP)
       {
         // method is in the cache ... done!
         Num_hits++;
-        Method_stats[address].Accesses[offset].first++;
+        Method_stats[address].Accesses[offset].hits++;
         return true;
       }
       else
       {
-        // proceed to next phase ... fetch the size from memory.
-        // NOTE: the next phase starts immediately.
-        Phase = SIZE;
+        if (availability == AVAIL_DISP)
+        {
+          Avoidable_misses++;
+          Method_stats[address].Accesses[offset].avoidable_misses++;
+        }
         Num_misses++;
         if (offset != 0)
           Num_misses_ret++;
-        Method_stats[address].Accesses[offset].second++;
+        Method_stats[address].Accesses[offset].misses++;
+
+        // proceed to next phase ... fetch the size from memory.
+        // NOTE: the next phase starts immediately.
+        Phase = SIZE;
       }
     }
 
     // the size of the method has to be fetched from memory.
     case SIZE:
     {
+      unsigned int insert, current;
+
+      assert(availability != UNINIT);
       assert(Num_allocate_blocks == 0 && Num_method_size == 0);
 
-      // get the size of the method that should be loaded
-      if (peek_function_size(s, address, &Num_method_size)) {
-        
-        Num_allocate_blocks = get_num_blocks_for_bytes(Num_method_size);
+      // get the size & the disposable flag of the method that should be loaded
+      bool success = peek_function_size(s, address, Num_method_size,
+					Is_method_disposable);
 
-        // TODO should we also store how many bytes are actually transferred
-        // by the memory? Ask the Memory for the actual transfer size.
-        Method_stats[address].Num_method_bytes = Num_method_size;
-        Method_stats[address].Num_blocks_allocated = Num_allocate_blocks;
-        
-        // check method size against cache size.
-        if (Num_allocate_blocks == 0 || Num_allocate_blocks > Num_blocks)
-        {
-          simulation_exception_t::code_exceeded(address);
-        }
+      assert(success);
+      // AVAILABLE_DISPOSABLE --> Disp_method_flag
+      assert(availability != AVAIL_DISP || Is_method_disposable);
+      // AVAILABLE_NDISPOSABLE --> !Disp_method_flag
+      assert(availability != AVAIL_NON_DISP || !Is_method_disposable);
 
-        uword_t evicted_blocks = 0;
+      Num_allocate_blocks = get_num_blocks_for_bytes(Num_method_size);
+
+      // TODO should we also store how many bytes are actually transferred
+      // by the memory? Ask the Memory for the actual transfer size.
+      Method_stats[address].Num_method_bytes = Num_method_size;
+      Method_stats[address].Num_blocks_allocated = Num_allocate_blocks;
+      Method_stats[address].Is_disposable = Is_method_disposable;
+
+      // check method size against cache size.
+      if (Num_allocate_blocks == 0 || Num_allocate_blocks > Num_blocks)
+      {
+        simulation_exception_t::code_exceeded(address);
+      }
+
+      uword_t evicted_blocks = 0;
+
+      // At this point either the method is unavailable or disposable.
+      // An eviction is performed only when the entry is unavailable
+      // regardless of being disposable or non-disposable.
+      if(availability == UNAVAIL){
         
         // throw other entries out of the cache if needed
         while (Num_active_blocks + Num_allocate_blocks > Num_blocks ||
@@ -408,6 +464,9 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
           
           // evict the method from the cache
           Num_active_blocks -= method.Num_blocks;
+          if(Methods[Num_blocks - Num_active_methods].Is_disposable){
+            Num_disposable_methods--;
+          }
           Num_active_methods--;
         }
         
@@ -429,25 +488,44 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
         Num_max_bytes_transferred = std::max(Num_max_bytes_transferred,
                                               get_transfer_size());
 
-        // shift the remaining blocks
-        for(unsigned int j = Num_blocks - Num_active_methods;
-            j < Num_blocks - 1; j++)
-        {
-          Methods[j] = Methods[j + 1];
+        if(Is_method_disposable){
+          Num_disposable_methods++;
         }
-
-        // insert the new entry at the head of the table
-        Methods[Num_blocks - 1].update(address, Num_allocate_blocks,
-                                                Num_method_size);
-
-        // proceed to next phase ... the size of the method has been fetched
-        // from memory, now transfer the method's instructions.
-        // NOTE: the next phase starts immediately.
-        Phase = TRANSFER;
-      } else {
-        // keep waiting until the size has been loaded.
-        return false;
       }
+
+      if(availability == AVAIL_DISP){
+        Num_blocks_allocated += Num_allocate_blocks;
+        Num_max_blocks_allocated = std::max(Num_max_blocks_allocated,
+                                            Num_allocate_blocks);
+
+        Num_bytes_transferred += get_transfer_size();
+        Num_max_bytes_transferred = std::max(Num_max_bytes_transferred,
+                                             get_transfer_size());
+      }
+
+      // find where the method should be inserted and
+      // until where the blocks should be shifted
+      find_replacement_info(s, address, insert, current);
+
+      // shift the remaining blocks
+      for(unsigned int j = current; j < insert; j++)
+      {
+        Methods[j] = Methods[j + 1];
+      }
+
+      // insert the new entry, either at the head of the table
+      // (non-disposable) or at the head of the disposable methods.
+      // also, update the current method pointer and reset utilization.
+      Methods[insert].update(address, Num_allocate_blocks,
+                             Num_method_size,
+                             Is_method_disposable);
+
+      Active_method = insert;
+
+      // proceed to next phase ... the size of the method has been fetched
+      // from memory, now transfer the method's instructions.
+      // NOTE: the next phase starts immediately.
+      Phase = TRANSFER;
     }
 
     // begin transfer from main memory to the method cache.
@@ -481,22 +559,28 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
 
 bool lru_method_cache_t::is_available(simulator_t &s, word_t address)
 {
+  return (getIndex(s, address) > -1);
+}
+
+int lru_method_cache_t::getIndex(simulator_t &s, word_t address)
+{
+
   // check if the address is in the cache
   for(int i = Num_blocks - 1; i >= (int)(Num_blocks - Num_active_methods);
       i--)
   {
     if (Methods[i].Address == address)
     {
-      return true;
+      return i;
     }
   }
 
-  return false;
+  return -1;
 }
 
 uword_t lru_method_cache_t::get_active_method_base()
 {
-  return Methods[Num_blocks - 1].Address;
+  return Methods[Active_method].Address;
 }
 
 void lru_method_cache_t::tick()
@@ -514,9 +598,10 @@ void lru_method_cache_t::print(std::ostream &os)
   for(int i = Num_blocks - 1; i >= (int)(Num_blocks - Num_active_methods);
       i--)
   {
-    os << boost::format("   M%1$02d: 0x%2$08x (%3$8d Blk %4$8d b)\n")
+
+    os << boost::format("   M%1$02d: 0x%2$08x (%3$8d Blk %4$8d b) %5$8d\n")
         % (Num_blocks - i) % Methods[i].Address % Methods[i].Num_blocks
-        % Methods[i].Num_bytes;
+        % Methods[i].Num_bytes % Methods[i].Is_disposable;
   }
 
   os << '\n';
@@ -591,29 +676,33 @@ void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os,
     return;
   
   // print stats per method
-  os << "       Method:        #hits     #misses  methodsize      blocks    "
+  os << "       Method:        #hits    #misses   #av_misses  methodsize      blocks  disposable   "
         "min-util    max-util\n";
   for(method_stats_t::iterator i(Method_stats.begin()),
       ie(Method_stats.end()); i != ie; i++)
   {
     unsigned int hits = 0;
     unsigned int misses = 0;
+    unsigned int avoidable_misses = 0;
+
     for(offset_stats_t::iterator j(i->second.Accesses.begin()),
         je(i->second.Accesses.end()); j != je; j++)
     {
-      hits += j->second.first;
-      misses += j->second.second;
+      hits += j->second.hits;
+      misses += j->second.misses;
+      avoidable_misses += j->second.avoidable_misses;
     }
 
     // Skip all stats entries that are never accessed since the last stats reset
     if (hits+misses == 0) {
       continue;
     }
-    
-    os << boost::format("   0x%1$08x:   %2$10d  %3$10d  %4$10d  %5$10d "
-                        "%6$10.2f%% %7$10.2f%%    %8%\n")
-        % i->first % hits % misses
+
+    os << boost::format("   0x%1$08x:   %2$10d  %3$10d  %4$10d  %5$10d  %6$10d %7$10d"
+                        "%8$10.2f%% %9$10.2f%%    %10%\n")
+        % i->first % hits % misses % avoidable_misses
         % i->second.Num_method_bytes % i->second.Num_blocks_allocated
+        % i->second.Is_disposable
         % (i->second.Min_utilization * 100.0)
         % (i->second.Max_utilization * 100.0)
         % s.Symbols.find(i->first);
@@ -624,10 +713,11 @@ void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os,
       for(offset_stats_t::iterator j(i->second.Accesses.begin()),
           je(i->second.Accesses.end()); j != je; j++)
       {
-        os << boost::format("     0x%1$08x: %2$10d  %3$10d %4%\n")
+        os << boost::format("     0x%1$08x: %2$10d  %3$10d  %4$10d %5%\n")
             % (i->first + j->first)
-            % j->second.first
-            % j->second.second
+            % j->second.hits
+            % j->second.misses
+            % j->second.avoidable_misses
             % s.Symbols.find(i->first + j->first);
       }
     }
@@ -712,42 +802,31 @@ lru_method_cache_t::~lru_method_cache_t()
   delete [] Cache;
 }
 
-
-
-bool fifo_method_cache_t::lookup(simulator_t &s, uword_t address)
+availability_status_t fifo_method_cache_t::lookup(simulator_t &s, uword_t address)
 {
-  return base_t::is_available(s, address);
-}
+  method_info_t active_method = Methods[Active_method];
 
-bool fifo_method_cache_t::load_method(simulator_t &s, word_t address, word_t offset)
-{
-  // check if the address is in the cache
-  bool avail = base_t::load_method(s, address, offset);
+  int index = getIndex(s, address);
 
-  if (avail) {
-    // update the active method pointer
-    for(int i = base_t::Num_blocks - 1;
-        i >= (int)(base_t::Num_blocks - base_t::Num_active_methods); i--)
-    {
-      if (base_t::Methods[i].Address == address)
-      {
-        active_method = i;
-      }
-    }
+  // By definition, a disposable method is evicted after leaving its code region.
+  // In the case of the FIFO cache replacement policy, there is only one
+  // disposable method which is located bellow all non-disposable methods.
+  // (the head of the list being at index [Num_Blocks - 1]).
+  if(active_method.Is_disposable){
+    // evict the method from the cache and update the statistics
+    Num_active_blocks -= active_method.Num_blocks;
+    update_evict_stats(active_method, address, EVICT_DISP);
+    Num_disposable_methods--;
+    Num_active_methods--;
   }
 
-  return avail;
-}
+  if(-1 < index){
+    Active_method = index;
+    return AVAIL_NON_DISP;
+  }
 
-uword_t fifo_method_cache_t::get_active_method_base()
-{
-  return base_t::Methods[active_method].Address;
-}
+  return UNAVAIL;
 
-bool fifo_method_cache_t::fetch(simulator_t &s, uword_t base, uword_t address, word_t iw[2])
-{
-  // fetch from the currently active method
-  return base_t::do_fetch(s, base_t::Methods[active_method], address, iw);
 }
 
 void fifo_method_cache_t::flush_cache() 
@@ -755,11 +834,11 @@ void fifo_method_cache_t::flush_cache()
   if (Num_active_methods < 2) return;
 
   // Ensure that the active method is not flushed out.
-  method_info_t active = Methods[active_method];
-  Methods[active_method] = Methods[Num_blocks - 1];
+  method_info_t active = Methods[Active_method];
+  Methods[Active_method] = Methods[Num_blocks - 1];
   Methods[Num_blocks - 1] = active;
   
-  active_method = Num_blocks - 1;
+  Active_method = Num_blocks - 1;
   
   for(unsigned int j = Num_blocks - Num_active_methods; j < Num_blocks - 1; j++)
   {

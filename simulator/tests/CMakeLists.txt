@@ -157,12 +157,33 @@ Errors : 0")
 test_asm(54 "Emitted: 100 bytes
 Errors : 0")
 
+test_asm(55 "Emitted: 108 bytes
+Errors : 0")
+
+test_asm(56 "Emitted: 140 bytes
+Errors : 0")
+
+test_asm(57 "Emitted: 108 bytes
+Errors : 0")
+
+test_asm(58 "Emitted: 140 bytes
+Errors : 0")
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # SIMULATOR TESTS
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 macro (test_sim num expr)
   ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim -V --maxc 20000 -o - ${CMAKE_CURRENT_BINARY_DIR}/test${num}.bin)
+  SET_TESTS_PROPERTIES(sim-test-${num} PROPERTIES PASS_REGULAR_EXPRESSION ${expr} DEPENDS asm-test-${num})
+endmacro (test_sim)
+
+macro (test_sim_lru num expr)
+  ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim -M lru -V -m 128 --maxc 20000 -o - ${CMAKE_CURRENT_BINARY_DIR}/test${num}.bin)
+  SET_TESTS_PROPERTIES(sim-test-${num} PROPERTIES PASS_REGULAR_EXPRESSION ${expr} DEPENDS asm-test-${num})
+endmacro (test_sim)
+
+macro (test_sim_fifo num expr)
+  ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim -M fifo -V -m 128 --maxc 20000 -o - ${CMAKE_CURRENT_BINARY_DIR}/test${num}.bin)
   SET_TESTS_PROPERTIES(sim-test-${num} PROPERTIES PASS_REGULAR_EXPRESSION ${expr} DEPENDS asm-test-${num})
 endmacro (test_sim)
 
@@ -308,3 +329,16 @@ test_sim(52 "r1 : 0000002d   r2 : 00000010   r3 : 00000000")
 test_sim(53 "r1 : 0000002d   r2 : 00000020   r3 : 00000000")
 
 test_sim(54 "r1 : 0000002d   r2 : 00000014   r3 : 00000000")
+
+test_sim_lru(55 "r1 : 0000001e.*
+.*0x0000003c:[ \t]*0[ \t]*2[ \t]*1[ \t]*32[ \t]*4[ \t]*1[ \t]*100.00%[ \t]*100.00%")
+
+test_sim_lru(56 "r1 : 00000023.*
+.*0x0000005c:[ \t]*0[ \t]*1[ \t]*0[ \t]*32[ \t]*4[ \t]*1[ \t]*100.00%[ \t]*100.00%")
+
+test_sim_fifo(57 "r1 : 0000001e.*
+.*0x0000003c:[ \t]*0[ \t]*2[ \t]*0[ \t]*32[ \t]*4[ \t]*1[ \t]*100.00%[ \t]*100.00%")
+
+test_sim_fifo(58 "r1 : 00000023.*
+.*0x0000005c:[ \t]*0[ \t]*1[ \t]*0[ \t]*32[ \t]*4[ \t]*1[ \t]*100.00%[ \t]*100.00%")
+
