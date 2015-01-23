@@ -350,10 +350,11 @@ void lru_method_cache_t::initialize(simulator_t &s, uword_t address)
   bool    isDisposable;
   peek_function_size(s, address, num_bytes, isDisposable);
   num_blocks = get_num_blocks_for_bytes(num_bytes);
-  isDisposable = 0;
 
   current_method.update(address, num_blocks, num_bytes, isDisposable);
   Num_active_blocks = num_blocks;
+
+  Num_disposable_methods = (isDisposable ? 1 : 0);
 
   Num_active_methods = 1;
   Num_max_active_methods = std::max(Num_max_active_methods, 1U);
@@ -386,6 +387,7 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
         // method is in the cache ... done!
         Num_hits++;
         Method_stats[address].Accesses[offset].hits++;
+	assert(!Method_stats[address].Is_disposable);
         return true;
       }
       else
@@ -464,7 +466,7 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
           
           // evict the method from the cache
           Num_active_blocks -= method.Num_blocks;
-          if(Methods[Num_blocks - Num_active_methods].Is_disposable){
+          if(method.Is_disposable){
             Num_disposable_methods--;
           }
           Num_active_methods--;
@@ -804,9 +806,7 @@ lru_method_cache_t::~lru_method_cache_t()
 
 availability_status_t fifo_method_cache_t::lookup(simulator_t &s, uword_t address)
 {
-  method_info_t active_method = Methods[Active_method];
-
-  int index = getIndex(s, address);
+  method_info_t &active_method = Methods[Active_method];
 
   // By definition, a disposable method is evicted after leaving its code region.
   // In the case of the FIFO cache replacement policy, there is only one
@@ -814,11 +814,24 @@ availability_status_t fifo_method_cache_t::lookup(simulator_t &s, uword_t addres
   // (the head of the list being at index [Num_Blocks - 1]).
   if(active_method.Is_disposable){
     // evict the method from the cache and update the statistics
+    assert(Active_method == Num_active_methods);
+
+    uword_t evicted_blocks = active_method.Num_blocks;
+
+    update_evict_stats(active_method, active_method.Address, EVICT_DISP);
+
+    uword_t blocks_freed = evicted_blocks > Num_allocate_blocks ?
+                           evicted_blocks - Num_allocate_blocks : 0;
+
+    Num_blocks_freed += blocks_freed;
+    Max_blocks_freed = std::max(Max_blocks_freed, blocks_freed);
+
     Num_active_blocks -= active_method.Num_blocks;
-    update_evict_stats(active_method, address, EVICT_DISP);
     Num_disposable_methods--;
     Num_active_methods--;
   }
+
+  int index = getIndex(s, address);
 
   if(-1 < index){
     Active_method = index;
