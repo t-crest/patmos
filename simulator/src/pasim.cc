@@ -370,6 +370,7 @@ int main(int argc, char **argv)
     ("cpuinfo_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::CPUINFO_OFFSET), "offset where the cpuinfo device is mapped")
     ("excunit_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::EXCUNIT_OFFSET), "offset where the exception unit is mapped")
     ("timer_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::TIMER_OFFSET), "offset where the timer device is mapped")
+    ("perfcounters_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::PERFCOUNTERS_OFFSET), "offset where the performance counters device is mapped")
     ("uart_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::UART_OFFSET), "offset where the UART device is mapped")
     ("led_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::LED_OFFSET), "offset where the LED device is mapped");
   
@@ -441,6 +442,7 @@ int main(int argc, char **argv)
   unsigned int cpuinfo_offset = vm["cpuinfo_offset"].as<patmos::address_t>().value();
   unsigned int excunit_offset = vm["excunit_offset"].as<patmos::address_t>().value();
   unsigned int timer_offset = vm["timer_offset"].as<patmos::address_t>().value();
+  unsigned int perfcounters_offset = vm["perfcounters_offset"].as<patmos::address_t>().value();
   unsigned int uart_offset = vm["uart_offset"].as<patmos::address_t>().value();
   unsigned int led_offset = vm["led_offset"].as<patmos::address_t>().value();
 
@@ -588,6 +590,7 @@ int main(int argc, char **argv)
     
     // setup IO mapped devices
     patmos::cpuinfo_t cpuinfo(mmbase+cpuinfo_offset, cpuid, freq, cores);
+    patmos::perfcounters_t perfcounters(mmbase+perfcounters_offset);
     patmos::uart_t uart(mmbase+uart_offset, *uin, uin_istty, *uout);
     patmos::led_t leds(mmbase+led_offset, *uout);
     patmos::noc_t noc(nocbase, nocbase+noc_route_offset, nocbase+noc_st_offset,
@@ -595,6 +598,7 @@ int main(int argc, char **argv)
 
     mm.add_device(cpuinfo);
     mm.add_device(excunit);
+    mm.add_device(perfcounters);
     mm.add_device(uart);
     mm.add_device(leds);
     mm.add_device(rtc);
@@ -693,6 +697,7 @@ int main(int argc, char **argv)
         *sout << " --cpuinfo_offset=" << cpuinfo_offset;
         *sout << " --excunit_offset=" << excunit_offset;
         *sout << " --timer_offset=" << timer_offset;
+        *sout << " --perfcounters_offset=" << perfcounters_offset;
         *sout << " --uart_offset=" << uart_offset;
         *sout << " --led_offset=" << led_offset;
         

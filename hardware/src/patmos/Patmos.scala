@@ -147,6 +147,16 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   mcache.io.invalidate := exc.io.invalMCache
   dcache.io.invalDCache := exc.io.invalDCache
 
+  // Internal "I/O" data
+  iocomp.io.internalIO.perf.mc := mcache.io.perf
+  iocomp.io.internalIO.perf.dc := dcache.io.dcPerf
+  iocomp.io.internalIO.perf.sc := dcache.io.scPerf
+  iocomp.io.internalIO.perf.wc := dcache.io.wcPerf
+  iocomp.io.internalIO.perf.mem.read := (io.memPort.M.Cmd === OcpCmd.RD &&
+                                         io.memPort.S.CmdAccept === Bits(1))
+  iocomp.io.internalIO.perf.mem.write := (io.memPort.M.Cmd === OcpCmd.WR &&
+                                          io.memPort.S.CmdAccept === Bits(1))
+
   // The inputs and outputs
   io.comConf <> iocomp.io.comConf
   io.comSpm <> iocomp.io.comSpm

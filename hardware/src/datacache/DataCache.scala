@@ -54,6 +54,9 @@ class DataCache extends Module {
     val slave = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
     val scIO = new StackCacheIO()
     val invalDCache = Bool(INPUT)
+    val dcPerf = new DataCachePerf()
+    val scPerf = new StackCachePerf()
+    val wcPerf = new WriteCombinePerf()
   }
 
   // Register selects
@@ -125,7 +128,9 @@ class DataCache extends Module {
 
   // Merge responses
   io.master.S.Resp := dmS.Resp | scS.Resp | bpS.Resp | wcWriteS.Resp
+
+  // Pass on performance counters
+  io.dcPerf <> dm.io.perf
+  io.scPerf <> sc.io.perf
+  io.wcPerf <> wc.io.perf
 }
-
-
-
