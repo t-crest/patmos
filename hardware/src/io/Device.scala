@@ -80,20 +80,26 @@ abstract class DeviceObject() {
   }
 }
 
-abstract class Device() extends Module()
-
-class CoreDevice() extends Device() {
-  val io = new CoreDeviceIO();
+abstract class Device() extends Module() {
+  val io = new InternalIO()
 }
 
-class CoreDeviceIO() extends Bundle() {
+class InternalIO() extends Bundle() {
+  val internalPort = new Bundle()
+}
+
+class CoreDevice() extends Device() {
+  override val io = new CoreDeviceIO()
+}
+
+class CoreDeviceIO() extends InternalIO() {
   val ocp = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
 }
 
 class BurstDevice(addrBits: Int) extends Device() {
-  val io = new BurstDeviceIO(addrBits);
+  override val io = new BurstDeviceIO(addrBits)
 }
 
-class BurstDeviceIO(addrBits: Int) extends Bundle() {
+class BurstDeviceIO(addrBits: Int) extends InternalIO() {
   val ocp = new OcpBurstSlavePort(addrBits, DATA_WIDTH, BURST_LENGTH)
 }

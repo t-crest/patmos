@@ -89,6 +89,38 @@ void cpuinfo_t::peek(simulator_t &s, uword_t address, byte_t *value, uword_t siz
   }
 }
 
+bool perfcounters_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size) {
+  // TODO: return actual performance statistics
+  if (is_word_access(address, size, 0x00)) {
+    set_word(value, size, 0); // M-Cache hits
+  } else if (is_word_access(address, size, 0x04)) {
+    set_word(value, size, 0); // M-Cache misses
+  } else if (is_word_access(address, size, 0x08)) {
+    set_word(value, size, 0); // D-Cache hits
+  } else if (is_word_access(address, size, 0x0c)) {
+    set_word(value, size, 0); // D-Cache misses
+  } else if (is_word_access(address, size, 0x10)) {
+    set_word(value, size, 0); // S-Cache spill transactions
+  } else if (is_word_access(address, size, 0x14)) {
+    set_word(value, size, 0); // S-Cache fill transactions
+  } else if (is_word_access(address, size, 0x18)) {
+    set_word(value, size, 0); // Write combine buffer hits
+  } else if (is_word_access(address, size, 0x1c)) {
+    set_word(value, size, 0); // Write combine buffer misses
+  } else if (is_word_access(address, size, 0x20)) {
+    set_word(value, size, 0); // External memory read transaction
+  } else if (is_word_access(address, size, 0x24)) {
+    set_word(value, size, 0); // External memory write transaction
+  } else {
+    simulation_exception_t::unmapped(address);
+  }
+  return true;
+}
+
+bool perfcounters_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size) {
+  simulation_exception_t::illegal_access(address);
+}
+
 bool led_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size) {
   if (is_word_access(address, size, 0x00)) {
     set_word(value, size, Curr_state);

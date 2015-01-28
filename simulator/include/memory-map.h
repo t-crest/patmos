@@ -69,6 +69,12 @@ namespace patmos
   
   /// Number of bytes mapped to the timer device.
   static const uword_t TIMER_MAP_SIZE = 0x0018;
+
+  /// Offset from IO base address for the  performance counters device.
+  static const uword_t PERFCOUNTERS_OFFSET = 0x0300;
+  
+  /// Number of bytes mapped to the performance counters device.
+  static const uword_t PERFCOUNTERS_MAP_SIZE = 0x0028;
   
   /// Offset from IO base address for UART device.
   static const uword_t UART_OFFSET = 0x0800;
@@ -193,6 +199,19 @@ namespace patmos
     virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
     
     virtual void peek(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+  };
+
+  class perfcounters_t : public mapped_device_t 
+  {
+  public:
+    
+  perfcounters_t(uword_t base_address)
+    : mapped_device_t(base_address, PERFCOUNTERS_MAP_SIZE)
+    {}
+    
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
   };
   
   class led_t : public mapped_device_t 

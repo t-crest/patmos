@@ -91,6 +91,7 @@ class MCacheIO extends Bundle() {
   val exmcache = new ExMCache().asInput
   val mcachefe = new MCacheFe().asOutput
   val ocp_port = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+  val perf = new MethodCachePerf()
 }
 class MCacheCtrlIO extends Bundle() {
   val ena_in = Bool(INPUT)
@@ -123,6 +124,7 @@ class MCacheReplIO extends Bundle() {
   val mcache_replctrl = new MCacheReplCtrl().asOutput
   val mcachemem_in = new MCacheMemIn().asOutput
   val mcachemem_out = new MCacheMemOut().asInput
+  val perf = new MethodCachePerf()
 }
 class MCacheMemIn extends Bundle() {
   val wEven = Bool()
@@ -160,6 +162,7 @@ class MCache() extends Module {
   mcacherepl.io.exmcache <> io.exmcache
   mcacherepl.io.mcachefe <> io.mcachefe
   mcacherepl.io.mcache_replctrl <> mcachectrl.io.mcache_replctrl
+  mcacherepl.io.perf <> io.perf
   //connect repl to on chip memory
   mcacherepl.io.mcachemem_in <> mcachemem.io.mcachemem_in
   mcacherepl.io.mcachemem_out <> mcachemem.io.mcachemem_out
@@ -219,6 +222,9 @@ class MCacheReplFifo() extends Module {
   val selIspmReg = Reg(init = Bool(false))
   val selMCacheReg = Reg(init = Bool(false))
 
+  io.perf.hit := Bool(false)
+  io.perf.miss := Bool(false)
+
   // hit detection
   val hit = Bool()
   val mergePosVec = { Vec.fill(METHOD_COUNT) { Bits(width = MCACHE_SIZE_WIDTH) } }
@@ -244,6 +250,12 @@ class MCacheReplFifo() extends Module {
     when (selMCache) {
       hitReg := hit
       posReg := pos
+
+      when (hit) {
+        io.perf.hit := Bool(true)
+      } .otherwise {
+        io.perf.miss := Bool(true)
+      }
     }
   }
 
