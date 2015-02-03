@@ -55,9 +55,13 @@ class StackCache() extends Module {
     // slave to cpu
     val fromCPU = new OcpCoreSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
     // master to memory
-    val toMemory = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH,
-      BURST_LENGTH)
+    val toMemory = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+
+    val perf = new StackCachePerf()
   }
+
+  io.perf.spill := Bool(false)
+  io.perf.fill := Bool(false)
 
   // number of bits needed to address the bytes of a word
   val wordBits = Chisel.log2Up(BYTES_PER_WORD)
@@ -228,7 +232,7 @@ class StackCache() extends Module {
       io.toMemory.M.DataValid := UInt(1)
 
       // check if command has been accepted
-      val accepted = io.toMemory.S.CmdAccept === UInt(1)
+      val accepted = io.toMemory.S.CmdAccept === Bits(1)
 
       // read next data element once accepted, otherwise hold
       mb_rdAddr := Mux(accepted, nextTransferAddr(scSizeBits + wordBits - 1, wordBits), rdAddrReg)
@@ -238,6 +242,10 @@ class StackCache() extends Module {
 
       // advance stateReg if accepted
       stateReg := Mux(accepted, spillState, holdSpillState)
+
+      when (accepted) {
+        io.perf.spill := Bool(true)
+      }
     }
 
     is(spillState) {
@@ -284,9 +292,15 @@ class StackCache() extends Module {
       // generate an OCP read request and wait that it is accepted
       io.toMemory.M.Cmd := OcpCmd.RD
 
+      // check if command has been accepted
+      val accepted = io.toMemory.S.CmdAccept === Bits(1)
+
       // go to next stateReg
-      stateReg := Mux(io.toMemory.S.CmdAccept === Bits(1),
-      waitFillState, fillState)
+      stateReg := Mux(accepted, waitFillState, fillState)
+
+      when (accepted) {
+        io.perf.fill := Bool(true)
+      }
     }
 
     is(waitFillState) {

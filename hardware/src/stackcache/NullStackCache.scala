@@ -56,7 +56,12 @@ class NullStackCache() extends Module {
     val fromCPU = new OcpCoreSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
     // master to memory
     val toMemory = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+
+    val perf = new StackCachePerf()
   }
+
+  io.perf.spill := Bool(false)
+  io.perf.fill := Bool(false)
 
   // stack top pointer
   val stackTopReg = Reg(UInt(width = DATA_WIDTH))

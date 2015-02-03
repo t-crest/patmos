@@ -42,6 +42,7 @@ import Chisel._
 import Node._
 
 import patmos.Constants._
+import patmos.DataCachePerf
 
 import ocp._
 
@@ -50,7 +51,11 @@ class NullCache() extends Module {
     val master = new OcpCoreSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
     val slave = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
     val invalidate = Bool(INPUT)
+    val perf = new DataCachePerf()
   }
+
+  io.perf.hit := Bool(false)
+  io.perf.miss := Bool(false)
 
   val burstAddrBits = log2Up(BURST_LENGTH)
   val byteAddrBits = log2Up(DATA_WIDTH/8)
@@ -106,6 +111,7 @@ class NullCache() extends Module {
     when(io.slave.S.CmdAccept === Bits(1)) {
       stateReg := read
       posReg := masterReg.Addr(burstAddrBits+byteAddrBits-1, byteAddrBits)
+      io.perf.miss := Bool(true)
     }
   }
 }

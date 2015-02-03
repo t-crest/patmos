@@ -42,6 +42,7 @@ import Chisel._
 import Node._
 
 import patmos.Constants._
+import patmos.WriteCombinePerf
 
 import ocp._
 
@@ -50,7 +51,11 @@ class WriteNoBuffer() extends Module {
     val readMaster = new OcpBurstSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
     val writeMaster = new OcpCacheSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
     val slave = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+    val perf = new WriteCombinePerf()
   }
+
+  io.perf.hit := Bool(false)
+  io.perf.miss := Bool(false)
 
   val addrWidth = io.writeMaster.M.Addr.getWidth()
   val dataWidth = io.writeMaster.M.Data.getWidth()
@@ -112,5 +117,6 @@ class WriteNoBuffer() extends Module {
   // Start write transactions
   when(io.writeMaster.M.Cmd === OcpCmd.WR) {
     state := write
+    io.perf.miss := Bool(true)
   }
 }

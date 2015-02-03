@@ -43,6 +43,7 @@ import Chisel._
 import Node._
 
 import patmos.Constants._
+import patmos.DataCachePerf
 import patmos.MemBlock
 import patmos.MemBlockIO
 
@@ -53,7 +54,11 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
     val master = new OcpCoreSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
     val slave = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, lineSize/4)
     val invalidate = Bool(INPUT)
+    val perf = new DataCachePerf()
   }
+
+  io.perf.hit := Bool(false)
+  io.perf.miss := Bool(false)
 
   val addrBits = log2Up(size / BYTES_PER_WORD)
   val lineBits = log2Up(lineSize)
@@ -121,6 +126,11 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
 
   fillReg := Bool(false)
 
+  // Record a hit
+  when(tagValid && masterReg.Cmd === OcpCmd.RD) {
+    io.perf.hit := Bool(true)
+  }
+
   // Start handling a miss
   when(!tagValid && masterReg.Cmd === OcpCmd.RD) {
     fillAddrReg := masterReg.Addr(addrBits + 1, lineBits)
@@ -134,6 +144,7 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
       stateReg := hold
       masterReg.Addr := masterReg.Addr
     }
+    io.perf.miss := Bool(true)
   }
   tagMem.io <= (!tagValid && masterReg.Cmd === OcpCmd.RD,
                 masterReg.Addr(addrBits + 1, lineBits),

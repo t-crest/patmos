@@ -360,6 +360,7 @@ class InOutIO() extends Bundle() {
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val excInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val intrs = Vec.fill(INTR_COUNT) { Bool(OUTPUT) }
+  val internalIO = new InternalIO().asInput
 }
 
 class BootMemIO() extends Bundle() {
@@ -437,3 +438,36 @@ class PatmosIO() extends Bundle() {
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
 }
 
+
+// Performance counters
+class MethodCachePerf() extends Bundle() {
+  val hit = Bool(OUTPUT)
+  val miss = Bool(OUTPUT)
+}
+class DataCachePerf() extends Bundle() {
+  val hit = Bool(OUTPUT)
+  val miss = Bool(OUTPUT)
+}
+class StackCachePerf() extends Bundle() {
+  val spill = Bool(OUTPUT)
+  val fill = Bool(OUTPUT)
+}
+class WriteCombinePerf() extends Bundle() {
+  val hit = Bool(OUTPUT)
+  val miss = Bool(OUTPUT)
+}
+class MemPerf() extends Bundle() {
+  val read = Bool(OUTPUT)
+  val write = Bool(OUTPUT)
+}
+class PerfCounterIO() extends Bundle() {
+  val mc = new MethodCachePerf().asInput
+  val dc = new DataCachePerf().asInput
+  val sc = new StackCachePerf().asInput
+  val wc = new WriteCombinePerf().asInput
+  val mem = new MemPerf().asInput
+}
+
+class InternalIO() extends Bundle() {
+  val perf = new PerfCounterIO()
+}
