@@ -2,7 +2,7 @@ all: handbook noc source
 
 handbook:
 	make -C handbook all
-noc:
+noc: source
 	make -C noc all
 
 source: doxygen c_doc.pdf
@@ -16,4 +16,12 @@ latexdoc:
 c_doc.pdf: latexdoc
 	cp c_doc/latex/refman.pdf c_doc.pdf
 
-.PHONY: handbook noc libcorethread libnoc libmp
+clean:
+	-rm -r c_doc
+	-rm c_doc.pdf
+
+cleanall: clean
+	make -C noc clean
+	make -C handbook clean
+
+.PHONY: all handbook noc source doxygen latexdoc clean cleanall
