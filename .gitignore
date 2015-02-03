@@ -54,6 +54,7 @@ doc/**/*.blg
 doc/**/*.lof
 doc/**/*.lot
 doc/**/*.lol
+doc/**/*.synctex.gz
 
 # Ignore KDevelop project files
 *.kdev4

@@ -1,37 +1,21 @@
-# MS: this Makefile looks a little bit broken for me - no figures, no bib entries
-DOC?=programming_guide
+GUIDE=programming_guide
+EXERCISE=programming_exercise
 BIBS=../handbook/patbib.bib
-OPEN?=open # program for displaying the pdf
 
+.PHONY: all clean guide exercise
 
-# include file to override e.g. OPEN
-# config.mk is ignored by svn
--include config.mk
+all: guide exercise
 
+guide: $(GUIDE).pdf 
 
-.PHONY: all clean
+exercise: $(EXERCISE).pdf
 
-all: $(DOC).pdf
-
-TIKZFIGURES=
-
-fig/%.pdf: fig/%.tex
-	pdflatex --output-directory fig $^
-
-rubber: $(DOC).tex $(BIBS) $(TIKZFIGURES)
-	rubber --short --warn all -d $(DOC).tex
-
-$(DOC).pdf: $(DOC).tex $(BIBS) $(TIKZFIGURES)
-	pdflatex $(DOC)
-	bibtex $(DOC)
-	pdflatex $(DOC)
-	pdflatex $(DOC)
-
-open: $(DOC).pdf
-	$(OPEN) $<
-
+%.pdf: %.tex 
+	pdflatex $(*F)
+	bibtex $(BIBS)
+	pdflatex $(*F)
+	pdflatex $(*F)
 
 clean:
-	rm -fr *.aux *.bbl *.blg *.log *.lof *.lot *.toc *.gz *.pdf
-	rm -f fig/*.aux fig/*.log
-	rm -f $(TIKZFIGURES)
+	-rm -fr *.aux *.bbl *.blg *.log *.lof *.lot *.toc *.gz *.pdf
+	-rm -f fig/*.aux fig/*.log
