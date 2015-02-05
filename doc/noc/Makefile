@@ -7,7 +7,13 @@ all: guide exercise
 
 guide: $(GUIDE).pdf 
 
-exercise: $(EXERCISE).pdf
+exercise: ../c_doc/latex/doxygen.sty $(EXERCISE).pdf
+
+../c_doc/latex/doxygen.sty:
+	@echo --------------------------------------------------------------------------
+	@echo -- Please build the programming exercise from 'patmos/doc' with 'make noc'
+	@echo --------------------------------------------------------------------------
+	@exit 1
 
 %.pdf: %.tex 
 	pdflatex $(*F)

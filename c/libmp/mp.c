@@ -305,7 +305,11 @@ int mp_nback(mpd_t* mpd_ptr){
   // Increment the receive counter
   (*mpd_ptr->recv_count)++;
   // Update the remote receive count
-  return noc_nbsend(mpd_ptr->send_id,mpd_ptr->send_recv_count,mpd_ptr->recv_count,8);
+  int success = noc_nbsend(mpd_ptr->send_id,mpd_ptr->send_recv_count,mpd_ptr->recv_count,8);
+  if (!success) {
+    (*mpd_ptr->recv_count)--;
+  }
+  return success;
 }
 
 void mp_ack(mpd_t* mpd_ptr){
