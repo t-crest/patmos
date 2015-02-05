@@ -1,6 +1,5 @@
 GUIDE=programming_guide
 EXERCISE=programming_exercise
-BIBS=../handbook/patbib.bib
 
 .PHONY: all clean guide exercise
 
@@ -12,7 +11,7 @@ exercise: $(EXERCISE).pdf
 
 %.pdf: %.tex 
 	pdflatex $(*F)
-	bibtex $(BIBS)
+	bibtex   $(*F)
 	pdflatex $(*F)
 	pdflatex $(*F)
 

@@ -55,6 +55,7 @@
 
 \newcommand{\todo}[1]{{\emph{TODO: #1}}}
 %\renewcommand{\todo}[1]{}
+\newcommand{\nopublish}[1]{}
 
 %
 % generic command to comment something
@@ -171,9 +172,8 @@ but is intended as a stand alone document for anybody interrested in learning to
 
 This document is subject to continous development along the the platform it describes.
 In case you have suggestions for improvement or find that the text is unclear and needs to be elaborated, please write to \href{mailto:rboso@dtu.dk}{rboso@dtu.dk}
-
 The latest version of this document is contained as LaTeX source in the Patmos repository in directory
-\code{patmos/doc/noc} and can be built with \code{make}.
+\code{patmos/doc} and can be built with \code{make noc}.
 
 \section*{Acknowledgment}
 
@@ -194,7 +194,7 @@ In this document we will present the background required to efficiently program 
 The exercieses should give the reader a good understanding of how the Argo NoC can be utilized in a multicore application.
 The reader will get experience in how to write a multicore application that uses message passing.
 In the exercises we assume that the reader is familiar with the C programming language and multithreaded programming in general.
-Furthermore, we assume that the reader has already run a single core application on a Patmos processor in an FPGA. If this is not the case please refer to the \todo{Patmos exercise manual~\cite{}} for a practical introduction to programming the Patmos processor.
+Furthermore, we assume that the reader has already run a single core application on a Patmos processor in an FPGA, refer to the Patmos handbook~\cite{patmos-handbook} for details on the patmos processor.
 
 
 Chapter~\ref{chap:arch} presents the achitecture of the Argo Network-on-Chip.
@@ -209,25 +209,52 @@ Appendix~\ref{apx:api} contains the Doxygen documentation of the C libraries.
 The Argo Network-on-Chip (NoC) is a statically scheduled
 time division multiplexed (TDM) NoC that supports
 direct memory access (DMA) driven write transactions.
-The end points of these write transactions are the dual-ported
-processor ĺocal communication scratchpad memories (SPM) connected
+
+The statically allocated route and the TDM schedule is loaded
+into hardware tables in the network interface at boot time.
+The statically allocated route of each packet sent through the
+network, is stored in the header of each packet.
+The write address of each packet is also stored in the header.
+
+The end-points of these write transactions are the dual-ported
+processor local communication scratchpad memories (SPM) connected
 on one port directly to the processor and on the other port to the 
 network interface, containing the DMA controllers.
 Figure~\ref{fig:argo-arch} shows the architecture of the Argo NoC.
-
-\begin{figure}
+\begin{figure}[h]
 \centering
 \includegraphics[width=\textwidth]{fig/argo-arch.pdf}
-\caption{The Argo architecture from a software perspective. A DMA write transaction moves the specified block of data from the communication SPM of the left processor to the specified location in the communication SPM of the right processor.}
+\caption{The Argo architecture from a software perspective.
+A DMA write transaction moves the specified block of data from the
+communication SPM of the processor on the left to the specified
+location in the communication SPM of the processor on the right.}
 \label{fig:argo-arch}
 \end{figure}
+The DMA block in the figure contains a table of DMA entries,
+each entry describes a DMA controller that can send to a remote processor.
+Each DMA controller is paired with a communication channel when the network in configured. 
+To transfer a block of data from a local SPM to a remote SPM, there are \ref{arch:list1}~steps:
+\begin{enumerate}
+\item Store the block of data in the local SPM
+\item Through the network interface set up the DMA controller that is paired with the correct communication channel
+  \begin{itemize}
+  \item Write the local address of the block of data and the remote address to which the block of data should be moved
+  \item Write the size of the block of data
+  \item Set the `valid' bit in the DMA antry to 1 and clear the `done' bit setting it to 0
+  \end{itemize}
+\label{arch:list1}\end{enumerate}
+After step~\ref{arch:list1} the DMA will start to transfer data in each TDM slot that is allocated to the given channel.
+When the DMA has transfered all packets through the network the `done' bit is set to 1 in the DMA entry. This `done' bit can be pooled to wait for the DMA to be done.
+
+Conflicts of reading and writing to the same addresses in the dual
+ported SPMs has to be handled by software, there is no protection in hardware.
 
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 \chapter{Argo Programming Interface}
 \label{chap:api}
 In the sections of this chapter we will give an overview of each part of the Argo programming interface.
-For detailed documentation refer to Appendix~\ref{ch:dox}, which contains the doxygen documentation of the C libraries.
+For detailed documentation refer to Appendix~\ref{apx:api}, which contains the doxygen documentation of the C libraries.
 
 \section{Corethread Library}
 \label{sec:cthread}
@@ -264,41 +291,95 @@ The done function is used to tell whether a local DMA transfer has finished.
 
 \item[\code{int noc\_nbsend( unsigned rcv\_id, volatile void \_SPM *dst, volatile void \_SPM *src, size\_t size )}]
 
-The nbsend function is a non-blocking function for sending a block of data at the address \code{dst} of size \code{size} to the core with the core id \code{rcv\_id} and the remote address \code{src}.
+The nbsend function is a non-blocking function for sending a block of data at the address \code{src} of size \code{size} to the core with the core id \code{rcv\_id} and the remote address \code{dst}. The nbsend function will fail if the DMA controller is still sending the previous block of data.
 
 \item[\code{void noc\_send( unsigned rcv\_id, volatile void \_SPM *dst, volatile void \_SPM *src, size\_t size )}]
 
 The send function is calling the nbsend in a while loop, until it returns success.
-%\item[\code{void noc\_multisend( unsigned cnt, unsigned rcv\_id {[]}, volatile void \_SPM *dst {[]}, volatile void \_SPM *src, size\_t size )}]
-%\item[\code{void noc\_multisend\_cs( coreset\_t *receivers, volatile void \_SPM *dst{[]}, unsigned offset, volatile void \_SPM *src, size\_t size )}]
-%\item[\code{void noc\_wait\_dma( coreset\_t receivers )}]
+
 \end{description}
 
 \section{Message Passing Library}
 \label{sec:libmp}
 
-As the Argo interface (libnoc) does not support receive notification, flow control or double buffering
+The Argo interface (libnoc) does not support receive notification,
+flow control or double buffering.
+This functionality is implemented in the \code{libmp} library.
+\code{libmp} implements message passing with statically allocated buffers
+that does not require data to be copied unnecessarily.
 
 \begin{description}
 \item[\code{int mp\_chan\_init( mpd\_t* mpd\_ptr, coreid\_t sender, coreid\_t receiver, unsigned buf\_size, unsigned num\_buf )}]
+
+The chan\_init function allocates the static buffer structures of a communication channel
+and initializes the message passing descriptor \code{mpd\_ptr}.
+The communication channel is set up between the sending
+core \code{sender} and the receviing core \code{receiver}.
+The communication channel will transfer messages of size
+\code{buf\_size} and buffer a number of \code{num\_buf} messages in the receiver SPM.
+
 \item[\code{int mp\_nbsend( mpd\_t* mpd\_ptr )}]
+
+The nbsend function checks if there is a free buffer in the receiver
+and if the DMA controller for the given communication channel is free.
+If both are free it will set up the DMA to transfer the new block of data.
+The nbsend function assumes that the user/application already
+wrote the data to be sent into the \code{write\_buf} buffer.
+
 \item[\code{void mp\_send( mpd\_t* mpd\_ptr )}]
+
+The send function calls the nb\_send function in a loop, until it returns success.
+
 \item[\code{int mp\_nbrecv( mpd\_t* mpd\_ptr )}]
+
+The nbrecv function checks if the next buffer, in the buffer queue,
+has received a complete message.
+If a message is received it will move the \code{read\_buf} pointer
+to the beginning of the message,
+such that the user/application can read the received data.
+
 \item[\code{void mp\_recv( mpd\_t* mpd\_ptr )}]
+
+The recv function calls the nb\_recv function in a loop, until it returns success.
+
 \item[\code{int mp\_nback( mpd\_t* mpd\_ptr )}]
+
+The nback function increment the number of messages that
+has been acknowledged and sends the updated value to the 
+sender core, if the send does not succeed the number
+of acknowlegded messages is decremented.
+
 \item[\code{void mp\_ack( mpd\_t* mpd\_ptr )}]
+
+The ack function calls the nb\_ack function in a loop, until it returns success.
+
+\item[\code{void \_SPM * mp\_alloc( coreid\_t id, unsigned size )}]
+
+The alloc function will allocate a block of memory of size
+\code{size} in the SPM local to the core with the id \code{id}.
+The alloc function can only be called from the master core executing \code{main()}
+and once the memory block is allocated it cannot be freed.
+In the current version of the software the alloc function will not
+give an out of memory error, so the programmer should be aware
+that he/she does not allocate more local memory than is present.
+
 \end{description}
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % 
 
 \chapter{Exercises}
 \label{chap:exercise}
+
+The following exercises are made to run on the default
+9 core platform for the Altera DE2-115 board.
+Please refere to the Appendix~\ref{apx:buildhw} for instructions on
+how to build an up-to-date hardware platform.
+
 \section{Circulating tokens}
 By creating an application that mimics streaming behavior between a number of processors, this exercise will illustrate to the reader how the basics of message passing works on Argo.
-In this exercise we will make an application that circulates a number of tokens in a ring of 8 slave processors,
-using the default 9 core platform for the Altera DE2-115 board.
+In this exercise we will make an application that circulates a number of tokens in a ring of 8 slave processors.
 The number of tokens should be configurable, but always less than the number for processors.
-Each of the processors in the ring shall repeatedly execute the following \ref{list:num1}~steps:
+Each of the processors in the ring shall repeatedly execute the following \ref{list:ex1:num1}~steps:
 
 \begin{framed}
 \begin{enumerate}
@@ -310,20 +391,20 @@ Each of the processors in the ring shall repeatedly execute the following \ref{l
 \label{list:step_rand}
 \item Send the token to the next processor, when the send is complete Turn off the processor LED to indicate the the token has been processed
 
-\label{list:num1}\end{enumerate}
+\label{list:ex1:num1}\end{enumerate}
 \end{framed}
 
 \noindent Looking at the LEDs when the application runs,
 the reader should see tokens move from one led to the other.
 This behavior should be easy to observe with only few tokens.
-This exercise is split into \ref{list:num2}~tasks:
+This exercise is split into \ref{list:ex1:num2}~tasks:
 \begin{framed}
 \begin{enumerate}
 \item Create a function that blinks an LED and create a thread on each slave core that executes the blink function
 \item Extend the blink function to turn the LED on and off at random times
 \item Extend the blink function to receive a message from the previous core in the ring and send a message to the next core in the ring
 \item Change the blink function such that it sends the random seed value along with the token
-\label{list:num2}\end{enumerate}
+\label{list:ex1:num2}\end{enumerate}
 \end{framed}
 
 \noindent In each task you should verify the your program is working as expected by compiling and downloading the program to the platform.
@@ -336,19 +417,23 @@ Figure~\ref{fig:ctrl_led} shows an example of how to blink an LED.
 To turn the LED on and off, write a 1 and 0, respectively to the hardware address of the LED. 
 
 \begin{figure}
-\begin{Verbatim}[xleftmargin=1cm,frame=single,framesep=3mm]
+\begin{Verbatim}[xleftmargin=1cm,xrightmargin=1cm,frame=single,framesep=3mm]
 // The hardware address of the LED
-#define LED (*((volatile _IODEV unsigned *)0xf0000900))
+#define LED ( *( ( volatile _IODEV unsigned * ) 0xf0000900 ) )
 for (;;) {
-  for (int i=2000; i!=0; --i)
-    for (int j=2000; j!=0; --j)
+  for ( int i=2000; i!=0; --i ) {
+    for ( int j=2000; j!=0; --j ) {
       // Turn off LED
       LED = 1;
+    }
+  }
 
-  for (int i=2000; i!=0; --i)
-    for (int j=2000; j!=0; --j)
+  for ( int i=2000; i!=0; --i ) {
+    for ( int j=2000; j!=0; --j ) {
       // Turn off LED
       LED = 0;
+    }
+  }
 }
 \end{Verbatim}
 \caption{\label{fig:ctrl_led}An example of how to blink an LED}
@@ -360,7 +445,7 @@ Section~\ref{sec:cthread} explains in further detail, how corethreads are starte
 on slave processors and how a parameter can be passed to the function.
 
 \begin{figure}
-\begin{Verbatim}[xleftmargin=1cm,frame=single,framesep=3mm]
+\begin{Verbatim}[xleftmargin=1cm,xrightmargin=1cm,frame=single,framesep=3mm]
 void loop(void* arg) {
   int num_tokens = *((int*)arg);
   /*
@@ -371,10 +456,10 @@ void loop(void* arg) {
 int main() {
   corethread_t worker_id = 1; // The core ID
   int parameter = 42;
-  corethread_create(&worker_id,&loop,(void*)&parameter);  
+  corethread_create( &worker_id, &loop, (void*) &parameter );  
 
   int* res;
-  corethread_join(worker_id,&res); // No return value is returned
+  corethread_join( worker_id, &res ); // No return value is returned
 
   return *res;  
 }
@@ -419,12 +504,12 @@ after receiving a message.
 Figure~\ref{fig:msg_data} shows an example of how message data can be read and written.
 
 \begin{figure}
-\begin{Verbatim}[xleftmargin=1cm,frame=single,framesep=3mm]
-// Reading a value from the channel read buffer
-seed = *((volatile unsigned int _SPM *)(&chan.read_buf));
+\begin{Verbatim}[xleftmargin=1cm,xrightmargin=1cm,frame=single,framesep=3mm]
+// Reading an unsigned integet value from the channel read buffer
+seed = *( ( volatile unsigned int _SPM * ) ( &chan.read_buf ) );
 
-// Writing a value to the channel write buffer
-*(volatile unsigned int _SPM *)(&chan.write_buf) = seed; 
+// Writing an unsigned integer value to the channel write buffer
+*( volatile unsigned int _SPM * ) ( &chan.write_buf ) = seed; 
 \end{Verbatim}
 \caption{\label{fig:msg_data}An example of how to read and write message data}
 \end{figure}
@@ -433,17 +518,26 @@ seed = *((volatile unsigned int _SPM *)(&chan.read_buf));
 The output should not be different form task 3.
 
 \subsection{Extensions}
-If you have more time left or just can not get enough of programming message passing applications, you can extend your application  in servral ways.
+If you have more time left or just can not get enough of programming message passing applications, you can extend your application  in several ways:
 \begin{itemize}
-\item Off loading the calculation of random numbers to core 0.
+\item Move the calculation of random numbers to core 0.
 Core 0 shall act like a server replying with a new random number when it receives a message from any of the slave cores.
 \item Create a mechanisme that terminates the executution of the blink function on the slaves, when the master is signaled to stop thought the terminal. 
 \end{itemize}
 
+\nopublish{
 
+\section{Circulating tokens - WCET}
 
-\todo{
+This exercise will show how to calculate the maximum worst case throughput of tokens.
+The exercise comprise the following tasks:
+\begin{itemize}
+\item Compile with platin
+\item 
+\label{list:ex2:num1}\end{itemize}
+
 \section{Next exercise}
+
 Ideas to other exercises:
 \begin{itemize}
 \item WCET analysis of the circulating tokens
@@ -454,6 +548,7 @@ Ideas to other exercises:
 \item Health monitoring 
 \item I/O server
 \end{itemize}
+
 }
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % The start of the appendix
@@ -461,128 +556,70 @@ Ideas to other exercises:
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Build And Execute Instructions}
-\label{apx:run}
+\label{apx:build}
 
-In the following we present the details on how to compile 
-a program running on multiple cores in the platform.
+In this chapter we present the details on how to 
+build and configure the hardware platform and compile and execute 
+a multicore program on the platform.
 
-\section{Building}
+\section{Build and configure the hardware platform}
+\label{apx:buildhw}
 
-\todo{ModelSim simulation}
+The Aegean framework generates a hardware description from an
+xml description.
+The default xml description for the Altera DE2-115 board with 9 cores
+has an external shared memory and an Argo network-on-chip.
+To build the newest version of the platform run the following commands:
+\begin{Verbatim}
+cd ~/t-crest/aegean
+git pull
+make AEGEAN_PLATFORM=default-altde2-115-9core platform synth
+\end{Verbatim}
+The \code{git pull} will update the Aegean framework with the newest
+configuration files.
+The make command will generate a platform as described in the
+\code{config/default-altde2-115-9core.xml} file.
+When the platform description is generated the it will be synthesised.
+When the synthesis is finished the multicore platform can be
+configured into the FPGA using the folowing commands:
+\begin{Verbatim}
+cd ~/t-crest
+make -C aegean AEGEAN_PLATFORM=default-altde2-115-9core config
+\end{Verbatim}
 
+\section{Compile and execute a multicore program}
+\label{apx:buildsw}
 
+There is no difference between compiling a single core program and a multicore program.
+Furthermore, a single core program can execute in a multicore
+platform without any modifications.
+To compile a multicore program, place it in the \code{patmos/c/} directory
+and run the following commands:
 
-\subsection{Download of ELF Files}
-\label{sec:elf:files}
+\begin{Verbatim}
+cd ~/t-crest
+make -C patmos APP=${APP_NAME} comp
+\end{Verbatim}
 
-On a Linux box with the installed LLVM compiler and Quartus in your PATH,
-the complete build processes for the Hello World is as follows:
+The \code{comp} target will compile the C program in the file \code{patmos/c/\$\{APP\_NAME\}.c}
+and output an .elf file \code{patmos/tmp/\$\{APP\_NAME\}.elf}.
+When compiling a program that includes either \code{``libmp/mp.h''} or \code{``libnoc/noc.h''},
+the \code{nocinit.c}, generated by the Aegean framework, is included needed,
+as this contains the configuration data for the Argo NoC.
+To download the program to the configured FPGA, run the following commands:
 
-% make BOOTAPP=bootable-bootloader APP=hello_puts tools synth comp config download
-\begin{verbatim}
-make APP=hello_puts tools download
-\end{verbatim}
+\begin{Verbatim}
+cd ~/t-crest
+make -C patmos APP=${APP_NAME} download
+\end{Verbatim}
 
-The \code{Makefile} use following variables to configure the build process:
+The \code{download} target of the Makefile depends on the comp target,
+therefore it is not necessary to execute the \code{comp} target before every download.
+Also, it is not strictly necessary to configure the FPGA with the hardware
+platform between each download of a program, but we advice you to do so.
+This will ensure that the hardware platform is probably iniitaliized
+before your download a program.
 
-\code{APP} is a C program resulting in an ELF binary that can be either
-loaded by the emulator or the boot loader when executing in an FPGA.
-% TODO: test and talk about patsim. Having a complete ELF in the FPGA
-% without the boot loader would be nice as well.
-
-\todo{Describe ELF download without building the FPGA}
-
-
-
-\subsection{Multicore Patmos}
-
-A multicore Patmos with shared external memory and the network-on-chip Argo is configured via
-the Aegean framework. Aegean is a collection of Python scripts that read in XML based configuration
-description (e.g., topology, network connections, processor types,...). Aegean generates the Chisel based
-components (Partmos, memory arbitration tree, and memory controller), generates the VHDL top-level
-to connect them with the VHDL based NoC, synthesizes the hardware, compiles the application for the
-individual cores, configures the FPGA, and downloads the application.
-
-In directory \code{aegean} run:
-
-\begin{verbatim}
-make platform AEGEAN_PLATFORM=mandelbrot_demo
-make synth config AEGEAN_PLATFORM=mandelbrot_demo
-\end{verbatim}
-
-to generate (and synthesize) the mandelbrot application on a 4 core
-version of Patmos for an Altera DE2-115 FPGA board. This application is compiled
-into the on-chip memories and therefore executing right after configuration of the
-FPGA. Have a terminal open and connected to the serial port (115200 baud, 1 stop bit,
-no handshake) during and after the FPGA configuration and you shall see the output of
-the mandelbrot calculation.
-
-However, the approach to have the application in on-chip memory works for tiny programs
-only. Furthermore, each software change needs a new synthesize run. A better approach is
-to build a platform that contains a bootloader (similar to the single core version) and some
-startup code to synchronize the program start with the other cores. This platform is the default
-configuration in Aegean and needs to be generated only once with:
-
-\begin{verbatim}
-make platform
-make synth
-\end{verbatim}
-
-The FPGA is configured from within the \code{aegean} directory with:
-
-\begin{verbatim}
-make config
-\end{verbatim}
-
-The compilation and download of the application is then best done within
-the \code{patmos} directory with:
-
-\begin{verbatim}
-make APP=hello_puts comp download
-\end{verbatim}
-
-This application is the same single core \emph{Hello World} application that
-we used in Section~\ref{sec:elf:files}. However, here we just compiled the
-application and downloaded it via the serial port. We synthesized and configured
-the FPGA from within the Aegean project for the multi-core version.
-
-\todo{We shall have here three simple hello world applications: (1) just plain shared memory 4 cores saying hello - DONE -,
-(2) a CMP program that uses shared memory, and (3) a simple NoC setup.}
-
-
-\section{Worst-Case Execution Time Analysis}
-
-The aiT WCET analysis tool supports Patmos as target. The benchmark collection
-of T-CREST (in folder \code{bench}) includes targets for WCET analysis.
-
-When the aiT version for Patmos (\code{a3patmos}) is in the path, the build of
-the benchmarks includes WCET analysis tasks, where appropriate.
-
-In \code{bench/build/Malardaln/src} start the tests including Platin WCET analysis with \code{ctest}.
-
-
-\section{ModelSim License}
-In the case that you have a DTU Compute login you can access the license servers from outside the DTU network by setting up an SSH tunnel.
-An example of how such a tunnel can be set up follows, you need to insert you own username.
-
-\begin{verbatim}
-ssh -L 1717:angel2:1717 -L 1718:angel2:1718 ${USERNAME}@sshlogin.compute.dtu.dk
-\end{verbatim}
-%% $
-
-When the SSH tunnel is setup the LM\_LICENSE\_FILE needs to be set to:
-\begin{verbatim}
-LM_LICENSE_FILE=1717@localhost
-\end{verbatim}
-
-This way of setting up an SSH tunnel might also work for other institutions.
-
-\paragraph{License settings for ModelSim and Xilinx}
-
-\begin{verbatim}
-export LM_LICENSE_FILE=1717@angel1:1717@angel2:1717@angel3
-export XILINXD_LICENSE_FILE="2100@eda1.imm.dtu.dk"
-\end{verbatim}
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 \chapter{Library Documentation}
@@ -603,6 +640,6 @@ export XILINXD_LICENSE_FILE="2100@eda1.imm.dtu.dk"
 \input{../c_doc/latex/noc_8h}
 
 \bibliographystyle{abbrv}
-\bibliography{patbib.bib}
+\bibliography{argobib.bib}
 
 \end{document}
