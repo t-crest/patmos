@@ -489,9 +489,10 @@ The machine configuration consists of three sections:
   \begin{itemize}
   \item \code{name}: The (unique) name of the memory.
   \item \code{size}: The size of the memory in bytes. Can be a hexadecimal value.
-  \item \code{transfer-size}: The size of a single beat in bytes.
+  \item \code{transfer-size}: The size of a single beat in bytes. Also defines the alignment of the memory.
 
   \stefan{This should actually be more like the bus width and in bits, but this has historic reasons..}
+  \stefan{The alignment should be a separate attribute, could be between transfer size and min-burst-size.}
 
   \item \code{min-burst-size}: The minimum size of a single burst in bytes. Defaults to \code{transfer-size}.
   \item \code{max-burst-size}: The maximum size of a single burst in bytes. Defaults to \code{min-burst-size}.
@@ -535,23 +536,32 @@ The machine configuration consists of three sections:
     tag memory size for a method cache. Ignored for all other types of caches.
   \item \code{size}: The size of the cache in bytes. Ignored for ideal caches.
   \item \code{block-size}: The size of a cache line for set-associative caches, or the internal alignment of cache
-    blocks for stack caches and method caches, in bytes. If the block size of $4$ (or less) corresponds to a
+    blocks for stack caches and method caches, in bytes. A block size of $4$ (or less) corresponds to a
     variable-sized method cache. A block size of $\texttt{size}/\texttt{associativity}$ corresponds to a fixed-size
     method cache.
   \item \code{attributes}: A list of additional attributes as \code{key} and \code{value} pairs.
   \end{itemize}
 
   \begin{framed}
-  \textbf{Patmos:} Patmos supports the following three cache names: \code{data-cache}, \code{stack-cache} and 
-    \code{instr-cache}. All other caches are \emph{ignored}. 
+  \textbf{Patmos:} Patmos supports the following cache names: \code{data-cache}, \code{stack-cache}, \code{method-cache} and 
+    \code{instruction-cache}. All other caches are \emph{ignored}.
     
     The \code{data-cache} must be a set-associative cache.
     The \code{stack-cache} must be of type \code{stack-cache}. If a data cache but no stack cache is configured,
     requests to the stack cache will be handled through the data cache.
-    The \code{instr-cache} must be either a set-associative cache or a method cache.
+    The \code{method-cache} must be a method cache.
+    The \code{instruction-cache} must be a set-associative cache.
 
-    \emph{Attention:} If an ideal data cache is configured, all stores through the data cache also have a zero-cycle latency.
-    Bypass loads and stores only have a zero-cycle latency if the \code{main} memory is configured as ideal memory.
+    It is not allowed to specify both a \code{method-cache} and an \code{instruction-cache}.
+
+    \stefan{I would rather like to see a single 'instruction-cache' entry with either set-assoc or method-cache as type,
+    to avoid a few consistency checks, but maybe there could be a configuration possible in the future which has both types of
+    caches (at least in the simulator).}
+
+    \emph{Attention:} If an ideal data cache is configured, all stores through the data cache also have a zero-cycle
+    latency, but bypass loads are unaffected.
+    Bypass loads and stores only have a zero-cycle latency if the \code{main} memory is configured as ideal memory. In
+    this case, all data and code accesses have zero latency, regardless of the configured caches.
   \end{framed}
 
 \item \code{memory-areas}: The memory areas set up a mapping of address ranges to memories
@@ -576,8 +586,8 @@ The machine configuration consists of three sections:
   Currently there may be at most one global data address space entry. It must use the \code{main} memory and the
   \code{data-cache} if configured.
 
-  There may be at most one global code address space entry that refers to \code{main} memory. It must use the
-  \code{instr-cache} if configured. All other code memory areas must refer to an ideal memory without using a cache.
+  There may be at most one global code address space entry that refers to \code{main} memory. It must use either the
+  \code{method-cache} or the \code{instruction-cache} if configured. All other code memory areas must refer to an ideal memory without using a cache.
 
   \stefan{How about the instruction scratchpad? May it have a non-zero latency? In this case we need to extend the
   simulator.}
