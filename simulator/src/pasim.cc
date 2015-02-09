@@ -39,6 +39,8 @@
 #include "dbgstack.h"
 #include "data-cache.h"
 #include "instruction.h"
+#include "instr-cache.h"
+#include "instr-spm.h"
 #include "method-cache.h"
 #include "simulation-core.h"
 #include "stack-cache.h"
@@ -199,16 +201,25 @@ static patmos::instr_cache_t &create_iset_cache(patmos::set_assoc_cache_type isc
 static patmos::instr_cache_t &create_instr_cache(patmos::instr_cache_e ick, 
        patmos::set_assoc_cache_type isck, patmos::method_cache_e mck,
        unsigned int size, unsigned int line_size, unsigned int block_size,
-       unsigned int mcmethods, patmos::memory_t &gm)
+       unsigned int mcmethods, unsigned int ispm_size, patmos::memory_t &gm)
 {
+  patmos::instr_cache_t *icache;
   switch (ick) {
     case patmos::IC_MCACHE:
-      return create_method_cache(mck, size, block_size, mcmethods, gm);
+      icache = &create_method_cache(mck, size, block_size, mcmethods, gm);
+      break;
     case patmos::IC_ICACHE:
-      return create_iset_cache(isck, size, line_size, gm);
+      icache = &create_iset_cache(isck, size, line_size, gm);
+      break;
     default:
       abort();
   }
+  
+  if (ispm_size > 0) {
+    icache = new patmos::instr_spm_t(gm, icache, ispm_size);
+  }
+  
+  return *icache;
 }
 
 /// Construct a stack cache for the simulation.
@@ -316,16 +327,17 @@ int main(int argc, char **argv)
 
   boost::program_options::options_description memory_options("Memory options");
   memory_options.add_options()
-    ("gsize,g",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_MEMORY_BYTES), "global memory size in bytes")
+    ("gsize,g",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_MEMORY_BYTES), "global memory size in bytes.")
     ("gtime,G",  boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES/4 + 3), 
                  "global memory transfer time per burst in cycles")
-    ("tdelay,t", boost::program_options::value<int>()->default_value(0), "read delay to global memory per request in cycles")
-    ("trefresh", boost::program_options::value<unsigned int>()->default_value(0), "refresh cycles per TDM round")
+    ("tdelay,t", boost::program_options::value<int>()->default_value(0), "read delay to global memory per request in cycles.")
+    ("trefresh", boost::program_options::value<unsigned int>()->default_value(0), "refresh cycles per TDM round.")
     ("bsize",    boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES), "burst size (and alignment) of the memory system.")
     ("psize",    boost::program_options::value<patmos::byte_size_t>()->default_value(0), "Memory page size. Enables variable burst lengths for single-core.")
     ("posted,p", boost::program_options::value<unsigned int>()->default_value(0), "Enable posted writes (sets max queue size)")
-    ("lsize,l",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_LOCAL_MEMORY_BYTES), "local memory size in bytes")
-    ("mem-rand", boost::program_options::value<unsigned int>()->default_value(0), "Initialize memories with random data")
+    ("ispmsize", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_ISPM_MEMORY_BYTES), "instruction SPM size in bytes, 0 to disable.")
+    ("lsize,l",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_LOCAL_MEMORY_BYTES), "local data memory size in bytes.")
+    ("mem-rand", boost::program_options::value<unsigned int>()->default_value(0), "Initialize memories with random data.")
     ("chkreads", boost::program_options::value<patmos::mem_check_e>()->default_value(patmos::MCK_NONE), 
                  "Check for reads of uninitialized data, either per byte (warn, err) or per access (warn-addr, err-addr). Disables the data cache.");
 
@@ -447,6 +459,7 @@ int main(int argc, char **argv)
   unsigned int led_offset = vm["led_offset"].as<patmos::address_t>().value();
 
   unsigned int gsize = vm["gsize"].as<patmos::byte_size_t>().value();
+  unsigned int ispmsize = vm["ispmsize"].as<patmos::byte_size_t>().value();
   unsigned int lsize = vm["lsize"].as<patmos::byte_size_t>().value();
   unsigned int dcsize = vm["dcsize"].as<patmos::byte_size_t>().value();
   unsigned int dlsize = vm["dlsize"].as<patmos::byte_size_t>().value();
@@ -540,7 +553,8 @@ int main(int argc, char **argv)
                                               randomize_mem, chkreads);
   patmos::instr_cache_t &ic = create_instr_cache(ick, isck, mck, mcsize, 
                                                  ilsize ? ilsize : bsize, 
-                                                 mbsize, mcmethods, gm);
+                                                 mbsize, mcmethods, 
+                                                 ispmsize, gm);
   patmos::data_cache_t &dc = create_data_cache(dck, dcsize, 
                                                dlsize ? dlsize : bsize, gm);
   patmos::stack_cache_t &sc = create_stack_cache(sck, scsize, bsize, gm, dc);
