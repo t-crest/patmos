@@ -1,0 +1,40 @@
+<?xml version="1.0" ?>
+<LOG_ROOT>
+	<PROJECT NAME="patmos">
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|BootMem:bootMem|Spm_1:spm|MemBlock_2:MemBlock_19|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_8oa1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|DataCache:dcache|DirectMappedCache:dm|MemBlock_3:tagMem|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_bqi1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|DataCache:dcache|TwoWaySetAssociativeCache:rsc|MemBlock_6:MemBlock_17|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_vni1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|MCache:mcache|MCacheMem:mcachemem|MemBlock_1:mcacheOdd|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_hqi1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|BootMem:bootMem|Spm_1:spm|MemBlock_2:MemBlock_21|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_8oa1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|DataCache:dcache|TwoWaySetAssociativeCache:rsc|MemBlock_6:MemBlock_10|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_vni1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|Exceptions:exc|altsyncram:vec_rtl_0" CBX_FILE_NAME="altsyncram_3ni1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|InOut:iocomp|Spm_0:spm|MemBlock_2:MemBlock_4|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_8oa1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|InOut:iocomp|Uart:Uart|Queue:txQueue|altsyncram:ram_rtl_0" CBX_FILE_NAME="altsyncram_bki1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|DataCache:dcache|TwoWaySetAssociativeCache:rsc|MemBlock_5:tagMem1|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_9ni1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|DataCache:dcache|TwoWaySetAssociativeCache:rsc|MemBlock_6:MemBlock_11|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_vni1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|Exceptions:exc|altsyncram:vecDup_rtl_0" CBX_FILE_NAME="altsyncram_3ni1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|InOut:iocomp|Spm_0:spm|MemBlock_2:MemBlock_5|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_8oa1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|DataCache:dcache|TwoWaySetAssociativeCache:rsc|MemBlock_5:tagMem2|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_9ni1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|DataCache:dcache|TwoWaySetAssociativeCache:rsc|MemBlock_6:MemBlock_12|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_vni1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|DataCache:dcache|TwoWaySetAssociativeCache:rsc|MemBlock_6:MemBlock_13|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_vni1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|Fetch:fetch|MemBlock_0:MemBlock_0|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_jqi1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|DataCache:dcache|DirectMappedCache:dm|MemBlock_4:MemBlock_6|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_nni1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|DataCache:dcache|TwoWaySetAssociativeCache:rsc|MemBlock_6:MemBlock_14|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_vni1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|Execute:execute|lpm_mult:Mult0" CBX_FILE_NAME="mult_q9t.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|Fetch:fetch|MemBlock_0:MemBlock_1|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_jqi1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|DataCache:dcache|DirectMappedCache:dm|MemBlock_4:MemBlock_7|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_nni1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|DataCache:dcache|TwoWaySetAssociativeCache:rsc|MemBlock_6:MemBlock_15|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_vni1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|Execute:execute|lpm_mult:Mult1" CBX_FILE_NAME="mult_r9t.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|BootMem:bootMem|Spm_1:spm|MemBlock_2:MemBlock_18|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_8oa1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|DataCache:dcache|DirectMappedCache:dm|MemBlock_4:MemBlock_8|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_nni1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|DataCache:dcache|TwoWaySetAssociativeCache:rsc|MemBlock_6:MemBlock_16|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_vni1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|Execute:execute|lpm_mult:Mult2" CBX_FILE_NAME="mult_m9t.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|InOut:iocomp|Spm_0:spm|MemBlock_2:MemBlock_2|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_8oa1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|InOut:iocomp|Uart:Uart|Queue:rxQueue|altsyncram:ram_rtl_0" CBX_FILE_NAME="altsyncram_bki1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|MCache:mcache|MCacheMem:mcachemem|MemBlock_1:mcacheEven|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_hqi1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|BootMem:bootMem|Spm_1:spm|MemBlock_2:MemBlock_20|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_8oa1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|DataCache:dcache|DirectMappedCache:dm|MemBlock_4:MemBlock_9|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_nni1.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|Execute:execute|lpm_mult:Mult3" CBX_FILE_NAME="mult_m2t.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|patmos_top|Patmos:comp|PatmosCore:core|InOut:iocomp|Spm_0:spm|MemBlock_2:MemBlock_3|altsyncram:mem_rtl_0" CBX_FILE_NAME="altsyncram_8oa1.tdf"/>
+	</PROJECT>
+</LOG_ROOT>

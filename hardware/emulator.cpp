@@ -139,6 +139,7 @@ static val_t readelf(istream &is, Patmos_t *c)
   return entry;
 }
 
+
 static void print_sc_state(Patmos_t *c) {
   // fill
   if ((c->Patmos_core_dcache_sc__stateReg.to_ulong() == 1) ||
@@ -526,6 +527,10 @@ int main (int argc, char* argv[]) {
 	}
 
   }
+
+  printf("Stack Depth 0: %ld\n", c->Patmos_core_execute__maxScAddrReg_0.to_ulong());
+  printf("Stack Depth 1: %ld\n", c->Patmos_core_execute__maxScAddrReg_1.to_ulong());
+  //printf("DC hits: %ld\n", c->Patmos_core_iocomp_PerfCounters__counterVec_2.to_ulong());
 
   // TODO: adapt comparison tool so this can be removed
   if (!quiet) {

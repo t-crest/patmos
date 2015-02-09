@@ -1,0 +1,57 @@
+
+State Machine - |patmos_top|Patmos:comp|SSRam32Ctrl:ramCtrl|ssramState
+Name ssramState.00 ssramState.10 ssramState.01 
+ssramState.00 0 0 0 
+ssramState.01 1 0 1 
+ssramState.10 1 1 0 
+
+State Machine - |patmos_top|Patmos:comp|PatmosCore:core|DataCache:dcache|WriteNoBuffer_0:wc|state
+Name state.00 state.10 state.01 
+state.00 0 0 0 
+state.01 1 0 1 
+state.10 1 1 0 
+
+State Machine - |patmos_top|Patmos:comp|PatmosCore:core|DataCache:dcache|NullCache:bp|stateReg
+Name stateReg.00 stateReg.10 stateReg.01 
+stateReg.00 0 0 0 
+stateReg.01 1 0 1 
+stateReg.10 1 1 0 
+
+State Machine - |patmos_top|Patmos:comp|PatmosCore:core|DataCache:dcache|TwoWaySetAssociativeCache:rsc|stateReg
+Name stateReg.11 stateReg.10 stateReg.01 stateReg.00 
+stateReg.00 0 0 0 0 
+stateReg.01 0 0 1 1 
+stateReg.10 0 1 0 1 
+stateReg.11 1 0 0 1 
+
+State Machine - |patmos_top|Patmos:comp|PatmosCore:core|DataCache:dcache|NullStackCache:sc|WriteNoBuffer_1:wc|state
+Name state.00 state.10 state.01 
+state.00 0 0 0 
+state.01 1 0 1 
+state.10 1 1 0 
+
+State Machine - |patmos_top|Patmos:comp|PatmosCore:core|DataCache:dcache|NullStackCache:sc|NullCache:nc|stateReg
+Name stateReg.00 stateReg.10 stateReg.01 
+stateReg.00 0 0 0 
+stateReg.01 1 0 1 
+stateReg.10 1 1 0 
+
+State Machine - |patmos_top|Patmos:comp|PatmosCore:core|DataCache:dcache|DirectMappedCache:dm|stateReg
+Name stateReg.11 stateReg.10 stateReg.01 stateReg.00 
+stateReg.00 0 0 0 0 
+stateReg.01 0 0 1 1 
+stateReg.10 0 1 0 1 
+stateReg.11 1 0 0 1 
+
+State Machine - |patmos_top|Patmos:comp|PatmosCore:core|InOut:iocomp|Uart:Uart|rx_state
+Name rx_state.11 rx_state.10 rx_state.01 rx_state.00 
+rx_state.00 0 0 0 0 
+rx_state.01 0 0 1 1 
+rx_state.10 0 1 0 1 
+rx_state.11 1 0 0 1 
+
+State Machine - |patmos_top|Patmos:comp|PatmosCore:core|MCache:mcache|MCacheCtrl:mcachectrl|mcacheState
+Name mcacheState.00 mcacheState.10 mcacheState.01 
+mcacheState.00 0 0 0 
+mcacheState.01 1 0 1 
+mcacheState.10 1 1 0 

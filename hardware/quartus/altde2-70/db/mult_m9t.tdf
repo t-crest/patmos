@@ -1,0 +1,69 @@
+--lpm_mult CBX_DECLARE_ALL_CONNECTED_PORTS="OFF" DEVICE_FAMILY="Arria II GX" DSP_BLOCK_BALANCING="Auto" INPUT_A_IS_CONSTANT="NO" INPUT_B_IS_CONSTANT="NO" LPM_REPRESENTATION="UNSIGNED" LPM_WIDTHA=16 LPM_WIDTHB=16 LPM_WIDTHP=32 LPM_WIDTHS=1 MAXIMIZE_SPEED=6 dataa datab result CARRY_CHAIN="MANUAL" CARRY_CHAIN_LENGTH=48
+--VERSION_BEGIN 13.1 cbx_cycloneii 2013:10:17:09:48:19:SJ cbx_lpm_add_sub 2013:10:17:09:48:19:SJ cbx_lpm_mult 2013:10:17:09:48:19:SJ cbx_mgl 2013:10:17:09:48:49:SJ cbx_padd 2013:10:17:09:48:19:SJ cbx_stratix 2013:10:17:09:48:19:SJ cbx_stratixii 2013:10:17:09:48:19:SJ cbx_util_mgl 2013:10:17:09:48:19:SJ  VERSION_END
+
+
+-- Copyright (C) 1991-2013 Altera Corporation
+--  Your use of Altera Corporation's design tools, logic functions 
+--  and other software and tools, and its AMPP partner logic 
+--  functions, and any output files from any of the foregoing 
+--  (including device programming or simulation files), and any 
+--  associated documentation or information are expressly subject 
+--  to the terms and conditions of the Altera Program License 
+--  Subscription Agreement, Altera MegaCore Function License 
+--  Agreement, or other applicable license agreement, including, 
+--  without limitation, that your use is for the sole purpose of 
+--  programming logic devices manufactured by Altera and sold by 
+--  Altera or its authorized distributors.  Please refer to the 
+--  applicable agreement for further details.
+
+
+FUNCTION arriaii_mac_mult (aclr[3..0], clk[3..0], dataa[dataa_width-1..0], datab[datab_width-1..0], ena[3..0], signa, signb)
+WITH ( dataa_clear, dataa_clock, dataa_width, datab_clear, datab_clock, datab_width, scanouta_clear, scanouta_clock, signa_clear, signa_clock, signa_internally_grounded, signb_clear, signb_clock, signb_internally_grounded)
+RETURNS ( dataout[dataa_width+datab_width-1..0], scanouta[dataa_width-1..0]);
+FUNCTION arriaii_mac_out (aclr[3..0], chainin[chainin_width-1..0], clk[3..0], dataa[dataa_width-1..0], datab[datab_width-1..0], datac[datac_width-1..0], datad[datad_width-1..0], ena[3..0], rotate, round, roundchainout, saturate, saturatechainout, shiftright, signa, signb, zeroacc, zerochainout, zeroloopback)
+WITH ( acc_adder_operation, chainin_width = 1, dataa_width = 1, datab_width = 1, datac_width = 1, datad_width = 1, dataout_width = 72, first_adder0_clear, first_adder0_clock, first_adder0_mode, first_adder1_clear, first_adder1_clock, first_adder1_mode, multa_signa_internally_grounded, multa_signb_internally_grounded, multb_signa_internally_grounded, multb_signb_internally_grounded, multc_signa_internally_grounded, multc_signb_internally_grounded, multd_signa_internally_grounded, multd_signb_internally_grounded, operation_mode, output_clear, output_clock, rotate_clear, rotate_clock, rotate_output_clear, rotate_output_clock, rotate_pipeline_clear, rotate_pipeline_clock, round_chain_out_mode, round_chain_out_width, round_clear, round_clock, round_mode, round_pipeline_clear, round_pipeline_clock, round_width, roundchainout_clear, roundchainout_clock, roundchainout_output_clear, roundchainout_output_clock, roundchainout_pipeline_clear, roundchainout_pipeline_clock, saturate_chain_out_mode, saturate_chain_out_width, saturate_clear, saturate_clock, saturate_mode, saturate_pipeline_clear, saturate_pipeline_clock, saturate_width, saturatechainout_clear, saturatechainout_clock, saturatechainout_output_clear, saturatechainout_output_clock, saturatechainout_pipeline_clear, saturatechainout_pipeline_clock, second_adder_clear, second_adder_clock, shiftright_clear, shiftright_clock, shiftright_output_clear, shiftright_output_clock, shiftright_pipeline_clear, shiftright_pipeline_clock, signa_clear, signa_clock, signa_pipeline_clear, signa_pipeline_clock, signb_clear, signb_clock, signb_pipeline_clear, signb_pipeline_clock, zeroacc_clear, zeroacc_clock, zeroacc_pipeline_clear, zeroacc_pipeline_clock, zerochainout_output_clear, zerochainout_output_clock, zeroloopback_clear, zeroloopback_clock, zeroloopback_output_clear, zeroloopback_output_clock, zeroloopback_pipeline_clear, zeroloopback_pipeline_clock)
+RETURNS ( dataout[dataout_width-1..0], dftout, loopbackout[17..0], overflow, saturatechainoutoverflow);
+
+--synthesis_resources = dsp_18bit 1 
+SUBDESIGN mult_m9t
+( 
+	dataa[15..0]	:	input;
+	datab[15..0]	:	input;
+	result[31..0]	:	output;
+) 
+VARIABLE 
+	mac_mult2 : arriaii_mac_mult
+		WITH (
+			dataa_width = 16,
+			datab_width = 16
+		);
+	mac_out1 : arriaii_mac_out
+		WITH (
+			dataa_width = 32,
+			dataout_width = 72,
+			operation_mode = "output_only"
+		);
+	aclr	: NODE;
+	clken	: NODE;
+	clock	: NODE;
+
+BEGIN 
+	mac_mult2.aclr[] = aclr;
+	mac_mult2.clk[] = clock;
+	mac_mult2.dataa[] = ( dataa[]);
+	mac_mult2.datab[] = ( datab[]);
+	mac_mult2.ena[] = clken;
+	mac_mult2.signa = B"0";
+	mac_mult2.signb = B"0";
+	mac_out1.aclr[] = aclr;
+	mac_out1.clk[] = clock;
+	mac_out1.dataa[] = ( mac_mult2.dataout[31..0]);
+	mac_out1.ena[] = clken;
+	mac_out1.signa = B"0";
+	mac_out1.signb = B"0";
+	aclr = GND;
+	clken = VCC;
+	clock = GND;
+	result[31..0] = mac_out1.dataout[31..0];
+END;
+--VALID FILE

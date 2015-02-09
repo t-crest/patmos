@@ -146,6 +146,7 @@ class DecEx() extends Bundle() {
   val immOp  = Vec.fill(PIPE_COUNT) { Bool() }
   // maybe we should have similar structure as the Result one here
   val wrRd  = Vec.fill(PIPE_COUNT) { Bool() }
+  
 
   val callAddr = UInt(width = DATA_WIDTH)
   val call = Bool()
@@ -222,6 +223,8 @@ class MemIn() extends Bundle() {
   val callRetAddr = UInt(width = DATA_WIDTH)
   val callRetBase = UInt(width = DATA_WIDTH)
   val nonDelayed = Bool()
+  
+  
 
   def flush() = {
     load := Bool(false)
@@ -258,6 +261,7 @@ class ScEx extends Bundle() {
 
 class ExMem() extends Bundle() {
   val rd = Vec.fill(PIPE_COUNT) { new Result() }
+  val r31Val = UInt(width = DATA_WIDTH)
   val mem = new MemIn()
   val pc = UInt(width = PC_SIZE)
   val relPc = UInt(width = PC_SIZE)
