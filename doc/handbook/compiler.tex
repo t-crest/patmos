@@ -583,15 +583,22 @@ The machine configuration consists of three sections:
   \textbf{Patmos:} The address space must be either \code{global} or \code{local}. Local address space entries must not
   use a cache, and must use an ideal memory.
 
-  Currently there may be at most one global data address space entry. It must use the \code{main} memory and the
-  \code{data-cache} if configured.
-
-  There may be at most one global code address space entry that refers to \code{main} memory. It must use either the
-  \code{method-cache} or the \code{instruction-cache} if configured. All other code memory areas must refer to an ideal memory without using a cache.
-
-  \stefan{How about the instruction scratchpad? May it have a non-zero latency? In this case we need to extend the
-  simulator.}
+  Patmos supports the following named address spaces: 
   
+  \begin{itemize}
+  \item \code{code}: The main code area for regular instruction fetches. It must be of type \code{code}, use global address space, and refer to
+                     \code{main} memory or an ideal memory. It must use either the \code{method-cache} or the \code{instruction-cache} such
+		     a cache is defined.
+  \item \code{data}: The main data area for data and stack accesses. It must be of type \code{data}, use global address space, and refer to
+                     \code{main} memory. It must use the \code{data-cache} if such a cache is defined. This area may
+		     only use an ideal memory if the \code{main} memory is ideal.
+  \end{itemize}
+
+  All other code areas are currently ignored. If any of the above address spaces is omitted, \code{main} memory is used
+  by default.
+
+  \stefan{We might define additional area names in the future to configure the scratchpads.}
+
   The following attributes are supported: \code{heap-end} sets the heap end pointer, \code{stack-base} sets the stack
   base pointer, and \code{shadow-stack-base} sets the shadow stack base pointer. Those attributes can be defined in
   any memory area, but must be defined at most once.
