@@ -70,6 +70,9 @@ namespace patmos
   /// global main memory.
   static const unsigned int NUM_MEMORY_BLOCK_BYTES = 16;
 
+  /// Define the number of bytes used for the local I-SPM.
+  static const unsigned int NUM_ISPM_MEMORY_BYTES = 0x20000;
+
   /// Define the number of bytes used for the local memory.
   static const unsigned int NUM_LOCAL_MEMORY_BYTES = 0x800;
 
