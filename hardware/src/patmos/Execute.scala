@@ -48,7 +48,7 @@ import Constants._
 class Execute() extends Module {
   val io = new ExecuteIO()
 
-  //val r31Val = Vec.fill(PIPE_COUNT) {Reg(UInt(width = DATA_WIDTH))}
+
   val exReg = Reg(new DecEx())
   when(io.ena) {
     exReg := io.decex
@@ -58,7 +58,7 @@ class Execute() extends Module {
     }
   }
   
-  val maxScAddrReg = Vec.fill(PIPE_COUNT) {Reg(UInt(width = DATA_WIDTH))}
+  val maxScAddrReg = Reg(init = UInt(0, width =DATA_WIDTH))
   
   def alu(func: Bits, op1: UInt, op2: UInt): Bits = {
     val result = UInt(width = DATA_WIDTH)
@@ -340,11 +340,10 @@ class Execute() extends Module {
     val test = UInt();                               
     test := Mux(exReg.aluOp(i).isMFS, mfsResult,
                                Mux(exReg.aluOp(i).isBCpy, bcpyResult,
-                                   aluResult))                               
-    val ltR31 = maxScAddrReg(i) < test       
-    maxScAddrReg(i) := Mux(exReg.rdAddr(i) ===  Bits("b11111") && ltR31, Mux(exReg.aluOp(i).isMFS, mfsResult,
-                               Mux(exReg.aluOp(i).isBCpy, bcpyResult,
-                                   aluResult)), maxScAddrReg(i))                   
+                                   aluResult))                          
+    val geR31 = test > maxScAddrReg     
+     when (exReg.rdAddr(i) ===  Bits("b11111") && exReg.wrRd(i) && doExecute(i) && geR31){
+      maxScAddrReg := test }               
   }
 
   
@@ -357,7 +356,7 @@ class Execute() extends Module {
   io.exmem.mem.typ := exReg.memOp.typ
   io.exmem.mem.addr := op(0) + exReg.immVal(0)
   io.exmem.mem.data := op(1)
-  io.exmem.r31Val := Mux(maxScAddrReg(0) < maxScAddrReg(1), maxScAddrReg(0), maxScAddrReg(1))
+  io.exmem.r31Val := maxScAddrReg
 
   // call/return
   io.exmem.mem.call := exReg.call && doExecute(0)
