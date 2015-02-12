@@ -54,6 +54,7 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
     val master = new OcpCoreSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
     val slave = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, lineSize/4)
     val invalidate = Bool(INPUT)
+   // val RSC = BOOl(INPUT)
     val perf = new DataCachePerf()
   }
 

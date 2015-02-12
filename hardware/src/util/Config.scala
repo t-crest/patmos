@@ -65,6 +65,8 @@ abstract class Config {
   val DCache: DCacheConfig
   case class SCacheConfig(size: Int)
   val SCache: SCacheConfig
+  case class RSCacheConfig(size: Int, assoc: Int, repl: String)
+  val RSCache: RSCacheConfig
 
   case class SPMConfig(size: Int)
   val ISPM: SPMConfig
@@ -212,6 +214,14 @@ object Config {
       val SCache =
         new SCacheConfig(getSizeAttr(node, "SCache", "@size",
                                      hasParent, defaultConf.SCache.size))
+      
+      val RSCache =
+        new RSCacheConfig(getSizeAttr(node, "RSCache", "@size",
+                                     hasParent, defaultConf.RSCache.size),
+                         getIntAttr(node,  "RSCache", "@assoc",
+                                    hasParent, defaultConf.RSCache.assoc),
+                         getTextAttr(node, "RSCache", "@repl",
+                                     hasParent, defaultConf.RSCache.repl))
 
       val ISPM =
         new SPMConfig(getSizeAttr(node, "ISPM", "@size",
@@ -291,6 +301,7 @@ object Config {
     val MCache = new MCacheConfig(0, 0, "")
     val DCache = new DCacheConfig(0, 0, "")
     val SCache = new SCacheConfig(0)
+    val RSCache = new RSCacheConfig(0, 0, "")
     val ISPM = new SPMConfig(0)
     val DSPM = new SPMConfig(0)
     val BootSPM = new SPMConfig(0)

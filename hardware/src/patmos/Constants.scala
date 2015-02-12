@@ -60,6 +60,9 @@ object Constants {
   val DCACHE_ASSOC = util.Config.getConfig.DCache.assoc
   val DCACHE_REPL = util.Config.getConfig.DCache.repl
   val SCACHE_SIZE = util.Config.getConfig.SCache.size
+  val RSCACHE_SIZE = util.Config.getConfig.RSCache.size
+  val RSCACHE_ASSOC = util.Config.getConfig.RSCache.assoc
+  val RSCACHE_REPL = util.Config.getConfig.RSCache.repl
   // offset for switching from relative address to absolute address, default = 0
   val ICACHE_ADDR_OFFSET = 0 //log2Up(util.Config.getConfig.ExtMem.size)
 
@@ -144,6 +147,7 @@ object Constants {
   val MTYPE_L = Bits("b01")
   val MTYPE_C = Bits("b10")
   val MTYPE_M = Bits("b11")
+  val MTYPE_RS = Bits("b111")
 
   val FUNC_ADD = Bits("b0000")
   val FUNC_SUB = Bits("b0001")

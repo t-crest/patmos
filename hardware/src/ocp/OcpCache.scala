@@ -46,6 +46,8 @@ object OcpCache {
   val STACK_CACHE = Bits("b00")
   val DATA_CACHE  = Bits("b10")
   val UNCACHED    = Bits("b11")
+  val RSTACK_CACHE  = Bits("b111")
+
 }
 
 // Cache masters provide address space signal

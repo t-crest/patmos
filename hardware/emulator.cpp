@@ -525,12 +525,14 @@ int main (int argc, char* argv[]) {
 	if (print_stat) {
 	  mcacheStat(c, halt);
 	}
+	
+	  
 
   }
 
-  printf("Stack Depth 0: %ld\n", c->Patmos_core_execute__maxScAddrReg_0.to_ulong());
-  printf("Stack Depth 1: %ld\n", c->Patmos_core_execute__maxScAddrReg_1.to_ulong());
+
   //printf("DC hits: %ld\n", c->Patmos_core_iocomp_PerfCounters__counterVec_2.to_ulong());
+  printf("Stack Depth 0: %lx\n", c->Patmos_core_execute__maxScAddrReg.to_ulong());
 
   // TODO: adapt comparison tool so this can be removed
   if (!quiet) {

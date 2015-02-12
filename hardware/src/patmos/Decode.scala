@@ -337,7 +337,8 @@ class Decode() extends Module {
         io.decex.memOp.zext := Bool(true)
       }
     }
-    io.decex.memOp.typ := ldtype;
+    //io.decex.memOp.typ := ldtype;
+    io.decex.memOp.typ := Mux(instr(16, 12) === Bits("b11111"), Bits("b111"),ldtype)
     when(ldtype === MTYPE_S) {
       isStack := Bool(true)
     }
@@ -359,7 +360,8 @@ class Decode() extends Module {
         io.decex.memOp.byte := Bool(true)
       }
     }
-    io.decex.memOp.typ := sttype;
+    //io.decex.memOp.typ := sttype;
+    io.decex.memOp.typ := Mux(instr(16, 12) === Bits("b11111"), Bits("b111"),sttype)
     when(sttype === MTYPE_S) {
       isStack := Bool(true)
     }

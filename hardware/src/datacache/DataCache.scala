@@ -64,9 +64,16 @@ class DataCache extends Module {
   val selDCReg = Reg(Bool())
   val selSC = io.master.M.AddrSpace === OcpCache.STACK_CACHE
   val selSCReg = Reg(Bool())
+  val selRSC = Bool(RSCACHE_SIZE > 0) && io.master.M.AddrSpace === OcpCache.RSTACK_CACHE
+  val selRSCReg = Reg(Bool())
+ // val selRSCDC = (Bool(RSCACHE_SIZE > 0) && (io.master.M.AddrSpace === OcpCache.RSTACK_CACHE)) ||
+  //               (Bool(RSCACHE_SIZE > 0) && io.master.M.AddrSpace === OcpCache.RSTACK_CACHE)
+ // val selRSCDCReg = Reg(Bool())
   when(io.master.M.Cmd != OcpCmd.IDLE) {
     selDCReg := selDC
     selSCReg := selSC
+    selRSCReg := selRSC
+  //  selRSCDCReg := selRSCDC
   }
 
   // Instantiate direct-mapped cache for regular data cache
@@ -89,6 +96,7 @@ class DataCache extends Module {
                             (Bool(DCACHE_SIZE > 0) && io.master.M.Cmd === OcpCmd.WR),
                             io.master.M.Cmd, OcpCmd.IDLE)
   dm.io.invalidate := io.invalDCache
+ // dm.io.RSC := selRSC
   val dmS = dm.io.master.S
 
   // Instantiate stack cache
@@ -99,6 +107,28 @@ class DataCache extends Module {
   sc.io.fromCPU.M := io.master.M
   sc.io.fromCPU.M.Cmd := Mux(selSC, io.master.M.Cmd, OcpCmd.IDLE)
   val scS = sc.io.fromCPU.S
+  
+  // Instantiate direct-mapped cache for regular stack cache
+  val rsc = 
+    if (RSCACHE_SIZE <= 0)
+      Module(new NullCache())
+    else if (RSCACHE_ASSOC == 1)
+      Module(new DirectMappedCache(RSCACHE_SIZE, BURST_LENGTH*BYTES_PER_WORD))
+    else if (RSCACHE_ASSOC == 2 && RSCACHE_REPL == "lru")
+      Module(new TwoWaySetAssociativeCache(RSCACHE_SIZE, BURST_LENGTH*BYTES_PER_WORD))
+    else {
+      ChiselError.error("Unsupported data cache configuration: "+
+                        "associativity "+RSCACHE_ASSOC+
+                        " with replacement policy \""+RSCACHE_REPL+"\"")
+      Module(new NullCache()) // return at least a dummy cache
+    }
+
+  rsc.io.master.M := io.master.M
+  rsc.io.master.M.Cmd := Mux(selRSC ||
+                            (Bool(RSCACHE_SIZE > 0) && io.master.M.Cmd === OcpCmd.WR),
+                            io.master.M.Cmd, OcpCmd.IDLE)
+  rsc.io.invalidate := io.invalDCache
+  val rscS = rsc.io.master.S
 
   // Instantiate bridge for bypasses and writes
   val bp = Module(new NullCache())
@@ -112,10 +142,13 @@ class DataCache extends Module {
 
   val burstReadBus2 = Module(new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
   val burstReadJoin2 = new OcpBurstJoin(sc.io.toMemory, burstReadBus1.io.master, burstReadBus2.io.slave)
+  
+  val burstReadBus3 = Module(new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
+  val burstReadJoin3 = new OcpBurstJoin(rsc.io.slave, burstReadBus2.io.master, burstReadBus3.io.slave)
 
   // Combine writes
   val wc = Module(if (WRITE_COMBINE) new WriteCombineBuffer() else new WriteNoBuffer())
-  wc.io.readMaster <> burstReadBus2.io.master
+  wc.io.readMaster <> burstReadBus3.io.master
   wc.io.writeMaster.M := io.master.M
   wc.io.writeMaster.M.Cmd := Mux(!selSC, io.master.M.Cmd, OcpCmd.IDLE)
   val wcWriteS = wc.io.writeMaster.S
@@ -125,11 +158,12 @@ class DataCache extends Module {
   io.master.S.Data := bpS.Data
   when(selDCReg) { io.master.S.Data := dmS.Data }
   when(selSCReg) { io.master.S.Data := scS.Data }
+  when(selRSCReg) { io.master.S.Data := rscS.Data }
 
   // Merge responses
-  io.master.S.Resp := dmS.Resp | scS.Resp | bpS.Resp | wcWriteS.Resp
-
-  // Pass on performance counters
+  io.master.S.Resp := dmS.Resp | scS.Resp | rscS.Resp | bpS.Resp | wcWriteS.Resp
+  
+   // Pass on performance counters
   io.dcPerf <> dm.io.perf
   io.scPerf <> sc.io.perf
   io.wcPerf <> wc.io.perf
