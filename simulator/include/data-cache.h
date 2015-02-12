@@ -116,7 +116,7 @@ namespace patmos
     }
 
     /// Notify the memory that a cycle has passed.
-    virtual void tick()
+    virtual void tick(simulator_t &s)
     {
       // this is directly invoked by the simulation main loop -- thus no need
       // to propagate this down to the memory here.

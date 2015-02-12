@@ -319,7 +319,7 @@ bool fixed_delay_memory_t::is_ready()
   return Requests.empty();
 }
 
-void fixed_delay_memory_t::tick()
+void fixed_delay_memory_t::tick(simulator_t &s)
 {
   // check if there are only posted writes in the queue, then there is
   // no one waiting on any result and we are actually not stalling in this
@@ -545,7 +545,7 @@ void tdm_memory_t::tick_request(request_info_t &req)
   }
 }
 
-void tdm_memory_t::tick()
+void tdm_memory_t::tick(simulator_t &s)
 {
   // TODO can we start a transfer if it is requested in the same cycle the 
   // TDM slot starts? If so, move the counter update at the end.
@@ -559,5 +559,5 @@ void tdm_memory_t::tick()
     Is_Transferring = !Requests.empty();
   }
   
-  fixed_delay_memory_t::tick();
+  fixed_delay_memory_t::tick(s);
 }

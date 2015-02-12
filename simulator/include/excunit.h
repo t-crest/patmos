@@ -161,7 +161,7 @@ namespace patmos
       
       virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
       
-      virtual void tick();
+      virtual void tick(simulator_t &s);
       
       /// Enables firing of interupts and exception handler ISRs. Does not disable
       /// traps.

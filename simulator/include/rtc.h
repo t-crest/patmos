@@ -171,7 +171,7 @@ namespace patmos
       return true;
     }
 
-    virtual void tick() {
+    virtual void tick(simulator_t &s) {
       if (Interrupt_clock == getCycle()) {
         Simulator.Exception_handler.fire_exception(ET_INTR_CLOCK);
       }

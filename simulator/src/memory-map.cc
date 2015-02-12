@@ -217,14 +217,14 @@ bool memory_map_t::is_ready()
   return Memory.is_ready();
 }
 
-void memory_map_t::tick()
+void memory_map_t::tick(simulator_t &s)
 {
   for (DeviceList::iterator it = Devices.begin(), ie = Devices.end();
        it != ie; ++it) 
   {
-    (*it)->tick();
+    (*it)->tick(s);
   }
-  Memory.tick();
+  Memory.tick(s);
 }
 
 void memory_map_t::print(std::ostream &os) const

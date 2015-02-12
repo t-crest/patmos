@@ -84,7 +84,7 @@ uword_t ideal_method_cache_t::get_active_method_base()
   return current_base;
 }
 
-void ideal_method_cache_t::tick()
+void ideal_method_cache_t::tick(simulator_t &s)
 {
   // do nothing here
 }
@@ -585,7 +585,7 @@ uword_t lru_method_cache_t::get_active_method_base()
   return Methods[Active_method].Address;
 }
 
-void lru_method_cache_t::tick()
+void lru_method_cache_t::tick(simulator_t &s)
 {
   // update statistics
   if (Phase != IDLE)
