@@ -181,10 +181,10 @@ namespace patmos
     }
 
     /// Notify the memory that a cycle has passed.
-    virtual void tick()
+    virtual void tick(simulator_t &s)
     {
       if (IS_OWNING_CACHE) {
-        Backing_cache->tick();
+        Backing_cache->tick(s);
       }
       
       no_instr_cache_t::tick();

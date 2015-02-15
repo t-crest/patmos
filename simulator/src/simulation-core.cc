@@ -49,6 +49,9 @@
 #include <iostream>
 #include <iomanip>
 #include <limits>
+#include <fstream>
+
+using namespace std;
 
 namespace patmos
 {
@@ -68,7 +71,10 @@ namespace patmos
       Exception_handling_counter(0),
       Flush_Cache_PC(std::numeric_limits<unsigned int>::max()), Num_NOPs(0)
   {
-    // initialize the pipeline
+
+
+
+	  // initialize the pipeline
     for(unsigned int i = 0; i < NUM_STAGES; i++)
     {
       Num_stall_cycles[i] = 0;
@@ -417,10 +423,11 @@ namespace patmos
         Num_stall_cycles[Stall]++;
 
         // advance the time for the method cache, stack cache, and memory
-        Rtc->tick();
-        Memory.tick();
+        Rtc->tick(*this);
+        Memory.tick(*this);
         Instr_cache.tick();
-        Stack_cache.tick();
+        Stack_cache.tick(*this);
+
 
         if (debug)
         {
@@ -455,11 +462,14 @@ namespace patmos
   void simulator_t::print_registers(std::ostream &os,
                                     debug_format_e debug_fmt, bool nopc) const
   {
-    if (debug_fmt == DF_SHORT)
+
+
+	  if (debug_fmt == DF_SHORT)
     {
       for(unsigned int r = r0; r < NUM_GPR; r++)
       {
         os << boost::format(" r%1$-2d: %2$08x") % r % GPR.get((GPR_e)r).get();
+      //  os << "sahar is fucked up";
       }
       os << "\n";
     }
@@ -529,6 +539,7 @@ namespace patmos
   {
       std::ostringstream oss;
       symbol_map_t emptymap;
+
       for(unsigned int i = 0; i < NUM_SLOTS; i++) {
         std::ostringstream instr;
         Pipeline[stage][i].print(instr, emptymap);
@@ -773,6 +784,7 @@ namespace patmos
     
     if (!options.short_stats) {
       os << boost::format("\n\nInstruction Statistics:\n   %1$15s:") % "operation";
+
     }
     
     for (unsigned int i = 0; i < NUM_SLOTS; i++) {

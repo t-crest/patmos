@@ -39,9 +39,12 @@
 
 #include "basic-types.h"
 #include "command-line.h"
+#include "registers.h"
 
 #include <map>
 #include <iostream>
+#include <stdio.h>
+
 
 namespace patmos
 {
@@ -52,6 +55,7 @@ namespace patmos
   class memory_t
   {
   public:
+
     virtual ~memory_t() {}
     
     /// A simulated access to a read port.
@@ -128,7 +132,7 @@ namespace patmos
     virtual bool is_ready() = 0;
 
     /// Notify the memory that a cycle has passed.
-    virtual void tick() = 0;
+    virtual void tick(simulator_t &s) = 0;
 
     /// Print the internal state of the memory to an output stream.
     /// @param os The output stream to print to.
@@ -141,6 +145,9 @@ namespace patmos
     
     /// Reset statistics.
     virtual void reset_stats() = 0;
+
+
+    int maxscAddr;
   };
 
   /// An ideal memory.
@@ -232,9 +239,10 @@ namespace patmos
     }
 
     /// Notify the memory that a cycle has passed.
-    virtual void tick()
+    virtual void tick(simulator_t &s)
     {
       // do nothing here
+
     }
 
     /// Print the internal state of the memory to an output stream.
@@ -416,7 +424,7 @@ namespace patmos
     virtual bool is_ready();
 
     /// Notify the memory that a cycle has passed.
-    virtual void tick();
+    virtual void tick(simulator_t &s);
 
     /// Print the internal state of the memory to an output stream.
     /// @param os The output stream to print to.
@@ -486,7 +494,7 @@ namespace patmos
                  unsigned int num_refresh_ticks_per_round, 
                  bool randomize, mem_check_e memchk);
     
-    virtual void tick();
+    virtual void tick(simulator_t &s);
   };
 }
 

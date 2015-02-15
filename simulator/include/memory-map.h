@@ -170,6 +170,8 @@ namespace patmos
     
     /// Reset the statistics.
     virtual void reset_stats() { }
+
+
   };
   
   
@@ -298,7 +300,7 @@ namespace patmos
     virtual bool is_ready();
 
     /// Notify the memory that a cycle has passed.
-    virtual void tick();
+    virtual void tick(simulator_t &s);
 
     /// Print the internal state of the memory to an output stream.
     /// @param os The output stream to print to.

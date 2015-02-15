@@ -39,6 +39,7 @@
 #include "exception.h"
 #include "simulation-core.h"
 
+
 #include <boost/format.hpp>
 
 #include <cassert>
@@ -46,8 +47,10 @@
 #include <algorithm>
 #include <cstdlib>
 #include <iostream>
+#include <stdio.h>
 
 using namespace patmos;
+
 
 void ideal_memory_t::check_initialize_content(simulator_t &s, uword_t address, uword_t size, 
                                               bool is_read, bool ignore_errors)
@@ -319,7 +322,7 @@ bool fixed_delay_memory_t::is_ready()
   return Requests.empty();
 }
 
-void fixed_delay_memory_t::tick()
+void fixed_delay_memory_t::tick(simulator_t &s)
 {
   // check if there are only posted writes in the queue, then there is
   // no one waiting on any result and we are actually not stalling in this
@@ -337,6 +340,9 @@ void fixed_delay_memory_t::tick()
     if (posted) {
       Num_posted_write_cycles++;
     }
+
+
+
   }
 
   // update the request queue
@@ -349,6 +355,11 @@ void fixed_delay_memory_t::tick()
       Requests.erase(Requests.begin());
     }
   }
+
+  if (s.GPR.get(r31).get() > maxscAddr) {
+      	maxscAddr = s.GPR.get(r31).get();
+      	printf("Crazyyyyyyfuck %d", maxscAddr);
+      }
 }
 
 /// Print the internal state of the memory to an output stream.
@@ -545,7 +556,7 @@ void tdm_memory_t::tick_request(request_info_t &req)
   }
 }
 
-void tdm_memory_t::tick()
+void tdm_memory_t::tick(simulator_t &s)
 {
   // TODO can we start a transfer if it is requested in the same cycle the 
   // TDM slot starts? If so, move the counter update at the end.
@@ -559,5 +570,5 @@ void tdm_memory_t::tick()
     Is_Transferring = !Requests.empty();
   }
   
-  fixed_delay_memory_t::tick();
+  fixed_delay_memory_t::tick(s);
 }

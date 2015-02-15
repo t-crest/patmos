@@ -202,7 +202,7 @@ namespace patmos
 
     virtual void read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
-    virtual void tick() {}
+    virtual void tick(simulator_t &s) {}
 
     
     /// Print the internal state of the stack cache to an output stream.
