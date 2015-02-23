@@ -49,6 +49,12 @@ $(BUILDDIR)/%.o: %.c Makefile
 $(BUILDDIR)/%.elf: %.c $(NOCINIT) $(LIBNOC) $(LIBMP) $(LIBCORETHREAD) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread
+
+# A target for a single core version without dependencies
+$(BUILDDIR)/%.elf: %.c Makefile
+	mkdir -p $(BUILDDIR)/$(dir $*)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR)
+
 $(BUILDDIR)/%.s: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) -fpatmos-emit-asm -S -o $@ $(filter %.c,$^)
