@@ -545,6 +545,9 @@ int main(int argc, char **argv)
                                                dlsize ? dlsize : bsize, gm);
   patmos::stack_cache_t &sc = create_stack_cache(sck, scsize, bsize, gm, dc);
 
+  patmos::data_cache_t &scdc = create_data_cache(dck, dcsize,
+                                               dlsize ? dlsize : bsize, gm);
+
   try
   {
     // open streams
@@ -575,7 +578,7 @@ int main(int argc, char **argv)
     
     patmos::symbol_map_t sym;
 
-    patmos::simulator_t s(gm, mm, dc, ic, sc, sym, excunit);
+    patmos::simulator_t s(gm, mm, dc, ic, sc, scdc, sym, excunit);
 
     // setup statistics printing
     patmos::stats_options_t &stats_options = s.Dbg_stack.get_stats_options();
