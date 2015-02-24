@@ -149,7 +149,9 @@ namespace patmos
   class instruction_data_t
   {
   public:
-    /// The instruction class that implements the behavior.
+
+
+	/// The instruction class that implements the behavior.
     const instruction_t *I;
 
     /// Address the instruction was fetched from.
@@ -597,6 +599,7 @@ namespace patmos
       if (I)
         I->MW(s, *this);
     }
+    bool DR_Is_StackPointer_Relative;
   };
 }
 

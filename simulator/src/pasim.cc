@@ -358,7 +358,11 @@ int main(int argc, char **argv)
     ("mcmethods",boost::program_options::value<unsigned int>()->default_value(patmos::NUM_METHOD_CACHE_MAX_METHODS), 
                  "Maximum number of methods in the method cache, defaults to number of blocks if zero")
     ("mbsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_METHOD_CACHE_BLOCK_BYTES), 
-                 "method cache block size in bytes, defaults to burst size if zero");
+                 "method cache block size in bytes, defaults to burst size if zero")
+				 ("scdcsize,sd", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_DATA_CACHE_BYTES), "stack data cache size in bytes")
+				     ("scdckind,SD", boost::program_options::value<patmos::set_assoc_cache_type>()->default_value(patmos::set_assoc_cache_type(patmos::SAC_LRU,2)),
+				                    "kind of direct mapped/fully-/set-associative stack data cache, defaults to lru2 (ideal, no, dm, lru[N], fifo[N])")
+;
 
   boost::program_options::options_description sim_options("Simulator options");
   sim_options.add_options()
@@ -449,6 +453,7 @@ int main(int argc, char **argv)
   unsigned int gsize = vm["gsize"].as<patmos::byte_size_t>().value();
   unsigned int lsize = vm["lsize"].as<patmos::byte_size_t>().value();
   unsigned int dcsize = vm["dcsize"].as<patmos::byte_size_t>().value();
+  unsigned int scdcsize = vm["scdcsize"].as<patmos::byte_size_t>().value();
   unsigned int dlsize = vm["dlsize"].as<patmos::byte_size_t>().value();
   unsigned int scsize = vm["scsize"].as<patmos::byte_size_t>().value();
   unsigned int mcsize = vm["mcsize"].as<patmos::byte_size_t>().value();
@@ -464,6 +469,7 @@ int main(int argc, char **argv)
   unsigned int trefresh = vm["trefresh"].as<unsigned int>();
 
   patmos::set_assoc_cache_type dck = vm["dckind"].as<patmos::set_assoc_cache_type>();
+  patmos::set_assoc_cache_type scdck = vm["scdckind"].as<patmos::set_assoc_cache_type>();
   patmos::stack_cache_e sck = vm["sckind"].as<patmos::stack_cache_e>();
   patmos::instr_cache_e ick = vm["icache"].as<patmos::instr_cache_e>();
   patmos::method_cache_e mck = vm["mckind"].as<patmos::method_cache_e>();
@@ -545,7 +551,7 @@ int main(int argc, char **argv)
                                                dlsize ? dlsize : bsize, gm);
   patmos::stack_cache_t &sc = create_stack_cache(sck, scsize, bsize, gm, dc);
 
-  patmos::data_cache_t &scdc = create_data_cache(dck, dcsize,
+  patmos::data_cache_t &scdc = create_data_cache(scdck, scdcsize,
                                                dlsize ? dlsize : bsize, gm);
 
   try

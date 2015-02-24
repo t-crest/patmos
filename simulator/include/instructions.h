@@ -1314,6 +1314,9 @@ namespace patmos
       ops.DR_Pred = s.PRR.get(ops.Pred).get();
       ops.DR_Rs1 = s.GPR.get(ops.OPS.LDT.Ra);
       ops.MW_Discard = 0;
+      ops.DR_Is_StackPointer_Relative = ops.OPS.LDT.Ra == r31;
+
+     // printf("%s", ops.DR_Is_StackPointer_Relative ? "true" : "false");
     }
 
     // EX implemented by sub classes
@@ -1400,6 +1403,8 @@ namespace patmos
 #define LD_INSTR(name, base, atype, ctype) \
   class i_ ## name ## _t : public i_ldt_t \
   { \
+  private:\
+  	  mutable bool DR_Is_StackPointer_Relative;\
   public:\
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
@@ -1412,20 +1417,28 @@ namespace patmos
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
     { \
       ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1) + ops.OPS.LDT.Imm*sizeof(atype); \
+      DR_Is_StackPointer_Relative = ops.DR_Is_StackPointer_Relative; \
     } \
     virtual bool load(simulator_t &s, word_t address, word_t &value) const \
     { \
       atype tmp=0; \
       if ((address & (sizeof(atype) - 1)) != 0) \
         simulation_exception_t::unaligned(address); \
-      bool is_available = base.read_fixed(s, address, tmp); \
+      bool is_available; \
+	  if (DR_Is_StackPointer_Relative && typeid(base) == typeid(s.Data_cache)) \
+	    is_available = s.Stack_data_cache.read_fixed(s, address, tmp); \
+	  else \
+	    is_available = base.read_fixed(s, address, tmp); \
       value = (ctype)from_big_endian<big_ ## atype>(tmp); \
       return is_available; \
     } \
     virtual word_t peek(simulator_t &s, word_t address) const \
     { \
       atype tmp=0; \
-      base.peek_fixed(s, address, tmp); \
+  	  if (DR_Is_StackPointer_Relative && typeid(base) == typeid(s.Data_cache))\
+	  	  s.Stack_data_cache.peek_fixed(s, address, tmp); \
+  	  else \
+	  	  base.peek_fixed(s, address, tmp); \
       return (ctype)from_big_endian<big_ ## atype>(tmp); \
     } \
   };
@@ -1495,6 +1508,8 @@ namespace patmos
       ops.DR_Rs1 = s.GPR.get(ops.OPS.STT.Ra);
       ops.DR_Rs2 = s.GPR.get(ops.OPS.STT.Rs1);
       ops.MW_Discard = 0;
+      ops.DR_Is_StackPointer_Relative = ops.OPS.STT.Ra == r31;
+
     }
 
     /// Pipeline function to simulate the behavior of the instruction in
@@ -1570,6 +1585,8 @@ namespace patmos
 #define ST_INSTR(name, base, type) \
   class i_ ## name ## _t : public i_stt_t \
   { \
+  private:\
+   	  mutable bool DR_Is_StackPointer_Relative;\
   public:\
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
@@ -1583,13 +1600,17 @@ namespace patmos
     { \
       ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1) + ops.OPS.STT.Imm2*sizeof(type); \
       ops.EX_Rs = read_GPR_EX(s, ops.DR_Rs2); \
+      DR_Is_StackPointer_Relative = ops.DR_Is_StackPointer_Relative; \
     } \
     virtual bool store(simulator_t &s, word_t address, word_t value) const \
     { \
       type big_value = to_big_endian<big_ ## type>((type)value); \
       if ((address & (sizeof(type) - 1)) != 0) \
         simulation_exception_t::unaligned(address); \
-      return base.write_fixed(s, address, big_value); \
+      if (DR_Is_StackPointer_Relative && typeid(base) == typeid(s.Data_cache)) \
+      	return s.Stack_data_cache.write_fixed(s, address, big_value); \
+      else \
+  	    return base.write_fixed(s, address, big_value); \
     } \
   };
 

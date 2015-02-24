@@ -937,6 +937,10 @@ namespace patmos
     os << "\n\nStack Cache Statistics:\n";
     Stack_cache.print_stats(*this, os, options);
 
+    // print statistics of stack data cache
+    os << "\n\nData Stack Cache Statistics:\n";
+    Stack_data_cache.print_stats(*this, os, options);
+
     // print statistics of main memory
     os << "\n\nMain Memory Statistics:\n";
     Memory.print_stats(*this, os, options);

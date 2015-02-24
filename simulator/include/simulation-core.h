@@ -163,7 +163,7 @@ namespace patmos
     /// The stack cache used during the simulation.
     stack_cache_t &Stack_cache;
 
-    /// The stack data cache used during the simulation.
+    /// The RISC stack cache used during the simulation.
     data_cache_t &Stack_data_cache;
 
     /// A map to retrieve symbol information from addresses.
@@ -304,7 +304,7 @@ namespace patmos
     /// @param symbols A mapping from addresses to symbols.
     simulator_t(memory_t &memory, memory_t &local_memory,
                 data_cache_t &data_cache, instr_cache_t &instr_cache,
-                stack_cache_t &stack_cache, data_cache_t &stack_data_cache, symbol_map_t &symbols,
+                stack_cache_t &stack_cache, data_cache_t & stack_data_cache, symbol_map_t &symbols,
                 excunit_t &excunit);
 
     // Destroy an instance of a Patms-core simulator
