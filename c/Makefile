@@ -96,18 +96,18 @@ $(BUILDDIR)/bootable-mp_test.elf: bootable.h
 libnoc: $(LIBNOC)
 $(BUILDDIR)/libnoc/noc.o: libnoc/noc.h libnoc/coreset.h
 $(LIBNOC): $(BUILDDIR)/libnoc/noc.o
-	ar r $@ $^
+	patmos-ar r $@ $^
 
 # library for message passing
 .PHONY: libmp
 libmp: libnoc $(LIBMP)
 $(BUILDDIR)/libmp/mp.o: libmp/mp.h libnoc/noc.h libnoc/coreset.h bootloader/cmpboot.h
 $(LIBMP): $(BUILDDIR)/libmp/mp.o
-	ar r $@ $^
+	patmos-ar r $@ $^
 
 # library for corethreads
 .PHONY: libcorethread
 libcorethread: cmpboot.h $(LIBCORETHREAD)
 $(BUILDDIR)/libcorethread/corethread.o: libcorethread/corethread.h bootloader/cmpboot.h
 $(LIBCORETHREAD): $(BUILDDIR)/libcorethread/corethread.o
-	ar r $@ $^
+	patmos-ar r $@ $^
