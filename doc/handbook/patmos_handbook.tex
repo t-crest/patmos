@@ -3480,9 +3480,6 @@ int main() {
 }
 \end{lstlisting}
 
-\martin{I'm still a little bit confused when to use the APP and the BOOTAPP
-thing.}
-
 \martin{TODO: we need to streamline the make process a little bit.
 The targets might be a little bit confusing. Patmos is compiled two times.}
 
@@ -3551,8 +3548,12 @@ loaded by the emulator or the boot loader when executing in an FPGA.
 % TODO: test and talk about patsim. Having a complete ELF in the FPGA
 % without the boot loader would be nice as well.
 
-\todo{Describe ELF download without building the FPGA}
+When the FPGA configuration (the Patmos hardware) is stable and only
+the C application shall be recompiled and downloaded execute:
 
+\begin{verbatim}
+make BOOTAPP=bootable-bootloader APP=hello_puts comp config download
+\end{verbatim}
 
 Here an example of the individual steps to build the blinking LED C
 hello world (on a different FPGA board):
