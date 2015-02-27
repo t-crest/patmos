@@ -77,7 +77,7 @@ namespace patmos
     virtual bool is_available(simulator_t &s, word_t address) = 0;
 
     /// Notify the cache that a cycle passed.
-    virtual void tick() = 0;
+    virtual void tick(simulator_t &s) = 0;
 
     /// Print debug information to an output stream.
     /// @param os The output stream to print to.
@@ -145,7 +145,7 @@ namespace patmos
 
     virtual bool is_available(simulator_t &s, word_t address);
     
-    virtual void tick() {}
+    virtual void tick(simulator_t &s) {}
 
     virtual void print(std::ostream &os) {}
 
@@ -181,13 +181,13 @@ namespace patmos
     }
 
     /// Notify the memory that a cycle has passed.
-    virtual void tick()
+    virtual void tick(simulator_t &s)
     {
       if (IS_OWNING_CACHE) {
-        Backing_cache->tick();
+        Backing_cache->tick(s);
       }
       
-      no_instr_cache_t::tick();
+      no_instr_cache_t::tick(s);
     }
 
     /// Print debug information to an output stream.

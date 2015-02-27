@@ -213,7 +213,7 @@ namespace patmos
     return true;
   }
 
-  void excunit_t::tick()
+  void excunit_t::tick(simulator_t &s)
   {
   }
   

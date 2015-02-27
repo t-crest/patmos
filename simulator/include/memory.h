@@ -128,7 +128,7 @@ namespace patmos
     virtual bool is_ready() = 0;
 
     /// Notify the memory that a cycle has passed.
-    virtual void tick() = 0;
+    virtual void tick(simulator_t &s) = 0;
 
     /// Print the internal state of the memory to an output stream.
     /// @param os The output stream to print to.
@@ -232,7 +232,7 @@ namespace patmos
     }
 
     /// Notify the memory that a cycle has passed.
-    virtual void tick()
+    virtual void tick(simulator_t &s)
     {
       // do nothing here
     }
@@ -416,7 +416,7 @@ namespace patmos
     virtual bool is_ready();
 
     /// Notify the memory that a cycle has passed.
-    virtual void tick();
+    virtual void tick(simulator_t &s);
 
     /// Print the internal state of the memory to an output stream.
     /// @param os The output stream to print to.
@@ -486,7 +486,7 @@ namespace patmos
                  unsigned int num_refresh_ticks_per_round, 
                  bool randomize, mem_check_e memchk);
     
-    virtual void tick();
+    virtual void tick(simulator_t &s);
   };
 }
 

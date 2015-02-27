@@ -93,7 +93,7 @@ namespace patmos
     virtual uword_t get_active_method_base();
 
     /// Notify the cache that a cycle passed.
-    virtual void tick();
+    virtual void tick(simulator_t &s);
 
     /// Print debug information to an output stream.
     /// @param os The output stream to print to.
@@ -361,7 +361,7 @@ namespace patmos
 
     /// Notify the cache that a cycle passed -- i.e., if there is an ongoing
     /// transfer of a method to the cache, advance this transfer by one cycle.
-    virtual void tick();
+    virtual void tick(simulator_t &s);
 
     /// Print debug information to an output stream.
     /// @param os The output stream to print to.
