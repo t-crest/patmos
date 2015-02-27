@@ -932,6 +932,10 @@ The linker script must then be passed to the linker.
 patmos-clang -Xgold -T -Xgold path/to/spm_ram.t -o hello hello.o
 \end{verbatim}
 
+Note that the instruction scratchpad is currently not available in the multicore version of Patmos.
+
+\stefan{TODO some words about how the code actually gets into the I-SPM (bootloader??).}
+
 
 %\subsection{Source Flow Annotations}
 %
