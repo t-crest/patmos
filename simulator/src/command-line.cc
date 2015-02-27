@@ -305,6 +305,42 @@ namespace patmos
     return os;
   }
 
+  std::istream &operator >>(std::istream &in, transfer_mode_e &mcmode)
+  {
+    std::string tmp, kind;
+    in >> tmp;
+
+    kind.resize(tmp.size());
+    std::transform(tmp.begin(), tmp.end(), kind.begin(), ::tolower);
+
+    if(kind == "block")
+      mcmode = TM_BLOCKING;
+    else if(kind == "noblock")
+      mcmode = TM_NON_BLOCKING;
+    else if(kind == "stream")
+      mcmode = TM_STREAM;
+    else throw boost::program_options::validation_error(
+                  boost::program_options::validation_error::invalid_option_value,
+                  "Unknown transfer mode option: " + tmp);
+
+    return in;
+  }
+
+  std::ostream &operator <<(std::ostream &os, transfer_mode_e mcmode)
+  {
+    switch(mcmode)
+    {
+      case TM_BLOCKING:
+        os << "block"; break;
+      case TM_NON_BLOCKING:
+        os << "noblock"; break;
+      case TM_STREAM:
+        os << "stream"; break;
+    }
+
+    return os;
+  }
+  
   std::istream &operator >>(std::istream &in, stack_cache_e &sck)
   {
     std::string tmp, kind;

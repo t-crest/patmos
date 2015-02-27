@@ -41,6 +41,7 @@
 #include "instr-cache.h"
 #include "simulation-core.h"
 #include "symbol.h"
+#include "command-line.h"
 
 #include <map>
 #include <limits>
@@ -204,7 +205,10 @@ namespace patmos
       /// from memory.
       SIZE,
       /// The instructions of the method are being transferred from memory.
-      TRANSFER
+      TRANSFER,
+      /// The instructions are being transferred from memory, while execution
+      /// continues.
+      TRANSFER_DELAYED
     };
 
     /// Bookkeeping information on methods in the cache.
@@ -262,12 +266,23 @@ namespace patmos
     /// Currently active phase to fetch a method from memory.
     phase_e Phase;
 
+    /// Transfer mode to use for cache fills.
+    /// Note: We could make this a template parameter to save some cycles,
+    ///       but this way we can even switch the mode at runtime.
+    transfer_mode_e Transfer_mode;
+    
     /// Number of blocks of the currently pending transfer, if any.
     uword_t Num_allocate_blocks;
 
     /// Number of bytes of the currently pending transfer, if any.
     uword_t Num_method_size;
+    
+    /// First address currently being fetched.
+    uword_t Current_fetch_address;
 
+    /// Size of a single block to transfer, if mode is TM_NON_BLOCKING.
+    uword_t Transfer_block_size;
+    
     /// Disposable flag of a method while being transfered to cache.
     bool Is_method_disposable;
 
@@ -392,10 +407,15 @@ namespace patmos
     /// @param memory The memory to fetch instructions from on a cache miss.
     /// @param num_blocks The size of the cache in blocks.
     /// @param num_block_bytes The size of a single block in bytes
-    /// @param max_active_methods The max number of active methods
-    lru_method_cache_t(memory_t &memory, unsigned int num_blocks, 
+    /// @param max_active_methods The max number of active methods in the cache
+    /// @param transfer_mode the transfer mode for cache fills
+    /// @param transfer_block_size The block size for a single transfer if
+    ///                            transfer_mode is TM_NON_BLOCKING.
+    lru_method_cache_t(memory_t &memory, unsigned int num_blocks,
                        unsigned int num_block_bytes, 
-                       unsigned int max_active_methods = 0);
+                       unsigned int max_active_methods = 0,
+                       transfer_mode_e transfer_mode = TM_BLOCKING,
+                       unsigned int transfer_block_size = 0);
 
     /// Initialize the cache before executing the first instruction.
     /// @param address Address to fetch initial instructions.
@@ -470,11 +490,17 @@ namespace patmos
     /// @param num_blocks The size of the cache in blocks.
     /// @param num_block_bytes The size of a single block in bytes
     /// @param max_active_methods The max number of active methods
+    /// @param transfer_mode the transfer mode for cache fills
+    /// @param transfer_block_size The block size for a single transfer if
+    ///                            transfer_mode is TM_NON_BLOCKING.
     fifo_method_cache_t(memory_t &memory, unsigned int num_blocks, 
                         unsigned int num_block_bytes,
-                        unsigned int max_active_methods = 0) :
+                        unsigned int max_active_methods = 0,
+                        transfer_mode_e transfer_mode = TM_BLOCKING,
+                        unsigned int transfer_block_size = 0) :
         lru_method_cache_t(memory, num_blocks, num_block_bytes, 
-                           max_active_methods)
+                           max_active_methods, transfer_mode, 
+                           transfer_block_size)
     {
     }
 

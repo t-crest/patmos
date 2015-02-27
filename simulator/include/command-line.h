@@ -153,6 +153,28 @@ namespace patmos
   /// @param mck The method cache kind.
   std::ostream &operator <<(std::ostream &os, method_cache_e mck);
 
+  /// Mode of operation for method cache fills
+  enum transfer_mode_e
+  {
+    /// Normal blocking operation.
+    TM_BLOCKING,
+    /// Transfer data in the background using short bursts only.
+    TM_NON_BLOCKING,
+    /// Stream data using long bursts, blocking data requests but not
+    /// execution.
+    TM_STREAM
+  };
+
+  /// Parse a method cache mode from a string in a stream
+  /// @param in An input stream to read from.
+  /// @param mcmode The method cache transfer mode.
+  std::istream &operator >>(std::istream &in, transfer_mode_e &mcmode);
+
+  /// Write a method cache mode as a string to an output stream.
+  /// @param os An output stream.
+  /// @param mcmode The method cache transfer mode.
+  std::ostream &operator <<(std::ostream &os, transfer_mode_e mcmode);
+  
   /// Parsing stack cache kinds as command-line options.
   enum stack_cache_e
   {

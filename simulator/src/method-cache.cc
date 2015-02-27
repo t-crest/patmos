@@ -134,14 +134,22 @@ bool lru_method_cache_t::do_fetch(simulator_t &s, method_info_t &current_method,
                                   uword_t address, word_t iw[2])
 {
   uword_t end_address = current_method.Address + current_method.Num_bytes;
-  
-  if(Phase != IDLE ||
+ 
+  if ((Phase != IDLE && Phase != TRANSFER_DELAYED) ||
       address < current_method.Address ||
       end_address + sizeof(word_t) * NUM_SLOTS * 3 <= address)
   {
+    std::cerr << "Phase: " << Phase << " addr: " << std::hex << address << ", current: " << current_method.Address << ", end_address: " << end_address << "\n";
     simulation_exception_t::illegal_pc(current_method.Address);
   }
-
+  
+  if (Phase == TRANSFER_DELAYED && 
+      (address + sizeof(word_t) * NUM_SLOTS) >= Current_fetch_address) 
+  {
+    // We are still waiting for the transfer to finish for this address.
+    return false;  
+  }
+  
   // Automagically fall though to the next block by inserting a BRCF instruction
   // on the fly when we read beyond the last instruction.
 #ifdef MC_AUTO_FALLTHROUGH
@@ -307,17 +315,27 @@ uword_t lru_method_cache_t::get_transfer_start(uword_t address) {
 
 uword_t lru_method_cache_t::get_transfer_size()
 {
-  // Memory controller aligns to burst size
-  // But we need to transfer the size word as well.
-  return Num_method_size + 4;
+  if (Transfer_mode == TM_NON_BLOCKING) {
+    // TODO make first read aligned!
+    uword_t remaining = Current_fetch_address;
+    return Transfer_block_size;
+  } else {
+    // Transfer everything in one big burst.
+    // Memory controller aligns to burst size itself.
+    // But we need to transfer the size word as well.
+    return Num_method_size + 4;
+  }
 }
 
 lru_method_cache_t::lru_method_cache_t(memory_t &memory, 
                     unsigned int num_blocks, 
                     unsigned int num_block_bytes, 
-                    unsigned int max_active_methods) :
+                    unsigned int max_active_methods,
+                    transfer_mode_e transfer_mode,
+                    unsigned int transfer_block_size) :
     method_cache_t(memory), Num_blocks(num_blocks), 
     Num_block_bytes(num_block_bytes), Phase(IDLE),
+    Transfer_mode(transfer_mode), Current_fetch_address(0),
     Num_allocate_blocks(0), Num_method_size(0), Num_active_methods(0),
     Num_active_blocks(0), Num_blocks_allocated(0), Num_disposable_methods(0),
     Is_method_disposable(false), Active_method(Num_blocks - 1),
@@ -329,6 +347,8 @@ lru_method_cache_t::lru_method_cache_t(memory_t &memory,
     Num_bytes_utilized(0), Num_blocks_freed(0), Max_blocks_freed(0)
 {
   Num_max_methods = max_active_methods ? max_active_methods : num_blocks;
+  Transfer_block_size = transfer_block_size ? transfer_block_size 
+                                            : num_block_bytes;
   Methods = new method_info_t[Num_blocks];
   for(unsigned int i = 0; i < Num_blocks; i++)
     Methods[i] = method_info_t();
@@ -372,6 +392,13 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
   // having passed by the IDLE phase.
   availability_status_t availability = UNINIT;
 
+  // If we try to load a new method while there is still a transfer taking place,
+  // stall until the current transfer is finished.
+  // TODO abort the transfer instead, if the current method is disposable!
+  if (Phase == TRANSFER_DELAYED && address != get_active_method_base()) {
+    return false;
+  }
+  
   // check status of the method cache
   switch(Phase)
   {
@@ -535,23 +562,39 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
     {
       assert(Num_allocate_blocks != 0 && Num_method_size != 0);
 
+      // Initialize first transfer
+      Current_fetch_address = get_transfer_start(address);
+      
+      // If we want to use delayed transfers, switch over to a delayed transfer
+      if (Transfer_mode != TM_BLOCKING) 
+      {
+        Phase = TRANSFER_DELAYED;
+      }
+      
       // TODO implement as actual cache, keep track of where to store
       // methods to in the cache buffer, and keep pointers into the cache in
       // the method_infos.
 
-      if (Memory.read(s, get_transfer_start(address), Cache,
-                      get_transfer_size()))
+      if (Memory.read(s, Current_fetch_address, Cache, get_transfer_size()))
       {        
+        Current_fetch_address += get_transfer_size();
+        
         // the transfer is done, go back to IDLE phase
         Num_allocate_blocks = Num_method_size = 0;
         Phase = IDLE;
         return true;
       }
       else
-      {
+      {        
         // keep waiting until the transfer is completed.
-        return false;
+        return Phase == TRANSFER_DELAYED;
       }
+    }
+    
+    case TRANSFER_DELAYED: 
+    {
+      // We are transferring data in the background in tick(), resume execution.
+      return true;
     }
   }
 
@@ -587,9 +630,31 @@ uword_t lru_method_cache_t::get_active_method_base()
 
 void lru_method_cache_t::tick(simulator_t &s)
 {
-  // update statistics
-  if (Phase != IDLE)
+  if (Phase == TRANSFER_DELAYED) {
+    // TODO in TM_STREAM mode, use a separate read method that
+    //      returns the amount of bytes already read, update
+    //      Current_fetch_address continuously and use get_transfer_start()
+    //      instead for the read.
+    
+    while (Memory.read(s, Current_fetch_address, Cache, get_transfer_size()))
+    {
+      // Finish fetching 
+      Current_fetch_address += get_transfer_size();
+      
+      // check if the transfer is done, go back to IDLE phase
+      if (Current_fetch_address >= get_active_method_base() + Num_method_size)
+      {
+        Num_allocate_blocks = Num_method_size = 0;
+        Phase = IDLE;
+        break;
+      }
+    }
+  }
+  else if (Phase != IDLE)
+  {
+    // update statistics
     Num_stall_cycles++;
+  }
 }
 
 void lru_method_cache_t::print(std::ostream &os)

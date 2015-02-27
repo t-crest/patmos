@@ -93,7 +93,7 @@ namespace patmos
 
     virtual bool is_available(simulator_t &s, word_t address);
     
-    virtual void tick() { Cache->tick(); }
+    virtual void tick(simulator_t &s) { Cache->tick(s); }
 
     virtual void print(std::ostream &os) { Cache->print(os); }
 
