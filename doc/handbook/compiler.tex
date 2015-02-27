@@ -761,7 +761,6 @@ for that function in any of your used modules, or link a bitcode module just con
 for those functions before linking with the library.
 
 
-
 \subsection{Target Triples and Target Identification}
 
 The Patmos tool-chain supports to following target triples:
@@ -880,6 +879,58 @@ for several copies will not work. Not more than one outstanding copy.}
 
 
 \stefan{TODO more on SPM? Refer to examples}
+
+\subsection{Placing Functions into the Instruction Scratchpad}
+
+Functions that should be placed into and executed from the instruction scratchpad must be placed at
+a specific address range (see Table~\ref{tab:gmmap}). This can be achieved by assigning such functions
+to a different segment in the ELF objects, and then instructing the linker to place these segments at
+a different address.
+
+Functions can be assigned to a segment using the following attribute.
+
+\begin{verbatim}
+void foo(int i) __attribute__((section(".text.spm")));
+void foo(int i) {
+    ...
+}
+\end{verbatim}
+
+While the section name can be arbitrary, it should start with \code{.text.} so that functions are placed
+into the text segment by default. The \code{.text.spm} segment name is used by some functions in 
+\code{patmos-newlib}.
+
+By default, any \code{.text.*} section will be linked in at the end of the text segment in the executable binary.
+In order to define the address of the section, a linker script must be used and provided at the linking stage.
+Such a linker script is provided in \code{patmos/hardware/spm\_ram.t}.
+
+\begin{verbatim}
+SECTIONS
+{
+  . = SEGMENT_START(".rodata", 0x400);
+  .rodata : { *(.rodata .rodata.*) }
+  .init_array : { *(SORT(.init_array.*) .init_array) }
+  .fini_array : { *(SORT(.fini_array.*) .fini_array) }
+  .data : { *(.data) }
+  .bss : { *(.bss) }
+
+  . = ALIGN(8);
+  _end = .; PROVIDE (end = .);
+
+  . = SEGMENT_START(".text.spm", 0x10000);
+  .text.spm : { *(.text.spm) }
+
+  . = SEGMENT_START(".text", 0x20000);
+  .text : { *(.text .text.* ) }
+
+}
+\end{verbatim}
+
+The linker script must then be passed to the linker.
+
+\begin{verbatim}
+patmos-clang -Xgold -T -Xgold path/to/spm_ram.t -o hello hello.o
+\end{verbatim}
 
 
 %\subsection{Source Flow Annotations}
