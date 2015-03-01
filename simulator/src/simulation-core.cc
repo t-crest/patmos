@@ -58,7 +58,7 @@ namespace patmos
   simulator_t::simulator_t(memory_t &memory, memory_t &local_memory,
                            data_cache_t &data_cache,
                            instr_cache_t &instr_cache,
-                           stack_cache_t &stack_cache, data_cache_t & stack_data_cache, symbol_map_t &symbols,
+                           stack_cache_t &stack_cache, data_cache_t &stack_data_cache, symbol_map_t &symbols,
                            excunit_t &excunit)
     : Dbg_cnt_delay(0), 
       Cycle(0), Memory(memory), Local_memory(local_memory),
@@ -713,6 +713,10 @@ namespace patmos
         os << "Data Cache:\n";
         Data_cache.print(os);
 
+        // print state of stack data cache
+        os << "Stack Data Cache:\n";
+        Stack_data_cache.print(os);
+
         // print state of stack cache
         os << "Stack Cache:\n";
         Stack_cache.print(os);
@@ -730,6 +734,7 @@ namespace patmos
   {
     Instr_cache.flush_cache();
     Data_cache.flush_cache();
+    Stack_data_cache.flush_cache();
     // TODO flush the stack cache
   }
   
@@ -756,6 +761,7 @@ namespace patmos
     
     Instr_cache.reset_stats();
     Data_cache.reset_stats();
+    Stack_data_cache.reset_stats();
     Stack_cache.reset_stats();
     Memory.reset_stats();
     Profiling.reset_stats(Cycle);

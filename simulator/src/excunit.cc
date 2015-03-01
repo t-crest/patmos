@@ -193,6 +193,7 @@ namespace patmos
       word_t Flags = get_word(value, size);
       if (Flags & 0x01) {
         s.Data_cache.flush_cache();
+        s.Stack_data_cache.flush_cache();
       }
       if (Flags & 0x02) {
         s.Instr_cache.flush_cache();

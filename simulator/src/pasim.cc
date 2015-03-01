@@ -132,6 +132,7 @@ static patmos::data_cache_t &create_data_cache(patmos::set_assoc_cache_type dck,
   };
 }
 
+
 /// Construct a method cache for the simulation.
 /// @param mck The kind of the method cache requested.
 /// @param size The requested size of the method cache in bytes.
@@ -359,9 +360,9 @@ int main(int argc, char **argv)
                  "Maximum number of methods in the method cache, defaults to number of blocks if zero")
     ("mbsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_METHOD_CACHE_BLOCK_BYTES), 
                  "method cache block size in bytes, defaults to burst size if zero")
-				 ("scdcsize,sd", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_DATA_CACHE_BYTES), "stack data cache size in bytes")
-				     ("scdckind,SD", boost::program_options::value<patmos::set_assoc_cache_type>()->default_value(patmos::set_assoc_cache_type(patmos::SAC_LRU,2)),
-				                    "kind of direct mapped/fully-/set-associative stack data cache, defaults to lru2 (ideal, no, dm, lru[N], fifo[N])")
+	("scdcsize,z", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_DATA_CACHE_BYTES), "stack data cache size in bytes")
+	("scdckind,Z", boost::program_options::value<patmos::set_assoc_cache_type>()->default_value(patmos::set_assoc_cache_type(patmos::SAC_LRU,2)),
+	             "kind of direct mapped/fully-/set-associative stack data cache, defaults to lru2 (ideal, no, dm, lru[N], fifo[N])")
 ;
 
   boost::program_options::options_description sim_options("Simulator options");
@@ -521,6 +522,7 @@ int main(int argc, char **argv)
     // TODO we should warn about this / abort if the user sets -D .. need to make
     // -D have an implicit_value instead of default_value for this.
     dck.policy = patmos::SAC_NO;
+    scdck.policy = patmos::SAC_NO;
   }
   
   // the exit code, initialized by default to signal an error.
@@ -728,6 +730,8 @@ int main(int argc, char **argv)
         *sout << " --lsize=" << lsize;
         *sout << " --dckind=" << dck;
         *sout << " --dcsize=" << dcsize << " --dlsize=" << dlsize;
+        *sout << " --scdckind=" << scdck;
+        *sout << " --scdcsize=" << scdcsize << " --dlsize=" << dlsize;
         *sout << " --sckind=" << sck;
         *sout << " --scsize=" << scsize;
         
@@ -752,6 +756,7 @@ _cleanup:
   // note: no need to free the local memory here.
   delete &gm;
   delete &dc;
+  delete &scdc;
   delete &ic;
   delete &sc;
 

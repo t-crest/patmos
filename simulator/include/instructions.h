@@ -49,6 +49,7 @@
 
 #include <ostream>
 #include <boost/format.hpp>
+#include <typeinfo>
 
 
 namespace patmos
@@ -1400,7 +1401,7 @@ namespace patmos
     }
   };
 
-#define LD_INSTR(name, base, atype, ctype) \
+#define LD_INSTR(name, base, atype, ctype, replace_base) \
   class i_ ## name ## _t : public i_ldt_t \
   { \
   private:\
@@ -1419,57 +1420,57 @@ namespace patmos
       ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1) + ops.OPS.LDT.Imm*sizeof(atype); \
       DR_Is_StackPointer_Relative = ops.DR_Is_StackPointer_Relative; \
     } \
-    virtual bool load(simulator_t &s, word_t address, word_t &value) const \
-    { \
-      atype tmp=0; \
-      if ((address & (sizeof(atype) - 1)) != 0) \
-        simulation_exception_t::unaligned(address); \
-      bool is_available; \
-	  if (DR_Is_StackPointer_Relative && typeid(base) == typeid(s.Data_cache)) \
-	    is_available = s.Stack_data_cache.read_fixed(s, address, tmp); \
-	  else \
-	    is_available = base.read_fixed(s, address, tmp); \
-      value = (ctype)from_big_endian<big_ ## atype>(tmp); \
-      return is_available; \
-    } \
-    virtual word_t peek(simulator_t &s, word_t address) const \
-    { \
-      atype tmp=0; \
-  	  if (DR_Is_StackPointer_Relative && typeid(base) == typeid(s.Data_cache))\
-	  	  s.Stack_data_cache.peek_fixed(s, address, tmp); \
-  	  else \
-	  	  base.peek_fixed(s, address, tmp); \
-      return (ctype)from_big_endian<big_ ## atype>(tmp); \
-    } \
+	virtual bool load(simulator_t &s, word_t address, word_t &value) const \
+	{ \
+    	atype tmp=0; \
+    	if ((address & (sizeof(atype) - 1)) != 0) \
+		simulation_exception_t::unaligned(address); \
+		bool result; \
+			if (DR_Is_StackPointer_Relative &&  typeid(base) == typeid(replace_base)) \
+				result = replace_base.read_fixed(s, address, tmp); \
+			else \
+				result = base.read_fixed(s, address, tmp); \
+		value = (ctype)from_big_endian<big_ ## atype>(tmp); \
+		return result; \
+	} \
+	virtual word_t peek(simulator_t &s, word_t address) const \
+	{ \
+		atype tmp=0; \
+			if (DR_Is_StackPointer_Relative &&  typeid(base) == typeid(replace_base)) \
+				replace_base.peek_fixed(s, address, tmp); \
+			else\
+				base.peek_fixed(s, address, tmp); \
+		return (ctype)from_big_endian<big_ ## atype>(tmp); \
+	} \
   };
 
-  LD_INSTR(lws , s.Stack_cache, word_t, word_t)
-  LD_INSTR(lhs , s.Stack_cache, hword_t, word_t)
-  LD_INSTR(lbs , s.Stack_cache, byte_t, word_t)
-  LD_INSTR(lwus, s.Stack_cache, uword_t, uword_t)
-  LD_INSTR(lhus, s.Stack_cache, uhword_t, uword_t)
-  LD_INSTR(lbus, s.Stack_cache, ubyte_t, uword_t)
+  LD_INSTR(lws , s.Stack_cache, word_t, word_t, s.Stack_data_cache)
+  LD_INSTR(lhs , s.Stack_cache, hword_t, word_t, s.Stack_data_cache)
+  LD_INSTR(lbs , s.Stack_cache, byte_t, word_t, s.Stack_data_cache)
+  LD_INSTR(lwus, s.Stack_cache, uword_t, uword_t, s.Stack_data_cache)
+  LD_INSTR(lhus, s.Stack_cache, uhword_t, uword_t, s.Stack_data_cache)
+  LD_INSTR(lbus, s.Stack_cache, ubyte_t, uword_t, s.Stack_data_cache)
 
-  LD_INSTR(lwl , s.Local_memory, word_t, word_t)
-  LD_INSTR(lhl , s.Local_memory, hword_t, word_t)
-  LD_INSTR(lbl , s.Local_memory, byte_t, word_t)
-  LD_INSTR(lwul, s.Local_memory, uword_t, uword_t)
-  LD_INSTR(lhul, s.Local_memory, uhword_t, uword_t)
-  LD_INSTR(lbul, s.Local_memory, ubyte_t, uword_t)
+  LD_INSTR(lwl , s.Local_memory, word_t, word_t, s.Stack_data_cache)
+  LD_INSTR(lhl , s.Local_memory, hword_t, word_t, s.Stack_data_cache)
+  LD_INSTR(lbl , s.Local_memory, byte_t, word_t, s.Stack_data_cache)
+  LD_INSTR(lwul, s.Local_memory, uword_t, uword_t, s.Stack_data_cache)
+  LD_INSTR(lhul, s.Local_memory, uhword_t, uword_t, s.Stack_data_cache)
+  LD_INSTR(lbul, s.Local_memory, ubyte_t, uword_t, s.Stack_data_cache)
 
-  LD_INSTR(lwc , s.Data_cache, word_t, word_t)
-  LD_INSTR(lhc , s.Data_cache, hword_t, word_t)
-  LD_INSTR(lbc , s.Data_cache, byte_t, word_t)
-  LD_INSTR(lwuc, s.Data_cache, uword_t, uword_t)
-  LD_INSTR(lhuc, s.Data_cache, uhword_t, uword_t)
-  LD_INSTR(lbuc, s.Data_cache, ubyte_t, uword_t)
+  LD_INSTR(lwc , s.Data_cache, word_t, word_t, s.Stack_data_cache)
+  LD_INSTR(lhc , s.Data_cache, hword_t, word_t, s.Stack_data_cache)
+  LD_INSTR(lbc , s.Data_cache, byte_t, word_t, s.Stack_data_cache)
+  LD_INSTR(lwuc, s.Data_cache, uword_t, uword_t, s.Stack_data_cache)
+  LD_INSTR(lhuc, s.Data_cache, uhword_t, uword_t, s.Stack_data_cache)
+  LD_INSTR(lbuc, s.Data_cache, ubyte_t, uword_t, s.Stack_data_cache)
 
-  LD_INSTR(lwm , s.Memory, word_t, word_t)
-  LD_INSTR(lhm , s.Memory, hword_t, word_t)
-  LD_INSTR(lbm , s.Memory, byte_t, word_t)
-  LD_INSTR(lwum, s.Memory, uword_t, uword_t)
-  LD_INSTR(lhum, s.Memory, uhword_t, uword_t)
-  LD_INSTR(lbum, s.Memory, ubyte_t, uword_t)
+  LD_INSTR(lwm , s.Memory, word_t, word_t, s.Stack_data_cache)
+  LD_INSTR(lhm , s.Memory, hword_t, word_t, s.Stack_data_cache)
+  LD_INSTR(lbm , s.Memory, byte_t, word_t, s.Stack_data_cache)
+  LD_INSTR(lwum, s.Memory, uword_t, uword_t, s.Stack_data_cache)
+  LD_INSTR(lhum, s.Memory, uhword_t, uword_t, s.Stack_data_cache)
+  LD_INSTR(lbum, s.Memory, ubyte_t, uword_t, s.Stack_data_cache)
 
   /// Base class for memory store instructions.
   class i_stt_t : public i_pred_t
@@ -1582,7 +1583,7 @@ namespace patmos
     }
   };
 
-#define ST_INSTR(name, base, type) \
+#define ST_INSTR(name, base, type, replace_base) \
   class i_ ## name ## _t : public i_stt_t \
   { \
   private:\
@@ -1607,28 +1608,38 @@ namespace patmos
       type big_value = to_big_endian<big_ ## type>((type)value); \
       if ((address & (sizeof(type) - 1)) != 0) \
         simulation_exception_t::unaligned(address); \
-      if (DR_Is_StackPointer_Relative && typeid(base) == typeid(s.Data_cache)) \
-      	return s.Stack_data_cache.write_fixed(s, address, big_value); \
-      else \
-  	    return base.write_fixed(s, address, big_value); \
+       bool existbase = base.update_data_item_if_exist_fixed(s, address, value);\
+       bool existreplace = replace_base.update_data_item_if_exist_fixed(s, address, value);\
+       bool result = false; \
+       if(existbase && existreplace) { \
+          result = replace_base.write_fixed(s, address, big_value); \
+      	  result = base.write_fixed(s, address, big_value); \
+       } \
+       else { \
+    	   if (DR_Is_StackPointer_Relative &&  typeid(base) == typeid(replace_base)) \
+    	          	result = replace_base.write_fixed(s, address, big_value); \
+    	          else \
+    	    	        result = base.write_fixed(s, address, big_value); \
+       }\
+  	   return result; \
     } \
   };
 
-  ST_INSTR(sws, s.Stack_cache, word_t)
-  ST_INSTR(shs, s.Stack_cache, hword_t)
-  ST_INSTR(sbs, s.Stack_cache, byte_t)
+  ST_INSTR(sws, s.Stack_cache, word_t, s.Stack_data_cache)
+  ST_INSTR(shs, s.Stack_cache, hword_t, s.Stack_data_cache)
+  ST_INSTR(sbs, s.Stack_cache, byte_t, s.Stack_data_cache)
 
-  ST_INSTR(swl, s.Local_memory, word_t)
-  ST_INSTR(shl, s.Local_memory, hword_t)
-  ST_INSTR(sbl, s.Local_memory, byte_t)
+  ST_INSTR(swl, s.Local_memory, word_t, s.Stack_data_cache)
+  ST_INSTR(shl, s.Local_memory, hword_t, s.Stack_data_cache)
+  ST_INSTR(sbl, s.Local_memory, byte_t, s.Stack_data_cache)
 
-  ST_INSTR(swc, s.Data_cache, word_t)
-  ST_INSTR(shc, s.Data_cache, hword_t)
-  ST_INSTR(sbc, s.Data_cache, byte_t)
+  ST_INSTR(swc, s.Data_cache, word_t, s.Stack_data_cache)
+  ST_INSTR(shc, s.Data_cache, hword_t, s.Stack_data_cache)
+  ST_INSTR(sbc, s.Data_cache, byte_t, s.Stack_data_cache)
 
-  ST_INSTR(swm, s.Memory, word_t)
-  ST_INSTR(shm, s.Memory, hword_t)
-  ST_INSTR(sbm, s.Memory, byte_t)
+  ST_INSTR(swm, s.Memory, word_t, s.Stack_data_cache)
+  ST_INSTR(shm, s.Memory, hword_t, s.Stack_data_cache)
+  ST_INSTR(sbm, s.Memory, byte_t, s.Stack_data_cache)
 
 
   class i_stc_t : public i_pred_t

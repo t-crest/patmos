@@ -125,6 +125,22 @@ bool ideal_memory_t::read(simulator_t &s, uword_t address, byte_t *value, uword_
   return true;
 }
 
+
+bool ideal_memory_t::update_data_item_if_exist_read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+{
+  // check if the access exceeds the memory size and lazily initialize
+  // memory content
+  check_initialize_content(s, address, size, true);
+
+  // read the data from the memory
+  for(unsigned int i = 0; i < size; i++)
+  {
+    *value++ = Content[address++];
+  }
+
+  return true;
+}
+
 bool ideal_memory_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
   // check if the access exceeds the memory size and lazily initialize
@@ -139,6 +155,20 @@ bool ideal_memory_t::write(simulator_t &s, uword_t address, byte_t *value, uword
 
   return true;
 }
+
+
+bool ideal_memory_t::update_data_item_if_exist(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+{
+
+  // write the data to the memory
+  for(unsigned int i = 0; i < size; i++)
+  {
+    Content[address++] = *value++;
+  }
+
+  return true;
+}
+
 
 void ideal_memory_t::read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {

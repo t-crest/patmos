@@ -64,6 +64,18 @@ namespace patmos
     {
     }
 
+    virtual bool update_data_item_if_exist(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+    {
+    	Memory.write_peek(s, address, value, size);
+    	return true;
+    }
+
+    virtual bool update_data_item_if_exist_read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+    {
+    	Memory.read_peek(s, address, value, size);
+    	return true;
+    }
+
     /// A simulated access to a read port.
     /// @param address The memory address to read from.
     /// @param value A pointer to a destination to store the value read from
@@ -174,6 +186,7 @@ namespace patmos
       return Memory.write(s, address, value, size);
     }
 
+
     /// Check if the memory is busy handling some request.
     /// @return False in case the memory is currently handling some request,
     /// otherwise true.
@@ -279,6 +292,10 @@ namespace patmos
     /// @return True when the data is written finally to the memory, false
     /// otherwise.
     virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+
+
+    virtual bool update_data_item_if_exist(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+    virtual bool update_data_item_if_exist_read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
     /// Check if the memory is busy handling some request.
     /// @return False in case the memory is currently handling some request,

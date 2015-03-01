@@ -176,6 +176,93 @@ bool set_assoc_data_cache_t<LRU_REPLACEMENT>::
   return false;
 }
 
+
+template<bool LRU_REPLACEMENT>
+bool set_assoc_data_cache_t<LRU_REPLACEMENT>::
+update_data_item_if_exist_read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+{
+  // temporary buffer
+  byte_t buf[Num_block_bytes];
+
+  // get block address
+  unsigned int block_address = get_block_address(address, size);
+
+  if (address - block_address + size > Num_block_bytes) {
+    // Either size too big or not properly aligned
+    simulation_exception_t::unaligned(address);
+  }
+
+  // get tag information
+  unsigned int entry_index = (block_address / Num_block_bytes)
+			     % Num_indexes;
+  cache_tags_t &tags(Content[entry_index]);
+
+  // tag_index corresponds to age of the cache block; we have
+  // (tag_index == Associativity) iff tag is not in the cache
+  unsigned int tag_index = Associativity;
+
+  // check if content is in the cache
+  for(unsigned int i = 0; i < Associativity; i++)
+  {
+    if (tags[i].Is_valid && tags[i].Block_address == block_address)
+    {
+      tag_index = i;
+      break;
+    }
+  }
+
+  bool cache_hit = (tag_index < Associativity);
+
+  // update cache state and read data
+  if (cache_hit || Memory.read(s, block_address, buf, Num_block_bytes))
+  {
+    // update LRU ordering
+    unsigned int last_index_changed;
+    if (cache_hit)
+      last_index_changed = tag_index;
+    else
+      last_index_changed = Associativity-1;
+
+    // no update on cache hit for FIFO
+    if (LRU_REPLACEMENT || ! cache_hit)
+    {
+      for(unsigned int i = last_index_changed; i != 0; i--)
+      {
+	tags[i] = tags[i -1];
+      }
+
+      // set tag information
+      tags[0].Is_valid = 1;
+      tags[0].Block_address = block_address;
+    }
+
+    // actually read data from memory without stalling
+    // TODO we should keep the data in the cache and read it from
+    // there to detect consistency problems with multi-cores.
+    Memory.read_peek(s, address, value, size);
+
+    // update statistics
+    if (cache_hit)
+    {
+      Num_read_hits++;
+      Num_read_hit_bytes += size;
+    }
+    else
+    {
+      Num_read_misses++;
+      Num_read_miss_bytes += size;
+    }
+
+    Is_busy = false;
+    return true;
+  }
+
+  Is_busy = true;
+  Num_stall_cycles++;
+  return false;
+}
+
+
 template<bool LRU_REPLACEMENT>
 bool set_assoc_data_cache_t<LRU_REPLACEMENT>::
      write(simulator_t &s, uword_t address, byte_t *value, uword_t size)
@@ -216,6 +303,7 @@ bool set_assoc_data_cache_t<LRU_REPLACEMENT>::
     {
       Num_write_hits++;
       Num_write_hit_bytes += size;
+
     }
     else
     {
@@ -233,6 +321,60 @@ bool set_assoc_data_cache_t<LRU_REPLACEMENT>::
     Num_stall_cycles++;
     return false;
   }
+}
+
+template<bool LRU_REPLACEMENT>
+bool set_assoc_data_cache_t<LRU_REPLACEMENT>::
+	 update_data_item_if_exist(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+{
+	  // get block address
+	  unsigned int block_address = get_block_address(address, size);
+
+	  // read block data to simulate a block-based write
+	  byte_t buf[Num_block_bytes];
+	  Memory.read_peek(s, block_address, buf, Num_block_bytes);
+
+	  if (true)
+	  {
+	    // get tag information
+	    unsigned int entry_index = (block_address / Num_block_bytes)
+				       % Num_indexes;
+	    cache_tags_t &tags(Content[entry_index]);
+
+	    // check if content is in the cache
+	    unsigned int tag_index = Associativity;
+	    for(unsigned int i = 0; i < Associativity; i++)
+	    {
+	      if (tags[i].Is_valid && tags[i].Block_address == block_address)
+	      {
+		tag_index = i;
+		break;
+	      }
+	    }
+
+	    // No write allocate; contents of cache is updated on write-hit,
+	    // but as the simulator implementation does not store contents in
+	    // the cache, we simply omit cache updates for the write-through D$
+
+	    bool cache_hit = (tag_index < Associativity);
+
+	    // update statistics
+	    if (cache_hit)
+	    {
+		    return true;
+	    }
+	    else
+	    {
+		  return false;
+	    }
+	    Is_busy = false;
+
+	  }
+	  else {
+	    Is_busy = true;
+	    Num_stall_cycles++;
+	    return false;
+	  }
 }
 
 template<bool LRU_REPLACEMENT>

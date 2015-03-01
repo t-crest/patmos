@@ -76,6 +76,9 @@ namespace patmos
     /// otherwise.
     virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size) = 0;
 
+    virtual bool update_data_item_if_exist(simulator_t &s, uword_t address, byte_t *value, uword_t size) {}
+
+    virtual bool update_data_item_if_exist_read(simulator_t &s, uword_t address, byte_t *value, uword_t size) {}
     /// A simulated access to a read port to read a fixed size.
     /// @param s The core performing the access
     /// @param address The memory address to read from.
@@ -88,6 +91,7 @@ namespace patmos
       return read(s, address, (byte_t*)&value, sizeof(T));
     }
 
+
     /// A simulated access to a write port a fixed size.
     /// @param address The memory address to write to.
     /// @param s The core performing the access
@@ -98,6 +102,18 @@ namespace patmos
     bool write_fixed(simulator_t &s, uword_t address, T &value)
     {
       return write(s, address, (byte_t*)&value, sizeof(T));
+    }
+
+    template<typename T>
+    bool update_data_item_if_exist_fixed(simulator_t &s, uword_t address, T &value)
+    {
+      return update_data_item_if_exist(s, address, (byte_t*)&value, sizeof(T));
+    }
+
+    template<typename T>
+    bool update_data_item_if_exist_read_fixed(simulator_t &s, uword_t address, T &value)
+    {
+      return update_data_item_if_exist_read(s, address, (byte_t*)&value, sizeof(T));
     }
 
     /// Read some values from the memory -- DO NOT SIMULATE TIMING, just read.
@@ -216,6 +232,9 @@ namespace patmos
     /// otherwise.
     virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
+    virtual bool update_data_item_if_exist(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+
+    virtual bool update_data_item_if_exist_read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
     /// Read some values from the memory -- DO NOT SIMULATE TIMING.
     /// @param address The memory address to read from.
     /// @param value A pointer to a destination to store the value read from
@@ -418,6 +437,9 @@ namespace patmos
     /// otherwise.
     virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
+    virtual bool update_data_item_if_exist(simulator_t &s, uword_t address, byte_t *value, uword_t size) {};
+
+    virtual bool update_data_item_if_exist_read(simulator_t &s, uword_t address, byte_t *value, uword_t size) {};
     /// Check if the memory is busy handling some request.
     /// @return False in case the memory is currently handling some request,
     /// otherwise true.
