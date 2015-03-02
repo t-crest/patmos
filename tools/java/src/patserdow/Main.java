@@ -108,6 +108,7 @@ public class Main {
         OutputStream host_out_stream = System.out;
         InputStream in_stream = null;
         OutputStream out_stream = null;
+        OutputStream download_stream = null;
 
         Runtime.getRuntime().addShutdownHook(new ShutDownHook());
 
@@ -156,9 +157,11 @@ public class Main {
                 msg_stream.println();
             }
             if (compress) {
-                out_stream = new CompressionOutputStream(out_stream);
+                download_stream = new CompressionOutputStream(out_stream);
+            } else {
+                download_stream = out_stream;
             }
-            Transmitter transmitter = new Transmitter(in_stream,out_stream);
+            Transmitter transmitter = new Transmitter(in_stream,download_stream);
 
             final int HEADER_SIZE = 8;
             final int SEGMENT_HEADER_SIZE = 12;
@@ -216,9 +219,9 @@ public class Main {
             transmitter.finish();
 
             if (verbose) {
-                if (out_stream instanceof CompressionOutputStream) {
+                if (download_stream instanceof CompressionOutputStream) {
                     CompressionOutputStream compressionStream =
-                        (CompressionOutputStream)out_stream;
+                        (CompressionOutputStream)download_stream;
                     long textSize = compressionStream.getTextSize();
                     long codeSize = compressionStream.getCodeSize();
 
