@@ -87,7 +87,11 @@ public class Main {
         public void run() {
             try {
                 while (true) {
-                    outStream.write(hostInStream.read());
+                    int c = hostInStream.read();
+                    if (c == -1) {
+                        break;
+                    }
+                    outStream.write(c);
                 }
             } catch (Exception exc) {
                 System.err.println(exc);
