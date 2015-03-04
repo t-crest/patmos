@@ -531,8 +531,11 @@ int main (int argc, char* argv[]) {
   }
 
 
-  //printf("DC hits: %ld\n", c->Patmos_core_iocomp_PerfCounters__counterVec_2.to_ulong());
-  printf("Stack Depth 0: %lx\n", c->Patmos_core_execute__maxScAddrReg.to_ulong());
+  printf("DC hits: %ld\n", c->Patmos_core_iocomp_PerfCounters__counterVec_2.to_ulong());
+  printf("DC misses: %ld\n", c->Patmos_core_iocomp_PerfCounters__counterVec_3.to_ulong());
+  printf("RSC hits: %ld\n", c->Patmos_core_iocomp_PerfCounters__counterVec_10.to_ulong());
+  printf("RSC misses: %ld\n", c->Patmos_core_iocomp_PerfCounters__counterVec_11.to_ulong());
+
 
   // TODO: adapt comparison tool so this can be removed
   if (!quiet) {

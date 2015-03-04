@@ -57,6 +57,7 @@ class DataCache extends Module {
     val dcPerf = new DataCachePerf()
     val scPerf = new StackCachePerf()
     val wcPerf = new WriteCombinePerf()
+    val rscPerf = new DataCachePerf()
   }
 
   // Register selects
@@ -133,7 +134,7 @@ class DataCache extends Module {
   // Instantiate bridge for bypasses and writes
   val bp = Module(new NullCache())
   bp.io.master.M := io.master.M
-  bp.io.master.M.Cmd := Mux(!selDC && !selSC, io.master.M.Cmd, OcpCmd.IDLE)
+  bp.io.master.M.Cmd := Mux(!selDC && ! selRSC && !selSC, io.master.M.Cmd, OcpCmd.IDLE)
   val bpS = bp.io.master.S
 
   // Join read requests
@@ -167,4 +168,5 @@ class DataCache extends Module {
   io.dcPerf <> dm.io.perf
   io.scPerf <> sc.io.perf
   io.wcPerf <> wc.io.perf
+  io.rscPerf <> rsc.io.perf
 }

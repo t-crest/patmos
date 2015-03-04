@@ -18,11 +18,13 @@
   <IOs>
  	<IO DevTypeRef="CpuInfo" offset="0"/>
 	<IO DevTypeRef="Timer" offset="2" intrs="0,1"/>
+	<IO DevTypeRef="PerfCounters" offset="3"/>
   </IOs>
 
   <Devs>
   	<Dev DevType="CpuInfo" entity="CpuInfo" iface="OcpCore" />
   	<Dev DevType="Timer" entity="Timer" iface="OcpCore" />
+	<Dev DevType="PerfCounters" entity="PerfCounters" iface="OcpCore" />
   </Devs>
 </patmos>
 

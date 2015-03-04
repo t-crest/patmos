@@ -115,7 +115,7 @@ class MemOp() extends Bundle() {
   val hword = Bool()
   val byte = Bool()
   val zext = Bool()
-  val typ  = Bits(width = 2)
+  val typ  = Bits(width = 3)
 
   def defaults() = {
     load := Bool(false)
@@ -209,7 +209,7 @@ class MemIn() extends Bundle() {
   val hword = Bool()
   val byte = Bool()
   val zext = Bool()
-  val typ = Bits(width = 2)
+  val typ = Bits(width = 3)
   val addr = Bits(width = DATA_WIDTH)
   val data = Bits(width = DATA_WIDTH)
   val call = Bool()
@@ -470,6 +470,7 @@ class PerfCounterIO() extends Bundle() {
   val sc = new StackCachePerf().asInput
   val wc = new WriteCombinePerf().asInput
   val mem = new MemPerf().asInput
+  val rsc = new DataCachePerf().asInput
 }
 
 class InternalIO() extends Bundle() {

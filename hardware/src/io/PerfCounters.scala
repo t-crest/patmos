@@ -81,7 +81,7 @@ class PerfCounters() extends CoreDevice() {
     resp := OcpResp.DVA
   }
 
-  val PERFCOUNTER_COUNT = 10
+  val PERFCOUNTER_COUNT = 12
 
   val inputVec = Vec.fill(PERFCOUNTER_COUNT) { Reg(Bool()) }
   inputVec(0) := io.internalPort.perf.mc.hit
@@ -94,6 +94,8 @@ class PerfCounters() extends CoreDevice() {
   inputVec(7) := io.internalPort.perf.wc.miss
   inputVec(8) := io.internalPort.perf.mem.read
   inputVec(9) := io.internalPort.perf.mem.write
+  inputVec(10) := io.internalPort.perf.rsc.hit
+  inputVec(11) := io.internalPort.perf.rsc.miss
 
   val counterVec = Vec.fill(PERFCOUNTER_COUNT) { Reg(init = UInt(0, width = DATA_WIDTH)) }
   for (i <- 0 until PERFCOUNTER_COUNT) {

@@ -43,9 +43,9 @@ import Chisel._
 import Node._
 
 object OcpCache {
-  val STACK_CACHE = Bits("b00")
-  val DATA_CACHE  = Bits("b10")
-  val UNCACHED    = Bits("b11")
+  val STACK_CACHE = Bits("b000")
+  val DATA_CACHE  = Bits("b010")
+  val UNCACHED    = Bits("b011")
   val RSTACK_CACHE  = Bits("b111")
 
 }
@@ -53,7 +53,7 @@ object OcpCache {
 // Cache masters provide address space signal
 class OcpCacheMasterSignals(addrWidth : Int, dataWidth : Int)
   extends OcpCoreMasterSignals(addrWidth, dataWidth) {
-  val AddrSpace = Bits(width = 2)
+  val AddrSpace = Bits(width = 3)
 
   // This does not really clone, but Data.clone doesn't either
   override def clone() = {

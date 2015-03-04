@@ -156,6 +156,7 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
                                          io.memPort.S.CmdAccept === Bits(1))
   iocomp.io.internalIO.perf.mem.write := (io.memPort.M.Cmd === OcpCmd.WR &&
                                           io.memPort.S.CmdAccept === Bits(1))
+  iocomp.io.internalIO.perf.rsc := dcache.io.rscPerf
 
   // The inputs and outputs
   io.comConf <> iocomp.io.comConf
