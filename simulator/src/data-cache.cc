@@ -244,13 +244,11 @@ update_data_item_if_exist_read(simulator_t &s, uword_t address, byte_t *value, u
     // update statistics
     if (cache_hit)
     {
-      Num_read_hits++;
-      Num_read_hit_bytes += size;
+      return true;
     }
     else
     {
-      Num_read_misses++;
-      Num_read_miss_bytes += size;
+      return false;
     }
 
     Is_busy = false;

@@ -1611,9 +1611,45 @@ namespace patmos
        bool existbase = base.update_data_item_if_exist_fixed(s, address, value);\
        bool existreplace = replace_base.update_data_item_if_exist_fixed(s, address, value);\
        bool result = false; \
+       result = base.write_fixed(s, address, big_value); \
+  	   return result; \
+    } \
+  };
+
+
+#define ST_INSTR_D(name, base, type, replace_base) \
+  class i_ ## name ## _t : public i_stt_t \
+  { \
+  private:\
+   	  mutable bool DR_Is_StackPointer_Relative;\
+  public:\
+    virtual void print(std::ostream &os, const instruction_data_t &ops, \
+                       const symbol_map_t &symbols) const \
+    { \
+      printPred(os, ops.Pred); \
+      os << boost::format("%1% [r%2% + %3%] = r%4%") % #name \
+          % ops.OPS.STT.Ra % ops.OPS.STT.Imm2 % ops.OPS.STT.Rs1; \
+      symbols.print(os, ops.EX_Address); \
+    } \
+    virtual void EX(simulator_t &s, instruction_data_t &ops) const \
+    { \
+      ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1) + ops.OPS.STT.Imm2*sizeof(type); \
+      ops.EX_Rs = read_GPR_EX(s, ops.DR_Rs2); \
+      DR_Is_StackPointer_Relative = ops.DR_Is_StackPointer_Relative; \
+    } \
+    virtual bool store(simulator_t &s, word_t address, word_t value) const \
+    { \
+      type big_value = to_big_endian<big_ ## type>((type)value); \
+      if ((address & (sizeof(type) - 1)) != 0) \
+        simulation_exception_t::unaligned(address); \
+       bool existbase = base.update_data_item_if_exist_fixed(s, address, value);\
+       bool existreplace = replace_base.update_data_item_if_exist_fixed(s, address, value);\
+       bool result = false; \
        if(existbase && existreplace) { \
-          result = replace_base.write_fixed(s, address, big_value); \
-      	  result = base.write_fixed(s, address, big_value); \
+         replace_base.flush_cache();\
+         base.flush_cache();\
+         base.write_fixed(s, address, big_value);
+  	  	 replace_base.write_fixed(s, address, big_value);
        } \
        else { \
     	   if (DR_Is_StackPointer_Relative &&  typeid(base) == typeid(replace_base)) \
@@ -1633,9 +1669,9 @@ namespace patmos
   ST_INSTR(shl, s.Local_memory, hword_t, s.Stack_data_cache)
   ST_INSTR(sbl, s.Local_memory, byte_t, s.Stack_data_cache)
 
-  ST_INSTR(swc, s.Data_cache, word_t, s.Stack_data_cache)
-  ST_INSTR(shc, s.Data_cache, hword_t, s.Stack_data_cache)
-  ST_INSTR(sbc, s.Data_cache, byte_t, s.Stack_data_cache)
+  ST_INSTR_D(swc, s.Data_cache, word_t, s.Stack_data_cache)
+  ST_INSTR_D(shc, s.Data_cache, hword_t, s.Stack_data_cache)
+  ST_INSTR_D(sbc, s.Data_cache, byte_t, s.Stack_data_cache)
 
   ST_INSTR(swm, s.Memory, word_t, s.Stack_data_cache)
   ST_INSTR(shm, s.Memory, hword_t, s.Stack_data_cache)
