@@ -64,6 +64,10 @@ namespace patmos
   public:
     virtual ~stack_cache_t() {}
 
+    virtual bool read_burst(simulator_t &s, uword_t address, byte_t *value, 
+                            uword_t size, uword_t &transferred);
+
+    
     /// Prepare for reserveing a given number of bytes, and update the stack 
     /// pointers.
     /// @param size The number of bytes to be reserved.

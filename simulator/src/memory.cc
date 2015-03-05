@@ -107,6 +107,26 @@ void ideal_memory_t::check_initialize_content(simulator_t &s, uword_t address, u
   }
 }
 
+void ideal_memory_t::read_data(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+{
+  // read the data from the memory
+  for(unsigned int i = 0; i < size; i++)
+  {
+    *value++ = Content[address++];
+  }
+}
+
+void ideal_memory_t::write_data(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+{
+  // write the data to the memory
+  for(unsigned int i = 0; i < size; i++)
+  {
+    Content[address++] = *value++;
+  }
+}
+
+
+
 bool ideal_memory_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
   // check if the access exceeds the memory size and lazily initialize
@@ -114,13 +134,26 @@ bool ideal_memory_t::read(simulator_t &s, uword_t address, byte_t *value, uword_
   check_initialize_content(s, address, size, true);
 
   // read the data from the memory
-  for(unsigned int i = 0; i < size; i++)
-  {
-    *value++ = Content[address++];
-  }
+  read_data(s, address, value, size);
 
   return true;
 }
+
+
+bool ideal_memory_t::read_burst(simulator_t &s, uword_t address, byte_t *value, 
+                                uword_t size, uword_t &transferred)
+{
+  // Just perform an (ideal) read.
+  bool rs = read(s, address, value, size);
+  
+  assert(rs && "Expected a single-cycle read!");
+  
+  // Done transferring.
+  transferred = size;
+  
+  return true;
+}
+
 
 bool ideal_memory_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
@@ -129,10 +162,7 @@ bool ideal_memory_t::write(simulator_t &s, uword_t address, byte_t *value, uword
   check_initialize_content(s, address, size, false);
 
   // write the data to the memory
-  for(unsigned int i = 0; i < size; i++)
-  {
-    Content[address++] = *value++;
-  }
+  write_data(s, address, value, size);
 
   return true;
 }
@@ -143,10 +173,7 @@ void ideal_memory_t::read_peek(simulator_t &s, uword_t address, byte_t *value, u
   check_initialize_content(s, address, size, true, true);
 
   // read the data from the memory
-  for(unsigned int i = 0; i < size; i++)
-  {
-    *value++ = Content[address++];
-  }
+  read_data(s, address, value, size);
 }
 
 void ideal_memory_t::write_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size)
@@ -154,10 +181,17 @@ void ideal_memory_t::write_peek(simulator_t &s, uword_t address, byte_t *value, 
   check_initialize_content(s, address, size, false, true);
 
   // write the data to the memory
-  for(unsigned int i = 0; i < size; i++)
-  {
-    Content[address++] = *value++;
-  }
+  write_data(s, address, value, size);
+}
+
+
+void request_info_t::dump() const
+{
+  std::cerr << (Is_posted ? "Posted " : "") << (Is_load ? "LOAD " : "STORE ") 
+            << boost::format("Request: 0x%1$8x, aligned: 0x%2$8x "
+               "Size: %3% Transferred: %4% Latency: %5% Next Transfer: %6%\n")
+            % Address % Aligned_address % Size % Transferred_bytes
+            % Latency_remaining % Next_transfer_size;
 }
 
 
@@ -171,23 +205,65 @@ uword_t fixed_delay_memory_t::get_aligned_size(uword_t address, uword_t size,
   return end - start;
 }
 
-unsigned int fixed_delay_memory_t::get_transfer_ticks(uword_t aligned_address,
-                                                      uword_t aligned_size, 
-                                                      bool is_load, 
-                                                      bool is_posted) 
+
+void fixed_delay_memory_t::start_first_transfer(request_info_t &req) 
 {
-  unsigned int num_blocks = (((aligned_size-1) / Num_bytes_per_burst) + 1); 
-  unsigned int num_ticks = Num_ticks_per_burst * num_blocks;
+  req.Latency_remaining = Num_ticks_per_burst;
   
-  if (is_load || !is_posted) {
-    num_ticks += Num_read_delay_ticks;
+  if (req.Is_load || !req.Is_posted) {
+    req.Latency_remaining += Num_read_delay_ticks;
   }
-  return num_ticks;
+
+  if (Num_ticks_per_burst == 0) {
+    if (req.Latency_remaining == 0) {
+      // Zero latency transfer, complete transfer in this cycle.
+      req.Transferred_bytes = req.Size;
+    } else {
+      // Transfer everything in the next transfer  
+      req.Next_transfer_size = req.Size;
+    }
+  } else {
+    // First transfer will read (and skip) alignment bytes, but at most     
+    // req.Size bytes.
+    req.Next_transfer_size = std::min(req.Size, Num_bytes_per_burst - 
+                                           (req.Address - req.Aligned_address));
+  }
+}
+
+
+void fixed_delay_memory_t::start_next_transfer(request_info_t &req) 
+{
+  // Check if everything has been transferred
+  if (req.Transferred_bytes == req.Size) {
+    // Nothing more to do, finish transfer.
+    // We do not need to wait until last request completes, since we always 
+    // transfer full aligned bursts.
+    req.finish_transfer(0);
+  }
+  else {
+  
+    // Ticks per burst must be > 0, otherwise we would have transferred everything
+    // in the first request
+    assert(Num_ticks_per_burst > 0 && "Should have already completed the request");
+  
+    req.next_transfer(Num_ticks_per_burst, Num_bytes_per_burst);
+  }
 }
 
 void fixed_delay_memory_t::tick_request(request_info_t &req)
 {
-  req.Num_ticks_remaining--;
+  // Update latency counter
+  if (req.Latency_remaining > 0) {
+    req.Latency_remaining--;
+  }
+  
+  // Check if current transfer is done, perform transfer.
+  if (req.Latency_remaining == 0) {
+    // 'Perform' current transfer
+    req.Transferred_bytes += req.Next_transfer_size;
+
+    start_next_transfer(req);
+  }
 }
 
 const request_info_t &fixed_delay_memory_t::find_or_create_request(simulator_t &s,
@@ -197,7 +273,7 @@ const request_info_t &fixed_delay_memory_t::find_or_create_request(simulator_t &
   // check if the access exceeds the memory size and lazily initialize
   // memory content
   check_initialize_content(s, address, size, is_load);
-
+  
   // see if the request already exists
   for(requests_t::const_iterator i(Requests.begin()), ie(Requests.end());
       i != ie; i++)
@@ -210,15 +286,19 @@ const request_info_t &fixed_delay_memory_t::find_or_create_request(simulator_t &
   // no matching request found, create a new one
   uword_t aligned_address;
   uword_t aligned_size = get_aligned_size(address, size, aligned_address);
-  unsigned int num_ticks = get_transfer_ticks(aligned_address, aligned_size, 
-                                              is_load, is_posted);
   
-  request_info_t tmp = {address, size, is_load, is_posted, num_ticks};
+  request_info_t tmp = {address, size, aligned_address, 
+                        // Latency_remaining, Next_transfer_size, Transferred
+                        0, 0, 0,
+                        is_load, is_posted};                        
+
+  // Initialize request with first transfer
+  start_first_transfer(tmp);
+
   Requests.push_back(tmp);
 
   // Update statistics
   Num_max_queue_size = std::max(Num_max_queue_size, (unsigned)Requests.size());
-  Num_busy_cycles += num_ticks;
   if (is_load == Last_is_load && address == Last_address + 1) {
     Num_consecutive_requests++;
   }
@@ -254,7 +334,7 @@ bool fixed_delay_memory_t::read(simulator_t &s, uword_t address, byte_t *value, 
   const request_info_t &req(find_or_create_request(s, address, size, true));
 
   // check if the request has finished
-  if(req.Num_ticks_remaining == 0)
+  if(req.is_completed())
   {
 #ifndef NDEBUG
     // check request
@@ -267,7 +347,9 @@ bool fixed_delay_memory_t::read(simulator_t &s, uword_t address, byte_t *value, 
     Requests.erase(Requests.begin());
 
     // read the data
-    return ideal_memory_t::read(s, address, value, size);
+    ideal_memory_t::read_data(s, address, value, size);
+    
+    return true;
   }
   else
   {
@@ -275,6 +357,47 @@ bool fixed_delay_memory_t::read(simulator_t &s, uword_t address, byte_t *value, 
     return false;
   }
 }
+
+
+bool fixed_delay_memory_t::read_burst(simulator_t &s, uword_t address, 
+                                      byte_t *value, uword_t size,
+                                      uword_t &transferred)
+{
+  // get the request info
+  const request_info_t &req(find_or_create_request(s, address, size, true));
+
+#ifndef NDEBUG
+  // check request
+  request_info_t &tmp(Requests.front());
+  assert(tmp.Address == req.Address && tmp.Size == req.Size &&
+          tmp.Is_load == req.Is_load);
+#endif
+  
+  // Copy already transferred data into the output buffer
+  if (req.Transferred_bytes > transferred) {
+    ideal_memory_t::read_data(s, req.Address + transferred, 
+                                 value + transferred,
+                                 req.Transferred_bytes - transferred);
+    
+    transferred = req.Transferred_bytes;
+  }
+  
+  // check if the request has finished
+  if(req.is_completed())
+  {
+    // clean-up the request
+    Requests.erase(Requests.begin());
+
+    // finished
+    return true;
+  }
+  else
+  {
+    // not yet finished
+    return false;
+  }
+}
+
 
 bool fixed_delay_memory_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
@@ -288,7 +411,7 @@ bool fixed_delay_memory_t::write(simulator_t &s, uword_t address, byte_t *value,
                                                     posted));
 
   // check if the request has finished
-  if(req.Num_ticks_remaining == 0)
+  if(req.is_completed())
   {
 #ifndef NDEBUG
     // check request
@@ -301,11 +424,25 @@ bool fixed_delay_memory_t::write(simulator_t &s, uword_t address, byte_t *value,
     Requests.erase(Requests.begin());
 
     // write the data
-    return ideal_memory_t::write(s, address, value, size);
+    write_data(s, address, value, size);
+    
+    return true;
   }
   else if (posted) {
     // delay only until the request queue size is small enough
-    return Requests.size() <= Num_posted_writes;
+    if (Requests.size() <= Num_posted_writes) {
+      
+      // TODO Need to buffer the data and move write-back to tick() to ensure
+      //      proper order of posted writes!!
+      // For now, do the write immediately while still in queue
+      write_data(s, address, value, size);
+      
+      // finished (but still in queue)
+      return true;
+    } else {
+      // needs to wait until queue is empty
+      return false;
+    }
   }
   else
   {
@@ -340,14 +477,23 @@ void fixed_delay_memory_t::tick(simulator_t &s)
   }
 
   // update the request queue
-  if (!Requests.empty() && Requests.front().Num_ticks_remaining)
+  if (!Requests.empty())
   {
     request_info_t &req = Requests.front();
+    
+    assert(!req.is_completed() &&
+           "Request is completed but is still queued.");
+    assert(req.Latency_remaining > 0 && 
+           "Incomplete request has no latency but is still queued.");
+    
     tick_request(req);
     
-    if (req.Num_ticks_remaining == 0 && req.Is_posted) {
+    if (req.is_completed() && req.Is_posted) {
       Requests.erase(Requests.begin());
     }
+    
+    // Update statistics
+    Num_busy_cycles++;
   }
 }
 
@@ -364,9 +510,9 @@ void fixed_delay_memory_t::print(std::ostream &os) const
     for(requests_t::const_iterator i(Requests.begin()), ie(Requests.end());
         i != ie; i++)
     {
-      os << boost::format(" %1%: %2% (0x%3$08x %4%)\n")
-        % (i->Is_load ? "LOAD " : "STORE") % i->Num_ticks_remaining
-        % i->Address % i->Size;
+      os << boost::format(" %1%: %2% (0x%3$08x %4% B, %5% B done)\n")
+        % (i->Is_load ? "LOAD " : "STORE") % i->Latency_remaining
+        % i->Address % i->Size % i->Transferred_bytes;
     }
   }
 }
@@ -442,55 +588,43 @@ void fixed_delay_memory_t::reset_stats()
 }
 
 
-unsigned int variable_burst_memory_t::get_transfer_ticks(uword_t aligned_address,
-                                                         uword_t aligned_size, 
-                                                         bool is_load, 
-                                                         bool is_posted)
+
+void variable_burst_memory_t::start_first_transfer(request_info_t &req) 
 {
-  unsigned int start_page = aligned_address / Num_bytes_per_page;
-  unsigned int end_page = (aligned_address + aligned_size - 1) / Num_bytes_per_page;
-  unsigned int num_pages = end_page - start_page + 1;
-  
   // We assume that even variable sized requests are min_burst_length aligned, 
   // simplifying the hardware (note that the hardware does not actually
   // need to align anything though, it just needs to obey the timing requirements
   // and potentially not overlap read/write burst and precharge/activate).
-  //
-  // We could also just word-align in get_aligned_size(), then we need
-  // the following to calculate the correct request length that accounts for 
-  // non-overlapping PRE and ACT:
-  /*
-  // We start at least min_burst bytes before the end of the first page
-  unsigned int start_address = std::min(aligned_address,
-                                        (start_page + 1) * Num_bytes_per_page -
-                                        Num_bytes_per_burst);
-  // We end at least min_burst bytes after the start of the last page
-  unsigned int end_address = std::max(aligned_address + aligned_size, 
-                                      end_page * Num_bytes_per_page +
-                                      Num_bytes_per_burst);
+
+  uword_t align = req.Address - req.Aligned_address;
   
-  // We transfer at least min_burst bytes if we do not span over multiple pages.
-  unsigned int length = std::min(end_address - start_address, 
-                                 Num_bytes_per_burst);
-  */
+  // Initial request is just a normal burst, and ensuring alignment.
+  req.Latency_remaining = Num_ticks_per_burst;
   
-  unsigned int length = aligned_size;
-  
-  // Now, in every page, we transfer at least min_burst bytes, and have
-  // exactly once the cost for min_burst transfer.
-  // Note that if burst_size == page_size, this is the same as the fixed-delay
-  // memory.
-  unsigned num_ticks = num_pages * Num_ticks_per_burst;
-  length -= num_pages * Num_bytes_per_burst;
-  
-  // The rest of the bytes are transferred with one cycle per word.
-  num_ticks += length / 4;
-  
-  if (is_load || !is_posted) {
-    num_ticks += Num_read_delay_ticks;
+  if (req.Is_load || !req.Is_posted) {
+    req.Latency_remaining += Num_read_delay_ticks;
   }
 
-  return num_ticks;    
+  req.Next_transfer_size = std::min(req.Size, Num_bytes_per_burst - align);
+}  
+  
+
+void variable_burst_memory_t::start_next_transfer(request_info_t &req) 
+{
+  // First requests ensures alignment, so new request will start at beginning
+  // of a new page.
+  unsigned int oldpage = (req.Address + req.Transferred_bytes - 1) /
+                         Num_bytes_per_page;
+  unsigned int newpage = (req.Address + req.Transferred_bytes) /
+                         Num_bytes_per_page;
+
+  if (oldpage < newpage) {
+    // do a full new burst transfer
+    req.next_transfer(Num_ticks_per_burst, Num_bytes_per_burst);
+  } else {
+    // The rest of the bytes are transferred with one cycle per word.
+    req.next_transfer(1, 4);
+  }
 }
 
 
@@ -518,14 +652,27 @@ tdm_memory_t::tdm_memory_t(unsigned int memory_size,
   }
 }
 
-unsigned int tdm_memory_t::get_transfer_ticks(uword_t aligned_address,
-                                              uword_t aligned_size, 
-                                              bool is_load, bool is_posted)
+void tdm_memory_t::start_first_transfer(request_info_t &req) 
 {
-  unsigned int num_blocks = ((aligned_size - 1) / Num_bytes_per_burst) + 1;
+  uword_t align = req.Address - req.Aligned_address;
   
-  // We are counting down TDM slots at round end instead of actual ticks.
-  return num_blocks;
+  // We are counting TDM rounds here. This value must just be > 0.
+  req.Latency_remaining = 1;
+  
+  req.Next_transfer_size = std::min(req.Size, Num_bytes_per_burst - align);
+}
+
+void tdm_memory_t::start_next_transfer(request_info_t &req) 
+{
+  // Check if everything has been transferred
+  if (req.Transferred_bytes == req.Size) {
+    // Nothing more to do, finish transfer.
+    req.finish_transfer(0);
+  }
+  else {
+    // We are counting down TDM slots at round end instead of actual ticks.
+    req.next_transfer(1, Num_bytes_per_burst);
+  }  
 }
 
 void tdm_memory_t::tick_request(request_info_t &req)
@@ -538,10 +685,14 @@ void tdm_memory_t::tick_request(request_info_t &req)
     round_end -= Round_length;
   }
   
-  // We are counting down TDM rounds
+  // Performing a single TDM round transfer at the end of the TDM round
   if (round_end == Round_counter) {
-    req.Num_ticks_remaining--;
     Is_Transferring = false;
+    
+    // 'Perform' current transfer
+    req.Transferred_bytes += req.Next_transfer_size;
+    
+    start_next_transfer(req);
   }
 }
 

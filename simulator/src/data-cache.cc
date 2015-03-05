@@ -178,6 +178,24 @@ bool set_assoc_data_cache_t<LRU_REPLACEMENT>::
 
 template<bool LRU_REPLACEMENT>
 bool set_assoc_data_cache_t<LRU_REPLACEMENT>::
+     read_burst(simulator_t &s, uword_t address, byte_t *value, uword_t size,
+                uword_t &transferred)
+{
+  // For set-associative caches we wait until the cache line is completely
+  // filled before returning any data.
+  // We could return partial cache line contents while we fill the line, but
+  // this must be done very carefully to avoid any timing anomalies!
+  if (read(s, address, value, size)) {
+    transferred = size;
+    return true;
+  } else {
+    transferred = 0;
+    return false;
+  }
+}
+
+template<bool LRU_REPLACEMENT>
+bool set_assoc_data_cache_t<LRU_REPLACEMENT>::
      write(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
   // get block address

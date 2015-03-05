@@ -58,6 +58,21 @@ bool stack_cache_t::is_ready()
   abort();
 }
 
+bool stack_cache_t::read_burst(simulator_t &s, uword_t address, byte_t *value, 
+                               uword_t size, uword_t &transferred)
+{
+  // We just defer burst reads to normal "buffering" reads by default, since
+  // stack cache accesses are usually single cycle word-sized accesses anyway.
+  if (read(s, address, value, size)) {
+    transferred = size;
+    return true;
+  } else {
+    transferred = 0;
+    return false;
+  }
+}
+
+
 
 word_t ideal_stack_cache_t::prepare_reserve(simulator_t &s, uword_t size, 
                               uword_t &stack_spill, uword_t &stack_top)

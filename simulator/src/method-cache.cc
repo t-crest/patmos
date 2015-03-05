@@ -346,14 +346,16 @@ lru_method_cache_t::lru_method_cache_t(memory_t &memory,
     Num_evictions_tag(0), Num_stall_cycles(0),
     Num_bytes_utilized(0), Num_blocks_freed(0), Max_blocks_freed(0)
 {
+  unsigned int cache_size = num_block_bytes * num_blocks;
+  
   Num_max_methods = max_active_methods ? max_active_methods : num_blocks;
   Transfer_block_size = transfer_block_size ? transfer_block_size 
-                                            : num_block_bytes;
+                                            : cache_size;
   Methods = new method_info_t[Num_blocks];
   for(unsigned int i = 0; i < Num_blocks; i++)
     Methods[i] = method_info_t();
   
-  Cache = new byte_t[Num_block_bytes * Num_blocks + 4];
+  Cache = new byte_t[cache_size + 4];
 }
 
 void lru_method_cache_t::initialize(simulator_t &s, uword_t address)

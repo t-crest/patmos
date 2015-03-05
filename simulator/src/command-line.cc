@@ -317,8 +317,8 @@ namespace patmos
       mcmode = TM_BLOCKING;
     else if(kind == "noblock")
       mcmode = TM_NON_BLOCKING;
-    else if(kind == "stream")
-      mcmode = TM_STREAM;
+    else if(kind == "burst")
+      mcmode = TM_BURST;
     else throw boost::program_options::validation_error(
                   boost::program_options::validation_error::invalid_option_value,
                   "Unknown transfer mode option: " + tmp);
@@ -334,8 +334,8 @@ namespace patmos
         os << "block"; break;
       case TM_NON_BLOCKING:
         os << "noblock"; break;
-      case TM_STREAM:
-        os << "stream"; break;
+      case TM_BURST:
+        os << "burst"; break;
     }
 
     return os;

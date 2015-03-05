@@ -63,6 +63,22 @@ namespace patmos
     /// @return True when the data is available from the read port.
     virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size) = 0;
 
+    /// A simulated access to a read port, fetching data continuously.
+    /// The destination is updated multiple times, writing new data as it 
+    /// arrives. The amount of already read data is returned in the size argument.
+    /// If all the requested data has been read, the read request is dequeued
+    /// and the function returns True.
+    /// @param s The core performing the access
+    /// @param address The memory address to read from.
+    /// @param value A pointer to a destination to store the value read from
+    /// the memory.
+    /// @param size The number of bytes to read.
+    /// @param transferred The number of bytes written to value.
+    /// @return True when all the data has been written to value.
+    virtual bool read_burst(simulator_t &s, uword_t address, byte_t *value, 
+                            uword_t size, uword_t &transferred) = 0;
+
+
     /// A simulated access to a write port.
     /// @param s The core performing the access
     /// @param address The memory address to write to.
@@ -171,6 +187,20 @@ namespace patmos
     void check_initialize_content(simulator_t &s, uword_t address, uword_t size, 
                                   bool is_read, bool ignore_errors = false);
     
+    /// Perform a read operation (without timing) to copy data to
+    /// the output buffer. This does not check and initialize the memory.
+    /// @param address the start address to read
+    /// @param value the output buffer
+    /// @param size the number of bytes to copy
+    void read_data(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+    
+    /// Perform a write operation (without timing) to copy data from
+    /// the output buffer. This does not check and initialize the memory.
+    /// @param address the start address to read
+    /// @param value the output buffer
+    /// @param size the number of bytes to copy
+    void write_data(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+    
   public:
     /// Construct a new memory instance.
     /// @param memory_size The size of the memory in bytes.
@@ -200,6 +230,9 @@ namespace patmos
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
     virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+
+    virtual bool read_burst(simulator_t &s, uword_t address, byte_t *value, 
+                        uword_t size, uword_t &transferred);
 
     /// A simulated access to a write port.
     /// @param address The memory address to write to.
@@ -265,14 +298,38 @@ namespace patmos
     /// The size of the request.
     uword_t Size;
 
+    /// The aligned address of the request.
+    uword_t Aligned_address;
+    
+    /// Number of ticks remaining until next transfer starts.
+    unsigned int Latency_remaining;
+    
+    /// Size of the next outstanding transfer in bytes (excluding alignment).
+    unsigned int Next_transfer_size;
+    
+    /// Number of bytes already transferred (excluding alignment).
+    unsigned int Transferred_bytes;
+    
     /// Flag indicating whether the request is a load or store.
     bool Is_load;
 
     /// If true, do not wait for the request to be retrieved, but delete it.
     bool Is_posted;
     
-    /// Number of ticks remaining until the request completes.
-    unsigned int Num_ticks_remaining;
+    bool is_completed() const { return Transferred_bytes == Size && 
+                                       Latency_remaining == 0; }
+                                       
+    void next_transfer(unsigned int latency, unsigned int beatsize) {
+      Latency_remaining = latency;
+      Next_transfer_size = std::min(Size - Transferred_bytes, beatsize);
+    }
+    
+    void finish_transfer(unsigned int latency) {
+      Latency_remaining = latency;
+      Next_transfer_size = 0;
+    }
+    
+    void dump() const;
   };
 
   /// A memory with fixed access times to transfer fixed-sized blocks.
@@ -298,7 +355,7 @@ namespace patmos
     /// Number of initial read delay ticks.
     unsigned int Num_read_delay_ticks;
     
-    /// Outstanding requests to the memory.
+    /// Outstanding requests to the memory. First entry is the oldest request.
     requests_t Requests;
 
   private:
@@ -346,11 +403,15 @@ namespace patmos
   protected:  
     virtual uword_t get_aligned_size(uword_t address, uword_t size, 
                                      uword_t &aligned_address);
-    
-    virtual unsigned int get_transfer_ticks(uword_t aligned_address,
-                                            uword_t aligned_size, bool is_load, 
-                                            bool is_posted);
-    
+
+    /// Update the Latency_remaining and Next_transfer_size fields to initialize
+    /// the first transfer.
+    virtual void start_first_transfer(request_info_t &req);
+
+    /// Update the Latency_remaining and Next_transfer_size fields to initialize
+    /// the next transfer.
+    virtual void start_next_transfer(request_info_t &req);
+
     /// Let one tick pass for the given request.
     virtual void tick_request(request_info_t &req);
     
@@ -401,6 +462,9 @@ namespace patmos
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
     virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+    
+    virtual bool read_burst(simulator_t &s, uword_t address, byte_t *value, 
+                    uword_t size, uword_t &transferred);
 
     /// A simulated access to a write port.
     /// @param address The memory address to write to.
@@ -437,9 +501,11 @@ namespace patmos
     unsigned int Num_bytes_per_page;
     
   protected:
-    virtual unsigned int get_transfer_ticks(uword_t aligned_address,
-                                            uword_t aligned_size, bool is_load, 
-                                            bool is_posted);
+    
+    virtual void start_first_transfer(request_info_t &req);
+
+    virtual void start_next_transfer(request_info_t &req);
+
   public:
     variable_burst_memory_t(unsigned int memory_size, 
                         unsigned int num_min_bytes_per_burst,
@@ -470,9 +536,10 @@ namespace patmos
     bool Is_Transferring;
     
   protected:
-    virtual unsigned int get_transfer_ticks(uword_t aligned_address,
-                                            uword_t aligned_size, bool is_load, 
-                                            bool is_posted);
+    
+    virtual void start_first_transfer(request_info_t &req);
+
+    virtual void start_next_transfer(request_info_t &req);
 
     virtual void tick_request(request_info_t &req);
     

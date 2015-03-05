@@ -76,6 +76,14 @@ namespace patmos
       return true;
     }
 
+    virtual bool read_burst(simulator_t &s, uword_t address, byte_t *value, 
+                      uword_t size, uword_t &transferred)
+    {
+      Memory.read_peek(s, address, value, size);
+      transferred = size;
+      return true;
+    }
+    
     /// A simulated access to a write port.
     /// @param address The memory address to write to.
     /// @param value The value to be written to the memory.
@@ -163,6 +171,12 @@ namespace patmos
       return Memory.read(s, address, value, size);
     }
 
+    virtual bool read_burst(simulator_t &s, uword_t address, byte_t *value, 
+                            uword_t size, uword_t &transferred)
+    {
+      return Memory.read_burst(s, address, value, size, transferred);
+    }
+    
     /// A simulated access to a write port.
     /// @param address The memory address to write to.
     /// @param value The value to be written to the memory.
@@ -272,6 +286,9 @@ namespace patmos
     /// @return True when the data is available from the read port.
     virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
+    virtual bool read_burst(simulator_t &s, uword_t address, byte_t *value, 
+                            uword_t size, uword_t &transferred);
+    
     /// A simulated access to a write port.
     /// @param address The memory address to write to.
     /// @param value The value to be written to the memory.

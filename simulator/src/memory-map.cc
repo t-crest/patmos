@@ -186,6 +186,24 @@ bool memory_map_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t 
   }
 }
 
+bool memory_map_t::read_burst(simulator_t &s, uword_t address, byte_t *value, 
+                              uword_t size, uword_t &transferred)
+{
+  if (address >= Base_address && address <= High_address) {
+    // For the moment, we do not support bursted reads on memory mapped devices
+    
+    if (find_device(address).read(s, address, value, size)) {
+      transferred = size;
+      return true;
+    } else {
+      transferred = 0;
+      return false;
+    }
+  } else {
+    return Memory.read_burst(s, address, value, size, transferred);
+  }
+}
+
 bool memory_map_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
   if (address >= Base_address && address <= High_address) {

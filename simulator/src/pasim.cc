@@ -374,9 +374,11 @@ int main(int argc, char **argv)
                  "method cache / instruction cache size in bytes")
     ("mckind,M", boost::program_options::value<patmos::method_cache_e>()->default_value(patmos::MC_FIFO), "kind of method cache (ideal, lru, fifo)")
     ("mcmode",   boost::program_options::value<patmos::transfer_mode_e>()->default_value(patmos::TM_BLOCKING),
-                 "Transfer mode to use for method cache fills (block,noblock,stream)")
+                 "Transfer mode to use for method cache fills (block,noblock,burst)")
     ("mcmethods",boost::program_options::value<unsigned int>()->default_value(patmos::NUM_METHOD_CACHE_MAX_METHODS), 
                  "Maximum number of methods in the method cache, defaults to number of blocks if zero")
+    ("mtsize",   boost::program_options::value<unsigned int>()->default_value(1),
+                 "Transfer size for method cache non-blocking or burst fills, in multiples of burst size, or zero for unlimited transfer size. Ignored for blocking mode.")
     ("mbsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_METHOD_CACHE_BLOCK_BYTES), 
                  "method cache block size in bytes, defaults to burst size if zero");
 
@@ -474,6 +476,7 @@ int main(int argc, char **argv)
   unsigned int scsize = vm["scsize"].as<patmos::byte_size_t>().value();
   unsigned int mcsize = vm["mcsize"].as<patmos::byte_size_t>().value();
   unsigned int mbsize = vm["mbsize"].as<patmos::byte_size_t>().value();
+  unsigned int mtsize = vm["mtsize"].as<unsigned int>();
   unsigned int ilsize = vm["ilsize"].as<patmos::byte_size_t>().value();
   unsigned int mcmethods= vm["mcmethods"].as<unsigned int>();
 
@@ -563,7 +566,7 @@ int main(int argc, char **argv)
   patmos::instr_cache_t &ic = create_instr_cache(ick, isck, mck, mcsize, 
                                                  ilsize ? ilsize : bsize, 
                                                  mbsize, mcmethods, mcmode, 
-                                                 bsize, ispmsize, gm);
+                                                 mtsize * bsize, ispmsize, gm);
   patmos::data_cache_t &dc = create_data_cache(dck, dcsize, 
                                                dlsize ? dlsize : bsize, gm);
   patmos::stack_cache_t &sc = create_stack_cache(sck, scsize, bsize, gm, dc);

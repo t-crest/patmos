@@ -270,6 +270,9 @@ namespace patmos
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
     virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+    
+    virtual bool read_burst(simulator_t &s, uword_t address, byte_t *value,
+                            uword_t size, uword_t &transferred);
 
     /// A simulated access to a write port.
     /// @param address The memory address to write to.
