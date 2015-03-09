@@ -336,13 +336,6 @@ bool fixed_delay_memory_t::read(simulator_t &s, uword_t address, byte_t *value, 
   // check if the request has finished
   if(req.is_completed())
   {
-#ifndef NDEBUG
-    // check request
-    request_info_t &tmp(Requests.front());
-    assert(tmp.Address == req.Address && tmp.Size == req.Size &&
-            tmp.Is_load == req.Is_load);
-#endif
-
     // clean-up the request
     Requests.erase(Requests.begin());
 
@@ -366,13 +359,6 @@ bool fixed_delay_memory_t::read_burst(simulator_t &s, uword_t address,
   // get the request info
   const request_info_t &req(find_or_create_request(s, address, size, true));
 
-#ifndef NDEBUG
-  // check request
-  request_info_t &tmp(Requests.front());
-  assert(tmp.Address == req.Address && tmp.Size == req.Size &&
-          tmp.Is_load == req.Is_load);
-#endif
-  
   // Copy already transferred data into the output buffer
   if (req.Transferred_bytes > transferred) {
     ideal_memory_t::read_data(s, req.Address + transferred, 
@@ -413,13 +399,6 @@ bool fixed_delay_memory_t::write(simulator_t &s, uword_t address, byte_t *value,
   // check if the request has finished
   if(req.is_completed())
   {
-#ifndef NDEBUG
-    // check request
-    request_info_t &tmp(Requests.front());
-    assert(tmp.Address == req.Address && tmp.Size == req.Size &&
-            tmp.Is_load == req.Is_load);
-#endif
-
     // clean-up the request
     Requests.erase(Requests.begin());
 
@@ -611,19 +590,28 @@ void variable_burst_memory_t::start_first_transfer(request_info_t &req)
 
 void variable_burst_memory_t::start_next_transfer(request_info_t &req) 
 {
-  // First requests ensures alignment, so new request will start at beginning
-  // of a new page.
-  unsigned int oldpage = (req.Address + req.Transferred_bytes - 1) /
-                         Num_bytes_per_page;
-  unsigned int newpage = (req.Address + req.Transferred_bytes) /
-                         Num_bytes_per_page;
+  // Check if everything has been transferred
+  if (req.Transferred_bytes == req.Size) {
+    // Nothing more to do, finish transfer.
+    // We do not need to wait until last request completes, since we always 
+    // transfer full aligned bursts.
+    req.finish_transfer(0);
+  }
+  else {
+    // First requests ensures alignment, so new request will start at beginning
+    // of a new page.
+    unsigned int oldpage = (req.Address + req.Transferred_bytes - 1) /
+                          Num_bytes_per_page;
+    unsigned int newpage = (req.Address + req.Transferred_bytes) /
+                          Num_bytes_per_page;
 
-  if (oldpage < newpage) {
-    // do a full new burst transfer
-    req.next_transfer(Num_ticks_per_burst, Num_bytes_per_burst);
-  } else {
-    // The rest of the bytes are transferred with one cycle per word.
-    req.next_transfer(1, 4);
+    if (oldpage < newpage) {
+      // do a full new burst transfer
+      req.next_transfer(Num_ticks_per_burst, Num_bytes_per_burst);
+    } else {
+      // The rest of the bytes are transferred with one cycle per word.
+      req.next_transfer(1, 4);
+    }
   }
 }
 

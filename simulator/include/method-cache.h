@@ -279,6 +279,9 @@ namespace patmos
     
     /// First address currently being fetched.
     uword_t Current_fetch_address;
+    
+    /// Number of bytes already transferred in the currently active burst.
+    uword_t Current_burst_transferred;
 
     /// Size of a single block to transfer, if mode is TM_NON_BLOCKING.
     uword_t Transfer_block_size;
@@ -402,6 +405,12 @@ namespace patmos
     
     uword_t get_transfer_size();
     
+    /// Perform a simulated cache fill. Needs Current_fetch_address and 
+    /// Current_burst_transferred to be setup correctly beforehand.
+    /// Updates the Phase and bookkeeping fields when the transfer is completed.
+    /// @return True if the full method has been transferred.
+    bool cache_fill(simulator_t &s);
+    
   public:
     /// Construct an LRU-based method cache.
     /// @param memory The memory to fetch instructions from on a cache miss.
@@ -448,7 +457,7 @@ namespace patmos
     virtual int getIndex(simulator_t &s, word_t address);
 
     virtual uword_t get_active_method_base();
-
+    
     /// Notify the cache that a cycle passed -- i.e., if there is an ongoing
     /// transfer of a method to the cache, advance this transfer by one cycle.
     virtual void tick(simulator_t &s);
