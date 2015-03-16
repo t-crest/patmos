@@ -1648,8 +1648,8 @@ namespace patmos
        if(existbase && existreplace) { \
          replace_base.flush_cache();\
          base.flush_cache();\
-         base.write_fixed(s, address, big_value);
-  	  	 replace_base.write_fixed(s, address, big_value);
+         base.write_fixed(s, address, big_value);\
+  	  	 replace_base.write_fixed(s, address, big_value);\
        } \
        else { \
     	   if (DR_Is_StackPointer_Relative &&  typeid(base) == typeid(replace_base)) \
