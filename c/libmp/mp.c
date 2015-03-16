@@ -45,15 +45,69 @@
 // Functions for library initialization and memory management
 ////////////////////////////////////////////////////////////////////////////
 
-// This array is only used by mp_alloc, it should not be cached.
-static volatile unsigned* _UNCACHED spm_alloc_array[MAX_CORES];
+/// These two arrays are initialized by #mp_init() and only modified by
+/// #mp_alloc(), they should not be cached.
+static volatile unsigned int * _UNCACHED spm_alloc_array[MAX_CORES];
+static volatile unsigned int _UNCACHED spm_size_array[MAX_CORES];
+
+static int test_mem_size_spm(){
+  volatile unsigned int _SPM * addr = NOC_SPM_BASE;
+  int init = *(addr);
+  int tmp;
+  *(addr) = 0xFFEEDDCC;
+  int i = 2;
+  int j = 0;
+  for(j = 0; j < 28; j++) {
+    tmp = *(addr+i);
+    *(addr+i) = 0;
+    if (*(addr) == 0) {
+      // We found the address where the mapping of the SPM wrapps
+      // Restore the state of the memory as is was when the function was called
+      *(addr+i) = tmp;
+      *(addr) = init;
+      // Remember to multiply by 4 for the byte address
+      return i << 2;
+    }
+    i = i << 1;
+    if (*(addr) != 0xFFEEDDCC){
+      // Memory failure happend
+      *(addr+i) = tmp;
+      *(addr) = init;
+      return -2;
+    }
+    *(addr+i) = tmp;
+  }
+  *(addr) = init;
+  return -1;
+}
+  
 
 static void mp_init() {
-  // Initializing the array of pointers to the beginning of the SPMs
-  for (int i = 0; i < MAX_CORES; ++i) {
-    spm_alloc_array[i] = (volatile unsigned* _UNCACHED) NOC_SPM_BASE;
+  // Get cpu ID
+  int cpuid = get_cpuid();
+
+  // Find the size of the local communication SPM
+  int spm_size = test_mem_size_spm();
+  // Check the return value of the test
+  if(spm_size == -1) {
+    // TODO: Cause disaster
+    // test_mem_size_spm() did not find the size of the spm
+    DEBUGGER("test_mem_size_spm(): Did not find the size of the memory");
+    return;
+  } else if (spm_size == -2) {
+    // TODO: Cause disaster
+    // while executing test_mem_size_spm() a memory failure happend
+    DEBUGGER("test_mem_size_spm(): Memory failure found");
+    return;
   }
-  unsigned long long  _SPM * spm_zero = (unsigned long long _SPM *) mp_alloc(NOC_MASTER,sizeof(unsigned long long _SPM));
+  // Initialize the size of the SPM
+  spm_size_array[cpuid] = spm_size;
+
+  // Initializing the array of pointers to the beginning of the SPMs
+  spm_alloc_array[cpuid] = (volatile unsigned* _UNCACHED) NOC_SPM_BASE;
+
+  // Allocate a zero value for remote resetting of values through the NOC
+  barrier_t _SPM * spm_zero = (barrier_t _SPM *) mp_alloc(BARRIER_SIZE);
   *spm_zero = BARRIER_INITIALIZED;
   return;
 }
@@ -70,16 +124,41 @@ static size_t mp_recv_alloc_size(mpd_t* mpd_ptr) {
   return recv_size;
 }
 
-void _SPM * mp_alloc(coreid_t id, unsigned size) {
-  if (get_cpuid() != NOC_MASTER) {
+//void _SPM * mp_alloc(coreid_t id, unsigned size) {
+//  if (get_cpuid() != NOC_MASTER) {
+//    return NULL;
+//  }
+//  unsigned dw_size = DWALIGN(size);
+//  void _SPM * mem_ptr = (void _SPM *) spm_alloc_array[id];
+//  unsigned int new_addr = spm_alloc_array[id] + dw_size;
+//  if (new_addr > spm_size_array[get_cpuid()] + NOC_SPM_BASE) {
+//    // TODO: Cause disaster (Kernel panic)
+//    return NULL;
+//  }
+//  spm_alloc_array[id] = new_addr;
+//  DEBUGGER("mp_alloc(): core id %u, dw size %u, allocated addr %x\n",id,dw_size,(int)mem_ptr);
+//  return mem_ptr;
+//}
+
+void _SPM * mp_alloc(size_t size) {
+  // Get cpu ID
+  int cpuid = get_cpuid();
+  // Align size to double words, this is minimum addressable
+  // amount of data from the noc
+  size_t dw_size = DWALIGN(size);
+  // Read the new pointer from the array of addresses
+  unsigned int mem_ptr = spm_alloc_array[cpuid];
+
+  unsigned int new_addr = mem_ptr + dw_size;
+  // Check if the allocated memory is there
+  if (new_addr > spm_size_array[cpuid] + NOC_SPM_BASE) {
+    // TODO: Cause disaster (Kernel panic)
+    DEBUGGER("mp_alloc(): Alloc failed. No more memory in SPM");
     return NULL;
   }
-  unsigned dw_size = DWALIGN(size);
-  void _SPM * mem_ptr = (void _SPM *) spm_alloc_array[id];
-  spm_alloc_array[id] = spm_alloc_array[id] + dw_size;
-  DEBUGGER("mp_alloc(): core id %u, dw size %u, allocated addr %x\n",id,dw_size,(int)mem_ptr);
-  // TODO: Check if SPM size is larger than new pointer value
-  return mem_ptr;
+  spm_alloc_array[cpuid] = new_addr;
+  DEBUGGER("mp_alloc(): core id %u, dw size %u, allocated addr %x\n",cpuid,dw_size,(int)mem_ptr);
+  return (void _SPM *)mem_ptr;
 }
 
 void mp_mem_init(coreid_t id, void _SPM* spm_addr) {
@@ -224,7 +303,7 @@ int mp_communicator_init(communicator_t* comm, unsigned count,
 }
 
 ////////////////////////////////////////////////////////////////////////////
-// Functions for point-to-point transmission of data
+// Functions for queuing point-to-point transmission of data
 ////////////////////////////////////////////////////////////////////////////
 
 int mp_nbsend(mpd_t* mpd_ptr) {
@@ -321,6 +400,76 @@ void mp_ack(mpd_t* mpd_ptr){
   noc_send(mpd_ptr->send_id,mpd_ptr->send_recv_count,mpd_ptr->recv_count,8);
   return;
 }
+
+
+////////////////////////////////////////////////////////////////////////////
+// Functions for sampling point-to-point transmission of data
+////////////////////////////////////////////////////////////////////////////
+
+void mp_write(mpd_t* mpd_ptr) {
+  // Sampling of the write pointer to get rid of transient hazards.
+  // We sample the write poiniter twice, if the two samples are
+  // different, the write_pointer just changed, and therefore it is
+  // safe to sample it once more and rely on the newest sample,
+  // because it cannot change that often
+  int write_ptr = *(mpd_ptr->write_ptr);
+  int write_ptr_tmp = *(mpd_ptr->write_ptr);
+  if (write_ptr != write_ptr_tmp) {
+    write_ptr = *(mpd_ptr->write_ptr);
+  }
+  // Calculate the address of the remote receiving buffer
+  int rmt_addr_offset = (mpd_ptr->buf_size + FLAG_SIZE) * write_ptr;
+  volatile void _SPM * calc_rmt_addr = &mpd_ptr->recv_addr[rmt_addr_offset];
+  *(volatile int _SPM *)((char*)mpd_ptr->write_buf + mpd_ptr->buf_size) = FLAG_VALID;
+
+  // Send the new sample to the remote receiving buffer
+  noc_send(mpd_ptr->recv_id,calc_rmt_addr,mpd_ptr->write_buf,mpd_ptr->buf_size + FLAG_SIZE);
+
+  // Swap write_buf and shadow_write_buf
+  volatile void _SPM * tmp = mpd_ptr->write_buf;
+  mpd_ptr->write_buf = mpd_ptr->shadow_write_buf;
+  mpd_ptr->shadow_write_buf = tmp;
+
+  return;
+}
+
+void mp_read(mpd_t* mpd_ptr) {
+
+  // Update the write pointer to point to the other buffer.
+  unsigned int read_buf = mpd_ptr->write_ptr;
+  mpd_ptr->write_ptr = (read_buf + 1) % NUM_WRITE_BUF;
+  // Send the update write pointer to the sender.
+  noc_send(mpd_ptr->send_id,mpd_ptr->,mpd_ptr->write_ptr,sizeof(mpd_ptr->write_ptr));
+  // Wait fo the write pointer to propergate to the sender
+  // and a possible sample to propergate from the sender
+  // to the receiver
+  // Calculate the address of the local receiving buffer
+  int locl_addr_offset = (mpd_ptr->buf_size + FLAG_SIZE) * mpd_ptr->recv_ptr;
+  volatile void _SPM * calc_locl_addr = &mpd_ptr->recv_addr[locl_addr_offset];
+
+  volatile int _SPM * recv_flag = (volatile int _SPM *)((char*)calc_locl_addr + mpd_ptr->buf_size);
+
+  if (*recv_flag == FLAG_INVALID) {
+    DEBUGGER("mp_nbrecv(): Recv flag %x\n",*recv_flag);
+    return 0;
+  }
+
+  // Move the receive pointer
+  if (mpd_ptr->recv_ptr == mpd_ptr->num_buf - 1) {
+    mpd_ptr->recv_ptr = 0;
+  } else {
+    mpd_ptr->recv_ptr++;
+  }
+
+  // Set the reception flag of the received message to FLAG_INVALID
+  *recv_flag = FLAG_INVALID;
+
+  // Set the new read buffer pointer
+  mpd_ptr->read_buf = calc_locl_addr;
+
+  return 1;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for collective behaviour
