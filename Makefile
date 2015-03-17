@@ -8,8 +8,7 @@
 COM_PORT?=/dev/ttyUSB0
 
 # Application to be stored in boot ROM
-BOOTAPP?=basic
-#BOOTAPP=bootable-bootloader
+BOOTAPP?=bootable-bootloader
 
 # Application to be downloaded
 APP?=hello_puts
