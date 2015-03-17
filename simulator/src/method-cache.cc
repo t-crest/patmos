@@ -203,20 +203,35 @@ bool lru_method_cache_t::do_fetch(simulator_t &s, method_info_t &current_method,
 
 availability_status_t lru_method_cache_t::lookup(simulator_t &s, uword_t address)
 {
+  // By definition, a disposable method is evicted after leaving its code region.
+  if (Methods[Active_method].Is_disposable){
+    assert(Active_method == Num_blocks - 1);
+  
+    // evict the method from the cache and update the statistics
+    uword_t evicted_blocks = evict_method(Active_method, address);
+
+    // TODO in order to have correct stats, we would need to already have the
+    //      size of the next method. We should move the eviction of
+    //      disposable functions into the load_method function into the size
+    //      phase to the other eviction code.
+    finish_eviction(evicted_blocks, 0);
+
+    return AVAIL_DISP;
+  }
+
   int index = getIndex(s, address);
 
   // check if the address is in the cache
-  if(0 <= index){
-
-    if (Methods[index].Is_disposable){
-      return AVAIL_DISP;
-    }
-
+  if (0 <= index) {
     // update the ordering of the methods to match LRU.
 
     // store the currently accessed entry
     method_info_t tmp = Methods[index];
 
+    // Disposable methods should have been evicted already.
+    assert(!tmp.Is_disposable && 
+           "Disposable method should not remain in the cache.");
+    
     // shift all methods between the location of the currently accessed
     // entry and the previously most recently used entry.
     for(unsigned int j = index; j < Num_blocks - 1; j++)
@@ -273,6 +288,46 @@ void lru_method_cache_t::update_evict_stats(method_info_t &method,
   Num_bytes_utilized += utilized_bytes;
   
   update_utilization_stats(method, utilized_bytes);
+}
+
+unsigned int lru_method_cache_t::evict_method(unsigned int index, 
+                                              uword_t evictor_address)
+{
+  method_info_t &method(Methods[index]);
+
+  eviction_type_e eviction_type;
+  if (method.Is_disposable) {
+    eviction_type = EVICT_DISP;
+  } else {
+    // is this a cache miss due to the limited number of tag?
+    if (Num_active_blocks + Num_allocate_blocks <= Num_blocks) {
+      eviction_type = EVICT_TAG;
+    } else {
+      eviction_type = EVICT_CAPACITY;
+    }
+  }
+
+  // update eviction statistics
+  update_evict_stats(method, evictor_address, eviction_type);
+  
+  // evict the method from the cache
+  Num_active_blocks -= method.Num_blocks;
+  if(method.Is_disposable){
+    Num_disposable_methods--;
+  }
+  Num_active_methods--;
+  
+  return method.Num_blocks;
+}
+
+void lru_method_cache_t::finish_eviction(unsigned int evicted_blocks, 
+                                         unsigned int evictor_blocks)
+{
+  uword_t blocks_freed = evicted_blocks > evictor_blocks ? 
+                         evicted_blocks - evictor_blocks : 0;
+  
+  Num_blocks_freed += blocks_freed;
+  Max_blocks_freed = std::max(Max_blocks_freed, blocks_freed);
 }
 
 bool lru_method_cache_t::peek_function_size(simulator_t &s, 
@@ -437,8 +492,8 @@ bool lru_method_cache_t::fetch(simulator_t &s, uword_t base, uword_t address, wo
 
 bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offset)
 {
-  // Set the availability to UNINIT to avoid falling into the SIZE phase before
-  // having passed by the IDLE phase.
+  // Set the availability to UNINIT, must be set in IDLE phase before we can 
+  // continue to SIZE phase.
   availability_status_t availability = UNINIT;
 
   // If we try to load a new method while there is still a transfer taking place,
@@ -521,42 +576,25 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
 
       uword_t evicted_blocks = 0;
 
-      // At this point either the method is unavailable or disposable.
-      // An eviction is performed only when the entry is unavailable
-      // regardless of being disposable or non-disposable.
-      if(availability == UNAVAIL){
+      // At this point the method is either unavailable or disposable.
+      // If the method is marked as disposable, it has been already disposed by
+      // the lookup method.
+      // TODO better move all the eviction logic from lookup to this place
+      // Free space in the cache for the new method.
+      if (availability != AVAIL_NON_DISP) {
         
         // throw other entries out of the cache if needed
         while (Num_active_blocks + Num_allocate_blocks > Num_blocks ||
                 Num_active_methods >= Num_max_methods)
         {
           assert(Num_active_methods > 0);
-          method_info_t &method(Methods[Num_blocks - Num_active_methods]);
-
-          // update eviction statistics
-          evicted_blocks += method.Num_blocks;
           
-          // is this a cache miss due to the limited number of tag?
-          bool is_tag_capacity_miss = (Num_active_blocks +
-                                        Num_allocate_blocks <= Num_blocks);
-
-          update_evict_stats(method, address, is_tag_capacity_miss ? EVICT_TAG 
-                                                              : EVICT_CAPACITY);
-          
-          // evict the method from the cache
-          Num_active_blocks -= method.Num_blocks;
-          if(method.Is_disposable){
-            Num_disposable_methods--;
-          }
-          Num_active_methods--;
+          evicted_blocks += evict_method(Num_blocks - Num_active_methods, 
+                                         address);
         }
         
-        uword_t blocks_freed = evicted_blocks > Num_allocate_blocks ? 
-                               evicted_blocks - Num_allocate_blocks : 0;
+        finish_eviction(evicted_blocks, Num_allocate_blocks);
         
-        Num_blocks_freed += blocks_freed;
-        Max_blocks_freed = std::max(Max_blocks_freed, blocks_freed);
-
         // update counters
         Num_active_methods++;
         Num_max_active_methods = std::max(Num_max_active_methods,
@@ -572,16 +610,6 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
         if(Is_method_disposable){
           Num_disposable_methods++;
         }
-      }
-
-      if(availability == AVAIL_DISP){
-        Num_blocks_allocated += Num_allocate_blocks;
-        Num_max_blocks_allocated = std::max(Num_max_blocks_allocated,
-                                            Num_allocate_blocks);
-
-        Num_bytes_transferred += get_transfer_size();
-        Num_max_bytes_transferred = std::max(Num_max_bytes_transferred,
-                                             get_transfer_size());
       }
 
       // find where the method should be inserted and
@@ -681,16 +709,17 @@ void lru_method_cache_t::tick(simulator_t &s)
 
 void lru_method_cache_t::print(std::ostream &os)
 {
-  os << boost::format(" #M: %1$02d #B: %2$02d\n")
-      % Num_active_methods % Num_active_blocks;
+  os << boost::format(" #Methods: %1$02d #Blocks: %2$02d Active: %3$2d\n")
+      % Num_active_methods % Num_active_blocks % (Num_blocks - Active_method);
 
   for(int i = Num_blocks - 1; i >= (int)(Num_blocks - Num_active_methods);
       i--)
   {
 
-    os << boost::format("   M%1$02d: 0x%2$08x (%3$8d Blk %4$8d b) %5$8d\n")
+    os << boost::format("   M%1$02d: 0x%2$08x (%3$8d Blk %4$8d b) %5$8d %6%\n")
         % (Num_blocks - i) % Methods[i].Address % Methods[i].Num_blocks
-        % Methods[i].Num_bytes % Methods[i].Is_disposable;
+        % Methods[i].Num_bytes % Methods[i].Is_disposable
+        % (i == Active_method ? "*" : "");
   }
 
   os << '\n';
@@ -897,25 +926,20 @@ availability_status_t fifo_method_cache_t::lookup(simulator_t &s, uword_t addres
 
   // By definition, a disposable method is evicted after leaving its code region.
   // In the case of the FIFO cache replacement policy, there is only one
-  // disposable method which is located bellow all non-disposable methods.
-  // (the head of the list being at index [Num_Blocks - 1]).
+  // disposable method which is located below all non-disposable methods.
   if(active_method.Is_disposable){
+    assert(Active_method == Num_blocks - 1);
+    
     // evict the method from the cache and update the statistics
-    assert(Active_method == Num_active_methods);
+    uword_t evicted_blocks = evict_method(Active_method, address);
 
-    uword_t evicted_blocks = active_method.Num_blocks;
+    // TODO in order to have correct stats, we would need to already have the
+    //      size of the next method. We should move the eviction of
+    //      disposable functions into the load_method function into the size
+    //      phase to the other eviction code.
+    finish_eviction(evicted_blocks, 0);
 
-    update_evict_stats(active_method, active_method.Address, EVICT_DISP);
-
-    uword_t blocks_freed = evicted_blocks > Num_allocate_blocks ?
-                           evicted_blocks - Num_allocate_blocks : 0;
-
-    Num_blocks_freed += blocks_freed;
-    Max_blocks_freed = std::max(Max_blocks_freed, blocks_freed);
-
-    Num_active_blocks -= active_method.Num_blocks;
-    Num_disposable_methods--;
-    Num_active_methods--;
+    return AVAIL_DISP;
   }
 
   int index = getIndex(s, address);

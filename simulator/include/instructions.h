@@ -1817,8 +1817,8 @@ namespace patmos
     /// @param base The base address of the current method.
     /// @param pc The current program counter.
     void store_return_address(simulator_t &s, instruction_data_t &ops,
-                              bit_t pred, uword_t base, uword_t pc, 
-                              word_t address, Pipeline_t stage, 
+                              bit_t pred, uword_t base, uword_t pc,
+                              word_t address, Pipeline_t stage,
                               bool is_interrupt) const
     {
       if (pred && !s.is_stalling(stage))

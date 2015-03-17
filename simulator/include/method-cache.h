@@ -132,20 +132,21 @@ namespace patmos
     unsigned int misses;
     // Number of misses due to the disposable method eviction semantic.
     unsigned int avoidable_misses;
-  }access_stats_t;
+  } access_stats_t;
 
   // The method availability status in the cache.
   typedef enum {
     // The UNINIT status is relevant for the IDLE and SIZE method cache phases.
     UNINIT         = 0,
-    // The disposable method is available in the cache.
-    AVAIL_DISP     = 1,
     // The non-disposable method is available in the cache.
-    AVAIL_NON_DISP = 2,
+    AVAIL_NON_DISP = 1,
+    // The method is available in the cache but has been disposed.
+    // TODO maybe rename to UNAVAIL_DISP, it is no longer available.
+    AVAIL_DISP     = 2,
     // The method is unavailable in the cache regardless of being disposable
     // or non-disposable.
     UNAVAIL        = 3
-  }availability_status_t;
+  } availability_status_t;
 
   /// Cache statistics for a particular method and return offset. Map offsets
   /// to number of cache hits/misses.
@@ -385,6 +386,22 @@ namespace patmos
     void update_evict_stats(method_info_t &method, uword_t new_method, 
                                  eviction_type_e type);
 
+    /// Evict a method from the cache array and update all statistics and 
+    /// counters.
+    /// The caller is responsible for bringing the Methods array into a
+    /// correct order after this call, if the evicted method is not the last
+    /// method in the array
+    /// @param index The index of the method to evict in the Methods array.
+    /// @param evictor_address Address of the method causing the eviction
+    /// @return The number of evicted blocks
+    unsigned int evict_method(unsigned int index, uword_t evictor_address);
+    
+    /// Finalize eviction and update stats.
+    /// @param evicted_blocks the sum of evicted blocks
+    /// @param evictor_blocks The number of blocks of the evictor method.
+    void finish_eviction(unsigned int evicted_blocks, 
+                         unsigned int evictor_blocks);
+    
     /// Extract the size of a method and its disposable flag from the size word.
     /// @param function_base The method's base address.
     /// @param result_size The extracted size.
@@ -410,7 +427,7 @@ namespace patmos
     /// Updates the Phase and bookkeeping fields when the transfer is completed.
     /// @return True if the full method has been transferred.
     bool cache_fill(simulator_t &s);
-    
+
   public:
     /// Construct an LRU-based method cache.
     /// @param memory The memory to fetch instructions from on a cache miss.
