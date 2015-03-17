@@ -45,7 +45,7 @@
 // Functions for initializing the workers
 ////////////////////////////////////////////////////////////////////////////
 
-static void corethread_worker(void) {
+void corethread_worker(void) {
   unsigned id = get_cpuid();
   if (id != NOC_MASTER) { // Core zero should proceed to execute main
     unsigned long long time;
