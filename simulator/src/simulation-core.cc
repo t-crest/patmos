@@ -707,19 +707,19 @@ namespace patmos
       {
         // print state of method cache
         os << "Method Cache:\n";
-        Instr_cache.print(os);
+        Instr_cache.print(*this, os);
 
         // print state of data cache
         os << "Data Cache:\n";
-        Data_cache.print(os);
+        Data_cache.print(*this, os);
 
         // print state of stack cache
         os << "Stack Cache:\n";
-        Stack_cache.print(os);
+        Stack_cache.print(*this, os);
 
         // print state of main memory
         os << "Memory:\n";
-        Memory.print(os);
+        Memory.print(*this, os);
 
         os << "\n";
       }

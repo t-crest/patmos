@@ -245,14 +245,14 @@ void memory_map_t::tick(simulator_t &s)
   Memory.tick(s);
 }
 
-void memory_map_t::print(std::ostream &os) const
+void memory_map_t::print(const simulator_t &s, std::ostream &os) const
 {
   for (DeviceList::const_iterator it = Devices.begin(), ie = Devices.end();
        it != ie; ++it) 
   {
-    (*it)->print(os);
+    (*it)->print(s, os);
   }      
-  Memory.print(os);
+  Memory.print(s, os);
 }
 
 void memory_map_t::print_stats(const simulator_t &s, std::ostream &os, 

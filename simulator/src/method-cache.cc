@@ -89,7 +89,7 @@ void ideal_method_cache_t::tick(simulator_t &s)
   // do nothing here
 }
 
-void ideal_method_cache_t::print(std::ostream &os)
+void ideal_method_cache_t::print(const simulator_t &s, std::ostream &os)
 {
   // nothing to do here either, since the cache has no internal state.
 }
@@ -715,7 +715,7 @@ void lru_method_cache_t::tick(simulator_t &s)
   }
 }
 
-void lru_method_cache_t::print(std::ostream &os)
+void lru_method_cache_t::print(const simulator_t &s, std::ostream &os)
 {
   os << boost::format(" #Methods: %1$2d #Blocks: %2$2d #Disposable: %3$2d Active: %4$2d\n")
       % Num_active_methods % Num_active_blocks 

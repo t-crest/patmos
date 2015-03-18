@@ -132,7 +132,7 @@ namespace patmos
 
     /// Print the internal state of the memory to an output stream.
     /// @param os The output stream to print to.
-    virtual void print(std::ostream &os) const
+    virtual void print(const simulator_t &s, std::ostream &os) const
     {
       // nothing to be done here
     }
@@ -304,7 +304,7 @@ namespace patmos
 
     /// Print the internal state of the memory to an output stream.
     /// @param os The output stream to print to.
-    virtual void print(std::ostream &os) const;
+    virtual void print(const simulator_t &s, std::ostream &os) const;
 
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.

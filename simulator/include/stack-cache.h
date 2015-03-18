@@ -211,7 +211,7 @@ namespace patmos
     
     /// Print the internal state of the stack cache to an output stream.
     /// @param os The output stream to print to.
-    virtual void print(std::ostream &os) const;
+    virtual void print(const simulator_t &s, std::ostream &os) const;
 
     virtual void print_stats(const simulator_t &s, std::ostream &os, 
                              const stats_options_t& options) {}
@@ -379,7 +379,7 @@ namespace patmos
     virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
 
-    virtual void print(std::ostream &os) const;
+    virtual void print(const simulator_t &s, std::ostream &os) const;
 
     virtual void print_stats(const simulator_t &s, std::ostream &os, 
                              const stats_options_t& options);
@@ -522,7 +522,7 @@ namespace patmos
 
       virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
-      virtual void print(std::ostream &os) const;
+      virtual void print(const simulator_t &s, std::ostream &os) const;
 
       virtual void print_stats(const simulator_t &s, std::ostream &os, 
                                const stats_options_t& options);
