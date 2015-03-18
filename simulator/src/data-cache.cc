@@ -243,7 +243,7 @@ bool set_assoc_data_cache_t<LRU_REPLACEMENT>::is_ready()
 
 template<bool LRU_REPLACEMENT>
 void set_assoc_data_cache_t<LRU_REPLACEMENT>::
-     print(std::ostream &os) const
+     print(const simulator_t &s, std::ostream &os) const
 {
   for(unsigned int i = 0; i < Num_indexes; i++)
   {

@@ -199,7 +199,7 @@ void ideal_stack_cache_t::read_peek(simulator_t &s, uword_t address, byte_t *val
   read(s, address, value, size);
 }
 
-void ideal_stack_cache_t::print(std::ostream &os) const
+void ideal_stack_cache_t::print(const simulator_t &s, std::ostream &os) const
 {
   unsigned int idx = 0;
   assert(((Content.size() % 4) == 0) && 
@@ -609,7 +609,7 @@ bool block_stack_cache_t::write(simulator_t &s, uword_t address, byte_t *value, 
   return true;
 }
 
-void block_stack_cache_t::print(std::ostream &os) const
+void block_stack_cache_t::print(const simulator_t &s, std::ostream &os) const
 {
   uword_t reserved_blocks = Content.size() / Num_block_bytes;
   
@@ -617,7 +617,7 @@ void block_stack_cache_t::print(std::ostream &os) const
       % Phase % reserved_blocks % Num_blocks;
 
   // print stack cache content
-  ideal_stack_cache_t::print(os);
+  ideal_stack_cache_t::print(s, os);
 }
 
 void block_stack_cache_t::print_stats(const simulator_t &s, std::ostream &os, 
@@ -987,13 +987,13 @@ bool block_lazy_stack_cache_t::write(simulator_t &s, uword_t address, byte_t *va
   return block_stack_cache_t::write(s, address, value, size);
 }
 
-void block_lazy_stack_cache_t::print(std::ostream &os) const
+void block_lazy_stack_cache_t::print(const simulator_t &s, std::ostream &os) const
 {
     // print lazy pointer 
   os << boost::format("    LP : %1%\n") % Lazy_pointer;
   
   // print original stack cache content
-  block_stack_cache_t::print(os);
+  block_stack_cache_t::print(s, os);
 }
 
 void block_lazy_stack_cache_t::print_stats(const simulator_t &s, 

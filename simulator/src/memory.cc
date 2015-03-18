@@ -353,7 +353,7 @@ void fixed_delay_memory_t::tick(simulator_t &s)
 
 /// Print the internal state of the memory to an output stream.
 /// @param os The output stream to print to.
-void fixed_delay_memory_t::print(std::ostream &os) const
+void fixed_delay_memory_t::print(const simulator_t &s, std::ostream &os) const
 {
   if (Requests.empty())
   {
