@@ -371,6 +371,12 @@ bool lru_method_cache_t::cache_fill(simulator_t& s)
                         get_transfer_size(), Current_burst_transferred)) 
   {
     Current_fetch_address += Current_burst_transferred;
+
+    // Update statistics
+    Num_bytes_transferred += Current_burst_transferred;
+    Num_max_bytes_transferred = std::max(Num_max_bytes_transferred,
+                                         Current_burst_transferred);
+
     Current_burst_transferred  = 0;
    
     // If everything has been fetched, return to IDLE
@@ -634,9 +640,6 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
       Num_blocks_allocated += Current_allocate_blocks;
       Num_max_blocks_allocated = std::max(Num_max_blocks_allocated,
                                           Current_allocate_blocks);
-      Num_bytes_transferred += get_transfer_size();
-      Num_max_bytes_transferred = std::max(Num_max_bytes_transferred,
-                                           get_transfer_size());
 
       // proceed to next phase ... the size of the method has been fetched
       // from memory, now transfer the method's instructions.
