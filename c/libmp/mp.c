@@ -82,7 +82,7 @@ static int test_mem_size_spm(){
 }
   
 
-static void mp_init() {
+void mp_init() {
   // Get cpu ID
   int cpuid = get_cpuid();
 
@@ -303,7 +303,7 @@ int mp_communicator_init(communicator_t* comm, unsigned count,
 }
 
 ////////////////////////////////////////////////////////////////////////////
-// Functions for queuing point-to-point transmission of data
+// Functions for point-to-point transmission of data
 ////////////////////////////////////////////////////////////////////////////
 
 int mp_nbsend(mpd_t* mpd_ptr) {

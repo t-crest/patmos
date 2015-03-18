@@ -182,8 +182,8 @@ typedef struct {
 
 /// \brief Initialize message passing library.
 ///
-/// #mp_init() is a static constructor and not intended to be called directly.
-static void mp_init(void) __attribute__((constructor(105),used));
+/// #mp_init is a static constructor and not intended to be called directly.
+void mp_init(void) __attribute__((constructor(120),used));
 
 /// \brief A function for returning the amount of data that the channel is
 /// alocating in the sending spm.
