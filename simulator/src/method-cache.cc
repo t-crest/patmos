@@ -723,13 +723,17 @@ void lru_method_cache_t::print(const simulator_t &s, std::ostream &os)
 
   for(int i = 0; i < Num_cache_entries; i++)
   {
-    os << boost::format("   M%1$02d: 0x%2$08x (%3$8d Blk %4$8d b) %5%  %6%\n")
+    os << boost::format("   M%1$02d: 0x%2$08x (%3$8d Blk %4$8d b) %5%   %6% ")
         % i % Methods[i].Address % Methods[i].Num_blocks
         % Methods[i].Num_bytes 
         % (Methods[i].Is_disposable ? "DISP" : "    ")
         % (i == Active_method ? "*" : " ");
+    
+    s.Symbols.print(os, Methods[i].Address);
+    
+    os << "\n";
   }
-
+  
   os << '\n';
 }
 
