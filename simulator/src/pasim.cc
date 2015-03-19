@@ -328,6 +328,7 @@ int main(int argc, char **argv)
     ("print-stats", boost::program_options::value<patmos::address_t>(), "print statistics for a given function only.")
     ("flush-caches", boost::program_options::value<patmos::address_t>(), "flush all caches when reaching the given address (can be a symbol name).")
     ("hitmiss-stats", "Print hit/miss cache accesses (requires '--full')")
+    ("stall-stats", "Print more detailed cache stall statistics (requires '--full')")
     ("full,V", "full statistics output")
     ("verbose,v", "enable short statistics output");
 
@@ -530,6 +531,7 @@ int main(int argc, char **argv)
   patmos::mem_check_e chkreads = vm["chkreads"].as<patmos::mem_check_e>();
   
   bool hitmiss_stats = (vm.count("hitmiss-stats") != 0);
+  bool stall_stats = (vm.count("stall-stats") != 0);
   bool long_stats = (vm.count("full") != 0);
   bool verbose = (vm.count("verbose") != 0) || long_stats;
 
@@ -609,6 +611,7 @@ int main(int argc, char **argv)
     stats_options.instruction_stats = long_stats;
     stats_options.profiling_stats = long_stats;
     stats_options.hitmiss_stats = hitmiss_stats;
+    stats_options.extended_stall_stats = stall_stats;
     
     // set up timer device
     patmos::rtc_t rtc(s, mmbase+timer_offset, freq);

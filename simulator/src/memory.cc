@@ -435,6 +435,14 @@ bool fixed_delay_memory_t::is_ready()
   return Requests.empty();
 }
 
+bool fixed_delay_memory_t::is_serving_request(uword_t address)
+{
+  if (Requests.empty()) return false;
+  
+  request_info_t &req = Requests.front();
+  return req.Address == address;
+}
+
 void fixed_delay_memory_t::tick(simulator_t &s)
 {
   // check if there are only posted writes in the queue, then there is

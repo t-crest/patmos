@@ -55,18 +55,14 @@ namespace patmos
     /// @param value The value to be written to the memory.
     /// @param size The number of bytes to write.
     virtual void write_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size);
-    
-    /// Check if the memory is busy handling some request.
-    /// @return False in case the memory is currently handling some request,
-    /// otherwise true.
-    virtual bool is_ready();
-    
-  public:
+
+  public:    
     virtual ~stack_cache_t() {}
 
     virtual bool read_burst(simulator_t &s, uword_t address, byte_t *value, 
                             uword_t size, uword_t &transferred);
 
+    virtual bool is_serving_request(uword_t address);
     
     /// Prepare for reserveing a given number of bytes, and update the stack 
     /// pointers.
@@ -173,6 +169,7 @@ namespace patmos
     memory_t &Memory;
 
   public:
+    
     ideal_stack_cache_t(memory_t &memory) : Memory(memory) {}
 
     virtual word_t prepare_reserve(simulator_t &s, uword_t size, 
@@ -208,7 +205,8 @@ namespace patmos
 
     virtual void tick(simulator_t &s) {}
 
-    
+    virtual bool is_ready();
+
     /// Print the internal state of the stack cache to an output stream.
     /// @param os The output stream to print to.
     virtual void print(const simulator_t &s, std::ostream &os) const;
@@ -259,6 +257,9 @@ namespace patmos
 
     virtual void read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
+    virtual bool is_ready();
+    
+    virtual bool is_serving_request(uword_t address);
   };
   
   /// A stack cache organized in blocks.
@@ -373,6 +374,7 @@ namespace patmos
     virtual bool spill(simulator_t &s, uword_t size, word_t delta,
                        uword_t new_spill, uword_t new_top);
 
+    virtual bool is_ready();
 
     virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
@@ -385,6 +387,7 @@ namespace patmos
                              const stats_options_t& options);
 
     virtual void reset_stats();
+    
   };
 
   /// A stack cache generating only aligned memory transfers, given a 

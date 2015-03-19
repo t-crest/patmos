@@ -143,6 +143,14 @@ namespace patmos
     /// otherwise true.
     virtual bool is_ready() = 0;
 
+    /// Check if the memory is currently serving a request to the given address.
+    /// Note that this returns false if the current request contains the given
+    /// address but does not start at that address.
+    /// @param address the start address of the request in question.
+    /// @return true if the memory is currently serving a request to that 
+    ///         start address.
+    virtual bool is_serving_request(uword_t address) = 0;
+    
     /// Notify the memory that a cycle has passed.
     virtual void tick(simulator_t &s) = 0;
 
@@ -264,6 +272,12 @@ namespace patmos
       return true;
     }
 
+    virtual bool is_serving_request(uword_t address)
+    {
+      // always ready
+      return false;
+    }
+    
     /// Notify the memory that a cycle has passed.
     virtual void tick(simulator_t &s)
     {
@@ -478,6 +492,8 @@ namespace patmos
     /// @return False in case the memory is currently handling some request,
     /// otherwise true.
     virtual bool is_ready();
+    
+    virtual bool is_serving_request(uword_t address);
 
     /// Notify the memory that a cycle has passed.
     virtual void tick(simulator_t &s);

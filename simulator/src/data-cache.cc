@@ -260,6 +260,15 @@ bool set_assoc_data_cache_t<LRU_REPLACEMENT>::is_ready()
 }
 
 template<bool LRU_REPLACEMENT>
+bool set_assoc_data_cache_t<LRU_REPLACEMENT>::is_serving_request(uword_t address)
+{
+  // We do not check for alignment here of the request..
+  uword_t block_address = get_block_address(address, 1);
+  
+  return Is_busy && Memory.is_serving_request(block_address);
+}
+
+template<bool LRU_REPLACEMENT>
 void set_assoc_data_cache_t<LRU_REPLACEMENT>::
      print(const simulator_t &s, std::ostream &os) const
 {

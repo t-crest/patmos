@@ -166,15 +166,39 @@ namespace patmos
     /// Maximum utilization of the cache entry for this method in words.
     float Max_utilization;
 
+    /// Total number of stall cycles for this method (code or data stalls)
+    uint64_t Num_stall_cycles;
+    
+    /// Minimum number of stall cycles for this method (code or data stalls)
+    unsigned int Min_stall_cycles;
+    
+    /// Maximum number of stall cycles for this method (code or data stalls)
+    unsigned int Max_stall_cycles;
+
+    /// Total number of stall cycles due to other requests (data stalls)
+    uint64_t Num_data_stall_cycles;
+    
+    /// Minimum number of stall cycles due to other requests (data stalls)
+    unsigned int Min_data_stall_cycles;
+    
+    /// Maximum number of stall cycles due to other requests (data stalls)
+    unsigned int Max_data_stall_cycles;
+    
     /// Keep track how often this method was evicted by some other method.
     eviction_stats_t Evictions;
     
     /// Initialize the method statistics.
     method_stats_info_t() : Num_method_bytes(0), Num_blocks_allocated(0),
       Is_disposable(false), Min_utilization(std::numeric_limits<float>::max()),
-      Max_utilization(0)
+      Max_utilization(0), Num_stall_cycles(0), 
+      Min_stall_cycles(std::numeric_limits<unsigned int>::max()),
+      Max_stall_cycles(0), Num_data_stall_cycles(0), 
+      Min_data_stall_cycles(std::numeric_limits<unsigned int>::max()),
+      Max_data_stall_cycles(0)
     {
     }
+    
+    void add_stall_cycles(unsigned int stalls, unsigned int data_stalls);
   };
 
   /// A direct-mapped method cache using LRU replacement on methods.
@@ -343,6 +367,12 @@ namespace patmos
     /// Number of stall cycles caused by method cache misses.
     unsigned int Num_stall_cycles;
 
+    /// Number of stall cycles for the current transfer, for per-method stats
+    unsigned int Curr_stall_cycles;
+    
+    /// Number of data stall cycles for the current transfer, for per-method stats
+    unsigned int Curr_data_stall_cycles;
+    
     /// Number of bytes used in evicted methods.
     unsigned int Num_bytes_utilized;
     

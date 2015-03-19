@@ -299,6 +299,8 @@ namespace patmos
     /// @return False in case the memory is currently handling some request,
     /// otherwise true.
     virtual bool is_ready();
+    
+    virtual bool is_serving_request(uword_t address);
 
     /// Notify the memory that a cycle has passed.
     virtual void tick(simulator_t &s);

@@ -235,6 +235,14 @@ bool memory_map_t::is_ready()
   return Memory.is_ready();
 }
 
+bool memory_map_t::is_serving_request(uword_t address)
+{
+  // TODO we should pass that to the mapped devices
+  //      We just need to check if the request goes to a mapped device, but
+  //      we do not know if a mapped device is busy or not..
+  return Memory.is_serving_request(address);
+}
+
 void memory_map_t::tick(simulator_t &s)
 {
   for (DeviceList::iterator it = Devices.begin(), ie = Devices.end();

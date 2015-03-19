@@ -101,6 +101,16 @@ void ideal_method_cache_t::print_stats(const simulator_t &s, std::ostream &os,
 }
     
 
+void method_stats_info_t::add_stall_cycles(unsigned int stalls, 
+                                           unsigned int data_stalls)
+{
+  Num_stall_cycles += stalls;
+  Num_data_stall_cycles += data_stalls;
+  Min_stall_cycles = std::min(Min_stall_cycles, stalls);
+  Max_stall_cycles = std::max(Max_stall_cycles, stalls);
+  Min_data_stall_cycles = std::min(Min_data_stall_cycles, data_stalls);
+  Max_data_stall_cycles = std::max(Max_data_stall_cycles, data_stalls);
+}
 
 void lru_method_cache_t::method_info_t::update(uword_t address, 
                                                uword_t num_blocks,
@@ -177,6 +187,10 @@ bool lru_method_cache_t::do_fetch(simulator_t &s, method_info_t &current_method,
       // We are still waiting for the transfer to finish for this address.
       // Note: we count stall cycles here only if Phase == TRANSFER_DELAYED
       Num_stall_cycles++;
+      Curr_stall_cycles++;
+      if (!Memory.is_serving_request(Current_fetch_address)) {
+        Curr_data_stall_cycles++;
+      }
       return false;
     }
   }
@@ -380,9 +394,16 @@ bool lru_method_cache_t::cache_fill(simulator_t& s)
     Current_burst_transferred  = 0;
    
     // If everything has been fetched, return to IDLE
-    if (get_transfer_size() == 0) {
+    if (get_transfer_size() == 0) 
+    {
       Current_allocate_blocks = Current_method_size = 0;
       Phase = IDLE;
+      
+      // Update statistics
+      uword_t address = get_active_method_base();      
+      Method_stats[address].add_stall_cycles(Curr_stall_cycles,
+                                             Curr_data_stall_cycles);
+
       return true;
     }
   }
@@ -409,6 +430,7 @@ lru_method_cache_t::lru_method_cache_t(memory_t &memory,
     Num_max_active_methods(0),
     Num_hits(0), Num_misses(0), Num_misses_ret(0), Num_evictions_capacity(0),
     Num_evictions_tag(0), Num_stall_cycles(0),
+    Curr_stall_cycles(0), Curr_data_stall_cycles(0),
     Num_bytes_utilized(0), Num_blocks_freed(0), Max_blocks_freed(0)
 {
   unsigned int cache_size = num_block_bytes * num_blocks;
@@ -643,6 +665,15 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
 
       // proceed to next phase ... the size of the method has been fetched
       // from memory, now transfer the method's instructions.
+      assert(Current_allocate_blocks != 0 && Current_method_size != 0);
+
+      // Initialize first transfer
+      Current_fetch_address = get_transfer_start(address);
+      Current_burst_transferred = 0;
+      
+      Curr_stall_cycles = 0;
+      Curr_data_stall_cycles = 0;
+      
       // NOTE: the next phase starts immediately.
       Phase = TRANSFER;
     }
@@ -650,12 +681,6 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
     // begin transfer from main memory to the method cache.
     case TRANSFER:
     {
-      assert(Current_allocate_blocks != 0 && Current_method_size != 0);
-
-      // Initialize first transfer
-      Current_fetch_address = get_transfer_start(address);
-      Current_burst_transferred = 0;
-      
       // If we want to use delayed transfers, switch over to a delayed transfer
       if (Transfer_mode != TM_BLOCKING) 
       {
@@ -706,12 +731,17 @@ void lru_method_cache_t::tick(simulator_t &s)
   {
     // continue filling the cache.
     cache_fill(s);
+    // Note: stall counters are updated in fetch stage
   }
   else if (Phase != IDLE)
   {
     // update statistics
     // Note: we count stall cycles here only if Phase != TRANSFER_DELAYED
     Num_stall_cycles++;
+    Curr_stall_cycles++;
+    if (!Memory.is_serving_request(Current_fetch_address)) {
+      Curr_data_stall_cycles++;
+    }
   }
 }
 
@@ -809,8 +839,13 @@ void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os,
     return;
   
   // print stats per method
-  os << "       Method:        #hits    #misses   #av_misses  methodsize      blocks  disposable   "
-        "min-util    max-util\n";
+  os << "       Method:      #hits    #misses #av_misses methodsize   blocks  disposable  "
+        "min-util    max-util  stall-cycles   min      max";
+  if (options.extended_stall_stats) {
+    os << "  data-stalls    min      max";
+  }
+  os << "\n";
+  
   for(method_stats_t::iterator i(Method_stats.begin()),
       ie(Method_stats.end()); i != ie; i++)
   {
@@ -831,14 +866,26 @@ void lru_method_cache_t::print_stats(const simulator_t &s, std::ostream &os,
       continue;
     }
 
-    os << boost::format("   0x%1$08x:   %2$10d  %3$10d  %4$10d  %5$10d  %6$10d %7$10d"
-                        "%8$10.2f%% %9$10.2f%%    %10%\n")
+    os << boost::format("   0x%1$08x: %2$10d %3$10d %4$10d %5$10d %6$8d %7$10d"
+                        "%8$10.2f%% %9$10.2f%% %10$10d %11$8d %12$8d")
         % i->first % hits % misses % avoidable_misses
         % i->second.Num_method_bytes % i->second.Num_blocks_allocated
         % i->second.Is_disposable
         % (i->second.Min_utilization * 100.0)
         % (i->second.Max_utilization * 100.0)
-        % s.Symbols.find(i->first);
+        % i->second.Num_stall_cycles 
+        % i->second.Min_stall_cycles % i->second.Max_stall_cycles;
+     
+        if (options.extended_stall_stats) 
+     {
+       os << boost::format(" %1$10d %2$8d %3$8d")  
+          % i->second.Num_data_stall_cycles 
+          % i->second.Min_data_stall_cycles % i->second.Max_data_stall_cycles;
+     }
+     
+     os << "   ";
+     s.Symbols.print(os, i->first);
+     os << "\n";
 
     // print hit/miss statistics per offset
     if (options.hitmiss_stats)

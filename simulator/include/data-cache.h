@@ -123,6 +123,12 @@ namespace patmos
       return true;
     }
 
+    virtual bool is_serving_request(uword_t address)
+    {
+      // always ready
+      return false;
+    }
+    
     /// Notify the memory that a cycle has passed.
     virtual void tick(simulator_t &s)
     {
@@ -194,6 +200,11 @@ namespace patmos
     virtual bool is_ready()
     {
       return Memory.is_ready();
+    }
+    
+    virtual bool is_serving_request(uword_t address)
+    {
+      return Memory.is_serving_request(address);
     }
   };
 
@@ -302,6 +313,8 @@ namespace patmos
     /// otherwise true.
     virtual bool is_ready();
 
+    virtual bool is_serving_request(uword_t address);
+    
     /// Print the internal state of the memory to an output stream.
     /// @param os The output stream to print to.
     virtual void print(const simulator_t &s, std::ostream &os) const;

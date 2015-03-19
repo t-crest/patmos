@@ -56,6 +56,7 @@ namespace patmos
     bool instruction_stats;
     bool profiling_stats;
     bool hitmiss_stats;
+    bool extended_stall_stats;
   };
   
   

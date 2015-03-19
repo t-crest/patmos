@@ -52,10 +52,10 @@ void stack_cache_t::write_peek(simulator_t &s, uword_t address, byte_t *value, u
   abort();
 }
 
-bool stack_cache_t::is_ready()
+bool stack_cache_t::is_serving_request(uword_t address)
 {
-  assert(false);
-  abort();
+  // Normal requests are always zero-cycle requests.
+  return false;
 }
 
 bool stack_cache_t::read_burst(simulator_t &s, uword_t address, byte_t *value, 
@@ -238,6 +238,10 @@ uword_t ideal_stack_cache_t::size() const
   return Content.size();
 }
 
+bool ideal_stack_cache_t::is_ready() 
+{
+  return true;
+}
 
 
 bool proxy_stack_cache_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
@@ -255,6 +259,15 @@ void proxy_stack_cache_t::read_peek(simulator_t &s, uword_t address, byte_t *val
   return Memory.read_peek(s, stack_top + address, value, size);
 }
 
+bool proxy_stack_cache_t::is_ready() 
+{
+  return Memory.is_ready();
+}
+
+bool proxy_stack_cache_t::is_serving_request(uword_t address)
+{
+  return Memory.is_serving_request(address);
+}
 
 
 
@@ -597,6 +610,10 @@ bool block_stack_cache_t::spill(simulator_t &s, uword_t size, word_t delta,
   abort();
 }
 
+bool block_stack_cache_t::is_ready() 
+{
+  return Phase == IDLE;
+}
 
 bool block_stack_cache_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
@@ -683,6 +700,7 @@ void block_stack_cache_t::reset_stats()
   Num_free_empty = 0;
   Num_stall_cycles = 0;
 }
+
 
 block_aligned_stack_cache_t::block_aligned_stack_cache_t(memory_t &memory, 
                           unsigned int num_blocks, unsigned int num_block_bytes)
