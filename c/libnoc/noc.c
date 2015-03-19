@@ -48,9 +48,9 @@
 // Structure to model the network interface
 static struct network_interface
 {
-    volatile int _IODEV *dma;
-    volatile int _IODEV *dma_p;
-    volatile int _IODEV *st;
+    volatile unsigned int _IODEV *dma;
+    volatile unsigned int _IODEV *dma_p;
+    volatile unsigned int _IODEV *st;
 } noc_interface = {
   NOC_DMA_BASE, NOC_DMA_P_BASE, NOC_ST_BASE
 };

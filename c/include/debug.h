@@ -18,48 +18,70 @@
 #define ERROR   3
 #define FAILURE 4
 
+// PREDICATE
+#define TRUE  1
+#define FALSE 0
+
 
 // TRACE LEVEL
 // Any trace with equal or higher severity than the trace level is printed
+#ifndef TRACE_LEVEL
 #define TRACE_LEVEL INFO
+#endif
 
-#define TRACE_NAME(x) ( x == INFO ? "INFO" : \
-                      ( x == WARNING ? "WARNING" : \
-                      ( x == FAULT ? "FAULT" : \
-                      ( x == ERROR ? "ERROR" : \
+#define SEVERITY_NAME(x) ( x == INFO ? "INFO" :             \
+                      ( x == WARNING ? "WARNING" :          \
+                      ( x == FAULT ? "FAULT" :              \
+                      ( x == ERROR ? "ERROR" :              \
                       ( x == FAILURE ? "FAILURE" : "" )))))
 
 
-
-#define ENSURE(pred, x) { \
-  if (!(pred)) { \
-    DPRINTF("ENSURE:\t%s [%s:%d]\n",x,__FILE__,__LINE__); \
-    abort(); \
-  }}
-#define TRACE(severity, pred, x) { \
-  if ((severity>=TRACE_LEVEL) && (pred))  { \
-    DPRINTF("%s:\t%s [%s:%d]\n",TRACE_NAME(severity),x,__FILE__,__LINE__); \
-  }}
-
-#ifdef DEBUG_VERBOSE
-#define debugf(x)     {std::cout << __FILE__ << ":" << __LINE__ << ":\t " #x " = '" << (x) << "'" << std::endl;}
-#define debugs(x)     {std::cout << __FILE__ << ":" << __LINE__ << ":\n " << x << "'" << std::endl;}
-#else
-#define debugf(x)
-#define debugs(x)
-#endif
-
-
 #define DPRINTF(...)  if(get_cpuid() == NOC_MASTER) { \
-                      printf(__VA_ARGS__); \
+                      printf(__VA_ARGS__);            \
                    }
 
 
-#define wait(microseconds) { \
-  unsigned long long hidden_time; \
-  hidden_time = get_cpu_usecs(); \
-  while(get_cpu_usecs() < hidden_time + microseconds); \
-} \
+#ifdef DEBUG_ENABLE
+
+#define ENSURE(pred, x) {                                  \
+  if (!(pred)) {                                           \
+    DPRINTF("ENSURE:\t%s [%s:%d]\n",x,__FILE__,__LINE__);  \
+    abort();                                               \
+  }}
+
+#define TRACE(severity, pred, ...) if (get_cpuid() == NOC_MASTER) {     \
+    if ((severity>=TRACE_LEVEL) && (pred))  {                           \
+      printf("%s: [%s:%d] ",SEVERITY_NAME(severity),__FILE__,__LINE__); \
+      printf(__VA_ARGS__);                                              \
+    }                                                                   \
+  }
+
+
+#define DEBUGF(x) if (get_cpuid() == NOC_MASTER ) {               \
+                    std::cout << __FILE__ << ":" << __LINE__ <<   \
+                    ":\t " #x " = '" << (x) << "'" << std::endl;  \
+                  }
+
+#define DEBUGS(x) if (get_cpuid() == NOC_MASTER ) {              \
+                    std::cout << __FILE__ << ":" << __LINE__ <<  \
+                    ":\n " << x << "'" << std::endl;             \
+                  }
+
+#else
+#define ENSURE(pred, x)
+#define TRACE(severity, pred, ...)
+#define DEBUGF(x)
+#define DEBUGS(x)
+#endif
+
+
+#define wait(microseconds) {                            \
+  unsigned long long hidden_time;                       \
+  hidden_time = get_cpu_usecs();                        \
+  while(get_cpu_usecs() < hidden_time + microseconds);  \
+}
+
+/*
 
 ////////////////////////////////////////////////////////////////////////////////
 // Intercore queues
@@ -160,5 +182,5 @@ static int* local_ctrl[MAX_CORES];
     } \
   } \
 } \
-
+ */
 #endif  /* _DEBUG_H_ */

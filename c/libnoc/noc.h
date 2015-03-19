@@ -49,34 +49,6 @@
 #include <machine/spm.h>
 #include "coreset.h"
 
-//#define DEBUG
-
-#ifdef DEBUG
-
-/// \brief Print message if (a) DEBUG is defined and (b) executing on master core.
-#define DEBUGGER(...)                           \
-  do {                                          \
-    if (get_cpuid() == NOC_MASTER) {            \
-      printf(__VA_ARGS__);                      \
-    }                                           \
-  } while(0)
-
-/// \brief Abort if (a) DEBUG is defined and (b) condition X evaluates to true.
-#define DEBUG_CORECHECK(X)                      \
-  do {                                          \
-    if(X) {                                     \
-      abort();                                  \
-    }                                           \
-  } while(0)
-
-#else
-/// \brief Print message if (a) DEBUG is defined and (b) executing on master core.
-#define DEBUGGER(...)
-/// \brief Abort if (a) DEBUG is defined and (b) condition is true.
-#define DEBUG_CORECHECK(x)
-#endif
-
-
 ////////////////////////////////////////////////////////////////////////////
 // Definitions used for initialization of network interface
 ////////////////////////////////////////////////////////////////////////////
@@ -225,13 +197,13 @@ void noc_wait_dma(coreset_t receivers);
 ////////////////////////////////////////////////////////////////////////////
 
 /// The base address for DMA entries
-#define NOC_DMA_BASE    ((volatile int _IODEV *)0xE0000000)
+#define NOC_DMA_BASE    ((volatile unsigned int _IODEV *)0xE0000000)
 /// The base address for DMA routing information
-#define NOC_DMA_P_BASE  ((volatile int _IODEV *)0xE1000000)
+#define NOC_DMA_P_BASE  ((volatile unsigned int _IODEV *)0xE1000000)
 /// The base address for the slot table
-#define NOC_ST_BASE     ((volatile int _IODEV *)0xE2000000)
+#define NOC_ST_BASE     ((volatile unsigned int _IODEV *)0xE2000000)
 /// The base address of the communication SPM
-#define NOC_SPM_BASE    ((volatile int _SPM   *)0xE8000000)
+#define NOC_SPM_BASE    ((volatile unsigned int _SPM   *)0xE8000000)
 
 #endif /* _NOC_H_ */
 /** @}*/

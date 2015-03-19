@@ -102,7 +102,10 @@ $(LIBNOC): $(BUILDDIR)/libnoc/noc.o
 .PHONY: libmp
 libmp: libnoc $(LIBMP)
 $(BUILDDIR)/libmp/mp.o: libmp/mp.h libnoc/noc.h libnoc/coreset.h bootloader/cmpboot.h
-$(LIBMP): $(BUILDDIR)/libmp/mp.o
+$(BUILDDIR)/libmp/queuing.o: libmp/mp.h libnoc/noc.h
+$(BUILDDIR)/libmp/sampling.o: libmp/mp.h libnoc/noc.h
+$(BUILDDIR)/libmp/collective.o: libmp/mp.h libnoc/noc.h libnoc/coreset.h bootloader/cmpboot.h
+$(LIBMP): $(BUILDDIR)/libmp/mp.o $(BUILDDIR)/libmp/queuing.o $(BUILDDIR)/libmp/sampling.o $(BUILDDIR)/libmp/collective.o
 	patmos-ar r $@ $^
 
 # library for corethreads

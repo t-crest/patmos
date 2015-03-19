@@ -41,19 +41,6 @@
  *
  * \brief Message passing library for the T-CREST platform
  *
- * It is up to the programmer to allocate buffering space in the communication
- * scratch pads. The allocation is done by calling the function mp_chan_init().
- *
- * The size of the message passing buffer structure in the commuincation
- * scratch pads are:
- *
- * Sender side:
- *       2 * (buf_size + FLAG_SIZE) + sizeof(recv_count)(Aligned to DW)
- *
- * Receiver side:
- *       num_buf * (buf_size + FLAG_SIZE) + sizeof(remote_recv_count)
- *                                                       (Aligned to DW)
- *
  */
 
 #ifndef _MP_H_
@@ -64,9 +51,10 @@
 #include <stdio.h>
 #include <machine/patmos.h>
 #include <machine/spm.h>
+#include <machine/rtc.h>
 #include "libnoc/noc.h"
 #include "libnoc/coreset.h"
-#include "bootloader/cmpboot.h"
+//#include "bootloader/cmpboot.h"
 
 /// \brief Aligns X to double word size
 #define DWALIGN(X) (((X)+0x7) & ~0x7)
@@ -86,7 +74,7 @@
 /// \endcond
 
 /// \brief The type of the synchronization flag of a barrier.
-typedef unsigned long long barrier_t;
+typedef unsigned long long int barrier_t;
 
 /// \cond PRIVATE
 // Possible Barrier states
@@ -111,7 +99,7 @@ typedef unsigned long long barrier_t;
 /// \endcond
 
 /// \brief A type to identify a core.
-typedef unsigned coreid_t;
+typedef unsigned int coreid_t;
 
 ////////////////////////////////////////////////////////////////////////////
 // Data structures for storing state information
@@ -120,7 +108,7 @@ typedef unsigned coreid_t;
 
 typedef enum {SAMPLING, QUEUING} channel_t;
 
-typedef enum {SOURCE, DESTINATION} direction_t;
+typedef enum {SOURCE, SINK} port_t;
 
 /// \struct mpd_t
 /// \brief Message passing descriptor.
@@ -139,21 +127,21 @@ typedef struct {
   /** The address of the receiver buffer structure */
   volatile void _SPM * recv_addr; 
   /** The size of a buffer in bytes */
-  unsigned buf_size;
+  unsigned int buf_size;
   /** The number of buffers at the receiver */
-  unsigned num_buf;
+  unsigned int num_buf;
 
   /*-- Sender/receiver specific variables --*/
   /** The number of messages received by the receiver */
-  volatile unsigned _SPM * recv_count;
+  volatile unsigned int _SPM * recv_count;
   /** The address of the recv_count at the sender */
-  volatile unsigned _SPM * send_recv_count;
+  volatile unsigned int _SPM * send_recv_count;
   /** The number of messages sent by the sender */
-  unsigned send_count;
+  unsigned int send_count;
   /** A pointer to the tail of the receiving queue */
-  unsigned send_ptr;
+  unsigned int send_ptr;
   /** A pointer to the head of the receiving queue */
-  unsigned recv_ptr;
+  unsigned int recv_ptr;
   /** A pointer to the free write buffer */
   volatile void _SPM * write_buf;
   /** A pointer to the used write buffer */
@@ -161,7 +149,7 @@ typedef struct {
   /** A pointer to the currently free read buffer */
   volatile void _SPM * read_buf;
 
-} mpd_t __attribute__((aligned(16)));
+} mpd_t;
 
 /// \struct communicator_t
 /// \brief Describes at set of communicating processors.
@@ -170,8 +158,8 @@ typedef struct {
 /// communicating processors.
 typedef struct {
   coreset_t barrier_set;
-  unsigned count;
-  unsigned msg_size;
+  unsigned int count;
+  unsigned int msg_size;
   volatile void _SPM ** addr;
 } communicator_t __attribute__((aligned(16)));
 
@@ -185,23 +173,15 @@ typedef struct {
 /// #mp_init is a static constructor and not intended to be called directly.
 void mp_init(void) __attribute__((constructor(120),used));
 
-/// \brief A function for returning the amount of data that the channel is
-/// alocating in the sending spm.
-//size_t mp_send_alloc_size(mpd_t* mpd_ptr);
-
-/// \brief A function for returning the amount of data that the channel is
-/// alocating in the receiving spm.
-//size_t mp_recv_alloc_size(mpd_t* mpd_ptr);
-
 /// \brief Static memory allocation on the communication scratchpad.
 /// No mp_free function
 void _SPM * mp_alloc(size_t size);
 
-/// \brief Function for initializing SPM memory in other cores.
-void mp_mem_init(coreid_t id, void _SPM* spm_addr);
-
 ////////////////////////////////////////////////////////////////////////////
-// Functions for initializing the message passing API
+// Functions for initializing the communication channels of the
+// message passing API. The initialization happens in two steps.
+// The first step is to register all the channels that needs to be
+// initialized and then initializing them.
 ////////////////////////////////////////////////////////////////////////////
 
 /// \brief Initialize the state of a communication channel
@@ -214,8 +194,9 @@ void mp_mem_init(coreid_t id, void _SPM* spm_addr);
 ///
 /// \retval 0 The local or remote addresses were not aligned to double words.
 /// \retval 1 The initialization of the send channel succeeded.
-int mp_chan_init(mpd_t* mpd_ptr, coreid_t sender, coreid_t receiver,
-              unsigned buf_size, unsigned num_buf);
+mpd_t _SPM * mp_create_qport(unsigned int chan_id, port_t port_type,
+              coreid_t sender, coreid_t recevier, size_t msg_size,
+              size_t num_buf);
 
 /// \brief Initialize the state of a communication channel
 ///
@@ -227,9 +208,15 @@ int mp_chan_init(mpd_t* mpd_ptr, coreid_t sender, coreid_t receiver,
 ///
 /// \retval 0 The local or remote addresses were not aligned to double words.
 /// \retval 1 The initialization of the send channel succeeded.
-int mp_chan_init(unsigned chan_id, channel_t chan_type, direction_t dir_type,
-              coreid_t sender, coreid_t recevier, size_t buf_size,
-              size_t num_buf, mpd_t* mpd_ptr);
+mpd_t _SPM * mp_create_sport(unsigned int chan_id, port_t port_type,
+              coreid_t sender, coreid_t recevier, size_t msg_size,
+              size_t num_buf);
+
+/// \breif Initializing all the channels that have been registered.
+///
+/// \retval 0 The initialization of one or more communication channels failed.
+/// \retval 1 The initialization of all the communication channels succeded.
+int mp_init_chans(mpd_t _SPM * chans[]);
 
 /// \brief Initialize the communicator
 ///
@@ -239,11 +226,11 @@ int mp_chan_init(unsigned chan_id, channel_t chan_type, direction_t dir_type,
 ///
 /// \retval 0 The address is not aligned  to double words.
 /// \retval 1 The initialization of the communicator_t succeeded.
-int mp_communicator_init(communicator_t* comm, unsigned count,
-              const coreid_t member_ids [], unsigned msg_size);
+int mp_communicator_init(communicator_t* comm, unsigned int count,
+              const coreid_t member_ids [], unsigned int msg_size);
 
 ////////////////////////////////////////////////////////////////////////////
-// Functions for transmitting data
+// Functions for queuing point-to-point transmission of data
 ////////////////////////////////////////////////////////////////////////////
 
 /// \brief Non-blocking function for passing a message to a remote processor
@@ -266,9 +253,12 @@ int mp_nbsend(mpd_t* mpd_ptr);
 ///
 /// \param mpd_ptr A pointer to the message passing data structure
 /// for the given message passing channel.
+/// \param time_usecs The time out time in microseconds, if parameter is 0
+/// the timeout is infinite
 ///
-/// \returns The function returns when the send has succeeded.
-void mp_send(mpd_t* mpd_ptr);
+/// \retval 0 The function timed out.
+/// \retval 1 The function suceeded sending the message.
+int mp_send(mpd_t* mpd_ptr, unsigned int time_usecs);
 
 /// \brief Non-blocking function for receiving a message from a remote processor
 /// under flow control. The data that is received is placed in a message buffer
@@ -292,9 +282,12 @@ int mp_nbrecv(mpd_t* mpd_ptr);
 ///
 /// \param mpd_ptr A pointer to the message passing data structure
 /// for the given message passing channel.
+/// \param time_usecs The time out time in microseconds, if parameter is 0
+/// the timeout is infinite
 ///
-/// \returns The function returns when a message is received.
-void mp_recv(mpd_t* mpd_ptr);
+/// \retval 0 The function timed out.
+/// \retval 1 The function suceeded receiving the message.
+int mp_recv(mpd_t* mpd_ptr, unsigned int time_usecs);
 
 /// \brief Non-blocking function for acknowledging the reception of a message.
 /// This function should be used with extra care, if no acknowledgement is sent
@@ -321,9 +314,38 @@ int mp_nback(mpd_t* mpd_ptr);
 ///
 /// \param mpd_ptr A pointer to the message passing data structure
 /// for the given message passing channel.
+/// \param time_usecs The time out time in microseconds, if parameter is 0
+/// the timeout is infinite
 ///
-/// \returns The function returns when an acknowledgement has been sent.
-void mp_ack(mpd_t* mpd_ptr);
+/// \retval 0 The function timed out.
+/// \retval 1 The function suceeded acknowledging the message.
+int mp_ack(mpd_t* mpd_ptr, unsigned int time_usecs);
+
+////////////////////////////////////////////////////////////////////////////
+// Functions for sampling point-to-point transmission of data
+////////////////////////////////////////////////////////////////////////////
+
+/// \brief A function for writing a sampled value to the remote location
+/// at the receiving end of the channel
+void mp_write(mpd_t* mpd_ptr);
+
+/// \breif A function for reading a sampled value from the remote location
+/// at the sending end of the channel
+void mp_read(mpd_t* mpd_ptr);
+
+/// \breif A function for reading a sampled value from the remote location
+/// at the sending end of the channel. The function requires that the read
+/// value has not been read before.
+///
+/// \retval 0 The read value has been read before.
+/// \retval 1 The read value has not been read before.
+/// \retval 2 There is no value to read.
+/// \returns The function returns when a value has been read.
+int mp_read_updated(mpd_t* mpd_ptr);
+
+////////////////////////////////////////////////////////////////////////////
+// Functions for collective communication
+////////////////////////////////////////////////////////////////////////////
 
 /// \brief A function to syncronize the cores described in the communicator
 /// to a barrier.
@@ -348,66 +370,6 @@ void mp_barrier(communicator_t* comm);
 /// the other cores and in the other cores when each core has received the data
 /// from the #root core
 void mp_broadcast(communicator_t* comm, coreid_t root);
-
-/// \brief A function for writing a sampled value to the remote location
-/// at the receiving end of the channel
-void mp_write(mpd_t* mpd_ptr);
-
-/// \breif A function for reading a sampled value from the remote location
-/// at the sending end of the channel
-void mp_read(mpd_t* mpd_ptr);
-
-/*
- * The following prototypes are suggestions of future library functions
- */
-
-/// \breif A function for reading a sampled value from the remote location
-/// at the sending end of the channel. The function requires that the read
-/// value has not been read before.
-///
-/// \retval 0 The read value has been read before.
-/// \retval 1 The read value has not been read before.
-/// \returns The function returns when a value has been read.
-//int mp_read_updated(mpd_t* mpd_ptr);
-
-/// \brief A function for passing a message to a remote processor under
-/// flow control. The data to be passed by the function should be in the
-/// local buffer in the communication scratch pad before the function
-/// is called.
-///
-/// \param mpd_ptr A pointer to the message passing data structure
-/// for the given message passing channel.
-/// \param time_mu_sec The time out time in microseconds
-///
-/// \returns The function returns when the send has succeeded.
-//int mp_send_timed(mpd_t* mpd_ptr, unsigned int time_mu_sec);
-
-/// \brief A function for receiving a message from a remote processor under
-/// flow control. The data that is received is placed in a message buffer
-/// in the communication scratch pad, when the received message is no
-/// longer used the reception of the message should be acknowledged with
-/// the #mp_ack()
-///
-/// \param mpd_ptr A pointer to the message passing data structure
-/// for the given message passing channel.
-/// \param time_mu_sec The time out time in microseconds
-///
-/// \returns The function returns when a message is received.
-//int mp_recv_timed(mpd_t* mpd_ptr, unsigned int time_mu_sec);
-
-/// \brief A function for acknowledging the reception of a message.
-/// This function shall be called to release space in the receiving
-/// buffer when the received data is no longer used.
-/// It is not necessary to call #mp_ack() after each #mp_recv() call.
-/// It is possible to work on 2 or more incomming messages at the same
-/// time with out them being overwritten.
-///
-/// \param mpd_ptr A pointer to the message passing data structure
-/// for the given message passing channel.
-/// \param time_mu_sec The time out time in microseconds
-///
-/// \returns The function returns when an acknowledgement has been sent.
-//int mp_ack_timed(mpd_t* mpd_ptr, unsigned int time_mu_sec);
 
 #endif /* _MP_H_ */
 
