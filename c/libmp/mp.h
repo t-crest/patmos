@@ -98,8 +98,8 @@ typedef unsigned long long int barrier_t;
 #define NUM_WRITE_BUF 2
 /// \endcond
 
-/// \brief A type to identify a core.
-typedef unsigned int coreid_t;
+/// \brief A type to identify a core. Supports up to 256 cores in the platform
+typedef char coreid_t;
 
 ////////////////////////////////////////////////////////////////////////////
 // Data structures for storing state information
@@ -118,36 +118,44 @@ typedef enum {SOURCE, SINK} port_t;
 /// communication channel.
 typedef struct {
   /*-- Shared variables --*/
-  /** The ID of the sender */
-  coreid_t send_id;
-  /** The address of the sender buffer structure */
-  volatile void _SPM * send_addr;
-  /** The ID of the receiver */
-  coreid_t recv_id;
+  /** The type of port, source or sink */
+  port_t port_type;
+  /** The ID of the remote core */
+  coreid_t remote;
   /** The address of the receiver buffer structure */
-  volatile void _SPM * recv_addr; 
+  volatile void _SPM * recv_addr;
+  /** The address of the recv_count at the sender */
+  volatile unsigned int _SPM * send_recv_count;
   /** The size of a buffer in bytes */
   unsigned int buf_size;
   /** The number of buffers at the receiver */
   unsigned int num_buf;
 
-  /*-- Sender/receiver specific variables --*/
-  /** The number of messages received by the receiver */
-  volatile unsigned int _SPM * recv_count;
-  /** The address of the recv_count at the sender */
-  volatile unsigned int _SPM * send_recv_count;
-  /** The number of messages sent by the sender */
-  unsigned int send_count;
-  /** A pointer to the tail of the receiving queue */
-  unsigned int send_ptr;
-  /** A pointer to the head of the receiving queue */
-  unsigned int recv_ptr;
-  /** A pointer to the free write buffer */
-  volatile void _SPM * write_buf;
-  /** A pointer to the used write buffer */
-  volatile void _SPM * shadow_write_buf;
-  /** A pointer to the currently free read buffer */
-  volatile void _SPM * read_buf;
+  union {
+    /** Sender specific fields */
+    struct {
+      /** A pointer to the free write buffer */
+      volatile void _SPM * write_buf;
+      /** A pointer to the used write buffer */
+      volatile void _SPM * shadow_write_buf;
+      /** The number of messages sent by the sender */
+      unsigned int send_count;
+      /** A pointer to the tail of the receiving queue */
+      unsigned int send_ptr;
+    };
+    /** Recevier specific fields */
+    struct {
+      /** A pointer to the currently free read buffer */
+      volatile void _SPM * read_buf;
+      /** The number of messages received by the receiver */
+      volatile unsigned int _SPM * recv_count;
+      /** A pointer to the head of the receiving queue */
+      unsigned int recv_ptr;
+    };
+  };
+  
+  
+
 
 } mpd_t;
 
@@ -187,36 +195,32 @@ void _SPM * mp_alloc(size_t size);
 /// \brief Initialize the state of a communication channel
 ///
 /// \param mpd_ptr A pointer the the message passing descriptor
-/// \param sender The core id of the sending processor
-/// \param receiver The core id of the receiving processor
+/// \param remote The core id of the remote processor
 /// \param buf_size The size of the message buffer
 /// \param num_buf The number of buffers in the receiving scratchpad
 ///
 /// \retval 0 The local or remote addresses were not aligned to double words.
 /// \retval 1 The initialization of the send channel succeeded.
 mpd_t _SPM * mp_create_qport(unsigned int chan_id, port_t port_type,
-              coreid_t sender, coreid_t recevier, size_t msg_size,
-              size_t num_buf);
+              coreid_t remote, size_t msg_size, size_t num_buf);
 
 /// \brief Initialize the state of a communication channel
 ///
 /// \param mpd_ptr A pointer the the message passing descriptor
-/// \param sender The core id of the sending processor
-/// \param receiver The core id of the receiving processor
+/// \param remote The core id of the remote processor
 /// \param buf_size The size of the message buffer
 /// \param num_buf The number of buffers in the receiving scratchpad
 ///
 /// \retval 0 The local or remote addresses were not aligned to double words.
 /// \retval 1 The initialization of the send channel succeeded.
 mpd_t _SPM * mp_create_sport(unsigned int chan_id, port_t port_type,
-              coreid_t sender, coreid_t recevier, size_t msg_size,
-              size_t num_buf);
+              coreid_t remote, size_t msg_size, size_t num_buf);
 
 /// \breif Initializing all the channels that have been registered.
 ///
 /// \retval 0 The initialization of one or more communication channels failed.
 /// \retval 1 The initialization of all the communication channels succeded.
-int mp_init_chans(mpd_t _SPM * chans[]);
+int mp_init_chans();
 
 /// \brief Initialize the communicator
 ///
@@ -244,7 +248,7 @@ int mp_communicator_init(communicator_t* comm, unsigned int count,
 /// \retval 0 The send did not succeed, either there was no space in the
 /// receiving buffer or there was no free DMA to start a transfere
 /// \retval 1 The send succeeded.
-int mp_nbsend(mpd_t* mpd_ptr);
+int mp_nbsend(mpd_t _SPM * mpd_ptr);
 
 /// \brief A function for passing a message to a remote processor under
 /// flow control. The data to be passed by the function should be in the
@@ -258,7 +262,7 @@ int mp_nbsend(mpd_t* mpd_ptr);
 ///
 /// \retval 0 The function timed out.
 /// \retval 1 The function suceeded sending the message.
-int mp_send(mpd_t* mpd_ptr, unsigned int time_usecs);
+int mp_send(mpd_t _SPM * mpd_ptr, unsigned int time_usecs);
 
 /// \brief Non-blocking function for receiving a message from a remote processor
 /// under flow control. The data that is received is placed in a message buffer
@@ -272,7 +276,7 @@ int mp_send(mpd_t* mpd_ptr, unsigned int time_usecs);
 /// \retval 0 No message has been received yet.
 /// \retval 1 A message has been received and dequeued. The call has to be
 /// followed by a call to #mp_ack() when the data is no longer used.
-int mp_nbrecv(mpd_t* mpd_ptr);
+int mp_nbrecv(mpd_t _SPM * mpd_ptr);
 
 /// \brief A function for receiving a message from a remote processor under
 /// flow control. The data that is received is placed in a message buffer
@@ -287,7 +291,7 @@ int mp_nbrecv(mpd_t* mpd_ptr);
 ///
 /// \retval 0 The function timed out.
 /// \retval 1 The function suceeded receiving the message.
-int mp_recv(mpd_t* mpd_ptr, unsigned int time_usecs);
+int mp_recv(mpd_t _SPM * mpd_ptr, unsigned int time_usecs);
 
 /// \brief Non-blocking function for acknowledging the reception of a message.
 /// This function should be used with extra care, if no acknowledgement is sent
@@ -303,7 +307,7 @@ int mp_recv(mpd_t* mpd_ptr, unsigned int time_usecs);
 ///
 /// \retval 0 No acknowledgement has been sent.
 /// \retval 1 An acknowledgement has been sent.
-int mp_nback(mpd_t* mpd_ptr);
+int mp_nback(mpd_t _SPM * mpd_ptr);
 
 /// \brief A function for acknowledging the reception of a message.
 /// This function shall be called to release space in the receiving
@@ -319,7 +323,7 @@ int mp_nback(mpd_t* mpd_ptr);
 ///
 /// \retval 0 The function timed out.
 /// \retval 1 The function suceeded acknowledging the message.
-int mp_ack(mpd_t* mpd_ptr, unsigned int time_usecs);
+int mp_ack(mpd_t _SPM * mpd_ptr, unsigned int time_usecs);
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for sampling point-to-point transmission of data
@@ -327,11 +331,11 @@ int mp_ack(mpd_t* mpd_ptr, unsigned int time_usecs);
 
 /// \brief A function for writing a sampled value to the remote location
 /// at the receiving end of the channel
-void mp_write(mpd_t* mpd_ptr);
+void mp_write(mpd_t _SPM * mpd_ptr);
 
 /// \breif A function for reading a sampled value from the remote location
 /// at the sending end of the channel
-void mp_read(mpd_t* mpd_ptr);
+void mp_read(mpd_t _SPM * mpd_ptr);
 
 /// \breif A function for reading a sampled value from the remote location
 /// at the sending end of the channel. The function requires that the read
@@ -341,7 +345,7 @@ void mp_read(mpd_t* mpd_ptr);
 /// \retval 1 The read value has not been read before.
 /// \retval 2 There is no value to read.
 /// \returns The function returns when a value has been read.
-int mp_read_updated(mpd_t* mpd_ptr);
+int mp_read_updated(mpd_t _SPM * mpd_ptr);
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for collective communication

@@ -38,14 +38,99 @@
  */
 
  #include "mp.h"
+ #include "utils.c"
  #define TRACE_LEVEL INFO
  #define DEBUG_ENABLE
  #include "include/debug.h"
+
+
+////////////////////////////////////////////////////////////////////////////
+// Function for creating a queuing port 
+////////////////////////////////////////////////////////////////////////////
+mpd_t _SPM * mp_create_qport(unsigned int chan_id, port_t port_type,
+              coreid_t remote, size_t msg_size, size_t num_buf) {
+
+  // Allocate descriptor in SPM
+  mpd_t _SPM * mpd_ptr = mp_alloc(sizeof(mpd_t));
+  if (mpd_ptr == NULL) {
+    TRACE(FAILURE,TRUE,"Message passing descriptor could not be allocated.");
+    return NULL;
+  }
+
+  mpd_ptr->port_type = port_type;
+  mpd_ptr->remote = remote;
+  // Align the buffer size to double words and add the flag size
+  mpd_ptr->buf_size = DWALIGN(msg_size);
+  mpd_ptr->num_buf = num_buf;
+
+  if (port_type == SOURCE) {
+
+    unsigned int _SPM * send_addr = (unsigned int _SPM *)mp_alloc(mp_send_alloc_size(mpd_ptr));
+
+    if (send_addr == NULL) {
+      TRACE(FAILURE,TRUE,"SPM allocation failed at SOURCE");
+      return NULL;
+    }
+
+    int send_recv_count_offset = (mpd_ptr->buf_size + FLAG_SIZE) * NUM_WRITE_BUF;
+    mpd_ptr->send_recv_count = (volatile unsigned int _SPM *)((char*)send_addr + send_recv_count_offset);
+
+    // Initializing sender_recv_count
+    *(mpd_ptr->send_recv_count) = 0;
+    
+    TRACE(INFO,TRUE,"Initialization at sender done.\n");
+    // Initialize send count to 0 and recv count to 0.
+    mpd_ptr->send_count = 0;
+    mpd_ptr->send_ptr = 0;
+    
+    mpd_ptr->write_buf = (volatile void _SPM *)send_addr;
+    mpd_ptr->shadow_write_buf = (volatile void _SPM *)((char*)send_addr + (mpd_ptr->buf_size + FLAG_SIZE));
+
+
+  } else if (port_type == SINK) {
+
+    mpd_ptr->recv_addr = mp_alloc(mp_recv_alloc_size(mpd_ptr));
+
+    if (mpd_ptr->recv_addr == NULL) {
+      TRACE(FAILURE,TRUE,"SPM allocation failed at SINK");
+      return NULL;
+    }
+
+    mpd_ptr->read_buf = mpd_ptr->recv_addr;
+    mpd_ptr->recv_ptr = 0;
+
+    int recv_count_offset = (mpd_ptr->buf_size + FLAG_SIZE) * num_buf;
+    mpd_ptr->recv_count = (volatile unsigned _SPM *)((char*)mpd_ptr->recv_addr + recv_count_offset);
+    
+    // Initializing recv_count
+    *(mpd_ptr->recv_count) = 0;
+        
+    // Initialize last word in each buffer to FLAG_INVALID
+    for (int i = 0; i < mpd_ptr->num_buf; i++) {
+      // Calculate the address of the local receiving buffer
+      int locl_addr_offset = (mpd_ptr->buf_size + FLAG_SIZE) * i;
+      volatile void _SPM * calc_locl_addr = &mpd_ptr->recv_addr[locl_addr_offset];
+
+      volatile int _SPM * flag_addr = (volatile int _SPM *)((char*)calc_locl_addr + mpd_ptr->buf_size);
+      *(flag_addr) = 0;
+      
+    }
+
+    TRACE(INFO,TRUE,"Initialization at receiver done.\n");
+
+
+  }
+
+  // Return the created queuing port
+  return mpd_ptr;
+}
+
+
 ////////////////////////////////////////////////////////////////////////////
 // Functions for point-to-point transmission of data
 ////////////////////////////////////////////////////////////////////////////
 
-int mp_nbsend(mpd_t* mpd_ptr) {
+int mp_nbsend(mpd_t _SPM * mpd_ptr) {
 
   // Calculate the address of the remote receiving buffer
   int rmt_addr_offset = (mpd_ptr->buf_size + FLAG_SIZE) * mpd_ptr->send_ptr;
@@ -56,7 +141,7 @@ int mp_nbsend(mpd_t* mpd_ptr) {
     TRACE(INFO,TRUE,"NO room in queue\n");
     return 0;
   }
-  if (!noc_nbsend(mpd_ptr->recv_id,calc_rmt_addr,mpd_ptr->write_buf,mpd_ptr->buf_size + FLAG_SIZE)) {
+  if (!noc_nbsend(mpd_ptr->remote,calc_rmt_addr,mpd_ptr->write_buf,mpd_ptr->buf_size + FLAG_SIZE)) {
     TRACE(INFO,TRUE,"NO DMA free\n");
     return 0;
   }
@@ -79,7 +164,7 @@ int mp_nbsend(mpd_t* mpd_ptr) {
   return 1;
 }
 
-int mp_send(mpd_t* mpd_ptr, unsigned int time_usecs) {
+int mp_send(mpd_t _SPM * mpd_ptr, unsigned int time_usecs) {
   unsigned long long int timeout = get_cpu_usecs() + time_usecs;
   int retval = 0;
   _Pragma("loopbound min 1 max 1")
@@ -90,7 +175,7 @@ int mp_send(mpd_t* mpd_ptr, unsigned int time_usecs) {
   return retval;
 }
 
-int mp_nbrecv(mpd_t* mpd_ptr) {
+int mp_nbrecv(mpd_t _SPM * mpd_ptr) {
 
   // Calculate the address of the local receiving buffer
   int locl_addr_offset = (mpd_ptr->buf_size + FLAG_SIZE) * mpd_ptr->recv_ptr;
@@ -119,7 +204,7 @@ int mp_nbrecv(mpd_t* mpd_ptr) {
   return 1;
 }
 
-int mp_recv(mpd_t* mpd_ptr, unsigned int time_usecs) {
+int mp_recv(mpd_t _SPM * mpd_ptr, unsigned int time_usecs) {
   unsigned long long int timeout = get_cpu_usecs() + time_usecs;
   int retval = 0;
   _Pragma("loopbound min 1 max 1")
@@ -130,27 +215,27 @@ int mp_recv(mpd_t* mpd_ptr, unsigned int time_usecs) {
   return retval;
 }
 
-int mp_nback(mpd_t* mpd_ptr){
+int mp_nback(mpd_t _SPM * mpd_ptr){
   // Check previous acknowledgement transfer before updating counter in SPM
-  if (!noc_done(mpd_ptr->send_id)) { return 0; }
+  if (!noc_done(mpd_ptr->remote)) { return 0; }
   // Increment the receive counter
   (*mpd_ptr->recv_count)++;
   // Update the remote receive count
-  int success = noc_nbsend(mpd_ptr->send_id,mpd_ptr->send_recv_count,mpd_ptr->recv_count,8);
+  int success = noc_nbsend(mpd_ptr->remote,mpd_ptr->send_recv_count,mpd_ptr->recv_count,8);
   if (!success) {
     (*mpd_ptr->recv_count)--;
   }
   return success;
 }
 
-int mp_ack(mpd_t* mpd_ptr, unsigned int time_usecs){
+int mp_ack(mpd_t _SPM * mpd_ptr, unsigned int time_usecs){
   unsigned long long int timeout = get_cpu_usecs() + time_usecs;
   int retval = 0;
   // Await previous acknowledgement transfer before updating counter in SPM
   _Pragma("loopbound min 1 max 1")
   // while DMA is not free and ( timeout infinite or now is before timeout)
   while(retval == 0 && ( time_usecs == 0 || get_cpu_usecs() < timeout ) ) {
-    retval = noc_done(mpd_ptr->send_id);
+    retval = noc_done(mpd_ptr->remote);
   }
   if (retval == 0) {
     // Return if timed out
@@ -165,7 +250,7 @@ int mp_ack(mpd_t* mpd_ptr, unsigned int time_usecs){
   _Pragma("loopbound min 1 max 1")
   // while message not sent and ( timeout infinite or now is before timeout)
   while(retval == 0 && ( time_usecs == 0 || get_cpu_usecs() < timeout ) ) {
-    retval = noc_nbsend(mpd_ptr->send_id,mpd_ptr->send_recv_count,
+    retval = noc_nbsend(mpd_ptr->remote,mpd_ptr->send_recv_count,
                         mpd_ptr->recv_count,8);
   }
   if (retval == 0) {
