@@ -215,7 +215,7 @@ bool lru_method_cache_t::do_fetch(simulator_t &s, method_info_t &current_method,
   return true;
 }
 
-int lru_method_cache_t::lookup(simulator_t &s, uword_t address)
+bool lru_method_cache_t::lookup(simulator_t &s, uword_t address)
 {
   int index = get_index(s, address);
 
@@ -236,12 +236,14 @@ int lru_method_cache_t::lookup(simulator_t &s, uword_t address)
     // reinsert the current entry at the head of the table and update the
     // current method pointer
     Methods[0] = tmp;
+    
+    Active_method = 0;
 
-    return 0;
+    return true;
   }
 
   // No entry matches the given address.
-  return -1;
+  return false;
 }
 
 void lru_method_cache_t::update_utilization_stats(method_info_t &method,
@@ -496,7 +498,8 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
     return false;
   }
     
-  int available_method = -1;
+  bool available = false;
+  uword_t evicted_blocks = 0;
   
   // check status of the method cache
   switch(Phase)
@@ -504,15 +507,43 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
     // a new request has to be started.
     case IDLE:
     {
-      available_method = lookup(s, address);
+      // Before we start fetching the new function, dispose the current one in
+      // any case if it is a disposable function.
+      // This needs to be done before we do the lookup, as it might change the
+      // current active method, and we need to do it independent of whether
+      // this is a hit or a miss.
+      if (Methods[Active_method].Is_disposable) {
+        // By definition, a disposable method is evicted after leaving its code 
+        // region. Any active disposable method *must* thus be the most recent
+        // cache entry.
+        assert(Active_method == 0);
+        
+        // evict the method from the cache and update the statistics
+        evicted_blocks += evict_method(Active_method, address);
+        
+        // Note: We keep the disposable method in Methods[] (i.e., it remains to
+        // be a *valid* entry), hence Num_cache_entries is NOT changed, but the 
+        // disposable method is now no longer active (and neither is any other 
+        // disposable method).
+        // Also note that it does not matter that the most recent method is
+        // no longer active (i.e, active and non-active disposable methods
+        // can appear in any order in Methods[]).
+        assert(Num_cache_entries > Num_active_methods);
+      }      
+      
+      available = lookup(s, address);
 
       assert(Current_allocate_blocks == 0 && Current_method_size == 0);
 
-      // Method is available and not disposable
-      if (available_method >= 0 && !Methods[available_method].Is_disposable)
+      // Method is available and not disposable?
+      if (available && !Methods[Active_method].Is_disposable)
       {
         // method is in the cache ... done!
-        Active_method = available_method;
+        
+        // Finish eviction of previous active disposable method
+        if (evicted_blocks) {
+          finish_eviction(evicted_blocks, Current_allocate_blocks);
+        }
         
         // update statistics
         Num_hits++;
@@ -522,7 +553,7 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
       }
       else
       {
-        if (available_method >= 0)
+        if (available)
         {
           // Method is disposable but would have still been in the cache
           // TODO This is not quite correct, since we do not track when
@@ -573,25 +604,6 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
         simulation_exception_t::code_exceeded(address);
       }
 
-      uword_t evicted_blocks = 0;
-
-      // Before we start fetching the new function, dispose the current one in
-      // any case if it is a disposable function.
-      if (Methods[Active_method].Is_disposable) {
-        // By definition, a disposable method is evicted after leaving its code 
-        // region. Any active disposable method *must* thus be the most recent
-        // cache entry.
-        assert(Active_method == 0);
-        
-        // evict the method from the cache and update the statistics
-        evicted_blocks = evict_method(Active_method, address);
-        
-        // Note: For now, we keep the disposable method in Methods[], so
-        // Num_cache_entries is NOT changed, but the disposable method is now
-        // no longer active (and neither is any other disposable method).
-        assert(Num_cache_entries > Num_active_methods);
-      }
-      
       // throw other entries out of the cache if needed
       while (Num_active_blocks + Current_allocate_blocks > Num_blocks ||
              Num_active_methods >= Max_methods)
@@ -611,7 +623,29 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
       // Check how many entries we need to move in order to make space for the
       // new one.
       unsigned int last;
-      if (Num_cache_entries < Max_cache_entries) {
+      
+      // If the method was available, then it has to be a disposable method.
+      // Then there are two possibilities: either the entry is still valid, or
+      // we evicted it earlier to make space for the new active entry.
+      // In the first case, we could reuse the entry at the old position,
+      // but we would violate the property that the active disposable entry
+      // is always at index 0, so for convenience we move it to the front.
+      // In the other case, the entry is no longer valid so we handle it
+      // like the normal, "non-available" case.
+      if (available && Active_method < Num_cache_entries) {
+        // If the method was available and we reached this phase,
+        // then it has to be a disposable method.
+        assert(Methods[Active_method].Is_disposable);
+
+        // We need to make sure that we remove the old entry.
+        // We reload the method and make it the most recent entry later.
+        // In case of LRU, the old entry became the most recent one by the
+        // activation earlier. In case of FIFO, we have to move the method to
+        // the front now (by setting last = Active_method now).
+        // The number of valid entries remains constant, we just move one entry.
+        last = Active_method;
+      }
+      else if (Num_cache_entries < Max_cache_entries) {
         // Enough space available .. just move everything down, keep all
         // disposable methods.
         // TODO This makes the cache for disposable methods larger than it is,
@@ -980,7 +1014,7 @@ void lru_method_cache_t::flush_cache()
     eviction_type_e evt = Methods[j].Is_disposable ? EVICT_DISP : EVICT_FLUSH;
     update_evict_stats(Methods[j], active.Address, evt);
   }
-    
+
   Num_active_methods = 1;
   Num_cache_entries = 1;
   Num_active_blocks = Methods[0].Num_blocks;
@@ -994,8 +1028,15 @@ lru_method_cache_t::~lru_method_cache_t()
 }
 
 
-int fifo_method_cache_t::lookup(simulator_t &s, uword_t address)
+bool fifo_method_cache_t::lookup(simulator_t &s, uword_t address)
 {
-  return get_index(s, address);
+  int index = get_index(s, address);
+  
+  if (index >= 0) {
+    Active_method = index;
+    return true;
+  }
+  
+  return false;
 }
 

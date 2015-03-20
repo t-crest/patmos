@@ -395,10 +395,10 @@ namespace patmos
                                   uword_t address, word_t iw[2]);
 
     /// Check whether the method at the given address is in the method cache.
+    /// If the method is in the cache, the method is activated.
     /// @param address The method address.
-    /// @return The index of the method in case the method is in the cache, 
-    ///         -1 otherwise.
-    virtual int lookup(simulator_t &s, uword_t address);
+    /// @return True if the method is in the cache.
+    virtual bool lookup(simulator_t &s, uword_t address);
 
     void update_utilization_stats(method_info_t &method, uword_t utilized_bytes);
 
@@ -533,10 +533,10 @@ namespace patmos
   protected:
     
     /// Check whether the method at the given address is in the method cache.
+    /// If the method is in the cache, the method is activated.
     /// @param address The method address.
-    /// @return The index of the method in case the method is in the cache, 
-    ///         -1 otherwise.
-    virtual int lookup(simulator_t &s, uword_t address);
+    /// @return True if the method is in the cache.
+    virtual bool lookup(simulator_t &s, uword_t address);
 
   public:
 
