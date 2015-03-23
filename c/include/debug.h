@@ -9,6 +9,7 @@
 #define _DEBUG_H_
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "bootloader/cmpboot.h"
 
 // SEVERITY
@@ -57,15 +58,8 @@
   }
 
 
-#define DEBUGF(x) if (get_cpuid() == NOC_MASTER ) {               \
-                    std::cout << __FILE__ << ":" << __LINE__ <<   \
-                    ":\t " #x " = '" << (x) << "'" << std::endl;  \
-                  }
-
-#define DEBUGS(x) if (get_cpuid() == NOC_MASTER ) {              \
-                    std::cout << __FILE__ << ":" << __LINE__ <<  \
-                    ":\n " << x << "'" << std::endl;             \
-                  }
+#define DEBUGF(x) DPRINTF("[%s:%d] :\t %s = ''\n",__FILE__,__LINE__,#x,(x))
+#define DEBUGS(x) DPRINTF(x)
 
 #else
 #define ENSURE(pred, x)

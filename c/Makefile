@@ -101,8 +101,8 @@ $(LIBNOC): $(BUILDDIR)/libnoc/noc.o
 # library for message passing
 .PHONY: libmp
 libmp: libnoc $(LIBMP)
+$(BUILDDIR)/libmp/utils.o: libmp/mp.h
 $(BUILDDIR)/libmp/mp.o: libmp/mp.h libnoc/noc.h libnoc/coreset.h bootloader/cmpboot.h
-$(BUILDDIR)/libmp/utils.o: libmp/mp.h libnoc/noc.h
 $(BUILDDIR)/libmp/queuing.o: libmp/mp.h libnoc/noc.h
 $(BUILDDIR)/libmp/sampling.o: libmp/mp.h libnoc/noc.h
 $(BUILDDIR)/libmp/collective.o: libmp/mp.h libnoc/noc.h libnoc/coreset.h bootloader/cmpboot.h

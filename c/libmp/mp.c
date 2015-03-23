@@ -38,8 +38,11 @@
  */
 
 #include "mp.h"
-#include "utils.c"
+#include "mp_internal.h"
+#define DEBUG_ENABLE
 #include "include/debug.h"
+
+#define DEBUG
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for library initialization and memory management
@@ -50,17 +53,22 @@
 static volatile unsigned int * _UNCACHED spm_alloc_array[MAX_CORES];
 static volatile unsigned int _UNCACHED spm_size_array[MAX_CORES];
 
-#define MAX_CHANNELS  32
-#define SOURCE_SINK   2
-#define SOURCE        0
-#define SINK          1
-static volatile void * _UNCACHED chan_ptr_array[SOURCE_SINK][MAX_CHANNELS];
-
-
+volatile _UNCACHED chan_info_t chan_info[MAX_CHANNELS];
 
 void mp_init() {
   // Get cpu ID
   int cpuid = get_cpuid();
+
+  if (cpuid == 0) {
+    for (int i = 0; i < MAX_CHANNELS; ++i) {
+      chan_info[i].src_id = -1;
+      chan_info[i].sink_id = -1;
+      chan_info[i].src_addr = NULL;
+      chan_info[i].sink_addr = NULL;
+      chan_info[i].src_desc_ptr = NULL;
+      chan_info[i].sink_desc_ptr = NULL;
+    }
+  }
 
   // Find the size of the local communication SPM
   int spm_size = test_spm_size();
@@ -88,7 +96,7 @@ void mp_init() {
   return;
 }
 
-void _SPM * mp_alloc(size_t size) {
+void _SPM * mp_alloc(const size_t size) {
   // Get cpu ID
   int cpuid = get_cpuid();
   // Align size to double words, this is minimum addressable
@@ -105,7 +113,7 @@ void _SPM * mp_alloc(size_t size) {
     return NULL;
   }
   spm_alloc_array[cpuid] = (volatile unsigned int * _UNCACHED)new_addr;
-  TRACE(INFO,TRUE,"Core id %u, dw size %u, allocated addr %x\n",cpuid,dw_size,mem_ptr);
+  TRACE(INFO,TRUE,"Core id %u, dw size %lu, allocated addr %x\n",cpuid,dw_size,mem_ptr);
   return (void _SPM *)mem_ptr;
 }
 
@@ -115,15 +123,52 @@ void _SPM * mp_alloc(size_t size) {
 
 int mp_init_chans() {
   int retval = 1;
+  int cpuid = get_cpuid();
+  // For all channels check if calling core is either source or sink in the channel
+  for (int chan_id = 0; chan_id < MAX_CHANNELS; ++chan_id) {
+    if(chan_info[chan_id].src_id == cpuid) {
+      // If calling core is source, wait for the sink address, and then
+      // copy into the source message passing descriptor.
+      while (chan_info[chan_id].sink_addr == NULL);
+      chan_info[chan_id].src_desc_ptr->recv_addr = chan_info[chan_id].sink_addr;
+#ifdef DEBUG
+      chan_info[chan_id].src_desc_ptr = NULL;
+#endif
+    } else if (chan_info[chan_id].sink_id == cpuid) {
+      // If calling core is sink, wait for the source address, and then
+      // copy into the sink message passing descriptor.
+      while (chan_info[chan_id].src_addr == NULL);
+      chan_info[chan_id].sink_desc_ptr->send_recv_count = chan_info[chan_id].src_addr;
+#ifdef DEBUG
+      chan_info[chan_id].sink_desc_ptr = NULL;
+#endif
+    }
+
+  }
+
 #ifdef DEBUG
   if (get_cpuid() == NOC_MASTER) {
+    wait(1000000);
     // TODO: Check that all channels have been initialized
     // and print out which channels that was not initialized
     // within a timeout
+    for (int chan_id = 0; chan_id < MAX_CHANNELS; ++chan_id) {
+      if(chan_info[chan_id].src_id != -1 && chan_info[chan_id].src_desc_ptr != NULL) {
+        // If the source of the channel has been written and the
+        // descriptor address is not NULL, maybe a deadlock happend
+        TRACE(FAILURE,TRUE,"The channel %d was not initialized at source\n",chan_id);
+      } else if (chan_info[chan_id].sink_id != -1 && chan_info[chan_id].sink_desc_ptr != NULL) {
+        // If the sink of the channel has been written and the
+        // descriptor address is not NULL, maybe a deadlock happend
+        TRACE(FAILURE,TRUE,"The channel %d was not initialized at sink\n",chan_id);
+      }
+
+    }
   }
 #endif
   return retval;
 }
+
 
 
 

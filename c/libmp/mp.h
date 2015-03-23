@@ -54,49 +54,9 @@
 #include <machine/rtc.h>
 #include "libnoc/noc.h"
 #include "libnoc/coreset.h"
-//#include "bootloader/cmpboot.h"
 
-/// \brief Aligns X to double word size
-#define DWALIGN(X) (((X)+0x7) & ~0x7)
 
-/*! \def FLAG_SIZE
- * \brief The size of the flag used to detect completion of a received message.
- *
- * This flag is placed at the end of the message to be send.
- * The flag size is aligned to double words.
- */
-#define FLAG_SIZE DWALIGN(sizeof(unsigned int))
-
-/// \cond PRIVATE
-// Possible Flag types
-#define FLAG_VALID   0xFFFFFFFF
-#define FLAG_INVALID 0x00000000
-/// \endcond
-
-/// \brief The type of the synchronization flag of a barrier.
-typedef unsigned long long int barrier_t;
-
-/// \cond PRIVATE
-// Possible Barrier states
-#define BARRIER_INITIALIZED (barrier_t)0x0000000000000000
-#define BARRIER_PHASE_0 (barrier_t)0x0000000000000000
-#define BARRIER_PHASE_1 (barrier_t)0x00000000FFFFFFFF
-#define BARRIER_PHASE_2 (barrier_t)0xFFFFFFFFFFFFFFFF
-#define BARRIER_PHASE_3 (barrier_t)0xFFFFFFFF00000000
-
-#define BARRIER_REACHED 0xFFFFFFFF
-/// \endcond
-
-/// \brief The size of the barrier flag for each core.
-#define BARRIER_SIZE DWALIGN(sizeof(barrier_t))
-
-/// \cond PRIVATE
-/*! \def NUM_WRITE_BUF
- * DO NOT CHANGE! The number of write pointers is not 
- * defined in a way that is can be changed
- */
-#define NUM_WRITE_BUF 2
-/// \endcond
+#define MAX_CHANNELS  32
 
 /// \brief A type to identify a core. Supports up to 256 cores in the platform
 typedef char coreid_t;
@@ -105,8 +65,6 @@ typedef char coreid_t;
 // Data structures for storing state information
 // of the message passing channels
 ////////////////////////////////////////////////////////////////////////////
-
-typedef enum {SAMPLING, QUEUING} channel_t;
 
 typedef enum {SOURCE, SINK} port_t;
 
@@ -153,9 +111,6 @@ typedef struct {
       unsigned int recv_ptr;
     };
   };
-  
-  
-
 
 } mpd_t;
 
@@ -183,7 +138,7 @@ void mp_init(void) __attribute__((constructor(120),used));
 
 /// \brief Static memory allocation on the communication scratchpad.
 /// No mp_free function
-void _SPM * mp_alloc(size_t size);
+void _SPM * mp_alloc(const size_t size);
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for initializing the communication channels of the
@@ -201,8 +156,8 @@ void _SPM * mp_alloc(size_t size);
 ///
 /// \retval 0 The local or remote addresses were not aligned to double words.
 /// \retval 1 The initialization of the send channel succeeded.
-mpd_t _SPM * mp_create_qport(unsigned int chan_id, port_t port_type,
-              coreid_t remote, size_t msg_size, size_t num_buf);
+mpd_t _SPM * mp_create_qport( const unsigned int chan_id, const port_t port_type,
+              const coreid_t remote, const size_t msg_size, const size_t num_buf);
 
 /// \brief Initialize the state of a communication channel
 ///
@@ -213,8 +168,8 @@ mpd_t _SPM * mp_create_qport(unsigned int chan_id, port_t port_type,
 ///
 /// \retval 0 The local or remote addresses were not aligned to double words.
 /// \retval 1 The initialization of the send channel succeeded.
-mpd_t _SPM * mp_create_sport(unsigned int chan_id, port_t port_type,
-              coreid_t remote, size_t msg_size, size_t num_buf);
+mpd_t _SPM * mp_create_sport(const unsigned int chan_id, const port_t port_type,
+              const coreid_t remote, const size_t msg_size, const size_t num_buf);
 
 /// \breif Initializing all the channels that have been registered.
 ///
@@ -230,8 +185,8 @@ int mp_init_chans();
 ///
 /// \retval 0 The address is not aligned  to double words.
 /// \retval 1 The initialization of the communicator_t succeeded.
-int mp_communicator_init(communicator_t* comm, unsigned int count,
-              const coreid_t member_ids [], unsigned int msg_size);
+int mp_communicator_init(communicator_t* comm, const unsigned int count,
+              const coreid_t member_ids [], const unsigned int msg_size);
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for queuing point-to-point transmission of data
@@ -262,7 +217,7 @@ int mp_nbsend(mpd_t _SPM * mpd_ptr);
 ///
 /// \retval 0 The function timed out.
 /// \retval 1 The function suceeded sending the message.
-int mp_send(mpd_t _SPM * mpd_ptr, unsigned int time_usecs);
+int mp_send(mpd_t _SPM * mpd_ptr, const unsigned int time_usecs);
 
 /// \brief Non-blocking function for receiving a message from a remote processor
 /// under flow control. The data that is received is placed in a message buffer
@@ -291,7 +246,7 @@ int mp_nbrecv(mpd_t _SPM * mpd_ptr);
 ///
 /// \retval 0 The function timed out.
 /// \retval 1 The function suceeded receiving the message.
-int mp_recv(mpd_t _SPM * mpd_ptr, unsigned int time_usecs);
+int mp_recv(mpd_t _SPM * mpd_ptr, const unsigned int time_usecs);
 
 /// \brief Non-blocking function for acknowledging the reception of a message.
 /// This function should be used with extra care, if no acknowledgement is sent
@@ -323,7 +278,7 @@ int mp_nback(mpd_t _SPM * mpd_ptr);
 ///
 /// \retval 0 The function timed out.
 /// \retval 1 The function suceeded acknowledging the message.
-int mp_ack(mpd_t _SPM * mpd_ptr, unsigned int time_usecs);
+int mp_ack(mpd_t _SPM * mpd_ptr, const unsigned int time_usecs);
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for sampling point-to-point transmission of data
@@ -373,7 +328,7 @@ void mp_barrier(communicator_t* comm);
 /// \returns The function returns in the root when the root has sent all the data to
 /// the other cores and in the other cores when each core has received the data
 /// from the #root core
-void mp_broadcast(communicator_t* comm, coreid_t root);
+void mp_broadcast(communicator_t* comm, const coreid_t root);
 
 #endif /* _MP_H_ */
 

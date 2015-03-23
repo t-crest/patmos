@@ -37,15 +37,16 @@
  *
  */
 
- #include "mp.h"
- #include "include/debug.h"
+#include "mp.h"
+#include "mp_internal.h"
+#include "include/debug.h"
 
 ////////////////////////////////////////////////////////////////////////////
 // Function for initializing collective behavior
 ////////////////////////////////////////////////////////////////////////////
 
-int mp_communicator_init(communicator_t* comm, unsigned count,
-              const coreid_t member_ids [], unsigned msg_size) {
+int mp_communicator_init(communicator_t* comm, const unsigned int count,
+              const coreid_t member_ids [], const unsigned int msg_size) {
   return 0;
 }
 
@@ -92,7 +93,7 @@ int mp_communicator_init(communicator_t* comm, unsigned count,
 // Functions for collective behaviour
 ////////////////////////////////////////////////////////////////////////////
 
-static void mp_barrier_int(communicator_t* comm, unsigned index){
+static void mp_barrier_int(communicator_t* comm, const unsigned int index){
   coreset_t barrier_set = comm->barrier_set;
   volatile void _SPM **addr_arr = (volatile void _SPM **)&comm->addr[0];
   unsigned local_addr = (unsigned)addr_arr[index];

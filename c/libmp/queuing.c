@@ -38,22 +38,25 @@
  */
 
  #include "mp.h"
- #include "utils.c"
+ #include "mp_internal.h"
  #define TRACE_LEVEL INFO
  #define DEBUG_ENABLE
  #include "include/debug.h"
 
-
 ////////////////////////////////////////////////////////////////////////////
 // Function for creating a queuing port 
 ////////////////////////////////////////////////////////////////////////////
-mpd_t _SPM * mp_create_qport(unsigned int chan_id, port_t port_type,
-              coreid_t remote, size_t msg_size, size_t num_buf) {
+mpd_t _SPM * mp_create_qport(const unsigned int chan_id, const port_t port_type,
+              const coreid_t remote, const size_t msg_size, const size_t num_buf) {
+  if (chan_id >= MAX_CHANNELS || remote >= get_cpucnt()) {
+    TRACE(FAILURE,TRUE,"Channel id or remote id is out of range: chan_id %d, remote: %d",chan_id,remote);
+    return NULL;
+  }
 
   // Allocate descriptor in SPM
   mpd_t _SPM * mpd_ptr = mp_alloc(sizeof(mpd_t));
   if (mpd_ptr == NULL) {
-    TRACE(FAILURE,TRUE,"Message passing descriptor could not be allocated.");
+    TRACE(FAILURE,TRUE,"Message passing descriptor could not be allocated, SPM out of memory.");
     return NULL;
   }
 
@@ -66,7 +69,7 @@ mpd_t _SPM * mp_create_qport(unsigned int chan_id, port_t port_type,
   if (port_type == SOURCE) {
 
     unsigned int _SPM * send_addr = (unsigned int _SPM *)mp_alloc(mp_send_alloc_size(mpd_ptr));
-
+    
     if (send_addr == NULL) {
       TRACE(FAILURE,TRUE,"SPM allocation failed at SOURCE");
       return NULL;
@@ -74,6 +77,13 @@ mpd_t _SPM * mp_create_qport(unsigned int chan_id, port_t port_type,
 
     int send_recv_count_offset = (mpd_ptr->buf_size + FLAG_SIZE) * NUM_WRITE_BUF;
     mpd_ptr->send_recv_count = (volatile unsigned int _SPM *)((char*)send_addr + send_recv_count_offset);
+
+    // src_desc_ptr must be set first inorder for
+    // core 0 to see which cores are absent in debug mode
+    chan_info[chan_id].src_desc_ptr = mpd_ptr;
+    chan_info[chan_id].src_id = (char) get_cpuid();
+    // Write the send_recv_count address to the main memory for coordination
+    chan_info[chan_id].src_addr = (volatile void _SPM * )mpd_ptr->send_recv_count;
 
     // Initializing sender_recv_count
     *(mpd_ptr->send_recv_count) = 0;
@@ -90,6 +100,11 @@ mpd_t _SPM * mp_create_qport(unsigned int chan_id, port_t port_type,
   } else if (port_type == SINK) {
 
     mpd_ptr->recv_addr = mp_alloc(mp_recv_alloc_size(mpd_ptr));
+    // sink_desc_ptr must be set first inorder for
+    // core 0 to see which cores are absent in debug mode
+    chan_info[chan_id].sink_desc_ptr = mpd_ptr;
+    chan_info[chan_id].sink_id = (char)get_cpuid();
+    chan_info[chan_id].sink_addr = (volatile void _SPM *)mpd_ptr->recv_addr;
 
     if (mpd_ptr->recv_addr == NULL) {
       TRACE(FAILURE,TRUE,"SPM allocation failed at SINK");
@@ -164,7 +179,7 @@ int mp_nbsend(mpd_t _SPM * mpd_ptr) {
   return 1;
 }
 
-int mp_send(mpd_t _SPM * mpd_ptr, unsigned int time_usecs) {
+int mp_send(mpd_t _SPM * mpd_ptr, const unsigned int time_usecs) {
   unsigned long long int timeout = get_cpu_usecs() + time_usecs;
   int retval = 0;
   _Pragma("loopbound min 1 max 1")
@@ -204,7 +219,7 @@ int mp_nbrecv(mpd_t _SPM * mpd_ptr) {
   return 1;
 }
 
-int mp_recv(mpd_t _SPM * mpd_ptr, unsigned int time_usecs) {
+int mp_recv(mpd_t _SPM * mpd_ptr, const unsigned int time_usecs) {
   unsigned long long int timeout = get_cpu_usecs() + time_usecs;
   int retval = 0;
   _Pragma("loopbound min 1 max 1")
@@ -228,7 +243,7 @@ int mp_nback(mpd_t _SPM * mpd_ptr){
   return success;
 }
 
-int mp_ack(mpd_t _SPM * mpd_ptr, unsigned int time_usecs){
+int mp_ack(mpd_t _SPM * mpd_ptr, const unsigned int time_usecs){
   unsigned long long int timeout = get_cpu_usecs() + time_usecs;
   int retval = 0;
   // Await previous acknowledgement transfer before updating counter in SPM
