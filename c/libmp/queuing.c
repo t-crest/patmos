@@ -49,14 +49,14 @@
 mpd_t _SPM * mp_create_qport(const unsigned int chan_id, const port_t port_type,
               const coreid_t remote, const size_t msg_size, const size_t num_buf) {
   if (chan_id >= MAX_CHANNELS || remote >= get_cpucnt()) {
-    TRACE(FAILURE,TRUE,"Channel id or remote id is out of range: chan_id %d, remote: %d",chan_id,remote);
+    TRACE(FAILURE,TRUE,"Channel id or remote id is out of range: chan_id %d, remote: %d\n",chan_id,remote);
     return NULL;
   }
 
   // Allocate descriptor in SPM
   mpd_t _SPM * mpd_ptr = mp_alloc(sizeof(mpd_t));
   if (mpd_ptr == NULL) {
-    TRACE(FAILURE,TRUE,"Message passing descriptor could not be allocated, SPM out of memory.");
+    TRACE(FAILURE,TRUE,"Message passing descriptor could not be allocated, SPM out of memory.\n");
     return NULL;
   }
 
@@ -67,11 +67,11 @@ mpd_t _SPM * mp_create_qport(const unsigned int chan_id, const port_t port_type,
   mpd_ptr->num_buf = num_buf;
 
   if (port_type == SOURCE) {
-
     unsigned int _SPM * send_addr = (unsigned int _SPM *)mp_alloc(mp_send_alloc_size(mpd_ptr));
+    TRACE(INFO,TRUE,"Initialising SOURCE port addr : %#08x\n",(unsigned int)send_addr);
     
     if (send_addr == NULL) {
-      TRACE(FAILURE,TRUE,"SPM allocation failed at SOURCE");
+      TRACE(FAILURE,TRUE,"SPM allocation failed at SOURCE\n");
       return NULL;
     }
 
@@ -84,6 +84,8 @@ mpd_t _SPM * mp_create_qport(const unsigned int chan_id, const port_t port_type,
     chan_info[chan_id].src_id = (char) get_cpuid();
     // Write the send_recv_count address to the main memory for coordination
     chan_info[chan_id].src_addr = (volatile void _SPM * )mpd_ptr->send_recv_count;
+
+    TRACE(ERROR,chan_info[chan_id].src_addr == NULL,"src_addr written incorrectly\n");
 
     // Initializing sender_recv_count
     *(mpd_ptr->send_recv_count) = 0;
@@ -98,16 +100,18 @@ mpd_t _SPM * mp_create_qport(const unsigned int chan_id, const port_t port_type,
 
 
   } else if (port_type == SINK) {
-
     mpd_ptr->recv_addr = mp_alloc(mp_recv_alloc_size(mpd_ptr));
+    TRACE(INFO,TRUE,"Initialising SINK port addr: %#08x\n",(unsigned int)mpd_ptr->recv_addr);
     // sink_desc_ptr must be set first inorder for
     // core 0 to see which cores are absent in debug mode
     chan_info[chan_id].sink_desc_ptr = mpd_ptr;
     chan_info[chan_id].sink_id = (char)get_cpuid();
     chan_info[chan_id].sink_addr = (volatile void _SPM *)mpd_ptr->recv_addr;
 
+    TRACE(ERROR,chan_info[chan_id].sink_addr == NULL,"sink_addr written incorrectly\n");
+
     if (mpd_ptr->recv_addr == NULL) {
-      TRACE(FAILURE,TRUE,"SPM allocation failed at SINK");
+      TRACE(FAILURE,TRUE,"SPM allocation failed at SINK\n");
       return NULL;
     }
 
@@ -182,7 +186,7 @@ int mp_nbsend(mpd_t _SPM * mpd_ptr) {
 int mp_send(mpd_t _SPM * mpd_ptr, const unsigned int time_usecs) {
   unsigned long long int timeout = get_cpu_usecs() + time_usecs;
   int retval = 0;
-  _Pragma("loopbound min 1 max 1")
+  //_Pragma("loopbound min 1 max 1")
   // while message not sent and ( timeout infinite or now is before timeout)
   while(retval == 0 && ( time_usecs == 0 || get_cpu_usecs() < timeout ) ) {
     retval = mp_nbsend(mpd_ptr);

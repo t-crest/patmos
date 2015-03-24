@@ -126,7 +126,9 @@ int mp_init_chans() {
   int cpuid = get_cpuid();
   // For all channels check if calling core is either source or sink in the channel
   for (int chan_id = 0; chan_id < MAX_CHANNELS; ++chan_id) {
+    TRACE(INFO,TRUE,"Initializing channel %d\n",chan_id);
     if(chan_info[chan_id].src_id == cpuid) {
+      TRACE(INFO,TRUE,"Source port found sink_addr : %#08x, src_addr : %#08x\n",(unsigned int)chan_info[chan_id].sink_addr,(unsigned int)chan_info[chan_id].src_addr);
       // If calling core is source, wait for the sink address, and then
       // copy into the source message passing descriptor.
       while (chan_info[chan_id].sink_addr == NULL);
@@ -134,7 +136,9 @@ int mp_init_chans() {
 #ifdef DEBUG
       chan_info[chan_id].src_desc_ptr = NULL;
 #endif
+    TRACE(INFO,TRUE,"Source port initialized\n");
     } else if (chan_info[chan_id].sink_id == cpuid) {
+      TRACE(INFO,TRUE,"Sink port found src_addr : %#08x, sink_addr : %#08x\n",(unsigned int)chan_info[chan_id].src_addr,(unsigned int)chan_info[chan_id].sink_addr);
       // If calling core is sink, wait for the source address, and then
       // copy into the sink message passing descriptor.
       while (chan_info[chan_id].src_addr == NULL);
@@ -142,6 +146,7 @@ int mp_init_chans() {
 #ifdef DEBUG
       chan_info[chan_id].sink_desc_ptr = NULL;
 #endif
+    TRACE(INFO,TRUE,"Sink port initialized\n");
     }
 
   }
