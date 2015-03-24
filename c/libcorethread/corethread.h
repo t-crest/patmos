@@ -81,7 +81,7 @@ typedef size_t corethread_t;
 
 /// \brief A contructor that makes the slave cores wait for a corethread to
 /// be created on that core and the master core continue to execute main().
-void corethread_worker(void) __attribute__ ((constructor(110),used));
+void corethread_worker(void) __attribute__ ((constructor(120),used));
 
 #ifdef CORETHREAD_INIT
 // Pull in initializer, even if nothing else from the library is used

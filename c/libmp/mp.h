@@ -134,7 +134,7 @@ typedef struct {
 /// \brief Initialize message passing library.
 ///
 /// #mp_init is a static constructor and not intended to be called directly.
-void mp_init(void) __attribute__((constructor(120),used));
+void mp_init(void) __attribute__((constructor(110),used));
 
 /// \brief Static memory allocation on the communication scratchpad.
 /// No mp_free function
