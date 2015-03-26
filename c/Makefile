@@ -31,7 +31,7 @@ CFLAGS?=-target patmos-unknown-unknown-elf -O2 \
 	-I$(CURDIR) \
 	-mpatmos-disable-vliw
 LDFLAGS?= \
-	-mpatmos-method-cache-size=0x2000 -mpatmos-preferred-subfunction-size=0 \
+	-mpatmos-method-cache-size=0x1000 -mpatmos-preferred-subfunction-size=0 \
 	-mpatmos-stack-base=0x200000 -mpatmos-shadow-stack-base=0x1f8000
 
 # 32KB stacks for 256MB external memory
