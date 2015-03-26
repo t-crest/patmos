@@ -33,7 +33,7 @@
 /*
  * A progress monitor for downloading
  *
- * Authors: Tórur Biskopstø Strøm (torur.strom@gmail.com)
+ * Authors: Torur Biskopsto Strom (torur.strom@gmail.com)
  *
  */
 

@@ -33,7 +33,7 @@
 /*
  * Stream for writing output to UART
  *
- * Authors: Tórur Biskopstø Strøm (torur.strom@gmail.com)
+ * Authors: Torur Biskopsto Strom (torur.strom@gmail.com)
  *
  */
 

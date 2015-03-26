@@ -33,7 +33,7 @@
 /*
  * A program to download applications to Patmos via a serial line
  *
- * Authors: Tórur Biskopstø Strøm (torur.strom@gmail.com)
+ * Authors: Torur Biskopsto Strom (torur.strom@gmail.com)
  *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
  *
  */

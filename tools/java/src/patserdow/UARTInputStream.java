@@ -33,7 +33,7 @@
 /*
  * Stream for reading input from UART
  *
- * Authors: Tórur Biskopstø Strøm (torur.strom@gmail.com)
+ * Authors: Torur Biskopsto Strom (torur.strom@gmail.com)
  *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
  *
  */
