@@ -1298,7 +1298,7 @@ namespace patmos
     /// here.
     /// @return True if the value was loaded, false if the value is not yet
     /// available and stalling is needed.
-    virtual bool load(simulator_t &s, word_t address, word_t &value) const = 0;
+    virtual bool load(simulator_t &s, word_t address, word_t &value, bool is_stackpointer_relative) const = 0;
 
     /// peek into the memory to read the value without delay.
     /// @param s The Patmos simulator executing the instruction.
@@ -1332,8 +1332,7 @@ namespace patmos
       {
         // load from memory
         word_t result;
-        bool is_available = load(s, ops.EX_Address, result);
-
+        bool is_available = load(s, ops.EX_Address, result, ops.DR_Is_StackPointer_Relative);
         // the value is already available?
         if (is_available)
         {
@@ -1401,11 +1400,9 @@ namespace patmos
     }
   };
 
-#define LD_INSTR(name, base, atype, ctype, replace_base) \
+#define LD_INSTR(name, base, atype, ctype, isStack) \
   class i_ ## name ## _t : public i_ldt_t \
   { \
-  private:\
-  	  mutable bool DR_Is_StackPointer_Relative;\
   public:\
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
@@ -1418,16 +1415,15 @@ namespace patmos
     virtual void EX(simulator_t &s, instruction_data_t &ops) const \
     { \
       ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1) + ops.OPS.LDT.Imm*sizeof(atype); \
-      DR_Is_StackPointer_Relative = ops.DR_Is_StackPointer_Relative; \
     } \
-	virtual bool load(simulator_t &s, word_t address, word_t &value) const \
+	virtual bool load(simulator_t &s, word_t address, word_t &value, bool is_stackpointer_relative) const \
 	{ \
     	atype tmp=0; \
     	if ((address & (sizeof(atype) - 1)) != 0) \
 		simulation_exception_t::unaligned(address); \
 		bool result; \
-			if (DR_Is_StackPointer_Relative &&  typeid(base) == typeid(replace_base)) \
-				result = replace_base.read_fixed(s, address, tmp); \
+			if (is_stackpointer_relative && isStack == true ) \
+				result =  s.Stack_data_cache.read_fixed(s, address, tmp); \
 			else \
 				result = base.read_fixed(s, address, tmp); \
 		value = (ctype)from_big_endian<big_ ## atype>(tmp); \
@@ -1436,41 +1432,38 @@ namespace patmos
 	virtual word_t peek(simulator_t &s, word_t address) const \
 	{ \
 		atype tmp=0; \
-			if (DR_Is_StackPointer_Relative &&  typeid(base) == typeid(replace_base)) \
-				replace_base.peek_fixed(s, address, tmp); \
-			else\
 				base.peek_fixed(s, address, tmp); \
 		return (ctype)from_big_endian<big_ ## atype>(tmp); \
 	} \
   };
 
-  LD_INSTR(lws , s.Stack_cache, word_t, word_t, s.Stack_data_cache)
-  LD_INSTR(lhs , s.Stack_cache, hword_t, word_t, s.Stack_data_cache)
-  LD_INSTR(lbs , s.Stack_cache, byte_t, word_t, s.Stack_data_cache)
-  LD_INSTR(lwus, s.Stack_cache, uword_t, uword_t, s.Stack_data_cache)
-  LD_INSTR(lhus, s.Stack_cache, uhword_t, uword_t, s.Stack_data_cache)
-  LD_INSTR(lbus, s.Stack_cache, ubyte_t, uword_t, s.Stack_data_cache)
+  LD_INSTR(lws , s.Stack_cache, word_t, word_t, false)
+  LD_INSTR(lhs , s.Stack_cache, hword_t, word_t, false)
+  LD_INSTR(lbs , s.Stack_cache, byte_t, word_t, false)
+  LD_INSTR(lwus, s.Stack_cache, uword_t, uword_t, false)
+  LD_INSTR(lhus, s.Stack_cache, uhword_t, uword_t, false)
+  LD_INSTR(lbus, s.Stack_cache, ubyte_t, uword_t, false)
 
-  LD_INSTR(lwl , s.Local_memory, word_t, word_t, s.Stack_data_cache)
-  LD_INSTR(lhl , s.Local_memory, hword_t, word_t, s.Stack_data_cache)
-  LD_INSTR(lbl , s.Local_memory, byte_t, word_t, s.Stack_data_cache)
-  LD_INSTR(lwul, s.Local_memory, uword_t, uword_t, s.Stack_data_cache)
-  LD_INSTR(lhul, s.Local_memory, uhword_t, uword_t, s.Stack_data_cache)
-  LD_INSTR(lbul, s.Local_memory, ubyte_t, uword_t, s.Stack_data_cache)
+  LD_INSTR(lwl , s.Local_memory, word_t, word_t, false)
+  LD_INSTR(lhl , s.Local_memory, hword_t, word_t, false)
+  LD_INSTR(lbl , s.Local_memory, byte_t, word_t, false)
+  LD_INSTR(lwul, s.Local_memory, uword_t, uword_t, false)
+  LD_INSTR(lhul, s.Local_memory, uhword_t, uword_t, false)
+  LD_INSTR(lbul, s.Local_memory, ubyte_t, uword_t, false)
 
-  LD_INSTR(lwc , s.Data_cache, word_t, word_t, s.Stack_data_cache)
-  LD_INSTR(lhc , s.Data_cache, hword_t, word_t, s.Stack_data_cache)
-  LD_INSTR(lbc , s.Data_cache, byte_t, word_t, s.Stack_data_cache)
-  LD_INSTR(lwuc, s.Data_cache, uword_t, uword_t, s.Stack_data_cache)
-  LD_INSTR(lhuc, s.Data_cache, uhword_t, uword_t, s.Stack_data_cache)
-  LD_INSTR(lbuc, s.Data_cache, ubyte_t, uword_t, s.Stack_data_cache)
+  LD_INSTR(lwc , s.Data_cache, word_t, word_t, true)
+  LD_INSTR(lhc , s.Data_cache, hword_t, word_t, true)
+  LD_INSTR(lbc , s.Data_cache, byte_t, word_t, true)
+  LD_INSTR(lwuc, s.Data_cache, uword_t, uword_t, true)
+  LD_INSTR(lhuc, s.Data_cache, uhword_t, uword_t, true)
+  LD_INSTR(lbuc, s.Data_cache, ubyte_t, uword_t, true)
 
-  LD_INSTR(lwm , s.Memory, word_t, word_t, s.Stack_data_cache)
-  LD_INSTR(lhm , s.Memory, hword_t, word_t, s.Stack_data_cache)
-  LD_INSTR(lbm , s.Memory, byte_t, word_t, s.Stack_data_cache)
-  LD_INSTR(lwum, s.Memory, uword_t, uword_t, s.Stack_data_cache)
-  LD_INSTR(lhum, s.Memory, uhword_t, uword_t, s.Stack_data_cache)
-  LD_INSTR(lbum, s.Memory, ubyte_t, uword_t, s.Stack_data_cache)
+  LD_INSTR(lwm , s.Memory, word_t, word_t, false)
+  LD_INSTR(lhm , s.Memory, hword_t, word_t, false)
+  LD_INSTR(lbm , s.Memory, byte_t, word_t, false)
+  LD_INSTR(lwum, s.Memory, uword_t, uword_t, false)
+  LD_INSTR(lhum, s.Memory, uhword_t, uword_t, false)
+  LD_INSTR(lbum, s.Memory, ubyte_t, uword_t, false)
 
   /// Base class for memory store instructions.
   class i_stt_t : public i_pred_t
@@ -1497,7 +1490,7 @@ namespace patmos
     /// @param value The value to be stored.
     /// @return True when the value was finally written to the memory, false
     /// if the instruction has to stall.
-    virtual bool store(simulator_t &s, word_t address, word_t value) const = 0;
+    virtual bool store(simulator_t &s, word_t address, word_t value, bool is_stackpointer_relative) const = 0;
 
     /// Pipeline function to simulate the behavior of the instruction in
     /// the DR pipeline stage.
@@ -1521,8 +1514,8 @@ namespace patmos
     {
       if (ops.DR_Pred && !ops.MW_Discard)
       {
-        // store to memory
-        if (!store(s, ops.EX_Address, ops.EX_Rs))
+    	  // store to memory
+        if (!store(s, ops.EX_Address, ops.EX_Rs, ops.DR_Is_StackPointer_Relative))
         {
           // we need to stall in order to ensure that the value was actually
           // propagated down to the memory
@@ -1583,11 +1576,11 @@ namespace patmos
     }
   };
 
-#define ST_INSTR(name, base, type, replace_base) \
+
+
+#define ST_INSTR(name, base, type, isStack) \
   class i_ ## name ## _t : public i_stt_t \
   { \
-  private:\
-   	  mutable bool DR_Is_StackPointer_Relative;\
   public:\
     virtual void print(std::ostream &os, const instruction_data_t &ops, \
                        const symbol_map_t &symbols) const \
@@ -1601,81 +1594,36 @@ namespace patmos
     { \
       ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1) + ops.OPS.STT.Imm2*sizeof(type); \
       ops.EX_Rs = read_GPR_EX(s, ops.DR_Rs2); \
-      DR_Is_StackPointer_Relative = ops.DR_Is_StackPointer_Relative; \
     } \
-    virtual bool store(simulator_t &s, word_t address, word_t value) const \
+    virtual bool store(simulator_t &s, word_t address, word_t value, bool is_stackpointer_relative) const \
     { \
       type big_value = to_big_endian<big_ ## type>((type)value); \
       if ((address & (sizeof(type) - 1)) != 0) \
         simulation_exception_t::unaligned(address); \
-       bool existbase = base.update_data_item_if_exist_fixed(s, address, value);\
-       bool existreplace = replace_base.update_data_item_if_exist_fixed(s, address, value);\
-       bool result = false; \
-       result = base.write_fixed(s, address, big_value); \
-  	   return result; \
-    } \
-  };
-
-
-#define ST_INSTR_D(name, base, type, replace_base) \
-  class i_ ## name ## _t : public i_stt_t \
-  { \
-  private:\
-   	  mutable bool DR_Is_StackPointer_Relative;\
-  public:\
-    virtual void print(std::ostream &os, const instruction_data_t &ops, \
-                       const symbol_map_t &symbols) const \
-    { \
-      printPred(os, ops.Pred); \
-      os << boost::format("%1% [r%2% + %3%] = r%4%") % #name \
-          % ops.OPS.STT.Ra % ops.OPS.STT.Imm2 % ops.OPS.STT.Rs1; \
-      symbols.print(os, ops.EX_Address); \
-    } \
-    virtual void EX(simulator_t &s, instruction_data_t &ops) const \
-    { \
-      ops.EX_Address = read_GPR_EX(s, ops.DR_Rs1) + ops.OPS.STT.Imm2*sizeof(type); \
-      ops.EX_Rs = read_GPR_EX(s, ops.DR_Rs2); \
-      DR_Is_StackPointer_Relative = ops.DR_Is_StackPointer_Relative; \
-    } \
-    virtual bool store(simulator_t &s, word_t address, word_t value) const \
-    { \
-      type big_value = to_big_endian<big_ ## type>((type)value); \
-      if ((address & (sizeof(type) - 1)) != 0) \
-        simulation_exception_t::unaligned(address); \
-       bool existbase = base.update_data_item_if_exist_fixed(s, address, value);\
-       bool existreplace = replace_base.update_data_item_if_exist_fixed(s, address, value);\
-       bool result = false; \
-       if(existbase && existreplace) { \
-         replace_base.flush_cache();\
-         base.flush_cache();\
-         base.write_fixed(s, address, big_value);\
-  	  	 replace_base.write_fixed(s, address, big_value);\
-       } \
-       else { \
-    	   if (DR_Is_StackPointer_Relative &&  typeid(base) == typeid(replace_base)) \
-    	          	result = replace_base.write_fixed(s, address, big_value); \
+        bool result = false; \
+    	   if (is_stackpointer_relative &&  isStack == true) \
+    	          	result = s.Stack_data_cache.write_fixed(s, address, big_value); \
     	          else \
     	    	        result = base.write_fixed(s, address, big_value); \
-       }\
   	   return result; \
     } \
   };
 
-  ST_INSTR(sws, s.Stack_cache, word_t, s.Stack_data_cache)
-  ST_INSTR(shs, s.Stack_cache, hword_t, s.Stack_data_cache)
-  ST_INSTR(sbs, s.Stack_cache, byte_t, s.Stack_data_cache)
+  ST_INSTR(sws, s.Stack_cache, word_t, false)
+  ST_INSTR(shs, s.Stack_cache, hword_t, false)
+  ST_INSTR(sbs, s.Stack_cache, byte_t, false)
 
-  ST_INSTR(swl, s.Local_memory, word_t, s.Stack_data_cache)
-  ST_INSTR(shl, s.Local_memory, hword_t, s.Stack_data_cache)
-  ST_INSTR(sbl, s.Local_memory, byte_t, s.Stack_data_cache)
+  ST_INSTR(swl, s.Local_memory, word_t, false)
+  ST_INSTR(shl, s.Local_memory, hword_t, false)
+  ST_INSTR(sbl, s.Local_memory, byte_t, false)
 
-  ST_INSTR_D(swc, s.Data_cache, word_t, s.Stack_data_cache)
-  ST_INSTR_D(shc, s.Data_cache, hword_t, s.Stack_data_cache)
-  ST_INSTR_D(sbc, s.Data_cache, byte_t, s.Stack_data_cache)
+  ST_INSTR(swc, s.Data_cache, word_t, true)
+  ST_INSTR(shc, s.Data_cache, hword_t, true)
+  ST_INSTR(sbc, s.Data_cache, byte_t, true)
 
-  ST_INSTR(swm, s.Memory, word_t, s.Stack_data_cache)
-  ST_INSTR(shm, s.Memory, hword_t, s.Stack_data_cache)
-  ST_INSTR(sbm, s.Memory, byte_t, s.Stack_data_cache)
+  ST_INSTR(swm, s.Memory, word_t, false)
+  ST_INSTR(shm, s.Memory, hword_t, false)
+  ST_INSTR(sbm, s.Memory, byte_t, false)
 
 
   class i_stc_t : public i_pred_t

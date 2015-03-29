@@ -388,7 +388,7 @@ void fixed_delay_memory_t::tick(simulator_t &s)
 
   if (s.GPR.get(r31).get() > maxscAddr) {
       	maxscAddr = s.GPR.get(r31).get();
-      	printf("Crazyyyyyyfuck %d", maxscAddr);
+      //	printf("Crazyyyyyyfuck %d", maxscAddr);
       }
 }
 

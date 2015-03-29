@@ -132,6 +132,30 @@ static patmos::data_cache_t &create_data_cache(patmos::set_assoc_cache_type dck,
   };
 }
 
+static patmos::data_cache_t &create_stack_data_cache(patmos::set_assoc_cache_type dck,
+                                               unsigned int size,
+                                               unsigned int line_size,
+                                               patmos::memory_t &gm, patmos::memory_t &dc)
+{
+  unsigned int num_blocks = (size - 1)/line_size + 1;
+  // Make it fully-associative?
+  unsigned int assoc = dck.associativity > 0 ? dck.associativity : num_blocks;
+
+  switch (dck.policy)
+  {
+    case patmos::SAC_IDEAL:
+      return *new patmos::ideal_data_cache_t(gm);
+    case patmos::SAC_NO:
+      return *new patmos::no_data_cache_t(dc);
+    case patmos::SAC_DM:
+      assert(dck.associativity == 1);
+      // Fallthrough to LRU with 1-way assoc to model direct mapped cache
+    case patmos::SAC_LRU:
+      return *new patmos::set_assoc_data_cache_t<true>(gm, assoc, num_blocks, line_size);
+    case patmos::SAC_FIFO:
+      return *new patmos::set_assoc_data_cache_t<false>(gm, assoc, num_blocks, line_size);
+  };
+}
 
 /// Construct a method cache for the simulation.
 /// @param mck The kind of the method cache requested.
@@ -360,7 +384,7 @@ int main(int argc, char **argv)
                  "Maximum number of methods in the method cache, defaults to number of blocks if zero")
     ("mbsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_METHOD_CACHE_BLOCK_BYTES), 
                  "method cache block size in bytes, defaults to burst size if zero")
-	("scdcsize,z", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_DATA_CACHE_BYTES), "stack data cache size in bytes")
+	("scdcsize,z", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_DATA_STACK_CACHE_BYTES), "stack data cache size in bytes")
 	("scdckind,Z", boost::program_options::value<patmos::set_assoc_cache_type>()->default_value(patmos::set_assoc_cache_type(patmos::SAC_LRU,2)),
 	             "kind of direct mapped/fully-/set-associative stack data cache, defaults to lru2 (ideal, no, dm, lru[N], fifo[N])")
 ;
@@ -553,8 +577,8 @@ int main(int argc, char **argv)
                                                dlsize ? dlsize : bsize, gm);
   patmos::stack_cache_t &sc = create_stack_cache(sck, scsize, bsize, gm, dc);
 
-  patmos::data_cache_t &scdc = create_data_cache(scdck, scdcsize,
-                                               dlsize ? dlsize : bsize, gm);
+  patmos::data_cache_t &scdc = create_stack_data_cache(scdck, scdcsize,
+                                               dlsize ? dlsize : bsize, gm, dc);
 
   try
   {

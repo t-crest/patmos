@@ -272,7 +272,7 @@ bool set_assoc_data_cache_t<LRU_REPLACEMENT>::
   byte_t buf[Num_block_bytes];
   Memory.read_peek(s, block_address, buf, Num_block_bytes);
 
-  if (Memory.write(s, block_address, buf, Num_block_bytes))
+  if (Memory.write(s, block_address, buf, Num_block_bytes)) //simulate write to memory
   {
     // get tag information
     unsigned int entry_index = (block_address / Num_block_bytes)
