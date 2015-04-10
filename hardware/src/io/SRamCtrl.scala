@@ -131,8 +131,8 @@ class SRamCtrl( ocpAddrWidth    : Int,
 
   // Default values for ocp io.ocp.S port
   io.ocp.S.Resp := OcpResp.NULL
-  io.ocp.S.CmdAccept := Bits(0)
-  io.ocp.S.DataAccept := Bits(0)
+  io.ocp.S.CmdAccept := Bits(1)
+  io.ocp.S.DataAccept := Bits(1)
   val data = for(i <- 0 until TRANSPERWORD)
              yield rdBufferReg(wordCountReg ## UInt(i))
   io.ocp.S.Data := data.reduceLeft((x,y) => y ## x)
@@ -157,16 +157,10 @@ class SRamCtrl( ocpAddrWidth    : Int,
     when(io.ocp.M.Cmd != OcpCmd.IDLE) {
       mAddrReg := io.ocp.M.Addr(sramAddrWidth+log2upNew(BYTESPERTRAN) - 1,
                                 log2upNew(BYTESPERTRAN))
-      io.ocp.S.CmdAccept := Bits(1)
       when(io.ocp.M.Cmd === OcpCmd.RD) {
-        noeReg := Bits(0)
-        nceReg := Bits(0)
-        nubReg := Bits(0)
-        nlbReg := Bits(0)
         stateReg := sReadExe
       }
       when(io.ocp.M.Cmd === OcpCmd.WR) {
-        io.ocp.S.DataAccept := Bits(1)
         wordCountReg := UInt(1) // The first ocp data word is already in wrBufferReg
         stateReg := sWriteRec
       }
@@ -226,19 +220,20 @@ class SRamCtrl( ocpAddrWidth    : Int,
     doutReg := wrBufferReg(0).data
     doutEnaReg := Bits(1)
     when(io.ocp.M.DataValid === Bits(1)){
-      io.ocp.S.DataAccept := Bits(1)
       wordCountReg := wordCountReg + UInt(1)
       when(wordCountReg === UInt(ocpBurstLen-1)){
         stateReg := sWriteExe
         wordCountReg := UInt(0)
-        nceReg := Bits(0)
-        nweReg := Bits(0)
-        nubReg := !wrBufferReg(0).byteEna(1)
-        nlbReg := !wrBufferReg(0).byteEna(0)
         waitCountReg := UInt(1)
       }
     } otherwise {
       stateReg := sWriteRec
+    }
+    when(wordCountReg === UInt(ocpBurstLen-1)){
+      nceReg := Bits(0)
+      nweReg := Bits(0)
+      nubReg := !wrBufferReg(0).byteEna(1)
+      nlbReg := !wrBufferReg(0).byteEna(0)
     }
   }
   when(stateReg === sWriteExe) {

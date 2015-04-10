@@ -65,15 +65,15 @@ class Execute() extends Module {
     val sum = scaledOp1 + op2
     result := sum // some default
     val shamt = op2(4, 0).toUInt
+    val srOp = Mux(func === FUNC_SRA, op1(DATA_WIDTH-1), Bits(0)) ## op1
     // This kind of decoding of the ALU op in the EX stage is not efficient,
     // but we keep it for now to get something going soon.
     switch(func) {
       is(FUNC_ADD)    { result := sum }
       is(FUNC_SUB)    { result := op1 - op2 }
       is(FUNC_XOR)    { result := (op1 ^ op2).toUInt }
-      is(FUNC_SL)     { result := (op1 << shamt).toUInt }
-      is(FUNC_SR)     { result := (op1 >> shamt).toUInt }
-      is(FUNC_SRA)    { result := (op1.toSInt >> shamt).toUInt }
+      is(FUNC_SL)     { result := (op1 << shamt)(DATA_WIDTH-1, 0).toUInt }
+      is(FUNC_SR, FUNC_SRA) { result := (srOp.toSInt >> shamt).toUInt }
       is(FUNC_OR)     { result := (op1 | op2).toUInt }
       is(FUNC_AND)    { result := (op1 & op2).toUInt }
       is(FUNC_NOR)    { result := (~(op1 | op2)).toUInt }
@@ -86,7 +86,7 @@ class Execute() extends Module {
   def comp(func: Bits, op1: UInt, op2: UInt): Bool = {
     val op1s = op1.toSInt
     val op2s = op2.toSInt
-    val bitIdx = op2(4, 0).toUInt
+    val bitIdx = UInt(1) << op2(4, 0).toUInt
     // Is this nicer than the switch?
     // Some of the comparison function (equ, subtract) could be shared
     val eq = op1 === op2
@@ -99,7 +99,7 @@ class Execute() extends Module {
       (CFUNC_LE,    lt | eq),
       (CFUNC_ULT,   ult),
       (CFUNC_ULE,   ult | eq),
-      (CFUNC_BTEST, op1(bitIdx))))
+      (CFUNC_BTEST, (op1 & bitIdx) != UInt(0))))
   }
 
   def pred(func: Bits, op1: Bool, op2: Bool): Bool = {
@@ -111,52 +111,54 @@ class Execute() extends Module {
   }
 
   // data forwarding
-  val fwMemReg = Vec.fill(2*PIPE_COUNT) { Vec.fill(PIPE_COUNT) { Reg(Bool()) } }
-  val fwExReg  = Vec.fill(2*PIPE_COUNT) { Vec.fill(PIPE_COUNT) { Reg(Bool()) } }
+  val fwReg  = Vec.fill(2*PIPE_COUNT) { Reg(Bits(width = 3)) }
+  val fwSrcReg  = Vec.fill(2*PIPE_COUNT) { Reg(UInt(width = log2Up(PIPE_COUNT))) }
   val memResultDataReg = Vec.fill(PIPE_COUNT) { Reg(Bits(width = DATA_WIDTH)) }
   val exResultDataReg  = Vec.fill(PIPE_COUNT) { Reg(Bits(width = DATA_WIDTH)) }
   val op = Vec.fill(2*PIPE_COUNT) { Bits(width = DATA_WIDTH) }
 
   // precompute forwarding
   for (i <- 0 until 2*PIPE_COUNT) {
+    fwReg(i) := Bits("b000")
+    fwSrcReg(i) := UInt(0)
     for (k <- 0 until PIPE_COUNT) {
-      fwMemReg(i)(k) := Bool(false)
       when(io.decex.rsAddr(i) === io.memResult(k).addr && io.memResult(k).valid) {
-        fwMemReg(i)(k) := Bool(true)
-      }
-      fwExReg(i)(k) := Bool(false)
-      when(io.decex.rsAddr(i) === io.exResult(k).addr && io.exResult(k).valid) {
-        fwExReg(i)(k) := Bool(true)
+        fwReg(i) := Bits("b010")
+        fwSrcReg(i) := UInt(k)
       }
     }
+    for (k <- 0 until PIPE_COUNT) {
+      when(io.decex.rsAddr(i) === io.exResult(k).addr && io.exResult(k).valid) {
+        fwReg(i) := Bits("b001")
+        fwSrcReg(i) := UInt(k)
+      }
+    }    
   }
+  for (i <- 0 until PIPE_COUNT) {
+    when(io.decex.immOp(i)) {
+      fwReg(2*i+1) := Bits("b100")
+    }
+  }
+
   when (!io.ena) {
-    fwExReg := fwExReg
-    fwMemReg := fwMemReg
+    fwReg := fwReg
+    fwSrcReg := fwSrcReg
   }
   when (io.ena) {
     memResultDataReg := io.memResult.map(_.data)
     exResultDataReg := io.exResult.map(_.data)
   }
-  // forwarding multiplexers
-  for (i <- 0 until 2*PIPE_COUNT) {
-    op(i) := exReg.rsData(i)
-    for (k <- 0 until PIPE_COUNT) {
-      when(fwMemReg(i)(k)) {
-        op(i) := memResultDataReg(k)
-      }
-    }
-    for (k <- 0 until PIPE_COUNT) {
-      when(fwExReg(i)(k)) {
-        op(i) := exResultDataReg(k)
-      }
-    }
-  }
 
+  // forwarding multiplexers
   for (i <- 0 until PIPE_COUNT) {
-    when(exReg.immOp(i)) {
-      op(2*i+1) := exReg.immVal(i)
-    }
+    op(2*i) := Mux(fwReg(2*i)(0), exResultDataReg(fwSrcReg(2*i)),
+                   Mux(fwReg(2*i)(1), memResultDataReg(fwSrcReg(2*i)),
+                       exReg.rsData(2*i)))
+
+    op(2*i+1) := Mux(fwReg(2*i+1)(0), exResultDataReg(fwSrcReg(2*i+1)),
+                     Mux(fwReg(2*i+1)(1), memResultDataReg(fwSrcReg(2*i+1)),
+                         Mux(fwReg(2*i+1)(2), exReg.immVal(i),
+                             exReg.rsData(2*i+1))))
   }
 
   // predicates
@@ -186,12 +188,9 @@ class Execute() extends Module {
 
   // multiplication pipeline registers
   val mulLLReg    = Reg(UInt(width = DATA_WIDTH))
-  val mulLHReg    = Reg(UInt(width = DATA_WIDTH))
-  val mulHLReg    = Reg(UInt(width = DATA_WIDTH))
+  val mulLHReg    = Reg(SInt(width = DATA_WIDTH+1))
+  val mulHLReg    = Reg(SInt(width = DATA_WIDTH+1))
   val mulHHReg    = Reg(UInt(width = DATA_WIDTH))
-
-  val signLHReg = Reg(Bits(width = 1))
-  val signHLReg = Reg(Bits(width = 1))
 
   val mulPipeReg = Reg(Bool())
 
@@ -201,28 +200,21 @@ class Execute() extends Module {
 
     val signed = exReg.aluOp(0).func === MFUNC_MUL
 
-    val op1H = Cat(Mux(signed, Fill(DATA_WIDTH/2, op(0)(DATA_WIDTH-1)), Bits(0)),
-                   op(0)(DATA_WIDTH-1, DATA_WIDTH/2))
-    val op1L = Cat(Bits(0, width = DATA_WIDTH/2),
-                   op(0)(DATA_WIDTH/2-1, 0))
-    val op2H = Cat(Mux(signed, Fill(DATA_WIDTH/2, op(1)(DATA_WIDTH-1)), Bits(0)),
-                   op(1)(DATA_WIDTH-1, DATA_WIDTH/2))
-    val op2L = Cat(Bits(0, width = DATA_WIDTH/2),
-                   op(1)(DATA_WIDTH/2-1, 0))
+    val op1H = Cat(Mux(signed, op(0)(DATA_WIDTH-1), Bits("b0")),
+                   op(0)(DATA_WIDTH-1, DATA_WIDTH/2)).toSInt
+    val op1L = op(0)(DATA_WIDTH/2-1, 0)
+    val op2H = Cat(Mux(signed, op(1)(DATA_WIDTH-1), Bits("b0")), 
+                   op(1)(DATA_WIDTH-1, DATA_WIDTH/2)).toSInt
+    val op2L = op(1)(DATA_WIDTH/2-1, 0)
 
     mulLLReg := op1L * op2L
     mulLHReg := op1L * op2H
     mulHLReg := op1H * op2L
     mulHHReg := op1H * op2H
 
-    signHLReg := op1H(DATA_WIDTH/2) & (op(1) != Bits(0))
-    signLHReg := op2H(DATA_WIDTH/2) & (op(0) != Bits(0))
-
     val mulResult = (Cat(mulHHReg, mulLLReg)
-                     + Cat(Fill(DATA_WIDTH/2, signHLReg),
-                           mulHLReg, UInt(0, width = DATA_WIDTH/2))
-                     + Cat(Fill(DATA_WIDTH/2, signLHReg),
-                           mulLHReg, UInt(0, width = DATA_WIDTH/2)))
+                     + Cat(mulHLReg, SInt(0, width = DATA_WIDTH/2)).toSInt
+                     + Cat(mulLHReg, SInt(0, width = DATA_WIDTH/2)).toSInt)
 
     when(mulPipeReg) {
       mulHiReg := mulResult(2*DATA_WIDTH-1, DATA_WIDTH)
@@ -247,8 +239,8 @@ class Execute() extends Module {
     val compResult = comp(exReg.aluOp(i).func, op(2*i), op(2*i+1))
 
     val bcpyPs = predReg(exReg.aluOp(i).func(PRED_BITS-1, 0)) ^ exReg.aluOp(i).func(PRED_BITS);
-    val shiftedPs = (UInt(0, DATA_WIDTH-1) ## bcpyPs) << op(2*i+1)
-    val maskedOp = op(2*i) & ~(UInt(1, width = DATA_WIDTH) << op(2*i+1))
+    val shiftedPs = ((UInt(0, DATA_WIDTH-1) ## bcpyPs) << op(2*i+1)(4, 0))(DATA_WIDTH-1, 0)
+    val maskedOp = op(2*i) & ~(UInt(1, width = DATA_WIDTH) << op(2*i+1)(4, 0))(DATA_WIDTH-1, 0)
     val bcpyResult = maskedOp | shiftedPs
 
     // predicate operations
@@ -405,8 +397,8 @@ class Execute() extends Module {
 
   //call/return for mcache
   io.exmcache.doCallRet := doCallRet
-  io.exmcache.callRetBase := io.exmem.mem.callRetBase(31,2)
-  io.exmcache.callRetAddr := io.exmem.mem.callRetAddr(31,2)
+  io.exmcache.callRetBase := callRetBase(31,2)
+  io.exmcache.callRetAddr := callRetAddr(31,2)
 
   // suppress writes to special registers
   when(!io.ena) {
