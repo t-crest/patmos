@@ -53,9 +53,10 @@ namespace patmos
   /// An ideal data cache.
   class ideal_data_cache_t : public data_cache_t
   {
+
   protected:
-    /// The 'cached' memory.
-    memory_t &Memory;
+	/// The 'cached' memory.
+	memory_t &Memory;
 
   public:
     /// Construct a new data cache instance.
@@ -64,17 +65,6 @@ namespace patmos
     {
     }
 
-    virtual bool update_data_item_if_exist(simulator_t &s, uword_t address, byte_t *value, uword_t size)
-    {
-    	Memory.write_peek(s, address, value, size);
-    	return true;
-    }
-
-    virtual bool update_data_item_if_exist_read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
-    {
-    	Memory.read_peek(s, address, value, size);
-    	return true;
-    }
 
     /// A simulated access to a read port.
     /// @param address The memory address to read from.
@@ -294,9 +284,6 @@ namespace patmos
     virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
 
-    virtual bool update_data_item_if_exist(simulator_t &s, uword_t address, byte_t *value, uword_t size);
-    virtual bool update_data_item_if_exist_read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
-
     /// Check if the memory is busy handling some request.
     /// @return False in case the memory is currently handling some request,
     /// otherwise true.
@@ -315,7 +302,108 @@ namespace patmos
 
     virtual void flush_cache();
   };
+
+
+
+  template<bool LRU_REPLACEMENT>
+  class set_assoc_data_cache_wb_t : public set_assoc_data_cache_t<LRU_REPLACEMENT>
+  {
+  private:
+    /// Representation of the tag of a cache line.
+    struct cache_tag_t
+    {
+      /// Flag indicating whether the block is valid.
+      bool Is_valid;
+
+      /// The full address of the tag.
+      unsigned int Block_address;
+      bool Is_dirty;
+    };
+
+    /// Array of cache tags
+    typedef cache_tag_t* cache_tags_t;
+
+    /// The number of blocks in the cache.
+    unsigned int Num_blocks;
+
+    /// Number of bytes per block.
+    unsigned int Num_block_bytes;
+
+    /// Associativity of the cache
+    unsigned int Associativity;
+
+    /// The number of indexes.
+    /// i.e., Num_blocks / Associativity.
+    unsigned int Num_indexes;
+
+    /// Flag indicating whether the cache is waiting for a pending request.
+    bool Is_busy;
+
+    /// Tag information of all the data cache's content.
+    cache_tags_t *Content;
+
+    /// Number of stall cycles caused by method cache misses.
+    unsigned int Num_stall_cycles;
+
+    /// Number of cache read hits
+    unsigned int Num_read_hits;
+
+    /// Number of cache read misses
+    unsigned int Num_read_misses;
+
+    /// Number of bytes read from the cache under a hit
+    unsigned int Num_read_hit_bytes;
+
+    /// Number of bytes read from the cache under a miss
+    unsigned int Num_read_miss_bytes;
+
+    /// Number of cache write hits
+    unsigned int Num_write_hits;
+
+    /// Number of cache write misses
+    unsigned int Num_write_misses;
+
+    /// Number of bytes written to the cache under a hit
+    unsigned int Num_write_hit_bytes;
+
+    /// Number of bytes written to the cache under a miss
+    unsigned int Num_write_miss_bytes;
+
+    /// Align an address to the block size.
+    /// @param address The memory address to read from.
+    /// @param size The number of bytes to read.
+    unsigned int get_block_address(uword_t address, uword_t size);
+
+  public:
+    /// Construct a new data cache instance.
+    /// @param memory The memory that is accessed through the cache.
+    /// @param num_blocks The size of the cache in blocks.
+    set_assoc_data_cache_wb_t(memory_t &memory, unsigned int associativity,
+                           unsigned int num_blocks,
+                           unsigned int num_block_bytes);
+
+    virtual ~set_assoc_data_cache_wb_t();
+
+    /// A simulated access to a read port.
+    /// @param address The memory address to read from.
+    /// @param value A pointer to a destination to store the value read from
+    /// the memory.
+    /// @param size The number of bytes to read.
+    /// @return True when the data is available from the read port.
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+
+    /// A simulated access to a write port.
+    /// @param address The memory address to write to.
+    /// @param value The value to be written to the memory.
+    /// @param size The number of bytes to write.
+    /// @return True when the data is written finally to the memory, false
+    /// otherwise.
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+
+  };
+
 }
+
 
 #endif // PATMOS_DATA_CACHE_H
 

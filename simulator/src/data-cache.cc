@@ -177,89 +177,6 @@ bool set_assoc_data_cache_t<LRU_REPLACEMENT>::
 }
 
 
-template<bool LRU_REPLACEMENT>
-bool set_assoc_data_cache_t<LRU_REPLACEMENT>::
-update_data_item_if_exist_read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
-{
-  // temporary buffer
-  byte_t buf[Num_block_bytes];
-
-  // get block address
-  unsigned int block_address = get_block_address(address, size);
-
-  if (address - block_address + size > Num_block_bytes) {
-    // Either size too big or not properly aligned
-    simulation_exception_t::unaligned(address);
-  }
-
-  // get tag information
-  unsigned int entry_index = (block_address / Num_block_bytes)
-			     % Num_indexes;
-  cache_tags_t &tags(Content[entry_index]);
-
-  // tag_index corresponds to age of the cache block; we have
-  // (tag_index == Associativity) iff tag is not in the cache
-  unsigned int tag_index = Associativity;
-
-  // check if content is in the cache
-  for(unsigned int i = 0; i < Associativity; i++)
-  {
-    if (tags[i].Is_valid && tags[i].Block_address == block_address)
-    {
-      tag_index = i;
-      break;
-    }
-  }
-
-  bool cache_hit = (tag_index < Associativity);
-
-  // update cache state and read data
-  if (cache_hit || Memory.read(s, block_address, buf, Num_block_bytes))
-  {
-    // update LRU ordering
-    unsigned int last_index_changed;
-    if (cache_hit)
-      last_index_changed = tag_index;
-    else
-      last_index_changed = Associativity-1;
-
-    // no update on cache hit for FIFO
-    if (LRU_REPLACEMENT || ! cache_hit)
-    {
-      for(unsigned int i = last_index_changed; i != 0; i--)
-      {
-	tags[i] = tags[i -1];
-      }
-
-      // set tag information
-      tags[0].Is_valid = 1;
-      tags[0].Block_address = block_address;
-    }
-
-    // actually read data from memory without stalling
-    // TODO we should keep the data in the cache and read it from
-    // there to detect consistency problems with multi-cores.
-    Memory.read_peek(s, address, value, size);
-
-    // update statistics
-    if (cache_hit)
-    {
-      return true;
-    }
-    else
-    {
-      return false;
-    }
-
-    Is_busy = false;
-    return true;
-  }
-
-  Is_busy = true;
-  Num_stall_cycles++;
-  return false;
-}
-
 
 template<bool LRU_REPLACEMENT>
 bool set_assoc_data_cache_t<LRU_REPLACEMENT>::
@@ -321,59 +238,7 @@ bool set_assoc_data_cache_t<LRU_REPLACEMENT>::
   }
 }
 
-template<bool LRU_REPLACEMENT>
-bool set_assoc_data_cache_t<LRU_REPLACEMENT>::
-	 update_data_item_if_exist(simulator_t &s, uword_t address, byte_t *value, uword_t size)
-{
-	  // get block address
-	  unsigned int block_address = get_block_address(address, size);
 
-	  // read block data to simulate a block-based write
-	  byte_t buf[Num_block_bytes];
-	  Memory.read_peek(s, block_address, buf, Num_block_bytes);
-
-	  if (true)
-	  {
-	    // get tag information
-	    unsigned int entry_index = (block_address / Num_block_bytes)
-				       % Num_indexes;
-	    cache_tags_t &tags(Content[entry_index]);
-
-	    // check if content is in the cache
-	    unsigned int tag_index = Associativity;
-	    for(unsigned int i = 0; i < Associativity; i++)
-	    {
-	      if (tags[i].Is_valid && tags[i].Block_address == block_address)
-	      {
-		tag_index = i;
-		break;
-	      }
-	    }
-
-	    // No write allocate; contents of cache is updated on write-hit,
-	    // but as the simulator implementation does not store contents in
-	    // the cache, we simply omit cache updates for the write-through D$
-
-	    bool cache_hit = (tag_index < Associativity);
-
-	    // update statistics
-	    if (cache_hit)
-	    {
-		    return true;
-	    }
-	    else
-	    {
-		  return false;
-	    }
-	    Is_busy = false;
-
-	  }
-	  else {
-	    Is_busy = true;
-	    Num_stall_cycles++;
-	    return false;
-	  }
-}
 
 template<bool LRU_REPLACEMENT>
 bool set_assoc_data_cache_t<LRU_REPLACEMENT>::is_ready()
@@ -489,3 +354,259 @@ void set_assoc_data_cache_t<LRU_REPLACEMENT>::flush_cache()
 // Explicit instantiation of template class for linking.
 template class set_assoc_data_cache_t<false>;
 template class set_assoc_data_cache_t<true>;
+
+
+
+//******************************************************//
+
+template<bool LRU_REPLACEMENT>
+unsigned int set_assoc_data_cache_wb_t<LRU_REPLACEMENT>::
+             get_block_address(uword_t address, uword_t size)
+{
+  // align to block addresses
+  unsigned int block_address = (address / Num_block_bytes) *
+				  Num_block_bytes;
+  assert(block_address == (((address + size - 1) / Num_block_bytes) *
+			    Num_block_bytes));
+
+  return block_address;
+}
+
+template<bool LRU_REPLACEMENT>
+set_assoc_data_cache_wb_t<LRU_REPLACEMENT>::
+set_assoc_data_cache_wb_t(memory_t &memory, unsigned int associativity,
+                       unsigned int num_blocks,
+                       unsigned int num_block_bytes) :
+					   set_assoc_data_cache_t<LRU_REPLACEMENT>(memory, associativity, num_blocks, num_block_bytes), Num_blocks(num_blocks),
+					    Num_block_bytes(num_block_bytes),
+					    Associativity(associativity),
+					    Num_indexes(num_blocks / Associativity), Is_busy(false),
+						Num_stall_cycles(0),
+					    Num_read_hits(0), Num_read_misses(0), Num_read_hit_bytes(0),
+					    Num_read_miss_bytes(0), Num_write_hits(0), Num_write_misses(0),
+					    Num_write_hit_bytes(0), Num_write_miss_bytes(0)
+{
+
+  assert(num_blocks % Associativity == 0);
+  Content = new cache_tags_t[Num_indexes];
+
+  // initialize tags
+  for(unsigned int i = 0; i < Num_indexes; i++)
+  {
+    Content[i] = new cache_tag_t[Associativity];
+    for(unsigned int j = 0; j < Associativity; j++)
+    {
+      Content[i][j].Is_valid = false;
+      Content[i][j].Is_dirty = false;
+    }
+  }
+}
+
+template<bool LRU_REPLACEMENT>
+set_assoc_data_cache_wb_t<LRU_REPLACEMENT>::~set_assoc_data_cache_wb_t()
+{
+  // free tag information.
+  delete[] Content;
+}
+
+
+
+template<bool LRU_REPLACEMENT>
+bool set_assoc_data_cache_wb_t<LRU_REPLACEMENT>::
+     read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+{
+	 // temporary buffer
+	  byte_t buf[Num_block_bytes];
+
+	  // get block address
+	  unsigned int block_address = get_block_address(address, size);
+
+	  if (address - block_address + size > Num_block_bytes) {
+	    // Either size too big or not properly aligned
+	    simulation_exception_t::unaligned(address);
+	  }
+
+	  // get tag information
+	  unsigned int entry_index = (block_address / Num_block_bytes)
+				     % Num_indexes;
+	  cache_tags_t &tags(Content[entry_index]);
+
+	  // tag_index corresponds to age of the cache block; we have
+	  // (tag_index == Associativity) iff tag is not in the cache
+	  unsigned int tag_index = Associativity;
+
+	  // check if content is in the cache
+	  for(unsigned int i = 0; i < Associativity; i++)
+	  {
+	    if (tags[i].Is_valid && tags[i].Block_address == block_address)
+	    {
+	      tag_index = i;
+	      break;
+	    }
+	  }
+
+	  bool cache_hit = (tag_index < Associativity);
+
+	  if (!cache_hit && tags[Associativity-1].Is_valid && tags[Associativity-1].Is_dirty)
+	  {
+	    // we know that we have a cache miss and we have to "evict" dirty data
+
+	    // read clean data from memory (peek, so no timing simulation here)
+	    this->Memory.read_peek(s, tags[Associativity-1].Block_address, buf, Num_block_bytes);
+
+	    // write clean data back (no peek, so with timing simulation)
+	    if (this->Memory.write(s, tags[Associativity-1].Block_address, buf, Num_block_bytes))
+	    {
+	       // simulation of write done ... update cache state
+	       tags[Associativity-1].Is_dirty = false;
+	    }
+	  }
+
+	  else {
+	  // update cache state and read data
+	  if (cache_hit || this->Memory.read(s, block_address, buf, Num_block_bytes))
+	  {
+	    // update LRU ordering
+	    unsigned int last_index_changed;
+	    if (cache_hit)
+	      last_index_changed = tag_index;
+	    else
+	      last_index_changed = Associativity-1;
+
+	    // no update on cache hit for FIFO
+	    if (LRU_REPLACEMENT || ! cache_hit)
+	    {
+	      for(unsigned int i = last_index_changed; i != 0; i--)
+	      {
+	    	  tags[i] = tags[i -1];
+	      }
+
+	      // set tag information
+	      tags[0].Is_valid = 1;
+	      tags[0].Block_address = block_address;
+	      if (!cache_hit) // read miss
+	    	  tags[0].Is_dirty = false;
+	    }
+
+	    // actually read data from memory without stalling
+	    // TODO we should keep the data in the cache and read it from
+	    // there to detect consistency problems with multi-cores.
+	    this->Memory.read_peek(s, address, value, size);
+
+	    // update statistics
+	    if (cache_hit)
+	    {
+	      Num_read_hits++;
+	      Num_read_hit_bytes += size;
+	    }
+	    else
+	    {
+	      Num_read_misses++;
+	      Num_read_miss_bytes += size;
+	    }
+
+	    Is_busy = false;
+	    return true;
+	  }
+
+	  Is_busy = true;
+	  Num_stall_cycles++;
+	  return false;
+	  }
+}
+
+
+template<bool LRU_REPLACEMENT>
+bool set_assoc_data_cache_wb_t<LRU_REPLACEMENT>::
+     write(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+{
+  // get block address
+  unsigned int block_address = get_block_address(address, size);
+
+  unsigned int tag_index = Associativity;
+
+  // read block data to simulate a block-based write
+  byte_t buf[Num_block_bytes];
+
+  bool cache_hit = (tag_index < Associativity);
+  // get tag information
+  unsigned int entry_index = (block_address / Num_block_bytes)
+			       % Num_indexes;
+  cache_tags_t &tags(Content[entry_index]);
+
+  if (cache_hit)
+  {
+      // update LRU ordering
+      unsigned int last_index_changed;
+        last_index_changed = tag_index;
+
+      // no update on cache hit for FIFO
+      if (LRU_REPLACEMENT)
+      {
+        for(unsigned int i = last_index_changed; i != 0; i--)
+        {
+        	tags[i] = tags[i -1];
+        }
+
+        // set tag information
+        tags[0].Is_valid = 1;
+        tags[0].Block_address = block_address;
+        tags[0].Is_dirty = true;
+      }
+      else
+    	  tags[tag_index].Is_dirty = true;
+
+      Num_write_hits++;
+      Num_write_hit_bytes += size;
+    //  printf("test1");
+  }
+
+  if (!cache_hit && tags[Associativity-1].Is_valid && tags[Associativity-1].Is_dirty)
+  {
+    // we know that we have a cache miss and we have to "evict" dirty data
+
+    // read clean data from memory (peek, so no timing simulation here)
+    this->Memory.read_peek(s, tags[Associativity-1].Block_address, buf, Num_block_bytes);
+
+    // write clean data back (no peek, so with timing simulation)
+    if (this->Memory.write(s, tags[Associativity-1].Block_address, buf, Num_block_bytes))
+    {
+       // simulation of write done ... update cache state
+       tags[Associativity-1].Is_dirty = false;
+    }
+    else {
+  	    Is_busy = true;
+  	    Num_stall_cycles++;
+  	  //  printf("test3");
+  	    return false;
+  	  }
+  }
+  else
+  {
+	    // update statistics
+	    if (cache_hit)
+	    {
+	      Num_write_hits++;
+	      Num_write_hit_bytes += size;
+
+	    }
+	    else
+	    {
+	      Num_write_misses++;
+	      Num_write_miss_bytes += size;
+	    }
+	    // actually write the data
+	    this->Memory.write_peek(s, address, value, size);
+
+	    Is_busy = false;
+	    return true;
+  }
+
+}
+
+
+
+
+// Explicit instantiation of template class for linking.
+template class set_assoc_data_cache_wb_t<false>;
+template class set_assoc_data_cache_wb_t<true>;

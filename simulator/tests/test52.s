@@ -6,6 +6,7 @@
 		add     r31  = r0, 0x200;
 		add     r13  = r0, 0x200;
 		addi    r1  = r0, 0x200;
+		addi    r5  = r0, 0x001;
 		addi    r11  = r0, 0x300;
 		nop;
                 swc     [r13 + 0] = r1;
@@ -16,6 +17,7 @@
                 lwc     r5  = [r31 + 2];
 		swc     [r1 + 0] = r1;
 		swc     [r31 + 0] = r11;
+		swc     [r5 + 0] = r1;
 		nop;
                 lwc     r23  = [r13 + 0];
 		nop;

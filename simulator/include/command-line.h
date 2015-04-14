@@ -97,7 +97,9 @@ namespace patmos
     SAC_NO,
     SAC_DM,
     SAC_LRU,
-    SAC_FIFO
+    SAC_FIFO,
+	SAC_LRU_WB,
+    SAC_FIFO_WB
   };
   struct set_assoc_cache_type
   {

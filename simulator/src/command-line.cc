@@ -192,6 +192,28 @@ namespace patmos
       dck.policy = SAC_FIFO;
       assoc = kind.substr(4,8);
     }
+    else if(kind == "lruwb")
+    {
+      dck.policy = SAC_LRU_WB;
+      dck.associativity = 0;
+      return in;
+    }
+    else if(kind == "fifowb")
+    {
+      dck.policy = SAC_FIFO_WB;
+      dck.associativity = 0;
+      return in;
+    }
+    else if(kind.substr(0,5) == "lruwb")
+    {
+      dck.policy = SAC_LRU_WB;
+      assoc = kind.substr(5,10);
+    }
+    else if(kind.substr(0,5) == "fifowb")
+    {
+      dck.policy = SAC_FIFO_WB;
+      assoc = kind.substr(5,10);
+    }
     else
     {
       throw boost::program_options::validation_error(
@@ -232,6 +254,14 @@ namespace patmos
         os << "fifo";
         if (dck.associativity) os << dck.associativity; 
         break;
+      case SAC_LRU_WB:
+	    os << "lruwb";
+	    if (dck.associativity) os << dck.associativity;
+	    break;
+	  case SAC_FIFO_WB:
+	    os << "fifowb";
+	    if (dck.associativity) os << dck.associativity;
+	    break;
     }
 
     return os;
