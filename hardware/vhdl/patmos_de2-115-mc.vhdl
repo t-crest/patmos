@@ -16,25 +16,46 @@ use ieee.numeric_std.all;
 
 entity patmos_top is
 	port(
-		clk : in  std_logic;
-		oLedsPins_led : out std_logic_vector(8 downto 0);
-		iKeysPins_key : in std_logic_vector(3 downto 0);
+			inclk0 : in std_logic;
+			button : in std_logic_vector(3 downto 0);
+			LED	: out std_logic_vector(24 downto 0);
+	
+		--Combined Resolver / Quadrature / Hall effect interface
+		drive0_res_quad_hall : inout std_logic_vector(2 downto 0); -- 0 = resolver stim output, 1 = resolver sin input, 2 = resolver cos input
+		drive0_resolver_feedback_clk : in std_logic;
+		--ADC
+		drive0_adc_Sync_Dat_U : in std_logic;
+		drive0_adc_Sync_Dat_W : in std_logic;
+		drive0_adc_Sync_Dat_ipow : in std_logic;
+		-- IGBT Control
+		drive0_pwm_u_h : out std_logic;
+		drive0_pwm_u_l : out std_logic;
+		drive0_pwm_v_h : out std_logic;
+		drive0_pwm_v_l : out std_logic;
+		drive0_pwm_w_h : out std_logic;
+		drive0_pwm_w_l : out std_logic;
+		drive0_sm_igbt_err : in std_logic;
+
+		sys_braking : out std_logic;
+		dc_link_Sync_Dat_VBUS : in std_logic;
+		dc_link_Sync_Dat_ipow : in std_logic;
+		--ADC Clks
+		sys_adc_clk : out std_logic;
+		sys_adc_feedback_clk : in std_logic;
+		sys_pfc_ld_en : in std_logic;
+		sys_pfc_pfw : in std_logic;
+		sys_pfc_en : out std_logic;
+	
 		oUartPins_txd : out std_logic;
 		iUartPins_rxd : in  std_logic;
-		u_h : out std_logic;
-		u_l : out std_logic;
-		v_h : out std_logic;
-		v_l : out std_logic;
-		w_h : out std_logic;
-		w_l : out std_logic;
-        oSRAM_A : out std_logic_vector(19 downto 0);
-        SRAM_DQ : inout std_logic_vector(15 downto 0);
-        oSRAM_CE_N : out std_logic;
-        oSRAM_OE_N : out std_logic;
-        oSRAM_WE_N : out std_logic;
-        oSRAM_LB_N : out std_logic;
-        oSRAM_UB_N : out std_logic
-	);
+		oSRAM_A : out std_logic_vector(19 downto 0);
+		SRAM_DQ : inout std_logic_vector(15 downto 0);
+		oSRAM_CE_N : out std_logic;
+		oSRAM_OE_N : out std_logic;
+		oSRAM_WE_N : out std_logic;
+		oSRAM_LB_N : out std_logic;
+		oSRAM_UB_N : out std_logic
+);
 end entity patmos_top;
 
 architecture rtl of patmos_top is
@@ -66,11 +87,17 @@ architecture rtl of patmos_top is
 			io_uartPins_tx  : out std_logic;
 			io_uartPins_rx  : in  std_logic;
 			
-			io_avalonMMBridgePins_avs_write_n : out std_logic;
-			io_avalonMMBridgePins_avs_read_n : out std_logic;
-			io_avalonMMBridgePins_avs_address : out std_logic_vector(3 downto 0);
-			io_avalonMMBridgePins_avs_writedata : out std_logic_vector(31 downto 0);
+			io_avalonMMBridgePins_avs_waitrequest : in std_logic;
 			io_avalonMMBridgePins_avs_readdata : in std_logic_vector(31 downto 0);
+			io_avalonMMBridgePins_avs_readdatavalid : in std_logic;
+			io_avalonMMBridgePins_avs_burstcount  : out std_logic;
+			io_avalonMMBridgePins_avs_writedata : out std_logic_vector(31 downto 0);
+			io_avalonMMBridgePins_avs_address : out std_logic_vector(3 downto 0);
+			io_avalonMMBridgePins_avs_write : out std_logic;
+			io_avalonMMBridgePins_avs_read : out std_logic;
+			io_avalonMMBridgePins_avs_byteenable  : out std_logic_vector(3 downto 0);
+			io_avalonMMBridgePins_avs_debugaccess : out std_logic;
+			io_avalonMMBridgePins_avs_intr  : in std_logic;
 
             io_sramCtrlPins_ramOut_addr : out std_logic_vector(19 downto 0);
             io_sramCtrlPins_ramOut_doutEna : out std_logic;
@@ -85,37 +112,101 @@ architecture rtl of patmos_top is
 		);
 	end component;
 	
-	
-	component ssg_emb_pwm is
-	port (
-		clk : in std_logic;
-		reset_n : in std_logic;
-		-- Avalon-MM in system clk domain
-		avs_write_n : in std_logic;
-		avs_read_n : in std_logic;
-		avs_address : in std_logic_vector(3 downto 0);
-		avs_writedata : in std_logic_vector(31 downto 0);
-		avs_readdata : out std_logic_vector(31 downto 0);
-		--
-		pwm_control : in std_logic_vector(2 downto 0);
-		sync_in : in std_logic;
-		--
-		u_h : out std_logic;
-		u_l : out std_logic;
-		v_h : out std_logic;
-		v_l : out std_logic;
-		w_h : out std_logic;
-		w_l : out std_logic;
-		--
-		carrier_latch : out std_logic;
-		encoder_strobe_n : out std_logic;
-		sync_out : out std_logic;
-		start_adc : out std_logic;
-		carrier : out std_logic_vector(15 downto 0)
-		);											
+	component altpll_patmos is
+		PORT	(
+		inclk0		: IN STD_LOGIC  := '0';
+		c0		: OUT STD_LOGIC ;
+		c1		: OUT STD_LOGIC ;
+		c2		: OUT STD_LOGIC ;
+		locked		: OUT STD_LOGIC 
+	);
 	end component;
-
-
+	
+	component DOC_Axis_Periphs_patmos is
+		port (
+			drive0_adc_sync_dat_u           : in  std_logic                     := 'X';             -- sync_dat_u
+			drive0_adc_sync_dat_w           : in  std_logic                     := 'X';             -- sync_dat_w
+			drive0_adc_overcurrent          : out std_logic;                                        -- overcurrent
+			drive0_pwm_carrier              : out std_logic_vector(15 downto 0);                    -- carrier
+			drive0_pwm_carrier_latch        : out std_logic;                                        -- carrier_latch
+			drive0_pwm_encoder_strobe_n     : out std_logic;                                        -- encoder_strobe_n
+			drive0_pwm_u_h                  : out std_logic;                                        -- u_h
+			drive0_pwm_u_l                  : out std_logic;                                        -- u_l
+			drive0_pwm_v_h                  : out std_logic;                                        -- v_h
+			drive0_pwm_v_l                  : out std_logic;                                        -- v_l
+			drive0_pwm_w_h                  : out std_logic;                                        -- w_h
+			drive0_pwm_w_l                  : out std_logic;                                        -- w_l
+			drive0_sm_overcurrent           : in  std_logic                     := 'X';             -- overcurrent
+			drive0_sm_overvoltage           : in  std_logic                     := 'X';             -- overvoltage
+			drive0_sm_undervoltage          : in  std_logic                     := 'X';             -- undervoltage
+			drive0_sm_chopper               : in  std_logic                     := 'X';             -- chopper
+			drive0_sm_dc_link_clk_err       : in  std_logic                     := 'X';             -- dc_link_clk_err
+			drive0_sm_igbt_err              : in  std_logic                     := 'X';             -- igbt_err
+			drive0_sm_error_out             : out std_logic;                                        -- error_out
+			drive0_sm_overcurrent_latch     : out std_logic;                                        -- overcurrent_latch
+			drive0_sm_overvoltage_latch     : out std_logic;                                        -- overvoltage_latch
+			drive0_sm_undervoltage_latch    : out std_logic;                                        -- undervoltage_latch
+			drive0_sm_dc_link_clk_err_latch : out std_logic;                                        -- dc_link_clk_err_latch
+			drive0_sm_igbt_err_latch        : out std_logic;                                        -- igbt_err_latch
+			drive0_sm_chopper_latch         : out std_logic;                                        -- chopper_latch
+			drive0_adc_pow_sync_dat_u       : in  std_logic                     := 'X';             -- sync_dat_u
+			drive0_adc_pow_sync_dat_w       : in  std_logic                     := 'X';             -- sync_dat_w
+			drive0_adc_pow_overcurrent      : out std_logic;                                        -- overcurrent
+			clk_adc_in_clk                  : in  std_logic                     := 'X';             -- clk
+			drive0_doc_pwm_sync_out_export  : out std_logic;                                        -- export
+			drive0_doc_pwm_sync_in_export   : in  std_logic                     := 'X';             -- export
+			drive0_doc_adc_irq_irq          : out std_logic;                                        -- irq
+			drive0_doc_adc_pow_irq_irq      : out std_logic;                                        -- irq
+			avs_periph_slave_waitrequest    : out std_logic;                                        -- waitrequest
+			avs_periph_slave_readdata       : out std_logic_vector(31 downto 0);                    -- readdata
+			avs_periph_slave_readdatavalid  : out std_logic;                                        -- readdatavalid
+			avs_periph_slave_burstcount     : in  std_logic_vector(0 downto 0)  := (others => 'X'); -- burstcount
+			avs_periph_slave_writedata      : in  std_logic_vector(31 downto 0) := (others => 'X'); -- writedata
+			avs_periph_slave_address        : in  std_logic_vector(24 downto 0) := (others => 'X'); -- address
+			avs_periph_slave_write          : in  std_logic                     := 'X';             -- write
+			avs_periph_slave_read           : in  std_logic                     := 'X';             -- read
+			avs_periph_slave_byteenable     : in  std_logic_vector(3 downto 0)  := (others => 'X'); -- byteenable
+			avs_periph_slave_debugaccess    : in  std_logic                     := 'X';             -- debugaccess
+			reset_reset_n                   : in  std_logic                     := 'X';             -- reset_n
+			clk_50_clk                      : in  std_logic                     := 'X';             -- clk
+			clk_80_clk                      : in  std_logic                     := 'X';             -- clk
+			reset_80_reset_n                : in  std_logic                     := 'X'              -- reset_n
+		);
+	end component DOC_Axis_Periphs_patmos;
+	
+	component DOC_Monitor is
+		port (
+			in_port_to_the_IO_IN_Buttons   : in  std_logic_vector(3 downto 0)  := (others => 'X'); -- export
+			pio_pfc_in_port                : in  std_logic_vector(1 downto 0)  := (others => 'X'); -- in_port
+			pio_pfc_out_port               : out std_logic_vector(1 downto 0);                     -- out_port
+			dc_link_sync_dat               : in  std_logic                     := 'X';             -- sync_dat
+			dc_link_dc_link_enable         : in  std_logic                     := 'X';             -- dc_link_enable
+			dc_link_overvoltage            : out std_logic;                                        -- overvoltage
+			dc_link_undervoltage           : out std_logic;                                        -- undervoltage
+			dc_link_chopper                : out std_logic;                                        -- chopper
+			dc_link_p_sync_dat             : in  std_logic                     := 'X';             -- sync_dat
+			dc_link_p_dc_link_enable       : in  std_logic                     := 'X';             -- dc_link_enable
+			dc_link_p_overvoltage          : out std_logic;                                        -- overvoltage
+			dc_link_p_undervoltage         : out std_logic;                                        -- undervoltage
+			dc_link_p_chopper              : out std_logic;                                        -- chopper
+			clk_adc_in_clk                 : in  std_logic                     := 'X';             -- clk
+			avs_periph_slave_waitrequest   : out std_logic;                                        -- waitrequest
+			avs_periph_slave_readdata      : out std_logic_vector(31 downto 0);                    -- readdata
+			avs_periph_slave_readdatavalid : out std_logic;                                        -- readdatavalid
+			avs_periph_slave_burstcount    : in  std_logic_vector(0 downto 0)  := (others => 'X'); -- burstcount
+			avs_periph_slave_writedata     : in  std_logic_vector(31 downto 0) := (others => 'X'); -- writedata
+			avs_periph_slave_address       : in  std_logic_vector(24 downto 0) := (others => 'X'); -- address
+			avs_periph_slave_write         : in  std_logic                     := 'X';             -- write
+			avs_periph_slave_read          : in  std_logic                     := 'X';             -- read
+			avs_periph_slave_byteenable    : in  std_logic_vector(3 downto 0)  := (others => 'X'); -- byteenable
+			avs_periph_slave_debugaccess   : in  std_logic                     := 'X';             -- debugaccess
+			clk_80_clk                     : in  std_logic                     := 'X';             --                            clk_80.clk
+			reset_80_reset_n               : in  std_logic                     := 'X';             --                          reset_80.reset_n
+			clk_50_clk                     : in  std_logic                     := 'X';             --                            clk_50.clk
+			reset_50_reset_n               : in  std_logic                     := 'X'               -- reset_n
+		);
+	end component DOC_Monitor;
+	
 	-- DE2-70: 50 MHz clock => 80 MHz
 	-- BeMicro: 16 MHz clock => 25.6 MHz
 	constant pll_infreq : real    := 50.0;
@@ -125,35 +216,50 @@ architecture rtl of patmos_top is
 	signal clk_int : std_logic;
 
 	-- for generation of internal reset
-	signal int_res            : std_logic;
-	signal res_reg1, res_reg2 : std_logic;
-	signal res_cnt            : unsigned(2 downto 0) := "000"; -- for the simulation
+	signal res_50_reg1, res_50_reg2 : std_logic;
+	signal res_80_reg1, res_80_reg2 : std_logic;
+	signal res_50_cnt, res_80_cnt   : unsigned(2 downto 0) := "000"; -- for the simulation
 
-	signal reset_n			  : std_logic;
+	signal reset_50_n, reset_50			  : std_logic;
+	signal reset_80_n, reset_80			  : std_logic;
 
     -- sram signals for tristate inout
     signal sram_out_dout_ena : std_logic;
     signal sram_out_dout : std_logic_vector(15 downto 0);
 
 	attribute altera_attribute : string;
-	attribute altera_attribute of res_cnt : signal is "POWER_UP_LEVEL=LOW";
+	attribute altera_attribute of res_50_cnt : signal is "POWER_UP_LEVEL=LOW";
+	attribute altera_attribute of res_80_cnt : signal is "POWER_UP_LEVEL=LOW";
 	
-	signal avs_write_n : std_logic;
-	signal avs_read_n : std_logic;
-	signal avs_address : std_logic_vector(3 downto 0);
-	signal avs_writedata : std_logic_vector(31 downto 0);
-	signal avs_readdata : std_logic_vector(31 downto 0);
+	signal drive0_avs_write_n : std_logic;
+	signal drive0_avs_read_n : std_logic;
+	signal drive0_avs_address : std_logic_vector(3 downto 0);
+	signal drive0_avs_writedata : std_logic_vector(31 downto 0);
+	signal drive0_avs_readdata : std_logic_vector(31 downto 0);
 
+	signal monitor_avs_write_n : std_logic;
+	signal monitor_avs_read_n : std_logic;
+	signal monitor_avs_address : std_logic_vector(3 downto 0);
+	signal monitor_avs_writedata : std_logic_vector(31 downto 0);
+	signal monitor_avs_readdata : std_logic_vector(31 downto 0);
+	
+	signal drive0_igbt_err_in : std_logic;
+	signal locked : std_logic;
+	signal clk_50,clk_80,clk_20 : std_logic;
+	
+	signal overcurrent0 : std_logic;
+	signal overvoltage : std_logic;
+	signal undervoltage : std_logic;
+	signal chopper : std_logic;
+	signal drive0_adc_irq : std_logic;
 begin
-	pll_inst : entity work.pll generic map(
-			input_freq  => pll_infreq,
-			multiply_by => pll_mult,
-			divide_by   => pll_div
-		)
-		port map(
-			inclk0 => clk,
-			c0     => clk_int
-		);
+	pll_inst : component altpll_patmos port map	(
+		inclk0	=> inclk0,
+		c0			=> clk_50,
+		c1			=> clk_80,
+		c2			=> clk_20,
+		locked	=> locked
+	);
 	-- we use a PLL
 	-- clk_int <= clk;
 
@@ -161,19 +267,32 @@ begin
 	--	internal reset generation
 	--	should include the PLL lock signal
 	--
-	process(clk_int)
+	process(clk_50)
 	begin
-		if rising_edge(clk_int) then
-			if (res_cnt /= "111") then
-				res_cnt <= res_cnt + 1;
+		if rising_edge(clk_50) then
+			if (res_50_cnt /= "111") then
+				res_50_cnt <= res_50_cnt + 1;
 			end if;
-			res_reg1 <= not res_cnt(0) or not res_cnt(1) or not res_cnt(2);
-			res_reg2 <= res_reg1;
-			int_res  <= res_reg2;
+			res_50_reg1 <= not res_50_cnt(0) or not res_50_cnt(1) or not res_50_cnt(2);
+			res_50_reg2 <= res_50_reg1;
+			reset_50  <= res_50_reg2;
 		end if;
 	end process;
+	reset_50_n <= not reset_50;
 
-
+	process(clk_80)
+	begin
+		if rising_edge(clk_80) then
+			if (res_80_cnt /= "111") then
+				res_80_cnt <= res_80_cnt + 1;
+			end if;
+			res_80_reg1 <= not res_80_cnt(0) or not res_80_cnt(1) or not res_80_cnt(2);
+			res_80_reg2 <= res_80_reg1;
+			reset_80  <= res_80_reg2;
+		end if;
+	end process;
+	reset_80_n <= not reset_80;
+	
     -- tristate output to ssram
     process(sram_out_dout_ena, sram_out_dout)
     begin
@@ -184,40 +303,104 @@ begin
       end if;
     end process;
 
-    comp : Patmos port map(clk_int, int_res,
+    comp : Patmos port map(clk_80, reset_80,
            open, open, open, open, open,
            (others => '0'), (others => '0'), '0',
            open, open, open, open,
            (others => '0'), (others => '0'),
            X"00000000", X"00000001",
-           oLedsPins_led,
-           iKeysPins_key,
+           open,
+           (others => '0'),
            oUartPins_txd, iUartPins_rxd,
-		   avs_write_n, avs_read_n, avs_address, avs_writedata, avs_readdata,
+			  avs_waitrequest, avs_readdata, avs_readdatavalid, avs_burstcount, avs_writedata,
+			  avs_address, avs_write, avs_read, avs_byteenable, avs_debugaccess, avs_intr,
            oSRAM_A, sram_out_dout_ena, SRAM_DQ, sram_out_dout, oSRAM_CE_N, oSRAM_OE_N, oSRAM_WE_N, oSRAM_LB_N, oSRAM_UB_N);
-			  
-    reset_n <= not int_res;
-	pwm : ssg_emb_pwm port map(
-			clk => clk_int,
-			reset_n => reset_n,
-			avs_write_n => avs_write_n,
-			avs_read_n => avs_read_n,
-			avs_address => avs_address,
-			avs_writedata => avs_writedata,
-			avs_readdata => avs_readdata,
-			pwm_control => "111",
-			sync_in => '0',
-			u_h => u_h,
-			u_l => u_l,
-			v_h => v_h,
-			v_l => v_l,
-			w_h => w_h,
-			w_l => w_l,
-			carrier_latch => open,
-			encoder_strobe_n => open,
-			sync_out => open,
-			start_adc => open,
-			carrier => open
-		);				
+	 
+	 drive0_igbt_err_in <= not drive0_sm_igbt_err;
+	
+		drive0 : component DOC_Axis_Periphs_patmos
+		port map (
+			drive0_adc_sync_dat_u           => drive0_adc_Sync_Dat_U,           --              drive0_adc.sync_dat_u
+			drive0_adc_sync_dat_w           => drive0_adc_Sync_Dat_W,           --                        .sync_dat_w
+			drive0_adc_overcurrent          => overcurrent0,          --                        .overcurrent
+			drive0_pwm_carrier              => open,              --              drive0_pwm.carrier
+			drive0_pwm_carrier_latch        => open,        --                        .carrier_latch
+			drive0_pwm_encoder_strobe_n     => open,     --                        .encoder_strobe_n
+			drive0_pwm_u_h                  => drive0_pwm_u_h,                  --                        .u_h
+			drive0_pwm_u_l                  => drive0_pwm_u_l,                  --                        .u_l
+			drive0_pwm_v_h                  => drive0_pwm_v_h,                  --                        .v_h
+			drive0_pwm_v_l                  => drive0_pwm_v_l,                  --                        .v_l
+			drive0_pwm_w_h                  => drive0_pwm_w_h,                  --                        .w_h
+			drive0_pwm_w_l                  => drive0_pwm_w_l,                  --                        .w_l
+			drive0_sm_overcurrent           => overcurrent0,           --               drive0_sm.overcurrent
+			drive0_sm_overvoltage           => overvoltage,           --                        .overvoltage
+			drive0_sm_undervoltage          => undervoltage,          --                        .undervoltage
+			drive0_sm_chopper               => chopper,               --                        .chopper
+			drive0_sm_dc_link_clk_err       => '0',       --                        .dc_link_clk_err
+			drive0_sm_igbt_err              => drive0_igbt_err_in,              --                        .igbt_err
+			drive0_sm_error_out             => LED(5),             --                        .error_out
+			drive0_sm_overcurrent_latch     => LED(0),     --                        .overcurrent_latch
+			drive0_sm_overvoltage_latch     => LED(1),     --                        .overvoltage_latch
+			drive0_sm_undervoltage_latch    => LED(2),    --                        .undervoltage_latch
+			drive0_sm_dc_link_clk_err_latch => open, --                        .dc_link_clk_err_latch
+			drive0_sm_igbt_err_latch        => LED(3),        --                        .igbt_err_latch
+			drive0_sm_chopper_latch         => LED(4),         --                        .chopper_latch
+			drive0_adc_pow_sync_dat_u       => drive0_adc_Sync_Dat_ipow,       --          drive0_adc_pow.sync_dat_u
+			drive0_adc_pow_sync_dat_w       => '0',       --                        .sync_dat_w
+			drive0_adc_pow_overcurrent      => open,      --                        .overcurrent
+			clk_adc_in_clk                  => sys_adc_feedback_clk,                  --              clk_adc_in.clk
+			drive0_doc_pwm_sync_out_export  => open,  -- drive0_doc_pwm_sync_out.export
+			drive0_doc_pwm_sync_in_export   => '0',   --  drive0_doc_pwm_sync_in.export
+			drive0_doc_adc_irq_irq          => drive0_adc_irq,          --      drive0_doc_adc_irq.irq
+			drive0_doc_adc_pow_irq_irq      => open,      --  drive0_doc_adc_pow_irq.irq
+			avs_periph_slave_waitrequest    => drive0_avs_waitrequest,    --        avs_periph_slave.waitrequest
+			avs_periph_slave_readdata       => drive0_avs_readdata,       --                        .readdata
+			avs_periph_slave_readdatavalid  => drive0_avs_readdatavalid,  --                        .readdatavalid
+			avs_periph_slave_burstcount     => drive0_avs_burstcount,     --                        .burstcount
+			avs_periph_slave_writedata      => drive0_avs_writedata,      --                        .writedata
+			avs_periph_slave_address        => drive0_avs_address,        --                        .address
+			avs_periph_slave_write          => drive0_avs_write_n,          --                        .write
+			avs_periph_slave_read           => drive0_avs_read_n,           --                        .read
+			avs_periph_slave_byteenable     => drive0_avs_byteenable,     --                        .byteenable
+			avs_periph_slave_debugaccess    => drive0_avs_debugaccess,    --                        .debugaccess
+			reset_reset_n                   => reset_50_n,                   --                   reset.reset_n
+			clk_50_clk                      => clk_50,                      --                  clk_50.clk
+			clk_80_clk                      => clk_80,                      --                  clk_80.clk
+			reset_80_reset_n                => reset_80_n                 --                reset_80.reset_n
+		);
 
+		sys_pfc_en <= pfc_control(0);
+		
+		monitor : component DOC_Monitor
+		port map (
+			in_port_to_the_IO_IN_Buttons   => button,   -- io_in_buttons_external_connection.export
+			pio_pfc_in_port                => sys_pfc_ld_en & sys_pfc_pfw,                --                           pio_pfc.in_port
+			pio_pfc_out_port               => pfc_control,               --                                  .out_port
+			dc_link_sync_dat               => dc_link_Sync_Dat_VBUS,               --                           dc_link.sync_dat
+			dc_link_dc_link_enable         => '1',         --                                  .dc_link_enable
+			dc_link_overvoltage            => overvoltage,            --                                  .overvoltage
+			dc_link_undervoltage           => undervoltage,           --                                  .undervoltage
+			dc_link_chopper                => chopper,                --                                  .chopper
+			dc_link_p_sync_dat             => dc_link_Sync_Dat_ipow,             --                         dc_link_p.sync_dat
+			dc_link_p_dc_link_enable       => '1',       --                                  .dc_link_enable
+			dc_link_p_overvoltage          => open,          --                                  .overvoltage
+			dc_link_p_undervoltage         => open,         --                                  .undervoltage
+			dc_link_p_chopper              => open,              --                                  .chopper
+			clk_adc_in_clk                 => sys_adc_feedback_clk,                 --                        clk_adc_in.clk
+			avs_periph_slave_waitrequest   => monitor_avs_waitrequest,   --                  avs_periph_slave.waitrequest
+			avs_periph_slave_readdata      => monitor_avs_readdata,      --                                  .readdata
+			avs_periph_slave_readdatavalid => monitor_avs_readdatavalid, --                                  .readdatavalid
+			avs_periph_slave_burstcount    => monitor_avs_burstcount,    --                                  .burstcount
+			avs_periph_slave_writedata     => monitor_avs_writedata,     --                                  .writedata
+			avs_periph_slave_address       => monitor_avs_address,       --                                  .address
+			avs_periph_slave_write         => monitor_avs_write_n,         --                                  .write
+			avs_periph_slave_read          => monitor_avs_read_n,          --                                  .read
+			avs_periph_slave_byteenable    => monitor_avs_byteenable,    --                                  .byteenable
+			avs_periph_slave_debugaccess   => monitor_avs_debugaccess,   --                                  .debugaccess
+			clk_80_clk                     => clk_80,                        --                               clk.clk
+			reset_80_reset_n               => reset_80_n,                  --                             reset.reset_n
+			clk_50_clk                     => clk_50,                      --                             clk_0.clk
+			reset_50_reset_n               => reset_50_n                 --                           reset_0.reset_n
+		);
+		
 end architecture rtl;

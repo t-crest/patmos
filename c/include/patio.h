@@ -47,12 +47,12 @@
 
 #include <machine/patmos.h>
 
-#define TIMER_CLK_LOW *((volatile _IODEV int *) 0xF0000204)
-#define TIMER_US_LOW *((volatile _IODEV int *) 0xF000020c)
+#define TIMER_CLK_LOW *((volatile _IODEV int *) 0xF0002004)
+#define TIMER_US_LOW *((volatile _IODEV int *) 0xF000200c)
 
-#define UART_STATUS *((volatile _IODEV int *) 0xF0000800)
-#define UART_DATA   *((volatile _IODEV int *) 0xF0000804)
-#define LEDS        *((volatile _IODEV int *) 0xF0000900)
+#define UART_STATUS *((volatile _IODEV int *) 0xF0008000)
+#define UART_DATA   *((volatile _IODEV int *) 0xF0008004)
+#define LEDS        *((volatile _IODEV int *) 0xF0009000)
 
 #define MEM         ((volatile _UNCACHED int *) 0x0)
 #define SPM         ((volatile _SPM int *) 0x0)

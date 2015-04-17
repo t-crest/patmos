@@ -186,11 +186,12 @@ int mp_nbsend(mpd_t _SPM * mpd_ptr) {
 int mp_send(mpd_t _SPM * mpd_ptr, const unsigned int time_usecs) {
   unsigned long long int timeout = get_cpu_usecs() + time_usecs;
   int retval = 0;
-  //_Pragma("loopbound min 1 max 1")
+  _Pragma("loopbound min 1 max 1")
   // while message not sent and ( timeout infinite or now is before timeout)
   while(retval == 0 && ( time_usecs == 0 || get_cpu_usecs() < timeout ) ) {
     retval = mp_nbsend(mpd_ptr);
   }
+  TRACE(FAULT,retval == 0,"mp_send() timed out");
   return retval;
 }
 
@@ -231,6 +232,7 @@ int mp_recv(mpd_t _SPM * mpd_ptr, const unsigned int time_usecs) {
   while(retval == 0 && ( time_usecs == 0 || get_cpu_usecs() < timeout ) ) {
     retval = mp_nbrecv(mpd_ptr);
   }
+  TRACE(FAULT,retval == 0,"mp_recv() timed out");
   return retval;
 }
 
@@ -275,5 +277,6 @@ int mp_ack(mpd_t _SPM * mpd_ptr, const unsigned int time_usecs){
   if (retval == 0) {
     (*mpd_ptr->recv_count)--;
   }
+  TRACE(FAULT,retval == 0,"mp_ack() timed out");
   return retval;
 }

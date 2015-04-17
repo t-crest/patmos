@@ -9,7 +9,7 @@
 	<IO DevTypeRef="Uart" offset="8"/>
 	<IO DevTypeRef="Leds" offset="9"/>
 	<IO DevTypeRef="Keys" offset="10" intrs="2,3,4,5"/>
-  <IO DevTypeRef="Avalon-MM" offset="11"/>
+  <IO DevTypeRef="Avalon-MM" offset="11" intrs="1"/>
   </IOs>
 
   <Devs>
@@ -40,6 +40,7 @@
         <params>
             <param name="extAddrWidth" value="4" />
             <param name="dataWidth" value="32" />
+            <param name="numIntrs" value="1" />
         </params>
     </Dev>
   </Devs>
