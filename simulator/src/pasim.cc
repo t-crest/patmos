@@ -159,6 +159,10 @@ static patmos::data_cache_t &create_stack_data_cache(patmos::set_assoc_cache_typ
       return *new patmos::set_assoc_data_cache_t<true>(gm, assoc, num_blocks, line_size);
     case patmos::SAC_FIFO:
       return *new patmos::set_assoc_data_cache_t<false>(gm, assoc, num_blocks, line_size);
+    case patmos::SAC_LRU_WB:
+          return *new patmos::set_assoc_data_cache_wb_t<true>(gm, assoc, num_blocks, line_size);
+    case patmos::SAC_FIFO_WB:
+         return *new patmos::set_assoc_data_cache_wb_t<false>(gm, assoc, num_blocks, line_size);
   };
 }
 
@@ -370,7 +374,7 @@ int main(int argc, char **argv)
   boost::program_options::options_description cache_options("Cache options");
   cache_options.add_options()
     ("dcsize,d", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_DATA_CACHE_BYTES), "data cache size in bytes")
-    ("dckind,D", boost::program_options::value<patmos::set_assoc_cache_type>()->default_value(patmos::set_assoc_cache_type(patmos::SAC_DM,2)),
+    ("dckind,D", boost::program_options::value<patmos::set_assoc_cache_type>()->default_value(patmos::set_assoc_cache_type(patmos::SAC_LRU,2)),
                  "kind of direct mapped/fully-/set-associative data cache, defaults to lru2 (ideal, no, dm, lru[N], fifo[N], lruwb[N], fifowb[N])")
     ("dlsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(0), "size of a data cache line in bytes, defaults to burst size if set to 0")
 
@@ -378,7 +382,7 @@ int main(int argc, char **argv)
     ("sckind,S", boost::program_options::value<patmos::stack_cache_e>()->default_value(patmos::SC_BLOCK), "kind of stack cache (ideal, block, ablock, lblock, dcache)")
 
     ("icache,C", boost::program_options::value<patmos::instr_cache_e>()->default_value(patmos::IC_MCACHE), "kind of instruction cache (mcache, icache)")
-    ("ickind,K", boost::program_options::value<patmos::set_assoc_cache_type>()->default_value(patmos::set_assoc_cache_type(patmos::SAC_LRU,2)), 
+    ("ickind,K", boost::program_options::value<patmos::set_assoc_cache_type>()->default_value(patmos::set_assoc_cache_type(patmos::SAC_LRU,2)),
                  "kind of direct mapped/fully-/set-associative I-cache (ideal, no, dm, lru[N], fifo[N]")
     ("ilsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(0), "size of an I-cache line in bytes, defaults to burst size if set to 0")
 
@@ -391,7 +395,7 @@ int main(int argc, char **argv)
                  "method cache block size in bytes, defaults to burst size if zero")
 	("scdcsize,z", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_DATA_STACK_CACHE_BYTES), "stack data cache size in bytes")
 	("scdckind,Z", boost::program_options::value<patmos::set_assoc_cache_type>()->default_value(patmos::set_assoc_cache_type(patmos::SAC_LRU,2)),
-	             "kind of direct mapped/fully-/set-associative stack data cache, defaults to lru2 (ideal, no, dm, lru[N], fifo[N])");
+	             "kind of direct mapped/fully-/set-associative stack data cache, defaults to lru2 (ideal, no, dm, lru[N], fifo[N], lruwb[N], fifowb[N])");
 
 
   boost::program_options::options_description sim_options("Simulator options");

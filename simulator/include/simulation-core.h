@@ -74,13 +74,13 @@ namespace patmos
   static const unsigned int NUM_LOCAL_MEMORY_BYTES = 0x800;
 
   /// Define the number of bytes used for the data cache.
-  static const unsigned int NUM_DATA_CACHE_BYTES = 0x800;
+  static const unsigned int NUM_DATA_CACHE_BYTES = 0x400;
 
   /// Define the number of bytes used for the stack cache.
   static const unsigned int NUM_STACK_CACHE_BYTES = 0x800;
 
   /// Define the number of bytes used for the stack data cache.
-  static const unsigned int NUM_DATA_STACK_CACHE_BYTES = 0x800;
+  static const unsigned int NUM_DATA_STACK_CACHE_BYTES = 0x400;
 
   /// Define the number of bytes used for the method cache.
   static const unsigned int NUM_METHOD_CACHE_BYTES = 0x1000;

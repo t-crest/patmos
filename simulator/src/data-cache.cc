@@ -460,58 +460,61 @@ bool set_assoc_data_cache_wb_t<LRU_REPLACEMENT>::
 	       // simulation of write done ... update cache state
 	       tags[Associativity-1].Is_dirty = false;
 	    }
+	    Is_busy = true;
+	   	Num_stall_cycles++;
+	    return false;
 	  }
 
 	  else {
 	  // update cache state and read data
-	  if (cache_hit || this->Memory.read(s, block_address, buf, Num_block_bytes))
-	  {
-	    // update LRU ordering
-	    unsigned int last_index_changed;
-	    if (cache_hit)
-	      last_index_changed = tag_index;
-	    else
-	      last_index_changed = Associativity-1;
+		  if (cache_hit || this->Memory.read(s, block_address, buf, Num_block_bytes))
+		  {
+			  // update LRU ordering
+			  unsigned int last_index_changed;
+			  if (cache_hit)
+				  last_index_changed = tag_index;
+			  else
+				  last_index_changed = Associativity-1;
 
-	    // no update on cache hit for FIFO
-	    if (LRU_REPLACEMENT || ! cache_hit)
-	    {
-	      for(unsigned int i = last_index_changed; i != 0; i--)
-	      {
-	    	  tags[i] = tags[i -1];
-	      }
+			  // no update on cache hit for FIFO
+			  if (LRU_REPLACEMENT || ! cache_hit)
+			  {
+				  for(unsigned int i = last_index_changed; i != 0; i--)
+				  {
+					  tags[i] = tags[i -1];
+				  }
 
-	      // set tag information
-	      tags[0].Is_valid = 1;
-	      tags[0].Block_address = block_address;
-	      if (!cache_hit) // read miss
-	    	  tags[0].Is_dirty = false;
-	    }
+				  // set tag information
+				  tags[0].Is_valid = 1;
+				  tags[0].Block_address = block_address;
+				  if (!cache_hit) // read miss
+					  tags[0].Is_dirty = false;
+			  }
 
-	    // actually read data from memory without stalling
-	    // TODO we should keep the data in the cache and read it from
-	    // there to detect consistency problems with multi-cores.
-	    this->Memory.read_peek(s, address, value, size);
+			  // actually read data from memory without stalling
+			  // TODO we should keep the data in the cache and read it from
+			  // there to detect consistency problems with multi-cores.
+			  this->Memory.read_peek(s, address, value, size);
 
-	    // update statistics
-	    if (cache_hit)
-	    {
-	      Num_read_hits++;
-	      Num_read_hit_bytes += size;
-	    }
-	    else
-	    {
-	      Num_read_misses++;
-	      Num_read_miss_bytes += size;
-	    }
+			  // update statistics
+			  if (cache_hit)
+			  {
+				  Num_read_hits++;
+				  Num_read_hit_bytes += size;
+			  }
+			  else
+			  {
+				  Num_read_misses++;
+				  Num_read_miss_bytes += size;
+			  }
 
-	    Is_busy = false;
-	    return true;
-	  }
+			  Is_busy = false;
+			  return true;
+		  }
 
-	  Is_busy = true;
-	  Num_stall_cycles++;
-	  return false;
+		  Is_busy = true;
+		  Num_stall_cycles++;
+		  return false;
 	  }
 }
 
@@ -528,38 +531,22 @@ bool set_assoc_data_cache_wb_t<LRU_REPLACEMENT>::
   // read block data to simulate a block-based write
   byte_t buf[Num_block_bytes];
 
-  bool cache_hit = (tag_index < Associativity);
   // get tag information
   unsigned int entry_index = (block_address / Num_block_bytes)
-			       % Num_indexes;
+                   % Num_indexes;
   cache_tags_t &tags(Content[entry_index]);
 
-  if (cache_hit)
+  // check if content is in the cache
+  for(unsigned int i = 0; i < Associativity; i++)
   {
-      // update LRU ordering
-      unsigned int last_index_changed;
-        last_index_changed = tag_index;
-
-      // no update on cache hit for FIFO
-      if (LRU_REPLACEMENT)
-      {
-        for(unsigned int i = last_index_changed; i != 0; i--)
-        {
-        	tags[i] = tags[i -1];
-        }
-
-        // set tag information
-        tags[0].Is_valid = 1;
-        tags[0].Block_address = block_address;
-        tags[0].Is_dirty = true;
-      }
-      else
-    	  tags[tag_index].Is_dirty = true;
-
-      Num_write_hits++;
-      Num_write_hit_bytes += size;
-    //  printf("test1");
+    if (tags[i].Is_valid && tags[i].Block_address == block_address)
+    {
+      tag_index = i;
+      break;
+    }
   }
+
+  bool cache_hit = (tag_index < Associativity);
 
   if (!cache_hit && tags[Associativity-1].Is_valid && tags[Associativity-1].Is_dirty)
   {
@@ -574,35 +561,60 @@ bool set_assoc_data_cache_wb_t<LRU_REPLACEMENT>::
        // simulation of write done ... update cache state
        tags[Associativity-1].Is_dirty = false;
     }
-    else {
-  	    Is_busy = true;
-  	    Num_stall_cycles++;
-  	  //  printf("test3");
-  	    return false;
-  	  }
+
+    Is_busy = true;
+    Num_stall_cycles++;
+    return false;
   }
-  else
+  else if (cache_hit || this->Memory.read(s, block_address, buf, Num_block_bytes))
   {
-	    // update statistics
-	    if (cache_hit)
-	    {
-	      Num_write_hits++;
-	      Num_write_hit_bytes += size;
+    // update LRU ordering
+    unsigned int last_index_changed;
+    if (cache_hit)
+      last_index_changed = tag_index;
+    else
+      last_index_changed = Associativity-1;
 
-	    }
-	    else
-	    {
-	      Num_write_misses++;
-	      Num_write_miss_bytes += size;
-	    }
-	    // actually write the data
-	    this->Memory.write_peek(s, address, value, size);
+    // update tag even on FIFO hits
+    if (LRU_REPLACEMENT || ! cache_hit)
+    {
+      for(unsigned int i = last_index_changed; i != 0; i--)
+      {
+          tags[i] = tags[i -1];
+      }
 
-	    Is_busy = false;
-	    return true;
+      // set tag information
+      tags[0].Is_valid = 1;
+      tags[0].Block_address = block_address;
+      tags[0].Is_dirty = true;
+    }
+    else
+        tags[tag_index].Is_dirty = true;
+
+    // update statistics
+    if (cache_hit)
+    {
+      Num_write_hits++;
+      Num_write_hit_bytes += size;
+    }
+    else
+    {
+      Num_write_misses++;
+      Num_write_miss_bytes += size;
+    }
+
+    // actually write the data
+    this->Memory.write_peek(s, address, value, size);
+
+    Is_busy = false;
+    return true;
   }
 
+  Is_busy = true;
+  Num_stall_cycles++;
+  return false;
 }
+
 
 
 
