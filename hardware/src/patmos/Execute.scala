@@ -86,7 +86,7 @@ class Execute() extends Module {
   def comp(func: Bits, op1: UInt, op2: UInt): Bool = {
     val op1s = op1.toSInt
     val op2s = op2.toSInt
-    val bitIdx = UInt(1) << op2(4, 0).toUInt
+    val bitMsk = UInt(1) << op2(4, 0).toUInt
     // Is this nicer than the switch?
     // Some of the comparison function (equ, subtract) could be shared
     val eq = op1 === op2
@@ -99,7 +99,7 @@ class Execute() extends Module {
       (CFUNC_LE,    lt | eq),
       (CFUNC_ULT,   ult),
       (CFUNC_ULE,   ult | eq),
-      (CFUNC_BTEST, (op1 & bitIdx) != UInt(0))))
+      (CFUNC_BTEST, (op1 & bitMsk) != UInt(0))))
   }
 
   def pred(func: Bits, op1: Bool, op2: Bool): Bool = {
