@@ -2,6 +2,7 @@ all: handbook noc source
 
 handbook:
 	make -C handbook all
+
 noc: source
 	make -C noc all
 
@@ -19,9 +20,7 @@ c_doc.pdf: latexdoc
 clean:
 	-rm -r c_doc
 	-rm c_doc.pdf
-
-cleanall: clean
-	make -C noc clean
 	make -C handbook clean
+	make -C noc clean
 
 .PHONY: all handbook noc source doxygen latexdoc clean cleanall
