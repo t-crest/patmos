@@ -192,27 +192,27 @@ namespace patmos
       dck.policy = SAC_FIFO;
       assoc = kind.substr(4,8);
     }
-    else if(kind == "lruwb")
+    else if(kind == "lwb")
     {
       dck.policy = SAC_LRU_WB;
       dck.associativity = 0;
       return in;
     }
-    else if(kind == "fifowb")
+    else if(kind == "fiwb")
     {
       dck.policy = SAC_FIFO_WB;
       dck.associativity = 0;
       return in;
     }
-    else if(kind.substr(0,5) == "lruwb")
+    else if(kind.substr(0,3) == "lwb")
     {
       dck.policy = SAC_LRU_WB;
-      assoc = kind.substr(5,10);
+      assoc = kind.substr(3,8);
     }
-    else if(kind.substr(0,5) == "fifowb")
+    else if(kind.substr(0,4) == "fiwb")
     {
       dck.policy = SAC_FIFO_WB;
-      assoc = kind.substr(5,10);
+      assoc = kind.substr(4,8);
     }
     else
     {
