@@ -2086,10 +2086,14 @@ processor ID, cycle counter, timer, and interrupt controller. For a minimum
 communication with the outside world a processor shall be attached to a
 serial port (UART). The UART represents \code{stdout}.
 
-Within the I/O device memory area bits 11--8 are used to distinguish between different devices.
+Within the I/O device memory area bits 19--16 are used to distinguish between different devices.
 I/O device registers are mapped and aligned to 32-bit words. If a register is shorter than a word,
 the upper bits shall be filled with 0 on a read. With this mapping each I/O device can have up to
-64 32-bit registers.
+16384 32-bit registers.
+The I/O device base addresses for \code{pasim} are defined in \code{patmos/simulator/include/memory-map.h}
+and for the compiler/library the constants are in \code{llvm/tools/clang/lib/Driver/Tools.cpp}.
+The offsets of the I/O devices in the hardware are defined in the configuration XML files in
+\code{patmos/hardware/config/*.xml}
 
 In the initial prototype of Patmos we have 3 I/O devices: a system device that contains cycle and microsecond counters, a UART for basic communication, and LEDs
 on the FPGA board. One counter ticks with the clock frequency and the second
@@ -2107,17 +2111,17 @@ Address & I/O Device & read & write \\
 \code{0xf0000000} & cpuinfo & processor ID & -- \\
 \code{0xf0000004} & cpuinfo & clock frequency (Hz) & -- \\
 \code{0xf0000008} & cpuinfo & processor count & -- \\
-\code{0xf0000100} & excunit & &  \\
+\code{0xf0010000} & excunit & &  \\
 $\cdots$          & excunit & \multicolumn{2}{c}{Exception unit and cache control (see Section~\ref{sec:exc})} \\
-\code{0xf00001ff} & excunit & & \\
-\code{0xf0000200} & timer & clock cycles (high word) & cycle interrupt time (high word) \\
-\code{0xf0000204} & timer & clock cycles (low word) & cycle interrupt time (low word) \\
-\code{0xf0000208} & timer & time in $\mu s$ (high word) & $\mu s$ interrupt time (high word) \\
-\code{0xf000020c} & timer & time in $\mu s$ (low word) &  $\mu s$ interrupt time (low word) \\
-\code{0xf0000800} & UART & status & control \\
-\code{0xf0000804} & UART & receive buffer & transmit buffer \\
-\code{0xf0000900} & LED & -- & output register \\
-\code{0xf0000a00} & Keys & input register & -- \\
+\code{0xf00100ff} & excunit & & \\
+\code{0xf0020000} & timer & clock cycles (high word) & cycle interrupt time (high word) \\
+\code{0xf0020004} & timer & clock cycles (low word) & cycle interrupt time (low word) \\
+\code{0xf0020008} & timer & time in $\mu s$ (high word) & $\mu s$ interrupt time (high word) \\
+\code{0xf002000c} & timer & time in $\mu s$ (low word) &  $\mu s$ interrupt time (low word) \\
+\code{0xf0080000} & UART & status & control \\
+\code{0xf0080004} & UART & receive buffer & transmit buffer \\
+\code{0xf0090000} & LED & -- & output register \\
+\code{0xf00a0000} & Keys & input register & -- \\
 \bottomrule
 \end{tabular}
 \caption{I/O devices and registers}
