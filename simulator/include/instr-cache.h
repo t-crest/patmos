@@ -81,7 +81,7 @@ namespace patmos
 
     /// Print debug information to an output stream.
     /// @param os The output stream to print to.
-    virtual void print(std::ostream &os) = 0;
+    virtual void print(const simulator_t &s, std::ostream &os) = 0;
 
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
@@ -147,7 +147,7 @@ namespace patmos
     
     virtual void tick(simulator_t &s) {}
 
-    virtual void print(std::ostream &os) {}
+    virtual void print(const simulator_t &s, std::ostream &os) {}
 
     virtual void print_stats(const simulator_t &s, std::ostream &os,
                              const stats_options_t& options);
@@ -192,14 +192,14 @@ namespace patmos
 
     /// Print debug information to an output stream.
     /// @param os The output stream to print to.
-    virtual void print(std::ostream &os)
+    virtual void print(const simulator_t &s, std::ostream &os)
     {
       if (IS_OWNING_CACHE) {
-        Backing_cache->print(os);
+        Backing_cache->print(s, os);
         os << "\n";
       }
       
-      no_instr_cache_t::print(os);;
+      no_instr_cache_t::print(s, os);;
     }
 
     /// Print statistics to an output stream.

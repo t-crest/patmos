@@ -88,7 +88,7 @@ void ideal_method_cache_t::tick(simulator_t &s)
   // do nothing here
 }
 
-void ideal_method_cache_t::print(std::ostream &os)
+void ideal_method_cache_t::print(const simulator_t &s, std::ostream &os)
 {
   // nothing to do here either, since the cache has no internal state.
 }
@@ -483,7 +483,7 @@ void lru_method_cache_t::tick(simulator_t &s)
     Num_stall_cycles++;
 }
 
-void lru_method_cache_t::print(std::ostream &os)
+void lru_method_cache_t::print(const simulator_t &s, std::ostream &os)
 {
   os << boost::format(" #M: %1$02d #B: %2$02d\n")
       % Num_active_methods % Num_active_blocks;

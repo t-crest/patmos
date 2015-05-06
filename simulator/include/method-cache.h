@@ -97,7 +97,7 @@ namespace patmos
 
     /// Print debug information to an output stream.
     /// @param os The output stream to print to.
-    virtual void print(std::ostream &os);
+    virtual void print(const simulator_t &s, std::ostream &os);
 
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
@@ -365,7 +365,7 @@ namespace patmos
 
     /// Print debug information to an output stream.
     /// @param os The output stream to print to.
-    virtual void print(std::ostream &os);
+    virtual void print(const simulator_t &s, std::ostream &os);
 
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.

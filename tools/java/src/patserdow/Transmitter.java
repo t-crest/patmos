@@ -33,7 +33,7 @@
 /*
  * Transmit data as packets with CRC
  *
- * Authors: Tórur Biskopstø Strøm (torur.strom@gmail.com)
+ * Authors: Torur Biskopsto Strom (torur.strom@gmail.com)
  *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
  *
  */

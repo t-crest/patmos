@@ -226,17 +226,18 @@ class MCacheReplFifo() extends Module {
   io.perf.miss := Bool(false)
 
   // hit detection
-  val hit = Bool()
+  val hitVec = { Vec.fill(METHOD_COUNT) { Bool() } }
   val mergePosVec = { Vec.fill(METHOD_COUNT) { Bits(width = MCACHE_SIZE_WIDTH) } }
-  hit := Bool(false)
   for (i <- 0 until METHOD_COUNT) {
+    hitVec(i) := Bool(false)
     mergePosVec(i) := Bits(0)
     when (io.exmcache.callRetBase === mcacheAddrVec(i)
           && mcacheValidVec(i)) {
-            hit := Bool(true)
+            hitVec(i) := Bool(true)
             mergePosVec(i) := mcachePosVec(i)
           }
-  }  
+  }
+  val hit = hitVec.fold(Bool(false))(_|_)
   val pos = Mux(hit, mergePosVec.fold(Bits(0))(_|_), nextPosReg)
 
   //read from tag memory on call/return to check if method is in the cache
@@ -425,7 +426,7 @@ class MCacheCtrl() extends Module {
       when (burstCntReg === msizeAddr(log2Up(BURST_LENGTH)-1,0)) {
         val size = ocpSlaveReg.Data(MCACHE_SIZE_WIDTH+2,2)
         //init transfer from external memory
-        transferSizeReg := size
+        transferSizeReg := size - Bits(1)
         fetchCntReg := Bits(0) //start to write to cache with offset 0
         when (burstCntReg === UInt(BURST_LENGTH - 1)) {
           io.ocp_port.M.Cmd := OcpCmd.RD
@@ -450,11 +451,11 @@ class MCacheCtrl() extends Module {
   //transfer/fetch method to the cache
   when (mcacheState === transferState) {
     fetchEna := Bool(false)
-    when (fetchCntReg < transferSizeReg) {
+    when (fetchCntReg <= transferSizeReg) {
       when (ocpSlaveReg.Resp === OcpResp.DVA) {
         fetchCntReg := fetchCntReg + Bits(1)
         burstCntReg := burstCntReg + Bits(1)
-        when(fetchCntReg < transferSizeReg - Bits(1)) {
+        when(fetchCntReg < transferSizeReg) {
           //fetch next address from external memory
           when (burstCntReg === UInt(BURST_LENGTH - 1)) {
             io.ocp_port.M.Cmd := OcpCmd.RD

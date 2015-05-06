@@ -65,9 +65,10 @@ class InOut() extends Module {
   val selComSpm  = selNI & io.memInOut.M.Addr(ADDR_WIDTH-5) === Bits("b1")
 
   val MAX_IO_DEVICES : Int = 0x10
-  val IO_DEVICE_OFFSET = 12 // Number of address bits for each IO device
-  val IO_DEVICE_ADDR_SIZE = 32 - Integer.numberOfLeadingZeros(MAX_IO_DEVICES-1) 
-  assert(Bool(IO_DEVICE_ADDR_SIZE + IO_DEVICE_OFFSET < ADDR_WIDTH-4), "Conflicting addressspaces of IO devices")
+  val IO_DEVICE_OFFSET = 16 // Number of address bits for each IO device
+  val IO_DEVICE_ADDR_SIZE = 32 - Integer.numberOfLeadingZeros(MAX_IO_DEVICES-1)
+  assert(Bool(IO_DEVICE_ADDR_SIZE + IO_DEVICE_OFFSET < ADDR_WIDTH-4),
+                                    "Conflicting addressspaces of IO devices")
 
   val validDeviceVec = Vec.fill(MAX_IO_DEVICES) { Bool() }
   val selDeviceVec = Vec.fill(MAX_IO_DEVICES) { Bool() }
@@ -75,7 +76,7 @@ class InOut() extends Module {
   for (i <- 0 until MAX_IO_DEVICES) {
     validDeviceVec(i) := Bool(false)
     selDeviceVec(i) := selIO & io.memInOut.M.Addr(IO_DEVICE_ADDR_SIZE
-                              + IO_DEVICE_OFFSET, IO_DEVICE_OFFSET) === Bits(i)
+                          + IO_DEVICE_OFFSET - 1, IO_DEVICE_OFFSET) === Bits(i)
     deviceSVec(i).Resp := OcpResp.NULL
     deviceSVec(i).Data := Bits(0)
   }

@@ -95,7 +95,9 @@ namespace patmos
     
     virtual void tick(simulator_t &s) { Cache->tick(s); }
 
-    virtual void print(std::ostream &os) { Cache->print(os); }
+    virtual void print(const simulator_t &s, std::ostream &os) { 
+      Cache->print(s, os);
+    }
 
     virtual void print_stats(const simulator_t &s, std::ostream &os,
                              const stats_options_t& options);
