@@ -1,0 +1,5 @@
+This is a scratchpad to collect questions on Patmos and T-CREST.
+The questions shall resolve in improvement of the handbook or
+in a FAQ document.
+
+How and where are the pins of an IO device connected?
