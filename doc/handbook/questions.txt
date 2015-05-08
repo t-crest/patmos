@@ -3,3 +3,7 @@ The questions shall resolve in improvement of the handbook or
 in a FAQ document.
 
 How and where are the pins of an IO device connected?
+
+Where is the NoC schedule stored?
+
+How can an IO device be added to the multi-core platform?
