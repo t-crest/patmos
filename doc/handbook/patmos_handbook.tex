@@ -3448,7 +3448,7 @@ the Patmos on-chip ROM. As the on-chip memory is limited, only tiny programs
 are supported in this execution mode.
 
 Figure~\ref{fig:blink} shows the code for the embedded Hello World
-C program. Two constants (0xF0000900 and 0xF0000804) are the addresses
+C program. Two constants (0xF0090000 and 0xF0080004) are the addresses
 of the IO devices LED and serial port. IO devices connected to Patmos are
 connected to the local, uncached memory area. This is the same memory
 area where data SPM and NoC SPM are connected. Therefore, to access them
@@ -3470,8 +3470,8 @@ the compiler is instructed to emit the correct load and store instructions.
 
 int main() {
 
-    volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0000900;
-    volatile _SPM int *uart_ptr = (volatile _SPM int *) 0xF0000804;
+    volatile _SPM int *led_ptr  = (volatile _SPM int *) 0xF0090000;
+    volatile _SPM int *uart_ptr = (volatile _SPM int *) 0xF0080004;
     int i, j;
 
     for (;;) {
