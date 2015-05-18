@@ -11,11 +11,20 @@
 
 #include "includes.h"
 
-#define SYSID_VERSION_MAJOR(s) ((s & 0x00F00000)>>20)      //!< DOC hardware Major version from QSYS SYSID
-#define SYSID_VERSION_MINOR(s) ((s & 0x000F0000)>>16)      //!< DOC hardware Minor version from QSYS SYSID
-#define SYSID_POWERBOARD_ID(s) ((s & 0x0000F000)>>12)      //!< DOC power board identifier from QSYS SYSID
-#define SYSID_DEVICE_FAMILY(s) ((s & 0x00000F00)>>8)       //!< DOC device family identifier from QSYS SYSID
-#define SYSID_DESIGN_ID(s)     ((s & 0x000000FF))          //!< DOC identifier from QSYS SYSID
+// For litle endian
+//#define SYSID_VERSION_MAJOR(s) ((s & 0x00F00000)>>20)      //!< DOC hardware Major version from QSYS SYSID
+//#define SYSID_VERSION_MINOR(s) ((s & 0x000F0000)>>16)      //!< DOC hardware Minor version from QSYS SYSID
+//#define SYSID_POWERBOARD_ID(s) ((s & 0x0000F000)>>12)      //!< DOC power board identifier from QSYS SYSID
+//#define SYSID_DEVICE_FAMILY(s) ((s & 0x00000F00)>>8)       //!< DOC device family identifier from QSYS SYSID
+//#define SYSID_DESIGN_ID(s)     ((s & 0x000000FF))          //!< DOC identifier from QSYS SYSID
+
+// For big endian
+#define SYSID_VERSION_MAJOR(s) ((s & 0x0000F000)>>12)      //!< DOC hardware Major version from QSYS SYSID
+#define SYSID_VERSION_MINOR(s) ((s & 0x00000F00)>>8)      //!< DOC hardware Minor version from QSYS SYSID
+#define SYSID_POWERBOARD_ID(s) ((s & 0x00F00000)>>20)      //!< DOC power board identifier from QSYS SYSID
+#define SYSID_DEVICE_FAMILY(s) ((s & 0x000F0000)>>16)       //!< DOC device family identifier from QSYS SYSID
+#define SYSID_DESIGN_ID(s)     ((s & 0xFF000000)>>24)          //!< DOC identifier from QSYS SYSID
+
 
 #define SYSID_UNKNOWN    -1
 

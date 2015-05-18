@@ -39,9 +39,11 @@
 
 package io
 
+import scala.math._
 import Chisel._
 import Node._
 import ocp._
+import patmos.Constants._
 
 object AvalonMMBridge extends DeviceObject {
   var extAddrWidth = 32
@@ -87,56 +89,78 @@ class AvalonMMBridge(extAddrWidth : Int = 32,
                      numIntrs : Int = 1) extends CoreDevice() {
   override val io = new CoreDeviceIO() with AvalonMMBridge.Pins with AvalonMMBridge.Intrs
 
-  val intrVecReg0 = Vec.fill(numIntrs) { Reg(init = Bits(0, 1)) }
-  val intrVecReg1 = Vec.fill(numIntrs) { Reg(init = Bits(0, 1)) }
+  val coreBus = Module(new OcpCoreBus(ADDR_WIDTH,dataWidth))
+  val ioBus = Module(new OcpIOBus(ADDR_WIDTH,dataWidth))
 
-  for( i <- 0 until numIntrs) {
-    intrVecReg0(i) := io.avalonMMBridgePins.avs_intr(i)
-  }
+  io.ocp <> coreBus.io.slave
+
+  val bridge = new OcpIOBridge(coreBus.io.master,ioBus.io.slave)
+  
+
+  val intrVecReg0 = Reg(Bits(width = numIntrs))
+  val intrVecReg1 = Reg(Bits(width = numIntrs))
+
+  //for( i <- 0 until numIntrs) {
+  //  intrVecReg0(i) := io.avalonMMBridgePins.avs_intr(i)
+  //}
+  intrVecReg0 := io.avalonMMBridgePins.avs_intr
   intrVecReg1 := intrVecReg0
 
   // Generate interrupts on rising edges
   for (i <- 0 until numIntrs) {
-    io.avalonMMBridgeIntrs(i) := intrVecReg0(i) === Bits("b1") && intrVecReg1(i) === Bits("b0")
+    io.avalonMMBridgeIntrs(i) := (intrVecReg0(i) === Bits("b1")) && (intrVecReg1(i) === Bits("b0"))
   }
 
-  val respReg = Reg(init = OcpResp.NULL)
-  val dataReg = Reg(init = Bits(0, dataWidth))
+  val cmdType = Reg(init = OcpCmd.IDLE)
+  
+  //val respReg = Reg(init = OcpResp.NULL)
+  //val dataReg = Reg(init = Bits(0, dataWidth))
 
   val ReadWriteActive = Bool(true)
   val ReadWriteInactive = Bool(false)
   // Default values in case of ILDE command
-  respReg := OcpResp.NULL
-  dataReg := Bits(0)
+  //respReg := OcpResp.NULL
+  //dataReg := Bits(0)
   io.avalonMMBridgePins.avs_write := ReadWriteInactive
   io.avalonMMBridgePins.avs_read := ReadWriteInactive
 
+  ioBus.io.master.S.Resp := OcpResp.NULL
+  ioBus.io.master.S.CmdAccept := Bits(0)
+  ioBus.io.master.S.Data := Bits(0)
+
   // Constant connections
   io.avalonMMBridgePins.avs_burstcount := Bits("b1")
-  io.avalonMMBridgePins.avs_byteenable := io.ocp.M.ByteEn
+  io.avalonMMBridgePins.avs_byteenable := ioBus.io.master.M.ByteEn
   io.avalonMMBridgePins.avs_debugaccess := Bits("b0")
   // Connecting address and data signal straight through
-  io.avalonMMBridgePins.avs_address := io.ocp.M.Addr(extAddrWidth-1+2, 2)
-  io.avalonMMBridgePins.avs_writedata := io.ocp.M.Data(dataWidth-1, 0)
-  //io.ocp.S.Data(dataWidth-1, 0) := io.avalonMMBridgePins.avs_readdata(dataWidth-1, 0)
-  io.ocp.S.Data := dataReg
+  io.avalonMMBridgePins.avs_address := ioBus.io.master.M.Addr(extAddrWidth-1, 0)
+  io.avalonMMBridgePins.avs_writedata := ioBus.io.master.M.Data
+  ioBus.io.master.S.Data := io.avalonMMBridgePins.avs_readdata
 
-  when(io.ocp.M.Cmd === OcpCmd.WR) {
-    when(io.avalonMMBridgePins.avs_waitrequest === Bits("b0")) {
-      respReg := OcpResp.DVA
-    }
+  cmdType := cmdType
+  
+  
+  when(io.avalonMMBridgePins.avs_waitrequest === Bits("b0")) {
+    ioBus.io.master.S.CmdAccept := Bits("b1")
+  }
+
+  when(ioBus.io.master.M.Cmd === OcpCmd.WR) {
     io.avalonMMBridgePins.avs_write := ReadWriteActive
     io.avalonMMBridgePins.avs_read := ReadWriteInactive
-  }
-  when(io.ocp.M.Cmd === OcpCmd.RD) {
-    when(io.avalonMMBridgePins.avs_readdatavalid === Bits("b1")) {
-      respReg := OcpResp.DVA
+    when(io.avalonMMBridgePins.avs_waitrequest === Bits("b0")) {
+      ioBus.io.master.S.Resp := OcpResp.DVA
     }
-    io.avalonMMBridgePins.avs_write := ReadWriteInactive
-    io.avalonMMBridgePins.avs_read := ReadWriteActive
-    dataReg := io.avalonMMBridgePins.avs_readdata
   }
 
-  // Sending the generated response to OCP master
-  io.ocp.S.Resp := respReg
+  when(ioBus.io.master.M.Cmd === OcpCmd.RD) {
+    io.avalonMMBridgePins.avs_write := ReadWriteInactive
+    io.avalonMMBridgePins.avs_read := ReadWriteActive
+    cmdType := OcpCmd.RD
+  }
+
+  when(io.avalonMMBridgePins.avs_readdatavalid === Bits("b1") && cmdType === OcpCmd.RD) {
+    ioBus.io.master.S.Resp := OcpResp.DVA
+    cmdType := OcpCmd.IDLE
+  }
+
 }

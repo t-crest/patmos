@@ -1,14 +1,14 @@
 # Get the hardware build dir from the parent make
 HWBUILDDIR?=$(CURDIR)/build
 
-BOOTAPP?=basic
+BOOTAPP?=bootable-bootloader
 
 BOOTBUILDROOT?=$(CURDIR)/..
 BOOTBUILDDIR?=$(BOOTBUILDROOT)/tmp
 BOOTBIN?=$(BOOTBUILDDIR)/$(BOOTAPP).bin
 BOOTDAT?=$(BOOTBUILDDIR)/$(BOOTAPP).dat
 
-BOARD?=altde2-70
+BOARD?=altde2-115
 
 HWMODULEPREFIX?=
 

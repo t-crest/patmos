@@ -92,7 +92,7 @@ void init_debug (int dn, drive_params * dp) {
  * poll_debug Put new values passed from system console GUI into drive parameters
  */
 void poll_debug (int dn, drive_params * dp) {
-    dp[dn].openloop_test = debug_read_command (dn, DOC_DBG_OL_EN);
+/*    dp[dn].openloop_test = debug_read_command (dn, DOC_DBG_OL_EN);
 
     dp[dn].Id_Kp = debug_read_command (dn, DOC_DBG_I_PI_KP);
     dp[dn].Id_Ki = debug_read_command (dn, DOC_DBG_I_PI_KI);
@@ -118,7 +118,7 @@ void poll_debug (int dn, drive_params * dp) {
     dp[dn].pos_Kp = debug_read_command (dn, DOC_DBG_POS_PI_KP); //dummy
     dp[dn].pos_spdff_Kp = debug_read_command (dn, DOC_DBG_POS_SPDFF_KP); //dummy
 
-
+*/
 }
 
 /**
@@ -133,7 +133,7 @@ void debug_get_buttons(int offset, int num_buttons, int *buttons)
 {
     int i;
     int val;
-    unsigned int base_address = SYS_CONSOLE_DEBUG_RAM_BASE + offset;
+    unsigned int base_address = IO_IN_BUTTONS_BASE + offset;
     *buttons = 0;
     for (i=0;i<num_buttons;i++) {
         val = IORD_32DIRECT(base_address,i*4);
@@ -157,7 +157,7 @@ int debug_button_pressed(int buttons, int button_num)
  * Dump selected data to system console Tcl GUI
  */
 void dump_data(drive_params * dp, int axis_select) {
-
+/*
     int dn = 0;
 
 
@@ -322,11 +322,12 @@ void dump_data(drive_params * dp, int axis_select) {
 #endif
     }
 
-
+*/
 }
 
 void init_debug_output(void) {
-	dbg_level = DBG_DEFAULT;
+	//dbg_level = DBG_DEFAULT;
+	dbg_level = DBG_ALL;
 }
 
 int debug_printf(unsigned int priority, char *format, ...) {

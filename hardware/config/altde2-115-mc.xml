@@ -2,6 +2,7 @@
   <description>default configuration for DE2-115 board</description>
 
   <frequency Hz="80000000"/>
+  <pipeline dual="false" />
 
   <ExtMem size="2M" DevTypeRef="Ssram16" />
 
@@ -38,7 +39,7 @@
     </Dev>
     <Dev DevType="Avalon-MM" entity="AvalonMMBridge" iface="OcpCore">
         <params>
-            <param name="extAddrWidth" value="4" />
+            <param name="extAddrWidth" value="16" />
             <param name="dataWidth" value="32" />
             <param name="numIntrs" value="1" />
         </params>

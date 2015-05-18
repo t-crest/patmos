@@ -19,12 +19,7 @@ CFLAGS?=-target patmos-unknown-unknown-elf -O2 \
 	-mpatmos-disable-vliw
 LDFLAGS?= \
 	-mpatmos-method-cache-size=0x2000 -mpatmos-preferred-subfunction-size=0 \
-	-mpatmos-stack-base=0x200000 -mpatmos-shadow-stack-base=0x1f8000 -lm \
-	-mpatmos-iomap-base=0xF0000000 \
-	-Xgold --defsym -Xgold _cpuinfo_base=_iomap_base+0x0000 \
-	-Xgold --defsym -Xgold _excunit_base=_iomap_base+0x1000 \
-	-Xgold --defsym -Xgold _timer_base=_iomap_base+0x2000 \
-	-Xgold --defsym -Xgold _uart_base=_iomap_base+0x8000 
+	-mpatmos-stack-base=0x200000 -mpatmos-shadow-stack-base=0x1f8000 -lm
 
 
 FILES   = $(shell find . \( ! -regex '.*/\..*' \) -type f -name "*.c")
@@ -42,6 +37,9 @@ $(BINARY): Makefile.deps $(OBJS)
  
 Makefile.deps: $(FILES) $(HEADERS)
 	makedepend -- $(CFLAGS) -- $(FILES) -f- > Makefile.deps
+
+download: $(BINARY)
+	patserdow -v /dev/ttyUSB0 $(BINARY)
 
 clean:
 	-rm $(OBJS)

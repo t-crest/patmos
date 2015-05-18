@@ -47,7 +47,7 @@ static const powerboard_t supported_powerboards [] = {{SYSID_PB_ALT12_MULTIAXIS,
 /**
  * Initialise the supported encoder types for this demo
  */
-static const encoder_t supported_encoders [] = {{SYSID_ENCODER_BISS,  "BiSS",  Biss_Init,  Biss_Service,  Biss_Read_Position }};	//km
+//static const encoder_t supported_encoders [] = {{SYSID_ENCODER_BISS,  "BiSS",  Biss_Init,  Biss_Service,  Biss_Read_Position }};	//km
 /*
  * Determine what hardware we are running on based on the FPGA SYSID component.
  */
@@ -56,8 +56,12 @@ int decode_sysid(unsigned int sysid_base_addr) {		//km
 	int i;
 
 //km	int device_family_bit = 0;
-
 	int sys_id = IORD_32DIRECT(sysid_base_addr,0);
+	
+
+	//int sys_id = *((volatile int _IODEV *)sysid_base_addr);
+	//int sys_id = *((volatile alt_u32 _IODEV *)( ((void _IODEV *)(((alt_u8*)sysid_base_addr) + (0)))));
+	//asm volatile (" ");
 
 	debug_printf(DBG_ALWAYS, "[DECODE SYSID] Decoding hardware platform from QSYS SYSID data : 0x%08X \n", sys_id);
 	debug_printf(DBG_DEBUG, "[DECODE SYSID] SYSID_VERSION_MAJOR : 0x%02X \n", SYSID_VERSION_MAJOR(sys_id));
@@ -109,12 +113,12 @@ int decode_sysid(unsigned int sysid_base_addr) {		//km
 	// Decode the encoder type
 //km 	platform.encoder = NULL;
 //km 	for (i = 0; i < sizeof(supported_encoders)/sizeof(encoder_t); i++) {
-		platform.encoder = (encoder_t *)&supported_encoders[0];
+//		platform.encoder = (encoder_t *)&supported_encoders[0];
 //km		platform.encoder = (encoder_t *)&supported_encoders[i];
 //km		debug_printf(DBG_ALWAYS, "[DECODE SYSID] Encoder Type No.   : %d\n", i);	//km
 //km 	}
 
-	debug_printf(DBG_ALWAYS, "[DECODE SYSID] Encoder Type   : %s\n", platform.encoder->name);
+//	debug_printf(DBG_ALWAYS, "[DECODE SYSID] Encoder Type   : %s\n", platform.encoder->name);
 
 	debug_printf(DBG_ALWAYS, "[DECODE SYSID] %d axes available\n", platform.powerboard->axes);
 	if ((platform.powerboard->first_axis <= (platform.powerboard->axes - 1))
@@ -545,7 +549,7 @@ void drive_irq(void* context) {
 //###################################################################################################
 static void dc_link_voltage_check(void){
     dc_link_read(&dc_link_voltage, &dc_link_current);
-	int dcl_status = IORD_16DIRECT(DOC_DC_LINK_BASE, DOC_DC_LINK_STATUS) ;
+	int dcl_status = IORD_16DIRECT(DOC_DC_LINK_BASE, DOC_DC_LINK_STATUS);
 	debug_printf(DBG_INFO, "---> DC_Link Voltage Check : Undervoltage limit = %i V  Overvoltage limit = %i V  \n", platform.powerboard->undervoltage, platform.powerboard->overvoltage);
 
 	#ifdef LOOPBACK
@@ -562,7 +566,11 @@ static void dc_link_voltage_check(void){
 		dcl_status = IORD_16DIRECT(DOC_DC_LINK_BASE, DOC_DC_LINK_STATUS);
 
 		if ((dcl_status != 0) || (dc_link_voltage < platform.powerboard->undervoltage)) {
-			debug_printf(DBG_ERROR, "---> DC Link Error = %s %s %i V\n",
+//			debug_printf(DBG_ERROR, "---> DC Link Error = %s %s %i V\n",
+//					dcl_status & DOC_DC_LINK_STATUS_OV_BIT?"Overvoltage" : "",
+//					dcl_status & DOC_DC_LINK_STATUS_UV_BIT?"Undervoltage" : "",
+//					dc_link_voltage);
+			debug_printf(DBG_ERROR, "---> DC Link Error = %s %s %04X V\n",
 					dcl_status & DOC_DC_LINK_STATUS_OV_BIT?"Overvoltage" : "",
 					dcl_status & DOC_DC_LINK_STATUS_UV_BIT?"Undervoltage" : "",
 					dc_link_voltage);
@@ -570,7 +578,8 @@ static void dc_link_voltage_check(void){
 
 		if (platform.powerboard->sysid == SYSID_PB_ALT12_MULTIAXIS) {
 			// Altera power board has DC link current sense
-			debug_printf(DBG_INFO, "--->             : %i  mA \n",dc_link_current);
+			//debug_printf(DBG_INFO, "--->             : %i  mA \n",dc_link_current);
+			debug_printf(DBG_INFO, "--->             : %04X  mA \n",dc_link_current);
 		}
 		debug_printf(DBG_WARN, "---> Check power connection. \n");
 	}
@@ -969,20 +978,20 @@ static void	update_axis(int dn) {
  */
 
 void motor_task(void* pdata) {
-
-
 	int buttons; //Store button values
 	int dn; // drive number index
 	int restart_drive = 0;
 	int last_runtime = 0;
 
 	memset(&platform, 0, sizeof(platform_t));
+	puts("Hello world1");
 	// Determine what hardware we are running on
 	if (decode_sysid(SYSID_0_BASE) > 0) {
 		while (1) {
 			OSTimeDlyHMSM(0, 0, 1, 0);
 		}
 	}
+	puts("Hello world3");
 
 	init_sin_cos_tables();
 
@@ -1090,7 +1099,8 @@ void motor_task(void* pdata) {
 				update_axis(dn);
 			}
 
-		    axis_select = debug_read_command (0, DOC_DBG_AXIS_SELECT);
+		    //axis_select = debug_read_command (0, DOC_DBG_AXIS_SELECT);
+		    axis_select = 0;
 
 
 			debug_get_buttons((17 * 4), 5, &buttons);

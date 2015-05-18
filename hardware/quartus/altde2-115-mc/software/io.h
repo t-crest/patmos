@@ -52,18 +52,18 @@ extern "C"
   ((void _IODEV *)(((alt_u8*)BASE) + (OFFSET)))
 
 #define IORD_32DIRECT(BASE, OFFSET) \
-  *((alt_u32 _IODEV *)(__IO_CALC_ADDRESS_DYNAMIC ((BASE), (OFFSET))))
+  change_endianness_w(*((volatile alt_u32 _IODEV *)(__IO_CALC_ADDRESS_DYNAMIC ((BASE), (OFFSET)))))
 #define IORD_16DIRECT(BASE, OFFSET) \
-  *((alt_u16 _IODEV *)(__IO_CALC_ADDRESS_DYNAMIC ((BASE), (OFFSET))))
+  change_endianness_hw(*((volatile alt_u16 _IODEV *)(__IO_CALC_ADDRESS_DYNAMIC ((BASE), (OFFSET ^ 0x00000002)))))
 #define IORD_8DIRECT(BASE, OFFSET) \
-  *((alt_u8 _IODEV *)(__IO_CALC_ADDRESS_DYNAMIC ((BASE), (OFFSET))))
+  *((volatile alt_u8 _IODEV *)(__IO_CALC_ADDRESS_DYNAMIC ((BASE), (OFFSET ^ 0x00000003))))
 
 #define IOWR_32DIRECT(BASE, OFFSET, DATA) \
-  *((alt_u32 _IODEV *)(__IO_CALC_ADDRESS_DYNAMIC ((BASE), (OFFSET)))) = (DATA)
+  *((volatile alt_u32 _IODEV *)(__IO_CALC_ADDRESS_DYNAMIC ((BASE), (OFFSET)))) = change_endianness_w(DATA)
 #define IOWR_16DIRECT(BASE, OFFSET, DATA) \
-  *((alt_u16 _IODEV *)(__IO_CALC_ADDRESS_DYNAMIC ((BASE), (OFFSET)))) = (DATA)
+  *((volatile alt_u16 _IODEV *)(__IO_CALC_ADDRESS_DYNAMIC ((BASE), (OFFSET ^ 0x00000002)))) = change_endianness_hw(DATA)
 #define IOWR_8DIRECT(BASE, OFFSET, DATA) \
-  *((alt_u8 _IODEV *)(__IO_CALC_ADDRESS_DYNAMIC ((BASE), (OFFSET)))) = (DATA)
+  *((volatile alt_u8 _IODEV *)(__IO_CALC_ADDRESS_DYNAMIC ((BASE), (OFFSET  ^ 0x00000003)))) = (DATA)
 
 /* Native bus access functions */
 
@@ -71,9 +71,21 @@ extern "C"
   ((void *)(((alt_u8*)BASE) + ((REGNUM) * (SYSTEM_BUS_WIDTH/8))))
 
 #define IORD(BASE, REGNUM) \
-  *((alt_u32 _IODEV *)(__IO_CALC_ADDRESS_NATIVE ((BASE), (REGNUM))))
+  *((volatile alt_u32 _IODEV *)(__IO_CALC_ADDRESS_NATIVE ((BASE), (REGNUM))))
 #define IOWR(BASE, REGNUM, DATA) \
-  *((alt_u32 _IODEV *)(__IO_CALC_ADDRESS_NATIVE ((BASE), (REGNUM)))) = (DATA)
+  *((volatile alt_u32 _IODEV *)(__IO_CALC_ADDRESS_NATIVE ((BASE), (REGNUM)))) = (DATA)
+
+
+static inline alt_u32 change_endianness_w(alt_u32 data) {
+  return ((data & 0x000000FF) << 24) | ((data & 0x0000FF00) << 8) | 
+          ((data & 0x00FF0000) >> 8) | ((data & 0xFF000000) >> 24);
+}
+
+static inline alt_u16 change_endianness_hw(alt_u16 data) {
+  return ((data & 0x00FF) << 8) | ((data & 0xFF00) >> 8);
+}
+
+
 
 #ifdef __cplusplus
 }

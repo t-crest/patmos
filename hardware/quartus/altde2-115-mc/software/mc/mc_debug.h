@@ -181,11 +181,17 @@ int debug_button_pressed(int buttons, int button_num);
  *
  * @{
  */
-#define debug_base_addr(dn, word_offset) (SYS_CONSOLE_DEBUG_RAM_BASE + (dn * DEBUG_ADDR_SPACE_PER_AXIS * 4) + (word_offset * 4))
-#define debug_write_status(dn, reg_word_addr, value) (IOWR_32DIRECT(debug_base_addr (dn,0),reg_word_addr * 4,value))
-#define debug_write_status_float(dn, reg_word_addr, value) (IOWR_FLOATDIRECT(debug_base_addr (dn,0),reg_word_addr * 4,value))
-#define debug_read_command(dn, reg_word_addr) (IORD_32DIRECT(debug_base_addr (dn,0),reg_word_addr * 4))
-#define debug_read_command_float(dn, reg_word_addr) (IORD_FLOATDIRECT(debug_base_addr (dn,0),reg_word_addr * 4))
+//#define debug_base_addr(dn, word_offset) (SYS_CONSOLE_DEBUG_RAM_BASE + (dn * DEBUG_ADDR_SPACE_PER_AXIS * 4) + (word_offset * 4))
+//#define debug_write_status(dn, reg_word_addr, value) (IOWR_32DIRECT(debug_base_addr (dn,0),reg_word_addr * 4,value))
+//#define debug_write_status_float(dn, reg_word_addr, value) (IOWR_FLOATDIRECT(debug_base_addr (dn,0),reg_word_addr * 4,value))
+//#define debug_read_command(dn, reg_word_addr) (IORD_32DIRECT(debug_base_addr (dn,0),reg_word_addr * 4))
+//#define debug_read_command_float(dn, reg_word_addr) (IORD_FLOATDIRECT(debug_base_addr (dn,0),reg_word_addr * 4))
+#define debug_base_addr(dn, word_offset)
+#define debug_write_status(dn, reg_word_addr, value)
+#define debug_write_status_float(dn, reg_word_addr, value)
+#define debug_read_command(dn, reg_word_addr) 
+#define debug_read_command_float(dn, reg_word_addr) 
+
 /*!
  * @}
  */
