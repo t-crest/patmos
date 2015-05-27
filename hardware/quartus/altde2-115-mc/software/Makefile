@@ -13,7 +13,7 @@ INCLUDE_PATHS+= -I./platform/common
 #INCLUDE_PATHS+= -I./DOC_DE2115_bsp/HAL/inc
 #INCLUDE_PATHS+= -I./DOC_DE2115_bsp/drivers/inc
 
-CFLAGS?=-target patmos-unknown-unknown-elf -O2 \
+CFLAGS?=-target patmos-unknown-unknown-elf -O3 \
 	$(INCLUDE_PATHS) \
 	-DSYSTEM_BUS_WIDTH=32 \
 	-mpatmos-disable-vliw

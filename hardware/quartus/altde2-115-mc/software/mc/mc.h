@@ -346,7 +346,7 @@ typedef struct
 } drive_params;
 
 void init_dp(drive_params * dp);
-void drive_irq(void* context);
+void drive_irq(void);
 void * get_dp(void);
 
 /*!

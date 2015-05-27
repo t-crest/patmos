@@ -130,6 +130,9 @@ class AvalonMMBridge(extAddrWidth : Int = 32,
 
   // Constant connections
   io.avalonMMBridgePins.avs_burstcount := Bits("b1")
+  //for( i <- 3 to 0) {
+  //  io.avalonMMBridgePins.avs_byteenable(3-i) := ioBus.io.master.M.ByteEn(i) 
+  //}
   io.avalonMMBridgePins.avs_byteenable := ioBus.io.master.M.ByteEn
   io.avalonMMBridgePins.avs_debugaccess := Bits("b0")
   // Connecting address and data signal straight through

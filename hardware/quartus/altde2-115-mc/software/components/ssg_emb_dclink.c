@@ -105,7 +105,7 @@ void dc_link_chopper_setup(void)
 void dc_link_read(short * voltage, short * current) {
 	*current = 0;
 	if (platform.powerboard->sysid == SYSID_PB_ALT12_MULTIAXIS) {
-		int i_tmp, v_tmp;
+		unsigned int i_tmp, v_tmp;
 		// Altera Power board
 		// ADCs are +/-320mV full scale 15 bit result so each count is 640/32767 mV
 		// Current is sensed across 0R01 shunt so I = V/0.01 = V*100 mA
@@ -136,6 +136,35 @@ void dc_link_read(short * voltage, short * current) {
 int dc_link_voltage_err_check(int base_address){
      return ((IORD_16DIRECT(base_address,0) >> 6)==4 );
 }
+
+
+void dc_link_read_config(short int id) {
+	static unsigned short int last_offset = -1;
+	unsigned short int offset = IORD_16DIRECT(DOC_DC_LINK_BASE, DOC_DC_LINK_OFFSET);
+
+	if (last_offset == offset) return; // If nothing changed do nothing
+
+	debug_printf(DBG_INFO,
+		"--->\tLAST_OFFSET\t%i\n\tOFFSET\t%i\n\tVBUS\t%i\n\tID\t%i\n",
+		last_offset,offset,IORD_16DIRECT(DOC_DC_LINK_BASE, DOC_DC_LINK_VBUS),id);
+
+	last_offset = offset;
+	/*
+	debug_printf(DBG_INFO,
+		"--->\tOFFSET\t%i\n\tK64\t%i\n\tOVERVOLTAGE\t%i\n\tCHOPPER\t%i\n\tUNDERVOLTAGE\t%i\n\tBRAKE_T\t%i\n\tBRAKE_MAX\t%i\n\tVBUS\t%i\n\tBRAKELEVEL\t%i\n\tSTATUS\t%i\n",
+		IORD_16DIRECT(DOC_DC_LINK_BASE, DOC_DC_LINK_OFFSET),
+		IORD_16DIRECT(DOC_DC_LINK_BASE, DOC_DC_LINK_K64),
+		IORD_16DIRECT(DOC_DC_LINK_BASE, DOC_DC_LINK_OVERVOLTAGE),
+		IORD_16DIRECT(DOC_DC_LINK_BASE, DOC_DC_LINK_CHOPPER),
+		IORD_16DIRECT(DOC_DC_LINK_BASE, DOC_DC_LINK_UNDERVOLTAGE),
+		IORD_16DIRECT(DOC_DC_LINK_BASE, DOC_DC_LINK_BRAKE_T),
+		IORD_16DIRECT(DOC_DC_LINK_BASE, DOC_DC_LINK_BRAKE_MAX),
+		IORD_16DIRECT(DOC_DC_LINK_BASE, DOC_DC_LINK_VBUS),
+		IORD_16DIRECT(DOC_DC_LINK_BASE, DOC_DC_LINK_BRAKELEVEL),
+		IORD_16DIRECT(DOC_DC_LINK_BASE, DOC_DC_LINK_STATUS));
+	*/
+}
+
 
 /*!
  * @}

@@ -171,14 +171,14 @@ int decode_sysid(unsigned int sysid_base_addr) {		//km
 //
 // On Nios the ISR is linked in tightly coupled memory
 //
-void drive_irq(void* context) IRQ_SECTION;
+void drive_irq(void)  __attribute__((naked)); // TODO: IRQ_SECTION; __attribute__((naked)) __attribute__((section(".text.spm")))
 
 #define SPEED_SHIFT_INT 0
 //#define LOOPBACK
 #define OFFSET_ACCUM_ISR_COUNT  256
 #define CURRENT_OFFSET_LIMIT    400
 
-static drive_params dp[4] DRIVE_SECTION;
+static drive_params dp[4]; // TODO: DRIVE_SECTION;
 
 static int axis_select = 0;
 static int latency = 0;
@@ -386,10 +386,9 @@ static void process(drive_params * dp) {
  * Processing must complete in time for the new PWM value to be written to the hardware before
  * the next cycle starts.
  *
- * @param context	Additional IRQ context
 */
-void drive_irq(void* context) {
-
+void drive_irq(void) {
+	exc_prologue();
 	int dn = 0;
 	//km	int dspba_foc_base = 0;
 
@@ -400,7 +399,7 @@ void drive_irq(void* context) {
 
 	// Disable channel 0 ADC IRQ
     IOWR_16DIRECT(dp[0].DOC_ADC_BASE_ADDR, ADC_IRQ_ACK,1);
-
+/*
 	if (dp[dn].openloop_test == 0) {
 		// Closed loop control
 		for (dn = platform.first_drive; dn <= platform.last_drive; dn++){
@@ -485,6 +484,8 @@ void drive_irq(void* context) {
 			//km		}
 	}
 	else {
+
+		*/
 		// Open loop mode
 		static unsigned int idx = 0;
 		unsigned short x1 ;
@@ -494,9 +495,9 @@ void drive_irq(void* context) {
 
         for (dn = platform.first_drive; dn <= platform.last_drive; dn++){
 			// Read motor position from encoder
-        	platform.encoder->encoder_read_position_fn(&dp[dn]);
-            dp[dn].phi_elec = PHI_ELECTRICAL(dp[dn].mpoles, dp[dn].phi_mech, dp[dn].mphase);
-            position_control(&dp[dn].Position_PI,  dp[dn].enc_data, &dp[dn].enc_data_old, &dp[dn].pos_temp, &dp[dn].pos_int, dp[dn].pos_setpoint, dp[dn].pos_limit, &dp[dn].speed_command,dp[dn].encoder_singleturn_bits);
+    //RBS 	platform.encoder->encoder_read_position_fn(&dp[dn]);
+    //RBS   dp[dn].phi_elec = PHI_ELECTRICAL(dp[dn].mpoles, dp[dn].phi_mech, dp[dn].mphase);
+    //RBS   position_control(&dp[dn].Position_PI,  dp[dn].enc_data, &dp[dn].enc_data_old, &dp[dn].pos_temp, &dp[dn].pos_int, dp[dn].pos_setpoint, dp[dn].pos_limit, &dp[dn].speed_command,dp[dn].encoder_singleturn_bits);
             // Position not used - for monitoring only
 
 			// Read motor U & W phase currents from ADC
@@ -517,14 +518,14 @@ void drive_irq(void* context) {
 				pwm_update(dp[dn].DOC_PWM_BASE_ADDR, (PWMMAX+1)/2-1, (PWMMAX+1)/2-1, (PWMMAX+1)/2-1);
 			}
 		} // end for dn
-	}; // end of openloop mode code
+//	}; // end of openloop mode code
 
 	dn = 0;
 	dn = axis_select;
 
 
 	// Dump diagnostic data for system console GUI
-	dump_data(dp, axis_select);
+//	dump_data(dp, axis_select);
 
 
 
@@ -537,11 +538,10 @@ void drive_irq(void* context) {
         cnt_IRQ = 0;
         runtime++;
     }
-
     // Re-enable channel 0 ADC interrupt
     IOWR_16DIRECT(dp[0].DOC_ADC_BASE_ADDR, ADC_IRQ_ACK,0);
 
-    //PERF_END (PERFORMANCE_COUNTER_0_BASE, 1);
+    exc_epilogue();
 }
 
 //################################################################################################
@@ -564,22 +564,22 @@ static void dc_link_voltage_check(void){
 		OSTimeDlyHMSM(0, 0, 0, 500);
 		dc_link_read(&dc_link_voltage, &dc_link_current);
 		dcl_status = IORD_16DIRECT(DOC_DC_LINK_BASE, DOC_DC_LINK_STATUS);
+		debug_printf(DBG_ERROR, "---> DC Link Status = %i\n",dcl_status);
 
 		if ((dcl_status != 0) || (dc_link_voltage < platform.powerboard->undervoltage)) {
-//			debug_printf(DBG_ERROR, "---> DC Link Error = %s %s %i V\n",
-//					dcl_status & DOC_DC_LINK_STATUS_OV_BIT?"Overvoltage" : "",
-//					dcl_status & DOC_DC_LINK_STATUS_UV_BIT?"Undervoltage" : "",
-//					dc_link_voltage);
-			debug_printf(DBG_ERROR, "---> DC Link Error = %s %s %04X V\n",
+			debug_printf(DBG_ERROR, "---> DC Link Error = %s %s %i V\n",
 					dcl_status & DOC_DC_LINK_STATUS_OV_BIT?"Overvoltage" : "",
 					dcl_status & DOC_DC_LINK_STATUS_UV_BIT?"Undervoltage" : "",
 					dc_link_voltage);
+			//unsigned int v_tmp = (unsigned int)IORD_16DIRECT(DOC_DC_LINK_BASE, DOC_DC_LINK_VBUS);
+			//debug_printf(DBG_ERROR, "---> DC link read int = %i\n",v_tmp);
+			//v_tmp = (v_tmp*64*1996) / (82*32767);
+			//debug_printf(DBG_ERROR, "---> DC link read int = %i\n",v_tmp);
 		}
 
 		if (platform.powerboard->sysid == SYSID_PB_ALT12_MULTIAXIS) {
 			// Altera power board has DC link current sense
-			//debug_printf(DBG_INFO, "--->             : %i  mA \n",dc_link_current);
-			debug_printf(DBG_INFO, "--->             : %04X  mA \n",dc_link_current);
+			debug_printf(DBG_INFO, "--->             : %i  mA \n",dc_link_current);
 		}
 		debug_printf(DBG_WARN, "---> Check power connection. \n");
 	}
@@ -637,6 +637,7 @@ int adc_offset_calculation(void) {
 		//Wait for offset calculation to finish
 		debug_printf(DBG_INFO, "---> Axis %d: Offset calc\n", dn);
 		while (dp[dn].Offset_start_calc != 0) {
+			debug_printf(DBG_INFO,"---> Offset U %i , Offset W %i\n",dp[dn].Offset_U,dp[dn].Offset_W);
 			OSTimeDlyHMSM(0, 0, 0, 100);
 			timeout++;
 			if (timeout > 10) {
@@ -654,6 +655,7 @@ int adc_offset_calculation(void) {
 			dp[dn].Offset_W = 0;
 
 			status_word = (0x0FFF & IORD_16DIRECT(dp[dn].DOC_SM_BASE_ADDR, SM_STATUS));
+			debug_printf(DBG_ERROR, "---> status_word %04X\n",status_word);
 
 			if (status_word & (STATUS_REG_ERR_OV|STATUS_REG_ERR_UV|STATUS_REG_ERR_IGBT)) {
 				debug_printf(DBG_ERROR, "---> Drive State Machine Errors = %s %s %s\n",
@@ -984,21 +986,19 @@ void motor_task(void* pdata) {
 	int last_runtime = 0;
 
 	memset(&platform, 0, sizeof(platform_t));
-	puts("Hello world1");
 	// Determine what hardware we are running on
 	if (decode_sysid(SYSID_0_BASE) > 0) {
 		while (1) {
 			OSTimeDlyHMSM(0, 0, 1, 0);
 		}
 	}
-	puts("Hello world3");
 
 	init_sin_cos_tables();
 
 	while (1) {
 		//km		enable_dspba = SOFT_FIXP;
 		init_dp(&dp[0]);
-		debug_get_buttons((17 * 4), 5, &buttons);
+		//debug_get_buttons((17 * 4), 5, &buttons);
 
 		// Initialise all drives
 		// Leave this as 0 to platform.last_drive for debug interface
@@ -1027,6 +1027,9 @@ void motor_task(void* pdata) {
 		debug_printf(DBG_INFO, "[Motor task] Configure DC link\n");
 		dc_link_setup();
 		OSTimeDlyHMSM(0, 0, 0, 1);
+		unsigned short int tmp = IORD_16DIRECT(DOC_DC_LINK_BASE, DOC_DC_LINK_OVERVOLTAGE);
+		debug_printf(DBG_INFO, "[Motor task] Overvoltage %i\n", tmp);
+		debug_printf(DBG_INFO, "[Motor task] Overvoltage %i\n", platform.powerboard->overvoltage);
 
 		//Check the DC link voltage measurement
 		debug_printf(DBG_INFO, "[Motor task] Check DC Link\n");
@@ -1042,7 +1045,7 @@ void motor_task(void* pdata) {
 
 		dc_link_chopper_setup();
 
-
+/*
 		// Initialise Encoders
 		debug_printf(DBG_INFO, "[Motor task] %s Initialization\n", platform.encoder->name);
 		for (dn = platform.first_drive; dn <= platform.last_drive; dn++){//MAX
@@ -1066,22 +1069,35 @@ void motor_task(void* pdata) {
 			if (dp[dn].encoder_version > 0)
 				debug_printf(DBG_INFO, "[Motor task] Version of %s interface  V%i.2 \n", platform.encoder->name, dp[dn].encoder_version);
 		};
-
+*/
 		debug_printf(DBG_INFO, "[Motor task] ---> Setting state to 7 \n");
 		debug_write_status (0, DOC_DBG_DRIVE_STATE, 7); //passed EnDat test
 
 		// Enable drive IRQ in CPU interrupt controller
 		// TODO: setup drive_irq() as interrupt handler on patmos
 		//alt_ic_isr_register(0, DRIVE0_DOC_ADC_IRQ, drive_irq, NULL, NULL);
+		//exc_register(6,&drive_irq);
+		exc_register(16+6,&drive_irq);
 
+		// unmask interrupts
+		intr_unmask_all();
+		
+
+		debug_printf(DBG_INFO, "[Motor task] ---> Interrupt service routine setup \n");
 
 		//Enable the PWMs after setting up the EnDat / Biss encoders
 		for (dn = 0; dn <= platform.last_drive; dn++) {
 			dsm_reset(dp[dn].DOC_SM_BASE_ADDR);
+			debug_printf(DBG_INFO, "[Motor task] ---> DSM setup \n");
 			pwm_setup(dp[dn].DOC_PWM_BASE_ADDR,PWMMAX);
+			debug_printf(DBG_INFO, "[Motor task] ---> PWM setup \n");
 			adc_setup(dp[dn].DOC_ADC_BASE_ADDR);
+			debug_printf(DBG_INFO, "[Motor task] ---> ADC setup \n");
 		}
+		debug_printf(DBG_INFO, "[Motor task] ---> IO devices setup \n");
 
+		// enable interrupts
+		intr_enable();
 
 		if (adc_offset_calculation()>0) {
 			restart_drive = 1;  //loop restarting the drive if error
@@ -1090,7 +1106,7 @@ void motor_task(void* pdata) {
 		if (restart_drive == 1) {
 			debug_printf(DBG_ERROR, "[Motor task] ---> Failure detected in ADC calibration. Check power connection. \n");
 		}
-
+		
 		// Normal operation task loop
 		while(restart_drive == 0) {
 			// Service all drives
@@ -1102,27 +1118,23 @@ void motor_task(void* pdata) {
 		    //axis_select = debug_read_command (0, DOC_DBG_AXIS_SELECT);
 		    axis_select = 0;
 
-
-			debug_get_buttons((17 * 4), 5, &buttons);
-
 			// Debug Output of Motor Data once per second only in Run State
-//RBS			if (dp[platform.first_drive].state_act == 3 ) {
-//RBS				if (runtime != last_runtime) {
-//RBS					last_runtime = runtime;
-//RBS					//PERF_STOP_MEASURING (PERFORMANCE_COUNTER_0_BASE);
-//RBS					latency = small2_perf_get_latency  ((void *)PERFORMANCE_COUNTER_0_BASE, 2, AVALON_FREQ); //The FOC portion of the IRQ for 1 axis
-//RBS					//latency = small2_perf_get_latency  ((void *)PERFORMANCE_COUNTER_0_BASE, 1, AVALON_FREQ); //The complete IRQ
-//RBS					//PERF_RESET (PERFORMANCE_COUNTER_0_BASE);
-//RBS					//PERF_START_MEASURING (PERFORMANCE_COUNTER_0_BASE);
-//RBS				}
-//RBS			}
+			if (dp[platform.first_drive].state_act == 3 ) {
+				if (runtime != last_runtime) {
+					last_runtime = runtime;
+					//PERF_STOP_MEASURING (PERFORMANCE_COUNTER_0_BASE);
+					//latency = small2_perf_get_latency  ((void *)PERFORMANCE_COUNTER_0_BASE, 2, AVALON_FREQ); //The FOC portion of the IRQ for 1 axis
+					//latency = small2_perf_get_latency  ((void *)PERFORMANCE_COUNTER_0_BASE, 1, AVALON_FREQ); //The complete IRQ
+					//PERF_RESET (PERFORMANCE_COUNTER_0_BASE);
+					//PERF_START_MEASURING (PERFORMANCE_COUNTER_0_BASE);
+				}
+			}
 
 			// Drive state machine
 			for (dn = platform.first_drive; dn <= platform.last_drive; dn++){ //MAX
 				if (dp[dn].state_act != 3 ) { //Disable Motor when not in Run State
 					dp[dn].enable_drive = 0 ;
 				}
-
 				dp[dn].state_act_old  = dp[dn].state_act;
 				dp[dn].status_word = (0x0FFF & IORD_16DIRECT(dp[dn].DOC_SM_BASE_ADDR, SM_STATUS));
 				dp[dn].state_act	= dp[dn].status_word >> 9;

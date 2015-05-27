@@ -115,5 +115,9 @@
 
 //#include "mc_nios_perf.h"
 
+// Patmos specific libraries
+#include <machine/exceptions.h>
+#include <machine/rtc.h>
+
 #endif	// __INCLUDES_H_
 

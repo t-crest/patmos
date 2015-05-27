@@ -134,9 +134,10 @@ int mp_init_chans() {
       while (chan_info[chan_id].sink_addr == NULL);
       chan_info[chan_id].src_desc_ptr->recv_addr = chan_info[chan_id].sink_addr;
 #ifdef DEBUG
+      // If debugging mode reset src_desc_ptr
       chan_info[chan_id].src_desc_ptr = NULL;
 #endif
-    TRACE(INFO,TRUE,"Source port initialized\n");
+      TRACE(INFO,TRUE,"Source port initialized\n");
     } else if (chan_info[chan_id].sink_id == cpuid) {
       TRACE(INFO,TRUE,"Sink port found src_addr : %#08x, sink_addr : %#08x\n",(unsigned int)chan_info[chan_id].src_addr,(unsigned int)chan_info[chan_id].sink_addr);
       // If calling core is sink, wait for the source address, and then
@@ -144,9 +145,10 @@ int mp_init_chans() {
       while (chan_info[chan_id].src_addr == NULL);
       chan_info[chan_id].sink_desc_ptr->send_recv_count = chan_info[chan_id].src_addr;
 #ifdef DEBUG
+      // If debugging mode reset src_desc_ptr
       chan_info[chan_id].sink_desc_ptr = NULL;
 #endif
-    TRACE(INFO,TRUE,"Sink port initialized\n");
+      TRACE(INFO,TRUE,"Sink port initialized\n");
     }
 
   }

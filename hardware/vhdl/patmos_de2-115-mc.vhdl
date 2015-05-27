@@ -54,7 +54,16 @@ entity patmos_top is
 		oSRAM_OE_N : out std_logic;
 		oSRAM_WE_N : out std_logic;
 		oSRAM_LB_N : out std_logic;
-		oSRAM_UB_N : out std_logic
+		oSRAM_UB_N : out std_logic;
+
+		-- Debug signals
+		debug_sys_adc_clk : out std_logic;
+		debug_sys_adc_feedback_clk : out std_logic;
+		debug_dc_link_Sync_Dat_VBUS : out std_logic;
+		debug_drive0_adc_Sync_Dat_U : out std_logic;
+		debug_drive0_adc_Sync_Dat_W : out std_logic;
+		debug_ground : out std_logic;
+		debug_irg : out std_logic
 );
 end entity patmos_top;
 
@@ -214,6 +223,7 @@ architecture rtl of patmos_top is
 	constant pll_div    : natural := 5;
 
 	signal clk_int : std_logic;
+	signal adc_clk : std_logic;
 
 	-- for generation of internal reset
 	signal res_50_reg1, res_50_reg2 : std_logic := '0';
@@ -286,9 +296,11 @@ begin
 		inclk0	=> inclk0,
 		c0			=> clk_50,
 		c1			=> clk_80,
-		c2			=> sys_adc_clk,
+		c2			=> adc_clk,
 		locked	=> locked
 	);
+	sys_adc_clk <= adc_clk;
+
 	-- we use a PLL
 	-- clk_int <= clk;
 
@@ -520,6 +532,14 @@ begin
 			addr_reg <= next_addr_reg;
 		end if ;
 	end process;
-		
+
+	-- Debug signal assignments
+	debug_sys_adc_clk <= adc_clk;
+	debug_sys_adc_feedback_clk <= sys_adc_feedback_clk;
+	debug_dc_link_Sync_Dat_VBUS <= dc_link_Sync_Dat_VBUS;
+	debug_drive0_adc_Sync_Dat_U <= drive0_adc_Sync_Dat_U;
+	debug_drive0_adc_Sync_Dat_W <= drive0_adc_Sync_Dat_W;
+	debug_ground <= '0';
+	debug_irg <= drive0_adc_irq;
 		
 end architecture rtl;

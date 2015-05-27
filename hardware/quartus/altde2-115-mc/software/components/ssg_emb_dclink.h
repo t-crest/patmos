@@ -71,6 +71,7 @@
 void dc_link_setup(void);
 void dc_link_chopper_setup(void);
 void dc_link_read(short * voltage, short * current);
+void dc_link_read_config(short int id);
 
 /*!
  * @}
