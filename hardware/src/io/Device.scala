@@ -96,6 +96,14 @@ class CoreDeviceIO() extends InternalIO() {
   val ocp = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
 }
 
+class IODevice() extends Device() {
+  override val io = new IODeviceIO()
+}
+
+class IODeviceIO() extends InternalIO() {
+  val ocp = new OcpIOSlavePort(ADDR_WIDTH, DATA_WIDTH)
+}
+
 class BurstDevice(addrBits: Int) extends Device() {
   override val io = new BurstDeviceIO(addrBits)
 }
