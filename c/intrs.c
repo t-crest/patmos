@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define LEDS (*((volatile _IODEV unsigned *)0xf0000900))
+#define LEDS (*((volatile _IODEV unsigned *)0xf0090000))
 
 void fault_handler(void);
 void trap_handler(void) __attribute__((naked));
