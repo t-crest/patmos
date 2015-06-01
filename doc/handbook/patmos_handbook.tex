@@ -3596,11 +3596,11 @@ install/bin/emulator tmp/hello_puts.elf
 \subsection{Supported FPGA Boards}
 
 At the time of this writing we have mainly focused on Altera FPGA based boards. Following boards
-are directly supported in the default build process:
+are directly supported in the build process:
 
 \begin{itemize}
+\item Altera DE2-115 (\code{altde2-115}), this is the default board for the project
 \item Altera DE2-70 (\code{altde2-70})
-\item Altera DE2-115 (\code{altde2-115})
 \item Altera/Farnell BeMicro (\code{bemicro})
 \end{itemize}
 
@@ -3804,6 +3804,30 @@ The \code{ml605.tgz} shall be extracted within the \code{t-crest} directory.
 Copy the Patmos Verilog files (\code{ml605mPatmosCore.v} and \code{ml605mPatmosCore.v})
 from the build directory (\code{t-crest/aegean/build/ml605\_4core}) into \code{t-crest/ml605}.
 
+\section{Testing}
+
+Patmos base functionality can be tested by comparing the execution of the simulator with
+the execution of the emulator. \todo{Write more on how it works. Somewhere we should also
+talk about the two different ways to build Patmos: within the patmos repro and with build.sh
+where the emulator gets installed.}
+Within the \code{patmos} folder execute:
+
+\begin{verbatim}
+make test
+\end{verbatim}
+
+More testing can be performed with the programs included in the benchmark repository.
+This repository is not included in the default checkout and build. Therefore, within the
+folder \code{t-crest} execute
+
+\begin{verbatim}
+misc/build.sh patmos
+misc/build.sh -t bench
+\end{verbatim}
+
+to checkout the benchmarks, compile them, and execute them. Building Patmos via the build script
+also ensures that the correct emulator is used. Be aware that this is
+a very lengthy task; it takes on a MacBook Pro more than 3 hours.
 
 \section{Worst-Case Execution Time Analysis}
 
