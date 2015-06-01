@@ -48,8 +48,8 @@ const int NOC_MASTER = 0;
 
 #define core_id *((volatile _SPM int *) 0xF0000000)
 
-#define UART_STATUS *((volatile _SPM int *) 0xF0000800)
-#define UART_DATA   *((volatile _SPM int *) 0xF0000804)
+#define UART_STATUS *((volatile _SPM int *) 0xF0080000)
+#define UART_DATA   *((volatile _SPM int *) 0xF0080004)
 static void write(const char *msg, int len) __attribute__((noinline));
 #define WRITE(data,len) write(data,len)
 

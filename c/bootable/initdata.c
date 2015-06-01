@@ -41,8 +41,8 @@ int main() {
   const char *msg = "Hello, World!\n";
   unsigned i, k;
 
-  volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0000900;
-  volatile _SPM int *uart_ptr = (volatile _SPM int *) 0xF0000804;
+  volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0090000;
+  volatile _SPM int *uart_ptr = (volatile _SPM int *) 0xF0080004;
 
   for (i = 0; i < strlen(msg); i++) {
 	*uart_ptr = msg[i];

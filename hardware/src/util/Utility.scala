@@ -75,7 +75,7 @@ object Utility {
     }
 
     for (i <- 0 until byteArray.length / bytesPerWord) {
-      var word = 0
+      var word = BigInt(0)
       for (j <- 0 until bytesPerWord) {
         word <<= 8
         word += byteArray(i * bytesPerWord + j).toInt & 0xff
