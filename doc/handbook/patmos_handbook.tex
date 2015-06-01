@@ -3305,11 +3305,33 @@ till Cyclone~V devices and might be the best option at the moment.
 
 \section{Setup On Mac OS X}
 
-First install the Mac compiler (Xcode) and the command line tools. For Linux/GCC tools and libraries
-we use \code{Homebrew} as package manager. Following packages are recommended:
+First install the Mac compiler (Xcode) and the command line tools.
 
-doxygen?
+This subsection describes the installation of needed tools and libraries
+on Mac OS X. It is based on a OS X Yosemite and assumes to use
+homebrew\footnote{\url{http://brew.sh/}} for package management.
 
+For the build of Patmos and the compiler we need:
+
+\begin{verbatim}
+brew install cmake boost libelf sbt doxygen
+\end{verbatim}
+
+Mac OS X comes with Python version 2.7 preinstalled. For Aegean
+we need Python 3 and the xml library that can be installed with:
+
+\begin{verbatim}
+brew install python3
+pip3 install lxml
+\end{verbatim}
+
+For wave viewing install GTKWave with
+
+\begin{verbatim}
+brew install homebrew/x11/gtkwave
+\end{verbatim}
+
+\todo{The following should probably be deleted as we switched to homebrew for the setup.}
 
 Several tools are needed, best installed with MacPorts. For Patmos simulator and assembler:
 \code{boost}, \code{libelf}.
