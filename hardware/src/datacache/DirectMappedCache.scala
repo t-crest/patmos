@@ -83,7 +83,6 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
   val tagValid = tagV && tag === Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, addrBits+2))
 
   val fillReg = Reg(Bool())
-  val fillAddrReg = Reg(Bits(width = addrBits+2 - lineBits))
 
   val wrAddrReg = Reg(Bits(width = addrBits))
   val wrDataReg = Reg(Bits(width = DATA_WIDTH))
@@ -133,7 +132,6 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
 
   // Start handling a miss
   when(!tagValid && masterReg.Cmd === OcpCmd.RD) {
-    fillAddrReg := masterReg.Addr(addrBits + 1, lineBits)
     tagVMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(true)
     missIndexReg := masterReg.Addr(lineBits-1, 2).toUInt
     io.slave.M.Cmd := OcpCmd.RD
@@ -142,8 +140,8 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
     }
     .otherwise {
       stateReg := hold
-      masterReg.Addr := masterReg.Addr
     }
+    masterReg.Addr := masterReg.Addr
     io.perf.miss := Bool(true)
   }
   tagMem.io <= (!tagValid && masterReg.Cmd === OcpCmd.RD,
@@ -158,12 +156,12 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
     }
     .otherwise {
       stateReg := hold
-      masterReg.Addr := masterReg.Addr
     }
+    masterReg.Addr := masterReg.Addr
   }
   // Wait for response
   when(stateReg === fill) {
-    wrAddrReg := Cat(fillAddrReg, burstCntReg)
+    wrAddrReg := Cat(masterReg.Addr(addrBits + 1, lineBits), burstCntReg)
 
     when(io.slave.S.Resp === OcpResp.DVA) {
       fillReg := Bool(true)
@@ -176,6 +174,7 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
       }
       burstCntReg := burstCntReg + UInt(1)
     }
+    masterReg.Addr := masterReg.Addr
   }
   // Pass data to master
   when(stateReg === respond) {

@@ -68,6 +68,11 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
 
   val doingRead = Reg(Bool()) // are we reading or writing
   val coreWrDataReg = Reg(Bits(width = DATA_WIDTH)) // register for WR cmd data
+  val coreByteEnReg = Reg(Bits(width = DATA_WIDTH/BYTE_WIDTH)) // register for WR cmd byte enables
+
+  // Temporary vector for combining written bytes with bytes from memory
+  val comb = Vec.fill(DATA_WIDTH/BYTE_WIDTH) { Bits(width = BYTE_WIDTH) }
+  for (i <- 0 until DATA_WIDTH/BYTE_WIDTH) { comb(i) := Bits(0) }
 
   val tagWidth = EXTMEM_ADDR_WIDTH - addrBits - 2
   val tagCount = size / lineSize
@@ -98,7 +103,6 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
   val tagValid = tagV && tag === Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, addrBits+2))
 
   val fillReg = Reg(Bool())
-  val fillAddrReg = Reg(Bits(width = addrBits+2 - lineBits))
 
   val wrAddrReg = Reg(Bits(width = addrBits))
   val wrDataReg = Reg(Bits(width = DATA_WIDTH))
@@ -115,6 +119,9 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
   // Update dirty bit when writing
   when(tagValid && (stmsk != Bits("b0000"))) {
     dirtyMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(true)
+    when(io.master.M.Addr(addrBits + 1, lineBits) === masterReg.Addr(addrBits + 1, lineBits)) {
+      dirty := Bool(true);
+    }
   }
 
 
@@ -122,7 +129,7 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
   val rdAddrCntReg = Reg(init = UInt(0, lineBits-2))
   // Read from cache
   val selWrBack = Bool()
-  val rdAddr = Mux(selWrBack, Cat(fillAddrReg, rdAddrCntReg), io.master.M.Addr(addrBits + 1, 2)) // helper signal
+  val rdAddr = Mux(selWrBack, Cat(masterReg.Addr(addrBits + 1, lineBits), rdAddrCntReg), io.master.M.Addr(addrBits + 1, 2)) // helper signal
   val rdData = mem.map(_(rdAddr)).reduceLeft((x,y) => y ## x)
   val rdDataReg = Reg(next = rdData)
 
@@ -152,14 +159,12 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
 
   // Start handling a miss
   when(!tagValid && (masterReg.Cmd === OcpCmd.RD || masterReg.Cmd === OcpCmd.WR)) {
-    fillAddrReg := masterReg.Addr(addrBits + 1, lineBits)
     tagVMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(true)
     missIndexReg := masterReg.Addr(lineBits-1, 2).toUInt
     memWrAddrReg := Cat(tag, masterReg.Addr(addrBits + 1, lineBits), Fill(Bits(0), lineBits))
 
     // start writing back if block is dirty
     when(dirty) {
-      io.slave.M.Cmd := OcpCmd.WR
       stateReg := write
       selWrBack := Bool(true)
       rdAddrCntReg := rdAddrCntReg + UInt(1)
@@ -172,14 +177,14 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
       }
       .otherwise {
         stateReg := hold
-        masterReg.Addr := masterReg.Addr
       }
     }
-
+    masterReg.Addr := masterReg.Addr
 
     when(masterReg.Cmd === OcpCmd.WR) {
       doingRead := Bool(false)
       coreWrDataReg := masterReg.Data
+      coreByteEnReg := masterReg.ByteEn
       dirtyMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(true)
     }
     when(masterReg.Cmd === OcpCmd.RD) {
@@ -215,6 +220,7 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
       }
       rdAddrCntReg := rdAddrCntReg // rdAddrCntReg is one step ahead of burstCnt, so don't update
     }
+    masterReg.Addr := masterReg.Addr
   }
 
   // Slave responds with DVA to finish write transaction
@@ -223,6 +229,7 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
     when(io.slave.S.Resp === OcpResp.DVA) {
       stateReg := hold
     }
+    masterReg.Addr := masterReg.Addr
   }
 
   // Hold read command
@@ -233,12 +240,12 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
     }
     .otherwise {
       stateReg := hold
-      masterReg.Addr := masterReg.Addr
     }
+    masterReg.Addr := masterReg.Addr
   }
   // Wait for response
   when(stateReg === fill) {
-    wrAddrReg := Cat(fillAddrReg, burstCntReg)
+    wrAddrReg := Cat(masterReg.Addr(addrBits + 1, lineBits), burstCntReg)
     
     when(io.slave.S.Resp === OcpResp.DVA) { 
     fillReg := Bool(true)
@@ -247,7 +254,12 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
         slaveReg := io.slave.S
         // insert write data from core on write-allocation
         when(!doingRead) {
-          wrDataReg := coreWrDataReg
+          for (i <- 0 until DATA_WIDTH/BYTE_WIDTH) {
+            comb(i) := Mux(coreByteEnReg(i) === Bits(1),
+                           coreWrDataReg(BYTE_WIDTH*(i+1)-1, BYTE_WIDTH*i),
+                           io.slave.S.Data(BYTE_WIDTH*(i+1)-1, BYTE_WIDTH*i))
+          }
+          wrDataReg := comb.reduceLeft((x,y) => y##x)
         }
       }
       when(burstCntReg === UInt(lineSize/4-1)) {
@@ -255,6 +267,7 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
       }
       burstCntReg := burstCntReg + UInt(1)
     }
+    masterReg.Addr := masterReg.Addr
   }
   // Pass data to master
   when(stateReg === respond) {
