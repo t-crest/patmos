@@ -45,10 +45,19 @@ import Node._
 class XBar(linkWidth : Int = 32) extends Module() {
   val io = new Bundle() {
     val northOut = new Link(linkWidth).asOutput
+    val northIn = new SelLink(linkWidth).asInput
     val southOut = new Link(linkWidth).asOutput
+    val southIn = new SelLink(linkWidth).asInput
     val eastOut = new Link(linkWidth).asOutput
+    val eastIn = new SelLink(linkWidth).asInput
     val westOut = new Link(linkWidth).asOutput
+    val westIn = new SelLink(linkWidth).asInput
     val localOut = new Link(linkWidth).asOutput
+    val localIn = new SelLink(linkWidth).asInput
   }
+
+// Func format:
+//  source port:       4    3    2    1    0
+//  dest port:  3210 4210 3410 3240 3214
 
 }

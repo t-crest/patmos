@@ -55,6 +55,16 @@ class Link(linkWidth : Int) extends Bundle() {
   }
 }
 
+class SelLink(linkWidth : Int) extends Link() {
+  val sel = Bits(width = 4)
+
+  // This does not really clone, but Data.clone doesn't either
+  override def clone() = {
+    val res = new Link(linkWidth)
+    res.asInstanceOf[this.type]
+  }
+}
+
 class RouterPort(linkWidth : Int) extends Bundle() {
   val out = ArgoLink(linkWidth).asOutput
   val in = ArgoLink(linkWidth).asInput
