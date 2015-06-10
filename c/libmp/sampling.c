@@ -45,7 +45,7 @@
 
 void mp_write(mpd_t* mpd_ptr) {
   // Sampling of the write pointer to get rid of transient hazards.
-  // We sample the write poiniter twice, if the two samples are
+  // We sample the write pointer twice, if the two samples are
   // different, the write_pointer just changed, and therefore it is
   // safe to sample it once more and rely on the newest sample,
   // because it cannot change that often
@@ -77,8 +77,8 @@ void mp_read(mpd_t* mpd_ptr) {
   mpd_ptr->write_ptr = (read_buf + 1) % NUM_WRITE_BUF;
   // Send the update write pointer to the sender.
   noc_send(mpd_ptr->send_id,mpd_ptr->,mpd_ptr->write_ptr,sizeof(mpd_ptr->write_ptr));
-  // Wait fo the write pointer to propergate to the sender
-  // and a possible sample to propergate from the sender
+  // Wait fo the write pointer to propagate to the sender
+  // and a possible sample to propagate from the sender
   // to the receiver
   // Calculate the address of the local receiving buffer
   int locl_addr_offset = (mpd_ptr->buf_size + FLAG_SIZE) * mpd_ptr->recv_ptr;
