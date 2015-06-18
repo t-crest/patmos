@@ -77,7 +77,8 @@ namespace patmos
     }
 
     virtual bool read_burst(simulator_t &s, uword_t address, byte_t *value, 
-                      uword_t size, uword_t &transferred)
+                      uword_t size, uword_t &transferred,
+                      bool low_priority = false)
     {
       Memory.read_peek(s, address, value, size);
       transferred = size;
@@ -178,9 +179,10 @@ namespace patmos
     }
 
     virtual bool read_burst(simulator_t &s, uword_t address, byte_t *value, 
-                            uword_t size, uword_t &transferred)
+                            uword_t size, uword_t &transferred,
+                            bool low_prio = false)
     {
-      return Memory.read_burst(s, address, value, size, transferred);
+      return Memory.read_burst(s, address, value, size, transferred, low_prio);
     }
     
     /// A simulated access to a write port.
@@ -298,7 +300,8 @@ namespace patmos
     virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
     virtual bool read_burst(simulator_t &s, uword_t address, byte_t *value, 
-                            uword_t size, uword_t &transferred);
+                            uword_t size, uword_t &transferred,
+                            bool low_priority = false);
     
     /// A simulated access to a write port.
     /// @param address The memory address to write to.

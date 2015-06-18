@@ -141,7 +141,8 @@ bool ideal_memory_t::read(simulator_t &s, uword_t address, byte_t *value, uword_
 
 
 bool ideal_memory_t::read_burst(simulator_t &s, uword_t address, byte_t *value, 
-                                uword_t size, uword_t &transferred)
+                                uword_t size, uword_t &transferred,
+                                bool low_priority)
 {
   // Just perform an (ideal) read.
   bool rs = read(s, address, value, size);
@@ -250,7 +251,7 @@ void fixed_delay_memory_t::start_next_transfer(request_info_t &req)
   }
 }
 
-void fixed_delay_memory_t::tick_request(request_info_t &req)
+bool fixed_delay_memory_t::tick_request(request_info_t &req)
 {
   // Update latency counter
   if (req.Latency_remaining > 0) {
@@ -263,12 +264,16 @@ void fixed_delay_memory_t::tick_request(request_info_t &req)
     req.Transferred_bytes += req.Next_transfer_size;
 
     start_next_transfer(req);
+    
+    return true;
   }
+  return false;
 }
 
 const request_info_t &fixed_delay_memory_t::find_or_create_request(simulator_t &s,
                                               uword_t address, uword_t size,
-                                              bool is_load, bool is_posted)
+                                              bool is_load, bool is_posted,
+                                              bool is_low_priority)
 {
   // check if the access exceeds the memory size and lazily initialize
   // memory content
@@ -290,13 +295,22 @@ const request_info_t &fixed_delay_memory_t::find_or_create_request(simulator_t &
   request_info_t tmp = {address, size, aligned_address, 
                         // Latency_remaining, Next_transfer_size, Transferred
                         0, 0, 0,
-                        is_load, is_posted};                        
+                        is_load, is_posted, is_low_priority,
+                        // Needs_requeue
+                        false};
 
   // Initialize request with first transfer
   start_first_transfer(tmp);
 
   Requests.push_back(tmp);
 
+  if (!is_low_priority && Requests.size() > 1 && 
+      Requests.front().Is_low_priority)
+  {
+    // Interrupt current low-priority transfer by a high-priority transfer
+    Requests.front().Needs_requeue = true;
+  }
+  
   // Update statistics
   Num_max_queue_size = std::max(Num_max_queue_size, (unsigned)Requests.size());
   if (is_load == Last_is_load && address == Last_address + 1) {
@@ -354,10 +368,11 @@ bool fixed_delay_memory_t::read(simulator_t &s, uword_t address, byte_t *value, 
 
 bool fixed_delay_memory_t::read_burst(simulator_t &s, uword_t address, 
                                       byte_t *value, uword_t size,
-                                      uword_t &transferred)
+                                      uword_t &transferred, bool low_priority)
 {
   // get the request info
-  const request_info_t &req(find_or_create_request(s, address, size, true));
+  const request_info_t &req(find_or_create_request(s, address, size, true, 
+                                                   false, low_priority));
 
   // Copy already transferred data into the output buffer
   if (req.Transferred_bytes > transferred) {
@@ -371,6 +386,9 @@ bool fixed_delay_memory_t::read_burst(simulator_t &s, uword_t address,
   // check if the request has finished
   if(req.is_completed())
   {
+    // FIXME This is wrong if we mix zero-latency and nonzero-latency requests
+    //        and have more than one request in the queue
+    
     // clean-up the request
     Requests.erase(Requests.begin());
 
@@ -399,6 +417,9 @@ bool fixed_delay_memory_t::write(simulator_t &s, uword_t address, byte_t *value,
   // check if the request has finished
   if(req.is_completed())
   {
+    // FIXME This is wrong if we mix zero-latency and nonzero-latency requests
+    //        and have more than one request in the queue
+    
     // clean-up the request
     Requests.erase(Requests.begin());
 
@@ -473,9 +494,20 @@ void fixed_delay_memory_t::tick(simulator_t &s)
     assert(req.Latency_remaining > 0 && 
            "Incomplete request has no latency but is still queued.");
     
-    tick_request(req);
+    bool next_transfer = tick_request(req);
     
     if (req.is_completed() && req.Is_posted) {
+      Requests.erase(Requests.begin());
+    }
+    else if (next_transfer && req.Needs_requeue && !req.is_completed()) {
+      // This request just finished its current transfer, and we have a 
+      // high-priority request pending, so move this request back in the queue
+      req.Needs_requeue = false;
+      
+      // TODO we should keep this request in front of other low-priority
+      //      requests, but for now we assume that there is at most one such 
+      //      request in the queue.
+      Requests.push_back(req);
       Requests.erase(Requests.begin());
     }
     
@@ -671,7 +703,7 @@ void tdm_memory_t::start_next_transfer(request_info_t &req)
   }  
 }
 
-void tdm_memory_t::tick_request(request_info_t &req)
+bool tdm_memory_t::tick_request(request_info_t &req)
 {
   int round_end = Round_start + Num_ticks_per_burst;
   if (!req.Is_posted) {
@@ -689,7 +721,10 @@ void tdm_memory_t::tick_request(request_info_t &req)
     req.Transferred_bytes += req.Next_transfer_size;
     
     start_next_transfer(req);
+    
+    return true;
   }
+  return false;
 }
 
 void tdm_memory_t::tick(simulator_t &s)

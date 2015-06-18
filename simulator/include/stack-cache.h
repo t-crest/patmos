@@ -60,7 +60,8 @@ namespace patmos
     virtual ~stack_cache_t() {}
 
     virtual bool read_burst(simulator_t &s, uword_t address, byte_t *value, 
-                            uword_t size, uword_t &transferred);
+                            uword_t size, uword_t &transferred,
+                            bool low_priority = false);
 
     virtual bool is_serving_request(uword_t address);
     

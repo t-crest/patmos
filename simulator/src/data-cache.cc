@@ -179,7 +179,7 @@ bool set_assoc_data_cache_t<LRU_REPLACEMENT>::
 template<bool LRU_REPLACEMENT>
 bool set_assoc_data_cache_t<LRU_REPLACEMENT>::
      read_burst(simulator_t &s, uword_t address, byte_t *value, uword_t size,
-                uword_t &transferred)
+                uword_t &transferred, bool low_priority)
 {
   // For set-associative caches we wait until the cache line is completely
   // filled before returning any data.

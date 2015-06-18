@@ -59,7 +59,8 @@ bool stack_cache_t::is_serving_request(uword_t address)
 }
 
 bool stack_cache_t::read_burst(simulator_t &s, uword_t address, byte_t *value, 
-                               uword_t size, uword_t &transferred)
+                               uword_t size, uword_t &transferred, 
+                               bool low_priority)
 {
   // We just defer burst reads to normal "buffering" reads by default, since
   // stack cache accesses are usually single cycle word-sized accesses anyway.
