@@ -328,7 +328,7 @@ int main(int argc, char **argv)
   boost::program_options::options_description memory_options("Memory options");
   memory_options.add_options()
     ("gsize,g",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_MEMORY_BYTES), "global memory size in bytes.")
-    ("gtime,G",  boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES/4 + 3), 
+    ("gtime,G",  boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_TRANSFER_LATENCY), 
                  "global memory transfer time per burst in cycles")
     ("tdelay,t", boost::program_options::value<int>()->default_value(0), "read delay to global memory per request in cycles.")
     ("trefresh", boost::program_options::value<unsigned int>()->default_value(0), "refresh cycles per TDM round.")
@@ -352,7 +352,7 @@ int main(int argc, char **argv)
   boost::program_options::options_description cache_options("Cache options");
   cache_options.add_options()
     ("dcsize,d", boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_DATA_CACHE_BYTES), "data cache size in bytes")
-    ("dckind,D", boost::program_options::value<patmos::set_assoc_cache_type>()->default_value(patmos::set_assoc_cache_type(patmos::SAC_LRU,2)), 
+    ("dckind,D", boost::program_options::value<patmos::set_assoc_cache_type>()->default_value(patmos::set_assoc_cache_type(patmos::SAC_DM,1)), 
                  "kind of direct mapped/fully-/set-associative data cache, defaults to lru2 (ideal, no, dm, lru[N], fifo[N])")
     ("dlsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(0), "size of a data cache line in bytes, defaults to burst size if set to 0")
 
