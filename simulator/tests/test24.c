@@ -3,7 +3,7 @@
  * 
  * Compile with:
  * 
- * patmos-clang -o test24.elf test24.c
+ * patmos-clang -O2 -o test24.elf test24.c
  *
  */
 
