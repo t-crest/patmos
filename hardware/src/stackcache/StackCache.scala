@@ -86,7 +86,7 @@ class StackCache() extends Module {
   val memTopReg = Reg(UInt(width = DATA_WIDTH))
 
   // temporary address used during filling/spilling 
-  val transferAddrReg = Reg(UInt(width = EXTMEM_ADDR_WIDTH))
+  val transferAddrReg = Reg(UInt(width = EXTMEM_ADDR_WIDTH+1))
 
   // temporary address used during filling/spilling
   val newMemTopReg = Reg(UInt(width = DATA_WIDTH))
@@ -139,6 +139,9 @@ class StackCache() extends Module {
   // reset response to CPU
   responseToCPUReg := OcpResp.NULL
   
+  val stackTopInc = stackTopReg + io.exsc.opOff
+  val stackAboveMem = memTopReg - stackTopReg < io.exsc.opOff
+
   /*
    * Stack Control Interface (mfs, sres, sens, sfree)
    */
@@ -160,29 +163,21 @@ class StackCache() extends Module {
           memTopReg := io.exsc.opData
         }
         is(sc_OP_ENS) {
-          // compute required mem top pointer, and check if filling is needed
-          val newMemTop = stackTopReg + io.exsc.opOff
-
           // start transfer from the current memory top pointer on
           transferAddrReg := memTopReg(EXTMEM_ADDR_WIDTH - 1, burstBits) ## Fill(burstBits, UInt("b0"))
 
-          // check if filling is needed
-          val needsFill = memTopReg < newMemTop
-
-          // update memory top pointer if needed
-          newMemTopReg := newMemTop
+          // update memory top pointer
+          newMemTopReg := stackTopInc
 
           // start actual filling if needed
-          stateReg := Mux(needsFill, fillState, idleState)
+          stateReg := Mux(stackAboveMem, fillState, idleState)
         }
         is(sc_OP_FREE) {
           // move stack top pointer upwards
-          val nextStackTop = stackTopReg + io.exsc.opOff
-          stackTopReg := nextStackTop
-
+          stackTopReg := stackTopInc
           // ensure that mem top pointer is above stack top
-          when(nextStackTop > memTopReg) {
-            memTopReg := nextStackTop
+          when(stackAboveMem) {
+            memTopReg := stackTopInc
           }
         }
         is(sc_OP_RES) {

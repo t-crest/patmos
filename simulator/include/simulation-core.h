@@ -64,8 +64,11 @@ namespace patmos
   static const unsigned int NUM_SLOTS = 2;
 
   /// Define the number of bytes used for the global main memory.
-  static const unsigned int NUM_MEMORY_BYTES = 0x4000000;
+  static const unsigned int NUM_MEMORY_BYTES = 0x200000;
 
+  /// Define the number of cycles for a single memory transfer.
+  static const unsigned int NUM_MEMORY_TRANSFER_LATENCY = 21;
+  
   /// Define the number of bytes in a block transferred on an access to the 
   /// global main memory.
   static const unsigned int NUM_MEMORY_BLOCK_BYTES = 16;

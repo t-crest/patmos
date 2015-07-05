@@ -62,7 +62,7 @@ int main() {
 
 void blink(int nblinks) {
 
-	volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0000900;
+	volatile _SPM int *led_ptr = (volatile _SPM int *) 0xF0090000;
 
 	// Blinking lights
         int k, i, j;

@@ -33,7 +33,7 @@
 /*
  * A program to download applications to Patmos via a serial line
  *
- * Authors: Tórur Biskopstø Strøm (torur.strom@gmail.com)
+ * Authors: Torur Biskopsto Strom (torur.strom@gmail.com)
  *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
  *
  */
@@ -87,7 +87,11 @@ public class Main {
         public void run() {
             try {
                 while (true) {
-                    outStream.write(hostInStream.read());
+                    int c = hostInStream.read();
+                    if (c == -1) {
+                        break;
+                    }
+                    outStream.write(c);
                 }
             } catch (Exception exc) {
                 System.err.println(exc);
@@ -108,6 +112,7 @@ public class Main {
         OutputStream host_out_stream = System.out;
         InputStream in_stream = null;
         OutputStream out_stream = null;
+        OutputStream download_stream = null;
 
         Runtime.getRuntime().addShutdownHook(new ShutDownHook());
 
@@ -156,9 +161,11 @@ public class Main {
                 msg_stream.println();
             }
             if (compress) {
-                out_stream = new CompressionOutputStream(out_stream);
+                download_stream = new CompressionOutputStream(out_stream);
+            } else {
+                download_stream = out_stream;
             }
-            Transmitter transmitter = new Transmitter(in_stream,out_stream);
+            Transmitter transmitter = new Transmitter(in_stream,download_stream);
 
             final int HEADER_SIZE = 8;
             final int SEGMENT_HEADER_SIZE = 12;
@@ -216,9 +223,9 @@ public class Main {
             transmitter.finish();
 
             if (verbose) {
-                if (out_stream instanceof CompressionOutputStream) {
+                if (download_stream instanceof CompressionOutputStream) {
                     CompressionOutputStream compressionStream =
-                        (CompressionOutputStream)out_stream;
+                        (CompressionOutputStream)download_stream;
                     long textSize = compressionStream.getTextSize();
                     long codeSize = compressionStream.getCodeSize();
 

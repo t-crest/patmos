@@ -76,8 +76,8 @@ class Fetch(fileName : String) extends Module {
     val selWrite = (io.memfe.store & (io.memfe.addr(DATA_WIDTH-1, ISPM_ONE_BIT) === Bits(0x1)))
     val wrEven = selWrite & (io.memfe.addr(2) === Bits(0))
     val wrOdd = selWrite & (io.memfe.addr(2) === Bits(1))
-    memEven.io <= (wrEven, io.memfe.addr, io.memfe.data)
-    memOdd.io <= (wrOdd, io.memfe.addr, io.memfe.data)
+    memEven.io <= (wrEven, io.memfe.addr(ispmAddrBits+2, 3), io.memfe.data)
+    memOdd.io <= (wrOdd, io.memfe.addr(ispmAddrBits+2, 3), io.memfe.data)
 
     //select even/odd from ispm
     val ispm_even = memEven.io(addrEven(ispmAddrBits, 1))

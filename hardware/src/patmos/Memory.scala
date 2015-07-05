@@ -66,9 +66,9 @@ class Memory() extends Module {
 
   // Stall logic
   val mayStallReg = Reg(init = Bool(false))
-  val enable = Mux(mayStallReg, (io.localInOut.S.Resp != OcpResp.NULL
-                                 || io.globalInOut.S.Resp != OcpResp.NULL),
-                   Bool(true))
+  val enable = (io.localInOut.S.Resp != OcpResp.NULL
+                || io.globalInOut.S.Resp != OcpResp.NULL
+                || !mayStallReg)
   io.ena_out := enable
 
   // Register from execution stage
@@ -179,10 +179,10 @@ class Memory() extends Module {
   //uncommend if I-Cache is used
   // val rdData = Mux(rdDataEnaReg, splitData(rdDataReg), splitData(Mux(memReg.mem.typ === MTYPE_L,
   //                             io.localInOut.S.Data, io.globalInOut.S.Data)))
-
   val dout = Bits(width = DATA_WIDTH)
   // default word read
   dout := Cat(rdData(3), rdData(2), rdData(1), rdData(0))
+
   // byte read
   val bval = MuxLookup(memReg.mem.addr(1, 0), rdData(0), Array(
     (Bits("b00"), rdData(3)),
@@ -190,21 +190,20 @@ class Memory() extends Module {
     (Bits("b10"), rdData(1)),
     (Bits("b11"), rdData(0))))
   // half-word read
-  val hval = MuxLookup(memReg.mem.addr(1), Cat(rdData(2), rdData(3)), Array(
-    (Bits("b0"), Cat(rdData(3), rdData(2))),
-    (Bits("b1"), Cat(rdData(1), rdData(0)))))
+  val hval = Mux(memReg.mem.addr(1) === Bits(0),
+                 Cat(rdData(3), rdData(2)),
+                 Cat(rdData(1), rdData(0)))
+
   // sign extensions
   when(memReg.mem.byte) {
-    dout := Cat(Fill(DATA_WIDTH-BYTE_WIDTH, bval(BYTE_WIDTH-1)), bval)
-    when(memReg.mem.zext) {
-      dout := Cat(Bits(0, DATA_WIDTH-BYTE_WIDTH), bval)
-    }
+    dout := Mux(memReg.mem.zext,
+                Bits(0, DATA_WIDTH-BYTE_WIDTH),
+                Fill(DATA_WIDTH-BYTE_WIDTH, bval(BYTE_WIDTH-1))) ## bval
   }
   when(memReg.mem.hword) {
-    dout := Cat(Fill(DATA_WIDTH-2*BYTE_WIDTH, hval(DATA_WIDTH/2-1)), hval)
-    when(memReg.mem.zext) {
-      dout := Cat(Bits(0, DATA_WIDTH-2*BYTE_WIDTH), hval)
-    }
+    dout := Mux(memReg.mem.zext,
+                Bits(0, DATA_WIDTH-2*BYTE_WIDTH),
+                Fill(DATA_WIDTH-2*BYTE_WIDTH, hval(DATA_WIDTH/2-1))) ## hval
   }
 
   io.memwb.pc := memReg.pc

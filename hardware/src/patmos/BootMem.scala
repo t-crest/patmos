@@ -55,11 +55,11 @@ class BootMem(fileName : String) extends Module {
   val selSpm = !selExt & io.memInOut.M.Addr(BOOTMEM_ONE_BIT) === Bits(0x1)
 
   // Register selects
-  val selRomReg = Reg(Bool())
   val selSpmReg = Reg(Bool())
+  val selExtReg = Reg(Bool())
   when(io.memInOut.M.Cmd != OcpCmd.IDLE) {
-      selRomReg := selRom
       selSpmReg := selSpm
+      selExtReg := selExt
   }
 
   // The data ROM for read only initialized data
@@ -80,8 +80,7 @@ class BootMem(fileName : String) extends Module {
   io.extMem.M.Cmd := Mux(selExt, io.memInOut.M.Cmd, OcpCmd.IDLE)
 
   // Return data to pipeline
-  io.memInOut.S.Data := Mux(selRomReg, romData,
-                            Mux(selSpmReg, spmS.Data,
-                                io.extMem.S.Data))
+  io.memInOut.S.Data := Mux(selExtReg, io.extMem.S.Data,
+                            Mux(selSpmReg, spmS.Data, romData))
   io.memInOut.S.Resp := romResp | spmS.Resp | io.extMem.S.Resp
 }

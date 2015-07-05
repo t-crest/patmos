@@ -8,8 +8,7 @@
 COM_PORT?=/dev/ttyUSB0
 
 # Application to be stored in boot ROM
-BOOTAPP?=basic
-#BOOTAPP=bootable-bootloader
+BOOTAPP?=bootable-bootloader
 
 # Application to be downloaded
 APP?=hello_puts
@@ -72,6 +71,10 @@ elf2bin:
 	-mkdir -p $(INSTALLDIR)/bin
 	cp $(CTOOLSBUILDDIR)/src/elf2bin $(INSTALLDIR)/bin
 
+# Target for dependencies: build elf2bin only if it does not exist.
+$(INSTALLDIR)/bin/elf2bin:
+	$(MAKE) elf2bin
+
 # Build various Java tools
 javatools: $(JAVATOOLSBUILDDIR)/lib/patmos-tools.jar \
 		tools/lib/java-binutils-0.1.0.jar tools/lib/jssc.jar
@@ -125,12 +128,12 @@ asm-% $(BUILDDIR)/%.bin $(BUILDDIR)/%.dat: asm/%.s
 bootcomp: bin-$(BOOTAPP)
 
 # Convert elf file to binary
-bin-% $(BUILDDIR)/%.bin $(BUILDDIR)/%.dat: $(BUILDDIR)/%.elf elf2bin
+bin-% $(BUILDDIR)/%.bin $(BUILDDIR)/%.dat: $(BUILDDIR)/%.elf $(INSTALLDIR)/bin/elf2bin
 	$(INSTALLDIR)/bin/elf2bin $< $(BUILDDIR)/$*.bin $(BUILDDIR)/$*.dat
 
 # Convert elf file to flat memory image
 img: img-$(APP)
-img-% $(BUILDDIR)/%.img: $(BUILDDIR)/%.elf elf2bin
+img-% $(BUILDDIR)/%.img: $(BUILDDIR)/%.elf $(INSTALLDIR)/bin/elf2bin
 	$(INSTALLDIR)/bin/elf2bin -f $< $(BUILDDIR)/$*.img
 
 # Convert binary memory image to decimal representation

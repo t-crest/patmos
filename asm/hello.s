@@ -6,7 +6,7 @@
 
 	.word   56;
 
-        add     r7  = r0, 0xF0000900;
+        add     r7  = r0, 0xF0090000;
 	addi	r8 = r0, 1;
 
 loop:	xor	r9 = r9, r8;  # toggle value

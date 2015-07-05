@@ -179,6 +179,11 @@ namespace patmos
       }
     }
 
+    /// Check if the instruction is a predicated instruction
+    static inline bool hasPred(const instruction_data_t &ops) {
+      return ops.Pred != p0;
+    }
+    
     /// Print a predicate to an output stream.
     /// @param os The output stream to print to.
     /// @param pred The predicate.
@@ -361,18 +366,24 @@ namespace patmos
       {
         ++cnt_nops;
       }
-      else if (ops.OPS.ALUil.Rs1 == r0 && ops.OPS.ALUil.Imm2 < (1<<4)) {
+      else if (!hasPred(ops) && 
+               ops.OPS.ALUil.Rs1 == r0 && ops.OPS.ALUil.Imm2 < (1<<4)) 
+      {
         ++cnt_imm4_loads;
       }
-      else if (ops.OPS.ALUil.Rs1 == ops.OPS.ALUil.Rd &&
+      else if (!hasPred(ops) && 
+               ops.OPS.ALUil.Rs1 == ops.OPS.ALUil.Rd &&
                ops.OPS.ALUil.Imm2 < (1<<4)) 
       {
         ++cnt_inplace_imm4;
       }
-      else if (ops.OPS.ALUil.Rs1 == r0 && ops.OPS.ALUil.Imm2 < (1<<5)) {
+      else if (!hasPred(ops) && 
+               ops.OPS.ALUil.Rs1 == r0 && ops.OPS.ALUil.Imm2 < (1<<5)) 
+      {
         ++cnt_imm5_loads;
       }
-      else if (ops.OPS.ALUil.Rs1 == ops.OPS.ALUil.Rd &&
+      else if (!hasPred(ops) && 
+               ops.OPS.ALUil.Rs1 == ops.OPS.ALUil.Rd &&
                ops.OPS.ALUil.Imm2 < (1<<5)) 
       {
         ++cnt_inplace_imm5;
@@ -380,7 +391,8 @@ namespace patmos
       else if (ops.OPS.ALUil.Rs1 == r0 && ops.OPS.ALUil.Imm2 < (1<<12)) {
         ++cnt_short_loads;
       }
-      else if (ops.OPS.ALUil.Imm2 == 0) {
+      else if (!hasPred(ops) && 
+               ops.OPS.ALUil.Imm2 == 0) {
         ++cnt_zero;
       }
       else if (ops.OPS.ALUil.Imm2 < (1<<12)) {
@@ -445,7 +457,11 @@ namespace patmos
   /// Base class for ALUr instructions.
   class i_alur_t : public i_pred_t
   {
+  private:
+    uint64_t cnt_inplace;
   public:
+    i_alur_t() { reset_stats(); }
+    
     virtual GPR_e get_dst_reg(const instruction_data_t &ops) const { 
       return ops.OPS.ALUr.Rd;
     }
@@ -507,6 +523,29 @@ namespace patmos
       printGPReg(os, "out: ", ops.OPS.ALUr.Rd , ops.EX_result);
       printGPReg(os, " in: ", ops.OPS.ALUr.Rs1, ops.DR_Rs1, s);
       printGPReg(os, ", "   , ops.OPS.ALUr.Rs2, ops.DR_Rs2, s);
+    }
+    
+    virtual void reset_stats() {
+      cnt_inplace = 0;
+    }
+    
+    virtual void collect_stats(const simulator_t &s, 
+                               const instruction_data_t &ops) 
+    {
+      if (!hasPred(ops) &&
+          (ops.OPS.ALUr.Rd == ops.OPS.ALUr.Rs1 || 
+           ops.OPS.ALUr.Rd == ops.OPS.ALUr.Rs2))
+      {
+        cnt_inplace++;
+      }
+    }
+
+    virtual void print_stats(const simulator_t &s, std::ostream &os,
+                             const symbol_map_t &symbols) const 
+    {
+      if (cnt_inplace) {
+        os << "Inplace: " << cnt_inplace;
+      }
     }
   };
 
@@ -714,9 +753,14 @@ namespace patmos
     }
     
     virtual void collect_stats(const simulator_t &s, 
-                               const instruction_data_t &ops) {
+                               const instruction_data_t &ops) 
+    {
+      if (hasPred(ops)) {
+        return;
+      }
       if (ops.OPS.ALUc.Rs1 == r0 || 
-          ops.OPS.ALUc.Rs2 == r0) {
+          ops.OPS.ALUc.Rs2 == r0) 
+      {
         cnt_cmp_r0++;
       } else {
         word_t value = std::min(s.GPR.get(ops.OPS.ALUc.Rs1).get(),
@@ -838,7 +882,11 @@ namespace patmos
     }    
     
     virtual void collect_stats(const simulator_t &s, 
-                               const instruction_data_t &ops) {
+                               const instruction_data_t &ops) 
+    {
+      if (hasPred(ops)) {
+        return;
+      }
       if (ops.OPS.ALUci.Rs1 == r0) {
         cnt_cmp_r0++;
       } else {
@@ -1106,7 +1154,11 @@ namespace patmos
   /// register.
   class i_spct_t : public i_pred_t
   {
+  private:
+    uint64_t cnt_nopred;
   public:
+    i_spct_t() { reset_stats(); }
+    
     virtual GPR_e get_src1_reg(const instruction_data_t &ops) const { 
       return ops.OPS.SPCt.Rs1;
     }
@@ -1170,12 +1222,35 @@ namespace patmos
     {
       printGPReg(os, "in: ", ops.OPS.SPCt.Rs1, ops.DR_Rs1, s);
     }
+    
+    virtual void reset_stats() {
+      cnt_nopred = 0;
+    }
+    
+    virtual void collect_stats(const simulator_t &s, 
+                               const instruction_data_t &ops) 
+    {
+      if (!hasPred(ops))
+      {
+        cnt_nopred++;
+      }
+    }
+
+    virtual void print_stats(const simulator_t &s, std::ostream &os,
+                             const symbol_map_t &symbols) const 
+    {
+      if (cnt_nopred) {
+        os << "Nopred: " << cnt_nopred;
+      }
+    }
+
   };
 
   /// Move a value from a special purpose register to a general purpose
   /// register.
   class i_spcf_t : public i_pred_t
   {
+    uint64_t cnt_nopred;
     uint64_t cnt_accesses[8];
   public:
     i_spcf_t() { reset_stats(); }
@@ -1249,22 +1324,31 @@ namespace patmos
     }    
     
     virtual void reset_stats() {
+      cnt_nopred = 0;
       for (int i = 0; i < 8; i++) {
         cnt_accesses[i] = 0;
       }
     }
 
     virtual void collect_stats(const simulator_t &s, 
-                               const instruction_data_t &ops) {
+                               const instruction_data_t &ops) 
+    {
+      if (!hasPred(ops)) {
+        cnt_nopred++;
+      }
       if (ops.OPS.SPCf.Ss < 8) {
         cnt_accesses[ops.OPS.SPCf.Ss]++;
       }
     }
     
     virtual void print_stats(const simulator_t &s, std::ostream &os,
-                             const symbol_map_t &symbols) const {
+                             const symbol_map_t &symbols) const 
+    {
+      if (cnt_nopred) {
+        os << "Nopred: " << cnt_nopred;
+      }
       for (int i = 0; i < 8; i++) {
-        if (i) os << ", ";
+        if (i || cnt_nopred) os << ", ";
         os << boost::format("s%d: %d") % i % cnt_accesses[i];
       }
     }
@@ -1277,6 +1361,7 @@ namespace patmos
   private:
     uint64_t cnt_zero_offset;
     uint64_t cnt_imm5_offset;
+    uint64_t cnt_inplace_imm5;
   public:
     i_ldt_t() { reset_stats(); }
     
@@ -1378,12 +1463,20 @@ namespace patmos
     virtual void reset_stats() {
       cnt_zero_offset = 0;
       cnt_imm5_offset = 0;
+      cnt_inplace_imm5 = 0;
     }
     
     virtual void collect_stats(const simulator_t &s, 
-                               const instruction_data_t &ops) {
+                               const instruction_data_t &ops) 
+    {
+      if (hasPred(ops)) {
+        return;
+      }
       if (ops.OPS.LDT.Ra == r0 && ops.OPS.LDT.Imm < (1<<5)) {
         ++cnt_imm5_offset;
+      }
+      else if (ops.OPS.LDT.Rd == ops.OPS.LDT.Ra && ops.OPS.LDT.Imm < (1<<5)) {
+        ++cnt_inplace_imm5;
       }
       else if (ops.OPS.LDT.Imm == 0) {
         ++cnt_zero_offset;
@@ -1392,8 +1485,8 @@ namespace patmos
     
     virtual void print_stats(const simulator_t &s, std::ostream &os,
                              const symbol_map_t &symbols) const {
-      os << boost::format("imm5: %d, zero: %d") 
-         % cnt_imm5_offset % cnt_zero_offset;
+      os << boost::format("imm5: %d, inplace imm5: %d, zero: %d") 
+         % cnt_imm5_offset % cnt_inplace_imm5 % cnt_zero_offset;
     }
   };
 
@@ -1551,7 +1644,11 @@ namespace patmos
     }
     
     virtual void collect_stats(const simulator_t &s, 
-                               const instruction_data_t &ops) {
+                               const instruction_data_t &ops) 
+    {
+      if (hasPred(ops)) {
+        return;
+      }
       if (ops.OPS.STT.Ra == r0 && ops.OPS.STT.Imm2 < (1<<5)) {
         ++cnt_imm5_offset;
       }
@@ -1696,7 +1793,7 @@ namespace patmos
     
     virtual void collect_stats(const simulator_t &s, 
                                const instruction_data_t &ops) {
-      if (ops.OPS.STCi.Imm < (1<<8)) {
+      if (!hasPred(ops) && ops.OPS.STCi.Imm < (1<<8)) {
         ++cnt_imm8_offset;
       }
     }
@@ -2082,7 +2179,7 @@ namespace patmos
     
     virtual void collect_stats(const simulator_t &s, 
                                const instruction_data_t &ops) {
-      if (ops.OPS.CFLi.UImm < (1<<8) && ops.Pred == p0) {
+      if (!hasPred(ops) && ops.OPS.CFLi.UImm < (1<<8)) {
         ++cnt_imm8_jump;
       }
     }
@@ -2147,7 +2244,7 @@ namespace patmos
     
     virtual void collect_stats(const simulator_t &s, 
                                const instruction_data_t &ops) {
-      if (ops.OPS.CFLi.UImm < (1<<8) && ops.Pred == p0) {
+      if (!hasPred(ops) && ops.OPS.CFLi.UImm < (1<<8)) {
         ++cnt_imm8_jump;
       }
     }

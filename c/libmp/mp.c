@@ -48,7 +48,7 @@
 // This array is only used by mp_alloc, it should not be cached.
 static volatile unsigned* _UNCACHED spm_alloc_array[MAX_CORES];
 
-static void mp_init() {
+void mp_init() {
   // Initializing the array of pointers to the beginning of the SPMs
   for (int i = 0; i < MAX_CORES; ++i) {
     spm_alloc_array[i] = (volatile unsigned* _UNCACHED) NOC_SPM_BASE;

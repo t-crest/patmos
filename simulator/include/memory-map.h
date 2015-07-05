@@ -53,37 +53,37 @@ namespace patmos
   static const uword_t IOMAP_HIGH_ADDRESS = 0xFFFFFFFF;
 
   /// Offset from IO base address for the CPU info.
-  static const uword_t CPUINFO_OFFSET = 0x0000;
+  static const uword_t CPUINFO_OFFSET = 0x00000;
   
   /// Number of bytes mapped to the CPU Info.
   static const uword_t CPUINFO_MAP_SIZE = 0x000C;
   
   /// Offset from IO base address for the exception unit.
-  static const uword_t EXCUNIT_OFFSET = 0x0100;
+  static const uword_t EXCUNIT_OFFSET = 0x10000;
   
   /// Number of bytes mapped to the exception unit.
   static const uword_t EXCUNIT_MAP_SIZE = 0x0100;
 
   /// Offset from IO base address for the timer device.
-  static const uword_t TIMER_OFFSET = 0x0200;
+  static const uword_t TIMER_OFFSET = 0x20000;
   
   /// Number of bytes mapped to the timer device.
   static const uword_t TIMER_MAP_SIZE = 0x0018;
 
   /// Offset from IO base address for the  performance counters device.
-  static const uword_t PERFCOUNTERS_OFFSET = 0x0300;
+  static const uword_t PERFCOUNTERS_OFFSET = 0x30000;
   
   /// Number of bytes mapped to the performance counters device.
   static const uword_t PERFCOUNTERS_MAP_SIZE = 0x0028;
   
   /// Offset from IO base address for UART device.
-  static const uword_t UART_OFFSET = 0x0800;
+  static const uword_t UART_OFFSET = 0x80000;
 
   /// Number of bytes mapped to the UART device.
   static const uword_t UART_MAP_SIZE = 0x0008;
 
   /// Offset from IO base address for the LED device.
-  static const uword_t LED_OFFSET = 0x0900;
+  static const uword_t LED_OFFSET = 0x90000;
   
   /// Number of bytes mapped to the LED device.
   static const uword_t LED_MAP_SIZE = 0x0004;
