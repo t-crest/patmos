@@ -2092,14 +2092,17 @@ the upper bits shall be filled with 0 on a read. With this mapping each I/O devi
 16384 32-bit registers.
 The I/O device base addresses for \code{pasim} are defined in \code{patmos/simulator/include/memory-map.h}
 and for the compiler/library the constants are in \code{llvm/tools/clang/lib/Driver/Tools.cpp}.
+\todo{Above needs to be updated as Stefan has changed it.}
 The offsets of the I/O devices in the hardware are defined in the configuration XML files in
 \code{patmos/hardware/config/*.xml}
 
-In the initial prototype of Patmos we have 3 I/O devices: a system device that contains cycle and microsecond counters, a UART for basic communication, and LEDs
+In the initial prototype of Patmos we have 3 I/O devices: a system device that contains
+cycle and microsecond counters, a UART for basic communication, and LEDs
 on the FPGA board. One counter ticks with the clock frequency and the second
 counter ticks with 1~MHz for clock frequency independent time measurements.
-The counters are 64-bit values and readout of the lower 32 bits also latches the
-upper 32 bits.
+The counters are 64-bit values and readout of the lower word also latches the
+upper word. For short measurements the lower word is usually large enough
+(i.e., up to 2000~s measurements with the $\mu s$ counter) and the upper word can be ignored.
 Table~\ref{tab:iomap} shows the I/O devices and the registers.
 
 \begin{table}
