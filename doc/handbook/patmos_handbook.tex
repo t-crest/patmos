@@ -2855,6 +2855,16 @@ multiplexed to support multiple slaves. For handshaking via
 \code{SResp}, it is sufficient to combine the responses of different
 slaves with OR.
 
+In \code{OCPcore} and \code{OCPcache}, slaves accept commands
+implicitly. Asserting a command for more than one cycle corresponds to
+issuing two separate commands. This is only allowed if the slave
+responds in the cycle immediately after the first command. In
+\code{OCPio} and \code{OCPburst}, slaves accept commands in the cycle
+where they assert \code{SCmdAccept}. Continuing to assert a command in
+the next cycle corresponds to a separate command. This is disallowed
+in \code{OCPburst}, and allowed in \code{OCPio} only if the slave
+responds immediately in the cycle where it asserts \code{SCmdAccept}.
+
 \wolf{\code{OCPburst} currently allows neither pipelining nor
   same-cycle responses. If we want to, we can make it more like
   \code{OCPcore} or \code{OCPio}.}
