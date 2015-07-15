@@ -31,7 +31,7 @@
  */
 
 /*
- * A slot table for the Tx pipeline of the Argo network interface
+ * A schedule table for the Tx pipeline of the Argo network interface
  *
  * Authors: Rasmus Bo Soerensen (rasmus@rbscloud.dk)
  *
@@ -42,7 +42,7 @@ package argo
 import Chisel._
 import Node._
 
-class TxSlotTable(linkWidth : Int = 32) extends Module() {
+class TxScheduleTable(linkWidth : Int = 32) extends Module() {
   val io = new Bundle() {
 
   }

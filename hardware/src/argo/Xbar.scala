@@ -44,20 +44,50 @@ import Node._
 
 class XBar(linkWidth : Int = 32) extends Module() {
   val io = new Bundle() {
-    val northOut = new Link(linkWidth).asOutput
+    val northOut = new ArgoLink(linkWidth).asOutput
     val northIn = new SelLink(linkWidth).asInput
-    val southOut = new Link(linkWidth).asOutput
+    val southOut = new ArgoLink(linkWidth).asOutput
     val southIn = new SelLink(linkWidth).asInput
-    val eastOut = new Link(linkWidth).asOutput
+    val eastOut = new ArgoLink(linkWidth).asOutput
     val eastIn = new SelLink(linkWidth).asInput
-    val westOut = new Link(linkWidth).asOutput
+    val westOut = new ArgoLink(linkWidth).asOutput
     val westIn = new SelLink(linkWidth).asInput
-    val localOut = new Link(linkWidth).asOutput
+    val localOut = new ArgoLink(linkWidth).asOutput
     val localIn = new SelLink(linkWidth).asInput
   }
 
 // Func format:
-//  source port:       4    3    2    1    0
-//  dest port:  3210 4210 3410 3240 3214
+//  source port:     4    3    2    1    0
+//  dest port:    3210 4210 3410 3240 3214
+
+  io.southOut := Mux(io.northIn.sel(0),io.northIn,
+                  Mux(io.eastIn.sel(0),io.eastIn,
+                  Mux(io.westIn.sel(0),io.westIn,
+                  Mux(io.localIn.sel(0),io.localIn,Bits(0)))))
+
+//  io.southOut := (io.northIn & Fill(io.northIn.sel(0))) |
+//                 (io.eastIn  & Fill(io.eastIn.sel(0)))  |
+//                 (io.westIn  & Fill(io.westIn.sel(0)))  |
+//                 (io.localIn & Fill(io.localIn.sel(0)))
+
+  io.westOut  := Mux(io.southIn.sel(1), io.southIn,
+                 Mux(io.eastIn.sel(1), io.eastIn,
+                 Mux(io.northIn.sel(1), io.northIn,
+                 Mux(io.localIn.sel(1), io.localIn,Bits(0)))))
+
+  io.northOut := Mux(io.southIn.sel(2) ,io.southIn,
+                 Mux(io.eastIn.sel(2)  ,io.eastIn,
+                 Mux(io.westIn.sel(2)  ,io.westIn,
+                 Mux(io.localIn.sel(2) ,io.localIn,Bits(0)))))
+
+  io.eastOut  := Mux(io.southIn.sel(3) ,io.southIn,
+                 Mux(io.northIn.sel(3) ,io.northIn,
+                 Mux(io.westIn.sel(3)  ,io.westIn,
+                 Mux(io.localIn.sel(3) ,io.localIn,Bits(0)))))
+
+  io.localOut := Mux(io.southIn.sel(0) ,io.southIn,
+                 Mux(io.westIn.sel(1)  ,io.westIn,
+                 Mux(io.northIn.sel(2) ,io.northIn,
+                 Mux(io.eastIn.sel(3)  ,io.eastIn,Bits(0)))))
 
 }

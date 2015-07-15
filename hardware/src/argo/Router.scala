@@ -59,16 +59,16 @@ class Router(linkWidth : Int = 32) extends Module() {
   val westHPU = Module(new HPU("West",linkWidth))
   val localHPU = Module(new HPU("Local",linkWidth))
 
-  northHPU.io.inLink := northPort.io.in
-  southHPU.io.inLink := southPort.io.in
-  eastHPU.io.inLink := eastPort.io.in
-  westHPU.io.inLink := westPort.io.in
-  localHPU.io.inLink := localPort.io.in
+  northHPU.io.inLink := io.northPort.in
+  southHPU.io.inLink := io.southPort.in
+  eastHPU.io.inLink := io.eastPort.in
+  westHPU.io.inLink := io.westPort.in
+  localHPU.io.inLink := io.localPort.in
 
-  northPort.io.out := xbar.io.northOut
-  southPort.io.out := xbar.io.southOut
-  eastPort.io.out := xbar.io.eastOut
-  westPort.io.out := xbar.io.westOut
-  localPort.io.out := xbar.io.localOut
+  io.northPort.out := xbar.io.northOut
+  io.southPort.out := xbar.io.southOut
+  io.eastPort.out := xbar.io.eastOut
+  io.westPort.out := xbar.io.westOut
+  io.localPort.out := xbar.io.localOut
 
 }

@@ -42,7 +42,7 @@ package argo
 import Chisel._
 import Node._
 
-class Link(linkWidth : Int) extends Bundle() {
+class ArgoLink(linkWidth : Int) extends Bundle() {
   val startOfPacket = Bits(width = 1)
   val endOfPacket = Bits(width = 1)
   val valid = Bits(width = 1)
@@ -50,24 +50,24 @@ class Link(linkWidth : Int) extends Bundle() {
 
   // This does not really clone, but Data.clone doesn't either
   override def clone() = {
-    val res = new Link(linkWidth)
+    val res = new ArgoLink(linkWidth)
     res.asInstanceOf[this.type]
   }
 }
 
-class SelLink(linkWidth : Int) extends Link() {
+class SelLink(linkWidth : Int) extends ArgoLink(linkWidth) {
   val sel = Bits(width = 4)
 
   // This does not really clone, but Data.clone doesn't either
   override def clone() = {
-    val res = new Link(linkWidth)
+    val res = new SelLink(linkWidth)
     res.asInstanceOf[this.type]
   }
 }
 
 class RouterPort(linkWidth : Int) extends Bundle() {
-  val out = ArgoLink(linkWidth).asOutput
-  val in = ArgoLink(linkWidth).asInput
+  val out = new ArgoLink(linkWidth).asOutput
+  val in = new ArgoLink(linkWidth).asInput
 
   // This does not really clone, but Data.clone doesn't either
   override def clone() = {
@@ -81,15 +81,15 @@ class IRQ() extends Bundle() {
   val incomming = Bits(width = 1)
 }
 
-class SPMMasterSignals(linkWidth : Int) extends Bundle() {
-  val address = Bits(width = addrSize)
+class SPMMasterSignals(linkWidth : Int, addrWidth: Int) extends Bundle() {
+  val address = Bits(width = addrWidth)
   val wrEn = Bits(width = 1)
   val writeData = Bits(width = linkWidth * 2)
   
 
   // This does not really clone, but Data.clone doesn't either
   override def clone() = {
-    val res = new RouterPort(linkWidth)
+    val res = new SPMMasterSignals(linkWidth, addrWidth)
     res.asInstanceOf[this.type]
   }
 }
@@ -99,17 +99,17 @@ class SPMSlaveSignals(linkWidth : Int) extends Bundle() {
 
   // This does not really clone, but Data.clone doesn't either
   override def clone() = {
-    val res = new RouterPort(linkWidth)
+    val res = new SPMSlaveSignals(linkWidth)
     res.asInstanceOf[this.type]
   }
 }
 
-class SPMMasterPort(linkWidth : Int) extends SPM(linkWidth) {
-  val master = new SPMMasterSignals(linkWidth).asOutput
+class SPMMasterPort(linkWidth : Int, addrWidth: Int) extends Bundle() {
+  val master = new SPMMasterSignals(linkWidth, addrWidth).asOutput
   val slave = new SPMSlaveSignals(linkWidth).asInput
 }
 
-class SPMSlavePort(linkWidth : Int) extends SPM(linkWidth) {
-  val master = new SPMMasterSignals(linkWidth).asInput
+class SPMSlavePort(linkWidth : Int, addrWidth: Int) extends Bundle() {
+  val master = new SPMMasterSignals(linkWidth, addrWidth).asInput
   val slave = new SPMSlaveSignals(linkWidth).asOutput
 }

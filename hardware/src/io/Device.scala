@@ -78,6 +78,18 @@ abstract class DeviceObject() {
     }
     param
   }
+
+  def getBoolParam(params: Map[String, String], key: String) : Boolean = {
+    val param = getParam(params, key)
+    if (param == "true") {
+      true
+    }
+    else if(param == "false"){
+      false
+    } else {
+      throw new IllegalArgumentException("Parameter " + key + " must be either \"true\" or \"false\"")
+    }
+  }
 }
 
 abstract class Device() extends Module() {

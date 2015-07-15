@@ -31,7 +31,7 @@
  */
 
 /*
- * A DMA read unit for the Rx pipeline of the Argo network interface
+ * An Argo network node containing a network interface and a router
  *
  * Authors: Rasmus Bo Soerensen (rasmus@rbscloud.dk)
  *
@@ -41,11 +41,35 @@ package argo
 
 import Chisel._
 import Node._
+import ocp._
+import io._
 
+object NoCNode extends DeviceObject {
+  var linkWidth = 32
+  var addrWidth = 16
 
-class RxDMAReadUnit(linkWidth : Int = 32) extends Module() {
-  val io = new Bundle() {
-
+  def init(params : Map[String, String]) = {
+    linkWidth = getPosIntParam(params, "linkWidth")
+    addrWidth = getPosIntParam(params, "addrWidth")
   }
+
+  def create(params: Map[String, String]) : NoCNode = {
+    Module(new NoCNode(linkWidth=linkWidth,addrWidth=addrWidth))
+  }
+
+  trait Pins {
+    val noCNodePins = new Bundle() {
+      val irq = new IRQ()
+      val spm = new SPMMasterPort(linkWidth,addrWidth)
+      val northPort = new RouterPort(linkWidth)
+      val southPort = new RouterPort(linkWidth)
+      val eastPort = new RouterPort(linkWidth)
+      val westPort = new RouterPort(linkWidth)
+    }
+  }
+}
+
+class NoCNode(linkWidth : Int, addrWidth : Int) extends IODevice() {
+  override val io = new IODeviceIO() with NoCNode.Pins
 
 }

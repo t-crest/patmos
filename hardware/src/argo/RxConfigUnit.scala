@@ -31,7 +31,8 @@
  */
 
 /*
- * A TDM counter for the Tx pipeline of the Argo network interface
+ * A Config unit for the Rx pipeline of the Argo network interface.
+ * The Config unit processes the incoming config packets
  *
  * Authors: Rasmus Bo Soerensen (rasmus@rbscloud.dk)
  *
@@ -42,7 +43,8 @@ package argo
 import Chisel._
 import Node._
 
-class TxTDMCounter(linkWidth : Int = 32) extends Module() {
+
+class RxConfigUnit(linkWidth : Int = 32) extends Module() {
   val io = new Bundle() {
 
   }

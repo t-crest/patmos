@@ -31,7 +31,7 @@
  */
 
 /*
- * An Argo network node containing a network interface and a router
+ * A TDM controller for the Tx pipeline of the Argo network interface
  *
  * Authors: Rasmus Bo Soerensen (rasmus@rbscloud.dk)
  *
@@ -41,32 +41,10 @@ package argo
 
 import Chisel._
 import Node._
-import ocp._
 
-object Node extends DeviceObject {
-  var linkWidth = 32
+class TxTDMController(linkWidth : Int = 32) extends Module() {
+  val io = new Bundle() {
 
-  def init(params : Map[String, String]) = {
-    linkWidth = getPosIntParam(params, "linkWidth")
   }
-
-  def create(params: Map[String, String]) : Node = {
-    Module(new Node(linkWidth=linkWidth))
-  }
-
-  trait Pins {
-    val nodePins = new Bundle() {
-      val irq = new IRQ()
-      val spm = new SPMMasterPort(linkWidth)
-      val northPort = new RouterPort(linkWidth)
-      val southPort = new RouterPort(linkWidth)
-      val eastPort = new RouterPort(linkWidth)
-      val westPort = new RouterPort(linkWidth)
-    }
-  }
-}
-
-class Node(linkWidth : Int) extends IODevice() {
-  override val io = new IODeviceIO() with Node.Pins
 
 }

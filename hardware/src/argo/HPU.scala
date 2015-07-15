@@ -42,9 +42,10 @@ package argo
 import Chisel._
 import Node._
 
-class HPU(linkWidth : Int = 32) extends Module() {
+class HPU(direction : String, linkWidth : Int = 32) extends Module() {
   val io = new Bundle() {
-    val inLink = new Link(linkWidth).asInput
+    val inLink = new ArgoLink(linkWidth).asInput
+    val outLink = new SelLink(linkWidth).asOutput
   }
 
 }

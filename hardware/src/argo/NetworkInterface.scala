@@ -42,26 +42,30 @@ package argo
 import Chisel._
 import Node._
 import ocp._
+import io._
+
 
 object NetworkInterface extends DeviceObject {
   var linkWidth = 32
-  val irqEn = true
-  val DMAReadEn = true
+  var addrWidth = 16
+  var irqEn = true
+  var DMAReadEn = true
 
   def init(params : Map[String, String]) = {
     linkWidth = getPosIntParam(params, "linkWidth")
-    irqEn = (getParam(params,"irqEn") == "true")
-    DMAReadEn = (getParam(params,"DMAReadEn") == "true")
+    addrWidth = getPosIntParam(params, "addrWidth")
+    irqEn = getBoolParam(params,"irqEn")
+    DMAReadEn = getBoolParam(params,"DMAReadEn")
   }
 
   def create(params: Map[String, String]) : NetworkInterface = {
-    Module(new NetworkInterface(linkWidth=linkWidth))
+    Module(new NetworkInterface(linkWidth=linkWidth, irqEn=irqEn, DMAReadEn=DMAReadEn))
   }
 
   trait Pins {
     val networkInterfacePins = new Bundle() {
       val irq = new IRQ()
-      val spm = new SPMMasterPort(linkWidth)
+      val spm = new SPMMasterPort(linkWidth,addrWidth)
       val routerPort = new RouterPort(linkWidth)
     }
   }
