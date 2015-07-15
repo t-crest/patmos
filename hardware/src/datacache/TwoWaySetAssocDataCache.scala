@@ -93,7 +93,6 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends Module {
   val lru = Reg(next = lruMem(io.master.M.Addr(addrBits + 1, lineBits)))
 
   val fillReg = Reg(Bool())
-  val fillAddrReg = Reg(Bits(width = addrBits + 2 - lineBits))
 
   val wrAddrReg = Reg(Bits(width = addrBits))
   val wrDataReg = Reg(Bits(width = DATA_WIDTH))
@@ -157,7 +156,6 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends Module {
 
   // Start handling a miss
   when((!tagValid1 && !tagValid2) && masterReg.Cmd === OcpCmd.RD) {
-    fillAddrReg := masterReg.Addr(addrBits + 1, lineBits)
     lruReg := lru
     when (lru === Bool(false)) {
       tagVMem1(masterReg.Addr(addrBits + 1, lineBits)) := Bool(true)
@@ -174,8 +172,8 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends Module {
     }
     .otherwise {
       stateReg := hold
-      masterReg.Addr := masterReg.Addr
     }
+    masterReg.Addr := masterReg.Addr
     io.perf.miss := Bool(true)
   }
   
@@ -195,12 +193,12 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends Module {
     }
     .otherwise {
       stateReg := hold
-      masterReg.Addr := masterReg.Addr
     }
+    masterReg.Addr := masterReg.Addr
   }
   // Wait for response
   when(stateReg === fill) {
-    wrAddrReg := Cat(fillAddrReg, burstCntReg)    
+    wrAddrReg := Cat(masterReg.Addr(addrBits + 1, lineBits), burstCntReg)    
     
     when(io.slave.S.Resp === OcpResp.DVA) {
       fillReg := Bool(true)
@@ -212,8 +210,8 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends Module {
         stateReg := respond
       }
       burstCntReg := burstCntReg + UInt(1)
-      
     }
+    masterReg.Addr := masterReg.Addr
   }
   // Pass data to master
   when(stateReg === respond) {

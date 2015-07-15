@@ -61,7 +61,7 @@ abstract class Config {
 
   case class MCacheConfig(size: Int, blocks: Int, repl: String)
   val MCache: MCacheConfig
-  case class DCacheConfig(size: Int, assoc: Int, repl: String)
+  case class DCacheConfig(size: Int, assoc: Int, repl: String, writeThrough: Boolean)
   val DCache: DCacheConfig
   case class SCacheConfig(size: Int)
   val SCache: SCacheConfig
@@ -207,7 +207,9 @@ object Config {
                          getIntAttr(node,  "DCache", "@assoc",
                                     hasParent, defaultConf.DCache.assoc),
                          getTextAttr(node, "DCache", "@repl",
-                                     hasParent, defaultConf.DCache.repl))
+                                     hasParent, defaultConf.DCache.repl),
+                         getBooleanAttr(node, "DCache", "@writeThrough",
+                                        hasParent, defaultConf.DCache.writeThrough))
 
       val SCache =
         new SCacheConfig(getSizeAttr(node, "SCache", "@size",
@@ -289,7 +291,7 @@ object Config {
     val writeCombine = false
     val minPcWidth = 0
     val MCache = new MCacheConfig(0, 0, "")
-    val DCache = new DCacheConfig(0, 0, "")
+    val DCache = new DCacheConfig(0, 0, "", true)
     val SCache = new SCacheConfig(0)
     val ISPM = new SPMConfig(0)
     val DSPM = new SPMConfig(0)
