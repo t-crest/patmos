@@ -1,10 +1,10 @@
 #
-# Expected Result: r1 = 0x02820181 & r2 = 0x02820181 & r3 = 0x003fffe0 & r4 = 0x003fffd0 & r5 = 0x00000010
+# Expected Result: r1 = 0x02820181 & r2 = 0x02820181 & r3 = 0x001fffe0 & r4 = 0x001fffd0 & r5 = 0x00000010
 #
 
                 .word    92;
                 lwm      r1  = [r0 + 1];
-		add      r2 = r0, 0x400000;
+		add      r2 = r0, 0x200000;
 		mts      s5 = r2;
 		mts      s6 = r2;
                 sres     8;

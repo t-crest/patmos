@@ -87,6 +87,8 @@ namespace patmos
       // available when there is something in the stream (DAV=0 or 1).
       // when the input stream reaches the end-of-file (EOF), signal a parity
       // error, i.e., PAE = 1.
+      // TODO EOF does not work in the hardware. Instead, use escape characters
+      //      or something to signal EOF over UART.
       *value = (1 << TRE);
       if (In_stream.rdbuf()->in_avail())
         *value |= (1 << DAV);
