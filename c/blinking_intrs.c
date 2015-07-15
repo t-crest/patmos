@@ -13,8 +13,8 @@
 #include <stdlib.h>
 
 // definitions for I/O devices
-#define LEDS (*((volatile _IODEV unsigned *)0xf0000900))
-#define SLEEP (*((volatile _IODEV unsigned *)0xf0000110))
+#define LEDS (*((volatile _IODEV unsigned *)0xf0090000))
+#define SLEEP (*((volatile _IODEV unsigned *)0xf0010010))
 
 // the blinking frequency in microseconds
 #define PERIOD 1000000

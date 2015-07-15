@@ -75,7 +75,7 @@ object Utility {
     }
 
     for (i <- 0 until byteArray.length / bytesPerWord) {
-      var word = 0
+      var word = BigInt(0)
       for (j <- 0 until bytesPerWord) {
         word <<= 8
         word += byteArray(i * bytesPerWord + j).toInt & 0xff
@@ -107,10 +107,11 @@ object Utility {
     printf("\tMethod cache: %s, %d methods\n", sizeToStr(MCACHE_SIZE), METHOD_COUNT)
     printf("\tData cache: %s", sizeToStr(DCACHE_SIZE))
     if (DCACHE_ASSOC == 1) {
-      printf(", direct-mapped\n")
+      printf(", direct-mapped")
     } else {
-      printf(", %d-way set associative with %s replacement\n", DCACHE_ASSOC, DCACHE_REPL)
+      printf(", %d-way set associative with %s replacement", DCACHE_ASSOC, DCACHE_REPL)
     }
+    printf(", write %s\n", if (DCACHE_WRITETHROUGH) "through" else "back")
     printf("\tStack cache: %s\n",  sizeToStr(SCACHE_SIZE))
     printf("\tInstruction SPM: %s\n", sizeToStr(ISPM_SIZE))
     printf("\tData SPM: %s\n", sizeToStr(DSPM_SIZE))

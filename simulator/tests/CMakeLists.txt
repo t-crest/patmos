@@ -151,32 +151,32 @@ Errors : 0")
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 macro (test_sim num expr)
-  ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim -V --maxc 20000 -o - ${CMAKE_CURRENT_BINARY_DIR}/test${num}.bin)
+  ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim -V --maxc 40000 -o - ${CMAKE_CURRENT_BINARY_DIR}/test${num}.bin)
   SET_TESTS_PROPERTIES(sim-test-${num} PROPERTIES PASS_REGULAR_EXPRESSION ${expr} DEPENDS asm-test-${num})
 endmacro (test_sim)
 
 macro (test_dsim num expr)
-  ADD_TEST(simd-test-${num} ${CMAKE_BINARY_DIR}/src/pasim -V -G 10 --maxc 20000 ${CMAKE_CURRENT_BINARY_DIR}/test${num}.bin)
+  ADD_TEST(simd-test-${num} ${CMAKE_BINARY_DIR}/src/pasim -V -G 10 --maxc 40000 ${CMAKE_CURRENT_BINARY_DIR}/test${num}.bin)
   SET_TESTS_PROPERTIES(simd-test-${num} PROPERTIES PASS_REGULAR_EXPRESSION ${expr} DEPENDS asm-test-${num})
 endmacro (test_dsim)
 
 macro (test_io_sim num expr)
-  ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim -V --maxc 20000 --in ${PROJECT_SOURCE_DIR}/tests/test${num}.in ${CMAKE_CURRENT_BINARY_DIR}/test${num}.bin)
+  ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim -V --maxc 40000 --in ${PROJECT_SOURCE_DIR}/tests/test${num}.in ${CMAKE_CURRENT_BINARY_DIR}/test${num}.bin)
   SET_TESTS_PROPERTIES(sim-test-${num} PROPERTIES PASS_REGULAR_EXPRESSION ${expr} DEPENDS asm-test-${num})
 endmacro (test_io_sim)
 
 macro (test_elf_io_sim num expr)
-  ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim -V --maxc 20000 --in ${PROJECT_SOURCE_DIR}/tests/test${num}.in ${PROJECT_SOURCE_DIR}/tests/test${num}.elf)
+  ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim -V --maxc 40000 --in ${PROJECT_SOURCE_DIR}/tests/test${num}.in ${PROJECT_SOURCE_DIR}/tests/test${num}.elf)
   SET_TESTS_PROPERTIES(sim-test-${num} PROPERTIES PASS_REGULAR_EXPRESSION ${expr})
 endmacro (test_elf_io_sim)
 
 macro (test_sim_lp num expr)
-  ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim -V -S lblock --maxc 20000 ${CMAKE_CURRENT_BINARY_DIR}/test${num}.bin)
+  ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim -V -S lblock --maxc 40000 ${CMAKE_CURRENT_BINARY_DIR}/test${num}.bin)
   SET_TESTS_PROPERTIES(sim-test-${num} PROPERTIES PASS_REGULAR_EXPRESSION ${expr})
 endmacro (test_sim_lp)
 
 macro (test_sim_scba num expr)
-  ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim -V -S ablock --maxc 20000 ${CMAKE_CURRENT_BINARY_DIR}/test${num}.bin)
+  ADD_TEST(sim-test-${num} ${CMAKE_BINARY_DIR}/src/pasim -V -S ablock --maxc 40000 ${CMAKE_CURRENT_BINARY_DIR}/test${num}.bin)
   SET_TESTS_PROPERTIES(sim-test-${num} PROPERTIES PASS_REGULAR_EXPRESSION ${expr})
 endmacro (test_sim_scba)
 
@@ -259,7 +259,7 @@ test_sim(35 "r2 : 00000001")
 
 test_sim(36 "r2 : 00000001")
 
-test_sim(37 "r0 : 00000000   r1 : 02820181   r2 : 02820181   r3 : 003fffe0   r4 : 003fffd0   r5 : 00000010")
+test_sim(37 "r0 : 00000000   r1 : 02820181   r2 : 02820181   r3 : 001fffe0   r4 : 001fffd0   r5 : 00000010")
 
 test_sim(38 "r1 : 00000001")
 

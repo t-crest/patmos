@@ -73,20 +73,24 @@ class DataCache extends Module {
   val dm = 
     if (DCACHE_SIZE <= 0)
       Module(new NullCache())
-    else if (DCACHE_ASSOC == 1)
+    else if (DCACHE_ASSOC == 1 && DCACHE_WRITETHROUGH)
       Module(new DirectMappedCache(DCACHE_SIZE, BURST_LENGTH*BYTES_PER_WORD))
-    else if (DCACHE_ASSOC == 2 && DCACHE_REPL == "lru")
+    else if (DCACHE_ASSOC == 1 && !DCACHE_WRITETHROUGH)
+      Module(new DirectMappedCacheWriteBack(DCACHE_SIZE, BURST_LENGTH*BYTES_PER_WORD))
+    else if (DCACHE_ASSOC == 2 && DCACHE_REPL == "lru" && DCACHE_WRITETHROUGH)
       Module(new TwoWaySetAssociativeCache(DCACHE_SIZE, BURST_LENGTH*BYTES_PER_WORD))
     else {
       ChiselError.error("Unsupported data cache configuration: "+
                         "associativity "+DCACHE_ASSOC+
-                        " with replacement policy \""+DCACHE_REPL+"\"")
+                        " with replacement policy \""+DCACHE_REPL+"\""+
+                        " and write "+(if (DCACHE_WRITETHROUGH) "through" else "back"))
       Module(new NullCache()) // return at least a dummy cache
     }
 
   dm.io.master.M := io.master.M
   dm.io.master.M.Cmd := Mux(selDC ||
-                            (Bool(DCACHE_SIZE > 0) && io.master.M.Cmd === OcpCmd.WR),
+                            (Bool(DCACHE_WRITETHROUGH) && Bool(DCACHE_SIZE > 0) &&
+                             io.master.M.Cmd === OcpCmd.WR),
                             io.master.M.Cmd, OcpCmd.IDLE)
   dm.io.invalidate := io.invalDCache
   val dmS = dm.io.master.S
@@ -117,7 +121,8 @@ class DataCache extends Module {
   val wc = Module(if (WRITE_COMBINE) new WriteCombineBuffer() else new WriteNoBuffer())
   wc.io.readMaster <> burstReadBus2.io.master
   wc.io.writeMaster.M := io.master.M
-  wc.io.writeMaster.M.Cmd := Mux(!selSC, io.master.M.Cmd, OcpCmd.IDLE)
+  wc.io.writeMaster.M.Cmd := Mux(!selSC && (Bool(DCACHE_WRITETHROUGH) || !selDC),
+                                 io.master.M.Cmd, OcpCmd.IDLE)
   val wcWriteS = wc.io.writeMaster.S
   io.slave <> wc.io.slave
 
