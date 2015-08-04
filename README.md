@@ -71,3 +71,9 @@ and run with the simulator as follows:
 However, this innocent examples is quiet challenging for an embedded system.
 For further details and how to build Patmos for an FPGA see:
 [Patmos Reference Handbook] (http://patmos.compute.dtu.dk/patmos_handbook.pdf).
+
+Known Issues
+============
+
+- [ ] `patmos-llvm` currently does not compile with clang > 3.4.
+
