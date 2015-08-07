@@ -357,6 +357,11 @@ Below we present a list of the most useful tools.
     hardware configuration options/parameters for use during compilation,
     simulation and WCET analysis.
 
+  \item[pml-config] \hfill\\
+    Create and modify a hardware model in PML format based either on the 
+    default configuration for a given target triple or on an existing PML
+    hardware model. 
+
   \item[pml] \hfill\\
     Provides validation, inspection and merge facilities for PML files.
 
@@ -526,19 +531,25 @@ The machine configuration consists of three sections:
   
   \begin{itemize}
   \item \code{name}: The (unique) name of the cache.
-  \item \code{type}: The cache type. Supported values are \code{set-associative}, \code{method-cache} and \code{stack-cache}.
+  \item \code{type}: The cache type. Supported values are \code{none}, \code{set-associative}, \code{method-cache} and \code{stack-cache}.
+  If set to \code{none}, the cache is disabled. This is equivalent to this cache's section not being present.
   \item \code{policy}: The replacement policy of the cache. Supported values are \code{ideal}, \code{lru} and
     \code{fifo} for a method cache or a set-associative cache. For set-associative caches, the policy \code{dm} (direct
-    mapped) is also supported. For a stack cache, supported values are \code{ideal}, \code{block}, \code{lblock} and
-    \code{ablock}.
-    An ideal cache will always hit.
+    mapped) is also supported. For a stack cache, supported values are \code{ideal}, \code{block}, \code{lblock},
+    \code{ablock} and \code{dcache}.
+    An ideal cache will always hit. In particular, it does \emph{not} have cold misses. In order to simulate an ideal
+    cache with cold misses, setup a very large fully associative cache (a very large direct mapped data cache is ideal for
+    the simulation, but not ideal for the analysis as it is not resilient against unknown accesses).
   \item \code{associativity}: Defines the associativity of a \code{lru} or \code{fifo} set-associative cache, or the 
     tag memory size for a method cache. Ignored for all other types of caches.
   \item \code{size}: The size of the cache in bytes. Ignored for ideal caches.
   \item \code{block-size}: The size of a cache line for set-associative caches, or the internal alignment of cache
     blocks for stack caches and method caches, in bytes. A block size of $4$ (or less) corresponds to a
     variable-sized method cache. A block size of $\texttt{size}/\texttt{associativity}$ corresponds to a fixed-size
-    method cache.
+    method cache. For set-associative caches, the block size will typically be the same as the underlying memory 
+    transfer size. 
+
+    At the moment, the block-size is always required to be set.
   \item \code{attributes}: A list of additional attributes as \code{key} and \code{value} pairs.
   \end{itemize}
 
@@ -552,14 +563,18 @@ The machine configuration consists of three sections:
     The \code{method-cache} must be a method cache.
     The \code{instruction-cache} must be a set-associative cache.
 
-    It is not allowed to specify both a \code{method-cache} and an \code{instruction-cache}.
+    It only allowed to specify both a \code{method-cache} and an \code{instruction-cache} if at least one of them has
+    the type set to \code{none}.
+
+    The \code{platin pml-config} tool can be used to easily switch between a method-cache and an instruction-cache 
+    configuration. It will automatically set the correct types and link the caches to the memory areas. 
 
     \stefan{I would rather like to see a single 'instruction-cache' entry with either set-assoc or method-cache as type,
     to avoid a few consistency checks, but maybe there could be a configuration possible in the future which has both types of
     caches (at least in the simulator).}
 
-    \emph{Attention:} If an ideal data cache is configured, all stores through the data cache also have a zero-cycle
-    latency, but bypass loads are unaffected.
+    \emph{Attention:} If an ideal data cache is configured, all \emph{stores} through the data cache also have a zero-cycle
+    latency, but bypass loads (and bypass stores) are unaffected.
     Bypass loads and stores only have a zero-cycle latency if the \code{main} memory is configured as ideal memory. In
     this case, all data and code accesses have zero latency, regardless of the configured caches.
   \end{framed}
@@ -588,7 +603,7 @@ The machine configuration consists of three sections:
   \begin{itemize}
   \item \code{code}: The main code area for regular instruction fetches. It must be of type \code{code}, use global address space, and refer to
                      \code{main} memory or an ideal memory. It must use either the \code{method-cache} or the \code{instruction-cache} such
-		     a cache is defined.
+		     a cache is defined (with a type different than \code{none}).
   \item \code{data}: The main data area for data and stack accesses. It must be of type \code{data}, use global address space, and refer to
                      \code{main} memory. It must use the \code{data-cache} if such a cache is defined. This area may
 		     only use an ideal memory if the \code{main} memory is ideal.
@@ -597,7 +612,8 @@ The machine configuration consists of three sections:
   All other code areas are currently ignored. If any of the above address spaces is omitted, \code{main} memory is used
   by default.
 
-  \stefan{We might define additional area names in the future to configure the scratchpads.}
+  \stefan{We might define additional area names in the future to configure the scratchpads. Maybe we should define a
+  memory area called 'stack' and link it with the stack cache, or allow a list of names for the \code{cache} attribute.}
 
   The following attributes are supported: \code{heap-end} sets the heap end pointer, \code{stack-base} sets the stack
   base pointer, and \code{shadow-stack-base} sets the shadow stack base pointer. Those attributes can be defined in
@@ -640,10 +656,49 @@ per analysis can be specified.
 \emph{Attention:} This section is currently work in progress and is only used to configure clang, but not the WCET analyses.
 
 
+\subsection{Generating PML configurations}
+
+It is possible to generate or modify PML hardware models using \code{platin pml-config}.
+
+\begin{verbatim}
+platin pml-config --target patmos-unknown-unknown-elf -o config.pml -m 2k \
+                  --set-cache-attr method-cache,max-subfunction-size,1024 \
+                  --set-area-attr data,heap-end,0x18000
+\end{verbatim}
+
+This creates a new default configuration and sets the method cache size to 2 kB and defines (or redefines) some
+attributes. The result is stored in \code{config.pml}. It is also possible to print the result to stdout using 
+\code{-o -}.
+
+It is also possible to modify an existing configuration. This command takes the previously generated PML file,
+disables the method cache and creates a new instruction cache entry (with default values) and sets its size to 8 kB
+(without changing the disable method-cache entry). The result is written to stdout.
+
+\begin{verbatim}
+platin pml-config -i config.pml -o - -C icache -m 8k
+\end{verbatim}
+
+\emph{Attention:} At the moment \code{pml-config} is the only tool that includes a hardware model in its PML output.
+All other tools will \emph{skip} any configuration section in its output. It is thus necessary to always explicitly pass
+the configuration to platin, i.e., the following will not work as expected
+
+\begin{verbatim}
+platin pml -o merged.pml -i config.pml -i myprogram.pml
+platin wcet -b myprogram -i merged.pml   # This uses a default configuration!
+\end{verbatim}
+
+because the merged file will not contain the configuration sections. Instead, the second command in this example also
+needs the additional \code{-i config.pml} argument. This is because \code{patmos-llvm} currently does
+not support importing PML files containing configuration sections, and may change in the future.
+
+\stefan{We need to extend the PML.h file to support the full configuration structure. Alternatively, we could add
+an option to \code{platin pml} that removes all config sections. Even if patmos-llvm can read the config sections,
+it will probably not use the configurations to setup the optimization passes, because this is a bit tricky to get
+right (there can be multiple configurations in the pml file, and how do we handle conflicts with commandline options?).}
+
 \subsection{Exporting PML Metainfo During Compilation}
 
 To obtain PML files, the \code{patmos-clang} driver needs to be invoked with
-
 
 \begin{verbatim}
   patmos-clang -mserialize=<pml-file> [-mserialize-roots=<functions>] ...
@@ -654,11 +709,9 @@ generated.
 
 The option argument \code{<functions>} is a comma-separated list of function
 names to which the exporting of Metainformation should be restricted.
-Note that inlining should be prevented for the functions (see
-Section~\ref{sec:toolchain:frontend}) specified, otherwise they might not exist
-separately anymore.
-By default, information for all functions is exported, which might result
-in a huge PML file being generated.
+Note that inlining should be prevented for those functions (see
+Section~\ref{sec:toolchain:frontend}), otherwise they might be inlined and removed.
+By default, information for all functions reachable from main is exported.
 
 
 \subsection{Obtaining AIS Annotations}
