@@ -77,5 +77,7 @@ For further details and how to build Patmos for an FPGA see:
 Known Issues
 ============
 
-- [ ] `patmos-llvm` currently does not compile with clang > 3.4.
+- [ ] `patmos-llvm` currently does not compile with clang > 3.4 on Ubuntu 15.04.
+      As a workaround, uninstall `clang`, install `clang-3.4` and create symlinks
+      `clang` and `clang++` to `clang-3.4` and `clang++-3.4`.
 
