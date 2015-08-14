@@ -225,6 +225,99 @@ void lru_method_cache_t::update_evict_stats(method_info_t &method,
   update_utilization_stats(method, utilized_bytes);
 }
 
+void lru_method_cache_t::print_cache_state(simulator_t& s, std::ostream& dout, 
+                                           size_t active_method) const
+{
+  dout << "     { ";
+  for (int i = 1; i <= Num_active_methods; i++) {
+    if (i > 1 && ((i-1) % 4 == 0)) {
+      dout << " |\n";
+      dout << "       ";
+    } else if (i > 1) {
+      dout << " | ";
+    }
+    if (Num_blocks - i == active_method) {
+      dout << "*";
+    } else {
+      dout << " ";
+    }
+    
+    std::stringstream ss;
+    std::string symbol;
+    s.Symbols.print(ss, Methods[Num_blocks - i].Address, true);
+    ss >> symbol;
+    
+    dout << boost::format("0x%1$08x: %2$-22s")
+         % Methods[Num_blocks - i].Address
+         % symbol;
+  }
+  dout << "   }\n";
+}
+
+void lru_method_cache_t::print_hit(simulator_t &s, std::ostream& dout, 
+                                   word_t address) const
+{
+  size_t active_method = 0;
+  // find active method
+  for (int i = 1; i <= Num_active_methods; i++) {
+    if (Methods[Num_blocks - i].Address == address) {
+      active_method = Num_blocks - i;
+      break;
+    }
+  }
+  
+  dout << boost::format("M$ HIT:  Entry %1$2d: 0x%2$08x %3$-30s Size: %4$6d, Used: %5$6d\n") 
+       % (Num_blocks - active_method - 1)
+       % Methods[active_method].Address
+       % s.Symbols.find(Methods[active_method].Address) 
+       % Methods[active_method].Num_bytes
+       % Methods[active_method].get_utilized_bytes();
+  
+  print_cache_state(s, dout, active_method);
+  
+  dout << "\n";
+}
+
+void lru_method_cache_t::print_miss(simulator_t &s, std::ostream& dout,
+                                    word_t address, uword_t evicted_methods, 
+                                    uword_t evicted_blocks, 
+                                    uword_t blocks_freed, 
+                                    bool capacity_miss) const
+{
+  size_t active_method = 0;
+  // find the new active method
+  for (int i = 1; i <= Num_active_methods; i++) {
+    if (Methods[Num_blocks - i].Address == address) {
+      active_method = Num_blocks - i;
+      break;
+    }
+  }
+  
+  dout << boost::format("M$ MISS: Entry %1$2d: 0x%2$08x %3$-30s Size: %4$6d, Used: %5$6d\n") 
+       % (Num_blocks - active_method - 1)
+       % Methods[active_method].Address
+       % s.Symbols.find(Methods[active_method].Address) 
+       % Methods[active_method].Num_bytes
+       % Methods[active_method].get_utilized_bytes();
+  if (evicted_methods > 0) {
+    if (capacity_miss) {
+      dout << "         CAPACITY miss ";
+    } else {
+      dout << "         TAG SIZE miss ";
+    }
+    dout << boost::format("replaces %1$2d methods of %2$5d bytes, frees %3$5d bytes\n")
+         % evicted_methods 
+         % (evicted_blocks * Num_block_bytes) 
+         % (blocks_freed * Num_block_bytes);
+  } else {
+    dout << "         COLD miss\n";
+  }
+  
+  print_cache_state(s, dout, active_method);
+  
+  dout << "\n";
+}
+
 bool lru_method_cache_t::read_function_size(simulator_t &s, 
                                             word_t function_base, 
                                             uword_t *result_size)
@@ -329,6 +422,12 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
         // method is in the cache ... done!
         Num_hits++;
         Method_stats[address].Accesses[offset].first++;
+        
+        if (s.Dbg_stack.get_stats_options().debug_cache == patmos::DC_ALL &&
+            s.Dbg_stack.is_printing())
+        {
+          print_hit(s, *s.Dbg_stack.get_stats_options().debug_out, address);
+        }
         return true;
       }
       else
@@ -365,6 +464,8 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
         }
 
         uword_t evicted_blocks = 0;
+        uword_t evicted_methods = 0;
+        bool capacity_miss = (Num_active_blocks + Num_allocate_blocks > Num_blocks);
         
         // throw other entries out of the cache if needed
         while (Num_active_blocks + Num_allocate_blocks > Num_blocks ||
@@ -375,6 +476,7 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
 
           // update eviction statistics
           evicted_blocks += method.Num_blocks;
+          evicted_methods++;
           
           // is this a cache miss due to the limited number of tag?
           bool is_tag_capacity_miss = (Num_active_blocks +
@@ -417,6 +519,14 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
         Methods[Num_blocks - 1].update(address, Num_allocate_blocks,
                                                 Num_method_size);
 
+        if (s.Dbg_stack.get_stats_options().debug_cache != patmos::DC_NONE &&
+            s.Dbg_stack.is_printing())
+        {
+          print_miss(s, *s.Dbg_stack.get_stats_options().debug_out, address,
+                     evicted_methods, evicted_blocks, blocks_freed, 
+                     capacity_miss);
+        }
+        
         // proceed to next phase ... the size of the method has been fetched
         // from memory, now transfer the method's instructions.
         // NOTE: the next phase starts immediately.
@@ -474,6 +584,11 @@ bool lru_method_cache_t::is_available(simulator_t &s, word_t address)
 uword_t lru_method_cache_t::get_active_method_base()
 {
   return Methods[Num_blocks - 1].Address;
+}
+
+size_t lru_method_cache_t::get_active_method() const
+{
+  return Num_blocks - 1;
 }
 
 void lru_method_cache_t::tick(simulator_t &s)
@@ -719,6 +834,11 @@ bool fifo_method_cache_t::load_method(simulator_t &s, word_t address, word_t off
 uword_t fifo_method_cache_t::get_active_method_base()
 {
   return base_t::Methods[active_method].Address;
+}
+
+size_t fifo_method_cache_t::get_active_method() const
+{
+  return active_method;
 }
 
 bool fifo_method_cache_t::fetch(simulator_t &s, uword_t base, uword_t address, word_t iw[2])
