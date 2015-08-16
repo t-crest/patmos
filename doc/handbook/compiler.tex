@@ -754,6 +754,12 @@ the flow facts (\emph{main} by default).
 
 \subsection{Inlining, Function Attributes}
 
+In contrast to GCC and the clang C frontend, LLVM by design attaches function attributes to
+function \emph{definitions only}, not to function declarations or function types.
+It is thus not possible to attach function attributes at call sites or for external functions.
+Function attributes \emph{must} be defined in the same unit as the definition, otherwise they
+are silently discarded by the compiler.
+
 \paragraph{Inlining functions}
 The compiler follows the C99 rules for inlining. See here for an explanation:
 %
@@ -794,6 +800,15 @@ void foo(int n) {
     ...
 }
 \end{verbatim}
+
+Note that function attributes are attached to function definitions only, as mentioned above.
+It is currently not possible to prevent function inlining at the call site itself.
+The only way to prevent inlining for specific functions is to either define them \code{noinline}
+at their \emph{definition}, or to make the call an inline asm call. 
+However, at the moment inline asm is currently not supported by the platin analysis tools. 
+
+\stefan{It is comparatively easy to add support though, the assembly parser can be invoked
+in the LLVM backend on InlineAsm instructions and used to find and export inline asm calls.}
 
 \paragraph{Marking Functions as Used}
 To prevent the compiler from removing functions that have no call site in the bitcode
