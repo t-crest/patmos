@@ -70,6 +70,28 @@ namespace patmos
   /// @param df The debug format.
   std::ostream &operator <<(std::ostream &os, debug_format_e df);
 
+  // Debug cache options.
+  // Note: It is sufficient to have a single debug option for all caches.
+  // If you do not want to see the state changes of a particular cache,
+  // you can set that cache to 'ideal'. Ideal caches are not supposed to
+  // have state changes or print anything out.
+  enum debug_cache_e
+  {
+    DC_NONE,
+    DC_MISS,
+    DC_ALL
+  };
+  
+  /// Parse a debug output format from a string in a stream
+  /// @param in An input stream to read from.
+  /// @param df The debug format.
+  std::istream &operator >>(std::istream &in, debug_cache_e &dc);
+
+  /// Write a debug format option as a string to an output stream.
+  /// @param os An output stream.
+  /// @param df The debug format.
+  std::ostream &operator <<(std::ostream &os, debug_cache_e dc);
+
   /// Parsing debug output format options from the command-line.
   enum mem_check_e
   {

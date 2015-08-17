@@ -105,6 +105,41 @@ namespace patmos
     return os;
   }
   
+  std::istream &operator >>(std::istream &in, debug_cache_e &dc)
+  {
+    std::string tmp, kind;
+    in >> tmp;
+
+    kind.resize(tmp.size());
+    std::transform(tmp.begin(), tmp.end(), kind.begin(), ::tolower);
+
+    if(kind == "none")
+      dc = DC_NONE;
+    else if(kind == "miss")
+      dc = DC_MISS;
+    else if(kind == "all")
+      dc = DC_ALL;
+    else throw boost::program_options::validation_error(
+                  boost::program_options::validation_error::invalid_option_value,
+                  "Unknown debug-cache option: " + tmp);
+
+    return in;
+  }
+
+  std::ostream &operator <<(std::ostream &os, debug_cache_e dc)
+  {
+    switch(dc)
+    {
+      case DC_NONE:
+        os << "none"; break;
+      case DC_MISS:
+        os << "miss"; break;
+      case DC_ALL:
+        os << "all"; break;
+    }
+    return os;
+  }
+
   std::istream &operator >>(std::istream &in, mem_check_e &mck)
   {
     std::string tmp, kind;

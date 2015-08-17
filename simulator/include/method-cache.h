@@ -402,6 +402,14 @@ namespace patmos
 
     void update_utilization_stats(method_info_t &method, uword_t utilized_bytes);
 
+    void print_cache_state(simulator_t &s, std::ostream &dout) const;
+    
+    void print_hit(simulator_t &s, std::ostream &dout) const;
+    
+    void print_miss(simulator_t &s, std::ostream &dout,
+                    uword_t evicted_methods, uword_t evicted_blocks, 
+                    uword_t blocks_freed, bool capacity_miss) const;
+    
     enum eviction_type_e { EVICT_CAPACITY, EVICT_TAG, EVICT_FLUSH, EVICT_DISP };
     
     /// Evict a given method, updating the cache state, and various statics.
@@ -425,8 +433,9 @@ namespace patmos
     /// Finalize eviction and update stats.
     /// @param evicted_blocks the sum of evicted blocks
     /// @param evictor_blocks The number of blocks of the evictor method.
-    void finish_eviction(unsigned int evicted_blocks, 
-                         unsigned int evictor_blocks);
+    /// @return number of blocks freed
+    uword_t finish_eviction(unsigned int evicted_blocks, 
+                            unsigned int evictor_blocks);
     
     /// Extract the size of a method and its disposable flag from the size word.
     /// @param function_base The method's base address.

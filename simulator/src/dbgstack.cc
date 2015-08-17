@@ -80,6 +80,11 @@ namespace patmos
   {
   }
 
+  bool dbgstack_t::is_printing() const
+  {
+    return found_print_function || 
+           print_function == std::numeric_limits<unsigned int>::max(); 
+  }
 
   bool dbgstack_t::is_active_frame(const dbgstack_frame_t &frame) const
   {

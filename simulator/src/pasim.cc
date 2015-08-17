@@ -321,6 +321,8 @@ int main(int argc, char **argv)
     ("debug-fmt", boost::program_options::value<patmos::debug_format_e>()->default_value(patmos::DF_DEFAULT), 
                   "format of the debug trace (short, trace, instr, blocks, calls, calls-indent, default, long, all)")
     ("debug-file", boost::program_options::value<std::string>()->default_value(""), "output debug trace in file (stdout: -)")
+    ("debug-cache", boost::program_options::value<patmos::debug_cache_e>()->default_value(patmos::DC_NONE),
+                  "Print all cache updates (=none,miss,all)")
     ("debug-intrs", "print out all status changes of the exception unit.")
     ("debug-nopc", "do not print PC and cycles counter in debug output")
     ("debug-access", boost::program_options::value<patmos::address_t>(), "print accesses to the given address or symbol.")
@@ -495,7 +497,8 @@ int main(int argc, char **argv)
   patmos::set_assoc_cache_type isck = vm["ickind"].as<patmos::set_assoc_cache_type>();
   patmos::transfer_mode_e mcmode = vm["mcmode"].as<patmos::transfer_mode_e>();
   
-  patmos::debug_format_e debug_fmt= vm["debug-fmt"].as<patmos::debug_format_e>();
+  patmos::debug_format_e debug_fmt = vm["debug-fmt"].as<patmos::debug_format_e>();
+  patmos::debug_cache_e debug_cache= vm["debug-cache"].as<patmos::debug_cache_e>();
   bool debug_nopc = vm.count("debug-nopc") > 0;
   bool debug_intrs = vm.count("debug-intrs") > 0;
   uint64_t debug_cycle = vm.count("debug") ?
@@ -584,7 +587,6 @@ int main(int argc, char **argv)
     dout = patmos::get_stream<std::ofstream>(debug_out, std::cerr);
     sout = patmos::get_stream<std::ofstream>(stats_out, std::cerr);
 
-
     // check if the uart input stream is a tty.
     bool uin_istty = (uin == &std::cin) && isatty(STDIN_FILENO);
 
@@ -612,6 +614,8 @@ int main(int argc, char **argv)
     stats_options.profiling_stats = long_stats;
     stats_options.hitmiss_stats = hitmiss_stats;
     stats_options.extended_stall_stats = stall_stats;
+    stats_options.debug_cache = debug_cache;
+    stats_options.debug_out = dout;
     
     // set up timer device
     patmos::rtc_t rtc(s, mmbase+timer_offset, freq);

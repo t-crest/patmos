@@ -43,6 +43,7 @@
 
 
 #include "basic-types.h"
+#include "command-line.h"
 
 namespace patmos
 {
@@ -57,10 +58,15 @@ namespace patmos
     bool profiling_stats;
     bool hitmiss_stats;
     bool extended_stall_stats;
+    
+    debug_cache_e debug_cache;
+    
+    std::ostream *debug_out;
   };
   
   
   /// Profiling information for functions.
+  /// TODO we should rename that to debug_manager_t or something.
   class dbgstack_t
   {
     private:
@@ -124,6 +130,9 @@ namespace patmos
       void finalize(void);
 
       unsigned size() const { return stack.size(); }
+      
+      /// Return true if we are debug printing is currently enabled.
+      bool is_printing() const;
       
       /// is_active_frame - Returns true if a given frame is currently active.
       /// @param frame the frame to check

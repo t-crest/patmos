@@ -66,7 +66,8 @@ namespace patmos
       Stall(SXX), Disable_IF(false),
       Delay_counter(0), Halt(false), 
       Exception_handling_counter(0),
-      Flush_Cache_PC(std::numeric_limits<unsigned int>::max()), Num_NOPs(0)
+      Flush_Cache_PC(std::numeric_limits<unsigned int>::max()), 
+      Stats_Start_Cycle(0), Num_NOPs(0)
   {
     // initialize the pipeline
     for(unsigned int i = 0; i < NUM_STAGES; i++)
@@ -753,6 +754,7 @@ namespace patmos
     }
     
     Num_NOPs = 0;
+    Stats_Start_Cycle = Cycle;
     
     Instr_cache.reset_stats();
     Data_cache.reset_stats();
@@ -774,6 +776,8 @@ namespace patmos
       print_registers(os, DF_DEFAULT);
     }
 
+    uint64_t cycles = Cycle - Stats_Start_Cycle;
+    
     uint64_t num_total_fetched[NUM_SLOTS];
     uint64_t num_total_retired[NUM_SLOTS];
     uint64_t num_total_discarded[NUM_SLOTS];
@@ -881,10 +885,10 @@ namespace patmos
     uint64_t num_instructions = num_total_fetched[0] - Num_NOPs;
 
     // Should we count only retired instructions?
-    float cpo_nops = (float)Cycle / (float)sum_fetched;
-    float cpi_nops = (float)Cycle / (float)num_total_fetched[0];
-    float cpo = (float)Cycle / (float)num_operations;
-    float cpi = (float)Cycle / (float)num_instructions;
+    float cpo_nops = (float)cycles / (float)sum_fetched;
+    float cpi_nops = (float)cycles / (float)num_total_fetched[0];
+    float cpo = (float)cycles / (float)num_operations;
+    float cpi = (float)cycles / (float)num_instructions;
     
     os << boost::format("\nCycles per Instruction (w/  NOPs): %1$8.4f"
                         "\nCycles per Operation   (w/  NOPs): %2$8.4f"
@@ -894,13 +898,13 @@ namespace patmos
 
     os << "\n\n                   total     % cycles";
     os << boost::format("\nCycles:       %1$10d") 
-          % Cycle;
+          % cycles;
     os << boost::format("\nInstructions: %1$10d  %2$10.2f%%"
                         "\nNOPs:         %3$10d  %4$10.2f%%"
                         "\nStalls:       %5$10d  %6$10.2f%%")
-          % num_instructions % (100.0 * (float)num_instructions / (float)Cycle)
-          % Num_NOPs % (100.0 * (float)Num_NOPs / (float)Cycle)
-          % sum_stalls % (100.0 * (float)sum_stalls / (float)Cycle);
+          % num_instructions % (100.0 * (float)num_instructions / (float)cycles)
+          % Num_NOPs % (100.0 * (float)Num_NOPs / (float)cycles)
+          % sum_stalls % (100.0 * (float)sum_stalls / (float)cycles);
     
     os << "\n\n                   total        % ops";
     os << boost::format("\nOperations:   %1$10d  %2$10.2f%%"
