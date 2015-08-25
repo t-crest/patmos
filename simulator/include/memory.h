@@ -322,8 +322,8 @@ namespace patmos
     /// Number of ticks remaining until next transfer starts.
     unsigned int Latency_remaining;
     
-    /// Size of the next outstanding transfer in bytes (excluding alignment).
-    unsigned int Next_transfer_size;
+    /// Size of the current outstanding transfer in bytes (excluding alignment).
+    unsigned int Curr_transfer_size;
     
     /// Number of bytes already transferred (excluding alignment).
     unsigned int Transferred_bytes;
@@ -337,20 +337,23 @@ namespace patmos
     /// If true, interrupt this request by and queue after normal requests.
     bool Is_low_priority;
     
+    /// If true, the request is completed.
+    bool Is_completed;
+    
     /// If true, pause the request and requeue after a high-priority request.
     bool Needs_requeue;
     
-    bool is_completed() const { return Transferred_bytes == Size && 
-                                       Latency_remaining == 0; }
+    bool is_completed() const { return Is_completed && Latency_remaining == 0; }
                                        
     void next_transfer(unsigned int latency, unsigned int beatsize) {
       Latency_remaining = latency;
-      Next_transfer_size = std::min(Size - Transferred_bytes, beatsize);
+      Curr_transfer_size = std::min(Size - Transferred_bytes, beatsize);
     }
     
     void finish_transfer(unsigned int latency) {
       Latency_remaining = latency;
-      Next_transfer_size = 0;
+      Curr_transfer_size = 0;
+      Is_completed = true;
     }
     
     void dump() const;
@@ -434,7 +437,9 @@ namespace patmos
 
     /// Update the Latency_remaining and Next_transfer_size fields to initialize
     /// the next transfer.
-    virtual void start_next_transfer(request_info_t &req);
+    /// @return true if a new atomic transfer has been started, or false if the 
+    ///         transfer must not be interrupted.
+    virtual bool start_next_transfer(request_info_t &req);
 
     /// Let one tick pass for the given request.
     /// @return true if the current transfer just finished.
@@ -530,14 +535,17 @@ namespace patmos
   private:
     unsigned int Num_bytes_per_page;
     
+    unsigned int Port_width;
+    
   protected:
     
     virtual void start_first_transfer(request_info_t &req);
 
-    virtual void start_next_transfer(request_info_t &req);
+    virtual bool start_next_transfer(request_info_t &req);
 
   public:
     variable_burst_memory_t(unsigned int memory_size, 
+			unsigned int port_width,
                         unsigned int num_min_bytes_per_burst,
                         unsigned int num_bytes_per_page,
                         unsigned int num_posted_writes,
@@ -548,7 +556,7 @@ namespace patmos
                            num_posted_writes, 
                            num_min_ticks_per_burst, num_read_delay_ticks,
                            randomize, memchk),
-      Num_bytes_per_page(num_bytes_per_page)
+      Num_bytes_per_page(num_bytes_per_page), Port_width(port_width)
     {}
 
   };
@@ -569,7 +577,7 @@ namespace patmos
     
     virtual void start_first_transfer(request_info_t &req);
 
-    virtual void start_next_transfer(request_info_t &req);
+    virtual bool start_next_transfer(request_info_t &req);
 
     virtual bool tick_request(request_info_t &req);
     

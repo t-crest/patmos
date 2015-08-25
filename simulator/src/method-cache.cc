@@ -177,11 +177,8 @@ bool lru_method_cache_t::do_fetch(simulator_t &s, method_info_t &current_method,
   if (Phase == TRANSFER_DELAYED) 
   {
     uword_t fetch_end = Current_fetch_address;
-    // If we are in continuous burst fetch mode, also allow execution within
-    // currently fetched burst.
-    if (Transfer_mode == patmos::TM_BURST) {
-      fetch_end += Current_burst_transferred;
-    }
+    // Also allow execution within currently fetched burst.
+    fetch_end += Current_burst_transferred;
     if ((address + sizeof(word_t) * NUM_SLOTS) > fetch_end)
     {
       // We are still waiting for the transfer to finish for this address.
@@ -445,7 +442,7 @@ uword_t lru_method_cache_t::get_transfer_size()
   }
   
   if (Transfer_mode != TM_BLOCKING) {
-    // TODO make first read aligned!?
+    // TODO ensure next transfer is read aligned!?
     return std::min(Transfer_block_size, remaining);
   } else {
     // Transfer everything in one big burst.
@@ -461,8 +458,9 @@ bool lru_method_cache_t::cache_fill(simulator_t& s)
   // the method_infos.
 
   // Perform the burst request(s).
-  if (Memory.read_burst(s, Current_fetch_address, Cache, 
-                        get_transfer_size(), Current_burst_transferred)) 
+  while (Memory.read_burst(s, Current_fetch_address, Cache, 
+                        get_transfer_size(), Current_burst_transferred,
+			Transfer_mode == patmos::TM_NON_BLOCKING_LOW_PRIORITY))
   {
     Current_fetch_address += Current_burst_transferred;
 

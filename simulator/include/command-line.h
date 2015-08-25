@@ -180,11 +180,10 @@ namespace patmos
   {
     /// Normal blocking operation.
     TM_BLOCKING,
-    /// Transfer data in the background using short (blocking) bursts.
+    /// Transfer data in the background using multiple requests.
     TM_NON_BLOCKING,
-    /// Stream code using long bursts, blocking data requests but not
-    /// execution.
-    TM_BURST
+    /// Transfer data in the background using interruptable bursts.
+    TM_NON_BLOCKING_LOW_PRIORITY
   };
 
   /// Parse a method cache mode from a string in a stream

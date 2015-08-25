@@ -71,6 +71,7 @@
 static patmos::memory_t &create_global_memory(unsigned int cores,
                                               unsigned int cpu_id,
                                               unsigned int size,
+					      unsigned int portwidth,
                                               unsigned int burst_size,
                                               unsigned int page_size,
                                               unsigned int posted,
@@ -93,7 +94,7 @@ static patmos::memory_t &create_global_memory(unsigned int cores,
                                               burst_time, read_delay,
                                               randomize_mem, chkreads);
     else
-      return *new patmos::variable_burst_memory_t(size, burst_size, page_size,
+      return *new patmos::variable_burst_memory_t(size, portwidth, burst_size, page_size,
                                               posted, burst_time, read_delay,
                                               randomize_mem, chkreads);
   } 
@@ -340,6 +341,7 @@ int main(int argc, char **argv)
     ("gtime,G",  boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_TRANSFER_LATENCY), 
                  "global memory transfer time per burst in cycles")
     ("tdelay,t", boost::program_options::value<int>()->default_value(0), "read delay to global memory per request in cycles.")
+    ("portwidth",boost::program_options::value<unsigned int>()->default_value(4), "port width of the memory system (in bytes, used only with --psize).")
     ("trefresh", boost::program_options::value<unsigned int>()->default_value(0), "refresh cycles per TDM round.")
     ("bsize",    boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_BLOCK_BYTES), "burst size (and alignment) of the memory system.")
     ("psize",    boost::program_options::value<patmos::byte_size_t>()->default_value(0), "Memory page size. Enables variable burst lengths for single-core.")
@@ -377,11 +379,11 @@ int main(int argc, char **argv)
                  "method cache / instruction cache size in bytes")
     ("mckind,M", boost::program_options::value<patmos::method_cache_e>()->default_value(patmos::MC_FIFO), "kind of method cache (ideal, lru, fifo)")
     ("mcmode",   boost::program_options::value<patmos::transfer_mode_e>()->default_value(patmos::TM_BLOCKING),
-                 "Transfer mode to use for method cache fills (block,noblock,burst)")
+                 "Transfer mode to use for method cache fills (=block,noblock,noblock-low)")
     ("mcmethods",boost::program_options::value<unsigned int>()->default_value(patmos::NUM_METHOD_CACHE_MAX_METHODS), 
                  "Maximum number of methods in the method cache, defaults to number of blocks if zero")
-    ("mtsize",   boost::program_options::value<unsigned int>()->default_value(1),
-                 "Transfer size for method cache non-blocking or burst fills, in multiples of burst size, or zero for unlimited transfer size. Ignored for blocking mode.")
+    ("mtsize",   boost::program_options::value<unsigned int>()->default_value(16),
+                 "Transfer size for method cache non-blocking fills in bytes, or zero for unlimited transfer size. Ignored for blocking mode.")
     ("mbsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_METHOD_CACHE_BLOCK_BYTES), 
                  "method cache block size in bytes, defaults to burst size if zero");
 
@@ -489,6 +491,7 @@ int main(int argc, char **argv)
   unsigned int posted = vm["posted"].as<unsigned int>();
            int tdelay = vm["tdelay"].as<int>();
   unsigned int trefresh = vm["trefresh"].as<unsigned int>();
+  unsigned int portwidth = vm["portwidth"].as<unsigned int>();
 
   patmos::set_assoc_cache_type dck = vm["dckind"].as<patmos::set_assoc_cache_type>();
   patmos::stack_cache_e sck = vm["sckind"].as<patmos::stack_cache_e>();
@@ -565,13 +568,13 @@ int main(int argc, char **argv)
   
   // setup simulation framework
   patmos::memory_t &gm = create_global_memory(cores, cpuid, gsize, 
-                                              bsize, psize,
+                                              portwidth, bsize, psize,
                                               posted, gtime, tdelay, trefresh,
                                               randomize_mem, chkreads);
   patmos::instr_cache_t &ic = create_instr_cache(ick, isck, mck, mcsize, 
                                                  ilsize ? ilsize : bsize, 
                                                  mbsize, mcmethods, mcmode, 
-                                                 mtsize * bsize, ispmsize, gm);
+                                                 mtsize, ispmsize, gm);
   patmos::data_cache_t &dc = create_data_cache(dck, dcsize, 
                                                dlsize ? dlsize : bsize, gm);
   patmos::stack_cache_t &sc = create_stack_cache(sck, scsize, bsize, gm, dc);
@@ -738,6 +741,7 @@ int main(int argc, char **argv)
         *sout << " --gsize=" << gsize;
         *sout << " --gtime=" << gtime;
         *sout << " --tdelay=" << tdelay << " --trefresh=" << trefresh;
+	*sout << " --portwidth=" << portwidth;
         *sout << " --bsize=" << bsize << " --psize=" << psize;
         *sout << " --posted=" << posted; 
         
