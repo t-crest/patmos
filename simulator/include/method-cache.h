@@ -300,6 +300,8 @@ namespace patmos
     /// Size of a single block to transfer, if mode is TM_NON_BLOCKING.
     uword_t Transfer_block_size;
     
+    bool Transfer_interruptable;
+    
     /// The methods in the cache sorted by age.
     /// The active methods are stored at indices [0..cache_entries()-1].
     /// Index 0 contains the most recently fetched method.
@@ -476,7 +478,7 @@ namespace patmos
                        unsigned int num_block_bytes, 
                        unsigned int max_active_methods = 0,
                        transfer_mode_e transfer_mode = TM_BLOCKING,
-                       unsigned int transfer_block_size = 0);
+                       unsigned int transfer_request_size = 0);
 
     /// Initialize the cache before executing the first instruction.
     /// @param address Address to fetch initial instructions.

@@ -273,7 +273,8 @@ namespace patmos
     
     virtual bool read_burst(simulator_t &s, uword_t address, byte_t *value,
                             uword_t size, uword_t &transferred,
-                            bool low_priority = false);
+                            bool low_priority = false, 
+                            bool interruptable = false);
 
     /// A simulated access to a write port.
     /// @param address The memory address to write to.

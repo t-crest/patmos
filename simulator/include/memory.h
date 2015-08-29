@@ -79,7 +79,8 @@ namespace patmos
     /// @return True when all the data has been written to value.
     virtual bool read_burst(simulator_t &s, uword_t address, byte_t *value, 
                             uword_t size, uword_t &transferred, 
-                            bool low_priority = false) = 0;
+                            bool low_priority = false, 
+                            bool interruptable = false) = 0;
 
 
     /// A simulated access to a write port.
@@ -244,7 +245,7 @@ namespace patmos
 
     virtual bool read_burst(simulator_t &s, uword_t address, byte_t *value, 
                         uword_t size, uword_t &transferred,
-                        bool low_priority = false);
+                        bool low_priority = false, bool interruptable = false);
 
     /// A simulated access to a write port.
     /// @param address The memory address to write to.
@@ -336,6 +337,10 @@ namespace patmos
     
     /// If true, interrupt this request by and queue after normal requests.
     bool Is_low_priority;
+    
+    /// If true, let other (high-priority) requests interrupt this request,
+    /// if this is a low priority request.
+    bool Is_interruptable;
     
     /// If true, the request is completed.
     bool Is_completed;
@@ -451,13 +456,15 @@ namespace patmos
     /// @param is_load A flag indicating whether the access is a load or store.
     /// @param is_posted A flag indicating whether the store is posted or not.
     /// @param is_low_priority Indicates whether the access is of low priority.
+    /// @param interruptable Create a request that can be interrupted by others.
     /// @return An existing or newly created request info object.
     /// \see request_info_t
     const request_info_t &find_or_create_request(simulator_t &s, 
                                                  uword_t address, uword_t size,
                                                  bool is_load, 
                                                  bool is_posted = false,
-                                                 bool is_low_priority = false);
+                                                 bool is_low_priority = false,
+                                                 bool interruptable = false);
     
   public:
     /// Construct a new memory instance.
@@ -497,7 +504,7 @@ namespace patmos
     
     virtual bool read_burst(simulator_t &s, uword_t address, byte_t *value, 
                     uword_t size, uword_t &transferred, 
-                    bool low_priority = false);
+                    bool low_priority = false, bool interruptable = false);
 
     /// A simulated access to a write port.
     /// @param address The memory address to write to.

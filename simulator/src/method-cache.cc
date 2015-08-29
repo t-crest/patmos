@@ -123,7 +123,7 @@ void lru_method_cache_t::method_info_t::update(uword_t address,
   Is_disposable = is_disposable;
   reset_utilization();
 }
-    
+
 void lru_method_cache_t::method_info_t::reset_utilization() {
   Utilization.clear();
   Utilization.resize(Num_bytes / sizeof(uword_t) + 3);        
@@ -460,7 +460,7 @@ bool lru_method_cache_t::cache_fill(simulator_t& s)
   // Perform the burst request(s).
   while (Memory.read_burst(s, Current_fetch_address, Cache, 
                         get_transfer_size(), Current_burst_transferred,
-			Transfer_mode == patmos::TM_NON_BLOCKING_LOW_PRIORITY))
+			true, Transfer_interruptable))
   {
     Current_fetch_address += Current_burst_transferred;
 
@@ -516,6 +516,7 @@ lru_method_cache_t::lru_method_cache_t(memory_t &memory,
   Max_methods = max_active_methods ? max_active_methods : num_blocks;
   Transfer_block_size = transfer_block_size ? transfer_block_size 
                                             : cache_size;
+  Transfer_interruptable = (transfer_block_size == 0);
                                             
   // Size of the Methods array. We basically only need to store Num_max_methods,
   // but in order to keep disposable methods in the cache to track avoidable

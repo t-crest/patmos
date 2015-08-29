@@ -142,7 +142,7 @@ bool ideal_memory_t::read(simulator_t &s, uword_t address, byte_t *value, uword_
 
 bool ideal_memory_t::read_burst(simulator_t &s, uword_t address, byte_t *value, 
                                 uword_t size, uword_t &transferred,
-                                bool low_priority)
+                                bool low_priority, bool interruptable)
 {
   // Just perform an (ideal) read.
   bool rs = read(s, address, value, size);
@@ -243,14 +243,14 @@ bool fixed_delay_memory_t::start_next_transfer(request_info_t &req)
     req.finish_transfer(0);
   }
   else {
-  
+
     // Ticks per burst must be > 0, otherwise we would have transferred everything
     // in the first request
     assert(Num_ticks_per_burst > 0 && "Should have already completed the request");
   
     req.next_transfer(Num_ticks_per_burst, Num_bytes_per_burst);
   }
-  return true;
+  return req.Is_interruptable;
 }
 
 bool fixed_delay_memory_t::tick_request(request_info_t &req)
@@ -276,7 +276,8 @@ bool fixed_delay_memory_t::tick_request(request_info_t &req)
 const request_info_t &fixed_delay_memory_t::find_or_create_request(simulator_t &s,
                                               uword_t address, uword_t size,
                                               bool is_load, bool is_posted,
-                                              bool is_low_priority)
+                                              bool is_low_priority,
+                                              bool interruptable)
 {
   // check if the access exceeds the memory size and lazily initialize
   // memory content
@@ -298,7 +299,7 @@ const request_info_t &fixed_delay_memory_t::find_or_create_request(simulator_t &
   request_info_t tmp = {address, size, aligned_address, 
                         // Latency_remaining, Next_transfer_size, Transferred
                         0, 0, 0,
-                        is_load, is_posted, is_low_priority,
+                        is_load, is_posted, is_low_priority, interruptable,
                         // Is_completed, Needs_requeue
                         false, false};
 
@@ -371,11 +372,13 @@ bool fixed_delay_memory_t::read(simulator_t &s, uword_t address, byte_t *value, 
 
 bool fixed_delay_memory_t::read_burst(simulator_t &s, uword_t address, 
                                       byte_t *value, uword_t size,
-                                      uword_t &transferred, bool low_priority)
+                                      uword_t &transferred, bool low_priority,
+                                      bool interruptable)
 {
   // get the request info
   const request_info_t &req(find_or_create_request(s, address, size, true, 
-                                                   false, low_priority));
+                                                   false, low_priority, 
+                                                   interruptable));
 
   // Copy already transferred data into the output buffer
   if (req.Transferred_bytes > transferred) {

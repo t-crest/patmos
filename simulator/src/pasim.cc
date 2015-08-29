@@ -383,7 +383,7 @@ int main(int argc, char **argv)
     ("mcmethods",boost::program_options::value<unsigned int>()->default_value(patmos::NUM_METHOD_CACHE_MAX_METHODS), 
                  "Maximum number of methods in the method cache, defaults to number of blocks if zero")
     ("mtsize",   boost::program_options::value<unsigned int>()->default_value(16),
-                 "Transfer size for method cache non-blocking fills in bytes, or zero for unlimited transfer size. Ignored for blocking mode.")
+                 "Transfer size for method cache non-blocking fills in bytes, or zero for unlimited, interruptable transfers. Ignored for blocking mode.")
     ("mbsize",   boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_METHOD_CACHE_BLOCK_BYTES), 
                  "method cache block size in bytes, defaults to burst size if zero");
 
