@@ -119,9 +119,9 @@ void next_tick(unsigned long long int *tt_time, unsigned short int *tt_slot) {
 
 void read_buffer(volatile unsigned short int * phase, struct conf_param_t * conf_param) {
   int error = 0;
-  //#if BUFFERING == SHM
+  #if BUFFERING == SHM
     inval_dcache();
-  //#endif
+  #endif
   unsigned char mem;
   int shm_phase = shared_phase;
   int i;
@@ -368,6 +368,7 @@ int main() {
   for (int i = 0; i < ITERATIONS; ++i) {
     #if PARADIGME == TIME_TRIGGERED
       next_tick(&tt_time,&tt_slot);
+      inval_dcache();
       local_phase = local_phase ^ 0x1;
       read_buffer(&local_phase,&conf_param);
       next_tick(&tt_time,&tt_slot);
