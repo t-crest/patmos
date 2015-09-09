@@ -18,7 +18,10 @@ const int NOC_MASTER = 0;
 #include "libcorethread/corethread.h"
 #include "libmp/mp.h"
 
-#define TT_PERIOD_US    200
+#ifndef TT_PERIOD_US
+  #define TT_PERIOD_US    200
+#endif
+
 #define TT_SCHED_LENGHT 16
 #define TIME_TRIGGERED  0
 #define EVENT_DRIVEN    1
@@ -57,8 +60,8 @@ const int NOC_MASTER = 0;
   typedef struct _SPM_LOCK_T LOCK_T_S;
   typedef LOCK_T_S _SPM * LOCK_T;
 
-  volatile LOCK_T_S* volatile master_lock_ptr = NULL;
-  volatile LOCK_T_S* volatile slave_lock_ptr = NULL;
+  LOCK_T_S * volatile _UNCACHED master_lock_ptr = NULL;
+  LOCK_T_S * volatile _UNCACHED slave_lock_ptr = NULL;
 #endif
 
 struct conf_param_t {
@@ -70,10 +73,6 @@ struct conf_param_t {
 
 volatile unsigned short int shared_phase = 0;
 volatile int slave_error = 0;
-volatile int slave_done = 0;
-
-volatile int _UNCACHED master_locked = 0;
-volatile int _UNCACHED slave_locked = 0;
 
 void print_version() {
   #if PARADIGME == TIME_TRIGGERED
@@ -208,18 +207,14 @@ void initialize_lock(LOCK_T * lock) {
     (*lock)->local_entering = 0;
     (*lock)->local_number = 0;
     if(get_cpuid() == 0) {
-      master_lock_ptr = (LOCK_T_S *)*lock;
-      while(slave_lock_ptr == NULL) {
-        inval_dcache();
-      }
+      master_lock_ptr = (LOCK_T_S * _UNCACHED )*lock;
+      while(slave_lock_ptr == NULL);
 
       (*lock)->remote_ptr = (LOCK_T_S _SPM *)slave_lock_ptr;
       (*lock)->remote_cpuid = SLAVE_CORE;
     } else {
-      slave_lock_ptr = (LOCK_T_S *)*lock;
-      while(master_lock_ptr == NULL) {
-        inval_dcache();
-      }
+      slave_lock_ptr = (LOCK_T_S * _UNCACHED )*lock;
+      while(master_lock_ptr == NULL);
       
       (*lock)->remote_ptr = (LOCK_T_S _SPM *)master_lock_ptr;
       (*lock)->remote_cpuid = 0;
@@ -231,8 +226,6 @@ void acquire_lock(LOCK_T * lock){
   #if BUFFERING == SHM
     __lock_acquire(*lock);
   #elif BUFFERING == SPM
-    //offsetof(LOCK_T_S,entering);
-    //offsetof(LOCK_T_S,number);
     /* Write Entering true */
     /* Write Number */
     unsigned remote = (*lock)->remote_cpuid;
@@ -244,7 +237,6 @@ void acquire_lock(LOCK_T * lock){
               sizeof((*lock)->local_entering));
 
     /* Enforce memory barrier */
-//    while(!noc_done(remote));
     unsigned n = (unsigned)(*lock)->remote_number + 1;
     (*lock)->local_number = n;
     noc_send(remote,
@@ -265,33 +257,10 @@ void acquire_lock(LOCK_T * lock){
     while((*lock)->remote_entering == 1);
     /* Wait to be the first in line to the bakery queue */
     unsigned m = (*lock)->remote_number;
-//    unsigned wait_time = 0;
     while( (m != 0) &&
             ( (m < n) || ((m == n) && ( remote < id)))) {
       m = (*lock)->remote_number;
-//      wait_time++;
     }
-//    inval_dcache();
-//    if (id == 0) {
-//      master_locked = 1;
-//      if (slave_locked == 1){
-//        printf("Error wrong acquire!!!!, wait time: %d, remote number: %d, number: %d\n",wait_time,m,n);
-//        printf("Addresses lock: %#08x, local_number: %#08x, local_entering: %#08x\n",
-//              lock,
-//              &((*lock)->local_number),
-//              &((*lock)->local_entering));
-//        printf("Addresses lock: %#08x, remote_number: %#08x, remote_entering: %#08x\n",
-//              (*lock)->remote_ptr,
-//              &((*lock)->remote_ptr->remote_number),
-//              &((*lock)->remote_ptr->remote_entering));
-//      }
-//    } else {
-//      slave_locked = 1;
-//      if (master_locked == 1){
-//        slave_error++;
-//        //exit(1);
-//      }
-//    }
     /* Lock is grabbed */  
     return;
   #endif
@@ -301,22 +270,7 @@ void release_lock(LOCK_T * lock){
   #if BUFFERING == SHM
     __lock_release(*lock);
   #elif BUFFERING == SPM
-    //offsetof(LOCK_T_S,entering);
-    //offsetof(LOCK_T_S,number);
     /* Write Number */
-//    inval_dcache();
-//    if (get_cpuid() == 0) {
-//      master_locked = 0;
-//      if (slave_locked == 1){
-//        puts("Error wrong release!!!!");
-//      }
-//    } else {
-//      slave_locked = 0;
-//      if (master_locked == 1){
-//        slave_error++;
-//        //exit(1);
-//      }
-//    }
     (*lock)->local_number = 0;
     noc_send((*lock)->remote_cpuid,
               (void _SPM *)&((*lock)->remote_ptr->remote_number),
@@ -365,15 +319,8 @@ void func_worker_1(void* arg) {
     #elif PARADIGME == EVENT_DRIVEN
       acquire_lock(&lock);
     #endif
-      inval_dcache();
-      if (shared_phase == 0) {
-        shared_phase = 1;
-      } else {
-        shared_phase = 0;
-      }
-      //shared_phase = shared_phase ^ 0x1;
+      shared_phase = shared_phase ^ 0x1;
       write_buffer(&shared_phase,&conf_param);
-      inval_dcache();
     #if PARADIGME == TIME_TRIGGERED
       next_tick(&conf_param.tt_time,&tt_slot);
       next_tick(&conf_param.tt_time,&tt_slot);
@@ -410,35 +357,22 @@ int main() {
   corethread_create(&worker_1,&func_worker_1,(void*)&conf_param);
   puts("Corethread created");
 
-  volatile unsigned short int local_phase = 0;
+  unsigned short int local_phase = 0;
 
   #if PARADIGME == TIME_TRIGGERED
     next_tick(&tt_time,&tt_slot);       // Wait for initial time tick
-    //puts("Time tick");
-    // TT_slot = 0
   #elif PARADIGME == EVENT_DRIVEN
     initialize_lock(&lock);
-    puts("Lock initialized");
   #endif
 
   for (int i = 0; i < ITERATIONS; ++i) {
-    
     #if PARADIGME == TIME_TRIGGERED
-      //printf("Iteration count: %d\n",i );
       next_tick(&tt_time,&tt_slot);
-      inval_dcache();
-      if (local_phase == 0) {
-        local_phase = 1;
-      } else {
-        local_phase = 0;
-      }
-      //local_phase = local_phase ^ 0x1;
+      local_phase = local_phase ^ 0x1;
       read_buffer(&local_phase,&conf_param);
       next_tick(&tt_time,&tt_slot);
     #elif PARADIGME == EVENT_DRIVEN
       acquire_lock(&lock);
-      //printf("Iteration count: %d\n",i );
-      inval_dcache();
       local_phase += shared_phase;
       read_buffer(&shared_phase,&conf_param);
       release_lock(&lock);
@@ -454,10 +388,6 @@ int main() {
     printf("Completed test with slave errors: %d\n",slave_error);
   }
 
-//  while(slave_done == 0){
-//    inval_dcache();
-//  }
-//  puts("slave_done");
   int* res;
   corethread_join(worker_1,&res);
 
