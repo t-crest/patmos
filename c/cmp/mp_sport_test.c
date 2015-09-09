@@ -18,7 +18,7 @@ const int NOC_MASTER = 0;
 #include "libcorethread/corethread.h"
 #include "libmp/mp.h"
 
-#define TT_PERIOD_US    10000
+#define TT_PERIOD_US    200
 #define TT_SCHED_LENGHT 16
 #define TIME_TRIGGERED  0
 #define EVENT_DRIVEN    1
@@ -55,7 +55,7 @@ const int NOC_MASTER = 0;
   };
   //typedef unsigned char _SPM BUFFER_T;
   typedef struct _SPM_LOCK_T LOCK_T_S;
-  typedef LOCK_T_S _SPM ** LOCK_T;
+  typedef LOCK_T_S _SPM * LOCK_T;
 
   volatile LOCK_T_S* volatile master_lock_ptr = NULL;
   volatile LOCK_T_S* volatile slave_lock_ptr = NULL;
@@ -72,8 +72,8 @@ volatile unsigned short int shared_phase = 0;
 volatile int slave_error = 0;
 volatile int slave_done = 0;
 
-volatile int master_locked = 0;
-volatile int slave_locked = 0;
+volatile int _UNCACHED master_locked = 0;
+volatile int _UNCACHED slave_locked = 0;
 
 void print_version() {
   #if PARADIGME == TIME_TRIGGERED
@@ -102,6 +102,7 @@ void next_tick(unsigned long long int *tt_time, unsigned short int *tt_slot) {
     // abort, time period has been exceeded.
     if (get_cpuid() == 0) {
       puts("TT period time exceeded");
+      printf("TT slot: %d\n", *tt_slot);
     } else {
       slave_error++;
     }
@@ -201,30 +202,27 @@ void initialize_lock(LOCK_T * lock) {
       __lock_init(*lock);
     }
   #elif BUFFERING == SPM
-    **lock = (LOCK_T_S _SPM *)mp_alloc(sizeof(LOCK_T_S));
-    (**lock)->remote_entering = 0;
-    (**lock)->remote_number = 0;
-    (**lock)->local_entering = 0;
-    (**lock)->local_number = 0;
+    *lock = (LOCK_T_S _SPM *)mp_alloc(sizeof(LOCK_T_S));
+    (*lock)->remote_entering = 0;
+    (*lock)->remote_number = 0;
+    (*lock)->local_entering = 0;
+    (*lock)->local_number = 0;
     if(get_cpuid() == 0) {
-      master_lock_ptr = (LOCK_T_S *)**lock;
-      puts("Waiting for slave core");
+      master_lock_ptr = (LOCK_T_S *)*lock;
       while(slave_lock_ptr == NULL) {
         inval_dcache();
       }
-      inval_dcache();
 
-      (**lock)->remote_ptr = (LOCK_T_S _SPM *)slave_lock_ptr;
-      (**lock)->remote_cpuid = SLAVE_CORE;
+      (*lock)->remote_ptr = (LOCK_T_S _SPM *)slave_lock_ptr;
+      (*lock)->remote_cpuid = SLAVE_CORE;
     } else {
-      slave_lock_ptr = (LOCK_T_S *)**lock;
-      
+      slave_lock_ptr = (LOCK_T_S *)*lock;
       while(master_lock_ptr == NULL) {
         inval_dcache();
       }
       
-      (**lock)->remote_ptr = (LOCK_T_S _SPM *)master_lock_ptr;
-      (**lock)->remote_cpuid = 0;
+      (*lock)->remote_ptr = (LOCK_T_S _SPM *)master_lock_ptr;
+      (*lock)->remote_cpuid = 0;
     }
   #endif
 }
@@ -237,54 +235,63 @@ void acquire_lock(LOCK_T * lock){
     //offsetof(LOCK_T_S,number);
     /* Write Entering true */
     /* Write Number */
-    unsigned remote = (**lock)->remote_cpuid;
+    unsigned remote = (*lock)->remote_cpuid;
     unsigned id = get_cpuid();
-    (**lock)->local_entering = 1;
+    (*lock)->local_entering = 1;
     noc_send(remote,
-              (void _SPM *)((**lock)->remote_ptr->local_entering),
-              (void _SPM *)(**lock)->local_entering,
-              sizeof((**lock)->local_entering));
+              (void _SPM *)&((*lock)->remote_ptr->remote_entering),
+              (void _SPM *)&(*lock)->local_entering,
+              sizeof((*lock)->local_entering));
 
     /* Enforce memory barrier */
-    while(!noc_done(remote));
-    unsigned n = (unsigned)(**lock)->remote_number + 1;
-    (**lock)->local_number = n;
+//    while(!noc_done(remote));
+    unsigned n = (unsigned)(*lock)->remote_number + 1;
+    (*lock)->local_number = n;
     noc_send(remote,
-              (void _SPM *)((**lock)->remote_ptr->local_number),
-              (void _SPM *)(**lock)->local_number,
-              sizeof((**lock)->local_number));
+              (void _SPM *)&((*lock)->remote_ptr->remote_number),
+              (void _SPM *)&(*lock)->local_number,
+              sizeof((*lock)->local_number));
 
     /* Enforce memory barrier */
     while(!noc_done(remote));
 
     /* Write Entering false */
-    (**lock)->local_entering = 0;
+    (*lock)->local_entering = 0;
     noc_send(remote,
-              (void _SPM *)((**lock)->remote_ptr->local_entering),
-              (void _SPM *)(**lock)->local_entering,
-              sizeof((**lock)->local_entering));
+              (void _SPM *)&((*lock)->remote_ptr->remote_entering),
+              (void _SPM *)&(*lock)->local_entering,
+              sizeof((*lock)->local_entering));
     /* Wait for remote core not to change number */
-    while((**lock)->remote_entering == 1);
+    while((*lock)->remote_entering == 1);
     /* Wait to be the first in line to the bakery queue */
-    unsigned m = (**lock)->remote_number;
-    unsigned wait_time = 0;
+    unsigned m = (*lock)->remote_number;
+//    unsigned wait_time = 0;
     while( (m != 0) &&
             ( (m < n) || ((m == n) && ( remote < id)))) {
-      m = (**lock)->remote_number;
-      wait_time++;
+      m = (*lock)->remote_number;
+//      wait_time++;
     }
-    if (id == 0) {
-      master_locked = 1;
-      if (slave_locked == 1){
-        printf("Error wrong acquire!!!!, wait time: %d, remote number: %d, number: %d \n",wait_time,m,n);
-      }
-    } else {
-      slave_locked = 1;
-      if (master_locked == 1){
-        slave_error++;
-        exit(1);
-      }
-    }
+//    inval_dcache();
+//    if (id == 0) {
+//      master_locked = 1;
+//      if (slave_locked == 1){
+//        printf("Error wrong acquire!!!!, wait time: %d, remote number: %d, number: %d\n",wait_time,m,n);
+//        printf("Addresses lock: %#08x, local_number: %#08x, local_entering: %#08x\n",
+//              lock,
+//              &((*lock)->local_number),
+//              &((*lock)->local_entering));
+//        printf("Addresses lock: %#08x, remote_number: %#08x, remote_entering: %#08x\n",
+//              (*lock)->remote_ptr,
+//              &((*lock)->remote_ptr->remote_number),
+//              &((*lock)->remote_ptr->remote_entering));
+//      }
+//    } else {
+//      slave_locked = 1;
+//      if (master_locked == 1){
+//        slave_error++;
+//        //exit(1);
+//      }
+//    }
     /* Lock is grabbed */  
     return;
   #endif
@@ -297,25 +304,26 @@ void release_lock(LOCK_T * lock){
     //offsetof(LOCK_T_S,entering);
     //offsetof(LOCK_T_S,number);
     /* Write Number */
-    if (get_cpuid() == 0) {
-      master_locked = 0;
-      if (slave_locked == 1){
-        puts("Error wrong release!!!!");
-      }
-    } else {
-      slave_locked = 0;
-      if (master_locked == 1){
-        slave_error++;
-        exit(1);
-      }
-    }
-    (**lock)->local_number = 0;
-    noc_send((**lock)->remote_cpuid,
-              (void _SPM *)((**lock)->remote_ptr->local_number),
-              (void _SPM *)(**lock)->local_number,
-              sizeof((**lock)->local_number));
+//    inval_dcache();
+//    if (get_cpuid() == 0) {
+//      master_locked = 0;
+//      if (slave_locked == 1){
+//        puts("Error wrong release!!!!");
+//      }
+//    } else {
+//      slave_locked = 0;
+//      if (master_locked == 1){
+//        slave_error++;
+//        //exit(1);
+//      }
+//    }
+    (*lock)->local_number = 0;
+    noc_send((*lock)->remote_cpuid,
+              (void _SPM *)&((*lock)->remote_ptr->remote_number),
+              (void _SPM *)&(*lock)->local_number,
+              sizeof((*lock)->local_number));
     /* Enforce memory barrier */
-    while(!noc_done((**lock)->remote_cpuid));
+    while(!noc_done((*lock)->remote_cpuid));
     /* Lock is freed */  
     return;
   #endif
@@ -396,7 +404,7 @@ int main() {
   print_version();
   corethread_t worker_1 = SLAVE_CORE; // For now the core ID
   unsigned short int tt_slot = TT_SCHED_LENGHT;
-  unsigned long long int tt_time = get_cpu_usecs();
+  unsigned long long int tt_time = get_cpu_usecs() + 2000; // Get time now plus some time for initialization
   conf_param.tt_time = tt_time;
      
   corethread_create(&worker_1,&func_worker_1,(void*)&conf_param);
@@ -406,7 +414,7 @@ int main() {
 
   #if PARADIGME == TIME_TRIGGERED
     next_tick(&tt_time,&tt_slot);       // Wait for initial time tick
-    puts("Time tick");
+    //puts("Time tick");
     // TT_slot = 0
   #elif PARADIGME == EVENT_DRIVEN
     initialize_lock(&lock);
@@ -416,7 +424,7 @@ int main() {
   for (int i = 0; i < ITERATIONS; ++i) {
     
     #if PARADIGME == TIME_TRIGGERED
-      printf("Iteration count: %d\n",i );
+      //printf("Iteration count: %d\n",i );
       next_tick(&tt_time,&tt_slot);
       inval_dcache();
       if (local_phase == 0) {
