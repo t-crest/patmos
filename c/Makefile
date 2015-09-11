@@ -29,7 +29,8 @@ LDFLAGS-BOOTABLE?= \
 # Assuming 2 MB of main memory
 CFLAGS?=-target patmos-unknown-unknown-elf -O2 \
 	-I$(CURDIR) \
-	-mpatmos-disable-vliw
+	-mpatmos-disable-vliw \
+	$(DEFINES)
 LDFLAGS?= \
 	-mpatmos-method-cache-size=0x1000 -mpatmos-preferred-subfunction-size=0 \
 	-mpatmos-stack-base=0x200000 -mpatmos-shadow-stack-base=0x1f8000
@@ -107,7 +108,7 @@ $(BUILDDIR)/libmp/mp.o: libmp/mp.h libnoc/noc.h libnoc/coreset.h bootloader/cmpb
 $(BUILDDIR)/libmp/queuing.o: libmp/mp.h libnoc/noc.h
 $(BUILDDIR)/libmp/sampling.o: libmp/mp.h libnoc/noc.h
 $(BUILDDIR)/libmp/collective.o: libmp/mp.h libnoc/noc.h libnoc/coreset.h bootloader/cmpboot.h
-$(LIBMP): $(BUILDDIR)/libmp/utils.o $(BUILDDIR)/libmp/mp.o $(BUILDDIR)/libmp/queuing.o 
+$(LIBMP): $(BUILDDIR)/libmp/utils.o $(BUILDDIR)/libmp/mp.o $(BUILDDIR)/libmp/queuing.o
 	patmos-ar r $@ $^
 	#$(BUILDDIR)/libmp/sampling.o $(BUILDDIR)/libmp/collective.o
 

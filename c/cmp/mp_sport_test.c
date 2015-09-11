@@ -15,6 +15,7 @@ const int NOC_MASTER = 0;
 #include <stdlib.h>
 #include <sys/lock.h>
 #include <machine/patmos.h>
+#include <limits.h>
 #include "libcorethread/corethread.h"
 #include "libmp/mp.h"
 
@@ -35,17 +36,28 @@ const int NOC_MASTER = 0;
   #define BUFFERING     SHM
 #endif
 
-#define BUFFER_SIZE     64
+#define SHM_LOCK             0
+#define SPM_LOCK             1
+#ifndef LOCKING
+  #define LOCKING     SHM_LOCK
+#endif
+
+#ifndef BUFFER_SIZE
+  #define BUFFER_SIZE     128
+#endif
 
 #define SLAVE_CORE 2
 #define ITERATIONS 1000
 
+typedef unsigned int BUFFER_T;
 #if BUFFERING == SHM
-  typedef unsigned char BUFFER_T;
+  BUFFER_T buf[BUFFER_SIZE];
+#endif
+
+#if LOCKING == SHM_LOCK
   typedef _LOCK_T LOCK_T;
   LOCK_T lock;
-  BUFFER_T buf[BUFFER_SIZE];
-#elif BUFFERING == SPM
+#elif LOCKING == SPM_LOCK
   /* DO NOT change layout of _SPM_LOCK_T  it is carefully laid out
    * to be easily transfered by the NoC. */
   struct _SPM_LOCK_T {
@@ -56,7 +68,6 @@ const int NOC_MASTER = 0;
     struct _SPM_LOCK_T _SPM * remote_ptr;
     unsigned char remote_cpuid;
   };
-  //typedef unsigned char _SPM BUFFER_T;
   typedef struct _SPM_LOCK_T LOCK_T_S;
   typedef LOCK_T_S _SPM * LOCK_T;
 
@@ -66,13 +77,18 @@ const int NOC_MASTER = 0;
 
 struct conf_param_t {
   unsigned long long int tt_time;
-  unsigned char _SPM * read_buf_ptr;
-  unsigned char _SPM * write_buf_ptr;
+  BUFFER_T _SPM * read_buf_ptr;
+  BUFFER_T _SPM * write_buf_ptr;
 };
 
 
 volatile unsigned short int shared_phase = 0;
 volatile int slave_error = 0;
+
+unsigned long long int min_time = ULONG_MAX;
+unsigned long long int max_time = 0;
+unsigned long long int accum_time = 0;
+unsigned long long int cnt_time = 0;
 
 void print_version() {
   #if PARADIGME == TIME_TRIGGERED
@@ -85,19 +101,35 @@ void print_version() {
   #endif
   #if BUFFERING == SHM
     printf("BUFFERING:\tSHM\n");
-    return;
   #elif BUFFERING == SPM
     printf("BUFFERING:\tSPM\n");
-    return;
   #else
     printf("BUFFERING:\tUNSUPPORTED\n");
     exit(1);
   #endif
+  #if PARADIGME == EVENT_DRIVEN
+    #if LOCKING == SHM_LOCK
+      printf("LOCKING:\tSHM_LOCK\n");
+    #elif LOCKING == SPM_LOCK
+      printf("LOCKING:\tSPM_LOCK\n");
+    #else
+      printf("LOCKING:\tUNSUPPORTED\n");
+      exit(1);
+    #endif
+    #ifdef EXCLUDE_LOCK
+      printf("Locking is excluded from timing measurements\n");
+    #else
+      printf("Locking is included in timing measurements\n");
+    #endif
+  #endif
+  return;
 }
 
 void next_tick(unsigned long long int *tt_time, unsigned short int *tt_slot) {
+  static int drop_first = 0;
+  unsigned long long int now = get_cpu_usecs();
   unsigned long long int nxt_tt_time = *tt_time + TT_PERIOD_US;
-  if (nxt_tt_time < get_cpu_usecs()) {
+  if (nxt_tt_time < now) {
     // abort, time period has been exceeded.
     if (get_cpuid() == 0) {
       puts("TT period time exceeded");
@@ -113,6 +145,14 @@ void next_tick(unsigned long long int *tt_time, unsigned short int *tt_slot) {
     (*tt_slot)++;
   }
   *tt_time = nxt_tt_time;
+  unsigned long long int left_time = nxt_tt_time - now;
+  if (get_cpuid() == 0 && left_time < TT_PERIOD_US-2 && drop_first == 1) {
+    min_time = (left_time < min_time) ? left_time : min_time;
+    max_time = (left_time > max_time) ? left_time : max_time;
+    accum_time += left_time;
+    cnt_time++; 
+  }
+  drop_first = 1;
   while(nxt_tt_time >= get_cpu_usecs());
   return;
 }
@@ -122,19 +162,20 @@ void read_buffer(volatile unsigned short int * phase, struct conf_param_t * conf
   #if BUFFERING == SHM
     inval_dcache();
   #endif
-  unsigned char mem;
+  BUFFER_T mem;
   int shm_phase = shared_phase;
+  int loc_phase = *phase;
   int i;
   for (i = 0; i < BUFFER_SIZE; ++i) {
     #if BUFFERING == SHM
       mem = buf[i];
     #elif BUFFERING == SPM
       mem = *((conf_param->read_buf_ptr) + i);
-      //printf("mem: %d\tphase: %d\ti: %d\n",mem,*phase\,i);
+      //printf("mem: %d\tphase: %d\ti: %d\n",mem,loc_phase\,i);
     #endif
-    if (*phase == 0 && mem != i) {
+    if (loc_phase == 0 && mem != i) {
       error++;
-    } else if (*phase != 0 && mem != (unsigned char)(BUFFER_SIZE-1 - i)) {
+    } else if (loc_phase != 0 && mem != (BUFFER_T)(BUFFER_SIZE-1 - i)) {
       error++;
     }
 
@@ -142,7 +183,7 @@ void read_buffer(volatile unsigned short int * phase, struct conf_param_t * conf
       if (get_cpuid() == 0) {\
         inval_dcache();
         puts("Reading wrong values");
-        printf("errors: %d\tmem: %d\tphase: %d\tshared phase: %d\ti: %d\n",error,mem,*phase,shm_phase,i);
+        printf("errors: %d\tmem: %d\tphase: %d\tshared phase: %d\ti: %d\n",error,mem,loc_phase,shm_phase,i);
         printf("write_buf_ptr: %#08x\tread_buf_ptr: %#08x\n",conf_param->write_buf_ptr,conf_param->read_buf_ptr);
       } else {
         slave_error++;
@@ -170,25 +211,25 @@ void write_buffer(volatile unsigned short int * phase, struct conf_param_t * con
   #if BUFFERING == SHM
     if (*phase == 0) {
       for (int i = 0; i < BUFFER_SIZE; ++i) {
-        buf[i] = (unsigned char)i;
+        buf[i] = (BUFFER_T)i;
       }
     } else {
       for (int i = 0; i < BUFFER_SIZE; ++i) {
-        buf[i] = (unsigned char)(BUFFER_SIZE-1 - i);
+        buf[i] = (BUFFER_T)(BUFFER_SIZE-1 - i);
       }
     }
 
   #elif BUFFERING == SPM
     if (*phase == 0) {
       for (int i = 0; i < BUFFER_SIZE; ++i) {
-        *((conf_param->write_buf_ptr) + i) = (unsigned char)i;
+        *((conf_param->write_buf_ptr) + i) = (BUFFER_T)i;
       }
     } else {
       for (int i = 0; i < BUFFER_SIZE; ++i) {
-        *((conf_param->write_buf_ptr) + i) = (unsigned char)(BUFFER_SIZE-1 - i);
+        *((conf_param->write_buf_ptr) + i) = (BUFFER_T)(BUFFER_SIZE-1 - i);
       }
     }
-    noc_send(0,conf_param->read_buf_ptr,conf_param->write_buf_ptr,BUFFER_SIZE);
+    noc_send(0,conf_param->read_buf_ptr,conf_param->write_buf_ptr,BUFFER_SIZE*sizeof(BUFFER_T));
 
     while(!noc_done(0));
 
@@ -196,11 +237,11 @@ void write_buffer(volatile unsigned short int * phase, struct conf_param_t * con
 }
 
 void initialize_lock(LOCK_T * lock) {
-  #if BUFFERING == SHM
+  #if LOCKING == SHM_LOCK
     if(get_cpuid() == 0) {
       __lock_init(*lock);
     }
-  #elif BUFFERING == SPM
+  #elif LOCKING == SPM_LOCK
     *lock = (LOCK_T_S _SPM *)mp_alloc(sizeof(LOCK_T_S));
     (*lock)->remote_entering = 0;
     (*lock)->remote_number = 0;
@@ -223,29 +264,39 @@ void initialize_lock(LOCK_T * lock) {
 }
 
 void acquire_lock(LOCK_T * lock){
-  #if BUFFERING == SHM
+  #if LOCKING == SHM_LOCK
     __lock_acquire(*lock);
-  #elif BUFFERING == SPM
+  #elif LOCKING == SPM_LOCK
     /* Write Entering true */
     /* Write Number */
     unsigned remote = (*lock)->remote_cpuid;
     unsigned id = get_cpuid();
     (*lock)->local_entering = 1;
+    
     noc_send(remote,
               (void _SPM *)&((*lock)->remote_ptr->remote_entering),
               (void _SPM *)&(*lock)->local_entering,
               sizeof((*lock)->local_entering));
 
-    /* Enforce memory barrier */
+
+    while(!noc_done(remote));
     unsigned n = (unsigned)(*lock)->remote_number + 1;
     (*lock)->local_number = n;
+    /* Enforce memory barrier */
     noc_send(remote,
               (void _SPM *)&((*lock)->remote_ptr->remote_number),
               (void _SPM *)&(*lock)->local_number,
               sizeof((*lock)->local_number));
 
-    /* Enforce memory barrier */
-    while(!noc_done(remote));
+  
+//    noc_send(remote,
+//              (void _SPM *)&((*lock)->remote_ptr->remote_entering),
+//              (void _SPM *)&(*lock)->local_entering,
+//              sizeof((*lock)->local_entering)+sizeof((*lock)->local_number));
+
+//    /* Enforce memory barrier */
+    while(!noc_done(remote)); // noc_send() also waits for the dma to be
+                                // free, so no need to do it here as well
 
     /* Write Entering false */
     (*lock)->local_entering = 0;
@@ -253,6 +304,7 @@ void acquire_lock(LOCK_T * lock){
               (void _SPM *)&((*lock)->remote_ptr->remote_entering),
               (void _SPM *)&(*lock)->local_entering,
               sizeof((*lock)->local_entering));
+
     /* Wait for remote core not to change number */
     while((*lock)->remote_entering == 1);
     /* Wait to be the first in line to the bakery queue */
@@ -267,9 +319,9 @@ void acquire_lock(LOCK_T * lock){
 }
 
 void release_lock(LOCK_T * lock){
-  #if BUFFERING == SHM
+  #if LOCKING == SHM_LOCK
     __lock_release(*lock);
-  #elif BUFFERING == SPM
+  #elif LOCKING == SPM_LOCK
     /* Write Number */
     (*lock)->local_number = 0;
     noc_send((*lock)->remote_cpuid,
@@ -284,12 +336,12 @@ void release_lock(LOCK_T * lock){
 }
 
 void close_lock(LOCK_T * lock) {
-  #if BUFFERING == SHM
+  #if LOCKING == SHM_LOCK
     if (get_cpuid() == 0) {
       __lock_close(*lock);
     }
     
-  #elif BUFFERING == SPM
+  #elif LOCKING == SPM_LOCK
 
   #endif
 }
@@ -302,9 +354,11 @@ void func_worker_1(void* arg) {
   unsigned short int tt_slot = TT_SCHED_LENGHT;
 
   #if BUFFERING == SPM
-    LOCK_T lock;
-    conf_param.write_buf_ptr = (unsigned char _SPM *)mp_alloc(BUFFER_SIZE);
+    conf_param.write_buf_ptr = (BUFFER_T _SPM *)mp_alloc(BUFFER_SIZE*sizeof(BUFFER_T));
     ((struct conf_param_t*)arg)->write_buf_ptr = conf_param.write_buf_ptr;
+  #endif
+  #if LOCKING == SPM_LOCK
+    LOCK_T lock;
   #endif
 
   #if PARADIGME == TIME_TRIGGERED  
@@ -341,11 +395,13 @@ int main() {
       buf[i] = i;
     }
   #elif  BUFFERING == SPM
-    conf_param.read_buf_ptr = (unsigned char _SPM *)mp_alloc(BUFFER_SIZE);
-    LOCK_T lock;
+    conf_param.read_buf_ptr = (BUFFER_T _SPM *)mp_alloc(BUFFER_SIZE*sizeof(BUFFER_T));
     for (int i = 0; i < BUFFER_SIZE; ++i) {
       *(conf_param.read_buf_ptr + i) = i;
     }
+  #endif
+  #if  LOCKING == SPM_LOCK
+    LOCK_T lock;
   #endif
 
   print_version();
@@ -363,7 +419,14 @@ int main() {
     next_tick(&tt_time,&tt_slot);       // Wait for initial time tick
   #elif PARADIGME == EVENT_DRIVEN
     initialize_lock(&lock);
+    min_time = ULONG_MAX;
+    max_time = 0;
+    accum_time = 0;
+    cnt_time = 0;
   #endif
+
+  unsigned long long int start = 0;
+  unsigned long long int stop = 0;
 
   for (int i = 0; i < ITERATIONS; ++i) {
     #if PARADIGME == TIME_TRIGGERED
@@ -373,10 +436,29 @@ int main() {
       read_buffer(&local_phase,&conf_param);
       next_tick(&tt_time,&tt_slot);
     #elif PARADIGME == EVENT_DRIVEN
+      #ifndef EXCLUDE_LOCK
+      start = get_cpu_usecs();
+      #endif
       acquire_lock(&lock);
+      #ifdef EXCLUDE_LOCK
+      start = get_cpu_usecs();
+      #endif
+      inval_dcache();
       local_phase += shared_phase;
       read_buffer(&shared_phase,&conf_param);
+
+      #ifdef EXCLUDE_LOCK
+      stop = get_cpu_usecs();
+      #endif
       release_lock(&lock);
+      #ifndef EXCLUDE_LOCK
+      stop = get_cpu_usecs();
+      #endif
+      unsigned long long int exe_time = stop - start;
+      min_time = (exe_time < min_time) ? exe_time : min_time;
+      max_time = (exe_time > max_time) ? exe_time : max_time;
+      accum_time += exe_time;
+      cnt_time++;
     #endif
   }
 
@@ -391,6 +473,12 @@ int main() {
 
   int* res;
   corethread_join(worker_1,&res);
+
+  #if PARADIGME == TIME_TRIGGERED
+    printf("Min time left: %llu\tMax time left: %llu\tAccumulated time left: %llu\nCount time left: %llu\tAverage time left: %llu\n", min_time,max_time,accum_time,cnt_time,accum_time/cnt_time);
+  #elif PARADIGME == EVENT_DRIVEN
+    printf("Min time left: %llu\tMax time left: %llu\tAccumulated time left: %llu\nCount time left: %llu\tAverage time left: %llu\n", min_time,max_time,accum_time,cnt_time,accum_time/cnt_time);
+  #endif
 
   close_lock(&lock);
 
