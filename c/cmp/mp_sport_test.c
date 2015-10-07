@@ -20,7 +20,7 @@ const int NOC_MASTER = 0;
 #include "libmp/mp.h"
 
 #ifndef TT_PERIOD_US
-  #define TT_PERIOD_US    200
+  #define TT_PERIOD_US    1000
 #endif
 
 #define TT_SCHED_LENGHT 16
@@ -32,8 +32,14 @@ const int NOC_MASTER = 0;
 
 #define SHM             0
 #define SPM             1
+#ifndef DATA_PLACEMENT
+  #define DATA_PLACEMENT     SHM
+#endif
+
+#define SINGLE          0
+#define THREE           1
 #ifndef BUFFERING
-  #define BUFFERING     SHM
+  #define BUFFERING     SINGLE
 #endif
 
 #define SHM_LOCK             0
@@ -50,7 +56,7 @@ const int NOC_MASTER = 0;
 #define ITERATIONS 1000
 
 typedef unsigned int BUFFER_T;
-#if BUFFERING == SHM
+#if DATA_PLACEMENT == SHM
   BUFFER_T buf[BUFFER_SIZE];
 #endif
 
@@ -99,12 +105,12 @@ void print_version() {
     printf("PARADIGME:\tUNSUPPORTED\n");
     exit(1);
   #endif
-  #if BUFFERING == SHM
-    printf("BUFFERING:\tSHM\n");
-  #elif BUFFERING == SPM
-    printf("BUFFERING:\tSPM\n");
+  #if DATA_PLACEMENT == SHM
+    printf("DATA_PLACEMENT:\tSHM\n");
+  #elif DATA_PLACEMENT == SPM
+    printf("DATA_PLACEMENT:\tSPM\n");
   #else
-    printf("BUFFERING:\tUNSUPPORTED\n");
+    printf("DATA_PLACEMENT:\tUNSUPPORTED\n");
     exit(1);
   #endif
   #if PARADIGME == EVENT_DRIVEN
@@ -125,7 +131,7 @@ void print_version() {
   return;
 }
 
-void next_tick(unsigned long long int *tt_time, unsigned short int *tt_slot) {
+void next_tick(unsigned long long int *tt_time, unsigned short int *tt_slot)  __attribute__((section(".text.spm"))) {
   static int drop_first = 0;
   unsigned long long int now = get_cpu_usecs();
   unsigned long long int nxt_tt_time = *tt_time + TT_PERIOD_US;
@@ -157,9 +163,9 @@ void next_tick(unsigned long long int *tt_time, unsigned short int *tt_slot) {
   return;
 }
 
-void read_buffer(volatile unsigned short int * phase, struct conf_param_t * conf_param) {
+void read_buffer(volatile unsigned short int * phase, struct conf_param_t * conf_param)  __attribute__((section(".text.spm"))) {
   int error = 0;
-  #if BUFFERING == SHM
+  #if DATA_PLACEMENT == SHM
     inval_dcache();
   #endif
   BUFFER_T mem;
@@ -167,9 +173,9 @@ void read_buffer(volatile unsigned short int * phase, struct conf_param_t * conf
   int loc_phase = *phase;
   int i;
   for (i = 0; i < BUFFER_SIZE; ++i) {
-    #if BUFFERING == SHM
+    #if DATA_PLACEMENT == SHM
       mem = buf[i];
-    #elif BUFFERING == SPM
+    #elif DATA_PLACEMENT == SPM
       mem = *((conf_param->read_buf_ptr) + i);
       //printf("mem: %d\tphase: %d\ti: %d\n",mem,loc_phase\,i);
     #endif
@@ -207,8 +213,8 @@ void read_buffer(volatile unsigned short int * phase, struct conf_param_t * conf
   return;
 }
 
-void write_buffer(volatile unsigned short int * phase, struct conf_param_t * conf_param) {
-  #if BUFFERING == SHM
+void write_buffer(volatile unsigned short int * phase, struct conf_param_t * conf_param)  __attribute__((section(".text.spm"))){
+  #if DATA_PLACEMENT == SHM
     if (*phase == 0) {
       for (int i = 0; i < BUFFER_SIZE; ++i) {
         buf[i] = (BUFFER_T)i;
@@ -219,7 +225,7 @@ void write_buffer(volatile unsigned short int * phase, struct conf_param_t * con
       }
     }
 
-  #elif BUFFERING == SPM
+  #elif DATA_PLACEMENT == SPM
     if (*phase == 0) {
       for (int i = 0; i < BUFFER_SIZE; ++i) {
         *((conf_param->write_buf_ptr) + i) = (BUFFER_T)i;
@@ -263,7 +269,7 @@ void initialize_lock(LOCK_T * lock) {
   #endif
 }
 
-void acquire_lock(LOCK_T * lock){
+void acquire_lock(LOCK_T * lock)  __attribute__((section(".text.spm"))) {
   #if LOCKING == SHM_LOCK
     __lock_acquire(*lock);
   #elif LOCKING == SPM_LOCK
@@ -318,7 +324,7 @@ void acquire_lock(LOCK_T * lock){
   #endif
 }
 
-void release_lock(LOCK_T * lock){
+void release_lock(LOCK_T * lock)  __attribute__((section(".text.spm"))) {
   #if LOCKING == SHM_LOCK
     __lock_release(*lock);
   #elif LOCKING == SPM_LOCK
@@ -353,7 +359,7 @@ void func_worker_1(void* arg) {
 
   unsigned short int tt_slot = TT_SCHED_LENGHT;
 
-  #if BUFFERING == SPM
+  #if DATA_PLACEMENT == SPM
     conf_param.write_buf_ptr = (BUFFER_T _SPM *)mp_alloc(BUFFER_SIZE*sizeof(BUFFER_T));
     ((struct conf_param_t*)arg)->write_buf_ptr = conf_param.write_buf_ptr;
   #endif
@@ -390,11 +396,11 @@ void func_worker_1(void* arg) {
 
 int main() {
   struct conf_param_t conf_param;
-  #if BUFFERING == SHM
+  #if DATA_PLACEMENT == SHM
     for (int i = 0; i < BUFFER_SIZE; ++i) {
       buf[i] = i;
     }
-  #elif  BUFFERING == SPM
+  #elif  DATA_PLACEMENT == SPM
     conf_param.read_buf_ptr = (BUFFER_T _SPM *)mp_alloc(BUFFER_SIZE*sizeof(BUFFER_T));
     for (int i = 0; i < BUFFER_SIZE; ++i) {
       *(conf_param.read_buf_ptr + i) = i;
