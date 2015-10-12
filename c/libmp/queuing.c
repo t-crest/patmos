@@ -46,7 +46,7 @@
 ////////////////////////////////////////////////////////////////////////////
 // Function for creating a queuing port 
 ////////////////////////////////////////////////////////////////////////////
-mpd_t _SPM * mp_create_qport(const unsigned int chan_id, const port_t port_type,
+mpd_t * mp_create_qport(const unsigned int chan_id, const direction_t direction_type,
               const coreid_t remote, const size_t msg_size, const size_t num_buf) {
   if (chan_id >= MAX_CHANNELS || remote >= get_cpucnt()) {
     TRACE(FAILURE,TRUE,"Channel id or remote id is out of range: chan_id %d, remote: %d\n",chan_id,remote);
@@ -54,21 +54,23 @@ mpd_t _SPM * mp_create_qport(const unsigned int chan_id, const port_t port_type,
   }
 
   // Allocate descriptor in SPM
-  mpd_t _SPM * mpd_ptr = mp_alloc(sizeof(mpd_t));
+  mpd_t * mpd_ptr = mp_alloc(sizeof(mpd_t));
   if (mpd_ptr == NULL) {
     TRACE(FAILURE,TRUE,"Message passing descriptor could not be allocated, SPM out of memory.\n");
     return NULL;
   }
 
-  mpd_ptr->port_type = port_type;
+  mpd_ptr->direction_type = direction_type;
   mpd_ptr->remote = remote;
   // Align the buffer size to double words and add the flag size
   mpd_ptr->buf_size = DWALIGN(msg_size);
   mpd_ptr->num_buf = num_buf;
 
-  if (port_type == SOURCE) {
+  chan_info[chan_id].port_type = QUEUING;
+
+  if (direction_type == SOURCE) {
     unsigned int _SPM * send_addr = (unsigned int _SPM *)mp_alloc(mp_send_alloc_size(mpd_ptr));
-    TRACE(INFO,TRUE,"Initialising SOURCE port addr : %#08x\n",(unsigned int)send_addr);
+    TRACE(INFO,TRUE,"Initializing SOURCE port addr : %#08x\n",(unsigned int)send_addr);
     
     if (send_addr == NULL) {
       TRACE(FAILURE,TRUE,"SPM allocation failed at SOURCE\n");
@@ -80,10 +82,10 @@ mpd_t _SPM * mp_create_qport(const unsigned int chan_id, const port_t port_type,
 
     // src_desc_ptr must be set first inorder for
     // core 0 to see which cores are absent in debug mode
-    chan_info[chan_id].src_desc_ptr = mpd_ptr;
-    chan_info[chan_id].src_id = (char) get_cpuid();
+    chan_info[chan_id].src_mpd_ptr = mpd_ptr;
     // Write the send_recv_count address to the main memory for coordination
     chan_info[chan_id].src_addr = (volatile void _SPM * )mpd_ptr->send_recv_count;
+    chan_info[chan_id].src_id = (char) get_cpuid();
 
     TRACE(ERROR,chan_info[chan_id].src_addr == NULL,"src_addr written incorrectly\n");
 
@@ -99,14 +101,14 @@ mpd_t _SPM * mp_create_qport(const unsigned int chan_id, const port_t port_type,
     mpd_ptr->shadow_write_buf = (volatile void _SPM *)((char*)send_addr + (mpd_ptr->buf_size + FLAG_SIZE));
 
 
-  } else if (port_type == SINK) {
+  } else if (direction_type == SINK) {
     mpd_ptr->recv_addr = mp_alloc(mp_recv_alloc_size(mpd_ptr));
     TRACE(INFO,TRUE,"Initialising SINK port addr: %#08x\n",(unsigned int)mpd_ptr->recv_addr);
     // sink_desc_ptr must be set first inorder for
     // core 0 to see which cores are absent in debug mode
-    chan_info[chan_id].sink_desc_ptr = mpd_ptr;
-    chan_info[chan_id].sink_id = (char)get_cpuid();
+    chan_info[chan_id].sink_mpd_ptr = mpd_ptr;
     chan_info[chan_id].sink_addr = (volatile void _SPM *)mpd_ptr->recv_addr;
+    chan_info[chan_id].sink_id = (char)get_cpuid();
 
     TRACE(ERROR,chan_info[chan_id].sink_addr == NULL,"sink_addr written incorrectly\n");
 
@@ -149,7 +151,7 @@ mpd_t _SPM * mp_create_qport(const unsigned int chan_id, const port_t port_type,
 // Functions for point-to-point transmission of data
 ////////////////////////////////////////////////////////////////////////////
 
-int mp_nbsend(mpd_t _SPM * mpd_ptr) {
+int mp_nbsend(mpd_t * mpd_ptr) {
 
   // Calculate the address of the remote receiving buffer
   int rmt_addr_offset = (mpd_ptr->buf_size + FLAG_SIZE) * mpd_ptr->send_ptr;
@@ -183,7 +185,7 @@ int mp_nbsend(mpd_t _SPM * mpd_ptr) {
   return 1;
 }
 
-int mp_send(mpd_t _SPM * mpd_ptr, const unsigned int time_usecs) {
+int mp_send(mpd_t * mpd_ptr, const unsigned int time_usecs) {
   unsigned long long int timeout = get_cpu_usecs() + time_usecs;
   int retval = 0;
   _Pragma("loopbound min 1 max 1")
@@ -195,7 +197,7 @@ int mp_send(mpd_t _SPM * mpd_ptr, const unsigned int time_usecs) {
   return retval;
 }
 
-int mp_nbrecv(mpd_t _SPM * mpd_ptr) {
+int mp_nbrecv(mpd_t * mpd_ptr) {
 
   // Calculate the address of the local receiving buffer
   int locl_addr_offset = (mpd_ptr->buf_size + FLAG_SIZE) * mpd_ptr->recv_ptr;
@@ -224,7 +226,7 @@ int mp_nbrecv(mpd_t _SPM * mpd_ptr) {
   return 1;
 }
 
-int mp_recv(mpd_t _SPM * mpd_ptr, const unsigned int time_usecs) {
+int mp_recv(mpd_t * mpd_ptr, const unsigned int time_usecs) {
   unsigned long long int timeout = get_cpu_usecs() + time_usecs;
   int retval = 0;
   _Pragma("loopbound min 1 max 1")
@@ -236,7 +238,7 @@ int mp_recv(mpd_t _SPM * mpd_ptr, const unsigned int time_usecs) {
   return retval;
 }
 
-int mp_nback(mpd_t _SPM * mpd_ptr){
+int mp_nback(mpd_t * mpd_ptr){
   // Check previous acknowledgement transfer before updating counter in SPM
   if (!noc_done(mpd_ptr->remote)) { return 0; }
   // Increment the receive counter
@@ -249,7 +251,7 @@ int mp_nback(mpd_t _SPM * mpd_ptr){
   return success;
 }
 
-int mp_ack(mpd_t _SPM * mpd_ptr, const unsigned int time_usecs){
+int mp_ack(mpd_t * mpd_ptr, const unsigned int time_usecs){
   unsigned long long int timeout = get_cpu_usecs() + time_usecs;
   int retval = 0;
   // Await previous acknowledgement transfer before updating counter in SPM

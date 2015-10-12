@@ -1,5 +1,5 @@
 /*
-   Copyright 2014 Technical University of Denmark, DTU Compute. 
+   Copyright 2015 Technical University of Denmark, DTU Compute. 
    All rights reserved.
    
    This file is part of the time-predictable VLIW processor Patmos.
@@ -39,74 +39,217 @@
 
 #include "mp.h"
 #include "mp_internal.h"
-////////////////////////////////////////////////////////////////////////////
-// Functions for sampling point-to-point transmission of data
-////////////////////////////////////////////////////////////////////////////
+#define TRACE_LEVEL INFO
+#define DEBUG_ENABLE
+#include "include/debug.h"
 
-void mp_write(mpd_t* mpd_ptr) {
-  // Sampling of the write pointer to get rid of transient hazards.
-  // We sample the write pointer twice, if the two samples are
-  // different, the write_pointer just changed, and therefore it is
-  // safe to sample it once more and rely on the newest sample,
-  // because it cannot change that often
-  int write_ptr = *(mpd_ptr->write_ptr);
-  int write_ptr_tmp = *(mpd_ptr->write_ptr);
-  if (write_ptr != write_ptr_tmp) {
-    write_ptr = *(mpd_ptr->write_ptr);
+#define SINGLE_NOC 0
+#define SINGLE_SHM 1
+#define MULTI_NOC  2
+
+#define IMPL MULTI_NOC
+
+spd_t * mp_create_sport(const unsigned int chan_id, const direction_t direction_type,
+              const coreid_t remote, const size_t sample_size) {
+  if (chan_id >= MAX_CHANNELS || remote >= get_cpucnt()) {
+    TRACE(FAILURE,TRUE,"Channel id or remote id is out of range: chan_id %d, remote: %d\n",chan_id,remote);
+    return NULL;
   }
-  // Calculate the address of the remote receiving buffer
-  int rmt_addr_offset = (mpd_ptr->buf_size + FLAG_SIZE) * write_ptr;
-  volatile void _SPM * calc_rmt_addr = &mpd_ptr->recv_addr[rmt_addr_offset];
-  *(volatile int _SPM *)((char*)mpd_ptr->write_buf + mpd_ptr->buf_size) = FLAG_VALID;
 
-  // Send the new sample to the remote receiving buffer
-  noc_send(mpd_ptr->recv_id,calc_rmt_addr,mpd_ptr->write_buf,mpd_ptr->buf_size + FLAG_SIZE);
+  spd_t * spd_ptr = mp_alloc(sizeof(spd_t));
+  if (spd_ptr == NULL) {
+    TRACE(FAILURE,TRUE,"Sampling port descriptor could not be allocated, SPM out of memory.\n");
+    return NULL;
+  }
 
-  // Swap write_buf and shadow_write_buf
-  volatile void _SPM * tmp = mpd_ptr->write_buf;
-  mpd_ptr->write_buf = mpd_ptr->shadow_write_buf;
-  mpd_ptr->shadow_write_buf = tmp;
+  spd_ptr->direction_type = direction_type;
+  spd_ptr->remote = remote;
+  // Align the buffer size to double words and add the flag size
+  spd_ptr->sample_size = DWALIGN(sample_size);
 
-  return;
+  spd_ptr->lock = initialize_lock(remote);
+  TRACE(INFO,TRUE,"Initializing lock : %#08x\n",(unsigned int)spd_ptr->lock);
+
+  if (spd_ptr->lock == NULL) {
+    TRACE(FAILURE,TRUE,"Lock initialization failed\n");
+    return NULL;
+  }
+
+  chan_info[chan_id].port_type = SAMPLING;
+  if (direction_type == SOURCE) {
+    #if IMPL == MULTI_NOC
+      spd_ptr->reading = -1;
+      spd_ptr->next = 0;
+    #endif
+    // src_desc_ptr must be set first inorder for
+    // core 0 to see which cores are absent in debug mode
+    chan_info[chan_id].src_spd_ptr = spd_ptr;
+    if (chan_info[chan_id].src_spd_ptr == NULL) {
+      TRACE(ERROR,TRUE,"src_spd_ptr written incorrectly\n");
+      return NULL;
+    }
+    chan_info[chan_id].src_lock = spd_ptr->lock;
+
+    #if IMPL == SINGLE_SHM
+      // For shared memory buffer
+      spd_ptr->read_shm_buf = malloc(DWALIGN(sample_size));
+      chan_info[chan_id].src_addr = (volatile void _SPM *)spd_ptr->read_shm_buf;
+      TRACE(ERROR,chan_info[chan_id].src_addr == NULL,"src_addr written incorrectly\n");
+    #endif
+
+    chan_info[chan_id].src_id = (char) get_cpuid();    
+    TRACE(INFO,TRUE,"Initialization at sender done.\n");
+
+  } else if (direction_type == SINK) {
+    #if IMPL == MULTI_NOC
+      spd_ptr->read_bufs = mp_alloc(DWALIGN(sample_size)*3);
+      spd_ptr->newest = -1;
+    #else
+      spd_ptr->read_bufs = mp_alloc(DWALIGN(sample_size));
+    #endif
+    TRACE(INFO,TRUE,"Initialising SINK port buf_addr: %#08x\n",(unsigned int)spd_ptr->read_bufs);
+    // sink_desc_ptr must be set first inorder for
+    // core 0 to see which cores are absent in debug mode
+    TRACE(INFO,TRUE,"SINK spd ptr: %#08x\n",(unsigned int)spd_ptr);
+    chan_info[chan_id].sink_spd_ptr = spd_ptr;
+    if (chan_info[chan_id].sink_spd_ptr == NULL) {
+      TRACE(ERROR,TRUE,"src_spd_ptr written incorrectly\n");
+      return NULL;
+    }
+    chan_info[chan_id].sink_lock = spd_ptr->lock;
+    chan_info[chan_id].sink_addr = (volatile void _SPM *)spd_ptr->read_bufs;
+    
+
+    TRACE(ERROR,chan_info[chan_id].sink_addr == NULL,"sink_addr written incorrectly\n");
+    if (spd_ptr->read_bufs == NULL) {
+      TRACE(FAILURE,TRUE,"SPM allocation failed at SINK\n");
+      return NULL;
+    }
+    chan_info[chan_id].sink_id = (char)get_cpuid();
+    TRACE(INFO,TRUE,"Initialization at receiver done.\n");
+
+  }
+
+  return spd_ptr;
 }
 
-void mp_read(mpd_t* mpd_ptr) {
+#if IMPL == SINGLE_SHM
 
-  // Update the write pointer to point to the other buffer.
-  unsigned int read_buf = mpd_ptr->write_ptr;
-  mpd_ptr->write_ptr = (read_buf + 1) % NUM_WRITE_BUF;
-  // Send the update write pointer to the sender.
-  noc_send(mpd_ptr->send_id,mpd_ptr->,mpd_ptr->write_ptr,sizeof(mpd_ptr->write_ptr));
-  // Wait fo the write pointer to propagate to the sender
-  // and a possible sample to propagate from the sender
-  // to the receiver
-  // Calculate the address of the local receiving buffer
-  int locl_addr_offset = (mpd_ptr->buf_size + FLAG_SIZE) * mpd_ptr->recv_ptr;
-  volatile void _SPM * calc_locl_addr = &mpd_ptr->recv_addr[locl_addr_offset];
+int mp_read(spd_t * sport, volatile void _SPM * sample) {
+  acquire_lock(sport->lock);
+  // Since sample_size is in bytes and we want to copy 32 bit at the time we divide sample_size by 4
+  unsigned itteration_count = (sport->sample_size + 4 - 1) / 4; // equal to ceil(sport->sample_size/4)
+  inval_dcache();
+  for (int i = 0; i < itteration_count; ++i) {
+    ((int _SPM *)sample)[i] = ((volatile int *)sport->read_shm_buf)[i];
+  }
+  release_lock(sport->lock);
 
-  volatile int _SPM * recv_flag = (volatile int _SPM *)((char*)calc_locl_addr + mpd_ptr->buf_size);
+  return 0;
 
-  if (*recv_flag == FLAG_INVALID) {
-    DEBUGGER("mp_nbrecv(): Recv flag %x\n",*recv_flag);
-    return 0;
+} 
+
+int mp_write(spd_t * sport, volatile void _SPM * sample) {
+  acquire_lock(sport->lock);
+  // Since sample_size is in bytes and we want to copy 32 bit at the time we divide sample_size by 4
+  unsigned itteration_count = (sport->sample_size + 4 - 1) / 4; // equal to ceil(sport->sample_size/4)
+  for (int i = 0; i < itteration_count; ++i) {
+    ((volatile int *)sport->read_shm_buf)[i] = ((int _SPM *)sample)[i];
+  }
+  release_lock(sport->lock);
+
+  return 0;
+} 
+
+#elif IMPL == SINGLE_NOC
+
+int mp_read(spd_t * sport, volatile void _SPM * sample) {
+  acquire_lock(sport->lock);
+  // Since sample_size is in bytes and we want to copy 32 bit at the time we divide sample_size by 4
+  unsigned itteration_count = (sport->sample_size + 4 - 1) / 4; // equal to ceil(sport->sample_size/4)
+  for (int i = 0; i < itteration_count; ++i) {
+    ((int _SPM *)sample)[i] = ((volatile int _SPM *)sport->read_bufs)[i];
+  }
+  release_lock(sport->lock);
+
+  return 0;
+
+} 
+
+int mp_write(spd_t * sport, volatile void _SPM * sample) {
+  acquire_lock(sport->lock);
+  noc_send(sport->remote,sport->read_bufs,sample,sport->sample_size);
+  while(!noc_done(sport->remote));
+  release_lock(sport->lock);
+
+  return 0;
+} 
+
+#elif IMPL == MULTI_NOC
+
+int mp_read(spd_t * sport, volatile void _SPM * sample) {
+  int newest = 0;
+  acquire_lock(sport->lock);
+  // Read newest
+  newest = (int)sport->newest;
+  // Update reading
+  if (newest >= 0) {
+    noc_send( sport->remote,
+              (void _SPM *)(((int)&(sport->remote_spd->reading)) ),
+              (void _SPM *)&sport->newest,
+              sizeof(sport->newest));
+    while(!noc_done(sport->remote));
+  }
+  release_lock(sport->lock);
+
+  if (newest < 0) {
+    // No sample value has been written yet.
+    return 1;
+  }
+  // Since sample_size is in bytes and we want to copy 32 bit at the time we divide sample_size by 4
+  unsigned itteration_count = (sport->sample_size + 4 - 1) / 4; // equal to ceil(sport->sample_size/4)
+  for (int i = 0; i < itteration_count; ++i) {
+    ((int _SPM *)sample)[i] = ((volatile int _SPM *)(sport->read_bufs+
+                              newest*sport->sample_size))[i];
   }
 
-  // Move the receive pointer
-  if (mpd_ptr->recv_ptr == mpd_ptr->num_buf - 1) {
-    mpd_ptr->recv_ptr = 0;
-  } else {
-    mpd_ptr->recv_ptr++;
+  return 0;
+
+} 
+
+int mp_write(spd_t * sport, volatile void _SPM * sample) {
+  // Send the sample to the next buffer
+  noc_send( sport->remote,
+            (void _SPM *)( ((unsigned int)sport->read_bufs)+(((unsigned int)sport->next)*sport->sample_size) ),
+            sample,
+            sport->sample_size);
+  while(!noc_done(sport->remote));
+  // When the sample is sent take the lock
+  unsigned int reading;
+  acquire_lock(sport->lock);
+  // Update newest
+  noc_send( sport->remote,
+            (void _SPM *)&(sport->remote_spd->newest),
+            (void _SPM *)&sport->next,
+            sizeof(sport->next));
+  while(!noc_done(sport->remote));
+  // update next based on the reading variable
+  reading = (unsigned int)sport->reading;
+  release_lock(sport->lock);
+
+  sport->next++;
+  if (sport->next >= 3) {
+     sport->next = 0;
   }
-
-  // Set the reception flag of the received message to FLAG_INVALID
-  *recv_flag = FLAG_INVALID;
-
-  // Set the new read buffer pointer
-  mpd_ptr->read_buf = calc_locl_addr;
-
-  return 1;
-}
-
-int mp_read_updated(mpd_t* mpd_ptr) {
+  if (sport->next == reading) {
+    sport->next++;
+    if (sport->next >= 3) {
+      sport->next = 0;
+    }
+  }
   
-}
+
+  return 0;
+} 
+
+#endif

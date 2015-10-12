@@ -41,13 +41,13 @@
 #include "mp_internal.h"
 
 
-size_t mp_send_alloc_size(mpd_t _SPM * mpd_ptr) {
+size_t mp_send_alloc_size(mpd_t * mpd_ptr) {
   size_t send_size = (mpd_ptr->buf_size + FLAG_SIZE) * NUM_WRITE_BUF
                                   + DWALIGN(sizeof(*(mpd_ptr->send_recv_count)));
   return send_size;
 }
 
-size_t mp_recv_alloc_size(mpd_t _SPM * mpd_ptr) {
+size_t mp_recv_alloc_size(mpd_t * mpd_ptr) {
   size_t recv_size = (mpd_ptr->buf_size + FLAG_SIZE) * mpd_ptr->num_buf
                                   + DWALIGN(sizeof(*(mpd_ptr->recv_count)));
   return recv_size;

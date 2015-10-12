@@ -42,7 +42,7 @@
 #define DEBUG_ENABLE
 #include "include/debug.h"
 
-#define DEBUG
+//#define DEBUG
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for library initialization and memory management
@@ -65,8 +65,10 @@ void mp_init() {
       chan_info[i].sink_id = -1;
       chan_info[i].src_addr = NULL;
       chan_info[i].sink_addr = NULL;
-      chan_info[i].src_desc_ptr = NULL;
-      chan_info[i].sink_desc_ptr = NULL;
+      chan_info[i].src_mpd_ptr = NULL;
+      chan_info[i].sink_mpd_ptr = NULL;
+      chan_info[i].src_spd_ptr = NULL;
+      chan_info[i].sink_spd_ptr = NULL;
     }
   }
 
@@ -107,6 +109,11 @@ void _SPM * mp_alloc(const size_t size) {
 
   unsigned int new_addr = mem_ptr + dw_size;
   // Check if the allocated memory is there
+  if (new_addr < (unsigned int)NOC_SPM_BASE) {
+    // TODO: Cause disaster (Kernel panic)
+    DEBUGS("SPM Alloc failed. SOM not initialized");
+    return NULL;
+  }
   if (new_addr > (unsigned int)(spm_size_array[cpuid] + NOC_SPM_BASE)) {
     // TODO: Cause disaster (Kernel panic)
     DEBUGS("SPM Alloc failed. No more memory in SPM");
@@ -124,30 +131,44 @@ void _SPM * mp_alloc(const size_t size) {
 int mp_init_chans() {
   int retval = 1;
   int cpuid = get_cpuid();
-  // For all channels check if calling core is either source or sink in the channel
+  // For all channels check if port type is sampling or queuing and
+  // check if calling core is either source or sink in the channel
   for (int chan_id = 0; chan_id < MAX_CHANNELS; ++chan_id) {
     TRACE(INFO,TRUE,"Initializing channel %d\n",chan_id);
+
     if(chan_info[chan_id].src_id == cpuid) {
-      TRACE(INFO,TRUE,"Source port found sink_addr : %#08x, src_addr : %#08x\n",(unsigned int)chan_info[chan_id].sink_addr,(unsigned int)chan_info[chan_id].src_addr);
       // If calling core is source, wait for the sink address, and then
       // copy into the source message passing descriptor.
-      while (chan_info[chan_id].sink_addr == NULL);
-      chan_info[chan_id].src_desc_ptr->recv_addr = chan_info[chan_id].sink_addr;
-#ifdef DEBUG
-      // If debugging mode reset src_desc_ptr
-      chan_info[chan_id].src_desc_ptr = NULL;
-#endif
+      while (chan_info[chan_id].sink_id == -1);
+      TRACE(INFO,TRUE,"Source port found sink_addr : %#08x, src_addr : %#08x\n",
+                                    (unsigned int)chan_info[chan_id].sink_addr,
+                                    (unsigned int)chan_info[chan_id].src_addr);
+      if (chan_info[chan_id].port_type == QUEUING) {
+        chan_info[chan_id].src_mpd_ptr->recv_addr = chan_info[chan_id].sink_addr;
+      } else if (chan_info[chan_id].port_type == SAMPLING) {
+        chan_info[chan_id].src_spd_ptr->lock->remote_ptr = (LOCK_T *)chan_info[chan_id].sink_lock;
+        chan_info[chan_id].src_spd_ptr->read_bufs = chan_info[chan_id].sink_addr;
+        chan_info[chan_id].src_spd_ptr->remote_spd = chan_info[chan_id].sink_spd_ptr;
+        TRACE(INFO,TRUE,"SRC spd ptr: %#08x\n",(int)chan_info[chan_id].src_spd_ptr);
+        TRACE(INFO,TRUE,"SINK spd ptr: %#08x\n",(int)chan_info[chan_id].sink_spd_ptr);
+      }
       TRACE(INFO,TRUE,"Source port initialized\n");
     } else if (chan_info[chan_id].sink_id == cpuid) {
-      TRACE(INFO,TRUE,"Sink port found src_addr : %#08x, sink_addr : %#08x\n",(unsigned int)chan_info[chan_id].src_addr,(unsigned int)chan_info[chan_id].sink_addr);
       // If calling core is sink, wait for the source address, and then
       // copy into the sink message passing descriptor.
-      while (chan_info[chan_id].src_addr == NULL);
-      chan_info[chan_id].sink_desc_ptr->send_recv_count = chan_info[chan_id].src_addr;
-#ifdef DEBUG
-      // If debugging mode reset src_desc_ptr
-      chan_info[chan_id].sink_desc_ptr = NULL;
-#endif
+      while (chan_info[chan_id].src_id == -1);
+      TRACE(INFO,TRUE,"Sink port found src_addr : %#08x, sink_addr : %#08x\n",
+                                    (unsigned int)chan_info[chan_id].src_addr,
+                                    (unsigned int)chan_info[chan_id].sink_addr);
+      if (chan_info[chan_id].port_type == QUEUING) {
+        chan_info[chan_id].sink_mpd_ptr->send_recv_count = chan_info[chan_id].src_addr;
+      } else if (chan_info[chan_id].port_type == SAMPLING) {
+        chan_info[chan_id].sink_spd_ptr->lock->remote_ptr = (LOCK_T *)chan_info[chan_id].src_lock;
+        chan_info[chan_id].sink_spd_ptr->read_shm_buf = (volatile void * _SPM)chan_info[chan_id].src_addr;
+        chan_info[chan_id].sink_spd_ptr->remote_spd = chan_info[chan_id].src_spd_ptr;
+        TRACE(INFO,TRUE,"SINK spd ptr: %#08x\n",(int)chan_info[chan_id].sink_spd_ptr);
+        TRACE(INFO,TRUE,"SRC spd ptr: %#08x\n",(int)chan_info[chan_id].src_spd_ptr);
+      }
       TRACE(INFO,TRUE,"Sink port initialized\n");
     }
 
@@ -160,11 +181,11 @@ int mp_init_chans() {
     // and print out which channels that was not initialized
     // within a timeout
     for (int chan_id = 0; chan_id < MAX_CHANNELS; ++chan_id) {
-      if(chan_info[chan_id].src_id != -1 && chan_info[chan_id].src_desc_ptr != NULL) {
+      if(chan_info[chan_id].src_id != -1 && chan_info[chan_id].src_mpd_ptr != NULL) {
         // If the source of the channel has been written and the
         // descriptor address is not NULL, maybe a deadlock happend
         TRACE(FAILURE,TRUE,"The channel %d was not initialized at source\n",chan_id);
-      } else if (chan_info[chan_id].sink_id != -1 && chan_info[chan_id].sink_desc_ptr != NULL) {
+      } else if (chan_info[chan_id].sink_id != -1 && chan_info[chan_id].sink_mpd_ptr != NULL) {
         // If the sink of the channel has been written and the
         // descriptor address is not NULL, maybe a deadlock happend
         TRACE(FAILURE,TRUE,"The channel %d was not initialized at sink\n",chan_id);

@@ -93,20 +93,33 @@ typedef unsigned long long int barrier_t;
 // of the message passing channels
 ////////////////////////////////////////////////////////////////////////////
 
+typedef enum {SAMPLING, QUEUING} port_t;
+
 typedef struct {
+  port_t port_type;
   int src_id;
   int sink_id;
   volatile void _SPM * src_addr;
   volatile void _SPM * sink_addr;
-  mpd_t _SPM * src_desc_ptr;
-  mpd_t _SPM * sink_desc_ptr;
+  volatile LOCK_T * src_lock;
+  volatile LOCK_T * sink_lock;
+  union {
+    struct {
+      mpd_t * src_mpd_ptr;
+      mpd_t * sink_mpd_ptr;
+    };
+    struct {
+      spd_t * src_spd_ptr;
+      spd_t * sink_spd_ptr;
+    };
+  };
 
 } chan_info_t;
 extern volatile _UNCACHED chan_info_t chan_info[MAX_CHANNELS];
 
-size_t mp_send_alloc_size(mpd_t _SPM * mpd_ptr);
+size_t mp_send_alloc_size(mpd_t * mpd_ptr);
 
-size_t mp_recv_alloc_size(mpd_t _SPM * mpd_ptr);
+size_t mp_recv_alloc_size(mpd_t * mpd_ptr);
 
 int test_spm_size();
 

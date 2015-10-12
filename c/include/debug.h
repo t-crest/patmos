@@ -57,8 +57,11 @@
     }                                                                   \
   }
 
-
-#define DEBUGF(x) DPRINTF("[%s:%d] :\t %s = ''\n",__FILE__,__LINE__,#x,(x))
+#define DEBUGF(x) DPRINTF("[%s:%d] :\t %s = '%d'\n",__FILE__,__LINE__,#x,(x))
+#define DEBUGD(x) DPRINTF("[%s:%d] :\t %s = '%d'\n",__FILE__,__LINE__,#x,(x))
+#define DEBUGLLD(x) DPRINTF("[%s:%d] :\t %s = '%lld'\n",__FILE__,__LINE__,#x,(x))
+#define DEBUGX(x) DPRINTF("[%s:%d] :\t %s = '%08x'\n",__FILE__,__LINE__,#x,(x))
+#define DEBUGLLX(x) DPRINTF("[%s:%d] :\t %s = '%16llx'\n",__FILE__,__LINE__,#x,(x))
 #define DEBUGS(x) DPRINTF(x)
 
 #else

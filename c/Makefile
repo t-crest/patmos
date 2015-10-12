@@ -1,4 +1,5 @@
 CC=patmos-clang # variable CC is "magic", so we define it here to a sane default
+#CC=patmos-clang-wcet # variable CC is "magic", so we define it here to a sane default
 
 # Include user makefile for local configurations
 -include config.mk
@@ -103,14 +104,14 @@ $(LIBNOC): $(BUILDDIR)/libnoc/noc.o
 # library for message passing
 .PHONY: libmp
 libmp: libnoc $(LIBMP)
-$(BUILDDIR)/libmp/utils.o: libmp/mp.h
-$(BUILDDIR)/libmp/mp.o: libmp/mp.h libnoc/noc.h libnoc/coreset.h bootloader/cmpboot.h
-$(BUILDDIR)/libmp/queuing.o: libmp/mp.h libnoc/noc.h
-$(BUILDDIR)/libmp/sampling.o: libmp/mp.h libnoc/noc.h
-$(BUILDDIR)/libmp/collective.o: libmp/mp.h libnoc/noc.h libnoc/coreset.h bootloader/cmpboot.h
-$(LIBMP): $(BUILDDIR)/libmp/utils.o $(BUILDDIR)/libmp/mp.o $(BUILDDIR)/libmp/queuing.o
+$(BUILDDIR)/libmp/utils.o: libmp/mp.h libmp/mp_internal.h
+$(BUILDDIR)/libmp/mp.o: libmp/mp.h libmp/mp_internal.h libnoc/noc.h libnoc/coreset.h bootloader/cmpboot.h 
+$(BUILDDIR)/libmp/queuing.o: libmp/mp.h libmp/mp_internal.h libnoc/noc.h
+$(BUILDDIR)/libmp/sampling.o: libmp/mp.h libmp/mp_internal.h libnoc/noc.h
+$(BUILDDIR)/libmp/lock.o: libmp/mp.h libmp/mp_internal.h libnoc/noc.h
+$(BUILDDIR)/libmp/collective.o: libmp/mp.h libmp/mp_internal.h libnoc/noc.h libnoc/coreset.h bootloader/cmpboot.h
+$(LIBMP): $(BUILDDIR)/libmp/utils.o $(BUILDDIR)/libmp/mp.o $(BUILDDIR)/libmp/queuing.o $(BUILDDIR)/libmp/sampling.o $(BUILDDIR)/libmp/lock.o
 	patmos-ar r $@ $^
-	#$(BUILDDIR)/libmp/sampling.o $(BUILDDIR)/libmp/collective.o
 
 # library for corethreads
 .PHONY: libcorethread
