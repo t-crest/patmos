@@ -397,15 +397,44 @@ class MemoryIO() extends Bundle() {
 class StackCacheIO() extends Bundle() {
   // check if another transfer is active
   val ena_in = Bool(INPUT)
-
   // signals from EX stage to stack cache
   val exsc = new ExSc().asInput
-
   // signals from stack cache back to the EX stage
   val scex = new ScEx().asOutput
-
   // indicate a stall
   val stall = Bool(OUTPUT)
+}
+
+// method/instruction cache connections
+class FeMCache extends Bundle() {
+  val addrEven = Bits(width = EXTMEM_ADDR_WIDTH)
+  val addrOdd = Bits(width = EXTMEM_ADDR_WIDTH)
+}
+class ExMCache() extends Bundle() {
+  val doCallRet = Bool()
+  val callRetBase = UInt(width = EXTMEM_ADDR_WIDTH)
+  val callRetAddr = UInt(width = EXTMEM_ADDR_WIDTH)
+}
+class MCacheFe extends Bundle() {
+  val instrEven = Bits(width = INSTR_WIDTH)
+  val instrOdd = Bits(width = INSTR_WIDTH)
+  // relative base address
+  val relBase = UInt(width = MAX_OFF_WIDTH)
+  // relative program counter
+  val relPc = UInt(width = MAX_OFF_WIDTH+1)
+  // offset between relative and absolute program counter
+  val reloc = UInt(width = DATA_WIDTH)
+  val memSel = Bits(width = 2)
+}
+class MCacheIO extends Bundle() {
+  val ena_out = Bool(OUTPUT)
+  val ena_in = Bool(INPUT)
+  val invalidate = Bool(INPUT)
+  val femcache = new FeMCache().asInput
+  val exmcache = new ExMCache().asInput
+  val mcachefe = new MCacheFe().asOutput
+  val ocp_port = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+  val perf = new MethodCachePerf()
 }
 
 class WriteBackIO() extends Bundle() {

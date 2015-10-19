@@ -18,7 +18,7 @@ ostream *out = &cout;
 static uint32_t ssram_buf [1 << SRAM_ADDR_BITS];
 #define SRAM_CYCLES 3
 
-//uncomment when i-cache is used
+// comment when i-cache is used
 #define MCACHE 1
 
 /// Read an elf executable image into the on-chip memories
@@ -238,30 +238,30 @@ static void mcacheStat(Patmos_t *c, bool halt) {
   exec_cycles++;
   #ifdef MCACHE
   //count everytime a new method is written to the cache
-  if (c->Patmos_core_mcache_mcachectrl__io_mcache_ctrlrepl_wTag.to_bool() == true) {
+  if (c->Patmos_core_mcache_ctrl__io_ctrlrepl_wTag.to_bool() == true) {
     cache_miss++;
-    if (c->Patmos_core_mcache_mcachectrl__io_mcache_ctrlrepl_wData.to_ulong() > max_function_size) {
-      max_function_size = c->Patmos_core_mcache_mcachectrl__io_mcache_ctrlrepl_wData.to_ulong();
+    if (c->Patmos_core_mcache_ctrl__io_ctrlrepl_wData.to_ulong() > max_function_size) {
+      max_function_size = c->Patmos_core_mcache_ctrl__io_ctrlrepl_wData.to_ulong();
     }
   }
   //everytime a method is called from the cache, todo: find a better way to measure hits
   if (c->Patmos_core_fetch__io_memfe_doCallRet.to_bool() == true &&
-      c->Patmos_core_mcache_mcacherepl__io_mcache_replctrl_hit.to_bool() == true &&
-      c->Patmos_core_mcache_mcachectrl__mcacheState.to_ulong() == 0 &&
+      c->Patmos_core_mcache_repl__io_replctrl_hit.to_bool() == true &&
+      c->Patmos_core_mcache_ctrl__mcacheState.to_ulong() == 0 &&
       c->Patmos_core_mcache__io_ena_in.to_bool() == true &&
-      c->Patmos_core_mcache_mcachectrl__io_mcache_ctrlrepl_instrStall.to_bool() == false) {
+      c->Patmos_core_mcache_ctrl__io_ctrlrepl_instrStall.to_bool() == false) {
     cache_hits++;
   }
   #else
   //add stats for instruction cache measurements
-  if (c->Patmos_core_mcache_mcachectrl__io_icache_ctrlrepl_wTag.to_bool() == true) {
+  if (c->Patmos_core_mcache_ctrl__io_ctrlrepl_wTag.to_bool() == true) {
     cache_miss++;
   }
   if (c->Patmos_core_fetch__io_ena.to_bool() == true) {
-    if (c->Patmos_core_mcache_mcacherepl__hitInstrEven.to_bool() == true) {
+    if (c->Patmos_core_mcache_repl__hitInstrEven.to_bool() == true) {
       cache_hits++;
     }
-    if (c->Patmos_core_mcache_mcacherepl__hitInstrOdd.to_bool() == true) {
+    if (c->Patmos_core_mcache_repl__hitInstrOdd.to_bool() == true) {
       cache_hits++;
     }
   }
@@ -415,31 +415,30 @@ int main (int argc, char* argv[]) {
       #ifdef MCACHE
       //init for mcache
       c->Patmos_core_fetch__pcReg = -1;
-      c->Patmos_core_mcache_mcacherepl__hitReg = 0;
-      c->Patmos_core_mcache_mcacherepl__selMCacheReg = 1;
+      c->Patmos_core_mcache_repl__hitReg = 0;
+      c->Patmos_core_mcache_repl__selMCacheReg = 1;
       #else
       //init for icache
       c->Patmos_core_fetch__pcReg = (entry >> 2);
-      c->Patmos_core_mcache_mcacherepl__selICacheReg = 1;
+      c->Patmos_core_fetch__addrEvenReg = (entry >> 2) + 1;
+      c->Patmos_core_fetch__addrOddReg = (entry >> 2);
+      c->Patmos_core_mcache_repl__selICacheReg = 1;
       #endif
       c->Patmos_core_fetch__relBaseReg = 0;
       c->Patmos_core_fetch__relocReg = (entry >> 2) - 1;
       c->Patmos_core_fetch__selMCache = 1;
-    }
-    else {
+    } else {
       // pcReg for ispm starts at entry point - ispm base
       c->Patmos_core_fetch__pcReg = ((entry - 0x10000) >> 2) - 1;
       c->Patmos_core_fetch__relBaseReg = (entry - 0x10000) >> 2;
       c->Patmos_core_fetch__relocReg = 0x10000 >> 2;
       c->Patmos_core_fetch__selIspm = 1;
-      c->Patmos_core_mcache_mcacherepl__selIspmReg = 1;
-      //init for icache
-      // c->Patmos_core_mcache_icacherepl__selIspmReg = 1;
+      c->Patmos_core_mcache_repl__selIspmReg = 1;
     }
     c->Patmos_core_execute__baseReg = entry;
-    c->Patmos_core_mcache_mcacherepl__callRetBaseReg = (entry >> 2);
+    c->Patmos_core_mcache_repl__callRetBaseReg = (entry >> 2);
     #ifdef MCACHE
-    c->Patmos_core_mcache_mcachectrl__callRetBaseReg = (entry >> 2);
+    c->Patmos_core_mcache_ctrl__callRetBaseReg = (entry >> 2);
     #else
     c->Patmos_core_fetch__relBaseReg = (entry >> 2);
     #endif
@@ -517,7 +516,7 @@ int main (int argc, char* argv[]) {
 	}
 	if ((c->Patmos_core_memory__memReg_mem_brcf.to_bool()
 		 || c->Patmos_core_memory__memReg_mem_ret.to_bool())
-		&& c->Patmos_core_mcache_mcacherepl__callRetBaseReg.to_ulong() == 0) {
+		&& c->Patmos_core_mcache_repl__callRetBaseReg.to_ulong() == 0) {
 	  halt = true;
 	}
 
