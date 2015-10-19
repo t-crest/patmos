@@ -81,7 +81,6 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   writeback.io.memwb <> memory.io.memwb
   // RF write connection
   decode.io.rfWrite <> writeback.io.rfWrite
-
   // This is forwarding of registered result
   // Take care that it is the plain register
   execute.io.exResult <> memory.io.exResult
@@ -114,14 +113,14 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
 
   // Merge OCP ports from data caches and method cache
   val burstBus = Module(new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
-  val burstJoin = new OcpBurstJoin(mcache.io.ocp_port, dcache.io.slave,
-                                   burstBus.io.slave)
-
-
-  //join class for I-Cache buffering the d-cache request
-  //use this burstJoin when I-Cache is used
-  // val burstJoin = new OcpBurstPriorityJoin(mcache.io.ocp_port, dcache.io.slave,
-  //                                  burstBus.io.slave, mcache.io.ena_out)
+  val burstJoin = if (USE_ICACHE) {
+    // join requests such that D-cache requests are buffered
+    new OcpBurstPriorityJoin(mcache.io.ocp_port, dcache.io.slave,
+                             burstBus.io.slave)
+  } else {
+    new OcpBurstJoin(mcache.io.ocp_port, dcache.io.slave,
+                     burstBus.io.slave)
+  }
 
   // Enable signals for memory stage, method cache and stack cache
   memory.io.ena_in      := mcache.io.ena_out && !dcache.io.scIO.stall
