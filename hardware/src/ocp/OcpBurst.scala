@@ -189,7 +189,7 @@ class OcpBurstJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort,
   right.S := joined.S
   left.S := joined.S
 
-  when(selRight) {
+  when(selRightReg) {
     left.S.Resp := OcpResp.NULL
   }
   .otherwise {
