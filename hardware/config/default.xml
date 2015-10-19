@@ -6,6 +6,7 @@
   <bus burstLength="4" writeCombine="false" />
 
   <MCache size="4k" blocks="16" repl="" />
+  <ICache size="0" assoc="0" repl="" />
   <DCache size="2k" assoc="1" repl="" writeThrough="true" />
   <SCache size="2k" />
   <ISPM size="1k" />

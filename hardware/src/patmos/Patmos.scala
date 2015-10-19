@@ -60,7 +60,18 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
 
   val io = Config.getPatmosCoreIO()
 
-  val mcache = Module(if (MCACHE_SIZE <= 0) new NullMCache() else new MCache())
+  val mcache = 
+    if (MCACHE_SIZE <= 0 && ICACHE_SIZE <= 0)
+      Module(new NullMCache())
+    else if (MCACHE_SIZE > 0 && ICACHE_SIZE == 0)
+      Module(new MCache())
+    else if (MCACHE_SIZE == 0 && ICACHE_SIZE > 0)
+      Module(new ICache())
+    else {
+      ChiselError.error("Method cache and instruction cache are mutually exclusive, only one of their sizes may be non-zero")
+      Module(new NullMCache()) // return at least a dummy cache
+    }
+
   val fetch = Module(new Fetch(binFile))
   val decode = Module(new Decode())
   val execute = Module(new Execute())
@@ -113,7 +124,7 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
 
   // Merge OCP ports from data caches and method cache
   val burstBus = Module(new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
-  val burstJoin = if (USE_ICACHE) {
+  val burstJoin = if (ICACHE_SIZE > 0) {
     // join requests such that D-cache requests are buffered
     new OcpBurstPriorityJoin(mcache.io.ocp_port, dcache.io.slave,
                              burstBus.io.slave)

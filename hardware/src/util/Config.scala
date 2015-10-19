@@ -61,6 +61,8 @@ abstract class Config {
 
   case class MCacheConfig(size: Int, blocks: Int, repl: String)
   val MCache: MCacheConfig
+  case class ICacheConfig(size: Int, assoc: Int, repl: String)
+  val ICache: ICacheConfig
   case class DCacheConfig(size: Int, assoc: Int, repl: String, writeThrough: Boolean)
   val DCache: DCacheConfig
   case class SCacheConfig(size: Int)
@@ -127,28 +129,28 @@ object Config {
   }
 
   private def getIntAttr(node: scala.xml.Node, elem: String, attr: String,
-                 optional: Boolean, default: Int) = {
+                         optional: Boolean, default: Int) = {
 
     val value = getAttr(node, elem, attr, optional)
     if (value == None) default else value.get.text.toInt
   }
 
   private def getBooleanAttr(node: scala.xml.Node, elem: String, attr: String,
-                     optional: Boolean, default: Boolean) = {
+                             optional: Boolean, default: Boolean) = {
 
     val value = getAttr(node, elem, attr, optional)
     if (value == None) default else value.get.text.toBoolean
   }
 
   private def getSizeAttr(node: scala.xml.Node, elem: String, attr: String,
-                  optional: Boolean, default: Int) = {
+                          optional: Boolean, default: Int) = {
 
     val value = getAttr(node, elem, attr, optional)
     if (value == None) default else parseSize(value.get.text)
   }
 
   private def getTextAttr(node: scala.xml.Node, elem: String, attr: String,
-                  optional: Boolean, default: String) = {
+                          optional: Boolean, default: String) = {
 
     val value = getAttr(node, elem, attr, optional)
     if (value == None) default else value.get.text
@@ -200,6 +202,14 @@ object Config {
                                     hasParent, defaultConf.MCache.blocks),
                          getTextAttr(node, "MCache", "@repl",
                                      hasParent, defaultConf.MCache.repl))
+
+      val ICache =
+        new ICacheConfig(getSizeAttr(node, "ICache", "@size",
+                                     hasParent, defaultConf.ICache.size),
+                         getIntAttr(node,  "ICache", "@assoc",
+                                    hasParent, defaultConf.ICache.assoc),
+                         getTextAttr(node, "ICache", "@repl",
+                                     hasParent, defaultConf.ICache.repl))
 
       val DCache =
         new DCacheConfig(getSizeAttr(node, "DCache", "@size",
@@ -291,6 +301,7 @@ object Config {
     val writeCombine = false
     val minPcWidth = 0
     val MCache = new MCacheConfig(0, 0, "")
+    val ICache = new ICacheConfig(0, 0, "")
     val DCache = new DCacheConfig(0, 0, "", true)
     val SCache = new SCacheConfig(0)
     val ISPM = new SPMConfig(0)

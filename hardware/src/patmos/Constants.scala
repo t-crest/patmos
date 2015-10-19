@@ -56,17 +56,21 @@ object Constants {
   val MCACHE_SIZE = util.Config.getConfig.MCache.size
   val METHOD_COUNT = util.Config.getConfig.MCache.blocks
 
+  val ICACHE_SIZE = util.Config.getConfig.ICache.size
+  val ICACHE_ASSOC = util.Config.getConfig.ICache.assoc
+  val ICACHE_REPL = util.Config.getConfig.ICache.repl
+
   val DCACHE_SIZE = util.Config.getConfig.DCache.size
   val DCACHE_ASSOC = util.Config.getConfig.DCache.assoc
   val DCACHE_REPL = util.Config.getConfig.DCache.repl
   val DCACHE_WRITETHROUGH = util.Config.getConfig.DCache.writeThrough
   val SCACHE_SIZE = util.Config.getConfig.SCache.size
-  // offset for switching from relative address to absolute address, default = 0
-  val ICACHE_ADDR_OFFSET = 0 //log2Up(util.Config.getConfig.ExtMem.size)
+
+  val MIN_OFF_WIDTH = if (ICACHE_SIZE > 0) log2Up(util.Config.getConfig.ExtMem.size) else 0
 
   // maximum width between ISPM size, MCACHE size and boot ROM size
   val MAX_OFF_WIDTH = List(log2Up(MCACHE_SIZE / 4), log2Up(ISPM_SIZE / 4),
-    util.Config.minPcWidth, ICACHE_ADDR_OFFSET).reduce(math.max)
+    util.Config.minPcWidth, MIN_OFF_WIDTH).reduce(math.max)
 
   // we use a very simple decoding of ISPM at address 0x00010000
   val ISPM_ONE_BIT = 16
