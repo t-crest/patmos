@@ -365,6 +365,8 @@ class StackCache() extends Module {
     stateReg := stateReg
     stackTopReg := stackTopReg
     memTopReg := memTopReg
+    transferAddrReg := transferAddrReg
+    io.toMemory.M.Cmd := OcpCmd.IDLE    
   }
 
 
