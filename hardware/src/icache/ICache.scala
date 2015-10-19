@@ -206,7 +206,7 @@ class ICacheReplDm() extends Module {
   when (io.exicache.doCallRet && io.ena_in) {
     callRetBaseReg := io.exicache.callRetBase
     callAddrReg := io.exicache.callRetAddr
-    selIspmReg := io.exicache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT - 2) === Bits(0x1)
+    selIspmReg := io.exicache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-2) === Bits(0x1)
     selICacheReg := io.exicache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-1) >= Bits(0x1)
   }
 

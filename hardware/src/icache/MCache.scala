@@ -172,10 +172,10 @@ class MCacheReplFifo() extends Module {
   val io = new MCacheReplIO()
 
   //tag field tables  for reading tag memory
-  val mcacheAddrVec = { Vec.fill(METHOD_COUNT) { Reg(Bits(width = EXTMEM_ADDR_WIDTH)) }}
-  val mcacheSizeVec = { Vec.fill(METHOD_COUNT) { Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH+1)) }}
-  val mcacheValidVec = { Vec.fill(METHOD_COUNT) { Reg(init = Bool(false)) }}
-  val mcachePosVec = { Vec.fill(METHOD_COUNT) { Reg(Bits(width = MCACHE_SIZE_WIDTH)) }}
+  val addrVec = { Vec.fill(METHOD_COUNT) { Reg(Bits(width = EXTMEM_ADDR_WIDTH)) }}
+  val sizeVec = { Vec.fill(METHOD_COUNT) { Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH+1)) }}
+  val validVec = { Vec.fill(METHOD_COUNT) { Reg(init = Bool(false)) }}
+  val posVec = { Vec.fill(METHOD_COUNT) { Reg(Bits(width = MCACHE_SIZE_WIDTH)) }}
   //registers to save current replacement status
   val nextIndexReg = Reg(init = Bits(0, width = log2Up(METHOD_COUNT)))
   val nextTagReg = Reg(init = Bits(0, width = log2Up(METHOD_COUNT)))
@@ -199,10 +199,10 @@ class MCacheReplFifo() extends Module {
   for (i <- 0 until METHOD_COUNT) {
     hitVec(i) := Bool(false)
     mergePosVec(i) := Bits(0)
-    when (io.exmcache.callRetBase === mcacheAddrVec(i)
-          && mcacheValidVec(i)) {
+    when (io.exmcache.callRetBase === addrVec(i)
+          && validVec(i)) {
             hitVec(i) := Bool(true)
-            mergePosVec(i) := mcachePosVec(i)
+            mergePosVec(i) := posVec(i)
           }
   }
   val hit = hitVec.fold(Bool(false))(_|_)
@@ -244,12 +244,12 @@ class MCacheReplFifo() extends Module {
     hitReg := Bool(true) //start fetch, we have again a hit!
     wrPosReg := posReg
     //update free space
-    freeSpaceReg := freeSpaceReg - io.ctrlrepl.wData(MCACHE_SIZE_WIDTH,0) + mcacheSizeVec(nextIndexReg)
+    freeSpaceReg := freeSpaceReg - io.ctrlrepl.wData(MCACHE_SIZE_WIDTH,0) + sizeVec(nextIndexReg)
     //update tag fields
-    mcachePosVec(nextIndexReg) := nextPosReg
-    mcacheSizeVec(nextIndexReg) := io.ctrlrepl.wData(MCACHE_SIZE_WIDTH, 0)
-    mcacheAddrVec(nextIndexReg) := io.ctrlrepl.wAddr
-    mcacheValidVec(nextIndexReg) := Bool(true)
+    posVec(nextIndexReg) := nextPosReg
+    sizeVec(nextIndexReg) := io.ctrlrepl.wData(MCACHE_SIZE_WIDTH, 0)
+    addrVec(nextIndexReg) := io.ctrlrepl.wAddr
+    validVec(nextIndexReg) := Bool(true)
     //update pointers
     nextPosReg := nextPosReg + io.ctrlrepl.wData(MCACHE_SIZE_WIDTH-1,0)
     val nextTag = Mux(nextIndexReg === Bits(METHOD_COUNT - 1), Bits(0), nextIndexReg + Bits(1))
@@ -260,9 +260,9 @@ class MCacheReplFifo() extends Module {
   }
   //free new space if still needed -> invalidate next method
   when (freeSpaceReg < SInt(0)) {
-    freeSpaceReg := freeSpaceReg + mcacheSizeVec(nextTagReg)
-    mcacheSizeVec(nextTagReg) := Bits(0)
-    mcacheValidVec(nextTagReg) := Bool(false)
+    freeSpaceReg := freeSpaceReg + sizeVec(nextTagReg)
+    sizeVec(nextTagReg) := Bits(0)
+    validVec(nextTagReg) := Bool(false)
     nextTagReg := Mux(nextTagReg === Bits(METHOD_COUNT - 1), Bits(0), nextTagReg + Bits(1))
   }
 
@@ -300,7 +300,7 @@ class MCacheReplFifo() extends Module {
   
   // reset valid bits
   when (io.invalidate) {
-    mcacheValidVec.map(_ := Bool(false))
+    validVec.map(_ := Bool(false))
   }
 }
 
