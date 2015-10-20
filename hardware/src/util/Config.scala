@@ -248,11 +248,13 @@ object Config {
       }
 
       // Emit defines for emulator
-      val emuConfig = Driver.createOutputFile("emulator_config.h")
-      emuConfig.write("#define ICACHE_"+ICache.typ.toUpperCase+"\n")
-      for (d <- Devs) { emuConfig.write("#define IO_"+d.name.toUpperCase+"\n") }
-      emuConfig.write("#define EXTMEM_"+ExtMem.ram.name.toUpperCase+"\n")
-      emuConfig.close();
+      if (Driver.backend.isInstanceOf[CppBackend]) {
+        val emuConfig = Driver.createOutputFile("emulator_config.h")
+        emuConfig.write("#define ICACHE_"+ICache.typ.toUpperCase+"\n")
+        for (d <- Devs) { emuConfig.write("#define IO_"+d.name.toUpperCase+"\n") }
+        emuConfig.write("#define EXTMEM_"+ExtMem.ram.name.toUpperCase+"\n")
+        emuConfig.close();
+      }
 
       private def devFromXML(node: scala.xml.Node, devs: scala.xml.NodeSeq,
                              needOffset: Boolean = true): DeviceConfig = {
