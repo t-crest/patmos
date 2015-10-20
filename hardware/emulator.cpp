@@ -9,6 +9,7 @@
 #include <libelf.h>
 
 #include "Patmos.h"
+#include "emulator_config.h"
 
 ostream *out = &cout;
 
@@ -17,9 +18,6 @@ ostream *out = &cout;
 #define SRAM_ADDR_BITS 19 // 2MB
 static uint32_t ssram_buf [1 << SRAM_ADDR_BITS];
 #define SRAM_CYCLES 3
-
-// comment when i-cache is used
-#define MCACHE 1
 
 /// Read an elf executable image into the on-chip memories
 static val_t readelf(istream &is, Patmos_t *c)
@@ -252,7 +250,8 @@ static void mcacheStat(Patmos_t *c, bool halt) {
       c->Patmos_core_mcache_ctrl__io_ctrlrepl_instrStall.to_bool() == false) {
     cache_hits++;
   }
-  #else
+  #endif
+  #ifdef ICACHE
   //add stats for instruction cache measurements
   if (c->Patmos_core_mcache_ctrl__io_ctrlrepl_wTag.to_bool() == true) {
     cache_miss++;
@@ -417,7 +416,8 @@ int main (int argc, char* argv[]) {
       c->Patmos_core_fetch__pcReg = -1;
       c->Patmos_core_mcache_repl__hitReg = 0;
       c->Patmos_core_mcache_repl__selMCacheReg = 1;
-      #else
+      #endif
+      #ifdef ICACHE
       //init for icache
       c->Patmos_core_fetch__pcReg = (entry >> 2) - 1;
       c->Patmos_core_mcache_repl__selICacheReg = 1;
@@ -437,7 +437,8 @@ int main (int argc, char* argv[]) {
     c->Patmos_core_mcache_repl__callRetBaseReg = (entry >> 2);
     #ifdef MCACHE
     c->Patmos_core_mcache_ctrl__callRetBaseReg = (entry >> 2);
-    #else
+    #endif
+    #ifdef ICACHE
     c->Patmos_core_fetch__relBaseReg = (entry >> 2);
     #endif
   }

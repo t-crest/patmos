@@ -245,7 +245,6 @@ object Config {
       val ExtMem = new ExtMemConfig(parseSizeLong(find(ExtMemNode, "@size").text),
                                     ExtMemDev)
 
-
       val DevNodes = ((node \ "IOs") \ "IO")
       val Devs : List[Config#DeviceConfig] =
         DevNodes.map(devFromXML(_, DevList)).toList ++ defaultConf.Devs
@@ -255,6 +254,14 @@ object Config {
       if(ExtMem.ram.name != ""){
         initDevice(ExtMem.ram)
       }
+
+      // Emit defines for emulator
+      val emuConfig = Driver.createOutputFile("emulator_config.h")
+      if (ICache.size > 0) { emuConfig.write("#define ICACHE\n") }
+      if (MCache.size > 0) { emuConfig.write("#define MCACHE\n") }
+      for (d <- Devs) { emuConfig.write("#define IO_"+d.name.toUpperCase+"\n") }
+      emuConfig.write("#define EXTMEM_"+ExtMem.ram.name.toUpperCase+"\n")
+      emuConfig.close();
 
       private def devFromXML(node: scala.xml.Node, devs: scala.xml.NodeSeq,
                              needOffset: Boolean = true): DeviceConfig = {
