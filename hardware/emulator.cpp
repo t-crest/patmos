@@ -419,9 +419,7 @@ int main (int argc, char* argv[]) {
       c->Patmos_core_mcache_repl__selMCacheReg = 1;
       #else
       //init for icache
-      c->Patmos_core_fetch__pcReg = (entry >> 2);
-      c->Patmos_core_fetch__addrEvenReg = (entry >> 2) + 1;
-      c->Patmos_core_fetch__addrOddReg = (entry >> 2);
+      c->Patmos_core_fetch__pcReg = (entry >> 2) - 1;
       c->Patmos_core_mcache_repl__selICacheReg = 1;
       #endif
       c->Patmos_core_fetch__relBaseReg = 0;

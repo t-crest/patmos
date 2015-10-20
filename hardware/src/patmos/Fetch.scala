@@ -90,8 +90,8 @@ class Fetch(fileName : String) extends Module {
     val memOdd = MemBlock(1, INSTR_WIDTH, bypass = false)
   }
 
-  val selIspm = Reg(Bool())
-  val selMCache = Reg(Bool())
+  val selIspm = Reg(init = Bool(false))
+  val selMCache = Reg(init = Bool(false))
   when (io.ena) {
     selIspm := io.mcachefe.memSel(1)
     selMCache := io.mcachefe.memSel(0)

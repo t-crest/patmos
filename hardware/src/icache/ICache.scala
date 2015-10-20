@@ -180,7 +180,7 @@ class ICacheReplDm() extends Module {
   //reserve memory for the instruction cache tag field containing valid bit and address tag
   val tagMemEven = MemBlock(LINE_COUNT / 2, TAG_SIZE)
   val tagMemOdd = MemBlock(LINE_COUNT / 2, TAG_SIZE)
-  val validVec = Vec.fill(LINE_COUNT) { Reg(init = Bool(false))}
+  val validVec = Vec.fill(LINE_COUNT) { Reg(init = Bool(false)) }
 
   //variables when call/return occurs
   val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
@@ -304,7 +304,7 @@ class ICacheCtrl() extends Module {
 
   //fsm state variables
   val initState :: idleState :: transferState :: waitState :: Nil = Enum(UInt(), 4)
-  val icacheState = Reg(init = idleState)
+  val icacheState = Reg(init = initState)
   //signal for replacement unit
   val wData = Bits(width = DATA_WIDTH)
   val wTag = Bool()
@@ -331,29 +331,33 @@ class ICacheCtrl() extends Module {
   ocpAddr := Bits(0)
   fetchEna := Bool(true)
 
-  //wait till ICache is the selected source
+  // wait till ICache is the selected source
   when (icacheState === initState) {
     when (io.replctrl.selICache) {
       icacheState := idleState
     }
   }
   when (icacheState === idleState) {
-    when (!io.replctrl.hitEna) {
-      fetchEna := Bool(false)
-      addrReg := io.replctrl.fetchAddr
-      burstCnt := UInt(0)
-      fetchCnt := UInt(0)
-      //write new tag field memory
-      wTag := Bool(true)
-      wAddr := Cat(io.replctrl.fetchAddr(EXTMEM_ADDR_WIDTH-1,LINE_WORD_SIZE_WIDTH), Bits(0)(LINE_WORD_SIZE_WIDTH-1,0))
-      //check if command is accepted by the memory controller
-      when (io.ocp_port.S.CmdAccept === Bits(1)) {
-        ocpAddr := Cat(io.replctrl.fetchAddr(EXTMEM_ADDR_WIDTH-1,LINE_WORD_SIZE_WIDTH), Bits(0)(LINE_WORD_SIZE_WIDTH-1,0))
-        ocpCmd := OcpCmd.RD
-        icacheState := transferState
-      }
-      .otherwise {
-        icacheState := waitState
+    when (!io.replctrl.selICache) {
+      icacheState := initState
+    } .otherwise {
+      when (!io.replctrl.hitEna) {
+        fetchEna := Bool(false)
+        addrReg := io.replctrl.fetchAddr
+        burstCnt := UInt(0)
+        fetchCnt := UInt(0)
+        //write new tag field memory
+        wTag := Bool(true)
+        wAddr := Cat(io.replctrl.fetchAddr(EXTMEM_ADDR_WIDTH-1,LINE_WORD_SIZE_WIDTH), Bits(0)(LINE_WORD_SIZE_WIDTH-1,0))
+        //check if command is accepted by the memory controller
+        when (io.ocp_port.S.CmdAccept === Bits(1)) {
+          ocpAddr := Cat(io.replctrl.fetchAddr(EXTMEM_ADDR_WIDTH-1,LINE_WORD_SIZE_WIDTH), Bits(0)(LINE_WORD_SIZE_WIDTH-1,0))
+          ocpCmd := OcpCmd.RD
+          icacheState := transferState
+        }
+        .otherwise {
+          icacheState := waitState
+        }
       }
     }
   }

@@ -417,5 +417,8 @@ class Execute() extends Module {
   }
 
   // reset at end to override any computations
-  when(reset) { exReg.flush() }
+  when(reset) {
+    exReg.flush()
+    predReg(0) := Bool(true)
+  }
 }
