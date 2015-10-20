@@ -19,7 +19,7 @@ HWMODULEPREFIX?=
 #
 # Source directory is configured in build.sbt
 # Scala/Java build directory is the default one
-SBT=java -Xmx1024M -Xss8M -XX:MaxPermSize=128M -jar sbt/sbt-launch.jar
+SBT=java -Xmx1024M -Xss8M -jar sbt/sbt-launch.jar
 
 # C++ build flags
 CXX=g++
