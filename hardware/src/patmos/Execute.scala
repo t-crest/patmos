@@ -395,10 +395,10 @@ class Execute() extends Module {
   io.exmem.pc := exReg.pc
   io.exmem.relPc := exReg.relPc
 
-  //call/return for mcache
-  io.exmcache.doCallRet := doCallRet
-  io.exmcache.callRetBase := callRetBase(31,2)
-  io.exmcache.callRetAddr := callRetAddr(31,2)
+  //call/return for icache
+  io.exicache.doCallRet := doCallRet
+  io.exicache.callRetBase := callRetBase(31,2)
+  io.exicache.callRetAddr := callRetAddr(31,2)
 
   // suppress writes to special registers
   when(!io.ena) {

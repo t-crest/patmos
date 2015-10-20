@@ -60,16 +60,18 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
 
   val io = Config.getPatmosCoreIO()
 
-  val mcache = 
-    if (MCACHE_SIZE <= 0 && ICACHE_SIZE <= 0)
-      Module(new NullMCache())
-    else if (MCACHE_SIZE > 0 && ICACHE_SIZE == 0)
+  val icache = 
+    if (ICACHE_SIZE <= 0)
+      Module(new NullICache())
+    else if (ICACHE_TYPE == ICACHE_TYPE_METHOD)
       Module(new MCache())
-    else if (MCACHE_SIZE == 0 && ICACHE_SIZE > 0)
+    else if (ICACHE_TYPE == ICACHE_TYPE_LINE)
       Module(new ICache())
     else {
-      ChiselError.error("Method cache and instruction cache are mutually exclusive, only one of their sizes may be non-zero")
-      Module(new NullMCache()) // return at least a dummy cache
+      ChiselError.error("Unsupported instruction cache configuration: "+
+                        "type \""+ICACHE_TYPE+"\" "+
+                        "(must be \""+ICACHE_TYPE_METHOD+"\" or \""+ICACHE_TYPE_LINE+"\")")
+      Module(new NullICache()) // return at least a dummy cache
     }
 
   val fetch = Module(new Fetch(binFile))
@@ -81,10 +83,10 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   val iocomp = Module(new InOut())
   val dcache = Module(new DataCache())
 
-  //connect mcache
-  mcache.io.femcache <> fetch.io.femcache
-  mcache.io.mcachefe <> fetch.io.mcachefe
-  mcache.io.exmcache <> execute.io.exmcache
+  //connect icache
+  icache.io.feicache <> fetch.io.feicache
+  icache.io.icachefe <> fetch.io.icachefe
+  icache.io.exicache <> execute.io.exicache
 
   decode.io.fedec <> fetch.io.fedec
   execute.io.decex <> decode.io.decex
@@ -124,22 +126,23 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
 
   // Merge OCP ports from data caches and method cache
   val burstBus = Module(new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
-  val burstJoin = if (ICACHE_SIZE > 0) {
-    // join requests such that D-cache requests are buffered
-    new OcpBurstPriorityJoin(mcache.io.ocp_port, dcache.io.slave,
-                             burstBus.io.slave)
-  } else {
-    new OcpBurstJoin(mcache.io.ocp_port, dcache.io.slave,
+  val burstJoin = if (ICACHE_TYPE == ICACHE_TYPE_METHOD) {
+    // requests from D-cache and method cache never collide
+    new OcpBurstJoin(icache.io.ocp_port, dcache.io.slave,
                      burstBus.io.slave)
+  } else {
+    // join requests such that D-cache requests are buffered
+    new OcpBurstPriorityJoin(icache.io.ocp_port, dcache.io.slave,
+                             burstBus.io.slave)
   }
 
   // Enable signals for memory stage, method cache and stack cache
-  memory.io.ena_in      := mcache.io.ena_out && !dcache.io.scIO.stall
-  mcache.io.ena_in      := memory.io.ena_out && !dcache.io.scIO.stall
-  dcache.io.scIO.ena_in := memory.io.ena_out && mcache.io.ena_out
+  memory.io.ena_in      := icache.io.ena_out && !dcache.io.scIO.stall
+  icache.io.ena_in      := memory.io.ena_out && !dcache.io.scIO.stall
+  dcache.io.scIO.ena_in := memory.io.ena_out && icache.io.ena_out
 
   // Enable signal
-  val enable = memory.io.ena_out & mcache.io.ena_out & !dcache.io.scIO.stall
+  val enable = memory.io.ena_out & icache.io.ena_out & !dcache.io.scIO.stall
   fetch.io.ena := enable
   decode.io.ena := enable
   execute.io.ena := enable
@@ -154,11 +157,11 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   execute.io.flush := flush
 
   // Software resets
-  mcache.io.invalidate := exc.io.invalMCache
+  icache.io.invalidate := exc.io.invalICache
   dcache.io.invalDCache := exc.io.invalDCache
 
   // Internal "I/O" data
-  iocomp.io.internalIO.perf.mc := mcache.io.perf
+  iocomp.io.internalIO.perf.ic := icache.io.perf
   iocomp.io.internalIO.perf.dc := dcache.io.dcPerf
   iocomp.io.internalIO.perf.sc := dcache.io.scPerf
   iocomp.io.internalIO.perf.wc := dcache.io.wcPerf

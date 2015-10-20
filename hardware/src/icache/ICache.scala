@@ -47,9 +47,11 @@ import scala.collection.mutable.HashMap
 import scala.util.Random
 import scala.math
 
+/*
+  Instruction cache constants only used internally
+ */
 object IConstants {
 
-  //size of a block default = 16 words
   val ICACHE_WORD_SIZE = ICACHE_SIZE / 4
   val ICACHE_SIZE_WIDTH = log2Up(ICACHE_WORD_SIZE)
 
@@ -58,8 +60,6 @@ object IConstants {
 
   val LINE_COUNT = ICACHE_WORD_SIZE / LINE_WORD_SIZE
   val LINE_COUNT_WIDTH = log2Up(LINE_COUNT)
-
-  val VALIDBIT_SIZE = 1  //could be enlarged into subblocks
 
   val TAG_HIGH = EXTMEM_ADDR_WIDTH - 1
   val TAG_LOW = LINE_COUNT_WIDTH + LINE_WORD_SIZE_WIDTH
@@ -78,8 +78,8 @@ class ICacheCtrlIO extends Bundle() {
   val fetch_ena = Bool(OUTPUT)
   val ctrlrepl = new ICacheCtrlRepl().asOutput
   val replctrl = new ICacheReplCtrl().asInput
-  val feicache = new FeMCache().asInput
-  val exicache = new ExMCache().asInput
+  val feicache = new FeICache().asInput
+  val exicache = new ExICache().asInput
   val ocp_port = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
 }
 class ICacheCtrlRepl extends Bundle() {
@@ -91,19 +91,19 @@ class ICacheCtrlRepl extends Bundle() {
 class ICacheReplCtrl extends Bundle() {
   val hitEna = Bool()
   val fetchAddr = Bits(width = EXTMEM_ADDR_WIDTH)
-  val selICache = Bool()
+  val selCache = Bool()
 }
 class ICacheReplIO extends Bundle() {
   val ena_in = Bool(INPUT)
   val invalidate = Bool(INPUT)
-  val exicache = new ExMCache().asInput
-  val feicache = new FeMCache().asInput
-  val icachefe = new MCacheFe().asOutput
+  val exicache = new ExICache().asInput
+  val feicache = new FeICache().asInput
+  val icachefe = new ICacheFe().asOutput
   val ctrlrepl = new ICacheCtrlRepl().asInput
   val replctrl = new ICacheReplCtrl().asOutput
   val memIn = new ICacheMemIn().asOutput
   val memOut = new ICacheMemOut().asInput
-  val perf = new MethodCachePerf()
+  val perf = new InstructionCachePerf()
 }
 
 class ICacheMemIn extends Bundle() {
@@ -128,20 +128,20 @@ class ICacheMemIO extends Bundle() {
  ICache: Top Level Class for the Instruction Cache
  */
 class ICache() extends Module {
-  val io = new MCacheIO()
+  val io = new ICacheIO()
   //generate submodules of instruction cache
   val ctrl = Module(new ICacheCtrl())
   val repl = Module(new ICacheReplDm())
   val mem = Module(new ICacheMem())
   //connect submodules of instruction cache
   ctrl.io.ctrlrepl <> repl.io.ctrlrepl
-  ctrl.io.feicache <> io.femcache
-  ctrl.io.exicache <> io.exmcache
+  ctrl.io.feicache <> io.feicache
+  ctrl.io.exicache <> io.exicache
   ctrl.io.ocp_port <> io.ocp_port
   //connect inputs to instruction cache repl unit
-  repl.io.exicache <> io.exmcache
-  repl.io.feicache <> io.femcache
-  repl.io.icachefe <> io.mcachefe
+  repl.io.exicache <> io.exicache
+  repl.io.feicache <> io.feicache
+  repl.io.icachefe <> io.icachefe
   repl.io.replctrl <> ctrl.io.replctrl
   //connect repl unit to on chip memory
   repl.io.memIn <> mem.io.memIn
@@ -185,29 +185,29 @@ class ICacheReplDm() extends Module {
   //variables when call/return occurs
   val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
   val callAddrReg = Reg(init = UInt(1, DATA_WIDTH))
-  val selIspmReg = Reg(init = Bool(false))
-  val selICacheReg = Reg(init = Bool(false))
+  val selSpmReg = Reg(init = Bool(false))
+  val selCacheReg = Reg(init = Bool(false))
 
   val fetchAddr = Bits(width = EXTMEM_ADDR_WIDTH)
   val hitInstrEven = Bool()
   val hitInstrOdd = Bool()
 
-  val relBase = Mux(selICacheReg,
+  val relBase = Mux(selCacheReg,
                     callRetBaseReg(EXTMEM_ADDR_WIDTH-1, 0),
                     callRetBaseReg(ISPM_ONE_BIT-3, 0))
   val relPc = callAddrReg + relBase
 
-  val reloc = Mux(selICacheReg,
+  val reloc = Mux(selCacheReg,
                   UInt(0),
-                  Mux(selIspmReg,
+                  Mux(selSpmReg,
                       UInt(1 << (ISPM_ONE_BIT - 2)),
                       UInt(0)))
 
   when (io.exicache.doCallRet && io.ena_in) {
     callRetBaseReg := io.exicache.callRetBase
     callAddrReg := io.exicache.callRetAddr
-    selIspmReg := io.exicache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-2) === Bits(0x1)
-    selICacheReg := io.exicache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-1) >= Bits(0x1)
+    selSpmReg := io.exicache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-2) === Bits(0x1)
+    selCacheReg := io.exicache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-1) >= Bits(0x1)
   }
 
   val addrIndexEven = (io.feicache.addrEven)(INDEX_HIGH, INDEX_LOW+1)
@@ -285,11 +285,11 @@ class ICacheReplDm() extends Module {
   io.icachefe.relBase := relBase
   io.icachefe.relPc := relPc
   io.icachefe.reloc := reloc
-  io.icachefe.memSel := Cat(selIspmReg, selICacheReg)
+  io.icachefe.memSel := Cat(selSpmReg, selCacheReg)
   //hit/miss return
   io.replctrl.fetchAddr := fetchAddr
   io.replctrl.hitEna := (hitInstrEven && hitInstrOdd && validTagReg)
-  io.replctrl.selICache := selICacheReg
+  io.replctrl.selCache := selCacheReg
 
   when (io.invalidate) {
     validVec.map(_ := Bool(false))
@@ -304,7 +304,7 @@ class ICacheCtrl() extends Module {
 
   //fsm state variables
   val initState :: idleState :: transferState :: waitState :: Nil = Enum(UInt(), 4)
-  val icacheState = Reg(init = initState)
+  val stateReg = Reg(init = initState)
   //signal for replacement unit
   val wData = Bits(width = DATA_WIDTH)
   val wTag = Bool()
@@ -332,14 +332,14 @@ class ICacheCtrl() extends Module {
   fetchEna := Bool(true)
 
   // wait till ICache is the selected source
-  when (icacheState === initState) {
-    when (io.replctrl.selICache) {
-      icacheState := idleState
+  when (stateReg === initState) {
+    when (io.replctrl.selCache) {
+      stateReg := idleState
     }
   }
-  when (icacheState === idleState) {
-    when (!io.replctrl.selICache) {
-      icacheState := initState
+  when (stateReg === idleState) {
+    when (!io.replctrl.selCache) {
+      stateReg := initState
     } .otherwise {
       when (!io.replctrl.hitEna) {
         fetchEna := Bool(false)
@@ -353,15 +353,15 @@ class ICacheCtrl() extends Module {
         when (io.ocp_port.S.CmdAccept === Bits(1)) {
           ocpAddr := Cat(io.replctrl.fetchAddr(EXTMEM_ADDR_WIDTH-1,LINE_WORD_SIZE_WIDTH), Bits(0)(LINE_WORD_SIZE_WIDTH-1,0))
           ocpCmd := OcpCmd.RD
-          icacheState := transferState
+          stateReg := transferState
         }
         .otherwise {
-          icacheState := waitState
+          stateReg := waitState
         }
       }
     }
   }
-  when (icacheState === waitState) {
+  when (stateReg === waitState) {
     fetchEna := Bool(false)
     when (io.ocp_port.S.CmdAccept === Bits(1)) {
       ocpAddr := Cat(addrReg(EXTMEM_ADDR_WIDTH-1,LINE_WORD_SIZE_WIDTH), Bits(0)(LINE_WORD_SIZE_WIDTH-1,0))
@@ -369,7 +369,7 @@ class ICacheCtrl() extends Module {
     }
   }
   //transfer/fetch cache block
-  when (icacheState === transferState) {
+  when (stateReg === transferState) {
     fetchEna := Bool(false)
     when (fetchCnt < UInt(LINE_WORD_SIZE)) {
       when (ocpSlaveReg.Resp === OcpResp.DVA) {
@@ -391,7 +391,7 @@ class ICacheCtrl() extends Module {
     }
     //restart to idle state
     .otherwise {
-      icacheState := idleState
+      stateReg := idleState
     }
   }
 

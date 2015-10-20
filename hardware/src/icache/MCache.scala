@@ -48,16 +48,13 @@ import scala.util.Random
 import scala.math
 
 /*
-  Method Cache Constants only used internally in MCache.scala
+  Method cache constants only used internally
  */
 object MConstants {
-
-  val MCACHE_WORD_SIZE = MCACHE_SIZE / 4
-  val METHOD_BLOCK_SIZE = MCACHE_WORD_SIZE / METHOD_COUNT
+  val MCACHE_WORD_SIZE = ICACHE_SIZE / 4
+  val METHOD_COUNT = ICACHE_ASSOC
   val METHOD_COUNT_WIDTH = log2Up(METHOD_COUNT)
-  val METHOD_BLOCK_SIZE_WIDTH = log2Up(METHOD_BLOCK_SIZE)
   val MCACHE_SIZE_WIDTH = log2Up(MCACHE_WORD_SIZE)
-
 }
 
 /*
@@ -68,8 +65,8 @@ class MCacheCtrlIO extends Bundle() {
   val fetch_ena = Bool(OUTPUT)
   val ctrlrepl = new MCacheCtrlRepl().asOutput
   val replctrl = new MCacheReplCtrl().asInput
-  val femcache = new FeMCache().asInput
-  val exmcache = new ExMCache().asInput
+  val femcache = new FeICache().asInput
+  val exmcache = new ExICache().asInput
   val ocp_port = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
 }
 class MCacheCtrlRepl extends Bundle() {
@@ -88,13 +85,13 @@ class MCacheReplIO extends Bundle() {
   val ena_in = Bool(INPUT)
   val invalidate = Bool(INPUT)
   val hitEna = Bool(OUTPUT)
-  val exmcache = new ExMCache().asInput
-  val mcachefe = new MCacheFe().asOutput
+  val exmcache = new ExICache().asInput
+  val mcachefe = new ICacheFe().asOutput
   val ctrlrepl = new MCacheCtrlRepl().asInput
   val replctrl = new MCacheReplCtrl().asOutput
   val memIn = new MCacheMemIn().asOutput
   val memOut = new MCacheMemOut().asInput
-  val perf = new MethodCachePerf()
+  val perf = new InstructionCachePerf()
 }
 
 class MCacheMemIn extends Bundle() {
@@ -118,7 +115,7 @@ class MCacheMemIO extends Bundle() {
  MCache: Top Level Class for the Method Cache
  */
 class MCache() extends Module {
-  val io = new MCacheIO()
+  val io = new ICacheIO()
   val ctrl = Module(new MCacheCtrl())
   val repl = Module(new MCacheReplFifo())
   //Use MCacheReplFifo2 for replacement with fixed block size
@@ -126,12 +123,12 @@ class MCache() extends Module {
   val mem = Module(new MCacheMem())
   //connect inputs to method cache ctrl unit
   ctrl.io.ctrlrepl <> repl.io.ctrlrepl
-  ctrl.io.femcache <> io.femcache
-  ctrl.io.exmcache <> io.exmcache
+  ctrl.io.femcache <> io.feicache
+  ctrl.io.exmcache <> io.exicache
   ctrl.io.ocp_port <> io.ocp_port
   //connect inputs to method cache repl unit
-  repl.io.exmcache <> io.exmcache
-  repl.io.mcachefe <> io.mcachefe
+  repl.io.exmcache <> io.exicache
+  repl.io.mcachefe <> io.icachefe
   repl.io.replctrl <> ctrl.io.replctrl
   repl.io.perf <> io.perf
   //connect repl to on chip memory
@@ -187,8 +184,8 @@ class MCacheReplFifo() extends Module {
   val wrPosReg = Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH))
   val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
   val callAddrReg = Reg(init = UInt(1, DATA_WIDTH))
-  val selIspmReg = Reg(init = Bool(false))
-  val selMCacheReg = Reg(init = Bool(false))
+  val selSpmReg = Reg(init = Bool(false))
+  val selCacheReg = Reg(init = Bool(false))
 
   io.perf.hit := Bool(false)
   io.perf.miss := Bool(false)
@@ -213,10 +210,10 @@ class MCacheReplFifo() extends Module {
 
     callRetBaseReg := io.exmcache.callRetBase
     callAddrReg := io.exmcache.callRetAddr
-    selIspmReg := io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-2) === Bits(0x1)
-    val selMCache = io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-1) >= Bits(0x1)
-    selMCacheReg := selMCache
-    when (selMCache) {
+    selSpmReg := io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-2) === Bits(0x1)
+    val selCache = io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-1) >= Bits(0x1)
+    selCacheReg := selCache
+    when (selCache) {
       hitReg := hit
       posReg := pos
 
@@ -228,14 +225,14 @@ class MCacheReplFifo() extends Module {
     }
   }
 
-  val relBase = Mux(selMCacheReg,
+  val relBase = Mux(selCacheReg,
                     posReg.toUInt,
                     callRetBaseReg(ISPM_ONE_BIT-3, 0))
   val relPc = callAddrReg + relBase
 
-  val reloc = Mux(selMCacheReg,
+  val reloc = Mux(selCacheReg,
                   callRetBaseReg - posReg.toUInt,
-                  Mux(selIspmReg,
+                  Mux(selSpmReg,
                       UInt(1 << (ISPM_ONE_BIT - 2)),
                       UInt(0)))
 
@@ -292,7 +289,7 @@ class MCacheReplFifo() extends Module {
   io.mcachefe.relBase := relBase
   io.mcachefe.relPc := relPc
   io.mcachefe.reloc := reloc
-  io.mcachefe.memSel := Cat(selIspmReg, selMCacheReg)
+  io.mcachefe.memSel := Cat(selSpmReg, selCacheReg)
 
   io.replctrl.hit := hitReg
 
@@ -313,7 +310,7 @@ class MCacheCtrl() extends Module {
 
   //fsm state variables
   val idleState :: sizeState :: transferState :: Nil = Enum(UInt(), 3)
-  val mcacheState = Reg(init = idleState)
+  val stateReg = Reg(init = idleState)
   //signals for method cache memory (repl)
   val addrEven = Bits(width = EXTMEM_ADDR_WIDTH)
   val addrOdd = Bits(width = EXTMEM_ADDR_WIDTH)
@@ -364,7 +361,7 @@ class MCacheCtrl() extends Module {
   }
 
   //check if instruction is available
-  when (mcacheState === idleState) {
+  when (stateReg === idleState) {
     when(io.replctrl.hit === Bits(1)) {
       addrEven := io.femcache.addrEven
       addrOdd := io.femcache.addrOdd
@@ -383,11 +380,11 @@ class MCacheCtrl() extends Module {
       ocpAddrReg := Cat(msizeAddr(EXTMEM_ADDR_WIDTH-1,log2Up(BURST_LENGTH)),
                         Bits(0, width=log2Up(BURST_LENGTH)))
 
-      mcacheState := sizeState
+      stateReg := sizeState
     }
   }
   //fetch size of the required method from external memory address - 1
-  when (mcacheState === sizeState) {
+  when (stateReg === sizeState) {
     fetchEna := Bool(false)
     when (ocpSlaveReg.Resp === OcpResp.DVA) {
       burstCntReg := burstCntReg + Bits(1)
@@ -411,13 +408,13 @@ class MCacheCtrl() extends Module {
         wData := size+size(0)
         //write base address to mem for tagfield
         wAddr := callRetBaseReg
-        mcacheState := transferState
+        stateReg := transferState
       }
     }
   }
 
   //transfer/fetch method to the cache
-  when (mcacheState === transferState) {
+  when (stateReg === transferState) {
     fetchEna := Bool(false)
     when (fetchCntReg <= transferSizeReg) {
       when (ocpSlaveReg.Resp === OcpResp.DVA) {
@@ -441,7 +438,7 @@ class MCacheCtrl() extends Module {
             fetchEna := Bool(true)
             addrEven := io.femcache.addrEven
             addrOdd := io.femcache.addrOdd
-            mcacheState := idleState
+            stateReg := idleState
           }
         }
         //write current address to mcache memory
@@ -459,7 +456,7 @@ class MCacheCtrl() extends Module {
         fetchEna := Bool(true)
         addrEven := io.femcache.addrEven
         addrOdd := io.femcache.addrOdd
-        mcacheState := idleState
+        stateReg := idleState
       }
     }
   }
@@ -471,7 +468,7 @@ class MCacheCtrl() extends Module {
   io.ctrlrepl.wData := wData
   io.ctrlrepl.wAddr := wAddr
   io.ctrlrepl.wTag := wTag
-  io.ctrlrepl.instrStall := mcacheState != idleState
+  io.ctrlrepl.instrStall := stateReg != idleState
 
   io.fetch_ena := fetchEna
 }

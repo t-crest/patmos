@@ -53,9 +53,9 @@ object Constants {
   val DSPM_SIZE = util.Config.getConfig.DSPM.size
   val BOOTSPM_SIZE = util.Config.getConfig.BootSPM.size
 
-  val MCACHE_SIZE = util.Config.getConfig.MCache.size
-  val METHOD_COUNT = util.Config.getConfig.MCache.blocks
-
+  val ICACHE_TYPE = util.Config.getConfig.ICache.typ
+  val ICACHE_TYPE_LINE = "line"
+  val ICACHE_TYPE_METHOD = "method"
   val ICACHE_SIZE = util.Config.getConfig.ICache.size
   val ICACHE_ASSOC = util.Config.getConfig.ICache.assoc
   val ICACHE_REPL = util.Config.getConfig.ICache.repl
@@ -66,10 +66,11 @@ object Constants {
   val DCACHE_WRITETHROUGH = util.Config.getConfig.DCache.writeThrough
   val SCACHE_SIZE = util.Config.getConfig.SCache.size
 
-  val MIN_OFF_WIDTH = if (ICACHE_SIZE > 0) log2Up(util.Config.getConfig.ExtMem.size) else 0
+  // minimum size of internal program counter
+  val MIN_OFF_WIDTH = if (ICACHE_TYPE == ICACHE_TYPE_METHOD) 0 else log2Up(util.Config.getConfig.ExtMem.size)
 
-  // maximum width between ISPM size, MCACHE size and boot ROM size
-  val MAX_OFF_WIDTH = List(log2Up(MCACHE_SIZE / 4), log2Up(ISPM_SIZE / 4),
+  // maximum width between ISPM size, ICache size and boot ROM size
+  val MAX_OFF_WIDTH = List(log2Up(ICACHE_SIZE / 4), log2Up(ISPM_SIZE / 4),
     util.Config.minPcWidth, MIN_OFF_WIDTH).reduce(math.max)
 
   // we use a very simple decoding of ISPM at address 0x00010000

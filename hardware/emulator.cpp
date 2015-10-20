@@ -225,7 +225,7 @@ static void extSsramSim(Patmos_t *c) {
 
 }
 
-static void mcacheStat(Patmos_t *c, bool halt) {
+static void icacheStat(Patmos_t *c, bool halt) {
   static uint cache_miss = 0;
   static uint cache_hits = 0;
   static uint exec_cycles = 0;
@@ -234,40 +234,40 @@ static void mcacheStat(Patmos_t *c, bool halt) {
   static float hit_rate = 0;
   //count all cycles till the program terminats
   exec_cycles++;
-  #ifdef MCACHE
+  #ifdef ICACHE_METHOD
   //count everytime a new method is written to the cache
-  if (c->Patmos_core_mcache_ctrl__io_ctrlrepl_wTag.to_bool() == true) {
+  if (c->Patmos_core_icache_ctrl__io_ctrlrepl_wTag.to_bool() == true) {
     cache_miss++;
-    if (c->Patmos_core_mcache_ctrl__io_ctrlrepl_wData.to_ulong() > max_function_size) {
-      max_function_size = c->Patmos_core_mcache_ctrl__io_ctrlrepl_wData.to_ulong();
+    if (c->Patmos_core_icache_ctrl__io_ctrlrepl_wData.to_ulong() > max_function_size) {
+      max_function_size = c->Patmos_core_icache_ctrl__io_ctrlrepl_wData.to_ulong();
     }
   }
   //everytime a method is called from the cache, todo: find a better way to measure hits
   if (c->Patmos_core_fetch__io_memfe_doCallRet.to_bool() == true &&
-      c->Patmos_core_mcache_repl__io_replctrl_hit.to_bool() == true &&
-      c->Patmos_core_mcache_ctrl__mcacheState.to_ulong() == 0 &&
-      c->Patmos_core_mcache__io_ena_in.to_bool() == true &&
-      c->Patmos_core_mcache_ctrl__io_ctrlrepl_instrStall.to_bool() == false) {
+      c->Patmos_core_icache_repl__io_replctrl_hit.to_bool() == true &&
+      c->Patmos_core_icache_ctrl__stateReg.to_ulong() == 0 &&
+      c->Patmos_core_icache__io_ena_in.to_bool() == true &&
+      c->Patmos_core_icache_ctrl__io_ctrlrepl_instrStall.to_bool() == false) {
     cache_hits++;
   }
   #endif
-  #ifdef ICACHE
+  #ifdef ICACHE_LINE
   //add stats for instruction cache measurements
-  if (c->Patmos_core_mcache_ctrl__io_ctrlrepl_wTag.to_bool() == true) {
+  if (c->Patmos_core_icache_ctrl__io_ctrlrepl_wTag.to_bool() == true) {
     cache_miss++;
   }
   if (c->Patmos_core_fetch__io_ena.to_bool() == true) {
-    if (c->Patmos_core_mcache_repl__hitInstrEven.to_bool() == true) {
+    if (c->Patmos_core_icache_repl__hitInstrEven.to_bool() == true) {
       cache_hits++;
     }
-    if (c->Patmos_core_mcache_repl__hitInstrOdd.to_bool() == true) {
+    if (c->Patmos_core_icache_repl__hitInstrOdd.to_bool() == true) {
       cache_hits++;
     }
   }
   #endif
   
-  //pipeline stalls caused by the mcache
-  if (c->Patmos_core_mcache__io_ena_out.to_bool() == false) {
+  //pipeline stalls caused by the instruction cache
+  if (c->Patmos_core_icache__io_ena_out.to_bool() == false) {
     cache_stall_cycles++;
   }
   //program terminats, write to output
@@ -296,7 +296,7 @@ static void help(ostream &out) {
       << "  -l <N>        Stop after <N> cycles" << endl
       << "  -p            Print method cache statistics" << endl
       << "  -r            Print register values in each cycle" << endl
-//      << "  -s            Trace stack cache spilling/filling" << endl
+      << "  -s            Trace stack cache spilling/filling" << endl
       << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
       << "  -I <file>     Read input for UART from file <file>" << endl
       << "  -O <file>     Write output from UART to file <file>" << endl;
@@ -411,34 +411,33 @@ int main (int argc, char* argv[]) {
 
   if (entry != 0) {
     if (entry >= 0x20000) {
-      #ifdef MCACHE
-      //init for mcache
+      #ifdef ICACHE_METHOD
+      //init for method cache
       c->Patmos_core_fetch__pcReg = -1;
-      c->Patmos_core_mcache_repl__hitReg = 0;
-      c->Patmos_core_mcache_repl__selMCacheReg = 1;
+      c->Patmos_core_icache_repl__hitReg = 0;
       #endif
-      #ifdef ICACHE
+      #ifdef ICACHE_LINE
       //init for icache
       c->Patmos_core_fetch__pcReg = (entry >> 2) - 1;
-      c->Patmos_core_mcache_repl__selICacheReg = 1;
       #endif
       c->Patmos_core_fetch__relBaseReg = 0;
       c->Patmos_core_fetch__relocReg = (entry >> 2) - 1;
-      c->Patmos_core_fetch__selMCache = 1;
+      c->Patmos_core_fetch__selCache = 1;
+      c->Patmos_core_icache_repl__selCacheReg = 1;
     } else {
       // pcReg for ispm starts at entry point - ispm base
       c->Patmos_core_fetch__pcReg = ((entry - 0x10000) >> 2) - 1;
       c->Patmos_core_fetch__relBaseReg = (entry - 0x10000) >> 2;
       c->Patmos_core_fetch__relocReg = 0x10000 >> 2;
-      c->Patmos_core_fetch__selIspm = 1;
-      c->Patmos_core_mcache_repl__selIspmReg = 1;
+      c->Patmos_core_fetch__selSpm = 1;
+      c->Patmos_core_icache_repl__selSpmReg = 1;
     }
     c->Patmos_core_execute__baseReg = entry;
-    c->Patmos_core_mcache_repl__callRetBaseReg = (entry >> 2);
-    #ifdef MCACHE
-    c->Patmos_core_mcache_ctrl__callRetBaseReg = (entry >> 2);
+    c->Patmos_core_icache_repl__callRetBaseReg = (entry >> 2);
+    #ifdef ICACHE_METHOD
+    c->Patmos_core_icache_ctrl__callRetBaseReg = (entry >> 2);
     #endif
-    #ifdef ICACHE
+    #ifdef ICACHE_LINE
     c->Patmos_core_fetch__relBaseReg = (entry >> 2);
     #endif
   }
@@ -515,12 +514,12 @@ int main (int argc, char* argv[]) {
 	}
 	if ((c->Patmos_core_memory__memReg_mem_brcf.to_bool()
 		 || c->Patmos_core_memory__memReg_mem_ret.to_bool())
-		&& c->Patmos_core_mcache_repl__callRetBaseReg.to_ulong() == 0) {
+		&& c->Patmos_core_icache_repl__callRetBaseReg.to_ulong() == 0) {
 	  halt = true;
 	}
 
 	if (print_stat) {
-	  mcacheStat(c, halt);
+	  icacheStat(c, halt);
 	}
 
   }

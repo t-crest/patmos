@@ -44,8 +44,8 @@ import Node._
 import Constants._
 import ocp._
 
-class NullMCache() extends Module {
-  val io = new MCacheIO()
+class NullICache() extends Module {
+  val io = new ICacheIO()
 
   val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
   val callAddrReg = Reg(init = UInt(1, DATA_WIDTH))
@@ -53,18 +53,18 @@ class NullMCache() extends Module {
 
   io.ena_out := Bool(true)
 
-  when (io.exmcache.doCallRet && io.ena_in) {
-    callRetBaseReg := io.exmcache.callRetBase
-    callAddrReg := io.exmcache.callRetAddr
-    selIspmReg := io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-2) === Bits(0x1)
+  when (io.exicache.doCallRet && io.ena_in) {
+    callRetBaseReg := io.exicache.callRetBase
+    callAddrReg := io.exicache.callRetAddr
+    selIspmReg := io.exicache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-2) === Bits(0x1)
   }
 
-  io.mcachefe.instrEven := Bits(0)
-  io.mcachefe.instrOdd := Bits(0)
-  io.mcachefe.relBase := callRetBaseReg(ISPM_ONE_BIT-3, 0)
-  io.mcachefe.relPc := callAddrReg + callRetBaseReg(ISPM_ONE_BIT-3, 0)
-  io.mcachefe.reloc := Mux(selIspmReg, UInt(1 << (ISPM_ONE_BIT - 2)), UInt(0))
-  io.mcachefe.memSel := Cat(selIspmReg, Bits(0))
+  io.icachefe.instrEven := Bits(0)
+  io.icachefe.instrOdd := Bits(0)
+  io.icachefe.relBase := callRetBaseReg(ISPM_ONE_BIT-3, 0)
+  io.icachefe.relPc := callAddrReg + callRetBaseReg(ISPM_ONE_BIT-3, 0)
+  io.icachefe.reloc := Mux(selIspmReg, UInt(1 << (ISPM_ONE_BIT - 2)), UInt(0))
+  io.icachefe.memSel := Cat(selIspmReg, Bits(0))
 
   io.ocp_port.M.Cmd := OcpCmd.IDLE
   io.ocp_port.M.Addr := Bits(0)
