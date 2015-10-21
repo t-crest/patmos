@@ -109,6 +109,13 @@ int main(void)
   // notify slaves that they can call _start()
   boot_info->master.status = STATUS_INIT;
 
+  // Wait for slaves to finish
+  for (unsigned i = 1; i < get_cpucnt(); i++) {
+    while(boot_info->slave[i].status != STATUS_INIT){
+      /* spin */
+    }
+  }
+
   // call the application's _start()
   int retval = -1;
   if (boot_info->master.entrypoint != NULL) {

@@ -148,7 +148,13 @@ entrypoint_t download(void) {
           //In case of data less than 4 bytes write everytime
           //Write to ISPM
           if ((section_offset+section_byte_count-1) >> 16 == 0x01) {
-            *(SPM+(section_offset+section_byte_count-1)/4) = integer;
+            if (((section_offset+section_byte_count-1) & 0x0000FFFF) < get_ispm_size() ) {
+              // With in the ISPM
+              *(SPM+(section_offset+section_byte_count-1)/4) = integer;
+            } else {
+              //Not within ISPM
+              //TODO: create warning
+            }
           }
           //Write to main memory
           *(MEM+(section_offset+section_byte_count-1)/4) = integer;
