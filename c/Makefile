@@ -32,7 +32,8 @@ CFLAGS?=-target patmos-unknown-unknown-elf -O2 \
 	-mpatmos-disable-vliw
 LDFLAGS?= \
 	-mpatmos-method-cache-size=0x1000 \
-	-mpatmos-stack-base=0x200000 -mpatmos-shadow-stack-base=0x1f8000
+	-mpatmos-stack-base=0x200000 -mpatmos-shadow-stack-base=0x1f8000 \
+	-Xgold -T -Xgold $(BUILDDIR)/../hardware/spm_ram.t
 
 # 32KB stacks for 256MB external memory
 # -mpatmos-stack-base=0x10000000 -mpatmos-shadow-stack-base=0x0fff8000

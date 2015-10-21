@@ -25,7 +25,7 @@ int main_mem_size = 0;
 int core_count = 0;
 //int core_com[64];
 
-void prefix(int size, char* buf){
+void prefix(int size, char* buf)  __attribute__((section(".text.spm"))){
   int pref = 0;
   while (size > 1024){
     size = size >> 10;
@@ -198,23 +198,40 @@ void slave_tester (void* arg) {
 }
 
 void print_cpuinfo() {
-  printf("get_cpufeat(): %d\n", get_cpufeat());
-  printf("get_extmem_size(): %d\n", get_extmem_size());
-  printf("get_extmem_conf(): %d\n", get_extmem_conf());
-  printf("get_icache_size(): %d\n", get_icache_size());
-  printf("get_icache_conf(): %d\n", get_icache_conf());
-  printf("get_dcache_size(): %d\n", get_dcache_size());
-  printf("get_dcache_conf(): %d\n", get_dcache_conf());
-  printf("get_scache_size(): %d\n", get_scache_size());
-  printf("get_scache_conf(): %d\n", get_scache_conf());
-  printf("get_ispm_size(): %d\n", get_ispm_size());
-  printf("get_dspm_size(): %d\n", get_dspm_size());
-  printf("get_bootspm_size(): %d\n", get_bootspm_size());
+  printf("get_cpufeat(): %08x\n", get_cpufeat());
+  char buf[12];
+  int size;
+  size = get_extmem_size();
+  prefix(size,buf);
+  printf("get_extmem_size(): %s\n", buf);
+  printf("get_extmem_conf(): %08x\n", get_extmem_conf());
+  size = get_icache_size();
+  prefix(size,buf);
+  printf("get_icache_size(): %s\n", buf);
+  printf("get_icache_conf(): %08x\n", get_icache_conf());
+  size = get_dcache_size();
+  prefix(size,buf);
+  printf("get_dcache_size(): %s\n", buf);
+  printf("get_dcache_conf(): %08x\n", get_dcache_conf());
+  size = get_scache_size();
+  prefix(size,buf);
+  printf("get_scache_size(): %s\n", buf);
+  printf("get_scache_conf(): %08x\n", get_scache_conf());
+  size = get_ispm_size();
+  prefix(size,buf);
+  printf("get_ispm_size(): %s\n", buf);
+  size = get_dspm_size();
+  prefix(size,buf);
+  printf("get_dspm_size(): %s\n", buf);
+  size = get_bootspm_size();
+  prefix(size,buf);
+  printf("get_bootspm_size(): %s\n", buf);
 
 }
 
 int main() {
   print_cpuinfo();
+  inval_dcache();
   core_count = print_processor_info();
   com_spm_test();
   main_mem_size = main_mem_test();
