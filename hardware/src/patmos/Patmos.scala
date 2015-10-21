@@ -63,14 +63,16 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   val icache = 
     if (ICACHE_SIZE <= 0)
       Module(new NullICache())
-    else if (ICACHE_TYPE == ICACHE_TYPE_METHOD)
-      Module(new MCache())
-    else if (ICACHE_TYPE == ICACHE_TYPE_LINE)
-      Module(new ICache())
+    else if (ICACHE_TYPE == ICACHE_TYPE_METHOD && ICACHE_REPL == CACHE_REPL_FIFO)
+        Module(new MCache())
+    else if (ICACHE_TYPE == ICACHE_TYPE_LINE && ICACHE_ASSOC == 1)
+        Module(new ICache())
     else {
-      ChiselError.error("Unsupported instruction cache configuration: "+
-                        "type \""+ICACHE_TYPE+"\" "+
-                        "(must be \""+ICACHE_TYPE_METHOD+"\" or \""+ICACHE_TYPE_LINE+"\")")
+      ChiselError.error("Unsupported instruction cache configuration:"+
+                        " type \""+ICACHE_TYPE+"\""+
+                        " (must be \""+ICACHE_TYPE_METHOD+"\" or \""+ICACHE_TYPE_LINE+"\")"+
+                        " associativity "+ICACHE_ASSOC+
+                        " with replacement policy \""+ICACHE_REPL+"\"")
       Module(new NullICache()) // return at least a dummy cache
     }
 

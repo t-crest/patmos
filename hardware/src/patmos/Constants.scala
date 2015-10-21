@@ -54,8 +54,6 @@ object Constants {
   val BOOTSPM_SIZE = util.Config.getConfig.BootSPM.size
 
   val ICACHE_TYPE = util.Config.getConfig.ICache.typ
-  val ICACHE_TYPE_LINE = "line"
-  val ICACHE_TYPE_METHOD = "method"
   val ICACHE_SIZE = util.Config.getConfig.ICache.size
   val ICACHE_ASSOC = util.Config.getConfig.ICache.assoc
   val ICACHE_REPL = util.Config.getConfig.ICache.repl
@@ -64,13 +62,22 @@ object Constants {
   val DCACHE_ASSOC = util.Config.getConfig.DCache.assoc
   val DCACHE_REPL = util.Config.getConfig.DCache.repl
 
+  val CACHE_REPL_LRU  = "lru"
+  val CACHE_REPL_FIFO = "fifo"
   def cacheRepl2Int(repl: String): Int = repl match {
-    case "lru"  => 1
-    case "fifo" => 2
-    case _      => 0
+    case CACHE_REPL_LRU  => 1
+    case CACHE_REPL_FIFO => 2
+    case _               => 0
   }
 
-  val DCACHE_REPL_TYPE = cacheRepl2Int(DCACHE_REPL)
+  val ICACHE_TYPE_METHOD = "method"
+  val ICACHE_TYPE_LINE = "line"
+  def iCacheType2Int(typ: String): Int = typ match {
+    case ICACHE_TYPE_METHOD => 1
+    case ICACHE_TYPE_LINE   => 2
+    case _                  => 0
+  }
+
   val DCACHE_WRITETHROUGH = util.Config.getConfig.DCache.writeThrough
   val SCACHE_SIZE = util.Config.getConfig.SCache.size
 
