@@ -182,7 +182,9 @@ struct _spd_t {
     /** Reader specific fields */
     struct {
       /** Value specifying which buffer is the newest to be read */
-      volatile unsigned long long int newest;      
+      volatile unsigned long long int newest;
+      /** Value specifying which buffer is the newest to be read */
+      volatile unsigned long long int next_reading;
     };
   };
 
@@ -243,18 +245,13 @@ mpd_t * mp_create_qport( const unsigned int chan_id, const direction_t direction
 ///
 /// \retval 0 The local or remote addresses were not aligned to double words.
 /// \retval 1 The initialization of the send channel succeeded.
-//#if SPORT_IMPL == SHM
-//spd_t * mp_create_sport(const unsigned int chan_id, const direction_t direction_type,
-//              const coreid_t remote, const size_t msg_size, const size_t num_buf);
-//#else
 spd_t * mp_create_sport(const unsigned int chan_id, const direction_t direction_type,
               const coreid_t remote, const size_t sample_size);
-//#endif
 
 /// \breif Initializing all the channels that have been registered.
 ///
 /// \retval 0 The initialization of one or more communication channels failed.
-/// \retval 1 The initialization of all the communication channels succeded.
+/// \retval 1 The initialization of all the communication channels succeeded.
 int mp_init_chans();
 
 /// \brief Initialize the communicator
@@ -281,9 +278,9 @@ int mp_communicator_init(communicator_t* comm, const unsigned int count,
 /// for the given message passing channel.
 ///
 /// \retval 0 The send did not succeed, either there was no space in the
-/// receiving buffer or there was no free DMA to start a transfere
+/// receiving buffer or there was no free DMA to start a transfer
 /// \retval 1 The send succeeded.
-int mp_nbsend(mpd_t * mpd_ptr);
+int mp_nbsend(mpd_t * mpd_ptr) __attribute__((section(".text.spm")));
 
 /// \brief A function for passing a message to a remote processor under
 /// flow control. The data to be passed by the function should be in the
@@ -296,8 +293,8 @@ int mp_nbsend(mpd_t * mpd_ptr);
 /// the timeout is infinite
 ///
 /// \retval 0 The function timed out.
-/// \retval 1 The function suceeded sending the message.
-int mp_send(mpd_t * mpd_ptr, const unsigned int time_usecs);
+/// \retval 1 The function succeeded sending the message.
+int mp_send(mpd_t * mpd_ptr, const unsigned int time_usecs) __attribute__((section(".text.spm")));
 
 /// \brief Non-blocking function for receiving a message from a remote processor
 /// under flow control. The data that is received is placed in a message buffer
@@ -311,7 +308,7 @@ int mp_send(mpd_t * mpd_ptr, const unsigned int time_usecs);
 /// \retval 0 No message has been received yet.
 /// \retval 1 A message has been received and dequeued. The call has to be
 /// followed by a call to #mp_ack() when the data is no longer used.
-int mp_nbrecv(mpd_t * mpd_ptr);
+int mp_nbrecv(mpd_t * mpd_ptr) __attribute__((section(".text.spm")));
 
 /// \brief A function for receiving a message from a remote processor under
 /// flow control. The data that is received is placed in a message buffer
@@ -325,8 +322,8 @@ int mp_nbrecv(mpd_t * mpd_ptr);
 /// the timeout is infinite
 ///
 /// \retval 0 The function timed out.
-/// \retval 1 The function suceeded receiving the message.
-int mp_recv(mpd_t * mpd_ptr, const unsigned int time_usecs);
+/// \retval 1 The function succeeded receiving the message.
+int mp_recv(mpd_t * mpd_ptr, const unsigned int time_usecs) __attribute__((section(".text.spm")));
 
 /// \brief Non-blocking function for acknowledging the reception of a message.
 /// This function should be used with extra care, if no acknowledgement is sent
@@ -334,7 +331,7 @@ int mp_recv(mpd_t * mpd_ptr, const unsigned int time_usecs);
 /// This function shall be called to release space in the receiving
 /// buffer when the received data is no longer used.
 /// It is not necessary to call #mp_ack() after each #mp_recv() call.
-/// It is possible to work on 2 or more incomming messages at the same
+/// It is possible to work on 2 or more incoming messages at the same
 /// time with out them being overwritten.
 ///
 /// \param mpd_ptr A pointer to the message passing data structure
@@ -342,13 +339,13 @@ int mp_recv(mpd_t * mpd_ptr, const unsigned int time_usecs);
 ///
 /// \retval 0 No acknowledgement has been sent.
 /// \retval 1 An acknowledgement has been sent.
-int mp_nback(mpd_t * mpd_ptr);
+int mp_nback(mpd_t * mpd_ptr) __attribute__((section(".text.spm")));
 
 /// \brief A function for acknowledging the reception of a message.
 /// This function shall be called to release space in the receiving
 /// buffer when the received data is no longer used.
 /// It is not necessary to call #mp_ack() after each #mp_recv() call.
-/// It is possible to work on 2 or more incomming messages at the same
+/// It is possible to work on 2 or more incoming messages at the same
 /// time with out them being overwritten.
 ///
 /// \param mpd_ptr A pointer to the message passing data structure
@@ -357,8 +354,8 @@ int mp_nback(mpd_t * mpd_ptr);
 /// the timeout is infinite
 ///
 /// \retval 0 The function timed out.
-/// \retval 1 The function suceeded acknowledging the message.
-int mp_ack(mpd_t * mpd_ptr, const unsigned int time_usecs);
+/// \retval 1 The function succeeded acknowledging the message.
+int mp_ack(mpd_t * mpd_ptr, const unsigned int time_usecs) __attribute__((section(".text.spm")));
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for sampling point-to-point transmission of data
@@ -366,19 +363,11 @@ int mp_ack(mpd_t * mpd_ptr, const unsigned int time_usecs);
 
 /// \brief A function for writing a sampled value to the remote location
 /// at the receiving end of the channel
-//#if SPORT_IMPL == SHM
-//void mp_write(mpd_t * mpd_ptr);
-//#else
 int mp_write(spd_t * sport, volatile void _SPM * sample) __attribute__((section(".text.spm")));
-//#endif
 
 /// \breif A function for reading a sampled value from the remote location
 /// at the sending end of the channel
-//#if SPORT_IMPL == SHM
-//void mp_read(mpd_t * mpd_ptr);
-//#else
 int mp_read(spd_t * sport, volatile void _SPM * sample) __attribute__((section(".text.spm")));
-//#endif
 
 /// \breif A function for reading a sampled value from the remote location
 /// at the sending end of the channel. The function requires that the read
@@ -388,17 +377,13 @@ int mp_read(spd_t * sport, volatile void _SPM * sample) __attribute__((section("
 /// \retval 1 The read value has not been read before.
 /// \retval 2 There is no value to read.
 /// \returns The function returns when a value has been read.
-//#if SPORT_IMPL == SHM
-//int mp_read_updated(mpd_t * mpd_ptr);
-//#else
-//int mp_read_updated(mpd_t _SPM * mpd_ptr);
-//#endif
+//int mp_read_updated(spd_t * spd_ptr);
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for collective communication
 ////////////////////////////////////////////////////////////////////////////
 
-/// \brief A function to syncronize the cores described in the communicator
+/// \brief A function to synchronize the cores described in the communicator
 /// to a barrier.
 ///
 /// \param comm A pointer to the communicator struct that describes 

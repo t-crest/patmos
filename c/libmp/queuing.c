@@ -39,8 +39,8 @@
 
  #include "mp.h"
  #include "mp_internal.h"
- #define TRACE_LEVEL INFO
- #define DEBUG_ENABLE
+ //#define TRACE_LEVEL WARNING
+ //#define DEBUG_ENABLE
  #include "include/debug.h"
 
 ////////////////////////////////////////////////////////////////////////////
@@ -188,6 +188,8 @@ int mp_nbsend(mpd_t * mpd_ptr) {
 int mp_send(mpd_t * mpd_ptr, const unsigned int time_usecs) {
   unsigned long long int timeout = get_cpu_usecs() + time_usecs;
   int retval = 0;
+  // REM: The worst case waiting time of the mp_nbsend() must
+  // be added after the WCET analysis
   _Pragma("loopbound min 1 max 1")
   // while message not sent and ( timeout infinite or now is before timeout)
   while(retval == 0 && ( time_usecs == 0 || get_cpu_usecs() < timeout ) ) {
@@ -229,6 +231,8 @@ int mp_nbrecv(mpd_t * mpd_ptr) {
 int mp_recv(mpd_t * mpd_ptr, const unsigned int time_usecs) {
   unsigned long long int timeout = get_cpu_usecs() + time_usecs;
   int retval = 0;
+  // REM: The worst case waiting time of the mp_nbrecv() must
+  // be added after the WCET analysis
   _Pragma("loopbound min 1 max 1")
   // while message not received and ( timeout infinite or now is before timeout)
   while(retval == 0 && ( time_usecs == 0 || get_cpu_usecs() < timeout ) ) {
@@ -255,6 +259,8 @@ int mp_ack(mpd_t * mpd_ptr, const unsigned int time_usecs){
   unsigned long long int timeout = get_cpu_usecs() + time_usecs;
   int retval = 0;
   // Await previous acknowledgement transfer before updating counter in SPM
+  // REM: The worst case waiting time of the noc_done() must
+  // be added after the WCET analysis
   _Pragma("loopbound min 1 max 1")
   // while DMA is not free and ( timeout infinite or now is before timeout)
   while(retval == 0 && ( time_usecs == 0 || get_cpu_usecs() < timeout ) ) {
@@ -270,6 +276,8 @@ int mp_ack(mpd_t * mpd_ptr, const unsigned int time_usecs){
   // Increment the receive counter
   (*mpd_ptr->recv_count)++;
   // Update the remote receive count
+  // REM: The worst case waiting time of the noc_nbsend() must
+  // be added after the WCET analysis
   _Pragma("loopbound min 1 max 1")
   // while message not sent and ( timeout infinite or now is before timeout)
   while(retval == 0 && ( time_usecs == 0 || get_cpu_usecs() < timeout ) ) {

@@ -21,10 +21,12 @@ const int NOC_MASTER = 0;
 
 #define MASTER_CORE 0
 #define SLAVE_CORE 2
-#define ITERATIONS 10
+#define ITERATIONS 100
 #define CHAN_ID_ONE 1
 #define CHAN_ID_TWO 2
 #define SAMPLE_SIZE 128
+
+#define DEBUG_ENABLE
 
 unsigned long long int min_time = ULONG_MAX;
 unsigned long long int max_time = 0;
@@ -65,23 +67,22 @@ void func_worker_1(void* arg) {
   //    }
   //}
 
-  for (int i = 0; i < ITERATIONS/2; ++i) {
+  //for (int i = 0; i < ITERATIONS/2; ++i) {
+  for (int i = 0; i < ITERATIONS*20; ++i) {
     mp_write(sport1,sample);
     for (int i = 0; i < SAMPLE_SIZE; ++i) {
       sample[i] = i;
     }
-    for (int i = 0; i < 100000; ++i)
-    {
-      asm volatile (""::);
-    }
+    //for (int i = 0; i < 100000; ++i) {
+    //  asm volatile (""::);
+    //}
     mp_write(sport1,sample);
     for (int i = 0; i < SAMPLE_SIZE; ++i) {
       sample[SAMPLE_SIZE-1-i] = i;
     }
-    for (int i = 0; i < 100000; ++i)
-    {
-      asm volatile (""::);
-    }
+    //for (int i = 0; i < 100000; ++i) {
+    //  asm volatile (""::);
+    //}
   }
 
   
@@ -141,11 +142,11 @@ int main() {
   for (int i = 0; i < ITERATIONS; ++i) {
     start = get_cpu_usecs();
     int ret = mp_read(sport1,sample);
-    if (ret != 0)
+    stop = get_cpu_usecs();
+    if (ret == 0)
     {
       puts("No value written yet.");
     } else {
-      stop = get_cpu_usecs();
       unsigned long long int exe_time = stop - start;
       min_time = (exe_time < min_time) ? exe_time : min_time;
       max_time = (exe_time > max_time) ? exe_time : max_time;

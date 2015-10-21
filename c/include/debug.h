@@ -27,7 +27,7 @@
 // TRACE LEVEL
 // Any trace with equal or higher severity than the trace level is printed
 #ifndef TRACE_LEVEL
-#define TRACE_LEVEL INFO
+#define TRACE_LEVEL ERROR
 #endif
 
 #define SEVERITY_NAME(x) ( x == INFO ? "INFO" :             \

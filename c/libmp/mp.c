@@ -111,7 +111,7 @@ void _SPM * mp_alloc(const size_t size) {
   // Check if the allocated memory is there
   if (new_addr < (unsigned int)NOC_SPM_BASE) {
     // TODO: Cause disaster (Kernel panic)
-    DEBUGS("SPM Alloc failed. SOM not initialized");
+    DEBUGS("SPM Alloc failed. SPM not initialized");
     return NULL;
   }
   if (new_addr > (unsigned int)(spm_size_array[cpuid] + NOC_SPM_BASE)) {
