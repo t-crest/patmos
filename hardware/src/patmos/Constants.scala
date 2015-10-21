@@ -59,6 +59,14 @@ object Constants {
   val DCACHE_SIZE = util.Config.getConfig.DCache.size
   val DCACHE_ASSOC = util.Config.getConfig.DCache.assoc
   val DCACHE_REPL = util.Config.getConfig.DCache.repl
+
+  def cacheRepl2Int(repl: String): Int = repl match {
+    case "lru"  => 1
+    case "fifo" => 2
+    case _      => 0
+  }
+
+  val DCACHE_REPL_TYPE = cacheRepl2Int(DCACHE_REPL)
   val DCACHE_WRITETHROUGH = util.Config.getConfig.DCache.writeThrough
   val SCACHE_SIZE = util.Config.getConfig.SCache.size
   // offset for switching from relative address to absolute address, default = 0
@@ -74,7 +82,8 @@ object Constants {
   // both in the global address space
   val BOOTMEM_ONE_BIT = 16
 
-  val EXTMEM_ADDR_WIDTH = log2Up(util.Config.getConfig.ExtMem.size)
+  val EXTMEM_SIZE = util.Config.getConfig.ExtMem.size
+  val EXTMEM_ADDR_WIDTH = log2Up(EXTMEM_SIZE)
   val BURST_LENGTH = util.Config.getConfig.burstLength // For SSRAM on DE2-70 board max. 4
   val WRITE_COMBINE = util.Config.getConfig.writeCombine
 

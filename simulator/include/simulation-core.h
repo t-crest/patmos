@@ -231,6 +231,9 @@ namespace patmos
 
     /// Flush caches when PC reaches this address.
     uword_t Flush_Cache_PC;
+
+    /// Cycle of the last reset_stats() call.
+    uint64_t Stats_Start_Cycle;
     
     /// Debug accesses to those addresses.
     std::set<uword_t> Debug_mem_address;

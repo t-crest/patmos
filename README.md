@@ -31,6 +31,14 @@ Install sbt with:
     sudo apt-get install sbt
 
 We assume that the T-CREST project will live in $HOME/t-crest.
+Before building the compiler, add the path
+to the compiler executables into your .profile:
+
+    export PATH=$PATH:$HOME/t-crest/local/bin
+
+Use an absolute path as LLVM cannot handle a path relative to the
+home directory (~).
+
 Patmos and the compiler can be checked out from GitHub and are built as follows:
 
     mkdir ~/t-crest
@@ -47,13 +55,7 @@ the Patmos source, and benchmarks) and
 build the compiler, the Patmos simulator, and the test benches.
 Therefore, take a cup of coffee and find some nice reading
 (e.g., the [Patmos Reference Handbook] (http://patmos.compute.dtu.dk/patmos_handbook.pdf)).
-After building the compiler, add the path
-to the compiler executables into your .profile:
 
-    export PATH=$PATH:$HOME/t-crest/local/bin
-
-Use an absolute path as LLVM cannot handle a path relative to the
-home directory (~).
 
 We can start with the standard, harmless looking Hello
 World:
@@ -71,3 +73,11 @@ and run with the simulator as follows:
 However, this innocent examples is quiet challenging for an embedded system.
 For further details and how to build Patmos for an FPGA see:
 [Patmos Reference Handbook] (http://patmos.compute.dtu.dk/patmos_handbook.pdf).
+
+Known Issues
+============
+
+- [ ] `patmos-llvm` currently does not compile with clang > 3.4 on Ubuntu 15.04.
+      As a workaround, uninstall `clang`, install `clang-3.4` and create symlinks
+      `clang` and `clang++` to `clang-3.4` and `clang++-3.4`.
+

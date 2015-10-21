@@ -81,10 +81,40 @@ class CpuInfo() extends CoreDevice() {
   }
 
   // Read information
-  switch(masterReg.Addr(3,2)) {
-    is(Bits("b00")) { data := io.cpuInfoPins.id }
-    is(Bits("b01")) { data := Bits(CLOCK_FREQ) }
-    is(Bits("b10")) { data := io.cpuInfoPins.cnt }
+  switch(masterReg.Addr(5,2)) {
+    is(Bits("b0000")) { data := io.cpuInfoPins.id }
+    is(Bits("b0001")) { data := Bits(CLOCK_FREQ) }
+    is(Bits("b0010")) { data := io.cpuInfoPins.cnt }
+    is(Bits("b0011")) { data := Bits(PIPE_COUNT) }
+    // ExtMEM
+    // Size (32 bit)
+    is(Bits("b0100")) { data := Bits(EXTMEM_SIZE) } 
+    // Burst length (8 bit ) & Write combine (8 bit)
+    is(Bits("b0101")) { data := Bits(BURST_LENGTH, width = 8) ## Bits(0, width = 7) ## Bool(WRITE_COMBINE) }
+    // ICache
+    // Size (32 bit)
+    is(Bits("b0110")) { data := Bits(MCACHE_SIZE) }
+    // Type (8 bit) & Replacement policy (8 bit) & Associativity (16 bit)
+    is(Bits("b1001")) { data := Bits(0, width = 8) ## Bits(0, width = 8) ## Bits(METHOD_COUNT, width = 16) }
+    // DCache
+    // Size (32 bit)
+    is(Bits("b1000")) { data := Bits(DCACHE_SIZE) }
+    // Type (8 bit) & Replacement policy (8 bit) & Associativity (16 bit)
+    is(Bits("b1001")) { data := Bits(0, width = 7) ## Bool(DCACHE_WRITETHROUGH) ## Bits(DCACHE_REPL_TYPE, width = 8) ## Bits(DCACHE_ASSOC, width = 16) }
+    // SCache
+    // Size (32 bit)
+    is(Bits("b1010")) { data := Bits(SCACHE_SIZE) }
+    // Reserved
+    is(Bits("b1011")) { data := Bits("b0") }
+    // ISPM
+    // Size (32 bit)
+    is(Bits("b1100")) { data := Bits(ISPM_SIZE) }
+    // DSPM
+    // Size (32 bit)
+    is(Bits("b1101")) { data := Bits(DSPM_SIZE) }
+    // BootSPM
+    // Size (32 bit)
+    is(Bits("b1110")) { data := Bits(BOOTSPM_SIZE) }
   }
   when(masterReg.Cmd === OcpCmd.RD) {
     resp := OcpResp.DVA

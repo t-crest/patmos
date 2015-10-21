@@ -303,6 +303,17 @@ namespace patmos
 
     void update_utilization_stats(method_info_t &method, uword_t utilized_bytes);
 
+    virtual size_t get_active_method() const;
+
+    void print_cache_state(simulator_t &s, std::ostream &dout, 
+                           size_t active_method) const;
+    
+    void print_hit(simulator_t &s, std::ostream &dout, word_t address) const;
+    
+    void print_miss(simulator_t &s, std::ostream &dout, word_t address,
+                    uword_t evicted_methods, uword_t evicted_blocks, 
+                    uword_t blocks_freed, bool capacity_miss) const;
+    
     enum eviction_type_e { EVICT_CAPACITY, EVICT_TAG, EVICT_FLUSH };
     
     /// Evict a given method, updating the cache state, and various statics.
@@ -395,6 +406,8 @@ namespace patmos
     /// @return True in case the method is in the cache, false otherwise.
     virtual bool lookup(simulator_t &s, uword_t address);
 
+    virtual size_t get_active_method() const;
+    
   public:
 
     /// Construct an FIFO-based method cache.
