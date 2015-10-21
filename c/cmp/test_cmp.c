@@ -197,7 +197,24 @@ void slave_tester (void* arg) {
   return;
 }
 
+void print_cpuinfo() {
+  printf("get_cpufeat(): %d\n", get_cpufeat());
+  printf("get_extmem_size(): %d\n", get_extmem_size());
+  printf("get_extmem_conf(): %d\n", get_extmem_conf());
+  printf("get_icache_size(): %d\n", get_icache_size());
+  printf("get_icache_conf(): %d\n", get_icache_conf());
+  printf("get_dcache_size(): %d\n", get_dcache_size());
+  printf("get_dcache_conf(): %d\n", get_dcache_conf());
+  printf("get_scache_size(): %d\n", get_scache_size());
+  printf("get_scache_conf(): %d\n", get_scache_conf());
+  printf("get_ispm_size(): %d\n", get_ispm_size());
+  printf("get_dspm_size(): %d\n", get_dspm_size());
+  printf("get_bootspm_size(): %d\n", get_bootspm_size());
+
+}
+
 int main() {
+  print_cpuinfo();
   core_count = print_processor_info();
   com_spm_test();
   main_mem_size = main_mem_test();
