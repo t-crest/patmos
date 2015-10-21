@@ -12,14 +12,196 @@
 #include "emulator_config.h"
 
 ostream *out = &cout;
+char *program_name = NULL;
 
 #define OCMEM_ADDR_BITS 16
 
-#define SRAM_ADDR_BITS 19 // 2MB
-static uint32_t ssram_buf [1 << SRAM_ADDR_BITS];
+#ifdef EXTMEM_SSRAM32CTRL
+static uint32_t *ram_buf;
 #define SRAM_CYCLES 3
 
-/// Read an elf executable image into the on-chip memories
+static void write_extmem(val_t address, val_t word) {
+  ram_buf[address] = word;
+}
+
+static void init_extmem(Patmos_t *c, bool random) {
+  // Get SRAM properties
+  uint32_t addr_bits = c->Patmos__io_sSRam32CtrlPins_ramOut_addr.width();
+  uint32_t cells = 1 << addr_bits;
+
+  // Check data width and allocate buffer
+  assert(c->Patmos__io_sSRam32CtrlPins_ramOut_dout.width() == 32);
+  ram_buf = (uint32_t *)calloc(cells, sizeof(uint32_t));
+  if (ram_buf == NULL) {
+    cerr << program_name << ": error: Cannot allocate memory for SRAM emulation" << endl;
+    exit(EXIT_FAILURE);
+  }
+
+  // Initialize with random data
+  if (random) {
+    for (int i = 0; i < cells; i++) {
+      write_extmem(i, rand());
+    }
+  }
+}
+
+static void emu_extmem(Patmos_t *c) {
+  static uint32_t addr_cnt;
+  static uint32_t address;
+  static uint32_t counter;
+
+  // Start of request
+  if (!c->Patmos__io_sSRam32CtrlPins_ramOut_nadsc.to_bool()) {
+    address = c->Patmos__io_sSRam32CtrlPins_ramOut_addr.to_ulong();
+    addr_cnt = address;
+    counter = 0;
+  }
+
+  // Advance address for burst
+  if (!c->Patmos__io_sSRam32CtrlPins_ramOut_nadv.to_bool()) {
+    addr_cnt++;
+  }
+
+  // Read from external memory
+  if (!c->Patmos__io_sSRam32CtrlPins_ramOut_noe.to_bool()) {
+    counter++;
+    if (counter >= SRAM_CYCLES) {
+      c->Patmos__io_sSRam32CtrlPins_ramIn_din = ram_buf[address];
+      if (address <= addr_cnt) {
+        address++;
+      }
+    }
+  }
+
+  // Write to external memory
+  if (c->Patmos__io_sSRam32CtrlPins_ramOut_nbwe.to_ulong() == 0) {
+    uint32_t nbw = c->Patmos__io_sSRam32CtrlPins_ramOut_nbw.to_ulong();
+    uint32_t mask = 0x00000000;
+    for (unsigned i = 0; i < 4; i++) {
+      if ((nbw & (1 << i)) == 0) {
+        mask |= 0xff << (i*8);
+      }
+    }
+
+    ram_buf[address] &= ~mask;
+    ram_buf[address] |= mask & c->Patmos__io_sSRam32CtrlPins_ramOut_dout.to_ulong();
+
+    if (address <= addr_cnt) {
+      address++;
+    }
+  }
+}
+#endif /* EXTMEM_SSRAM32CTRL */
+
+#ifdef EXTMEM_SRAMCTRL
+static uint16_t *ram_buf;
+
+static void write_extmem(val_t address, val_t word) {
+  ram_buf[(address << 1) | 0] = word & 0xffff;
+  ram_buf[(address << 1) | 1] = word >> 16;
+}
+
+static void init_extmem(Patmos_t *c, bool random) {
+  // Get SRAM properties
+  uint32_t addr_bits = c->Patmos_ramCtrl__addrReg.width();
+  uint32_t cells = 1 << addr_bits;
+
+  // Check data width and allocate buffer
+  assert(c->Patmos__io_sRamCtrlPins_ramOut_dout.width() == 16);
+  ram_buf = (uint16_t *)calloc(cells, sizeof(uint16_t));
+  if (ram_buf == NULL) {
+    cerr << program_name << ": error: Cannot allocate memory for SRAM emulation" << endl;
+    exit(EXIT_FAILURE);
+  }
+
+  // Initialize with random data
+  if (random) {
+    for (int i = 0; i < cells/2; i++) {
+      write_extmem(i, rand());
+    }
+  }
+}
+
+static void emu_extmem(Patmos_t *c) {
+  uint32_t address = c->Patmos_ramCtrl__addrReg.to_ulong();
+
+  // Read from external memory unconditionally
+  c->Patmos__io_sRamCtrlPins_ramIn_din = ram_buf[address];
+
+  // Write to external memory
+  if (!c->Patmos__io_sRamCtrlPins_ramOut_nwe.to_bool()) {
+    uint16_t mask = 0x0000;
+    if (!c->Patmos__io_sRamCtrlPins_ramOut_nub.to_bool()) {
+      mask |= 0xff00;
+    }
+    if (!c->Patmos__io_sRamCtrlPins_ramOut_nlb.to_bool()) {
+      mask |= 0x00ff;
+    }
+    ram_buf[address] &= ~mask;
+    ram_buf[address] |= mask & c->Patmos__io_sRamCtrlPins_ramOut_dout.to_ulong();
+  }
+}
+#endif /* EXTMEM_SRAMCTRL */
+
+#ifdef IO_CPUINFO
+static void emu_cpuinfo(Patmos_t *c) {
+    c->Patmos__io_cpuInfoPins_id = 0;
+    c->Patmos__io_cpuInfoPins_cnt = 1;
+}
+#endif /* IO_CPUINFO */
+
+#ifdef IO_KEYS
+static void emu_keys(Patmos_t *c, bool enable) {
+  if (enable) {
+    if ((rand() % 0x10000) == 0) {
+      c->Patmos__io_keysPins_key = rand();
+    }
+  }
+}
+#endif /* IO_KEYS */
+
+#ifdef IO_UART
+static void emu_uart(Patmos_t *c, int uart_in, int uart_out) {
+  static unsigned baud_counter = 0;
+
+  // Pass on data from UART
+  if (c->Patmos_core_iocomp_Uart__io_ocp_M_Cmd.to_ulong() == 0x1
+      && (c->Patmos_core_iocomp_Uart__io_ocp_M_Addr.to_ulong() & 0xff) == 0x04) {
+    unsigned char d = c->Patmos_core_iocomp_Uart__io_ocp_M_Data.to_ulong();
+    int w = write(uart_out, &d, 1);
+    if (w != 1) {
+      cerr << program_name << ": error: Cannot write UART output" << endl;
+    }
+  }
+
+  // Pass on data to UART
+  bool baud_tick = c->Patmos_core_iocomp_Uart__tx_baud_tick.to_bool();
+  if (baud_tick) {
+    baud_counter = (baud_counter + 1) % 10;
+  }
+  if (baud_tick && baud_counter == 0) {
+    struct pollfd pfd;
+    pfd.fd = uart_in;
+    pfd.events = POLLIN;
+    if (poll(&pfd, 1, 0) > 0) {
+      unsigned char d;
+      int r = read(uart_in, &d, 1);
+      if (r != 0) {
+        if (r != 1) {
+          cerr << program_name << ": error: Cannot read UART input" << endl;
+        } else {
+          c->Patmos_core_iocomp_Uart__rx_state = 0x3; // rx_stop_bit
+          c->Patmos_core_iocomp_Uart__rx_baud_tick = 1;
+          c->Patmos_core_iocomp_Uart__rxd_reg2 = 1;
+          c->Patmos_core_iocomp_Uart__rx_buff = d;
+        }
+      }
+    }
+  }
+}
+#endif /* IO_UART */
+
+// Read an elf executable image into the on-chip memories
 static val_t readelf(istream &is, Patmos_t *c)
 {
   vector<unsigned char> elfbuf;
@@ -28,7 +210,7 @@ static val_t readelf(istream &is, Patmos_t *c)
   // read the whole stream.
   while (!is.eof())
   {
-	char buf[1024];
+    char buf[1024];
 
     // read into buffer
     is.read(&buf[0], sizeof(buf));
@@ -90,42 +272,42 @@ static val_t readelf(istream &is, Patmos_t *c)
       assert(phdr.p_filesz <= phdr.p_memsz);
 
       // copy from the buffer into the on-chip memories
-	  for (size_t k = 0; k < phdr.p_memsz; k++) {
+      for (size_t k = 0; k < phdr.p_memsz; k++) {
 
-		if ((phdr.p_flags & PF_X) != 0 &&
-			((phdr.p_paddr + k) >> OCMEM_ADDR_BITS) == 0x1 &&
-			((phdr.p_paddr + k) & 0x3) == 0) {
-		  // Address maps to ISPM and is at a word boundary
-		  val_t word = k >= phdr.p_filesz ? 0 :
-			(((val_t)elfbuf[phdr.p_offset + k + 0] << 24) |
-			 ((val_t)elfbuf[phdr.p_offset + k + 1] << 16) |
-			 ((val_t)elfbuf[phdr.p_offset + k + 2] << 8) |
-			 ((val_t)elfbuf[phdr.p_offset + k + 3] << 0));
-		  val_t addr = ((phdr.p_paddr + k) - (0x1 << OCMEM_ADDR_BITS)) >> 3;
-		  unsigned size = (sizeof(c->Patmos_core_fetch_MemBlock__mem.contents) /
-						   sizeof(c->Patmos_core_fetch_MemBlock__mem.contents[0]));
-		  assert(addr < size && "Instructions mapped to ISPM exceed size");
+        if ((phdr.p_flags & PF_X) != 0 &&
+            ((phdr.p_paddr + k) >> OCMEM_ADDR_BITS) == 0x1 &&
+            ((phdr.p_paddr + k) & 0x3) == 0) {
+          // Address maps to ISPM and is at a word boundary
+          val_t word = k >= phdr.p_filesz ? 0 :
+            (((val_t)elfbuf[phdr.p_offset + k + 0] << 24) |
+             ((val_t)elfbuf[phdr.p_offset + k + 1] << 16) |
+             ((val_t)elfbuf[phdr.p_offset + k + 2] << 8) |
+             ((val_t)elfbuf[phdr.p_offset + k + 3] << 0));
+          val_t addr = ((phdr.p_paddr + k) - (0x1 << OCMEM_ADDR_BITS)) >> 3;
+          unsigned size = (sizeof(c->Patmos_core_fetch_MemBlock__mem.contents) /
+                           sizeof(c->Patmos_core_fetch_MemBlock__mem.contents[0]));
+          assert(addr < size && "Instructions mapped to ISPM exceed size");
 
-		  // Write to even or odd block
-		  if (((phdr.p_paddr + k) & 0x4) == 0) {
-			c->Patmos_core_fetch_MemBlock__mem.put(addr, word);
-		  } else {
-			c->Patmos_core_fetch_MemBlock_1__mem.put(addr, word);
-		  }
-		}
+          // Write to even or odd block
+          if (((phdr.p_paddr + k) & 0x4) == 0) {
+            c->Patmos_core_fetch_MemBlock__mem.put(addr, word);
+          } else {
+            c->Patmos_core_fetch_MemBlock_1__mem.put(addr, word);
+          }
+        }
 
-		if (((phdr.p_paddr + k) & 0x3) == 0) {
-		  // Address maps to SRAM and is at a word boundary
-		  val_t word = k >= phdr.p_filesz ? 0 :
-			(((val_t)elfbuf[phdr.p_offset + k + 0] << 24) |
-			 ((val_t)elfbuf[phdr.p_offset + k + 1] << 16) |
-			 ((val_t)elfbuf[phdr.p_offset + k + 2] << 8) |
-			 ((val_t)elfbuf[phdr.p_offset + k + 3] << 0));
+        if (((phdr.p_paddr + k) & 0x3) == 0) {
+          // Address maps to SRAM and is at a word boundary
+          val_t word = k >= phdr.p_filesz ? 0 :
+            (((val_t)elfbuf[phdr.p_offset + k + 0] << 24) |
+             ((val_t)elfbuf[phdr.p_offset + k + 1] << 16) |
+             ((val_t)elfbuf[phdr.p_offset + k + 2] << 8) |
+             ((val_t)elfbuf[phdr.p_offset + k + 3] << 0));
 
-		  val_t addr = ((phdr.p_paddr + k) >> 2);
-		  ssram_buf[addr] = word;
-		}
-	  }
+          val_t addr = ((phdr.p_paddr + k) >> 2);
+          write_extmem(addr, word);
+        }
+      }
     }
   }
 
@@ -137,14 +319,105 @@ static val_t readelf(istream &is, Patmos_t *c)
   return entry;
 }
 
+static void init_icache(Patmos_t *c, val_t entry) {
+  if (entry != 0) {
+    if (entry >= 0x20000) {
+      #ifdef ICACHE_METHOD
+      //init for method cache
+      c->Patmos_core_fetch__pcReg = -1;
+      c->Patmos_core_icache_repl__hitReg = 0;
+      #endif /* ICACHE_METHOD */
+      #ifdef ICACHE_LINE
+      //init for icache
+      c->Patmos_core_fetch__pcReg = (entry >> 2) - 1;
+      #endif /* ICACHE_LINE */
+      c->Patmos_core_fetch__relBaseReg = 0;
+      c->Patmos_core_fetch__relocReg = (entry >> 2) - 1;
+      c->Patmos_core_fetch__selCache = 1;
+      c->Patmos_core_icache_repl__selCacheReg = 1;
+    } else {
+      // pcReg for ispm starts at entry point - ispm base
+      c->Patmos_core_fetch__pcReg = ((entry - 0x10000) >> 2) - 1;
+      c->Patmos_core_fetch__relBaseReg = (entry - 0x10000) >> 2;
+      c->Patmos_core_fetch__relocReg = 0x10000 >> 2;
+      c->Patmos_core_fetch__selSpm = 1;
+      c->Patmos_core_icache_repl__selSpmReg = 1;
+    }
+    c->Patmos_core_execute__baseReg = entry;
+    c->Patmos_core_icache_repl__callRetBaseReg = (entry >> 2);
+    #ifdef ICACHE_METHOD
+    c->Patmos_core_icache_ctrl__callRetBaseReg = (entry >> 2);
+    #endif /* ICACHE_METHOD */
+    #ifdef ICACHE_LINE
+    c->Patmos_core_fetch__relBaseReg = (entry >> 2);
+    #endif /* ICACHE_LINE */
+  }
+}
+
+static void stat_icache(Patmos_t *c, bool halt) {
+  static uint cache_miss = 0;
+  static uint cache_hits = 0;
+  static uint exec_cycles = 0;
+  static uint cache_stall_cycles = 0;
+  static uint max_function_size = 0;
+  static float hit_rate = 0;
+  //count all cycles till the program terminats
+  exec_cycles++;
+  #ifdef ICACHE_METHOD
+  //count everytime a new method is written to the cache
+  if (c->Patmos_core_icache_ctrl__io_ctrlrepl_wTag.to_bool()) {
+    cache_miss++;
+    if (c->Patmos_core_icache_ctrl__io_ctrlrepl_wData.to_ulong() > max_function_size) {
+      max_function_size = c->Patmos_core_icache_ctrl__io_ctrlrepl_wData.to_ulong();
+    }
+  }
+  //everytime a method is called from the cache, todo: find a better way to measure hits
+  if (c->Patmos_core_fetch__io_memfe_doCallRet.to_bool() &&
+      c->Patmos_core_icache_repl__io_replctrl_hit.to_bool() &&
+      c->Patmos_core_icache_ctrl__stateReg.to_ulong() == 0 &&
+      c->Patmos_core_icache__io_ena_in.to_bool() &&
+      !c->Patmos_core_icache_ctrl__io_ctrlrepl_instrStall.to_bool()) {
+    cache_hits++;
+  }
+  #endif /* ICACHE_METHOD */
+  #ifdef ICACHE_LINE
+  //add stats for instruction cache measurements
+  if (c->Patmos_core_icache_ctrl__io_ctrlrepl_wTag.to_bool()) {
+    cache_miss++;
+  }
+  if (c->Patmos_core_fetch__io_ena.to_bool()) {
+    if (c->Patmos_core_icache_repl__hitInstrEven.to_bool()) {
+      cache_hits++;
+    }
+    if (c->Patmos_core_icache_repl__hitInstrOdd.to_bool()) {
+      cache_hits++;
+    }
+  }
+  #endif /* ICACHE_LINE */
+  
+  //pipeline stalls caused by the instruction cache
+  if (!c->Patmos_core_icache__io_ena_out.to_bool()) {
+    cache_stall_cycles++;
+  }
+  //program terminats, write to output
+  if (halt == true) {
+    hit_rate = (float)((float)cache_hits /  (float)(cache_hits + cache_miss))*(float)100;
+
+    *out << "exec_cycles: " << exec_cycles << "\n"
+         << "cache_hits: " << cache_hits << "\n"
+         << "cache_misses: " << cache_miss << "\n"
+         << "hit rate: " << hit_rate << "\n"
+         <<  "cache_stall_cycles: " << cache_stall_cycles << "\n"
+         << "max function size: " << max_function_size << "\n";
+  }
+}
+
 static void print_sc_state(Patmos_t *c) {
   // fill
   if ((c->Patmos_core_dcache_sc__stateReg.to_ulong() == 1) ||
       (c->Patmos_core_dcache_sc__stateReg.to_ulong() == 2)) {
-    if(c->Patmos_core_dcache_sc__mb_wrEna.to_ulong())
-    {
-      for (unsigned int i = 0; i < 4; i++)
-      {
+    if (c->Patmos_core_dcache_sc__mb_wrEna.to_bool()) {
+      for (unsigned int i = 0; i < 4; i++) {
         std::cerr << "f:" << (c->Patmos_core_dcache_sc__transferAddrReg.to_ulong() + i - 4)
                   << " > " << (((c->Patmos_core_dcache_sc__mb_wrData.to_ulong() << (i*8)) >> 24) & 0xFF) 
                   << "\n";
@@ -154,11 +427,9 @@ static void print_sc_state(Patmos_t *c) {
   // spill
   else if ((c->Patmos_core_dcache_sc__stateReg.to_ulong() == 3) ||
            (c->Patmos_core_dcache_sc__stateReg.to_ulong() == 4)) {
-    if(c->Patmos_core_dcache_sc__io_toMemory_M_DataValid.to_ulong() && 
-       c->Patmos_core_dcache_sc__io_toMemory_M_DataByteEn.to_ulong())
-    {
-      for (unsigned int i = 0; i < 4; i++)
-      {
+    if (c->Patmos_core_dcache_sc__io_toMemory_M_DataValid.to_bool() && 
+        c->Patmos_core_dcache_sc__io_toMemory_M_DataByteEn.to_ulong()) {
+      for (unsigned int i = 0; i < 4; i++) {
         std::cerr << "s:" << (c->Patmos_core_dcache_sc__transferAddrReg.to_ulong() + i - 4)
                   << " < " << (((c->Patmos_core_dcache_sc__mb_rdData.to_ulong() << (i*8)) >> 24) & 0xFF)
                   << "\n";
@@ -179,110 +450,6 @@ static void print_state(Patmos_t *c) {
   *out << endl;
 }
 
-static void extSsramSim(Patmos_t *c) {
-  static uint32_t addr_cnt;
-  static uint32_t address;
-  static uint32_t counter;
-
-  // *out << "noe:" << c->Patmos__io_sSRam32CtrlPins_ramOut_noe.to_ulong()
-  // 	   << " nadv: " << c->Patmos__io_sSRam32CtrlPins_ramOut_nadv.to_ulong()
-  // 	   << " nadsc:" << c->Patmos__io_sSRam32CtrlPins_ramOut_nadsc.to_ulong()
-  // 	   << " addr:" << c->Patmos__io_sSRam32CtrlPins_ramOut_addr.to_ulong() << "\n";
-
-  if (c->Patmos__io_sSRam32CtrlPins_ramOut_nadsc.to_ulong() == 0) {
-    address = c->Patmos__io_sSRam32CtrlPins_ramOut_addr.to_ulong();
-    addr_cnt = c->Patmos__io_sSRam32CtrlPins_ramOut_addr.to_ulong();
-    counter = 0;
-  }
-  if (c->Patmos__io_sSRam32CtrlPins_ramOut_nadv.to_ulong() == 0) {
-    addr_cnt++;
-  }
-  if (c->Patmos__io_sSRam32CtrlPins_ramOut_noe.to_ulong() == 0) {
-    counter++;
-    if (counter >= SRAM_CYCLES) {
-      c->Patmos__io_sSRam32CtrlPins_ramIn_din = ssram_buf[address];
-      if (address <= addr_cnt) {
-        address++;
-      }
-    }
-  }
-  if (c->Patmos__io_sSRam32CtrlPins_ramOut_nbwe.to_ulong() == 0) {
-	uint32_t nbw = c->Patmos__io_sSRam32CtrlPins_ramOut_nbw.to_ulong();
-	uint32_t mask = 0x00000000;
-	for (unsigned i = 0; i < 4; i++) {
-	  if ((nbw & (1 << i)) == 0) {
-		mask |= 0xff << (i*8);
-	  }
-	}
-
-	ssram_buf[address] &= ~mask;
-	ssram_buf[address] |= mask & c->Patmos__io_sSRam32CtrlPins_ramOut_dout.to_ulong();
-
-	if (address <= addr_cnt) {
-	  address++;
-	}
-  }
-
-}
-
-static void icacheStat(Patmos_t *c, bool halt) {
-  static uint cache_miss = 0;
-  static uint cache_hits = 0;
-  static uint exec_cycles = 0;
-  static uint cache_stall_cycles = 0;
-  static uint max_function_size = 0;
-  static float hit_rate = 0;
-  //count all cycles till the program terminats
-  exec_cycles++;
-  #ifdef ICACHE_METHOD
-  //count everytime a new method is written to the cache
-  if (c->Patmos_core_icache_ctrl__io_ctrlrepl_wTag.to_bool() == true) {
-    cache_miss++;
-    if (c->Patmos_core_icache_ctrl__io_ctrlrepl_wData.to_ulong() > max_function_size) {
-      max_function_size = c->Patmos_core_icache_ctrl__io_ctrlrepl_wData.to_ulong();
-    }
-  }
-  //everytime a method is called from the cache, todo: find a better way to measure hits
-  if (c->Patmos_core_fetch__io_memfe_doCallRet.to_bool() == true &&
-      c->Patmos_core_icache_repl__io_replctrl_hit.to_bool() == true &&
-      c->Patmos_core_icache_ctrl__stateReg.to_ulong() == 0 &&
-      c->Patmos_core_icache__io_ena_in.to_bool() == true &&
-      c->Patmos_core_icache_ctrl__io_ctrlrepl_instrStall.to_bool() == false) {
-    cache_hits++;
-  }
-  #endif
-  #ifdef ICACHE_LINE
-  //add stats for instruction cache measurements
-  if (c->Patmos_core_icache_ctrl__io_ctrlrepl_wTag.to_bool() == true) {
-    cache_miss++;
-  }
-  if (c->Patmos_core_fetch__io_ena.to_bool() == true) {
-    if (c->Patmos_core_icache_repl__hitInstrEven.to_bool() == true) {
-      cache_hits++;
-    }
-    if (c->Patmos_core_icache_repl__hitInstrOdd.to_bool() == true) {
-      cache_hits++;
-    }
-  }
-  #endif
-  
-  //pipeline stalls caused by the instruction cache
-  if (c->Patmos_core_icache__io_ena_out.to_bool() == false) {
-    cache_stall_cycles++;
-  }
-  //program terminats, write to output
-  if (halt == true) {
-    hit_rate = (float)((float)cache_hits /  (float)(cache_hits + cache_miss))*(float)100;
-
-    *out << "exec_cycles: " << exec_cycles << "\n"
-         << "cache_hits: " << cache_hits << "\n"
-         << "cache_misses: " << cache_miss << "\n"
-         << "hit rate: " << hit_rate << "\n"
-         <<  "cache_stall_cycles: " << cache_stall_cycles << "\n"
-         << "max function size: " << max_function_size << "\n";
-  }
-}
-
 static void usage(ostream &out, const char *name) {
   out << "Usage: " << name
       << " <options> [file]" << endl;
@@ -292,14 +459,19 @@ static void help(ostream &out) {
   out << endl << "Options:" << endl
       << "  -h            Print this help" << endl
       << "  -i            Initialize memory with random values" << endl
+      #ifdef IO_KEYS
       << "  -k            Simulate random input from keys" << endl
+      #endif /* IO_KEYS */
       << "  -l <N>        Stop after <N> cycles" << endl
-      << "  -p            Print method cache statistics" << endl
+      << "  -p            Print instruction cache statistics" << endl
       << "  -r            Print register values in each cycle" << endl
       << "  -s            Trace stack cache spilling/filling" << endl
       << "  -v            Dump wave forms file \"Patmos.vcd\"" << endl
+      #ifdef IO_UART
       << "  -I <file>     Read input for UART from file <file>" << endl
-      << "  -O <file>     Write output from UART to file <file>" << endl;
+      << "  -O <file>     Write output from UART to file <file>" << endl
+      #endif /* IO_UART */
+    ;
 }
 
 int main (int argc, char* argv[]) {
@@ -308,98 +480,110 @@ int main (int argc, char* argv[]) {
   int opt;
 
   bool random = false;
-  bool keys = false;
   int  lim = -1;
   bool print_stat = false;
   bool quiet = true;
   bool vcd = false;
   bool sc_trace = false;
 
+  #ifdef IO_KEYS
+  bool keys = false;
+  #endif /* IO_KEYS */
+  #ifdef IO_UART
   int uart_in = STDIN_FILENO;
   int uart_out = STDOUT_FILENO;
-  unsigned baud_counter = 0;
+  #endif /* IO_UART */
 
-  while ((opt = getopt(argc, argv, "hikl:nprvI:O:")) != -1) {
-	switch (opt) {
-	case 'i':
-	  random = true;
-	  break;
-	case 'k':
-	  keys = true;
-	  break;
-	case 'l':
-	  lim = atoi(optarg);
-	  break;
-	case 'p':
-	  print_stat = true;
-	  break;
-	case 'r':
-	  quiet = false;
-	  break;
-	case 's':
-	  sc_trace = true;
-	  break;
-	case 'v':
-	  vcd = true;
-	  break;
-	case 'I':
-	  if (strcmp(optarg, "-") == 0) {
-		uart_in = STDIN_FILENO;
-	  } else {
-		uart_in = open(optarg, O_RDONLY);
-		if (uart_in < 0) {
-		  cerr << argv[0] << "error: Cannot open input file " << optarg << endl;
-		  exit(EXIT_FAILURE);
-		}
-	  }
-	  break;
-	case 'O':
-	  if (strcmp(optarg, "-") == 0) {
-		uart_out = STDOUT_FILENO;
-	  } else {
-		uart_out = open(optarg, O_WRONLY|O_CREAT|O_TRUNC, 0644);
-		if (uart_out < 0) {
-		  cerr << argv[0] << ": error: Cannot open output file " << optarg << endl;
-		  exit(EXIT_FAILURE);
-		}
-	  }
-	  break;
-	case 'h':
-	  usage(cout, argv[0]);
-	  help(cout);
-	  exit(EXIT_SUCCESS);
-	default: /* '?' */
-	  usage(cerr, argv[0]);
-	  cerr << "Try '" << argv[0] << " -h' for more information" << endl;
-	  exit(EXIT_FAILURE);
-	}
+  program_name = argv[0];
+
+  // Parse command line arguments
+  while ((opt = getopt(argc, argv, "hikl:nprsvI:O:")) != -1) {
+    switch (opt) {
+    case 'i':
+      random = true;
+      break;
+    #ifdef IO_KEYS
+    case 'k':
+      keys = true;
+      break;
+    #endif /* IO_KEYS */
+    case 'l':
+      lim = atoi(optarg);
+      break;
+    case 'p':
+      print_stat = true;
+      break;
+    case 'r':
+      quiet = false;
+      break;
+    case 's':
+      sc_trace = true;
+      break;
+    case 'v':
+      vcd = true;
+      break;
+    #ifdef IO_UART
+    case 'I':
+      if (strcmp(optarg, "-") == 0) {
+        uart_in = STDIN_FILENO;
+      } else {
+        uart_in = open(optarg, O_RDONLY);
+        if (uart_in < 0) {
+          cerr << argv[0] << "error: Cannot open input file " << optarg << endl;
+          exit(EXIT_FAILURE);
+        }
+      }
+      break;
+    case 'O':
+      if (strcmp(optarg, "-") == 0) {
+        uart_out = STDOUT_FILENO;
+      } else {
+        uart_out = open(optarg, O_WRONLY|O_CREAT|O_TRUNC, 0644);
+        if (uart_out < 0) {
+          cerr << argv[0] << ": error: Cannot open output file " << optarg << endl;
+          exit(EXIT_FAILURE);
+        }
+      }
+      break;
+    #endif /* IO_UART */
+    case 'h':
+      usage(cout, argv[0]);
+      help(cout);
+      exit(EXIT_SUCCESS);
+    default: /* '?' */
+      usage(cerr, argv[0]);
+      cerr << "Try '" << argv[0] << " -h' for more information" << endl;
+      exit(EXIT_FAILURE);
+    }
   }
 
+  // Initialize random generator for initialization
+  srand(0);
+
+  // Initialize internal state
   // TODO: Randomizing internal state seems to be broken
   // c->init(random);
   c->init();
 
-  srand(0);
-  if (random) {
-    for (int i = 0; i < 1 << SRAM_ADDR_BITS; i++) {
-      ssram_buf[i] = rand();
-    }
-  }
+  // Initalize external memory
+  init_extmem(c, random);
 
+  // Parse ELF file, if present
   val_t entry = 0;
   if (optind < argc) {
-	ifstream *fs = new ifstream(argv[optind]);
-	if (!fs->good()) {
-	  cerr << argv[0] << ": error: Cannot open elf file " << argv[optind] << endl;
-	  exit(EXIT_FAILURE);
-	}
-	entry = readelf(*fs, c);
+    ifstream *fs = new ifstream(argv[optind]);
+    if (!fs->good()) {
+      cerr << argv[0] << ": error: Cannot open elf file " << argv[optind] << endl;
+      exit(EXIT_FAILURE);
+    }
+    entry = readelf(*fs, c);
   }
 
+  // Create vcd trace file if necessary
   FILE *f = vcd ? fopen("Patmos.vcd", "w") : NULL;
 
   if (!quiet) {
-	*out << "Patmos start" << endl;
+    *out << "Patmos start" << endl;
   }
 
   // Assert reset for a few cycles
@@ -409,124 +593,59 @@ int main (int argc, char* argv[]) {
     c->clock_hi(reset);
   }
 
-  if (entry != 0) {
-    if (entry >= 0x20000) {
-      #ifdef ICACHE_METHOD
-      //init for method cache
-      c->Patmos_core_fetch__pcReg = -1;
-      c->Patmos_core_icache_repl__hitReg = 0;
-      #endif
-      #ifdef ICACHE_LINE
-      //init for icache
-      c->Patmos_core_fetch__pcReg = (entry >> 2) - 1;
-      #endif
-      c->Patmos_core_fetch__relBaseReg = 0;
-      c->Patmos_core_fetch__relocReg = (entry >> 2) - 1;
-      c->Patmos_core_fetch__selCache = 1;
-      c->Patmos_core_icache_repl__selCacheReg = 1;
-    } else {
-      // pcReg for ispm starts at entry point - ispm base
-      c->Patmos_core_fetch__pcReg = ((entry - 0x10000) >> 2) - 1;
-      c->Patmos_core_fetch__relBaseReg = (entry - 0x10000) >> 2;
-      c->Patmos_core_fetch__relocReg = 0x10000 >> 2;
-      c->Patmos_core_fetch__selSpm = 1;
-      c->Patmos_core_icache_repl__selSpmReg = 1;
-    }
-    c->Patmos_core_execute__baseReg = entry;
-    c->Patmos_core_icache_repl__callRetBaseReg = (entry >> 2);
-    #ifdef ICACHE_METHOD
-    c->Patmos_core_icache_ctrl__callRetBaseReg = (entry >> 2);
-    #endif
-    #ifdef ICACHE_LINE
-    c->Patmos_core_fetch__relBaseReg = (entry >> 2);
-    #endif
-  }
-
+  // Initialize instruction cache for entry point
+  init_icache(c, entry);
+  
   // Main emulation loop
   bool halt = false;
-
   for (int t = 0; lim < 0 || t < lim; t++) {
     dat_t<1> reset = LIT<1>(0);
 
     c->clock_lo(reset);
     c->clock_hi(reset);
 
-    extSsramSim(c);
+    // Emulate external devices
+    emu_extmem(c);
+    #ifdef IO_CPUINFO
+    emu_cpuinfo(c);
+    #endif /* IO_CPUINFO */
+    #ifdef IO_KEYS
+    emu_keys(c, keys);
+    #endif /* IO_KEYS */
+    #ifdef IO_UART
+    emu_uart(c, uart_in, uart_out);
+    #endif /* IO_UART */
 
-	if (vcd) {
-	  c->dump(f, t);
-	}
+    // Print tracing information
+    if (vcd) {
+      c->dump(f, t);
+    }
+    if (!quiet && c->Patmos_core__enableReg.to_bool()) {
+      print_state(c);
+    }
+    if (sc_trace) {
+      print_sc_state(c);
+    }
 
-	c->Patmos__io_cpuInfoPins_id = 0;
-	c->Patmos__io_cpuInfoPins_cnt = 1;
+    // Return to address 0 halts the execution after one more iteration
+    if (halt) {
+      break;
+    }
+    if ((c->Patmos_core_memory__memReg_mem_brcf.to_bool()
+         || c->Patmos_core_memory__memReg_mem_ret.to_bool())
+        && c->Patmos_core_icache_repl__callRetBaseReg.to_ulong() == 0) {
+      halt = true;
+    }
 
-	if (keys) {
-	  if ((rand() % 0x10000) == 0) {
-		c->Patmos__io_keysPins_key = rand();
-	  }
-	}
-
-	// Pass on data from UART
-	if (c->Patmos_core_iocomp_Uart__io_ocp_M_Cmd.to_ulong() == 0x1
-		&& (c->Patmos_core_iocomp_Uart__io_ocp_M_Addr.to_ulong() & 0xff) == 0x04) {
-	  unsigned char d = c->Patmos_core_iocomp_Uart__io_ocp_M_Data.to_ulong();
-	  int w = write(uart_out, &d, 1);
-	  if (w != 1) {
-		cerr << argv[0] << ": error: Cannot write UART output" << endl;
-	  }
-	}
-
-	// Pass on data to UART
-	bool baud_tick = c->Patmos_core_iocomp_Uart__tx_baud_tick.to_bool();
-	if (baud_tick) {
-	  baud_counter = (baud_counter + 1) % 10;
-	}
-	if (baud_tick && baud_counter == 0) {
-	  struct pollfd pfd;
-	  pfd.fd = uart_in;
-	  pfd.events = POLLIN;
-	  if (poll(&pfd, 1, 0) > 0) {
-		unsigned char d;
-		int r = read(uart_in, &d, 1);
-		if (r != 0) {
-		  if (r != 1) {
-			cerr << argv[0] << ": error: Cannot read UART input" << endl;
-		  } else {
-			c->Patmos_core_iocomp_Uart__rx_state = 0x3; // rx_stop_bit
-			c->Patmos_core_iocomp_Uart__rx_baud_tick = 1;
-			c->Patmos_core_iocomp_Uart__rxd_reg2 = 1;
-			c->Patmos_core_iocomp_Uart__rx_buff = d;
-		  }
-		}
-	  }
-	}
-
-	if (!quiet && c->Patmos_core__enableReg.to_bool()) {
-	  print_state(c);
-	}
-	if (sc_trace) {
-	  print_sc_state(c);
-	}
-
-	// Return to address 0 halts the execution after one more iteration
-	if (halt) {
-	  break;
-	}
-	if ((c->Patmos_core_memory__memReg_mem_brcf.to_bool()
-		 || c->Patmos_core_memory__memReg_mem_ret.to_bool())
-		&& c->Patmos_core_icache_repl__callRetBaseReg.to_ulong() == 0) {
-	  halt = true;
-	}
-
-	if (print_stat) {
-	  icacheStat(c, halt);
-	}
-
+    // Record/print statistics
+    if (print_stat) {
+      stat_icache(c, halt);
+    }
   }
 
   // TODO: adapt comparison tool so this can be removed
   if (!quiet) {
-	*out << "PASSED" << endl;
+    *out << "PASSED" << endl;
   }
 
   // Pass on return value from processor
