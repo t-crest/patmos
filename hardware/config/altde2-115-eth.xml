@@ -4,7 +4,7 @@
   <frequency Hz="80000000"/>
   <pipeline dual="false" />
 
-  <ExtMem size="2M" DevTypeRef="Ssram16" />
+  <ExtMem size="2M" DevTypeRef="Sram16" />
 
   <IOs>
 	<IO DevTypeRef="Uart" offset="8"/>
@@ -30,7 +30,7 @@
   		<param name="keyCount" value="4"/>
   	  </params>
   	</Dev>
-    <Dev DevType="Ssram16" entity="SRamCtrl" iface="OcpBurst">
+    <Dev DevType="Sram16" entity="SRamCtrl" iface="OcpBurst">
         <params>
             <param name="ocpAddrWidth" value="21" />
             <param name="sramAddrWidth" value="20" />
