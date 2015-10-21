@@ -145,18 +145,8 @@ entrypoint_t download(void) {
             current_state++;
           }
         } else {
-          //In case of data less than 4 bytes write everytime
-          //Write to ISPM
-          if ((section_offset+section_byte_count-1) >> 16 == 0x01) {
-            if (((section_offset+section_byte_count-1) & 0x0000FFFF) < get_ispm_size() ) {
-              // With in the ISPM
-              *(SPM+(section_offset+section_byte_count-1)/4) = integer;
-            } else {
-              //Not within ISPM
-              //TODO: create warning
-            }
-          }
           //Write to main memory
+          //Write every time, in case data less than 4 bytes
           *(MEM+(section_offset+section_byte_count-1)/4) = integer;
         }
 
@@ -166,9 +156,6 @@ entrypoint_t download(void) {
           section_byte_count = (section_byte_count + 3) & ~3;
           // Fill up uninitialized areas with zeros
           while (section_byte_count < section_memsize) {
-            if ((section_offset+section_byte_count) >> 16 == 0x01) {
-              *(SPM+(section_offset+section_byte_count)/4) = 0;
-            }
             *(MEM+(section_offset+section_byte_count)/4) = 0;
             section_byte_count += 4;
           }
