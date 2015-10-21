@@ -112,7 +112,7 @@ $(JAVATOOLSBUILDDIR)/classes/%.class: tools/java/src/%.java
 # Build the Chisel emulator
 emulator:
 	-mkdir -p $(HWBUILDDIR)
-	$(MAKE) -C hardware BOOTBUILDROOT=$(CURDIR) BOOTBUILDDIR=$(BUILDDIR) BOOTAPP=$(BOOTAPP) BOOTBIN=$(BUILDDIR)/$(BOOTAPP).bin emulator
+	$(MAKE) -C hardware BOOTBUILDROOT=$(CURDIR) BOOTBUILDDIR=$(BUILDDIR) BOOTAPP=$(BOOTAPP) BOOTBIN=$(BUILDDIR)/$(BOOTAPP).bin BOARD=$(BOARD) emulator
 	-mkdir -p $(HWINSTALLDIR)/bin
 	cp $(HWBUILDDIR)/emulator $(HWINSTALLDIR)/bin
 
