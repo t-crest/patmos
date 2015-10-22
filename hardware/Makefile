@@ -71,7 +71,7 @@ VGENCORE=$(HWBUILDDIR)/.vgencore
 emulator: $(HWBUILDDIR)/emulator
 
 $(HWBUILDDIR)/emulator: emulator.cpp $(HWBUILDDIR)/Patmos.cpp $(HWBUILDDIR)/emulator_config.h
-	$(CXX) $(CXXFLAGS) $(INC_EXTRA) -I $(HWBUILDDIR) -o $@ $^ -lelf
+	$(CXX) $(CXXFLAGS) $(INC_EXTRA) -I $(HWBUILDDIR) -o $@ $(filter %.cpp,$^) -lelf
 
 $(HWBUILDDIR)/Patmos.cpp $(HWBUILDDIR)/emulator_config.h: $(CGEN)
 	if [ x`cat $(CGEN)` != x"$(CONFIGFILE)+$(BOOTBIN)+$(BOOTDAT)" ]; then \
