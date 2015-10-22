@@ -1,5 +1,5 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute.
+   Copyright 2015 Technical University of Denmark, DTU Compute.
    All rights reserved.
 
    This file is part of the time-predictable VLIW processor Patmos.
@@ -32,7 +32,8 @@
 
 /*
   Instruction Cache for Patmos
-  Author: Philipp Degasperi (philipp.degasperi@gmail.com)
+  Authors: Philipp Degasperi (philipp.degasperi@gmail.com)
+           Wolfgang Puffitsch (wpuffitsch@gmail.com)
  */
 
 package patmos
@@ -89,7 +90,7 @@ class ICacheCtrlRepl extends Bundle() {
   val wTag = Bool()
 }
 class ICacheReplCtrl extends Bundle() {
-  val hitEna = Bool()
+  val hit = Bool()
   val fetchAddr = Bits(width = EXTMEM_ADDR_WIDTH)
   val selCache = Bool()
 }
@@ -129,29 +130,29 @@ class ICacheMemIO extends Bundle() {
  */
 class ICache() extends Module {
   val io = new ICacheIO()
-  //generate submodules of instruction cache
+  // Generate submodules of instruction cache
   val ctrl = Module(new ICacheCtrl())
   val repl = Module(new ICacheReplDm())
   val mem = Module(new ICacheMem())
-  //connect submodules of instruction cache
+  // Connect control unit
   ctrl.io.ctrlrepl <> repl.io.ctrlrepl
   ctrl.io.feicache <> io.feicache
   ctrl.io.exicache <> io.exicache
   ctrl.io.ocp_port <> io.ocp_port
-  //connect inputs to instruction cache repl unit
+  // Connect replacement unit
   repl.io.exicache <> io.exicache
   repl.io.feicache <> io.feicache
   repl.io.icachefe <> io.icachefe
   repl.io.replctrl <> ctrl.io.replctrl
-  //connect repl unit to on chip memory
+  // Connect replacement unit to on-chip memory
   repl.io.memIn <> mem.io.memIn
   repl.io.memOut <> mem.io.memOut
-  //connect enables
+  // Connect enable signal
   ctrl.io.ena_in <> io.ena_in
   repl.io.ena_in <> io.ena_in
-  //output enable depending on hit/miss/fetch
+  // Output enable depending on hit/miss/fetch
   io.ena_out := ctrl.io.fetch_ena
-  //connect invalidate signal
+  // Connect invalidate signal
   repl.io.invalidate := io.invalidate
 }
 
@@ -172,25 +173,25 @@ class ICacheMem extends Module {
 }
 
 /*
- Direct Mapped Replacement Class
+ Direct-Mapped Replacement Class
  */
 class ICacheReplDm() extends Module {
   val io = new ICacheReplIO()
 
-  //reserve memory for the instruction cache tag field containing valid bit and address tag
+  // Tag memory and vector for valid bits
   val tagMemEven = MemBlock(LINE_COUNT / 2, TAG_SIZE)
   val tagMemOdd = MemBlock(LINE_COUNT / 2, TAG_SIZE)
   val validVec = Vec.fill(LINE_COUNT) { Reg(init = Bool(false)) }
 
-  //variables when call/return occurs
+  // Variables for call/return
   val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
   val callAddrReg = Reg(init = UInt(1, DATA_WIDTH))
   val selSpmReg = Reg(init = Bool(false))
   val selCacheReg = Reg(init = Bool(false))
 
   val fetchAddr = Bits(width = EXTMEM_ADDR_WIDTH)
-  val hitInstrEven = Bool()
-  val hitInstrOdd = Bool()
+  val hitEven = Bool()
+  val hitOdd = Bool()
 
   val relBase = Mux(selCacheReg,
                     callRetBaseReg(EXTMEM_ADDR_WIDTH-1, 0),
@@ -210,59 +211,51 @@ class ICacheReplDm() extends Module {
     selCacheReg := io.exicache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-1) >= Bits(0x1)
   }
 
-  val addrIndexEven = (io.feicache.addrEven)(INDEX_HIGH, INDEX_LOW+1)
-  val addrIndexOdd = io.feicache.addrOdd(INDEX_HIGH, INDEX_LOW+1)
-  val addrTagEven = (io.feicache.addrEven)(TAG_HIGH, TAG_LOW)
-  val addrTagOdd = io.feicache.addrOdd(TAG_HIGH, TAG_LOW)
-  val blockParityEven = io.feicache.addrEven(INDEX_LOW)
-  val blockParityOdd = io.feicache.addrOdd(INDEX_LOW)
-
-  // Mux of tag memory input
-  val addrBlockEven = Mux(blockParityEven, addrIndexOdd, addrIndexEven)
-  val addrBlockOdd = Mux(blockParityEven, addrIndexEven, addrIndexOdd)
+  // Register addresses
   val addrEvenReg = Reg(next = io.feicache.addrEven)
   val addrOddReg = Reg(next = io.feicache.addrOdd)
-  val blockParityEvenReg = addrEvenReg(INDEX_LOW)
-  val blockParityOddReg = addrOddReg(INDEX_LOW)
-  val addrTagEvenReg = addrEvenReg(TAG_HIGH, TAG_LOW)
-  val addrTagOddReg = addrOddReg(TAG_HIGH, TAG_LOW)
-  val addrIndexEvenReg = addrEvenReg(INDEX_HIGH, INDEX_LOW)
-  val addrIndexOddReg = addrOddReg(INDEX_HIGH, INDEX_LOW)
-  val addrValidEven = io.feicache.addrEven(INDEX_HIGH, INDEX_LOW)
-  val addrValidOdd = io.feicache.addrOdd(INDEX_HIGH, INDEX_LOW)
 
-  // Mux at tag memory input
-  val toutEven = tagMemEven.io(addrBlockEven)
-  val toutOdd = tagMemOdd.io(addrBlockOdd)
-  // Mux of tag memory output
-  val tagEven = Mux(blockParityEvenReg, toutOdd, toutEven)
-  val tagOdd = Mux(blockParityOddReg, toutOdd, toutEven)
-  // valid tag
-  val validTag = validVec(addrValidEven) && validVec(addrValidOdd)
-  val validTagReg = Reg(next = validTag)
+  // Addresses for tag memory
+  val indexEven = io.feicache.addrEven(INDEX_HIGH, INDEX_LOW+1)
+  val indexOdd = io.feicache.addrOdd(INDEX_HIGH, INDEX_LOW+1)
+  val parityEven = io.feicache.addrEven(INDEX_LOW)
+  val tagAddrEven = Mux(parityEven, indexOdd, indexEven)
+  val tagAddrOdd = Mux(parityEven, indexEven, indexOdd)
 
-  //check for a hit of both instructions of the address bundle
-  hitInstrEven := Bool(true)
-  hitInstrOdd := Bool(true)
-  when (tagEven != addrTagEvenReg) {
-    hitInstrEven := Bool(false)
+  // Read from tag memory
+  val toutEven = tagMemEven.io(tagAddrEven)
+  val toutOdd = tagMemOdd.io(tagAddrOdd)
+  // Multiplex tag memory output
+  val tagEven = Mux(addrEvenReg(INDEX_LOW), toutOdd, toutEven)
+  val tagOdd = Mux(addrOddReg(INDEX_LOW), toutOdd, toutEven)
+
+  // Check if line is valid
+  val validEven = validVec(addrEvenReg(INDEX_HIGH, INDEX_LOW))
+  val validOdd = validVec(addrOddReg(INDEX_HIGH, INDEX_LOW))
+  val valid = validEven && validOdd
+
+  // Check for a hit of both instructions in the address bundle
+  hitEven := Bool(true)
+  hitOdd := Bool(true)
+  when (tagEven != addrEvenReg(TAG_HIGH, TAG_LOW)) {
+    hitEven := Bool(false)
   }
   fetchAddr := addrEvenReg
-  when (tagOdd != addrTagOddReg) {
-    hitInstrOdd := Bool(false)
+  when (tagOdd != addrOddReg(TAG_HIGH, TAG_LOW)) {
+    hitOdd := Bool(false)
     fetchAddr := addrOddReg
   }
-  //debug signals for emulator
-  debug(hitInstrEven)
-  debug(hitInstrOdd)
+  // Keep signals alive for emulator
+  debug(hitEven)
+  debug(hitOdd)
 
   val wrAddrTag = io.ctrlrepl.wAddr(TAG_HIGH,TAG_LOW)
-  //index for valid field
+  // Index for vector of valid bits
   val wrValidIndex = io.ctrlrepl.wAddr(INDEX_HIGH, INDEX_LOW)
-  //index for tag field even/odd
+  // Index for tag memory even/odd
   val wrAddrIndex = io.ctrlrepl.wAddr(INDEX_HIGH, INDEX_LOW+1)
   val wrAddrParity = io.ctrlrepl.wAddr(INDEX_LOW)
-  //update tag field when new write occurs
+  // Update tag field when new write occurs
   tagMemEven.io <= (io.ctrlrepl.wTag && !wrAddrParity, wrAddrIndex, wrAddrTag)
   tagMemOdd.io <= (io.ctrlrepl.wTag && wrAddrParity, wrAddrIndex, wrAddrTag)
   when (io.ctrlrepl.wTag) {
@@ -271,14 +264,15 @@ class ICacheReplDm() extends Module {
 
   val wrParity = io.ctrlrepl.wAddr(0)
 
-  //outputs to icache memory
+  // Outputs to cache memory
   io.memIn.wEven := Mux(wrParity, Bool(false), io.ctrlrepl.wEna)
   io.memIn.wOdd := Mux(wrParity, io.ctrlrepl.wEna, Bool(false))
   io.memIn.wData := io.ctrlrepl.wData
-  io.memIn.wAddr := (io.ctrlrepl.wAddr)(INDEX_HIGH,1)
-  io.memIn.addrOdd := (io.feicache.addrOdd)(INDEX_HIGH,1)
-  io.memIn.addrEven := (io.feicache.addrEven)(INDEX_HIGH,1)
+  io.memIn.wAddr := io.ctrlrepl.wAddr(INDEX_HIGH,1)
+  io.memIn.addrOdd := io.feicache.addrOdd(INDEX_HIGH,1)
+  io.memIn.addrEven := io.feicache.addrEven(INDEX_HIGH,1)
 
+  // Outputs to fetch stage
   io.icachefe.instrEven := io.memOut.instrEven
   io.icachefe.instrOdd := io.memOut.instrOdd
 
@@ -286,9 +280,10 @@ class ICacheReplDm() extends Module {
   io.icachefe.relPc := relPc
   io.icachefe.reloc := reloc
   io.icachefe.memSel := Cat(selSpmReg, selCacheReg)
-  //hit/miss return
+
+  // Hit/miss to control module
   io.replctrl.fetchAddr := fetchAddr
-  io.replctrl.hitEna := (hitInstrEven && hitInstrOdd && validTagReg)
+  io.replctrl.hit := hitEven && hitOdd && valid
   io.replctrl.selCache := selCacheReg
 
   when (io.invalidate) {
@@ -302,27 +297,27 @@ class ICacheReplDm() extends Module {
 class ICacheCtrl() extends Module {
   val io = new ICacheCtrlIO()
 
-  //fsm state variables
+  // States of the state machine
   val initState :: idleState :: transferState :: waitState :: Nil = Enum(UInt(), 4)
   val stateReg = Reg(init = initState)
-  //signal for replacement unit
+  // Signal for replacement unit
   val wData = Bits(width = DATA_WIDTH)
   val wTag = Bool()
   val wAddr = Bits(width = ADDR_WIDTH)
   val wEna = Bool()
-  //signals for external memory
+  // Signals for external memory
   val ocpCmd = Bits(width = 3)
   val ocpAddr = Bits(width = EXTMEM_ADDR_WIDTH)
   val fetchCnt = Reg(init = Bits(0, width = ICACHE_SIZE_WIDTH))
   val burstCnt = Reg(init = UInt(0, width = log2Up(BURST_LENGTH)))
   val fetchEna = Bool()
-  //input output registers
+  // Input/output registers
   val addrReg = Reg(init = Bits(0, width = 32))
   val ocpSlaveReg = Reg(next = io.ocp_port.S)
-  //address for the entire block
+  // Address for the entire block
   val absFetchAddr = Cat(addrReg(EXTMEM_ADDR_WIDTH,LINE_WORD_SIZE_WIDTH), Bits(0)(LINE_WORD_SIZE_WIDTH-1,0))
 
-  //init signals
+  // Initialize signals
   wData := Bits(0)
   wTag := Bool(false)
   wEna := Bool(false)
@@ -331,7 +326,7 @@ class ICacheCtrl() extends Module {
   ocpAddr := Bits(0)
   fetchEna := Bool(true)
 
-  // wait till ICache is the selected source
+  // Wait till ICache is the selected source of instructions
   when (stateReg === initState) {
     when (io.replctrl.selCache) {
       stateReg := idleState
@@ -341,15 +336,15 @@ class ICacheCtrl() extends Module {
     when (!io.replctrl.selCache) {
       stateReg := initState
     } .otherwise {
-      when (!io.replctrl.hitEna) {
+      when (!io.replctrl.hit) {
         fetchEna := Bool(false)
         addrReg := io.replctrl.fetchAddr
         burstCnt := UInt(0)
         fetchCnt := UInt(0)
-        //write new tag field memory
+        // Write new tag field memory
         wTag := Bool(true)
         wAddr := Cat(io.replctrl.fetchAddr(EXTMEM_ADDR_WIDTH-1,LINE_WORD_SIZE_WIDTH), Bits(0)(LINE_WORD_SIZE_WIDTH-1,0))
-        //check if command is accepted by the memory controller
+        // Check if command is accepted by the memory controller
         when (io.ocp_port.S.CmdAccept === Bits(1)) {
           ocpAddr := Cat(io.replctrl.fetchAddr(EXTMEM_ADDR_WIDTH-1,LINE_WORD_SIZE_WIDTH), Bits(0)(LINE_WORD_SIZE_WIDTH-1,0))
           ocpCmd := OcpCmd.RD
@@ -368,7 +363,7 @@ class ICacheCtrl() extends Module {
       ocpCmd := OcpCmd.RD
     }
   }
-  //transfer/fetch cache block
+  // Transfer/fetch cache block
   when (stateReg === transferState) {
     fetchEna := Bool(false)
     when (fetchCnt < UInt(LINE_WORD_SIZE)) {
@@ -376,26 +371,26 @@ class ICacheCtrl() extends Module {
         fetchCnt := fetchCnt + Bits(1)
         burstCnt := burstCnt + Bits(1)
         when(fetchCnt < UInt(LINE_WORD_SIZE-1)) {
-          //fetch next address from external memory
+          // Fetch next address from external memory
           when (burstCnt >= UInt(BURST_LENGTH - 1)) {
             ocpCmd := OcpCmd.RD
             ocpAddr := Cat(addrReg(EXTMEM_ADDR_WIDTH,LINE_WORD_SIZE_WIDTH), Bits(0)(LINE_WORD_SIZE_WIDTH-1,0)) + fetchCnt + Bits(1)
             burstCnt := UInt(0)
           }
         }
-        //write current address to icache memory
+        // Write current address to icache memory
         wData := ocpSlaveReg.Data
         wEna := Bool(true)
       }
       wAddr := Cat(addrReg(EXTMEM_ADDR_WIDTH,LINE_WORD_SIZE_WIDTH), Bits(0)(LINE_WORD_SIZE_WIDTH-1,0)) + fetchCnt
     }
-    //restart to idle state
+    // Restart to idle state
     .otherwise {
       stateReg := idleState
     }
   }
 
-  //outputs to instruction cache memory
+  // Outputs to cache memory
   io.ctrlrepl.wEna := wEna
   io.ctrlrepl.wData := wData
   io.ctrlrepl.wAddr := wAddr
@@ -403,7 +398,7 @@ class ICacheCtrl() extends Module {
 
   io.fetch_ena := fetchEna
 
-  //output to external memory
+  // Outputs to external memory
   io.ocp_port.M.Addr := Cat(ocpAddr, Bits("b00"))
   io.ocp_port.M.Cmd := ocpCmd
   io.ocp_port.M.Data := Bits(0) //read-only

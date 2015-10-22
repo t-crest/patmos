@@ -386,10 +386,10 @@ static void stat_icache(Patmos_t *c, bool halt) {
     cache_miss++;
   }
   if (c->Patmos_core_fetch__io_ena.to_bool()) {
-    if (c->Patmos_core_icache_repl__hitInstrEven.to_bool()) {
+    if (c->Patmos_core_icache_repl__hitEven.to_bool()) {
       cache_hits++;
     }
-    if (c->Patmos_core_icache_repl__hitInstrOdd.to_bool()) {
+    if (c->Patmos_core_icache_repl__hitOdd.to_bool()) {
       cache_hits++;
     }
   }
