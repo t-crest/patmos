@@ -64,6 +64,14 @@ object Constants {
   val DCACHE_ASSOC = util.Config.getConfig.DCache.assoc
   val DCACHE_REPL = util.Config.getConfig.DCache.repl
 
+  def cacheType2Int(repl: String): Int = repl match {
+    case "line"  => 1
+    case "method" => 2
+    case _      => 0
+  }
+
+  val ICACHE_TYPE_INT = cacheType2Int(ICACHE_TYPE)
+
   def cacheRepl2Int(repl: String): Int = repl match {
     case "lru"  => 1
     case "fifo" => 2
@@ -71,6 +79,7 @@ object Constants {
   }
 
   val DCACHE_REPL_TYPE = cacheRepl2Int(DCACHE_REPL)
+  val ICACHE_REPL_TYPE = cacheRepl2Int(ICACHE_REPL)
   val DCACHE_WRITETHROUGH = util.Config.getConfig.DCache.writeThrough
   val SCACHE_SIZE = util.Config.getConfig.SCache.size
 
