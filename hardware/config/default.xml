@@ -5,7 +5,7 @@
   <pipeline dual="true" />
   <bus burstLength="4" writeCombine="false" />
 
-  <ICache type="method" size="4k" assoc="16" repl="fifo" />
+  <ICache type="line" size="4k" assoc="1" repl="fifo" />
   <DCache size="2k" assoc="1" repl="" writeThrough="true" />
   <SCache size="2k" />
   <ISPM size="1k" />
