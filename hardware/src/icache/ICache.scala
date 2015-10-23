@@ -34,6 +34,7 @@
   Instruction Cache for Patmos
   Authors: Philipp Degasperi (philipp.degasperi@gmail.com)
            Wolfgang Puffitsch (wpuffitsch@gmail.com)
+	   Bekim Cilku (bcilku@gmail.com)
  */
 
 package patmos
@@ -182,6 +183,9 @@ class ICacheReplDm() extends Module {
   val tagMemEven = MemBlock(LINE_COUNT / 2, TAG_SIZE)
   val tagMemOdd = MemBlock(LINE_COUNT / 2, TAG_SIZE)
   val validVec = Vec.fill(LINE_COUNT) { Reg(init = Bool(false)) }
+  
+  // Check if the cache line is already requested by the prefetcher 
+  val prefVec = Vec.fill(LINE_COUNT) { Reg(inti = Bool(false)) }
 
   // Variables for call/return
   val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
