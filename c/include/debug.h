@@ -68,6 +68,10 @@
 #define ENSURE(pred, x)
 #define TRACE(severity, pred, ...)
 #define DEBUGF(x)
+#define DEBUGD(x)
+#define DEBUGLLD(x)
+#define DEBUGX(x)
+#define DEBUGLLX(x)
 #define DEBUGS(x)
 #endif
 
