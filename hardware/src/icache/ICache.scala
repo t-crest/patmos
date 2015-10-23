@@ -31,7 +31,7 @@
  */
 
 /*
-  Instruction Cache for Patmos
+  Instruction Cache with Prefetcher for Patmos
   Authors: Philipp Degasperi (philipp.degasperi@gmail.com)
            Wolfgang Puffitsch (wpuffitsch@gmail.com)
 	   Bekim Cilku (bcilku@gmail.com)
@@ -289,9 +289,14 @@ class ICacheReplDm() extends Module {
   io.replctrl.hit := hitEven && hitOdd && valid
   io.replctrl.selCache := selCacheReg
 
+  //invalidate Valid and Prefetch bits
   when (io.invalidate) {
     validVec.map(_ := Bool(false))
   }
+  when (io.invalidate) {
+    prefVec.map(_ := Bool(false))
+  }
+
 }
 
 /*
