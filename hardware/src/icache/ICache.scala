@@ -80,8 +80,6 @@ class ICacheCtrlIO extends Bundle() {
   val fetch_ena = Bool(OUTPUT)
   val ctrlrepl = new ICacheCtrlRepl().asOutput
   val replctrl = new ICacheReplCtrl().asInput
-  val feicache = new FeICache().asInput
-  val exicache = new ExICache().asInput
   val ocp_port = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
 }
 class ICacheCtrlRepl extends Bundle() {
@@ -137,8 +135,6 @@ class ICache() extends Module {
   val mem = Module(new ICacheMem())
   // Connect control unit
   ctrl.io.ctrlrepl <> repl.io.ctrlrepl
-  ctrl.io.feicache <> io.feicache
-  ctrl.io.exicache <> io.exicache
   ctrl.io.ocp_port <> io.ocp_port
   // Connect replacement unit
   repl.io.exicache <> io.exicache
@@ -166,9 +162,11 @@ class ICacheMem extends Module {
   val icacheEven = MemBlock(ICACHE_WORD_SIZE / 2, INSTR_WIDTH)
   val icacheOdd = MemBlock(ICACHE_WORD_SIZE / 2, INSTR_WIDTH)
 
+  //Write port on on-chip memory ?
   icacheEven.io <= (io.memIn.wEven, io.memIn.wAddr, io.memIn.wData)
   icacheOdd.io <= (io.memIn.wOdd, io.memIn.wAddr, io.memIn.wData)
 
+  //Read port from on-chip memory
   io.memOut.instrEven := icacheEven.io(io.memIn.addrEven)
   io.memOut.instrOdd := icacheOdd.io(io.memIn.addrOdd)
 }
@@ -184,8 +182,8 @@ class ICacheReplDm() extends Module {
   val tagMemOdd = MemBlock(LINE_COUNT / 2, TAG_SIZE)
   val validVec = Vec.fill(LINE_COUNT) { Reg(init = Bool(false)) }
   
-  // Check if the cache line is already requested by the prefetcher 
-  val prefVec = Vec.fill(LINE_COUNT) { Reg(inti = Bool(false)) }
+  // Cache line requested by the prefetcher 
+  val prefVec = Vec.fill(LINE_COUNT) { Reg(init = Bool(false)) }
 
   // Variables for call/return
   val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
