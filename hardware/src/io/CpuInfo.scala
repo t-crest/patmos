@@ -95,7 +95,7 @@ class CpuInfo() extends CoreDevice() {
     // Size (32 bit)
     is(Bits("b0110")) { data := Bits(ICACHE_SIZE) }
     // Type (8 bit) & Replacement policy (8 bit) & Associativity (16 bit)
-    is(Bits("b1001")) { data := Bits(iCacheType2Int(ICACHE_TYPE), width = 8) ## Bits(cacheRepl2Int(ICACHE_REPL), width = 8) ## Bits(ICACHE_ASSOC, width = 16) }
+    is(Bits("b0111")) { data := Bits(iCacheType2Int(ICACHE_TYPE), width = 8) ## Bits(cacheRepl2Int(ICACHE_REPL), width = 8) ## Bits(ICACHE_ASSOC, width = 16) }
     // DCache
     // Size (32 bit)
     is(Bits("b1000")) { data := Bits(DCACHE_SIZE) }

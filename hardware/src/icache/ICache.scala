@@ -81,6 +81,7 @@ class ICacheCtrlIO extends Bundle() {
   val ctrlrepl = new ICacheCtrlRepl().asOutput
   val replctrl = new ICacheReplCtrl().asInput
   val ocp_port = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+  val perf = new InstructionCachePerf()
 }
 class ICacheCtrlRepl extends Bundle() {
   val wEna = Bool()
@@ -103,7 +104,6 @@ class ICacheReplIO extends Bundle() {
   val replctrl = new ICacheReplCtrl().asOutput
   val memIn = new ICacheMemIn().asOutput
   val memOut = new ICacheMemOut().asInput
-  val perf = new InstructionCachePerf()
 }
 
 class ICacheMemIn extends Bundle() {
@@ -136,6 +136,7 @@ class ICache() extends Module {
   // Connect control unit
   ctrl.io.ctrlrepl <> repl.io.ctrlrepl
   ctrl.io.ocp_port <> io.ocp_port
+  ctrl.io.perf <> io.perf
   // Connect replacement unit
   repl.io.exicache <> io.exicache
   repl.io.feicache <> io.feicache
@@ -314,10 +315,8 @@ class ICacheCtrl() extends Module {
   val burstCnt = Reg(init = UInt(0, width = log2Up(BURST_LENGTH)))
   val fetchEna = Bool()
   // Input/output registers
-  val addrReg = Reg(init = Bits(0, width = 32))
+  val addrReg = Reg(init = Bits(0, width = EXTMEM_ADDR_WIDTH - LINE_WORD_SIZE_WIDTH))
   val ocpSlaveReg = Reg(next = io.ocp_port.S)
-  // Address for the entire block
-  val absFetchAddr = Cat(addrReg(EXTMEM_ADDR_WIDTH,LINE_WORD_SIZE_WIDTH), Bits(0)(LINE_WORD_SIZE_WIDTH-1,0))
 
   // Initialize signals
   wData := Bits(0)
@@ -340,19 +339,19 @@ class ICacheCtrl() extends Module {
     } .otherwise {
       when (!io.replctrl.hit) {
         fetchEna := Bool(false)
-        addrReg := io.replctrl.fetchAddr
+        val addr = io.replctrl.fetchAddr(EXTMEM_ADDR_WIDTH-1, LINE_WORD_SIZE_WIDTH)
+        addrReg := addr
         burstCnt := UInt(0)
         fetchCnt := UInt(0)
         // Write new tag field memory
         wTag := Bool(true)
-        wAddr := Cat(io.replctrl.fetchAddr(EXTMEM_ADDR_WIDTH-1,LINE_WORD_SIZE_WIDTH), Bits(0)(LINE_WORD_SIZE_WIDTH-1,0))
+        wAddr := Cat(addr, Bits(0, width = LINE_WORD_SIZE_WIDTH))
         // Check if command is accepted by the memory controller
+        ocpAddr := Cat(addr, Bits(0, width =  LINE_WORD_SIZE_WIDTH))
+        ocpCmd := OcpCmd.RD
         when (io.ocp_port.S.CmdAccept === Bits(1)) {
-          ocpAddr := Cat(io.replctrl.fetchAddr(EXTMEM_ADDR_WIDTH-1,LINE_WORD_SIZE_WIDTH), Bits(0)(LINE_WORD_SIZE_WIDTH-1,0))
-          ocpCmd := OcpCmd.RD
           stateReg := transferState
-        }
-        .otherwise {
+        } .otherwise {
           stateReg := waitState
         }
       }
@@ -360,9 +359,10 @@ class ICacheCtrl() extends Module {
   }
   when (stateReg === waitState) {
     fetchEna := Bool(false)
+    ocpAddr := Cat(addrReg, Bits(0, width = LINE_WORD_SIZE_WIDTH))
+    ocpCmd := OcpCmd.RD
     when (io.ocp_port.S.CmdAccept === Bits(1)) {
-      ocpAddr := Cat(addrReg(EXTMEM_ADDR_WIDTH-1,LINE_WORD_SIZE_WIDTH), Bits(0)(LINE_WORD_SIZE_WIDTH-1,0))
-      ocpCmd := OcpCmd.RD
+      stateReg := transferState
     }
   }
   // Transfer/fetch cache block
@@ -376,7 +376,7 @@ class ICacheCtrl() extends Module {
           // Fetch next address from external memory
           when (burstCnt >= UInt(BURST_LENGTH - 1)) {
             ocpCmd := OcpCmd.RD
-            ocpAddr := Cat(addrReg(EXTMEM_ADDR_WIDTH,LINE_WORD_SIZE_WIDTH), Bits(0)(LINE_WORD_SIZE_WIDTH-1,0)) + fetchCnt + Bits(1)
+            ocpAddr := Cat(addrReg, Bits(0, width = LINE_WORD_SIZE_WIDTH)) + fetchCnt + Bits(1)
             burstCnt := UInt(0)
           }
         }
@@ -384,7 +384,7 @@ class ICacheCtrl() extends Module {
         wData := ocpSlaveReg.Data
         wEna := Bool(true)
       }
-      wAddr := Cat(addrReg(EXTMEM_ADDR_WIDTH,LINE_WORD_SIZE_WIDTH), Bits(0)(LINE_WORD_SIZE_WIDTH-1,0)) + fetchCnt
+      wAddr := Cat(addrReg, Bits(0, width = LINE_WORD_SIZE_WIDTH)) + fetchCnt
     }
     // Restart to idle state
     .otherwise {
@@ -406,4 +406,15 @@ class ICacheCtrl() extends Module {
   io.ocp_port.M.Data := Bits(0) //read-only
   io.ocp_port.M.DataByteEn := Bits("b1111") //read-only
   io.ocp_port.M.DataValid := Bits(0) //read-only
+
+  // Output to performance counters
+  io.perf.hit := Bool(false)
+  io.perf.miss := Bool(false)
+  when (io.ena_in && io.replctrl.selCache && stateReg === idleState) {
+    when (io.replctrl.hit) {
+      io.perf.hit := Bool(true)
+    } .otherwise {
+      io.perf.miss := Bool(true)
+    }
+  }
 }
