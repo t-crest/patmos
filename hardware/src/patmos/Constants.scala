@@ -72,10 +72,12 @@ object Constants {
 
   val ICACHE_TYPE_METHOD = "method"
   val ICACHE_TYPE_LINE = "line"
+  val ICACHE_TYPE_PREFETCH = "prefetch"
   def iCacheType2Int(typ: String): Int = typ match {
-    case ICACHE_TYPE_METHOD => 1
-    case ICACHE_TYPE_LINE   => 2
-    case _                  => 0
+    case ICACHE_TYPE_METHOD   => 1
+    case ICACHE_TYPE_LINE     => 2
+    case ICACHE_TYPE_PREFETCH => 3
+    case _                    => 0
   }
 
   val DCACHE_WRITETHROUGH = util.Config.getConfig.DCache.writeThrough
