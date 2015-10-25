@@ -57,8 +57,8 @@ object PIConstants {
   val ICACHE_WORD_SIZE = ICACHE_SIZE / 4
   val ICACHE_SIZE_WIDTH = log2Up(ICACHE_WORD_SIZE)
 
-  val LINE_WORD_SIZE = BURST_LENGTH
-  val LINE_WORD_SIZE_WIDTH = log2Up(LINE_WORD_SIZE)
+  val LINE_WORD_SIZE = BURST_LENGTH                       //cache line length
+  val LINE_WORD_SIZE_WIDTH = log2Up(LINE_WORD_SIZE)     
 
   val LINE_COUNT = ICACHE_WORD_SIZE / LINE_WORD_SIZE
   val LINE_COUNT_WIDTH = log2Up(LINE_COUNT)
@@ -163,7 +163,7 @@ class PICacheMem extends Module {
   val icacheEven = MemBlock(ICACHE_WORD_SIZE / 2, INSTR_WIDTH)
   val icacheOdd = MemBlock(ICACHE_WORD_SIZE / 2, INSTR_WIDTH)
 
-  //Write port on on-chip memory ?
+  //Write port on on-chip memory
   icacheEven.io <= (io.memIn.wEven, io.memIn.wAddr, io.memIn.wData)
   icacheOdd.io <= (io.memIn.wOdd, io.memIn.wAddr, io.memIn.wData)
 
@@ -176,7 +176,7 @@ class PICacheMem extends Module {
  Direct-Mapped Replacement Class
  */
 class PICacheReplDm() extends Module {
-  val io = new ICacheReplIO()
+  val io = new PICacheReplIO()
 
   // Tag memory and vector for valid bits
   val tagMemEven = MemBlock(LINE_COUNT / 2, TAG_SIZE)

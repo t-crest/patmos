@@ -437,6 +437,19 @@ class ICacheIO extends Bundle() {
   val perf = new InstructionCachePerf()
 }
 
+class PICacheIO extends Bundle() {
+  val ena_out = Bool(OUTPUT)
+  val ena_in = Bool(INPUT)
+  val pref_in = Bool(INPUT)
+  val pref_addr = Bits(width = EXTMEM_ADDR_WIDTH)
+  val invalidate = Bool(INPUT)
+  val feicache = new FeICache().asInput
+  val exicache = new ExICache().asInput
+  val icachefe = new ICacheFe().asOutput
+  val ocp_port = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+  val perf = new InstructionCachePerf()
+}
+
 class WriteBackIO() extends Bundle() {
   val ena = Bool(INPUT)
   val memwb = new MemWb().asInput
