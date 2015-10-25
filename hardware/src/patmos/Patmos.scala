@@ -72,7 +72,7 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
     else {
       ChiselError.error("Unsupported instruction cache configuration:"+
                         " type \""+ICACHE_TYPE+"\""+
-                        " (must be \""+ICACHE_TYPE_METHOD+"\" or \""+ICACHE_TYPE_LINE+"\")"+
+                        " (must be \""+ICACHE_TYPE_METHOD+"\" or \""+ICACHE_TYPE_LINE+"\" or \""+ICACHE_TYPE_PREFETCH+"\")"+
                         " associativity "+ICACHE_ASSOC+
                         " with replacement policy \""+ICACHE_REPL+"\"")
       Module(new NullICache()) // return at least a dummy cache
@@ -86,6 +86,9 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   val exc = Module(new Exceptions())
   val iocomp = Module(new InOut())
   val dcache = Module(new DataCache())
+
+  //prefetch unit - if conditon is missing
+  //val prefetch = Module(new PFSMDM())
 
   //connect icache
   icache.io.feicache <> fetch.io.feicache

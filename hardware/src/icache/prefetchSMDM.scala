@@ -39,7 +39,7 @@ class PFSMDM extends Module {
   val iteration_inner_R = Reg(init = UInt(0, width = MAX_LOOP_ITER_WIDTH))
   val status_R = Vec.fill(MAX_DEPTH){Reg(init = UInt(0, width = MAX_DEPTH_WIDTH))}
   val iteration_outer_R = Vec.fill(MAX_DEPTH){Reg(init = UInt(0, width = MAX_ITERATION_WIDTH))}
-  val cache_line_id_address = io.pc_address((EXTMEM_ADDR_WIDTH - 1), (EXTMEM_ADDR_WIDTH - TAG_SIZE - INDEX_SIZE)).toUInt
+  val cache_line_id_address = io.pc_address(TAG_HIGH, INDEX_LOW).toUInt
   val output = Reg(init = UInt(0, width = EXTMEM_ADDR_WIDTH))
   val en_pr = Reg(init = UInt(0, width = 1))
   val en_seq = Reg(init = Bool(true))

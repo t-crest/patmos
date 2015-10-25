@@ -176,7 +176,7 @@ class Memory() extends Module {
   }
 
   // Read data multiplexing and sign extensions if needed
-  val rdData = splitData(Mux(Bool(ICACHE_TYPE == ICACHE_TYPE_LINE) && rdDataEnaReg,
+  val rdData = splitData(Mux(Bool(ICACHE_TYPE == ICACHE_TYPE_LINE || ICACHE_TYPE == ICACHE_TYPE_PREFETCH) && rdDataEnaReg,
                              rdDataReg,
                              Mux(memReg.mem.typ === MTYPE_L,
                                  io.localInOut.S.Data, io.globalInOut.S.Data)))

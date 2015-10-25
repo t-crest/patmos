@@ -11,8 +11,8 @@ import scala.math._
 object PrefetchCons {
   
   //Reading the rpt.txt file
-  val lines = Source.fromFile("rpt.txt").getLines().map(_.split(" ")).toArray
-  val MAX_INDEX_RPT = (lines.length - 1)
+  val readRPT = Source.fromFile("rpt.txt").getLines().map(_.split(" ")).toArray
+  val MAX_INDEX_RPT = (readRPT.length - 1)
   val INDEX_WIDTH = log2Up(MAX_INDEX_RPT)
  
   var index_array = new Array[Int](MAX_INDEX_RPT)
@@ -26,15 +26,15 @@ object PrefetchCons {
   var retdes_array = new Array[Int](MAX_INDEX_RPT) 
   
   for(i <- 1 to MAX_INDEX_RPT) {
-    index_array(i-1) = (lines(i)(0)).toInt  
-    trigger_array(i-1) = (lines(i)(1)).toInt
-    type_array(i-1) = (lines(i)(2)).toInt
-    destination_array(i-1) = (lines(i)(3)).toInt
-    iteration_array(i-1) = (lines(i)(4)).toInt
-    next_array(i-1) = (lines(i)(5)).toInt
-    count_array(i-1) = (lines(i)(6)).toInt 
-    depth_array(i-1) = (lines(i)(7)).toInt
-    retdes_array(i-1) = (lines(i)(8)).toInt
+    index_array(i-1) = (readRPT(i)(0)).toInt  
+    trigger_array(i-1) = (readRPT(i)(1)).toInt
+    type_array(i-1) = (readRPT(i)(2)).toInt
+    destination_array(i-1) = (readRPT(i)(3)).toInt
+    iteration_array(i-1) = (readRPT(i)(4)).toInt
+    next_array(i-1) = (readRPT(i)(5)).toInt
+    count_array(i-1) = (readRPT(i)(6)).toInt 
+    depth_array(i-1) = (readRPT(i)(7)).toInt
+    retdes_array(i-1) = (readRPT(i)(8)).toInt
   }
 
   var index_array_c = new Array[UInt](MAX_INDEX_RPT)
