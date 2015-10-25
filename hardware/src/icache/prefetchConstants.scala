@@ -1,10 +1,11 @@
-package prefetching
+package patmos
 
 import Chisel._
 import Node._
+import PIConstants._
+import Constants._
 import scala.io.Source
 import scala.math._
-import cache._
 
 
 object PrefetchCons {
@@ -69,7 +70,7 @@ object PrefetchCons {
   }
   def trigger_f():Vec[UInt] = {
     for (i <- 0 until MAX_INDEX_RPT)
-      trigger_array_c(i) = UInt(trigger_array(i), width = CacheCons.CACHE_LINE_ADDR_WIDTH) 
+      trigger_array_c(i) = UInt(trigger_array(i), width = (TAG_SIZE + INDEX_SIZE)) 
     Vec[UInt](trigger_array_c)
   }
   def type_f():Vec[UInt] = {
@@ -79,7 +80,7 @@ object PrefetchCons {
   }
   def destination_f():Vec[UInt] = {
     for (i <- 0 until MAX_INDEX_RPT)
-      destination_array_c(i) = UInt(destination_array(i), width = CacheCons.CACHE_LINE_ADDR_WIDTH) 
+      destination_array_c(i) = UInt(destination_array(i), width = (TAG_SIZE + INDEX_SIZE)) 
     Vec[UInt](destination_array_c)
   }
   def iteration_f():Vec[UInt] = {
@@ -104,7 +105,7 @@ object PrefetchCons {
   }
   def retdes_f():Vec[UInt] = {
     for (i <- 0 until MAX_INDEX_RPT)
-      retdes_array_c(i) = UInt(retdes_array(i), width = CacheCons.CACHE_LINE_ADDR_WIDTH) 
+      retdes_array_c(i) = UInt(retdes_array(i), width = (TAG_SIZE + INDEX_SIZE)) 
     Vec[UInt](retdes_array_c)
   }
 
