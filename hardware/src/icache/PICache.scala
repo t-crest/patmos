@@ -245,7 +245,6 @@ class PICacheReplDm() extends Module {
   // Check if line is valid
   val validEven = validVec(addrEvenReg(INDEX_HIGH, INDEX_LOW))
   val validOdd = validVec(addrOddReg(INDEX_HIGH, INDEX_LOW))
-  val valid = validEven && validOdd
   val validPref = validVec(addrPrefReg(INDEX_HIGH, INDEX_LOW))
 
   // Check for a hit of both instructions in the address bundle
@@ -257,17 +256,24 @@ class PICacheReplDm() extends Module {
 	  hitPref := Bool(false)
   }
   fetchAddr := addrPrefReg
-  when ((tagEven != addrEvenReg(TAG_HIGH, TAG_LOW)) || validP(addrEvenReg(INDEX_HIGH, INDEX_LOW))) {
+  
+  when((tagEven != addrEvenReg(TAG_HIGH, TAG_LOW)) && (!validP(addrEvenReg(INDEX_HIGH, INDEX_LOW))) && (!validEven)) {
     hitEven := Bool(false)
-    fetchAddr := addrEvenReg
+    when ((tagEven != addrEvenReg(TAG_HIGH, TAG_LOW)) && (!validEven)) {
+      fetchAddr := addrEvenReg
+    }
   }
-  when ((tagOdd != addrOddReg(TAG_HIGH, TAG_LOW)) || validP(addrOddReg(INDEX_HIGH, INDEX_LOW))) {
+   
+  when ((tagOdd != addrOddReg(TAG_HIGH, TAG_LOW)) && (!validP(addrOddReg(INDEX_HIGH, INDEX_LOW))) && (!validOdd)) {
     hitOdd := Bool(false)
-    fetchAddr := addrOddReg
+    when((tagOdd != addrOddReg(TAG_HIGH, TAG_LOW)) && (!validOdd)) {
+      fetchAddr := addrOddReg
+    }
   }
   // Keep signals alive for emulator
   debug(hitEven)
   debug(hitOdd)
+  debug(hitPref)
 
   val wrAddrTag = io.ctrlrepl.wAddr(TAG_HIGH,TAG_LOW)
   // Index for vector of valid bits
@@ -308,7 +314,7 @@ class PICacheReplDm() extends Module {
 
   // Hit/miss to control module
   io.replctrl.fetchAddr := fetchAddr
-  io.replctrl.hit := hitEven && hitOdd && valid
+  io.replctrl.hit := hitEven && hitOdd
   io.replctrl.selCache := selCacheReg
   io.replctrl.hitPref := hitPref
 
