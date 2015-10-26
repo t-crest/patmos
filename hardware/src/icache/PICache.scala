@@ -88,6 +88,7 @@ class PICacheCtrlRepl extends Bundle() {
   val wData = Bits(width = INSTR_WIDTH)
   val wAddr = Bits(width = ADDR_WIDTH)
   val wTag = Bool()
+  val wPref_p = Bool()
 }
 class PICacheReplCtrl extends Bundle() {
   val hit = Bool()
@@ -256,11 +257,11 @@ class PICacheReplDm() extends Module {
 	  hitPref := Bool(false)
   }
   fetchAddr := addrPrefReg
-  when (tagEven != addrEvenReg(TAG_HIGH, TAG_LOW)) {
+  when ((tagEven != addrEvenReg(TAG_HIGH, TAG_LOW)) || validP(addrEvenReg(INDEX_HIGH, INDEX_LOW))) {
     hitEven := Bool(false)
     fetchAddr := addrEvenReg
   }
-  when (tagOdd != addrOddReg(TAG_HIGH, TAG_LOW)) {
+  when ((tagOdd != addrOddReg(TAG_HIGH, TAG_LOW)) || validP(addrOddReg(INDEX_HIGH, INDEX_LOW))) {
     hitOdd := Bool(false)
     fetchAddr := addrOddReg
   }
@@ -279,7 +280,11 @@ class PICacheReplDm() extends Module {
   tagMemOdd.io <= (io.ctrlrepl.wTag && wrAddrParity, wrAddrIndex, wrAddrTag)
   when (io.ctrlrepl.wTag) {
     validVec(wrValidIndex) := Bool(true)
-    validP(wrValidIndex) := Bool(true)   //not here?
+  }
+
+  // Prefetcher has finished with prefetcing
+  when(io.ctrlrepl.wPref_p) {
+    validP(wrValidIndex) := Bool(true)
   }
 
   val wrParity = io.ctrlrepl.wAddr(0)
@@ -339,6 +344,9 @@ class PICacheCtrl() extends Module {
   val addrReg = Reg(init = Bits(0, width = EXTMEM_ADDR_WIDTH - LINE_WORD_SIZE_WIDTH))
   val ocpSlaveReg = Reg(next = io.ocp_port.S)
 
+  //prefetching is finished
+  val wPref_p = Bool()
+
   // Initialize signals
   wData := Bits(0)
   wTag := Bool(false)
@@ -347,6 +355,7 @@ class PICacheCtrl() extends Module {
   ocpCmd := OcpCmd.IDLE
   ocpAddr := Bits(0)
   fetchEna := Bool(true)
+  wPref_p := Bool(false)
 
   // Wait till ICache is the selected source of instructions
   when (stateReg === initState) {
@@ -358,8 +367,10 @@ class PICacheCtrl() extends Module {
     when (!io.replctrl.selCache) {
       stateReg := initState
     } .otherwise {
-      when (!io.replctrl.hit) {
-        fetchEna := Bool(false)
+      when ((!io.replctrl.hit) || (!io.replctrl.hitPref)) {
+        when(!io.replctrl.hit) {
+	      fetchEna := Bool(false)
+	}
         val addr = io.replctrl.fetchAddr(EXTMEM_ADDR_WIDTH-1, LINE_WORD_SIZE_WIDTH)
         addrReg := addr
         burstCnt := UInt(0)
@@ -388,7 +399,9 @@ class PICacheCtrl() extends Module {
   }
   // Transfer/fetch cache block
   when (stateReg === transferState) {
-    fetchEna := Bool(false)
+    when(!io.replctrl.hit) {
+      fetchEna := Bool(false)
+    }
     when (fetchCnt < UInt(LINE_WORD_SIZE)) {
       when (ocpSlaveReg.Resp === OcpResp.DVA) {
         fetchCnt := fetchCnt + Bits(1)
@@ -410,6 +423,7 @@ class PICacheCtrl() extends Module {
     // Restart to idle state
     .otherwise {
       stateReg := idleState
+      wPref_p := Bool(true)
     }
   }
 
@@ -418,6 +432,7 @@ class PICacheCtrl() extends Module {
   io.ctrlrepl.wData := wData
   io.ctrlrepl.wAddr := wAddr
   io.ctrlrepl.wTag := wTag
+  io.ctrlrepl.wPref_p := wPref_p
 
   io.fetch_ena := fetchEna
 
