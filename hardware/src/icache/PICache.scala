@@ -91,12 +91,15 @@ class PICacheCtrlRepl extends Bundle() {
 }
 class PICacheReplCtrl extends Bundle() {
   val hit = Bool()
+  val hitPref = Bool()
   val fetchAddr = Bits(width = EXTMEM_ADDR_WIDTH)
   val selCache = Bool()
 }
 class PICacheReplIO extends Bundle() {
   val ena_in = Bool(INPUT)
   val invalidate = Bool(INPUT)
+  val pref_en = Bool(INPUT)
+  val prefAddr = Bits(INPUT, width = ADDR_WIDTH)
   val exicache = new ExICache().asInput
   val feicache = new FeICache().asInput
   val icachefe = new ICacheFe().asOutput
@@ -184,7 +187,7 @@ class PICacheReplDm() extends Module {
   val validVec = Vec.fill(LINE_COUNT) { Reg(init = Bool(false)) }
   
   // Cache line requested by the prefetcher 
-  val prefVec = Vec.fill(LINE_COUNT) { Reg(init = Bool(false)) }
+  val validP = Vec.fill(LINE_COUNT) { Reg(init = Bool(false)) }
 
   // Variables for call/return
   val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
@@ -195,6 +198,7 @@ class PICacheReplDm() extends Module {
   val fetchAddr = Bits(width = EXTMEM_ADDR_WIDTH)
   val hitEven = Bool()
   val hitOdd = Bool()
+  val hitPref = Bool()
 
   val relBase = Mux(selCacheReg,
                     callRetBaseReg(EXTMEM_ADDR_WIDTH-1, 0),
@@ -217,13 +221,17 @@ class PICacheReplDm() extends Module {
   // Register addresses
   val addrEvenReg = Reg(next = io.feicache.addrEven)
   val addrOddReg = Reg(next = io.feicache.addrOdd)
+  val addrPrefReg = Reg(next = io.prefAddr)
 
   // Addresses for tag memory
   val indexEven = io.feicache.addrEven(INDEX_HIGH, INDEX_LOW+1)
   val indexOdd = io.feicache.addrOdd(INDEX_HIGH, INDEX_LOW+1)
+  val indexPref = io.prefAddr(INDEX_HIGH, INDEX_LOW+1)
+  val parityPref = io.prefAddr(INDEX_LOW)
   val parityEven = io.feicache.addrEven(INDEX_LOW)
   val tagAddrEven = Mux(parityEven, indexOdd, indexEven)
   val tagAddrOdd = Mux(parityEven, indexEven, indexOdd)
+  val tagAddrPref = indexPref
 
   // Read from tag memory
   val toutEven = tagMemEven.io(tagAddrEven)
@@ -231,19 +239,27 @@ class PICacheReplDm() extends Module {
   // Multiplex tag memory output
   val tagEven = Mux(addrEvenReg(INDEX_LOW), toutOdd, toutEven)
   val tagOdd = Mux(addrOddReg(INDEX_LOW), toutOdd, toutEven)
+  val tagPref = Mux(parityPref, tagMemOdd.io(tagAddrPref), tagMemEven.io(tagAddrPref))
 
   // Check if line is valid
   val validEven = validVec(addrEvenReg(INDEX_HIGH, INDEX_LOW))
   val validOdd = validVec(addrOddReg(INDEX_HIGH, INDEX_LOW))
   val valid = validEven && validOdd
+  val validPref = validVec(addrPrefReg(INDEX_HIGH, INDEX_LOW))
 
   // Check for a hit of both instructions in the address bundle
   hitEven := Bool(true)
   hitOdd := Bool(true)
+  hitPref := Bool(true)
+
+  when((tagPref != addrPrefReg(TAG_HIGH, TAG_LOW)) && (!validPref)) {
+	  hitPref := Bool(false)
+  }
+  fetchAddr := addrPrefReg
   when (tagEven != addrEvenReg(TAG_HIGH, TAG_LOW)) {
     hitEven := Bool(false)
+    fetchAddr := addrEvenReg
   }
-  fetchAddr := addrEvenReg
   when (tagOdd != addrOddReg(TAG_HIGH, TAG_LOW)) {
     hitOdd := Bool(false)
     fetchAddr := addrOddReg
@@ -263,6 +279,7 @@ class PICacheReplDm() extends Module {
   tagMemOdd.io <= (io.ctrlrepl.wTag && wrAddrParity, wrAddrIndex, wrAddrTag)
   when (io.ctrlrepl.wTag) {
     validVec(wrValidIndex) := Bool(true)
+    validP(wrValidIndex) := Bool(true)   //not here?
   }
 
   val wrParity = io.ctrlrepl.wAddr(0)
@@ -288,13 +305,12 @@ class PICacheReplDm() extends Module {
   io.replctrl.fetchAddr := fetchAddr
   io.replctrl.hit := hitEven && hitOdd && valid
   io.replctrl.selCache := selCacheReg
+  io.replctrl.hitPref := hitPref
 
   //invalidate Valid and Prefetch bits
   when (io.invalidate) {
     validVec.map(_ := Bool(false))
-  }
-  when (io.invalidate) {
-    prefVec.map(_ := Bool(false))
+    validP.map(_ := Bool(false))
   }
 
 }
