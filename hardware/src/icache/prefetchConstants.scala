@@ -11,7 +11,7 @@ import scala.math._
 object PrefetchCons {
   
   //Reading the rpt.txt file
-  val readRPT = Source.fromFile("rpt.txt").getLines().map(_.split(" ")).toArray
+  val readRPT = Source.fromFile("/Users/bekim/Desktop/t-crest/patmos/hardware/src/icache/rpt.txt").getLines().map(_.split(" ")).toArray
   val MAX_INDEX_RPT = (readRPT.length - 1)
   val INDEX_WIDTH = log2Up(MAX_INDEX_RPT)
  
