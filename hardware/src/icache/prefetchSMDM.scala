@@ -10,13 +10,8 @@ import scala.math._
 class PFSMDM extends Module {
   val io = new PrefetcherIO()
 	
-//  val io = new Bundle {
-    val pc_address = Bits(INPUT, width = EXTMEM_ADDR_WIDTH)
-    pc_address := io.feicache.addrEven
-//    val prefetch_address = Bits(OUTPUT, width = EXTMEM_ADDR_WIDTH)
-//    val en_prefetching = Bool(OUTPUT)	//enable prefetching
-//    val ena_in = Bool(INPUT)
-//  }
+  val pc_address = Bits(INPUT, width = EXTMEM_ADDR_WIDTH)
+  pc_address := io.feicache.addrEven
 
   //RPT ROM generation
   val index_rom = index_f()
@@ -74,7 +69,7 @@ class PFSMDM extends Module {
             sp_R := sp_R + UInt(1)
             index_R := next_rom(index_R)
             state := trigger
-         }
+          }
           .elsewhen (type_rom(index_R) === UInt(1)) { // return type
             output := Cat(stackAddrs(sp_R - UInt(1)), sign_ext_R).toUInt
             index_R := stackIndex(sp_R - UInt(1))
@@ -133,7 +128,7 @@ class PFSMDM extends Module {
 		  state := trigger
                 }
              }
-              .elsewhen (status_R(depth_rom(index_R)) === UInt(1)) {// next iteration of the outer loop
+             .elsewhen (status_R(depth_rom(index_R)) === UInt(1)) {// next iteration of the outer loop
 	      	output := Cat(destination_rom(index_R), sign_ext_R).toBits
                 iteration_outer_R(depth_rom(index_R)) := iteration_outer_R(depth_rom(index_R)) - UInt(1)	
 	      	when (iteration_outer_R(depth_rom(index_R)) === UInt(1)) { // last iteration
@@ -159,7 +154,7 @@ class PFSMDM extends Module {
 	      }
 	    }
 	  }
-        }
+        } 
       }  
     }
     is(small_loop) { //more than one prefetching 
@@ -176,9 +171,9 @@ class PFSMDM extends Module {
 	state := trigger
       }
     }
-    io.prefrepl.prefAddr := output
-    io.prefrepl.pref_en := en_pr
   }
+  io.prefrepl.prefAddr := output
+  io.prefrepl.pref_en := en_pr
 }
 
 //class PFSMTest(c:PFSM) extends Tester(c)
