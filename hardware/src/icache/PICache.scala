@@ -57,8 +57,8 @@ object PIConstants {
   val ICACHE_WORD_SIZE = ICACHE_SIZE / 4
   val ICACHE_SIZE_WIDTH = log2Up(ICACHE_WORD_SIZE)
 
-  val LINE_WORD_SIZE = BURST_LENGTH                       //cache line length
-  val LINE_WORD_SIZE_WIDTH = log2Up(LINE_WORD_SIZE)     
+  val LINE_WORD_SIZE = BURST_LENGTH
+  val LINE_WORD_SIZE_WIDTH = log2Up(LINE_WORD_SIZE)
 
   val LINE_COUNT = ICACHE_WORD_SIZE / LINE_WORD_SIZE
   val LINE_COUNT_WIDTH = log2Up(LINE_COUNT)
@@ -88,19 +88,21 @@ class PICacheCtrlRepl extends Bundle() {
   val wData = Bits(width = INSTR_WIDTH)
   val wAddr = Bits(width = ADDR_WIDTH)
   val wTag = Bool()
-  val wPref_p = Bool()
 }
 class PICacheReplCtrl extends Bundle() {
   val hit = Bool()
-  val hitPref = Bool()
+  val hitPref = Bool()  //not configured
   val fetchAddr = Bits(width = EXTMEM_ADDR_WIDTH)
   val selCache = Bool()
+}
+class PICachePrefRepl extends Bundle() {
+  val pref_en = Bool()
+  val prefAddr = Bits(INPUT, width= ADDR_WIDTH)
 }
 class PICacheReplIO extends Bundle() {
   val ena_in = Bool(INPUT)
   val invalidate = Bool(INPUT)
-  val pref_en = Bool(INPUT)
-  val prefAddr = Bits(INPUT, width = ADDR_WIDTH)
+  val prefrepl = new PICachePrefRepl().asInput
   val exicache = new ExICache().asInput
   val feicache = new FeICache().asInput
   val icachefe = new ICacheFe().asOutput
@@ -126,6 +128,11 @@ class PICacheMemIO extends Bundle() {
   val memIn = new PICacheMemIn().asInput
   val memOut = new PICacheMemOut().asOutput
 }
+class PrefetcherIO extends Bundle() {
+  val ena_in = Bool(INPUT)
+  val feicache = new FeICache().asInput
+  val prefrepl = new PICachePrefRepl().asOutput
+}
 
 
 /*
@@ -137,6 +144,7 @@ class PICache() extends Module {
   val ctrl = Module(new PICacheCtrl())
   val repl = Module(new PICacheReplDm())
   val mem = Module(new PICacheMem())
+  val pref = Module(new PFSMDM())
   // Connect control unit
   ctrl.io.ctrlrepl <> repl.io.ctrlrepl
   ctrl.io.ocp_port <> io.ocp_port
@@ -146,12 +154,16 @@ class PICache() extends Module {
   repl.io.feicache <> io.feicache
   repl.io.icachefe <> io.icachefe
   repl.io.replctrl <> ctrl.io.replctrl
+  repl.io.prefrepl <> pref.io.prefrepl
+  // Connecting prefetch unit
+  pref.io.feicache <>io.feicache
   // Connect replacement unit to on-chip memory
   repl.io.memIn <> mem.io.memIn
   repl.io.memOut <> mem.io.memOut
   // Connect enable signal
   ctrl.io.ena_in <> io.ena_in
   repl.io.ena_in <> io.ena_in
+  pref.io.ena_in <> io.ena_in
   // Output enable depending on hit/miss/fetch
   io.ena_out := ctrl.io.fetch_ena
   // Connect invalidate signal
@@ -164,16 +176,41 @@ class PICache() extends Module {
 class PICacheMem extends Module {
   val io = new PICacheMemIO()
 
-  val icacheEven = MemBlock(ICACHE_WORD_SIZE / 2, INSTR_WIDTH)
-  val icacheOdd = MemBlock(ICACHE_WORD_SIZE / 2, INSTR_WIDTH)
+  val icacheEven = Vec.fill(ICACHE_WORD_SIZE / 2){Reg(init = Bits(0, width = INSTR_WIDTH))}
+  val icacheOdd = Vec.fill(ICACHE_WORD_SIZE / 2) {Reg(init = Bits(0, width = INSTR_WIDTH))}
 
-  //Write port on on-chip memory
-  icacheEven.io <= (io.memIn.wEven, io.memIn.wAddr, io.memIn.wData)
-  icacheOdd.io <= (io.memIn.wOdd, io.memIn.wAddr, io.memIn.wData)
+ 
+  //Write port on on-chip memory ?
+//  icacheEven.io <= (io.memIn.wEven, io.memIn.wAddr, io.memIn.wData)
+//  icacheOdd.io <= (io.memIn.wOdd, io.memIn.wAddr, io.memIn.wData)
+
+  // Read port from on-chip memory
+  val instrEven = Reg(init = Bits(0, width = INSTR_WIDTH))
+  val instrOdd = Reg(init = Bits(0, width = INSTR_WIDTH))
+
+  instrEven := icacheEven(io.memIn.addrEven)
+  instrOdd := icacheOdd(io.memIn.addrOdd)
+  io.memOut.instrEven := instrEven
+  io.memOut.instrOdd := instrOdd
+
+  // Write port to on-chip memory
+  when(io.memIn.wEven) {
+    icacheEven(io.memIn.wAddr) := io.memIn.wData
+  }
+  when(io.memIn.wOdd) {
+    icacheOdd(io.memIn.wAddr) := io.memIn.wData
+  }
+
+//  val icacheEven = MemBlock(ICACHE_WORD_SIZE / 2, INSTR_WIDTH)
+//  val icacheOdd = MemBlock(ICACHE_WORD_SIZE / 2, INSTR_WIDTH)
+
+  //Write port on on-chip memory ?
+//  icacheEven.io <= (io.memIn.wEven, io.memIn.wAddr, io.memIn.wData)
+//  icacheOdd.io <= (io.memIn.wOdd, io.memIn.wAddr, io.memIn.wData)
 
   //Read port from on-chip memory
-  io.memOut.instrEven := icacheEven.io(io.memIn.addrEven)
-  io.memOut.instrOdd := icacheOdd.io(io.memIn.addrOdd)
+//  io.memOut.instrEven := icacheEven.io(io.memIn.addrEven)
+//  io.memOut.instrOdd := icacheOdd.io(io.memIn.addrOdd)
 }
 
 /*
@@ -183,13 +220,10 @@ class PICacheReplDm() extends Module {
   val io = new PICacheReplIO()
 
   // Tag memory and vector for valid bits
-  val tagMemEven = MemBlock(LINE_COUNT / 2, TAG_SIZE)
-  val tagMemOdd = MemBlock(LINE_COUNT / 2, TAG_SIZE)
+  val tagMemEven = Vec.fill(LINE_COUNT / 2){Reg(init = Bits(0, width = TAG_SIZE))}
+  val tagMemOdd = Vec.fill(LINE_COUNT / 2){Reg(init = Bits(0, width = TAG_SIZE))} 
   val validVec = Vec.fill(LINE_COUNT) { Reg(init = Bool(false)) }
   
-  // Cache line requested by the prefetcher 
-  val validP = Vec.fill(LINE_COUNT) { Reg(init = Bool(false)) }
-
   // Variables for call/return
   val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
   val callAddrReg = Reg(init = UInt(1, DATA_WIDTH))
@@ -222,29 +256,38 @@ class PICacheReplDm() extends Module {
   // Register addresses
   val addrEvenReg = Reg(next = io.feicache.addrEven)
   val addrOddReg = Reg(next = io.feicache.addrOdd)
-  val addrPrefReg = Reg(next = io.prefAddr)
+  val addrPrefReg = Reg(next = io.prefrepl.prefAddr)
 
   // Addresses for tag memory
   val indexEven = io.feicache.addrEven(INDEX_HIGH, INDEX_LOW+1)
   val indexOdd = io.feicache.addrOdd(INDEX_HIGH, INDEX_LOW+1)
-  val indexPref = io.prefAddr(INDEX_HIGH, INDEX_LOW+1)
-  val parityPref = io.prefAddr(INDEX_LOW)
+  val indexPref = io.prefrepl.prefAddr(INDEX_HIGH, INDEX_LOW+1)
   val parityEven = io.feicache.addrEven(INDEX_LOW)
+  val parityPref = io.prefrepl.prefAddr(INDEX_LOW)
   val tagAddrEven = Mux(parityEven, indexOdd, indexEven)
   val tagAddrOdd = Mux(parityEven, indexEven, indexOdd)
   val tagAddrPref = indexPref
 
   // Read from tag memory
-  val toutEven = tagMemEven.io(tagAddrEven)
-  val toutOdd = tagMemOdd.io(tagAddrOdd)
-  // Multiplex tag memory output
+  val toutEven = Reg(init = Bits(0, width = TAG_SIZE))
+  val toutOdd = Reg(init = Bits(0, width = TAG_SIZE))
+  val toutEvenPref = Reg(init = Bits(0, width = TAG_SIZE))
+  val toutOddPref = Reg(init = Bits(0, width = TAG_SIZE))
+  
+   toutEven := tagMemEven(tagAddrEven)
+   toutOdd := tagMemOdd(tagAddrOdd)
+   toutEvenPref := tagMemEven(tagAddrPref)
+   toutOddPref := tagMemOdd(tagAddrPref)
+ 
+   // Multiplex tag memory output
   val tagEven = Mux(addrEvenReg(INDEX_LOW), toutOdd, toutEven)
   val tagOdd = Mux(addrOddReg(INDEX_LOW), toutOdd, toutEven)
-  val tagPref = Mux(parityPref, tagMemOdd.io(tagAddrPref), tagMemEven.io(tagAddrPref))
+  val tagPref = Mux(addrOddReg(INDEX_LOW), toutOddPref, toutEvenPref)
 
   // Check if line is valid
   val validEven = validVec(addrEvenReg(INDEX_HIGH, INDEX_LOW))
   val validOdd = validVec(addrOddReg(INDEX_HIGH, INDEX_LOW))
+  val valid = validEven && validOdd
   val validPref = validVec(addrPrefReg(INDEX_HIGH, INDEX_LOW))
 
   // Check for a hit of both instructions in the address bundle
@@ -252,28 +295,17 @@ class PICacheReplDm() extends Module {
   hitOdd := Bool(true)
   hitPref := Bool(true)
 
-  when((tagPref != addrPrefReg(TAG_HIGH, TAG_LOW)) && (!validPref)) {
-	  hitPref := Bool(false)
-  }
-  fetchAddr := addrPrefReg
-  
-  when((tagEven != addrEvenReg(TAG_HIGH, TAG_LOW)) && (!validP(addrEvenReg(INDEX_HIGH, INDEX_LOW))) && (!validEven)) {
+  when (tagEven != addrEvenReg(TAG_HIGH, TAG_LOW)) {
     hitEven := Bool(false)
-    when ((tagEven != addrEvenReg(TAG_HIGH, TAG_LOW)) && (!validEven)) {
-      fetchAddr := addrEvenReg
-    }
   }
-   
-  when ((tagOdd != addrOddReg(TAG_HIGH, TAG_LOW)) && (!validP(addrOddReg(INDEX_HIGH, INDEX_LOW))) && (!validOdd)) {
+  fetchAddr := addrEvenReg
+  when (tagOdd != addrOddReg(TAG_HIGH, TAG_LOW)) {
     hitOdd := Bool(false)
-    when((tagOdd != addrOddReg(TAG_HIGH, TAG_LOW)) && (!validOdd)) {
-      fetchAddr := addrOddReg
-    }
+    fetchAddr := addrOddReg
   }
   // Keep signals alive for emulator
   debug(hitEven)
   debug(hitOdd)
-  debug(hitPref)
 
   val wrAddrTag = io.ctrlrepl.wAddr(TAG_HIGH,TAG_LOW)
   // Index for vector of valid bits
@@ -282,15 +314,16 @@ class PICacheReplDm() extends Module {
   val wrAddrIndex = io.ctrlrepl.wAddr(INDEX_HIGH, INDEX_LOW+1)
   val wrAddrParity = io.ctrlrepl.wAddr(INDEX_LOW)
   // Update tag field when new write occurs
-  tagMemEven.io <= (io.ctrlrepl.wTag && !wrAddrParity, wrAddrIndex, wrAddrTag)
-  tagMemOdd.io <= (io.ctrlrepl.wTag && wrAddrParity, wrAddrIndex, wrAddrTag)
+//  tagMemEven.io <= (io.ctrlrepl.wTag && !wrAddrParity, wrAddrIndex, wrAddrTag)
+//  tagMemOdd.io <= (io.ctrlrepl.wTag && wrAddrParity, wrAddrIndex, wrAddrTag)
+  when ((io.ctrlrepl.wTag) && (!wrAddrParity)) {
+    tagMemEven(wrAddrIndex) := wrAddrTag
+  }
+  when ((io.ctrlrepl.wTag) && (wrAddrParity)) {
+    tagMemOdd(wrAddrIndex) := wrAddrTag
+  }
   when (io.ctrlrepl.wTag) {
     validVec(wrValidIndex) := Bool(true)
-  }
-
-  // Prefetcher has finished with prefetcing
-  when(io.ctrlrepl.wPref_p) {
-    validP(wrValidIndex) := Bool(true)
   }
 
   val wrParity = io.ctrlrepl.wAddr(0)
@@ -314,14 +347,12 @@ class PICacheReplDm() extends Module {
 
   // Hit/miss to control module
   io.replctrl.fetchAddr := fetchAddr
-  io.replctrl.hit := hitEven && hitOdd
+  io.replctrl.hit := hitEven && hitOdd && valid
   io.replctrl.selCache := selCacheReg
-  io.replctrl.hitPref := hitPref
 
   //invalidate Valid and Prefetch bits
   when (io.invalidate) {
     validVec.map(_ := Bool(false))
-    validP.map(_ := Bool(false))
   }
 
 }
@@ -350,9 +381,6 @@ class PICacheCtrl() extends Module {
   val addrReg = Reg(init = Bits(0, width = EXTMEM_ADDR_WIDTH - LINE_WORD_SIZE_WIDTH))
   val ocpSlaveReg = Reg(next = io.ocp_port.S)
 
-  //prefetching is finished
-  val wPref_p = Bool()
-
   // Initialize signals
   wData := Bits(0)
   wTag := Bool(false)
@@ -361,7 +389,6 @@ class PICacheCtrl() extends Module {
   ocpCmd := OcpCmd.IDLE
   ocpAddr := Bits(0)
   fetchEna := Bool(true)
-  wPref_p := Bool(false)
 
   // Wait till ICache is the selected source of instructions
   when (stateReg === initState) {
@@ -373,10 +400,8 @@ class PICacheCtrl() extends Module {
     when (!io.replctrl.selCache) {
       stateReg := initState
     } .otherwise {
-      when ((!io.replctrl.hit) || (!io.replctrl.hitPref)) {
-        when(!io.replctrl.hit) {
-	      fetchEna := Bool(false)
-	}
+      when (!io.replctrl.hit) {
+        fetchEna := Bool(false)
         val addr = io.replctrl.fetchAddr(EXTMEM_ADDR_WIDTH-1, LINE_WORD_SIZE_WIDTH)
         addrReg := addr
         burstCnt := UInt(0)
@@ -405,9 +430,7 @@ class PICacheCtrl() extends Module {
   }
   // Transfer/fetch cache block
   when (stateReg === transferState) {
-    when(!io.replctrl.hit) {
-      fetchEna := Bool(false)
-    }
+    fetchEna := Bool(false)
     when (fetchCnt < UInt(LINE_WORD_SIZE)) {
       when (ocpSlaveReg.Resp === OcpResp.DVA) {
         fetchCnt := fetchCnt + Bits(1)
@@ -429,7 +452,6 @@ class PICacheCtrl() extends Module {
     // Restart to idle state
     .otherwise {
       stateReg := idleState
-      wPref_p := Bool(true)
     }
   }
 
@@ -438,7 +460,6 @@ class PICacheCtrl() extends Module {
   io.ctrlrepl.wData := wData
   io.ctrlrepl.wAddr := wAddr
   io.ctrlrepl.wTag := wTag
-  io.ctrlrepl.wPref_p := wPref_p
 
   io.fetch_ena := fetchEna
 

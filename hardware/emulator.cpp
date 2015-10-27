@@ -359,10 +359,10 @@ static void init_icache(Patmos_t *c, val_t entry) {
       c->Patmos_core_fetch__pcReg = -1;
       c->Patmos_core_icache_repl__hitReg = 0;
       #endif /* ICACHE_METHOD */
-      #ifdef ICACHE_LINE
+      #if defined(ICACHE_LINE) || defined(ICACHE_PREFETCH)
       //init for icache
       c->Patmos_core_fetch__pcReg = (entry >> 2) - 1;
-      #endif /* ICACHE_LINE */
+      #endif /* ICACHE_LINE || ICACHE_PREFETCH */
       c->Patmos_core_fetch__relBaseReg = 0;
       c->Patmos_core_fetch__relocReg = (entry >> 2) - 1;
       c->Patmos_core_fetch__selCache = 1;
@@ -380,9 +380,9 @@ static void init_icache(Patmos_t *c, val_t entry) {
     #ifdef ICACHE_METHOD
     c->Patmos_core_icache_ctrl__callRetBaseReg = (entry >> 2);
     #endif /* ICACHE_METHOD */
-    #ifdef ICACHE_LINE
+    #if defined(ICACHE_LINE) || defined(ICACHE_PREFETCH)
     c->Patmos_core_fetch__relBaseReg = (entry >> 2);
-    #endif /* ICACHE_LINE */
+    #endif /* ICACHE_LINE || ICACHE_PREFETCH */
   }
 }
 
@@ -412,7 +412,7 @@ static void stat_icache(Patmos_t *c, bool halt) {
     cache_hits++;
   }
   #endif /* ICACHE_METHOD */
-  #ifdef ICACHE_LINE
+  #if defined(ICACHE_LINE) || defined(ICACHE_PREFETCH)
   //add stats for instruction cache measurements
   if (c->Patmos_core_icache_ctrl__io_ctrlrepl_wTag.to_bool()) {
     cache_miss++;
@@ -425,7 +425,7 @@ static void stat_icache(Patmos_t *c, bool halt) {
       cache_hits++;
     }
   }
-  #endif /* ICACHE_LINE */
+  #endif /* ICACHE_LINE || ICACHE_PREFETCH */
   
   //pipeline stalls caused by the instruction cache
   if (!c->Patmos_core_icache__io_ena_out.to_bool()) {

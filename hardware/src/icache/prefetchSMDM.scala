@@ -8,12 +8,15 @@ import Constants._
 import scala.math._
 
 class PFSMDM extends Module {
-  val io = new Bundle {
-    val pc_address = UInt(INPUT, EXTMEM_ADDR_WIDTH)
-    val prefetch_address = Bits(OUTPUT, width = EXTMEM_ADDR_WIDTH)
-    val en_prefetching = Bool(OUTPUT)	//enable prefetching
-    val ena_in = Bool(INPUT)
-  }
+  val io = new PrefetcherIO()
+	
+//  val io = new Bundle {
+    val pc_address = Bits(INPUT, width = EXTMEM_ADDR_WIDTH)
+    pc_address := io.feicache.addrEven
+//    val prefetch_address = Bits(OUTPUT, width = EXTMEM_ADDR_WIDTH)
+//    val en_prefetching = Bool(OUTPUT)	//enable prefetching
+//    val ena_in = Bool(INPUT)
+//  }
 
   //RPT ROM generation
   val index_rom = index_f()
@@ -40,7 +43,7 @@ class PFSMDM extends Module {
   val iteration_inner_R = Reg(init = UInt(0, width = MAX_LOOP_ITER_WIDTH))
   val status_R = Vec.fill(MAX_DEPTH){Reg(init = UInt(0, width = MAX_DEPTH_WIDTH))}
   val iteration_outer_R = Vec.fill(MAX_DEPTH){Reg(init = UInt(0, width = MAX_ITERATION_WIDTH))}
-  val cache_line_id_address = io.pc_address(TAG_HIGH, INDEX_LOW).toUInt
+  val cache_line_id_address = pc_address(TAG_HIGH, INDEX_LOW).toUInt
   val output = Reg(init = Bits(0, width = EXTMEM_ADDR_WIDTH))
   val en_pr = Reg(init = Bool(false))
   val en_seq = Reg(init = Bool(true))
@@ -173,8 +176,8 @@ class PFSMDM extends Module {
 	state := trigger
       }
     }
-    io.prefetch_address := output
-    io.en_prefetching := en_pr
+    io.prefrepl.prefAddr := output
+    io.prefrepl.pref_en := en_pr
   }
 }
 
