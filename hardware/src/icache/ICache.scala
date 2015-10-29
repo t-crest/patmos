@@ -393,6 +393,7 @@ class ICacheCtrl() extends Module {
     }
     // Restart to idle state
     .otherwise {
+ //     fetchEna := Bool(true)
       stateReg := idleState
     }
   }
