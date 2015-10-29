@@ -1,7 +1,7 @@
 /*
    Copyright 2015 Technical University of Denmark, DTU Compute.
    All rights reserved.
-
+    
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -184,7 +184,7 @@ class ICacheReplDm() extends Module {
   val validVec = Vec.fill(LINE_COUNT) { Reg(init = Bool(false)) }
   
   // Cache line requested by the prefetcher 
-  val prefVec = Vec.fill(LINE_COUNT) { Reg(init = Bool(false)) }
+//  val prefVec = Vec.fill(LINE_COUNT) { Reg(init = Bool(false)) }
 
   // Variables for call/return
   val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
@@ -240,14 +240,25 @@ class ICacheReplDm() extends Module {
   // Check for a hit of both instructions in the address bundle
   hitEven := Bool(true)
   hitOdd := Bool(true)
-  when (tagEven != addrEvenReg(TAG_HIGH, TAG_LOW)) {
-    hitEven := Bool(false)
-  }
-  fetchAddr := addrEvenReg
-  when (tagOdd != addrOddReg(TAG_HIGH, TAG_LOW)) {
-    hitOdd := Bool(false)
-    fetchAddr := addrOddReg
-  }
+
+   fetchAddr := addrEvenReg
+
+  val decision :: Nil = Enum(UInt(), 1)
+  val state = Reg(init = decision)
+
+  switch(state) {
+    is(decision) {
+      when (tagEven != addrEvenReg(TAG_HIGH, TAG_LOW)) {
+        hitEven := Bool(false)
+      }
+//    fetchAddr := addrEvenReg
+     .elsewhen (tagOdd != addrOddReg(TAG_HIGH, TAG_LOW)) {
+       hitOdd := Bool(false)
+       fetchAddr := addrOddReg
+     }
+     state := decision
+   }
+ }
   // Keep signals alive for emulator
   debug(hitEven)
   debug(hitOdd)
@@ -293,9 +304,9 @@ class ICacheReplDm() extends Module {
   when (io.invalidate) {
     validVec.map(_ := Bool(false))
   }
-  when (io.invalidate) {
-    prefVec.map(_ := Bool(false))
-  }
+//  when (io.invalidate) {
+//    prefVec.map(_ := Bool(false))
+//  }
 
 }
 
@@ -349,8 +360,8 @@ class ICacheCtrl() extends Module {
         burstCnt := UInt(0)
         fetchCnt := UInt(0)
         // Write new tag field memory
-        wTag := Bool(true)
-        wAddr := Cat(addr, Bits(0, width = LINE_WORD_SIZE_WIDTH))
+//        wTag := Bool(true)
+//        wAddr := Cat(addr, Bits(0, width = LINE_WORD_SIZE_WIDTH))
         // Check if command is accepted by the memory controller
         ocpAddr := Cat(addr, Bits(0, width =  LINE_WORD_SIZE_WIDTH))
         ocpCmd := OcpCmd.RD
@@ -372,7 +383,9 @@ class ICacheCtrl() extends Module {
   }
   // Transfer/fetch cache block
   when (stateReg === transferState) {
-    fetchEna := Bool(false)
+    when (!io.replctrl.hit) { 
+	  fetchEna := Bool(false)
+    }
     when (fetchCnt < UInt(LINE_WORD_SIZE)) {
       when (ocpSlaveReg.Resp === OcpResp.DVA) {
         fetchCnt := fetchCnt + Bits(1)
@@ -393,7 +406,9 @@ class ICacheCtrl() extends Module {
     }
     // Restart to idle state
     .otherwise {
- //     fetchEna := Bool(true)
+        // Write new tag field memory
+        wTag := Bool(true)
+        wAddr := Cat(addrReg, Bits(0, width = LINE_WORD_SIZE_WIDTH)) 
       stateReg := idleState
     }
   }

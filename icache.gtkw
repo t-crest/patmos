@@ -1,0 +1,64 @@
+[*]
+[*] GTKWave Analyzer v3.3.65 (w)1999-2015 BSI
+[*] Mon Oct 26 14:39:20 2015
+[*]
+[dumpfile] "/Users/bekim/Desktop/t-crest/patmos/Patmos.vcd"
+[dumpfile_mtime] "Mon Oct 26 14:29:43 2015"
+[dumpfile_size] 5903165
+[savefile] "/Users/bekim/Desktop/t-crest/patmos/icache.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*-3.000000 23 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] Patmos.
+[treeopen] Patmos.core.
+[treeopen] Patmos.core.icache.
+[sst_width] 193
+[signals_width] 367
+[sst_expanded] 1
+[sst_vpaned_height] 168
+@22
+Patmos.core.icache.repl.addrEvenReg[20:0]
+Patmos.core.icache.repl.addrOddReg[20:0]
+Patmos.core.icache.repl.addrPrefReg[31:0]
+@28
+Patmos.core.icache.repl.io_replctrl_hit
+Patmos.core.icache.repl.io_replctrl_hitPref
+Patmos.core.icache.repl.io_replctrl_selCache
+Patmos.core.icache.repl.validVec_0
+Patmos.core.icache.repl.validVec_1
+@29
+Patmos.core.icache.repl.validVec_2
+@28
+Patmos.core.icache.repl.validVec_3
+Patmos.core.icache.repl.validVec_4
+Patmos.core.icache.repl.prefVec_0
+Patmos.core.icache.repl.prefVec_1
+Patmos.core.icache.repl.prefVec_2
+Patmos.core.icache.repl.prefVec_3
+Patmos.core.icache.repl.prefVec_4
+@22
+Patmos.core.icache.ctrl.io_ocp_port_M_Addr[20:0]
+@28
+Patmos.core.icache.ctrl.io_ocp_port_M_Cmd[2:0]
+@22
+Patmos.core.icache.ctrl.io_ocp_port_M_DataByteEn[3:0]
+@28
+Patmos.core.icache.ctrl.io_ocp_port_M_DataValid
+@22
+Patmos.core.icache.ctrl.io_ocp_port_M_Data[31:0]
+@28
+Patmos.core.icache.ctrl.io_ocp_port_S_CmdAccept
+@22
+Patmos.core.icache.ctrl.io_ocp_port_S_Data[31:0]
+@28
+Patmos.core.icache.ctrl.io_ocp_port_S_Resp[1:0]
+@22
+Patmos.core.icache.ctrl.io_ctrlrepl_wAddr[31:0]
+Patmos.core.icache.ctrl.io_ctrlrepl_wData[31:0]
+@28
+Patmos.core.icache.ctrl.io_ctrlrepl_wEna
+Patmos.core.icache.ctrl.io_ctrlrepl_wTag
+Patmos.core.icache.ctrl.io_ctrlrepl_wPref_p
+[pattern_trace] 1
+[pattern_trace] 0

@@ -3,9 +3,9 @@
 
   <frequency Hz="1000000"/>
   <pipeline dual="true" />
-  <bus burstLength="4" writeCombine="false" />
+  <bus burstLength="8" writeCombine="false" />
 
-  <ICache type="prefetch" size="1k" assoc="1" repl="fifo" />
+  <ICache type="line" size="4k" assoc="1" repl="fifo" />
   <DCache size="2k" assoc="1" repl="" writeThrough="true" />
   <SCache size="2k" />
   <ISPM size="1k" />
