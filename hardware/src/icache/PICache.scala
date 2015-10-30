@@ -268,26 +268,20 @@ class PICacheReplDm() extends Module {
   hitPref := Bool(true)
 
   fetchAddr := addrEvenReg
-  val decision :: Nil = Enum(UInt(), 1)
-  val state = Reg(init = decision)
 
-  switch(state) {
-    is(decision) {
-      when ((tagEven != addrEvenReg(TAG_HIGH, TAG_LOW)) || (!validEven)) {
-        hitEven := Bool(false)
+  when ((tagEven != addrEvenReg(TAG_HIGH, TAG_LOW)) || (!validEven)) {
+    hitEven := Bool(false)
 //	fetchAddr := addrEvenReg
-      }
-      .elsewhen ((tagOdd != addrOddReg(TAG_HIGH, TAG_LOW)) || (!validOdd)) {
-       hitOdd := Bool(false)
-       fetchAddr := addrOddReg
-      }
-      .elsewhen ((tagPref != addrPrefReg(TAG_HIGH, TAG_LOW)) || (!validPref)) {        
-	hitPref := Bool(false)
-        fetchAddr := addrPrefReg
-      }
-     state := decision
-    }
   }
+  .elsewhen ((tagOdd != addrOddReg(TAG_HIGH, TAG_LOW)) || (!validOdd)) {
+    hitOdd := Bool(false)
+    fetchAddr := addrOddReg
+  }
+  .elsewhen ((tagPref != addrPrefReg(TAG_HIGH, TAG_LOW)) || (!validPref)) {        
+	hitPref := Bool(false)
+    fetchAddr := addrPrefReg
+  }
+
   // Keep signals alive for emulator
   debug(hitEven)
   debug(hitOdd)
@@ -420,7 +414,8 @@ class PICacheCtrl() extends Module {
     }
     when (fetchCnt < UInt(LINE_WORD_SIZE)) {
       when (fetchCnt === UInt(LINE_WORD_SIZE - 1)) {
-	      fetchEna := Bool(false)
+        // Write new tag field memory
+        wTag := Bool(true)
       }
       when (ocpSlaveReg.Resp === OcpResp.DVA) {
         fetchCnt := fetchCnt + Bits(1)
@@ -441,10 +436,6 @@ class PICacheCtrl() extends Module {
     }
     // Restart to idle state
     .otherwise {
-	fetchEna := Bool(false)
-        // Write new tag field memory
-        wTag := Bool(true)
-        wAddr := Cat(addrReg, Bits(0, width = LINE_WORD_SIZE_WIDTH)) 
       stateReg := idleState
     }
   }
