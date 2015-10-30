@@ -156,6 +156,7 @@ class PICache() extends Module {
   repl.io.icachefe <> io.icachefe
   repl.io.replctrl <> ctrl.io.replctrl
   repl.io.prefrepl <> pref.io.prefrepl
+  pref.io.feicache <> io.feicache
   // Connect replacement unit to on-chip memory
   repl.io.memIn <> mem.io.memIn
   repl.io.memOut <> mem.io.memOut
@@ -258,7 +259,7 @@ class PICacheReplDm() extends Module {
   // Check if line is valid
   val validEven = validVec(addrEvenReg(INDEX_HIGH, INDEX_LOW))
   val validOdd = validVec(addrOddReg(INDEX_HIGH, INDEX_LOW))
-//  val validPref = validVec(addrPrefReg(INDEX_HIGH, INDEX_LOW))
+  val validPref = validVec(addrPrefReg(INDEX_HIGH, INDEX_LOW))
   val valid = validEven && validOdd
 
   // Check for a hit of both instructions in the address bundle
@@ -267,27 +268,26 @@ class PICacheReplDm() extends Module {
   hitPref := Bool(true)
 
   fetchAddr := addrEvenReg
-
   val decision :: Nil = Enum(UInt(), 1)
   val state = Reg(init = decision)
 
   switch(state) {
     is(decision) {
-      when (tagEven != addrEvenReg(TAG_HIGH, TAG_LOW)) {
+      when ((tagEven != addrEvenReg(TAG_HIGH, TAG_LOW)) || (!validEven)) {
         hitEven := Bool(false)
+//	fetchAddr := addrEvenReg
       }
-//    fetchAddr := addrEvenReg
-     .elsewhen (tagOdd != addrOddReg(TAG_HIGH, TAG_LOW)) {
+      .elsewhen ((tagOdd != addrOddReg(TAG_HIGH, TAG_LOW)) || (!validOdd)) {
        hitOdd := Bool(false)
        fetchAddr := addrOddReg
-     }
-     .elsewhen (tagPref != addrPrefReg(TAG_HIGH, TAG_LOW)) {
+      }
+      .elsewhen ((tagPref != addrPrefReg(TAG_HIGH, TAG_LOW)) || (!validPref)) {
        hitPref := Bool(false)
-       fetchAddr := addrPrefReg     
-     }
+       fetchAddr := addrPrefReg
+      }
      state := decision
-   }
- }
+    }
+  }
   // Keep signals alive for emulator
   debug(hitEven)
   debug(hitOdd)
@@ -329,7 +329,7 @@ class PICacheReplDm() extends Module {
   // Hit/miss to control module
   io.replctrl.fetchAddr := fetchAddr
   io.replctrl.hitPref := hitPref
-  io.replctrl.hit := hitEven && hitOdd && valid
+  io.replctrl.hit := hitEven && hitOdd  && hitPref
   io.replctrl.selCache := selCacheReg
 
   //invalidate Valid and Prefetch bits
@@ -348,6 +348,8 @@ class PICacheCtrl() extends Module {
   // States of the state machine
   val initState :: idleState :: transferState :: waitState :: Nil = Enum(UInt(), 4)
   val stateReg = Reg(init = initState)
+  
+  val fetch = (!io.replctrl.hit) || (!io.replctrl.hitPref) 
   // Signal for replacement unit
   val wData = Bits(width = DATA_WIDTH)
   val wTag = Bool()
@@ -382,10 +384,10 @@ class PICacheCtrl() extends Module {
     when (!io.replctrl.selCache) {
       stateReg := initState
     } .otherwise {
-      when ((!io.replctrl.hit) || (!io.replctrl.hitPref)) {
-        when (!io.replctrl.hit) {
-          fetchEna := Bool(false)
-	}
+	when (fetch) {    
+         when (!io.replctrl.hit) {
+	   fetchEna := Bool(false)
+	 }
         val addr = io.replctrl.fetchAddr(EXTMEM_ADDR_WIDTH-1, LINE_WORD_SIZE_WIDTH)
         addrReg := addr
         burstCnt := UInt(0)
@@ -402,7 +404,9 @@ class PICacheCtrl() extends Module {
     }
   }
   when (stateReg === waitState) {
-    fetchEna := Bool(false)
+    when (fetch) {
+	  fetchEna := Bool(false)
+    }
     ocpAddr := Cat(addrReg, Bits(0, width = LINE_WORD_SIZE_WIDTH))
     ocpCmd := OcpCmd.RD
     when (io.ocp_port.S.CmdAccept === Bits(1)) {
@@ -411,8 +415,8 @@ class PICacheCtrl() extends Module {
   }
   // Transfer/fetch cache block
   when (stateReg === transferState) {
-    when (!io.replctrl.hit) { 
-	  fetchEna := Bool(false)
+    when (fetch) {
+      fetchEna := Bool(false)
     }
     when (fetchCnt < UInt(LINE_WORD_SIZE)) {
       when (ocpSlaveReg.Resp === OcpResp.DVA) {
