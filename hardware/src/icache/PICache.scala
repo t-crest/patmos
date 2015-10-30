@@ -281,9 +281,9 @@ class PICacheReplDm() extends Module {
        hitOdd := Bool(false)
        fetchAddr := addrOddReg
       }
-      .elsewhen ((tagPref != addrPrefReg(TAG_HIGH, TAG_LOW)) || (!validPref)) {
-       hitPref := Bool(false)
-       fetchAddr := addrPrefReg
+      .elsewhen ((tagPref != addrPrefReg(TAG_HIGH, TAG_LOW)) || (!validPref)) {        
+	hitPref := Bool(false)
+        fetchAddr := addrPrefReg
       }
      state := decision
     }
@@ -329,7 +329,7 @@ class PICacheReplDm() extends Module {
   // Hit/miss to control module
   io.replctrl.fetchAddr := fetchAddr
   io.replctrl.hitPref := hitPref
-  io.replctrl.hit := hitEven && hitOdd  && hitPref
+  io.replctrl.hit := hitEven && hitOdd 
   io.replctrl.selCache := selCacheReg
 
   //invalidate Valid and Prefetch bits
