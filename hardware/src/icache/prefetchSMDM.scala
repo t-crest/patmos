@@ -61,7 +61,7 @@ class PFSMDM extends Module {
           output := Cat((cache_line_id_address + Bits(1)), sign_ext_R)
           state := trigger
         }
-        .otherwise { //matching with rpt table entry
+/*        .otherwise { //matching with rpt table entry
           when (type_rom(index_R) === UInt(0)) {  //call type
             output := Cat(destination_rom(index_R), sign_ext_R).toBits
             stackAddrs(sp_R) := retdes_rom(index_R)  
@@ -168,8 +168,8 @@ class PFSMDM extends Module {
       .otherwise {
         small_l_count_R := UInt(0)
         previous_addrs_R := cache_line_id_address
-	state := trigger 
-     } 
+	state := trigger */
+     }
   } 
   io.prefrepl.prefAddr := output
   io.prefrepl.pref_en := en_pr

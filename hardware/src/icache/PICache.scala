@@ -329,7 +329,7 @@ class PICacheReplDm() extends Module {
   // Hit/miss to control module
   io.replctrl.fetchAddr := fetchAddr
   io.replctrl.hitPref := hitPref
-  io.replctrl.hit := hitEven && hitOdd 
+  io.replctrl.hit := hitEven && hitOdd  
   io.replctrl.selCache := selCacheReg
 
   //invalidate Valid and Prefetch bits
@@ -415,10 +415,13 @@ class PICacheCtrl() extends Module {
   }
   // Transfer/fetch cache block
   when (stateReg === transferState) {
-    when (fetch) {
+    when (!io.replctrl.hit) {
       fetchEna := Bool(false)
     }
     when (fetchCnt < UInt(LINE_WORD_SIZE)) {
+      when (fetchCnt === UInt(LINE_WORD_SIZE - 1)) {
+	      fetchEna := Bool(false)
+      }
       when (ocpSlaveReg.Resp === OcpResp.DVA) {
         fetchCnt := fetchCnt + Bits(1)
         burstCnt := burstCnt + Bits(1)
@@ -438,6 +441,7 @@ class PICacheCtrl() extends Module {
     }
     // Restart to idle state
     .otherwise {
+	fetchEna := Bool(false)
         // Write new tag field memory
         wTag := Bool(true)
         wAddr := Cat(addrReg, Bits(0, width = LINE_WORD_SIZE_WIDTH)) 
