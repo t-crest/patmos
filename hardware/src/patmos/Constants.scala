@@ -97,7 +97,7 @@ object Constants {
   val BOOTMEM_ONE_BIT = 16
 
   val EXTMEM_SIZE = util.Config.getConfig.ExtMem.size
-  val EXTMEM_ADDR_WIDTH = 32 //log2Up(EXTMEM_SIZE)
+  val EXTMEM_ADDR_WIDTH = log2Up(EXTMEM_SIZE)
   val BURST_LENGTH = util.Config.getConfig.burstLength // For SSRAM on DE2-70 board max. 4
   val WRITE_COMBINE = util.Config.getConfig.writeCombine
 

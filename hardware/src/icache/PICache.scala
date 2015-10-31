@@ -277,9 +277,12 @@ class PICacheReplDm() extends Module {
     hitOdd := Bool(false)
     fetchAddr := addrOddReg
   }
-  .elsewhen ((tagPref != addrPrefReg(TAG_HIGH, TAG_LOW)) || (!validPref)) {        
-	hitPref := Bool(false)
-    fetchAddr := addrPrefReg
+  .elsewhen ((tagPref != addrPrefReg(TAG_HIGH, TAG_LOW)) || (!validPref)) { 
+    // Avoiding cache line collision between fetch and prefetch 
+    when (((addrEvenReg(INDEX_HIGH, INDEX_LOW+1)) != addrPrefReg(INDEX_HIGH, INDEX_LOW+1)) || ((addrOddReg(INDEX_HIGH, INDEX_LOW+1)) != addrPrefReg(INDEX_HIGH, INDEX_LOW+1))) {	
+        hitPref := Bool(false)
+        fetchAddr := addrPrefReg
+    }
   }
 
   // Keep signals alive for emulator
@@ -398,7 +401,7 @@ class PICacheCtrl() extends Module {
     }
   }
   when (stateReg === waitState) {
-    when (fetch) {
+    when (!io.replctrl.hit) {
 	  fetchEna := Bool(false)
     }
     ocpAddr := Cat(addrReg, Bits(0, width = LINE_WORD_SIZE_WIDTH))
@@ -414,7 +417,8 @@ class PICacheCtrl() extends Module {
     }
     when (fetchCnt < UInt(LINE_WORD_SIZE)) {
       when (fetchCnt === UInt(LINE_WORD_SIZE - 1)) {
-        // Write new tag field memory
+        fetchEna := Bool(false)
+	// Write new tag field memory
         wTag := Bool(true)
       }
       when (ocpSlaveReg.Resp === OcpResp.DVA) {
@@ -436,6 +440,7 @@ class PICacheCtrl() extends Module {
     }
     // Restart to idle state
     .otherwise {
+ //     fetchEna := Bool(false)
       stateReg := idleState
     }
   }
