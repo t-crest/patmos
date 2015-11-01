@@ -42,8 +42,13 @@ class PFSMDM extends Module {
   val output = Reg(init = Bits(0, width = EXTMEM_ADDR_WIDTH))
   val en_pr = Reg(init = Bool(false))
   val en_seq = Reg(init = Bool(true))
+ 
+  // Reset the index when cache is flushed
+  when (io.invalidate) {
+    index_R := UInt(0)
+  }
 
-  //State_machine
+  // State_machine
   val trigger :: small_loop :: Nil = Enum(UInt(), 2)
   val state = Reg(init = trigger)
 

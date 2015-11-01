@@ -130,6 +130,7 @@ class PICacheMemIO extends Bundle() {
 }
 class PrefetcherIO extends Bundle() {
   val ena_in = Bool(INPUT)
+  val invalidate = Bool(INPUT)
   val feicache = new FeICache().asInput
   val prefrepl = new PICachePrefRepl().asOutput
 }
@@ -168,6 +169,7 @@ class PICache() extends Module {
   io.ena_out := ctrl.io.fetch_ena
   // Connect invalidate signal
   repl.io.invalidate := io.invalidate
+  pref.io.invalidate := io.invalidate
 }
 
 /*
