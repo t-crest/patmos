@@ -429,8 +429,6 @@ class ICacheFe extends Bundle() {
 class ICacheIO extends Bundle() {
   val ena_out = Bool(OUTPUT)
   val ena_in = Bool(INPUT)
-//  val pref_in = Bool(INPUT)
-//  val pref_addr = Bits(width = EXTMEM_ADDR_WIDTH)
   val invalidate = Bool(INPUT)
   val feicache = new FeICache().asInput
   val exicache = new ExICache().asInput

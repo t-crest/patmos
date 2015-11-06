@@ -72,7 +72,7 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
     else if (ICACHE_TYPE == ICACHE_TYPE_PREFETCH && ICACHE_ASSOC == 1)
         Module(new PICache())
     else if (ICACHE_TYPE == ICACHE_TYPE_PREFETCH && ICACHE_ASSOC == 2)
-        Module(new P2ICache()) 
+        Module(new PICache2()) 
    else {
       ChiselError.error("Unsupported instruction cache configuration:"+
                         " type \""+ICACHE_TYPE+"\""+

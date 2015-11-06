@@ -91,7 +91,7 @@ class PICacheCtrlRepl extends Bundle() {
 }
 class PICachePrefRepl extends Bundle() {
   val pref_en = Bool()
-  val prefAddr = Bits(INPUT, width= EXTMEM_ADDR_WIDTH)
+  val prefAddr = Bits(width= EXTMEM_ADDR_WIDTH)
 }
 class PICacheReplCtrl extends Bundle() {
   val hit = Bool() 
