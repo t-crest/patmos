@@ -34,6 +34,7 @@
   Instruction Cache for Patmos
   Authors: Philipp Degasperi (philipp.degasperi@gmail.com)
            Wolfgang Puffitsch (wpuffitsch@gmail.com)
+           Bekim Cilku (bcilku@gmail.com)
  */
 
 package patmos
@@ -234,7 +235,7 @@ class ICache2Repl() extends Module {
   val parityEven = io.feicache.addrEven(INDEX_LOW)
   val tagAddrEven = Mux(parityEven, indexOdd, indexEven)
   val tagAddrOdd = Mux(parityEven, indexEven, indexOdd)
- 
+    
   // Read from tag memory
   val toutEvenFirst = tagMemEvenFirst.io(tagAddrEven)
   val toutOddFirst = tagMemOddFirst.io(tagAddrOdd)
