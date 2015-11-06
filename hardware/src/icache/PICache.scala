@@ -1,7 +1,7 @@
 /*
    Copyright 2015 Technical University of Denmark, DTU Compute.
    All rights reserved.
-    
+       
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -125,8 +125,8 @@ class PICacheMemOut extends Bundle() {
   val instrOdd = Bits(width = INSTR_WIDTH)
 }
 class PICacheMemIO extends Bundle() {
-  val memIn = new ICacheMemIn().asInput
-  val memOut = new ICacheMemOut().asOutput
+  val memIn = new PICacheMemIn().asInput
+  val memOut = new PICacheMemOut().asOutput
 }
 class PrefetcherIO extends Bundle() {
   val ena_in = Bool(INPUT)
@@ -281,11 +281,11 @@ class PICacheReplDm() extends Module {
   }
   .elsewhen ((tagPref != addrPrefReg(TAG_HIGH, TAG_LOW)) || (!validPref)) { 
     // Avoiding cache line collision between fetch and prefetch 
-    when (((addrEvenReg(INDEX_HIGH, INDEX_LOW+1)) != addrPrefReg(INDEX_HIGH, INDEX_LOW+1)) || ((addrOddReg(INDEX_HIGH, INDEX_LOW+1)) != addrPrefReg(INDEX_HIGH, INDEX_LOW+1))) {	
+//   when (((addrEvenReg(INDEX_HIGH, INDEX_LOW+1)) != addrPrefReg(INDEX_HIGH, INDEX_LOW+1))) {  // || 
         hitPref := Bool(false)
         fetchAddr := addrPrefReg
-    }
-  }
+//   }
+ }
 
   // Keep signals alive for emulator
   debug(hitEven)
