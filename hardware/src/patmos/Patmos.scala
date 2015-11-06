@@ -67,9 +67,13 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
         Module(new MCache())
     else if (ICACHE_TYPE == ICACHE_TYPE_LINE && ICACHE_ASSOC == 1)
         Module(new ICache())
+    else if (ICACHE_TYPE == ICACHE_TYPE_LINE && ICACHE_ASSOC == 2)
+        Module(new ICache2()) 
     else if (ICACHE_TYPE == ICACHE_TYPE_PREFETCH && ICACHE_ASSOC == 1)
         Module(new PICache())
-    else {
+    else if (ICACHE_TYPE == ICACHE_TYPE_PREFETCH && ICACHE_ASSOC == 2)
+        Module(new P2ICache()) 
+   else {
       ChiselError.error("Unsupported instruction cache configuration:"+
                         " type \""+ICACHE_TYPE+"\""+
                         " (must be \""+ICACHE_TYPE_METHOD+"\" or \""+ICACHE_TYPE_LINE+"\" or \""+ICACHE_TYPE_PREFETCH+"\")"+
@@ -140,7 +144,7 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
                      burstBus.io.slave)
   } else {
     // join requests such that D-cache requests are buffered
-    new OcpBurstPriorityJoin(icache.io.ocp_port, dcache.io.slave,
+    new OcpBurstPriorityJoin(dcache.io.slave,icache.io.ocp_port, 
                              burstBus.io.slave)
   }
 
