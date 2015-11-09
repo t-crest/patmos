@@ -2,8 +2,8 @@ package patmos
 
 import Chisel._
 import Node._
-import PrefetchCons._
-import PIConstants._
+import PrefetchCons2._
+import PIConstants2._
 import Constants._
 import scala.math._
 
