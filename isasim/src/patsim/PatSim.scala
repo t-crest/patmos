@@ -146,7 +146,7 @@ class PatSim(instructions: Array[Int]) {
         case _ => println(opcode + " not implemented")
       }
     } else {
-      if (((opcode >> 1) == CFLOP_BRCF) && ((instr & 0x3ffff) == 00)) {
+      if (((opcode >> 1) == CFLOP_BRCF) && ((instr & 0x3ffff) == 0)) {
         // 'halt' instruction
         halt = true
       } else {
