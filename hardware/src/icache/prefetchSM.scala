@@ -83,7 +83,7 @@ class PFSM extends Module {
           } 
           .elsewhen (type_rom(index_R) === UInt(3)) { // small_loop
             output := Cat((cache_line_id_address + UInt(1)), sign_ext_R).toBits
-            index_R := next_rom(index_R)
+            index_R := index_R + UInt(1)
             when (count_rom(index_R) > UInt(1)) {
               small_l_addr_R := cache_line_id_address + UInt(2) 
               small_l_count_R := count_rom(index_R) - UInt(1)
