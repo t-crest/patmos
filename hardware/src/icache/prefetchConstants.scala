@@ -13,8 +13,7 @@ object PrefetchCons {
   //Reading the rpt.txt file
   val readRPT = Source.fromFile("src/icache/rpt.txt").getLines().map(_.split(" ")).toArray
   val MAX_INDEX_RPT = (readRPT.length - 1)
-  val INDEX_WIDTH = log2Up(MAX_INDEX_RPT)
- 
+   
   var index_array = new Array[Int](MAX_INDEX_RPT)
   var trigger_array = new Array[Int](MAX_INDEX_RPT)
   var type_array = new Array[Int](MAX_INDEX_RPT)
@@ -47,17 +46,41 @@ object PrefetchCons {
   var depth_array_c = new Array[UInt](MAX_INDEX_RPT)
   var retdes_array_c = new Array[UInt](MAX_INDEX_RPT) 
 
-  val INDEX_REG_WIDTH = log2Up(index_array.max)
-  val MAX_ITERATION_WIDTH = log2Up(iteration_array.max)
-  val MAX_COUNT_WIDTH = log2Up(count_array.max)
-  val MAX_DEPTH = depth_array.max
-  val MAX_DEPTH_WIDTH = log2Up(MAX_DEPTH)
-  val MAX_SMALL_LOOP_WIDTH  = log2Up(count_array.max)  
-  val MAX_LOOP_ITER_WIDTH = log2Up(iteration_array.max)  
+  var INDEX_WIDTH = 3
+  if(MAX_INDEX_RPT > 8)
+    INDEX_WIDTH = log2Up(MAX_INDEX_RPT)
+  
+  var INDEX_REG_WIDTH = 3
+  if((index_array.max) > 8)
+    INDEX_REG_WIDTH = log2Up(index_array.max)
+  
+  var MAX_ITERATION_WIDTH = 3
+  if((iteration_array.max) > 8)
+    MAX_ITERATION_WIDTH = log2Up(iteration_array.max)
+  
+  var MAX_COUNT_WIDTH = 3
+  if((count_array.max) > 8)
+    MAX_COUNT_WIDTH = log2Up(count_array.max)
+  
+  var MAX_DEPTH = 3
+  if((depth_array.max) > 8)
+    MAX_DEPTH = depth_array.max
+  
+  var MAX_DEPTH_WIDTH = 3
+  if(MAX_DEPTH > 8)
+    MAX_DEPTH_WIDTH = log2Up(MAX_DEPTH)
+  
+  var MAX_SMALL_LOOP_WIDTH = 3
+  if((count_array.max) > 8)
+    MAX_SMALL_LOOP_WIDTH  = log2Up(count_array.max)  
+  
+  var MAX_LOOP_ITER_WIDTH = 3
+  if((iteration_array.max) > 8)
+    MAX_LOOP_ITER_WIDTH = log2Up(iteration_array.max)  
 
   //calculating the max number of call entries in RPT table
-  var max_call = 0
-  for(i <- type_array)
+  var max_call = 1
+  for(i <- 0 until MAX_INDEX_RPT)
     if(type_array(i) == 0)
       max_call += 1
   val MAX_CALLS = max_call
@@ -127,7 +150,7 @@ object PrefetchCons {
 //    lock_addr_l(i-1) = (lines_l(i)(1)).toInt
 //    unlock_addr_l(i-1) = (lines_l(i)(2)).toInt
 //  }
-
+  
 //  var index_array_lc = new Array[UInt](MAX_INDEX_LOCK)
 //  var lock_addr_lc = new Array[UInt](MAX_INDEX_LOCK)
 //  var unlock_addr_lc = new Array[UInt](MAX_INDEX_LOCK)
