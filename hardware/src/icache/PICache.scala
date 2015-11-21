@@ -80,6 +80,7 @@ class PICacheCtrlIO extends Bundle() {
   val fetch_ena = Bool(OUTPUT)
   val ctrlrepl = new PICacheCtrlRepl().asOutput
   val replctrl = new PICacheReplCtrl().asInput
+  val ctrlpref = new PICacheCtrlPref().asOutput
   val ocp_port = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
   val perf = new InstructionCachePerf()
 }
@@ -92,6 +93,9 @@ class PICacheCtrlRepl extends Bundle() {
 class PICachePrefRepl extends Bundle() {
   val pref_en = Bool()
   val prefAddr = Bits(width= EXTMEM_ADDR_WIDTH)
+}
+class PICacheCtrlPref extends Bundle() {
+  val prefTrig = Bool()
 }
 class PICacheReplCtrl extends Bundle() {
   val hit = Bool() 
@@ -132,6 +136,7 @@ class PrefetcherIO extends Bundle() {
   val ena_in = Bool(INPUT)
   val invalidate = Bool(INPUT)
   val feicache = new FeICache().asInput
+  val ctrlpref = new PICacheCtrlPref().asInput
   val prefrepl = new PICachePrefRepl().asOutput
 }
 
@@ -151,6 +156,7 @@ class PICache() extends Module {
   ctrl.io.ctrlrepl <> repl.io.ctrlrepl
   ctrl.io.ocp_port <> io.ocp_port
   ctrl.io.perf <> io.perf
+  ctrl.io.ctrlpref <> pref.io.ctrlpref
   // Connect replacement unit
   repl.io.exicache <> io.exicache
   repl.io.feicache <> io.feicache
@@ -349,6 +355,7 @@ class PICacheCtrl() extends Module {
   val stateReg = Reg(init = initState)
   
   val fetch = (!io.replctrl.hit) || (!io.replctrl.hitPref) 
+  val prefTrig = Bool()
   // Signal for replacement unit
   val wData = Bits(width = DATA_WIDTH)
   val wTag = Bool()
@@ -372,6 +379,7 @@ class PICacheCtrl() extends Module {
   ocpCmd := OcpCmd.IDLE
   ocpAddr := Bits(0)
   fetchEna := Bool(true)
+  prefTrig := Bool(false)
 
   // Wait till ICache is the selected source of instructions
   when (stateReg === initState) {
@@ -418,6 +426,9 @@ class PICacheCtrl() extends Module {
       fetchEna := Bool(false)
     }
     when (fetchCnt < UInt(LINE_WORD_SIZE)) {
+      when (fetchCnt === UInt(LINE_WORD_SIZE - 2)) {
+	      prefTrig := Bool(true)
+      }
       when (fetchCnt === UInt(LINE_WORD_SIZE - 1)) {
         fetchEna := Bool(false)
 	// Write new tag field memory
@@ -454,6 +465,7 @@ class PICacheCtrl() extends Module {
   io.ctrlrepl.wTag := wTag
 
   io.fetch_ena := fetchEna
+  io.ctrlpref.prefTrig := prefTrig
 
   // Outputs to external memory
   io.ocp_port.M.Addr := Cat(ocpAddr, Bits("b00"))

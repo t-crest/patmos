@@ -86,11 +86,6 @@ object PrefetchCons {
   val MAX_CALLS = max_call
 
   //RPT columns
-  def index_f():Vec[UInt] = {
-    for (i <- 0 until MAX_INDEX_RPT)
-      index_array_c(i) = UInt(index_array(i), width = INDEX_WIDTH) 
-    Vec[UInt](index_array_c)
-  }
   def trigger_f():Vec[UInt] = {
     for (i <- 0 until MAX_INDEX_RPT)
       trigger_array_c(i) = UInt(trigger_array(i), width = (TAG_SIZE + INDEX_SIZE)) 
