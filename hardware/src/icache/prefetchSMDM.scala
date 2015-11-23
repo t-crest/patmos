@@ -174,11 +174,11 @@ class PFSMDM extends Module {
 	small_l_addr_R := small_l_addr_R + UInt(1)
 	state := small_loop
       }
-      .otherwise {
-        small_l_count_R := UInt(0)
-        previous_addrs_R := cache_line_id_address
-	state := trigger 
-      }
+    }
+    .elsewhen (small_l_count_R === UInt(1)) {
+      small_l_count_R := UInt(0)
+      previous_addrs_R := cache_line_id_address
+      state := trigger 
     }
   } 
   io.prefrepl.prefAddr := output
