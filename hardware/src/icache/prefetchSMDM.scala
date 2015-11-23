@@ -41,8 +41,7 @@ class PFSMDM extends Module {
   val iteration_outer_R = Vec.fill(MAX_DEPTH){Reg(init = UInt(0, width = MAX_ITERATION_WIDTH))}
   val cache_line_id_address = pc_address(TAG_HIGH, INDEX_LOW)
   val output = Reg(init = Bits(0, width = EXTMEM_ADDR_WIDTH))
-  val en_pr = Reg(init = Bool(false))
-  val en_seq = Reg(init = Bool(true))
+  val en_seq = Reg(init = Bool(false))
  
   // Reset the index when cache is flushed
   when (io.invalidate) {
@@ -54,135 +53,127 @@ class PFSMDM extends Module {
   val state = Reg(init = trigger)
 
   switch (state) {
-    is(trigger) {
-      when(prefTrig) {
-        when ((cache_line_id_address === previous_addrs_R) && en_seq && io.ena_in) { //the next prefetching is done for this cache line
-          en_pr := Bool(false)
-          state := trigger 
-        }  
-        .elsewhen (io.ena_in) { //prefetch
-          previous_addrs_R := cache_line_id_address
-          en_seq := Bool(true)
-          en_pr := Bool(true)
-          when (cache_line_id_address != trigger_rom(index_R)) { //no matching - next line prefetching
-            output := Cat((cache_line_id_address + Bits(1)), sign_ext_R)
-            state := trigger
-          }
-          .otherwise { //matching with rpt table entry
-            when (type_rom(index_R) === UInt(0)) {  //call type
-              output := Cat(destination_rom(index_R), sign_ext_R)
-              stackAddrs(sp_R) := retdes_rom(index_R)  
-              stackIndex(sp_R) := index_R + UInt(1)
-              sp_R := sp_R + UInt(1)
-              index_R := next_rom(index_R)
-              state := trigger
-            }
-            .elsewhen (type_rom(index_R) === UInt(1)) { // return type
-              output := Cat(stackAddrs(sp_R - UInt(1)), sign_ext_R)
-              index_R := stackIndex(sp_R - UInt(1))
-              sp_R := sp_R - UInt(1) 
-              state := trigger
-            } 
-            .elsewhen (type_rom(index_R) === UInt(3)) { // small_loop
-              output := Cat((cache_line_id_address + UInt(1)), sign_ext_R)
-              index_R := index_R + UInt(1)
-              when (count_rom(index_R) > UInt(1)) {
-                small_l_addr_R := cache_line_id_address + UInt(2) 
-                small_l_count_R := count_rom(index_R) - UInt(1)
-                state := small_loop
-              }
-              .otherwise {
-                state := trigger
-              }
-            } 
-            .otherwise { //loop
-              when (index_R === next_rom(index_R)) { //inner loop
-                output := Cat(destination_rom(index_R), sign_ext_R)
-                when (iteration_inner_R === UInt(0)) { //first entry in the inner loop
-                  when(iteration_rom(index_R) ===  UInt(1)) { //number of iteration is one
-                    index_R := index_R + UInt(1)
-                    state := trigger
-                  }  
-                  .otherwise {
-                    iteration_inner_R := iteration_rom(index_R) - UInt(1)
-                    state := trigger	
-                  }
-                } 
-                .elsewhen (iteration_inner_R != UInt(0)) { //next entry in the inner loop
-                  when(iteration_inner_R === UInt(1)) {
-                    iteration_inner_R := UInt(0)
-                    index_R := index_R + UInt(1)	
-                    state := trigger
-                  }
-                  .otherwise {
-                    iteration_inner_R := iteration_inner_R - UInt(1)
-                    state := trigger
-                  }
-                }		
-              }		
-              .otherwise {  //outer loop
-                when (status_R(depth_rom(index_R)) === UInt(0)) {//entring first time
-                  output := Cat(destination_rom(index_R), sign_ext_R)
-                  when (iteration_outer_R(depth_rom(index_R)) === UInt(1)) { // only one iteration
-         	    status_R(depth_rom(index_R)) := UInt(2) //change status to "exhausted" 
-                    index_R := next_rom(index_R)
-	      	    state := trigger
-	          }
-	          .otherwise {
-	      	    iteration_outer_R(depth_rom(index_R)) := iteration_rom(index_R) - UInt(1)
-                    status_R(depth_rom(index_R)) := UInt(1) //change status to "live"
-		    index_R := next_rom(index_R)
-		    state := trigger
-                  }
-               }
-               .elsewhen (status_R(depth_rom(index_R)) === UInt(1)) {// next iteration of the outer loop
-	         output := Cat(destination_rom(index_R), sign_ext_R).toBits
-                 iteration_outer_R(depth_rom(index_R)) := iteration_outer_R(depth_rom(index_R)) - UInt(1)	
-	         when (iteration_outer_R(depth_rom(index_R)) === UInt(1)) { // last iteration
-	      	   status_R(depth_rom(index_R)) := UInt(2) // change status to "exhausted"
-	      	   iteration_outer_R(depth_rom(index_R)) := UInt(0)
-                   index_R := next_rom(index_R)
-	      	   state := trigger
-	         }
-	  	 .otherwise {
-	     	   iteration_outer_R(depth_rom(index_R)) := iteration_outer_R(depth_rom(index_R)) - UInt(1)
-                   index_R := next_rom(index_R)
-	     	   state := trigger
-	         }
-	       } 
-               .elsewhen (status_R(depth_rom(index_R)) === UInt(2)) { // loop is already "exhausted"
-                 status_R(depth_rom(index_R)) := UInt(0) // reset the status
-	      	 when (trigger_rom(index_R) === trigger_rom(index_R + UInt(1))) {  //next trigger is on the same cache line
-                   en_seq := Bool(false)
-                 }
-	       	 en_pr := Bool(false)
-                 index_R := index_R + UInt(1)
-      	         state := trigger
-	      }
-	    }
-	  }
-        }   
-      }  
-    }
-  }
-  is(small_loop) { //more than one prefetching 
-    when(prefTrig) {
-      output := Cat(small_l_addr_R, sign_ext_R)
-      en_pr := Bool(true)
-      when(small_l_count_R > UInt(1)) {
-        small_l_count_R := small_l_count_R - UInt(1)
-	small_l_addr_R := small_l_addr_R + UInt(1)
-	state := small_loop
-      }
-    }
-    .elsewhen (small_l_count_R === UInt(1)) {
-      small_l_count_R := UInt(0)
-      previous_addrs_R := cache_line_id_address
-      state := trigger 
-    }
-  } 
-  io.prefrepl.prefAddr := output
-  io.prefrepl.pref_en := en_pr
+  	is(trigger) {
+        	when(prefTrig || en_seq) {
+          		when (io.ena_in) { //prefetch
+          			previous_addrs_R := cache_line_id_address
+          			when (cache_line_id_address != trigger_rom(index_R)) { //no matching - next line prefetching
+            				output := Cat((cache_line_id_address + Bits(1)), sign_ext_R)
+	    				en_seq := Bool(false)
+            				state := trigger
+          			}
+          			.otherwise { //matching with rpt table entry
+	    				en_seq := Bool(false)
+            				when (type_rom(index_R) === UInt(0)) {  //call type
+              					output := Cat(destination_rom(index_R), sign_ext_R)
+              					stackAddrs(sp_R) := retdes_rom(index_R)  
+              					stackIndex(sp_R) := index_R + UInt(1)
+              					sp_R := sp_R + UInt(1)
+              					index_R := next_rom(index_R)
+              					state := trigger
+            				}
+            				.elsewhen (type_rom(index_R) === UInt(1)) { // return type
+              					output := Cat(stackAddrs(sp_R - UInt(1)), sign_ext_R)
+              					index_R := stackIndex(sp_R - UInt(1))
+              					sp_R := sp_R - UInt(1) 
+              					state := trigger
+            				}		 
+            				.elsewhen (type_rom(index_R) === UInt(3)) { // small_loop
+              					output := Cat((cache_line_id_address + UInt(1)), sign_ext_R)
+              					index_R := index_R + UInt(1)
+              					when (count_rom(index_R) > UInt(1)) {
+                					small_l_addr_R := cache_line_id_address + UInt(2) 
+                					small_l_count_R := count_rom(index_R) - UInt(1)
+                					state := small_loop
+              					}
+              					.otherwise {
+                					state := trigger
+              					}
+            				} 
+            				.otherwise { //loop
+              					when (index_R === next_rom(index_R)) { //inner loop
+                					output := Cat(destination_rom(index_R), sign_ext_R)
+               	 					when (iteration_inner_R === UInt(0)) { //first entry in the inner loop
+                  						when(iteration_rom(index_R) ===  UInt(1)) { //number of iteration is one
+                    							index_R := index_R + UInt(1)
+                    							state := trigger
+                  						}				  
+                  						.otherwise {
+                    							iteration_inner_R := iteration_rom(index_R) - UInt(1)
+                    							state := trigger	
+                  						}
+                					} 
+                					.elsewhen (iteration_inner_R != UInt(0)) { //next entry in the inner loop
+                  						when(iteration_inner_R === UInt(1)) {
+                    							iteration_inner_R := UInt(0)
+                    							index_R := index_R + UInt(1)	
+                    							state := trigger
+                  						}	
+                  						.otherwise {
+                    							iteration_inner_R := iteration_inner_R - UInt(1)
+                    							state := trigger
+                  						}
+                					}		
+              					}						
+              					.otherwise {  //outer loop
+                					when (status_R(depth_rom(index_R)) === UInt(0)) {//entring first time
+                  						output := Cat(destination_rom(index_R), sign_ext_R)
+                  							when (iteration_outer_R(depth_rom(index_R)) === UInt(1)) { // only one iteration
+         	    								status_R(depth_rom(index_R)) := UInt(2) //change status to "exhausted" 
+                    								index_R := next_rom(index_R)
+	      	    								state := trigger
+	          							}
+	          							.otherwise {
+	      	    								iteration_outer_R(depth_rom(index_R)) := iteration_rom(index_R) - UInt(1)
+                    								status_R(depth_rom(index_R)) := UInt(1) //change status to "live"
+		    								index_R := next_rom(index_R)
+		    								state := trigger
+                  							}
+               						}  
+               						.elsewhen (status_R(depth_rom(index_R)) === UInt(1)) {// next iteration of the outer loop
+	         						output := Cat(destination_rom(index_R), sign_ext_R)
+	         						when (iteration_outer_R(depth_rom(index_R)) === UInt(1)) { // last iteration
+	      	   							status_R(depth_rom(index_R)) := UInt(2) // change status to "exhausted"
+	      	   							iteration_outer_R(depth_rom(index_R)) := UInt(0)
+                   							index_R := next_rom(index_R)
+	      	   							state := trigger
+	         						}
+	  	 						.otherwise {
+	     	   							iteration_outer_R(depth_rom(index_R)) := iteration_outer_R(depth_rom(index_R)) - UInt(1)
+                   							index_R := next_rom(index_R)
+	     	   							state := trigger
+	         						}
+	       						} 
+               						.elsewhen (status_R(depth_rom(index_R)) === UInt(2)) { // loop is already "exhausted"
+                 						status_R(depth_rom(index_R)) := UInt(0) // reset the status
+	      	 						when (trigger_rom(index_R) === trigger_rom(index_R + UInt(1))) {  //next trigger is on the same cache line
+                  		 					en_seq := Bool(true)
+                 						}
+                 						index_R := index_R + UInt(1)
+      	         						state := trigger
+	      						}
+	    					}		
+	  				}
+        			}   
+      			}  
+    		}
+  	}
+  	is(small_loop) { //more than one prefetching 
+    		when(prefTrig) {
+      			output := Cat(small_l_addr_R, sign_ext_R)
+      			when(small_l_count_R > UInt(1)) {
+        			small_l_count_R := small_l_count_R - UInt(1)
+				small_l_addr_R := small_l_addr_R + UInt(1)
+				state := small_loop
+      			}
+    		}
+    		.elsewhen (small_l_count_R === UInt(1)) {
+      			small_l_count_R := UInt(0)
+      			previous_addrs_R := cache_line_id_address
+      			state := trigger 
+    		}
+  	} 
+  	io.prefrepl.prefAddr := output
   }
 }
 
