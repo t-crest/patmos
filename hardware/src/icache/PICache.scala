@@ -91,7 +91,6 @@ class PICacheCtrlRepl extends Bundle() {
   val wTag = Bool()
 }
 class PICachePrefRepl extends Bundle() {
-  val pref_en = Bool()
   val prefAddr = Bits(width= EXTMEM_ADDR_WIDTH)
 }
 class PICacheCtrlPref extends Bundle() {
@@ -133,7 +132,6 @@ class PICacheMemIO extends Bundle() {
   val memOut = new PICacheMemOut().asOutput
 }
 class PrefetcherIO extends Bundle() {
-  val ena_in = Bool(INPUT)
   val invalidate = Bool(INPUT)
   val feicache = new FeICache().asInput
   val ctrlpref = new PICacheCtrlPref().asInput
@@ -170,7 +168,6 @@ class PICache() extends Module {
   // Connect enable signal
   ctrl.io.ena_in <> io.ena_in
   repl.io.ena_in <> io.ena_in
-  pref.io.ena_in <> io.ena_in
   // Output enable depending on hit/miss/fetch
   io.ena_out := ctrl.io.fetch_ena
   // Connect invalidate signal
