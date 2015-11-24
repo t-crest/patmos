@@ -58,7 +58,7 @@ class PFSMDM extends Module {
         previous_addrs_R := cache_line_id_address
 	en_seq := Bool(false)
         when (cache_line_id_address != trigger_rom(index_R)) { //no matching - next line prefetching
-          output := Cat((cache_line_id_address + Bits(1)), sign_ext_R)
+          output := Cat((cache_line_id_address + UInt(1)), sign_ext_R)
           state := trigger
         }
         .otherwise { //matching with rpt table entry
@@ -114,32 +114,33 @@ class PFSMDM extends Module {
               state := trigger
               when (status_R(depth_rom(index_R)) === UInt(0)) {//entring first time
                 output := Cat(destination_rom(index_R), sign_ext_R)
+                index_R := next_rom(index_R)
                 when (iteration_outer_R(depth_rom(index_R)) === UInt(1)) { // only one iteration
          	  status_R(depth_rom(index_R)) := UInt(2) //change status to "exhausted" 
-                  index_R := next_rom(index_R)
 	        }
 	        .otherwise {
 	      	  iteration_outer_R(depth_rom(index_R)) := iteration_rom(index_R) - UInt(1)
                   status_R(depth_rom(index_R)) := UInt(1) //change status to "live"
-		  index_R := next_rom(index_R)
                 }
               }  
               .elsewhen (status_R(depth_rom(index_R)) === UInt(1)) {// next iteration of the outer loop
 	        output := Cat(destination_rom(index_R), sign_ext_R)
-	        when (iteration_outer_R(depth_rom(index_R)) === UInt(1)) { // last iteration
+		index_R := next_rom(index_R)
+		when (iteration_outer_R(depth_rom(index_R)) === UInt(1)) { // last iteration
 	      	  status_R(depth_rom(index_R)) := UInt(2) // change status to "exhausted"
 	      	  iteration_outer_R(depth_rom(index_R)) := UInt(0)
-                  index_R := next_rom(index_R)
 	        }
 	  	.otherwise {
 	     	  iteration_outer_R(depth_rom(index_R)) := iteration_outer_R(depth_rom(index_R)) - UInt(1)
-                  index_R := next_rom(index_R)
 	        } 
 	      } 
               .elsewhen (status_R(depth_rom(index_R)) === UInt(2)) { // loop is already "exhausted"
                 status_R(depth_rom(index_R)) := UInt(0) // reset the status
 	      	when (trigger_rom(index_R) === trigger_rom(index_R + UInt(1))) {  //next trigger is on the same cache line
                   en_seq := Bool(true)
+                }
+		.otherwise {
+                  output := Cat((cache_line_id_address + UInt(1)), sign_ext_R)
                 }
                 index_R := index_R + UInt(1)
 	      } 
