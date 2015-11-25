@@ -89,28 +89,28 @@ class PFSMDM extends Module {
             }
           } 
           .otherwise { //loop
-            when (index_R === next_rom(index_R)) { //inner loop
-              output := Cat(destination_rom(index_R), sign_ext_R)
-	      state := trigger
-              when (iteration_inner_R === UInt(0)) { //first entry in the inner loop
-                when(iteration_rom(index_R) ===  UInt(1)) { //number of iteration is one
-                  index_R := index_R + UInt(1)
-                }				  
-                .otherwise {
-                  iteration_inner_R := iteration_rom(index_R) - UInt(1)
-                }
-              } 
-              .elsewhen (iteration_inner_R != UInt(0)) { //next entry in the inner loop
-                when(iteration_inner_R === UInt(1)) {
-                  iteration_inner_R := UInt(0)
-                  index_R := index_R + UInt(1)	
-                }	
-                .otherwise {
-                  iteration_inner_R := iteration_inner_R - UInt(1)
-                }
-              } 	
-            }						
-            .otherwise {  //outer loop
+//            when (index_R === next_rom(index_R)) { //inner loop
+//              output := Cat(destination_rom(index_R), sign_ext_R)
+//	        state := trigger
+//              when (iteration_inner_R === UInt(0)) { //first entry in the inner loop
+//                when(iteration_rom(index_R) ===  UInt(1)) { //number of iteration is one
+//                  index_R := index_R + UInt(1)
+//                }				  
+//                .otherwise {
+//                  iteration_inner_R := iteration_rom(index_R) - UInt(1)
+//                }
+//              } 
+//              .elsewhen (iteration_inner_R != UInt(0)) { //next entry in the inner loop
+//                when(iteration_inner_R === UInt(1)) {
+//                  iteration_inner_R := UInt(0)
+//                  index_R := index_R + UInt(1)	
+//                }	
+//                .otherwise {
+//                  iteration_inner_R := iteration_inner_R - UInt(1)
+//                }
+//              } 	
+//            }						
+//            .otherwise {  //outer loop
               state := trigger
               when (status_R(depth_rom(index_R)) === UInt(0)) {//entring first time
                 output := Cat(destination_rom(index_R), sign_ext_R)
@@ -144,7 +144,7 @@ class PFSMDM extends Module {
                 }
                 index_R := index_R + UInt(1)
 	      } 
-	    }		
+//	    }		
 	  }
         }   
       }  
