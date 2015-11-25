@@ -89,62 +89,39 @@ class PFSMDM extends Module {
             }
           } 
           .otherwise { //loop
-//            when (index_R === next_rom(index_R)) { //inner loop
-//              output := Cat(destination_rom(index_R), sign_ext_R)
-//	        state := trigger
-//              when (iteration_inner_R === UInt(0)) { //first entry in the inner loop
-//                when(iteration_rom(index_R) ===  UInt(1)) { //number of iteration is one
-//                  index_R := index_R + UInt(1)
-//                }				  
-//                .otherwise {
-//                  iteration_inner_R := iteration_rom(index_R) - UInt(1)
-//                }
-//              } 
-//              .elsewhen (iteration_inner_R != UInt(0)) { //next entry in the inner loop
-//                when(iteration_inner_R === UInt(1)) {
-//                  iteration_inner_R := UInt(0)
-//                  index_R := index_R + UInt(1)	
-//                }	
-//                .otherwise {
-//                  iteration_inner_R := iteration_inner_R - UInt(1)
-//                }
-//              } 	
-//            }						
-//            .otherwise {  //outer loop
-              state := trigger
-              when (status_R(depth_rom(index_R)) === UInt(0)) {//entring first time
-                output := Cat(destination_rom(index_R), sign_ext_R)
-                index_R := next_rom(index_R)
-                when (iteration_outer_R(depth_rom(index_R)) === UInt(1)) { // only one iteration
-         	  status_R(depth_rom(index_R)) := UInt(2) //change status to "exhausted" 
-	        }
-	        .otherwise {
-	      	  iteration_outer_R(depth_rom(index_R)) := iteration_rom(index_R) - UInt(1)
-                  status_R(depth_rom(index_R)) := UInt(1) //change status to "live"
-                }
-              }  
-              .elsewhen (status_R(depth_rom(index_R)) === UInt(1)) {// next iteration of the outer loop
-	        output := Cat(destination_rom(index_R), sign_ext_R)
-		index_R := next_rom(index_R)
-		when (iteration_outer_R(depth_rom(index_R)) === UInt(1)) { // last iteration
-	      	  status_R(depth_rom(index_R)) := UInt(2) // change status to "exhausted"
-	      	  iteration_outer_R(depth_rom(index_R)) := UInt(0)
-	        }
-	  	.otherwise {
-	     	  iteration_outer_R(depth_rom(index_R)) := iteration_outer_R(depth_rom(index_R)) - UInt(1)
-	        } 
+            state := trigger
+            when (status_R(depth_rom(index_R)) === UInt(0)) {//entring first time
+              output := Cat(destination_rom(index_R), sign_ext_R)
+              index_R := next_rom(index_R)
+              when (iteration_outer_R(depth_rom(index_R)) === UInt(1)) { // only one iteration
+         	status_R(depth_rom(index_R)) := UInt(2) //change status to "exhausted" 
+	      }
+	      .otherwise {
+	      	iteration_outer_R(depth_rom(index_R)) := iteration_rom(index_R) - UInt(1)
+                status_R(depth_rom(index_R)) := UInt(1) //change status to "live"
+              }
+            }  
+            .elsewhen (status_R(depth_rom(index_R)) === UInt(1)) {// next iteration of the outer loop
+	      output := Cat(destination_rom(index_R), sign_ext_R)
+              index_R := next_rom(index_R)
+	      when (iteration_outer_R(depth_rom(index_R)) === UInt(1)) { // last iteration
+	      	status_R(depth_rom(index_R)) := UInt(2) // change status to "exhausted"
+	      	iteration_outer_R(depth_rom(index_R)) := UInt(0)
+	      }
+	      .otherwise {
+	     	iteration_outer_R(depth_rom(index_R)) := iteration_outer_R(depth_rom(index_R)) - UInt(1)
 	      } 
-              .elsewhen (status_R(depth_rom(index_R)) === UInt(2)) { // loop is already "exhausted"
-                status_R(depth_rom(index_R)) := UInt(0) // reset the status
-	      	when (trigger_rom(index_R) === trigger_rom(index_R + UInt(1))) {  //next trigger is on the same cache line
-                  en_seq := Bool(true)
-                }
-		.otherwise {
-                  output := Cat((cache_line_id_address + UInt(1)), sign_ext_R)
-                }
-                index_R := index_R + UInt(1)
-	      } 
-//	    }		
+	    } 
+            .elsewhen (status_R(depth_rom(index_R)) === UInt(2)) { // loop is already "exhausted"
+              status_R(depth_rom(index_R)) := UInt(0) // reset the status
+              index_R := index_R + UInt(1)
+	      when (trigger_rom(index_R) === trigger_rom(index_R + UInt(1))) {  //next trigger is on the same cache line
+                en_seq := Bool(true)
+              }
+	      .otherwise {
+                output := Cat((cache_line_id_address + UInt(1)), sign_ext_R)
+              }
+	    } 
 	  }
         }   
       }  
