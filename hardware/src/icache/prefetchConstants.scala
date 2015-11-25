@@ -81,7 +81,7 @@ object PrefetchCons {
   //calculating the max number of call entries in RPT table
   var max_call = 1
   for(i <- 0 until MAX_INDEX_RPT)
-    if(type_array(i) == 0)
+    if(type_array(i) == 1)
       max_call += 1
   val MAX_CALLS = max_call
 
