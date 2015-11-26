@@ -75,7 +75,7 @@ class Exceptions extends Module {
   io.ocp.S.Data := Bits(0, width = DATA_WIDTH)
 
   // No resetting by default
-  io.invalMCache := Bool(false)
+  io.invalICache := Bool(false)
   io.invalDCache := Bool(false)
 
   // Handle OCP reads and writes
@@ -108,7 +108,7 @@ class Exceptions extends Module {
                             io.ocp.S.Resp := OcpResp.NULL
                             sleepReg := Bool(true) }
       is(Bits("b000101")) { io.invalDCache := masterReg.Data(0)
-                            io.invalMCache := masterReg.Data(1) }
+                            io.invalICache := masterReg.Data(1) }
     }
     when(masterReg.Addr(EXC_ADDR_WIDTH-1) === Bits("b1")) {
       vec(masterReg.Addr(EXC_ADDR_WIDTH-2, 2)) := masterReg.Data.toUInt

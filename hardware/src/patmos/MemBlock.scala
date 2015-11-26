@@ -56,13 +56,24 @@ class MemBlockIO(size : Int, width : Int) extends Bundle {
   val wrEna  = Bits(INPUT, 1)
   val wrData = Bits(INPUT, width)
 
+  var read = false
+  var write = false
+
   def <= (ena : Bits, addr : Bits, data : Bits) = {
+    // This memory supports only one write port
+    if (write) { ChiselError.error("Only one write port supported") }
+    write = true
+
     wrAddr := addr
     wrEna := ena
     wrData := data
   }
 
   def apply(addr : Bits) : Bits = {
+    // This memory supports only one read port
+    if (read) { ChiselError.error("Only one read port supported") }
+    read = true
+
     rdAddr := addr
     rdData
   }
