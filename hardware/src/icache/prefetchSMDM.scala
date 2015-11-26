@@ -60,6 +60,7 @@ class PFSMDM extends Module {
 	en_seq := Bool(false)
 	when (change_state) {
 	  state := small_loop
+	  change_state := Bool(false)
 	}
         .elsewhen (cache_line_id_address != trigger_rom(index_R)) { //no matching - next line prefetching
 	  output := Cat((cache_line_id_address + UInt(1)), sign_ext_R)
@@ -141,11 +142,9 @@ class PFSMDM extends Module {
 	  small_l_addr_R := small_l_addr_R + UInt(1)
 	  state := small_loop
       	}
-      }
-      .elsewhen (small_l_count_R === UInt(1)) {
-        small_l_count_R := UInt(0)
-        previous_addrs_R := cache_line_id_address
-      	state := trigger 
+        .elsewhen (small_l_count_R === UInt(1)) {
+      	  state := trigger 
+	}
       }
     } 
     io.prefrepl.prefAddr := output
