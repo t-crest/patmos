@@ -42,7 +42,8 @@ class PFSMDM extends Module {
   val cache_line_id_address = pc_address(TAG_HIGH, INDEX_LOW)
   val output = Reg(init = Bits(0, width = EXTMEM_ADDR_WIDTH))
   val en_seq = Reg(init = Bool(false))
- 
+  val change_state = Reg(init = Bool(false))
+
   // Reset the index when cache is flushed
   when (io.invalidate) {
     index_R := UInt(0)
@@ -57,8 +58,11 @@ class PFSMDM extends Module {
       when ((cache_line_id_address != previous_addrs_R) || en_seq)  { //prefetch
         previous_addrs_R := cache_line_id_address
 	en_seq := Bool(false)
-        when (cache_line_id_address != trigger_rom(index_R)) { //no matching - next line prefetching
-          output := Cat((cache_line_id_address + UInt(1)), sign_ext_R)
+	when (change_state) {
+	  state := small_loop
+	}
+        .elsewhen (cache_line_id_address != trigger_rom(index_R)) { //no matching - next line prefetching
+	  output := Cat((cache_line_id_address + UInt(1)), sign_ext_R)
           state := trigger
         }
         .otherwise { //matching with rpt table entry
@@ -82,7 +86,7 @@ class PFSMDM extends Module {
             when (count_rom(index_R) > UInt(1)) {
               small_l_addr_R := cache_line_id_address + UInt(2) 
               small_l_count_R := count_rom(index_R) - UInt(1)
-              state := small_loop
+	      change_state := Bool(true)
             }
             .otherwise {
               state := trigger
@@ -127,7 +131,10 @@ class PFSMDM extends Module {
       }  
     }
     is(small_loop) { //more than one prefetching 
-      when(prefTrig) {
+      when (small_l_addr_R === cache_line_id_address) {
+        state := trigger
+      }
+      .elsewhen (prefTrig) {
         output := Cat(small_l_addr_R, sign_ext_R)
         when(small_l_count_R > UInt(1)) {
           small_l_count_R := small_l_count_R - UInt(1)
