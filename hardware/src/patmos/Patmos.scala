@@ -91,10 +91,6 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   val iocomp = Module(new InOut())
   val dcache = Module(new DataCache())
 
-  //prefetch unit
-  //if (ICACHE_TYPE == ICACHE_TYPE_PREFETCH)
-  //  val prefetch = Module(new PFSMDM())
-
   //connect icache
   icache.io.feicache <> fetch.io.feicache
   icache.io.icachefe <> fetch.io.icachefe
