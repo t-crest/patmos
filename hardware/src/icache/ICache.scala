@@ -79,8 +79,6 @@ class ICacheCtrlIO extends Bundle() {
   val fetch_ena = Bool(OUTPUT)
   val ctrlrepl = new ICacheCtrlRepl().asOutput
   val replctrl = new ICacheReplCtrl().asInput
-  val feicache = new FeICache().asInput
-  val exicache = new ExICache().asInput
   val ocp_port = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
   val perf = new InstructionCachePerf()
 }
@@ -136,8 +134,6 @@ class ICache() extends Module {
   val mem = Module(new ICacheMem())
   // Connect control unit
   ctrl.io.ctrlrepl <> repl.io.ctrlrepl
-  ctrl.io.feicache <> io.feicache
-  ctrl.io.exicache <> io.exicache
   ctrl.io.ocp_port <> io.ocp_port
   ctrl.io.perf <> io.perf
   // Connect replacement unit
@@ -238,11 +234,12 @@ class ICacheReplDm() extends Module {
   // Check for a hit of both instructions in the address bundle
   hitEven := Bool(true)
   hitOdd := Bool(true)
+  
+  fetchAddr := addrEvenReg
   when (tagEven != addrEvenReg(TAG_HIGH, TAG_LOW)) {
     hitEven := Bool(false)
   }
-  fetchAddr := addrEvenReg
-  when (tagOdd != addrOddReg(TAG_HIGH, TAG_LOW)) {
+  .elsewhen (tagOdd != addrOddReg(TAG_HIGH, TAG_LOW)) {
     hitOdd := Bool(false)
     fetchAddr := addrOddReg
   }
@@ -342,8 +339,8 @@ class ICacheCtrl() extends Module {
         burstCnt := UInt(0)
         fetchCnt := UInt(0)
         // Write new tag field memory
-        wTag := Bool(true)
-        wAddr := Cat(addr, Bits(0, width = LINE_WORD_SIZE_WIDTH))
+//        wTag := Bool(true)
+//        wAddr := Cat(addr, Bits(0, width = LINE_WORD_SIZE_WIDTH))
         // Check if command is accepted by the memory controller
         ocpAddr := Cat(addr, Bits(0, width =  LINE_WORD_SIZE_WIDTH))
         ocpCmd := OcpCmd.RD
@@ -367,6 +364,9 @@ class ICacheCtrl() extends Module {
   when (stateReg === transferState) {
     fetchEna := Bool(false)
     when (fetchCnt < UInt(LINE_WORD_SIZE)) {
+      when(fetchCnt ===UInt(LINE_WORD_SIZE - 2)) {
+        wTag := Bool(true)
+      }
       when (ocpSlaveReg.Resp === OcpResp.DVA) {
         fetchCnt := fetchCnt + Bits(1)
         burstCnt := burstCnt + Bits(1)
