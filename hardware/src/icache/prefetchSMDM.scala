@@ -33,7 +33,7 @@ class PFSMDM extends Module {
   val previous_addrs_R = Reg(init = Bits(0, width = (TAG_SIZE + INDEX_SIZE))) 
   val index_R = Reg(init = UInt(0, width = INDEX_REG_WIDTH))
   val sign_ext_R = Reg(init = Bits(0, width = (EXTMEM_ADDR_WIDTH - TAG_SIZE - INDEX_SIZE))) 
-  val sp_R = Reg(init = UInt(0, width = log2Up(MAX_CALLS)))
+  val sp_R = Reg(init = UInt(1, width = log2Up(MAX_CALLS)))
   val small_l_count_R = Reg(init = UInt(0, width = MAX_SMALL_LOOP_WIDTH))
   val small_l_addr_R = Reg(init = Bits(0, width = (TAG_SIZE + INDEX_SIZE))) 	
   val iteration_inner_R = Reg(init = UInt(0, width = MAX_LOOP_ITER_WIDTH))
@@ -76,10 +76,16 @@ class PFSMDM extends Module {
             state := trigger
           }
           .elsewhen (type_rom(index_R) === UInt(1)) { // return type
-            output := Cat(stackAddrs(sp_R - UInt(1)), sign_ext_R)
-            index_R := stackIndex(sp_R - UInt(1))
-            sp_R := sp_R - UInt(1) 
             state := trigger
+            output := Cat(stackAddrs(sp_R - UInt(1)), sign_ext_R)
+	    when (stackAddrs(sp_R - UInt(1)) === UInt(0)) {
+	      index_R := UInt(0)
+	      sp_R := UInt(1)
+	    }
+	    .otherwise {  
+              index_R := stackIndex(sp_R - UInt(1))
+              sp_R := sp_R - UInt(1) 
+	    }
           }		 
           .elsewhen (type_rom(index_R) === UInt(3)) { // small_loop
             output := Cat((cache_line_id_address + UInt(1)), sign_ext_R)
