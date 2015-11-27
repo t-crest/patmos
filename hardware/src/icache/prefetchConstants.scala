@@ -58,8 +58,8 @@ object PrefetchCons {
   if((iteration_array.max) > 32)
     MAX_ITERATION_WIDTH = log2Up(iteration_array.max)
   
-  var MAX_COUNT_WIDTH = 3
-  if((count_array.max) > 8)
+  var MAX_COUNT_WIDTH = 5
+  if((count_array.max) > 32)
     MAX_COUNT_WIDTH = log2Up(count_array.max)
   
   var MAX_DEPTH = 3
