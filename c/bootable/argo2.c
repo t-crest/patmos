@@ -69,7 +69,7 @@ int main() {
 
   // Setting the first entry of the schedule table
   //        Route        | DMA_num    | Pktlen| t2n
-  tmp1 = 0x77 << (8+3+5) | 0 << (3+5) | 1 << 5| 5;
+  tmp1 = 13 << (8+3+5) | 0 << (3+5) | 2 << 5| 6;
   ARGO_CONFIG_WR32(SCHED_BANK,0<<2,tmp1);
   tmp2 = ARGO_CONFIG_RD32(SCHED_BANK,0<<2);
 
@@ -77,14 +77,22 @@ int main() {
     WRITE("OK2\n",4); 
   }
 
+  // Setting the second entry of the schedule table
+  //        Route        | DMA_num    | Pktlen| t2n
+  tmp1 = 13 << (8+3+5) | 1 << (3+5) | 1 << 5| 3;
+  ARGO_CONFIG_WR32(SCHED_BANK,1<<2,tmp1);
+
   // Write to the COM_SPM
-  COM_SPM_WR32(0,0x11223344);
+  COM_SPM_WR32(0<<2,0x11223344);
+  COM_SPM_WR32(1<<2,0x55667788);
+  COM_SPM_WR32(2<<2,0x99001122);
+  COM_SPM_WR32(3<<2,0x33445566);
   // Setting the first entry of the DMA table
-  //      Read_ptr| Header field
-  //              | Pkt format | Write_ptr
-  tmp1 =  0 << 16 | 0 << 14    | 0;
-  //    Active bit | count
-  tmp2 =  1 << 31  | 1;
+  //       Header field
+  //       Pkt format | Write_ptr
+  tmp1 =   0 << 14    | 5;
+  //    Active bit | count   | Read_ptr
+  tmp2 =  1 << 31  | 2 << 14 | 0 ;
   ARGO_CONFIG_WR32(DMA_BANK,0<<2,tmp1);
   ARGO_CONFIG_WR32(DMA_BANK,1<<2,tmp2);
 
@@ -96,8 +104,17 @@ int main() {
     WRITE("ERROR3\n",7); 
   }
 
+  // Setting the second entry of the DMA table
+  //       Header field
+  //       Pkt format | Write_ptr
+  tmp1 =   0 << 14    | 9;
+  //    Active bit | count   | Read_ptr
+  tmp2 =  1 << 31  | 2 << 14 | 0 ;
+  ARGO_CONFIG_WR32(DMA_BANK,2<<2,tmp1);
+  ARGO_CONFIG_WR32(DMA_BANK,3<<2,tmp2);
+
   // Setting stbl_maxp1 to 2 and stbl_min to 0
-  tmp1 = 4 << 16 | 0;
+  tmp1 = 2 << 16 | 0;
   ARGO_CONFIG_WR32(MC_BANK,8<<2,tmp1);
   tmp2 = ARGO_CONFIG_RD32(MC_BANK,8<<2);
 
@@ -114,5 +131,26 @@ int main() {
   if (tmp2 == tmp1) {
     WRITE("OK5\n",4); 
   }
+
+
+  WRITE("Testing mode change\n",20);
+  // Writing schedule table
+  //        Route        | DMA_num    | Pktlen| t2n
+  tmp1 = 13 << (8+3+5) | 0 << (3+5) | 2 << 5| 5;
+  ARGO_CONFIG_WR32(SCHED_BANK,2<<2,tmp1);
+  //        Route        | DMA_num    | Pktlen| t2n
+  tmp1 = 13 << (8+3+5) | 1 << (3+5) | 1 << 5| 4;
+  ARGO_CONFIG_WR32(SCHED_BANK,3<<2,tmp1);
+  //        Route        | DMA_num    | Pktlen| t2n
+  tmp1 = 13 << (8+3+5) | 0 << (3+5) | 3 << 5| 6;
+  ARGO_CONFIG_WR32(SCHED_BANK,4<<2,tmp1);
+
+  // Writing mode change table
+  // Setting stbl_maxp1 to 5 and stbl_min to 2
+  tmp1 = 5 << 16 | 2;
+  ARGO_CONFIG_WR32(MC_BANK,9<<2,tmp1);
+
+  tmp1 = 1;
+  ARGO_CONFIG_WR32(MC_BANK,4<<2,tmp1);
 
 }
