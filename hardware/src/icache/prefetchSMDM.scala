@@ -10,10 +10,8 @@ import scala.math._
 class PFSMDM extends Module {
   val io = new PrefetcherIO()
 	
-  val pc_address_even = Bits(INPUT, width = EXTMEM_ADDR_WIDTH)
-  pc_address_even := io.feicache.addrEven
-  val pc_address_odd = Bits(INPUT, width = EXTMEM_ADDR_WIDTH)
-  pc_address_odd := io.feicache.addrOdd
+  val pc_address = Bits(INPUT, width = EXTMEM_ADDR_WIDTH)
+  pc_address := io.ctrlpref.ctrlprefAddr
   val prefTrig = Bool()
   prefTrig := io.ctrlpref.prefTrig
 
@@ -41,8 +39,7 @@ class PFSMDM extends Module {
   val iteration_inner_R = Reg(init = UInt(0, width = MAX_LOOP_ITER_WIDTH))
   val status_R = Vec.fill(MAX_DEPTH){Reg(init = UInt(0, width = MAX_DEPTH_WIDTH))}
   val iteration_outer_R = Vec.fill(MAX_DEPTH){Reg(init = UInt(0, width = MAX_ITERATION_WIDTH))}
-  val cache_line_id_address_even = pc_address_even(TAG_HIGH, INDEX_LOW)
-  val cache_line_id_address_odd = pc_address_odd(TAG_HIGH, INDEX_LOW)
+  val cache_line_id_address = pc_address(TAG_HIGH, INDEX_LOW)
   val output = Reg(init = Bits(0, width = EXTMEM_ADDR_WIDTH))
   val en_seq = Reg(init = Bool(false))
   val change_state = Reg(init = Bool(false))
@@ -58,30 +55,20 @@ class PFSMDM extends Module {
 
   switch (state) {
     is(trigger) {
-      when ((cache_line_id_address_even != previous_addrs_R) || (cache_line_id_address_odd != previous_addrs_R) || en_seq)  { //prefetch
-        when (cache_line_id_address_even != previous_addrs_R) {
-	  previous_addrs_R := cache_line_id_address_even
-	} 
-        when (cache_line_id_address_odd != previous_addrs_R) {
-	  previous_addrs_R := cache_line_id_address_odd
-	}
+      when ((cache_line_id_address != previous_addrs_R) || en_seq)  { //prefetch
+	previous_addrs_R := cache_line_id_address
 	en_seq := Bool(false)
 	when (change_state) {
 	  state := small_loop
 	  change_state := Bool(false)
 	}
-        .elsewhen ((cache_line_id_address_even != trigger_rom(index_R)) || (cache_line_id_address_odd != trigger_rom(index_R))) { //no matching - next line prefetching
-           when (cache_line_id_address_even != previous_addrs_R) {
-	     output := Cat((cache_line_id_address_even + UInt(1)), sign_ext_R) 
-	   } 
-           .elsewhen (cache_line_id_address_odd != previous_addrs_R) {
-	     output := Cat((cache_line_id_address_odd + UInt(1)), sign_ext_R)
-	   }		
+        .elsewhen (cache_line_id_address != trigger_rom(index_R)) { //no matching - next line prefetching
+//	  output := Cat((cache_line_id_address + UInt(1)), sign_ext_R) 
           state := trigger
         }
         .otherwise { //matching with rpt table entry
           when (type_rom(index_R) === UInt(0)) {  //call type
-            output := Cat(destination_rom(index_R), sign_ext_R)
+//            output := Cat(destination_rom(index_R), sign_ext_R)
             stackAddrs(sp_R) := retdes_rom(index_R)  
             stackIndex(sp_R) := index_R + UInt(1)
             sp_R := sp_R + UInt(1)
@@ -90,7 +77,7 @@ class PFSMDM extends Module {
           }
           .elsewhen (type_rom(index_R) === UInt(1)) { // return type
             state := trigger
-            output := Cat(stackAddrs(sp_R - UInt(1)), sign_ext_R)
+//            output := Cat(stackAddrs(sp_R - UInt(1)), sign_ext_R)
 	    when (stackAddrs(sp_R - UInt(1)) === UInt(0)) {
 	      index_R := UInt(0)
 	      sp_R := UInt(1)
@@ -101,20 +88,10 @@ class PFSMDM extends Module {
 	    }
           }		 
           .elsewhen (type_rom(index_R) === UInt(3)) { // small_loop
-           when (cache_line_id_address_even != previous_addrs_R) {
-	     output := Cat((cache_line_id_address_even + UInt(1)), sign_ext_R) 
-	   } 
-           .elsewhen (cache_line_id_address_odd != previous_addrs_R) {
-	     output := Cat((cache_line_id_address_odd + UInt(1)), sign_ext_R)
-	   }	
+	    output := Cat((cache_line_id_address + UInt(1)), sign_ext_R) 	
             index_R := index_R + UInt(1)
             when (count_rom(index_R) > UInt(1)) {
-              when (cache_line_id_address_even != previous_addrs_R) {
-	        small_l_addr_R := cache_line_id_address_even + UInt(2) 
-	      } 
-              .elsewhen (cache_line_id_address_odd != previous_addrs_R) {
-	        small_l_addr_R := cache_line_id_address_odd + UInt(2) 
-	      }	
+	      small_l_addr_R := cache_line_id_address + UInt(2) 
               small_l_count_R := count_rom(index_R) - UInt(1)
 	      change_state := Bool(true)
             }
@@ -125,7 +102,7 @@ class PFSMDM extends Module {
           .otherwise { //loop
             state := trigger
             when (status_R(depth_rom(index_R)) === UInt(0)) {//entring first time
-              output := Cat(destination_rom(index_R), sign_ext_R)
+//              output := Cat(destination_rom(index_R), sign_ext_R)
               index_R := next_rom(index_R)
               when (iteration_outer_R(depth_rom(index_R)) === UInt(1)) { // only one iteration
          	status_R(depth_rom(index_R)) := UInt(2) //change status to "exhausted" 
@@ -136,7 +113,7 @@ class PFSMDM extends Module {
               }
             }  
             .elsewhen (status_R(depth_rom(index_R)) === UInt(1)) {// next iteration of the outer loop
-	      output := Cat(destination_rom(index_R), sign_ext_R)
+//	      output := Cat(destination_rom(index_R), sign_ext_R)
               index_R := next_rom(index_R)
 	      when (iteration_outer_R(depth_rom(index_R)) === UInt(1)) { // last iteration
 	      	status_R(depth_rom(index_R)) := UInt(2) // change status to "exhausted"
@@ -153,20 +130,15 @@ class PFSMDM extends Module {
                 en_seq := Bool(true)
               }
 	      .otherwise {
-                when (cache_line_id_address_even != previous_addrs_R) {
-	          output := Cat((cache_line_id_address_even + UInt(1)), sign_ext_R) 
-	        } 
-                .elsewhen (cache_line_id_address_odd != previous_addrs_R) {
-	          output := Cat((cache_line_id_address_odd + UInt(1)), sign_ext_R)
-	        }	
+//	          output := Cat((cache_line_id_address + UInt(1)), sign_ext_R) 	
               }
 	    } 
 	  }
-        }   
+        }  
       }  
     }
     is(small_loop) { //more than one prefetching 
-      when ((small_l_addr_R === cache_line_id_address_even) || (small_l_addr_R === cache_line_id_address_odd)) {
+      when (small_l_addr_R === cache_line_id_address) {
         state := trigger
       }
       .elsewhen (prefTrig) {
@@ -183,4 +155,4 @@ class PFSMDM extends Module {
     } 
     io.prefrepl.prefAddr := output
   }
-}
+}  

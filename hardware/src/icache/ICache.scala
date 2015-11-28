@@ -332,8 +332,8 @@ class ICacheCtrl() extends Module {
     when (!io.replctrl.selCache) {
       stateReg := initState
     } .otherwise {
-	when (fetch) {    
-	fetchEna := Bool(false)
+      when (fetch) {    
+        fetchEna := Bool(false)
         val addr = io.replctrl.fetchAddr(EXTMEM_ADDR_WIDTH-1, LINE_WORD_SIZE_WIDTH)
         addrReg := addr
         burstCnt := UInt(0)
@@ -395,7 +395,6 @@ class ICacheCtrl() extends Module {
   io.ctrlrepl.wTag := wTag
 
   io.fetch_ena := fetchEna
-//  io.ctrlpref.prefTrig := prefTrig
 
   // Outputs to external memory
   io.ocp_port.M.Addr := Cat(ocpAddr, Bits("b00"))

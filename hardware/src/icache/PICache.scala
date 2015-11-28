@@ -95,6 +95,7 @@ class PICachePrefRepl extends Bundle() {
 }
 class PICacheCtrlPref extends Bundle() {
   val prefTrig = Bool()
+  val ctrlprefAddr = Bits(width = EXTMEM_ADDR_WIDTH)
 }
 class PICacheReplCtrl extends Bundle() {
   val hit = Bool() 
@@ -388,10 +389,10 @@ class PICacheCtrl() extends Module {
     when (!io.replctrl.selCache) {
       stateReg := initState
     } .otherwise {
-	when (fetch) {    
-         when (!io.replctrl.hit) {
-	   fetchEna := Bool(false)
-	 }
+      when (fetch) {    
+        when (!io.replctrl.hit) {
+	  fetchEna := Bool(false)
+	}
         val addr = io.replctrl.fetchAddr(EXTMEM_ADDR_WIDTH-1, LINE_WORD_SIZE_WIDTH)
         addrReg := addr
         burstCnt := UInt(0)
@@ -430,6 +431,7 @@ class PICacheCtrl() extends Module {
         fetchEna := Bool(false)
 	// Write new tag field memory
         wTag := Bool(true)
+	stateReg := idleState
       }
       when (ocpSlaveReg.Resp === OcpResp.DVA) {
         fetchCnt := fetchCnt + Bits(1)
@@ -449,10 +451,9 @@ class PICacheCtrl() extends Module {
       wAddr := Cat(addrReg, Bits(0, width = LINE_WORD_SIZE_WIDTH)) + fetchCnt
     }
     // Restart to idle state
-    .otherwise {
- //     fetchEna := Bool(false)
-      stateReg := idleState
-    }
+//    .otherwise {
+//      stateReg := idleState
+//    }
   }
 
   // Outputs to cache memory
@@ -463,6 +464,7 @@ class PICacheCtrl() extends Module {
 
   io.fetch_ena := fetchEna
   io.ctrlpref.prefTrig := prefTrig
+  io.ctrlpref.ctrlprefAddr :=  Cat(addrReg, Bits(0, width = LINE_WORD_SIZE_WIDTH)) 
 
   // Outputs to external memory
   io.ocp_port.M.Addr := Cat(ocpAddr, Bits("b00"))
