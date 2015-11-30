@@ -1,4 +1,4 @@
-/*
+/*  
    Copyright 2015 Technical University of Denmark, DTU Compute.
    All rights reserved.
        
@@ -48,7 +48,7 @@ import ocp._
 import scala.collection.mutable.HashMap
 import scala.util.Random
 import scala.math
-
+ 
 /*
   Instruction cache constants only used internally
  */
@@ -91,7 +91,7 @@ class PICacheCtrlRepl extends Bundle() {
   val wTag = Bool()
 }
 class PICachePrefRepl extends Bundle() {
-  val prefAddr = Bits(width= EXTMEM_ADDR_WIDTH)
+  val prefAddr = Bits(width = EXTMEM_ADDR_WIDTH)
 }
 class PICacheCtrlPref extends Bundle() {
   val prefTrig = Bool()
@@ -334,7 +334,7 @@ class PICacheReplDm() extends Module {
   io.replctrl.hitPref := hitPref
   io.replctrl.hit := hitEven && hitOdd  
   io.replctrl.selCache := selCacheReg
-
+ 
   //invalidate Valid and Prefetch bits
   when (io.invalidate) {
     validVec.map(_ := Bool(false))
