@@ -1,7 +1,7 @@
 /*
    Copyright 2015 Technical University of Denmark, DTU Compute.
    All rights reserved.
-       
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -31,10 +31,9 @@
  */
 
 /*
-  Instruction Cache with Prefetcher for Patmos
+  Instruction Cache for Patmos
   Authors: Philipp Degasperi (philipp.degasperi@gmail.com)
            Wolfgang Puffitsch (wpuffitsch@gmail.com)
-	   Bekim Cilku (bcilku@gmail.com)
  */
 
 package patmos
@@ -80,6 +79,8 @@ class ICacheCtrlIO extends Bundle() {
   val fetch_ena = Bool(OUTPUT)
   val ctrlrepl = new ICacheCtrlRepl().asOutput
   val replctrl = new ICacheReplCtrl().asInput
+  val feicache = new FeICache().asInput
+  val exicache = new ExICache().asInput
   val ocp_port = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
   val perf = new InstructionCachePerf()
 }
@@ -90,7 +91,7 @@ class ICacheCtrlRepl extends Bundle() {
   val wTag = Bool()
 }
 class ICacheReplCtrl extends Bundle() {
-  val hit = Bool() 
+  val hit = Bool()
   val fetchAddr = Bits(width = EXTMEM_ADDR_WIDTH)
   val selCache = Bool()
 }
@@ -123,6 +124,7 @@ class ICacheMemIO extends Bundle() {
   val memOut = new ICacheMemOut().asOutput
 }
 
+
 /*
  ICache: Top Level Class for the Instruction Cache
  */
@@ -134,6 +136,8 @@ class ICache() extends Module {
   val mem = Module(new ICacheMem())
   // Connect control unit
   ctrl.io.ctrlrepl <> repl.io.ctrlrepl
+  ctrl.io.feicache <> io.feicache
+  ctrl.io.exicache <> io.exicache
   ctrl.io.ocp_port <> io.ocp_port
   ctrl.io.perf <> io.perf
   // Connect replacement unit
@@ -162,11 +166,9 @@ class ICacheMem extends Module {
   val icacheEven = MemBlock(ICACHE_WORD_SIZE / 2, INSTR_WIDTH)
   val icacheOdd = MemBlock(ICACHE_WORD_SIZE / 2, INSTR_WIDTH)
 
-  //Write port on on-chip memory ?
   icacheEven.io <= (io.memIn.wEven, io.memIn.wAddr, io.memIn.wData)
   icacheOdd.io <= (io.memIn.wOdd, io.memIn.wAddr, io.memIn.wData)
 
-  //Read port from on-chip memory
   io.memOut.instrEven := icacheEven.io(io.memIn.addrEven)
   io.memOut.instrOdd := icacheOdd.io(io.memIn.addrOdd)
 }
@@ -181,7 +183,7 @@ class ICacheReplDm() extends Module {
   val tagMemEven = MemBlock(LINE_COUNT / 2, TAG_SIZE)
   val tagMemOdd = MemBlock(LINE_COUNT / 2, TAG_SIZE)
   val validVec = Vec.fill(LINE_COUNT) { Reg(init = Bool(false)) }
-  
+
   // Variables for call/return
   val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
   val callAddrReg = Reg(init = UInt(1, DATA_WIDTH))
@@ -213,18 +215,21 @@ class ICacheReplDm() extends Module {
   // Register addresses
   val addrEvenReg = Reg(next = io.feicache.addrEven)
   val addrOddReg = Reg(next = io.feicache.addrOdd)
+
   // Addresses for tag memory
   val indexEven = io.feicache.addrEven(INDEX_HIGH, INDEX_LOW+1)
   val indexOdd = io.feicache.addrOdd(INDEX_HIGH, INDEX_LOW+1)
   val parityEven = io.feicache.addrEven(INDEX_LOW)
   val tagAddrEven = Mux(parityEven, indexOdd, indexEven)
   val tagAddrOdd = Mux(parityEven, indexEven, indexOdd)
+
   // Read from tag memory
   val toutEven = tagMemEven.io(tagAddrEven)
   val toutOdd = tagMemOdd.io(tagAddrOdd)
   // Multiplex tag memory output
   val tagEven = Mux(addrEvenReg(INDEX_LOW), toutOdd, toutEven)
   val tagOdd = Mux(addrOddReg(INDEX_LOW), toutOdd, toutEven)
+
   // Check if line is valid
   val validEven = validVec(addrEvenReg(INDEX_HIGH, INDEX_LOW))
   val validOdd = validVec(addrOddReg(INDEX_HIGH, INDEX_LOW))
@@ -233,12 +238,11 @@ class ICacheReplDm() extends Module {
   // Check for a hit of both instructions in the address bundle
   hitEven := Bool(true)
   hitOdd := Bool(true)
-
-  fetchAddr := addrEvenReg
-  when ((tagEven != addrEvenReg(TAG_HIGH, TAG_LOW)) || (!validEven)) {
+  when (tagEven != addrEvenReg(TAG_HIGH, TAG_LOW)) {
     hitEven := Bool(false)
   }
-  .elsewhen ((tagOdd != addrOddReg(TAG_HIGH, TAG_LOW)) || (!validOdd)) {
+  fetchAddr := addrEvenReg
+  when (tagOdd != addrOddReg(TAG_HIGH, TAG_LOW)) {
     hitOdd := Bool(false)
     fetchAddr := addrOddReg
   }
@@ -280,9 +284,9 @@ class ICacheReplDm() extends Module {
 
   // Hit/miss to control module
   io.replctrl.fetchAddr := fetchAddr
-  io.replctrl.hit := hitEven && hitOdd  
+  io.replctrl.hit := hitEven && hitOdd && valid
   io.replctrl.selCache := selCacheReg
-  //invalidate Valid
+
   when (io.invalidate) {
     validVec.map(_ := Bool(false))
   }
@@ -297,7 +301,6 @@ class ICacheCtrl() extends Module {
   // States of the state machine
   val initState :: idleState :: transferState :: waitState :: Nil = Enum(UInt(), 4)
   val stateReg = Reg(init = initState)
-  val fetch = (!io.replctrl.hit) 
   // Signal for replacement unit
   val wData = Bits(width = DATA_WIDTH)
   val wTag = Bool()
@@ -332,12 +335,15 @@ class ICacheCtrl() extends Module {
     when (!io.replctrl.selCache) {
       stateReg := initState
     } .otherwise {
-      when (fetch) {    
+      when (!io.replctrl.hit) {
         fetchEna := Bool(false)
         val addr = io.replctrl.fetchAddr(EXTMEM_ADDR_WIDTH-1, LINE_WORD_SIZE_WIDTH)
         addrReg := addr
         burstCnt := UInt(0)
         fetchCnt := UInt(0)
+        // Write new tag field memory
+        wTag := Bool(true)
+        wAddr := Cat(addr, Bits(0, width = LINE_WORD_SIZE_WIDTH))
         // Check if command is accepted by the memory controller
         ocpAddr := Cat(addr, Bits(0, width =  LINE_WORD_SIZE_WIDTH))
         ocpCmd := OcpCmd.RD
@@ -361,10 +367,6 @@ class ICacheCtrl() extends Module {
   when (stateReg === transferState) {
     fetchEna := Bool(false)
     when (fetchCnt < UInt(LINE_WORD_SIZE)) {
-      when (fetchCnt === UInt(LINE_WORD_SIZE - 1)) {
-	// Write new tag field memory
-        wTag := Bool(true)
-      }
       when (ocpSlaveReg.Resp === OcpResp.DVA) {
         fetchCnt := fetchCnt + Bits(1)
         burstCnt := burstCnt + Bits(1)
@@ -413,4 +415,4 @@ class ICacheCtrl() extends Module {
       io.perf.miss := Bool(true)
     }
   }
-}        
+}
