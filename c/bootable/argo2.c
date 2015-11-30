@@ -68,7 +68,7 @@ int main() {
   }
 
   // Setting the first entry of the schedule table
-  //        Route        | DMA_num    | Pktlen| t2n
+  //        Route      | DMA_num    | Pktlen| t2n
   tmp1 = 13 << (8+3+5) | 0 << (3+5) | 2 << 5| 6;
   ARGO_CONFIG_WR32(SCHED_BANK,0<<2,tmp1);
   tmp2 = ARGO_CONFIG_RD32(SCHED_BANK,0<<2);
@@ -78,7 +78,7 @@ int main() {
   }
 
   // Setting the second entry of the schedule table
-  //        Route        | DMA_num    | Pktlen| t2n
+  //        Route      | DMA_num    | Pktlen| t2n
   tmp1 = 13 << (8+3+5) | 1 << (3+5) | 1 << 5| 3;
   ARGO_CONFIG_WR32(SCHED_BANK,1<<2,tmp1);
 
@@ -150,7 +150,9 @@ int main() {
   tmp1 = 5 << 16 | 2;
   ARGO_CONFIG_WR32(MC_BANK,9<<2,tmp1);
 
-  tmp1 = 1;
-  ARGO_CONFIG_WR32(MC_BANK,4<<2,tmp1);
+  if (get_cpuid() == 0) {
+    tmp1 = 1;
+    ARGO_CONFIG_WR32(MC_BANK,4<<2,tmp1);
+  }
 
 }
