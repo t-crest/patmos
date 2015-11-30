@@ -70,6 +70,14 @@ int main(void)
   while (boot_info->master.status != STATUS_INIT) {
     /* spin */
   }  
+
+  // initialize the content of the I-SPM from the main memory
+  // copy words not bytes
+  for (int i = 0; i < get_ispm_size()/4; ++i) {
+    // starting at 64 K (1 << 16) word address (/4)
+    *(SPM+(1<<16)/4+i) = *(MEM+(1<<16)/4+i);
+  }
+
   // acknowledge reception of start status
   boot_info->slave[get_cpuid()].status = STATUS_INIT;
 

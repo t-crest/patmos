@@ -59,8 +59,8 @@ abstract class Config {
   val burstLength: Int
   val writeCombine: Boolean
 
-  case class MCacheConfig(size: Int, blocks: Int, repl: String)
-  val MCache: MCacheConfig
+  case class ICacheConfig(typ: String, size: Int, assoc: Int, repl: String)
+  val ICache: ICacheConfig
   case class DCacheConfig(size: Int, assoc: Int, repl: String, writeThrough: Boolean)
   val DCache: DCacheConfig
   case class SCacheConfig(size: Int)
@@ -127,28 +127,28 @@ object Config {
   }
 
   private def getIntAttr(node: scala.xml.Node, elem: String, attr: String,
-                 optional: Boolean, default: Int) = {
+                         optional: Boolean, default: Int) = {
 
     val value = getAttr(node, elem, attr, optional)
     if (value == None) default else value.get.text.toInt
   }
 
   private def getBooleanAttr(node: scala.xml.Node, elem: String, attr: String,
-                     optional: Boolean, default: Boolean) = {
+                             optional: Boolean, default: Boolean) = {
 
     val value = getAttr(node, elem, attr, optional)
     if (value == None) default else value.get.text.toBoolean
   }
 
   private def getSizeAttr(node: scala.xml.Node, elem: String, attr: String,
-                  optional: Boolean, default: Int) = {
+                          optional: Boolean, default: Int) = {
 
     val value = getAttr(node, elem, attr, optional)
     if (value == None) default else parseSize(value.get.text)
   }
 
   private def getTextAttr(node: scala.xml.Node, elem: String, attr: String,
-                  optional: Boolean, default: String) = {
+                          optional: Boolean, default: String) = {
 
     val value = getAttr(node, elem, attr, optional)
     if (value == None) default else value.get.text
@@ -193,13 +193,15 @@ object Config {
       val writeCombine = getBooleanAttr(node, "bus", "@writeCombine",
                                         hasParent, defaultConf.writeCombine)
 
-      val MCache =
-        new MCacheConfig(getSizeAttr(node, "MCache", "@size",
-                                     hasParent, defaultConf.MCache.size),
-                         getIntAttr(node,  "MCache", "@blocks",
-                                    hasParent, defaultConf.MCache.blocks),
-                         getTextAttr(node, "MCache", "@repl",
-                                     hasParent, defaultConf.MCache.repl))
+      val ICache =
+        new ICacheConfig(getTextAttr(node, "ICache", "@type",
+                                     hasParent, defaultConf.ICache.typ),
+                         getSizeAttr(node, "ICache", "@size",
+                                     hasParent, defaultConf.ICache.size),
+                         getIntAttr(node,  "ICache", "@assoc",
+                                    hasParent, defaultConf.ICache.assoc),
+                         getTextAttr(node, "ICache", "@repl",
+                                     hasParent, defaultConf.ICache.repl))
 
       val DCache =
         new DCacheConfig(getSizeAttr(node, "DCache", "@size",
@@ -235,7 +237,6 @@ object Config {
       val ExtMem = new ExtMemConfig(parseSizeLong(find(ExtMemNode, "@size").text),
                                     ExtMemDev)
 
-
       val DevNodes = ((node \ "IOs") \ "IO")
       val Devs : List[Config#DeviceConfig] =
         DevNodes.map(devFromXML(_, DevList)).toList ++ defaultConf.Devs
@@ -244,6 +245,15 @@ object Config {
       for (d <- Devs) { initDevice(d) }
       if(ExtMem.ram.name != ""){
         initDevice(ExtMem.ram)
+      }
+
+      // Emit defines for emulator
+      if (Driver.backend.isInstanceOf[CppBackend]) {
+        val emuConfig = Driver.createOutputFile("emulator_config.h")
+        emuConfig.write("#define ICACHE_"+ICache.typ.toUpperCase+"\n")
+        for (d <- Devs) { emuConfig.write("#define IO_"+d.name.toUpperCase+"\n") }
+        emuConfig.write("#define EXTMEM_"+ExtMem.ram.name.toUpperCase+"\n")
+        emuConfig.close();
       }
 
       private def devFromXML(node: scala.xml.Node, devs: scala.xml.NodeSeq,
@@ -290,7 +300,7 @@ object Config {
     val burstLength = 0
     val writeCombine = false
     val minPcWidth = 0
-    val MCache = new MCacheConfig(0, 0, "")
+    val ICache = new ICacheConfig("", 0, 0, "")
     val DCache = new DCacheConfig(0, 0, "", true)
     val SCache = new SCacheConfig(0)
     val ISPM = new SPMConfig(0)

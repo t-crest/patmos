@@ -314,9 +314,9 @@ class FetchIO extends Bundle() {
   val exfe = new ExFe().asInput
   // call from MEM
   val memfe = new MemFe().asInput
-  //connections to mcache
-  val femcache = new FeMCache().asOutput
-  val mcachefe = new MCacheFe().asInput
+  // connections to instruction cache
+  val feicache = new FeICache().asOutput
+  val icachefe = new ICacheFe().asInput
 }
 
 class ExcDec() extends Bundle() {
@@ -342,7 +342,7 @@ class ExecuteIO() extends Bundle() {
   val brflush = Bool(OUTPUT)
   val decex = new DecEx().asInput
   val exmem = new ExMem().asOutput
-  val exmcache = new ExMCache().asOutput
+  val exicache = new ExICache().asOutput
   val feex = new FeEx().asInput
   // forwarding inputs
   val exResult = Vec.fill(PIPE_COUNT) { new Result().asInput }
@@ -397,15 +397,44 @@ class MemoryIO() extends Bundle() {
 class StackCacheIO() extends Bundle() {
   // check if another transfer is active
   val ena_in = Bool(INPUT)
-
   // signals from EX stage to stack cache
   val exsc = new ExSc().asInput
-
   // signals from stack cache back to the EX stage
   val scex = new ScEx().asOutput
-
   // indicate a stall
   val stall = Bool(OUTPUT)
+}
+
+// method/instruction cache connections
+class FeICache extends Bundle() {
+  val addrEven = Bits(width = EXTMEM_ADDR_WIDTH)
+  val addrOdd = Bits(width = EXTMEM_ADDR_WIDTH)
+}
+class ExICache() extends Bundle() {
+  val doCallRet = Bool()
+  val callRetBase = UInt(width = EXTMEM_ADDR_WIDTH)
+  val callRetAddr = UInt(width = EXTMEM_ADDR_WIDTH)
+}
+class ICacheFe extends Bundle() {
+  val instrEven = Bits(width = INSTR_WIDTH)
+  val instrOdd = Bits(width = INSTR_WIDTH)
+  // relative base address
+  val relBase = UInt(width = MAX_OFF_WIDTH)
+  // relative program counter
+  val relPc = UInt(width = MAX_OFF_WIDTH+1)
+  // offset between relative and absolute program counter
+  val reloc = UInt(width = DATA_WIDTH)
+  val memSel = Bits(width = 2)
+}
+class ICacheIO extends Bundle() {
+  val ena_out = Bool(OUTPUT)
+  val ena_in = Bool(INPUT)
+  val invalidate = Bool(INPUT)
+  val feicache = new FeICache().asInput
+  val exicache = new ExICache().asInput
+  val icachefe = new ICacheFe().asOutput
+  val ocp_port = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+  val perf = new InstructionCachePerf()
 }
 
 class WriteBackIO() extends Bundle() {
@@ -423,7 +452,7 @@ class ExcIO() extends Bundle() {
   val intrs = Vec.fill(INTR_COUNT) { Bool(INPUT) }
   val excdec = new ExcDec().asOutput
   val memexc = new MemExc().asInput
-  val invalMCache = Bool(OUTPUT)
+  val invalICache = Bool(OUTPUT)
   val invalDCache = Bool(OUTPUT)
 }
 
@@ -440,7 +469,7 @@ class PatmosIO() extends Bundle() {
 
 
 // Performance counters
-class MethodCachePerf() extends Bundle() {
+class InstructionCachePerf() extends Bundle() {
   val hit = Bool(OUTPUT)
   val miss = Bool(OUTPUT)
 }
@@ -461,7 +490,7 @@ class MemPerf() extends Bundle() {
   val write = Bool(OUTPUT)
 }
 class PerfCounterIO() extends Bundle() {
-  val mc = new MethodCachePerf().asInput
+  val ic = new InstructionCachePerf().asInput
   val dc = new DataCachePerf().asInput
   val sc = new StackCachePerf().asInput
   val wc = new WriteCombinePerf().asInput

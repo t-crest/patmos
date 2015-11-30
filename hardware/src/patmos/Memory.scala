@@ -81,22 +81,25 @@ class Memory() extends Module {
     }
   }
 
-  // PD: Maybe we find a better solution to avoid the case that Data from the Data-Cache is
-  // still received during the I-Cache stalls the pipeline
-  // uncomment if I-Cache is used
-  // val rdDataEnaReg = Reg(init = Bool(false))
-  // val rdDataReg = Reg(init = Bits(0, width = 32))
-  // // Save incoming data if available during I-Cache stall
-  // when (!io.ena_in) {
-  //   when (io.localInOut.S.Resp === OcpResp.DVA || io.globalInOut.S.Resp === OcpResp.DVA) {
-  //     mayStallReg := Bool(false)
-  //     rdDataEnaReg := Bool(true)
-  //     rdDataReg := io.globalInOut.S.Data
-  //   }
-  // }
-  // .otherwise {
-  //   rdDataEnaReg := Bool(false)
-  // }
+  // Buffer incoming data while being stalled from I-cache
+  val rdDataEnaReg = Reg(init = Bool(false))
+  val rdDataReg = Reg(init = Bits(0, width = 32))
+  // Save incoming data if available during I-cache stall
+  when (!io.ena_in) {
+    when (io.localInOut.S.Resp === OcpResp.DVA || io.globalInOut.S.Resp === OcpResp.DVA) {
+      mayStallReg := Bool(false)
+      rdDataEnaReg := Bool(true)
+    }
+    when (io.localInOut.S.Resp === OcpResp.DVA) {
+      rdDataReg := io.localInOut.S.Data
+    }
+    when (io.globalInOut.S.Resp === OcpResp.DVA) {
+      rdDataReg := io.globalInOut.S.Data
+    }
+  }
+  .otherwise {
+    rdDataEnaReg := Bool(false)
+  }
 
   // Write data multiplexing and write enables
   // Big endian, where MSB is at the lowest address
@@ -173,12 +176,11 @@ class Memory() extends Module {
   }
 
   // Read data multiplexing and sign extensions if needed
-  val rdData = splitData(Mux(memReg.mem.typ === MTYPE_L,
-                             io.localInOut.S.Data, io.globalInOut.S.Data))
+  val rdData = splitData(Mux(Bool(ICACHE_TYPE == ICACHE_TYPE_LINE) && rdDataEnaReg,
+                             rdDataReg,
+                             Mux(memReg.mem.typ === MTYPE_L,
+                                 io.localInOut.S.Data, io.globalInOut.S.Data)))
 
-  //uncommend if I-Cache is used
-  // val rdData = Mux(rdDataEnaReg, splitData(rdDataReg), splitData(Mux(memReg.mem.typ === MTYPE_L,
-  //                             io.localInOut.S.Data, io.globalInOut.S.Data)))
   val dout = Bits(width = DATA_WIDTH)
   // default word read
   dout := Cat(rdData(3), rdData(2), rdData(1), rdData(0))

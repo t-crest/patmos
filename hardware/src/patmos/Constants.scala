@@ -53,20 +53,40 @@ object Constants {
   val DSPM_SIZE = util.Config.getConfig.DSPM.size
   val BOOTSPM_SIZE = util.Config.getConfig.BootSPM.size
 
-  val MCACHE_SIZE = util.Config.getConfig.MCache.size
-  val METHOD_COUNT = util.Config.getConfig.MCache.blocks
+  val ICACHE_TYPE = util.Config.getConfig.ICache.typ
+  val ICACHE_SIZE = util.Config.getConfig.ICache.size
+  val ICACHE_ASSOC = util.Config.getConfig.ICache.assoc
+  val ICACHE_REPL = util.Config.getConfig.ICache.repl
 
   val DCACHE_SIZE = util.Config.getConfig.DCache.size
   val DCACHE_ASSOC = util.Config.getConfig.DCache.assoc
   val DCACHE_REPL = util.Config.getConfig.DCache.repl
+
+  val CACHE_REPL_LRU  = "lru"
+  val CACHE_REPL_FIFO = "fifo"
+  def cacheRepl2Int(repl: String): Int = repl match {
+    case CACHE_REPL_LRU  => 1
+    case CACHE_REPL_FIFO => 2
+    case _               => 0
+  }
+
+  val ICACHE_TYPE_METHOD = "method"
+  val ICACHE_TYPE_LINE = "line"
+  def iCacheType2Int(typ: String): Int = typ match {
+    case ICACHE_TYPE_METHOD => 1
+    case ICACHE_TYPE_LINE   => 2
+    case _                  => 0
+  }
+
   val DCACHE_WRITETHROUGH = util.Config.getConfig.DCache.writeThrough
   val SCACHE_SIZE = util.Config.getConfig.SCache.size
-  // offset for switching from relative address to absolute address, default = 0
-  val ICACHE_ADDR_OFFSET = 0 //log2Up(util.Config.getConfig.ExtMem.size)
 
-  // maximum width between ISPM size, MCACHE size and boot ROM size
-  val MAX_OFF_WIDTH = List(log2Up(MCACHE_SIZE / 4), log2Up(ISPM_SIZE / 4),
-    util.Config.minPcWidth, ICACHE_ADDR_OFFSET).reduce(math.max)
+  // minimum size of internal program counter
+  val MIN_OFF_WIDTH = if (ICACHE_TYPE == ICACHE_TYPE_METHOD) 0 else log2Up(util.Config.getConfig.ExtMem.size)
+
+  // maximum width between ISPM size, ICache size and boot ROM size
+  val MAX_OFF_WIDTH = List(log2Up(ICACHE_SIZE / 4), log2Up(ISPM_SIZE / 4),
+    util.Config.minPcWidth, MIN_OFF_WIDTH).reduce(math.max)
 
   // we use a very simple decoding of ISPM at address 0x00010000
   val ISPM_ONE_BIT = 16
@@ -74,7 +94,8 @@ object Constants {
   // both in the global address space
   val BOOTMEM_ONE_BIT = 16
 
-  val EXTMEM_ADDR_WIDTH = log2Up(util.Config.getConfig.ExtMem.size)
+  val EXTMEM_SIZE = util.Config.getConfig.ExtMem.size
+  val EXTMEM_ADDR_WIDTH = log2Up(EXTMEM_SIZE)
   val BURST_LENGTH = util.Config.getConfig.burstLength // For SSRAM on DE2-70 board max. 4
   val WRITE_COMBINE = util.Config.getConfig.writeCombine
 

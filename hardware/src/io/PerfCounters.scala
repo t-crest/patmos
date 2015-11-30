@@ -84,8 +84,8 @@ class PerfCounters() extends CoreDevice() {
   val PERFCOUNTER_COUNT = 10
 
   val inputVec = Vec.fill(PERFCOUNTER_COUNT) { Reg(Bool()) }
-  inputVec(0) := io.internalPort.perf.mc.hit
-  inputVec(1) := io.internalPort.perf.mc.miss
+  inputVec(0) := io.internalPort.perf.ic.hit
+  inputVec(1) := io.internalPort.perf.ic.miss
   inputVec(2) := io.internalPort.perf.dc.hit
   inputVec(3) := io.internalPort.perf.dc.miss
   inputVec(4) := io.internalPort.perf.sc.spill

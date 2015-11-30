@@ -1,7 +1,7 @@
 /*
-   Copyright 2014 Technical University of Denmark, DTU Compute.
+   Copyright 2014 Technical University of Denmark, DTU Compute. 
    All rights reserved.
-
+   
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -31,44 +31,39 @@
  */
 
 /*
- * Method cache without actual functionality
+ * IO functions of ethlib (ethernet library)
  * 
- * Authors: Wolfgang Puffitsch (wpuffitsch@gmail.com)
- *        Philipp Degasperi (philipp.degasperi@gmail.com)
+ * Authors: Luca Pezzarossa (lpez@dtu.dk)
+ *          Jakob Kenn Toft
+ *          Jesper Lønbæk
+ *          Russell Barnes
  */
 
-package patmos
+#ifndef _ETH_PATMOS_IO_H_
+#define _ETH_PATMOS_IO_H_
 
-import Chisel._
-import Node._
-import Constants._
-import ocp._
+#include <machine/patmos.h>
 
-class NullMCache() extends Module {
-  val io = new MCacheIO()
+// Pointers to the base addresses, all the addressing (addr as arguments) in the library are an offset on these addresses
+#define ETH_BASE ( ( volatile _IODEV unsigned * ) 0xF00BF000 )
+#define BUFF_BASE ( ( volatile _IODEV unsigned * ) 0xF00B0000 )
 
-  val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
-  val callAddrReg = Reg(init = UInt(1, DATA_WIDTH))
-  val selIspmReg = Reg(init = Bool(false))
+// Write to ethernet controller
+void eth_iowr(unsigned addr,unsigned data);
 
-  io.ena_out := Bool(true)
+// Read ethernet controller
+unsigned eth_iord(unsigned addr);
 
-  when (io.exmcache.doCallRet && io.ena_in) {
-    callRetBaseReg := io.exmcache.callRetBase
-    callAddrReg := io.exmcache.callRetAddr
-    selIspmReg := io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-2) === Bits(0x1)
-  }
+// Write rx-tx buffer
+void mem_iowr(unsigned addr, unsigned data);
 
-  io.mcachefe.instrEven := Bits(0)
-  io.mcachefe.instrOdd := Bits(0)
-  io.mcachefe.relBase := callRetBaseReg(ISPM_ONE_BIT-3, 0)
-  io.mcachefe.relPc := callAddrReg + callRetBaseReg(ISPM_ONE_BIT-3, 0)
-  io.mcachefe.reloc := Mux(selIspmReg, UInt(1 << (ISPM_ONE_BIT - 2)), UInt(0))
-  io.mcachefe.memSel := Cat(selIspmReg, Bits(0))
+// Write a byte in rx-tx buffer
+void mem_iowr_byte(unsigned addr, unsigned data);
 
-  io.ocp_port.M.Cmd := OcpCmd.IDLE
-  io.ocp_port.M.Addr := Bits(0)
-  io.ocp_port.M.Data := Bits(0)
-  io.ocp_port.M.DataValid := Bits(0)
-  io.ocp_port.M.DataByteEn := Bits(0)
-}
+// Read rx-tx buffer
+unsigned mem_iord(int addr);
+
+// Write a byte in rx-tx buffer
+unsigned mem_iord_byte(unsigned addr);
+
+#endif

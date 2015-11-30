@@ -90,19 +90,19 @@ class Fetch(fileName : String) extends Module {
     val memOdd = MemBlock(1, INSTR_WIDTH, bypass = false)
   }
 
-  val selIspm = Reg(Bool())
-  val selMCache = Reg(Bool())
+  val selSpm = Reg(init = Bool(false))
+  val selCache = Reg(init = Bool(false))
   when (io.ena) {
-    selIspm := io.mcachefe.memSel(1)
-    selMCache := io.mcachefe.memSel(0)
+    selSpm := io.icachefe.memSel(1)
+    selCache := io.icachefe.memSel(0)
   }
 
   //need to register these values to save them in  memory stage at call/return
   val relBaseReg = Reg(init = UInt(1, width = MAX_OFF_WIDTH))
   val relocReg = Reg(init = UInt(0, DATA_WIDTH))
   when(io.memfe.doCallRet && io.ena) {
-    relBaseReg := io.mcachefe.relBase
-    relocReg := io.mcachefe.reloc
+    relBaseReg := io.icachefe.relBase
+    relocReg := io.icachefe.reloc
   }
 
   //select even/odd from rom
@@ -114,25 +114,25 @@ class Fetch(fileName : String) extends Module {
   val instr_b_rom = Mux(pcReg(0) === Bits(0), data_odd, data_even)
 
   //select even/odd from method cache
-  val instr_a_cache = Mux(pcReg(0) === Bits(0), io.mcachefe.instrEven, io.mcachefe.instrOdd)
-  val instr_b_cache = Mux(pcReg(0) === Bits(0), io.mcachefe.instrOdd, io.mcachefe.instrEven)
+  val instr_a_cache = Mux(pcReg(0) === Bits(0), io.icachefe.instrEven, io.icachefe.instrOdd)
+  val instr_b_cache = Mux(pcReg(0) === Bits(0), io.icachefe.instrOdd, io.icachefe.instrEven)
 
-  //MCache/ISPM/ROM Mux
-  val instr_a = Mux(selIspm, instr_a_ispm,
-                    Mux(selMCache, instr_a_cache, instr_a_rom))
-  val instr_b = Mux(selIspm, instr_b_ispm,
-                    Mux(selMCache, instr_b_cache, instr_b_rom))
+  //Icache/ISPM/ROM Mux
+  val instr_a = Mux(selSpm, instr_a_ispm,
+                    Mux(selCache, instr_a_cache, instr_a_rom))
+  val instr_b = Mux(selSpm, instr_b_ispm,
+                    Mux(selCache, instr_b_cache, instr_b_rom))
 
   val b_valid = instr_a(31) === Bits(1)
 
   val pc_cont = Mux(b_valid, pcReg + UInt(2), pcReg + UInt(1))
   val pc_next =
-    Mux(io.memfe.doCallRet, io.mcachefe.relPc.toUInt,
+    Mux(io.memfe.doCallRet, io.icachefe.relPc.toUInt,
             Mux(io.exfe.doBranch, io.exfe.branchPc,
                 pc_cont))
   val pc_cont2 = Mux(b_valid, pcReg + UInt(4), pcReg + UInt(3))
   val pc_next2 =
-    Mux(io.memfe.doCallRet, io.mcachefe.relPc.toUInt + UInt(2),
+    Mux(io.memfe.doCallRet, io.icachefe.relPc.toUInt + UInt(2),
         Mux(io.exfe.doBranch, io.exfe.branchPc + UInt(2),
             pc_cont2))
 
@@ -154,8 +154,8 @@ class Fetch(fileName : String) extends Module {
   val relPc = pcReg - relBaseReg
   io.feex.pc := Mux(b_valid, relPc + UInt(2), relPc + UInt(1))
 
-  //outputs to mcache
-  io.femcache.addrEven := addrEven
-  io.femcache.addrOdd := addrOdd
+  //outputs to icache
+  io.feicache.addrEven := addrEven
+  io.feicache.addrOdd := addrOdd
 
 }
