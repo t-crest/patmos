@@ -54,12 +54,12 @@ object PrefetchCons2 {
   if((index_array.max) > 8)
     INDEX_REG_WIDTH = log2Up(index_array.max)
   
-  var MAX_ITERATION_WIDTH = 3
-  if((iteration_array.max) > 8)
+  var MAX_ITERATION_WIDTH = 5
+  if((iteration_array.max) > 32)
     MAX_ITERATION_WIDTH = log2Up(iteration_array.max)
   
-  var MAX_COUNT_WIDTH = 3
-  if((count_array.max) > 8)
+  var MAX_COUNT_WIDTH = 5
+  if((count_array.max) > 32)
     MAX_COUNT_WIDTH = log2Up(count_array.max)
   
   var MAX_DEPTH = 3
@@ -81,16 +81,11 @@ object PrefetchCons2 {
   //calculating the max number of call entries in RPT table
   var max_call = 1
   for(i <- 0 until MAX_INDEX_RPT)
-    if(type_array(i) == 0)
+    if(type_array(i) == 1)
       max_call += 1
   val MAX_CALLS = max_call
 
   //RPT columns
-  def index_f():Vec[UInt] = {
-    for (i <- 0 until MAX_INDEX_RPT)
-      index_array_c(i) = UInt(index_array(i), width = INDEX_WIDTH) 
-    Vec[UInt](index_array_c)
-  }
   def trigger_f():Vec[UInt] = {
     for (i <- 0 until MAX_INDEX_RPT)
       trigger_array_c(i) = UInt(trigger_array(i), width = (TAG_SIZE + INDEX_SIZE)) 

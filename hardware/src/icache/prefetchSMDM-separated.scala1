@@ -2,16 +2,16 @@ package patmos
 
 import Chisel._
 import Node._
-import PrefetchCons2._
-import PIConstants2._
+import PrefetchCons._
+import PIConstants._
 import Constants._
 import scala.math._
 
-class PFSM extends Module {
-  val io = new Prefetcher2IO()
+class PFSMDM extends Module {
+  val io = new PrefetcherIO()
 	
   val pc_address_even = io.feicache.addrEven(TAG_HIGH, INDEX_LOW)
-  val pc_address_odd = io.feicache.addrOdd(TAG_HIGH, INDEX_LOW) 
+  val pc_address_odd = io.feicache.addrOdd(TAG_HIGH, INDEX_LOW)
   val prefTrig = io.ctrlpref.prefTrig
   val pc_address = io.ctrlpref.ctrlprefAddr
 
@@ -33,7 +33,7 @@ class PFSM extends Module {
   val previous_addrs_R = Reg(init = Bits(0, width = (TAG_SIZE + INDEX_SIZE))) 
   val previous_addrs_even_R = Reg(init = Bits(0, width = (TAG_SIZE + INDEX_SIZE))) 
   val previous_addrs_odd_R = Reg(init = Bits(0, width = (TAG_SIZE + INDEX_SIZE))) 
-
+  val previous_addrs_R1 = Reg(init = Bits(0, width = (TAG_SIZE + INDEX_SIZE))) 
   
   val index_R = Reg(init = UInt(0, width = INDEX_REG_WIDTH))
   val sign_ext_R = Reg(init = Bits(0, width = (EXTMEM_ADDR_WIDTH - TAG_SIZE - INDEX_SIZE))) 
@@ -43,20 +43,20 @@ class PFSM extends Module {
   val iteration_inner_R = Reg(init = UInt(0, width = MAX_LOOP_ITER_WIDTH))
   val status_R = Vec.fill(MAX_DEPTH){Reg(init = UInt(0, width = MAX_DEPTH_WIDTH))}
   val iteration_outer_R = Vec.fill(MAX_DEPTH){Reg(init = UInt(0, width = MAX_ITERATION_WIDTH))}
-  
-//  val cache_line_id_address = pc_address(TAG_HIGH, INDEX_LOW)
 
-  val cache_line_id_address = Reg(init = UInt(0, width = (TAG_SIZE + INDEX_SIZE)))
+  val cache_line_id_address1 = pc_address(TAG_HIGH, INDEX_LOW)
+  
+  val cache_line_id_address =  Reg(init = UInt(0, width = (TAG_SIZE + INDEX_SIZE)))
   val output = Reg(init = Bits(0, width = EXTMEM_ADDR_WIDTH))
   val en_seq = Reg(init = Bool(false))
   val change_state = Reg(init = Bool(false))
- 
+
   // Reset the index when cache is flushed
   when (io.invalidate) {
     index_R := UInt(0)
   }
-
-  // Input address selection
+  
+  // input address selection
   when (pc_address_even != previous_addrs_even_R) {
     previous_addrs_even_R := pc_address_even
     when (pc_address_even != cache_line_id_address) {
@@ -66,9 +66,17 @@ class PFSM extends Module {
   .elsewhen (pc_address_odd != previous_addrs_odd_R) {
     previous_addrs_odd_R := pc_address_even
     when (pc_address_even != cache_line_id_address) {
-      cache_line_id_address := pc_address_odd
+     cache_line_id_address := pc_address_odd
     }
   }
+
+  when (cache_line_id_address1 != previous_addrs_R1)  { //prefetch
+	previous_addrs_R1 := cache_line_id_address1
+        when (cache_line_id_address1 != trigger_rom(index_R)) { //no matching - next line prefetching
+	  output := Cat((cache_line_id_address1 + UInt(1)), sign_ext_R) 
+        }
+  }
+
 
   // State_machine
   val trigger :: small_loop :: Nil = Enum(UInt(), 2)
@@ -76,20 +84,20 @@ class PFSM extends Module {
 
   switch (state) {
     is(trigger) {
-      when ((cache_line_id_address != previous_addrs_R) || en_seq) { //prefetch
-        en_seq := Bool(false)
-        previous_addrs_R := cache_line_id_address
+      when ((cache_line_id_address != previous_addrs_R) || en_seq)  { //prefetch
+	previous_addrs_R := cache_line_id_address
+	en_seq := Bool(false)
 	when (change_state) {
-          state := small_loop
+	  state := small_loop
 	  change_state := Bool(false)
 	}
         .elsewhen (cache_line_id_address != trigger_rom(index_R)) { //no matching - next line prefetching
-          output := Cat((cache_line_id_address + UInt(1)), sign_ext_R)
+//	  output := Cat((cache_line_id_address + UInt(1)), sign_ext_R) 
           state := trigger
         }
         .otherwise { //matching with rpt table entry
           when (type_rom(index_R) === UInt(0)) {  //call type
-            output := Cat(destination_rom(index_R), sign_ext_R).toBits
+            output := Cat(destination_rom(index_R), sign_ext_R)
             stackAddrs(sp_R) := retdes_rom(index_R)  
             stackIndex(sp_R) := index_R + UInt(1)
             sp_R := sp_R + UInt(1)
@@ -97,18 +105,24 @@ class PFSM extends Module {
             state := trigger
           }
           .elsewhen (type_rom(index_R) === UInt(1)) { // return type
-            output := Cat(stackAddrs(sp_R - UInt(1)), sign_ext_R).toUInt
-            index_R := stackIndex(sp_R - UInt(1))
-            sp_R := sp_R - UInt(1) 
             state := trigger
-          } 
+            output := Cat(stackAddrs(sp_R - UInt(1)), sign_ext_R)
+	    when (stackAddrs(sp_R - UInt(1)) === UInt(0)) {
+	      index_R := UInt(0)
+	      sp_R := UInt(1)
+	    }
+	    .otherwise {  
+              index_R := stackIndex(sp_R - UInt(1))
+              sp_R := sp_R - UInt(1) 
+	    }
+          }		 
           .elsewhen (type_rom(index_R) === UInt(3)) { // small_loop
-            output := Cat((cache_line_id_address + UInt(1)), sign_ext_R).toBits
+	    output := Cat((cache_line_id_address + UInt(1)), sign_ext_R) 	
             index_R := index_R + UInt(1)
             when (count_rom(index_R) > UInt(1)) {
-              small_l_addr_R := cache_line_id_address + UInt(2) 
+	      small_l_addr_R := cache_line_id_address + UInt(2) 
               small_l_count_R := count_rom(index_R) - UInt(1)
-              change_state := Bool(true)
+	      change_state := Bool(true)
             }
             .otherwise {
               state := trigger
@@ -118,40 +132,43 @@ class PFSM extends Module {
             state := trigger
             when (status_R(depth_rom(index_R)) === UInt(0)) {//entring first time
               output := Cat(destination_rom(index_R), sign_ext_R)
-	      index_R := next_rom(index_R)
-              when ((iteration_rom(index_R)) === UInt(1)) { // only one iteration
-	        status_R(depth_rom(index_R)) := UInt(2) //change status to "exhausted" 
+              index_R := next_rom(index_R)
+              when (iteration_outer_R(depth_rom(index_R)) === UInt(1)) { // only one iteration
+         	status_R(depth_rom(index_R)) := UInt(2) //change status to "exhausted" 
 	      }
 	      .otherwise {
 	      	iteration_outer_R(depth_rom(index_R)) := iteration_rom(index_R) - UInt(1)
                 status_R(depth_rom(index_R)) := UInt(1) //change status to "live"
               }
-            }
+            }  
             .elsewhen (status_R(depth_rom(index_R)) === UInt(1)) {// next iteration of the outer loop
 	      output := Cat(destination_rom(index_R), sign_ext_R)
-	      index_R := next_rom(index_R)
-              iteration_outer_R(depth_rom(index_R)) := iteration_outer_R(depth_rom(index_R)) - UInt(1)	
+              index_R := next_rom(index_R)
 	      when (iteration_outer_R(depth_rom(index_R)) === UInt(1)) { // last iteration
 	      	status_R(depth_rom(index_R)) := UInt(2) // change status to "exhausted"
+	      	iteration_outer_R(depth_rom(index_R)) := UInt(0)
 	      }
+	      .otherwise {
+	     	iteration_outer_R(depth_rom(index_R)) := iteration_outer_R(depth_rom(index_R)) - UInt(1)
+	      } 
 	    } 
             .elsewhen (status_R(depth_rom(index_R)) === UInt(2)) { // loop is already "exhausted"
               status_R(depth_rom(index_R)) := UInt(0) // reset the status
-	      index_R := index_R +UInt(1)
+              index_R := index_R + UInt(1)
 	      when (trigger_rom(index_R) === trigger_rom(index_R + UInt(1))) {  //next trigger is on the same cache line
                 en_seq := Bool(true)
               }
 	      .otherwise {
-	        output := Cat((cache_line_id_address +UInt(1)), sign_ext_R)
-	      }
-	    }
+	          output := Cat((cache_line_id_address + UInt(1)), sign_ext_R) 	
+              }
+	    } 
 	  }
-        }   
+        }  
       }  
     }
     is(small_loop) { //more than one prefetching 
       when (small_l_addr_R === cache_line_id_address) {
-	state := trigger
+        state := trigger
       }
       .elsewhen (prefTrig) {
         output := Cat(small_l_addr_R, sign_ext_R)
@@ -159,13 +176,12 @@ class PFSM extends Module {
           small_l_count_R := small_l_count_R - UInt(1)
 	  small_l_addr_R := small_l_addr_R + UInt(1)
 	  state := small_loop
-        }
+      	}
       }
       .elsewhen (small_l_count_R === UInt(1)) {
-	state := trigger 
-     }
-  } 
-  io.prefrepl.prefAddr := output
+      	state := trigger 
+      }
+    } 
+    io.prefrepl.prefAddr := output
   }
-}
-
+}    
