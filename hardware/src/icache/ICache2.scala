@@ -283,12 +283,14 @@ class ICache2Repl() extends Module {
   tagMemOddFirst.io <= (io.ctrlrepl.wTag && wrAddrParity && (!replVec(wrValidIndex)), wrAddrIndex, wrAddrTag)
   when (io.ctrlrepl.wTag && (!replVec(wrValidIndex))) {
     validVecFirst(wrValidIndex) := Bool(true)
+    replVec(wrValidIndex) := Bool(true)
   }
 
   tagMemEvenSecond.io <= (io.ctrlrepl.wTag && !wrAddrParity && (replVec(wrValidIndex)), wrAddrIndex, wrAddrTag)
   tagMemOddSecond.io <= (io.ctrlrepl.wTag && wrAddrParity && (replVec(wrValidIndex)), wrAddrIndex, wrAddrTag)
   when (io.ctrlrepl.wTag && (replVec(wrValidIndex))) {
     validVecSecond(wrValidIndex) := Bool(true)
+    replVec(wrValidIndex) := Bool(false)
   }
 
 
@@ -312,14 +314,6 @@ class ICache2Repl() extends Module {
   io.icachefe.relPc := relPc
   io.icachefe.reloc := reloc
   io.icachefe.memSel := Cat(selSpmReg, selCacheReg)
-
-  // Changing the repl value
-  when (io.ctrlrepl.wTag && (!replVec(wrValidIndex))) {
-    replVec(wrValidIndex) := Bool(true)
-  }
-  when (io.ctrlrepl.wTag && (replVec(wrValidIndex))) {
-    replVec(wrValidIndex) := Bool(false)
-  }
 
   // Hit/miss to control module
   io.replctrl.fetchAddr := fetchAddr
@@ -382,6 +376,9 @@ class ICache2Ctrl() extends Module {
         addrReg := addr
         burstCnt := UInt(0)
         fetchCnt := UInt(0)
+        // Write new tag field memory
+	wTag := Bool(true)
+	wAddr := Cat(addr, Bits(0, width = LINE_WORD_SIZE_WIDTH))
        // Check if command is accepted by the memory controller
         ocpAddr := Cat(addr, Bits(0, width =  LINE_WORD_SIZE_WIDTH))
         ocpCmd := OcpCmd.RD
@@ -405,10 +402,6 @@ class ICache2Ctrl() extends Module {
   when (stateReg === transferState) {
     fetchEna := Bool(false)
     when (fetchCnt < UInt(LINE_WORD_SIZE)) {
-      when(fetchCnt === UInt(LINE_WORD_SIZE - 1)) {
-        // Write new tag field memory
-        wTag := Bool(true)
-     }
       when (ocpSlaveReg.Resp === OcpResp.DVA) {
         fetchCnt := fetchCnt + Bits(1)
         burstCnt := burstCnt + Bits(1)
