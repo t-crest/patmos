@@ -247,14 +247,12 @@ class ICache2Repl() extends Module {
   val tagOddFirst = Mux(addrOddReg(INDEX_LOW), toutOddFirst, toutEvenFirst)
   val tagEvenSecond = Mux(addrEvenReg(INDEX_LOW), toutOddSecond, toutEvenSecond)
   val tagOddSecond = Mux(addrOddReg(INDEX_LOW), toutOddSecond, toutEvenSecond)
-
+ 
   // Check if line is valid
   val validEvenFirst = validVecFirst(addrEvenReg(INDEX_HIGH, INDEX_LOW))
   val validOddFirst = validVecFirst(addrOddReg(INDEX_HIGH, INDEX_LOW))
-  val validFirst = validEvenFirst && validOddFirst
   val validEvenSecond = validVecSecond(addrEvenReg(INDEX_HIGH, INDEX_LOW))
   val validOddSecond = validVecSecond(addrOddReg(INDEX_HIGH, INDEX_LOW))
-  val validSecond = validEvenSecond && validOddSecond
 
 
   // Check for a hit of both instructions in the address bundle
@@ -292,8 +290,6 @@ class ICache2Repl() extends Module {
     validVecSecond(wrValidIndex) := Bool(true)
     replVec(wrValidIndex) := Bool(false)
   }
-
-
 
   val wrParity = io.ctrlrepl.wAddr(0)
 
@@ -377,7 +373,7 @@ class ICache2Ctrl() extends Module {
         burstCnt := UInt(0)
         fetchCnt := UInt(0)
         // Write new tag field memory
-	wTag := Bool(true)
+//	wTag := Bool(true)
 	wAddr := Cat(addr, Bits(0, width = LINE_WORD_SIZE_WIDTH))
        // Check if command is accepted by the memory controller
         ocpAddr := Cat(addr, Bits(0, width =  LINE_WORD_SIZE_WIDTH))
@@ -402,6 +398,9 @@ class ICache2Ctrl() extends Module {
   when (stateReg === transferState) {
     fetchEna := Bool(false)
     when (fetchCnt < UInt(LINE_WORD_SIZE)) {
+      when(fetchCnt === UInt(LINE_WORD_SIZE - 1)) {
+        wTag := Bool(true)
+      }
       when (ocpSlaveReg.Resp === OcpResp.DVA) {
         fetchCnt := fetchCnt + Bits(1)
         burstCnt := burstCnt + Bits(1)

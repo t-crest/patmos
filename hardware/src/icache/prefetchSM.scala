@@ -64,8 +64,8 @@ class PFSM extends Module {
     }
   }
   .elsewhen (pc_address_odd != previous_addrs_odd_R) {
-    previous_addrs_odd_R := pc_address_even
-    when (pc_address_even != cache_line_id_address) {
+    previous_addrs_odd_R := pc_address_odd
+    when (pc_address_odd != cache_line_id_address) {
       cache_line_id_address := pc_address_odd
     }
   }
