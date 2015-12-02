@@ -138,9 +138,9 @@ int main() {
 
   // Setting run to 1
   tmp1 = 1;
-  ARGO_CONFIG_WR32(TDM_BANK,128<<2,tmp1);
+  ARGO_CONFIG_WR32(TDM_BANK,4<<2,tmp1);
   asm volatile ("nop");
-  tmp2 = ARGO_CONFIG_RD32(TDM_BANK,128<<2);
+  tmp2 = ARGO_CONFIG_RD32(TDM_BANK,4<<2);
 
   if (tmp2 == tmp1) {
     WRITE("OK5\n",4); 

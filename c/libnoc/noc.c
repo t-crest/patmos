@@ -34,6 +34,7 @@
  * Functions to initialize and use the NoC.
  * 
  * Author: Wolfgang Puffitsch (wpuffitsch@gmail.com)
+ * Author: Rasmus Bo Soerensen (rasmus@rbscloud.dk)
  *
  */
 
@@ -45,26 +46,16 @@
 #include "bootloader/cmpboot.h"
 #include "noc.h"
 
-// Structure to model the network interface
-static struct network_interface
-{
-    volatile int _IODEV *dma;
-    volatile int _IODEV *dma_p;
-    volatile int _IODEV *st;
-} noc_interface = {
-  NOC_DMA_BASE, NOC_DMA_P_BASE, NOC_ST_BASE
-};
-
 // Configure network interface according to initialization information
 void noc_configure(void) {
-  unsigned row_size = NOC_TIMESLOTS > NOC_DMAS ? NOC_TIMESLOTS : NOC_DMAS;
-  unsigned core_idx = get_cpuid() * NOC_TABLES * row_size;
-  for (unsigned i = 0; i < NOC_TIMESLOTS; ++i) {
-    *(noc_interface.st+i) = noc_init_array[core_idx + i];
+  unsigned core_idx = get_cpuid() * NOC_TABLES * NOC_SCHEDULE_ENTRIES;
+  unsigned short schedule_entries = noc_init_array[core_idx];
+  for (unsigned i = 0; i < schedule_entries; ++i) {
+    *(NOC_SCHED_BASE+i) = noc_init_array[core_idx + i + 1];
   }
-  for (unsigned i = 0; i < NOC_DMAS; ++i) {
-    *(noc_interface.dma_p+i) = noc_init_array[core_idx + row_size + i];
-  }
+  // Set the pointers to the start and to the end of the schedule
+  *(NOC_MC_BASE+32) = schedule_entries << 16 | 0;
+  *(NOC_TDM_BASE+16) = 1; // Set the network in run mode
 }
 
 // Synchronize start-up
@@ -108,31 +99,75 @@ void noc_init(void) {
   //if (get_cpuid() == NOC_MASTER) puts("noc_done");
 }
 
-// Start a NoC transfer
+// Start a NoC data dma transfer
 // The addresses and the size are in double-words and relative to the
 // communication SPM
-int noc_dma(unsigned rcv_id,
+int noc_dma(unsigned dma_id,
             unsigned short write_ptr,
             unsigned short read_ptr,
             unsigned short size) {
 
     // Only send if previous transfer is done
-    if (!noc_done(rcv_id)) {
+    if (!noc_done(dma_id)) {
       return 0;
     }
 
+    // DWord count and valid bit, set active bit
+    *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (size << 14) | read_ptr);
     // Read pointer and write pointer in the dma table
-    *(noc_interface.dma+(rcv_id<<1)+1) = (read_ptr << 16) | write_ptr;
-    // DWord count and valid bit, done bit cleared
-    *(noc_interface.dma+(rcv_id<<1)) = (size | NOC_VALID_BIT) & ~NOC_DONE_BIT;
+    *(NOC_DMA_BASE+(dma_id<<1)) = (0 << 14) | write_ptr;
+    
+
+    return 1;
+}
+
+// Start a NoC configuration transfer
+// The addresses and the size are in double-words and relative to the
+// communication SPM
+int noc_conf(unsigned dma_id,
+            unsigned short write_ptr,
+            unsigned short read_ptr,
+            unsigned short size) {
+
+    // Only send if previous transfer is done
+    if (!noc_done(dma_id)) {
+      return 0;
+    }
+
+    // DWord count and valid bit, set active bit
+    *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (size << 14) | read_ptr);
+    // Read pointer and write pointer in the dma table
+    *(NOC_DMA_BASE+(dma_id<<1)) = (1 << 14) | write_ptr;
+    
+
+    return 1;
+}
+
+// Start a NoC interrupt
+// The addresses and the size are in double-words and relative to the
+// communication SPM
+int noc_irq(unsigned dma_id,
+            unsigned short write_ptr,
+            unsigned short read_ptr) {
+
+    // Only send if previous transfer is done
+    if (!noc_done(dma_id)) {
+      return 0;
+    }
+
+    // DWord count and valid bit, set active bit
+    *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (1 << 14) | read_ptr) ;
+    // Read pointer and write pointer in the dma table
+    *(NOC_DMA_BASE+(dma_id<<1)) = (3 << 14) | write_ptr;
+    
 
     return 1;
 }
 
 // Check if a NoC transfer has finished
-int noc_done(unsigned rcv_id) {
-  unsigned status = *(noc_interface.dma+(rcv_id<<1));
-  if ((status & NOC_VALID_BIT) != 0 && (status & NOC_DONE_BIT) == 0) {
+int noc_done(unsigned dma_id) {
+  unsigned status = *(NOC_DMA_BASE+(dma_id<<1)+1);
+  if ((status & NOC_ACTIVE_BIT) != 0) {
       return 0;
   }
   return 1;
@@ -143,25 +178,25 @@ int noc_done(unsigned rcv_id) {
 
 // Attempt to transfer data via the NoC
 // The addresses and the size are in bytes
-int noc_nbsend(unsigned rcv_id, volatile void _SPM *dst,
+int noc_nbsend(unsigned dma_id, volatile void _SPM *dst,
                volatile void _SPM *src, size_t size) {
 
   unsigned wp = (char *)dst - (char *)NOC_SPM_BASE;
   unsigned rp = (char *)src - (char *)NOC_SPM_BASE;
-  return noc_dma(rcv_id, DW(wp), DW(rp), DW(size));
+  return noc_dma(dma_id, DW(wp), DW(rp), DW(size));
 }
 
 // Transfer data via the NoC
 // The addresses and the size are in bytes
-void noc_send(unsigned rcv_id, volatile void _SPM *dst,
+void noc_send(unsigned dma_id, volatile void _SPM *dst,
               volatile void _SPM *src, size_t size) {
   _Pragma("loopbound min 1 max 1")
-  while(!noc_nbsend(rcv_id, dst, src, size));
+  while(!noc_nbsend(dma_id, dst, src, size));
 }
 
 // Multicast transfer of data via the NoC
 // The addresses and the size are in bytes
-void noc_multisend(unsigned cnt, unsigned rcv_id [], volatile void _SPM *dst [],
+void noc_multisend(unsigned cnt, unsigned dma_id [], volatile void _SPM *dst [],
               volatile void _SPM *src, size_t size) {
 
   int done;
@@ -170,9 +205,9 @@ void noc_multisend(unsigned cnt, unsigned rcv_id [], volatile void _SPM *dst [],
   do {
     done = 1;
     for (unsigned i = 0; i < cnt; i++) {
-      if (!coreset_contains(rcv_id[i], &sent)) {
-        if (noc_nbsend(rcv_id[i], dst[i], src, size)) {
-          coreset_add(rcv_id[i], &sent);
+      if (!coreset_contains(dma_id[i], &sent)) {
+        if (noc_nbsend(dma_id[i], dst[i], src, size)) {
+          coreset_add(dma_id[i], &sent);
         } else {
           done = 0;
         }
