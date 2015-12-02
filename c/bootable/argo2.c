@@ -153,10 +153,10 @@ int main() {
   tmp1 = 13 << (8+3+5) | 0 << (3+5) | 2 << 5| 5;
   ARGO_CONFIG_WR32(SCHED_BANK,3<<2,tmp1);
   //        Route        | DMA_num    | Pktlen| t2n
-  tmp1 = 13 << (8+3+5) | 1 << (3+5) | 1 << 5| 4;
+  tmp1 = 13 << (8+3+5)   | 255 << (3+5) | 1 << 5| 4;
   ARGO_CONFIG_WR32(SCHED_BANK,4<<2,tmp1);
   //        Route        | DMA_num    | Pktlen| t2n
-  tmp1 = 13 << (8+3+5) | 0 << (3+5) | 3 << 5| 6;
+  tmp1 = 13 << (8+3+5)   | 255 << (3+5) | 3 << 5| 6;
   ARGO_CONFIG_WR32(SCHED_BANK,5<<2,tmp1);
 
   // Writing mode change table
