@@ -335,6 +335,7 @@ class PICache2Repl() extends Module {
   tagMemOddPrefFirst.io <= (io.ctrlrepl.wTag && wrAddrParity && (!replVec(wrValidIndex)), wrAddrIndex, wrAddrTag) 
   when (io.ctrlrepl.wTag && (!replVec(wrValidIndex))) {
     validVecFirst(wrValidIndex) := Bool(true)
+    replVec(wrValidIndex) := Bool(true)
   }
 
   tagMemEvenSecond.io <= (io.ctrlrepl.wTag && !wrAddrParity && (replVec(wrValidIndex)), wrAddrIndex, wrAddrTag)
@@ -343,6 +344,7 @@ class PICache2Repl() extends Module {
   tagMemOddPrefSecond.io <= (io.ctrlrepl.wTag && wrAddrParity && (replVec(wrValidIndex)), wrAddrIndex, wrAddrTag) 
   when (io.ctrlrepl.wTag && (replVec(wrValidIndex))) {
     validVecSecond(wrValidIndex) := Bool(true)
+    replVec(wrValidIndex) := Bool(false)
   }
 
 
@@ -366,14 +368,6 @@ class PICache2Repl() extends Module {
   io.icachefe.relPc := relPc
   io.icachefe.reloc := reloc
   io.icachefe.memSel := Cat(selSpmReg, selCacheReg)
-
-  // Changing the repl value
-  when (io.ctrlrepl.wTag && (!replVec(wrValidIndex))) {
-    replVec(wrValidIndex) := Bool(true)
-  }
-  when (io.ctrlrepl.wTag && (replVec(wrValidIndex))) {
-    replVec(wrValidIndex) := Bool(false)
-  }
 
   // Hit/miss to control module
   io.replctrl.fetchAddr := fetchAddr
