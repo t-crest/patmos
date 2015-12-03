@@ -97,6 +97,7 @@ abstract class Device() extends Module() {
 }
 
 class InternalIO() extends Bundle() {
+  val superMode = Bool(INPUT);
   val internalPort = new Bundle()
 }
 

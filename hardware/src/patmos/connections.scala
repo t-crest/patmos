@@ -360,6 +360,7 @@ class InOutIO() extends Bundle() {
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val excInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val intrs = Vec.fill(INTR_COUNT) { Bool(OUTPUT) }
+  val superMode = Bool(INPUT)
   val internalIO = new InternalIO().asInput
 }
 
@@ -452,11 +453,13 @@ class ExcIO() extends Bundle() {
   val intrs = Vec.fill(INTR_COUNT) { Bool(INPUT) }
   val excdec = new ExcDec().asOutput
   val memexc = new MemExc().asInput
+  val superMode = Bool(OUTPUT)
   val invalICache = Bool(OUTPUT)
   val invalDCache = Bool(OUTPUT)
 }
 
 class PatmosCoreIO() extends Bundle() {
+  val superMode = Bool(OUTPUT)
   val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val memPort = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
