@@ -162,6 +162,10 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   icache.io.invalidate := exc.io.invalICache
   dcache.io.invalDCache := exc.io.invalDCache
 
+  // Make privileged mode visible internally and externally
+  iocomp.io.superMode := exc.io.superMode
+  io.superMode := exc.io.superMode
+
   // Internal "I/O" data
   iocomp.io.internalIO.perf.ic := icache.io.perf
   iocomp.io.internalIO.perf.dc := dcache.io.dcPerf

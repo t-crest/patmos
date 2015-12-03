@@ -60,6 +60,10 @@ class Exceptions extends Module {
   val intrEna = statusReg(0) === Bits(1)
   val superMode = statusReg(1) === Bits(1)
 
+  def checked(action: => Unit) {
+    when (superMode) (action) .otherwise { io.ocp.S.Resp := OcpResp.ERR }
+  }
+
   val vec    = Mem(UInt(width = DATA_WIDTH), EXC_COUNT)
   val vecDup = Mem(UInt(width = DATA_WIDTH), EXC_COUNT)
 
@@ -76,6 +80,9 @@ class Exceptions extends Module {
   // Default OCP response
   io.ocp.S.Resp := OcpResp.NULL
   io.ocp.S.Data := Bits(0, width = DATA_WIDTH)
+
+  // Make privileged mode visible
+  io.superMode := superMode
 
   // No resetting by default
   io.invalICache := Bool(false)
@@ -98,10 +105,6 @@ class Exceptions extends Module {
 
 
   when(masterReg.Cmd === OcpCmd.WR) {
-    def checked(action: => Unit) {
-      when (superMode) (action) .otherwise { io.ocp.S.Resp := OcpResp.ERR }
-    }
-
     io.ocp.S.Resp := OcpResp.DVA
     switch(masterReg.Addr(EXC_ADDR_WIDTH-1, 2)) {
       is(Bits("b000000")) { checked{ statusReg := masterReg.Data } }
