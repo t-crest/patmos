@@ -61,9 +61,9 @@ $(BUILDDIR)/%.s: %.c Makefile
 	$(CC) $(CFLAGS) -fpatmos-emit-asm -S -o $@ $(filter %.c,$^)
 
 # A bootable target for a single core
-$(BUILDDIR)/bootable-%.elf: %.c Makefile
+$(BUILDDIR)/bootable-%.elf: %.c $(NOCINIT) $(LIBNOC) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR)
+	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lnoc
 
 $(BUILDDIR)/bootable-%.s: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
@@ -92,6 +92,8 @@ $(BUILDDIR)/extdev_test.elf: bootable.h
 $(BUILDDIR)/bootable-hello_sum_reduced.elf: bootable.h
 
 $(BUILDDIR)/bootable-mp_test.elf: bootable.h
+
+$(BUILDDIR)/bootable-argo2_libnoc.elf: bootable.h
 
 # library for network-on-chip
 .PHONY: libnoc

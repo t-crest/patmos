@@ -246,17 +246,25 @@ void noc_wait_dma(coreset_t receivers);
 ////////////////////////////////////////////////////////////////////////////
 // Definitions for address mapping
 ////////////////////////////////////////////////////////////////////////////
+#define OFFSET_WIDTH  (11+2)
+#define BANK(ID)      (ID<<OFFSET_WIDTH)
+
+#define DMA_BANK      BANK(0)
+#define SCHED_BANK    BANK(1)
+#define TDM_BANK      BANK(2)
+#define MC_BANK       BANK(3)
+#define IRQ_BANK      BANK(4)
 
 /// The base address for DMA entries
-#define NOC_DMA_BASE    ((volatile int _IODEV *)(0xE0000000+(0<<11)))
+#define NOC_DMA_BASE    ((volatile int _IODEV *)(0xE0000000+DMA_BANK))
 /// The base address for DMA routing information
-#define NOC_SCHED_BASE  ((volatile int _IODEV *)(0xE0000000+(1<<11)))
+#define NOC_SCHED_BASE  ((volatile int _IODEV *)(0xE0000000+SCHED_BANK))
 /// The base address for the slot table
-#define NOC_TDM_BASE    ((volatile int _IODEV *)(0xE0000000+(2<<11)))
+#define NOC_TDM_BASE    ((volatile int _IODEV *)(0xE0000000+TDM_BANK))
 /// The base address for the slot table
-#define NOC_MC_BASE     ((volatile int _IODEV *)(0xE0000000+(3<<11)))
+#define NOC_MC_BASE     ((volatile int _IODEV *)(0xE0000000+MC_BANK))
 /// The base address for the slot table
-#define NOC_IRQ_BASE    ((volatile int _IODEV *)(0xE0000000+(4<<11)))
+#define NOC_IRQ_BASE    ((volatile int _IODEV *)(0xE0000000+IRQ_BANK))
 /// The base address of the communication SPM
 #define NOC_SPM_BASE    ((volatile int _SPM   *)0xE8000000)
 
