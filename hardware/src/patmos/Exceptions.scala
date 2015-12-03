@@ -53,9 +53,16 @@ class Exceptions extends Module {
 
   val masterReg = Reg(next = io.ocp.M)
 
-  val statusReg = Reg(init = Bits(0, width = DATA_WIDTH))
+  val statusReg = Reg(init = Bits(2, width = DATA_WIDTH))
   val maskReg   = Reg(Bits(width = DATA_WIDTH))
   val sourceReg = Reg(Bits(width = DATA_WIDTH))
+
+  val intrEna = statusReg(0) === Bits(1)
+  val superMode = statusReg(1) === Bits(1)
+
+  def checked(action: => Unit) {
+    when (superMode) (action) .otherwise { io.ocp.S.Resp := OcpResp.ERR }
+  }
 
   val vec    = Mem(UInt(width = DATA_WIDTH), EXC_COUNT)
   val vecDup = Mem(UInt(width = DATA_WIDTH), EXC_COUNT)
@@ -73,6 +80,9 @@ class Exceptions extends Module {
   // Default OCP response
   io.ocp.S.Resp := OcpResp.NULL
   io.ocp.S.Data := Bits(0, width = DATA_WIDTH)
+
+  // Make privileged mode visible
+  io.superMode := superMode
 
   // No resetting by default
   io.invalICache := Bool(false)
@@ -93,26 +103,38 @@ class Exceptions extends Module {
     }
   }
 
+
   when(masterReg.Cmd === OcpCmd.WR) {
     io.ocp.S.Resp := OcpResp.DVA
     switch(masterReg.Addr(EXC_ADDR_WIDTH-1, 2)) {
-      is(Bits("b000000")) { statusReg := masterReg.Data }
-      is(Bits("b000001")) { maskReg := masterReg.Data }
-      is(Bits("b000011")) { sourceReg := masterReg.Data }
+      is(Bits("b000000")) { checked{ statusReg := masterReg.Data } }
+      is(Bits("b000001")) { checked{ maskReg := masterReg.Data } }
+      is(Bits("b000011")) { checked{ sourceReg := masterReg.Data } }
       is(Bits("b000010")) {
-        for(i <- 0 until EXC_COUNT) {
-          intrPend(i) := intrPendReg(i) & masterReg.Data(i)
+        checked {
+          for(i <- 0 until EXC_COUNT) {
+            intrPend(i) := intrPendReg(i) & masterReg.Data(i)
+          }
         }
       }
-      is(Bits("b000100")) { // Go to sleep
-                            io.ocp.S.Resp := OcpResp.NULL
-                            sleepReg := Bool(true) }
-      is(Bits("b000101")) { io.invalDCache := masterReg.Data(0)
-                            io.invalICache := masterReg.Data(1) }
+      is(Bits("b000100")) {
+        checked { // Go to sleep
+          io.ocp.S.Resp := OcpResp.NULL
+          sleepReg := Bool(true)
+        }
+      }
+      is(Bits("b000101")) {
+        checked {
+          io.invalDCache := masterReg.Data(0)
+          io.invalICache := masterReg.Data(1)
+        }
+      }
     }
     when(masterReg.Addr(EXC_ADDR_WIDTH-1) === Bits("b1")) {
-      vec(masterReg.Addr(EXC_ADDR_WIDTH-2, 2)) := masterReg.Data.toUInt
-      vecDup(masterReg.Addr(EXC_ADDR_WIDTH-2, 2)) := masterReg.Data.toUInt
+      checked {
+        vec(masterReg.Addr(EXC_ADDR_WIDTH-2, 2)) := masterReg.Data.toUInt
+        vecDup(masterReg.Addr(EXC_ADDR_WIDTH-2, 2)) := masterReg.Data.toUInt
+      }
     }
   }
 
@@ -122,13 +144,15 @@ class Exceptions extends Module {
     intrPend(io.memexc.src) := Bool(false)
     when(io.ena) {
       sourceReg := io.memexc.src
-      statusReg := statusReg << UInt(1)
+      // Shift status, enable super mode, disable interrupts
+      statusReg := (statusReg << UInt(2)) | UInt(2)
     }
   }
   // Return from exception
   when(io.memexc.ret) {
     when(io.ena) {
-      statusReg := statusReg >> UInt(1)
+      // Shift back old status
+      statusReg := statusReg >> UInt(2)
     }
   }
 
@@ -168,14 +192,14 @@ class Exceptions extends Module {
   val intr = Reg(next = (intrPend.toBits & maskReg) != Bits(0))
 
   io.excdec.exc  := exc
-  io.excdec.intr := intr && statusReg(0) === Bits(1)
+  io.excdec.intr := intr && intrEna
   io.excdec.addr := vecDup(srcReg)
   io.excdec.src  := srcReg
 
   io.excdec.excAddr := excAddrReg
 
   // Wake up
-  when (sleepReg && (exc === Bits(1) || (intr && statusReg(0) === Bits(1)))) {
+  when (sleepReg && (exc === Bits(1) || (intr && intrEna))) {
     io.ocp.S.Resp := OcpResp.DVA
     sleepReg := Bool(false)
   }
