@@ -54,8 +54,8 @@ int main() {
   int tmp1 = 0;
   int tmp2 = 0;
   // Reading the 64 bit counter
-  tmp1 = ARGO_CONFIG_RD32(TDM_BANK,3<<2);
-  tmp2 = ARGO_CONFIG_RD32(TDM_BANK,2<<2);
+  tmp1 = ARGO_CONFIG_RD32(TDM_BANK, 3<<2);
+  tmp2 = ARGO_CONFIG_RD32(TDM_BANK, 2<<2);
 
 
   if (tmp1 == 0) {
@@ -129,8 +129,8 @@ int main() {
 
   // Setting stbl_maxp1 to 2 and stbl_min to 0
   tmp1 = 3 << 16 | 0;
-  ARGO_CONFIG_WR32(MC_BANK,8<<2,tmp1);
-  tmp2 = ARGO_CONFIG_RD32(MC_BANK,8<<2);
+  ARGO_CONFIG_WR32(MC_BANK,2<<2,tmp1);
+  tmp2 = ARGO_CONFIG_RD32(MC_BANK,2<<2);
 
   if (tmp2 == tmp1) {
     WRITE("OK4\n",4); 
@@ -162,11 +162,11 @@ int main() {
   // Writing mode change table
   // Setting stbl_maxp1 to 5 and stbl_min to 2
   tmp1 = 6 << 16 | 3;
-  ARGO_CONFIG_WR32(MC_BANK,9<<2,tmp1);
+  ARGO_CONFIG_WR32(MC_BANK,3<<2,tmp1);
 
   if (get_cpuid() == 0) {
     tmp1 = 1;
-    ARGO_CONFIG_WR32(MC_BANK,4<<2,tmp1);
+    ARGO_CONFIG_WR32(MC_BANK,0<<2,tmp1);
   }
 
 }

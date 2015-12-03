@@ -54,7 +54,7 @@ void noc_configure(void) {
     *(NOC_SCHED_BASE+i) = noc_init_array[core_idx + i + 1];
   }
   // Set the pointers to the start and to the end of the schedule
-  *(NOC_MC_BASE+32) = schedule_entries << 16 | 0;
+  *(NOC_MC_BASE+8) = schedule_entries << 16 | 0;
   *(NOC_TDM_BASE+16) = 1; // Set the network in run mode
 }
 
