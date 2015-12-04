@@ -129,7 +129,7 @@ bootcomp: bin-$(BOOTAPP)
 
 # Convert elf file to binary, using the address of the boot ROM as displacement
 bin-% $(BUILDDIR)/%.bin $(BUILDDIR)/%.dat: $(BUILDDIR)/%.elf $(INSTALLDIR)/bin/elf2bin
-	$(INSTALLDIR)/bin/elf2bin -d 0x80000000 $< $(BUILDDIR)/$*.bin $(BUILDDIR)/$*.dat
+	$(INSTALLDIR)/bin/elf2bin -d 0xf0008000 $< $(BUILDDIR)/$*.bin $(BUILDDIR)/$*.dat
 
 # Convert elf file to flat memory image
 img: img-$(APP)

@@ -10,7 +10,6 @@
   <SCache size="2k" />
   <ISPM size="1k" />
   <DSPM size="2k" />
-  <BootSPM size="2k" />
 
   <ExtMem size="2M" />
 

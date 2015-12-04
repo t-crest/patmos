@@ -69,7 +69,6 @@ abstract class Config {
   case class SPMConfig(size: Int)
   val ISPM: SPMConfig
   val DSPM: SPMConfig
-  val BootSPM: SPMConfig
 
   case class ExtMemConfig(size: Long, ram: DeviceConfig)
   val ExtMem: ExtMemConfig
@@ -223,9 +222,6 @@ object Config {
       val DSPM =
         new SPMConfig(getSizeAttr(node, "DSPM", "@size",
                                   hasParent, defaultConf.DSPM.size))
-      val BootSPM =
-        new SPMConfig(getSizeAttr(node, "BootSPM", "@size",
-                                  hasParent, defaultConf.BootSPM.size))
 
       val DevList = ((node \ "Devs") \ "Dev")
 
@@ -300,12 +296,12 @@ object Config {
     val burstLength = 0
     val writeCombine = false
     val minPcWidth = 0
+    val datFile = ""
     val ICache = new ICacheConfig("", 0, 0, "")
     val DCache = new DCacheConfig(0, 0, "", true)
     val SCache = new SCacheConfig(0)
     val ISPM = new SPMConfig(0)
     val DSPM = new SPMConfig(0)
-    val BootSPM = new SPMConfig(0)
     val ExtMem = new ExtMemConfig(0,new DeviceConfig("", Map(), -1, List[Int]()))
     val Devs = List[DeviceConfig]()
   }
@@ -322,8 +318,9 @@ object Config {
     conf = load(file)
   }
 
-  // This should not be a public variable
+  // These should not be public variables
   var minPcWidth = 0
+  var datFile = ""
 
   def initDevice(dev : Config#DeviceConfig) = {
     // get class for device

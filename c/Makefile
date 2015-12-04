@@ -17,11 +17,11 @@ CFLAGS-BOOTABLE?=-target patmos-unknown-unknown-elf -Os \
 	-mpatmos-disable-function-splitter \
 	-mpatmos-disable-vliw
 LDFLAGS-BOOTABLE?= \
-	-mpatmos-stack-base=0x80010800 -mpatmos-shadow-stack-base=0x80010700 \
+	-mpatmos-stack-base=0x00020800 -mpatmos-shadow-stack-base=0x00020700 \
 	-nodefaultlibs -nostdlib -nostartfiles \
 	-Xgold --section-start -Xgold .text=0x0 -e _start \
-	-Xgold --section-start -Xgold .rodata=0x80000010 \
-	-Xgold --section-start -Xgold .data=0x80010000 \
+	-Xgold --section-start -Xgold .rodata=0xf0008010 \
+	-Xgold --section-start -Xgold .data=0x00020000 \
 	-Xllc -mpatmos-subfunction-align=0 \
 	-Xllc -disable-machine-licm -Xllc -disable-machine-cse
 

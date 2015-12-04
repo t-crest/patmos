@@ -42,6 +42,11 @@
 #define _BOOTABLE_H_
 
 #ifdef BOOTROM
+
+#define CACHECTRL *((volatile _IODEV int *)0xF0010014)
+#define local_mode()  do { if (CACHECTRL >= 0) { CACHECTRL = 0x80000000; } } while(0)
+#define global_mode() do { if (CACHECTRL < 0)  { CACHECTRL = 0x80000000; } } while(0)
+
 extern int _stack_cache_base, _shadow_stack_base;
 int main(void);
 void _start(void) __attribute__((naked,used));
@@ -53,6 +58,9 @@ void _start(void) {
                 "mts $st  = %1;" // initialize the stack cache's top pointer"
                 : : "r" (&_shadow_stack_base),
                   "r" (&_stack_cache_base));
+
+  // enable local mode
+  local_mode();
 
 #ifdef _NOC_H_
   // configure network interface

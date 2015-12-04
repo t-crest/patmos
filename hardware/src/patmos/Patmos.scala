@@ -56,7 +56,7 @@ import ocp._
 /**
  * Module for one Patmos core.
  */
-class PatmosCore(binFile: String, datFile: String) extends Module {
+class PatmosCore(binFile: String) extends Module {
 
   val io = Config.getPatmosCoreIO()
 
@@ -120,11 +120,8 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   exc.io.excdec <> decode.io.exc
   exc.io.memexc <> memory.io.exc
 
-  // The boot memories intercept accesses before they are translated to bursts
-  val bootMem = Module(new BootMem(datFile))
-  memory.io.globalInOut <> bootMem.io.memInOut
-
-  dcache.io.master <> bootMem.io.extMem
+  // Connect data cache
+  dcache.io.master <> memory.io.globalInOut
 
   // Merge OCP ports from data caches and method cache
   val burstBus = Module(new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
@@ -195,8 +192,9 @@ object PatmosCoreMain {
     val datFile = args(2)
 
     Config.loadConfig(configFile)
-    Config.minPcWidth = log2Up((new File(binFile)).length.toInt / 4)
-    chiselMain(chiselArgs, () => Module(new PatmosCore(binFile, datFile)))
+    Config.minPcWidth = util.log2Up((new File(binFile)).length.toInt / 4)
+    Config.datFile = datFile
+    chiselMain(chiselArgs, () => Module(new PatmosCore(binFile)))
     // Print out the configuration
     Utility.printConfig(configFile)
   }
@@ -207,12 +205,13 @@ object PatmosCoreMain {
  */
 class Patmos(configFile: String, binFile: String, datFile: String) extends Module {
   Config.loadConfig(configFile)
-  Config.minPcWidth = log2Up((new File(binFile)).length.toInt / 4)
+  Config.minPcWidth = util.log2Up((new File(binFile)).length.toInt / 4)
+  Config.datFile = datFile
 
   val io = Config.getPatmosIO()
 
   // Instantiate core
-  val core = Module(new PatmosCore(binFile, datFile))
+  val core = Module(new PatmosCore(binFile))
 
   // Forward ports to/from core
   io.comConf <> core.io.comConf

@@ -44,7 +44,7 @@ import Node._
 
 import Constants._
 
-import util._
+import util.Utility
 
 class Fetch(fileName : String) extends Module {
   val io = new FetchIO()
