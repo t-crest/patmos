@@ -1,5 +1,6 @@
 //#include <string.h>
 #include <machine/spm.h>
+#include <machine/exceptions.h>
 #include "include/bootable.h"
 #include "include/patio.h"
 #include "libnoc/noc.h"
@@ -42,34 +43,53 @@ int main(void) __attribute__((noreturn));
 
 int main() {
   noc_configure();
+
+  intr_unmask_all();
+  // clear pending flags
+  intr_clear_all_pending();
+  // enable interrupts
+  intr_enable();
+  if (get_cpuid() == 0) {
+    // Enter user mode
+    EXC_STATUS &= ~2; 
+  }
   
   int tmp1 = 0;
   int tmp2 = 0;
   // Reading the 64 bit counter
-  tmp1 = ARGO_CONFIG_RD32(TDM_BANK, 3<<2);
-  tmp2 = ARGO_CONFIG_RD32(TDM_BANK, 2<<2);
+  // 64 bit counter it temporarily disabled
+  //tmp1 = ARGO_CONFIG_RD32(TDM_BANK, 3<<2);
+  //tmp2 = ARGO_CONFIG_RD32(TDM_BANK, 2<<2);
 
-
-  if (tmp1 == 0) {
-    WRITE("ERROR0\n",7); 
-  }
-  if (tmp2 == tmp1) {
-    WRITE("ERROR1\n",7); 
-  } else {
-    WRITE("OK1\n",4);
-  }
+//  if (tmp1 == 0) {
+//    WRITE("ERROR0\n",7); 
+//  }
+//  if (tmp2 == tmp1) {
+//    WRITE("ERROR1\n",7); 
+//  } else {
+//    WRITE("OK1\n",4);
+//  }
 
   // Write to the COM_SPM
   COM_SPM_WR32(0<<2,0x11223344);
   COM_SPM_WR32(1<<2,0x55667788);
   COM_SPM_WR32(2<<2,0x99001122);
   COM_SPM_WR32(3<<2,0x33445566);
+
+  if (get_cpuid() == 0) {
+    noc_done(3);
+    noc_dma(1,0,0,2);
+  }
+  
+
+
   // Setting the first entry of the DMA table
   //       Header field
   //       Pkt format | Write_ptr
   tmp1 =   0 << 14    | 5;
   //    Active bit | count   | Read_ptr
   tmp2 =  1 << 31  | 2 << 14 | 0 ;
+
   ARGO_CONFIG_WR32(DMA_BANK,0<<2,tmp1);
   ARGO_CONFIG_WR32(DMA_BANK,1<<2,tmp2);
 

@@ -41,10 +41,84 @@
 
 #include <machine/patmos.h>
 #include <machine/spm.h>
+#include <machine/exceptions.h>
 
-#include <stdio.h>
+//#include <stdio.h>
 #include "bootloader/cmpboot.h"
 #include "noc.h"
+#include "include/patio.h"
+
+
+/// __default_exc_handler - a default exception handler
+void __default_exc_handler(void) {
+  unsigned source = exc_get_source();
+
+  unsigned base, off;
+  asm volatile("mfs %0 = $sxb;"
+               "mfs %1 = $sxo;"
+               : "=r" (base), "=r" (off));
+
+  const char *msg = "";
+  switch(source) {
+  case 0: WRITE(" (illegal operation)\n",21); break;
+  case 1: WRITE(" (illegal memory access)\n",25); break;
+  }
+
+}
+
+void  __init_exceptions(void) {
+  int i;
+  for (i = 0; i < 32; i++) {
+    exc_register(i,&__default_exc_handler);
+  }
+}
+
+void __remote_irq_handler(void) {
+  exc_prologue();
+  WRITE("IRQ0\n",5);
+  int tmp = *(NOC_IRQ_BASE);
+  *(NOC_SPM_BASE+(tmp<<2)) = 0;
+  intr_clear_pending(exc_get_source());
+  exc_epilogue();
+}
+
+void __data_recv_handler(void) {
+  exc_prologue();
+  WRITE("IRQ1\n",5); 
+  int tmp = *(NOC_IRQ_BASE+1);
+  *(NOC_SPM_BASE+(tmp<<2)) = 0;
+  intr_clear_pending(exc_get_source());
+  exc_epilogue();
+}
+
+void __noc_trap_handler(void) {
+  intr_disable();
+  WRITE("TRAP\n",5);
+  unsigned op;
+  unsigned p1,p2,p3,p4;
+  asm volatile("mov %0 = $r1;"
+               "mov %1 = $r2;"
+               "mov %2 = $r3;"
+               "mov %3 = $r4;"
+               "mov %4 = $r5;"
+                 : "=r" (op), "=r" (p1), "=r" (p2), "=r" (p3), "=r" (p4));
+  switch (op) {
+    case 0:
+      k_noc_dma(p1,(unsigned short)p2,(unsigned short)p3,(unsigned short)p4);
+      break;
+    case 1:
+      k_noc_done(p1);
+      break;
+
+  }
+
+  int ret = 0;
+  asm volatile("mov $r1 = %0"
+                : : "r" (ret));
+  intr_enable();
+  asm volatile("xret"
+                : : );
+}
 
 // Configure network interface according to initialization information
 void noc_configure(void) {
@@ -56,6 +130,10 @@ void noc_configure(void) {
   // Set the pointers to the start and to the end of the schedule
   *(NOC_MC_BASE+2) = schedule_entries << 16 | 0;
   *(NOC_TDM_BASE+4) = 1; // Set the network in run mode
+  __init_exceptions();
+  exc_register(23,&__remote_irq_handler);
+  exc_register(31,&__data_recv_handler);
+  exc_register(8,&__noc_trap_handler);
 }
 
 // Synchronize start-up
@@ -107,8 +185,31 @@ int noc_dma(unsigned dma_id,
             unsigned short read_ptr,
             unsigned short size) {
 
+    asm volatile("mov $r1 = %0;"
+                 "mov $r2 = %1;"
+                 "mov $r3 = %2;"
+                 "mov $r4 = %3;"
+                 "mov $r5 = %4;"
+                   : : "r" (0), "r" (dma_id), "r" (write_ptr), "r" (read_ptr), "r" (size));
+    trap(8);
+
+    int ret = 0;
+    asm volatile("mov %0 = $r1;"
+                  : "=r" (ret));
+
+    return ret;
+}
+
+// Start a NoC data dma transfer
+// The addresses and the size are in double-words and relative to the
+// communication SPM
+int k_noc_dma(unsigned dma_id,
+            unsigned short write_ptr,
+            unsigned short read_ptr,
+            unsigned short size) {
+
     // Only send if previous transfer is done
-    if (!noc_done(dma_id)) {
+    if (!k_noc_done(dma_id)) {
       return 0;
     }
 
@@ -119,6 +220,30 @@ int noc_dma(unsigned dma_id,
     
 
     return 1;
+}
+
+// Check if a NoC transfer has finished
+int noc_done(unsigned dma_id) {
+  
+    asm volatile("mov $r1 = %0;"
+                 "mov $r2 = %1;"
+                   : : "r" (1), "r" (dma_id));
+    trap(8);
+
+    int ret = 0;
+    asm volatile("mov %0 = $r1;"
+                  : "=r" (ret));
+
+    return ret;
+}
+
+// Check if a NoC transfer has finished
+int k_noc_done(unsigned dma_id) {
+  unsigned status = *(NOC_DMA_BASE+(dma_id<<1)+1);
+  if ((status & NOC_ACTIVE_BIT) != 0) {
+      return 0;
+  }
+  return 1;
 }
 
 // Start a NoC configuration transfer
@@ -162,15 +287,6 @@ int noc_irq(unsigned dma_id,
     
 
     return 1;
-}
-
-// Check if a NoC transfer has finished
-int noc_done(unsigned dma_id) {
-  unsigned status = *(NOC_DMA_BASE+(dma_id<<1)+1);
-  if ((status & NOC_ACTIVE_BIT) != 0) {
-      return 0;
-  }
-  return 1;
 }
 
 // Convert from byte address or size to double-word address or size
