@@ -60,6 +60,8 @@ class Exceptions extends Module {
   val intrEna = statusReg(0) === Bits(1)
   val superMode = statusReg(1) === Bits(1)
 
+  val localModeReg = Reg(init = Bool(false))
+
   def checked(action: => Unit) {
     when (superMode) (action) .otherwise { io.ocp.S.Resp := OcpResp.ERR }
   }
@@ -97,6 +99,7 @@ class Exceptions extends Module {
       is(Bits("b000001")) { io.ocp.S.Data := maskReg }
       is(Bits("b000011")) { io.ocp.S.Data := sourceReg }
       is(Bits("b000010")) { io.ocp.S.Data := intrPendReg.toBits }
+      is(Bits("b000101")) { io.ocp.S.Data := localModeReg ## Bits(0, DATA_WIDTH-1) }
     }
     when(masterReg.Addr(EXC_ADDR_WIDTH-1) === Bits("b1")) {
       io.ocp.S.Data := vec(masterReg.Addr(EXC_ADDR_WIDTH-2, 2))
@@ -127,6 +130,7 @@ class Exceptions extends Module {
         checked {
           io.invalDCache := masterReg.Data(0)
           io.invalICache := masterReg.Data(1)
+          localModeReg := localModeReg ^ masterReg.Data(DATA_WIDTH-1)
         }
       }
     }
@@ -191,10 +195,11 @@ class Exceptions extends Module {
   val exc = Reg(next = excPend.toBits != Bits(0))
   val intr = Reg(next = (intrPend.toBits & maskReg) != Bits(0))
 
-  io.excdec.exc  := exc
-  io.excdec.intr := intr && intrEna
-  io.excdec.addr := vecDup(srcReg)
-  io.excdec.src  := srcReg
+  io.excdec.exc   := exc
+  io.excdec.intr  := intr && intrEna
+  io.excdec.addr  := vecDup(srcReg)
+  io.excdec.src   := srcReg
+  io.excdec.local := localModeReg
 
   io.excdec.excAddr := excAddrReg
 
