@@ -43,6 +43,8 @@ package patmos
 import Chisel._
 import Node._
 
+import util.log2Up
+
 object Constants {
 
   val CLOCK_FREQ = util.Config.getConfig.frequency
@@ -51,7 +53,6 @@ object Constants {
 
   val ISPM_SIZE = util.Config.getConfig.ISPM.size
   val DSPM_SIZE = util.Config.getConfig.DSPM.size
-  val BOOTSPM_SIZE = util.Config.getConfig.BootSPM.size
 
   val ICACHE_TYPE = util.Config.getConfig.ICache.typ
   val ICACHE_SIZE = util.Config.getConfig.ICache.size
@@ -81,23 +82,21 @@ object Constants {
   val DCACHE_WRITETHROUGH = util.Config.getConfig.DCache.writeThrough
   val SCACHE_SIZE = util.Config.getConfig.SCache.size
 
-  // minimum size of internal program counter
-  val MIN_OFF_WIDTH = if (ICACHE_TYPE == ICACHE_TYPE_METHOD) 0 else log2Up(util.Config.getConfig.ExtMem.size)
-
-  // maximum width between ISPM size, ICache size and boot ROM size
-  val MAX_OFF_WIDTH = List(log2Up(ICACHE_SIZE / 4), log2Up(ISPM_SIZE / 4),
-    util.Config.minPcWidth, MIN_OFF_WIDTH).reduce(math.max)
-
   // we use a very simple decoding of ISPM at address 0x00010000
   val ISPM_ONE_BIT = 16
-  // The boot ROM is at 0x80000000 and the boot SPM at 0x80010000,
-  // both in the global address space
-  val BOOTMEM_ONE_BIT = 16
 
   val EXTMEM_SIZE = util.Config.getConfig.ExtMem.size
   val EXTMEM_ADDR_WIDTH = log2Up(EXTMEM_SIZE)
   val BURST_LENGTH = util.Config.getConfig.burstLength // For SSRAM on DE2-70 board max. 4
   val WRITE_COMBINE = util.Config.getConfig.writeCombine
+
+  // minimum size of internal program counter
+  val MIN_OFF_WIDTH = if (ICACHE_TYPE == ICACHE_TYPE_METHOD) 0 else log2Up(EXTMEM_SIZE)
+
+  // maximum width between ISPM size, ICache size and boot ROM size
+  val MAX_OFF_WIDTH = List(log2Up(ICACHE_SIZE / 4), log2Up(ISPM_SIZE / 4),
+    util.Config.minPcWidth, MIN_OFF_WIDTH).reduce(math.max)
+
 
   // Exceptions/interrupts
   val EXC_IO_OFFSET = 1

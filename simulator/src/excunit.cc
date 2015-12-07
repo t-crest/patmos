@@ -50,7 +50,7 @@ namespace patmos
   excunit_t::excunit_t(uword_t base_address) 
   : mapped_device_t(base_address, EXCUNIT_MAP_SIZE), 
     Enable_interrupts(true), Enable_debug(false), 
-    Status(0), Mask(0), Pending(0), Source(0)
+    Status(2), Mask(0), Pending(0), Source(0)
   {
     for (int i = 0; i < NUM_EXCEPTIONS; i++) {
       Exception_vector[i] = NO_ISR_ADDR;
@@ -78,8 +78,9 @@ namespace patmos
     // Clear the pending flag for the interrupt
     Pending &= ~(1u << Source);
     
-    // Disable interrupts
-    Status <<= 1;
+    // Disable interrupts, enable privileged mode
+    Status <<= 2;
+    Status |= 2;
     
     if (Enable_debug) {
       std::cerr << "*** EXC: Execute ISR " << Source 
@@ -92,16 +93,14 @@ namespace patmos
   }
 
   bool excunit_t::trap(exception_e exc, exception_t &isr) {
-    if (!enabled(exc)) {
-      return false;
-    }
     
     // Start executing the trap by setting Source to the trap and returning the
     // ISR address
     Source = exc;
     
-    // Disable interrupts during trap handler
-    Status <<= 1;
+    // Disable interrupts during trap handler, enable privileged mode
+    Status <<= 2;
+    Status |= 2;
     
     if (Enable_debug) {
       std::cerr << "*** EXC: Execute trap " << exc 
@@ -117,7 +116,7 @@ namespace patmos
   void excunit_t::resume()
   {
     // TODO update Source?
-    Status >>= 1;
+    Status >>= 2;
     
     if (Enable_debug) {
       std::cerr << "*** EXC: Return (status: 0x" << std::hex << Status
@@ -162,6 +161,11 @@ namespace patmos
 
   bool excunit_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size)
   {
+    // can only write to this unit in privileged mode
+    if ((Status & 0x2) == 0) {
+      simulation_exception_t::illegal_access(address);
+    }
+
     if (is_word_access(address, size, 0x00)) {
       Status = get_word(value, size);
       if (Enable_debug) {

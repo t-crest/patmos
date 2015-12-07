@@ -325,6 +325,7 @@ class ExcDec() extends Bundle() {
   val intr = Bool()
   val addr = UInt(width = ADDR_WIDTH)
   val src = Bits(width = EXC_SRC_BITS)
+  val local = Bool()
 }
 
 class DecodeIO() extends Bundle() {

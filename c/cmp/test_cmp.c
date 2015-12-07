@@ -223,9 +223,6 @@ void print_cpuinfo() {
   size = get_dspm_size();
   prefix(size,buf);
   printf("get_dspm_size(): %s\n", buf);
-  size = get_bootspm_size();
-  prefix(size,buf);
-  printf("get_bootspm_size(): %s\n", buf);
 
 }
 

@@ -338,6 +338,9 @@ class Decode() extends Module {
       }
     }
     io.decex.memOp.typ := ldtype;
+    when(ldtype === MTYPE_C && io.exc.local) {
+      io.decex.memOp.typ := MTYPE_L
+    }
     when(ldtype === MTYPE_S) {
       isStack := Bool(true)
     }
@@ -360,6 +363,9 @@ class Decode() extends Module {
       }
     }
     io.decex.memOp.typ := sttype;
+    when(sttype === MTYPE_C && io.exc.local) {
+      io.decex.memOp.typ := MTYPE_L
+    }
     when(sttype === MTYPE_S) {
       isStack := Bool(true)
     }
