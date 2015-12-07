@@ -64,6 +64,11 @@ void __default_exc_handler(void) {
   case 1: WRITE(" (illegal memory access)\n",25); break;
   }
 
+  WRITE("Abort\n",6);
+  for (; ; ) {
+    // Halt execution of processor
+    
+  }
 }
 
 void  __init_exceptions(void) {
@@ -73,6 +78,7 @@ void  __init_exceptions(void) {
   }
 }
 
+void __remote_irq_handler(void)  __attribute__((naked));
 void __remote_irq_handler(void) {
   exc_prologue();
   WRITE("IRQ0\n",5);
@@ -82,6 +88,7 @@ void __remote_irq_handler(void) {
   exc_epilogue();
 }
 
+void __data_recv_handler(void) __attribute__((naked));
 void __data_recv_handler(void) {
   exc_prologue();
   WRITE("IRQ1\n",5); 
@@ -91,9 +98,9 @@ void __data_recv_handler(void) {
   exc_epilogue();
 }
 
+void __noc_trap_handler(void)  __attribute__((noreturn));
 void __noc_trap_handler(void) {
-  intr_disable();
-  WRITE("TRAP\n",5);
+  
   unsigned op;
   unsigned p1,p2,p3,p4;
   asm volatile("mov %0 = $r1;"
@@ -102,6 +109,7 @@ void __noc_trap_handler(void) {
                "mov %3 = $r4;"
                "mov %4 = $r5;"
                  : "=r" (op), "=r" (p1), "=r" (p2), "=r" (p3), "=r" (p4));
+  WRITE("TRAP\n",5);
   switch (op) {
     case 0:
       k_noc_dma(p1,(unsigned short)p2,(unsigned short)p3,(unsigned short)p4);
@@ -109,15 +117,16 @@ void __noc_trap_handler(void) {
     case 1:
       k_noc_done(p1);
       break;
-
+    default:
+      WRITE("Illegal op\n",11);
   }
 
   int ret = 0;
-  asm volatile("mov $r1 = %0"
+  asm volatile("mov $r1 = %0;"
+               "xret;"
                 : : "r" (ret));
-  intr_enable();
-  asm volatile("xret"
-                : : );
+//  asm volatile("xret"
+//                : : );
 }
 
 // Configure network interface according to initialization information
@@ -184,13 +193,13 @@ int noc_dma(unsigned dma_id,
             unsigned short write_ptr,
             unsigned short read_ptr,
             unsigned short size) {
-
+    int zero = 0;
     asm volatile("mov $r1 = %0;"
                  "mov $r2 = %1;"
                  "mov $r3 = %2;"
                  "mov $r4 = %3;"
                  "mov $r5 = %4;"
-                   : : "r" (0), "r" (dma_id), "r" (write_ptr), "r" (read_ptr), "r" (size));
+                   : : "r" (zero), "r" (dma_id), "r" (write_ptr), "r" (read_ptr), "r" (size));
     trap(8);
 
     int ret = 0;
@@ -207,7 +216,7 @@ int k_noc_dma(unsigned dma_id,
             unsigned short write_ptr,
             unsigned short read_ptr,
             unsigned short size) {
-
+    WRITE("k_noc_dma\n",10);
     // Only send if previous transfer is done
     if (!k_noc_done(dma_id)) {
       return 0;
@@ -224,10 +233,10 @@ int k_noc_dma(unsigned dma_id,
 
 // Check if a NoC transfer has finished
 int noc_done(unsigned dma_id) {
-  
+    int one = 1;
     asm volatile("mov $r1 = %0;"
                  "mov $r2 = %1;"
-                   : : "r" (1), "r" (dma_id));
+                   : : "r" (one), "r" (dma_id));
     trap(8);
 
     int ret = 0;
@@ -239,6 +248,7 @@ int noc_done(unsigned dma_id) {
 
 // Check if a NoC transfer has finished
 int k_noc_done(unsigned dma_id) {
+  WRITE("k_noc_done\n",11);
   unsigned status = *(NOC_DMA_BASE+(dma_id<<1)+1);
   if ((status & NOC_ACTIVE_BIT) != 0) {
       return 0;

@@ -79,6 +79,10 @@ int main() {
   if (get_cpuid() == 0) {
     noc_done(3);
     noc_dma(1,0,0,2);
+
+    for (; ;) {
+      
+    }
   }
   
 
