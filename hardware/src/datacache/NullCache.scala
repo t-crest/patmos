@@ -75,6 +75,9 @@ class NullCache() extends Module {
   when(masterReg.Cmd != OcpCmd.RD || io.slave.S.CmdAccept === Bits(1)) {
     masterReg := io.master.M
   }
+  when(reset) {
+    masterReg.Cmd := OcpCmd.IDLE;
+  }
 
   // Default values
   io.slave.M.Cmd := OcpCmd.IDLE
