@@ -48,36 +48,6 @@
 #include "noc.h"
 #include "include/patio.h"
 
-
-/// __default_exc_handler - a default exception handler
-void __default_exc_handler(void) {
-  unsigned source = exc_get_source();
-
-  unsigned base, off;
-  asm volatile("mfs %0 = $sxb;"
-               "mfs %1 = $sxo;"
-               : "=r" (base), "=r" (off));
-
-  const char *msg = "";
-  switch(source) {
-  case 0: WRITE(" (illegal operation)\n",21); break;
-  case 1: WRITE(" (illegal memory access)\n",25); break;
-  }
-
-  WRITE("Abort\n",6);
-  for (; ; ) {
-    // Halt execution of processor
-    
-  }
-}
-
-void  __init_exceptions(void) {
-  int i;
-  for (i = 0; i < 32; i++) {
-    exc_register(i,&__default_exc_handler);
-  }
-}
-
 void __remote_irq_handler(void)  __attribute__((naked));
 void __remote_irq_handler(void) {
   exc_prologue();
@@ -101,14 +71,18 @@ void __data_recv_handler(void) {
 void __noc_trap_handler(void)  __attribute__((noreturn));
 void __noc_trap_handler(void) {
   
-  unsigned op;
-  unsigned p1,p2,p3,p4;
+  unsigned op,p1,p2,p3,p4;
   asm volatile("mov %0 = $r1;"
                "mov %1 = $r2;"
                "mov %2 = $r3;"
                "mov %3 = $r4;"
                "mov %4 = $r5;"
                  : "=r" (op), "=r" (p1), "=r" (p2), "=r" (p3), "=r" (p4));
+  unsigned int base,offset;
+  asm volatile("mfs  %0 = $s9;"
+               "mfs  %1 = $s10;"
+                 : "=r" (base), "=r" (offset));
+  intr_enable();
   WRITE("TRAP\n",5);
   switch (op) {
     case 0:
@@ -120,13 +94,14 @@ void __noc_trap_handler(void) {
     default:
       WRITE("Illegal op\n",11);
   }
-
+  intr_disable();
+  asm volatile("mts  $s9 = %0;"
+               "mts  $s10 = %1;" 
+                : : "r" (base), "r" (offset));
   int ret = 0;
   asm volatile("mov $r1 = %0;"
                "xret;"
                 : : "r" (ret));
-//  asm volatile("xret"
-//                : : );
 }
 
 // Configure network interface according to initialization information
@@ -223,9 +198,9 @@ int k_noc_dma(unsigned dma_id,
     }
 
     // DWord count and valid bit, set active bit
-    *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (size << 14) | read_ptr);
+    *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (size << NOC_PTR_WIDTH) | read_ptr);
     // Read pointer and write pointer in the dma table
-    *(NOC_DMA_BASE+(dma_id<<1)) = (0 << 14) | write_ptr;
+    *(NOC_DMA_BASE+(dma_id<<1)) = (DATA_PKT_TYPE << NOC_PTR_WIDTH) | write_ptr;
     
 
     return 1;
@@ -270,9 +245,9 @@ int noc_conf(unsigned dma_id,
     }
 
     // DWord count and valid bit, set active bit
-    *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (size << 14) | read_ptr);
+    *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (size << NOC_PTR_WIDTH) | read_ptr);
     // Read pointer and write pointer in the dma table
-    *(NOC_DMA_BASE+(dma_id<<1)) = (1 << 14) | write_ptr;
+    *(NOC_DMA_BASE+(dma_id<<1)) = (CONFIG_PKT_TYPE << NOC_PTR_WIDTH) | write_ptr;
     
 
     return 1;
@@ -291,9 +266,9 @@ int noc_irq(unsigned dma_id,
     }
 
     // DWord count and valid bit, set active bit
-    *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (1 << 14) | read_ptr) ;
+    *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (1 << NOC_PTR_WIDTH) | read_ptr) ;
     // Read pointer and write pointer in the dma table
-    *(NOC_DMA_BASE+(dma_id<<1)) = (3 << 14) | write_ptr;
+    *(NOC_DMA_BASE+(dma_id<<1)) = (IRQ_PKT_TYPE << NOC_PTR_WIDTH) | write_ptr;
     
 
     return 1;

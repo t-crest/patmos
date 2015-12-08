@@ -116,7 +116,6 @@ int test_mem_size_spm(volatile int _SPM * mem_addr){
 
 int print_noc_info(){
   printf("NoC schedule generated for %d cores\n",NOC_CORES);
-  printf("NoC schedule contains %d timeslots\n",NOC_TIMESLOTS);
   return NOC_CORES;
 }
 
