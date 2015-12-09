@@ -48,10 +48,12 @@
 #include "noc.h"
 #include "include/patio.h"
 
+#define TRAP
+
 void __remote_irq_handler(void)  __attribute__((naked));
 void __remote_irq_handler(void) {
   exc_prologue();
-  WRITE("IRQ0\n",5);
+  //WRITE("IRQ0\n",5);
   int tmp = *(NOC_IRQ_BASE);
   *(NOC_SPM_BASE+(tmp<<2)) = 0;
   intr_clear_pending(exc_get_source());
@@ -61,48 +63,54 @@ void __remote_irq_handler(void) {
 void __data_recv_handler(void) __attribute__((naked));
 void __data_recv_handler(void) {
   exc_prologue();
-  WRITE("IRQ1\n",5); 
+  //WRITE("IRQ1\n",5); 
   int tmp = *(NOC_IRQ_BASE+1);
   *(NOC_SPM_BASE+(tmp<<2)) = 0;
   intr_clear_pending(exc_get_source());
   exc_epilogue();
 }
 
-void __noc_trap_handler(void)  __attribute__((noreturn));
+#ifdef TRAP
+void __noc_trap_handler(void)  __attribute__((naked));
 void __noc_trap_handler(void) {
   
-  unsigned op,p1,p2,p3,p4;
-  asm volatile("mov %0 = $r1;"
-               "mov %1 = $r2;"
-               "mov %2 = $r3;"
-               "mov %3 = $r4;"
-               "mov %4 = $r5;"
-                 : "=r" (op), "=r" (p1), "=r" (p2), "=r" (p3), "=r" (p4));
-  unsigned int base,offset;
-  asm volatile("mfs  %0 = $s9;"
-               "mfs  %1 = $s10;"
-                 : "=r" (base), "=r" (offset));
+  unsigned int op,p1,p2,p3,p4;
+  unsigned int ret_base,ret_offset;
+  asm volatile("mov %0 = $r2;"
+               "mov %1 = $r3;"
+               "mov %2 = $r4;"
+               "mov %3 = $r5;"
+               "mov %4 = $r6;"
+               "mfs %5 = $sxb;"
+               "mfs %6 = $sxo;"
+                 : "=r" (op), "=r" (p1), "=r" (p2), "=r" (p3), "=r" (p4), "=r" (ret_base), "=r" (ret_offset)
+                 : : "$r2", "$r3", "$r4", "$r5", "$r6");
   intr_enable();
-  WRITE("TRAP\n",5);
+  //WRITE("TRAP\n",5);
+  int ret = 0;
   switch (op) {
     case 0:
-      k_noc_dma(p1,(unsigned short)p2,(unsigned short)p3,(unsigned short)p4);
+      //WRITE("calling noc_dma\n",16);
+      ret = k_noc_dma(p1,(unsigned short)p2,(unsigned short)p3,(unsigned short)p4);
       break;
     case 1:
-      k_noc_done(p1);
+      //WRITE("Not done\n",9);
+      ret = k_noc_done(p1);
       break;
     default:
       WRITE("Illegal op\n",11);
   }
   intr_disable();
-  asm volatile("mts  $s9 = %0;"
-               "mts  $s10 = %1;" 
-                : : "r" (base), "r" (offset));
-  int ret = 0;
-  asm volatile("mov $r1 = %0;"
-               "xret;"
-                : : "r" (ret));
+  //WRITE("Returning from trap\n",20);
+  asm volatile("mts  $sxb = %0;"
+               "mts  $sxo = %1;"
+               "mov $r1 = %2;"
+               "xretnd;"
+                : : "r" (ret_base), "r" (ret_offset), "r" (ret)
+                : "$r1");
 }
+
+#endif
 
 // Configure network interface according to initialization information
 void noc_configure(void) {
@@ -114,10 +122,11 @@ void noc_configure(void) {
   // Set the pointers to the start and to the end of the schedule
   *(NOC_MC_BASE+2) = schedule_entries << 16 | 0;
   *(NOC_TDM_BASE+4) = 1; // Set the network in run mode
-  __init_exceptions();
   exc_register(23,&__remote_irq_handler);
   exc_register(31,&__data_recv_handler);
+#ifdef TRAP
   exc_register(8,&__noc_trap_handler);
+#endif
 }
 
 // Synchronize start-up
@@ -164,25 +173,50 @@ void noc_init(void) {
 // Start a NoC data dma transfer
 // The addresses and the size are in double-words and relative to the
 // communication SPM
+#ifdef TRAP
 int noc_dma(unsigned dma_id,
             unsigned short write_ptr,
             unsigned short read_ptr,
             unsigned short size) {
     int zero = 0;
-    asm volatile("mov $r1 = %0;"
-                 "mov $r2 = %1;"
-                 "mov $r3 = %2;"
-                 "mov $r4 = %3;"
-                 "mov $r5 = %4;"
-                   : : "r" (zero), "r" (dma_id), "r" (write_ptr), "r" (read_ptr), "r" (size));
+    unsigned int ret_base, ret_offset;
+    asm volatile("mov $r2 = %2;"
+                 "mov $r3 = %3;"
+                 "mov $r4 = %4;"
+                 "mov $r5 = %5;"
+                 "mov $r6 = %6;"
+                 "mfs %0 = $srb;"
+                 "mfs %1 = $sro;"
+                   : "=r" (ret_base), "=r" (ret_offset)
+                   : "r" (zero), "r" (dma_id), "r" (write_ptr), "r" (read_ptr), "r" (size)
+                   : "$r2", "$r3", "$r4", "$r5", "$r6" );
     trap(8);
 
-    int ret = 0;
-    asm volatile("mov %0 = $r1;"
-                  : "=r" (ret));
+//    asm volatile("retnd;"
+//                  : : );
+
+    int ret;
+    asm volatile("mts $srb = %1;"
+                 "mts $sro = %2;"
+                 "mov %0 = $r1;"
+                  : "=r" (ret)
+                  : "r" (ret_base), "r" (ret_offset)
+                  : "$r1");
+//    WRITE("Returned: ",10);
+//    char c = 48+ret;
+//    WRITE(&c,1);
+//    WRITE(" from trap\n",11);
 
     return ret;
 }
+#else
+int noc_dma(unsigned dma_id,
+            unsigned short write_ptr,
+            unsigned short read_ptr,
+            unsigned short size) {
+    return k_noc_dma(dma_id,write_ptr,read_ptr,size);
+}
+#endif
 
 // Start a NoC data dma transfer
 // The addresses and the size are in double-words and relative to the
@@ -191,27 +225,29 @@ int k_noc_dma(unsigned dma_id,
             unsigned short write_ptr,
             unsigned short read_ptr,
             unsigned short size) {
-    WRITE("k_noc_dma\n",10);
+    //WRITE("k_noc_dma\n",10);
     // Only send if previous transfer is done
     if (!k_noc_done(dma_id)) {
       return 0;
     }
 
-    // DWord count and valid bit, set active bit
-    *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (size << NOC_PTR_WIDTH) | read_ptr);
     // Read pointer and write pointer in the dma table
     *(NOC_DMA_BASE+(dma_id<<1)) = (DATA_PKT_TYPE << NOC_PTR_WIDTH) | write_ptr;
+    // DWord count and valid bit, set active bit
+    *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (size << NOC_PTR_WIDTH) | read_ptr);
     
-
+    
     return 1;
 }
 
 // Check if a NoC transfer has finished
+#ifdef TRAP
 int noc_done(unsigned dma_id) {
     int one = 1;
-    asm volatile("mov $r1 = %0;"
-                 "mov $r2 = %1;"
-                   : : "r" (one), "r" (dma_id));
+    asm volatile("mov $r2 = %0;"
+                 "mov $r3 = %1;"
+                   : : "r" (one), "r" (dma_id)
+                   : "$r2", "$r3");
     trap(8);
 
     int ret = 0;
@@ -220,10 +256,15 @@ int noc_done(unsigned dma_id) {
 
     return ret;
 }
+#else
+int noc_done(unsigned dma_id) {
+    return k_noc_done(dma_id);
+}
+#endif
 
 // Check if a NoC transfer has finished
 int k_noc_done(unsigned dma_id) {
-  WRITE("k_noc_done\n",11);
+  //WRITE("k_noc_done\n",11);
   unsigned status = *(NOC_DMA_BASE+(dma_id<<1)+1);
   if ((status & NOC_ACTIVE_BIT) != 0) {
       return 0;
@@ -244,10 +285,11 @@ int noc_conf(unsigned dma_id,
       return 0;
     }
 
-    // DWord count and valid bit, set active bit
-    *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (size << NOC_PTR_WIDTH) | read_ptr);
     // Read pointer and write pointer in the dma table
     *(NOC_DMA_BASE+(dma_id<<1)) = (CONFIG_PKT_TYPE << NOC_PTR_WIDTH) | write_ptr;
+    // DWord count and valid bit, set active bit
+    *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (size << NOC_PTR_WIDTH) | read_ptr);
+
     
 
     return 1;
@@ -265,10 +307,11 @@ int noc_irq(unsigned dma_id,
       return 0;
     }
 
-    // DWord count and valid bit, set active bit
-    *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (1 << NOC_PTR_WIDTH) | read_ptr) ;
     // Read pointer and write pointer in the dma table
     *(NOC_DMA_BASE+(dma_id<<1)) = (IRQ_PKT_TYPE << NOC_PTR_WIDTH) | write_ptr;
+    // DWord count and valid bit, set active bit
+    *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (1 << NOC_PTR_WIDTH) | read_ptr) ;
+    
     
 
     return 1;
@@ -284,7 +327,8 @@ int noc_nbsend(unsigned dma_id, volatile void _SPM *dst,
 
   unsigned wp = (char *)dst - (char *)NOC_SPM_BASE;
   unsigned rp = (char *)src - (char *)NOC_SPM_BASE;
-  return noc_dma(dma_id, DW(wp), DW(rp), DW(size));
+  int ret = noc_dma(dma_id, DW(wp), DW(rp), DW(size));
+  return ret;
 }
 
 // Transfer data via the NoC
