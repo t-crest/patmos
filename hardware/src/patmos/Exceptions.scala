@@ -192,8 +192,8 @@ class Exceptions extends Module {
   }
 
   // Create signals to decode stage
-  val exc = Reg(next = excPend.toBits != Bits(0))
-  val intr = Reg(next = (intrPend.toBits & maskReg) != Bits(0))
+  val exc = Reg(next = excPend.toBits =/= Bits(0))
+  val intr = Reg(next = (intrPend.toBits & maskReg) =/= Bits(0))
 
   io.excdec.exc   := exc
   io.excdec.intr  := intr && intrEna

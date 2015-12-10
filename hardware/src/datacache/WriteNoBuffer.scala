@@ -110,7 +110,7 @@ class WriteNoBuffer() extends Module {
       state := idle
     }
   }
-  when(state != write) {
+  when(state =/= write) {
     writeMasterReg := io.writeMaster.M
   }
 

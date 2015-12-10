@@ -72,7 +72,7 @@ class NullCache() extends Module {
   // Register to delay response
   val slaveReg = Reg(io.master.S)
 
-  when(masterReg.Cmd != OcpCmd.RD || io.slave.S.CmdAccept === Bits(1)) {
+  when(masterReg.Cmd =/= OcpCmd.RD || io.slave.S.CmdAccept === Bits(1)) {
     masterReg := io.master.M
   }
   when(reset) {

@@ -196,7 +196,7 @@ class SSRam32Ctrl (
   }
 
   //counter till output is ready
-  when (waitState != UInt(0)) {
+  when (waitState =/= UInt(0)) {
     waitState := waitState - UInt(1)
   }
   //set wait state after incoming request

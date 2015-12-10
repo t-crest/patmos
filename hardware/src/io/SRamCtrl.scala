@@ -154,7 +154,7 @@ class SRamCtrl( ocpAddrWidth    : Int,
       wrBufferReg(i).byteEna := io.ocp.M.DataByteEn((i+1)*BYTESPERTRAN-1,i*BYTESPERTRAN)
       wrBufferReg(i).data := io.ocp.M.Data((i+1)*sramDataWidth-1,i*sramDataWidth)
     }
-    when(io.ocp.M.Cmd != OcpCmd.IDLE) {
+    when(io.ocp.M.Cmd =/= OcpCmd.IDLE) {
       mAddrReg := io.ocp.M.Addr(sramAddrWidth+log2upNew(BYTESPERTRAN) - 1,
                                 log2upNew(BYTESPERTRAN))
       when(io.ocp.M.Cmd === OcpCmd.RD) {

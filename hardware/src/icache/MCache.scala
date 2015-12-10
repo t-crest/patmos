@@ -468,7 +468,7 @@ class MCacheCtrl() extends Module {
   io.ctrlrepl.wData := wData
   io.ctrlrepl.wAddr := wAddr
   io.ctrlrepl.wTag := wTag
-  io.ctrlrepl.instrStall := stateReg != idleState
+  io.ctrlrepl.instrStall := stateReg =/= idleState
 
   io.fetch_ena := fetchEna
 }

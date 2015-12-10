@@ -92,7 +92,7 @@ class Decode() extends Module {
   decoded.map(_ := Bool(false))
 
   // Decoding of dual-issue operations
-  val dual = decReg.instr_a(INSTR_WIDTH - 1) && decReg.instr_a(26, 22) != OPCODE_ALUL;
+  val dual = decReg.instr_a(INSTR_WIDTH - 1) && decReg.instr_a(26, 22) =/= OPCODE_ALUL;
   for (i <- 0 until PIPE_COUNT) {
     val instr   = if (i == 0) { decReg.instr_a } else { decReg.instr_b }
     val opcode  = instr(26, 22)
@@ -437,7 +437,7 @@ class Decode() extends Module {
                            Mux(io.decex.jmpOp.branch, UInt(2),
                                Mux(io.decex.aluOp(0).isMul,
                                    Mux(inDelaySlot > UInt(1), decDelaySlot, UInt(1)),
-                                   Mux(inDelaySlot != UInt(0), decDelaySlot, UInt(0))))))
+                                   Mux(inDelaySlot =/= UInt(0), decDelaySlot, UInt(0))))))
   }
 
   // reset at end to override any computations

@@ -56,10 +56,12 @@ class FeDec() extends Bundle() {
 
   def flush() = {
     // flush only necessary parts of instruction
-    instr_a(30, 27) := PRED_IFFALSE
-    instr_a(26, 25) := OPCODE_ALUI
-    instr_b(30, 27) := PRED_IFFALSE
-    instr_b(26, 25) := OPCODE_ALUI
+    // instr_a(30, 27) := PRED_IFFALSE
+    // instr_a(26, 25) := OPCODE_ALUI
+    // instr_b(30, 27) := PRED_IFFALSE
+    // instr_b(26, 25) := OPCODE_ALUI
+    instr_a := Bits(0)
+    instr_b := Bits(0)
   }
 }
 

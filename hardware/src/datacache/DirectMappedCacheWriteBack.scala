@@ -117,7 +117,7 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
                wrDataReg(BYTE_WIDTH*(i+1)-1, BYTE_WIDTH*i))
   }
   // Update dirty bit when writing
-  when(tagValid && (stmsk != Bits("b0000"))) {
+  when(tagValid && (stmsk =/= Bits("b0000"))) {
     dirtyMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(true)
     when(io.master.M.Addr(addrBits + 1, lineBits) === masterReg.Addr(addrBits + 1, lineBits)) {
       dirty := Bool(true);
