@@ -5,7 +5,7 @@
 # Include user makefile for local configurations
 -include config.mk
 # COM port for downloader
-COM_PORT?=/dev/ttyUSB0
+COM_PORT?=/dev/ttyS0
 
 # Application to be stored in boot ROM
 BOOTAPP?=bootable-bootloader
