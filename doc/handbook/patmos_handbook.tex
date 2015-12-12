@@ -3103,8 +3103,7 @@ ALU operations: 3173 LCs, 91.91 MHz.
 \chapter{Build Instructions}
 \label{ch:build_instructions}
 
-In the following we present the Patmos build instructions on a 32-bit Linux/Ubuntu
-system (14.04 LTS).%\footnote{I used the 32-bit version of Ubuntu to simplify the Quartus installation.}
+
 The installation instructions might also be valid on different Ubuntu versions.
 Patmos and the compiler have also been successfully installed on a Mac OSX
 system.  The support of Windows is marginal, or basically not existent.
@@ -3148,8 +3147,38 @@ system.  The support of Windows is marginal, or basically not existent.
 %\end{itemize}
 %
 
+\section{Setup On Ubuntu and Mac OSX}
 
-\section{Setup On Ubuntu 14.04 LTS}
+In the following we present the Patmos build instructions including setup of
+tools in two different Ubuntu versions and for the Mac OSX.
+
+\subsection{Setup On Ubuntu 15.10 64-Bit}
+
+In the following we present the setup of tools within a recent Ubuntu version.
+Here is the list of needed (or recommended) packages:
+
+\begin{verbatim}
+sudo apt-get install git openjdk-7-jdk gitk cmake make g++ texinfo flex bison \
+  subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby \
+  ruby-dev liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala
+\end{verbatim}
+
+Install \code{sbt} with:
+
+\begin{verbatim}
+wget http://dl.bintray.com/sbt/debian/sbt-0.13.2.deb
+sudo dpkg -i sbt-0.13.2.deb
+sudo apt-get update
+sudo apt-get install sbt
+\end{verbatim}
+
+\subsection{Setup On Ubuntu 14.04.3 LTS 64-Bit}
+
+
+\subsection{Setup On Ubuntu 14.04 LTS 32-Bit}
+
+In the following we present the Patmos build instructions on a 32-bit Linux/Ubuntu
+system (14.04 LTS).\footnote{I used the 32-bit version of Ubuntu to simplify the Quartus installation.}
 
 After a plain Ubuntu installation several packages need to be installed.
 The following apt-get lists the packages that need to be
@@ -3190,6 +3219,41 @@ sudo rm /bin/sh
 sudo ln -s /bin/bash /bin/sh
 \end{verbatim}
 
+\subsection{Setup On Mac OS X}
+
+First install the Mac compiler (Xcode) and the command line tools.
+
+This subsection describes the installation of needed tools and libraries
+on Mac OS X. It is based on a OS X Yosemite and assumes to use
+homebrew\footnote{\url{http://brew.sh/}} for package management.
+
+For the build of Patmos and the compiler we need:
+
+\begin{verbatim}
+brew install cmake boost libelf sbt doxygen
+\end{verbatim}
+
+Mac OS X comes with Python version 2.7 preinstalled. For Aegean
+we need Python 3 and the xml library that can be installed with:
+
+\begin{verbatim}
+brew install python3
+pip3 install lxml
+\end{verbatim}
+
+For wave viewing install GTKWave with
+
+\begin{verbatim}
+brew install homebrew/x11/gtkwave
+\end{verbatim}
+
+\todo{The following should probably be deleted as we switched to homebrew for the setup.}
+
+Several tools are needed, best installed with MacPorts. For Patmos simulator and assembler:
+\code{boost}, \code{libelf}.
+For simulation with ModelSim: \code{wine}
+For Aegean: \code{python33}, \code{py33-lxml}. Make a link from \code{python3} to \code{python3.3} as this is the way it is invoked.
+\todo{Alex suggested a way to avoid this by querying how to invoke python.}
 
 \subsection{Building Patmos and the Compiler Tool Chain}
 \label{sec:build:compiler}
@@ -3271,7 +3335,7 @@ export PATH=$PATH:$HOME/t-crest/misc
 \end{verbatim}
 
 
-\subsection{Quartus}
+\subsection{Quartus on Linux}
 
 Download the free web edition of Quartus from Altera.\footnote{For a 32-bit Linux you need to
 use Quartus 13.x as 32-bit support has been dropped from Quartus 14.x.}
@@ -3330,41 +3394,6 @@ Quartus~13.1 drops the support of Cyclone~II devices. Therefore, the
 (phased out) Altera DE2-70 board is not supported anymore. Version 13.0 supports Cyclone~II\
 till Cyclone~V devices and might be the best option at the moment.
 
-\section{Setup On Mac OS X}
-
-First install the Mac compiler (Xcode) and the command line tools.
-
-This subsection describes the installation of needed tools and libraries
-on Mac OS X. It is based on a OS X Yosemite and assumes to use
-homebrew\footnote{\url{http://brew.sh/}} for package management.
-
-For the build of Patmos and the compiler we need:
-
-\begin{verbatim}
-brew install cmake boost libelf sbt doxygen
-\end{verbatim}
-
-Mac OS X comes with Python version 2.7 preinstalled. For Aegean
-we need Python 3 and the xml library that can be installed with:
-
-\begin{verbatim}
-brew install python3
-pip3 install lxml
-\end{verbatim}
-
-For wave viewing install GTKWave with
-
-\begin{verbatim}
-brew install homebrew/x11/gtkwave
-\end{verbatim}
-
-\todo{The following should probably be deleted as we switched to homebrew for the setup.}
-
-Several tools are needed, best installed with MacPorts. For Patmos simulator and assembler:
-\code{boost}, \code{libelf}.
-For simulation with ModelSim: \code{wine}
-For Aegean: \code{python33}, \code{py33-lxml}. Make a link from \code{python3} to \code{python3.3} as this is the way it is invoked.
-\todo{Alex suggested a way to avoid this by querying how to invoke python.}
 
 \section{Hello World}
 
