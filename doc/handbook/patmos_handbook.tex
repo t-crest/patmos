@@ -3103,10 +3103,16 @@ ALU operations: 3173 LCs, 91.91 MHz.
 \chapter{Build Instructions}
 \label{ch:build_instructions}
 
+In the following we describe: (1) the installation of needed tool under Ubuntu and
+on Mac OS X, (2) how to build the Patmos tool chain (e.g., compiler), and (3) how
+to get started with Patmos.
 
-The installation instructions might also be valid on different Ubuntu versions.
-Patmos and the compiler have also been successfully installed on a Mac OSX
+The installation instructions might also be valid on different Linux versions.
+Patmos and the compiler have also been successfully installed on a Mac OS X
 system.  The support of Windows is marginal, or basically not existent.
+
+For an easier start we provide a VM image with Ubuntu 14.04 including
+all tools installed for download from: \url{http://patmos.compute.dtu.dk/}
 
 
 % ------------------------------------------------------------------------------
@@ -3147,60 +3153,20 @@ system.  The support of Windows is marginal, or basically not existent.
 %\end{itemize}
 %
 
-\section{Setup On Ubuntu and Mac OSX}
+\section{Setup On Ubuntu and Mac OS X}
 
 In the following we present the Patmos build instructions including setup of
-tools in two different Ubuntu versions and for the Mac OSX.
+tools in two different Ubuntu versions and for the Mac OS X.
 
-\subsection{Setup On Ubuntu 15.10 64-Bit}
+\subsection{Setup On Ubuntu 14.04.3 LTS 64-Bit}
 
 In the following we present the setup of tools within a recent Ubuntu version.
 Here is the list of needed (or recommended) packages:
 
 \begin{verbatim}
 sudo apt-get install git openjdk-7-jdk gitk cmake make g++ texinfo flex bison \
-  subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby \
-  ruby-dev liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala
-\end{verbatim}
-
-Install \code{sbt} with:
-
-\begin{verbatim}
-wget http://dl.bintray.com/sbt/debian/sbt-0.13.2.deb
-sudo dpkg -i sbt-0.13.2.deb
-sudo apt-get update
-sudo apt-get install sbt
-\end{verbatim}
-
-\subsection{Setup On Ubuntu 14.04.3 LTS 64-Bit}
-
-
-\subsection{Setup On Ubuntu 14.04 LTS 32-Bit}
-
-In the following we present the Patmos build instructions on a 32-bit Linux/Ubuntu
-system (14.04 LTS).\footnote{I used the 32-bit version of Ubuntu to simplify the Quartus installation.}
-
-After a plain Ubuntu installation several packages need to be installed.
-The following apt-get lists the packages that need to be
-installed:\footnote{Some packages might be available in newer version
-when reading this document.}
-
-\begin{verbatim}
-sudo apt-get install git openjdk-7-jdk gitk cmake make g++ texinfo flex bison \
-  subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
-  ruby1.9.1-dev liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala
-\end{verbatim}
-
-\emph{The following gem install might not be needed as with the correct
-packages (liblpsolve55-dev) the setup script shall do it automatically.
-Needs to be checked on a fresh Ubuntu machine.
-This is done after T-CREST has been installed.}
-
-From within \code{llvm/tools/platin} install:
-
-\begin{verbatim}
-sudo gem1.9.1 install lpsolve --pre
-sudo gem1.9.1 install ext/lpsolve-5.5.10.j.gem
+  subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
+  liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala
 \end{verbatim}
 
 Install \code{sbt} with:
@@ -3219,15 +3185,60 @@ sudo rm /bin/sh
 sudo ln -s /bin/bash /bin/sh
 \end{verbatim}
 
-\subsection{Setup On Mac OS X}
 
-First install the Mac compiler (Xcode) and the command line tools.
+%\subsection{Setup On Ubuntu 14.04 LTS 32-Bit}
+%
+%In the following we present the Patmos build instructions on a 32-bit Linux/Ubuntu
+%system (14.04 LTS).\footnote{I used the 32-bit version of Ubuntu to simplify the Quartus installation.}
+%
+%After a plain Ubuntu installation several packages need to be installed.
+%The following apt-get lists the packages that need to be
+%installed:\footnote{Some packages might be available in newer version
+%when reading this document.}
+%
+%\begin{verbatim}
+%sudo apt-get install git openjdk-7-jdk gitk cmake make g++ texinfo flex bison \
+%  subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
+%  ruby1.9.1-dev liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala
+%\end{verbatim}
+%
+%\emph{The following gem install might not be needed as with the correct
+%packages (liblpsolve55-dev) the setup script shall do it automatically.
+%Needs to be checked on a fresh Ubuntu machine.
+%This is done after T-CREST has been installed.}
+%
+%From within \code{llvm/tools/platin} install:
+%
+%\begin{verbatim}
+%sudo gem1.9.1 install lpsolve --pre
+%sudo gem1.9.1 install ext/lpsolve-5.5.10.j.gem
+%\end{verbatim}
+%
+%Install \code{sbt} with:
+%
+%\begin{verbatim}
+%wget http://dl.bintray.com/sbt/debian/sbt-0.13.2.deb
+%sudo dpkg -i sbt-0.13.2.deb
+%sudo apt-get update
+%sudo apt-get install sbt
+%\end{verbatim}
+%
+%For the Quartus setup it is best to change the default shell to \code{/bin/bash}:
+%
+%\begin{verbatim}
+%sudo rm /bin/sh
+%sudo ln -s /bin/bash /bin/sh
+%\end{verbatim}
+
+\subsection{Setup On Mac OS X}
 
 This subsection describes the installation of needed tools and libraries
 on Mac OS X. It is based on a OS X Yosemite and assumes to use
 homebrew\footnote{\url{http://brew.sh/}} for package management.
 
-For the build of Patmos and the compiler we need:
+First install the Mac compiler (Xcode) and the command line tools.
+
+For the build of Patmos and the compiler we need to install:
 
 \begin{verbatim}
 brew install cmake boost libelf sbt doxygen
@@ -3255,7 +3266,7 @@ For simulation with ModelSim: \code{wine}
 For Aegean: \code{python33}, \code{py33-lxml}. Make a link from \code{python3} to \code{python3.3} as this is the way it is invoked.
 \todo{Alex suggested a way to avoid this by querying how to invoke python.}
 
-\subsection{Building Patmos and the Compiler Tool Chain}
+\section{Building Patmos and the Compiler Tool Chain}
 \label{sec:build:compiler}
 
 We assume that the T-CREST project will live in \code{\$HOME/t-crest}.
@@ -3335,7 +3346,7 @@ export PATH=$PATH:$HOME/t-crest/misc
 \end{verbatim}
 
 
-\subsection{Quartus on Linux}
+\section{Quartus on Linux}
 
 Download the free web edition of Quartus from Altera.\footnote{For a 32-bit Linux you need to
 use Quartus 13.x as 32-bit support has been dropped from Quartus 14.x.}
@@ -3352,7 +3363,7 @@ The software installation is started with:
 bash setup.sh
 \end{verbatim}
 
-Then add the bin directory of Quartus to your \$PATH.
+Then add the \code{bin} directory of Quartus to your \$PATH.
 %
 For access to the serial port and access rights for the USB Blaster following additional steps are needed:
 
@@ -3361,29 +3372,46 @@ For access to the serial port and access rights for the USB Blaster following ad
 sudo usermod -a -G dialout user
 \end{verbatim}
 
+Getting the Altera USB Blaster working on Ubuntu is a little bit brittle.
+Here a collection of tips collected from different places that helped me to
+get the USB Blaster running.
+
 Add permissions to access the Altera USB Blaster by creating or editing \code{/etc/udev/rules.d/51-usbblaster.rules}:
-%sudo su -
-%echo "SUBSYSTEM==\"usb\", DRIVER==\"usb\", ATTR{idVendor}==\"09fb\", \
-%ATTR{idProduct}==\"6001\", MODE=\"0666\"" > /etc/udev/rules.d/51-usbblaster.rules
 
 \begin{verbatim}
-# From the 32-bit installation:
-SUBSYSTEM=="usb", DRIVER=="usb", ATTR{idVendor}=="09fb", ATTR{idProduct}=="6001", MODE="0666"
-
-# USB-Blaster
-BUS=="usb", SYSFS{idVendor}=="09fb", SYSFS{idProduct}=="6001", MODE="0666"
-BUS=="usb", SYSFS{idVendor}=="09fb", SYSFS{idProduct}=="6002", MODE="0666"
-BUS=="usb", SYSFS{idVendor}=="09fb", SYSFS{idProduct}=="6003", MODE="0666"
-
-# USB-Blaster II
-BUS=="usb", SYSFS{idVendor}=="09fb", SYSFS{idProduct}=="6010", MODE="0666"
-BUS=="usb", SYSFS{idVendor}=="09fb", SYSFS{idProduct}=="6810", MODE="0666"
+# For Altera USB-Blaster permissions.
+SUBSYSTEM=="usb",\
+ENV{DEVTYPE}=="usb_device",\
+ATTR{idVendor}=="09fb",\
+ATTR{idProduct}=="6001",\
+MODE="0666",\
+NAME="bus/usb/$env{BUSNUM}/$env{DEVNUM}",\
+RUN+="/bin/chmod 0666 %c"
 \end{verbatim}
 
 Reload the rules:
 \begin{verbatim}
-sudo udevadm control --reload-rules
+sudo udevadm control --reload
 \end{verbatim}
+
+Test the JTAG chain with:
+\begin{verbatim}
+jtagconfig
+\end{verbatim}
+
+and hope for an output similar to:
+
+\begin{verbatim}
+1) USB-Blaster [2-2.2]
+  020F70DD   EP3C120/EP4CE115
+\end{verbatim}
+
+Some more fixes...
+\begin{verbatim}
+sudo ln -s /lib/x86_64-linux-gnu/libudev.so.1 /usr/lib/libudev.so.0
+jtagconfig -d
+\end{verbatim}
+
 
 After fixing the permissions for the USB Blaster open Quartus and test if the
 cable is found with the programmer. Select USB-Blaster in \emph{Hardware Setup}.
@@ -3655,7 +3683,7 @@ make BOARD=bemicro BLASTER_TYPE=Arrow-USB-Blaster config
 This split of the make commands is for demonstration. It is
 possible to merge all steps into a single make (on Linux
 systems) or two steps when using two operating
-systems (e.g., Mac OSX for compilation and Windows for synthesis).
+systems (e.g., Mac OS X for compilation and Windows or Linux for synthesis).
 
 \paragraph{Emulator and elf File}
 
