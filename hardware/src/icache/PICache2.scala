@@ -95,7 +95,6 @@ class PICache2PrefRepl extends Bundle() {
 }
 class PICache2CtrlPref extends Bundle() {
   val prefTrig = Bool()
-  val ctrlprefAddr = Bits(width = EXTMEM_ADDR_WIDTH)
 }
 class PICache2ReplCtrl extends Bundle() {
   val hit = Bool()
@@ -137,7 +136,6 @@ class PICache2MemIO extends Bundle() {
   val memOut = new PICache2MemOut().asOutput
 }
 class Prefetcher2IO extends Bundle() {
-  val ena_in = Bool(INPUT)
   val invalidate = Bool(INPUT)
   val feicache = new FeICache().asInput
   val ctrlpref = new PICache2CtrlPref().asInput
@@ -173,7 +171,6 @@ class PICache2() extends Module {
   // Connect enable signal
   ctrl.io.ena_in <> io.ena_in
   repl.io.ena_in <> io.ena_in
-  pref.io.ena_in <> io.ena_in
   // Output enable depending on hit/miss/fetch
   io.ena_out := ctrl.io.fetch_ena
   // Connect invalidate signal
@@ -347,8 +344,6 @@ class PICache2Repl() extends Module {
     replVec(wrValidIndex) := Bool(false)
   }
 
-
-
   val wrParity = io.ctrlrepl.wAddr(0)
 
   // Outputs to cache memory
@@ -437,6 +432,7 @@ class PICache2Ctrl() extends Module {
         addrReg := addr
         burstCnt := UInt(0)
         fetchCnt := UInt(0)
+	wAddr := Cat(addr, Bits(0, width = LINE_WORD_SIZE_WIDTH))
        // Check if command is accepted by the memory controller
         ocpAddr := Cat(addr, Bits(0, width =  LINE_WORD_SIZE_WIDTH))
         ocpCmd := OcpCmd.RD
@@ -464,11 +460,9 @@ class PICache2Ctrl() extends Module {
           fetchEna := Bool(false)
     }
     when (fetchCnt < UInt(LINE_WORD_SIZE)) {
-      when (fetchCnt === UInt(LINE_WORD_SIZE - 2)) {
-        prefTrig := Bool(true)
-      }
       when(fetchCnt === UInt(LINE_WORD_SIZE - 1)) {
-        // Write new tag field memory
+        fetchEna := Bool(false)
+	// Write new tag field memory
         wTag := Bool(true)
       } 
       when (ocpSlaveReg.Resp === OcpResp.DVA) {
@@ -490,6 +484,7 @@ class PICache2Ctrl() extends Module {
     }
     // Restart to idle state
     .otherwise {
+      prefTrig := Bool(true)
       stateReg := idleState
     }
   }
@@ -502,7 +497,6 @@ class PICache2Ctrl() extends Module {
 
   io.fetch_ena := fetchEna
   io.ctrlpref.prefTrig := prefTrig
-  io.ctrlpref.ctrlprefAddr := Cat(addrReg, Bits(0, width = LINE_WORD_SIZE_WIDTH))
 
 
   // Outputs to external memory
