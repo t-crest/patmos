@@ -113,14 +113,26 @@ void __noc_trap_handler(void) {
 #endif
 
 // Configure network interface according to initialization information
-void noc_configure(void) {
+void noc_load_sched(unsigned int mode_id) {
+  unsigned mode_idx = mode_id * NOC_CORES * NOC_TABLES * NOC_SCHEDULE_ENTRIES
   unsigned core_idx = get_cpuid() * NOC_TABLES * NOC_SCHEDULE_ENTRIES;
-  unsigned short schedule_entries = noc_init_array[core_idx];
+  unsigned short schedule_entries = noc_init_array[mode_idx+core_idx];
   for (unsigned i = 0; i < schedule_entries; ++i) {
-    *(NOC_SCHED_BASE+i) = noc_init_array[core_idx + i + 1];
+    //TODO: handle allocation of space in the mode change table
+    // Add placement of first entry to NOC_SCHED_BASE+i
+    *(NOC_SCHED_BASE+i) = noc_init_array[mode_idx+core_idx + i + 1];
   }
   // Set the pointers to the start and to the end of the schedule
-  *(NOC_MC_BASE+2) = schedule_entries << 16 | 0;
+  //TODO: handle allocation of space in the mode change table
+  // Add placement of first entry to schedule_entries and 0
+  *(NOC_MC_BASE+2+mode_id) = schedule_entries << 16 | 0;
+}
+
+// Configure network interface according to initialization information
+void noc_configure(void) {
+  noc_load_sched(0):
+  //TODO: Make the master synchronize with the other cores before setting
+  // the network in run mode.
   *(NOC_TDM_BASE+4) = 1; // Set the network in run mode
   exc_register(23,&__remote_irq_handler);
   exc_register(31,&__data_recv_handler);
