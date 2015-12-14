@@ -31,9 +31,7 @@ class PFSM extends Module {
   // Registers generation
   val previous_addrs_R = Reg(init = Bits(0, width = (TAG_SIZE + INDEX_SIZE))) 
   val previous_addrs_even_R = Reg(init = Bits(0, width = (TAG_SIZE + INDEX_SIZE))) 
-  val previous_addrs_odd_R = Reg(init = Bits(0, width = (TAG_SIZE + INDEX_SIZE))) 
-
-  
+  val previous_addrs_odd_R = Reg(init = Bits(0, width = (TAG_SIZE + INDEX_SIZE)))   
   val index_R = Reg(init = UInt(0, width = INDEX_REG_WIDTH))
   val sign_ext_R = Reg(init = Bits(0, width = (EXTMEM_ADDR_WIDTH - TAG_SIZE - INDEX_SIZE))) 
   val sp_R = Reg(init = UInt(1, width = log2Up(MAX_CALLS)))
