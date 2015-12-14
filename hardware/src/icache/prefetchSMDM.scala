@@ -13,7 +13,6 @@ class PFSMDM extends Module {
   val pc_address_even = io.feicache.addrEven(TAG_HIGH, INDEX_LOW)
   val pc_address_odd = io.feicache.addrOdd(TAG_HIGH, INDEX_LOW)
   val prefTrig = io.ctrlpref.prefTrig
-  val pc_address = io.ctrlpref.ctrlprefAddr
 
   //RPT ROM generation
   val trigger_rom = trigger_f()
@@ -39,12 +38,9 @@ class PFSMDM extends Module {
   val sp_R = Reg(init = UInt(1, width = log2Up(MAX_CALLS)))
   val small_l_count_R = Reg(init = UInt(0, width = MAX_SMALL_LOOP_WIDTH))
   val small_l_addr_R = Reg(init = Bits(0, width = (TAG_SIZE + INDEX_SIZE))) 	
-  val iteration_inner_R = Reg(init = UInt(0, width = MAX_LOOP_ITER_WIDTH))
+  val small_l_stop_R = Reg(init = Bits(0, width = (TAG_SIZE + INDEX_SIZE))) 	
   val status_R = Vec.fill(MAX_DEPTH){Reg(init = UInt(0, width = MAX_DEPTH_WIDTH))}
   val iteration_outer_R = Vec.fill(MAX_DEPTH){Reg(init = UInt(0, width = MAX_ITERATION_WIDTH))}
-
-//  val cache_line_id_address = pc_address(TAG_HIGH, INDEX_LOW)
-  
   val cache_line_id_address = Reg(init = UInt(0, width = (TAG_SIZE + INDEX_SIZE)))
   val output = Reg(init = Bits(0, width = EXTMEM_ADDR_WIDTH))
   val en_seq = Reg(init = Bool(false))
@@ -112,7 +108,8 @@ class PFSMDM extends Module {
             index_R := index_R + UInt(1)
             when (count_rom(index_R) > UInt(1)) {
 	      small_l_addr_R := cache_line_id_address + UInt(2) 
-              small_l_count_R := count_rom(index_R) - UInt(1)
+              small_l_stop_R := cache_line_id_address + UInt(1)
+	      small_l_count_R := count_rom(index_R) - UInt(1)
 	      change_state := Bool(true)
             }
             .otherwise {
@@ -155,7 +152,7 @@ class PFSMDM extends Module {
       }  
     }
     is(small_loop) { //more than one prefetching 
-      when (small_l_addr_R === cache_line_id_address) {
+      when (small_l_stop_R === cache_line_id_address) {
         state := trigger
       }
       .elsewhen (prefTrig) {

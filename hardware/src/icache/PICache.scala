@@ -95,7 +95,6 @@ class PICachePrefRepl extends Bundle() {
 }
 class PICacheCtrlPref extends Bundle() {
   val prefTrig = Bool()
-  val ctrlprefAddr = Bits(width = EXTMEM_ADDR_WIDTH)
 }
 class PICacheReplCtrl extends Bundle() {
   val hit = Bool() 
@@ -284,11 +283,8 @@ class PICacheReplDm() extends Module {
     fetchAddr := addrOddReg
   }
   .elsewhen ((tagPref != addrPrefReg(TAG_HIGH, TAG_LOW)) || (!validPref)) { 
-    // Avoiding cache line collision between fetch and prefetch 
-//   when (((addrEvenReg(INDEX_HIGH, INDEX_LOW+1)) != addrPrefReg(INDEX_HIGH, INDEX_LOW+1))) {  // || 
         hitPref := Bool(false)
         fetchAddr := addrPrefReg
-//   }
  }
 
   // Keep signals alive for emulator
@@ -397,6 +393,7 @@ class PICacheCtrl() extends Module {
         addrReg := addr
         burstCnt := UInt(0)
         fetchCnt := UInt(0)
+	wAddr := Cat(addr, Bits(0, width = LINE_WORD_SIZE_WIDTH))
         // Check if command is accepted by the memory controller
         ocpAddr := Cat(addr, Bits(0, width =  LINE_WORD_SIZE_WIDTH))
         ocpCmd := OcpCmd.RD
@@ -424,14 +421,10 @@ class PICacheCtrl() extends Module {
       fetchEna := Bool(false)
     }
     when (fetchCnt < UInt(LINE_WORD_SIZE)) {
-      when (fetchCnt === UInt(LINE_WORD_SIZE - 2)) {
-	      prefTrig := Bool(true)
-      }
       when (fetchCnt === UInt(LINE_WORD_SIZE - 1)) {
         fetchEna := Bool(false)
 	// Write new tag field memory
         wTag := Bool(true)
-	stateReg := idleState
       }
       when (ocpSlaveReg.Resp === OcpResp.DVA) {
         fetchCnt := fetchCnt + Bits(1)
@@ -451,9 +444,10 @@ class PICacheCtrl() extends Module {
       wAddr := Cat(addrReg, Bits(0, width = LINE_WORD_SIZE_WIDTH)) + fetchCnt
     }
     // Restart to idle state
-//    .otherwise {
-//      stateReg := idleState
-//    }
+    .otherwise {
+      prefTrig := Bool(true)
+      stateReg := idleState
+    }
   }
 
   // Outputs to cache memory
@@ -464,7 +458,6 @@ class PICacheCtrl() extends Module {
 
   io.fetch_ena := fetchEna
   io.ctrlpref.prefTrig := prefTrig
-  io.ctrlpref.ctrlprefAddr :=  Cat(addrReg, Bits(0, width = LINE_WORD_SIZE_WIDTH)) 
 
   // Outputs to external memory
   io.ocp_port.M.Addr := Cat(ocpAddr, Bits("b00"))
