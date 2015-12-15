@@ -388,6 +388,7 @@ class Execute() extends Module {
 
   // pass on PC
   io.exmem.pc := exReg.pc
+  io.exmem.base := exReg.base
   io.exmem.relPc := exReg.relPc
 
   //call/return for icache

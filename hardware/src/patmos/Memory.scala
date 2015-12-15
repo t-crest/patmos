@@ -236,6 +236,7 @@ class Memory() extends Module {
   io.exc.src := Mux(memReg.mem.illOp, Bits(0),
                     Mux(illMem, Bits(1),
                         memReg.mem.xsrc))
+  io.exc.excBase := memReg.base
   io.exc.excAddr := Mux(memReg.mem.trap, memReg.relPc + UInt(1), memReg.relPc)
 
   // Keep signal alive for debugging

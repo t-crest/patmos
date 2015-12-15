@@ -426,6 +426,7 @@ class Decode() extends Module {
     io.decex.xsrc := io.exc.src
     io.decex.callAddr := io.exc.addr
     io.decex.immOp(0) := Bool(true)
+    io.decex.base := Mux(io.exc.exc, io.exc.excBase, decReg.base)
     io.decex.relPc := Mux(io.exc.exc, io.exc.excAddr, decReg.relPc)
   }
 

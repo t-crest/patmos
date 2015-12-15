@@ -51,7 +51,7 @@ class FeDec() extends Bundle() {
   val instr_a = Bits(width = INSTR_WIDTH)
   val instr_b = Bits(width = INSTR_WIDTH)
   val pc = UInt(width = PC_SIZE)
-  val base = UInt(width = ADDR_WIDTH)
+  val base = UInt(width = PC_SIZE)
   val reloc = UInt(width = ADDR_WIDTH)
   val relPc = UInt(width = PC_SIZE)
 
@@ -132,7 +132,7 @@ class MemOp() extends Bundle() {
 
 class DecEx() extends Bundle() {
   val pc = UInt(width = PC_SIZE)
-  val base = UInt(width = ADDR_WIDTH)
+  val base = UInt(width = PC_SIZE)
   val relPc = UInt(width = PC_SIZE)
   val pred =  Vec.fill(PIPE_COUNT) { Bits(width = PRED_BITS+1) }
   val aluOp = Vec.fill(PIPE_COUNT) { new AluOp() }
@@ -264,6 +264,7 @@ class ExMem() extends Bundle() {
   val rd = Vec.fill(PIPE_COUNT) { new Result() }
   val mem = new MemIn()
   val pc = UInt(width = PC_SIZE)
+  val base = UInt(width = PC_SIZE)
   val relPc = UInt(width = PC_SIZE)
 
   def flush() = {
@@ -325,6 +326,7 @@ class FetchIO extends Bundle() {
 
 class ExcDec() extends Bundle() {
   val exc = Bool()
+  val excBase = UInt(width = PC_SIZE)
   val excAddr = UInt(width = PC_SIZE)
   val intr = Bool()
   val addr = UInt(width = ADDR_WIDTH)
@@ -380,6 +382,7 @@ class MemExc() extends Bundle() {
   val src = Bits(width = EXC_SRC_BITS)
 
   val exc = Bool()
+  val excBase = UInt(width = PC_SIZE)
   val excAddr = UInt(width = PC_SIZE)
 }
 
