@@ -375,7 +375,6 @@ static void init_icache(Patmos_t *c, val_t entry) {
       c->Patmos_core_fetch__selSpm = 1;
       c->Patmos_core_icache_repl__selSpmReg = 1;
     }
-    c->Patmos_core_execute__baseReg = entry;
     c->Patmos_core_icache_repl__callRetBaseReg = (entry >> 2);
     #ifdef ICACHE_METHOD
     c->Patmos_core_icache_ctrl__callRetBaseReg = (entry >> 2);
@@ -473,7 +472,7 @@ static void print_sc_state(Patmos_t *c) {
 static void print_state(Patmos_t *c) {
   static unsigned int baseReg = 0;
   *out << (baseReg + c->Patmos_core_fetch__pcReg.to_ulong() * 4 - c->Patmos_core_fetch__relBaseReg.to_ulong() * 4) << " - ";
-  baseReg = c->Patmos_core_execute__baseReg.to_ulong();
+  baseReg = c->Patmos_core_icache_repl__callRetBaseReg.to_ulong();
 
   for (unsigned i = 0; i < 32; i++) {
     *out << c->Patmos_core_decode_rf__rf.get(i).to_ulong() << " ";

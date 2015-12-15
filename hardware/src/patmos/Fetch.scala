@@ -98,11 +98,15 @@ class Fetch(fileName : String) extends Module {
   }
 
   //need to register these values to save them in  memory stage at call/return
+  val baseReg = Reg(init = UInt(0, width = ADDR_WIDTH))
   val relBaseReg = Reg(init = UInt(1, width = MAX_OFF_WIDTH))
   val relocReg = Reg(init = UInt(0, DATA_WIDTH))
-  when(io.memfe.doCallRet && io.ena) {
-    relBaseReg := io.icachefe.relBase
-    relocReg := io.icachefe.reloc
+  when(io.ena) {
+    baseReg := io.icachefe.base
+    when (io.memfe.doCallRet) {
+      relBaseReg := io.icachefe.relBase
+      relocReg := io.icachefe.reloc
+    }
   }
 
   //select even/odd from rom
@@ -145,13 +149,15 @@ class Fetch(fileName : String) extends Module {
     pcReg := pc_next
   }
 
+  val relPc = pcReg - relBaseReg
+
   io.fedec.pc := pcReg
+  io.fedec.base := baseReg
   io.fedec.reloc := relocReg
-  io.fedec.relPc := pcReg - relBaseReg
+  io.fedec.relPc := relPc
   io.fedec.instr_a := instr_a
   io.fedec.instr_b := instr_b
 
-  val relPc = pcReg - relBaseReg
   io.feex.pc := Mux(b_valid, relPc + UInt(2), relPc + UInt(1))
 
   //outputs to icache

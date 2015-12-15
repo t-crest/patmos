@@ -286,6 +286,7 @@ class MCacheReplFifo() extends Module {
   }
   io.mcachefe.instrEven := Mux(io.ctrlrepl.instrStall, instrEvenReg, instrEven)
   io.mcachefe.instrOdd := Mux(io.ctrlrepl.instrStall, instrOddReg, instrOdd)
+  io.mcachefe.base := callRetBaseReg
   io.mcachefe.relBase := relBase
   io.mcachefe.relPc := relPc
   io.mcachefe.reloc := reloc

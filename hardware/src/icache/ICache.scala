@@ -277,6 +277,7 @@ class ICacheReplDm() extends Module {
   io.icachefe.instrEven := io.memOut.instrEven
   io.icachefe.instrOdd := io.memOut.instrOdd
 
+  io.icachefe.base := callRetBaseReg
   io.icachefe.relBase := relBase
   io.icachefe.relPc := relPc
   io.icachefe.reloc := reloc

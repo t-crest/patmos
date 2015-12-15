@@ -51,6 +51,7 @@ class FeDec() extends Bundle() {
   val instr_a = Bits(width = INSTR_WIDTH)
   val instr_b = Bits(width = INSTR_WIDTH)
   val pc = UInt(width = PC_SIZE)
+  val base = UInt(width = ADDR_WIDTH)
   val reloc = UInt(width = ADDR_WIDTH)
   val relPc = UInt(width = PC_SIZE)
 
@@ -131,6 +132,7 @@ class MemOp() extends Bundle() {
 
 class DecEx() extends Bundle() {
   val pc = UInt(width = PC_SIZE)
+  val base = UInt(width = ADDR_WIDTH)
   val relPc = UInt(width = PC_SIZE)
   val pred =  Vec.fill(PIPE_COUNT) { Bits(width = PRED_BITS+1) }
   val aluOp = Vec.fill(PIPE_COUNT) { new AluOp() }
@@ -422,6 +424,8 @@ class ExICache() extends Bundle() {
 class ICacheFe extends Bundle() {
   val instrEven = Bits(width = INSTR_WIDTH)
   val instrOdd = Bits(width = INSTR_WIDTH)
+  // absolute basse address
+  val base = UInt(width = EXTMEM_ADDR_WIDTH)
   // relative base address
   val relBase = UInt(width = MAX_OFF_WIDTH)
   // relative program counter

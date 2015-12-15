@@ -399,6 +399,7 @@ class Decode() extends Module {
 
   // Pass on PC
   io.decex.pc := decReg.pc
+  io.decex.base := decReg.base
   io.decex.relPc := decReg.relPc
 
   // Set destination address

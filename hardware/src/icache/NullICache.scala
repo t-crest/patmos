@@ -61,6 +61,7 @@ class NullICache() extends Module {
 
   io.icachefe.instrEven := Bits(0)
   io.icachefe.instrOdd := Bits(0)
+  io.icachefe.base := callRetBaseReg
   io.icachefe.relBase := callRetBaseReg(ISPM_ONE_BIT-3, 0)
   io.icachefe.relPc := callAddrReg + callRetBaseReg(ISPM_ONE_BIT-3, 0)
   io.icachefe.reloc := Mux(selIspmReg, UInt(1 << (ISPM_ONE_BIT - 2)), UInt(0))
