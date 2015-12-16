@@ -127,7 +127,7 @@ class OcpBurstBridge(master : OcpCacheMasterPort, slave : OcpBurstSlavePort) {
 
   // Read burst
   when(state === read) {
-    when(slave.S.Resp === OcpResp.DVA) {
+    when(slave.S.Resp =/= OcpResp.NULL) {
       when(burstCnt === cmdPos) {
         slaveReg := slave.S
       }
@@ -173,7 +173,7 @@ class OcpBurstBridge(master : OcpCacheMasterPort, slave : OcpBurstSlavePort) {
 
 // Join two OcpBurst ports, assume no collisions between requests
 class OcpBurstJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort,
-                   joined : OcpBurstSlavePort) {
+                   joined : OcpBurstSlavePort, selectLeft : Bool = Bool()) {
 
   val selRightReg = Reg(Bool())
   val selRight = Mux(left.M.Cmd =/= OcpCmd.IDLE, Bool(false),
@@ -197,11 +197,13 @@ class OcpBurstJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort,
   }
 
   selRightReg := selRight
+
+  selectLeft := !selRight
 }
 
 // Join two OcpBurst ports, left port has priority in case of colliding requests
 class OcpBurstPriorityJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort,
-                           joined : OcpBurstSlavePort) {
+                           joined : OcpBurstSlavePort, selectLeft : Bool = Bool()) {
 
   val selLeft = left.M.Cmd =/= OcpCmd.IDLE
   val selRight = right.M.Cmd =/= OcpCmd.IDLE
@@ -262,6 +264,8 @@ class OcpBurstPriorityJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort
       }
     }
   }
+
+  selectLeft := selLeft
 }
 
 // Provide a "bus" with a master port and a slave port to simplify plumbing

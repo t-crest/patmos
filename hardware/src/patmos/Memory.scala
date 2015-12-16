@@ -55,7 +55,8 @@ class Memory() extends Module {
 
   // React on error responses
   val illMem = (io.localInOut.S.Resp === OcpResp.ERR ||
-                io.globalInOut.S.Resp === OcpResp.ERR)
+                io.globalInOut.S.Resp === OcpResp.ERR ||
+                io.icacheIllMem || io.scacheIllMem)
 
   // Flush logic
   val flush = (memReg.mem.xcall || memReg.mem.trap ||
@@ -86,7 +87,7 @@ class Memory() extends Module {
   val rdDataReg = Reg(init = Bits(0, width = 32))
   // Save incoming data if available during I-cache stall
   when (!io.ena_in) {
-    when (io.localInOut.S.Resp === OcpResp.DVA || io.globalInOut.S.Resp === OcpResp.DVA) {
+    when (io.localInOut.S.Resp =/= OcpResp.NULL || io.globalInOut.S.Resp =/= OcpResp.NULL) {
       mayStallReg := Bool(false)
       rdDataEnaReg := Bool(true)
     }

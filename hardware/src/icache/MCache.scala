@@ -62,17 +62,19 @@ object MConstants {
  */
 class MCacheCtrlIO extends Bundle() {
   val ena_in = Bool(INPUT)
-  val fetch_ena = Bool(OUTPUT)
+  val fetchEna = Bool(OUTPUT)
   val ctrlrepl = new MCacheCtrlRepl().asOutput
   val replctrl = new MCacheReplCtrl().asInput
   val femcache = new FeICache().asInput
   val exmcache = new ExICache().asInput
-  val ocp_port = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+  val ocp_port = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+  val illMem = Bool(OUTPUT)
+  val forceHit = Bool(OUTPUT)
 }
 class MCacheCtrlRepl extends Bundle() {
   val wEna = Bool()
   val wData = Bits(width = INSTR_WIDTH)
-  val wAddr = Bits(width = EXTMEM_ADDR_WIDTH)
+  val wAddr = Bits(width = ADDR_WIDTH)
   val wTag = Bool()
   val addrEven = Bits(width = MCACHE_SIZE_WIDTH)
   val addrOdd = Bits(width = MCACHE_SIZE_WIDTH)
@@ -138,9 +140,11 @@ class MCache() extends Module {
   ctrl.io.ena_in <> io.ena_in
   repl.io.ena_in <> io.ena_in
   //output enable depending on hit/miss/fetch
-  io.ena_out := ctrl.io.fetch_ena & repl.io.hitEna
+  io.ena_out := ctrl.io.fetchEna & (repl.io.hitEna || ctrl.io.forceHit)
+  //connect illegal access signal
+  io.illMem := ctrl.io.illMem
   //connect invalidate signal
-  repl.io.invalidate := io.invalidate
+  repl.io.invalidate := io.invalidate || ctrl.io.illMem
 }
 
 /*
@@ -169,7 +173,7 @@ class MCacheReplFifo() extends Module {
   val io = new MCacheReplIO()
 
   //tag field tables  for reading tag memory
-  val addrVec = { Vec.fill(METHOD_COUNT) { Reg(Bits(width = EXTMEM_ADDR_WIDTH)) }}
+  val addrVec = { Vec.fill(METHOD_COUNT) { Reg(Bits(width = ADDR_WIDTH)) }}
   val sizeVec = { Vec.fill(METHOD_COUNT) { Reg(init = Bits(0, width = MCACHE_SIZE_WIDTH+1)) }}
   val validVec = { Vec.fill(METHOD_COUNT) { Reg(init = Bool(false)) }}
   val posVec = { Vec.fill(METHOD_COUNT) { Reg(Bits(width = MCACHE_SIZE_WIDTH)) }}
@@ -196,11 +200,10 @@ class MCacheReplFifo() extends Module {
   for (i <- 0 until METHOD_COUNT) {
     hitVec(i) := Bool(false)
     mergePosVec(i) := Bits(0)
-    when (io.exmcache.callRetBase === addrVec(i)
-          && validVec(i)) {
-            hitVec(i) := Bool(true)
-            mergePosVec(i) := posVec(i)
-          }
+    when (io.exmcache.callRetBase === addrVec(i) && validVec(i)) {
+      hitVec(i) := Bool(true)
+      mergePosVec(i) := posVec(i)
+    }
   }
   val hit = hitVec.fold(Bool(false))(_|_)
   val pos = Mux(hit, mergePosVec.fold(Bits(0))(_|_), nextPosReg)
@@ -210,8 +213,8 @@ class MCacheReplFifo() extends Module {
 
     callRetBaseReg := io.exmcache.callRetBase
     callAddrReg := io.exmcache.callRetAddr
-    selSpmReg := io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-2) === Bits(0x1)
-    val selCache = io.exmcache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-1) >= Bits(0x1)
+    selSpmReg := io.exmcache.callRetBase(ADDR_WIDTH-1, ISPM_ONE_BIT-2) === Bits(0x1)
+    val selCache = io.exmcache.callRetBase(ADDR_WIDTH-1, ISPM_ONE_BIT-1) >= Bits(0x1)
     selCacheReg := selCache
     when (selCache) {
       hitReg := hit
@@ -310,24 +313,24 @@ class MCacheCtrl() extends Module {
   val io = new MCacheCtrlIO()
 
   //fsm state variables
-  val idleState :: sizeState :: transferState :: Nil = Enum(UInt(), 3)
+  val idleState :: sizeState :: transferState :: errorState :: errorDecState :: errorExeState :: errorMemState :: Nil = Enum(UInt(), 7)
   val stateReg = Reg(init = idleState)
   //signals for method cache memory (repl)
-  val addrEven = Bits(width = EXTMEM_ADDR_WIDTH)
-  val addrOdd = Bits(width = EXTMEM_ADDR_WIDTH)
+  val addrEven = Bits(width = ADDR_WIDTH)
+  val addrOdd = Bits(width = ADDR_WIDTH)
   val wData = Bits(width = DATA_WIDTH)
   val wTag = Bool() //signalizes the transfer of begin of a write
-  val wAddr = Bits(width = EXTMEM_ADDR_WIDTH)
+  val wAddr = Bits(width = ADDR_WIDTH)
   val wEna = Bool()
   //signals for external memory
   val ocpCmdReg = Reg(init = OcpCmd.IDLE)
-  val ocpAddrReg = Reg(Bits(width = EXTMEM_ADDR_WIDTH))
+  val ocpAddrReg = Reg(Bits(width = ADDR_WIDTH))
   val fetchEna = Bool()
   val transferSizeReg = Reg(Bits(width = MCACHE_SIZE_WIDTH))
   val fetchCntReg = Reg(Bits(width = MCACHE_SIZE_WIDTH))
   val burstCntReg = Reg(UInt(width = log2Up(BURST_LENGTH)))
   //input/output registers
-  val callRetBaseReg = Reg(Bits(width = EXTMEM_ADDR_WIDTH))
+  val callRetBaseReg = Reg(Bits(width = ADDR_WIDTH))
   val msizeAddr = callRetBaseReg - Bits(1)
   val addrEvenReg = Reg(Bits())
   val addrOddReg = Reg(Bits())
@@ -376,9 +379,9 @@ class MCacheCtrl() extends Module {
       when (io.ocp_port.S.CmdAccept === Bits(0)) {
         ocpCmdReg := OcpCmd.RD
       }
-      io.ocp_port.M.Addr := Cat(msizeAddr(EXTMEM_ADDR_WIDTH-1,log2Up(BURST_LENGTH)),
+      io.ocp_port.M.Addr := Cat(msizeAddr(ADDR_WIDTH-1,log2Up(BURST_LENGTH)),
                                 Bits(0, width=log2Up(BURST_LENGTH)+2))
-      ocpAddrReg := Cat(msizeAddr(EXTMEM_ADDR_WIDTH-1,log2Up(BURST_LENGTH)),
+      ocpAddrReg := Cat(msizeAddr(ADDR_WIDTH-1,log2Up(BURST_LENGTH)),
                         Bits(0, width=log2Up(BURST_LENGTH)))
 
       stateReg := sizeState
@@ -462,6 +465,40 @@ class MCacheCtrl() extends Module {
     }
   }
 
+  // abort on error response
+  io.illMem := Bool(false)
+  io.forceHit := Bool(false)
+  when (ocpSlaveReg.Resp === OcpResp.ERR) {
+    io.ocp_port.M.Cmd := OcpCmd.IDLE
+    ocpCmdReg := OcpCmd.IDLE
+    burstCntReg := burstCntReg + Bits(1)
+    stateReg := errorState
+  }
+  // wait for end of burst before signalling error
+  when (stateReg === errorState) {
+    when (ocpSlaveReg.Resp =/= OcpResp.NULL) {
+      burstCntReg := burstCntReg + Bits(1)
+    }
+    when (burstCntReg === UInt(BURST_LENGTH - 1)) {
+      io.illMem := Bool(true)
+      io.forceHit := Bool(true)
+      stateReg := errorDecState
+    }
+  }
+  // force a fake hit while the exception is fed through the pipeline
+  when (stateReg === errorDecState) {
+      io.forceHit := Bool(true)
+      stateReg := errorExeState
+  }
+  when (stateReg === errorExeState) {
+      io.forceHit := Bool(true)
+      stateReg := errorMemState
+  }
+  when (stateReg === errorMemState) {
+      io.forceHit := Bool(true)
+      stateReg := idleState
+  }
+
   //outputs to mcache memory
   io.ctrlrepl.addrEven := addrEven
   io.ctrlrepl.addrOdd := addrOdd
@@ -471,6 +508,6 @@ class MCacheCtrl() extends Module {
   io.ctrlrepl.wTag := wTag
   io.ctrlrepl.instrStall := stateReg =/= idleState
 
-  io.fetch_ena := fetchEna
+  io.fetchEna := fetchEna
 }
 

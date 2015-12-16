@@ -172,10 +172,8 @@ class Exceptions extends Module {
   val excAddrReg = Reg(UInt(width = PC_SIZE))
   when(io.memexc.exc) {
     excPend(io.memexc.src) := Bool(true)
-    when(io.ena) {
-      excBaseReg := io.memexc.excBase
-      excAddrReg := io.memexc.excAddr
-    }
+    excBaseReg := io.memexc.excBase
+    excAddrReg := io.memexc.excAddr
   }
 
   // Latch new pending flags

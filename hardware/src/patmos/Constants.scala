@@ -104,6 +104,9 @@ object Constants {
   val EXC_COUNT  = 1 << EXC_SRC_BITS
   val INTR_COUNT = 16
 
+  // Memory management unit
+  val MMU_IO_OFFSET = 7
+
   // The PC counts in words. 30 bits are enough for the 4 GB address space.
   // We might cut that down to what we actually really support (16 MB)
   val PC_SIZE = 30

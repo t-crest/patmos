@@ -56,7 +56,7 @@ class NullICache() extends Module {
   when (io.exicache.doCallRet && io.ena_in) {
     callRetBaseReg := io.exicache.callRetBase
     callAddrReg := io.exicache.callRetAddr
-    selIspmReg := io.exicache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-2) === Bits(0x1)
+    selIspmReg := io.exicache.callRetBase(ADDR_WIDTH-1, ISPM_ONE_BIT-2) === Bits(0x1)
   }
 
   io.icachefe.instrEven := Bits(0)

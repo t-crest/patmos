@@ -48,9 +48,9 @@ import ocp._
 
 class WriteNoBuffer() extends Module {
   val io = new Bundle {
-    val readMaster = new OcpBurstSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
-    val writeMaster = new OcpCacheSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
-    val slave = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+    val readMaster = new OcpBurstSlavePort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+    val writeMaster = new OcpCacheSlavePort(ADDR_WIDTH, DATA_WIDTH)
+    val slave = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
     val perf = new WriteCombinePerf()
   }
 
@@ -106,7 +106,7 @@ class WriteNoBuffer() extends Module {
   when(state === writeResp) {
     io.readMaster.S.Resp := OcpResp.NULL
     io.writeMaster.S.Resp := io.slave.S.Resp
-    when(io.slave.S.Resp === OcpResp.DVA) {
+    when(io.slave.S.Resp =/= OcpResp.NULL) {
       state := idle
     }
   }
