@@ -3176,6 +3176,7 @@ wget http://dl.bintray.com/sbt/debian/sbt-0.13.2.deb
 sudo dpkg -i sbt-0.13.2.deb
 sudo apt-get update
 sudo apt-get install sbt
+rm sbt-0.13.2.deb
 \end{verbatim}
 
 For the Quartus setup it is best to change the default shell to \code{/bin/bash}:
@@ -3934,6 +3935,13 @@ to checkout the benchmarks, compile them, and execute them. Building Patmos via 
 also ensures that the correct emulator is used. Be aware that this is
 a very lengthy task; it takes on a MacBook Pro more than 3 hours.
 
+\paragraph{Regression Tests:} Two simple scripts are available in \code{misc} that do
+a clean checkout of T-CREST, including the benchmarks, and performing a build
+and tests: \code{regtest-init.sh} and \code{regtest.sh}. \code{regtest-init.sh} starts
+the build process with checking out \code{misc} and therefore needs to
+be copied out of the repository to a place for scripts. The regression test will
+send out result emails listed in \code{recipients.txt}.
+
 \section{Worst-Case Execution Time Analysis}
 
 The aiT WCET analysis tool supports Patmos as target. The benchmark collection
@@ -3942,6 +3950,8 @@ of T-CREST (in folder \code{bench}) includes targets for WCET analysis.
 When the aiT version for Patmos (\code{a3patmos}) is in the path, the build of
 the benchmarks includes WCET analysis tasks, where appropriate.
 
+Details on WCET analysis with platin, including an elaborated example,
+can be found in Section~\ref{sec:toolchain:platin}.
 In \code{bench/build/Malardaln/src} start the tests including Platin WCET analysis with \code{ctest}.
 
 
