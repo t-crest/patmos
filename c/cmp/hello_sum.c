@@ -14,7 +14,7 @@ const int NOC_MASTER = 0;
 #include <machine/spm.h>
 #include <stdio.h>
 #include "libnoc/noc.h"
-#include "include/patio.h"
+//#include "include/patio.h"
 #include "libcorethread/corethread.h"
 
 void blink(int nblinks);
@@ -30,13 +30,13 @@ void slave(void* param);
 int main() {
 	int slave_param = 1;
 
-  	// Clear scratch pad in all cores
+	// Clear scratch pad in all cores
 	// 16+16 integers
 	int i;
-    	for(i = 0; i < get_cpucnt()*4; i++) {
-        	*(NOC_SPM_BASE+i) = 0;
+	for(i = 0; i < get_cpucnt()*4; i++) {
+		*(NOC_SPM_BASE+i) = 0;
 		*(NOC_SPM_BASE+get_cpucnt()*4+i) = 0;
-    	}
+	}
 
 	for(int i = 0; i < get_cpucnt(); i++) {
 		if (i != NOC_MASTER) {
@@ -119,11 +119,10 @@ void master(void) {
 	puts("MASTER: message received:");
 	// copy message to static location and print
 	for (i = 0; i < 21; i++) {
-		*(msg_rcv+i) = *(spm_slave+i);
+		msg_rcv[i] = *(spm_slave+i);
 	}
-	*(msg_rcv+i) = '\0';
+	msg_rcv[i] = '\0';
 	puts(msg_rcv);
-
 	return;
 }
 
@@ -136,7 +135,7 @@ void slave(void* param) {
 	while(*(spm_slave+20) == 0) {;}
 
 	// put message for master to spm
-        const char *msg = "Hello master ";
+    const char *msg = "Hello master ";
 	int i;
 	for (i = 6; i < 12; i++) {
 		*(spm_slave+i) = *(msg+i);

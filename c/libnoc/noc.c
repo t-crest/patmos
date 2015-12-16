@@ -44,6 +44,7 @@
 #include <machine/exceptions.h>
 
 //#include <stdio.h>
+#include <stdlib.h>
 #include "bootloader/cmpboot.h"
 #include "noc.h"
 #include "include/patio.h"
@@ -112,28 +113,77 @@ void __noc_trap_handler(void) {
 
 #endif
 
-// Configure network interface according to initialization information
-void noc_load_sched(unsigned int mode_id) {
-  unsigned mode_idx = mode_id * NOC_CORES * NOC_TABLES * NOC_SCHEDULE_ENTRIES
-  unsigned core_idx = get_cpuid() * NOC_TABLES * NOC_SCHEDULE_ENTRIES;
-  unsigned short schedule_entries = noc_init_array[mode_idx+core_idx];
-  for (unsigned i = 0; i < schedule_entries; ++i) {
-    //TODO: handle allocation of space in the mode change table
-    // Add placement of first entry to NOC_SCHED_BASE+i
-    *(NOC_SCHED_BASE+i) = noc_init_array[mode_idx+core_idx + i + 1];
+  
+// Find the size in 32-bit words
+int find_mem_size(volatile int _SPM * mem_addr){
+  int init = *(mem_addr);
+  int tmp;
+  *(mem_addr) = 0xFFEEDDCC;
+  int i = 2;
+  int j = 0;
+  for(j = 0; j < 28; j++) {
+    tmp = *(mem_addr+i);
+    *(mem_addr+i) = 0;
+    if (*(mem_addr) == 0) {
+      *(mem_addr+i) = tmp;
+      *(mem_addr) = init;
+      return i*4;
+    }
+    i = i << 1;
+    if (*(mem_addr) != 0xFFEEDDCC){
+      *(mem_addr+i) = tmp;
+      *(mem_addr) = init;
+      return -1;
+    }
+    *(mem_addr+i) = tmp;
   }
-  // Set the pointers to the start and to the end of the schedule
-  //TODO: handle allocation of space in the mode change table
-  // Add placement of first entry to schedule_entries and 0
-  *(NOC_MC_BASE+2+mode_id) = schedule_entries << 16 | 0;
+  *(mem_addr) = init;
+  return -1;
+}
+
+// Configure network interface according to initialization information
+void noc_load_config(void) {
+  unsigned int schedule_table_size = find_mem_size(NOC_SCHED_BASE);
+  unsigned int noc_conf_base_ptr = 0;
+  for (int j = 0; j < NOC_CONFS; ++j) {
+    unsigned mode_idx = j * NOC_CORES * NOC_TABLES * NOC_SCHEDULE_ENTRIES;
+    unsigned core_idx = get_cpuid() * NOC_TABLES * NOC_SCHEDULE_ENTRIES;
+    unsigned short schedule_entries = noc_init_array[mode_idx+core_idx];
+    if (noc_conf_base_ptr+schedule_entries >= schedule_table_size) {
+      WRITE("Configuration schedules do not fit in schedule table\n",53);
+      exit(1);
+    }
+    for (unsigned i = 0; i < schedule_entries; ++i) {
+      // Handling allocation of space in the mode change table
+      // Add placement of first entry noc_conf_base_ptr to NOC_SCHED_BASE+i
+      *(NOC_SCHED_BASE+noc_conf_base_ptr+i)
+                                  = noc_init_array[mode_idx+core_idx + i + 1];
+    }
+    // Set the pointers to the start and to the end of the schedule
+    //TODO: handle allocation of space in the mode change table
+    // Add placement of first entry to schedule_entries and 0
+    *(NOC_MC_BASE+2+j) = (schedule_entries+noc_conf_base_ptr) << 16 | noc_conf_base_ptr;
+    noc_conf_base_ptr += schedule_entries;
+  }
+    
+}
+
+void noc_enable(void) {
+  if (get_cpuid() == NOC_MASTER) {
+    *(NOC_TDM_BASE+4) = 1; // Set the network in run mode  
+  }
+}
+
+void noc_disable(void) {
+  if (get_cpuid() == NOC_MASTER) {
+    *(NOC_TDM_BASE+4) = 0; // Set the network in run mode  
+  }
 }
 
 // Configure network interface according to initialization information
 void noc_configure(void) {
-  noc_load_sched(0):
-  //TODO: Make the master synchronize with the other cores before setting
-  // the network in run mode.
-  *(NOC_TDM_BASE+4) = 1; // Set the network in run mode
+  noc_load_config();
+  
   exc_register(23,&__remote_irq_handler);
   exc_register(31,&__data_recv_handler);
 #ifdef TRAP
@@ -180,6 +230,9 @@ void noc_init(void) {
   //if (get_cpuid() == NOC_MASTER) puts("noc_sync");
   noc_sync();
   //if (get_cpuid() == NOC_MASTER) puts("noc_done");
+  // The master synchronize with the other cores before setting
+  // the network in run mode.
+  noc_enable();
 }
 
 // Start a NoC data dma transfer
