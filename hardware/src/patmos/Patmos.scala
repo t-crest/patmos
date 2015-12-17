@@ -138,7 +138,7 @@ class PatmosCore(binFile: String) extends Module {
                              burstBus.io.slave, selICache)
   }
 
-  val mmu = Module(new MemoryManagement())
+  val mmu = Module(if (HAS_MMU) new MemoryManagement() else new NoMemoryManagement())
   mmu.io.exec <> selICache
   mmu.io.ctrl <> iocomp.io.mmuInOut
   mmu.io.virt <> burstBus.io.master

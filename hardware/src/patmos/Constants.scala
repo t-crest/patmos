@@ -105,6 +105,7 @@ object Constants {
   val INTR_COUNT = 16
 
   // Memory management unit
+  val HAS_MMU = util.Config.getConfig.mmu
   val MMU_IO_OFFSET = 7
 
   // The PC counts in words. 30 bits are enough for the 4 GB address space.

@@ -126,6 +126,7 @@ object Utility {
     printf("\tData SPM: %s\n", sizeToStr(DSPM_SIZE))
     printf("\tAddressable external memory: %s\n",
            sizeToStr(util.Config.getConfig.ExtMem.size))
+    printf("\tMMU: %b\n", HAS_MMU)
     printf("\n")
   }
 }
