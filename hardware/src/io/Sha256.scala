@@ -250,7 +250,7 @@ class Sha256() extends CoreDevice() {
     io.ocp.S.Resp := OcpResp.DVA
     // Read state
     when (masterReg.Addr(7, 2) === Bits("b000000")) {
-      io.ocp.S.Data := Cat(Bits(0, width = DATA_WIDTH-1), stateReg != idle)
+      io.ocp.S.Data := Cat(Bits(0, width = DATA_WIDTH-1), stateReg =/= idle)
     }
     // Read hash value
     when (masterReg.Addr(7, 5) === Bits("b010")) {

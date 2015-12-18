@@ -126,6 +126,9 @@ int main(void)
   // call the application's _start()
   int retval = -1;
   if (boot_info->master.entrypoint != NULL) {
+    // enable global mode
+    global_mode();
+
     retval = (*boot_info->master.entrypoint)();
 
     // Return may be "unclean" and leave registers clobbered.
@@ -138,6 +141,9 @@ int main(void)
                     "$r22", "$r23", "$r24", "$r25",
                     "$r26", "$r27", "$r28", "$r29",
                     "$r30", "$r31");
+
+    // enable local mode again
+    local_mode();
   }
 
   

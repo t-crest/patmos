@@ -108,11 +108,11 @@ class FsmTest(fsm: FsmContainer) extends Tester(fsm) {
   var test = 1;
   step(16000000/2-1)
   for (i <- 0 until 7) {
-    expect(c.io.led, (~test)&0x00FF)
+    expect(fsm.io.led, (~test)&0x00FF)
     step(16000000/2-1)
     test = test << 1
   }
-  expect(c.io.led, (~test)&0x00FF)
+  expect(fsm.io.led, (~test)&0x00FF)
 }
 
 object FsmMain {

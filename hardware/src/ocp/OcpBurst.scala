@@ -112,7 +112,7 @@ class OcpBurstBridge(master : OcpCacheMasterPort, slave : OcpBurstSlavePort) {
   // Register to delay response
   val slaveReg = Reg(master.S)
 
-  when(state != write && (masterReg.Cmd === OcpCmd.IDLE || slave.S.CmdAccept === Bits(1))) {
+  when(state =/= write && (masterReg.Cmd === OcpCmd.IDLE || slave.S.CmdAccept === Bits(1))) {
     masterReg := master.M
   }
 
@@ -176,8 +176,8 @@ class OcpBurstJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort,
                    joined : OcpBurstSlavePort) {
 
   val selRightReg = Reg(Bool())
-  val selRight = Mux(left.M.Cmd != OcpCmd.IDLE, Bool(false),
-                     Mux(right.M.Cmd != OcpCmd.IDLE, Bool(true),
+  val selRight = Mux(left.M.Cmd =/= OcpCmd.IDLE, Bool(false),
+                     Mux(right.M.Cmd =/= OcpCmd.IDLE, Bool(true),
                          selRightReg))
 
   joined.M := left.M
@@ -203,8 +203,8 @@ class OcpBurstJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort,
 class OcpBurstPriorityJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort,
                            joined : OcpBurstSlavePort) {
 
-  val selLeft = left.M.Cmd != OcpCmd.IDLE
-  val selRight = right.M.Cmd != OcpCmd.IDLE
+  val selLeft = left.M.Cmd =/= OcpCmd.IDLE
+  val selRight = right.M.Cmd =/= OcpCmd.IDLE
 
   val leftPendingReg = Reg(init = Bool(false))
   val rightPendingReg = Reg(init = Bool(false))
@@ -251,7 +251,7 @@ class OcpBurstPriorityJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort
   }
 
   // count responses, clear pending flags at end of requests
-  when (joined.S.Resp != OcpResp.NULL) {
+  when (joined.S.Resp =/= OcpResp.NULL) {
     pendingRespReg := pendingRespReg - UInt(1)
     when (pendingRespReg === UInt(1)) {
       when (leftPendingReg) {

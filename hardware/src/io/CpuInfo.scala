@@ -44,6 +44,8 @@ import Chisel._
 import Node._
 
 import patmos.Constants._
+import util.Config
+import util.Utility
 
 import ocp._
 
@@ -80,6 +82,10 @@ class CpuInfo() extends CoreDevice() {
     resp := OcpResp.DVA
   }
 
+  // The ROM for booting
+  val rom = Utility.readBin(Config.datFile, DATA_WIDTH)
+  val romData = rom(masterReg.Addr(log2Up(rom.length)+1, 2))
+
   // Read information
   switch(masterReg.Addr(5,2)) {
     is(Bits("b0000")) { data := io.cpuInfoPins.id }
@@ -112,10 +118,11 @@ class CpuInfo() extends CoreDevice() {
     // DSPM
     // Size (32 bit)
     is(Bits("b1101")) { data := Bits(DSPM_SIZE) }
-    // BootSPM
-    // Size (32 bit)
-    is(Bits("b1110")) { data := Bits(BOOTSPM_SIZE) }
   }
+  when (masterReg.Addr(15) === Bits("b1")) {
+    data := romData
+  }
+
   when(masterReg.Cmd === OcpCmd.RD) {
     resp := OcpResp.DVA
   }

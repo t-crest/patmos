@@ -89,7 +89,7 @@ class InOut() extends Module {
 
   val selDeviceReg = Vec.fill(MAX_IO_DEVICES) { Reg(Bool()) }
 
-  when(io.memInOut.M.Cmd != OcpCmd.IDLE) {
+  when(io.memInOut.M.Cmd =/= OcpCmd.IDLE) {
     selSpmReg := selSpm
     selComConfReg := selComConf
     selComSpmReg := selComSpm
@@ -106,7 +106,7 @@ class InOut() extends Module {
   val errResp = Reg(init = OcpResp.NULL)
   val validSelVec = selDeviceVec.zip(validDeviceVec).map{ case (x, y) => x && y }
   val validSel = validSelVec.fold(Bool(false))(_|_)
-  errResp := Mux(io.memInOut.M.Cmd != OcpCmd.IDLE &&
+  errResp := Mux(io.memInOut.M.Cmd =/= OcpCmd.IDLE &&
                  selIO && !validSel,
                  OcpResp.ERR, OcpResp.NULL)
 
@@ -142,6 +142,7 @@ class InOut() extends Module {
     // connect ports
     dev.io.ocp.M := io.memInOut.M
     dev.io.ocp.M.Cmd := Mux(selDeviceVec(devConf.offset), io.memInOut.M.Cmd, OcpCmd.IDLE)
+    dev.io.superMode <> io.superMode
     dev.io.internalPort <> io.internalIO
     deviceSVec(devConf.offset) := dev.io.ocp.S
     Config.connectIOPins(devConf.name, io, dev.io)

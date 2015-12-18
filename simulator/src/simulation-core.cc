@@ -49,6 +49,7 @@
 #include <iostream>
 #include <iomanip>
 #include <limits>
+#include <fstream>
 
 namespace patmos
 {
@@ -64,7 +65,7 @@ namespace patmos
       Exception_handler(excunit),
       BASE(0), PC(0), nPC(0), Debug_last_PC(0),
       Stall(SXX), Disable_IF(false),
-      Delay_counter(0), Halt(false), 
+      Delay_counter(0), Traced_instructions(0), Halt(false), 
       Exception_handling_counter(0),
       Flush_Cache_PC(std::numeric_limits<unsigned int>::max()), 
       Stats_Start_Cycle(0), Num_NOPs(0)
@@ -109,6 +110,17 @@ namespace patmos
     
     // No alignment, just skip size word.
     return pc + 4;
+  }
+
+  void simulator_t::read_watchpoint_file(std::string wpfilename)
+  {
+    std::ifstream  wpfile(wpfilename.c_str());
+    // TODO do some error handling.
+    int wp;
+    // TODO handle hex addresses and symbol names
+    while (wpfile >> wp) {
+      Watchpoints.insert(wp);
+    }
   }
   
   void simulator_t::pipeline_invoke(Pipeline_t pst,
@@ -596,9 +608,26 @@ namespace patmos
         //  => os with custom formatting: 2.4s
         //  => boost::format: 10.6s !!
         uword_t addr = Pipeline[SMW][0].Address;
-        if (addr) {
-          os << std::hex << std::setw(8) << std::setfill('0') << addr << ' '
-             << std::dec << Cycle << '\n' << std::setfill(' ');
+        if (!addr) return;
+        
+        Traced_instructions++;
+        
+        if (Dbg_cnt_delay > 0) {
+          // Make the trace analysis happy, needed to handle delayed returns.
+          Dbg_cnt_delay--;
+        } else {
+          if (!Watchpoints.empty() && !Watchpoints.count(addr)) {
+            return;
+          }
+        }
+
+        os << std::hex << std::setw(8) << std::setfill('0') << addr << ' '
+            << std::dec << Cycle << ' ' 
+            << Traced_instructions << '\n' << std::setfill(' ');
+            
+        if (Pipeline[SMW][0].I && Pipeline[SMW][0].I->is_return()) {
+          // Emit the delay slot of the return and the next instruction
+          Dbg_cnt_delay = 4;
         }
         // os << boost::format("%1$08x %2%\n") % PC % Cycle;
       }

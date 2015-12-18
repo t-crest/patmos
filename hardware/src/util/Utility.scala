@@ -37,13 +37,13 @@
  *
  */
 
-package patmos
+package util
 
 import Chisel._
 import Node._
 import scala.math._
 
-import Constants._
+import patmos.Constants._
 
 // Borrowed from the Chisel source tree.
 // Hacked to now support longs
@@ -124,7 +124,6 @@ object Utility {
     printf("\tStack cache: %s\n",  sizeToStr(SCACHE_SIZE))
     printf("\tInstruction SPM: %s\n", sizeToStr(ISPM_SIZE))
     printf("\tData SPM: %s\n", sizeToStr(DSPM_SIZE))
-    printf("\tBoot SPM: %s\n", sizeToStr(BOOTSPM_SIZE))
     printf("\tAddressable external memory: %s\n",
            sizeToStr(util.Config.getConfig.ExtMem.size))
     printf("\n")

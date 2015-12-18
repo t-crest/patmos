@@ -108,7 +108,7 @@ class TdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) ext
       when (stateReg(i) === sIdle) {
         when (cpuSlot(i) === UInt(1)) {
           
-          when (io.master(i).M.Cmd != OcpCmd.IDLE){
+          when (io.master(i).M.Cmd =/= OcpCmd.IDLE){
             when (io.master(i).M.Cmd === OcpCmd.RD) {
               io.slave.M := io.master(i).M
               io.master(i).S := io.slave.S

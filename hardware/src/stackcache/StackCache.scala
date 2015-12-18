@@ -115,7 +115,7 @@ class StackCache() extends Module {
                         (newMemTopReg <= transferAddrReg) && (transferAddrReg < memTopReg))
 
   // default OCP "request"
-  io.stall := stateReg != idleState
+  io.stall := stateReg =/= idleState
   io.toMemory.M.Cmd := OcpCmd.IDLE
   io.toMemory.M.Addr := transferAddrReg
   io.toMemory.M.Data := mb_rdData

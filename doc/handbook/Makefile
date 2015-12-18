@@ -4,6 +4,7 @@ BIBS=patbib.bib
 OPEN=open # program for displaying the pdf
 
 PDFLATEX = pdflatex -interaction=nonstopmode -halt-on-error
+EPSTOPDF = epstopdf
 
 TEX=$(wildcard *.tex)
 
@@ -17,14 +18,18 @@ TEX=$(wildcard *.tex)
 all: $(DOC).pdf
 
 TIKZFIGURES=fig/timing_core.pdf fig/timing_io.pdf fig/timing_burst.pdf
+EPSFIGURES=fig/gen_sort-mc.pdf fig/gen_sort-bc.pdf
 
 fig/%.pdf: fig/%.tex
 	$(PDFLATEX) --output-directory fig $^
 
-rubber: $(TEX) $(BIBS) $(TIKZFIGURES)
+fig/%.pdf: fig/%.eps
+	$(EPSTOPDF) $^
+
+rubber: $(TEX) $(BIBS) $(TIKZFIGURES) $(EPSFIGURES)
 	rubber --short --warn all -d $(DOC).tex
 
-$(DOC).pdf: $(TEX) $(BIBS) $(TIKZFIGURES)
+$(DOC).pdf: $(TEX) $(BIBS) $(TIKZFIGURES) $(EPSFIGURES)
 	$(PDFLATEX) $(DOC)
 	bibtex $(DOC)
 	$(PDFLATEX) $(DOC)

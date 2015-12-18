@@ -56,10 +56,12 @@ class FeDec() extends Bundle() {
 
   def flush() = {
     // flush only necessary parts of instruction
-    instr_a(30, 27) := PRED_IFFALSE
-    instr_a(26, 25) := OPCODE_ALUI
-    instr_b(30, 27) := PRED_IFFALSE
-    instr_b(26, 25) := OPCODE_ALUI
+    // instr_a(30, 27) := PRED_IFFALSE
+    // instr_a(26, 25) := OPCODE_ALUI
+    // instr_b(30, 27) := PRED_IFFALSE
+    // instr_b(26, 25) := OPCODE_ALUI
+    instr_a := Bits(0)
+    instr_b := Bits(0)
   }
 }
 
@@ -325,6 +327,7 @@ class ExcDec() extends Bundle() {
   val intr = Bool()
   val addr = UInt(width = ADDR_WIDTH)
   val src = Bits(width = EXC_SRC_BITS)
+  val local = Bool()
 }
 
 class DecodeIO() extends Bundle() {
@@ -360,6 +363,7 @@ class InOutIO() extends Bundle() {
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val excInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val intrs = Vec.fill(INTR_COUNT) { Bool(OUTPUT) }
+  val superMode = Bool(INPUT)
   val internalIO = new InternalIO().asInput
 }
 
@@ -452,11 +456,13 @@ class ExcIO() extends Bundle() {
   val intrs = Vec.fill(INTR_COUNT) { Bool(INPUT) }
   val excdec = new ExcDec().asOutput
   val memexc = new MemExc().asInput
+  val superMode = Bool(OUTPUT)
   val invalICache = Bool(OUTPUT)
   val invalDCache = Bool(OUTPUT)
 }
 
 class PatmosCoreIO() extends Bundle() {
+  val superMode = Bool(OUTPUT)
   val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val memPort = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)

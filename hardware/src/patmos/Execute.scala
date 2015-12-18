@@ -99,7 +99,7 @@ class Execute() extends Module {
       (CFUNC_LE,    lt | eq),
       (CFUNC_ULT,   ult),
       (CFUNC_ULE,   ult | eq),
-      (CFUNC_BTEST, (op1 & bitMsk) != UInt(0))))
+      (CFUNC_BTEST, (op1 & bitMsk) =/= UInt(0))))
   }
 
   def pred(func: Bits, op1: Bool, op2: Bool): Bool = {

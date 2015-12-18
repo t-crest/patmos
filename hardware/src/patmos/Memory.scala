@@ -66,8 +66,8 @@ class Memory() extends Module {
 
   // Stall logic
   val mayStallReg = Reg(init = Bool(false))
-  val enable = (io.localInOut.S.Resp != OcpResp.NULL
-                || io.globalInOut.S.Resp != OcpResp.NULL
+  val enable = (io.localInOut.S.Resp =/= OcpResp.NULL
+                || io.globalInOut.S.Resp =/= OcpResp.NULL
                 || !mayStallReg)
   io.ena_out := enable
 
@@ -159,7 +159,7 @@ class Memory() extends Module {
   io.localInOut.M.Data := Cat(wrData(3), wrData(2), wrData(1), wrData(0))
   io.localInOut.M.ByteEn := byteEn
 
-  io.globalInOut.M.Cmd := Mux(io.exmem.mem.typ != MTYPE_L, cmd, OcpCmd.IDLE)
+  io.globalInOut.M.Cmd := Mux(io.exmem.mem.typ =/= MTYPE_L, cmd, OcpCmd.IDLE)
   io.globalInOut.M.Addr := Cat(io.exmem.mem.addr(ADDR_WIDTH-1, 2), Bits("b00"))
   io.globalInOut.M.Data := Cat(wrData(3), wrData(2), wrData(1), wrData(0))
   io.globalInOut.M.ByteEn := byteEn

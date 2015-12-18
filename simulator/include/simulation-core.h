@@ -237,6 +237,12 @@ namespace patmos
     
     /// Debug accesses to those addresses.
     std::set<uword_t> Debug_mem_address;
+
+    /// Watchpoints for trace analysis.
+    std::set<uword_t> Watchpoints;
+
+    /// Instruction counter for trace analysis
+    uint64_t Traced_instructions;
     
     /// Runtime statistics on all instructions, per pipeline
     instruction_stats_t Instruction_stats[NUM_SLOTS];
@@ -322,6 +328,9 @@ namespace patmos
 
     /// Flush all data caches when reaching the given program counter.
     void flush_caches_at(uword_t address) { Flush_Cache_PC = address; }
+    
+    /// Read a file containing watchpoints for the trace analysis.
+    void read_watchpoint_file(std::string wpfilename);
     
     /// Print accesses to a 
     void debug_mem_address(uword_t address) { Debug_mem_address.insert(address); }
