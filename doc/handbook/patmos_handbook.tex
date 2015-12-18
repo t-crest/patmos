@@ -4253,12 +4253,12 @@ The \texttt{elf2bin} tool converts ELF files to binary files.
 \paragraph{Usage}
 
 The \texttt{elf2bin} tool has two modes. In default mode, its usage is
-\texttt{elf2bin <infile> <outfile1> <outfile2>} and it dumps
-executable segments to file \texttt{<outfile1>} and other segments to
-\texttt{<outfile2>}. For the non-executable segments, it uses a
-displacement of \texttt{0x80000000}, such that data that is mapped to
-address \texttt{<N>} is dumped to position \texttt{<N>-0x80000000} in
-the output file.
+\texttt{elf2bin [-d <disp>] <infile> <outfile1> <outfile2>} and it
+dumps executable segments to file \texttt{<outfile1>} and other
+segments to \texttt{<outfile2>}. If option \texttt{-d} is provided, it
+uses a displacement of \texttt{<disp>} for the non-executable
+segments, such that data that is mapped to address \texttt{<N>} is
+dumped to position \texttt{<N>-<disp>} in the output file.
 
 The second mode of \texttt{elf2bin} is a ``flat'' mode, with the usage
 \texttt{elf2bin -f <infile> <outfile>}. In that mode, \texttt{elf2bin}
