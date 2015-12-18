@@ -2537,6 +2537,8 @@ namespace patmos
   class i_ret_t : public i_cflri_t
   {
   public:
+    virtual bool is_return() const { return true; }
+    
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
@@ -2608,6 +2610,8 @@ namespace patmos
   
   class i_xret_t : public i_cflri_t {
   public:
+    virtual bool is_return() const { return true; }
+
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {

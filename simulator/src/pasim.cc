@@ -320,6 +320,7 @@ int main(int argc, char **argv)
     ("debug-intrs", "print out all status changes of the exception unit.")
     ("debug-nopc", "do not print PC and cycles counter in debug output")
     ("debug-access", boost::program_options::value<patmos::address_t>(), "print accesses to the given address or symbol.")
+    ("wpfile", boost::program_options::value<std::string>()->default_value(""), "only print trace for watchpoints provided in the given file.")
     ("stats-file,o", boost::program_options::value<std::string>()->default_value(""), "write statistics to a file (stdout: -)")
     ("print-stats", boost::program_options::value<patmos::address_t>(), "print statistics for a given function only.")
     ("flush-caches", boost::program_options::value<patmos::address_t>(), "flush all caches when reaching the given address (can be a symbol name).")
@@ -491,6 +492,7 @@ int main(int argc, char **argv)
   uint64_t debug_cycle = vm.count("debug") ?
                                 vm["debug"].as<unsigned int>() :
                                 std::numeric_limits<uint64_t>::max();
+  std::string wpfile(vm["wpfile"].as<std::string>());
   uint64_t max_cycle = vm["maxc"].as<unsigned int>();
   if (!max_cycle) {
     max_cycle = std::numeric_limits<uint64_t>::max();
@@ -663,6 +665,10 @@ int main(int argc, char **argv)
     if (print_stats) {
       print_stats_func.parse(sym);
       s.Dbg_stack.print_function_stats(print_stats_func.value(), *sout);
+    }
+  
+    if (!wpfile.empty()) {
+      s.read_watchpoint_file(wpfile);
     }
   
     if (flush_caches) {

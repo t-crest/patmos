@@ -86,6 +86,8 @@ namespace patmos
 
     virtual bool is_call() const { return false; }
     
+    virtual bool is_return() const { return false; }
+    
     virtual bool is_load() const { return false; }
     
     virtual bool is_store() const { return false; }
