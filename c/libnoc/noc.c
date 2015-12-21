@@ -168,16 +168,26 @@ void noc_load_config(void) {
     
 }
 
-void noc_enable(void) {
+void noc_set_state(int state) {
   if (get_cpuid() == NOC_MASTER) {
-    *(NOC_TDM_BASE+4) = 1; // Set the network in run mode  
+    *(NOC_TDM_BASE+4) = state; // Set the run mode in the network
+    while(*(NOC_TDM_BASE+4) != state);
   }
 }
 
-void noc_disable(void) {
+void noc_set_mode(int mode) {
   if (get_cpuid() == NOC_MASTER) {
-    *(NOC_TDM_BASE+4) = 0; // Set the network in run mode  
+    *(NOC_MC_BASE+0) = mode; // Set the run mode in the network
+    while(*(NOC_MC_BASE+0) != mode);
   }
+}
+
+void noc_enable(void) {
+  noc_set_state(1);
+}
+
+void noc_disable(void) {
+  noc_set_state(0);
 }
 
 // Configure network interface according to initialization information
