@@ -123,6 +123,8 @@ extern const int NOC_MASTER;
 /// \brief Loads the configuration data from the #noc_init_array.
 void noc_load_config(void);
 
+void noc_set_config(int config);
+
 /// \brief 
 void noc_enable(void);
 

@@ -175,10 +175,10 @@ void noc_set_state(int state) {
   }
 }
 
-void noc_set_mode(int mode) {
+void noc_set_config(int config) {
   if (get_cpuid() == NOC_MASTER) {
-    *(NOC_MC_BASE+0) = mode; // Set the run mode in the network
-    while(*(NOC_MC_BASE+0) != mode);
+    *(NOC_MC_BASE+0) = config; // Set the run mode in the network
+    while(*(NOC_MC_BASE+0) != config);
   }
 }
 
