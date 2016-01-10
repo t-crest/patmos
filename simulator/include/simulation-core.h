@@ -140,7 +140,10 @@ namespace patmos
     };
 
 
-    /// Delayslot counter for 'calls' debug-fmt
+    /// Instruction fetch cycle counter for trace debug
+    unsigned int IF_stall_cycles;
+
+    /// Delayslot counter for 'calls' and trace debug-fmt
     unsigned int Dbg_cnt_delay;
 
     /// Remember call / return status for 'calls' debug-fmt

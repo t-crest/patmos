@@ -58,7 +58,7 @@ namespace patmos
                            instr_cache_t &instr_cache,
                            stack_cache_t &stack_cache, symbol_map_t &symbols,
                            excunit_t &excunit)
-    : Dbg_cnt_delay(0), 
+    : IF_stall_cycles(0), Dbg_cnt_delay(0), 
       Cycle(0), Memory(memory), Local_memory(local_memory),
       Data_cache(data_cache), Instr_cache(instr_cache),
       Stack_cache(stack_cache), Symbols(symbols), Dbg_stack(*this),
@@ -242,6 +242,8 @@ namespace patmos
     word_t iw[NUM_SLOTS];
     if (!Instr_cache.fetch(*this, BASE, PC, iw))
     {
+      IF_stall_cycles++;
+
       // Stall the whole pipeline
       pipeline_stall(SMW);
     } else {
@@ -367,11 +369,11 @@ namespace patmos
         // invoke IF only for printing
         pipeline_invoke(SIF, NULL, debug_pipeline);
         
-        // print instructions in EX stage
-        if (debug && debug_fmt == DF_INSTRUCTIONS)
+        if (debug)
         {
-          print_instructions(debug_out, SEX, debug_nopc);
+          print(debug_out, debug_fmt, debug_nopc);
         }
+
 
         track_retiring_instructions();
 
@@ -442,11 +444,6 @@ namespace patmos
         Memory.tick(*this);
         Instr_cache.tick(*this);
         Stack_cache.tick(*this);
-
-        if (debug)
-        {
-          print(debug_out, debug_fmt, debug_nopc);
-        }
 
         // Collect stats for instructions
         if (collect_instr_stats && !is_stalling(SMW)) {
@@ -607,35 +604,55 @@ namespace patmos
         //  => no debugging output:  1.6s
         //  => os with custom formatting: 2.4s
         //  => boost::format: 10.6s !!
-        uword_t addr = Pipeline[SMW][0].Address;
-        if (!addr) return;
-        
-        Traced_instructions++;
-        
+        uword_t addr = Pipeline[SEX][0].Address;
+
+	// Count delay slots (including bubbles)
         if (Dbg_cnt_delay > 0) {
           // Make the trace analysis happy, needed to handle delayed returns.
+	  // NOTE: Counter stays >0 as long as instructions must be printed.
           Dbg_cnt_delay--;
-        } else {
-          if (!Watchpoints.empty() && !Watchpoints.count(addr)) {
-            return;
-          }
         }
+	
+	// skip bubbles and do not count them as instructions
+        if (!addr) return;
+	
+        Traced_instructions++;
+        
+	// Always print calls
+	bool is_call      = Pipeline[SEX][0].I && Pipeline[SEX][0].I->is_call();
+	bool is_ret       = Pipeline[SEX][0].I && Pipeline[SEX][0].I->is_return();
 
-        os << std::hex << std::setw(8) << std::setfill('0') << addr << ' '
-            << std::dec << Cycle << ' ' 
-            << Traced_instructions << '\n' << std::setfill(' ');
-            
-        if (Pipeline[SMW][0].I && Pipeline[SMW][0].I->is_return()) {
-          // Emit the delay slot of the return and the next instruction
-          Dbg_cnt_delay = 4;
+	bool force_print = Dbg_cnt_delay > 0 || is_call;
+	  
+        if (!force_print && !Watchpoints.empty() && !Watchpoints.count(addr)) {
+          return;
         }
+        
+        os << std::hex << std::setw(8) << std::setfill('0') << addr << ' '
+            << std::dec << Cycle << ' ' << Traced_instructions << ' '
+	    << IF_stall_cycles;
+	if (is_call) {
+	  // Emit call marker and the call latency
+	  os << " c " << Pipeline[SEX][0].I->get_delay_slots(Pipeline[SEX][0]);
+	  // Emit the instruction after the call for cache miss cost analysis
+	  Dbg_cnt_delay = 2;
+	}
+        if (is_ret) {
+          // Emit the delay slot of the return and the next instruction
+          Dbg_cnt_delay = 5;
+        }
+	os << '\n' << std::setfill(' ');
+        
+	IF_stall_cycles = 0;
+
         // os << boost::format("%1$08x %2%\n") % PC % Cycle;
       }
       return;
     }
     else if (debug_fmt == DF_INSTRUCTIONS) 
     {
-      // already done before
+      // print instructions in EX stage
+      print_instructions(os, SEX, nopc);
       return;
     }
     else if (debug_fmt == DF_BLOCKS) {
