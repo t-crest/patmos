@@ -625,6 +625,7 @@ namespace patmos
 	bool force_print = Dbg_cnt_delay > 0 || is_call;
 	  
         if (!force_print && !Watchpoints.empty() && !Watchpoints.count(addr)) {
+	  IF_stall_cycles = 0;
           return;
         }
         
@@ -635,7 +636,7 @@ namespace patmos
 	  // Emit call marker and the call latency
 	  os << " c " << Pipeline[SEX][0].I->get_delay_slots(Pipeline[SEX][0]);
 	  // Emit the instruction after the call for cache miss cost analysis
-	  Dbg_cnt_delay = 2;
+	  Dbg_cnt_delay = 4;
 	}
         if (is_ret) {
           // Emit the delay slot of the return and the next instruction
