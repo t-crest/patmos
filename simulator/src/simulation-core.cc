@@ -625,7 +625,6 @@ namespace patmos
 	bool force_print = Dbg_cnt_delay > 0 || is_call;
 	  
         if (!force_print && !Watchpoints.empty() && !Watchpoints.count(addr)) {
-	  IF_stall_cycles = 0;
           return;
         }
         
