@@ -341,7 +341,9 @@ int main(int argc, char **argv)
     ("lsize,l",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_LOCAL_MEMORY_BYTES), "local data memory size in bytes.")
     ("mem-rand", boost::program_options::value<unsigned int>()->default_value(0), "Initialize memories with random data.")
     ("chkreads", boost::program_options::value<patmos::mem_check_e>()->default_value(patmos::MCK_NONE), 
-                 "Check for reads of uninitialized data, either per byte (warn, err) or per access (warn-addr, err-addr). Disables the data cache.");
+                 "Check for reads of uninitialized data, either per byte (warn, err) or per access (warn-addr, err-addr). Disables the data cache.")
+    ("with-mmu", boost::program_options::value<bool>()->default_value(false), "Simulate memory management unit.")
+;
 
   boost::program_options::options_description noc_options("Network-on-chip options");
   noc_options.add_options()
@@ -385,6 +387,7 @@ int main(int argc, char **argv)
     ("excunit_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::EXCUNIT_OFFSET), "offset where the exception unit is mapped")
     ("timer_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::TIMER_OFFSET), "offset where the timer device is mapped")
     ("perfcounters_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::PERFCOUNTERS_OFFSET), "offset where the performance counters device is mapped")
+    ("mmu_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::MMU_OFFSET), "offset where the memory management unit is mapped")
     ("uart_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::UART_OFFSET), "offset where the UART device is mapped")
     ("led_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::LED_OFFSET), "offset where the LED device is mapped");
   
@@ -457,6 +460,7 @@ int main(int argc, char **argv)
   unsigned int excunit_offset = vm["excunit_offset"].as<patmos::address_t>().value();
   unsigned int timer_offset = vm["timer_offset"].as<patmos::address_t>().value();
   unsigned int perfcounters_offset = vm["perfcounters_offset"].as<patmos::address_t>().value();
+  unsigned int mmu_offset = vm["mmu_offset"].as<patmos::address_t>().value();
   unsigned int uart_offset = vm["uart_offset"].as<patmos::address_t>().value();
   unsigned int led_offset = vm["led_offset"].as<patmos::address_t>().value();
 
@@ -621,6 +625,14 @@ int main(int argc, char **argv)
     mm.add_device(leds);
     mm.add_device(rtc);
     mm.add_device(noc);
+
+    // add MMU to simulation
+    bool with_mmu = vm["with-mmu"].as<bool>();
+    if (with_mmu) {
+      patmos::mmu_t mmu(mmbase+mmu_offset);
+      mm.add_device(mmu);
+      gm.set_mmu(&mmu);
+    }
 
     // load input program
     patmos::section_list_t text;

@@ -109,6 +109,10 @@ void ideal_memory_t::check_initialize_content(simulator_t &s, uword_t address, u
 
 bool ideal_memory_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
+  if (Mmu) {
+    address = Mmu->xlate(address);
+  }
+
   // check if the access exceeds the memory size and lazily initialize
   // memory content
   check_initialize_content(s, address, size, true);
@@ -124,6 +128,10 @@ bool ideal_memory_t::read(simulator_t &s, uword_t address, byte_t *value, uword_
 
 bool ideal_memory_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
+  if (Mmu) {
+    address = Mmu->xlate(address);
+  }
+
   // check if the access exceeds the memory size and lazily initialize
   // memory content
   check_initialize_content(s, address, size, false);
@@ -139,6 +147,10 @@ bool ideal_memory_t::write(simulator_t &s, uword_t address, byte_t *value, uword
 
 void ideal_memory_t::read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
+  if (Mmu) {
+    address = Mmu->xlate(address);
+  }
+
   // Check, but ignore errors.
   check_initialize_content(s, address, size, true, true);
 
@@ -151,6 +163,10 @@ void ideal_memory_t::read_peek(simulator_t &s, uword_t address, byte_t *value, u
 
 void ideal_memory_t::write_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
+  if (Mmu) {
+    address = Mmu->xlate(address);
+  }
+
   check_initialize_content(s, address, size, false, true);
 
   // write the data to the memory
@@ -194,6 +210,10 @@ const request_info_t &fixed_delay_memory_t::find_or_create_request(simulator_t &
                                               uword_t address, uword_t size,
                                               bool is_load, bool is_posted)
 {
+  if (Mmu) {
+    address = Mmu->xlate(address);
+  }
+
   // check if the access exceeds the memory size and lazily initialize
   // memory content
   check_initialize_content(s, address, size, is_load);

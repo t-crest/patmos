@@ -75,6 +75,12 @@ namespace patmos
   
   /// Number of bytes mapped to the performance counters device.
   static const uword_t PERFCOUNTERS_MAP_SIZE = 0x0028;
+
+  /// Offset from IO base address for the memory management unit.
+  static const uword_t MMU_OFFSET = 0x70000;
+  
+  /// Number of bytes mapped to the memory management unit.
+  static const uword_t MMU_MAP_SIZE = 0x0020;
   
   /// Offset from IO base address for UART device.
   static const uword_t UART_OFFSET = 0x80000;
@@ -213,7 +219,34 @@ namespace patmos
 
     virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
   };
-  
+
+  struct segment_t {
+    uword_t Base;
+    uword_t Perm;
+    uword_t Length;
+  };
+
+  class mmu_t : public mapped_device_t
+  {
+  private:
+    struct segment_t Segments [8];
+
+  public:
+    mmu_t(uword_t base_address)
+    : mapped_device_t(base_address, MMU_MAP_SIZE) {
+      for (int i = 0; i < sizeof(Segments)/sizeof(Segments[0]); i++) {
+        Segments[i].Base = 0;
+        Segments[i].Perm = 0;
+        Segments[i].Length = 0;
+      }
+    }
+
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size); 
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+
+    virtual uword_t xlate(uword_t address);
+  };
+    
   class led_t : public mapped_device_t 
   {
     /// Stream to write LED status to

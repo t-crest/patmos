@@ -121,6 +121,37 @@ bool perfcounters_t::write(simulator_t &s, uword_t address, byte_t *value, uword
   simulation_exception_t::illegal_access(address);
 }
 
+bool mmu_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size) {
+  simulation_exception_t::unmapped(address);
+}
+
+bool mmu_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size) {
+
+  if (address >= Base_address && address < Base_address+0x20 &&
+      is_word_access(address, size, address & 0x1F)) {
+
+    uword_t index = (address & 0x1F) >> 3;
+
+    if ((address & 0x4) == 0) {
+      Segments[index].Base = get_word(value, size);
+    } else {
+      uword_t val = get_word(value, size);
+      Segments[index].Perm = val >> 29;
+      Segments[index].Length = val & 0x1fffffff;
+    }
+
+  } else {
+    simulation_exception_t::unmapped(address);
+  }
+
+  return true;
+}
+
+uword_t mmu_t::xlate(uword_t address) {
+  uword_t index = address >> 29;
+  return Segments[index].Base + (address & 0x1fffffff);
+}
+
 bool led_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size) {
   if (is_word_access(address, size, 0x00)) {
     set_word(value, size, Curr_state);

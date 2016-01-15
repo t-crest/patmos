@@ -47,10 +47,14 @@ namespace patmos
 {
   class simulator_t;
   struct stats_options_t;
-  
+  class mmu_t;
+
   /// Basic interface to access main memory during simulation.
   class memory_t
   {
+  protected:
+    mmu_t *Mmu;
+
   public:
     virtual ~memory_t() {}
     
@@ -138,6 +142,11 @@ namespace patmos
     /// @param os The output stream to print to.
     virtual void print_stats(const simulator_t &s, std::ostream &os,
                              const stats_options_t& options) = 0;
+
+    /// Add an MMU to theis memory.
+    void set_mmu(mmu_t *mmu) {
+      Mmu = mmu;
+    }
     
     /// Reset statistics.
     virtual void reset_stats() = 0;
