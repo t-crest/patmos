@@ -107,10 +107,10 @@ void ideal_memory_t::check_initialize_content(simulator_t &s, uword_t address, u
   }
 }
 
-bool ideal_memory_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+bool ideal_memory_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch)
 {
   if (Mmu) {
-    address = Mmu->xlate(address);
+    address = Mmu->xlate(address, is_fetch ? MMU_EX : MMU_RD);
   }
 
   // check if the access exceeds the memory size and lazily initialize
@@ -129,7 +129,7 @@ bool ideal_memory_t::read(simulator_t &s, uword_t address, byte_t *value, uword_
 bool ideal_memory_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
   if (Mmu) {
-    address = Mmu->xlate(address);
+    address = Mmu->xlate(address, MMU_WR);
   }
 
   // check if the access exceeds the memory size and lazily initialize
@@ -145,10 +145,10 @@ bool ideal_memory_t::write(simulator_t &s, uword_t address, byte_t *value, uword
   return true;
 }
 
-void ideal_memory_t::read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+void ideal_memory_t::read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch)
 {
   if (Mmu) {
-    address = Mmu->xlate(address);
+    address = Mmu->xlate(address, is_fetch ? MMU_EX : MMU_RD);
   }
 
   // Check, but ignore errors.
@@ -164,7 +164,7 @@ void ideal_memory_t::read_peek(simulator_t &s, uword_t address, byte_t *value, u
 void ideal_memory_t::write_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
   if (Mmu) {
-    address = Mmu->xlate(address);
+    address = Mmu->xlate(address, MMU_WR);
   }
 
   check_initialize_content(s, address, size, false, true);
@@ -208,10 +208,10 @@ void fixed_delay_memory_t::tick_request(request_info_t &req)
 
 const request_info_t &fixed_delay_memory_t::find_or_create_request(simulator_t &s,
                                               uword_t address, uword_t size,
-                                              bool is_load, bool is_posted)
+                                              bool is_load, bool is_fetch, bool is_posted)
 {
   if (Mmu) {
-    address = Mmu->xlate(address);
+    address = Mmu->xlate(address, is_load ? (is_fetch ? MMU_EX : MMU_RD) : MMU_WR);
   }
 
   // check if the access exceeds the memory size and lazily initialize
@@ -268,10 +268,10 @@ const request_info_t &fixed_delay_memory_t::find_or_create_request(simulator_t &
   return Requests.back();
 }
 
-bool fixed_delay_memory_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+bool fixed_delay_memory_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch)
 {
   // get the request info
-  const request_info_t &req(find_or_create_request(s, address, size, true));
+  const request_info_t &req(find_or_create_request(s, address, size, true, is_fetch));
 
   // check if the request has finished
   if(req.Num_ticks_remaining == 0)
@@ -287,7 +287,7 @@ bool fixed_delay_memory_t::read(simulator_t &s, uword_t address, byte_t *value, 
     Requests.erase(Requests.begin());
 
     // read the data
-    return ideal_memory_t::read(s, address, value, size);
+    return ideal_memory_t::read(s, address, value, size, is_fetch);
   }
   else
   {

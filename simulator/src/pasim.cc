@@ -629,7 +629,7 @@ int main(int argc, char **argv)
     // add MMU to simulation
     bool with_mmu = vm["with-mmu"].as<bool>();
     if (with_mmu) {
-      patmos::mmu_t mmu(mmbase+mmu_offset);
+      patmos::mmu_t mmu(mmbase+mmu_offset, &excunit);
       mm.add_device(mmu);
       gm.set_mmu(&mmu);
     }

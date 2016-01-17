@@ -147,8 +147,20 @@ bool mmu_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size) 
   return true;
 }
 
-uword_t mmu_t::xlate(uword_t address) {
+uword_t mmu_t::xlate(uword_t address, mmu_op_t op) {
   uword_t index = address >> 29;
+  uword_t offset = address & 0x1fffffff;
+
+  if (!ExcUnit->privileged()) {
+    if (Segments[index].Length != 0 && offset >= Segments[index].Length) {
+      simulation_exception_t::illegal_access(address);
+    }
+    if (op == MMU_RD && (Segments[index].Perm & 0x4) == 0 ||
+        op == MMU_WR && (Segments[index].Perm & 0x2) == 0 ||
+        op == MMU_EX && (Segments[index].Perm & 0x1) == 0) {
+      simulation_exception_t::illegal_access(address);
+    }
+  }
   return Segments[index].Base + (address & 0x1fffffff);
 }
 
@@ -208,12 +220,12 @@ void memory_map_t::add_device(mapped_device_t &device)
 				      device.get_base_address() + device.get_num_mapped_bytes() - 1));
 }
 
-bool memory_map_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+bool memory_map_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch)
 {
   if (address >= Base_address && address <= High_address) {
     return find_device(address).read(s, address, value, size);
   } else {
-    return Memory.read(s, address, value, size);
+    return Memory.read(s, address, value, size, is_fetch);
   }
 }
 
@@ -226,12 +238,12 @@ bool memory_map_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t
   }
 }
 
-void memory_map_t::read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+void memory_map_t::read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch)
 {
   if (address >= Base_address && address <= High_address) {
     find_device(address).peek(s, address, value, size);
   } else {
-    Memory.read_peek(s, address, value, size);
+    Memory.read_peek(s, address, value, size, is_fetch);
   }
 }
 

@@ -140,6 +140,9 @@ namespace patmos
       /// Does not check if throwing interrupts has been disabled.
       bool enabled(exception_e exc);
       
+      /// Returns true if we are in privileged mode
+      bool privileged();
+
       /// Returns true if an interrupt is pending
       bool pending();
 

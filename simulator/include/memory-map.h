@@ -45,6 +45,7 @@
 namespace patmos
 {
   class simulator_t;
+  class excunit_t;
   
   /// Default address of the UART status register.
   static const uword_t IOMAP_BASE_ADDRESS = 0xF0000000;
@@ -226,14 +227,22 @@ namespace patmos
     uword_t Length;
   };
 
+  enum mmu_op_t  {
+    MMU_RD,
+    MMU_WR,
+    MMU_EX
+  };
+
   class mmu_t : public mapped_device_t
   {
   private:
     struct segment_t Segments [8];
+    excunit_t *ExcUnit;
 
   public:
-    mmu_t(uword_t base_address)
-    : mapped_device_t(base_address, MMU_MAP_SIZE) {
+    mmu_t(uword_t base_address, excunit_t *excunit)
+    : mapped_device_t(base_address, MMU_MAP_SIZE), ExcUnit(excunit) {
+
       for (int i = 0; i < sizeof(Segments)/sizeof(Segments[0]); i++) {
         Segments[i].Base = 0;
         Segments[i].Perm = 0;
@@ -244,7 +253,7 @@ namespace patmos
     virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size); 
     virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
-    virtual uword_t xlate(uword_t address);
+    virtual uword_t xlate(uword_t address, mmu_op_t op);
   };
     
   class led_t : public mapped_device_t 
@@ -302,7 +311,7 @@ namespace patmos
     /// the memory.
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
-    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch);
 
     /// A simulated access to a write port.
     /// @param address The memory address to write to.
@@ -317,7 +326,7 @@ namespace patmos
     /// @param value A pointer to a destination to store the value read from
     /// the memory.
     /// @param size The number of bytes to read.
-    virtual void read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+    virtual void read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch);
 
     /// Write some values into the memory -- DO NOT SIMULATE TIMING, just write.
     /// @param address The memory address to write to.

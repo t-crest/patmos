@@ -100,7 +100,7 @@ namespace patmos
     {
       // TODO catch reads to DMA addresses
       if (address >= SPM_address)
-        return SPM.read(s, address - SPM_address, value, size);
+        return SPM.read(s, address - SPM_address, value, size, false);
       else
         simulation_exception_t::unmapped(address);
       return true;
@@ -116,7 +116,7 @@ namespace patmos
     {
       // TODO catch reads to DMA addresses
       if (address >= SPM_address)
-        SPM.read_peek(s, address - SPM_address, value, size);
+        SPM.read_peek(s, address - SPM_address, value, size, false);
       else
         simulation_exception_t::unmapped(address);
     }

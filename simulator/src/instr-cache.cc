@@ -58,7 +58,7 @@ bool no_instr_cache_t::fetch(simulator_t &s, uword_t base, uword_t address, word
 
     bool status = Memory->read(s, addr, 
                                reinterpret_cast<byte_t*>(&Fetch_cache[Fetched]),
-                               sizeof(word_t));
+                               sizeof(word_t), true);
     if (!status) {
       Is_miss[Fetched] = true;
       return false;
