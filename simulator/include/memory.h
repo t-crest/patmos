@@ -56,6 +56,8 @@ namespace patmos
     mmu_t *Mmu;
 
   public:
+    memory_t() : Mmu(NULL) {}
+
     virtual ~memory_t() {}
     
     /// A simulated access to a read port.
