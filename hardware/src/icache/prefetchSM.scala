@@ -155,8 +155,8 @@ class PFSM extends Module {
 	state := trigger
       }
       .elsewhen (prefTrig) {
-        output := Cat(small_l_addr_R, sign_ext_R)
         when(small_l_count_R > UInt(0)) {
+          output := Cat(small_l_addr_R, sign_ext_R)
           small_l_count_R := small_l_count_R - UInt(1)
 	  small_l_addr_R := small_l_addr_R + UInt(1)
 	  state := small_loop
