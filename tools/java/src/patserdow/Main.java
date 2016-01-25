@@ -53,6 +53,8 @@ import java.io.BufferedReader;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.concurrent.TimeoutException;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 
 import nl.lxtreme.binutils.elf.Elf;
 import nl.lxtreme.binutils.elf.ElfHeader;
@@ -105,6 +107,7 @@ public class Main {
     public static void main(String[] args) {
         boolean verbose = true;
         boolean compress = true;
+        boolean udp = false;
         boolean error = false;
 
         PrintStream msg_stream = System.err;
@@ -119,20 +122,35 @@ public class Main {
         try {
             verbose = System.getProperty("verbose", "false").equals("true");
             compress = System.getProperty("compress", "true").equals("true");
+            udp = System.getProperty("udp", "false").equals("true");
+            
+            if (compress && udp) {
+                throw new IllegalArgumentException("Download via UDP does not support compression");
+            }
 
             File file = null;
             switch(args.length) {
             case 2:
-                port = new SerialPort(args[0]);
-                if (verbose) {
-                    msg_stream.println("Port opened: " + port.openPort());
-                    msg_stream.println("Params set: " + port.setParams(BAUD_RATE, 8, 1, 0));
+                if (!udp) {
+                    port = new SerialPort(args[0]);
+                    if (verbose) {
+                        msg_stream.println("Port opened: " + port.openPort());
+                        msg_stream.println("Params set: " + port.setParams(BAUD_RATE, 8, 1, 0));
+                    } else {
+                        port.openPort();
+                        port.setParams(BAUD_RATE, 8, 1, 0);
+                    }
+                    in_stream = new UARTInputStream(port);
+                    out_stream = new UARTOutputStream(port);
                 } else {
-                    port.openPort();
-                    port.setParams(BAUD_RATE, 8, 1, 0);
+                    InetAddress destAddress = InetAddress.getByName(args[0]);
+                    int destPort = 8888;
+
+                    DatagramSocket socket = new DatagramSocket(8889);
+                    socket.setSoTimeout(10 * 1000);
+                    in_stream = new UDPInputStream(socket);
+                    out_stream = new UDPOutputStream(socket, destAddress, destPort);
                 }
-                in_stream = new UARTInputStream(port);
-                out_stream = new UARTOutputStream(port);
                 file = new File(args[1]);
                 break;
             case 1:
@@ -165,7 +183,7 @@ public class Main {
             } else {
                 download_stream = out_stream;
             }
-            Transmitter transmitter = new Transmitter(in_stream,download_stream);
+            Transmitter transmitter = new Transmitter(in_stream,download_stream,udp);
 
             final int HEADER_SIZE = 8;
             final int SEGMENT_HEADER_SIZE = 12;
