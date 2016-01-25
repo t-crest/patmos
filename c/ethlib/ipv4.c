@@ -41,6 +41,8 @@
 
 #include "ipv4.h"
 
+unsigned char my_ip[4] = {192, 168, 24, 50};
+
 ///////////////////////////////////////////////////////////////
 //Functions to get the IPv4 protocol field
 ///////////////////////////////////////////////////////////////
@@ -61,8 +63,8 @@ char ipv4_get_type_of_service(unsigned int pkt_addr){
 	return type;
 }
 
-//This function returns the IPv4 lenght of a received packet.
-char ipv4_get_lenght(unsigned int pkt_addr){
+//This function returns the IPv4 length of a received packet.
+char ipv4_get_length(unsigned int pkt_addr){
 	unsigned int length;
 	length = mem_iord_byte(pkt_addr + 14 + 2); //Upper Byte
 	length = length << 8;

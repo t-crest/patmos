@@ -87,7 +87,7 @@ void demo_mode(){
 	int operand_1;
 	int operand_2;	
 	unsigned int string_length;
-	unsigned char tmpip[4] = {192, 168, 1, 10};
+	unsigned char tmpip[4] = {192, 168, 24, 1};
 	eth_mac_initialize();
 	arp_table_init();
 	for (int i =0; i<20; i++){
