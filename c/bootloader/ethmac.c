@@ -1,5 +1,5 @@
 /*
-   Copyright 2014 Technical University of Denmark, DTU Compute. 
+   Copyright 2016 Technical University of Denmark, DTU Compute. 
    All rights reserved.
    
    This file is part of the time-predictable VLIW processor Patmos.
@@ -31,60 +31,75 @@
  */
 
 /*
- * Definitions for boot loaders.
+ * Basic functions to download application via UDP
  * 
- * Authors: Tórur Biskopstø Strøm (torur.strom@gmail.com)
- *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
+ * Authors: Wolfgang Puffitsch (wpuffitsch@gmail.com)
+ *
  */
 
-#ifndef _BOOT_H_
-#define _BOOT_H_
-
-#include <machine/patmos.h>
-#include <machine/spm.h>
-
-#ifndef __ENTRYPOINT_T
-typedef volatile int (*entrypoint_t)(void);
-#define __ENTRYPOINT_T
-#endif
-
-entrypoint_t download(void) __attribute__((noinline));
-
-// Defines that determine how applications are downloaded
-//#define ETHMAC
-#define COMPRESSION
-
-#if defined(ETHMAC) && defined(COMPRESSION)
-#error "Download via Ethernet does not support compression"
-#endif
+#include "boot.h"
 
 #ifdef ETHMAC
 
+#include "ethlib/arp.h"
 #include "ethlib/udp.h"
-#define RX_ADDR  0x000
-#define TX_ADDR  0x800
-#define ARP_ADDR 0xc00
 
-#define TARGET_PORT 8888
-#define HOST_PORT 8889
-extern unsigned char host_ip[];
+unsigned char host_ip[4];
 
-void ethmac_init(void);
-int ethmac_get_byte(void);
-void ethmac_put_byte(unsigned char c);
+static int available;
+static int read_offset;
 
-#else /* !ETHMAC */
+void ethmac_init(void) {
+  eth_mac_initialize();
+  arp_table_init();
 
-int uart_read(void);
-void uart_write(unsigned char c);
+  my_mac[0] = 0x00;
+  my_mac[1] = 0xFF;
+  my_mac[2] = 0xEE;
+  my_mac[3] = 0xF0;
+  my_mac[4] = 0xDA;
+  my_mac[5] = 0x42;
 
-#endif /* !ETHMAC */
+  my_ip[0] = 192;
+  my_ip[1] = 168;
+  my_ip[2] = 24;
+  my_ip[3] = 50;
 
-#ifdef COMPRESSION
+  available = 0;
+  read_offset = 0;
+}
 
-void decompress_init(void);
-int decompress_get_byte(void);
+int ethmac_get_byte(void) {
+  while (!available) {
+    eth_mac_receive(RX_ADDR, 0);
+    unsigned char packet_type = mac_packet_type(RX_ADDR);
 
-#endif /* COMPRESSION */
+    // receive UDP packet
+    if (packet_type == 2) {
+      // at the correct port
+      if (udp_get_source_port(RX_ADDR) == HOST_PORT &&
+          udp_get_destination_port(RX_ADDR) == TARGET_PORT) {
+        available = udp_get_data_length(RX_ADDR);
+        read_offset = 0;
+        // remember source
+        ipv4_get_source_ip(RX_ADDR, host_ip);
+      }
+    }
+    // respond to ARP requests
+    if (packet_type == 3) {
+      arp_process_received(RX_ADDR, TX_ADDR);
+    }
+  }
 
-#endif /* _BOOT_H_ */
+  // return a byte from a previously received packet
+  available--;
+  unsigned char c = mem_iord_byte(RX_ADDR + 42 + read_offset++);
+  return c;
+}
+
+void ethmac_put_byte(unsigned char c) {
+  unsigned char b = c;
+  udp_send(TX_ADDR, ARP_ADDR, host_ip, TARGET_PORT, HOST_PORT, &b, 1, 10000);
+}
+
+#endif /* ETHMAC */

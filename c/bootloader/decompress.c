@@ -17,6 +17,10 @@
 		CompuServe	74050,1022
 **************************************************************/
 
+#include "boot.h"
+
+#ifdef COMPRESSION
+
 #define INDEX_BITS 10                      /* bits to encode index */
 #define LENGTH_BITS (16-INDEX_BITS)        /* bits to encode length */
 #define THRESHOLD 2 /* encode string into position and length if
@@ -28,8 +32,6 @@
 static unsigned char text_buf[N];
 static unsigned int write_pos, read_pos;
 static unsigned int flags;
-
-int uart_read(void);
 
 void decompress_init(void)
 {
@@ -72,3 +74,5 @@ int decompress_get_byte(void)
   read_pos &= (N - 1);
   return c;
 }
+
+#endif /* COMPRESSION */

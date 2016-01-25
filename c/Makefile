@@ -7,6 +7,7 @@ BUILDDIR?=../tmp
 LIBNOC=$(BUILDDIR)/libnoc.a
 LIBMP=$(BUILDDIR)/libmp.a
 LIBCORETHREAD=$(BUILDDIR)/libcorethread.a
+LIBETH=$(BUILDDIR)/libeth.a
 
 NOCINIT?=nocinit.c
 
@@ -47,31 +48,27 @@ $(BUILDDIR)/%.o: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) -c -o $@ $(filter %.c,$^)
 
+# A target for regular applications
 $(BUILDDIR)/%.elf: %.c $(NOCINIT) $(LIBNOC) $(LIBMP) $(LIBCORETHREAD) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread
-
-# A target for a single core version without dependencies (although double targets are illegal)
-$(BUILDDIR)/%.elf: %.c Makefile
-	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread -leth
 
 $(BUILDDIR)/%.s: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) -fpatmos-emit-asm -S -o $@ $(filter %.c,$^)
 
-# A bootable target for a single core
+# A target for bootable applications (e.g., the bootloader)
 $(BUILDDIR)/bootable-%.elf: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR)
+	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -leth
 
 $(BUILDDIR)/bootable-%.s: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS-BOOTABLE) -fpatmos-emit-asm -S -o $@ $(filter %.c,$^)
 
 # application-specific additional dependencies
-$(BUILDDIR)/bootable-bootloader.elf: download.c decompress.c boot.h bootable.h
-$(BUILDDIR)/bootable-cmpmaster.elf: download.c decompress.c boot.h cmpboot.h bootable.h
+$(BUILDDIR)/bootable-bootloader.elf: download.c decompress.c ethmac.c boot.h bootable.h
+$(BUILDDIR)/bootable-cmpmaster.elf: download.c decompress.c ethmac.c boot.h cmpboot.h bootable.h
 $(BUILDDIR)/bootable-cmpslave.elf: boot.h cmpboot.h bootable.h
 
 $(BUILDDIR)/bootable-mandelbrot.elf: bootable.h
@@ -112,4 +109,10 @@ $(LIBMP): $(BUILDDIR)/libmp/mp.o
 libcorethread: cmpboot.h $(LIBCORETHREAD)
 $(BUILDDIR)/libcorethread/corethread.o: libcorethread/corethread.h bootloader/cmpboot.h
 $(LIBCORETHREAD): $(BUILDDIR)/libcorethread/corethread.o
+	patmos-ar r $@ $^
+
+# library for ethernet
+.PHONY: libeth
+libeth: $(LIBETH)
+$(LIBETH): $(patsubst ethlib/%.c,$(BUILDDIR)/ethlib/%.o,$(wildcard ethlib/*.c))
 	patmos-ar r $@ $^
