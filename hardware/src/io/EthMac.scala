@@ -58,24 +58,82 @@ object EthMac extends DeviceObject {
 
   trait Pins {
     val ethMacPins = new Bundle() {
-      val MCmd = UInt(OUTPUT,3)
-      val MAddr = UInt(OUTPUT,extAddrWidth)
-      val MData = UInt(OUTPUT,dataWidth)
-      val MByteEn = UInt(OUTPUT,4)
-      val SResp = UInt(INPUT,2)
-      val SData = UInt(INPUT,dataWidth)
+      // Tx
+      val mtx_clk_pad_i = Bits(INPUT, width = 1)  // Transmit clock (from PHY)
+      val mtxd_pad_o    = Bits(OUTPUT, width = 4) // Transmit nibble (to PHY)
+      val mtxen_pad_o   = Bits(OUTPUT, width = 1) // Transmit enable (to PHY)
+      val mtxerr_pad_o  = Bits(OUTPUT, width = 1) // Transmit error (to PHY)
+
+      // Rx
+      val mrx_clk_pad_i = Bits(INPUT, width = 1) // Receive clock (from PHY)
+      val mrxd_pad_i    = Bits(INPUT, width = 4) // Receive nibble (from PHY)
+      val mrxdv_pad_i   = Bits(INPUT, width = 1) // Receive data valid (from PHY)
+      val mrxerr_pad_i  = Bits(INPUT, width = 1) // Receive data error (from PHY)
+
+      // Common Tx and Rx
+      val mcoll_pad_i   = Bits(INPUT, width = 1) // Collision (from PHY)
+      val mcrs_pad_i    = Bits(INPUT, width = 1) // Carrier sense (from PHY)
+
+      // MII Management interface
+      val md_pad_i      = Bits(INPUT, width = 1)  // MII data input (from I/O cell)
+      val mdc_pad_o     = Bits(OUTPUT, width = 1) // MII Management data clock (to PHY)
+      val md_pad_o      = Bits(OUTPUT, width = 1) // MII data output (to I/O cell)
+      val md_padoe_o    = Bits(OUTPUT, width = 1) // MII data output enable (to I/O cell)
     }
   }
 }
 
-class EthMac(extAddrWidth : Int = 32,
-                     dataWidth : Int = 32) extends CoreDevice() {
+class EthMacBB(extAddrWidth : Int = 32, dataWidth : Int = 32) extends BlackBox {
+  val io = new OcpCoreSlavePort(extAddrWidth, dataWidth) with EthMac.Pins
+  // rename component
+  setModuleName("eth_controller_top")
+
+  // rename signals
+  renameClock(clock, "clk")
+  reset.setName("rst")
+
+  io.M.Cmd.setName("MCmd")
+  io.M.Addr.setName("MAddr")
+  io.M.Data.setName("MData")
+  io.M.ByteEn.setName("MByteEn")
+  io.S.Resp.setName("SResp")
+  io.S.Data.setName("SData")
+
+  io.ethMacPins.mtx_clk_pad_i.setName("mtx_clk_pad_i")
+  io.ethMacPins.mtxd_pad_o.setName("mtxd_pad_o")
+  io.ethMacPins.mtxen_pad_o.setName("mtxen_pad_o")
+  io.ethMacPins.mtxerr_pad_o.setName("mtxerr_pad_o")
+  io.ethMacPins.mrx_clk_pad_i.setName("mrx_clk_pad_i")
+  io.ethMacPins.mrxd_pad_i.setName("mrxd_pad_i")
+  io.ethMacPins.mrxdv_pad_i.setName("mrxdv_pad_i")
+  io.ethMacPins.mrxerr_pad_i.setName("mrxerr_pad_i")
+  io.ethMacPins.mcoll_pad_i.setName("mcoll_pad_i")
+  io.ethMacPins.mcrs_pad_i.setName("mcrs_pad_i")
+  io.ethMacPins.md_pad_i.setName("md_pad_i")
+  io.ethMacPins.mdc_pad_o.setName("mdc_pad_o")
+  io.ethMacPins.md_pad_o.setName("md_pad_o")
+  io.ethMacPins.md_padoe_o.setName("md_padoe_o")
+
+  // set Verilog parameters
+  setVerilogParameters("#(.BUFF_ADDR_WIDTH(16))")
+
+  // keep some sigals for emulation
+  debug(io.M.Cmd)
+  debug(io.M.Addr)
+  debug(io.M.Data)
+
+  // registers to help emulation
+  val respReg = Reg(Bits(width = 2))
+  val dataReg = Reg(Bits(width = dataWidth))
+  io.S.Resp := respReg
+  io.S.Data := dataReg
+}
+
+class EthMac(extAddrWidth : Int = 32, dataWidth : Int = 32) extends CoreDevice() {
   override val io = new CoreDeviceIO() with EthMac.Pins
-  //Assigments of inputs and outputs
-  io.ethMacPins.MCmd := io.ocp.M.Cmd
-  io.ethMacPins.MAddr := io.ocp.M.Addr(extAddrWidth-1, 0)
-  io.ethMacPins.MData := io.ocp.M.Data
-  io.ethMacPins.MByteEn := io.ocp.M.ByteEn
-  io.ocp.S.Resp := io.ethMacPins.SResp
-  io.ocp.S.Data := io.ethMacPins.SData
+
+  val bb = Module(new EthMacBB(extAddrWidth, dataWidth))
+  bb.io.M <> io.ocp.M
+  bb.io.S <> io.ocp.S
+  bb.io.ethMacPins <> io.ethMacPins
 }
