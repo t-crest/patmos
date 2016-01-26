@@ -433,7 +433,7 @@ class ICacheFe extends Bundle() {
   val instrEven = Bits(width = INSTR_WIDTH)
   val instrOdd = Bits(width = INSTR_WIDTH)
   // absolute basse address
-  val base = UInt(width = EXTMEM_ADDR_WIDTH)
+  val base = UInt(width = ADDR_WIDTH)
   // relative base address
   val relBase = UInt(width = MAX_OFF_WIDTH)
   // relative program counter
