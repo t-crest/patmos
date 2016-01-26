@@ -4005,7 +4005,8 @@ units are allowed: \texttt{k}, \texttt{m}, \texttt{g}, or \texttt{kb},
     -l [ ---lsize ] arg  & 2k   & local memory size in bytes \\
     ---mem-rand arg      & 0    & Initialize memories with random data \\
     ---chkreads arg      & none & Check for reads of uninitialized data, either per byte (\texttt{warn}, \texttt{err}) or per access (\texttt{warn-addr}, \texttt{err-addr}). Disables the data cache. \\
-    \bottomrule
+   ---with-mmu arg       & 0    & Simulate memory management unit \\
+   \bottomrule
   \end{tabular}
 \end{table}
 
@@ -4047,15 +4048,16 @@ units are allowed: \texttt{k}, \texttt{m}, \texttt{g}, or \texttt{kb},
    ---interrupt arg       & 1          & enable or disable interrupts \\
    ---mmbase arg          & 0xf0000000 & base address of the IO device map address range \\
    ---mmhigh arg          & 0xffffffff & highest address of the IO device map address range \\
-   ---cpuinfo\_offset arg & 0x000      & offset where the cpuinfo device is mapped \\
-   ---excunit\_offset arg & 0x100      & offset where the exception unit is mapped \\
-   ---timer\_offset arg   & 0x200      & offset where the timer device is mapped \\
-   ---uart\_offset arg    & 0x800      & offset where the UART device is mapped \\
-   ---led\_offset arg     & 0x900      & offset where the LED device is mapped \\
+   ---cpuinfo\_offset arg & 0x00000    & offset where the cpuinfo device is mapped \\
+   ---excunit\_offset arg & 0x10000    & offset where the exception unit is mapped \\
+   ---timer\_offset arg   & 0x20000    & offset where the timer device is mapped \\
+   ---uart\_offset arg    & 0x80000    & offset where the UART device is mapped \\
+   ---led\_offset arg     & 0x90000    & offset where the LED device is mapped \\
+   ---ethmac\_offset arg  & 0xb0000    & offset where the EthMac device is mapped \\
+   ---ethmac\_ip\_addr arg &           & Provide virtual network interface with the given IP address \\
    -I [ ---in ] arg       & -          & input file for UART simulation (stdin: \texttt{-}) \\
    -O [ ---out ] arg      & -          & output file for UART simulation (stdout: \texttt{-}) \\
     \bottomrule
-    \todo{update}
   \end{tabular}
 \end{table}
 
@@ -4087,17 +4089,18 @@ the emulator.
     \toprule
     \multicolumn{1}{l}{Option} & Description \\
     \midrule
+    -e <addr>     & Provide virtual network interface with IP address <addr> \\
     -h            & Print help \\
     -i            & Initialize memory with random values \\
     -k            & Simulate random input from keys \\
     -l <N>        & Stop after \texttt{<N>} cycles \\
     -p            & Print method cache statistics \\
     -r            & Print register values in each cycle \\
+    -s            & Trace stack cache spilling/filling \\
     -v            & Dump wave forms file \texttt{Patmos.vcd} \\
     -I <file>     & Read input for UART from file \texttt{<file>} (stdin: \texttt{-}, default: stdin) \\
     -O <file>     & Write output from UART to file \texttt{<file>} (stdout: \texttt{-}, default: stdout) \\
     \bottomrule
-    \todo{update}
   \end{tabular}
 \end{table}
 
