@@ -34,6 +34,7 @@
 #include <iostream>
 
 #include <stdio.h>
+#include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/poll.h>
@@ -233,6 +234,145 @@ static void emu_uart(Patmos_t *c, int uart_in, int uart_out) {
 }
 #endif /* IO_UART */
 
+#ifdef IO_ETHMAC
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <linux/if.h>
+#include <linux/if_tun.h>
+#include <arpa/inet.h>
+
+static int ethmac_alloc_tap(const char *ip_addr)
+{
+  struct ifreq ifr;
+  int fd, err;
+
+  // open tunnel device
+  if ((fd = open("/dev/net/tun", O_RDWR)) < 0) {
+    cerr << program_name << ": error: Opening tun device: " << strerror(errno) << endl;
+    return fd;
+  }
+
+  memset(&ifr, 0, sizeof(ifr));
+  strncpy(ifr.ifr_name, "pat0", IFNAMSIZ);
+
+  // Create tap device
+  ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+  if ((err = ioctl(fd, TUNSETIFF, (void *) &ifr)) < 0 ){
+    cerr << program_name << ": error: Creating tap device: " << strerror(errno) << endl;
+    close(fd);
+    return err;
+  }
+
+  // We need to create a socket and work on that to set up the tap device
+  int skfd;
+  if ((skfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
+    cerr << program_name << ": error: Opening socket for tap device: " << strerror(errno) << endl;
+    close(fd);
+    return err;
+  }
+
+  // Set IP address of device
+  struct sockaddr_in *addr = (struct sockaddr_in *)&ifr.ifr_addr;
+  addr->sin_family = AF_INET;
+  inet_pton(AF_INET, ip_addr, &addr->sin_addr);
+  if ((err = ioctl(skfd, SIOCSIFADDR, (void *) &ifr)) < 0 ){
+    cerr << program_name << ": error: Setting address for tap device: " << strerror(errno) << endl;
+    close(fd);
+    return err;
+  }
+
+  // Get device up and running
+  if ((err = ioctl(skfd, SIOCGIFFLAGS, (void *) &ifr)) < 0 ) {
+    cerr << program_name << ": error: Getting flags for tap device: " << strerror(errno) << endl;
+    close(fd);
+    return err;
+  }
+  ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
+  if ((err = ioctl(skfd, SIOCSIFFLAGS, (void *) &ifr)) < 0 ){
+    cerr << program_name << ": error: Setting tap device up and running: " << strerror(errno) << endl;
+    close(fd);
+    return err;
+  }
+
+  return fd;
+}
+
+static void emu_ethmac(Patmos_t *c, int ethmac_tap) {
+
+  static int rx = 0;
+  static int rx_ready = 0;
+  static uint32_t rx_addr = 0;
+  static uint32_t rx_length = 0;
+
+  static int tx = 0;
+  static int tx_ready = 0;
+  static uint32_t tx_addr = 0;
+  static uint32_t tx_length = 0;
+
+  static uint8_t buffer [0xefff];
+
+  uint32_t cmd  = c->Patmos_core_iocomp_EthMac_bb__MCmd.to_ulong();
+  uint32_t addr = c->Patmos_core_iocomp_EthMac_bb__MAddr.to_ulong() & 0xffff;
+  uint32_t data = c->Patmos_core_iocomp_EthMac_bb__MData.to_ulong();
+  c->Patmos_core_iocomp_EthMac_bb__respReg = 0;
+
+  if (cmd == 0x1) {
+    if (addr < 0xf000) {
+      buffer[addr] = data >> 24;
+      buffer[addr+1] = data >> 16;
+      buffer[addr+2] = data >> 8;
+      buffer[addr+3] = data;
+    } else {
+      switch (addr) {
+      case 0xf004:
+        if (data & 0x4) { rx_ready = 0; }
+        if (data & 0x1) { tx_ready = 0; }
+        break;
+      case 0xf400: tx_length = data >> 16; tx = data & 0x8000; break;
+      case 0xf404: tx_addr = data; break;
+      case 0xf600: rx_length = data >> 16; rx = data & 0x8000; break;
+      case 0xf604: rx_addr = data; break;
+      }
+    }
+    c->Patmos_core_iocomp_EthMac_bb__respReg = 0x1;
+  } else if (cmd == 0x2) {
+    if (addr < 0xf000) {
+      data = ((buffer[addr] << 24) | (buffer[addr+1] << 16) |
+              (buffer[addr+2] << 8) | (buffer[addr+3]));
+    } else {
+      switch (addr) {
+      case 0xf004: data = (rx_ready << 2) | (tx_ready << 0); break;
+      }
+    }
+    c->Patmos_core_iocomp_EthMac_bb__dataReg = data;
+    c->Patmos_core_iocomp_EthMac_bb__respReg = 0x1;
+  }
+
+  if (tx && !tx_ready) {
+    if (write(ethmac_tap, &buffer[tx_addr], tx_length) < 0) {
+      cerr << program_name << ": error: Cannot write to tap device" << endl;
+    }
+    tx = 0;
+    tx_ready = 1;
+  }
+
+  if (rx && !rx_ready) {
+    struct pollfd pfd;
+    pfd.fd = ethmac_tap;
+    pfd.events = POLLIN;
+    if (poll(&pfd, 1, 0) > 0) {
+      ssize_t len = read(ethmac_tap, &buffer[rx_addr], 0x600);
+      if (len > 0) {
+        rx = 0;
+        rx_ready = 1;
+      } else if (len < 0) {
+        cerr << program_name << ": error: Cannot read from tap device" << endl;
+      }
+    }
+  }
+}
+#endif /* IO_ETHMAC */
+
 // Read an elf executable image into the on-chip memories
 static val_t readelf(istream &is, Patmos_t *c)
 {
@@ -300,7 +440,7 @@ static val_t readelf(istream &is, Patmos_t *c)
 
     if (phdr.p_type == PT_LOAD) {
       // some assertions
-      assert(phdr.p_vaddr == phdr.p_paddr);
+      //assert(phdr.p_vaddr == phdr.p_paddr);
       assert(phdr.p_filesz <= phdr.p_memsz);
 
       // copy from the buffer into the on-chip memories
@@ -375,7 +515,6 @@ static void init_icache(Patmos_t *c, val_t entry) {
       c->Patmos_core_fetch__selSpm = 1;
       c->Patmos_core_icache_repl__selSpmReg = 1;
     }
-    c->Patmos_core_execute__baseReg = entry;
     c->Patmos_core_icache_repl__callRetBaseReg = (entry >> 2);
     #ifdef ICACHE_METHOD
     c->Patmos_core_icache_ctrl__callRetBaseReg = (entry >> 2);
@@ -426,7 +565,7 @@ static void stat_icache(Patmos_t *c, bool halt) {
     }
   }
   #endif /* ICACHE_LINE */
-  
+
   //pipeline stalls caused by the instruction cache
   if (!c->Patmos_core_icache__io_ena_out.to_bool()) {
     cache_stall_cycles++;
@@ -451,7 +590,7 @@ static void print_sc_state(Patmos_t *c) {
     if (c->Patmos_core_dcache_sc__mb_wrEna.to_bool()) {
       for (unsigned int i = 0; i < 4; i++) {
         std::cerr << "f:" << (c->Patmos_core_dcache_sc__transferAddrReg.to_ulong() + i - 4)
-                  << " > " << (((c->Patmos_core_dcache_sc__mb_wrData.to_ulong() << (i*8)) >> 24) & 0xFF) 
+                  << " > " << (((c->Patmos_core_dcache_sc__mb_wrData.to_ulong() << (i*8)) >> 24) & 0xFF)
                   << "\n";
       }
     }
@@ -459,7 +598,7 @@ static void print_sc_state(Patmos_t *c) {
   // spill
   else if ((c->Patmos_core_dcache_sc__stateReg.to_ulong() == 3) ||
            (c->Patmos_core_dcache_sc__stateReg.to_ulong() == 4)) {
-    if (c->Patmos_core_dcache_sc__io_toMemory_M_DataValid.to_bool() && 
+    if (c->Patmos_core_dcache_sc__io_toMemory_M_DataValid.to_bool() &&
         c->Patmos_core_dcache_sc__io_toMemory_M_DataByteEn.to_ulong()) {
       for (unsigned int i = 0; i < 4; i++) {
         std::cerr << "s:" << (c->Patmos_core_dcache_sc__transferAddrReg.to_ulong() + i - 4)
@@ -473,7 +612,7 @@ static void print_sc_state(Patmos_t *c) {
 static void print_state(Patmos_t *c) {
   static unsigned int baseReg = 0;
   *out << (baseReg + c->Patmos_core_fetch__pcReg.to_ulong() * 4 - c->Patmos_core_fetch__relBaseReg.to_ulong() * 4) << " - ";
-  baseReg = c->Patmos_core_execute__baseReg.to_ulong();
+  baseReg = c->Patmos_core_icache_repl__callRetBaseReg.to_ulong();
 
   for (unsigned i = 0; i < 32; i++) {
     *out << c->Patmos_core_decode_rf__rf.get(i).to_ulong() << " ";
@@ -489,6 +628,9 @@ static void usage(ostream &out, const char *name) {
 
 static void help(ostream &out) {
   out << endl << "Options:" << endl
+      #ifdef IO_ETHMAC
+      << "  -e <addr>     Provide virtual network interface with IP address <addr>" << endl
+      #endif /* IO_ETHMAC */
       << "  -h            Print this help" << endl
       << "  -i            Initialize memory with random values" << endl
       #ifdef IO_KEYS
@@ -525,12 +667,20 @@ int main (int argc, char* argv[]) {
   int uart_in = STDIN_FILENO;
   int uart_out = STDOUT_FILENO;
   #endif /* IO_UART */
+  #ifdef IO_ETHMAC
+  int ethmac_tap = -1;
+  #endif /* IO_ETHMAC */
 
   program_name = argv[0];
 
   // Parse command line arguments
-  while ((opt = getopt(argc, argv, "hikl:nprsvI:O:")) != -1) {
+  while ((opt = getopt(argc, argv, "e:hikl:nprsvI:O:")) != -1) {
     switch (opt) {
+    #ifdef IO_ETHMAC
+    case 'e':
+      ethmac_tap = ethmac_alloc_tap(optarg);
+      break;
+    #endif /* IO_ETHMAC */
     case 'i':
       random = true;
       break;
@@ -627,7 +777,7 @@ int main (int argc, char* argv[]) {
 
   // Initialize instruction cache for entry point
   init_icache(c, entry);
-  
+
   // Main emulation loop
   bool halt = false;
   for (int t = 0; lim < 0 || t < lim; t++) {
@@ -647,6 +797,9 @@ int main (int argc, char* argv[]) {
     #ifdef IO_UART
     emu_uart(c, uart_in, uart_out);
     #endif /* IO_UART */
+    #ifdef IO_ETHMAC
+    emu_ethmac(c, ethmac_tap);
+    #endif /* IO_ETHMAC */
 
     // Print tracing information
     if (vcd) {

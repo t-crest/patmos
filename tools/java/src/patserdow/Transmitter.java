@@ -59,16 +59,19 @@ public class Transmitter
 {
 
     //final private SerialPort port;
-    final private InputStream INSTREAM;
-    final private OutputStream OUTSTREAM;
-    final private int FRAME_SIZE = 255; //Must fit into a byte
-    final private int FRAME_SIZE_OFFSET = 1;
-    final private int CRC_SIZE = 4;
+    final private InputStream inStream;
+    final private OutputStream outStream;
+    final private boolean sync;
 
-    public Transmitter(InputStream instream, OutputStream outstream)
+    static final private int FRAME_SIZE = 255; //Must fit into a byte
+    static final private int FRAME_SIZE_OFFSET = 1;
+    static final private int CRC_SIZE = 4;
+
+    public Transmitter(InputStream inStream, OutputStream outStream, boolean sync)
     {
-        INSTREAM = instream;
-        OUTSTREAM = outstream;
+        this.inStream = inStream;
+        this.outStream = outStream;
+        this.sync = sync;
     }
     
     private LinkedList<Integer> responseQueue = new LinkedList<Integer>();
@@ -84,11 +87,15 @@ public class Transmitter
     }
 
     private void send(byte[] buffer, int offset, int length) throws IOException {
-        OUTSTREAM.write(buffer, offset, length);
-
-        // Check responses, if available
-        while (INSTREAM.available() > 0) {
-            ack(INSTREAM.read());
+        outStream.write(buffer, offset, length);
+        
+        if (sync) {
+            ack(inStream.read());
+        } else {
+            // Check responses, if available
+            while (inStream.available() > 0) {
+                ack(inStream.read());
+            }
         }
     }
     
@@ -119,18 +126,18 @@ public class Transmitter
 
     void finish() throws IOException, InterruptedException, ExecutionException, TimeoutException {
         // flush any remaining output
-        if (OUTSTREAM instanceof CompressionOutputStream) {
-            CompressionOutputStream compressionStream = (CompressionOutputStream)OUTSTREAM;
+        if (outStream instanceof CompressionOutputStream) {
+            CompressionOutputStream compressionStream = (CompressionOutputStream)outStream;
             compressionStream.finish();
         } else {
-            OUTSTREAM.flush();
+            outStream.flush();
         }
 
         // wait for responses with timeout
         Callable<Object> callable = new Callable<Object>() {
             public Object call() throws IOException {
                 while (!responseQueue.isEmpty()) {
-                    ack(INSTREAM.read());
+                    ack(inStream.read());
                 }
                 return null;
             }

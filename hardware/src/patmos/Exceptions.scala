@@ -168,12 +168,12 @@ class Exceptions extends Module {
   }
 
   // Trigger internal exceptions
+  val excBaseReg = Reg(UInt(width = PC_SIZE))
   val excAddrReg = Reg(UInt(width = PC_SIZE))
   when(io.memexc.exc) {
     excPend(io.memexc.src) := Bool(true)
-    when(io.ena) {
-      excAddrReg := io.memexc.excAddr
-    }
+    excBaseReg := io.memexc.excBase
+    excAddrReg := io.memexc.excAddr
   }
 
   // Latch new pending flags
@@ -201,6 +201,7 @@ class Exceptions extends Module {
   io.excdec.src   := srcReg
   io.excdec.local := localModeReg
 
+  io.excdec.excBase := excBaseReg
   io.excdec.excAddr := excAddrReg
 
   // Wake up

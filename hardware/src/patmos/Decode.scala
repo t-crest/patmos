@@ -399,6 +399,7 @@ class Decode() extends Module {
 
   // Pass on PC
   io.decex.pc := decReg.pc
+  io.decex.base := decReg.base
   io.decex.relPc := decReg.relPc
 
   // Set destination address
@@ -425,6 +426,7 @@ class Decode() extends Module {
     io.decex.xsrc := io.exc.src
     io.decex.callAddr := io.exc.addr
     io.decex.immOp(0) := Bool(true)
+    io.decex.base := Mux(io.exc.exc, io.exc.excBase, decReg.base)
     io.decex.relPc := Mux(io.exc.exc, io.exc.excAddr, decReg.relPc)
   }
 

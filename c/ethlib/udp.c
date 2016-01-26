@@ -210,7 +210,7 @@ int udp_send(unsigned int tx_addr, unsigned int rx_addr, unsigned char destinati
 	//Destination port
 	mem_iowr_byte(tx_addr + 36, destination_port >> 8);
 	mem_iowr_byte(tx_addr + 37, destination_port & 0xFF);
-	//UDP lenght
+	//UDP length
 	mem_iowr_byte(tx_addr + 38, udp_length >> 8);
 	mem_iowr_byte(tx_addr + 39, udp_length & 0xFF);
 	//UDP checksum = 0
@@ -228,7 +228,7 @@ int udp_send(unsigned int tx_addr, unsigned int rx_addr, unsigned char destinati
 	checksum = udp_compute_checksum(tx_addr);
 	mem_iowr_byte(tx_addr + 40, (checksum >> 8));
 	mem_iowr_byte(tx_addr + 41, (checksum & 0xFF));
-	eth_mac_send(tx_addr, frame_length);	
+	eth_mac_send(tx_addr, frame_length);
 	return 1;
 }
 

@@ -31,7 +31,7 @@
  */
 
 /*
- * Download application through the serial line
+ * Download application through the serial line or via UDP
  * 
  * Authors: Tórur Biskopstø Strøm (torur.strom@gmail.com)
  *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
@@ -41,12 +41,7 @@
 #include "boot.h"
 #include "include/patio.h"
 
-#define COMPRESSION
-
-#ifdef COMPRESSION
-void decompress_init(void);
-int decompress_get_byte(void);
-#endif
+#ifndef ETHMAC
 
 int uart_read(void) {
   while ((UART_STATUS & 0x02) == 0) {
@@ -55,12 +50,33 @@ int uart_read(void) {
   return UART_DATA;
 }
 
+void uart_write(unsigned char c) {
+  while ((UART_STATUS & 0x01) == 0) {
+    /* wait until UART is ready */
+  }
+  UART_DATA = c;
+}
+
+#endif /* !ETHMAC */
+
 static int get_byte() {
+#ifdef ETHMAC
+  return ethmac_get_byte();
+#else /* ETHMAC */
 #ifdef COMPRESSION
   return decompress_get_byte();
 #else
   return uart_read();
 #endif
+#endif /* ETHMAC */
+}
+
+static void put_byte(unsigned char c) {
+#ifdef ETHMAC
+  ethmac_put_byte(c);
+#else /* ETHMAC */
+  uart_write(c);
+#endif /* ETHMAC */
 }
 
 entrypoint_t download(void) {
@@ -87,9 +103,13 @@ entrypoint_t download(void) {
   unsigned int received_crc = 0xFFFFFFFF; //Flipped initial value
   unsigned int poly = 0xEDB88320; //Reversed polynomial
 
+#ifdef ETHMAC
+  ethmac_init();
+#else /* !ETHMAC */
 #ifdef COMPRESSION
   decompress_init();
 #endif
+#endif /* !ETHMAC */
 
   for (;;) {
     LEDS = current_state;
@@ -174,7 +194,7 @@ entrypoint_t download(void) {
       if (packet_byte_count == packet_size+CRC_LENGTH) {
         calculated_crc = calculated_crc ^ 0xFFFFFFFF; //Flipped final value
 
-        UART_DATA = calculated_crc;
+        put_byte(calculated_crc);
 
         if (calculated_crc != received_crc) {
           return NULL;

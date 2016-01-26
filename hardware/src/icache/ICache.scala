@@ -62,7 +62,7 @@ object IConstants {
   val LINE_COUNT = ICACHE_WORD_SIZE / LINE_WORD_SIZE
   val LINE_COUNT_WIDTH = log2Up(LINE_COUNT)
 
-  val TAG_HIGH = EXTMEM_ADDR_WIDTH - 1
+  val TAG_HIGH = ADDR_WIDTH - 1
   val TAG_LOW = LINE_COUNT_WIDTH + LINE_WORD_SIZE_WIDTH
   val TAG_SIZE = TAG_HIGH - TAG_LOW + 1
 
@@ -76,13 +76,14 @@ object IConstants {
  */
 class ICacheCtrlIO extends Bundle() {
   val ena_in = Bool(INPUT)
-  val fetch_ena = Bool(OUTPUT)
+  val fetchEna = Bool(OUTPUT)
   val ctrlrepl = new ICacheCtrlRepl().asOutput
   val replctrl = new ICacheReplCtrl().asInput
   val feicache = new FeICache().asInput
   val exicache = new ExICache().asInput
-  val ocp_port = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+  val ocp_port = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
   val perf = new InstructionCachePerf()
+  val illMem = Bool(OUTPUT)
 }
 class ICacheCtrlRepl extends Bundle() {
   val wEna = Bool()
@@ -92,7 +93,7 @@ class ICacheCtrlRepl extends Bundle() {
 }
 class ICacheReplCtrl extends Bundle() {
   val hit = Bool()
-  val fetchAddr = Bits(width = EXTMEM_ADDR_WIDTH)
+  val fetchAddr = Bits(width = ADDR_WIDTH)
   val selCache = Bool()
 }
 class ICacheReplIO extends Bundle() {
@@ -150,9 +151,11 @@ class ICache() extends Module {
   repl.io.memOut <> mem.io.memOut
   // Connect enable signal
   ctrl.io.ena_in <> io.ena_in
-  repl.io.ena_in <> io.ena_in
+  repl.io.ena_in := io.ena_in && ctrl.io.fetchEna
   // Output enable depending on hit/miss/fetch
-  io.ena_out := ctrl.io.fetch_ena
+  io.ena_out := ctrl.io.fetchEna
+  // Connect illegal access signal
+  io.illMem := ctrl.io.illMem
   // Connect invalidate signal
   repl.io.invalidate := io.invalidate
 }
@@ -190,12 +193,12 @@ class ICacheReplDm() extends Module {
   val selSpmReg = Reg(init = Bool(false))
   val selCacheReg = Reg(init = Bool(false))
 
-  val fetchAddr = Bits(width = EXTMEM_ADDR_WIDTH)
+  val fetchAddr = Bits(width = ADDR_WIDTH)
   val hitEven = Bool()
   val hitOdd = Bool()
 
   val relBase = Mux(selCacheReg,
-                    callRetBaseReg(EXTMEM_ADDR_WIDTH-1, 0),
+                    callRetBaseReg(ADDR_WIDTH-1, 0),
                     callRetBaseReg(ISPM_ONE_BIT-3, 0))
   val relPc = callAddrReg + relBase
 
@@ -208,8 +211,8 @@ class ICacheReplDm() extends Module {
   when (io.exicache.doCallRet && io.ena_in) {
     callRetBaseReg := io.exicache.callRetBase
     callAddrReg := io.exicache.callRetAddr
-    selSpmReg := io.exicache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-2) === Bits(0x1)
-    selCacheReg := io.exicache.callRetBase(EXTMEM_ADDR_WIDTH-1, ISPM_ONE_BIT-1) >= Bits(0x1)
+    selSpmReg := io.exicache.callRetBase(ADDR_WIDTH-1, ISPM_ONE_BIT-2) === Bits(0x1)
+    selCacheReg := io.exicache.callRetBase(ADDR_WIDTH-1, ISPM_ONE_BIT-1) >= Bits(0x1)
   }
 
   // Register addresses
@@ -277,6 +280,7 @@ class ICacheReplDm() extends Module {
   io.icachefe.instrEven := io.memOut.instrEven
   io.icachefe.instrOdd := io.memOut.instrOdd
 
+  io.icachefe.base := callRetBaseReg
   io.icachefe.relBase := relBase
   io.icachefe.relPc := relPc
   io.icachefe.reloc := reloc
@@ -299,7 +303,7 @@ class ICacheCtrl() extends Module {
   val io = new ICacheCtrlIO()
 
   // States of the state machine
-  val initState :: idleState :: transferState :: waitState :: Nil = Enum(UInt(), 4)
+  val initState :: idleState :: transferState :: waitState :: errorState :: Nil = Enum(UInt(), 5)
   val stateReg = Reg(init = initState)
   // Signal for replacement unit
   val wData = Bits(width = DATA_WIDTH)
@@ -308,12 +312,12 @@ class ICacheCtrl() extends Module {
   val wEna = Bool()
   // Signals for external memory
   val ocpCmd = Bits(width = 3)
-  val ocpAddr = Bits(width = EXTMEM_ADDR_WIDTH)
-  val fetchCnt = Reg(init = Bits(0, width = ICACHE_SIZE_WIDTH))
-  val burstCnt = Reg(init = UInt(0, width = log2Up(BURST_LENGTH)))
+  val ocpAddr = Bits(width = ADDR_WIDTH)
+  val fetchCntReg = Reg(init = Bits(0, width = ICACHE_SIZE_WIDTH))
+  val burstCntReg = Reg(init = UInt(0, width = log2Up(BURST_LENGTH)))
   val fetchEna = Bool()
   // Input/output registers
-  val addrReg = Reg(init = Bits(0, width = EXTMEM_ADDR_WIDTH - LINE_WORD_SIZE_WIDTH))
+  val addrReg = Reg(init = Bits(0, width = ADDR_WIDTH - LINE_WORD_SIZE_WIDTH))
   val ocpSlaveReg = Reg(next = io.ocp_port.S)
 
   // Initialize signals
@@ -337,10 +341,10 @@ class ICacheCtrl() extends Module {
     } .otherwise {
       when (!io.replctrl.hit) {
         fetchEna := Bool(false)
-        val addr = io.replctrl.fetchAddr(EXTMEM_ADDR_WIDTH-1, LINE_WORD_SIZE_WIDTH)
+        val addr = io.replctrl.fetchAddr(ADDR_WIDTH-1, LINE_WORD_SIZE_WIDTH)
         addrReg := addr
-        burstCnt := UInt(0)
-        fetchCnt := UInt(0)
+        burstCntReg := UInt(0)
+        fetchCntReg := UInt(0)
         // Write new tag field memory
         wTag := Bool(true)
         wAddr := Cat(addr, Bits(0, width = LINE_WORD_SIZE_WIDTH))
@@ -366,26 +370,44 @@ class ICacheCtrl() extends Module {
   // Transfer/fetch cache block
   when (stateReg === transferState) {
     fetchEna := Bool(false)
-    when (fetchCnt < UInt(LINE_WORD_SIZE)) {
+    when (fetchCntReg < UInt(LINE_WORD_SIZE)) {
       when (ocpSlaveReg.Resp === OcpResp.DVA) {
-        fetchCnt := fetchCnt + Bits(1)
-        burstCnt := burstCnt + Bits(1)
-        when(fetchCnt < UInt(LINE_WORD_SIZE-1)) {
+        fetchCntReg := fetchCntReg + Bits(1)
+        burstCntReg := burstCntReg + Bits(1)
+        when(fetchCntReg < UInt(LINE_WORD_SIZE-1)) {
           // Fetch next address from external memory
-          when (burstCnt >= UInt(BURST_LENGTH - 1)) {
+          when (burstCntReg >= UInt(BURST_LENGTH - 1)) {
             ocpCmd := OcpCmd.RD
-            ocpAddr := Cat(addrReg, Bits(0, width = LINE_WORD_SIZE_WIDTH)) + fetchCnt + Bits(1)
-            burstCnt := UInt(0)
+            ocpAddr := Cat(addrReg, Bits(0, width = LINE_WORD_SIZE_WIDTH)) + fetchCntReg + Bits(1)
+            burstCntReg := UInt(0)
           }
         }
         // Write current address to icache memory
         wData := ocpSlaveReg.Data
         wEna := Bool(true)
       }
-      wAddr := Cat(addrReg, Bits(0, width = LINE_WORD_SIZE_WIDTH)) + fetchCnt
+      wAddr := Cat(addrReg, Bits(0, width = LINE_WORD_SIZE_WIDTH)) + fetchCntReg
     }
     // Restart to idle state
     .otherwise {
+      stateReg := idleState
+    }
+  }
+
+  // abort on error response
+  io.illMem := Bool(false)
+  when (ocpSlaveReg.Resp === OcpResp.ERR) {
+    burstCntReg := burstCntReg + Bits(1)
+    stateReg := errorState
+  }
+  // wait for end of burst before signalling error
+  when (stateReg === errorState) {
+    fetchEna := Bool(false)
+    when (ocpSlaveReg.Resp =/= OcpResp.NULL) {
+      burstCntReg := burstCntReg + Bits(1)
+    }
+    when (burstCntReg === UInt(BURST_LENGTH - 1)) {
+      io.illMem := Bool(true)
       stateReg := idleState
     }
   }
@@ -396,7 +418,7 @@ class ICacheCtrl() extends Module {
   io.ctrlrepl.wAddr := wAddr
   io.ctrlrepl.wTag := wTag
 
-  io.fetch_ena := fetchEna
+  io.fetchEna := fetchEna
 
   // Outputs to external memory
   io.ocp_port.M.Addr := Cat(ocpAddr, Bits("b00"))

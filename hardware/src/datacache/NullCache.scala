@@ -48,8 +48,8 @@ import ocp._
 
 class NullCache() extends Module {
   val io = new Bundle {
-    val master = new OcpCoreSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
-    val slave = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+    val master = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+    val slave = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
     val invalidate = Bool(INPUT)
     val perf = new DataCachePerf()
   }
@@ -81,7 +81,7 @@ class NullCache() extends Module {
 
   // Default values
   io.slave.M.Cmd := OcpCmd.IDLE
-  io.slave.M.Addr := Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, burstAddrBits+byteAddrBits),
+  io.slave.M.Addr := Cat(masterReg.Addr(ADDR_WIDTH-1, burstAddrBits+byteAddrBits),
                          Fill(Bits(0), burstAddrBits+byteAddrBits))
   io.slave.M.Data := Bits(0)
   io.slave.M.DataValid := Bits(0)
@@ -95,7 +95,7 @@ class NullCache() extends Module {
     when(burstCntReg === posReg) {
       slaveReg := io.slave.S
     }
-    when(io.slave.S.Resp === OcpResp.DVA) {
+    when(io.slave.S.Resp =/= OcpResp.NULL) {
       when(burstCntReg === UInt(BURST_LENGTH-1)) {
         stateReg := readResp
       }

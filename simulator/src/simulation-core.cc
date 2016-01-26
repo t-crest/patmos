@@ -430,7 +430,7 @@ namespace patmos
         Num_stall_cycles[Stall]++;
 
         // advance the time for the method cache, stack cache, and memory
-        Rtc->tick(*this);
+        Local_memory.tick(*this);
         Memory.tick(*this);
         Instr_cache.tick(*this);
         Stack_cache.tick(*this);

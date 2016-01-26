@@ -13,7 +13,7 @@ else
     sudo service network-manager stop
     read -p "Plugin ethernet cable and hit enter"
 
-    ip="192.168.1.10"
+    ip="192.168.24.1"
     netmask="255.255.255.0"
     echo ""
     echo "Setting my ip address and netmask"

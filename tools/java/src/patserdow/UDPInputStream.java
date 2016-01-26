@@ -1,5 +1,5 @@
 /*
-   Copyright 2014 Technical University of Denmark, DTU Compute.
+   Copyright 2016 Technical University of Denmark, DTU Compute.
    All rights reserved.
 
    This file is part of the time-predictable VLIW processor Patmos.
@@ -31,45 +31,52 @@
  */
 
 /*
- * Method cache without actual functionality
- * 
- * Authors: Wolfgang Puffitsch (wpuffitsch@gmail.com)
- *        Philipp Degasperi (philipp.degasperi@gmail.com)
+ * Stream for reading input via UDP
+ *
+ * Authors: Torur Biskopsto Strom (torur.strom@gmail.com)
+ *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
+ *
  */
 
-package patmos
+package patserdow;
 
-import Chisel._
-import Node._
-import Constants._
-import ocp._
+import java.io.IOException;
+import java.io.InputStream;
 
-class NullICache() extends Module {
-  val io = new ICacheIO()
+import java.net.DatagramSocket;
+import java.net.DatagramPacket;
 
-  val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
-  val callAddrReg = Reg(init = UInt(1, DATA_WIDTH))
-  val selIspmReg = Reg(init = Bool(false))
+public class UDPInputStream extends InputStream {
+	private DatagramSocket socket;
+    private DatagramPacket packet;
+    private int pos;
 
-  io.ena_out := Bool(true)
-
-  when (io.exicache.doCallRet && io.ena_in) {
-    callRetBaseReg := io.exicache.callRetBase
-    callAddrReg := io.exicache.callRetAddr
-    selIspmReg := io.exicache.callRetBase(ADDR_WIDTH-1, ISPM_ONE_BIT-2) === Bits(0x1)
-  }
-
-  io.icachefe.instrEven := Bits(0)
-  io.icachefe.instrOdd := Bits(0)
-  io.icachefe.base := callRetBaseReg
-  io.icachefe.relBase := callRetBaseReg(ISPM_ONE_BIT-3, 0)
-  io.icachefe.relPc := callAddrReg + callRetBaseReg(ISPM_ONE_BIT-3, 0)
-  io.icachefe.reloc := Mux(selIspmReg, UInt(1 << (ISPM_ONE_BIT - 2)), UInt(0))
-  io.icachefe.memSel := Cat(selIspmReg, Bits(0))
-
-  io.ocp_port.M.Cmd := OcpCmd.IDLE
-  io.ocp_port.M.Addr := Bits(0)
-  io.ocp_port.M.Data := Bits(0)
-  io.ocp_port.M.DataValid := Bits(0)
-  io.ocp_port.M.DataByteEn := Bits(0)
+	public UDPInputStream(DatagramSocket socket) {
+		this.socket = socket;
+        byte[] buf = new byte[0x600];
+        packet = new DatagramPacket(buf, buf.length);
+        pos = packet.getLength();
+	}
+	
+	@Override
+	public long skip(long n) throws IOException {
+        for (long i = 0; i < n; i++) {
+            read();
+        }
+        return 0;
+	}
+	
+	@Override
+	public int available() throws IOException {
+        return packet.getLength()-pos;
+	}	
+	
+	@Override
+	public int read() throws IOException {
+        while (pos >= packet.getLength()) {
+            socket.receive(packet);
+            pos = 0;
+        }
+        return packet.getData()[pos++] & 0xff;
+	}
 }

@@ -67,11 +67,11 @@ unsigned int icmp_get_quench(unsigned int pkt_addr){
 //This function takes the received ping request icmp paket starting in rx_addr and builds a reply packet starting in tx_addr. rx_addr and tx_addr can be the same.
 unsigned int icmp_build_ping_reply(unsigned int rx_addr, unsigned int tx_addr){
 
-	unsigned int frame_lenght = 14 + ((mem_iord_byte(rx_addr+16) << 8) | mem_iord_byte(rx_addr+17));
+	unsigned int frame_length = 14 + ((mem_iord_byte(rx_addr+16) << 8) | mem_iord_byte(rx_addr+17));
 	
 	//Copy the entire frame	
 	if (rx_addr != tx_addr ){ 
-		for(int i=0; i<frame_lenght; i++){
+		for(int i=0; i<frame_length; i++){
 			mem_iowr_byte(tx_addr + i, mem_iord_byte(rx_addr + i));
 		}
 	} 
@@ -95,7 +95,7 @@ unsigned int icmp_build_ping_reply(unsigned int rx_addr, unsigned int tx_addr){
 	mem_iowr_byte(tx_addr+36, checksum>>8 );//hi byte
 	mem_iowr_byte(tx_addr+37, checksum & 0xff );//lo byte
 
-	return frame_lenght;
+	return frame_length;
 }
 
 //This function process a received ICMP package. If it is a ping request and we are the destination (IP) it reply the ping and returns 1. Otherwise it returns 0.
@@ -106,8 +106,8 @@ int icmp_process_received(unsigned int rx_addr, unsigned int tx_addr){
 		unsigned char destination_ip[4];
 		ipv4_get_destination_ip(rx_addr, destination_ip);
 		if (ipv4_compare_ip(destination_ip, my_ip) == 1){
-			unsigned int frame_lenght = icmp_build_ping_reply(rx_addr, tx_addr);
-			eth_mac_send(tx_addr, frame_lenght);
+			unsigned int frame_length = icmp_build_ping_reply(rx_addr, tx_addr);
+			eth_mac_send(tx_addr, frame_length);
 			return 1;
 		}	
 	}

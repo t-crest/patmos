@@ -55,19 +55,21 @@ class Memory() extends Module {
 
   // React on error responses
   val illMem = (io.localInOut.S.Resp === OcpResp.ERR ||
-                io.globalInOut.S.Resp === OcpResp.ERR)
+                io.globalInOut.S.Resp === OcpResp.ERR ||
+                io.icacheIllMem || io.scacheIllMem)
+  val illMemReg = Reg(next = illMem)
 
   // Flush logic
   val flush = (memReg.mem.xcall || memReg.mem.trap ||
                ((memReg.mem.call || memReg.mem.ret ||
                  memReg.mem.brcf || memReg.mem.xret) && memReg.mem.nonDelayed) ||
-               memReg.mem.illOp || illMem)
+               memReg.mem.illOp || illMemReg)
   io.flush := flush
 
   // Stall logic
   val mayStallReg = Reg(init = Bool(false))
-  val enable = (io.localInOut.S.Resp =/= OcpResp.NULL
-                || io.globalInOut.S.Resp =/= OcpResp.NULL
+  val enable = (io.localInOut.S.Resp === OcpResp.DVA
+                || io.globalInOut.S.Resp === OcpResp.DVA
                 || !mayStallReg)
   io.ena_out := enable
 
@@ -80,13 +82,16 @@ class Memory() extends Module {
       mayStallReg := Bool(false)
     }
   }
+  when(illMem) {
+      mayStallReg := Bool(false)
+  }
 
   // Buffer incoming data while being stalled from I-cache
   val rdDataEnaReg = Reg(init = Bool(false))
   val rdDataReg = Reg(init = Bits(0, width = 32))
   // Save incoming data if available during I-cache stall
   when (!io.ena_in) {
-    when (io.localInOut.S.Resp === OcpResp.DVA || io.globalInOut.S.Resp === OcpResp.DVA) {
+    when (io.localInOut.S.Resp =/= OcpResp.NULL || io.globalInOut.S.Resp =/= OcpResp.NULL) {
       mayStallReg := Bool(false)
       rdDataEnaReg := Bool(true)
     }
@@ -231,11 +236,12 @@ class Memory() extends Module {
   io.exc.call := memReg.mem.xcall
   io.exc.ret := memReg.mem.xret
   // trigger exception
-  io.exc.exc := memReg.mem.trap || memReg.mem.illOp || illMem
+  io.exc.exc := memReg.mem.trap || memReg.mem.illOp || illMemReg
 
   io.exc.src := Mux(memReg.mem.illOp, Bits(0),
-                    Mux(illMem, Bits(1),
+                    Mux(illMemReg, Bits(1),
                         memReg.mem.xsrc))
+  io.exc.excBase := memReg.base
   io.exc.excAddr := Mux(memReg.mem.trap, memReg.relPc + UInt(1), memReg.relPc)
 
   // Keep signal alive for debugging

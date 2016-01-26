@@ -144,6 +144,9 @@ namespace patmos
     else if (is_word_access(address, size, 0x0c)) {
       set_word(value, size, Source);
     }
+    else if (is_word_access(address, size, 0x14)) {
+      set_word(value, size, 0); // ignore cache control
+    }
     else if (address >= Base_address+0x80 && address < Base_address+0x100) {
       int intr_addr = address & 0xFC;
       if (!is_word_access(address, size, intr_addr)) {
@@ -162,7 +165,7 @@ namespace patmos
   bool excunit_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size)
   {
     // can only write to this unit in privileged mode
-    if ((Status & 0x2) == 0) {
+    if (!privileged()) {
       simulation_exception_t::illegal_access(address);
     }
 
@@ -240,6 +243,11 @@ namespace patmos
   {
     // TODO check if an ISR has been installed as well?
     return ((1u<<(int)exctype) & Mask);
+  }
+
+  bool excunit_t::privileged()
+  {
+    return (Status & 0x2);
   }
   
   void excunit_t::fire_exception(exception_e exctype)

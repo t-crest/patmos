@@ -1,5 +1,5 @@
 /*
-   Copyright 2014 Technical University of Denmark, DTU Compute.
+   Copyright 2016 Technical University of Denmark, DTU Compute.
    All rights reserved.
 
    This file is part of the time-predictable VLIW processor Patmos.
@@ -31,45 +31,44 @@
  */
 
 /*
- * Method cache without actual functionality
- * 
- * Authors: Wolfgang Puffitsch (wpuffitsch@gmail.com)
- *        Philipp Degasperi (philipp.degasperi@gmail.com)
+ * Stream for writing output via UDP
+ *
+ * Authors: Torur Biskopsto Strom (torur.strom@gmail.com)
+ *          Wolfgang Puffitsch (wpuffitsch@gmail.com)
+ *
  */
 
-package patmos
+package patserdow;
 
-import Chisel._
-import Node._
-import Constants._
-import ocp._
+import java.io.IOException;
+import java.io.OutputStream;
 
-class NullICache() extends Module {
-  val io = new ICacheIO()
+import java.net.DatagramSocket;
+import java.net.DatagramPacket;
+import java.net.InetAddress;
 
-  val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
-  val callAddrReg = Reg(init = UInt(1, DATA_WIDTH))
-  val selIspmReg = Reg(init = Bool(false))
+public class UDPOutputStream extends OutputStream {
 
-  io.ena_out := Bool(true)
-
-  when (io.exicache.doCallRet && io.ena_in) {
-    callRetBaseReg := io.exicache.callRetBase
-    callAddrReg := io.exicache.callRetAddr
-    selIspmReg := io.exicache.callRetBase(ADDR_WIDTH-1, ISPM_ONE_BIT-2) === Bits(0x1)
-  }
-
-  io.icachefe.instrEven := Bits(0)
-  io.icachefe.instrOdd := Bits(0)
-  io.icachefe.base := callRetBaseReg
-  io.icachefe.relBase := callRetBaseReg(ISPM_ONE_BIT-3, 0)
-  io.icachefe.relPc := callAddrReg + callRetBaseReg(ISPM_ONE_BIT-3, 0)
-  io.icachefe.reloc := Mux(selIspmReg, UInt(1 << (ISPM_ONE_BIT - 2)), UInt(0))
-  io.icachefe.memSel := Cat(selIspmReg, Bits(0))
-
-  io.ocp_port.M.Cmd := OcpCmd.IDLE
-  io.ocp_port.M.Addr := Bits(0)
-  io.ocp_port.M.Data := Bits(0)
-  io.ocp_port.M.DataValid := Bits(0)
-  io.ocp_port.M.DataByteEn := Bits(0)
+	private DatagramSocket socket;
+    private InetAddress destAddress;
+    private int destPort;
+	
+	public UDPOutputStream(DatagramSocket socket, InetAddress destAddress, int destPort) {
+		this.socket = socket;
+        this.destAddress = destAddress;
+        this.destPort = destPort;
+	}
+	
+	@Override
+	public void write(byte[] b, int off, int len) throws IOException {
+        DatagramPacket packet = new DatagramPacket(b, off, len, destAddress, destPort);
+        socket.send(packet);
+	}
+	
+	@Override
+	public void write(int b) throws IOException {
+        byte [] buf = new byte[1];
+        buf[0] = (byte)b;
+        write(buf, 0, buf.length);
+	}
 }

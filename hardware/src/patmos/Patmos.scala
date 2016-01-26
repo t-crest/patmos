@@ -89,6 +89,7 @@ class PatmosCore(binFile: String) extends Module {
   icache.io.feicache <> fetch.io.feicache
   icache.io.icachefe <> fetch.io.icachefe
   icache.io.exicache <> execute.io.exicache
+  icache.io.illMem <> memory.io.icacheIllMem
 
   decode.io.fedec <> fetch.io.fedec
   execute.io.decex <> decode.io.decex
@@ -104,6 +105,7 @@ class PatmosCore(binFile: String) extends Module {
   // Connect stack cache
   execute.io.exsc <> dcache.io.scIO.exsc
   dcache.io.scIO.scex <> execute.io.scex
+  dcache.io.scIO.illMem <> memory.io.scacheIllMem 
 
   // We branch in EX
   fetch.io.exfe <> execute.io.exfe
@@ -125,15 +127,21 @@ class PatmosCore(binFile: String) extends Module {
 
   // Merge OCP ports from data caches and method cache
   val burstBus = Module(new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
+  val selICache = Bool()
   val burstJoin = if (ICACHE_TYPE == ICACHE_TYPE_METHOD) {
     // requests from D-cache and method cache never collide
     new OcpBurstJoin(icache.io.ocp_port, dcache.io.slave,
-                     burstBus.io.slave)
+                     burstBus.io.slave, selICache)
   } else {
     // join requests such that D-cache requests are buffered
     new OcpBurstPriorityJoin(icache.io.ocp_port, dcache.io.slave,
-                             burstBus.io.slave)
+                             burstBus.io.slave, selICache)
   }
+
+  val mmu = Module(if (HAS_MMU) new MemoryManagement() else new NoMemoryManagement())
+  mmu.io.exec <> selICache
+  mmu.io.ctrl <> iocomp.io.mmuInOut
+  mmu.io.virt <> burstBus.io.master
 
   // Enable signals for memory stage, method cache and stack cache
   memory.io.ena_in      := icache.io.ena_out && !dcache.io.scIO.stall
@@ -161,6 +169,7 @@ class PatmosCore(binFile: String) extends Module {
 
   // Make privileged mode visible internally and externally
   iocomp.io.superMode := exc.io.superMode
+  mmu.io.superMode := exc.io.superMode
   io.superMode := exc.io.superMode
 
   // Internal "I/O" data
@@ -176,7 +185,7 @@ class PatmosCore(binFile: String) extends Module {
   // The inputs and outputs
   io.comConf <> iocomp.io.comConf
   io.comSpm <> iocomp.io.comSpm
-  io.memPort <> burstBus.io.master
+  io.memPort <> mmu.io.phys
   Config.connectAllIOPins(io, iocomp.io)
 
   // Keep signal alive for debugging

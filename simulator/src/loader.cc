@@ -198,13 +198,13 @@ void elf_loader_t::load_to_memory(simulator_t &s, memory_t &m)
       assert(phdr.p_vaddr == phdr.p_paddr);
       assert(phdr.p_filesz <= phdr.p_memsz);
       // copy from the buffer into the main memory
-      m.write_peek(s, phdr.p_vaddr,
+      m.write_peek(s, phdr.p_paddr,
                    reinterpret_cast<patmos::byte_t*>(&buf[phdr.p_offset]),
                    phdr.p_filesz);
       // Zero-initialize rest of segment
       byte_t zero = 0;
       for (int off = phdr.p_filesz; off < phdr.p_memsz; off++) {
-        m.write_peek(s, phdr.p_vaddr + off, &zero, 1);
+        m.write_peek(s, phdr.p_paddr + off, &zero, 1);
       }
     }
   }

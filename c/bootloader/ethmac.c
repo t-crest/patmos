@@ -1,7 +1,7 @@
 /*
-   Copyright 2014 Technical University of Denmark, DTU Compute.
+   Copyright 2016 Technical University of Denmark, DTU Compute. 
    All rights reserved.
-
+   
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -31,45 +31,75 @@
  */
 
 /*
- * Method cache without actual functionality
+ * Basic functions to download application via UDP
  * 
  * Authors: Wolfgang Puffitsch (wpuffitsch@gmail.com)
- *        Philipp Degasperi (philipp.degasperi@gmail.com)
+ *
  */
 
-package patmos
+#include "boot.h"
 
-import Chisel._
-import Node._
-import Constants._
-import ocp._
+#ifdef ETHMAC
 
-class NullICache() extends Module {
-  val io = new ICacheIO()
+#include "ethlib/arp.h"
+#include "ethlib/udp.h"
 
-  val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
-  val callAddrReg = Reg(init = UInt(1, DATA_WIDTH))
-  val selIspmReg = Reg(init = Bool(false))
+unsigned char host_ip[4];
 
-  io.ena_out := Bool(true)
+static int available;
+static int read_offset;
 
-  when (io.exicache.doCallRet && io.ena_in) {
-    callRetBaseReg := io.exicache.callRetBase
-    callAddrReg := io.exicache.callRetAddr
-    selIspmReg := io.exicache.callRetBase(ADDR_WIDTH-1, ISPM_ONE_BIT-2) === Bits(0x1)
+void ethmac_init(void) {
+  eth_mac_initialize();
+  arp_table_init();
+
+  my_mac[0] = 0x00;
+  my_mac[1] = 0xFF;
+  my_mac[2] = 0xEE;
+  my_mac[3] = 0xF0;
+  my_mac[4] = 0xDA;
+  my_mac[5] = 0x42;
+
+  my_ip[0] = 192;
+  my_ip[1] = 168;
+  my_ip[2] = 24;
+  my_ip[3] = 50;
+
+  available = 0;
+  read_offset = 0;
+}
+
+int ethmac_get_byte(void) {
+  while (!available) {
+    eth_mac_receive(RX_ADDR, 0);
+    unsigned char packet_type = mac_packet_type(RX_ADDR);
+
+    // receive UDP packet
+    if (packet_type == 2) {
+      // at the correct port
+      if (udp_get_source_port(RX_ADDR) == HOST_PORT &&
+          udp_get_destination_port(RX_ADDR) == TARGET_PORT) {
+        available = udp_get_data_length(RX_ADDR);
+        read_offset = 0;
+        // remember source
+        ipv4_get_source_ip(RX_ADDR, host_ip);
+      }
+    }
+    // respond to ARP requests
+    if (packet_type == 3) {
+      arp_process_received(RX_ADDR, TX_ADDR);
+    }
   }
 
-  io.icachefe.instrEven := Bits(0)
-  io.icachefe.instrOdd := Bits(0)
-  io.icachefe.base := callRetBaseReg
-  io.icachefe.relBase := callRetBaseReg(ISPM_ONE_BIT-3, 0)
-  io.icachefe.relPc := callAddrReg + callRetBaseReg(ISPM_ONE_BIT-3, 0)
-  io.icachefe.reloc := Mux(selIspmReg, UInt(1 << (ISPM_ONE_BIT - 2)), UInt(0))
-  io.icachefe.memSel := Cat(selIspmReg, Bits(0))
-
-  io.ocp_port.M.Cmd := OcpCmd.IDLE
-  io.ocp_port.M.Addr := Bits(0)
-  io.ocp_port.M.Data := Bits(0)
-  io.ocp_port.M.DataValid := Bits(0)
-  io.ocp_port.M.DataByteEn := Bits(0)
+  // return a byte from a previously received packet
+  available--;
+  unsigned char c = mem_iord_byte(RX_ADDR + 42 + read_offset++);
+  return c;
 }
+
+void ethmac_put_byte(unsigned char c) {
+  unsigned char b = c;
+  udp_send(TX_ADDR, ARP_ADDR, host_ip, TARGET_PORT, HOST_PORT, &b, 1, 10000);
+}
+
+#endif /* ETHMAC */
