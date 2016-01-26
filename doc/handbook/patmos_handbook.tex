@@ -2265,7 +2265,52 @@ Patmos supports Ethernet connections through an EthMac device
 usually mapped starting at address \code{0xf00b0000}. The RX/TX buffer
 of the device is mapped to offsets \code{0x0000} to \code{0xefff},
 while the device registers of the Ethernet controller are mapped to
-offsets \code{0xf000} to \code{0xffff}.
+offsets \code{0xf000} to \code{0xffff}. For detailed information on
+the EthMac device, please refer to the cited reports.
+
+\subsection{Memory Management Unit}
+
+Patmos can be configured to include a memory management unit
+(MMU). The configuration port of this MMU is then mapped starting at
+address \code{0xf0070000}. The MMU uses segmentation for memory
+protection and address translation; it supports eight
+segments. Table~\ref{tab:mmu} shows the mapping of segment
+information.
+
+The bit 31 of a configuration register (e.g., Seg0\_Conf) is
+set if the respective segment is readable, bit 30 is set if the
+segment is writable, and bit 29 is set if the segment is
+executable. Bits 28-0 of the configuration register contain the length
+of the respective segment.
+
+\begin{table}
+\centering
+\begin{tabular}{lll}
+\toprule
+Address & Name & Description \\
+\midrule
+\code{0xf0070000} & Seg0\_Base & Base address of segment 0 \\
+\code{0xf0070004} & Seg0\_Conf & Configuration register of segment 0 \\
+\dots & \dots & \dots \\
+\code{0xf0070038} & Seg7\_Base & Base address of segment 7 \\
+\code{0xf007003c} & Seg7\_Conf & Configuration register of segment 7 \\
+\bottomrule
+\end{tabular}
+\caption{Memory management unit device registers}
+\label{tab:mmu}
+\end{table}
+
+The MMU enforces memory protection and translates virtual addresses to
+physical addresses. The segment to be used is encoded in the three
+most significant bits of the virtual address (i.e., bits 31-29). Bits
+28-0 of the virtual address represent the offset into the segment. If
+this offset is less than the length of the segment and if the
+respective permission bit is set, the access proceeds. Otherwise, an
+illegal memory access exception is raised. Memory protection is only
+enforced in user mode, i.e., the segment length and permission check
+is bypassed in privileged mode. The physical address is computed by
+adding the offset to the base address of the respective segment
+(e.g. Seg0\_Base).
 
 \section{The Stack Cache}
 \label{sec:stack-cache}
@@ -4489,17 +4534,6 @@ Might be interesting to compare those two approaches.
 \stefan{Note: if we use a DMA controller, we do not need separate memcpy functions depending on the source and destination memory, since the
 DMA controller can determine source and target based on the addresses (hopefully).
 }
-
-\section{Memory Management Unit}
-
-\todo{implemented, describe}
-
-\begin{itemize}
-  \item Simple software managed TLB.
-  \item Main idea is to provide protection and separation.
-  \item Could be used for memory testing.
-  \item No traps. Instead, reset or kill thread?
-\end{itemize}
 
 \section{DMA Interface}
 \begin{itemize}
