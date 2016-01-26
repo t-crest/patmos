@@ -2258,6 +2258,15 @@ Bit & Status & & Control & \\
 \label{tab:uart}
 \end{table}
 
+\subsection{EthMac}
+
+Patmos supports Ethernet connections through an EthMac device
+\cite{mohor2002ethernet,pezzarossa2015ethernet}. This device is
+usually mapped starting at address \code{0xf00b0000}. The RX/TX buffer
+of the device is mapped to offsets \code{0x0000} to \code{0xefff},
+while the device registers of the Ethernet controller are mapped to
+offsets \code{0xf000} to \code{0xffff}.
+
 \section{The Stack Cache}
 \label{sec:stack-cache}
 
@@ -4490,18 +4499,6 @@ DMA controller can determine source and target based on the addresses (hopefully
   \item Main idea is to provide protection and separation.
   \item Could be used for memory testing.
   \item No traps. Instead, reset or kill thread?
-\end{itemize}
-
-\section{Supervisor Mode}
-
-\todo{implemented, describe}
-
-\label{sec:supervisor}
-\begin{itemize}
-  \item To restrict reconfiguration of critical components (e.g., TLB, Interrupt
-        Tables).
-  \item Transfer to supervisor mode, e.g., via \texttt{syscall}.
-  \item Might be handy when running multiple threads or an OS.
 \end{itemize}
 
 \section{DMA Interface}
