@@ -144,6 +144,9 @@ namespace patmos
     else if (is_word_access(address, size, 0x0c)) {
       set_word(value, size, Source);
     }
+    else if (is_word_access(address, size, 0x14)) {
+      set_word(value, size, 0); // ignore cache control
+    }
     else if (address >= Base_address+0x80 && address < Base_address+0x100) {
       int intr_addr = address & 0xFC;
       if (!is_word_access(address, size, intr_addr)) {

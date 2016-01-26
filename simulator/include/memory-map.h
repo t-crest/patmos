@@ -94,6 +94,12 @@ namespace patmos
   
   /// Number of bytes mapped to the LED device.
   static const uword_t LED_MAP_SIZE = 0x0004;
+
+  /// Offset from IO base address for the EthMac device.
+  static const uword_t ETHMAC_OFFSET = 0xb0000;
+  
+  /// Number of bytes mapped to the EthMac device.
+  static const uword_t ETHMAC_MAP_SIZE = 0x10000;
   
   class mapped_device_t {
   protected:
@@ -270,6 +276,36 @@ namespace patmos
     virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
     virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+  };
+
+  class ethmac_t : public mapped_device_t 
+  {
+  private:
+    byte_t buffer [0xf000];
+    int fd;
+    int alloc_tap(std::string ip_addr);
+
+    bool rx;
+    bool rx_ready;
+    uword_t rx_addr;
+    uword_t rx_length;
+
+    bool tx;
+    bool tx_ready;
+    uword_t tx_addr;
+    uword_t tx_length;
+
+  public:
+    ethmac_t(uword_t base_address, std::string ip_addr)
+      : mapped_device_t(base_address, ETHMAC_MAP_SIZE), fd(alloc_tap(ip_addr)),
+      rx(false), rx_ready(false), rx_addr(0), rx_length(0),
+      tx(false), tx_ready(false), tx_addr(0), tx_length(0) { }
+
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+
+    virtual void tick(simulator_t &s);
   };
   
   /// Map several devices into the address space of another memory device

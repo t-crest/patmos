@@ -389,7 +389,9 @@ int main(int argc, char **argv)
     ("perfcounters_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::PERFCOUNTERS_OFFSET), "offset where the performance counters device is mapped")
     ("mmu_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::MMU_OFFSET), "offset where the memory management unit is mapped")
     ("uart_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::UART_OFFSET), "offset where the UART device is mapped")
-    ("led_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::LED_OFFSET), "offset where the LED device is mapped");
+    ("led_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::LED_OFFSET), "offset where the LED device is mapped")
+    ("ethmac_offset", boost::program_options::value<patmos::address_t>()->default_value(patmos::ETHMAC_OFFSET), "offset where the EthMac device is mapped")
+    ("ethmac_ip_addr", boost::program_options::value<std::string>()->default_value(""), "Provide virtual network interface with the given IP address");
   
   boost::program_options::options_description uart_options("UART options");
   uart_options.add_options()
@@ -463,6 +465,8 @@ int main(int argc, char **argv)
   unsigned int mmu_offset = vm["mmu_offset"].as<patmos::address_t>().value();
   unsigned int uart_offset = vm["uart_offset"].as<patmos::address_t>().value();
   unsigned int led_offset = vm["led_offset"].as<patmos::address_t>().value();
+  unsigned int ethmac_offset = vm["ethmac_offset"].as<patmos::address_t>().value();
+  std::string  ethmac_ip_addr = vm["ethmac_ip_addr"].as<std::string>();
 
   unsigned int gsize = vm["gsize"].as<patmos::byte_size_t>().value();
   unsigned int ispmsize = vm["ispmsize"].as<patmos::byte_size_t>().value();
@@ -615,6 +619,7 @@ int main(int argc, char **argv)
     patmos::perfcounters_t perfcounters(mmbase+perfcounters_offset);
     patmos::uart_t uart(mmbase+uart_offset, *uin, uin_istty, *uout);
     patmos::led_t leds(mmbase+led_offset, *uout);
+    patmos::ethmac_t ethmac(mmbase+ethmac_offset, ethmac_ip_addr);
     patmos::noc_t noc(nocbase, nocbase+noc_route_offset, nocbase+noc_st_offset,
                       nocbase+noc_spm_offset, nocsize, nm);
 
@@ -623,6 +628,7 @@ int main(int argc, char **argv)
     mm.add_device(perfcounters);
     mm.add_device(uart);
     mm.add_device(leds);
+    mm.add_device(ethmac);
     mm.add_device(rtc);
     mm.add_device(noc);
 
@@ -730,6 +736,8 @@ int main(int argc, char **argv)
         *sout << " --perfcounters_offset=" << perfcounters_offset;
         *sout << " --uart_offset=" << uart_offset;
         *sout << " --led_offset=" << led_offset;
+        *sout << " --ethmac_offset=" << ethmac_offset;
+        *sout << " --ethmac_ip_addr=" << ethmac_ip_addr;
         
         *sout << "\n  ";
         *sout << " --gsize=" << gsize;

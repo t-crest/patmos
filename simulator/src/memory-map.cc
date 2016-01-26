@@ -197,8 +197,149 @@ bool led_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size) 
   else {
     simulation_exception_t::unmapped(address);
   }
-}    
+}
 
+// EthMac simulation works only under Linux
+#ifdef __linux__
+#include <fcntl.h>
+#include <errno.h>
+#include <sys/ioctl.h>
+#include <sys/poll.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <linux/if.h>
+#include <linux/if_tun.h>
+#else
+#warning "EthMac simulation supported only under Linux"
+#endif
+
+int ethmac_t::alloc_tap(std::string ip_addr) {
+  if (ip_addr == "") {
+    return -1;
+  }
+
+#ifdef __linux__
+  struct ifreq ifr;
+  int fd;
+
+  // open tunnel device
+  if ((fd = open("/dev/net/tun", O_RDWR)) < 0) {
+    throw std::runtime_error(std::string("Opening tun device: ") + strerror(errno));
+  }
+
+  memset(&ifr, 0, sizeof(ifr));
+  strncpy(ifr.ifr_name, "pat0", IFNAMSIZ);
+
+  // Create tap device
+  ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+  if (ioctl(fd, TUNSETIFF, (void *) &ifr) < 0) {
+    throw std::runtime_error(std::string("Creating tap device: ") + strerror(errno));
+  }
+
+  // We need to create a socket and work on that to set up the tap device
+  int skfd;
+  if ((skfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
+    throw std::runtime_error(std::string("Opening socket for tap device: ") + strerror(errno));
+  }
+
+  // Set IP address of device
+  struct sockaddr_in *addr = (struct sockaddr_in *)&ifr.ifr_addr;
+  addr->sin_family = AF_INET;
+  inet_pton(AF_INET, ip_addr.c_str(), &addr->sin_addr);
+  if(ioctl(skfd, SIOCSIFADDR, (void *) &ifr) < 0) {
+    throw std::runtime_error(std::string("Setting address for tap device: ") + strerror(errno));
+  }
+
+  // Get device up and running
+  if(ioctl(skfd, SIOCGIFFLAGS, (void *) &ifr) < 0) {
+    throw std::runtime_error(std::string("Getting flags for tap device: ") + strerror(errno));
+  }
+  ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
+  if(ioctl(skfd, SIOCSIFFLAGS, (void *) &ifr) < 0) {
+    throw std::runtime_error(std::string("Setting tap device up and running: ") + strerror(errno));
+  }
+
+  return fd;
+
+#else /* !__linux__ */
+  throw std::runtime_error("Providing a network interface for EthMac simulation is supported only under Linux");
+#endif /* !__linux__ */
+}
+
+bool ethmac_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size) {
+  uword_t data = 0;
+  if (address >= Base_address && address < Base_address+0xf000 &&
+      is_word_access(address, size, address & 0xffff)) {
+    data = get_word(&buffer[address & 0xffff], size);
+  } else if (is_word_access(address, size, 0xf004)) {
+    data = (rx_ready << 2) | (tx_ready << 0);
+  } else {
+    simulation_exception_t::unmapped(address);
+  }
+  set_word(value, size, data);
+  return true;
+}
+
+bool ethmac_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size) {
+  uword_t data = get_word(value, size);
+  if (address >= Base_address && address < Base_address+0xf000 &&
+      is_word_access(address, size, address & 0xffff)) {
+    set_word(&buffer[address & 0xffff], size, data);
+  } else if (is_word_access(address, size, 0xf000)) {
+    // ignore
+  } else if (is_word_access(address, size, 0xf004)) {
+    if (data & 0x4) { rx_ready = false; }
+    if (data & 0x1) { tx_ready = false; }
+  } else if (is_word_access(address, size, 0xf400)) {
+    tx_length = data >> 16;
+    tx = (data & 0x8000) != 0;
+  } else if (is_word_access(address, size, 0xf404)) {
+    tx_addr = data;
+  } else if (is_word_access(address, size, 0xf600)) {
+    rx_length = data >> 16;
+    rx = (data & 0x8000) != 0;
+  } else if (is_word_access(address, size, 0xf604)) {
+    rx_addr = data;
+  } else if (is_word_access(address, size, 0xf040)) {
+    // ignore
+  } else if (is_word_access(address, size, 0xf044)) {
+    // ignore
+  } else {
+    simulation_exception_t::unmapped(address);
+  }
+  return true;
+}
+
+void ethmac_t::tick(simulator_t &s) {
+  if (fd < 0) {
+    return;
+  }
+
+#ifdef __linux__
+  if (tx && !tx_ready) {
+    if (::write(fd, &buffer[tx_addr], tx_length) < 0) {
+      std::cerr << "error: Cannot write to tap device" << std::endl;
+    }
+    tx = false;
+    tx_ready = true;
+  }
+
+  if (rx && !rx_ready) {
+    struct pollfd pfd;
+    pfd.fd = fd;
+    pfd.events = POLLIN;
+    if (::poll(&pfd, 1, 0) > 0) {
+      ssize_t len = ::read(fd, &buffer[rx_addr], 0x600);
+      if (len > 0) {
+        rx = false;
+        rx_ready = true;
+      } else if (len < 0) {
+        std::cerr << "error: Cannot read from tap device" << std::endl;
+      }
+    }
+  }
+#endif /* __linux__ */
+}
 
 /// Map several devices into the address space of another memory device
 mapped_device_t& memory_map_t::find_device(uword_t address)
