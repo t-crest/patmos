@@ -49,7 +49,7 @@ $(BUILDDIR)/%.o: %.c Makefile
 	$(CC) $(CFLAGS) -c -o $@ $(filter %.c,$^)
 
 # A target for regular applications
-$(BUILDDIR)/%.elf: %.c $(NOCINIT) $(LIBNOC) $(LIBMP) $(LIBCORETHREAD) Makefile
+$(BUILDDIR)/%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBETH) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread -leth
 
@@ -58,7 +58,7 @@ $(BUILDDIR)/%.s: %.c Makefile
 	$(CC) $(CFLAGS) -fpatmos-emit-asm -S -o $@ $(filter %.c,$^)
 
 # A target for bootable applications (e.g., the bootloader)
-$(BUILDDIR)/bootable-%.elf: %.c Makefile
+$(BUILDDIR)/bootable-%.elf: %.c $(LIBETH) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -leth
 
