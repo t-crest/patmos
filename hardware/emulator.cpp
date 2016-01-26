@@ -247,7 +247,7 @@ static int ethmac_alloc_tap(const char *ip_addr)
   int fd, err;
 
   // open tunnel device
-  if((fd = open("/dev/net/tun", O_RDWR)) < 0) {
+  if ((fd = open("/dev/net/tun", O_RDWR)) < 0) {
     cerr << program_name << ": error: Opening tun device: " << strerror(errno) << endl;
     return fd;
   }
@@ -257,7 +257,7 @@ static int ethmac_alloc_tap(const char *ip_addr)
 
   // Create tap device
   ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
-  if((err = ioctl(fd, TUNSETIFF, (void *) &ifr)) < 0 ){
+  if ((err = ioctl(fd, TUNSETIFF, (void *) &ifr)) < 0 ){
     cerr << program_name << ": error: Creating tap device: " << strerror(errno) << endl;
     close(fd);
     return err;
@@ -275,20 +275,20 @@ static int ethmac_alloc_tap(const char *ip_addr)
   struct sockaddr_in *addr = (struct sockaddr_in *)&ifr.ifr_addr;
   addr->sin_family = AF_INET;
   inet_pton(AF_INET, ip_addr, &addr->sin_addr);
-  if( (err = ioctl(skfd, SIOCSIFADDR, (void *) &ifr)) < 0 ){
+  if ((err = ioctl(skfd, SIOCSIFADDR, (void *) &ifr)) < 0 ){
     cerr << program_name << ": error: Setting address for tap device: " << strerror(errno) << endl;
     close(fd);
     return err;
   }
 
   // Get device up and running
-  if((err = ioctl(skfd, SIOCGIFFLAGS, (void *) &ifr)) < 0 ) {
+  if ((err = ioctl(skfd, SIOCGIFFLAGS, (void *) &ifr)) < 0 ) {
     cerr << program_name << ": error: Getting flags for tap device: " << strerror(errno) << endl;
     close(fd);
     return err;
   }
   ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
-  if((err = ioctl(skfd, SIOCSIFFLAGS, (void *) &ifr)) < 0 ){
+  if ((err = ioctl(skfd, SIOCSIFFLAGS, (void *) &ifr)) < 0 ){
     cerr << program_name << ": error: Setting tap device up and running: " << strerror(errno) << endl;
     close(fd);
     return err;
@@ -565,7 +565,7 @@ static void stat_icache(Patmos_t *c, bool halt) {
     }
   }
   #endif /* ICACHE_LINE */
-  
+
   //pipeline stalls caused by the instruction cache
   if (!c->Patmos_core_icache__io_ena_out.to_bool()) {
     cache_stall_cycles++;
@@ -590,7 +590,7 @@ static void print_sc_state(Patmos_t *c) {
     if (c->Patmos_core_dcache_sc__mb_wrEna.to_bool()) {
       for (unsigned int i = 0; i < 4; i++) {
         std::cerr << "f:" << (c->Patmos_core_dcache_sc__transferAddrReg.to_ulong() + i - 4)
-                  << " > " << (((c->Patmos_core_dcache_sc__mb_wrData.to_ulong() << (i*8)) >> 24) & 0xFF) 
+                  << " > " << (((c->Patmos_core_dcache_sc__mb_wrData.to_ulong() << (i*8)) >> 24) & 0xFF)
                   << "\n";
       }
     }
@@ -598,7 +598,7 @@ static void print_sc_state(Patmos_t *c) {
   // spill
   else if ((c->Patmos_core_dcache_sc__stateReg.to_ulong() == 3) ||
            (c->Patmos_core_dcache_sc__stateReg.to_ulong() == 4)) {
-    if (c->Patmos_core_dcache_sc__io_toMemory_M_DataValid.to_bool() && 
+    if (c->Patmos_core_dcache_sc__io_toMemory_M_DataValid.to_bool() &&
         c->Patmos_core_dcache_sc__io_toMemory_M_DataByteEn.to_ulong()) {
       for (unsigned int i = 0; i < 4; i++) {
         std::cerr << "s:" << (c->Patmos_core_dcache_sc__transferAddrReg.to_ulong() + i - 4)
@@ -669,7 +669,7 @@ int main (int argc, char* argv[]) {
   #endif /* IO_UART */
   #ifdef IO_ETHMAC
   int ethmac_tap = -1;
-  #endif /* IO_ETHMAC */  
+  #endif /* IO_ETHMAC */
 
   program_name = argv[0];
 
@@ -777,7 +777,7 @@ int main (int argc, char* argv[]) {
 
   // Initialize instruction cache for entry point
   init_icache(c, entry);
-  
+
   // Main emulation loop
   bool halt = false;
   for (int t = 0; lim < 0 || t < lim; t++) {
