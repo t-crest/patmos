@@ -127,10 +127,10 @@ bool mmu_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size) {
 
 bool mmu_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size) {
 
-  if (address >= Base_address && address < Base_address+0x20 &&
-      is_word_access(address, size, address & 0x1F)) {
+  if (address >= Base_address && address < Base_address+0x40 &&
+      is_word_access(address, size, address & 0x3F)) {
 
-    uword_t index = (address & 0x1F) >> 3;
+    uword_t index = (address & 0x3F) >> 3;
 
     if ((address & 0x4) == 0) {
       Segments[index].Base = get_word(value, size);

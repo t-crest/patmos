@@ -81,7 +81,7 @@ namespace patmos
   static const uword_t MMU_OFFSET = 0x70000;
   
   /// Number of bytes mapped to the memory management unit.
-  static const uword_t MMU_MAP_SIZE = 0x0020;
+  static const uword_t MMU_MAP_SIZE = 0x0040;
   
   /// Offset from IO base address for UART device.
   static const uword_t UART_OFFSET = 0x80000;
