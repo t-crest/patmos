@@ -35,7 +35,19 @@ CFLAGS?=-target patmos-unknown-unknown-elf -O2 \
 LDFLAGS?= \
 	-mpatmos-method-cache-size=0x1000 \
 	-mpatmos-stack-base=0x200000 -mpatmos-shadow-stack-base=0x1f8000 \
+	-Xgold --defsym -Xgold __heap_end=0x1f0000 \
 	-Xgold -T -Xgold $(BUILDDIR)/../hardware/spm_ram.t
+
+# Flags for compiling applications that use virtual memory
+# Assuming 2 MB of main memory
+CFLAGS-VM?=-target patmos-unknown-unknown-elf -O2 \
+	-I$(CURDIR) -I $(CURDIR)/libelf/ \
+	-mpatmos-disable-vliw -Xllc --code-model=large
+LDFLAGS-VM?= \
+	-mpatmos-method-cache-size=0x1000 \
+	-mpatmos-stack-base=0x80020000 -mpatmos-shadow-stack-base=0x80010000 \
+	-Xgold --defsym -Xgold __heap_end=0x60100000 \
+	-Xgold -T -Xgold $(BUILDDIR)/../hardware/vm.t
 
 # 32KB stacks for 256MB external memory
 # -mpatmos-stack-base=0x10000000 -mpatmos-shadow-stack-base=0x0fff8000
@@ -66,6 +78,11 @@ $(BUILDDIR)/bootable-%.elf: %.c $(LIBETH) Makefile
 $(BUILDDIR)/bootable-%.s: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS-BOOTABLE) -fpatmos-emit-asm -S -o $@ $(filter %.c,$^)
+
+# A target for applications that use virtual memory
+$(BUILDDIR)/vm-%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBETH) $(LIBELF) Makefile
+	mkdir -p $(BUILDDIR)/$(dir $*)
+	$(CC) $(CFLAGS-VM) $(LDFLAGS-VM) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread -leth -lelf
 
 # application-specific additional dependencies
 $(BUILDDIR)/bootable-bootloader.elf: download.c decompress.c ethmac.c boot.h bootable.h
