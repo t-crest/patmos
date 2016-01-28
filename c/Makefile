@@ -8,6 +8,7 @@ LIBNOC=$(BUILDDIR)/libnoc.a
 LIBMP=$(BUILDDIR)/libmp.a
 LIBCORETHREAD=$(BUILDDIR)/libcorethread.a
 LIBETH=$(BUILDDIR)/libeth.a
+LIBELF=$(BUILDDIR)/libelf.a
 
 NOCINIT?=nocinit.c
 
@@ -29,7 +30,7 @@ LDFLAGS-BOOTABLE?= \
 # Flags for compiling normal applications
 # Assuming 2 MB of main memory
 CFLAGS?=-target patmos-unknown-unknown-elf -O2 \
-	-I$(CURDIR) \
+	-I$(CURDIR) -I $(CURDIR)/libelf/ \
 	-mpatmos-disable-vliw
 LDFLAGS?= \
 	-mpatmos-method-cache-size=0x1000 \
@@ -49,9 +50,9 @@ $(BUILDDIR)/%.o: %.c Makefile
 	$(CC) $(CFLAGS) -c -o $@ $(filter %.c,$^)
 
 # A target for regular applications
-$(BUILDDIR)/%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBETH) Makefile
+$(BUILDDIR)/%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBETH) $(LIBELF) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread -leth
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread -leth -lelf
 
 $(BUILDDIR)/%.s: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
@@ -115,4 +116,10 @@ $(LIBCORETHREAD): $(BUILDDIR)/libcorethread/corethread.o
 .PHONY: libeth
 libeth: $(LIBETH)
 $(LIBETH): $(patsubst ethlib/%.c,$(BUILDDIR)/ethlib/%.o,$(wildcard ethlib/*.c))
+	patmos-ar r $@ $^
+
+# library for parsing ELF files
+.PHONY: libelf
+libelf: $(LIBELF)
+$(LIBELF): $(patsubst libelf/%.c,$(BUILDDIR)/libelf/%.o,$(wildcard libelf/*.c))
 	patmos-ar r $@ $^
