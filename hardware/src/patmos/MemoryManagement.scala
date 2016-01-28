@@ -50,7 +50,7 @@ object MemoryManagement {
   val SEG_BITS = 3
   val SEG_COUNT = 1 << SEG_BITS
   val PERM_BITS = 3
-  val ALIGN_BITS = 10
+  val ALIGN_BITS = log2Up(BURST_LENGTH)+2
 
   val PERM_R = 2
   val PERM_W = 1
