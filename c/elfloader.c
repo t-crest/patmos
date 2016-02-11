@@ -73,18 +73,10 @@ void *aligned_alloc(size_t size, size_t align) {
 #define HEAP_SIZE  (512*1024)
 #define STACK_SIZE (128*1024)
 
+static int super = 0;
+
 void nop(void) __attribute__((noinline));
 int invoke(unsigned int entry) __attribute__((noinline));
-
-// go to user mode
-static inline void user_mode(void) {
-  EXC_STATUS &= ~0x2;
-  asm volatile("nop; nop;");
-}
-
-void super_mode(void) {
-  trap(8);
-}
 
 void super_mode_trap(void) __attribute__((naked));
 void super_mode_trap(void) {
@@ -138,8 +130,24 @@ int invoke(unsigned int entry) {
                 : "=r" (tmp1), "=r" (tmp2)
                 : "i" (&top), "i" (&ssz), "i" (&r31));
 
-  exc_register(8, &super_mode_trap);
-  user_mode();
+  asm volatile(// go to user mode (and register trap to return to super mode)
+               "li %0 = %2;"
+               "lwm %0 = [%0];"
+               "nop;"
+               "cmpeq $p1 = %0, 0;"
+               "($p1) li %0 = %3;"
+               "($p1) li %1 = %4;"
+               "($p1) swl [%0] = %1;"
+               "($p1) li %0 = %5;"
+               "($p1) lwl %1 = [%0];"
+               "($p1) nop;"
+               "($p1) and %1 = %1, 0xfffffffd;"
+               "($p1) swl [%0] = %1;"
+               : "=r" (tmp1), "=r" (tmp2)
+               : "i" (&super),
+                 "i" (&EXC_VEC(8)), "i" (&super_mode_trap),
+                 "i" (&EXC_STATUS)
+               : "$p1");
 
   asm volatile (// call function
                 "callnd %5;"
@@ -170,7 +178,18 @@ int invoke(unsigned int entry) {
                   "$r26", "$r27", "$r28", "$r29",
                   "$r30", "$r31");
 
-  super_mode();
+  asm volatile(// re-enable super-user mode (through trap)
+               "li %0 = %1;"
+               "lwm %0 = [%0];"
+               "nop;"
+               "cmpeq $p1 = %0, 0;"
+               "($p1) trap 8;"
+               : "=r" (tmp1)
+               : "i" (&super)
+               : "$p1");
+
+  // disable interrupts, the application may have enabled them
+  intr_disable();
 
   // clear caches
   inval_dcache();
@@ -494,14 +513,20 @@ int main(void) {
         fprintf(stdout, "Usage:\n");
         fprintf(stdout, "  help   print this help\n");
         fprintf(stdout, "  banner print banner\n");
+        fprintf(stdout, "  super  execute files in super mode\n");
+        fprintf(stdout, "  user   execute files in user mode\n");
         fprintf(stdout, "  quit   exit application\n");
         fprintf(stdout, "  <file> download and execute <file>\n");
       } else if (strcmp(filename, "banner") == 0) {
         banner();
+      } else if (strcmp(filename, "super") == 0) {
+        super = 1;
+      } else if (strcmp(filename, "user") == 0) {
+        super = 0;
       } else if (strcmp(filename, "quit") == 0) {
         exit(EXIT_SUCCESS);
       } else {
-        fprintf(stdout, "loading file %s...", filename);
+        fprintf(stdout, "loading %s...", filename);
         fflush(stdout);
 
         // read ELF file via TFTP
