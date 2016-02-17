@@ -60,19 +60,19 @@ class PatmosCore(binFile: String) extends Module {
 
   val io = Config.getPatmosCoreIO()
 
-  val icache = 
+  val icache =
     if (ICACHE_SIZE <= 0)
       Module(new NullICache())
     else if (ICACHE_TYPE == ICACHE_TYPE_METHOD && ICACHE_REPL == CACHE_REPL_FIFO)
-        Module(new MCache())
+      Module(new MCache())
     else if (ICACHE_TYPE == ICACHE_TYPE_LINE && ICACHE_ASSOC == 1)
-        Module(new ICache())
+      Module(new ICache())
     else {
-      ChiselError.error("Unsupported instruction cache configuration:"+
-                        " type \""+ICACHE_TYPE+"\""+
-                        " (must be \""+ICACHE_TYPE_METHOD+"\" or \""+ICACHE_TYPE_LINE+"\")"+
-                        " associativity "+ICACHE_ASSOC+
-                        " with replacement policy \""+ICACHE_REPL+"\"")
+      ChiselError.error("Unsupported instruction cache configuration:" +
+        " type \"" + ICACHE_TYPE + "\"" +
+        " (must be \"" + ICACHE_TYPE_METHOD + "\" or \"" + ICACHE_TYPE_LINE + "\")" +
+        " associativity " + ICACHE_ASSOC +
+        " with replacement policy \"" + ICACHE_REPL + "\"")
       Module(new NullICache()) // return at least a dummy cache
     }
 
@@ -105,7 +105,7 @@ class PatmosCore(binFile: String) extends Module {
   // Connect stack cache
   execute.io.exsc <> dcache.io.scIO.exsc
   dcache.io.scIO.scex <> execute.io.scex
-  dcache.io.scIO.illMem <> memory.io.scacheIllMem 
+  dcache.io.scIO.illMem <> memory.io.scacheIllMem
 
   // We branch in EX
   fetch.io.exfe <> execute.io.exfe
@@ -131,11 +131,11 @@ class PatmosCore(binFile: String) extends Module {
   val burstJoin = if (ICACHE_TYPE == ICACHE_TYPE_METHOD) {
     // requests from D-cache and method cache never collide
     new OcpBurstJoin(icache.io.ocp_port, dcache.io.slave,
-                     burstBus.io.slave, selICache)
+      burstBus.io.slave, selICache)
   } else {
     // join requests such that D-cache requests are buffered
     new OcpBurstPriorityJoin(icache.io.ocp_port, dcache.io.slave,
-                             burstBus.io.slave, selICache)
+      burstBus.io.slave, selICache)
   }
 
   val mmu = Module(if (HAS_MMU) new MemoryManagement() else new NoMemoryManagement())
@@ -144,8 +144,8 @@ class PatmosCore(binFile: String) extends Module {
   mmu.io.virt <> burstBus.io.master
 
   // Enable signals for memory stage, method cache and stack cache
-  memory.io.ena_in      := icache.io.ena_out && !dcache.io.scIO.stall
-  icache.io.ena_in      := memory.io.ena_out && !dcache.io.scIO.stall
+  memory.io.ena_in := icache.io.ena_out && !dcache.io.scIO.stall
+  icache.io.ena_in := memory.io.ena_out && !dcache.io.scIO.stall
   dcache.io.scIO.ena_in := memory.io.ena_out && icache.io.ena_out
 
   // Enable signal
@@ -178,9 +178,9 @@ class PatmosCore(binFile: String) extends Module {
   iocomp.io.internalIO.perf.sc := dcache.io.scPerf
   iocomp.io.internalIO.perf.wc := dcache.io.wcPerf
   iocomp.io.internalIO.perf.mem.read := (io.memPort.M.Cmd === OcpCmd.RD &&
-                                         io.memPort.S.CmdAccept === Bits(1))
+    io.memPort.S.CmdAccept === Bits(1))
   iocomp.io.internalIO.perf.mem.write := (io.memPort.M.Cmd === OcpCmd.WR &&
-                                          io.memPort.S.CmdAccept === Bits(1))
+    io.memPort.S.CmdAccept === Bits(1))
 
   // The inputs and outputs
   io.comConf <> iocomp.io.comConf
@@ -192,6 +192,10 @@ class PatmosCore(binFile: String) extends Module {
   debug(enableReg)
 }
 
+/**
+ * This is only used by aegean to strip off the memory
+ * controller. Shall go with the new CMP configuration.
+ */
 object PatmosCoreMain {
   def main(args: Array[String]): Unit = {
 
@@ -221,17 +225,32 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
   // Instantiate core
   // val core = Module(new PatmosCore(binFile))
-  
+
   def newPatmos(id: Int) = Module(new PatmosCore(binFile))
-  
-  val nrs = 0 to 2
+
+  val nrCores = 3
+
+  val nrs = 0 to nrCores - 1
   val cores = nrs.map(x => newPatmos(x))
 
   val core = cores(0)
 
   // Forward ports to/from core
-  io.comConf <> core.io.comConf
-  io.comSpm <> core.io.comSpm
+
+  // These are the NoC interfaces and can be reused for other experiments.
+  // Their names should be more general.
+  if (nrCores == 1) {
+    // probably no one is using this, but have it connected...
+    io.comConf <> core.io.comConf
+    io.comSpm <> core.io.comSpm
+  } else {
+    val spm = Module(new cmp.SharedSPM(nrCores))
+    for (i <- nrs) {
+      println("Connecting core " + i)
+      spm.io.comConf(i) <> cores(i).io.comConf
+      spm.io.comSpm(i) <> cores(i).io.comSpm
+    }
+  }
   Config.connectAllIOPins(io, core.io)
 
   // Connect memory controller

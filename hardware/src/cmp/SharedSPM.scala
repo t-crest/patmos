@@ -1,7 +1,7 @@
 /*
-   Copyright 2014 Technical University of Denmark, DTU Compute. 
+   Copyright 2016 Technical University of Denmark, DTU Compute.
    All rights reserved.
-   
+
    This file is part of the time-predictable VLIW processor Patmos.
 
    Redistribution and use in source and binary forms, with or without
@@ -31,52 +31,38 @@
  */
 
 /*
- * Macros for patmos io
- * 
- * Author: Rasmus Bo Soerensen (rasmus@rbscloud.dk)
+ * Shared SPM. Later with ownership.
+ *
+ * Author: Martin Schoeberl (martin@jopdesign.com)
  *
  */
 
+package cmp
 
-#ifndef _PATIO_H_
-#define _PATIO_H_
+import Chisel._
+import Node._
 
-#ifndef BOOTROM
-#warning "patio.h" should only be used in programs compiled for the boot ROM
-#endif
+import patmos.Constants._
+import ocp._
 
-#include <machine/patmos.h>
+class SharedSPM(cnt: Int) extends Module {
+  // The names Conf and Spm have no real meaning here.
+  // It is just two different types of OCP connections.
+  // Legacy from the usage in Argo with two OCP ports.
+  val io = new Bundle {
+    val comConf = Vec.fill(cnt) { new OcpIOSlavePort(ADDR_WIDTH, DATA_WIDTH) }
+    val comSpm = Vec.fill(cnt) { new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH) }
+  }
 
-/**
- * Base addresses of the IO devices
- */
-#define __PATMOS_TIMER_BASE     0xF0020000
-#define __PATMOS_UART_BASE      0xF0080000
-#define __PATMOS_LEDS_BASE      0xF0090000
+  for (i <- 0 to cnt - 1) {
+    println("SPM " + i)
+    io.comConf(i).S.Data := UInt(i + 'A')
+    // Is it legal OCP to have the response flags hard wired?
+    // Probably not.
+    io.comConf(i).S.CmdAccept := Bits(1)
+    io.comConf(i).S.Resp := OcpResp.DVA
+  }
+}
 
-#define TIMER_CLK_LOW *((volatile _IODEV int *) (__PATMOS_TIMER_BASE + 0x4))
-#define TIMER_US_LOW *((volatile _IODEV int *) (__PATMOS_TIMER_BASE + 0xc))
 
-#define UART_STATUS *((volatile _IODEV int *) (__PATMOS_UART_BASE + 0x0))
-#define UART_DATA   *((volatile _IODEV int *) (__PATMOS_UART_BASE + 0x4))
-#define LEDS        *((volatile _IODEV int *) (__PATMOS_LEDS_BASE))
 
-#define MEM         ((volatile _UNCACHED int *) 0x0)
-#define SPM         ((volatile _SPM int *) 0x0)
-
-#define XDIGIT(c) ((c) <= 9 ? '0' + (c) : 'a' + (c) - 10)
-
-#define WRITE(data,len) do { \
-  unsigned i; \
-  for (i = 0; i < (len); i++) {        \
-    while ((UART_STATUS & 0x01) == 0); \
-    UART_DATA = (data)[i];          \
-  } \
-} while(0)
-
-#define WRITECHAR(ch) do { \
-  while ((UART_STATUS & 0x01) == 0); \
-  UART_DATA = (ch);          \
-} while(0)
-
-#endif /* _PATIO_H_ */
