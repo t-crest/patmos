@@ -108,6 +108,10 @@ $(BUILDDIR)/bootable-hello_sum_reduced.elf: bootable.h
 
 $(BUILDDIR)/bootable-mp_test.elf: bootable.h
 
+# make sure the initialization file for the network-on-chip is there
+$(NOCINIT):
+	touch $@
+
 # library for network-on-chip
 .PHONY: libnoc
 libnoc: $(LIBNOC)
