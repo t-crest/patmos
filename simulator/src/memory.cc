@@ -559,7 +559,7 @@ void tdm_memory_t::tick_request(request_info_t &req)
   }
   
   // We are counting down TDM rounds
-  if (round_end == Round_counter) {
+  if (round_end == Round_counter && Is_Transferring) {
     req.Num_ticks_remaining--;
     Is_Transferring = false;
   }
