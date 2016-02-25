@@ -42,6 +42,7 @@ package cmp
 import Chisel._
 import Node._
 
+import patmos._
 import patmos.Constants._
 import ocp._
 
@@ -53,9 +54,22 @@ class SharedSPM(cnt: Int) extends Module {
     val comConf = Vec.fill(cnt) { new OcpIOSlavePort(ADDR_WIDTH, DATA_WIDTH) }
     val comSpm = Vec.fill(cnt) { new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH) }
   }
+  
+  val spm = Module(new Spm(1024))
+  
+  io.comConf(0) <> spm.io
+  io.comConf(0).S.CmdAccept := Bits(1)
+  // What to do with the RespAccept?
+  val resp = io.comConf(0).M.RespAccept
+  
+  // TODO: a simple round robin arbiter - see class Arbiter
+  
+//  spm.io.M.Addr := 
+//  spm.io.M.Cmd := Bits(1)
+//  val xxx = spm.io.S.Data
+//  val yyy = spm.io.S.Resp
 
-  for (i <- 0 to cnt - 1) {
-    println("SPM " + i)
+  for (i <- 1 to cnt - 1) {
     io.comConf(i).S.Data := UInt(i + 'A')
     // Is it legal OCP to have the response flags hard wired?
     // Probably not.
