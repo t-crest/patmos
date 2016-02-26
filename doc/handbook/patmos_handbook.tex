@@ -3123,7 +3123,7 @@ all tools installed for download from: \url{http://patmos.compute.dtu.dk/}
 \section{Setup On Ubuntu and Mac OS X}
 
 In the following we present the Patmos build instructions including setup of
-tools in two different Ubuntu versions and for the Mac OS X.
+tools in Ubuntu and for the Mac OS X.
 
 \subsection{Setup On Ubuntu 14.04.3 LTS 64-Bit}
 
@@ -3139,12 +3139,19 @@ sudo apt-get install git openjdk-7-jdk gitk cmake make g++ texinfo flex bison \
 Install \code{sbt} with:
 
 \begin{verbatim}
-wget http://dl.bintray.com/sbt/debian/sbt-0.13.2.deb
-sudo dpkg -i sbt-0.13.2.deb
+echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a /etc/apt/sources.list.d/sbt.list
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 642AC823
 sudo apt-get update
 sudo apt-get install sbt
-rm sbt-0.13.2.deb
 \end{verbatim}
+
+%\begin{verbatim}
+%wget http://dl.bintray.com/sbt/debian/sbt-0.13.2.deb
+%sudo dpkg -i sbt-0.13.2.deb
+%sudo apt-get update
+%sudo apt-get install sbt
+%rm sbt-0.13.2.deb
+%\end{verbatim}
 
 For the Quartus setup it is best to change the default shell to \code{/bin/bash}:
 
@@ -3374,7 +3381,8 @@ and hope for an output similar to:
   020F70DD   EP3C120/EP4CE115
 \end{verbatim}
 
-Some more fixes...
+Some more fixes might be needed (not on a recent try with Ubuntu 14.04):
+
 \begin{verbatim}
 sudo ln -s /lib/x86_64-linux-gnu/libudev.so.1 /usr/lib/libudev.so.0
 jtagconfig -d
