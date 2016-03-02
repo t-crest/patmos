@@ -7,6 +7,8 @@ BUILDDIR?=../tmp
 LIBNOC=$(BUILDDIR)/libnoc.a
 LIBMP=$(BUILDDIR)/libmp.a
 LIBCORETHREAD=$(BUILDDIR)/libcorethread.a
+LIBETH=$(BUILDDIR)/libeth.a
+LIBELF=$(BUILDDIR)/libelf.a
 
 NOCINIT?=nocinit.c
 
@@ -28,12 +30,24 @@ LDFLAGS-BOOTABLE?= \
 # Flags for compiling normal applications
 # Assuming 2 MB of main memory
 CFLAGS?=-target patmos-unknown-unknown-elf -O2 \
-	-I$(CURDIR) \
+	-I$(CURDIR) -I $(CURDIR)/libelf/ \
 	-mpatmos-disable-vliw
 LDFLAGS?= \
 	-mpatmos-method-cache-size=0x1000 \
 	-mpatmos-stack-base=0x200000 -mpatmos-shadow-stack-base=0x1f8000 \
+	-Xgold --defsym -Xgold __heap_end=0x1f0000 \
 	-Xgold -T -Xgold $(BUILDDIR)/../hardware/spm_ram.t
+
+# Flags for compiling applications that use virtual memory
+# Assuming 2 MB of main memory
+CFLAGS-VM?=-target patmos-unknown-unknown-elf -O2 \
+	-I$(CURDIR) -I $(CURDIR)/libelf/ \
+	-mpatmos-disable-vliw -Xllc --code-model=large
+LDFLAGS-VM?= \
+	-mpatmos-method-cache-size=0x1000 \
+	-mpatmos-stack-base=0x80020000 -mpatmos-shadow-stack-base=0x80010000 \
+	-Xgold --defsym -Xgold __heap_end=0x60100000 \
+	-Xgold -T -Xgold $(BUILDDIR)/../hardware/vm.t
 
 # 32KB stacks for 256MB external memory
 # -mpatmos-stack-base=0x10000000 -mpatmos-shadow-stack-base=0x0fff8000
@@ -47,14 +61,10 @@ $(BUILDDIR)/%.o: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS) -c -o $@ $(filter %.c,$^)
 
-$(BUILDDIR)/%.elf: %.c $(NOCINIT) $(LIBNOC) $(LIBMP) $(LIBCORETHREAD) Makefile
+# A target for regular applications
+$(BUILDDIR)/%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBETH) $(LIBELF) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread
-
-# A target for a single core version without dependencies (although double targets are illegal)
-$(BUILDDIR)/%.elf: %.c Makefile
-	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread -leth -lelf
 
 $(BUILDDIR)/%.s: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
@@ -69,9 +79,14 @@ $(BUILDDIR)/bootable-%.s: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
 	$(CC) $(CFLAGS-BOOTABLE) -fpatmos-emit-asm -S -o $@ $(filter %.c,$^)
 
+# A target for applications that use virtual memory
+$(BUILDDIR)/vm-%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBETH) $(LIBELF) Makefile
+	mkdir -p $(BUILDDIR)/$(dir $*)
+	$(CC) $(CFLAGS-VM) $(LDFLAGS-VM) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread -leth -lelf
+
 # application-specific additional dependencies
-$(BUILDDIR)/bootable-bootloader.elf: download.c decompress.c boot.h bootable.h
-$(BUILDDIR)/bootable-cmpmaster.elf: download.c decompress.c boot.h cmpboot.h bootable.h
+$(BUILDDIR)/bootable-bootloader.elf: download.c decompress.c ethmac.c boot.h bootable.h
+$(BUILDDIR)/bootable-cmpmaster.elf: download.c decompress.c ethmac.c boot.h cmpboot.h bootable.h
 $(BUILDDIR)/bootable-cmpslave.elf: boot.h cmpboot.h bootable.h
 
 $(BUILDDIR)/bootable-mandelbrot.elf: bootable.h
@@ -93,6 +108,10 @@ $(BUILDDIR)/bootable-hello_sum_reduced.elf: bootable.h
 
 $(BUILDDIR)/bootable-mp_test.elf: bootable.h
 
+# make sure the initialization file for the network-on-chip is there
+$(NOCINIT):
+	touch $@
+
 # library for network-on-chip
 .PHONY: libnoc
 libnoc: $(LIBNOC)
@@ -112,4 +131,16 @@ $(LIBMP): $(BUILDDIR)/libmp/mp.o
 libcorethread: cmpboot.h $(LIBCORETHREAD)
 $(BUILDDIR)/libcorethread/corethread.o: libcorethread/corethread.h bootloader/cmpboot.h
 $(LIBCORETHREAD): $(BUILDDIR)/libcorethread/corethread.o
+	patmos-ar r $@ $^
+
+# library for ethernet
+.PHONY: libeth
+libeth: $(LIBETH)
+$(LIBETH): $(patsubst ethlib/%.c,$(BUILDDIR)/ethlib/%.o,$(wildcard ethlib/*.c))
+	patmos-ar r $@ $^
+
+# library for parsing ELF files
+.PHONY: libelf
+libelf: $(LIBELF)
+$(LIBELF): $(patsubst libelf/%.c,$(BUILDDIR)/libelf/%.o,$(wildcard libelf/*.c))
 	patmos-ar r $@ $^
