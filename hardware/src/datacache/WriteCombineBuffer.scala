@@ -48,9 +48,9 @@ import ocp._
 
 class WriteCombineBuffer() extends Module {
   val io = new Bundle {
-    val readMaster = new OcpBurstSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
-    val writeMaster = new OcpCacheSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
-    val slave = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+    val readMaster = new OcpBurstSlavePort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+    val writeMaster = new OcpCacheSlavePort(ADDR_WIDTH, DATA_WIDTH)
+    val slave = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
     val perf = new WriteCombinePerf()
   }
 
@@ -107,7 +107,7 @@ class WriteCombineBuffer() extends Module {
       }
       io.readMaster.S.Data := comb.reduceLeft((x,y) => y##x)
     }
-    when(io.slave.S.Resp === OcpResp.DVA) {
+    when(io.slave.S.Resp =/= OcpResp.NULL) {
       when(cntReg === UInt(burstLength - 1)) {
         state := idle
       }
@@ -144,7 +144,7 @@ class WriteCombineBuffer() extends Module {
   when(state === writeResp) {
     io.readMaster.S.Resp := OcpResp.NULL
     io.writeMaster.S.Resp := io.slave.S.Resp
-    when(io.slave.S.Resp === OcpResp.DVA) {
+    when(io.slave.S.Resp =/= OcpResp.NULL) {
       state := idle
     }
   }

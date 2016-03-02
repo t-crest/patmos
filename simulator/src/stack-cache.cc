@@ -140,7 +140,7 @@ bool ideal_stack_cache_t::ensure(simulator_t &s, uword_t size, word_t delta,
   // fill back from memory
   for (int sp = new_spill - delta; sp < new_spill; sp++) {
     byte_t c;
-    Memory.read_peek(s, sp, &c, 1);
+    Memory.read_peek(s, sp, &c, 1, false);
     Content[Content.size() - (sp - new_top) - 1] = c;
   }
   return true;
@@ -157,7 +157,7 @@ bool ideal_stack_cache_t::spill(simulator_t &s, uword_t size, word_t delta,
   return true;
 }
 
-bool ideal_stack_cache_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+bool ideal_stack_cache_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch)
 {
   // if access exceeds the stack size
   if (Content.size() < address + size)
@@ -193,10 +193,10 @@ bool ideal_stack_cache_t::write(simulator_t &s, uword_t address, byte_t *value, 
   return true;
 }
 
-void ideal_stack_cache_t::read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+void ideal_stack_cache_t::read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch)
 {
   // we do not simulate timing here anyway..
-  read(s, address, value, size);
+  read(s, address, value, size, is_fetch);
 }
 
 void ideal_stack_cache_t::print(const simulator_t &s, std::ostream &os) const
@@ -225,9 +225,9 @@ uword_t ideal_stack_cache_t::size() const
 
 
 
-bool proxy_stack_cache_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+bool proxy_stack_cache_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch)
 {
-  return Memory.read(s, stack_top + address, value, size);
+  return Memory.read(s, stack_top + address, value, size, is_fetch);
 }
 
 bool proxy_stack_cache_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size)
@@ -235,9 +235,9 @@ bool proxy_stack_cache_t::write(simulator_t &s, uword_t address, byte_t *value, 
   return Memory.write(s, stack_top + address, value, size);
 }
 
-void proxy_stack_cache_t::read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+void proxy_stack_cache_t::read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch)
 {
-  return Memory.read_peek(s, stack_top + address, value, size);
+  return Memory.read_peek(s, stack_top + address, value, size, is_fetch);
 }
 
 
@@ -474,7 +474,7 @@ bool block_stack_cache_t::ensure(simulator_t &s, uword_t size, word_t delta,
   Phase = FILL;
 
   // copy the data from memory into a temporary buffer
-  if (Memory.read(s, new_spill - delta, Buffer, delta))
+  if (Memory.read(s, new_spill - delta, Buffer, delta, false))
   {
     // Ensure the size of the stack cache is larger than the block that needs to 
     // be loaded
@@ -583,10 +583,10 @@ bool block_stack_cache_t::spill(simulator_t &s, uword_t size, word_t delta,
 }
 
 
-bool block_stack_cache_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+bool block_stack_cache_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch)
 {
   // read data
-  bool result = ideal_stack_cache_t::read(s, address, value, size);
+  bool result = ideal_stack_cache_t::read(s, address, value, size, is_fetch);
   assert(result);
 
   // update statistics

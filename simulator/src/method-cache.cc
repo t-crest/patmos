@@ -63,7 +63,7 @@ void ideal_method_cache_t::initialize(simulator_t &s, uword_t address)
 bool ideal_method_cache_t::fetch(simulator_t &s, uword_t base, uword_t address, word_t iw[2])
 {
   Memory.read_peek(s, address, reinterpret_cast<byte_t*>(&iw[0]),
-		   sizeof(word_t)*2);
+                   sizeof(word_t)*2, true);
   return true;
 }
 
@@ -142,7 +142,7 @@ bool lru_method_cache_t::do_fetch(simulator_t &s, method_info_t &current_method,
   
   // TODO read from Cache buffer, get read position(s) from method_info.
   
-  Memory.read_peek(s, address, iwp, sizeof(word_t)*NUM_SLOTS);
+  Memory.read_peek(s, address, iwp, sizeof(word_t)*NUM_SLOTS, true);
     
   for (unsigned int i = 0; i < NUM_SLOTS; i++) {
     unsigned int word = (address-current_method.Address)/sizeof(word_t) + i;
@@ -334,7 +334,7 @@ bool lru_method_cache_t::peek_function_size(simulator_t &s,
   uword_t num_bytes_big_endian;
   Memory.read_peek(s, function_base - sizeof(uword_t),
       reinterpret_cast<byte_t*>(&num_bytes_big_endian),
-      sizeof(uword_t));
+      sizeof(uword_t), true);
   // convert method size to native endianess and compute size in
   // blocks
   *result_size = from_big_endian<big_uword_t>(num_bytes_big_endian);
@@ -547,7 +547,7 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
       // the method_infos.
 
       if (Memory.read(s, get_transfer_start(address), Cache,
-                      get_transfer_size()))
+                      get_transfer_size(), true))
       {        
         // the transfer is done, go back to IDLE phase
         Num_allocate_blocks = Num_method_size = 0;

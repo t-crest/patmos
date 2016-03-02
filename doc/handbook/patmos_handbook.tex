@@ -254,7 +254,7 @@ referred to by \texttt{EX$_1$}, \dots, \texttt{EX$_n$}.
 
 \subsection{Fetch}
 
-Fetch one or two words of instruction from the ROM or method cache.
+Fetch one or two words of instruction from the ROM or instruction cache.
 Calculate next PC depending on the length of the instruction bundle.
 
 \subsection{Decode}
@@ -285,8 +285,8 @@ from that, all implementations of all instructions in the simulator should adher
 
 Patmos contains several on-chip memories, as sketched in Figure~\ref{fig:pipeline}.
 We apply the idea of split caches~\cite{jop:dcache:rts} to simplify and enhance
-the cache analysis. Instructions are fetched from the method cache that caches
-whole methods. Patmos also supports instruction and data scratchpad memories.
+the cache analysis. Instructions are fetched from the instruction cache.
+Patmos also supports instruction and data scratchpad memories.
 Stack allocated data is cached in a stack cache and we envision also a normal
 data cache with LRU replacement. Accesses to data that are hard to analyze can
 bypass the data cache.
@@ -1625,17 +1625,24 @@ to invoke operating system functions.
 An \emph{exception unit} that is mapped to the I/O space (see
 Chapter~\ref{chap:memsyst}) is responsible for managing exceptions. It
 includes the device registers shown in Table~\ref{tab:excioregs}. The
-general principle of operation is that the exception unit requests the
-execution of an exception from the pipeline, and the pipeline returns
-an acknowledges when it starts the execution of the respective
-exception handler.
+device registers of the exception unit are writable only when the
+processor is in privileged mode. The general principle of operation is
+that the exception unit requests the execution of an exception from
+the pipeline, and the pipeline returns an acknowledges when it starts
+the execution of the respective exception handler.
 
 The \texttt{status} register is 32 bits wide; bit 0 of that register
 determines whether interrupts are enabled. They are enabled if it is
-1, and they are disabled when it is zero. The \texttt{status} register
-is shifted left by one bit when an exception handler is triggered, and
-shifted right by one bit when returning from an exception handler via
-\texttt{xret}. Overflows of the status register (which might be caused
+one, and they are disabled when it is zero. Bit 1 of the
+\texttt{status} register indicates if the processor is in privileged
+mode (when the bit is one) or in user mode (when the bit is zero). The
+\texttt{status} register is shifted left by two bits when an exception
+handler is triggered, and shifted right by two bits when returning
+from an exception handler via \texttt{xret}. Triggering an exception
+handler enables privileged mode and disables interrupts, such that the
+lowest to bits of the \texttt{status} register are \texttt{10} at the
+beginning of an exception handler. Privileged mode is also enabled
+after reset. Overflows of the status register (which might be caused
 by nested exception handlers) are silently ignored.
 
 Internally generated exceptions, i.e., faults and traps, always take
@@ -1657,21 +1664,21 @@ the operating system), exceptions 16 to 32 are attached to interrupts.
     \toprule
     Address             & Name             & Description \\
     \midrule
-    \texttt{0xf0000100} & \texttt{status} & Interrupt-enable flag \\
-    \texttt{0xf0000104} & \texttt{mask} & Mask of enabled interrupts \\
-    \texttt{0xf0000108} & \texttt{pend} & Pending flags for interrupts \\
-    \texttt{0xf000010c} & \texttt{source} & Number of exception that
+    \texttt{0xf0010000} & \texttt{status} & Interrupt-enable flag \\
+    \texttt{0xf0010004} & \texttt{mask} & Mask of enabled interrupts \\
+    \texttt{0xf0010008} & \texttt{pend} & Pending flags for interrupts \\
+    \texttt{0xf001000c} & \texttt{source} & Number of exception that
     is about to be served \\
-    \texttt{0xf0000110} & \texttt{sleep} & Sleep mode (optional) \\
-    \texttt{0xf0000114} & \texttt{cachectrl} & Cache control \\
+    \texttt{0xf0010010} & \texttt{sleep} & Sleep mode (optional) \\
+    \texttt{0xf0010014} & \texttt{cachectrl} & Cache control \\
     \cmidrule{1-3}
-    \texttt{0xf0000180} & \texttt{vec<0>} & Address of exception handler 0, illegal operation \\
-    \texttt{0xf0000184} & \texttt{vec<1>} & Address of exception handler 1, illegal memory access \\
+    \texttt{0xf0010080} & \texttt{vec<0>} & Address of exception handler 0, illegal operation \\
+    \texttt{0xf0010084} & \texttt{vec<1>} & Address of exception handler 1, illegal memory access \\
     \dots & \dots & \dots \\
     \cmidrule{1-3}
-    \texttt{0xf00001c0} & \texttt{vec<16>} & Address of exception handler 16, interrupt 0 \\
+    \texttt{0xf00100c0} & \texttt{vec<16>} & Address of exception handler 16, interrupt 0 \\
     \dots & \dots & \dots \\
-    \texttt{0xf00001fc} & \texttt{vec<31>} & Address of exception handler 31, interrupt 15 \\
+    \texttt{0xf00100fc} & \texttt{vec<31>} & Address of exception handler 31, interrupt 15 \\
     \bottomrule
   \end{tabular}
   \caption{Exception unit device registers}
@@ -1747,11 +1754,21 @@ write to the \texttt{sleep} register is not proof that an interrupt
 has occurred.
 
 \subsection{Cache Control}
+\label{sec:cachectrl}
 
 The \texttt{cachectrl} register provides an interface for cache
 control. Writing a value with bit 0 set invalidates the contents of
 the data cache. Writing a value with bit 1 set invalidates the
-contents of the method cache.
+contents of the instruction cache.
+
+\subsubsection{Local Mode}
+
+Writing a value with bit 31 set to the \texttt{cachectrl} register
+changes between the normal mode of operation and a special \emph{local
+  mode}. In the local mode, cached memory accesses (\texttt{lwc},
+\texttt{swc}, \dots), are redirected to the local address space
+instead of the data cache. The local mode is used during booting and
+is not intended for use in normal applications.
 
 \subsection{Examples}
 
@@ -1956,7 +1973,7 @@ Parameter & Default setting \\
 Main memory & 2 MB \\
 Burst length & 4 words \\
 Dual issue & true for uniprocessor, false for multi-processor and compiler setting \\
-Method cache & 4 KB, 16 blocks \\
+Instruction cache & 4 KB, 16 blocks \\
 Data cache & 2 KB, direct mapped, write through \\
 Stack cache & 2 KB \\
 \bottomrule
@@ -1997,13 +2014,11 @@ SRAM. Therefore, a binary that is loaded to external memory can use
 the lowest 128K of memory for data segments, but not for code
 segments.
 
-The global address space also includes a ROM and a scratchpad for
-booting. The boot data ROM enables boot programs to use initialized
-data segments. By copying (parts of) the boot data ROM to the boot
-scratchpad, these programs can also use initialized data segments that
-require write access. Note that these memory areas can be accessed by
-loads and stores only; it is not possible to execute code located in
-them.
+As mentioned in Section~\ref{sec:exc}, Patmos supports a special
+\emph{local mode}, in which cached memory accesses (\texttt{lwc},
+\texttt{swc}, \dots) are redirected to the local address space. This
+local mode is however only used during booting and not intended for
+use in regular applications.
 
 \begin{table}
 \centering
@@ -2031,15 +2046,145 @@ Address & Memory area \\
 \code{0x00000000}--\code{0x0000ffff} & Boot Instruction ROM (only for code) \\
 \code{0x00010000}--\code{0x0001ffff} & Instruction Scratchpad Memory (only for code) \\
 \code{0x00000000}--\code{0x7fffffff} & External SRAM \\
-\code{0x80000000}--\code{0x8000ffff} & Boot Data ROM (only for data) \\
-\code{0x80010000}--\code{0x8001ffff} & Boot Data Scratchpad Memory (only for data) \\
 \bottomrule
 \end{tabular}
 \caption{Address mapping for global address space}
 \label{tab:gmmap}
 \end{table}
 
-\subsection{Boot Memories}
+% % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
+\section{I/O Devices}
+\label{sec:iodevs}
+
+Each processor contains a minimum set of standard I/O devices: a
+device to read configuration information, an interrupt controller, and
+a timer. These three devices are always present; all other devices are
+optional. For minimum communication with the outside world, a
+processor is typically attached to a serial port (UART) that
+represents \code{stdout}.
+
+Within the I/O device memory area, bits 19--16 are used to distinguish
+between different devices. Most I/O device registers are mapped and
+aligned to 32-bit words. If a register is shorter than a word, the
+upper bits shall be filled with 0 on a read. With this mapping, each
+I/O device can have up to 16384 32-bit registers. I/O devices may
+support sub-word accesses, but must document that fact if they do.
+
+The I/O device base addresses for \code{pasim} are defined in
+\path{patmos/simulator/include/memory-map.h}. For the library, the
+constants are defined in \path{newlib/libgloss/patmos/patmos.h} and
+\path{newlib/newlib/libc/machine/patmos/machine/*.h}. The offsets of
+the I/O devices in the hardware are defined in the configuration XML
+files in \path{patmos/hardware/config/*.xml}
+
+In the default configuration of Patmos there are six I/O devices: a
+device to read configuration information, an interrupt controller, a
+timer, a UART, a LEDs device, and a Keys device. Table~\ref{tab:iomap}
+shows the I/O devices and the registers.
+
+\begin{table}
+\centering
+\begin{tabular}{llll}
+\toprule
+Address & I/O Device & read & write \\
+\midrule
+\code{0xf0000000} & CpuInfo & & \\
+\dots             & CpuInfo & \multicolumn{2}{c}{CpuInfo device information registers (see Section \ref{sec:cpuinfo})} \\
+\code{0xf0007fff} & CpuInfo & & \\
+\code{0xf0008000} & CpuInfo & Boot Data ROM & -- \\
+\dots             & CpuInfo & \dots    & -- \\
+\code{0xf0008fff} & CpuInfo & Boot Data ROM & -- \\
+\cmidrule{1-4}
+\code{0xf0010000} & ExcUnit & &  \\
+\dots             & ExcUnit & \multicolumn{2}{c}{Exception unit and cache control (see Section~\ref{sec:exc})} \\
+\code{0xf00100ff} & ExcUnit & & \\
+\cmidrule{1-4}
+\code{0xf0020000} & Timer & clock cycles (high word) & cycle interrupt time (high word) \\
+\code{0xf0020004} & Timer & clock cycles (low word) & cycle interrupt time (low word) \\
+\code{0xf0020008} & Timer & time in $\mu s$ (high word) & $\mu s$ interrupt time (high word) \\
+\code{0xf002000c} & Timer & time in $\mu s$ (low word) &  $\mu s$ interrupt time (low word) \\
+\cmidrule{1-4}
+\code{0xf0080000} & UART & status & control \\
+\code{0xf0080004} & UART & receive buffer & transmit buffer \\
+\cmidrule{1-4}
+\code{0xf0090000} & LED & -- & output register \\
+\cmidrule{1-4}
+\code{0xf00a0000} & Keys & input register & -- \\
+\bottomrule
+\end{tabular}
+\caption{I/O devices and registers}
+\label{tab:iomap}
+\end{table}
+
+\subsection{CpuInfo}
+\label{sec:cpuinfo}
+
+The CpuInfo device holds information about various aspects of the
+processor configuration. Table~\ref{tab:cpuinfo} describes the
+available device registers. Additionally, the CpuInfo device contains
+a ROM that contains the data for the application in the boot
+instruction ROM. This boot data ROM starts at offset \code{0x8000}
+within the CpuInfo device; the actual size of the boot data ROM
+depends on the boot application. All data in the CpuInfo device are
+read-only.
+
+\begin{table}
+\centering
+\begin{tabular}{lll}
+\toprule
+Address & Name & Description \\
+\midrule
+\code{0xf0000000} & CoreID       & core ID \\
+\code{0xf0000004} & Freq         & clock frequency \\
+\code{0xf0000008} & CoreCnt      & number of cores in multicore system \\
+\code{0xf000000c} & Features     & processor features (number of pipelines) \\
+\code{0xf0000010} & ExtMem\_Size & maximum external memory size \\
+\code{0xf0000014} & ExtMem\_Conf & external memory configuration  \\
+\code{0xf0000018} & ICache\_Size & instruction cache size \\
+\code{0xf000001c} & ICache\_Conf & instruction cache features \\
+\code{0xf0000020} & DCache\_Size & data cache size \\
+\code{0xf0000024} & DCache\_Conf & data cache features \\
+\code{0xf0000028} & SCache\_Size & stack cache size \\
+\code{0xf000002c} & SCache\_Conf & stack cache features \\
+\code{0xf0000030} & ISPM\_Size   & instruction scratchpad size \\
+\code{0xf0000034} & DSPM\_Size   & data scratchpad size \\
+\bottomrule
+\end{tabular}
+\caption{CpuInfo device registers}
+\label{tab:cpuinfo}
+\end{table}
+
+\subsubsection{External Memory Configuration}
+
+Bits 15-8 of the ExtMem\_Conf device register contain the length of
+bursts for transactions to the external memory. Bits 7-0 of the
+ExtMem\_Conf device register shall be 1 if writes to external memory
+may be combined, and 0 otherwise.
+
+\subsubsection{Instruction Cache Configuration}
+
+Bits 31-24 of the ICache\_Conf device register encode the type of the
+instruction cache. The value shall be 1 for a method cache, 2 for a
+traditional instruction cache, and 0 otherwise. Bits 23-16 encode the
+replacement policy for the instruction cache. The value shall be 1 for
+LRU replacement, 2 for FIFO replacement, and 0 otherwise. Bits 15-0
+encode the associativity of the instruction cache. For a method cache,
+the associativity corresponds to the number of blocks.
+
+\subsubsection{Data Cache Configuration}
+
+Bits 31-24 of the DCache\_Conf device register shall be 0 for a
+write-back data cache and 1 for a write-through data cache. Bits 23-16
+encode the replacement policy for the data cache. The value shall be 1
+for LRU replacement, 2 for FIFO replacement, and 0 otherwise. Bits
+15-0 encode the associativity of the data cache.
+
+\subsubsection{Stack Cache Configuration}
+
+There are currently no stack cache features to encode and the
+respective device register always reads 0.
+
+\subsubsection{Boot Data Initialization Information}
 
 By convention, the first four words of the boot data ROM contain
 information about data to be copied to the boot data scratchpad before
@@ -2055,80 +2200,14 @@ respective data fields. Upon start, the program should copy
 \toprule
 Address & Name & Description \\
 \midrule
-\code{0x80000000} & \code{src\_start} & Start address of data to be copied \\
-\code{0x80000004} & \code{src\_size} & Size of data to be copied \\
-\code{0x80000008} & \code{dst\_start} & Destination for copying \\
-\code{0x8000000c} & \code{dst\_size} & Size of initialized data \\
+\code{0xf0018000} & \code{src\_start} & Start address of data to be copied \\
+\code{0xf0018004} & \code{src\_size} & Size of data to be copied \\
+\code{0xf0018008} & \code{dst\_start} & Destination for copying \\
+\code{0xf001800c} & \code{dst\_size} & Size of initialized data \\
 \bottomrule
 \end{tabular}
 \caption{Boot data initialization information}
 \label{tab:bootrommap}
-\end{table}
-
-
-\stefan{We discussed about making the stack cache memory mapped, like the SPM. The disadvantage is that
-we need to reserve an additional register for the stack pointer of the stack cache. s5 (the stack cache spill pointer) must point into a main
-memory address range. s6 (the stack top pointer) must point to the top of the stack cache in the cache address range and must be modifiable
-(for context switching). An additional s7 must either contain the size of the stack cache or the tail pointer of the stack cache.
-
-The advantage is we can then pass typed pointers to functions, similar to SPM pointers, if the caller stack frame is not evicted, in a first
-step. As a second step, we can drop the typed loads and use the compiler to emit address range information to the WCET analysis.
-A pointer into the stack cache address range is always guaranteed to be a hit (accessing an address that has been evicted is an error). We
-can therefore get rid of function duplication depending on their pointer types. We basically move the information about the accessed memory from the
-memory instruction to the pointer value, which can be context-sensitive.}
-
-% % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
-\section{I/O Devices}
-\label{sec:iodevs}
-
-Each processor contains a minimum set of standard I/O devices, such as:
-processor ID, cycle counter, timer, and interrupt controller. For a minimum
-communication with the outside world a processor shall be attached to a
-serial port (UART). The UART represents \code{stdout}.
-
-Within the I/O device memory area bits 19--16 are used to distinguish between different devices.
-I/O device registers are mapped and aligned to 32-bit words. If a register is shorter than a word,
-the upper bits shall be filled with 0 on a read. With this mapping each I/O device can have up to
-16384 32-bit registers.
-The I/O device base addresses for \code{pasim} are defined in \code{patmos/simulator/include/memory-map.h}
-and for the compiler/library the constants are in \code{llvm/tools/clang/lib/Driver/Tools.cpp}.
-\todo{Above needs to be updated as Stefan has changed it.}
-The offsets of the I/O devices in the hardware are defined in the configuration XML files in
-\code{patmos/hardware/config/*.xml}
-
-In the initial prototype of Patmos we have 3 I/O devices: a system device that contains
-cycle and microsecond counters, a UART for basic communication, and LEDs
-on the FPGA board. One counter ticks with the clock frequency and the second
-counter ticks with 1~MHz for clock frequency independent time measurements.
-The counters are 64-bit values and readout of the lower word also latches the
-upper word. For short measurements the lower word is usually large enough
-(i.e., up to 2000~s measurements with the $\mu s$ counter) and the upper word can be ignored.
-Table~\ref{tab:iomap} shows the I/O devices and the registers.
-
-\begin{table}
-\centering
-\begin{tabular}{llll}
-\toprule
-Address & I/O Device & read & write \\
-\midrule
-\code{0xf0000000} & cpuinfo & processor ID & -- \\
-\code{0xf0000004} & cpuinfo & clock frequency (Hz) & -- \\
-\code{0xf0000008} & cpuinfo & processor count & -- \\
-\code{0xf0010000} & excunit & &  \\
-$\cdots$          & excunit & \multicolumn{2}{c}{Exception unit and cache control (see Section~\ref{sec:exc})} \\
-\code{0xf00100ff} & excunit & & \\
-\code{0xf0020000} & timer & clock cycles (high word) & cycle interrupt time (high word) \\
-\code{0xf0020004} & timer & clock cycles (low word) & cycle interrupt time (low word) \\
-\code{0xf0020008} & timer & time in $\mu s$ (high word) & $\mu s$ interrupt time (high word) \\
-\code{0xf002000c} & timer & time in $\mu s$ (low word) &  $\mu s$ interrupt time (low word) \\
-\code{0xf0080000} & UART & status & control \\
-\code{0xf0080004} & UART & receive buffer & transmit buffer \\
-\code{0xf0090000} & LED & -- & output register \\
-\code{0xf00a0000} & Keys & input register & -- \\
-\bottomrule
-\end{tabular}
-\caption{I/O devices and registers}
-\label{tab:iomap}
 \end{table}
 
 \subsection{Timer}
@@ -2151,12 +2230,18 @@ the counter into an internal register, which is then returned when
 reading the high word (at the lower address). Similarly, the low word
 of the interrupt times must be written first. The write to the
 internal 64-bit register takes effect when the high word is written.
+For short measurements, where the lower word is usually large enough
+(i.e., up to 2000~s measurements with the $\mu s$ counter), the upper
+word can be ignored.
 
 \subsection{UART}
 
-The UART is a minimal IO device for \texttt{stdout} and \texttt{stdin}.
-It is also used for program download. Table~\ref{tab:uart} shows the
-bits of the control register.
+The UART is a minimal IO device for \texttt{stdout} and
+\texttt{stdin}.  It can also used for program
+download. Table~\ref{tab:uart} shows the bits of the control
+register. Writing to the data register adds the respective value to
+the transmission queue of the UART. Reading the data register removes
+a previously received byte from the reception queue of the UART.
 
 \begin{table}
 \centering
@@ -2174,38 +2259,61 @@ Bit & Status & & Control & \\
 \label{tab:uart}
 \end{table}
 
-The UART address for \code{pasim} is defined in \code{patmos/simulator/include/uart.h}.
-For the compiler/library the constant is in \code{llvm/tools/clang/lib/Driver/Tools.cpp}.
+\subsection{EthMac}
 
-\paragraph{Proposal for CMP UART Sharing}
-On a multicore system only one processor can be directly connected to the
-UART. However, for debugging it would be convenient to attach several (or all)
-cores to the UART. Sharing the UART can be achieved by an arbitration device
-that has $n$ input ports and a simple protocol that precedes UART data by a
-marker from which core the data is coming. The marker byte may be precede
-each data byte or it may be distinguished by setting Bit 8. This mechanism can
-also be used to represent several UARTs per core (e.g., stdout, stderr, user for SLIP,...).
-\martin{The protocol shall be done in HW -- let's find a student for this.}
+Patmos supports Ethernet connections through an EthMac device
+\cite{mohor2002ethernet,pezzarossa2015ethernet}. This device is
+usually mapped starting at address \code{0xf00b0000}. The RX/TX buffer
+of the device is mapped to offsets \code{0x0000} to \code{0xefff},
+while the device registers of the Ethernet controller are mapped to
+offsets \code{0xf000} to \code{0xffff}. For detailed information on
+the EthMac device, please refer to the cited reports.
 
-On the PC side a small program is needed to dispatch/demultiplex the different
-data streams.
+\subsection{Memory Management Unit}
 
-\stefan{Would be nice to be able to insert control bytes to flush the output as well, but that must be understood by the simulator as well (it
-must flush its output stream).
+Patmos can be configured to include a memory management unit
+(MMU). The configuration port of this MMU is then mapped starting at
+address \code{0xf0070000}. The MMU uses segmentation for memory
+protection and address translation; it supports eight
+segments. Table~\ref{tab:mmu} shows the mapping of segment
+information.
 
-With multiple cores writing to the UART, we need to prevent mixing up control bytes and data bytes from different cores, so I assume adding
-the control bytes to is done by hardware? We could also designate one core to I/O and communicate over SPMs with the other cores, although it
-adds another layer of potential bugs to the debugging process.}
+The bit 31 of a configuration register (e.g., Seg0\_Conf) is
+set if the respective segment is readable, bit 30 is set if the
+segment is writable, and bit 29 is set if the segment is
+executable. Bits 28-0 of the configuration register contain the length
+of the respective segment.
 
-\martin{Yes, the idea is that the UARTs look simple for all cores and the HW does the arbitration and additional control byte. However, no one is assigned this task :-(}
+\begin{table}
+\centering
+\begin{tabular}{lll}
+\toprule
+Address & Name & Description \\
+\midrule
+\code{0xf0070000} & Seg0\_Base & Base address of segment 0 \\
+\code{0xf0070004} & Seg0\_Conf & Configuration register of segment 0 \\
+\dots & \dots & \dots \\
+\code{0xf0070038} & Seg7\_Base & Base address of segment 7 \\
+\code{0xf007003c} & Seg7\_Conf & Configuration register of segment 7 \\
+\bottomrule
+\end{tabular}
+\caption{Memory management unit device registers}
+\label{tab:mmu}
+\end{table}
 
-\martin{Other I/O (and using a dedicated core) is application dependent and not the topic of this report.}
+The MMU enforces memory protection and translates virtual addresses to
+physical addresses. The segment to be used is encoded in the three
+most significant bits of the virtual address (i.e., bits 31-29). Bits
+28-0 of the virtual address represent the offset into the segment. If
+this offset is less than the length of the segment and if the
+respective permission bit is set, the access proceeds. Otherwise, an
+illegal memory access exception is raised. Memory protection is only
+enforced in user mode, i.e., the segment length and permission check
+is bypassed in privileged mode. The physical address is computed by
+adding the offset to the base address of the respective segment
+(e.g. Seg0\_Base).
 
-
-
-
-
-\section{The Stack Cache}
+\section{Stack Cache}
 \label{sec:stack-cache}
 
 The stack cache is a processor-local, on-chip memory~\cite{patmos:stack:seus}. The stack
@@ -2435,33 +2543,41 @@ The organization of the stack cache implies some limitations:
 
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
-\section{Method Cache}
+\section{Instruction Cache}
+
+Patmos supports two alternative solutions for the caching of
+instructions; it can be configured to use either a traditional
+instruction cache or a \emph{method cache}. The latter caches
+contiguous sequences of code (typically whole functions) and is
+described in Section~\ref{sec:method-cache}. The traditional
+instruction cache is described in Section~\ref{sec:line-cache}.
+
+\subsection{Method Cache}
 \label{sec:method-cache}
 
-An overview of alternative design options with regard to the method cache can be
-found in Section~\ref{sec:method_cache_options}. It is uncertain which of those
-options is best, however, two candidates appear very promising and should
-be evaluated: fetch on call with FIFO replacement and fetch on call with LRU
-replacement. Compiler managed prefetching can still be added at a later stage.
+The method cache caches contiguous sequences of code. These code
+sequences will often correspond to entire functions. However,
+functions can be split into smaller chunks in order to reduce to
+overhead of loading the entire function at once. Code transfers
+between the respective junks of the original function can be performed
+using the \texttt{brcf} instruction. A code sequence is either kept
+entirely in the method cache, or is entirely purged from the cache. It
+is not possible to keep code sequences partially in the cache.
 
-\subsection{Common Features}
+With a method cache, cache misses may occur only upon calls, returns,
+or \code{brcf} instructions. All other instructions are guaranteed
+cache hits. Furthermore, cache misses occur at the same point in the
+processor pipeline as data cache misses, in the memory
+stage. Therefore, the method cache eliminates interferences between
+instruction cache misses and data cache misses. Consequently, a method
+cache can lead to more predictable behavior than a traditional
+instruction cache.
 
-The cache is organized in blocks of a fixed size, e.g., 32 bytes.
-
-Contiguous sequences of code are cached. These code sequences will often
-correspond to entire functions. However, functions can be split into smaller
-junks in order to reduce to overhead of loading the entire function at once.
-Code transfers between the respective junks of the original function can be
-performed using the \texttt{brcf} instruction.
-
-A code sequence is either kept entirely in the method cache, or is entirely
-purged from the cache. It is not possible to keep code sequences partially in
-the cache.
-
-Code intended for caching should be aligned in the global memory according to
-the memory burst size. Call and branch instructions do not encode the size of
-the target code sequence. The size is thus encoded in units of bytes right in front of the first
-instruction of a code sequence that is intended for caching.
+Code intended for caching should be aligned in the global memory
+according to the memory burst size. Call and branch instructions do
+not encode the size of the target code sequence. The size is thus
+encoded in units of bytes right in front of the first instruction of a
+code sequence that is intended for caching.
 Figure~\ref{fig:cacheable_code} illustrates this convention.
 
 \begin{figure}
@@ -2476,195 +2592,46 @@ Figure~\ref{fig:cacheable_code} illustrates this convention.
   \label{fig:cacheable_code}
 \end{figure}
 
-The organization of the method cache implies some limitations:
-\begin{itemize}
-  \item The size of a code sequence intended for caching is limited to the size
-        of the method cache. Splitting the function is possible.
-  \item Compiler managed prefetching, if supported, has to ensure that the
-        currently executed code is not purged.
-\end{itemize}
+The method cache in Patmos is fully associative and implements a FIFO
+replacement policy. The cache tags and the storage for memory blocks
+are managed separately, i.e., there is no fixed mapping between tags
+and locations in the cache memory. Code sequences are evicted when the
+respective tag entry has to be reused or when the associated cache
+memory is overwritten. The code sequences that are loaded into the
+cache are internally aligned to 64-bit (8 byte) boundaries, such that
+a small amount of padding may occur inside the cache.
 
-% ------------------------------------------------------------------------------
-\subsection{FIFO replacement}
+\subsection{Traditional Instruction Cache}
+\label{sec:line-cache}
 
-The method cache with FIFO replacement allocates a single junk of contiguous
-space for a cached code sequence. Every block in the cache is associated with a
-tag, that corresponds to the base addresses of cached code sequences. However,
-the tag is only set for the first block of a code sequence. The tags of all
-other blocks are cleared. This simplifies the purging of cache content when
-other code is fetched into the cache.
-
-Code is fetched into the cache according to a \texttt{fifo-base} pointer, which
-points to the first block of the method cache where the code will be placed.
-After the fetching the code from global memory has completed this pointer is
-advanced to point to the block immediately following the least recently fetched
-block.
-
-The design of the method cache with FIFO replacement is based on the
-design for the Java processor JOP~\cite{jop:jtres_cache} .
-
-% ------------------------------------------------------------------------------
-\subsection{LRU replacement}
-
-The LRU cache configuration is more complex. Code is \emph{not} kept in
-contiguous blocks and might be scattered according to the LRU time stamps of the
-blocks in the cache. Every block is thus tagged with the address of the block
-in global memory and an LRU time stamp. The address part of the tag is need to
-rediscover the block during instruction fetch. The time stamp is required to
-implement the LRU policy.
-
-In addition, the length of every code sequence currently in the cache has to be
-stored.
-
-\paragraph*{Time Stamps}
-On every access to the method cache, i.e., for every call or non-cache-relative
-branch, the LRU time stamps of the blocks (possibly all) in the cache has to be
-done. It is important to note that \emph{all} blocks of a code sequence share
-the \emph{same} LRU time stamp at all times.
-
-\fb{The time stamps could also be stored per code sequence in the cache. This
-    might simplify the implementation of the LRU policy.}
-
-\paragraph*{Instruction Fetch}
-In order to fetch an instruction from the method cache the address of the
-instruction is compared with the address tag of every block in the cache
-(excluding some of the least significant bits depending on the cache's block
-size). If a matching tag is found, i.e., a cache hit, the respective word in the
-block is fetched.
-
-If no block with a matched tag exists, a cache miss occurs and the target block
-has to be transferred from the global memory into the cache.
-\martin{We have cache misses on fetch in a LRU based method cache? I don't think so.}
-
-\paragraph*{Purging Blocks}
-When a code sequence is to be loaded into the cache, it has to be ensured that
-enough space is available to hold all the blocks of that code sequence by
-purging some blocks currently in use. Note, again, only entire code sequences
-are purged from the cache, i.e., all its blocks at once. Code sequences are
-repeatedly purged until enough space becomes available in the cache.
-
-\paragraph*{Cache Fill}
-Once enough space is available, the code sequence is transferred block-wise from
-global memory to the cache, the tag and LRU time stamp are set accordingly for
-every fetched block.
-
-\martin{You might all know my position on an LRU based method cache, right?
-It will be a plain mess to implement and maybe an issue on the HW
-side (fully associative lookup at each fetch!). However, if one would
-like to go this direction, it might be an interesting experiment.
-One optimization point could be instead of the full associative lookup
-on each fetch to have a translation table of block addresses to cache
-blocks. This might add `just' another pipeline stage into the fetch
-part.}
-
-\martin{We could also think about doing the load/replacement
-in SW - more like a managed ISPM.}
-
-\subsection{Method Cache Options}
-\label{sec:method_cache_options}
-
-We have several options to implement the method cache and related instructions
-(call, return). Note, all replacement policies operate on the method/function
-level.
-\begin{itemize}
-  \item Fetch on call, with FIFO replacement \\
-        On a call it is checked whether the target method is in the cache or
-        not. If yes, execution continues. Otherwise, the call instruction
-        starts fetching the method into the cache, the pipeline is stalled.
-  \item Fetch on call, with FILO replacement \\
-        Same as above, only that the replacement strategy if FILO, i.e., like a
-        stack.
-  \item prefetch before call, with FILO replacement \\
-        We define two instructions to perform a function call. A compiler-placed
-        prefetch instructions ensure that the target method is either in the
-        cache, or triggers the loading of the function. Calls merely check
-        whether the method is completely loaded and transfer control.
-        (FIFO replacement is not possible due to potential eviction of the
-        current method executing the prefetch).
-  \item prefetch before call, explicit unload, with FILO replacement \\
-        Same as before, with an additional \emph{unload} instruction to evict
-        methods explicitly from the cache -- i.e., to free space after as shown
-        by the following example:
-\begin{verbatim}
-  A()
-  // unload here to avoid mutual eviction
-  // in loop of B and C, assuming A+B, A+C,
-  // B+C fit in the cache, but not A+B+C
-  while(true) {
-    B() //
-    C();
-  }
-\end{verbatim}
-  \item fetch on call, LRU replacement
-  \item prefetch before call, LRU replacement \\
-        This is everybody's darling: compiler-placed prefetching with stalling
-        call instructions. Safe, clean, and expensive in hardware ;-)
-\end{itemize}
-
-%\stefan{There are quite a few knobs that we can turn with the method cache (btw, should we call it function cache since we are compiling C
-%code?)
-%
-%\begin{itemize}
-%\item Functions or subfunctions:
-%
-%\item Split allocation and preloading or always load complete (sub)function:
-%
-%\item Allocation in hardware (FIFO) or software (FIFO, LRU,..):
-%
-%\item Organize in blocks or as SPM, continous function entries or allow allocation of random blocks:
-%
-%\item Hit detection in hardware or software:
-%
-%\item Separate i-cache to persist 'macros', interrupt handlers, or commonly used functions:
-%
-%\end{itemize}
-%
-%I will elaborate on this, just commiting it as it is for now.
-%}
-
-
-\stefan{How do we initialize the core, i.e., how do we get the initial start-up code into the i-cache, especially when
-we use software-controlled i-cache allocation? How do we handle interrupts (they need to get into the cache before they can be executed)?}
-
-\jack{This is a good use for I-SPM. Use it as an operating system ``ROM''
-or at least a first-stage bootloader.}
-
-% % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
-\section{Instruction Cache}
-
-This section will cover a configuration of Patmos with a standard instruction cache design, i.e., without a method cache.
-
-We would like to see a Patmos implementation with a 2-way set-associative instruction cache governed under the least-recently used (LRU) replacement policy.
-This allows for a "real" comparison between a FIFO method cache and a standard instruction cache on the same architecture.
-
-\cullmann{During the last meeting, we proposed to have a normal LRU instruction cache, not a method cache with LRU replacement.
-I thought the idea was to compare the performance of a method cache with a normal cache.
-Therefore we don't really see a benefit in LRU method cache but would like to see an normal instruction cache instead to allow this comparison.
-}
-
-\fb{For a reasonable comparison we still need a reasonable baseline for the
-method cache. Please add a section on the standard instruction cache design,
-issues you would like to see addressed there, and potential amendments to the
-ISA with respect to the current proposal with a method cache. Thanks!}
-
-\martin{Agreed that comparison between FIFO M\$ and plain I\$ is one of
-the project goals. However, before doing the HW support for both I would
-like to see the comparison within the WCET analysis. I think there is an
-empty paper start here in this SVN under 2012/mceval/mceval.tex ;-)}
+Patmos also supports a traditional instruction cache that caches fixed
+blocks rather than variably sized sequences of code. A direct-mapped
+traditional instruction cache is available as hardware implementation,
+and further variants are available in the simulator. By default, the
+size of an instruction cache line equals the length of a memory burst.
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 \section{Data Cache}
 
-This section will cover a configuration of Patmos with a standard data cache design, i.e., without a stack cache (and shadow stack).
+In addition to the stack cache, Patmos also contains a data cache,
+which is responsible for caching regular cached memory accesses such
+as \code{lwc}. As a write-through policy is beneficial for
+predictability, the data cache of Patmos uses this policy by
+default. The hardware implementation provides the options of a
+direct-mapped data cache and a two-way set associative cache with LRU
+replacement. Furthermore, a hardware implementation of a direct-mapped
+data cache with a write-back policy is provided. However, due to cache
+coherence issues, the write-back policy should not be used in
+multicore configurations. In all implementations the size of
+data cache lines equals the length of a memory burst.
 
-We would like to see a Patmos implementation with a 2-way or 4-way set-associative data cache governed under the least-recently used (LRU) replacement policy.
-The data cache should be write-through.
-
-Again this allows for a "real" comparison between the stack cache and a standard data cache on the same architecture.
-
-It might also be interesting to explore the object cache idea \cite{jop:ocache, jop:ocwcet:ccpe} where objects (heap allocated structures) are tracked via
-a fully associative cache. Furthermore, for arrays with low temporal locality
-a small set of prefetch buffers may benefit from spacial locality.
+The multicore versions of Patmos do not implement any cache coherence
+protocol in hardware. However, with a write-through caching policy, it
+is sufficient to invalidate the data cache through the cache control
+register in the exception unit (see Section~\ref{sec:cachectrl}) to
+ensure that subsequent memory accesses will see the most recent
+values. Cache coherence can therefore be implemented in software
+whenever communication via shared memory is required.
 
 \section{Hardware Interface}
 
@@ -3103,11 +3070,16 @@ ALU operations: 3173 LCs, 91.91 MHz.
 \chapter{Build Instructions}
 \label{ch:build_instructions}
 
-In the following we present the Patmos build instructions on a 32-bit Linux/Ubuntu
-system (14.04 LTS).%\footnote{I used the 32-bit version of Ubuntu to simplify the Quartus installation.}
-The installation instructions might also be valid on different Ubuntu versions.
-Patmos and the compiler have also been successfully installed on a Mac OSX
+In the following we describe: (1) the installation of needed tool under Ubuntu and
+on Mac OS X, (2) how to build the Patmos tool chain (e.g., compiler), and (3) how
+to get started with Patmos.
+
+The installation instructions might also be valid on different Linux versions.
+Patmos and the compiler have also been successfully installed on a Mac OS X
 system.  The support of Windows is marginal, or basically not existent.
+
+For an easier start we provide a VM image with Ubuntu 14.04 including
+all tools installed for download from: \url{http://patmos.compute.dtu.dk/}
 
 
 % ------------------------------------------------------------------------------
@@ -3148,40 +3120,38 @@ system.  The support of Windows is marginal, or basically not existent.
 %\end{itemize}
 %
 
+\section{Setup On Ubuntu and Mac OS X}
 
-\section{Setup On Ubuntu 14.04 LTS}
+In the following we present the Patmos build instructions including setup of
+tools in Ubuntu and for the Mac OS X.
 
-After a plain Ubuntu installation several packages need to be installed.
-The following apt-get lists the packages that need to be
-installed:\footnote{Some packages might be available in newer version
-when reading this document.}
+\subsection{Setup On Ubuntu 14.04.3 LTS 64-Bit}
+
+In the following we present the setup of tools within a recent Ubuntu version.
+Here is the list of needed (or recommended) packages:
 
 \begin{verbatim}
 sudo apt-get install git openjdk-7-jdk gitk cmake make g++ texinfo flex bison \
-  subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
-  ruby1.9.1-dev liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala
-\end{verbatim}
-
-\emph{The following gem install might not be needed as with the correct
-packages (liblpsolve55-dev) the setup script shall do it automatically.
-Needs to be checked on a fresh Ubuntu machine.
-This is done after T-CREST has been installed.}
-
-From within \code{llvm/tools/platin} install:
-
-\begin{verbatim}
-sudo gem1.9.1 install lpsolve --pre
-sudo gem1.9.1 install ext/lpsolve-5.5.10.j.gem
+  subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
+  liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala
 \end{verbatim}
 
 Install \code{sbt} with:
 
 \begin{verbatim}
-wget http://dl.bintray.com/sbt/debian/sbt-0.13.2.deb
-sudo dpkg -i sbt-0.13.2.deb
+echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a /etc/apt/sources.list.d/sbt.list
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 642AC823
 sudo apt-get update
 sudo apt-get install sbt
 \end{verbatim}
+
+%\begin{verbatim}
+%wget http://dl.bintray.com/sbt/debian/sbt-0.13.2.deb
+%sudo dpkg -i sbt-0.13.2.deb
+%sudo apt-get update
+%sudo apt-get install sbt
+%rm sbt-0.13.2.deb
+%\end{verbatim}
 
 For the Quartus setup it is best to change the default shell to \code{/bin/bash}:
 
@@ -3191,7 +3161,87 @@ sudo ln -s /bin/bash /bin/sh
 \end{verbatim}
 
 
-\subsection{Building Patmos and the Compiler Tool Chain}
+%\subsection{Setup On Ubuntu 14.04 LTS 32-Bit}
+%
+%In the following we present the Patmos build instructions on a 32-bit Linux/Ubuntu
+%system (14.04 LTS).\footnote{I used the 32-bit version of Ubuntu to simplify the Quartus installation.}
+%
+%After a plain Ubuntu installation several packages need to be installed.
+%The following apt-get lists the packages that need to be
+%installed:\footnote{Some packages might be available in newer version
+%when reading this document.}
+%
+%\begin{verbatim}
+%sudo apt-get install git openjdk-7-jdk gitk cmake make g++ texinfo flex bison \
+%  subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
+%  ruby1.9.1-dev liblpsolve55-dev python zlib1g-dev gtkwave gtkterm scala
+%\end{verbatim}
+%
+%\emph{The following gem install might not be needed as with the correct
+%packages (liblpsolve55-dev) the setup script shall do it automatically.
+%Needs to be checked on a fresh Ubuntu machine.
+%This is done after T-CREST has been installed.}
+%
+%From within \code{llvm/tools/platin} install:
+%
+%\begin{verbatim}
+%sudo gem1.9.1 install lpsolve --pre
+%sudo gem1.9.1 install ext/lpsolve-5.5.10.j.gem
+%\end{verbatim}
+%
+%Install \code{sbt} with:
+%
+%\begin{verbatim}
+%wget http://dl.bintray.com/sbt/debian/sbt-0.13.2.deb
+%sudo dpkg -i sbt-0.13.2.deb
+%sudo apt-get update
+%sudo apt-get install sbt
+%\end{verbatim}
+%
+%For the Quartus setup it is best to change the default shell to \code{/bin/bash}:
+%
+%\begin{verbatim}
+%sudo rm /bin/sh
+%sudo ln -s /bin/bash /bin/sh
+%\end{verbatim}
+
+\subsection{Setup On Mac OS X}
+
+This subsection describes the installation of needed tools and libraries
+on Mac OS X. It is based on a OS X Yosemite and assumes to use
+homebrew\footnote{\url{http://brew.sh/}} for package management.
+
+First install the Mac compiler (Xcode) and the command line tools.
+
+For the build of Patmos and the compiler we need to install:
+
+\begin{verbatim}
+brew install cmake boost libelf sbt doxygen
+\end{verbatim}
+
+Mac OS X comes with Python version 2.7 preinstalled. For Aegean
+we need Python 3 and the xml library that can be installed with:
+
+\begin{verbatim}
+brew install python3
+pip3 install lxml
+\end{verbatim}
+
+For wave viewing install GTKWave with
+
+\begin{verbatim}
+brew install homebrew/x11/gtkwave
+\end{verbatim}
+
+\todo{The following should probably be deleted as we switched to homebrew for the setup.}
+
+Several tools are needed, best installed with MacPorts. For Patmos simulator and assembler:
+\code{boost}, \code{libelf}.
+For simulation with ModelSim: \code{wine}
+For Aegean: \code{python33}, \code{py33-lxml}. Make a link from \code{python3} to \code{python3.3} as this is the way it is invoked.
+\todo{Alex suggested a way to avoid this by querying how to invoke python.}
+
+\section{Building Patmos and the Compiler Tool Chain}
 \label{sec:build:compiler}
 
 We assume that the T-CREST project will live in \code{\$HOME/t-crest}.
@@ -3271,7 +3321,7 @@ export PATH=$PATH:$HOME/t-crest/misc
 \end{verbatim}
 
 
-\subsection{Quartus}
+\section{Quartus on Linux}
 
 Download the free web edition of Quartus from Altera.\footnote{For a 32-bit Linux you need to
 use Quartus 13.x as 32-bit support has been dropped from Quartus 14.x.}
@@ -3288,7 +3338,7 @@ The software installation is started with:
 bash setup.sh
 \end{verbatim}
 
-Then add the bin directory of Quartus to your \$PATH.
+Then add the \code{bin} directory of Quartus to your \$PATH.
 %
 For access to the serial port and access rights for the USB Blaster following additional steps are needed:
 
@@ -3297,29 +3347,47 @@ For access to the serial port and access rights for the USB Blaster following ad
 sudo usermod -a -G dialout user
 \end{verbatim}
 
+Getting the Altera USB Blaster working on Ubuntu is a little bit brittle.
+Here a collection of tips collected from different places that helped me to
+get the USB Blaster running.
+
 Add permissions to access the Altera USB Blaster by creating or editing \code{/etc/udev/rules.d/51-usbblaster.rules}:
-%sudo su -
-%echo "SUBSYSTEM==\"usb\", DRIVER==\"usb\", ATTR{idVendor}==\"09fb\", \
-%ATTR{idProduct}==\"6001\", MODE=\"0666\"" > /etc/udev/rules.d/51-usbblaster.rules
 
 \begin{verbatim}
-# From the 32-bit installation:
-SUBSYSTEM=="usb", DRIVER=="usb", ATTR{idVendor}=="09fb", ATTR{idProduct}=="6001", MODE="0666"
-
-# USB-Blaster
-BUS=="usb", SYSFS{idVendor}=="09fb", SYSFS{idProduct}=="6001", MODE="0666"
-BUS=="usb", SYSFS{idVendor}=="09fb", SYSFS{idProduct}=="6002", MODE="0666"
-BUS=="usb", SYSFS{idVendor}=="09fb", SYSFS{idProduct}=="6003", MODE="0666"
-
-# USB-Blaster II
-BUS=="usb", SYSFS{idVendor}=="09fb", SYSFS{idProduct}=="6010", MODE="0666"
-BUS=="usb", SYSFS{idVendor}=="09fb", SYSFS{idProduct}=="6810", MODE="0666"
+# For Altera USB-Blaster permissions.
+SUBSYSTEM=="usb",\
+ENV{DEVTYPE}=="usb_device",\
+ATTR{idVendor}=="09fb",\
+ATTR{idProduct}=="6001",\
+MODE="0666",\
+NAME="bus/usb/$env{BUSNUM}/$env{DEVNUM}",\
+RUN+="/bin/chmod 0666 %c"
 \end{verbatim}
 
 Reload the rules:
 \begin{verbatim}
-sudo udevadm control --reload-rules
+sudo udevadm control --reload
 \end{verbatim}
+
+Test the JTAG chain with:
+\begin{verbatim}
+jtagconfig
+\end{verbatim}
+
+and hope for an output similar to:
+
+\begin{verbatim}
+1) USB-Blaster [2-2.2]
+  020F70DD   EP3C120/EP4CE115
+\end{verbatim}
+
+Some more fixes might be needed (not on a recent try with Ubuntu 14.04):
+
+\begin{verbatim}
+sudo ln -s /lib/x86_64-linux-gnu/libudev.so.1 /usr/lib/libudev.so.0
+jtagconfig -d
+\end{verbatim}
+
 
 After fixing the permissions for the USB Blaster open Quartus and test if the
 cable is found with the programmer. Select USB-Blaster in \emph{Hardware Setup}.
@@ -3330,41 +3398,6 @@ Quartus~13.1 drops the support of Cyclone~II devices. Therefore, the
 (phased out) Altera DE2-70 board is not supported anymore. Version 13.0 supports Cyclone~II\
 till Cyclone~V devices and might be the best option at the moment.
 
-\section{Setup On Mac OS X}
-
-First install the Mac compiler (Xcode) and the command line tools.
-
-This subsection describes the installation of needed tools and libraries
-on Mac OS X. It is based on a OS X Yosemite and assumes to use
-homebrew\footnote{\url{http://brew.sh/}} for package management.
-
-For the build of Patmos and the compiler we need:
-
-\begin{verbatim}
-brew install cmake boost libelf sbt doxygen
-\end{verbatim}
-
-Mac OS X comes with Python version 2.7 preinstalled. For Aegean
-we need Python 3 and the xml library that can be installed with:
-
-\begin{verbatim}
-brew install python3
-pip3 install lxml
-\end{verbatim}
-
-For wave viewing install GTKWave with
-
-\begin{verbatim}
-brew install homebrew/x11/gtkwave
-\end{verbatim}
-
-\todo{The following should probably be deleted as we switched to homebrew for the setup.}
-
-Several tools are needed, best installed with MacPorts. For Patmos simulator and assembler:
-\code{boost}, \code{libelf}.
-For simulation with ModelSim: \code{wine}
-For Aegean: \code{python33}, \code{py33-lxml}. Make a link from \code{python3} to \code{python3.3} as this is the way it is invoked.
-\todo{Alex suggested a way to avoid this by querying how to invoke python.}
 
 \section{Hello World}
 
@@ -3626,7 +3659,7 @@ make BOARD=bemicro BLASTER_TYPE=Arrow-USB-Blaster config
 This split of the make commands is for demonstration. It is
 possible to merge all steps into a single make (on Linux
 systems) or two steps when using two operating
-systems (e.g., Mac OSX for compilation and Windows for synthesis).
+systems (e.g., Mac OS X for compilation and Windows or Linux for synthesis).
 
 \paragraph{Emulator and elf File}
 
@@ -3877,6 +3910,13 @@ to checkout the benchmarks, compile them, and execute them. Building Patmos via 
 also ensures that the correct emulator is used. Be aware that this is
 a very lengthy task; it takes on a MacBook Pro more than 3 hours.
 
+\paragraph{Regression Tests:} Two simple scripts are available in \code{misc} that do
+a clean checkout of T-CREST, including the benchmarks, and performing a build
+and tests: \code{regtest-init.sh} and \code{regtest.sh}. \code{regtest-init.sh} starts
+the build process with checking out \code{misc} and therefore needs to
+be copied out of the repository to a place for scripts. The regression test will
+send out result emails listed in \code{recipients.txt}.
+
 \section{Worst-Case Execution Time Analysis}
 
 The aiT WCET analysis tool supports Patmos as target. The benchmark collection
@@ -3885,6 +3925,8 @@ of T-CREST (in folder \code{bench}) includes targets for WCET analysis.
 When the aiT version for Patmos (\code{a3patmos}) is in the path, the build of
 the benchmarks includes WCET analysis tasks, where appropriate.
 
+Details on WCET analysis with platin, including an elaborated example,
+can be found in Section~\ref{sec:toolchain:platin}.
 In \code{bench/build/Malardaln/src} start the tests including Platin WCET analysis with \code{ctest}.
 
 
@@ -3981,7 +4023,8 @@ units are allowed: \texttt{k}, \texttt{m}, \texttt{g}, or \texttt{kb},
     -l [ ---lsize ] arg  & 2k   & local memory size in bytes \\
     ---mem-rand arg      & 0    & Initialize memories with random data \\
     ---chkreads arg      & none & Check for reads of uninitialized data, either per byte (\texttt{warn}, \texttt{err}) or per access (\texttt{warn-addr}, \texttt{err-addr}). Disables the data cache. \\
-    \bottomrule
+   ---with-mmu arg       & 0    & Simulate memory management unit \\
+   \bottomrule
   \end{tabular}
 \end{table}
 
@@ -4023,11 +4066,13 @@ units are allowed: \texttt{k}, \texttt{m}, \texttt{g}, or \texttt{kb},
    ---interrupt arg       & 1          & enable or disable interrupts \\
    ---mmbase arg          & 0xf0000000 & base address of the IO device map address range \\
    ---mmhigh arg          & 0xffffffff & highest address of the IO device map address range \\
-   ---cpuinfo\_offset arg & 0x000      & offset where the cpuinfo device is mapped \\
-   ---excunit\_offset arg & 0x100      & offset where the exception unit is mapped \\
-   ---timer\_offset arg   & 0x200      & offset where the timer device is mapped \\
-   ---uart\_offset arg    & 0x800      & offset where the UART device is mapped \\
-   ---led\_offset arg     & 0x900      & offset where the LED device is mapped \\
+   ---cpuinfo\_offset arg & 0x00000    & offset where the cpuinfo device is mapped \\
+   ---excunit\_offset arg & 0x10000    & offset where the exception unit is mapped \\
+   ---timer\_offset arg   & 0x20000    & offset where the timer device is mapped \\
+   ---uart\_offset arg    & 0x80000    & offset where the UART device is mapped \\
+   ---led\_offset arg     & 0x90000    & offset where the LED device is mapped \\
+   ---ethmac\_offset arg  & 0xb0000    & offset where the EthMac device is mapped \\
+   ---ethmac\_ip\_addr arg &           & Provide virtual network interface with the given IP address \\
    -I [ ---in ] arg       & -          & input file for UART simulation (stdin: \texttt{-}) \\
    -O [ ---out ] arg      & -          & output file for UART simulation (stdout: \texttt{-}) \\
     \bottomrule
@@ -4062,12 +4107,14 @@ the emulator.
     \toprule
     \multicolumn{1}{l}{Option} & Description \\
     \midrule
+    -e <addr>     & Provide virtual network interface with IP address <addr> \\
     -h            & Print help \\
     -i            & Initialize memory with random values \\
     -k            & Simulate random input from keys \\
     -l <N>        & Stop after \texttt{<N>} cycles \\
     -p            & Print method cache statistics \\
     -r            & Print register values in each cycle \\
+    -s            & Trace stack cache spilling/filling \\
     -v            & Dump wave forms file \texttt{Patmos.vcd} \\
     -I <file>     & Read input for UART from file \texttt{<file>} (stdin: \texttt{-}, default: stdin) \\
     -O <file>     & Write output from UART to file \texttt{<file>} (stdout: \texttt{-}, default: stdout) \\
@@ -4180,12 +4227,12 @@ The \texttt{elf2bin} tool converts ELF files to binary files.
 \paragraph{Usage}
 
 The \texttt{elf2bin} tool has two modes. In default mode, its usage is
-\texttt{elf2bin <infile> <outfile1> <outfile2>} and it dumps
-executable segments to file \texttt{<outfile1>} and other segments to
-\texttt{<outfile2>}. For the non-executable segments, it uses a
-displacement of \texttt{0x80000000}, such that data that is mapped to
-address \texttt{<N>} is dumped to position \texttt{<N>-0x80000000} in
-the output file.
+\texttt{elf2bin [-d <disp>] <infile> <outfile1> <outfile2>} and it
+dumps executable segments to file \texttt{<outfile1>} and other
+segments to \texttt{<outfile2>}. If option \texttt{-d} is provided, it
+uses a displacement of \texttt{<disp>} for the non-executable
+segments, such that data that is mapped to address \texttt{<N>} is
+dumped to position \texttt{<N>-<disp>} in the output file.
 
 The second mode of \texttt{elf2bin} is a ``flat'' mode, with the usage
 \texttt{elf2bin -f <infile> <outfile>}. In that mode, \texttt{elf2bin}
@@ -4368,23 +4415,6 @@ Might be interesting to compare those two approaches.
 \stefan{Note: if we use a DMA controller, we do not need separate memcpy functions depending on the source and destination memory, since the
 DMA controller can determine source and target based on the addresses (hopefully).
 }
-
-\section{Memory Management Unit}
-\begin{itemize}
-  \item Simple software managed TLB.
-  \item Main idea is to provide protection and separation.
-  \item Could be used for memory testing.
-  \item No traps. Instead, reset or kill thread?
-\end{itemize}
-
-\section{Supervisor Mode}
-\label{sec:supervisor}
-\begin{itemize}
-  \item To restrict reconfiguration of critical components (e.g., TLB, Interrupt
-        Tables).
-  \item Transfer to supervisor mode, e.g., via \texttt{syscall}.
-  \item Might be handy when running multiple threads or an OS.
-\end{itemize}
 
 \section{DMA Interface}
 \begin{itemize}

@@ -1,5 +1,5 @@
 <patmos default="default.xml">
-  <description>default configuration for DE2-115 board</description>
+  <description>configuration for DE2-115 board with Ethernet controller</description>
 
   <frequency Hz="80000000"/>
   <pipeline dual="false" />

@@ -50,8 +50,8 @@
 //High level functions (for the demo)
 ///////////////////////////////////////////////////////////////
 
-//This function sends an ethernet frame located at tx_addr and of lenght frame_lenght.
-void eth_mac_send(unsigned int tx_addr, unsigned int frame_lenght);
+//This function sends an ethernet frame located at tx_addr and of length frame_length.
+void eth_mac_send(unsigned int tx_addr, unsigned int frame_length);
 
 //This function receive an ethernet frame and put it in rx_addr.
 int eth_mac_receive(unsigned int rx_addr, unsigned long long int timeout);

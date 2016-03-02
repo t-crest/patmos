@@ -93,7 +93,7 @@ set_assoc_data_cache_t<LRU_REPLACEMENT>::~set_assoc_data_cache_t()
 
 template<bool LRU_REPLACEMENT>
 bool set_assoc_data_cache_t<LRU_REPLACEMENT>::
-     read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+read(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch)
 {
   // temporary buffer
   byte_t buf[Num_block_bytes];
@@ -128,7 +128,7 @@ bool set_assoc_data_cache_t<LRU_REPLACEMENT>::
   bool cache_hit = (tag_index < Associativity);
 
   // update cache state and read data
-  if (cache_hit || Memory.read(s, block_address, buf, Num_block_bytes))
+  if (cache_hit || Memory.read(s, block_address, buf, Num_block_bytes, is_fetch))
   {
     // update LRU ordering
     unsigned int last_index_changed;
@@ -153,7 +153,7 @@ bool set_assoc_data_cache_t<LRU_REPLACEMENT>::
     // actually read data from memory without stalling
     // TODO we should keep the data in the cache and read it from
     // there to detect consistency problems with multi-cores.
-    Memory.read_peek(s, address, value, size);
+    Memory.read_peek(s, address, value, size, is_fetch);
 
     // update statistics
     if (cache_hit)
@@ -185,7 +185,7 @@ bool set_assoc_data_cache_t<LRU_REPLACEMENT>::
 
   // read block data to simulate a block-based write
   byte_t buf[Num_block_bytes];
-  Memory.read_peek(s, block_address, buf, Num_block_bytes);
+  Memory.read_peek(s, block_address, buf, Num_block_bytes, false);
 
   if (Memory.write(s, block_address, buf, Num_block_bytes))
   {

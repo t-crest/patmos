@@ -47,11 +47,17 @@ namespace patmos
 {
   class simulator_t;
   struct stats_options_t;
-  
+  class mmu_t;
+
   /// Basic interface to access main memory during simulation.
   class memory_t
   {
+  protected:
+    mmu_t *Mmu;
+
   public:
+    memory_t() : Mmu(NULL) {}
+
     virtual ~memory_t() {}
     
     /// A simulated access to a read port.
@@ -61,7 +67,7 @@ namespace patmos
     /// the memory.
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
-    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size) = 0;
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch) = 0;
 
     /// A simulated access to a write port.
     /// @param s The core performing the access
@@ -79,9 +85,9 @@ namespace patmos
     /// the memory.
     /// @return True when the data is available from the read port.
     template<typename T>
-    inline bool read_fixed(simulator_t &s, uword_t address, T &value)
+    inline bool read_fixed(simulator_t &s, uword_t address, T &value, bool is_fetch)
     {
-      return read(s, address, (byte_t*)&value, sizeof(T));
+      return read(s, address, (byte_t*)&value, sizeof(T), is_fetch);
     }
 
     /// A simulated access to a write port a fixed size.
@@ -102,7 +108,7 @@ namespace patmos
     /// @param value A pointer to a destination to store the value read from
     /// the memory.
     /// @param size The number of bytes to read.
-    virtual void read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size) = 0;
+    virtual void read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch) = 0;
 
     /// Write some values into the memory -- DO NOT SIMULATE TIMING, just write.
     /// @param s The core performing the access
@@ -117,9 +123,9 @@ namespace patmos
     /// @param value A pointer to a destination to store the value read from
     /// the memory.
     template<typename T>
-    inline void peek_fixed(simulator_t &s, uword_t address, T &value)
+    inline void peek_fixed(simulator_t &s, uword_t address, T &value, bool is_fetch)
     {
-      read_peek(s, address, (byte_t*)&value, sizeof(T));
+      read_peek(s, address, (byte_t*)&value, sizeof(T), is_fetch);
     }
 
     /// Check if the memory is busy handling some request.
@@ -138,6 +144,11 @@ namespace patmos
     /// @param os The output stream to print to.
     virtual void print_stats(const simulator_t &s, std::ostream &os,
                              const stats_options_t& options) = 0;
+
+    /// Add an MMU to theis memory.
+    void set_mmu(mmu_t *mmu) {
+      Mmu = mmu;
+    }
     
     /// Reset statistics.
     virtual void reset_stats() = 0;
@@ -199,7 +210,7 @@ namespace patmos
     /// the memory.
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
-    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch);
 
     /// A simulated access to a write port.
     /// @param address The memory address to write to.
@@ -214,7 +225,7 @@ namespace patmos
     /// @param value A pointer to a destination to store the value read from
     /// the memory.
     /// @param size The number of bytes to read.
-    virtual void read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+    virtual void read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch);
 
     /// Write some values into the memory -- DO NOT SIMULATE TIMING, just write.
     /// @param address The memory address to write to.
@@ -363,7 +374,7 @@ namespace patmos
     /// \see request_info_t
     const request_info_t &find_or_create_request(simulator_t &s, 
                                                  uword_t address, uword_t size,
-                                                 bool is_load, 
+                                                 bool is_load, bool is_fetch,
                                                  bool is_posted = false);
     
   public:
@@ -400,7 +411,7 @@ namespace patmos
     /// the memory.
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
-    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch);
 
     /// A simulated access to a write port.
     /// @param address The memory address to write to.

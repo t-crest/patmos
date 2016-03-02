@@ -70,9 +70,9 @@ namespace patmos
     /// the memory.
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
-    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch)
     {
-      Memory.read_peek(s, address, value, size);
+      Memory.read_peek(s, address, value, size, is_fetch);
       return true;
     }
 
@@ -93,9 +93,9 @@ namespace patmos
     /// @param value A pointer to a destination to store the value read from
     /// the memory.
     /// @param size The number of bytes to read.
-    virtual void read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+    virtual void read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch)
     {
-      Memory.read_peek(s, address, value, size);
+      Memory.read_peek(s, address, value, size, is_fetch);
     }
 
     /// Write some values into the memory -- DO NOT SIMULATE TIMING, just write.
@@ -158,9 +158,9 @@ namespace patmos
     /// the memory.
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
-    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size)
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch)
     {
-      return Memory.read(s, address, value, size);
+      return Memory.read(s, address, value, size, is_fetch);
     }
 
     /// A simulated access to a write port.
@@ -270,7 +270,7 @@ namespace patmos
     /// the memory.
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
-    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch);
 
     /// A simulated access to a write port.
     /// @param address The memory address to write to.

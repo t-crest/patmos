@@ -45,9 +45,15 @@
 
 // #define DEBUG
 
+// a variable to remember the (shadow) stack pointer
+static volatile unsigned int r31;
+
 int main(void) __attribute__((noreturn));
 
 int main(void) {
+
+  // save (shadow) stack pointer
+  asm volatile ("mov %0 = $r31;" : "=r" (r31));
 
 #ifdef DEBUG
   WRITE("DOWN\n", 5);
@@ -69,7 +75,7 @@ int main(void) {
     *(SPM+(1<<16)/4+i) = *(MEM+(1<<16)/4+i);
   }
 
-  static char msg[10];
+  static unsigned char msg[10];
 
 #ifdef DEBUG
   WRITE("START ", 6);
@@ -109,15 +115,24 @@ int main(void) {
     local_mode();
   }
 
+  // restore (shadow) stack pointer
+  asm volatile ("mov $r31 = %0;" : : "r" (r31));
+
 #ifdef DEBUG
   WRITE("EXIT\n", 5);
 #endif
 
   // Print exit magic and return code
+#ifdef ETHMAC
   msg[0] = '\0';
   msg[1] = 'x';
   msg[2] = retval & 0xff;
-  WRITE(msg, 3);
+  udp_send(TX_ADDR, ARP_ADDR, host_ip, TARGET_PORT, HOST_PORT, msg, 3, 10000);
+#else
+  uart_write('\0');
+  uart_write('x');
+  uart_write(retval & 0xff);
+#endif
 
   // clear caches and loop back
   inval_dcache();

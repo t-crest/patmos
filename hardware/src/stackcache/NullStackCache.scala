@@ -53,9 +53,9 @@ import ocp._
 class NullStackCache() extends Module {
   val io = new StackCacheIO() {
     // slave to cpu
-    val fromCPU = new OcpCoreSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
+    val fromCPU = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
     // master to memory
-    val toMemory = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+    val toMemory = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
 
     val perf = new StackCachePerf()
   }

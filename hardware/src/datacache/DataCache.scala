@@ -64,7 +64,7 @@ class DataCache extends Module {
   val selDCReg = Reg(Bool())
   val selSC = io.master.M.AddrSpace === OcpCache.STACK_CACHE
   val selSCReg = Reg(Bool())
-  when(io.master.M.Cmd != OcpCmd.IDLE) {
+  when(io.master.M.Cmd =/= OcpCmd.IDLE) {
     selDCReg := selDC
     selSCReg := selSC
   }

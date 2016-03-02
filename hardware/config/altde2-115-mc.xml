@@ -1,5 +1,5 @@
 <patmos default="default.xml">
-  <description>default configuration for DE2-115 board</description>
+  <description>Configuration for the DE2-115 board with motor controller</description>
 
   <frequency Hz="80000000"/>
 

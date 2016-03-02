@@ -45,7 +45,7 @@
 #include <stdio.h>
 #include "eth_patmos_io.h"
 
-static unsigned char my_ip[4] = {192, 168, 1, 12};
+extern unsigned char my_ip[4];
 
 ///////////////////////////////////////////////////////////////
 //Functions to get the IPv4 protocol field
@@ -57,8 +57,8 @@ char ipv4_get_version(unsigned int pkt_addr);
 //This function returns the IPv4 type of service of a received packet.
 char ipv4_get_type_of_service(unsigned int pkt_addr);
 
-//This function returns the IPv4 lenght of a received packet.
-char ipv4_get_lenght(unsigned int pkt_addr);
+//This function returns the IPv4 length of a received packet.
+char ipv4_get_length(unsigned int pkt_addr);
 
 //This function returns the IPv4 identification of a received packet.
 unsigned int ipv4_get_identification(unsigned int pkt_addr);

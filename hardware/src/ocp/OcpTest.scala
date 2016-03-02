@@ -72,11 +72,11 @@ class OcpSlave() extends Module {
 
   io.S.Resp := OcpResp.NULL
   io.S.Data := data
-  when(M.Cmd != OcpCmd.IDLE) {
+  when(M.Cmd =/= OcpCmd.IDLE) {
     cnt := UInt(4)
   }
 
-  when(cnt != UInt(0)) {
+  when(cnt =/= UInt(0)) {
     cnt := cnt - UInt(1)
     io.S.Resp := OcpResp.DVA
   }

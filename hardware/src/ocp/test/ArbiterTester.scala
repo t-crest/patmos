@@ -80,7 +80,7 @@ class Master(nr: Int, burstLength: Int) extends Module {
     // now we should be on our last word - wait for DVA
     is(UInt(4)) {
       io.port.M.DataValid := Bits(1)
-      when (io.port.S.Resp != OcpResp.DVA) {
+      when (io.port.S.Resp =/= OcpResp.DVA) {
         cntReg := cntReg
       }
       dataReg := io.port.S.Data

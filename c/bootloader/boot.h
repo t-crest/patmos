@@ -50,4 +50,41 @@ typedef volatile int (*entrypoint_t)(void);
 
 entrypoint_t download(void) __attribute__((noinline));
 
+// Defines that determine how applications are downloaded
+//#define ETHMAC
+#define COMPRESSION
+
+#if defined(ETHMAC) && defined(COMPRESSION)
+#error "Download via Ethernet does not support compression"
+#endif
+
+#ifdef ETHMAC
+
+#include "ethlib/udp.h"
+#define RX_ADDR  0x000
+#define TX_ADDR  0x800
+#define ARP_ADDR 0xc00
+
+#define TARGET_PORT 8888
+#define HOST_PORT 8889
+extern unsigned char host_ip[];
+
+void ethmac_init(void);
+int ethmac_get_byte(void);
+void ethmac_put_byte(unsigned char c);
+
+#else /* !ETHMAC */
+
+int uart_read(void);
+void uart_write(unsigned char c);
+
+#endif /* !ETHMAC */
+
+#ifdef COMPRESSION
+
+void decompress_init(void);
+int decompress_get_byte(void);
+
+#endif /* COMPRESSION */
+
 #endif /* _BOOT_H_ */

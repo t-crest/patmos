@@ -51,15 +51,18 @@ class FeDec() extends Bundle() {
   val instr_a = Bits(width = INSTR_WIDTH)
   val instr_b = Bits(width = INSTR_WIDTH)
   val pc = UInt(width = PC_SIZE)
+  val base = UInt(width = PC_SIZE)
   val reloc = UInt(width = ADDR_WIDTH)
   val relPc = UInt(width = PC_SIZE)
 
   def flush() = {
     // flush only necessary parts of instruction
-    instr_a(30, 27) := PRED_IFFALSE
-    instr_a(26, 25) := OPCODE_ALUI
-    instr_b(30, 27) := PRED_IFFALSE
-    instr_b(26, 25) := OPCODE_ALUI
+    // instr_a(30, 27) := PRED_IFFALSE
+    // instr_a(26, 25) := OPCODE_ALUI
+    // instr_b(30, 27) := PRED_IFFALSE
+    // instr_b(26, 25) := OPCODE_ALUI
+    instr_a := Bits(0)
+    instr_b := Bits(0)
   }
 }
 
@@ -129,6 +132,7 @@ class MemOp() extends Bundle() {
 
 class DecEx() extends Bundle() {
   val pc = UInt(width = PC_SIZE)
+  val base = UInt(width = PC_SIZE)
   val relPc = UInt(width = PC_SIZE)
   val pred =  Vec.fill(PIPE_COUNT) { Bits(width = PRED_BITS+1) }
   val aluOp = Vec.fill(PIPE_COUNT) { new AluOp() }
@@ -245,7 +249,7 @@ class ExSc extends Bundle() {
   //   - opSetStackTop, opSetMemTop: the new value of stackTop or memTop
   val opData = UInt(width = DATA_WIDTH)
   //   - opSRES, opSENS, opSFREE   : the operand of the instructions
-  val opOff  = UInt(width = EXTMEM_ADDR_WIDTH)
+  val opOff  = UInt(width = ADDR_WIDTH)
 }
 
 class ScEx extends Bundle() {
@@ -260,6 +264,7 @@ class ExMem() extends Bundle() {
   val rd = Vec.fill(PIPE_COUNT) { new Result() }
   val mem = new MemIn()
   val pc = UInt(width = PC_SIZE)
+  val base = UInt(width = PC_SIZE)
   val relPc = UInt(width = PC_SIZE)
 
   def flush() = {
@@ -321,6 +326,7 @@ class FetchIO extends Bundle() {
 
 class ExcDec() extends Bundle() {
   val exc = Bool()
+  val excBase = UInt(width = PC_SIZE)
   val excAddr = UInt(width = PC_SIZE)
   val intr = Bool()
   val addr = UInt(width = ADDR_WIDTH)
@@ -360,6 +366,7 @@ class InOutIO() extends Bundle() {
   val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val excInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
+  val mmuInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val intrs = Vec.fill(INTR_COUNT) { Bool(OUTPUT) }
   val superMode = Bool(INPUT)
   val internalIO = new InternalIO().asInput
@@ -376,6 +383,7 @@ class MemExc() extends Bundle() {
   val src = Bits(width = EXC_SRC_BITS)
 
   val exc = Bool()
+  val excBase = UInt(width = PC_SIZE)
   val excAddr = UInt(width = PC_SIZE)
 }
 
@@ -392,6 +400,8 @@ class MemoryIO() extends Bundle() {
   val localInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val globalInOut = new OcpCacheMasterPort(ADDR_WIDTH, DATA_WIDTH)
   // exceptions
+  val icacheIllMem = Bool(INPUT)
+  val scacheIllMem = Bool(INPUT)
   val exc = new MemExc().asOutput
 }
 
@@ -403,23 +413,27 @@ class StackCacheIO() extends Bundle() {
   val exsc = new ExSc().asInput
   // signals from stack cache back to the EX stage
   val scex = new ScEx().asOutput
+  // signal an illegal memory access
+  val illMem = Bool(OUTPUT)
   // indicate a stall
   val stall = Bool(OUTPUT)
 }
 
 // method/instruction cache connections
 class FeICache extends Bundle() {
-  val addrEven = Bits(width = EXTMEM_ADDR_WIDTH)
-  val addrOdd = Bits(width = EXTMEM_ADDR_WIDTH)
+  val addrEven = Bits(width = ADDR_WIDTH)
+  val addrOdd = Bits(width = ADDR_WIDTH)
 }
 class ExICache() extends Bundle() {
   val doCallRet = Bool()
-  val callRetBase = UInt(width = EXTMEM_ADDR_WIDTH)
-  val callRetAddr = UInt(width = EXTMEM_ADDR_WIDTH)
+  val callRetBase = UInt(width = ADDR_WIDTH)
+  val callRetAddr = UInt(width = ADDR_WIDTH)
 }
 class ICacheFe extends Bundle() {
   val instrEven = Bits(width = INSTR_WIDTH)
   val instrOdd = Bits(width = INSTR_WIDTH)
+  // absolute basse address
+  val base = UInt(width = ADDR_WIDTH)
   // relative base address
   val relBase = UInt(width = MAX_OFF_WIDTH)
   // relative program counter
@@ -435,7 +449,8 @@ class ICacheIO extends Bundle() {
   val feicache = new FeICache().asInput
   val exicache = new ExICache().asInput
   val icachefe = new ICacheFe().asOutput
-  val ocp_port = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+  val ocp_port = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+  val illMem = Bool(OUTPUT)
   val perf = new InstructionCachePerf()
 }
 
@@ -457,6 +472,14 @@ class ExcIO() extends Bundle() {
   val superMode = Bool(OUTPUT)
   val invalICache = Bool(OUTPUT)
   val invalDCache = Bool(OUTPUT)
+}
+
+class MMUIO() extends Bundle() {
+  val ctrl = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+  val superMode = Bool(INPUT)
+  val exec = Bool(INPUT)
+  val virt = new OcpBurstSlavePort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+  val phys = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
 }
 
 class PatmosCoreIO() extends Bundle() {

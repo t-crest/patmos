@@ -170,11 +170,11 @@ void arp_get_sender_mac(unsigned int pkt_addr, unsigned char sender_mac[]){
 //This function takes the received ARP request packet starting in rx_addr and builds a reply packet starting in tx_addr. rx_addr and tx_addr can be the same.
 unsigned int arp_build_reply(unsigned int rx_addr, unsigned int tx_addr){
 
-	unsigned int frame_lenght = 42;//ARP frames have a fixed lenght
+	unsigned int frame_length = 42;//ARP frames have a fixed length
 	
 	//Copy the entire frame	
 	if (rx_addr != tx_addr ){ 
-		for(int i=0; i<frame_lenght; i++){
+		for(int i=0; i<frame_length; i++){
 			mem_iowr_byte(tx_addr + i, mem_iord_byte(rx_addr + i));
 		}
 	}
@@ -195,7 +195,7 @@ unsigned int arp_build_reply(unsigned int rx_addr, unsigned int tx_addr){
 		mem_iowr_byte(tx_addr + 38 + i, mem_iord_byte(tx_addr+28+i));
 		mem_iowr_byte(tx_addr + 28 + i, my_ip[i]);
 	}
-	return frame_lenght;
+	return frame_length;
 }
 
 //This function process a received ARP package. If it is a request and we are the destination (IP) it reply the ARP request and returns 1. If it is a reply and we are the destination (IP) it inserts an entry in the ARP table and returns 2. Otherwise it returns 0.
@@ -206,8 +206,8 @@ int arp_process_received(unsigned int rx_addr, unsigned int tx_addr){
 	if (ipv4_compare_ip(target_ip, my_ip) == 1){
 		//Check if it is a arp request
 		if (mem_iord_byte(rx_addr + 21) == 0x01){		
-			unsigned int frame_lenght = arp_build_reply(rx_addr, tx_addr);
-			eth_mac_send(tx_addr, frame_lenght);
+			unsigned int frame_length = arp_build_reply(rx_addr, tx_addr);
+			eth_mac_send(tx_addr, frame_length);
 			return 1;
 		}else if (mem_iord_byte(rx_addr + 21) == 0x02){
 			unsigned char target_mac[6];
@@ -231,7 +231,7 @@ int arp_process_received(unsigned int rx_addr, unsigned int tx_addr){
 //This function builds an ARP request packet starting at tx_addr and targeting the target_ip
 unsigned int arp_build_request(unsigned int tx_addr, unsigned char target_ip[]){
 
-	unsigned int frame_lenght = 42;//ARP frames have a fixed lenght
+	unsigned int frame_length = 42;//ARP frames have a fixed length
 	
 	//MAC addrs
 	for (int i=0; i<6; i++){
@@ -252,17 +252,17 @@ unsigned int arp_build_request(unsigned int tx_addr, unsigned char target_ip[]){
 	//Operation
 	mem_iowr_byte(tx_addr + 20, 0x00);
 	mem_iowr_byte(tx_addr + 21, 0x01);
-	return frame_lenght;
+	return frame_length;
 }
 
 //This function tries to resolves an ip address in the time specified by timeout (us). It waits for an answer for at least 100000us, hence if nobody replies it returns after 100000us, indipendently by the timeout. It requires a rx and a tx addr to send and receive packets.
 int arp_resolve_ip(unsigned int rx_addr, unsigned int tx_addr, unsigned char target_ip[], long long unsigned int timeout){
 	unsigned char ans = 0;
-	unsigned int frame_lenght;
+	unsigned int frame_length;
 	unsigned long long int start_time = get_cpu_usecs();
 	do{
-		frame_lenght = arp_build_request(tx_addr, target_ip);
-		eth_mac_send(tx_addr, frame_lenght);
+		frame_length = arp_build_request(tx_addr, target_ip);
+		eth_mac_send(tx_addr, frame_length);
 		if (eth_mac_receive(rx_addr, 100000) == 1){
 			if (mac_packet_type(rx_addr) == 3){
 				if (arp_process_received(rx_addr, tx_addr) == 2){

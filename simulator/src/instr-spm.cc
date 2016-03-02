@@ -52,7 +52,7 @@ bool instr_spm_t::fetch(simulator_t &s, uword_t base, uword_t address, word_t iw
     // Just read directly from global memory without any latency.
     // TODO we should simulate copying the data to a local buffer though
     Memory->read_peek(s, address, reinterpret_cast<byte_t*>(iw), 
-                      sizeof(word_t)*NUM_SLOTS);
+                      sizeof(word_t)*NUM_SLOTS, true);
     return true;
   } else {
     return Cache->fetch(s, base, address, iw);
