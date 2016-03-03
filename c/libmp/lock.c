@@ -65,6 +65,8 @@ void acquire_lock(LOCK_T * lock){
               (void _SPM *)&lock->local_entering,
               sizeof(lock->local_entering));
 
+    //#pragma loopbound min 1 max 2
+    #pragma loopbound min PKT_TRANS_WAIT max PKT_TRANS_WAIT
     while(!noc_done(remote));
     unsigned n = (unsigned)lock->remote_number + 1;
     lock->local_number = n;
@@ -75,6 +77,7 @@ void acquire_lock(LOCK_T * lock){
               sizeof(lock->local_number));
 
 //    /* Enforce memory barrier */
+    #pragma loopbound min PKT_TRANS_WAIT max PKT_TRANS_WAIT
     while(!noc_done(remote)); // noc_send() also waits for the dma to be
                                 // free, so no need to do it here as well
 
@@ -86,9 +89,11 @@ void acquire_lock(LOCK_T * lock){
               sizeof(lock->local_entering));
 
     /* Wait for remote core not to change number */
+    #pragma loopbound min 1 max 2
     while(lock->remote_entering == 1);
     /* Wait to be the first in line to the bakery queue */
     unsigned m = lock->remote_number;
+    #pragma loopbound min 1 max 2
     while( (m != 0) &&
             ( (m < n) || ((m == n) && ( remote < id)))) {
       m = lock->remote_number;
@@ -105,6 +110,7 @@ void release_lock(LOCK_T * lock) {
               (void _SPM *)&lock->local_number,
               sizeof(lock->local_number));
     /* Enforce memory barrier */
+    #pragma loopbound min PKT_TRANS_WAIT max PKT_TRANS_WAIT
     while(!noc_done(lock->remote_cpuid));
     /* Lock is freed */  
     return;

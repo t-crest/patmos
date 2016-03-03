@@ -155,7 +155,7 @@ int noc_nbsend(unsigned rcv_id, volatile void _SPM *dst,
 // The addresses and the size are in bytes
 void noc_send(unsigned rcv_id, volatile void _SPM *dst,
               volatile void _SPM *src, size_t size) {
-  _Pragma("loopbound min 1 max 1")
+  #pragma loopbound min 1 max 1
   while(!noc_nbsend(rcv_id, dst, src, size));
 }
 

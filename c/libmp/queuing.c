@@ -256,6 +256,10 @@ int mp_nback(mpd_t * mpd_ptr){
 }
 
 int mp_ack(mpd_t * mpd_ptr, const unsigned int time_usecs){
+  return mp_ack_n(mpd_ptr, time_usecs, 1);
+}
+
+int mp_ack_n(mpd_t * mpd_ptr, const unsigned int time_usecs, unsigned int num_acks){
   unsigned long long int timeout = get_cpu_usecs() + time_usecs;
   int retval = 0;
   // Await previous acknowledgement transfer before updating counter in SPM
@@ -274,19 +278,20 @@ int mp_ack(mpd_t * mpd_ptr, const unsigned int time_usecs){
     retval = 0;
   }
   // Increment the receive counter
-  (*mpd_ptr->recv_count)++;
+  (*mpd_ptr->recv_count)+= num_acks;
   // Update the remote receive count
   // REM: The worst case waiting time of the noc_nbsend() must
   // be added after the WCET analysis
-  _Pragma("loopbound min 1 max 1")
   // while message not sent and ( timeout infinite or now is before timeout)
+  _Pragma("loopbound min 1 max 1")
   while(retval == 0 && ( time_usecs == 0 || get_cpu_usecs() < timeout ) ) {
     retval = noc_nbsend(mpd_ptr->remote,mpd_ptr->send_recv_count,
                         mpd_ptr->recv_count,8);
   }
   if (retval == 0) {
-    (*mpd_ptr->recv_count)--;
+    (*mpd_ptr->recv_count) -= num_acks;
   }
   TRACE(FAULT,retval == 0,"mp_ack() timed out");
   return retval;
 }
+

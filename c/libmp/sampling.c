@@ -49,7 +49,30 @@
 #define MULTI_NOC_NONBLOCKING   3
 #define MULTI_NOC_MP            4
 
-#define IMPL MULTI_NOC_MP
+
+#ifndef IMPL
+#define IMPL MULTI_NOC
+#endif
+
+#ifndef MSG_SIZE_WORDS
+#define MSG_SIZE_WORDS 64
+#endif
+
+#ifndef NUM_BUF
+#define NUM_BUF 3
+#endif
+#ifndef NUM_BUFMONE
+#define NUM_BUFMONE 2
+#endif
+
+#ifndef PKT_TRANS_WAIT
+#define PKT_TRANS_WAIT 12
+#endif
+
+#ifndef SAMPLE_TRANS_WAIT
+#define SAMPLE_TRANS_WAIT 768
+#endif
+
 
 spd_t * mp_create_sport(const unsigned int chan_id, const direction_t direction_type,
               const coreid_t remote, const size_t sample_size) {
@@ -156,121 +179,134 @@ spd_t * mp_create_sport(const unsigned int chan_id, const direction_t direction_
 
 #if IMPL == SINGLE_SHM
 
-void mp_read_cr(spd_t * sport, volatile void _SPM * sample) {
+void mp_read_cs(spd_t * sport, volatile void _SPM * sample) INLINING;
+void mp_read_cs(spd_t * sport, volatile void _SPM * sample) {
   // Since sample_size is in bytes and we want to copy 32 bit at the time we divide sample_size by 4
   unsigned itteration_count = (sport->sample_size + 4 - 1) / 4; // equal to ceil(sport->sample_size/4)
   inval_dcache();
+  int * buf = (int *)sport->read_shm_buf;
+  #pragma loopbound min MSG_SIZE_WORDS max MSG_SIZE_WORDS
   for (int i = 0; i < itteration_count; ++i) {
-    ((int _SPM *)sample)[i] = ((volatile int *)sport->read_shm_buf)[i];
+    ((int _SPM *)sample)[i] = buf[i];
   }
 }
 
 int mp_read(spd_t * sport, volatile void _SPM * sample) {
   acquire_lock(sport->lock);
-  mp_read_cr(sport,sample);
+  mp_read_cs(sport,sample);
   release_lock(sport->lock);
 
   return 1;
 
 } 
 
-void mp_write_cr(spd_t * sport, volatile void _SPM * sample) {
+void mp_write_cs(spd_t * sport, volatile void _SPM * sample) INLINING;
+void mp_write_cs(spd_t * sport, volatile void _SPM * sample) {
   // Since sample_size is in bytes and we want to copy 32 bit at the time we divide sample_size by 4
   unsigned itteration_count = (sport->sample_size + 4 - 1) / 4; // equal to ceil(sport->sample_size/4)
+  int * buf = (int *)sport->read_shm_buf;
+  #pragma loopbound min MSG_SIZE_WORDS max MSG_SIZE_WORDS
   for (int i = 0; i < itteration_count; ++i) {
-    ((volatile int *)sport->read_shm_buf)[i] = ((int _SPM *)sample)[i];
+    buf[i] = ((int _SPM *)sample)[i];
   }
   
 }
 
 int mp_write(spd_t * sport, volatile void _SPM * sample) {
   acquire_lock(sport->lock);
-  mp_write_cr(sport,sample);
+  mp_write_cs(sport,sample);
   release_lock(sport->lock);
   return 1;
 } 
 
 #elif IMPL == SINGLE_NOC
 
-
-void mp_read_cr(spd_t * sport, volatile void _SPM * sample) {
+void mp_read_cs(spd_t * sport, volatile void _SPM * sample) INLINING;
+void mp_read_cs(spd_t * sport, volatile void _SPM * sample) {
   // Since sample_size is in bytes and we want to copy 32 bit at the time we divide sample_size by 4
   unsigned itteration_count = (sport->sample_size + 4 - 1) / 4; // equal to ceil(sport->sample_size/4)
+  int _SPM * buf = ((int _SPM *)sport->read_bufs);
+  #pragma loopbound min MSG_SIZE_WORDS max MSG_SIZE_WORDS
   for (int i = 0; i < itteration_count; ++i) {
-    ((int _SPM *)sample)[i] = ((volatile int _SPM *)sport->read_bufs)[i];
+    ((int _SPM *)sample)[i] = buf[i];
   }
 }
 
 int mp_read(spd_t * sport, volatile void _SPM * sample) {
   acquire_lock(sport->lock);
-  mp_read_cr(sport,sample);
+  mp_read_cs(sport,sample);
   release_lock(sport->lock);
 
   return 1;
 
 } 
 
-
-void mp_write_cr(spd_t * sport, volatile void _SPM * sample) {
+void mp_write_cs(spd_t * sport, volatile void _SPM * sample) INLINING;
+void mp_write_cs(spd_t * sport, volatile void _SPM * sample) {
   noc_send(sport->remote,sport->read_bufs,sample,sport->sample_size);
+  #pragma loopbound min SAMPLE_TRANS_WAIT max SAMPLE_TRANS_WAIT
   while(!noc_done(sport->remote));
 }
 
 
 int mp_write(spd_t * sport, volatile void _SPM * sample) {
   acquire_lock(sport->lock);
-  mp_write_cr(sport,sample);
+  mp_write_cs(sport,sample);
   release_lock(sport->lock);
 
   return 1;
 } 
 
 #elif IMPL == MULTI_NOC
-
-void mp_read_cr(spd_t * sport, volatile void _SPM * sample, int * newest) {
+int mp_read_cs(spd_t * sport, volatile void _SPM * sample) INLINING;
+int mp_read_cs(spd_t * sport, volatile void _SPM * sample) {
   // Read newest
-  *newest = (int)sport->newest;
+  int newest = (int)sport->newest;
   // Update reading
   if (newest >= 0) {
     noc_send( sport->remote,
               (void _SPM *)(((int)&(sport->remote_spd->reading)) ),
               (void _SPM *)&sport->newest,
               sizeof(sport->newest));
+    #pragma loopbound min PKT_TRANS_WAIT max PKT_TRANS_WAIT
     while(!noc_done(sport->remote));
   }
+  return newest;
 }
 
 int mp_read(spd_t * sport, volatile void _SPM * sample) {
   int newest = 0;
   acquire_lock(sport->lock);
-  mp_read_cr(sport, sample, &newest);
+  newest = mp_read_cs(sport, sample);
   release_lock(sport->lock);
   DEBUGD(newest);
 
   if (newest < 0) {
     // No sample value has been written yet.
     return 0;
-  }
+  } 
   // Since sample_size is in bytes and we want to copy 32 bit at the time we divide sample_size by 4
   unsigned itteration_count = (sport->sample_size + 4 - 1) / 4; // equal to ceil(sport->sample_size/4)
+  #pragma loopbound min MSG_SIZE_WORDS max MSG_SIZE_WORDS
   for (int i = 0; i < itteration_count; ++i) {
-    ((int _SPM *)sample)[i] = ((volatile int _SPM *)(sport->read_bufs+
-                              newest*sport->sample_size))[i];
+    ((int _SPM *)sample)[i] = ((volatile int _SPM *)sport->read_bufs+(newest*(sport->sample_size)))[i];
   }
 
   return 1;
 
 } 
 
-void mp_write_cr(spd_t * sport, volatile void _SPM * sample, unsigned int * reading) {
+unsigned int mp_write_cs(spd_t * sport, volatile void _SPM * sample) INLINING;
+unsigned int mp_write_cs(spd_t * sport, volatile void _SPM * sample) {
     // Update newest
   noc_send( sport->remote,
             (void _SPM *)&(sport->remote_spd->newest),
             (void _SPM *)&sport->next,
             sizeof(sport->next));
+  #pragma loopbound min PKT_TRANS_WAIT max PKT_TRANS_WAIT
   while(!noc_done(sport->remote));
   // update next based on the reading variable
-  *reading = (unsigned int)sport->reading;
+  return (unsigned int)sport->reading;
   
 }
 
@@ -280,11 +316,12 @@ int mp_write(spd_t * sport, volatile void _SPM * sample) {
             (void _SPM *)( ((unsigned int)sport->read_bufs)+(((unsigned int)sport->next)*sport->sample_size) ),
             sample,
             sport->sample_size);
+  #pragma loopbound min SAMPLE_TRANS_WAIT max SAMPLE_TRANS_WAIT
   while(!noc_done(sport->remote));
   // When the sample is sent take the lock
   unsigned int reading;
   acquire_lock(sport->lock);
-  mp_write_cr(sport, sample, &reading);
+  reading = mp_write_cs(sport, sample);
   release_lock(sport->lock);
 
   sport->next++;
@@ -321,6 +358,7 @@ int mp_read(spd_t * sport, volatile void _SPM * sample) {
             (void _SPM *)&(sport->remote_spd->reading),
             (void _SPM *)&sport->next_reading,
             sizeof(sport->next_reading));
+  #pragma loopbound min PKT_TRANS_WAIT max PKT_TRANS_WAIT
   while(!noc_done(sport->remote));
 
   unsigned int next_newest = *((volatile unsigned int _SPM *)&sport->newest);
@@ -347,6 +385,7 @@ int mp_write(spd_t * sport, volatile void _SPM * sample) {
             sample,
             sport->sample_size);
   sport->next = reading;
+  #pragma loopbound min SAMPLE_TRANS_WAIT max SAMPLE_TRANS_WAIT
   while(!noc_done(sport->remote));
 
   // Update newest
@@ -354,6 +393,7 @@ int mp_write(spd_t * sport, volatile void _SPM * sample) {
             (void _SPM *)&(sport->remote_spd->newest),
             (void _SPM *)&sport->next,
             sizeof(sport->next));
+  #pragma loopbound min PKT_TRANS_WAIT max PKT_TRANS_WAIT
   while(!noc_done(sport->remote));
 
   return 1;
@@ -362,9 +402,10 @@ int mp_write(spd_t * sport, volatile void _SPM * sample) {
 #elif IMPL == MULTI_NOC_MP
 
 int mp_read(spd_t * sport, volatile void _SPM * sample) {
-  int ret = 0;
   int msg_rev = 0;
-  for (int i = 0; i < ((mpd_t *)sport)->num_buf; ++i) {
+  int num_buf = ((mpd_t *)sport)->num_buf;
+  #pragma loopbound min NUM_BUF max NUM_BUF
+  for (int i = 0; i < num_buf; ++i) {
     if(mp_nbrecv((mpd_t *)sport) != 0){
       msg_rev++;
     }
@@ -372,29 +413,28 @@ int mp_read(spd_t * sport, volatile void _SPM * sample) {
   if (msg_rev == 0) {
     return 0;
   }
-
-  for (int i = 0; i < msg_rev-1; ++i) {
-    mp_ack((mpd_t *)sport,0);
-  }
   // Since sample_size is in bytes and we want to copy 32 bit at the time we divide sample_size by 4
   unsigned itteration_count = (((mpd_t *)sport)->buf_size + 4 - 1) / 4; // equal to ceil(sport->sample_size/4)
+  int _SPM * buf = (int _SPM *)(((mpd_t *)sport)->read_buf);
+  #pragma loopbound min MSG_SIZE_WORDS max MSG_SIZE_WORDS
   for (int i = 0; i < itteration_count; ++i) {
-    ((volatile int _SPM *)sample)[i] = ((volatile int _SPM *)(((mpd_t *)sport)->read_buf))[i];
+    ((int _SPM *)sample)[i] = buf[i];
   }
-  mp_ack((mpd_t *)sport,0);
+  mp_ack_n((mpd_t *)sport,0,msg_rev);
 
   return 1;
 
 } 
 
 int mp_write(spd_t * sport, volatile void _SPM * sample) {
-  // Since sample_size is in bytes and we want to copy 32 bit at the time we divide sample_size by 4
-  unsigned itteration_count = (((mpd_t *)sport)->buf_size + 4 - 1) / 4; // equal to ceil(sport->sample_size/4)
-  for (int i = 0; i < itteration_count; ++i) {
-    ((volatile int _SPM *)(((mpd_t *)sport)->write_buf))[i]= ((volatile int _SPM *)sample)[i];
-  }
+  // Since we do not return from the function before the message is completely sent,
+  // we send the buffer pointet to by the sample pointer.
+  ((mpd_t *)sport)->write_buf = sample;
   mp_send((mpd_t *)sport,10000);
+  #pragma loopbound min SAMPLE_TRANS_WAIT max SAMPLE_TRANS_WAIT
+  while(!noc_done(sport->remote));
   return 1;
 } 
 
 #endif
+

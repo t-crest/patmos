@@ -66,6 +66,12 @@
 
 #define MAX_CHANNELS  32
 
+#ifdef NOINLINE
+ #define INLINING __attribute__ ((noinline))
+#else
+ #define INLINING __attribute__ ((always_inline))
+#endif
+
 /// \brief A type to identify a core. Supports up to 256 cores in the platform
 typedef char coreid_t;
 
@@ -91,8 +97,8 @@ struct _SPM_LOCK_T {
 };
 
 LOCK_T * initialize_lock(unsigned remote);
-void acquire_lock(LOCK_T * lock)  __attribute__((section(".text.spm")));
-void release_lock(LOCK_T * lock)  __attribute__((section(".text.spm")));
+void acquire_lock(LOCK_T * lock) INLINING;
+void release_lock(LOCK_T * lock) INLINING;
 
 /// \struct mpd_t
 /// \brief Message passing descriptor.
@@ -280,7 +286,7 @@ int mp_communicator_init(communicator_t* comm, const unsigned int count,
 /// \retval 0 The send did not succeed, either there was no space in the
 /// receiving buffer or there was no free DMA to start a transfer
 /// \retval 1 The send succeeded.
-int mp_nbsend(mpd_t * mpd_ptr) __attribute__((section(".text.spm")));
+int mp_nbsend(mpd_t * mpd_ptr) INLINING  ;
 
 /// \brief A function for passing a message to a remote processor under
 /// flow control. The data to be passed by the function should be in the
@@ -294,7 +300,7 @@ int mp_nbsend(mpd_t * mpd_ptr) __attribute__((section(".text.spm")));
 ///
 /// \retval 0 The function timed out.
 /// \retval 1 The function succeeded sending the message.
-int mp_send(mpd_t * mpd_ptr, const unsigned int time_usecs) __attribute__((section(".text.spm")));
+int mp_send(mpd_t * mpd_ptr, const unsigned int time_usecs) INLINING ;
 
 /// \brief Non-blocking function for receiving a message from a remote processor
 /// under flow control. The data that is received is placed in a message buffer
@@ -308,7 +314,7 @@ int mp_send(mpd_t * mpd_ptr, const unsigned int time_usecs) __attribute__((secti
 /// \retval 0 No message has been received yet.
 /// \retval 1 A message has been received and dequeued. The call has to be
 /// followed by a call to #mp_ack() when the data is no longer used.
-int mp_nbrecv(mpd_t * mpd_ptr) __attribute__((section(".text.spm")));
+int mp_nbrecv(mpd_t * mpd_ptr)  INLINING ;
 
 /// \brief A function for receiving a message from a remote processor under
 /// flow control. The data that is received is placed in a message buffer
@@ -323,7 +329,7 @@ int mp_nbrecv(mpd_t * mpd_ptr) __attribute__((section(".text.spm")));
 ///
 /// \retval 0 The function timed out.
 /// \retval 1 The function succeeded receiving the message.
-int mp_recv(mpd_t * mpd_ptr, const unsigned int time_usecs) __attribute__((section(".text.spm")));
+int mp_recv(mpd_t * mpd_ptr, const unsigned int time_usecs)  INLINING ;
 
 /// \brief Non-blocking function for acknowledging the reception of a message.
 /// This function should be used with extra care, if no acknowledgement is sent
@@ -339,7 +345,7 @@ int mp_recv(mpd_t * mpd_ptr, const unsigned int time_usecs) __attribute__((secti
 ///
 /// \retval 0 No acknowledgement has been sent.
 /// \retval 1 An acknowledgement has been sent.
-int mp_nback(mpd_t * mpd_ptr) __attribute__((section(".text.spm")));
+int mp_nback(mpd_t * mpd_ptr) INLINING ;
 
 /// \brief A function for acknowledging the reception of a message.
 /// This function shall be called to release space in the receiving
@@ -355,7 +361,8 @@ int mp_nback(mpd_t * mpd_ptr) __attribute__((section(".text.spm")));
 ///
 /// \retval 0 The function timed out.
 /// \retval 1 The function succeeded acknowledging the message.
-int mp_ack(mpd_t * mpd_ptr, const unsigned int time_usecs) __attribute__((section(".text.spm")));
+int mp_ack(mpd_t * mpd_ptr, const unsigned int time_usecs) INLINING ;
+int mp_ack_n(mpd_t * mpd_ptr, const unsigned int time_usecs, unsigned int num_acks) INLINING ;
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for sampling point-to-point transmission of data
@@ -363,11 +370,11 @@ int mp_ack(mpd_t * mpd_ptr, const unsigned int time_usecs) __attribute__((sectio
 
 /// \brief A function for writing a sampled value to the remote location
 /// at the receiving end of the channel
-int mp_write(spd_t * sport, volatile void _SPM * sample) __attribute__((section(".text.spm")));
+int mp_write(spd_t * sport, volatile void _SPM * sample)   __attribute__ ((noinline));
 
 /// \breif A function for reading a sampled value from the remote location
 /// at the sending end of the channel
-int mp_read(spd_t * sport, volatile void _SPM * sample) __attribute__((section(".text.spm")));
+int mp_read(spd_t * sport, volatile void _SPM * sample)   __attribute__ ((noinline));
 
 /// \breif A function for reading a sampled value from the remote location
 /// at the sending end of the channel. The function requires that the read

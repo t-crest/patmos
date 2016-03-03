@@ -26,7 +26,7 @@ const int NOC_MASTER = 0;
 #define CHAN_ID_TWO 2
 #define SAMPLE_SIZE 128
 
-#define DEBUG_ENABLE
+//#define DEBUG_ENABLE
 
 unsigned long long int min_time = ULONG_MAX;
 unsigned long long int max_time = 0;
@@ -41,7 +41,7 @@ void func_worker_1(void* arg) {
   spd_t * sport2 = mp_create_sport(CHAN_ID_TWO,SINK,MASTER_CORE,SAMPLE_SIZE*sizeof(short));
   spd_t * sport1 = mp_create_sport(CHAN_ID_ONE,SOURCE,MASTER_CORE,SAMPLE_SIZE*sizeof(short));
   if (sport1 == NULL || sport2 == NULL) {
-    exit(1);
+    //exit(1);
   }
   volatile short _SPM * sample = mp_alloc(SAMPLE_SIZE*sizeof(short));
 
@@ -54,18 +54,18 @@ void func_worker_1(void* arg) {
 
   while(done == 0);
 
-  //for (int i = 0; i < ITERATIONS; ++i) {
-  //    int ret = mp_read(sport2,sample);
-  //    for (int i = 0; i < SAMPLE_SIZE; ++i) {
-  //      if(sample[i] != i) {
-  //        break;
-  //      }
-  //    }
-  //    for (int i = 0; i < 100000; ++i)
-  //    {
-  //      asm volatile (""::);
-  //    }
-  //}
+  for (int i = 0; i < ITERATIONS; ++i) {
+      int ret = mp_read(sport2,sample);
+      for (int i = 0; i < SAMPLE_SIZE; ++i) {
+        if(sample[i] != i) {
+          break;
+        }
+      }
+      for (int i = 0; i < 100000; ++i)
+      {
+        asm volatile (""::);
+      }
+  }
 
   //for (int i = 0; i < ITERATIONS/2; ++i) {
   for (int i = 0; i < ITERATIONS*20; ++i) {
@@ -111,7 +111,7 @@ int main() {
   spd_t * sport1 = mp_create_sport(CHAN_ID_ONE,SINK,SLAVE_CORE,SAMPLE_SIZE*sizeof(short));
   spd_t * sport2 = mp_create_sport(CHAN_ID_TWO,SOURCE,SLAVE_CORE,SAMPLE_SIZE*sizeof(short));
   if (sport1 == NULL || sport2 == NULL) {
-    exit(1);
+    //exit(1);
   }
   volatile short _SPM * sample = mp_alloc(SAMPLE_SIZE*sizeof(short));
 
@@ -120,22 +120,22 @@ int main() {
   done = 1;
 
   int balance = 0;
-//  for (int i = 0; i < SAMPLE_SIZE; ++i) {
-//    sample[i] = i;
-//  }
-//  for (int i = 0; i < ITERATIONS/2; ++i) {
-//    mp_write(sport2,sample);
-//    for (int i = 0; i < SAMPLE_SIZE; ++i) {
-//      sample[i] = i;
-//    }
-//  }
-//
-//  for (int i = 0; i < ITERATIONS/2; ++i) {
-//    mp_write(sport2,sample);
-//    for (int i = 0; i < SAMPLE_SIZE; ++i) {
-//      sample[SAMPLE_SIZE-1-i] = i;
-//    }
-//  }
+  for (int i = 0; i < SAMPLE_SIZE; ++i) {
+    sample[i] = i;
+  }
+  for (int i = 0; i < ITERATIONS/2; ++i) {
+    mp_write(sport2,sample);
+    for (int i = 0; i < SAMPLE_SIZE; ++i) {
+      sample[i] = i;
+    }
+  }
+
+  for (int i = 0; i < ITERATIONS/2; ++i) {
+    mp_write(sport2,sample);
+    for (int i = 0; i < SAMPLE_SIZE; ++i) {
+      sample[SAMPLE_SIZE-1-i] = i;
+    }
+  }
 
 
 
