@@ -139,8 +139,8 @@ $(LIBMP): $(BUILDDIR)/libmp/utils.o $(BUILDDIR)/libmp/mp.o $(BUILDDIR)/libmp/que
 
 # library for corethreads
 .PHONY: libcorethread
-libcorethread: cmpboot.h $(LIBCORETHREAD)
-$(BUILDDIR)/libcorethread/corethread.o: libcorethread/corethread.h bootloader/cmpboot.h
+libcorethread: $(LIBCORETHREAD)
+$(BUILDDIR)/libcorethread/corethread.o: libcorethread/corethread.h
 $(LIBCORETHREAD): $(BUILDDIR)/libcorethread/corethread.o
 	patmos-ar r $@ $^
 

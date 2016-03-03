@@ -10,7 +10,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "bootloader/cmpboot.h"
+#include <machine/boot.h>
 
 // SEVERITY
 #define INFO    0

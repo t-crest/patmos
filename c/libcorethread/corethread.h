@@ -49,7 +49,7 @@
 #include <machine/spm.h>
 #include <stdlib.h>
 #include <machine/rtc.h>
-#include "bootloader/cmpboot.h"
+#include <machine/boot.h>
 
 
 /// \brief Resource unavailable.
@@ -81,14 +81,14 @@ typedef size_t corethread_t;
 
 /// \brief A contructor that makes the slave cores wait for a corethread to
 /// be created on that core and the master core continue to execute main().
-void corethread_worker(void) __attribute__ ((constructor(120),used));
+//void corethread_worker(void) __attribute__ ((constructor(110),used));
 
-#ifdef CORETHREAD_INIT
+//#ifdef CORETHREAD_INIT
 // Pull in initializer, even if nothing else from the library is used
 /// \cond PRIVATE
-static const void * volatile __corethread_include __attribute__((used)) = &corethread_worker;
+//static const void * volatile __corethread_include __attribute__((used)) = &corethread_worker;
 /// \endcond
-#endif
+//#endif
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for creating and destroying corethreads
