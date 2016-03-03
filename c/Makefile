@@ -12,6 +12,10 @@ LIBELF=$(BUILDDIR)/libelf.a
 
 NOCINIT?=nocinit.c
 
+SHELL=/bin/bash
+#BOOTSPM data is by default in data SPM 
+BOOTSPM_BASE?=0x00020000
+
 # Flags for compiling to boot ROM
 CFLAGS-BOOTABLE?=-target patmos-unknown-unknown-elf -Os \
 	-I$(CURDIR) -DBOOTROM \
@@ -19,11 +23,12 @@ CFLAGS-BOOTABLE?=-target patmos-unknown-unknown-elf -Os \
 	-mpatmos-disable-function-splitter \
 	-mpatmos-disable-vliw
 LDFLAGS-BOOTABLE?= \
-	-mpatmos-stack-base=0x00020800 -mpatmos-shadow-stack-base=0x00020700 \
+	-mpatmos-stack-base=$$(( $(BOOTSPM_BASE) + 0x800 )) \
+	-mpatmos-shadow-stack-base=$$(( $(BOOTSPM_BASE) + 0x700 )) \
 	-nodefaultlibs -nostdlib -nostartfiles \
 	-Xgold --section-start -Xgold .text=0x0 -e _start \
 	-Xgold --section-start -Xgold .rodata=0xf0008010 \
-	-Xgold --section-start -Xgold .data=0x00020000 \
+	-Xgold --section-start -Xgold .data=$(BOOTSPM_BASE) \
 	-Xllc -mpatmos-subfunction-align=0 \
 	-Xllc -disable-machine-licm -Xllc -disable-machine-cse
 
@@ -72,9 +77,9 @@ $(BUILDDIR)/%.s: %.c Makefile
 	$(CC) $(CFLAGS) -fpatmos-emit-asm -S -o $@ $(filter %.c,$^)
 
 # A target for bootable applications (e.g., the bootloader)
-$(BUILDDIR)/bootable-%.elf: %.c $(LIBETH) Makefile
+$(BUILDDIR)/bootable-%.elf: %.c $(LIBETH) $(LIBNOC) $(NOCINIT) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -leth
+	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -leth -lnoc
 
 $(BUILDDIR)/bootable-%.s: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
