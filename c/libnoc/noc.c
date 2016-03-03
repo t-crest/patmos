@@ -41,13 +41,12 @@
 
 #include <machine/patmos.h>
 #include <machine/spm.h>
+#include <machine/boot.h>
 #include <machine/exceptions.h>
 
-//#include <stdio.h>
-#include <stdlib.h>
-#include "bootloader/cmpboot.h"
+#include <stdio.h>
+//#include "bootloader/cmpboot.h"
 #include "noc.h"
-#include "include/patio.h"
 
 #define TRAP
 
@@ -99,7 +98,8 @@ void __noc_trap_handler(void) {
       ret = k_noc_done(p1);
       break;
     default:
-      WRITE("Illegal op\n",11);
+      break;
+      //WRITE("Illegal op\n",11);
   }
   intr_disable();
   //WRITE("Returning from trap\n",20);
@@ -150,7 +150,8 @@ void noc_load_config(void) {
     unsigned core_idx = get_cpuid() * NOC_TABLES * NOC_SCHEDULE_ENTRIES;
     unsigned short schedule_entries = noc_init_array[mode_idx+core_idx];
     if (noc_conf_base_ptr+schedule_entries >= schedule_table_size) {
-      WRITE("Configuration schedules do not fit in schedule table\n",53);
+      //WRITE("Configuration schedules do not fit in schedule table\n",53);
+      //puts("Configuration schedules do not fit in schedule table");
     }
     for (unsigned i = 0; i < schedule_entries; ++i) {
       // Handling allocation of space in the mode change table
