@@ -91,8 +91,8 @@ $(BUILDDIR)/vm-%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBET
 
 # application-specific additional dependencies
 $(BUILDDIR)/bootable-bootloader.elf: download.c decompress.c ethmac.c boot.h bootable.h
-$(BUILDDIR)/bootable-cmpmaster.elf: download.c decompress.c ethmac.c boot.h cmpboot.h bootable.h
-$(BUILDDIR)/bootable-cmpslave.elf: boot.h cmpboot.h bootable.h
+$(BUILDDIR)/bootable-cmpmaster.elf: download.c decompress.c ethmac.c boot.h bootable.h
+$(BUILDDIR)/bootable-cmpslave.elf: boot.h bootable.h
 
 $(BUILDDIR)/bootable-mandelbrot.elf: bootable.h
 $(BUILDDIR)/mandelbrot.elf: bootable.h
@@ -127,14 +127,14 @@ $(LIBNOC): $(BUILDDIR)/libnoc/noc.o
 # library for message passing
 .PHONY: libmp
 libmp: libnoc $(LIBMP)
-$(BUILDDIR)/libmp/mp.o: libmp/mp.h libnoc/noc.h libnoc/coreset.h bootloader/cmpboot.h
+$(BUILDDIR)/libmp/mp.o: libmp/mp.h libnoc/noc.h libnoc/coreset.h
 $(LIBMP): $(BUILDDIR)/libmp/mp.o
 	patmos-ar r $@ $^
 
 # library for corethreads
 .PHONY: libcorethread
-libcorethread: cmpboot.h $(LIBCORETHREAD)
-$(BUILDDIR)/libcorethread/corethread.o: libcorethread/corethread.h bootloader/cmpboot.h
+libcorethread: $(LIBCORETHREAD)
+$(BUILDDIR)/libcorethread/corethread.o: libcorethread/corethread.h
 $(LIBCORETHREAD): $(BUILDDIR)/libcorethread/corethread.o
 	patmos-ar r $@ $^
 

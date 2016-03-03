@@ -9,7 +9,7 @@
 #define _DEBUG_H_
 
 #include <stdio.h>
-#include "bootloader/cmpboot.h"
+#include <machine/boot.h>
 
 // SEVERITY
 #define INFO    0

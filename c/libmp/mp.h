@@ -64,9 +64,10 @@
 #include <stdio.h>
 #include <machine/patmos.h>
 #include <machine/spm.h>
+#include <machine/boot.h>
 #include "libnoc/noc.h"
 #include "libnoc/coreset.h"
-#include "bootloader/cmpboot.h"
+
 
 /// \brief Aligns X to double word size
 #define DWALIGN(X) (((X)+0x7) & ~0x7)

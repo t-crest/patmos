@@ -9,8 +9,8 @@ const int NOC_MASTER = 0;
 #include <machine/patmos.h>
 #include <machine/exceptions.h>
 #include <machine/rtc.h>
+#include <machine/boot.h>
 #include "libnoc/noc.h"
-#include "bootloader/cmpboot.h"
 #include "libmp/mp.h"
 #include "libcorethread/corethread.h"
 
@@ -25,7 +25,8 @@ int main_mem_size = 0;
 int core_count = 0;
 //int core_com[64];
 
-void prefix(int size, char* buf)  __attribute__((section(".text.spm"))){
+void prefix(int size, char* buf)  __attribute__((section(".text.spm")));
+void prefix(int size, char* buf){
   int pref = 0;
   while (size > 1024){
     size = size >> 10;
@@ -183,9 +184,9 @@ void noc_test_slave() {
 void mem_load_test() {
   int size = (main_mem_size-MINADDR)/get_cpucnt(); 
   volatile _UNCACHED unsigned int *addr = TEST_START + get_cpuid()*size;
-  for(unsigned int start_time = get_cpu_usecs(); get_cpu_usecs() - start_time < 2000 ;) {
-    ABORT_IF_FAIL(mem_area_test_uncached(addr,size)<0,"FAIL");
-  }
+//  for(unsigned int start_time = get_cpu_usecs(); get_cpu_usecs() - start_time < 2000 ;) {
+//    ABORT_IF_FAIL(mem_area_test_uncached(addr,size)<0,"FAIL");
+//  }
 }
 
 void slave_tester (void* arg) {
@@ -236,9 +237,13 @@ int main() {
   for(int i = 0; i < get_cpucnt(); i++) {
     if (i != NOC_MASTER) {
       corethread_t ct = (corethread_t) i;
-      if(corethread_create(&ct,&slave_tester,(void*)param) != 0){
+      printf("Creating corethread: %d\n",i);
+      if(corethread_create(&ct,&slave_tester,(void*)param) == 0){
+        printf("Corethread created: %d\n",i);
+      } else {
         printf("Corethread %d not created\n",i);
       }
+      
     }
   }
   printf("Performing main mem load test...");
