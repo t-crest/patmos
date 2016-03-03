@@ -55,19 +55,21 @@ class Memory() extends Module {
 
   // React on error responses
   val illMem = (io.localInOut.S.Resp === OcpResp.ERR ||
-                io.globalInOut.S.Resp === OcpResp.ERR)
+                io.globalInOut.S.Resp === OcpResp.ERR ||
+                io.icacheIllMem || io.scacheIllMem)
+  val illMemReg = Reg(next = illMem)
 
   // Flush logic
   val flush = (memReg.mem.xcall || memReg.mem.trap ||
                ((memReg.mem.call || memReg.mem.ret ||
                  memReg.mem.brcf || memReg.mem.xret) && memReg.mem.nonDelayed) ||
-               memReg.mem.illOp || illMem)
+               memReg.mem.illOp || illMemReg)
   io.flush := flush
 
   // Stall logic
   val mayStallReg = Reg(init = Bool(false))
-  val enable = (io.localInOut.S.Resp != OcpResp.NULL
-                || io.globalInOut.S.Resp != OcpResp.NULL
+  val enable = (io.localInOut.S.Resp === OcpResp.DVA
+                || io.globalInOut.S.Resp === OcpResp.DVA
                 || !mayStallReg)
   io.ena_out := enable
 
@@ -80,23 +82,29 @@ class Memory() extends Module {
       mayStallReg := Bool(false)
     }
   }
+  when(illMem) {
+      mayStallReg := Bool(false)
+  }
 
-  // PD: Maybe we find a better solution to avoid the case that Data from the Data-Cache is
-  // still received during the I-Cache stalls the pipeline
-  // uncomment if I-Cache is used
-  // val rdDataEnaReg = Reg(init = Bool(false))
-  // val rdDataReg = Reg(init = Bits(0, width = 32))
-  // // Save incoming data if available during I-Cache stall
-  // when (!io.ena_in) {
-  //   when (io.localInOut.S.Resp === OcpResp.DVA || io.globalInOut.S.Resp === OcpResp.DVA) {
-  //     mayStallReg := Bool(false)
-  //     rdDataEnaReg := Bool(true)
-  //     rdDataReg := io.globalInOut.S.Data
-  //   }
-  // }
-  // .otherwise {
-  //   rdDataEnaReg := Bool(false)
-  // }
+  // Buffer incoming data while being stalled from I-cache
+  val rdDataEnaReg = Reg(init = Bool(false))
+  val rdDataReg = Reg(init = Bits(0, width = 32))
+  // Save incoming data if available during I-cache stall
+  when (!io.ena_in) {
+    when (io.localInOut.S.Resp =/= OcpResp.NULL || io.globalInOut.S.Resp =/= OcpResp.NULL) {
+      mayStallReg := Bool(false)
+      rdDataEnaReg := Bool(true)
+    }
+    when (io.localInOut.S.Resp === OcpResp.DVA) {
+      rdDataReg := io.localInOut.S.Data
+    }
+    when (io.globalInOut.S.Resp === OcpResp.DVA) {
+      rdDataReg := io.globalInOut.S.Data
+    }
+  }
+  .otherwise {
+    rdDataEnaReg := Bool(false)
+  }
 
   // Write data multiplexing and write enables
   // Big endian, where MSB is at the lowest address
@@ -156,7 +164,7 @@ class Memory() extends Module {
   io.localInOut.M.Data := Cat(wrData(3), wrData(2), wrData(1), wrData(0))
   io.localInOut.M.ByteEn := byteEn
 
-  io.globalInOut.M.Cmd := Mux(io.exmem.mem.typ != MTYPE_L, cmd, OcpCmd.IDLE)
+  io.globalInOut.M.Cmd := Mux(io.exmem.mem.typ =/= MTYPE_L, cmd, OcpCmd.IDLE)
   io.globalInOut.M.Addr := Cat(io.exmem.mem.addr(ADDR_WIDTH-1, 2), Bits("b00"))
   io.globalInOut.M.Data := Cat(wrData(3), wrData(2), wrData(1), wrData(0))
   io.globalInOut.M.ByteEn := byteEn
@@ -173,12 +181,11 @@ class Memory() extends Module {
   }
 
   // Read data multiplexing and sign extensions if needed
-  val rdData = splitData(Mux(memReg.mem.typ === MTYPE_L,
-                             io.localInOut.S.Data, io.globalInOut.S.Data))
+  val rdData = splitData(Mux(Bool(ICACHE_TYPE == ICACHE_TYPE_LINE) && rdDataEnaReg,
+                             rdDataReg,
+                             Mux(memReg.mem.typ === MTYPE_L,
+                                 io.localInOut.S.Data, io.globalInOut.S.Data)))
 
-  //uncommend if I-Cache is used
-  // val rdData = Mux(rdDataEnaReg, splitData(rdDataReg), splitData(Mux(memReg.mem.typ === MTYPE_L,
-  //                             io.localInOut.S.Data, io.globalInOut.S.Data)))
   val dout = Bits(width = DATA_WIDTH)
   // default word read
   dout := Cat(rdData(3), rdData(2), rdData(1), rdData(0))
@@ -229,11 +236,12 @@ class Memory() extends Module {
   io.exc.call := memReg.mem.xcall
   io.exc.ret := memReg.mem.xret
   // trigger exception
-  io.exc.exc := memReg.mem.trap || memReg.mem.illOp || illMem
+  io.exc.exc := memReg.mem.trap || memReg.mem.illOp || illMemReg
 
   io.exc.src := Mux(memReg.mem.illOp, Bits(0),
-                    Mux(illMem, Bits(1),
+                    Mux(illMemReg, Bits(1),
                         memReg.mem.xsrc))
+  io.exc.excBase := memReg.base
   io.exc.excAddr := Mux(memReg.mem.trap, memReg.relPc + UInt(1), memReg.relPc)
 
   // Keep signal alive for debugging

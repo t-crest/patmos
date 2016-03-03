@@ -112,7 +112,7 @@ $(JAVATOOLSBUILDDIR)/classes/%.class: tools/java/src/%.java
 # Build the Chisel emulator
 emulator:
 	-mkdir -p $(HWBUILDDIR)
-	$(MAKE) -C hardware BOOTBUILDROOT=$(CURDIR) BOOTBUILDDIR=$(BUILDDIR) BOOTAPP=$(BOOTAPP) BOOTBIN=$(BUILDDIR)/$(BOOTAPP).bin emulator
+	$(MAKE) -C hardware BOOTBUILDROOT=$(CURDIR) BOOTBUILDDIR=$(BUILDDIR) BOOTAPP=$(BOOTAPP) BOOTBIN=$(BUILDDIR)/$(BOOTAPP).bin BOARD=$(BOARD) emulator
 	-mkdir -p $(HWINSTALLDIR)/bin
 	cp $(HWBUILDDIR)/emulator $(HWINSTALLDIR)/bin
 
@@ -127,9 +127,9 @@ asm-% $(BUILDDIR)/%.bin $(BUILDDIR)/%.dat: asm/%.s
 # Compile a program with flags for booting
 bootcomp: bin-$(BOOTAPP)
 
-# Convert elf file to binary
+# Convert elf file to binary, using the address of the boot ROM as displacement
 bin-% $(BUILDDIR)/%.bin $(BUILDDIR)/%.dat: $(BUILDDIR)/%.elf $(INSTALLDIR)/bin/elf2bin
-	$(INSTALLDIR)/bin/elf2bin $< $(BUILDDIR)/$*.bin $(BUILDDIR)/$*.dat
+	$(INSTALLDIR)/bin/elf2bin -d 0xf0008000 $< $(BUILDDIR)/$*.bin $(BUILDDIR)/$*.dat
 
 # Convert elf file to flat memory image
 img: img-$(APP)

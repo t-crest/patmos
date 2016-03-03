@@ -53,9 +53,9 @@ import patmos.Constants._
 class StackCache() extends Module {
   val io = new StackCacheIO() {
     // slave to cpu
-    val fromCPU = new OcpCoreSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
+    val fromCPU = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
     // master to memory
-    val toMemory = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
+    val toMemory = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
 
     val perf = new StackCachePerf()
   }
@@ -73,7 +73,7 @@ class StackCache() extends Module {
   val scSizeBits = Chisel.log2Up(SCACHE_SIZE / BYTES_PER_WORD)
 
   // stateReg machine to manage spilling and filling
-  val idleState :: fillState :: waitFillState :: spillState :: holdSpillState :: waitSpillState :: Nil = Enum(UInt(), 6)
+  val idleState :: fillState :: waitFillState :: spillState :: holdSpillState :: waitSpillState :: errorState :: Nil = Enum(UInt(), 7)
   val stateReg = Reg(init = idleState)
 
   // chose between sres and sspill
@@ -86,7 +86,7 @@ class StackCache() extends Module {
   val memTopReg = Reg(UInt(width = DATA_WIDTH))
 
   // temporary address used during filling/spilling 
-  val transferAddrReg = Reg(UInt(width = EXTMEM_ADDR_WIDTH+1))
+  val transferAddrReg = Reg(UInt(width = ADDR_WIDTH+1))
 
   // temporary address used during filling/spilling
   val newMemTopReg = Reg(UInt(width = DATA_WIDTH))
@@ -114,8 +114,10 @@ class StackCache() extends Module {
                         ((stackTopReg + UInt(SCACHE_SIZE)) <= transferAddrReg) && (transferAddrReg < memTopReg),
                         (newMemTopReg <= transferAddrReg) && (transferAddrReg < memTopReg))
 
+  io.stall := stateReg =/= idleState
+  io.illMem := Bool(false)
+
   // default OCP "request"
-  io.stall := stateReg != idleState
   io.toMemory.M.Cmd := OcpCmd.IDLE
   io.toMemory.M.Addr := transferAddrReg
   io.toMemory.M.Data := mb_rdData
@@ -164,7 +166,7 @@ class StackCache() extends Module {
         }
         is(sc_OP_ENS) {
           // start transfer from the current memory top pointer on
-          transferAddrReg := memTopReg(EXTMEM_ADDR_WIDTH - 1, burstBits) ## Fill(burstBits, UInt("b0"))
+          transferAddrReg := memTopReg(ADDR_WIDTH - 1, burstBits) ## Fill(burstBits, UInt("b0"))
 
           // update memory top pointer
           newMemTopReg := stackTopInc
@@ -188,7 +190,7 @@ class StackCache() extends Module {
           stackTopReg := nextStackTop
           // start transfer from the current stack pointer + SCACHE_SIZE
           val nextTransferAddr =
-            (nextStackTop + UInt(SCACHE_SIZE))(EXTMEM_ADDR_WIDTH-1, burstBits) ## Fill(burstBits, UInt("b0"))
+            (nextStackTop + UInt(SCACHE_SIZE))(ADDR_WIDTH-1, burstBits) ## Fill(burstBits, UInt("b0"))
           // start reading from the stack cache's memory
           mb_rdAddr := nextTransferAddr(scSizeBits + wordBits - 1, wordBits)
           // store transfer address in a register
@@ -203,7 +205,7 @@ class StackCache() extends Module {
           // start transfer from the current mem top - offset
           val nextNewMemTop = memTopReg - io.exsc.opOff
           val nextTransferAddr = 
-            nextNewMemTop(EXTMEM_ADDR_WIDTH-1, burstBits) ## Fill(burstBits, UInt("b0"))
+            nextNewMemTop(ADDR_WIDTH-1, burstBits) ## Fill(burstBits, UInt("b0"))
           // start reading from the stack cache's memory
           mb_rdAddr := nextTransferAddr(scSizeBits + wordBits - 1, wordBits)
           // store transfer address in a register
@@ -264,10 +266,12 @@ class StackCache() extends Module {
       val spillingDone = memTopReg <= transferAddrReg
 
       // wait for a response from the memory, if all data has been transfered
-      // return to the IDLE stateReg
+      // return to the IDLE state
       stateReg := Mux(io.toMemory.S.Resp === OcpResp.DVA,
-        Mux(spillingDone, idleState, holdSpillState),
-        waitSpillState)
+                      Mux(spillingDone, idleState, holdSpillState),
+                      Mux(io.toMemory.S.Resp === OcpResp.ERR, idleState, waitSpillState))
+
+      io.illMem := io.toMemory.S.Resp === OcpResp.ERR
 
       // done? finally compute the new memory top pointer
       memTopReg := Mux(spillingDone,
@@ -323,6 +327,23 @@ class StackCache() extends Module {
         // done? finally compute the new memory top pointer
         memTopReg := Mux(fillingDone, newMemTopReg, memTopReg)
       }
+
+      // abort on error response
+      when(io.toMemory.S.Resp === OcpResp.ERR)  {
+        transferAddrReg := transferAddrReg + UInt(BYTES_PER_WORD)
+        stateReg := errorState
+      }
+    }
+
+    is(errorState) {
+      // wait for end of transaction and signal illegal memory access
+      when (io.toMemory.S.Resp =/= OcpResp.NULL) {
+        transferAddrReg := transferAddrReg + UInt(BYTES_PER_WORD)
+      }
+      when (burstCounter === UInt(BURST_LENGTH - 1)) {
+        io.illMem := Bool(true)
+        stateReg := idleState
+      }
     }
   }
 
@@ -365,6 +386,8 @@ class StackCache() extends Module {
     stateReg := stateReg
     stackTopReg := stackTopReg
     memTopReg := memTopReg
+    transferAddrReg := transferAddrReg
+    io.toMemory.M.Cmd := OcpCmd.IDLE    
   }
 
 

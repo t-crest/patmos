@@ -52,8 +52,8 @@ import ocp._
 
 class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends Module {
   val io = new Bundle {
-    val master = new OcpCoreSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
-    val slave = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, lineSize / 4)
+    val master = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+    val slave = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, lineSize / 4)
     val invalidate = Bool(INPUT)
     val perf = new DataCachePerf()
   }
@@ -64,7 +64,7 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends Module {
   val addrBits = log2Up((size / 2) / BYTES_PER_WORD)
   val lineBits = log2Up(lineSize)
 
-  val tagWidth = EXTMEM_ADDR_WIDTH - addrBits - 2
+  val tagWidth = ADDR_WIDTH - addrBits - 2
   val tagCount = (size / 2) / lineSize
 
   // Register signals from master
@@ -88,8 +88,8 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends Module {
   val tag2 = tagMem2.io(io.master.M.Addr(addrBits + 1, lineBits))
   val tagV1 = Reg(next = tagVMem1(io.master.M.Addr(addrBits + 1, lineBits)))
   val tagV2 = Reg(next = tagVMem2(io.master.M.Addr(addrBits + 1, lineBits)))
-  val tagValid1 = tagV1 && tag1 === Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH - 1, addrBits + 2))
-  val tagValid2 = tagV2 && tag2 === Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH - 1, addrBits + 2))
+  val tagValid1 = tagV1 && tag1 === Cat(masterReg.Addr(ADDR_WIDTH - 1, addrBits + 2))
+  val tagValid2 = tagV2 && tag2 === Cat(masterReg.Addr(ADDR_WIDTH - 1, addrBits + 2))
   val lru = Reg(next = lruMem(io.master.M.Addr(addrBits + 1, lineBits)))
 
   val fillReg = Reg(Bool())
@@ -141,7 +141,7 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends Module {
 
   // Default values
   io.slave.M.Cmd := OcpCmd.IDLE
-  io.slave.M.Addr := Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, lineBits),
+  io.slave.M.Addr := Cat(masterReg.Addr(ADDR_WIDTH-1, lineBits),
                          Fill(Bits(0), lineBits))
   io.slave.M.Data := Bits(0)
   io.slave.M.DataValid := Bits(0)
@@ -179,11 +179,11 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends Module {
   
   tagMem1.io <= (!tagValid1 && !tagValid2 && !lru && masterReg.Cmd === OcpCmd.RD,
                 masterReg.Addr(addrBits + 1, lineBits),
-                masterReg.Addr(EXTMEM_ADDR_WIDTH-1, addrBits+2))
+                masterReg.Addr(ADDR_WIDTH-1, addrBits+2))
                 
   tagMem2.io <= (!tagValid1 && !tagValid2 && lru && masterReg.Cmd === OcpCmd.RD,
                 masterReg.Addr(addrBits + 1, lineBits),
-                masterReg.Addr(EXTMEM_ADDR_WIDTH-1, addrBits+2))
+                masterReg.Addr(ADDR_WIDTH-1, addrBits+2))
 
   // Hold read command
   when(stateReg === hold) {
@@ -200,7 +200,7 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends Module {
   when(stateReg === fill) {
     wrAddrReg := Cat(masterReg.Addr(addrBits + 1, lineBits), burstCntReg)    
     
-    when(io.slave.S.Resp === OcpResp.DVA) {
+    when(io.slave.S.Resp =/= OcpResp.NULL) {
       fillReg := Bool(true)
       wrDataReg := io.slave.S.Data
       when(burstCntReg === missIndexReg) {
@@ -210,6 +210,14 @@ class TwoWaySetAssociativeCache(size: Int, lineSize: Int) extends Module {
         stateReg := respond
       }
       burstCntReg := burstCntReg + UInt(1)
+    }
+    when(io.slave.S.Resp === OcpResp.ERR) {
+      when (lru === Bool(false)) {
+        tagVMem1(masterReg.Addr(addrBits + 1, lineBits)) := Bool(false)
+      }
+      .otherwise {
+        tagVMem2(masterReg.Addr(addrBits + 1, lineBits)) := Bool(false)
+      }
     }
     masterReg.Addr := masterReg.Addr
   }

@@ -117,7 +117,7 @@ class NodeTdmArbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int,
       val master = io.master.M
       //io.slave.M := master
       
-      when (master.Cmd != OcpCmd.IDLE){
+      when (master.Cmd =/= OcpCmd.IDLE){
         when (master.Cmd === OcpCmd.RD) {
           io.slave.M := master
           stateReg := sRead

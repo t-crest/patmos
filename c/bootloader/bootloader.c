@@ -45,9 +45,15 @@
 
 // #define DEBUG
 
+// a variable to remember the (shadow) stack pointer
+static volatile unsigned int r31;
+
 int main(void) __attribute__((noreturn));
 
 int main(void) {
+
+  // save (shadow) stack pointer
+  asm volatile ("mov %0 = $r31;" : "=r" (r31));
 
 #ifdef DEBUG
   WRITE("DOWN\n", 5);
@@ -62,7 +68,14 @@ int main(void) {
   }
 #endif
 
-  static char msg[10];
+  // initialize the content of the I-SPM from the main memory
+  // copy words not bytes
+  for (int i = 0; i < get_ispm_size()/4; ++i) {
+    // starting at 64 K (1 << 16) word address (/4)
+    *(SPM+(1<<16)/4+i) = *(MEM+(1<<16)/4+i);
+  }
+
+  static unsigned char msg[10];
 
 #ifdef DEBUG
   WRITE("START ", 6);
@@ -82,6 +95,9 @@ int main(void) {
   // call the application's _start()
   int retval = -1;
   if (entrypoint != 0) {
+    // enable global mode
+    global_mode();
+
     retval = (*entrypoint)();
 
     // Return may be "unclean" and leave registers clobbered.
@@ -94,17 +110,29 @@ int main(void) {
                     "$r22", "$r23", "$r24", "$r25",
                     "$r26", "$r27", "$r28", "$r29",
                     "$r30", "$r31");
+
+    // enable local mode again
+    local_mode();
   }
+
+  // restore (shadow) stack pointer
+  asm volatile ("mov $r31 = %0;" : : "r" (r31));
 
 #ifdef DEBUG
   WRITE("EXIT\n", 5);
 #endif
 
   // Print exit magic and return code
+#ifdef ETHMAC
   msg[0] = '\0';
   msg[1] = 'x';
   msg[2] = retval & 0xff;
-  WRITE(msg, 3);
+  udp_send(TX_ADDR, ARP_ADDR, host_ip, TARGET_PORT, HOST_PORT, msg, 3, 10000);
+#else
+  uart_write('\0');
+  uart_write('x');
+  uart_write(retval & 0xff);
+#endif
 
   // clear caches and loop back
   inval_dcache();

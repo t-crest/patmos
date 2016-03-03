@@ -81,6 +81,7 @@ class InOut() extends Module {
     deviceSVec(i).Data := Bits(0)
   }
   validDeviceVec(EXC_IO_OFFSET) := Bool(true)
+  validDeviceVec(MMU_IO_OFFSET) := Bool(HAS_MMU)
 
   // Register selects
   val selSpmReg = Reg(Bool())
@@ -89,7 +90,7 @@ class InOut() extends Module {
 
   val selDeviceReg = Vec.fill(MAX_IO_DEVICES) { Reg(Bool()) }
 
-  when(io.memInOut.M.Cmd != OcpCmd.IDLE) {
+  when(io.memInOut.M.Cmd =/= OcpCmd.IDLE) {
     selSpmReg := selSpm
     selComConfReg := selComConf
     selComSpmReg := selComSpm
@@ -106,7 +107,7 @@ class InOut() extends Module {
   val errResp = Reg(init = OcpResp.NULL)
   val validSelVec = selDeviceVec.zip(validDeviceVec).map{ case (x, y) => x && y }
   val validSel = validSelVec.fold(Bool(false))(_|_)
-  errResp := Mux(io.memInOut.M.Cmd != OcpCmd.IDLE &&
+  errResp := Mux(io.memInOut.M.Cmd =/= OcpCmd.IDLE &&
                  selIO && !validSel,
                  OcpResp.ERR, OcpResp.NULL)
 
@@ -142,16 +143,23 @@ class InOut() extends Module {
     // connect ports
     dev.io.ocp.M := io.memInOut.M
     dev.io.ocp.M.Cmd := Mux(selDeviceVec(devConf.offset), io.memInOut.M.Cmd, OcpCmd.IDLE)
+    dev.io.superMode <> io.superMode
     dev.io.internalPort <> io.internalIO
     deviceSVec(devConf.offset) := dev.io.ocp.S
     Config.connectIOPins(devConf.name, io, dev.io)
     Config.connectIntrPins(devConf, io, dev.io)
   }
 
-  // The exception unit is special and outside this unit
+  // The exception and memory management units are special and outside this unit
   io.excInOut.M := io.memInOut.M
   io.excInOut.M.Cmd := Mux(selDeviceVec(EXC_IO_OFFSET), io.memInOut.M.Cmd, OcpCmd.IDLE)
   deviceSVec(EXC_IO_OFFSET) := io.excInOut.S
+
+  if (HAS_MMU) {
+    io.mmuInOut.M := io.memInOut.M
+    io.mmuInOut.M.Cmd := Mux(selDeviceVec(MMU_IO_OFFSET), io.memInOut.M.Cmd, OcpCmd.IDLE)
+    deviceSVec(MMU_IO_OFFSET) := io.mmuInOut.S
+  }
 
   // Return data to pipeline
   io.memInOut.S.Data := spmS.Data

@@ -124,7 +124,7 @@ class Uart(clk_freq: Int, baud_rate: Int, fifoDepth: Int) extends CoreDevice() {
     // Read data
     when(io.ocp.M.Cmd === OcpCmd.RD) {
         respReg := OcpResp.DVA
-        rxQueue.io.deq.ready := io.ocp.M.Addr(2) != Bits(0)
+        rxQueue.io.deq.ready := io.ocp.M.Addr(2) =/= Bits(0)
     }
 
     // Connections to master

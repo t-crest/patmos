@@ -152,7 +152,7 @@ class QdrIIplusCtrl(ocpAddrWidth   : Int,
       wrBufferReg(i).byteEna := io.ocp.M.DataByteEn((i+1)*BYTESPERTRAN-1,i*BYTESPERTRAN)
       wrBufferReg(i).data    := io.ocp.M.Data((i+1)*ramDataWidth-1,i*ramDataWidth)
     }
-    when(io.ocp.M.Cmd != OcpCmd.IDLE) {
+    when(io.ocp.M.Cmd =/= OcpCmd.IDLE) {
       mAddrReg := io.ocp.M.Addr(ramAddrWidth + log2upNew(BYTESPERSEL) - 1,
                                 log2upNew(BYTESPERSEL))
       io.ocp.S.CmdAccept := Bits(1)

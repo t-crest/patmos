@@ -45,11 +45,11 @@
 //High level functions (for the demo)
 ///////////////////////////////////////////////////////////////
 
-//This function sends an ethernet frame located at tx_addr and of lenght frame_lenght.
-void eth_mac_send(unsigned int tx_addr, unsigned int frame_lenght){
+//This function sends an ethernet frame located at tx_addr and of length frame_length.
+void eth_mac_send(unsigned int tx_addr, unsigned int frame_length){
 	eth_iowr(0x04, 0x00000001);
 	eth_iowr(0x404, tx_addr);
-	eth_iowr(0x400, ((frame_lenght<<16)|(0xF000)));
+	eth_iowr(0x400, ((frame_length<<16)|(0xF000)));
 //  	while ((eth_iord(0x04) & 0x1)==0){;}
 return;
 }

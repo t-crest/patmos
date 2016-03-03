@@ -71,7 +71,7 @@ class Arbiter(cnt: Int, addrWidth : Int, dataWidth : Int, burstLen : Int) extend
   val master = masterBuffer(turnReg).M
 
   when(stateReg === sIdle) {
-    when(master.Cmd != OcpCmd.IDLE) {
+    when(master.Cmd =/= OcpCmd.IDLE) {
       when(master.Cmd === OcpCmd.RD) {
         stateReg := sRead
       }

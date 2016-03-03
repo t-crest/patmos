@@ -112,7 +112,7 @@ class OcpBurstBridge(master : OcpCacheMasterPort, slave : OcpBurstSlavePort) {
   // Register to delay response
   val slaveReg = Reg(master.S)
 
-  when(state != write && (masterReg.Cmd === OcpCmd.IDLE || slave.S.CmdAccept === Bits(1))) {
+  when(state =/= write && (masterReg.Cmd === OcpCmd.IDLE || slave.S.CmdAccept === Bits(1))) {
     masterReg := master.M
   }
 
@@ -127,7 +127,7 @@ class OcpBurstBridge(master : OcpCacheMasterPort, slave : OcpBurstSlavePort) {
 
   // Read burst
   when(state === read) {
-    when(slave.S.Resp === OcpResp.DVA) {
+    when(slave.S.Resp =/= OcpResp.NULL) {
       when(burstCnt === cmdPos) {
         slaveReg := slave.S
       }
@@ -171,13 +171,13 @@ class OcpBurstBridge(master : OcpCacheMasterPort, slave : OcpBurstSlavePort) {
   }
 }
 
-// Join two OcpBurst ports
+// Join two OcpBurst ports, assume no collisions between requests
 class OcpBurstJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort,
-                   joined : OcpBurstSlavePort) {
+                   joined : OcpBurstSlavePort, selectLeft : Bool = Bool()) {
 
   val selRightReg = Reg(Bool())
-  val selRight = Mux(left.M.Cmd != OcpCmd.IDLE, Bool(false),
-                     Mux(right.M.Cmd != OcpCmd.IDLE, Bool(true),
+  val selRight = Mux(left.M.Cmd =/= OcpCmd.IDLE, Bool(false),
+                     Mux(right.M.Cmd =/= OcpCmd.IDLE, Bool(true),
                          selRightReg))
 
   joined.M := left.M
@@ -189,7 +189,7 @@ class OcpBurstJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort,
   right.S := joined.S
   left.S := joined.S
 
-  when(selRight) {
+  when(selRightReg) {
     left.S.Resp := OcpResp.NULL
   }
   .otherwise {
@@ -197,55 +197,75 @@ class OcpBurstJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort,
   }
 
   selRightReg := selRight
+
+  selectLeft := !selRight
 }
 
-// Join two OcpBurst ports, left port has priority in case of double request
-// the right request is buffered till enable is set to true
+// Join two OcpBurst ports, left port has priority in case of colliding requests
 class OcpBurstPriorityJoin(left : OcpBurstMasterPort, right : OcpBurstMasterPort,
-                   joined : OcpBurstSlavePort, enable : Bool) {
+                           joined : OcpBurstSlavePort, selectLeft : Bool = Bool()) {
 
-  val selLeft = Mux(left.M.Cmd != OcpCmd.IDLE, Bool(true), Bool(false))
-  val selRight = Mux(right.M.Cmd != OcpCmd.IDLE, Bool(true), Bool(false))
-  val selBothReg = Reg(Bool())
-  val selCurrentReg = Reg(init = Bits(0))
-  val masterReg = Reg(right.M)
+  val selLeft = left.M.Cmd =/= OcpCmd.IDLE
+  val selRight = right.M.Cmd =/= OcpCmd.IDLE
 
-  joined.M := left.M
-  //left port requests
-  when (selLeft) {
-    when (selRight) {
-      selBothReg := Bool(true)
-      masterReg := right.M
-    }
-    selCurrentReg := Bits(0)
-    joined.M := left.M
-  }
-  //right port requests
-  //!=selBothReg is needed since a write request from D-Cache is stalled
-  .elsewhen ((selRight && !selBothReg) || selCurrentReg === Bits(1)) {
-    selCurrentReg := Bits(1)
-    joined.M := right.M
-  }
-  //switch to right
-  when (selBothReg && enable) {
-    selBothReg := Bool(false)
-    selCurrentReg := Bits(1)
-    when (masterReg.Cmd === OcpCmd.RD) {
-      joined.M := masterReg
-    }
-    //why is a burst write stalling the byteEn signal and a read not?!
-    .otherwise {
-      joined.M := right.M
-    }
-  }
+  val leftPendingReg = Reg(init = Bool(false))
+  val rightPendingReg = Reg(init = Bool(false))
+
+  val pendingRespReg = Reg(init = UInt(0))
+
+  // default port forwarding
+  joined.M := Mux(rightPendingReg, right.M, left.M)
+
+  // pass back data to masters
   right.S := joined.S
   left.S := joined.S
-  when (selCurrentReg === Bits(1)) {
-    left.S.Resp := OcpResp.NULL
-  }
-  .otherwise {
+  // suppress responses when not serving a request
+  when (!rightPendingReg) {
     right.S.Resp := OcpResp.NULL
   }
+  when (!leftPendingReg) {
+    left.S.Resp := OcpResp.NULL
+  }
+
+  // do not accept commands while another request is being served
+  left.S.CmdAccept   := Mux(rightPendingReg, Bits(0), joined.S.CmdAccept)
+  left.S.DataAccept  := Mux(rightPendingReg, Bits(0), joined.S.DataAccept)
+  right.S.CmdAccept  := Mux(leftPendingReg,  Bits(0), joined.S.CmdAccept)
+  right.S.DataAccept := Mux(leftPendingReg,  Bits(0), joined.S.DataAccept)
+
+  // forward requests from left port
+  when (selLeft) {
+    when (!rightPendingReg) {
+      joined.M := left.M
+      pendingRespReg := Mux(left.M.Cmd === OcpCmd.WR, UInt(1), UInt(left.burstLength))
+      leftPendingReg := Bool(true)
+      right.S.CmdAccept  := Bits(0)
+      right.S.DataAccept := Bits(0)
+    }
+  }
+  // forward requests from right port
+  when (selRight) {
+    when (!selLeft && !leftPendingReg) {
+      joined.M := right.M
+      pendingRespReg := Mux(right.M.Cmd === OcpCmd.WR, UInt(1), UInt(right.burstLength))
+      rightPendingReg := Bool(true)
+    }
+  }
+
+  // count responses, clear pending flags at end of requests
+  when (joined.S.Resp =/= OcpResp.NULL) {
+    pendingRespReg := pendingRespReg - UInt(1)
+    when (pendingRespReg === UInt(1)) {
+      when (leftPendingReg) {
+        leftPendingReg := Bool(false)
+      }
+      when (rightPendingReg) {
+        rightPendingReg := Bool(false)
+      }
+    }
+  }
+
+  selectLeft := selLeft
 }
 
 // Provide a "bus" with a master port and a slave port to simplify plumbing

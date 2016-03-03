@@ -196,11 +196,11 @@ namespace patmos
                        uword_t new_spill, uword_t new_top);
     
     
-    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch);
 
     virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
-    virtual void read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+    virtual void read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch);
 
     virtual void tick(simulator_t &s) {}
 
@@ -249,11 +249,11 @@ namespace patmos
                        uword_t new_spill, uword_t new_top)
     { stack_top = new_top; return true; }
     
-    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch);
 
     virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
-    virtual void read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+    virtual void read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch);
 
   };
   
@@ -370,7 +370,7 @@ namespace patmos
                        uword_t new_spill, uword_t new_top);
 
 
-    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch);
 
     virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 

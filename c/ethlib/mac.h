@@ -45,7 +45,7 @@
 #include <stdio.h>
 #include "eth_patmos_io.h"
 
-static unsigned char my_mac[6] = {0x00, 0xFF, 0xEE, 0xF0, 0xDA, 0x42};
+extern unsigned char my_mac[6];
 
 ///////////////////////////////////////////////////////////////
 //Function to decode packet type (for the demo)

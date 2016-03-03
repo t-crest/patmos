@@ -1511,14 +1511,14 @@ namespace patmos
       atype tmp=0; \
       if ((address & (sizeof(atype) - 1)) != 0) \
         simulation_exception_t::unaligned(address); \
-      bool is_available = base.read_fixed(s, address, tmp); \
+      bool is_available = base.read_fixed(s, address, tmp, false);    \
       value = (ctype)from_big_endian<big_ ## atype>(tmp); \
       return is_available; \
     } \
     virtual word_t peek(simulator_t &s, word_t address) const \
     { \
       atype tmp=0; \
-      base.peek_fixed(s, address, tmp); \
+      base.peek_fixed(s, address, tmp, false);                 \
       return (ctype)from_big_endian<big_ ## atype>(tmp); \
     } \
   };
@@ -2537,6 +2537,8 @@ namespace patmos
   class i_ret_t : public i_cflri_t
   {
   public:
+    virtual bool is_return() const { return true; }
+    
     /// Print the instruction to an output stream.
     /// @param os The output stream to print to.
     /// @param ops The operands of the instruction.
@@ -2608,6 +2610,8 @@ namespace patmos
   
   class i_xret_t : public i_cflri_t {
   public:
+    virtual bool is_return() const { return true; }
+
     virtual void print(std::ostream &os, const instruction_data_t &ops,
                        const symbol_map_t &symbols) const
     {

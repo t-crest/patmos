@@ -64,7 +64,7 @@ class DataCache extends Module {
   val selDCReg = Reg(Bool())
   val selSC = io.master.M.AddrSpace === OcpCache.STACK_CACHE
   val selSCReg = Reg(Bool())
-  when(io.master.M.Cmd != OcpCmd.IDLE) {
+  when(io.master.M.Cmd =/= OcpCmd.IDLE) {
     selDCReg := selDC
     selSCReg := selSC
   }
@@ -77,7 +77,7 @@ class DataCache extends Module {
       Module(new DirectMappedCache(DCACHE_SIZE, BURST_LENGTH*BYTES_PER_WORD))
     else if (DCACHE_ASSOC == 1 && !DCACHE_WRITETHROUGH)
       Module(new DirectMappedCacheWriteBack(DCACHE_SIZE, BURST_LENGTH*BYTES_PER_WORD))
-    else if (DCACHE_ASSOC == 2 && DCACHE_REPL == "lru" && DCACHE_WRITETHROUGH)
+    else if (DCACHE_ASSOC == 2 && DCACHE_REPL == CACHE_REPL_LRU && DCACHE_WRITETHROUGH)
       Module(new TwoWaySetAssociativeCache(DCACHE_SIZE, BURST_LENGTH*BYTES_PER_WORD))
     else {
       ChiselError.error("Unsupported data cache configuration: "+

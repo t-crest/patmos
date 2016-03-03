@@ -56,11 +56,26 @@ import ocp._
 /**
  * Module for one Patmos core.
  */
-class PatmosCore(binFile: String, datFile: String) extends Module {
+class PatmosCore(binFile: String) extends Module {
 
   val io = Config.getPatmosCoreIO()
 
-  val mcache = Module(if (MCACHE_SIZE <= 0) new NullMCache() else new MCache())
+  val icache = 
+    if (ICACHE_SIZE <= 0)
+      Module(new NullICache())
+    else if (ICACHE_TYPE == ICACHE_TYPE_METHOD && ICACHE_REPL == CACHE_REPL_FIFO)
+        Module(new MCache())
+    else if (ICACHE_TYPE == ICACHE_TYPE_LINE && ICACHE_ASSOC == 1)
+        Module(new ICache())
+    else {
+      ChiselError.error("Unsupported instruction cache configuration:"+
+                        " type \""+ICACHE_TYPE+"\""+
+                        " (must be \""+ICACHE_TYPE_METHOD+"\" or \""+ICACHE_TYPE_LINE+"\")"+
+                        " associativity "+ICACHE_ASSOC+
+                        " with replacement policy \""+ICACHE_REPL+"\"")
+      Module(new NullICache()) // return at least a dummy cache
+    }
+
   val fetch = Module(new Fetch(binFile))
   val decode = Module(new Decode())
   val execute = Module(new Execute())
@@ -70,10 +85,11 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   val iocomp = Module(new InOut())
   val dcache = Module(new DataCache())
 
-  //connect mcache
-  mcache.io.femcache <> fetch.io.femcache
-  mcache.io.mcachefe <> fetch.io.mcachefe
-  mcache.io.exmcache <> execute.io.exmcache
+  //connect icache
+  icache.io.feicache <> fetch.io.feicache
+  icache.io.icachefe <> fetch.io.icachefe
+  icache.io.exicache <> execute.io.exicache
+  icache.io.illMem <> memory.io.icacheIllMem
 
   decode.io.fedec <> fetch.io.fedec
   execute.io.decex <> decode.io.decex
@@ -81,7 +97,6 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   writeback.io.memwb <> memory.io.memwb
   // RF write connection
   decode.io.rfWrite <> writeback.io.rfWrite
-
   // This is forwarding of registered result
   // Take care that it is the plain register
   execute.io.exResult <> memory.io.exResult
@@ -90,6 +105,7 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   // Connect stack cache
   execute.io.exsc <> dcache.io.scIO.exsc
   dcache.io.scIO.scex <> execute.io.scex
+  dcache.io.scIO.illMem <> memory.io.scacheIllMem 
 
   // We branch in EX
   fetch.io.exfe <> execute.io.exfe
@@ -106,30 +122,34 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   exc.io.excdec <> decode.io.exc
   exc.io.memexc <> memory.io.exc
 
-  // The boot memories intercept accesses before they are translated to bursts
-  val bootMem = Module(new BootMem(datFile))
-  memory.io.globalInOut <> bootMem.io.memInOut
-
-  dcache.io.master <> bootMem.io.extMem
+  // Connect data cache
+  dcache.io.master <> memory.io.globalInOut
 
   // Merge OCP ports from data caches and method cache
   val burstBus = Module(new OcpBurstBus(ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH))
-  val burstJoin = new OcpBurstJoin(mcache.io.ocp_port, dcache.io.slave,
-                                   burstBus.io.slave)
+  val selICache = Bool()
+  val burstJoin = if (ICACHE_TYPE == ICACHE_TYPE_METHOD) {
+    // requests from D-cache and method cache never collide
+    new OcpBurstJoin(icache.io.ocp_port, dcache.io.slave,
+                     burstBus.io.slave, selICache)
+  } else {
+    // join requests such that D-cache requests are buffered
+    new OcpBurstPriorityJoin(icache.io.ocp_port, dcache.io.slave,
+                             burstBus.io.slave, selICache)
+  }
 
-
-  //join class for I-Cache buffering the d-cache request
-  //use this burstJoin when I-Cache is used
-  // val burstJoin = new OcpBurstPriorityJoin(mcache.io.ocp_port, dcache.io.slave,
-  //                                  burstBus.io.slave, mcache.io.ena_out)
+  val mmu = Module(if (HAS_MMU) new MemoryManagement() else new NoMemoryManagement())
+  mmu.io.exec <> selICache
+  mmu.io.ctrl <> iocomp.io.mmuInOut
+  mmu.io.virt <> burstBus.io.master
 
   // Enable signals for memory stage, method cache and stack cache
-  memory.io.ena_in      := mcache.io.ena_out && !dcache.io.scIO.stall
-  mcache.io.ena_in      := memory.io.ena_out && !dcache.io.scIO.stall
-  dcache.io.scIO.ena_in := memory.io.ena_out && mcache.io.ena_out
+  memory.io.ena_in      := icache.io.ena_out && !dcache.io.scIO.stall
+  icache.io.ena_in      := memory.io.ena_out && !dcache.io.scIO.stall
+  dcache.io.scIO.ena_in := memory.io.ena_out && icache.io.ena_out
 
   // Enable signal
-  val enable = memory.io.ena_out & mcache.io.ena_out & !dcache.io.scIO.stall
+  val enable = memory.io.ena_out & icache.io.ena_out & !dcache.io.scIO.stall
   fetch.io.ena := enable
   decode.io.ena := enable
   execute.io.ena := enable
@@ -144,11 +164,16 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   execute.io.flush := flush
 
   // Software resets
-  mcache.io.invalidate := exc.io.invalMCache
+  icache.io.invalidate := exc.io.invalICache
   dcache.io.invalDCache := exc.io.invalDCache
 
+  // Make privileged mode visible internally and externally
+  iocomp.io.superMode := exc.io.superMode
+  mmu.io.superMode := exc.io.superMode
+  io.superMode := exc.io.superMode
+
   // Internal "I/O" data
-  iocomp.io.internalIO.perf.mc := mcache.io.perf
+  iocomp.io.internalIO.perf.ic := icache.io.perf
   iocomp.io.internalIO.perf.dc := dcache.io.dcPerf
   iocomp.io.internalIO.perf.sc := dcache.io.scPerf
   iocomp.io.internalIO.perf.wc := dcache.io.wcPerf
@@ -160,7 +185,7 @@ class PatmosCore(binFile: String, datFile: String) extends Module {
   // The inputs and outputs
   io.comConf <> iocomp.io.comConf
   io.comSpm <> iocomp.io.comSpm
-  io.memPort <> burstBus.io.master
+  io.memPort <> mmu.io.phys
   Config.connectAllIOPins(io, iocomp.io)
 
   // Keep signal alive for debugging
@@ -176,8 +201,9 @@ object PatmosCoreMain {
     val datFile = args(2)
 
     Config.loadConfig(configFile)
-    Config.minPcWidth = log2Up((new File(binFile)).length.toInt / 4)
-    chiselMain(chiselArgs, () => Module(new PatmosCore(binFile, datFile)))
+    Config.minPcWidth = util.log2Up((new File(binFile)).length.toInt / 4)
+    Config.datFile = datFile
+    chiselMain(chiselArgs, () => Module(new PatmosCore(binFile)))
     // Print out the configuration
     Utility.printConfig(configFile)
   }
@@ -188,12 +214,13 @@ object PatmosCoreMain {
  */
 class Patmos(configFile: String, binFile: String, datFile: String) extends Module {
   Config.loadConfig(configFile)
-  Config.minPcWidth = log2Up((new File(binFile)).length.toInt / 4)
+  Config.minPcWidth = util.log2Up((new File(binFile)).length.toInt / 4)
+  Config.datFile = datFile
 
   val io = Config.getPatmosIO()
 
   // Instantiate core
-  val core = Module(new PatmosCore(binFile, datFile))
+  val core = Module(new PatmosCore(binFile))
 
   // Forward ports to/from core
   io.comConf <> core.io.comConf

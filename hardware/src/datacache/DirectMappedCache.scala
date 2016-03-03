@@ -51,8 +51,8 @@ import ocp._
 
 class DirectMappedCache(size: Int, lineSize: Int) extends Module {
   val io = new Bundle {
-    val master = new OcpCoreSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
-    val slave = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, lineSize/4)
+    val master = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+    val slave = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, lineSize/4)
     val invalidate = Bool(INPUT)
     val perf = new DataCachePerf()
   }
@@ -63,7 +63,7 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
   val addrBits = log2Up(size / BYTES_PER_WORD)
   val lineBits = log2Up(lineSize)
 
-  val tagWidth = EXTMEM_ADDR_WIDTH - addrBits - 2
+  val tagWidth = ADDR_WIDTH - addrBits - 2
   val tagCount = size / lineSize
 
   // Register signals from master
@@ -80,7 +80,7 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
 
   val tag = tagMem.io(io.master.M.Addr(addrBits + 1, lineBits))
   val tagV = Reg(next = tagVMem(io.master.M.Addr(addrBits + 1, lineBits)))
-  val tagValid = tagV && tag === Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, addrBits+2))
+  val tagValid = tagV && tag === Cat(masterReg.Addr(ADDR_WIDTH-1, addrBits+2))
 
   val fillReg = Reg(Bool())
 
@@ -117,7 +117,7 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
 
   // Default values
   io.slave.M.Cmd := OcpCmd.IDLE
-  io.slave.M.Addr := Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, lineBits),
+  io.slave.M.Addr := Cat(masterReg.Addr(ADDR_WIDTH-1, lineBits),
                          Fill(Bits(0), lineBits))
   io.slave.M.Data := Bits(0)
   io.slave.M.DataValid := Bits(0)
@@ -146,7 +146,7 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
   }
   tagMem.io <= (!tagValid && masterReg.Cmd === OcpCmd.RD,
                 masterReg.Addr(addrBits + 1, lineBits),
-                masterReg.Addr(EXTMEM_ADDR_WIDTH-1, addrBits+2))
+                masterReg.Addr(ADDR_WIDTH-1, addrBits+2))
 
   // Hold read command
   when(stateReg === hold) {
@@ -163,7 +163,7 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
   when(stateReg === fill) {
     wrAddrReg := Cat(masterReg.Addr(addrBits + 1, lineBits), burstCntReg)
 
-    when(io.slave.S.Resp === OcpResp.DVA) {
+    when(io.slave.S.Resp =/= OcpResp.NULL) {
       fillReg := Bool(true)
       wrDataReg := io.slave.S.Data
       when(burstCntReg === missIndexReg) {
@@ -173,6 +173,9 @@ class DirectMappedCache(size: Int, lineSize: Int) extends Module {
         stateReg := respond
       }
       burstCntReg := burstCntReg + UInt(1)
+    }
+    when(io.slave.S.Resp === OcpResp.ERR) {
+      tagVMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(false)
     }
     masterReg.Addr := masterReg.Addr
   }

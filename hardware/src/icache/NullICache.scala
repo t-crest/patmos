@@ -1,5 +1,5 @@
 /*
-   Copyright 2013 Technical University of Denmark, DTU Compute.
+   Copyright 2014 Technical University of Denmark, DTU Compute.
    All rights reserved.
 
    This file is part of the time-predictable VLIW processor Patmos.
@@ -31,56 +31,45 @@
  */
 
 /*
- * Boot data memory (ROM and SPM) for Patmos.
- *
- * Author: Wolfgang Puffitsch (wpuffitsch@gmail.com)
- *
+ * Method cache without actual functionality
+ * 
+ * Authors: Wolfgang Puffitsch (wpuffitsch@gmail.com)
+ *        Philipp Degasperi (philipp.degasperi@gmail.com)
  */
 
 package patmos
 
 import Chisel._
 import Node._
-
 import Constants._
-
 import ocp._
 
-class BootMem(fileName : String) extends Module {
-  val io = new BootMemIO()
+class NullICache() extends Module {
+  val io = new ICacheIO()
 
-  // Compute selects
-  val selExt = io.memInOut.M.Addr(ADDR_WIDTH-1) === Bits("b0")
-  val selRom = !selExt & io.memInOut.M.Addr(BOOTMEM_ONE_BIT) === Bits(0x0)
-  val selSpm = !selExt & io.memInOut.M.Addr(BOOTMEM_ONE_BIT) === Bits(0x1)
+  val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
+  val callAddrReg = Reg(init = UInt(1, DATA_WIDTH))
+  val selIspmReg = Reg(init = Bool(false))
 
-  // Register selects
-  val selSpmReg = Reg(Bool())
-  val selExtReg = Reg(Bool())
-  when(io.memInOut.M.Cmd != OcpCmd.IDLE) {
-      selSpmReg := selSpm
-      selExtReg := selExt
+  io.ena_out := Bool(true)
+
+  when (io.exicache.doCallRet && io.ena_in) {
+    callRetBaseReg := io.exicache.callRetBase
+    callAddrReg := io.exicache.callRetAddr
+    selIspmReg := io.exicache.callRetBase(ADDR_WIDTH-1, ISPM_ONE_BIT-2) === Bits(0x1)
   }
 
-  // The data ROM for read only initialized data
-  val rom = Utility.readBin(fileName, DATA_WIDTH)
-  val romCmdReg = Reg(next = Mux(selRom, io.memInOut.M.Cmd, OcpCmd.IDLE))
-  val romAddr = Reg(next = io.memInOut.M.Addr)
-  val romResp = Mux(romCmdReg === OcpCmd.IDLE, OcpResp.NULL, OcpResp.DVA)
-  val romData = rom(romAddr(log2Up(rom.length)+1, 2))
+  io.icachefe.instrEven := Bits(0)
+  io.icachefe.instrOdd := Bits(0)
+  io.icachefe.base := callRetBaseReg
+  io.icachefe.relBase := callRetBaseReg(ISPM_ONE_BIT-3, 0)
+  io.icachefe.relPc := callAddrReg + callRetBaseReg(ISPM_ONE_BIT-3, 0)
+  io.icachefe.reloc := Mux(selIspmReg, UInt(1 << (ISPM_ONE_BIT - 2)), UInt(0))
+  io.icachefe.memSel := Cat(selIspmReg, Bits(0))
 
-  // The SPM - used for stack of bootables, can be used for initialized read/write data
-  val spm = Module(new Spm(BOOTSPM_SIZE))
-  spm.io.M := io.memInOut.M
-  spm.io.M.Cmd := Mux(selSpm, io.memInOut.M.Cmd, OcpCmd.IDLE)
-  val spmS = spm.io.S
-
-  // Connect to external memory
-  io.extMem.M := io.memInOut.M
-  io.extMem.M.Cmd := Mux(selExt, io.memInOut.M.Cmd, OcpCmd.IDLE)
-
-  // Return data to pipeline
-  io.memInOut.S.Data := Mux(selExtReg, io.extMem.S.Data,
-                            Mux(selSpmReg, spmS.Data, romData))
-  io.memInOut.S.Resp := romResp | spmS.Resp | io.extMem.S.Resp
+  io.ocp_port.M.Cmd := OcpCmd.IDLE
+  io.ocp_port.M.Addr := Bits(0)
+  io.ocp_port.M.Data := Bits(0)
+  io.ocp_port.M.DataValid := Bits(0)
+  io.ocp_port.M.DataByteEn := Bits(0)
 }

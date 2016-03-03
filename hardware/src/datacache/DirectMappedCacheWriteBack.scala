@@ -51,8 +51,8 @@ import ocp._
 
 class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
   val io = new Bundle {
-    val master = new OcpCoreSlavePort(EXTMEM_ADDR_WIDTH, DATA_WIDTH)
-    val slave = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, lineSize/4)
+    val master = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+    val slave = new OcpBurstMasterPort(ADDR_WIDTH, DATA_WIDTH, lineSize/4)
     val invalidate = Bool(INPUT)
     val perf = new DataCachePerf()
   }
@@ -74,7 +74,7 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
   val comb = Vec.fill(DATA_WIDTH/BYTE_WIDTH) { Bits(width = BYTE_WIDTH) }
   for (i <- 0 until DATA_WIDTH/BYTE_WIDTH) { comb(i) := Bits(0) }
 
-  val tagWidth = EXTMEM_ADDR_WIDTH - addrBits - 2
+  val tagWidth = ADDR_WIDTH - addrBits - 2
   val tagCount = size / lineSize
 
   // Register signals from master
@@ -82,7 +82,7 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
   masterReg := io.master.M
 
   // State machine for misses
-  val idle :: write :: writeWaitForDVA :: hold :: fill :: respond :: Nil = Enum(UInt(), 6)
+  val idle :: write :: writeWaitForResp :: hold :: fill :: respond :: Nil = Enum(UInt(), 6)
   val stateReg = Reg(init = idle)
 
   val burstCntReg = Reg(init = UInt(0, lineBits-2))
@@ -100,7 +100,7 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
   val tag = tagMem.io(io.master.M.Addr(addrBits + 1, lineBits))
   val tagV = Reg(next = tagVMem(io.master.M.Addr(addrBits + 1, lineBits)))
   val dirty = Reg(next = dirtyMem(io.master.M.Addr(addrBits + 1, lineBits)))
-  val tagValid = tagV && tag === Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, addrBits+2))
+  val tagValid = tagV && tag === Cat(masterReg.Addr(ADDR_WIDTH-1, addrBits+2))
 
   val fillReg = Reg(Bool())
 
@@ -117,7 +117,7 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
                wrDataReg(BYTE_WIDTH*(i+1)-1, BYTE_WIDTH*i))
   }
   // Update dirty bit when writing
-  when(tagValid && (stmsk != Bits("b0000"))) {
+  when(tagValid && (stmsk =/= Bits("b0000"))) {
     dirtyMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(true)
     when(io.master.M.Addr(addrBits + 1, lineBits) === masterReg.Addr(addrBits + 1, lineBits)) {
       dirty := Bool(true);
@@ -146,7 +146,7 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
 
   // Default values
   io.slave.M.Cmd := OcpCmd.IDLE
-  io.slave.M.Addr := Cat(masterReg.Addr(EXTMEM_ADDR_WIDTH-1, lineBits),
+  io.slave.M.Addr := Cat(masterReg.Addr(ADDR_WIDTH-1, lineBits),
                          Fill(Bits(0), lineBits))
   io.slave.M.Data := Bits(0)
   io.slave.M.DataValid := Bits(0)
@@ -194,7 +194,7 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
   }
   tagMem.io <= (!tagValid && (masterReg.Cmd === OcpCmd.RD || masterReg.Cmd === OcpCmd.WR),
                 masterReg.Addr(addrBits + 1, lineBits),
-                masterReg.Addr(EXTMEM_ADDR_WIDTH-1, addrBits+2))
+                masterReg.Addr(ADDR_WIDTH-1, addrBits+2))
 
   // writeback state
   when(stateReg === write) {
@@ -215,19 +215,27 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
       when(io.slave.S.Resp === OcpResp.DVA) {
         stateReg := hold
       }
-      .otherwise {
-        stateReg := writeWaitForDVA
+      when(io.slave.S.Resp === OcpResp.ERR) {
+        slaveReg := io.slave.S
+        stateReg := respond
+      }
+      when(io.slave.S.Resp === OcpResp.NULL) {
+        stateReg := writeWaitForResp
       }
       rdAddrCntReg := rdAddrCntReg // rdAddrCntReg is one step ahead of burstCnt, so don't update
     }
     masterReg.Addr := masterReg.Addr
   }
 
-  // Slave responds with DVA to finish write transaction
-  when(stateReg === writeWaitForDVA) {
-    stateReg := writeWaitForDVA
+  // Slave responds to finish write transaction
+  when(stateReg === writeWaitForResp) {
+    stateReg := writeWaitForResp
     when(io.slave.S.Resp === OcpResp.DVA) {
       stateReg := hold
+    }
+    when(io.slave.S.Resp === OcpResp.ERR) {
+      slaveReg := io.slave.S
+      stateReg := respond
     }
     masterReg.Addr := masterReg.Addr
   }
@@ -247,9 +255,9 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
   when(stateReg === fill) {
     wrAddrReg := Cat(masterReg.Addr(addrBits + 1, lineBits), burstCntReg)
     
-    when(io.slave.S.Resp === OcpResp.DVA) { 
-    fillReg := Bool(true)
-    wrDataReg := io.slave.S.Data
+    when(io.slave.S.Resp =/= OcpResp.NULL) { 
+      fillReg := Bool(true)
+      wrDataReg := io.slave.S.Data
       when(burstCntReg === missIndexReg) {
         slaveReg := io.slave.S
         // insert write data from core on write-allocation
@@ -266,6 +274,9 @@ class DirectMappedCacheWriteBack(size: Int, lineSize: Int) extends Module {
         stateReg := respond
       }
       burstCntReg := burstCntReg + UInt(1)
+    }
+    when(io.slave.S.Resp === OcpResp.ERR) {
+      tagVMem(masterReg.Addr(addrBits + 1, lineBits)) := Bool(false)
     }
     masterReg.Addr := masterReg.Addr
   }

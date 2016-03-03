@@ -746,7 +746,207 @@ the flow facts (\emph{main} by default).
 \code{<output.pml>} and \code{<input.pml>} can be identical.
 
 
-\daniel{TODO: other tools and useful usage examples}
+\subsection{Example}
+
+%SH: This section is taken from the KPS'2015 paper.
+
+In this section we demonstrate some of the tools of \code{platin}. We show a typical workflow by compiling and
+analysing a small demo application on Patmos.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\begin{figure}[t]
+%\centering
+\lstset{language=C}
+%\lstinputlisting{sort/sort.c}
+\lstinputlisting[float=t,caption={Demo application that initialises and sorts an array.},label=lst:sort]{sort/sort.c}
+%\caption{Demo application that initialises and sorts an array.}
+%\label{fig:sort}
+%\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Listing~\ref{lst:sort} shows the content of \code{sort.c}. It contains a simple insertion sort implementation in
+function \code{sort}. Our target function for analysis is \code{gen\_sort}, which fills an array with $N$
+pseudo-random numbers and then sorts the array. In order to prevent the compiler from inlining and removing our
+analysis target function, we mark the function as \code{noinline}.
+The code contains loop bound annotations for the WCET analysis in the form of pragmas.
+
+All tools in the Patmos tool chain are configured to use the default Patmos hardware configuration if no
+further options are given. In this example we show how to use \code{platin} to configure a different hardware setup.
+For this, we use \code{pml-config} to generate a modified hardware model:
+
+\begin{verbatim}
+platin pml-config --target patmos-unknown-unknown-elf \
+                  -o config.pml -m 2k -M fifo8
+\end{verbatim}
+
+This command generates a new \code{config.pml} file containing a description of the default hardware model,
+except that we use a method cache of only half the size ($2$ KB size with a tag memory of $8$ entries).
+
+In the next step, we compile our program using the \code{patmos-clang} compiler driver. We also use the
+\code{platin tool-config} tool to setup the compiler according to our modified hardware model.
+\code{tool-config} can be used in a similar manner to setup \code{pasim}, the Patmos simulator.
+We need to explicitly enable optimisations with \code{-O2}, as the default optimisation level is \code{-O0}.
+
+\begin{verbatim}
+patmos-clang `platin tool-config -i config.pml -t clang` \
+             -O2 -o sort -mserialize=sort.pml sort.c
+\end{verbatim}
+
+The driver calls all commands necessary to compile the source code, link and optimise the bitcode and generate
+and link the final binary \code{sort}. The option \code{-mserialize} causes the compiler to
+generate the PML file \code{sort.pml}. It contains a description of the application control flow at bitcode
+level (after the bitcode optimisations) and of the final machine code. It also contains value facts and flow facts
+such as loop bounds as found by the compiler as well as our source-code loop annotations, and relation graphs
+relating the bitcode and machine code control flow graphs.
+
+Now we are ready to analyse our target function. We use the \code{platin wcet} driver tool to run all
+necessary commands, including the trace analysis and the platin WCET analysis tool WCA. The driver tool
+will automatically try to run the AbsInt aiT analysis tool if it is installed.
+
+\begin{verbatim}
+platin wcet -i config.pml --enable-trace-analysis --enable-wca \
+            -b sort -e gen_sort -i sort.pml --outdir tmp \
+            -o wcet.pml --report report.txt
+\end{verbatim}
+
+We need to pass the name of the binary file (\code{-b}) and both the compiler generated PML file and the
+hardware model PML file (\code{-i}) to platin. The \code{-e} option tells platin the name of the analysis
+target function. The optional \code{--outdir} option causes platin to keep temporary files and store them in
+the given directory, mainly the generated project files for the AbsInt analyser tool \code{a3patmos}.
+The optional \code{-o} option stores detailed analysis results such as the found WCET bounds for the
+target function, execution timings of basic blocks and execution frequencies of blocks on the worst-case path
+along with the program information from the input files in a PML file for further analysis or for WCET-driven
+optimisations.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\begin{figure}[ht]
+%\centering
+%{\scriptsize
+%\begin{verbatim}
+%\lstset{language={},basicstyle=\scriptsize\ttfamily}
+\lstinputlisting[float=t,caption={Analysis report for the \code{sort} application},label=lst:report]{sort/report.txt}
+%\end{verbatim}
+%}
+%\caption{Analysis report for the \code{sort} application}
+%\label{fig:report}
+%\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The \code{--report} option causes platin to store the result summaries of the analyses in
+\code{report.txt}. Listing~\ref{lst:report} shows the content of that file.
+In this example the platin WCET analysis derives a lower WCET bound than aiT.
+aiT is able to find better loop bounds and thus finds
+fewer data cache misses for the sort loop, but it assumes higher costs for instruction cache misses than platin.
+% SH: too much details? The reason for this is quite complex, so we leave it out completely..
+%Also, aiT includes the initial instruction
+%cache miss of the target method in the reported WCET bound, while the trace analysis do not.
+
+
+Both analyses seem to highly over-approximate the actual WCET when compared to the trace results of the
+execution. However, while we assume that in the worst case the whole array is used, the actual execution only fills and sorts a fraction of the array.
+Hence the measured execution time is not a good indicator for the worst-case performance.
+
+The inner loop of the sort function is a triangle loop. Our annotated global loop bound of $(N-1)^2$ is thus about a
+factor of two too large. For loops with constant bounds, LLVM is capable of
+detecting such triangle loops and deriving the correct bounds automatically.
+Our PML export uses the LLVM analysis results to generate additional flow facts.
+platin provides a tool to print all flow facts in a PML file in a compact form.
+
+\begin{verbatim}
+platin pml -i sort.pml --print-flowfacts
+\end{verbatim}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\begin{figure}[ht]
+%\centering
+%{\scriptsize
+%\begin{verbatim}
+%\lstset{language={},basicstyle=\scriptsize\ttfamily}
+% Some trickery to get nice line breaks
+\lstset{escapechar=*}
+\newcommand{\nl}{\raisebox{0ex}[0ex][0ex]{\ensuremath{\hookrightarrow}}}
+\begin{lstlisting}[float=t,caption={Flow facts from LLVM and user annotations as reported by \code{platin}},label=lst:flowfacts]
+=== flowfacts generated by llvm.bc ===
+--- loop-bound ---
+#<FlowFact origin=llvm.bc,level=bitcode, in #<Loop: gen_sort/for.cond>:
+  *\nl* [1 gen_sort/for.cond] less-equal (1 + %N)>
+#<FlowFact origin=llvm.bc,level=bitcode, in #<Loop: gen_sort/for.cond.i>:
+  *\nl* [1 gen_sort/for.cond.i] less-equal (1 umax %N)>
+#<FlowFact origin=llvm.bc,level=bitcode, in #<Loop: __umodsi3/for.cond.i>:
+  *\nl* [1 __umodsi3/for.cond.i] less-equal 33>
+#<FlowFact origin=llvm.bc,level=bitcode, in #<Loop: __umodsi3/for.cond.i>:
+  *\nl* [1 __umodsi3/for.cond.i] less-equal 33>
+=== flowfacts generated by user.bc ===
+--- loop-bound ---
+#<FlowFact origin=user.bc,level=bitcode, in #<Loop: gen_sort/for.cond>:
+  *\nl* [1 gen_sort/for.cond] less-equal 101>
+#<FlowFact origin=user.bc,level=bitcode, in #<Loop: gen_sort/for.cond.i>:
+  *\nl* [1 gen_sort/for.cond.i] less-equal 100>
+#<FlowFact origin=user.bc,level=bitcode, in #<Loop: gen_sort/while.cond.i>:
+  *\nl* [1 gen_sort/while.cond.i] less-equal 100>
+#<FlowFact origin=user.bc,level=bitcode, in #<Loop: __umodsi3/for.cond.i>:
+  *\nl* [1 __umodsi3/for.cond.i] less-equal 33>
+\end{lstlisting}
+%\end{verbatim}
+%}
+%\caption{Analysis report for the \code{sort} application}
+%\label{fig:flowfacts}
+%\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Listing~\ref{lst:flowfacts} shows the output of that command. We find our manual loop annotations in the
+\code{user.bc} origin section. Note that LLVM inlined the \code{sort()} function, therefore our loops
+are now in function \code{gen\_sort}.\footnote{Function \code{\_\_umodsi3} implements the modulo operator, as
+Patmos does not provide a modulo instruction in hardware.}
+The loop bounds are expressed as flow constraints on the loop header blocks.%
+\footnote{The right-hand side of the constraint is larger than our loop bound by one because the loop header
+is executed one additional time more than the loop body to jump out of the loop when the loop condition becomes false.}
+%
+We can also see that LLVM managed to find parametric loop bounds for two loops, but failed to find a loop bound for the
+inner triangle loop since in our case the size of the array to sort is not fixed but parametric. It is thus necessary
+to annotate the inner loop manually.
+%
+Platin supports arbitrary linear flow constraints in PML. It is possible to manually supply additional flow constraints
+in PML format.
+Support for source code flow annotations beyond local loop bounds in the Patmos compiler is planned for future development.
+
+We can also use platin to visualise control-flow graphs, call-graphs and relation graphs:
+
+\begin{verbatim}
+platin visualize -i wcet.pml -o out -f gen_sort \
+                 --show-timings=platin
+\end{verbatim}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TODO why is this figure moved down to the end of the section???
+\begin{figure}[!ht]
+  \centering
+  \subfloat[Bitcode CFG] {
+      \includegraphics[width=0.29\textwidth]{fig/gen_sort-bc}
+      \vspace{5mm}
+  }
+  \quad
+  \subfloat[Machine-code CFG with platin WCET results] {
+      \includegraphics[width=0.62\textwidth]{fig/gen_sort-mc}
+  }
+  \caption{Bitcode and machine-code control-flow graphs for \code{gen\_sort}.}
+  \label{fig:platin:cfg}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+This command generates all graphs for function \code{gen\_sort} and stores them in the output directory \code{out}.
+Figure~\ref{fig:platin:cfg} shows the generated control-flow graphs at bitcode level (after optimisation) and of the final
+machine code. The latter graph is the same graph that is used for WCET analysis by platin.
+Square boxes correspond to basic blocks or basic block slices, while round boxes are virtual nodes inserted by platin.
+The block node labels in the machine code graph show the address and the number of the basic block, as well as the name of
+the corresponding bitcode block (in brackets) and the range of the instructions in the basic block slice (in square
+brackets).
+%
+The \code{--show-timings} option causes platin to highlight blocks and edges that are on the worst-case path found by
+the given analysis tool in the machine-code graph. Edges between basic blocks are annotated with their worst-case execution frequency
+and their associated WCET contribution.
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Patmos-clang C Frontend}

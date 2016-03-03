@@ -45,6 +45,7 @@
 namespace patmos
 {
   class simulator_t;
+  class excunit_t;
   
   /// Default address of the UART status register.
   static const uword_t IOMAP_BASE_ADDRESS = 0xF0000000;
@@ -75,6 +76,12 @@ namespace patmos
   
   /// Number of bytes mapped to the performance counters device.
   static const uword_t PERFCOUNTERS_MAP_SIZE = 0x0028;
+
+  /// Offset from IO base address for the memory management unit.
+  static const uword_t MMU_OFFSET = 0x70000;
+  
+  /// Number of bytes mapped to the memory management unit.
+  static const uword_t MMU_MAP_SIZE = 0x0040;
   
   /// Offset from IO base address for UART device.
   static const uword_t UART_OFFSET = 0x80000;
@@ -87,6 +94,12 @@ namespace patmos
   
   /// Number of bytes mapped to the LED device.
   static const uword_t LED_MAP_SIZE = 0x0004;
+
+  /// Offset from IO base address for the EthMac device.
+  static const uword_t ETHMAC_OFFSET = 0xb0000;
+  
+  /// Number of bytes mapped to the EthMac device.
+  static const uword_t ETHMAC_MAP_SIZE = 0x10000;
   
   class mapped_device_t {
   protected:
@@ -213,7 +226,42 @@ namespace patmos
 
     virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
   };
-  
+
+  struct segment_t {
+    uword_t Base;
+    uword_t Perm;
+    uword_t Length;
+  };
+
+  enum mmu_op_t  {
+    MMU_RD,
+    MMU_WR,
+    MMU_EX
+  };
+
+  class mmu_t : public mapped_device_t
+  {
+  private:
+    struct segment_t Segments [8];
+    excunit_t *ExcUnit;
+
+  public:
+    mmu_t(uword_t base_address, excunit_t *excunit)
+    : mapped_device_t(base_address, MMU_MAP_SIZE), ExcUnit(excunit) {
+
+      for (int i = 0; i < sizeof(Segments)/sizeof(Segments[0]); i++) {
+        Segments[i].Base = 0;
+        Segments[i].Perm = 0;
+        Segments[i].Length = 0;
+      }
+    }
+
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size); 
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+
+    virtual uword_t xlate(uword_t address, mmu_op_t op);
+  };
+    
   class led_t : public mapped_device_t 
   {
     /// Stream to write LED status to
@@ -228,6 +276,36 @@ namespace patmos
     virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
 
     virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+  };
+
+  class ethmac_t : public mapped_device_t 
+  {
+  private:
+    byte_t buffer [0xf000];
+    int fd;
+    int alloc_tap(std::string ip_addr);
+
+    bool rx;
+    bool rx_ready;
+    uword_t rx_addr;
+    uword_t rx_length;
+
+    bool tx;
+    bool tx_ready;
+    uword_t tx_addr;
+    uword_t tx_length;
+
+  public:
+    ethmac_t(uword_t base_address, std::string ip_addr)
+      : mapped_device_t(base_address, ETHMAC_MAP_SIZE), fd(alloc_tap(ip_addr)),
+      rx(false), rx_ready(false), rx_addr(0), rx_length(0),
+      tx(false), tx_ready(false), tx_addr(0), tx_length(0) { }
+
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+
+    virtual void tick(simulator_t &s);
   };
   
   /// Map several devices into the address space of another memory device
@@ -269,7 +347,7 @@ namespace patmos
     /// the memory.
     /// @param size The number of bytes to read.
     /// @return True when the data is available from the read port.
-    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch);
 
     /// A simulated access to a write port.
     /// @param address The memory address to write to.
@@ -284,7 +362,7 @@ namespace patmos
     /// @param value A pointer to a destination to store the value read from
     /// the memory.
     /// @param size The number of bytes to read.
-    virtual void read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size);
+    virtual void read_peek(simulator_t &s, uword_t address, byte_t *value, uword_t size, bool is_fetch);
 
     /// Write some values into the memory -- DO NOT SIMULATE TIMING, just write.
     /// @param address The memory address to write to.

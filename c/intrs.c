@@ -37,6 +37,9 @@ int main(void) {
   // enable interrupts
   intr_enable();
 
+  // go to user mode
+  EXC_STATUS &= ~0x2;
+
   // a that prints "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_" N times and does some self-checking
   volatile unsigned starts = 0;
   volatile unsigned ends = 0;
@@ -57,9 +60,9 @@ int main(void) {
     }
   }
 
-  // diable interrupts again
-  intr_disable();
-  
+  // disabling interrupts again only works in privileged mode
+  /* intr_disable(); */
+
   // call exception vector number 8
   trap(8);
 

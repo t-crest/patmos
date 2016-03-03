@@ -44,6 +44,8 @@ import Chisel._
 import Node._
 
 import patmos.Constants._
+import util.Config
+import util.Utility
 
 import ocp._
 
@@ -80,6 +82,10 @@ class CpuInfo() extends CoreDevice() {
     resp := OcpResp.DVA
   }
 
+  // The ROM for booting
+  val rom = Utility.readBin(Config.datFile, DATA_WIDTH)
+  val romData = rom(masterReg.Addr(log2Up(rom.length)+1, 2))
+
   // Read information
   switch(masterReg.Addr(5,2)) {
     is(Bits("b0000")) { data := io.cpuInfoPins.id }
@@ -93,14 +99,14 @@ class CpuInfo() extends CoreDevice() {
     is(Bits("b0101")) { data := Bits(BURST_LENGTH, width = 8) ## Bits(0, width = 7) ## Bool(WRITE_COMBINE) }
     // ICache
     // Size (32 bit)
-    is(Bits("b0110")) { data := Bits(MCACHE_SIZE) }
+    is(Bits("b0110")) { data := Bits(ICACHE_SIZE) }
     // Type (8 bit) & Replacement policy (8 bit) & Associativity (16 bit)
-    is(Bits("b1001")) { data := Bits(0, width = 8) ## Bits(0, width = 8) ## Bits(METHOD_COUNT, width = 16) }
+    is(Bits("b0111")) { data := Bits(iCacheType2Int(ICACHE_TYPE), width = 8) ## Bits(cacheRepl2Int(ICACHE_REPL), width = 8) ## Bits(ICACHE_ASSOC, width = 16) }
     // DCache
     // Size (32 bit)
     is(Bits("b1000")) { data := Bits(DCACHE_SIZE) }
     // Type (8 bit) & Replacement policy (8 bit) & Associativity (16 bit)
-    is(Bits("b1001")) { data := Bits(0, width = 7) ## Bool(DCACHE_WRITETHROUGH) ## Bits(DCACHE_REPL_TYPE, width = 8) ## Bits(DCACHE_ASSOC, width = 16) }
+    is(Bits("b1001")) { data := Bits(0, width = 7) ## Bool(DCACHE_WRITETHROUGH) ## Bits(cacheRepl2Int(DCACHE_REPL), width = 8) ## Bits(DCACHE_ASSOC, width = 16) }
     // SCache
     // Size (32 bit)
     is(Bits("b1010")) { data := Bits(SCACHE_SIZE) }
@@ -112,10 +118,11 @@ class CpuInfo() extends CoreDevice() {
     // DSPM
     // Size (32 bit)
     is(Bits("b1101")) { data := Bits(DSPM_SIZE) }
-    // BootSPM
-    // Size (32 bit)
-    is(Bits("b1110")) { data := Bits(BOOTSPM_SIZE) }
   }
+  when (masterReg.Addr(15) === Bits("b1")) {
+    data := romData
+  }
+
   when(masterReg.Cmd === OcpCmd.RD) {
     resp := OcpResp.DVA
   }

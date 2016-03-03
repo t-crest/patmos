@@ -89,6 +89,13 @@ int main(void)
   }
 #endif
 
+  // initialize the content of the I-SPM from the main memory
+  // copy words not bytes
+  for (int i = 0; i < get_ispm_size()/4; ++i) {
+    // starting at 64 K (1 << 16) word address (/4)
+    *(SPM+(1<<16)/4+i) = *(MEM+(1<<16)/4+i);
+  }
+
   static char msg[10];
 
 #ifdef DEBUG
@@ -109,7 +116,7 @@ int main(void)
   // notify slaves that they can call _start()
   boot_info->master.status = STATUS_INIT;
 
-  // Wait for slaves to finish
+  // wait for slaves to start
   for (unsigned i = 1; i < get_cpucnt(); i++) {
     while(boot_info->slave[i].status != STATUS_INIT){
       /* spin */
@@ -119,6 +126,9 @@ int main(void)
   // call the application's _start()
   int retval = -1;
   if (boot_info->master.entrypoint != NULL) {
+    // enable global mode
+    global_mode();
+
     retval = (*boot_info->master.entrypoint)();
 
     // Return may be "unclean" and leave registers clobbered.
@@ -131,13 +141,16 @@ int main(void)
                     "$r22", "$r23", "$r24", "$r25",
                     "$r26", "$r27", "$r28", "$r29",
                     "$r30", "$r31");
+
+    // enable local mode again
+    local_mode();
   }
 
   
   #ifdef DEBUG
   WRITE("RETURN\n", 7);
   #endif
-  // Wait for slaves to finish
+  // wait for slaves to finish
   for (unsigned i = 1; i < get_cpucnt(); i++) {
     if (boot_info->slave[i].status != STATUS_NULL) {
         #ifdef HEAVY_DEBUG

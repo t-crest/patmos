@@ -1,0 +1,18 @@
+---
+- analysis-entry: gen_sort
+  source: trace
+  cycles: 49089
+- analysis-entry: gen_sort
+  source: platin
+  cycles: 644867
+  cache-max-cycles-instr: 651
+  cache-min-hits-instr: 398
+  cache-max-misses-instr: 3
+  cache-max-cycles-stack: 0
+  cache-max-misses-stack: 0
+  cache-max-cycles-data: 436779
+  cache-min-hits-data: 0
+  cache-max-misses-data: 10599
+  cache-max-stores-data: 10200
+  cache-unknown-address-data: 20799
+  cache-max-cycles: 437430

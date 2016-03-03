@@ -71,10 +71,11 @@ int main(void)
     /* spin */
   }  
 
-  // Initialize the content of the I-SPM from the main memory
-  // Copy words not bytes
-  for (int i = 0; i < get_ispm_size()/4; ++i) { 
-    *(SPM+(1<<16)/4+i) = *(MEM+(1<<16)/4+i); // Starting at 64 K (1 << 16) word address (/4)
+  // initialize the content of the I-SPM from the main memory
+  // copy words not bytes
+  for (int i = 0; i < get_ispm_size()/4; ++i) {
+    // starting at 64 K (1 << 16) word address (/4)
+    *(SPM+(1<<16)/4+i) = *(MEM+(1<<16)/4+i);
   }
 
   // acknowledge reception of start status
@@ -83,18 +84,25 @@ int main(void)
   // call the application's _start()
   int retval = -1;
   if (boot_info->master.entrypoint != NULL) {
+    // enable global mode
+    global_mode();
+    
     retval = (*boot_info->master.entrypoint)();
+
+    // Return may be "unclean" and leave registers clobbered.
+    asm volatile ("" : :
+                  : "$r2", "$r3", "$r4", "$r5",
+                    "$r6", "$r7", "$r8", "$r9",
+                    "$r10", "$r11", "$r12", "$r13",
+                    "$r14", "$r15", "$r16", "$r17",
+                    "$r18", "$r19", "$r20", "$r21",
+                    "$r22", "$r23", "$r24", "$r25",
+                    "$r26", "$r27", "$r28", "$r29",
+                    "$r30", "$r31");
+
+    // enable local mode again
+    local_mode();
   }
-  // Return may be "unclean" and leave registers clobbered.
-  asm volatile ("" : :
-                : "$r2", "$r3", "$r4", "$r5",
-                  "$r6", "$r7", "$r8", "$r9",
-                  "$r10", "$r11", "$r12", "$r13",
-                  "$r14", "$r15", "$r16", "$r17",
-                  "$r18", "$r19", "$r20", "$r21",
-                  "$r22", "$r23", "$r24", "$r25",
-                  "$r26", "$r27", "$r28", "$r29",
-                  "$r30", "$r31");
 
   boot_info->slave[get_cpuid()].return_val = retval;
   

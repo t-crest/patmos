@@ -99,7 +99,7 @@ class Execute() extends Module {
       (CFUNC_LE,    lt | eq),
       (CFUNC_ULT,   ult),
       (CFUNC_ULE,   ult | eq),
-      (CFUNC_BTEST, (op1 & bitMsk) != UInt(0))))
+      (CFUNC_BTEST, (op1 & bitMsk) =/= UInt(0))))
   }
 
   def pred(func: Bits, op1: Bool, op2: Bool): Bool = {
@@ -365,9 +365,8 @@ class Execute() extends Module {
   io.exmem.mem.callRetAddr := callRetAddr
 
   // return information
-  val baseReg = Reg(init = UInt(4, DATA_WIDTH))
   when(exReg.call && doExecute(0)) {
-    retBaseReg := baseReg
+    retBaseReg := Cat(exReg.base, Bits("b00").toUInt)
   }
   // the offset is saved when the call is already in the MEM statge
   saveRetOff := exReg.call && doExecute(0) && io.ena
@@ -375,12 +374,8 @@ class Execute() extends Module {
 
   // exception return information
   when(exReg.xcall && doExecute(0)) {
-    excBaseReg := baseReg
+    excBaseReg := Cat(exReg.base, Bits("b00").toUInt)
     excOffReg := Cat(exReg.relPc, Bits("b00").toUInt)
-  }
-  // remember base address
-  when(doCallRet && io.ena) {
-    baseReg := callRetBase
   }
 
   // branch
@@ -393,12 +388,13 @@ class Execute() extends Module {
 
   // pass on PC
   io.exmem.pc := exReg.pc
+  io.exmem.base := exReg.base
   io.exmem.relPc := exReg.relPc
 
-  //call/return for mcache
-  io.exmcache.doCallRet := doCallRet
-  io.exmcache.callRetBase := callRetBase(31,2)
-  io.exmcache.callRetAddr := callRetAddr(31,2)
+  //call/return for icache
+  io.exicache.doCallRet := doCallRet
+  io.exicache.callRetBase := callRetBase(31,2)
+  io.exicache.callRetAddr := callRetAddr(31,2)
 
   // suppress writes to special registers
   when(!io.ena) {
@@ -417,5 +413,8 @@ class Execute() extends Module {
   }
 
   // reset at end to override any computations
-  when(reset) { exReg.flush() }
+  when(reset) {
+    exReg.flush()
+    predReg(0) := Bool(true)
+  }
 }

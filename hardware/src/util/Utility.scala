@@ -37,13 +37,13 @@
  *
  */
 
-package patmos
+package util
 
 import Chisel._
 import Node._
 import scala.math._
 
-import Constants._
+import patmos.Constants._
 
 // Borrowed from the Chisel source tree.
 // Hacked to now support longs
@@ -104,7 +104,16 @@ object Utility {
     printf("\nPatmos configuration \"%s\"\n", util.Config.getConfig.description)
     printf("\tFrequency: %d MHz\n", CLOCK_FREQ/1000000)
     printf("\tPipelines: %d\n", PIPE_COUNT)
-    printf("\tMethod cache: %s, %d methods\n", sizeToStr(MCACHE_SIZE), METHOD_COUNT)
+    if (ICACHE_TYPE == ICACHE_TYPE_METHOD) {
+      printf("\tMethod cache: %s, %d methods\n", sizeToStr(ICACHE_SIZE), ICACHE_ASSOC)
+    } else {
+      printf("\tInstruction cache: %s", sizeToStr(ICACHE_SIZE))
+      if (ICACHE_ASSOC == 1) {
+        printf(", direct-mapped\n")
+      } else {
+        printf(", %d-way set associative with %s replacement\n", ICACHE_ASSOC, ICACHE_REPL)
+      }
+    }
     printf("\tData cache: %s", sizeToStr(DCACHE_SIZE))
     if (DCACHE_ASSOC == 1) {
       printf(", direct-mapped")
@@ -115,9 +124,9 @@ object Utility {
     printf("\tStack cache: %s\n",  sizeToStr(SCACHE_SIZE))
     printf("\tInstruction SPM: %s\n", sizeToStr(ISPM_SIZE))
     printf("\tData SPM: %s\n", sizeToStr(DSPM_SIZE))
-    printf("\tBoot SPM: %s\n", sizeToStr(BOOTSPM_SIZE))
     printf("\tAddressable external memory: %s\n",
            sizeToStr(util.Config.getConfig.ExtMem.size))
+    printf("\tMMU: %b\n", HAS_MMU)
     printf("\n")
   }
 }

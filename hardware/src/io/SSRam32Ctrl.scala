@@ -196,7 +196,7 @@ class SSRam32Ctrl (
   }
 
   //counter till output is ready
-  when (waitState != UInt(0)) {
+  when (waitState =/= UInt(0)) {
     waitState := waitState - UInt(1)
   }
   //set wait state after incoming request
@@ -269,7 +269,7 @@ class ExtSsram(addrBits : Int, fileName : String) extends Module {
   }
 
   //on chip memory instance
-  val ssram_extmem = Mem(Bits(width = 32), 2 * MCACHE_SIZE) //bus width = 32
+  val ssram_extmem = Mem(Bits(width = 32), 2 * ICACHE_SIZE) //bus width = 32
 
   def initSsram(fileName: String): Mem[UInt] = {
     println("Reading " + fileName)
@@ -288,7 +288,7 @@ class ExtSsram(addrBits : Int, fileName : String) extends Module {
       ssram_extmem(Bits(i)) := Bits(word, width=32)
     }
     // generate some dummy data to fill the table and make Bit 31 test happy
-    for (x <- byteArray.length / 4 until MCACHE_SIZE * 2)
+    for (x <- byteArray.length / 4 until ICACHE_SIZE * 2)
       ssram_extmem(Bits(x)) := Bits("h80000000")
     ssram_extmem
   }
