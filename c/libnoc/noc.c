@@ -151,7 +151,6 @@ void noc_load_config(void) {
     unsigned short schedule_entries = noc_init_array[mode_idx+core_idx];
     if (noc_conf_base_ptr+schedule_entries >= schedule_table_size) {
       WRITE("Configuration schedules do not fit in schedule table\n",53);
-      exit(1);
     }
     for (unsigned i = 0; i < schedule_entries; ++i) {
       // Handling allocation of space in the mode change table

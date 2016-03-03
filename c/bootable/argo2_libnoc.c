@@ -49,10 +49,10 @@ int main() {
   intr_clear_all_pending();
   // enable interrupts
   intr_enable();
-  if (get_cpuid() == 0) {
-    // Enter user mode
-    EXC_STATUS &= ~2; 
-  }
+//  if (get_cpuid() == 0) {
+//    // Enter user mode
+//    EXC_STATUS &= ~2; 
+//  }
   
   int tmp1 = 0;
   int tmp2 = 0;
@@ -76,14 +76,14 @@ int main() {
   COM_SPM_WR32(2<<2,0x99001122);
   COM_SPM_WR32(3<<2,0x33445566);
 
-  if (get_cpuid() == 0) {
-    noc_done(3);
-    noc_dma(1,0,0,2);
-
-    for (; ;) {
-      
-    }
-  }
+//  if (get_cpuid() == 0) {
+//    noc_done(3);
+//    noc_dma(1,0,0,2);
+//
+//    for (; ;) {
+//      
+//    }
+//  }
   
 
 
@@ -131,6 +131,11 @@ int main() {
   if (tmp2 == tmp1) {
     WRITE("OK4\n",4); 
   }
+
+  // Setting run to 1
+  tmp1 = 1;
+  ARGO_CONFIG_WR32(TDM_BANK,4<<2,tmp1);
+  asm volatile ("nop");
 
 
   WRITE("Testing mode change\n",20);
