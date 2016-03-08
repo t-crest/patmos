@@ -22,9 +22,11 @@ const int NOC_MASTER = 0;
 //#include <math.h>
 
 //this should not be needed, NOC_CORES should be used instead, but it gives errors.
-#define NOC_CORES 9
+//#define NOC_CORES 9
 
-volatile _UNCACHED int bandwidth_results[NOC_CORES][NOC_CORES];//this contains the amount of CC needed to send a block (-1 means: channel not available)
+//volatile _UNCACHED int bandwidth_results[NOC_CORES][NOC_CORES];// bandwidth_results[sender][receiver]//this contains the amount of CC needed to send a block (-1 means: channel not available)
+
+volatile _UNCACHED int bandwidth_results[9][9];// bandwidth_results[sender][receiver]//this contains the amount of CC needed to send a block (-1 means: channel not available)
 
 
 #define BLOCK_SIZE 4096 //blocksize in bites
@@ -39,7 +41,7 @@ void clear_bandwidth_results(){
 }
 
 void print_bandwidth_results(){
-	printf("\tfrom:\nto:\t");
+	printf("\tto:\nfrom:\t");
 	for (int i = 0; i < NOC_CORES; i++) {
 		printf("%d\t", i);
 	}
@@ -61,18 +63,32 @@ void print_bandwidth_results(){
 void generate_bandwidth_results(){ //bandwith results need to be cleared
 	volatile _SPM unsigned char * block = ((volatile _SPM unsigned char *) NOC_SPM_BASE);
 	
+	printf("DEBUG!\n");
+
 	//Initialize memorycontent with incremental values
 	for (int i = 0; i < BLOCK_SIZE; i++) {
 		block[i] = (unsigned char)(i & 0x000000FF);
+		printf("DEBUG! n:%d\n", i);
 	}
 
+
+
+	long long unsigned t1, t2;
 	for (int i = 0; i < NOC_CORES; i++) {
-		if(i != get_cpuid()){//do not send to yourself
-			//get the time
+		if(i != get_cpuid()){//do not try to send to yourself
+			
+			t1 = get_cpu_cycles();
 			//start to send the block
+			noc_send((unsigned) i, ((_SPM long long unsigned int *) NOC_SPM_BASE), block, (size_t) BLOCK_SIZE);
+
 			//check for timeout (this adds a tolerance on the result)
+			while(noc_done((unsigned) i)==1){;}
+
 			//if the sending is done, get the time
+			t2 = get_cpu_cycles();
+
 			//calculate and correct the result with #defined values (from experiments)
+			bandwidth_results[get_cpuid()][i] = t2-t1;
 			//write it in 
 		}
 		
@@ -131,6 +147,7 @@ int main() {
 			case '1':
 				printf("\nOperation 1: test bandwidth of the current schedule\n");
 				clear_bandwidth_results();
+				generate_bandwidth_results();
 				print_bandwidth_results();
 				break;
 			case '2':
