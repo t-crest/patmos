@@ -15,6 +15,7 @@ doc/c_doc
 
 hardware/quartus/altde2-115/db
 hardware/quartus/altde2-115/incremental_db
+hardware/quartus/altde2-115-mc
 
 *_summary.xml
 *_usage.xml
