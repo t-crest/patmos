@@ -76,9 +76,9 @@ $(BUILDDIR)/%.s: %.c Makefile
 	$(CC) $(CFLAGS) -fpatmos-emit-asm -S -o $@ $(filter %.c,$^)
 
 # A target for bootable applications (e.g., the bootloader)
-$(BUILDDIR)/bootable-%.elf: %.c $(LIBETH) $(LIBNOC) $(NOCINIT) Makefile
+$(BUILDDIR)/bootable-%.elf: %.c $(LIBETH) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -leth -lnoc
+	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -leth
 
 $(BUILDDIR)/bootable-%.s: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)

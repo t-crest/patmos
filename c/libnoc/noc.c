@@ -38,14 +38,6 @@
  *
  */
 
-
-#include <machine/patmos.h>
-#include <machine/spm.h>
-#include <machine/boot.h>
-#include <machine/exceptions.h>
-
-#include <stdio.h>
-//#include "bootloader/cmpboot.h"
 #include "noc.h"
 
 #define TRAP

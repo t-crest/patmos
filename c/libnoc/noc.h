@@ -50,6 +50,14 @@
 #include <machine/spm.h>
 #include "coreset.h"
 
+#include <machine/patmos.h>
+#include <machine/spm.h>
+#include <machine/boot.h>
+#include <machine/exceptions.h>
+
+//#include <stdio.h>
+//#include "bootloader/cmpboot.h"
+
 //#define DEBUG
 
 #ifdef DEBUG

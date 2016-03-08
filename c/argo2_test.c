@@ -12,10 +12,11 @@
 #include <machine/patmos.h>
 #include <machine/spm.h>
 
+const int NOC_MASTER = 0;
 #include "libnoc/noc.h"
 
 #define CORETHREAD_INIT
-const int NOC_MASTER = 0;
+
 #include "libcorethread/corethread.h"
 
 //#include "libmp/mp.h"
@@ -32,8 +33,8 @@ volatile _UNCACHED int bandwidth_results[9][9];// bandwidth_results[sender][rece
 #define BLOCK_SIZE 4096 //blocksize in bites
 
 void clear_bandwidth_results(){
-	for (int i = 0; i < NOC_CORES; i++) {
-		for (int j = 0; j < NOC_CORES; j++) {
+	for (int i = 0; i < get_cpucnt(); i++) {
+		for (int j = 0; j < get_cpucnt(); j++) {
 			bandwidth_results[i][j] = -1;
 		}
 	}
@@ -42,13 +43,13 @@ void clear_bandwidth_results(){
 
 void print_bandwidth_results(){
 	printf("\tto:\nfrom:\t");
-	for (int i = 0; i < NOC_CORES; i++) {
+	for (int i = 0; i < get_cpucnt(); i++) {
 		printf("%d\t", i);
 	}
 	printf("\n");
-	for (int i = 0; i < NOC_CORES; i++) {
+	for (int i = 0; i < get_cpucnt(); i++) {
 		printf("%d\t", i);
-		for (int j = 0; j < NOC_CORES; j++) {
+		for (int j = 0; j < get_cpucnt(); j++) {
 			if(bandwidth_results[i][j]==-1){
 				printf("N/A\t");
 			}else{
@@ -74,7 +75,7 @@ void generate_bandwidth_results(){ //bandwith results need to be cleared
 
 
 	long long unsigned t1, t2;
-	for (int i = 0; i < NOC_CORES; i++) {
+	for (int i = 0; i < get_cpucnt(); i++) {
 		if(i != get_cpuid()){//do not try to send to yourself
 			
 			t1 = get_cpu_cycles();
@@ -120,9 +121,9 @@ int main() {
 */
 
 /*	// Clear scratch pad in all cores
-	for (int i = 0; i < NOC_CORES * 4; i++) {
+	for (int i = 0; i < get_cpucnt() * 4; i++) {
 		*(NOC_SPM_BASE + i) = 0;
-		*(NOC_SPM_BASE + NOC_CORES * 4 + i) = 0;
+		*(NOC_SPM_BASE + get_cpucnt() * 4 + i) = 0;
 	}
 */
 	//Print the header
