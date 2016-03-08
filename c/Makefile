@@ -115,7 +115,7 @@ $(BUILDDIR)/bootable-mp_test.elf: bootable.h
 
 # make sure the initialization file for the network-on-chip is there
 $(NOCINIT):
-	touch $@
+	touch cmp/$@
 
 # library for network-on-chip
 .PHONY: libnoc
