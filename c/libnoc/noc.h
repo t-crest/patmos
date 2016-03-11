@@ -236,6 +236,12 @@ int noc_irq(unsigned dma_id, unsigned short write_ptr,
 int k_noc_done(unsigned dma_id);
 int noc_done(unsigned dma_id);
 
+/// \brief Stops a NoC transfer and clear the DMA entry.
+///
+/// \param dma_id The core id of the receiver.
+void k_noc_dma_clear(unsigned dma_id);
+void noc_dma_clear(unsigned dma_id);
+
 /// \brief Attempt to transfer data via the NoC (non-blocking).
 ///
 /// The addresses and the size are absolute and in bytes.

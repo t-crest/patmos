@@ -40,7 +40,7 @@
 
 #include "noc.h"
 
-#define TRAP
+//#define TRAP
 
 void __remote_irq_handler(void)  __attribute__((naked));
 void __remote_irq_handler(void) {
@@ -337,6 +337,21 @@ int k_noc_done(unsigned dma_id) {
       return 0;
   }
   return 1;
+}
+
+// Stops a NoC transfer and clear the DMA entry
+void noc_dma_clear(unsigned dma_id) {
+  k_noc_dma_clear(dma_id);
+  return;
+}
+
+// Stops a NoC transfer and clear the DMA entry
+void k_noc_dma_clear(unsigned dma_id) {
+  // DWord count and valid bit, set active bit
+  *(NOC_DMA_BASE+(dma_id<<1)+1) = 0;
+  // Read pointer and write pointer in the dma table
+  *(NOC_DMA_BASE+(dma_id<<1)) = 0;
+  return;
 }
 
 // Start a NoC configuration transfer
