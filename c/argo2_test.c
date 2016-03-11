@@ -24,39 +24,16 @@ const int NOC_MASTER = 0;
 //this should not be needed, NOC_CORES should be used instead, but it gives errors.
 #define NOC_CORES 9
 
-#define SEND_TIMEOUT 5000 //in cc
+#define SEND_TIMEOUT 800000 //in cc
 
 volatile _UNCACHED int bandwidth_results[NOC_CORES][NOC_CORES];// bandwidth_results[sender][receiver]//this contains the amount of CC needed to send a block (-1 means: channel not available)
 volatile _UNCACHED int correctness_results[NOC_CORES][NOC_CORES];// correctness_results[sender][receiver]//this contains the amount of CC needed to send a block (-1 means: channel not available)
 
 volatile _UNCACHED int s, d; //global sender and destnation
 
-//volatile _UNCACHED int debug[NOC_CORES][NOC_CORES];// correctness_results[sender][receiver]//this contains the amount of CC needed to send a block (-1 means: channel not available)
-
-
-//volatile _UNCACHED int bandwidth_results[9][9];// bandwidth_results[sender][receiver]//this contains the amount of CC needed to send a block (-1 means: channel not available)
-
-#define BLOCK_SIZE 1024 //blocksize in bites
+#define BLOCK_SIZE 4096 //blocksize in bites
 
 volatile _UNCACHED unsigned char random_array[BLOCK_SIZE];
-
-/*
-void m_print_debug(){
-	printf("\tto:\nfrom:\t");
-	for (int i = 0; i < NOC_CORES; i++) {
-		printf("%d\t", i);
-	}
-	printf("\n");
-	for (int i = 0; i < NOC_CORES; i++) {
-		printf("%d\t", i);
-		for (int j = 0; j < NOC_CORES; j++) {
-			printf("%d\t", debug[i][j]);
-		}
-		printf("\n");
-	}
-	return;
-}
-*/
 
 void m_generate_random_array()
 {
@@ -259,26 +236,6 @@ void s_check_correctness(void * arg){
 
 //   Main application
 int main() {
-/*	_SPM
-	double *x = ((_SPM double *) NOC_SPM_BASE)+128;
-	_SPM
-	double *y = ((_SPM double *) NOC_SPM_BASE)+256;
-	char c = 'v';
-	char s = 'y';
-	long long unsigned int dir;
-	int m_r;
-	int done = 0;
-	long long unsigned int m = 4;
-	long long unsigned int n;
-	long long unsigned int t1, t2, ttot;
-*/
-
-/*	// Clear scratch pad in all cores
-	for (int i = 0; i < NOC_CORES * 4; i++) {
-		*(NOC_SPM_BASE + i) = 0;
-		*(NOC_SPM_BASE + NOC_CORES * 4 + i) = 0;
-	}
-*/
 	//Print the header
 	printf("\n-------------------------------------------------------------\n");
 	printf("-          C test application for the Argo 2.0 NOC          -\n");
@@ -288,8 +245,9 @@ int main() {
 	//Main loop
 	bool loop = true;
 	char c = 'v';
+	int mode = 0;
 	while (loop) {
-		printf("\nAvailable operations:\n1 -> Test bandwidth of the current schedule\n2 -> operation 2\n3 -> operation 3\n4 -> operation 4\ne -> exit\n");
+		printf("\nAvailable operations:\n1 -> Test bandwidth and tramission correctness.\n2 -> Change mode (actual: M%d)\n3 -> operation 3\n4 -> operation 4\ne -> exit\n", mode);
 
 		printf("\nSelect operation: ");
 		scanf(" %c", &c);
@@ -299,7 +257,7 @@ int main() {
 		};
 		switch (c) {
 			case '1':
-				printf("\nOperation 1: test bandwidth of the current schedule\n");
+				printf("\nOperation 1: test the bandwidth and the tramission correctness of the current schedule.\n");
 				m_clear_bandwidth_results();
 
 				int slave_param = 0;//not used now
@@ -309,10 +267,10 @@ int main() {
 				{
 					if (i==NOC_MASTER){
 						//The master does the measure
-						printf("Master is testing.\n");
+						printf("Bandwidth test: master core (%d) is testing.\n", NOC_MASTER);
 						m_generate_bandwidth_results();
 					}else{
-						printf("Core %d is testing.\n", i);
+						printf("Bandwidth test: core %d is testing.\n", i);
 						ct = (corethread_t)i;
 						if(corethread_create(&ct, &s_generate_bandwidth_results, (void *) &slave_param)){
 							//printf("Corethread not created.\n");
@@ -328,9 +286,7 @@ int main() {
 
 					}
 				}
-				m_print_bandwidth_results();
-
-
+				
 				m_clear_correctness_results();
 				s = 0;
 				d = 0;
@@ -384,14 +340,21 @@ int main() {
 					
 				}
 
-
+				printf("\nBandwith results (clock cycles needed to transmit %d bytes):\n", BLOCK_SIZE);
+				m_print_bandwidth_results();
+				printf("\nCorrectness results:\n");
 				m_print_correctness_results();
 				//m_print_debug();
 
 
 				break;
 			case '2':
-				printf("\nOperation 2\n");
+				printf("\nOperation 2: change mode (actual: M%d)\n Type new mode: ", mode);
+				int new_mode = mode;
+				scanf ("%d",&new_mode);
+				mode=new_mode;
+				noc_set_config(mode);
+				printf("Done!\n\n");
 				break;
 			case '3':
 				printf("\nOperation 3\n");
