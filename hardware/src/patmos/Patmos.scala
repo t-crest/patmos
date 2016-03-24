@@ -239,18 +239,19 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
   // These are the NoC interfaces and can be reused for other experiments.
   // Their names should be more general.
-  if (nrCores == 1) {
-    // probably no one is using this, but have it connected...
-    io.comConf <> core.io.comConf
-    io.comSpm <> core.io.comSpm
-  } else {
+//  if (nrCores == 1) {
+//    // probably no one is using this, but have it connected...
+//    // maybe drop this and have also a single core connected to the spm
+//    io.comConf <> core.io.comConf
+//    io.comSpm <> core.io.comSpm
+//  } else {
     val spm = Module(new cmp.SharedSPM(nrCores))
     for (i <- nrs) {
       println("Connecting core " + i)
       spm.io.comConf(i) <> cores(i).io.comConf
       spm.io.comSpm(i) <> cores(i).io.comSpm
     }
-  }
+//  }
   Config.connectAllIOPins(io, core.io)
 
   // Connect memory controller

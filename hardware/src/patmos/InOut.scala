@@ -129,7 +129,7 @@ class InOut() extends Module {
   val comConfIO = Module(new OcpIOBus(ADDR_WIDTH, DATA_WIDTH))
   io.comConf.M := comConfIO.io.master.M
   comConfIO.io.master.S := io.comConf.S
-  val comConfBridge = new OcpIOBridge(comConf.io.master, comConfIO.io.slave)
+  val comConfBridge = new OcpIOBridge2(comConf.io.master, comConfIO.io.slave)
 
   // The communication scratchpad
   io.comSpm.M := io.memInOut.M
