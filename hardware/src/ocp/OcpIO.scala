@@ -96,20 +96,19 @@ class OcpIOBridge(master: OcpCoreMasterPort, slave: OcpIOSlavePort) {
 }
 
 // Bridge between ports that do/do not support CmdAccept
-// Martin: a different version
+// An alternative version, being on the safer side for reset.
 // Inserts one cycle delay for the command register (could be improved)
 //   including the earlier reaction on CmdAccep
 //   adds than combinational paths
-class OcpIOBridge2(master: OcpCoreMasterPort, slave: OcpIOSlavePort) {
+class OcpIOBridgeAlt(master: OcpCoreMasterPort, slave: OcpIOSlavePort) {
   
-  // Register signals that come from master
-  val masterReg = Reg(init = master.M)
+  val masterReg = Reg(init = master.M) // What is the reset value of this bundle?
   val busyReg = Reg(init = Bool(false))
 
   when(!busyReg) {
     masterReg := master.M
   }
-  when(masterReg.Cmd === OcpCmd.RD || masterReg.Cmd === OcpCmd.WR) {
+  when(master.M.Cmd === OcpCmd.RD || master.M.Cmd === OcpCmd.WR) {
     busyReg := Bool(true)
   }
   when(busyReg && slave.S.CmdAccept === Bits(1)) {
