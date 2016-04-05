@@ -2714,7 +2714,9 @@ register. To enable sub-word transfers of data, the signal
 \subsubsection{\code{OCPio}}
 
 The \code{OCPio} level is derived from the \code{OCPcore} level by
-inserting a register in the master signals. It is slightly more
+inserting a register in the master signals. \code{OCPio} contains
+additional signals and all signals are shown in Table~\ref{tab:ocpiosignals}.
+\code{OCPio} is slightly more
 flexible than \code{OCPcore} and appropriate for I/O devices that do
 not (or cannot) follow the semantics of \code{OCPcore}. Registering
 the master signals changes the protocol as follows:
@@ -2732,6 +2734,27 @@ the master signals changes the protocol as follows:
   derived directly from the pipeline's \code{OCPcore} port always
   accepts responses.
 \end{itemize}
+
+\begin{table}
+  \centering
+  \caption{\code{OCPio} signals}
+  \label{tab:ocpiosignals}
+  \begin{tabular}{ll}
+    \toprule
+    Signal & Description \\
+    \midrule
+    \code{MCmd} & Command \\
+    \code{MAddr} & Address, byte-based, lowest two bits always 0 \\
+    \code{MData} & Data for writes, 32 bits \\
+    \code{MByteEn} & Byte enables for sub-word accesses, 4 bits \\
+    \code{MRespAccept} & Enable handshaking with \code{SResp} \\
+    \cmidrule{1-2}
+    \code{SResp} & Response \\
+    \code{SData} & Data for reads, 32 bits \\
+    \code{SCmdAccept} & Flow control towards the command from the master \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 \subsubsection{\code{OCPcache}}
 
@@ -3033,8 +3056,7 @@ For a dual issue pipeline we need 4 read ports and 2 write ports into the RF.
 We explored double clocking of a on-chip based RF in~\cite{patmos:ppes2011}.
 It is feasible, the resulting maximum frequency fits for the ALU path, but feels
 a little bit brittle. A RF from registers might give a more robust design for the
-two write ports. Furthermore, Chisel does not provide the possibility to use
-more than one clock.
+two write ports.
 
 The ideal solution would be to make it configurable if on-chip memory or
 LCs are used. The issue width should also be configurable.
