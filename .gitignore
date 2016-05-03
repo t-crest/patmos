@@ -20,6 +20,12 @@ hardware/quartus/altde2-115/incremental_db
 *_usage.xml
 *_pn.xml
 
+*.fdb_latexmk
+*.pof
+*.sld
+*.fls
+*.mti
+*.mpf
 *.bld
 *.cmd_log
 *.ncd
@@ -45,6 +51,14 @@ hardware/quartus/altde2-115/incremental_db
 *.pin
 *.rpt
 *.smsg
+*.orig
+*.i
+*.o
+*.old
+*.ini
+*.out
+*.tmp
+*.jdi
 
 # Ignore LaTeX temp files
 doc/**/*.aux
