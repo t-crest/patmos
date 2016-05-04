@@ -7,7 +7,8 @@ also includes the instruction representation.
 
 The register usage conventions for the general purpose registers are as follows:
 \begin{itemize}
-  \item \texttt{r0} is defined to be zero at all times.
+  \item \texttt{r0} is defined to be zero at all times. This is actually not just a convention,
+  but implemented by the hardware.
   \item \texttt{r1} and \texttt{r2} are used to pass the return value on
         function calls. \\
         For 64 bit results, the high part is stored in \texttt{r1},
@@ -225,4 +226,6 @@ add $r31 = $r31, 52
 nop
 nop
 \end{verbatim}
+
+\todo{Check why add is 52 and not 56 as in the beginning.}
 

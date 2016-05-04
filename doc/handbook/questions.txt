@@ -10,4 +10,8 @@ How can an IO device be added to the multi-core platform?
 
 What is the base address of the stack? Is this defined somewhere?
 
+Where is the list of all assembler instructions (mnemonics)?
 
+How can we define hexadecimal constants in the assmbler?
+
+How to define a sequence of words in assmbler?

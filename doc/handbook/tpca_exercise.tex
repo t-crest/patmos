@@ -221,8 +221,8 @@ access local memory. This is performed with the help of a little macro:
 
 int main() {
 
-        volatile _SPM int *uart_status = (volatile _SPM int *) 0xF0000800;
-        volatile _SPM int *uart_data = (volatile _SPM int *) 0xF0000804;
+        volatile _SPM int *uart_status = (volatile _SPM int *) 0xF0080000;
+        volatile _SPM int *uart_data = (volatile _SPM int *) 0xF0080004;
 \end{verbatim}
 
 \paragraph{Emulator and elf File}

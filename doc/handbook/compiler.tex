@@ -1096,7 +1096,7 @@ inline assembly code.
 Note that the compiler might choose to inline functions into naked functions. To prevent this, put your C code into a
 separate function that is marked as \code{noinline}, and only call this function from the naked function.
 
-The the time of writing, the compiler automatically inserts a return instruction in naked functions. This behavior might be changed
+At the time of writing, the compiler automatically inserts a return instruction in naked functions. This behavior might be changed
 in the future, i.e., naked functions should either contain an explicit return statement or a \code{RET} instruction in
 the inline assembler whenever the control flow reaches the end of the function.
 
@@ -1155,6 +1155,8 @@ a specific address range (see Table~\ref{tab:gmmap}). This can be achieved by as
 to a different segment in the ELF objects, and then instructing the linker to place these segments at
 a different address.
 
+\todo{Explain how those functions are loaded into the ISPM. By the boot loader?}
+
 Functions can be assigned to a segment using the following attribute.
 
 \begin{verbatim}
@@ -1201,6 +1203,7 @@ patmos-clang -Xgold -T -Xgold path/to/spm_ram.t -o hello hello.o
 \end{verbatim}
 
 Note that the instruction scratchpad is currently not available in the multicore version of Patmos.
+\todo{why?}
 
 \stefan{TODO some words about how the code actually gets into the I-SPM (bootloader??).}
 
@@ -1331,7 +1334,7 @@ be followed by a newline, but no comments or labels may appear between the brack
 
 
 \paragraph{Function Block Start Markers and Subfunction Calls:}
-Functions must be prepended by the \code{.fstart} directive which emits the function size word and aligns the
+Functions must be prepended by the \code{.fstart} directive that emits the function size word and aligns the
 code.
 
 \begin{verbatim}
@@ -1397,7 +1400,7 @@ Used address spaces:
   \begin{itemize}
   \item Compiler-maintained, must not be used in application code (at the moment)
   \end{itemize}
-\item Address Space 3: main memory without data cache
+\item Address Space 3: main memory with data cache bypass
   \begin{itemize}
   \item use macro \code{\_UNCACHED} defined in \code{<machine/patmos.h>}
   \end{itemize}
