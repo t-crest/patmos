@@ -422,7 +422,7 @@ To turn the LED on and off, write a 1 and 0, respectively to the hardware addres
 \begin{figure}
 \begin{Verbatim}[xleftmargin=1cm,xrightmargin=1cm,frame=single,framesep=3mm]
 // The hardware address of the LED
-#define LED ( *( ( volatile _IODEV unsigned * ) 0xf0000900 ) )
+#define LED ( *( ( volatile _IODEV unsigned * ) 0xf0090000 ) )
 for (;;) {
   for ( int i=2000; i!=0; --i ) {
     for ( int j=2000; j!=0; --j ) {
@@ -572,14 +572,11 @@ The Aegean framework generates a hardware description from an
 xml description.
 The default xml description for the Altera DE2-115 board with 9 cores
 has an external shared memory and an Argo network-on-chip.
-To build the newest version of the platform run the following commands:
+To build the platform run the following commands:
 \begin{Verbatim}
 cd ~/t-crest/aegean
-git pull
 make AEGEAN_PLATFORM=default-altde2-115-9core platform synth
 \end{Verbatim}
-The \code{git pull} will update the Aegean framework with the newest
-configuration files.
 The make command will generate a platform as described in the
 \code{config/default-altde2-115-9core.xml} file.
 When the platform description is generated the it will be synthesised.
