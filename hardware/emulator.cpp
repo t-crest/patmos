@@ -611,7 +611,7 @@ static void print_sc_state(Patmos_t *c) {
 
 static void print_state(Patmos_t *c) {
   static unsigned int baseReg = 0;
-  *out << (baseReg + c->Patmos_core_fetch__pcReg.to_ulong() * 4 - c->Patmos_core_fetch__relBaseReg.to_ulong() * 4) << " - ";
+  *out << ((baseReg + c->Patmos_core_fetch__pcReg.to_ulong()) * 4 - c->Patmos_core_fetch__relBaseReg.to_ulong() * 4) << " - ";
   baseReg = c->Patmos_core_icache_repl__callRetBaseReg.to_ulong();
 
   for (unsigned i = 0; i < 32; i++) {
