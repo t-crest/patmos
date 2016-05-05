@@ -84,10 +84,10 @@ typedef char coreid_t;
 
 typedef enum {SOURCE, SINK} direction_t;
 
+/// \struct LOCK_T
+/// \brief Lock type placed in local scratchpad memory
 struct _SPM_LOCK_T; // forward decl
-
 typedef struct _SPM_LOCK_T _SPM LOCK_T;
-
 struct _SPM_LOCK_T {
   volatile unsigned int remote_entering;
   volatile unsigned int remote_number;
@@ -124,7 +124,7 @@ struct _qpd_t {
   unsigned int buf_size;
   /** The number of buffers at the receiver */
   unsigned int num_buf;
-
+  /** The following fields depend on the direction of the port */
   union {
     /** Sender specific fields */
     struct {
@@ -150,7 +150,7 @@ struct _qpd_t {
 
 };
 
-/// \struct qpd_t
+/// \struct spd_t
 /// \brief Sample port descriptor.
 ///
 /// The struct is used to store the data describing the sampling port.
@@ -176,7 +176,7 @@ struct _spd_t {
   LOCK_T * lock;
 
   int padding;
-
+  /** The following fields depend on the direction of the port */
   union {
     /** writer specific fields */
     struct {
@@ -234,7 +234,7 @@ void _SPM * mp_alloc(const size_t size) __attribute__ ((noinline));
 
 /// \brief Initialize the state of a communication channel
 ///
-/// \param mpd_ptr A pointer the the message passing descriptor
+/// \param qpd_ptr A pointer the the message passing descriptor
 /// \param remote The core id of the remote processor
 /// \param buf_size The size of the message buffer
 /// \param num_buf The number of buffers in the receiving scratchpad
@@ -247,7 +247,7 @@ qpd_t * mp_create_qport( const unsigned int chan_id, const direction_t direction
 
 /// \brief Initialize the state of a communication channel
 ///
-/// \param mpd_ptr A pointer the the message passing descriptor
+/// \param qpd_ptr A pointer the the message passing descriptor
 /// \param remote The core id of the remote processor
 /// \param buf_size The size of the message buffer
 /// \param num_buf The number of buffers in the receiving scratchpad
@@ -284,27 +284,27 @@ int mp_communicator_init(communicator_t* comm, const unsigned int count,
 /// local buffer in the communication scratch pad before the function
 /// is called.
 ///
-/// \param mpd_ptr A pointer to the message passing data structure
+/// \param qpd_ptr A pointer to the message passing data structure
 /// for the given message passing channel.
 ///
 /// \retval 0 The send did not succeed, either there was no space in the
 /// receiving buffer or there was no free DMA to start a transfer
 /// \retval 1 The send succeeded.
-int mp_nbsend(qpd_t * mpd_ptr) INLINING  ;
+int mp_nbsend(qpd_t * qpd_ptr) INLINING  ;
 
 /// \brief A function for passing a message to a remote processor under
 /// flow control. The data to be passed by the function should be in the
 /// local buffer in the communication scratch pad before the function
 /// is called.
 ///
-/// \param mpd_ptr A pointer to the message passing data structure
+/// \param qpd_ptr A pointer to the message passing data structure
 /// for the given message passing channel.
 /// \param time_usecs The time out time in microseconds, if parameter is 0
 /// the timeout is infinite
 ///
 /// \retval 0 The function timed out.
 /// \retval 1 The function succeeded sending the message.
-int mp_send(qpd_t * mpd_ptr, const unsigned int time_usecs) INLINING ;
+int mp_send(qpd_t * qpd_ptr, const unsigned int time_usecs) INLINING ;
 
 /// \brief Non-blocking function for receiving a message from a remote processor
 /// under flow control. The data that is received is placed in a message buffer
@@ -312,13 +312,13 @@ int mp_send(qpd_t * mpd_ptr, const unsigned int time_usecs) INLINING ;
 /// longer used the reception of the message should be acknowledged with
 /// the #mp_ack()
 ///
-/// \param mpd_ptr A pointer to the message passing data structure
+/// \param qpd_ptr A pointer to the message passing data structure
 /// for the given message passing channel.
 ///
 /// \retval 0 No message has been received yet.
 /// \retval 1 A message has been received and dequeued. The call has to be
 /// followed by a call to #mp_ack() when the data is no longer used.
-int mp_nbrecv(qpd_t * mpd_ptr)  INLINING ;
+int mp_nbrecv(qpd_t * qpd_ptr)  INLINING ;
 
 /// \brief A function for receiving a message from a remote processor under
 /// flow control. The data that is received is placed in a message buffer
@@ -326,14 +326,14 @@ int mp_nbrecv(qpd_t * mpd_ptr)  INLINING ;
 /// longer used the reception of the message should be acknowledged with
 /// the #mp_ack()
 ///
-/// \param mpd_ptr A pointer to the message passing data structure
+/// \param qpd_ptr A pointer to the message passing data structure
 /// for the given message passing channel.
 /// \param time_usecs The time out time in microseconds, if parameter is 0
 /// the timeout is infinite
 ///
 /// \retval 0 The function timed out.
 /// \retval 1 The function succeeded receiving the message.
-int mp_recv(qpd_t * mpd_ptr, const unsigned int time_usecs)  INLINING ;
+int mp_recv(qpd_t * qpd_ptr, const unsigned int time_usecs)  INLINING ;
 
 /// \brief Non-blocking function for acknowledging the reception of a message.
 /// This function should be used with extra care, if no acknowledgement is sent
@@ -344,12 +344,12 @@ int mp_recv(qpd_t * mpd_ptr, const unsigned int time_usecs)  INLINING ;
 /// It is possible to work on 2 or more incoming messages at the same
 /// time with out them being overwritten.
 ///
-/// \param mpd_ptr A pointer to the message passing data structure
+/// \param qpd_ptr A pointer to the message passing data structure
 /// for the given message passing channel.
 ///
 /// \retval 0 No acknowledgement has been sent.
 /// \retval 1 An acknowledgement has been sent.
-int mp_nback(qpd_t * mpd_ptr) INLINING ;
+int mp_nback(qpd_t * qpd_ptr) INLINING ;
 
 /// \brief A function for acknowledging the reception of a message.
 /// This function shall be called to release space in the receiving
@@ -358,15 +358,15 @@ int mp_nback(qpd_t * mpd_ptr) INLINING ;
 /// It is possible to work on 2 or more incoming messages at the same
 /// time with out them being overwritten.
 ///
-/// \param mpd_ptr A pointer to the message passing data structure
+/// \param qpd_ptr A pointer to the message passing data structure
 /// for the given message passing channel.
 /// \param time_usecs The time out time in microseconds, if parameter is 0
 /// the timeout is infinite
 ///
 /// \retval 0 The function timed out.
 /// \retval 1 The function succeeded acknowledging the message.
-int mp_ack(qpd_t * mpd_ptr, const unsigned int time_usecs) INLINING ;
-int mp_ack_n(qpd_t * mpd_ptr, const unsigned int time_usecs, unsigned int num_acks) INLINING ;
+int mp_ack(qpd_t * qpd_ptr, const unsigned int time_usecs) INLINING ;
+int mp_ack_n(qpd_t * qpd_ptr, const unsigned int time_usecs, unsigned int num_acks) INLINING ;
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for sampling point-to-point transmission of data

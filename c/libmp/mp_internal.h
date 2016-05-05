@@ -95,7 +95,15 @@ typedef unsigned int barrier_t;
 
 typedef enum {SAMPLING, QUEUING} port_t;
 
-typedef struct {
+/// \struct chan_info_t
+/// \brief Struct for exchanging initialization information
+/// between the two ends of a channel.
+///
+/// The structure contains the pointers to the source and the sink
+/// ports that are connected.
+struct _chan_info_t;
+typedef struct _chan_info_t chan_info_t;
+struct _chan_info_t {
   port_t port_type;
   int src_id;
   int sink_id;
@@ -103,23 +111,27 @@ typedef struct {
   volatile void _SPM * sink_addr;
   volatile LOCK_T * src_lock;
   volatile LOCK_T * sink_lock;
+  /** The following  */
   union {
+    /** Queuing port specific fields */
     struct {
-      qpd_t * src_mpd_ptr;
-      qpd_t * sink_mpd_ptr;
+      qpd_t * src_qpd_ptr;
+      qpd_t * sink_qpd_ptr;
     };
+    /** sampling port specific fields */
     struct {
       spd_t * src_spd_ptr;
       spd_t * sink_spd_ptr;
     };
   };
 
-} chan_info_t;
+} ;
+
 extern volatile _UNCACHED chan_info_t chan_info[MAX_CHANNELS];
 
-size_t mp_send_alloc_size(qpd_t * mpd_ptr);
+size_t mp_send_alloc_size(qpd_t * qpd_ptr);
 
-size_t mp_recv_alloc_size(qpd_t * mpd_ptr);
+size_t mp_recv_alloc_size(qpd_t * qpd_ptr);
 
 int test_spm_size();
 

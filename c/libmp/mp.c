@@ -65,8 +65,8 @@ void mp_init() {
       chan_info[i].sink_id = -1;
       chan_info[i].src_addr = NULL;
       chan_info[i].sink_addr = NULL;
-      chan_info[i].src_mpd_ptr = NULL;
-      chan_info[i].sink_mpd_ptr = NULL;
+      chan_info[i].src_qpd_ptr = NULL;
+      chan_info[i].sink_qpd_ptr = NULL;
       chan_info[i].src_spd_ptr = NULL;
       chan_info[i].sink_spd_ptr = NULL;
     }
@@ -144,7 +144,7 @@ int mp_init_chans() {
                                     (unsigned int)chan_info[chan_id].sink_addr,
                                     (unsigned int)chan_info[chan_id].src_addr);
       if (chan_info[chan_id].port_type == QUEUING) {
-        chan_info[chan_id].src_mpd_ptr->recv_addr = chan_info[chan_id].sink_addr;
+        chan_info[chan_id].src_qpd_ptr->recv_addr = chan_info[chan_id].sink_addr;
       } else if (chan_info[chan_id].port_type == SAMPLING) {
         chan_info[chan_id].src_spd_ptr->lock->remote_ptr = (LOCK_T *)chan_info[chan_id].sink_lock;
         chan_info[chan_id].src_spd_ptr->read_bufs = chan_info[chan_id].sink_addr;
@@ -161,7 +161,7 @@ int mp_init_chans() {
                                     (unsigned int)chan_info[chan_id].src_addr,
                                     (unsigned int)chan_info[chan_id].sink_addr);
       if (chan_info[chan_id].port_type == QUEUING) {
-        chan_info[chan_id].sink_mpd_ptr->send_recv_count = chan_info[chan_id].src_addr;
+        chan_info[chan_id].sink_qpd_ptr->send_recv_count = chan_info[chan_id].src_addr;
       } else if (chan_info[chan_id].port_type == SAMPLING) {
         chan_info[chan_id].sink_spd_ptr->lock->remote_ptr = (LOCK_T *)chan_info[chan_id].src_lock;
         chan_info[chan_id].sink_spd_ptr->read_shm_buf = (volatile void * _SPM)chan_info[chan_id].src_addr;
@@ -181,11 +181,11 @@ int mp_init_chans() {
     // and print out which channels that was not initialized
     // within a timeout
     for (int chan_id = 0; chan_id < MAX_CHANNELS; ++chan_id) {
-      if(chan_info[chan_id].src_id != -1 && chan_info[chan_id].src_mpd_ptr != NULL) {
+      if(chan_info[chan_id].src_id != -1 && chan_info[chan_id].src_qpd_ptr != NULL) {
         // If the source of the channel has been written and the
         // descriptor address is not NULL, maybe a deadlock happend
         TRACE(FAILURE,TRUE,"The channel %d was not initialized at source\n",chan_id);
-      } else if (chan_info[chan_id].sink_id != -1 && chan_info[chan_id].sink_mpd_ptr != NULL) {
+      } else if (chan_info[chan_id].sink_id != -1 && chan_info[chan_id].sink_qpd_ptr != NULL) {
         // If the sink of the channel has been written and the
         // descriptor address is not NULL, maybe a deadlock happend
         TRACE(FAILURE,TRUE,"The channel %d was not initialized at sink\n",chan_id);

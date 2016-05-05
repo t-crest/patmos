@@ -83,13 +83,13 @@ int calibrate_cache_flush(int cnt) {
   return tmp;
 }
 
-void mp_send_size(qpd_t* mpd_ptr, int bytes) {
+void mp_send_size(qpd_t* qpd_ptr, int bytes) {
 	int k = 0;
 	while(k < bytes) {
       int chunk = 0;
-      if ( bytes-k >= mpd_ptr->buf_size) {
+      if ( bytes-k >= qpd_ptr->buf_size) {
           // If the remaining data is more than the size of the buffer
-          chunk = mpd_ptr->buf_size;   
+          chunk = qpd_ptr->buf_size;   
       } else {
           // The remaining data all fits in a buffer
           chunk = bytes-k;
@@ -99,30 +99,30 @@ void mp_send_size(qpd_t* mpd_ptr, int bytes) {
     //      *((volatile char _SPM *)m2s.write_buf+j) = send_data[k+j];
     //  }
       // Send the chunk of data
-      mp_send(mpd_ptr);
+      mp_send(qpd_ptr);
       DEBUGGER("Message sent\n");
       k += chunk;
   	}
 }
 
-void mp_recv_size(qpd_t* mpd_ptr, int bytes) {
+void mp_recv_size(qpd_t* qpd_ptr, int bytes) {
 	int k = 0;
     while(k < bytes) {
-      mp_recv(mpd_ptr);
+      mp_recv(qpd_ptr);
       
       int chunk = 0;
-      if ( bytes-k >= mpd_ptr->buf_size) {
+      if ( bytes-k >= qpd_ptr->buf_size) {
           // If the remaining data is more than the size of the buffer
-          chunk = mpd_ptr->buf_size;   
+          chunk = qpd_ptr->buf_size;   
       } else {
           // The remaining data all fits in a buffer
           chunk = bytes-k;
       }
       // Copy the chunk of data to the write buffer
     //  for (int j = 0; j < chunk; ++j) {
-    //      *((volatile char _SPM *)mpd_ptr.write_buf+j) = send_data[k+j];
+    //      *((volatile char _SPM *)qpd_ptr.write_buf+j) = send_data[k+j];
     //  }
-      mp_ack(mpd_ptr);
+      mp_ack(qpd_ptr);
       k += chunk;
   	}
 }
