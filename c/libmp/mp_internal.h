@@ -47,7 +47,7 @@
 #define _MP_INTERNAL_H_
 
 /// \brief Aligns X to double word size
-#define DWALIGN(X) (((X)+0x7) & ~0x7)
+#define WALIGN(X) (((X)+0x3) & ~0x3)
 
 /*! \def FLAG_SIZE
  * \brief The size of the flag used to detect completion of a received message.
@@ -55,7 +55,7 @@
  * This flag is placed at the end of the message to be send.
  * The flag size is aligned to double words.
  */
-#define FLAG_SIZE DWALIGN(sizeof(unsigned int))
+#define FLAG_SIZE WALIGN(sizeof(unsigned int))
 
 /// \cond PRIVATE
 // Possible Flag types
@@ -64,21 +64,21 @@
 /// \endcond
 
 /// \brief The type of the synchronization flag of a barrier.
-typedef unsigned long long int barrier_t;
+typedef unsigned int barrier_t;
 
 /// \cond PRIVATE
 // Possible Barrier states
-#define BARRIER_INITIALIZED (barrier_t)0x0000000000000000
-#define BARRIER_PHASE_0 (barrier_t)0x0000000000000000
-#define BARRIER_PHASE_1 (barrier_t)0x00000000FFFFFFFF
-#define BARRIER_PHASE_2 (barrier_t)0xFFFFFFFFFFFFFFFF
-#define BARRIER_PHASE_3 (barrier_t)0xFFFFFFFF00000000
+#define BARRIER_INITIALIZED (barrier_t)0x00000000
+#define BARRIER_PHASE_0 (barrier_t)0x00000000
+#define BARRIER_PHASE_1 (barrier_t)0x0000FFFF
+#define BARRIER_PHASE_2 (barrier_t)0xFFFFFFFF
+#define BARRIER_PHASE_3 (barrier_t)0xFFFF0000
 
 #define BARRIER_REACHED 0xFFFFFFFF
 /// \endcond
 
 /// \brief The size of the barrier flag for each core.
-#define BARRIER_SIZE DWALIGN(sizeof(barrier_t))
+#define BARRIER_SIZE WALIGN(sizeof(barrier_t))
 
 /// \cond PRIVATE
 /*! \def NUM_WRITE_BUF

@@ -38,13 +38,6 @@
  *
  */
 
-#include <machine/patmos.h>
-#include <machine/spm.h>
-
-//#include <stdio.h>
-#include <stdlib.h>
-#include "noc.h"
-
 #include "noc.h"
 
 //#define TRAP
@@ -114,7 +107,7 @@ void __noc_trap_handler(void) {
 
   
 // Find the size in 32-bit words
-int find_mem_size(volatile int _SPM * mem_addr){
+int find_mem_size(volatile unsigned int _SPM * mem_addr){
   int init = *(mem_addr);
   int tmp;
   *(mem_addr) = 0xFFEEDDCC;
@@ -193,8 +186,9 @@ void noc_disable(void) {
 void noc_configure(void) {
   noc_load_config();
   
-  exc_register(23,&__remote_irq_handler);
-  exc_register(31,&__data_recv_handler);
+  //TODO: check interrupt vector numbers
+  exc_register(18,&__data_recv_handler);
+  exc_register(19,&__remote_irq_handler);
 #ifdef TRAP
   exc_register(8,&__noc_trap_handler);
 #endif
@@ -405,7 +399,7 @@ int noc_irq(unsigned dma_id,
     return 1;
 }
 
-// Convert from byte address or size to double-word address or size
+// Convert from byte address or size to word address or size
 #define W(X) (((X)+3)/4)
 
 // Attempt to transfer data via the NoC

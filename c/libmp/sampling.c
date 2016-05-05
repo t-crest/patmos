@@ -92,7 +92,7 @@ spd_t * mp_create_sport(const unsigned int chan_id, const direction_t direction_
     spd_ptr->direction_type = direction_type;
     spd_ptr->remote = remote;
     // Align the buffer size to double words and add the flag size
-    spd_ptr->sample_size = DWALIGN(sample_size);
+    spd_ptr->sample_size = WALIGN(sample_size);
 
     spd_ptr->lock = initialize_lock(remote);
     TRACE(INFO,TRUE,"Initializing lock : %#08x\n",(unsigned int)spd_ptr->lock);

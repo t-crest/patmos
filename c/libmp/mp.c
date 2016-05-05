@@ -103,11 +103,11 @@ void _SPM * mp_alloc(const size_t size) {
   int cpuid = get_cpuid();
   // Align size to double words, this is minimum addressable
   // amount of data from the noc
-  size_t dw_size = DWALIGN(size);
+  size_t w_size = WALIGN(size);
   // Read the new pointer from the array of addresses
   unsigned int mem_ptr = (unsigned int)spm_alloc_array[cpuid];
 
-  unsigned int new_addr = mem_ptr + dw_size;
+  unsigned int new_addr = (unsigned int)((char*)mem_ptr + w_size);
   // Check if the allocated memory is there
   if (new_addr < (unsigned int)NOC_SPM_BASE) {
     // TODO: Cause disaster (Kernel panic)
@@ -120,7 +120,7 @@ void _SPM * mp_alloc(const size_t size) {
     return NULL;
   }
   spm_alloc_array[cpuid] = (volatile unsigned int * _UNCACHED)new_addr;
-  TRACE(INFO,TRUE,"Core id %u, dw size %lu, allocated addr %x\n",cpuid,dw_size,mem_ptr);
+  TRACE(INFO,TRUE,"Core id %u, dw size %lu, allocated addr %x\n",cpuid,w_size,mem_ptr);
   return (void _SPM *)mem_ptr;
 }
 

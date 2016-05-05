@@ -248,7 +248,7 @@ int mp_nback(mpd_t * mpd_ptr){
   // Increment the receive counter
   (*mpd_ptr->recv_count)++;
   // Update the remote receive count
-  int success = noc_nbsend(mpd_ptr->remote,mpd_ptr->send_recv_count,mpd_ptr->recv_count,8);
+  int success = noc_nbsend(mpd_ptr->remote,mpd_ptr->send_recv_count,mpd_ptr->recv_count,sizeof(mpd_ptr->send_recv_count));
   if (!success) {
     (*mpd_ptr->recv_count)--;
   }
@@ -286,7 +286,7 @@ int mp_ack_n(mpd_t * mpd_ptr, const unsigned int time_usecs, unsigned int num_ac
   _Pragma("loopbound min 1 max 1")
   while(retval == 0 && ( time_usecs == 0 || get_cpu_usecs() < timeout ) ) {
     retval = noc_nbsend(mpd_ptr->remote,mpd_ptr->send_recv_count,
-                        mpd_ptr->recv_count,8);
+                        mpd_ptr->recv_count,sizeof(mpd_ptr->send_recv_count));
   }
   if (retval == 0) {
     (*mpd_ptr->recv_count) -= num_acks;

@@ -56,8 +56,8 @@
 #include "libnoc/noc.h"
 #include "libnoc/coreset.h"
 
-/// \brief Aligns X to double word size
-#define DWALIGN(X) (((X)+0x7) & ~0x7)
+/// \brief Aligns X to word size
+#define WALIGN(X) (((X)+0x3) & ~0x3)
 
 // Select different implementations
 #define SHM       0   // Shared memory implementation 
@@ -65,9 +65,6 @@
 #define SPM_BUF   2   // Scratchpad memory implementation with multiple buffers
 
 #define SPORT_IMPL SHM
-
-/// \brief The type of the synchronization flag of a barrier.
-typedef unsigned long long barrier_t;
 
 #define MAX_CHANNELS  32
 
@@ -92,10 +89,10 @@ struct _SPM_LOCK_T; // forward decl
 typedef struct _SPM_LOCK_T _SPM LOCK_T;
 
 struct _SPM_LOCK_T {
-  volatile unsigned long long int remote_entering;
-  volatile unsigned long long int remote_number;
-  unsigned long long int local_entering;
-  unsigned long long int local_number;
+  volatile unsigned int remote_entering;
+  volatile unsigned int remote_number;
+  unsigned int local_entering;
+  unsigned int local_number;
   //struct _SPM_LOCK_T _SPM * remote_ptr;
   LOCK_T * remote_ptr;
   unsigned char remote_cpuid;
@@ -184,18 +181,18 @@ struct _spd_t {
     /** writer specific fields */
     struct {
       /** Value specifying which buffer the reader is reading */
-      volatile unsigned long long int reading;
+      volatile unsigned int reading;
       /** A pointer to the currently free read buffer */
-      unsigned long long int next;
+      unsigned int next;
       ///** The number of buffers at the receiver */
       //unsigned int num_readers;
     };
     /** Reader specific fields */
     struct {
       /** Value specifying which buffer is the newest to be read */
-      volatile unsigned long long int newest;
+      volatile unsigned int newest;
       /** Value specifying which buffer is the newest to be read */
-      volatile unsigned long long int next_reading;
+      volatile unsigned int next_reading;
     };
   };
 
