@@ -38,17 +38,16 @@
  *
  */
 
-
 #include <machine/patmos.h>
 #include <machine/spm.h>
-#include <machine/boot.h>
-#include <machine/exceptions.h>
 
 //#include <stdio.h>
 #include <stdlib.h>
 #include "noc.h"
 
-#define TRAP
+#include "noc.h"
+
+//#define TRAP
 
 void __remote_irq_handler(void)  __attribute__((naked));
 void __remote_irq_handler(void) {
@@ -246,7 +245,7 @@ void noc_init(void) {
 }
 
 // Start a NoC data dma transfer
-// The addresses and the size are in double-words and relative to the
+// The addresses and the size are in words and relative to the
 // communication SPM
 #ifdef TRAP
 int noc_dma(unsigned dma_id,
@@ -294,7 +293,7 @@ int noc_dma(unsigned dma_id,
 #endif
 
 // Start a NoC data dma transfer
-// The addresses and the size are in double-words and relative to the
+// The addresses and the size are in words and relative to the
 // communication SPM
 int k_noc_dma(unsigned dma_id,
             unsigned short write_ptr,
@@ -309,8 +308,7 @@ int k_noc_dma(unsigned dma_id,
     // Read pointer and write pointer in the dma table
     *(NOC_DMA_BASE+(dma_id<<1)) = (DATA_PKT_TYPE << NOC_PTR_WIDTH) | write_ptr;
     // DWord count and valid bit, set active bit
-    *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (size << NOC_PTR_WIDTH) | read_ptr);
-    
+    *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (size << NOC_PTR_WIDTH) | read_ptr);  
     
     return 1;
 }
@@ -347,8 +345,23 @@ int k_noc_done(unsigned dma_id) {
   return 1;
 }
 
+// Stops a NoC transfer and clear the DMA entry
+void noc_dma_clear(unsigned dma_id) {
+  k_noc_dma_clear(dma_id);
+  return;
+}
+
+// Stops a NoC transfer and clear the DMA entry
+void k_noc_dma_clear(unsigned dma_id) {
+  // DWord count and valid bit, set active bit
+  *(NOC_DMA_BASE+(dma_id<<1)+1) = 0;
+  // Read pointer and write pointer in the dma table
+  *(NOC_DMA_BASE+(dma_id<<1)) = 0;
+  return;
+}
+
 // Start a NoC configuration transfer
-// The addresses and the size are in double-words and relative to the
+// The addresses and the size are in words and relative to the
 // communication SPM
 int noc_conf(unsigned dma_id,
             unsigned short write_ptr,
@@ -362,7 +375,7 @@ int noc_conf(unsigned dma_id,
 
     // Read pointer and write pointer in the dma table
     *(NOC_DMA_BASE+(dma_id<<1)) = (CONFIG_PKT_TYPE << NOC_PTR_WIDTH) | write_ptr;
-    // DWord count and valid bit, set active bit
+    // Word count and valid bit, set active bit
     *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (size << NOC_PTR_WIDTH) | read_ptr);
 
     
@@ -371,7 +384,7 @@ int noc_conf(unsigned dma_id,
 }
 
 // Start a NoC interrupt
-// The addresses and the size are in double-words and relative to the
+// The addresses and the size are in words and relative to the
 // communication SPM
 int noc_irq(unsigned dma_id,
             unsigned short write_ptr,
@@ -384,7 +397,7 @@ int noc_irq(unsigned dma_id,
 
     // Read pointer and write pointer in the dma table
     *(NOC_DMA_BASE+(dma_id<<1)) = (IRQ_PKT_TYPE << NOC_PTR_WIDTH) | write_ptr;
-    // DWord count and valid bit, set active bit
+    // Word count and valid bit, set active bit
     *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (1 << NOC_PTR_WIDTH) | read_ptr) ;
     
     
@@ -393,7 +406,7 @@ int noc_irq(unsigned dma_id,
 }
 
 // Convert from byte address or size to double-word address or size
-#define DW(X) (((X)+7)/8)
+#define W(X) (((X)+3)/4)
 
 // Attempt to transfer data via the NoC
 // The addresses and the size are in bytes
@@ -402,7 +415,7 @@ int noc_nbsend(unsigned dma_id, volatile void _SPM *dst,
 
   unsigned wp = (char *)dst - (char *)NOC_SPM_BASE;
   unsigned rp = (char *)src - (char *)NOC_SPM_BASE;
-  int ret = noc_dma(dma_id, DW(wp), DW(rp), DW(size));
+  int ret = noc_dma(dma_id, W(wp), W(rp), W(size));
   return ret;
 }
 

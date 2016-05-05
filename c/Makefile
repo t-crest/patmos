@@ -92,8 +92,8 @@ $(BUILDDIR)/vm-%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBET
 
 # application-specific additional dependencies
 $(BUILDDIR)/bootable-bootloader.elf: download.c decompress.c ethmac.c boot.h bootable.h
-$(BUILDDIR)/bootable-cmpmaster.elf: download.c decompress.c ethmac.c boot.h cmpboot.h bootable.h
-$(BUILDDIR)/bootable-cmpslave.elf: boot.h cmpboot.h bootable.h
+$(BUILDDIR)/bootable-cmpmaster.elf: download.c decompress.c ethmac.c boot.h bootable.h
+$(BUILDDIR)/bootable-cmpslave.elf: boot.h bootable.h
 
 $(BUILDDIR)/bootable-mandelbrot.elf: bootable.h
 $(BUILDDIR)/mandelbrot.elf: bootable.h
@@ -116,7 +116,7 @@ $(BUILDDIR)/bootable-mp_test.elf: bootable.h
 
 # make sure the initialization file for the network-on-chip is there
 $(NOCINIT):
-	touch $@
+	touch cmp/$@
 
 # library for network-on-chip
 .PHONY: libnoc
