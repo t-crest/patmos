@@ -102,15 +102,15 @@ LOCK_T * initialize_lock(unsigned remote);
 void acquire_lock(LOCK_T * lock) INLINING;
 void release_lock(LOCK_T * lock) INLINING;
 
-/// \struct mpd_t
-/// \brief Message passing descriptor.
+/// \struct qpd_t
+/// \brief Queuing port descriptor.
 ///
 /// The struct is used to store the data describing the massage passing channel.
 /// This struct is used to describe both the sending and receiving ends of a
 /// communication channel.
-struct _mpd_t; // forward decl
-typedef struct _mpd_t _SPM mpd_t;
-struct _mpd_t {
+struct _qpd_t; // forward decl
+typedef struct _qpd_t _SPM qpd_t;
+struct _qpd_t {
   /*-- Shared variables --*/
   /** The type of port, source or sink */
   direction_t direction_type;
@@ -150,7 +150,7 @@ struct _mpd_t {
 
 };
 
-/// \struct mpd_t
+/// \struct qpd_t
 /// \brief Sample port descriptor.
 ///
 /// The struct is used to store the data describing the sampling port.
@@ -239,9 +239,10 @@ void _SPM * mp_alloc(const size_t size) __attribute__ ((noinline));
 /// \param buf_size The size of the message buffer
 /// \param num_buf The number of buffers in the receiving scratchpad
 ///
-/// \retval 0 The local or remote addresses were not aligned to double words.
-/// \retval 1 The initialization of the send channel succeeded.
-mpd_t * mp_create_qport( const unsigned int chan_id, const direction_t direction_type,
+/// \return The function returns a pointer to the created message passing
+/// descriptor #qpd_t. If the function fails, the pointer is NULL.
+/// Remember to check if the returned pointer is different from NULL.
+qpd_t * mp_create_qport( const unsigned int chan_id, const direction_t direction_type,
               const coreid_t remote, const size_t msg_size, const size_t num_buf);
 
 /// \brief Initialize the state of a communication channel
@@ -251,8 +252,9 @@ mpd_t * mp_create_qport( const unsigned int chan_id, const direction_t direction
 /// \param buf_size The size of the message buffer
 /// \param num_buf The number of buffers in the receiving scratchpad
 ///
-/// \retval 0 The local or remote addresses were not aligned to double words.
-/// \retval 1 The initialization of the send channel succeeded.
+/// \return The function returns a pointer to the created sampling port
+/// descriptor #spd_t. If the function fails, the pointer is NULL.
+/// Remember to check if the returned pointer is different from NULL.
 spd_t * mp_create_sport(const unsigned int chan_id, const direction_t direction_type,
               const coreid_t remote, const size_t sample_size);
 
@@ -268,7 +270,7 @@ int mp_init_chans();
 /// \param member_ids An array of member ids.
 /// \param member_addrs An array of COM SPM addresses for the members.
 ///
-/// \retval 0 The address is not aligned  to double words.
+/// \retval 0 The address is not aligned  to words.
 /// \retval 1 The initialization of the communicator_t succeeded.
 int mp_communicator_init(communicator_t* comm, const unsigned int count,
               const coreid_t member_ids [], const unsigned int msg_size);
@@ -288,7 +290,7 @@ int mp_communicator_init(communicator_t* comm, const unsigned int count,
 /// \retval 0 The send did not succeed, either there was no space in the
 /// receiving buffer or there was no free DMA to start a transfer
 /// \retval 1 The send succeeded.
-int mp_nbsend(mpd_t * mpd_ptr) INLINING  ;
+int mp_nbsend(qpd_t * mpd_ptr) INLINING  ;
 
 /// \brief A function for passing a message to a remote processor under
 /// flow control. The data to be passed by the function should be in the
@@ -302,7 +304,7 @@ int mp_nbsend(mpd_t * mpd_ptr) INLINING  ;
 ///
 /// \retval 0 The function timed out.
 /// \retval 1 The function succeeded sending the message.
-int mp_send(mpd_t * mpd_ptr, const unsigned int time_usecs) INLINING ;
+int mp_send(qpd_t * mpd_ptr, const unsigned int time_usecs) INLINING ;
 
 /// \brief Non-blocking function for receiving a message from a remote processor
 /// under flow control. The data that is received is placed in a message buffer
@@ -316,7 +318,7 @@ int mp_send(mpd_t * mpd_ptr, const unsigned int time_usecs) INLINING ;
 /// \retval 0 No message has been received yet.
 /// \retval 1 A message has been received and dequeued. The call has to be
 /// followed by a call to #mp_ack() when the data is no longer used.
-int mp_nbrecv(mpd_t * mpd_ptr)  INLINING ;
+int mp_nbrecv(qpd_t * mpd_ptr)  INLINING ;
 
 /// \brief A function for receiving a message from a remote processor under
 /// flow control. The data that is received is placed in a message buffer
@@ -331,7 +333,7 @@ int mp_nbrecv(mpd_t * mpd_ptr)  INLINING ;
 ///
 /// \retval 0 The function timed out.
 /// \retval 1 The function succeeded receiving the message.
-int mp_recv(mpd_t * mpd_ptr, const unsigned int time_usecs)  INLINING ;
+int mp_recv(qpd_t * mpd_ptr, const unsigned int time_usecs)  INLINING ;
 
 /// \brief Non-blocking function for acknowledging the reception of a message.
 /// This function should be used with extra care, if no acknowledgement is sent
@@ -347,7 +349,7 @@ int mp_recv(mpd_t * mpd_ptr, const unsigned int time_usecs)  INLINING ;
 ///
 /// \retval 0 No acknowledgement has been sent.
 /// \retval 1 An acknowledgement has been sent.
-int mp_nback(mpd_t * mpd_ptr) INLINING ;
+int mp_nback(qpd_t * mpd_ptr) INLINING ;
 
 /// \brief A function for acknowledging the reception of a message.
 /// This function shall be called to release space in the receiving
@@ -363,8 +365,8 @@ int mp_nback(mpd_t * mpd_ptr) INLINING ;
 ///
 /// \retval 0 The function timed out.
 /// \retval 1 The function succeeded acknowledging the message.
-int mp_ack(mpd_t * mpd_ptr, const unsigned int time_usecs) INLINING ;
-int mp_ack_n(mpd_t * mpd_ptr, const unsigned int time_usecs, unsigned int num_acks) INLINING ;
+int mp_ack(qpd_t * mpd_ptr, const unsigned int time_usecs) INLINING ;
+int mp_ack_n(qpd_t * mpd_ptr, const unsigned int time_usecs, unsigned int num_acks) INLINING ;
 
 ////////////////////////////////////////////////////////////////////////////
 // Functions for sampling point-to-point transmission of data

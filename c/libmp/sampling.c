@@ -39,6 +39,7 @@
 
 #include "mp.h"
 #include "mp_internal.h"
+#include "mp_loopbound.h"
 //#define TRACE_LEVEL WARNING
 //#define DEBUG_ENABLE
 #include "include/debug.h"
@@ -50,28 +51,28 @@
 #define MULTI_NOC_MP            4
 
 
-#ifndef IMPL
-#define IMPL MULTI_NOC
-#endif
+// #ifndef IMPL
+// #define IMPL MULTI_NOC
+// #endif
 
-#ifndef MSG_SIZE_WORDS
-#define MSG_SIZE_WORDS 64
-#endif
+// #ifndef MSG_SIZE_WORDS
+// #define MSG_SIZE_WORDS 64
+// #endif
 
-#ifndef NUM_BUF
-#define NUM_BUF 3
-#endif
-#ifndef NUM_BUFMONE
-#define NUM_BUFMONE 2
-#endif
+// #ifndef NUM_BUF
+// #define NUM_BUF 3
+// #endif
+// #ifndef NUM_BUFMONE
+// #define NUM_BUFMONE 2
+// #endif
 
-#ifndef PKT_TRANS_WAIT
-#define PKT_TRANS_WAIT 12
-#endif
+// #ifndef PKT_TRANS_WAIT
+// #define PKT_TRANS_WAIT 12
+// #endif
 
-#ifndef SAMPLE_TRANS_WAIT
-#define SAMPLE_TRANS_WAIT 768
-#endif
+// #ifndef SAMPLE_TRANS_WAIT
+// #define SAMPLE_TRANS_WAIT 768
+// #endif
 
 
 spd_t * mp_create_sport(const unsigned int chan_id, const direction_t direction_type,
@@ -91,7 +92,7 @@ spd_t * mp_create_sport(const unsigned int chan_id, const direction_t direction_
 
     spd_ptr->direction_type = direction_type;
     spd_ptr->remote = remote;
-    // Align the buffer size to double words and add the flag size
+    // Align the buffer size to words and add the flag size
     spd_ptr->sample_size = WALIGN(sample_size);
 
     spd_ptr->lock = initialize_lock(remote);
@@ -122,7 +123,7 @@ spd_t * mp_create_sport(const unsigned int chan_id, const direction_t direction_
 
       #if IMPL == SINGLE_SHM
         // For shared memory buffer
-        spd_ptr->read_shm_buf = malloc(DWALIGN(sample_size));
+        spd_ptr->read_shm_buf = malloc(WALIGN(sample_size));
         chan_info[chan_id].src_addr = (volatile void _SPM *)spd_ptr->read_shm_buf;
         TRACE(ERROR,chan_info[chan_id].src_addr == NULL,"src_addr written incorrectly\n");
       #endif
@@ -132,14 +133,14 @@ spd_t * mp_create_sport(const unsigned int chan_id, const direction_t direction_
 
     } else if (direction_type == SINK) {
       #if IMPL == MULTI_NOC
-        spd_ptr->read_bufs = mp_alloc(DWALIGN(sample_size)*3);
+        spd_ptr->read_bufs = mp_alloc(WALIGN(sample_size)*3);
         spd_ptr->newest = -1;
       #elif IMPL == MULTI_NOC_NONBLOCKING
-        spd_ptr->read_bufs = mp_alloc(DWALIGN(sample_size)*3);
+        spd_ptr->read_bufs = mp_alloc(WALIGN(sample_size)*3);
         spd_ptr->newest = -1;
         spd_ptr->next_reading = 0;
       #else
-        spd_ptr->read_bufs = mp_alloc(DWALIGN(sample_size));
+        spd_ptr->read_bufs = mp_alloc(WALIGN(sample_size));
       #endif
       TRACE(INFO,TRUE,"Initialising SINK port buf_addr: %#08x\n",(unsigned int)spd_ptr->read_bufs);
       // sink_desc_ptr must be set first inorder for
@@ -167,7 +168,7 @@ spd_t * mp_create_sport(const unsigned int chan_id, const direction_t direction_
 
   #elif IMPL == MULTI_NOC_MP
     size_t num_buf = 3;
-    mpd_t * spd_ptr = mp_create_qport(chan_id,direction_type,remote,sample_size,num_buf);
+    qpd_t * spd_ptr = mp_create_qport(chan_id,direction_type,remote,sample_size,num_buf);
     if (spd_ptr == NULL) {
       TRACE(FAILURE,TRUE,"Sampling port descriptor could not be allocated, SPM out of memory.\n");
       return NULL;
@@ -403,10 +404,10 @@ int mp_write(spd_t * sport, volatile void _SPM * sample) {
 
 int mp_read(spd_t * sport, volatile void _SPM * sample) {
   int msg_rev = 0;
-  int num_buf = ((mpd_t *)sport)->num_buf;
+  int num_buf = ((qpd_t *)sport)->num_buf;
   #pragma loopbound min NUM_BUF max NUM_BUF
   for (int i = 0; i < num_buf; ++i) {
-    if(mp_nbrecv((mpd_t *)sport) != 0){
+    if(mp_nbrecv((qpd_t *)sport) != 0){
       msg_rev++;
     }
   }
@@ -414,13 +415,13 @@ int mp_read(spd_t * sport, volatile void _SPM * sample) {
     return 0;
   }
   // Since sample_size is in bytes and we want to copy 32 bit at the time we divide sample_size by 4
-  unsigned itteration_count = (((mpd_t *)sport)->buf_size + 4 - 1) / 4; // equal to ceil(sport->sample_size/4)
-  int _SPM * buf = (int _SPM *)(((mpd_t *)sport)->read_buf);
+  unsigned itteration_count = (((qpd_t *)sport)->buf_size + 4 - 1) / 4; // equal to ceil(sport->sample_size/4)
+  int _SPM * buf = (int _SPM *)(((qpd_t *)sport)->read_buf);
   #pragma loopbound min MSG_SIZE_WORDS max MSG_SIZE_WORDS
   for (int i = 0; i < itteration_count; ++i) {
     ((int _SPM *)sample)[i] = buf[i];
   }
-  mp_ack_n((mpd_t *)sport,0,msg_rev);
+  mp_ack_n((qpd_t *)sport,0,msg_rev);
 
   return 1;
 
@@ -429,8 +430,8 @@ int mp_read(spd_t * sport, volatile void _SPM * sample) {
 int mp_write(spd_t * sport, volatile void _SPM * sample) {
   // Since we do not return from the function before the message is completely sent,
   // we send the buffer pointet to by the sample pointer.
-  ((mpd_t *)sport)->write_buf = sample;
-  mp_send((mpd_t *)sport,10000);
+  ((qpd_t *)sport)->write_buf = sample;
+  mp_send((qpd_t *)sport,10000);
   #pragma loopbound min SAMPLE_TRANS_WAIT max SAMPLE_TRANS_WAIT
   while(!noc_done(sport->remote));
   return 1;

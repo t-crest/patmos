@@ -185,14 +185,14 @@ void __noc_trap_handler(void);
 
 /// \brief Start a NoC data dma transfer.
 ///
-/// The addresses and the size are in double-words and relative to the
+/// The addresses and the size are in words and relative to the
 /// communication SPM base #NOC_SPM_BASE.
 /// \param dma_id The core id of the receiver.
 /// \param write_ptr The address in the receiver's communication SPM,
-/// in double-words, relative to #NOC_SPM_BASE.
+/// in words, relative to #NOC_SPM_BASE.
 /// \param read_ptr The address in the sender's communication SPM, in
-/// double-words, relative to #NOC_SPM_BASE.
-/// \param size The size of data to be transferred, in double-words.
+/// words, relative to #NOC_SPM_BASE.
+/// \param size The size of data to be transferred, in words.
 /// \retval 1 Sending was successful.
 /// \retval 0 Otherwise.
 int k_noc_dma(unsigned dma_id, unsigned short write_ptr,
@@ -202,14 +202,14 @@ int noc_dma(unsigned dma_id, unsigned short write_ptr,
 
 /// \brief Start a NoC configure transfer.
 ///
-/// The addresses and the size are in double-words and relative to the
+/// The addresses and the size are in words and relative to the
 /// communication SPM base #NOC_SPM_BASE.
 /// \param dma_id The core id of the receiver.
 /// \param write_ptr The address in the receiver's communication SPM,
-/// in double-words, relative to #NOC_SPM_BASE.
+/// in words, relative to #NOC_SPM_BASE.
 /// \param read_ptr The address in the sender's communication SPM, in
-/// double-words, relative to #NOC_SPM_BASE.
-/// \param size The size of data to be transferred, in double-words.
+/// words, relative to #NOC_SPM_BASE.
+/// \param size The size of data to be transferred, in words.
 /// \retval 1 Sending was successful.
 /// \retval 0 Otherwise.
 int noc_conf(unsigned dma_id, unsigned short write_ptr,
@@ -217,13 +217,13 @@ int noc_conf(unsigned dma_id, unsigned short write_ptr,
 
 /// \brief Start a NoC interrupt.
 ///
-/// The addresses and the size are in double-words and relative to the
+/// The addresses and the size are in words and relative to the
 /// communication SPM base #NOC_SPM_BASE.
 /// \param dma_id The core id of the receiver.
 /// \param write_ptr The address in the receiver's communication SPM,
-/// in double-words, relative to #NOC_SPM_BASE.
+/// in words, relative to #NOC_SPM_BASE.
 /// \param read_ptr The address in the sender's communication SPM, in
-/// double-words, relative to #NOC_SPM_BASE.
+/// words, relative to #NOC_SPM_BASE.
 /// \retval 1 Sending was successful.
 /// \retval 0 Otherwise.
 int noc_irq(unsigned dma_id, unsigned short write_ptr,

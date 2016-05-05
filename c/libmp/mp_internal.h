@@ -35,7 +35,7 @@
  */
 
 /**
- * \file mp.h Definitions for libmp.
+ * \file mp_internal.h Definitions for libmp.
  * 
  * \author Rasmus Bo Soerensen <rasmus@rbscloud.dk>
  *
@@ -46,14 +46,14 @@
 #ifndef _MP_INTERNAL_H_
 #define _MP_INTERNAL_H_
 
-/// \brief Aligns X to double word size
+/// \brief Aligns X to word size
 #define WALIGN(X) (((X)+0x3) & ~0x3)
 
 /*! \def FLAG_SIZE
  * \brief The size of the flag used to detect completion of a received message.
  *
  * This flag is placed at the end of the message to be send.
- * The flag size is aligned to double words.
+ * The flag size is aligned to words.
  */
 #define FLAG_SIZE WALIGN(sizeof(unsigned int))
 
@@ -105,8 +105,8 @@ typedef struct {
   volatile LOCK_T * sink_lock;
   union {
     struct {
-      mpd_t * src_mpd_ptr;
-      mpd_t * sink_mpd_ptr;
+      qpd_t * src_mpd_ptr;
+      qpd_t * sink_mpd_ptr;
     };
     struct {
       spd_t * src_spd_ptr;
@@ -117,9 +117,9 @@ typedef struct {
 } chan_info_t;
 extern volatile _UNCACHED chan_info_t chan_info[MAX_CHANNELS];
 
-size_t mp_send_alloc_size(mpd_t * mpd_ptr);
+size_t mp_send_alloc_size(qpd_t * mpd_ptr);
 
-size_t mp_recv_alloc_size(mpd_t * mpd_ptr);
+size_t mp_recv_alloc_size(qpd_t * mpd_ptr);
 
 int test_spm_size();
 

@@ -49,8 +49,8 @@ int iterations = 100;
 //int num_sizes = sizeof(sizes)/sizeof(sizes[0]);
 int repeat_count = 1;
 
-mpd_t m2s;
-mpd_t s2m;
+qpd_t m2s;
+qpd_t s2m;
 
 communicator_t comm;
 communicator_t comm_world;
@@ -83,7 +83,7 @@ int calibrate_cache_flush(int cnt) {
   return tmp;
 }
 
-void mp_send_size(mpd_t* mpd_ptr, int bytes) {
+void mp_send_size(qpd_t* mpd_ptr, int bytes) {
 	int k = 0;
 	while(k < bytes) {
       int chunk = 0;
@@ -105,7 +105,7 @@ void mp_send_size(mpd_t* mpd_ptr, int bytes) {
   	}
 }
 
-void mp_recv_size(mpd_t* mpd_ptr, int bytes) {
+void mp_recv_size(qpd_t* mpd_ptr, int bytes) {
 	int k = 0;
     while(k < bytes) {
       mp_recv(mpd_ptr);

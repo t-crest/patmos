@@ -42,9 +42,9 @@ void func_worker_1(void* arg) {
   // Cast and load the parameter
   int worker_1_param = *((int*)arg);
   // Create the queuing ports
-  mpd_t _SPM * chan1 = mp_create_qport(MP_CHAN_1_ID, SINK,
+  qpd_t _SPM * chan1 = mp_create_qport(MP_CHAN_1_ID, SINK,
               NOC_MASTER, MP_CHAN_1_MSG_SIZE, MP_CHAN_1_NUM_BUF);
-  mpd_t _SPM * chan2 = mp_create_qport(MP_CHAN_2_ID, SOURCE,
+  qpd_t _SPM * chan2 = mp_create_qport(MP_CHAN_2_ID, SOURCE,
               NOC_MASTER, MP_CHAN_2_MSG_SIZE, MP_CHAN_2_NUM_BUF);
   // TODO: check that the returned pointers are not NULL
     if (chan1 == NULL || chan2 == NULL) {
@@ -92,9 +92,9 @@ int main() {
   char recv_data[40];
 
   // Create the queuing ports
-  mpd_t _SPM * chan1 = mp_create_qport(MP_CHAN_1_ID, SOURCE,
+  qpd_t _SPM * chan1 = mp_create_qport(MP_CHAN_1_ID, SOURCE,
               worker_1, MP_CHAN_1_MSG_SIZE, MP_CHAN_1_NUM_BUF);
-  mpd_t _SPM * chan2 = mp_create_qport(MP_CHAN_2_ID, SINK,
+  qpd_t _SPM * chan2 = mp_create_qport(MP_CHAN_2_ID, SINK,
               worker_1, MP_CHAN_2_MSG_SIZE, MP_CHAN_2_NUM_BUF);
   // TODO: check that the returned pointers are not NULL
   if (chan1 == NULL || chan2 == NULL) {

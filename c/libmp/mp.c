@@ -101,7 +101,7 @@ void mp_init() {
 void _SPM * mp_alloc(const size_t size) {
   // Get cpu ID
   int cpuid = get_cpuid();
-  // Align size to double words, this is minimum addressable
+  // Align size to words, this is minimum addressable
   // amount of data from the noc
   size_t w_size = WALIGN(size);
   // Read the new pointer from the array of addresses

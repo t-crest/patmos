@@ -129,11 +129,11 @@ $(LIBNOC): $(BUILDDIR)/libnoc/noc.o
 .PHONY: libmp
 libmp: libnoc $(LIBMP)
 $(BUILDDIR)/libmp/utils.o: libmp/mp.h libmp/mp_internal.h
-$(BUILDDIR)/libmp/mp.o: libmp/mp.h libmp/mp_internal.h libnoc/noc.h libnoc/coreset.h bootloader/cmpboot.h 
+$(BUILDDIR)/libmp/mp.o: libmp/mp.h libmp/mp_internal.h libnoc/noc.h libnoc/coreset.h
 $(BUILDDIR)/libmp/queuing.o: libmp/mp.h libmp/mp_internal.h libnoc/noc.h
 $(BUILDDIR)/libmp/sampling.o: libmp/mp.h libmp/mp_internal.h libnoc/noc.h
 $(BUILDDIR)/libmp/lock.o: libmp/mp.h libmp/mp_internal.h libnoc/noc.h
-$(BUILDDIR)/libmp/collective.o: libmp/mp.h libmp/mp_internal.h libnoc/noc.h libnoc/coreset.h bootloader/cmpboot.h
+$(BUILDDIR)/libmp/collective.o: libmp/mp.h libmp/mp_internal.h libnoc/noc.h libnoc/coreset.h
 $(LIBMP): $(BUILDDIR)/libmp/utils.o $(BUILDDIR)/libmp/mp.o $(BUILDDIR)/libmp/queuing.o $(BUILDDIR)/libmp/sampling.o $(BUILDDIR)/libmp/lock.o
 	patmos-ar r $@ $^
 

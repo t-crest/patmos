@@ -46,7 +46,7 @@
 ////////////////////////////////////////////////////////////////////////////
 // Function for creating a queuing port 
 ////////////////////////////////////////////////////////////////////////////
-mpd_t * mp_create_qport(const unsigned int chan_id, const direction_t direction_type,
+qpd_t * mp_create_qport(const unsigned int chan_id, const direction_t direction_type,
               const coreid_t remote, const size_t msg_size, const size_t num_buf) {
   if (chan_id >= MAX_CHANNELS || remote >= get_cpucnt()) {
     TRACE(FAILURE,TRUE,"Channel id or remote id is out of range: chan_id %d, remote: %d\n",chan_id,remote);
@@ -54,7 +54,7 @@ mpd_t * mp_create_qport(const unsigned int chan_id, const direction_t direction_
   }
 
   // Allocate descriptor in SPM
-  mpd_t * mpd_ptr = mp_alloc(sizeof(mpd_t));
+  qpd_t * mpd_ptr = mp_alloc(sizeof(qpd_t));
   if (mpd_ptr == NULL) {
     TRACE(FAILURE,TRUE,"Message passing descriptor could not be allocated, SPM out of memory.\n");
     return NULL;
@@ -62,8 +62,8 @@ mpd_t * mp_create_qport(const unsigned int chan_id, const direction_t direction_
 
   mpd_ptr->direction_type = direction_type;
   mpd_ptr->remote = remote;
-  // Align the buffer size to double words and add the flag size
-  mpd_ptr->buf_size = DWALIGN(msg_size);
+  // Align the buffer size to words and add the flag size
+  mpd_ptr->buf_size = WALIGN(msg_size);
   mpd_ptr->num_buf = num_buf;
 
   chan_info[chan_id].port_type = QUEUING;
@@ -151,7 +151,7 @@ mpd_t * mp_create_qport(const unsigned int chan_id, const direction_t direction_
 // Functions for point-to-point transmission of data
 ////////////////////////////////////////////////////////////////////////////
 
-int mp_nbsend(mpd_t * mpd_ptr) {
+int mp_nbsend(qpd_t * mpd_ptr) {
 
   // Calculate the address of the remote receiving buffer
   int rmt_addr_offset = (mpd_ptr->buf_size + FLAG_SIZE) * mpd_ptr->send_ptr;
@@ -185,7 +185,7 @@ int mp_nbsend(mpd_t * mpd_ptr) {
   return 1;
 }
 
-int mp_send(mpd_t * mpd_ptr, const unsigned int time_usecs) {
+int mp_send(qpd_t * mpd_ptr, const unsigned int time_usecs) {
   unsigned long long int timeout = get_cpu_usecs() + time_usecs;
   int retval = 0;
   // REM: The worst case waiting time of the mp_nbsend() must
@@ -199,7 +199,7 @@ int mp_send(mpd_t * mpd_ptr, const unsigned int time_usecs) {
   return retval;
 }
 
-int mp_nbrecv(mpd_t * mpd_ptr) {
+int mp_nbrecv(qpd_t * mpd_ptr) {
 
   // Calculate the address of the local receiving buffer
   int locl_addr_offset = (mpd_ptr->buf_size + FLAG_SIZE) * mpd_ptr->recv_ptr;
@@ -228,7 +228,7 @@ int mp_nbrecv(mpd_t * mpd_ptr) {
   return 1;
 }
 
-int mp_recv(mpd_t * mpd_ptr, const unsigned int time_usecs) {
+int mp_recv(qpd_t * mpd_ptr, const unsigned int time_usecs) {
   unsigned long long int timeout = get_cpu_usecs() + time_usecs;
   int retval = 0;
   // REM: The worst case waiting time of the mp_nbrecv() must
@@ -242,7 +242,7 @@ int mp_recv(mpd_t * mpd_ptr, const unsigned int time_usecs) {
   return retval;
 }
 
-int mp_nback(mpd_t * mpd_ptr){
+int mp_nback(qpd_t * mpd_ptr){
   // Check previous acknowledgement transfer before updating counter in SPM
   if (!noc_done(mpd_ptr->remote)) { return 0; }
   // Increment the receive counter
@@ -255,11 +255,11 @@ int mp_nback(mpd_t * mpd_ptr){
   return success;
 }
 
-int mp_ack(mpd_t * mpd_ptr, const unsigned int time_usecs){
+int mp_ack(qpd_t * mpd_ptr, const unsigned int time_usecs){
   return mp_ack_n(mpd_ptr, time_usecs, 1);
 }
 
-int mp_ack_n(mpd_t * mpd_ptr, const unsigned int time_usecs, unsigned int num_acks){
+int mp_ack_n(qpd_t * mpd_ptr, const unsigned int time_usecs, unsigned int num_acks){
   unsigned long long int timeout = get_cpu_usecs() + time_usecs;
   int retval = 0;
   // Await previous acknowledgement transfer before updating counter in SPM

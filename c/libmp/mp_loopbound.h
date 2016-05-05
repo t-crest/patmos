@@ -1,5 +1,5 @@
 /*
-   Copyright 2014 Technical University of Denmark, DTU Compute. 
+   Copyright 2016 Technical University of Denmark, DTU Compute. 
    All rights reserved.
    
    This file is part of the time-predictable VLIW processor Patmos.
@@ -30,59 +30,44 @@
    policies, either expressed or implied, of the copyright holder.
  */
 
-/*
- * Utility functions for the Message passing library
+/** \addtogroup libmp
+ *  @{
+ */
+
+/**
+ * \file mp_loopbound.h Loopbound definitions for libmp.
  * 
- * Author: Rasmus Bo Soerensen (rasmus@rbscloud.dk)
+ * \author Rasmus Bo Soerensen <rasmus@rbscloud.dk>
+ *
+ * \brief Internal header with loopbounds timing analysis for message
+ * passing library
  *
  */
 
-#include "mp.h"
-#include "mp_internal.h"
+#ifndef _MP_LOOPBOUND_H
+#define _MP_LOOPBOUND_H
 
+#ifndef IMPL
+#define IMPL MULTI_NOC
+#endif
 
-size_t mp_send_alloc_size(qpd_t * mpd_ptr) {
-  size_t send_size = (mpd_ptr->buf_size + FLAG_SIZE) * NUM_WRITE_BUF
-                                  + WALIGN(sizeof(*(mpd_ptr->send_recv_count)));
-  return send_size;
-}
+#ifndef MSG_SIZE_WORDS
+#define MSG_SIZE_WORDS 64
+#endif
 
-size_t mp_recv_alloc_size(qpd_t * mpd_ptr) {
-  size_t recv_size = (mpd_ptr->buf_size + FLAG_SIZE) * mpd_ptr->num_buf
-                                  + WALIGN(sizeof(*(mpd_ptr->recv_count)));
-  return recv_size;
-}
+#ifndef NUM_BUF
+#define NUM_BUF 3
+#endif
+#ifndef NUM_BUFMONE
+#define NUM_BUFMONE 2
+#endif
 
-int test_spm_size(){
-  volatile unsigned int _SPM * addr = NOC_SPM_BASE;
-  int init = *(addr);
-  int tmp;
-  *(addr) = 0xFFEEDDCC;
-  int i = 2;
-  int j = 0;
-  for(j = 0; j < 28; j++) {
-    tmp = *(addr+i);
-    *(addr+i) = 0;
-    if (*(addr) == 0) {
-      // We found the address where the mapping of the SPM wrapps
-      // Restore the state of the memory as is was when the function was called
-      *(addr+i) = tmp;
-      *(addr) = init;
-      // Remember to multiply by 4 for the byte address
-      return i << 2;
-    }
-    i = i << 1;
-    if (*(addr) != 0xFFEEDDCC){
-      // Memory failure happend
-      *(addr+i) = tmp;
-      *(addr) = init;
-      return -2;
-    }
-    *(addr+i) = tmp;
-  }
-  *(addr) = init;
-  return -1;
-}
+#ifndef PKT_TRANS_WAIT
+#define PKT_TRANS_WAIT 12
+#endif
 
+#ifndef SAMPLE_TRANS_WAIT
+#define SAMPLE_TRANS_WAIT 768
+#endif
 
-
+#endif /* _MP_LOOPBOUND_H_ */
