@@ -301,7 +301,7 @@ int k_noc_dma(unsigned dma_id,
 
     // Read pointer and write pointer in the dma table
     *(NOC_DMA_BASE+(dma_id<<1)) = (DATA_PKT_TYPE << NOC_PTR_WIDTH) | write_ptr;
-    // DWord count and valid bit, set active bit
+    // Word count and valid bit, set active bit
     *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (size << NOC_PTR_WIDTH) | read_ptr);  
     
     return 1;

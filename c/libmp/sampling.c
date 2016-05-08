@@ -50,31 +50,6 @@
 #define MULTI_NOC_NONBLOCKING   3
 #define MULTI_NOC_MP            4
 
-
-// #ifndef IMPL
-// #define IMPL MULTI_NOC
-// #endif
-
-// #ifndef MSG_SIZE_WORDS
-// #define MSG_SIZE_WORDS 64
-// #endif
-
-// #ifndef NUM_BUF
-// #define NUM_BUF 3
-// #endif
-// #ifndef NUM_BUFMONE
-// #define NUM_BUFMONE 2
-// #endif
-
-// #ifndef PKT_TRANS_WAIT
-// #define PKT_TRANS_WAIT 12
-// #endif
-
-// #ifndef SAMPLE_TRANS_WAIT
-// #define SAMPLE_TRANS_WAIT 768
-// #endif
-
-
 spd_t * mp_create_sport(const unsigned int chan_id, const direction_t direction_type,
               const coreid_t remote, const size_t sample_size) {
   if (chan_id >= MAX_CHANNELS || remote >= get_cpucnt()) {

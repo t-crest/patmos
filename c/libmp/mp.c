@@ -120,7 +120,7 @@ void _SPM * mp_alloc(const size_t size) {
     return NULL;
   }
   spm_alloc_array[cpuid] = (volatile unsigned int * _UNCACHED)new_addr;
-  TRACE(INFO,TRUE,"Core id %u, dw size %lu, allocated addr %x\n",cpuid,w_size,mem_ptr);
+  TRACE(INFO,TRUE,"Core id %u, word size %lu, allocated addr %x\n",cpuid,w_size,mem_ptr);
   return (void _SPM *)mem_ptr;
 }
 

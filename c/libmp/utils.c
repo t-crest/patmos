@@ -64,7 +64,7 @@ int test_spm_size(){
     tmp = *(addr+i);
     *(addr+i) = 0;
     if (*(addr) == 0) {
-      // We found the address where the mapping of the SPM wrapps
+      // We found the address where the mapping of the SPM wraps
       // Restore the state of the memory as is was when the function was called
       *(addr+i) = tmp;
       *(addr) = init;
@@ -73,7 +73,7 @@ int test_spm_size(){
     }
     i = i << 1;
     if (*(addr) != 0xFFEEDDCC){
-      // Memory failure happend
+      // Memory failure happened
       *(addr+i) = tmp;
       *(addr) = init;
       return -2;

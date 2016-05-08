@@ -22,6 +22,7 @@ const int NOC_MASTER = 0;
 #define ABORT_IF_FAIL(X,Y) if (X){puts(Y); abort();}
 
 int main_mem_size = 0;
+int com_spm_size = 0;
 int core_count = 0;
 //int core_com[64];
 
@@ -73,7 +74,7 @@ int mem_area_test_uncached(volatile _UNCACHED unsigned int * mem_addr,int mem_si
   MEM_AREA_TEST(mem_addr,mem_size);
 }
 
-int mem_area_test_spm(volatile int _SPM * mem_addr,int mem_size) {
+int mem_area_test_spm(volatile unsigned int _SPM * mem_addr,int mem_size) {
   MEM_AREA_TEST(mem_addr,mem_size);
 }
 
@@ -111,7 +112,7 @@ int test_mem_size_uncached(volatile _UNCACHED unsigned int * mem_addr){
   TEST_MEM_SIZE(mem_addr);
 }
 
-int test_mem_size_spm(volatile int _SPM * mem_addr){
+int test_mem_size_spm(volatile unsigned int _SPM * mem_addr){
   TEST_MEM_SIZE(mem_addr);
 }
 
@@ -156,7 +157,7 @@ int main_mem_test() {
   return size;
 }
 
-void com_spm_test() {
+int com_spm_test() {
   printf("Testing COM SPM...");
   ABORT_IF_FAIL(mem_area_test_spm(NOC_SPM_BASE,0x8000)<0,"FAIL 0x8000");
   ABORT_IF_FAIL(mem_area_test_spm(NOC_SPM_BASE,0x8001)<0,"FAIL 0x8001");
@@ -170,28 +171,87 @@ void com_spm_test() {
   char buf[11];
   prefix(size,buf);
   puts(buf);
+  return size;
+}
+
+volatile _UNCACHED unsigned int done[9];
+
+void __data_resp_handler(void) __attribute__((naked));
+void __data_resp_handler(void) {
+  exc_prologue();
+  int tmp = *(NOC_IRQ_BASE+1);
+  done[get_cpuid()] = 1;
+  // if (get_cpuid() == NOC_MASTER) {
+  //   puts("Hello from interrupt handler");
+  //   fflush(stdout);
+  // }
+  intr_clear_pending(exc_get_source());
+  exc_epilogue();
+}
+
+void noc_receive() {
+  int id = get_cpuid();
+  done[id] = 0;
+  exc_register(18,&__data_resp_handler);
+  exc_register(19,&__data_resp_handler);
+  intr_unmask_all();
+  intr_enable();
+  //puts("Interrupt handler setup");
+  while(done[id] != 1){;}
+
+  intr_disable();
   return;
 }
 
 void noc_test_master() {
-
+  printf("Performing libnoc test...");
+  fflush(stdout);
+  for (int i = 0; i < get_cpucnt(); ++i) {
+    if (i != NOC_MASTER) {
+      for (int j = 0; j < 8; ++j) {
+        *(NOC_SPM_BASE+j) = 0x11223344 * i;
+      }
+      noc_send((unsigned)i,(volatile void _SPM *)NOC_SPM_BASE,(volatile void _SPM *)NOC_SPM_BASE,32); 
+      while(done[i] != 1){;}
+      noc_receive();
+      for (int j = 0; j < 8; ++j){
+        ABORT_IF_FAIL(*(NOC_SPM_BASE+(i*8)+j) != 0x11223344 * i ,"Wrong data received");
+      }
+    }
+  }
+  printf("OK\n");
 }
 
 void noc_test_slave() {
+  // Performing libnoc test...
+  noc_receive();
+  // for (int i = 0; i < 8; ++i) {
+  //   *(NOC_SPM_BASE+i) = 0x11223344 * i;
+  // }
+  noc_send((unsigned)NOC_MASTER,(volatile void _SPM *)(NOC_SPM_BASE+(get_cpuid()*8)),(volatile void _SPM *)NOC_SPM_BASE,32);
 
+  while(done[NOC_MASTER] != 1){;}
+
+  return;
 }
+
+
 
 void mem_load_test() {
   int size = (main_mem_size-MINADDR)/get_cpucnt(); 
   volatile _UNCACHED unsigned int *addr = TEST_START + get_cpuid()*size;
-//  for(unsigned int start_time = get_cpu_usecs(); get_cpu_usecs() - start_time < 2000 ;) {
-//    ABORT_IF_FAIL(mem_area_test_uncached(addr,size)<0,"FAIL");
-//  }
+  for(unsigned int start_time = get_cpu_usecs(); get_cpu_usecs() - start_time < 2000 ;) {
+    if (get_cpuid() == NOC_MASTER) {
+      ABORT_IF_FAIL(mem_area_test_uncached(addr,size)<0,"FAIL");
+    } else {
+      mem_area_test_uncached(addr,size);
+    }
+  }
 }
 
 void slave_tester (void* arg) {
+  mem_load_test();
   noc_test_slave();
-    //mem_load_test();
   int ret = 0;
   corethread_exit(&ret);
   return;
@@ -227,29 +287,31 @@ void print_cpuinfo() {
 }
 
 int main() {
+  for (int i = 0; i < 9; ++i) {
+    done[i] = 0;
+  }
   print_cpuinfo();
   inval_dcache();
   core_count = print_processor_info();
-  com_spm_test();
+  //done = malloc(sizeof(unsigned int _SPM *)*core_count);
+  com_spm_size = com_spm_test();
   main_mem_size = main_mem_test();
-  noc_test_master();
   int param = 0;
+  printf("Creating corethreads...");
   for(int i = 0; i < get_cpucnt(); i++) {
     if (i != NOC_MASTER) {
       corethread_t ct = (corethread_t) i;
-      printf("Creating corethread: %d\n",i);
-      if(corethread_create(&ct,&slave_tester,(void*)param) == 0){
-        printf("Corethread created: %d\n",i);
-      } else {
+      if(corethread_create(&ct,&slave_tester,(void*)param) != 0){
         printf("Corethread %d not created\n",i);
       }
-      
     }
   }
+  puts("OK");
   printf("Performing main mem load test...");
   fflush(stdout);
   mem_load_test();
   printf("OK\n");
+  noc_test_master();
   int* ret;
   for (int i = 0; i < get_cpucnt(); ++i) {
     if (i != NOC_MASTER) {
