@@ -370,16 +370,6 @@ void k_noc_dma_clear(unsigned dma_id) {
 // Start a NoC configuration transfer
 // The addresses and the size are in words and relative to the
 // communication SPM
-int noc_conf(unsigned dma_id,
-            unsigned short write_ptr,
-            unsigned short read_ptr,
-            unsigned short size) {    
-    return k_noc_conf(dma_id, write_ptr, read_ptr, size);
-}
-
-// Start a NoC configuration transfer
-// The addresses and the size are in words and relative to the
-// communication SPM
 int k_noc_conf(unsigned dma_id,
             unsigned short write_ptr,
             unsigned short read_ptr,
@@ -397,14 +387,14 @@ int k_noc_conf(unsigned dma_id,
     return 1;
 }
 
-// Start a NoC interrupt
+// Start a NoC configuration transfer
 // The addresses and the size are in words and relative to the
 // communication SPM
-int noc_irq(unsigned dma_id,
+int noc_conf(unsigned dma_id,
             unsigned short write_ptr,
-            unsigned short read_ptr) {
-
-    return k_noc_irq(dma_id, write_ptr, read_ptr);
+            unsigned short read_ptr,
+            unsigned short size) {    
+    return k_noc_conf(dma_id, write_ptr, read_ptr, size);
 }
 
 // Start a NoC interrupt
@@ -425,6 +415,16 @@ int k_noc_irq(unsigned dma_id,
     *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (1 << NOC_PTR_WIDTH) | read_ptr) ;
 
     return 1;
+}
+
+// Start a NoC interrupt
+// The addresses and the size are in words and relative to the
+// communication SPM
+int noc_irq(unsigned dma_id,
+            unsigned short write_ptr,
+            unsigned short read_ptr) {
+
+    return k_noc_irq(dma_id, write_ptr, read_ptr);
 }
 
 // Convert from byte address or size to word address or size

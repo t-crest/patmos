@@ -34,8 +34,8 @@ volatile _UNCACHED unsigned int interrupt_results[NOC_CORES][NOC_CORES];//[sende
 
 volatile _UNCACHED int s, d; //global sender and destnation
 
-#define BLOCK_SIZE 4084 //blocksize in bites
-#define BLOCK_BASE ((volatile _SPM unsigned char *) NOC_SPM_BASE)+4
+#define BLOCK_SIZE 1024 //blocksize in bites
+#define BLOCK_BASE ((volatile _SPM unsigned char *) NOC_SPM_BASE)+0
 
 #define REMOTE_IRQ_IDX 19 //bit n.3 -- the forth (shifted 16)
 #define LOCAL_IRQ_IDX 18 //bit n.2 -- the third (shifted 16)
