@@ -219,7 +219,7 @@ int mp_read(spd_t * sport, volatile void _SPM * sample) {
 
 void mp_write_cs(spd_t * sport, volatile void _SPM * sample) INLINING;
 void mp_write_cs(spd_t * sport, volatile void _SPM * sample) {
-  noc_send(sport->remote,sport->read_bufs,sample,sport->sample_size);
+  noc_send(sport->remote,sport->read_bufs,sample,sport->sample_size,0);
   #pragma loopbound min SAMPLE_TRANS_WAIT max SAMPLE_TRANS_WAIT
   while(!noc_done(sport->remote));
 }
@@ -243,7 +243,8 @@ int mp_read_cs(spd_t * sport, volatile void _SPM * sample) {
     noc_send( sport->remote,
               (void _SPM *)(((int)&(sport->remote_spd->reading)) ),
               (void _SPM *)&sport->newest,
-              sizeof(sport->newest));
+              sizeof(sport->newest),
+              0);
     #pragma loopbound min PKT_TRANS_WAIT max PKT_TRANS_WAIT
     while(!noc_done(sport->remote));
   }
@@ -278,7 +279,8 @@ unsigned int mp_write_cs(spd_t * sport, volatile void _SPM * sample) {
   noc_send( sport->remote,
             (void _SPM *)&(sport->remote_spd->newest),
             (void _SPM *)&sport->next,
-            sizeof(sport->next));
+            sizeof(sport->next),
+            0);
   #pragma loopbound min PKT_TRANS_WAIT max PKT_TRANS_WAIT
   while(!noc_done(sport->remote));
   // update next based on the reading variable
@@ -291,7 +293,8 @@ int mp_write(spd_t * sport, volatile void _SPM * sample) {
   noc_send( sport->remote,
             (void _SPM *)( ((unsigned int)sport->read_bufs)+(((unsigned int)sport->next)*sport->sample_size) ),
             sample,
-            sport->sample_size);
+            sport->sample_size,
+            0);
   #pragma loopbound min SAMPLE_TRANS_WAIT max SAMPLE_TRANS_WAIT
   while(!noc_done(sport->remote));
   // When the sample is sent take the lock
@@ -333,7 +336,8 @@ int mp_read(spd_t * sport, volatile void _SPM * sample) {
   noc_send( sport->remote,
             (void _SPM *)&(sport->remote_spd->reading),
             (void _SPM *)&sport->next_reading,
-            sizeof(sport->next_reading));
+            sizeof(sport->next_reading),
+            0);
   #pragma loopbound min PKT_TRANS_WAIT max PKT_TRANS_WAIT
   while(!noc_done(sport->remote));
 
@@ -359,7 +363,8 @@ int mp_write(spd_t * sport, volatile void _SPM * sample) {
   noc_send( sport->remote,
             (void _SPM *)( ((unsigned int)sport->read_bufs)+(reading*sport->sample_size) ),
             sample,
-            sport->sample_size);
+            sport->sample_size,
+            0);
   sport->next = reading;
   #pragma loopbound min SAMPLE_TRANS_WAIT max SAMPLE_TRANS_WAIT
   while(!noc_done(sport->remote));
@@ -368,7 +373,8 @@ int mp_write(spd_t * sport, volatile void _SPM * sample) {
   noc_send( sport->remote,
             (void _SPM *)&(sport->remote_spd->newest),
             (void _SPM *)&sport->next,
-            sizeof(sport->next));
+            sizeof(sport->next),
+            0);
   #pragma loopbound min PKT_TRANS_WAIT max PKT_TRANS_WAIT
   while(!noc_done(sport->remote));
 

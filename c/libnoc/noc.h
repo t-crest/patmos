@@ -90,6 +90,7 @@
 // Definitions of NoC packet types
 ///////////////////////////////////////////////////////////////////////////////
 #define DATA_PKT_TYPE 0
+#define DATA_IRQ_PKT_TYPE 2
 #define CONFIG_PKT_TYPE 1
 #define IRQ_PKT_TYPE 3
 
@@ -193,12 +194,15 @@ void __noc_trap_handler(void);
 /// \param read_ptr The address in the sender's communication SPM, in
 /// words, relative to #NOC_SPM_BASE.
 /// \param size The size of data to be transferred, in words.
+/// \param irq_enable If irq_enable is 1 an interrupt will be triggered at the
+/// receiver when the whole transfer is complete, of it is zero no interrupt
+/// will be triggered at the receiver.
 /// \retval 1 Sending was successful.
 /// \retval 0 Otherwise.
 int k_noc_dma(unsigned dma_id, unsigned short write_ptr,
-            unsigned short read_ptr, unsigned short size);
+            unsigned short read_ptr, unsigned short size, unsigned irq_enable);
 int noc_dma(unsigned dma_id, unsigned short write_ptr,
-            unsigned short read_ptr, unsigned short size);
+            unsigned short read_ptr, unsigned short size, unsigned irq_enable);
 
 /// \brief Start a NoC configure transfer.
 ///
@@ -250,10 +254,13 @@ void noc_dma_clear(unsigned dma_id);
 /// \param dst A pointer to the destination of the transfer.
 /// \param src A pointer to the source of the transfer.
 /// \param size The size of data to be transferred, in bytes.
+/// \param irq_enable If irq_enable is 1 an interrupt will be triggered at the
+/// receiver when the whole transfer is complete, of it is zero no interrupt
+/// will be triggered at the receiver.
 /// \retval 1 Sending was successful.
 /// \retval 0 Otherwise.
 int noc_nbsend(unsigned dma_id, volatile void _SPM *dst,
-               volatile void _SPM *src, size_t size);
+               volatile void _SPM *src, size_t size, unsigned irq_enable);
 
 /// \brief Transfer data via the NoC (blocking).
 ///
@@ -262,8 +269,11 @@ int noc_nbsend(unsigned dma_id, volatile void _SPM *dst,
 /// \param dst A pointer to the destination of the transfer.
 /// \param src A pointer to the source of the transfer.
 /// \param size The size of data to be transferred, in bytes.
+/// \param irq_enable If irq_enable is 1 an interrupt will be triggered at the
+/// receiver when the whole transfer is complete, of it is zero no interrupt
+/// will be triggered at the receiver.
 void noc_send(unsigned dma_id, volatile void _SPM *dst,
-              volatile void _SPM *src, size_t size);
+              volatile void _SPM *src, size_t size, unsigned irq_enable);
 
 /// \brief Multi-cast transfer of data via the NoC (blocking).
 ///
@@ -273,8 +283,11 @@ void noc_send(unsigned dma_id, volatile void _SPM *dst,
 /// \param dst An array with pointers to the destinations of the transfer.
 /// \param src A pointer to the source of the transfer.
 /// \param size The size of data to be transferred, in bytes.
-void noc_multisend(unsigned cnt, unsigned dma_id [], volatile void _SPM *dst [],
-                   volatile void _SPM *src, size_t size);
+void noc_multisend(unsigned cnt, unsigned dma_id [],
+                   volatile void _SPM *dst [],
+                   volatile void _SPM *src,
+                   size_t size,
+                   unsigned irq_enable);
 
 /// \brief Multi-cast transfer of data like #noc_multisend(), but with coreset
 /// and a single destination address.
@@ -285,8 +298,12 @@ void noc_multisend(unsigned cnt, unsigned dma_id [], volatile void _SPM *dst [],
 /// \param offset Common offset for the destination addresses.
 /// \param src A pointer to the source of the transfer.
 /// \param size The size of data to be transferred, in bytes.
-void noc_multisend_cs(coreset_t *receivers, volatile void _SPM *dst[],
-                      unsigned offset, volatile void _SPM *src, size_t size);
+void noc_multisend_cs(coreset_t *receivers,
+                      volatile void _SPM *dst[],
+                      unsigned offset,
+                      volatile void _SPM *src,
+                      size_t size,
+                      unsigned irq_enable);
 
 /// \brief Wait until all transfers to a set of receivers have finished.
 ///

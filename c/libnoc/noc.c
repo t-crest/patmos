@@ -281,8 +281,9 @@ int noc_dma(unsigned dma_id,
 int noc_dma(unsigned dma_id,
             unsigned short write_ptr,
             unsigned short read_ptr,
-            unsigned short size) {
-    return k_noc_dma(dma_id,write_ptr,read_ptr,size);
+            unsigned short size,
+            unsigned irq_enable) {
+    return k_noc_dma(dma_id,write_ptr,read_ptr,size,irq_enable);
 }
 #endif
 
@@ -292,15 +293,27 @@ int noc_dma(unsigned dma_id,
 int k_noc_dma(unsigned dma_id,
             unsigned short write_ptr,
             unsigned short read_ptr,
-            unsigned short size) {
+            unsigned short size,
+            unsigned irq_enable) {
     //WRITE("k_noc_dma\n",10);
     // Only send if previous transfer is done
     if (!k_noc_done(dma_id)) {
       return 0;
     }
 
+    unsigned int pkt_type;
+    if (irq_enable == 1) {
+      // Enable an interrupt at the end of the DMA transfer
+      pkt_type = DATA_IRQ_PKT_TYPE;  
+    } else if (irq_enable == 0) {
+      // Disable an interrupt at the end of the DMA transfer
+      pkt_type = DATA_PKT_TYPE;  
+    } else {
+      // Wrong parameter
+      return 0;
+    }
     // Read pointer and write pointer in the dma table
-    *(NOC_DMA_BASE+(dma_id<<1)) = (DATA_PKT_TYPE << NOC_PTR_WIDTH) | write_ptr;
+    *(NOC_DMA_BASE+(dma_id<<1)) = (pkt_type << NOC_PTR_WIDTH) | write_ptr;  
     // Word count and valid bit, set active bit
     *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (size << NOC_PTR_WIDTH) | read_ptr);  
     
@@ -405,26 +418,26 @@ int noc_irq(unsigned dma_id,
 // Attempt to transfer data via the NoC
 // The addresses and the size are in bytes
 int noc_nbsend(unsigned dma_id, volatile void _SPM *dst,
-               volatile void _SPM *src, size_t size) {
+               volatile void _SPM *src, size_t size, unsigned irq_enable) {
 
   unsigned wp = (char *)dst - (char *)NOC_SPM_BASE;
   unsigned rp = (char *)src - (char *)NOC_SPM_BASE;
-  int ret = noc_dma(dma_id, W(wp), W(rp), W(size));
+  int ret = noc_dma(dma_id, W(wp), W(rp), W(size), irq_enable);
   return ret;
 }
 
 // Transfer data via the NoC
 // The addresses and the size are in bytes
 void noc_send(unsigned dma_id, volatile void _SPM *dst,
-              volatile void _SPM *src, size_t size) {
+              volatile void _SPM *src, size_t size, unsigned irq_enable) {
   _Pragma("loopbound min 1 max 1")
-  while(!noc_nbsend(dma_id, dst, src, size));
+  while(!noc_nbsend(dma_id, dst, src, size, irq_enable));
 }
 
 // Multicast transfer of data via the NoC
 // The addresses and the size are in bytes
 void noc_multisend(unsigned cnt, unsigned dma_id [], volatile void _SPM *dst [],
-              volatile void _SPM *src, size_t size) {
+              volatile void _SPM *src, size_t size, unsigned irq_enable) {
 
   int done;
   coreset_t sent;
@@ -433,7 +446,7 @@ void noc_multisend(unsigned cnt, unsigned dma_id [], volatile void _SPM *dst [],
     done = 1;
     for (unsigned i = 0; i < cnt; i++) {
       if (!coreset_contains(dma_id[i], &sent)) {
-        if (noc_nbsend(dma_id[i], dst[i], src, size)) {
+        if (noc_nbsend(dma_id[i], dst[i], src, size, irq_enable)) {
           coreset_add(dma_id[i], &sent);
         } else {
           done = 0;
@@ -448,14 +461,16 @@ void noc_multisend(unsigned cnt, unsigned dma_id [], volatile void _SPM *dst [],
 // The receivers are defined in a coreset
 // the coreset must not contain the calling core.
 void noc_multisend_cs(coreset_t *receivers, volatile void _SPM *dst[],
-                      unsigned offset, volatile void _SPM *src, size_t size) {
+                      unsigned offset, volatile void _SPM *src, size_t size,
+                                                      unsigned irq_enable) {
   int index = 0;
   unsigned cpuid = get_cpuid();
 //  for (unsigned i = 0; i < CORESET_SIZE; ++i) {
   for (unsigned i = 0; i < NOC_CORES; ++i) {
     if (coreset_contains(i,receivers)){
       if (i != cpuid) {
-        noc_send(i, (volatile void _SPM *)((unsigned)dst[index]+offset), src, size);
+        noc_send(i, (volatile void _SPM *)((unsigned)dst[index]+offset), src,
+                                                            size, irq_enable);
       }
       //DEBUGGER("Transmission address: %x+%x at core %i\n",(unsigned)dst[index],offset,i);
       index++;

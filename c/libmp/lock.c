@@ -64,7 +64,8 @@ void acquire_lock(LOCK_T * lock){
     noc_send(remote,
               (void _SPM *)&(lock->remote_ptr->remote_entering),
               (void _SPM *)&lock->local_entering,
-              sizeof(lock->local_entering));
+              sizeof(lock->local_entering),
+              0);
 
     //#pragma loopbound min 1 max 2
     #pragma loopbound min PKT_TRANS_WAIT max PKT_TRANS_WAIT
@@ -75,7 +76,8 @@ void acquire_lock(LOCK_T * lock){
     noc_send(remote,
               (void _SPM *)&(lock->remote_ptr->remote_number),
               (void _SPM *)&lock->local_number,
-              sizeof(lock->local_number));
+              sizeof(lock->local_number),
+              0);
 
 //    /* Enforce memory barrier */
     #pragma loopbound min PKT_TRANS_WAIT max PKT_TRANS_WAIT
@@ -87,7 +89,8 @@ void acquire_lock(LOCK_T * lock){
     noc_send(remote,
               (void _SPM *)&(lock->remote_ptr->remote_entering),
               (void _SPM *)&lock->local_entering,
-              sizeof(lock->local_entering));
+              sizeof(lock->local_entering),
+              0);
 
     /* Wait for remote core not to change number */
     #pragma loopbound min 1 max 2
@@ -109,7 +112,8 @@ void release_lock(LOCK_T * lock) {
     noc_send(lock->remote_cpuid,
               (void _SPM *)&(lock->remote_ptr->remote_number),
               (void _SPM *)&lock->local_number,
-              sizeof(lock->local_number));
+              sizeof(lock->local_number),
+              0);
     /* Enforce memory barrier */
     #pragma loopbound min PKT_TRANS_WAIT max PKT_TRANS_WAIT
     while(!noc_done(lock->remote_cpuid));

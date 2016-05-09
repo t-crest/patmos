@@ -17,7 +17,7 @@ const int NOC_MASTER = 0;
 #include <machine/patmos.h>
 #include <limits.h>
 #include "libcorethread/corethread.h"
-#include "libmp/mp.h"
+//#include "libmp/mp.h"
 
 #ifndef TT_PERIOD_US
   #define TT_PERIOD_US    1000
@@ -27,25 +27,25 @@ const int NOC_MASTER = 0;
 #define TIME_TRIGGERED  0
 #define EVENT_DRIVEN    1
 #ifndef PARADIGME
-  #define PARADIGME     TIME_TRIGGERED
+  #define PARADIGME     EVENT_DRIVEN
 #endif
 
 #define SHM             0
 #define SPM             1
 #ifndef DATA_PLACEMENT
-  #define DATA_PLACEMENT     SHM
+  #define DATA_PLACEMENT     SPM
 #endif
 
 #define SINGLE          0
 #define THREE           1
 #ifndef BUFFERING
-  #define BUFFERING     SINGLE
+  #define BUFFERING     THREE
 #endif
 
 #define SHM_LOCK             0
 #define SPM_LOCK             1
 #ifndef LOCKING
-  #define LOCKING     SHM_LOCK
+  #define LOCKING     SPM_LOCK
 #endif
 
 #ifndef BUFFER_SIZE
@@ -235,7 +235,7 @@ void write_buffer(volatile unsigned short int * phase, struct conf_param_t * con
         *((conf_param->write_buf_ptr) + i) = (BUFFER_T)(BUFFER_SIZE-1 - i);
       }
     }
-    noc_send(0,conf_param->read_buf_ptr,conf_param->write_buf_ptr,BUFFER_SIZE*sizeof(BUFFER_T));
+    noc_send(0,conf_param->read_buf_ptr,conf_param->write_buf_ptr,BUFFER_SIZE*sizeof(BUFFER_T),0);
 
     while(!noc_done(0));
 
@@ -282,7 +282,8 @@ void acquire_lock(LOCK_T * lock)  __attribute__((section(".text.spm"))) {
     noc_send(remote,
               (void _SPM *)&((*lock)->remote_ptr->remote_entering),
               (void _SPM *)&(*lock)->local_entering,
-              sizeof((*lock)->local_entering));
+              sizeof((*lock)->local_entering),
+              0);
 
 
     while(!noc_done(remote));
@@ -292,13 +293,15 @@ void acquire_lock(LOCK_T * lock)  __attribute__((section(".text.spm"))) {
     noc_send(remote,
               (void _SPM *)&((*lock)->remote_ptr->remote_number),
               (void _SPM *)&(*lock)->local_number,
-              sizeof((*lock)->local_number));
+              sizeof((*lock)->local_number),
+              0);
 
   
 //    noc_send(remote,
 //              (void _SPM *)&((*lock)->remote_ptr->remote_entering),
 //              (void _SPM *)&(*lock)->local_entering,
-//              sizeof((*lock)->local_entering)+sizeof((*lock)->local_number));
+//              sizeof((*lock)->local_entering)+sizeof((*lock)->local_number),
+//                0);
 
 //    /* Enforce memory barrier */
     while(!noc_done(remote)); // noc_send() also waits for the dma to be
@@ -309,7 +312,8 @@ void acquire_lock(LOCK_T * lock)  __attribute__((section(".text.spm"))) {
     noc_send(remote,
               (void _SPM *)&((*lock)->remote_ptr->remote_entering),
               (void _SPM *)&(*lock)->local_entering,
-              sizeof((*lock)->local_entering));
+              sizeof((*lock)->local_entering),
+              0);
 
     /* Wait for remote core not to change number */
     while((*lock)->remote_entering == 1);
@@ -333,7 +337,8 @@ void release_lock(LOCK_T * lock)  __attribute__((section(".text.spm"))) {
     noc_send((*lock)->remote_cpuid,
               (void _SPM *)&((*lock)->remote_ptr->remote_number),
               (void _SPM *)&(*lock)->local_number,
-              sizeof((*lock)->local_number));
+              sizeof((*lock)->local_number),
+              0);
     /* Enforce memory barrier */
     while(!noc_done((*lock)->remote_cpuid));
     /* Lock is freed */  

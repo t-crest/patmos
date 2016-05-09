@@ -69,7 +69,7 @@ static void master(void) {
   WRITE("INIT\n", 5);
 
   // send message to core 1
-  noc_send(get_cpuid()+1, spm_in, spm_out, sizeof(struct msg_t));
+  noc_send(get_cpuid()+1, spm_in, spm_out, sizeof(struct msg_t), 0);
 
   WRITE("SENT\n", 5);
 
@@ -114,7 +114,7 @@ static void slave(void* param) {
 
   // send to next slave
   int rcv_id = (get_cpuid()==(get_cpucnt()-1)) ? 0 : get_cpuid()+1;
-  noc_send(rcv_id, spm_in, spm_out, sizeof(struct msg_t));
+  noc_send(rcv_id, spm_in, spm_out, sizeof(struct msg_t), 0);
 
   return;
 }

@@ -85,7 +85,7 @@ static int fracmul(int x, int y) __attribute__((noinline));
 #else /* __patmos__ */
 static void shm_dma(int dst_id, volatile void _SPM *dst,
                     volatile void _SPM *src,
-                    size_t len) __attribute__((noinline));
+                    size_t len, unsigned irq_enable) __attribute__((noinline));
 #define DMA shm_dma
 #endif /* __patmos__ */
 
@@ -204,7 +204,7 @@ static void shm_clean() {
 
 static void shm_dma(int dst_id, volatile void _SPM *dst,
                     volatile void _SPM *src,
-                    size_t len) {
+                    size_t len, unsigned irq_enable) {
 
   size_t i;
   volatile int *d = (volatile int *)dst;
@@ -286,7 +286,7 @@ static void master(void) {
     master_mpb->slave[i].packet.cmd = CMD_START;
     DMA(i+1, &(slave_mpb[i]->packet),
         &(master_mpb->slave[i].packet),
-        sizeof(struct packet_t));
+        sizeof(struct packet_t),0);
   }
   /* wait for acknowledgement */
   for (i = 0; i < SLAVES; i++) {
@@ -312,7 +312,7 @@ static void master(void) {
     master_mpb->slave[i].packet.xstep  = XSTEP_SIZE;
     DMA(i+1, &(slave_mpb[i]->packet),
         &(master_mpb->slave[i].packet),
-        sizeof(struct packet_t));
+        sizeof(struct packet_t),0);
 
     row[i]++;
   }
@@ -349,7 +349,7 @@ static void master(void) {
           master_mpb->slave[i].packet.xstep  = XSTEP_SIZE;
           DMA(i+1, &(slave_mpb[i]->packet),
               &(master_mpb->slave[i].packet),
-              sizeof(struct packet_t));
+              sizeof(struct packet_t),0);
 
           row[i]++;
         }
@@ -362,7 +362,7 @@ static void master(void) {
     master_mpb->slave[i].packet.cmd = CMD_STOP;
     DMA(i+1, &(slave_mpb[i]->packet),
         &(master_mpb->slave[i].packet),
-        sizeof(struct packet_t));
+        sizeof(struct packet_t),0);
   }
 }
 
@@ -425,7 +425,7 @@ static void slave(void) {
   slave_mpb[slave_id]->row.cmd = CMD_START;
   DMA(0, &(master_mpb->slave[slave_id].row),
       &(slave_mpb[slave_id]->row),
-      sizeof(struct rowbuf_t));
+      sizeof(struct rowbuf_t),0);
 
   /* loop while new packets arrive */
   for (;;) {
@@ -458,7 +458,7 @@ static void slave(void) {
     slave_mpb[slave_id]->row.cmd = p.cmd;
     DMA(0, &(master_mpb->slave[slave_id].row),
         &(slave_mpb[slave_id]->row),
-        sizeof(struct rowbuf_t));
+        sizeof(struct rowbuf_t),0);
   }
 }
 
