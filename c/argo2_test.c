@@ -205,7 +205,7 @@ void c_generate_bandwidth_results(){ //bandwith results need to be cleared
 			t1 = get_cpu_cycles();
 			tmax = t1 + SEND_TIMEOUT;
 			//start to send the block
-			noc_send((unsigned) i, ((volatile _SPM void *) BLOCK_BASE), block, (size_t) BLOCK_SIZE);
+			noc_send((unsigned) i, ((volatile _SPM void *) BLOCK_BASE), ((volatile _SPM void *)block), (size_t) BLOCK_SIZE, 0);
 
 			//check for timeout (this adds a tolerance on the result)
 			while( !(timeout || (noc_done((unsigned)i))) ){
@@ -280,7 +280,7 @@ void c_send_random_array(){ //bandwith results need to be cleared
 	for (int i = 0; i < BLOCK_SIZE; i++) {
 		block[i] = random_array[i];
 	}
-	noc_send((unsigned) d, ((volatile _SPM void *) BLOCK_BASE), block, (size_t) BLOCK_SIZE);
+	noc_send((unsigned) d, ((volatile _SPM void *) BLOCK_BASE), ((volatile _SPM void *) block), (size_t) BLOCK_SIZE, 1);
 	//check for timeout (this adds a tolerance on the result)
 	while( !(noc_done((unsigned)d)) ){;}
 	//int noc_done(unsigned dma_id);// 1 The transfer has finished. 0 Otherwise.
@@ -319,17 +319,13 @@ void c_check_correctness(){ //bandwith results need to be cleared
 	//Check if the local IRQ addr is correct ()
 	if ((intr_get_pending() & (1 << LOCAL_IRQ_IDX)) != 0){
 	
-		for (int i = 1; i <= 8; i++)
+		for (int i = 1; i <= 32; i++)
 		{
 			interrupt_occ[s][d] = (unsigned char)i;
 			//read fifo
 			interrupt_results[s][d] = (unsigned int)(*(NOC_IRQ_BASE+1));
 			//clear the pending
 			intr_clear_pending(LOCAL_IRQ_IDX);
-			asm volatile ("":);
-			asm volatile ("":);
-			asm volatile ("":);
-			asm volatile ("":);
 			if ((intr_get_pending() & (1 << LOCAL_IRQ_IDX)) == 0){
 				break;
 			}

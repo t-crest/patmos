@@ -373,10 +373,20 @@ void k_noc_dma_clear(unsigned dma_id) {
 int noc_conf(unsigned dma_id,
             unsigned short write_ptr,
             unsigned short read_ptr,
+            unsigned short size) {    
+    return k_noc_conf(dma_id, write_ptr, read_ptr, size);
+}
+
+// Start a NoC configuration transfer
+// The addresses and the size are in words and relative to the
+// communication SPM
+int k_noc_conf(unsigned dma_id,
+            unsigned short write_ptr,
+            unsigned short read_ptr,
             unsigned short size) {
 
     // Only send if previous transfer is done
-    if (!noc_done(dma_id)) {
+    if (!k_noc_done(dma_id)) {
       return 0;
     }
 
@@ -384,9 +394,6 @@ int noc_conf(unsigned dma_id,
     *(NOC_DMA_BASE+(dma_id<<1)) = (CONFIG_PKT_TYPE << NOC_PTR_WIDTH) | write_ptr;
     // Word count and valid bit, set active bit
     *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (size << NOC_PTR_WIDTH) | read_ptr);
-
-    
-
     return 1;
 }
 
@@ -397,8 +404,18 @@ int noc_irq(unsigned dma_id,
             unsigned short write_ptr,
             unsigned short read_ptr) {
 
+    return k_noc_irq(dma_id, write_ptr, read_ptr);
+}
+
+// Start a NoC interrupt
+// The addresses and the size are in words and relative to the
+// communication SPM
+int k_noc_irq(unsigned dma_id,
+            unsigned short write_ptr,
+            unsigned short read_ptr) {
+
     // Only send if previous transfer is done
-    if (!noc_done(dma_id)) {
+    if (!k_noc_done(dma_id)) {
       return 0;
     }
 
@@ -406,8 +423,6 @@ int noc_irq(unsigned dma_id,
     *(NOC_DMA_BASE+(dma_id<<1)) = (IRQ_PKT_TYPE << NOC_PTR_WIDTH) | write_ptr;
     // Word count and valid bit, set active bit
     *(NOC_DMA_BASE+(dma_id<<1)+1) = (NOC_ACTIVE_BIT | (1 << NOC_PTR_WIDTH) | read_ptr) ;
-    
-    
 
     return 1;
 }
