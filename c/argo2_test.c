@@ -28,10 +28,17 @@ const int NOC_MASTER = 0;
 
 volatile _UNCACHED int bandwidth_results[NOC_CORES][NOC_CORES];// bandwidth_results[sender][receiver]//this contains the amount of CC needed to send a block (-1 means: channel not available)
 volatile _UNCACHED int correctness_results[NOC_CORES][NOC_CORES];// correctness_results[sender][receiver]//this contains the amount of CC needed to send a block (-1 means: channel not available)
+volatile _UNCACHED unsigned char interrupt_status[NOC_CORES][NOC_CORES];//[sender][receiver] 0 menas channel not tested, 1 means: interrupt not received, 2 means: interrupt received but not deasseted, 3 means: everyting fine
+volatile _UNCACHED unsigned char interrupt_occ[NOC_CORES][NOC_CORES];//[sender][receiver] 0 menas channel not tested, 1 means: interrupt not received, 2 means: interrupt received but not deasseted, 3 means: everyting fine
+volatile _UNCACHED unsigned int interrupt_results[NOC_CORES][NOC_CORES];//[sender][receiver]
 
 volatile _UNCACHED int s, d; //global sender and destnation
 
-#define BLOCK_SIZE 4096 //blocksize in bites
+#define BLOCK_SIZE 4084 //blocksize in bites
+#define BLOCK_BASE ((volatile _SPM unsigned char *) NOC_SPM_BASE)+4
+
+#define REMOTE_IRQ_IDX 19 //bit n.3 -- the forth (shifted 16)
+#define LOCAL_IRQ_IDX 18 //bit n.2 -- the third (shifted 16)
 
 volatile _UNCACHED unsigned char random_array[BLOCK_SIZE];
 
@@ -40,6 +47,33 @@ void m_generate_random_array()
 	for (int i=0; i<BLOCK_SIZE; i++) {
 		random_array[i] = ((unsigned char) (rand() & 0x000000FF));
 	}
+}
+
+void m_clear_interrupt_status(){
+	for (int i = 0; i < NOC_CORES; i++) {
+		for (int j = 0; j < NOC_CORES; j++) {
+			interrupt_status[i][j] = 0;
+		}
+	}
+	return;
+}
+
+void m_clear_interrupt_occ(){
+	for (int i = 0; i < NOC_CORES; i++) {
+		for (int j = 0; j < NOC_CORES; j++) {
+			interrupt_occ[i][j] = 0;
+		}
+	}
+	return;
+}
+
+void m_clear_interrupt_results(){
+	for (int i = 0; i < NOC_CORES; i++) {
+		for (int j = 0; j < NOC_CORES; j++) {
+			interrupt_results[i][j] = 0;
+		}
+	}
+	return;
 }
 
 void m_clear_bandwidth_results(){
@@ -73,9 +107,71 @@ void m_print_bandwidth_results(){
 	return;
 }
 
+void m_print_interrupt_results(){
+	printf("\tto:\nfrom:\t");
+	for (int i = 0; i < NOC_CORES; i++) {
+		printf("%d\t", i);
+	}
+	printf("\n");
+	for (int i = 0; i < NOC_CORES; i++) {
+		printf("%d\t", i);
+		for (int j = 0; j < NOC_CORES; j++) {
+			//if(interrupt_results[i][j]==-1){
+				printf("%04X\t", interrupt_results[i][j]);
+			/*}else if(bandwidth_results[i][j]==0){	
+				printf("-\t");
+			}else{
+				printf("%d\t", bandwidth_results[i][j]);
+			}*/
+		}
+		printf("\n");
+	}
+	return;
+}
+
+void m_print_interrupt_status(){
+	printf("\tto:\nfrom:\t");
+	for (int i = 0; i < NOC_CORES; i++) {
+		printf("%d\t", i);
+	}
+	printf("\n");
+	for (int i = 0; i < NOC_CORES; i++) {
+		printf("%d\t", i);
+		for (int j = 0; j < NOC_CORES; j++) {
+			if(interrupt_status[i][j]==0){
+				printf("-\t");
+			}else if(interrupt_status[i][j]==1){	
+				printf("NO IRQ\t");
+			}else if(interrupt_status[i][j]==2){
+				printf("NO DEA.\t");
+			}else{
+				printf("OK\t");
+			}
+		}
+		printf("\n");
+	}
+	return;
+}
+
+void m_print_interrupt_occ(){
+	printf("\tto:\nfrom:\t");
+	for (int i = 0; i < NOC_CORES; i++) {
+		printf("%d\t", i);
+	}
+	printf("\n");
+	for (int i = 0; i < NOC_CORES; i++) {
+		printf("%d\t", i);
+		for (int j = 0; j < NOC_CORES; j++) {
+			printf("%d\t", interrupt_occ[i][j]);
+		}
+		printf("\n");
+	}
+	return;
+}
+
 //common
 void c_generate_bandwidth_results(){ //bandwith results need to be cleared
-	volatile _SPM unsigned char * block = ((volatile _SPM unsigned char *) NOC_SPM_BASE);
+	volatile _SPM unsigned char * block = ((volatile _SPM unsigned char *) BLOCK_BASE);
 	//Initialize memorycontent with incremental values
 	for (int i = 0; i < BLOCK_SIZE; i++) {
 		block[i] = (unsigned char)(i & 0x000000FF);
@@ -87,7 +183,7 @@ void c_generate_bandwidth_results(){ //bandwith results need to be cleared
 	//t1 = get_cpu_cycles();
 	//tmax = t1 + SEND_TIMEOUT;
 	////start to send the block, for sure not to myself -> ((get_cpuid()+1)%NOC_CORES)
-	//noc_send((unsigned) ((get_cpuid()+1)%NOC_CORES), ((volatile _SPM void *) NOC_SPM_BASE), block, (size_t) BLOCK_SIZE);
+	//noc_send((unsigned) ((get_cpuid()+1)%NOC_CORES), ((volatile _SPM void *) BLOCK_BASE), block, (size_t) BLOCK_SIZE);
 
 	////check for timeout (this adds a tolerance on the result)
 	//while( !(timeout || (noc_done((unsigned)((get_cpuid()+1)%NOC_CORES)))) ){
@@ -97,7 +193,9 @@ void c_generate_bandwidth_results(){ //bandwith results need to be cleared
 	//	}
 	//}
 
+
 	//measure
+	//I need to put nocsend in the cache therefore every measure is repeated twice
 	for (int c = 0; c < 2*NOC_CORES; c++) {
 		int i=c/2;
 		timeout=false;
@@ -107,7 +205,7 @@ void c_generate_bandwidth_results(){ //bandwith results need to be cleared
 			t1 = get_cpu_cycles();
 			tmax = t1 + SEND_TIMEOUT;
 			//start to send the block
-			noc_send((unsigned) i, ((volatile _SPM void *) NOC_SPM_BASE), block, (size_t) BLOCK_SIZE);
+			noc_send((unsigned) i, ((volatile _SPM void *) BLOCK_BASE), block, (size_t) BLOCK_SIZE);
 
 			//check for timeout (this adds a tolerance on the result)
 			while( !(timeout || (noc_done((unsigned)i))) ){
@@ -177,12 +275,12 @@ void m_print_correctness_results(){
 
 //common
 void c_send_random_array(){ //bandwith results need to be cleared
-	volatile _SPM unsigned char * block = ((volatile _SPM unsigned char *) NOC_SPM_BASE);
+	volatile _SPM unsigned char * block = ((volatile _SPM unsigned char *) BLOCK_BASE);
 	//Initialize memorycontent with incremental values
 	for (int i = 0; i < BLOCK_SIZE; i++) {
 		block[i] = random_array[i];
 	}
-	noc_send((unsigned) d, ((volatile _SPM void *) NOC_SPM_BASE), block, (size_t) BLOCK_SIZE);
+	noc_send((unsigned) d, ((volatile _SPM void *) BLOCK_BASE), block, (size_t) BLOCK_SIZE);
 	//check for timeout (this adds a tolerance on the result)
 	while( !(noc_done((unsigned)d)) ){;}
 	//int noc_done(unsigned dma_id);// 1 The transfer has finished. 0 Otherwise.
@@ -203,7 +301,7 @@ void s_send_random_array(void * arg){//just changed in arg.
 
 //common
 void c_check_correctness(){ //bandwith results need to be cleared
-	volatile _SPM unsigned char * block = ((volatile _SPM unsigned char *) NOC_SPM_BASE);
+	volatile _SPM unsigned char * block = ((volatile _SPM unsigned char *) BLOCK_BASE);
 	//Initialize memorycontent with incremental values
 	bool correct = true;
 	for (int i = 0; i < BLOCK_SIZE; i++) {
@@ -217,6 +315,37 @@ void c_check_correctness(){ //bandwith results need to be cleared
 	}else{
 		correctness_results[s][d]=2;
 	}
+	
+	//Check if the local IRQ addr is correct ()
+	if ((intr_get_pending() & (1 << LOCAL_IRQ_IDX)) != 0){
+	
+		for (int i = 1; i <= 8; i++)
+		{
+			interrupt_occ[s][d] = (unsigned char)i;
+			//read fifo
+			interrupt_results[s][d] = (unsigned int)(*(NOC_IRQ_BASE+1));
+			//clear the pending
+			intr_clear_pending(LOCAL_IRQ_IDX);
+			asm volatile ("":);
+			asm volatile ("":);
+			asm volatile ("":);
+			asm volatile ("":);
+			if ((intr_get_pending() & (1 << LOCAL_IRQ_IDX)) == 0){
+				break;
+			}
+		}
+		if ((intr_get_pending() & (1 << LOCAL_IRQ_IDX)) == 0){
+			//deasserted
+			interrupt_status[s][d]=	3;
+		}else{
+			//not deasserted
+			interrupt_status[s][d]=	2;
+		}
+	}else{
+		//no interrupt
+		interrupt_status[s][d]=1;
+	}
+
 	return;
 }
 
@@ -247,7 +376,7 @@ int main() {
 	char c = 'v';
 	int mode = 0;
 	while (loop) {
-		printf("\nAvailable operations:\n1 -> Test bandwidth and tramission correctness.\n2 -> Change mode (actual: M%d)\n3 -> operation 3\n4 -> operation 4\ne -> exit\n", mode);
+		printf("\nAvailable operations:\n1 -> Test bandwidth and tramission correctness.\n2 -> Change mode (actual: M%d)\n3 -> Read out the local IRQ fifo\n4 -> operation 4\ne -> exit\n", mode);
 
 		printf("\nSelect operation: ");
 		scanf(" %c", &c);
@@ -286,8 +415,11 @@ int main() {
 
 					}
 				}
-				
+
 				m_clear_correctness_results();
+				m_clear_interrupt_status();
+				m_clear_interrupt_results();
+				m_clear_interrupt_occ();
 				s = 0;
 				d = 0;
 				for (s = 0; s < NOC_CORES; s++){
@@ -330,22 +462,21 @@ int main() {
 								}
 								//slave is checking
 							}
-
-
-
-
 						}
-
 					}
-					
 				}
-
 				printf("\nBandwith results (clock cycles needed to transmit %d bytes):\n", BLOCK_SIZE);
 				m_print_bandwidth_results();
 				printf("\nCorrectness results:\n");
 				m_print_correctness_results();
-				//m_print_debug();
+				printf("\nInterrupt status:\n");
+				m_print_interrupt_status();
+				printf("\nInterrupt occ:\n");
+				m_print_interrupt_occ();
+				printf("\nInterrupt results:\n");
+				m_print_interrupt_results();
 
+				//m_print_debug();
 
 				break;
 			case '2':
@@ -357,7 +488,11 @@ int main() {
 				printf("Done!\n\n");
 				break;
 			case '3':
-				printf("\nOperation 3\n");
+				printf("\nOperation 3: read out the local IRQfifo\n");
+
+
+
+
 				break;
 			case '4':
 				printf("\nOperation 4\n");
