@@ -7,20 +7,20 @@ package io
 
 import Chisel._
 
-class audio_dac(AUDIO_BITLENGTH: Int, FS_DIV: Int) extends Module 
+class AudioDAC(AUDIO_BITLENGTH: Int, FS_DIV: Int) extends Module
 {
 	//constants: from CONFIG parameters
 	//val AUDIO_BITLENGTH = 16;
 	//val FS_DIV = 256;
 
 	//IOs
-	val io = new Bundle 
+	val io = new Bundle
 	{
 		//inputs from PATMOS
 		val audio_l_i = UInt(INPUT, AUDIO_BITLENGTH)
 		val audio_r_i = UInt(INPUT, AUDIO_BITLENGTH)
 		val en_dac_i = Bool(dir = INPUT) //enable signal
-		//from audio_clk_gen 
+		//from audio_clk_gen
 		val BCLK_i = UInt(INPUT, 1)
 		//outputs
 		val busy_o = UInt(OUTPUT, 1) //to PATMOS
@@ -30,7 +30,7 @@ class audio_dac(AUDIO_BITLENGTH: Int, FS_DIV: Int) extends Module
 
 
 	//Counter for audio sampling
-	val Fs_CYCLES = UInt(FS_DIV - 1); 
+	val Fs_CYCLES = UInt(FS_DIV - 1);
 	val Fs_cntReg = Reg(init = UInt(0, 9)) //counter register for Fs
 
 	val audio_cntReg = Reg(init = UInt(0, 5)) //counter register for Audio bits: max 32 bits: 5 bit counter
@@ -63,7 +63,7 @@ class audio_dac(AUDIO_BITLENGTH: Int, FS_DIV: Int) extends Module
 		audio_r_reg := io.audio_r_i
 	}
 
-	
+
 	when(io.en_dac_i === UInt(1)) { //when conversion is enabled
 
 		//state machine: on falling edge of BCLK
@@ -71,14 +71,14 @@ class audio_dac(AUDIO_BITLENGTH: Int, FS_DIV: Int) extends Module
 
 			//counter for audio sampling
 			Fs_cntReg := Fs_cntReg + UInt(1)
-			when(Fs_cntReg === Fs_CYCLES) 
+			when(Fs_cntReg === Fs_CYCLES)
 			{
 				Fs_cntReg := UInt(0) //reset to 0
-			}    
+			}
 
 			//FSM for audio conversion
 			switch (state) {
-				is (s_idle) 
+				is (s_idle)
 				{
 					DACLRC_reg := UInt(0)
 					DACDAT_reg := UInt(0)
@@ -87,32 +87,32 @@ class audio_dac(AUDIO_BITLENGTH: Int, FS_DIV: Int) extends Module
 						state := s_start
 					}
 				}
-				is (s_start) 
+				is (s_start)
 				{
 					DACLRC_reg := UInt(1)
 					busy_reg := UInt(1)
 					state := s_left //directly jump to next state
 				}
-				is (s_left) 
+				is (s_left)
 				{
 					DACLRC_reg := UInt(0)
 					busy_reg := UInt(1)
 					DACDAT_reg := audio_l_reg( UInt(AUDIO_BITLENGTH) - audio_cntReg - UInt(1))
-					when (audio_cntReg < UInt(AUDIO_BITLENGTH-1)) 
+					when (audio_cntReg < UInt(AUDIO_BITLENGTH-1))
 					{
 						audio_cntReg := audio_cntReg + UInt(1)
 					}
 					.otherwise //bit AUDIO_BITLENGTH-1
-					{ 
+					{
 		   				audio_cntReg := UInt(0) //restart counter
 						state := s_right
 					}
 				}
-				is (s_right) 
+				is (s_right)
 				{
 					busy_reg := UInt(1)
 					DACDAT_reg := audio_r_reg(UInt(AUDIO_BITLENGTH) - audio_cntReg - UInt(1))
-					when (audio_cntReg < UInt(AUDIO_BITLENGTH-1)) 
+					when (audio_cntReg < UInt(AUDIO_BITLENGTH-1))
 					{
 						audio_cntReg := audio_cntReg + UInt(1)
 					}
@@ -126,13 +126,13 @@ class audio_dac(AUDIO_BITLENGTH: Int, FS_DIV: Int) extends Module
 		}
 	}
 	.otherwise //when conversion is disabled
-	{ 
+	{
 		state := s_idle
 		Fs_cntReg := UInt(0)
 		audio_cntReg := UInt(0)
-		busy_reg := UInt(0)	
+		busy_reg := UInt(0)
 		DACLRC_reg := UInt(0)
-		DACDAT_reg := UInt(0)   
+		DACDAT_reg := UInt(0)
 	}
-  
+
 }
