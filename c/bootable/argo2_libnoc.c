@@ -77,7 +77,7 @@ int main() {
   COM_SPM_WR32(3<<2,0x33445566);
 
 //  if (get_cpuid() == 0) {
-//    noc_done(3);
+//    noc_dma_done(3);
 //    noc_dma(1,0,0,2);
 //
 //    for (; ;) {

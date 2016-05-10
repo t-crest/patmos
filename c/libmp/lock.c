@@ -61,7 +61,7 @@ void acquire_lock(LOCK_T * lock){
     unsigned id = get_cpuid();
     lock->local_entering = 1;
     
-    noc_send(remote,
+    noc_write(remote,
               (void _SPM *)&(lock->remote_ptr->remote_entering),
               (void _SPM *)&lock->local_entering,
               sizeof(lock->local_entering),
@@ -69,11 +69,11 @@ void acquire_lock(LOCK_T * lock){
 
     //#pragma loopbound min 1 max 2
     #pragma loopbound min PKT_TRANS_WAIT max PKT_TRANS_WAIT
-    while(!noc_done(remote));
+    while(!noc_dma_done(remote));
     unsigned n = (unsigned)lock->remote_number + 1;
     lock->local_number = n;
     /* Enforce memory barrier */
-    noc_send(remote,
+    noc_write(remote,
               (void _SPM *)&(lock->remote_ptr->remote_number),
               (void _SPM *)&lock->local_number,
               sizeof(lock->local_number),
@@ -81,12 +81,12 @@ void acquire_lock(LOCK_T * lock){
 
 //    /* Enforce memory barrier */
     #pragma loopbound min PKT_TRANS_WAIT max PKT_TRANS_WAIT
-    while(!noc_done(remote)); // noc_send() also waits for the dma to be
+    while(!noc_dma_done(remote)); // noc_write() also waits for the dma to be
                                 // free, so no need to do it here as well
 
     /* Write Entering false */
     lock->local_entering = 0;
-    noc_send(remote,
+    noc_write(remote,
               (void _SPM *)&(lock->remote_ptr->remote_entering),
               (void _SPM *)&lock->local_entering,
               sizeof(lock->local_entering),
@@ -109,14 +109,14 @@ void acquire_lock(LOCK_T * lock){
 void release_lock(LOCK_T * lock) {
     /* Write Number */
     lock->local_number = 0;
-    noc_send(lock->remote_cpuid,
+    noc_write(lock->remote_cpuid,
               (void _SPM *)&(lock->remote_ptr->remote_number),
               (void _SPM *)&lock->local_number,
               sizeof(lock->local_number),
               0);
     /* Enforce memory barrier */
     #pragma loopbound min PKT_TRANS_WAIT max PKT_TRANS_WAIT
-    while(!noc_done(lock->remote_cpuid));
+    while(!noc_dma_done(lock->remote_cpuid));
     /* Lock is freed */  
     return;
 }

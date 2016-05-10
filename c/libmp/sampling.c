@@ -219,9 +219,9 @@ int mp_read(spd_t * sport, volatile void _SPM * sample) {
 
 void mp_write_cs(spd_t * sport, volatile void _SPM * sample) INLINING;
 void mp_write_cs(spd_t * sport, volatile void _SPM * sample) {
-  noc_send(sport->remote,sport->read_bufs,sample,sport->sample_size,0);
+  noc_write(sport->remote,sport->read_bufs,sample,sport->sample_size,0);
   #pragma loopbound min SAMPLE_TRANS_WAIT max SAMPLE_TRANS_WAIT
-  while(!noc_done(sport->remote));
+  while(!noc_dma_done(sport->remote));
 }
 
 
@@ -240,13 +240,13 @@ int mp_read_cs(spd_t * sport, volatile void _SPM * sample) {
   int newest = (int)sport->newest;
   // Update reading
   if (newest >= 0) {
-    noc_send( sport->remote,
+    noc_write( sport->remote,
               (void _SPM *)(((int)&(sport->remote_spd->reading)) ),
               (void _SPM *)&sport->newest,
               sizeof(sport->newest),
               0);
     #pragma loopbound min PKT_TRANS_WAIT max PKT_TRANS_WAIT
-    while(!noc_done(sport->remote));
+    while(!noc_dma_done(sport->remote));
   }
   return newest;
 }
@@ -276,13 +276,13 @@ int mp_read(spd_t * sport, volatile void _SPM * sample) {
 unsigned int mp_write_cs(spd_t * sport, volatile void _SPM * sample) INLINING;
 unsigned int mp_write_cs(spd_t * sport, volatile void _SPM * sample) {
     // Update newest
-  noc_send( sport->remote,
+  noc_write( sport->remote,
             (void _SPM *)&(sport->remote_spd->newest),
             (void _SPM *)&sport->next,
             sizeof(sport->next),
             0);
   #pragma loopbound min PKT_TRANS_WAIT max PKT_TRANS_WAIT
-  while(!noc_done(sport->remote));
+  while(!noc_dma_done(sport->remote));
   // update next based on the reading variable
   return (unsigned int)sport->reading;
   
@@ -290,13 +290,13 @@ unsigned int mp_write_cs(spd_t * sport, volatile void _SPM * sample) {
 
 int mp_write(spd_t * sport, volatile void _SPM * sample) {
   // Send the sample to the next buffer
-  noc_send( sport->remote,
+  noc_write( sport->remote,
             (void _SPM *)( ((unsigned int)sport->read_bufs)+(((unsigned int)sport->next)*sport->sample_size) ),
             sample,
             sport->sample_size,
             0);
   #pragma loopbound min SAMPLE_TRANS_WAIT max SAMPLE_TRANS_WAIT
-  while(!noc_done(sport->remote));
+  while(!noc_dma_done(sport->remote));
   // When the sample is sent take the lock
   unsigned int reading;
   acquire_lock(sport->lock);
@@ -333,13 +333,13 @@ int mp_read(spd_t * sport, volatile void _SPM * sample) {
      sport->next_reading = 0;
   }
   unsigned int next_reading = *((volatile unsigned int _SPM *)&sport->next_reading);
-  noc_send( sport->remote,
+  noc_write( sport->remote,
             (void _SPM *)&(sport->remote_spd->reading),
             (void _SPM *)&sport->next_reading,
             sizeof(sport->next_reading),
             0);
   #pragma loopbound min PKT_TRANS_WAIT max PKT_TRANS_WAIT
-  while(!noc_done(sport->remote));
+  while(!noc_dma_done(sport->remote));
 
   unsigned int next_newest = *((volatile unsigned int _SPM *)&sport->newest);
   while(next_reading != next_newest){
@@ -360,23 +360,23 @@ int mp_read(spd_t * sport, volatile void _SPM * sample) {
 int mp_write(spd_t * sport, volatile void _SPM * sample) {
   // Send the sample to the next buffer
   unsigned int reading = *((volatile unsigned int _SPM *)&sport->reading);
-  noc_send( sport->remote,
+  noc_write( sport->remote,
             (void _SPM *)( ((unsigned int)sport->read_bufs)+(reading*sport->sample_size) ),
             sample,
             sport->sample_size,
             0);
   sport->next = reading;
   #pragma loopbound min SAMPLE_TRANS_WAIT max SAMPLE_TRANS_WAIT
-  while(!noc_done(sport->remote));
+  while(!noc_dma_done(sport->remote));
 
   // Update newest
-  noc_send( sport->remote,
+  noc_write( sport->remote,
             (void _SPM *)&(sport->remote_spd->newest),
             (void _SPM *)&sport->next,
             sizeof(sport->next),
             0);
   #pragma loopbound min PKT_TRANS_WAIT max PKT_TRANS_WAIT
-  while(!noc_done(sport->remote));
+  while(!noc_dma_done(sport->remote));
 
   return 1;
 } 
@@ -414,7 +414,7 @@ int mp_write(spd_t * sport, volatile void _SPM * sample) {
   ((qpd_t *)sport)->write_buf = sample;
   mp_send((qpd_t *)sport,10000);
   #pragma loopbound min SAMPLE_TRANS_WAIT max SAMPLE_TRANS_WAIT
-  while(!noc_done(sport->remote));
+  while(!noc_dma_done(sport->remote));
   return 1;
 } 
 

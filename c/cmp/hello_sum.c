@@ -104,7 +104,7 @@ void master(void) {
 	puts("MASTER: sending\n");
 
 	// send message
-	noc_send(1, spm_slave, spm_base, 21, 0); //21 bytes
+	noc_write(1, spm_slave, spm_base, 21, 0); //21 bytes
 
 	puts("MASTER: message sent: ");
 	puts(msg_snd);
@@ -146,7 +146,7 @@ void slave(void* param) {
 
 	// send to next slave
 	int rcv_id = (get_cpuid()==(get_cpucnt()-1))? 0 : get_cpuid()+1;
-	noc_send(rcv_id, spm_slave, spm_slave, 21, 0);
+	noc_write(rcv_id, spm_slave, spm_slave, 21, 0);
 
 	return;
 }

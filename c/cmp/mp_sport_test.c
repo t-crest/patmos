@@ -235,9 +235,9 @@ void write_buffer(volatile unsigned short int * phase, struct conf_param_t * con
         *((conf_param->write_buf_ptr) + i) = (BUFFER_T)(BUFFER_SIZE-1 - i);
       }
     }
-    noc_send(0,conf_param->read_buf_ptr,conf_param->write_buf_ptr,BUFFER_SIZE*sizeof(BUFFER_T),0);
+    noc_write(0,conf_param->read_buf_ptr,conf_param->write_buf_ptr,BUFFER_SIZE*sizeof(BUFFER_T),0);
 
-    while(!noc_done(0));
+    while(!noc_dma_done(0));
 
   #endif
 }
@@ -279,37 +279,37 @@ void acquire_lock(LOCK_T * lock)  __attribute__((section(".text.spm"))) {
     unsigned id = get_cpuid();
     (*lock)->local_entering = 1;
     
-    noc_send(remote,
+    noc_write(remote,
               (void _SPM *)&((*lock)->remote_ptr->remote_entering),
               (void _SPM *)&(*lock)->local_entering,
               sizeof((*lock)->local_entering),
               0);
 
 
-    while(!noc_done(remote));
+    while(!noc_dma_done(remote));
     unsigned n = (unsigned)(*lock)->remote_number + 1;
     (*lock)->local_number = n;
     /* Enforce memory barrier */
-    noc_send(remote,
+    noc_write(remote,
               (void _SPM *)&((*lock)->remote_ptr->remote_number),
               (void _SPM *)&(*lock)->local_number,
               sizeof((*lock)->local_number),
               0);
 
   
-//    noc_send(remote,
+//    noc_write(remote,
 //              (void _SPM *)&((*lock)->remote_ptr->remote_entering),
 //              (void _SPM *)&(*lock)->local_entering,
 //              sizeof((*lock)->local_entering)+sizeof((*lock)->local_number),
 //                0);
 
 //    /* Enforce memory barrier */
-    while(!noc_done(remote)); // noc_send() also waits for the dma to be
+    while(!noc_dma_done(remote)); // noc_write() also waits for the dma to be
                                 // free, so no need to do it here as well
 
     /* Write Entering false */
     (*lock)->local_entering = 0;
-    noc_send(remote,
+    noc_write(remote,
               (void _SPM *)&((*lock)->remote_ptr->remote_entering),
               (void _SPM *)&(*lock)->local_entering,
               sizeof((*lock)->local_entering),
@@ -334,13 +334,13 @@ void release_lock(LOCK_T * lock)  __attribute__((section(".text.spm"))) {
   #elif LOCKING == SPM_LOCK
     /* Write Number */
     (*lock)->local_number = 0;
-    noc_send((*lock)->remote_cpuid,
+    noc_write((*lock)->remote_cpuid,
               (void _SPM *)&((*lock)->remote_ptr->remote_number),
               (void _SPM *)&(*lock)->local_number,
               sizeof((*lock)->local_number),
               0);
     /* Enforce memory barrier */
-    while(!noc_done((*lock)->remote_cpuid));
+    while(!noc_dma_done((*lock)->remote_cpuid));
     /* Lock is freed */  
     return;
   #endif

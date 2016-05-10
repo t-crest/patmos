@@ -162,7 +162,7 @@ int mp_nbsend(qpd_t * qpd_ptr) {
     TRACE(INFO,TRUE,"NO room in queue\n");
     return 0;
   }
-  if (!noc_nbsend(qpd_ptr->remote,calc_rmt_addr,qpd_ptr->write_buf,qpd_ptr->buf_size + FLAG_SIZE, 1)) {
+  if (!noc_nbwrite(qpd_ptr->remote,calc_rmt_addr,qpd_ptr->write_buf,qpd_ptr->buf_size + FLAG_SIZE, 1)) {
     TRACE(INFO,TRUE,"NO DMA free\n");
     return 0;
   }
@@ -244,11 +244,11 @@ int mp_recv(qpd_t * qpd_ptr, const unsigned int time_usecs) {
 
 int mp_nback(qpd_t * qpd_ptr){
   // Check previous acknowledgement transfer before updating counter in SPM
-  if (!noc_done(qpd_ptr->remote)) { return 0; }
+  if (!noc_dma_done(qpd_ptr->remote)) { return 0; }
   // Increment the receive counter
   (*qpd_ptr->recv_count)++;
   // Update the remote receive count
-  int success = noc_nbsend(qpd_ptr->remote,qpd_ptr->send_recv_count,qpd_ptr->recv_count,sizeof(qpd_ptr->send_recv_count),1);
+  int success = noc_nbwrite(qpd_ptr->remote,qpd_ptr->send_recv_count,qpd_ptr->recv_count,sizeof(qpd_ptr->send_recv_count),1);
   if (!success) {
     (*qpd_ptr->recv_count)--;
   }
@@ -263,12 +263,12 @@ int mp_ack_n(qpd_t * qpd_ptr, const unsigned int time_usecs, unsigned int num_ac
   unsigned long long int timeout = get_cpu_usecs() + time_usecs;
   int retval = 0;
   // Await previous acknowledgement transfer before updating counter in SPM
-  // REM: The worst case waiting time of the noc_done() must
+  // REM: The worst case waiting time of the noc_dma_done() must
   // be added after the WCET analysis
   _Pragma("loopbound min 1 max 1")
   // while DMA is not free and ( timeout infinite or now is before timeout)
   while(retval == 0 && ( time_usecs == 0 || get_cpu_usecs() < timeout ) ) {
-    retval = noc_done(qpd_ptr->remote);
+    retval = noc_dma_done(qpd_ptr->remote);
   }
   if (retval == 0) {
     // Return if timed out
@@ -280,12 +280,12 @@ int mp_ack_n(qpd_t * qpd_ptr, const unsigned int time_usecs, unsigned int num_ac
   // Increment the receive counter
   (*qpd_ptr->recv_count)+= num_acks;
   // Update the remote receive count
-  // REM: The worst case waiting time of the noc_nbsend() must
+  // REM: The worst case waiting time of the noc_nbwrite() must
   // be added after the WCET analysis
   // while message not sent and ( timeout infinite or now is before timeout)
   _Pragma("loopbound min 1 max 1")
   while(retval == 0 && ( time_usecs == 0 || get_cpu_usecs() < timeout ) ) {
-    retval = noc_nbsend(qpd_ptr->remote,qpd_ptr->send_recv_count,
+    retval = noc_nbwrite(qpd_ptr->remote,qpd_ptr->send_recv_count,
                         qpd_ptr->recv_count,sizeof(qpd_ptr->send_recv_count),1);
   }
   if (retval == 0) {

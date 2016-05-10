@@ -59,7 +59,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-//#define DEBUG
+#define DEBUG
 
 #ifdef DEBUG
 
@@ -131,9 +131,9 @@ extern const int noc_init_array [];
 extern const int NOC_MASTER;
 
 /// \brief Loads the configuration data from the #noc_init_array.
-void noc_load_config(void);
+//void noc_sched_load(void);
 
-void noc_set_config(int config);
+void noc_set_config(unsigned char config);
 
 /// \brief 
 void noc_enable(void);
@@ -143,7 +143,7 @@ void noc_disable(void);
 
 /// \brief Configure network interface according to initialization
 /// information in #noc_init_array.
-void noc_configure(void);
+int noc_configure(void);
 
 /// \brief Configure network-on-chip and synchronize all cores.
 ///
@@ -199,10 +199,8 @@ void __noc_trap_handler(void);
 /// will be triggered at the receiver.
 /// \retval 1 Sending was successful.
 /// \retval 0 Otherwise.
-int k_noc_dma(unsigned dma_id, unsigned short write_ptr,
-            unsigned short read_ptr, unsigned short size, unsigned irq_enable);
-int noc_dma(unsigned dma_id, unsigned short write_ptr,
-            unsigned short read_ptr, unsigned short size, unsigned irq_enable);
+//int noc_dma_write(unsigned dma_id, unsigned short write_ptr,
+//            unsigned short read_ptr, unsigned short size, unsigned irq_enable);
 
 /// \brief Start a NoC configure transfer.
 ///
@@ -216,8 +214,8 @@ int noc_dma(unsigned dma_id, unsigned short write_ptr,
 /// \param size The size of data to be transferred, in words.
 /// \retval 1 Sending was successful.
 /// \retval 0 Otherwise.
-int noc_conf(unsigned dma_id, unsigned short write_ptr,
-            unsigned short read_ptr, unsigned short size);
+int noc_conf(unsigned dma_id, volatile void _SPM *dst,
+               volatile void _SPM *src, size_t size);
 
 /// \brief Start a NoC interrupt.
 ///
@@ -230,21 +228,19 @@ int noc_conf(unsigned dma_id, unsigned short write_ptr,
 /// words, relative to #NOC_SPM_BASE.
 /// \retval 1 Sending was successful.
 /// \retval 0 Otherwise.
-int noc_irq(unsigned dma_id, unsigned short write_ptr,
-            unsigned short read_ptr);
+int noc_irq(unsigned dma_id, volatile void _SPM *dst,
+               volatile void _SPM *src);
 
 /// \brief Check if a NoC transfer has finished.
 ///
 /// \param dma_id The core id of the receiver.
 /// \retval 1 The transfer has finished.
 /// \retval 0 Otherwise.
-int k_noc_done(unsigned dma_id);
-int noc_done(unsigned dma_id);
+int noc_dma_done(unsigned dma_id);
 
 /// \brief Stops a NoC transfer and clear the DMA entry.
 ///
 /// \param dma_id The core id of the receiver.
-void k_noc_dma_clear(unsigned dma_id);
 void noc_dma_clear(unsigned dma_id);
 
 /// \brief Attempt to transfer data via the NoC (non-blocking).
@@ -259,7 +255,7 @@ void noc_dma_clear(unsigned dma_id);
 /// will be triggered at the receiver.
 /// \retval 1 Sending was successful.
 /// \retval 0 Otherwise.
-int noc_nbsend(unsigned dma_id, volatile void _SPM *dst,
+int noc_nbwrite(unsigned dma_id, volatile void _SPM *dst,
                volatile void _SPM *src, size_t size, unsigned irq_enable);
 
 /// \brief Transfer data via the NoC (blocking).
@@ -272,7 +268,7 @@ int noc_nbsend(unsigned dma_id, volatile void _SPM *dst,
 /// \param irq_enable If irq_enable is 1 an interrupt will be triggered at the
 /// receiver when the whole transfer is complete, of it is zero no interrupt
 /// will be triggered at the receiver.
-void noc_send(unsigned dma_id, volatile void _SPM *dst,
+void noc_write(unsigned dma_id, volatile void _SPM *dst,
               volatile void _SPM *src, size_t size, unsigned irq_enable);
 
 /// \brief Multi-cast transfer of data via the NoC (blocking).

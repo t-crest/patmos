@@ -75,12 +75,12 @@ int mp_communicator_init(communicator_t* comm, const unsigned int count,
 //      *((volatile unsigned long long _SPM *)((unsigned)comm->addr[i] + (count*BARRIER_SIZE) + msg_size)) = FLAG_INVALID;
 //    } else {      
 //      for (int j = 0; j < count; ++j) {
-//        noc_send(member_ids[i],
+//        noc_write(member_ids[i],
 //                (volatile int _SPM *)((unsigned)comm->addr[i] + (j*BARRIER_SIZE)),
 //                NOC_SPM_BASE,
 //                BARRIER_SIZE);
 //      }
-//      noc_send(member_ids[i],
+//      noc_write(member_ids[i],
 //              (volatile int _SPM *)((unsigned)comm->addr[i] + (count*BARRIER_SIZE) + msg_size),
 //              NOC_SPM_BASE,
 //              BARRIER_SIZE);

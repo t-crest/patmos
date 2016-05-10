@@ -81,7 +81,7 @@ static int do_iter(int cx, int cy, unsigned int max_square, int max_iter);
 static int fracmul(int x, int y) __attribute__((noinline));
 
 #ifdef __patmos__
-#define DMA noc_send
+#define DMA noc_write
 #else /* __patmos__ */
 static void shm_dma(int dst_id, volatile void _SPM *dst,
                     volatile void _SPM *src,

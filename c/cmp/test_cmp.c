@@ -193,7 +193,7 @@ void noc_receive() {
   int id = get_cpuid();
   done[id] = 0;
   exc_register(18,&__data_resp_handler);
-  exc_register(19,&__data_resp_handler);
+  //exc_register(19,&__data_resp_handler);
   intr_unmask_all();
   intr_enable();
   //puts("Interrupt handler setup");
@@ -211,7 +211,7 @@ void noc_test_master() {
       for (int j = 0; j < 8; ++j) {
         *(NOC_SPM_BASE+j) = 0x11223344 * i;
       }
-      noc_send((unsigned)i,(volatile void _SPM *)NOC_SPM_BASE,(volatile void _SPM *)NOC_SPM_BASE,32,1); 
+      noc_write((unsigned)i,(volatile void _SPM *)NOC_SPM_BASE,(volatile void _SPM *)NOC_SPM_BASE,32,1); 
       while(done[i] != 1){;}
       noc_receive();
       for (int j = 0; j < 8; ++j){
@@ -228,7 +228,7 @@ void noc_test_slave() {
   // for (int i = 0; i < 8; ++i) {
   //   *(NOC_SPM_BASE+i) = 0x11223344 * i;
   // }
-  noc_send((unsigned)NOC_MASTER,(volatile void _SPM *)(NOC_SPM_BASE+(get_cpuid()*8)),(volatile void _SPM *)NOC_SPM_BASE,32,1);
+  noc_write((unsigned)NOC_MASTER,(volatile void _SPM *)(NOC_SPM_BASE+(get_cpuid()*8)),(volatile void _SPM *)NOC_SPM_BASE,32,1);
 
   while(done[NOC_MASTER] != 1){;}
 
