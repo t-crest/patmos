@@ -178,7 +178,7 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
 
   audioAdcLrcReg := mAudioAdc.io.adcLrcO
   io.audioInterfacePins.adcLrc := mAudioAdc.io.adcLrcO
-  mAudioAdc.io.adcDat_i := io.audioInterfacePins.adcDat
+  mAudioAdc.io.adcDatI := io.audioInterfacePins.adcDat
 
   //IC2 Control Interface
   val mAudioCtrl = Module(new AudioI2C())

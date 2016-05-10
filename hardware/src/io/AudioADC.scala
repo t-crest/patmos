@@ -7,7 +7,7 @@ package io
 
 import Chisel._
 
-class AgudioADC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
+class AudioADC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
 {
   //constants: from CONFIG parameters
   //val AUDIOBITLENGTH = 16;
