@@ -42,7 +42,7 @@
 
 //#define TRAP
   
-// Find the size in 32-bit words
+// Find the size in bytes
 int find_mem_size(volatile unsigned int _SPM * mem_addr){
   int init = *(mem_addr);
   int tmp;

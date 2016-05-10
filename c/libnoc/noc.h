@@ -133,7 +133,7 @@ extern const int NOC_MASTER;
 /// \brief Loads the configuration data from the #noc_init_array.
 //void noc_sched_load(void);
 
-void noc_set_config(unsigned char config);
+void noc_sched_set(unsigned char config);
 
 /// \brief 
 void noc_enable(void);
