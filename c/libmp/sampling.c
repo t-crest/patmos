@@ -40,20 +40,12 @@
 #include "mp.h"
 #include "mp_internal.h"
 #include "mp_loopbound.h"
-//#define TRACE_LEVEL WARNING
-//#define DEBUG_ENABLE
-#include "include/debug.h"
 
-#define SINGLE_NOC              0
-#define SINGLE_SHM              1
-#define MULTI_NOC               2
-#define MULTI_NOC_NONBLOCKING   3
-#define MULTI_NOC_MP            4
-
-spd_t * mp_create_sport(const unsigned int chan_id, const direction_t direction_type,
-              const coreid_t remote, const size_t sample_size) {
-  if (chan_id >= MAX_CHANNELS || remote >= get_cpucnt()) {
-    TRACE(FAILURE,TRUE,"Channel id or remote id is out of range: chan_id %d, remote: %d\n",chan_id,remote);
+spd_t * mp_create_sport(const unsigned int chan_id,
+                        const direction_t direction_type,
+                        const size_t sample_size) {
+  if (chan_id >= MAX_CHANNELS) {
+    TRACE(FAILURE,TRUE,"Channel id out of range: chan_id %d\n",chan_id);
     return NULL;
   }
 
@@ -66,11 +58,12 @@ spd_t * mp_create_sport(const unsigned int chan_id, const direction_t direction_
     }
 
     spd_ptr->direction_type = direction_type;
-    spd_ptr->remote = remote;
     // Align the buffer size to words and add the flag size
     spd_ptr->sample_size = WALIGN(sample_size);
 
-    spd_ptr->lock = initialize_lock(remote);
+    // the lock is initialized to core zero,
+    // this is fixed in the mp_init_ports() function.
+    spd_ptr->lock = initialize_lock(0);
     TRACE(INFO,TRUE,"Initializing lock : %#08x\n",(unsigned int)spd_ptr->lock);
 
     if (spd_ptr->lock == NULL) {
@@ -117,7 +110,7 @@ spd_t * mp_create_sport(const unsigned int chan_id, const direction_t direction_
       #else
         spd_ptr->read_bufs = mp_alloc(WALIGN(sample_size));
       #endif
-      TRACE(INFO,TRUE,"Initialising SINK port buf_addr: %#08x\n",(unsigned int)spd_ptr->read_bufs);
+      TRACE(INFO,TRUE,"Initializing SINK port buf_addr: %#08x\n",(unsigned int)spd_ptr->read_bufs);
       // sink_desc_ptr must be set first inorder for
       // core 0 to see which cores are absent in debug mode
       TRACE(INFO,TRUE,"SINK spd ptr: %#08x\n",(unsigned int)spd_ptr);
@@ -143,7 +136,7 @@ spd_t * mp_create_sport(const unsigned int chan_id, const direction_t direction_
 
   #elif IMPL == MULTI_NOC_MP
     size_t num_buf = 3;
-    qpd_t * spd_ptr = mp_create_qport(chan_id,direction_type,remote,sample_size,num_buf);
+    qpd_t * spd_ptr = mp_create_qport(chan_id,direction_type,sample_size,num_buf);
     if (spd_ptr == NULL) {
       TRACE(FAILURE,TRUE,"Sampling port descriptor could not be allocated, SPM out of memory.\n");
       return NULL;

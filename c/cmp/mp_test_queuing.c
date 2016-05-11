@@ -43,9 +43,9 @@ void func_worker_1(void* arg) {
   int worker_1_param = *((int*)arg);
   // Create the queuing ports
   qpd_t * chan1 = mp_create_qport(MP_CHAN_1_ID, SINK,
-              NOC_MASTER, MP_CHAN_1_MSG_SIZE, MP_CHAN_1_NUM_BUF);
+              MP_CHAN_1_MSG_SIZE, MP_CHAN_1_NUM_BUF);
   qpd_t * chan2 = mp_create_qport(MP_CHAN_2_ID, SOURCE,
-              NOC_MASTER, MP_CHAN_2_MSG_SIZE, MP_CHAN_2_NUM_BUF);
+              MP_CHAN_2_MSG_SIZE, MP_CHAN_2_NUM_BUF);
   // TODO: check that the returned pointers are not NULL
     if (chan1 == NULL || chan2 == NULL) {
     DEBUGF(chan1);
@@ -93,9 +93,9 @@ int main() {
 
   // Create the queuing ports
   qpd_t * chan1 = mp_create_qport(MP_CHAN_1_ID, SOURCE,
-              worker_1, MP_CHAN_1_MSG_SIZE, MP_CHAN_1_NUM_BUF);
+              MP_CHAN_1_MSG_SIZE, MP_CHAN_1_NUM_BUF);
   qpd_t * chan2 = mp_create_qport(MP_CHAN_2_ID, SINK,
-              worker_1, MP_CHAN_2_MSG_SIZE, MP_CHAN_2_NUM_BUF);
+              MP_CHAN_2_MSG_SIZE, MP_CHAN_2_NUM_BUF);
   // TODO: check that the returned pointers are not NULL
   if (chan1 == NULL || chan2 == NULL) {
     DEBUGF(chan1);

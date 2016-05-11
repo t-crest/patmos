@@ -49,6 +49,16 @@
 /// \brief Aligns X to word size
 #define WALIGN(X) (((X)+0x3) & ~0x3)
 
+#define SINGLE_NOC              0
+#define SINGLE_SHM              1
+#define MULTI_NOC               2
+#define MULTI_NOC_NONBLOCKING   3
+#define MULTI_NOC_MP            4
+
+#ifndef IMPL
+#define IMPL MULTI_NOC
+#endif
+
 /*! \def FLAG_SIZE
  * \brief The size of the flag used to detect completion of a received message.
  *

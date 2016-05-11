@@ -40,9 +40,6 @@
 #include "mp.h"
 #include "mp_internal.h"
 #include "mp_loopbound.h"
-#define TRACE_LEVEL INFO
-#define DEBUG_ENABLE
-#include "include/debug.h"
 
 LOCK_T * initialize_lock(unsigned remote) {
     LOCK_T * lock = (LOCK_T *)mp_alloc(sizeof(LOCK_T));

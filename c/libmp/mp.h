@@ -55,16 +55,12 @@
 #include <machine/rtc.h>
 #include "libnoc/noc.h"
 #include "libnoc/coreset.h"
+//#define TRACE_LEVEL WARNING
+//#define DEBUG_ENABLE
+#include "include/debug.h"
 
 /// \brief Aligns X to word size
-#define WALIGN(X) (((X)+0x3) & ~0x3)
-
-// Select different implementations
-#define SHM       0   // Shared memory implementation 
-#define SPM       1   // Scratchpad memory implementation
-#define SPM_BUF   2   // Scratchpad memory implementation with multiple buffers
-
-#define SPORT_IMPL SHM
+//#define WALIGN(X) (((X)+0x3) & ~0x3)
 
 #define MAX_CHANNELS  32
 
@@ -243,7 +239,7 @@ void _SPM * mp_alloc(const size_t size) __attribute__ ((noinline));
 /// descriptor #qpd_t. If the function fails, the pointer is NULL.
 /// Remember to check if the returned pointer is different from NULL.
 qpd_t * mp_create_qport( const unsigned int chan_id, const direction_t direction_type,
-              const coreid_t remote, const size_t msg_size, const size_t num_buf);
+                         const size_t msg_size, const size_t num_buf);
 
 /// \brief Initialize the state of a communication channel
 ///
@@ -256,7 +252,7 @@ qpd_t * mp_create_qport( const unsigned int chan_id, const direction_t direction
 /// descriptor #spd_t. If the function fails, the pointer is NULL.
 /// Remember to check if the returned pointer is different from NULL.
 spd_t * mp_create_sport(const unsigned int chan_id, const direction_t direction_type,
-              const coreid_t remote, const size_t sample_size);
+                        const size_t sample_size);
 
 /// \breif Initializing all the channels that have been registered.
 ///

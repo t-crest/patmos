@@ -47,10 +47,6 @@
 #ifndef _MP_LOOPBOUND_H
 #define _MP_LOOPBOUND_H
 
-#ifndef IMPL
-#define IMPL MULTI_NOC
-#endif
-
 #ifndef MSG_SIZE_WORDS
 #define MSG_SIZE_WORDS 64
 #endif

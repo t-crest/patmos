@@ -145,7 +145,10 @@ int mp_init_ports() {
                                     (unsigned int)chan_info[chan_id].src_addr);
       if (chan_info[chan_id].port_type == QUEUING) {
         chan_info[chan_id].src_qpd_ptr->recv_addr = chan_info[chan_id].sink_addr;
+        chan_info[chan_id].src_qpd_ptr->remote = chan_info[chan_id].sink_id;
       } else if (chan_info[chan_id].port_type == SAMPLING) {
+        chan_info[chan_id].src_spd_ptr->remote = chan_info[chan_id].sink_id;
+        chan_info[chan_id].src_spd_ptr->lock->remote_cpuid = chan_info[chan_id].sink_id;
         chan_info[chan_id].src_spd_ptr->lock->remote_ptr = (LOCK_T *)chan_info[chan_id].sink_lock;
         chan_info[chan_id].src_spd_ptr->read_bufs = chan_info[chan_id].sink_addr;
         chan_info[chan_id].src_spd_ptr->remote_spd = chan_info[chan_id].sink_spd_ptr;
@@ -162,7 +165,10 @@ int mp_init_ports() {
                                     (unsigned int)chan_info[chan_id].sink_addr);
       if (chan_info[chan_id].port_type == QUEUING) {
         chan_info[chan_id].sink_qpd_ptr->send_recv_count = chan_info[chan_id].src_addr;
+        chan_info[chan_id].sink_qpd_ptr->remote = chan_info[chan_id].src_id;
       } else if (chan_info[chan_id].port_type == SAMPLING) {
+        chan_info[chan_id].sink_spd_ptr->remote = chan_info[chan_id].src_id;
+        chan_info[chan_id].sink_spd_ptr->lock->remote_cpuid = chan_info[chan_id].src_id;
         chan_info[chan_id].sink_spd_ptr->lock->remote_ptr = (LOCK_T *)chan_info[chan_id].src_lock;
         chan_info[chan_id].sink_spd_ptr->read_shm_buf = (volatile void * _SPM)chan_info[chan_id].src_addr;
         chan_info[chan_id].sink_spd_ptr->remote_spd = chan_info[chan_id].src_spd_ptr;

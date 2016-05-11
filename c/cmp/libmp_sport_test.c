@@ -38,8 +38,8 @@ volatile unsigned int _UNCACHED done = 0;
 void func_worker_1(void* arg) {
   mp_init();
   
-  spd_t * sport2 = mp_create_sport(CHAN_ID_TWO,SINK,MASTER_CORE,SAMPLE_SIZE*sizeof(short));
-  spd_t * sport1 = mp_create_sport(CHAN_ID_ONE,SOURCE,MASTER_CORE,SAMPLE_SIZE*sizeof(short));
+  spd_t * sport2 = mp_create_sport(CHAN_ID_TWO,SINK,SAMPLE_SIZE*sizeof(short));
+  spd_t * sport1 = mp_create_sport(CHAN_ID_ONE,SOURCE,SAMPLE_SIZE*sizeof(short));
   if (sport1 == NULL || sport2 == NULL) {
     //exit(1);
   }
@@ -108,8 +108,8 @@ int main() {
   unsigned long long int start = 0;
   unsigned long long int stop = 0;
 
-  spd_t * sport1 = mp_create_sport(CHAN_ID_ONE,SINK,SLAVE_CORE,SAMPLE_SIZE*sizeof(short));
-  spd_t * sport2 = mp_create_sport(CHAN_ID_TWO,SOURCE,SLAVE_CORE,SAMPLE_SIZE*sizeof(short));
+  spd_t * sport1 = mp_create_sport(CHAN_ID_ONE,SINK,SAMPLE_SIZE*sizeof(short));
+  spd_t * sport2 = mp_create_sport(CHAN_ID_TWO,SOURCE,SAMPLE_SIZE*sizeof(short));
   if (sport1 == NULL || sport2 == NULL) {
     //exit(1);
   }

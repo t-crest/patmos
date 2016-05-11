@@ -39,17 +39,16 @@
 
  #include "mp.h"
  #include "mp_internal.h"
- //#define TRACE_LEVEL WARNING
- //#define DEBUG_ENABLE
- #include "include/debug.h"
 
 ////////////////////////////////////////////////////////////////////////////
 // Function for creating a queuing port 
 ////////////////////////////////////////////////////////////////////////////
-qpd_t * mp_create_qport(const unsigned int chan_id, const direction_t direction_type,
-              const coreid_t remote, const size_t msg_size, const size_t num_buf) {
-  if (chan_id >= MAX_CHANNELS || remote >= get_cpucnt()) {
-    TRACE(FAILURE,TRUE,"Channel id or remote id is out of range: chan_id %d, remote: %d\n",chan_id,remote);
+qpd_t * mp_create_qport(const unsigned int chan_id,
+                        const direction_t direction_type,
+                        const size_t msg_size,
+                        const size_t num_buf) {
+  if (chan_id >= MAX_CHANNELS) {
+    TRACE(FAILURE,TRUE,"Channel id is out of range: chan_id %d\n",chan_id);
     return NULL;
   }
 
@@ -61,7 +60,6 @@ qpd_t * mp_create_qport(const unsigned int chan_id, const direction_t direction_
   }
 
   qpd_ptr->direction_type = direction_type;
-  qpd_ptr->remote = remote;
   // Align the buffer size to words and add the flag size
   qpd_ptr->buf_size = WALIGN(msg_size);
   qpd_ptr->num_buf = num_buf;
