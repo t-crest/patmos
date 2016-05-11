@@ -152,7 +152,7 @@ void m_print_test_parameters(){
 }
 
 void m_print_bandwidth_results(){
-	printf("\nBandwith results:\n\n");
+	printf("\n\nBandwith results:\n\n");
 	printf("\tto:\nfrom:\t");
 	for (int i = 0; i < NOC_CORES; i++) {
 		printf("%d\t", i);
@@ -172,7 +172,7 @@ void m_print_bandwidth_results(){
 			printf("\n");
 	}
 	
-		printf("\nNotes: The table shows the clock cycles needed to transmit %d bytes\nbetween every couple of cores. 'N/A' means that the channel does not\nexists or the trasmission timed-out.\n\n", block_size);
+		printf("\nNotes: The table shows the clock cycles needed to send %d bytes\nbetween every couple of cores. 'N/A' means that the channel does not\nexist or the trasmission timed-out.\n\n", block_size);
 	
 	return;
 }
@@ -229,7 +229,7 @@ void m_print_interrupt_results(){
 	for (int i = 0; i < NOC_CORES; i++) {
 		printf("%d\t", i);
 		for (int j = 0; j < NOC_CORES; j++) {
-			if(i!=j){
+			if(interrupt_status[i][j]>1){
 				printf("%04X\t", interrupt_results[i][j]);
 			}else{	
 				printf("-\t");
@@ -238,7 +238,7 @@ void m_print_interrupt_results(){
 			printf("\n");
 	}
 	
-		printf("\nNotes: The table shows, in hexadecimal the last value read from\nthe data irq fifo. This should be the word-based\naddress of the last received word.\n");
+		printf("\nNotes: The table shows, in hexadecimal, the last value read from\nthe data irq fifo. This should be the word-based address of\nthe last received word.\n");
 	
 	return;
 }
@@ -266,7 +266,7 @@ void m_print_interrupt_status(){
 			printf("\n");
 	}
 	
-	printf("\nNotes: The table shows the data interrupt status. 'DEA.' means that the\ninterrupt was deasserted. 'NO DEA.' means the opposite.\n'NO IRQ' menas that the interrupt was never asseted.\n\n");
+	printf("\nNotes: The table shows the data irq status. 'DEA.' means that the\ninterrupt was deasserted after reading the fifo. 'NO DEA.' means the\nopposite. 'NO IRQ' menas that the interrupt was never asseted.\n\n");
 	
 	return;
 }
@@ -289,7 +289,7 @@ void m_print_interrupt_occ(){
 		}
 		printf("\n");
 	}
-	printf("\nNotes: The table shows how many elements where in the data fifo before\nthe interrupt de-asserted (1 is the expected value.\n\n");
+	printf("\nNotes: The table shows how many elements were in the data fifo before\nthe interrupt de-asserted (1 is the expected value).\n\n");
 	return;
 }
 
