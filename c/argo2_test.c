@@ -200,7 +200,7 @@ void m_print_correctness_results(){
 		printf("\n");
 	}
 	
-		printf("\nNotes: The table shows if the tramission of a random generated data\nblock of %d bytes is correctly performed.\n\n", block_size);
+		printf("\nNotes: The table shows if the transmission of a random generated data\nblock of %d bytes is correctly performed.\n\n", block_size);
 	
 	return;
 }
@@ -289,7 +289,7 @@ void m_print_interrupt_occ(){
 		}
 		printf("\n");
 	}
-	printf("\nNotes: The table shows how many elements where in the data fifo before\nthe interrupt deasserted (1 is the expected value.\n\n");
+	printf("\nNotes: The table shows how many elements where in the data fifo before\nthe interrupt de-asserted (1 is the expected value.\n\n");
 	return;
 }
 
