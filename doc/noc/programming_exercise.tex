@@ -147,7 +147,7 @@
 \begin{document}
 
 \title{The Argo software perspective}
-\subtitle{A programming exercise}
+\subtitle{A multicore programming exercise}
 
 \author{Rasmus Bo S{\o}rensen}
 
@@ -168,7 +168,7 @@
 \chapter{Preface}
 
 This exercise manual is written for the course `02211 Advanced Computer Architecture' at the Technical University of Denmark,
-but is intended as a stand alone document for anybody interested in learning to program the Argo Network-on-Chip.
+but is intended as a stand alone document for anybody interested in learning about multicore programming with the Argo Network-on-Chip.
 
 This document is subject to continuous development along the the platform it describes.
 In case you have suggestions for improvement or find that the text is unclear and needs to be elaborated, please write to \href{mailto:rboso@dtu.dk}{rboso@dtu.dk}
@@ -193,12 +193,21 @@ The latest version of this document is contained as LaTeX source in the Patmos r
 
 \chapter{Introduction}
 
-This document presents the background required to efficiently program the Argo NoC.
+This document presents the background required to write a multicore program utilizing the Argo NoC for intercore communication.
 The exercises should give the reader a good understanding of how the Argo NoC can be utilized in a multicore application.
 The reader will get experience in how to write a multicore application that uses message passing.
 In the exercises we assume that the reader is familiar with the C programming language and multi-threaded programming in general.
 Furthermore, we assume that the reader has already run a single core application on a Patmos processor in an FPGA, refer to the Patmos handbook~\cite{patmos-handbook} for details on the patmos processor.
 
+An example of the multicore platform is shown in Fig.~\ref{fig:mc-patmos}. Core $P_0$ is referred to as the master core and the rest of the cores are referred to as slave cores. The reason that $P_0$ is the master core is that when an application is downloaded to the platform, the application starts executing \code{main()} on the master core, also the serial console  is connected to the master core. All cores are connected to the shared external memory, but the bandwidth towards the external memory is quiet low.
+Therefore, the programmer should utilize the NoC as much as possible for core-to-core communication.
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.9\textwidth]{fig/MultiCore.pdf}
+\caption{The Patmos multicore platform with the Argo NoC for intercore communication.
+The core with id 0 is referred to as the master core and the rest of the cores are referred to as the slave cores.}
+\label{fig:mc-patmos}
+\end{figure}
 
 Chapter~\ref{chap:arch} presents the architecture of the Argo Network-on-Chip.
 Chapter~\ref{chap:api} describes the programming interface of the multicore platform, including the thread library and the high level message passing.
@@ -325,7 +334,7 @@ In the current version of the software the alloc function will not
 give an out of memory error, so the programmer should be aware
 that he/she does not allocate more local memory than is present.
 
-\item[\code{qpd\_t * mp\_create\_qport( const unsigned int chan\_id, const direction\_t direction\_type, const coreid\_t remote, const size\_t msg\_size, const size\_t num\_buf)}]
+\item[\code{qpd\_t * mp\_create\_qport( unsigned int chan\_id, direction\_t direction\_type, size\_t msg\_size, size\_t num\_buf)}]
 
 The create\_qport function allocates the static buffer structures of a communication channel
 and initializes the queuing port descriptor \code{qpd\_ptr}.
@@ -369,7 +378,7 @@ of acknowledged messages is decremented.
 
 The ack function calls the nb\_ack function in a loop, until it returns success.
 
-\item[\code{spd\_t * mp\_create\_sport(const unsigned int chan\_id, const direction\_t direction\_type, const coreid\_t remote, const size\_t sample\_size)}]
+\item[\code{spd\_t * mp\_create\_sport(unsigned int chan\_id, direction\_t direction\_type, size\_t sample\_size)}]
 
 The create\_sport function allocates the static buffer structures of a communication channel
 and initializes the sampling port descriptor \code{spd\_ptr}.
