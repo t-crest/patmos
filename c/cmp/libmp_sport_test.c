@@ -49,7 +49,7 @@ void func_worker_1(void* arg) {
     sample[i] = i;
   }
 
-  mp_init_chans();
+  mp_init_ports();
 
 
   while(done == 0);
@@ -115,7 +115,7 @@ int main() {
   }
   volatile short _SPM * sample = mp_alloc(SAMPLE_SIZE*sizeof(short));
 
-  mp_init_chans();
+  mp_init_ports();
 
   done = 1;
 

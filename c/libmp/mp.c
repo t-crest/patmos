@@ -128,7 +128,7 @@ void _SPM * mp_alloc(const size_t size) {
 // Functions for initializing the message passing API
 ////////////////////////////////////////////////////////////////////////////
 
-int mp_init_chans() {
+int mp_init_ports() {
   int retval = 1;
   int cpuid = get_cpuid();
   // For all channels check if port type is sampling or queuing and

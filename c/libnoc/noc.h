@@ -59,7 +59,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define DEBUG
+//#define DEBUG
 
 #ifdef DEBUG
 
@@ -135,15 +135,28 @@ extern const int NOC_MASTER;
 
 void noc_set_config(unsigned char config);
 
-/// \brief 
+/// \brief Enables the TDM schedule in the NoC.
+///
+/// When the function returns all NIs in the platform
+/// execute the configured schedule. 
 void noc_enable(void);
 
-/// \brief 
+/// \brief Disables the TDM schedule in the NoC.
+///
+/// When the function returns, all NIs in the platform
+/// are quiet and do not transmit any packets through
+/// the NoC.
 void noc_disable(void);
 
 /// \brief Configure network interface according to initialization
 /// information in #noc_init_array.
 int noc_configure(void);
+
+/// \brief Reads out an element of the fifo with remote irq's
+int noc_fifo_irq_read(void);
+
+/// \brief Reads out an element of the fifo with data irq's
+int noc_fifo_data_read(void);
 
 /// \brief Configure network-on-chip and synchronize all cores.
 ///
@@ -183,24 +196,6 @@ void __noc_trap_handler(void);
 ///////////////////////////////////////////////////////////////////////////////
 // Functions for transmitting data
 ///////////////////////////////////////////////////////////////////////////////
-
-/// \brief Start a NoC data dma transfer.
-///
-/// The addresses and the size are in words and relative to the
-/// communication SPM base #NOC_SPM_BASE.
-/// \param dma_id The core id of the receiver.
-/// \param write_ptr The address in the receiver's communication SPM,
-/// in words, relative to #NOC_SPM_BASE.
-/// \param read_ptr The address in the sender's communication SPM, in
-/// words, relative to #NOC_SPM_BASE.
-/// \param size The size of data to be transferred, in words.
-/// \param irq_enable If irq_enable is 1 an interrupt will be triggered at the
-/// receiver when the whole transfer is complete, of it is zero no interrupt
-/// will be triggered at the receiver.
-/// \retval 1 Sending was successful.
-/// \retval 0 Otherwise.
-//int noc_dma_write(unsigned dma_id, unsigned short write_ptr,
-//            unsigned short read_ptr, unsigned short size, unsigned irq_enable);
 
 /// \brief Start a NoC configure transfer.
 ///

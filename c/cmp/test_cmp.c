@@ -179,7 +179,7 @@ volatile _UNCACHED unsigned int done[9];
 void __data_resp_handler(void) __attribute__((naked));
 void __data_resp_handler(void) {
   exc_prologue();
-  int tmp = *(NOC_IRQ_BASE+1);
+  int tmp = noc_fifo_data_read();
   done[get_cpuid()] = 1;
   // if (get_cpuid() == NOC_MASTER) {
   //   puts("Hello from interrupt handler");

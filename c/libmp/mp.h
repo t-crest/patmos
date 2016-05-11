@@ -262,7 +262,7 @@ spd_t * mp_create_sport(const unsigned int chan_id, const direction_t direction_
 ///
 /// \retval 0 The initialization of one or more communication channels failed.
 /// \retval 1 The initialization of all the communication channels succeeded.
-int mp_init_chans();
+int mp_init_ports();
 
 /// \brief Initialize the communicator
 ///

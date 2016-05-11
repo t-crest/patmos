@@ -53,7 +53,7 @@ void func_worker_1(void* arg) {
     abort();
   }
   // Initialize the communication channels
-  int retval = mp_init_chans();
+  int retval = mp_init_ports();
   // TODO: check on retval
 
   // For each of the messages that is received
@@ -104,7 +104,7 @@ int main() {
   }
 
   // Initialize the communication channels
-  int retval = mp_init_chans();
+  int retval = mp_init_ports();
   // TODO: check on retval
 
   puts("Initialized buffers");

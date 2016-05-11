@@ -112,6 +112,10 @@ void k_noc_state_set(unsigned char state) {
   }
 }
 
+int k_noc_fifo_read(unsigned char irq_type){
+  return *(NOC_IRQ_BASE+irq_type);
+}
+
 // Configure network interface according to initialization information
 int k_noc_configure(void) {
   int ret;
@@ -200,6 +204,14 @@ void noc_state_set(unsigned char state) {
 // Configure network interface according to initialization information
 int noc_configure(void) {
   return k_noc_configure();
+}
+
+int noc_fifo_irq_read(){
+  return k_noc_fifo_read(0);
+}
+
+int noc_fifo_data_read(){
+  return k_noc_fifo_read(1);
 }
 
 #else
@@ -403,9 +415,9 @@ void noc_init(void) {
 // communication SPM
 int noc_conf(unsigned dma_id, volatile void _SPM *dst,
                volatile void _SPM *src, size_t size) { 
-    unsigned wp = (char *)dst - (char *)NOC_SPM_BASE;
-    unsigned rp = (char *)src - (char *)NOC_SPM_BASE;   
-    return noc_dma_write(dma_id, W(wp), W(rp), W(size), CONFIG_PKT_TYPE);
+  unsigned wp = (char *)dst - (char *)NOC_SPM_BASE;
+  unsigned rp = (char *)src - (char *)NOC_SPM_BASE;   
+  return noc_dma_write(dma_id, W(wp), W(rp), W(size), CONFIG_PKT_TYPE);
 }
 
 
@@ -414,9 +426,9 @@ int noc_conf(unsigned dma_id, volatile void _SPM *dst,
 // communication SPM
 int noc_irq(unsigned dma_id, volatile void _SPM *dst,
                volatile void _SPM *src) {
-    unsigned wp = (char *)dst - (char *)NOC_SPM_BASE;
-    unsigned rp = (char *)src - (char *)NOC_SPM_BASE;
-    return noc_dma_write(dma_id, W(wp), W(rp), 1, IRQ_PKT_TYPE);
+  unsigned wp = (char *)dst - (char *)NOC_SPM_BASE;
+  unsigned rp = (char *)src - (char *)NOC_SPM_BASE;
+  return noc_dma_write(dma_id, W(wp), W(rp), 1, IRQ_PKT_TYPE);
 }
 
 // Attempt to transfer data via the NoC
