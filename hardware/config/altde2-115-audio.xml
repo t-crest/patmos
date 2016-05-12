@@ -9,7 +9,7 @@
 	<IO DevTypeRef="Uart" offset="8"/>
 	<IO DevTypeRef="Leds" offset="9"/>
 	<IO DevTypeRef="Keys" offset="10" intrs="2,3,4,5"/>
-	<IO DevTypeRef="audio_interface" offset="11"/> 
+	<IO DevTypeRef="AudioInterface" offset="11"/>
   </IOs>
 
   <Devs>
@@ -36,12 +36,12 @@
             <param name="sramDataWidth" value="16" />
         </params>
     </Dev>
-	<Dev DevType="audio_interface" entity="audio_interface" iface="OcpCore">
+	<Dev DevType="AudioInterface" entity="AudioInterface" iface="OcpCore">
 		<params>
 			<param name="audioLength"		value="16"/>  <!-- either 16, 20, 24 or 32 -->
 			<param name="audioFsDivider"	value="256"/> <!-- depending on chosen Fs (see datasheet) -->
 			<param name="audioClkDivider"	value="6"/>   <!-- for the bclk/xlk: patmosclk / audioClkDivider-->
 		</params>
-	</Dev> 
+	</Dev>
   </Devs>
 </patmos>
