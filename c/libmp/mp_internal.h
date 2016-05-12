@@ -56,7 +56,7 @@
 #define MULTI_NOC_MP            4
 
 #ifndef IMPL
-#define IMPL MULTI_NOC
+#define IMPL SINGLE_NOC
 #endif
 
 /*! \def FLAG_SIZE
