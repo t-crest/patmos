@@ -26,18 +26,12 @@ hardware/config/altde2-115-audio.xml
 hardware/quartus/altde2-115-audio/patmos.qsf
 hardware/vhdl/patmos_de2-115-audio.vhdl
 
-============
-============
-CAUTION!! folder of patmos.qsf file has changed. Might need to specify on Makefile
-============
-============
-
 Useful commands:
 ============
 Build patmos for FPGA:
 >make BOARD=altde2-115-audio
 
-Run a program on FPGA: (may also need to add: BOARD=altde2-115-audio)
+Run a program on FPGA:
 >cd ..
 >make -C patmos APP=__appName__ comp
 >make -C patmos APP=__appName__ download
