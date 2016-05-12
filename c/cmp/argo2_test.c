@@ -22,7 +22,9 @@ const int NOC_MASTER = 0;
 #include <math.h>
 
 //this should not be needed, NOC_CORES should be used instead, but it gives errors.
-#define NOC_CORES 9
+//#define NOC_CORES 9
+//#define NOC_CONFS 4
+
 
 #define SEND_TIMEOUT_DEFAULT 800000 //in cc
 
@@ -31,22 +33,22 @@ volatile long long unsigned int send_timeout = SEND_TIMEOUT_DEFAULT;
 #define REMOTE_IRQ_IDX 19 //bit n.3 -- the forth (shifted 16)
 #define LOCAL_IRQ_IDX 18 //bit n.2 -- the third (shifted 16)
 
+volatile _UNCACHED int ** bandwidth_results = NULL;//[NOC_CORES][NOC_CORES];// bandwidth_results[sender][receiver]//this contains the amount of CC needed to send a block (-1 means: channel not available)
+volatile _UNCACHED int ** correctness_results = NULL;//[NOC_CORES][NOC_CORES];// correctness_results[sender][receiver]//this contains the amount of CC needed to send a block (-1 means: channel not available)
+volatile _UNCACHED unsigned char ** interrupt_status = NULL;//[NOC_CORES][NOC_CORES];//[sender][receiver] 0 menas channel not tested, 1 means: interrupt not received, 2 means: interrupt received but not deasseted, 3 means: everyting fine
+volatile _UNCACHED unsigned char ** remote_irq_results = NULL;//[NOC_CORES][NOC_CORES];//[sender][receiver] 0 menas channel not tested, 1 means: interrupt not received, 2 means: interrupt received but not deasseted, 3 means: everyting fine
+volatile _UNCACHED unsigned char ** interrupt_occ = NULL;//[NOC_CORES][NOC_CORES];//[sender][receiver] 0 menas channel not tested, 1 means: interrupt not received, 2 means: interrupt received but not deasseted, 3 means: everyting fine
+volatile _UNCACHED unsigned int ** interrupt_results = NULL;//[NOC_CORES][NOC_CORES];//[sender][receiver]
+volatile _UNCACHED int * spm_sizes = NULL;//[NOC_CORES];
+volatile _UNCACHED int ** reconfiguration_results = NULL;//[NOC_CORES][NOC_CORES];// bandwidth_results[sender][receiver]//this contains the amount of CC needed to send a block (-1 means: channel not available)
 
-volatile _UNCACHED int bandwidth_results[NOC_CORES][NOC_CORES];// bandwidth_results[sender][receiver]//this contains the amount of CC needed to send a block (-1 means: channel not available)
-volatile _UNCACHED int correctness_results[NOC_CORES][NOC_CORES];// correctness_results[sender][receiver]//this contains the amount of CC needed to send a block (-1 means: channel not available)
-volatile _UNCACHED unsigned char interrupt_status[NOC_CORES][NOC_CORES];//[sender][receiver] 0 menas channel not tested, 1 means: interrupt not received, 2 means: interrupt received but not deasseted, 3 means: everyting fine
-volatile _UNCACHED unsigned char interrupt_occ[NOC_CORES][NOC_CORES];//[sender][receiver] 0 menas channel not tested, 1 means: interrupt not received, 2 means: interrupt received but not deasseted, 3 means: everyting fine
-volatile _UNCACHED unsigned int interrupt_results[NOC_CORES][NOC_CORES];//[sender][receiver]
-
-volatile _UNCACHED int spm_sizes[NOC_CORES];
-//volatile _UNCACHED int master_cpu;
-//volatile _UNCACHED int master_cpu;
-//volatile _UNCACHED int master_cpu;
 
 volatile _UNCACHED int s, d; //global sender and destnation
 
 volatile _UNCACHED int block_size;
-volatile _SPM unsigned char * block_base = (volatile _SPM unsigned char *) NOC_SPM_BASE;
+volatile _UNCACHED unsigned int block_base;
+
+//volatile _SPM unsigned char * block_base = (volatile _SPM unsigned char *) NOC_SPM_BASE;
 
 
 volatile _UNCACHED unsigned char * random_array = NULL;
@@ -144,10 +146,10 @@ int m_get_min_spm_sizes(){
 /////////////////////////////////////////////////////////////
 void m_print_test_parameters(){
 	printf("The tests are executed with the following parameters:\n\n");
-	printf("Send timeout: %llu clock cycles - (default: %d clock cycles)\n", send_timeout, SEND_TIMEOUT_DEFAULT);
-	printf("Data block base: 0x%08X - (default: 0x%08X)\n", (unsigned int) block_base, (unsigned int) NOC_SPM_BASE);
+	printf("Mode of operation: %d - (total modes: %d)\n", mode, (int) NOC_CONFS);
+	printf("Data block base: 0x%08X - (default: 0x%08X)\n", block_base, (unsigned int) NOC_SPM_BASE);
 	printf("Data block size: %u bytes - (default: %u bytes)\n", block_size, m_get_min_spm_sizes());
-	printf("Mode of operation: %d\n", mode);
+	printf("Send timeout: %llu clock cycles - (default: %d clock cycles)\n", send_timeout, SEND_TIMEOUT_DEFAULT);
 	return;
 }
 
@@ -177,6 +179,30 @@ void m_print_bandwidth_results(){
 	return;
 }
 
+void m_print_reconfiguration_results(){
+	printf("Reconfiguration results:\n\n");
+	printf("\tto:\nfrom:\t");
+	for (int i = 0; i < NOC_CONFS; i++) {
+		printf("%d\t", i);
+	}
+	printf("\n");
+	for (int i = 0; i < NOC_CONFS; i++) {
+		printf("%d\t", i);
+		for (int j = 0; j < NOC_CONFS; j++) {
+			if(i!=j){
+				printf("%d\t", reconfiguration_results[i][j]);
+			}else{	
+				printf("-\t");
+			}
+		}
+			printf("\n");
+	}
+	
+		printf("\nNotes: The table shows the clock cycles needed to switch between every\ncouple of configurations from a system point of view.\n");
+	
+	return;
+}
+
 void m_print_correctness_results(){
 	printf("\nCorrectness results:\n\n");
 	printf("\tto:\nfrom:\t");
@@ -192,7 +218,7 @@ void m_print_correctness_results(){
 			}else if(correctness_results[i][j]==1){	
 				printf("OK\t");
 			}else if(correctness_results[i][j]==2){	
-				printf("WRONG\t");
+				printf("ERR.\t");
 			}else{
 				printf("?\t");
 			}
@@ -271,6 +297,38 @@ void m_print_interrupt_status(){
 	return;
 }
 
+void m_print_remote_irq_results(){
+	printf("Remote interrupt results:\n\n");
+	printf("\tto:\nfrom:\t");
+	for (int i = 0; i < NOC_CORES; i++) {
+		printf("%d\t", i);
+	}
+	printf("\n");
+	for (int i = 0; i < NOC_CORES; i++) {
+		printf("%d\t", i);
+		for (int j = 0; j < NOC_CORES; j++) {
+			if(i == j){
+				printf("-\t");
+			}else if(remote_irq_results[i][j]==0){	
+				printf("NO\t");
+			}else if(remote_irq_results[i][j]==1){
+				printf("NO DEA.\t");
+			}else if(remote_irq_results[i][j]==2){
+				printf("ERR.1\t");
+			}else if(remote_irq_results[i][j]==3){
+				printf("ERR.2\t");
+			}else{
+				printf("OK\t");
+			}
+		}
+			printf("\n");
+	}
+	
+	printf("\nNotes: The table shows the remote interrupt results. 'NO DEA' means\nthat the interrupt was not deasserted after reading from the fifo.\n'ERR.1' and 'ERR.2' report an error in the received value read from\nthe fifo and in the data in the SPM, respectively.\n\n");
+	
+	return;
+}
+
 void m_print_interrupt_occ(){
 	printf("\nInterrupt fifo elements:\n\n");
 	printf("\tto:\nfrom:\t");
@@ -293,6 +351,19 @@ void m_print_interrupt_occ(){
 	return;
 }
 
+void m_print_platform_info(){
+	printf("General platform information:\n\n");
+	printf("Number of cores: %d\n", get_cpucnt());
+	printf("Master core: %d\n",get_cpuid());
+  	printf("Operating frequency: %d Hz\n",get_cpu_freq());
+	printf("NOC master: %d\n", NOC_MASTER);
+	printf("NOC cores: %d\n", NOC_CORES);
+	printf("Number of configurations: %d\n", NOC_CONFS);
+	printf("SPM size by CPU (min: %d - max: %d):\n", m_get_max_spm_sizes(), m_get_min_spm_sizes());
+	m_print_spm_sizes();
+	return;
+}
+
 /////////////////////////////////////////////////////////////
 //Arrays initializations functions
 /////////////////////////////////////////////////////////////
@@ -300,6 +371,15 @@ void m_clear_interrupt_status(){
 	for (int i = 0; i < NOC_CORES; i++) {
 		for (int j = 0; j < NOC_CORES; j++) {
 			interrupt_status[i][j] = 0;
+		}
+	}
+	return;
+}
+
+void m_clear_remote_irq_results(){
+	for (int i = 0; i < NOC_CORES; i++) {
+		for (int j = 0; j < NOC_CORES; j++) {
+			remote_irq_results[i][j] = 0;
 		}
 	}
 	return;
@@ -491,6 +571,7 @@ void s_check_correctness(void * arg){
 }
 
 void m_bandwidth_correctness_test(){
+	m_clear_bandwidth_results();
 	int slave_param = 0;//not used now
 	int * retval;
 	corethread_t ct;
@@ -561,6 +642,319 @@ void m_bandwidth_correctness_test(){
 			}
 		}
 	}
+	m_print_test_parameters();
+	m_print_bandwidth_results();
+	m_print_correctness_results();
+	m_print_interrupt_status();
+	m_print_interrupt_occ();
+	m_print_interrupt_results();
+	
+	return;
+}
+
+void m_change_test_pars(){
+	bool loop = true;
+	char c = 'v';
+	while(loop){
+		m_print_test_parameters();
+	
+	printf("\nParameters:\n1 -> Change mode of operation\n2 -> Change data block base address\n3 -> Change data block size\n4 -> Change send timeout value\nb -> Back to main menu\n");
+	printf("\nSelect parameter: ");
+		scanf(" %c", &c);
+		while ((c != 'b') && (c != '1') && (c != '2') && (c != '3')	&& (c != '4')) {
+			printf("\nSelection not valid! Select operation: ");
+			scanf(" %c", &c);
+		};
+	
+	switch(c){
+		case 'b':
+			loop = false;
+			break;
+
+		case '1':
+			printf("\n-------------------------------------------------------------------------------\n");
+			printf("Insert new mode of operation (between 0 and %u): ", (unsigned int) NOC_CONFS-1);
+			int new_mode = -1;
+			scanf ("%d",&new_mode);
+			if (new_mode == mode)
+			{
+			 	printf("\nMode not changed.\n\n");
+			}else if(new_mode>=0 && new_mode<NOC_CONFS){
+				noc_sched_set(mode);
+				mode=new_mode;
+				printf("\nMode changed.\n\n");
+			}else{
+				printf("\nThe inserted mode is not valid. Mode not changed.\n\n");
+			}
+			break;
+
+		case '2':
+			printf("\n-------------------------------------------------------------------------------\n");
+			printf("Insert new block base address in hexadecimal: 0x%04X", ((unsigned int) NOC_SPM_BASE)>>16);
+			unsigned int new_block_base = 0;
+			scanf ("%x",&new_block_base);
+			if (new_block_base == block_base)
+			{
+			 	printf("\nBlock base not changed.\n\n");
+			}else if(new_block_base<=0x0000FFFF){
+				block_base=((unsigned int)NOC_SPM_BASE + new_block_base);
+				printf("\nBlock base changed.\n\n");
+			}else{
+				printf("\nThe inserted value is not valid. Block base not changed.\n\n");
+			}
+			break;
+
+		case '3':
+			printf("\n-------------------------------------------------------------------------------\n");
+			printf("Insert new block size in bytes (between 1 and %u): ", m_get_min_spm_sizes());
+			int new_block_size = 0;
+			scanf ("%d",&new_block_size);
+			if (new_block_size == block_size)
+			{
+			 	printf("\nBlock size not changed.\n\n");
+			}else if(new_block_size>=1 && new_block_size<=m_get_min_spm_sizes()){
+				block_size=new_block_size;
+				printf("\nBlock size changed.\n\n");
+			}else{
+				printf("\nThe inserted value is not valid. Block size not changed.\n\n");
+			}
+			break;
+
+		case '4':
+			printf("\n-------------------------------------------------------------------------------\n");
+			printf("Insert new timeout value: ");
+			long long unsigned int new_timeout = 0;
+			scanf ("%llu",&new_timeout);
+			if (new_timeout == send_timeout)
+			{
+			 	printf("\nTimeout not changed.\n\n");
+			}else{
+				send_timeout=new_timeout;
+				printf("\nTimeout changed. Timeout not changed.\n\n");
+			}
+			break;
+	}
+}
+	return;
+}
+
+void m_test_mode_change(){
+	if (NOC_CONFS==1)
+	{
+		printf("There is only one mode of operation.\n");
+		return;
+	}
+
+	reconfiguration_results = (volatile _UNCACHED int **) malloc(NOC_CONFS * sizeof(*reconfiguration_results));
+	if (reconfiguration_results == NULL){
+		printf("Dynamic memory allocation failed.\n");
+		return;
+	}
+	for(int i = 0; i < NOC_CONFS; i++)
+		{
+        reconfiguration_results[i] = (volatile _UNCACHED int *) malloc(NOC_CONFS * sizeof(**reconfiguration_results));
+        if(reconfiguration_results[i] == NULL){
+            printf("Dynamic memory allocation failed.\n");
+			return;
+        }
+    }
+
+	long long unsigned int t1, t2;
+	for (int f = 0; f < NOC_CONFS; f++){
+	noc_sched_set(f);
+		for (int t = f+1; t < NOC_CONFS; t++)
+		{
+			noc_sched_set(f);
+			t1 = get_cpu_cycles();
+			noc_sched_set(t);
+			t2 = get_cpu_cycles();
+			reconfiguration_results[f][t]=t2-t1;
+			
+			//noc_sched_set(f);
+			//noc_sched_set(t);
+			noc_sched_set(t);
+			t1 = get_cpu_cycles();
+			noc_sched_set(f);
+			t2 = get_cpu_cycles();
+			reconfiguration_results[t][f]=t2-t1;
+		}
+	}
+	m_print_reconfiguration_results();
+
+	for(int i = 0; i < NOC_CONFS; i++)
+	{
+    	free((void *)reconfiguration_results[i]);
+    	reconfiguration_results[i] = NULL;
+    }
+	free((void *)reconfiguration_results);
+	reconfiguration_results = NULL;
+
+	//Restore the original mode
+	noc_sched_set(mode);
+	return;
+}
+
+
+
+void c_send_irq(){ //bandwith results need to be cleared
+	volatile _SPM unsigned char * block = ((volatile _SPM unsigned char *) block_base);
+	volatile _SPM unsigned char * irq_dst_addr = ((volatile _SPM unsigned char *) block_base);
+	//Initialize memorycontent with incremental values
+	block[0] = random_array[0];
+
+	noc_irq((unsigned) d, (volatile void _SPM *) irq_dst_addr, (volatile void _SPM *) block);
+
+//	noc_write((unsigned) d, ((volatile _SPM void *) block_base), ((volatile _SPM void *) block), (size_t) block_size, 1);
+	//check for timeout (this adds a tolerance on the result)
+	while( !(noc_dma_done((unsigned)d)) ){;}
+	return;
+}
+
+void m_send_irq(){
+	c_send_irq();
+	return;
+}
+
+void s_send_irq(void * arg){//just changed in arg.
+	c_send_irq();
+	int ret = 0;
+  	corethread_exit(&ret);
+	return;
+}
+
+
+void c_receive_irq(){ //bandwith results need to be cleared
+	volatile _SPM unsigned char * block = ((volatile _SPM unsigned char *) block_base);
+	volatile _SPM unsigned char * irq_dst_addr = ((volatile _SPM unsigned char *) block_base);
+	unsigned int tmp_irq_addr;
+	//Initialize memorycontent with incremental values
+	remote_irq_results[s][d]=0;
+
+	//Check if the local IRQ addr is correct ()
+	if ((intr_get_pending() & (1 << REMOTE_IRQ_IDX)) != 0){
+		int i;
+		for (i = 1; i <= 256; i++)
+		{
+			//read fifo
+			tmp_irq_addr = (unsigned int)noc_fifo_irq_read();
+
+
+			//if(get_cpuid()==0)printf("%08X\n", tmp_irq_addr);
+
+			//clear the pending
+			intr_clear_pending(REMOTE_IRQ_IDX);
+			if ((intr_get_pending() & (1 << REMOTE_IRQ_IDX)) == 0){
+				break;
+			}
+		}
+		if ((intr_get_pending() & (1 << REMOTE_IRQ_IDX)) == 0){
+			//irq deasserted
+			if (i!=1){
+				//irq deasserted but more than 1 entry in the fifo
+				remote_irq_results[s][d]=1;
+			}else if ((tmp_irq_addr & 0x00003FFF) != ((((unsigned int)((void *)(irq_dst_addr)))& 0x0000FFFF)>>2 )){
+				//irq deasserted but fifo content is wrong
+				remote_irq_results[s][d]=2;
+			}else if ((*irq_dst_addr)!=random_array[0]){
+				//irq deasserted but memory content is wrong
+				remote_irq_results[s][d]=3;
+			}else{
+				remote_irq_results[s][d]=4;
+			}
+			
+		}else{
+			//irq not deasserted
+			remote_irq_results[s][d]=	1;
+		}
+	}else{
+		//no interrupt
+		remote_irq_results[s][d]=0;
+	}
+
+	return;
+}
+
+void m_receive_irq(){
+	c_receive_irq();
+	return;
+}
+
+void s_receive_irq(void * arg){
+	c_receive_irq();
+	int ret = 0;
+  	corethread_exit(&ret);
+	return;
+}
+
+void m_test_remote_irq(){
+	m_clear_bandwidth_results();
+	int slave_param = 0;//not used now
+	int * retval;
+	corethread_t ct;
+	for (int i = 0; i < NOC_CORES; i++)
+	{
+		if (i==NOC_MASTER){
+			//The master does the measure
+			//////printf("Bandwidth test: master core (%d) is testing.\n", NOC_MASTER);
+			m_generate_bandwidth_results();
+		}else{
+			//////printf("Bandwidth test: core %d is testing.\n", i);
+			ct = (corethread_t)i;
+			if(corethread_create(&ct, &s_generate_bandwidth_results, (void *) &slave_param)){
+				//printf("Corethread not created.\n");
+			}
+			if(corethread_join(ct, (void**) &retval)){
+				//printf("Corethread not joined.\n");
+			}
+		}
+	}
+	m_clear_remote_irq_results();
+	s = 0;
+	d = 0;
+	for (s = 0; s < NOC_CORES; s++){
+		for (d = 0; d < NOC_CORES; d++)
+		{
+			if (bandwidth_results[s][d]>0){
+				//printf("IRQ test: form core %d to core %d.\n", s, d);
+				m_generate_random_array();
+				//check if it is the master that is sending and receiving
+				if(s==NOC_MASTER){
+					m_send_irq(); //pass the destination
+				}else{
+					ct = (corethread_t)(s);
+					if(corethread_create(&ct, &s_send_irq, ((void *) &slave_param))){
+						//printf("Corethread send not created.\n");
+					}else{
+						//printf("Corethread send created.\n");
+					}
+
+					if(corethread_join(ct, (void**) &retval)){
+						//printf("Corethread send not joined.\n");
+					}else{
+						//printf("Corethread send joined.\n");
+					}
+				}
+
+				if(d==NOC_MASTER){
+					m_receive_irq(); //pass the sender id
+				}else{
+					ct = (corethread_t)(d);
+					if(corethread_create(&ct, &s_receive_irq, ((void *) &slave_param))){
+						//printf("Corethread receiver not created.\n");
+					}else{
+						//printf("Corethread receiver created.\n");
+					}
+					if(corethread_join(ct, (void**) &retval)){
+						//printf("Corethread receiver not joined.\n");
+					}else{
+						//printf("Corethread receiver joined.\n");
+					}
+					//slave is checking
+				}
+			}
+		}
+	}
+	m_print_remote_irq_results();
 	return;
 }
 
@@ -572,81 +966,88 @@ int main() {
 	//Print the header
 	printf("\n-------------------------------------------------------------------------------\n");
 	printf("-                   C test application for the Argo 2.0 NOC                   -\n");
-	printf("-                                     ;-)                                     -\n");
-	printf("-------------------------------------------------------------------------------\n\n");
+	printf("-                                  Enjoy! ;-)                                 -\n");
+	printf("-------------------------------------------------------------------------------\n");
 
-	m_collect_platform_info();
 
-	block_size = m_get_min_spm_sizes();
 
-	//allocate main memory for the random array,
-	random_array = (volatile _UNCACHED unsigned char *) malloc(m_get_max_spm_sizes()* sizeof(unsigned char));
-	if (random_array == NULL){
-		printf("Dynamic memory allocation faild.\n");
+	//Dynamically allocate main memory
+	random_array = (volatile _UNCACHED unsigned char *) malloc(m_get_max_spm_sizes() * sizeof(*random_array));
+	spm_sizes = (volatile _UNCACHED int *) malloc(NOC_CORES * sizeof(*spm_sizes));
+
+	bandwidth_results = (volatile _UNCACHED int **) malloc(NOC_CORES * sizeof(*bandwidth_results));
+	correctness_results = (volatile _UNCACHED int **) malloc(NOC_CORES * sizeof(*correctness_results));
+	interrupt_status = (volatile _UNCACHED unsigned char **) malloc(NOC_CORES * sizeof(*interrupt_status));
+	remote_irq_results = (volatile _UNCACHED unsigned char **) malloc(NOC_CORES * sizeof(*remote_irq_results));
+	interrupt_occ = (volatile _UNCACHED unsigned char **) malloc(NOC_CORES * sizeof(*interrupt_occ));
+	interrupt_results = (volatile _UNCACHED unsigned int **) malloc(NOC_CORES * sizeof(*interrupt_results));
+	if (random_array == NULL || bandwidth_results == NULL || correctness_results == NULL || interrupt_status == NULL || remote_irq_results == NULL || interrupt_occ == NULL || interrupt_results == NULL || spm_sizes== NULL){
+		printf("Dynamic memory allocation failed.\n");
 		return -1;
 	}
+
+	for(int i = 0; i < NOC_CORES; i++)
+		{
+        bandwidth_results[i] = (volatile _UNCACHED int *) malloc(NOC_CORES * sizeof(**bandwidth_results));
+		correctness_results[i] = (volatile _UNCACHED int *) malloc(NOC_CORES * sizeof(**correctness_results));
+		interrupt_status[i] = (volatile _UNCACHED unsigned char *) malloc(NOC_CORES * sizeof(**interrupt_status));
+		remote_irq_results[i] = (volatile _UNCACHED unsigned char *) malloc(NOC_CORES * sizeof(**remote_irq_results));
+		interrupt_occ[i] = (volatile _UNCACHED unsigned char *) malloc(NOC_CORES * sizeof(**interrupt_occ));
+		interrupt_results[i] = (volatile _UNCACHED unsigned int *) malloc(NOC_CORES * sizeof(**interrupt_results));
+        if(bandwidth_results[i] == NULL || correctness_results[i] == NULL || interrupt_status[i] == NULL || remote_irq_results[i] == NULL || interrupt_occ[i] == NULL || interrupt_results[i] == NULL){
+            printf("Dynamic memory allocation failed.\n");
+			return -1;
+        }
+    }
+
+	m_collect_platform_info();
+	block_size = m_get_min_spm_sizes();
+	block_base = (unsigned int)NOC_SPM_BASE;
+
+	m_print_platform_info(); 
+	printf("\n");
+	m_print_test_parameters();
 
 	//Main loop
 	bool loop = true;
 	char c = 'v';
 	while (loop) {
 		printf("\n-------------------------------------------------------------------------------");
-		printf("\nAvailable operations:\n1 -> Test bandwidth, tramission correctness, and data interrupts.\n2 -> Change mode (actual: M%d)\n3 -> Print test parameters\n4 -> Change test parameters\n5 -> Print platform info\n6 -> Perform and test NOC intilization\ne -> exit\n", mode);
+		printf("\nAvailable operations:\n1 -> Test bandwidth, tramission correctness, and data interrupts.\n2 -> Test remote interrupts\n3 -> Test reconfiguration\n4 -> Print platform info\n5 -> Print test parameters\n6 -> Change test parameters\ne -> Exit\n");
 
 		printf("\nSelect operation: ");
 		scanf(" %c", &c);
 		while ((c != 'e') && (c != '1') && (c != '2') && (c != '3')	&& (c != '4') && (c != '5') && (c != '6')) {
-			printf("Operation not valid! Select operation: ");
+			printf("\nOperation not valid! Select operation: ");
 			scanf(" %c", &c);
 		};
 		printf("\n-------------------------------------------------------------------------------");
 		switch (c) {
 			case '1':
 				printf("\nOperation 1: Test bandwidth, tramission correctness, and data interrupts.\n\n");
-				m_clear_bandwidth_results();
+				
 				m_bandwidth_correctness_test();
-				m_print_test_parameters();
-				m_print_bandwidth_results();
-				m_print_correctness_results();
-				m_print_interrupt_status();
-				m_print_interrupt_occ();
-				m_print_interrupt_results();
-
-				//m_print_debug();
 
 				break;
 			case '2':
-				printf("\nOperation 2: Change mode (actual: M%d)\n Type new mode: ", mode);
-				int new_mode = mode;
-				scanf ("%d",&new_mode);
-				mode=new_mode;
-				noc_sched_set(mode);
-				printf("Done!\n\n");
+				printf("\nOperation 2: Test remote interrupts\n\n");
+				m_test_remote_irq();
 				break;
 			case '3':
-				printf("\nOperation 3: Print test parameters\n\n");
-				m_print_test_parameters();
+				printf("\nOperation 3: Test reconfiguration\n\n");
+				m_test_mode_change();
 				break;
 			case '4':
-				printf("\nOperation 4: Change test parameters\n\n");
+				printf("\nOperation 4: Print platform info\n\n");
+				m_print_platform_info();
 				break;
-
 			case '5':
-				printf("\nOperation 5: Print platform info\n\n");
-				printf("SPM max size: %d\n", m_get_max_spm_sizes());
-				printf("SPM min size: %d\n", m_get_min_spm_sizes());
-				m_print_spm_sizes();
+				printf("\nOperation 5: Print test parameters\n\n");
+				m_print_test_parameters();
 				break;
 			case '6':
-				printf("\nOperation 6: Perform and test NOC initialization\n\n");
-				t1 = get_cpu_cycles();
-				noc_init();
-				t2 = get_cpu_cycles();
-				printf("%llu clock cycles\n", t2-t1);
-				t1 = get_cpu_cycles();
-				noc_init();
-				t2 = get_cpu_cycles();
-				printf("%llu clock cycles\n", t2-t1);
+				printf("\nOperation 6: Change test parameters\n\n");
+				m_change_test_pars();
 				break;
 			case 'e':
 				loop = false;
@@ -654,9 +1055,42 @@ int main() {
 
 		}
 	}
-	printf("\n\nGoodbye!\n");
+
+	for(int i = 0; i < NOC_CORES; i++)
+		{
+        free((void *)bandwidth_results[i]);
+		free((void *)correctness_results[i]);
+		free((void *)interrupt_status[i]);
+		free((void *)remote_irq_results[i]);
+		free((void *)interrupt_occ[i]);
+		free((void *)interrupt_results[i]);
+     	bandwidth_results[i] = NULL;
+		correctness_results[i] = NULL;
+		interrupt_status[i] = NULL;
+		remote_irq_results[i] = NULL;
+		interrupt_occ[i] = NULL;
+		interrupt_results[i] = NULL;
+    }
 
 	free((void *)random_array);
+	free((void *)bandwidth_results);
+	free((void *)correctness_results);
+	free((void *)interrupt_status);
+	free((void *)remote_irq_results);
+	free((void *)interrupt_occ);
+	free((void *)interrupt_results);
+	free((void *)spm_sizes);
+
 	random_array = NULL;
+	bandwidth_results = NULL;
+	correctness_results = NULL;
+	interrupt_status = NULL;
+	remote_irq_results = NULL;
+	interrupt_occ = NULL;
+	interrupt_results = NULL;
+	spm_sizes = NULL;
+
+	printf("\nGoodbye!\n");
+
 	return 0;
 }
