@@ -827,8 +827,8 @@ void m_change_test_pars()
 			}
 			else if (new_mode >= 0 && new_mode < NOC_CONFS)
 			{
-				noc_sched_set(mode);
 				mode = new_mode;
+				noc_sched_set(mode);
 				printf("\nMode changed.\n\n");
 			}
 			else
