@@ -195,6 +195,7 @@ struct _spd_t {
 } ;
 
 
+/// \cond PRIVATE
 /// \struct communicator_t
 /// \brief Describes at set of communicating processors.
 ///
@@ -206,6 +207,7 @@ typedef struct {
   unsigned int msg_size;
   volatile void _SPM ** addr;
 } communicator_t __attribute__((aligned(16)));
+/// \endcond
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -260,6 +262,7 @@ spd_t * mp_create_sport(const unsigned int chan_id, const direction_t direction_
 /// \retval 1 The initialization of all the communication channels succeeded.
 int mp_init_ports();
 
+/// \cond PRIVATE
 /// \brief Initialize the communicator
 ///
 /// \param comm A pointer to the communicator structure
@@ -270,7 +273,7 @@ int mp_init_ports();
 /// \retval 1 The initialization of the communicator_t succeeded.
 int mp_communicator_init(communicator_t* comm, const unsigned int count,
               const coreid_t member_ids [], const unsigned int msg_size);
-
+/// \endcond
 ////////////////////////////////////////////////////////////////////////////
 // Functions for queuing point-to-point transmission of data
 ////////////////////////////////////////////////////////////////////////////
@@ -389,7 +392,7 @@ int mp_read(spd_t * sport, volatile void _SPM * sample)   __attribute__ ((noinli
 ////////////////////////////////////////////////////////////////////////////
 // Functions for collective communication
 ////////////////////////////////////////////////////////////////////////////
-
+/// \cond PRIVATE
 /// \brief A function to synchronize the cores described in the communicator
 /// to a barrier.
 ///
@@ -413,6 +416,7 @@ void mp_barrier(communicator_t* comm);
 /// the other cores and in the other cores when each core has received the data
 /// from the #root core
 void mp_broadcast(communicator_t* comm, const coreid_t root);
+/// \endcond
 
 #endif /* _MP_H_ */
 

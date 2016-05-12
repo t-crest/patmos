@@ -139,7 +139,7 @@ int mp_init_ports() {
     if(chan_info[chan_id].src_id == cpuid) {
       // If calling core is source, wait for the sink address, and then
       // copy into the source message passing descriptor.
-      while (chan_info[chan_id].sink_id == -1);
+      while (chan_info[chan_id].sink_id == -1){;}
       TRACE(INFO,TRUE,"Source port found sink_addr : %#08x, src_addr : %#08x\n",
                                     (unsigned int)chan_info[chan_id].sink_addr,
                                     (unsigned int)chan_info[chan_id].src_addr);
@@ -159,7 +159,7 @@ int mp_init_ports() {
     } else if (chan_info[chan_id].sink_id == cpuid) {
       // If calling core is sink, wait for the source address, and then
       // copy into the sink message passing descriptor.
-      while (chan_info[chan_id].src_id == -1);
+      while (chan_info[chan_id].src_id == -1){;}
       TRACE(INFO,TRUE,"Sink port found src_addr : %#08x, sink_addr : %#08x\n",
                                     (unsigned int)chan_info[chan_id].src_addr,
                                     (unsigned int)chan_info[chan_id].sink_addr);

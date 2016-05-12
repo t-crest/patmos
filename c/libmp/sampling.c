@@ -259,7 +259,7 @@ int mp_read(spd_t * sport, volatile void _SPM * sample) {
   unsigned itteration_count = (sport->sample_size + 4 - 1) / 4; // equal to ceil(sport->sample_size/4)
   #pragma loopbound min MSG_SIZE_WORDS max MSG_SIZE_WORDS
   for (int i = 0; i < itteration_count; ++i) {
-    ((int _SPM *)sample)[i] = ((volatile int _SPM *)sport->read_bufs+(newest*(sport->sample_size)))[i];
+    ((int _SPM *)sample)[i] = ((volatile int _SPM *)((volatile char _SPM *)sport->read_bufs+(newest*(sport->sample_size))))[i];
   }
 
   return 1;
@@ -407,7 +407,7 @@ int mp_write(spd_t * sport, volatile void _SPM * sample) {
   ((qpd_t *)sport)->write_buf = sample;
   mp_send((qpd_t *)sport,10000);
   #pragma loopbound min SAMPLE_TRANS_WAIT max SAMPLE_TRANS_WAIT
-  while(!noc_dma_done(sport->remote));
+  while(!noc_dma_done(((qpd_t *)sport)->remote));
   return 1;
 } 
 
