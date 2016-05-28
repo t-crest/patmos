@@ -492,6 +492,16 @@ class PatmosCoreIO() extends Bundle() {
 class PatmosIO() extends Bundle() {
   val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
+  //VGA controller I/O:
+  //val vga = Bool(OUTPUT)
+	val vga_r       = UInt (OUTPUT, 8) 
+	val vga_g       = UInt (OUTPUT, 8) 
+	val vga_b       = UInt (OUTPUT, 8) 
+	val vga_clk     = UInt (OUTPUT, 1) 
+	val vga_sync_n  = UInt (OUTPUT, 1)
+	val vga_blank_n = UInt (OUTPUT, 1)
+	val vga_vs      = UInt (OUTPUT, 1)
+	val vga_hs      = UInt (OUTPUT, 1)
 }
 
 

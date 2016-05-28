@@ -34,7 +34,7 @@ CFLAGS?=-target patmos-unknown-unknown-elf -O2 \
 	-mpatmos-disable-vliw
 LDFLAGS?= \
 	-mpatmos-method-cache-size=0x1000 \
-	-mpatmos-stack-base=0x200000 -mpatmos-shadow-stack-base=0x1f8000 \
+	-mpatmos-stack-base=0x1E2B40 -mpatmos-shadow-stack-base=0x1DAB40 \
 	-Xgold --defsym -Xgold __heap_end=0x1f0000 \
 	-Xgold -T -Xgold $(BUILDDIR)/../hardware/spm_ram.t
 

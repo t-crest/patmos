@@ -221,6 +221,22 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
 
   // Instantiate core
   val core = Module(new PatmosCore(binFile))
+	
+	//instantiate arbiter:
+	val arb  = Module(new ocp.Arbiter(2,EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)) 
+
+	//instantiate vga controller:
+	val vga  = Module(new Vga)
+
+	//connect vga pins
+  io.vga_r 			 <> vga.io.vga_r 
+	io.vga_g 		   <> vga.io.vga_g 
+	io.vga_b 	     <> vga.io.vga_b 
+	io.vga_clk     <> vga.io.vga_clk
+	io.vga_sync_n  <> vga.io.vga_sync_n 
+	io.vga_blank_n <> vga.io.vga_blank_n 
+	io.vga_vs      <> vga.io.vga_vs 
+	io.vga_hs      <> vga.io.vga_hs  
 
   // Forward ports to/from core
   io.comConf <> core.io.comConf
@@ -230,8 +246,14 @@ class Patmos(configFile: String, binFile: String, datFile: String) extends Modul
   // Connect memory controller
   val ramConf = Config.getConfig.ExtMem.ram
   val ramCtrl = Config.createDevice(ramConf).asInstanceOf[BurstDevice]
-  ramCtrl.io.ocp <> core.io.memPort
+	//our connections between arbitrer, core and vga
+  //ramCtrl.io.ocp <> core.io.memPort
+  arb.io.master(0) <> core.io.memPort
+  arb.io.master(1) <> vga.io.memPort
+  ramCtrl.io.ocp <> arb.io.slave
   Config.connectIOPins(ramConf.name, io, ramCtrl.io)
+
+	
 
   // Print out the configuration
   Utility.printConfig(configFile)
