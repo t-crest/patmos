@@ -239,9 +239,10 @@ void mp_read_cs(spd_t * sport, volatile void _SPM * sample) {
 
   // Since sample_size is in bytes and we want to copy 32 bit at the time we divide sample_size by 4
   unsigned itteration_count = (sport->sample_size + 4 - 1) / 4; // equal to ceil(sport->sample_size/4)
+  int _SPM * buf = (int _SPM *)((char _SPM *)sport->read_bufs+(newest*(sport->sample_size)));
   #pragma loopbound min MSG_SIZE_WORDS max MSG_SIZE_WORDS
   for (int i = 0; i < itteration_count; ++i) {
-    ((int _SPM *)sample)[i] = ((volatile int _SPM *)((volatile char _SPM *)sport->read_bufs+(newest*(sport->sample_size))))[i];
+    ((int _SPM *)sample)[i] = buf[i];
   }
 
 }
