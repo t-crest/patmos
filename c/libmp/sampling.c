@@ -73,7 +73,9 @@ spd_t * mp_create_sport(const unsigned int chan_id,
 
     chan_info[chan_id].port_type = SAMPLING;
     if (direction_type == SOURCE) {
-      #if IMPL == MULTI_NOC
+      #if IMPL == DOUBLE_NOC
+        spd_ptr->next = 0;
+      #elif IMPL == TRIPLE_NOC
         spd_ptr->reading = -1;
         spd_ptr->next = 0;
       #elif IMPL == MULTI_NOC_NONBLOCKING
@@ -100,15 +102,18 @@ spd_t * mp_create_sport(const unsigned int chan_id,
       TRACE(INFO,TRUE,"Initialization at sender done.\n");
 
     } else if (direction_type == SINK) {
-      #if IMPL == MULTI_NOC
+      #if IMPL == SINGLE_NOC
+        spd_ptr->read_bufs = mp_alloc(WALIGN(sample_size));
+      #elif IMPL == DOUBLE_NOC
+        spd_ptr->read_bufs = mp_alloc(WALIGN(sample_size)*2);
+        spd_ptr->newest = -1;
+      #elif IMPL == TRIPLE_NOC
         spd_ptr->read_bufs = mp_alloc(WALIGN(sample_size)*3);
         spd_ptr->newest = -1;
       #elif IMPL == MULTI_NOC_NONBLOCKING
         spd_ptr->read_bufs = mp_alloc(WALIGN(sample_size)*3);
         spd_ptr->newest = -1;
         spd_ptr->next_reading = 0;
-      #else
-        spd_ptr->read_bufs = mp_alloc(WALIGN(sample_size));
       #endif
       TRACE(INFO,TRUE,"Initializing SINK port buf_addr: %#08x\n",(unsigned int)spd_ptr->read_bufs);
       // sink_desc_ptr must be set first inorder for
@@ -226,7 +231,63 @@ int mp_write(spd_t * sport, volatile void _SPM * sample) {
   return 1;
 } 
 
-#elif IMPL == MULTI_NOC
+#elif IMPL == DOUBLE_NOC
+void mp_read_cs(spd_t * sport, volatile void _SPM * sample) INLINING;
+void mp_read_cs(spd_t * sport, volatile void _SPM * sample) {
+  // Read newest
+  int newest = (int)sport->newest;
+
+  // Since sample_size is in bytes and we want to copy 32 bit at the time we divide sample_size by 4
+  unsigned itteration_count = (sport->sample_size + 4 - 1) / 4; // equal to ceil(sport->sample_size/4)
+  #pragma loopbound min MSG_SIZE_WORDS max MSG_SIZE_WORDS
+  for (int i = 0; i < itteration_count; ++i) {
+    ((int _SPM *)sample)[i] = ((volatile int _SPM *)((volatile char _SPM *)sport->read_bufs+(newest*(sport->sample_size))))[i];
+  }
+
+}
+
+int mp_read(spd_t * sport, volatile void _SPM * sample) {
+  acquire_lock(sport->lock);
+  mp_read_cs(sport, sample);
+  release_lock(sport->lock);
+  return 1;
+} 
+
+void mp_write_cs(spd_t * sport, volatile void _SPM * sample) INLINING;
+void mp_write_cs(spd_t * sport, volatile void _SPM * sample) {
+    // Update newest
+  noc_write( sport->remote,
+            (void _SPM *)&(sport->remote_spd->newest),
+            (void _SPM *)&sport->next,
+            sizeof(sport->next),
+            0);
+  #pragma loopbound min PKT_TRANS_WAIT max PKT_TRANS_WAIT
+  while(!noc_dma_done(sport->remote));
+}
+
+int mp_write(spd_t * sport, volatile void _SPM * sample) {
+  // Send the sample to the next buffer
+  noc_write( sport->remote,
+            (void _SPM *)( ((unsigned int)sport->read_bufs)+(((unsigned int)sport->next)*sport->sample_size) ),
+            sample,
+            sport->sample_size,
+            0);
+  #pragma loopbound min SAMPLE_TRANS_WAIT max SAMPLE_TRANS_WAIT
+  while(!noc_dma_done(sport->remote));
+  // When the sample is sent take the lock
+  unsigned int reading;
+  acquire_lock(sport->lock);
+  mp_write_cs(sport, sample);
+  release_lock(sport->lock);
+
+  // Move the next pointer to the other buffer
+  sport->next ^= 1;
+  
+  return 1;
+} 
+
+
+#elif IMPL == TRIPLE_NOC
 int mp_read_cs(spd_t * sport, volatile void _SPM * sample) INLINING;
 int mp_read_cs(spd_t * sport, volatile void _SPM * sample) {
   // Read newest

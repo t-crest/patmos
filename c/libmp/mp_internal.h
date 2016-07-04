@@ -49,14 +49,15 @@
 /// \brief Aligns X to word size
 #define WALIGN(X) (((X)+0x3) & ~0x3)
 
-#define SINGLE_NOC              0
-#define SINGLE_SHM              1
-#define MULTI_NOC               2
-#define MULTI_NOC_NONBLOCKING   3
-#define MULTI_NOC_MP            4
+#define SINGLE_SHM              0
+#define SINGLE_NOC              1
+#define DOUBLE_NOC              2
+#define TRIBLE_NOC              3
+#define MULTI_NOC_NONBLOCKING   4
+#define MULTI_NOC_MP            5
 
 #ifndef IMPL
-#define IMPL SINGLE_NOC
+#define IMPL DOUBLE_NOC
 #endif
 
 /*! \def FLAG_SIZE
