@@ -52,7 +52,7 @@
 #define SINGLE_SHM              0
 #define SINGLE_NOC              1
 #define DOUBLE_NOC              2
-#define TRIBLE_NOC              3
+#define TRIPLE_NOC              3
 #define MULTI_NOC_NONBLOCKING   4
 #define MULTI_NOC_MP            5
 
