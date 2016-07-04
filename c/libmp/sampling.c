@@ -197,20 +197,14 @@ int mp_write(spd_t * sport, volatile void _SPM * sample) {
 
 void mp_read_cs(spd_t * sport, volatile void _SPM * sample) INLINING;
 void mp_read_cs(spd_t * sport, volatile void _SPM * sample) {
-  // Since sample_size is in bytes and we want to copy 32 bit at the time we divide sample_size by 4
-  unsigned itteration_count = (sport->sample_size + 4 - 1) / 4; // equal to ceil(sport->sample_size/4)
   int _SPM * buf = ((int _SPM *)sport->read_bufs);
-  #pragma loopbound min MSG_SIZE_WORDS max MSG_SIZE_WORDS
-  for (int i = 0; i < itteration_count; ++i) {
-    ((int _SPM *)sample)[i] = buf[i];
-  }
+  mem_copy((int _SPM *)sample,buf,sport->sample_size);
 }
 
 int mp_read(spd_t * sport, volatile void _SPM * sample) {
   acquire_lock(sport->lock);
   mp_read_cs(sport,sample);
   release_lock(sport->lock);
-
   return 1;
 
 } 
@@ -234,17 +228,9 @@ int mp_write(spd_t * sport, volatile void _SPM * sample) {
 #elif IMPL == DOUBLE_NOC
 void mp_read_cs(spd_t * sport, volatile void _SPM * sample) INLINING;
 void mp_read_cs(spd_t * sport, volatile void _SPM * sample) {
-  // Read newest
   int newest = (int)sport->newest;
-
-  // Since sample_size is in bytes and we want to copy 32 bit at the time we divide sample_size by 4
-  unsigned itteration_count = (sport->sample_size + 4 - 1) / 4; // equal to ceil(sport->sample_size/4)
   int _SPM * buf = (int _SPM *)((char _SPM *)sport->read_bufs+(newest*(sport->sample_size)));
-  #pragma loopbound min MSG_SIZE_WORDS max MSG_SIZE_WORDS
-  for (int i = 0; i < itteration_count; ++i) {
-    ((int _SPM *)sample)[i] = buf[i];
-  }
-
+  mem_copy((int _SPM *)sample,buf,sport->sample_size);
 }
 
 int mp_read(spd_t * sport, volatile void _SPM * sample) {
@@ -294,15 +280,15 @@ int mp_read_cs(spd_t * sport, volatile void _SPM * sample) {
   // Read newest
   int newest = (int)sport->newest;
   // Update reading
-  if (newest >= 0) {
-    noc_write( sport->remote,
-              (void _SPM *)(((int)&(sport->remote_spd->reading)) ),
-              (void _SPM *)&sport->newest,
-              sizeof(sport->newest),
-              0);
-    #pragma loopbound min PKT_TRANS_WAIT max PKT_TRANS_WAIT
+//  if (newest >= 0) {
+  noc_write( sport->remote,
+            (void _SPM *)(((int)&(sport->remote_spd->reading)) ),
+            (void _SPM *)&sport->newest,
+            sizeof(sport->newest),
+            0);
+  #pragma loopbound min PKT_TRANS_WAIT max PKT_TRANS_WAIT
     while(!noc_dma_done(sport->remote));
-  }
+//  }
   return newest;
 }
 
@@ -311,18 +297,14 @@ int mp_read(spd_t * sport, volatile void _SPM * sample) {
   acquire_lock(sport->lock);
   newest = mp_read_cs(sport, sample);
   release_lock(sport->lock);
-  DEBUGD(newest);
+//  DEBUGD(newest);
 
-  if (newest < 0) {
+  /*if (newest < 0) {
     // No sample value has been written yet.
     return 0;
-  } 
-  // Since sample_size is in bytes and we want to copy 32 bit at the time we divide sample_size by 4
-  unsigned itteration_count = (sport->sample_size + 4 - 1) / 4; // equal to ceil(sport->sample_size/4)
-  #pragma loopbound min MSG_SIZE_WORDS max MSG_SIZE_WORDS
-  for (int i = 0; i < itteration_count; ++i) {
-    ((int _SPM *)sample)[i] = ((volatile int _SPM *)((volatile char _SPM *)sport->read_bufs+(newest*(sport->sample_size))))[i];
-  }
+  }*/
+  int _SPM * buf = (char _SPM *)sport->read_bufs+(newest*(sport->sample_size))
+  mem_copy((int _SPM *)sample,buf,sport->sample_size);
 
   return 1;
 
@@ -447,16 +429,12 @@ int mp_read(spd_t * sport, volatile void _SPM * sample) {
       msg_rev++;
     }
   }
-  if (msg_rev == 0) {
+/*  if (msg_rev == 0) {
     return 0;
-  }
-  // Since sample_size is in bytes and we want to copy 32 bit at the time we divide sample_size by 4
-  unsigned itteration_count = (((qpd_t *)sport)->buf_size + 4 - 1) / 4; // equal to ceil(sport->sample_size/4)
+  }*/
+  
   int _SPM * buf = (int _SPM *)(((qpd_t *)sport)->read_buf);
-  #pragma loopbound min MSG_SIZE_WORDS max MSG_SIZE_WORDS
-  for (int i = 0; i < itteration_count; ++i) {
-    ((int _SPM *)sample)[i] = buf[i];
-  }
+  mem_copy((int _SPM *)sample,buf,((qpd_t *)sport)->buf_size)
   mp_ack_n((qpd_t *)sport,0,msg_rev);
 
   return 1;
