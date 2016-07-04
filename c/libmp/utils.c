@@ -39,7 +39,6 @@
 
 #include "mp.h"
 #include "mp_internal.h"
-#include "mp_loopbound.h"
 
 
 size_t mp_send_alloc_size(qpd_t * qpd_ptr) {
@@ -84,15 +83,5 @@ int test_spm_size(){
   *(addr) = init;
   return -1;
 }
-
-static inline void mem_copy(int _SPM * to, int _SPM * from, int bytes){
-  // Since we want to copy 32 bit at the time we divide bytes by 4
-  unsigned itteration_count = (bytes + 4 - 1) / 4; // equal to ceil(bytes/4)
-  #pragma loopbound min MSG_SIZE_WORDS max MSG_SIZE_WORDS
-  for (int i = 0; i < itteration_count; ++i) {
-    to[i] = from[i];
-  }
-}
-
 
 

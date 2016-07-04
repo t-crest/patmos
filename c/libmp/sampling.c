@@ -151,6 +151,15 @@ spd_t * mp_create_sport(const unsigned int chan_id,
   #endif
 }
 
+static inline void mem_copy(int _SPM * to, int _SPM * from, int bytes){
+  // Since we want to copy 32 bit at the time we divide bytes by 4
+  unsigned itteration_count = (bytes + 4 - 1) / 4; // equal to ceil(bytes/4)
+  #pragma loopbound min MSG_SIZE_WORDS max MSG_SIZE_WORDS
+  for (int i = 0; i < itteration_count; ++i) {
+    to[i] = from[i];
+  }
+}
+
 #if IMPL == SINGLE_SHM
 
 void mp_read_cs(spd_t * sport, volatile void _SPM * sample) INLINING;
@@ -303,7 +312,7 @@ int mp_read(spd_t * sport, volatile void _SPM * sample) {
     // No sample value has been written yet.
     return 0;
   }*/
-  int _SPM * buf = (char _SPM *)sport->read_bufs+(newest*(sport->sample_size))
+  int _SPM * buf = (int _SPM *)((char _SPM *)sport->read_bufs+(newest*(sport->sample_size)));
   mem_copy((int _SPM *)sample,buf,sport->sample_size);
 
   return 1;
@@ -434,7 +443,7 @@ int mp_read(spd_t * sport, volatile void _SPM * sample) {
   }*/
   
   int _SPM * buf = (int _SPM *)(((qpd_t *)sport)->read_buf);
-  mem_copy((int _SPM *)sample,buf,((qpd_t *)sport)->buf_size)
+  mem_copy((int _SPM *)sample,buf,((qpd_t *)sport)->buf_size);
   mp_ack_n((qpd_t *)sport,0,msg_rev);
 
   return 1;
