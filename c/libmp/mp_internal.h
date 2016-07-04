@@ -55,6 +55,7 @@
 #define TRIPLE_NOC              3
 #define MULTI_NOC_NONBLOCKING   4
 #define MULTI_NOC_MP            5
+#define DOUBLE_NOC_WR           6
 
 #ifndef IMPL
 #define IMPL DOUBLE_NOC
