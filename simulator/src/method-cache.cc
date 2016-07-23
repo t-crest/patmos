@@ -67,13 +67,13 @@ bool ideal_method_cache_t::fetch(simulator_t &s, uword_t base, uword_t address, 
   return true;
 }
 
-bool ideal_method_cache_t::load_method(simulator_t &s, word_t address, word_t offset)
+bool ideal_method_cache_t::load_method(simulator_t &s, uword_t address, word_t offset)
 {
   current_base = address;
   return true;
 }
 
-bool ideal_method_cache_t::is_available(simulator_t &s, word_t address)
+bool ideal_method_cache_t::is_available(simulator_t &s, uword_t address)
 {
   return true;
 }
@@ -118,7 +118,7 @@ void lru_method_cache_t::method_info_t::reset_utilization() {
 
 unsigned int lru_method_cache_t::method_info_t::get_utilized_bytes() {
   uword_t utilized_bytes = 0;
-  for (int i = 0; i < Utilization.size(); i++) {
+  for (unsigned int i = 0; i < Utilization.size(); i++) {
     if (Utilization[i]) {
       utilized_bytes += sizeof(uword_t);
     }
@@ -229,7 +229,7 @@ void lru_method_cache_t::print_cache_state(simulator_t& s, std::ostream& dout,
                                            size_t active_method) const
 {
   dout << "     { ";
-  for (int i = 1; i <= Num_active_methods; i++) {
+  for (unsigned int i = 1; i <= Num_active_methods; i++) {
     if (i > 1 && ((i-1) % 4 == 0)) {
       dout << " |\n";
       dout << "       ";
@@ -255,11 +255,11 @@ void lru_method_cache_t::print_cache_state(simulator_t& s, std::ostream& dout,
 }
 
 void lru_method_cache_t::print_hit(simulator_t &s, std::ostream& dout, 
-                                   word_t address) const
+                                   uword_t address) const
 {
   size_t active_method = 0;
   // find active method
-  for (int i = 1; i <= Num_active_methods; i++) {
+  for (unsigned int i = 1; i <= Num_active_methods; i++) {
     if (Methods[Num_blocks - i].Address == address) {
       active_method = Num_blocks - i;
       break;
@@ -279,14 +279,14 @@ void lru_method_cache_t::print_hit(simulator_t &s, std::ostream& dout,
 }
 
 void lru_method_cache_t::print_miss(simulator_t &s, std::ostream& dout,
-                                    word_t address, uword_t evicted_methods, 
+                                    uword_t address, uword_t evicted_methods,
                                     uword_t evicted_blocks, 
                                     uword_t blocks_freed, 
                                     bool capacity_miss) const
 {
   size_t active_method = 0;
   // find the new active method
-  for (int i = 1; i <= Num_active_methods; i++) {
+  for (unsigned int i = 1; i <= Num_active_methods; i++) {
     if (Methods[Num_blocks - i].Address == address) {
       active_method = Num_blocks - i;
       break;
@@ -407,7 +407,7 @@ bool lru_method_cache_t::fetch(simulator_t &s, uword_t base, uword_t address, wo
   return do_fetch(s, Methods[Num_blocks - 1], address, iw);
 }
 
-bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offset)
+bool lru_method_cache_t::load_method(simulator_t &s, uword_t address, word_t offset)
 {
   // check status of the method cache
   switch(Phase)
@@ -566,7 +566,7 @@ bool lru_method_cache_t::load_method(simulator_t &s, word_t address, word_t offs
   abort();
 }
 
-bool lru_method_cache_t::is_available(simulator_t &s, word_t address)
+bool lru_method_cache_t::is_available(simulator_t &s, uword_t address)
 {
   // check if the address is in the cache
   for(int i = Num_blocks - 1; i >= (int)(Num_blocks - Num_active_methods);
@@ -811,7 +811,7 @@ bool fifo_method_cache_t::lookup(simulator_t &s, uword_t address)
   return base_t::is_available(s, address);
 }
 
-bool fifo_method_cache_t::load_method(simulator_t &s, word_t address, word_t offset)
+bool fifo_method_cache_t::load_method(simulator_t &s, uword_t address, word_t offset)
 {
   // check if the address is in the cache
   bool avail = base_t::load_method(s, address, offset);

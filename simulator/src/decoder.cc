@@ -48,7 +48,7 @@ namespace patmos
 {
   decoder_t::instructions_t decoder_t::Instructions;
   
-  unsigned int decoder_t::NOP_ID;
+  int decoder_t::NOP_ID;
 
   decoder_t::decoder_t()
   {
@@ -233,7 +233,7 @@ namespace patmos
 #include "instructions.inc"
   }
 
-  instruction_t &decoder_t::get_instruction(unsigned int ID)
+  instruction_t &decoder_t::get_instruction(int ID)
   {
     instruction_t *result = Instructions[ID].get<0>();
     assert(result && result->ID == ID);

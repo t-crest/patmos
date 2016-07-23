@@ -78,7 +78,7 @@ namespace patmos
     bool last() { return Positions.back() == Line.size(); }
     
     /// @return true when the current token is EOL
-    bool end() { return Positions.back() == -1; }
+    bool end() { return Positions.back() == (size_t)-1; }
     
     std::string tok() const { return Token; }
     

@@ -132,6 +132,8 @@ static patmos::data_cache_t &create_data_cache(patmos::set_assoc_cache_type dck,
     case patmos::SAC_FIFO:
       return *new patmos::set_assoc_data_cache_t<false>(gm, assoc, num_blocks, line_size);
   };
+
+  abort();
 }
 
 /// Construct a method cache for the simulation.
@@ -196,6 +198,8 @@ static patmos::instr_cache_t &create_iset_cache(patmos::set_assoc_cache_type isc
       return *new patmos::instr_cache_wrapper_t<true>(fifo);
     }
   }
+
+  abort();
 }
 
 static patmos::instr_cache_t &create_instr_cache(patmos::instr_cache_e ick, 

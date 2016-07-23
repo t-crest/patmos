@@ -69,7 +69,7 @@ bool no_instr_cache_t::fetch(simulator_t &s, uword_t base, uword_t address, word
   bool first_miss = Is_miss[0];
   int misses = 0;
   
-  for (int i = 0; i < NUM_SLOTS; i++) {
+  for (unsigned int i = 0; i < NUM_SLOTS; i++) {
     iw[i] = Fetch_cache[i];
     if (Is_miss[i]) {
       misses++;
@@ -93,12 +93,12 @@ bool no_instr_cache_t::fetch(simulator_t &s, uword_t base, uword_t address, word
   return true;
 }
 
-bool no_instr_cache_t::load_method(simulator_t &s, word_t address, word_t offset)
+bool no_instr_cache_t::load_method(simulator_t &s, uword_t address, word_t offset)
 {
   return true;
 }
 
-bool no_instr_cache_t::is_available(simulator_t &s, word_t address)
+bool no_instr_cache_t::is_available(simulator_t &s, uword_t address)
 {
   return true;
 }

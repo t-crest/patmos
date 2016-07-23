@@ -119,8 +119,7 @@ int main(int argc, char **argv)
   boost::program_options::options_description cmdline_options;
   cmdline_options.add_options()
     ("help,h", "produce help message")
-    ("binary,b", boost::program_options::value<std::string>()->default_value("-"), "binary or elf-executable file (stdin: -)")
-    ("verbose,v", "be verbosive");
+    ("binary,b", boost::program_options::value<std::string>()->default_value("-"), "binary or elf-executable file (stdin: -)");
 
   boost::program_options::positional_options_description pos;
   pos.add("binary", 1);
@@ -147,7 +146,6 @@ int main(int argc, char **argv)
   }
 
   std::string binary  = vm["binary"].as<std::string>();
-  bool        verbose = vm.count("verbose") != 0;
   
   // open streams
   try

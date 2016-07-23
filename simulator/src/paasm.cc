@@ -86,7 +86,7 @@ int main(int argc, char **argv)
       
       // replace tabs with spaces to make error outputs match
       // TODO ugly, but sufficient for now, and I want to minimize boost deps
-      for (int i = 0; i < line.size(); i++) {
+      for (unsigned int i = 0; i < line.size(); i++) {
         if (line[i] != '\t') continue;
         line = line.replace(i, 1, 8, ' ');
         i += 7;

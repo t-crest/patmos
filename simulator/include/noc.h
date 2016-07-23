@@ -84,9 +84,9 @@ namespace patmos
     noc_t(uword_t base_address, uword_t route_address, uword_t st_address,
            uword_t spm_address, uword_t spmsize, memory_t &spm) :
         mapped_device_t(base_address, spm_address+spmsize-base_address),
+        SPM(spm),
         Base_address(base_address), Route_address(route_address),
-        Slot_table_address(st_address), SPM_address(spm_address),
-        SPM(spm)
+        Slot_table_address(st_address), SPM_address(spm_address)
     {
     }
 

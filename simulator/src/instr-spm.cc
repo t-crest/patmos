@@ -59,7 +59,7 @@ bool instr_spm_t::fetch(simulator_t &s, uword_t base, uword_t address, word_t iw
   }
 }
 
-bool instr_spm_t::load_method(simulator_t &s, word_t address, word_t offset)
+bool instr_spm_t::load_method(simulator_t &s, uword_t address, word_t offset)
 {
   if (address < Size) {
     Num_loads++;
@@ -70,7 +70,7 @@ bool instr_spm_t::load_method(simulator_t &s, word_t address, word_t offset)
   }
 }
 
-bool instr_spm_t::is_available(simulator_t &s, word_t address)
+bool instr_spm_t::is_available(simulator_t &s, uword_t address)
 {
   if (address < Size) {
     return true;

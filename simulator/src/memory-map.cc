@@ -155,9 +155,9 @@ uword_t mmu_t::xlate(uword_t address, mmu_op_t op) {
     if (Segments[index].Length != 0 && offset >= Segments[index].Length) {
       simulation_exception_t::illegal_access(address);
     }
-    if (op == MMU_RD && (Segments[index].Perm & 0x4) == 0 ||
-        op == MMU_WR && (Segments[index].Perm & 0x2) == 0 ||
-        op == MMU_EX && (Segments[index].Perm & 0x1) == 0) {
+    if ((op == MMU_RD && (Segments[index].Perm & 0x4) == 0) ||
+        (op == MMU_WR && (Segments[index].Perm & 0x2) == 0) ||
+        (op == MMU_EX && (Segments[index].Perm & 0x1) == 0)) {
       simulation_exception_t::illegal_access(address);
     }
   }

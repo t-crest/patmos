@@ -221,7 +221,7 @@ namespace patmos
     instruction_data_t Pipeline[NUM_STAGES][NUM_SLOTS];
 
     /// Keep track of delays for interrupt triggering
-    int Delay_counter;
+    unsigned int Delay_counter;
     
     /// If set to true, flush the pipeline and halt the simulation.
     bool Halt;

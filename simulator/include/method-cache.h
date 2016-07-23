@@ -83,12 +83,12 @@ namespace patmos
     /// @param address The base address of the method.
     /// @param offset Offset within the method where execution should continue.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool load_method(simulator_t &s, word_t address, word_t offset);
+    virtual bool load_method(simulator_t &s, uword_t address, word_t offset);
 
     /// Check whether a method is in the method cache.
     /// @param address The base address of the method.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool is_available(simulator_t &s, word_t address);
+    virtual bool is_available(simulator_t &s, uword_t address);
 
     virtual uword_t get_active_method_base();
 
@@ -308,9 +308,9 @@ namespace patmos
     void print_cache_state(simulator_t &s, std::ostream &dout, 
                            size_t active_method) const;
     
-    void print_hit(simulator_t &s, std::ostream &dout, word_t address) const;
+    void print_hit(simulator_t &s, std::ostream &dout, uword_t address) const;
     
-    void print_miss(simulator_t &s, std::ostream &dout, word_t address,
+    void print_miss(simulator_t &s, std::ostream &dout, uword_t address,
                     uword_t evicted_methods, uword_t evicted_blocks, 
                     uword_t blocks_freed, bool capacity_miss) const;
     
@@ -361,12 +361,12 @@ namespace patmos
     /// @param address The base address of the method.
     /// @param offset Offset within the method where execution should continue.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool load_method(simulator_t &s, word_t address, word_t offset);
+    virtual bool load_method(simulator_t &s, uword_t address, word_t offset);
 
     /// Check whether a method is in the method cache.
     /// @param address The base address of the method.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool is_available(simulator_t &s, word_t address);
+    virtual bool is_available(simulator_t &s, uword_t address);
 
     virtual uword_t get_active_method_base();
 
@@ -430,7 +430,7 @@ namespace patmos
     /// @param address The base address of the method.
     /// @param offset Offset within the method where execution should continue.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool load_method(simulator_t &s, word_t address, word_t offset);
+    virtual bool load_method(simulator_t &s, uword_t address, word_t offset);
 
     virtual uword_t get_active_method_base();
 

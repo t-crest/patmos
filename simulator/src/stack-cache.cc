@@ -138,7 +138,7 @@ bool ideal_stack_cache_t::ensure(simulator_t &s, uword_t size, word_t delta,
     Content.insert(Content.begin(), size - Content.size(), 0);
   }
   // fill back from memory
-  for (int sp = new_spill - delta; sp < new_spill; sp++) {
+  for (unsigned int sp = new_spill - delta; sp < new_spill; sp++) {
     byte_t c;
     Memory.read_peek(s, sp, &c, 1, false);
     Content[Content.size() - (sp - new_top) - 1] = c;
@@ -326,7 +326,7 @@ bool block_stack_cache_t::reserve(simulator_t &s, uword_t size, word_t delta,
       if(delta > 0) 
       {
         // copy data to a buffer to allow contiguous transfer to the memory.
-        for(unsigned int i = 0; i < delta; i++)
+        for(int i = 0; i < delta; i++)
         {
           Buffer[delta - i - 1] = Content.front();
           Content.erase(Content.begin());
@@ -484,10 +484,10 @@ bool block_stack_cache_t::ensure(simulator_t &s, uword_t size, word_t delta,
                    0);
     
     // copy the data back into the stack cache
-    for(unsigned int i = 0; i < delta; i++)
+    for(int i = 0; i < delta; i++)
     {
       assert(delta - i - 1 >= 0);
-      assert(delta - i - 1 < Content.size());
+      assert(delta - i - 1 < (int)Content.size());
       Content[delta - i - 1]  = Buffer[i];
     }
 
@@ -540,12 +540,12 @@ bool block_stack_cache_t::spill(simulator_t &s, uword_t size, word_t delta,
         return true;
       }
 
-      if (Content.size() < delta) {
+      if ((int)Content.size() < delta) {
         simulation_exception_t::stack_exceeded("Trying to spill more than the current size of the stack.");
       }
       
       // copy data to a buffer to allow contiguous transfer to the memory.
-      for(unsigned int i = 0; i < delta; i++)
+      for(int i = 0; i < delta; i++)
       {
         Buffer[delta - i - 1] = Content.front();
         Content.erase(Content.begin());
@@ -780,7 +780,7 @@ bool block_aligned_stack_cache_t::free(simulator_t &s, uword_t size,
     return block_stack_cache_t::free(s, size, delta, new_spill, new_top);
 
   // ensure that a single block is to be filled
-  assert(delta == Num_transfer_block_bytes);
+  assert(delta == (word_t)Num_transfer_block_bytes);
 
   // only perform this the first time the function gets called
   if(Phase == IDLE)
@@ -919,7 +919,7 @@ word_t block_lazy_stack_cache_t::prepare_free(simulator_t &s, uword_t size,
                                        uword_t &stack_spill, uword_t &stack_top)
 {
   // no need to ensure that he lazy pointer is valid here
-  word_t tmp_lazy_pointer = Lazy_pointer + stack_top;
+  uword_t tmp_lazy_pointer = Lazy_pointer + stack_top;
   
   // perform the usual a sfree for the stack cache
   word_t retval = block_stack_cache_t::prepare_free(s, size, stack_spill, 

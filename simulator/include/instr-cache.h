@@ -69,12 +69,12 @@ namespace patmos
     /// @param address The base address of the method.
     /// @param offset Offset within the method where execution should continue.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool load_method(simulator_t &s, word_t address, word_t offset) = 0;
+    virtual bool load_method(simulator_t &s, uword_t address, word_t offset) = 0;
 
     /// Check whether a method is in the method cache.
     /// @param address The base address of the method.
     /// @return True when the method is available in the cache, false otherwise.
-    virtual bool is_available(simulator_t &s, word_t address) = 0;
+    virtual bool is_available(simulator_t &s, uword_t address) = 0;
 
     /// Notify the cache that a cycle passed.
     virtual void tick(simulator_t &s) = 0;
@@ -103,7 +103,7 @@ namespace patmos
     memory_t *Memory;
 
     /// Number of words fetched so far for the current fetch request.
-    word_t Fetched;
+    uword_t Fetched;
     
     /// Words fetched so far for the current fetch request.
     word_t Fetch_cache[NUM_SLOTS];
@@ -132,7 +132,7 @@ namespace patmos
     : Memory(&memory), Fetched(0),
       Num_all_miss(0), Num_first_miss(0), Num_succ_miss(0), Num_hits(0)
     {
-      for (int i = 0; i < NUM_SLOTS; i++) {
+      for (unsigned int i = 0; i < NUM_SLOTS; i++) {
         Is_miss[i] = false;
       }
     }
@@ -141,9 +141,9 @@ namespace patmos
 
     virtual bool fetch(simulator_t &s, uword_t base, uword_t address, word_t iw[NUM_SLOTS]);
 
-    virtual bool load_method(simulator_t &s, word_t address, word_t offset);
+    virtual bool load_method(simulator_t &s, uword_t address, word_t offset);
 
-    virtual bool is_available(simulator_t &s, word_t address);
+    virtual bool is_available(simulator_t &s, uword_t address);
     
     virtual void tick(simulator_t &s) {}
 

@@ -65,10 +65,12 @@ namespace patmos
       Exception_handler(excunit),
       BASE(0), PC(0), nPC(0), Debug_last_PC(0),
       Stall(SXX), Disable_IF(false),
-      Delay_counter(0), Traced_instructions(0), Halt(false), 
+      Delay_counter(0), Halt(false),
       Exception_handling_counter(0),
-      Flush_Cache_PC(std::numeric_limits<unsigned int>::max()), 
-      Stats_Start_Cycle(0), Num_NOPs(0)
+      Flush_Cache_PC(std::numeric_limits<unsigned int>::max()),
+      Stats_Start_Cycle(0),
+      Traced_instructions(0),
+      Num_NOPs(0)
   {
     // initialize the pipeline
     for(unsigned int i = 0; i < NUM_STAGES; i++)
@@ -153,7 +155,7 @@ namespace patmos
 
   void simulator_t::pipeline_flush(Pipeline_t pst)
   {
-    for (unsigned int i = 0; i < pst; i++)
+    for (int i = 0; i < pst; i++)
     {
       for(unsigned int j = 0; j < NUM_SLOTS; j++)
       {
@@ -937,11 +939,11 @@ namespace patmos
           % sum_discarded % (100.0 * (float)sum_discarded / (float)sum_fetched);
 
     os << "\n\n                            ";
-    for (int i = 0; i < NUM_SLOTS; i++) {
+    for (unsigned int i = 0; i < NUM_SLOTS; i++) {
       os << "      slot " << i;
     }
     os << "\nSlot utilization (w/ NOPs): ";
-    for (int i = 0; i < NUM_SLOTS; i++) {
+    for (unsigned int i = 0; i < NUM_SLOTS; i++) {
       os << boost::format(" %1$10.2f%%") 
          % (100.0 * (float)num_total_fetched[i] / (float)num_total_fetched[0] );
     }

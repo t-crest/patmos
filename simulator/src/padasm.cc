@@ -69,7 +69,7 @@ public:
     // decode bundle
     out << boost::format("  0x%1$08x:  ") % addr;
 
-    for (int i = 0; i < slots; i++) {
+    for (unsigned int i = 0; i < slots; i++) {
       if (i > 0) out << " || ";
       bundle[i].print(out, symbols);  
     }

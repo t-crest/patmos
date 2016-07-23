@@ -676,7 +676,7 @@ namespace patmos
     }
 
     // Write program.
-    for (int i = 0; i < Code.size(); i++) {
+    for (unsigned int i = 0; i < Code.size(); i++) {
         uword_t instr = Code[i];
         
         out << (char)(instr >> 24);

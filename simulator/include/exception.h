@@ -107,12 +107,12 @@ namespace patmos
     /// the address of an unmapped memory access, et cetera.
     simulation_exception_t(kind_t kind, uword_t info, uword_t pc = 0,
                            unsigned int cycle = 0) :
-        Kind(kind), Message(""), Info(info), PC(pc), Cycle(cycle)
+        Kind(kind), Info(info), PC(pc), Cycle(cycle), Message("")
     {}
     
     simulation_exception_t(kind_t kind, std::string msg, uword_t pc = 0, 
                            unsigned int cycle = 0) :
-        Kind(kind), Message(msg), Info(0), PC(pc), Cycle(cycle)
+        Kind(kind), Info(0), PC(pc), Cycle(cycle), Message(msg)
     {}
 
   public:

@@ -550,7 +550,7 @@ unsigned int tdm_memory_t::get_transfer_ticks(uword_t aligned_address,
 
 void tdm_memory_t::tick_request(request_info_t &req)
 {
-  int round_end = Round_start + Num_ticks_per_burst;
+  unsigned int round_end = Round_start + Num_ticks_per_burst;
   if (!req.Is_posted) {
     round_end += Num_read_delay_ticks;
   }

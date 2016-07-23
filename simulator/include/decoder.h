@@ -82,7 +82,7 @@ namespace patmos
     static instructions_t Instructions;
 
     /// ID of the instruction used to encode NOPs
-    static unsigned int NOP_ID;
+    static int NOP_ID;
     
     /// Initialize the simulation functions and binary formats.
     static void initialize_instructions();
@@ -131,7 +131,7 @@ namespace patmos
 
     /// Return instruction by ID.
     /// @return The instruction having the given ID.
-    static instruction_t &get_instruction(unsigned int ID);
+    static instruction_t &get_instruction(int ID);
   };  
 }
 

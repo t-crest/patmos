@@ -53,7 +53,7 @@ namespace patmos
   dbgstack_t::dbgstack_frame_t::
   dbgstack_frame_t(simulator_t &sim, uword_t ret_base, uword_t ret_offset, 
                    uword_t func) 
-   : ret_base(ret_base), ret_offs(ret_offset), function(func), 
+   : function(func), ret_base(ret_base), ret_offs(ret_offset),
      print_stats(false)
   {
     // if rsp has not been set yet, use int_max for now
@@ -92,7 +92,7 @@ namespace patmos
     //      slots (?)
     
     // check if the frame stack pointers are below the current pointers
-    if (frame.caller_tos_shadowstack < sim.GPR.get(rsp).get()) {
+    if (frame.caller_tos_shadowstack < (uword_t)sim.GPR.get(rsp).get()) {
 #ifdef DEBUG
       std::cerr << "\nWrong stadowstack: " 
                 << frame.caller_tos_shadowstack << " < " 

@@ -59,7 +59,7 @@ namespace patmos
     instr_cache_t *Cache;
 
     /// The size of the I-SPM.
-    word_t Size;
+    uword_t Size;
     
     /// Number of load requests for the SPM.
     uint64_t Num_loads;
@@ -89,9 +89,9 @@ namespace patmos
 
     virtual bool fetch(simulator_t &s, uword_t base, uword_t address, word_t iw[NUM_SLOTS]);
 
-    virtual bool load_method(simulator_t &s, word_t address, word_t offset);
+    virtual bool load_method(simulator_t &s, uword_t address, word_t offset);
 
-    virtual bool is_available(simulator_t &s, word_t address);
+    virtual bool is_available(simulator_t &s, uword_t address);
     
     virtual void tick(simulator_t &s) { Cache->tick(s); }
 

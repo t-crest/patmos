@@ -249,7 +249,7 @@ namespace patmos
     mmu_t(uword_t base_address, excunit_t *excunit)
     : mapped_device_t(base_address, MMU_MAP_SIZE), ExcUnit(excunit) {
 
-      for (int i = 0; i < sizeof(Segments)/sizeof(Segments[0]); i++) {
+      for (unsigned int i = 0; i < sizeof(Segments)/sizeof(Segments[0]); i++) {
         Segments[i].Base = 0;
         Segments[i].Perm = 0;
         Segments[i].Length = 0;

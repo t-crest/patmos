@@ -203,7 +203,7 @@ void elf_loader_t::load_to_memory(simulator_t &s, memory_t &m)
                    phdr.p_filesz);
       // Zero-initialize rest of segment
       byte_t zero = 0;
-      for (int off = phdr.p_filesz; off < phdr.p_memsz; off++) {
+      for (unsigned int off = phdr.p_filesz; off < phdr.p_memsz; off++) {
         m.write_peek(s, phdr.p_paddr + off, &zero, 1);
       }
     }
