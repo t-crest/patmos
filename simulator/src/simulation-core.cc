@@ -53,13 +53,13 @@
 
 namespace patmos
 {
-  simulator_t::simulator_t(memory_t &memory, memory_t &local_memory,
-                           data_cache_t &data_cache,
+  simulator_t::simulator_t(unsigned int freq, memory_t &memory,
+                           memory_t &local_memory, data_cache_t &data_cache,
                            instr_cache_t &instr_cache,
                            stack_cache_t &stack_cache, symbol_map_t &symbols,
                            excunit_t &excunit)
-    : Dbg_cnt_delay(0), 
-      Cycle(0), Memory(memory), Local_memory(local_memory),
+    : Dbg_cnt_delay(0),
+      Freq(freq), Cycle(0), Memory(memory), Local_memory(local_memory),
       Data_cache(data_cache), Instr_cache(instr_cache),
       Stack_cache(stack_cache), Symbols(symbols), Dbg_stack(*this),
       Exception_handler(excunit),

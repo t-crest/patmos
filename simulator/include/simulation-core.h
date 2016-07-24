@@ -151,6 +151,9 @@ namespace patmos
     typedef std::vector<instruction_stat_t> instruction_stats_t;
 
   public:
+    // The processor's execution frequency.
+    unsigned int Freq;
+
     /// Cycle counter
     uint64_t Cycle;
 
@@ -308,13 +311,14 @@ namespace patmos
     /// Construct a new instance of a Patmos-core simulator
     /// The simulator only retains the references of the arguments passed in the
     /// constructor, i.e., it does not clone them, proclaim ownership, etc.
+    /// @param freq The execution frequency of the processor core.
     /// @param memory The main memory to use during the simulation.
     /// @param local_memory The local memory to use during the simulation.
     /// @param data_cache The data cache to use during the simulation.
     /// @param instr_cache The instruction cache to use during the simulation.
     /// @param stack_cache The stack cache to use during the simulation.
     /// @param symbols A mapping from addresses to symbols.
-    simulator_t(memory_t &memory, memory_t &local_memory,
+    simulator_t(unsigned int freq, memory_t &memory, memory_t &local_memory,
                 data_cache_t &data_cache, instr_cache_t &instr_cache,
                 stack_cache_t &stack_cache, symbol_map_t &symbols,
                 excunit_t &excunit);

@@ -38,14 +38,26 @@
 #include "excunit.h"
 #include "exception.h"
 #include "simulation-core.h"
+#include "util.h"
+
+#include "ramulator/Controller.h"
+#include "ramulator/DDR3.h"
+#include "ramulator/DDR4.h"
+#include "ramulator/LPDDR3.h"
+#include "ramulator/LPDDR4.h"
+#include "ramulator/Memory.h"
+#include "ramulator/MemoryFactory.h"
 
 #include <boost/format.hpp>
+#include <boost/math/common_factor.hpp>
 
 #include <cassert>
 #include <cmath>
 #include <algorithm>
 #include <cstdlib>
 #include <iostream>
+
+// #define TRACE_RAMULATOR 1
 
 using namespace patmos;
 
@@ -580,4 +592,381 @@ void tdm_memory_t::tick(simulator_t &s)
   }
   
   fixed_delay_memory_t::tick(s);
+}
+
+namespace patmos {
+  template <class T>
+  unsigned int ramulator_memory_t<T>::CORE_ID = 0;
+
+  memory_t *make_ramulator_memory(std::string &ramul_config,
+                                  main_memory_kind_e kind,
+                                  unsigned int core_freq,
+                                  unsigned int memory_size,
+                                  unsigned int burst_size, bool randomize,
+                                  mem_check_e memchk)
+  {
+    // offers no way to check for errors
+    ramulator::Config config(ramul_config);
+    config.set_core_num(1);
+
+    // create a ramulator memory interface.
+    switch (kind)
+    {
+      case GM_RAMUL_DDR3:
+        return new ramulator_memory_t<ramulator::DDR3>(kind, config, core_freq,
+                                                      memory_size, burst_size,
+                                                      randomize, memchk);
+      case GM_RAMUL_DDR4:
+        return new ramulator_memory_t<ramulator::DDR4>(kind, config, core_freq,
+                                                      memory_size, burst_size,
+                                                      randomize, memchk);
+        break;
+      case GM_RAMUL_LPDDR3:
+        return new ramulator_memory_t<ramulator::LPDDR3>(kind, config, core_freq,
+                                                        memory_size, burst_size,
+                                                        randomize, memchk);
+        break;
+      case GM_RAMUL_LPDDR4:
+        return new ramulator_memory_t<ramulator::LPDDR4>(kind, config, core_freq,
+                                                        memory_size, burst_size,
+                                                        randomize, memchk);
+        break;
+
+      case GM_SIMPLE:
+        abort();
+    }
+
+    abort();
+  }
+}
+
+template <class T>
+ramulator_memory_t<T>::ramulator_memory_t(main_memory_kind_e kind,
+                                          ramulator::Config &config,
+                                          unsigned int core_freq,
+                                          unsigned int memory_size,
+                                          unsigned int burst_size,
+                                          bool randomize, mem_check_e memchk) :
+  ideal_memory_t(memory_size, randomize, memchk), Config(config),
+  Mem((ramulator::Memory<T>*)ramulator::MemoryFactory<T>::create(config,
+                                                                 burst_size)),
+  Num_core_ticks_cnt(0),
+  Num_burst_bytes(burst_size), Pending_start(0), Num_bursts_pending(0),
+  Num_bursts_enqueued(0), Num_bursts_done(0),
+  Num_requests_store(0), Num_requests_load(0),  Num_bursts_store(0),
+  Num_bursts_load(0), Num_bytes_store(0), Num_bytes_load(0),
+  Num_stall_cycles_store(0), Num_stall_cycles_load(0), Num_full_queue_store(0),
+  Num_full_queue_load(0)
+{
+  // Taken from ramulator's Controller.h: ensure that burst sizes match
+  assert(((unsigned)Mem->spec->prefetch_size * Mem->spec->channel_width / 8)
+                                                            == Num_burst_bytes);
+
+  // compute parameters to synchronize clock of core and memory.
+  unsigned int mem_freq = 1000/Mem->clk_ns();
+  unsigned int lcm = boost::math::lcm(core_freq, mem_freq);
+  Num_core_ticks = lcm/mem_freq;
+  Num_mem_ticks = lcm/core_freq;
+}
+
+template <class T>
+ramulator_memory_t<T>::~ramulator_memory_t()
+{
+  Mem->finish();
+  delete Mem;
+}
+
+template <class T>
+void ramulator_memory_t<T>::done_callback(ramulator::Request &r)
+{
+  // check that the completed request belongs to the outstanding request.
+  assert(Pending_start <= r.addr &&
+         r.addr <= Pending_start + Num_bursts_pending*Num_burst_bytes);
+
+#ifdef TRACE_RAMULATOR
+    std::cerr << boost::format("RAMUL: request done: start=0x%1$08x address=0x%2$08x\n")
+             % Pending_start % r.addr;
+#endif // TRACE_RAMULATOR
+
+  // collect stats
+  Read_latencies[r.depart - r.arrive]++;
+
+  // one burst done
+  Num_bursts_done++;
+}
+
+template <class T>
+bool ramulator_memory_t<T>::read(simulator_t &s, uword_t address, byte_t *value,
+                                 uword_t size, bool is_fetch)
+{
+  // No request pending?
+  if (Pending_start == 0)
+  {
+    // compute request characteristics.
+    Pending_start = align_down(address, Num_burst_bytes);
+    Num_bursts_pending = (align_up(address + size, Num_burst_bytes) -
+                          Pending_start) / Num_burst_bytes;
+    Num_bursts_enqueued = 0;
+    Num_bursts_done = 0;
+
+#ifdef TRACE_RAMULATOR
+    std::cerr << boost::format("RAMUL: new read request: start=0x%1$08x (0x%2$08x) size=%3$d (%4$d)\n")
+              % address % Pending_start % size % Num_bursts_pending;
+#endif // TRACE_RAMULATOR
+
+    Num_requests_load++;
+    Num_bursts_load += Num_bursts_pending;
+    Num_bytes_load += size;
+  }
+  else if (Num_bursts_pending == Num_bursts_done)
+  {
+    // seems all bursts have been transferred ... done.
+
+#ifdef TRACE_RAMULATOR
+    std::cerr << boost::format("RAMUL: read request done: start=0x%1$08x (0x%2$08x) size=%3$d (%4$d)\n")
+              % address % Pending_start % size % Num_bursts_pending;
+#endif // TRACE_RAMULATOR
+
+    // rest the pending request information
+    Pending_start = Num_bursts_pending = 0;
+    Num_bursts_enqueued = Num_bursts_done = 0;
+
+    // do the actual access.
+    return ideal_memory_t::read(s, address, value, size, is_fetch);
+  }
+
+  // check that current request is within the range of the outstanding request.
+  assert(Pending_start <= address &&
+         address + size <= Pending_start + Num_bursts_pending*Num_burst_bytes);
+
+  // Send/enqueue requests to/at ramulator
+  function<void(Request&)> cb = std::bind(
+                          std::mem_fn(&ramulator_memory_t::done_callback), this,
+                                      std::placeholders::_1);
+
+  while(Num_bursts_enqueued < Num_bursts_pending)
+  {
+    unsigned int requestAddr = Pending_start +
+                               Num_bursts_enqueued*Num_burst_bytes;
+    if (!Mem->send(ramulator::Request(requestAddr,
+                                      ramulator::Request::Type::READ, cb)))
+    {
+#ifdef TRACE_RAMULATOR
+      std::cerr << "RAMUL: queue full\n";
+#endif // TRACE_RAMULATOR
+
+      Num_full_queue_load++;
+      Num_stall_cycles_load++;
+
+      // ramulator's queues are full ... stall
+      return false;
+    }
+    else
+    {
+      // record that the request was enqued by the DRAM controller. this does
+      // not mean that it is done -- see done_callback.
+      Num_bursts_enqueued++;
+
+      // assume that all bursts can be enqued simultaneous ... no stalling here
+    }
+  }
+
+  // stall until all burst requests have been serviced by ramulator -- signaled
+  // using the done_callback function
+  Num_stall_cycles_load++;
+
+  return false;
+}
+
+template <class T>
+bool ramulator_memory_t<T>::write(simulator_t &s, uword_t address,
+                                  byte_t *value, uword_t size)
+{
+  // No request pending?
+  if (Pending_start == 0)
+  {
+    // compute request characteristics.
+    Pending_start = align_down(address, Num_burst_bytes);
+    Num_bursts_pending = (align_up(address + size, Num_burst_bytes) -
+                          Pending_start) / Num_burst_bytes;
+    Num_bursts_enqueued = 0;
+    Num_bursts_done = 0;
+#ifdef TRACE_RAMULATOR
+    std:cerr << boost::format("RAMUL: new store request: start=0x%1$08x (0x%2$08x) size=%3$d (%4$d)\n")
+             % address % Pending_start % size % Num_bursts_pending;
+#endif // TRACE_RAMULATOR
+
+    Num_requests_store++;
+    Num_bursts_store += Num_bursts_pending;
+    Num_bytes_store += size;
+  }
+
+  // check that current request is within the range of the outstanding request.
+  assert(Pending_start <= address &&
+         address + size <= Pending_start + Num_bursts_pending*Num_burst_bytes);
+
+  // Send/enqueue requests to/at ramulator
+  while(Num_bursts_enqueued < Num_bursts_pending)
+  {
+    unsigned int requestAddr = Pending_start +
+                               Num_bursts_enqueued*Num_burst_bytes;
+    if (!Mem->send(ramulator::Request(requestAddr,
+                                      ramulator::Request::Type::WRITE)))
+    {
+#ifdef TRACE_RAMULATOR
+      std::cerr << "RAMUL: queue full\n";
+#endif // TRACE_RAMULATOR
+
+      Num_stall_cycles_store++;
+      Num_full_queue_store++;
+
+      // ramulator's queues are full ... stall
+      return false;
+    }
+    else
+    {
+      // stores are not covered by the callback mechanism, i.e., once accepted
+      // we consider them done.
+      Num_bursts_enqueued++;
+      Num_bursts_done++;
+    }
+  }
+
+  // all burst requests are accepted by ramulator ... done.
+  assert(Num_bursts_pending == Num_bursts_done);
+
+#ifdef TRACE_RAMULATOR
+    std::cerr << boost::format("RAMUL: store request done: start=0x%1$08x (0x%2$08x) size=%3$d (%4$d)\n")
+             % address % Pending_start % size % Num_bursts_pending;
+#endif // TRACE_RAMULATOR
+
+  // rest the pending request information
+  Pending_start = Num_bursts_pending = 0;
+  Num_bursts_enqueued = Num_bursts_done = 0;
+
+  // do the actual access.
+  return ideal_memory_t::write(s, address, value, size);
+}
+
+template <class T>
+bool ramulator_memory_t<T>::is_ready()
+{
+  return Num_bursts_pending != Num_bursts_done;
+}
+
+template <class T>
+void ramulator_memory_t<T>::tick(simulator_t &s)
+{
+#ifdef TRACE_RAMULATOR
+    std::cerr << boost::format("RAMUL: pending=%1$d enqueed=%2$d done=%3$d tick=%4$d (%5$d/%6$d)\n")
+              % Num_bursts_pending % Num_bursts_enqueued % Num_bursts_done
+              % Num_core_ticks_cnt % Num_core_ticks % Num_mem_ticks;
+#endif // TRACE_RAMULATOR
+
+  // translate core frequency to memory frequency
+  Num_core_ticks_cnt++;
+
+  if (Num_core_ticks_cnt == Num_core_ticks)
+  {
+    Num_core_ticks_cnt = 0;
+    for(unsigned int i = 0; i < Num_mem_ticks; i++)
+    {
+      Mem->tick();
+    }
+  }
+}
+
+template <class T>
+void ramulator_memory_t<T>::print_stats(const simulator_t &s, std::ostream &os,
+                                        const stats_options_t& options)
+{
+  ideal_memory_t::print_stats(s, os, options);
+
+  float total_stall_cycles = (Num_stall_cycles_store + Num_stall_cycles_load);
+  float cycles = s.Cycle;
+  float stall_percentage = (total_stall_cycles*100)/cycles;
+
+
+  // print model standard, configuration, and description.
+
+  // lets assume here that channels are configured in a uniform manner.
+  DRAM<T> *level = Mem->ctrls[0]->channel;
+
+  os << boost::format("   Model : %1$dx")
+      % Mem->ctrls.size();
+
+  while (level->children.size() != 0)
+  {
+    os << boost::format("%1$dx") % level->children.size();
+    level = level->children[0];
+  }
+
+  os << boost::format("%2$dMb %1$dx%3$dn %4$s %5$d %6$.0fMhz\n\n")
+     % Mem->spec->org_entry.dq % Mem->spec->org_entry.size
+     % Mem->spec->prefetch_size
+     % Mem->spec->standard_name
+     % Mem->spec->speed_entry.rate % Mem->spec->speed_entry.freq;
+
+  // print global memory stats
+  os << boost::format("                                  total  %% of cycles        load       store\n"
+                      "   Requests                : %1$10d               %2$10d  %3$10d\n"
+                      "   Bursts transferred      : %4$10d               %5$10d  %6$10d\n"
+                      "   Bytes transferred       : %7$10d               %8$10d  %9$10d\n"
+                      "   Stall cycles            : %10$10d %11$10.2f%%   %12$10d  %13$10d\n"
+                      "   Queue full              : %14$10d               %15$10d  %16$10d\n")
+      % (Num_requests_store + Num_requests_load)
+      % Num_requests_load % Num_requests_store
+      % (Num_bursts_store + Num_bursts_load)
+      % Num_bursts_load % Num_bursts_store
+      % (Num_bytes_store + Num_bytes_load)
+      % Num_bytes_load % Num_bytes_store
+      % total_stall_cycles % stall_percentage
+      % Num_stall_cycles_load % Num_stall_cycles_store
+      % (Num_full_queue_store + Num_full_queue_load)
+      % Num_full_queue_load % Num_full_queue_store;
+
+  // print statistics per channel and bank
+  unsigned int channel_idx = 0;
+  for(typename Controllers_t::const_iterator i(Mem->ctrls.begin()),
+      ie(Mem->ctrls.end()); i != ie; i++, channel_idx++)
+  {
+    os << boost::format("   Row Hits[%1$d]             : %2$10d               %3$10d  %4$10d\n"
+                        "   Row Misses[%1$d]           : %5$10d               %6$10d  %7$10d\n"
+                        "   Row Conflicts[%1$d]        : %8$10d               %9$10d  %10$10d\n")
+        % channel_idx
+        % (*i)->row_hits.value()
+        % (*i)->read_row_hits[CORE_ID].value()
+        % (*i)->write_row_hits[CORE_ID].value()
+        % (*i)->row_misses.value()
+        % (*i)->read_row_misses[CORE_ID].value()
+        % (*i)->write_row_misses[CORE_ID].value()
+        % (*i)->row_conflicts.value()
+        % (*i)->read_row_conflicts[CORE_ID].value()
+        % (*i)->write_row_conflicts[CORE_ID].value();
+
+    unsigned int rank_idx = 0;
+    for(typename DRAMs_t::const_iterator j((*i)->channel->children.begin()),
+        je((*i)->channel->children.end()); j != je; j++, rank_idx++)
+    {
+      os << boost::format("    Active DRAM Cycles[%1$d]  : %2$10d\n"
+                          "    Refresh DRAM Cycles[%1$d] : %3$10d\n"
+                          "    Busy DRAM Cycles[%1$d]    : %4$10d\n")
+          % rank_idx
+          % (*j)->active_cycles.value()
+          % (*j)->refresh_cycles.value()
+          % ((*j)->active_cycles.value()
+            + (*j)->refresh_cycles.value()
+            - (*j)->active_refresh_overlap_cycles.value());
+    }
+  }
+
+  os << "\n"
+        "  Read Latency Histogram (DRAM cycles):\n"
+        "   Latency  Count\n";
+
+  for(Latencies_t::const_iterator i(Read_latencies.begin()),
+      ie(Read_latencies.end()); i != ie; i++)
+  {
+      os << boost::format("   %1$d        %2$d\n") % i->first % i->second;
+  }
 }

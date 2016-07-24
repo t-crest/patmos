@@ -111,7 +111,27 @@ namespace patmos
   /// @param os An output stream.
   /// @param df The check type.
   std::ostream &operator <<(std::ostream &os, mem_check_e mck);
-  
+
+  /// Parsing main memory kinds as command-line options.
+  enum main_memory_kind_e
+  {
+    GM_SIMPLE,
+    GM_RAMUL_DDR3,
+    GM_RAMUL_DDR4,
+    GM_RAMUL_LPDDR3,
+    GM_RAMUL_LPDDR4
+  };
+
+  /// Parse a main memory kind from a string in a stream
+  /// @param in An input stream to read from.
+  /// @param gmk The memory kind.
+  std::istream &operator >>(std::istream &in, main_memory_kind_e &gmk);
+
+  /// Write a main memory kind as a string to an output stream.
+  /// @param os An output stream.
+  /// @param gmk The main memory kind.
+  std::ostream &operator <<(std::ostream &os, main_memory_kind_e gmk);
+
   /// Parsing set-associative cache kinds as command-line options.
   enum set_assoc_policy_e
   {

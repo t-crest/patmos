@@ -41,15 +41,18 @@ if (NOT ELF_INCLUDE_DIRS)
   message(FATAL_ERROR "libelf headers not found.")
 endif()
 
-include_directories(include ${Boost_INCLUDE_DIRS} ${ELF_INCLUDE_DIRS})
+include_directories(include ./ ${Boost_INCLUDE_DIRS} ${ELF_INCLUDE_DIRS})
 
 # make sure the boost templates compile
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth-1024")
+
+add_definitions("-DRAMULATOR")
 
 # enable testing using ctest
 enable_testing()
 
 # add sub-directories
+add_subdirectory(ramulator)
 add_subdirectory(src)
 add_subdirectory(tests)
 

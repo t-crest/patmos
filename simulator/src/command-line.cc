@@ -340,6 +340,50 @@ namespace patmos
     return os;
   }
 
+  std::istream &operator >>(std::istream &in, main_memory_kind_e &gmk)
+  {
+    std::string tmp, kind;
+    in >> tmp;
+
+    kind.resize(tmp.size());
+    std::transform(tmp.begin(), tmp.end(), kind.begin(), ::tolower);
+
+    if(kind == "simple")
+      gmk = GM_SIMPLE;
+    else if(kind == "ddr3")
+      gmk = GM_RAMUL_DDR3;
+    else if(kind == "ddr4")
+      gmk = GM_RAMUL_DDR4;
+    else if(kind == "lpddr3")
+      gmk = GM_RAMUL_LPDDR3;
+    else if(kind == "lpddr4")
+      gmk = GM_RAMUL_LPDDR4;
+    else throw boost::program_options::validation_error(
+                 boost::program_options::validation_error::invalid_option_value,
+                 "Unknown main memory kind: " + tmp);
+
+    return in;
+  }
+
+  std::ostream &operator <<(std::ostream &os, main_memory_kind_e gmk)
+  {
+    switch(gmk)
+    {
+      case GM_SIMPLE:
+        os << "simple"; break;
+      case GM_RAMUL_DDR3:
+        os << "ddr3"; break;
+      case GM_RAMUL_DDR4:
+        os << "ddr4"; break;
+      case GM_RAMUL_LPDDR3:
+        os << "lpddr3"; break;
+      case GM_RAMUL_LPDDR4:
+        os << "lpddr4"; break;
+    }
+
+    return os;
+  }
+
   std::istream &operator >>(std::istream &in, stack_cache_e &sck)
   {
     std::string tmp, kind;

@@ -65,10 +65,16 @@
 
 
 /// Construct a global memory for the simulation.
+/// @param kind The kind of the main memory (simple, DDR3, DDR4, ...)
+/// @param freq Processor core frequency (Mhz).
 /// @param burst_time Access time in cycles for memory accesses.
 /// @param size The requested size of the memory in bytes.
+/// @param ramul_config Name of the ramulator configuration file. This is only
+/// needed when the memory kind based on ramulator (i.e., GM_RAMUL_*).
 /// @return An instance of the requested memory.
-static patmos::memory_t &create_global_memory(unsigned int cores,
+static patmos::memory_t &create_global_memory(patmos::main_memory_kind_e kind,
+                                              unsigned int freq,
+                                              unsigned int cores,
                                               unsigned int cpu_id,
                                               unsigned int size,
                                               unsigned int burst_size,
@@ -78,29 +84,49 @@ static patmos::memory_t &create_global_memory(unsigned int cores,
                                               unsigned int read_delay,
                                               unsigned int refresh_cycles,
                                               bool randomize_mem, 
-                                              patmos::mem_check_e chkreads)
+                                              patmos::mem_check_e chkreads,
+                                              std::string &ramul_config)
 {
   if (cores > 1) {
+    if (kind != patmos::GM_SIMPLE)
+    {
+      std::cerr << "Selected memory model not compatible with multi-core "
+                   "sumulation.\n";
+      abort();
+    }
+
     return *new patmos::tdm_memory_t(size, burst_size, posted, cores, cpu_id,
                                      burst_time, read_delay, refresh_cycles,
                                      randomize_mem, chkreads);
   } 
-  else if (cores == 1) {
-    if (burst_time == 0 && read_delay == 0)
-      return *new patmos::ideal_memory_t(size, randomize_mem, chkreads);
-    else if (page_size == 0)
-      return *new patmos::fixed_delay_memory_t(size, burst_size, posted, 
-                                              burst_time, read_delay,
-                                              randomize_mem, chkreads);
-    else
-      return *new patmos::variable_burst_memory_t(size, burst_size, page_size,
-                                              posted, burst_time, read_delay,
-                                              randomize_mem, chkreads);
-  } 
-  else {
-    std::cerr << "Invalid number of cores.\n";
-    abort();
+  else if (cores == 1)
+  {
+    switch (kind)
+    {
+      case patmos::GM_SIMPLE:
+        if (burst_time == 0 && read_delay == 0)
+          return *new patmos::ideal_memory_t(size, randomize_mem, chkreads);
+        else if (page_size == 0)
+          return *new patmos::fixed_delay_memory_t(size, burst_size, posted,
+                                                  burst_time, read_delay,
+                                                  randomize_mem, chkreads);
+        else
+          return *new patmos::variable_burst_memory_t(size, burst_size, page_size,
+                                                  posted, burst_time, read_delay,
+                                                  randomize_mem, chkreads);
+        break; // should not be reachable anyway
+      case patmos::GM_RAMUL_DDR3:
+      case patmos::GM_RAMUL_DDR4:
+      case patmos::GM_RAMUL_LPDDR3:
+      case patmos::GM_RAMUL_LPDDR4:
+        return *patmos::make_ramulator_memory(ramul_config, kind, freq, size,
+                                              burst_size, randomize_mem,
+                                              chkreads);
+    }
   }
+
+  std::cerr << "Invalid number of cores.\n";
+  abort();
 }
 
 /// Construct a data cache for the simulation.
@@ -334,6 +360,7 @@ int main(int argc, char **argv)
 
   boost::program_options::options_description memory_options("Memory options");
   memory_options.add_options()
+    ("gkind,R", boost::program_options::value<patmos::main_memory_kind_e>()->default_value(patmos::GM_SIMPLE), "kind of main memory (simple, ddr3, ddr4, lpddr3, lpddr4)")
     ("gsize,g",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_MEMORY_BYTES), "global memory size in bytes.")
     ("gtime,G",  boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_TRANSFER_LATENCY), 
                  "global memory transfer time per burst in cycles")
@@ -348,6 +375,7 @@ int main(int argc, char **argv)
     ("chkreads", boost::program_options::value<patmos::mem_check_e>()->default_value(patmos::MCK_NONE), 
                  "Check for reads of uninitialized data, either per byte (warn, err) or per access (warn-addr, err-addr). Disables the data cache.")
     ("with-mmu", boost::program_options::value<bool>()->default_value(false), "Simulate memory management unit.")
+    ("ramul-config", boost::program_options::value<std::string>()->default_value(""), "name of ramulator configuration file.")
 ;
 
   boost::program_options::options_description noc_options("Network-on-chip options");
@@ -473,7 +501,10 @@ int main(int argc, char **argv)
   unsigned int ethmac_offset = vm["ethmac_offset"].as<patmos::address_t>().value();
   std::string  ethmac_ip_addr = vm["ethmac_ip_addr"].as<std::string>();
 
+  patmos::main_memory_kind_e gkind =
+                                   vm["gkind"].as<patmos::main_memory_kind_e>();
   unsigned int gsize = vm["gsize"].as<patmos::byte_size_t>().value();
+  std::string ramul_config = vm["ramul-config"].as<std::string>();
   unsigned int ispmsize = vm["ispmsize"].as<patmos::byte_size_t>().value();
   unsigned int lsize = vm["lsize"].as<patmos::byte_size_t>().value();
   unsigned int dcsize = vm["dcsize"].as<patmos::byte_size_t>().value();
@@ -564,10 +595,11 @@ int main(int argc, char **argv)
   srand(0);
   
   // setup simulation framework
-  patmos::memory_t &gm = create_global_memory(cores, cpuid, gsize, 
+  patmos::memory_t &gm = create_global_memory(gkind, freq, cores, cpuid, gsize,
                                               bsize, psize,
                                               posted, gtime, tdelay, trefresh,
-                                              randomize_mem, chkreads);
+                                              randomize_mem, chkreads,
+                                              ramul_config);
   patmos::instr_cache_t &ic = create_instr_cache(ick, isck, mck, mcsize, 
                                                  ilsize ? ilsize : bsize, 
                                                  mbsize, mcmethods, 
@@ -605,7 +637,7 @@ int main(int argc, char **argv)
     
     patmos::symbol_map_t sym;
 
-    patmos::simulator_t s(gm, mm, dc, ic, sc, sym, excunit);
+    patmos::simulator_t s(freq, gm, mm, dc, ic, sc, sym, excunit);
 
     // setup statistics printing
     patmos::stats_options_t &stats_options = s.Dbg_stack.get_stats_options();
@@ -750,11 +782,13 @@ int main(int argc, char **argv)
         *sout << " --ethmac_ip_addr=" << ethmac_ip_addr;
         
         *sout << "\n  ";
+        *sout << " --gkind=" << gkind;
         *sout << " --gsize=" << gsize;
         *sout << " --gtime=" << gtime;
         *sout << " --tdelay=" << tdelay << " --trefresh=" << trefresh;
         *sout << " --bsize=" << bsize << " --psize=" << psize;
         *sout << " --posted=" << posted; 
+        *sout << " --ramul-config=" << ramul_config;
         
         *sout << "\n  ";
         *sout << " --nocbase=" << nocbase;

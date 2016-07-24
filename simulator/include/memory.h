@@ -40,6 +40,9 @@
 #include "basic-types.h"
 #include "command-line.h"
 
+#include "ramulator/Config.h"
+#include "ramulator/Memory.h"
+
 #include <map>
 #include <iostream>
 
@@ -498,6 +501,158 @@ namespace patmos
                  bool randomize, mem_check_e memchk);
     
     virtual void tick(simulator_t &s);
+  };
+
+  /// Create an ramulator-based main memory.
+  /// @param ramul_config Name of ramulator configuration file.
+  /// @param kind The specific kind of the memory (DDR3, DDR4, ...)
+  /// @param core_freq Frequency of the processor core (in Mhz).
+  /// @param memory_size The total size of the memory.
+  /// @param burst_size The burst size of the memory.
+  /// @param randomize Randomize the memory contents instead of clearing it.
+  /// @param memchk Configure error reporting of invalid accesses/addresses.
+  extern memory_t *make_ramulator_memory(std::string &ramul_config,
+                                         main_memory_kind_e kind,
+                                         unsigned int core_freq,
+                                         unsigned int memory_size,
+                                         unsigned int burst_size,
+                                         bool randomize, mem_check_e memchk);
+
+  /// Use the ramulator emulation framework to emulate access latencies of main
+  /// memory.
+  template <class T>
+  class ramulator_memory_t : public ideal_memory_t
+  {
+  private:
+    typedef std::vector<Controller<T>*> Controllers_t;
+    typedef std::vector<DRAM<T>*> DRAMs_t;
+    typedef std::map<unsigned int, unsigned int> Latencies_t;
+
+
+    /// Numeric ID identifying the current core within ramulator.
+    static unsigned int CORE_ID;
+
+    /// Ramulator memory configuration
+    const ramulator::Config Config;
+
+    /// Ramulator memory simulation interface.
+    ramulator::Memory<T> *Mem;
+
+    /// Frequency translation from processor core to memory.
+    /// Number of core ticks until least common multiple is reached with memory
+    /// frequency.
+    unsigned int Num_core_ticks;
+
+    /// Frequency translation from processor core to memory. Counter needed to
+    /// perform translation.
+    unsigned int Num_core_ticks_cnt;
+
+    /// Frequency translation from processor core to memory.
+    /// Number of memory ticks until least common multiple is reached with core
+    /// frequency.
+    unsigned int Num_mem_ticks;
+
+    // Burst size (in bytes).
+    unsigned int Num_burst_bytes;
+
+    // Aligned start address of an outstanding request, or 0.
+    uword_t Pending_start;
+
+    // Number of bursts for outstanding request, or 0.
+    uword_t Num_bursts_pending;
+
+    // Number of burst requests sent/enqueued to/by memory.
+    unsigned Num_bursts_enqueued;
+
+    // Number of completed bursts of an outstanding request.
+    unsigned Num_bursts_done;
+
+    // Statistics on the number of store requests
+    unsigned Num_requests_store;
+
+    // Statistics on the number of load requests
+    unsigned Num_requests_load;
+
+    // Statistics on the number of store bursts
+    unsigned Num_bursts_store;
+
+    // Statistics on the number of load bursts
+    unsigned Num_bursts_load;
+
+    // Statistics on the number bytes transferred for stores
+    unsigned Num_bytes_store;
+
+    // Statistics on the number bytes transferred for loads
+    unsigned Num_bytes_load;
+
+    // Statistics on stall cycles for store requests
+    unsigned Num_stall_cycles_store;
+
+    // Statistics on stall cycles for load requests
+    unsigned Num_stall_cycles_load;
+
+    // Statistics on full request queues for store requests (counting retries)
+    unsigned Num_full_queue_store;
+
+    // Statistics on full request queues for load requests (counting retries)
+    unsigned Num_full_queue_load;
+
+    // Statistics on read latencies
+    Latencies_t Read_latencies;
+
+    /// Callback from ramulator to signal that a request is done.
+    void done_callback(ramulator::Request &r);
+  public:
+    /// Create an ramulator-based main memory.
+    /// @param kind The specific kind of the memory (DDR3, DDR4, ...)
+    /// @param core_freq Frequency of the processor core (in Mhz).
+    /// @param config Additional configuration parameters for ramulator.
+    /// @param memory_size The total size of the memory.
+    /// @param burst_size The burst size of the memory.
+    /// @param randomize Randomize the memory contents instead of clearing it.
+    /// @param memchk Configure error reporting of invalid accesses/addresses.
+    ramulator_memory_t(main_memory_kind_e kind, ramulator::Config &config,
+                       unsigned int core_freq,
+                       unsigned int memory_size, unsigned int burst_size,
+                       bool randomize, mem_check_e memchk);
+
+    virtual ~ramulator_memory_t();
+
+    /// A simulated access to a read port.
+    /// @param s The core performing the access
+    /// @param address The memory address to read from.
+    /// @param value A pointer to a destination to store the value read from
+    /// the memory.
+    /// @param size The number of bytes to read.
+    /// @param is_fetch Indicate whether this is an instruction fetch or a data
+    /// load.
+    /// @return True when the data is available from the read port.
+    virtual bool read(simulator_t &s, uword_t address, byte_t *value,
+                      uword_t size, bool is_fetch);
+
+    /// A simulated access to a write port.
+    /// @param s The core performing the access
+    /// @param address The memory address to write to.
+    /// @param value The value to be written to the memory.
+    /// @param size The number of bytes to write.
+    /// @return True when the data is written finally to the memory, false
+    /// otherwise.
+    virtual bool write(simulator_t &s, uword_t address, byte_t *value,
+                       uword_t size);
+
+    /// @return False in case the memory is currently handling some request,
+    /// otherwise true.
+    virtual bool is_ready();
+
+    /// Notify the memory that a cycle has passed.
+    virtual void tick(simulator_t &s);
+
+    /// Print statistics to an output stream.
+    /// @param s The main simulator instance.
+    /// @param os The output stream to print to.
+    /// @param options Options on statistic format/verbosity/...
+    virtual void print_stats(const simulator_t &s, std::ostream &os,
+                             const stats_options_t& options);
   };
 }
 
