@@ -655,13 +655,16 @@ namespace patmos
     
     if (has_imm) {
       if (!parser.parse_expression(instr.OPS.LDT.Imm, reloc, true)) return false;
+
+      if (negate)
+        instr.OPS.STT.Imm2 = extract(-instr.OPS.STT.Imm2, 0, 7);
     } else {
       instr.OPS.LDT.Imm = 0;
     }
     
     if (!parser.match_token("]")) return false;
     
-    if (!fits(instr.OPS.LDT.Imm, 7)) {
+    if (!fitu(instr.OPS.LDT.Imm, 7)) {
       parser.set_error("immediate value too large.");
       return false;
     }
@@ -674,7 +677,7 @@ namespace patmos
   {
     uword_t iw = Opcode;
 
-    assert(fits(instr.OPS.LDT.Imm, 7));
+    assert(fitu(instr.OPS.LDT.Imm, 7));
 
     insertV(iw, 0, 7, instr.OPS.LDT.Imm);
     insertG(iw, 12, instr.OPS.LDT.Ra);
@@ -737,6 +740,9 @@ namespace patmos
     
     if (has_imm) {
       if (!parser.parse_expression(instr.OPS.STT.Imm2, reloc, true)) return false;
+
+      if (negate)
+        instr.OPS.STT.Imm2 = extract(-instr.OPS.STT.Imm2, 0, 7);
     } else {
       instr.OPS.STT.Imm2 = 0;
     }
@@ -747,7 +753,7 @@ namespace patmos
 
     if (!parser.parse_GPR(instr.OPS.STT.Rs1)) return false;
     
-    if (!fits(instr.OPS.STT.Imm2, 7)) {
+    if (!fitu(instr.OPS.STT.Imm2, 7)) {
       parser.set_error("immediate value too large.");
       return false;
     }
@@ -760,7 +766,7 @@ namespace patmos
   {
     uword_t iw = Opcode;
 
-    assert(fits(instr.OPS.STT.Imm2, 7));
+    assert(fitu(instr.OPS.STT.Imm2, 7));
 
     insertV(iw, 0, 7, instr.OPS.STT.Imm2);
     insertG(iw, 7, instr.OPS.STT.Rs1);

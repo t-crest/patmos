@@ -213,6 +213,9 @@ namespace patmos
         set_error("Error parsing number.");
         return false;
       }
+
+      if (negate)
+        value = -value;
     }
 
     if (!Lexer.next()) {
