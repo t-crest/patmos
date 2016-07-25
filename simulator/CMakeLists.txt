@@ -18,6 +18,8 @@ project(patmos)
 
 cmake_minimum_required(VERSION 2.8)
 
+option(USE_RAMULATOR "USE_RAMULATOR" OFF)
+
 # Build release with debug by default
 if (NOT CMAKE_BUILD_TYPE)
   message(STATUS "No build type selected, defaulting to RelWithDebInfo")
@@ -46,13 +48,14 @@ include_directories(include ./ ${Boost_INCLUDE_DIRS} ${ELF_INCLUDE_DIRS})
 # make sure the boost templates compile
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth-1024")
 
-add_definitions("-DRAMULATOR")
-
 # enable testing using ctest
 enable_testing()
 
 # add sub-directories
-add_subdirectory(ramulator)
+if(USE_RAMULATOR)
+  add_definitions("-DRAMULATOR")
+  add_subdirectory(ramulator)
+endif()
 add_subdirectory(src)
 add_subdirectory(tests)
 

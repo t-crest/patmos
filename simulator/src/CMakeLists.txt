@@ -23,7 +23,11 @@ add_library(patmos-simulator assembler.cc simulation-core.cc instruction.cc
 
 add_executable(pasim pasim.cc)
 
-target_link_libraries(pasim patmos-simulator ramulator ${Boost_LIBRARIES} ${ELF})
+if(USE_RAMULATOR)
+  target_link_libraries(pasim patmos-simulator ramulator ${Boost_LIBRARIES} ${ELF})
+else()
+  target_link_libraries(pasim patmos-simulator ${Boost_LIBRARIES} ${ELF})
+endif()
 
 add_executable(paasm paasm.cc)
 

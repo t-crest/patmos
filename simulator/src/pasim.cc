@@ -119,9 +119,14 @@ static patmos::memory_t &create_global_memory(patmos::main_memory_kind_e kind,
       case patmos::GM_RAMUL_DDR4:
       case patmos::GM_RAMUL_LPDDR3:
       case patmos::GM_RAMUL_LPDDR4:
+#ifdef RAMULATOR
         return *patmos::make_ramulator_memory(ramul_config, kind, freq, size,
                                               burst_size, randomize_mem,
                                               chkreads);
+#else
+      // should not be reachable without the define
+      abort();
+#endif // RAMULATOR
     }
   }
 
@@ -360,7 +365,9 @@ int main(int argc, char **argv)
 
   boost::program_options::options_description memory_options("Memory options");
   memory_options.add_options()
+#ifdef RAMULATOR
     ("gkind,R", boost::program_options::value<patmos::main_memory_kind_e>()->default_value(patmos::GM_SIMPLE), "kind of main memory (simple, ddr3, ddr4, lpddr3, lpddr4)")
+#endif // RAMULATOR
     ("gsize,g",  boost::program_options::value<patmos::byte_size_t>()->default_value(patmos::NUM_MEMORY_BYTES), "global memory size in bytes.")
     ("gtime,G",  boost::program_options::value<unsigned int>()->default_value(patmos::NUM_MEMORY_TRANSFER_LATENCY), 
                  "global memory transfer time per burst in cycles")
@@ -375,7 +382,9 @@ int main(int argc, char **argv)
     ("chkreads", boost::program_options::value<patmos::mem_check_e>()->default_value(patmos::MCK_NONE), 
                  "Check for reads of uninitialized data, either per byte (warn, err) or per access (warn-addr, err-addr). Disables the data cache.")
     ("with-mmu", boost::program_options::value<bool>()->default_value(false), "Simulate memory management unit.")
+#ifdef RAMULATOR
     ("ramul-config", boost::program_options::value<std::string>()->default_value(""), "name of ramulator configuration file.")
+#endif // RAMULATOR
 ;
 
   boost::program_options::options_description noc_options("Network-on-chip options");
@@ -501,10 +510,18 @@ int main(int argc, char **argv)
   unsigned int ethmac_offset = vm["ethmac_offset"].as<patmos::address_t>().value();
   std::string  ethmac_ip_addr = vm["ethmac_ip_addr"].as<std::string>();
 
-  patmos::main_memory_kind_e gkind =
+#ifdef RAMULATOR
+  patmos::main_memory_kind_e gkind = patmos::GM_SIMPLE;
                                    vm["gkind"].as<patmos::main_memory_kind_e>();
+#else
+  patmos::main_memory_kind_e gkind = patmos::GM_SIMPLE;
+#endif // RAMULATOR
   unsigned int gsize = vm["gsize"].as<patmos::byte_size_t>().value();
+#ifdef RAMULATOR
   std::string ramul_config = vm["ramul-config"].as<std::string>();
+#else
+  std::string ramul_config = "";
+#endif // RAMULATOR
   unsigned int ispmsize = vm["ispmsize"].as<patmos::byte_size_t>().value();
   unsigned int lsize = vm["lsize"].as<patmos::byte_size_t>().value();
   unsigned int dcsize = vm["dcsize"].as<patmos::byte_size_t>().value();
@@ -782,14 +799,17 @@ int main(int argc, char **argv)
         *sout << " --ethmac_ip_addr=" << ethmac_ip_addr;
         
         *sout << "\n  ";
+#ifdef RAMULATOR
         *sout << " --gkind=" << gkind;
+#endif
         *sout << " --gsize=" << gsize;
         *sout << " --gtime=" << gtime;
         *sout << " --tdelay=" << tdelay << " --trefresh=" << trefresh;
         *sout << " --bsize=" << bsize << " --psize=" << psize;
         *sout << " --posted=" << posted; 
+#ifdef RAMULATOR
         *sout << " --ramul-config=" << ramul_config;
-        
+#endif
         *sout << "\n  ";
         *sout << " --nocbase=" << nocbase;
         *sout << " --noc_route_offset=" << noc_route_offset;

@@ -40,8 +40,10 @@
 #include "basic-types.h"
 #include "command-line.h"
 
+#ifdef RAMULATOR
 #include "ramulator/Config.h"
 #include "ramulator/Memory.h"
+#endif // RAMULATOR
 
 #include <map>
 #include <iostream>
@@ -503,6 +505,7 @@ namespace patmos
     virtual void tick(simulator_t &s);
   };
 
+#ifdef RAMULATOR
   /// Create an ramulator-based main memory.
   /// @param ramul_config Name of ramulator configuration file.
   /// @param kind The specific kind of the memory (DDR3, DDR4, ...)
@@ -654,6 +657,7 @@ namespace patmos
     virtual void print_stats(const simulator_t &s, std::ostream &os,
                              const stats_options_t& options);
   };
+#endif // RAMULATOR
 }
 
 #endif // PATMOS_MEMORY_H

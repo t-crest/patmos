@@ -20,3 +20,5 @@ add_library(ramulator ALDRAM.cpp Cache.cpp Config.cpp Controller.cpp
                       Processor.cpp Refresh.cpp SALP.cpp StatType.cpp TLDRAM.cpp
                       WideIO2.cpp WideIO.cpp)
 
+set_property(TARGET ramulator PROPERTY CXX_STANDARD 11)
+set_property(TARGET ramulator PROPERTY CXX_STANDARD_REQUIRED ON)

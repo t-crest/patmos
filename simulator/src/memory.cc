@@ -40,6 +40,7 @@
 #include "simulation-core.h"
 #include "util.h"
 
+#ifdef RAMULATOR
 #include "ramulator/Controller.h"
 #include "ramulator/DDR3.h"
 #include "ramulator/DDR4.h"
@@ -47,6 +48,7 @@
 #include "ramulator/LPDDR4.h"
 #include "ramulator/Memory.h"
 #include "ramulator/MemoryFactory.h"
+#endif // RAMULATOR
 
 #include <boost/format.hpp>
 #include <boost/math/common_factor.hpp>
@@ -594,6 +596,7 @@ void tdm_memory_t::tick(simulator_t &s)
   fixed_delay_memory_t::tick(s);
 }
 
+#ifdef RAMULATOR
 namespace patmos {
   template <class T>
   unsigned int ramulator_memory_t<T>::CORE_ID = 0;
@@ -970,3 +973,4 @@ void ramulator_memory_t<T>::print_stats(const simulator_t &s, std::ostream &os,
       os << boost::format("   %1$d        %2$d\n") % i->first % i->second;
   }
 }
+#endif // RAMULATOR
