@@ -176,6 +176,7 @@ int main(int argc, char **argv)
     
     delete loader;
     
+    return retcode;
   }
   catch(std::ios_base::failure f)
   {
