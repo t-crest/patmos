@@ -70,6 +70,12 @@ The simulator provides the following memory models:
 4. TDM access: Similar to fixed delay, but the memory is accessed using TDM.
    Used for multi-core configurations.
 
+5. Ramulator (optional): Simulates the main memory using the DRAM emulator
+  ramulator (single-core only). In order to enable ramulator the USE_RAMULATOR
+  option has to be activated when invoking cmake (e.g., -DUSE_RAMULATOR=on).
+  Subsequently, two additional command-line options become available --gkind and
+  --ramul-config.
+
 o) Requests and Bursts
 
 Memory read or write request are issued by the method cache or instruction
@@ -233,6 +239,31 @@ cycles, and posted writes of n bursts take
 cycles.
 
 
+4.6 Ramulator Memory
+--------------------
+
+Ramulator support is optional and needs to be activated using the USE_RAMULATOR
+option when invoking cmake (e.g., pass -DUSE_RAMULATOR=on to cmake).
+
+Once activated two additional options become available:
+  --gkind         arg    Select the main memory kind. The default value is
+        "simple", which activates one of the standard memory configurations (see
+        above). Alternative options are "ddr3", "ddr4", "lpddr3", and "lpddr4",
+        which activate the simulation of the appropriate DRAM model using
+        ramulator.
+
+  --ramul-config  file   Supply the name of a ramulator configuration file,
+        which allows to select specific device details (number of channels,
+        ranks, speed, ...). Example configuration files are included in the
+        directory ramulator/configs.
+
+
+Note that several of the other memory options are ignored when ramulator is
+active, this includes (--gtime, --tdelay, --trefresh, --psize, --posted).
+However, the device configuration is (automatically) adapted by ramulator in
+order to match the selected burst size (--bsize). This may fail, though, when
+the device configuration (provided through --ramul-config) is incompatible.
+
 5. License
 ==========
 
@@ -248,3 +279,10 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with the Patmos Simulator. If not, see <http://www.gnu.org/licenses/>.
+
+
+
+The source code of ramulator is included in the Patmos repository and licensed
+under the GPL-compatible MIT license (aka. Expat). See ramulator/LICENSE for
+additional details.
+
