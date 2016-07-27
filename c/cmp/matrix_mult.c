@@ -100,7 +100,7 @@ static void master(void) {
     
     
     // send message to core 1
-    noc_send(get_cpuid() + 1, spm_in, spm_out, sizeof(struct matrix));
+    noc_write(get_cpuid() + 1, spm_in, spm_out, sizeof(struct matrix), 0);
     WRITE("SENT\n", 5);
     // wait and poll
     while (!spm_in->ready) {
@@ -175,6 +175,6 @@ static void slave(void* param) {
     spm_out->ready = 1;
     // send to next slave
     int rcv_id = (get_cpuid() == (get_cpucnt() - 1)) ? 0 : get_cpuid() + 1;
-    noc_send(rcv_id, spm_in, spm_out, sizeof(struct matrix));
+    noc_write(rcv_id, spm_in, spm_out, sizeof(struct matrix), 0);
     return;
 }

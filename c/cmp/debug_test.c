@@ -31,8 +31,8 @@ void slave2_func(void* arg) {
 }
 
 
-mpd_t onetotwo;
-mpd_t twotoone;
+qpd_t onetotwo;
+qpd_t twotoone;
 
 int main(){
   puts("Core 0 started");

@@ -155,6 +155,10 @@ class InOut() extends Module {
   io.excInOut.M.Cmd := Mux(selDeviceVec(EXC_IO_OFFSET), io.memInOut.M.Cmd, OcpCmd.IDLE)
   deviceSVec(EXC_IO_OFFSET) := io.excInOut.S
 
+  // Hard-wire the sideband flags from the NI to interrupt pins
+  io.intrs(NI_MSG_INTR) := io.comConf.S.Flag(0)
+  io.intrs(NI_EXT_INTR) := io.comConf.S.Flag(1)  
+
   if (HAS_MMU) {
     io.mmuInOut.M := io.memInOut.M
     io.mmuInOut.M.Cmd := Mux(selDeviceVec(MMU_IO_OFFSET), io.memInOut.M.Cmd, OcpCmd.IDLE)

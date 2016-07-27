@@ -147,7 +147,7 @@
 \begin{document}
 
 \title{The Argo software perspective}
-\subtitle{A programming exercise}
+\subtitle{A multicore programming exercise}
 
 \author{Rasmus Bo S{\o}rensen}
 
@@ -167,10 +167,10 @@
 
 \chapter{Preface}
 
-This exercise manual is written for the course `02211 Advanced Computer Architecture' at the Techincal University of Denmark,
-but is intended as a stand alone document for anybody interrested in learning to program the Argo Network-on-Chip.
+This exercise manual is written for the course `02211 Advanced Computer Architecture' at the Technical University of Denmark,
+but is intended as a stand alone document for anybody interested in learning about multicore programming with the Argo Network-on-Chip.
 
-This document is subject to continous development along the the platform it describes.
+This document is subject to continuous development along the the platform it describes.
 In case you have suggestions for improvement or find that the text is unclear and needs to be elaborated, please write to \href{mailto:rboso@dtu.dk}{rboso@dtu.dk}
 The latest version of this document is contained as LaTeX source in the Patmos repository in directory
 \code{patmos/doc} and can be built with \code{make noc}.
@@ -193,36 +193,43 @@ The latest version of this document is contained as LaTeX source in the Patmos r
 
 \chapter{Introduction}
 
-In this document we will present the background required to efficiently program the Argo NoC.
-The exercieses should give the reader a good understanding of how the Argo NoC can be utilized in a multicore application.
+This document presents the background required to write a multicore program utilizing the Argo NoC for intercore communication.
+The exercises should give the reader a good understanding of how the Argo NoC can be utilized in a multicore application.
 The reader will get experience in how to write a multicore application that uses message passing.
-In the exercises we assume that the reader is familiar with the C programming language and multithreaded programming in general.
+In the exercises we assume that the reader is familiar with the C programming language and multi-threaded programming in general.
 Furthermore, we assume that the reader has already run a single core application on a Patmos processor in an FPGA, refer to the Patmos handbook~\cite{patmos-handbook} for details on the patmos processor.
 
+An example of the multicore platform is shown in Fig.~\ref{fig:mc-patmos}. Core $P_0$ is referred to as the master core and the rest of the cores are referred to as slave cores. The reason that $P_0$ is the master core is that when an application is downloaded to the platform, the application starts executing \code{main()} on the master core, also the serial console  is connected to the master core. All cores are connected to the shared external memory, but the bandwidth towards the external memory is quiet low.
+Therefore, the programmer should utilize the NoC as much as possible for core-to-core communication.
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.9\textwidth]{fig/MultiCore.pdf}
+\caption{The Patmos multicore platform with the Argo NoC for intercore communication.
+The core with id 0 is referred to as the master core and the rest of the cores are referred to as the slave cores.}
+\label{fig:mc-patmos}
+\end{figure}
 
-Chapter~\ref{chap:arch} presents the achitecture of the Argo Network-on-Chip.
+Chapter~\ref{chap:arch} presents the architecture of the Argo Network-on-Chip.
 Chapter~\ref{chap:api} describes the programming interface of the multicore platform, including the thread library and the high level message passing.
-Chapter~\ref{chap:exercise} contains the practical exercises ment to give the reader a practical introduction to the platform.
+Chapter~\ref{chap:exercise} contains the practical exercises to give the reader a practical introduction to the platform.
 Appendix~\ref{apx:build} describes the practical aspects of loading the program into the platform running in an FPGA.
 Appendix~\ref{apx:api} contains the Doxygen documentation of the C libraries.
 
 
 \chapter{The Architecture of Argo}
 \label{chap:arch}
-The Argo Network-on-Chip (NoC) is a statically scheduled
-time division multiplexed (TDM) NoC that supports
-direct memory access (DMA) driven write transactions.
+The Argo network-on-chip (NoC) is a time-predictable core-to-core interconnect. Argo can provide communication channels that have a guaranteed minimum bandwidth and maximum latency.
+Argo uses direct memory access (DMA) controllers to perform write transactions through the NoC that is interleaved with the TDM schedule.
+When Argo performs a write transaction through the NoC, it moves a block of data from the local scratchpad memory (SPM) to the SPM of another core in the network.
 
-The statically allocated route and the TDM schedule is loaded
-into hardware tables in the network interface at boot time.
-The statically allocated route of each packet sent through the
-network, is stored in the header of each packet.
-The write address of each packet is also stored in the header.
 
-The end-points of these write transactions are the dual-ported
-processor local communication scratchpad memories (SPM) connected
-on one port directly to the processor and on the other port to the 
-network interface, containing the DMA controllers.
+The guarantees on bandwidth and latency are enforced by a static time division multiplexing (TDM) schedule, where the network resources are allocated to communication channels.
+A TDM schedule is generated by the Poseidon TDM scheduler, based on some bandwidth requirements that are given in XML format.
+The statically allocated TDM schedule is loaded
+into hardware tables in the network interface when the platform boots.
+It is possible to reconfigure a new schedule at run time with the reconfiguration capabilities of the Argo NoC, but since the reconfiguration capabilities are not needed for these exercises, they are not described in this document.
+In these exercises we assume the default all-to-all schedule where all cores have communication channels to all other cores.
+
 Figure~\ref{fig:argo-arch} shows the architecture of the Argo NoC.
 \begin{figure}[h]
 \centering
@@ -239,30 +246,31 @@ Each DMA controller is paired with a communication channel when the network in c
 To transfer a block of data from a local SPM to a remote SPM, there are \ref{arch:list1}~steps:
 \begin{enumerate}
 \item Store the block of data in the local SPM
-\item Through the network interface set up the DMA controller that is paired with the correct communication channel
+\item Through the network interface set up the DMA controller that is paired with the correct communication channel by:
   \begin{itemize}
-  \item Write the local address of the block of data and the remote address to which the block of data should be moved
-  \item Write the size of the block of data
-  \item Set the `valid' bit in the DMA antry to 1 and clear the `done' bit setting it to 0
+  \item Writing the local address of the block of data and the remote address to which the block of data should be moved
+  \item Writing the size of the block of data
+  \item Setting the `active' bit in the DMA entry to 1
   \end{itemize}
 \label{arch:list1}\end{enumerate}
-After step~\ref{arch:list1} the DMA will start to transfer data in each TDM slot that is allocated to the given channel.
-When the DMA has transfered all packets through the network the `done' bit is set to 1 in the DMA entry. This `done' bit can be pooled to wait for the DMA to be done.
+After step~\ref{arch:list1} the DMA will start to transfer data in each TDM slot that is allocated to the specified communication channel.
+When the DMA has transfered all packets through the network the `active' bit is reset by the NI for that DMA entry. The `active' bit can be pooled to wait for the DMA to finish.
 
 Conflicts of reading and writing to the same addresses in the dual
 ported SPMs has to be handled by software, there is no protection in hardware.
 
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
-\chapter{Argo Programming Interface}
+\chapter{Application Programming Interface}
 \label{chap:api}
-In the sections of this chapter we will give an overview of each part of the Argo programming interface.
-For detailed documentation refer to Appendix~\ref{apx:api}, which contains the doxygen documentation of the C libraries.
+This chapter describes the Argo application programming interface (API).
+The Argo API is made up of three libraries, the thread library \code{libcorethread}, the NoC Driver library \code{libnoc}, and the message passing library \code{libmp}. We give an overview of the three libraries in the following three section.
+For detailed documentation refer to Appendix~\ref{apx:api}, which contains the doxygen documentation of the three C libraries.
 
 \section{Corethread Library}
 \label{sec:cthread}
-When an application is downloaded to the platform, the \code{main()} function is executed on the master core, the master core has the core id 0.
-From the \code{main()} function the programmer can execute functions on the slave cores using the functions in the \code{libcorethread} library.
+When an application starts executing on the platform, \code{main()} is executed only on the master core with core ID 0.
+From the \code{main()} function the programmer can start the execution of a function on the slave cores using the functions in the \code{libcorethread} library.
 The functions of the \code{libcorethread} library are:
 \begin{description}
 \item[\code{int corethread\_create( corethread\_t *thread, void(*start\_routine)(void *), void *arg ) )}]
@@ -282,44 +290,58 @@ The join function will join the program flow of the master core with the program
 
 
 \section{NoC Driver}
-The Argo NoC has a very minimalistic interface.
-Initialization of the NoC is done before the \code{main()} function starts executing.
-To hide the direct interfacing to the hardware, we use the \code{libnoc} that is a driver for the NoC.
-If the application requires direct control over data movement through the NoC the three functions presented in the following can be used, otherwise the application should use the message passing library presented in Section~\ref{sec:libmp}.
+The NoC driver \code{libnoc} provides direct access to the hardware functionality and only abstracts the low-level accesses to hardware registers away.
+There are driver functions for initialization of the NoC and for setting up DMA transfers.
+The \code{libnoc} library is linked together with the auto-generated c file from the Poseidon scheduler. The auto-generated c file contains the schedule data.
+The initialization of the NoC is done automatically before the \code{main()} function starts executing, if the compiler sees that the application uses any functions from the NoC driver.
+If the application requires direct control over data movement through the NoC the following functions can be used, but it is very advisable to use the message passing library presented in Section~\ref{sec:libmp} to reduce the amount om manual memory allocation.
+
 
 \begin{description}
-\item[\code{int noc\_done( unsigned rcv\_id )}]
+\item[\code{int noc\_dma\_done( unsigned dma\_id )}]
 
 The done function is used to tell whether a local DMA transfer has finished.
 
-\item[\code{int noc\_nbsend( unsigned rcv\_id, volatile void \_SPM *dst, volatile void \_SPM *src, size\_t size )}]
+\item[\code{int noc\_nbwrite( unsigned dma\_id, volatile void \_SPM *dst, volatile void \_SPM *src, size\_t size )}]
 
-The nbsend function is a non-blocking function for sending a block of data at the address \code{src} of size \code{size} to the core with the core id \code{rcv\_id} and the remote address \code{dst}. The nbsend function will fail if the DMA controller is still sending the previous block of data.
+The nbwrite function is a non-blocking function for writing a block of data at the address \code{src} of size \code{size} to the core with the core id \code{dma\_id} and the remote address \code{dst}. The nbwrite function will fail if the DMA controller is still sending the previous block of data.
 
-\item[\code{void noc\_send( unsigned rcv\_id, volatile void \_SPM *dst, volatile void \_SPM *src, size\_t size )}]
+\item[\code{void noc\_write( unsigned dma\_id, volatile void \_SPM *dst, volatile void \_SPM *src, size\_t size )}]
 
-The send function is calling the nbsend in a while loop, until it returns success.
+The write function is calling the nbwrite in a while loop, until it returns success.
 
 \end{description}
 
 \section{Message Passing Library}
 \label{sec:libmp}
 
-The Argo interface (libnoc) does not support receive notification,
-flow control or double buffering.
-This functionality is implemented in the \code{libmp} library.
-\code{libmp} implements message passing with statically allocated buffers
-that does not require data to be copied unnecessarily.
+The \code{libmp} adds flow control, buffering and memory management on top of the \code{libnoc}.
+\code{libmp} implements two different concepts of message passing, queuing message passing and sampling message passing.
+Queuing message passing implements a first-in-first-out queue where all messages has to be consumed by the receiver.
+Sampling message passing implements atomic updated of a sample value, this sample value can be read multiple times or not read at all before the next update.
+
+To communicate from one core to another, each core must create a port of the same type, either sampling or queuing. There must be one source port and one sink port. Furthermore, the unique channel identifier for the two ports must be the same.
+
 
 \begin{description}
-\item[\code{int mp\_chan\_init( mpd\_t* mpd\_ptr, coreid\_t sender, coreid\_t receiver, unsigned buf\_size, unsigned num\_buf )}]
+\item[\code{void \_SPM * mp\_alloc( coreid\_t id, unsigned size )}]
 
-The chan\_init function allocates the static buffer structures of a communication channel
-and initializes the message passing descriptor \code{mpd\_ptr}.
+The alloc function will allocate a block of memory of size
+\code{size} in the SPM local to the core with the id \code{id}.
+The alloc function can only be called from the master core executing \code{main()}
+and once the memory block is allocated it cannot be freed.
+In the current version of the software the alloc function will not
+give an out of memory error, so the programmer should be aware
+that he/she does not allocate more local memory than is present.
+
+\item[\code{qpd\_t * mp\_create\_qport( unsigned int chan\_id, direction\_t direction\_type, size\_t msg\_size, size\_t num\_buf)}]
+
+The create\_qport function allocates the static buffer structures of a communication channel
+and initializes the queuing port descriptor \code{qpd\_ptr}.
 The communication channel is set up between the sending
-core \code{sender} and the receviing core \code{receiver}.
+core \code{sender} and the receiving core \code{receiver}.
 The communication channel will transfer messages of size
-\code{buf\_size} and buffer a number of \code{num\_buf} messages in the receiver SPM.
+\code{msg\_size} and buffer a number of \code{num\_buf} messages in the receiver SPM.
 
 \item[\code{int mp\_nbsend( mpd\_t* mpd\_ptr )}]
 
@@ -350,21 +372,32 @@ The recv function calls the nb\_recv function in a loop, until it returns succes
 The nback function increment the number of messages that
 has been acknowledged and sends the updated value to the 
 sender core, if the send does not succeed the number
-of acknowlegded messages is decremented.
+of acknowledged messages is decremented.
 
 \item[\code{void mp\_ack( mpd\_t* mpd\_ptr )}]
 
 The ack function calls the nb\_ack function in a loop, until it returns success.
 
-\item[\code{void \_SPM * mp\_alloc( coreid\_t id, unsigned size )}]
+\item[\code{spd\_t * mp\_create\_sport(unsigned int chan\_id, direction\_t direction\_type, size\_t sample\_size)}]
 
-The alloc function will allocate a block of memory of size
-\code{size} in the SPM local to the core with the id \code{id}.
-The alloc function can only be called from the master core executing \code{main()}
-and once the memory block is allocated it cannot be freed.
-In the current version of the software the alloc function will not
-give an out of memory error, so the programmer should be aware
-that he/she does not allocate more local memory than is present.
+The create\_sport function allocates the static buffer structures of a communication channel
+and initializes the sampling port descriptor \code{spd\_ptr}.
+The communication channel is set up between the writer
+core and the reader core.
+The communication channel will transfer messages of size
+\code{sample\_size}.
+
+\item[\code{int mp\_write(spd\_t * sport, volatile void \_SPM * sample)}]
+
+The write function writes the sample to the specified sampling port.
+
+\item[\code{int mp\_read(spd\_t * sport, volatile void \_SPM * sample)}]
+
+The read function reads a sample from the specified sampling port and places the sample according to the sample pointer.
+
+\item[\code{int mp\_init\_ports()}]
+
+The init\_ports function initializes all the created ports. All ports shall be created in the initialization phase of the program and all cores needs to call the init\_ports function to initialize its local ports.
 
 \end{description}
 
@@ -375,7 +408,7 @@ that he/she does not allocate more local memory than is present.
 
 The following exercises are made to run on the default
 9 core platform for the Altera DE2-115 board.
-Please refere to the Appendix~\ref{apx:buildhw} for instructions on
+Please refer to the Appendix~\ref{apx:buildhw} for instructions on
 how to build an up-to-date hardware platform.
 
 \section{Circulating tokens}
@@ -388,7 +421,7 @@ Each of the processors in the ring shall repeatedly execute the following \ref{l
 \begin{enumerate}
 \item Receive a token from the previous processor
 
-\item Turn on the processor LED to indicate that the token is beeing processed
+\item Turn on the processor LED to indicate that the token is being processed
 
 \item Wait for a random amount of time in the interval [100 ms; 1 s]
 \label{list:step_rand}
@@ -398,7 +431,7 @@ Each of the processors in the ring shall repeatedly execute the following \ref{l
 \end{framed}
 
 \noindent Looking at the LEDs when the application runs,
-the reader should see tokens move from one led to the other.
+the reader should see tokens move from one LED to the other.
 This behavior should be easy to observe with only few tokens.
 This exercise is split into \ref{list:ex1:num2}~tasks:
 \begin{framed}
@@ -479,7 +512,7 @@ We suggest to use the \code{rand\_r()} function to generate a random number,
 \code{rand\_r()} takes a pointer to a seed value in order to generate a random number.
 Do not use the \code{rand()} function as it is not thread-safe.
 The seed value in each core should be different, otherwise all cores have the
-same sequence of psedo-random numbers.
+same sequence of pseudo-random numbers.
 
 Use the lower bits of the random number to generate a number on the desired range.
 The \code{get\_cpu\_usecs()} function returns the value of the microsecond counter as an \code{unsigned long long}. 
@@ -508,7 +541,7 @@ Figure~\ref{fig:msg_data} shows an example of how message data can be read and w
 
 \begin{figure}
 \begin{Verbatim}[xleftmargin=1cm,xrightmargin=1cm,frame=single,framesep=3mm]
-// Reading an unsigned integet value from the channel read buffer
+// Reading an unsigned integer value from the channel read buffer
 seed = *( ( volatile unsigned int _SPM * ) ( &chan.read_buf ) );
 
 // Writing an unsigned integer value to the channel write buffer
@@ -630,9 +663,9 @@ before your download a program.
 \input{../c_doc/latex/group__libnoc}
 \input{../c_doc/latex/group__libmp}
 \section{Class Documentation}
-\input{../c_doc/latex/structcommunicator__t}
 \input{../c_doc/latex/structcoreset__t}
-\input{../c_doc/latex/structmpd__t}
+\input{../c_doc/latex/structqpd__t}
+\input{../c_doc/latex/structspd__t}
 \section{File Documentation}
 \input{../c_doc/latex/coreset_8h}
 \input{../c_doc/latex/corethread_8h}

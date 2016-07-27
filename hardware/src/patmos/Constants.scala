@@ -104,6 +104,10 @@ object Constants {
   val EXC_COUNT  = 1 << EXC_SRC_BITS
   val INTR_COUNT = 16
 
+  // Exceptions triggered by network interface
+  val NI_MSG_INTR = 2
+  val NI_EXT_INTR = 3
+
   // Memory management unit
   val HAS_MMU = util.Config.getConfig.mmu
   val MMU_IO_OFFSET = 7

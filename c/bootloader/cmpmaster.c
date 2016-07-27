@@ -38,15 +38,15 @@
  */
 
 #include "boot.h"
-#include "cmpboot.h"
+#include <machine/boot.h>
 #include "include/patio.h"
 
 #include "include/bootable.h"
 
 #define DELAY 1000*1
 
-// #define DEBUG
-// #define HEAVY_DEBUG
+//#define DEBUG
+//#define HEAVY_DEBUG
 
 int main(void)
 {
@@ -153,9 +153,9 @@ int main(void)
   // wait for slaves to finish
   for (unsigned i = 1; i < get_cpucnt(); i++) {
     if (boot_info->slave[i].status != STATUS_NULL) {
-        #ifdef HEAVY_DEBUG
-        WRITE("CORE_RETURN\n", 12);
-        #endif
+      #ifdef HEAVY_DEBUG
+      WRITE("CORE_RETURN\n", 12);
+      #endif
       while(boot_info->slave[i].status != STATUS_RETURN){
         /* spin */
       }
@@ -178,7 +178,7 @@ int main(void)
   boot_info->master.status = STATUS_RETURN;
 
   // Wait for slaves to finish
-  for (unsigned i = 1; i < MAX_CORES; i++) {
+  for (unsigned i = 1; i < get_cpucnt(); i++) {
     while(boot_info->slave[i].status == STATUS_RETURN){
       /* spin */
     }
