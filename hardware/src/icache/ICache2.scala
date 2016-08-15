@@ -266,7 +266,16 @@ class ICache2Repl() extends Module {
     hitOdd := Bool(false)
     fetchAddr := addrOddReg
   }
-  // Keep signals alive for emulator
+ 
+// LRU replacement 
+//  val LRUIndexEven = addrEvenReg(INDEX_HIGH, INDEX_LOW)
+
+// when (((tagEvenFirst === addrEvenReg(TAG_HIGH, TAG_LOW)) && (validEvenFirst)) || ((tagEvenSecond === addrEvenReg(TAG_HIGH, TAG_LOW)) && (validEvenSecond))) {
+//    replVec(LRUIndexEven) := Mux((tagEvenFirst === addrEvenReg(TAG_HIGH, TAG_LOW)), Bool(true), Bool(false))
+//  }
+
+
+ // Keep signals alive for emulator
   debug(hitEven)
   debug(hitOdd)
 
@@ -277,14 +286,14 @@ class ICache2Repl() extends Module {
   val wrAddrIndex = io.ctrlrepl.wAddr(INDEX_HIGH, INDEX_LOW+1)
   val wrAddrParity = io.ctrlrepl.wAddr(INDEX_LOW)
   // Update tag field when new write occurs
-  tagMemEvenFirst.io <= (io.ctrlrepl.wTag && !wrAddrParity && (!replVec(wrValidIndex)), wrAddrIndex, wrAddrTag)
+  tagMemEvenFirst.io <= (io.ctrlrepl.wTag && (!wrAddrParity) && (!replVec(wrValidIndex)), wrAddrIndex, wrAddrTag)
   tagMemOddFirst.io <= (io.ctrlrepl.wTag && wrAddrParity && (!replVec(wrValidIndex)), wrAddrIndex, wrAddrTag)
   when (io.ctrlrepl.wTag && (!replVec(wrValidIndex))) {
     validVecFirst(wrValidIndex) := Bool(true)
     replVec(wrValidIndex) := Bool(true)
   }
 
-  tagMemEvenSecond.io <= (io.ctrlrepl.wTag && !wrAddrParity && (replVec(wrValidIndex)), wrAddrIndex, wrAddrTag)
+  tagMemEvenSecond.io <= (io.ctrlrepl.wTag && (!wrAddrParity) && (replVec(wrValidIndex)), wrAddrIndex, wrAddrTag)
   tagMemOddSecond.io <= (io.ctrlrepl.wTag && wrAddrParity && (replVec(wrValidIndex)), wrAddrIndex, wrAddrTag)
   when (io.ctrlrepl.wTag && (replVec(wrValidIndex))) {
     validVecSecond(wrValidIndex) := Bool(true)

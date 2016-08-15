@@ -219,9 +219,11 @@ class PICache2Repl() extends Module {
 
   val tagMemEvenPrefFirst = MemBlock(LINE_COUNT / 2, TAG_SIZE)
   val tagMemOddPrefFirst = MemBlock(LINE_COUNT / 2, TAG_SIZE)
+  val validVecPrefFirst = Vec.fill(LINE_COUNT) { Reg(init = Bool(false)) }
   val tagMemEvenPrefSecond = MemBlock(LINE_COUNT / 2, TAG_SIZE)
   val tagMemOddPrefSecond = MemBlock(LINE_COUNT / 2, TAG_SIZE)
- 
+  val validVecPrefSecond = Vec.fill(LINE_COUNT) { Reg(init = Bool(false)) }
+
 
   // Variables for call/return
   val callRetBaseReg = Reg(init = UInt(1, DATA_WIDTH))
@@ -273,10 +275,10 @@ class PICache2Repl() extends Module {
   val toutEvenSecond = tagMemEvenSecond.io(tagAddrEven)
   val toutOddSecond = tagMemOddSecond.io(tagAddrOdd)
 
-  val toutEvenPrefFirst = tagMemEvenPrefFirst.io(tagAddrEven)
-  val toutOddPrefFirst = tagMemOddPrefFirst.io(tagAddrOdd)
-  val toutEvenPrefSecond = tagMemEvenPrefSecond.io(tagAddrEven)
-  val toutOddPrefSecond = tagMemOddPrefSecond.io(tagAddrOdd)
+  val toutEvenPrefFirst = tagMemEvenPrefFirst.io(tagAddrPref)
+  val toutOddPrefFirst = tagMemOddPrefFirst.io(tagAddrPref)
+  val toutEvenPrefSecond = tagMemEvenPrefSecond.io(tagAddrPref)
+  val toutOddPrefSecond = tagMemOddPrefSecond.io(tagAddrPref)
  
   // Multiplex tag memory output
   val tagEvenFirst = Mux(addrEvenReg(INDEX_LOW), toutOddFirst, toutEvenFirst)
@@ -291,8 +293,8 @@ class PICache2Repl() extends Module {
   val validOddFirst = validVecFirst(addrOddReg(INDEX_HIGH, INDEX_LOW))
   val validEvenSecond = validVecSecond(addrEvenReg(INDEX_HIGH, INDEX_LOW))
   val validOddSecond = validVecSecond(addrOddReg(INDEX_HIGH, INDEX_LOW))
-  val validPrefFirst = validVecFirst(addrPrefReg(INDEX_HIGH, INDEX_LOW))
-  val validPrefSecond = validVecSecond(addrPrefReg(INDEX_HIGH, INDEX_LOW))
+  val validPrefFirst = validVecPrefFirst(addrPrefReg(INDEX_HIGH, INDEX_LOW))
+  val validPrefSecond = validVecPrefSecond(addrPrefReg(INDEX_HIGH, INDEX_LOW))
   
 
   // Check for a hit of both instructions in the address bundle
@@ -314,7 +316,8 @@ class PICache2Repl() extends Module {
     hitPref := Bool(false)
     fetchAddr := addrPrefReg
   }
- 
+
+
   // Keep signals alive for emulator
   debug(hitEven)
   debug(hitOdd)
@@ -326,21 +329,23 @@ class PICache2Repl() extends Module {
   val wrAddrIndex = io.ctrlrepl.wAddr(INDEX_HIGH, INDEX_LOW+1)
   val wrAddrParity = io.ctrlrepl.wAddr(INDEX_LOW)
   // Update tag field when new write occurs
-  tagMemEvenFirst.io <= (io.ctrlrepl.wTag && !wrAddrParity && (!replVec(wrValidIndex)), wrAddrIndex, wrAddrTag)
+  tagMemEvenFirst.io <= (io.ctrlrepl.wTag && (!wrAddrParity) && (!replVec(wrValidIndex)), wrAddrIndex, wrAddrTag)
   tagMemOddFirst.io <= (io.ctrlrepl.wTag && wrAddrParity && (!replVec(wrValidIndex)), wrAddrIndex, wrAddrTag)
-  tagMemEvenPrefFirst.io <= (io.ctrlrepl.wTag && !wrAddrParity && (!replVec(wrValidIndex)), wrAddrIndex, wrAddrTag)
+  tagMemEvenPrefFirst.io <= (io.ctrlrepl.wTag && (!wrAddrParity) && (!replVec(wrValidIndex)), wrAddrIndex, wrAddrTag)
   tagMemOddPrefFirst.io <= (io.ctrlrepl.wTag && wrAddrParity && (!replVec(wrValidIndex)), wrAddrIndex, wrAddrTag) 
   when (io.ctrlrepl.wTag && (!replVec(wrValidIndex))) {
     validVecFirst(wrValidIndex) := Bool(true)
+    validVecPrefFirst(wrValidIndex) := Bool(true)
     replVec(wrValidIndex) := Bool(true)
   }
 
-  tagMemEvenSecond.io <= (io.ctrlrepl.wTag && !wrAddrParity && (replVec(wrValidIndex)), wrAddrIndex, wrAddrTag)
+  tagMemEvenSecond.io <= (io.ctrlrepl.wTag && (!wrAddrParity) && (replVec(wrValidIndex)), wrAddrIndex, wrAddrTag)
   tagMemOddSecond.io <= (io.ctrlrepl.wTag && wrAddrParity && (replVec(wrValidIndex)), wrAddrIndex, wrAddrTag)
-  tagMemEvenPrefSecond.io <= (io.ctrlrepl.wTag && !wrAddrParity && (replVec(wrValidIndex)), wrAddrIndex, wrAddrTag)
+  tagMemEvenPrefSecond.io <= (io.ctrlrepl.wTag && (!wrAddrParity) && (replVec(wrValidIndex)), wrAddrIndex, wrAddrTag)
   tagMemOddPrefSecond.io <= (io.ctrlrepl.wTag && wrAddrParity && (replVec(wrValidIndex)), wrAddrIndex, wrAddrTag) 
   when (io.ctrlrepl.wTag && (replVec(wrValidIndex))) {
     validVecSecond(wrValidIndex) := Bool(true)
+    validVecPrefSecond(wrValidIndex) := Bool(true)
     replVec(wrValidIndex) := Bool(false)
   }
 
@@ -373,6 +378,8 @@ class PICache2Repl() extends Module {
   when (io.invalidate) {
     validVecFirst.map(_ := Bool(false))
     validVecSecond.map(_ := Bool(false))
+    validVecPrefFirst.map(_ := Bool(false))
+    validVecPrefSecond.map(_ := Bool(false))
     replVec.map(_ := Bool(false))
   }
 }
@@ -461,7 +468,6 @@ class PICache2Ctrl() extends Module {
     }
     when (fetchCnt < UInt(LINE_WORD_SIZE)) {
       when(fetchCnt === UInt(LINE_WORD_SIZE - 1)) {
-        fetchEna := Bool(false)
 	// Write new tag field memory
         wTag := Bool(true)
       } 
