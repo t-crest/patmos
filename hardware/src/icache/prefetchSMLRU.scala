@@ -2,13 +2,13 @@ package patmos
 
 import Chisel._
 import Node._
-import PrefetchCons._
-import PIConstants._
+import PrefetchCons2LRU._
+import PIConstants2LRU._
 import Constants._
 import scala.math._
 
-class PFSMDM extends Module {
-  val io = new PrefetcherIO()
+class PFSMLRU extends Module {
+  val io = new Prefetcher2LRUIO()
 	
   val pc_address_even = io.feicache.addrEven(TAG_HIGH, INDEX_LOW)
   val pc_address_odd = io.feicache.addrOdd(TAG_HIGH, INDEX_LOW) 
@@ -25,8 +25,8 @@ class PFSMDM extends Module {
   val retdes_rom = retdes_f() 
   
   //Stack for CALL and RETURN
-  val stackAddrs = Mem(Bits(width = (TAG_SIZE + INDEX_SIZE)), MAX_CALLS, seqRead = true) 
-  val stackIndex = Mem(Bits(width = (TAG_SIZE + INDEX_SIZE)), MAX_CALLS, seqRead = true)
+  val stackAddrs = Mem(Bits(width = (TAG_SIZE + INDEX_SIZE)), MAX_CALLS) 
+  val stackIndex = Mem(Bits(width = (TAG_SIZE + INDEX_SIZE)), MAX_CALLS)
 
   // Registers generation
   val previous_addrs_R = Reg(init = Bits(0, width = (TAG_SIZE + INDEX_SIZE))) 
