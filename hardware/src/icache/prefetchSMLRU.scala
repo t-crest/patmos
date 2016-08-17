@@ -40,7 +40,7 @@ class PFSMLRU extends Module {
   val small_l_stop_R = Reg(init = Bits(0, width = (TAG_SIZE + INDEX_SIZE))) 	
   val status_R = Vec.fill(MAX_DEPTH){Reg(init = UInt(0, width = MAX_DEPTH_WIDTH))}
   val iteration_outer_R = Vec.fill(MAX_DEPTH){Reg(init = UInt(0, width = MAX_ITERATION_WIDTH))}
-  val cache_line_id_address = Reg(init = UInt(0, width = (TAG_SIZE + INDEX_SIZE)))
+  val cache_line_id_address_R = Reg(init = UInt(0, width = (TAG_SIZE + INDEX_SIZE)))
   val output = Reg(init = Bits(0, width = EXTMEM_ADDR_WIDTH))
   val en_seq = Reg(init = Bool(false))
   val change_state = Reg(init = Bool(false))
@@ -51,19 +51,17 @@ class PFSMLRU extends Module {
   }
 
   // Input address selection
+  val cache_line_id_address = Mux((pc_address_even != previous_addrs_even_R), pc_address_even, Mux((pc_address_odd != previous_addrs_odd_R), pc_address_odd, cache_line_id_address_R)) 
+
   when (pc_address_even != previous_addrs_even_R) {
     previous_addrs_even_R := pc_address_even
-    when (pc_address_even != cache_line_id_address) {
-      cache_line_id_address := pc_address_even
-    }
-  }
+    cache_line_id_address_R := pc_address_even
+  } 
   .elsewhen (pc_address_odd != previous_addrs_odd_R) {
     previous_addrs_odd_R := pc_address_odd
-    when (pc_address_odd != cache_line_id_address) {
-      cache_line_id_address := pc_address_odd
-    }
+    cache_line_id_address_R := pc_address_odd
   }
-
+  
   // State_machine
   val trigger :: cont_pref :: call :: ret :: loop :: cont_loop ::  small_loop :: Nil = Enum(UInt(), 7)
   val state = Reg(init = trigger)
