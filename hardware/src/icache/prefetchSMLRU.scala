@@ -66,22 +66,31 @@ class PFSMLRU extends Module {
   // State_machine
   val trigger :: small_loop :: Nil = Enum(UInt(), 2)
   val state = Reg(init = trigger)
+  val line_change = ((cache_line_id_address != previous_addrs_R) || en_seq)
+  val index_match = (cache_line_id_address === trigger_rom(index_R))
+  val call = (type_rom(index_R) === UInt(0))
+  val ret = (type_rom(index_R) === UInt(1))
+  val cont_loop = (type_rom(index_R) === UInt(3))
+  val loops = (type_rom(index_R) === UInt(2))
+  val loop_entry = ((status_R(depth_rom(index_R))) === UInt(0))  
+  val loop_iteration = ((status_R(depth_rom(index_R))) === UInt(1))  
+  val loop_exit = ((status_R(depth_rom(index_R))) === UInt(2))  
 
   switch (state) {
     is(trigger) {
-      when ((cache_line_id_address != previous_addrs_R) || en_seq)  { //trigger prefetching
+      when (line_change)  { //trigger prefetching
         previous_addrs_R := cache_line_id_address
         en_seq := Bool(false)
       }
-      when (change_state && ((cache_line_id_address != previous_addrs_R) || en_seq)) {
+      when (change_state && line_change) {
 	  state := small_loop
 	  change_state := Bool(false)
       }
-      when ((cache_line_id_address != trigger_rom(index_R)) && (!change_state) && ((cache_line_id_address != previous_addrs_R) || en_seq)) { //no matching - next line prefetching
+      when ((!index_match) && (!change_state) && line_change) { //no matching - next line prefetching
 	  output := Cat((cache_line_id_address + UInt(1)), sign_ext_R) 
       }
       //matching with rpt table entry
-      when ((type_rom(index_R) === UInt(0)) && (!change_state) && (cache_line_id_address === trigger_rom(index_R)) && ((cache_line_id_address != previous_addrs_R) || en_seq))  {  //call type
+      when (call && (!change_state) && index_match && line_change)  {  //call type
           output := Cat(destination_rom(index_R), sign_ext_R)
           stackAddrs(sp_R) := retdes_rom(index_R)  
           stackIndex(sp_R) := index_R + UInt(1)
@@ -89,34 +98,35 @@ class PFSMLRU extends Module {
           index_R := next_rom(index_R)
 	  en_seq := Mux((trigger_rom(index_R) === destination_rom(index_R)), Bool(true), Bool(false))  // case call and destination are on the same cache line
       }
-      when ((type_rom(index_R) === UInt(1)) && (!change_state) && (cache_line_id_address === trigger_rom(index_R)) && ((cache_line_id_address != previous_addrs_R) || en_seq)) { // return type
+      when (ret && (!change_state) && index_match && line_change) { // return type
           output := Cat(stackAddrs(sp_R - UInt(1)), sign_ext_R)
 	  index_R := Mux((stackAddrs(sp_R - UInt(1)) === UInt(0)), UInt(0), stackIndex(sp_R - UInt(1))) 
 	  sp_R := Mux((stackAddrs(sp_R - UInt(1)) === UInt(0)), UInt(1), (sp_R - UInt(1))) 
       }		 
-      when ((type_rom(index_R) === UInt(3)) && (!change_state) && (cache_line_id_address === trigger_rom(index_R)) && ((cache_line_id_address != previous_addrs_R) || en_seq)) { // small_loop
+      when (cont_loop && (!change_state) && index_match && line_change) { // small_loop
 	  output := Mux((count_rom(index_R) === UInt(0)), Cat(cache_line_id_address, sign_ext_R), Cat((cache_line_id_address + UInt(1)), sign_ext_R))	 	
           index_R := index_R + UInt(1)
+	  en_seq := Mux((count_rom(index_R) === UInt(0)), Bool(true), Bool(false))
 	  change_state := Mux((count_rom(index_R) > UInt(1)), Bool(true), Bool(false)) 
 	  small_l_addr_R := cache_line_id_address + UInt(2) 
           small_l_stop_R := cache_line_id_address + UInt(1)
 	  small_l_count_R := count_rom(index_R) - UInt(1)
       } 
-      when ((status_R(depth_rom(index_R)) === UInt(0)) &&  (type_rom(index_R) === UInt(2)) && (!change_state) && (cache_line_id_address === trigger_rom(index_R)) && ((cache_line_id_address != previous_addrs_R) || en_seq)) { //loop
+      when (loop_entry && loops && (!change_state) && index_match && line_change) { //loop
         //entring first time
         output := Cat(destination_rom(index_R), sign_ext_R)
         index_R := next_rom(index_R)
         status_R(depth_rom(index_R)) := Mux(((iteration_rom(index_R)) === UInt(1)), UInt(2), UInt(1)) 
 	iteration_outer_R(depth_rom(index_R)) := iteration_rom(index_R) - UInt(1)
       } 
-      when ((status_R(depth_rom(index_R)) === UInt(1)) && (type_rom(index_R) === UInt(2)) && (!change_state) && (cache_line_id_address === trigger_rom(index_R)) && ((cache_line_id_address != previous_addrs_R) || en_seq)) { //loop
+      when (loop_iteration && loops && (!change_state) && index_match && line_change) { //loop
         // next iteration of the outer loop
 	output := Cat(destination_rom(index_R), sign_ext_R)
         index_R := next_rom(index_R)
 	iteration_outer_R(depth_rom(index_R)) := iteration_outer_R(depth_rom(index_R)) - UInt(1)
 	status_R(depth_rom(index_R)) := Mux((iteration_outer_R(depth_rom(index_R)) === UInt(1)), UInt(2), UInt(1)) // if last iteration, change to exhausted
       }
-      when ((status_R(depth_rom(index_R)) === UInt(2)) && (type_rom(index_R) === UInt(2)) && (!change_state) && (cache_line_id_address === trigger_rom(index_R)) && ((cache_line_id_address != previous_addrs_R) || en_seq)) { //loop
+      when (loop_exit && loops && (!change_state) && index_match && line_change) { //loop
         // loop is already "exhausted"
         status_R(depth_rom(index_R)) := UInt(0) // reset the status
         index_R := index_R + UInt(1)
