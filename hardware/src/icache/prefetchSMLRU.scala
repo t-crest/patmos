@@ -2,9 +2,9 @@ package patmos
 
 import Chisel._
 import Node._
-import PrefetchCons._
+import PrefetchCons2LRU._
 import PIConstants2LRU._
-import Constants2LRU._
+import Constants._
 import scala.math._
 
 class PFSMLRU extends Module {
