@@ -104,7 +104,6 @@ class PFSMLRU extends Module {
 	  sp_R := Mux((stackAddrs(sp_R - UInt(1)) === UInt(0)), UInt(1), (sp_R - UInt(1))) 
       }		 
       when (cont_loop && (!change_state) && index_match && line_change) { // small_loop
-	  output := Mux((count_rom(index_R) === UInt(0)), Cat(cache_line_id_address, sign_ext_R), Cat((cache_line_id_address + UInt(1)), sign_ext_R))	 	
           index_R := index_R + UInt(1)
 	  en_seq := Mux((count_rom(index_R) === UInt(0)), Bool(true), Bool(false))
 	  change_state := Mux((count_rom(index_R) > UInt(1)), Bool(true), Bool(false)) 
@@ -147,7 +146,6 @@ class PFSMLRU extends Module {
         output := Cat(small_l_addr_R, sign_ext_R)
         small_l_count_R := small_l_count_R - UInt(1)
 	small_l_addr_R := small_l_addr_R + UInt(1)
-	state := small_loop
       }
     } 
     io.prefrepl.prefAddr := output
