@@ -45,6 +45,7 @@ class PFSMLRU extends Module {
   val output = Reg(init = Bits(0, width = EXTMEM_ADDR_WIDTH))
   val en_seq = Reg(init = Bool(false))
   val change_state = Reg(init = Bool(false))
+  val flip_R = Reg(init = Bool(false))
 
   // Reset the index when cache is flushed
   when (io.invalidate) {
@@ -52,15 +53,21 @@ class PFSMLRU extends Module {
   }
   
   // Input address selection
-  val cache_line_id_address = Mux((pc_address_even != previous_addrs_even_R), pc_address_even, Mux((pc_address_odd != previous_addrs_odd_R), pc_address_odd, cache_line_id_address_R))
-  
+
+  val check_even_local = (pc_address_even != previous_addrs_even_R)
+  val check_even_main = (pc_address_even != cache_line_id_address_R)
+  val check_odd_local = (pc_address_odd != previous_addrs_odd_R)
+  val check_odd_main = (pc_address_odd != cache_line_id_address_R) 
+
+  val cache_line_id_address = Mux(check_even_local, Mux(check_even_main, pc_address_even, cache_line_id_address_R), Mux(check_odd_local, Mux(check_odd_main, pc_address_odd, cache_line_id_address_R), cache_line_id_address_R))
+
+  cache_line_id_address_R := cache_line_id_address
+ 
   when (pc_address_even != previous_addrs_even_R) {
     previous_addrs_even_R := pc_address_even
-    cache_line_id_address_R := pc_address_even
   }
   .elsewhen (pc_address_odd != previous_addrs_odd_R) {
     previous_addrs_odd_R := pc_address_odd
-      cache_line_id_address_R := pc_address_odd
   }
 
   // State_machine
@@ -85,6 +92,7 @@ class PFSMLRU extends Module {
       when (change_state && line_change) {
 	  state := small_loop
 	  change_state := Bool(false)
+	  flip_R := Bool(true)
       }
       when ((!index_match) && (!change_state) && line_change) { //no matching - next line prefetching
 	  output := Cat((cache_line_id_address + UInt(1)), sign_ext_R) 
@@ -101,13 +109,14 @@ class PFSMLRU extends Module {
       when (ret && (!change_state) && index_match && line_change) { // return type
           output := Cat(stackAddrs(sp_R - UInt(1)), sign_ext_R)
 	  index_R := Mux((stackAddrs(sp_R - UInt(1)) === UInt(0)), UInt(0), stackIndex(sp_R - UInt(1))) 
-	  sp_R := Mux((stackAddrs(sp_R - UInt(1)) === UInt(0)), UInt(1), (sp_R - UInt(1))) 
+	  sp_R := Mux((stackAddrs(sp_R - UInt(1)) === UInt(0)), UInt(1), (sp_R - UInt(1)))
+          en_seq := Mux((trigger_rom(index_R) === stackAddrs(sp_R - UInt(1))), Bool(true), Bool(false))  // case ret and destination are on the same cache line
       }		 
       when (cont_loop && (!change_state) && index_match && line_change) { // small_loop
           index_R := index_R + UInt(1)
 	  en_seq := Mux((count_rom(index_R) === UInt(0)), Bool(true), Bool(false))
-	  change_state := Mux((count_rom(index_R) > UInt(1)), Bool(true), Bool(false)) 
-	  small_l_addr_R := cache_line_id_address + UInt(2) 
+	  change_state := Mux((count_rom(index_R) !=  UInt(0)), Bool(true), Bool(false)) 
+          small_l_addr_R := cache_line_id_address + UInt(1)
           small_l_stop_R := cache_line_id_address + UInt(1)
 	  small_l_count_R := count_rom(index_R) - UInt(1)
       } 
@@ -141,10 +150,11 @@ class PFSMLRU extends Module {
       when (small_l_stop_R === cache_line_id_address) {
         state := trigger
       }
-      .elsewhen (prefTrig) {
+      .elsewhen (prefTrig || flip_R) {
+	flip_R := Bool(false)
 	state := Mux((small_l_count_R != UInt(0)), small_loop, trigger)    
         output := Cat(small_l_addr_R, sign_ext_R)
-        small_l_count_R := small_l_count_R - UInt(1)
+        small_l_count_R := Mux((small_l_count_R != UInt(0)), (small_l_count_R - UInt(1)), small_l_count_R)
 	small_l_addr_R := small_l_addr_R + UInt(1)
       }
     } 

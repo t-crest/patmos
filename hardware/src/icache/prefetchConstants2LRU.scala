@@ -2,13 +2,13 @@ package patmos
 
 import Chisel._
 import Node._
-import PIConstants2._
+import PIConstants2LRU._
 import Constants._
 import scala.io.Source
 import scala.math._
 
 
-object PrefetchCons2 {
+object PrefetchCons2LRU {
   
   //Reading the rpt.txt file
   val readRPT = Source.fromFile("src/icache/rpt.txt").getLines().map(_.split(" ")).toArray
