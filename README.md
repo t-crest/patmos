@@ -19,9 +19,15 @@ Several packages need to be installed.
 The following apt-get lists the packages that need to be
 installed on a Ubuntu Linux:
 
-    sudo apt-get install openjdk-7-jdk git cmake make g++ texinfo flex bison \
+    sudo apt-get install default-jdk git cmake make g++ texinfo flex bison \
       subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
       ruby1.9.1-dev python zlib1g-dev gtkwave gtkterm scala
+
+On a restricted machine (e.g. Cloud9) the bare minimum is:
+
+    sudo apt-get install default-jdk git cmake make g++ flex bison \
+      subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
+      ruby1.9.1-dev python zlib1g-dev
 
 Install sbt with:
 
