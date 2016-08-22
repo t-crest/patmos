@@ -48,35 +48,35 @@ object PrefetchCons {
 
   var INDEX_WIDTH = 3
   if(MAX_INDEX_RPT > 8)
-    INDEX_WIDTH = log2Up(MAX_INDEX_RPT)
+    INDEX_WIDTH = log2Up(MAX_INDEX_RPT + 1)
   
   var INDEX_REG_WIDTH = 3
   if((index_array.max) > 8)
-    INDEX_REG_WIDTH = log2Up(index_array.max)
+    INDEX_REG_WIDTH = log2Up(index_array.max + 1)
   
   var MAX_ITERATION_WIDTH = 5
   if((iteration_array.max) > 32)
-    MAX_ITERATION_WIDTH = log2Up(iteration_array.max)
+    MAX_ITERATION_WIDTH = log2Up(iteration_array.max + 1)
   
   var MAX_COUNT_WIDTH = 5
   if((count_array.max) > 32)
-    MAX_COUNT_WIDTH = log2Up(count_array.max)
+    MAX_COUNT_WIDTH = log2Up(count_array.max + 1) 
   
-  var MAX_DEPTH = 3
-  if((depth_array.max) > 3)
+  var MAX_DEPTH = 1
+  if((depth_array.max) > 1)
     MAX_DEPTH = depth_array.max
   
   var MAX_DEPTH_WIDTH = 3
   if(MAX_DEPTH > 8)
-    MAX_DEPTH_WIDTH = log2Up(MAX_DEPTH)
+    MAX_DEPTH_WIDTH = log2Up(MAX_DEPTH + 1)
   
   var MAX_SMALL_LOOP_WIDTH = 3
   if((count_array.max) > 8)
-    MAX_SMALL_LOOP_WIDTH  = log2Up(count_array.max)  
+    MAX_SMALL_LOOP_WIDTH  = log2Up(count_array.max + 1)  
   
   var MAX_LOOP_ITER_WIDTH = 3
   if((iteration_array.max) > 8)
-    MAX_LOOP_ITER_WIDTH = log2Up(iteration_array.max)  
+    MAX_LOOP_ITER_WIDTH = log2Up(iteration_array.max + 1)  
 
   //calculating the max number of call entries in RPT table
   var max_call = 1
