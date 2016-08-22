@@ -25,7 +25,7 @@ installed on a Ubuntu Linux:
 
 On a restricted machine (e.g. Cloud9) the bare minimum is:
 
-    sudo apt-get install default-jdk git cmake make g++ flex bison \
+    sudo apt-get install default-jdk git cmake make g++ texinfo flex bison \
       subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby1.9.1 \
       ruby1.9.1-dev python zlib1g-dev
 
