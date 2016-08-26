@@ -29,26 +29,26 @@ hardware/vhdl/patmos_de2-115-audio.vhdl
 Useful commands:
 ============
 Build patmos for FPGA:
->make BOARD=altde2-115-audio
+       make BOARD=altde2-115-audio
 
 Run a program on FPGA:
->cd ..\n
->make -C patmos APP=__appName__ comp\n
->make -C patmos APP=__appName__ download
+       cd ..
+       make -C patmos APP=__appName__ comp
+       make -C patmos APP=__appName__ download
 
 Simple simulation of a program (printings):
->cd .. (not sure of this)
->make comp APP=__appName__
->make emulator
->install/bin/emulator tmp/__appName__.elf
+       cd .. (not sure of this)
+       make comp APP=__appName__
+       make emulator
+       install/bin/emulator tmp/__appName__.elf
 
 Waveform simulation of a program (gtkwave):
->cd .. (not sure of this)
->make comp APP=__appName__
->make emulator
->install/bin/emulator tmp/__appName__.elf
->/./install/bin/emulator -v -l __simulationLength__ tmp/__appName__.elf
->gtkwave Patmos.vcd &
+       cd .. (not sure of this)
+       make comp APP=__appName__
+       make emulator
+       install/bin/emulator tmp/__appName__.elf
+       ./install/bin/emulator -v -l __simulationLength__ tmp/__appName__.elf
+       gtkwave Patmos.vcd &
 
 Get emulator help:
->./install/bin/emulator -h
+       ./install/bin/emulator -h
