@@ -124,7 +124,7 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
     is(Bits("b1111")) { data := i2cReqReg }
   }
 
-  // Write Audio In
+  // Write Information
   when(io.ocp.M.Cmd === OcpCmd.WR)
   {
     respReg := OcpResp.DVA
