@@ -32,8 +32,8 @@ Build patmos for FPGA:
 >make BOARD=altde2-115-audio
 
 Run a program on FPGA:
->cd ..
->make -C patmos APP=__appName__ comp
+>cd ..\n
+>make -C patmos APP=__appName__ comp\n
 >make -C patmos APP=__appName__ download
 
 Simple simulation of a program (printings):
