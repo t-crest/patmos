@@ -5,7 +5,7 @@ package io
 
 import Chisel._
 
-class AudioDACBUffer(AUDIOBITLENGTH: Int, BUFFERPOWER: Int) extends Module {
+class AudioDACBuffer(AUDIOBITLENGTH: Int, BUFFERPOWER: Int) extends Module {
 
   // IOs
   val io = new Bundle {

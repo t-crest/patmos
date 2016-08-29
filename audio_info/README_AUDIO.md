@@ -4,27 +4,27 @@ AUDIO INTERFACE FOR WM-8731 Audio Codec & PATMOS running on Altera altDE2-115
 
 Added hardware modules:
 ============
-hardware/src/io/AudioADC.scala
-hardware/src/io/AudioDAC.scala
-hardware/src/io/AudioClkGen.scala
-hardware/src/io/AudioI2C.scala
-hardware/src/io/AudioInterface.scala
+    hardware/src/io/AudioADC.scala
+    hardware/src/io/AudioDAC.scala
+    hardware/src/io/AudioClkGen.scala
+    hardware/src/io/AudioI2C.scala
+    hardware/src/io/AudioInterface.scala
 
 Added C libraries and programs:
 ============
-c/audio.c
-c/audio.h
-c/audio_delay.c
-c/audio_inout.c
-c/audio_i2c_test.c
-c/audio_regrw_test.c
-c/audio_sin.c
+    c/audio.c
+    c/audio.h
+    c/audio_delay.c
+    c/audio_inout.c
+    c/audio_i2c_test.c
+    c/audio_regrw_test.c
+    c/audio_sin.c
 
 Added configuration files:
 ===========
-hardware/config/altde2-115-audio.xml
-hardware/quartus/altde2-115-audio/patmos.qsf
-hardware/vhdl/patmos_de2-115-audio.vhdl
+    hardware/config/altde2-115-audio.xml
+    hardware/quartus/altde2-115-audio/patmos.qsf
+    hardware/vhdl/patmos_de2-115-audio.vhdl
 
 Useful commands:
 ============
