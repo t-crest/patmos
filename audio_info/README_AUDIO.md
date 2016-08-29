@@ -46,10 +46,8 @@ Simple simulation of a program (printings):
 
 Waveform simulation of a program (gtkwave):
 
-    cd .. (not sure of this)
     make comp APP=__appName__
     make emulator
-    install/bin/emulator tmp/__appName__.elf
     ./install/bin/emulator -v -l __simulationLength__ tmp/__appName__.elf
     gtkwave Patmos.vcd &
 

@@ -107,7 +107,7 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
   val data = Bits(width = DATA_WIDTH)
   data := Bits(0) //Default Data
 
-  switch(masterReg.Addr(8,3))
+  switch(masterReg.Addr(9,4))
   {
     is(Bits("b00000")) { data := audioDacLReg }
     is(Bits("b00001")) { data := audioDacRReg }
@@ -133,7 +133,7 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
   when(io.ocp.M.Cmd === OcpCmd.WR)
   {
     respReg := OcpResp.DVA
-    switch(io.ocp.M.Addr(8,3))
+    switch(io.ocp.M.Addr(9,4))
     {
       is(Bits("b00000")) { audioDacLReg := io.ocp.M.Data(AUDIOLENGTH-1,0) }
       is(Bits("b00001")) { audioDacRReg := io.ocp.M.Data(AUDIOLENGTH-1,0) }

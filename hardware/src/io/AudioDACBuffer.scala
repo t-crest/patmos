@@ -52,7 +52,7 @@ class AudioDACBuffer(AUDIOBITLENGTH: Int, BUFFERPOWER: Int) extends Module {
 
   // full and empty state machine
   val sFEIdle :: sFEAlmostFull :: sFEFull :: sFEAlmostEmpty :: sFEEmpty :: Nil = Enum(UInt(), 5)
-  val stateFE = Reg(init = sFEIdle)
+  val stateFE = Reg(init = sFEEmpty)
 
   // audio output handshake: if input enable and buffer not empty
   when ( (io.enDacI === UInt(1)) && (emptyReg === UInt(0)) ) {
@@ -98,6 +98,7 @@ class AudioDACBuffer(AUDIOBITLENGTH: Int, BUFFERPOWER: Int) extends Module {
         }
       }
       is (sInReqHi) {
+        io.ackO := UInt(0)
         //check if buffer is not full
         when(fullReg === UInt(0)) {
           stateIn := sInAckHi
@@ -114,6 +115,7 @@ class AudioDACBuffer(AUDIOBITLENGTH: Int, BUFFERPOWER: Int) extends Module {
         }
       }
       is (sInReqLo) {
+        io.ackO := UInt(1)
         when(fullReg === UInt(0)) { // for safety, wait until buffer not full
           //read and store input, increment write pointer
           audioBufferL(w_pnt) := io.audioLIPatmos

@@ -1,4 +1,5 @@
 #include <machine/spm.h>
+#include <machine/rtc.h>
 #include <stdio.h>
 #include "audio.h"
 
@@ -172,6 +173,18 @@ int changeVolume(int vol) {
   *i2cReqReg	 = 1;
   while(*i2cAckReg == 0);
   for (int i = 0; i<200; i++)  { *i2cReqReg=0; }
+
+  return 0;
+}
+
+
+int setOutputBuffer(short l, short r) {
+  while(*audioDacBufferAckReg == 1); // wait until ack low
+  *audioDacBufferReqReg = 1; // req high
+  while(*audioDacBufferAckReg == 0); // wait until ack high
+  *audioDacLReg = l;
+  *audioDacRReg = r;
+  *audioDacBufferReqReg = 0; // req low
 
   return 0;
 }
