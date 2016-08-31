@@ -19,7 +19,7 @@ int main() {
   }
   printf("done first\n");
 
-  printf("IWannaWaitVeryVeryLong\n");
+  printf("IWannaWaitVerrrryVeryLong\n");
 
   // audio data
   for(int j=0; j<3; j++) {
@@ -28,7 +28,7 @@ int main() {
     }
   }
   printf("done second\n");
-  
+
   return 0;
 
 }
