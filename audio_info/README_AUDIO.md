@@ -38,8 +38,7 @@ Build patmos for FPGA:
 Run a program on FPGA:
 
     cd ..
-    make -C patmos APP=__appName__ comp
-    make -C patmos APP=__appName__ download
+    make -C patmos APP=__appName__ comp download
 
 Simple simulation of a program (printings):
 
