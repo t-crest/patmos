@@ -30,7 +30,10 @@ Useful commands:
 ============
 Build patmos for FPGA:
 
-    make BOARD=altde2-115-audio
+    make BOARD=altde2-115-audio gen # only generation of verilog
+    make BOARD=altde2-115-audio synth # Quartus synthesis
+    make BOARD=altde2-115-audio config # load binary into board
+    make BOARD=altde2-115-audio # all 3 steps of before
 
 Run a program on FPGA:
 
@@ -41,13 +44,13 @@ Run a program on FPGA:
 Simple simulation of a program (printings):
 
     make comp APP=__appName__
-    make emulator
+    make BOARD=altde2-115-audio emulator
     install/bin/emulator tmp/__appName__.elf
 
 Waveform simulation of a program (gtkwave):
 
     make comp APP=__appName__
-    make emulator
+    make BOARD=altde2-115-audio emulator
     ./install/bin/emulator -v -l __simulationLength__ tmp/__appName__.elf
     gtkwave Patmos.vcd &
 
