@@ -73,7 +73,6 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
   val audioDacLReg = Reg(init = Bits(0, AUDIOLENGTH))
   val audioDacRReg = Reg(init = Bits(0, AUDIOLENGTH))
   val audioDacEnReg = Reg(init = Bits(0, 1)) //enable
-  val audioDacBusyReg = Reg(init = Bits(0, 1))
   val audioDacReqReg = Reg(init = Bits(0, 1))
   val audioDacLrcReg = Reg(init = Bits(0, 1))
 
@@ -112,7 +111,6 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
     is(Bits("b00000")) { data := audioDacLReg }
     is(Bits("b00001")) { data := audioDacRReg }
     is(Bits("b00010")) { data := audioDacEnReg }
-    is(Bits("b00011")) { data := audioDacBusyReg }
     is(Bits("b00100")) { data := audioDacReqReg }
     is(Bits("b00101")) { data := audioDacLrcReg }
     is(Bits("b00110")) { data := audioDacBufferReqReg }
@@ -178,10 +176,9 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
   mAudioDac.io.audioLI       := mAudioDacBuffer.io.audioLIDAC
   mAudioDac.io.audioRI       := mAudioDacBuffer.io.audioRIDAC
   mAudioDac.io.enDacI        := mAudioDacBuffer.io.enDacO
-  mAudioDacBuffer.io.dacLrcI := mAudioDac.io.dacLrcO
+  mAudioDacBuffer.io.writeEnDacI := mAudioDac.io.writeEnDacO
   // DAC to others:
   mAudioDac.io.bclkI := mAudioClk.io.bclkO
-  audioDacBusyReg    := mAudioDac.io.busyO
   audioDacLrcReg     := mAudioDac.io.dacLrcO
   io.audioInterfacePins.dacLrc := mAudioDac.io.dacLrcO
   io.audioInterfacePins.dacDat := mAudioDac.io.dacDatO

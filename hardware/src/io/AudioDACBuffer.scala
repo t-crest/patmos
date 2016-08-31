@@ -19,7 +19,7 @@ class AudioDACBuffer(AUDIOBITLENGTH: Int, BUFFERPOWER: Int) extends Module {
     val audioLIDAC = UInt(OUTPUT, AUDIOBITLENGTH)
     val audioRIDAC = UInt(OUTPUT, AUDIOBITLENGTH)
     val enDacO = UInt(OUTPUT, 1) // enable signal
-    val dacLrcI = UInt(INPUT, 1) // used to sync
+    val writeEnDacI = UInt(INPUT, 1) // used to sync writes
     //val busyDac = UInt(INPUT, 1) //needed???
   }
 
@@ -54,15 +54,15 @@ class AudioDACBuffer(AUDIOBITLENGTH: Int, BUFFERPOWER: Int) extends Module {
   val sFEIdle :: sFEAlmostFull :: sFEFull :: sFEAlmostEmpty :: sFEEmpty :: Nil = Enum(UInt(), 5)
   val stateFE = Reg(init = sFEEmpty)
 
-  // audio output handshake: if input enable and buffer not empty
-  when ( (io.enDacI === UInt(1)) && (emptyReg === UInt(0)) ) {
+  // audio output handshake: if buffer not empty
+  when (emptyReg === UInt(0)) {
     //enable output
     io.enDacO := UInt(1)
     //state machine
     switch (stateOut) {
       is (sOutIdle) {
-        //wait until posEdge dacLrcI
-        when(io.dacLrcI === UInt(1)) {
+        //wait until posEdge writeEnDacI
+        when(io.writeEnDacI === UInt(1)) {
           //write output, increment read pointer
           audioLIReg := audioBufferL(r_pnt)
           audioRIReg := audioBufferR(r_pnt)
@@ -73,8 +73,8 @@ class AudioDACBuffer(AUDIOBITLENGTH: Int, BUFFERPOWER: Int) extends Module {
         }
       }
       is (sOutWrote) {
-        //wait until negEdge dacLrcI
-        when(io.dacLrcI === UInt(0)) {
+        //wait until negEdge writeEnDacI
+        when(io.writeEnDacI === UInt(0)) {
           //update state
           stateOut := sOutIdle
         }

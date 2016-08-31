@@ -11,7 +11,6 @@ volatile _SPM int *keyReg = (volatile _SPM int *) 0xF00A0000;
 volatile _SPM int *audioDacLReg	   = (volatile _SPM int *) 0xF00B0000;
 volatile _SPM int *audioDacRReg    = (volatile _SPM int *) 0xF00B0010;
 volatile _SPM int *audioDacEnReg   = (volatile _SPM int *) 0xF00B0020;
-volatile _SPM int *audioDacBusyReg = (volatile _SPM int *) 0xF00B0030;
 volatile _SPM int *audioDacReqReg  = (volatile _SPM int *) 0xF00B0040;
 volatile _SPM int *audioDacLrcReg  = (volatile _SPM int *) 0xF00B0050;
 volatile _SPM int *audioDacBufferReqReg = (volatile _SPM int *) 0xF00B0060;
