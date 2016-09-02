@@ -41,7 +41,7 @@
 			<param name="audioLength"	value="16"/>  <!-- either 16, 20, 24 or 32 -->
 			<param name="audioFsDivider"	value="256"/> <!-- depending on chosen Fs (see datasheet) -->
 			<param name="audioClkDivider"	value="6"/>   <!-- for the bclk/xlk: patmosclk / audioClkDivider-->
-                        <param name="maxDacBufferPower" value="10"/>  <!-- for a maximum DAC buffer of 2^10 = 1024 -->
+                        <param name="maxDacBufferPower" value="8"/>  <!-- for a maximum DAC buffer of 2^10 = 1024 -->
 		</params>
 	</Dev>
   </Devs>
