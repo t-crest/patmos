@@ -21,6 +21,7 @@ class AudioDAC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
     val audioRI = UInt(INPUT, AUDIOBITLENGTH)
     val enDacI = Bool(dir = INPUT) //enable signal
     val writeEnDacO = UInt(OUTPUT, 1) // used for sync
+    val convEndO = UInt(OUTPUT, 1) // indicates end of conversion
     // from AudioClkGen
     val bclkI = UInt(INPUT, 1)
     // to WM8731
@@ -59,6 +60,10 @@ class AudioDAC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
   val bclkReg = Reg(init = UInt(0, 1))
   bclkReg := io.bclkI
 
+  //end of conversion indicator
+  val convEndReg = Reg(init = UInt(0, 1))
+  io.convEndO := convEndReg
+
   //connect inputs to registers when writing is enabled
   when(writeEnDacReg === UInt(1)) {
     audioLReg := io.audioLI
@@ -76,6 +81,10 @@ class AudioDAC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
       when(fsCntReg === FSCYCLES)
       {
 	fsCntReg := UInt(0) //reset to 0
+        convEndReg := UInt(1) // Indicate end of conversion cycle
+      }
+      .otherwise {
+        convEndReg := UInt(0)
       }
 
       //FSM for audio conversion
@@ -135,6 +144,7 @@ class AudioDAC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
     writeEnDacReg := UInt(1)
     dacLrcReg := UInt(0)
     dacDatReg := UInt(0)
+    convEndReg := UInt(0)
   }
 
 }

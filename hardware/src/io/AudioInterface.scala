@@ -177,6 +177,7 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
   mAudioDac.io.audioRI       := mAudioDacBuffer.io.audioRIDAC
   mAudioDac.io.enDacI        := mAudioDacBuffer.io.enDacO
   mAudioDacBuffer.io.writeEnDacI := mAudioDac.io.writeEnDacO
+  mAudioDacBuffer.io.convEndI := mAudioDac.io.convEndO
   // DAC to others:
   mAudioDac.io.bclkI := mAudioClk.io.bclkO
   audioDacLrcReg     := mAudioDac.io.dacLrcO
