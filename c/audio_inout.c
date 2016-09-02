@@ -1,5 +1,7 @@
 #include <machine/spm.h>
+#include <machine/rtc.h>
 #include <stdio.h>
+#include <math.h>
 #include "audio.h"
 #include "audio.c"
 
@@ -14,13 +16,14 @@ int main() {
 
   short inL = 0;
   short inR = 0;
+  // enable input and output
   *audioDacEnReg = 1;
   *audioAdcEnReg = 1;
 
   while(*keyReg != 3) {
     getInputAudio(&inL,&inR);
     //printf("InL: %i InR: %i\n",inL,inR);
-    setOutputAudio(inL,inR);
+    setOutputBuffer(inL,inR);
   }
   return 0;
 }
