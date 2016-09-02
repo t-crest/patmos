@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.66 (w)1999-2015 BSI
-[*] Fri Sep  2 12:51:57 2016
+[*] Fri Sep  2 13:40:22 2016
 [*]
 [dumpfile] "/home/dani/t-crest/patmos/Patmos.vcd"
-[dumpfile_mtime] "Fri Sep  2 12:48:08 2016"
-[dumpfile_size] 578688820
+[dumpfile_mtime] "Fri Sep  2 13:26:40 2016"
+[dumpfile_size] 1622828970
 [savefile] "/home/dani/t-crest/patmos/hardware/wave_files/audio_dac_buffer_test.gtkw"
-[timestart] 34429
+[timestart] 298993
 [size] 1142 1150
 [pos] -919 -1
-*-4.156284 34470 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-5.598122 299060 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] Patmos.
 [treeopen] Patmos.core.
 [treeopen] Patmos.core.iocomp.
@@ -61,6 +61,15 @@ Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferL_2[15:0]
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferR_2[15:0]
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferL_3[15:0]
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferR_3[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferL_4[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferR_4[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferL_5[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferR_5[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferL_6[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferR_6[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferL_7[15:0]
+@23
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioBufferR_7[15:0]
 @28
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.io_convEndI
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.lastOutputReg
@@ -93,7 +102,7 @@ Patmos.core.iocomp.AudioInterface.mAudioDac.io_audioRI[15:0]
 Patmos.core.iocomp.AudioInterface.mAudioDac.state[1:0]
 Patmos.core.iocomp.AudioInterface.mAudioDac.convEndReg
 Patmos.core.iocomp.AudioInterface.mAudioDac.io_convEndO
-@23
+@22
 Patmos.core.iocomp.AudioInterface.mAudioDac.fsCntReg[8:0]
 [pattern_trace] 1
 [pattern_trace] 0
