@@ -162,7 +162,7 @@ begin
   -- Audio I2C tristate buffer control
   --ioAudio_sdat <= saudio_sdOut when (saudio_we  = '0') else 'Z';
   --saudio_sdIn <= ioAudio_sdat when (saudio_we ='1') else '1';
-  process(saudio_we, saudio_sdOut)
+  process(saudio_we, saudio_sdOut, ioAudio_sdat)
   begin
     if saudio_we = '1' then
       ioAudio_sdat <= saudio_sdOut;
