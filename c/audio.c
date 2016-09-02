@@ -178,6 +178,24 @@ int changeVolume(int vol) {
 }
 
 
+int isPowerOfTwo (unsigned int x) {
+ while (((x % 2) == 0) && x > 1) /* While x is even and > 1 */
+   x /= 2;
+ return (x == 1);
+}
+
+int setOutputBufferSize(int bufferSize) {
+  if(isPowerOfTwo(bufferSize)) {
+    printf("valid buffer size\n");
+    *audioDacBufferSizeReg = bufferSize;
+    return 0;
+  }
+  else {
+    printf("ERROR: Buffer Size must be power of 2\n");
+    return 1;
+  }
+}
+
 int setOutputBuffer(short l, short r) {
   while(*audioDacBufferAckReg == 1); // wait until ack low
   *audioDacBufferReqReg = 1; // req high

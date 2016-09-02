@@ -10,6 +10,9 @@ short audioArrayR[4] = { 2, 6, 17, 32 };
 
 int main() {
 
+  //set buffer size
+  setOutputBufferSize(8);
+
   //enable DAC
   *audioDacEnReg = 1;
 

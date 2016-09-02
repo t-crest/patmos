@@ -24,18 +24,21 @@ object AudioInterface extends DeviceObject
   var AUDIOFSDIVIDER = -1
   //Clock divider for the audio interface
   var AUDIOCLKDIVIDER = -1
+  //Maximum DAC buffer power
+  var MAXDACBUFFERPOWER = -1
 
 
   def init(params: Map[String, String]) =
   {
-    AUDIOLENGTH	= getPosIntParam(params, "audioLength")
-    AUDIOFSDIVIDER = getPosIntParam(params, "audioFsDivider")
-    AUDIOCLKDIVIDER = getPosIntParam(params, "audioClkDivider")
+    AUDIOLENGTH	      = getPosIntParam(params, "audioLength")
+    AUDIOFSDIVIDER    = getPosIntParam(params, "audioFsDivider")
+    AUDIOCLKDIVIDER   = getPosIntParam(params, "audioClkDivider")
+    MAXDACBUFFERPOWER = getPosIntParam(params, "maxDacBufferPower")
   }
 
   def create(params: Map[String, String]) : AudioInterface =
   {
-    Module(new AudioInterface (AUDIOLENGTH, AUDIOFSDIVIDER, AUDIOCLKDIVIDER))
+    Module(new AudioInterface (AUDIOLENGTH, AUDIOFSDIVIDER, AUDIOCLKDIVIDER, MAXDACBUFFERPOWER))
   }
 
   trait Pins
@@ -63,7 +66,7 @@ object AudioInterface extends DeviceObject
 
 }
 
-class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int) extends CoreDevice() {
+class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int, MAXDACBUFFERPOWER: Int) extends CoreDevice() {
   override val io = new CoreDeviceIO() with AudioInterface.Pins
 
   val AUDIOFSDIVIDERReg	= Reg(init = Bits(AUDIOFSDIVIDER,9))
@@ -76,6 +79,7 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
   val audioDacReqReg = Reg(init = Bits(0, 1))
   val audioDacLrcReg = Reg(init = Bits(0, 1))
 
+  val audioDacBufferSizeReg = Reg(init = Bits(0, (MAXDACBUFFERPOWER+1)))
   val audioDacBufferReqReg = Reg(init = Bits(0, 1))
   val audioDacBufferAckReg = Reg(init = Bits(0, 1))
 
@@ -113,18 +117,19 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
     is(Bits("b00010")) { data := audioDacEnReg }
     is(Bits("b00100")) { data := audioDacReqReg }
     is(Bits("b00101")) { data := audioDacLrcReg }
-    is(Bits("b00110")) { data := audioDacBufferReqReg }
-    is(Bits("b00111")) { data := audioDacBufferAckReg }
-    is(Bits("b01000")) { data := audioAdcLOReg }
-    is(Bits("b01001")) { data := audioAdcROReg }
-    is(Bits("b01010")) { data := audioAdcENReg }
-    is(Bits("b01011")) { data := audioAdcBusyReg }
-    is(Bits("b01100")) { data := audioAdcReqReg }
-    is(Bits("b01101")) { data := audioAdcLrcReg }
-    is(Bits("b01110")) { data := i2cDataReg }
-    is(Bits("b01111")) { data := i2cAdrReg }
-    is(Bits("b10000")) { data := i2cAckReg }
-    is(Bits("b10001")) { data := i2cReqReg }
+    is(Bits("b00110")) { data := audioDacBufferSizeReg }
+    is(Bits("b00111")) { data := audioDacBufferReqReg }
+    is(Bits("b01000")) { data := audioDacBufferAckReg }
+    is(Bits("b01001")) { data := audioAdcLOReg }
+    is(Bits("b01010")) { data := audioAdcROReg }
+    is(Bits("b01011")) { data := audioAdcENReg }
+    is(Bits("b01100")) { data := audioAdcBusyReg }
+    is(Bits("b01101")) { data := audioAdcReqReg }
+    is(Bits("b01110")) { data := audioAdcLrcReg }
+    is(Bits("b01111")) { data := i2cDataReg }
+    is(Bits("b10000")) { data := i2cAdrReg }
+    is(Bits("b10001")) { data := i2cAckReg }
+    is(Bits("b10010")) { data := i2cReqReg }
   }
 
   // Write Information
@@ -137,12 +142,13 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
       is(Bits("b00001")) { audioDacRReg := io.ocp.M.Data(AUDIOLENGTH-1,0) }
       is(Bits("b00010")) { audioDacEnReg := io.ocp.M.Data(0) }
       is(Bits("b00100")) { audioDacReqReg := io.ocp.M.Data(0) }
-      is(Bits("b00110")) { audioDacBufferReqReg := io.ocp.M.Data(0) }
-      is(Bits("b01010")) { audioAdcENReg := io.ocp.M.Data(0) }
-      is(Bits("b01100")) { audioAdcReqReg := io.ocp.M.Data(0) }
-      is(Bits("b01110")) { i2cDataReg := io.ocp.M.Data(8,0) }
-      is(Bits("b01111")) { i2cAdrReg := io.ocp.M.Data(6,0) }
-      is(Bits("b10001")) { i2cReqReg := io.ocp.M.Data(0) }
+      is(Bits("b00110")) { audioDacBufferSizeReg := io.ocp.M.Data(MAXDACBUFFERPOWER,0) }
+      is(Bits("b00111")) { audioDacBufferReqReg := io.ocp.M.Data(0) }
+      is(Bits("b01011")) { audioAdcENReg := io.ocp.M.Data(0) }
+      is(Bits("b01101")) { audioAdcReqReg := io.ocp.M.Data(0) }
+      is(Bits("b01111")) { i2cDataReg := io.ocp.M.Data(8,0) }
+      is(Bits("b10000")) { i2cAdrReg := io.ocp.M.Data(6,0) }
+      is(Bits("b10010")) { i2cReqReg := io.ocp.M.Data(0) }
     }
   }
 
@@ -160,12 +166,13 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
 
 
   //DAC Buffer:
-  val mAudioDacBuffer = Module(new AudioDACBuffer(AUDIOLENGTH, 3)) // change BUFFERPOWER later
+  val mAudioDacBuffer = Module(new AudioDACBuffer(AUDIOLENGTH, MAXDACBUFFERPOWER)) // change BUFFERPOWER later
 
   //Patmos to DAC Buffer:
   mAudioDacBuffer.io.audioLIPatmos := audioDacLReg
   mAudioDacBuffer.io.audioRIPatmos := audioDacRReg
   mAudioDacBuffer.io.enDacI        := audioDacEnReg
+  mAudioDacBuffer.io.bufferSizeI   := audioDacBufferSizeReg
   mAudioDacBuffer.io.reqI          := audioDacBufferReqReg
   audioDacBufferAckReg             := mAudioDacBuffer.io.ackO
 
