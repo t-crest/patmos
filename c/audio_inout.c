@@ -14,8 +14,11 @@
 int main() {
   setup();
 
+  setOutputBufferSize(256);
+
   short inL = 0;
   short inR = 0;
+
   // enable input and output
   *audioDacEnReg = 1;
   *audioAdcEnReg = 1;
