@@ -22,7 +22,6 @@ class AudioDACBuffer(AUDIOBITLENGTH: Int, MAXDACBUFFERPOWER: Int) extends Module
     val enDacO = UInt(OUTPUT, 1) // enable signal
     val writeEnDacI = UInt(INPUT, 1) // used to sync writes
     val convEndI = UInt(INPUT, 1) // indicates end of conversion
-    //val busyDac = UInt(INPUT, 1) //needed???
   }
 
   val BUFFERLENGTH : Int = (Math.pow(2, MAXDACBUFFERPOWER)).asInstanceOf[Int]
