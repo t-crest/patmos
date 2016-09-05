@@ -14,6 +14,7 @@
 int main() {
   setup();
 
+  setInputBufferSize(256);
   setOutputBufferSize(256);
 
   short inL = 0;
@@ -25,7 +26,7 @@ int main() {
 
 
   while(*keyReg != 3) {
-    getInputAudio(&inL,&inR);
+    getInputBuffer(&inL, &inR);
     //printf("In L: %i In R: %i\n",inL,inR);
     setOutputBuffer(inL,inR);
   }

@@ -50,7 +50,7 @@ void playSine() {
 
 int main() {
 
-  printf("CPU Frequency: %d MHz\n", get_cpu_freq()/1000000);
+  printf("CPU frequency: %d MHz\n", get_cpu_freq()/1000000);
 
 	setup();
 

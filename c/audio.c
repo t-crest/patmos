@@ -107,46 +107,6 @@ void setup() {
 
 
 /*
- * @brief		Writes the supplied data to the audio interface using the correct protocoll.
- * @param[in]	l	left audio data. Has to be <= 16 Bit.
- * @param[in]	r	right audio data. Has to be <= 16 Bit.
- * @reutrn		returns 0 if successful and a negative number if there was an error.
- */
-int setOutputAudio(short l, short r) {
-  *audioDacLReg = l;
-  *audioDacRReg = r;
-  return 0;
-}
-
-/*
- * @brief		this will put the audio from the registers into the value of l and r
- * @param[in]	l	here the left audio data will be stored. Has to be <= 16 Bit.
- * @param[in]	r	here the right audio data will be stored. Has to be <= 16 Bit.
- * @reutrn		returns 0 if successful and a negative number if there was an error.
- */
-int getInputAudio(short *l, short *r) {
-  *l = *audioAdcLReg;
-  *r = *audioAdcRReg;
-  return 0;
-}
-
-/*
- * @brief		It synchroizes with dac the sampling frequency by waiting for the LRC signal to go from low to high.
- */
-void waitSyncDac() {
-  while (*audioDacLrcReg == 0);
-  while (*audioDacLrcReg == 1);
-}
-
-/*
- * @brief		It synchroizes with the adc sampling frequency by waiting for the LRC signal to go from low to high.
- */
-void waitSyncAdc() {
-  while (*audioAdcLrcReg == 0);
-  while (*audioAdcLrcReg == 1);
-}
-
-/*
  * @brief		changes the volume of the audio output.
  * @param[in]	vol 	in db. Has to be between +6 and -73
  * @reutrn		returns 0 if successful and a negative number if there was an error.

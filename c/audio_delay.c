@@ -21,6 +21,7 @@ int main() {
 
   setup();
 
+  setInputBufferSize(256);
   setOutputBufferSize(256);
 
   short inL = 0;
@@ -99,7 +100,7 @@ int main() {
       if(p >= delayTime) {
         p=0;
       }
-      getInputAudio(&inL,&inR);
+      getInputBuffer(&inL,&inR);
       if(p == delayLim) {
         delayPosition = 0;
       }
