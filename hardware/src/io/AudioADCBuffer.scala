@@ -125,7 +125,7 @@ class AudioADCBuffer(AUDIOBITLENGTH: Int, MAXADCBUFFERPOWER: Int) extends Module
         }
         //check if PATMOS cancels handshake
         when(io.reqI === UInt(0)) {
-          stateOut := sIdle
+          stateOut := sOutIdle
         }
       }
       is (sOutAckHi) {

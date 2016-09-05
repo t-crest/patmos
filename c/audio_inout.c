@@ -25,7 +25,7 @@ int main() {
 
   while(*keyReg != 3) {
     getInputAudio(&inL,&inR);
-    //printf("InL: %i InR: %i\n",inL,inR);
+    //printf("In L: %i In R: %i\n",inL,inR);
     setOutputBuffer(inL,inR);
   }
   return 0;
