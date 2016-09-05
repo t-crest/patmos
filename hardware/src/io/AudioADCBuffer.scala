@@ -44,6 +44,9 @@ class AudioADCBuffer(AUDIOBITLENGTH: Int, MAXADCBUFFERPOWER: Int) extends Module
   // input handshake state machine (from AudioADC)
   val sInIdle :: sInRead :: Nil = Enum(UInt(), 2)
   val stateIn = Reg(init = sInIdle)
+  //counter for input handshake
+  val readCntReg = Reg(init = UInt(0, 3))
+  val READCNTLIMIT = UInt(3)
 
   // output handshake state machine (to Patmos)
   val sOutIdle :: sOutReqHi :: sOutAckHi :: sOutReqLo :: Nil = Enum(UInt(), 4)
@@ -72,19 +75,26 @@ class AudioADCBuffer(AUDIOBITLENGTH: Int, MAXADCBUFFERPOWER: Int) extends Module
       is (sInIdle) {
         //wait until posEdge readEnAdcI
         when(io.readEnAdcI === UInt(1)) {
-          // read only when its not full
-          when(fullReg === UInt(0)) {
-            //read input, increment write pointer
-            audioBufferL(w_pnt) := io.audioLAdcI
-            audioBufferR(w_pnt) := io.audioRAdcI
-            w_pnt := (w_pnt + UInt(1)) & (io.bufferSizeI - UInt(1))
-            w_inc := UInt(1)
+          //wait READCNTLIMIT cycles until input data is written
+          when(readCntReg === READCNTLIMIT) {
+            // read only when its not full
+            when(fullReg === UInt(0)) {
+              //read input, increment write pointer
+              audioBufferL(w_pnt) := io.audioLAdcI
+              audioBufferR(w_pnt) := io.audioRAdcI
+              w_pnt := (w_pnt + UInt(1)) & (io.bufferSizeI - UInt(1))
+              w_inc := UInt(1)
+            }
+            //update state
+            stateIn := sInRead
           }
-          //update state
-          stateIn := sInRead
+          .otherwise {
+            readCntReg := readCntReg + UInt(1)
+          }
         }
       }
       is (sInRead) {
+        readCntReg := UInt(0)
         //wait until negEdge readEnAdcI
         when(io.readEnAdcI === UInt(0)) {
           //update state
@@ -93,7 +103,8 @@ class AudioADCBuffer(AUDIOBITLENGTH: Int, MAXADCBUFFERPOWER: Int) extends Module
       }
     }
   }
-  .otherwise {
+    .otherwise {
+    readCntReg := UInt(0)
     stateIn := sInIdle
     w_inc := UInt(0)
   }

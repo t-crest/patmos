@@ -82,11 +82,13 @@ class AudioADC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
 	is (sIdle)
 	{
 	  adcLrcReg := UInt(0)
-          readEnAdcReg := UInt(1)
-	  when (fsCntReg === UInt(0))
-	  {
+          when (fsCntReg === UInt(0)) {
+            readEnAdcReg := UInt(0) // to avoid initial readEn pulse
 	    state := sStart1
-	  }
+          }
+          .otherwise {
+            readEnAdcReg := UInt(1)
+          }
 	}
 	is (sStart1)
 	{
