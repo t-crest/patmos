@@ -149,14 +149,18 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
       is(Bits("b00000")) { audioDacLReg := io.ocp.M.Data(AUDIOLENGTH-1,0) }
       is(Bits("b00001")) { audioDacRReg := io.ocp.M.Data(AUDIOLENGTH-1,0) }
       is(Bits("b00010")) { audioDacEnReg := io.ocp.M.Data(0) }
+
       is(Bits("b00100")) { audioDacBufferSizeReg := io.ocp.M.Data(MAXDACBUFFERPOWER,0) }
       is(Bits("b00101")) { audioDacBufferReqReg := io.ocp.M.Data(0) }
+
       is(Bits("b01001")) { audioAdcEnReg := io.ocp.M.Data(0) }
+
       is(Bits("b01011")) { audioAdcBufferSizeReg := io.ocp.M.Data(MAXADCBUFFERPOWER, 0) }
       is(Bits("b01100")) { audioAdcBufferReqReg := io.ocp.M.Data(0) }
-      is(Bits("b01111")) { i2cDataReg := io.ocp.M.Data(8,0) }
-      is(Bits("b10000")) { i2cAdrReg := io.ocp.M.Data(6,0) }
-      is(Bits("b10010")) { i2cReqReg := io.ocp.M.Data(0) }
+
+      is(Bits("b01110")) { i2cDataReg := io.ocp.M.Data(8,0) }
+      is(Bits("b01111")) { i2cAdrReg := io.ocp.M.Data(6,0) }
+      is(Bits("b10001")) { i2cReqReg := io.ocp.M.Data(0) }
     }
   }
 

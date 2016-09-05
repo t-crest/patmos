@@ -35,7 +35,7 @@ void playSine() {
   //Fill sine array:
   for (int i = 0; i < 220; i++) {
     sineArray[i] = 16384*sin(2.0*M_PI* i /220);
-    printf("Sinus: %i\n",sineArray[i]);
+    printf("Sin: %i\n",sineArray[i]);
   }
 
   for ( int j = 0; j < 600 ; j++) {
@@ -50,7 +50,7 @@ void playSine() {
 
 int main() {
 
-  printf("CPU frequency: %d MHz\n", get_cpu_freq()/1000000);
+  printf("CPU Frequency: %d MHz\n", get_cpu_freq()/1000000);
 
 	setup();
 

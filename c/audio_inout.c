@@ -23,6 +23,7 @@ int main() {
   *audioDacEnReg = 1;
   *audioAdcEnReg = 1;
 
+
   while(*keyReg != 3) {
     getInputAudio(&inL,&inR);
     //printf("In L: %i In R: %i\n",inL,inR);
