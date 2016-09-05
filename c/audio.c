@@ -184,9 +184,21 @@ int isPowerOfTwo (unsigned int x) {
  return (x == 1);
 }
 
+int setInputBufferSize(int bufferSize) {
+  if(isPowerOfTwo(bufferSize)) {
+    printf("Input buffer size set to %d\n", bufferSize);
+    *audioAdcBufferSizeReg = bufferSize;
+    return 0;
+  }
+  else {
+    printf("ERROR: Buffer Size must be power of 2\n");
+    return 1;
+  }
+}
+
 int setOutputBufferSize(int bufferSize) {
   if(isPowerOfTwo(bufferSize)) {
-    printf("valid buffer size\n");
+    printf("Output buffer size set to %d\n", bufferSize);
     *audioDacBufferSizeReg = bufferSize;
     return 0;
   }
@@ -194,6 +206,17 @@ int setOutputBufferSize(int bufferSize) {
     printf("ERROR: Buffer Size must be power of 2\n");
     return 1;
   }
+}
+
+int getInputBuffer(short *l, short *r) {
+  while(*audioAdcBufferAckReg == 1); // wait until ack low
+  *audioAdcBufferReqReg = 1; // req high
+  while(*audioAdcBufferAckReg == 0); // wait until ack high
+  *l = *audioAdcLReg;
+  *r = *audioAdcRReg;
+  *audioAdcBufferReqReg = 0; // req low
+
+  return 0;
 }
 
 int setOutputBuffer(short l, short r) {

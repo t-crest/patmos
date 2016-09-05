@@ -120,16 +120,20 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
     is(Bits("b00001")) { data := audioDacRReg }
     is(Bits("b00010")) { data := audioDacEnReg }
     is(Bits("b00011")) { data := audioDacLrcReg }
+
     is(Bits("b00100")) { data := audioDacBufferSizeReg }
     is(Bits("b00101")) { data := audioDacBufferReqReg }
     is(Bits("b00110")) { data := audioDacBufferAckReg }
+
     is(Bits("b00111")) { data := audioAdcLReg }
     is(Bits("b01000")) { data := audioAdcRReg }
     is(Bits("b01001")) { data := audioAdcEnReg }
     is(Bits("b01010")) { data := audioAdcLrcReg }
+
     is(Bits("b01011")) { data := audioAdcBufferSizeReg }
     is(Bits("b01100")) { data := audioAdcBufferReqReg }
     is(Bits("b01101")) { data := audioAdcBufferAckReg }
+
     is(Bits("b01110")) { data := i2cDataReg }
     is(Bits("b01111")) { data := i2cAdrReg }
     is(Bits("b10000")) { data := i2cAckReg }
@@ -149,7 +153,7 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
       is(Bits("b00101")) { audioDacBufferReqReg := io.ocp.M.Data(0) }
       is(Bits("b01001")) { audioAdcEnReg := io.ocp.M.Data(0) }
       is(Bits("b01011")) { audioAdcBufferSizeReg := io.ocp.M.Data(MAXADCBUFFERPOWER, 0) }
-      is(Bits("b01101")) { audioAdcBufferAckReg := io.ocp.M.Data(0) }
+      is(Bits("b01100")) { audioAdcBufferReqReg := io.ocp.M.Data(0) }
       is(Bits("b01111")) { i2cDataReg := io.ocp.M.Data(8,0) }
       is(Bits("b10000")) { i2cAdrReg := io.ocp.M.Data(6,0) }
       is(Bits("b10010")) { i2cReqReg := io.ocp.M.Data(0) }
@@ -199,12 +203,12 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
   //ADC Buffer:
   val mAudioAdcBuffer = Module(new AudioADCBuffer(AUDIOLENGTH, MAXADCBUFFERPOWER))
 
-  //Patmos to ADC BUffer:
+  //Patmos to ADC Buffer:
   mAudioAdcBuffer.io.enAdcI := audioAdcEnReg
   audioAdcLReg := mAudioAdcBuffer.io.audioLPatmosO
   audioAdcRReg := mAudioAdcBuffer.io.audioRPatmosO
-  audioAdcBufferReqReg := mAudioAdcBuffer.io.reqO
-  mAudioAdcBuffer.io.ackI := audioAdcBufferAckReg
+  mAudioAdcBuffer.io.reqI := audioAdcBufferReqReg
+  audioAdcBufferAckReg := mAudioAdcBuffer.io.ackO
   mAudioAdcBuffer.io.bufferSizeI := audioAdcBufferSizeReg
 
   //ADC:
@@ -216,11 +220,17 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
   mAudioAdc.io.enAdcI := mAudioAdcBuffer.io.enAdcO
   mAudioAdcBuffer.io.readEnAdcI := mAudioAdc.io.readEnAdcO
 
+  // model of the ADC of WM8731
+  //val mAudioWM8731AdcModel = Module(new AudioWM8731ADCModel(AUDIOLENGTH)) // comment for FPGA
+  //mAudioWM8731AdcModel.io.bClk := mAudioClk.io.bclkO // comment for FPGA
+
   // ADC to others:
   mAudioAdc.io.bclkI := mAudioClk.io.bclkO
   audioAdcLrcReg := mAudioAdc.io.adcLrcO
-  io.audioInterfacePins.adcLrc := mAudioAdc.io.adcLrcO
-  mAudioAdc.io.adcDatI := io.audioInterfacePins.adcDat
+  io.audioInterfacePins.adcLrc := mAudioAdc.io.adcLrcO //comment for simulation
+  //mAudioWM8731AdcModel.io.adcLrc := mAudioAdc.io.adcLrcO //comment for FPGA
+  mAudioAdc.io.adcDatI := io.audioInterfacePins.adcDat //comment for simulation
+  //mAudioAdc.io.adcDatI := mAudioWM8731AdcModel.io.adcDat //comment for FPGA
 
   //IC2 Control Interface
   val mAudioCtrl = Module(new AudioI2C())

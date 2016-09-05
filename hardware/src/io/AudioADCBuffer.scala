@@ -18,8 +18,8 @@ class AudioADCBuffer(AUDIOBITLENGTH: Int, MAXADCBUFFERPOWER: Int) extends Module
     val enAdcI = UInt(INPUT, 1)
     val audioLPatmosO = UInt(OUTPUT, AUDIOBITLENGTH)
     val audioRPatmosO = UInt(OUTPUT, AUDIOBITLENGTH)
-    val reqO = UInt(OUTPUT, 1) // handshake REQ
-    val ackI = UInt(INPUT, 1) // handshake ACK
+    val reqI = UInt(INPUT, 1) // handshake REQ
+    val ackO = UInt(OUTPUT, 1) // handshake ACK
     val bufferSizeI = UInt(INPUT, MAXADCBUFFERPOWER+1) // maximum bufferSizeI: (2^MAXADCBUFFERPOWER) + 1
   }
 
@@ -105,40 +105,45 @@ class AudioADCBuffer(AUDIOBITLENGTH: Int, MAXADCBUFFERPOWER: Int) extends Module
     //state machine
     switch (stateOut) {
       is (sOutIdle) {
-        io.reqO := UInt(0)
-        //present data, but don't increment
-        audioLReg := audioBufferL(r_pnt)
-        audioRReg := audioBufferR(r_pnt)
-        // update state if ack is low, and not empty
-        when( (io.ackI === UInt(0)) && (emptyReg === UInt(0)) ) {
+        io.ackO := UInt(0)
+        when(io.reqI === UInt(1)) {
+          //update state
           stateOut := sOutReqHi
         }
       }
       is (sOutReqHi) {
-        io.reqO := UInt(1)
-        when(io.ackI === UInt(1)) {
+        io.ackO := UInt(0)
+        //check if buffer is not empty
+        when(emptyReg === UInt(0)) {
+          //write output, increment read pointer
+          audioLReg := audioBufferL(r_pnt)
+          audioRReg := audioBufferR(r_pnt)
+          r_pnt := (r_pnt + UInt(1)) & (io.bufferSizeI - UInt(1))
+          r_inc := UInt(1)
+          //update state
           stateOut := sOutAckHi
+        }
+        //check if PATMOS cancels handshake
+        when(io.reqI === UInt(0)) {
+          stateOut := sIdle
         }
       }
       is (sOutAckHi) {
-        io.reqO := UInt(1)
-        // now yes, increment pointers, read signal
-        r_pnt := (r_pnt + UInt(1)) & (io.bufferSizeI - UInt(1))
-        r_inc := UInt(1)
-        stateOut := sOutReqLo
+        io.ackO := UInt(1)
+        when(io.reqI === UInt(0)) {
+          stateOut := sOutReqLo
+        }
       }
       is (sOutReqLo) {
-        io.reqO := UInt(0)
-        when(io.ackI === UInt(0)) {
-          //update state
-          stateOut := sOutIdle
-        }
+        io.ackO := UInt(1)
+        //update state
+        stateOut := sOutIdle
       }
     }
   }
   .otherwise {
     stateOut := sOutIdle
-    io.reqO := UInt(0)
+    io.ackO := UInt(0)
     r_inc := UInt(0)
   }
 

@@ -35,7 +35,7 @@ void playSine() {
   //Fill sine array:
   for (int i = 0; i < 220; i++) {
     sineArray[i] = 16384*sin(2.0*M_PI* i /220);
-    printf("Sine: %i\n",sineArray[i]);
+    printf("Sinus: %i\n",sineArray[i]);
   }
 
   for ( int j = 0; j < 600 ; j++) {
