@@ -65,7 +65,7 @@ class AudioADCBuffer(AUDIOBITLENGTH: Int, MAXADCBUFFERPOWER: Int) extends Module
   // output enable: just wire from input enable
   io.enAdcO := io.enAdcI
 
-  // audio in handshake: if enable
+  // audio input handshake: if enable
   when (io.enAdcI === UInt(1)) {
     //state machine
     switch (stateIn) {
@@ -95,20 +95,54 @@ class AudioADCBuffer(AUDIOBITLENGTH: Int, MAXADCBUFFERPOWER: Int) extends Module
   }
   .otherwise {
     stateIn := sInIdle
+    w_inc := UInt(0)
   }
+
+
 
   // audio output handshake: if enable
   when (io.enAdcI === UInt(1)) {
+    //state machine
     switch (stateOut) {
       is (sOutIdle) {
         io.reqO := UInt(0)
+        //present data, but don't increment
+        audioLReg := audioBufferL(r_pnt)
+        audioRReg := audioBufferR(r_pnt)
+        // update state if ack is low, and not empty
+        when( (io.ackI === UInt(0)) && (emptyReg === UInt(0)) ) {
+          stateOut := sOutReqHi
+        }
+      }
+      is (sOutReqHi) {
+        io.reqO := UInt(1)
+        when(io.ackI === UInt(1)) {
+          stateOut := sOutAckHi
+        }
+      }
+      is (sOutAckHi) {
+        io.reqO := UInt(1)
+        // now yes, increment pointers, read signal
+        r_pnt := (r_pnt + UInt(1)) & (io.bufferSizeI - UInt(1))
+        r_inc := UInt(1)
+        stateOut := sOutReqLo
+      }
+      is (sOutReqLo) {
+        io.reqO := UInt(0)
+        when(io.ackI === UInt(0)) {
+          //update state
+          stateOut := sOutIdle
+        }
       }
     }
   }
   .otherwise {
     stateOut := sOutIdle
     io.reqO := UInt(0)
+    r_inc := UInt(0)
   }
+
+
 
 
 

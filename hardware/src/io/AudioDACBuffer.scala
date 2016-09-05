@@ -103,6 +103,7 @@ class AudioDACBuffer(AUDIOBITLENGTH: Int, MAXDACBUFFERPOWER: Int) extends Module
   }
   .otherwise {
     stateOut := sOutIdle
+    r_inc := UInt(0)
   }
 
 
@@ -154,6 +155,7 @@ class AudioDACBuffer(AUDIOBITLENGTH: Int, MAXDACBUFFERPOWER: Int) extends Module
   .otherwise {
     stateIn := sInIdle
     io.ackO := UInt(0)
+    w_inc := UInt(0)
   }
 
 

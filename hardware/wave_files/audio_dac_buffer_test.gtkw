@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.66 (w)1999-2015 BSI
-[*] Fri Sep  2 17:10:24 2016
+[*] Mon Sep  5 10:16:00 2016
 [*]
 [dumpfile] "/home/dani/t-crest/patmos/Patmos.vcd"
-[dumpfile_mtime] "Fri Sep  2 17:08:26 2016"
-[dumpfile_size] 2567926787
+[dumpfile_mtime] "Mon Sep  5 10:10:54 2016"
+[dumpfile_size] 2567915806
 [savefile] "/home/dani/t-crest/patmos/hardware/wave_files/audio_dac_buffer_test.gtkw"
-[timestart] 0
-[size] 1114 1147
-[pos] -1 -1
-*-17.865870 49990 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[timestart] 546300
+[size] 1171 1147
+[pos] -854 -548
+*-13.826610 547718 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] Patmos.
 [treeopen] Patmos.core.
 [treeopen] Patmos.core.iocomp.
@@ -29,8 +29,6 @@ Patmos.core.iocomp.AudioInterface.audioDacLReg[15:0]
 Patmos.core.iocomp.AudioInterface.audioDacRReg[15:0]
 @28
 Patmos.core.iocomp.AudioInterface.audioDacLrcReg
-@22
-Patmos.core.iocomp.AudioInterface.audioDacBufferSizeReg[10:0]
 @200
 -AudioDACBuffer
 @28
@@ -38,20 +36,19 @@ Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.io_enDacI
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.io_enDacO
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.io_reqI
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.io_ackO
+@22
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.bufferSizeReg[8:0]
 @24
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.stateIn[1:0]
 @22
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.io_audioLIPatmos[15:0]
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.io_audioRIPatmos[15:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.r_pnt[7:0]
+Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.w_pnt[7:0]
 @28
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.w_inc
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.emptyReg
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.fullReg
-@23
-Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.io_bufferSizeI[10:0]
-@22
-Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.w_pnt[9:0]
-Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.r_pnt[9:0]
 @24
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.stateFE[2:0]
 @28
@@ -88,7 +85,9 @@ Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.stateFE[2:0]
 @22
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioLIReg[15:0]
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.audioRIReg[15:0]
+@23
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.io_audioLIDAC[15:0]
+@22
 Patmos.core.iocomp.AudioInterface.mAudioDacBuffer.io_audioRIDAC[15:0]
 @200
 -AudioDAC

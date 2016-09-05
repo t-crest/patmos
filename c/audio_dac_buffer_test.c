@@ -20,7 +20,7 @@ int main() {
   for(int i=0; i<4; i++) {
     setOutputBuffer(audioArrayL[i], audioArrayR[i]);
   }
-  printf("done first\n");
+  printf("Done first\n");
 
   printf("IWannaWaitVeryVeryLong\n");
 
