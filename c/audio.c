@@ -144,6 +144,11 @@ int isPowerOfTwo (unsigned int x) {
  return (x == 1);
 }
 
+/*
+ * @brief	sets the size of the input (ADC) buffer. Must be a power of 2
+ * @param[in]	bufferSize	length of the buffer
+ * @return	returns 0 if successful and a 1 if there was an error.
+ */
 int setInputBufferSize(int bufferSize) {
   if(isPowerOfTwo(bufferSize)) {
     printf("Input buffer size set to %d\n", bufferSize);
@@ -156,6 +161,11 @@ int setInputBufferSize(int bufferSize) {
   }
 }
 
+/*
+ * @brief	 sets the size of the output (DAC) buffer. Must be a power of 2
+ * @param[in]	 bufferSize	length of the buffer
+ * @return	 returns 0 if successful and a 1 if there was an error.
+ */
 int setOutputBufferSize(int bufferSize) {
   if(isPowerOfTwo(bufferSize)) {
     printf("Output buffer size set to %d\n", bufferSize);
@@ -168,6 +178,12 @@ int setOutputBufferSize(int bufferSize) {
   }
 }
 
+/*
+ * @brief	reads data from the input (ADC) buffer into Patmos
+ * @param[in]	*l	pointer to left audio data
+ * @param[in]	*r	pointer to right audio data
+ * @return	returns 0 if successful and a 1 if there was an error.
+ */
 int getInputBuffer(short *l, short *r) {
   while(*audioAdcBufferAckReg == 1); // wait until ack low
   *audioAdcBufferReqReg = 1; // req high
@@ -179,6 +195,12 @@ int getInputBuffer(short *l, short *r) {
   return 0;
 }
 
+/*
+ * @brief	writes data from patmos into the output (DAC) buffer
+ * @param[in]	l	left audio data
+ * @param[in]	r	right audio data
+ * @return	returns 0 if successful and a 1 if there was an error.
+ */
 int setOutputBuffer(short l, short r) {
   while(*audioDacBufferAckReg == 1); // wait until ack low
   *audioDacBufferReqReg = 1; // req high

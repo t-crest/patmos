@@ -3,6 +3,9 @@
 // converts every time enable signal is set to high
 // sets writeEnDacO to low while converting: during (1 + AUDIOBITLENGTH*2) cycles of BCLK
 
+//always performs a conversion of empty data first
+//to then be synced with the ADC: always 1 sample behind
+
 package io
 
 import Chisel._
@@ -49,7 +52,7 @@ class AudioDAC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
   io.dacDatO 	:= dacDatReg
 
   //register for write enable signal to buffer
-  val writeEnDacReg = Reg(init = UInt(1, 1)) // starts with writing enabled
+  val writeEnDacReg = Reg(init = UInt(0, 1)) // starts with writing disabled
   io.writeEnDacO := writeEnDacReg
 
   //registers for audio data
@@ -93,10 +96,13 @@ class AudioDAC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
 	{
 	  dacLrcReg := UInt(0)
 	  dacDatReg := UInt(0)
-	  writeEnDacReg := UInt(1)
 	  when(fsCntReg === UInt(0)) {
+            writeEnDacReg := UInt(0) //to start disabled
 	    state := sStart
 	  }
+          .otherwise {
+	    writeEnDacReg := UInt(1)
+          }
 	}
 	is (sStart)
 	{
@@ -141,10 +147,12 @@ class AudioDAC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
     state := sIdle
     fsCntReg := UInt(0)
     audioCntReg := UInt(0)
-    writeEnDacReg := UInt(1)
+    writeEnDacReg := UInt(0)
     dacLrcReg := UInt(0)
     dacDatReg := UInt(0)
     convEndReg := UInt(0)
+    audioLReg := UInt(0)
+    audioRReg := UInt(0)
   }
 
 }
