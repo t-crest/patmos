@@ -64,7 +64,7 @@ $(BUILDDIR)/%.o: %.c Makefile
 # A target for regular applications
 $(BUILDDIR)/%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBETH) $(LIBELF) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread -leth -lelf -lm
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread -leth -lelf
 
 $(BUILDDIR)/%.s: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
