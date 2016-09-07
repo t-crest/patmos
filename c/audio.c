@@ -1,4 +1,5 @@
 #include <machine/spm.h>
+#include <machine/rtc.h>
 #include <stdio.h>
 #include "audio.h"
 
@@ -106,46 +107,6 @@ void setup() {
 
 
 /*
- * @brief		Writes the supplied data to the audio interface using the correct protocoll.
- * @param[in]	l	left audio data. Has to be <= 16 Bit.
- * @param[in]	r	right audio data. Has to be <= 16 Bit.
- * @reutrn		returns 0 if successful and a negative number if there was an error.
- */
-int setOutputAudio(short l, short r) {
-  *audioDacLReg = l;
-  *audioDacRReg = r;
-  return 0;
-}
-
-/*
- * @brief		this will put the audio from the registers into the value of l and r
- * @param[in]	l	here the left audio data will be stored. Has to be <= 16 Bit.
- * @param[in]	r	here the right audio data will be stored. Has to be <= 16 Bit.
- * @reutrn		returns 0 if successful and a negative number if there was an error.
- */
-int getInputAudio(short *l, short *r) {
-  *l = *audioAdcLReg;
-  *r = *audioAdcRReg;
-  return 0;
-}
-
-/*
- * @brief		It synchroizes with dac the sampling frequency by waiting for the LRC signal to go from low to high.
- */
-void waitSyncDac() {
-  while (*audioDacLrcReg == 0);
-  while (*audioDacLrcReg == 1);
-}
-
-/*
- * @brief		It synchroizes with the adc sampling frequency by waiting for the LRC signal to go from low to high.
- */
-void waitSyncAdc() {
-  while (*audioAdcLrcReg == 0);
-  while (*audioAdcLrcReg == 1);
-}
-
-/*
  * @brief		changes the volume of the audio output.
  * @param[in]	vol 	in db. Has to be between +6 and -73
  * @reutrn		returns 0 if successful and a negative number if there was an error.
@@ -172,6 +133,81 @@ int changeVolume(int vol) {
   *i2cReqReg	 = 1;
   while(*i2cAckReg == 0);
   for (int i = 0; i<200; i++)  { *i2cReqReg=0; }
+
+  return 0;
+}
+
+
+int isPowerOfTwo (unsigned int x) {
+ while (((x % 2) == 0) && x > 1) /* While x is even and > 1 */
+   x /= 2;
+ return (x == 1);
+}
+
+/*
+ * @brief	sets the size of the input (ADC) buffer. Must be a power of 2
+ * @param[in]	bufferSize	length of the buffer
+ * @return	returns 0 if successful and a 1 if there was an error.
+ */
+int setInputBufferSize(int bufferSize) {
+  if(isPowerOfTwo(bufferSize)) {
+    printf("Input buffer size set to %d\n", bufferSize);
+    *audioAdcBufferSizeReg = bufferSize;
+    return 0;
+  }
+  else {
+    printf("ERROR: Buffer Size must be power of 2\n");
+    return 1;
+  }
+}
+
+/*
+ * @brief	 sets the size of the output (DAC) buffer. Must be a power of 2
+ * @param[in]	 bufferSize	length of the buffer
+ * @return	 returns 0 if successful and a 1 if there was an error.
+ */
+int setOutputBufferSize(int bufferSize) {
+  if(isPowerOfTwo(bufferSize)) {
+    printf("Output buffer size set to %d\n", bufferSize);
+    *audioDacBufferSizeReg = bufferSize;
+    return 0;
+  }
+  else {
+    printf("ERROR: Buffer Size must be power of 2\n");
+    return 1;
+  }
+}
+
+/*
+ * @brief	reads data from the input (ADC) buffer into Patmos
+ * @param[in]	*l	pointer to left audio data
+ * @param[in]	*r	pointer to right audio data
+ * @return	returns 0 if successful and a 1 if there was an error.
+ */
+int getInputBuffer(short *l, short *r) {
+  while(*audioAdcBufferAckReg == 1); // wait until ack low
+  *audioAdcBufferReqReg = 1; // req high
+  while(*audioAdcBufferAckReg == 0); // wait until ack high
+  *l = *audioAdcLReg;
+  *r = *audioAdcRReg;
+  *audioAdcBufferReqReg = 0; // req low
+
+  return 0;
+}
+
+/*
+ * @brief	writes data from patmos into the output (DAC) buffer
+ * @param[in]	l	left audio data
+ * @param[in]	r	right audio data
+ * @return	returns 0 if successful and a 1 if there was an error.
+ */
+int setOutputBuffer(short l, short r) {
+  while(*audioDacBufferAckReg == 1); // wait until ack low
+  *audioDacBufferReqReg = 1; // req high
+  while(*audioDacBufferAckReg == 0); // wait until ack high
+  *audioDacLReg = l;
+  *audioDacRReg = r;
+  *audioDacBufferReqReg = 0; // req low
 
   return 0;
 }

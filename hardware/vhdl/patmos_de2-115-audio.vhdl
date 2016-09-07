@@ -28,11 +28,11 @@ entity patmos_top is
     oSRAM_WE_N : out std_logic;
     oSRAM_LB_N : out std_logic;
     oSRAM_UB_N : out std_logic;
-    oAudio_dacDat	: out std_logic;
-    oAudio_dacLrc	: out std_logic;
-    iAudio_adcDat	: in std_logic;
-    oAudio_adcLrc	: out std_logic;
-    ioAudio_sdat	: inout std_logic;
+    oAudio_dacDat : out std_logic;
+    oAudio_dacLrc : out std_logic;
+    iAudio_adcDat : in std_logic;
+    oAudio_adcLrc : out std_logic;
+    ioAudio_sdat  : inout std_logic;
     oAudio_sclk	: out std_logic;
     oAudio_bclk	: out std_logic;
     oAudio_xclk	: out std_logic
@@ -82,12 +82,12 @@ architecture rtl of patmos_top is
       io_audioInterfacePins_dacLrc	: out std_logic;
       io_audioInterfacePins_adcDat	: in std_logic;
       io_audioInterfacePins_adcLrc	: out std_logic;
-      io_audioInterfacePins_sdIn		: in std_logic;
+      io_audioInterfacePins_sdIn	: in std_logic;
       io_audioInterfacePins_sdOut 	: out std_logic;
       io_audioInterfacePins_we 		: out std_logic;
       io_audioInterfacePins_sclkOut 	: out std_logic;
-      io_audioInterfacePins_bclk		: out std_logic;
-      io_audioInterfacePins_xclk		: out std_logic
+      io_audioInterfacePins_bclk	: out std_logic;
+      io_audioInterfacePins_xclk	: out std_logic
 
       );
   end component;
@@ -110,10 +110,10 @@ architecture rtl of patmos_top is
   signal sram_out_dout : std_logic_vector(15 downto 0);
 
   -- audio siganls for tristate inout
-  signal saudio_sdIn		: std_logic;
+  signal saudio_sdIn	: std_logic;
   signal saudio_sdOut 	: std_logic;
-  signal saudio_we 		: std_logic;
-  signal saudio_sclkOut 	: std_logic;
+  signal saudio_we 	: std_logic;
+  signal saudio_sclkOut : std_logic;
 
   attribute altera_attribute : string;
   attribute altera_attribute of res_cnt : signal is "POWER_UP_LEVEL=LOW";
@@ -162,7 +162,7 @@ begin
   -- Audio I2C tristate buffer control
   --ioAudio_sdat <= saudio_sdOut when (saudio_we  = '0') else 'Z';
   --saudio_sdIn <= ioAudio_sdat when (saudio_we ='1') else '1';
-  process(saudio_we, saudio_sdOut)
+  process(saudio_we, saudio_sdOut, ioAudio_sdat)
   begin
     if saudio_we = '1' then
       ioAudio_sdat <= saudio_sdOut;

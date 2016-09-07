@@ -1,7 +1,7 @@
 // ADC converter for WM8731 audio codec.
 // receives audio data from WM8731 and stores it into audioLO and audioRO registers
 // converts every time enable signal is set to high
-// sets busy to high while converting: during (1 + AUDIOBITLENGTH*2) cycles of BCLK
+// sets readEn to low while converting: during (1 + AUDIOBITLENGTH*2) cycles of BCLK
 
 package io
 
@@ -16,11 +16,11 @@ class AudioADC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
   //IOs
   val io = new Bundle
   {
-    //to/from PATMOS
+    //to/from AudioADCBuffer
     val audioLO = UInt(OUTPUT, AUDIOBITLENGTH)
     val audioRO = UInt(OUTPUT, AUDIOBITLENGTH)
     val enAdcI = Bool(dir = INPUT) //enable signal
-    val busyO = UInt(OUTPUT, 1)
+    val readEnAdcO = UInt(OUTPUT, 1) // used for sync
     //from AudioClkGen
     val bclkI = UInt(INPUT, 1)
     //to/from WM8731
@@ -41,10 +41,13 @@ class AudioADC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
 
   //Registers for outputs:
   val adcLrcReg = Reg(init = UInt(0, 1))
-  val busyReg = Reg(init = UInt(0, 1))
+
+  // register for read enable signal to buffer
+  val readEnAdcReg = Reg(init = UInt(0, 1)) // starts with read disabled
+  io.readEnAdcO := readEnAdcReg
+
   //assign to inputs/uputs
   io.adcLrcO 	:= adcLrcReg
-  io.busyO 	:= busyReg
 
   //register for bclkI
   val bclkReg = Reg(init = UInt(0, 1))
@@ -58,7 +61,7 @@ class AudioADC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
   //connect registers to ouputs when conversion is not busy
   io.audioLO := audioLRegO
   io.audioRO := audioRRegO
-  when(busyReg === UInt(0)) {
+  when(readEnAdcReg === UInt(1)) {
     audioLRegO := audioLReg
     audioRRegO := audioRReg
   }
@@ -79,21 +82,23 @@ class AudioADC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
 	is (sIdle)
 	{
 	  adcLrcReg := UInt(0)
-	  busyReg := UInt(0)
-	  when (fsCntReg === UInt(0))
-	  {
+          when (fsCntReg === UInt(0)) {
+            readEnAdcReg := UInt(0) // to avoid initial readEn pulse
 	    state := sStart1
-	  }
+          }
+          .otherwise {
+            readEnAdcReg := UInt(1)
+          }
 	}
 	is (sStart1)
 	{
 	  adcLrcReg := UInt(1)
-	  busyReg := UInt(1)
+          readEnAdcReg := UInt(0)
 	  state := sStart2 //directly jump to next state
 	}
 	is (sStart2)
 	{
-	  busyReg := UInt(1)
+          readEnAdcReg := UInt(0)
 	  adcLrcReg := UInt(0) //lrclk low already
 	  state := sLeft //directly jump to next state
 	}
@@ -106,7 +111,7 @@ class AudioADC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
       switch (state) {
 	is (sLeft)
 	{
-	  busyReg := UInt(1)
+          readEnAdcReg := UInt(0)
 	  audioLReg(UInt(AUDIOBITLENGTH) - audioCntReg - UInt(1)) := io.adcDatI
 	  when (audioCntReg < UInt(AUDIOBITLENGTH-1))
 	  {
@@ -120,7 +125,7 @@ class AudioADC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
 	}
 	is (sRight)
 	{
-	  busyReg := UInt(1)
+          readEnAdcReg := UInt(0)
 	  audioRReg(UInt(AUDIOBITLENGTH) - audioCntReg - UInt(1)) := io.adcDatI
 	  when (audioCntReg < UInt(AUDIOBITLENGTH-1))
 	  {
@@ -139,7 +144,7 @@ class AudioADC(AUDIOBITLENGTH: Int, FSDIV: Int) extends Module
     state := sIdle
     fsCntReg := UInt(0)
     audioCntReg := UInt(0)
-    busyReg := UInt(0)
+    readEnAdcReg := UInt(0)
     adcLrcReg := UInt(0)
   }
 }
