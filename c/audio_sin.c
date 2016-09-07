@@ -54,7 +54,7 @@ int main() {
 
 	setup();
 
-        setOutputBufferSize(256);
+        setOutputBufferSize(32);
 
 	*audioDacEnReg = 1;
 	cyclesStart	= get_cpu_cycles();

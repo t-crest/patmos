@@ -21,8 +21,8 @@ int main() {
 
   setup();
 
-  setInputBufferSize(256);
-  setOutputBufferSize(256);
+  setInputBufferSize(32);
+  setOutputBufferSize(32);
 
   short inL = 0;
   short inR = 0;
