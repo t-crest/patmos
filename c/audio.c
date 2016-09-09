@@ -87,7 +87,7 @@ void setup() {
 
   //--------Digital Audio Path Control-----
   char *addrDigital  = "0000101";
-  char *dataDigital  = "000000000";	//enable soft mute and disable de-emphasis, enable highpass filter
+  char *dataDigital  = "000000001";	//disable soft mute and disable de-emphasis, disable highpass filter
   writeToI2C(addrDigital,dataDigital);
 
 
