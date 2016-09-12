@@ -6,6 +6,7 @@
 #include "audio.c"
 
 #define TAP_ORDER 8
+#define FIR_COEF 1/TAP_ORDER
 
 short inL, inR;
 
@@ -31,8 +32,12 @@ int main() {
       //store input in array
       getInputBuffer(&inL, &inR);
       // already multiply FIR coefficient
-      x_l[i] = inL / TAP_ORDER;
-      x_r[i] = inR / TAP_ORDER;
+      x_l[i] = inL * FIR_COEF;
+      x_r[i] = inR * FIR_COEF;
+
+      //printf("input: %d, %d\n", inL, inR);
+      //printf("stored: %d, %d\n", x_l[i], x_r[i]);
+
       //add output samples
       y_l = 0;
       y_r = 0;
