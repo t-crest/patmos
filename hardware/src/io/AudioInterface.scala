@@ -220,15 +220,15 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
   mAudioAdcBuffer.io.readEnAdcI := mAudioAdc.io.readEnAdcO
 
   // model of the ADC of WM8731
-  val mAudioWM8731AdcModel = Module(new AudioWM8731ADCModel(AUDIOLENGTH)) // comment for FPGA
-  mAudioWM8731AdcModel.io.bClk := mAudioClk.io.bclkO // comment for FPGA
+  //val mAudioWM8731AdcModel = Module(new AudioWM8731ADCModel(AUDIOLENGTH)) // comment for FPGA
+  //mAudioWM8731AdcModel.io.bClk := mAudioClk.io.bclkO // comment for FPGA
 
   // ADC to others:
   mAudioAdc.io.bclkI := mAudioClk.io.bclkO
-  //io.audioInterfacePins.adcLrc := mAudioAdc.io.adcLrcO //comment for simulation
-  mAudioWM8731AdcModel.io.adcLrc := mAudioAdc.io.adcLrcO //comment for FPGA
-  //mAudioAdc.io.adcDatI := io.audioInterfacePins.adcDat //comment for simulation
-  mAudioAdc.io.adcDatI := mAudioWM8731AdcModel.io.adcDat //comment for FPGA
+  io.audioInterfacePins.adcLrc := mAudioAdc.io.adcLrcO //comment for simulation
+  //mAudioWM8731AdcModel.io.adcLrc := mAudioAdc.io.adcLrcO //comment for FPGA
+  mAudioAdc.io.adcDatI := io.audioInterfacePins.adcDat //comment for simulation
+  //mAudioAdc.io.adcDatI := mAudioWM8731AdcModel.io.adcDat //comment for FPGA
 
   //IC2 Control Interface
   val mAudioCtrl = Module(new AudioI2C())
