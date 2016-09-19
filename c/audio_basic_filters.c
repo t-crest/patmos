@@ -5,6 +5,8 @@
 #include "audio.h"
 #include "audio.c"
 
+#define ONE_16b 0x7FFF
+
 #define BUFFER_SIZE 32
 
 #define AUDIO_RECORDING_SIZE 44100*2
@@ -17,22 +19,22 @@ short x_h[2] = {0}; // stored delayed sample
 short y[AUDIO_RECORDING_SIZE][2]; //output
 
 int Fc;
-float K, b0, b1, a1, c;
 
+//to have fixed-point multiplication:
+//float K;
+//float b0, b1, a1, c;
+short K_16;
+short b0_16, b1_16, a1_16, c_16;
 
-int filter_1st(short (*x)[2], short *x_h, short (*y)[2], int SIZE, float b0, float a1, float c) {
+int filter_1st(short (*x)[2], short *x_h, short (*y)[2], int SIZE, short b0, short a1, short c) {
   for(int i=0; i<SIZE; i++) {
     //calculate output
-    //y[i][0] = (short)(b0 * x[i][0]) + (short)(c * x_h[0]);
-    //y[i][1] = (short)(b0 * x[i][1]) + (short)(c * x_h[1]);
-    y[i][0] = (b0 * x[i][0]) + (c * x_h[0]);
-    y[i][1] = (b0 * x[i][1]) + (c * x_h[1]);
+    y[i][0] = ( (b0 * x[i][0]) >> 15 ) + ( (c * x_h[0]) >> 15 );
+    y[i][1] = ( (b0 * x[i][1]) >> 15 ) + ( (c * x_h[1]) >> 15 );
 
     //calculate next Xh(n-1)
-    //x_h[0] = x[i][0] - (short)(a1 * x_h[0]);
-    //x_h[1] = x[i][1] - (short)(a1 * x_h[1]);
-    x_h[0] = x[i][0] - (a1 * x_h[0]);
-    x_h[1] = x[i][1] - (a1 * x_h[1]);
+    x_h[0] = x[i][0] - ( (a1 * x_h[0] ) >> 15 );
+    x_h[1] = x[i][1] - ( (a1 * x_h[1] ) >> 15 );
   }
   return 0;
 }
@@ -65,39 +67,41 @@ int main() {
     //1st order HPF:
     printf("Calculating HPF...\n");
     Fc = 5000; // Hz
-    K = tan(M_PI * Fc / Fs);
-    b0 = 1 / ( K + 1 );
-    b1 = -1 / ( K + 1 );
-    a1 = ( K - 1 ) / ( K + 1 );
-    c  = b1 - ( b0 * a1 );
-    filter_1st(x, x_h, y, AUDIO_RECORDING_SIZE, b0, a1, c);
+    //K = tan(M_PI * Fc / Fs);
+    //b0 = (  1 / ( K + 1 ) );
+    //b1 = ( -1 / ( K + 1 ) );
+    //a1 = ( ( K - 1 ) / ( K + 1 ) );
+    //c  = b1 - ( b0 * a1 );
+    K_16 = (short) ( ONE_16b * tan(M_PI * Fc / Fs) );
+    b0_16 = (short) ( (ONE_16b << 15) / ( K_16 + ONE_16b) ); //shift before dividing
+    b1_16 = (short) ( ( ((-1) *ONE_16b) << 15 ) / ( K_16 + ONE_16b) );
+    a1_16 = (short) ( ((K_16 - ONE_16b) << 15) / (K_16 + ONE_16b) );
+    c_16 = b1_16 - ( (b0_16 * a1_16) >> 15 ); // shift after multiplying to take only [29: 14] bits
+    //printf("b0: %f, b1: %f, a1: %f, c: %f\n", b0, b1, a1, c);
+    //printf("b0: %d, b1: %d, a1: %d, c: %d\n", b0_16, b1_16, a1_16, c_16);
+    filter_1st(x, x_h, y, AUDIO_RECORDING_SIZE, b0_16, a1_16, c_16);
   }
   else {
     if(*keyReg == 14) {
       //1st order LPF:
       printf("Calculating LPF...\n");
       Fc = 600; // Hz
-      K = tan(M_PI * Fc / Fs);
-      b0 = K / ( K + 1 );
-      b1 = K / ( K + 1 );
-      a1 = ( K - 1 ) / ( K + 1 );
-      c  = b1 - ( b0 * a1 );
-      filter_1st(x, x_h, y, AUDIO_RECORDING_SIZE, b0, a1, c);
+      //K = tan(M_PI * Fc / Fs);
+      //b0 = K / ( K + 1 );
+      //b1 = K / ( K + 1 );
+      //a1 = ( K - 1 ) / ( K + 1 );
+      //c  = b1 - ( b0 * a1 );
+      K_16 = (short) ( ONE_16b * tan(M_PI * Fc / Fs) );
+      b0_16 = (short) ( (K_16 << 15) / ( K_16 + ONE_16b) ); //shift before dividing
+      b1_16 = (short) ( (K_16 << 15) / ( K_16 + ONE_16b) );
+      a1_16 = (short) ( ((K_16 - ONE_16b) << 15) / (K_16 + ONE_16b) );
+      c_16 = b1_16 - ( (b0_16 * a1_16) >> 15 ); // shift after multiplying to take only [29: 14] bits
+      //printf("b0: %f, b1: %f, a1: %f, c: %f\n", b0, b1, a1, c);
+      //printf("b0: %d, b1: %d, a1: %d, c: %d\n", b0_16, b1_16, a1_16, c_16);
+      filter_1st(x, x_h, y, AUDIO_RECORDING_SIZE, b0_16, a1_16, c_16);
     }
   }
   printf("Filter calculation finished\n");
-
-  /*
-  printf("Recording done. Press KEY0 again to look for input max\n");
-  while(*keyReg != 14);
-  short maxLeft = 0;
-  for(int i=0; i<AUDIO_RECORDING_SIZE; i++) {
-    if(abs(audioRecording[i][0]) >= maxLeft) {
-      maxLeft = abs(audioRecording[i][0]);
-      printf("MAX found: 0x%x at time %f\n", maxLeft, ((float)i/Fs));
-    }
-  }
-  */
 
 
 
