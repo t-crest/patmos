@@ -16,146 +16,186 @@ machine-functions:
       opcode: SRESi
       size: 4
       stack-cache-argument: 8
-      address: 133572
+      address: 133588
     - index: 1
       opcode: SUBi
       size: 4
-      address: 133576
+      address: 133592
     - index: 2
       opcode: MFS
       size: 4
-      address: 133580
+      address: 133596
     - index: 3
       opcode: SWS
       size: 4
       memmode: store
       memtype: stack
-      address: 133584
+      address: 133600
     - index: 4
       opcode: MFS
       size: 4
-      address: 133588
+      address: 133604
     - index: 5
       opcode: SWS
       size: 4
       memmode: store
       memtype: stack
-      address: 133592
-    - index: 6
-      opcode: LIl
-      size: 8
-      address: 133596
-    - index: 7
-      opcode: SWC
-      size: 4
-      memmode: store
-      memtype: cache
-      address: 133604
-    - index: 8
-      opcode: LIl
-      size: 8
       address: 133608
-    - index: 9
+    - index: 6
       opcode: SWC
       size: 4
       memmode: store
       memtype: cache
+      address: 133612
+    - index: 7
+      opcode: LIl
+      size: 8
       address: 133616
+    - index: 8
+      opcode: SWC
+      size: 4
+      memmode: store
+      memtype: cache
+      address: 133624
+    - index: 9
+      opcode: LIl
+      size: 8
+      address: 133628
     - index: 10
+      opcode: SWC
+      size: 4
+      memmode: store
+      memtype: cache
+      address: 133636
+    - index: 11
       opcode: LWC
       size: 4
       memmode: load
       memtype: cache
-      address: 133620
-    - index: 11
+      address: 133640
+    - index: 12
       opcode: NOP
       size: 4
-      address: 133624
-    - index: 12
+      address: 133644
+    - index: 13
       opcode: CALLND
       callees:
       - __fixsfsi
       size: 4
       branch-type: call
-      address: 133628
-    - index: 13
-      opcode: SENSi
-      size: 4
-      stack-cache-argument: 8
-      address: 133632
-    - index: 14
-      opcode: LIin
-      size: 4
-      address: 133636
-    - index: 15
-      opcode: MOV
-      size: 4
-      address: 133640
-    - index: 16
-      opcode: CALLND
-      callees:
-      - fixedMult
-      size: 4
-      branch-type: call
-      address: 133644
-    - index: 17
-      opcode: SENSi
-      size: 4
-      stack-cache-argument: 8
       address: 133648
-    - index: 18
-      opcode: SWC
+    - index: 14
+      opcode: SENSi
+      size: 4
+      stack-cache-argument: 8
+      address: 133652
+    - index: 15
+      opcode: LWC
+      size: 4
+      memmode: load
+      memtype: cache
+      address: 133656
+    - index: 16
+      opcode: NOP
+      size: 4
+      address: 133660
+    - index: 17
+      opcode: SWS
       size: 4
       memmode: store
-      memtype: cache
-      address: 133652
-    - index: 19
-      opcode: MOV
+      memtype: stack
+      address: 133664
+    - index: 18
+      opcode: CALLND
+      callees:
+      - __fixsfsi
       size: 4
-      address: 133656
+      branch-type: call
+      address: 133668
+    - index: 19
+      opcode: SENSi
+      size: 4
+      stack-cache-argument: 8
+      address: 133672
     - index: 20
       opcode: LWS
       size: 4
       memmode: load
       memtype: stack
-      address: 133660
+      address: 133676
     - index: 21
       opcode: NOP
       size: 4
-      address: 133664
+      address: 133680
     - index: 22
-      opcode: MTS
+      opcode: MOV
       size: 4
-      address: 133668
+      address: 133684
     - index: 23
+      opcode: CALLND
+      callees:
+      - fixedMult
+      size: 4
+      branch-type: call
+      address: 133688
+    - index: 24
+      opcode: SENSi
+      size: 4
+      stack-cache-argument: 8
+      address: 133692
+    - index: 25
+      opcode: SWC
+      size: 4
+      memmode: store
+      memtype: cache
+      address: 133696
+    - index: 26
+      opcode: MOV
+      size: 4
+      address: 133700
+    - index: 27
       opcode: LWS
       size: 4
       memmode: load
       memtype: stack
-      address: 133672
-    - index: 24
+      address: 133704
+    - index: 28
       opcode: NOP
       size: 4
-      address: 133676
-    - index: 25
+      address: 133708
+    - index: 29
       opcode: MTS
       size: 4
-      address: 133680
-    - index: 26
+      address: 133712
+    - index: 30
+      opcode: LWS
+      size: 4
+      memmode: load
+      memtype: stack
+      address: 133716
+    - index: 31
+      opcode: NOP
+      size: 4
+      address: 133720
+    - index: 32
+      opcode: MTS
+      size: 4
+      address: 133724
+    - index: 33
       opcode: SFREEi
       size: 4
       stack-cache-argument: 8
-      address: 133684
-    - index: 27
+      address: 133728
+    - index: 34
       opcode: ADDi
       size: 4
-      address: 133688
-    - index: 28
+      address: 133732
+    - index: 35
       opcode: RETND
       size: 4
       branch-type: return
-      address: 133692
-    address: 133572
+      address: 133736
+    address: 133588
   subfunctions:
   - name: 0
     blocks:
@@ -176,124 +216,124 @@ machine-functions:
       opcode: SRESi
       size: 4
       stack-cache-argument: 8
-      address: 313140
+      address: 313188
     - index: 1
       opcode: MFS
       size: 4
-      address: 313144
+      address: 313192
     - index: 2
       opcode: SWS
       size: 4
       memmode: store
       memtype: stack
-      address: 313148
+      address: 313196
     - index: 3
       opcode: MFS
       size: 4
-      address: 313152
+      address: 313200
     - index: 4
       opcode: SWS
       size: 4
       memmode: store
       memtype: stack
-      address: 313156
+      address: 313204
     - index: 5
       opcode: MFS
       size: 4
-      address: 313160
+      address: 313208
     - index: 6
       opcode: SWS
       size: 4
       memmode: store
       memtype: stack
-      address: 313164
+      address: 313212
     - index: 7
       opcode: CALLND
       callees:
       - toRep282
       size: 4
       branch-type: call
-      address: 313168
+      address: 313216
     - index: 8
       opcode: SENSi
       size: 4
       stack-cache-argument: 8
-      address: 313172
+      address: 313220
     - index: 9
       opcode: SRAi
       size: 4
-      address: 313176
+      address: 313224
     - index: 10
       opcode: ORi
       size: 4
-      address: 313180
+      address: 313228
     - index: 11
       opcode: SRi
       size: 4
-      address: 313184
+      address: 313232
     - index: 12
       opcode: ANDi
       size: 4
-      address: 313188
+      address: 313236
     - index: 13
       opcode: SUBi
       size: 4
-      address: 313192
+      address: 313240
     - index: 14
       opcode: ANDl
       size: 8
-      address: 313196
+      address: 313244
     - index: 15
       opcode: ORl
       size: 8
-      address: 313204
+      address: 313252
     - index: 16
       opcode: LIi
       size: 4
-      address: 313212
+      address: 313260
     - index: 17
       opcode: CMPULT
       size: 4
-      address: 313216
+      address: 313264
     - index: 18
       opcode: SWS
       size: 4
       memmode: store
       memtype: stack
-      address: 313220
+      address: 313268
     - index: 19
       opcode: SWS
       size: 4
       memmode: store
       memtype: stack
-      address: 313224
+      address: 313272
     - index: 20
       opcode: SWS
       size: 4
       memmode: store
       memtype: stack
-      address: 313228
+      address: 313276
     - index: 21
       opcode: SWS
       size: 4
       memmode: store
       memtype: stack
-      address: 313232
+      address: 313280
     - index: 22
       opcode: BRCFND
       size: 4
       branch-type: conditional
       branch-targets:
       - 2
-      address: 313236
+      address: 313284
     - index: 23
       opcode: BRCFNDu
       size: 4
       branch-type: unconditional
       branch-targets:
       - 1
-      address: 313240
-    address: 313140
+      address: 313288
+    address: 313188
   - name: 1
     mapsto: if.then
     predecessors:
@@ -304,57 +344,57 @@ machine-functions:
     - index: 0
       opcode: LIi
       size: 4
-      address: 313252
+      address: 313300
     - index: 1
       opcode: LWS
       size: 4
       memmode: load
       memtype: stack
-      address: 313256
+      address: 313304
     - index: 2
       opcode: NOP
       size: 4
-      address: 313260
+      address: 313308
     - index: 3
       opcode: SUBr
       size: 4
-      address: 313264
+      address: 313312
     - index: 4
       opcode: LWS
       size: 4
       memmode: load
       memtype: stack
-      address: 313268
+      address: 313316
     - index: 5
       opcode: NOP
       size: 4
-      address: 313272
+      address: 313320
     - index: 6
       opcode: SRr
       size: 4
-      address: 313276
+      address: 313324
     - index: 7
       opcode: LWS
       size: 4
       memmode: load
       memtype: stack
-      address: 313280
+      address: 313328
     - index: 8
       opcode: NOP
       size: 4
-      address: 313284
+      address: 313332
     - index: 9
       opcode: MUL
       size: 4
-      address: 313288
+      address: 313336
     - index: 10
       opcode: NOP
       size: 4
-      address: 313292
+      address: 313340
     - index: 11
       opcode: MFS
       size: 4
-      address: 313296
+      address: 313344
     - index: 12
       opcode: BRCFu
       size: 4
@@ -362,22 +402,22 @@ machine-functions:
       branch-delay-slots: 3
       branch-targets:
       - 5
-      address: 313300
+      address: 313348
     - index: 13
       opcode: SWS
       size: 4
       memmode: store
       memtype: stack
-      address: 313304
+      address: 313352
     - index: 14
       opcode: NOP
       size: 4
-      address: 313308
+      address: 313356
     - index: 15
       opcode: NOP
       size: 4
-      address: 313312
-    address: 313252
+      address: 313360
+    address: 313300
   - name: 2
     mapsto: if.else
     predecessors:
@@ -389,36 +429,36 @@ machine-functions:
     - index: 0
       opcode: LIin
       size: 4
-      address: 313332
+      address: 313380
     - index: 1
       opcode: LWS
       size: 4
       memmode: load
       memtype: stack
-      address: 313336
+      address: 313384
     - index: 2
       opcode: NOP
       size: 4
-      address: 313340
+      address: 313388
     - index: 3
       opcode: CMPLT
       size: 4
-      address: 313344
+      address: 313392
     - index: 4
       opcode: BRND
       size: 4
       branch-type: conditional
       branch-targets:
       - 4
-      address: 313348
+      address: 313396
     - index: 5
       opcode: BRNDu
       size: 4
       branch-type: unconditional
       branch-targets:
       - 3
-      address: 313352
-    address: 313332
+      address: 313400
+    address: 313380
   - name: 3
     mapsto: if.then1
     predecessors:
@@ -429,7 +469,7 @@ machine-functions:
     - index: 0
       opcode: MOV
       size: 4
-      address: 313356
+      address: 313404
     - index: 1
       opcode: BRCFu
       size: 4
@@ -437,22 +477,22 @@ machine-functions:
       branch-delay-slots: 3
       branch-targets:
       - 5
-      address: 313360
+      address: 313408
     - index: 2
       opcode: SWS
       size: 4
       memmode: store
       memtype: stack
-      address: 313364
+      address: 313412
     - index: 3
       opcode: NOP
       size: 4
-      address: 313368
+      address: 313416
     - index: 4
       opcode: NOP
       size: 4
-      address: 313372
-    address: 313356
+      address: 313420
+    address: 313404
   - name: 4
     mapsto: if.else2
     predecessors:
@@ -465,43 +505,43 @@ machine-functions:
       size: 4
       memmode: load
       memtype: stack
-      address: 313376
+      address: 313424
     - index: 1
       opcode: NOP
       size: 4
-      address: 313380
+      address: 313428
     - index: 2
       opcode: SUBi
       size: 4
-      address: 313384
+      address: 313432
     - index: 3
       opcode: LWS
       size: 4
       memmode: load
       memtype: stack
-      address: 313388
+      address: 313436
     - index: 4
       opcode: NOP
       size: 4
-      address: 313392
+      address: 313440
     - index: 5
       opcode: SLr
       size: 4
-      address: 313396
+      address: 313444
     - index: 6
       opcode: LWS
       size: 4
       memmode: load
       memtype: stack
-      address: 313400
+      address: 313448
     - index: 7
       opcode: NOP
       size: 4
-      address: 313404
+      address: 313452
     - index: 8
       opcode: MUL
       size: 4
-      address: 313408
+      address: 313456
     - index: 9
       opcode: BRCFu
       size: 4
@@ -509,22 +549,22 @@ machine-functions:
       branch-delay-slots: 3
       branch-targets:
       - 5
-      address: 313412
+      address: 313460
     - index: 10
       opcode: NOP
       size: 4
-      address: 313416
+      address: 313464
     - index: 11
       opcode: MFS
       size: 4
-      address: 313420
+      address: 313468
     - index: 12
       opcode: SWS
       size: 4
       memmode: store
       memtype: stack
-      address: 313424
-    address: 313376
+      address: 313472
+    address: 313424
   - name: 5
     mapsto: return
     predecessors:
@@ -538,64 +578,64 @@ machine-functions:
       size: 4
       memmode: load
       memtype: stack
-      address: 313444
+      address: 313492
     - index: 1
       opcode: NOP
       size: 4
-      address: 313448
+      address: 313496
     - index: 2
       opcode: LWS
       size: 4
       memmode: load
       memtype: stack
-      address: 313452
+      address: 313500
     - index: 3
       opcode: NOP
       size: 4
-      address: 313456
+      address: 313504
     - index: 4
       opcode: MTS
       size: 4
-      address: 313460
+      address: 313508
     - index: 5
       opcode: LWS
       size: 4
       memmode: load
       memtype: stack
-      address: 313464
+      address: 313512
     - index: 6
       opcode: NOP
       size: 4
-      address: 313468
+      address: 313516
     - index: 7
       opcode: MTS
       size: 4
-      address: 313472
+      address: 313520
     - index: 8
       opcode: LWS
       size: 4
       memmode: load
       memtype: stack
-      address: 313476
+      address: 313524
     - index: 9
       opcode: NOP
       size: 4
-      address: 313480
+      address: 313528
     - index: 10
       opcode: MTS
       size: 4
-      address: 313484
+      address: 313532
     - index: 11
       opcode: SFREEi
       size: 4
       stack-cache-argument: 8
-      address: 313488
+      address: 313536
     - index: 12
       opcode: RETND
       size: 4
       branch-type: return
-      address: 313492
-    address: 313444
+      address: 313540
+    address: 313492
   subfunctions:
   - name: 0
     blocks:
@@ -633,61 +673,77 @@ machine-functions:
     - index: 0
       opcode: SUBi
       size: 4
-      address: 133508
+      address: 133524
     - index: 1
       opcode: SWC
       size: 4
       memmode: store
       memtype: cache
-      address: 133512
+      address: 133528
     - index: 2
       opcode: SWC
       size: 4
       memmode: store
       memtype: cache
-      address: 133516
+      address: 133532
     - index: 3
       opcode: LWC
       size: 4
       memmode: load
       memtype: cache
-      address: 133520
+      address: 133536
     - index: 4
       opcode: NOP
       size: 4
-      address: 133524
+      address: 133540
     - index: 5
-      opcode: MUL
+      opcode: LWC
       size: 4
-      address: 133528
+      memmode: load
+      memtype: cache
+      address: 133544
     - index: 6
       opcode: NOP
       size: 4
-      address: 133532
+      address: 133548
     - index: 7
+      opcode: MUL
+      size: 4
+      address: 133552
+    - index: 8
+      opcode: NOP
+      size: 4
+      address: 133556
+    - index: 9
       opcode: MFS
       size: 4
-      address: 133536
-    - index: 8
+      address: 133560
+    - index: 10
       opcode: SWC
       size: 4
       memmode: store
       memtype: cache
-      address: 133540
-    - index: 9
-      opcode: MOV
+      address: 133564
+    - index: 11
+      opcode: LWC
       size: 4
-      address: 133544
-    - index: 10
+      memmode: load
+      memtype: cache
+      address: 133568
+    - index: 12
+      opcode: NOP
+      size: 4
+      address: 133572
+    - index: 13
       opcode: ADDi
       size: 4
-      address: 133548
-    - index: 11
+      address: 133576
+    - index: 14
       opcode: RETND
       size: 4
       branch-type: return
-      address: 133552
-    address: 133508
+      address: 133580
+    address: 133524
   subfunctions:
   - name: 0
     blocks:
@@ -705,13 +761,13 @@ machine-functions:
     - index: 0
       opcode: MOV
       size: 4
-      address: 313508
+      address: 313556
     - index: 1
       opcode: RETND
       size: 4
       branch-type: return
-      address: 313512
-    address: 313508
+      address: 313560
+    address: 313556
   subfunctions:
   - name: 0
     blocks:
@@ -732,29 +788,34 @@ bitcode-functions:
     - index: 2
       opcode: alloca
     - index: 3
-      opcode: store
-      memmode: store
+      opcode: alloca
     - index: 4
       opcode: store
       memmode: store
     - index: 5
-      opcode: load
-      memmode: load
+      opcode: store
+      memmode: store
     - index: 6
-      opcode: fptosi
+      opcode: store
+      memmode: store
     - index: 7
       opcode: load
       memmode: load
     - index: 8
       opcode: fptosi
     - index: 9
+      opcode: load
+      memmode: load
+    - index: 10
+      opcode: fptosi
+    - index: 11
       opcode: call
       callees:
       - fixedMult
-    - index: 10
+    - index: 12
       opcode: store
       memmode: store
-    - index: 11
+    - index: 13
       opcode: ret
 - name: __fixsfsi
   level: bitcode
@@ -1014,33 +1075,40 @@ relation-graphs:
 timing:
 - scope:
     function: 10
-  cycles: 942
+  cycles: 1253
   level: machinecode
   origin: platin
-  cache-max-cycles-instr: 651
-  cache-min-hits-instr: 2
-  cache-max-misses-instr: 6
+  cache-max-cycles-instr: 798
+  cache-min-hits-instr: 7
+  cache-max-misses-instr: 7
   cache-max-cycles-stack: 0
   cache-max-misses-stack: 0
-  cache-max-cycles-data: 168
+  cache-max-cycles-data: 252
   cache-min-hits-data: 0
-  cache-max-misses-data: 2
-  cache-max-stores-data: 6
-  cache-unknown-address-data: 8
-  cache-max-cycles: 819
+  cache-max-misses-data: 5
+  cache-max-stores-data: 7
+  cache-unknown-address-data: 12
+  cache-max-cycles: 1050
   profile:
   - reference:
       function: 10
       edgesource: 0
-    cycles: 290
+    cycles: 384
     wcet-frequency: 1
-    wcet-contribution: 290
+    wcet-contribution: 384
   - reference:
       function: 9
       edgesource: 0
-    cycles: 183
+    cycles: 228
     wcet-frequency: 1
-    wcet-contribution: 183
+    wcet-contribution: 228
+  - reference:
+      function: 214
+      edgesource: 0
+      edgetarget: 1
+    cycles: 30
+    wcet-frequency: 1
+    wcet-contribution: 30
   - reference:
       function: 214
       edgesource: 0
@@ -1048,6 +1116,13 @@ timing:
     cycles: 176
     wcet-frequency: 1
     wcet-contribution: 176
+  - reference:
+      function: 214
+      edgesource: 1
+      edgetarget: 5
+    cycles: 121
+    wcet-frequency: 1
+    wcet-contribution: 121
   - reference:
       function: 214
       edgesource: 2
@@ -1066,11 +1141,11 @@ timing:
       function: 214
       edgesource: 5
     cycles: 100
-    wcet-frequency: 1
-    wcet-contribution: 100
+    wcet-frequency: 2
+    wcet-contribution: 116
   - reference:
       function: 215
       edgesource: 0
     cycles: 26
-    wcet-frequency: 1
-    wcet-contribution: 26
+    wcet-frequency: 2
+    wcet-contribution: 31
