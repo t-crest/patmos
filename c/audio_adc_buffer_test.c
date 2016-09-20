@@ -10,6 +10,7 @@ int main() {
   short inL = 0;
   short inR = 0;
 
+
   //set buffer size
   setInputBufferSize(8);
 

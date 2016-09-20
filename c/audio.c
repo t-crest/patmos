@@ -185,13 +185,9 @@ int setOutputBufferSize(int bufferSize) {
  * @return	returns 0 if successful and a 1 if there was an error.
  */
 int getInputBuffer(short *l, short *r) {
-  while(*audioAdcBufferAckReg == 1); // wait until ack low
-  *audioAdcBufferReqReg = 1; // req high
-  while(*audioAdcBufferAckReg == 0); // wait until ack high
+  while(*audioAdcBufferEmptyReg == 1); // wait until not empty
   *l = *audioAdcLReg;
   *r = *audioAdcRReg;
-  *audioAdcBufferReqReg = 0; // req low
-
   return 0;
 }
 
