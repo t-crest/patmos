@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.66 (w)1999-2015 BSI
-[*] Tue Sep 20 15:51:44 2016
+[*] Thu Sep 22 10:22:24 2016
 [*]
 [dumpfile] "/home/dani/t-crest/patmos/Patmos.vcd"
-[dumpfile_mtime] "Tue Sep 20 15:44:33 2016"
-[dumpfile_size] 1316805730
+[dumpfile_mtime] "Thu Sep 22 10:19:19 2016"
+[dumpfile_size] 1649760618
 [savefile] "/home/dani/t-crest/patmos/hardware/wave_files/audio_adc_buffer_test.gtkw"
-[timestart] 214709
+[timestart] 214752
 [size] 1855 1176
 [pos] -1 -1
-*-2.948976 214715 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-5.907819 214876 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] Patmos.
 [treeopen] Patmos.core.
 [treeopen] Patmos.core.iocomp.
@@ -78,27 +78,16 @@ Patmos.core.iocomp.AudioInterface.mAudioAdcBuffer.r_pnt[7:0]
 @28
 Patmos.core.iocomp.AudioInterface.mAudioAdcBuffer.r_inc
 Patmos.core.iocomp.AudioInterface.mAudioAdcBuffer.w_inc
+@29
+Patmos.core.iocomp.AudioInterface.mAudioAdcBuffer.io_readPulseI
 @200
 -AudioInterface
 @28
+Patmos.core.iocomp.AudioInterface.audioAdcBufferEmptyReg
 Patmos.core.iocomp.AudioInterface.audioAdcEnReg
+Patmos.core.iocomp.AudioInterface.audioAdcBufferReadPulseReg
 @22
 Patmos.core.iocomp.AudioInterface.audioAdcLReg[15:0]
 Patmos.core.iocomp.AudioInterface.audioAdcRReg[15:0]
-@28
-Patmos.core.iocomp.AudioInterface.readPulseReg
-Patmos.core.iocomp.AudioInterface.io_ocp_S_Resp[1:0]
-Patmos.core.iocomp.AudioInterface.io_ocp_M_Cmd[2:0]
-@800023
-Patmos.core.iocomp.AudioInterface.masterReg_Addr[31:0]
-@29
-(22)Patmos.core.iocomp.AudioInterface.masterReg_Addr[31:0]
-(23)Patmos.core.iocomp.AudioInterface.masterReg_Addr[31:0]
-(24)Patmos.core.iocomp.AudioInterface.masterReg_Addr[31:0]
-(25)Patmos.core.iocomp.AudioInterface.masterReg_Addr[31:0]
-(26)Patmos.core.iocomp.AudioInterface.masterReg_Addr[31:0]
-(27)Patmos.core.iocomp.AudioInterface.masterReg_Addr[31:0]
-@1001203
--group_end
 [pattern_trace] 1
 [pattern_trace] 0

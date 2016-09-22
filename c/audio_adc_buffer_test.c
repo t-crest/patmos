@@ -5,11 +5,11 @@
 #include "audio.h"
 #include "audio.c"
 
+
 int main() {
 
   short inL = 0;
   short inR = 0;
-
 
   //set buffer size
   setInputBufferSize(8);
@@ -23,7 +23,7 @@ int main() {
     getInputBuffer(&inL, &inR);
   }
 
-
+  printf("%x, %x\n", inL, inR);
   /*
   printf("Done first.\n Now I am letting the buffer load a little bit to see what happens...\n");
   printf("Now I am letting the buffer load a little bit to see what happens...\n");

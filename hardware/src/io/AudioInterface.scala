@@ -88,8 +88,9 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
   val audioAdcRReg   = Reg(init = Bits(0, AUDIOLENGTH))
   val audioAdcEnReg  = Reg(init = Bits(0, 1)) //enable
 
-  val audioAdcBufferSizeReg = Reg(init = Bits(0, (MAXADCBUFFERPOWER+1)))
-  val audioAdcBufferEmptyReg  = Reg(init = Bits(0, 1))
+  val audioAdcBufferSizeReg      = Reg(init = Bits(0, (MAXADCBUFFERPOWER+1)))
+  val audioAdcBufferReadPulseReg = Reg(init = Bits(0, 1))
+  val audioAdcBufferEmptyReg     = Reg(init = Bits(0, 1))
 
   val i2cDataReg = Reg(init = Bits(0,9)) //9 Bit I2C data
   val i2cAdrReg	 = Reg(init = Bits(0, 7)) //7 Bit I2C address
@@ -126,6 +127,7 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
     is(Bits("b01010")) { data := audioAdcEnReg }
 
     is(Bits("b01011")) { data := audioAdcBufferSizeReg }
+    is(Bits("b01100")) { data := audioAdcBufferReadPulseReg }
     is(Bits("b01101")) { data := audioAdcBufferEmptyReg }
 
     is(Bits("b01110")) { data := i2cDataReg }
@@ -150,6 +152,7 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
       is(Bits("b01010")) { audioAdcEnReg := io.ocp.M.Data(0) }
 
       is(Bits("b01011")) { audioAdcBufferSizeReg := io.ocp.M.Data(MAXADCBUFFERPOWER, 0) }
+      is(Bits("b01100")) { audioAdcBufferReadPulseReg := io.ocp.M.Data(0) }
 
       is(Bits("b01110")) { i2cDataReg := io.ocp.M.Data(8,0) }
       is(Bits("b01111")) { i2cAdrReg := io.ocp.M.Data(6,0) }
@@ -199,22 +202,11 @@ class AudioInterface(AUDIOLENGTH: Int, AUDIOFSDIVIDER: Int, AUDIOCLKDIVIDER: Int
   //ADC Buffer:
   val mAudioAdcBuffer = Module(new AudioADCBuffer(AUDIOLENGTH, MAXADCBUFFERPOWER))
 
-  //logic for the Read Pulse for the ADC:
-  val readPulseReg = Reg(init = UInt(0, 1)) //starts low
-  //if read, and if address corresponds to audioAdcRReg
-  //(Right is always read last, so Left was already read)
-  when( (io.ocp.M.Cmd === OcpCmd.RD) && (masterReg.Addr(9,4) === Bits("b01001")) ) {
-    readPulseReg := UInt(1)
-  }
-  .otherwise {
-    readPulseReg := UInt(0)
-  }
-
   //Patmos to ADC Buffer:
   mAudioAdcBuffer.io.enAdcI := audioAdcEnReg
   audioAdcLReg := mAudioAdcBuffer.io.audioLPatmosO
   audioAdcRReg := mAudioAdcBuffer.io.audioRPatmosO
-  mAudioAdcBuffer.io.readPulseI := readPulseReg
+  mAudioAdcBuffer.io.readPulseI := audioAdcBufferReadPulseReg
   audioAdcBufferEmptyReg := mAudioAdcBuffer.io.emptyO
   mAudioAdcBuffer.io.bufferSizeI := audioAdcBufferSizeReg
 

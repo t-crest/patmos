@@ -23,8 +23,9 @@ volatile _SPM int *audioAdcRReg	   = (volatile _SPM int *) 0xF00B0090;
 volatile _SPM int *audioAdcEnReg   = (volatile _SPM int *) 0xF00B00A0;
 
 //ADC buffer
-volatile _SPM int *audioAdcBufferSizeReg = (volatile _SPM int *) 0xF00B00B0;
-volatile _SPM int *audioAdcBufferEmptyReg  = (volatile _SPM int *) 0xF00B00D0;
+volatile _SPM int *audioAdcBufferSizeReg      = (volatile _SPM int *) 0xF00B00B0;
+volatile _SPM int *audioAdcBufferReadPulseReg = (volatile _SPM int *) 0xF00B00C0;
+volatile _SPM int *audioAdcBufferEmptyReg     = (volatile _SPM int *) 0xF00B00D0;
 
 //I2C
 volatile _SPM int *i2cDataReg = (volatile _SPM int *) 0xF00B00E0;

@@ -126,9 +126,9 @@ class AudioADCBuffer(AUDIOBITLENGTH: Int, MAXADCBUFFERPOWER: Int) extends Module
     //state machine
     switch (stateOut) {
       is (sOutIdle) {
-        audioLReg := audioBufferL(r_pnt)
-        audioRReg := audioBufferR(r_pnt)
         when(io.readPulseI === UInt(1)) {
+          audioLReg := audioBufferL(r_pnt)
+          audioRReg := audioBufferR(r_pnt)
           stateOut := sOutReading
         }
       }
