@@ -6,7 +6,7 @@
 #include "audio.c"
 
 
-#define TREMOLO_PERIOD 11025 // 1/4 second: 44100/4
+#define TREMOLO_PERIOD 22050 // 1/4 second: 44100/4
 
 float tremoloArray[TREMOLO_PERIOD];
 short inL, inR, outR, outL;
@@ -19,6 +19,7 @@ void storeTremoloArray(float *tremoloArray, int SIZE, int isSin) {
     printf("Selected tremolo type: Sawtooth\n");
   }
 
+  printf("Storing tremolo array...\n");
   for (int i = 0; i < SIZE; i++) {
     //if sin is selected:
     if (isSin == 1) {

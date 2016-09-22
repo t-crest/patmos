@@ -21,12 +21,13 @@ int main() {
   // audio data
   for(int i=0; i<4; i++) {
     getInputBuffer(&inL, &inR);
+    printf("%x, %x\n", inL, inR);
   }
-
   printf("Done first.\nNow I am letting the buffer load a little bit to see what happens...\n");
   // audio data
   for(int i=0; i<10; i++) {
     getInputBuffer(&inL, &inR);
+    printf("%x, %x\n", inL, inR);
   }
 
   //disable ADC

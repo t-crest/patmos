@@ -5,8 +5,8 @@
 #include "audio.h"
 #include "audio.c"
 
-short audioArrayL[4] = { 1, 5, 16, 31 };
-short audioArrayR[4] = { 2, 6, 17, 32 };
+short audioArrayL[4] = { 0x01, 0x05, 0x10, 0x1F };
+short audioArrayR[4] = { 0x02, 0x06, 0x11, 0x20 };
 
 int main() {
 
@@ -25,11 +25,12 @@ int main() {
   printf("IWannaWaitVeryVeryLong\n");
 
   // audio data
-  for(int j=0; j<3; j++) {
+  for(int j=1; j<4; j++) {
     for(int i=0; i<4; i++) {
-      setOutputBuffer(audioArrayL[i]+3, audioArrayR[i]+3);
+      setOutputBuffer(audioArrayL[i]+j, audioArrayR[i]+j);
     }
   }
+
   printf("done second\n");
 
   return 0;

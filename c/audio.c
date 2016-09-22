@@ -200,12 +200,13 @@ int getInputBuffer(short *l, short *r) {
  * @return	returns 0 if successful and a 1 if there was an error.
  */
 int setOutputBuffer(short l, short r) {
-  while(*audioDacBufferAckReg == 1); // wait until ack low
-  *audioDacBufferReqReg = 1; // req high
-  while(*audioDacBufferAckReg == 0); // wait until ack high
+  //write data first: it will stay in AudioInterface, won't go to
+  //AudioDacBuffer until the write pulse
   *audioDacLReg = l;
   *audioDacRReg = r;
-  *audioDacBufferReqReg = 0; // req low
+  while(*audioDacBufferFullReg == 1); // wait until not full
+  *audioDacBufferWritePulseReg = 1; // begin pulse
+  *audioDacBufferWritePulseReg = 0; // end pulse
 
   return 0;
 }

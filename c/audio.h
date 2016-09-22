@@ -13,9 +13,9 @@ volatile _SPM int *audioDacRReg    = (volatile _SPM int *) 0xF00B0010;
 volatile _SPM int *audioDacEnReg   = (volatile _SPM int *) 0xF00B0020;
 
 //DAC buffer
-volatile _SPM int *audioDacBufferSizeReg = (volatile _SPM int *) 0xF00B0040;
-volatile _SPM int *audioDacBufferReqReg  = (volatile _SPM int *) 0xF00B0050;
-volatile _SPM int *audioDacBufferAckReg  = (volatile _SPM int *) 0xF00B0060;
+volatile _SPM int *audioDacBufferSizeReg        = (volatile _SPM int *) 0xF00B0040;
+volatile _SPM int *audioDacBufferWritePulseReg  = (volatile _SPM int *) 0xF00B0050;
+volatile _SPM int *audioDacBufferFullReg        = (volatile _SPM int *) 0xF00B0060;
 
 //ADC
 volatile _SPM int *audioAdcLReg	   = (volatile _SPM int *) 0xF00B0080;
