@@ -80,21 +80,21 @@ class AudioADCBuffer(AUDIOBITLENGTH: Int, MAXADCBUFFERPOWER: Int) extends Module
           //wait READCNTLIMIT cycles until input data is written
           when(readCntReg === READCNTLIMIT) {
             // read only when its not full
-            when(fullReg === UInt(0)) {
+            //when(fullReg === UInt(0)) {
               //read input, increment write pointer
               audioBufferL(w_pnt) := io.audioLAdcI
               audioBufferR(w_pnt) := io.audioRAdcI
               w_pnt := (w_pnt + UInt(1)) & (io.bufferSizeI - UInt(1))
               w_inc := UInt(1)
-              /*
+
               //if it is full, write, but increment read pointer too
               //to store new samples and dump older ones
               when(fullReg === UInt(1)) {
                 r_pnt := (r_pnt + UInt(1)) & (io.bufferSizeI - UInt(1))
                 r_inc := UInt(1)
               }
-              */
-            }
+
+            //}
             //update state
             stateIn := sInRead
           }

@@ -23,15 +23,11 @@ int main() {
     getInputBuffer(&inL, &inR);
   }
 
-  printf("%x, %x\n", inL, inR);
-  /*
-  printf("Done first.\n Now I am letting the buffer load a little bit to see what happens...\n");
-  printf("Now I am letting the buffer load a little bit to see what happens...\n");
+  printf("Done first.\nNow I am letting the buffer load a little bit to see what happens...\n");
   // audio data
   for(int i=0; i<10; i++) {
     getInputBuffer(&inL, &inR);
   }
-  */
 
   //disable ADC
   *audioAdcEnReg = 0;
