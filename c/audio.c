@@ -3,6 +3,10 @@
 #include <stdio.h>
 #include "audio.h"
 
+#ifndef FILTER_ORDER_1PLUS
+#define FILTER_ORDER_1PLUS 2
+#endif
+
 /*
  * @file		Audio_setup.c
  * @author	Daniel Sanz Ausin s142290 & Fabian Goerge s150957
@@ -184,6 +188,15 @@ int setOutputBufferSize(int bufferSize) {
  * @param[in]	*r	pointer to right audio data
  * @return	returns 0 if successful and a 1 if there was an error.
  */
+int getInputBufferSPM(volatile _SPM short *l, volatile _SPM short *r) {
+  while(*audioAdcBufferEmptyReg == 1);// wait until not empty
+  *audioAdcBufferReadPulseReg = 1; // begin pulse
+  *audioAdcBufferReadPulseReg = 0; // end pulse
+  *l = *audioAdcLReg;
+  *r = *audioAdcRReg;
+  return 0;
+}
+
 int getInputBuffer(short *l, short *r) {
   while(*audioAdcBufferEmptyReg == 1);// wait until not empty
   *audioAdcBufferReadPulseReg = 1; // begin pulse
@@ -207,6 +220,36 @@ int setOutputBuffer(short l, short r) {
   while(*audioDacBufferFullReg == 1); // wait until not full
   *audioDacBufferWritePulseReg = 1; // begin pulse
   *audioDacBufferWritePulseReg = 0; // end pulse
+
+  return 0;
+}
+
+
+int filterIIR(volatile _SPM short (*x)[2], volatile _SPM short (*y)[2], volatile _SPM int *accum, volatile _SPM short *B, volatile _SPM short *A, int RES_SHIFT) {
+  accum[0] = 0;
+  accum[1] = 0;
+  for(int i=0; i<FILTER_ORDER_1PLUS; i++) {
+    // SIGNED SHIFT (arithmetical): losing a 6-bit resolution
+    accum[0] += (B[i]*x[i][0]) >> 6;
+    accum[0] -= (A[i]*y[i][0]) >> 6;
+    accum[1] += (B[i]*x[i][1]) >> 6;
+    accum[1] -= (A[i]*y[i][1]) >> 6;
+  }
+  //accumulator limits: [ (2^(30-6-1))-1 , -(2^(30-6-1)) ]
+  //accumulator limits: [ 0x7FFFFF, 0x800000 ]
+  // digital saturation
+  for(int i=0; i<2; i++) {
+    if (accum[i] > 0x7FFFFF) {
+      accum[i] = 0x7FFFFF;
+    }
+    else {
+      if (accum[i] < -0x800000) {
+        accum[i] = -0x800000;
+      }
+    }
+  }
+  y[FILTER_ORDER_1PLUS-1][0] = accum[0] >> (9+RES_SHIFT);
+  y[FILTER_ORDER_1PLUS-1][1] = accum[1] >> (9+RES_SHIFT);
 
   return 0;
 }

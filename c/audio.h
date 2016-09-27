@@ -1,5 +1,10 @@
+#ifndef FILTER_ORDER_1PLUS
+#define FILTER_ORDER_1PLUS 2
+#endif
+
 #ifndef AUDIO_H
 #define AUDIO_H
+
 
 //Leds
 volatile _SPM int *ledReg = (volatile _SPM int *) 0xF0090000;
@@ -36,13 +41,18 @@ volatile _SPM int *i2cReqReg  = (volatile _SPM int *) 0xF00B0110;
 
 int 	writeToI2C(char* addrC,char* dataC);
 void 	setup();
-int 	setOutputAudio(short l, short r);
-int 	getInputAudio(short *l, short *r);
 int 	changeVolume(int vol);
 void 	waitSyncDac();
 void 	waitSyncAdc();
 
+
+int 	setOutputBuffer(short l, short r);
+int 	getInputBufferSPM(volatile _SPM short *l, volatile _SPM short *r);
+int     getInputBuffer(short *l, short *r);
 int     setOutputBufferSize(int bufferSize);
-int     setOutputBuffer(short l, short r);
+int     setInputBufferSize(int bufferSize);
+
+//audio operations
+int     filterIIR(volatile _SPM short (*x)[2], volatile _SPM short (*y)[2], volatile _SPM int *accum, volatile _SPM short *B, volatile _SPM short *A, int RES_SHIFT);
 
 #endif
