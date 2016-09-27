@@ -175,8 +175,8 @@ Jack Whitham offered his experience with RISC
 ISA design and trade-offs.
 Gernot Gebhard and Christoph Cullmann gave valuable feedback on the ISA
 related to WCET analysis.
-Sahar Abbaspourseyedi is working on the stack
-cache and verifies the ideas and concepts presented here. We thank
+Sahar Abbaspourseyedi has been working on the stack
+cache to verify the ideas and concepts presented here. We thank
 Rasmus Bo S{\o}rensen for fixing some documentation errors.
 
 This work was partially funded under the
@@ -490,13 +490,13 @@ section. Gray fields indicate bits whose function is determined by a sub-class
 of the instruction format. Black fields are not used.
 
 \begin{itemize}
-  \item ALUi -- Arithmetic Immediate \\[2ex]
+  \item AluImm -- Arithmetic Immediate (ALUi) \\[2ex]
     \begin{bytefield}{32}
       \bitheader{0-31} \\
       \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{00} & \bitbox{3}{Func} &
       \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{12}{Immediate} \\
     \end{bytefield}
-  \item ALUl -- Long Immediate \\[2ex]
+  \item AluLongImm -- Long Immediate (ALUl) \\[2ex]
     \begin{bytefield}{32}
       \bitheader{0-31} \\
       \bitbox{1}{1} & \bitbox{4}{Pred} & \bitbox{5}{11111} &
@@ -505,7 +505,7 @@ of the instruction format. Black fields are not used.
       \bitheader{0-31} \\
       \bitbox{32}{Long Immediate} \\
     \end{bytefield}
-  \item ALU -- Arithmetic \\[2ex]
+  \item Alu -- Arithmetic (ALU) \\[2ex]
         \begin{bytefield}{32}
           \bitheader{0-31} \\
           \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
@@ -514,7 +514,7 @@ of the instruction format. Black fields are not used.
         \end{bytefield}
 
         \begin{bytefield}[leftcurly=.]{32}
-          \begin{leftwordgroup}{\parbox{8em}{ALUr -- Register}}
+          \begin{leftwordgroup}{\parbox{8em}{AluReg -- Register (ALUr)}}
             \bitheader{0-31} \\
             \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
             \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
@@ -687,35 +687,33 @@ of the instruction format. Black fields are not used.
 \label{sec:instruction_opcodes}
 
 This section defines the instruction set architecture, the instruction opcodes,
-and the behavior of the respective instructions of Patmos. This section should
-be less used for discussions and should slowly converge to a final definition
-of the instruction set.
+and the behavior of the respective instructions of Patmos.
 
 \subsection{Binary Arithmetic}
 
-Applies to the ALUr, ALUi, and ALUl formats.  Operand \texttt{Op2}
+Applies to the AluReg, AluImm, and AluLongImm formats.  Operand \texttt{Op2}
 denotes either the \texttt{Rs2}, or the \texttt{Immediate} operand, or
 the \texttt{Long Immediate}. The immediate operand is zero-extended.  For
-shift and rotate operations, only the lower $5$ bits of the operand
+shift and rotate operations, only the lower 5 bits of the operand
 are considered. Table~\ref{tab:alufunc} shows the encoding of the
-\texttt{func} field; for ALUi instructions, only functions in the
+\texttt{func} field; for AluImm instructions, only functions in the
 upper half of that table are available.
 
 \begin{itemize}
-  \item ALUr -- Register \\[2ex]
+  \item AluReg -- Register (ALUr) \\[2ex]
     \begin{bytefield}{32}
       \bitheader{0-31} \\
       \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{5}{01000} &
       \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{5}{Rs2} &
       \bitbox{3}{000} & \bitbox{4}{Func} \\
     \end{bytefield}
-  \item ALUi -- Arithmetic Immediate \\[2ex]
+  \item AluImm -- Arithmetic Immediate (ALUi) \\[2ex]
     \begin{bytefield}{32}
       \bitheader{0-31} \\
       \bitbox{1}{x} & \bitbox{4}{Pred} & \bitbox{2}{00} & \bitbox{3}{Func} &
       \bitbox{5}{Rd} & \bitbox{5}{Rs1} & \bitbox{12}{Immediate} \\
     \end{bytefield}
-  \item ALUl -- Long Immediate\\[2ex]
+  \item AluLongImm -- Long Immediate (ALUl)\\[2ex]
     \begin{bytefield}{32}
       \bitheader{0-31} \\
       \bitbox{1}{1} & \bitbox{4}{Pred} & \bitbox{5}{11111} &

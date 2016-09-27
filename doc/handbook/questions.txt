@@ -12,6 +12,12 @@ What is the base address of the stack? Is this defined somewhere?
 
 Where is the list of all assembler instructions (mnemonics)?
 
-How can we define hexadecimal constants in the assmbler?
+How can we define hexadecimal constants in the assembler?
 
-How to define a sequence of words in assmbler?
+How to define a sequence of words in assembler?
+
+Trouble with IO device magic: everything that does NOT fit into the standard IO devices is very hard to handle. E.g., IO device that is connected to an arbiter (VGA), cache interrupt to IO interrupt. It is hard to see how the IO device mapping works.
+
+How to add IO pins to Patmos without using an IO device? Add them to PatmosIO in connection.scala
+
+How to use a linker script for memory organization (e.g., reserving entries for a frame buffer)?
