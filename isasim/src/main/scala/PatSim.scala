@@ -171,9 +171,9 @@ class PatSim(instructions: Array[Int]) {
   }
 
   def log() = {
-    print(pc + ":")
-    for (i <- 0 to 8) {
-      print(" r" + i + " = " + reg(i))
+    print(pc*4 + " - ")
+    for (i <- 0 to 31) {
+      print(reg(i) + " ")
     }
     println
   }
@@ -188,10 +188,12 @@ object PatSim {
     val instr = readBin(args(0))
     val simulator = new PatSim(instr)
     var cnt = 1;
+    println("Patmos start")
     while (!simulator.halt && cnt < instr.length) {
       simulator.tick()
       cnt += 1
     }
+    println("PASSED")
   }
 
   /**

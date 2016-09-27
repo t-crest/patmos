@@ -155,7 +155,7 @@ swsim: $(BUILDDIR)/$(BOOTAPP).bin
 	$(INSTALLDIR)/bin/pasim --debug --debug-fmt=short $(BUILDDIR)/$(BOOTAPP).bin; exit 0
 
 # ISA simulation with PatSim
-instsim: $(BUILDDIR)/$(BOOTAPP).bin
+isasim: $(BUILDDIR)/$(BOOTAPP).bin
 	cd isasim; sbt "run-main patsim.PatSim $(BUILDDIR)/$(BOOTAPP).bin"
 
 # C simulation of the Chisel version of Patmos
