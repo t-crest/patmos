@@ -42,70 +42,38 @@
 
 package patsim
 
-import scala.io.Source
-import scala.collection.mutable.Map
-
 import Constants._
+import Opcode._
+import OpcodeExt._
+import Function._
 
 class PatSim(instructions: Array[Int]) {
 
-  var pc = 1 // method length at address 0
+  var pc = 1 // We start on second word as method length is at address 0
   var reg = new Array[Int](32)
   reg(0) = 0
 
   var halt = false
 
-  val NOP = 0 // Using R0 as destination is a noop
-
   def tick() = {
     val instrA = instructions(pc)
     val dualFetch = (instrA & 0x80000000) != 0
-    val longImmInstr = (((instrA >> 22) & 0x1f) == 0x1f)
+
+    val instrB = if (dualFetch) instructions(pc + 1) else 0
+
+    val longImmInstr = (((instrA >> 22) & 0x1f) == AluLongImm)
+
     val dualIssue = dualFetch && !longImmInstr
 
-    val instrB = if (dualFetch) {
-      instructions(pc + 2)
+    if (dualIssue) {
+      execute(instrA, 0)
+      execute(instrB, 0)
     } else {
-      NOP
+      execute(instrA, instrB)
     }
-    execute(instrA)
-    if (dualIssue) execute(instrB)
-    if (dualFetch) pc += 2 else pc += 1
   }
 
-  def alu(func: Int, op1: Int, op2: Int): Int = {
-
-    val scale = if (func == FUNC_SHADD) {
-      1
-    } else if (func == FUNC_SHADD2) {
-      2
-    } else {
-      0
-    }
-    val scaledOp1 = op1 << scale
-
-    val sum = scaledOp1 + op2
-    var result = sum // some default
-    val shamt = op2 & 0x1f
-    // is there a more functional approach for this?
-    func match {
-      case FUNC_ADD => result = sum
-      case FUNC_SUB => result = op1 - op2
-      case FUNC_XOR => result = op1 ^ op2
-      case FUNC_SL => result = op1 << shamt
-      case FUNC_SR => result = op1 >>> shamt
-      case FUNC_SRA => result = op1 >> shamt
-      case FUNC_OR => result = op1 | op2
-      case FUNC_AND => result = op1 & op2
-      case FUNC_NOR => result = ~(op1 | op2)
-      case FUNC_SHADD => result = sum
-      case FUNC_SHADD2 => result = sum
-      case _ => result = sum
-    }
-    result
-  }
-
-  def execute(instr: Int) = {
+  def execute(instr: Int, longImm: Int) = {
 
     val pred = (instr >> 27) & 0x0f
     val opcode = (instr >> 22) & 0x1f
@@ -113,6 +81,7 @@ class PatSim(instructions: Array[Int]) {
     val rs1 = (instr >> 12) & 0x1f
     val rs2 = (instr >> 7) & 0x1f
     val opc = (instr >> 4) & 0x07
+    val imm22 = instr & 0x3ffff
     val aluImm = (opcode >> 3) == 0
     val func = if (aluImm) {
       opcode & 0x7
@@ -123,46 +92,85 @@ class PatSim(instructions: Array[Int]) {
     val op1 = reg(rs1)
     val op2 = if (aluImm) {
       // always sign extend?
+      // Actually docu says zero extended - see if any test case caches this
       (instr << 20) >> 20
     } else {
       reg(rs2)
     }
-    val aluResult = alu(func, op1, op2)
-    val doExecute = rd != 0 // add predicates, but R0 only on ops with rd
+    val pcNext = pc + 1
 
-    // default, which is ok for ALU immediate as well
-    var result = aluResult
+    def alu(func: Int, op1: Int, op2: Int): Int = {
 
-    if (aluImm) {
-      result = aluResult
-    } else if (opcode < OPCODE_CFL_LOW) {
-      opcode match {
-        case OPCODE_ALU => {
-          opc match {
-            case OPC_ALUR => result = aluResult
-            case _ => println(opc + " not implemented (opc)")
-          }
-        }
-        case _ => println(opcode + " not implemented")
-      }
-    } else {
-      if (((opcode >> 1) == CFLOP_BRCF) && ((instr & 0x3ffff) == 0)) {
-        // 'halt' instruction
-        halt = true
+      val scale = if (func == SHADD) {
+        1
+      } else if (func == SHADD2) {
+        2
       } else {
-        println("Unimplemented control flow " + opcode + " " + (opcode >> 1))
+        0
+      }
+      val scaledOp1 = op1 << scale
+
+      val sum = scaledOp1 + op2
+      val shamt = op2 & 0x1f
+      func match {
+        case ADD => sum
+        case SUB => op1 - op2
+        case XOR => op1 ^ op2
+        case SL => op1 << shamt
+        case SR => op1 >>> shamt
+        case SRA => op1 >> shamt
+        case OR => op1 | op2
+        case AND => op1 & op2
+        case NOR => ~(op1 | op2)
+        case SHADD => sum
+        case SHADD2 => sum
+        case _ => sum
       }
     }
-    // write result back
-    // -- need to distinguish between doExecute, write back, R0...
-    if (doExecute) {
-      reg(rd) = result
+
+    // Execute the instruction and return a tuple for the result:
+    //   (ALU result, writeReg, writePred, next PC)
+    val result = if (aluImm) {
+      (alu(func, op1, op2), true, false, pcNext)
+    } else {
+      opcode match {
+        //      case AluImm => (alu(funct3, sraSub, rs1Val, imm), true, pcNext)
+        case Alu => opc match {
+          case AluReg => (alu(func, op1, op2), true, false, pcNext)
+          case _ => throw new Exception("OpcodeExt " + opc + " not (yet) implemented")
+        }
+        case Branch => throw new Exception("Branch")
+        case BranchCf => (0, false, false, imm22)
+        //      case Branch => (0, false, if (compare(funct3, rs1Val, rs2Val)) pc + imm else pcNext)
+        //      case Load => (load(funct3, rs1Val, imm), true, pcNext)
+        //      case Store =>
+        //        store(funct3, rs1Val, imm, rs2Val); (0, false, pcNext)
+        //      case Lui => (imm, true, pcNext)
+        //      case AuiPc => (pc + imm, true, pcNext)
+        //      case Jal => (pc + 4, true, pc + imm)
+        //      case JalR => (pc + 4, true, (rs1Val + imm) & 0xfffffffe)
+        //      case Fence => (0, false, pcNext)
+        //      case SCall => (scall(), true, pcNext)
+        case _ => throw new Exception("Opcode " + opcode + " not (yet) implemented")
+      }
     }
+
+    // write result back
+    // distinguish between R0, register update, predicate update,
+    // and the special cases...
+    if (rd != 0 && result._2) {
+      reg(rd) = result._1
+    }
+
+    // increment program counter
+    pc = result._4
+
+    // Quick hack for the halt instruction
+    if (result._4 == 0) {
+      halt = true
+    }
+
     log
-  }
-
-  def executeLong(instr: Int, imm: Int) {
-
   }
 
   def error(s: String) {
@@ -171,7 +179,7 @@ class PatSim(instructions: Array[Int]) {
   }
 
   def log() = {
-    print(pc*4 + " - ")
+    print(pc * 4 + " - ")
     for (i <- 0 to 31) {
       print(reg(i) + " ")
     }

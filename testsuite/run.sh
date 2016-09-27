@@ -72,7 +72,34 @@ function run_chsl {
 	fi
 }
 
+function run_isa {
+	echo === ISA Tests ===
+	failed_isa=()
+	for f in  ${tests}; do
+		testsuite/single_isa.sh ${f}
+		result=$?
+		if [ "$result" -eq 124 ] ; then
+			echo " timeout"
+		fi
+		if [ "$result" -ne 0 ] ; then
+			failed_isa+=("${f}")
+		fi
+	done
+
+	for f in  ${not_working_isa}; do
+		echo $f
+		echo " skipped"
+	done
+	if [ "${#failed_isa[@]}" -ne 0 ] ; then
+		echo "Failed tests: ${failed_isa[@]}" >&2
+	else
+		echo "All tests ok"
+	fi
+}
+
 function run_all {
+
+	run_isa
 
 	run_chsl
 

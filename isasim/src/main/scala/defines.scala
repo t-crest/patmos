@@ -40,37 +40,58 @@
 
 package patsim
 
-import scala.io.Source
-import scala.collection.mutable.Map
+/**
+ * Opcodes are 5 bit, Arithmetic short immediate use 3 of the 8 bits for
+ * for the function.
+ */
+object Opcode {
+  val AluImm = 0x00
+  val Alu = 0x08
+  val AluLongImm = 0x1f
+  val Branch = 0x13
+  val BranchCf = 0x15
+}
+/**
+ * The Opc field. Not sure if I like two opcode fields
+ */
+object OpcodeExt {
+  val AluReg = 0x00
+}
 
+/**
+ * Function for an ALU operation
+ */
+object Function {
+  val ADD = 0x0
+  val SUB = 0x1
+  val XOR = 0x2
+  val SL = 0x3
+  val SR = 0x4
+  val SRA = 0x5
+  val OR = 0x6
+  val AND = 0x7
+  val NOR = 0xb
+  val SHADD = 0xc
+  val SHADD2 = 0xd
+}
 /**
  * These constants could be shared between the hardware
  * definition and the simulation.
  */
 object Constants {
 
-  val FUNC_ADD = 0x0
-  val FUNC_SUB = 0x1
-  val FUNC_XOR = 0x2
-  val FUNC_SL = 0x3
-  val FUNC_SR = 0x4
-  val FUNC_SRA = 0x5
-  val FUNC_OR = 0x6
-  val FUNC_AND = 0x7
-  val FUNC_NOR = 0xb
-  val FUNC_SHADD = 0xc
-  val FUNC_SHADD2 = 0xd
+
 
   // only two bits for immediate
-  val OPCODE_ALUI = 0x0
-
-  val OPCODE_ALU = 0x08
+//  val OPCODE_ALUI = 0x0
+//
+//  val OPCODE_ALU = 0x08
   val OPCODE_SPC = 0x09
   val OPCODE_LDT = 0x0a
   val OPCODE_STT = 0x0b
   val OPCODE_STC = 0x0c
 
-  val OPCODE_ALUL = 0x1f
+//  val OPCODE_ALUL = 0x1f
 
   val OPCODE_CFL_LOW = 0x10
   // opcode for control flow is 4 bits plus delayed bit
