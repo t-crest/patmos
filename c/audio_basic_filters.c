@@ -1,3 +1,9 @@
+#include <machine/spm.h>
+#include <machine/rtc.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
 #define ONE_16b 0x8000 //0x7FFF
 
 #define BUFFER_SIZE 32
@@ -6,16 +12,8 @@
 
 #define Fs 52083 // Hz
 
-
-#include <machine/spm.h>
-#include <machine/rtc.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
 #include "audio.h"
 #include "audio.c"
-
-
 
 
 short x[AUDIO_RECORDING_SIZE][2] = {0}; //input
@@ -27,14 +25,18 @@ short y[AUDIO_RECORDING_SIZE][2] = {0}; //output
 #define A_ADDR      ( B_ADDR      + FILTER_ORDER_1PLUS * sizeof(short) )
 #define X_FILT_ADDR ( A_ADDR      + FILTER_ORDER_1PLUS * sizeof(short) )
 #define Y_FILT_ADDR ( X_FILT_ADDR + 2 * FILTER_ORDER_1PLUS * sizeof(short) )
+#define PNT_ADDR    ( Y_FILT_ADDR + 2 * FILTER_ORDER_1PLUS * sizeof(short) )
+#define SFTLFT_ADDR ( PNT_ADDR    + sizeof(int) )
 
 //to have fixed-point multiplication:
 float K;
-volatile _SPM int *accum = (volatile _SPM int *) ACCUM_ADDR;
-volatile _SPM short *B = (volatile _SPM short *) B_ADDR; // [b1, b0]
-volatile _SPM short *A = (volatile _SPM short *) A_ADDR; // [a1,  0]
+volatile _SPM int *accum           = (volatile _SPM int *)        ACCUM_ADDR;
+volatile _SPM short *B             = (volatile _SPM short *)      B_ADDR; // [b2, b1, b0]
+volatile _SPM short *A             = (volatile _SPM short *)      A_ADDR; // [a2, a1,  0]
 volatile _SPM short (*x_filter)[2] = (volatile _SPM short (*)[2]) X_FILT_ADDR; // x_filter[FILTER_ORDER_1PLUS][2] = {0};
 volatile _SPM short (*y_filter)[2] = (volatile _SPM short (*)[2]) Y_FILT_ADDR; // y_filter[FILTER_ORDER_1PLUS][2] = {0};
+volatile _SPM int *pnt             = (volatile _SPM int *)        PNT_ADDR; // pointer indicates last position of x_filter buffer
+volatile _SPM int *shiftLeft       = (volatile _SPM int *)        SFTLFT_ADDR; //shift left amount;
 
 
 
@@ -84,7 +86,7 @@ int calc_filter_coeff(volatile _SPM short *B, volatile _SPM short *A, float K, i
     }
   }
 
-  //check for overflow
+  //check for overflow if coefficients
   float maxVal = 0;
   for(int i=0; i<FILTER_ORDER_1PLUS; i++) {
     if( (fabs(Bfl[i]) > 1) && (fabs(Bfl[i]) > maxVal) ) {
@@ -94,17 +96,19 @@ int calc_filter_coeff(volatile _SPM short *B, volatile _SPM short *A, float K, i
       maxVal = fabs(Afl[i]);
     }
   }
-  if (maxVal > 1) { // if there was overflow in coefficients
-    printf("all coefficients scaled down by %f\n", maxVal);
-    for(int i=0; i<FILTER_ORDER_1PLUS; i++) {
-      Bfl[i] = Bfl[i]/maxVal;
-      Afl[i] = Afl[i]/maxVal;
-    }
+  //if coefficients were too high, scale down
+  if(maxVal > 1) {
+    printf("Greatest coefficient found is %f, ", maxVal);
   }
+  while(maxVal > 1) { //loop until maxVal < 1
+    *shiftLeft = *shiftLeft + 1; //here we shift right, but the IIR result will be shifted left
+    maxVal--;
+  }
+  printf("shift left amount is %d\n", *shiftLeft);
   // now all coefficients should be between 0 and 1
   for(int i=0; i<FILTER_ORDER_1PLUS; i++) {
-    B[i] = (short) ( ONE_16b * Bfl[i] );
-    A[i] = (short) ( ONE_16b * Afl[i] );
+    B[i] = (short) ( (int) (ONE_16b * Bfl[i]) >> *shiftLeft );
+    A[i] = (short) ( (int) (ONE_16b * Afl[i]) >> *shiftLeft );
   }
   if(FILTER_ORDER_1PLUS == 2) {
     printf("done! K: %f, b0: %d, b1: %d, a1: %d\n", K, B[1], B[0], A[0]);
@@ -115,6 +119,9 @@ int calc_filter_coeff(volatile _SPM short *B, volatile _SPM short *A, float K, i
 
   return 0;
 }
+
+
+
 
 int main() {
 
@@ -127,8 +134,11 @@ int main() {
   setInputBufferSize(BUFFER_SIZE);
   setOutputBufferSize(BUFFER_SIZE);
 
+  //shift left amount starts at 0
+  *shiftLeft = 0;
 
-  printf("addresses at scratchpad mem: accum: 0x%x, B: 0x%x, A: 0x%x, x_filter: 0x%x, y_filter: 0x%x\n", accum, B, A, x_filter, y_filter);
+
+  printf("addresses at scratchpad mem: accum: 0x%x, B: 0x%x, A: 0x%x, x_filter: 0x%x, y_filter: 0x%x, pnt: 0x%x, shiftLeft: 0x%x\n", (int)accum, (int)B, (int)A, (int)x_filter, (int)y_filter, (int)pnt, (int)shiftLeft);
 
   printf("Press KEY0 for real-time playing and KEY1 for recording\n");
   while(*keyReg == 15);
@@ -144,24 +154,19 @@ int main() {
     }
 
     //first, fill filter buffer
-    for(int i=0; i<(FILTER_ORDER_1PLUS-1); i++) {
-      getInputBufferSPM(&x_filter[i][0], &x_filter[i][1]);
+    for(*pnt=0; *pnt<(FILTER_ORDER_1PLUS-1); *pnt++) {
+      getInputBufferSPM(&x_filter[*pnt][0], &x_filter[*pnt][1]);
     }
     //when filter buffer is full, compute each output sample
     while(*keyReg != 3) {
+      //increment pointer
+      *pnt = (*pnt+1) % FILTER_ORDER_1PLUS;
       //first, read last sample
-      getInputBufferSPM(&x_filter[FILTER_ORDER_1PLUS-1][0], &x_filter[FILTER_ORDER_1PLUS-1][1]);
+      getInputBufferSPM(&x_filter[*pnt][0], &x_filter[*pnt][1]);
       //then, calculate filter
-      filterIIR(x_filter, y_filter, accum, B, A, 0);
+      filterIIR(pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
       //set output
-      setOutputBuffer(y_filter[FILTER_ORDER_1PLUS-1][0], y_filter[FILTER_ORDER_1PLUS-1][1]);
-      //finally, shift buffers left
-      for(int j=0; j<FILTER_ORDER_1PLUS-1; j++) {
-        x_filter[j][0] = x_filter[j+1][0];
-        x_filter[j][1] = x_filter[j+1][1];
-        y_filter[j][0] = y_filter[j+1][0];
-        y_filter[j][1] = y_filter[j+1][1];
-      }
+      setOutputBuffer(y_filter[*pnt][0], y_filter[*pnt][1]);
     }
   }
   if(*keyReg == 13) {
@@ -184,27 +189,23 @@ int main() {
     int x_pnt = 0;
 
     //first, fill filter buffer
-    for(x_pnt=0; x_pnt<(FILTER_ORDER_1PLUS-1); x_pnt++) {
-      x_filter[x_pnt][0] = x[x_pnt][0];
-      x_filter[x_pnt][1] = x[x_pnt][1];
+    for(*pnt=0; *pnt<(FILTER_ORDER_1PLUS-1); *pnt++) {
+      x_filter[*pnt][0] = x[*pnt][0];
+      x_filter[*pnt][1] = x[*pnt][1];
     }
+    x_pnt = *pnt;
     //when filter buffer is full, compute each output sample
     for(x_pnt=(FILTER_ORDER_1PLUS-1); x_pnt<AUDIO_RECORDING_SIZE; x_pnt++) {
+      //increment pointer
+      *pnt = (*pnt+1) % FILTER_ORDER_1PLUS;
       //first, read last sample
-      x_filter[FILTER_ORDER_1PLUS-1][0] = x[x_pnt][0];
-      x_filter[FILTER_ORDER_1PLUS-1][1] = x[x_pnt][1];
+      x_filter[*pnt][0] = x[x_pnt][0];
+      x_filter[*pnt][1] = x[x_pnt][1];
       //then, calculate filter
-      filterIIR(x_filter, y_filter, accum, B, A, 0);
+      filterIIR(pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
       //set output
-      y[x_pnt][0] = y_filter[FILTER_ORDER_1PLUS-1][0];
-      y[x_pnt][1] = y_filter[FILTER_ORDER_1PLUS-1][1];
-      //finally, shift buffers left
-      for(int j=0; j<FILTER_ORDER_1PLUS-1; j++) {
-        x_filter[j][0] = x_filter[j+1][0];
-        x_filter[j][1] = x_filter[j+1][1];
-        y_filter[j][0] = y_filter[j+1][0];
-        y_filter[j][1] = y_filter[j+1][1];
-      }
+      y[x_pnt][0] = y_filter[*pnt][0];
+      y[x_pnt][1] = y_filter[*pnt][1];
     }
     printf("Filter calculation finished\n");
 

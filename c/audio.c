@@ -225,15 +225,17 @@ int setOutputBuffer(short l, short r) {
 }
 
 
-int filterIIR(volatile _SPM short (*x)[2], volatile _SPM short (*y)[2], volatile _SPM int *accum, volatile _SPM short *B, volatile _SPM short *A, int RES_SHIFT) {
+int filterIIR(volatile _SPM int *pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*y)[2], volatile _SPM int *accum, volatile _SPM short *B, volatile _SPM short *A, int shiftLeft) {
+  int pnt; //pointer for x_filter
   accum[0] = 0;
   accum[1] = 0;
   for(int i=0; i<FILTER_ORDER_1PLUS; i++) {
+    pnt = (*pnt_i + i + 1) % FILTER_ORDER_1PLUS;
     // SIGNED SHIFT (arithmetical): losing a 6-bit resolution
-    accum[0] += (B[i]*x[i][0]) >> 6;
-    accum[0] -= (A[i]*y[i][0]) >> 6;
-    accum[1] += (B[i]*x[i][1]) >> 6;
-    accum[1] -= (A[i]*y[i][1]) >> 6;
+    accum[0] += (B[i]*x[pnt][0]) >> 6;
+    accum[0] -= (A[i]*y[pnt][0]) >> 6;
+    accum[1] += (B[i]*x[pnt][1]) >> 6;
+    accum[1] -= (A[i]*y[pnt][1]) >> 6;
   }
   //accumulator limits: [ (2^(30-6-1))-1 , -(2^(30-6-1)) ]
   //accumulator limits: [ 0x7FFFFF, 0x800000 ]
@@ -248,8 +250,8 @@ int filterIIR(volatile _SPM short (*x)[2], volatile _SPM short (*y)[2], volatile
       }
     }
   }
-  y[FILTER_ORDER_1PLUS-1][0] = accum[0] >> (9+RES_SHIFT);
-  y[FILTER_ORDER_1PLUS-1][1] = accum[1] >> (9+RES_SHIFT);
+  y[*pnt_i][0] = accum[0] >> (9-shiftLeft);
+  y[*pnt_i][1] = accum[1] >> (9-shiftLeft);
 
   return 0;
 }
