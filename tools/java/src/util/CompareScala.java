@@ -156,13 +156,13 @@ public class CompareScala {
 				if (hs.hasNext(passedExitPattern)) {
 					break;
 				}
-				// unsigned int output from Scala
-				pc = (int) hs.nextLong();
+				// signed int output from Scala
+				pc = (int) hs.nextInt();
 				hs.next(); // skip '-'
 				boolean change = false;
 				for (int i = 0; i < 32; ++i) {
 					// To skip register names and switch to hex see compare with pasim
-					hsReg[i] = (int) hs.nextLong();
+					hsReg[i] = (int) hs.nextInt();
 					if (hsReg[i] != hsRegOld[i]) {
 						change = true;
 						cntNoChange = 0;

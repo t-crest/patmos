@@ -139,6 +139,7 @@ class PatSim(instructions: Array[Int]) {
           case AluReg => (alu(func, op1, op2), true, false, pcNext)
           case _ => throw new Exception("OpcodeExt " + opc + " not (yet) implemented")
         }
+        case AluLongImm => (alu(func, op1, longImm), true, false, pcNext+1)
         case Branch => throw new Exception("Branch")
         case BranchCf => (0, false, false, imm22)
         //      case Branch => (0, false, if (compare(funct3, rs1Val, rs2Val)) pc + imm else pcNext)
@@ -162,15 +163,15 @@ class PatSim(instructions: Array[Int]) {
       reg(rd) = result._1
     }
 
-    // increment program counter
-    pc = result._4
-
     // Quick hack for the halt instruction
     if (result._4 == 0) {
       halt = true
     }
 
     log
+
+    // increment program counter
+    pc = result._4
   }
 
   def error(s: String) {
