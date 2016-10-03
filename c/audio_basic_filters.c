@@ -137,7 +137,6 @@ int main() {
   //shift left amount starts at 0
   *shiftLeft = 0;
 
-
   printf("addresses at scratchpad mem: accum: 0x%x, B: 0x%x, A: 0x%x, x_filter: 0x%x, y_filter: 0x%x, pnt: 0x%x, shiftLeft: 0x%x\n", (int)accum, (int)B, (int)A, (int)x_filter, (int)y_filter, (int)pnt, (int)shiftLeft);
 
   printf("Press KEY0 for real-time playing and KEY1 for recording\n");

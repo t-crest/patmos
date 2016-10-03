@@ -4,7 +4,10 @@
 #include "audio.h"
 
 #ifndef FILTER_ORDER_1PLUS
-#define FILTER_ORDER_1PLUS 2
+#define FILTER_ORDER_1PLUS -1
+#endif
+#ifndef FIR_BUFFER_LENGTH
+#define FIR_BUFFER_LENGTH -1
 #endif
 
 /*
@@ -254,4 +257,33 @@ int filterIIR(volatile _SPM int *pnt_i, volatile _SPM short (*x)[2], volatile _S
   y[*pnt_i][1] = accum[1] >> (9-shiftLeft);
 
   return 0;
+}
+
+int fir_comb(volatile _SPM int *pnt, volatile short (*fir_buffer)[2], volatile _SPM short *y, volatile _SPM int *accum, volatile _SPM short *g, volatile _SPM int *del) {
+    int fir_pnt; //pointer for fir_buffer
+    accum[0] = 0;
+    accum[1] = 0;
+    for(int i=0; i<FILTER_ORDER_1PLUS; i++) {
+        fir_pnt = (*pnt+del[i])%FIR_BUFFER_LENGTH;
+        //printf("for pnt=%d and del=%d: fir_pnt=%d\n", *pnt, del[i], fir_pnt);
+        accum[0] += (g[i]*fir_buffer[fir_pnt][0]) >> 6;
+        accum[1] += (g[i]*fir_buffer[fir_pnt][1]) >> 6;
+    }
+    //accumulator limits: [ (2^(30-6-1))-1 , -(2^(30-6-1)) ]
+    //accumulator limits: [ 0x7FFFFF, 0x800000 ]
+    // digital saturation
+    for(int i=0; i<2; i++) {
+        if (accum[i] > 0x7FFFFF) {
+            accum[i] = 0x7FFFFF;
+        }
+        else {
+            if (accum[i] < -0x800000) {
+                accum[i] = -0x800000;
+            }
+        }
+    }
+    y[0] = accum[0] >> 9;
+    y[1] = accum[1] >> 9;
+
+    return 0;
 }
