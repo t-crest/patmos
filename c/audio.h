@@ -54,6 +54,7 @@ int     setInputBufferSize(int bufferSize);
 
 //audio operations
 int     filterIIR(volatile _SPM int *pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*y)[2], volatile _SPM int *accum, volatile _SPM short *B, volatile _SPM short *A, int shiftLeft);
+int     calc_filter_coeff(volatile _SPM short *B, volatile _SPM short *A, float K, int Fc, float Q, volatile _SPM int *shiftLeft, int type);
 int     fir_comb(volatile _SPM int *pnt, volatile short (*fir_buffer)[2], volatile _SPM short *y, volatile _SPM int *accum, volatile _SPM short *g, volatile _SPM int *del);
 
 #endif

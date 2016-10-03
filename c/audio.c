@@ -6,6 +6,9 @@
 #ifndef FILTER_ORDER_1PLUS
 #define FILTER_ORDER_1PLUS -1
 #endif
+#ifndef COMB_FILTER_ORDER_1PLUS
+#define COMB_FILTER_ORDER_1PLUS -1
+#endif
 #ifndef FIR_BUFFER_LENGTH
 #define FIR_BUFFER_LENGTH -1
 #endif
@@ -259,11 +262,96 @@ int filterIIR(volatile _SPM int *pnt_i, volatile _SPM short (*x)[2], volatile _S
   return 0;
 }
 
+
+
+
+int calc_filter_coeff(volatile _SPM short *B, volatile _SPM short *A, float K, int Fc, float Q, volatile _SPM int *shiftLeft, int type) {
+    K = tan(M_PI * Fc / Fs);// K is same for all
+    float Bfl[FILTER_ORDER_1PLUS] = {0};
+    float Afl[FILTER_ORDER_1PLUS] = {0};
+    float common_factor;
+    if(type == 0) { //LPF
+        if(FILTER_ORDER_1PLUS == 2) { //1st order
+            printf("Calculating LPF for 1st order...\n");
+            Bfl[1] = K/(K+1); //b0
+            Bfl[0] = K/(K+1); //b1
+            Afl[0] = (K-1)/(K+1); //a1
+        }
+        else {
+            if(FILTER_ORDER_1PLUS == 3) { //2nd order
+                printf("Calculating LPF for 2nd order...\n");
+                common_factor = 1/(pow(K,2)*Q + K + Q);
+                Bfl[2] = pow(K,2)*Q*common_factor; //b0
+                Bfl[1] = 2*pow(K,2)*Q*common_factor; //b1
+                Bfl[0] = pow(K,2)*Q*common_factor; //b2
+                Afl[1] = 2*Q*(pow(K,2)-1)*common_factor; //a1
+                Afl[0] = (pow(K,2)*Q - K + Q)*common_factor; //a2
+            }
+        }
+    }
+    else {
+        if(type == 1) { // HPF
+            if(FILTER_ORDER_1PLUS == 2) { //1st order
+                printf("Calculating HPF for 1st order...\n");
+                Bfl[1] =  1/(K+1); //b0
+                Bfl[0] = -1/(K+1); //b1
+                Afl[0] = (K-1)/(K+1); //a1
+            }
+            else {
+                if(FILTER_ORDER_1PLUS == 3) { //2nd order
+                    printf("Calculating HPF for 2nd order...\n");
+                    common_factor = 1/(pow(K,2)*Q + K + Q);
+                    Bfl[2] = Q*common_factor; //b0
+                    Bfl[1] = -2*Q*common_factor; //b1
+                    Bfl[0] = Q*common_factor; //b2
+                    Afl[1] = 2*Q*(pow(K,2)-1)*common_factor; //a1
+                    Afl[0] = (pow(K,2)*Q - K + Q)*common_factor; //a2
+                }
+            }
+        }
+    }
+
+    //check for overflow if coefficients
+    float maxVal = 0;
+    for(int i=0; i<FILTER_ORDER_1PLUS; i++) {
+        if( (fabs(Bfl[i]) > 1) && (fabs(Bfl[i]) > maxVal) ) {
+            maxVal = fabs(Bfl[i]);
+        }
+        if( (fabs(Afl[i]) > 1) && (fabs(Afl[i]) > maxVal) ) {
+            maxVal = fabs(Afl[i]);
+        }
+    }
+    //if coefficients were too high, scale down
+    if(maxVal > 1) {
+        printf("Greatest coefficient found is %f, ", maxVal);
+    }
+    while(maxVal > 1) { //loop until maxVal < 1
+        *shiftLeft = *shiftLeft + 1; //here we shift right, but the IIR result will be shifted left
+        maxVal--;
+    }
+    printf("shift left amount is %d\n", *shiftLeft);
+    // now all coefficients should be between 0 and 1
+    for(int i=0; i<FILTER_ORDER_1PLUS; i++) {
+        B[i] = (short) ( (int) (ONE_16b * Bfl[i]) >> *shiftLeft );
+        A[i] = (short) ( (int) (ONE_16b * Afl[i]) >> *shiftLeft );
+    }
+    if(FILTER_ORDER_1PLUS == 2) {
+        printf("done! K: %f, b0: %d, b1: %d, a0, %d, a1: %d\n", K, B[1], B[0], A[1], A[0]);
+    }
+    if(FILTER_ORDER_1PLUS == 3) {
+        printf("done! K: %f, common_factor: %f, b0: %d, b1: %d, b2 : %d, a0: %d, a1: %d, a2: %d\n", K, common_factor, B[2], B[1], B[0], A[2], A[1], A[0]);
+    }
+
+    return 0;
+}
+
+
+
 int fir_comb(volatile _SPM int *pnt, volatile short (*fir_buffer)[2], volatile _SPM short *y, volatile _SPM int *accum, volatile _SPM short *g, volatile _SPM int *del) {
     int fir_pnt; //pointer for fir_buffer
     accum[0] = 0;
     accum[1] = 0;
-    for(int i=0; i<FILTER_ORDER_1PLUS; i++) {
+    for(int i=0; i<COMB_FILTER_ORDER_1PLUS; i++) {
         fir_pnt = (*pnt+del[i])%FIR_BUFFER_LENGTH;
         //printf("for pnt=%d and del=%d: fir_pnt=%d\n", *pnt, del[i], fir_pnt);
         accum[0] += (g[i]*fir_buffer[fir_pnt][0]) >> 6;

@@ -10,7 +10,7 @@
 
 #define Fs 52083 // Hz
 
-#define FILTER_ORDER_1PLUS 2
+#define COMB_FILTER_ORDER_1PLUS 2
 
 /* Vibrato:
      -Buffer Length sets the amount of vibrato: amplitude of sin
@@ -18,7 +18,6 @@
 */
 
 #define FIR_BUFFER_LENGTH 520 // for a delay of up to 10 52083 / 520 = 10 ms
-//#define FIR_BUFFER_LENGTH 20000
 #define VIBRATO_PERIOD 20000 //almost half second
 
 #include "audio.h"
@@ -29,8 +28,8 @@
 #define ACCUM_ADDR 0x00000000
 #define Y_ADDR     ( ACCUM_ADDR  + 2 * sizeof(int) )
 #define G_ADDR     ( Y_ADDR      + 2 * sizeof(short) )
-#define DEL_ADDR   ( G_ADDR      + FILTER_ORDER_1PLUS * sizeof(short) )
-#define PNT_ADDR   ( DEL_ADDR    + FILTER_ORDER_1PLUS * sizeof(int) )
+#define DEL_ADDR   ( G_ADDR      + COMB_FILTER_ORDER_1PLUS * sizeof(short) )
+#define PNT_ADDR   ( DEL_ADDR    + COMB_FILTER_ORDER_1PLUS * sizeof(int) )
 #define V_PNT_ADDR ( PNT_ADDR    + sizeof(int) )
 
 // LOCATION IN EXTERNAL XRAM
@@ -38,8 +37,8 @@
 
 volatile _SPM int *accum             = (volatile _SPM int *)        ACCUM_ADDR;
 volatile _SPM short *y               = (volatile _SPM short *)      Y_ADDR; // y[2]: output
-volatile _SPM short *g               = (volatile _SPM short *)      G_ADDR; // g[FILTER_ORDER_1PLUS]: array of gains [... g2, g1, g0]
-volatile _SPM int *del               = (volatile _SPM int *)        DEL_ADDR; // del[FILTER_ORDER_1PLUS]: array of delays [...d2, d1, 0]
+volatile _SPM short *g               = (volatile _SPM short *)      G_ADDR; // g[COMB_FILTER_ORDER_1PLUS]: array of gains [... g2, g1, g0]
+volatile _SPM int *del               = (volatile _SPM int *)        DEL_ADDR; // del[COMB_FILTER_ORDER_1PLUS]: array of delays [...d2, d1, 0]
 volatile _SPM int *pnt               = (volatile _SPM int *)        PNT_ADDR; //pointer indicates last position of fir_buffer
 volatile _SPM int *v_pnt             = (volatile _SPM int *)        V_PNT_ADDR; //pointer for vibrato sin array
 
@@ -48,7 +47,7 @@ volatile short fir_buffer[FIR_BUFFER_LENGTH][2];
 int sin_array[VIBRATO_PERIOD];
 
 int storeSin(int *sinArray, int SIZE, int OFFSET, int AMP) {
-    for (int i = 0; i < SIZE; i++) {
+    for(int i=0; i<SIZE; i++) {
         sinArray[i] = OFFSET + AMP*sin(2.0*M_PI* i / SIZE);
     }
     printf("sin array storage done\n");
@@ -81,7 +80,12 @@ int main() {
     //set delays: first, fixed:
     del[1] = 0; // always d0 = 0
 
+    //CPU cycles stuff
+    //int CPUcycles[100] = {0};
+
+
     *pnt = FIR_BUFFER_LENGTH - 1; //start on top
+    *v_pnt = 0;
     while(*keyReg != 3) {
         //update delay
         del[0] = sin_array[*v_pnt];
@@ -99,7 +103,20 @@ int main() {
         else {
             *pnt = *pnt - 1;
         }
+        /*
+        //store CPU Cycles
+        CPUcycles[*v_pnt] = get_cpu_cycles();
+        if(*v_pnt == 100) {
+            break;
+        }
+        */
     }
+    /*
+    //print CPU cycle time
+    for(int i=1; i<100; i++) {
+        printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+    }
+    */
 
     return 0;
 }
