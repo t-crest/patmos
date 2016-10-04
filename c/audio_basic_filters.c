@@ -22,8 +22,15 @@ short y[AUDIO_RECORDING_SIZE][2] = {0}; //output
 // LOCATION IN SCRATCHPAD MEMORY
 #define ACCUM_ADDR  0x00000000
 #define B_ADDR      ( ACCUM_ADDR  + 2 * sizeof(int) )
+
+#if ( (FILTER_ORDER_1PLUS % 2) == 0 ) //if it's even
 #define A_ADDR      ( B_ADDR      + FILTER_ORDER_1PLUS * sizeof(short) )
 #define X_FILT_ADDR ( A_ADDR      + FILTER_ORDER_1PLUS * sizeof(short) )
+#else //if it's odd, align with 4-byte word:
+#define A_ADDR      ( B_ADDR      + FILTER_ORDER_1PLUS * sizeof(short) + 2 )
+#define X_FILT_ADDR ( A_ADDR      + FILTER_ORDER_1PLUS * sizeof(short) + 2 )
+#endif
+
 #define Y_FILT_ADDR ( X_FILT_ADDR + 2 * FILTER_ORDER_1PLUS * sizeof(short) )
 #define PNT_ADDR    ( Y_FILT_ADDR + 2 * FILTER_ORDER_1PLUS * sizeof(short) )
 #define SFTLFT_ADDR ( PNT_ADDR    + sizeof(int) )

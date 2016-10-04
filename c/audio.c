@@ -4,13 +4,13 @@
 #include "audio.h"
 
 #ifndef FILTER_ORDER_1PLUS
-#define FILTER_ORDER_1PLUS -1
+#define FILTER_ORDER_1PLUS 0
 #endif
 #ifndef COMB_FILTER_ORDER_1PLUS
-#define COMB_FILTER_ORDER_1PLUS -1
+#define COMB_FILTER_ORDER_1PLUS 0
 #endif
 #ifndef FIR_BUFFER_LENGTH
-#define FIR_BUFFER_LENGTH -1
+#define FIR_BUFFER_LENGTH 0
 #endif
 
 /*
@@ -232,34 +232,34 @@ int setOutputBuffer(short l, short r) {
 
 
 int filterIIR(volatile _SPM int *pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*y)[2], volatile _SPM int *accum, volatile _SPM short *B, volatile _SPM short *A, int shiftLeft) {
-  int pnt; //pointer for x_filter
-  accum[0] = 0;
-  accum[1] = 0;
-  for(int i=0; i<FILTER_ORDER_1PLUS; i++) {
-    pnt = (*pnt_i + i + 1) % FILTER_ORDER_1PLUS;
-    // SIGNED SHIFT (arithmetical): losing a 6-bit resolution
-    accum[0] += (B[i]*x[pnt][0]) >> 6;
-    accum[0] -= (A[i]*y[pnt][0]) >> 6;
-    accum[1] += (B[i]*x[pnt][1]) >> 6;
-    accum[1] -= (A[i]*y[pnt][1]) >> 6;
-  }
-  //accumulator limits: [ (2^(30-6-1))-1 , -(2^(30-6-1)) ]
-  //accumulator limits: [ 0x7FFFFF, 0x800000 ]
-  // digital saturation
-  for(int i=0; i<2; i++) {
-    if (accum[i] > 0x7FFFFF) {
-      accum[i] = 0x7FFFFF;
+    int pnt; //pointer for x_filter
+    accum[0] = 0;
+    accum[1] = 0;
+    for(int i=0; i<FILTER_ORDER_1PLUS; i++) {
+        pnt = (*pnt_i + i + 1) % FILTER_ORDER_1PLUS;
+        // SIGNED SHIFT (arithmetical): losing a 6-bit resolution
+        accum[0] += (B[i]*x[pnt][0]) >> 6;
+        accum[0] -= (A[i]*y[pnt][0]) >> 6;
+        accum[1] += (B[i]*x[pnt][1]) >> 6;
+        accum[1] -= (A[i]*y[pnt][1]) >> 6;
     }
-    else {
-      if (accum[i] < -0x800000) {
-        accum[i] = -0x800000;
-      }
+    //accumulator limits: [ (2^(30-6-1))-1 , -(2^(30-6-1)) ]
+    //accumulator limits: [ 0x7FFFFF, 0x800000 ]
+    // digital saturation
+    for(int i=0; i<2; i++) {
+        if (accum[i] > 0x7FFFFF) {
+            accum[i] = 0x7FFFFF;
+        }
+        else {
+            if (accum[i] < -0x800000) {
+                accum[i] = -0x800000;
+            }
+        }
     }
-  }
-  y[*pnt_i][0] = accum[0] >> (9-shiftLeft);
-  y[*pnt_i][1] = accum[1] >> (9-shiftLeft);
+    y[*pnt_i][0] = accum[0] >> (9-shiftLeft);
+    y[*pnt_i][1] = accum[1] >> (9-shiftLeft);
 
-  return 0;
+    return 0;
 }
 
 

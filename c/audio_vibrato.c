@@ -28,7 +28,13 @@
 #define ACCUM_ADDR 0x00000000
 #define Y_ADDR     ( ACCUM_ADDR  + 2 * sizeof(int) )
 #define G_ADDR     ( Y_ADDR      + 2 * sizeof(short) )
+
+#if ( (COMB_FILTER_ORDER_1PLUS % 2) == 0 ) //if it's even
 #define DEL_ADDR   ( G_ADDR      + COMB_FILTER_ORDER_1PLUS * sizeof(short) )
+#else // if it's odd
+#define DEL_ADDR   ( G_ADDR      + COMB_FILTER_ORDER_1PLUS * sizeof(short) + 2 ) //to align with 4-byte word
+#endif
+
 #define PNT_ADDR   ( DEL_ADDR    + COMB_FILTER_ORDER_1PLUS * sizeof(int) )
 #define V_PNT_ADDR ( PNT_ADDR    + sizeof(int) )
 
@@ -45,6 +51,7 @@ volatile _SPM int *v_pnt             = (volatile _SPM int *)        V_PNT_ADDR; 
 //volatile _SPM short (*fir_buffer)[2] = (volatile _SPM short (*)[2]) FIR_BUFFER_ADDR; // fir_buffer[FIR_BUFFER_LENGTH][2]
 volatile short fir_buffer[FIR_BUFFER_LENGTH][2];
 int sin_array[VIBRATO_PERIOD];
+
 
 int storeSin(int *sinArray, int SIZE, int OFFSET, int AMP) {
     for(int i=0; i<SIZE; i++) {
