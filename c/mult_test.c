@@ -16,6 +16,7 @@ volatile int floatMultLoop(volatile float x, volatile float y) {
     for(int i=0; i<10; i++) {
         CPUcycles[i] = get_cpu_cycles();
         result = x * y;
+        //result = -210;
     }
     printf("FLOAT result: %f\n", result);
     if(result < -200) {
@@ -33,6 +34,7 @@ volatile int fixedMultLoop(volatile int x, volatile int y) {
     for(int i=0; i<10; i++) {
         CPUcycles[i] = get_cpu_cycles();
         result = x * y;
+        //result = -210;
     }
     printf("INT result: %d\n", result);
     if(result < -200) {
