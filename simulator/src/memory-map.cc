@@ -177,9 +177,9 @@ bool led_t::read(simulator_t &s, uword_t address, byte_t *value, uword_t size) {
 bool led_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size) {
   if (is_word_access(address, size, 0x00)) {
     uword_t state = get_word(value, size);
-     
+
     if (state == Curr_state) return true;
-    
+
     Out_stream << "--- LEDs: [";
     for ( int i = 0; i < 32; i++ ) {
       if (i > 0) Out_stream << " ";
@@ -190,7 +190,7 @@ bool led_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size) 
       }
     }
     Out_stream << "] ---\n";
-    
+
     Curr_state = state;
     return true;
   }
@@ -354,10 +354,10 @@ mapped_device_t& memory_map_t::find_device(uword_t address)
   simulation_exception_t::unmapped(address);
 }
 
-void memory_map_t::add_device(mapped_device_t &device) 
+void memory_map_t::add_device(mapped_device_t &device)
 {
   Devices.push_back(&device);
-  Device_map.push_back(std::make_pair(device.get_base_address(), 
+  Device_map.push_back(std::make_pair(device.get_base_address(),
 				      device.get_base_address() + device.get_num_mapped_bytes() - 1));
 }
 
@@ -404,7 +404,7 @@ bool memory_map_t::is_ready()
 void memory_map_t::tick(simulator_t &s)
 {
   for (DeviceList::iterator it = Devices.begin(), ie = Devices.end();
-       it != ie; ++it) 
+       it != ie; ++it)
   {
     (*it)->tick(s);
   }
@@ -414,18 +414,18 @@ void memory_map_t::tick(simulator_t &s)
 void memory_map_t::print(const simulator_t &s, std::ostream &os) const
 {
   for (DeviceList::const_iterator it = Devices.begin(), ie = Devices.end();
-       it != ie; ++it) 
+       it != ie; ++it)
   {
     (*it)->print(s, os);
-  }      
+  }
   Memory.print(s, os);
 }
 
-void memory_map_t::print_stats(const simulator_t &s, std::ostream &os, 
+void memory_map_t::print_stats(const simulator_t &s, std::ostream &os,
 			 const stats_options_t& options)
 {
   for (DeviceList::const_iterator it = Devices.begin(), ie = Devices.end();
-       it != ie; ++it) 
+       it != ie; ++it)
   {
     (*it)->print_stats(s, os, options);
   }
@@ -435,9 +435,9 @@ void memory_map_t::print_stats(const simulator_t &s, std::ostream &os,
 void memory_map_t::reset_stats()
 {
   for (DeviceList::iterator it = Devices.begin(), ie = Devices.end();
-       it != ie; ++it) 
+       it != ie; ++it)
   {
     (*it)->reset_stats();
-  }      
-  Memory.reset_stats(); 
+  }
+  Memory.reset_stats();
 }

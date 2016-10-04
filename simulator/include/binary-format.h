@@ -41,8 +41,6 @@
 
 #include "basic-types.h"
 
-#include <boost/limits.hpp>
-
 #include <string>
 #include <cassert>
 
@@ -109,17 +107,17 @@ namespace patmos
     /// @param opcode the parsed mnemonic of this instruction.
     /// @param instr the instruction data to fill.
     /// @param reloc relocation info for this instruction.
-    /// @return true if the instruction requires reolcation.                                              
+    /// @return true if the instruction requires reolcation.
     virtual bool parse_operands(line_parser_t &parser, std::string mnemonic,
                                 instruction_data_t &instr,
                                 reloc_info_t &reloc) const = 0;
-                                               
+
     /// Encode an instruction to its binary representation.
     /// @param opcode the parsed mnemonic of this instruction.
     /// @param instr the instruction data to encode.
-    virtual udword_t encode(std::string mnemonic, 
+    virtual udword_t encode(std::string mnemonic,
                             const instruction_data_t &instr) const = 0;
-                                               
+
     /// Check whether the instruction word matches the instruction format, i.e.,
     /// check whether the format's bit pattern matches its bit mask.
     /// Furthermore, verify that the instruction appears on a legal position

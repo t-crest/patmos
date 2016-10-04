@@ -57,13 +57,13 @@ namespace patmos
     bool instruction_stats;
     bool profiling_stats;
     bool hitmiss_stats;
-    
+
     debug_cache_e debug_cache;
-    
+
     std::ostream *debug_out;
   };
-  
-  
+
+
   /// Profiling information for functions.
   /// TODO we should rename that to debug_manager_t or something.
   class dbgstack_t
@@ -74,7 +74,7 @@ namespace patmos
       class dbgstack_frame_t {
       public:
         // constructor
-        dbgstack_frame_t(simulator_t &sim, uword_t ret_base, uword_t ret_offset, 
+        dbgstack_frame_t(simulator_t &sim, uword_t ret_base, uword_t ret_offset,
                          uword_t function);
 
         uword_t function;
@@ -82,7 +82,7 @@ namespace patmos
         uword_t ret_offs;
         uword_t caller_tos_stackcache;
         uword_t caller_tos_shadowstack;
-        
+
         // Should we print statistics when returning from this function?
         bool print_stats;
       };
@@ -91,15 +91,15 @@ namespace patmos
       std::vector<dbgstack_frame_t> stack;
 
       simulator_t &sim;
-      
+
       std::ostream *debug_out;
-      
+
       /// Address of function to print stats for, or UINT_MAX.
       uword_t print_function;
-      
+
       /// Options for statistics output
       stats_options_t stats_options;
-      
+
       /// True if we are currently collecting stats
       bool found_print_function;
 
@@ -110,18 +110,18 @@ namespace patmos
                             const dbgstack_frame_t *callee) const;
     public:
       /// Constructor
-      dbgstack_t(simulator_t &s) : sim(s), debug_out(0), 
+      dbgstack_t(simulator_t &s) : sim(s), debug_out(0),
          print_function(std::numeric_limits<unsigned int>::max()),
          found_print_function(false)
       {
       }
 
       stats_options_t& get_stats_options() { return stats_options; }
-      
+
       const stats_options_t& get_stats_options() const { return stats_options; }
-      
+
       void print_function_stats(uword_t address, std::ostream &debug_out);
-      
+
       /// initialize - Initialize the debug stack.
       void initialize(uword_t entry);
 
@@ -129,10 +129,10 @@ namespace patmos
       void finalize(void);
 
       unsigned size() const { return stack.size(); }
-      
+
       /// Return true if we are debug printing is currently enabled.
       bool is_printing() const;
-      
+
       /// is_active_frame - Returns true if a given frame is currently active.
       /// @param frame the frame to check
       bool is_active_frame(const dbgstack_frame_t &frame) const;
