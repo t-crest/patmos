@@ -264,9 +264,87 @@ int filterIIR(volatile _SPM int *pnt_i, volatile _SPM short (*x)[2], volatile _S
 
 
 
+int checkRanges(float *Bfl, float *Afl, volatile _SPM int *shiftLeft, int fixedShift) {
+    //check for overflow if coefficients
+    float maxVal = 0;
+    for(int i=0; i<FILTER_ORDER_1PLUS; i++) {
+        if( (fabs(Bfl[i]) > 1) && (fabs(Bfl[i]) > maxVal) ) {
+            maxVal = fabs(Bfl[i]);
+        }
+        if( (fabs(Afl[i]) > 1) && (fabs(Afl[i]) > maxVal) ) {
+            maxVal = fabs(Afl[i]);
+        }
+    }
+    //if coefficients were too high, scale down
+    if(maxVal > 1) {
+        if (fixedShift == 1) { // if shiftLeft was fixed
+            if (*shiftLeft > 0) {
+                maxVal = maxVal / (*shiftLeft * 2) ; //similar to shifting
+            }
+            if (maxVal > 1) { // if its still out of range
+                printf("ERROR! coefficients are out of range, max is %f\n", maxVal);
+                return 1;
+            }
+        }
+        printf("Greatest coefficient found is %f, ", maxVal);
+    }
+    while(maxVal > 1) { //loop until maxVal < 1
+        *shiftLeft = *shiftLeft + 1; //here we shift right, but the IIR result will be shifted left
+        maxVal--;
+    }
+    printf("shift left amount is %d\n", *shiftLeft);
 
-int calc_filter_coeff(volatile _SPM short *B, volatile _SPM short *A, float K, int Fc, float Q, volatile _SPM int *shiftLeft, int type) {
-    K = tan(M_PI * Fc / Fs);// K is same for all
+    return 0;
+}
+
+
+int filter_coeff_bp_br(volatile _SPM short *B, volatile _SPM short *A, int Fc, int Fb, volatile _SPM int *shiftLeft, int fixedShift) {
+    // if FILTER ORDER = 1, Fb is ignored
+    float c, d;
+    float Bfl[FILTER_ORDER_1PLUS] = {0};
+    float Afl[FILTER_ORDER_1PLUS] = {0};
+    if(FILTER_ORDER_1PLUS == 2) { //1st order
+        printf("Calculating 1st order coefficients...\n");
+        c = ( tan(M_PI * Fc / Fs) - 1) / ( tan(M_PI * Fc / Fs) + 1 );
+        Bfl[1] = c; // b0
+        Bfl[0] = 1; // b1
+        Afl[0] = c; // a1
+    }
+    else {
+        if(FILTER_ORDER_1PLUS == 3) { // 2nd order
+            printf("Calculating 2nd order coefficients...\n");
+            c = ( tan(M_PI * Fb / Fs) - 1) / ( tan(M_PI * Fb / Fs) + 1 );
+            d = -1 * cos(2 * M_PI * Fc / Fs);
+            Bfl[2] = -1 * c; // b0
+            Bfl[1] = d * (1 - c); // b1
+            Bfl[0] = 1; // b2
+            Afl[1] = d * (1 - c); // a1
+            Afl[0] = -1 * c; // a2
+        }
+    }
+    // check ranges and set leftShift amount
+    int notRangesOK = checkRanges(Bfl, Afl, shiftLeft, fixedShift);
+    if (notRangesOK == 1) {
+        return 1;
+    }
+    // now all coefficients should be between 0 and 1
+    for(int i=0; i<FILTER_ORDER_1PLUS; i++) {
+        B[i] = (short) ( (int) (ONE_16b * Bfl[i]) >> *shiftLeft );
+        A[i] = (short) ( (int) (ONE_16b * Afl[i]) >> *shiftLeft );
+    }
+    if(FILTER_ORDER_1PLUS == 2) {
+        printf("done! c: %f, b0: %d, b1: %d, a0, %d, a1: %d\n", c, B[1], B[0], A[1], A[0]);
+    }
+    if(FILTER_ORDER_1PLUS == 3) {
+        printf("done! c: %f, d: %f, b0: %d, b1: %d, b2 : %d, a0: %d, a1: %d, a2: %d\n", c, d, B[2], B[1], B[0], A[2], A[1], A[0]);
+    }
+
+    return 0;
+}
+
+
+int filter_coeff_hp_lp(volatile _SPM short *B, volatile _SPM short *A, int Fc, float Q, volatile _SPM int *shiftLeft, int fixedShift, int type) {
+    float K = tan(M_PI * Fc / Fs);// K is same for all
     float Bfl[FILTER_ORDER_1PLUS] = {0};
     float Afl[FILTER_ORDER_1PLUS] = {0};
     float common_factor;
@@ -310,26 +388,11 @@ int calc_filter_coeff(volatile _SPM short *B, volatile _SPM short *A, float K, i
             }
         }
     }
-
-    //check for overflow if coefficients
-    float maxVal = 0;
-    for(int i=0; i<FILTER_ORDER_1PLUS; i++) {
-        if( (fabs(Bfl[i]) > 1) && (fabs(Bfl[i]) > maxVal) ) {
-            maxVal = fabs(Bfl[i]);
-        }
-        if( (fabs(Afl[i]) > 1) && (fabs(Afl[i]) > maxVal) ) {
-            maxVal = fabs(Afl[i]);
-        }
+    // check ranges and set leftShift amount
+    int notRangesOK = checkRanges(Bfl, Afl, shiftLeft, fixedShift);
+    if (notRangesOK == 1) {
+        return 1;
     }
-    //if coefficients were too high, scale down
-    if(maxVal > 1) {
-        printf("Greatest coefficient found is %f, ", maxVal);
-    }
-    while(maxVal > 1) { //loop until maxVal < 1
-        *shiftLeft = *shiftLeft + 1; //here we shift right, but the IIR result will be shifted left
-        maxVal--;
-    }
-    printf("shift left amount is %d\n", *shiftLeft);
     // now all coefficients should be between 0 and 1
     for(int i=0; i<FILTER_ORDER_1PLUS; i++) {
         B[i] = (short) ( (int) (ONE_16b * Bfl[i]) >> *shiftLeft );

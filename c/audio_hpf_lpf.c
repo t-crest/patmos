@@ -36,7 +36,6 @@ short y[AUDIO_RECORDING_SIZE][2] = {0}; //output
 #define SFTLFT_ADDR ( PNT_ADDR    + sizeof(int) )
 
 //to have fixed-point multiplication:
-float K;
 volatile _SPM int *accum           = (volatile _SPM int *)        ACCUM_ADDR;
 volatile _SPM short *B             = (volatile _SPM short *)      B_ADDR; // [b2, b1, b0]
 volatile _SPM short *A             = (volatile _SPM short *)      A_ADDR; // [a2, a1,  1]
@@ -70,10 +69,10 @@ int main() {
     printf("Press KEY0 to play LPF and KEY1 for HPF\n");
     while(*keyReg == 15);
     if(*keyReg == 14) {
-        calc_filter_coeff(B, A, K, 600, 0.707, shiftLeft, 0); // 0 for LPF
+        filter_coeff_hp_lp(B, A, 600, 0.707, shiftLeft, 0, 0); // 0 for LPF
     }
     if(*keyReg == 13) {
-        calc_filter_coeff(B, A, K, 5000, 0.707, shiftLeft, 1); // 1 for HPF
+        filter_coeff_hp_lp(B, A, 5000, 0.707, shiftLeft, 0, 1); // 1 for HPF
     }
 
     //CPU cycles stuff
@@ -121,10 +120,10 @@ int main() {
     printf("Press KEY0 to calculate LPF and KEY1 for HPF\n");
     while(*keyReg == 15);
     if(*keyReg == 13) {
-        calc_filter_coeff(B, A, K, 5000, 0.707, shiftLeft, 1); // 1 for HFP
+        filter_coeff_hp_lp(B, A, 5000, 0.707, shiftLeft, 0, 1); // 1 for HFP
     }
     if(*keyReg == 14) {
-        calc_filter_coeff(B, A, K, 600, 0.707, shiftLeft, 0); // 0 for LFP
+        filter_coeff_hp_lp(B, A, 600, 0.707, shiftLeft, 0, 0); // 0 for LFP
     }
 
     int x_pnt = 0;

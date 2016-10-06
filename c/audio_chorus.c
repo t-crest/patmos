@@ -19,8 +19,6 @@
 */
 
 #define FIR_BUFFER_LENGTH 2083 // for a delay of up to 25 52083 / 2083 = 25 ms
-#define CHORUS_1_LENGTH 20000
-#define CHORUS_2_LENGTH 14000
 
 #include "audio.h"
 #include "audio.c"
