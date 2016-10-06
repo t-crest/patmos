@@ -10,7 +10,7 @@
 #define Fs 52083 // Hz
 
 #define FILTER_ORDER_1PLUS 3 //FOR LPF filter of noise
-#define COMB_FILTER_ORDER_1PLUS 2 // FOR CHORUS comb filter
+#define COMB_FILTER_ORDER_1PLUS 3 // FOR CHORUS comb filter
 
 
 /* Chorus:
@@ -142,7 +142,6 @@ int main() {
     storeSin(sinC1, SIN1_PERIOD, ( FIR_BUFFER_LENGTH*0.6 ), ( FIR_BUFFER_LENGTH * 0.02) );
     storeSin(sinC2, SIN2_PERIOD, ( FIR_BUFFER_LENGTH*0.4 ), ( FIR_BUFFER_LENGTH * 0.012) );
     printf("sins storage done!\n");
-    printf("0: %d, 2nd last: %d, last: %d\n", sinC1[0], sinC1[SIN1_PERIOD-2], sinC1[SIN1_PERIOD-1]);
 
     *pnt = FIR_BUFFER_LENGTH - 1; //start on top
     //*ch_pnt = 0;
@@ -171,13 +170,13 @@ int main() {
         del[0] = sinC1[*c1_pnt];
         del[1] = sinC2[*c2_pnt];
         //printf("del[0]=%d, del[1]=%d\n", del[0], del[1]);
-        if (*c1_pnt < SIN1_PERIOD) {
+        if (*c1_pnt < (SIN1_PERIOD-1)) {
             *c1_pnt = *c1_pnt + 1;
         }
         else {
             *c1_pnt = 0;
         }
-        if (*c2_pnt < SIN2_PERIOD) {
+        if (*c2_pnt < (SIN2_PERIOD-1)) {
             *c2_pnt = *c2_pnt + 1;
         }
         else {
