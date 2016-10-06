@@ -53,16 +53,6 @@ volatile short fir_buffer[FIR_BUFFER_LENGTH][2];
 int sin_array[VIBRATO_PERIOD];
 
 
-int storeSin(int *sinArray, int SIZE, int OFFSET, int AMP) {
-    for(int i=0; i<SIZE; i++) {
-        sinArray[i] = OFFSET + AMP*sin(2.0*M_PI* i / SIZE);
-    }
-    printf("sin array storage done\n");
-
-    return 0;
-}
-
-
 int main() {
 
     setup();

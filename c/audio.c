@@ -262,7 +262,14 @@ int filterIIR(volatile _SPM int *pnt_i, volatile _SPM short (*x)[2], volatile _S
     return 0;
 }
 
+int storeSin(int *sinArray, int SIZE, int OFFSET, int AMP) {
+    for(int i=0; i<SIZE; i++) {
+        sinArray[i] = OFFSET + AMP*sin(2.0*M_PI* i / SIZE);
+    }
+    printf("sin array storage done\n");
 
+    return 0;
+}
 
 int checkRanges(float *Bfl, float *Afl, volatile _SPM int *shiftLeft, int fixedShift) {
     //check for overflow if coefficients
@@ -286,13 +293,17 @@ int checkRanges(float *Bfl, float *Afl, volatile _SPM int *shiftLeft, int fixedS
                 return 1;
             }
         }
-        printf("Greatest coefficient found is %f, ", maxVal);
+        if(!fixedShift) {
+            printf("Greatest coefficient found is %f, ", maxVal);
+        }
     }
     while(maxVal > 1) { //loop until maxVal < 1
         *shiftLeft = *shiftLeft + 1; //here we shift right, but the IIR result will be shifted left
         maxVal--;
     }
-    printf("shift left amount is %d\n", *shiftLeft);
+    if(!fixedShift) {
+        printf("shift left amount is %d\n", *shiftLeft);
+    }
 
     return 0;
 }
@@ -304,7 +315,9 @@ int filter_coeff_bp_br(volatile _SPM short *B, volatile _SPM short *A, int Fc, i
     float Bfl[FILTER_ORDER_1PLUS] = {0};
     float Afl[FILTER_ORDER_1PLUS] = {0};
     if(FILTER_ORDER_1PLUS == 2) { //1st order
-        printf("Calculating 1st order coefficients...\n");
+        if(!fixedShift) {
+            printf("Calculating 1st order coefficients...\n");
+        }
         c = ( tan(M_PI * Fc / Fs) - 1) / ( tan(M_PI * Fc / Fs) + 1 );
         Bfl[1] = c; // b0
         Bfl[0] = 1; // b1
@@ -312,7 +325,9 @@ int filter_coeff_bp_br(volatile _SPM short *B, volatile _SPM short *A, int Fc, i
     }
     else {
         if(FILTER_ORDER_1PLUS == 3) { // 2nd order
-            printf("Calculating 2nd order coefficients...\n");
+            if(!fixedShift) {
+                printf("Calculating 2nd order coefficients...\n");
+            }
             c = ( tan(M_PI * Fb / Fs) - 1) / ( tan(M_PI * Fb / Fs) + 1 );
             d = -1 * cos(2 * M_PI * Fc / Fs);
             Bfl[2] = -1 * c; // b0
@@ -332,11 +347,13 @@ int filter_coeff_bp_br(volatile _SPM short *B, volatile _SPM short *A, int Fc, i
         B[i] = (short) ( (int) (ONE_16b * Bfl[i]) >> *shiftLeft );
         A[i] = (short) ( (int) (ONE_16b * Afl[i]) >> *shiftLeft );
     }
-    if(FILTER_ORDER_1PLUS == 2) {
-        printf("done! c: %f, b0: %d, b1: %d, a0, %d, a1: %d\n", c, B[1], B[0], A[1], A[0]);
-    }
-    if(FILTER_ORDER_1PLUS == 3) {
-        printf("done! c: %f, d: %f, b0: %d, b1: %d, b2 : %d, a0: %d, a1: %d, a2: %d\n", c, d, B[2], B[1], B[0], A[2], A[1], A[0]);
+    if(!fixedShift) {
+        if(FILTER_ORDER_1PLUS == 2) {
+            printf("done! c: %f, b0: %d, b1: %d, a0, %d, a1: %d\n", c, B[1], B[0], A[1], A[0]);
+        }
+        if(FILTER_ORDER_1PLUS == 3) {
+            printf("done! c: %f, d: %f, b0: %d, b1: %d, b2 : %d, a0: %d, a1: %d, a2: %d\n", c, d, B[2], B[1], B[0], A[2], A[1], A[0]);
+        }
     }
 
     return 0;

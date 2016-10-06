@@ -92,16 +92,6 @@ volatile _SPM int *shiftLeft                           = (volatile _SPM int *)  
 //volatile _SPM short (*fir_buffer)[2] = (volatile _SPM short (*)[2]) FIR_BUFFER_ADDR; // fir_buffer[FIR_BUFFER_LENGTH][2]
 volatile short fir_buffer[FIR_BUFFER_LENGTH][2];
 
-// SIZE is period of sinusoidal in samples
-int storeSin(int *sinArray, int SIZE, int OFFSET, int AMP) {
-    for(int i=0; i<SIZE; i++) {
-        sinArray[i] = OFFSET + AMP*sin(2.0*M_PI* i / SIZE);
-    }
-    printf("sin array storage done\n");
-
-    return 0;
-}
-
 int main() {
 
     setup();
