@@ -469,8 +469,12 @@ int overdrive(volatile _SPM short *x, volatile _SPM short *y, short OVERDRIVE_TH
     //input abs: left channel is used
     printf("@ overdrive...\n");
     short *x_abs;
-    x_abs[0] = abs(x[0]);
-    x_abs[1] = abs(x[1]);
+    printf("%d\n", x[0]);
+    printf("abs: %d\n", (short)abs(16384));
+    x_abs[0] = (short)abs(x[0]);
+    printf("je\n");
+    x_abs[1] = (short)abs(x[1]);
+    printf("ji\n");
     if(x_abs[0] > 2 * OVERDRIVE_THRESHOLD) { // saturation : y = 1
         if (x[0] > 0) {
             y[0] = 0x7FFF;
