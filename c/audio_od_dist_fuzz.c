@@ -21,6 +21,7 @@
 volatile _SPM short *x = (volatile _SPM short *) X_ADDR; // input audio
 volatile _SPM short *y = (volatile _SPM short *) Y_ADDR; // output audio
 
+
 int main() {
 
   setup();
@@ -42,9 +43,11 @@ int main() {
   }
   */
 
+
   x[0] = 0x4000; //0.5
   x[1] = 0x4030; // 0.5014648
   overdrive(x, y, OD_THRESHOLD);
+  printf("done!\n");
 
   return 0;
 }

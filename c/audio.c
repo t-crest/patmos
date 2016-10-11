@@ -5,6 +5,13 @@
 #include <math.h>
 #include "audio.h"
 
+#ifndef ONE_16b
+#define ONE_16b 0x8000 //0x7FFF
+#endif
+#ifndef Fs
+#define Fs 52083 // Hz
+#endif
+
 /*
  * @file		Audio_setup.c
  * @author	Daniel Sanz Ausin s142290 & Fabian Goerge s150957
@@ -263,10 +270,10 @@ int storeSin(int *sinArray, int SIZE, int OFFSET, int AMP) {
     return 0;
 }
 
-int checkRanges(float *Bfl, float *Afl, volatile _SPM int *shiftLeft, int fixedShift) {
+int checkRanges(int FILT_ORD_1PL, float *Bfl, float *Afl, volatile _SPM int *shiftLeft, int fixedShift) {
     //check for overflow if coefficients
     float maxVal = 0;
-    for(int i=0; i<FILTER_ORDER_1PLUS; i++) {
+    for(int i=0; i<FILT_ORD_1PL; i++) {
         if( (fabs(Bfl[i]) > 1) && (fabs(Bfl[i]) > maxVal) ) {
             maxVal = fabs(Bfl[i]);
         }
@@ -335,7 +342,7 @@ int filter_coeff_bp_br(int FILT_ORD_1PL, volatile _SPM short *B, volatile _SPM s
         }
     }
     // check ranges and set leftShift amount
-    int notRangesOK = checkRanges(Bfl, Afl, shiftLeft, fixedShift);
+    int notRangesOK = checkRanges(FILT_ORD_1PL, Bfl, Afl, shiftLeft, fixedShift);
     if (notRangesOK == 1) {
         return 1;
     }
@@ -408,7 +415,7 @@ int filter_coeff_hp_lp(int FILT_ORD_1PL, volatile _SPM short *B, volatile _SPM s
         }
     }
     // check ranges and set leftShift amount
-    int notRangesOK = checkRanges(Bfl, Afl, shiftLeft, fixedShift);
+    int notRangesOK = checkRanges(FILT_ORD_1PL, Bfl, Afl, shiftLeft, fixedShift);
     if (notRangesOK == 1) {
         return 1;
     }
@@ -460,6 +467,7 @@ int fir_comb(int FIR_BUFF_LEN, int COMB_FILT_ORD_1PL, volatile _SPM int *pnt, vo
 
 int overdrive(volatile _SPM short *x, volatile _SPM short *y, short OVERDRIVE_THRESHOLD) {
     //input abs: left channel is used
+    printf("@ overdrive...\n");
     short *x_abs;
     x_abs[0] = abs(x[0]);
     x_abs[1] = abs(x[1]);
