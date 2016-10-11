@@ -24,14 +24,14 @@ volatile _SPM short *y = (volatile _SPM short *) Y_ADDR; // output audio
 
 int main() {
 
-  setup();
+  //setup();
 
   // enable input and output
   *audioDacEnReg = 1;
   *audioAdcEnReg = 1;
 
-  setInputBufferSize(BUFFER_SIZE);
-  setOutputBufferSize(BUFFER_SIZE);
+  //setInputBufferSize(BUFFER_SIZE);
+  //setOutputBufferSize(BUFFER_SIZE);
 
   printf("Play!\n");
 
