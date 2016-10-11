@@ -69,10 +69,10 @@ int main() {
     printf("Press KEY0 to play LPF and KEY1 for HPF\n");
     while(*keyReg == 15);
     if(*keyReg == 14) {
-        filter_coeff_hp_lp(B, A, 600, 0.707, shiftLeft, 0, 0); // 0 for LPF
+        filter_coeff_hp_lp(FILTER_ORDER_1PLUS, B, A, 600, 0.707, shiftLeft, 0, 0); // 0 for LPF
     }
     if(*keyReg == 13) {
-        filter_coeff_hp_lp(B, A, 5000, 0.707, shiftLeft, 0, 1); // 1 for HPF
+        filter_coeff_hp_lp(FILTER_ORDER_1PLUS, B, A, 5000, 0.707, shiftLeft, 0, 1); // 1 for HPF
     }
 
     //CPU cycles stuff
@@ -90,7 +90,7 @@ int main() {
       //first, read last sample
       getInputBufferSPM(&x_filter[*pnt][0], &x_filter[*pnt][1]);
       //then, calculate filter
-      filterIIR(pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
+      filterIIR(FILTER_ORDER_1PLUS, pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
       //set output
       setOutputBuffer(y_filter[*pnt][0], y_filter[*pnt][1]);
       /*
@@ -120,10 +120,10 @@ int main() {
     printf("Press KEY0 to calculate LPF and KEY1 for HPF\n");
     while(*keyReg == 15);
     if(*keyReg == 13) {
-        filter_coeff_hp_lp(B, A, 5000, 0.707, shiftLeft, 0, 1); // 1 for HFP
+        filter_coeff_hp_lp(FILTER_ORDER_1PLUS, B, A, 5000, 0.707, shiftLeft, 0, 1); // 1 for HFP
     }
     if(*keyReg == 14) {
-        filter_coeff_hp_lp(B, A, 600, 0.707, shiftLeft, 0, 0); // 0 for LFP
+        filter_coeff_hp_lp(FILTER_ORDER_1PLUS, B, A, 600, 0.707, shiftLeft, 0, 0); // 0 for LFP
     }
 
     int x_pnt = 0;
@@ -142,7 +142,7 @@ int main() {
       x_filter[*pnt][0] = x[x_pnt][0];
       x_filter[*pnt][1] = x[x_pnt][1];
       //then, calculate filter
-      filterIIR(pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
+      filterIIR(FILTER_ORDER_1PLUS, pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
       //set output
       y[x_pnt][0] = y_filter[*pnt][0];
       y[x_pnt][1] = y_filter[*pnt][1];

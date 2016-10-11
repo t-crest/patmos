@@ -1,17 +1,9 @@
 #include <machine/spm.h>
 #include <machine/rtc.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
 #include "audio.h"
-
-#ifndef FILTER_ORDER_1PLUS
-#define FILTER_ORDER_1PLUS 0
-#endif
-#ifndef COMB_FILTER_ORDER_1PLUS
-#define COMB_FILTER_ORDER_1PLUS 0
-#endif
-#ifndef FIR_BUFFER_LENGTH
-#define FIR_BUFFER_LENGTH 0
-#endif
 
 /*
  * @file		Audio_setup.c
@@ -231,12 +223,12 @@ int setOutputBuffer(short l, short r) {
 }
 
 
-int filterIIR(volatile _SPM int *pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*y)[2], volatile _SPM int *accum, volatile _SPM short *B, volatile _SPM short *A, int shiftLeft) {
+int filterIIR(int FILT_ORD_1PL, volatile _SPM int *pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*y)[2], volatile _SPM int *accum, volatile _SPM short *B, volatile _SPM short *A, int shiftLeft) {
     int pnt; //pointer for x_filter
     accum[0] = 0;
     accum[1] = 0;
-    for(int i=0; i<FILTER_ORDER_1PLUS; i++) {
-        pnt = (*pnt_i + i + 1) % FILTER_ORDER_1PLUS;
+    for(int i=0; i<FILT_ORD_1PL; i++) {
+        pnt = (*pnt_i + i + 1) % FILT_ORD_1PL;
         // SIGNED SHIFT (arithmetical): losing a 6-bit resolution
         accum[0] += (B[i]*x[pnt][0]) >> 6;
         accum[0] -= (A[i]*y[pnt][0]) >> 6;
@@ -309,12 +301,17 @@ int checkRanges(float *Bfl, float *Afl, volatile _SPM int *shiftLeft, int fixedS
 }
 
 
-int filter_coeff_bp_br(volatile _SPM short *B, volatile _SPM short *A, int Fc, int Fb, volatile _SPM int *shiftLeft, int fixedShift) {
+int filter_coeff_bp_br(int FILT_ORD_1PL, volatile _SPM short *B, volatile _SPM short *A, int Fc, int Fb, volatile _SPM int *shiftLeft, int fixedShift) {
     // if FILTER ORDER = 1, Fb is ignored
     float c, d;
-    float Bfl[FILTER_ORDER_1PLUS] = {0};
-    float Afl[FILTER_ORDER_1PLUS] = {0};
-    if(FILTER_ORDER_1PLUS == 2) { //1st order
+    float Bfl[FILT_ORD_1PL];
+    float Afl[FILT_ORD_1PL];
+    //init to 0
+    for(int i=0; i< FILT_ORD_1PL; i++) {
+        Bfl[i] = 0;
+        Afl[i] = 0;
+    }
+    if(FILT_ORD_1PL == 2) { //1st order
         if(!fixedShift) {
             printf("Calculating 1st order coefficients...\n");
         }
@@ -324,7 +321,7 @@ int filter_coeff_bp_br(volatile _SPM short *B, volatile _SPM short *A, int Fc, i
         Afl[0] = c; // a1
     }
     else {
-        if(FILTER_ORDER_1PLUS == 3) { // 2nd order
+        if(FILT_ORD_1PL == 3) { // 2nd order
             if(!fixedShift) {
                 printf("Calculating 2nd order coefficients...\n");
             }
@@ -343,15 +340,15 @@ int filter_coeff_bp_br(volatile _SPM short *B, volatile _SPM short *A, int Fc, i
         return 1;
     }
     // now all coefficients should be between 0 and 1
-    for(int i=0; i<FILTER_ORDER_1PLUS; i++) {
+    for(int i=0; i<FILT_ORD_1PL; i++) {
         B[i] = (short) ( (int) (ONE_16b * Bfl[i]) >> *shiftLeft );
         A[i] = (short) ( (int) (ONE_16b * Afl[i]) >> *shiftLeft );
     }
     if(!fixedShift) {
-        if(FILTER_ORDER_1PLUS == 2) {
+        if(FILT_ORD_1PL == 2) {
             printf("done! c: %f, b0: %d, b1: %d, a0, %d, a1: %d\n", c, B[1], B[0], A[1], A[0]);
         }
-        if(FILTER_ORDER_1PLUS == 3) {
+        if(FILT_ORD_1PL == 3) {
             printf("done! c: %f, d: %f, b0: %d, b1: %d, b2 : %d, a0: %d, a1: %d, a2: %d\n", c, d, B[2], B[1], B[0], A[2], A[1], A[0]);
         }
     }
@@ -360,20 +357,25 @@ int filter_coeff_bp_br(volatile _SPM short *B, volatile _SPM short *A, int Fc, i
 }
 
 
-int filter_coeff_hp_lp(volatile _SPM short *B, volatile _SPM short *A, int Fc, float Q, volatile _SPM int *shiftLeft, int fixedShift, int type) {
+int filter_coeff_hp_lp(int FILT_ORD_1PL, volatile _SPM short *B, volatile _SPM short *A, int Fc, float Q, volatile _SPM int *shiftLeft, int fixedShift, int type) {
     float K = tan(M_PI * Fc / Fs);// K is same for all
-    float Bfl[FILTER_ORDER_1PLUS] = {0};
-    float Afl[FILTER_ORDER_1PLUS] = {0};
+    float Bfl[FILT_ORD_1PL];
+    float Afl[FILT_ORD_1PL];
+    //init to 0
+    for(int i=0; i< FILT_ORD_1PL; i++) {
+        Bfl[i] = 0;
+        Afl[i] = 0;
+    }
     float common_factor;
     if(type == 0) { //LPF
-        if(FILTER_ORDER_1PLUS == 2) { //1st order
+        if(FILT_ORD_1PL == 2) { //1st order
             printf("Calculating LPF for 1st order...\n");
             Bfl[1] = K/(K+1); //b0
             Bfl[0] = K/(K+1); //b1
             Afl[0] = (K-1)/(K+1); //a1
         }
         else {
-            if(FILTER_ORDER_1PLUS == 3) { //2nd order
+            if(FILT_ORD_1PL == 3) { //2nd order
                 printf("Calculating LPF for 2nd order...\n");
                 common_factor = 1/(pow(K,2)*Q + K + Q);
                 Bfl[2] = pow(K,2)*Q*common_factor; //b0
@@ -386,14 +388,14 @@ int filter_coeff_hp_lp(volatile _SPM short *B, volatile _SPM short *A, int Fc, f
     }
     else {
         if(type == 1) { // HPF
-            if(FILTER_ORDER_1PLUS == 2) { //1st order
+            if(FILT_ORD_1PL == 2) { //1st order
                 printf("Calculating HPF for 1st order...\n");
                 Bfl[1] =  1/(K+1); //b0
                 Bfl[0] = -1/(K+1); //b1
                 Afl[0] = (K-1)/(K+1); //a1
             }
             else {
-                if(FILTER_ORDER_1PLUS == 3) { //2nd order
+                if(FILT_ORD_1PL == 3) { //2nd order
                     printf("Calculating HPF for 2nd order...\n");
                     common_factor = 1/(pow(K,2)*Q + K + Q);
                     Bfl[2] = Q*common_factor; //b0
@@ -411,14 +413,14 @@ int filter_coeff_hp_lp(volatile _SPM short *B, volatile _SPM short *A, int Fc, f
         return 1;
     }
     // now all coefficients should be between 0 and 1
-    for(int i=0; i<FILTER_ORDER_1PLUS; i++) {
+    for(int i=0; i<FILT_ORD_1PL; i++) {
         B[i] = (short) ( (int) (ONE_16b * Bfl[i]) >> *shiftLeft );
         A[i] = (short) ( (int) (ONE_16b * Afl[i]) >> *shiftLeft );
     }
-    if(FILTER_ORDER_1PLUS == 2) {
+    if(FILT_ORD_1PL == 2) {
         printf("done! K: %f, b0: %d, b1: %d, a0, %d, a1: %d\n", K, B[1], B[0], A[1], A[0]);
     }
-    if(FILTER_ORDER_1PLUS == 3) {
+    if(FILT_ORD_1PL == 3) {
         printf("done! K: %f, common_factor: %f, b0: %d, b1: %d, b2 : %d, a0: %d, a1: %d, a2: %d\n", K, common_factor, B[2], B[1], B[0], A[2], A[1], A[0]);
     }
 
@@ -427,12 +429,12 @@ int filter_coeff_hp_lp(volatile _SPM short *B, volatile _SPM short *A, int Fc, f
 
 
 
-int fir_comb(volatile _SPM int *pnt, volatile short (*fir_buffer)[2], volatile _SPM short *y, volatile _SPM int *accum, volatile _SPM short *g, volatile _SPM int *del) {
+int fir_comb(int FIR_BUFF_LEN, int COMB_FILT_ORD_1PL, volatile _SPM int *pnt, volatile short (*fir_buffer)[2], volatile _SPM short *y, volatile _SPM int *accum, volatile _SPM short *g, volatile _SPM int *del) {
     int fir_pnt; //pointer for fir_buffer
     accum[0] = 0;
     accum[1] = 0;
-    for(int i=0; i<COMB_FILTER_ORDER_1PLUS; i++) {
-        fir_pnt = (*pnt+del[i])%FIR_BUFFER_LENGTH;
+    for(int i=0; i<COMB_FILT_ORD_1PL; i++) {
+        fir_pnt = (*pnt+del[i])%FIR_BUFF_LEN;
         //printf("for pnt=%d and del=%d: fir_pnt=%d\n", *pnt, del[i], fir_pnt);
         accum[0] += (g[i]*fir_buffer[fir_pnt][0]) >> 6;
         accum[1] += (g[i]*fir_buffer[fir_pnt][1]) >> 6;
@@ -452,6 +454,43 @@ int fir_comb(volatile _SPM int *pnt, volatile short (*fir_buffer)[2], volatile _
     }
     y[0] = accum[0] >> 9;
     y[1] = accum[1] >> 9;
+
+    return 0;
+}
+
+int overdrive(volatile _SPM short *x, volatile _SPM short *y, short OVERDRIVE_THRESHOLD) {
+    //input abs: left channel is used
+    short *x_abs;
+    x_abs[0] = abs(x[0]);
+    x_abs[1] = abs(x[1]);
+    if(x_abs[0] > 2 * OVERDRIVE_THRESHOLD) { // saturation : y = 1
+        if (x[0] > 0) {
+            y[0] = 0x7FFF;
+            y[1] = 0x7FFF;
+        }
+        else {
+            y[0] = 0x8000;
+            y[1] = 0x8000;
+        }
+    }
+    else {
+        if(x_abs[0] > OVERDRIVE_THRESHOLD) { // smooth overdrive: y = ( 3 - (2-3*x)^2 ) / 3;
+            unsigned int *accum;
+            for(int i=0; i<2; i++) {
+                printf("for input x_abs[%d] = %d:\n", i, x_abs[i]);
+                accum[i] = 0x17FFD * x_abs[i] >> 15 ; // result is 1 sign + 17 bits
+                printf("1st: accum[%d] = %d\n", i, accum[i]);
+                accum[i] = 0xFFFE - accum[i];
+                printf("2nd: accum[%d] = %d\n", i, accum[i]);
+                accum[i] = accum[i] * accum[i] >> 16;
+                printf("3rd: accum[%d] = %d\n", i, accum[i]);
+            }
+        }
+        else { // linear zone: y = 2*x
+            y[0] = x[0] << 1;
+            y[1] = x[1] << 1;
+        }
+    }
 
     return 0;
 }

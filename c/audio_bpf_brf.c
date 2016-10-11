@@ -64,7 +64,7 @@ int main() {
     *shiftLeft = 0;
 
     // calculate all-pass filter coefficients
-    filter_coeff_bp_br(B, A, 1000, 800, shiftLeft, 0);
+    filter_coeff_bp_br(FILTER_ORDER_1PLUS, B, A, 1000, 800, shiftLeft, 0);
     if(FILTER_ORDER_1PLUS == 2) { //1st order
         printf("Press KEY0 for high-pass filter, KEY1 for low-pass filter\n");
     }
@@ -90,7 +90,7 @@ int main() {
         //first, read last sample
         getInputBufferSPM(&x_filter[*pnt][0], &x_filter[*pnt][1]);
         //then, calculate filter
-        filterIIR(pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
+        filterIIR(FILTER_ORDER_1PLUS, pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
         //set output
         if(isBandPass == 1) {
             outputReg[0] = ( x_filter[*pnt][0] - y_filter[*pnt][0] ) >> 1;

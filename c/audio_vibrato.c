@@ -90,7 +90,7 @@ int main() {
         //first, read sample
         getInputBuffer((short *)&fir_buffer[*pnt][0], (short *)&fir_buffer[*pnt][1]);
         //calculate FIR comb filter
-        fir_comb(pnt, fir_buffer, y, accum, g, del);
+        fir_comb(FIR_BUFFER_LENGTH, COMB_FILTER_ORDER_1PLUS, pnt, fir_buffer, y, accum, g, del);
         //output sample
         setOutputBuffer(y[0], y[1]);
         //update pointer

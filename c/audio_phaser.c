@@ -82,7 +82,7 @@ int main() {
     // calculate all-pass filter coefficients
     printf("calculating modulation coefficients...\n");
     for(int i=0; i<PHASER_PERIOD; i++) {
-        filter_coeff_bp_br(B, A, FcArray[i], PHASER_FB, shiftLeft, 1);
+        filter_coeff_bp_br(FILTER_ORDER_1PLUS, B, A, FcArray[i], PHASER_FB, shiftLeft, 1);
         B_array[i][2] = B[2];
         B_array[i][1] = B[1];
         B_array[i][0] = B[0];
@@ -115,7 +115,7 @@ int main() {
         //first, read last sample
         getInputBufferSPM(&x_filter[*pnt][0], &x_filter[*pnt][1]);
         //then, calculate filter
-        filterIIR(pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
+        filterIIR(FILTER_ORDER_1PLUS, pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
         //set output
         outputReg[0] = ( x_filter[*pnt][0] + y_filter[*pnt][0] ) >> 1;
         outputReg[1] = ( x_filter[*pnt][1] + y_filter[*pnt][1] ) >> 1;
