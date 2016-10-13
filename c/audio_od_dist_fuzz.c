@@ -6,7 +6,7 @@
 
 #define ONE_16b 0x8000 //0x7FFF
 
-#define OD_THRESHOLD 0x2AAB // ONE_16b * 1/3
+#define OD_THRESHOLD 0x1C00 // set experimentally (usually 0x2AAB = ONE_16b * 1/3)
 
 #define BUFFER_SIZE 32
 
