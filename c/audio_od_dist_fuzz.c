@@ -24,30 +24,22 @@ volatile _SPM short *y = (volatile _SPM short *) Y_ADDR; // output audio
 
 int main() {
 
-  //setup();
+  setup();
 
   // enable input and output
   *audioDacEnReg = 1;
   *audioAdcEnReg = 1;
 
-  //setInputBufferSize(BUFFER_SIZE);
-  //setOutputBufferSize(BUFFER_SIZE);
+  setInputBufferSize(BUFFER_SIZE);
+  setOutputBufferSize(BUFFER_SIZE);
 
   printf("Play!\n");
 
-  /*
   while(*keyReg != 3) {
       getInputBufferSPM(&x[0], &x[1]);
       overdrive(x, y, OD_THRESHOLD);
       setOutputBuffer(y[0], y[1]);
   }
-  */
-
-
-  x[0] = 0x4000; //0.5
-  x[1] = 0x4030; // 0.5014648
-  overdrive(x, y, OD_THRESHOLD);
-  printf("done!\n");
 
   return 0;
 }

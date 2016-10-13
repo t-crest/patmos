@@ -467,10 +467,10 @@ int fir_comb(int FIR_BUFF_LEN, int COMB_FILT_ORD_1PL, volatile _SPM int *pnt, vo
 
 int overdrive(volatile _SPM short *x, volatile _SPM short *y, short OVERDRIVE_THRESHOLD) {
     //input abs: left channel is used
-    int x_abs[2];
+    unsigned int x_abs[2];
     x_abs[0] = abs(x[0]);
     x_abs[1] = abs(x[1]);
-    if(x_abs[0] > 2 * OVERDRIVE_THRESHOLD) { // saturation : y = 1
+    if(x_abs[0] > (2 * OVERDRIVE_THRESHOLD)) { // saturation : y = 1
         if (x[0] > 0) {
             y[0] = 0x7FFF;
             y[1] = 0x7FFF;
@@ -482,15 +482,19 @@ int overdrive(volatile _SPM short *x, volatile _SPM short *y, short OVERDRIVE_TH
     }
     else {
         if(x_abs[0] > OVERDRIVE_THRESHOLD) { // smooth overdrive: y = ( 3 - (2-3*x)^2 ) / 3;
-             int accum[2];
+            int accum[2];
             for(int i=0; i<2; i++) {
-                printf("for input x_abs[%d] = 0x%x\n", i, x_abs[i]);
-                accum[i] = (0x17FFD * x_abs[i]) >> 15 ; // result is 1 sign + 17 bits
-                printf("1st: accum[%d] = 0x%x\n", i, accum[i]);
-                accum[i] = 0xFFFE - accum[i];
-                printf("2nd: accum[%d] = 0x%x\n", i, accum[i]);
-                accum[i] = (accum[i] * accum[i]) >> 16;
-                printf("3rd: accum[%d] = 0x%x\n", i, accum[i]);
+                accum[i] = (0x17FFF * x_abs[i]) >> 15 ; // result is 1 sign + 17 bits
+                accum[i] = 0xFFFF - accum[i];
+                accum[i] = (accum[i] * accum[i]) >> 15;
+                accum[i] =  0x17FFF - accum[i];
+                accum[i] = (accum[i] * 0x2AAB) >> 15;
+                if(x[i] > 0) { //positive
+                    y[i] = accum[i];
+                }
+                else { // negative
+                    y[i] = -accum[i];
+                }
             }
         }
         else { // linear zone: y = 2*x
