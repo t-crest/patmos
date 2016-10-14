@@ -13,6 +13,8 @@
 
 int main() {
 
+    short highest;
+    highest = 0;
 
   setup();
 
@@ -29,7 +31,11 @@ int main() {
   while(*keyReg != 3) {
     getInputBuffer(&inL, &inR);
     //printf("In L: %i In R: %i\n",inL,inR);
+    if(inL > highest) {
+        highest = inL;
+    }
     setOutputBuffer(inL,inR);
   }
+  printf("Highest: %d\n", highest);
   return 0;
 }
