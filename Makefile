@@ -36,8 +36,7 @@ VENDOR?=Altera
 #BOARD=ml605oc
 #BOARD=bemicro
 #BOARD?=altde2-70
-#BOARD?=altde2-115
-BOARD=altde2-115-audio
+BOARD?=altde2-115
 
 # Where to put elf files and binaries
 BUILDDIR?=$(CURDIR)/tmp
@@ -156,7 +155,7 @@ swsim: $(BUILDDIR)/$(BOOTAPP).bin
 	$(INSTALLDIR)/bin/pasim --debug --debug-fmt=short $(BUILDDIR)/$(BOOTAPP).bin; exit 0
 
 # ISA simulation with PatSim
-instsim: $(BUILDDIR)/$(BOOTAPP).bin
+isasim: $(BUILDDIR)/$(BOOTAPP).bin
 	cd isasim; sbt "run-main patsim.PatSim $(BUILDDIR)/$(BOOTAPP).bin"
 
 # C simulation of the Chisel version of Patmos
