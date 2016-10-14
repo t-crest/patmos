@@ -15,6 +15,7 @@
 int sineArray[220];
 
 
+
 int cyclesStart = 0;
 int nbrCycles = 0;
 int sampleFreq = 1536; //256*6
