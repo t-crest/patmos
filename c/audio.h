@@ -40,7 +40,7 @@ volatile _SPM int *i2cReqReg  = (volatile _SPM int *) 0xF00B0110;
 
 
 int 	writeToI2C(char* addrC,char* dataC);
-void 	setup();
+void 	setup(int guitar);
 int 	changeVolume(int vol);
 void 	waitSyncDac();
 void 	waitSyncAdc();

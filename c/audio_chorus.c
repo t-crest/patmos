@@ -94,7 +94,7 @@ volatile short fir_buffer[FIR_BUFFER_LENGTH][2];
 
 int main() {
 
-    setup();
+    setup(1); //guitar enabled
 
     // enable input and output
     *audioDacEnReg = 1;

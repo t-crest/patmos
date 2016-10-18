@@ -17,7 +17,7 @@
      -Vibrato period sets the rate of the vibrato: period of sin
 */
 
-#define FIR_BUFFER_LENGTH 520 // for a delay of up to 10 52083 / 520 = 10 ms
+#define FIR_BUFFER_LENGTH 120 // for a delay of up to 10 52083 / 120 = 10 ms
 #define VIBRATO_PERIOD 20000 //almost half second
 
 #include "audio.h"
@@ -55,7 +55,7 @@ int sin_array[VIBRATO_PERIOD];
 
 int main() {
 
-    setup();
+    setup(1); //for guitar
 
     // enable input and output
     *audioDacEnReg = 1;

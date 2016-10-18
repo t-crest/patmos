@@ -11,31 +11,32 @@
  * @brief	This program takes the input auido data and outputs it again
  */
 
+
 int main() {
 
     short highest;
     highest = 0;
 
-  setup();
+    setup(1); //guitar?
 
-  setInputBufferSize(32);
-  setOutputBufferSize(32);
+    setInputBufferSize(32);
+    setOutputBufferSize(32);
 
-  short inL = 0;
-  short inR = 0;
+    short inL = 0;
+    short inR = 0;
 
-  // enable input and output
-  *audioDacEnReg = 1;
-  *audioAdcEnReg = 1;
+    // enable input and output
+    *audioDacEnReg = 1;
+    *audioAdcEnReg = 1;
 
-  while(*keyReg != 3) {
-    getInputBuffer(&inL, &inR);
-    //printf("In L: %i In R: %i\n",inL,inR);
-    if(inL > highest) {
-        highest = inL;
+    while(*keyReg != 3) {
+        getInputBuffer(&inL, &inR);
+        //printf("In L: %i In R: %i\n",inL,inR);
+        if(inL > highest) {
+            highest = inL;
+        }
+        setOutputBuffer(inL,inR);
     }
-    setOutputBuffer(inL,inR);
-  }
-  printf("Highest: %d\n", highest);
-  return 0;
+    printf("Highest: %d\n", highest);
+    return 0;
 }

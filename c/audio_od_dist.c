@@ -6,7 +6,7 @@
 
 #define ONE_16b 0x8000 //0x7FFF
 
-#define OD_THRESHOLD 0x1C00 // set experimentally (usually 0x2AAB = ONE_16b * 1/3)
+#define OD_THRESHOLD 0x2AAB // set experimentally (usually 0x2AAB = ONE_16b * 1/3)
 
 #define BUFFER_SIZE 32
 
@@ -27,7 +27,7 @@ volatile _SPM short *y = (volatile _SPM short *) Y_ADDR; // output audio
 
 int main() {
 
-  setup();
+    setup(1); //for guitar
 
   // enable input and output
   *audioDacEnReg = 1;
@@ -59,8 +59,8 @@ int main() {
 
   while(*keyReg != 3) {
       getInputBufferSPM(&x[0], &x[1]);
-      //overdrive(x, y, OD_THRESHOLD);
-      distortion(CH_LENGTH, MACLAURIN_ORDER_1MINUS, x, y);
+      overdrive(x, y, OD_THRESHOLD);
+      //distortion(CH_LENGTH, MACLAURIN_ORDER_1MINUS, x, y);
       setOutputBuffer(y[0], y[1]);
   }
 

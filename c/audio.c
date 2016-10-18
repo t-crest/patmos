@@ -69,7 +69,8 @@ int writeToI2C(char* addrC,char* dataC) {
  * @brief	Sets the default values
  */
 
-void setup() {
+void setup(int guitar) {
+
   /*
   //----------Line in---------------------
   char *addrLeftIn  = "0000000";
@@ -90,8 +91,14 @@ void setup() {
 
   //--------Analogue Audio Path Control-----
   char *addrAnalogue  = "0000100";
-  char *dataAnalogue = "000010010"; //DAC selected, rest disabled, MIC muted, Line input select to ADC
-  writeToI2C(addrAnalogue,dataAnalogue);
+  if(guitar == 0) {
+      char *dataAnalogue = "000010010"; //DAC selected, rest disabled, MIC muted, Line input select to ADC
+      writeToI2C(addrAnalogue,dataAnalogue);
+  }
+  else {
+      char *dataAnalogueGuit = "000010101"; //MIC selected to ADC, MIC enabled, MIC boost enabled
+      writeToI2C(addrAnalogue,dataAnalogueGuit);
+  }
 
 
   //--------Digital Audio Path Control-----

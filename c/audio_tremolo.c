@@ -39,7 +39,7 @@ int main() {
 
   printf("CPU frequency: %d MHz\n", get_cpu_freq()/1000000);
 
-  setup();
+  setup(1); //for guitar
 
   setInputBufferSize(32);
   setOutputBufferSize(32);
