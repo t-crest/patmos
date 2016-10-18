@@ -465,6 +465,45 @@ int fir_comb(int FIR_BUFF_LEN, int COMB_FILT_ORD_1PL, volatile _SPM int *pnt, vo
     return 0;
 }
 
+//from 1/2! to 1/8!, represented as Q.15
+const short MCLAURIN_FACTOR[7] = { 0x4000, 0x1555, 0x555, 0x111, 0x2d, 0x6, 0x1};
+
+int distortion(const int CH_LENGTH, const int MACLAURIN_ORDER_1MINUS, volatile _SPM short *x, volatile _SPM short *y) {
+    int neg;
+    if(x[0] > 0) {
+        for(int j=0; j<CH_LENGTH; j++) {
+            x[j] = -x[j];
+        }
+        neg = 0;
+    }
+    else {
+        neg = 1;
+    }
+    // calculate maclaurin series
+    short x_pow[CH_LENGTH];
+    int accum[CH_LENGTH];
+    for(int j=0; j<CH_LENGTH; j++) {
+        //before: initialise to first value:
+        x_pow[j] = x[j];
+        accum[j] = -x[j];
+        //after that, rest of values:
+        for(int i=0; i<MACLAURIN_ORDER_1MINUS; i++) {
+            //increase power, divide by factor
+            x_pow[j] = (x_pow[j] * x[j]) >> 15;
+            accum[j] -= (x_pow[j] * MCLAURIN_FACTOR[i]) >> 15;
+        }
+        //set output
+        if (neg == 1) { //negative sign
+            y[j] = -accum[j];
+        }
+        else { //positive sign
+            y[j] = accum[j];
+        }
+    }
+
+    return 0;
+}
+
 int overdrive(volatile _SPM short *x, volatile _SPM short *y, short OVERDRIVE_THRESHOLD) {
     //input abs: left channel is used
     unsigned int x_abs[2];

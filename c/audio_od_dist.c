@@ -18,6 +18,9 @@
 #define X_ADDR 0x00000000
 #define Y_ADDR ( X_ADDR + 2 * sizeof(short) )
 
+const int CH_LENGTH = 2;
+const int MACLAURIN_ORDER_1MINUS = 5;
+
 volatile _SPM short *x = (volatile _SPM short *) X_ADDR; // input audio
 volatile _SPM short *y = (volatile _SPM short *) Y_ADDR; // output audio
 
@@ -35,9 +38,29 @@ int main() {
 
   printf("Play!\n");
 
+  /*
+  printf("some examples...\n");
+
+  x[0] = 0x4000; //0.5
+  x[1] = 0x3500; //0.4140625
+  printf("inputs: x[0]=%d, x[1]=%d\n", x[0], x[1]);
+  distortion(CH_LENGTH, MACLAURIN_ORDER_1MINUS, x, y);
+  printf("RESULTA: \n");
+  printf("y[0] = %d\n", y[0]);
+  printf("y[1] = %d\n", y[1]);
+  x[0] = -1 * 0x3000; //-0.375
+  x[1] = -1 * 0x2A00; //-0.328125
+  printf("inputs: x[0]=%d, x[1]=%d\n", x[0], x[1]);
+  distortion(CH_LENGTH, MACLAURIN_ORDER_1MINUS, x, y);
+  printf("RESULTADOS: \n");
+  printf("y[0] = %d\n", y[0]);
+  printf("y[1] = %d\n", y[1]);
+  */
+
   while(*keyReg != 3) {
       getInputBufferSPM(&x[0], &x[1]);
-      overdrive(x, y, OD_THRESHOLD);
+      //overdrive(x, y, OD_THRESHOLD);
+      distortion(CH_LENGTH, MACLAURIN_ORDER_1MINUS, x, y);
       setOutputBuffer(y[0], y[1]);
   }
 
