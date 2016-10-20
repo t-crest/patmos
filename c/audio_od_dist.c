@@ -57,12 +57,28 @@ int main() {
   printf("y[1] = %d\n", y[1]);
   */
 
+  /*
+  printf("overdrive test...\n");
+  x[0] = -0x5555; // 2/3
+  x[1] = -0x5556;
+  printf("input is %d, %d\n", x[0], x[1]);
+  overdrive(CH_LENGTH, x, y, OD_THRESHOLD);
+  printf("output is %d, %d\n", y[0], y[1]);
+  x[0] = -0x5557;
+  x[1] = -0x5558;
+  printf("input is %d, %d\n", x[0], x[1]);
+  overdrive(CH_LENGTH, x, y, OD_THRESHOLD);
+  printf("output is %d, %d\n", y[0], y[1]);
+  */
+
+
   while(*keyReg != 3) {
       getInputBufferSPM(&x[0], &x[1]);
-      overdrive(x, y, OD_THRESHOLD);
+      overdrive(CH_LENGTH, x, y, OD_THRESHOLD);
       //distortion(CH_LENGTH, MACLAURIN_ORDER_1MINUS, x, y);
       setOutputBuffer(y[0], y[1]);
   }
+
 
   return 0;
 }

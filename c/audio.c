@@ -511,41 +511,37 @@ int distortion(const int CH_LENGTH, const int MACLAURIN_ORDER_1MINUS, volatile _
     return 0;
 }
 
-int overdrive(volatile _SPM short *x, volatile _SPM short *y, short OVERDRIVE_THRESHOLD) {
-    //input abs: left channel is used
-    unsigned int x_abs[2];
-    x_abs[0] = abs(x[0]);
-    x_abs[1] = abs(x[1]);
-    if(x_abs[0] > (2 * OVERDRIVE_THRESHOLD)) { // saturation : y = 1
-        if (x[0] > 0) {
-            y[0] = 0x7FFF;
-            y[1] = 0x7FFF;
-        }
-        else {
-            y[0] = 0x8000;
-            y[1] = 0x8000;
-        }
-    }
-    else {
-        if(x_abs[0] > OVERDRIVE_THRESHOLD) { // smooth overdrive: y = ( 3 - (2-3*x)^2 ) / 3;
-            int accum[2];
-            for(int i=0; i<2; i++) {
-                accum[i] = (0x17FFF * x_abs[i]) >> 15 ; // result is 1 sign + 17 bits
-                accum[i] = 0xFFFF - accum[i];
-                accum[i] = (accum[i] * accum[i]) >> 15;
-                accum[i] =  0x17FFF - accum[i];
-                accum[i] = (accum[i] * 0x2AAB) >> 15;
-                if(x[i] > 0) { //positive
-                    y[i] = accum[i];
-                }
-                else { // negative
-                    y[i] = -accum[i];
-                }
+int overdrive(int CH_LENGTH, volatile _SPM short *x, volatile _SPM short *y, short OVERDRIVE_THRESHOLD) {
+    //input abs:
+    unsigned int x_abs[CH_LENGTH];
+    for(int j=0; j<CH_LENGTH; j++) {
+        x_abs[j] = abs(x[j]);
+        if(x_abs[j] > (2 * OVERDRIVE_THRESHOLD)) { // saturation : y = 1
+            if (x[j] > 0) {
+                y[j] = 0x7FFF;
+            }
+            else {
+                y[j] = 0x8000;
             }
         }
-        else { // linear zone: y = 2*x
-            y[0] = x[0] << 1;
-            y[1] = x[1] << 1;
+        else {
+            if(x_abs[j] > OVERDRIVE_THRESHOLD) { // smooth overdrive: y = ( 3 - (2-3*x)^2 ) / 3;
+                int accum;
+                accum = (0x17FFF * x_abs[j]) >> 15 ; // result is 1 sign + 17 bits
+                accum = 0xFFFF - accum;
+                accum = (accum * accum) >> 15;
+                accum = 0x17FFD - accum;
+                accum = (accum * 0x2AAB) >> 15;
+                if(x[j] > 0) { //positive
+                    y[j] = accum;
+                }
+                else { // negative
+                    y[j] = -accum;
+                }
+            }
+            else { // linear zone: y = 2*x
+                y[j] = x[j] << 1;
+            }
         }
     }
 

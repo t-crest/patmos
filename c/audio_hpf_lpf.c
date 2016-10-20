@@ -48,7 +48,7 @@ volatile _SPM int *shiftLeft       = (volatile _SPM int *)        SFTLFT_ADDR; /
 
 int main() {
 
-  setup();
+    setup(0); //for volca
 
   // enable input and output
   *audioDacEnReg = 1;
