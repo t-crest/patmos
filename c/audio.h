@@ -55,10 +55,10 @@ int     setInputBufferSize(int bufferSize);
 //audio operations
 int     filterIIR(int FILT_ORD_1PL, volatile _SPM int *pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*y)[2], volatile _SPM int *accum, volatile _SPM short *B, volatile _SPM short *A, int shiftLeft);
 int     storeSin(int *sinArray, int SIZE, int OFFSET, int AMP);
-int     filter_coeff_hp_lp(int FILT_ORD_1PL, volatile _SPM short *B, volatile _SPM short *A, int Fc, float Q, volatile _SPM int *shiftLeft, int fixedShift, int type);
 int     filter_coeff_bp_br(int FILT_ORD_1PL, volatile _SPM short *B, volatile _SPM short *A, int Fc, int Fb, volatile _SPM int *shiftLeft, int fixedShift);
+int     filter_coeff_hp_lp(int FILT_ORD_1PL, volatile _SPM short *B, volatile _SPM short *A, int Fc, float Q, volatile _SPM int *shiftLeft, int fixedShift, int type);
 int     fir_comb(int FIR_BUFF_LEN, int COMB_FILT_ORD_1PL, volatile _SPM int *pnt, volatile short (*fir_buffer)[2], volatile _SPM short *y, volatile _SPM int *accum, volatile _SPM short *g, volatile _SPM int *del);
-int     distortion(const int CH_LENGTH, const int MACLAURIN_ORDER_1MINUS, volatile _SPM short *x, volatile _SPM short *y);
-int     overdrive(const int CH_LENGTH, volatile _SPM short *x, volatile _SPM short *y, short OVERDRIVE_THRESHOLD);
+int     distortion(int CH_LENGTH, int MACLAURIN_ORDER_1MINUS, volatile _SPM short *x, volatile _SPM short *y);
+int     overdrive(int CH_LENGTH, volatile _SPM short *x, volatile _SPM short *y, short OVERDRIVE_THRESHOLD);
 
 #endif

@@ -475,7 +475,7 @@ int fir_comb(int FIR_BUFF_LEN, int COMB_FILT_ORD_1PL, volatile _SPM int *pnt, vo
 //from 1/2! to 1/8!, represented as Q.15
 const short MCLAURIN_FACTOR[7] = { 0x4000, 0x1555, 0x555, 0x111, 0x2d, 0x6, 0x1};
 
-int distortion(const int CH_LENGTH, const int MACLAURIN_ORDER_1MINUS, volatile _SPM short *x, volatile _SPM short *y) {
+int distortion(int CH_LENGTH, int MACLAURIN_ORDER_1MINUS, volatile _SPM short *x, volatile _SPM short *y) {
     int neg;
     if(x[0] > 0) {
         for(int j=0; j<CH_LENGTH; j++) {
@@ -530,7 +530,7 @@ int overdrive(int CH_LENGTH, volatile _SPM short *x, volatile _SPM short *y, sho
                 accum = (0x17FFF * x_abs[j]) >> 15 ; // result is 1 sign + 17 bits
                 accum = 0xFFFF - accum;
                 accum = (accum * accum) >> 15;
-                accum = 0x17FFD - accum;
+                accum = 0x17FFF - accum;
                 accum = (accum * 0x2AAB) >> 15;
                 if(x[j] > 0) { //positive
                     y[j] = accum;

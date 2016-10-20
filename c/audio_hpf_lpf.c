@@ -6,7 +6,7 @@
 
 #define ONE_16b 0x8000 //0x7FFF
 
-#define BUFFER_SIZE 32
+#define BUFFER_SIZE 128
 #define AUDIO_RECORDING_SIZE 44100*2
 #define FILTER_ORDER_1PLUS 3
 
@@ -15,6 +15,10 @@
 #include "audio.h"
 #include "audio.c"
 
+// MACROS
+//const int CH_LEN = 2;
+//const int AUDIO_RECORDING_SIZE = 88200;
+//const int FILTER_ORDER_1PLUS = 3;
 
 short x[AUDIO_RECORDING_SIZE][2] = {0}; //input
 short y[AUDIO_RECORDING_SIZE][2] = {0}; //output
@@ -76,7 +80,7 @@ int main() {
     }
 
     //CPU cycles stuff
-    //int CPUcycles[100] = {0};
+    //int CPUcycles[300] = {0};
     //int cpu_pnt = 0;
 
     //first, fill filter buffer
@@ -97,14 +101,14 @@ int main() {
       //store CPU Cycles
       CPUcycles[cpu_pnt] = get_cpu_cycles();
       cpu_pnt++;
-      if(cpu_pnt == 100) {
+      if(cpu_pnt == 300) {
           break;
       }
       */
     }
     /*
     //print CPU cycle time
-    for(int i=1; i<100; i++) {
+    for(int i=1; i<300; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
     */
