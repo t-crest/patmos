@@ -71,14 +71,36 @@ int main() {
   printf("output is %d, %d\n", y[0], y[1]);
   */
 
+  const float amount = 0.8;
+  const int K = ( (2*amount)/(1-amount) ) * pow(2,15);
+  const int KonePlus = ( (2*amount)/(1-amount) + 1 ) * pow(2,15);
+  printf("values: amount=%f, K=%d, KonePlus=%d\n", amount, K, KonePlus);
+
+  //CPU cycles stuff
+  int CPUcycles[300] = {0};
+  int cpu_pnt = 0;
 
   while(*keyReg != 3) {
       getInputBufferSPM(&x[0], &x[1]);
-      overdrive(CH_LENGTH, x, y, OD_THRESHOLD);
+      fuzz(CH_LENGTH, x, y, K, KonePlus);
+      //overdrive(CH_LENGTH, x, y, OD_THRESHOLD);
       //distortion(CH_LENGTH, MACLAURIN_ORDER_1MINUS, x, y);
+      //printf("for input %d, %d, output is %d, %d\n", x[0], x[1], y[0], y[1]);
       setOutputBuffer(y[0], y[1]);
+
+      //store CPU Cycles
+      CPUcycles[cpu_pnt] = get_cpu_cycles();
+      cpu_pnt++;
+      if(cpu_pnt == 300) {
+          break;
+      }
+
   }
 
+  //print CPU cycle time
+  for(int i=1; i<300; i++) {
+      printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+  }
 
   return 0;
 }

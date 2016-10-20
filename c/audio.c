@@ -511,6 +511,18 @@ int distortion(int CH_LENGTH, int MACLAURIN_ORDER_1MINUS, volatile _SPM short *x
     return 0;
 }
 
+int fuzz(int CH_LENGTH, volatile _SPM short *x, volatile _SPM short *y, const int K, const int KonePlus) {
+    int accum1, accum2;
+    for(int j=0; j<CH_LENGTH; j++) {
+        accum1 = (KonePlus * x[j]) >> 15;
+        accum2 = (K * abs(x[j])) >> 15;
+        accum2 = accum2 + ONE_16b;
+        y[j] = accum1 / accum2;
+    }
+
+    return 0;
+}
+
 int overdrive(int CH_LENGTH, volatile _SPM short *x, volatile _SPM short *y, short OVERDRIVE_THRESHOLD) {
     //input abs:
     unsigned int x_abs[CH_LENGTH];
