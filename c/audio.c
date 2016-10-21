@@ -6,7 +6,7 @@
 #include "audio.h"
 
 #ifndef ONE_16b
-#define ONE_16b 0x8000 //0x7FFF
+#define ONE_16b 0x7FFF
 #endif
 #ifndef Fs
 #define Fs 52083 // Hz
@@ -511,13 +511,27 @@ int distortion(int CH_LENGTH, int MACLAURIN_ORDER_1MINUS, volatile _SPM short *x
     return 0;
 }
 
-int fuzz(int CH_LENGTH, volatile _SPM short *x, volatile _SPM short *y, const int K, const int KonePlus) {
-    int accum1, accum2;
+int fuzz(int CH_LENGTH, volatile _SPM short *x, volatile _SPM short *y, const int K, const int KonePlus, const int shiftLeft) {
+    int accum1;
+    int accum2;
     for(int j=0; j<CH_LENGTH; j++) {
-        accum1 = (KonePlus * x[j]) >> 15;
+        //printf("input: %d (%f)\n", x[j], ((float)x[j]*pow(2, -15)));
+        accum1 = (KonePlus * x[j]);// >> 15;
+        //printf("1: accum 1: %d\n", accum1);
         accum2 = (K * abs(x[j])) >> 15;
-        accum2 = accum2 + ONE_16b;
-        y[j] = accum1 / accum2;
+        //printf("2: accum 2: %d\n", accum2);
+        accum2 = accum2 + ((ONE_16b+shiftLeft) >> shiftLeft);
+        //printf("3: accum 2: %d\n", accum2);
+        accum1 = accum1/accum2;
+        //printf("4: accum 1: %d\n", accum1);
+        //reduce if it is poisitive only
+        if (x[j] > 0) {
+            y[j] = accum1-  1;
+        }
+        else {
+            y[j] = accum1;
+        }
+        //printf("result: %d\n", y[j]);
     }
 
     return 0;

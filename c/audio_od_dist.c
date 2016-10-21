@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define ONE_16b 0x8000 //0x7FFF
+#define ONE_16b 0x7FFF
 
 #define OD_THRESHOLD 0x2AAB // set experimentally (usually 0x2AAB = ONE_16b * 1/3)
 
@@ -27,7 +27,7 @@ volatile _SPM short *y = (volatile _SPM short *) Y_ADDR; // output audio
 
 int main() {
 
-    setup(1); //for guitar
+    setup(1); // 1 for guitar
 
   // enable input and output
   *audioDacEnReg = 1;
@@ -71,36 +71,64 @@ int main() {
   printf("output is %d, %d\n", y[0], y[1]);
   */
 
-  const float amount = 0.8;
-  const int K = ( (2*amount)/(1-amount) ) * pow(2,15);
-  const int KonePlus = ( (2*amount)/(1-amount) + 1 ) * pow(2,15);
-  printf("values: amount=%f, K=%d, KonePlus=%d\n", amount, K, KonePlus);
+  const float amount = 0.9; //works with 0.77
+  int K_init = ( (2*amount)/(1-amount) ) * pow(2,15);
+  int shiftLeft = 0;
+  while(K_init > ONE_16b) {
+      shiftLeft++;
+      K_init = K_init >> 1;
+  }
+  const int K = K_init;
+  const int KonePlus = (int)( ( (2*amount)/(1-amount) + 1 ) * pow(2,15) ) >> shiftLeft;
+  printf("values: amount=%f, shiftLeft=%d, K=%d, KonePlus=%d\n", amount, shiftLeft, K, KonePlus);
+  const int shiftLeft_const = shiftLeft;
+
+  /*
+  x[0] = 0x0000;
+  x[1] = 0x0001;
+  fuzz(CH_LENGTH, x, y, K, KonePlus, shiftLeft);
+  printf("for inputs %d, %d, results are %d, %d\n", x[0], x[1], y[0], y[1]);
+  x[0] = 0x5555;
+  x[1] = 0x5566;
+  fuzz(CH_LENGTH, x, y, K, KonePlus, shiftLeft);
+  printf("for inputs %d, %d, results are %d, %d\n", x[0], x[1], y[0], y[1]);
+  x[0] = ONE_16b - 1;
+  x[1] = ONE_16b;
+  fuzz(CH_LENGTH, x, y, K, KonePlus, shiftLeft);
+  printf("for inputs %d, %d, results are %d, %d\n", x[0], x[1], y[0], y[1]);
+  x[0] = -(ONE_16b);
+  x[1] = -(ONE_16b+1);
+  fuzz(CH_LENGTH, x, y, K, KonePlus, shiftLeft);
+  printf("for inputs %d, %d, results are %d, %d\n", x[0], x[1], y[0], y[1]);
+  */
 
   //CPU cycles stuff
-  int CPUcycles[300] = {0};
-  int cpu_pnt = 0;
+  //int CPUcycles[300] = {0};
+  //int cpu_pnt = 0;
 
   while(*keyReg != 3) {
       getInputBufferSPM(&x[0], &x[1]);
-      fuzz(CH_LENGTH, x, y, K, KonePlus);
+      fuzz(CH_LENGTH, x, y, K, KonePlus, shiftLeft_const);
       //overdrive(CH_LENGTH, x, y, OD_THRESHOLD);
       //distortion(CH_LENGTH, MACLAURIN_ORDER_1MINUS, x, y);
       //printf("for input %d, %d, output is %d, %d\n", x[0], x[1], y[0], y[1]);
       setOutputBuffer(y[0], y[1]);
-
+      /*
       //store CPU Cycles
       CPUcycles[cpu_pnt] = get_cpu_cycles();
       cpu_pnt++;
       if(cpu_pnt == 300) {
           break;
       }
+      */
 
   }
-
+  /*
   //print CPU cycle time
   for(int i=1; i<300; i++) {
       printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
   }
+  */
 
   return 0;
 }
