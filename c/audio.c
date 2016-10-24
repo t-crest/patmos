@@ -441,19 +441,19 @@ int filter_coeff_hp_lp(int FILT_ORD_1PL, volatile _SPM short *B, volatile _SPM s
     return 0;
 }
 
-int iir_comb(int CH_LENGTH, int IIR_BUFF_LEN, int COMB_FILT_ORD_1PL, volatile _SPM int *pnt, volatile short (*iir_buffer)[CH_LENGTH], volatile _SPM short *y, volatile _SPM short *g, volatile _SPM int *del) {
+int iir_comb(volatile _SPM int *CH_LENGTH, volatile _SPM int *IIR_BUFF_LEN, volatile _SPM int *COMB_FILT_ORD_1PL, volatile _SPM int *pnt, volatile short (*iir_buffer)[(int)*CH_LENGTH], volatile _SPM short *y, volatile _SPM short *g, volatile _SPM int *del) {
     int iir_pnt; //pointer for iir_buffer
-    int accum[CH_LENGTH];
-    for(int j=0; j<CH_LENGTH; j++) {
+    int accum[*CH_LENGTH];
+    for(int j=0; j<*CH_LENGTH; j++) {
         accum[j] = 0;
     }
-    for(int i=0; i<COMB_FILT_ORD_1PL; i++) {
-        iir_pnt = (*pnt+del[i])%IIR_BUFF_LEN;
-        for(int j=0; j<CH_LENGTH; j++) {
+    for(int i=0; i<*COMB_FILT_ORD_1PL; i++) {
+        iir_pnt = (*pnt+del[i])%*IIR_BUFF_LEN;
+        for(int j=0; j<*CH_LENGTH; j++) {
             accum[j] += (g[i]*iir_buffer[iir_pnt][j]) >> 6;
         }
     }
-    for(int j=0; j<CH_LENGTH; j++) {
+    for(int j=0; j<*CH_LENGTH; j++) {
         if(accum[j] > 0x7FFFFF) {
             accum[j] = 0x7FFFFF;
         }
