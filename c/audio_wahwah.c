@@ -3,9 +3,9 @@
 #include <stdio.h>
 #include <math.h>
 
-#define ONE_16b 0x8000 //0x7FFF
+#define ONE_16b 0x7FFF
 
-#define BUFFER_SIZE 32
+#define BUFFER_SIZE 128
 
 #define Fs 52083 // Hz
 
@@ -20,9 +20,12 @@
 */
 
 #define WAHWAH_PERIOD 35000
-#define WAHWAH_FC_CEN 500
-#define WAHWAH_FC_AMP 200
+#define WAHWAH_FC_CEN 1000
+#define WAHWAH_FC_AMP 2000
 #define WAHWAH_FB     30
+
+#define DRY_GAIN ONE_16b * 0.3
+#define WET_GAIN ONE_16b * 0.8
 
 // LOCATION IN SCRATCHPAD MEMORY
 #define ACCUM_ADDR  0x00000000
@@ -61,7 +64,7 @@ short B_array[WAHWAH_PERIOD][FILTER_ORDER_1PLUS];
 
 int main() {
 
-    setup();
+    setup(1); //for guitar
 
     // enable input and output
     *audioDacEnReg = 1;
@@ -90,10 +93,16 @@ int main() {
     }
     printf("calculation of modulation coefficients finished!\n");
 
+    // enable input and output
+    *audioDacEnReg = 1;
+    *audioAdcEnReg = 1;
+
+    setInputBufferSize(BUFFER_SIZE);
+    setOutputBufferSize(BUFFER_SIZE);
 
     //CPU cycles stuff
-    //int CPUcycles[1000] = {0};
-    //int cpu_pnt = 0;
+    int CPUcycles[1000] = {0};
+    int cpu_pnt = 0;
 
     *wah_pnt = 0;
     //first, fill filter buffer
@@ -114,29 +123,27 @@ int main() {
         //first, read last sample
         getInputBufferSPM(&x_filter[*pnt][0], &x_filter[*pnt][1]);
         //then, calculate filter
-        filterIIR(FILTER_ORDER_1PLUS, pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
+        filterIIR_2nd(*pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
         //set output
         outputReg[0] = ( x_filter[*pnt][0] - y_filter[*pnt][0] ); // >> 1;
         outputReg[1] = ( x_filter[*pnt][1] - y_filter[*pnt][1] ); // >> 1;
-        //mix with original: gains are 50-50
-        outputReg[0] = (outputReg[0] + x_filter[*pnt][0]) >> 1;
-        outputReg[1] = (outputReg[1] + x_filter[*pnt][1]) >> 1;
+        //mix with original: gains are set by macros
+        outputReg[0] = ( (int)(WET_GAIN*outputReg[0]) >> 15 )  + ( (int)(DRY_GAIN*x_filter[*pnt][0]) >> 15 );
+        outputReg[1] = ( (int)(WET_GAIN*outputReg[1]) >> 15 )  + ( (int)(DRY_GAIN*x_filter[*pnt][1]) >> 15 );
         setOutputBuffer((short)outputReg[0], (short)outputReg[1]);
 
-        /*
         CPUcycles[cpu_pnt] = get_cpu_cycles();
         cpu_pnt++;
         if(cpu_pnt == 1000) {
             break;
         }
-        */
+
     }
 
-    /*
     for(int i=1; i<1000; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
-    */
+
 
     return 0;
 }

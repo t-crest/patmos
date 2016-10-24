@@ -77,13 +77,23 @@ int main() {
         // calculate all-pass filter coefficients
         filter_coeff_bp_br(FILTER_ORDER_1PLUS, B, A, 1000, 300, shiftLeft, 0);
         isBandPass = 1;
-        printf("Band-Pass ready, PLAY!\n");
+        if(FILTER_ORDER_1PLUS == 3) { // 2nd order
+            printf("Band-Pass ready, PLAY!\n");
+        }
+        else { //1st order
+            printf("High-Pass ready, PLAY!\n");
+        }
     }
     if(*keyReg == 13) { // BAND-REJECT
         // calculate all-pass filter coefficients
-        filter_coeff_bp_br(FILTER_ORDER_1PLUS, B, A, 1000, 2000, shiftLeft, 0);
+        filter_coeff_bp_br(FILTER_ORDER_1PLUS, B, A, 500, 2000, shiftLeft, 0);
         isBandPass = 0;
-        printf("Band-Reject ready, PLAY!\n");
+        if(FILTER_ORDER_1PLUS == 3) { // 2nd order
+            printf("Band-Reject ready, PLAY!\n");
+        }
+        else { // 1st order
+            printf("Low-Pass ready, PLAY!\n");
+        }
     }
 
     //CPU cycles stuff
