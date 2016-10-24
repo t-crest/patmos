@@ -3,9 +3,9 @@
 #include <stdio.h>
 #include <math.h>
 
-#define ONE_16b 0x8000 //0x7FFF
+#define ONE_16b 0x7FFF
 
-#define BUFFER_SIZE 32
+#define BUFFER_SIZE 128
 
 #define Fs 52083 // Hz
 
@@ -51,7 +51,7 @@ volatile _SPM int *outputReg       = (volatile _SPM int *)        OUTREG_ADDR; /
 
 int main() {
 
-    setup();
+    setup(0); //for volca
 
     // enable input and output
     *audioDacEnReg = 1;
@@ -63,8 +63,8 @@ int main() {
     //shift left amount starts at 0
     *shiftLeft = 0;
 
-    // calculate all-pass filter coefficients
-    filter_coeff_bp_br(FILTER_ORDER_1PLUS, B, A, 1000, 800, shiftLeft, 0);
+    printf("addresses at scratchpad mem: accum: 0x%x, B: 0x%x, A: 0x%x, x_filter: 0x%x, y_filter: 0x%x, pnt: 0x%x, shiftLeft: 0x%x, outputReg: 0x%x\n", (int)accum, (int)B, (int)A, (int)x_filter, (int)y_filter, (int)pnt, (int)shiftLeft, (int)outputReg);
+
     if(FILTER_ORDER_1PLUS == 2) { //1st order
         printf("Press KEY0 for high-pass filter, KEY1 for low-pass filter\n");
     }
@@ -74,11 +74,22 @@ int main() {
     int isBandPass;
     while(*keyReg == 15);
     if(*keyReg == 14) { // BAND-PASS
+        // calculate all-pass filter coefficients
+        filter_coeff_bp_br(FILTER_ORDER_1PLUS, B, A, 1000, 300, shiftLeft, 0);
         isBandPass = 1;
+        printf("Band-Pass ready, PLAY!\n");
     }
     if(*keyReg == 13) { // BAND-REJECT
+        // calculate all-pass filter coefficients
+        filter_coeff_bp_br(FILTER_ORDER_1PLUS, B, A, 1000, 2000, shiftLeft, 0);
         isBandPass = 0;
+        printf("Band-Reject ready, PLAY!\n");
     }
+
+    //CPU cycles stuff
+    //int CPUcycles[300] = {0};
+    //int cpu_pnt = 0;
+
     //first, fill filter buffer
     for(*pnt=0; *pnt<(FILTER_ORDER_1PLUS-1); *pnt++) {
         getInputBufferSPM(&x_filter[*pnt][0], &x_filter[*pnt][1]);
@@ -90,7 +101,12 @@ int main() {
         //first, read last sample
         getInputBufferSPM(&x_filter[*pnt][0], &x_filter[*pnt][1]);
         //then, calculate filter
-        filterIIR(FILTER_ORDER_1PLUS, pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
+        if(FILTER_ORDER_1PLUS == 2) { //1st order
+            filterIIR_1st(*pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
+        }
+        else { //2nd order
+            filterIIR_2nd(*pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
+        }
         //set output
         if(isBandPass == 1) {
             outputReg[0] = ( x_filter[*pnt][0] - y_filter[*pnt][0] ) >> 1;
@@ -101,7 +117,20 @@ int main() {
             outputReg[1] = ( x_filter[*pnt][1] + y_filter[*pnt][1] ) >> 1;
         }
         setOutputBuffer((short)outputReg[0], (short)outputReg[1]);
+        /*
+        //store CPU Cycles
+        CPUcycles[cpu_pnt] = get_cpu_cycles();
+        cpu_pnt++;
+        if(cpu_pnt == 300) {
+            break;
+        }
+        */
     }
-
+    /*
+    //print CPU cycle time
+    for(int i=1; i<300; i++) {
+        printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
+    }
+    */
     return 0;
 }

@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define ONE_16b 0x8000 //0x7FFF
+#define ONE_16b 0x7FFF
 
 #define BUFFER_SIZE 128
 #define AUDIO_RECORDING_SIZE 44100*2
@@ -14,11 +14,6 @@
 
 #include "audio.h"
 #include "audio.c"
-
-// MACROS
-//const int CH_LEN = 2;
-//const int AUDIO_RECORDING_SIZE = 88200;
-//const int FILTER_ORDER_1PLUS = 3;
 
 short x[AUDIO_RECORDING_SIZE][2] = {0}; //input
 short y[AUDIO_RECORDING_SIZE][2] = {0}; //output
@@ -80,8 +75,8 @@ int main() {
     }
 
     //CPU cycles stuff
-    int CPUcycles[300] = {0};
-    int cpu_pnt = 0;
+    //int CPUcycles[300] = {0};
+    //int cpu_pnt = 0;
 
     //first, fill filter buffer
     for(*pnt=0; *pnt<(FILTER_ORDER_1PLUS-1); *pnt++) {
@@ -94,24 +89,29 @@ int main() {
       //first, read last sample
       getInputBufferSPM(&x_filter[*pnt][0], &x_filter[*pnt][1]);
       //then, calculate filter
-      filterIIR(FILTER_ORDER_1PLUS, pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
+      if(FILTER_ORDER_1PLUS == 2) { //1st order
+          filterIIR_1st(*pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
+      }
+      else { //2nd order
+          filterIIR_2nd(*pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
+      }
       //set output
       setOutputBuffer(y_filter[*pnt][0], y_filter[*pnt][1]);
-
+      /*
       //store CPU Cycles
       CPUcycles[cpu_pnt] = get_cpu_cycles();
       cpu_pnt++;
       if(cpu_pnt == 300) {
           break;
       }
-
+      */
     }
-
+    /*
     //print CPU cycle time
     for(int i=1; i<300; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
-
+    */
   }
   if(*keyReg == 13) {
     printf("Recording...\n");
@@ -146,7 +146,12 @@ int main() {
       x_filter[*pnt][0] = x[x_pnt][0];
       x_filter[*pnt][1] = x[x_pnt][1];
       //then, calculate filter
-      filterIIR(FILTER_ORDER_1PLUS, pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
+      if(FILTER_ORDER_1PLUS == 2) { //1st order
+          filterIIR_1st(*pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
+      }
+      else { //2nd order
+          filterIIR_2nd(*pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
+      }
       //set output
       y[x_pnt][0] = y_filter[*pnt][0];
       y[x_pnt][1] = y_filter[*pnt][1];
