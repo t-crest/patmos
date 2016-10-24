@@ -60,7 +60,7 @@ namespace patmos
     std::istream &In_stream;
 
     /// Flag indicating whether the input stream is a tty.
-    /// When true, this disables the signaling of EOF when the stream's buffer 
+    /// When true, this disables the signaling of EOF when the stream's buffer
     /// becomes empty.
     bool IsTTY;
 
@@ -75,7 +75,7 @@ namespace patmos
 
     /// bit position of the transmit-ready bit (TRE).
     static const uword_t TRE = 0;
-    
+
   protected:
     /// A simulated access to the UART's status register.
     /// @param value A pointer to a destination to store the value read from
@@ -83,7 +83,7 @@ namespace patmos
     /// @return True when the data is available from the UART.
     virtual bool read_status(byte_t *value)
     {
-      // always accept data for transmission (TRE = 1), but data is only 
+      // always accept data for transmission (TRE = 1), but data is only
       // available when there is something in the stream (DAV=0 or 1).
       // when the input stream reaches the end-of-file (EOF), signal a parity
       // error, i.e., PAE = 1.
@@ -105,7 +105,7 @@ namespace patmos
     {
       return true;
     }
-    
+
     /// A simulated access to the UART's data register.
     /// @param value A pointer to a destination to store the value read from
     /// the UART.
@@ -115,7 +115,7 @@ namespace patmos
       In_stream.read(reinterpret_cast<char*>(value), sizeof(byte_t));
       std::streamsize num = In_stream.gcount();
       if (num == 0) return false;
-      
+
       assert(num == sizeof(byte_t));
       return true;
     }
@@ -176,7 +176,7 @@ namespace patmos
       return true;
     }
 
-    /// A simulated access to a read port. Does not update the device state or 
+    /// A simulated access to a read port. Does not update the device state or
     /// simulate timing, just reads the value.
     /// @param address The memory address to read from.
     /// @param value A pointer to a destination to store the value read from

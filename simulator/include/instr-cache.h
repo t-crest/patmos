@@ -43,7 +43,7 @@
 #include "simulation-core.h"
 
 namespace patmos
-{ 
+{
   /// Basic interface for instruction-caches implementations.
   class instr_cache_t
   {
@@ -85,16 +85,16 @@ namespace patmos
 
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
-    virtual void print_stats(const simulator_t &s, std::ostream &os, 
+    virtual void print_stats(const simulator_t &s, std::ostream &os,
                              const stats_options_t& options) = 0;
-    
+
     /// Reset statistics.
     virtual void reset_stats() = 0;
-    
+
     /// Flush the cache.
     virtual void flush_cache() = 0;
   };
-  
+
 
   class no_instr_cache_t : public instr_cache_t
   {
@@ -104,31 +104,31 @@ namespace patmos
 
     /// Number of words fetched so far for the current fetch request.
     uword_t Fetched;
-    
+
     /// Words fetched so far for the current fetch request.
     word_t Fetch_cache[NUM_SLOTS];
-    
+
     /// Was the current slot access a miss?
     bool Is_miss[NUM_SLOTS];
-    
+
     /// Number of fetch requests with only misses
     uint64_t Num_all_miss;
-    
+
     /// Number of fetch requests with a single miss in the first slot
     uint64_t Num_first_miss;
-    
+
     /// Number of fetch requests with a single miss not in the first slot
     uint64_t Num_succ_miss;
-    
+
     /// Number of fetch requests without misses
     uint64_t Num_hits;
-    
+
   public:
     /// Construct a new instruction cache instance.
     /// The memory passed to this cache is not owned by this cache and must be
     /// managed externally.
     /// @param memory The memory that is accessed through the cache.
-    no_instr_cache_t(memory_t &memory) 
+    no_instr_cache_t(memory_t &memory)
     : Memory(&memory), Fetched(0),
       Num_all_miss(0), Num_first_miss(0), Num_succ_miss(0), Num_hits(0)
     {
@@ -136,7 +136,7 @@ namespace patmos
         Is_miss[i] = false;
       }
     }
-    
+
     virtual void initialize(simulator_t &s, uword_t address) {}
 
     virtual bool fetch(simulator_t &s, uword_t base, uword_t address, word_t iw[NUM_SLOTS]);
@@ -144,20 +144,20 @@ namespace patmos
     virtual bool load_method(simulator_t &s, uword_t address, word_t offset);
 
     virtual bool is_available(simulator_t &s, uword_t address);
-    
+
     virtual void tick(simulator_t &s) {}
 
     virtual void print(const simulator_t &s, std::ostream &os) {}
 
     virtual void print_stats(const simulator_t &s, std::ostream &os,
                              const stats_options_t& options);
-    
+
     virtual void reset_stats();
-    
+
     virtual void flush_cache() {}
   };
-  
-  
+
+
   /// An instuction cache using a backing data cache.
   /// @param owning_cache set to true if this cache should own the given memory.
   template<bool IS_OWNING_CACHE>
@@ -166,11 +166,11 @@ namespace patmos
   private:
     /// The global memory or backing cache.
     data_cache_t *Backing_cache;
-    
+
   public:
     /// Construct a new instruction cache instance.
     /// @param memory The memory that is accessed through the cache.
-    instr_cache_wrapper_t(data_cache_t *data_cache) 
+    instr_cache_wrapper_t(data_cache_t *data_cache)
     : no_instr_cache_t(*data_cache), Backing_cache(data_cache)
     {
     }
@@ -186,7 +186,7 @@ namespace patmos
       if (IS_OWNING_CACHE) {
         Backing_cache->tick(s);
       }
-      
+
       no_instr_cache_t::tick(s);
     }
 
@@ -198,13 +198,13 @@ namespace patmos
         Backing_cache->print(s, os);
         os << "\n";
       }
-      
+
       no_instr_cache_t::print(s, os);;
     }
 
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
-    virtual void print_stats(const simulator_t &s, std::ostream &os, 
+    virtual void print_stats(const simulator_t &s, std::ostream &os,
                              const stats_options_t& options)
     {
       if (IS_OWNING_CACHE) {
@@ -214,14 +214,14 @@ namespace patmos
 
       no_instr_cache_t::print_stats(s, os, options);
     }
-    
+
     virtual void reset_stats() {
       if (IS_OWNING_CACHE) {
         Backing_cache->reset_stats();
       }
       no_instr_cache_t::reset_stats();
     }
-    
+
     virtual void flush_cache() {
       Backing_cache->flush_cache();
     }

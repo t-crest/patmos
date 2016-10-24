@@ -53,20 +53,20 @@ namespace patmos
   class symbol_map_t;
   class section_info_t;
 
-  class decoder_callback_t 
+  class decoder_callback_t
   {
   public:
-    
+
     /// Called when a bundle has been decoded.
     /// @param addr the current address of the bundle
     /// @param bundle the decoded bundle
     /// @param size the size of the bundle in operations, 0 if decoding failed.
     /// @param sym the symbol table
     /// @return 0 on success, anything else on error.
-    virtual int process_bundle(uword_t addr, instruction_data_t *bundle, 
+    virtual int process_bundle(uword_t addr, instruction_data_t *bundle,
                                unsigned slots, symbol_map_t &sym) = 0;
   };
-  
+
   /// Interface to decoder Patmos instructions.
   class decoder_t
   {
@@ -83,10 +83,10 @@ namespace patmos
 
     /// ID of the instruction used to encode NOPs
     static int NOP_ID;
-    
+
     /// Initialize the simulation functions and binary formats.
     static void initialize_instructions();
-    
+
     /// Decode a binary encoded instruction.
     /// @param iw The instruction word to decode.
     /// @param imm The optional long immediate operand.
@@ -115,24 +115,24 @@ namespace patmos
     /// @return 0 on success, or any error code returned by the callback handler
     int decode(loader_t &loader, section_info_t &section,
                symbol_map_t &sym, decoder_callback_t &cb);
-    
+
     /// Return the number of instructions known to the decoder.
     /// @return The number of instructions known to the decoder
     static unsigned int get_num_instructions()
     {
       return Instructions.size();
     }
-    
+
     /// Test if an instruction is a NOP instruction.
     bool is_NOP(instruction_data_t *data) const;
-    
+
     /// @return the ID of the instruction used for NOPs, i.e., SUBi.
     static unsigned int get_noop_id() { return NOP_ID; }
 
     /// Return instruction by ID.
     /// @return The instruction having the given ID.
     static instruction_t &get_instruction(int ID);
-  };  
+  };
 }
 
 #endif // PATMOS_DECODER_H

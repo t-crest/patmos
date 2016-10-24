@@ -63,13 +63,13 @@
 
 using namespace patmos;
 
-void ideal_memory_t::check_initialize_content(simulator_t &s, uword_t address, uword_t size, 
+void ideal_memory_t::check_initialize_content(simulator_t &s, uword_t address, uword_t size,
                                               bool is_read, bool ignore_errors)
 {
   // check if the access exceeds the memory size
   if((address > Memory_size) || (size > Memory_size - address))
   {
-    // We cannot quite ignore this one .. 
+    // We cannot quite ignore this one ..
     simulation_exception_t::unmapped(address);
   }
 
@@ -82,13 +82,13 @@ void ideal_memory_t::check_initialize_content(simulator_t &s, uword_t address, u
       Init_vector[Initialized_offset] = 0;
     }
   }
-  
+
   if (Init_vector && is_read) {
     // Read, check for uninitialized access
     if (!ignore_errors) {
-      uword_t top_addr = std::max(address, 
+      uword_t top_addr = std::max(address,
                                   std::min(Initialized_offset, address + size));
-      uword_t cnt = Initialized_offset < address + size ? 
+      uword_t cnt = Initialized_offset < address + size ?
                                          address + size - top_addr : 0;
       for (uword_t i = address; i < top_addr; i++) {
         if (!Init_vector[i]) {
@@ -96,7 +96,7 @@ void ideal_memory_t::check_initialize_content(simulator_t &s, uword_t address, u
         }
       }
 
-      bool chkaddr = (Mem_check == patmos::MCK_ERROR_ADDR || 
+      bool chkaddr = (Mem_check == patmos::MCK_ERROR_ADDR ||
                       Mem_check == patmos::MCK_WARN_ADDR);
       bool warn = (Mem_check == patmos::MCK_WARN ||
                    Mem_check == patmos::MCK_WARN_ADDR);
@@ -202,13 +202,13 @@ uword_t fixed_delay_memory_t::get_aligned_size(uword_t address, uword_t size,
 }
 
 unsigned int fixed_delay_memory_t::get_transfer_ticks(uword_t aligned_address,
-                                                      uword_t aligned_size, 
-                                                      bool is_load, 
-                                                      bool is_posted) 
+                                                      uword_t aligned_size,
+                                                      bool is_load,
+                                                      bool is_posted)
 {
-  unsigned int num_blocks = (((aligned_size-1) / Num_bytes_per_burst) + 1); 
+  unsigned int num_blocks = (((aligned_size-1) / Num_bytes_per_burst) + 1);
   unsigned int num_ticks = Num_ticks_per_burst * num_blocks;
-  
+
   if (is_load || !is_posted) {
     num_ticks += Num_read_delay_ticks;
   }
@@ -244,9 +244,9 @@ const request_info_t &fixed_delay_memory_t::find_or_create_request(simulator_t &
   // no matching request found, create a new one
   uword_t aligned_address;
   uword_t aligned_size = get_aligned_size(address, size, aligned_address);
-  unsigned int num_ticks = get_transfer_ticks(aligned_address, aligned_size, 
+  unsigned int num_ticks = get_transfer_ticks(aligned_address, aligned_size,
                                               is_load, is_posted);
-  
+
   request_info_t tmp = {address, size, is_load, is_posted, num_ticks};
   Requests.push_back(tmp);
 
@@ -267,7 +267,7 @@ const request_info_t &fixed_delay_memory_t::find_or_create_request(simulator_t &
   }
   Last_address = address + size;
   Last_is_load = is_load;
-  
+
   // calculate bucket for request size histogram
   uword_t hist_size = (((size - 1) / 4) + 1) * 4;
   request_size_map_t::iterator it = Num_requests_per_size.find(hist_size);
@@ -276,8 +276,8 @@ const request_info_t &fixed_delay_memory_t::find_or_create_request(simulator_t &
   } else {
     it->second++;
   }
-  
-  
+
+
   // return the newly created request
   return Requests.back();
 }
@@ -313,12 +313,12 @@ bool fixed_delay_memory_t::read(simulator_t &s, uword_t address, byte_t *value, 
 bool fixed_delay_memory_t::write(simulator_t &s, uword_t address, byte_t *value, uword_t size)
 {
   // To avoid delaying reads until the write has been stored to the queue,
-  // we just add it to the queue and delay later until the queue is small 
+  // we just add it to the queue and delay later until the queue is small
   // enough.
   bool posted = (Num_posted_writes > 0);
-  
+
   // get the request info
-  const request_info_t &req(find_or_create_request(s, address, size, false, 
+  const request_info_t &req(find_or_create_request(s, address, size, false,
                                                     posted));
 
   // check if the request has finished
@@ -378,7 +378,7 @@ void fixed_delay_memory_t::tick(simulator_t &s)
   {
     request_info_t &req = Requests.front();
     tick_request(req);
-    
+
     if (req.Num_ticks_remaining == 0 && req.Is_posted) {
       Requests.erase(Requests.begin());
     }
@@ -405,17 +405,17 @@ void fixed_delay_memory_t::print(const simulator_t &s, std::ostream &os) const
   }
 }
 
-void fixed_delay_memory_t::print_stats(const simulator_t &s, std::ostream &os, 
+void fixed_delay_memory_t::print_stats(const simulator_t &s, std::ostream &os,
                                        const stats_options_t& options)
 {
   uint64_t stall_cycles = Num_busy_cycles - Num_posted_write_cycles;
-  
+
   float cycles = s.Cycle;
   float stalls = (float)stall_cycles/cycles;
   float hidden = (float)Num_posted_write_cycles/cycles;
-  uint64_t total_bytes = Num_bytes_read_transferred + 
+  uint64_t total_bytes = Num_bytes_read_transferred +
                           Num_bytes_write_transferred;
-  
+
   os << boost::format("                                total  %% of cycles\n"
                       "   Max Queue Size        : %1$10d\n"
                       "   Consecutive Transfers : %2$10d\n"
@@ -424,34 +424,34 @@ void fixed_delay_memory_t::print_stats(const simulator_t &s, std::ostream &os,
                       "   Bytes transferred     : %5$10d\n"
                       "   Stall Cycles          : %6$10d %7$10.2f%%\n"
                       "   Hidden Write Cycles   : %8$10d %9$10.2f%%\n\n")
-    % Num_max_queue_size 
+    % Num_max_queue_size
     % Num_consecutive_requests
-    % (Num_reads + Num_writes) 
+    % (Num_reads + Num_writes)
     % (total_bytes / Num_bytes_per_burst)
     % total_bytes
     % stall_cycles % (stalls * 100.0)
     % Num_posted_write_cycles % (hidden * 100.0);
-  
+
   float read_pct = (float)Num_bytes_read / (float)total_bytes;
   float write_pct = (float)Num_bytes_written / (float)total_bytes;
   float read_trans_pct = (float)Num_bytes_read_transferred /
                           (float)total_bytes;
-  float write_trans_pct = (float)Num_bytes_write_transferred / 
+  float write_trans_pct = (float)Num_bytes_write_transferred /
                           (float)total_bytes;
-  
+
   os << boost::format("                                 Read                  Write\n"
                       "   Requests              : %1$10d             %2$10d\n"
                       "   Bytes Requested       : %3$10d %4$10.2f%% %5$10d %6$10.2f%%\n"
                       "   Bytes Transferred     : %7$10d %8$10.2f%% %9$10d %10$10.2f%%\n\n")
-    % Num_reads % Num_writes 
-    % Num_bytes_read % (read_pct * 100.0) 
+    % Num_reads % Num_writes
+    % Num_bytes_read % (read_pct * 100.0)
     % Num_bytes_written % (write_pct * 100.0)
     % Num_bytes_read_transferred % (read_trans_pct * 100.0)
     % Num_bytes_write_transferred % (write_trans_pct * 100.0);
-    
-  if (options.short_stats) 
+
+  if (options.short_stats)
     return;
-  
+
   os << "Request size    #requests\n";
   for (request_size_map_t::iterator it = Num_requests_per_size.begin(),
         ie = Num_requests_per_size.end(); it != ie; it++)
@@ -460,7 +460,7 @@ void fixed_delay_memory_t::print_stats(const simulator_t &s, std::ostream &os,
   }
 }
 
-void fixed_delay_memory_t::reset_stats() 
+void fixed_delay_memory_t::reset_stats()
 {
   Num_max_queue_size = 0;
   Num_consecutive_requests = 0;
@@ -477,21 +477,21 @@ void fixed_delay_memory_t::reset_stats()
 
 
 unsigned int variable_burst_memory_t::get_transfer_ticks(uword_t aligned_address,
-                                                         uword_t aligned_size, 
-                                                         bool is_load, 
+                                                         uword_t aligned_size,
+                                                         bool is_load,
                                                          bool is_posted)
 {
   unsigned int start_page = aligned_address / Num_bytes_per_page;
   unsigned int end_page = (aligned_address + aligned_size - 1) / Num_bytes_per_page;
   unsigned int num_pages = end_page - start_page + 1;
-  
-  // We assume that even variable sized requests are min_burst_length aligned, 
+
+  // We assume that even variable sized requests are min_burst_length aligned,
   // simplifying the hardware (note that the hardware does not actually
   // need to align anything though, it just needs to obey the timing requirements
   // and potentially not overlap read/write burst and precharge/activate).
   //
   // We could also just word-align in get_aligned_size(), then we need
-  // the following to calculate the correct request length that accounts for 
+  // the following to calculate the correct request length that accounts for
   // non-overlapping PRE and ACT:
   /*
   // We start at least min_burst bytes before the end of the first page
@@ -499,44 +499,44 @@ unsigned int variable_burst_memory_t::get_transfer_ticks(uword_t aligned_address
                                         (start_page + 1) * Num_bytes_per_page -
                                         Num_bytes_per_burst);
   // We end at least min_burst bytes after the start of the last page
-  unsigned int end_address = std::max(aligned_address + aligned_size, 
+  unsigned int end_address = std::max(aligned_address + aligned_size,
                                       end_page * Num_bytes_per_page +
                                       Num_bytes_per_burst);
-  
+
   // We transfer at least min_burst bytes if we do not span over multiple pages.
-  unsigned int length = std::min(end_address - start_address, 
+  unsigned int length = std::min(end_address - start_address,
                                  Num_bytes_per_burst);
   */
-  
+
   unsigned int length = aligned_size;
-  
+
   // Now, in every page, we transfer at least min_burst bytes, and have
   // exactly once the cost for min_burst transfer.
   // Note that if burst_size == page_size, this is the same as the fixed-delay
   // memory.
   unsigned num_ticks = num_pages * Num_ticks_per_burst;
   length -= num_pages * Num_bytes_per_burst;
-  
+
   // The rest of the bytes are transferred with one cycle per word.
   num_ticks += length / 4;
-  
+
   if (is_load || !is_posted) {
     num_ticks += Num_read_delay_ticks;
   }
 
-  return num_ticks;    
+  return num_ticks;
 }
 
 
 
-tdm_memory_t::tdm_memory_t(unsigned int memory_size, 
+tdm_memory_t::tdm_memory_t(unsigned int memory_size,
                            unsigned int num_bytes_per_burst,
                            unsigned int num_posted_writes,
                            unsigned int num_cores,
                            unsigned int cpu_id,
                            unsigned int num_ticks_per_burst,
                            unsigned int num_read_delay_ticks,
-                           unsigned int num_refresh_ticks_per_round, 
+                           unsigned int num_refresh_ticks_per_round,
                            bool randomize, mem_check_e memchk)
 : fixed_delay_memory_t(memory_size, num_bytes_per_burst, num_posted_writes,
   num_ticks_per_burst, num_read_delay_ticks, randomize, memchk),
@@ -544,20 +544,20 @@ tdm_memory_t::tdm_memory_t(unsigned int memory_size,
 {
   Round_length = num_cores * num_ticks_per_burst + num_refresh_ticks_per_round;
   Round_start  = cpu_id * num_ticks_per_burst;
-  
+
   if (num_ticks_per_burst + num_read_delay_ticks >= Round_length) {
-    std::cerr << 
+    std::cerr <<
            "Read delay too long; overlapping TDM requests are not supported.\n";
     abort();
   }
 }
 
 unsigned int tdm_memory_t::get_transfer_ticks(uword_t aligned_address,
-                                              uword_t aligned_size, 
+                                              uword_t aligned_size,
                                               bool is_load, bool is_posted)
 {
   unsigned int num_blocks = ((aligned_size - 1) / Num_bytes_per_burst) + 1;
-  
+
   // We are counting down TDM slots at round end instead of actual ticks.
   return num_blocks;
 }
@@ -571,7 +571,7 @@ void tdm_memory_t::tick_request(request_info_t &req)
   if (round_end >= Round_length) {
     round_end -= Round_length;
   }
-  
+
   // We are counting down TDM rounds
   if (round_end == Round_counter && Is_Transferring) {
     req.Num_ticks_remaining--;
@@ -581,18 +581,18 @@ void tdm_memory_t::tick_request(request_info_t &req)
 
 void tdm_memory_t::tick(simulator_t &s)
 {
-  // TODO can we start a transfer if it is requested in the same cycle the 
+  // TODO can we start a transfer if it is requested in the same cycle the
   // TDM slot starts? If so, move the counter update at the end.
   Round_counter = (Round_counter + 1) % Round_length;
-  
+
   // Check if we have outstanding requests at the beginning of a round
   if (Round_counter == Round_start) {
     // should have been sanity checked in constructor.
     assert(!Is_Transferring && "Overlapping transfers are not supported");
-    
+
     Is_Transferring = !Requests.empty();
   }
-  
+
   fixed_delay_memory_t::tick(s);
 }
 

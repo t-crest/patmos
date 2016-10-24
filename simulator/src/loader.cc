@@ -56,7 +56,7 @@ loader_t::loader_t(std::istream &is, bool elf)
 : Is_ELF(elf)
 {
   buf.reserve(1 << 20);
-  
+
   // read the whole stream.
   while (!is.eof())
   {
@@ -108,7 +108,7 @@ elf_loader_t::elf_loader_t(std::istream &is)
     std::cout << "readelf: unsupported architecture: ELF file is not a Patmos ELF file.\n";
     exit(1);
   }
-  
+
   // check class
   int ec = gelf_getclass(elf);
   if (ec != ELFCLASS32) {
@@ -168,7 +168,7 @@ void elf_loader_t::load_symbols(symbol_map_t &symbols, section_list_t &text)
         symbols.add(sym_info);
       }
     }
-    
+
     if (shdr.sh_flags & SHF_EXECINSTR) {
       text.push_back(section_info_t(shdr.sh_offset, shdr.sh_addr, shdr.sh_size));
     }
@@ -177,7 +177,7 @@ void elf_loader_t::load_symbols(symbol_map_t &symbols, section_list_t &text)
   // ensure that the symbol map is sorted.
   symbols.sort();
 }
-    
+
 void elf_loader_t::load_to_memory(simulator_t &s, memory_t &m)
 {
     // get program headers
@@ -216,7 +216,7 @@ void bin_loader_t::load_symbols(symbol_map_t &sym, section_list_t &text)
 {
   text.push_back(section_info_t(0, 0, buf.size()));
 }
-    
+
 void bin_loader_t::load_to_memory(simulator_t &s, memory_t &m)
 {
   m.write_peek(s, 0, reinterpret_cast<patmos::byte_t*>(&buf[0]), buf.size());

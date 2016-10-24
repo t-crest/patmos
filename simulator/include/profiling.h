@@ -46,7 +46,7 @@
 namespace patmos
 {
   struct stats_options_t;
-  
+
   /// Profiling information for functions.
   class profiling_t
   {
@@ -68,7 +68,7 @@ namespace patmos
       uword_t entry;
 
       typedef std::map<uword_t, prof_funcinfo_t> cycles_map_t;
-      
+
       /// cycles_map - Map of function addr -> cycle count.
       cycles_map_t cycles_map;
 
@@ -77,8 +77,8 @@ namespace patmos
 
       /// last_cycle - Value of the cycle counter on last update.
       uint64_t last_cycle;
-      
-      /// reset_cycle - Value of the cycle counter on last reset or 
+
+      /// reset_cycle - Value of the cycle counter on last reset or
       ///               initialization.
       uint64_t reset_cycle;
 
@@ -105,9 +105,9 @@ namespace patmos
 
       /// print - Print profiling information to a given stream, using
       /// given symbols.
-      std::ostream &print(std::ostream &os, symbol_map_t &sym, 
+      std::ostream &print(std::ostream &os, symbol_map_t &sym,
                           const stats_options_t& options) const;
-      
+
       void reset_stats(uint64_t cycle);
   };
 

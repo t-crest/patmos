@@ -42,12 +42,12 @@
 #include "symbol.h"
 #include "simulation-core.h"
 
-#include <algorithm> 
+#include <algorithm>
 
 namespace patmos
 {
   decoder_t::instructions_t decoder_t::Instructions;
-  
+
   int decoder_t::NOP_ID;
 
   decoder_t::decoder_t()
@@ -133,52 +133,52 @@ namespace patmos
     assert(false);
     abort();
   }
-  
+
   int decoder_t::decode(loader_t &loader, section_info_t &section,
                         symbol_map_t &sym, decoder_callback_t &cb)
   {
     patmos::word_t bundle[NUM_SLOTS];
     patmos::instruction_data_t id[NUM_SLOTS];
-    
+
     unsigned fetch = NUM_SLOTS;
 
     uword_t offset = section.offset;
     uword_t end = offset + section.size;
     uword_t addr = section.addr;
-    
+
     int ret = 0;
-    
+
     while (offset < end + 4) {
-        
+
       // read next bundle
       while (fetch)
       {
         for (unsigned i = 0; i < NUM_SLOTS - 1; i++) {
           bundle[i] = bundle[i+1];
         }
-        
+
         bundle[NUM_SLOTS-1] = offset < end ? loader.read_word(offset) : 0;
         offset += 4;
         fetch--;
       }
-      
-      // decode bundle        
+
+      // decode bundle
       int slots = decode(bundle, id);
-      
+
       if (slots == 0) {
         std::cerr << boost::format("Unknown instruction in bundle: "
                           "0x%1$08x: 0x%2$08x\n")
                           % addr % bundle[0];
       }
-      
+
       int rs = cb.process_bundle(addr, id, slots, sym);
       if (rs != 0) ret = rs;
-      
+
       fetch = std::max(1, slots);
-      
-      addr += fetch * 4;      
+
+      addr += fetch * 4;
     }
-    
+
     return ret;
   }
 
