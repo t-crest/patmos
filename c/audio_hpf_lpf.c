@@ -80,8 +80,8 @@ int main() {
     }
 
     //CPU cycles stuff
-    //int CPUcycles[300] = {0};
-    //int cpu_pnt = 0;
+    int CPUcycles[300] = {0};
+    int cpu_pnt = 0;
 
     //first, fill filter buffer
     for(*pnt=0; *pnt<(FILTER_ORDER_1PLUS-1); *pnt++) {
@@ -97,21 +97,21 @@ int main() {
       filterIIR(FILTER_ORDER_1PLUS, pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
       //set output
       setOutputBuffer(y_filter[*pnt][0], y_filter[*pnt][1]);
-      /*
+
       //store CPU Cycles
       CPUcycles[cpu_pnt] = get_cpu_cycles();
       cpu_pnt++;
       if(cpu_pnt == 300) {
           break;
       }
-      */
+
     }
-    /*
+
     //print CPU cycle time
     for(int i=1; i<300; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
-    */
+
   }
   if(*keyReg == 13) {
     printf("Recording...\n");

@@ -119,8 +119,8 @@ int main() {
     del[2] = 0; //always d0 = 0
 
     //CPU cycles stuff
-    //int CPUcycles[10000] = {0};
-    //int cpu_pnt = 0;
+    int CPUcycles[1000] = {0};
+    int cpu_pnt = 0;
 
     //sin array storage:
     int SIN1_PERIOD = 52083; // 1 second
@@ -185,22 +185,22 @@ int main() {
             *pnt = *pnt - 1;
         }
 
-        /*
+
         //store CPU Cycles
         CPUcycles[cpu_pnt] = get_cpu_cycles();
         cpu_pnt++;
-        if(cpu_pnt == 10000) {
+        if(cpu_pnt == 1000) {
             break;
         }
-        */
+
 
     }
 
-    /*
-    for(int i=1; i<10000; i++) {
+
+    for(int i=1; i<1000; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
-    */
+
 
 
     return 0;
