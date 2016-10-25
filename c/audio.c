@@ -309,6 +309,7 @@ int storeSin(int *sinArray, int SIZE, int OFFSET, int AMP) {
 }
 
 int checkRanges(int FILT_ORD_1PL, float *Bfl, float *Afl, volatile _SPM int *shiftLeft, int fixedShift) {
+    *shiftLeft = 0;
     //check for overflow if coefficients
     float maxVal = 0;
     for(int i=0; i<FILT_ORD_1PL; i++) {

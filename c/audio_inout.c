@@ -1,7 +1,16 @@
+const int NOC_MASTER = 0;
+#define CORETHREAD_INIT
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+#include <machine/patmos.h>
+#include "libnoc/noc.h"
+#include "libcorethread/corethread.h"
+#include <math.h>
 #include <machine/spm.h>
 #include <machine/rtc.h>
-#include <stdio.h>
-#include <math.h>
 #include "audio.h"
 #include "audio.c"
 
