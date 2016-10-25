@@ -17,7 +17,7 @@ int main() {
     short highest;
     highest = 0;
 
-    setup(1); //guitar?
+    setup(0); //guitar?
 
     setInputBufferSize(32);
     setOutputBufferSize(32);
