@@ -31,7 +31,7 @@
  */
 
 //
-// Helper to parse and print command-line options, e.g., for memory/cache sizes 
+// Helper to parse and print command-line options, e.g., for memory/cache sizes
 // using unit prefixes.
 //
 
@@ -81,7 +81,7 @@ namespace patmos
     DC_MISS,
     DC_ALL
   };
-  
+
   /// Parse a debug output format from a string in a stream
   /// @param in An input stream to read from.
   /// @param df The debug format.
@@ -248,13 +248,13 @@ namespace patmos
   /// @param os An output stream.
   /// @param bs The size in bytes.
   std::ostream &operator <<(std::ostream &os, const byte_size_t &bs);
-  
+
     /// Parsing addresses as command-line options.
   class address_t
   {
     private:
       unsigned int V;
-      
+
       std::string symbol;
 
     public:
@@ -267,14 +267,14 @@ namespace patmos
       void set_symbol(const std::string &sym) {
         symbol = sym;
       }
-      
+
       /// Return the value of the address object.
       /// @return The value of the address object.
       unsigned int value() const
       {
         return V;
       }
-      
+
       unsigned int parse(symbol_map_t &symbols)
       {
         if (V) return V;

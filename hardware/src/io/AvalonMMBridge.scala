@@ -55,7 +55,7 @@ object AvalonMMBridge extends DeviceObject {
   def init(params : Map[String, String]) = {
     extAddrWidth = getPosIntParam(params, "extAddrWidth")
     dataWidth = getPosIntParam(params, "dataWidth")
-    numIntrs = getPosIntParam(params, "numIntrs")
+    numIntrs = getIntParam(params, "numIntrs")
     bytesPerWord = dataWidth/bitsPerByte
   }
 

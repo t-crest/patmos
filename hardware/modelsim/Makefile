@@ -28,3 +28,30 @@ sim_de2-115-mc:
 	$(WINE) vcom -quiet +acc patmos_top_tb_sram16.vhd
 	$(WINE) vsim -i -do sim.do patmos_tb_sram16
 	
+sim_pat:
+	rm -rf work
+	$(WINE) vlib work
+	$(WINE) vlog -quiet +acc ../build/Patmos.v
+	$(WINE) vlog +acc ../quartus/altde2-115-mc/DOC_Axis_Periphs_patmos/synthesis/submodules/*.v
+	$(WINE) vcom +acc /uhome/rboso/rbosodata/altera/14.0/quartus/eda/sim_lib/altera_mf_components.vhd
+	$(WINE) vcom +acc /uhome/rboso/rbosodata/altera/14.0/quartus/eda/sim_lib/altera_mf.vhd
+	$(WINE) vsim -i -do sim.do work.altera_avalon_mm_clock_crossing_bridge work.Patmos
+
+
+sim_pat-mc:
+	rm -rf work
+	$(WINE) vlib work
+	$(WINE) vlog -quiet +acc ../build/Patmos.v
+	$(WINE) vcom -quiet +acc /uhome/rboso/rbosodata/altera/14.0/quartus/eda/sim_lib/altera_mf_components.vhd
+	$(WINE) vcom -quiet +acc /uhome/rboso/rbosodata/altera/14.0/quartus/eda/sim_lib/altera_mf.vhd
+	$(WINE) vlog +acc ../quartus/altde2-115-mc/DOC_Monitor/synthesis/submodules/*.v
+	$(WINE) vlog +acc ../quartus/altde2-115-mc/DOC_Monitor/synthesis/submodules/*.sv
+	$(WINE) vlog +acc ../quartus/altde2-115-mc/DOC_Axis_Periphs_patmos/synthesis/submodules/*.v
+	$(WINE) vlog +acc ../quartus/altde2-115-mc/DOC_Axis_Periphs_patmos/synthesis/submodules/*.sv
+	$(WINE) vcom +acc ../quartus/altde2-115-mc/DOC_Axis_Periphs_patmos/synthesis/submodules/*.vhd
+	$(WINE) vlog -quiet +acc ../quartus/altde2-115-mc/DEFINES_DE2115.v
+	$(WINE) vcom -quiet +acc -2008 ../vhdl/patmos_de2-115-mc.vhdl
+	$(WINE) vcom -quiet +acc -2008 altpll_patmos.vhd
+	$(WINE) vcom -quiet +acc -2008 ../quartus/altde2-115-mc/DOC_Axis_Periphs_patmos/synthesis/DOC_Axis_Periphs_patmos.vhd
+	$(WINE) vcom -quiet +acc -2008 ../quartus/altde2-115-mc/DOC_Monitor/synthesis/DOC_Monitor.vhd
+	$(WINE) vsim -novopt -i -t 1ns -do sim_pat-mc.do patmos_top

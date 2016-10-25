@@ -31,54 +31,87 @@
  */
 
 /*
- * Definitions for CMP boot loaders.
+ * A simple ISA simulator of Patmos. Constant definitions.
  * 
- * Author: Wolfgang Puffitsch (wpuffitsch@gmail.com)
- *
+ * Author: Martin Schoeberl (martin@jopdesign.com)
+ * 
+ * 
  */
 
-#ifndef _CMPBOOT_H_
-#define _CMPBOOT_H_
+package patsim
 
-#include <machine/patmos.h>
+/**
+ * Opcodes are 5 bit, Arithmetic short immediate use 3 of the 8 bits for
+ * for the function.
+ */
+object Opcode {
+  val AluImm = 0x00
+  val Alu = 0x08
+  val AluLongImm = 0x1f
+  val Branch = 0x13
+  val BranchCf = 0x15
+}
+/**
+ * The Opc field. Not sure if I like two opcode fields
+ */
+object OpcodeExt {
+  val AluReg = 0x00
+}
 
-#define MAX_CORES 64
+/**
+ * Function for an ALU operation
+ */
+object Function {
+  val ADD = 0x0
+  val SUB = 0x1
+  val XOR = 0x2
+  val SL = 0x3
+  val SR = 0x4
+  val SRA = 0x5
+  val OR = 0x6
+  val AND = 0x7
+  val NOR = 0xb
+  val SHADD = 0xc
+  val SHADD2 = 0xd
+}
+/**
+ * These constants could be shared between the hardware
+ * definition and the simulation.
+ */
+object Constants {
 
-#define STATUS_NULL     0
-#define STATUS_BOOT     1
-#define STATUS_INIT     2
-#define STATUS_INITDONE 3
-#define STATUS_RETURN   4
 
-#ifndef __ENTRYPOINT_T
-typedef volatile int (*entrypoint_t)(void);
-#define __ENTRYPOINT_T
-#endif
 
-#ifndef __FUNCPOINT_T
-typedef volatile void (*funcpoint_t)(void*);
-#define __FUNCPOINT_T
-#endif
+  // only two bits for immediate
+//  val OPCODE_ALUI = 0x0
+//
+//  val OPCODE_ALU = 0x08
+  val OPCODE_SPC = 0x09
+  val OPCODE_LDT = 0x0a
+  val OPCODE_STT = 0x0b
+  val OPCODE_STC = 0x0c
 
-struct master_info_t {  
-  volatile entrypoint_t entrypoint;
-  volatile int status;
-};
+//  val OPCODE_ALUL = 0x1f
 
-struct slave_info_t {
-  volatile funcpoint_t funcpoint;
-  volatile void* param;
-  volatile int return_val;
-  volatile int status;
-};
+  val OPCODE_CFL_LOW = 0x10
+  // opcode for control flow is 4 bits plus delayed bit
+  val CFLOP_CALL = 0x8
+  val CFLOP_BR = 0x9
+  val CFLOP_BRCF = 0xa
+  val CFLOP_TRAP = 0xb
+  val CFLOP_CFLR = 0xc
 
-struct boot_info_t {
-  struct master_info_t master;
-  struct slave_info_t slave[MAX_CORES];
-};
+  // additional field for ALU type instructions
+  val OPC_ALUR = 0x0
+  val OPC_ALUU = 0x1
+  val OPC_ALUM = 0x2
+  val OPC_ALUC = 0x3
+  val OPC_ALUP = 0x4
+  val OPC_ALUB = 0x5
+  val OPC_ALUCI = 0x6
 
-/* Place boot info at the beginning of the memory. Nothing else may be
-   placed there. */
-#define boot_info ((_UNCACHED struct boot_info_t *)0x00000010)
+  // special register handling
+  val OPC_MTS = 0x2
+  val OPC_MFS = 0x3
 
-#endif /* _CMPBOOT_H_ */
+}

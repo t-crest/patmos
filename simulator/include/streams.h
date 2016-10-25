@@ -42,7 +42,7 @@
 
 namespace patmos
 {
-  
+
   template< class T >
   struct StandardStream
   {
@@ -52,12 +52,12 @@ namespace patmos
   struct StandardStream< std::basic_istream<char> >
   {
     static std::istream *stream() { return &std::cin; }
-    
+
     static bool isIOStream(std::basic_istream<char> *stream) {
       return stream == &std::cin;
     }
   };
-  
+
   template<>
   struct StandardStream< std::basic_ostream<char> >
   {
@@ -68,7 +68,7 @@ namespace patmos
     }
   };
 
-    
+
   /// Open a file stream, or use the given default.
   /// @param str File name or "-".
   /// @param default_stream A default stream.
@@ -79,7 +79,7 @@ namespace patmos
   {
     if (str == "")
       return &default_stream;
-    else if (str == "-") 
+    else if (str == "-")
       return StandardStream<D>::stream();
     else
     {

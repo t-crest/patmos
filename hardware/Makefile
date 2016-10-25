@@ -1,7 +1,7 @@
 # Get the hardware build dir from the parent make
 HWBUILDDIR?=$(CURDIR)/build
 
-BOOTAPP?=basic
+BOOTAPP?=bootable-bootloader
 
 BOOTBUILDROOT?=$(CURDIR)/..
 BOOTBUILDDIR?=$(BOOTBUILDROOT)/tmp
@@ -9,6 +9,7 @@ BOOTBIN?=$(BOOTBUILDDIR)/$(BOOTAPP).bin
 BOOTDAT?=$(BOOTBUILDDIR)/$(BOOTAPP).dat
 
 BOARD?=altde2-115
+BOOTSPM_BASE?=0x00020000
 
 HWMODULEPREFIX?=
 
@@ -151,7 +152,7 @@ synth_ise: verilog
 # build the boot binary
 $(BOOTDAT): $(BOOTBIN)
 $(BOOTBIN): .FORCE
-	$(MAKE) -C $(BOOTBUILDROOT) BUILDDIR=$(BOOTBUILDDIR) $(BOOTBIN) $(BOOTDAT)
+	$(MAKE) -C $(BOOTBUILDROOT) BUILDDIR=$(BOOTBUILDDIR) BOOTSPM_BASE=$(BOOTSPM_BASE) $(BOOTBIN) $(BOOTDAT)
 
 # for module tests
 MODULE=example.FsmMain

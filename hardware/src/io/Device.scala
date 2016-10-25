@@ -78,6 +78,18 @@ abstract class DeviceObject() {
     }
     param
   }
+
+  def getBoolParam(params: Map[String, String], key: String) : Boolean = {
+    val param = getParam(params, key)
+    if (param == "true") {
+      true
+    }
+    else if(param == "false"){
+      false
+    } else {
+      throw new IllegalArgumentException("Parameter " + key + " must be either \"true\" or \"false\"")
+    }
+  }
 }
 
 abstract class Device() extends Module() {
@@ -95,6 +107,14 @@ class CoreDevice() extends Device() {
 
 class CoreDeviceIO() extends InternalIO() {
   val ocp = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
+}
+
+class IODevice() extends Device() {
+  override val io = new IODeviceIO()
+}
+
+class IODeviceIO() extends InternalIO() {
+  val ocp = new OcpIOSlavePort(ADDR_WIDTH, DATA_WIDTH)
 }
 
 class BurstDevice(addrBits: Int) extends Device() {

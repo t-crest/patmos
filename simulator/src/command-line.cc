@@ -104,7 +104,7 @@ namespace patmos
 
     return os;
   }
-  
+
   std::istream &operator >>(std::istream &in, debug_cache_e &dc)
   {
     std::string tmp, kind;
@@ -261,11 +261,11 @@ namespace patmos
         os << "dm"; break;
       case SAC_LRU:
         os << "lru";
-        if (dck.associativity) os << dck.associativity; 
+        if (dck.associativity) os << dck.associativity;
         break;
       case SAC_FIFO:
         os << "fifo";
-        if (dck.associativity) os << dck.associativity; 
+        if (dck.associativity) os << dck.associativity;
         break;
     }
 
@@ -474,20 +474,20 @@ namespace patmos
 
     return os;
   }
-  
+
   std::istream &operator >>(std::istream &in, address_t &a)
   {
     unsigned int v;
 
     std::string tmp;
     in >> tmp;
-    
+
     std::stringstream s;
     if (tmp.size() > 2 && tmp.substr(0, 2) == "0x") {
       s << std::hex << tmp.substr(2);
     } else if (tmp.size() > 1 && tmp.substr(0, 1) == "0") {
       // TODO this might be misleading!! warn about that
-      s << std::oct << tmp.substr(1);      
+      s << std::oct << tmp.substr(1);
     } else if (tmp[0] >= '0' && tmp[0] <= '9') {
       s << tmp;
     } else {
@@ -495,10 +495,10 @@ namespace patmos
       a.set_symbol(tmp);
       return in;
     }
-    
+
     s >> v;
     a = v;
-    
+
     return in;
   }
 
@@ -507,7 +507,7 @@ namespace patmos
     unsigned int v = a.value();
 
     os << boost::format("0x%1$x") % v;
-    
+
     return os;
   }
 }

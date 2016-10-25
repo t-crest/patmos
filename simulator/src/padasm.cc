@@ -52,14 +52,14 @@ class instruction_printer_t : public patmos::decoder_callback_t
 private:
   patmos::uword_t num_errors;
   std::ostream &out;
-  
+
 public:
   instruction_printer_t(std::ostream &out) : num_errors(0), out(out) {}
-  
+
   patmos::uword_t get_errors() { return num_errors; }
-  
-  virtual int process_bundle(patmos::uword_t addr, 
-                             patmos::instruction_data_t *bundle, 
+
+  virtual int process_bundle(patmos::uword_t addr,
+                             patmos::instruction_data_t *bundle,
                              unsigned slots, patmos::symbol_map_t &symbols)
   {
     if (slots == 0) {
@@ -71,10 +71,10 @@ public:
 
     for (unsigned int i = 0; i < slots; i++) {
       if (i > 0) out << " || ";
-      bundle[i].print(out, symbols);  
+      bundle[i].print(out, symbols);
     }
     out << ";\n";
-    
+
     return 0;
   }
 };
@@ -87,7 +87,7 @@ int main(int argc, char **argv)
 
   patmos::uword_t words = 0;
   int retcode = 0;
-    
+
   // check arguments
   if (argc != 3)
   {
@@ -106,21 +106,21 @@ int main(int argc, char **argv)
 
     patmos::decoder_t decoder;
     instruction_printer_t printer(out);
-    
-    for (patmos::section_list_t::iterator t = text.begin(), te = text.end(); 
+
+    for (patmos::section_list_t::iterator t = text.begin(), te = text.end();
          t != te; t++)
     {
       int rc = decoder.decode(*loader, *t, symbols, printer);
       if (rc != 0) retcode = rc;
       words += t->size;
     }
-    
+
     // some status messages
     std::cerr << boost::format("Disassembled: %1% words\nErrors : %2%\n")
               % words % printer.get_errors();
 
     delete loader;
-              
+
     // free streams
     patmos::free_stream(&in);
     patmos::free_stream(&out);

@@ -102,11 +102,11 @@ namespace patmos
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void print_stats(const simulator_t &s, std::ostream &os, 
+    virtual void print_stats(const simulator_t &s, std::ostream &os,
                              const stats_options_t& options);
-    
+
     virtual void reset_stats() {}
-    
+
     virtual void flush_cache() {}
   };
 
@@ -127,25 +127,25 @@ namespace patmos
   public:
     /// Number of bytes transferred for this method.
     unsigned int Num_method_bytes;
-    
+
     /// Number of blocks required for this method.
     unsigned int Num_blocks_allocated;
-    
+
     /// Number of cache hits for the method.
     offset_stats_t Accesses;
 
     /// Minimum utilization of the cache entry for this method in words.
     float Min_utilization;
-    
+
     /// Maximum utilization of the cache entry for this method in words.
     float Max_utilization;
 
     /// Keep track how often this method was evicted by some other method.
     eviction_stats_t Evictions;
-    
+
     /// Initialize the method statistics.
     method_stats_info_t() : Num_method_bytes(0), Num_blocks_allocated(0),
-      Min_utilization(std::numeric_limits<float>::max()), 
+      Min_utilization(std::numeric_limits<float>::max()),
       Max_utilization(0)
     {
     }
@@ -183,10 +183,10 @@ namespace patmos
       uword_t Num_bytes;
 
       std::vector<bool> Utilization;
-      
+
       /// Construct a method lru info object. All data is initialized to zero.
       /// @param instructions Pointer to the method's instructions.
-      method_info_t() 
+      method_info_t()
       : Address(0), Num_blocks(0), Num_bytes(0)
       {
       }
@@ -197,9 +197,9 @@ namespace patmos
       /// @param num_bytes The number of valid instruction bytes of the method.
       void update(uword_t address, uword_t num_blocks,
                   uword_t num_bytes);
-      
+
       void reset_utilization();
-      
+
       unsigned int get_utilized_bytes();
     };
 
@@ -217,7 +217,7 @@ namespace patmos
 
     /// Maximum number of active functions allowed in the cache.
     unsigned int Num_max_methods;
-    
+
     /// Currently active phase to fetch a method from memory.
     phase_e Phase;
 
@@ -255,10 +255,10 @@ namespace patmos
 
     /// Number of bytes fetched from the cache.
     unsigned int Num_bytes_fetched;
-    
+
     /// Maximum number of methods allocated in the cache.
     unsigned int Num_max_active_methods;
-    
+
     /// Number of cache hits.
     unsigned int Num_hits;
 
@@ -279,13 +279,13 @@ namespace patmos
 
     /// Number of bytes used in evicted methods.
     unsigned int Num_bytes_utilized;
-    
+
     /// Total Number of blocks evicted but not immediately allocated.
     unsigned int Num_blocks_freed;
-    
+
     /// Maximum number of blocks evicted but not immediately allocated.
     unsigned int Max_blocks_freed;
-    
+
     /// Cache statistics of individual method.
     method_stats_t Method_stats;
 
@@ -305,23 +305,23 @@ namespace patmos
 
     virtual size_t get_active_method() const;
 
-    void print_cache_state(simulator_t &s, std::ostream &dout, 
+    void print_cache_state(simulator_t &s, std::ostream &dout,
                            size_t active_method) const;
-    
+
     void print_hit(simulator_t &s, std::ostream &dout, uword_t address) const;
-    
+
     void print_miss(simulator_t &s, std::ostream &dout, uword_t address,
-                    uword_t evicted_methods, uword_t evicted_blocks, 
+                    uword_t evicted_methods, uword_t evicted_blocks,
                     uword_t blocks_freed, bool capacity_miss) const;
-    
+
     enum eviction_type_e { EVICT_CAPACITY, EVICT_TAG, EVICT_FLUSH };
-    
+
     /// Evict a given method, updating the cache state, and various statics.
     /// Also updates the utilization stats.
     /// @param method The method to be evicted.
     /// @param new_method the address of the new method causing the eviction
     /// @param capacity_miss true if the method is evicted due to a capacity miss
-    void update_evict_stats(method_info_t &method, uword_t new_method, 
+    void update_evict_stats(method_info_t &method, uword_t new_method,
                                  eviction_type_e type);
 
     bool read_function_size(simulator_t &s, word_t function_base, uword_t *result_size);
@@ -331,17 +331,17 @@ namespace patmos
     uword_t get_num_blocks_for_bytes(uword_t num_bytes);
 
     uword_t get_transfer_start(uword_t address);
-    
+
     uword_t get_transfer_size();
-    
+
   public:
     /// Construct an LRU-based method cache.
     /// @param memory The memory to fetch instructions from on a cache miss.
     /// @param num_blocks The size of the cache in blocks.
     /// @param num_block_bytes The size of a single block in bytes
     /// @param max_active_methods The max number of active methods
-    lru_method_cache_t(memory_t &memory, unsigned int num_blocks, 
-                       unsigned int num_block_bytes, 
+    lru_method_cache_t(memory_t &memory, unsigned int num_blocks,
+                       unsigned int num_block_bytes,
                        unsigned int max_active_methods = 0);
 
     /// Initialize the cache before executing the first instruction.
@@ -381,13 +381,13 @@ namespace patmos
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
     /// @param symbols A mapping of addresses to symbols.
-    virtual void print_stats(const simulator_t &s, std::ostream &os, 
+    virtual void print_stats(const simulator_t &s, std::ostream &os,
                              const stats_options_t& options);
 
     virtual void reset_stats();
-    
+
     virtual void flush_cache();
-    
+
     /// free dynamically allocated cache memory.
     virtual ~lru_method_cache_t();
   };
@@ -407,7 +407,7 @@ namespace patmos
     virtual bool lookup(simulator_t &s, uword_t address);
 
     virtual size_t get_active_method() const;
-    
+
   public:
 
     /// Construct an FIFO-based method cache.
@@ -415,10 +415,10 @@ namespace patmos
     /// @param num_blocks The size of the cache in blocks.
     /// @param num_block_bytes The size of a single block in bytes
     /// @param max_active_methods The max number of active methods
-    fifo_method_cache_t(memory_t &memory, unsigned int num_blocks, 
+    fifo_method_cache_t(memory_t &memory, unsigned int num_blocks,
                         unsigned int num_block_bytes,
                         unsigned int max_active_methods = 0) :
-        lru_method_cache_t(memory, num_blocks, num_block_bytes, 
+        lru_method_cache_t(memory, num_blocks, num_block_bytes,
                            max_active_methods)
     {
 	active_method = base_t::Num_blocks - 1;
@@ -442,7 +442,7 @@ namespace patmos
     virtual bool fetch(simulator_t &s, uword_t base, uword_t address, word_t iw[2]);
 
     virtual void flush_cache();
-    
+
   };
 }
 

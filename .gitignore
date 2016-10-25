@@ -12,14 +12,22 @@ tmp/
 simulator/build
 install/
 doc/c_doc
+hardware/modelsim/work/
 
 hardware/quartus/altde2-115/db
 hardware/quartus/altde2-115/incremental_db
+hardware/quartus/altde2-115-mc
 
 *_summary.xml
 *_usage.xml
 *_pn.xml
 
+*.fdb_latexmk
+*.pof
+*.sld
+*.fls
+*.mti
+*.mpf
 *.bld
 *.cmd_log
 *.ncd
@@ -45,6 +53,14 @@ hardware/quartus/altde2-115/incremental_db
 *.pin
 *.rpt
 *.smsg
+*.orig
+*.i
+*.o
+*.old
+*.ini
+*.out
+*.tmp
+*.jdi
 
 # Ignore LaTeX temp files
 doc/**/*.aux

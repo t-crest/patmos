@@ -46,7 +46,7 @@ namespace patmos
   {
   public:
     virtual ~data_cache_t() {}
-    
+
     virtual void flush_cache() = 0;
   };
 
@@ -131,14 +131,14 @@ namespace patmos
 
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
-    virtual void print_stats(const simulator_t &s, std::ostream &os, 
+    virtual void print_stats(const simulator_t &s, std::ostream &os,
                              const stats_options_t& options)
     {
       // nothing to be done here
     }
-    
+
     virtual void reset_stats() {}
-    
+
     virtual void flush_cache() {}
   };
 
@@ -224,7 +224,7 @@ namespace patmos
 
     /// Number of stall cycles caused by method cache misses.
     unsigned int Num_stall_cycles;
-    
+
     /// Number of cache read hits
     unsigned int Num_read_hits;
 
@@ -258,8 +258,8 @@ namespace patmos
     /// Construct a new data cache instance.
     /// @param memory The memory that is accessed through the cache.
     /// @param num_blocks The size of the cache in blocks.
-    set_assoc_data_cache_t(memory_t &memory, unsigned int associativity, 
-                           unsigned int num_blocks, 
+    set_assoc_data_cache_t(memory_t &memory, unsigned int associativity,
+                           unsigned int num_blocks,
                            unsigned int num_block_bytes);
 
     virtual ~set_assoc_data_cache_t();
@@ -291,7 +291,7 @@ namespace patmos
 
     /// Print statistics to an output stream.
     /// @param os The output stream to print to.
-    virtual void print_stats(const simulator_t &s, std::ostream &os, 
+    virtual void print_stats(const simulator_t &s, std::ostream &os,
                              const stats_options_t& options);
 
     virtual void reset_stats();

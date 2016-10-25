@@ -51,8 +51,8 @@ namespace patmos
 {
 
   dbgstack_t::dbgstack_frame_t::
-  dbgstack_frame_t(simulator_t &sim, uword_t ret_base, uword_t ret_offset, 
-                   uword_t func) 
+  dbgstack_frame_t(simulator_t &sim, uword_t ret_base, uword_t ret_offset,
+                   uword_t func)
    : function(func), ret_base(ret_base), ret_offs(ret_offset),
      print_stats(false)
   {
@@ -69,7 +69,7 @@ namespace patmos
     print_function = address;
     debug_out = &dbg;
   }
-  
+
   void dbgstack_t::initialize(uword_t entry)
   {
     push(0, 0, entry);
@@ -82,20 +82,20 @@ namespace patmos
 
   bool dbgstack_t::is_printing() const
   {
-    return found_print_function || 
-           print_function == std::numeric_limits<unsigned int>::max(); 
+    return found_print_function ||
+           print_function == std::numeric_limits<unsigned int>::max();
   }
 
   bool dbgstack_t::is_active_frame(const dbgstack_frame_t &frame) const
   {
     // TODO this might break if the stack pointers are modified in the delay
     //      slots (?)
-    
+
     // check if the frame stack pointers are below the current pointers
     if (frame.caller_tos_shadowstack < (uword_t)sim.GPR.get(rsp).get()) {
 #ifdef DEBUG
-      std::cerr << "\nWrong stadowstack: " 
-                << frame.caller_tos_shadowstack << " < " 
+      std::cerr << "\nWrong stadowstack: "
+                << frame.caller_tos_shadowstack << " < "
                 << sim.GPR.get(rsp).get() << "\n";
 #endif
       // we are currently further down the shadow stack
@@ -105,20 +105,20 @@ namespace patmos
     // *not* the TOS address.
     if (frame.caller_tos_stackcache > sim.Stack_cache.size()) {
 #ifdef DEBUG
-      std::cerr << "\nWrong stackcache: " << frame.caller_tos_stackcache 
+      std::cerr << "\nWrong stackcache: " << frame.caller_tos_stackcache
                 << " > " << sim.Stack_cache.size() << "\n";
 #endif
       // At the moment we do not take a changed stack size as a hint for a
       // change of the active frame, to support debugging of context switching
-      // interrupt handlers. This is more common than frame changes due to 
+      // interrupt handlers. This is more common than frame changes due to
       // longjmps.
       //return false;
     }
 #ifdef DEBUG
     if (!(frame.function == sim.BASE ||
-              sim.Symbols.covers(frame.function, sim.BASE))) 
+              sim.Symbols.covers(frame.function, sim.BASE)))
     {
-      std::cerr << "\nWrong function base: " << std::hex << frame.function 
+      std::cerr << "\nWrong function base: " << std::hex << frame.function
                 << ", base: " << sim.BASE << std::dec << "\n";
     }
 #endif
@@ -147,9 +147,9 @@ namespace patmos
     }
     // Create a new stack frame
     stack.push_back( dbgstack_frame_t(sim, base, offset, target) );
-    
+
     if (target == print_function && !found_print_function) {
-      // TODO this should be moved into a separate class, managing stats 
+      // TODO this should be moved into a separate class, managing stats
       //      printing with multiple targets, ..
       // TODO should we print the stats up to here?
       sim.reset_stats();
@@ -166,9 +166,9 @@ namespace patmos
     // check if we are truly returning,
     // otherwise do not pop ... yet (if this is a longjmp)
     dbgstack_frame_t &frame = stack.back();
-    
+
     if (frame.ret_base == return_base &&
-        frame.ret_offs == return_offset) 
+        frame.ret_offs == return_offset)
     {
       if (frame.print_stats) {
         sim.print_stats(*debug_out, stats_options);
@@ -177,7 +177,7 @@ namespace patmos
       stack.pop_back();
     } else {
 #ifdef DEBUG
-      std::cerr << "\nWRONG RETURN FRAME: base " << std::hex << frame.ret_base 
+      std::cerr << "\nWRONG RETURN FRAME: base " << std::hex << frame.ret_base
                 << " != " << return_base << " or offset " << frame.ret_offs
                 << " != " << return_offset << std::dec << "\n";
 #endif

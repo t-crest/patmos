@@ -363,7 +363,7 @@ class ExecuteIO() extends Bundle() {
 
 class InOutIO() extends Bundle() {
   val memInOut = new OcpCoreSlavePort(ADDR_WIDTH, DATA_WIDTH)
-  val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
+  val comConf = new OcpNIMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val excInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val mmuInOut = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
@@ -484,13 +484,13 @@ class MMUIO() extends Bundle() {
 
 class PatmosCoreIO() extends Bundle() {
   val superMode = Bool(OUTPUT)
-  val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
+  val comConf = new OcpNIMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val memPort = new OcpBurstMasterPort(EXTMEM_ADDR_WIDTH, DATA_WIDTH, BURST_LENGTH)
 }
 
 class PatmosIO() extends Bundle() {
-  val comConf = new OcpIOMasterPort(ADDR_WIDTH, DATA_WIDTH)
+  val comConf = new OcpNIMasterPort(ADDR_WIDTH, DATA_WIDTH)
   val comSpm = new OcpCoreMasterPort(ADDR_WIDTH, DATA_WIDTH)
 }
 
