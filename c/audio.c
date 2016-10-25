@@ -323,7 +323,9 @@ int storeSin(int *sinArray, int SIZE, int OFFSET, int AMP) {
 }
 
 int checkRanges(int FILT_ORD_1PL, float *Bfl, float *Afl, volatile _SPM int *shiftLeft, int fixedShift) {
-    *shiftLeft = 0;
+    if(!fixedShift) {
+        *shiftLeft = 0;
+    }
     //check for overflow if coefficients
     float maxVal = 0;
     for(int i=0; i<FILT_ORD_1PL; i++) {
@@ -543,10 +545,10 @@ int combFilter_1st(int FIR_BUFF_LEN, volatile _SPM int *pnt, volatile short (*fi
 //from 1/2! to 1/8!, represented as Q.15
 const short MCLAURIN_FACTOR[7] = { 0x4000, 0x1555, 0x555, 0x111, 0x2d, 0x6, 0x1};
 
-int distortion(int CH_LENGTH, int MACLAURIN_ORDER_1MINUS, volatile _SPM short *x, volatile _SPM short *y) {
+int distortion(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int *accum) {
     int neg;
     if(x[0] > 0) {
-        for(int j=0; j<CH_LENGTH; j++) {
+        for(int j=0; j<2; j++) {
             x[j] = -x[j];
         }
         neg = 0;
@@ -555,14 +557,13 @@ int distortion(int CH_LENGTH, int MACLAURIN_ORDER_1MINUS, volatile _SPM short *x
         neg = 1;
     }
     // calculate maclaurin series
-    short x_pow[CH_LENGTH];
-    int accum[CH_LENGTH];
-    for(int j=0; j<CH_LENGTH; j++) {
+    short x_pow[2];
+    for(int j=0; j<2; j++) {
         //before: initialise to first value:
         x_pow[j] = x[j];
         accum[j] = -x[j];
         //after that, rest of values:
-        for(int i=0; i<MACLAURIN_ORDER_1MINUS; i++) {
+        for(int i=0; i<5; i++) { // 5 for MacLaurin order 6
             //increase power, divide by factor
             x_pow[j] = (x_pow[j] * x[j]) >> 15;
             accum[j] -= (x_pow[j] * MCLAURIN_FACTOR[i]) >> 15;
@@ -579,38 +580,33 @@ int distortion(int CH_LENGTH, int MACLAURIN_ORDER_1MINUS, volatile _SPM short *x
     return 0;
 }
 
-int fuzz(int CH_LENGTH, volatile _SPM short *x, volatile _SPM short *y, const int K, const int KonePlus, const int shiftLeft) {
+int fuzz(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int *accum, const int K, const int KonePlus, const int shiftLeft) {
     int accum1;
     int accum2;
-    for(int j=0; j<CH_LENGTH; j++) {
-        //printf("input: %d (%f)\n", x[j], ((float)x[j]*pow(2, -15)));
-        accum1 = (KonePlus * x[j]);// >> 15;
-        //printf("1: accum 1: %d\n", accum1);
-        accum2 = (K * abs(x[j])) >> 15;
-        //printf("2: accum 2: %d\n", accum2);
-        accum2 = accum2 + ((ONE_16b+shiftLeft) >> shiftLeft);
-        //printf("3: accum 2: %d\n", accum2);
-        accum1 = accum1/accum2;
-        //printf("4: accum 1: %d\n", accum1);
+    for(int j=0; j<2; j++) {
+        accum[0] = (KonePlus * x[j]);// >> 15;
+        accum[1] = (K * abs(x[j])) >> 15;
+        accum[1] = accum[1] + ((ONE_16b+shiftLeft) >> shiftLeft);
+        accum[0] = accum[0]/accum[1];
         //reduce if it is poisitive only
         if (x[j] > 0) {
-            y[j] = accum1-  1;
+            y[j] = accum[0] - 1;
         }
         else {
-            y[j] = accum1;
+            y[j] = accum[0];
         }
-        //printf("result: %d\n", y[j]);
     }
 
     return 0;
 }
 
-int overdrive(int CH_LENGTH, volatile _SPM short *x, volatile _SPM short *y, short OVERDRIVE_THRESHOLD) {
+int overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int *accum) {
+    //THRESHOLD IS 1/3 = 0x2AAB
     //input abs:
-    unsigned int x_abs[CH_LENGTH];
-    for(int j=0; j<CH_LENGTH; j++) {
+    unsigned int x_abs[2];
+    for(int j=0; j<2; j++) {
         x_abs[j] = abs(x[j]);
-        if(x_abs[j] > (2 * OVERDRIVE_THRESHOLD)) { // saturation : y = 1
+        if(x_abs[j] > (2 * 0x2AAB)) { // saturation : y = 1
             if (x[j] > 0) {
                 y[j] = 0x7FFF;
             }
@@ -619,18 +615,17 @@ int overdrive(int CH_LENGTH, volatile _SPM short *x, volatile _SPM short *y, sho
             }
         }
         else {
-            if(x_abs[j] > OVERDRIVE_THRESHOLD) { // smooth overdrive: y = ( 3 - (2-3*x)^2 ) / 3;
-                int accum;
-                accum = (0x17FFF * x_abs[j]) >> 15 ; // result is 1 sign + 17 bits
-                accum = 0xFFFF - accum;
-                accum = (accum * accum) >> 15;
-                accum = 0x17FFF - accum;
-                accum = (accum * 0x2AAB) >> 15;
+            if(x_abs[j] > 0x2AAB) { // smooth overdrive: y = ( 3 - (2-3*x)^2 ) / 3;
+                accum[j] = (0x17FFF * x_abs[j]) >> 15 ; // result is 1 sign + 17 bits
+                accum[j] = 0xFFFF - accum[j];
+                accum[j] = (accum[j] * accum[j]) >> 15;
+                accum[j] = 0x17FFF - accum[j];
+                accum[j] = (accum[j] * 0x2AAB) >> 15;
                 if(x[j] > 0) { //positive
-                    y[j] = accum;
+                    y[j] = accum[j];
                 }
                 else { // negative
-                    y[j] = -accum;
+                    y[j] = -accum[j];
                 }
             }
             else { // linear zone: y = 2*x

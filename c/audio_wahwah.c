@@ -19,10 +19,12 @@
      -SIN Modulation of Fc of BandPass filter (B and A coefficients)
 */
 
+//taken from crybaby example (more or less):
 #define WAHWAH_PERIOD 35000
-#define WAHWAH_FC_CEN 500
-#define WAHWAH_FC_AMP 200
-#define WAHWAH_FB     30
+#define WAHWAH_FC_CEN 1200
+#define WAHWAH_FC_AMP 900
+#define WAHWAH_FB_CEN 330
+#define WAHWAH_FB_AMP 300
 
 // LOCATION IN SCRATCHPAD MEMORY
 #define ACCUM_ADDR  0x00000000
@@ -54,14 +56,18 @@ volatile _SPM int *outputReg       = (volatile _SPM int *)        OUTREG_ADDR; /
 volatile _SPM int *wah_pnt         = (volatile _SPM int *)        WAHPNT_ADDR; // pointer for modulation array
 // array of center frequencies
 int FcArray[WAHWAH_PERIOD];
+int FbArray[WAHWAH_PERIOD];
 // array of coefficients
 short A_array[WAHWAH_PERIOD][FILTER_ORDER_1PLUS];
 short B_array[WAHWAH_PERIOD][FILTER_ORDER_1PLUS];
 
+const int DRY_GAIN = ONE_16b * 0.2;
+const int WET_GAIN = ONE_16b * 0.8;
+
 
 int main() {
 
-    setup(0);
+    setup(1);
 
     // enable input and output
     *audioDacEnReg = 1;
@@ -77,11 +83,12 @@ int main() {
     printf("calculating Fc modulation array...\n");
     //calculate sin array of FCs
     storeSin(FcArray, WAHWAH_PERIOD, WAHWAH_FC_CEN, WAHWAH_FC_AMP);
+    storeSin(FbArray, WAHWAH_PERIOD, WAHWAH_FB_CEN, WAHWAH_FB_AMP);
 
     // calculate all-pass filter coefficients
     printf("calculating modulation coefficients...\n");
     for(int i=0; i<WAHWAH_PERIOD; i++) {
-        filter_coeff_bp_br(FILTER_ORDER_1PLUS, B, A, FcArray[i], WAHWAH_FB, shiftLeft, 1);
+        filter_coeff_bp_br(FILTER_ORDER_1PLUS, B, A, FcArray[i], FbArray[i], shiftLeft, 1);
         B_array[i][2] = B[2];
         B_array[i][1] = B[1];
         B_array[i][0] = B[0];
@@ -118,9 +125,11 @@ int main() {
         //set output
         outputReg[0] = ( x_filter[*pnt][0] - y_filter[*pnt][0] ); // >> 1;
         outputReg[1] = ( x_filter[*pnt][1] - y_filter[*pnt][1] ); // >> 1;
-        //mix with original: gains are 50-50
-        outputReg[0] = (outputReg[0] + x_filter[*pnt][0]) >> 1;
-        outputReg[1] = (outputReg[1] + x_filter[*pnt][1]) >> 1;
+        //mix with original: gains are set by macros
+        //outputReg[0] = (outputReg[0] + x_filter[*pnt][0]) >> 1;
+        //outputReg[1] = (outputReg[1] + x_filter[*pnt][1]) >> 1;
+        outputReg[0] = ( (int)(WET_GAIN*outputReg[0]) >> 15 )  + ( (int)(DRY_GAIN*x_filter[*pnt][0]) >> 15 );
+        outputReg[1] = ( (int)(WET_GAIN*outputReg[1]) >> 15 )  + ( (int)(DRY_GAIN*x_filter[*pnt][1]) >> 15 );
         setOutputBuffer((short)outputReg[0], (short)outputReg[1]);
 
         /*
