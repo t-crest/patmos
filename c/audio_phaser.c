@@ -3,9 +3,9 @@
 #include <stdio.h>
 #include <math.h>
 
-#define ONE_16b 0x8000 //0x7FFF
+#define ONE_16b 0x7FFF
 
-#define BUFFER_SIZE 32
+#define BUFFER_SIZE 128
 
 #define Fs 52083 // Hz
 
@@ -20,10 +20,13 @@
      -For now, only 1 BR filter
 */
 
-#define PHASER_PERIOD 5000
-#define PHASER_FC_CEN 500
-#define PHASER_FC_AMP 200
+#define PHASER_PERIOD 35000
+#define PHASER_FC_CEN 1000
+#define PHASER_FC_AMP 2000
 #define PHASER_FB     30
+
+const int DRY_GAIN = ONE_16b * 0.3;
+const int WET_GAIN = ONE_16b * 0.8;
 
 // LOCATION IN SCRATCHPAD MEMORY
 #define ACCUM_ADDR  0x00000000
@@ -62,14 +65,8 @@ short B_array[PHASER_PERIOD][FILTER_ORDER_1PLUS];
 
 int main() {
 
-    setup();
+    setup(1); //for guitar
 
-    // enable input and output
-    *audioDacEnReg = 1;
-    *audioAdcEnReg = 1;
-
-    setInputBufferSize(BUFFER_SIZE);
-    setOutputBufferSize(BUFFER_SIZE);
 
     //shift left is fixed!!!
     *shiftLeft = 1;
@@ -91,6 +88,12 @@ int main() {
     }
     printf("calculation of modulation coefficients finished!\n");
 
+    // enable input and output
+    *audioDacEnReg = 1;
+    *audioAdcEnReg = 1;
+
+    setInputBufferSize(BUFFER_SIZE);
+    setOutputBufferSize(BUFFER_SIZE);
 
     //CPU cycles stuff
     //int CPUcycles[1000] = {0};
@@ -115,13 +118,13 @@ int main() {
         //first, read last sample
         getInputBufferSPM(&x_filter[*pnt][0], &x_filter[*pnt][1]);
         //then, calculate filter
-        filterIIR(FILTER_ORDER_1PLUS, pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
+        filterIIR_2nd(*pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
         //set output
-        outputReg[0] = ( x_filter[*pnt][0] + y_filter[*pnt][0] ) >> 1;
-        outputReg[1] = ( x_filter[*pnt][1] + y_filter[*pnt][1] ) >> 1;
-        //mix with original: gains are 50-50
-        //outputReg[0] = (outputReg[0] + x_filter[*pnt][0]) >> 1;
-        //outputReg[1] = (outputReg[1] + x_filter[*pnt][1]) >> 1;
+        outputReg[0] = ( x_filter[*pnt][0] + y_filter[*pnt][0] ); // >> 1;
+        outputReg[1] = ( x_filter[*pnt][1] + y_filter[*pnt][1] ); // >> 1;
+        //mix with original: gains are set by macros
+        outputReg[0] = ( (WET_GAIN*outputReg[0]) >> 15 )  + ( (DRY_GAIN*x_filter[*pnt][0]) >> 15 );
+        outputReg[1] = ( (WET_GAIN*outputReg[1]) >> 15 )  + ( (DRY_GAIN*x_filter[*pnt][1]) >> 15 );
         setOutputBuffer((short)outputReg[0], (short)outputReg[1]);
 
         /*
