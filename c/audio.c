@@ -540,11 +540,11 @@ int iir_comb(volatile _SPM int *CH_LENGTH, volatile _SPM int *IIR_BUFF_LEN, vola
     return 0;
 }
 
-int fir_comb(int FIR_BUFF_LEN, int COMB_FILT_ORD_1PL, volatile _SPM int *pnt, volatile short (*fir_buffer)[2], volatile _SPM short *y, volatile _SPM int *accum, volatile _SPM short *g, volatile _SPM int *del) {
+int combFilter_1st(int FIR_BUFF_LEN, volatile _SPM int *pnt, volatile short (*fir_buffer)[2], volatile _SPM short *y, volatile _SPM int *accum, volatile _SPM short *g, volatile _SPM int *del) {
     int fir_pnt; //pointer for fir_buffer
     accum[0] = 0;
     accum[1] = 0;
-    for(int i=0; i<COMB_FILT_ORD_1PL; i++) {
+    for(int i=0; i<2; i++) { //2 for 1st order
         fir_pnt = (*pnt+del[i])%FIR_BUFF_LEN;
         //printf("for pnt=%d and del=%d: fir_pnt=%d\n", *pnt, del[i], fir_pnt);
         accum[0] += (g[i]*fir_buffer[fir_pnt][0]) >> 6;

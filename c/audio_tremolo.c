@@ -53,7 +53,9 @@ int main() {
   while(*keyReg != 3) {
       //update pointer
       *pnt = (*pnt + 1) % TREMOLO_PERIOD;
+      //get input
       getInputBufferSPM(&x[0], &x[1]);
+      //modulate amplitude and set output
       y[0] = (x[0] * usedArray[*pnt]) >> 15;
       y[1] = (x[1] * usedArray[*pnt]) >> 15;
       setOutputBuffer(y[0], y[1]);

@@ -17,8 +17,7 @@
      -Vibrato period sets the rate of the vibrato: period of sin
 */
 
-#define FIR_BUFFER_LENGTH 120 // for a delay of up to 10 52083 / 120 = 10 ms
-#define VIBRATO_PERIOD 20000 //almost half second
+#define FIR_BUFFER_LENGTH 150 // for a delay of up to 10 150*10e3 / 52083 =
 
 #include "audio.h"
 #include "audio.c"
@@ -48,10 +47,13 @@ volatile _SPM int *del               = (volatile _SPM int *)        DEL_ADDR; //
 volatile _SPM int *pnt               = (volatile _SPM int *)        PNT_ADDR; //pointer indicates last position of fir_buffer
 volatile _SPM int *v_pnt             = (volatile _SPM int *)        V_PNT_ADDR; //pointer for vibrato sin array
 
-//volatile _SPM short (*fir_buffer)[2] = (volatile _SPM short (*)[2]) FIR_BUFFER_ADDR; // fir_buffer[FIR_BUFFER_LENGTH][2]
+//variables in external SRAM
 volatile short fir_buffer[FIR_BUFFER_LENGTH][2];
-int sin_array[VIBRATO_PERIOD];
-
+//for sinus:
+int sinArray[Fs]; //maximum period: 1 secod
+//decide vibrato period here:
+const int VIBRATO_PERIOD = Fs/4;
+int usedArray[VIBRATO_PERIOD];
 
 int main() {
 
@@ -64,11 +66,20 @@ int main() {
     setInputBufferSize(BUFFER_SIZE);
     setOutputBufferSize(BUFFER_SIZE);
 
-    printf("addresses at scratchpad mem: accum: 0x%x, y: 0x%x, g: 0x%x, del: 0x%x, pnt: 0x%x\n", (int)accum, (int)y, (int)g, (int)del, (int)pnt);
-    printf("address of buffer: 0x%x\n", (int)&fir_buffer);
+    /*
+    //store sin: 1 second betwen -1 and 1
+    storeSin(sinArray, Fs, 0, ONE_16b);
+    //calculate interpolated array:
+    float arrayDivider = (float)Fs/(float)VIBRATO_PERIOD;
+    printf("Array Divider is: %f\n", arrayDivider);
+    for(int i=0; i<VIBRATO_PERIOD; i++) {
+        //offset = 0.5, amplitude = 0.4
+        usedArray[i] = (ONE_16b*0.6) + 0.3*sinArray[(int)floor(i*arrayDivider)];
+    }
+    */
 
 
-    storeSin(sin_array, VIBRATO_PERIOD, ((FIR_BUFFER_LENGTH-1)*0.5), ((FIR_BUFFER_LENGTH-1)*0.5));
+    storeSin(usedArray, VIBRATO_PERIOD, ((FIR_BUFFER_LENGTH-1)*0.5), ((FIR_BUFFER_LENGTH-1)*0.5));
 
     //set gains: for VIBRATO: only 1st delayed signal
     g[1] = 0; // g0 = 0;
@@ -78,19 +89,18 @@ int main() {
     del[1] = 0; // always d0 = 0
 
     //CPU cycles stuff
-    //int CPUcycles[100] = {0};
-
+    //int CPUcycles[1000] = {0};
 
     *pnt = FIR_BUFFER_LENGTH - 1; //start on top
     *v_pnt = 0;
     while(*keyReg != 3) {
         //update delay
-        del[0] = sin_array[*v_pnt];
+        del[0] = usedArray[*v_pnt];
         *v_pnt = (*v_pnt + 1) % VIBRATO_PERIOD;
         //first, read sample
         getInputBuffer((short *)&fir_buffer[*pnt][0], (short *)&fir_buffer[*pnt][1]);
         //calculate FIR comb filter
-        fir_comb(FIR_BUFFER_LENGTH, COMB_FILTER_ORDER_1PLUS, pnt, fir_buffer, y, accum, g, del);
+        combFilter_1st(FIR_BUFFER_LENGTH, pnt, fir_buffer, y, accum, g, del);
         //output sample
         setOutputBuffer(y[0], y[1]);
         //update pointer
@@ -103,14 +113,14 @@ int main() {
         /*
         //store CPU Cycles
         CPUcycles[*v_pnt] = get_cpu_cycles();
-        if(*v_pnt == 100) {
+        if(*v_pnt == 1000) {
             break;
         }
         */
     }
     /*
     //print CPU cycle time
-    for(int i=1; i<100; i++) {
+    for(int i=1; i<1000; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
     */
