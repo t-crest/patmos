@@ -19,7 +19,7 @@ APP?=hello_puts
 BLASTER_TYPE?=USB-Blaster
 
 # File that contains NoC initialization data
-NOCINIT?=nocinit.c
+#NOCINIT?=nocinit.c
 
 # Path delimiter for Wdoz and others
 ifeq ($(WINDIR),)
@@ -146,7 +146,8 @@ comp: comp-$(APP)
 
 comp-% $(BUILDDIR)/%.elf: .FORCE
 	-mkdir -p $(dir $@)
-	$(MAKE) -C c BUILDDIR=$(BUILDDIR) NOCINIT=$(NOCINIT) APP=$* compile
+	$(MAKE) -C c BUILDDIR=$(BUILDDIR) APP=$* compile
+#	$(MAKE) -C c BUILDDIR=$(BUILDDIR) NOCINIT=$(NOCINIT) APP=$* compile
 
 .PRECIOUS: $(BUILDDIR)/%.elf
 
