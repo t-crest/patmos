@@ -10,7 +10,7 @@ LIBCORETHREAD=$(BUILDDIR)/libcorethread.a
 LIBETH=$(BUILDDIR)/libeth.a
 LIBELF=$(BUILDDIR)/libelf.a
 
-NOCINIT?=nocinit.c
+NOCINIT?=cmp/nocinit.c
 
 SHELL=/bin/bash
 #BOOTSPM data is by default in data SPM 
@@ -70,7 +70,8 @@ $(BUILDDIR)/%.o: %.c Makefile
 # A target for regular applications
 $(BUILDDIR)/%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBETH) $(LIBELF) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread -leth -lelf -lm
+	touch $(NOCINIT)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread -leth -lelf
 
 $(BUILDDIR)/%.s: %.c Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
@@ -79,6 +80,7 @@ $(BUILDDIR)/%.s: %.c Makefile
 # A target for bootable applications (e.g., the bootloader)
 $(BUILDDIR)/bootable-%.elf: %.c $(LIBETH) $(LIBNOC) $(NOCINIT) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
+	touch $(NOCINIT)
 	$(CC) $(CFLAGS-BOOTABLE) $(LDFLAGS-BOOTABLE) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -leth -lnoc
 
 $(BUILDDIR)/bootable-%.s: %.c Makefile
@@ -88,6 +90,7 @@ $(BUILDDIR)/bootable-%.s: %.c Makefile
 # A target for applications that use virtual memory
 $(BUILDDIR)/vm-%.elf: %.c $(NOCINIT) $(LIBMP) $(LIBNOC) $(LIBCORETHREAD) $(LIBETH) $(LIBELF) Makefile
 	mkdir -p $(BUILDDIR)/$(dir $*)
+	touch $(NOCINIT)
 	$(CC) $(CFLAGS-VM) $(LDFLAGS-VM) -o $@ $(filter %.c %.s,$^) -L$(BUILDDIR) -lmp -lnoc -lcorethread -leth -lelf
 
 # application-specific additional dependencies
@@ -113,10 +116,6 @@ $(BUILDDIR)/extdev_test.elf: bootable.h
 $(BUILDDIR)/bootable-hello_sum_reduced.elf: bootable.h
 
 $(BUILDDIR)/bootable-mp_test.elf: bootable.h
-
-# make sure the initialization file for the network-on-chip is there
-$(NOCINIT):
-	touch cmp/$@
 
 # library for network-on-chip
 .PHONY: libnoc
