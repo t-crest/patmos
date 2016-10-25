@@ -8,6 +8,7 @@
 
 #define BUFFER_SIZE 128
 #define FILTER_ORDER_1PLUS 3
+#define COMB_FILTER_ORDER_1PLUS 3 //max for chorus
 
 #define Fs 52083 // Hz
 
@@ -15,7 +16,7 @@
 #include "audio.c"
 
 
-// LOCATION IN SCRATCHPAD MEMORY
+//-----------------LOCATION IN SCRATCHPAD MEMORY------------------------//
 #define FX_ADDR     0x00000000
 #define ACCUM_ADDR  ( FX_ADDR     + sizeof(int) )
 //for simple input/output:
@@ -34,9 +35,16 @@
 #define OUTREG_ADDR ( Y_FILT_ADDR + 2 * FILTER_ORDER_1PLUS * sizeof(short) )
 #define PNT_ADDR    ( OUTREG_ADDR + 2 * sizeof(int) )
 #define SFTLFT_ADDR ( PNT_ADDR    + sizeof(int) )
-#define TREM_P_ADDR ( SFTLFT_ADDR + sizeof(int) )
+#define G_ADDR      ( SFTLFT_ADDR + sizeof(int) )
+#if ( (COMB_FILTER_ORDER_1PLUS % 2) == 0 ) //if it's even
+#define DEL_ADDR    ( G_ADDR      + COMB_FILTER_ORDER_1PLUS * sizeof(short) )
+#else // if it's odd
+#define DEL_ADDR    ( G_ADDR      + COMB_FILTER_ORDER_1PLUS * sizeof(short) + 2 ) //to align with 4-byte word
+#endif
+#define TREM_P_ADDR ( DEL_ADDR    + COMB_FILTER_ORDER_1PLUS * sizeof(int) )
+#define ECHO_L_ADDR ( TREM_P_ADDR + sizeof(int) )
 
-//variables in local SPM:
+//--------------------variables in local SPM------------------------------//
 volatile _SPM int *FX              = (volatile _SPM int *)        FX_ADDR;
 volatile _SPM int *accum           = (volatile _SPM int *)        ACCUM_ADDR;
 
@@ -51,12 +59,18 @@ volatile _SPM int *outputReg       = (volatile _SPM int *)        OUTREG_ADDR; /
 
 volatile _SPM int *pnt             = (volatile _SPM int *)        PNT_ADDR; // pointer indicates last position of x_filter buffer
 volatile _SPM int *shiftLeft       = (volatile _SPM int *)        SFTLFT_ADDR; //shift left amount;
+//for comb filter effects:
+volatile _SPM short *g             = (volatile _SPM short *)      G_ADDR; // g[COMB_FILTER_ORDER_1PLUS]: array of gains [... g2, g1, g0]
+volatile _SPM int *del             = (volatile _SPM int *)        DEL_ADDR; // del[COMB_FILTER_ORDER_1PLUS]: array of delays [...d2, d1, 0]
 //SPM MACROS
 volatile _SPM int *TREMOLO_P       = (volatile _SPM int *)        TREM_P_ADDR; //tremolo period
+volatile _SPM int *ECHO_LENGTH     = (volatile _SPM int *)        ECHO_L_ADDR; //length of echo
 
-//variables in external SRAM:
+//------------------  variables in external SRAM---------------------------//
 int sinArray[Fs]; //max 1 second
 int usedArray[Fs];
+//FOR COMB FILTER EFFECTS:
+volatile short audio_buffer[(int)Fs/2][2]; //up to 1/2 second
 
 
 
@@ -155,6 +169,16 @@ int main() {
             break;
         case 9:
             printf("Chosen: Echo\n");
+            int echo_length;
+            printf("Choose Echo length (up to %d samples): ", (int)Fs/2);
+            scanf(" %d", &echo_length);
+            *ECHO_LENGTH = echo_length;
+            //set gains: for comb delay:
+            g[1] = ONE_16b;       // g0 = 1
+            g[0] = ONE_16b * 0.5; // g1 = 0.7
+            //set delays:
+            del[1] = 0; // always d0 = 0
+            del[0] = *ECHO_LENGTH - 1; // d1 = as long as delay buffer
             *FX = 9;
             break;
         case 10:
@@ -238,9 +262,24 @@ int main() {
             }
             if(*FX == 9) {
                 //ECHO
+                *pnt = *ECHO_LENGTH - 1; // start on top
                 while(*keyReg != 3) {
-                    printf("Effect not implemented yet\n");
-                    break;
+                    //first, read sample
+                    getInputBuffer((short *)&audio_buffer[*pnt][0], (short *)&audio_buffer[*pnt][1]);
+                    //calculate IIR comb filter
+                    combFilter_1st(*ECHO_LENGTH, pnt, audio_buffer, y, accum, g, del);
+                    //output sample
+                    setOutputBuffer(y[0], y[1]);
+                    //replace content on buffer
+                    audio_buffer[*pnt][0] = y[0];
+                    audio_buffer[*pnt][1] = y[1];
+                    //update pointer
+                    if(*pnt == 0) {
+                        *pnt = *ECHO_LENGTH - 1;
+                    }
+                    else {
+                        *pnt = *pnt - 1;
+                    }
                 }
             }
             if(*FX == 10) {

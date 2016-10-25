@@ -5,9 +5,7 @@
 #include <math.h>
 
 #define ONE_16b 0x7FFF
-
 #define BUFFER_SIZE 128
-
 #define Fs 52083 // Hz
 
 #define COMB_FILTER_ORDER_1PLUS 2
@@ -17,7 +15,7 @@
      -Vibrato period sets the rate of the vibrato: period of sin
 */
 
-#define FIR_BUFFER_LENGTH 150 // for a delay of up to 10 150*10e3 / 52083 =
+#define FIR_BUFFER_LENGTH 150 // for a delay of up to 10 150*10e3 / 52083 = ms
 
 #include "audio.h"
 #include "audio.c"
@@ -37,9 +35,7 @@
 #define PNT_ADDR   ( DEL_ADDR    + COMB_FILTER_ORDER_1PLUS * sizeof(int) )
 #define V_PNT_ADDR ( PNT_ADDR    + sizeof(int) )
 
-// LOCATION IN EXTERNAL XRAM
-#define FIR_BUFFER_ADDR 0x00020000
-
+//SPM variables
 volatile _SPM int *accum             = (volatile _SPM int *)        ACCUM_ADDR;
 volatile _SPM short *y               = (volatile _SPM short *)      Y_ADDR; // y[2]: output
 volatile _SPM short *g               = (volatile _SPM short *)      G_ADDR; // g[COMB_FILTER_ORDER_1PLUS]: array of gains [... g2, g1, g0]
