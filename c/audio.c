@@ -300,10 +300,24 @@ int filterIIR_2nd(int pnt_i, volatile _SPM short (*x)[2], volatile _SPM short (*
 }
 
 int storeSin(int *sinArray, int SIZE, int OFFSET, int AMP) {
+    printf("Storing sin array...\n");
     for(int i=0; i<SIZE; i++) {
         sinArray[i] = OFFSET + AMP*sin(2.0*M_PI* i / SIZE);
     }
-    printf("sin array storage done\n");
+    /*
+    //FIX THIS:
+    const int HALF  = (int)ceil(SIZE/2);
+    const int ADDER = SIZE%2;
+    //first half:
+    for(int i=0; i<HALF; i++) {
+        sinArray[i] = OFFSET + AMP*sin(2.0*M_PI* i / SIZE);
+    }
+    //2nd half: odd simmetry
+    for(int i=0; i<HALF+ADDER; i++) {
+        sinArray[HALF + i] = -sinArray[HALF - (i-ADDER)];
+    }
+    */
+    printf("Sin array storage done\n");
 
     return 0;
 }

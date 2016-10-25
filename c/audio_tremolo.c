@@ -2,72 +2,61 @@
 #include <machine/rtc.h>
 #include <stdio.h>
 #include <math.h>
+
+#define ONE_16b 0x7FFF
+#define BUFFER_SIZE 128
+#define Fs 52083 // Hz
+
 #include "audio.h"
 #include "audio.c"
 
+// LOCATION OF VARS AT SPM:
+#define X_ADDR      0x00000000
+#define Y_ADDR      ( X_ADDR   + 2 * sizeof(short) )
+#define PNT_ADDR    ( Y_ADDR   + 2 * sizeof(short) )
 
+//variables in local SPM:
+volatile _SPM short *x    = (volatile _SPM short *) X_ADDR; //input audio
+volatile _SPM short *y    = (volatile _SPM short *) Y_ADDR; //output audio
+volatile _SPM int   *pnt  = (volatile _SPM int *)   PNT_ADDR; //pointer to array
 
-#define TREMOLO_PERIOD 22050 // 1/4 second: 44100/4
-
-float tremoloArray[TREMOLO_PERIOD];
-short inL, inR, outR, outL;
-
-void storeTremoloArray(float *tremoloArray, int SIZE, int isSin) {
-  if (isSin == 1) {
-    printf("Selected tremolo type: Sin\n");
-  }
-  else {
-    printf("Selected tremolo type: Sawtooth\n");
-  }
-
-  printf("Storing tremolo array...\n");
-  for (int i = 0; i < SIZE; i++) {
-    //if sin is selected:
-    if (isSin == 1) {
-      tremoloArray[i] = 0.5 + 0.5*cos(2.0*M_PI* i / SIZE);
-    }
-    //otherwise, sawtooth
-    else {
-      tremoloArray[i] = ((float)SIZE-(float)i-1)/((float)SIZE-1);
-    }
-  }
-  printf("Tremolo array storage done\n");
-}
+//location in external SRAM:
+int sinArray[Fs]; //maximum period: 1 second
+//decide tremolo period here:
+const int TREMOLO_PERIOD = Fs/4;
+int usedArray[TREMOLO_PERIOD];
 
 
 int main() {
 
-  printf("CPU frequency: %d MHz\n", get_cpu_freq()/1000000);
+  setup(1);
 
-  setup(1); //for guitar
-
-  setInputBufferSize(32);
-  setOutputBufferSize(32);
+  setInputBufferSize(BUFFER_SIZE);
+  setOutputBufferSize(BUFFER_SIZE);
 
   *audioDacEnReg = 1;
   *audioAdcEnReg = 1;
 
-  //save tremolo array: 1 for sin, 0 for sawtooth
-  storeTremoloArray(tremoloArray, TREMOLO_PERIOD, 1);
 
+  //store sin: 1 second betwen -1 and 1
+  storeSin(sinArray, Fs, 0, ONE_16b);
+
+  //calculate interpolated array:
+  float arrayDivider = (float)Fs/(float)TREMOLO_PERIOD;
+  printf("Array Divider is: %f\n", arrayDivider);
+  for(int i=0; i<TREMOLO_PERIOD; i++) {
+      //offset = 0.5, amplitude = 0.4
+      usedArray[i] = (ONE_16b*0.6) + 0.3*sinArray[(int)floor(i*arrayDivider)];
+  }
+
+  *pnt = 0;
   while(*keyReg != 3) {
-    for(int i=0; i<TREMOLO_PERIOD; i++) {
-      getInputBuffer(&inL, &inR);
-      outL = inL * tremoloArray[i];
-      outR = inR * tremoloArray[i];
-      /*
-      //a click every TREMOLO_PERIOD:
-      if(i==0) {
-       outL  = 16384;
-       outR  = 16384;
-      }
-      else {
-        outL = 0;
-        outR = 0;
-      }
-      */
-      setOutputBuffer(outL, outR);
-    }
+      //update pointer
+      *pnt = (*pnt + 1) % TREMOLO_PERIOD;
+      getInputBufferSPM(&x[0], &x[1]);
+      y[0] = (x[0] * usedArray[*pnt]) >> 15;
+      y[1] = (x[1] * usedArray[*pnt]) >> 15;
+      setOutputBuffer(y[0], y[1]);
   }
 
   return 0;
