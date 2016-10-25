@@ -24,8 +24,8 @@
 #define WAHWAH_FC_AMP 2000
 #define WAHWAH_FB     30
 
-#define DRY_GAIN ONE_16b * 0.3
-#define WET_GAIN ONE_16b * 0.8
+const int DRY_GAIN = ONE_16b * 0.3;
+const int WET_GAIN = ONE_16b * 0.8;
 
 // LOCATION IN SCRATCHPAD MEMORY
 #define ACCUM_ADDR  0x00000000
@@ -128,8 +128,8 @@ int main() {
         outputReg[0] = ( x_filter[*pnt][0] - y_filter[*pnt][0] ); // >> 1;
         outputReg[1] = ( x_filter[*pnt][1] - y_filter[*pnt][1] ); // >> 1;
         //mix with original: gains are set by macros
-        outputReg[0] = ( (int)(WET_GAIN*outputReg[0]) >> 15 )  + ( (int)(DRY_GAIN*x_filter[*pnt][0]) >> 15 );
-        outputReg[1] = ( (int)(WET_GAIN*outputReg[1]) >> 15 )  + ( (int)(DRY_GAIN*x_filter[*pnt][1]) >> 15 );
+        outputReg[0] = ( (WET_GAIN*outputReg[0]) >> 15 )  + ( (DRY_GAIN*x_filter[*pnt][0]) >> 15 );
+        outputReg[1] = ( (WET_GAIN*outputReg[1]) >> 15 )  + ( (DRY_GAIN*x_filter[*pnt][1]) >> 15 );
         setOutputBuffer((short)outputReg[0], (short)outputReg[1]);
 
         CPUcycles[cpu_pnt] = get_cpu_cycles();
