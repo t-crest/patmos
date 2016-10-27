@@ -74,7 +74,7 @@ int main() {
     *pnt = IIR_BUFFER_LENGTH - 1; // start on top
     while(*keyReg != 3) {
         //first, read sample
-        getInputBuffer((short *)&iir_buffer[*pnt][0], (short *)&iir_buffer[*pnt][1]);
+        getInputBuffer(&iir_buffer[*pnt][0], &iir_buffer[*pnt][1]);
         //calculate IIR comb filter
         combFilter_1st(IIR_BUFFER_LENGTH, pnt, iir_buffer, y, accum, g, del);
         //output sample

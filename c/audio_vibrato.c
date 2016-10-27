@@ -50,10 +50,11 @@ int sinArray[Fs]; //maximum period: 1 secod
 //decide vibrato period here:
 const int VIBRATO_PERIOD = Fs/4;
 int usedArray[VIBRATO_PERIOD];
+int usedArray2[VIBRATO_PERIOD];
 
 int main() {
 
-    setup(1); //for guitar
+    setup(0); //for guitar
 
     // enable input and output
     *audioDacEnReg = 1;
@@ -62,20 +63,37 @@ int main() {
     setInputBufferSize(BUFFER_SIZE);
     setOutputBufferSize(BUFFER_SIZE);
 
-    /*
+
     //store sin: 1 second betwen -1 and 1
     storeSin(sinArray, Fs, 0, ONE_16b);
+
     //calculate interpolated array:
     float arrayDivider = (float)Fs/(float)VIBRATO_PERIOD;
     printf("Array Divider is: %f\n", arrayDivider);
+    float mult1 = (FIR_BUFFER_LENGTH-1)*0.5;
+    printf("Downsampling sin...\n");
     for(int i=0; i<VIBRATO_PERIOD; i++) {
-        //offset = 0.5, amplitude = 0.4
-        usedArray[i] = (ONE_16b*0.6) + 0.3*sinArray[(int)floor(i*arrayDivider)];
+        //offset = (FIR_BUFF-1)*0.5, amplitude = (FIR_BUFF-1)*0.5
+        usedArray[i] = mult1 + (mult1/ONE_16b)*sinArray[(int)floor(i*arrayDivider)];
     }
+    printf("Done!\n");
+    /*
+    //old way:
+    storeSin(usedArray2, VIBRATO_PERIOD, ((FIR_BUFFER_LENGTH-1)*0.5), ((FIR_BUFFER_LENGTH-1)*0.5));
+    int maxDiff = 0;
+    int diffAmount = 0;
+    for(int i=0; i<VIBRATO_PERIOD; i++) {
+        if(usedArray[i] != usedArray2[i]) {
+            diffAmount++;
+            int diff = abs(usedArray[i]-usedArray2[i]);
+            printf("1 is %d, 2 is %d, difference is %d\n", usedArray[i], usedArray2[i], diff);
+            if(diff > maxDiff) {
+                maxDiff = diff;
+            }
+        }
+    }
+    printf("MAXDIFF IS %d, DIFF AMOUNT IS %d\n", maxDiff, diffAmount);
     */
-
-
-    storeSin(usedArray, VIBRATO_PERIOD, ((FIR_BUFFER_LENGTH-1)*0.5), ((FIR_BUFFER_LENGTH-1)*0.5));
 
     //set gains: for VIBRATO: only 1st delayed signal
     g[1] = 0; // g0 = 0;
@@ -94,9 +112,14 @@ int main() {
         del[0] = usedArray[*v_pnt];
         *v_pnt = (*v_pnt + 1) % VIBRATO_PERIOD;
         //first, read sample
-        getInputBuffer((short *)&fir_buffer[*pnt][0], (short *)&fir_buffer[*pnt][1]);
+        getInputBuffer(&fir_buffer[*pnt][0], &fir_buffer[*pnt][1]);
+        /*
         //calculate FIR comb filter
         combFilter_1st(FIR_BUFFER_LENGTH, pnt, fir_buffer, y, accum, g, del);
+        */
+        //simple vibrato:
+        y[0] = fir_buffer[(*pnt+del[0])%FIR_BUFFER_LENGTH][0];
+        y[1] = fir_buffer[(*pnt+del[0])%FIR_BUFFER_LENGTH][1];
         //output sample
         setOutputBuffer(y[0], y[1]);
         //update pointer

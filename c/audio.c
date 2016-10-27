@@ -209,7 +209,7 @@ int getInputBufferSPM(volatile _SPM short *l, volatile _SPM short *r) {
   return 0;
 }
 
-int getInputBuffer(short *l, short *r) {
+int getInputBuffer(volatile short *l, volatile short *r) {
   while(*audioAdcBufferEmptyReg == 1);// wait until not empty
   *audioAdcBufferReadPulseReg = 1; // begin pulse
   *audioAdcBufferReadPulseReg = 0; // end pulse
@@ -513,15 +513,15 @@ int allpass_comb(int AP_BUFF_LEN, volatile _SPM int *pnt, volatile short (*ap_bu
     return 0;
 }
 
-int combFilter_1st(int FIR_BUFF_LEN, volatile _SPM int *pnt, volatile short (*fir_buffer)[2], volatile _SPM short *y, volatile _SPM int *accum, volatile _SPM short *g, volatile _SPM int *del) {
-    int fir_pnt; //pointer for fir_buffer
+int combFilter_1st(int AUDIO_BUFF_LEN, volatile _SPM int *pnt, volatile short (*audio_buffer)[2], volatile _SPM short *y, volatile _SPM int *accum, volatile _SPM short *g, volatile _SPM int *del) {
+    int audio_pnt; //pointer for audio_buffer
     accum[0] = 0;
     accum[1] = 0;
     for(int i=0; i<2; i++) { //2 for 1st order
-        fir_pnt = (*pnt+del[i])%FIR_BUFF_LEN;
-        //printf("for pnt=%d and del=%d: fir_pnt=%d\n", *pnt, del[i], fir_pnt);
-        accum[0] += (g[i]*fir_buffer[fir_pnt][0]) >> 6;
-        accum[1] += (g[i]*fir_buffer[fir_pnt][1]) >> 6;
+        audio_pnt = (*pnt+del[i])%AUDIO_BUFF_LEN;
+        //printf("for pnt=%d and del=%d: audio_pnt=%d\n", *pnt, del[i], audio_pnt);
+        accum[0] += (g[i]*audio_buffer[audio_pnt][0]) >> 6;
+        accum[1] += (g[i]*audio_buffer[audio_pnt][1]) >> 6;
     }
     //accumulator limits: [ (2^(30-6-1))-1 , -(2^(30-6-1)) ]
     //accumulator limits: [ 0x7FFFFF, 0x800000 ]

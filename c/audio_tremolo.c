@@ -45,7 +45,7 @@ int main() {
   float arrayDivider = (float)Fs/(float)TREMOLO_PERIOD;
   printf("Array Divider is: %f\n", arrayDivider);
   for(int i=0; i<TREMOLO_PERIOD; i++) {
-      //offset = 0.5, amplitude = 0.4
+      //offset = 0.6, amplitude = 0.3
       usedArray[i] = (ONE_16b*0.6) + 0.3*sinArray[(int)floor(i*arrayDivider)];
   }
 
