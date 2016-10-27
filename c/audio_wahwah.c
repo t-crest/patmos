@@ -20,7 +20,7 @@
 */
 
 //taken from crybaby example (more or less):
-#define WAHWAH_PERIOD 35000
+#define WAHWAH_PERIOD 30000
 #define WAHWAH_FC_CEN 1200
 #define WAHWAH_FC_AMP 900
 #define WAHWAH_FB_CEN 330
@@ -55,8 +55,9 @@ volatile _SPM int *shiftLeft       = (volatile _SPM int *)        SFTLFT_ADDR; /
 volatile _SPM int *outputReg       = (volatile _SPM int *)        OUTREG_ADDR; //stores the output data
 volatile _SPM int *wah_pnt         = (volatile _SPM int *)        WAHPNT_ADDR; // pointer for modulation array
 // array of center frequencies
-int FcArray[WAHWAH_PERIOD];
-int FbArray[WAHWAH_PERIOD];
+int sinArray[Fs];
+int usedArray1[WAHWAH_PERIOD]; //for Fc
+int usedArray2[WAHWAH_PERIOD]; //for Fb
 // array of coefficients
 short A_array[WAHWAH_PERIOD][FILTER_ORDER_1PLUS];
 short B_array[WAHWAH_PERIOD][FILTER_ORDER_1PLUS];
@@ -82,13 +83,13 @@ int main() {
 
     printf("calculating Fc modulation array...\n");
     //calculate sin array of FCs
-    storeSin(FcArray, WAHWAH_PERIOD, WAHWAH_FC_CEN, WAHWAH_FC_AMP);
-    storeSin(FbArray, WAHWAH_PERIOD, WAHWAH_FB_CEN, WAHWAH_FB_AMP);
+    storeSin(usedArray1, WAHWAH_PERIOD, WAHWAH_FC_CEN, WAHWAH_FC_AMP);
+    storeSin(usedArray2, WAHWAH_PERIOD, WAHWAH_FB_CEN, WAHWAH_FB_AMP);
 
     // calculate all-pass filter coefficients
     printf("calculating modulation coefficients...\n");
     for(int i=0; i<WAHWAH_PERIOD; i++) {
-        filter_coeff_bp_br(FILTER_ORDER_1PLUS, B, A, FcArray[i], FbArray[i], shiftLeft, 1);
+        filter_coeff_bp_br(FILTER_ORDER_1PLUS, B, A, usedArray1[i], usedArray2[i], shiftLeft, 1);
         B_array[i][2] = B[2];
         B_array[i][1] = B[1];
         B_array[i][0] = B[0];
@@ -99,8 +100,8 @@ int main() {
 
 
     //CPU cycles stuff
-    int CPUcycles[1000] = {0};
-    int cpu_pnt = 0;
+    //int CPUcycles[1000] = {0};
+    //int cpu_pnt = 0;
 
     *wah_pnt = 0;
     //first, fill filter buffer
@@ -132,19 +133,19 @@ int main() {
         outputReg[1] = ( (int)(WET_GAIN*outputReg[1]) >> 15 )  + ( (int)(DRY_GAIN*x_filter[*pnt][1]) >> 15 );
         setOutputBuffer((short)outputReg[0], (short)outputReg[1]);
 
-
+        /*
         CPUcycles[cpu_pnt] = get_cpu_cycles();
         cpu_pnt++;
         if(cpu_pnt == 1000) {
             break;
         }
-
+        */
     }
-
+    /*
     for(int i=1; i<1000; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
-
+    */
 
     return 0;
 }

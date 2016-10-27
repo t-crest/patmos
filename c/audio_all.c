@@ -215,9 +215,10 @@ int main() {
             printf("\nArray Divider is: %f\n", arrayDivider);
             printf("Calculating vibrato array...\n");
             mult1 = (VIBRATO_LENGTH-1)*0.5;
+            mult2 = mult1/ONE_16b;
             for(int i=0; i<*VIBRATO_P; i++) {
                 //offset = (FIR_BUFF-1)*0.5, amplitude = (FIR_BUFF-1)*0.5
-                usedArray1[i] = mult1 + (mult1/ONE_16b)*sinArray[(int)floor(i*arrayDivider)];
+                usedArray1[i] = mult1 + mult2*sinArray[(int)floor(i*arrayDivider)];
             }
             printf("Done!\n");
             *FX = 8;
@@ -250,21 +251,21 @@ int main() {
             arrayDivider = (float)Fs/(float)CHORUS1_P;
             printf("Array Divider is: %f\n", arrayDivider);
             mult1 = CHORUS_LENGTH*0.6;
-            mult2 = CHORUS_LENGTH*0.03;
+            mult2 = CHORUS_LENGTH*0.03/ONE_16b;
             printf("Downsampling chorus modulation sin...\n");
             for(int i=0; i<CHORUS1_P; i++) {
                 //offset = AUDIO_BUFFER_LENGTH*0.6, amplitude = AUDIO_BUFFER_LENGTH * 0.02
-                usedArray1[i] = mult1 + (mult2/ONE_16b)*sinArray[(int)floor(i*arrayDivider)];
+                usedArray1[i] = mult1 + mult2*sinArray[(int)floor(i*arrayDivider)];
             }
             printf("Done 1st...\n");
             arrayDivider = (float)Fs/(float)CHORUS2_P;
             printf("Array Divider is: %f\n", arrayDivider);
             mult1 = CHORUS_LENGTH*0.4;
-            mult2 = CHORUS_LENGTH*0.016;
+            mult2 = CHORUS_LENGTH*0.016/ONE_16b;
             printf("Downsampling chorus modulation sin...\n");
             for(int i=0; i<CHORUS2_P; i++) {
                 //offset = AUDIO_BUFFER_LENGTH*0.4, amplitude = AUDIO_BUFFER_LENGTH * 0.012
-                usedArray2[i] = mult1 + (mult2/ONE_16b)*sinArray[(int)floor(i*arrayDivider)];
+                usedArray2[i] = mult1 + mult2*sinArray[(int)floor(i*arrayDivider)];
             }
             printf("Done 2nd!\n");
             *FX = 10;

@@ -76,21 +76,21 @@ int main() {
     float arrayDivider = (float)Fs/(float)SIN1_PERIOD;
     printf("Array Divider is: %f\n", arrayDivider);
     float mult1 = AUDIO_BUFFER_LENGTH*0.6;
-    float mult2 = AUDIO_BUFFER_LENGTH*0.03;
+    float mult2 = AUDIO_BUFFER_LENGTH*0.03/ONE_16b;
     printf("Downsampling sin...\n");
     for(int i=0; i<SIN1_PERIOD; i++) {
         //offset = AUDIO_BUFFER_LENGTH*0.6, amplitude = AUDIO_BUFFER_LENGTH * 0.02
-        usedArray1[i] = mult1 + (mult2/ONE_16b)*sinArray[(int)floor(i*arrayDivider)];
+        usedArray1[i] = mult1 + mult2*sinArray[(int)floor(i*arrayDivider)];
     }
     printf("Done 1st...\n");
     arrayDivider = (float)Fs/(float)SIN2_PERIOD;
     printf("Array Divider is: %f\n", arrayDivider);
     mult1 = AUDIO_BUFFER_LENGTH*0.4;
-    mult2 = AUDIO_BUFFER_LENGTH*0.016;
+    mult2 = AUDIO_BUFFER_LENGTH*0.016/ONE_16b;
     printf("Downsampling sin...\n");
     for(int i=0; i<SIN2_PERIOD; i++) {
         //offset = AUDIO_BUFFER_LENGTH*0.4, amplitude = AUDIO_BUFFER_LENGTH * 0.012
-        usedArray2[i] = mult1 + (mult2/ONE_16b)*sinArray[(int)floor(i*arrayDivider)];
+        usedArray2[i] = mult1 + mult2*sinArray[(int)floor(i*arrayDivider)];
     }
     printf("Done 2nd!\n");
 
