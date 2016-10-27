@@ -27,6 +27,15 @@ const int CHORUS2_P = 40000; // ~0.8 seconds
 #define WAHWAH_FB_AMP 300
 const int WAHWAH_DRY = ONE_16b * 0.2;
 const int WAHWAH_WET = ONE_16b * 0.8;
+//PHASER
+#define PHASER_PERIOD 8000
+#define PHASER_FC_CEN 1400
+#define PHASER_FC_AMP 1300
+#define PHASER_FB     30
+#define PHASER_FB_CEN 330
+#define PHASER_FB_AMP 300
+const int PHASER_DRY = ONE_16b * 0.2;
+const int PHASER_WET = ONE_16b * 0.8;
 
 //-----------------LOCATION IN SCRATCHPAD MEMORY------------------------//
 #define FX_ADDR       0x00000000
@@ -91,8 +100,11 @@ int usedArray2[Fs];
 //FOR COMB FILTER EFFECTS:
 volatile short audio_buffer[(int)Fs/2][2]; //up to 1/2 second
 //for wahwah: modulation coefficients:
-short A_array[WAHWAH_PERIOD][FILTER_ORDER_1PLUS];
-short B_array[WAHWAH_PERIOD][FILTER_ORDER_1PLUS];
+short A_wahwah[WAHWAH_PERIOD][FILTER_ORDER_1PLUS];
+short B_wahwah[WAHWAH_PERIOD][FILTER_ORDER_1PLUS];
+//for phaser: modulation coefficients:
+short A_phaser[PHASER_PERIOD][FILTER_ORDER_1PLUS];
+short B_phaser[PHASER_PERIOD][FILTER_ORDER_1PLUS];
 
 
 int main() {
@@ -118,7 +130,7 @@ int main() {
     //store sin: 1 second betwen -1 and 1
     storeSin(sinArray, Fs, 0, ONE_16b);
 
-    //--------------------WAHWAH------------------------------
+    //--------------------------WAHWAH------------------------------//
     //shift left is fixed!!!
     *shiftLeft = 1;
     printf("calculating Modulation array for WAHWAH...\n");
@@ -140,13 +152,41 @@ int main() {
     printf("calculating modulation coefficients...\n");
     for(int i=0; i<WAHWAH_PERIOD; i++) {
         filter_coeff_bp_br(FILTER_ORDER_1PLUS, B, A, usedArray1[i], usedArray2[i], shiftLeft, 1);
-        B_array[i][2] = B[2];
-        B_array[i][1] = B[1];
-        B_array[i][0] = B[0];
-        A_array[i][1] = A[1];
-        A_array[i][0] = A[0];
+        B_wahwah[i][2] = B[2];
+        B_wahwah[i][1] = B[1];
+        B_wahwah[i][0] = B[0];
+        A_wahwah[i][1] = A[1];
+        A_wahwah[i][0] = A[0];
     }
     printf("WAHWAH coefficients finished!\n");
+
+    //--------------------------PHASER------------------------------//
+    printf("calculating modulation array for PHASER...\n");
+    //calculate sin array of FCs
+    arrayDivider = (float)Fs/(float)PHASER_PERIOD;
+    mult1 = PHASER_FC_CEN;
+    mult2 = ((float)PHASER_FC_AMP)/ONE_16b;
+    for(int i=0; i<PHASER_PERIOD; i++) {
+        //offset = PHASER_FC_CEN, amplitude = PHASER_FC_AMP
+        usedArray1[i] = mult1 + mult2*sinArray[(int)floor(i*arrayDivider)];
+    }
+    mult1 = PHASER_FB_CEN;
+    mult2 = ((float)PHASER_FB_AMP)/ONE_16b;
+    for(int i=0; i<PHASER_PERIOD; i++) {
+        //offset = PHASER_FC_CEN, amplitude = PHASER_FC_AMP
+        usedArray2[i] = mult1 + mult2*sinArray[(int)floor(i*arrayDivider)];
+    }
+    // calculate all-pass filter coefficients
+    printf("calculating modulation coefficients...\n");
+    for(int i=0; i<PHASER_PERIOD; i++) {
+        filter_coeff_bp_br(FILTER_ORDER_1PLUS, B, A, usedArray1[i], usedArray2[i], shiftLeft, 1);
+        B_phaser[i][2] = B[2];
+        B_phaser[i][1] = B[1];
+        B_phaser[i][0] = B[0];
+        A_phaser[i][1] = A[1];
+        A_phaser[i][0] = A[0];
+    }
+    printf("PHASER coefficients finished!\n");
 
 
 
@@ -391,12 +431,22 @@ int main() {
                 }
                 while(*keyReg != 3) {
                     //MOD
-                    B[2] = B_array[*mod_pnt1][2]; //b0
-                    B[1] = B_array[*mod_pnt1][1]; //b1
-                    // b2 doesnt need to be updated: always 1
-                    A[1] = A_array[*mod_pnt1][1]; //a1
-                    A[0] = A_array[*mod_pnt1][0]; //a2
-                    *mod_pnt1 = (*mod_pnt1+1) % WAHWAH_PERIOD;
+                    if(*FX == 6) { //WAHWAH
+                        B[2] = B_wahwah[*mod_pnt1][2]; //b0
+                        B[1] = B_wahwah[*mod_pnt1][1]; //b1
+                        // b2 doesnt need to be updated: always 1
+                        A[1] = A_wahwah[*mod_pnt1][1]; //a1
+                        A[0] = A_wahwah[*mod_pnt1][0]; //a2
+                        *mod_pnt1 = (*mod_pnt1+1) % WAHWAH_PERIOD;
+                    }
+                    else { //PHASER
+                        B[2] = B_phaser[*mod_pnt1][2]; //b0
+                        B[1] = B_phaser[*mod_pnt1][1]; //b1
+                        // b2 doesnt need to be updated: always 1
+                        A[1] = A_phaser[*mod_pnt1][1]; //a1
+                        A[0] = A_phaser[*mod_pnt1][0]; //a2
+                        *mod_pnt1 = (*mod_pnt1+1) % PHASER_PERIOD;
+                    }
                     //increment pointer
                     *pnt = (*pnt+1) % FILTER_ORDER_1PLUS;
                     //first, read last sample
@@ -404,11 +454,20 @@ int main() {
                     //then, calculate filter
                     filterIIR_2nd(*pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
                     //set output
-                    outputReg[0] = ( x_filter[*pnt][0] - y_filter[*pnt][0] ); // >> 1;
-                    outputReg[1] = ( x_filter[*pnt][1] - y_filter[*pnt][1] ); // >> 1;
-                    //mix with original: gains are set by macros
-                    outputReg[0] = ( (int)(WAHWAH_WET*outputReg[0]) >> 15 )  + ( (int)(WAHWAH_DRY*x_filter[*pnt][0]) >> 15 );
-                    outputReg[1] = ( (int)(WAHWAH_WET*outputReg[1]) >> 15 )  + ( (int)(WAHWAH_DRY*x_filter[*pnt][1]) >> 15 );
+                    if(*FX == 6) { //WAHWAH
+                        outputReg[0] = ( x_filter[*pnt][0] - y_filter[*pnt][0] ); // >> 1;
+                        outputReg[1] = ( x_filter[*pnt][1] - y_filter[*pnt][1] ); // >> 1;
+                        //mix with original: gains are set by macros
+                        outputReg[0] = ( (int)(WAHWAH_WET*outputReg[0]) >> 15 )  + ( (int)(WAHWAH_DRY*x_filter[*pnt][0]) >> 15 );
+                        outputReg[1] = ( (int)(WAHWAH_WET*outputReg[1]) >> 15 )  + ( (int)(WAHWAH_DRY*x_filter[*pnt][1]) >> 15 );
+                    }
+                    else { //PHASER
+                        outputReg[0] = ( x_filter[*pnt][0] + y_filter[*pnt][0] ) >> 1;
+                        outputReg[1] = ( x_filter[*pnt][1] + y_filter[*pnt][1] ) >> 1;
+                        //mix with original: gains are set by macros
+                        outputReg[0] = ( (int)(PHASER_WET*outputReg[0]) >> 15 )  + ( (int)(PHASER_DRY*x_filter[*pnt][0]) >> 15 );
+                        outputReg[1] = ( (int)(PHASER_WET*outputReg[1]) >> 15 )  + ( (int)(PHASER_DRY*x_filter[*pnt][1]) >> 15 );
+                    }
                     setOutputBuffer((short)outputReg[0], (short)outputReg[1]);
                 }
             }

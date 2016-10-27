@@ -20,13 +20,12 @@
      -For now, only 1 BR filter
 */
 
-#define PHASER_PERIOD 35000
-#define PHASER_FC_CEN 1000
-#define PHASER_FC_AMP 2000
+#define PHASER_PERIOD 8000
+#define PHASER_FC_CEN 1400
+#define PHASER_FC_AMP 1300
 #define PHASER_FB     30
-
-const int DRY_GAIN = ONE_16b * 0.3;
-const int WET_GAIN = ONE_16b * 0.8;
+#define PHASER_FB_CEN 330
+#define PHASER_FB_AMP 300
 
 // LOCATION IN SCRATCHPAD MEMORY
 #define ACCUM_ADDR  0x00000000
@@ -57,11 +56,15 @@ volatile _SPM int *shiftLeft       = (volatile _SPM int *)        SFTLFT_ADDR; /
 volatile _SPM int *outputReg       = (volatile _SPM int *)        OUTREG_ADDR; //stores the output data
 volatile _SPM int *phas_pnt         = (volatile _SPM int *)        PHASPNT_ADDR; // pointer for modulation array
 // array of center frequencies
-int FcArray[PHASER_PERIOD];
+int sinArray[Fs];
+int usedArray1[PHASER_PERIOD]; //for Fc
+int usedArray2[PHASER_PERIOD]; //for Fb
 // array of coefficients
 short A_array[PHASER_PERIOD][FILTER_ORDER_1PLUS];
 short B_array[PHASER_PERIOD][FILTER_ORDER_1PLUS];
 
+const int DRY_GAIN = ONE_16b * 0.2;
+const int WET_GAIN = ONE_16b * 0.8;
 
 int main() {
 
@@ -71,15 +74,39 @@ int main() {
     //shift left is fixed!!!
     *shiftLeft = 1;
 
+    //store sin: 1 second betwen -1 and 1
+    storeSin(sinArray, Fs, 0, ONE_16b);
 
     printf("calculating Fc modulation array...\n");
     //calculate sin array of FCs
-    storeSin(FcArray, PHASER_PERIOD, PHASER_FC_CEN, PHASER_FC_AMP);
+    float arrayDivider = (float)Fs/(float)PHASER_PERIOD;
+    printf("Array Divider is: %f\n", arrayDivider);
+    float mult1 = PHASER_FC_CEN;
+    float mult2 = ((float)PHASER_FC_AMP)/ONE_16b;
+    printf("Downsampling sin...\n");
+    for(int i=0; i<PHASER_PERIOD; i++) {
+        //offset = PHASER_FC_CEN, amplitude = PHASER_FC_AMP
+        usedArray1[i] = mult1 + mult2*sinArray[(int)floor(i*arrayDivider)];
+    }
+    printf("Done 1st...\n");
+    mult1 = PHASER_FB_CEN;
+    mult2 = ((float)PHASER_FB_AMP)/ONE_16b;
+    printf("Downsampling sin...\n");
+    for(int i=0; i<PHASER_PERIOD; i++) {
+        //offset = PHASER_FC_CEN, amplitude = PHASER_FC_AMP
+        usedArray2[i] = mult1 + mult2*sinArray[(int)floor(i*arrayDivider)];
+    }
+    printf("Done 2nd!\n");
+    /*
+    // old way
+    storeSin(usedArray1, PHASER_PERIOD, PHASER_FC_CEN, PHASER_FC_AMP);
+    storeSin(usedArray2, PHASER_PERIOD, PHASER_FB_CEN, PHASER_FB_AMP);
+    */
 
     // calculate all-pass filter coefficients
     printf("calculating modulation coefficients...\n");
     for(int i=0; i<PHASER_PERIOD; i++) {
-        filter_coeff_bp_br(FILTER_ORDER_1PLUS, B, A, FcArray[i], PHASER_FB, shiftLeft, 1);
+        filter_coeff_bp_br(FILTER_ORDER_1PLUS, B, A, usedArray1[i], usedArray2[i], shiftLeft, 1);
         B_array[i][2] = B[2];
         B_array[i][1] = B[1];
         B_array[i][0] = B[0];
@@ -119,14 +146,15 @@ int main() {
         getInputBufferSPM(&x_filter[*pnt][0], &x_filter[*pnt][1]);
         //then, calculate filter
         filterIIR_2nd(*pnt, x_filter, y_filter, accum, B, A, *shiftLeft);
+        //filterIIR_2nd((*pnt-500)%FILTER_ORDER_1PLUS, y_filter, y_filter, accum, B, A, *shiftLeft);
+        //filterIIR_2nd((*pnt-1500)%FILTER_ORDER_1PLUS, y_filter, y_filter, accum, B, A, *shiftLeft);
         //set output
-        outputReg[0] = ( x_filter[*pnt][0] + y_filter[*pnt][0] ); // >> 1;
-        outputReg[1] = ( x_filter[*pnt][1] + y_filter[*pnt][1] ); // >> 1;
+        outputReg[0] = ( x_filter[*pnt][0] + y_filter[*pnt][0] ) >> 1;
+        outputReg[1] = ( x_filter[*pnt][1] + y_filter[*pnt][1] ) >> 1;
         //mix with original: gains are set by macros
-        outputReg[0] = ( (WET_GAIN*outputReg[0]) >> 15 )  + ( (DRY_GAIN*x_filter[*pnt][0]) >> 15 );
-        outputReg[1] = ( (WET_GAIN*outputReg[1]) >> 15 )  + ( (DRY_GAIN*x_filter[*pnt][1]) >> 15 );
+        outputReg[0] = ( (int)(WET_GAIN*outputReg[0]) >> 15 )  + ( (int)(DRY_GAIN*x_filter[*pnt][0]) >> 15 );
+        outputReg[1] = ( (int)(WET_GAIN*outputReg[1]) >> 15 )  + ( (int)(DRY_GAIN*x_filter[*pnt][1]) >> 15 );
         setOutputBuffer((short)outputReg[0], (short)outputReg[1]);
-
         /*
         CPUcycles[cpu_pnt] = get_cpu_cycles();
         cpu_pnt++;
@@ -135,7 +163,6 @@ int main() {
         }
         */
     }
-
     /*
     for(int i=1; i<1000; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));

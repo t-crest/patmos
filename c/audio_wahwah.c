@@ -3,9 +3,9 @@
 #include <stdio.h>
 #include <math.h>
 
-#define ONE_16b 0x8000 //0x7FFF
+#define ONE_16b 0x7FFF
 
-#define BUFFER_SIZE 32
+#define BUFFER_SIZE 128
 
 #define Fs 52083 // Hz
 
@@ -70,12 +70,6 @@ int main() {
 
     setup(1);
 
-    // enable input and output
-    *audioDacEnReg = 1;
-    *audioAdcEnReg = 1;
-
-    setInputBufferSize(BUFFER_SIZE);
-    setOutputBufferSize(BUFFER_SIZE);
 
     //shift left is fixed!!!
     *shiftLeft = 1;
@@ -121,6 +115,12 @@ int main() {
     }
     printf("calculation of modulation coefficients finished!\n");
 
+    // enable input and output
+    *audioDacEnReg = 1;
+    *audioAdcEnReg = 1;
+
+    setInputBufferSize(BUFFER_SIZE);
+    setOutputBufferSize(BUFFER_SIZE);
 
     //CPU cycles stuff
     //int CPUcycles[1000] = {0};
@@ -150,8 +150,6 @@ int main() {
         outputReg[0] = ( x_filter[*pnt][0] - y_filter[*pnt][0] ); // >> 1;
         outputReg[1] = ( x_filter[*pnt][1] - y_filter[*pnt][1] ); // >> 1;
         //mix with original: gains are set by macros
-        //outputReg[0] = (outputReg[0] + x_filter[*pnt][0]) >> 1;
-        //outputReg[1] = (outputReg[1] + x_filter[*pnt][1]) >> 1;
         outputReg[0] = ( (int)(WET_GAIN*outputReg[0]) >> 15 )  + ( (int)(DRY_GAIN*x_filter[*pnt][0]) >> 15 );
         outputReg[1] = ( (int)(WET_GAIN*outputReg[1]) >> 15 )  + ( (int)(DRY_GAIN*x_filter[*pnt][1]) >> 15 );
         setOutputBuffer((short)outputReg[0], (short)outputReg[1]);
