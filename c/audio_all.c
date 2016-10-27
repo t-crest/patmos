@@ -14,6 +14,10 @@
 #include "audio.c"
 
 #define VIBRATO_LENGTH 150
+#define CHORUS_LENGTH  2083
+
+const int CHORUS1_P = 52083; // 1 second
+const int CHORUS2_P = 40000; // ~0.8 seconds
 
 //-----------------LOCATION IN SCRATCHPAD MEMORY------------------------//
 #define FX_ADDR       0x00000000
@@ -73,7 +77,8 @@ volatile _SPM int *ECHO_LENGTH     = (volatile _SPM int *)        ECHO_L_ADDR; /
 
 //------------------  variables in external SRAM---------------------------//
 int sinArray[Fs]; //max 1 second
-int usedArray[Fs]; //used by all effects
+int usedArray1[Fs]; //used by all effects
+int usedArray2[Fs];
 //FOR COMB FILTER EFFECTS:
 volatile short audio_buffer[(int)Fs/2][2]; //up to 1/2 second
 
@@ -94,7 +99,10 @@ int main() {
     const int fuzzShiftLConst = fuzzShiftL;
 
     int exit = 0;
+
+    //for modulation signals:
     float arrayDivider;
+    float mult1, mult2;
 
     setup(1); // 1 for guitar, 0 for volca
 
@@ -156,7 +164,7 @@ int main() {
             printf("Calculating tremolo array...\n");
             for(int i=0; i<*TREMOLO_P; i++) {
                 //offset = 0.6, amplitude = 0.3
-                usedArray[i] = (ONE_16b*0.6) + 0.3*sinArray[(int)floor(i*arrayDivider)];
+                usedArray1[i] = (ONE_16b*0.6) + 0.3*sinArray[(int)floor(i*arrayDivider)];
             }
             printf("Done!\n");
             *FX = 2;
@@ -206,10 +214,10 @@ int main() {
             arrayDivider = (float)Fs/(float)*VIBRATO_P;
             printf("\nArray Divider is: %f\n", arrayDivider);
             printf("Calculating vibrato array...\n");
-            float mult1 = (VIBRATO_LENGTH-1)*0.5;
+            mult1 = (VIBRATO_LENGTH-1)*0.5;
             for(int i=0; i<*VIBRATO_P; i++) {
                 //offset = (FIR_BUFF-1)*0.5, amplitude = (FIR_BUFF-1)*0.5
-                usedArray[i] = mult1 + (mult1/ONE_16b)*sinArray[(int)floor(i*arrayDivider)];
+                usedArray1[i] = mult1 + (mult1/ONE_16b)*sinArray[(int)floor(i*arrayDivider)];
             }
             printf("Done!\n");
             *FX = 8;
@@ -232,6 +240,33 @@ int main() {
 
         case 10:
             printf("Chosen: Chorus\n");
+            //gains
+            g[2] = ONE_16b * 0.45; //g0
+            g[1] = ONE_16b * 0.4; //g1
+            g[0] = ONE_16b * 0.4; //g2
+            //delays
+            del[2] = 0; //always d0 = 0
+            //calculate interpolated array:
+            arrayDivider = (float)Fs/(float)CHORUS1_P;
+            printf("Array Divider is: %f\n", arrayDivider);
+            mult1 = CHORUS_LENGTH*0.6;
+            mult2 = CHORUS_LENGTH*0.03;
+            printf("Downsampling chorus modulation sin...\n");
+            for(int i=0; i<CHORUS1_P; i++) {
+                //offset = AUDIO_BUFFER_LENGTH*0.6, amplitude = AUDIO_BUFFER_LENGTH * 0.02
+                usedArray1[i] = mult1 + (mult2/ONE_16b)*sinArray[(int)floor(i*arrayDivider)];
+            }
+            printf("Done 1st...\n");
+            arrayDivider = (float)Fs/(float)CHORUS2_P;
+            printf("Array Divider is: %f\n", arrayDivider);
+            mult1 = CHORUS_LENGTH*0.4;
+            mult2 = CHORUS_LENGTH*0.016;
+            printf("Downsampling chorus modulation sin...\n");
+            for(int i=0; i<CHORUS2_P; i++) {
+                //offset = AUDIO_BUFFER_LENGTH*0.4, amplitude = AUDIO_BUFFER_LENGTH * 0.012
+                usedArray2[i] = mult1 + (mult2/ONE_16b)*sinArray[(int)floor(i*arrayDivider)];
+            }
+            printf("Done 2nd!\n");
             *FX = 10;
             break;
 
@@ -271,8 +306,8 @@ int main() {
                     //get input
                     getInputBufferSPM(&x[0], &x[1]);
                     //modulate amplitude and set output
-                    y[0] = (x[0] * usedArray[*mod_pnt1]) >> 15;
-                    y[1] = (x[1] * usedArray[*mod_pnt1]) >> 15;
+                    y[0] = (x[0] * usedArray1[*mod_pnt1]) >> 15;
+                    y[1] = (x[1] * usedArray1[*mod_pnt1]) >> 15;
                     setOutputBuffer(y[0], y[1]);
                 }
             }
@@ -317,7 +352,7 @@ int main() {
                 *mod_pnt1 = 0;
                 while(*keyReg != 3) {
                     //update delay
-                    del[0] = usedArray[*mod_pnt1];
+                    del[0] = usedArray1[*mod_pnt1];
                     *mod_pnt1 = (*mod_pnt1 + 1) % *VIBRATO_P;
                     //first, read sample
                     getInputBuffer(&audio_buffer[*pnt][0], &audio_buffer[*pnt][1]);
@@ -360,9 +395,27 @@ int main() {
 
             if(*FX == 10) {
                 //CHORUS
+                *pnt = CHORUS_LENGTH - 1; //start on top
+                *mod_pnt1 = 0;
+                *mod_pnt2 = 0;
                 while(*keyReg != 3) {
-                    printf("Effect not implemented yet\n");
-                    break;
+                    // SINUSOIDAL MODULATION OF DELAY LENGTH
+                    del[0] = usedArray1[*mod_pnt1];
+                    del[1] = usedArray2[*mod_pnt2];
+                    *mod_pnt1 = (*mod_pnt1 + 1) % CHORUS1_P;
+                    *mod_pnt2 = (*mod_pnt2 + 1) % CHORUS2_P;
+                    //audio, read sample
+                    getInputBuffer(&audio_buffer[*pnt][0], &audio_buffer[*pnt][1]);
+                    //calculate AUDIO comb filter
+                    combFilter_2nd(CHORUS_LENGTH, pnt, audio_buffer, y, accum, g, del);
+                    setOutputBuffer(y[0], y[1]);
+                    //update pointer
+                    if(*pnt == 0) {
+                        *pnt = CHORUS_LENGTH - 1;
+                    }
+                    else {
+                        *pnt = *pnt - 1;
+                    }
                 }
             }
 

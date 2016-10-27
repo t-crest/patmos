@@ -15,7 +15,7 @@
      -Modulation of cascaded signals is sinusoidal
 */
 
-#define AUDIO_BUFFER_LENGTH 2083 // for a delay of up to 2083*10e3 / 52083 = 25 ms
+#define AUDIO_BUFFER_LENGTH 2083 // for a delay of up to 2083*10e3 / 52083 =
 
 #include "audio.h"
 #include "audio.c"
@@ -48,33 +48,59 @@ volatile _SPM int *c2_pnt            = (volatile _SPM int *)        C2_PNT_ADDR;
 //location in external SRAM
 //volatile _SPM short (*audio_buffer)[2] = (volatile _SPM short (*)[2]) AUDIO_BUFFER_ADDR; // audio_buffer[AUDIO_BUFFER_LENGTH][2]
 volatile short audio_buffer[AUDIO_BUFFER_LENGTH][2];
+//sin array storage:
+const int SIN1_PERIOD = 52083; // 1 second
+const int SIN2_PERIOD = 40000; // ~0.8 seconds
+int sinArray[Fs];
+int usedArray1[SIN1_PERIOD];
+int usedArray2[SIN2_PERIOD];
 
 int main() {
 
-    setup(0); //guitar enabled
+    setup(1); //guitar enabled
 
     //*shiftLeft = 0;
 
     //gains
-    g[2] = ONE_16b * 0.8; //g0
-    g[1] = ONE_16b * 0.6; //g1
-    g[0] = ONE_16b * 0.6; //g2
+    g[2] = ONE_16b * 0.45; //g0
+    g[1] = ONE_16b * 0.4; //g1
+    g[0] = ONE_16b * 0.4; //g2
 
     //delays
     del[2] = 0; //always d0 = 0
 
-    //sin array storage:
-    int SIN1_PERIOD = 52083; // 1 second
-    int SIN2_PERIOD = 40000; // ~0.8 seconds
-    int sinC1[SIN1_PERIOD];
-    int sinC2[SIN2_PERIOD];
-    storeSin(sinC1, SIN1_PERIOD, ( AUDIO_BUFFER_LENGTH*0.6 ), ( AUDIO_BUFFER_LENGTH * 0.02) );
-    storeSin(sinC2, SIN2_PERIOD, ( AUDIO_BUFFER_LENGTH*0.4 ), ( AUDIO_BUFFER_LENGTH * 0.012) );
+    //store sin: 1 second betwen -1 and 1
+    storeSin(sinArray, Fs, 0, ONE_16b);
+
+    //calculate interpolated array:
+    float arrayDivider = (float)Fs/(float)SIN1_PERIOD;
+    printf("Array Divider is: %f\n", arrayDivider);
+    float mult1 = AUDIO_BUFFER_LENGTH*0.6;
+    float mult2 = AUDIO_BUFFER_LENGTH*0.03;
+    printf("Downsampling sin...\n");
+    for(int i=0; i<SIN1_PERIOD; i++) {
+        //offset = AUDIO_BUFFER_LENGTH*0.6, amplitude = AUDIO_BUFFER_LENGTH * 0.02
+        usedArray1[i] = mult1 + (mult2/ONE_16b)*sinArray[(int)floor(i*arrayDivider)];
+    }
+    printf("Done 1st...\n");
+    arrayDivider = (float)Fs/(float)SIN2_PERIOD;
+    printf("Array Divider is: %f\n", arrayDivider);
+    mult1 = AUDIO_BUFFER_LENGTH*0.4;
+    mult2 = AUDIO_BUFFER_LENGTH*0.016;
+    printf("Downsampling sin...\n");
+    for(int i=0; i<SIN2_PERIOD; i++) {
+        //offset = AUDIO_BUFFER_LENGTH*0.4, amplitude = AUDIO_BUFFER_LENGTH * 0.012
+        usedArray2[i] = mult1 + (mult2/ONE_16b)*sinArray[(int)floor(i*arrayDivider)];
+    }
+    printf("Done 2nd!\n");
+
+    //storeSin(usedArray1, SIN1_PERIOD, ( AUDIO_BUFFER_LENGTH*0.6 ), ( AUDIO_BUFFER_LENGTH * 0.02) );
+    //storeSin(usedArray2, SIN2_PERIOD, ( AUDIO_BUFFER_LENGTH*0.4 ), ( AUDIO_BUFFER_LENGTH * 0.012) );
     printf("sins storage done!\n");
 
     //CPU cycles stuff
-    int CPUcycles[1000] = {0};
-    int cpu_pnt = 0;
+    //int CPUcycles[1000] = {0};
+    //int cpu_pnt = 0;
 
     // enable input and output
     *audioDacEnReg = 1;
@@ -84,13 +110,12 @@ int main() {
     setOutputBufferSize(BUFFER_SIZE);
 
     *pnt = AUDIO_BUFFER_LENGTH - 1; //start on top
-    //*ch_pnt = 0;
     *c1_pnt = 0;
     *c2_pnt = 0;
     while(*keyReg != 3) {
         // SINUSOIDAL MODULATION OF DELAY LENGTH
-        del[0] = sinC1[*c1_pnt];
-        del[1] = sinC2[*c2_pnt];
+        del[0] = usedArray1[*c1_pnt];
+        del[1] = usedArray2[*c2_pnt];
         *c1_pnt = (*c1_pnt + 1) % SIN1_PERIOD;
         *c2_pnt = (*c2_pnt + 1) % SIN2_PERIOD;
         //audio, read sample
@@ -105,19 +130,19 @@ int main() {
         else {
             *pnt = *pnt - 1;
         }
-
+        /*
         //store CPU Cycles
         CPUcycles[cpu_pnt] = get_cpu_cycles();
         cpu_pnt++;
         if(cpu_pnt == 1000) {
             break;
         }
-
+        */
     }
-
+    /*
     for(int i=1; i<1000; i++) {
         printf("%d\n", (CPUcycles[i]-CPUcycles[i-1]));
     }
-
+    */
     return 0;
 }
