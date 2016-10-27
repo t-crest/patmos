@@ -22,7 +22,7 @@ volatile _SPM int *accum = (volatile _SPM int *)   ACCUM_ADDR;
 
 int main() {
 
-    setup(1); // 1 for guitar
+    setup(0); // 1 for guitar
 
     // enable input and output
     *audioDacEnReg = 1;
@@ -54,16 +54,16 @@ int main() {
 
     /*
       printf("overdrive test...\n");
-      x[0] = -0x5555; // 2/3
-      x[1] = -0x5556;
-      printf("input is %d, %d\n", x[0], x[1]);
-      overdrive(CH_LENGTH, x, y, OD_THRESHOLD);
-      printf("output is %d, %d\n", y[0], y[1]);
-      x[0] = -0x5557;
-      x[1] = -0x5558;
-      printf("input is %d, %d\n", x[0], x[1]);
-      overdrive(CH_LENGTH, x, y, OD_THRESHOLD);
-      printf("output is %d, %d\n", y[0], y[1]);
+      x[0] = 0x54E0; // 2/3
+      x[1] = 0x5556;
+      printf("input is %d, %d (%f, %f)\n", x[0], x[1], ((float)x[0]/pow(2,15)), ((float)x[1]/pow(2,15)));
+      overdrive(x, y, accum);
+      printf("output is %d, %d (%f, %f)\n", y[0], y[1], ((float)y[0]/pow(2,15)), ((float)y[1]/pow(2,15)));;
+      x[0] = 0x5557;
+      x[1] = 0x5558;
+      printf("input is %d, %d (%f, %f)\n", x[0], x[1], ((float)x[0]/pow(2,15)), ((float)x[1]/pow(2,15)));
+      overdrive(x, y, accum);
+      printf("output is %d, %d (%f, %f)\n", y[0], y[1], ((float)y[0]/pow(2,15)), ((float)y[1]/pow(2,15)));
     */
 
     const float amount = 0.9; //works with 0.77
@@ -101,6 +101,7 @@ int main() {
     //int CPUcycles[300] = {0};
     //int cpu_pnt = 0;
 
+
     while(*keyReg != 3) {
         getInputBufferSPM(&x[0], &x[1]);
         //fuzz(x, y, accum, K, KonePlus, shiftLeft_const);
@@ -108,16 +109,9 @@ int main() {
         //distortion(x, y, accum);
         //printf("for input %d, %d, output is %d, %d\n", x[0], x[1], y[0], y[1]);
         setOutputBuffer(y[0], y[1]);
-        /*
-        //store CPU Cycles
-        CPUcycles[cpu_pnt] = get_cpu_cycles();
-        cpu_pnt++;
-        if(cpu_pnt == 300) {
-        break;
-        }
-        */
 
     }
+
     /*
     //print CPU cycle time
     for(int i=1; i<300; i++) {

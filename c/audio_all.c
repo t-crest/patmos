@@ -79,6 +79,18 @@ volatile short audio_buffer[(int)Fs/2][2]; //up to 1/2 second
 
 int main() {
 
+    //FOR FUZZ:
+    const float fuzzAmount = 0.9; //works with 0.77
+    int fuzzKinit = ( (2*fuzzAmount)/(1-fuzzAmount) ) * pow(2,15);
+    int fuzzShiftL = 0;
+    while(fuzzKinit > ONE_16b) {
+        fuzzShiftL++;
+        fuzzKinit = fuzzKinit >> 1;
+    }
+    const int fuzzK = fuzzKinit;
+    const int fuzzKonePlus = (int)( ( (2*fuzzAmount)/(1-fuzzAmount) + 1 ) * pow(2,15) ) >> fuzzShiftL;
+    const int fuzzShiftLConst = fuzzShiftL;
+
     int exit = 0;
     float arrayDivider;
 
@@ -360,16 +372,18 @@ int main() {
             if(*FX == 11) {
                 //OVERDRIVE
                 while(*keyReg != 3) {
-                    printf("Effect not implemented yet\n");
-                    break;
+                    getInputBufferSPM(&x[0], &x[1]);
+                    overdrive(x, y, accum);
+                    setOutputBuffer(y[0], y[1]);
                 }
             }
 
             if(*FX == 12) {
                 //FUZZ
                 while(*keyReg != 3) {
-                    printf("Effect not implemented yet\n");
-                    break;
+                    getInputBufferSPM(&x[0], &x[1]);
+                    fuzz(x, y, accum, fuzzK, fuzzKonePlus, fuzzShiftLConst);
+                    setOutputBuffer(y[0], y[1]);
                 }
             }
         }

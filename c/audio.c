@@ -622,7 +622,12 @@ int overdrive(volatile _SPM short *x, volatile _SPM short *y, volatile _SPM int 
                 accum[j] = 0x17FFF - accum[j];
                 accum[j] = (accum[j] * 0x2AAB) >> 15;
                 if(x[j] > 0) { //positive
-                    y[j] = accum[j];
+                    if(accum[j] > 32767) {
+                        y[j] = 32767;
+                    }
+                    else {
+                        y[j] = accum[j];
+                    }
                 }
                 else { // negative
                     y[j] = -accum[j];
