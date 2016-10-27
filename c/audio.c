@@ -542,6 +542,35 @@ int combFilter_1st(int AUDIO_BUFF_LEN, volatile _SPM int *pnt, volatile short (*
     return 0;
 }
 
+int combFilter_2nd(int AUDIO_BUFF_LEN, volatile _SPM int *pnt, volatile short (*audio_buffer)[2], volatile _SPM short *y, volatile _SPM int *accum, volatile _SPM short *g, volatile _SPM int *del) {
+    int audio_pnt; //pointer for audio_buffer
+    accum[0] = 0;
+    accum[1] = 0;
+    for(int i=0; i<3; i++) { //3 for 2nd order
+        audio_pnt = (*pnt+del[i])%AUDIO_BUFF_LEN;
+        //printf("for pnt=%d and del=%d: audio_pnt=%d\n", *pnt, del[i], audio_pnt);
+        accum[0] += (g[i]*audio_buffer[audio_pnt][0]) >> 6;
+        accum[1] += (g[i]*audio_buffer[audio_pnt][1]) >> 6;
+    }
+    //accumulator limits: [ (2^(30-6-1))-1 , -(2^(30-6-1)) ]
+    //accumulator limits: [ 0x7FFFFF, 0x800000 ]
+    // digital saturation
+    for(int i=0; i<2; i++) {
+        if (accum[i] > 0x7FFFFF) {
+            accum[i] = 0x7FFFFF;
+        }
+        else {
+            if (accum[i] < -0x800000) {
+                accum[i] = -0x800000;
+            }
+        }
+    }
+    y[0] = accum[0] >> 9;
+    y[1] = accum[1] >> 9;
+
+    return 0;
+}
+
 //from 1/2! to 1/8!, represented as Q.15
 const short MCLAURIN_FACTOR[7] = { 0x4000, 0x1555, 0x555, 0x111, 0x2d, 0x6, 0x1};
 

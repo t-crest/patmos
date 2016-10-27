@@ -3,22 +3,19 @@
 #include <stdio.h>
 #include <math.h>
 
-#define ONE_16b 0x8000 //0x7FFF
-
-#define BUFFER_SIZE 32
-
+#define ONE_16b 0x7FFF
+#define BUFFER_SIZE 128
 #define Fs 52083 // Hz
 
-#define FILTER_ORDER_1PLUS 3 //FOR LPF filter of noise
 #define COMB_FILTER_ORDER_1PLUS 3 // FOR CHORUS comb filter
 
 
 /* Chorus:
      -Implemented as a 2nd order FIR comb filter
-     -Modulation of copied signals are noise signals, low-pass filtered for enhancement
+     -Modulation of cascaded signals is sinusoidal
 */
 
-#define FIR_BUFFER_LENGTH 2083 // for a delay of up to 25 52083 / 2083 = 25 ms
+#define AUDIO_BUFFER_LENGTH 2083 // for a delay of up to 2083*10e3 / 52083 = 25 ms
 
 #include "audio.h"
 #include "audio.c"
@@ -36,65 +33,25 @@
 #endif
 
 #define PNT_ADDR    ( DEL_ADDR    + COMB_FILTER_ORDER_1PLUS * sizeof(int) )
-
-//CHORUS: SINUSOIDAL MODULATION
 #define C1_PNT_ADDR ( PNT_ADDR    + sizeof(int) )
 #define C2_PNT_ADDR ( C1_PNT_ADDR + sizeof(int) )
 
-/*
-//NOISE GENERATION ADDRESSES
-#define CH_ACC_ADDR ( PNT_ADDR    + sizeof(int) )
-#define B_ADDR      ( CH_ACC_ADDR + 2 * sizeof(int) )
-
-#if ( (FILTER_ORDER_1PLUS % 2) == 0 ) //if it's even
-#define A_ADDR      ( B_ADDR      + FILTER_ORDER_1PLUS * sizeof(short) )
-#define CH_X_ADDR   ( A_ADDR      + FILTER_ORDER_1PLUS * sizeof(short) )
-#else  // if it's odd
-#define A_ADDR      ( B_ADDR      + FILTER_ORDER_1PLUS * sizeof(short) + 2 ) //to align with 4-byte word
-#define CH_X_ADDR   ( A_ADDR      + FILTER_ORDER_1PLUS * sizeof(short) + 2 ) //to align with 4-byte word
-#endif
-
-#if ( (((COMB_FILTER_ORDER_1PLUS-1) * FILTER_ORDER_1PLUS) % 2) == 0 ) //if it's even
-#define CH_Y_ADDR   ( CH_X_ADDR   + (COMB_FILTER_ORDER_1PLUS-1) * FILTER_ORDER_1PLUS * sizeof(short) )
-#define CH_PNT_ADDR ( CH_Y_ADDR   + (COMB_FILTER_ORDER_1PLUS-1) * FILTER_ORDER_1PLUS * sizeof(short) )
-#else // if it's odd: align with 4-byte word
-#define CH_Y_ADDR   ( CH_X_ADDR   + (COMB_FILTER_ORDER_1PLUS-1) * FILTER_ORDER_1PLUS * sizeof(short) + 2 )
-#define CH_PNT_ADDR ( CH_Y_ADDR   + (COMB_FILTER_ORDER_1PLUS-1) * FILTER_ORDER_1PLUS * sizeof(short) + 2 )
-#endif
-
-#define SFTLFT_ADDR ( CH_PNT_ADDR + sizeof(int) )
-*/
-
-
-
+//SPM Variables
 volatile _SPM int *accum             = (volatile _SPM int *)        ACCUM_ADDR;
 volatile _SPM short *y               = (volatile _SPM short *)      Y_ADDR; // y[2]: output
 volatile _SPM short *g               = (volatile _SPM short *)      G_ADDR; // g[FILTER_ORDER_1PLUS]: array of gains [... g2, g1, g0]
 volatile _SPM int *del               = (volatile _SPM int *)        DEL_ADDR; // del[FILTER_ORDER_1PLUS]: array of delays [...d2, d1, 0]
-volatile _SPM int *pnt               = (volatile _SPM int *)        PNT_ADDR; //pointer indicates last position of fir_buffer
+volatile _SPM int *pnt               = (volatile _SPM int *)        PNT_ADDR; //pointer indicates last position of audio_buffer
+volatile _SPM int *c1_pnt            = (volatile _SPM int *)        C1_PNT_ADDR; //sin pointer 1
+volatile _SPM int *c2_pnt            = (volatile _SPM int *)        C2_PNT_ADDR; //sin pointer 2
 
-//CHORUS: SINUSOIDAL MODULATION
-volatile _SPM int *c1_pnt            = (volatile _SPM int *)        C1_PNT_ADDR;
-volatile _SPM int *c2_pnt            = (volatile _SPM int *)        C2_PNT_ADDR;
-
-/*
-//LOW-PASS NOISE GENERATION SIGNALS
-float K;
-volatile _SPM int *ch_accum                            = (volatile _SPM int *)                                CH_ACC_ADDR;
-volatile _SPM short *B                                 = (volatile _SPM short *)                              B_ADDR; // [b2, b1, b0]
-volatile _SPM short *A                                 = (volatile _SPM short *)                              A_ADDR; // [a2, a1,  1]
-volatile _SPM short (*ch_x)[COMB_FILTER_ORDER_1PLUS-1] = (volatile _SPM short (*)[COMB_FILTER_ORDER_1PLUS-1]) CH_X_ADDR;
-volatile _SPM short (*ch_y)[COMB_FILTER_ORDER_1PLUS-1] = (volatile _SPM short (*)[COMB_FILTER_ORDER_1PLUS-1]) CH_Y_ADDR;
-volatile _SPM int *ch_pnt                              = (volatile _SPM int *)                                CH_PNT_ADDR;
-volatile _SPM int *shiftLeft                           = (volatile _SPM int *)                                SFTLFT_ADDR; //shift left amount;
-*/
-
-//volatile _SPM short (*fir_buffer)[2] = (volatile _SPM short (*)[2]) FIR_BUFFER_ADDR; // fir_buffer[FIR_BUFFER_LENGTH][2]
-volatile short fir_buffer[FIR_BUFFER_LENGTH][2];
+//location in external SRAM
+//volatile _SPM short (*audio_buffer)[2] = (volatile _SPM short (*)[2]) AUDIO_BUFFER_ADDR; // audio_buffer[AUDIO_BUFFER_LENGTH][2]
+volatile short audio_buffer[AUDIO_BUFFER_LENGTH][2];
 
 int main() {
 
-    setup(1); //guitar enabled
+    setup(0); //guitar enabled
 
     // enable input and output
     *audioDacEnReg = 1;
@@ -105,11 +62,6 @@ int main() {
 
     //*shiftLeft = 0;
 
-    //printf("Addresses: accum: %d, y: %d, g: %d, del: %d, pnt: %d, ch_accum: %d, B: %d, A: %d, ch_x: %d, ch_y: %d, ch_pnt: %d, shiftLeft: %d\n", (int)accum, (int)y, (int)g, (int)del, (int)pnt, (int)ch_accum, (int)B, (int)A, (int)ch_x, (int)ch_y, (int)ch_pnt, (int)shiftLeft);
-
-    //FILTER COEFFICIENTS FOR NOISE SIGNAL
-    //calc_filter_coeff(B, A, K, 600, 0.707, shiftLeft, 0); //0 for LPF
-
     //gains
     g[2] = ONE_16b * 0.8; //g0
     g[1] = ONE_16b * 0.6; //g1
@@ -118,46 +70,32 @@ int main() {
     //delays
     del[2] = 0; //always d0 = 0
 
-    //CPU cycles stuff
-    int CPUcycles[1000] = {0};
-    int cpu_pnt = 0;
-
     //sin array storage:
     int SIN1_PERIOD = 52083; // 1 second
     int SIN2_PERIOD = 40000; // ~0.8 seconds
     int sinC1[SIN1_PERIOD];
     int sinC2[SIN2_PERIOD];
-    storeSin(sinC1, SIN1_PERIOD, ( FIR_BUFFER_LENGTH*0.6 ), ( FIR_BUFFER_LENGTH * 0.02) );
-    storeSin(sinC2, SIN2_PERIOD, ( FIR_BUFFER_LENGTH*0.4 ), ( FIR_BUFFER_LENGTH * 0.012) );
+    storeSin(sinC1, SIN1_PERIOD, ( AUDIO_BUFFER_LENGTH*0.6 ), ( AUDIO_BUFFER_LENGTH * 0.02) );
+    storeSin(sinC2, SIN2_PERIOD, ( AUDIO_BUFFER_LENGTH*0.4 ), ( AUDIO_BUFFER_LENGTH * 0.012) );
     printf("sins storage done!\n");
 
-    *pnt = FIR_BUFFER_LENGTH - 1; //start on top
+    //CPU cycles stuff
+    int CPUcycles[1000] = {0};
+    int cpu_pnt = 0;
+
+    *pnt = AUDIO_BUFFER_LENGTH - 1; //start on top
     //*ch_pnt = 0;
     *c1_pnt = 0;
     *c2_pnt = 0;
     while(*keyReg != 3) {
-        /*
-        //UPDATE DELAYS: NOISE + LPF
-        for(int i=0; i<(COMB_FILTER_ORDER_1PLUS-1); i++) {
-            ch_x[*ch_pnt][i] = del[i] + ( (rand() % 3) - 1 );
-            //limits:
-            if(ch_x[*ch_pnt][i] > (FIR_BUFFER_LENGTH-1)) {
-                ch_x[*ch_pnt][i] = FIR_BUFFER_LENGTH - 1;
-            }
-            else {
-                if(ch_x[*ch_pnt][i] < 0) {
-                    ch_x[*ch_pnt][i] = 0;
-                }
-            }
-            filterIIR(ch_pnt, ch_x, ch_y, ch_accum, B, A, *shiftLeft);
-            del[i] = ch_y[*ch_pnt][i];
-        }
-        *ch_pnt = (*ch_pnt+1) % FILTER_ORDER_1PLUS;
-        */
         // SINUSOIDAL MODULATION OF DELAY LENGTH
         del[0] = sinC1[*c1_pnt];
         del[1] = sinC2[*c2_pnt];
         //printf("del[0]=%d, del[1]=%d\n", del[0], del[1]);
+
+        *c1_pnt = (*c1_pnt + 1) % SIN1_PERIOD;
+        *c2_pnt = (*c2_pnt + 1) % SIN2_PERIOD;
+        /*
         if (*c1_pnt < (SIN1_PERIOD-1)) {
             *c1_pnt = *c1_pnt + 1;
         }
@@ -170,16 +108,17 @@ int main() {
         else {
             *c2_pnt = 0;
         }
+        */
 
-        //first, read sample
-        getInputBuffer((short *)&fir_buffer[*pnt][0], (short *)&fir_buffer[*pnt][1]);
-        //calculate FIR comb filter
-        fir_comb(FIR_BUFFER_LENGTH, COMB_FILTER_ORDER_1PLUS, pnt, fir_buffer, y, accum, g, del);
+        //audiost, read sample
+        getInputBuffer(&audio_buffer[*pnt][0], &audio_buffer[*pnt][1]);
+        //calculate AUDIO comb filter
+        combFilter_2nd(AUDIO_BUFFER_LENGTH, pnt, audio_buffer, y, accum, g, del);
         //output sample
         setOutputBuffer(y[0], y[1]);
         //update pointer
         if(*pnt == 0) {
-            *pnt = FIR_BUFFER_LENGTH - 1;
+            *pnt = AUDIO_BUFFER_LENGTH - 1;
         }
         else {
             *pnt = *pnt - 1;
